@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/02/05 19:09:29 $
-// Revision       : $Revision: 1.95 $
+// Revision Date  : $Date: 2004/02/17 18:28:20 $
+// Revision       : $Revision: 1.96 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -387,82 +387,57 @@ static int boundsCheck(int ix, int iy, int iz, MRI *mri)
   return errCode;
 }
 
-int gcaNodeToPriorReal(GCA *gca, Real xn, Real yn, Real zn, Real *pxp, Real *pyp, Real *pzp)
-{
-  MATRIX *rasFromNode = extract_i_to_r(mri_node__);
-  MATRIX *priorFromRAS = extract_r_to_i(mri_prior__);
-  MATRIX *nodeToPrior = MatrixMultiply(priorFromRAS, rasFromNode, NULL);
-  TransformWithMatrix(nodeToPrior, xn, yn, zn, pxp, pyp, pzp);
-
-  MatrixFree(&rasFromNode);
-  MatrixFree(&priorFromRAS);
-  MatrixFree(&nodeToPrior);
-
-  return NO_ERROR;
-}
-
 static int
 gcaNodeToPrior(GCA *gca, int xn, int yn, int zn, int *pxp, int *pyp, int *pzp)
 {
-  Real xp, yp, zp;
-  int ixp, iyp, izp;
   // initialize errCode
   int errCode = NO_ERROR;
 
-  gcaNodeToPriorReal(gca, xn, yn, zn, &xp, &yp, &zp);
-
-  // bounds check
-  // xn, yn, zn are double.  we use voxel center as integer
-  ixp = (int) floor(xp+.5);
-  iyp = (int) floor(yp+.5);
-  izp = (int) floor(zp+.5);
-  
-  errCode = boundsCheck(ixp, iyp, izp, mri_prior__);
-
-  *pxp = ixp;
-  *pyp = iyp;
-  *pzp = izp;
-
+  // see GCApriorToNode comment
+  // node_spacing > prior_spacing 
+  // integer operation is floor
+  *pxp = xn*gca->node_spacing/gca->prior_spacing;
+  *pyp = yn*gca->node_spacing/gca->prior_spacing;
+  *pzp = zn*gca->node_spacing/gca->prior_spacing;
+  // no error should occur
   return errCode ;
-}
-
-int GCApriorToNodeReal(GCA *gca, Real xp, Real yp, Real zp, Real *pxn, Real *pyn, Real *pzn)
-{
-  MATRIX *rasFromPrior = extract_i_to_r(mri_prior__);
-  MATRIX *nodeFromRAS = extract_r_to_i(mri_node__);
-  MATRIX *priorToNode = MatrixMultiply(nodeFromRAS, rasFromPrior, NULL);
-
-  TransformWithMatrix(priorToNode, xp, yp, zp, pxn, pyn, pzn);
-
-  MatrixFree(&rasFromPrior);
-  MatrixFree(&nodeFromRAS);
-  MatrixFree(&priorToNode);
-
-  return NO_ERROR;
 }
 
 int
 GCApriorToNode(GCA *gca, int xp, int yp, int zp, int *pxn, int *pyn, int *pzn)
 {
-  Real xn, yn, zn;
-  int ixn=0;
-  int iyn=0;
-  int izn=0;
   int errCode = NO_ERROR;
-
-  GCApriorToNodeReal(gca, xp, yp, zp, &xn, &yn, &zn);
-
-  // bounds check
-  // xn, yn, zn are double.  we use voxel center as integer
-  ixn = (int) floor(xn+.5);
-  iyn = (int) floor(yn+.5);
-  izn = (int) floor(zn+.5);
-
-  errCode = boundsCheck(ixn, iyn, izn, mri_node__);
-
-  *pxn = ixn;
-  *pyn = iyn;
-  *pzn = izn;
+  ////////////////////////////////////////////////////////////////////////////////
+  // Note that prior and node share the common direction cosines/translation
+  //
+  //      prior has voxelToRAS = [ R | T ][prior_size | 0] = X [prior_size | 0] 
+  //                             [ 0 | 1 ][    0      | 1]     [    0      | 1]
+  //      node  has voxelToRAS = [ R | T ][ node_size | 0] = X [ node_size | 0]
+  //                             [ 0 | 1 ][    0      | 1]     [    0      | 1]
+  //        
+  //        prior   --->  RAS
+  //          |            |
+  //          |            | identity
+  //          V            V
+  //         node    ---> RAS
+  //                                  -1   -1 
+  //    priorToNode = [ node_size | 0]  * X   * X * [ prior_size | 0]
+  //                  [     0     | 1]              [     0      | 1]
+  //                            
+  //                = [         -1             |     ]
+  //                  [ node_size * prior_size |  0  ]
+  //                  [           0            |  1  ]
+  //
+  // Note that node_spacing > prior_spacing and thus the following will do 
+  // .5 becomes 0.
+  // but this is OK, since the correspondence is 
+  //               |  0  |   1  |   prior
+  //               |     0      |   node 
+  // i.e. 1 becomes 0
+  *pxn = xp*gca->prior_spacing/gca->node_spacing;
+  *pyn = yp*gca->prior_spacing/gca->node_spacing;
+  *pzn = zp*gca->prior_spacing/gca->node_spacing;
+  // no error should occur
   return errCode;
 }
 
@@ -611,9 +586,9 @@ GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
   GCAvoxelToNodeReal(gca, mri, xv, yv, zv, &xn, &yn, &zn);
 
   // xn, yn, zn are double.  we use voxel center as integer
-  ixn = (int) floor(xn+.5);
-  iyn = (int) floor(yn+.5);
-  izn = (int) floor(zn+.5);
+  ixn = (int) floor(xn);
+  iyn = (int) floor(yn);
+  izn = (int) floor(zn);
   // if outofbounds, tell it
   errCode = boundsCheck(ixn, iyn, izn, mri_node__);
   // 
@@ -653,9 +628,9 @@ GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv,
 
   GCAvoxelToPriorReal(gca, mri, xv, yv, zv, &xp, &yp, &zp);
 
-  ixp = (int) floor(xp+.5);
-  iyp = (int) floor(yp+.5);
-  izp = (int) floor(zp+.5);
+  ixp = (int) floor(xp);
+  iyp = (int) floor(yp);
+  izp = (int) floor(zp);
   // bound check
   // if outofbounds, tell it
   errCode = boundsCheck(ixp, iyp, izp, mri_prior__);
@@ -696,9 +671,9 @@ GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn,
 
   GCAnodeToVoxelReal(gca, mri, xn, yn, zn, &xv, &yv, &zv);
 
-  ixv = (int) floor(xv+.5);
-  iyv = (int) floor(yv+.5);
-  izv = (int) floor(zv+.5);
+  ixv = (int) floor(xv);
+  iyv = (int) floor(yv);
+  izv = (int) floor(zv);
 
   // bound check
   // if outofbounds, tell it
@@ -740,9 +715,9 @@ GCApriorToVoxel(GCA *gca, MRI *mri, int xp, int yp, int zp,
 
   GCApriorToVoxelReal(gca, mri, xp, yp, zp, &xv, &yv, &zv);
  
-  ixv = (int) floor(xv+.5);
-  iyv = (int) floor(yv+.5);
-  izv = (int) floor(zv+.5);
+  ixv = (int) floor(xv);
+  iyv = (int) floor(yv);
+  izv = (int) floor(zv);
   // bound check
   // if outofbounds, tell it
   errCode = boundsCheck(ixv, iyv, izv, mri);
@@ -814,6 +789,8 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,int xv, int yv, in
   {
     TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
   }
+  if (Ggca_x == xv && Ggca_y == yv && Ggca_z == zv)
+    fprintf(stderr, "source (%d, %d, %d) to talposition (%.2f, %.2f, %.2f)\n", xv, yv, zv, xt, yt, zt);
   // get the position in node from the talairach position
   return GCAvoxelToNode(gca, mri_tal__, xt, yt, zt, pxn, pyn, pzn) ;
 }
@@ -843,17 +820,17 @@ GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int
       // get the talairach to orig 
       TransformWithMatrix(lta->inv_xforms[0].m_L, xt, yt, zt, &xc, &yc, &zc);
       // TransformSampleInverse(transform, xt, yt, zt, &xc, &yc, &zc);
-      if (xc < -0.5) 
+      if (xc < 0) 
 	errCode = ERROR_BADPARM;
-      else if (yc < -0.5) 
+      else if (yc < 0) 
 	errCode = ERROR_BADPARM;
-      else if (zc < -0.5) 
+      else if (zc < 0) 
 	errCode = ERROR_BADPARM;
-      else if (xc > (width-1+.5)) 
+      else if (xc > (width-1)) 
 	errCode = ERROR_BADPARM;
-      else if (yc > (height-1+.5)) 
+      else if (yc > (height-1)) 
 	errCode = ERROR_BADPARM;
-      else if (zc > (depth-1+.5)) 
+      else if (zc > (depth-1)) 
 	errCode = ERROR_BADPARM;
       xv = xc;
       yv = yc;
@@ -889,17 +866,17 @@ GCAnodeToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, int xn, int 
     // get the talairach to orig 
     TransformWithMatrix(lta->inv_xforms[0].m_L, xt, yt, zt, &xc, &yc, &zc);
     // TransformSampleInverse(transform, xt, yt, zt, &xc, &yc, &zc);
-    if (xc < -0.5) 
+    if (xc < 0) 
       errCode = ERROR_BADPARM;
-    else if (yc < -0.5) 
+    else if (yc < 0) 
       errCode = ERROR_BADPARM;
-    else if (zc < -0.5) 
+    else if (zc < 0) 
       errCode = ERROR_BADPARM;
-    else if (xc > (width-1+.5)) 
+    else if (xc > (width-1)) 
       errCode = ERROR_BADPARM;
-    else if (yc > (height-1+.5)) 
+    else if (yc > (height-1)) 
       errCode = ERROR_BADPARM;
-    else if (zc > (depth-1+.5)) 
+    else if (zc > (depth-1)) 
       errCode = ERROR_BADPARM;
     xv = xc;
     yv = yc;
@@ -920,17 +897,17 @@ GCAnodeToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform, int xn, int yn, i
   float  xf, yf, zf ;
   int errCode = NO_ERROR;
   errCode = GCAnodeToSourceVoxelFloat(gca, mri, transform, xn, yn, zn, &xf, &yf, &zf) ;
-  if (xf < -0.5) 
+  if (xf < 0) 
     errCode = ERROR_BADPARM;
-  else if (yf < -0.5) 
+  else if (yf <0) 
     errCode = ERROR_BADPARM;
-  else if (zf < -0.5) 
+  else if (zf < 0) 
     errCode = ERROR_BADPARM;
-  else if (xf > (mri->width-1.+0.5)) 
+  else if (xf > (mri->width-1)) 
     errCode = ERROR_BADPARM; 
-  else if (yf > (mri->height-1.+0.5)) 
+  else if (yf > (mri->height-1)) 
     errCode = ERROR_BADPARM;
-  else if (zf > (mri->depth-1.+0.5)) 
+  else if (zf > (mri->depth-1)) 
     errCode = ERROR_BADPARM;
 
   *pxv = nint(xf) ; *pyv = nint(yf) ; *pzv = nint(zf) ;
@@ -945,17 +922,17 @@ GCApriorToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int yp, 
   int errCode = NO_ERROR;
 
   errCode = GCApriorToSourceVoxelFloat(gca, mri, transform, xp, yp, zp, &xf, &yf, &zf) ;
-  if (xf < -0.5) 
+  if (xf < 0) 
     errCode = ERROR_BADPARM;
-  else if (yf < -0.5) 
+  else if (yf < 0) 
     errCode = ERROR_BADPARM;
-  else if (zf < -0.5) 
+  else if (zf < 0) 
     errCode = ERROR_BADPARM;
-  else if (xf > (mri->width-1.+0.5))  
+  else if (xf > (mri->width-1))  
     errCode = ERROR_BADPARM;
-  else if (yf > (mri->height-1.+0.5)) 
+  else if (yf > (mri->height-1)) 
     errCode = ERROR_BADPARM;
-  else if (zf > (mri->depth-1.+0.5))  
+  else if (zf > (mri->depth-1))  
     errCode = ERROR_BADPARM;
 
   *pxv = nint(xf) ; *pyv = nint(yf) ; *pzv = nint(zf) ;
@@ -2110,7 +2087,7 @@ int
 GCAcompleteMeanTraining(GCA *gca)
 {
   int       x, y, z, n, total_nodes, total_gcs, i, j, holes_filled, total_brain_gcs,
-            total_brain_nodes, r ;
+    total_brain_nodes, r ;
   float     nsamples ;
   GCA_NODE  *gcan ;
   GCA_PRIOR *gcap ;
@@ -2200,11 +2177,11 @@ GCAcompleteMeanTraining(GCA *gca)
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
           gc = &gcan->gcs[n] ;
-					nsamples = gc->ntraining - gc->n_just_priors ;
+	  nsamples = gc->ntraining - gc->n_just_priors ;
           if (nsamples <= 0)
           {
             GC1D *gc_nbr ;
-						int  r, i ;
+	    int  r, i ;
 
             gc_nbr = findClosestValidGC(gca, x, y, z, gcan->labels[n], 0) ;
             if (!gc_nbr)
@@ -2426,6 +2403,7 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform)
 	GC1D      *gc ;
   float    /*dist,*/ max_p, p, vals[MAX_GCA_INPUTS] ;
 
+  // labeled volume has the same property of the inputs
   if (!mri_dst)
   {
     mri_dst = MRIalloc(mri_inputs->width, mri_inputs->height, mri_inputs->depth,MRI_UCHAR) ;
@@ -9568,7 +9546,7 @@ findClosestValidGC(GCA *gca, int x0, int y0, int z0, int label, int check_var)
   int        x, y, z, n ;
   double     dist, min_dist, det ;
   GCA_NODE   *gcan ;
-	MATRIX     *m_cov_inv ;
+  MATRIX     *m_cov_inv ;
 
   min_dist = gca->node_width+gca->node_height+gca->node_depth ;
   gc_min = NULL ;
@@ -9591,14 +9569,14 @@ findClosestValidGC(GCA *gca, int x0, int y0, int z0, int label, int check_var)
           if (gcan->labels[n] != label)
             continue ;
           gc = &gcan->gcs[n] ;
-					det = covariance_determinant(gc, gca->ninputs) ;
-					m_cov_inv = load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
-					if (m_cov_inv == NULL)
-						det = -1 ;
-					else
-						MatrixFree(&m_cov_inv) ;
-					if (check_var && det <= MIN_DET)
-						continue ;
+	  det = covariance_determinant(gc, gca->ninputs) ;
+	  m_cov_inv = load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
+	  if (m_cov_inv == NULL)
+	    det = -1 ;
+	  else
+	    MatrixFree(&m_cov_inv) ;
+	  if (check_var && det <= MIN_DET)
+	    continue ;
           dist = sqrt(SQR(x-x0)+SQR(y-y0)+SQR(z-z0)) ;
           if (dist < min_dist)
           {
@@ -9625,9 +9603,9 @@ findClosestValidGC(GCA *gca, int x0, int y0, int z0, int label, int check_var)
           if (gcan->labels[n] != label)
             continue ;
           gc = &gcan->gcs[n] ;
-					det = covariance_determinant(gc, gca->ninputs) ;
-					if (check_var && det <= 0)
-						continue ;
+	  det = covariance_determinant(gc, gca->ninputs) ;
+	  if (check_var && det <= 0)
+	    continue ;
           dist = sqrt(SQR(x-x0)+SQR(y-y0)+SQR(z-z0)) ;
           if (dist < min_dist)
           {
@@ -9713,7 +9691,7 @@ GCAcomputeConditionalDensity(GC1D *gc, float *vals, int ninputs, int label)
 #endif
   {
     dist = GCAmahDist(gc, vals, ninputs) ;
-		p = (1.0 / (pow(2*M_PI,ninputs/2.0)*sqrt(covariance_determinant(gc, ninputs)))) * exp(-0.5*dist) ;
+    p = (1.0 / (pow(2*M_PI,ninputs/2.0)*sqrt(covariance_determinant(gc, ninputs)))) * exp(-0.5*dist) ;
   }
   return(p) ;
 }
@@ -9727,7 +9705,7 @@ GCAcomputeNormalizedConditionalDensity(GCA *gca, int xp, int yp, int zp, float *
 
   gcap = &gca->priors[xp][yp][zp] ;
   if (gcap->nlabels <= 1)
-		return(1.0) ;
+    return(1.0) ;
 
   for (plabel = total = 0.0, n = 0 ; n < gcap->nlabels ; n++)
   {
@@ -9735,13 +9713,13 @@ GCAcomputeNormalizedConditionalDensity(GCA *gca, int xp, int yp, int zp, float *
     if (!gc)
       continue ;
     p = GCAcomputeConditionalDensity(gc,vals,gca->ninputs,gcap->labels[n]);
-		if (gcap->labels[n] == label)
-			plabel = p ;
-		total += p ;
+    if (gcap->labels[n] == label)
+      plabel = p ;
+    total += p ;
   }
 
-	if (!FZERO(total))
-		plabel /= total ;
+  if (!FZERO(total))
+    plabel /= total ;
   return(plabel) ;
 }
 
@@ -9770,8 +9748,8 @@ GCAcomputeConditionalLogDensity(GC1D *gc, float *vals, int ninputs, int label)
   else   /* Gaussian distribution */
 #endif
   {
-		det = covariance_determinant(gc, ninputs) ;
-		log_p = -log(sqrt(det)) - .5*GCAmahDist(gc, vals, ninputs) ;
+    det = covariance_determinant(gc, ninputs) ;
+    log_p = -log(sqrt(det)) - .5*GCAmahDist(gc, vals, ninputs) ;
   }
   return(log_p) ;
 }
