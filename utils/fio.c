@@ -272,6 +272,15 @@ fwriteFloat(float f, FILE *fp)
   return(fwrite(&f,sizeof(float),1,fp));
 }
 
+int
+fwriteDouble(double d, FILE *fp)
+{
+#ifdef Linux
+  d = swapDouble(d) ;
+#endif
+  return(fwrite(&d,sizeof(double),1,fp));
+}
+
 /*------------------------------------------------------
   fio_dirname() - function to replicate the functionality
   of the unix dirname.

@@ -20,6 +20,7 @@ int freadFloatEx(float *pf, FILE *fp) ;
 int freadIntEx(int *pi, FILE *fp) ;
 int freadShortEx(short *ps, FILE *fp) ;
 
+int   fwriteDouble(double d, FILE *fp) ;
 int   fwriteFloat(float f, FILE *fp) ;
 int   fwriteShort(short s, FILE *fp) ;
 int   fwriteInt(int v, FILE *fp) ;
