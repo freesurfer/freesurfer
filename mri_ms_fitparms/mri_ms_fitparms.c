@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/01/21 15:16:16 $
-// Revision       : $Revision: 1.25 $
+// Revision Date  : $Date: 2004/01/23 16:18:36 $
+// Revision       : $Revision: 1.26 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.25 2004/01/21 15:16:16 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.26 2004/01/23 16:18:36 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -210,7 +210,7 @@ main(int argc, char *argv[])
 
   nvolumes = average_volumes_with_different_echo_times(mri_flash, mri_all_flash, nvolumes_total) ;
   if (nvolumes == 2)
-    niter = 1 ;  /* don't bother motion-correcting when we only have 2 volumes */
+    niter = 0 ;  /* don't bother motion-correcting when we only have 2 volumes */
   if (synth_flag > 0)
   {
     for (i = 0 ; i < nvolumes ; i++)
