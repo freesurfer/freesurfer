@@ -1,6 +1,11 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+#ifdef X
+  #undef X
+#endif
+
+
 #include <stdio.h>
 
 /* matrices and vectors are the same data type, vector will only 
@@ -179,8 +184,16 @@ float MatrixTrace(MATRIX *M);
 MATRIX *MatrixVertCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat);
 MATRIX *MatrixHorCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat);
 
-MATRIX *MatrixConstVal(float val, int rows, int cols, MATRIX *m);
-MATRIX *MatrixZero(int rows, int cols, MATRIX *m);
+MATRIX *MatrixConstVal(float val, int rows, int cols, MATRIX *X);
+MATRIX *MatrixZero(int rows, int cols, MATRIX *X);
+MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum);
+MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m);
+
+double VectorSum(MATRIX *v);
+double VectorMean(MATRIX *v);
+double VectorVar(MATRIX *v, double *pMean);
+double VectorStdDev(MATRIX *v, double *pMean);
+double VectorRange(MATRIX *v, double *pVmin, double *pVmax);
 
 #endif
 
