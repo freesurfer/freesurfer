@@ -1,14 +1,15 @@
 #!/bin/csh -f
 # rocview
 #
-# $Id: rocview,v 1.8 2004/12/07 23:57:20 greve Exp $
+# $Id: rocview,v 1.9 2005/01/24 20:33:40 greve Exp $
 
-set VERSION = '$Id: rocview,v 1.8 2004/12/07 23:57:20 greve Exp $';
+set VERSION = '$Id: rocview,v 1.9 2005/01/24 20:33:40 greve Exp $';
 set inputargs = ($argv);
 
 set fprvolid = ();
 set tprvolid = ();
 set maskvolid = ();
+set maskthresh = 0.5;
 set ubermaskvolid = ();
 set roi = ();
 set frame = ();
@@ -78,6 +79,7 @@ tee -a > /dev/null $MLF  <<EOF
 fprvolid = splitstring('$fprvolid');
 tprvolid = '$tprvolid';
 maskvolid = splitstring('$maskvolid');
+maskthresh = $maskthresh;
 ubermaskvolid = '$ubermaskvolid';
 frame = [$frame];
 outfile = '$outfile';
@@ -120,7 +122,7 @@ if(size(maskvolid,1)==1)
   end
 
   maskvol = maskvol(:,:,:,1);
-  maskvol = maskvol > 0.5;
+  maskvol = abs(maskvol) > maskthresh;
   if(inout) maskvol = ~maskvol; end
   if(cutends)
     fprintf('Cutting ends\n');
@@ -294,6 +296,12 @@ while( $#argv != 0 )
     case "-mask":
       if ( $#argv == 0) goto arg1err;
       set maskvolid = ($maskvolid $argv[1]); shift;
+      breaksw
+
+    case "-maskthresh":
+    case "-maskth":
+      if ( $#argv == 0) goto arg1err;
+      set maskthresh = $argv[1]; shift;
       breaksw
 
     case "-ubermask":
