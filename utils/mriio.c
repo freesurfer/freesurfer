@@ -1380,8 +1380,11 @@ analyzeRead(char *fname, int read_volume, int frame)
   }
 #endif
 
-  mri = 
-    MRIallocSequence(width, height, depth, type, hdr.dime.dim[4]);
+  if(read_volume)
+    mri = MRIallocSequence(width, height, depth, type, hdr.dime.dim[4]);
+  else
+    mri = MRIallocHeader(width, height, depth, type);
+
 #if SUPPORT_TEXAS
   if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
@@ -1412,6 +1415,9 @@ analyzeRead(char *fname, int read_volume, int frame)
     mri->ystart = mri->xstart = mri->zstart ;
     mri->yend = mri->xend = mri->zend ;
   }
+
+  if(!read_volume)
+    return(mri);
   
   if (type == MRI_FLOAT)
     read_float_analyze_image(fname, mri, &hdr) ;
