@@ -18,6 +18,7 @@ typedef struct {
   int version;
   char title[200];
   char measname[200];
+  char tessellation[20]; /* surface or volume */
   char regsubj[200];
   char datafile[1000];
   int  nclasses;
@@ -36,10 +37,9 @@ typedef struct {
 
 FSGD *gdfAlloc(int version);
 int   gdfFree(FSGD **ppgd);
-FSGD *gdfRead(char *gdfname);
-int   gdfPrint(FILE *fp, FSGD *gd);
-FSGD *gdfRead(char *gdfname);
-int gdfCheckMatrixMethod(char *gd2mtx_method);
+FSGD *gdfRead(char *gdfname, int LoadData);
+int   gdfPrintHeader(FILE *fp, FSGD *gd);
+int     gdfCheckMatrixMethod(char *gd2mtx_method);
 MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X);
 MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X);
 MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X);
