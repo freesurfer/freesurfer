@@ -292,89 +292,6 @@ static int   num_control_points = 0 ;
 
 #define isOdd(x) (x%2)
 
-                                     /* struct and methods for a CtrlPtSpace 
-                                        class, a 3d buffer of char values. */
-
-typedef struct {
-  char * mBuffer;
-  int mIndexSize, mByteSize;
-} CtrlPtSpace;
-
-// error constants
-#define kCtrlPtSpaceErr_NoErr                          0
-#define kCtrlPtSpaceErr_InvalidSpacePtr                1
-#define kCtrlPtSpaceErr_InvalidSize                    2
-#define kCtrlPtSpaceErr_MemoryAllocFailed              3
-#define kCtrlPtSpaceErr_SpaceNotInited                 4
-#define kCtrlPtSpaceErr_CoordsOutOfBounds              5
-#define kCtrlPtSpaceErr_InvalidOutputAddress           6
-
-char kCtrlPtSpace_ErrString [7][256] = {
-  "No error.",
-  "Invalid pointer to strucutre (probably null).",
-  "Invalid size (probably < 0).",
-  "Space internal memory allocation failed. Size too big?",
-  "Space structure not initialized (buffer ptr was probably null).",
-  "Specified coordinates are out of bounds (either < 0 or > max index).",
-  "Invalid output pointer address (probably null)." };
-
-                                     /* Note: all CtrlPtSpace functions 
-                                        return error codes, defined above. */
-
-                                     /* allocates memory equal to inSize^3 
-                                        chars and fills it with inValue. */
-char CtrlPtSpace_Init ( CtrlPtSpace * inSpace,  // space to init
-                        short inSize,           // size to init to
-                        char inValue );         // value to fill space
-
-                                     /* frees the memory associated with the 
-                                        space. */
-char CtrlPtSpace_Delete ( CtrlPtSpace * inSpace ); // space to delete
-
-                                     /* returns the value at the specified
-          coord. */
-char CtrlPtSpace_GetValue ( CtrlPtSpace * inSpace,      // space to use 
-                            short x, short y, short z,  // coords of val 
-                            char * outValue );          // value returned
-
-                                     /* takes the xyz coords and returns the 
-                                        index into the buffer. no error 
-                                        checking, assumes space is set up 
-                                        and coords are valid. intended 
-                                        for "internal" use only. */
-long CtrlPtSpace_CoordToIndex ( CtrlPtSpace * inSpace,       // space to use
-                                short x, short y, short z ); // coords
-
-                                      /* sets the value at the specified
-                                         coord, overwriting previous value if 
-                                         existing. */
-char CtrlPtSpace_SetValue ( CtrlPtSpace * inSpace,      // space to use 
-                            short x, short y, short z,  // coords of val
-                            char inValue );             // val to set 
-
-                                      /* prints out all non-zero values 
-                                         in the space */
-char CtrlPtSpace_PrintDebug ( CtrlPtSpace * inSpace );
-
-                                      /* return the max index value. */
-char CtrlPtSpace_IndexSize ( CtrlPtSpace * inSpace, int * outIndex );
-
-                                      /* give it an error number, it gives 
-                                         you an error string ptr */
-char * CtrlPtSpace_GetErrorString ( int inErr );
-
-                                      /* tcl wrappers. i had trouble getting
-                                         tcl to work with functios that 
-                                         returned chars so i wrote these to 
-                                         call the the other ones. these will 
-                                         also look for errors and print 
-                                         error messages. */
-void TclCtrlPtSpace_SetValue ( CtrlPtSpace * inSpace,
-                               short x, short y, short z,
-                               char inValue );           
-void TclCtrlPtSpace_PrintDebug ( CtrlPtSpace * inSpace );
-
-
 
                                        /* a voxel data struct */
 typedef struct {
@@ -633,7 +550,6 @@ void SetCompositePixelInBuffer ( char * inBuffer, int inIndex,
 #define kRGBAColor_Yellow   0xff00ffff
 
                                        /* global storage for ctrl space. */
-CtrlPtSpace gCtrlPtSpace;
 VoxelSpace gCtrlPtList;
 
                                        /* global storage for selected ctrl 
@@ -6533,17 +6449,6 @@ int W_WriteCtrlPtFile WBEGIN
      WriteCtrlPtFile ( tfname );
      WEND
      
-int W_TclCtrlPtSpace_PrintDebug WBEGIN
-     ERR ( 1, "Wrong # args: TclCtrlPtSpace_PrintDebug" )
-     TclCtrlPtSpace_PrintDebug ( &gCtrlPtSpace );
-     WEND
-
-int W_TclCtrlPtSpace_SetValue WBEGIN
-     ERR ( 5, "Wrong # args: TclCtrlPtSpace_SetValue <x, y, z, val>")
-     TclCtrlPtSpace_SetValue ( &gCtrlPtSpace, atoi(argv[1]), atoi(argv[2]),
-                               atoi(argv[3]), atoi(argv[4]) );
-     WEND
-     
 int W_TclVList_PrintDebug WBEGIN
      ERR ( 1, "Wrong # args: TclVList_PrintDebug" )
      TclVList_PrintDebug ( &gSelectionList );
@@ -6756,10 +6661,6 @@ char **argv;
   // kt
   Tcl_CreateCommand ( interp, "ProcessCtrlPtFile", W_ProcessCtrlPtFile, REND );
   Tcl_CreateCommand ( interp, "WriteCtrlPtFile", W_WriteCtrlPtFile, REND );
-  Tcl_CreateCommand ( interp, "TclCtrlPtSpace_PrintDebug", 
-                      W_TclCtrlPtSpace_PrintDebug, REND );
-  Tcl_CreateCommand ( interp, "TclCtrlPtSpace_SetValue", 
-                      W_TclCtrlPtSpace_SetValue, REND );
   Tcl_CreateCommand ( interp, "TclVList_PrintDebug", 
                       W_TclVList_PrintDebug, REND );
   Tcl_CreateCommand ( interp, "TclVSpace_PrintDebug", 
@@ -7005,226 +6906,7 @@ static void Prompt(interp, partial)
 
 // kt
 
-                                     /* allocates memory equal to inSize^3 
-                                        chars and fills it with inValue. */
-char CtrlPtSpace_Init ( CtrlPtSpace * inSpace,  // space to init
-                        short inSize,           // size to init to
-                        char inValue ){         // value to fill space
-
-  int i;
-
-  // assert space exists
-  if ( NULL == inSpace ) 
-    return kCtrlPtSpaceErr_InvalidSpacePtr;
-
-  // assert good memory size
-  if ( inSize <= 0 ) 
-    return kCtrlPtSpaceErr_InvalidSize;
-
-  // attempt to allocate memory of inSize^3 chars. assert success.
-  inSpace->mBuffer = (char*) malloc ( inSize*inSize*inSize * sizeof(char) );
-  if ( NULL == inSpace->mBuffer ) 
-    return kCtrlPtSpaceErr_MemoryAllocFailed;
-
-  // set size.
-  inSpace->mByteSize = inSize*inSize*inSize * sizeof(char);
-  inSpace->mIndexSize = inSize;
-
-  // fill with default value. 
-  // kt_TODO: if inValue is 0, use bzero, much faster.
-  for ( i = 0; i < inSpace->mByteSize; i++ )
-    inSpace->mBuffer[i] = inValue;
-
-  return kCtrlPtSpaceErr_NoErr;
-}
-
-                                     /* frees the memory associated with the 
-                                        space. */
-char CtrlPtSpace_Delete ( CtrlPtSpace * inSpace ) {// space to delete
-
-  // assert space exists
-  if ( NULL == inSpace )
-    return kCtrlPtSpaceErr_InvalidSpacePtr;
-
-  // assert space has already been inited.
-  if ( NULL == inSpace->mBuffer ||
-       inSpace->mByteSize <= 0 )
-    return kCtrlPtSpaceErr_SpaceNotInited;
-
-  // free the space
-  free ( inSpace->mBuffer );
-
-  // set ptr and size to 0
-  inSpace->mBuffer = NULL;
-  inSpace->mByteSize = 0;
-
-  return kCtrlPtSpaceErr_NoErr;
-}
-
-                                     /* takes the xyz coords and returns the 
-                                        index into the buffer. no error 
-                                        checking, assumes space is set up 
-                                        and coords are valid. intended 
-                                        for "internal" use only. */
-long CtrlPtSpace_CoordToIndex ( CtrlPtSpace * inSpace,       // space to use
-                                short x, short y, short z ) {// coords
-  
-  // z-y-x order.
-  return ( z*inSpace->mIndexSize*inSpace->mIndexSize ) +
-    ( y*inSpace->mIndexSize ) + x;
-
-}
-
-                                    /* returns the value at the specified 
-                                        coord. */
-char CtrlPtSpace_GetValue ( CtrlPtSpace * inSpace,      // space to use 
-                            short x, short y, short z,  // coords of val 
-                            char * outValue ) {         // value returned
-
-  // assert space exists
-  if ( NULL == inSpace )
-    return kCtrlPtSpaceErr_InvalidSpacePtr;
-
-  // assert space has already been inited.
-  if ( NULL == inSpace->mBuffer ||
-       inSpace->mByteSize <= 0 )
-    return kCtrlPtSpaceErr_SpaceNotInited;
-
-  // assert coords are in bounds.
-  if ( x < 0 || x >= inSpace->mIndexSize ||
-       y < 0 || y >= inSpace->mIndexSize ||
-       z < 0 || z >= inSpace->mIndexSize )
-    return kCtrlPtSpaceErr_CoordsOutOfBounds;
-
-  // assert return value is okay.
-  if ( NULL == outValue )
-    return kCtrlPtSpaceErr_InvalidOutputAddress;
-
-  // grab value.
-  *outValue = inSpace->mBuffer [ CtrlPtSpace_CoordToIndex ( inSpace,x,y,z ) ];
-
-  return kCtrlPtSpaceErr_NoErr;
-}
-
-                                        /* sets the value at the specified
-                                         coord, overwriting previous value if 
-                                         existing. */
-char CtrlPtSpace_SetValue ( CtrlPtSpace * inSpace,      // space to use 
-                            short x, short y, short z,  // coords of val
-                            char inValue ) {            // val to set 
-  // assert space exists
-  if ( NULL == inSpace )
-    return kCtrlPtSpaceErr_InvalidSpacePtr;
-
-  // assert space has already been inited.
-  if ( NULL == inSpace->mBuffer ||
-       inSpace->mByteSize <= 0 )
-    return kCtrlPtSpaceErr_SpaceNotInited;
-
-  // assert coords are in bounds.
-  if ( x < 0 || x >= inSpace->mIndexSize ||
-       y < 0 || y >= inSpace->mIndexSize ||
-       z < 0 || z >= inSpace->mIndexSize )
-    return kCtrlPtSpaceErr_CoordsOutOfBounds;
-
-  // put value.
-  inSpace->mBuffer [ CtrlPtSpace_CoordToIndex ( inSpace,x,y,z ) ] =
-    inValue;
-
-  return kCtrlPtSpaceErr_NoErr;
-}
-
-                                      /* return the max index value. */
-char CtrlPtSpace_IndexSize ( CtrlPtSpace * inSpace, int * outIndex ) {
-
-  // assert space exists
-  if ( NULL == inSpace )
-    return kCtrlPtSpaceErr_InvalidSpacePtr;
-
-  // assert space has already been inited.
-  if ( NULL == inSpace->mBuffer ||
-       inSpace->mByteSize <= 0 )
-    return kCtrlPtSpaceErr_SpaceNotInited;
-
-  // set the index value.
-  *outIndex = inSpace->mIndexSize;
-
-  return kCtrlPtSpaceErr_NoErr;
-}
-
-                                      /* prints out all non-zero values 
-                                         in the space */
-char CtrlPtSpace_PrintDebug ( CtrlPtSpace * inSpace ) {
-
-  int theX, theY, theZ;
-  char theValue;
-
-  // assert space exists
-  if ( NULL == inSpace )
-    return kCtrlPtSpaceErr_InvalidSpacePtr;
-
-  // assert space has already been inited.
-  if ( NULL == inSpace->mBuffer ||
-       inSpace->mByteSize <= 0 )
-    return kCtrlPtSpaceErr_SpaceNotInited;
-
-  fprintf ( stderr, "Printing out non-zero values in CtrlPtSpace...\n" );
-
-  // step through the entire space, looking for non-zero values..
-  for ( theZ = 0; theZ < inSpace->mIndexSize; theZ++ ) {
-    for ( theY = 0; theY < inSpace->mIndexSize; theY++ ) {
-      for ( theX = 0; theX < inSpace->mIndexSize; theX++ ) {
-
-        CtrlPtSpace_GetValue ( inSpace, theX, theY, theZ, &theValue );
-
-        // if we get one, print it out
-        if ( theValue != 0 ) {
-          fprintf ( stderr, "\t(%d,%d,%d) = %d\n", 
-                    theX, theY, theZ, theValue );
-        }
-      }
-    }
-  }
-
-  fprintf ( stderr, "\tDone.\n\n" );
-  PR;
-
-  return kCtrlPtSpaceErr_NoErr;
-
-}
-
-char * CtrlPtSpace_GetErrorString ( int inErr ) {
-
-  return (char*)(kCtrlPtSpace_ErrString[inErr]);
-}
-                                      /* tcl wrappers. i had trouble getting
-                                         tcl to work with functios that 
-                                         returned chars so i wrote these to 
-                                         call the the other ones. these will 
-                                         also look for errors and print 
-                                         error messages. */
-void TclCtrlPtSpace_PrintDebug ( CtrlPtSpace * inSpace ) {
-
-  char theErr;
-  theErr = CtrlPtSpace_PrintDebug ( inSpace );
-  if ( theErr != kCtrlPtSpaceErr_NoErr )
-    fprintf ( stderr, "TclCtrlPtSpace_PrintDebug: Error %s\n", 
-              CtrlPtSpace_GetErrorString(theErr) );
-  else
-    fprintf ( stderr, "TclCtrlPtSpace_PrintDebug: Done.\n" );
-}
-
-void TclCtrlPtSpace_SetValue ( CtrlPtSpace * inSpace,
-                               short x, short y, short z,
-                               char inValue ) {
-
-  char theErr;
-  theErr = CtrlPtSpace_SetValue ( inSpace, x, y, z, inValue );
-  if ( theErr != kCtrlPtSpaceErr_NoErr )
-    fprintf ( stderr, "TclCtrlPtSpace_SetValue: Error %d\n", theErr );
-  else
-    fprintf ( stderr, "TclCtrlPtSpace_SetValue: Done.\n" );
-}
+/* ================================================================= Voxel */ 
 
 
                                        /* silly accessor methods for max
@@ -7256,7 +6938,7 @@ int Voxel_GetZ ( Voxel * inVoxel ) {
   return inVoxel->mZ;
 }
 
-
+/* ============================================================ VoxelList */
                                        /* init the voxel list. */
 char VList_Init ( VoxelList * inList ) {
 
@@ -7503,6 +7185,9 @@ char * VList_GetErrorString ( int inErr ) {
 
   return (char*)(kVList_ErrString[inErr]);
 }
+
+
+/* ============================================================= VoxelSpace */
 
                                        /* init the space */
 char VSpace_Init ( VoxelSpace * inSpace ) {
@@ -7782,6 +7467,7 @@ char * VSpace_GetErrorString ( int inErrorNum ) {
 }
 
 
+/* ================================================ Control point utilities */
 
                                        /* reads the control.dat file, 
                                           transforms all pts from RAS space 
@@ -8003,6 +7689,163 @@ void ToggleCtrlPtDisplayStyle () {
   PR;
 }
 
+                                       /* draw control point. switches on 
+                                          the current display style of the 
+                                          point. */
+void DrawCtrlPt ( char * inBuffer,  // video buffer to draw into
+                  int inX, int inY, // x,y location in the buffer
+                  long inColor ) {  // color to draw in
+
+  switch ( gCtrlPtDrawStyle ) {
+
+  case kCtrlPtStyle_Point:
+
+    if ( !all3flag ) {
+      FillBoxInBuffer ( inBuffer, inX, inY, zf, inColor );
+    } else {
+      FillBoxInBuffer ( inBuffer, inX, inY, 1, inColor );
+    }
+
+    break;
+
+  case kCtrlPtStyle_Crosshair:
+
+    DrawCrosshairInBuffer ( inBuffer, inX, inY, 
+                            kCtrlPtCrosshairRadius, inColor );
+    break;
+  }
+}
+                
+                                       /* handles the clicking of ctrl pts */
+void SelectCtrlPt () {
+
+  int theVoxX, theVoxY, theVoxZ;
+  char isCtrlPt, theResult;
+  Voxel theVoxel;
+  
+  // find the voxel they selected
+  ScreenToVoxel ( jc, ic, imc, &theVoxX, &theVoxY, &theVoxZ );
+
+  // make a voxel.
+  Voxel_Set ( &theVoxel, theVoxX, theVoxY, theVoxZ );
+
+  // is this a ctrl pt?
+  theResult = VSpace_IsInList ( &gCtrlPtList, &theVoxel, &isCtrlPt );
+  if ( theResult != kVSpaceErr_NoErr ) {
+    fprintf ( stderr, "SelectCtrlPt(): Error in VSpace_IsInSpace: %s\n", 
+              VSpace_GetErrorString(theResult) );
+    return;
+  }
+
+  if ( isCtrlPt ) {
+
+    // if shift key is down
+    if ( shiftkeypressed ) {
+
+      // add this point to the selection
+      theResult = VList_AddVoxel ( &gSelectionList, &theVoxel );
+      if ( theResult != kVListErr_NoErr )
+        fprintf ( stderr, "Error in VList_AddVoxel: %s\n",
+                  VList_GetErrorString ( theResult ) );
+    
+      // else if shift key is not down...
+    } else {
+
+      // if ctrl key is down
+      if ( ctrlkeypressed ) {
+
+        // remove this point from selection
+        theResult = VList_RemoveVoxel ( &gSelectionList, &theVoxel );
+        if ( theResult != kVListErr_NoErr )
+          fprintf ( stderr, "Error in VList_RemoveVoxel: %s\n",
+                    VList_GetErrorString ( theResult ) );
+        
+      // no shift and no ctrl key
+      } else {
+
+        // remove all points from selection and add this point
+        theResult = VList_ClearList ( &gSelectionList );
+        if ( theResult != kVListErr_NoErr )
+          fprintf ( stderr, "Error in VList_CkearList: %s\n",
+                    VList_GetErrorString ( theResult ) );
+
+        theResult = VList_AddVoxel ( &gSelectionList, &theVoxel );
+        if ( theResult != kVListErr_NoErr )
+          fprintf ( stderr, "Error in VList_AddVoxel: %s\n",
+                    VList_GetErrorString ( theResult ) );
+
+      }
+    }
+
+  } else {
+
+    /*
+    // if they didn't click on a ctrl pt, clear the selection.
+    theResult = VList_ClearList ( &gSelectionList );
+    if ( theResult != kVListErr_NoErr )
+      fprintf ( stderr, "Error in VList_CkearList: %s\n",
+                VList_GetErrorString ( theResult ) );
+    
+    fprintf ( stderr, " Selection cleared.\n" );
+    */
+  }
+}
+
+
+
+                                        /* remove the selected control points 
+                                           from the control point space */
+void DeleteSelectedCtrlPts () {
+
+  char theResult;
+  int theCount, theIndex;
+  Voxel theCtrlPt;
+
+  // get the number of selected points we have
+  theResult = VList_GetCount ( &gSelectionList, &theCount );
+  if ( theResult != kVListErr_NoErr ) {
+    fprintf ( stderr, "Error in VList_GetCount: %s\n",
+              VList_GetErrorString ( theResult ) );
+    return;
+  }
+
+  fprintf ( stderr, "Deleting selected control points... " );
+
+  // for each one...
+  for ( theIndex = 0; theIndex < theCount; theIndex++ ) {
+
+    // get it
+    theResult = VList_GetNthVoxel ( &gSelectionList, theIndex, &theCtrlPt );
+    if ( theResult != kVListErr_NoErr ) {
+      fprintf ( stderr, "Error in VList_GetNthVoxel: %s\n",
+                VList_GetErrorString ( theResult ) );
+      continue;
+    }
+    
+    // set its value in the space to 0
+    theResult = VSpace_RemoveVoxel ( &gCtrlPtList, &theCtrlPt );
+    if ( theResult != kVSpaceErr_NoErr ) {
+      fprintf ( stderr, "DeleteSelectedCtrlPts(): Error in VSpace_RemoveVoxel: %s\n",
+                VSpace_GetErrorString ( theResult ) );
+      continue;
+    }        
+  }
+
+  // remove all pts from the selection list
+  theResult = VList_ClearList ( &gSelectionList );
+  if ( theResult != kVListErr_NoErr ) {
+    fprintf ( stderr, "Error in VList_ClearList: %s\n",
+              VList_GetErrorString ( theResult ) );
+    return;
+  }
+
+  fprintf ( stderr, " done.\n" );
+  PR;
+}
+
+
+/* ============================================= Coordinate transformations */
+
                                        /* converts screen coords to 
                                           255 based voxel coords and back */
 void ScreenToVoxel ( int j, int i, int im,      // incoming screen coords
@@ -8072,6 +7915,9 @@ void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
    *y = (Real) ( yy0 + ( st*rzi ) );
    *z = (Real) ( zz1 - ( ps * ( 255.0 - ( (rydim-1.0) / fsf ) + ryi ) ) );
 }
+
+
+/* ===================================================== Graphics utilities */
 
                                       /* draws a crosshair cursor into a 
                                          video buffer. */
@@ -8175,157 +8021,7 @@ void SetCompositePixelInBuffer ( char * inBuffer, int inIndex,
 }
 
 
-                                       /* draw control point. switches on 
-                                          the current display style of the 
-                                          point. */
-void DrawCtrlPt ( char * inBuffer,  // video buffer to draw into
-                  int inX, int inY, // x,y location in the buffer
-                  long inColor ) {  // color to draw in
-
-  switch ( gCtrlPtDrawStyle ) {
-
-  case kCtrlPtStyle_Point:
-
-    if ( !all3flag ) {
-      FillBoxInBuffer ( inBuffer, inX, inY, zf, inColor );
-    } else {
-      FillBoxInBuffer ( inBuffer, inX, inY, 1, inColor );
-    }
-
-    break;
-
-  case kCtrlPtStyle_Crosshair:
-
-    DrawCrosshairInBuffer ( inBuffer, inX, inY, 
-                            kCtrlPtCrosshairRadius, inColor );
-    break;
-  }
-}
-                
-                                       /* handles the clicking of ctrl pts */
-void SelectCtrlPt () {
-
-  int theVoxX, theVoxY, theVoxZ;
-  char isCtrlPt, theResult;
-  Voxel theVoxel;
-  
-  // find the voxel they selected
-  ScreenToVoxel ( jc, ic, imc, &theVoxX, &theVoxY, &theVoxZ );
-
-  // make a voxel.
-  Voxel_Set ( &theVoxel, theVoxX, theVoxY, theVoxZ );
-
-  // is this a ctrl pt?
-  theResult = VSpace_IsInList ( &gCtrlPtList, &theVoxel, &isCtrlPt );
-  if ( theResult != kVSpaceErr_NoErr ) {
-    fprintf ( stderr, "SelectCtrlPt(): Error in VSpace_IsInSpace: %s\n", 
-              VSpace_GetErrorString(theResult) );
-    return;
-  }
-
-  if ( isCtrlPt ) {
-
-    // if shift key is down
-    if ( shiftkeypressed ) {
-
-      // add this point to the selection
-      theResult = VList_AddVoxel ( &gSelectionList, &theVoxel );
-      if ( theResult != kVListErr_NoErr )
-        fprintf ( stderr, "Error in VList_AddVoxel: %s\n",
-                  VList_GetErrorString ( theResult ) );
-    
-      // else if shift key is not down...
-    } else {
-
-      // if ctrl key is down
-      if ( ctrlkeypressed ) {
-
-        // remove this point from selection
-        theResult = VList_RemoveVoxel ( &gSelectionList, &theVoxel );
-        if ( theResult != kVListErr_NoErr )
-          fprintf ( stderr, "Error in VList_RemoveVoxel: %s\n",
-                    VList_GetErrorString ( theResult ) );
-        
-      // no shift and no ctrl key
-      } else {
-
-        // remove all points from selection and add this point
-        theResult = VList_ClearList ( &gSelectionList );
-        if ( theResult != kVListErr_NoErr )
-          fprintf ( stderr, "Error in VList_CkearList: %s\n",
-                    VList_GetErrorString ( theResult ) );
-
-        theResult = VList_AddVoxel ( &gSelectionList, &theVoxel );
-        if ( theResult != kVListErr_NoErr )
-          fprintf ( stderr, "Error in VList_AddVoxel: %s\n",
-                    VList_GetErrorString ( theResult ) );
-
-      }
-    }
-
-  } else {
-
-    /*
-    // if they didn't click on a ctrl pt, clear the selection.
-    theResult = VList_ClearList ( &gSelectionList );
-    if ( theResult != kVListErr_NoErr )
-      fprintf ( stderr, "Error in VList_CkearList: %s\n",
-                VList_GetErrorString ( theResult ) );
-    
-    fprintf ( stderr, " Selection cleared.\n" );
-    */
-  }
-}
-
-                                        /* remove the selected control points 
-                                           from the control point space */
-void DeleteSelectedCtrlPts () {
-
-  char theResult;
-  int theCount, theIndex;
-  Voxel theCtrlPt;
-
-  // get the number of selected points we have
-  theResult = VList_GetCount ( &gSelectionList, &theCount );
-  if ( theResult != kVListErr_NoErr ) {
-    fprintf ( stderr, "Error in VList_GetCount: %s\n",
-              VList_GetErrorString ( theResult ) );
-    return;
-  }
-
-  fprintf ( stderr, "Deleting selected control points... " );
-
-  // for each one...
-  for ( theIndex = 0; theIndex < theCount; theIndex++ ) {
-
-    // get it
-    theResult = VList_GetNthVoxel ( &gSelectionList, theIndex, &theCtrlPt );
-    if ( theResult != kVListErr_NoErr ) {
-      fprintf ( stderr, "Error in VList_GetNthVoxel: %s\n",
-                VList_GetErrorString ( theResult ) );
-      continue;
-    }
-    
-    // set its value in the space to 0
-    theResult = VSpace_RemoveVoxel ( &gCtrlPtList, &theCtrlPt );
-    if ( theResult != kVSpaceErr_NoErr ) {
-      fprintf ( stderr, "DeleteSelectedCtrlPts(): Error in VSpace_RemoveVoxel: %s\n",
-                VSpace_GetErrorString ( theResult ) );
-      continue;
-    }        
-  }
-
-  // remove all pts from the selection list
-  theResult = VList_ClearList ( &gSelectionList );
-  if ( theResult != kVListErr_NoErr ) {
-    fprintf ( stderr, "Error in VList_ClearList: %s\n",
-              VList_GetErrorString ( theResult ) );
-    return;
-  }
-
-  fprintf ( stderr, " done.\n" );
-  PR;
-}
+/* ===================================================== General utilities */
 
 
 void PrintScreenPointInformation ( int j, int i, int ic ) {
