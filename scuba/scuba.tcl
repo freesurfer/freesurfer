@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.91 2005/03/15 21:33:16 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.92 2005/03/18 21:42:37 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4767,7 +4767,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.91 2005/03/15 21:33:16 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.92 2005/03/18 21:42:37 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5117,9 +5117,17 @@ while { $nArg < $argc } {
     set sOption [string range $sArg [expr [string last "-" $sArg]+1] end]
     switch $sOption {
 	v - volume {
+
 	    incr nArg
 	    set fnVolume [lindex $argv $nArg]
 	    lappend lCommands "LoadVolume $fnVolume 1 [GetMainFrameID]"
+	    
+	    while { [expr ($nArg + 1) < $argc] &&
+		    [string range [lindex $argv [expr $nArg+1]] 0 0] != "-" } {
+		incr nArg
+		set fnVolume [lindex $argv $nArg]
+		lappend lCommands "LoadVolume $fnVolume 1 [GetMainFrameID]"
+	    }
 	}
 	f - surface {
 	    incr nArg
