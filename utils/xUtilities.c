@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <signal.h>
 #include <stdarg.h>
 #include "xUtilities.h"
 
@@ -10,6 +11,10 @@ char *xUtil_ksaErrorString [xUtil_tErr_knNumErrorCodes] = {
   "No error.",
   "Invalid error code."
 };
+
+int xUtil_gCancelListening    = 0;
+int xUtil_gCancelUserCanceled = 0;
+
 
 xUtil_tErr xUtil_BreakStringIntoPathAndStem ( char* isPathAndStem,
                 char* osPath,
@@ -152,6 +157,49 @@ void xUtil_snprintf ( char* ipDest, int inSize, char* isFormat, ... ) {
      DebugGetNote, inSize) );
     DebugPrintStack;
   }
+}
+
+
+void xUtil_InitializeUserCancel () {
+
+  /* init the flags and register our handler. */
+  xUtil_gCancelListening = 0;
+  xUtil_gCancelUserCanceled = 0;
+  signal( SIGINT, xUtil_HandleUserCancelCallback );
+}
+
+void xUtil_StartListeningForUserCancel () {
+
+  /* set our listening flag. */
+  xUtil_gCancelListening = 1;
+}
+
+void xUtil_StopListeningForUserCancel () {
+
+  /* stop listening and reset the canceled flag. */
+  xUtil_gCancelListening = 0;
+  xUtil_gCancelUserCanceled = 0;
+}
+
+int xUtil_DidUserCancel () {
+
+  /* just return the canceled flag. */
+  return xUtil_gCancelUserCanceled ;
+}
+
+void xUtil_HandleUserCancelCallback (int signal) {
+
+  /* if we're listening, set the flag, if not, exit normally. */
+  if( xUtil_gCancelListening ) {
+
+      xUtil_gCancelUserCanceled = 1;
+
+   } else {
+
+      printf( "Killed\n" );
+      fflush( stdout );
+      exit(1);
+    }
 }
 
 

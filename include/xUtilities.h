@@ -38,3 +38,11 @@ void xUtil_sprintf  ( char* ipDest, char* isFormat, ... );
 char* xUtil_GetErrorString( xUtil_tErr iCode );
 
 
+/*
+ * For doing ctrl-c to cancel long operations but not quit the program.
+ */
+void xUtil_InitializeUserCancel ();
+void xUtil_StartListeningForUserCancel ();
+void xUtil_StopListeningForUserCancel ();
+int xUtil_DidUserCancel ();
+void xUtil_HandleUserCancelCallback (int signal);
