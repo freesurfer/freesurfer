@@ -190,6 +190,7 @@ freadInt(FILE *fp)
   return(i) ;
 }
 
+
 short
 freadShort(FILE *fp)
 {
@@ -205,6 +206,54 @@ freadShort(FILE *fp)
   return(s) ;
 }
 
+/*******************************************************/
+/* read routines which can be used for fread           */
+/* the usage is                                        */
+/*                                                     */
+/* while (fread..Ex(., fp))                            */
+/*   dosomething();                                    */
+/*******************************************************/
+int freadFloatEx(float *pf, FILE *fp)
+{
+  int   ret ;
+  ret = fread(pf,sizeof(float),1,fp);
+#ifdef Linux
+  *pf = swapFloat(*pf) ;
+#endif
+  return ret;
+}
+
+int freadDoubleEx(double *pd, FILE *fp)
+{
+  int   ret ;
+  ret = fread(pd,sizeof(double),1,fp);
+#ifdef Linux
+  *pd = swapDouble(*pd) ;
+#endif
+  return ret;
+}
+
+int freadIntEx(int *pi, FILE *fp)
+{
+  int nread ;
+  nread = fread(pi,sizeof(int),1,fp);
+#ifdef Linux
+  *pi = swapInt(*pi) ; /* swapInt(int i) */
+#endif
+  return(nread);
+}
+
+int freadShortEx(short *ps, FILE *fp)
+{
+  int   nread ;
+  nread = fread(ps,sizeof(short),1,fp);
+#ifdef Linux
+  *ps = swapShort(*ps) ;
+#endif
+  return(nread) ;
+}
+
+/******************************************************/
 int
 fwriteInt(int v, FILE *fp)
 {

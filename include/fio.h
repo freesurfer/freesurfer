@@ -14,6 +14,12 @@ float freadFloat(FILE *fp) ;
 int   freadInt(FILE *fp) ;
 short freadShort(FILE *fp) ;
 
+/* return 1 if succeed, return 0 if fail */
+int freadDoubleEx(double *pd, FILE *fp) ;
+int freadFloatEx(float *pf, FILE *fp) ;
+int freadIntEx(int *pi, FILE *fp) ;
+int freadShortEx(short *ps, FILE *fp) ;
+
 int   fwriteFloat(float f, FILE *fp) ;
 int   fwriteShort(short s, FILE *fp) ;
 int   fwriteInt(int v, FILE *fp) ;
