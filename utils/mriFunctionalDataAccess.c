@@ -61,7 +61,8 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* opVolume,
 		     char*                 isFileName, 
 		     char*                 isHeaderStem,
 		     char*                 isRegistrationFileName,
-		     MATRIX*               iTkregMat ) {
+		     MATRIX*               iTkregMat,
+		     mriVolumeRef          iAnatomicalVolume ) {
   
   mriFunctionalDataRef this    = NULL;
   FunD_tErr            eResult = FunD_tErr_NoError;
@@ -109,6 +110,7 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* opVolume,
   this->mNumPreStimTimePoints = 0;
   this->mClientTransform = NULL;
   this->mIdxToIdxTransform = NULL;
+  this->mOriginalIdxToIdxTransform = NULL;
   this->mbErrorDataPresent = FALSE;
   this->mCovMtx = NULL;
   this->mpResampledData = NULL;
@@ -150,7 +152,7 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* opVolume,
   
   /* parse the registration file */
   DebugNote( ("Parsing registration file") );
-  eResult = FunD_ParseRegistrationAndInitMatricies_( this );
+  eResult = FunD_ParseRegistrationAndInitMatricies_( this, iAnatomicalVolume );
   DebugAssertThrow( (FunD_tErr_NoError == eResult) );
   
 #if 0
@@ -228,8 +230,12 @@ FunD_tErr FunD_Delete ( mriFunctionalDataRef* iopVolume ) {
   }
   
   /* delete our transformers. */
-  Trns_Delete( &(this->mIdxToIdxTransform) );
-  Trns_Delete( &(this->mClientTransform) );
+  if( NULL != this->mIdxToIdxTransform ) 
+    Trns_Delete( &(this->mIdxToIdxTransform) );
+  if( NULL != this->mOriginalIdxToIdxTransform ) 
+    Trns_Delete( &(this->mOriginalIdxToIdxTransform) );
+  if( NULL != this->mClientTransform ) 
+    Trns_Delete( &(this->mClientTransform) );
   
   /* delete the structure. */
   free( this );
@@ -499,7 +505,9 @@ FunD_tErr FunD_GuessMetaInformation_ ( mriFunctionalDataRef this ) {
   return eResult;
 }
 
-FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this ) {
+FunD_tErr
+FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
+					  mriVolumeRef    iAnatomicalVolume ) {
   FunD_tErr    eResult          = FunD_tErr_NoError;
   char         sBasePath[1024]  = "";
   char         sFileName[1024]  = "";
@@ -508,6 +516,7 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this ) 
   char*        pCurChar         = NULL;
   char*        pBaseEnd         = NULL;
   fMRI_REG*    theRegInfo       = NULL;
+  MRI*         pAnatomicalVolume = NULL;
   MATRIX*      mTmp             = NULL;
   MATRIX*      rasTotkregRAS    = NULL;
   MATRIX*      rasTofRAS        = NULL;
@@ -558,46 +567,107 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this ) 
   /* See if the file exists. */
   DebugNote( ("Checking if %s exists", sFileName) );
   eStat = stat( sFileName, &fileInfo );
-  DebugAssertThrowX( (0==eStat ), eResult, FunD_tErr_CouldntReadRegisterFile );
-  DebugNote( ("Checking S_ISREG") );
-  DebugAssertThrowX( ( S_ISREG(fileInfo.st_mode) ), 
-		     eResult, FunD_tErr_CouldntReadRegisterFile );
+  if( 0 == eStat ) {
 
-
-  /* read the registration info. */
-  DebugNote( ("StatReadRegistration on %s\n", sFileName ) );
-  theRegInfo = StatReadRegistration( sFileName );
-  DebugAssertThrowX( (NULL != theRegInfo ), 
-		     eResult, FunD_tErr_CouldntReadRegisterFile );
+    DebugNote( ("Checking S_ISREG") );
+    DebugAssertThrowX( ( S_ISREG(fileInfo.st_mode) ), 
+		       eResult, FunD_tErr_CouldntReadRegisterFile );
+    
+    
+    /* read the registration info. */
+    DebugNote( ("StatReadRegistration on %s\n", sFileName ) );
+    theRegInfo = StatReadRegistration( sFileName );
+    DebugAssertThrowX( (NULL != theRegInfo ), 
+		       eResult, FunD_tErr_CouldntReadRegisterFile );
   
-  /* grab the info we need from it. */
-  this->mBrightnessScale = theRegInfo->brightness_scale;
-  strcpy ( this->msSubjectName, theRegInfo->name );
+    /* grab the info we need from it. */
+    this->mBrightnessScale = theRegInfo->brightness_scale;
+    strcpy ( this->msSubjectName, theRegInfo->name );
   
-  /* get our stats as floats  */
-#if 1
-  ps     = this->mpData->xsize;
-  st     = this->mpData->zsize;
-#else
-  ps     = theRegInfo->in_plane_res;
-  st     = theRegInfo->slice_thickness;
-#endif
-  slices = this->mpData->depth;
-  rows   = this->mpData->height;
-  cols   = this->mpData->width;
+    /* get our stats as floats  */
+    ps     = this->mpData->xsize;
+    st     = this->mpData->zsize;
+    slices = this->mpData->depth;
+    rows   = this->mpData->height;
+    cols   = this->mpData->width;
+    
+    /* If the ps and thickness from our volume does not match the ps and
+       thickness in the registration file, complain */
+    if( !FEQUAL(this->mpData->xsize, theRegInfo->in_plane_res) ||
+	!FEQUAL(this->mpData->zsize, theRegInfo->slice_thickness) ) {
+      
+      DebugPrint( ("\tWARNING: MRI xsize and zsize are not equal to "
+		   "reginfo in_plane_res and slice_thickness:\n"
+		   "\t    MRI:        xsize = %f           zsize = %f\n" 
+		   "\treginfo: in_plane_res = %f slice_thickness = %f\n", 
+		   this->mpData->xsize, this->mpData->zsize,
+		   theRegInfo->in_plane_res, theRegInfo->slice_thickness) );
+    }
 
-  /* If the ps and thickness from our volume does not match the ps and
-     thickness in the registration file, complain */
-  if( !FEQUAL(this->mpData->xsize, theRegInfo->in_plane_res) ||
-      !FEQUAL(this->mpData->zsize, theRegInfo->slice_thickness) ) {
+    // create RAS to fRAS transform
+    rasTotkregRAS = MatrixMultiply( this->mTkregMatrix, 
+				    this->mClientTransform->mRAStoA, NULL);
+    rasTofRAS     = MatrixMultiply( theRegInfo->mri2fmri, rasTotkregRAS, 
+				    NULL);
+    MatrixFree(&rasTotkregRAS);
 
-    DebugPrint( ("\tWARNING: MRI xsize and zsize are not equal to "
-		 "reginfo in_plane_res and slice_thickness:\n"
-		 "\t    MRI:        xsize = %f           zsize = %f\n" 
-		 "\treginfo: in_plane_res = %f slice_thickness = %f\n", 
-		 this->mpData->xsize, this->mpData->zsize,
-		 theRegInfo->in_plane_res, theRegInfo->slice_thickness) );
+    
+    /* get rid of the registration info. */
+    StatFreeRegistration ( &theRegInfo );
+    
+    /* At this point we scan thru the register file looking for a line
+       with the string tkregister, floor, or round on it. This will specify
+       our conversion method. If nothing is found, tkregister will be used. */
+    DebugNote( ("Opening sFileName") );
+    fRegister = fopen( sFileName, "r" );
+    DebugAssertThrowX( (NULL != theRegInfo ), 
+		       eResult, FunD_tErr_CouldntReadRegisterFile );
+    
+    /* Start with our default of tkregister. */
+    convMethod = FunD_tConversionMethod_FCF;
+    
+    DebugNote( ("Looking for conversion keyword") );
+    while( !feof( fRegister )) {
+      
+      /* read line and look for string */
+      fgets( sLine, 1024, fRegister );
+      bGood = sscanf( sLine, "%s", sKeyWord );
+      if( bGood ) {
+	
+	if( strcmp( sKeyWord, FunD_ksConversionMethod_FCF ) == 0 ) {
+	  convMethod = FunD_tConversionMethod_FCF;
+	}
+	if( strcmp( sKeyWord, FunD_ksConversionMethod_FFF ) == 0 ) {
+	  convMethod = FunD_tConversionMethod_FFF;
+	}
+	if( strcmp( sKeyWord, FunD_ksConversionMethod_Round ) == 0 ) {
+	  convMethod = FunD_tConversionMethod_Round;
+	}
+      }
+    }
+    
+    fclose( fRegister );
+    
+  } else {
+
+    /* Couldn't find a valid registration file, so crate our own. */
+    rasTofRAS = MRItkRegMtx( iAnatomicalVolume->mpMriValues,
+			     this->mpData, NULL );
+
+    /* Get our stats as floats  */
+    ps     = this->mpData->xsize;
+    st     = this->mpData->zsize;
+    slices = this->mpData->depth;
+    rows   = this->mpData->height;
+    cols   = this->mpData->width;
+    
+    /* Default values here. */
+    this->mBrightnessScale = 1.0;
+    strcpy( this->msSubjectName, "" );
+    convMethod = FunD_tConversionMethod_FCF;
   }
+
+
 
   // create transform for conformed volume vs. functional volume
   // Note that theRegInfo->mri2fmri is calculated using the tkregRAS, i.e.
@@ -629,12 +699,7 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this ) 
   ///////////////////////////////////////////////////////////////////////////////////
   // Note that mClientTransform keeps track of src(A) and conformed volume(B).  Thus
   Trns_CopyAtoRAS(this->mIdxToIdxTransform, this->mClientTransform->mBtoRAS);
-  // create RAS to fRAS transform
-  rasTotkregRAS = MatrixMultiply( this->mTkregMatrix, 
-				  this->mClientTransform->mRAStoA, NULL);
-  rasTofRAS     = MatrixMultiply( theRegInfo->mri2fmri, rasTotkregRAS, 
-				  NULL);
-  MatrixFree(&rasTotkregRAS);
+
   // set ARAStoBRAS ( conformed volume RAS = src RAS and thus you can use the same)
   Trns_CopyARAStoBRAS( this->mIdxToIdxTransform, rasTofRAS );
   MatrixFree(&rasTofRAS);
@@ -656,44 +721,12 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this ) 
   // we finished constructing this->mIdxToIdxTransform
   ////////////////////////////////////////////////////////////////////////////////////
 
-  /* get rid of the registration info. */
-  StatFreeRegistration ( &theRegInfo );
+  /* Save the registration. */
+  Trns_DeepClone( this->mIdxToIdxTransform,&this->mOriginalIdxToIdxTransform );
   
-  /* At this point we scan thru the register file looking for a line
-     with the string tkregister, floor, or round on it. This will specify
-     our conversion method. If nothing is found, tkregister will be used. */
-  DebugNote( ("Opening sFileName") );
-  fRegister = fopen( sFileName, "r" );
-  DebugAssertThrowX( (NULL != theRegInfo ), 
-		     eResult, FunD_tErr_CouldntReadRegisterFile );
-  
-  /* Start with our default of tkregister. */
-  convMethod = FunD_tConversionMethod_FCF;
-
-  DebugNote( ("Looking for conversion keyword") );
-  while( !feof( fRegister )) {
-    
-    /* read line and look for string */
-    fgets( sLine, 1024, fRegister );
-    bGood = sscanf( sLine, "%s", sKeyWord );
-    if( bGood ) {
-      
-      if( strcmp( sKeyWord, FunD_ksConversionMethod_FCF ) == 0 ) {
-        convMethod = FunD_tConversionMethod_FCF;
-      }
-      if( strcmp( sKeyWord, FunD_ksConversionMethod_FFF ) == 0 ) {
-        convMethod = FunD_tConversionMethod_FFF;
-      }
-      if( strcmp( sKeyWord, FunD_ksConversionMethod_Round ) == 0 ) {
-        convMethod = FunD_tConversionMethod_Round;
-      }
-    }
-  }
-  
-  fclose( fRegister );
-  
+  /* Set the conversion method. */
   FunD_SetConversionMethod( this, convMethod );
-  
+
   DebugCatch;
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
   EndDebugCatch;
@@ -702,6 +735,33 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this ) 
 
   return eResult;
 }
+
+FunD_tErr FunD_RestoreRegistration ( mriFunctionalDataRef this ) {
+
+  FunD_tErr eResult = FunD_tErr_NoError;
+
+  DebugEnterFunction( ("FunD_RestoreRegistration( this=%p )", this) );
+
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (NULL != this), eResult, FunD_tErr_InvalidParameter );
+
+  DebugAssertThrowX( (NULL != this->mOriginalIdxToIdxTransform), eResult,
+		     FunD_tErr_ErrorAccessingTransform );
+
+  /* Delete the matrix and clone the backup. */
+  Trns_Delete( &this->mIdxToIdxTransform );
+  Trns_DeepClone( this->mOriginalIdxToIdxTransform, 
+		  &this->mIdxToIdxTransform );
+
+  DebugCatch;
+  DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
+  EndDebugCatch;
+
+  DebugExitFunction;
+
+  return eResult;
+}
+
 
 
 FunD_tErr FunD_SetClientCoordBounds ( mriFunctionalDataRef this,
