@@ -1541,7 +1541,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     if ((Gdiag_no == vno) && DIAG_VERBOSE_ON)
     {
       FILE  *fp ;
-      char  fname[200] ;
+      char  fname[STRLEN] ;
 
       sprintf(fname, "v%d", vno) ;
       fp = fopen(fname, "w") ;
@@ -1872,7 +1872,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     if ((Gdiag_no == vno) && DIAG_VERBOSE_ON)
     {
       FILE  *fp ;
-      char  fname[200] ;
+      char  fname[STRLEN] ;
 
       sprintf(fname, "v%d", vno) ;
       fp = fopen(fname, "w") ;
@@ -2436,7 +2436,7 @@ mrisNormalFace(MRIS *mris, int fac,int n,float norm[])
 static int
 mrisReadTransform(MRIS *mris, char *mris_fname)
 {
-  char transform_fname[200], fpref[300] ;
+  char transform_fname[STRLEN], fpref[300] ;
 
   FileNamePath(mris_fname, fpref) ;
   sprintf(transform_fname, "%s/../mri/transforms/talairach.xfm", fpref) ;
@@ -2468,7 +2468,7 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
 int
 MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname)
 {
-  char   fname[200], fpref[200], hemi[20] ;
+  char   fname[STRLEN], fpref[STRLEN], hemi[20] ;
 
   FileNamePath(mris_fname, fpref) ;
   strcpy(hemi, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
@@ -2488,7 +2488,7 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
   int    k,i,vnum,fnum;
   float  curv, curvmin, curvmax;
   FILE   *fp;
-  char   *cp, path[200], fname[200] ;
+  char   *cp, path[STRLEN], fname[STRLEN] ;
   
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
@@ -2552,7 +2552,7 @@ MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname)
   int   k,vnum,fnum;
   float f;
   FILE  *fp;
-  char  fname[200], fpref[200], hemi[20] ;
+  char  fname[STRLEN], fpref[STRLEN], hemi[20] ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "reading area file...") ;
@@ -2604,7 +2604,7 @@ MRISwriteArea(MRI_SURFACE *mris, char *sname)
 {
   int   k;
   FILE  *fp;
-  char  *cp, fname[200], path[200] ;
+  char  *cp, fname[STRLEN], path[STRLEN] ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "writing area file...") ;
@@ -3308,11 +3308,14 @@ MRISremoveNegativeVertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 
   if (Gdiag & DIAG_WRITE && parms->fp == NULL)
   {
-    char fname[200] ;
+    char fname[STRLEN] ;
 
     sprintf(fname, "%s.%s.out", 
             mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
     parms->fp = fopen(fname, "w") ;
+    if (!parms->fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+    Progname, fname) ;
     mrisLogIntegrationParms(parms->fp, mris, parms) ;
   }
   if (Gdiag & DIAG_SHOW)
@@ -3440,10 +3443,13 @@ MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   if (Gdiag & DIAG_WRITE)
   {
-    char fname[200] ;
+    char fname[STRLEN] ;
 
     sprintf(fname, "%s.out", parms->base_name) ;
     parms->fp = fopen(fname, "w") ;
+    if (!parms->fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+    Progname, fname) ;
     mrisLogIntegrationParms(parms->fp, mris, parms) ;
   }
   if (Gdiag & DIAG_SHOW)
@@ -3512,7 +3518,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
   float   sigma ;
   int     i, /*steps,*/ done, sno, ino, msec ;
   MRI_SP  *mrisp ;
-  char    fname[200], base_name[200], path[200] ;
+  char    fname[STRLEN], base_name[STRLEN], path[STRLEN] ;
   double  base_dt ;
   struct  timeb start ;
   static  int first = 1 ;
@@ -3531,7 +3537,12 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     sprintf(fname, "%s.%s.out", 
             mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
     if (!parms->start_t)      
+    {
       parms->fp = fopen(fname, "w") ;
+      if (!parms->fp)
+  ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+      Progname, fname) ;
+    }
     mrisLogIntegrationParms(parms->fp, mris,parms) ;
   }
   if (Gdiag & DIAG_SHOW)
@@ -3717,7 +3728,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   
   if (Gdiag & DIAG_WRITE)
   {
-    char fname[200] ;
+    char fname[STRLEN] ;
     
     sprintf(fname, "%s.%s.out", 
             mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
@@ -3980,7 +3991,7 @@ MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
 
   if (Gdiag & DIAG_WRITE)
   {
-    char fname[200] ;
+    char fname[STRLEN] ;
     
     sprintf(fname, "%s.%s.out", 
             mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
@@ -4101,7 +4112,7 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   
   if (Gdiag & DIAG_WRITE)
   {
-    char fname[200] ;
+    char fname[STRLEN] ;
     
     sprintf(fname, "%s.out", parms->base_name) ;
     if (!parms->fp)
@@ -4110,6 +4121,9 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
         parms->fp = fopen(fname, "w") ;
       else
         parms->fp = fopen(fname, "a") ;
+      if (!parms->fp)
+  ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+      Progname, fname) ;
     }
     mrisLogIntegrationParms(parms->fp, mris,parms) ;
     for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
@@ -4253,7 +4267,7 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 
   if (Gdiag & DIAG_WRITE && parms->fp == NULL)
   {
-    char fname[200] ;
+    char fname[STRLEN] ;
 
     sprintf(fname, "%s.%s.out", 
             mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
@@ -4261,6 +4275,9 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       parms->fp = fopen(fname, "w") ;
     else
       parms->fp = fopen(fname, "a") ;
+    if (!parms->fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+    Progname, fname) ;
     mrisLogIntegrationParms(parms->fp, mris, parms) ;
   }
   pct_neg = 100.0*mris->neg_area/(mris->neg_area+mris->total_area) ;
@@ -4388,7 +4405,7 @@ mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averag
       fprintf(stderr, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
     if (Gdiag & DIAG_WRITE)
     {
-      char fname[200] ;
+      char fname[STRLEN] ;
       if (!parms->fp)
       {
         sprintf(fname, "%s.%s.out", 
@@ -4398,6 +4415,9 @@ mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averag
           parms->fp = fopen(fname, "w") ;
         else
           parms->fp = fopen(fname, "a") ;
+  if (!parms->fp)
+    ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+        Progname, fname) ;
       }
       fprintf(parms->fp, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
     }
@@ -4448,7 +4468,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 
   if (Gdiag & DIAG_WRITE && parms->fp == NULL)
   {
-    char fname[200] ;
+    char fname[STRLEN] ;
 
     sprintf(fname, "%s.%s.out", 
             mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
@@ -4456,6 +4476,9 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
       parms->fp = fopen(fname, "w") ;
     else
       parms->fp = fopen(fname, "a") ;
+    if (!parms->fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+    Progname, fname) ;
     mrisLogIntegrationParms(parms->fp, mris, parms) ;
   }
   l_spring = parms->l_spring ;
@@ -5209,7 +5232,7 @@ MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
   VERTEX  *v ;
   float   f;
   FILE    *fp;
-  char    fname[200], fpref[200], hemi[20], *cp ;
+  char    fname[STRLEN], fpref[STRLEN], hemi[20], *cp ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "reading triangle files...") ;
@@ -5329,7 +5352,7 @@ MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
   int     fno, ano, vno ;
   FACE    *face ;
   FILE    *fp;
-  char    fname[200], fpref[200], hemi[20], *cp ;
+  char    fname[STRLEN], fpref[STRLEN], hemi[20], *cp ;
 
   MRIScomputeTriangleProperties(mris) ;
 
@@ -5773,7 +5796,7 @@ mrisMomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol,
 static double
 mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  char    fname[200] ;
+  char    fname[STRLEN] ;
   FILE    *fp = NULL ;
   double  starting_sse, sse, min_sse, max_dt, min_delta,
           max_delta, mag, grad, delta_t, min_dt, mean_delta ;
@@ -6001,7 +6024,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 static double
 mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  char    fname[200] ;
+  char    fname[STRLEN] ;
   FILE    *fp = NULL ;
   double  starting_sse, sse, min_sse, max_dt, total_delta, min_delta,
           max_delta, mag, grad, delta_t, min_dt, mean_delta ;
@@ -6220,7 +6243,7 @@ MRISwriteCurvature(MRI_SURFACE *mris, char *sname)
 {
   int    k,i ;
   float  curv;
-  char   fname[200], *cp, path[200], name[100] ;
+  char   fname[STRLEN], *cp, path[STRLEN], name[STRLEN] ;
   FILE   *fp;
   
   cp = strchr(sname, '/') ;
@@ -6277,7 +6300,7 @@ MRISwriteDists(MRI_SURFACE *mris, char *sname)
 {
   int    k,i ;
   float  dist ;
-  char   fname[200], *cp, path[200] ;
+  char   fname[STRLEN], *cp, path[STRLEN] ;
   FILE   *fp;
   
   cp = strchr(sname, '/') ;
@@ -6391,7 +6414,7 @@ MRISwriteAreaError(MRI_SURFACE *mris, char *name)
   FACE   *face ;
   VERTEX *vertex ;
   FILE   *fp;
-  char   fname[200] ;
+  char   fname[STRLEN] ;
   
   MRISbuildFileName(mris, name, fname) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -6708,7 +6731,7 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
 {
   int k,num;                   /* loop counters */
   float f;
-  char  fname[200], *cp ;
+  char  fname[STRLEN], *cp ;
   FILE *fp;
   double sum=0,sum2=0,max= -1000,min=1000;
 
@@ -6945,7 +6968,7 @@ MRISreadPatch(MRI_SURFACE *mris, char *pname)
 {
   int         ix, iy, iz, k, i, j, npts ;
   FILE        *fp ;
-  char        fname[200], path[200], *cp ;
+  char        fname[STRLEN], path[STRLEN], *cp ;
 
   cp = strchr(pname, '/') ;
   if (cp)
@@ -7946,7 +7969,7 @@ mrisComputeCurvatureGradientTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     if (Gdiag & DIAG_SHOW && vno == Gdiag_no && DIAG_VERBOSE_ON)
     {
-      char fname[200] ;
+      char fname[STRLEN] ;
 
       sprintf(fname, "v%d_%d.m", vno, parms->t) ;
       fp = fopen(fname, "w") ;
@@ -8887,13 +8910,16 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisRemoveTriangleLinks(mris) ;
   if (Gdiag & DIAG_WRITE)
   {
-    char fname[200] ;
+    char fname[STRLEN] ;
 
     sprintf(fname, "%s.out", parms->base_name) ;
     if (!parms->start_t)
       parms->fp = fopen(fname, "w") ;
     else
       parms->fp = fopen(fname, "a") ;
+    if (!parms->fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+    Progname, fname) ;
     mrisLogIntegrationParms(parms->fp, mris, parms) ;
   }
   if (Gdiag & DIAG_SHOW)
@@ -9027,13 +9053,16 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   if (Gdiag & DIAG_WRITE)
   {
-    char fname[200] ;
+    char fname[STRLEN] ;
 
     sprintf(fname, "%s.out", parms->base_name) ;
     if (!parms->start_t)
       parms->fp = fopen(fname, "w") ;
     else
       parms->fp = fopen(fname, "a") ;
+    if (!parms->fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+    Progname, fname) ;
     mrisLogIntegrationParms(parms->fp, mris, parms) ;
   }
   if (Gdiag & DIAG_SHOW)
@@ -9550,7 +9579,7 @@ MRISreadTetherFile(MRI_SURFACE *mris, char *fname, float radius)
   int    l ;
   float  cx, cy, cz ;
   FILE   *fp ;
-  char   line[200], *cp ;
+  char   line[STRLEN], *cp ;
 
   fp = fopen(fname, "r") ;
   if (!fp)
@@ -10973,7 +11002,7 @@ mrisComputeNonlinearDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 static int
 mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
 {
-  char  *cp, host_name[200] ;
+  char  *cp, host_name[STRLEN] ;
 
   if (!fp)
     return(NO_ERROR) ;
@@ -11064,7 +11093,7 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
 static int
 mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
 {
-  char fname[200], path[200], base_name[200], *cp ;
+  char fname[STRLEN], path[STRLEN], base_name[STRLEN], *cp ;
 
   FileNamePath(mris->fname, path) ;
   sprintf(base_name, "%s/%s.%s", path, 
@@ -11751,7 +11780,7 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt)
 int
 MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
 {
-  char    fname[200] ;
+  char    fname[STRLEN] ;
   int     vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n, type ;
   VERTEX  *vertex ;
   FILE    *fp ;
@@ -12213,7 +12242,7 @@ static int
 mrisFileNameType(char *fname)
 {
   int   type ;
-  char  *dot, ext[200] ;
+  char  *dot, ext[STRLEN] ;
 
   ext[0] = 0 ;
   dot = strrchr(fname, '@') ;   /* forces the type of the file */
@@ -12427,7 +12456,7 @@ static MRI_SURFACE *
 mrisReadAsciiFile(char *fname)
 {
   MRI_SURFACE   *mris ;
-  char    line[200], *cp ;
+  char    line[STRLEN], *cp ;
   int     vno, fno, n, nvertices, nfaces, patch, rip ;
   VERTEX  *v ;
   FACE    *face ;
@@ -12606,7 +12635,7 @@ static MRI_SURFACE *
 mrisReadAsciiPatchFile(char *fname)
 {
   MRI_SURFACE   *mris ;
-  char    line[200], *cp ;
+  char    line[STRLEN], *cp ;
   int     vno, fno, n, nvertices, nfaces ;
   VERTEX  *v ;
   FACE    *face ;
@@ -14039,7 +14068,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   write_iterations = parms->write_iterations ;
   if (Gdiag & DIAG_WRITE)
   {
-    char fname[200] ;
+    char fname[STRLEN] ;
 
     if (!parms->fp)
     {
@@ -14049,6 +14078,9 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
         parms->fp = fopen(fname, "w") ;
       else
         parms->fp = fopen(fname, "a") ;
+      if (!parms->fp)
+  ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+      Progname, fname) ;
     }
     mrisLogIntegrationParms(parms->fp, mris, parms) ;
   }
@@ -17833,7 +17865,7 @@ mrisReadTriangleFilePositions(MRI_SURFACE *mris, char *fname)
 {
   VERTEX      *v ;
   int         nvertices, nfaces, magic, vno ;
-  char        line[200] ;
+  char        line[STRLEN] ;
   FILE        *fp ;
 
   fp = fopen(fname, "rb") ;
@@ -17875,7 +17907,7 @@ mrisReadTriangleFile(char *fname)
 {
   VERTEX      *v ;
   int         nvertices, nfaces, magic, vno, fno, n ;
-  char        line[200] ;
+  char        line[STRLEN] ;
   FILE        *fp ;
   MRI_SURFACE *mris ;
 
@@ -17999,7 +18031,7 @@ mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
 int
 MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname)
 {
-  char   path[200], *slash, *dot ;
+  char   path[STRLEN], *slash, *dot ;
   
   slash = strchr(sname, '/') ;
   if (!slash)              /* no path - use same one as mris was read from */
@@ -20615,7 +20647,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
     int   total_defective_vertices ;
     float total_defective_area ;
     FILE *fp ;
-    char fname[100] ;
+    char fname[STRLEN] ;
 
     sprintf(fname, "%s.%s.defect%d.log", 
             mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", 
@@ -20757,7 +20789,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     FILE  *fp ;
-    char  fname[100] ;
+    char  fname[STRLEN] ;
     sprintf(fname, "%s.%s.vtrans.log", 
             mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
             mris->subject_name) ;
@@ -20928,7 +20960,7 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
               "MRISmarkAmbiguousFaces: could allocate face defect list") ;
   if (Gdiag & DIAG_WRITE)
   {
-    char fname[100] ;
+    char fname[STRLEN] ;
     sprintf(fname, "%s.%s.topology.log", 
             mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
             mris->subject_name) ;
@@ -21068,7 +21100,7 @@ MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
 
   if (Gdiag & DIAG_WRITE)
   {
-    char fname[100] ;
+    char fname[STRLEN] ;
     sprintf(fname, "%s.%s.topology.log", 
             mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
             mris->subject_name) ;
@@ -21835,7 +21867,7 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
   qsort(et, nedges, sizeof(EDGE), compare_edge_length) ;
 #if 0
   {
-    char fname[100] ;
+    char fname[STRLEN] ;
     FILE *fp ;
 
     sprintf(fname, "alledges%d.log", defect_no) ;
@@ -21877,7 +21909,7 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
   {
     VERTEX  *v ;
     FILE    *fp ;
-    char    fname[100] ;
+    char    fname[STRLEN] ;
     float   cx, cy, cz, x, y ;
     int     vno ;
 
@@ -22089,7 +22121,7 @@ intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e,
     double     x1_start, x1_end, y1_start, y1_end, x2_start, x2_end, 
                y2_start,y2_end, x2min, x2max, y2min, y2max, cx, cy, cz, 
                origin[3], e0[3], e1[3] ;
-    char       fname[100] ;
+    char       fname[STRLEN] ;
     VERTEX     *v2 ;
     static int dno = -1 ;
 
@@ -23741,7 +23773,7 @@ static int
 mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2)
 {
   FILE   *fp ;
-  char   fname[200] ;
+  char   fname[STRLEN] ;
   int    n, m, fno, first = 1 ;
   VERTEX *v1, *v2, *vn ;
   double origin[3], e0[3], e1[3], cx, cy, cz, x, y ;
@@ -23797,7 +23829,7 @@ mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2)
 static int
 mrisDumpTriangle(MRI_SURFACE *mris, int fno)
 {
-  char   fname[100] ; 
+  char   fname[STRLEN] ; 
   VERTEX *v0, *v1, *v2 ;
   FACE   *f ;
   FILE   *fp ;
