@@ -55,8 +55,12 @@ int string_to_type(char *string)
 
 } /* end string_to_type() */
 
-int mri_identify(char *fname)
+int mri_identify(char *fname_passed)
 {
+
+  char fname[STRLEN];
+
+  MRIgetVolumeName(fname_passed, fname);
 
   if(is_cor(fname))
     return(MRI_CORONAL_SLICE_DIRECTORY);
