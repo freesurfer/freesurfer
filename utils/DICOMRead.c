@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.18 2001/12/14 15:50:17 kteich Exp $
+   $Id: DICOMRead.c,v 1.19 2002/03/13 21:03:34 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -580,10 +580,7 @@ int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
   /* Load the Pixel Spacing - this is a string of the form:
      ColRes\RowRes   */
   e = GetElementFromFile(dcmfile, 0x28, 0x30);
-  if(e == NULL){
-    FreeElementData(e); free(e);
-    return(1);
-  }
+  if(e == NULL) return(1);
 
   /* Put it in a temporary sting */
   s = e->d.string;
@@ -627,10 +624,7 @@ int dcmGetSeriesNo(char *dcmfile)
   int SeriesNo;
 
   e = GetElementFromFile(dcmfile, 0x20, 0x11);
-  if(e == NULL){
-    FreeElementData(e); free(e);
-    return(-1);
-  }
+  if(e == NULL) return(-1);
 
   sscanf(e->d.string,"%d",&SeriesNo);
 
@@ -652,10 +646,7 @@ int dcmGetNRows(char *dcmfile)
   int NRows;
 
   e = GetElementFromFile(dcmfile, 0x28, 0x10);
-  if(e == NULL){
-    FreeElementData(e); free(e);
-    return(-1);
-  }
+  if(e == NULL)  return(-1);
 
   NRows = *(e->d.us);
 
@@ -677,10 +668,7 @@ int dcmGetNCols(char *dcmfile)
   int NCols;
 
   e = GetElementFromFile(dcmfile, 0x28, 0x11);
-  if(e == NULL){
-    FreeElementData(e); free(e);
-    return(-1);
-  }
+  if(e == NULL) return(-1);
 
   NCols = *(e->d.us);
 
@@ -707,13 +695,10 @@ int dcmImageDirCos(char *dcmfile,
   int n, nbs;
   float rms;
 
-  /* Load the Pixel Spacing - this is a string of the form:
+  /* Load the direction cosines - this is a string of the form:
      Vcx\Vcy\Vcz\Vrx\Vry\Vrz */
   e = GetElementFromFile(dcmfile, 0x20, 0x37);
-  if(e == NULL){
-    FreeElementData(e); free(e);
-    return(1);
-  }
+  if(e == NULL) return(1);
   s = e->d.string;
 
   /* replace back slashes with spaces */
@@ -762,10 +747,7 @@ int dcmImagePosition(char *dcmfile, float *x, float *y, float *z)
   /* Load the Image Position: this is a string of the form:
      x\y\z  */
   e = GetElementFromFile(dcmfile, 0x20, 0x32);
-  if(e == NULL){
-    FreeElementData(e); free(e);
-    return(1);
-  }
+  if(e == NULL)  return(1);
   s = e->d.string;
 
   /* replace back slashes with spaces */
@@ -877,10 +859,7 @@ int sdcmIsMosaic(char *dcmfile, int *pNcols, int *pNrows, int *pNslices, int *pN
   /* Get the phase encode direction: should be COL or ROW */
   /* COL means that each row is a different phase encode */
   e = GetElementFromFile(dcmfile, 0x18, 0x1312);
-  if(e == NULL){
-    FreeElementData(e); free(e);
-    return(-1);
-  }
+  if(e == NULL) return(-1);
   memcpy(PhEncDir,e->d.string,3);
   FreeElementData(e); free(e);
 
@@ -980,17 +959,21 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   tag=DCM_MAKETAG(0x18, 0x24);
   cond=GetString(&object, tag, &sdcmfi->PulseSequence);
+  if(cond != DCM_NORMAL){ sdcmfi->ErrorFlag = 1; }
 
   tag=DCM_MAKETAG(0x18, 0x1030);
   cond=GetString(&object, tag, &sdcmfi->ProtocolName);
+  if(cond != DCM_NORMAL){ sdcmfi->ErrorFlag = 1; }
 
   tag=DCM_MAKETAG(0x20, 0x11);
   cond=GetUSFromString(&object, tag, &ustmp);
+  if(cond != DCM_NORMAL){ sdcmfi->ErrorFlag = 1; }
   sdcmfi->SeriesNo = (int) ustmp;
   sdcmfi->RunNo = sdcmfi->SeriesNo - 1;
 
   tag=DCM_MAKETAG(0x20, 0x13);
   cond=GetUSFromString(&object, tag, &ustmp);
+  if(cond != DCM_NORMAL){ sdcmfi->ErrorFlag = 1; }
   sdcmfi->ImageNo = (int) ustmp;
 
   tag=DCM_MAKETAG(0x18, 0x86);
@@ -1007,7 +990,7 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   tag=DCM_MAKETAG(0x18, 0x82);
   cond=GetDoubleFromString(&object, tag, &dtmp);
-  if(cond == DCM_NORMAL) sdcmfi->InversionTime = (float) dtmp;
+  sdcmfi->InversionTime = (float) dtmp;
 
   tag=DCM_MAKETAG(0x18, 0x80);
   cond=GetDoubleFromString(&object, tag, &dtmp);
@@ -1015,6 +998,7 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   tag=DCM_MAKETAG(0x18, 0x1312);
   cond=GetString(&object, tag, &sdcmfi->PhEncDir);
+  if(cond != DCM_NORMAL){ sdcmfi->ErrorFlag = 1; }
 
   strtmp = SiemensAsciiTag(dcmfile, "lRepetitions");
   if(strtmp != NULL){
@@ -1047,7 +1031,9 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   else sdcmfi->ReadoutFOV = 0;
 
   sdcmfi->NImageRows = dcmGetNRows(dcmfile);
+  if(sdcmfi->NImageRows < 0){ sdcmfi->ErrorFlag = 1; }
   sdcmfi->NImageCols = dcmGetNCols(dcmfile);
+  if(sdcmfi->NImageCols < 0){ sdcmfi->ErrorFlag = 1; }
 
   dcmImagePosition(dcmfile, &(sdcmfi->ImgPos[0]), &(sdcmfi->ImgPos[1]), 
        &(sdcmfi->ImgPos[2]) );
@@ -1499,6 +1485,9 @@ int CompareSDCMFileInfo(const void *a, const void *b)
   sdcmfi1 = *((SDCMFILEINFO **) a);
   sdcmfi2 = *((SDCMFILEINFO **) b);
 
+  if(sdcmfi1->ErrorFlag) return(-1);
+  if(sdcmfi2->ErrorFlag) return(+1);
+
   /* Sort by Series Number */
   if(sdcmfi1->SeriesNo < sdcmfi2->SeriesNo) return(-1);
   if(sdcmfi1->SeriesNo > sdcmfi2->SeriesNo) return(+1);
@@ -1529,7 +1518,7 @@ int CompareSDCMFileInfo(const void *a, const void *b)
   //if(actm1 < actm2) return(-1);
   //if(actm1 > actm2) return(+1);
 
-  printf("WARNING: files are not found to be different\n");
+  printf("WARNING: files are not found to be different and cannot be sorted\n");
   printf("File1: %s\n",sdcmfi1->FileName);
   printf("File2: %s\n",sdcmfi2->FileName);
 
