@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.66 2004/09/30 15:06:17 tosa Exp $
+   $Id: DICOMRead.c,v 1.67 2004/09/30 15:11:13 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -423,13 +423,22 @@ DCM_OBJECT *GetObjectFromFile(char *fname, unsigned long options)
 
   cond=DCM_OpenFile(fname, DCM_PART10FILE|options, &object);
   if (cond != DCM_NORMAL)
+  {
+    DCM_CloseObject(&object);
     cond=DCM_OpenFile(fname, DCM_ORDERLITTLEENDIAN|options, &object);
+  }
   if (cond != DCM_NORMAL)
+  {
+    DCM_CloseObject(&object);
     cond=DCM_OpenFile(fname, DCM_ORDERBIGENDIAN|options, &object);
+  }
   if (cond != DCM_NORMAL)
+  {
+    DCM_CloseObject(&object);
     cond=DCM_OpenFile(fname, DCM_FORMATCONVERSION|options, &object);
-
+  }
   if(cond != DCM_NORMAL){
+    DCM_CloseObject(&object);
     COND_DumpConditions();
     return(NULL);
   }
