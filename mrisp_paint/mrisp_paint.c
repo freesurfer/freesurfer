@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mrisp_paint.c,v 1.2 2000/06/07 13:47:23 fischl Exp $";
+static char vcid[] = "$Id: mrisp_paint.c,v 1.3 2002/03/28 18:03:41 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -26,7 +26,7 @@ char *Progname ;
 
 static int normalize = 0 ;
 static int navgs = 0 ;
-
+static int sqrt_flag = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -98,6 +98,13 @@ main(int argc, char *argv[])
 
   MRISaverageCurvatures(mris, navgs) ;
   fprintf(stderr, "writing curvature file to %s...\n", out_fname) ;
+  if (sqrt_flag)
+  {
+    MRIScopyCurvatureToValues(mris) ;
+    MRISsqrtVal(mris) ;
+    MRIScopyCurvatureFromValues(mris) ;
+  }
+    
   MRISwriteCurvature(mris, out_fname) ;
 
   MRISPfree(&mrisp) ;
@@ -135,6 +142,10 @@ get_option(int argc, char *argv[])
     break ;
   case 'W':
     Gdiag |= DIAG_WRITE ;
+    break ;
+  case 'S':
+    printf("taking sqrt before writing...\n") ;
+    sqrt_flag = 1 ;
     break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
