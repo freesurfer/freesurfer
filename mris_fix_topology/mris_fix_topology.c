@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.9 2000/02/25 19:36:36 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.10 2000/02/28 12:21:33 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -34,6 +34,7 @@ static char *inflated_name = "inflated" ;
 static char *orig_name = "orig" ;
 static char suffix[STRLEN] = "" ;
 static int  add = 1 ;
+static int  write_inflated = 0 ;
 
 #define MAX_VERTICES  0
 #define MAX_FACES     0
@@ -117,12 +118,13 @@ main(int argc, char *argv[])
       while (MRISdivideLongEdges(mris_corrected, max_len) > 0)
       {}
 
-#if 0
-  MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES) ;
-  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi,inflated_name,suffix);
-  fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
-  MRISwrite(mris_corrected, fname) ;
-#endif
+  if (write_inflated)
+  {
+    MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES) ;
+    sprintf(fname, "%s/%s/surf/%s.%s%s", sdir,sname,hemi,inflated_name,suffix);
+    fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
+    MRISwrite(mris_corrected, fname) ;
+  }
 
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
   sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name,suffix);
@@ -184,6 +186,11 @@ get_option(int argc, char *argv[])
     inflated_name = argv[2] ;
     fprintf(stderr,"reading inflated coordinates from '%s'\n",inflated_name);
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "wi"))
+  {
+    write_inflated = 1 ;
+    fprintf(stderr,"writing fixed inflated coordinates to %s\n",inflated_name);
   }
   else if (!stricmp(option, "suffix"))
   {
