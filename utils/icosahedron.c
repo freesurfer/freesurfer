@@ -7723,9 +7723,15 @@ ICOread(char *fname)
   {
     v = &mris->vertices[vno] ;
 
+#if 0
     v->x = 100.0*ico->vertices[vno].x ;
     v->y = 100.0*ico->vertices[vno].y ;
     v->z = 100.0*ico->vertices[vno].z ;
+#else
+    v->x = ico->vertices[vno].x ;
+    v->y = ico->vertices[vno].y ;
+    v->z = ico->vertices[vno].z ;
+#endif
   }
 
   /* fill in faces, and count # of faces each vertex is part of */
