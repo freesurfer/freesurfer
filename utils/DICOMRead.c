@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.28 2003/02/13 21:19:34 greve Exp $
+   $Id: DICOMRead.c,v 1.29 2003/03/25 21:30:52 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -3115,6 +3115,9 @@ CONDITION GetDICOMInfo(char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int Imag
     cond2=cond;
   
   dcminfo->FieldOfView=dcminfo->xsize*dcminfo->Rows;
+
+  /* Clear the condition stack to prevent overflow */
+  COND_PopCondition(1);
 
   free(tmp);
   free(itmp);
