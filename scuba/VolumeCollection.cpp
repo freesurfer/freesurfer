@@ -94,6 +94,13 @@ VolumeCollection::MakeLocationFromRAS ( float const iRAS[3] ) {
   return *loc;
 }
 
+DataLocation&
+VolumeCollection::MakeLocationFromIndex ( int const iIndex[3] ) {
+  
+  VolumeLocation* loc = new VolumeLocation( *this, iIndex );
+  return *loc;
+}
+
 void
 VolumeCollection::SetFileName ( string& ifnMRI ) {
 
@@ -949,6 +956,8 @@ VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
   return bSelected;
 }
 
+#define PRINTOUT 0
+
 void
 VolumeCollection::FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
 					  float iPointC[3], float iPointD[3],
@@ -973,6 +982,13 @@ VolumeCollection::FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
   RASToMRIIndex( squareRAS[1].xyz(), squareIdx[1].xyz() );
   RASToMRIIndex( squareRAS[2].xyz(), squareIdx[2].xyz() );
   RASToMRIIndex( squareRAS[3].xyz(), squareIdx[3].xyz() );
+
+#if PRINTOUT
+  cerr << "Square is " << squareRAS[0] << " " << squareRAS[1] << " " 
+       << squareRAS[2] << " " << squareRAS[3] << endl;
+  cerr << "Square is " << squareIdx[0] << " " << squareIdx[1] << " " 
+       << squareIdx[2] << " " << squareIdx[3] << endl;
+#endif
 
   Point3<int> volumeBoundIdx[2];
   volumeBoundIdx[0].Set
@@ -1002,79 +1018,132 @@ VolumeCollection::FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
     return;
   }
 
+  // So what we'll do is look at invidiual voxels and find their edges
+  // to intersect with the square we got. But to do that need the RAS
+  // coords of the corners of the voxel, and converting a voxel index
+  // -> RAS only gets the coords of one corner. So we actually get the
+  // coords of surrounding voxel indices. But to figure out which
+  // adjacent ones we need, we need to find what increment we should
+  // use to get the other side of the square RAS. So here we get an
+  // RAS coord for the sqaure, go up and down one voxel, and see which
+  // crossed the square. We use that increment.
+  int inc = 0;
+  Point3<int> oneUp( volumeBoundIdx[0] );
+  Point3<int> oneDown( volumeBoundIdx[0] );
+  if( volumeBoundIdx[0].x() == volumeBoundIdx[1].x() ) {
+    oneUp.SetX( volumeBoundIdx[0].x() + 1 );
+    oneDown.SetX( volumeBoundIdx[0].x() - 1 );
+  } else if( volumeBoundIdx[0].y() == volumeBoundIdx[1].y() ) {
+    oneUp.SetY( volumeBoundIdx[0].y() + 1 );
+    oneDown.SetY( volumeBoundIdx[0].y() - 1 );
+  } else if( volumeBoundIdx[0].z() == volumeBoundIdx[1].z() ) {
+    oneUp.SetZ( volumeBoundIdx[0].z() + 1 );
+    oneDown.SetZ( volumeBoundIdx[0].z() - 1 );
+  } else {
+    cerr << "Nothing was on the same plane! "
+	 << volumeBoundIdx[0] << ", " << volumeBoundIdx[1] << endl;
+    return;
+  }
+  
+  Point3<float> onPlaneRAS, oneUpRAS, oneDownRAS;
+  MRIIndexToRAS( volumeBoundIdx[0].xyz(), onPlaneRAS.xyz() );
+  MRIIndexToRAS( oneUp.xyz(), oneUpRAS.xyz() );
+  MRIIndexToRAS( oneDown.xyz(), oneDownRAS.xyz() );
+
+  VectorOps::IntersectionResult rInt;
+  Point3<float> intersectionRAS;
+  rInt = VectorOps::SegmentIntersectsPlane
+    ( onPlaneRAS, oneUpRAS, squareRAS[0], n, intersectionRAS );
+  if( VectorOps::intersect == rInt ) {
+    inc = +1;
+#if PRINTOUT
+    cerr << "Increment is " << inc << endl
+	 << "\tPlane " << volumeBoundIdx[0] << ", " << onPlaneRAS << endl
+	 << "\tOne up " << oneUp << ", " << oneUpRAS << endl;
+#endif
+  } else {
+    rInt = VectorOps::SegmentIntersectsPlane
+      ( onPlaneRAS, oneDownRAS, squareRAS[0], n, intersectionRAS );
+    if( VectorOps::intersect == rInt ) {
+      inc = -1;
+#if PRINTOUT
+      cerr << "Increment is " << inc << endl
+	   << "\tPlane " << volumeBoundIdx[0] << ", " << onPlaneRAS << endl
+	   << "\tOne down " << oneDown << ", " << oneUpRAS << endl;
+#endif
+    } else {
+      cerr << "No intersection with plane! " << endl 
+	   << "\tPlane " << volumeBoundIdx[0] << ", " << onPlaneRAS << endl
+	   << "\tOne up " << oneUp << ", " << oneUpRAS << endl
+	   << "\tOne down " << oneDown << ", " << oneUpRAS << endl;
+      return;
+    }
+  }
+  
+  
   // For each voxel in the cuboid...
   for( int nZ = volumeBoundIdx[0].z(); nZ <= volumeBoundIdx[1].z(); nZ++ ) {
     for( int nY = volumeBoundIdx[0].y(); nY <= volumeBoundIdx[1].y(); nY++ ) {
       for( int nX = volumeBoundIdx[0].x(); nX <= volumeBoundIdx[1].x(); nX++ ){
-
-	// Create RAS versions of our corners.
-	Point3<int> voxelIdx[8];
-	voxelIdx[0].Set( nX  , nY  , nZ   );
-	voxelIdx[1].Set( nX+1, nY  , nZ   );
-	voxelIdx[2].Set( nX  , nY+1, nZ   );
-	voxelIdx[3].Set( nX+1, nY+1, nZ   );
-	voxelIdx[4].Set( nX  , nY  , nZ+1 );
-	voxelIdx[5].Set( nX+1, nY  , nZ+1 );
-	voxelIdx[6].Set( nX  , nY+1, nZ+1 );
-	voxelIdx[7].Set( nX+1, nY+1, nZ+1 );
-	Point3<float> voxelRAS[8];
-	for( int nCorner = 0; nCorner < 8; nCorner++ ) {
-	  MRIIndexToRAS( voxelIdx[nCorner].xyz(), voxelRAS[nCorner].xyz() );
-	}
-	Point3<float> centerRAS;
-	centerRAS.Set( (voxelRAS[0].x() + voxelRAS[1].x()) / 2.0,
-		       (voxelRAS[0].y() + voxelRAS[2].y()) / 2.0,
-		       (voxelRAS[0].z() + voxelRAS[4].z()) / 2.0 );
-
-	// Make segments for each edge.
-	Point3<float> segmentRAS[12][2];
-	int anSegments[12][2] = { {0, 1}, {4, 5}, {6, 7}, {2, 3},
-				  {0, 2}, {1, 3}, {4, 6}, {5, 7},
-				  {0, 4}, {1, 5}, {2, 6}, {3, 7} };
-	for( int nSegment = 0; nSegment < 12; nSegment++ ) {
-	  segmentRAS[nSegment][0].Set( voxelRAS[anSegments[nSegment][0]] );
-	  segmentRAS[nSegment][1].Set( voxelRAS[anSegments[nSegment][1]] );
-	}
-
-	// Intersect these segments with the plane. If any of them hit...
-	for( int nSegment = 0; nSegment < 12; nSegment++ ) {
-
-	  Point3<float> intersectionRAS;
-	  VectorOps::IntersectionResult rInt =
-	    VectorOps::SegmentIntersectsPlane
-	    ( segmentRAS[nSegment][0], segmentRAS[nSegment][1],
-	      squareRAS[0], n, intersectionRAS );
+	
+	Point3<int> curMRIIndex( nX, nY, nZ );
+	VectorOps::IntersectionResult rInt =
+	  VoxelIntersectsPlane( curMRIIndex, inc, 
+				squareRAS[0], n, intersectionRAS );
+	
+	if( VectorOps::intersect == rInt ) {
 	  
-
-	  if( VectorOps::intersect == rInt ) {
-
-	    // Calculate the anglesum of the intersection point with the
-	    // four plane corner points. If it is 2pi, this point is
-	    // inside the poly.
-	    double angleSum = 0;
-	    for( int nVector = 0; nVector < 4; nVector++ ) {
-	      Point3<float> v1 = squareRAS[nVector]       - intersectionRAS;
-	      Point3<float> v2 = squareRAS[(nVector+1)%4] - intersectionRAS;
-
-	      float v1Length = VectorOps::Length(v1);
-	      float v2Length = VectorOps::Length(v2);
-
-	      if( fabs(v1Length * v2Length) <= (float)0.0001 ) {
+#if PRINTOUT
+	  cerr << "\t\thit";
+#endif
+	  
+	  // Calculate the anglesum of the intersection point with the
+	  // four plane corner points. If it is 2pi, this point is
+	  // inside the poly.
+	  double angleSum = 0;
+	  for( int nVector = 0; nVector < 4; nVector++ ) {
+	    Point3<float> v1 = squareRAS[nVector]       - intersectionRAS;
+	    Point3<float> v2 = squareRAS[(nVector+1)%4] - intersectionRAS;
+	    
+	    float v1Length = VectorOps::Length(v1);
+	    float v2Length = VectorOps::Length(v2);
+	    
+	    if( fabs(v1Length * v2Length) <= (float)0.0001 ) {
 		angleSum = 2*M_PI;
 		break;
-	      }
-	      
-	      double rads = VectorOps::RadsBetweenVectors( v1, v2 );
-	      angleSum += rads;
 	    }
 	    
-	    if( fabs(angleSum - 2.0*M_PI) <= (float)0.0001 ) {
-	      oPoints.push_back( centerRAS );
-	      break;
-	    }
+	      double rads = VectorOps::RadsBetweenVectors( v1, v2 );
+	      angleSum += rads;
+	  }
+	  
+	  if( fabs(angleSum - 2.0*M_PI) <= (float)0.0001 ) {
+	    
+	    // Add the RAS.
+	    Point3<float> curRAS;
+	    MRIIndexToRAS( curMRIIndex.xyz(), curRAS.xyz() );
 
-	  } // if intersect
-	} // for segment
+	    oPoints.push_back( curRAS );
+#if PRINTOUT
+	    Point3<float> curVoxelF;
+	    Point3<int> curVoxelI;
+	    RASToMRIIndex( curRAS.xyz(), curVoxelI.xyz() );
+	    RASToMRIIndex( curRAS.xyz(), curVoxelF.xyz() );
+	    cerr << "\n\t\tadded index " << curVoxelI << " " << curVoxelF << " RAS " << curRAS << endl;
+#endif
+	  }
+	  
+#if PRINTOUT
+	    cerr << " but not in poly, angleSum = " << angleSum << endl;
+#endif
+
+	} // if intersect
+#if PRINTOUT
+	else {
+	  cerr << "   didn't hit" << endl;
+	}
+	cerr << "DONE x = " << nX << " y = " << nY << " z = " << nZ << endl;
+#endif
       } // for x
     } // for y
   } // for z
@@ -1555,6 +1624,66 @@ VolumeCollection::AutosaveIfDirty () {
   }
 }
 
+VectorOps::IntersectionResult 
+VolumeCollection::VoxelIntersectsPlane ( Point3<int>& iMRIIndex, 
+					 int iIncrement,
+					 Point3<float>& iPlaneRAS, 
+					 Point3<float>& iPlaneRASNormal,
+					 Point3<float>& oIntersectionRAS ){
+
+  int inc = iIncrement;
+  
+  // Create RAS versions of our corners.
+  Point3<int> voxelIdx[8];
+  voxelIdx[0].Set( iMRIIndex.x()    , iMRIIndex.y()    , iMRIIndex.z()   );
+  voxelIdx[1].Set( iMRIIndex.x()+inc, iMRIIndex.y()    , iMRIIndex.z()   );
+  voxelIdx[2].Set( iMRIIndex.x()    , iMRIIndex.y()+inc, iMRIIndex.z()   );
+  voxelIdx[3].Set( iMRIIndex.x()+inc, iMRIIndex.y()+inc, iMRIIndex.z()   );
+  voxelIdx[4].Set( iMRIIndex.x()    , iMRIIndex.y()    , iMRIIndex.z()+inc );
+  voxelIdx[5].Set( iMRIIndex.x()+inc, iMRIIndex.y()    , iMRIIndex.z()+inc );
+  voxelIdx[6].Set( iMRIIndex.x()    , iMRIIndex.y()+inc, iMRIIndex.z()+inc );
+  voxelIdx[7].Set( iMRIIndex.x()+inc, iMRIIndex.y()+inc, iMRIIndex.z()+inc );
+  Point3<float> voxelRAS[8];
+  for( int nCorner = 0; nCorner < 8; nCorner++ ) {
+    MRIIndexToRAS( voxelIdx[nCorner].xyz(), voxelRAS[nCorner].xyz() );
+  }
+  
+#if PRINTOUT
+  cerr << "Looking at RAS " << voxelRAS[0] << " from index "
+       << voxelIdx[0] << endl;
+#endif
+  // Make segments for each edge.
+  Point3<float> segmentRAS[12][2];
+  int anSegments[12][2] = { {0, 1}, {4, 5}, {6, 7}, {2, 3},
+			    {0, 2}, {1, 3}, {4, 6}, {5, 7},
+			    {0, 4}, {1, 5}, {2, 6}, {3, 7} };
+  for( int nSegment = 0; nSegment < 12; nSegment++ ) {
+    segmentRAS[nSegment][0].Set( voxelRAS[anSegments[nSegment][0]] );
+    segmentRAS[nSegment][1].Set( voxelRAS[anSegments[nSegment][1]] );
+  }
+  
+  // Intersect these segments with the plane. If any of them hit...
+  for( int nSegment = 0; nSegment < 12; nSegment++ ) {
+    
+    Point3<float> intersectionRAS;
+    VectorOps::IntersectionResult rInt =
+      VectorOps::SegmentIntersectsPlane
+      ( segmentRAS[nSegment][0], segmentRAS[nSegment][1],
+	iPlaneRAS, iPlaneRASNormal, intersectionRAS );
+    
+#if PRINTOUT
+    cerr << "\tTesting " << segmentRAS[nSegment][0] << " to " 
+	       <<  segmentRAS[nSegment][1] << "..." << endl;
+#endif
+
+    if( VectorOps::intersect == rInt ) {
+      oIntersectionRAS = intersectionRAS;
+      return rInt;
+    }
+  }
+
+  return VectorOps::dontIntersect;
+}
 
 
 
@@ -1607,6 +1736,7 @@ VolumeCollectionFlooder::CompareVoxel ( float[3] ) {
   return true;
 }
 
+/*
 void
 VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume, 
 				 float iRASSeed[3], Params& iParams ) {
@@ -1614,11 +1744,16 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
   mVolume = &iVolume;
   mParams = &iParams;
 
-  float voxelSize[3];
-  voxelSize[0] = iVolume.GetVoxelXSize();
-  voxelSize[1] = iVolume.GetVoxelYSize();
-  voxelSize[2] = iVolume.GetVoxelZSize();
+  Point3<float> voxelSizeWorld, voxelSizeData;
+  voxelSizeData.Set( iVolume.GetVoxelXSize(),
+		     iVolume.GetVoxelYSize(),
+		     iVolume.GetVoxelZSize() );
+  iVolume.RASToDataRAS( voxelSizeData.xyz(), voxelSizeWorld.xyz() );
   
+  cerr << "Voxel size: data " << voxelSizeData << ", world " << voxelSizeWorld << endl;
+
+  voxelSizeWorld.Set( 0.1, 0.1, 0.1 );
+
   this->DoBegin();
 
   // Get the source volume.
@@ -1645,6 +1780,10 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     (VolumeLocation&) sourceVol->MakeLocationFromRAS( iRASSeed );
   float seedValue = sourceVol->GetMRINearestValue( seedLoc );
 
+  cerr << "\n\nSeed " << Point3<int>(seedLoc.Index())
+       << ", " << Point3<float>(seedLoc.RAS())
+       << endl;
+
   // Push the seed onto the list. 
   vector<CheckPair> checkPairs;
   Point3<float> seed( iRASSeed );
@@ -1664,6 +1803,10 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     VolumeLocation& sourceLoc =
       (VolumeLocation&) sourceVol->MakeLocationFromRAS( sourceRAS.xyz() );
 
+    cerr << "Checking " << Point3<int>(loc.Index()) << ", " << ras
+	 << " from " << Point3<int>(sourceLoc.Index()) << ", " << sourceRAS
+	 << "... ";
+
     // Check the bound of this volume and the source one.
     if( !iVolume.IsInBounds( loc ) ) { 
       delete &loc;
@@ -1681,6 +1824,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     if( bVisited->Get_Unsafe( index.x(), index.y(), index.z() ) ) {
       delete &loc;
       delete &sourceLoc;
+      cerr << "\tVisited" << endl;
       continue;
     }
     bVisited->Set_Unsafe( index.x(), index.y(), index.z(), true );
@@ -1693,6 +1837,396 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       // point. Then see if the segment intersects the path. If so,
       // don't proceed.
       
+      bool bCross = false;
+      Point3<float> x;
+      list<Path<float>*>::iterator tPath;
+      PathManager& pathMgr = PathManager::GetManager();
+      list<Path<float>*>& pathList = pathMgr.GetPathList();
+      for( tPath = pathList.begin(); tPath != pathList.end() && !bCross; ++tPath ) {
+	Path<float>* path = *tPath;
+	if( path->GetNumVertices() > 0 ) {
+
+	  int cVertices = path->GetNumVertices();
+	  for( int nCurVertex = 1; nCurVertex < cVertices && !bCross; nCurVertex++ ) {
+	    
+	    int nBackVertex = nCurVertex - 1;
+	    
+	    Point3<float>& curVertex  = path->GetVertexAtIndex( nCurVertex );
+	    Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
+
+	    Point3<float> segVector = curVertex - backVertex;
+	    Point3<float> viewNormal( iParams.mViewNormal );
+
+	    Point3<float> normal = VectorOps::Cross( segVector, viewNormal );
+
+	    VectorOps::IntersectionResult rInt =
+	      VectorOps::SegmentIntersectsPlane( sourceRAS, ras,
+						 curVertex, normal,
+						 x );
+	    if( VectorOps::intersect == rInt ) {
+
+	      // Make sure x is in the cuboid formed by curVertex and
+	      // backVertex.
+	      if( !(x[0] < MIN(curVertex[0],backVertex[0]) ||
+		    x[0] > MAX(curVertex[0],backVertex[0]) ||
+		    x[1] < MIN(curVertex[1],backVertex[1]) ||
+		    x[1] > MAX(curVertex[1],backVertex[1]) ||
+		    x[2] < MIN(curVertex[2],backVertex[2]) ||
+		    x[2] > MAX(curVertex[2],backVertex[2])) ) {
+		bCross = true;
+	      }
+	    }
+	  }
+	}
+      }
+
+      // If we crossed a path, continue.
+      if( bCross ) {
+	delete &loc;
+	delete &sourceLoc;
+	continue;
+      }
+    }
+    if( iParams.mbStopAtROIs ) {
+      if( iVolume.IsOtherRASSelected( ras.xyz(), iVolume.GetSelectedROI() ) ) {
+	delete &loc;
+	delete &sourceLoc;
+	continue;
+      }
+    }
+    
+    // Check max distance.
+    if( iParams.mMaxDistance > 0 ) {
+      float distance = sqrt( ((ras[0]-iRASSeed[0]) * (ras[0]-iRASSeed[0])) + 
+			     ((ras[1]-iRASSeed[1]) * (ras[1]-iRASSeed[1])) + 
+			     ((ras[2]-iRASSeed[2]) * (ras[2]-iRASSeed[2])) );
+      if( distance > iParams.mMaxDistance ) {
+	delete &loc;
+	delete &sourceLoc;
+	cerr << " max distance" << endl;
+	continue;
+      }
+    }
+
+
+    // Check only zero.
+    if( iParams.mbOnlyZero ) {
+      float value = iVolume.GetMRINearestValue( loc );
+      if( value != 0 ) {
+	delete &loc;
+	delete &sourceLoc;
+	continue;
+      }
+    }
+
+    // Check fuzziness.
+    if( iParams.mFuzziness > 0 ) {
+      float value = sourceVol->GetMRINearestValue( loc );
+      switch( iParams.mFuzzinessType ) {
+      case Params::seed:
+	if( fabs( value - seedValue ) > iParams.mFuzziness ) {
+	  delete &loc;
+	  delete &sourceLoc;
+	  cerr << " fuzziness (seed " 
+	       << seedValue << ", here " << value << endl;
+	  continue;
+	}
+	break;
+      case Params::gradient: {
+	float sourceValue = 
+	  sourceVol->GetMRINearestValue( sourceLoc );
+	if( fabs( value - sourceValue ) > iParams.mFuzziness ) {
+	  delete &loc;
+	  delete &sourceLoc;
+	  cerr << " fuzziness (source " 
+	       << sourceValue << ", here " << value << endl;
+	  continue;
+	}
+      } break;
+      }
+    }
+
+    // Call the user compare function to give them a chance to bail.
+    if( !this->CompareVoxel( ras.xyz() ) ) {
+      delete &loc;
+      delete &sourceLoc;
+      cerr << " user function bailed" << endl;
+      continue;
+    }
+    
+    // Call the user function.
+    this->DoVoxel( ras.xyz() );
+
+    cerr << " good, adding neighbors" << endl;
+
+    // Add adjacent voxels.
+    float beginX = ras.x() - voxelSizeWorld[0];
+    float endX   = ras.x() + voxelSizeWorld[0];
+    float beginY = ras.y() - voxelSizeWorld[1];
+    float endY   = ras.y() + voxelSizeWorld[1];
+    float beginZ = ras.z() - voxelSizeWorld[2];
+    float endZ   = ras.z() + voxelSizeWorld[2];
+    cerr << "\tbounds: " << beginX << ", " << endX << "  "
+	 << beginY << ", " << endY << "  "
+	 << beginZ << ", " << endZ
+	 << endl;
+    if( !iParams.mb3D && iParams.mbWorkPlaneX ) {
+      cerr << "\tmbWorkPlaneX" << endl;
+      beginX = endX = ras.x();
+    }
+    if( !iParams.mb3D && iParams.mbWorkPlaneY ) {
+      cerr << "\tmbWorkPlaneY" << endl;
+      beginY = endY = ras.y();
+    }
+    if( !iParams.mb3D && iParams.mbWorkPlaneZ ) {
+      cerr << "\tmbWorkPlaneZ" << endl;
+      beginZ = endZ = ras.z();
+    }
+    Point3<float> newRAS;
+    CheckPair newPair;
+    newPair.mSourceRAS = ras;
+    if( iParams.mbDiagonal ) {
+      for( float nZ = beginZ; nZ <= endZ; nZ += voxelSizeWorld[2] ) {
+	for( float nY = beginY; nY <= endY; nY += voxelSizeWorld[1] ) {
+	  for( float nX = beginX; nX <= endX; nX += voxelSizeWorld[0] ) {
+	    newRAS.Set( nX, nY, nZ );
+	    newPair.mCheckRAS = newRAS;
+	    checkPairs.push_back( newPair );
+	  }
+	}
+      }
+    } else {
+      cerr << "\tAdding ";
+
+      newRAS.Set( beginX, ras.y(), ras.z() );
+      newPair.mCheckRAS = newRAS;
+      checkPairs.push_back( newPair );
+      cerr << newRAS << ", ";
+
+      newRAS.Set( endX, ras.y(), ras.z() );
+      newPair.mCheckRAS = newRAS;
+      checkPairs.push_back( newPair );
+      cerr << newRAS << ", ";
+
+      newRAS.Set( ras.x(), beginY, ras.z() );
+      newPair.mCheckRAS = newRAS;
+      checkPairs.push_back( newPair );
+      cerr << newRAS << ", ";
+
+      newRAS.Set( ras.x(), endY, ras.z() );
+      newPair.mCheckRAS = newRAS;
+      checkPairs.push_back( newPair );
+      cerr << newRAS << ", ";
+
+      newRAS.Set( ras.x(), ras.y(), beginZ );
+      newPair.mCheckRAS = newRAS;
+      checkPairs.push_back( newPair );
+      cerr << newRAS << ", ";
+
+      newRAS.Set( ras.x(), ras.y(), endZ );
+      newPair.mCheckRAS = newRAS;
+      checkPairs.push_back( newPair );
+      cerr << newRAS << endl;
+
+    }
+    delete &loc;
+    delete &sourceLoc;
+  }
+
+  this->DoEnd();
+
+  delete &seedLoc;
+  delete bVisited;
+
+  mVolume = NULL;
+  mParams = NULL;
+}
+*/
+
+
+void
+VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume, 
+				 float iRASSeed[3], Params& iParams ) {
+
+  mVolume = &iVolume;
+  mParams = &iParams;
+
+  this->DoBegin();
+
+  // Get the seed voxel.
+  Point3<int> seedVoxel;
+  iVolume.RASToMRIIndex( iRASSeed, seedVoxel.xyz() );
+
+  // Get the source volume.
+  VolumeCollection* sourceVol = NULL;
+  try { 
+    DataCollection* col = 
+      &DataCollection::FindByID( iParams.mSourceCollection );
+    //    VolumeCollection* vol = dynamic_cast<VolumeCollection*>(col);
+    sourceVol = (VolumeCollection*)col;
+  }
+  catch (...) {
+    throw runtime_error( "Couldn't find source volume." );
+  }
+  bool bDifferentSource = sourceVol->GetID() != iVolume.GetID();
+
+  // Init a visited volume.
+  Volume3<bool>* bVisited =
+    new Volume3<bool>( iVolume.mMRI->width, 
+		       iVolume.mMRI->height, 
+		       iVolume.mMRI->depth, false );
+
+  // Save the initial value.
+  VolumeLocation& seedLoc =
+    (VolumeLocation&) sourceVol->MakeLocationFromRAS( iRASSeed );
+  float seedValue = sourceVol->GetMRINearestValue( seedLoc );
+
+#if PRINTOUT
+  cerr << "\n\nSeed " << Point3<int>(seedLoc.Index())
+       << ", " << Point3<float>(seedLoc.RAS())
+       << endl;
+#endif
+
+  // If we're not in 3D, we need to do some work here. We take our
+  // seed RAS and find another RAS in the same plane as the one in
+  // which we're working. Then we find the voxel index versions of
+  // those points. Then we see what similar plane they're in and find
+  // two voxels on either side in-plane of the seed voxel. Then we
+  // find in which direction from the seed voxel point does the voxel
+  // intersect the plane. Use this increment to intersect potential
+  // adjacent voxels in the flooding phase.
+  Point3<float> planeRAS, planeN;
+  int increment = 0;
+  Point3<float> intersectionRAS;
+  if( !iParams.mb3D ) {
+
+    // Find an adjacent voxel in our work plane.
+    Point3<int> oneUp( seedVoxel );
+    Point3<int> oneDown( seedVoxel );
+    Point3<float> adjacentRAS;
+    Point3<int> adjacentVoxel;
+    adjacentRAS.Set( iRASSeed );
+    planeRAS.Set( iRASSeed );
+    if( iParams.mbWorkPlaneX ) {
+      adjacentRAS.SetY( iRASSeed[1] + 10.0 );
+      adjacentRAS.SetZ( iRASSeed[2] + 10.0 );
+      planeN.Set( 1, 0, 0 ); 
+    }
+    if( iParams.mbWorkPlaneY ) {
+      adjacentRAS.SetX( iRASSeed[0] + 10.0 );
+      adjacentRAS.SetZ( iRASSeed[2] + 10.0 );
+      planeN.Set( 0, 1, 0 );
+    }
+    if( iParams.mbWorkPlaneZ ) {
+      adjacentRAS.SetX( iRASSeed[0] + 10.0 );
+      adjacentRAS.SetY( iRASSeed[1] + 10.0 );
+      planeN.Set( 0, 0, 1 );
+    }
+
+    iVolume.RASToMRIIndex( adjacentRAS.xyz(), adjacentVoxel.xyz() );
+#if PRINTOUT
+    cerr << "seed " << seedVoxel << " adjacent " << adjacentVoxel << endl;
+#endif
+
+    // Now find adjacent voxels in plane.
+    if( seedVoxel.x() == adjacentVoxel.x() ) {
+      oneUp.SetX( seedVoxel.x() + 1 ); oneDown.SetX( seedVoxel.x() - 1 );
+    } else if( seedVoxel.y() == adjacentVoxel.y() ) {
+      oneUp.SetY( seedVoxel.y() + 1 ); oneDown.SetY( seedVoxel.y() - 1 );
+    } else if( seedVoxel.z() == adjacentVoxel.z() ) {
+      oneUp.SetZ( seedVoxel.z() + 1 ); oneDown.SetZ( seedVoxel.z() - 1 );
+    } else {
+      cerr << "Nothing was on the same plane! "
+	   << seedVoxel << ", " << adjacentVoxel << endl;
+      return;
+    }
+
+    Point3<float> onPlaneRAS, oneUpRAS, oneDownRAS;
+    iVolume.MRIIndexToRAS( seedVoxel.xyz(), onPlaneRAS.xyz() );
+    iVolume.MRIIndexToRAS( oneUp.xyz(), oneUpRAS.xyz() );
+    iVolume.MRIIndexToRAS( oneDown.xyz(), oneDownRAS.xyz() );
+
+    // Transform the voxels to RAS points and segments made of the
+    // seed point and each of these points with the plane. Find which
+    // one intersects, and save that as the increment.
+    VectorOps::IntersectionResult rInt;
+    rInt = VectorOps::SegmentIntersectsPlane
+      ( onPlaneRAS, oneUpRAS, planeRAS, planeN, intersectionRAS );
+    if( VectorOps::intersect == rInt ) {
+      increment = +1;
+    } else {
+      rInt = VectorOps::SegmentIntersectsPlane
+	( onPlaneRAS, oneDownRAS, planeRAS, planeN, intersectionRAS );
+      if( VectorOps::intersect == rInt ) {
+	increment = -1;
+      } else {
+	cerr << "No intersection with plane! " << endl 
+	     << "\tPlane " << seedVoxel << ", " << onPlaneRAS << endl
+	     << "\tOne up " << oneUp << ", " << oneUpRAS << endl
+	     << "\tOne down " << oneDown << ", " << oneDownRAS << endl;
+	return;
+      }
+    }
+  }
+
+
+  // Push the seed onto the list. 
+  vector<CheckPair> checkPairs;
+  CheckPair seedPair( seedVoxel, seedVoxel );
+  checkPairs.push_back( seedPair );
+  while( checkPairs.size() > 0 &&
+	 !this->DoStopRequested() ) {
+
+    // Get this voxel, the source voxel, and RAS versions.
+    CheckPair checkPair = checkPairs.back();
+    checkPairs.pop_back();
+
+    Point3<int> index = checkPair.mCheckIndex;
+    VolumeLocation& loc = 
+      (VolumeLocation&) iVolume.MakeLocationFromIndex( index.xyz() );
+
+    Point3<int> sourceIndex = checkPair.mSourceIndex;
+    VolumeLocation& sourceLoc =
+      (VolumeLocation&) sourceVol->MakeLocationFromIndex( sourceIndex.xyz() );
+    
+    Point3<float> ras;
+    iVolume.MRIIndexToRAS( index.xyz(), ras.xyz() );
+    Point3<float> sourceRAS;
+    iVolume.MRIIndexToRAS( sourceIndex.xyz(), sourceRAS.xyz() );
+
+#if PRINTOUT
+    cerr << "Checking " << Point3<int>(loc.Index()) << ", " << ras
+	 << " from " << Point3<int>(sourceLoc.Index()) << ", " << sourceRAS
+	 << "... ";
+#endif
+
+    // Check the bound of this volume and the source one.
+    if( !iVolume.IsInBounds( loc ) ) { 
+      delete &loc;
+      delete &sourceLoc;
+      continue;
+    }
+    if( bDifferentSource && !sourceVol->IsInBounds( loc ) ) { 
+      delete &loc;
+      delete &sourceLoc;
+      continue;
+    }
+
+    if( bVisited->Get_Unsafe( index.x(), index.y(), index.z() ) ) {
+      delete &loc;
+      delete &sourceLoc;
+      continue;
+    }
+    bVisited->Set_Unsafe( index.x(), index.y(), index.z(), true );
+
+
+    // Check if this is an path or an ROI. If so, and our params say
+    // not go to here, continue.
+    if( iParams.mbStopAtPaths ) {
+      
+      // Create a line from our current point to this check
+      // point. Then see if the segment intersects the path. If so,
+      // don't proceed.
       bool bCross = false;
       Point3<float> x;
       list<Path<float>*>::iterator tPath;
@@ -1807,61 +2341,46 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     // Call the user function.
     this->DoVoxel( ras.xyz() );
 
-    // Add adjacent voxels.
-    float beginX = ras.x() - voxelSize[0];
-    float endX   = ras.x() + voxelSize[0];
-    float beginY = ras.y() - voxelSize[1];
-    float endY   = ras.y() + voxelSize[1];
-    float beginZ = ras.z() - voxelSize[2];
-    float endZ   = ras.z() + voxelSize[2];
-    if( !iParams.mb3D && iParams.mbWorkPlaneX ) {
-      beginX = endX = ras.x();
-    }
-    if( !iParams.mb3D && iParams.mbWorkPlaneY ) {
-      beginY = endY = ras.y();
-    }
-    if( !iParams.mb3D && iParams.mbWorkPlaneZ ) {
-      beginZ = endZ = ras.z();
-    }
-    Point3<float> newRAS;
+    // Add adjacent voxels. Look at all adjacent voxels. If we're only
+    // working on a single plane, make sure the voxel is in the same
+    // plane.
+    int beginX = index.x() - 1;    int endX   = index.x() + 1;
+    int beginY = index.y() - 1;    int endY   = index.y() + 1;
+    int beginZ = index.z() - 1;    int endZ   = index.z() + 1;
+#if PRINTOUT
+    cerr << "\tbounds: " << beginX << ", " << endX << "  "
+	 << beginY << ", " << endY << "  "
+	 << beginZ << ", " << endZ
+	 << endl;
+#endif
+
+    Point3<int> newIndex;
     CheckPair newPair;
-    newPair.mSourceRAS = ras;
-    if( iParams.mbDiagonal ) {
-      for( float nZ = beginZ; nZ <= endZ; nZ += voxelSize[2] ) {
-	for( float nY = beginY; nY <= endY; nY += voxelSize[1] ) {
-	  for( float nX = beginX; nX <= endX; nX += voxelSize[0] ) {
-	    newRAS.Set( nX, nY, nZ );
-	    newPair.mCheckRAS = newRAS;
+    newPair.mSourceIndex = index;
+    //    if( iParams.mbDiagonal ) {
+      for( int nZ = beginZ; nZ <= endZ; nZ += 1 ) {
+	for( int nY = beginY; nY <= endY; nY += 1 ) {
+	  for( int nX = beginX; nX <= endX; nX += 1 ) {
+
+	    newIndex.Set( nX, nY, nZ );
+
+	    // If not 3D, check if voxel is in same plane.
+	    if( !iParams.mb3D ) {
+	      VectorOps::IntersectionResult rInt =
+		iVolume.VoxelIntersectsPlane( newIndex, increment, 
+					      planeRAS, planeN, 
+					      intersectionRAS );
+	      if( VectorOps::dontIntersect == rInt ) {
+		continue;
+	      }
+	    }
+
+	    newPair.mCheckIndex = newIndex;
 	    checkPairs.push_back( newPair );
 	  }
 	}
       }
-    } else {
-      newRAS.Set( beginX, ras.y(), ras.z() );
-      newPair.mCheckRAS = newRAS;
-      checkPairs.push_back( newPair );
-
-      newRAS.Set( endX, ras.y(), ras.z() );
-      newPair.mCheckRAS = newRAS;
-      checkPairs.push_back( newPair );
-
-      newRAS.Set( ras.x(), beginY, ras.z() );
-      newPair.mCheckRAS = newRAS;
-      checkPairs.push_back( newPair );
-
-      newRAS.Set( ras.x(), endY, ras.z() );
-      newPair.mCheckRAS = newRAS;
-      checkPairs.push_back( newPair );
-
-      newRAS.Set( ras.x(), ras.y(), beginZ );
-      newPair.mCheckRAS = newRAS;
-      checkPairs.push_back( newPair );
-
-      newRAS.Set( ras.x(), ras.y(), endZ );
-      newPair.mCheckRAS = newRAS;
-      checkPairs.push_back( newPair );
-
-    }
+      //    }
     delete &loc;
     delete &sourceLoc;
   }
@@ -1880,9 +2399,25 @@ VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
   : DataLocation( iRAS ), mVolume( iVolume ) {
 
   mVolume.RASToMRIIndex( iRAS, mIdxf );
+  mVolume.RASToMRIIndex( iRAS, mIdxi );
+#if 0
   mIdxi[0] = (int) mIdxf[0];
   mIdxi[1] = (int) mIdxf[1];
   mIdxi[2] = (int) mIdxf[2];
+#endif
+}
+
+VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
+				 int const iIndex[3] )
+  : DataLocation(), mVolume( iVolume ) {
+
+  mVolume.MRIIndexToRAS( iIndex, mRAS );
+  mIdxi[0] = iIndex[0];
+  mIdxi[1] = iIndex[1];
+  mIdxi[2] = iIndex[2];
+  mIdxf[0] = iIndex[0];
+  mIdxf[1] = iIndex[1];
+  mIdxf[2] = iIndex[2];
 }
 
 void
@@ -1892,7 +2427,10 @@ VolumeLocation::SetFromRAS ( float const iRAS[3] ) {
   mRAS[1] = iRAS[1];
   mRAS[2] = iRAS[2];
   mVolume.RASToMRIIndex( iRAS, mIdxf );
+  mVolume.RASToMRIIndex( iRAS, mIdxi );
+#if 0
   mIdxi[0] = (int) mIdxf[0];
   mIdxi[1] = (int) mIdxf[1];
   mIdxi[2] = (int) mIdxf[2];
+#endif
 }

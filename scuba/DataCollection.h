@@ -20,6 +20,11 @@ class DataLocation {
   friend class DataCollectionTester;
   friend class DataCollection;
  public:
+  DataLocation () { 
+    mRAS[0] = 0;
+    mRAS[1] = 0;
+    mRAS[2] = 0;
+  }
   DataLocation ( float const iRAS[3] ) {
     mRAS[0] = iRAS[0]; 
     mRAS[1] = iRAS[1]; 

@@ -11,7 +11,7 @@ extern "C" {
   #include "macros.h"
 }
 
-// #define RINT 1
+#define USEFLOORTOROUND 1
 
 using namespace std;
 
@@ -416,9 +416,15 @@ Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
 
   float vectorF[3];
   MultiplyVector3( iVector, vectorF );
-  oVector[0] = (int) vectorF[0];
-  oVector[1] = (int) vectorF[1];
-  oVector[2] = (int) vectorF[2];
+#if USEFLOORTOROUND
+  oVector[0] = (int) floor( vectorF[0] + 0.5 );
+  oVector[1] = (int) floor( vectorF[1] + 0.5 );
+  oVector[2] = (int) floor( vectorF[2] + 0.5 );
+#else
+  oVector[0] = (int) floor(vectorF[0]);
+  oVector[1] = (int) floor(vectorF[1]);
+  oVector[2] = (int) floor(vectorF[2]);
+#endif
 }
 
 inline Matrix44 operator*( Matrix44& m2, 

@@ -23,6 +23,7 @@ extern "C" {
 #include "Point3.h"
 #include "ScubaTransform.h"
 #include "Broadcaster.h"
+#include "VectorOps.h"
 
 class VolumeCollection;
 
@@ -31,8 +32,10 @@ class VolumeLocation : public DataLocation {
   friend class VolumeCollection;
  public:
   VolumeLocation ( VolumeCollection& iVolume, float const iRAS[3] );
+  VolumeLocation ( VolumeCollection& iVolume, int const iIndex[3] );
   ~VolumeLocation () {}
   int* Index() { return mIdxi; }
+  float* IndexF() { return mIdxf; }
   void SetFromRAS( float const iRAS[3] );
  protected:
   VolumeCollection& mVolume;
@@ -50,6 +53,7 @@ class VolumeCollection : public DataCollection {
   virtual ~VolumeCollection ();
 
   virtual DataLocation& MakeLocationFromRAS ( float const iRAS[3] );
+  DataLocation& MakeLocationFromIndex ( int const iIndex[3] );
 
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription() { return "Volume"; }
@@ -144,7 +148,6 @@ class VolumeCollection : public DataCollection {
   // display transform.
   virtual void SetDataToWorldTransform ( int iTransformID );
 
-
   // Returns the combined world to index transform.
   Matrix44& GetWorldToIndexTransform ();
 
@@ -192,6 +195,15 @@ class VolumeCollection : public DataCollection {
   bool IsAutosaveDirty () { return mbAutosaveDirty; }
   void AutosaveIfDirty ();
 
+  // Given an MRI voxel index and a plane in RAS coords and the
+  // direction to extend the voxel, returns whether or not the voxel
+  // intersects the plane. Tests each of the voxel's edges against the
+  // plane.
+  VectorOps::IntersectionResult VoxelIntersectsPlane
+    ( Point3<int>& iMRIIndex, int iIncrement,
+      Point3<float>& iPlaneRAS, Point3<float>& iPlaneRASNormal,
+      Point3<float>& oIntersectionRAS ); 
+
 protected:
 
   // Gets information from the MRI structure.
@@ -209,6 +221,7 @@ protected:
 
   // Faster way of getting values.
   float GetMRINearestValueAtIndexUnsafe ( int iIndex[3] );
+
 
   // Filename to use when reading or writing.
   std::string mfnMRI;
@@ -285,11 +298,11 @@ class VolumeCollectionFlooder {
   class CheckPair {
   public:
     CheckPair() {}
-    CheckPair( Point3<float>& iSource, Point3<float>& iCheck ) {
-      mSourceRAS = iSource; mCheckRAS = iCheck;
+    CheckPair( Point3<int>& iSource, Point3<int>& iCheck ) {
+      mSourceIndex = iSource; mCheckIndex = iCheck;
     }
-    Point3<float> mSourceRAS;
-    Point3<float> mCheckRAS;
+    Point3<int> mSourceIndex;
+    Point3<int> mCheckIndex;
   };    
 
   void Flood ( VolumeCollection& iVolume, float iRASSeed[3], Params& iParams );

@@ -2274,8 +2274,8 @@ ScubaView::TranslateRASToWindow ( float const iRAS[3], int oWindow[2] ) {
     break;
   }
 
-  oWindow[0] = (int)rint( xWindow );
-  oWindow[1] = (int)rint( yWindow );
+  oWindow[0] = (int)floor( xWindow + 0.5 );
+  oWindow[1] = (int)floor( yWindow + 0.5 );
 }
 
 float

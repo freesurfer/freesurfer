@@ -106,7 +106,7 @@ testShortestPathFinder_SOURCES=test_ShortestPathFinder.cpp \
 testVectorOps_SOURCES=test_VectorOps.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testRASToVoxel_SOURCES= test_RASToVoxel.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS)
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 
 testToglManager_SOURCES=test_ToglManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS)

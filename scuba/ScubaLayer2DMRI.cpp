@@ -1249,8 +1249,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	iTranslator.TranslateRASToWindow( voxelRAS.xyz(), voxelWindow.xy() );
 	iTranslator.TranslateRASToWindow( originRAS.xyz(), originWindow.xy() );
 	Point2<int> voxelSizeWindow;
-	voxelSizeWindow.Set( voxelWindow[0] - originWindow[0],
-			     voxelWindow[1] - originWindow[1] );
+	voxelSizeWindow.Set( abs( voxelWindow[0] - originWindow[0] ),
+			     abs( voxelWindow[1] - originWindow[1] ) );
 					  
 	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
 	updateRectWindow[0][0] = 

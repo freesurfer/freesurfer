@@ -592,3 +592,20 @@ scubaFrame
 UpdateLabelArea          -> mainWindow.UpdateLabelArea
 
 roiSettingsDlog
+
+
+Rounding problems:
+
+Check out 181,124,32 on hires.mgz.
+With floor() or implicit (int), +0.5
+testRASToVoxel does this:
+RAS -> index int, float -> RAS -> index int, index float 
+(0.36458298563957214,2.9257800579071045,18.412099838256836) -> (181,124,32), (181.74697875976562,124.84281921386719,32.013034820556641) -> (0.6369178295135498,2.9296913146972656,18.719377517700195) -> (181,124,31), (181,124,31.999998092651367)
+
+So z conversion, z=18.412099 -> 32, 32.01303 -> z=18.7193377 -> z=31.9999, 31 which is not the original coord of z=32
+
+So when VolumeCollection wants to pass back the z=32 index, it gets converted to z=31 because of the implicit flooring.
+
+With floor(f+0.5), we get an incorrect square RAS.
+
+see if it's figuring out with inc to get
