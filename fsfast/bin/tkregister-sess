@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkregister-sess
 #
-set VERSION = '$Id: tkregister-sess,v 1.8 2004/02/10 22:33:56 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.9 2004/06/10 23:09:11 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -97,6 +97,11 @@ foreach sess ($SessList)
   if($samesessanat) then
     ## Anatomical directory is in the session ##
     set anatdir = `getfirstrundir-sess $asd`;
+    if(-e subjectname) then
+      set subject = `cat subjectname`;
+    else
+      set subject = unknown
+    endif
   else
     ## Anatomical directory is in the database ##
     if(! -e subjectname) then
