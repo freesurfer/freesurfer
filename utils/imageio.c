@@ -887,7 +887,12 @@ TiffReadImage(char *fname, int frame0)
     return(NULL) ;
 
   /* Find out how many frames we have */
-  while(TIFFReadDirectory(tif)) nframe++;
+  while(TIFFReadDirectory(tif)) 
+    nframe++;
+
+  // some tif image just cannot be handled
+  if (nframe == 0)
+    nframe = 1;
 
   /* Go back to the beginning */
   TIFFSetDirectory(tif,0);
@@ -896,6 +901,9 @@ TiffReadImage(char *fname, int frame0)
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGELENGTH, &height);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
+  // nsamples not handled here
+  if (nsamples > 1)
+    ErrorExit(ERROR_BADPARM, "IMAGE: nsamples = %d.  only grey scale image is supported\n", nsamples );
 
   switch (bits_per_sample)  /* not valid - I don't know why */
   {
@@ -910,7 +918,7 @@ TiffReadImage(char *fname, int frame0)
     type = PFDOUBLE;
     break;
   }
-  if (frame0 < 0)
+  if (frame0 < 0) 
     I = ImageAlloc(height, width, type, nframe) ;
   else
     I = ImageAlloc(height, width, type, 1) ;
