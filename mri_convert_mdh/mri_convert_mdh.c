@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.13 2003/12/23 14:59:53 tosa Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.14 2004/05/03 17:39:17 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.13 2003/12/23 14:59:53 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.14 2004/05/03 17:39:17 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -897,6 +897,7 @@ int PrintMiniHeader(FILE *fp, MDH *mdh)
   fprintf(fp,"Line           %d\n",mdh->LoopCounterLine);
   fprintf(fp,"Echo           %d\n",mdh->Echo);
   fprintf(fp,"Slice          %d\n",mdh->Slice);
+  fprintf(fp,"Partition      %d\n",mdh->Partition);
   fprintf(fp,"Rep            %d\n",mdh->Rep);
   fprintf(fp,"KSCenterCol    %d\n",mdh->KSpaceCenterCol);  
   fprintf(fp,"KSCenterLine   %d\n",mdh->KSpaceCenterLine);  
