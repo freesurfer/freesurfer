@@ -3623,7 +3623,8 @@ int gca_write_iterations = 0 ;
 
 MRI  *
 GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
-                            int max_iter, MRI *mri_fixed, int restart)
+                            int max_iter, MRI *mri_fixed, int restart,
+                              void (*update_func)(MRI *))
 {
   int      x, y, z, width, height, depth, label, val, iter,
            xn, yn, zn, n, nchanged, min_changed,
@@ -3694,8 +3695,16 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
             MRIvox(mri_changed,x,y,z) = 1 ;
         }
 
-  old_ll = gcaGibbsImageLogLikelihood(gca, mri_dst, mri_inputs, lta) ;
-  old_ll /= (double)(width*depth*height) ;
+  if (restart && mri_fixed)
+    MRIdilate(mri_changed, mri_changed) ;
+
+  if (!restart)
+  {
+    old_ll = gcaGibbsImageLogLikelihood(gca, mri_dst, mri_inputs, lta) ;
+    old_ll /= (double)(width*depth*height) ;
+  }
+  else
+    old_ll = 0 ;
 #if 0
   {
     MRI   *mri_cma ;
@@ -3721,7 +3730,24 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
   PRIOR_FACTOR = MAX_PRIOR_FACTOR ;
   do
   {
-    if (iter == 0)
+    if (restart)
+    {
+      for (index = x = 0 ; x < width ; x++)
+        for (y = 0 ; y < height ; y++)
+          for (z = 0 ; z < depth ; z++)
+          {
+            if (MRIvox(mri_fixed, x, y, z) == 0 &&
+                (MRIvox(mri_changed,x,y,z) > 0))
+            {
+              x_indices[index] = x ;
+              y_indices[index] = y ;
+              z_indices[index] = z ;
+              index++ ;
+            }
+          }
+      nindices = index ;
+    }
+    else if (iter == 0)
     {
       /*      char  fname[STRLEN], *cp ;*/
       /*      int   nfixed ;*/
@@ -3734,27 +3760,6 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
         MRIwrite(mri_dst, fname) ;
       }
       mri_probs = GCAlabelProbabilities(mri_inputs, gca, NULL, lta) ;
-#if 0
-      for (nfixed = x = 0 ; x < width ; x++)
-        for (y = 0 ; y < height ; y++)
-          for (z = 0 ; z < depth ; z++)
-          {
-            if (MRIvox(mri_probs, x, y, z) >= nint(.9*255))
-            {
-              nfixed++ ;
-              MRIvox(mri_fixed, x, y, z) = 1 ;
-            }
-          }
-      
-      fprintf(stderr, "%d new fixed points added\n", nfixed) ;
-#endif
-#if 0
-      strcpy(fname, mri_inputs->fname) ;
-      cp = strrchr(fname, '/') ;
-      strcpy(cp+1, "probs") ;
-      fprintf(stderr, "writing label probabilities to %s...\n", fname) ;
-      MRIwrite(mri_probs, fname) ;
-#endif
       MRIorderIndices(mri_probs, x_indices, y_indices, z_indices) ;
       MRIfree(&mri_probs) ;
     }
@@ -3825,8 +3830,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
            (label == Right_Cerebral_Cortex)))  /* don't let wm become gm */
         label = old_label ;
 #endif
-        if (label != old_label)
-
+      if (label != old_label)
       {
         nchanged++ ;
         MRIvox(mri_changed, x, y, z) = 1 ;
@@ -3834,10 +3838,8 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       else
         MRIvox(mri_changed, x, y, z) = 0 ;
       MRIvox(mri_dst, x, y, z) = label ;
-      
-      
     }
-    if (nchanged > 10000 && iter < 2)
+    if (nchanged > 10000 && iter < 2 && !restart)
     {
       ll = gcaGibbsImageLogLikelihood(gca, mri_dst, mri_inputs, lta) ;
       ll /= (double)(width*depth*height) ;
@@ -3851,6 +3853,8 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
     else
       printf("pass %d: %d changed.\n", iter+1, nchanged) ;
     MRIdilate(mri_changed, mri_changed) ;
+    if (update_func)
+      (*update_func)(mri_dst) ;
 
 #if 0
     if (!iter && DIAG_VERBOSE_ON)
@@ -3873,8 +3877,11 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
 #endif
 #define MIN_CHANGED 5000
     min_changed = restart ? 0 : MIN_CHANGED ;
-    if (nchanged <= MIN_CHANGED)
+    if (nchanged <= min_changed)
     {
+      if (restart)
+        break ;
+
       for (x = 0 ; x < width ; x++)
         for (y = 0 ; y < height ; y++)
           for (z = 0 ; z < depth ; z++)
