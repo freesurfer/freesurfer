@@ -119,7 +119,7 @@ ConnectedComponents(LOGMAP_INFO *lmi, IMAGE *image, int white, int thresh,
   LOGPIX     *logpix, *nlogpix ;
   UINT       *pix ;
   NEIGHBOR   *neighbor ;
-  COBJ       *cobj, *freeObj ;
+  COBJ       *cobj = NULL, *freeObj ;
 
   if (image->pixel_format != PFINT)
     ErrorExit(ERROR_BADPARM, 
@@ -1395,7 +1395,7 @@ ConnTableCompact(COBJ_TABLE *ct)
 {
   int   o1, o2, merged, radius1, radius2, dist, xdist, ydist, ring1, ring2,
         ringFovea, nobjects, freeno, objno ;
-  COBJ  *cobj1, *cobj2, *freeObj, *cobj ;
+  COBJ  *cobj1, *cobj2, *freeObj, *cobj = NULL ;
 
   ringFovea = ct->lmi->ring_fovea ;
 
