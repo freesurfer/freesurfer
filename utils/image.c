@@ -2545,7 +2545,8 @@ ImageAppend(IMAGE *I, char *fname)
   free_hdrcon(&Iheader) ;
   return(NO_ERROR) ;
 }
-
+void break_here(void) ;
+void break_here(void) {}
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -2575,7 +2576,7 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
       ImageValRange(inImage, &min_val, &max_val) ;
       ImageScale(inImage, inImage, 0.0f, 255.0f) ;
       ImageCopy(inImage, Iin) ;
-      ImageScale(inImage, inImage, min_val, max_val) ;
+      ImageScale(inImage, inImage, min_val, max_val) ;  /* restore old image */
     }
     else
       Iin = inImage ;
@@ -2606,8 +2607,8 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
       ImageFree(&Iin) ;
     if (outImage != Iout)
     {
-      ImageScale(Iout, Iout, min_val, max_val) ;
       ImageCopy(Iout, outImage) ;
+      ImageScale(outImage, outImage, min_val, max_val) ;
       ImageFree(&Iout) ;
     }
     return(NO_ERROR) ;
@@ -2635,7 +2636,6 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
     {
       for (x0 = 0 ; x0 < cols ; x0++)
       {
-        
 /*
          x and y are in window coordinates, while xc and yc are in image
          coordinates.
@@ -3085,14 +3085,12 @@ ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, float mu,
   {
     for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++)
     {
-      
 /*
   x and y are in window coordinates, while x0, y0, xc and yc are in image
   coordinates.
 */
 
-      if ((Gdiag & DIAG_WRITE) && 
-          (x0 == 31 && (y0 == 39 || y0 == 40)))
+      if ((Gdiag & DIAG_WRITE) && (x0 == 14 && y0 == 63))
       {
         xfp = fopen("ix.dat", "a") ;
         yfp = fopen("iy.dat", "a") ;
@@ -3109,18 +3107,17 @@ ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, float mu,
       {
         /* reflect across the boundary */
         yc = y + y0 ;
-        if (yc < 0)
-          yc = -yc ;
-        else if (yc >= rows)
-          yc = rows - (yc - rows + 1) ;
+        if ((yc < 0) || (yc >= rows))
+        {
+          g += wsize ;
+          continue ;
+        }
         
         for (x = -whalf ; x <= whalf ; x++, g++)
         {
           xc = x0 + x ;
-          if (xc < 0)
-            xc = -xc ;
-          else if (xc >= cols)
-            xc = cols - (xc - cols + 1) ;
+          if ((xc < 0) || (xc >= cols))
+            continue ;
           
           fxpix = *IMAGEFpix(Ix, xc, yc) ;
           fypix = *IMAGEFpix(Iy, xc, yc) ;
@@ -3188,7 +3185,7 @@ ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, float mu,
         fclose(xfp) ;
         fclose(yfp) ;
         fprintf(ofp, 
-                "vx %2.3f, vy %2.3f, sgn %2.2f, sx %2.2f, sy %2.2f, vx %2.3f, vy %2.3f\n", 
+             "vx %2.3f, vy %2.3f, sgn %2.2f, sx %2.2f, sy %2.2f, vx %2.3f, vy %2.3f\n",
                 vx, vy, sgn, sx, sy, vx, vy) ;
         fclose(ofp) ;
       }
@@ -3270,18 +3267,17 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
       {
         /* reflect across the boundary */
         yc = y + y0 ;
-        if (yc < 0)
-          yc = -yc ;
-        else if (yc >= rows)
-          yc = rows - (yc - rows + 1) ;
+        if ((yc < 0) || (yc >= rows))
+        {
+          g += wsize ;
+          continue ;
+        }
         
         for (x = -whalf ; x <= whalf ; x++, g++)
         {
           xc = x0 + x ;
-          if (xc < 0)
-            xc = -xc ;
-          else if (xc >= cols)
-            xc = cols - (xc - cols + 1) ;
+          if ((xc < 0) || (xc >= cols))
+            continue ;
           
           fxpix = *IMAGEFpix(Ix, xc, yc) ;
           fypix = *IMAGEFpix(Iy, xc, yc) ;
@@ -3684,26 +3680,10 @@ ImageConvolveGaussian(IMAGE *inImage,IMAGE *gImage, IMAGE *outImage,
   kernel = IMAGEFpix(gImage, 0, 0) ;
   ksize = gImage->cols ;
   ImageConvolve1d(inImage, tmpImage, kernel, ksize, IMAGE_VERTICAL) ;
-#if 0
-{
-  static int gno = 0 ;
-  char fname[100] ;
-  sprintf(fname, "t%d.hipl", gno++) ;
-ImageWrite(tmpImage, fname) ;
-}
-#endif
 
   buf = IMAGEFpix(outImage, 0, 0) ;
   outImage->image = (byte *)IMAGEFseq_pix(outImage, 0, 0, dst_frameno) ;
   ImageConvolve1d(tmpImage, outImage, kernel, ksize, IMAGE_HORIZONTAL) ;
-#if 0
-{
-  static int gno = 0 ;
-  char fname[100] ;
-  sprintf(fname, "g%d.hipl", gno++) ;
-ImageWrite(outImage, fname) ;
-}
-#endif
 
   outImage->image = (byte *)buf ;
   return(outImage) ;
@@ -4240,13 +4220,6 @@ ImageCovarMatrix(IMAGE *image, float **pmeans)
     }
   }
 
-#if 0
-ImageWrite(zimage, "zimage.hipl") ;
-MatFileWrite("zimage.mat", zimage->image, zimage->num_frame, zimage->cols,
-             "zimage") ;
-MatFileWrite("means.mat", means, pix_per_frame, 1, "means") ;
-#endif
-
 /* 
   now form covariance matrix, treating each frame of the input sequence
   as a row in a num_frame x (rows*cols) sized matrix and forming the 
@@ -4285,11 +4258,6 @@ MatFileWrite("means.mat", means, pix_per_frame, 1, "means") ;
       *fDstPtr++ = ftotal / (nframes-1) ;  /* unbiased covariance */
     }
   }
-
-#if 0
-ImageWrite(cimage, "cimage.hipl") ;
-MatFileWrite("cimage.mat", cimage->image, crows, ccols, "cimage") ;
-#endif
 
   if (pmeans)
     *pmeans = means ;
