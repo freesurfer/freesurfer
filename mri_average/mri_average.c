@@ -16,13 +16,10 @@
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static MRI *align_with_average(MRI *mri_src, MRI *mri_avg) ;
-char *FileNameRemoveExtension(char *in_fname, char *out_fname) ;
 static MATRIX *align_pca(MRI *mri_src, MRI *mri_avg) ;
-static MATRIX *apply_pca(MRI *mri_in, MRI *mri_ref, MRI *mri_reg,
-                      MATRIX *m_in_evectors, double in_means[3],
-                      MATRIX *m_ref_evectors, double ref_means[3]) ;
+static MATRIX *pca_matrix(MATRIX *m_in_evectors, double in_means[3],
+                         MATRIX *m_ref_evectors, double ref_means[3]) ;
 
-MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
 
 char *Progname ;
 static int align = 1 ;
@@ -430,15 +427,12 @@ align_pca(MRI *mri_in, MRI *mri_ref)
             m_in_evectors->rptr[i][2],
             m_in_evectors->rptr[i][3]) ;
 
-  return(apply_pca(mri_in, mri_ref, NULL,
-                      m_in_evectors, in_means,
-                      m_ref_evectors, ref_means)) ;
+  return(pca_matrix(m_in_evectors, in_means,m_ref_evectors, ref_means)) ;
 }
 
 static MATRIX *
-apply_pca(MRI *mri_in, MRI *mri_ref, MRI *mri_reg,
-             MATRIX *m_in_evectors, double in_means[3],
-             MATRIX *m_ref_evectors, double ref_means[3])
+pca_matrix(MATRIX *m_in_evectors, double in_means[3],
+           MATRIX *m_ref_evectors, double ref_means[3])
 {
   float   dx, dy, dz ;
   MATRIX  *mRot, *m_in_T, *mOrigin, *m_L, *m_R, *m_T, *m_tmp ;
@@ -464,7 +458,7 @@ apply_pca(MRI *mri_in, MRI *mri_ref, MRI *mri_reg,
   {
     MatrixFree(&m_in_T) ; MatrixFree(&mRot) ;
     fprintf(stderr, "eigenvector swap detected: ignoring PCA...\n") ;
-    return(MatrixIdentity(m_in_evectors->rows, NULL)) ;
+    return(MatrixIdentity(4, NULL)) ;
   }
 
   mOrigin = VectorAlloc(3, MATRIX_REAL) ;
@@ -528,69 +522,4 @@ apply_pca(MRI *mri_in, MRI *mri_ref, MRI *mri_reg,
   MatrixFree(&mRot) ;
   VectorFree(&mOrigin) ;
   return(m_L) ;
-}
-char *
-FileNameRemoveExtension(char *in_fname, char *out_fname)
-{
-  char *dot ;
-
-  if (out_fname != in_fname)
-    strcpy(out_fname, in_fname) ;
-  dot = strrchr(out_fname, '.') ;
-  if (dot)
-    *dot = 0 ;
-  return(out_fname) ;
-}
-
-MRI *
-MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst)
-{
-  int    width, height, depth, x, y, z, val ;
-  double ref_mean, src_mean, nref_vox, nsrc_vox, scale ;
-
-  mri_dst = MRIcopy(mri_src, mri_dst) ;
-
-  width = mri_dst->width ; height = mri_dst->height ; depth = mri_dst->depth;
-
-  nref_vox = nsrc_vox = src_mean = ref_mean = 0.0 ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
-        if (MRIvox(mri_ref,x,y,z) > 10)
-        {
-          nref_vox++ ;
-          ref_mean += (double)MRIvox(mri_ref, x, y, z) ;
-        }
-        if (MRIvox(mri_src,x,y,z) > 10)
-        {
-          src_mean += (double)MRIvox(mri_src, x, y, z) ;
-          nsrc_vox++ ;
-        }
-      }
-    }
-  }
-
-  ref_mean /= nref_vox ; src_mean /= nsrc_vox ;
-  fprintf(stderr, "mean brightnesses: ref = %2.1f, in = %2.1f\n",
-          ref_mean, src_mean) ;
-  scale = ref_mean / src_mean ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
-        val = MRIvox(mri_src, x, y, z) ;
-        val = nint(val*scale) ;
-        if (val > 255)
-          val = 255 ;
-        MRIvox(mri_src, x, y, z) = val ;
-      }
-    }
-  }
-
-  return(mri_dst) ;
 }
