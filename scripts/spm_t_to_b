@@ -1,0 +1,84 @@
+#!/bin/sh
+
+progname=`basename $0`
+
+usage()
+{
+
+	echo "usage: $progname spm_stem_format bshort_stem" >&2
+	exit 1
+
+} # end usage()
+
+clean_and_exit()
+{
+
+	echo "$progname: caught ctl-c, cleaning up and exiting (hang on...)" >&2
+	rm -rf $tempdir
+	echo "$progname: done" >&2
+
+	exit 2
+
+} # end usage()
+
+trap clean_and_exit 2
+
+if [ $# -ne 2 ] ; then usage ; fi
+
+tempdir=`mktemp -q /tmp/$progname.XXXXXX`
+if [ $? -eq 1 ]
+then
+	echo "$progname: couldn't create temporary directory, exiting" >&2
+	exit 1
+fi
+
+rm $tempdir
+mkdir $tempdir
+
+outdir=`dirname $2`
+outstem=`basename $2`
+
+i=1
+stemname=`printf $1 $i`
+while [ -f $stemname.img ]
+do
+	if [ $i -eq 1 ]
+	then
+		echo "creating first time point..."
+		spm_to_b $stemname $2
+	else
+		echo "adding time point $i..."
+		spm_to_b $stemname $tempdir/tempstem
+
+		for f in $tempdir/*.bshort
+		do
+			sourcestem=`basename $f`
+			destname=$outdir/`echo $sourcestem | sed "s/tempstem/$outstem/"`
+			cat $f >> $destname
+		done
+
+		rm $tempdir/*
+	fi
+	i=`echo "$i 1 + p" | dc`
+	stemname=`printf $1 $i`
+done
+
+if [ $i -eq 1 ]
+then
+	echo "$progname: file $stemname not found, no data processed" >&2
+	exit 1;
+fi
+
+tp=`echo "$i 1 - p" | dc`
+
+for f in $outdir/$outstem*.hdr
+do
+	read a b c d < $f
+	echo $a $b $tp $d > $f
+done
+
+rmdir $tempdir
+
+exit 0;
+
+# eof

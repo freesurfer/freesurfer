@@ -1,0 +1,44 @@
+#! /bin/tcsh -ef
+
+# this script should only be run once per subject.
+
+if (-e $SUBJECTS_DIR/$1/tmp/control.dat == 0)  then
+		echo ERROR: at least 1 control point must be selected
+		exit 2
+endif
+
+if (-e $SUBJECTS_DIR/$1/scripts == 0)  mkdir $SUBJECTS_DIR/$1/scripts ; endif
+
+if (-e $SUBJECTS_DIR/$1/scripts/brain.dat == 0)  \
+	if (-e $SUBJECTS_DIR/scripts/brain.dat) \
+		cp $SUBJECTS_DIR/scripts/brain.dat $SUBJECTS_DIR/$1/scripts ; \
+	endif
+endif
+
+pushd $SUBJECTS_DIR/$1/scripts
+
+foreach d (../tmp ../mri/T1 ../mri/wm ../mri/filled ../mri/brain ../surf)
+    if (-e $d == 0)  mkdir $d ; endif
+end
+
+
+
+
+# this is just needed for diagnostic purposes
+setenv DIAG 0x04048
+
+
+rm -f ../mri/orig/COR-.info.bak
+mv -f ../mri/orig/COR-.info ../mri/orig/COR-.info.bak
+grep -v ^xform ../mri/orig/COR-.info.bak > ../mri/orig/COR-.info
+
+# intensity normalize the data 
+mri_normalize -f ../tmp/control.dat -no1d ../mri/orig ../mri/T1
+cp ../mri/T1/COR-.info ../mri/brain
+cp ../mri/T1/COR-.info ../mri/wm
+
+
+# label white matter
+mri_segment $SUBJECTS_DIR/$1/mri/T1 $SUBJECTS_DIR/$1/mri/wm
+inflate_subject $1
+
