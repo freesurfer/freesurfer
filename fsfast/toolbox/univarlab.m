@@ -2,19 +2,45 @@ function varargout = univarlab(varargin)
 % UNIVARLAB Application M-file for univarlab.fig
 %    FIG = UNIVARLAB launch univarlab GUI.
 %    UNIVARLAB('callback_name', ...) invoke the named callback.
+% Last Modified by GUIDE v2.0 08-Aug-2003 00:33:25
+% $Id: univarlab.m,v 1.3 2003/08/08 07:03:35 greve Exp $
 
-% Last Modified by GUIDE v2.0 07-Aug-2003 02:41:50
+% To do:
+%   Closing/Quiting functions
+%   Choose whether to display some windows
+%   Choose whether to display some traces
+%   Better HDR
+%   Info/Help
+%   TR/Ntp
+%   CNR
+%   Signifiances
+%   Slider for Manual
+%   Test for Matrix Condition
+%   BoxCar Width
+%   Fix FixACF
+%   Seed
+%   Gamma First Derivative
 
 if(nargin == 0)  
   % LAUNCH GUI
   fig = openfig(mfilename,'new');
   % Generate a structure of handles to pass to callbacks, and store it. 
-  handles = guihandles(fig); % only run this once, later use h = guidata
-  handles.hunivarlab = fig;
-  handles = InitGUIParams(handles);
-  handles = Synth(handles);
-  handles = PlotRaw(handles);
-guidata(fig, handles);
+  gd = guihandles(fig); % only run this once, later use h = guidata
+  gd.hunivarlab = fig;
+  gd = InitGUIParams(gd);
+  gd = SynthNoise(gd);
+  gd = ScaleFilterNoise(gd);
+  gd = NewStimSched(gd);
+  gd = MakeFirstLevelAnalysis(gd);
+  gd = SynthC1Signal(gd);
+  gd = SynthC2Signal(gd);
+  gd = SynthSignal(gd);
+  gd = SynthObserved(gd);
+  gd = Estimate(gd);
+  gd = PlotRaw(gd);
+  gd = PlotACF(gd);
+  gd = PlotHRF(gd);
+  guidata(fig, gd);
   if(nargout > 0) varargout{1} = fig; end
 elseif(ischar(varargin{1})) 
   % INVOKE NAMED SUBFUNCTION OR CALLBACK
@@ -26,62 +52,96 @@ elseif(ischar(varargin{1}))
     disp(lasterr);
   end
 end
+return;
+%----------------- end of main ---------------------------%
+%----------------- end of main ---------------------------%
+%----------------- end of main ---------------------------%
 
-%| ABOUT CALLBACKS:
-%| GUIDE automatically appends subfunction prototypes to this file, and 
-%| sets objects' callback properties to call them through the FEVAL 
-%| switchyard above. This comment describes that mechanism.
-%|
-%| Each callback subfunction declaration has the following form:
-%| <SUBFUNCTION_NAME>(H, EVENTDATA, HANDLES, VARARGIN)
-%|
-%| The subfunction name is composed using the object's Tag and the 
-%| callback type separated by '_', e.g. 'slider2_Callback',
-%| 'figure1_CloseRequestFcn', 'axis1_ButtondownFcn'.
-%|
-%| H is the callback object's handle (obtained using GCBO).
-%|
-%| EVENTDATA is empty, but reserved for future use.
-%|
-%| HANDLES is a structure containing handles of components in GUI using
-%| tags as fieldnames, e.g. handles.figure1, handles.slider2. This
-%| structure is created at GUI startup using GUIHANDLES and stored in
-%| the figure's application data using GUIDATA. A copy of the structure
-%| is passed to each callback.  You can store additional information in
-%| this structure at GUI startup, and you can change the structure
-%| during callbacks.  Call guidata(h, handles) after changing your
-%| copy to replace the stored original so that subsequent callbacks see
-%| the updates. Type "help guihandles" and "help guidata" for more
-%| information.
-%|
-%| VARARGIN contains any extra arguments you have passed to the
-%| callback. Specify the extra arguments by editing the callback
-%| property in the inspector. By default, GUIDE sets the property to:
-%| <MFILENAME>('<SUBFUNCTION_NAME>', gcbo, [], guidata(gcbo))
-%| Add any extra arguments after the last argument, before the final
-%| closing parenthesis.
+% --------------------------------------------------------------------
+function varargout = RPER_menu_Callback(h, eventdata, gd, varargin)
+if(strcmp(gd.ScheduleType,'rper')) return; end
+gd.ScheduleType = 'rper';
+set(gd.FIER_menu,'checked','off');
+set(gd.Blocked_menu,'checked','off');
+set(gd.RPER_menu,'checked','on');
+Schedule_pb_Callback(h, eventdata, gd, varargin);
+return;
 
+% --------------------------------------------------------------------
+function varargout = FIER_menu_Callback(h, eventdata, gd, varargin)
+if(strcmp(gd.ScheduleType,'fier')) return; end
+gd.ScheduleType = 'fier';
+set(gd.RPER_menu,'checked','off');
+set(gd.Blocked_menu,'checked','off');
+set(gd.FIER_menu,'checked','on');
+Schedule_pb_Callback(h, eventdata, gd, varargin);
+return;
+
+% --------------------------------------------------------------------
+function varargout = Blocked_menu_Callback(h, eventdata, gd, varargin)
+if(strcmp(gd.ScheduleType,'blocked')) return; end
+gd.ScheduleType = 'blocked';
+set(gd.RPER_menu,'checked','off');
+set(gd.FIER_menu,'checked','off');
+set(gd.Blocked_menu,'checked','on');
+Schedule_pb_Callback(h, eventdata, gd, varargin);
+return;
 
 
 % --------------------------------------------------------------------
 function varargout = quit_pb_Callback(h, eventdata, gd, varargin)
 
-
-
-
 % --------------------------------------------------------------------
 function varargout = reset_pb_Callback(h, eventdata, gd, varargin)
+gd = InitGUIParams(gd);
+gd = SynthNoise(gd);
+gd = ScaleFilterNoise(gd);
+gd = NewStimSched(gd);
+gd = MakeFirstLevelAnalysis(gd);
+gd = SynthC1Signal(gd);
+gd = SynthC2Signal(gd);
+gd = SynthSignal(gd);
+gd = SynthObserved(gd);
+gd = Estimate(gd);
+gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
+guidata(gd.hunivarlab, gd);
+return;
+  
+% --------------------------------------------------------------------
+% Synthesize a new schedule %
+function varargout = Schedule_pb_Callback(h, eventdata, gd, varargin)
+gd = NewStimSched(gd);
+gd = MakeFirstLevelAnalysis(gd);
+gd = SynthC1Signal(gd);
+gd = SynthC2Signal(gd);
+gd = SynthSignal(gd);
+gd = SynthObserved(gd);
+gd = Estimate(gd);
+gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
+guidata(gd.hunivarlab,gd);
+return;
 
 % --------------------------------------------------------------------
+% Synthesize new noise %
 function varargout = synth_pb_Callback(h, eventdata, gd, varargin)
-gd = Synth(gd);
+gd = SynthNoise(gd);
+gd = ScaleFilterNoise(gd);
+gd = SynthObserved(gd);
+gd = Estimate(gd);
 gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
 guidata(gd.hunivarlab,gd);
 %univarlab('PlotRaw',gd);
 %guidata(gd.hunivarlab,gd);
 return;
 
 % --------------------------------------------------------------------
+% Change Delta parameter used in Synthesis Gamma Model
 function varargout = GamDeltaSynth_Callback(h, eventdata, gd, varargin)
 val = sscanf(get(h,'string'),'%f');
 if(val < gd.GamDeltaSynth(2) | val > gd.GamDeltaSynth(3))
@@ -90,8 +150,14 @@ if(val < gd.GamDeltaSynth(2) | val > gd.GamDeltaSynth(3))
 end
 gd.GamDeltaSynth(1) = val;
 gd = MakeFirstLevelAnalysis(gd);
-gd = Synth(gd);
+gd = SynthC1Signal(gd);
+gd = SynthC2Signal(gd);
+gd = SynthSignal(gd);
+gd = SynthObserved(gd);
+gd = Estimate(gd);
 gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
 guidata(gd.hunivarlab,gd);
 return;
 
@@ -104,8 +170,14 @@ if(val < gd.GamTauSynth(2) | val > gd.GamTauSynth(3))
 end
 gd.GamTauSynth(1) = val;
 gd = MakeFirstLevelAnalysis(gd);
-gd = Synth(gd);
+gd = SynthC1Signal(gd);
+gd = SynthC2Signal(gd);
+gd = SynthSignal(gd);
+gd = SynthObserved(gd);
+gd = Estimate(gd);
 gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
 guidata(gd.hunivarlab,gd);
 return;
 
@@ -117,8 +189,13 @@ if(val < gd.C1AmpSynth(2) | val > gd.C1AmpSynth(3))
   return;
 end
 gd.C1AmpSynth(1) = val;
-gd = Synth(gd);
+gd = SynthC1Signal(gd);
+gd = SynthSignal(gd);
+gd = SynthObserved(gd);
+gd = Estimate(gd);
 gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
 guidata(gd.hunivarlab,gd);
 return;
 
@@ -130,8 +207,13 @@ if(val < gd.C2AmpSynth(2) | val > gd.C2AmpSynth(3))
   return;
 end
 gd.C2AmpSynth(1) = val;
-gd = Synth(gd);
+gd = SynthC2Signal(gd);
+gd = SynthSignal(gd);
+gd = SynthObserved(gd);
+gd = Estimate(gd);
 gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
 guidata(gd.hunivarlab,gd);
 return;
 
@@ -143,55 +225,144 @@ if(val < gd.NoiseStd(2) | val > gd.NoiseStd(3))
   return;
 end
 gd.NoiseStd(1) = val;
-gd = Synth(gd);
+gd = ScaleFilterNoise(gd);
+gd = SynthObserved(gd);
+gd = Estimate(gd);
 gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
 guidata(gd.hunivarlab,gd);
 return;
 
 % --------------------------------------------------------------------
 function varargout = NoiseAR1_Callback(h, eventdata, gd, varargin)
-
-
-
+val = sscanf(get(h,'string'),'%f');
+if(val < gd.NoiseAR1(2) | val > gd.NoiseAR1(3))
+  set(h,'string',sprintf('%g',gd.NoiseAR1(1)));
+  return;
+end
+gd.NoiseAR1(1) = val;
+gd = PrepNoiseACF(gd);
+gd = ScaleFilterNoise(gd);
+gd = SynthObserved(gd);
+gd = Estimate(gd);
+gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
+guidata(gd.hunivarlab,gd);
+return;
 
 % --------------------------------------------------------------------
-function varargout = FIRPreWin_Callback(h, eventdata, gd, varargin)
-
-
-
+function varargout = FIRPSDMin_Callback(h, eventdata, gd, varargin)
+val = sscanf(get(h,'string'),'%f');
+if(val < gd.FIRPSDMin(2) | val > gd.FIRPSDMin(3))
+  set(h,'string',sprintf('%g',gd.FIRPSDMin(1)));
+  return;
+end
+val = gd.TR*round(val/gd.TR);
+set(h,'string',sprintf('%g',val));
+gd.FIRPSDMin(1) = val;
+gd.FIRTotWin  = gd.FIRPSDMax(1) - gd.FIRPSDMin(1);
+set(gd.FIRTotWinTxt,'string',sprintf('%g',gd.FIRTotWin));
+gd = MakeFirstLevelAnalysis(gd);
+gd = Estimate(gd);
+gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
+guidata(gd.hunivarlab,gd);
+return;
 
 % --------------------------------------------------------------------
-function varargout = FIRPostWin_Callback(h, eventdata, gd, varargin)
-
-
-
+function varargout = FIRPSDMax_Callback(h, eventdata, gd, varargin)
+val = sscanf(get(h,'string'),'%f');
+val = gd.TR*round(val/gd.TR);
+if(val < gd.FIRPSDMax(2) | val > gd.FIRPSDMax(3))
+  set(h,'string',sprintf('%g',gd.FIRPSDMax(1)));
+  return;
+end
+set(h,'string',sprintf('%g',val));
+if(abs(val-gd.FIRPSDMax(1))==0) return; end
+gd.FIRPSDMax(1) = val;
+gd.FIRTotWin  = gd.FIRPSDMax(1) - gd.FIRPSDMin(1);
+set(gd.FIRTotWinTxt,'string',sprintf('%g',gd.FIRTotWin));
+gd = MakeFirstLevelAnalysis(gd);
+gd = Estimate(gd);
+gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
+guidata(gd.hunivarlab,gd);
+return;
 
 % --------------------------------------------------------------------
 function varargout = GamDeltaEst_Callback(h, eventdata, gd, varargin)
-
-
-
+val = sscanf(get(h,'string'),'%f');
+if(val < gd.GamDeltaEst(2) | val > gd.GamDeltaEst(3))
+  set(h,'string',sprintf('%g',gd.GamDeltaEst(1)));
+  return;
+end
+gd.GamDeltaEst(1) = val;
+gd = MakeFirstLevelAnalysis(gd);
+gd = Estimate(gd);
+gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
+guidata(gd.hunivarlab,gd);
 
 % --------------------------------------------------------------------
 function varargout = GamTauEst_Callback(h, eventdata, gd, varargin)
-
-
-
+val = sscanf(get(h,'string'),'%f');
+if(val < gd.GamTauEst(2) | val > gd.GamTauEst(3))
+  set(h,'string',sprintf('%g',gd.GamTauEst(1)));
+  return;
+end
+gd.GamTauEst(1) = val;
+gd = MakeFirstLevelAnalysis(gd);
+gd = Estimate(gd);
+gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
+guidata(gd.hunivarlab,gd);
 
 % --------------------------------------------------------------------
 function varargout = C1AmpMan_Callback(h, eventdata, gd, varargin)
-
-
-
+val = sscanf(get(h,'string'),'%f');
+if(val < gd.C1AmpMan(2) | val > gd.C1AmpMan(3))
+  set(h,'string',sprintf('%g',gd.C1AmpMan(1)));
+  return;
+end
+gd.C1AmpMan(1) = val;
+gd = EstimateManual(gd);
+gd = PlotRaw(gd);
+guidata(gd.hunivarlab,gd);
+return;
 
 % --------------------------------------------------------------------
 function varargout = C2AmpMan_Callback(h, eventdata, gd, varargin)
-
-
-
+val = sscanf(get(h,'string'),'%f');
+if(val < gd.C2AmpMan(2) | val > gd.C2AmpMan(3))
+  set(h,'string',sprintf('%g',gd.C2AmpMan(1)));
+  return;
+end
+gd.C2AmpMan(1) = val;
+gd = EstimateManual(gd);
+gd = PlotRaw(gd);
+guidata(gd.hunivarlab,gd);
+return;
 
 % --------------------------------------------------------------------
 function varargout = Whiten_cb_Callback(h, eventdata, gd, varargin)
+gd.Whiten = ~gd.Whiten;
+gd = Estimate(gd);
+gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
+return;
+
+% --------------------------------------------------------------------
+function varargout = FixACF_cb_Callback(h, eventdata, gd, varargin)
+gd.FixACF = ~gd.FixACF;
+gd = PlotACF(gd);
+return;
 
 % --------------------------------------------------------------------
 function varargout = ViewFIRDesign_Callback(h, eventdata, gd, varargin)
@@ -216,39 +387,160 @@ guidata(gd.hunivarlab,gd)
 return;
 
 %-------------------------------------------------%
-function gd = PlotRaw(gd)
-if(isempty(gd.hRaw) | ~ishandle(gd.hRaw)) gd.hRaw = figure; end
-figure(gd.hRaw);
-plot(gd.t,gd.yobserved, gd.t,gd.ysignal,'+-', gd.t,gd.yhatfir, ...
-     gd.t,gd.yhatgam);
-title('Raw Time Courses');
-legend('Observed','True','FIR','Gamma');
+function gd = PlotHRF(gd)
+if(~isfield(gd,'hHRF') | isempty(gd.hHRF) | ~ishandle(gd.hHRF)) 
+  gd.hHRF = figure; 
+  ud.hunivarlab = gd.hunivarlab;
+  set(gd.hRaw,'userdata',ud);
+end
+figure(gd.hHRF);
+
+firpsd = fast_psdwin([gd.FIRPSDMin(1) gd.TR gd.FIRPSDMax(1)],'erftaxis');
+nperfir = length(firpsd);
+plot(firpsd,gd.FIRbeta(1:nperfir),firpsd,gd.FIRbeta(nperfir+1:end));
+title('Hemodynamic Responses');
+xlabel('post-stimulus delay (sec)');
 figure(gd.hunivarlab);
 guidata(gd.hunivarlab,gd)
 return;
 
+%-------------------------------------------------%
+function gd = PlotRaw(gd)
+if(~isfield(gd,'hRaw') | isempty(gd.hRaw) | ~ishandle(gd.hRaw)) 
+  gd.hRaw = figure; 
+  set(gcf,'Interruptible','off'); % smooth animations %
+  set(gcf,'DoubleBuffer','on');   % smooth animations %
+  set(gcf,'BusyAction','cancel'); % dont build up a lot of events %
+  set(gcf,'renderer','painters'); % seems to be the best
+  ud.hunivarlab = gd.hunivarlab;
+  set(gd.hRaw,'userdata',ud);
+end
+figure(gd.hRaw);
+tmp = [gd.yobserved gd.ysignal gd.yhatfir gd.yhatgam gd.yhatmangam];
+ymin = min(reshape1d(tmp));
+ymax = max(reshape1d(tmp));
+yrange = ymax-ymin;
+ind1 = find(gd.schedule(:,2)==1);
+nind1 = length(ind1);
+p1 = (ymin-.05*yrange)*ones(nind1,1);
+ind2 = find(gd.schedule(:,2)==2);
+nind2 = length(ind2);
+p2 = (ymin-.05*yrange)*ones(nind2,1);
+
+%p1 = gd.schedule(ind1,2) * (ymax-ymin)/2 + ymin;
+%p2 = gd.schedule(ind2,2) * (ymax-ymin)/2 + ymin;
+
+plot(gd.t,gd.ysignal,'+-', ...
+     gd.t,gd.yobserved, 'o-', ...
+     gd.t,gd.yhatfir, ...
+     gd.t,gd.yhatgam, gd.t,gd.yhatmangam, ...
+     gd.t(ind1),p1,'*', gd.t(ind2),p2,'d');
+title('Raw Time Courses');
+xlabel('time (sec)');
+legend('True','Observed','FIR','Gamma','Man-Gamma','C1Stim','C2Stim');
+figure(gd.hunivarlab);
+guidata(gd.hunivarlab,gd)
+return;
+
+%-------------------------------------------------%
+function gd = ShowLagZero
+ud = get(gcf,'userdata');
+gd = guidata(ud.hunivarlab);
+gd.ACFShowLagZero = ~gd.ACFShowLagZero;
+gd = PlotACF(gd);
+guidata(gd.hunivarlab,gd)
+return;
+
+%-------------------------------------------------%
+function gd = PlotACF(gd)
+if(~isfield(gd,'hACF') | isempty(gd.hACF) | ~ishandle(gd.hACF)) 
+  gd.hACF = figure; 
+  set(gcf,'Interruptible','off'); % smooth animations %
+  set(gcf,'DoubleBuffer','on');   % smooth animations %
+  set(gcf,'BusyAction','cancel'); % dont build up a lot of events %
+  set(gcf,'renderer','painters'); % seems to be the best
+  ud.hShowLagZero = ...
+      uicontrol('Style', 'checkbox', ...
+		'String', 'Show Lag Zero',...
+		'Position', [1 1 100 25], ...
+		'Callback', 'univarlab(''ShowLagZero'')',...
+		'tooltipstring','Toggle Display of Zeroth Lag',...
+		'value',1);
+  ud.hunivarlab = gd.hunivarlab;
+  set(gd.hACF,'userdata',ud);
+end
+figure(gd.hACF);
+
+nlag = 10;
+if(gd.ACFShowLagZero) lag = 1:nlag;
+else                  lag = 2:nlag;
+end
+z = zeros(size(lag));
+
+if(gd.FixACF)
+  if(isempty(gd.FIRFixACFMtx))
+    [tmp gd.FIRFixACFMtx] = fast_yacf_kjw(gd.firacf(1:2),gd.RFIR);
+  else 
+    tmp = gd.FIRFixACFMtx * gd.firacf(1:2);
+    tmp = tmp/tmp(1);
+  end
+  firacf = tmp(2).^[0:gd.ntp-1];
+
+  if(isempty(gd.GamFixACFMtx))
+    [tmp gd.GamFixACFMtx] = fast_yacf_kjw(gd.gamacf(1:2),gd.RGam);
+  else 
+    tmp = gd.GamFixACFMtx * gd.gamacf(1:2);
+    tmp = tmp/tmp(1);
+  end
+  gamacf = tmp(2).^[0:gd.ntp-1];
+  %firacf = fast_yacf_kjw(firacf,gd.RFIR);
+  %gamacf = fast_yacf_kjw(gamacf,gd.RGam);
+else
+  firacf = gd.firacf(2).^[0:gd.ntp-1];
+  gamacf = gd.gamacf(2).^[0:gd.ntp-1];
+end
+
+plot(lag-1,gd.NoiseACF(lag), '+-', ...
+     lag-1,gd.firacf(lag), 'o-',...
+     lag-1,firacf(lag), 'o-',...
+     lag-1,gd.gamacf(lag), 'd-',...
+     lag-1,gamacf(lag), 'd-',...
+     lag-1,z,'k-..');
+title('Autocorrelation Function');
+xlabel('lag (time points)');
+legend('True','FIR-Raw','FIR-AR1','Gamma-Raw','Gamma-AR1');
+guidata(gd.hunivarlab,gd)
+figure(gd.hunivarlab);
+return;
+
 % --------------------------------------------------------------------
 function gd = InitGUIParams(gd)
-% ---------- synthesis parameters ------------------%
+  % ---------- synthesis parameters ------------------%
 gd.TR = 2;
 gd.ntp = 120;
 gd.GamDeltaSynth = [2.25  0.00 5.00];
 gd.GamTauSynth   = [1.25  0.10 2.00];
 gd.C1AmpSynth    = [1.00 -2.00 2.00];
 gd.C2AmpSynth    = [1.00 -2.00 2.00];
-gd.schedule      = [];   % stimulus schedule
+gd.ScheduleType  = 'rper';
+gd.schedule      = [];   % stimulus schedule, [t, id]
 gd.GamSynthFLA   = [];   % First level analysis struct for synth
 gd.NoiseStd      = [1.00  0.00 2.00];
-gd.NoiseAR1      = [0.00  0.00 1.00];
+gd.NoiseAR1      = [0 -0.9 0.9];
+gd = PrepNoiseACF(gd);
+gd.FixACF = 0;
+gd.FIRFixACFMtx = [];
+gd.GamFixACFMtx = [];
+gd.ACFShowLagZero = 1;
 
-% ---------- FIR Estimation parameters ------------------%
+  % ---------- FIR Estimation parameters ------------------%
 gd.FIRPSDMin     = [-4.00 -8.00  0.00];
 gd.FIRPSDMax     = [20.00  4.00 40.00];
-gd.FIRTotWin     = gd.FIRPreWin(1) + gd.FIRPostWin(1);
+gd.FIRTotWin     = gd.FIRPSDMax(1) - gd.FIRPSDMin(1);
 gd.FIRRStd       = 0.0; % Estimated value of Fir resid std
 gd.FIREstFLA        = [];  % First level analysis struct for est FIR
 
-% ---------- Gamma Estimation parameters ------------------%
+  % ---------- Gamma Estimation parameters ------------------%
 gd.GamDeltaEst = gd.GamDeltaSynth; % Use this val in estimation model
 gd.GamTauEst   = gd.GamTauSynth;   % Use this val in estimation model
 gd.C1AmpEst    = 0.0;  % Estimated value of C1
@@ -256,56 +548,106 @@ gd.C2AmpEst    = 0.0;  % Estimated value of C2
 gd.GamRStd     = 0.0;  % Estimated value of Gamma resid std
 gd.GamEstFLA   = [];   % First level analysis struct for est gamma
 
-% ---------- Manual-Gamma Estimation parameters ------------------%
-gd.C1AmpMan    = 0.0;  % Use this val to construct manual signal
-gd.C2AmpMan    = 0.0;  % Use this val to construct manual signal
-gd.ManGamRStd  = 0.0;  % Estimated value of ManGamma resid std
+  % ---------- Manual-Gamma Estimation parameters ------------------%
+gd.C1AmpMan    = [1.0 -2 2];  % Use this val to construct manual signal
+gd.C2AmpMan    = [1.0 -2 2];  % Use this val to construct manual signal
 
 gd.Whiten      = 0;    % Whitening flag (0 or 1)
 
-% ---------- Raw Synthesized Vectors -----------------------%
+  % ---------- Raw Synthesized Vectors -----------------------%
 gd.t = gd.TR*[0:gd.ntp-1]';
 gd.ypar = [];
+gd.ynoise0 = []; % unscaled
 gd.ynoise = [];
 gd.yc1signal = [];
 gd.yc2signal = [];
 gd.ysignal = [];
 gd.yobserved = [];
 
-% ---------- Raw Estimation Vectors -----------------------%
+  % ---------- Raw Estimation Vectors -----------------------%
 gd.yhatfir = [];
 gd.resfir = [];
 gd.acffir = [];
 gd.yhatgam = [];
 gd.resgam = [];
 gd.acfgam = [];
-gd.yhatmangam = [];
-gd.resmangam = [];
-gd.acfmangam = [];
-
-gd = NewStimSched(gd);
-gd = MakeFirstLevelAnalysis(gd);
+gd.yhatmangam = []; % Manual gamma
+gd.resmangam = [];  % Manual gamma
 
 gd.hXFIR = [];
 gd.hXGam = [];
-gd.hRaw = [];
+gd = SetGUIParams(gd);
+
+return;
+
+%-----------------------------------------------------%
+function gd = SetGUIParams(gd)
+
+if(strcmp(gd.ScheduleType,'rper')) set(gd.RPER_menu,'checked','on');
+else set(gd.RPER_menu,'checked','off');
+end
+if(strcmp(gd.ScheduleType,'fier')) set(gd.FIER_menu,'checked','on');
+else set(gd.FIER_menu,'checked','off');
+end
+if(strcmp(gd.ScheduleType,'blocked')) set(gd.Blocked_menu,'checked','on');
+else set(gd.Blocked_menu,'checked','off');
+end
+set(gd.GamDeltaSynth_et,'string',sprintf('%g',gd.GamDeltaSynth(1)));
+set(gd.GamTauSynth_et,'string',sprintf('%g',gd.GamTauSynth(1)));
+set(gd.C1AmpSynth_et,'string',sprintf('%g',gd.C1AmpSynth(1)));
+set(gd.C2AmpSynth_et,'string',sprintf('%g',gd.C2AmpSynth(1)));
+set(gd.C1AmpMan_et,'string',sprintf('%g',gd.C1AmpMan(1)));
+set(gd.C2AmpMan_et,'string',sprintf('%g',gd.C2AmpMan(1)));
+set(gd.NoiseStd_et,'string',sprintf('%g',gd.NoiseStd(1)));
+set(gd.NoiseAR1_et,'string',sprintf('%g',gd.NoiseAR1(1)));
+set(gd.FIRPSDMin_et,'string',sprintf('%g',gd.FIRPSDMin(1)));
+set(gd.FIRTotWinTxt,'string',sprintf('%g',gd.FIRTotWin));
+
 
 return;
 % --------------------------------------------------------------------
 function gd = NewStimSched(gd)
 
-nc1 = round(gd.ntp/3);
-nc2 = round(gd.ntp/3);
-n0 = gd.ntp - (nc1+nc2);
-
-r = [zeros(1,n0) ones(1,nc1) 2*ones(1,nc2)]';
-gd.schedule = [gd.t r(randperm(gd.ntp))];
+switch(gd.ScheduleType)
+ case {'rper'}
+  % randomize sequence and timing
+  nc1 = round(gd.ntp/3);
+  nc2 = round(gd.ntp/3);
+  n0 = gd.ntp - (nc1+nc2);
+  r = [zeros(1,n0) ones(1,nc1) 2*ones(1,nc2)]';
+  gd.schedule = [gd.t r(randperm(gd.ntp))];
+ case {'fier'}
+  % randomize sequence, separate by 20 sec
+  ntpsep = round(20/gd.TR); 
+  nc = round((gd.ntp/ntpsep)/2);
+  r = [ones(1,nc) 2*ones(1,nc)];
+  r = r(randperm(2*nc));
+  r = [r; zeros(ntpsep-1,2*nc)];
+  r = reshape1d(r);
+  gd.schedule = [gd.t r];
+ case {'blocked'}
+  % randomize sequence, include null, block length = 20sec
+  % May be a problem when using BCW
+  ntpblock = round(20/gd.TR);
+  nblocks = round(gd.ntp/ntpblock);
+  nc1blocks = round(nblocks/4);
+  nc2blocks = round(nblocks/4);
+  nc0blocks = nblocks-(nc1blocks+nc2blocks);
+  seq = [ones(1,nc1blocks) 2*ones(1,nc2blocks)];
+  seq = seq(randperm(length(seq)));
+  seq = reshape1d([zeros(1,length(seq)); seq])';
+  r = reshape1d(repmat(seq,[ntpblock 1]));
+  gd.schedule = [gd.t r];
+  
+end
 
 return;
 % --------------------------------------------------------------------
 function gd = MakeFirstLevelAnalysis(gd)
 
-%-------- Est FIR ------------------------%
+set(gd.hunivarlab,'pointer','watch');
+
+  %-------- Est FIR ------------------------%
 gd.FIREstFLA = fast_flacfg_struct;
 gd.FIREstFLA.flaname = 'FIR';
 gd.FIREstFLA.TR      = gd.TR;
@@ -323,8 +665,11 @@ fxline = sprintf('effect fixed cond2 fir 2 %g %g %g 0',...
 		       gd.FIRPSDMin(1), gd.TR, gd.FIRPSDMax(1));
 gd.FIREstFLA.fxlist(2).fx = fast_fxcfg('parseline',fxline);
 gd.XFIR = fast_fla_desmat(gd.FIREstFLA);
+gd.RFIR = eye(gd.ntp) - gd.XFIR*inv(gd.XFIR'*gd.XFIR)*gd.XFIR'; 
+gd.FIRDOF = size(gd.XFIR,1)-size(gd.XFIR,2);
+gd.FIRDOF = size(gd.XFIR,1)-size(gd.XFIR,2);
 
-%-------- Est Gamma ------------------------%
+  %-------- Est Gamma ------------------------%
 gd.GamEstFLA = gd.FIREstFLA;
 fxline = sprintf('effect fixed cond1 gamma 1 0 .1 30 0 0 %g %g 0',...
 		 gd.GamDeltaEst(1),gd.GamTauEst(1));
@@ -333,8 +678,10 @@ fxline = sprintf('effect fixed cond2 gamma 2 0 .1 30 0 0 %g %g 0',...
 		 gd.GamDeltaEst(1),gd.GamTauEst(1));
 gd.GamEstFLA.fxlist(2).fx = fast_fxcfg('parseline',fxline);
 gd.XGam = fast_fla_desmat(gd.GamEstFLA);
+gd.RGam = eye(gd.ntp) - gd.XGam*inv(gd.XGam'*gd.XGam)*gd.XGam'; 
+gd.GamDOF = size(gd.XGam,1)-size(gd.XGam,2);
 
-%-------- Synth Gamma ------------------------%
+  %-------- Synth Gamma ------------------------%
 gd.GamSynthFLA = gd.FIREstFLA;
 fxline = sprintf('effect fixed cond1 gamma 1 0 .1 30 0 0 %g %g 0',...
 		 gd.GamDeltaSynth(1),gd.GamTauSynth(1));
@@ -343,32 +690,107 @@ fxline = sprintf('effect fixed cond2 gamma 2 0 .1 30 0 0 %g %g 0',...
 		 gd.GamDeltaSynth(1),gd.GamTauSynth(1));
 gd.GamSynthFLA.fxlist(2).fx = fast_fxcfg('parseline',fxline);
 gd.XGamSynth = fast_fla_desmat(gd.GamSynthFLA);
+set(gd.hunivarlab,'pointer','arrow');
+return;
+
+% --------------------------------------------------------------------
+function gd = SynthNoise(gd)
+gd.ynoise0    = randn(gd.ntp,1);
+return;
+
+% --------------------------------------------------------------------
+function gd = PrepNoiseACF(gd)
+gd.NoiseACF = (gd.NoiseAR1(1)).^[0:gd.ntp-1];
+gd.NoiseF   = chol(toeplitz(gd.NoiseACF));
+return;
+
+% --------------------------------------------------------------------
+function gd = ScaleFilterNoise(gd)
+gd.ynoise    = gd.NoiseStd(1)*gd.ynoise0;
+if(gd.NoiseAR1(1) ~= 0) 
+  gd.ynoise  = gd.NoiseF * gd.ynoise;
+end
 
 return;
+
 % --------------------------------------------------------------------
-
-function gd = Synth(gd)
-
-gd.ynoise    = gd.NoiseStd(1)*randn(gd.ntp,1);
+function gd = SynthC1Signal(gd)
 gd.yc1signal = gd.XGamSynth(:,1) * gd.C1AmpSynth(1);
-gd.yc2signal = gd.XGamSynth(:,2) * gd.C2AmpSynth(1);
-gd.ysignal   = gd.yc1signal + gd.yc2signal;
-gd.yobserved = gd.ysignal + gd.ynoise;
+return;
 
+% --------------------------------------------------------------------
+function gd = SynthC2Signal(gd)
+gd.yc2signal = gd.XGamSynth(:,2) * gd.C2AmpSynth(1);
+return;
+
+% --------------------------------------------------------------------
+function gd = SynthSignal(gd)
+gd.ysignal   = gd.yc1signal + gd.yc2signal;
+return;
+
+% --------------------------------------------------------------------
+function gd = SynthObserved(gd)
+gd.yobserved = gd.ysignal + gd.ynoise;
+return;
+
+% --------------------------------------------------------------------
+function gd = Estimate(gd)
 gd.FIRbeta = (inv(gd.XFIR'*gd.XFIR)*gd.XFIR')*gd.yobserved;
 gd.yhatfir = gd.XFIR * gd.FIRbeta;
 gd.resfir  = gd.yobserved - gd.yhatfir;
+gd.resfirvar = sum(gd.resfir.^2)/gd.FIRDOF;
+gd.resfirstd = sqrt(gd.resfirvar);
+gd.firacf = fast_acorr(gd.resfir);
+if(gd.Whiten)
+  acf = gd.firacf(2) .^ [0:gd.ntp-1];
+  W = inv(chol(toeplitz(acf)));
+  y = W*gd.yobserved;
+  X = W*gd.XFIR;
+  gd.FIRbeta = (inv(X'*X)*X')*y;
+  gd.yhatfir = gd.XFIR * gd.FIRbeta;
+  gd.resfir  = W*(gd.yobserved - gd.yhatfir);
+  gd.resfirvar = sum(gd.resfir.^2)/gd.FIRDOF;
+  gd.resfirstd = sqrt(gd.resfirvar);
+  gd.firacf = fast_acorr(gd.resfir);
+end
 
 gd.Gambeta = (inv(gd.XGam'*gd.XGam)*gd.XGam')*gd.yobserved;
 gd.yhatgam = gd.XGam * gd.Gambeta;
 gd.resgam  = gd.yobserved - gd.yhatgam;
+gd.resgamvar = sum(gd.resgam.^2)/gd.GamDOF;
+gd.resgamstd = sqrt(gd.resgamvar);
+gd.gamacf = fast_acorr(gd.resgam);
+if(gd.Whiten)
+  acf = gd.gamacf(2) .^ [0:gd.ntp-1];
+  W = inv(chol(toeplitz(acf)));
+  y = W*gd.yobserved;
+  X = W*gd.XGam;
+  gd.Gambeta = (inv(X'*X)*X')*y;
+  gd.yhatgam = gd.XGam * gd.Gambeta;
+  gd.resgam  = W*(gd.yobserved - gd.yhatgam);
+  gd.resgamvar = sum(gd.resgam.^2)/gd.GamDOF;
+  gd.resgamstd = sqrt(gd.resgamvar);
+  gd.gamacf = fast_acorr(gd.resgam);
+end
+
+set(gd.FIRRStdTxt,'string',sprintf('%3.2f',gd.resfirstd));
+set(gd.GamRStdTxt,'string',sprintf('%3.2f',gd.resgamstd));
+set(gd.GamRStdTxt,'string',sprintf('%3.2f',gd.resgamstd));
+set(gd.C1AmpEstTxt,'string',sprintf('%3.2f',gd.Gambeta(1)));
+set(gd.C2AmpEstTxt,'string',sprintf('%3.2f',gd.Gambeta(2)));
+
+gd.FIRFixACFMtx = []; % Will need new matrix
+gd.GamFixACFMtx = []; % Will need new matrix
+gd = EstimateManual(gd);
 
 return;
 
-
-
-
-
-
-
+%----------------------------------------------------------%
+function gd = EstimateManual(gd);
+gd.yhatmangam = gd.XGam * [gd.C1AmpMan(1) gd.C2AmpMan(1)]';
+gd.resmangam  = gd.yobserved - gd.yhatmangam;
+gd.resmangamvar = sum(gd.resmangam.^2)/gd.GamDOF;
+gd.resmangamstd = sqrt(gd.resmangamvar);
+set(gd.ManGamRStdTxt,'string',sprintf('%3.2f',gd.resmangamstd));
+return;
 
