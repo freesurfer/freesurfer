@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # spikedet-sess
 #
-# $Id: spikedet-sess,v 1.1 2004/05/17 17:50:23 greve Exp $
+# $Id: spikedet-sess,v 1.2 2004/05/17 17:56:10 greve Exp $
 
-set VERSION = '$Id: spikedet-sess,v 1.1 2004/05/17 17:50:23 greve Exp $';
+set VERSION = '$Id: spikedet-sess,v 1.2 2004/05/17 17:56:10 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -45,6 +45,7 @@ date | tee -a $LF
 pwd  | tee -a $LF
 echo $0  | tee -a $LF
 echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
 hostname  | tee -a $LF
 
 #------------------------------------------------------------------#
