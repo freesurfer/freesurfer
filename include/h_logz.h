@@ -59,7 +59,7 @@ typedef struct _LOGPIX
   int    ncpix ;         /* # of cart. pix that map to this logpix */
 } LOGPIX ;
 
-#define MAX_PIX  7
+#define MAX_PIX  10
 typedef struct
 {
   int npix ;      /* # of log pix that this cart. pixel contributes to */
@@ -154,7 +154,7 @@ int    LogMapSobel(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage,
                    int end_ring) ;
 IMAGE  *LogMapFilter(LOGMAP_INFO *lmi, int which, int window_size, 
                      IMAGE *Isrc, IMAGE *Idst) ;
-IMAGE  *LogMapSmooth(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
+IMAGE  *LogMapMeanFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
 double LogMapDiffuse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage, 
                      double k, int niter, int doweight, int which,
                      int time_type) ;
@@ -175,9 +175,8 @@ int   LogMapInitForwardFilter(LOGMAP_INFO *lmi, int which) ;
 IMAGE *LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
 
 
-IMAGE *
-LogMapMedianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset, 
-                   IMAGE *Idst) ;
+IMAGE *LogMapMedianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, 
+                          IMAGE *Ioffset, IMAGE *Idst) ;
 
 /* offset filtering in the log plane */
 IMAGE *LogMapOffsetOrientation(LOGMAP_INFO *lmi, int wsize, IMAGE *Isrc, 
@@ -187,7 +186,8 @@ IMAGE *LogMapOffsetMagnitude(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst,
                              int maxsteps) ;
 IMAGE *LogMapApplyOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ioffset, 
                          IMAGE *Idst) ;
-
+IMAGE *LogMapGaussianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, 
+                              IMAGE *Igaussian, IMAGE *Idst) ;
 
 #if 0
 #define for_each_neighbor(lmi, ptr, i, j, r, s) \
