@@ -27,6 +27,9 @@ static float intensity_below = 10 ;
 
 static char *control_point_fname ;
 
+static char *control_volume_fname = NULL ;
+static char *bias_volume_fname = NULL ;
+
 int
 main(int argc, char *argv[])
 {
@@ -79,6 +82,10 @@ main(int argc, char *argv[])
 
   if (control_point_fname)
     MRI3dUseFileControlPoints(mri_dst, control_point_fname) ;
+  if (control_volume_fname)
+    MRI3dWriteControlPoints(control_volume_fname) ;
+  if (bias_volume_fname)
+    MRI3dWriteBias(bias_volume_fname) ;
   for (n = 0 ; n < num_3d_iter ; n++)
   {
     fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
@@ -113,6 +120,13 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
+  case 'W':
+    control_volume_fname = argv[2] ;
+    bias_volume_fname = argv[3] ;
+    nargs = 2 ;
+    fprintf(stderr, "writing ctrl pts to   %s\n", control_volume_fname) ;
+    fprintf(stderr, "writing bias field to %s\n", bias_volume_fname) ;
+    break ;
   case 'F':
     control_point_fname = argv[2] ;
     nargs = 1 ;
