@@ -15,6 +15,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "gcamorph.h"
 #include "mri.h"
@@ -33,6 +36,23 @@ static LTA  *ltaReadRegisterDat(char *fname) ;
 static LTA  *ltaMNIread(char *fname) ;
 static int  ltaMNIwrite(LTA *lta, char *fname) ;
 static LTA  *ltaReadFile(char *fname) ;
+static void mincGetCRASfromTarget(char *xfmfile, double *r, double *a, double *s);
+
+// what should be the initialized value?
+// I guess make it the same as COR standard.
+void initVolGeom(VOL_GEOM *vg)
+{
+  vg->width = 256;
+  vg->height = 256;
+  vg->depth = 256;
+  vg->xsize = 1;
+  vg->ysize = 1;
+  vg->zsize = 1;
+  vg->x_r = -1.; vg->x_a = 0.; vg->x_s =  0.;
+  vg->y_r =  0.; vg->y_a = 0.; vg->y_s = -1.;
+  vg->z_r =  0.; vg->z_a = 1.; vg->z_s =  0.;
+  vg->c_r =  0.; vg->c_a = 0.; vg->c_s =  0.;
+}
 
 /*-----------------------------------------------------
         Parameters:
@@ -81,6 +101,9 @@ LTAalloc(int nxforms, MRI *mri)
     lta->xforms[i].m_L = MatrixIdentity(4, NULL) ;
     lta->xforms[i].m_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
     lta->xforms[i].m_last_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
+    initVolGeom(&lta->xforms[i].src);
+    initVolGeom(&lta->xforms[i].dst);
+    lta->xforms[i].type = UNKNOWN;;
 
     lta->inv_xforms[i].x0 = x0 ; 
     lta->inv_xforms[i].y0 = y0 ; 
@@ -89,6 +112,9 @@ LTAalloc(int nxforms, MRI *mri)
     lta->inv_xforms[i].m_L = MatrixIdentity(4, NULL) ;
     lta->inv_xforms[i].m_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
     lta->inv_xforms[i].m_last_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
+    initVolGeom(&lta->inv_xforms[i].src);
+    initVolGeom(&lta->inv_xforms[i].dst);
+    lta->inv_xforms[i].type = UNKNOWN;;
   }
   return(lta) ;
 }
@@ -1300,16 +1326,225 @@ TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
 static LTA *
 ltaReadRegisterDat(char *fname)
 {
-	LTA        *lta ;
-	fMRI_REG   *reg ;
+  LTA        *lta ;
+  fMRI_REG   *reg ;
 
   lta = LTAalloc(1, NULL) ;
   lta->xforms[0].sigma = 1.0f ;
   lta->xforms[0].x0 = lta->xforms[0].y0 = lta->xforms[0].z0 = 0 ;
-	reg = StatReadRegistration(fname) ;
-	MatrixCopy(reg->mri2fmri, lta->xforms[0].m_L) ;
-	StatFreeRegistration(&reg) ;
+  reg = StatReadRegistration(fname) ;
+  MatrixCopy(reg->mri2fmri, lta->xforms[0].m_L) ;
+  StatFreeRegistration(&reg) ;
 
-	lta->type = LINEAR_VOXEL_TO_VOXEL ;
+  lta->type = LINEAR_VOXEL_TO_VOXEL ;
   return(lta) ;
 }
+
+
+// find volume which created the transform.
+// if buffer == NULL, then it will allocate memory
+char *mincFindVolume(char *line, char *buffer)
+{
+  static int count = 0;
+  char buf[1000];
+  char *pch = strtok(line, " ");
+  while (pch != NULL)
+  {
+    strcpy(buf, pch);
+    if (strstr(buf, ".mnc")) // first src mnc volume
+    {
+      if (count == 1) // this is the second one must be dest volume
+      {
+	if (buffer == NULL)
+	  buffer = (char *) malloc(strlen(pch)+1);
+	strcpy(buffer, pch);
+	// check the existence of the file
+	struct stat stat_buf;
+	int ret = stat(buffer, &stat_buf);
+	if (ret != 0)
+	{
+	  fprintf(stderr, "File %s cannot be stat. Return NULL.\n", buffer);
+	  return NULL;
+	}
+	else
+	  fprintf(stdout, "Target file\n\t%s\nwas used to create this xfm\n", buffer);
+	return buffer;
+      }
+      else
+	count = 1;
+    }
+    pch = strtok(NULL, " ");
+  }
+  return NULL;
+}
+
+void mincGetCRASfromTarget(char *xfmfile, double *r, double *a, double *s)
+{
+  Volume vol;
+  Status status;
+  char *dim_names[4];
+  int dim_sizes[4];
+  int ndims;
+  volume_input_struct input_info;
+  Real voxel[4];
+  char line[1000];
+
+  FILE *fp = fopen(xfmfile, "r");
+  if (!fp)
+  {
+    ErrorExit(ERROR_BADPARM, "Could not open xform") ;    
+  }
+  fgetl(line, 900, fp);
+  fgetl(line, 900, fp);
+  char *origVolume = mincFindVolume(line, NULL);
+  dim_names[0] = MIxspace;
+  dim_names[1] = MIyspace;
+  dim_names[2] = MIzspace;
+  dim_names[3] = MItime;
+
+  if (origVolume != NULL)
+  {
+    if (FileExists(origVolume))
+    {
+      status = start_volume_input(origVolume, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0, 
+				TRUE, &vol, NULL, &input_info);
+      if(status != OK)
+	ErrorExit(ERROR_BADFILE, "Could not read MINC volume from file", origVolume);
+      
+      ndims = get_volume_n_dimensions(vol);
+      if(ndims != 3 && ndims != 4)
+	ErrorExit(ERROR_BADFILE, "Dimension expecting 3 or 4 but got %d", ndims);
+      
+      /* ----- get the dimension sizes ----- */
+      get_volume_sizes(vol, dim_sizes);
+      
+      /* --- one time point if there are only three dimensions in the file --- */
+      if(ndims == 3) dim_sizes[3] = 1;
+      
+    // get our definition of c_(r,a,s)
+      voxel[0] = dim_sizes[0] / 2.0;
+      voxel[1] = dim_sizes[1] / 2.0;
+      voxel[2] = dim_sizes[2] / 2.0;
+      voxel[3] = 0.0;
+      convert_voxel_to_world(vol, voxel, r, a, s);
+    }
+    else
+    {
+      printf("Could not open the original target volume %s", origVolume);
+      // now check whether it is average_305
+      if (strstr(origVolume, "average_305"))
+      {
+	printf("The transform was made with average_305.mnc. We will use the values of average_305.mnc.\n");
+	// average_305 value
+	*r = -0.0950;
+	*a = -16.5100;
+	*s = 9.7500;
+      }
+      else
+      {
+	printf("No information on the original target stored in xfm file.\n");
+	*r = 0.;
+	*a = 0.;
+	*s = 0.;
+      }
+    }
+  }
+  else
+  {
+    printf("No information on the original target stored in xfm file.\n");
+    *r = 0.;
+    *a = 0.;
+    *s = 0.;
+  }
+}
+
+// takes care of MNI type reading
+LTA *
+LTAreadEx(char *fname, MRI *mriSrc, MRI *mriDst)
+{
+  int       type ;
+  LTA       *lta=0 ;
+  MATRIX    *V, *W, *m_tmp, *Xm;
+  double ci, cj, ck;
+  double r, a, s;
+
+  type = TransformFileNameType(fname) ;
+  switch (type)
+  {
+  case REGISTER_DAT:
+    printf("This REGISTER_DAT transform is valid only for volumes between "
+	   " COR types with c_(r,a,s) = 0.");
+    if (!lta)
+      return(NULL) ;
+
+    V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
+    W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
+    *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
+    *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
+    *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
+    *MATRIX_RELT(V, 4, 4) = 1 ;
+    
+    *MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
+    *MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
+    *MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
+    *MATRIX_RELT(W, 4, 4) = 1 ;
+    
+    m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
+    MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
+    MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
+    lta->type = LINEAR_VOX_TO_VOX ;
+    break ;
+
+  case MNI_TRANSFORM_TYPE:
+    // first get the target volume c_(r,a,s) information
+    mincGetCRASfromTarget(fname, &r, &a, &s);
+    lta = ltaMNIread(fname) ;
+    if (!lta)
+      return(NULL) ;
+    
+    /* by default convert MNI files to voxel coords.*/
+    /* convert to voxel coords */
+    // transform is to get 
+    //    orig -(W)-> RAS -(ltaxform)-> Talairach-(V)->voxel
+    W = extract_i_to_r(mriSrc);
+
+    // talvoxel --> talairach coords
+    Xm = extract_i_to_r(mriDst);
+
+    // change the c_(r,a,s) value so that it agrees with average_305.mnc
+    ci = mriDst->width/2.0;
+    cj = mriDst->height/2.0;
+    ck = mriDst->depth/2.0;
+
+   
+    *MATRIX_RELT(Xm,1,4) 
+      = r // average_305.mnc c_r
+        - ((*MATRIX_RELT(Xm,1,1)) * ci + (*MATRIX_RELT(Xm,1,2)) *cj + (*MATRIX_RELT(Xm,1,3)) * ck);
+    *MATRIX_RELT(Xm,2,4)
+      = a // average_305.mnc c_a
+        - ((*MATRIX_RELT(Xm,2,1)) * ci + (*MATRIX_RELT(Xm,2,2)) *cj + (*MATRIX_RELT(Xm,2,3)) * ck);
+    *MATRIX_RELT(Xm,3,4)
+      = s  // average_305.mnc c_s
+      - ((*MATRIX_RELT(Xm,3,1)) * ci + (*MATRIX_RELT(Xm,3,2)) *cj + (*MATRIX_RELT(Xm,3,3)) *ck);
+
+    // talcoordinates -> talvoxel
+    V = MatrixInverse(Xm, NULL);
+
+    m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
+    MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
+    printf("vox-to-vox transform\n");
+    MatrixPrint(stdout, lta->xforms[0].m_L);
+    MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ; MatrixFree(&Xm);
+    lta->type = LINEAR_VOX_TO_VOX ;
+    break ;
+
+  case LINEAR_VOX_TO_VOX:
+  case LINEAR_RAS_TO_RAS:
+  case TRANSFORM_ARRAY_TYPE:
+  default:
+    lta = ltaReadFile(fname) ;
+    break ;
+  }
+  return(lta) ;
+}
+
