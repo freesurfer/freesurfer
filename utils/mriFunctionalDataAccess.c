@@ -185,9 +185,11 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
     /* calculate the data */
     eResult = FunD_CalcDeviations( this );
     
-    /* if we couldn't do it, don't use error data. */
+    /* if we couldn't do it, don't use error data. clear the result
+       flag. */
     if( FunD_tErr_CouldntCalculateDeviations == eResult ) {
       this->mIsErrorDataPresent = FALSE;
+      eResult = FunD_tErr_NoError;
     } else {
       DebugAssertThrow( (FunD_tErr_NoError == eResult) );
     }
