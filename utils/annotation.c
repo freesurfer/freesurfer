@@ -28,6 +28,57 @@ int print_annotation_table(FILE *fp)
   return(0);
 }
 
+int
+read_named_annotation_table(char *name)
+{
+  
+  FILE  *fp ;
+  char  *cp, fname[STRLEN], line[STRLEN] ;
+  int   i ;
+
+  if (num_entries)
+    return(NO_ERROR) ;   /* already read */
+
+  cp = getenv("MRI_DIR") ;
+  if (!cp)
+    cp = "." ;
+
+  sprintf(fname, "%s/%s", cp, name) ;
+  fp = fopen(fname, "r") ;
+  if (!fp)
+  {
+    fprintf(stderr, "could not open translation file %s\n", fname) ;
+    return(ERROR_NO_FILE) ;
+  }
+
+  num_entries = 0 ;
+  do
+  {
+    cp = fgetl(line, 199, fp) ;
+    if (!cp)
+      break ;
+    num_entries++ ;
+  } while (cp && !feof(fp)) ;
+
+  rewind(fp) ;
+
+  atable = (ATABLE_ELT *)calloc(num_entries, sizeof(ATABLE_ELT)) ;
+  for (i = 0 ; i < num_entries ; i++)
+  {
+    cp = fgetl(line, 199, fp) ;
+    if (!cp)
+      break ;
+    sscanf(cp, "%d %s %d %d %d %*d",
+           &atable[i].index,
+           atable[i].name,
+           &atable[i].r,
+           &atable[i].g,
+           &atable[i].b) ;
+    atable[i].annotation = atable[i].r+(atable[i].g << 8)+(atable[i].b << 16);
+  }
+  return(NO_ERROR) ;
+}
+
 /*-----------------------------------------------*/
 int
 read_annotation_table(void)
@@ -90,6 +141,22 @@ annotation_to_index(int annotation)
   {
     if (atable[i].annotation == annotation)
       return(atable[i].index) ;
+  }
+
+  return(-1) ;
+}
+int
+index_to_annotation(int index)
+{
+  int   i ;
+
+  if (num_entries <= 0)
+    read_annotation_table() ;
+
+  for (i = 0 ; i < num_entries ; i++)
+  {
+    if (atable[i].index == index)
+      return(atable[i].annotation) ;
   }
 
   return(-1) ;
