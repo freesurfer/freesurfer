@@ -15849,7 +15849,11 @@ MRISuseCurvatureMax(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    v->curv = MAX(fabs(v->k1), fabs(v->k2)) ;
+    if (fabs(v->k1) > fabs(v->k2))
+      v->curv = v->k1 ;
+    else
+      v->curv = v->k2 ;
+    /*    v->curv = MAX(fabs(v->k1), fabs(v->k2)) ;*/
     if (v->curv > kmax)
       kmax = v->curv ;
     if (v->curv < kmin)
@@ -15882,7 +15886,11 @@ MRISuseCurvatureMin(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    v->curv = MIN(v->k1, v->k2) ;
+    if (fabs(v->k1) > fabs(v->k2))
+      v->curv = v->k2 ;
+    else
+      v->curv = v->k1 ;
+    /*    v->curv = MIN(v->k1, v->k2) ;*/
     if (v->curv > kmax)
       kmax = v->curv ;
     if (v->curv < kmin)
