@@ -2,12 +2,12 @@
 // mri_info.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/12/29 16:02:41 $
-// Revision       : $Revision: 1.26 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/01/15 20:18:22 $
+// Revision       : $Revision: 1.27 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.26 $";
+char *MRI_INFO_VERSION = "$Revision: 1.27 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.26 2003/12/29 16:02:41 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.27 2004/01/15 20:18:22 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -140,12 +140,14 @@ static void do_file(char *fname)
   mri = MRIreadHeader(fname, MRI_VOLUME_TYPE_UNKNOWN) ;
   if (!mri)
     return;
-  
+
   printf("Volume information for %s\n", fname);
-	if (mri->nframes > 1)
-		printf("    dimensions: %d x %d x %d x %d\n", mri->width, mri->height, mri->depth, mri->nframes) ;
-	else
-		printf("    dimensions: %d x %d x %d\n", mri->width, mri->height, mri->depth) ;
+  // mri_identify has been called but the result is not stored and thus I have to call it again
+  printf("          type: %s\n", type_to_string(mri_identify(fname)));
+  if (mri->nframes > 1)
+    printf("    dimensions: %d x %d x %d x %d\n", mri->width, mri->height, mri->depth, mri->nframes) ;
+  else
+    printf("    dimensions: %d x %d x %d\n", mri->width, mri->height, mri->depth) ;
   printf("   voxel sizes: %6.4f, %6.4f, %6.4f\n", mri->xsize, mri->ysize, mri->zsize) ;
   printf("          type: %s (%d)\n",
 	 mri->type == MRI_UCHAR   ? "UCHAR" :
