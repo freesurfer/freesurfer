@@ -30,6 +30,13 @@
 unsigned long  Gdiag = 0 ;
 
 /*-----------------------------------------------------
+                     STATIC DATA
+-------------------------------------------------------*/
+static char diag_fname[100] = "diag.log" ;
+static int (*diag_vprintf)(char *fmt, va_list args) = vprintf ;
+static int (*diag_vfprintf)(FILE *fp, char *fmt, va_list args) = vfprintf ;
+
+/*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
 
@@ -43,9 +50,18 @@ unsigned long  Gdiag = 0 ;
 
 ------------------------------------------------------------------------*/
 unsigned long
-DiagInit(void)
+DiagInit(char *fname, 
+                  int (*vfprint)(FILE *fp, char *fmt, va_list args),
+                  int (*vprint)(char *fmt, va_list args))
 {
   char *cp ;
+
+  if (fname)
+    strcpy(diag_fname, fname) ;
+  if (vfprint)
+    diag_vfprintf = vfprint ;
+  if (vprint)
+    diag_vprintf = vprint ;
 
   cp = getenv("diag") ;
 
@@ -53,7 +69,7 @@ DiagInit(void)
   if (cp) 
   {
     sscanf(cp, "0x%lx", &Gdiag) ;
-    fprintf(stderr, "diagnostics set to 0x%lx\n", Gdiag) ;
+    DiagPrintf(0, "diagnostics set to 0x%lx\n", Gdiag) ;
   }
 
 #if 0
@@ -79,7 +95,7 @@ DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I,
   char    name[100] ;
   va_list args ;
   
-  if (!(diag_bits & Gdiag))
+  if (diag_bits && !(diag_bits & Gdiag))
     return(-1) ;
 
   va_start(args, fmt) ;
@@ -111,7 +127,7 @@ DiagDrawBox(unsigned long diag_bits, int win, int row0, int col,
    int i;
    i=win; i=row0; i=col; i=rows; i=cols; i=color; /* prevent warning (dng) */
 
-  if (!(diag_bits & Gdiag))
+  if (diag_bits && !(diag_bits & Gdiag))
     return(-1) ;
 
   if (diag_bits & DIAG_WAIT)     /* wait for a keystroke before continuing */
@@ -129,9 +145,10 @@ DiagDrawBox(unsigned long diag_bits, int win, int row0, int col,
 int
 DiagCloseWindow(unsigned long diag_bits, int win)
 {
-   int i;
-   i=(int)diag_bits; i=win;
+  if (diag_bits && !(diag_bits & Gdiag))
+    return(-1) ;
 
+  win = win + (int)diag_bits ;  /* to remove warning */
   return(0) ;
 }
 /*-----------------------------------------------------
@@ -147,7 +164,10 @@ DiagCreateWindow(unsigned long diag_bits, int wrows, int wcols,
 {
   int win ;
    int i;
-   i=wcols; i=(int)diag_bits;
+   i=wcols; 
+
+  if (diag_bits && !(diag_bits & Gdiag))
+    return(-1) ;
 
 /*
   create a set of rows x cols windows, each one of which is wrows x wcols
@@ -175,9 +195,9 @@ DiagPrintf(unsigned long diag_bits, char *fmt, ...)
 {
   va_list args ;
   
-  if (!(diag_bits & Gdiag))
+  if (diag_bits && !(diag_bits & Gdiag))
     return(-1) ;
 
   va_start(args, fmt) ;
-  return(vprintf(fmt, args)) ;
+  return((*diag_vprintf)(fmt, args)) ;
 }
