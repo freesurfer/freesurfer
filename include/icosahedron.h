@@ -33,4 +33,10 @@ MRI_SURFACE *ic163842_make_surface(int max_vertices, int max_faces) ;
 MRI_SURFACE *ic12_make_surface(int max_vertices, int max_faces) ;
 MRI_SURFACE *ICOread(char *fname) ;
 
+#define ICO4_NVERTICES    2562
+#define ICO4_NFACES       5120
+
+extern IC_VERTEX ic2562_vertices[] ;
+extern IC_FACE   ic2562_faces[] ;
+
 #endif
