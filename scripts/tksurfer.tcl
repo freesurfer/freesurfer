@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.57 2004/07/02 20:05:51 kteich Exp $
+# $Id: tksurfer.tcl,v 1.58 2004/07/07 21:34:12 kteich Exp $
 
 package require BLT;
 
@@ -2600,6 +2600,8 @@ proc CreateMenuBar { ifwMenuBar } {
 		    set gaLinkedVars(cmid) $gaLinkedVars(dipavg)
 		    SendLinkedVarGroup cvavg
 		    UpdateAndRedraw } } 
+	    {command "Mask Values to Label..."
+		{DoFileDlog MaskLabel}}
 	}}
 	{ cascade "Group" {
 	    { command "Graph Marked Vertices Avg"
@@ -4923,8 +4925,18 @@ set tDlogSpecs(SaveGDFPlotToTable) \
 	     FsgdfPlot_SaveToTable \
 		 $gGDFID(overlay,$gaLinkedVars(currentvaluefield)) \
 		 [ExpandFileName %s1 kFileName_Home]  }]
-
-
+set tDlogSpecs(MaskLabel) \
+    [list \
+	 -title "Mask Values to Label" \
+	 -prompt1 "Label:" \
+	 -default1 [list GetDefaultLocation LoadLabel] \
+	 -entry1 [list GetDefaultLocation LoadLabel] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the label data" \
+	 -okCmd {
+	     mask_label [ExpandFileName %s1 kFileName_Label];
+	     SetDefaultLocation LoadLabel %s1;
+	     UpdateAndRedraw;  }]
 
 
 
