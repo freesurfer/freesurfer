@@ -7,7 +7,7 @@
 #include "mriTransform.h"
 
 /* Enable this to turn macros on, see details below. */
-// #define FUND_USE_MACROS
+#define FUND_USE_MACROS
 
 
 /* error constants. */
@@ -368,6 +368,14 @@ void FunD_GetSigma_ ( mriFunctionalDataRef this,
 		      int                  iTimePoint,
 		      float*               oSigma );
 
+#define FunD_GetSigmaFrameNumber(iTimePoint,oFrame) \
+  if( this->mbErrorDataPresent ) { \
+    *(oFrame) = this->mNumTimePoints + (iTimePoint); \
+  } else { \
+    *(oFrame) = 0 ; \
+  }
+
+
 /* Note that the functions in this section are implemented as
    functions and macros. The functions are slower but safer, and the
    macros are faster but don't make any checks. So you should test
@@ -394,13 +402,20 @@ void FunD_ConvertClientToFuncIdx_ ( mriFunctionalDataRef this,
 				    xVoxelRef            iClientVox,
 				    xVoxelRef            oFuncIdx );
 
+#define FunD_GetDataFrameNumber(iCondition,iTimePoint,oFrame) \
+  if( this->mbErrorDataPresent ) { \
+    *(oFrame) = ((iCondition) * 2 * this->mNumTimePoints) + (iTimePoint); \
+  } else { \
+    *(oFrame) = ((iCondition) * this->mNumTimePoints) + (iTimePoint); \
+  }
+
+
 #else /* FUND_USE_MACROS */
 
 
 #define FunD_GetValue_(this,iData,iIdx,inCondition,inTimePoint,oValue) \
   if( this->mbErrorDataPresent ) { \
-    this->mTmpFrame = (inCondition * 2 * this->mNumTimePoints) + \
-      (inTimePoint * 2); \
+    this->mTmpFrame = ((inCondition) * 2 * this->mNumTimePoints) + (inTimePoint); \
   } else { \
     this->mTmpFrame = (inCondition * this->mNumTimePoints) + inTimePoint; \
   } \
@@ -447,8 +462,7 @@ void FunD_ConvertClientToFuncIdx_ ( mriFunctionalDataRef this,
 
 #define FunD_SetValue_(this,iData,iIdx,inCondition,inTimePoint,iValue) \
   if( this->mbErrorDataPresent ) { \
-    this->mTmpFrame = (inCondition * 2 * this->mNumTimePoints) +  \
-      (inTimePoint * 2); \
+    this->mTmpFrame = ((inCondition) * 2 * this->mNumTimePoints) + (inTimePoint); \
   } else { \
     this->mTmpFrame = (inCondition * this->mNumTimePoints) + inTimePoint; \
   } \
