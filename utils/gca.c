@@ -3485,7 +3485,9 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
               "could not allocate index set") ;
 
 
+#if 0
   mri_zero = MRIclone(mri_inputs, NULL) ;
+#endif
   if (!mri_dst)
   {
     mri_dst = MRIclone(mri_inputs, NULL) ;
@@ -3545,7 +3547,27 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
   {
     if (iter == 0)
     {
+      char  fname[STRLEN], *cp ;
+      int   nfixed ;
+
+      strcpy(fname, mri_inputs->fname) ;
+      cp = strrchr(fname, '/') ;
+      strcpy(cp+1, "probs") ;
       mri_probs = GCAlabelProbabilities(mri_inputs, gca, NULL, lta) ;
+      for (nfixed = x = 0 ; x < width ; x++)
+        for (y = 0 ; y < height ; y++)
+          for (z = 0 ; z < depth ; z++)
+          {
+            if (MRIvox(mri_probs, x, y, z) >= nint(.9*255))
+            {
+              nfixed++ ;
+              MRIvox(mri_fixed, x, y, z) = 1 ;
+            }
+          }
+      
+      fprintf(stderr, "writing label probabilities to %s...\n", fname) ;
+      fprintf(stderr, "%d new fixed points added\n", nfixed) ;
+      MRIwrite(mri_probs, fname) ;
       MRIorderIndices(mri_probs, x_indices, y_indices, z_indices) ;
       MRIfree(&mri_probs) ;
     }
@@ -3593,8 +3615,10 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       label = old_label = MRIvox(mri_dst, x, y, z) ;
       min_ll = gcaNbhdGibbsLogLikelihood(gca, mri_dst, mri_inputs, x, y,z,m_L);
 
+#if 0
       if (min_ll < BIG_AND_NEGATIVE/2 && mri_zero)
         MRIvox(mri_zero, x, y, z) = 255 ;
+#endif
       for (n = 0 ; n < gcan->nlabels ; n++)
       {
         if (gcan->labels[n] == old_label)
@@ -3638,7 +3662,8 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       printf("pass %d: %d changed.\n", iter, nchanged) ;
     MRIdilate(mri_changed, mri_changed) ;
 
-    if (!iter)
+#if 0
+    if (!iter && DIAG_VERBOSE_ON)
     {
       char  fname[STRLEN], *cp ;
       /*      int   nvox ;*/
@@ -3648,15 +3673,14 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       if (cp)
       {
         strcpy(cp+1, "zero") ;
-#if 0
         nvox = MRIvoxelsInLabel(mri_zero, 255) ;
         fprintf(stderr, "writing %d low probability points to %s...\n", 
                 nvox, fname) ;
         MRIwrite(mri_zero, fname) ;
-#endif
         MRIfree(&mri_zero) ;
       }
     }
+#endif
     if (!nchanged)
     {
       for (x = 0 ; x < width ; x++)
