@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/07/29 17:04:15 $
-// Revision       : $Revision: 1.80 $
+// Revision Date  : $Date: 2003/08/04 18:24:01 $
+// Revision       : $Revision: 1.81 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -182,6 +182,9 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   DspA_SetSurfaceLineColor( this, tkm_tSurfaceType_Aux, 
 			    Surf_tVertexSet_Pial, &color );
 
+  this->mfSegmentationAlpha = 1.0;
+  this->mfDTIAlpha = 1.0;
+  this->mfFuncOverlayAlpha = 1.0;
   
   
   /* all our display flags start out false. */
@@ -2445,6 +2448,40 @@ DspA_tErr DspA_SetDTIAxisForComponent ( tkmDisplayAreaRef this,
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in DspA_SetDTIAxisForComponent: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+DspA_tErr DspA_SetFuncOverlayAlpha ( tkmDisplayAreaRef this,
+				     float             ifAlpha ) {
+  
+  DspA_tErr  eResult = DspA_tErr_NoErr;
+  
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  /* Set the alpha. */
+  if( this->mfFuncOverlayAlpha != ifAlpha ) {
+    
+    this->mfFuncOverlayAlpha = ifAlpha;
+    
+    this->mbSliceChanged = TRUE;
+    DspA_Redraw_( this );
+  }
+
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SetFuncOverlayAlpha: %s\n",
 		 eResult, DspA_GetErrorString(eResult) ) );
   }
   
@@ -4978,13 +5015,13 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
   xPoint2n              bufferPt    = {0,0};
   FunV_tFunctionalValue max         = 0;
   FunV_tFunctionalValue funcValue   = 0.0;
-  xColor3f   color;
-  xColor3f              newColor   = {0,0,0};
-  GLubyte*   pDest       = NULL;
-  xVoxel     anaIdx;
-  int        yMin        = 0;
-  int        yMax        = 0;
-  int        yInc        = 0;
+  xColor3f              color;
+  xColor3f              newColor    = {0,0,0};
+  GLubyte*              pDest       = NULL;
+  xVoxel                anaIdx;
+  int                   yMin        = 0;
+  int                   yMax        = 0;
+  int                   yInc        = 0;
   
   DisableDebuggingOutput;
   
@@ -5026,13 +5063,20 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
 	eFunctional = FunV_GetColorForValue ( this->mpFunctionalVolume,
 					      funcValue, &color, &newColor );
 	
-	/* Set the color back in the buffer, converting back to int. */
+	/* Do the blend and set the color back in the buffer,
+	   converting back to int. */
 	pDest[DspA_knRedPixelCompIndex]   = 
-	  (GLubyte)(newColor.mfRed * DspA_knMaxPixelValue);
+	  (GLubyte)(((color.mfRed * (1.0 - this->mfFuncOverlayAlpha))+
+		     (newColor.mfRed * this->mfFuncOverlayAlpha))* 
+		    DspA_knMaxPixelValue);
 	pDest[DspA_knGreenPixelCompIndex] =
-	  (GLubyte)(newColor.mfGreen * DspA_knMaxPixelValue);
+	  (GLubyte)(((color.mfGreen * (1.0 - this->mfFuncOverlayAlpha))+
+		     (newColor.mfGreen * this->mfFuncOverlayAlpha))* 
+		    DspA_knMaxPixelValue);
 	pDest[DspA_knBluePixelCompIndex]  =
-	  (GLubyte)(newColor.mfBlue * DspA_knMaxPixelValue);
+	  (GLubyte)(((color.mfBlue * (1.0 - this->mfFuncOverlayAlpha))+
+		     (newColor.mfBlue * this->mfFuncOverlayAlpha))* 
+		    DspA_knMaxPixelValue);
 
       } else if( FunV_tErr_InvalidAnatomicalVoxel == eFunctional &&
 	   this->mabDisplayFlags[DspA_tDisplayFlag_MaskToFunctionalOverlay]) {

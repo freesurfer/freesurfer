@@ -265,6 +265,7 @@ struct tkmDisplayArea {
   float                  mfSegmentationAlpha;
   tkm_tAxis              maDTIAxisForComponent[xColr_knNumComponents];
   float                  mfDTIAlpha;
+  float                  mfFuncOverlayAlpha;
 
   /* for navigation tool */
   xVoxelRef              mpOriginalZoomCenter;
@@ -433,6 +434,8 @@ DspA_tErr DspA_SetDTIAlpha           ( tkmDisplayAreaRef this,
 DspA_tErr DspA_SetDTIAxisForComponent ( tkmDisplayAreaRef this,
 					tkm_tAxis         iAxis,
 					xColr_tComponent  iComponent );
+DspA_tErr DspA_SetFuncOverlayAlpha   ( tkmDisplayAreaRef this,
+				       float             ifAlpha );
 
 
 /* only one display can be focused at a time. focusing on one will unfocus
