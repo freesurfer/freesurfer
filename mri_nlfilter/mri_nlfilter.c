@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "region.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.4 1997/07/21 03:55:16 fischl Exp $";
+static char vcid[] = "$Id: mri_nlfilter.c,v 1.5 1997/07/21 18:58:05 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -23,7 +23,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 #define GAUSSIAN_SIGMA  2.0f
-#define BLUR_SIGMA      1.0f
+#define BLUR_SIGMA      0.5f
 #define MAX_LEN         6
 #define OFFSET_WSIZE    3
 #define FILTER_WSIZE    3
@@ -39,7 +39,7 @@ static int   filter_window_size = FILTER_WSIZE ;
 
 static MRI *mri_gaussian ;
 
-#define REGION_SIZE   32
+#define REGION_SIZE   16
 
 static int region_size = REGION_SIZE ;
 int
@@ -50,8 +50,8 @@ main(int argc, char *argv[])
   char   *in_fname, *out_fname ;
   MRI    *mri_smooth, *mri_grad, *mri_filter_src, *mri_filter_dst, *mri_dst,
          *mri_tmp, *mri_blur, *mri_src, *mri_filtered, *mri_direction,
-         *mri_offset, *mri_up, *mri_polv, *mri_dir, *mri_clip ;
-  MRI_REGION  region ;
+         *mri_offset, *mri_up, *mri_polv, *mri_dir, *mri_clip, *mri_full ;
+  MRI_REGION  region, clip_region ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -72,15 +72,9 @@ main(int argc, char *argv[])
   in_fname = argv[1] ;
   out_fname = argv[2] ;
 
-  mri_src = MRIread(in_fname) ;
+  mri_full = mri_src = MRIread(in_fname) ;
   if (!mri_src)
     ErrorExit(ERROR_NOFILE, "%s: could not read '%s'", Progname, in_fname) ;
-  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
-  mri_dst = MRIclone(mri_src, NULL) ;
-  if (!mri_dst)
-    ErrorExit(ERROR_NOFILE, "%s: could allocate space for destination image", 
-              Progname) ;
-
   if (!FZERO(blur_sigma))   /* allocate a blurring kernel */
   {
     mri_blur = MRIgaussian1d(blur_sigma, 0) ;
@@ -92,11 +86,20 @@ main(int argc, char *argv[])
   else
     mri_blur = NULL ;
 
+  MRIboundingBox(mri_full, 0, &clip_region) ;
+  REGIONexpand(&clip_region, &clip_region, (filter_window_size+1)/2) ;
+  mri_src = MRIextractRegion(mri_full, NULL, &clip_region) ;
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+  mri_dst = MRIclone(mri_src, NULL) ;
+  if (!mri_dst)
+    ErrorExit(ERROR_NOFILE, "%s: could allocate space for destination image", 
+              Progname) ;
+
   for (z = 0 ; z < depth ; z += region_size)
   {
-    DiagHeartbeat((float)z / (float)(depth-1)) ;
     for (y = 0 ; y < height ; y += region_size)
     {
+      DiagHeartbeat((float)(z*height+y) / (float)(height*(depth-1))) ;
       for (x = 0 ; x < width ; x += region_size)
       {
         region.x = x ; region.y = y ; region.z = z ;
@@ -217,10 +220,12 @@ main(int argc, char *argv[])
       }
     }
   }
-  if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
-    fprintf(stderr, "writing output image...") ;
-  MRIwrite(mri_dst, out_fname) ;
+  MRIextractIntoRegion(mri_dst,mri_full, 0, 0, 0, &clip_region);
   MRIfree(&mri_dst) ;
+  if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
+    fprintf(stderr, "writing output image %s...", out_fname) ;
+  MRIwrite(mri_full, out_fname) ;
+  MRIfree(&mri_full) ;
   if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
     fprintf(stderr, "done.\n") ;
   exit(0) ;
