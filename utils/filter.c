@@ -1085,7 +1085,7 @@ ImageReduce(IMAGE *Isrc, IMAGE *Idst)
   else
   {
     ImageSetSize(Itmp,rows,cols) ;
-    ImageClearArea(Itmp, 0, 0, -1, -1, 0.0f) ;
+    ImageClearArea(Itmp, 0, 0, -1, -1, 0.0f, -1) ;
   }
 
   rows /= 2 ;
