@@ -118,6 +118,14 @@ get_option(int argc, char *argv[])
   {
     printf("disabling 1d normalization...\n") ;
   }
+  else if (!stricmp(option, "DEBUG_VOXEL"))
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx,Gy,Gz) ;
+  }
   else switch (toupper(*option))
   {
   case '?':
@@ -183,7 +191,7 @@ edit_hippocampus(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
       {
         for (x = 0 ; x < width ; x++)
         {
-          if (x == 160 && y == 125 && z == 118)  
+          if (x == Gx && y == Gy && z == Gz)  
             DiagBreak() ;
           label = MRIvox(mri_tmp, x, y, z) ;
 					if (x == 160 && y == 127 && z == 118)
@@ -198,7 +206,7 @@ edit_hippocampus(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
 						dgray = distance_to_label(mri_out_labeled,
 																			left ? Left_Cerebral_Cortex :
 																			Right_Cerebral_Cortex,
-																			x,y,z,0,1,0,1);
+																			x,y,z,0,1,0,3);
 						
 						dwhite = distance_to_label(mri_out_labeled,
 																			left ? Left_Cerebral_White_Matter :
@@ -210,7 +218,7 @@ edit_hippocampus(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
 																			 Right_Hippocampus,
 																			 x,y,z,0,-1,0,3);
 						/* change bright hippocampus that borders white matter to white matter */
-						if (dgray <= 1 && dwhite <= 1 && dhippo <= 3)
+						if (dgray <= 2 && dwhite <= 1 && dhippo <= 3)
 						{
               mle_label(mri_T1, mri_tmp, x, y, z, 9, 
 												left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex,
