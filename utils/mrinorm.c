@@ -2176,7 +2176,7 @@ MRI3dUseFileControlPoints(MRI *mri, char *fname)
   char *cp, line[STRLEN] ;
   int  i ;
   float xw, yw, zw ;
-  Real xv, yv, zv ;
+  int   xv, yv, zv ;
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "reading control points from %s...\n", fname) ;
@@ -2209,12 +2209,8 @@ MRI3dUseFileControlPoints(MRI *mri, char *fname)
   {
     cp = fgetl(line, 199, fp) ;
     sscanf(cp, "%f %f %f", &xw, &yw, &zw) ;
-    MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
-#if 0
-    xctrl[i] = nint(xv) ; yctrl[i] = nint(yv) ; zctrl[i] = nint(zv) ;
-#else
-    xctrl[i] = (int)(xv+.5) ; yctrl[i] = (int)(yv+.5); zctrl[i] = (int)(zv+.5);
-#endif
+    MRIworldToVoxelIndex(mri, xw, yw, zw, &xv, &yv, &zv) ;
+    xctrl[i] = xv ; yctrl[i] = yv ; zctrl[i] = zv ;
   }
   fclose(fp) ;
   return(NO_ERROR) ;
