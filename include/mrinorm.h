@@ -77,11 +77,13 @@ MRI *MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni) ;
 int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) ;
 
 
-MRI *MRInormFindControlPoints(MRI *mri_src, float max_grad, 
+MRI *MRInormFindControlPoints(MRI *mri_src, float sigma, 
                               int wm_target, MRI *mri_ctrl) ;
 MRI *MRIbuildBiasImage(MRI *mri_src,MRI *mri_ctrl, MRI *mri_bias);
-MRI *MRI3dNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm);
+MRI *MRI3dNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
+                    float sigma);
 MRI *MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst);
 MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
+MRI *MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
 
 #endif

@@ -22,6 +22,8 @@ static MRI_NORM_INFO  mni ;
 static int verbose = 1 ;
 static int num_3d_iter = 5 ;
 
+static float sigma = -1.0f ;  /* <0 means use default */
+
 int
 main(int argc, char *argv[])
 {
@@ -75,7 +77,8 @@ main(int argc, char *argv[])
   for (n = 0 ; n < num_3d_iter ; n++)
   {
     fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
-    MRI3dNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE, mri_dst);
+    MRI3dNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE, mri_dst,
+                   sigma);
   }
 
   if (verbose)
@@ -105,6 +108,12 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
+  case 'S':
+    sigma = atof(argv[2]) ;
+    fprintf(stderr, "using intensity sigma=%2.2f for 3d normalization.\n",
+            sigma) ;
+    nargs = 1 ;
+    break ;
   case 'G':
     mni.max_gradient = atof(argv[2]) ;
     fprintf(stderr, "using max gradient = %2.3f\n", mni.max_gradient) ;
@@ -138,6 +147,8 @@ usage_exit(void)
           Progname) ;
   fprintf(stderr, "\t-n <# of 3d normalization iterations>, default=5\n") ;
   fprintf(stderr, "\t-g <max intensity/mm gradient>, default=0.6\n") ;
+  fprintf(stderr, "\t-s <sigma>, "
+          "intensity interval pct for 3d, default=0.15\n") ;
   exit(0) ;
 }
 
