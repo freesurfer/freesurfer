@@ -12,7 +12,7 @@
 #include "stats.h"
 #include "volume_io.h"
 
-static char vcid[] = "$Id: stat_normalize.c,v 1.1 1999/04/13 19:58:53 fischl Exp $";
+static char vcid[] = "$Id: stat_normalize.c,v 1.2 1999/06/06 21:10:30 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -175,7 +175,7 @@ get_option(int argc, char *argv[])
     break ;
   case '?':
   case 'U':
-    print_usage() ;
+    usage_exit() ;
     exit(1) ;
     break ;
   case 'R':
@@ -215,7 +215,6 @@ print_usage(void)
         "\t-f <field of view>         - set output field of view (def=256)\n");
   fprintf(stderr,
         "\t-S <hemisphere> <surface>  - average in spherical coordinates\n");
-
 }
 
 static void
