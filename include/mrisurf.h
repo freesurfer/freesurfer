@@ -18,6 +18,11 @@
 #define INFLATED_NAME        "inflated"
 #define SMOOTH_NAME          "smoothwm"
 #define SPHERE_NAME          "sphere"
+#define ORIG_NAME            "orig"
+#define WHITE_MATTER_NAME    "white"
+#define GRAY_MATTER_NAME     "gray"
+#define LAYERIV_NAME         "graymid"
+#define GRAYMID_NAME         LAYERIV_NAME
 
 typedef struct _area_label
 {
@@ -267,10 +272,12 @@ typedef struct
   float   l_pcorr ;           /* polar correlation for rigid body */
   float   l_curv ;            /* coefficient of curvature term */
   float   l_spring ;          /* coefficient of spring term */
+  float   l_tspring ;         /* coefficient of tangential spring term */
+  float   l_nspring ;         /* coefficient of normal spring term */
   float   l_boundary ;        /* coefficient of boundary term */
   float   l_dist ;            /* coefficient of distance term */
   float   l_neg ;
-  float   l_val ;             /* for settling surface at a specified val */
+  float   l_intensity ;       /* for settling surface at a specified val */
   float   l_sphere ;          /* for expanding the surface to a sphere */
   float   l_expand ;          /* for uniformly expanding the surface */
   int     n_averages ;        /* # of averages */
@@ -306,6 +313,7 @@ typedef struct
   MRI_SP  *mrisp_template ;   /* parameterization of canonical surface */
   float   sigma ;             /* blurring scale */
   MRI     *mri_brain ;        /* for settling surfaace to e.g. g/w border */
+  MRI     *mri_smooth ;       /* smoothed version of mri_brain */
 } INTEGRATION_PARMS ;
 
 
@@ -551,6 +559,7 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 
 #if 1
 int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm, 
+                          MRI *mri_smooth,
                           float nsigma,int where, INTEGRATION_PARMS *parms);
 #else
 int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm, 
@@ -594,5 +603,9 @@ int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris,
 int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
                                             float *pdx,float *pdy,float *pdz);
 
+int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
+                                   MRI *mri_wm, float nsigma) ;
+int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
+                                  MRI *mri_wm, float nsigma) ;
 
 #endif
