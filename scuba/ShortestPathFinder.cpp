@@ -4,6 +4,8 @@ using namespace std;
 
 ShortestPathFinder::ShortestPathFinder() {
   
+  mLongestEdge = 0;
+  mzX = mzY = 0;
   mQueue = NULL;
   maCost = NULL;
   maDir = NULL;
@@ -24,6 +26,7 @@ ShortestPathFinder::SetDimensions ( int izX, int izY, int iLongestEdge ) {
 
   mzX = izX;
   mzY = izY;
+  mLongestEdge = iLongestEdge;
   
   if( NULL != mQueue ) { delete mQueue; }
   if( NULL != maCost ) { delete maCost; }

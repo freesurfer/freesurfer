@@ -64,6 +64,7 @@ class ShortestPathFinder : public DebugReporter {
 
  protected:
   int mzX, mzY;
+  float mLongestEdge;
   circularQueue *mQueue;
   Array2<float> *maCost;
   Array2<int> *maDir;
