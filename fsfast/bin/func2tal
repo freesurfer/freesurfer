@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # func2tal
-# $Id: func2tal,v 1.8 2003/09/17 02:12:23 greve Exp $
+# $Id: func2tal,v 1.9 2005/02/25 21:56:18 greve Exp $
 
-set FUNC2TAL_VER = '$Id: func2tal,v 1.8 2003/09/17 02:12:23 greve Exp $';
+set FUNC2TAL_VER = '$Id: func2tal,v 1.9 2005/02/25 21:56:18 greve Exp $';
 
 set inputargs = ($argv)
 
@@ -80,7 +80,7 @@ if($functype == "selxavg") then
   head $funcstem.dat     >> $LF
   echo "-----------------"  >> $LF
 endif
-df $taldir >> $LF
+#df $taldir >> $LF
 
 ############## Run stat_normalize ###############
 #set SN = ~/sg1/build/stat_normalize/stat_normalize
