@@ -84,7 +84,12 @@ for slice = s.firstslice:s.lastslice
   nunder(nthslice,1) = length(iunder);
 
   % Compute the spatial average at each time point %
-  twf_under(nthslice,:) = mean(y2(iunder,:));
+  if(nunder(nthslice,1) > 0)
+    twf_under(nthslice,:) = mean(y2(iunder,:));
+  else
+    fprintf('INFO: no voxels found under threshold\n');
+    twf_under(nthslice,:) = zeros(1,s.ntp);
+  end
 
   nthslice = nthslice + 1;
 end
@@ -432,7 +437,7 @@ function s = parse_args(varargin)
         s.seqname = inputargs{narg};
         narg = narg + 1;
 
-      case {'-relthresh'}
+      case {'-relthresh','-thresh'}
         arg1check(flag,narg,ninputargs);
         s.relthresh = sscanf(inputargs{narg},'%f',1);
         narg = narg + 1;
