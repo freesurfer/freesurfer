@@ -210,7 +210,7 @@ SWIG_TypeClientData(swig_type_info *ti, void *clientdata) {
 #endif
 
 /*
- * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.6 2004/09/23 21:16:46 kteich Exp $
+ * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.7 2004/09/27 17:04:24 kteich Exp $
  * 
  * swigtcl8.swg
  */
@@ -955,30 +955,7 @@ typedef struct {
 #define  SWIGTYPE_p_short swig_types[8] 
 static swig_type_info *swig_types[10];
 
-/* -------- TYPES TABLE (END) -------- */
-
-#define SWIG_init    Fsgdf_Init
-#define SWIG_name    "fsgdf"
-#define SWIG_prefix  ""
-#define SWIG_version "0.0"
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-#ifdef MAC_TCL
-#pragma export on
-#endif
-SWIGEXPORT(int) SWIG_init(Tcl_Interp *);
-#ifdef MAC_TCL
-#pragma export off
-#endif
-#ifdef __cplusplus
-}
-#endif
-
-
-
+#include "fsgdf_wrap.h"
 #include "fsgdf.h"
 
 extern FSGD *gdfRead(char *,int);
