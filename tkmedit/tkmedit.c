@@ -4192,16 +4192,17 @@ static char sTkEnvVar[STRLEN] = "";
 
 int main ( int argc, char** argv ) {
   
-  tkm_tErr   eResult             = tkm_tErr_NoErr;
-  x3Lst_tErr e3DList             = x3Lst_tErr_NoErr;
-  FunV_tErr  eFunctional           = FunV_tErr_NoError;
-  MWin_tErr  eWindow             = MWin_tErr_NoErr;
-  tkm_tVolumeType volume          = tkm_tVolumeType_Main;
-  int       eTcl             = TCL_OK;
+  tkm_tErr   eResult                           = tkm_tErr_NoErr;
+  x3Lst_tErr e3DList                           = x3Lst_tErr_NoErr;
+  FunV_tErr  eFunctional                       = FunV_tErr_NoError;
+  MWin_tErr  eWindow                           = MWin_tErr_NoErr;
+  tkm_tVolumeType volume                       = tkm_tVolumeType_Main;
+  int        eTcl                              = TCL_OK;
+  tBoolean   bFoundInterface                   = FALSE;
   char       sInterfaceFileName[tkm_knPathLen] = "";
-  char*       pEnvVar             = NULL;
-  FILE*       pFile             = NULL ;
-  int       nArg             = 0;
+  char*      pEnvVar                           = NULL;
+  FILE*      pFile                             = NULL ;
+  int        nArg                              = 0;
   time_t     theTime;
   char       sSubjectName[tkm_knNameLen]       = "";
   
@@ -4331,49 +4332,96 @@ int main ( int argc, char** argv ) {
      the command line, look in the local directory for the script, then
      in MRI_DIR/lib/tcl. if we can't fine, we have to exit. */
   pFile = NULL;
-  if( MATCH( gInterfaceScriptName, "" ) ) {
-    
-    /* first look in the local */
-    DebugNote( ("Trying local tkmedit.tcl") );
-    xUtil_strncpy( sInterfaceFileName, "tkmedit.tcl", 
-       sizeof(sInterfaceFileName) ); 
-    pFile = fopen( sInterfaceFileName, "r" );
-    
-    /* if not open, try in lib/tcl */
-    if( NULL == pFile ) { 
-      
-      /* make sure we have MRI_DIR defined */
-      DebugNote( ("Getting MRI_DIR env var") );
-      pEnvVar = getenv("MRI_DIR");
-      if( NULL == pEnvVar) {
-  tkm_DisplayError( "Trying to find interface file",
-        "No valid file found",
-        "Tkmedit couldn't find a valid interface file. "
-        "Normally this is in the directory specified in "
-        "the MRI_DIR varible, but this was not set in "
-        "your environment. Tkmedit needs this file to "
-        "run." );
-  PrintCachedTclErrorDlogsToShell();
-  exit( 1 );
-      }
-      
-      xUtil_snprintf( sInterfaceFileName, sizeof(sInterfaceFileName),
-          "%s/lib/tcl/%s", pEnvVar, "tkmedit.tcl"); 
-      DebugNote( ( "Trying to open %s", sInterfaceFileName ) );
-      pFile = fopen( sInterfaceFileName,"r" );
-    }
-    
-  } else {
-    
-    /* copy in interface script location */
+  bFoundInterface = FALSE;
+
+  /* did they request one? */
+  if( !MATCH( gInterfaceScriptName, "" ) ) {
+
+    /* try to open it. */
     xUtil_strncpy( sInterfaceFileName, gInterfaceScriptName, 
-       sizeof(sInterfaceFileName) );
+		   sizeof(sInterfaceFileName) );
     DebugNote( ( "Trying to open %s\n", sInterfaceFileName ) );
     pFile = fopen ( sInterfaceFileName,"r" );
+    if( NULL != pFile ) {
+      bFoundInterface = TRUE;
+	fclose( pFile );
+    } else {
+      tkm_DisplayError( "Opening specified interface file",
+			"No valid file found",
+			"Tkmedit couldn't find or open the interface file "
+			"you specified. It will look elsewhere for the "
+			"standard one." );
+    }
   }
+    
+  if( !bFoundInterface ) {
+
+    /* next, look in TKMEDIT_SCRIPTS_DIR */
+    DebugNote( ("Getting TKMEDIT_SCRIPTS_DIR env var") );
+    pEnvVar = getenv("TKMEDIT_SCRIPTS_DIR");
+    if( NULL != pEnvVar) {
+      xUtil_snprintf( sInterfaceFileName, sizeof(sInterfaceFileName),
+		      "%s/tkmedit.tcl", pEnvVar); 
+      DebugNote( ( "Trying to open %s", sInterfaceFileName ) );
+      pFile = fopen( sInterfaceFileName,"r" );
+      if( NULL != pFile ) {
+	bFoundInterface = TRUE;
+	fclose( pFile );
+      } else {
+	tkm_DisplayError( "Opening interface file in TKMEDIT_SCRIPTS_DIR",
+			  "No valid file found",
+			  "Tkmedit couldn't find or open the interface file "
+			  "in TKMEDIT_SCRIPTS_DIR. It will look elsewhere "
+			  "for the standard one." );
+      }
+    }
+  }    
+  
+  
+  if( !bFoundInterface ) {
+
+    /* look in the local directory */
+    DebugNote( ("Trying local tkmedit.tcl") );
+    xUtil_strncpy( sInterfaceFileName, "tkmedit.tcl", 
+		   sizeof(sInterfaceFileName) ); 
+    pFile = fopen( sInterfaceFileName, "r" );
+    if( NULL != pFile ) {
+      bFoundInterface = TRUE;
+      fclose( pFile );
+    } 
+  }
+
+  if ( !bFoundInterface ) {
+
+    /* finally try in MRI_DIR/lib/tcl. make sure we have MRI_DIR
+       defined */
+    DebugNote( ("Getting MRI_DIR env var") );
+    pEnvVar = getenv("MRI_DIR");
+    if( NULL == pEnvVar) {
+      tkm_DisplayError( "Trying to find interface file",
+			"No valid file found",
+			"Tkmedit couldn't find a valid interface file. "
+			"Normally this is in the directory specified in "
+			"the MRI_DIR varible, but this was not set in "
+			"your environment. Tkmedit needs this file to "
+			"run." );
+      PrintCachedTclErrorDlogsToShell();
+      exit( 1 );
+    }
+    
+    xUtil_snprintf( sInterfaceFileName, sizeof(sInterfaceFileName),
+		    "%s/lib/tcl/%s", pEnvVar, "tkmedit.tcl"); 
+    DebugNote( ( "Trying to open %s", sInterfaceFileName ) );
+    pFile = fopen( sInterfaceFileName,"r" );
+    if( NULL != pFile ) {
+      bFoundInterface = TRUE;
+      fclose( pFile );
+    } 
+  }
+
   
   /* if file still not found bail out. */
-  if ( NULL == pFile ) {
+  if ( !bFoundInterface ) {
     tkm_DisplayError( "Trying to find interface file",
           "No valid file found",
           "Tkmedit couldn't find a valid interface file. "
@@ -4386,9 +4434,6 @@ int main ( int argc, char** argv ) {
   }
   
   DebugPrint( ( "Using interface file %s\n", sInterfaceFileName) );
-  
-  /* not acutally using it now, just checking for it. */
-  fclose( pFile );
   
   /* process ctrl pts file */
   DebugNote( ("Processing control point file.") );
