@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/30 19:05:31 $
-// Revision       : $Revision: 1.148 $
+// Revision Date  : $Date: 2004/07/01 21:45:32 $
+// Revision       : $Revision: 1.149 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1660,7 +1660,6 @@ GCAread(char *fname)
   int       node_width, node_height, node_depth, prior_width, prior_height, prior_depth, 
     ninputs, flags ;
   int       tag;
-  int       nread;
 
   if (strstr(fname, ".gcz"))
   {
@@ -1688,8 +1687,7 @@ GCAread(char *fname)
                 (ERROR_NOFILE,
                  "GCAread: could not open GCA %s for reading",fname)) ;
 
-  nread = freadFloatEx(&version, fp) ;
-  if (nread != sizeof(float))
+  if (!freadFloatEx(&version, fp))
     ErrorReturn(NULL, (ERROR_BADPARM,"GCAread(%s): could not read file",
 		       fname)) ;
 
