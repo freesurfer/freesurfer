@@ -2433,7 +2433,7 @@ static int mincWrite(MRI *mri, char *fname)
    minc wants these to be ras */
 
 /* here: minc volume index 0 is r, 1 is a, 2 is s */
-/* mri is lia */
+  /* mri is lia *//* (not true for some volumes *)*/
 
   /* ----- get the orientation of the volume ----- */
   if(mri->ras_good_flag == 0)
@@ -2441,6 +2441,10 @@ static int mincWrite(MRI *mri, char *fname)
     setDirectionCosine(mri, MRI_CORONAL);
   }
 
+  /* orig->minc map ***********************************/
+  /* r axis is mapped to (x_r, y_r, z_r) voxel coords */
+  /* thus find the biggest value among x_r, y_r, z_r  */
+  /* that one corresponds to the r-axis               */
   r = 0;
   r_max = fabs(mri->x_r);
   if(fabs(mri->y_r) > r_max)
@@ -2451,6 +2455,7 @@ static int mincWrite(MRI *mri, char *fname)
   if(fabs(mri->z_r) > r_max)
     r = 2;
 
+  /* a axis is mapped to (x_a, y_a, z_a) voxel coords */
   if(r == 0)
     a = (fabs(mri->y_a) > fabs(mri->z_a) ? 1 : 2);
   else if(r == 1)
@@ -2458,6 +2463,8 @@ static int mincWrite(MRI *mri, char *fname)
   else
     a = (fabs(mri->x_a) > fabs(mri->y_a) ? 0 : 1);
 
+  /* s axis is mapped to (x_s, y_s, z_s) voxel coords */
+  /* use the rest to figure                           */
   s = 3 - r - a;
 
   /* ----- set the appropriate minc axes to this orientation ----- */
@@ -2467,6 +2474,14 @@ static int mincWrite(MRI *mri, char *fname)
 
 /* di of this axis must be set to 2 */
 /* ... and so on */
+
+  /* minc->orig map **************************************/
+  /* you don't need the routine above but do a similar thing */
+  /* to get exactly the same, i.e.                           */
+  /* x-axis corresponds to (x_r, x_a, x_s) minc coords */
+  /* y-axis                (y_r, y_a, y_s) minc coords */
+  /* z-axis                (z_r, z_a, z_s) minc coords */
+  /* thus we are doing too much work                   */
 
   if(r == 0)
   {
@@ -2557,6 +2572,8 @@ static int mincWrite(MRI *mri, char *fname)
   else
     minc_volume = create_volume(4, dimension_names, nc_data_type, signed_flag, min, max);
 
+  /* di_(x,y,z) is the map from minc to orig */
+  /* minc dimension size is that of di_x, etc. */
   dimension_sizes[di_x] = mri->width;
   dimension_sizes[di_y] = mri->height;
   dimension_sizes[di_z] = mri->depth;
@@ -2597,8 +2614,12 @@ static int mincWrite(MRI *mri, char *fname)
   separations[3] = 1.0;
   set_volume_separations(minc_volume, separations);
 
-/* vi[n] gives the index of the variable along minc axis x */
-/* vi[di_x] gives the index of the variable along minc axis di_x, or along mri axis x */
+
+  /* get the position from (vi[di_x], vi[di_y], vi[di_z]) orig position     */
+  /*      put the value to (vi[0], vi[1], vi[2]) minc volume                */
+  /* 
+  /* vi[n] gives the index of the variable along minc axis x */
+  /* vi[di_x] gives the index of the variable along minc axis di_x, or along mri axis x */
   for(vi[3] = 0;vi[3] < mri->nframes;vi[3]++) {           /* frames */
     for(vi[di_x] = 0;vi[di_x] < mri->width;vi[di_x]++) {   /* columns */
       for(vi[di_y] = 0;vi[di_y] < mri->height;vi[di_y]++) { /* rows */
