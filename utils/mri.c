@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/12/08 21:55:44 $
-// Revision       : $Revision: 1.249 $
-char *MRI_C_VERSION = "$Revision: 1.249 $";
+// Revision Date  : $Date: 2003/12/09 15:28:02 $
+// Revision       : $Revision: 1.250 $
+char *MRI_C_VERSION = "$Revision: 1.250 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -5224,6 +5224,8 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
   Real     val ;
   int src_slice_direction;
   int xsign, ysign;
+
+  xsign=ysign=1; // let compiler be satisfied
 
   src_slice_direction = getSliceDirection(mri);
   // only strict slice direction is supported
