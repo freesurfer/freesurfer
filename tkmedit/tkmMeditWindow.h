@@ -199,6 +199,9 @@ MWin_tErr MWin_SetDTIAxisForComponent ( tkmMeditWindowRef this,
 					int               inDispIndex,
 					tkm_tAxis         iAxis,
 					xColr_tComponent  iComponent );
+MWin_tErr MWin_SetFuncOverlayAlpha ( tkmMeditWindowRef this,
+				     int               inDispIndex,
+				     float             ifAlpha );
 
 /* get the viewing state of the last clicked display area */
 MWin_tErr MWin_GetCursor         ( tkmMeditWindowRef   this,
@@ -378,6 +381,10 @@ int MWin_TclSmartCutAtCursor ( ClientData  iClientData,
 			       Tcl_Interp* ipInterp,
 			       int   argc,
 			       char*   argv[] );
+int MWin_TclSetFuncOverlayAlpha ( ClientData  iClientData, 
+				  Tcl_Interp* ipInterp,
+				  int   argc,
+				  char*   argv[] );
 int MWin_TclRedrawAll       ( ClientData  iClientData, 
 			      Tcl_Interp* ipInterp,
 			      int   argc,

@@ -1828,6 +1828,60 @@ MWin_tErr MWin_SetDTIAxisForComponent ( tkmMeditWindowRef this,
   return eResult;
 }
 
+MWin_tErr MWin_SetFuncOverlayAlpha ( tkmMeditWindowRef this,
+				     int               inDispIndex,
+				     float             ifAlpha ) {
+
+  MWin_tErr eResult       = MWin_tErr_NoErr;
+  DspA_tErr eDispResult   = DspA_tErr_NoErr;
+  int       nDispIndex    = 0;
+  int       nDispIndexMin = inDispIndex;
+  int       nDispIndexMax = inDispIndex+1;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the display index. */
+  eResult = MWin_VerifyDisplayIndex ( this, inDispIndex );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if working on all displays, set the iteration bounds. */
+  if ( MWin_kAllDisplayAreas == inDispIndex ) {
+    nDispIndexMin = 0;
+    nDispIndexMax = MWin_knMaxNumAreas;
+  }
+
+  /* set the alpha */
+  for ( nDispIndex = nDispIndexMin; 
+	nDispIndex < nDispIndexMax; 
+	nDispIndex++ ) {
+    
+    eDispResult = 
+      DspA_SetFuncOverlayAlpha ( this->mapDisplays[nDispIndex], ifAlpha );
+    if ( DspA_tErr_NoErr != eDispResult ) {
+      eResult = MWin_tErr_ErrorAccessingDisplay;
+      goto error;
+    }
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_SetFuncOverlayAlpha: %s\n",
+      eResult, MWin_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
 MWin_tErr MWin_GetCursor ( tkmMeditWindowRef this,
         xVoxelRef          opCursor ) {
   
@@ -2894,6 +2948,9 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SmartCutAtCursor",
 		      MWin_TclSmartCutAtCursor,
+		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( ipInterp, "SetFuncOverlayAlpha",
+		      MWin_TclSetFuncOverlayAlpha,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "RedrawAll",
 		      MWin_TclRedrawAll,
@@ -4456,6 +4513,74 @@ int MWin_TclSmartCutAtCursor ( ClientData  iClientData,
   return eTclResult;
 }
 
+int MWin_TclSetFuncOverlayAlpha ( ClientData  iClientData, 
+				  Tcl_Interp* ipInterp,
+				  int         argc,
+				  char*       argv[] ) {
+  
+  tkmMeditWindowRef this         = NULL;
+  int               eTclResult   = TCL_OK;
+  MWin_tErr         eResult      = MWin_tErr_NoErr;
+  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
+  char              sError[256]  = "";       
+  float             alpha        = 0;
+
+  /* grab us from the client data ptr */
+  this = (tkmMeditWindowRef) iClientData;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if not accepting commands yet, return. */
+  if( !this->mbAcceptingTclCommands )
+    goto cleanup;
+
+  /* verify the last clicked display area index. */
+  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the number of arguments. */
+  if ( argc != 2 ) {
+    eResult = MWin_tErr_WrongNumberArgs;
+    goto error;
+  }
+
+  /* Get the argument. */
+  alpha = atof( argv[1] );
+
+  /* pass on to the last clicked display. */
+  eDispResult = 
+    DspA_SetFuncOverlayAlpha ( this->mapDisplays[this->mnLastClickedArea],
+			       alpha );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+
+    sprintf ( sError, "Error %d in MWin_TclSetFuncOverlayAlpha: %s\n",
+	      eResult, MWin_GetErrorString(eResult) );
+
+    DebugPrint( (sError ) );
+
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
+  }
+
+  eTclResult = TCL_ERROR;
+
+ cleanup:
+
+  return eTclResult;
+}
 
 int MWin_TclRedrawAll ( ClientData  ipClientData, 
       Tcl_Interp* ipInterp,
