@@ -368,6 +368,8 @@ DspA_tErr DspA_ToggleDisplayFlag     ( tkmDisplayAreaRef this,
 				       DspA_tDisplayFlag iWhichFlag );
 DspA_tErr DspA_SetTool               ( tkmDisplayAreaRef this,
 				       DspA_tTool        iTool );
+DspA_tErr DspA_SetBrushTarget        ( tkmDisplayAreaRef this,
+				       DspA_tBrushTarget iTarget );
 DspA_tErr DspA_SetBrushShape         ( tkmDisplayAreaRef this,
 				       int               inRadius,
 				       DspA_tBrushShape  iShape,
