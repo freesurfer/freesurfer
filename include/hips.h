@@ -32,6 +32,8 @@ typedef struct {
                     INCLUDE FILES
 -------------------------------------------------------*/
 #include <hipl_format.h>
+#include "hipsh.h"
+#include "hipsu.h"
 
 int h_mulscale(struct header *hdi, struct header *hdo, Pixelval *b) ;
 int h_divscale(struct header *hdi, struct header *hdo, Pixelval *b) ;
