@@ -2,7 +2,7 @@
 # swfflac-sess
 #
 
-set VERSION = '$Id: swfflac-sess,v 1.5 2004/12/15 00:19:25 greve Exp $';
+set VERSION = '$Id: swfflac-sess,v 1.6 2005/01/23 17:16:15 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -15,13 +15,24 @@ set synthtarg = 0;
 set alpha   = 0.5;
 set pthresh =   1;  # -log10(thresh)
 set ytikreg = 0.1;
+set sncor   = 0;
 set outfspec = ();
 set rcslist = ();
 set contrast = ();
 set targflacname = ();
 set targflacfile = ();
 set nswf = 0;
+set nswfdim = 10;
 set gscaleuse = 0;
+set nbhd = 0;
+set fdr  = 1;
+set sncdim = 0;
+set usesnc = 0;
+set sop = 0;
+set snconly = 0;
+set nbhd_inplane = 0;
+set useffxbeta = 0;
+set gnorm = 0;
 
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -72,16 +83,28 @@ tee -a $MLF > /dev/null <<EOF
 
 flacfile = '$flacfile';
 nswf     = $nswf;
+nswfdim  = $nswfdim;
 sesspath = '$sess';
 outfspec = '$outfspec';
 alpha = $alpha;
 pthresh = $pthresh;
 ytikreg = $ytikreg;
+sncor   = $sncor;
 contrast = '$contrast';
 rcslist = [$rcslist];
 synthtarg = $synthtarg;
 targflacfile = '$targflacfile';
 gscaleuse = $gscaleuse;
+nbhd = $nbhd;
+fdr = $fdr;
+sop = $sop;
+usesnc = $usesnc;
+sncdim = $sncdim;
+snconly = $snconly;
+nbhd_inplane = $nbhd_inplane;
+useffxbeta = $useffxbeta;
+gnorm = $gnorm;
+
 monly = $monly;
 okfile = '$okfile';
 
@@ -90,7 +113,9 @@ fprintf('Session: %s \n',sesspath);
 fprintf('%g ',clock);fprintf('\n');
 
 if(~nswf)
-  fast_swfflac_sess;
+  if(~nbhd) fast_swfflac_sess;
+  else      fast_swfflac_nbhd_sess;
+  end
 else
   fast_nswfflac_sess;
 end
@@ -191,12 +216,37 @@ while( $#argv != 0 )
       set rcslist = ($rcslist $argv[1]); shift;
       breaksw
 
-    case "-synth":
-      set synthtarg = 1;
-      breaksw
-
     case "-nswf":
       set nswf = 1;
+      breaksw
+
+    case "-nswfdim":
+      if ( $#argv == 0) goto arg1err;
+      set nswfdim = $argv[1]; shift;
+      breaksw
+
+    case "-sncor":
+      set sncor = 1;
+      breaksw
+
+    case "-sop":
+      set sop = 1;
+      set fdr = 1; # Turns off FDR 
+      breaksw
+
+    case "-gnorm":
+      set gnorm = 1;
+      breaksw
+
+    case "-snconly":
+      set snconly = 1; 
+      set usesnc = 1; 
+      set sop = 0;
+      set fdr = 1; # Turns off FDR 
+      breaksw
+
+    case "-synth":
+      set synthtarg = 1;
       breaksw
 
     case "-gscale":
@@ -211,6 +261,30 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set MLF = $argv[1]; shift;
       set monly = 1;
+      breaksw
+
+    case "-fdr":
+      if ( $#argv == 0) goto arg1err;
+      set fdr = $argv[1]; shift;
+      breaksw
+
+    case "-nbhd":
+      set nbhd = 1;
+      breaksw
+
+    case "-nbhd-inplane":
+      set nbhd_inplane = 1;
+      breaksw
+
+    case "-sncdim":
+      if ( $#argv == 0) goto arg1err;
+      set sncdim = $argv[1]; shift;
+      set usesnc = 1;
+      if($sncdim == 0) set usesnc = 0;
+      breaksw
+
+    case "-ffxbeta":
+      set useffxbeta = 1;
       breaksw
 
     case "-nolog":
@@ -292,7 +366,16 @@ usage_exit:
   echo "   -targflac flacfile : defaullt is input flac"
   echo "   -rcs r c s <-rcs r c s> : create outfspec-wrcs-{in,out}"
   echo "   -synth : synthesize the target with wgn"
+  echo "   -sncor  : assume that the signal and noise are spat correlated"
   echo "   -nswf  : estimate noise components with SWF and remove"
+  echo "   -nswfdim  : dimension of SWF to remove <$nswfdim>"
+  echo "   -nbhd : use local instead of whole-brain"
+  echo "   -nbhd-inplane : define neighborhood to be only within plane"
+  echo "   -sncdim dim"
+  echo "   -fdr fdr"
+  echo "   -sop : spill-over protection -- turns off fdr"
+  echo "   -gnorm : L2 normalize kernel"
+  echo ""
   echo "   -gscale : apply global scaling"
   echo "   -debug"
   echo "   -umask umask    : set unix file permission mask"
