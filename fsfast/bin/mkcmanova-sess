@@ -1,0 +1,389 @@
+#!/bin/csh -f
+# mkcmanova-sess
+#
+# $Id: mkcmanova-sess,v 1.1 2003/05/05 04:30:40 greve Exp $
+set VERSION = '$Id: mkcmanova-sess,v 1.1 2003/05/05 04:30:40 greve Exp $'
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set TopDir = `pwd`;
+
+set analysis = ();
+set contrast = ();
+set nfactors = ();
+set nlevels = ();
+set cflmap = ();
+set cidlist = ();
+set ncflmap = 0;
+set tstfactors = ();
+set firfactor = 0;
+set npopmeans = 0;
+
+set monly = 0;
+set MLF = ();
+set QuitOnError = 0;
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+# get full path for cfg and info files #
+pushd $analysis > /dev/null;
+set analysisdir = `pwd`;
+popd > /dev/null;
+set cfgfile  = $analysisdir/analysis.cfg
+set infofile = $analysisdir/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+
+set designtype  = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+if($designtype != "event-related" && $designtype != "blocked") then
+  echo "ERROR: the design type of this analysis is $designtype"
+  echo "  mkcmanova-sess can only be used to analyse event-related and blocked"
+  exit 1;
+endif
+
+set nconditions = `cat $infofile | awk '{if($1 == "nconditions") print $2}'`;
+if($#nconditions == 0) then
+  echo "ERROR: nconditions tag not found in $infofile"
+  exit 1;
+endif
+
+set usegammafit = `cat $cfgfile | awk '{if($1 == "-gammafit") print 1}'`;
+if($#usegammafit != 0) then
+  set npercond = 1;
+else
+  echo "ERROR: no anova support for FIR yet"
+  exit 1;
+  set TW  = `cat $cfgfile | awk '{if($1 == "-timewindow") print $2}'`;
+  set TER = `cat $cfgfile | awk '{if($1 == "-TER") print $2}'`;
+  set npercond = `echo "$TW/$TER" | bc`;
+endif
+
+foreach cid ($cidlist)
+  if($cid > $nconditions) then
+    echo "ERROR: condition $cid in cfl exceeds max number of conditions $nconditions" ;
+    exit 1;
+  endif
+end
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/mkcmanova-$DateStr.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "mkcmanova-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "mkcmanova-sess log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0         >> $LF
+echo $inputargs >> $LF
+uname -a        >> $LF
+date            >> $LF
+
+set outfile = $analysis/$contrast.mat
+
+if(! $monly) set MLF = /tmp/mkcmanova-tmp.m
+rm -f $MLF
+#-----------------------------------------------------------------#
+tee $MLF > /dev/null <<EOF
+  nfactors   = [$nfactors];
+  npopmeans  = [$npopmeans];
+  nlevels    = [$nlevels];
+  cflmap     = [$cflmap];
+  cflmap     = reshape(cflmap,[nfactors+1 npopmeans])'; % row major
+  tstfactors = [$tstfactors];
+  firfactor  = [$firfactor];
+  nconditions = [$nconditions];
+  npercond    = [$npercond];
+  outfile     = '$outfile';
+
+  Mg2a = fast_glm2anova_mtx(cflmap,nlevels,nconditions);
+  if(isempty(Mg2a)) return; end
+
+  Ma = fast_anovamtx(nlevels,tstfactors);
+  if(isempty(Ma)) return; end
+
+  ContrastMtx_0 = Ma*Mg2a;
+
+  save(outfile,'ContrastMtx_0','cflmap','nconditions','nlevels',...n
+       'tstfactors','npercond','firfactor','-V4');
+
+EOF
+#-----------------------------------------------------------------#
+if(! $monly ) then
+  cat $MLF | matlab -display iconic |& tee -a $LF
+  rm $MLF;
+endif
+
+echo " "
+echo "mkcmanova-sess Done"
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv < 1) goto arg1err;
+      set analysis = $argv[1]; shift;
+      set analysis = `basename $analysis`; # remove trailing /
+      breaksw
+
+    case "-contrast":
+    case "-c":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-nlevels":
+    case "-n":
+      if( $#argv < 1 ) then
+        echo "ERROR: not enough arguments for -nlevels"
+        exit 1;
+      endif
+      set nfactors = $argv[1]; shift;
+      if( $#argv < $nfactors ) then
+        echo "ERROR: not enough arguments for -nlevels"
+        exit 1;
+      endif
+      @ npopmeans = 1;
+      @ nth = 1;
+      while($nth <= $nfactors)
+        @ nl = $argv[1]; shift;
+        set nlevels = ($nlevels $nl); 
+        @ npopmeans = `echo "$npopmeans * $nl" | bc`;
+        @ nth = $nth + 1;
+      end
+      breaksw
+
+    case "-cfl":
+      if($#nfactors == 0) then
+        echo "ERROR: must specify -nlevels before -cfl"
+        exit 1;
+      endif
+      @ nargsexp = $nfactors + 1;
+      if( $#argv < $nargsexp) then
+        echo "ERROR: need $nargsexp arguments for -cfl"
+        exit 1;
+      endif
+      set cid = $argv[1]; shift;
+      set cflmap = ($cflmap $cid);
+      @ nth = 1;
+      while($nth <= $nfactors)
+        set cflmap = ($cflmap $argv[1]); shift;
+        @ nth = $nth + 1;
+      end
+      @ ncflmap = $ncflmap + 1;
+      set cidlist = ($cidlist $cid);
+      breaksw
+
+    case "-tstfactor":
+      if ( $#argv < 1) goto arg1err;
+      set tstfactors = ($tstfactors $argv[1]); shift;
+      breaksw
+
+    case "-firfactor":
+      set firfactor = ();
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-nomask":
+      set mask = ();
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis name specified"
+    exit 1
+  endif
+
+  if(! -d $analysis ) then
+    echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+    exit 1;
+  endif
+
+  if($#nfactors == 0) then
+    echo "ERROR: nlevels not specified"
+    exit 1;
+  endif
+
+  if($#cflmap == 0) then
+    echo "ERROR: no cfl specfied"
+    exit 1;
+  endif
+
+  if($npopmeans != $ncflmap) then
+    echo "ERROR: mismatch between number of levels and cfl map"
+    echo "   npopmeans = $npopmeans, ncflmap = $ncflmap"
+    exit 1;
+  endif
+
+  echo " condition list: $cidlist"
+  set tmp = `printf "%d\n" $cidlist | uniq`;
+  if($#tmp != $#cidlist) then
+    echo "ERROR; condition replication in cfl"
+    echo " condition list: $cidlist"
+    exit 1;
+  endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mkcmanova-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -analysis  analysisname : name of functional analysis"
+  echo "   -contrast  contrastname : name of contrast"
+  echo "   -nlevels   nfactors nf1 nf2 ... : nlevels for each factor"
+  echo "   -cfl       cid      Lf1 Lf2 ... : condition for branch vector"
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -tstfactor factorno <-tstfactor factorno ...>"
+#  echo "   -firfactor"
+  echo ""
+  echo "Other Optional Arguments"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Creates a cell-means ANOVA contrast matrix which can then be used as
+input to stxgrinder-sess (this is the ANOVA version of
+mkcontrast-sess); supports any number of factors with any number of
+levels. The factorial design is modeled as a tree. A condition (as
+found in the paradigm file) is found at the end of a branch. The trunk
+divides into the number of levels assocated with Factor 1 (ie,
+nf1). Each of the branches coming from the trunk divides into the the
+number of levels assocated with Factor 2 (ie, nf2), etc.  The number
+of paths to the terminus is equal to the product of the number of
+levels. A unique condition number must be assigned to each.
+
+  Example: 2-by-3 factorial design.
+
+    Factor 1   Factor 2   Unique
+     Level      Level    Condition 
+       1          1          2
+       1          2          3
+       1          3          7
+       2          1          1
+       2          2          4
+       2          3          6
+         
+ -nlevels 2 2 3  (ie, 2 factors, factor1 has 2 levels, factor2 has 3 levels)
+ -cfl  2 1 1     (ie, condition 2 corresponds to F1L1, F2L1)
+ -cfl  3 1 2     (ie, condition 3 corresponds to F1L1, F2L2)
+ -cfl  7 1 3     (ie, condition 7 corresponds to F1L1, F2L3)
+ -cfl  1 2 1     (ie, condition 1 corresponds to F1L2, F2L1)
+ -cfl  4 2 2     (ie, condition 4 corresponds to F1L2, F2L2)
+ -cfl  6 2 3     (ie, condition 6 corresponds to F1L2, F2L3)
+
+The -nlevels flag must appear before the first -cfl flag. The -cfl flags
+do not need to appear in any particular order. The branch vector is
+the set of numbers that follow the condition number (eg, the branch
+vector for condition 7 is [1 3]). All the branch vectors must be 
+unique. Each condition number must be unique. It is not necessary to
+use all conditions found in the paradigm file.
+
+By default, the resulting contrast matrix will test for all interactions
+across all factors (ie, an interaction omnibus). To test an interaction
+across a subset of factors, specify the desired factors with -tstfactor fn,
+where fn is the factor number. Use multiple flags for multiple test factors.
+Example: -tstfactor 1 -tstfactor 3 to test for an interaction between
+factors 1 and 3. To test the main effect of a factor, specify only that
+factor with -tstfactor.
+
+BUGS:
+
+Currently can only be used with gammafit analyses.
+
