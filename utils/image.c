@@ -2470,3 +2470,764 @@ ImageAppend(IMAGE *I, char *fname)
   return(NO_ERROR) ;
 }
 
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int compare_sort_array(const void *pf1, const void *pf2) ;
+int        
+ImageMedianFilter(IMAGE *inImage, int wsize, 
+                            IMAGE *offsetImage, IMAGE *outImage)
+{
+  static float *sort_array = NULL ;
+  static int   sort_size = 0 ;
+  int    ecode, x0, y0, rows, cols, x, y, whalf, xc, yc, dx, dy ;
+  float  *sptr, *outPix ;
+
+  if (!offsetImage && inImage->pixel_format == PFBYTE && 
+      outImage->pixel_format == PFBYTE)
+  {
+    ecode = h_median(inImage, outImage, wsize) ;
+    if (ecode != HIPS_OK)
+      ErrorReturn(-1, (ecode, "ImageMedian: h_median failed (%d)", ecode)) ;
+    return(NO_ERROR) ;
+  }
+
+  rows = inImage->rows ;
+  cols = inImage->cols ;
+  whalf = (wsize-1)/2 ;
+
+  /* create a static array for sorting pixels in */
+  if (wsize > sort_size)
+  {
+    sort_size = wsize ;
+    if (sort_array)
+      sort_array = NULL ;
+  }
+
+  if (!sort_array)
+    sort_array = (float *)calloc(wsize*wsize, sizeof(float)) ;
+
+  outPix = IMAGEFpix(outImage, 0, 0) ;
+  for (y0 = 0 ; y0 < rows ; y0++)
+  {
+    for (x0 = 0 ; x0 < cols ; x0++)
+    {
+      
+/*
+  x and y are in window coordinates, while xc and yc are in image
+  coordinates.
+*/
+      if (offsetImage)
+      {
+        dx = nint(*IMAGEFpix(offsetImage, x0, y0)) ;
+        dy = nint(*IMAGEFseq_pix(offsetImage, x0, y0, 1)) ;
+      }
+      else
+        dx = dy = 0 ;
+
+      for (sptr = sort_array, y = -whalf ; y <= whalf ; y++)
+      {
+        /* reflect across the boundary */
+        yc = y + y0 + dy ;
+        if (yc < 0)
+          yc = -yc ;
+        else if (yc >= rows)
+          yc = rows - (yc - rows + 1) ;
+        
+        for (x = -whalf ; x <= whalf ; x++)
+        {
+          xc = x0 + x + dx ;
+          if (xc < 0)
+            xc = -xc ;
+          else if (xc >= cols)
+            xc = cols - (xc - cols + 1) ;
+
+          *sptr++ = *IMAGEFpix(inImage, xc, yc) ;
+        }
+      }
+      qsort(sort_array, wsize*wsize, sizeof(float), compare_sort_array) ;
+      *outPix++ = sort_array[wsize*wsize/2] ;
+    }
+  }
+          
+  return(0) ;
+}
+static int
+compare_sort_array(const void *pf1, const void *pf2)
+{
+  float f1, f2 ;
+
+  f1 = *(float *)pf1 ;
+  f2 = *(float *)pf2 ;
+
+/*  return(f1 > f2 ? 1 : f1 == f2 ? 0 : -1) ;*/
+  if (f1 > f2)
+    return(1) ;
+  else if (f1 == f2)
+    return(0) ;
+
+  return(-1) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int        
+ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
+                           IMAGE *offsetImage, 
+                           IMAGE *filterSequence)
+{
+  int    rows, cols, x, y, whalf, xc, yc, x0, y0,
+         dx, dy, frame ;
+  float  fpix, *g, norm, val, *filterPix ;
+  static float *gaussian = NULL ;
+  static int   w = 0 ;
+
+  rows = gradImage->rows ;
+  cols = gradImage->cols ;
+
+  whalf = (wsize-1)/2 ;
+
+  if (wsize != w)
+  {
+    w = wsize ;
+    free(gaussian) ;
+    gaussian = NULL ;
+  }
+
+  if (!gaussian)  /* allocate a gaussian bump */
+  {
+    float den ;
+
+    gaussian = (float *)calloc(wsize*wsize, sizeof(float)) ;
+    den = wsize*wsize + wsize + 1 ;
+    norm = 0.0f ;
+    for (g = gaussian, y = 0 ; y < wsize ; y++)
+    {
+      yc = y - whalf ;
+      for (x = 0 ; x < wsize ; x++, g++) 
+      {
+        xc = x - whalf ;
+        *g = exp(-36.0f * sqrt(xc*xc+yc*yc) / den) ;
+        norm += *g ;
+      }
+    }
+
+    /* normalize gaussian */
+    for (g = gaussian, y = 0 ; y < wsize ; y++)
+    {
+      for (x = 0 ; x < wsize ; x++, g++) 
+        *g /= norm ;
+    }
+  }
+
+/*
+  x and y are in window coordinates, while xc and yc are in image
+  coordinates.
+*/
+  for (frame = y0 = 0 ; y0 < rows ; y0++)
+  {
+    for (x0 = 0 ; x0 < cols ; x0++, frame++)
+    {
+      if (offsetImage)
+      {
+        dx = nint(*IMAGEFpix(offsetImage, x0, y0)) ;
+        dy = nint(*IMAGEIseq_pix(offsetImage, x0, y0, 1)) ;
+      }
+      else
+        dx = dy = 0 ;
+
+      norm = 0.0f ;
+      filterPix = IMAGEFseq_pix(filterSequence, 0, 0, frame) ;
+
+      if (x0 == 5 && y0 == 10)
+        x0 = 70 ;
+
+      for (g = gaussian, y = -whalf ; y <= whalf ; y++)
+      {
+        /* reflect across the boundary */
+        yc = y + y0 + dy ;
+        if (yc < 0)
+          yc = -yc ;
+        else if (yc >= rows)
+          yc = rows - (yc - rows + 1) ;
+        
+        for (x = -whalf ; x <= whalf ; x++)
+        {
+          xc = x0 + x + dx ;
+          if (xc < 0)
+            xc = -xc ;
+          else if (xc >= cols)
+            xc = cols - (xc - cols + 1) ;
+          
+          fpix = *IMAGEFpix(gradImage, xc, yc) ;
+          val = exp(-fpix*fpix / k)/*  * *g++ */ ;
+          norm += val ;
+          *filterPix++ = val ;
+        }
+      }
+
+      if (FZERO(norm))
+        continue ;
+
+      /* normalize kernel weights to sum to 1 */
+      filterPix = IMAGEFseq_pix(filterSequence, 0, 0, frame) ;
+      for (y = 0 ; y < wsize ; y++)
+      {
+        for (x = 0 ; x < wsize ; x++)
+          *filterPix++ /= norm ;
+      }
+    }
+  }
+
+  ImageWrite(filterSequence, "filter.hipl") ;
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+ImageCalculateMomentOffset(IMAGE *gradImage, int wsize, float c,
+                          IMAGE *offsetImage)
+{
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+ImageSpaceVariantFilter(IMAGE *inImage, IMAGE *filterSequence, 
+                                  IMAGE *outImage)
+{
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int        
+ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage, 
+                      int wsize, float k,
+                           IMAGE *offsetImage, 
+                           IMAGE *outImage)
+{
+  int    rows, cols, x, y, whalf, xc, yc, x0, y0, dx, dy ;
+  float  fpix, *g, norm, val, *filterPix, *filter, *outPix ;
+  static float w, *gaussian ;
+
+  filter = (float *)calloc(wsize*wsize, sizeof(float)) ;
+  if (!filter)
+  {
+    fprintf(stderr,"ImageExponentialFilter: could not allocate filter space\n");
+    return(-1) ;
+  }
+
+  rows = gradImage->rows ;
+  cols = gradImage->cols ;
+
+  whalf = (wsize-1)/2 ;
+
+  if (wsize != w)
+  {
+    w = wsize ;
+    free(gaussian) ;
+    gaussian = NULL ;
+  }
+
+  if (!gaussian)  /* allocate a gaussian bump */
+  {
+    float den ;
+
+    gaussian = (float *)calloc(wsize*wsize, sizeof(float)) ;
+    den = wsize*wsize + wsize + 1 ;
+    norm = 0.0f ;
+    for (g = gaussian, y = 0 ; y < wsize ; y++)
+    {
+      yc = y - whalf ;
+      for (x = 0 ; x < wsize ; x++, g++) 
+      {
+        xc = x - whalf ;
+        *g = exp(-36.0f * sqrt(xc*xc+yc*yc) / den) ;
+        norm += *g ;
+      }
+    }
+
+    /* normalize gaussian */
+    for (g = gaussian, y = 0 ; y < wsize ; y++)
+    {
+      for (x = 0 ; x < wsize ; x++, g++) 
+        *g /= norm ;
+    }
+  }
+
+/*
+  x and y are in window coordinates, while xc and yc are in image
+  coordinates.
+*/
+  outPix = IMAGEFpix(outImage, 0, 0) ;
+  for (y0 = 0 ; y0 < rows ; y0++)
+  {
+    for (x0 = 0 ; x0 < cols ; x0++)
+    {
+      if (offsetImage)
+      {
+        dx = nint(*IMAGEFpix(offsetImage, x0, y0)) ;
+        dy = nint(*IMAGEFseq_pix(offsetImage, x0, y0, 1)) ;
+      }
+      else
+        dx = dy = 0 ;
+
+      norm = 0.0f ;
+      filterPix = filter ;
+
+      for (g = gaussian, y = -whalf ; y <= whalf ; y++)
+      {
+        /* reflect across the boundary */
+        yc = y + y0 + dy ;
+        if (yc < 0)
+          yc = -yc ;
+        else if (yc >= rows)
+          yc = rows - (yc - rows + 1) ;
+        
+        for (x = -whalf ; x <= whalf ; x++)
+        {
+          xc = x0 + x + dx ;
+          if (xc < 0)
+            xc = -xc ;
+          else if (xc >= cols)
+            xc = cols - (xc - cols + 1) ;
+          
+          fpix = *IMAGEFpix(gradImage, xc, yc) ;
+          val = exp(-fpix*fpix / k)/*  * *g++ */ ;
+          norm += val ;
+          *filterPix++ = val ;
+        }
+      }
+
+      if (FZERO(norm)) /* neigborhood is all zeros */
+      {
+        *outPix++ = 0.0f ;
+        continue ;
+      }
+
+      /* normalize kernel weights to sum to 1 */
+      filterPix = filter ;
+      for (y = 0 ; y < wsize ; y++)
+      {
+        for (x = 0 ; x < wsize ; x++)
+          *filterPix++ /= norm ;
+      }
+
+/* 
+      now apply filter to this point in the image, taking possible 
+      offset into accound 
+*/
+      filterPix = filter ;
+      val = 0.0f ;
+      for (y = -whalf ; y <= whalf ; y++)
+      {
+        /* reflect across the boundary */
+        yc = y + y0 + dy ;
+        if (yc < 0)
+          yc = -yc ;
+        else if (yc >= rows)
+          yc = rows - (yc - rows + 1) ;
+        
+        for (x = -whalf ; x <= whalf ; x++)
+        {
+          xc = x0 + x + dx ;
+          if (xc < 0)
+            xc = -xc ;
+          else if (xc >= cols)
+            xc = cols - (xc - cols + 1) ;
+          
+          fpix = *IMAGEFpix(inImage, xc, yc) ;
+          val += fpix * *filterPix++ ;
+        }
+      }
+
+      if (isnan(val))
+      {
+        fprintf(stderr, "(%d, %d) = NaN!\n", xc, yc) ;
+      }
+      *outPix++ = val ;
+    }
+  }
+
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize, 
+                          float mu, float c, IMAGE *offsetImage)
+{
+  int    x0, y0, rows, cols, x, y, whalf, xc, yc ;
+  float  vx, vy, fxpix, fypix, vsq, c1, *g, dot_product, *xpix, *ypix ;
+  static float *gaussian = NULL ;
+  static int   w = 0 ;
+
+  rows = Ix->rows ;
+  cols = Ix->cols ;
+
+  whalf = (wsize-1)/2 ;
+  c1 = c * (float)whalf ;
+
+  /* create a local gaussian window */
+  if (wsize != w)
+  {
+    free(gaussian) ;
+    gaussian = NULL ;
+    w = wsize ;
+  }
+
+  if (!gaussian)  /* allocate a gaussian bump */
+  {
+    float den, norm ;
+
+    gaussian = (float *)calloc(wsize*wsize, sizeof(float)) ;
+    den = wsize*wsize + wsize + 1 ;
+    norm = 0.0f ;
+    for (g = gaussian, y = 0 ; y < wsize ; y++)
+    {
+      yc = y - whalf ;
+      for (x = 0 ; x < wsize ; x++, g++) 
+      {
+        xc = x - whalf ;
+        *g = exp(-36.0f * sqrt(xc*xc+yc*yc) / den) ;
+        norm += *g ;
+      }
+    }
+
+    /* normalize gaussian */
+    for (g = gaussian, y = 0 ; y < wsize ; y++)
+    {
+      for (x = 0 ; x < wsize ; x++, g++) 
+        *g /= norm ;
+    }
+  }
+
+  xpix = IMAGEFpix(offsetImage, 0, 0) ;
+  ypix = IMAGEFseq_pix(offsetImage, 0, 0, 1) ;
+  for (y0 = 0 ; y0 < rows ; y0++)
+  {
+    for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++)
+    {
+      
+/*
+  x and y are in window coordinates, while xc and yc are in image
+  coordinates.
+*/
+      /* first build offset direction */
+      vx = vy = 0.0f ;
+      for (g = gaussian, y = -whalf ; y <= whalf ; y++)
+      {
+        /* reflect across the boundary */
+        yc = y + y0 ;
+        if (yc < 0)
+          yc = -yc ;
+        else if (yc >= rows)
+          yc = rows - (yc - rows + 1) ;
+        
+        for (x = -whalf ; x <= whalf ; x++, g++)
+        {
+          xc = x0 + x ;
+          if (xc < 0)
+            xc = -xc ;
+          else if (xc >= cols)
+            xc = cols - (xc - cols + 1) ;
+          
+          fxpix = *IMAGEFpix(Ix, xc, yc) ;
+          fypix = *IMAGEFpix(Iy, xc, yc) ;
+          dot_product = x * fxpix + y * fypix ;
+          vx += *g * (dot_product * fxpix) ;
+          vy += *g * (dot_product * fypix) ;
+        }
+      }
+
+      vsq = vx*vx + vy*vy ;
+
+      /* calculated phi(V) */
+      vx = vx*c1 / sqrt(mu*mu + vsq) ;
+      vy = vy*c1 / sqrt(mu*mu + vsq) ;
+      *xpix = -vx ;
+      *ypix = -vy ;
+    }
+  }
+
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+ImageAbs(IMAGE *inImage, IMAGE *outImage)
+{
+  UCHAR *cIn, *cOut ;
+  UINT  *iIn, *iOut ;
+  float *fIn, *fOut ;
+  int   size, nframes, frameno, pix_per_frame, rows, cols ;
+
+  rows = inImage->rows ;
+  cols = inImage->cols ;
+  if (!outImage)
+  {
+    outImage = ImageAlloc(cols, rows, 1, inImage->pixel_format) ;
+  }
+
+  nframes = inImage->num_frame ;
+  pix_per_frame = inImage->rows * inImage->cols ;
+  for (frameno = 0 ; frameno < nframes ; frameno++)
+  {
+    size = inImage->rows * inImage->cols ;
+    switch (inImage->pixel_format)
+    {
+    case PFFLOAT:
+      fIn = IMAGEFpix(inImage, 0, 0) + pix_per_frame * frameno ;
+      fOut = IMAGEFpix(outImage, 0, 0) + pix_per_frame * frameno  ;
+      while (size--)
+        *fOut++ = fabs(*fIn++) ;
+      break ;
+    case PFBYTE:
+      cIn = IMAGEpix(inImage, 0, 0) + pix_per_frame * frameno ;
+      switch (outImage->pixel_format)
+      {
+      case PFBYTE:
+        cOut = IMAGEpix(outImage, 0, 0) + pix_per_frame * frameno ;
+        while (size--)
+          *cOut++ = abs(*cIn++) ;
+        break ;
+      case PFINT:
+        iOut = IMAGEIpix(outImage, 0, 0) + pix_per_frame * frameno ;
+        while (size--)
+          *iOut++ = (UINT)abs(*cIn++) ;
+        break ;
+      default:
+        ErrorExit(ERROR_BADPARM,
+                  "ImageAbs: unsupported output image pixel format (%d)\n",
+                  outImage->pixel_format) ;
+        return(NULL) ;
+        break ;
+      }
+      break ;
+    case PFINT:
+      iIn = IMAGEIpix(inImage, 0, 0) + pix_per_frame * frameno ;
+      switch (outImage->pixel_format)
+      {
+      case PFINT:
+        iOut = IMAGEIpix(outImage, 0, 0) + pix_per_frame * frameno ;
+        while (size--)
+          *iOut++ = abs(*iIn++) ;
+        break ;
+        break ;
+      default:
+        ErrorExit(ERROR_BADPARM,
+                  "ImageAbs: unsupported output image pixel format (%d)\n",
+                  outImage->pixel_format) ;
+        return(NULL) ;
+        break ;
+      }
+      break ;
+    default:
+      ErrorExit(ERROR_BADPARM,
+                "ImageAbs: unsupported input image pixel format (%d)\n",
+                inImage->pixel_format) ;
+      return(NULL) ;
+      break ;
+    }
+  }
+
+  outImage->rows = inImage->rows ;
+  outImage->cols = inImage->cols ;
+  
+  return(outImage) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int        
+ImageSobel(IMAGE *inImage, IMAGE *gradImage, 
+                     IMAGE *dxImage, IMAGE *dyImage)
+{
+  static IMAGE *xImage = NULL, *yImage = NULL ;
+  int          x, y, rows, cols ;
+  float        *xpix, *ypix, *gradpix, xval, yval, gval ;
+
+  rows = inImage->rows ;
+  cols = inImage->cols ;
+
+  if (!dxImage)
+  {
+    dxImage = xImage ;
+    if (!ImageCheckSize(inImage, xImage, 0, 0, 0))
+    {
+      if (xImage)
+        ImageFree(&xImage) ;
+      xImage = ImageAlloc(cols, rows, PFFLOAT, 1) ;
+    }
+    else
+    {
+      xImage->rows = rows ;
+      xImage->cols = cols ;
+    }
+  }
+
+  if (!dyImage)
+  {
+    dyImage = yImage ;
+    if (!ImageCheckSize(inImage, yImage, 0, 0, 0))
+    {
+      if (yImage)
+        ImageFree(&yImage) ;
+      yImage = ImageAlloc(cols, rows, PFFLOAT, 1) ;
+    }
+    else
+    {
+      yImage->rows = rows ;
+      yImage->cols = cols ;
+    }
+  }
+
+  gradImage->cols = dxImage->cols = dyImage->cols = cols ;
+  gradImage->rows = dxImage->rows = dyImage->rows = rows ;
+  ImageConvolve3x3(inImage, sx, dxImage) ;
+  ImageConvolve3x3(inImage, sy, dyImage) ;
+
+  xpix = IMAGEFpix(dxImage, 0, 0) ;
+  ypix = IMAGEFpix(dyImage, 0, 0) ;
+  gradpix = IMAGEFpix(gradImage, 0, 0) ;
+  for (y = 0 ; y < rows ; y++)
+  {
+    for (x = 0 ; x < cols ; x++)
+    {
+      xval = *xpix++ ;
+      yval = *ypix++ ;
+      gval = sqrt(xval * xval + yval * yval) ;
+      *gradpix++ = gval ;
+    }
+  }
+
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+ImageSobelX(IMAGE *inImage, IMAGE *xImage)
+{
+  ImageConvolve3x3(inImage, sx, xImage) ;
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+ImageSobelY(IMAGE *inImage, IMAGE *yImage)
+{
+  ImageConvolve3x3(inImage, sy, yImage) ;
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+ImageXDerivative(IMAGE *inImage, IMAGE *xImage)
+{
+  if (!xImage)
+    xImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+
+  ImageConvolve3x3(inImage, sx, xImage) ;
+
+  return(xImage) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+ImageYDerivative(IMAGE *inImage, IMAGE *yImage)
+{
+  if (!yImage)
+    yImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+
+  ImageConvolve3x3(inImage, sy, yImage) ;
+
+  return(yImage) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+ImageConvolve3x3(IMAGE *inImage, float kernel[], IMAGE *outImage)
+{
+  int     rows, cols, x, y, xk, yk, k, xi, yi ;
+  float   *fkpix, sum, *fopix, *fipix ;
+
+  rows = inImage->rows ;
+  cols = inImage->cols ;
+
+  switch (inImage->pixel_format)
+  {
+  case PFFLOAT:
+    fopix = (float *)IMAGEFpix(outImage, 0, 0) ;
+    for (y = 0 ; y < rows ; y++)
+    {
+      for (x = 0 ; x < cols ; x++, fopix++)
+      {
+        fkpix = kernel ;
+        for (sum = 0.0, k = 0, yk = -1 ; yk <= 1 ; yk++)
+        {
+          yi = y + yk ;    /* image coordinate */
+          if (yi < 0)
+            yi = 0 ;
+          else if (yi >= rows)
+            yi = rows-1 ;
+
+          for (xk = -1 ; xk <= 1 ; xk++, k++, fkpix++)
+          {
+            xi = x + xk ;   /* image coordinate */
+            if (xi < 0)
+              xi = 0 ;
+            else if (xi >= cols)
+              xi = cols-1 ;
+            fipix = IMAGEFpix(inImage, xi, yi) ;
+            sum = sum + *fipix * *fkpix ;
+          }
+        }
+        *fopix = sum ;
+      }
+    }
+    break ;
+  default:
+    fprintf(stderr, "ImageConvolve3x3: unsupported pixel format %d\n",
+            inImage->pixel_format) ;
+    exit(-1);
+    break ;
+  }
+
+  return(0) ;
+}
