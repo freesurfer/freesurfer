@@ -52,7 +52,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.20 2003/06/13 15:22:10 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.21 2003/08/27 19:29:34 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -178,8 +178,10 @@ main(int argc, char *argv[])
         MRIwrite(mri_src, "/disk2/mri/tamily/mri/tmp") ;
 #endif
     }
+#if 0
     mri_src->xsize = mri_src->ysize = mri_src->zsize = mri_src->thick = 1.0f ;
     mri_src->imnr0 = 1 ; mri_src->imnr1 = mri_src->depth ;
+#endif
     if (align && mri_avg)  /* don't align the first time */
     {
       mri_tmp = align_with_average(mri_src, mri_avg) ;
