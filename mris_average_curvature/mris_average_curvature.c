@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_average_curvature.c,v 1.1 1998/06/16 21:13:49 fischl Exp $";
+static char vcid[] = "$Id: mris_average_curvature.c,v 1.2 1998/06/17 22:47:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -26,11 +26,14 @@ static void print_version(void) ;
 char *Progname ;
 
 static int normalize_flag = 0 ;
+static int condition_no = 0 ;
+static int stat_flag = 0 ;
 
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname, *out_fname, *surf_name, fname[200], *sdir, *hemi ;
+  char         **av, *in_fname, *out_fname, *surf_name, fname[200], *sdir, 
+               *hemi ;
   int          ac, nargs, i ;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp, *mrisp_total ;
@@ -83,10 +86,52 @@ main(int argc, char *argv[])
   }
   
   MRISfromParameterization(mrisp_total, mris, 0) ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "writing blurred pattern to surface to %s\n", out_fname) ;
-  MRISwriteCurvature(mris, out_fname) ;
+  if (stat_flag)    /* write out summary statistics files */
+  {
+    int    vno ;
+    VERTEX *v ;
+    float  dof ;
+    FILE   *fp ;
+
+    sprintf(fname, "%s/sigavg%d-%s.w", out_fname, condition_no, hemi);
+    fprintf(stderr, "writing output means to %s\n", fname) ;
+    MRISwriteCurvatureToWFile(mris, fname) ;
+
+    MRISfromParameterization(mrisp_total, mris, 1) ;
+    
+    /* change variances to squared standard errors */
+    dof = *IMAGEFseq_pix(mrisp_total->Ip, 0, 0, 2) ;
+    if (!FZERO(dof)) for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      v->val /= dof ;   /* turn it into a standard error */
+    }
+
+    sprintf(fname, "%s/sigvar%d-%s.w", out_fname, condition_no, hemi);
+    fprintf(stderr, "writing output variances to %s\n", fname) ;
+    MRISwriteCurvatureToWFile(mris, fname) ;
+
+    /* write out dof file */
+    sprintf(fname, "%s/sigavg%d.dof", out_fname, condition_no) ;
+    fp = fopen(fname, "w") ;
+    if (!fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open dof file %s\n",
+                Progname,fname);
+    fprintf(stderr, "writing dof file %s\n", fname) ;
+    fprintf(fp, "%d\n", (int)dof) ;
+    fclose(fp) ;
+  }
+  else
+  {
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr,"writing blurred pattern to surface to %s\n",out_fname);
+    MRISwriteCurvature(mris, out_fname) ;
+  }
+
   MRISfree(&mris) ;
+  MRISPfree(&mrisp_total) ;
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -113,6 +158,13 @@ get_option(int argc, char *argv[])
   case 'U':
     print_usage() ;
     exit(1) ;
+    break ;
+  case 'S':   /* write out stats */
+    stat_flag = 1 ;
+    condition_no = atoi(argv[1]) ;
+    nargs = 1 ;
+    fprintf(stderr, "writing out summary statistics as condition %d\n",
+            condition_no) ;
     break ;
   case 'N':
     normalize_flag = 1 ;
@@ -150,7 +202,9 @@ print_help(void)
   fprintf(stderr, 
        "\nThis program will add a template into an average surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
-  fprintf(stderr, "-n    normalize output curvatures.\n") ;
+  fprintf(stderr, "-s <cond #>     generate summary statistics and write\n"
+                  "                them into sigavg<cond #>-<hemi>.w and\n"
+                  "                sigvar<cond #>-<hemi>.w.\n") ;
   exit(1) ;
 }
 
