@@ -2212,7 +2212,7 @@ xvFileNameCommand(Panel_item item, Event *event)
   xv_set(xvf_fname->fname_frame, FRAME_CMD_PUSHPIN_IN,FALSE,XV_SHOW,FALSE,NULL);
   XFlush(xvf_fname->display); 
 
-  if (strlen(xvf_fname->file_name) < 4)
+  if (strlen(xvf_fname->file_name) < 1)
     return(0) ;
 
   if (xvf_fname->fname_func)
