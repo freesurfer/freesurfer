@@ -17,7 +17,8 @@ typedef struct
 typedef struct
 {
   int               num_xforms ;      /* number linear transforms */
-  LINEAR_TRANSFORM  *xforms ;   /* transforms */
+  LINEAR_TRANSFORM  *xforms ;         /* transforms */
+  int               type ;
 } LINEAR_TRANSFORM_ARRAY, LTA ;
 
 typedef struct
@@ -48,12 +49,16 @@ MATRIX   *LTAworldTransformAtPoint(LTA *lta, float x, float y,float z,
                                    MATRIX *m_L);
 int      LTAtoVoxelCoords(LTA *lta, MRI *mri) ;
 
-#define TRANSFORM_ARRAY_TYPE    0
-#define MORPH_3D_TYPE           1
-#define MNI_TRANSFORM_TYPE      2
-#define MATLAB_ASCII_TYPE       3
+#define LINEAR_VOX_TO_VOX       0
+#define LINEAR_RAS_TO_RAS       1
+#define TRANSFORM_ARRAY_TYPE    10
+#define MORPH_3D_TYPE           11
+#define MNI_TRANSFORM_TYPE      12
+#define MATLAB_ASCII_TYPE       13
 
 int      TransformFileNameType(char *fname) ;
+int      LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
+int      LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
 
 
 #endif
