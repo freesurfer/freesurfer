@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/08 20:23:03 $
-// Revision       : $Revision: 1.9 $
+// Revision Date  : $Date: 2003/04/09 13:55:32 $
+// Revision       : $Revision: 1.10 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.9 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.10 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -349,7 +349,7 @@ int main(int argc, char *argv[])
 
   /************* Command line****************/
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.9 2003/04/08 20:23:03 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.10 2003/04/09 13:55:32 tosa Exp $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -840,10 +840,10 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
 
     ///////////////////////////////////////////////////////////////////////////
     // gaussian step 
-    MRI *gkernel = MRIgaussian1d(16.f, 50);
-    MRI *smooth = MRIconvolveGaussian(MRI_var->mri_src, NULL, gkernel);
-    MRI_var->mri_src = smooth;
-    MRIfree(&gkernel);
+    // MRI *gkernel = MRIgaussian1d(16.f, 50);
+    // MRI *smooth = MRIconvolveGaussian(MRI_var->mri_src, NULL, gkernel);
+    // MRI_var->mri_src = smooth;
+    // MRIfree(&gkernel);
     
    /*template process*/
     ////////////////////////////////////////////////////////////////////////////
