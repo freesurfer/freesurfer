@@ -3,9 +3,9 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/25 20:06:01 $
-// Revision       : $Revision: 1.24 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/04/06 15:36:10 $
+// Revision       : $Revision: 1.25 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -300,7 +300,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
       {
         printf("blurring input image with Gaussian with sigma=%2.3f...\n", parms->sigma) ;
         mri_kernel = MRIgaussian1d(parms->sigma, 100) ;
-        mri_smooth = MRIconvolveGaussian(mri, NULL, mri_kernel) ;
+        mri_smooth = MRIconvolveGaussian(mri, mri_smooth, mri_kernel) ;
         MRIfree(&mri_kernel) ;
       }
       i = 0 ;

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/05 14:58:32 $
-// Revision       : $Revision: 1.121 $
+// Revision Date  : $Date: 2004/04/06 15:36:10 $
+// Revision       : $Revision: 1.122 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -5194,7 +5194,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM 
   for (x = 0 ; x < width ; x++)
     for (y = 0 ; y < height ; y++)
       for (z = 0 ; z < depth ; z++)
-	MRIvox(mri_changed,x,y,z) = 1 ;
+				MRIvox(mri_changed,x,y,z) = 1 ;
 
 #if 0
   {
@@ -5239,131 +5239,130 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM 
       x = x_indices[index] ; y = y_indices[index] ; z = z_indices[index] ;
       if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn))
       {
-	if (x == 100 && y == 104 && z == 130)
-	  DiagBreak() ;
+				if (x == 100 && y == 104 && z == 130)
+					DiagBreak() ;
 	
 #if 1
-	if (MRIvox(mri_changed, x, y, z) == 0)
-	  continue ;
+				if (MRIvox(mri_changed, x, y, z) == 0)
+					continue ;
 #endif
 	
-	if (x == 63 && y == 107 && z == 120)
-	  DiagBreak() ; 
+				if (x == 63 && y == 107 && z == 120)
+					DiagBreak() ; 
 	
-	val = MRIvox(mri_inputs, x, y, z) ;
+				val = MRIvox(mri_inputs, x, y, z) ;
           
-	/* find the node associated with this coordinate and classify */
-	// this is checked above
-	GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn) ;
-	gcan = &gca->nodes[xn][yn][zn] ;
-	label = 0 ; max_p = 2*GIBBS_NEIGHBORS*BIG_AND_NEGATIVE ;
-	for (n = 0 ; n < gcan->nlabels ; n++)
-	{
-	  gc = &gcan->gcs[n] ;
+				/* find the node associated with this coordinate and classify */
+				// this is checked above
+				GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn) ;
+				gcan = &gca->nodes[xn][yn][zn] ;
+				label = 0 ; max_p = 2*GIBBS_NEIGHBORS*BIG_AND_NEGATIVE ;
+				for (n = 0 ; n < gcan->nlabels ; n++)
+				{
+					gc = &gcan->gcs[n] ;
 	  
-	  /* compute 1-d Mahalanobis distance */
-	  dist = (val-gc->mean) ;
+					/* compute 1-d Mahalanobis distance */
+					dist = (val-gc->mean) ;
 #define USE_LOG_PROBS  1
-	  p = -log(sqrt(gc->var)) - .5*(dist*dist/gc->var) + log(gc->prior);
+					p = -log(sqrt(gc->var)) - .5*(dist*dist/gc->var) + log(gc->prior);
 	  
-	  for (prior = 0.0f, i = 0 ; i < GIBBS_NEIGHBORS ; i++)
-	  {
-	    xnbr = mri_dst->xi[x+xnbr_offset[i]] ;
-	    ynbr = mri_dst->yi[y+ynbr_offset[i]] ;
-	    znbr = mri_dst->zi[z+znbr_offset[i]] ;
-	    nbr_label = MRIvox(mri_dst, xnbr, ynbr, znbr) ;
-	    for (j = 0 ; j < gc->nlabels[i] ; j++)
-	    {
-	      if (nbr_label == gc->labels[i][j])
-		break ;
-	    }
-	    if (j < gc->nlabels[i])
-	    {
-	      if (!FZERO(gc->label_priors[i][j]))
-		prior += log(gc->label_priors[i][j]) ;
-	      else
-		prior += log(0.1f/(float)(gcan->total_training) ; /*BIG_AND_NEGATIVE*/
-			     }
-	      else
-	      {
-		if (x == 141 && y == 62 && z == 126)
-		DiagBreak() ;
-		prior += log(0.1f/(float)(gcan->total_training)); /*2*GIBBS_NEIGHBORS*BIG_AND_NEGATIVE */ /* never occurred - make it unlikely */
-	      }
-	    }
-	    p += prior ;
-	    if (p > max_p)
-	    {
-	      max_p = p ;
-	      label = gcan->labels[n] ;
-	    }
-	  }
+					for (prior = 0.0f, i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+					{
+						xnbr = mri_dst->xi[x+xnbr_offset[i]] ;
+						ynbr = mri_dst->yi[y+ynbr_offset[i]] ;
+						znbr = mri_dst->zi[z+znbr_offset[i]] ;
+						nbr_label = MRIvox(mri_dst, xnbr, ynbr, znbr) ;
+						for (j = 0 ; j < gc->nlabels[i] ; j++)
+						{
+							if (nbr_label == gc->labels[i][j])
+								break ;
+						}
+						if (j < gc->nlabels[i])  /* found this label */
+						{
+							if (!FZERO(gc->label_priors[i][j]))
+								prior += log(gc->label_priors[i][j]) ;
+							else
+								prior += log(0.1f/(float)(gcan->total_training)) ; /*BIG_AND_NEGATIVE*/
+						}
+						else
+						{
+							if (x == 141 && y == 62 && z == 126)
+								DiagBreak() ;
+							prior += log(0.1f/(float)(gcan->total_training)); /*2*GIBBS_NEIGHBORS*BIG_AND_NEGATIVE */ /* never occurred - make it unlikely */
+						}
+						p += prior ;
+						if (p > max_p)
+						{
+							max_p = p ;
+							label = gcan->labels[n] ;
+						}
+					}
 	  
-	  if (FZERO(max_p))
-	  {
-	    label = 0 ; max_p = 2*GIBBS_NEIGHBORS*BIG_AND_NEGATIVE ;
-	    for (n = 0 ; n < gcan->nlabels ; n++)
-	    {
-	      gc = &gcan->gcs[n] ;
+					if (FZERO(max_p))
+					{
+						label = 0 ; max_p = 2*GIBBS_NEIGHBORS*BIG_AND_NEGATIVE ;
+						for (n = 0 ; n < gcan->nlabels ; n++)
+						{
+							gc = &gcan->gcs[n] ;
 	      
-	      /* compute 1-d Mahalanobis distance */
-	      dist = (val-gc->mean) ;
-	      if (FZERO(gc->var))  /* make it a delta function */
-	      {
-		if (FZERO(dist))
-		  p = 1.0 ;
-		else
-		  p = 0.0 ;
-	      }
-	      else
-		p = 1 / sqrt(gc->var * 2 * M_PI) * exp(-dist*dist/gc->var) ;
+							/* compute 1-d Mahalanobis distance */
+							dist = (val-gc->mean) ;
+							if (FZERO(gc->var))  /* make it a delta function */
+							{
+								if (FZERO(dist))
+									p = 1.0 ;
+								else
+									p = 0.0 ;
+							}
+							else
+								p = 1 / sqrt(gc->var * 2 * M_PI) * exp(-dist*dist/gc->var) ;
 	      
-	      p *= gc->prior ;
-	      if (p > max_p)
-	      {
-		max_p = p ;
-		label = gcan->labels[n] ;
-	      }
-	    }
-	  }
-	}
-	if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-	{
-	  printf(
-		 "(%d, %d, %d): old label %s (%d), new label %s (%d) (p=%2.3f)\n",
-		 x, y, z, cma_label_to_name(MRIvox(mri_dst,x,y,z)),
-		 MRIvox(mri_dst,x,y,z), cma_label_to_name(label), label, max_p) ;
-	  if (label == Ggca_label)
-	  {
-	    DiagBreak() ;
-	  }
-	}
+							p *= gc->prior ;
+							if (p > max_p)
+							{
+								max_p = p ;
+								label = gcan->labels[n] ;
+							}
+						}
+					}
+				}
+				if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+				{
+					printf(
+								 "(%d, %d, %d): old label %s (%d), new label %s (%d) (p=%2.3f)\n",
+								 x, y, z, cma_label_to_name(MRIvox(mri_dst,x,y,z)),
+								 MRIvox(mri_dst,x,y,z), cma_label_to_name(label), label, max_p) ;
+					if (label == Ggca_label)
+					{
+						DiagBreak() ;
+					}
+				}
 	
-	if (MRIvox(mri_dst, x, y, z) != label)
-	{
-	  int old_label = MRIvox(mri_dst, x, y, z) ;
-	  if (x == 100 && y == 104 && z == 130)
-	    DiagBreak() ;
-	  old_ll = 
-	    gcaNbhdGibbsLogLikelihood(gca, mri_dst, mri_inputs, x, y, z, transform,
-				      PRIOR_FACTOR) ;
-	  MRIvox(mri_dst, x, y, z) = label ;
-	  new_ll = 
-	    gcaNbhdGibbsLogLikelihood(gca, mri_dst, mri_inputs, x, y, z, transform,
-				      PRIOR_FACTOR) ;
-	  if (new_ll > old_ll)
-	  {
-	    MRIvox(mri_changed, x, y, z) = 1 ;
-	    nchanged++ ;
-	  }
-	  else
-	  {
-	    MRIvox(mri_dst, x, y, z) = old_label ;
-	    MRIvox(mri_changed, x, y, z) = 0 ;
-	  }
-	}
-	else
-	  MRIvox(mri_changed, x, y, z) = 0 ;
+				if (MRIvox(mri_dst, x, y, z) != label)
+				{
+					int old_label = MRIvox(mri_dst, x, y, z) ;
+					if (x == 100 && y == 104 && z == 130)
+						DiagBreak() ;
+					old_ll = 
+						gcaNbhdGibbsLogLikelihood(gca, mri_dst, mri_inputs, x, y, z, transform,
+																			PRIOR_FACTOR) ;
+					MRIvox(mri_dst, x, y, z) = label ;
+					new_ll = 
+						gcaNbhdGibbsLogLikelihood(gca, mri_dst, mri_inputs, x, y, z, transform,
+																			PRIOR_FACTOR) ;
+					if (new_ll > old_ll)
+					{
+						MRIvox(mri_changed, x, y, z) = 1 ;
+						nchanged++ ;
+					}
+					else
+					{
+						MRIvox(mri_dst, x, y, z) = old_label ;
+						MRIvox(mri_changed, x, y, z) = 0 ;
+					}
+				}
+				else
+					MRIvox(mri_changed, x, y, z) = 0 ;
       } // if (!GCAsource...)
     } // index loop
     ll = gcaGibbsImageLogLikelihood(gca, mri_dst, mri_inputs, lta) ;
