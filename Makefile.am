@@ -1,4 +1,4 @@
 ## 
 ## Makefile.am
 ##
-SUBDIRS=utils tkmedit mri_convert
+SUBDIRS= unix dicom hipsstubs rgb utils mri_convert tkmedit

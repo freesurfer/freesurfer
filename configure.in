@@ -83,12 +83,12 @@ AC_ARG_WITH(cpu,
      ;;
     esac
   ],
-  [ echo "cpu not set" ]
+  [ echo "cpu option not set" ]
   )
 found=$CPUFLAGS 
 # set the value
 CFLAGS="$CPUFLAGS $CFLAGS"
-AC_MSG_RESULT("$found")
+AC_MSG_RESULT($found)
 fi
 
 ##############################################################
@@ -247,7 +247,7 @@ AX_CHECK_GLUT
 LIBS_TCL_OPENGL="$GLUT_LIBS -lBLT -ltix -ltk -ltcl"
 AC_SUBST(LIBS_TCL_OPENGL)
 
-LIBS_MGH="-lutils -lrgb -ldicom -lunix -lhipsstubs"
+LIBS_MGH="utils/libutils.a rgb/librgb.a unix/libunix.a dicom/libdicom.a hipsstubs/libhipsstubs.a"
 AC_SUBST(LIBS_MGH)
 
 #####################################################
@@ -297,6 +297,7 @@ LIBS=$ac_save_libs
 CPPFLAGS=$ac_save_cppflags
 LDFLAGS=$ac_save_ldflags
 
+
 ###########################################################################################
 # Checks for header files.
 ############################################################################################
@@ -306,7 +307,6 @@ AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h limits.h locale.h malloc.h memory.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/file.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h sys/timeb.h unistd.h values.h wctype.h])
 # the following is needed on darwin
 AC_CHECK_HEADERS(sys/types.h stdint.h)
-
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -336,7 +336,6 @@ AC_CHECK_FUNCS([bzero calloc floor ftime getenv getcwd getpagesize gettimeofday 
 ###############################################################################
 # output
 ###############################################################################
-AC_OUTPUT(Makefile)
-AC_OUTPUT(utils/Makefile)
-AC_OUTPUT(mri_convert/Makefile)
-AC_OUTPUT(tkmedit/Makefile)
+AC_OUTPUT(Makefile \
+		   unix/Makefile dicom/Makefile rgb/Makefile utils/Makefile hipsstubs/Makefile \
+		   mri_convert/Makefile tkmedit/Makefile)
