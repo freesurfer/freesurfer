@@ -12,7 +12,8 @@
 #include "matfile.h"
 #include "evschutils.h"
 #include "version.h"
-
+#include "gsl/gsl_matrix.h"
+#include "gsl/gsl_linalg.h"
 /* Things to do:
    1. Automatically compute Ntp such that Null has as much time 
       as the average of the non-null stimuli, or, automatically
@@ -47,7 +48,7 @@ Can something be done to affect the off-diagonals?
   #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 2.4 2004/10/08 21:09:38 greve Exp $";
+static char vcid[] = "$Id: optseq2.c,v 2.5 2004/10/22 23:40:14 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -66,7 +67,7 @@ static int PrintUpdate(FILE *fp, int n);
 static int CheckIntMult(float val, float res, float tol);
 static MATRIX * ContrastMatrix(float *EVContrast, 
 			       int nEVs, int nPer, int nNuis, int SumDelays);
-
+static MATRIX * AR1WhitenMatrix(double rho, int N);
 int debug = 0;
 
 int   Ntp = -1;
@@ -128,6 +129,10 @@ MATRIX *C;
 float EVContrast[1000];
 int ContrastSumDelays = 0, nEVContrast;
 char *CMtxFile=NULL;
+double ar1rho = 0;
+
+int penalize = 0; 
+double penalpha = 0, penT = 0, pendtmin = 0;
 
 
 /*-------------------------------------------------------------*/
@@ -135,7 +140,7 @@ int main(int argc, char **argv)
 {
   EVSCH *EvSch;
   MATRIX *Xfir=NULL, *Xpoly=NULL, *X=NULL, *Xt=NULL, 
-    *XtX=NULL, *XtXIdeal=NULL;
+    *XtX=NULL, *XtXIdeal=NULL, *W=NULL;
   int m,n, nthhit=0;
   //float eff, cb1err, vrfavg, vrfstd, vrfmin, vrfmax, vrfrange;
   char fname[2000];
@@ -147,7 +152,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.4 2004/10/08 21:09:38 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.5 2004/10/22 23:40:14 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -166,6 +171,12 @@ int main(int argc, char **argv)
   check_options();
 
   dump_options(stdout);
+
+  // Create whitening matrix
+  if(ar1rho != 0) {
+    W = AR1WhitenMatrix(ar1rho,Ntp);
+    //MatlabWrite(W,"W.mat","W");
+  }
 
   /* Create PolyFit Matrix */
   if(PolyOrder >= 0){
@@ -232,7 +243,7 @@ int main(int argc, char **argv)
       //printf("INFO: reading %s\n",infilelist[n]);
       EvSchList[n] = EVSreadPar(infilelist[n]);
       Xfir = EVSfirMtxAll(EvSchList[n], 0, TR, Ntp, PSDMin, PSDMax, dPSD);
-      Singular = EVSdesignMtxStats(Xfir, Xpoly, EvSchList[n],C);
+      Singular = EVSdesignMtxStats(Xfir, Xpoly, EvSchList[n],C,W);
       MatrixFree(&Xfir);
       if(Singular) continue;
       EVScb1Error(EvSchList[n]);
@@ -333,6 +344,7 @@ int main(int argc, char **argv)
       exit(1);
     }
     EvSch->nthsearched = nSearched;
+    if(penalize) EVSrefractory(EvSch, penalpha, penT, pendtmin);
 
     /* Construct the FIR Design Matrix */
     Xfir = EVSfirMtxAll(EvSch, 0, TR, Ntp, PSDMin, PSDMax, dPSD);
@@ -350,7 +362,7 @@ int main(int argc, char **argv)
     MatrixFree(&Xt);
     MatrixFree(&XtX);
 
-    Singular = EVSdesignMtxStats(Xfir, Xpoly, EvSch, C);
+    Singular = EVSdesignMtxStats(Xfir, Xpoly, EvSch, C, W);
     MatrixFree(&Xfir);
 
     if(Singular) continue;
@@ -651,6 +663,28 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%g",&tNullMax);
       nargsused = 1;
     }
+    else if (stringmatch(option, "--ar1")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&ar1rho);
+      if(abs(ar1rho) > 1){
+	printf("ERROR: ar1 = %g, must be between -1 and 1\n",ar1rho);
+	exit(1);
+      }
+      nargsused = 1;
+    }
+    else if (stringmatch(option, "--pen")){
+      if(nargc < 3) argnerr(option,3);
+      penalize = 1;
+      sscanf(pargv[0],"%lf",&penalpha);
+      sscanf(pargv[1],"%lf",&penT);
+      sscanf(pargv[2],"%lf",&pendtmin);
+      if(penalpha < 0 || penalpha > 1){
+	printf("ERROR: alpha = %g, must be between 0 and 1\n",penalpha);
+	exit(1);
+      }
+      nargsused = 3;
+    }
+
     else if (stringmatch(option, "--repvar")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&PctVarEvReps);
@@ -792,8 +826,11 @@ static void print_usage(void)
   printf("  --nsearch n : search over n schedules\n");
   printf("  --tsearch t : search for t hours\n");
   printf("  --focb    n : pre-optimize first order counter-balancing\n");
-  printf("  --cost name <params>: eff, vrfavg, vrfavgstd\n");
+  printf("  --ar1 rho : optimize assuming whitening with AR1\n");
+  printf("  --pen alpha T dtmin: penalize for presentations being too close\n");
   printf("  --evc c1 c2 ... cN : event contrast\n");
+  printf("  --cost name <params>: eff, vrfavg, vrfavgstd\n");
+  printf("\n");
   printf("  --sumdelays : sum delays when forming contrast matrix\n");
   printf("  --seed seedval : initialize random number generator to seedval\n");
 
@@ -953,6 +990,27 @@ static void print_help(void)
 "done for each iteration. Counter balance optimization is not allowed \n"
 "when there is only one event type. \n"
 " \n"
+"--ar1 rho \n"
+" \n"
+"Optimize while whitening with an AR(1) model with parameter rho. rho must\n"
+"be between -1 and +1.\n"
+" \n"
+"--pen alpha T dtmin\n"
+" \n"
+"Penalize for one presentation starting too soon after the previous \n"
+"presentation. The weight is computed as 1 - alpha*exp(-(dt+dtmin)/T), where \n"
+"dt is the time from the offset of the previous stimulus to the onset\n"
+"of the next stimulus. The basic idea here is that the second stimulus \n"
+"will be reduced in amplitude by the weight factor. alpha and T were fit\n"
+"from data presented in Huettel and McCarthy (NI, 2000) to be alpha=0.8 \n"
+"and T = 2.2 sec. \n"
+" \n"
+"--evc C1 C2 ... CN \n"
+" \n"
+"Optimize based on a contrast of the event types. Ci is the contrast \n"
+"weight for event type i. There must be as many weights as event types. \n"
+"Weights are NOT renormalized such that the sum to 1. \n"
+" \n"
 "--cost costname <params> \n"
 " \n"
 "Specify cost function. Legal values are eff, vrfavg, \n"
@@ -963,12 +1021,6 @@ static void print_help(void)
 "parameters). vrfavgstd maximizes a weighted combination of the average \n"
 "and stddev VRF; there is one parameter, the weight give to the stddev \n"
 "component. \n"
-" \n"
-"--evc C1 C2 ... CN \n"
-" \n"
-"Optimize based on a contrast of the event types. Ci is the contrast \n"
-"weight for event type i. There must be as many weights as event types. \n"
-"Weights are NOT renormalized such that the sum to 1. \n"
 " \n"
 "--sumdelays \n"
 " \n"
@@ -1448,6 +1500,10 @@ static void dump_options(FILE *fp)
     for(n=0; n < nInFiles; n++)
       fprintf(fp,"%2d infile = %s\n",n,infilelist[n]);
   }
+  fprintf(fp,"AR1 = %g\n",ar1rho);
+  if(!penalize) fprintf(fp,"No refractory penalty\n");
+  else fprintf(fp,"Refractory penalty: alpha = %g, T = %g, dtmin = %g\n",
+	       penalpha,penT,pendtmin);
   fprintf(fp,"Cost = %s\n",CostString);
   fprintf(fp,"OutStem = %s\n",outstem);
   fprintf(fp,"Summary File = %s\n",SumFile);
@@ -1557,7 +1613,54 @@ static MATRIX * ContrastMatrix(float *EVContrast,
   }
   return(C);
 }
+/*------------------------------------------------------------*/
+static MATRIX * AR1WhitenMatrix(double rho, int N)
+{
+  int m,n,d;
+  double v;
+  gsl_matrix *G;
+  MATRIX *W,*M;
 
+  // First create AR1 covariance matrix M
+  M = MatrixAlloc(N,N,MATRIX_REAL);
+  for(m=0;m<N;m++){
+    for(n=0;n<N;n++){
+      d = abs(m-n);
+      v = pow(rho,(double)d);
+      M->rptr[m+1][n+1] = v;      
+      //gsl_matrix_set(M,m,n,v);
+    }
+  }
+
+  // Invert
+  M = MatrixInverse(M,M);
+
+  // Copy to GSL matrix
+  G = gsl_matrix_calloc(N,N);
+  for(m=0;m<N;m++){
+    for(n=0;n<N;n++){
+      v = M->rptr[m+1][n+1];
+      gsl_matrix_set(G,m,n,v);
+    }
+  }
+
+  // Perform cholesky decomposition
+  // M = G*G'; Note: in matlab: M = G'*G;
+  gsl_linalg_cholesky_decomp(G);
+
+  // Keep the upper triangular part
+  W = MatrixAlloc(N,N,MATRIX_REAL);
+  for(m=0;m<N;m++){
+    for(n=0;n<N;n++){
+      if(m<=n) W->rptr[m+1][n+1] = gsl_matrix_get(G,m,n);
+    }
+  }
+
+  gsl_matrix_free(G);
+  MatrixFree(&M);
+
+  return(W);
+}
 
 
 
