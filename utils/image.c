@@ -135,7 +135,7 @@ ImageWrite(IMAGE *I, char *fname)
 
   fp = fopen(fname, "wb") ;
   if (!fp)
-    ErrorExit(ERROR_NO_FILE, "ImageWrite(%s) failed\n", fname) ;
+    ErrorReturn(-1, (ERROR_NO_FILE, "ImageWrite(%s) failed\n", fname)) ;
 
   ecode = ImageFWrite(I, fp, fname) ;
   fclose(fp) ;
@@ -180,10 +180,35 @@ ImageFWrite(IMAGE *I, FILE *fp, char *fname)
 
         Description
 ------------------------------------------------------*/
-IMAGE *
-ImageFRead(FILE *fp, char *fname, int frame)
+int
+ImageUpdateHeader(IMAGE *I, char *fname)
 {
-  int    ecode, end_frame ;
+  FILE  *fp ;
+  int   ecode ;
+
+  fp = fopen(fname, "r+b") ;
+  if (!fp)
+    ErrorReturn(-1, (ERROR_NO_FILE, "ImageUpdateHeader(%s) failed\n", fname)) ;
+
+  ecode = fwrite_header(fp, I, fname) ;
+  if (ecode != HIPS_OK)
+    ErrorReturn(-1, (ERROR_NO_FILE, 
+                  "ImageUpdateHeader: fwrite_header failed (%d)\n",ecode)) ;
+
+  fclose(fp) ;
+  return(0) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+IMAGE *
+ImageFRead(FILE *fp, char *fname, int start, int nframes)
+{
+  int    ecode, end_frame, frame ;
   IMAGE  *I ;
   byte   *startpix ;
 
@@ -198,32 +223,36 @@ ImageFRead(FILE *fp, char *fname, int frame)
   if (ecode != HIPS_OK)
     ErrorExit(ERROR_NO_FILE, "ImageFRead: fread_header failed (%d)\n",ecode);
 
-  if (frame < 0)    /* read all frames */
+  if (start < 0)    /* read all frames */
   {
-    end_frame = I->num_frame-1 ;
-    frame = 0 ;
+    start = 0 ;
+    nframes = I->num_frame ;
   }
-  else              /* read only specified frame */
+  else              /* read only specified frames */
   {
-    if (fseek(fp, I->sizeimage*frame, SEEK_CUR) < 0)
+    if (fseek(fp, I->sizeimage*start, SEEK_CUR) < 0)
     {
       ImageFree(&I) ;
       ErrorReturn(NULL, 
                   (ERROR_BADFILE, 
                    "ImageFRead(%s, %d) - could not seek to specified frame",
-                   fname, frame)) ;
+                   fname, start)) ;
     }
-    end_frame = frame ;
   }
+
+  if (nframes < 0)
+    nframes = I->num_frame - start + 1 ;
+
+  end_frame = start + nframes - 1 ;
   if (end_frame >= I->num_frame)
     ErrorReturn(NULL, 
                 (ERROR_BADFILE,
-                 "ImageFRead(%s, %d) - frame out of bounds", fname, frame)) ;
-  I->num_frame = end_frame - frame + 1 ;
+                 "ImageFRead(%s, %d) - frame out of bounds", fname, end_frame));
+  I->num_frame = nframes ;
   alloc_image_buffer(I) ;
 
   startpix = I->image ;
-  for ( ; frame <= end_frame ; frame++)
+  for (frame = start ; frame <= end_frame ; frame++)
   {
     ecode = fread_image(fp, I, frame, fname) ;
     if (ecode != HIPS_OK)
@@ -231,6 +260,67 @@ ImageFRead(FILE *fp, char *fname, int frame)
     I->image += I->sizeimage ;
   }
   I->image = startpix ;
+  return(I) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+IMAGE *
+ImageReadFrames(char *fname, int start, int nframes)
+{
+  IMAGE *I ;
+  FILE  *fp ;
+
+  fp = fopen(fname, "rb") ;
+  if (!fp)
+    ErrorReturn(NULL, (ERROR_NO_FILE, "ImageReadFrames(%s) fopen failed\n", 
+                       fname)) ;
+
+  I = ImageFRead(fp, fname, start, nframes) ;
+  fclose(fp) ;
+  return(I) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+IMAGE *
+ImageReadHeader(char *fname)
+{
+  IMAGE   *I = NULL ;
+  FILE    *fp ;
+  int     type, frame, ecode ;
+  char    buf[100] ;
+
+  strcpy(buf, fname) ;   /* don't destroy callers string */
+  fname = buf ;
+  ImageUnpackFileName(fname, &frame, &type, fname) ;
+
+  fp = fopen(fname, "rb") ;
+  if (!fp)
+    ErrorReturn(NULL, (ERROR_NO_FILE, "ImageReadHeader(%s, %d) failed\n", 
+                       fname, frame)) ;
+
+  I = (IMAGE *)calloc(1, sizeof(IMAGE)) ;
+  if (!I)
+    ErrorExit(ERROR_NO_MEMORY, "ImageReadHeader: could not allocate header\n") ;
+  ecode = fread_header(fp, I, fname) ;
+  if (ecode != HIPS_OK)
+  {
+    fclose(fp) ;
+    ErrorReturn(NULL, (ERROR_NO_FILE, 
+                     "ImageReadHeader(%s): fread_header failed (%d)\n", 
+                     fname, ecode)) ;
+  }
+  fclose(fp) ;
+
   return(I) ;
 }
 /*-----------------------------------------------------
@@ -272,7 +362,7 @@ ImageRead(char *fname)
     if (!fp)
       ErrorReturn(NULL, (ERROR_NO_FILE, "ImageRead(%s, %d) failed\n", 
                          fname, frame)) ;
-    I = ImageFRead(fp, fname, frame) ;
+    I = ImageFRead(fp, fname, frame, 1) ;
     fclose(fp) ;
     break ;
   default:
@@ -2242,7 +2332,7 @@ ImageNumFrames(char *fname)
 {
   IMAGE  I ;
   FILE   *fp ;
-  int    frame, type, ecode ;
+  int    frame, type, ecode, nframes ;
   char   buf[100] ;
 
   ImageUnpackFileName(fname, &frame, &type, buf) ;
@@ -2262,6 +2352,86 @@ ImageNumFrames(char *fname)
                 (ERROR_NO_FILE, 
                  "ImageNumFrame: fread_header failed (%d)\n",ecode));
 
+  nframes = I.num_frame ;
   fclose(fp) ;
-  return(I.num_frame) ;
+  free_hdrcon(&I) ;
+  return(nframes) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              append an image to the end of a hips sequence file, incrementing
+              the number of frames recorded in the header.
+----------------------------------------------------------------------*/
+int
+ImageAppend(IMAGE *I, char *fname)
+{
+  FILE   *fp ;
+  int    ecode, frame, nframes ;
+  IMAGE  Iheader, *Iframe ;
+  char   tmpname[200] ;
+
+  fp = fopen(fname, "r+b") ;
+  if (!fp)
+    ErrorReturn(-1, (ERROR_NO_FILE, "ImageAppend(%s) failed\n", fname)) ;
+  
+  ecode = fread_header(fp, &Iheader, fname) ;
+  if (ecode != HIPS_OK)
+    ErrorExit(ERROR_NO_FILE, "ImageAppend: fread_header failed (%d)\n",ecode);
+
+  /* increment # of frames, and update file header */
+  Iheader.num_frame++ ;
+  nframes = Iheader.num_frame ;
+  if (nframes == 10 || nframes == 100 || nframes == 1000)
+  {
+    /* header size will grow by 1 byte, must copy whole file (ughhh) */
+    fclose(fp) ;
+    strcpy(tmpname,FileTmpName(NULL)) ;
+    FileRename(fname, tmpname) ;
+
+    /* write out new header */
+    fp = fopen(fname, "wb") ;
+    if (!fp)
+      ErrorReturn(-1, (ERROR_NO_FILE, "ImageAppend(%s) failed\n", fname)) ;
+    
+    ecode = fwrite_header(fp, &Iheader, fname) ;
+    if (ecode != HIPS_OK)
+      ErrorExit(ERROR_NO_FILE,"ImageAppend: fwrite_header failed (%d)\n",ecode);
+
+    nframes = Iheader.num_frame - 1 ;
+    for (frame = 0 ; frame < nframes ; frame++)
+    {
+      Iframe = ImageReadFrames(tmpname, frame, 1) ;
+      if (!Iframe)
+        ErrorReturn(-3, (ERROR_BADFILE, 
+                         "ImageAppend: could not read %dth frame", frame)) ;
+      ecode = fwrite_image(fp, Iframe, frame, fname) ;
+      if (ecode != HIPS_OK)
+        ErrorReturn(-4, (ERROR_BADFILE, 
+                          "ImageAppend: fwrite_image frame %d failed (%d)\n",
+                          ecode,frame));
+    }
+    unlink(tmpname) ;
+  }
+  else    /* seek back to start and increment # of frames */
+  {
+    if (fseek(fp, 0L, SEEK_SET) < 0)
+      ErrorReturn(-2, (ERROR_BADFILE,"ImageAppend(%s): could not seek to end"));
+    ecode = fwrite_header(fp, &Iheader, fname) ;
+    if (ecode != HIPS_OK)
+      ErrorExit(ERROR_NO_FILE,"ImageAppend: fwrite_header failed (%d)\n",ecode);
+  }
+
+  if (fseek(fp, 0L, SEEK_END) < 0)
+    ErrorReturn(-2, (ERROR_BADFILE, "ImageAppend(%s): could not seek to end"));
+
+  ecode = fwrite_image(fp, I, frame, "fwrite") ;
+  if (ecode != HIPS_OK)
+    ErrorReturn(-1, (ERROR_BADFILE, 
+              "ImageAppend: fwrite_image frame %d failed (%d)\n",ecode,frame));
+
+  free_hdrcon(&Iheader) ;
+  return(NO_ERROR) ;
+}
+
