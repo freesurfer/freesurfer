@@ -11,6 +11,8 @@
 /*-----------------------------------------------------
                     INCLUDE FILES
 -------------------------------------------------------*/
+#define USE_ELECTRIC_FENCE 1
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -273,6 +275,9 @@ MRIread(char *fpref)
   long    bytes ;
   BUFTYPE *buf ;   /* tmp space to read in whole buffer */
   FILE    *fp ;
+#if USE_ELECTRIC_FENCE
+  BUFTYPE  *slice_ptr ;  
+#endif
 
   if(MRIunpackFileName(fpref, &frame, &type, fname) != NO_ERROR)
     return(NULL);
@@ -341,6 +346,19 @@ printf("%d,%d,%d,%d\n", mri->xdir, mri->ydir, mri->zdir, mri->slice_direction);
                   "MRIread(%s): could not allocate %d bytes for %dth slice\n",
                   fpref, mri->height*sizeof(BUFTYPE *), slice) ;
       
+#if USE_ELECTRIC_FENCE
+
+      if (slice == 255)
+        DiagBreak() ;
+      slice_ptr = (BUFTYPE *)calloc(mri->height * mri->width, sizeof(BUFTYPE));
+      if (!slice_ptr)
+        ErrorExit(ERROR_NO_MEMORY, 
+                  "MRIread(%s): could not allocate %dth slice\n",fpref, slice);
+      for (row = 0 ; row < mri->height ; row++)
+      {
+        mri->slices[slice][row] = slice_ptr+row*mri->width ;
+      }
+#else
       /* allocate each row */
       for (row = 0 ; row < mri->height ; row++)
       {
@@ -351,6 +369,7 @@ printf("%d,%d,%d,%d\n", mri->xdir, mri->ydir, mri->zdir, mri->slice_direction);
                     "MRIread(%s): could not allocate %dth row in %dth slice\n",
                     fpref, slice, row) ;
       }
+#endif
 
       sprintf(fname,"%s/COR-%03d", fpref, slice+mri->imnr0) ;
 
