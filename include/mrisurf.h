@@ -599,6 +599,9 @@ double MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which) ;
 int   MRISnegateValues(MRI_SURFACE *mris) ;
 int   MRIScopyMeansToValues(MRI_SURFACE *mris) ;
 int   MRIScopyCurvatureToValues(MRI_SURFACE *mris) ;
+int   MRIScopyCurvatureToImagValues(MRI_SURFACE *mris) ;
+int   MRIScopyCurvatureFromValues(MRI_SURFACE *mris) ;
+int   MRIScopyCurvatureFromImagValues(MRI_SURFACE *mris) ;
 int   MRIScopyImaginaryMeansToValues(MRI_SURFACE *mris) ;
 int   MRIScopyStandardErrorsToValues(MRI_SURFACE *mris) ;
 int   MRISaccumulateMeansInVolume(MRI_SURFACE *mris, MRI *mri, int mris_dof, 
@@ -620,7 +623,10 @@ int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                                   MRI *mri_wm, float nsigma,
                                   float gray_surface);
-int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs);
+int  MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size,int max_nbrs);
+int  MRISripFaces(MRI_SURFACE *mris) ;
+int  MRISremoveRipped(MRI_SURFACE *mris) ;
+int  MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname) ;
 
 #define RH_LABEL           127
 #define LH_LABEL           255

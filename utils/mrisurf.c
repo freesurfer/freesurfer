@@ -47,7 +47,6 @@
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
-static int   mrisBuildFileName(MRI_SURFACE *mris, char *sname, char *fname) ;
 static double mrisFindClosestFilledVoxel(MRI_SURFACE *mris, MRI *mri_filled, 
                                          int vno, double max_dist) ;
 static int   mrisCheck(MRI_SURFACE *mris) ;
@@ -57,7 +56,6 @@ static int   mrisFileNameType(char *fname) ;
 static int   mrisComputeNormals(MRI_SURFACE *mris) ;
 static int   mrisComputeSurfaceDimensions(MRI_SURFACE *mris) ;
 static int   mrisFindNeighbors(MRI_SURFACE *mris) ;
-static int   mrisRemoveRipped(MRI_SURFACE *mris) ;
 static void  mrisNormalize(float v[3]) ;
 static float mrisTriangleArea(MRIS *mris, int fac, int n) ;
 static int   mrisNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
@@ -105,7 +103,6 @@ static int   mrisOrientPlane(MRI_SURFACE *mris) ;
 #if AVERAGE_AREAS
 static int   mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which) ;
 #endif
-static int   mrisRipFaces(MRI_SURFACE *mris) ;
 static int   transform(float *xptr, float *yptr, float *zptr, 
                        float nx, float ny, float nz, float d) ;
 
@@ -1403,8 +1400,8 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
           Remove ripped vertices and faces from the v->v and the
           v->f arrays respectively.
 ------------------------------------------------------*/
-static int
-mrisRemoveRipped(MRI_SURFACE *mris)
+int
+MRISremoveRipped(MRI_SURFACE *mris)
 {
   int     vno, n, fno, nripped, tno ;
   VERTEX  *v ;
@@ -1500,7 +1497,7 @@ mrisRemoveRipped(MRI_SURFACE *mris)
 static int
 mrisComputeNormals(MRI_SURFACE *mris) 
 {
-  int       k,n;
+  int       k,n, num ;
   VERTEX    *v ;
   FACE      *f;
   float     norm[3],snorm[3], len ;
@@ -1524,8 +1521,9 @@ mrisComputeNormals(MRI_SURFACE *mris)
     v = &mris->vertices[k];
     snorm[0]=snorm[1]=snorm[2]=0;
     v->area = 0;
-    for (n=0;n<v->num;n++) if (!mris->faces[v->f[n]].ripflag)
+    for (num = n=0;n<v->num;n++) if (!mris->faces[v->f[n]].ripflag)
     {
+      num++ ;
       mrisNormalFace(mris, v->f[n],v->n[n],norm);
       snorm[0] += norm[0];
       snorm[1] += norm[1];
@@ -1534,6 +1532,8 @@ mrisComputeNormals(MRI_SURFACE *mris)
       /* Note: overestimates area by *2 !! */
       v->area += mrisTriangleArea(mris, v->f[n],v->n[n]); 
     }
+    if (!num)
+      continue ;
     mrisNormalize(snorm);
 
     v->area /= 2 ;
@@ -6122,11 +6122,11 @@ MRISreadPatch(MRI_SURFACE *mris, char *pname)
               mris->vertices[k].x,mris->vertices[k].y,mris->vertices[k].z) ;
   }
   fclose(fp);
-  mrisRipFaces(mris);
+  MRISripFaces(mris);
   mris->patch = 1 ;
   mris->status = MRIS_CUT ;
 
-  mrisRemoveRipped(mris) ;
+  MRISremoveRipped(mris) ;
   MRISupdateSurface(mris) ;
 
   mrisComputeBoundaryNormals(mris);
@@ -6147,8 +6147,8 @@ MRISreadPatch(MRI_SURFACE *mris, char *pname)
 
         Description
 ------------------------------------------------------*/
-static int
-mrisRipFaces(MRI_SURFACE *mris)
+int
+MRISripFaces(MRI_SURFACE *mris)
 {
   int n,k;
   face_type *f;
@@ -6967,7 +6967,7 @@ MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices,
   int     eno, nfaces, nedges, nvertices, vno, fno, vnb, i ;
   VERTEX  *v1 ;
 
-  /*  mrisRipFaces(mris) ;*/
+  /*  MRISripFaces(mris) ;*/
   for (nfaces = fno = 0 ; fno < mris->nfaces ; fno++)
     if (!mris->faces[fno].ripflag)
       nfaces++ ;
@@ -7021,7 +7021,7 @@ MRIStopologicalDefectIndex(MRI_SURFACE *mris)
   mris->vertices[34104].ripflag = 1 ;
   mris->vertices[102960].ripflag = 1 ;
   mris->vertices[4013].ripflag = 1 ;
-  mrisRipFaces(mris) ;
+  MRISripFaces(mris) ;
 #endif
   for (nfaces = fno = 0 ; fno < mris->nfaces ; fno++)
     if (!mris->faces[fno].ripflag)
@@ -7105,7 +7105,7 @@ MRISremoveTopologicalDefects(MRI_SURFACE *mris,float curv_thresh)
   }
   
 
-  /*  mrisRipFaces(mris) ;*/
+  /*  MRISripFaces(mris) ;*/
   VectorFree(&v_i) ;
   VectorFree(&v_n) ;
   VectorFree(&v_e1) ;
@@ -9700,7 +9700,7 @@ MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
   VERTEX  *vertex ;
   FILE    *fp ;
 
-  mrisBuildFileName(mris, name, fname) ;
+  MRISbuildFileName(mris, name, fname) ;
   fp = fopen(fname, "rb") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE,
@@ -14359,6 +14359,72 @@ MRIScopyCurvatureToValues(MRI_SURFACE *mris)
         Description
 ------------------------------------------------------*/
 int
+MRIScopyCurvatureToImagValues(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->imag_val = v->curv ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIScopyCurvatureFromValues(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->curv = v->val ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIScopyCurvatureFromImagValues(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->curv = v->imag_val ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
 {
   VERTEX  *v ;
@@ -14503,8 +14569,8 @@ mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
 
         Description
 ------------------------------------------------------*/
-static int
-mrisBuildFileName(MRI_SURFACE *mris, char *sname, char *fname)
+int
+MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname)
 {
   char   *cp, path[200] ;
   
