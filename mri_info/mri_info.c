@@ -799,6 +799,8 @@ static void read_analyze_file(char *fname, struct stat stat_buf)
   printf("height: %d\n", header.dime.dim[2]);
   printf("depth: %d\n", header.dime.dim[3]);
   printf("voxel size: %g, %g, %g, %g, %g, %g, %g, %g\n", header.dime.pixdim[0], header.dime.pixdim[1], header.dime.pixdim[2], header.dime.pixdim[3], header.dime.pixdim[4], header.dime.pixdim[5], header.dime.pixdim[6], header.dime.pixdim[7]);
+  printf("originator: %hd, %hd, %hd\n", 
+*(short *)&header.hist.originator[0], *(short *)&header.hist.originator[2], *(short *)&header.hist.originator[4]);
   printf("data type: ");
   switch(header.dime.datatype)
   {
@@ -1056,13 +1058,13 @@ static void read_ge_header(FILE *fp, int offset, struct ge_header *header)
 
 } /* end read_ge_header() */
 
-/* lifted from mriio.c */
+/* lifted from mriio.c (and altered) */
 static void
 read_analyze_header(char *fname, dsr *bufptr)
 {
   FILE *fp;
-  char hdr_fname[STRLEN], *dot ;
-  int  nread, i ;
+  char hdr_fname[STRLEN], *dot;
+  int  nread;
 
   strcpy(hdr_fname, fname) ;
   dot = strrchr(hdr_fname, '.') ;
@@ -1074,73 +1076,53 @@ read_analyze_header(char *fname, dsr *bufptr)
   nread = fread(bufptr,sizeof(char), sizeof(dsr),fp);
   fclose(fp);
 
-#ifdef Linux
-  bufptr->hk.sizeof_hdr = swapInt(bufptr->hk.sizeof_hdr) ;
-  bufptr->hk.extents = swapInt(bufptr->hk.extents) ;
-  bufptr->hk.session_error = swapInt(bufptr->hk.session_error) ;
-  for (i=0;i<8;i++)
-    bufptr->dime.dim[i] = swapShort(bufptr->dime.dim[i]) ;
-
-  bufptr->dime.datatype = swapShort(bufptr->dime.datatype) ;
-  bufptr->dime.bitpix = swapShort(bufptr->dime.bitpix) ;
-  bufptr->dime.dim_un0 = swapShort(bufptr->dime.dim_un0) ;
-  for (i=0;i<8;i++)
-    bufptr->dime.pixdim[i] = swapFloat(bufptr->dime.pixdim[i]) ;
-
-  bufptr->dime.compressed = swapFloat(bufptr->dime.compressed) ;
-  bufptr->dime.verified = swapFloat(bufptr->dime.verified) ;
-  bufptr->dime.glmax = swapInt(bufptr->dime.glmax) ;
-  bufptr->dime.glmin = swapInt(bufptr->dime.glmin) ;
-  bufptr->hist.views = swapInt(bufptr->hist.views) ;
-  bufptr->hist.vols_added = swapInt(bufptr->hist.vols_added) ;
-  bufptr->hist.start_field = swapInt(bufptr->hist.start_field) ;
-  bufptr->hist.field_skip = swapInt(bufptr->hist.field_skip) ;
-  bufptr->hist.omax = swapInt(bufptr->hist.omax) ;
-  bufptr->hist.omin = swapInt(bufptr->hist.omin) ;
-  bufptr->hist.smax = swapInt(bufptr->hist.smax) ;
-  bufptr->hist.smin = swapInt(bufptr->hist.smin) ;
-#endif
-
 }
 
 static void flip_analyze_header(dsr *header)
 {
 
   int i;
+  char c;
 
-  header->hk.sizeof_hdr = orderIntBytes(header->hk.sizeof_hdr);
-  header->hk.extents = orderIntBytes(header->hk.extents);
-  header->hk.session_error = orderShortBytes(header->hk.session_error);
+  header->hk.sizeof_hdr = swapInt(header->hk.sizeof_hdr);
+  header->hk.extents = swapInt(header->hk.extents);
+  header->hk.session_error = swapShort(header->hk.session_error);
 
   for(i = 0;i < 8;i++)
   {
-    header->dime.dim[i] = orderShortBytes(header->dime.dim[i]);
-    header->dime.pixdim[i] = orderFloatBytes(header->dime.pixdim[i]);
+    header->dime.dim[i] = swapShort(header->dime.dim[i]);
+    header->dime.pixdim[i] = swapFloat(header->dime.pixdim[i]);
   }
 
-  header->dime.unused1 = orderShortBytes(header->dime.unused1);
-  header->dime.datatype = orderShortBytes(header->dime.datatype);
-  header->dime.bitpix = orderShortBytes(header->dime.bitpix);
-  header->dime.dim_un0 = orderShortBytes(header->dime.dim_un0);
-  header->dime.vox_offset = orderFloatBytes(header->dime.vox_offset);
-  header->dime.roi_scale = orderFloatBytes(header->dime.roi_scale);
-  header->dime.funused1 = orderFloatBytes(header->dime.funused1);
-  header->dime.funused2 = orderFloatBytes(header->dime.funused2);
-  header->dime.cal_max = orderFloatBytes(header->dime.cal_max);
-  header->dime.cal_min = orderFloatBytes(header->dime.cal_min);
-  header->dime.compressed = orderIntBytes(header->dime.compressed);
-  header->dime.verified = orderIntBytes(header->dime.verified);
-  header->dime.glmax = orderIntBytes(header->dime.glmax);
-  header->dime.glmin = orderIntBytes(header->dime.glmin);
+  header->dime.unused1 = swapShort(header->dime.unused1);
+  header->dime.datatype = swapShort(header->dime.datatype);
+  header->dime.bitpix = swapShort(header->dime.bitpix);
+  header->dime.dim_un0 = swapShort(header->dime.dim_un0);
+  header->dime.vox_offset = swapFloat(header->dime.vox_offset);
+  header->dime.roi_scale = swapFloat(header->dime.roi_scale);
+  header->dime.funused1 = swapFloat(header->dime.funused1);
+  header->dime.funused2 = swapFloat(header->dime.funused2);
+  header->dime.cal_max = swapFloat(header->dime.cal_max);
+  header->dime.cal_min = swapFloat(header->dime.cal_min);
+  header->dime.compressed = swapInt(header->dime.compressed);
+  header->dime.verified = swapInt(header->dime.verified);
+  header->dime.glmax = swapInt(header->dime.glmax);
+  header->dime.glmin = swapInt(header->dime.glmin);
 
-  header->hist.views = orderIntBytes(header->hist.views);
-  header->hist.vols_added = orderIntBytes(header->hist.vols_added);
-  header->hist.start_field = orderIntBytes(header->hist.start_field);
-  header->hist.field_skip = orderIntBytes(header->hist.field_skip);
-  header->hist.omax = orderIntBytes(header->hist.omax);
-  header->hist.omin = orderIntBytes(header->hist.omin);
-  header->hist.smax = orderIntBytes(header->hist.smax);
-  header->hist.smin = orderIntBytes(header->hist.smin);
+  header->hist.views = swapInt(header->hist.views);
+  header->hist.vols_added = swapInt(header->hist.vols_added);
+  header->hist.start_field = swapInt(header->hist.start_field);
+  header->hist.field_skip = swapInt(header->hist.field_skip);
+  header->hist.omax = swapInt(header->hist.omax);
+  header->hist.omin = swapInt(header->hist.omin);
+  header->hist.smax = swapInt(header->hist.smax);
+  header->hist.smin = swapInt(header->hist.smin);
+
+  c = header->hist.originator[0]; header->hist.originator[0] = header->hist.originator[1] ; header->hist.originator[1] = c;
+  c = header->hist.originator[2]; header->hist.originator[2] = header->hist.originator[3] ; header->hist.originator[3] = c;
+  c = header->hist.originator[4]; header->hist.originator[4] = header->hist.originator[5] ; header->hist.originator[5] = c;
+  c = header->hist.originator[6]; header->hist.originator[6] = header->hist.originator[7] ; header->hist.originator[7] = c;
+  c = header->hist.originator[8]; header->hist.originator[8] = header->hist.originator[9] ; header->hist.originator[9] = c;
 
 }  /*  end flip_analyze_header()  */
 
