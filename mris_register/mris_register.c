@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.13 2002/04/02 17:35:28 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.14 2002/05/21 15:57:15 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -283,6 +283,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "curv"))
   {
     parms.flags |= IP_USE_CURVATURE ;
+    fprintf(stderr, "using smoothwm curvature for final alignment\n") ;
+  }
+  else if (!stricmp(option, "nocurv"))
+  {
+    parms.flags &= ~IP_USE_CURVATURE ;
     fprintf(stderr, "using smoothwm curvature for final alignment\n") ;
   }
   else if (!stricmp(option, "adaptive"))
