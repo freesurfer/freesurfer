@@ -645,6 +645,14 @@ static void read_siemens_file(char *fname, struct stat stat_buf)
   printf("sequence name: %s\n",string);
   read_string(fp, 5814, string, 7);
   printf("slice direction: %s\n",string);
+  read_int(fp, 1052, &i1);
+  read_int(fp, 1056, &i2);
+  read_int(fp, 1060, &i3);
+  printf("registration date: %04d%02d%02d\n", i1, i2, i3);
+  read_int(fp, 1064, &i1);
+  read_int(fp, 1068, &i2);
+  read_int(fp, 1072, &i3);
+  printf("registration time: %02d%02d%02d\n", i1, i2, i3);
 
   fclose(fp);
 
