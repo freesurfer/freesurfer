@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/08 17:17:20 $
-// Revision       : $Revision: 1.5 $
+// Revision Date  : $Date: 2004/12/07 16:56:03 $
+// Revision       : $Revision: 1.6 $
 //
 // moved out from mriio.c
 //
@@ -294,10 +294,12 @@ int readAFNIHeader(FILE *fp, AF *pAF)
   fseek(fp, 0, SEEK_SET);
 
   // AFNI header attribute spec http://afni.nimh.nih.gov/afni/docREADME/README.attributes
-  while(!feof(fp))
+  while(1) // !feof(fp))
   {
 
     fgets(line, STRLEN, fp);
+    if (feof(fp)) // wow.  we read too many.  get out
+      break;
 
     if(!feof(fp))
     {
@@ -529,6 +531,8 @@ int readAFNIHeader(FILE *fp, AF *pAF)
       }
     }
   }
+  fclose(fp);
+
   if((gotten & AFNI_ALL_REQUIRED) != AFNI_ALL_REQUIRED)
   {
 
@@ -672,7 +676,7 @@ MRI *afniRead(char *fname, int read_volume)
   // read header file
   if (!readAFNIHeader(fp, &af))
     return (NULL);
-  fclose(fp);
+
   printAFNIHeader(&af);
 
   // well, we don't have time
