@@ -125,5 +125,8 @@ int GCAMapplyTransform(GCA_MORPH *gcam, TRANSFORM *transform) ;
 #define GCAM_INTEGRATE_FIXED   1
 #define GCAM_INTEGRATE_BOTH    2
 
+#define GCAM_VALID             0
+#define GCAM_AREA_INVALID      1
+#define GCAM_POSITION_INVALID  2
 
 #endif
