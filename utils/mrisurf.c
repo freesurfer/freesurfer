@@ -7042,7 +7042,7 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
   FILE *fp;
   double sum=0,sum2=0,max= -1000,min=1000;
 
-#if 0
+#if 1
   MRISbuildFileName(mris, sname, fname) ;
 #else
   strcpy(fname, sname) ;
@@ -22615,7 +22615,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
       mris->vertices[defect->vertices[n]].val = defect->area ;
     }
   }
-  if (Gdiag & DIAG_WRITE/* && DIAG_VERBOSE_ON*/)
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRISwriteValues(mris, "defect_area") ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "%d defects found, arbitrating ambiguous regions...\n",
@@ -22708,7 +22708,9 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
         defect->status[n] == DISCARD_VERTEX ? -1 : 1 ;
     }
   }
-  MRISwriteCurvature(mris, "defect_status");
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRISwriteCurvature(mris, "defect_status");
+
   /*  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;*/
   MRIScomputeMetricProperties(mris) ;
   MRISclearCurvature(mris) ;
@@ -22781,7 +22783,8 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
         mris->vertices[defect->vertices[n]].curv = i ;
       }
     }
-    MRISwriteCurvature(mris, "defect_labels") ;
+    if (DIAG_VERBOSE_ON)
+      MRISwriteCurvature(mris, "defect_labels") ;
   }
 
   /* now start building the target surface */
@@ -22898,6 +22901,8 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
     v = &mris->vertices[vno] ;
     if (v->marked)
       continue ;
+    if (vertex_trans[vno]<0 || vertex_trans[vno] >= mris_corrected->nvertices)
+      continue ;
     vdst = &mris_corrected->vertices[vertex_trans[vno]] ;
     
     /* count # of good trangles attached to this vertex */
@@ -23012,11 +23017,6 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
       nsmooth = 200 ;
 
     MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
-#if 0
-    MRISclearMarks(mris_corrected) ;
-    for (vno = 0 ; vno < kept_vertices ; vno++)
-      mris_corrected->vertices[vno].marked = 1 ;
-#else
     MRISsetMarks(mris_corrected, 1) ;
     for (i = 0 ; i < dl->ndefects ; i++)
     {
@@ -23024,17 +23024,20 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
       for (n = 0 ; n < defect->nvertices ; n++)
       {
         vno = vertex_trans[defect->vertices[n]] ;
+        if (vno < 0 || vno >= mris_corrected->nvertices)
+          continue ;
         v = &mris_corrected->vertices[vno] ;
         v->marked = 0 ;
       }
       for (n = 0 ; n < defect->nborder ; n++)
       {
         vno = vertex_trans[defect->border[n]] ;
+        if (vno < 0 || vno >= mris_corrected->nvertices)
+          continue ;
         v = &mris_corrected->vertices[vno] ;
         v->marked = 0 ;
       }
     }
-#endif
     fprintf(stderr, 
       "performing soap bubble on retessellated vertices for %d "
       "iterations...\n", nsmooth) ;
