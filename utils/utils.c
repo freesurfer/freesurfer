@@ -704,4 +704,28 @@ FileNamePath(char *fname, char *pathName)
 
   return(pathName) ;
 }
-  
+/*------------------------------------------------------------------------
+       Parameters:
+
+      Description:
+        advance a string pointer past a numeric value
+
+    Return Values:
+------------------------------------------------------------------------*/
+char *
+StrSkipNumber(char *str)
+{
+  while (*str && isdigit(*str))
+    str++ ;
+  if (*str == '.')  /* check for floating point # */
+  {
+    str++ ;
+    while (*str && isdigit(*str))
+      str++ ;
+  }
+  while (*str && isspace(*str))
+    str++ ;
+
+  return(str) ;
+}
+
