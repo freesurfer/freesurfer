@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/01/06 22:13:43 $
-// Revision       : $Revision: 1.188 $
-char *VERSION = "$Revision: 1.188 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2004/01/07 20:49:52 $
+// Revision       : $Revision: 1.189 $
+char *VERSION = "$Revision: 1.189 $";
 
 #define TCL
 #define TKMEDIT 
@@ -216,7 +216,6 @@ void ExtractVolumeName  ( char* isDataSource,
    false if -f is used on the command line. */
 tBoolean gEnableFileNameGuessing = TRUE;
 tBoolean gGuessWarningSent = FALSE;
-tBoolean gScaleUpFlag = FALSE ;
 
 // ==========================================================================
 
@@ -963,6 +962,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   tBoolean      bUsingMRIRead        = FALSE;
   char        sSubject[tkm_knPathLen]    = "";
   char        sImageDir[tkm_knPathLen]    = "";
+  tBoolean    bScaleUpVolume = FALSE;
   tBoolean      bSurfaceDeclared      = FALSE;
   char        sSurface[tkm_knPathLen]    = "";
   tBoolean      bLocalImageDir      = FALSE;
@@ -1050,7 +1050,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.188 2004/01/06 22:13:43 fischl Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.189 2004/01/07 20:49:52 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1162,69 +1162,66 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   
       } else if( MATCH( sArg, "-bc-main" ) ) {
   
-				/* check for the 2 values following the switch */
-				if( argc > nCurrentArg + 2
-						&& '-' != argv[nCurrentArg+1][0]
-						&& '-' != argv[nCurrentArg+2][0] ) {
-					
-					/* get the value */
-					DebugNote( ("Parsing -bc-main option") );
-					fBrightnessMain = atof( argv[nCurrentArg+1] );
-					fContrastMain = atof( argv[nCurrentArg+2] );
-					bBrightContrastMain = TRUE;
-					nCurrentArg +=3 ;
-					
-				} 
-				else 
-				{ 
-					
-					/* misuse of that switch */
-					tkm_DisplayError( "Parsing -bc-main option",
-														"Expected two arguments",
-														"This option needs two arguments: the brightness"
-														"and the contrast for the volume." );
-					nCurrentArg += 1;
-				}
-	
-			} 
-			else if (MATCH(sArg, "-scaleup"  ) ) 
-			{
-				gScaleUpFlag = TRUE ;
-				nCurrentArg ++ ;
-				printf("scaling input volume voxel sizes so min is 1mm\n") ;
-			}
-			else if( MATCH( sArg, "-mm-main" ) ) 
-			{
-  
-				/* check for the 2 values following the switch */
-				if( argc > nCurrentArg + 2
-						&& '-' != argv[nCurrentArg+1][0]
-						&& '-' != argv[nCurrentArg+2][0] ) {
-					
-					/* get the values */
-					DebugNote( ("Parsing -mm-main option") );
-					fColorMinMain = atof( argv[nCurrentArg+1] );
-					fColorMaxMain = atof( argv[nCurrentArg+2] );
-					bColorMain = TRUE;
-					nCurrentArg +=3 ;
-					
-				} else { 
-					
-					/* misuse of that switch */
-					tkm_DisplayError( "Parsing -mm-main option",
-														"Expected two arguments",
-														"This option needs two arguments: the min"
-														"and the max color values for the volume." );
-					nCurrentArg += 1;
-				}
-				
-      } else if( MATCH( sArg, "-bc-aux" ) ) {
-  
 	/* check for the 2 values following the switch */
 	if( argc > nCurrentArg + 2
 	    && '-' != argv[nCurrentArg+1][0]
 	    && '-' != argv[nCurrentArg+2][0] ) {
 	  
+	  /* get the value */
+	  DebugNote( ("Parsing -bc-main option") );
+	  fBrightnessMain = atof( argv[nCurrentArg+1] );
+	  fContrastMain = atof( argv[nCurrentArg+2] );
+	  bBrightContrastMain = TRUE;
+	  nCurrentArg +=3 ;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -bc-main option",
+			    "Expected two arguments",
+			    "This option needs two arguments: the brightness"
+			    "and the contrast for the volume." );
+	  nCurrentArg += 1;
+	}
+	
+      } else if (MATCH(sArg, "-scaleup"  ) ) {
+
+	/* set our flag */
+	DebugNote( ("Enabling scaleup.") );
+	bScaleUpVolume = TRUE;
+	nCurrentArg ++;
+
+      } else if( MATCH( sArg, "-mm-main" ) ) {
+	  
+	  /* check for the 2 values following the switch */
+	  if( argc > nCurrentArg + 2
+	      && '-' != argv[nCurrentArg+1][0]
+	      && '-' != argv[nCurrentArg+2][0] ) {
+	    
+	    /* get the values */
+	    DebugNote( ("Parsing -mm-main option") );
+	    fColorMinMain = atof( argv[nCurrentArg+1] );
+	    fColorMaxMain = atof( argv[nCurrentArg+2] );
+	    bColorMain = TRUE;
+	    nCurrentArg +=3 ;
+	    
+	  } else { 
+	    
+	    /* misuse of that switch */
+	    tkm_DisplayError( "Parsing -mm-main option",
+			      "Expected two arguments",
+			      "This option needs two arguments: the min"
+			      "and the max color values for the volume." );
+	    nCurrentArg += 1;
+	  }
+	  
+	} else if( MATCH( sArg, "-bc-aux" ) ) {
+	  
+	  /* check for the 2 values following the switch */
+	  if( argc > nCurrentArg + 2
+	      && '-' != argv[nCurrentArg+1][0]
+	      && '-' != argv[nCurrentArg+2][0] ) {
+	    
 	  /* get the value */
 	  DebugNote( ("Parsing -bc-aux option") );
 	  fBrightnessAux = atof( argv[nCurrentArg+1] );
@@ -2139,6 +2136,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     }
   }
   
+  /* If we're scaling up, do it now. */
+  if( bScaleUpVolume ) {
+    Volm_SetMinVoxelSizeToOne( gAnatomicalVolume[tkm_tVolumeType_Main] );
+  }
+
   /* If we got a non-default brightness and contrast or min and max,
      set it now. */
   if( bBrightContrastMain ) {
@@ -4994,7 +4996,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.188 2004/01/06 22:13:43 fischl Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.189 2004/01/07 20:49:52 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
