@@ -23393,9 +23393,9 @@ int fbnd_new_line_from_marked_vertices ()
 		    }
 		  
 		  /* recalc the weight. */
-		  dist_uv = ((v->x - u->x) * (v->x - u->x)) +
+		  dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
 		    ((v->y - u->y) * (v->y - u->y)) +
-		    ((v->z - u->z) * (v->z - u->z));
+		    ((v->z - u->z) * (v->z - u->z)));
 		  
 		  /* if this is a new shortest path, update the predecessor,
 		     weight, and add it to the list of ones to check next. */
