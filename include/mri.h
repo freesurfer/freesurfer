@@ -111,14 +111,20 @@ float MRIvoxelGradientDir2ndDerivative(MRI *mri, int x0, int y0, int z0,
 #define XDIM  1
 #define YDIM  2
 #define ZDIM  3
+/* ch ov */ /*
 MRI  *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
+*/
 
 /* I/O functions */
+/* ch ov */ /*
 int    MRIwrite(MRI *mri, char *fpref) ;
+*/
 int    MRIappend(MRI *mri, char *fpref) ;
 int    MRIwriteInfo(MRI *mri, char *fpref) ;
-MRI   *MRIread(char *fpref) ;
-MRI   *MRIreadInfo(char *fpref) ;
+/* ch ov */  /*
+  MRI   *MRIread(char *fpref) ;
+  MRI   *MRIreadInfo(char *fpref) ;
+  */
 
 /* memory allocation routines */
 int   MRIfree(MRI **pmri) ;
@@ -323,7 +329,9 @@ MRI   *MRIzScoreRegion(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, MRI *mri_std,
 
 int   MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height,
                    int depth) ;
+/* ch ov */ /*
 MRI   *MRIreadRaw(FILE *fp, int width, int height, int depth, int type) ;
+*/
 int   MRIinitHeader(MRI *mri) ;
 int   MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv, 
                       Real *xw, Real *yw, Real *zw) ;
@@ -657,6 +665,23 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
 #define VENTRICLE_FILL       220
 #define DIAGONAL_FILL        230
 #define DEGENERATE_FILL      240
+
+MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high);
+MRI *MRIresample(MRI *src, MRI *template, int resample_type);
+int MRIlimits(MRI *mri, float *min, float *max);
+int MRIprintStats(MRI *mri, FILE *stream);
+int MRIstats(MRI *mri, float *min, float *max, int *n_voxels, float *mean, float *std);
+
+#define RESAMPLE_INTERPOLATE  0
+#define RESAMPLE_NEAREST  1
+#define RESAMPLE_WEIGHTED  2
+
+int mriio_command_line(int argc, char *argv[]);
+MRI *MRIread(char *fname);
+MRI *MRIreadInfo(char *fname);
+int MRIwrite(MRI *mri, char *fname);
+MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
+MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 
 
 #endif
