@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/11/29 19:25:12 $
-// Revision       : $Revision: 1.98 $
+// Revision Date  : $Date: 2004/11/29 19:37:35 $
+// Revision       : $Revision: 1.99 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.98 2004/11/29 19:25:12 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.99 2004/11/29 19:37:35 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1491,7 +1491,7 @@ int main(int argc, char *argv[])
       if (out_like_flag == 1)
       {
 	MRI *tmp = 0;
-	printf("INFO: transform src into the like-volume\n");
+	printf("INFO: transform dst into the like-volume\n");
 	tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);
 	mri_transformed = MRIalloc(tmp->width, tmp->height, tmp->depth, mri->type);
 	if (!mri_transformed)
