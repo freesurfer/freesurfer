@@ -79,6 +79,8 @@ MATRIX  *MatrixCopyRealRegion(MATRIX *mSrc, MATRIX *mDst,int start_row,
 MATRIX  *MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
                                  int start_col, int rows, int cols, 
                                  int dest_row, int dest_col) ;
+MATRIX  *MatrixSetRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, 
+			 int start_col, int rows, int cols, float val);
 MATRIX *MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut);
 MATRIX *MatrixRegularize(MATRIX *mIn, MATRIX *mOut) ;
 int    MatrixSingular(MATRIX *m) ;

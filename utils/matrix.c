@@ -1052,8 +1052,50 @@ MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
   }
   return(mDst) ;
 }
+/*--------------------------------------------------------------------*/
+MATRIX  *MatrixSetRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, 
+			 int start_col, int rows, int cols, float val)
+{
+  int r, c, end_row, end_col;
 
+  end_row = start_row + rows - 1;
+  end_col = start_col + cols - 1;
 
+  //printf("rows: %d %d (%d)\n",start_row,end_row,rows);
+  //printf("cols: %d %d (%d)\n",start_col,end_col,cols);
+
+  if(start_row > mSrc->rows){
+    printf("ERROR: start row > nrows\n");
+    return(NULL);
+  }
+  if(end_row > mSrc->rows){
+    printf("ERROR: end row > nrows\n");
+    return(NULL);
+  }
+  if(start_col > mSrc->cols){
+    printf("ERROR: start col > ncols\n");
+    return(NULL);
+  }
+  if(end_col > mSrc->cols){
+    printf("ERROR: end col > ncols\n");
+    return(NULL);
+  }
+
+  if(mDst != NULL){
+    if(mDst->rows != mSrc->rows || mDst->cols != mSrc->cols){
+      printf("ERROR: dimension mismatch\n");
+      return(NULL);
+    }
+  }
+  mDst = MatrixCopy(mSrc,mDst);
+
+  for(r = start_row ; r <= end_row; r++)
+    for(c = start_col ; c <= end_col; c++)
+      mDst->rptr[r][c] = val;
+
+  return(mDst);
+}
+/*--------------------------------------------------------------------*/
 MATRIX *
 MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut)
 {
