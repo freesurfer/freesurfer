@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/22 21:18:30 $
-// Revision       : $Revision: 1.195 $
-char *VERSION = "$Revision: 1.195 $";
+// Revision Date  : $Date: 2004/01/22 23:30:11 $
+// Revision       : $Revision: 1.196 $
+char *VERSION = "$Revision: 1.196 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1034,7 +1034,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.195 2004/01/22 21:18:30 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.196 2004/01/22 23:30:11 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5043,7 +5043,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.195 2004/01/22 21:18:30 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.196 2004/01/22 23:30:11 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6476,8 +6476,8 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
       /* set the vno to -1, which is significant somewhere outside
 	 the realm of tkmedit. set stat value to the mri value
 	 and deleted to not */
-      Volm_GetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-			  &MRIIdx, &value );
+      Volm_GetValueAtMRIIdx_( gAnatomicalVolume[tkm_tVolumeType_Main], 
+			      &MRIIdx, &value );
       pVertex->vno = -1;
       pVertex->stat = value;
       pVertex->deleted = FALSE;
