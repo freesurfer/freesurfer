@@ -20,6 +20,7 @@
 #include "error.h"
 #include "proto.h"
 #include "histo.h"
+#include "diag.h"
 
 /*-----------------------------------------------------
         Parameters:
@@ -51,10 +52,15 @@ HISTOdump(HISTOGRAM *histo, FILE *fp)
 {
   int  bin_no ;
 
-  fprintf(fp, "nbins = %d\n", histo->nbins) ;
-  for (bin_no = 0 ; bin_no < histo->nbins ; bin_no++)
-    fprintf(fp, "bin[%d] = %d = %d\n",
-            bin_no, histo->bins[bin_no], histo->counts[bin_no]) ;
+  if (!histo)
+    fprintf(stderr, "NULL histogram") ;
+  else
+  {
+    fprintf(fp, "nbins = %d\n", histo->nbins) ;
+    for (bin_no = 0 ; bin_no < histo->nbins ; bin_no++)
+      fprintf(fp, "bin[%d] = %d = %d\n",
+              bin_no, histo->bins[bin_no], histo->counts[bin_no]) ;
+  }
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -133,25 +139,36 @@ HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
           to output intensities, and numerically invert it.
 ------------------------------------------------------*/
 HISTOGRAM *
-HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
+HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_dst)
 {
-  int       b, val, max_count ;
+  int       b, bdst, val, max_count ;
 
   histo_dst = HISTOclear(histo_src, histo_dst) ;
 
-  histo_dst->nbins = 256 ;
+  if (!max_dst)
+    max_dst = 255 ;
 
   for (max_count = b = 0 ; b < histo_src->nbins ; b++)
   {
-    val = histo_src->counts[b] ;
+    val = histo_src->counts[b];
     if (val > max_count)
       max_count = val ;
-    if (val > 255)
-      val = 255 ;
-    histo_dst->counts[val] = b ;
   }
 
-  histo_dst->nbins = max_count ;
+  for (b = 0 ; b < histo_src->nbins ; b++)
+  {
+    val = histo_src->counts[b] ;
+    bdst = nint((float)max_dst * (float)val / (float)max_count) ;
+    if (bdst > max_dst)
+      bdst = max_dst ;
+    if (!histo_dst->bins[bdst])
+    {
+      histo_dst->counts[bdst] = b ;
+      histo_dst->bins[bdst] = 1 ;
+    }
+  }
+
+  histo_dst->nbins = max_dst ;
 /* 
    fill in zeros in the inverse histogram - they correspond to
    flat regions in the forward map (i.e. multiple-valued).
@@ -179,6 +196,9 @@ HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_out)
   int    max_count, b ;
   float  scale ;
 
+  if (!max_out)
+    max_out = 255 ;
+
   if (!histo_dst)
     histo_dst = HISTOalloc(histo_src->nbins) ;
 
@@ -188,7 +208,7 @@ HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_out)
 
   scale = (float)max_out / (float)max_count ;
   for (b = 0 ; b < histo_src->nbins ; b++)
-    histo_dst->counts[b] = (int)(scale * (float)histo_src->counts[b]) ;
+    histo_dst->counts[b] = nint(scale * (float)histo_src->counts[b]) ;
 
   return(histo_dst) ;
 }
@@ -262,6 +282,111 @@ HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
     else
       histo_dst->counts[b] = val ;
   }
+
+  return(histo_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Make a compose two mappings - one forward and one
+          inverse. This is useful in the context of histogram
+          specification in which the forward is the equalization
+          histogram of the source image, and the inverse is
+          the equalization histogram of the template image.
+------------------------------------------------------*/
+HISTOGRAM *
+HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv, 
+                   HISTOGRAM *histo_dst)
+{
+  int   b, binv, val, max_fwd, max_inv ;
+  float ffwd, next = 0.0f, prev ;
+
+  if (!histo_dst)
+    histo_dst = HISTOalloc(histo_fwd->nbins) ;
+  else
+  {
+    HISTOclear(histo_dst, histo_dst) ;
+    histo_dst->nbins = histo_fwd->nbins ;
+  }
+
+  for (max_fwd = b = 0 ; b < histo_fwd->nbins ; b++)
+    if (histo_fwd->counts[b] > max_fwd)
+      max_fwd = histo_fwd->counts[b] ;
+  for (max_inv = b = 0 ; b < histo_inv->nbins ; b++)
+    if (histo_inv->counts[b] > max_inv)
+      max_inv = histo_inv->counts[b] ;
+
+  if (!max_inv || !max_fwd)
+    return(histo_dst) ;
+
+  for (binv = b = 0 ; b < histo_fwd->nbins ; b++)
+  {
+    val = histo_fwd->counts[b] ;
+    ffwd = (float)val / (float)max_fwd ;
+
+    for ( ; binv < histo_dst->nbins ; binv++)
+    {
+      next = (float)histo_inv->counts[binv] / (float)max_inv ;
+      if (next >= ffwd)
+        break ;
+    }
+    if (binv > 0)  /* see whether bin to left or to right is closer */
+    {
+      prev = (float)histo_inv->counts[binv-1] / (float)max_inv ;
+      if (fabs(next-ffwd) > abs(prev-ffwd))  /* 'prev' bin is closer */
+        binv-- ;
+    }
+    histo_dst->counts[b] = binv++ ;
+  }
+
+  return(histo_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+HISTOGRAM *
+HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
+{
+  int  b, *pc1, *pc2, *pcdst ;
+
+  if (!histo_dst)
+    histo_dst = HISTOalloc(h1->nbins) ;
+  else
+    histo_dst->nbins = h1->nbins ;
+
+  pc1 = &h1->counts[0] ; pc2 = &h2->counts[0] ; pcdst = &histo_dst->counts[0];
+  for (b = 0 ; b < h1->nbins ; b++)
+    *pcdst++ = *pc1++ + *pc2++ ;
+
+  return(histo_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+HISTOGRAM *
+HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
+{
+  int  b, *pc1, *pc2, *pcdst ;
+
+  if (!histo_dst)
+    histo_dst = HISTOalloc(h1->nbins) ;
+  else
+    histo_dst->nbins = h1->nbins ;
+
+  pc1 = &h1->counts[0] ; pc2 = &h2->counts[0] ; pcdst = &histo_dst->counts[0];
+  for (b = 0 ; b < h1->nbins ; b++)
+    *pcdst++ = *pc1++ - *pc2++ ;
 
   return(histo_dst) ;
 }
