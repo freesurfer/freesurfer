@@ -25,7 +25,6 @@ MRI *MRIconform(MRI *mri, void *p_data, int xdim, int ydim, int zdim)
 {
 
   int n_pixels = mri->width * mri->height * mri->depth;
-  float bottom_cutoff, top_cutoff;
   unsigned char *uchar_list;
   int i, j, k;
   MRI *mri2, *mri3, *mri4;
