@@ -1,5 +1,5 @@
-function [vol, M, mr_parms] = load_mgh2(fname)
-% [vol, M, mr_parms] = load_mgh2(fname)
+function [vol, M, mr_parms] = load_mgh(fname)
+% [vol, M, mr_parms] = load_mgh(fname)
 %
 % M is the 4x4 vox2ras transform such that
 % y(i1,i2,i3), xyz1 = M*[i1 i2 i3 1] where the
@@ -10,7 +10,7 @@ function [vol, M, mr_parms] = load_mgh2(fname)
 %
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh.m,v 1.2 2003/04/30 21:17:09 greve Exp $
+% $Id: load_mgh.m,v 1.3 2003/05/26 05:49:20 greve Exp $
 
 vol = [];
 M = [];
@@ -30,7 +30,7 @@ v       = fread(fid, 1, 'int') ;
 ndim1   = fread(fid, 1, 'int') ; 
 ndim2   = fread(fid, 1, 'int') ; 
 ndim3   = fread(fid, 1, 'int') ; 
-nframes = fread(fid, 1, 'int') ; 
+nframes = fread(fid, 1, 'int') ;
 type    = fread(fid, 1, 'int') ; 
 dof     = fread(fid, 1, 'int') ; 
 
@@ -47,7 +47,7 @@ if (ras_good_flag)
 
   D = diag(delta);
 
-  Pcrs_c = [ndim1/2 ndim2/2 ndim3/2]'; %'
+  Pcrs_c = [ndim1/2 ndim2/2 ndim3/2]'; % Should this be kept?
 
   Pxyz_0 = Pxyz_c - Mdc*D*Pcrs_c;
 
@@ -65,7 +65,7 @@ MRI_BITMAP = 5 ;
 
 fseek(fid, unused_space_size, 'cof') ;
 
-nv = ndim1 * ndim2 * ndim3;  
+nv = ndim1 * ndim2 * ndim3 * nframes;  
 
 switch type
   case MRI_FLOAT,
@@ -92,7 +92,6 @@ if(nread ~= nv)
   return;
 end
   
-vol = reshape(vol,[ndim1 ndim2 ndim3]);
-
+vol = reshape(vol,[ndim1 ndim2 ndim3 nframes]);
 
 return;

@@ -1,6 +1,6 @@
-function r = save_mgh2(vol, fname, M, mr_parms);
+function r = save_mgh(vol, fname, M, mr_parms);
 %
-% save_mgh2(vol,fname, M, <mr_parms>);
+% save_mgh(vol,fname, M, <mr_parms>);
 %
 % M is the 4x4 vox2ras transform such that
 % y(i1,i2,i3), xyz = M*[i1 i2 i3 1] where the
@@ -10,7 +10,7 @@ function r = save_mgh2(vol, fname, M, mr_parms);
 %
 % See also: load_mgh, vox2ras_0to1
 %
-% $Id: save_mgh.m,v 1.2 2003/04/30 21:17:09 greve Exp $
+% $Id: save_mgh.m,v 1.3 2003/05/26 05:49:20 greve Exp $
 %
 
 r = 1;
@@ -44,13 +44,13 @@ if(fid == -1)
 end
 
 
-[ndim1,ndim2,ndim3,rows,cols] = size(vol) ;
+[ndim1,ndim2,ndim3,frames] = size(vol) ;
 fwrite(fid, 1, 'int') ;		% magic #
 fwrite(fid, ndim1, 'int') ; 
 fwrite(fid, ndim2, 'int') ; 
 fwrite(fid, ndim3, 'int') ; 
-fwrite(fid, 1, 'int') ;		% # of frames
-if (ndims(vol) == 5)
+fwrite(fid, frames, 'int') ;	% # of frames
+if(ndims(vol) == 5)
   is_tensor = 1 ;
   fwrite(fid, MRI_TENSOR, 'int') ; % type = MRI_TENSOR
 else
