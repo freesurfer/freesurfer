@@ -11,8 +11,9 @@
 #include "mrisurf.h"
 #include "macros.h"
 #include "utils.h"
+#include "version.h"
 
-static char vcid[]="$Id: mris_errors.c,v 1.7 1998/11/16 21:57:04 fischl Exp $";
+static char vcid[]="$Id: mris_errors.c,v 1.8 2003/04/17 18:26:43 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -39,6 +40,12 @@ main(int argc, char *argv[])
   char         *cp, **av, *in_fname, fname[100], path[100], 
                name[100], hemi[100] ;
   int          ac, nargs ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_errors.c,v 1.8 2003/04/17 18:26:43 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

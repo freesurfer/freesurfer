@@ -12,8 +12,9 @@
 #include "mrisurf.h"
 #include "mri.h"
 #include "macros.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_entropy.c,v 1.3 2002/08/01 21:55:04 fischl Exp $";
+static char vcid[] = "$Id: mris_entropy.c,v 1.4 2003/04/17 18:26:18 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -38,6 +39,12 @@ main(int argc, char *argv[])
   MRI_SURFACE        *mris ;
   VERTEX             *v ;
   double             entropy, total_len, min_w ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_entropy.c,v 1.4 2003/04/17 18:26:18 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

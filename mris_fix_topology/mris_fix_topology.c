@@ -15,8 +15,9 @@
 #include "macros.h"
 #include "icosahedron.h"
 #include "mrishash.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.15 2003/02/19 19:44:48 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.16 2003/04/17 18:28:15 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,6 +54,12 @@ main(int argc, char *argv[])
   int           msec, nvert, nfaces, nedges, eno ;
   float         max_len ;
   struct timeb  then ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.16 2003/04/17 18:28:15 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
 	parms.max_patches = 10 ;
 	parms.max_unchanged = 10 ;
