@@ -9219,6 +9219,179 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
   MatrixFree(&m_Q) ;
   return(NO_ERROR) ;
 }
+int
+MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris, int vno, 
+                                         int *vertices, int vnum)
+{
+  int    i, n, nbad = 0 ;
+  VERTEX *vertex, *vnb ;
+  MATRIX *m_U, *m_Ut, *m_tmp1, *m_tmp2, *m_inverse ;
+  VECTOR *v_z ;
+  static MATRIX *m_Q, *m_eigen ;
+  static VECTOR *v_c = NULL, *v_n, *v_e1, *v_e2, *v_yi ;
+  float  k1, k2, evalues[3], a11, a12, a21, a22, cond_no, rsq, k, kmin, kmax ;
+  double ui, vi ;
+
+  if (mris->status == MRIS_PLANE)
+    return(NO_ERROR) ;
+
+  if (v_c == NULL)
+  {
+    v_c = VectorAlloc(3, MATRIX_REAL) ;
+    v_n = VectorAlloc(3, MATRIX_REAL) ;
+    v_e1 = VectorAlloc(3, MATRIX_REAL) ;
+    v_e2 = VectorAlloc(3, MATRIX_REAL) ;
+    v_yi = VectorAlloc(3, MATRIX_REAL) ;
+    m_Q = MatrixAlloc(2, 2, MATRIX_REAL) ;   /* the quadratic form */
+    m_eigen = MatrixAlloc(2, 2, MATRIX_REAL) ;
+  }
+
+  vertex = &mris->vertices[vno] ;
+  if (vertex->ripflag)
+    return(ERROR_BADPARM) ;
+  
+  if (vno == 142915)
+    DiagBreak() ;
+  VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz) ;
+  VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z) ;
+  VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z) ;
+  
+  if (vnum <= 0)
+    return(ERROR_BADPARM) ;
+  
+  m_U = MatrixAlloc(vnum, 3, MATRIX_REAL) ;
+  v_z = VectorAlloc(vnum, MATRIX_REAL) ;
+  
+  if (vno == Gdiag_no)
+    DiagBreak() ;
+  
+  /* fit a quadratic form to the surface at this vertex */
+  kmin = 10000.0f ; kmax = -kmin ;
+  for (n = i = 0 ; i < vnum ; i++)
+  {
+    vnb = &mris->vertices[vertices[i]] ;
+    if (vnb->ripflag)
+      continue ;
+    /* 
+       calculate the projection of this vertex onto the local tangent plane 
+    */
+    VECTOR_LOAD(v_yi, vnb->x-vertex->x, vnb->y-vertex->y,vnb->z-vertex->z);
+    ui = V3_DOT(v_yi, v_e1) ; vi = V3_DOT(v_yi, v_e2) ;
+    *MATRIX_RELT(m_U, n+1, 1) = ui*ui ;
+    *MATRIX_RELT(m_U, n+1, 2) = 2*ui*vi ;
+    *MATRIX_RELT(m_U, n+1, 3) = vi*vi ;
+    VECTOR_ELT(v_z, n+1) = V3_DOT(v_n, v_yi) ;  /* height above TpS */
+    rsq = ui*ui + vi*vi ;
+    if (!FZERO(rsq))
+    {
+      k = VECTOR_ELT(v_z, n+1) / rsq ;
+      if (k > kmax)
+        kmax = k ;
+      if (k < kmin)
+        kmin = k ;
+    }
+    n++ ;
+  }
+  
+  m_Ut = MatrixTranspose(m_U, NULL) ;          /* Ut */
+  m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL) ;   /* Ut U */
+  cond_no = MatrixConditionNumber(m_tmp2) ;
+#if 0
+  m_inverse = MatrixInverse(m_tmp2, NULL) ;    /* (Ut U)^-1 */
+#else
+  m_inverse = MatrixSVDInverse(m_tmp2, NULL) ;    /* (Ut U)^-1 */
+#endif
+  if (!m_inverse)   /* singular matrix - must be planar?? */
+  {
+    nbad++ ;
+    evalues[0] = evalues[1] = 0.0 ;
+  }
+  else
+  {
+    m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL) ;   /* Ut z */
+    MatrixMultiply(m_inverse, m_tmp1, v_c) ;     /* (Ut U)^-1 Ut z */
+    
+    /* now build Hessian matrix */
+    *MATRIX_RELT(m_Q,1,1) = 2*VECTOR_ELT(v_c, 1) ;
+    *MATRIX_RELT(m_Q,1,2) = *MATRIX_RELT(m_Q,2,1) = 2*VECTOR_ELT(v_c, 2) ;
+    *MATRIX_RELT(m_Q,2,2) = 2*VECTOR_ELT(v_c, 3) ;
+    
+    if (cond_no >= ILL_CONDITIONED)
+    {
+#if 0
+      MatrixSVDEigenValues(m_Q, evalues) ;
+      vertex->k1 = k1 = evalues[0] ;
+      vertex->k2 = k2 = evalues[1] ;
+#else
+      vertex->k1 = k1 = kmax ;
+      vertex->k2 = k2 = kmin ;
+#endif
+      vertex->K = k1*k2 ; vertex->H = (k1+k2)/2 ;
+      MatrixFree(&m_Ut) ;
+      MatrixFree(&m_tmp2) ;
+      MatrixFree(&m_U) ;
+      VectorFree(&v_z) ;
+      MatrixFree(&m_tmp1) ;
+      MatrixFree(&m_inverse) ;
+      return(ERROR_BADPARM) ;
+    }
+    
+    /* the columns of m_eigen will be the eigenvectors of m_Q */
+    if (MatrixEigenSystem(m_Q, evalues, m_eigen) == NULL)
+    {
+      nbad++ ;
+      MatrixSVDEigenValues(m_Q, evalues) ;
+      vertex->k1 = k1 = evalues[0] ;
+      vertex->k2 = k2 = evalues[1] ;
+      vertex->K = k1*k2 ; vertex->H = (k1+k2)/2 ;
+      MatrixFree(&m_Ut) ;
+      MatrixFree(&m_tmp2) ;
+      MatrixFree(&m_U) ;
+      VectorFree(&v_z) ;
+      MatrixFree(&m_tmp1) ;
+      MatrixFree(&m_inverse) ;
+      return(ERROR_BADPARM) ;
+    }
+    
+    MatrixFree(&m_tmp1) ;
+    MatrixFree(&m_inverse) ;
+  }
+  k1 = evalues[0] ; k2 = evalues[1] ;
+  vertex->k1 = k1 ; vertex->k2 = k2 ;
+  vertex->K = k1 * k2 ;
+  vertex->H = (k1 + k2) / 2 ;
+  if (vno == Gdiag_no && (Gdiag & DIAG_SHOW))
+    fprintf(stdout, "v %d: k1=%2.3f, k2=%2.3f, K=%2.3f, H=%2.3f\n",
+            vno, vertex->k1, vertex->k2, vertex->K, vertex->H) ;
+  if (vertex->K < mris->Kmin)
+    mris->Kmin = vertex->K ;
+  if (vertex->H < mris->Hmin)
+    mris->Hmin = vertex->H ;
+  if (vertex->K > mris->Kmax)
+    mris->Kmax = vertex->K ;
+  if (vertex->H > mris->Hmax)
+    mris->Hmax = vertex->H ;
+  mris->Ktotal += (double)k1 * (double)k2 * (double)vertex->area ;
+  
+  /* now update the basis vectors to be the principal directions */
+  a11 = *MATRIX_RELT(m_eigen,1,1) ; a12 = *MATRIX_RELT(m_eigen,1,2) ;
+  a21 = *MATRIX_RELT(m_eigen,2,1) ; a22 = *MATRIX_RELT(m_eigen,2,2) ;
+  vertex->e1x = V3_X(v_e1) * a11 + V3_X(v_e2) * a21 ;
+  vertex->e1y = V3_Y(v_e1) * a11 + V3_Y(v_e2) * a21 ;
+  vertex->e1z = V3_Z(v_e1) * a11 + V3_Z(v_e2) * a21 ;
+  vertex->e2x = V3_X(v_e1) * a12 + V3_X(v_e2) * a22 ;
+  vertex->e2y = V3_Y(v_e1) * a12 + V3_Y(v_e2) * a22 ;
+  vertex->e2z = V3_Z(v_e1) * a12 + V3_Z(v_e2) * a22 ;
+  
+  MatrixFree(&m_Ut) ;
+  MatrixFree(&m_tmp2) ;
+  MatrixFree(&m_U) ;
+  VectorFree(&v_z) ;
+
+  if (Gdiag & DIAG_SHOW && (nbad > 0))
+    fprintf(stdout, "%d ill-conditioned points\n", nbad) ;
+  return(NO_ERROR) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -9299,6 +9472,30 @@ MRISuseMeanCurvature(MRI_SURFACE *mris)
     if (vertex->ripflag)
       continue ;
     vertex->curv = vertex->H ;
+  }
+
+  mris->min_curv = mris->Hmin ; mris->max_curv = mris->Hmax ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISusePrincipalCurvature(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *vertex ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    vertex->curv = vertex->k1 ;
   }
 
   mris->min_curv = mris->Hmin ; mris->max_curv = mris->Hmax ;
