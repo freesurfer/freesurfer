@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.5 2002/04/18 19:31:17 greve Exp $
+  $Id: resample.c,v 1.6 2002/06/21 18:10:18 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -369,128 +369,24 @@ MRI *vol2vol_linear(MRI *SrcVol,
   return(TrgVol);  
 }
 /*-----------------------------------------------------------------------
-  label2mask_linear() - converts a label into a masking volume. The masking
-  volume is the same FOV as the source volume.  The mask has a value of 1
-  where ever there is a label point and the SrcMskVol is > 0.5; the mask is 
-  zero everywhere else.  The SrcMskVol is a mask of the same FOV as the source;
-  it is ignored if NULL.
-------------------------------------------------------------------------*/
+  label2mask_linear() - converts a label into a masking volume. The
+  masking volume is the same FOV as the source volume.  A mask voxel
+  has a value of 1 where ever the number of label points that fall
+  into that voxel exceeds a threshold and the SrcMskVol is > 0.5; the
+  mask is zero everywhere else.  The SrcMskVol is a mask of the same
+  FOV as the source; it is ignored if NULL. The threshold is computed
+  based on rszthresh and the voxel size. Each label point is assumed
+  to occupy 1 cubic mm, so the volume of a voxel filled by the label
+  points just equals the number of label points that fall into that
+  voxel. This must exceed rszthresh*voxelsize (ie, rszthresh is the
+  fraction of the voxel that must be filled by the label points inorder
+  for the voxel to be included in the mask). To make a mask with as
+  few as one hit in a voxel, just set rszthresh to a very small number.
+  ------------------------------------------------------------------------*/
 MRI *label2mask_linear(MRI *SrcVol, 
            MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc, 
            MRI *SrcMskVol, MATRIX *Msrc2lbl, LABEL *Label, 
-           int float2int, int *nlabelhits, int *nfinalhits)
-{
-  MATRIX *QFWDsrc;
-  MATRIX *Lxyz2Scrs;
-  MATRIX *Scrs, *Lxyz, *Mlbl2src;
-  MRI *FinalMskVol;
-  int   irow_src, icol_src, islc_src; /* integer row, col, slc in source */
-  float mskval;
-  int vlbl;
-  
-  /* compute the transforms */
-  QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
-  if(Msrc2lbl != NULL) Mlbl2src = MatrixInverse(Msrc2lbl,NULL);
-  else                 Mlbl2src = NULL;
-  if(Mlbl2src != NULL) Lxyz2Scrs = MatrixMultiply(QFWDsrc,Mlbl2src,NULL);    
-  else                 Lxyz2Scrs = MatrixCopy(QFWDsrc,NULL);
-
-  printf("\n");
-  printf("Lxyz2Scrs:\n");
-  MatrixPrint(stdout,Lxyz2Scrs);
-  printf("\n");
-
-  /* preallocate the row-col-slc vectors */
-  Lxyz = MatrixAlloc(4,1,MATRIX_REAL);
-  Lxyz->rptr[3+1][0+1] = 1.0;
-  Scrs = MatrixAlloc(4,1,MATRIX_REAL);
-
-  /* allocate an output volume -- same size as source*/
-  FinalMskVol = MRIallocSequence(SrcVol->width,SrcVol->height,SrcVol->depth,
-         MRI_FLOAT,1);
-  if(FinalMskVol == NULL) return(NULL);
-  
-  *nlabelhits = 0;
-  *nfinalhits = 0;
-  
-  /* Go through each point in the label */
-  for(vlbl = 0; vlbl < Label->n_points; vlbl++){
-    
-    /* load the label xyz into a vector */
-    Lxyz->rptr[0+1][0+1] = Label->lv[vlbl].x;
-    Lxyz->rptr[1+1][0+1] = Label->lv[vlbl].y;
-    Lxyz->rptr[2+1][0+1] = Label->lv[vlbl].z;
-    
-    /* compute the corresponding col, row, and slice in the source vol */
-    MatrixMultiply(Lxyz2Scrs,Lxyz,Scrs);
-    
-    /* Convert the analog col, row, and slice to integer */
-    switch(float2int){
-    case FLT2INT_ROUND:
-      icol_src = (int)rint(Scrs->rptr[0+1][0+1]);
-      irow_src = (int)rint(Scrs->rptr[1+1][0+1]);
-      islc_src = (int)rint(Scrs->rptr[2+1][0+1]);
-      break;
-    case FLT2INT_FLOOR:
-      icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
-      irow_src = (int)floor(Scrs->rptr[1+1][0+1]);
-      islc_src = (int)floor(Scrs->rptr[2+1][0+1]);
-      break;
-    case FLT2INT_TKREG:
-      icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
-      irow_src = (int) ceil(Scrs->rptr[1+1][0+1]);
-      islc_src = (int)floor(Scrs->rptr[2+1][0+1]);
-      break;
-    default:
-      fprintf(stderr,"label2mask_linear(): unrecoginized float2int code %d\n",
-        float2int);
-      MRIfree(&FinalMskVol);
-      return(NULL);
-      break;
-    }
-    
-    /* check that the point is within the source volume */
-    if(irow_src < 0 || irow_src >= SrcVol->height ||
-       icol_src < 0 || icol_src >= SrcVol->width  ||
-       islc_src < 0 || islc_src >= SrcVol->depth ) continue;
-    (*nlabelhits)++;
-
-    /* check that the point is within the input mask */
-    if(SrcMskVol != NULL){
-      mskval = MRIFseq_vox(SrcMskVol,icol_src,irow_src,islc_src,0);
-      if(mskval < 0.5) continue;
-    }
-
-    /* ok, now set the mask value to 1 */
-    /* or should we just keep count and then binarize? */
-    MRIFseq_vox(FinalMskVol,icol_src,irow_src,islc_src,0) = 1;
-
-    /* increment the number of hits */
-    (*nfinalhits)++;
-  }
-
-  fprintf(stderr,"INFO: label2mask: there were %d hits\n", *nfinalhits);
-
-  MatrixFree(&QFWDsrc);
-  MatrixFree(&Lxyz2Scrs);
-  MatrixFree(&Scrs);
-  MatrixFree(&Lxyz);
-  if(Mlbl2src != NULL) MatrixFree(&Mlbl2src);
-
-  printf("label2mask_linear: done\n");
-
-  return(FinalMskVol);  
-}
-
-/*-----------------------------------------------------------------------
-  label2mask_linear2() - does the same thing as label2mask_linear(),
-  but a voxel must be filled at least half way with label points
-  before a 1 is placed in the mask.
-  ------------------------------------------------------------------------*/
-MRI *label2mask_linear2(MRI *SrcVol, 
-           MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc, 
-           MRI *SrcMskVol, MATRIX *Msrc2lbl, LABEL *Label, 
-           int float2int, int *nlabelhits, int *nfinalhits)
+           float rszthresh, int float2int, int *nlabelhits, int *nfinalhits)
 {
   MATRIX *QFWDsrc;
   MATRIX *Lxyz2Scrs;
@@ -574,23 +470,24 @@ MRI *label2mask_linear2(MRI *SrcVol,
       if(mskval < 0.5) continue;
     }
 
-    /* keep count and then binarize */
+    /* keep count; binarization is done below */
     MRIFseq_vox(FinalMskVol,icol_src,irow_src,islc_src,0) ++;
 
     /* increment the number of hits */
     (*nfinalhits)++;
   }
 
-  printf("INFO: label2mask2: there were %d label hits\n", *nfinalhits);
+  printf("INFO: label2mask_linear: there were %d label hits\n", *nfinalhits);
 
-  nfinalmask = 0;
+  /* binarize based on the number of hits in each voxel */
   voxsize = SrcVol->xsize * SrcVol->ysize * SrcVol->zsize;
   printf("voxsize = %g\n",voxsize);
+  nfinalmask = 0;
   for(c=0; c < FinalMskVol->width; c++){
     for(r=0; r < FinalMskVol->height; r++){
       for(s=0; s < FinalMskVol->depth;  s++){
   mskval = MRIFseq_vox(FinalMskVol,c,r,s,0);
-  if(mskval < voxsize/2.0)
+  if(mskval < rszthresh*voxsize)
     MRIFseq_vox(FinalMskVol,c,r,s,0) = 0;
   else{
     MRIFseq_vox(FinalMskVol,c,r,s,0) = 1;
@@ -600,7 +497,7 @@ MRI *label2mask_linear2(MRI *SrcVol,
     }
   }
 
-  printf("INFO: label2mask2: there were %d hits in final mask\n", nfinalmask);
+  printf("INFO: label2mask_linear: there were %d hits in final mask\n", nfinalmask);
 
   MatrixFree(&QFWDsrc);
   MatrixFree(&Lxyz2Scrs);
@@ -1263,3 +1160,121 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol,
 
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
+
+
+
+#if 0
+/*-----------------------------------------------------------------------
+  label2mask_linear() - converts a label into a masking volume. The masking
+  volume is the same FOV as the source volume.  The mask has a value of 1
+  where ever there is a label point and the SrcMskVol is > 0.5; the mask is 
+  zero everywhere else.  The SrcMskVol is a mask of the same FOV as the source;
+  it is ignored if NULL.
+------------------------------------------------------------------------*/
+MRI *label2mask_linear(MRI *SrcVol, 
+           MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc, 
+           MRI *SrcMskVol, MATRIX *Msrc2lbl, LABEL *Label, 
+           int float2int, int *nlabelhits, int *nfinalhits)
+{
+  MATRIX *QFWDsrc;
+  MATRIX *Lxyz2Scrs;
+  MATRIX *Scrs, *Lxyz, *Mlbl2src;
+  MRI *FinalMskVol;
+  int   irow_src, icol_src, islc_src; /* integer row, col, slc in source */
+  float mskval;
+  int vlbl;
+  
+  /* compute the transforms */
+  QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
+  if(Msrc2lbl != NULL) Mlbl2src = MatrixInverse(Msrc2lbl,NULL);
+  else                 Mlbl2src = NULL;
+  if(Mlbl2src != NULL) Lxyz2Scrs = MatrixMultiply(QFWDsrc,Mlbl2src,NULL);    
+  else                 Lxyz2Scrs = MatrixCopy(QFWDsrc,NULL);
+
+  printf("\n");
+  printf("Lxyz2Scrs:\n");
+  MatrixPrint(stdout,Lxyz2Scrs);
+  printf("\n");
+
+  /* preallocate the row-col-slc vectors */
+  Lxyz = MatrixAlloc(4,1,MATRIX_REAL);
+  Lxyz->rptr[3+1][0+1] = 1.0;
+  Scrs = MatrixAlloc(4,1,MATRIX_REAL);
+
+  /* allocate an output volume -- same size as source*/
+  FinalMskVol = MRIallocSequence(SrcVol->width,SrcVol->height,SrcVol->depth,
+         MRI_FLOAT,1);
+  if(FinalMskVol == NULL) return(NULL);
+  
+  *nlabelhits = 0;
+  *nfinalhits = 0;
+  
+  /* Go through each point in the label */
+  for(vlbl = 0; vlbl < Label->n_points; vlbl++){
+    
+    /* load the label xyz into a vector */
+    Lxyz->rptr[0+1][0+1] = Label->lv[vlbl].x;
+    Lxyz->rptr[1+1][0+1] = Label->lv[vlbl].y;
+    Lxyz->rptr[2+1][0+1] = Label->lv[vlbl].z;
+    
+    /* compute the corresponding col, row, and slice in the source vol */
+    MatrixMultiply(Lxyz2Scrs,Lxyz,Scrs);
+    
+    /* Convert the analog col, row, and slice to integer */
+    switch(float2int){
+    case FLT2INT_ROUND:
+      icol_src = (int)rint(Scrs->rptr[0+1][0+1]);
+      irow_src = (int)rint(Scrs->rptr[1+1][0+1]);
+      islc_src = (int)rint(Scrs->rptr[2+1][0+1]);
+      break;
+    case FLT2INT_FLOOR:
+      icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
+      irow_src = (int)floor(Scrs->rptr[1+1][0+1]);
+      islc_src = (int)floor(Scrs->rptr[2+1][0+1]);
+      break;
+    case FLT2INT_TKREG:
+      icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
+      irow_src = (int) ceil(Scrs->rptr[1+1][0+1]);
+      islc_src = (int)floor(Scrs->rptr[2+1][0+1]);
+      break;
+    default:
+      fprintf(stderr,"label2mask_linear(): unrecoginized float2int code %d\n",
+        float2int);
+      MRIfree(&FinalMskVol);
+      return(NULL);
+      break;
+    }
+    
+    /* check that the point is within the source volume */
+    if(irow_src < 0 || irow_src >= SrcVol->height ||
+       icol_src < 0 || icol_src >= SrcVol->width  ||
+       islc_src < 0 || islc_src >= SrcVol->depth ) continue;
+    (*nlabelhits)++;
+
+    /* check that the point is within the input mask */
+    if(SrcMskVol != NULL){
+      mskval = MRIFseq_vox(SrcMskVol,icol_src,irow_src,islc_src,0);
+      if(mskval < 0.5) continue;
+    }
+
+    /* ok, now set the mask value to 1 */
+    /* or should we just keep count and then binarize? */
+    MRIFseq_vox(FinalMskVol,icol_src,irow_src,islc_src,0) = 1;
+
+    /* increment the number of hits */
+    (*nfinalhits)++;
+  }
+
+  fprintf(stderr,"INFO: label2mask: there were %d hits\n", *nfinalhits);
+
+  MatrixFree(&QFWDsrc);
+  MatrixFree(&Lxyz2Scrs);
+  MatrixFree(&Scrs);
+  MatrixFree(&Lxyz);
+  if(Mlbl2src != NULL) MatrixFree(&Mlbl2src);
+
+  printf("label2mask_linear: done\n");
+
+  return(FinalMskVol);  
+}
+#endif
