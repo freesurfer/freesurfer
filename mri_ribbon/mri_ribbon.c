@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 
   /* Extract ribbon */
   printf("Extracting ribbon.\n");
-  mri=MRIribbon(inner_mris,outer_mris,mri_src,NULL);
+  mri=MRISribbon(inner_mris,outer_mris,mri_src,NULL);
 
   /* Save MRI volume to directory */
   printf("Writing volume file %s.\n",output_mri_pref);
