@@ -67,16 +67,23 @@ int (*rasToVox)(MRI *mri, Real x, Real y, Real z, Real *xs, Real *ys, Real *zs);
 
 int main(int argc, char *argv[])
 {
-  int ac, nargs;
-  char **av;
+  int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.2 2004/06/02 21:01:28 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.3 2004/06/02 21:08:26 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
-  if (argc < 4)
+  // option parse
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
+  // check 
+  if (argc < 5)
   {
     cerr << "Usage: mri_parselabel [option] <labelfile> <positionscaling> <volfileforlabel> <outputvol> <greyforlabel>" << endl;
     cerr << "option: -cras        : use scanner ras value for label position" << endl;
@@ -85,14 +92,6 @@ int main(int argc, char *argv[])
     cerr << "        -fillup      : try to verify none of the label positions are missed." << endl;
     cerr << "                       takes a long time.....                               " << endl;
     return -1;
-  }
-  ac = argc ;
-  av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
-    nargs = get_option(argc, argv) ;
-    argc -= nargs ;
-    argv += nargs ;
   }
   cout << "---------------------------------------------------------------" << endl;
   cout << "Inputs: " << endl;
