@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/01/20 21:01:53 $
-// Revision       : $Revision: 1.79 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/01/26 16:20:09 $
+// Revision       : $Revision: 1.80 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.79 2004/01/20 21:01:53 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.80 2004/01/26 16:20:09 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1323,7 +1323,8 @@ int main(int argc, char *argv[])
 
     transform_type = TransformFileNameType(transform_fname);
     if(transform_type == MNI_TRANSFORM_TYPE || 
-       transform_type == TRANSFORM_ARRAY_TYPE)
+       transform_type == TRANSFORM_ARRAY_TYPE ||
+       transform_type == REGISTER_DAT)
     {
       printf("Reading transform\n");
       // lta_transform = LTAread(transform_fname);
