@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.20 2003/05/14 19:12:41 kteich Exp $
+# $Id: mkfsdist,v 1.21 2003/05/15 21:35:32 kteich Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
@@ -35,15 +35,15 @@
 
 #
 # These files are created in the target directory:
-#  INSTALL -- installation instructions (copied from source dir);
+#  INSTALL            -- installation instructions (copied from source dir);
 #  license.freesurfer -- license agreement (copied from source dir);
-#  freesurfer.tar.gz -- the freesurfer tree
-#  minc.tar.gz -- ~inverse/minc (for running functional autoreg)
-#  talairach.tar.gz -- $SUBJECTS_DIR/talairach (MNI 305)
-#  bert.001.tar.gz -- anatomical tutorial data, run 1
-#  bert.002.tar.gz -- anatomical tutorial data, run 2
-#  bert.003.tar.gz -- anatomical tutorial data, run 3
-#  average7.tar.gz -- contains average labels for checking spherical morph
+#  freesurfer.tar.gz  -- the freesurfer tree
+#  minc.tar.gz        -- ~inverse/minc (for running functional autoreg)
+#  talairach.tar.gz   -- $SUBJECTS_DIR/talairach (MNI 305)
+#  bert.raw.tar.gz
+#  bert.recon.tar.gz
+#  bert.func.tar.gz
+#  average7.tar.gz    -- contains average labels for checking spherical morph
 #
 # Symbolic Links in freesurfer:
 # 
@@ -71,7 +71,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.20 2003/05/14 19:12:41 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.21 2003/05/15 21:35:32 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -82,14 +82,19 @@ else
    echo "INFO: NOT keeping autoseg"
 endif
 
-# This is where the 3 runs of the test subject live #
+# Bert data locations.
 set BERT_ANAT_DIR = $SUBJECTS_DIR/bert
 set BERT_ORIG_DIR = $BERT_ANAT_DIR/mri/orig
+set BERT_FUNC_DIR = /space/sake/5/tutorial/JUL01/bert-functional
+
+# If they can't find the original dirs to tar up, look here for
+# pretarred versions of the bert data.
+set BERT_ANAT_TARRED = ~kteich/work/bert.recon.tar.gz
+set BERT_ORIG_TARRED = ~kteich/work/bert.raw.tar.gz
+set BERT_FUNC_TARRED = ~kteich/work/bert.func.tar.gz
 
 set AVERAGE7_DIR = $SUBJECTS_DIR/average7
 
-# Bert's functional data
-set BERT_FUNC_DIR = /space/sake/5/tutorial/JUL01/bert-functional
 
 #------------------------------------------------------#
 if($#argv < 3) then
@@ -197,23 +202,32 @@ endif
 
 # Check that test subject runs are there #
 if( ( $BERT_RAW || $BERT_RECON ) && ! -e $BERT_ANAT_DIR) then
-  echo "ERROR: cannot find $BERT_ANAT_DIR"
+  if(! -e $BERT_ORIG_TARRED ) then
+    echo "ERROR: cannot find $BERT_ANAT_DIR"
   exit 1;
+  endif
+  echo "WARNING: cannot find $BERT_ANAT_DIR, using $BERT_ORIG_TARRED"
 endif
 
 if( $BERT_RAW ) then
   foreach run (1 2 3)
     set rundir = `printf %s/%03d $BERT_ORIG_DIR $run`;
     if( ! -e $rundir ) then
-      echo "ERROR: cannot find $rundir"
-      exit 1
+      if(! -e $BERT_RAW_TARRED ) then
+        echo "ERROR: cannot find $rundir"
+        exit 1
+      endif
+      echo "WARNING: cannot find $rundir, using $BERT_RAW_TARRED"
     endif
   end
 endif
 
 if( $BERT_FUNC && ! -e $BERT_FUNC_DIR) then
-  echo "ERROR: cannot find $BERT_FUNC_DIR"
+  if(! -e $BERT_FUNC_TARRED ) then
+    echo "ERROR: cannot find $BERT_FUNC_DIR"
   exit 1;
+  endif
+  echo "WARNING: cannot find $BERT_FUNC_DIR, using $BERT_FUNC_TARRED"
 endif
 
 # Check that the average7 is there #
