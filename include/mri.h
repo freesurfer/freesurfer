@@ -472,11 +472,12 @@ int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
 MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
 HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
-MRI        *MRIhistoEqualize(MRI *mri_src, MRI *mri_dst, int low) ;
+MRI        *MRIhistoEqualize(MRI *mri_src, MRI *mri_template, MRI *mri_dst, 
+                             int low, int high) ;
 MRI        *MRIapplyHistogram(MRI *mri_src, MRI *mri_dst, HISTOGRAM *histo) ;
 MRI        *MRIcrunch(MRI *mri_src, MRI *mri_dst) ;
 HISTOGRAM  *MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, 
-                                int norm) ;
+                                int high, int norm) ;
 
 /* these are adaptive (i.e. only operate on a subregion of the whole image */
 MRI_REGION *MRIclipRegion(MRI *mri, MRI_REGION *reg_src, MRI_REGION *reg_clip);
