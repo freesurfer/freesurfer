@@ -176,7 +176,8 @@ MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_target)
   MATRIX     *m_inputs[NCLASSES] ;
   GCLASSIFY  *gc, **pgc ;
   int        x, y, z, x0, y0, z0, x1, y1, z1, xm, ym, zm, 
-             width, depth, height, scale, classno, nclasses, nobs[NCLASSES] ;
+             width, depth, height, scale, classno, nclasses, nobs[NCLASSES],
+             swidth, sheight, sdepth ;
   BUFTYPE    *psrc, *ptarget, src, target ;
   float      *pnorm ;
 
@@ -190,21 +191,25 @@ MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_target)
   scale = mric->scale ;
   nclasses = NCLASSES ;
 
+  swidth = mri_src->width ;
+  sheight = mri_src->height ;
+  sdepth = mri_src->depth ;
+
   /* train each classifier, x,y,z are in classifier space */
   for (z = 0 ; z < depth ; z++)
   {
     z0 = z*scale ;
-    z1 = z0+scale-1 ;
+    z1 = MIN(sdepth,z0+scale)-1 ;
     for (y = 0 ; y < height ; y++)
     {
       y0 = y*scale ;
-      y1 = y0+scale-1 ;
+      y1 = MIN(sheight,y0+scale)-1 ;
       pgc = mric->gcs[z][y] ;
       for (x = 0 ; x < width ; x++)
       {
         gc = *pgc++ ;
         x0 = x*scale ;
-        x1 = x0+scale-1 ;
+        x1 = MIN(swidth,x0+scale)-1 ;
         
         memset(nobs, 0, NCLASSES*sizeof(nobs[0])) ;
         for (zm = z0 ; zm <= z1 ; zm++)
@@ -216,9 +221,6 @@ MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_target)
             pnorm = &MRIFvox(mri_norm, x0, ym, zm) ;
             for (xm = x0 ; xm <= x1 ; xm++)
             {
-if (xm == 35 && ym == 49 && zm == (95-64))
-  DiagBreak() ;
-
               src = *psrc++ ;
               target = *ptarget++ ;
               
@@ -236,6 +238,11 @@ if (xm == 35 && ym == 49 && zm == (95-64))
               }
               m_inputs[classno]->rptr[nobs[classno]+1][1] = src ;
               m_inputs[classno]->rptr[nobs[classno]+1][2] = *pnorm++ ;
+#if 0
+              m_inputs[classno]->rptr[nobs[classno]+1][3] = xm ;
+              m_inputs[classno]->rptr[nobs[classno]+1][4] = ym ;
+              m_inputs[classno]->rptr[nobs[classno]+1][5] = zm ;
+#endif
               nobs[classno]++ ;
             }
           }
@@ -273,7 +280,8 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_dst, float conf)
   MATRIX     *m_inputs ;
   GCLASSIFY  *gc, **pgc ;
   int        x, y, z, x0, y0, z0, x1, y1, z1, xm, ym, zm, 
-             width, depth, height, scale, classno, nclasses ;
+             width, depth, height, scale, classno, nclasses,
+             swidth, sheight, sdepth ;
   BUFTYPE    *psrc, src, *pdst ;
   float      *pnorm, prob ;
 
@@ -290,6 +298,9 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_dst, float conf)
   width = mric->width ;
   height = mric->height ;
   depth = mric->depth ;
+  swidth = mri_src->width ;
+  sheight = mri_src->height ;
+  sdepth = mri_src->depth ;
   scale = mric->scale ;
   nclasses = NCLASSES ;
 
@@ -297,16 +308,16 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_dst, float conf)
   for (z = 0 ; z < depth ; z++)
   {
     z0 = z*scale ;
-    z1 = z0+scale-1 ;
+    z1 = MIN(sdepth,z0+scale)-1 ;
     for (y = 0 ; y < height ; y++)
     {
       y0 = y*scale ;
-      y1 = y0+scale-1 ;
+      y1 = MIN(sheight,y0+scale)-1 ;
       pgc = mric->gcs[z][y] ;
       for (x = 0 ; x < width ; x++)
       {
         x0 = x*scale ;
-        x1 = x0+scale-1 ;
+        x1 = MIN(swidth,x0+scale)-1 ;
         gc = *pgc++ ;
 
         for (zm = z0 ; zm <= z1 ; zm++)
