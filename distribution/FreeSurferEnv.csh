@@ -31,10 +31,10 @@
 #   script.
 #
 #
-# $Id: FreeSurferEnv.csh,v 1.3 2003/08/05 19:19:16 kteich Exp $
+# $Id: FreeSurferEnv.csh,v 1.4 2005/01/21 23:44:16 kteich Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.3 2003/08/05 19:19:16 kteich Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.4 2005/01/21 23:44:16 kteich Exp $'
 
 ## Get the name of the operating system
 set os = `uname -s`
@@ -123,7 +123,7 @@ end
 ## Set the Tcl/Tk and Tix library locations.
 setenv TCL_LIBRARY   $LOCAL_DIR/lib/tcl8.3
 setenv TK_LIBRARY    $LOCAL_DIR/lib/tk8.3
-setenv TIX_LIBRARY   $LOCAL_DIR/lib/$os/tix4.1
+setenv TIX_LIBRARY   $LOCAL_DIR/lib/tix4.1
 
 if( $output ) then
     echo "FREESURFER_HOME $FREESURFER_HOME"
@@ -221,10 +221,10 @@ endif
 
 set path = ( $path \
              $FSFAST_HOME/bin     \
-             $FSFAST_HOME/bin/$os \
-             $LOCAL_DIR/bin/$os         \
+             $FSFAST_HOME/bin/ \
+             $LOCAL_DIR/bin/         \
              $FREESURFER_HOME/bin/noarch      \
-             $FREESURFER_HOME/bin/$os         \
+             $FREESURFER_HOME/bin/         \
              $FSL_BIN                   \
              $AFNI_BIN                  \
             )
@@ -237,9 +237,9 @@ rehash;
 
 ## Add path to OS-specific dynamic libraries.
 if(! $?LD_LIBRARY_PATH ) then
-    setenv LD_LIBRARY_PATH  $FREESURFER_HOME/lib/$os
+    setenv LD_LIBRARY_PATH  $FREESURFER_HOME/lib/
 else
-    setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/$os"
+    setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
 endif
 
 

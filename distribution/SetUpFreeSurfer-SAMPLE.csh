@@ -6,7 +6,7 @@
 
 # Set this to the location of freesrfer/.
 if (! $?FREESRFER_HOME) then 
-    setenv FREESURFER_HOME <full path to freesurfer/>
+    setenv FREESURFER_HOME REPLACE_WITH_PREFIX
 endif    
  
 # Call configuration script.
