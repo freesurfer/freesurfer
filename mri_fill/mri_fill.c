@@ -14,7 +14,7 @@
 #include "mrinorm.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.57 2002/07/02 21:56:44 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.58 2002/09/10 19:57:50 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -181,7 +181,8 @@ main(int argc, char *argv[])
   char    input_fname[STRLEN],out_fname[STRLEN], fname[STRLEN] ;
   Real    xr, yr, zr, dist, min_dist ;
   MRI     *mri_cc, *mri_pons, *mri_lh_fill, *mri_rh_fill, *mri_lh_im, 
-          *mri_rh_im /*, *mri_blur*/, *mri_labels, *mri_tal, *mri_tmp, *mri_tmp2 ;
+          *mri_rh_im /*, *mri_blur*/, *mri_labels, *mri_tal, *mri_tmp, *mri_tmp2,
+          *mri_saved_labels ;
   int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc, xi, yi, zi ;
   MORPH_3D  *m3d ;
   struct timeb  then ;
@@ -332,6 +333,7 @@ main(int argc, char *argv[])
       MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;
       extend_to_lateral_borders(mri_mask, mri_mask, 0) ;
       MRImask(mri_tmp, mri_mask, mri_tmp, 255, 0) ;
+			mri_saved_labels = MRIcopy(mri_labels, NULL) ;
       MRImask(mri_labels, mri_mask, mri_labels, 255, 0) ;
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
@@ -421,10 +423,13 @@ main(int argc, char *argv[])
 
   MRIfree(&mri_tal) ;
 
+	/* make cuts in both image and labels image to avoid introducing a connection
+		 with one of the labels
+	*/
   MRImask(mri_im, mri_cc, mri_im, 1, fill_val) ;
-  MRImask(mri_labels, mri_cc, mri_labels, 1, 0) ;
+  MRImask(mri_saved_labels, mri_cc, mri_saved_labels, 1, 0) ;
   MRImask(mri_im, mri_pons, mri_im, 1, fill_val) ;
-  MRImask(mri_labels, mri_pons, mri_labels, 1, 0) ;
+  MRImask(mri_saved_labels, mri_pons, mri_saved_labels, 1, 0) ;
   if (fill_val)
   {
     fprintf(stderr,"writing out image with cutting planes to 'planes.mgh'.\n");
@@ -434,8 +439,8 @@ main(int argc, char *argv[])
   }
 
   for (i = 0 ; i < NLABELS ; i++)
-    MRIcopyLabel(mri_labels, mri_im, labels[i]) ;
-  MRIfree(&mri_labels) ; MRIfree(&mri_pons) ;
+    MRIcopyLabel(mri_saved_labels, mri_im, labels[i]) ;
+  MRIfree(&mri_labels) ; MRIfree(&mri_pons) ; MRIfree(&mri_saved_labels) ;
   if (!Gdiag)
     fprintf(stderr, "done.\n") ;
 
