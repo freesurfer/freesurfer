@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/26 21:43:00 $
-// Revision       : $Revision: 1.137 $
-char *VERSION = "$Revision: 1.137 $";
+// Revision Date  : $Date: 2003/04/04 17:34:54 $
+// Revision       : $Revision: 1.138 $
+char *VERSION = "$Revision: 1.138 $";
 
 #define TCL
 #define TKMEDIT 
@@ -942,6 +942,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   tBoolean      bLoadingSegmentation      = FALSE;
   char        sSegmentationPath[tkm_knPathLen]  = "";
   char        sSegmentationColorFile[tkm_knPathLen] = "";
+  tBoolean      bLoadingAuxSegmentation      = FALSE;
+  char        sAuxSegmentationPath[tkm_knPathLen]  = "";
+  char        sAuxSegmentationColorFile[tkm_knPathLen] = "";
   tBoolean      bThresh        = FALSE;
   FunV_tFunctionalValue    min          = 0;
   tBoolean      bMid          = FALSE;
@@ -990,7 +993,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   /* First look for the version option and handle that. If found,
      shorten our argc and argv count. If those are the only args we
      had, exit. */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.137 2003/03/26 21:43:00 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.138 2003/04/04 17:34:54 kteich Exp $");
   argc -= nNumProcessedVersionArgs;
   argv += nNumProcessedVersionArgs;
   if( 1 == argc ) {
@@ -1042,8 +1045,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("                                : same path as volume)\n");
     printf("-timecourse-offset <path/stem>  : load timecourse offset volume\n");
     printf("\n");
-    printf("-segmentation <volume> <colors>   : load segmentation volume and color file\n");
-    printf("-segmentation-opacity <opacity>   : opacity of the segmentation \n");
+    printf("-segmentation <volume> <colors>    : load segmentation volume and color file\n");
+    printf("-aux-segmentation <volume> <colors>: load aux segmentation volume and color file\n");
+    printf("-segmentation-opacity <opacity>    : opacity of the segmentation \n");
     printf("                                  : overlay (default is 0.3)\n");
     printf("\n");
     printf("-headpts <points> [<trans>]   : load head points file and optional\n");
@@ -1332,7 +1336,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	
       } else if( MATCH( sArg, "-segmentation" ) ||
 		 MATCH( sArg, "-seg" ) ||
-		 MATCH( sArg, "-segmentation" ) ||
+		 MATCH( sArg, "-parcellation" ) ||
 		 MATCH( sArg, "-parc" ) ) {
 	
 	/* make sure there are enough args */
@@ -1341,12 +1345,40 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	    '-' != argv[nCurrentArg+2][0] ) {
 	  
 	  /* copy path and color file */
-	  DebugNote( ("Parsing -segmentation/seg option") );
+	  DebugNote( ("Parsing -segmentation option") );
 	  xUtil_strncpy( sSegmentationPath, argv[nCurrentArg+1],
 			 sizeof(sSegmentationPath) );
 	  xUtil_strncpy( sSegmentationColorFile, argv[nCurrentArg+2],
 			 sizeof(sSegmentationColorFile) );
 	  bLoadingSegmentation = TRUE;
+	  nCurrentArg += 3;
+	  
+	} else {
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -segmentation/seg option",
+			    "Expected two arguments",
+			    "This option needs two arguments: the path of "
+			    "the COR volume and the name of the colors "
+			    "file." );
+	  nCurrentArg ++;
+	}
+	
+      } else if( MATCH( sArg, "-aux-segmentation" ) ||
+		 MATCH( sArg, "-aux-seg" ) ) {
+	
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 2 &&
+	    '-' != argv[nCurrentArg+1][0] &&
+	    '-' != argv[nCurrentArg+2][0] ) {
+	  
+	  /* copy path and color file */
+	  DebugNote( ("Parsing -aux-segmentation option") );
+	  xUtil_strncpy( sAuxSegmentationPath, argv[nCurrentArg+1],
+			 sizeof(sAuxSegmentationPath) );
+	  xUtil_strncpy( sAuxSegmentationColorFile, argv[nCurrentArg+2],
+			 sizeof(sAuxSegmentationColorFile) );
+	  bLoadingAuxSegmentation = TRUE;
 	  nCurrentArg += 3;
 	  
 	} else {
@@ -2011,6 +2043,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     if( bSegmentationAlpha ) {
       SetSegmentationAlpha( fSegmentationAlpha );
     }
+  }
+  
+  /* load aux segmentation */
+  if( bLoadingAuxSegmentation ) {
+    eResult = LoadSegmentationVolume( tkm_tSegType_Aux, sAuxSegmentationPath,
+				      sAuxSegmentationColorFile );
   }
   
   /* load the label */
