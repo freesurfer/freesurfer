@@ -183,6 +183,9 @@ typedef struct
   float        beta ;             /* rotation around y-axis */
   float        gamma ;            /* rotation around x-axis */
   float        da, db, dg ;       /* old deltas */
+  int          type ;             /* what type of surface was this initially */
+  int          max_vertices ;     /* may be bigger than nvertices */
+  int          max_faces ;        /* may be bigger than nfaces */
 } MRI_SURFACE, MRIS ;
 
 
@@ -349,6 +352,7 @@ int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteDists(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 int          MRISnormalizeCurvature(MRI_SURFACE *mris) ;
+int          MRISzeroMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISnonmaxSuppress(MRI_SURFACE *mris) ;
 int          MRISscaleCurvatures(MRI_SURFACE *mris, 
                                  float min_curv, float max_curv) ;
@@ -361,6 +365,8 @@ int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
 int          MRISaverageCurvatures(MRI_SURFACE *mris, int navgs) ;
 int          MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 
+MRI_SURFACE  *MRISoverAlloc(int max_vertices, int max_faces, 
+                            int nvertices, int nfaces) ;
 MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
 MRI_SURFACE  *MRISprojectOntoSphere(MRI_SURFACE *mris_src, 
@@ -564,14 +570,8 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 #define REVERSE_Y     1
 #define REVERSE_Z     2
 
-#if 1
-int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm, 
-                          MRI *mri_smooth,
-                          float nsigma,int where, INTEGRATION_PARMS *parms);
-#else
-int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm, 
-                          float nsigma,int where, float dt);
-#endif
+int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, 
+                          MRI *mri_smooth, INTEGRATION_PARMS *parms);
 int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, 
                                            int which) ;
@@ -614,7 +614,11 @@ int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                                    MRI *mri_wm, float nsigma) ;
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
-                                  MRI *mri_wm, float nsigma) ;
-int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs) ;
+                                  MRI *mri_wm, float nsigma,
+                                  float gray_surface);
+int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs);
+
+#define RH_LABEL           127
+#define LH_LABEL           255
 
 #endif
