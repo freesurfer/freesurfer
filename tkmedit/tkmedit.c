@@ -3405,7 +3405,7 @@ void draw_image(int imc,int ic,int jc)
             if (all3flag)
             {
               idx_buf = 4*((xdim*hay) + k + ((i/2)*hax)) ;
-              vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+              vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
               vidbuf[idx_buf + 3]=255;
               k++;
             }
@@ -3415,7 +3415,7 @@ void draw_image(int imc,int ic,int jc)
                 vidbuf[k] = v;
                 k++;
               */
-              vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+              vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v]; 
               vidbuf[k+3]=255;
               k+=4;
             }
@@ -3424,13 +3424,13 @@ void draw_image(int imc,int ic,int jc)
         {
           if (all3flag) k = 4*(xdim*hay + i/2*xdim/2+jc/2 + i/2*hax);
           else      k = 4*(i*xdim+jc);
-          vidbuf[k] = NUMVALS-1; vidbuf[k+1] = vidbuf[k+2] = 0; 
-          vidbuf[k+3]=NUMVALS-1;
+          vidbuf[k] = 255; vidbuf[k+1] = vidbuf[k+2] = 255; 
+          vidbuf[k+3]=255;
         }
         for (j=jc-curs;j<=jc+curs;j++) {
           if (all3flag) k = 4*(xdim*hay + ic/2*xdim/2+j/2 + ic/2*hax);
           else          k = 4*(ic*xdim+j);
-          vidbuf[k] = NUMVALS-1; vidbuf[k+1] = vidbuf[k+2] = 0; 
+          vidbuf[k] = 255; vidbuf[k+1] = vidbuf[k+2] = 255; 
           vidbuf[k+3]=NUMVALS-1;
         }
       }
@@ -3460,13 +3460,13 @@ void draw_image(int imc,int ic,int jc)
             if (all3flag) 
             {
               idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;
-              vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+              vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
               vidbuf[idx_buf + 3]=255;
               k++;
             }
             else
             {
-              vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+              vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v]; 
               vidbuf[k+3]=255;
               k+=4;
             }
@@ -3475,13 +3475,13 @@ void draw_image(int imc,int ic,int jc)
         for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
           if (all3flag) k = 4*(xdim*hay+hax + imnr/2*xdim/2+jc/2 + imnr/2*hax);
           else          k = 4*(imnr*xdim+jc);
-          vidbuf[k] = NUMVALS-1 ; vidbuf[k+1] = vidbuf[k+2] = 0;
+          vidbuf[k] = 255 ; vidbuf[k+1] = vidbuf[k+2] = 255;
           vidbuf[k+3]=255;
         }
         for (j=jc-curs;j<=jc+curs;j++) {
           if (all3flag) k = 4*(xdim*hay + hax + imc/2*xdim/2+j/2 + imc/2*hax);
           else          k = 4*(imc*xdim+j);
-          vidbuf[k] = NUMVALS-1 ; vidbuf[k+1] = vidbuf[k+2] = 0;
+          vidbuf[k] = 255 ; vidbuf[k+1] = vidbuf[k+2] = 255;
           vidbuf[k+3]=255;
         }
       }
@@ -3509,13 +3509,13 @@ void draw_image(int imc,int ic,int jc)
             if (all3flag) 
             {
               idx_buf = 4*(k + ((i/2)*hax));
-              vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+              vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
               vidbuf[idx_buf + 3]=255;
               k++;
             }
             else
             {
-              vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+              vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v]; 
               vidbuf[k+3]=255;
               k+=4;
             }
@@ -3523,13 +3523,13 @@ void draw_image(int imc,int ic,int jc)
         for (i=ic-curs;i<=ic+curs;i++) {
           if (all3flag) k = 4*(i/2*xdim/2+imc/2 + i/2*hax);
           else          k = 4*(i*xdim+imc);
-          vidbuf[k] = NUMVALS-1 ; vidbuf[k+1] = vidbuf[k+2] = 0;
+          vidbuf[k] = 255 ; vidbuf[k+1] = vidbuf[k+2] = 255;
           vidbuf[k+3]=255;
         }
         for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
           if (all3flag) k = 4*(ic/2*xdim/2+imnr/2 + ic/2*hax);
           else          k = 4*(ic*xdim+imnr);
-          vidbuf[k] = NUMVALS-1 ; vidbuf[k+1] = vidbuf[k+2] = 0;
+          vidbuf[k] = 255 ; vidbuf[k+1] = vidbuf[k+2] = 255;
           vidbuf[k+3]=255;
         }
       }
@@ -3613,21 +3613,25 @@ draw_second_image(int imc, int ic, int jc)
           if (all3flag) 
           {
             idx_buf = 4*((xdim*hay) + k + ((i/2)*hax)) ;
-#ifdef Linux
+     
             vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
+      /*
 #else
       vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
 #endif
       vidbuf[idx_buf + 3]=255;
+      */
             k++;
           }
           else
           {
-#ifdef Linux
+      
             vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v]; 
+      /*
 #else 
       vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
 #endif
+      */
             vidbuf[k+3]=255;
             k+=4;
           }
@@ -3652,21 +3656,25 @@ draw_second_image(int imc, int ic, int jc)
           if (all3flag)
           {
             idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;
-#ifdef Linux
+
             vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
+      /*
 #else
       vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
 #endif
+      */
             vidbuf[idx_buf + 3]=255;
             k++;
           }
           else
           {
-#ifdef Linux 
+      
             vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v];
+      /*
 #else
       vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v;
 #endif
+      */
             vidbuf[k+3]=255;
             k+=4;
           }
@@ -3691,21 +3699,25 @@ draw_second_image(int imc, int ic, int jc)
           if (all3flag) 
           {
             idx_buf = 4*(k + ((i/2)*hax));
-#ifdef Linux
+
       vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v]; 
+      /*
 #else
             vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
 #endif
+      */
             vidbuf[idx_buf + 3]=255;
             k++;
           }
           else
           {
-#ifdef Linux
+
       vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v];   
+      /*
 #else
             vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
 #endif
+      */
             vidbuf[k+3]=255;
             k+=4;
           }
