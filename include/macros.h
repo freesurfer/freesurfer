@@ -76,10 +76,6 @@
 #ifndef ISIGN
 #define ISIGN(a)   (a >= 0 ? 1 : -1)
 #endif
-
-#ifndef FSIGN
-#define FSIGN(f)   (FZERO(f) ? 0.0f : (f < 0.0f) ? -1.0f : 1.0f)
-#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -113,9 +109,6 @@
 
 #ifndef SGN
 #define SGN(x)  (((x) < 0) ? -1 : 1)
-#endif
-#ifndef ABS
-#define ABS(x)  (((x) < 0) ? x : -x)
 #endif
 
 #ifdef SunOS
