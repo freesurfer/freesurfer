@@ -24,13 +24,13 @@ static double fas[MAX_GCA_INPUTS] ;
 static double TEs[MAX_GCA_INPUTS] ;
 
 static double find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas, 
-																				MRI *mri, 
-																				int nsamples, MATRIX *m_L, MATRIX *m_origin,
-																				float min_angle, float max_angle,
-																				float min_scale, float max_scale,
-																				float min_trans, float max_trans,
-																				float angle_steps, float scale_steps, float trans_steps,
-																				int nreductions);
+					MRI *mri, 
+					int nsamples, MATRIX *m_L, MATRIX *m_origin,
+					float min_angle, float max_angle,
+					float min_scale, float max_scale,
+					float min_trans, float max_trans,
+					float angle_steps, float scale_steps, float trans_steps,
+					int nreductions);
 char         *Progname ;
 static MORPH_PARMS  parms ;
 
@@ -157,13 +157,13 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.29 2003/09/05 04:45:33 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.30 2003/09/18 17:26:23 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
-	memset(exclude_list, 0, sizeof(exclude_list))  ;
-	/*	exclude_list[0] = 1 ;*/
+  memset(exclude_list, 0, sizeof(exclude_list))  ;
+  /*	exclude_list[0] = 1 ;*/
   parms.l_intensity = 1.0f ;
   parms.niterations = 100 ;
   parms.levels = -1 ;   /* use default */
@@ -191,15 +191,21 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
+
   if (argc < 4)
     ErrorExit(ERROR_BADPARM, 
               "usage: %s <in brain> <template> <output file name>\n",
               Progname) ;
 
-	ninputs = argc-3 ;
-	printf("reading %d input volumes...\n", ninputs) ;
+  ninputs = argc-3 ;
+  printf("reading %d input volumes...\n", ninputs) ;
   gca_fname = argv[ninputs+1] ;
   out_fname = argv[ninputs+2] ;
+  if (!stricmp(out_fname+strlen(out_fname)-3, "XFM"))
+  {
+    fprintf(stderr, "INFO: XFM output of a transform no longer supported. Please use .lta\n");
+    exit(1);
+  }
   FileNameOnly(out_fname, fname) ;
   FileNameRemoveExtension(fname, fname) ;
   strcpy(parms.base_name, fname) ;
@@ -253,43 +259,43 @@ main(int argc, char *argv[])
     GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
     free(labels) ; free(intensities) ;
   }
-
-	for (i = 0 ; i < ninputs ; i++)
-	{
-	  in_fname = argv[i+1] ;
-	  printf("reading '%s'...\n", in_fname) ;
-  	fflush(stdout) ;
-	  mri_tmp = MRIread(in_fname) ;
-  	if (!mri_tmp)
-	    ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
-  	            Progname, in_fname) ;
-
-		TRs[i] = mri_tmp->tr ;
-		fas[i] = mri_tmp->flip_angle ;
-		TEs[i] = mri_tmp->te ;
-	  if (mask_fname)
-  	{
-    	MRI *mri_mask ;
-
-	    mri_mask = MRIread(mask_fname) ;
-  	  if (!mri_mask)
-    	  ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-      	          Progname, mask_fname) ;
-
-  	  MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
-	    MRIfree(&mri_mask) ;
-	  }
-		if (i == 0)
-		{
-			mri_in = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-																mri_tmp->type, ninputs) ;
-			MRIcopyHeader(mri_tmp, mri_in) ;
-		}
-		MRIcopyFrame(mri_tmp, mri_in, 0, i) ;
-		MRIfree(&mri_tmp) ;
-	}
-
+  // create a list of MRI volumes
+  for (i = 0 ; i < ninputs ; i++)
+  {
+    in_fname = argv[i+1] ;
+    printf("reading '%s'...\n", in_fname) ;
+    fflush(stdout) ;
+    mri_tmp = MRIread(in_fname) ;
+    if (!mri_tmp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
+		Progname, in_fname) ;
     
+    TRs[i] = mri_tmp->tr ;
+    fas[i] = mri_tmp->flip_angle ;
+    TEs[i] = mri_tmp->te ;
+    if (mask_fname)
+    {
+      MRI *mri_mask ;
+      
+      mri_mask = MRIread(mask_fname) ;
+      if (!mri_mask)
+	ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+      	          Progname, mask_fname) ;
+      
+      MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
+      MRIfree(&mri_mask) ;
+    }
+    if (i == 0)
+    {
+      mri_in = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+				mri_tmp->type, ninputs) ;
+      MRIcopyHeader(mri_tmp, mri_in) ;
+    }
+    MRIcopyFrame(mri_tmp, mri_in, 0, i) ;
+    MRIfree(&mri_tmp) ;
+  }
+  
+  
   if (alpha > 0)
     mri_in->flip_angle = alpha ;
   if (TR > 0)
@@ -297,49 +303,49 @@ main(int argc, char *argv[])
   if (TE > 0)
     mri_in->te = TE ;
 
-	if (map_to_flash)
-	{
-		GCA *gca_tmp ;
-
-		printf("mapping GCA into %d-dimensional FLASH space...\n", mri_in->nframes) ;
-		gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
-		GCAfree(&gca) ;
-		gca = gca_tmp ;
-		if (ninputs != gca->ninputs)
-			ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
-								Progname, gca->ninputs, ninputs) ;
-		/*		GCAhistoScaleImageIntensities(gca, mri_in) ;*/
-		if (novar)
-			GCAunifyVariance(gca) ;
-	}
-	if (gca->type == GCA_FLASH)
-	{
-		GCA *gca_tmp ;
-		if (nomap == 0)
-		{
-			gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
-			GCAfree(&gca) ;
-			gca = gca_tmp ;
-		}
-		if (gca->ninputs > 1)  /* multispectral - normalize to remove bias field */
-		{
-			GCAnormalizeMeans(gca, 100) ;
-			MRInormalizeSequence(mri_in, 100) ;
-		}
-		else
-			GCAhistoScaleImageIntensities(gca, mri_in) ;
-	}
-	if (ninputs != gca->ninputs)
-		ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
-			Progname, gca->ninputs, ninputs) ;
-
-	parms.vgca = (void *)gca ;
+  if (map_to_flash)
+  {
+    GCA *gca_tmp ;
+    
+    printf("mapping GCA into %d-dimensional FLASH space...\n", mri_in->nframes) ;
+    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
+    GCAfree(&gca) ;
+    gca = gca_tmp ;
+    if (ninputs != gca->ninputs)
+      ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
+		Progname, gca->ninputs, ninputs) ;
+    /*		GCAhistoScaleImageIntensities(gca, mri_in) ;*/
+    if (novar)
+      GCAunifyVariance(gca) ;
+  }
+  if (gca->type == GCA_FLASH)
+  {
+    GCA *gca_tmp ;
+    if (nomap == 0)
+    {
+      gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
+      GCAfree(&gca) ;
+      gca = gca_tmp ;
+    }
+    if (gca->ninputs > 1)  /* multispectral - normalize to remove bias field */
+    {
+      GCAnormalizeMeans(gca, 100) ;
+      MRInormalizeSequence(mri_in, 100) ;
+    }
+    else
+      GCAhistoScaleImageIntensities(gca, mri_in) ;
+  }
+  if (ninputs != gca->ninputs)
+    ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
+	      Progname, gca->ninputs, ninputs) ;
+  
+  parms.vgca = (void *)gca ;
   printf("freeing gibbs priors...") ;
   GCAfreeGibbs(gca) ;
   printf("done.\n") ;
 
-
-
+  
+  
   if (example_T1)
   {
     MRI *mri_T1, *mri_seg ;
@@ -382,7 +388,6 @@ main(int argc, char *argv[])
   if (gca_reduced != gca)
     GCAfree(&gca_reduced) ;
 #endif
-
   if (!FZERO(tx) || !FZERO(ty) || !FZERO(tz))
   {
     MRI *mri_tmp ;
@@ -454,6 +459,7 @@ main(int argc, char *argv[])
 
   if (!transform_loaded)   /* wasn't preloaded */
   {
+    // allocate only one transform
     parms.transform = transform = TransformAlloc(LINEAR_VOX_TO_VOX, mri_in) ;
     Glta = parms.lta = (LTA *)transform->xform ;
   }
@@ -466,86 +472,88 @@ main(int argc, char *argv[])
     mri_tmp = MRIconvolveGaussian(mri_in, NULL, mri_kernel) ;
     MRIfree(&mri_in) ; mri_in = mri_tmp ;
   }
-
+  /////////////////////////////////////////////////////////////////////////////////////
+  // now start working
   parms.lta->xforms[0].m_L = MatrixIdentity(4, NULL) ;
   i = 0 ;
-	for (spacing = max_spacing, scale = 0 ; scale < nscales ; scale++, spacing /= 2)
-	{
-		if (use_contrast)
-			parms.gcas = GCAfindContrastSamples(gca,&nsamples, spacing,min_prior);
-		else
-			parms.gcas = GCAfindStableSamples(gca, &nsamples,spacing, min_prior, exclude_list); 
-		printf("spacing=%d, using %d sample points, tol=%2.2e...\n", spacing, nsamples, parms.tol) ;
-		parms.nsamples = nsamples ;
-		if (sample_fname)
-		{
-			GCAwriteSamples(gca, mri_in, parms.gcas, nsamples, sample_fname) ;
-			printf("samples written\n") ;
-		}
-		old_log_p = GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in, transform, nsamples) ;
-		register_mri(mri_in, gca, &parms,i, spacing) ;
-		log_p = GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in, transform, nsamples) ;
-		
-		printf("pass %d, spacing %d: log(p) = %2.1f (old=%2.1f)\n", i+1, spacing, log_p, old_log_p) ;
-		GCAfreeSamples(&parms.gcas, nsamples) ;
-		parms.tol *= 10 ; i++ ;
-  } 
-
-	parms.gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
-	parms.nsamples = nsamples ;
-
-	printf("computing final MAP estimate of linear transform using %d samples...\n", nsamples) ;
+  for (spacing = max_spacing, scale = 0 ; scale < nscales ; scale++, spacing /= 2)
+  {
+    if (use_contrast)
+      parms.gcas = GCAfindContrastSamples(gca,&nsamples, spacing,min_prior);
+    else
+      parms.gcas = GCAfindStableSamples(gca, &nsamples,spacing, min_prior, exclude_list); 
+    printf("spacing=%d, using %d sample points, tol=%2.2e...\n", spacing, nsamples, parms.tol) ;
+    parms.nsamples = nsamples ;
+    if (sample_fname)
+    {
+      GCAwriteSamples(gca, mri_in, parms.gcas, nsamples, sample_fname) ;
+      printf("samples written\n") ;
+    }
+    old_log_p = GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in, transform, nsamples) ;
+    register_mri(mri_in, gca, &parms,i, spacing) ;
+    log_p = GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in, transform, nsamples) ;
     
-	parms.mri_in = mri_in ;  /* for diagnostics */
-	if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
-	{
-		MRI *mri_aligned ;
-		
-		mri_in->nframes = 1 ;
-		mri_aligned = 
-			MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
-		mri_in->nframes = gca->ninputs ;
-		sprintf(fname, "%s_before_final_alignment.mgh", parms.base_name) ;
-		MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-		MRIfree(&mri_aligned) ;
-
-		/*		Glta->xforms[0].m_L = m_L ;*/
-		sprintf(fname, "%s%3.3d_fsamples.mgh", parms.base_name, parms.start_t++) ;
-		GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples, fname, transform) ;
-	}
-	printf("transform before final EM align:\n") ;
-	MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
-	printf("\n") ;
-	MRIemAlign(mri_in, gca, &parms, parms.lta->xforms[0].m_L) ;
+    printf("pass %d, spacing %d: log(p) = %2.1f (old=%2.1f)\n", i+1, spacing, log_p, old_log_p) ;
+    GCAfreeSamples(&parms.gcas, nsamples) ;
+    parms.tol *= 10 ; i++ ;
+  } 
+  
+  parms.gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
+  parms.nsamples = nsamples ;
+  
+  printf("computing final MAP estimate of linear transform using %d samples...\n", nsamples) ;
+  
+  parms.mri_in = mri_in ;  /* for diagnostics */
+  if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
+  {
+    MRI *mri_aligned ;
+    
+    mri_in->nframes = 1 ;
+    mri_aligned = 
+      MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
+    mri_in->nframes = gca->ninputs ;
+    sprintf(fname, "%s_before_final_alignment.mgh", parms.base_name) ;
+    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+    MRIfree(&mri_aligned) ;
+    
+    /*		Glta->xforms[0].m_L = m_L ;*/
+    sprintf(fname, "%s%3.3d_fsamples.mgh", parms.base_name, parms.start_t++) ;
+    GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples, fname, transform) ;
+  }
+  printf("transform before final EM align:\n") ;
+  MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
+  printf("\n") ;
+  MRIemAlign(mri_in, gca, &parms, parms.lta->xforms[0].m_L) ;
     
 #if 0
-	printf("final EM transform:\n") ;
-	MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
-	printf("\n") ;
+  printf("final EM transform:\n") ;
+  MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
+  printf("\n") ;
 	
 #define DELTA_SCALE 0.01
-	update_optimal_transform(mri_in, gca, parms.gcas, nsamples,
-													 parms.lta->xforms[0].m_L, DELTA_SCALE, parms.write_iterations, 3,
-													 3) ;
-	compare_transform(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
-	recompute_labels(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
-	compare_transform(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
+  update_optimal_transform(mri_in, gca, parms.gcas, nsamples,
+			   parms.lta->xforms[0].m_L, DELTA_SCALE, parms.write_iterations, 3,
+			   3) ;
+  compare_transform(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
+  recompute_labels(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
+  compare_transform(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
 #endif
-	printf("final transform:\n") ;
-	MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
-	printf("\n") ;
-	
-	if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
-	{
-		MRI *mri_aligned ;
-		
-		mri_in->nframes = 1 ;
-		mri_aligned = 
-			MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
-		mri_in->nframes = gca->ninputs ;
-		sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
-		MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-		MRIfree(&mri_aligned) ;
+  printf("final transform:\n") ;
+  MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
+  printf("\n") ;
+  
+  if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
+  {
+    MRI *mri_aligned ;
+    
+    mri_in->nframes = 1 ;
+    // this is a vox-to-vox transform
+    mri_aligned = 
+      MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
+    mri_in->nframes = gca->ninputs ;
+    sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
+    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+    MRIfree(&mri_aligned) ;
   }
   
   printf("writing output transformation to %s...\n", out_fname) ;
@@ -555,25 +563,30 @@ main(int argc, char *argv[])
 #endif
   if (!stricmp(out_fname+strlen(out_fname)-3, "XFM"))
   {
-    printf("converting xform to RAS...\n") ;
-    printf("initial:\n") ;
-    MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
-    MRIvoxelXformToRasXform(mri_in, mri_in, 
-                            parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
-    printf("final:\n") ;
-    MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
-    parms.lta->type = LINEAR_RAS_TO_RAS ;
+    fprintf(stderr, "INFO: XFM output of a transform no longer supported. Please use .lta\n");
+/*     printf("converting xform to RAS...\n") ; */
+/*     printf("initial:\n") ; */
+/*     MatrixPrint(stdout, parms.lta->xforms[0].m_L) ; */
+/*     MRIvoxelXformToRasXform(mri_in, mri_in,  */
+/*                             parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ; */
+/*     printf("final:\n") ; */
+/*     MatrixPrint(stdout, parms.lta->xforms[0].m_L) ; */
+/*     parms.lta->type = LINEAR_RAS_TO_RAS ; */
+    exit(1);
   }
   else
     parms.lta->type = LINEAR_VOX_TO_VOX ;
-  LTAwrite(parms.lta, out_fname) ;
+  // add src and dst info
+  getVolGeom(mri_in, &parms.lta->xforms[0].src);
+  getVolGeom(mri_in, &parms.lta->xforms[1].dst);
+  LTAwriteEx(parms.lta, out_fname) ;
 
   if (parms.lta->type == LINEAR_RAS_TO_RAS)  /* convert back to voxel */
   {
     printf("converting xform back to voxel...\n") ;
     MRIrasXformToVoxelXform(mri_in, mri_in, 
                             parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
-    parms.lta->type = LINEAR_RAS_TO_RAS ;
+    parms.lta->type = LINEAR_VOX_TO_VOX ;
   }
   if (transformed_sample_fname)
   {
@@ -1857,12 +1870,18 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     break ;
   case 'T':
-    parms.lta = LTAread(argv[2]) ;
+    parms.lta = LTAreadEx(argv[2]) ; // used to be LTAread()
     if (!parms.lta)
       ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",
                 Progname, argv[2]) ;
     nargs = 1 ;
     printf("using previously computed transform %s\n", argv[2]) ;
+    if (parms.lta->type != LINEAR_VOX_TO_VOX)
+    {
+      fprintf(stderr, "ERROR: must use LINEAR_VOX_TO_VOX (=0) transform. The type was %d.\n",
+	      parms.lta->type);
+      exit(1);
+    }
     transform_loaded = 1 ;
     break ;
   case 'B':
