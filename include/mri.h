@@ -201,6 +201,8 @@ MRI   *MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset) ;
 MRI   *MRIclone(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcloneRoi(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIthreshold(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold) ;
+MRI   *MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold,
+                   BUFTYPE low_val, BUFTYPE hi_val) ;
 MRI   *MRIthresholdRangeInto(MRI *mri_src, MRI *mri_dst, 
                              BUFTYPE low_val, BUFTYPE hi_val) ;
 int   MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
