@@ -11,7 +11,7 @@ function err = fast_svbslice(y,stem,sliceno,bext,mristruct)
 %
 % See also fast_ldbslice, fast_mri_struct, fast_svbhdr.
 % 
-% $Id: fast_svbslice.m,v 1.8 2003/08/13 20:10:38 greve Exp $
+% $Id: fast_svbslice.m,v 1.9 2003/08/23 00:29:14 greve Exp $
 
 err = 1;
 
@@ -59,7 +59,7 @@ else
 end
 
 % Save the bhdr file %
-if(exist('mristruct') == 1 & ~isempty(mristruct)))
+if(exist('mristruct') == 1 & ~isempty(mristruct))
   szf = size(y);
   fdims = length(szf);
   if(sliceno < 0) % volume
