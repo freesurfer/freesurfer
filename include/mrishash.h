@@ -3,6 +3,8 @@
 
 #include "mrisurf.h"
 
+#if 0
+/* BF - should be defined in mrisurf.h */
 /* kt - wasn't defined? */
 #ifndef CURRENT_VERTICES
   #define CURRENT_VERTICES   1
@@ -12,6 +14,7 @@
 #endif
 #ifndef CANONICAL_VERTICES
   #define CANONICAL_VERTICES 3
+#endif
 #endif
 
 typedef struct
@@ -30,9 +33,9 @@ typedef struct
 #define VOXEL_RES      1.0
 #define TABLE_SIZE     ((int)(FIELD_OF_VIEW / VOXEL_RES))
 
-#define WORLD_TO_VOLUME(mht,x)   (((x)+FIELD_OF_VIEW/2)/mht->vres)
+#define WORLD_TO_VOLUME(mht,x)   (((x)+FIELD_OF_VIEW/2)/((mht)->vres))
 #define WORLD_TO_VOXEL(mht,x)    ((int)(WORLD_TO_VOLUME(mht,x)))
-#define VOXEL_TO_WORLD(mht,x)    (((x*mht->vres)-FIELD_OF_VIEW/2))
+#define VOXEL_TO_WORLD(mht,x)    ((((x)*(mht)->vres)-FIELD_OF_VIEW/2))
 
 typedef struct
 {
