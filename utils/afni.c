@@ -2,16 +2,18 @@
 // afni.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/11/03 15:39:55 $
-// Revision       : $Revision: 1.1 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/11/03 20:53:19 $
+// Revision       : $Revision: 1.2 $
 //
 // moved out from mriio.c
 //
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include  <errno.h>
 #include "error.h"
+
 #include "mri.h"
 #include "AFNI.h"
 #include "machine.h"
