@@ -9,10 +9,10 @@
 #include "diag.h"
 #include "proto.h"
 #include "mrisurf.h"
-#include "stats.h"
 #include "volume_io.h"
+#include "stats.h"
 
-static char vcid[] = "$Id: stat_normalize.c,v 1.3 1999/07/15 19:00:15 fischl Exp $";
+static char vcid[] = "$Id: stat_normalize.c,v 1.4 2002/03/07 20:41:45 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -157,12 +157,11 @@ get_option(int argc, char *argv[])
 {
   int  nargs = 0 ;
   char *option ;
+  extern char *stats_talxfm;
   
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
-    print_help() ;
-  else if (!stricmp(option, "-version"))
-    print_version() ;
+  if (!stricmp(option, "-help"))         print_help() ;
+  else if (!stricmp(option, "-version")) print_version() ;
   else switch (toupper(*option))
   {
   case 'E':
@@ -184,6 +183,12 @@ get_option(int argc, char *argv[])
     break ;
   case 'R':
     sscanf(argv[2], "%f", &resolution) ;
+    printf("INFO: using resolution %f\n",resolution);
+    nargs = 1 ;
+    break ;
+  case 'X':
+    stats_talxfm = argv[2];
+    printf("INFO: using %s\n",stats_talxfm);
     nargs = 1 ;
     break ;
   case 'f':
@@ -219,6 +224,9 @@ print_usage(void)
         "\t-f <field of view>         - set output field of view (def=256)\n");
   fprintf(stderr,
         "\t-S <hemisphere> <surface>  - average in spherical coordinates\n");
+  fprintf(stderr,
+        "\t-x xfmfile - use subjid/mri/transforms/xfmfile instead of\n");
+  fprintf(stderr,"                     talaiarch.xfm\n");
 }
 
 static void
