@@ -51,7 +51,7 @@ Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
           char*            isLTAFileName );
 Trns_tErr Trns_Delete     ( mriTransformRef* iopTransform );
 Trns_tErr Trns_DeepClone  ( mriTransformRef  this,
-          mriTransformRef* opTransform );
+			    mriTransformRef* opTransform );
 
 /* these are the minimum that should be set in a normal
    situation. Note that every time you copy one of these, the other
