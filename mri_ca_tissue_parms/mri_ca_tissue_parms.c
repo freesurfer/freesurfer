@@ -47,7 +47,7 @@ main(int argc, char *argv[])
   FILE         *fp ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_tissue_parms.c,v 1.4 2003/04/15 20:20:46 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_tissue_parms.c,v 1.5 2003/04/16 19:28:50 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -152,8 +152,10 @@ main(int argc, char *argv[])
     }
     if (histo_parms)
       GCAhistogramTissueStatistics(gca,mri_T1,mri_PD,mri_parc,transform,histo_parms);
+#if 0
     else
       GCAaccumulateTissueStatistics(gca, mri_T1, mri_PD, mri_parc, transform) ;
+#endif
 
     MRIfree(&mri_parc) ; MRIfree(&mri_T1) ; MRIfree(&mri_PD) ;
   }
