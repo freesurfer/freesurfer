@@ -93,13 +93,37 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
+  if (getenv("BUILD_GCA_HISTO") != NULL)
+  {
+    int *counts, i, max_i ;
+
+    fprintf(stderr, "reading gca from %s...\n", argv[1]) ;
+    gca = GCAread(argv[1]) ;
+    if (!gca)
+    ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
+              Progname, argv[1]) ;
+      
+    GCAhisto(gca, 100, &counts) ;
+
+    max_i = 0 ;
+    for (i = 1 ; i < 100 ; i++)
+      if (counts[i] > 0)
+        max_i = i ;
+
+    for (i = 1 ; i <= max_i ; i++)
+      printf("%d %d\n", i, counts[i]) ;
+    exit(1) ;
+  }
+
   if (argc < 5)
     usage_exit(1) ;
+
   in_fname = argv[1] ;
   xform_fname = argv[2];
   gca_fname = argv[3] ;
   out_fname = argv[4] ;
 
+  
   printf("reading input volume from %s...\n", in_fname) ;
   mri_in = MRIread(in_fname) ;
   if (!mri_in)
