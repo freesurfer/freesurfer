@@ -1,10 +1,10 @@
-function evind = flac_evregind(flac,nthev)
+function evregind = flac_evregind(flac,nthev)
 % evregind = flac_evregind(flac,nthev);
 %
 % Returns the columns of the regressors in the full design matrix for
 % the given EV.
 %
-% $Id: flac_evregind.m,v 1.1 2004/10/17 18:31:21 greve Exp $
+% $Id: flac_evregind.m,v 1.2 2004/10/25 04:48:58 greve Exp $
 
 evregind = [];
 if(nargin ~= 2)
