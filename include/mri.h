@@ -92,6 +92,7 @@ MRI   *MRIreadInfo(char *fpref) ;
 int   MRIfree(MRI **pmri) ;
 MRI   *MRIalloc(int width, int height, int depth, int type) ;
 MRI   *MRIallocSequence(int width, int height,int depth,int type,int nframes);
+MRI   *MRIallocHeader(int width, int height, int depth, int type) ;
 
 
 /* correlation routines */
