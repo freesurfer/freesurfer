@@ -2780,6 +2780,7 @@ MRIcorrelate(MRI *mri_ref, MRI *mri_in, int xoff, int yoff, int zoff)
 
   return(total) ;
 }
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -2845,6 +2846,7 @@ MRIremoveHoles(MRI *mri_src, MRI*mri_dst, int wsize, float pct)
   }
   return(mri_dst) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -2978,3 +2980,395 @@ MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst,
 
   return(mri_dst) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
+{
+  int      x, y, z, width, height, depth, xk, yk, zk, xi, yi, zi, 
+           slabel, dlabel, nw, ng ;
+  BUFTYPE  *psrc, *pdst ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+
+  for (nw = ng = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        slabel = *psrc++ ;
+
+        dlabel = MRI_AMBIGUOUS ;
+        if (slabel == MRI_WHITE)  /* see if it is next to an MRI_NOT_WHITE */
+        {
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            zi = mri_src->zi[z+zk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = mri_src->yi[y+yk] ;
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
+                xi = mri_src->xi[x+xk] ;
+                if (MRIvox(mri_src, xi, yi, zi) == MRI_NOT_WHITE)
+                {
+                  dlabel = MRI_WHITE ;  /* mark it as a white border voxel */
+                  break ;
+                }
+              }
+              if (dlabel == MRI_WHITE)
+                break ;
+            }
+            if (dlabel == MRI_WHITE)
+              break ;
+          }
+        }
+        else if (slabel == MRI_NOT_WHITE)/*see if it is next to an MRI_WHITE */
+        {
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            zi = mri_src->zi[z+zk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = mri_src->yi[y+yk] ;
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
+                xi = mri_src->xi[x+xk] ;
+                if (MRIvox(mri_src, xi, yi, zi) == MRI_WHITE)
+                {
+                  dlabel = MRI_NOT_WHITE ; /* mark it as a gray border voxel */
+                  break ;
+                }
+              }
+              if (dlabel == MRI_NOT_WHITE)
+                break ;
+            }
+            if (dlabel == MRI_NOT_WHITE)
+              break ;
+          }
+        }
+
+        if (dlabel == MRI_WHITE)
+          nw++ ;
+        else if (dlabel == MRI_NOT_WHITE)
+          ng++ ;
+        *pdst++ = dlabel ;
+      }
+    }
+  }
+  if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stderr, "border white:  %8d voxels (%2.2f%%)\n",
+            nw, 100.0f*(float)nw/ (float)(width*height*depth));
+    fprintf(stderr, "border gray    %8d voxels (%2.2f%%)\n",
+            ng, 100.0f*(float)ng/ (float)(width*height*depth));
+  }
+  return(mri_dst) ;
+}
+
+int
+MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x, 
+                       int y, int z, float *ppw, float *ppg)
+{
+  int      width, height, depth, xk, yk, zk, xi, yi, zi, nw, ng, whalf, val ;
+  float    wvar, wmean, gvar, gmean, wsq, gsq, pg, pw, dist, ptotal ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  whalf = (wsize-1)/2 ;
+  wvar = wmean = gvar = gmean = wsq = gsq = 0.0 ; nw = ng = 0 ;
+  for (zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri_src->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri_src->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        if (!zk && !yk && !xk)
+          continue ;   /* don't use central value as we are classifying it */
+        xi = mri_src->xi[x+xk] ;
+        val = MRIvox(mri_src, xi, yi, zi) ;
+        if (MRIvox(mri_labeled, xi, yi, zi) == MRI_NOT_WHITE)
+        {
+          ng++ ;
+          gsq += val*val ;
+          gmean += val ;
+        }
+        else if (MRIvox(mri_labeled, xi, yi, zi) == MRI_WHITE)
+        {
+          nw++ ;
+          wsq += val*val ;
+          wmean += val ;
+        }
+      }
+    }
+  }
+  if (nw)
+  {
+    wmean /= (float)nw ;
+    wvar = wsq / (float)nw - wmean*wmean ;
+  }
+  else
+    wmean = wvar = 1.0 ;
+
+  if (ng)
+  {
+    gmean /= (float)ng ;
+    gvar = gsq / (float)ng - gmean*gmean ;
+  }
+  else
+    gmean = gvar = 1.0 ;
+
+  val = MRIvox(mri_src, x, y, z) ;
+  dist = (float)val - wmean ; dist *= dist ;
+  pw = exp(-dist / (2*wvar)) ;
+
+  val = MRIvox(mri_src, x, y, z) ;
+  dist = (float)val - gmean ; dist *= dist ;
+  pg = exp(-dist / (2*wvar)) ;
+
+  ptotal = pg + pw ;
+
+  if (!FZERO(ptotal))
+    pg /= ptotal ; pw /= ptotal ;
+  if (ppg)
+    *ppg = pg ; 
+  if (ppw)
+    *ppw = pw ;
+
+  return(pg > pw ? MRI_NOT_WHITE : MRI_WHITE) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIreclassifyBorder(MRI *mri_src, MRI *mri_labeled, MRI *mri_border, 
+                    MRI *mri_dst, int wsize)
+{
+  int      x, y, z, width, height, depth,  nw, ng, nchanged, ntested ;
+  BUFTYPE  *psrc, *plabeled, *pdst, label, new_label, *pborder, border ;
+
+  if (!mri_dst)
+    mri_dst = MRIcopy(mri_labeled, NULL) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+
+  for (ntested = nchanged = nw = ng = z = 0 ; z < depth ; z++)
+  {
+    DiagHeartbeat((float)(z) / (float)(depth-1)) ;
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      plabeled = &MRIvox(mri_labeled, 0, y, z) ;
+      pborder = &MRIvox(mri_border, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        label = *plabeled++ ;
+        border = *pborder++ ;
+        if (border != MRI_AMBIGUOUS)  /* a border voxel */
+        {
+          ntested++ ;
+          new_label = 
+            MRIborderClassifyVoxel(mri_src, mri_border,wsize,x,y,z,NULL,NULL);
+          if (new_label != label)
+            nchanged++ ;
+          label = new_label ;
+        }
+        *pdst++ = label ;
+      }
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stderr, "               %8d voxels tested (%2.2f%%)\n",
+            ntested, 100.0f*(float)ntested/ (float)(width*height*depth));
+    fprintf(stderr, "               %8d voxels changed (%2.2f%%)\n",
+            nchanged, 100.0f*(float)nchanged/ (float)(width*height*depth));
+  }
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
+              float wm_low, float gray_hi, int wsize)
+{
+  int      x, y, z, width, height, depth,  nw, ng, nchanged, ntested,w,nmulti;
+  BUFTYPE  *psrc, *plabeled, *pdst, label, new_label, src ;
+  float    pw, pg, gtotal, wtotal ;
+  MRI      *mri_border ;
+
+  mri_border = MRImarkBorderVoxels(mri_labeled, NULL) ;
+  if (!mri_dst)
+    mri_dst = MRIcopy(mri_labeled, NULL) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+
+  for (nmulti = ntested = nchanged = nw = ng = z = 0 ; z < depth ; z++)
+  {
+    DiagHeartbeat((float)(z) / (float)(depth-1)) ;
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      plabeled = &MRIvox(mri_labeled, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        src = *psrc++ ;
+        label = *plabeled++ ;
+        if (src > wm_low && src < gray_hi)
+        {
+          ntested++ ;
+          new_label = 
+            MRIborderClassifyVoxel(mri_src, mri_border,wsize,x,y,z,&pw,&pg);
+
+          if (MAX(pw,pg) < .7)  /* do multi-scale search */
+          {
+            nmulti++ ;
+            gtotal = wtotal = 0.0 ;
+            for (w = 5 ; w < 21 ; w += 4)
+            {
+              MRIborderClassifyVoxel(mri_src, mri_border,w,x,y,z,&pw,&pg);
+              gtotal += pg ; wtotal += pw ;
+            }
+            if (gtotal > wtotal)
+              new_label = MRI_NOT_WHITE ;
+            else
+              new_label = MRI_WHITE ;
+          }
+          if (new_label != label)
+            nchanged++ ;
+          label = new_label ;
+        }
+        *pdst++ = label ;
+      }
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stderr, "               %8d voxels tested (%2.2f%%)\n",
+            ntested, 100.0f*(float)ntested/ (float)(width*height*depth));
+    fprintf(stderr, "               %8d voxels changed (%2.2f%%)\n",
+            nchanged, 100.0f*(float)nchanged/ (float)(width*height*depth));
+    fprintf(stderr, "               %8d multi-scale searches  (%2.2f%%)\n",
+            nmulti, 100.0f*(float)nmulti/ (float)(width*height*depth));
+  }
+
+  MRIfree(&mri_border) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIclassifyAmbiguous(MRI *mri_src, MRI *mri_labeled, MRI *mri_border, 
+                       MRI *mri_dst, int wsize)
+{
+  int      x, y, z, width, height, depth,  nw, ng, nchanged, ntested ;
+  BUFTYPE  *psrc, *plabeled, *pdst, label, new_label ;
+
+  if (!mri_dst)
+    mri_dst = MRIcopy(mri_labeled, NULL) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+
+  for (ntested = nchanged = nw = ng = z = 0 ; z < depth ; z++)
+  {
+    DiagHeartbeat((float)(z) / (float)(depth-1)) ;
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      plabeled = &MRIvox(mri_labeled, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        label = *plabeled++ ;
+        if (label == MRI_AMBIGUOUS)  /* classify it */
+        {
+          ntested++ ;
+          new_label = 
+            MRIborderClassifyVoxel(mri_src, mri_border,wsize,x,y,z,NULL,NULL);
+          if (new_label != label)
+            nchanged++ ;
+          label = new_label ;
+        }
+        *pdst++ = label ;
+      }
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stderr, "               %8d voxels tested (%2.2f%%)\n",
+            ntested, 100.0f*(float)ntested/ (float)(width*height*depth));
+    fprintf(stderr, "               %8d voxels changed (%2.2f%%)\n",
+            nchanged, 100.0f*(float)nchanged/ (float)(width*height*depth));
+  }
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIremoveBrightStuff(MRI *mri_src, MRI *mri_dst, int threshold)
+{
+  int      x, y, z, width, height, depth ;
+  BUFTYPE  *psrc, *pdst, val ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    DiagHeartbeat((float)(z) / (float)(depth-1)) ;
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        val = *psrc++ ;
+        if (val > threshold)
+          val = 0 ;
+        *pdst++ = val ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+
