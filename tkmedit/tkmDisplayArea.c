@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/29 15:34:53 $
-// Revision       : $Revision: 1.88 $
+// Revision Date  : $Date: 2003/10/02 19:21:03 $
+// Revision       : $Revision: 1.89 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -6849,8 +6849,8 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   tkm_SendTclCommand( tkm_tTclCommand_UpdateScannerCursor, sTclArguments );
   
   /* also get the volume value and send that along. */
-  Volm_GetValueAtIdx( this->mpVolume[tkm_tVolumeType_Main],
-		      iAnaIdx, &fVolumeValue );
+  Volm_GetValueAtMRIIdx_( this->mpVolume[tkm_tVolumeType_Main],
+			  &MRIIdx, &fVolumeValue );
   switch (this->mpVolume[tkm_tVolumeType_Main]->mpMriValues->type)
     {
     default:
@@ -6894,8 +6894,8 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   /* send aux volume value if it's loaded. */
   if( NULL != this->mpVolume[tkm_tVolumeType_Aux] ) 
     {
-      Volm_GetValueAtIdx( this->mpVolume[tkm_tVolumeType_Aux],
-			  iAnaIdx, &fVolumeValue );
+      Volm_GetValueAtMRIIdx_( this->mpVolume[tkm_tVolumeType_Aux],
+			      &MRIIdx, &fVolumeValue );
       switch (this->mpVolume[tkm_tVolumeType_Aux]->mpMriValues->type)
 	{
 	default:
