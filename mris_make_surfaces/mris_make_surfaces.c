@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.20 1999/09/02 17:31:41 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.21 1999/09/17 15:46:35 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -61,6 +61,9 @@ static char *suffix = "" ;
 static char *xform_fname = NULL ;
 
 static char pial_name[100] = "pial" ;
+
+static int lh_label = LH_LABEL ;
+static int rh_label = RH_LABEL ;
 
 int
 main(int argc, char *argv[])
@@ -148,9 +151,9 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
   if (!stricmp(hemi, "lh"))
-  { label_val = LH_LABEL ; replace_val = RH_LABEL ; }
+  { label_val = lh_label ; replace_val = rh_label ; }
   else
-  { label_val = RH_LABEL ; replace_val = LH_LABEL ; }
+  { label_val = rh_label ; replace_val = lh_label ; }
 
   sprintf(fname, "%s/%s/mri/T1", sdir, sname) ;
   fprintf(stderr, "reading volume %s...\n", fname) ;
@@ -446,6 +449,18 @@ get_option(int argc, char *argv[])
     nbrs = atoi(argv[2]) ;
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
     nargs = 1 ;
+  }
+  else if (!strcmp(option, "rval"))
+  {
+    rh_label = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr,"using %d as fill val for right hemisphere.\n", rh_label);
+  }
+  else if (!strcmp(option, "lval"))
+  {
+    lh_label = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr,"using %d as fill val for left hemisphere.\n", lh_label);
   }
   else if (!stricmp(option, "whiteonly"))
   {
