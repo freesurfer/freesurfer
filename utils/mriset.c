@@ -1063,6 +1063,47 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,BUFTYPE mask,BUFTYPE out_val)
   }
   return(mri_dst) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
+                 BUFTYPE mask_threshold,BUFTYPE out_val)
+{
+  int     width, height, depth, x, y, z;
+  BUFTYPE *pdst, *psrc, *pmask, val, mask_val ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pmask = &MRIvox(mri_mask, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        val = *psrc++ ;
+        mask_val = *pmask++ ;
+        if (mask_val >= mask_threshold)
+          *pdst++ = val ;
+        else
+          *pdst++ = out_val ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
 /*----------------------------------------------------------------------
             Parameters:
 
