@@ -83,7 +83,7 @@ set smoothsteps 5
 set smoothtype val
 
 # default transform values
-set kanDefaultTransform(rotate) 9
+set kanDefaultTransform(rotate) 90
 set kanDefaultTransform(translate) 10
 set kanDefaultTransform(scale) 110
 
@@ -108,6 +108,12 @@ set gaLinkedVars(currentvaluefield) 0
 set gaLinkedVars(fthresh) 0
 set gaLinkedVars(fmid) 0
 set gaLinkedVars(fslope) 0
+set gaLinkedVars(fnumconditions) 0
+set gaLinkedVars(fnumtimepoints) 0
+set gaLinkedVars(ftimepoint) 0
+set gaLinkedVars(fcondition) 0
+set gaLinkedVars(fmin) 0
+set gaLinkedVars(fmax) 0
 set gaLinkedVars(cslope) 0
 set gaLinkedVars(cmid) 0
 set gaLinkedVars(angle_cycles) 0
@@ -133,7 +139,8 @@ set gaLinkedVars(numprestimpoints) 0
 array set gaLinkedVarGroups {
     scene { light0 light1 light2 light3 offset }
     overlay { colscale truncphaseflag invphaseflag revphaseflag \
-      complexvalflag fthresh fmid fslope fmin fmax }
+      complexvalflag fthresh fmid fslope fmin fmax \
+      fnumtimepoints fnumconditions ftimepoint fcondition}
     curvature { cslope cmid }
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
@@ -205,11 +212,16 @@ proc UpdateValueLabelName { inValueIndex isName } {
 
     set label $gaScalarValueID($inValueIndex,label)
 
+    # set the label contents name.
     set gsaLabelContents($label,name) $isName
+
+    # set the swap field info name.
     set gaSwapFieldInfo($label,label) $isName
 
+    # view->information menu
     .w.fwMenuBar.mbwView.mw.cmw2 entryconfigure [expr 8 + $inValueIndex] \
       -label $isName
+    # view->overlay menu
     .w.fwMenuBar.mbwView.mw.cmw7 entryconfigure [expr 1 + $inValueIndex] \
       -label $isName
 }
@@ -235,6 +247,8 @@ set glLabel { \
   kLabel_Coords_Tal \
   kLabel_Coords_Index \
   kLabel_Coords_Normal \
+  kLabel_Coords_Sphere_XYZ \
+  kLabel_Coords_Sphere_RT \
   kLabel_Curvature \
   kLabel_Fieldsign \
   kLabel_Val \
@@ -259,13 +273,15 @@ set gsaLabelContents(kLabel_Coords_RAS,name)        "Vertex RAS"
 set gsaLabelContents(kLabel_Coords_Tal,name)        "Vertex Talairach"
 set gsaLabelContents(kLabel_Coords_Index,name)      "MRI Index"
 set gsaLabelContents(kLabel_Coords_Normal,name)     "Vertex Normal"
+set gsaLabelContents(kLabel_Coords_Sphere_XYZ,name) "Spherical X, Y, Z"
+set gsaLabelContents(kLabel_Coords_Sphere_RT,name)  "Spherical Rho, Theta"
 set gsaLabelContents(kLabel_Curvature,name)         "Curvature"
-set gsaLabelContents(kLabel_Fieldsign,name)         "Fieldsign"
-set gsaLabelContents(kLabel_Val,name)               "Scalar Val"
-set gsaLabelContents(kLabel_Val2,name)              "Scalar Val 2"
-set gsaLabelContents(kLabel_ValBak,name)            "Scalar Val 3"
-set gsaLabelContents(kLabel_Val2Bak,name)           "Scalar Val 4"
-set gsaLabelContents(kLabel_ValStat,name)              "Scalar Val 5"
+set gsaLabelContents(kLabel_Fieldsign,name)         "Field Sign"
+set gsaLabelContents(kLabel_Val,name)               "Overlay Layer 1"
+set gsaLabelContents(kLabel_Val2,name)              "Overlay Layer 2"
+set gsaLabelContents(kLabel_ValBak,name)            "Overlay Layer 3"
+set gsaLabelContents(kLabel_Val2Bak,name)           "Overlay Layer 4"
+set gsaLabelContents(kLabel_ValStat,name)           "Overlay Layer 5"
 set gsaLabelContents(kLabel_Amplitude,name)         "Amplitude"
 set gsaLabelContents(kLabel_Angle,name)             "Angle"
 set gsaLabelContents(kLabel_Degree,name)            "Degree"
@@ -436,12 +452,33 @@ proc DoConfigOverlayDisplayDlog {} {
     if { [Dialog_Create $wwDialog "Configure Overlay Display" {-borderwidth 10}] } {
 
   set fwMain             $wwDialog.fwMain
+  set fwTimePoint        $wwDialog.fwTimePoint
+  set fwCondition        $wwDialog.fwCondition
   set fwColorScale       $wwDialog.fwColorScale
   set fwFlags            $wwDialog.fwFlags
   set lfwThreshold       $wwDialog.lfwThreshold
   set fwButtons          $wwDialog.fwButtons
 
   frame $fwMain
+
+  set nMaxCondition [expr $gaLinkedVars(fnumconditions) - 1]
+  if { $nMaxCondition < 0 } {
+      set nMaxCondition 0
+  }
+  set nMaxTimePoint [expr $gaLinkedVars(fnumtimepoints) - 1]
+  if { $nMaxTimePoint < 0 } {
+      set nMaxTimePoint 0
+  }
+  
+  tkm_MakeEntryWithIncDecButtons \
+    $fwTimePoint "Time Point (0-$nMaxTimePoint)" \
+    gaLinkedVars(ftimepoint) \
+    {} 1
+  
+  tkm_MakeEntryWithIncDecButtons \
+    $fwCondition "Condition (0-$nMaxCondition)" \
+    gaLinkedVars(fcondition) \
+    {} 1
 
   # color scale
   tkm_MakeRadioButtons $fwColorScale y "Color Scale" \
@@ -485,14 +522,51 @@ proc DoConfigOverlayDisplayDlog {} {
 
   # buttons.
   tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
-    { SendLinkedVarGroup overlay; UpdateAndRedraw; } {}
+    { SendLinkedVarGroup overlay; sclv_set_current_timepoint $gaLinkedVars(ftimepoint) $gaLinkedVars(fcondition); UpdateAndRedraw; } {}
 
-  pack $fwMain $fwColorScale $fwFlags $lfwThreshold $fwButtons \
+  pack $fwMain $fwTimePoint $fwCondition $fwColorScale \
+    $fwFlags $lfwThreshold $fwButtons \
     -side top       \
     -expand yes     \
     -fill x         \
     -padx 5         \
     -pady 5
+    }
+}
+
+proc UpdateOverlayDlogInfo {} {
+
+    global gaLinkedVars
+    
+    # change the time point and condition range labels
+    catch { \
+  set nMaxCondition [expr $gaLinkedVars(fnumconditions) - 1]
+  if { $nMaxCondition < 0 } {
+      set nMaxCondition 0
+  }
+  set nMaxTimePoint [expr $gaLinkedVars(fnumtimepoints) - 1]
+  if { $nMaxTimePoint < 0 } {
+      set nMaxTimePoint 0
+  }
+  .wwConfigOverlayDisplayDlog.fwTimePoint.control config \
+    -label "Time Point (0-$nMaxTimePoint)"
+  .wwConfigOverlayDisplayDlog.fwCondition.control config \
+    -label "Condition (0-$nMaxCondition)"
+    }
+  
+    # change the range of the threshold sliders.
+    catch {
+  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw0 config \
+    -from $gaLinkedVars(fmin)
+  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw0 config \
+    -to $gaLinkedVars(fmax)
+    }
+
+    catch {
+  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw1 config \
+    -from $gaLinkedVars(fmin)
+  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw1 config \
+    -to $gaLinkedVars(fmax)
     }
 }
 
@@ -611,7 +685,7 @@ proc DoLoadOverlayDlog {} {
       menubutton.width 8
   }
   
-  tkm_MakeSmallLabel $fwFieldNote "The field to load the values into" 400
+  tkm_MakeSmallLabel $fwFieldNote "The layer to load the values into" 400
 
   set nIndex 0
   while { [info exists gaScalarValueID($nIndex,label)] } {
@@ -736,7 +810,7 @@ proc DoSaveValuesAsDlog {} {
       menubutton.width 8
   }
   
-  tkm_MakeSmallLabel $fwFieldNote "The field to save" 400
+  tkm_MakeSmallLabel $fwFieldNote "The layer to save" 400
 
   set nIndex 0
   while { [info exists gaScalarValueID($nIndex,label)] } {
@@ -759,14 +833,14 @@ proc DoSaveValuesAsDlog {} {
     }
 }
 
-proc DoSmoothDlog {} {
+proc DoSmoothOverlayDlog {} {
 
     global gaScalarValueID gsaLabelContents
     global gDialog
 
-    set wwDialog .wwSmoothDlog
+    set wwDialog .wwSmoothOverlayDlog
 
-    if { [Dialog_Create $wwDialog "Smooth" {-borderwidth 10}] } {
+    if { [Dialog_Create $wwDialog "Smooth Overlay" {-borderwidth 10}] } {
 
   set fwMain             $wwDialog.fwMain
   set fwSteps            $wwDialog.fwSteps
@@ -796,9 +870,39 @@ proc DoSmoothDlog {} {
 
   # buttons.
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-    { DoSmooth $nSteps $nFieldIndex; UpdateAndRedraw } {}
+    { DoSmoothOverlay $nSteps $nFieldIndex; UpdateAndRedraw } {}
 
   pack $fwMain $fwSteps $fwTarget $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+    }
+}
+
+proc DoSmoothCurvatureDlog {} {
+
+    global gDialog
+
+    set wwDialog .wwSmoothCurvDlog
+
+    if { [Dialog_Create $wwDialog "Smooth Curvature" {-borderwidth 10}] } {
+
+  set fwMain             $wwDialog.fwMain
+  set fwSteps            $wwDialog.fwSteps
+  set fwButtons          $wwDialog.fwButtons
+
+  frame $fwMain
+
+  # field for number of steps
+  tkm_MakeEntry $fwSteps "Number of Steps: " nSteps 6 
+
+  # buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { DoSmoothCurvature $nSteps; UpdateAndRedraw } {}
+
+  pack $fwMain $fwSteps $fwButtons \
     -side top       \
     -expand yes     \
     -fill x         \
@@ -974,7 +1078,8 @@ proc CreateMenuBar { ifwMenuBar } {
       {DoLoadOverlayDlog}} \
       \
       {command "Save Overlay As..." \
-      {DoSaveValuesAsDlog}} \
+      {DoSaveValuesAsDlog} \
+      mg_OverlayLoaded } \
       \
       {command \
       "Load Time Course..." \
@@ -1021,11 +1126,6 @@ proc CreateMenuBar { ifwMenuBar } {
       mg_LabelLoaded } \
     }   } \
       \
-      {cascade "Dipoles" { \
-      {command "Save Dipoles As..." \
-      {DoFileDlog SaveDipolesAs}} \
-    }   } \
-      \
       {cascade "Field Sign" { \
       {command "Load Field Sign..." \
       {DoFileDlog LoadFieldSign}} \
@@ -1065,7 +1165,11 @@ proc CreateMenuBar { ifwMenuBar } {
       { separator } \
       \
       { command \
-      "Clear Selected Points" \
+      "Unmark All Vertices" \
+      { clear_all_vertex_marks; UpdateAndRedraw } } \
+      \
+      { command \
+      "Clear Label" \
       { clear_vertex_marks; UpdateAndRedraw } } \
   }
     
@@ -1101,36 +1205,50 @@ proc CreateMenuBar { ifwMenuBar } {
       gbShowLabel(kLabel_Coords_Index) } \
       { check \
       "Vertex Normal" \
-    "ShowLabel kLabel_Coords_Normal $gbShowLabel(kLabel_Coords_Normal)"\
+     "ShowLabel kLabel_Coords_Normal $gbShowLabel(kLabel_Coords_Normal)"\
       gbShowLabel(kLabel_Coords_Normal) } \
+      { check \
+      "Spherical X, Y, Z" \
+           "ShowLabel kLabel_Coords_Sphere_XYZ $gbShowLabel(kLabel_Coords_Sphere_XYZ)"\
+      gbShowLabel(kLabel_Coords_Sphere_XYZ) } \
+      { check \
+      "Spherical Rho, Theta" \
+           "ShowLabel kLabel_Coords_Sphere_RT $gbShowLabel(kLabel_Coords_Sphere_RT)"\
+      gbShowLabel(kLabel_Coords_Sphere_RT) } \
       { check \
       "Curvature" \
       "ShowLabel kLabel_Curvature $gbShowLabel(kLabel_Curvature)"\
-      gbShowLabel(kLabel_Curvature) } \
+      gbShowLabel(kLabel_Curvature) \
+      mg_CurvatureLoaded } \
       { check \
-      "Fieldsign" \
+      "Field Sign" \
       "ShowLabel kLabel_Fieldsign $gbShowLabel(kLabel_Fieldsign)"\
       gbShowLabel(kLabel_Fieldsign) } \
       { check \
-      "Scalar Value" \
+      "Overlay Layer 1" \
       "ShowLabel kLabel_Val $gbShowLabel(kLabel_Val)"\
-      gbShowLabel(kLabel_Val) } \
+      gbShowLabel(kLabel_Val) \
+      mg_OverlayLoaded } \
       { check \
-      "Scalar Value 2" \
+      "Overlay Layer 2" \
       "ShowLabel kLabel_Val2 $gbShowLabel(kLabel_Val2)"\
-      gbShowLabel(kLabel_Val2) } \
+      gbShowLabel(kLabel_Val2) \
+      mg_OverlayLoaded } \
       { check \
-      "Scalar Value 3" \
+      "Overlay Layer 3" \
       "ShowLabel kLabel_ValBak $gbShowLabel(kLabel_ValBak)"\
-      gbShowLabel(kLabel_ValBak) } \
+      gbShowLabel(kLabel_ValBak) \
+      mg_OverlayLoaded } \
       { check \
-      "Scalar Value 4" \
+      "Overlay Layer 4" \
       "ShowLabel kLabel_Val2Bak $gbShowLabel(kLabel_Val2Bak)"\
-      gbShowLabel(kLabel_Val2Bak) } \
+      gbShowLabel(kLabel_Val2Bak) \
+      mg_OverlayLoaded } \
       { check \
-      "Scalar Value 5" \
+      "Overlay Layer 5" \
       "ShowLabel kLabel_ValStat $gbShowLabel(kLabel_ValStat)"\
-      gbShowLabel(kLabel_ValStat) } \
+      gbShowLabel(kLabel_ValStat) \
+      mg_OverlayLoaded } \
       { check \
       "Amplitude" \
       "ShowLabel kLabel_Amplitude $gbShowLabel(kLabel_Amplitude)"\
@@ -1163,13 +1281,16 @@ proc CreateMenuBar { ifwMenuBar } {
       {DoConfigLightingDlog} } \
       \
       { command "Overlay..." \
-      {DoConfigOverlayDisplayDlog} } \
+      {DoConfigOverlayDisplayDlog} \
+      mg_OverlayLoaded } \
       \
       { command "Time Course..." \
-      {Graph_DoConfig} } \
+      {Graph_DoConfig} \
+      mg_TimeCourseLoaded } \
       \
       { command "Curvature Display..." \
-      {DoConfigCurvatureDisplayDlog} } \
+      {DoConfigCurvatureDisplayDlog} \
+      mg_CurvatureLoaded } \
       \
       { command "Phase Encoded Data Display..." \
       {DoConfigPhaseEncodedDataDisplayDlog} } }}\
@@ -1211,36 +1332,41 @@ proc CreateMenuBar { ifwMenuBar } {
       4 \
       mg_OriginalVSetLoaded } } } \
       \
-      {cascade "Overlay Value" { \
-      { radio "Scalar Value 1" \
+      {cascade "Overlay Layer" { \
+      { radio "Overlay Layer 1" \
       { sclv_set_current_field 0; \
       SendLinkedVarGroup view; UpdateAndRedraw } \
       gaLinkedVars(currentvaluefield) \
-      0 } \
+      0 \
+      mg_OverlayLoaded } \
       \
-      { radio "Scalar Value 2" \
+      { radio "Overlay Layer 2" \
       { sclv_set_current_field 1; \
       SendLinkedVarGroup view; UpdateAndRedraw } \
       gaLinkedVars(currentvaluefield) \
-      1 } \
+      1 \
+      mg_OverlayLoaded } \
       \
-      { radio "Scalar Value 3" \
+      { radio "Overlay Layer 3" \
       { sclv_set_current_field 2; \
       SendLinkedVarGroup view; UpdateAndRedraw } \
       gaLinkedVars(currentvaluefield) \
-      2 } \
+      2 \
+      mg_OverlayLoaded } \
       \
-      { radio "Scalar Value 4" \
+      { radio "Overlay Layer 4" \
       { sclv_set_current_field 3; \
       SendLinkedVarGroup view; UpdateAndRedraw } \
       gaLinkedVars(currentvaluefield) \
-      3 } \
+      3 \
+      mg_OverlayLoaded } \
       \
-      { radio "Scalar Value 5" \
+      { radio "Overlay Layer 5" \
       { sclv_set_current_field 4; \
       SendLinkedVarGroup view; UpdateAndRedraw } \
       gaLinkedVars(currentvaluefield) \
-      4 } } } \
+      4 \
+      mg_OverlayLoaded } } } \
       \
       { separator } \
       \
@@ -1296,11 +1422,28 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { separator } \
       \
+      { command "Graph Marked Vertices Avg" \
+      { func_select_marked_vertices; func_graph_timecourse_selection} \
+      mg_TimeCourseLoaded } \
+      \
+      { command "Graph Label Avg" \
+      { func_select_label; func_graph_timecourse_selection } \
+      mg_TimeCourseLoaded } \
+      \
+      { command "Save Graph to Postscript File" \
+      { DoFileDlog SaveGraphToPS } \
+      mg_TimeCourseLoaded } \
+      \
+      { separator } \
+      \
       { command "Send to Subject..." \
       { DoSendToSubjectDlog } } \
       \
       { command "Write Decimation..." \
       { DoDecimationDlog } } \
+      \
+      {command "Write Dipoles..." \
+      {DoFileDlog SaveDipolesAs}} \
       \
       { command "Set Background Midpoint to Average" \
       { UpdateLinkedVarGroup cvavg; \
@@ -1308,13 +1451,20 @@ proc CreateMenuBar { ifwMenuBar } {
       SendLinkedVarGroup cvavg; UpdateAndRedraw } } \
       \
       { command "Fill Stats" \
-      { floodfill_marked_patch 1; UpdateAndRedraw } } \
+      { floodfill_marked_patch 1; UpdateAndRedraw } \
+      mg_OverlayLoaded } \
       \
       { command "Fill Curvature" \
-      { floodfill_marked_patch 2; UpdateAndRedraw } } \
+      { floodfill_marked_patch 2; UpdateAndRedraw } \
+      mg_CurvatureLoaded } \
       \
-      { command "Smooth..." \
-      { DoSmoothDlog } } \
+      { command "Smooth Curvature..." \
+      { DoSmoothCurvatureDlog } \
+      mg_CurvatureLoaded } \
+      \
+      { command "Smooth Overlay..." \
+      { DoSmoothOverlayDlog } \
+      mg_OverlayLoaded } \
       \
       { command "Inflate..." \
       { DoInflateDlog } } \
@@ -1323,18 +1473,8 @@ proc CreateMenuBar { ifwMenuBar } {
       { DoSwapSurfaceFieldsDlog } } \
       \
       { command "Clear Curvature" \
-      { clear_curvature } } \
-      \
-      { separator } \
-      \
-      { command "Graph Marked Vertices Avg" \
-      { func_select_marked_vertices; func_graph_timecourse_selection}} \
-      \
-      { command "Graph Label Avg" \
-      { func_select_label; func_graph_timecourse_selection } } \
-      \
-      { command "Save Graph to Postcript File" \
-      { DoFileDlog SaveGraphToPS } } \
+      { clear_curvature } \
+      mg_CurvatureLoaded } \
       \
       { separator } \
       \
@@ -2095,9 +2235,7 @@ proc Graph_SetPointsData { inCondition ilPoints } {
     global gConditionData gnNumDataSets
     # save the data. update the number of data sets. 
     set gConditionData($inCondition,points) $ilPoints
-    if {[expr $inCondition + 1] > $gnNumDataSets} {
-  set gnNumDataSets [expr $inCondition + 1]
-    }
+    set gnNumDataSets [expr $inCondition + 1]
 }
 
 proc Graph_SetErrorData { inCondition ilErrors } {
@@ -2120,6 +2258,10 @@ proc Graph_Draw {} {
     # if no data, return
     if {$gnNumDataSets == 0} { return; }
     
+    # if there is only one condition, show it (0 is hidden by default)
+    if { $gnNumDataSets == 1 } {
+  set $gGraphSetting(Red,visible) 1
+    }
 
     foreach dataSet $glGraphColors {
   
@@ -2617,9 +2759,14 @@ proc ResetTransform { } {
     set gNextTransform(scale,amt) $kanDefaultTransform(scale)
 }
 
-proc DoSmooth { inSteps inField } {
+proc DoSmoothOverlay { inSteps inField } {
 
     sclv_smooth $inSteps $inField
+}
+
+proc DoSmoothCurvature { inSteps } {
+
+    smooth_curv $inSteps
 }
 
 proc DoInflate { inSteps } {
@@ -2675,62 +2822,8 @@ proc SetKeyBindings {} {
 
     # redraw
     bind . <Alt-r> { UpdateAndRedraw }
-    # help?
-   bind . <Alt-h> { help; prompt }
-
-    # load patch
-    bind . <Alt-B> { .files.patch.bw invoke }
-    # load curvature
-    bind . <Alt-K> { setfile curv [.files.curv.e get]; read_binary_curv }
-    # save rgb
-    bind . <Alt-T> { save_rgb }
-    # save surface
-    bind . <Alt-w> { .files.outsurf.bw invoke }
-    # save dipoles and decimation
-    bind . <Alt-N> { .files.dipoles.bw invoke; .files.decimated.bw invoke }
-    # save val
-    bind . <Alt-Q> { .files.val.bw invoke }
-
-    # send point
-    bind . <Alt-f> { ".draw.main.aSEND PNT.bu" invoke }
-
-
-    # shrink by various amounts
-    bind . <Alt-d> { set shrinksteps 100; update idletasks; \
-      shrink $shrinksteps }
-    bind . <Alt-D> { set shrinksteps 1000; update idletasks; \
-      shrink $shrinksteps }
-    bind . <Alt-s> { set shrinksteps 1; update idletasks; shrink $shrinksteps }
-    bind . <Alt-S> { set shrinksteps 10; update idletasks; shrink $shrinksteps }
-    # compute curvature
-    bind . <Alt-c> { compute_curvature }
-    # clear curvature
-    bind . <Alt-C> { clear_curvature }
-    bind . <Alt-F> { set momentumflag [expr !$momentumflag] }
-    bind . <Alt-G> { CheckFileAndDoCmd $area write_binary_areas }
-    # smooth shortcuts
-    bind . <Alt-l> { set smoothsteps 5; set smoothtype curv; \
-      update idletasks; smooth $smoothsteps $smoothtype }
-    bind . <Alt-m> { set smoothsteps 5; set smoothtype sparse; \
-      update idletasks; \
-      smooth $smoothsteps $smoothtype }
-    # normalize area
-    bind . <Alt-U> { normalize_area }
-
-    bind . <Alt-Key-M> { set MRIflag [expr !$MRIflag] }  ;
-    bind . <Alt-o> { set overlayflag [expr !$overlayflag] }
-    bind . <Alt-v> { set verticesflag [expr !$verticesflag] }
     
-    
-    bind . <Alt-Key-0> { restore_zero_position }
-    bind . <Alt-Key-1> { restore_initial_position }
-    bind . <Alt-Key-2> { make_lateral_view }
-    bind . <Alt-slash>    { mriforce down }
-    bind . <Alt-asterisk> { mriforce up }
-    
-    bind . <Alt-parenleft>  { set cthk [expr $cthk-0.1]}
-    bind . <Alt-parenright> { set cthk [expr $cthk+0.1]}
-
+    # movement 
     bind . <Alt-Up>    { rotate_brain_x 18.0; UpdateAndRedraw }
     bind . <Alt-Down>  { rotate_brain_x -18.0; UpdateAndRedraw }
     bind . <Alt-Right> { rotate_brain_y -18.0; UpdateAndRedraw }
@@ -2915,7 +3008,7 @@ set tDlogSpecs(SaveRGBAs) [list \
   -prompt1 "Save RGB:" \
   -default1 [list ExpandFileName "" kFileName_RGB] \
   -note1 "The file name of the RGB file to save" \
-  -okCmd {set rgb [ExpandFileName %s1 FileName_RGB]; save_rgb} ]
+  -okCmd {set rgb [ExpandFileName %s1 kFileName_RGB]; save_rgb} ]
 
 proc CheckFileAndDoCmd { iFile iFunction } {
 
@@ -3003,3 +3096,9 @@ dputs "Successfully parsed tksurfer.tcl"
 #Graph_SetTestData 3 10
 
 MoveToolWindow 0 0
+
+
+proc pf {} {
+    global gaLinkedVars
+    puts "tp $gaLinkedVars(ftimepoint) cn $gaLinkedVars(fcondition) ntps $gaLinkedVars(fnumtimepoints) ncns $gaLinkedVars(fnumconditions)"
+}
