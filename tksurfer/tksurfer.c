@@ -18151,7 +18151,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.61 2004/01/05 20:36:23 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.62 2004/03/05 20:23:53 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22598,9 +22598,6 @@ int labl_export_annotation (char *fname)
   int color;
   LABL_LABEL* label;
   int label_vno;
-  int r = 0;
-  int g = 0;
-  int b = 0;
   
   if (NULL == fname)
     return (ERROR_BADPARM);
@@ -22620,12 +22617,6 @@ int labl_export_annotation (char *fname)
 	  
 	  /* make the composed color int for this label. */
 	  MRISRGBToAnnot (label->r, label->g, label->b, color);
-#if 0
-	  r = label->r & 0xff;
-	  g = (label->g & 0xff) << 8;
-	  b = (label->b & 0xff) << 16;
-	  color = r | g | b;
-#endif     
 	  
 	  /* for every vertex in the label... */
 	  for (label_vno = 0; label_vno < label->label->n_points; label_vno++)
@@ -22638,7 +22629,7 @@ int labl_export_annotation (char *fname)
 	    {
 	      printf( "saved label %d with %d vertices, color %d %d %d "
 		      "anot value %d\n", label_index, label->label->n_points,
-		      r, g, b,color );
+		      label->r, label->g, label->b, color );
 	    }
 	}
     }
@@ -22990,7 +22981,7 @@ int labl_set_info (int index, char* name, int structure, int visible,
     {
       if (mris->ct)
 	{
-	  ctab_err = CTABindexToColor (mris->ct, structure, &r, &b, &g);
+	  ctab_err = CTABindexToColor (mris->ct, structure, &r, &g, &b);
 	  if (NO_ERROR == ctab_err)
 	    labl_set_color (index, r, g, b);
 	}
