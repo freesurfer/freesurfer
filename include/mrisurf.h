@@ -347,6 +347,7 @@ int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z) ;
 double       MRIScomputeCorrelationError(MRI_SURFACE *mris, 
                                          MRI_SP *mrisp_template, int fno) ;
 MRI_SURFACE  *MRISread(char *fname) ;
+MRI_SURFACE  *MRISreadOverAlloc(char *fname, double pct_over) ;
 MRI_SURFACE  *MRISfastRead(char *fname) ;
 int          MRISreadOriginalProperties(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname) ;
@@ -677,6 +678,7 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
                                  MRI_SURFACE *mris_corrected) ;
 int MRISripDefectiveFaces(MRI_SURFACE *mris) ;
 int MRISunrip(MRI_SURFACE *mris) ;
+int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
 
 #if 1
 #include "mrishash.h"
