@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/12/01 19:22:27 $
-// Revision       : $Revision: 1.93 $
+// Revision Date  : $Date: 2003/12/08 07:59:32 $
+// Revision       : $Revision: 1.94 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -6883,9 +6883,15 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 
   
   /* also convert to RAS and send those coords along. for these we
-     actually use the surface RAS coords. */
-  Volm_ConvertMRIIdxToSurfaceRAS( this->mpVolume[tkm_tVolumeType_Main],
-				  &MRIIdx, &voxel );
+     actually use the surface RAS coords unless it's a new-style
+     surface. */
+  if( tkm_UseRealRAS() ) {
+    Volm_ConvertMRIIdxToRAS( this->mpVolume[tkm_tVolumeType_Main],
+			     &MRIIdx, &voxel );
+  } else {
+    Volm_ConvertMRIIdxToSurfaceRAS( this->mpVolume[tkm_tVolumeType_Main],
+				    &MRIIdx, &voxel );
+  }
   sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
 	   DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateRASCursor, sTclArguments );
