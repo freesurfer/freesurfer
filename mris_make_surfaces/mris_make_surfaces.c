@@ -16,7 +16,7 @@
 #include "mrinorm.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.48 2003/12/09 17:08:49 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.49 2004/05/25 18:19:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -39,6 +39,8 @@ int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm) ;
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
 
 static char T1_name[STRLEN] = "brain" ;
+
+static char *white_fname = NULL ;
 
 static char *orig_white = NULL ;
 static char *orig_pial = NULL ;
@@ -134,7 +136,7 @@ main(int argc, char *argv[])
   int           ac, nargs, i, label_val, replace_val, msec, n_averages, j ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL, 
-                *mri_filled, *mri_T1, *mri_labeled ;
+                *mri_filled, *mri_T1, *mri_labeled, *mri_T1_white = NULL, *mri_T1_pial ;
   float         max_len ;
   float         white_mean, white_std, gray_mean, gray_std ;
   double        l_intensity, current_sigma ;
@@ -142,7 +144,7 @@ main(int argc, char *argv[])
   M3D           *m3d ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.48 2003/12/09 17:08:49 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.49 2004/05/25 18:19:24 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -223,12 +225,34 @@ main(int argc, char *argv[])
 
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, T1_name) ;
   fprintf(stderr, "reading volume %s...\n", fname) ;
-  mri_T1 = MRIread(fname) ;
+  mri_T1 = mri_T1_pial = MRIread(fname) ;
   if (!mri_T1)
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
   /////////////////////////////////////////
   setMRIforSurface(mri_T1);
+
+	if (white_fname != NULL)
+	{
+		sprintf(fname, "%s/%s/mri/%s", sdir, sname, white_fname) ;
+		fprintf(stderr, "reading volume %s...\n", fname) ;
+		mri_T1_white = MRIread(fname) ;
+		if (!mri_T1_white)
+			ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
+								Progname, fname) ;
+		/////////////////////////////////////////
+		if (mri_T1_white->type != MRI_UCHAR)
+		{
+			MRI *mri_tmp ;
+
+			MRIeraseNegative(mri_T1_white, mri_T1_white) ;
+			mri_tmp = MRIchangeType(mri_T1_white, MRI_UCHAR, 0, 255, 1) ;
+			MRIfree(&mri_T1_white) ;
+			mri_T1_white = mri_tmp ;
+		}
+
+		setMRIforSurface(mri_T1_white);
+	}
   if (apply_median_filter)
   {
     MRI *mri_tmp ;
@@ -237,6 +261,13 @@ main(int argc, char *argv[])
     mri_tmp = MRImedian(mri_T1, NULL, 3) ;
     MRIfree(&mri_T1) ;
     mri_T1 = mri_tmp ;
+
+		if (mri_T1_white)
+		{
+			mri_tmp = MRImedian(mri_T1_white, NULL, 3) ;
+			MRIfree(&mri_T1_white) ;
+			mri_T1_white = mri_tmp ;
+		}
   }
 
   if (xform_fname)
@@ -278,8 +309,12 @@ main(int argc, char *argv[])
   {
     MRIdilateLabel(mri_filled, mri_filled, RH_LABEL2, 1) ;
     MRImask(mri_T1, mri_filled, mri_T1, RH_LABEL2,0) ;
+		if (mri_T1_white)
+			MRImask(mri_T1_white, mri_filled, mri_T1_white, RH_LABEL2,0) ;
   }
 
+	if (mri_T1_white)
+		MRImask(mri_T1_white, mri_filled, mri_T1_white, replace_val,0) ;
   MRImask(mri_T1, mri_filled, mri_T1, replace_val,0) ;
   MRIfree(&mri_filled) ;
 
@@ -294,6 +329,8 @@ main(int argc, char *argv[])
 
   MRIsmoothBrightWM(mri_T1, mri_wm) ;
   mri_labeled = MRIfindBrightNonWM(mri_T1, mri_wm) ;
+	if (mri_T1_white)
+		MRIsmoothBrightWM(mri_T1_white, mri_wm) ;
   if (overlay)
   {
     fprintf(stderr, "overlaying editing into T1 volume...\n") ;
@@ -388,9 +425,15 @@ main(int argc, char *argv[])
 
     MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
     MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_BORDER_LABEL, 0) ;
+		if (mri_T1_white)
+		{
+			MRImask(mri_T1_white, mri_labeled, mri_T1_white, BRIGHT_LABEL, 0) ;
+			MRImask(mri_T1_white, mri_labeled, mri_T1_white, BRIGHT_BORDER_LABEL, 0) ;
+		}
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_T1, "white_masked.mgh") ;
   }
+	mri_T1 = mri_T1_white ;
   current_sigma = white_sigma ;
   for (n_averages = max_white_averages, i = 0 ; 
        n_averages >= min_white_averages ; 
@@ -557,6 +600,7 @@ main(int argc, char *argv[])
       ErrorExit(Gerror, "reading orig pial positions failed") ;
   }
   /*    parms.l_convex = 1000 ;*/
+	mri_T1 = mri_T1_pial ;
   for (j = 0 ; j <= 0 ; parms.l_intensity *= 2, j++)  /* only once for now */
   {
     current_sigma = pial_sigma ;
@@ -747,10 +791,16 @@ get_option(int argc, char *argv[])
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
     nargs = 1 ;
   }
-  else if (!stricmp(option, "T1"))
+  else if (!stricmp(option, "T1") || !stricmp(option, "gvol"))
   {
     strcpy(T1_name, argv[2]) ;
     printf("using %s as T1 volume...\n", T1_name) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "wvol"))
+  {
+		white_fname = argv[2] ;
+    printf("using %s as volume for white matter deformation...\n", white_fname) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "SDIR"))
