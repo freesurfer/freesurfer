@@ -456,19 +456,25 @@ inline int VoxelZToScreenZ ( int z );
 inline int VoxelZToLocalZoomZ ( int z );
 
                                    /* goes from a screen voxel to a 2d point
-              on the screen. puts the proper coords
-              in the h/v coords and scales if in all3
-              mode. */
+                                      on the screen. puts the proper coords
+                                      in the h/v coords and scales if in all3
+                                      mode. */
 void ScreenToScreenXY ( int i, int j, int k,
       int plane, int *h, int *v );
 
+#include "mritransform.h"
+
                                        /* converts ras coords to
-                                          voxel coords and back */
+                                          voxel coords and back. these 
+                                          call functions in mritransform and
+                                          then check the bounds of the 
+                                          results.*/
 void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
                   int *xi, int *yi, int *zi );   // outgoing voxel coords
 
 void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
                   Real *x, Real *y, Real *z );   // outgoing RAS coords
+
 
                                        /* convert ras coords to the two
                                           two screen coords that are relevant
@@ -2380,6 +2386,10 @@ exit(1);
     } else {
       read_images(mfname);
     }
+
+    // now we can set up the bounds on our transforms.
+    trans_SetBounds ( xx0, xx1, yy0, yy1, zz0, zz1 );
+    trans_SetResolution ( ps, ps, st );
 
     // if we functional data, load it.
     if ( isLoadingFunctionalData ) {
@@ -8964,14 +8974,8 @@ void ProcessCtrlPtFile ( char * inDir ) {
   if ( TRUE == gParsedCtrlPtFile )
     return;
 
-  // check to see if we have a transform. if not, we can't process anything.
-  if ( !transform_loaded ) {
-    DebugPrint "ProcessCtrlPtFile: No transform loaded.\n" EndDebugPrint;
-    return;
-  }
-
   // if we're not in control point mode, return.
-  if ( 0 == control_points )
+  if ( !IsInMode ( kMode_CtrlPt ) )
     return;
 
   // create the filename
@@ -11182,18 +11186,8 @@ char IsTwoDScreenPtInWindow ( int j, int i ) {      // in screen coords
 void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
                   int *xi, int *yi, int *zi ) {  // outgoing voxel coords
 
-  // we need to stay in the same type so as not to typecast the 
-  // conversion to int until right at the very end.
-  float fydim, fx, fy, fz;
-  fydim = (float) ydim;
-  fx = (float) x;
-  fy = (float) y; 
-  fz = (float) z;
-
-  *xi = (int) ( (xx1 - fx) / ps );
-  *yi = (int) ( ( (zz1 - fz) / ps ) - (float)255.0 + ( (fydim - (float)1.0) / fsf ) )
-;
-  *zi = (int) ( (fy - yy0) / st );
+  // call the function in mritransform.
+  trans_RASToVoxel ( x, y, z, xi, yi, zi );
 
   // check our bounds...
   if ( ! IsVoxelInBounds ( *xi, *yi, *zi ) ) {
@@ -11206,9 +11200,6 @@ void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
 void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
                   Real *x, Real *y, Real *z ) {  // outgoing RAS coords
 
-  Real rxi, ryi, rzi, rydim;
-
-  // check our bounds...
   if ( ! IsVoxelInBounds ( xi, yi, zi ) ) {
 
     // try not to crash.
@@ -11216,15 +11207,8 @@ void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
     return;
   }
 
-  // need to go to real first for typecasting.
-  rxi = (Real) xi;
-  ryi = (Real) yi;
-  rzi = (Real) zi;
-  rydim = (Real) ydim;
-  
-  *x = (Real) ( xx1 - ( ps*rxi ) );
-  *y = (Real) ( yy0 + ( st*rzi ) );
-  *z = (Real) ( zz1 - ( ps * ( 255.0 - ( (rydim-1.0) / fsf ) + ryi ) ) );
+  // call the function in mritransform.
+  trans_VoxelToRAS ( xi, yi, zi, x, y, z );
 }
 
                                        /* convert ras coords to the two
