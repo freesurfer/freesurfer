@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.12 2003/03/21 22:29:48 kteich Exp $
+# $Id: mkfsdist,v 1.13 2003/03/24 21:12:38 kteich Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -54,7 +54,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.12 2003/03/21 22:29:48 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.13 2003/03/24 21:12:38 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -311,7 +311,7 @@ endif
 echo $tarcmd | tee -a $LF
 $tarcmd  >> $LF
 
-# rm -f $EXCLUDE_FILE
+rm -f $EXCLUDE_FILE
 
 date | tee -a $LF
 
