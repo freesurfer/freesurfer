@@ -331,8 +331,9 @@ char *Progname ;
 
 /*--------------------- twitzels hacks ------------------------------*/
 
-#ifndef NOLICENSE
+#ifdef USE_LICENSE
 
+extern char *crypt(char *, char *) ;
 /* Licensing */
 void checkLicense(char* dirname)
 {
@@ -5409,7 +5410,7 @@ char **argv;
     printf("    [dir containing mri distribution]\n");
     exit(1);
   }
-#ifndef NOLICENSE
+#ifdef USE_LICENSE
   checkLicense(envptr);
 #endif
   sprintf(tkmedit_tcl,"%s/lib/tcl/%s",envptr,"tkmedit.tcl");
