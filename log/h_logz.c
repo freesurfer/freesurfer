@@ -352,7 +352,7 @@ LogMapInverseSample(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
            Description:
 ----------------------------------------------------------------------*/
 int
-LogMapForward(LOGMAP_INFO *lmi, IMAGE *tvImage, IMAGE *logImage)
+LogMapForward(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
 {
   int   j;
   int   area, ringno, spokeno;
@@ -360,33 +360,29 @@ LogMapForward(LOGMAP_INFO *lmi, IMAGE *tvImage, IMAGE *logImage)
   int   *spoke, *ring, sring, sspoke ;
   char  *runl ;
   UCHAR *tvEndRowPtr, *tvPtr ;
-  IMAGE *Itmp, *Itmp2, *Iltmp, *Ilsave = NULL ;
+  IMAGE *Iin, *Iout, *Itmp ;
   float min_val, max_val ;
 
-  if (tvImage->pixel_format != PFBYTE)
+  /*
+    if the source format is not in bytes, we must copy it to a byte
+    image and scale it to the proper range (0->255).
+    */
+  if (Isrc->pixel_format != PFBYTE)
   {
-    ImageValRange(tvImage, &min_val, &max_val) ;
-    Itmp2 = ImageAlloc(tvImage->rows, tvImage->cols, PFFLOAT, 1) ;
-    Itmp = ImageAlloc(tvImage->rows, tvImage->cols, PFBYTE, 1) ;
-    ImageScale(tvImage, Itmp2, 0.0f, 255.0f) ;
-    ImageCopy(Itmp2, Itmp) ;
-    ImageFree(&Itmp2) ;
-    tvImage = Itmp ;
+    ImageValRange(Isrc, &min_val, &max_val) ;
+    Itmp = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
+    Iin = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, 1) ;
+    ImageScale(Isrc, Itmp, 0.0f, 255.0f) ;
+    ImageCopy(Itmp, Iin) ;
+    ImageFree(&Itmp) ;
   }
   else
-    Itmp = NULL ;
+    Iin = Isrc ;
 
-  if (logImage->pixel_format != PFFLOAT)
-  {
-    Iltmp = ImageAlloc(lmi->nspokes, lmi->nrings, PFFLOAT, 1) ;
-    Ilsave = logImage ;
-    logImage = Iltmp ;
-    fprintf(stderr, "LogMapForward: unsupported log pixel format %d\n",
-            logImage->pixel_format) ;
-    exit(2) ;
-  }
+  if (Idst->pixel_format != PFFLOAT)
+    Iout = ImageAlloc(lmi->nspokes, lmi->nrings, PFFLOAT, 1) ;
   else
-    Iltmp = NULL ;
+    Iout = Idst ;
 
   spoke = &RUN_NO_TO_SPOKE(lmi, 0) ;
   ring  = &RUN_NO_TO_RING(lmi, 0) ;
@@ -399,16 +395,16 @@ LogMapForward(LOGMAP_INFO *lmi, IMAGE *tvImage, IMAGE *logImage)
     for (ringno = 0; ringno < nrings; ringno++) 
     {
       if (LOG_PIX_AREA(lmi, ringno, spokeno) > 0)
-        *IMAGEFpix(logImage, ringno, spokeno) = 0.0f ;
+        *IMAGEFpix(Iout, ringno, spokeno) = 0.0f ;
       else
-        *IMAGEFpix(logImage, ringno, spokeno) = 0.0f * UNDEFINED ;
+        *IMAGEFpix(Iout, ringno, spokeno) = 0.0f * UNDEFINED ;
     }
 
   /* for each row, use run length tables to build logmap image */
-  for (j = 0; j < tvImage->rows; j++) 
+  for (j = 0; j < Isrc->rows; j++) 
   {
-    tvPtr = IMAGEpix(tvImage, 0, j) ;
-    tvEndRowPtr = tvPtr + tvImage->cols ;
+    tvPtr = IMAGEpix(Iin, 0, j) ;
+    tvEndRowPtr = tvPtr + Isrc->cols ;
 
     do 
     {
@@ -419,7 +415,7 @@ LogMapForward(LOGMAP_INFO *lmi, IMAGE *tvImage, IMAGE *logImage)
       if (sring < 0 || sspoke < 0 || sring >= nrings || sspoke >= nspokes)
         tvPtr += *runl++ ;
       else               /* sum next *runl tv pixels and add to logmap pixel */
-        *IMAGEFpix(logImage, sring, sspoke) += 
+        *IMAGEFpix(Iout, sring, sspoke) += 
           (float)(*forward_func_array[(int)(*runl++)])(&tvPtr) ;
 
       ring++ ;
@@ -434,24 +430,18 @@ LogMapForward(LOGMAP_INFO *lmi, IMAGE *tvImage, IMAGE *logImage)
       if ((area = LOG_PIX_AREA(lmi, ringno, spokeno)) > 0) 
       {
         /* normailze by area */
-        *IMAGEFpix(logImage, ringno, spokeno) /= (float)area;  
+        *IMAGEFpix(Iout, ringno, spokeno) /= (float)area;  
       }
     }
 
-  LogMapPatchHoles(lmi, tvImage, logImage) ;
+  LogMapPatchHoles(lmi, Iin, Iout) ;
 
-  if (Itmp)            /* input image was not in proper format */
+  if (Iin != Isrc)            /* output image was not in proper format */
+    ImageFree(&Iin) ;
+  if (Iout != Idst)   
   {
-    ImageFree(&Itmp) ;
-
-    /* scale back to same range as the input image */
-    ImageScale(logImage, logImage, min_val, max_val) ; 
-  }
-
-  if (Iltmp)   /* output image was not in proper format */
-  {
-    ImageCopy(Iltmp, Ilsave) ;
-    ImageFree(&Iltmp) ;
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
   }
   return(0) ;
 }
