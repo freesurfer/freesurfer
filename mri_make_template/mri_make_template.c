@@ -26,11 +26,17 @@ static int use_filled = 1 ;
 static int make_edit_volume = 0 ;
 static char *transform_fname = NULL ;
 
-#define T1_VOLUME     0
-#define WM_VOLUME     1
-#define FILLED_VOLUME 2
-#define EDIT_VOLUME   3
-#define MAX_VOLUMES   4
+/* reading the filled volumes twice to do left and right hemisphere is a 
+   hack, but I don't have enough memory to hold two means and stds at the
+   same time.
+   */
+#define T1_VOLUME        0
+#define WM_VOLUME        1
+#define LH_FILLED_VOLUME 2
+#define RH_FILLED_VOLUME 3
+#define FILLED_VOLUME    RH_FILLED_VOLUME
+#define MAX_VOLUMES      4
+#define EDIT_VOLUME      5
 
 static int first_transform = 0 ;
 
@@ -71,7 +77,8 @@ main(int argc, char *argv[])
         (which >= EDIT_VOLUME  && !make_edit_volume))
       break ;
     volume_name = which == T1_VOLUME ? "T1" : 
-      which == FILLED_VOLUME ? "filled" : "wm" ;
+      (which == LH_FILLED_VOLUME || which == RH_FILLED_VOLUME) ? 
+      "filled" : "wm" ;
 
     /* for each subject specified on cmd line */
     no_transform = first_transform ;
@@ -86,16 +93,22 @@ main(int argc, char *argv[])
       mri = MRIread(fname) ;
       if (!mri)
         ErrorExit(ERROR_NOFILE,"%s: could not open volume %s",Progname,fname);
-      if (which == WM_VOLUME)  /* labeled white matter volume - binarize it */
-        MRIbinarize(mri, mri, 5, 0, 10) ;
-      else if (which == FILLED_VOLUME)
+      switch (which)
       {
-        MRIreplaceValues(mri, mri, 127, 1) ;
-        MRIreplaceValues(mri, mri, 255, 1) ;
-        MRIreplaceValues(mri, mri, 128, 1) ;
+      case WM_VOLUME:  /* labeled white matter volume - binarize it */
+        MRIbinarize(mri, mri, 5, 0, 100) ;
+        break ;
+      case LH_FILLED_VOLUME:
+        MRIreplaceValues(mri, mri, MRI_LEFT_HEMISPHERE, 100) ;
+        MRIreplaceValues(mri, mri, MRI_RIGHT_HEMISPHERE, 0) ;
+        break ;
+      case RH_FILLED_VOLUME:
+        MRIreplaceValues(mri, mri, MRI_RIGHT_HEMISPHERE, 100) ;
+        MRIreplaceValues(mri, mri, MRI_LEFT_HEMISPHERE, 0) ;
+        break ;
+      default:
+        break ;
       }
-      else if (which == EDIT_VOLUME)
-        MRIbinarize(mri, mri, 255, 0, 1) ; /* only edits will survive */
       fprintf(stderr, "done.\n") ;
       if (transform_fname && no_transform-- <= 0)
       {
@@ -149,6 +162,11 @@ main(int argc, char *argv[])
 #if 1
     mri_mean->dof = dof ;
     mri = MRIfloatToChar(mri_mean, NULL) ;
+    if (which == LH_FILLED_VOLUME)
+      volume_name = "lh filled" ;
+    else if (which == RH_FILLED_VOLUME)
+      volume_name = "rh filled" ;
+      
     fprintf(stderr, "\nwriting %s means with %d dof to %s...", 
             volume_name, mri->dof, out_fname) ;
     if (!which)
