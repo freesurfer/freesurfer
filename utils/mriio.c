@@ -4119,10 +4119,13 @@ int read_bhdr(MRI *mri, FILE *fp)
   float ys=0.;
   MATRIX *T, *CRSCenter, *RASCenter;
 
-  while(!feof(fp)){
+  while(1){  // don't use   "while (!feof(fp))"
 
     /* --- read the line --- */
     fgets(line, STRLEN, fp);
+    
+    if (feof(fp))  // wow, it was beyound the end of the file. get out.
+      break;
 
     /* --- remove the newline --- */
     if(line[strlen(line)-1] == '\n')
@@ -4178,6 +4181,8 @@ int read_bhdr(MRI *mri, FILE *fp)
       else { /* --- ignore it --- */ }
     }
   } /* end while(!feof()) */
+  // forget to close file
+  fclose(fp);
 
   //  vox to ras matrix is
   //
@@ -7970,9 +7975,12 @@ static MRI *sdtRead(char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): could not open header file %s\n", fname, header_fname));
   }
 
-  while(!feof(fp))
+  while(1) // !feof(fp))
   {
     fgets(line, STR_LEN, fp);
+    if (feof(fp)) // wow.  we read too many.  get out
+      break;
+
     if((colon = strchr(line, ':')))
     {
       *colon = '\0';
