@@ -120,8 +120,8 @@ MRI   *MRIrotateZ(MRI *mri_src, MRI *mri_dst, float z_angle) ;
 MRI   *MRIrotate(MRI *mri_src, MRI *mri_dst, MATRIX *mR, MATRIX *mO) ;
 MRI   *MRIscale(MRI *mri_src, MRI *mri_dst, float sx, float sy, float sz) ;
 MRI   *MRIaffine(MRI *mri_src, MRI *mri_dst, MATRIX *mA, MATRIX *mB) ;
-MRI   *MRIconfThresh(MRI *mri_probs, MRI *mri_classes, MRI *mri_dst, 
-                     float thresh, int target) ;
+MRI   *MRIconfThresh(MRI *mri_src, MRI *mri_probs, MRI *mri_classes, 
+                     MRI *mri_dst, float thresh, int min_target,int max_target);
 
 /* debugging */
 int   MRIdump(MRI *mri, FILE *fp) ;
