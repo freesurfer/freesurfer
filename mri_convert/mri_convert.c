@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2003/12/04 23:44:53 $
-// Revision       : $Revision: 1.73 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/12/09 20:43:38 $
+// Revision       : $Revision: 1.74 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.73 2003/12/04 23:44:53 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.74 2003/12/09 20:43:38 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1345,14 +1345,14 @@ int main(int argc, char *argv[])
         
         MatrixFree(&(lta_transform->xforms[0].m_L));
         lta_transform->xforms[0].m_L = inverse_transform_matrix;
-	// reverse src and dst target info.
-	// since it affects the c_ras values of the result
-	// in LTAtransform()
-	// question is what to do when transform src info is invalid.
-	lt = &lta_transform->xforms[0];
-	copyVolGeom(&lt->dst, &vgtmp);
-	copyVolGeom(&lt->src, &lt->dst);
-	copyVolGeom(&vgtmp, &lt->src);
+				// reverse src and dst target info.
+				// since it affects the c_ras values of the result
+				// in LTAtransform()
+				// question is what to do when transform src info is invalid.
+				lt = &lta_transform->xforms[0];
+				copyVolGeom(&lt->dst, &vgtmp);
+				copyVolGeom(&lt->src, &lt->dst);
+				copyVolGeom(&vgtmp, &lt->src);
       }
       
       /* Think about calling MRIlinearTransform() here; need vox2vox
@@ -1364,7 +1364,7 @@ int main(int argc, char *argv[])
       printf("INFO: Transform Matrix \n");
       MatrixPrint(stdout,lta_transform->xforms[0].m_L);
       printf("---------------------------------\n");
-
+			
       /* LTAtransform() runs either MRIapplyRASlinearTransform() 
          for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
       /* MRIlinearTransform() calls MRIlinearTransformInterp() */
@@ -1378,7 +1378,6 @@ int main(int argc, char *argv[])
       MRIfree(&mri);
       mri = mri_transformed;
     }
-    
     else if(transform_type == MORPH_3D_TYPE)
     {
       
@@ -1447,37 +1446,61 @@ int main(int argc, char *argv[])
     {
       if(out_volume_type == MRI_CORONAL_SLICE_DIRECTORY)
       {
-	conform_width = 256;
+				conform_width = 256;
         if (conform_min == TRUE)
-	{
+				{
           conform_size = findMinSize(mri, &conform_width);
-	}
-	else
-	{
-	  conform_width = findRightSize(mri, conform_size);
-	}
+				}
+				else
+				{
+					conform_width = findRightSize(mri, conform_size);
+				}
         template->width = template->height = template->depth = conform_width;
         template->imnr0 = 1;
         template->imnr1 = conform_width;
-        template->type = MRI_UCHAR;
+				template->type = MRI_UCHAR;
         template->thick = conform_size;
         template->ps = conform_size;
         template->xsize = template->ysize = template->zsize = conform_size;
-	printf("Original Data has (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
-	       mri->xsize, mri->ysize, mri->zsize, mri->width, mri->height, mri->depth);
+				printf("Original Data has (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
+							 mri->xsize, mri->ysize, mri->zsize, mri->width, mri->height, mri->depth);
         printf("Data is conformed to %g mm size and %d voxels for all directions\n", 
-	       conform_size, conform_width); 
+							 conform_size, conform_width); 
         template->xstart = template->ystart = template->zstart = - conform_width/2;
         template->xend = template->yend = template->zend = conform_width/2;
         template->x_r = -1.0;  template->x_a =  0.0;  template->x_s =  0.0;
         template->y_r =  0.0;  template->y_a =  0.0;  template->y_s = -1.0;
         template->z_r =  0.0;  template->z_a =  1.0;  template->z_s =  0.0;
       }
-    }
-    else if(out_volume_type != MRI_CORONAL_SLICE_DIRECTORY)
-      printf("the output volume is not a COR- directory."
-             "The --no_conform (-nc) argument is not needed\n");
-
+			else 
+			{
+				conform_width = 256;
+				if (conform_min == TRUE)
+				{
+					conform_size = findMinSize(mri, &conform_width);
+				}
+				else
+				{
+					conform_width = findRightSize(mri, conform_size);
+				}
+				template->width = template->height = template->depth = conform_width;
+				template->imnr0 = 1;
+				template->imnr1 = conform_width;
+				template->thick = conform_size;
+				template->ps = conform_size;
+				template->xsize = template->ysize = template->zsize = conform_size;
+				printf("Original Data has (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
+							 mri->xsize, mri->ysize, mri->zsize, mri->width, mri->height, mri->depth);
+				printf("Data is conformed to %g mm size and %d voxels for all directions\n", 
+							 conform_size, conform_width); 
+				template->xstart = template->ystart = template->zstart = - conform_width/2;
+				template->xend = template->yend = template->zend = conform_width/2;
+				template->x_r = -1.0;  template->x_a =  0.0;  template->x_s =  0.0;
+				template->y_r =  0.0;  template->y_a =  0.0;  template->y_s = -1.0;
+				template->z_r =  0.0;  template->z_a =  1.0;  template->z_s =  0.0;
+			}
+		}
+		
   }
 
   /* ----- apply command-line parameters ----- */
