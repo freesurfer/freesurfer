@@ -15,7 +15,6 @@
 static Transform *labelLoadTransform(char *subject_name, char *sdir,
                                      General_transform *transform) ;
 
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -27,7 +26,7 @@ LABEL *
 LabelRead(char *subject_name, char *label_name)
 {
   LABEL  *area ;
-  char   fname[100], *cp, line[200], subjects_dir[100] ;
+  char   fname[200], *cp, line[200], subjects_dir[100] ;
   FILE   *fp ;
   int    vno, nlines ;
   float  x, y, z ;
@@ -86,10 +85,13 @@ LabelRead(char *subject_name, char *label_name)
   fclose(fp) ;
   if (!nlines)
     ErrorExit(ERROR_BADFILE, "%s: no data in label file %s", Progname, fname);
-  area->linear_transform = 
-    labelLoadTransform(subject_name, subjects_dir, &area->transform) ;
-  area->inverse_linear_transform = 
-    get_inverse_linear_transform_ptr(&area->transform) ;
+  if (subject_name)
+  {
+    area->linear_transform = 
+      labelLoadTransform(subject_name, subjects_dir, &area->transform) ;
+    area->inverse_linear_transform = 
+      get_inverse_linear_transform_ptr(&area->transform) ;
+  }
   return(area) ;
 }
 /*-----------------------------------------------------
@@ -167,12 +169,40 @@ LabelFromCanonical(LABEL *area, MRI_SURFACE *mris)
 
   for (n = 0 ; n < area->n_points ; n++)
   {
-    vno =MRISfindClosestCanonicalVertex(mris,area->lv[n].x,area->lv[n].y,area->lv[n].z);
+    DiagHeartbeat((float)n / (float)area->n_points) ;
+    vno =
+      MRISfindClosestCanonicalVertex(mris,area->lv[n].x,area->lv[n].y,
+                                     area->lv[n].z);
     v = &mris->vertices[vno] ;
     area->lv[n].vno = vno ;
     area->lv[n].x = v->cx ;
     area->lv[n].y = v->cy ;
     area->lv[n].z = v->cz ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelFromTalairach(LABEL *area, MRI_SURFACE *mris)
+{
+  int     n, vno ;
+  VERTEX  *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    DiagHeartbeat((float)(n+1) / (float)area->n_points) ;
+    vno = MRIStalairachToVertex(mris,area->lv[n].x,area->lv[n].y,area->lv[n].z);
+    v = &mris->vertices[vno] ;
+    area->lv[n].vno = vno ;
+    area->lv[n].x = v->x ;
+    area->lv[n].y = v->y ;
+    area->lv[n].z = v->z ;
   }
   return(NO_ERROR) ;
 }
@@ -224,7 +254,7 @@ LabelWrite(LABEL *area, char *label_name)
 {
   FILE  *fp ;
   int  n, num ;
-  char   fname[100], *cp, subjects_dir[100] ;
+  char   fname[200], *cp, subjects_dir[100] ;
 
   if (strlen(area->subject_name) > 0)
   {
@@ -415,7 +445,7 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
         if (vn->ripflag || vn->marked)
           continue ;
         if (((curv_thresh > 0) && (vn->curv > curv_thresh)) ||
-             ((curv_thresh < 0) && (vn->curv < curv_thresh)))
+            ((curv_thresh < 0) && (vn->curv < curv_thresh)))
         {
           vn->marked = 1 ;
           lvn = &area->lv[area->n_points+nfilled] ;
@@ -426,6 +456,8 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
         if (area->n_points+nfilled >= area->max_points)
           break ;
       }
+      if (area->n_points+nfilled >= area->max_points)
+        break ;
     }
     fprintf(stderr, "%d vertices added.\n", nfilled) ;
     area->n_points += nfilled ;
@@ -434,6 +466,7 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
   fprintf(stderr, "%d vertices in label %s\n",area->n_points, area->name);
   return(NO_ERROR) ;
 }
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -444,7 +477,7 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
 static Transform *
 labelLoadTransform(char *subject_name, char *sdir,General_transform *transform)
 {
-  char xform_fname[100] ;
+  char xform_fname[200] ;
 
   sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm",
           sdir, subject_name) ;
@@ -462,16 +495,18 @@ labelLoadTransform(char *subject_name, char *sdir,General_transform *transform)
         Description
 ------------------------------------------------------*/
 int
-LabelTalairachTransform(LABEL *area)
+LabelTalairachTransform(LABEL *area, MRI_SURFACE *mris)
 {
-  int   n ;
-  LV    *lv ;
-  Real  x, y, z, xt, yt, zt ;
+  int    n ;
+  LV     *lv ;
+  Real   x, y, z, xt, yt, zt ;
+  VERTEX *v ;
 
   for (n = 0 ; n < area->n_points ; n++)
   {
     lv = &area->lv[n] ;
-    x = lv->x ; y = lv->y ; z = lv->z ;
+    v = &mris->vertices[lv->vno] ;
+    x = v->origx ; y = v->origy ; z = v->origz ;
     transform_point(area->linear_transform, x, y, z, &xt, &yt, &zt) ;
     lv->x = xt ; lv->y = yt ; lv->z = zt ;
   }
@@ -495,7 +530,7 @@ LabelSphericalTransform(LABEL *area, MRI_SURFACE *mris)
   {
     lv = &area->lv[n] ;
     v = &mris->vertices[lv->vno] ;
-    lv->x = v->x ; lv->y = v->y ; lv->z = v->z ;
+    lv->x = v->cx ; lv->y = v->cy ; lv->z = v->cz ;
   }
   return(NO_ERROR) ;
 }
@@ -581,5 +616,38 @@ LabelCopy(LABEL *asrc, LABEL *adst)
 
   memmove(adst->lv, asrc->lv, asrc->n_points*sizeof(LABEL_VERTEX)) ;
   return(adst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelRemoveDuplicates(LABEL *area)
+{
+  int    n1, n2, deleted = 0 ;
+  LV     *lv1, *lv2 ;
+
+  for (n1 = 0 ; n1 < area->n_points ; n1++)
+  {
+    lv1 = &area->lv[n1] ;
+    if (lv1->deleted)
+      continue ;
+    for (n2 = n1+1 ; n2 < area->n_points ; n2++)
+    {
+      lv2 = &area->lv[n2] ;
+      if (lv1->vno == lv2->vno)
+      {
+        deleted++ ;
+        lv2->deleted = 1 ;
+      }
+    }
+  }
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "%d duplicate vertices removed from label %s.\n",
+            deleted, area->name) ;
+  return(NO_ERROR) ;
 }
 
