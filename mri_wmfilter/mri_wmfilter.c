@@ -9,7 +9,7 @@
 #include "matrix.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.6 1999/07/23 23:29:19 fischl Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.7 1999/07/25 00:27:07 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -291,7 +291,7 @@ plane_filter(int niter)
       */
       if (
           ((im[k][i][j]==0 && 
-            numnz>=(cfracnz/2)*(wsize*wsize*wsize)) &&
+            numnz>=(cfracnz)*(wsize*wsize)) &&
            (im2[k][i][j] >= white_lolim))
           || 
           (im[k][i][j]!=0 && 
