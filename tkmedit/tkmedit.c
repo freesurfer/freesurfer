@@ -1,8 +1,7 @@
-/*
- do:
+/* to do:
 optimize functional overlay drawing by grabbing volume bounds when loaded and only looping through those bounds when drawing
 
-better disctinction between error output and regular output. see LoadFunctionalVolume for example.
+better disctinction between error output and regular output. see LoadFunctionalVolume for example. use NOTE: ALERT: or ERROR: before all 'dlog box' outputs.
  */
 
 /*============================================================================
@@ -31,6 +30,7 @@ better disctinction between error output and regular output. see LoadFunctionalV
 =============================================================================*/
 #include <tcl.h>
 #include <tk.h>
+// #include <tix.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -77,7 +77,7 @@ lower*/
 #  define rectwrite(X0,Y0,X1,Y1,P) \
            glMatrixMode ( GL_PROJECTION ); \
            glLoadIdentity (); \
-           glOrtho ( 0, xdim-1, 0, ydim-1, -1.0, 1.0 ); \
+           glOrtho ( 0, xdim-1, 0,ydim-1, -1.0, 1.0 ); \
            glRasterPos2i(X0,Y0); \
            glDrawPixels((X1-X0)+1,(Y1-Y0)+1,GL_RGBA,GL_UNSIGNED_BYTE,P) 
 /*
@@ -131,11 +131,9 @@ lower*/
 #define TMP_DIR          "tmp"             /* relative to subjectsdir/pname */
 #define TRANSFORM_DIR    "mri/transforms"  /* ditto */
 #define TALAIRACH_FNAME  "talairach.xfm"   /* relative to TRANSFORM_DIR */
-
 #ifndef WM_EDITED_OFF
 #define WM_EDITED_OFF 1
 #endif
-
 #define WM_MIN_VAL    2  /* 1 is used for voxels that are edited to off */
 #define TO_WHITE  0
 #define TO_BLACK  1
@@ -255,7 +253,7 @@ char *sgfname;       /* rgb */
 char *fsfname;       /* $session/fs/$hemi.fs */
 char *fmfname;       /* $session/fs/$hemi.fm */
 char *cfname;        /* $home/surf/hemi.curv */
-char *xffname;       /* $home/name/mri/transforms/TALAIRACH_FNAME */
+char *xffname;       /* $home/name/mri/transforms/TALAIRACHg4251_FNAME */
 char *rfname;        /* script */
 
 /* Talairach stuff */
@@ -275,6 +273,7 @@ static int   num_control_points = 0 ;
 #include "tkmVoxelList.h"
 #include "tkmVoxelSpace.h"
 #include "VoxelValueList.h"
+#include "tkmFunctionalDisplay.h"
 
                                        /* irix compiler doesn't like inlines */
 #ifdef IRIX
@@ -408,10 +407,15 @@ void DrawWithFloatVertexArray ( GLenum inMode,
         float *inVertices, int inNumVertices );
 
 
+void DrawFunctionalData ( char * inBuffer, int inVoxelSize,
+        int inPlane, int inPlaneNum );
+
 
 // ===========================================================================
 
 // ==================================================== COORDINATE CONVERSIONS
+
+#include "mritransform.h"
 
                                         /* convert a click to screen coords. 
                                            only converts the two coords that 
@@ -456,25 +460,19 @@ inline int VoxelZToScreenZ ( int z );
 inline int VoxelZToLocalZoomZ ( int z );
 
                                    /* goes from a screen voxel to a 2d point
-                                      on the screen. puts the proper coords
-                                      in the h/v coords and scales if in all3
-                                      mode. */
+              on the screen. puts the proper coords
+              in the h/v coords and scales if in all3
+              mode. */
 void ScreenToScreenXY ( int i, int j, int k,
       int plane, int *h, int *v );
 
-#include "mritransform.h"
-
                                        /* converts ras coords to
-                                          voxel coords and back. these 
-                                          call functions in mritransform and
-                                          then check the bounds of the 
-                                          results.*/
+                                          voxel coords and back */
 void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
                   int *xi, int *yi, int *zi );   // outgoing voxel coords
 
 void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
                   Real *x, Real *y, Real *z );   // outgoing RAS coords
-
 
                                        /* convert ras coords to the two
                                           two screen coords that are relevant
@@ -661,130 +659,6 @@ char gIsAverageSurfaceVertices = TRUE;
             we should hilite */
 vertex_type * gHilitedVertex = NULL;
 int gHilitedVertexSurface= -1;
-
-// ===========================================================================
-
-// ======================================================== FUNCTIONAL OVERLAY
-
-#include "tkmFunctionalDataAccess.h"
-
-                                   /* functional overlay package comes in two
-              parts. the first is the
-              tkmFunctionalDataAccess code that
-              provides basic parsing and reading of
-              the functional data from bfile format. 
-              the second is the current state of the
-              information being viewed, as well as
-              the functions necessary to draw the 
-              overlya, graph, and handle state
-              changes. the second part is handled
-              by the functions below. 
-
-              the graphing code is in a tcl script.
-              it broadcasts events to the c code and
-              receives variable updates. it does not
-              presume to change any variables directly
-              and only updates when the c code tells
-              it to. */
-
-char gIsFunctionalGraphWindowOpen = FALSE;
-VolumeRef gFunctionalVolume = NULL;
-VoxelRef gCurFunctionalVoxel = NULL; // in anatomical coords!!
-char gIsDisplayFunctionalOverlay = TRUE;
-int gCurFunctionalTimePoint, gCurFunctionalCondition;
-float gCurFunctionalThresholdMin, gCurFunctionalThresholdMid, 
-  gCurFunctionalThresholdMax;
-
-                                   /* this function loads the data from a
-              directory of bfiles, each of a certain
-              stem. it parses the header as well as
-              reads in the actual data, allocating
-              all of the space necessary. it also
-              initializes the list and voxels we use
-              locally as current state variables. */
-void LoadFunctionalData ( char * inFullPath, char * inStem );
-                                   /* frees all the memory previously
-              allocated. */
-void DeleteFunctionalData ();
-
-                                   /* reads the graph tcl script and sets
-              up the window. also sets up initial
-              values for functional state. */
-void InitFunctionalGraphWindow ( Tcl_Interp * inInterp );
-
-                                   /* returns status of functional data. */
-char IsFunctionalDataLoaded ();
-
-                                   /* given a vid buf and the current slice,
-              this draws all the functional data
-              according to the selected color scale. */
-void DrawFunctionalData ( char * inBuffer, int inPlane, int inPlaneNum );
-
-                                   /* sets the current functional voxel being
-              displayed in the graph window according
-              to what voxel was clicked. */
-void AllowFunctionalModuleToRespondToClick ( VoxelRef inVoxel );
-
-                                   /* sets the current functional voxel being
-              displayed in the graph by grabbing the
-              values for all timepoints for all
-              conditions of the voxel and passing
-              them to the graph. also grabs the error
-              deviations and passes those to the
-              graph. */
-void SetCurrentFunctionalVoxel ( VoxelRef inAnatomicalVoxel );
-
-                                   /* geta single functional value for an
-              anatomical value. */
-void GetFunctionalValueAtAnatomicalVoxel ( VoxelRef inVoxel,
-             float * outValue );
-
-                                   /* takes a list of values and calcs the
-              approriate x and y values for the graph.
-              constructs a tcl command string and
-              then sends it to the graph. */
-void SendFunctionalValuesToGraph ( VolumeRef inVolume,
-           int inCondition, int inNumValues,
-           float *inValues );
-
-                                   /* takes a list of errors, constructs a
-              tcl command, and sends it to the
-              graph. */
-void SendDeviationsToGraph ( VolumeRef inVolume,
-           int inCondition, int inNumValues,
-           float *inErrors );
-
-                                   /* sending a command to the graph really
-              just means sending it to the tcl
-              interpreter. */
-void SendCommandToFunctionalGraph ( char * );
-
-                                   /* given a value and offset, calcs the
-              red, green, and blue color components
-              based on a color scale. */
-void CalcFunctionalOverlayColor ( float inValue, float inOffset,
-          unsigned char *outRed,
-          unsigned char *outGreen,
-          unsigned char *outBlue );
-
-                                   /* copies a human readable string with the
-              current functional display state. */
-void CopyCurrentFunctionalStateString ( char * inString );
-
-                                   /* the settors check the validity of
-              incoming values, set the globals if
-              okay, generate an update event for the
-              graph with the relative data, and redraw
-              the window to reflect the changes. */
-void SetCurrentFunctionalDisplayStatus ( char inIsDisplay );
-void SetCurrentFunctionalTimeResolution ( int inTimeResolution );
-void SetCurrentFunctionalNumPreStimPoints ( int inNumPreStimPoints );
-void SetCurrentFunctionalTimeSecond ( int inSecond );
-void SetCurrentFunctionalTimePoint ( int inTimePoint );
-void SetCurrentFunctionalCondition ( int inCondition );
-void SetCurrentFunctionalThresholdMin ( float inThreshold );
-void SetCurrentFunctionalThresholdMid ( float inThreshold );
-void SetCurrentFunctionalThresholdMax ( float inThreshold );
 
 // ===========================================================================
 
@@ -1036,15 +910,18 @@ char IsInMode ( Interface_Mode inMode );
 
 // ====================================================================== MISC
 
-                                     /* determines if a number is odd. */
+                                   /* determines if a number is odd. */
 #define isOdd(x) (x%2)
 
-                                       /* set and get the tcl interp to send
+                                   /* set and get the tcl interp to send
             the msg to */
 void SetTCLInterp ( Tcl_Interp * inInterp );
 Tcl_Interp * GetTCLInterp ();
 
-                                       /* the tcl interpreter */
+                                   /* send a tcl command */
+void SendTCLCommand ( char * inCommand );
+
+                                   /* the tcl interpreter */
 Tcl_Interp * gTCLInterp = NULL;
 
 #define set3fv(v,x,y,z) {v[0]=x; v[1]=y; v[2]=z;}
@@ -1215,7 +1092,7 @@ double fmid = 0.0;
 double f2thresh =0.0;
 
 char* overlay_file = NULL;
-char* loaded_fvfile;
+char loaded_fvfile [128];
 
 typedef union 
 {
@@ -1441,7 +1318,7 @@ void loadFV()
               so make sure we only load it once and
               then do nothing if we have already
               loaded. */
-  if ( !IsFunctionalDataLoaded () ) {
+  if ( !FuncDis_IsDataLoaded () ) {
 
     theCurSection = strtok ( prefixname, "/" );
     strcpy ( thePathSection[0], theCurSection );
@@ -1465,7 +1342,8 @@ void loadFV()
       thePath, theStem EndDebugPrint;
     
     // load and init.
-    LoadFunctionalData ( thePath, theStem );
+    FuncDis_LoadData ( thePath, theStem );
+    FuncDis_InitGraphWindow ( GetTCLInterp () );
   }    
 
   // reset all of twitzels stuff.
@@ -1495,7 +1373,7 @@ void loadFV()
   readFVVolume(prefixname);
 
   statsloaded = 1;
-  loaded_fvfile = strdup(overlay_file);
+  strcpy ( loaded_fvfile, overlay_file );
   
   }
 }
@@ -2294,8 +2172,17 @@ exit(1);
 
     // check for diable edit flag. it's always last.
     if (argv[argc-1][0]=='-') {
+
       editflag = FALSE;
       printf("medit: ### editing disabled\n");
+
+      // set mode to selection
+      SetMode ( kMode_Select );
+
+    } else {
+
+      // else default into editing mode.
+      SetMode ( kMode_Edit );
     }
 
     // check for surface name. note that this will never be true if we're
@@ -2391,9 +2278,14 @@ exit(1);
     trans_SetBounds ( xx0, xx1, yy0, yy1, zz0, zz1 );
     trans_SetResolution ( ps, ps, st );
 
-    // if we functional data, load it.
+    // if we have functional data...
     if ( isLoadingFunctionalData ) {
-      LoadFunctionalData ( theFunctionalPath, theFunctionalStem );
+
+      // load it.
+      FuncDis_LoadData ( theFunctionalPath, theFunctionalStem );
+
+      // go to selection mode.
+      SetMode ( kMode_Select );
     }
 
     // allocate graphics buffers.
@@ -4363,8 +4255,8 @@ void HandleMouseUp ( XButtonEvent inEvent ) {
     PrintScreenPointInformation ( EXPAND_VOXEL_INT(theScreenVoxel) );
     
     // when setting cursor, allow functional module to respond to click.
-    if ( IsFunctionalDataLoaded () ) 
-      AllowFunctionalModuleToRespondToClick ( theAnatomicalVoxel );
+    if ( FuncDis_IsDataLoaded () ) 
+      FuncDis_HandleClickedVoxel ( theAnatomicalVoxel );
   }
 
                                    /* if control key was held down, check for
@@ -4446,6 +4338,9 @@ void HandleMouseDown ( XButtonEvent inEvent ) {
 
     // editing...
   case kMode_Edit: 
+    
+    // clear the undo list.
+    ClearUndoList ();
     
     // if button 2, paint voxels to white.
     if ( 2 == inEvent.button ) {
@@ -4749,6 +4644,7 @@ void SaveCursorLocation () {
   // save screen cursor coords to RAS coords.
   ScreenToRAS ( plane, jc, ic, imc, 
     &gSavedCursorVoxelX, &gSavedCursorVoxelY, &gSavedCursorVoxelZ );
+  
 }
 
 void RestoreCursorLocation () {
@@ -4756,9 +4652,15 @@ void RestoreCursorLocation () {
   // restore screen cursor from saved RAS coords.
   RASToScreen ( gSavedCursorVoxelX, gSavedCursorVoxelY, gSavedCursorVoxelZ,
     plane, &jc, &ic, &imc );
+
 }
 
 void SetPlane ( int inNewPlane ) {
+
+  // don't change if we don't have to.
+  if ( inNewPlane == plane ) {
+    return;
+  }
 
   // save the cursor location.
   SaveCursorLocation ();
@@ -5031,8 +4933,8 @@ void draw_image( int imc, int ic, int jc,
         }
 
   // if we have functional data to draw...
-  if ( IsFunctionalDataLoaded () ) {
-    DrawFunctionalData ( vidbuf, CORONAL, imc/zf );
+  if ( FuncDis_IsDataLoaded () ) {
+    DrawFunctionalData ( vidbuf, theVoxelSize, CORONAL, imc/zf );
   }
 
   // draw our selected voxels.
@@ -5150,8 +5052,8 @@ void draw_image( int imc, int ic, int jc,
     DrawControlPoints ( vidbuf, HORIZONTAL, (ydim-1-ic)/zf );
         }
         
-  if ( IsFunctionalDataLoaded () ) {
-    DrawFunctionalData ( vidbuf, HORIZONTAL, (ydim-1-ic)/zf );
+  if ( FuncDis_IsDataLoaded () ) {
+    DrawFunctionalData ( vidbuf, theVoxelSize, CORONAL, imc/zf );
   }
 
   if ( IsDisplaySelectedVoxels () ) {
@@ -5249,8 +5151,8 @@ void draw_image( int imc, int ic, int jc,
     DrawControlPoints ( vidbuf, SAGITTAL, jc/zf );
         }
 
-  if ( IsFunctionalDataLoaded () ) {
-    DrawFunctionalData ( vidbuf, SAGITTAL, jc/zf );
+  if ( FuncDis_IsDataLoaded () ) {
+    DrawFunctionalData ( vidbuf, theVoxelSize, CORONAL, imc/zf );
   }
 
   if ( IsDisplaySelectedVoxels () ) {
@@ -5403,6 +5305,93 @@ DrawControlPoints ( char * inBuffer, int inPlane, int inPlaneNum ) {
   }
 }
 
+void DrawFunctionalData ( char * inBuffer, int inVoxelSize,
+        int inPlane, int inPlaneNum ) {
+
+  VoxelRef theVoxel;
+  int x, y;
+  float theValue;
+  int theScreenX, theScreenY, theScreenZ, theScreenH, theScreenV;
+  char theDestRed, theDestGreen, theDestBlue;
+  long theDestColor;
+  FuncDis_ErrorCode theErr;
+
+  // if we're not visible, don't draw.
+  if ( !FuncDis_IsOverlayVisible() ) {
+    return;
+  }
+
+  Voxel_New ( &theVoxel );
+
+  DisableDebuggingOutput;
+  
+  for ( y = 0; y < ynum; y++ ) {
+    for ( x = 0; x < xnum; x++ ) {
+
+      switch ( inPlane ) {
+      case CORONAL:
+  Voxel_Set ( theVoxel, x, y, inPlaneNum  );
+  break;
+      case SAGITTAL:
+  Voxel_Set ( theVoxel, inPlaneNum, x, y  );
+  break;
+      case HORIZONTAL:
+  Voxel_Set ( theVoxel, x, inPlaneNum, y );
+  break;
+      }
+
+                                   /* if we get an error here, it just means
+              that there is no value for this
+              anatomical voxel, and we can safely
+              ignore it. */
+      // get the value.
+      theErr = FuncDis_GetValueAtAnatomicalVoxel ( theVoxel, &theValue );
+
+      if ( theErr == kFuncDisErr_NoError ) {
+
+  VoxelToScreen ( EXPAND_VOXEL_INT(theVoxel),
+      inPlane, &theScreenX, &theScreenY, &theScreenZ );
+  
+  if ( IsScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
+    
+    DebugPrint "-- (%d, %d, %d): %2.5f\n",
+      EXPAND_VOXEL_INT(theVoxel), theValue EndDebugPrint;
+
+    ScreenToScreenXY ( theScreenX, theScreenY, theScreenZ,
+           inPlane, &theScreenH, &theScreenV );
+    
+    FuncDis_CalcColorForValue ( theValue, 0.25,
+        &theDestRed, &theDestGreen, &theDestBlue );
+    
+    // only draw if we're not all 0s.
+    if ( theDestRed != 0 || theDestGreen != 0 || theDestBlue != 0 ) {
+      
+      theDestColor = 
+        ( (unsigned char)kPixelComponentLevel_Max << kPixelOffset_Alpha |
+    (unsigned char)theDestBlue << kPixelOffset_Blue |
+    (unsigned char)theDestGreen << kPixelOffset_Green |
+    (unsigned char)theDestRed << kPixelOffset_Red );
+      
+      FillBoxInBuffer ( inBuffer, theScreenH, theScreenV, inVoxelSize,
+            theDestColor );
+    }
+  }
+  
+      } else if ( theErr != kFuncDisErr_InvalidAnatomicalVoxel ) {
+
+  DebugPrint "Error in FuncDis_GetValueAtAnatomcalValue: %d, %s\n",
+    theErr, FuncDis_GetErrorString(theErr) EndDebugPrint;
+      }
+
+    }
+  }
+
+  EnableDebuggingOutput;
+
+  Voxel_Delete ( &theVoxel );
+}
+ 
+
 /*
 void DrawFunctionalData ( char * inBuffer, int inPlane, int inPlaneNum ) {
 
@@ -5450,106 +5439,6 @@ void DrawFunctionalData ( char * inBuffer, int inPlane, int inPlaneNum ) {
   Voxel_Delete ( &theVoxel );
 }
 */
-
-void DrawFunctionalData ( char * inBuffer, int inPlane, int inPlaneNum ) {
-
-  VoxelRef theVoxel;
-  int x, y;
-  float theValue;
-  int theScreenX, theScreenY, theScreenZ, theScreenH, theScreenV;
-  char theDestRed, theDestGreen, theDestBlue;
-  long theDestColor;
-  Volume_ErrorCode theErr;
-  int theVoxelSize;
-
-  // if we're not visible, return.
-  if ( !gIsDisplayFunctionalOverlay ) {
-    return;
-  }
-
-  Voxel_New ( &theVoxel );
-
-  // TODO: make a function for this
-  if ( !all3flag ) {
-    theVoxelSize = zf * gLocalZoom;
-  } else {
-    theVoxelSize = zf/2;
-  }
-
-  DisableDebuggingOutput;
-  
-  for ( y = 0; y < ynum; y++ ) {
-    for ( x = 0; x < xnum; x++ ) {
-
-      switch ( inPlane ) {
-      case CORONAL:
-  Voxel_Set ( theVoxel, x, y, inPlaneNum  );
-  break;
-      case SAGITTAL:
-  Voxel_Set ( theVoxel, inPlaneNum, x, y  );
-  break;
-      case HORIZONTAL:
-  Voxel_Set ( theVoxel, x, inPlaneNum, y );
-  break;
-      }
-
-      // get the value.
-      theErr = Volume_GetData ( gFunctionalVolume, theVoxel, 
-        gCurFunctionalCondition,
-        gCurFunctionalTimePoint,
-        &theValue );
-
-
-      // GetFunctionalValueAtAnatomicalVoxel ( theVoxel, &theValue );
-
-      if ( theErr == kVolumeErr_NoError ) {
-
-  VoxelToScreen ( Voxel_GetX(theVoxel), Voxel_GetY(theVoxel),
-      Voxel_GetZ(theVoxel), 
-      inPlane, &theScreenX, &theScreenY, &theScreenZ );
-  
-  if ( IsScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
-    
-    DebugPrint "-- (%d, %d, %d): %2.5f\n",
-      Voxel_GetX(theVoxel), Voxel_GetY(theVoxel), 
-      Voxel_GetZ(theVoxel), theValue EndDebugPrint;
-
-    ScreenToScreenXY ( theScreenX, theScreenY, theScreenZ,
-           inPlane, &theScreenH, &theScreenV );
-
-    
-    CalcFunctionalOverlayColor ( theValue, 0.25,
-            &theDestRed, &theDestGreen, &theDestBlue );
-    /*
-    EnableDebuggingOutput;
-    DebugPrint "%2.5f: %d  ", theValue, theColorComponent EndDebugPrint;
-    DisableDebuggingOutput;
-    */
-    
-    // only draw if we're not all 0s.
-    if ( theDestRed != 0 || theDestGreen != 0 || theDestBlue != 0 ) {
-      
-      theDestColor = 
-        ( (unsigned char)kPixelComponentLevel_Max << kPixelOffset_Alpha |
-    (unsigned char)theDestBlue << kPixelOffset_Blue |
-    (unsigned char)theDestGreen << kPixelOffset_Green |
-    (unsigned char)theDestRed << kPixelOffset_Red );
-      
-      FillBoxInBuffer ( inBuffer, theScreenH, theScreenV, theVoxelSize,
-            theDestColor );
-    }
-  }
-  
-      }
-
-    }
-  }
-
-  EnableDebuggingOutput;
-
-  Voxel_Delete ( &theVoxel );
-}
-  
 
 void
 draw_second_image(int imc, int ic, int jc)
@@ -8103,68 +7992,6 @@ int W_UnzoomView WBEGIN
      UnzoomView ();
      WEND
 
-int W_PrintCurFunctionalHeader WBEGIN
-     ERR ( 1, "Wrong # args: PrintCurFunctionalHeader" )
-     Volume_DebugPrint ( gFunctionalVolume );
-     WEND
-
-int W_PrintCurFunctionalState WBEGIN
-     char theString [256];
-     ERR ( 1, "Wrong # args: PrintCurFunctionalState" )
-     CopyCurrentFunctionalStateString ( theString );
-     DebugPrint "%s", theString EndDebugPrint;
-     WEND
-     
-int W_LoadFunctionalData WBEGIN
-     ERR ( 3, "Wrong # args: LoadFunctionalData dir stem" )
-     LoadFunctionalData ( argv[1], argv[2] );
-     WEND
-
-int W_SetCurrentFunctionalDisplayStatus WBEGIN
-     ERR ( 2, "Wrong # args: SetCurrentFunctionalDisplayStatus status" )
-     SetCurrentFunctionalDisplayStatus ( atoi(argv[1]) );
-     WEND
-
-int W_SetCurrentFunctionalTimeResolution WBEGIN
-     ERR ( 2, "Wrong # args: SetCurrentFunctionalTimeResolution time_res" )
-      SetCurrentFunctionalTimeResolution ( atoi(argv[1]) );
-     WEND
-
-int W_SetCurrentFunctionalNumPreStimPoints WBEGIN
-     ERR ( 2, "Wrong # args: SetCurrentFunctionalNumPreStimPoints num_points" )
-      SetCurrentFunctionalNumPreStimPoints ( atoi(argv[1]) );
-     WEND
-
-int W_SetCurrentFunctionalTimeSecond WBEGIN
-     ERR ( 2, "Wrong # args, punk: SetCurrentFunctionalTimeSecond second" )
-     SetCurrentFunctionalTimeSecond ( rint(atoi(argv[1])) );
-     WEND
-
-int W_SetCurrentFunctionalTimePoint WBEGIN
-     ERR ( 2, "Wrong # args, punk: SetCurrentFunctionalTimePoint time_point" )
-     SetCurrentFunctionalTimePoint ( atoi(argv[1]) );
-     WEND
-
-int W_SetCurrentFunctionalCondition WBEGIN
-     ERR ( 2, "Wrong # args: SetCurrentFunctionalCondition condition" )
-     SetCurrentFunctionalCondition ( atoi(argv[1]) );
-     WEND
-
-int W_SetCurrentFunctionalThresholdMin WBEGIN
-     ERR ( 2, "Wrong # args: SetCurrentFunctionalThresholdMin threshold" )
-     SetCurrentFunctionalThresholdMin ( atof(argv[1]) );
-     WEND
-
-int W_SetCurrentFunctionalThresholdMid WBEGIN
-     ERR ( 2, "Wrong # args: SetCurrentFunctionalThresholdMid threshold" )
-     SetCurrentFunctionalThresholdMid ( atof(argv[1]) );
-     WEND
-
-int W_SetCurrentFunctionalThresholdMax WBEGIN
-     ERR ( 2, "Wrong # args: SetCurrentFunctionalThresholdMax threshold" )
-     SetCurrentFunctionalThresholdMax ( atof(argv[1]) );
-     WEND
-
      // for changing modes from the cmd line
 int W_CtrlPtMode WBEGIN
      ERR ( 1, "Wrong # args: CtrlPtMode" )
@@ -8296,9 +8123,6 @@ char **argv;
   gIsCanonicalSurfaceLoaded = FALSE;
 
 
-  // start out in editing mode.
-  SetMode ( kMode_Edit );
-
   // end_kt
 
   initmap_hacked();
@@ -8384,6 +8208,8 @@ char **argv;
     fprintf(stderr, "Tcl_Init failed: %s\n", interp->result); }
   if (Tk_Init(interp)== TCL_ERROR) {
     fprintf(stderr, "Tk_Init failed: %s\n", interp->result); }
+  //  if (Tix_Init(interp) == TCL_ERROR ) {
+  //    fprintf(stderr, "Tix_Init failed: %s\n", interp->result); }
 
   /*=======================================================================*/
   /* register wrapped surfer functions with interpreter */
@@ -8468,31 +8294,6 @@ char **argv;
   Tcl_CreateCommand ( interp, "SaveCursorLocation", TclSaveCursorLocation, REND);
   Tcl_CreateCommand ( interp, "RestoreCursorLocation", 
                       TclRestoreCursorLocation, REND);
-
-  Tcl_CreateCommand ( interp, "LoadFunctionalData",
-          W_LoadFunctionalData, REND );
-  Tcl_CreateCommand ( interp, "PrintCurFunctionalHeader", 
-          W_PrintCurFunctionalHeader, REND );
-  Tcl_CreateCommand ( interp, "PrintCurFunctionalState", 
-          W_PrintCurFunctionalState, REND );
-  Tcl_CreateCommand ( interp, "SetCurrentFunctionalDisplayStatus", 
-          W_SetCurrentFunctionalDisplayStatus, REND );
-   Tcl_CreateCommand ( interp, "SetCurrentFunctionalTimeResolution", 
-          W_SetCurrentFunctionalTimeResolution, REND );
-  Tcl_CreateCommand ( interp, "SetCurrentFunctionalNumPreStimPoints", 
-          W_SetCurrentFunctionalNumPreStimPoints, REND );
-  Tcl_CreateCommand ( interp, "SetCurrentFunctionalTimeSecond", 
-          W_SetCurrentFunctionalTimeSecond, REND );
-  Tcl_CreateCommand ( interp, "SetCurrentFunctionalTimePoint", 
-          W_SetCurrentFunctionalTimePoint, REND );
-  Tcl_CreateCommand ( interp, "SetCurrentFunctionalCondition", 
-          W_SetCurrentFunctionalCondition, REND );
-  Tcl_CreateCommand ( interp, "SetCurrentFunctionalThresholdMin", 
-          W_SetCurrentFunctionalThresholdMin, REND );
-  Tcl_CreateCommand ( interp, "SetCurrentFunctionalThresholdMid", 
-          W_SetCurrentFunctionalThresholdMid, REND );
-  Tcl_CreateCommand ( interp, "SetCurrentFunctionalThresholdMax", 
-          W_SetCurrentFunctionalThresholdMax, REND );
 
   // for changing modes.
   Tcl_CreateCommand ( interp, "CtrlPtMode", W_CtrlPtMode, REND );
@@ -8627,6 +8428,9 @@ char **argv;
 
   strcpy(rfname,script_tcl);  /* save in global (malloc'ed in Program) */
 
+  // kt - have the func display register its commands
+  FuncDis_RegisterTclCommands ( interp );
+
   /* run tcl/tk startup script to set vars, make interface; no display yet */
   printf("tkmedit: interface: %s\n",tkmedit_tcl);
   code = Tcl_EvalFile(interp,tkmedit_tcl);
@@ -8652,8 +8456,8 @@ char **argv;
   /*Tk_MainLoop();*/  /* standard */
 
   // kt - if doing functional data, init graph window.
-  if ( IsFunctionalDataLoaded () ) {
-    InitFunctionalGraphWindow ( interp );
+  if ( FuncDis_IsDataLoaded () ) {
+    FuncDis_InitGraphWindow ( interp );
   }
 
   // kt - new commands summary
@@ -8695,16 +8499,6 @@ char **argv;
   printf("\t'HideCursor': hides the cursor\n" );
   printf("\t'ShowCursor': shows the cursor\n" );
 
- DebugPrint "\nFunctional debug\n"
-   "\tPrintCurFunctionalHeader\n"
-   "\tPrintCurFunctionalValueList\n"
-   "\tPrintCurFunctionalState\n"
-   "\tSetCurrentFunctionalTimePoint time_point\n"
-   "\tSetCurrentFunctionalCondition condition\n"
-   "\tSetCurrentFunctionalThresholdMin threshold\n"
-   "\tSetCurrentFunctionalThresholdMid threshold\n"
-   "\tSetCurrentFunctionalThresholdMax threshold\n" EndDebugPrint;
-
  printf("\n");
  PR;
  // end_kt
@@ -8723,8 +8517,8 @@ char **argv;
 
   // kt - delete the structs we inited before
 
-  if ( IsFunctionalDataLoaded() ) {
-    DeleteFunctionalData ();
+  if ( FuncDis_IsDataLoaded() ) {
+    FuncDis_DeleteData ();
   }
 
   DeleteSelectionModule ();
@@ -9420,833 +9214,6 @@ void DeleteSelectedCtrlPts () {
   Voxel_Delete ( &theCtrlPt );
 }
 
-// ======================================================== FUNCTIONAL OVERLAY
-
-void LoadFunctionalData ( char * inFullPath, char * inStem ) {
-
-  Volume_ErrorCode theVolumeErr;
-  Tcl_Interp * theInterp;
-  char theSubjectName [256];
-
-  DebugPrint "LoadFunctionalData ( %s, %s )\n",
-    inFullPath, inStem EndDebugPrint;
-
-  OutputPrint "Loading functional data from directory %s with stem %s...",
-    inFullPath, inStem EndOutputPrint;
-
-  if ( IsFunctionalDataLoaded () ) {
-    DeleteFunctionalData ();
-  }
-
-  // try to create our volume.
-  theVolumeErr = Volume_New ( inFullPath, inStem, &gFunctionalVolume );
-
-  // if we didn't get it...
-  if ( theVolumeErr != kVolumeErr_NoError ) {
-
-    // flag for determining volume isn't loaded.
-    gFunctionalVolume = NULL;
-
-    // print an error message and return.
-    DebugPrint "\tError in Volume_New: %d, %s\n",
-      theVolumeErr, Volume_GetErrorString(theVolumeErr) EndDebugPrint;
-    OutputPrint "Couldn't load functional data.\n\tPath: %s\n\tStem: %s\n",
-      inFullPath, inStem EndOutputPrint;
-    return;
-  }
-
-  // init our value list and voxel.
-  Voxel_New ( &gCurFunctionalVoxel );
-  
-  OutputPrint " done.\n" EndOutputPrint;
-
-                                   /* there are two times when this function
-              could be called: during startup, before
-              the tcl interpreter is loaded, or after
-              the interpreter is loaded. if during
-              startup, InitFunctionalWindow will be
-              called after the interpreter is loaded.
-              if not, then we have to call it now
-              ourselves. check if we have an
-              interpreter and if so, init the graph
-              window. */
-  theInterp = GetTCLInterp ();
-  if ( NULL != theInterp ) {
-    InitFunctionalGraphWindow ( theInterp );
-  }
-
-  // make sure that our subject name matches the name in the functional data.
-  Volume_GetSubjectName ( gFunctionalVolume, theSubjectName );
-  if ( !MATCH ( theSubjectName, pname ) ) {
-
-    // if not, print an alert.
-    DebugPrint "\tsubject name mismatch: functional is %s, tkmedit is %s\n",
-      theSubjectName, pname EndDebugPrint;
-    OutputPrint "ALERT: Subject name in functional data doesn't match "
-      "name in anatomical data.\n" EndOutputPrint;
-  }
-
-  Volume_DebugPrint ( gFunctionalVolume );
-}
-
-void InitFunctionalGraphWindow ( Tcl_Interp * inInterp ) {
-  
-  int theErr;
-  char * theScriptDirName;
-  char theScriptFileName [128], theVolumePath[128], theVolumeStem[32],
-    theCommandString[256];
-  int theTimeResolution, theNumPreStimTimePoints;
-
-  // load graph code
-  if ( FALSE == gIsFunctionalGraphWindowOpen ) {
-    theScriptDirName = getenv("MRI_DIR");
-    sprintf ( theScriptFileName, "%s/lib/tcl/tkm_functional.tcl", 
-        theScriptDirName );
-    theErr = Tcl_EvalFile ( inInterp, theScriptFileName );
-    if ( TCL_OK != theErr ) {
-      OutputPrint "Fatal error: Couldn't load tkm_functional.tcl.\n"
-  EndOutputPrint;
-    }
-    
-    gIsFunctionalGraphWindowOpen = TRUE;
-  }
-
-  // get some data from the volume
-  Volume_GetPath ( gFunctionalVolume, theVolumePath );
-  Volume_GetStem ( gFunctionalVolume, theVolumeStem );
-  Volume_GetTimeResolution ( gFunctionalVolume, &theTimeResolution );
-  Volume_GetNumPreStimTimePoints ( gFunctionalVolume, 
-           &theNumPreStimTimePoints );
-
-  // make command strings to update the graph window.
-  sprintf ( theCommandString, "UpdatePath %s",
-      theVolumePath );
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  sprintf ( theCommandString, "UpdateStem %s",
-      theVolumeStem );
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  sprintf ( theCommandString, "UpdateTimeResolution %d",
-      theTimeResolution );
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  sprintf ( theCommandString, "UpdateNumPreStimPoints %d",
-      theNumPreStimTimePoints );
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  // set initial functional vars to a default value
-  GetCursorInVoxelCoords ( gCurFunctionalVoxel );
-  SetCurrentFunctionalVoxel ( gCurFunctionalVoxel );
-  SetCurrentFunctionalTimePoint ( 0 );
-  SetCurrentFunctionalCondition ( 0 );
-  SetCurrentFunctionalThresholdMin ( 50 );
-  SetCurrentFunctionalThresholdMid ( 75 );
-  SetCurrentFunctionalThresholdMax ( 200 );
-}
-
-void DeleteFunctionalData () {
-
-  Volume_ErrorCode theVolumeErr;
-
-  // if we're not allocated, return.
-  if ( !IsFunctionalDataLoaded () ) {
-    DebugPrint "DeleteFunctionalData(): Data isn't loaded.\n" EndDebugPrint;
-    return;
-  }
-
-  // delete the volume.
-  theVolumeErr = Volume_Delete ( &gFunctionalVolume );
-  if ( theVolumeErr != kVolumeErr_NoError ) {
-    DebugPrint "\tError in Volume_Delete: %d, %s\n",
-      theVolumeErr, Volume_GetErrorString(theVolumeErr) EndDebugPrint;
-  }
-
-  // delete voxel
-  Voxel_Delete ( &gCurFunctionalVoxel );
-}
-
-char IsFunctionalDataLoaded () {
-
-  if ( NULL == gFunctionalVolume ) {
-    return FALSE;
-  }
-
-  return TRUE;
-}
-
-void AllowFunctionalModuleToRespondToClick ( VoxelRef inVoxel ) {
-
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "AllowFunctionalModuleToRespondToClick(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  // make this voxel our current functional voxel
-  SetCurrentFunctionalVoxel ( inVoxel );
-}
-
-void SetCurrentFunctionalVoxel ( VoxelRef inVoxel ) {
-
-  int theCondition, theNumConditions;
-  Volume_ErrorCode theVolumeErr;
-  float * theAvgValues, * theDeviations;
-  int theNumTimePoints;
-
-  // copy this voxel.
-  Voxel_Copy ( gCurFunctionalVoxel, inVoxel );
-
-  // find out how big our data arrays have to be.
-  theVolumeErr = 
-    Volume_GetNumTimePoints ( gFunctionalVolume, &theNumTimePoints );
-  if ( theVolumeErr != kVoxelValueListErr_NoErr ) {
-    DebugPrint "\tError in Volume_GetNumTimePoints: %d, %s\n",
-      theVolumeErr, Volume_GetErrorString(theVolumeErr) EndDebugPrint;
-    return;
-  }
-
-  // get the number of conditions
-  theVolumeErr = 
-    Volume_GetNumConditions ( gFunctionalVolume, &theNumConditions );
-  if ( theVolumeErr != kVoxelValueListErr_NoErr ) {
-    DebugPrint "\tError in Volume_GetNumConditions: %d, %s\n",
-      theVolumeErr, Volume_GetErrorString(theVolumeErr) EndDebugPrint;
-    return;
-  }
-
-  // allocate an array of floats to hold the data.
-  theAvgValues = (float*) malloc ( theNumTimePoints*sizeof(float) );
-  if ( NULL == theAvgValues ) {
-    DebugPrint "\tError allocating float storage for %d timepoints.\n",
-      theNumTimePoints EndDebugPrint;
-    return;
-  }
-
-  theDeviations = (float*) malloc ( theNumTimePoints*sizeof(float) );
-  if ( NULL == theDeviations ) {
-    DebugPrint "\tError allocating float storage for %d timepoints.\n",
-      theNumTimePoints EndDebugPrint;
-    return;
-  }
-
-                                   /* we need to update the graph. we have to
-              do this in two stages. first we plot 
-              all the points in all conditions, then
-              we draw all the error bars in all the
-              conditions. we have to plot the points
-              first so that the graph can figure out
-              its axes bounds and autosize itself.
-              this is done automagically by the graph
-              library. our error bars don't have that
-              benefit, so if we draw them first they
-              don't get autosized. */
-
-  // for each condition...
-  for ( theCondition = 0;
-  theCondition < theNumConditions;
-  theCondition++ ) {
-
-    // get the values at all timepoints for this voxel.
-    theVolumeErr = Volume_GetDataForAllTimePoints ( gFunctionalVolume, 
-          gCurFunctionalVoxel, theCondition, theAvgValues );
-
-    if ( theVolumeErr != kVolumeErr_NoError ) {
-  DebugPrint "\tError in Volume_GetDataForAllTimePoints: %d, %s\n",
-      theVolumeErr, Volume_GetErrorString(theVolumeErr) EndDebugPrint;
-      free ( theAvgValues );
-      free ( theDeviations );
-      return;
-    }
-  
-    // if we're normalizing for the prestim values..
-    if ( 0 ) {
-
-      // do it.
-    }
-
-    // tell the graph to draw these values for this condition.
-    SendFunctionalValuesToGraph ( gFunctionalVolume, theCondition, 
-          theNumTimePoints, theAvgValues );
-  }
-
-  // if this volume has error information...
-  if ( Volume_IsErrorDataPresent ( gFunctionalVolume ) ) {
-  
-    // now go through again and send errors.
-    for ( theCondition = 0;
-    theCondition < theNumConditions;
-    theCondition++ ) {
-      
-      // get the deviations at all timepoints.
-      theVolumeErr = Volume_GetDeviationForAllTimePoints 
-  ( gFunctionalVolume, theCondition, theDeviations );
-      
-      if ( theVolumeErr != kVolumeErr_NoError ) {
-  DebugPrint "\tError in Volume_GetDeviationForAllTimePoints: %d, %s\n",
-    theVolumeErr, Volume_GetErrorString(theVolumeErr) EndDebugPrint;
-  free ( theAvgValues );
-  free ( theDeviations );
-  return;
-      }
-      
-      // tell the graph to draw these values for this condition.
-      SendDeviationsToGraph ( gFunctionalVolume, theCondition, 
-            theNumTimePoints, theDeviations );
-    }
-  }
-
-  free ( theAvgValues );
-  free ( theDeviations );
-}
-
-/*
-void GetFunctionalValuesInPlane ( int inPlane, int inPlaneNum,
-          VoxelValueListRef inList ) {
-
-  VoxelValueList_ErrorCode theListErr;
-  VoxelRef theVoxel, theRoundedVoxel;
-  float theValue;
-  char isInPlane;
-
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "GetFunctionalValueAtAnatomicalVoxel(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  Voxel_New ( &theVoxel );
-  Voxel_New ( &theRoundedVoxel );
-
-  // for every point in our own threshold value list...
-  theListErr = kVoxelValueListErr_NoErr;
-  while ( kVoxelValueListErr_NoErr == theListErr ) {
-
-    theListErr = 
-      VoxelValueList_GetNextVoxelAndValue ( gCurFunctionalValueList,
-              theVoxel, &theValue );
-
-    // is this voxel in this plane?
-    isInPlane = FALSE;
-    switch ( inPlane ) {
-    case CORONAL:
-      if ( Voxel_GetZ(theVoxel) == inPlaneNum )
-  isInPlane = TRUE;
-      break;
-    case SAGITTAL:
-      if ( Voxel_GetX(theVoxel) == inPlaneNum )
-  isInPlane = TRUE;
-      break;
-    case HORIZONTAL:
-      if ( Voxel_GetY(theVoxel) == inPlaneNum )
-  isInPlane = TRUE;
-      break;
-    }
-
-    if ( isInPlane ) {
-
-      Voxel_Set ( theRoundedVoxel,
-      rint ( Voxel_GetX(theVoxel) ),
-      rint ( Voxel_GetY(theVoxel) ),
-      rint ( Voxel_GetZ(theVoxel) ) );
-
-      // copy the voxel and value to their list.
-      VoxelValueList_AddVoxelAndValue ( inList, theVoxel, theValue );
-    }
-  }
-
-  Voxel_Delete ( &theVoxel );
-  Voxel_Delete ( &theRoundedVoxel );
-}
-*/
-
-void GetFunctionalValueAtAnatomicalVoxel ( VoxelRef inVoxel,
-             float * outValue ) {
-
-  float theValue;
-  Volume_ErrorCode theErr;
-
-  *outValue = 0;
-
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "GetFunctionalValueAtAnatomicalVoxel(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  // get the value.
-  theErr = Volume_GetData ( gFunctionalVolume, inVoxel, 
-          gCurFunctionalCondition,
-          gCurFunctionalTimePoint,
-          &theValue );
-
-  if ( kVolumeErr_NoError != theErr ) {
-    DebugPrint "\tError in Volume_GetAvgValueAtVoxel: %d, %s\n",
-      theErr, Volume_GetErrorString(theErr) EndDebugPrint;
-    return;
-  }
-
-  // return the value.
-  *outValue = theValue;
-}
-
-void SendFunctionalValuesToGraph ( VolumeRef inVolume,
-           int inCondition, int inNumValues,
-           float *inValues ) {
-
-  char * theCommandString;
-  int theValueIndex;
-  int theTimeSecond;
-
-  // allocate enough space for the commandstring. we limit the float to 
-  // print .5, so alocate 10 + two spaces + 3 chars for index per value
-  // so we can handle an entry like '100 1234.12345 ' and then another 20
-  // for the command name and braces.
-  theCommandString = (char*) malloc ( sizeof(char) * (inNumValues*16) + 20); 
-
-  // sprint the command name, the condition number, and the first brace.
-  sprintf ( theCommandString, "SetGraphData %d {", inCondition );
-
-  // for each value...
-  for ( theValueIndex = 0; theValueIndex < inNumValues; theValueIndex++ ) {
-
-    // get a second from the index
-    Volume_ConvertTimePointToSecond ( gFunctionalVolume,
-              theValueIndex,
-              &theTimeSecond );
-
-    // sprint the time point x value
-    sprintf ( theCommandString, "%s %d %2.5f", theCommandString,
-        theTimeSecond, inValues[theValueIndex] );
-  }
-
-  // sprint the last brace
-  sprintf ( theCommandString, "%s}", theCommandString );
-
-  //  DebugPrint "%s\n", theCommandString EndDebugPrint;
-
-  // send it to the graph.
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  free ( theCommandString );
-}
-
-void SendDeviationsToGraph ( VolumeRef inVolume,
-            int inCondition, int inNumValues,
-            float *inErrors ) {
-
-  char * theCommandString;
-  int theValueIndex;
-
-  // allocate enough space for the commandstring. we limit the float to 
-  // print 2.5, so alocate 7 + two spaces + 3 chars for index per value
-  // and then another 20 for the command name.
-  theCommandString = (char*) malloc ( sizeof(char) * (inNumValues*12) + 20); 
-
-  // sprint the command name, the condition number, and the first brace.
-  sprintf ( theCommandString, "SetGraphErrorBars %d {", inCondition );
-
-  // for each value...
-  for ( theValueIndex = 0; theValueIndex < inNumValues; theValueIndex++ ) {
-
-    // print the errors
-    sprintf ( theCommandString, "%s %f", theCommandString,
-        inErrors[theValueIndex] );
-  }
-
-  // sprint the last brace
-  sprintf ( theCommandString, "%s}", theCommandString );
-
-  //  DebugPrint "%s\n", theCommandString EndDebugPrint;
-
-  // send it to the graph.
-  SendCommandToFunctionalGraph ( theCommandString );
-  
-  free ( theCommandString );
-}
-
-void SendCommandToFunctionalGraph ( char * inCommand ) {
-  
-  int theErr;
-  Tcl_Interp * theInterp;
-
-  // get the interp and send the command.
-  theInterp = GetTCLInterp ();
-
-  if ( NULL != theInterp ) {
-    DebugPrint "Sending cmd: %s\n", inCommand EndDebugPrint;
-    theErr = Tcl_Eval ( theInterp, inCommand );
-    if ( *theInterp->result != 0 ) {
-      DebugPrint "Cmd: %s\n", inCommand EndDebugPrint;
-      DebugPrint "\tResult: %s\n", theInterp->result EndDebugPrint;
-    }
-    if ( TCL_OK != theErr ) {
-      DebugPrint "Cmd: %s\n", inCommand EndDebugPrint;
-      DebugPrint "\tCommand did not return OK.\n" EndDebugPrint;
-      DebugPrint "\tResult: %s\n", theInterp->result EndDebugPrint;
-    }
-  }
-}
-
-void CalcFunctionalOverlayColor ( float inValue, float inOffset,
-          unsigned char *outRed,
-          unsigned char *outGreen,
-          unsigned char *outBlue ) {
-
-
-  float f, r, g, b;
-  float min, mid, max;
-  
-  f = inValue;
-  r = g = b = 0;
-  min = gCurFunctionalThresholdMin;
-  mid = gCurFunctionalThresholdMid;
-  max = gCurFunctionalThresholdMax;
-
-  if (f>=0) {
-    r = (f<min) ? 0 : (f<mid) ? (f-min)/(mid-min) : 1;
-    g = (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1;
-    b = 0;
-  } else {
-    f = -f;
-    b = (f<min) ? 0 : (f<mid) ? (f-min)/(mid-min) : 1;
-    g = (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1;
-    r = 0;
-  }
-
-  *outRed = r*255;
-  *outGreen = g*255;
-  *outBlue = b*255;
-
-}
-
-
-
-void CopyCurrentFunctionalStateString ( char * inString ) {
-
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "CopyCurrentFunctionalStateString(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  // make a string of the current state and copy it in to the string.
-  sprintf ( inString,
-      "Current functional time point: %d condition: %d threshold: %f-%f-%f\n",
-      gCurFunctionalTimePoint, gCurFunctionalCondition,
-      gCurFunctionalThresholdMin, gCurFunctionalThresholdMid,
-      gCurFunctionalThresholdMax );
-}
-
-void SetCurrentFunctionalDisplayStatus ( char inIsDisplay ) {
-
-  char theCommandString [128];
-
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "SetCurrentFunctionalDisplayStatus(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  DebugPrint "SetCurrentFunctionalDisplayStatus ( %d )\n",
-    inIsDisplay EndDebugPrint;
-
-  // set it
-  gIsDisplayFunctionalOverlay = inIsDisplay;
-
-  // tell the graph window to upate.
-  sprintf ( theCommandString, "UpdateDisplayStatus %d",
-      gIsDisplayFunctionalOverlay );
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  // redraw tkmedit window.
-  redraw ();
-
-}
-
-void SetCurrentFunctionalTimeResolution ( int inTimeResolution ) {
-
-  char theCommandString[128];
-  int theNewTimeResolution;
-  Volume_ErrorCode theErr;
-
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "SetCurrentFunctionalTimeSecond(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  DebugPrint "SetCurrentFunctionalTimeResolution ( %d )\n",
-    inTimeResolution EndDebugPrint;
-
-  // set it in the volume.
-  theErr = Volume_SetTimeResolution ( gFunctionalVolume, inTimeResolution );
-  if ( kVolumeErr_NoError != theErr ) {
-    DebugPrint "\tError in Volume_SetTimeResolution: %d, %s\n",
-      theErr, Volume_GetErrorString(theErr) EndDebugPrint;
-  }
-
-  // get the new value
-  theErr = Volume_GetTimeResolution (gFunctionalVolume,&theNewTimeResolution );
-  if ( kVolumeErr_NoError != theErr ) {
-    DebugPrint "\tError in Volume_GetTimeResolution: %d, %s\n",
-      theErr, Volume_GetErrorString(theErr) EndDebugPrint;
-  }
-
-  // make sure our curent time point is in range.
-  if ( !Volume_IsTimePointValid ( gFunctionalVolume,
-          gCurFunctionalTimePoint ) ){
-
-    // if not set it to 0
-    SetCurrentFunctionalTimePoint ( 0 );
-  }
-    
-  // tell the graph window to upate.
-  sprintf ( theCommandString, "UpdateTimeResolution %d",
-      theNewTimeResolution );
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  // reset the current functional voxel. this has the effect of recalcing
-  // the xaxis values and resending the graph data.
-  SetCurrentFunctionalVoxel ( gCurFunctionalVoxel );
-}
-
-void SetCurrentFunctionalNumPreStimPoints ( int inNumPreStimPoints ) {
-
-  char theCommandString[128];
-  int theNewNumPreStimTimePoints;
-  Volume_ErrorCode theErr;
-  
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "SetCurrentFunctionalTimeSecond(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  DebugPrint "SetCurrentFunctionalNumPreStimPoints ( %d )\n",
-    inNumPreStimPoints EndDebugPrint;
-
-  // set it in the volume.
-  theErr = Volume_SetNumPreStimTimePoints
-    ( gFunctionalVolume, inNumPreStimPoints );
-  if ( kVolumeErr_NoError != theErr ) {
-    DebugPrint "\tError in Volume_SetNumPreStimTimePoints: %d, %s\n",
-      theErr, Volume_GetErrorString(theErr) EndDebugPrint;
-  }
-
-  // get the new value
-  theErr = Volume_GetNumPreStimTimePoints
-    ( gFunctionalVolume, &theNewNumPreStimTimePoints );
-  if ( kVolumeErr_NoError != theErr ) {
-    DebugPrint "\tError in Volume_GetNumPreStimTimePoints: %d, %s\n",
-      theErr, Volume_GetErrorString(theErr) EndDebugPrint;
-  }
-
-  // tell the graph window to upate.
-  sprintf ( theCommandString, "UpdateNumPreStimPoints %d",
-      theNewNumPreStimTimePoints );
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  // reset the current functional voxel. this has the effect of recalcing
-  // the xaxis values and resending the graph data.
-  SetCurrentFunctionalVoxel ( gCurFunctionalVoxel );}
-
-
-void SetCurrentFunctionalTimeSecond ( int inSecond ) {
-
-  int theTimeResolution, theFirstTimePoint;
-  int theTimePoint;
-
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "SetCurrentFunctionalTimeSecond(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  DebugPrint "SetCurrentFunctionalTimeSecond ( %d )\n",
-    inSecond EndDebugPrint;
-
-  // calc the first time and resolution.
-  theTimeResolution = gFunctionalVolume->mTimeResolution;
-  theFirstTimePoint = -(gFunctionalVolume->mNumPreStimTimePoints
-      * theTimeResolution);
-
-  // subtract the first point and divide by the resolution
-  theTimePoint = (inSecond - theFirstTimePoint) / theTimeResolution;
-
-  // set it.
-  SetCurrentFunctionalTimePoint ( theTimePoint );
-}
-
-void SetCurrentFunctionalTimePoint ( int inTimePoint ) {
-
-  int theTimeSecond;
-  char theCommandString[128];
-
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "SetCurrentFunctionalTimePoint(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  // if valid...
-  if ( Volume_IsTimePointValid ( gFunctionalVolume, inTimePoint ) ) {
-    
-    // set it.
-    gCurFunctionalTimePoint = inTimePoint;
-    
-  } else {
-
-    // error message.
-    OutputPrint "%d is an invalid time point.", inTimePoint EndOutputPrint;
-  }
-
-  // calc the time second
-  Volume_ConvertTimePointToSecond ( gFunctionalVolume, inTimePoint,
-            &theTimeSecond );
-
-  // tell the graph window to upate.
-  sprintf ( theCommandString, "UpdateTimePoint %d %d",
-      gCurFunctionalTimePoint, theTimeSecond );
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  // redraw tkmedit window.
-  redraw ();
-}
-
-void SetCurrentFunctionalCondition ( int inCondition ) {
-
-  char theCommandString[128];
-
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "SetCurrentFunctionalCondition(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  // if valid...
-  if ( Volume_IsConditionIndexValid ( gFunctionalVolume, inCondition ) ) {
-
-    // set it.
-    gCurFunctionalCondition = inCondition;
-    
-  } else {
-
-    // error message.
-    OutputPrint "%d is an invalid condition.", inCondition EndOutputPrint;
-  }
-
-  // send update to graph
-  sprintf ( theCommandString, "UpdateCondition %d", gCurFunctionalCondition );
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  // redraw tkmedit window.
-  redraw ();
-}
-
-void SetCurrentFunctionalThresholdMin ( float inThreshold ) {
-
-  char theCommandString [128];
-  
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "SetCurrentFunctionalThresholdMin(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  // set it.
-  gCurFunctionalThresholdMin = inThreshold;
-
-  // make sure mid and max are above it.
-  if ( gCurFunctionalThresholdMid <= gCurFunctionalThresholdMin ) {
-    SetCurrentFunctionalThresholdMid ( gCurFunctionalThresholdMin + 0.5 );
-  }
-  if ( gCurFunctionalThresholdMax <= gCurFunctionalThresholdMin ) {
-    SetCurrentFunctionalThresholdMax ( gCurFunctionalThresholdMin + 1 );
-  }
-
-  // send update to graph
-  sprintf ( theCommandString, "UpdateThresholdMin %f", 
-      gCurFunctionalThresholdMin );
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  // redraw the tkmedit window.
-  redraw ();
-}
- 
-void SetCurrentFunctionalThresholdMid ( float inThreshold ) {
-
-  char theCommandString [128];
-  
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "SetCurrentFunctionalThresholdMid(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  // set it.
-  gCurFunctionalThresholdMid = inThreshold;
-
-  // make sure min and max are on either sides of it it.
-  if ( gCurFunctionalThresholdMin >= gCurFunctionalThresholdMid ) {
-    SetCurrentFunctionalThresholdMin ( gCurFunctionalThresholdMid - 0.5 );
-  }
-  if ( gCurFunctionalThresholdMax <= gCurFunctionalThresholdMid ) {
-    SetCurrentFunctionalThresholdMax ( gCurFunctionalThresholdMid + 0.5 );
-  }
-
-  // send update to graph
-  sprintf ( theCommandString, "UpdateThresholdMid %f", 
-      gCurFunctionalThresholdMid );
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  // redraw the tkmedit window.
-  redraw ();
-}
- 
-void SetCurrentFunctionalThresholdMax ( float inThreshold ) {
-
-  char theCommandString [128];
-  
-  // if we don't have functional data, return.
-  if ( !IsFunctionalDataLoaded() ) {
-    DebugPrint "SetCurrentFunctionalThresholdMax(): Data isn't loaded."
-      EndDebugPrint;
-    return;
-  }
-
-  // set it.
-  gCurFunctionalThresholdMax = inThreshold;
-
-  // make sure mid and max are below it.
-  if ( gCurFunctionalThresholdMin >= gCurFunctionalThresholdMax ) {
-    SetCurrentFunctionalThresholdMin ( gCurFunctionalThresholdMax - 1.0 );
-  }
-  if ( gCurFunctionalThresholdMid >= gCurFunctionalThresholdMax ) {
-    SetCurrentFunctionalThresholdMid ( gCurFunctionalThresholdMax - 0.5 );
-  }
-
-  // send update to graph
-  sprintf ( theCommandString, "UpdateThresholdMax %f", 
-      gCurFunctionalThresholdMax );
-  SendCommandToFunctionalGraph ( theCommandString );
-
-  // redraw the tkmedit window.
-  redraw ();
-}
- 
 // ===========================================================================
 
 // ========================================================= SELECTING REGIONS
@@ -11187,7 +10154,7 @@ void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
                   int *xi, int *yi, int *zi ) {  // outgoing voxel coords
 
   // call the function in mritransform.
-  trans_RASToVoxel ( x, y, z, xi, yi, zi );
+  trans_RASToVoxelIndex ( x, y, z, xi, yi, zi );
 
   // check our bounds...
   if ( ! IsVoxelInBounds ( *xi, *yi, *zi ) ) {
@@ -11200,6 +10167,7 @@ void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
 void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
                   Real *x, Real *y, Real *z ) {  // outgoing RAS coords
 
+  // check our bounds...
   if ( ! IsVoxelInBounds ( xi, yi, zi ) ) {
 
     // try not to crash.
@@ -11208,7 +10176,7 @@ void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
   }
 
   // call the function in mritransform.
-  trans_VoxelToRAS ( xi, yi, zi, x, y, z );
+  trans_VoxelIndexToRAS ( xi, yi, zi, x, y, z );
 }
 
                                        /* convert ras coords to the two
@@ -11295,26 +10263,9 @@ void RASToScreen ( Real inRASX, Real inRASY, Real inRASZ,
   rYDim = (Real) ydim;
   rXDim = (Real) xdim;
 
-  // adjust where necessary for rounding. i don't know why this works, but it
-  // does.
-  switch ( inPlane ) {
-  case CORONAL:
-    inRASX -= 0.5;
-    break;
-  case HORIZONTAL:
-    inRASX -= 0.5;
-    inRASY += 0.5;
-    inRASZ += 0.5;
-    break;
-  case SAGITTAL:
-    inRASX -= 0.5;
-    inRASZ -= 0.5;
-    break;
-  }
-
   // first get our voxel x y and z in real form.
-  theRealVoxX = (Real) ( (xx1-(inRASX)) / ps );
-  theRealVoxY = (Real) (( (zz1-inRASZ)/ps ) - 255.0 + ( (rYDim - 1.0) / fsf ));
+  theRealVoxX = (Real) ( (xx1-inRASX) / ps );
+  theRealVoxY = (Real) ( (zz1-inRASZ) / ps );
   theRealVoxZ = (Real) ( (inRASY-yy0) / st );
 
   // then convert them to screen pts
@@ -11396,7 +10347,6 @@ void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
     theRealVoxZ =
       ( rScreenZ / fsf );
 
-    theRealVoxX -= 0.5;
     break;
     
   case HORIZONTAL:
@@ -11407,9 +10357,6 @@ void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
     theRealVoxZ =
       (rScreenZ / fsf / rLocalZoom) + (rCenterZ - rHalfScreen);
 
-    theRealVoxX -= 0.5;
-    theRealVoxY += 0.5;
-    theRealVoxZ -= 0.5;
     break;
     
   case SAGITTAL:
@@ -11420,8 +10367,6 @@ void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
     theRealVoxZ =
       (rScreenZ / fsf / rLocalZoom) + (rCenterZ - rHalfScreen);
 
-    theRealVoxZ -= 0.5;
-    //    theRealVoxY += 0.5;
     break;
 
   default:
@@ -11431,7 +10376,7 @@ void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
   // voxel to ras
   *outRASX = (Real) (xx1 - (ps * theRealVoxX));
   *outRASY = (Real) (yy0 + (st * theRealVoxZ));
-  *outRASZ = (Real) (zz1 - (ps * (255.0 - ((rYDim-1.0)/fsf) + theRealVoxY)));
+  *outRASZ = (Real) (zz1 - (ps * theRealVoxY));
 
   // do some bounds checking
   if ( ! IsRASPointInBounds ( *outRASX, *outRASY, *outRASZ ) ) {
@@ -11733,7 +10678,7 @@ void PrintScreenPointInformation ( int j, int i, int ic ) {
                       &theTalX, &theTalY, &theTalZ );
 
     // and print it
-    printf ( " Talairch (%2.1f,%2.1f,%2.1f)",
+    printf ( " Talairach (%2.1f,%2.1f,%2.1f)",
              theTalX, theTalY, theTalZ );
   }
 
@@ -11759,9 +10704,9 @@ void PrintScreenPointInformation ( int j, int i, int ic ) {
 
   // check for the other functional value...
   Voxel_Set ( theVoxel, theVoxX, theVoxY, theVoxZ );
-  if ( IsFunctionalDataLoaded() ) {
+  if ( FuncDis_IsDataLoaded() ) {
 
-    GetFunctionalValueAtAnatomicalVoxel ( theVoxel, &theFunctionalValue );
+    FuncDis_GetValueAtAnatomicalVoxel ( theVoxel, &theFunctionalValue );
     OutputPrint "\nFunctional value: %2.5f\n", 
       theFunctionalValue EndOutputPrint;
   }
@@ -11846,6 +10791,30 @@ Tcl_Interp * GetTCLInterp () {
 
   return gTCLInterp;
 }
+
+void SendTCLCommand ( char * inCommand ) {
+  
+  int theErr;
+  Tcl_Interp * theInterp;
+
+  // get the interp and send the command.
+  theInterp = GetTCLInterp ();
+
+  if ( NULL != theInterp ) {
+    DebugPrint "Sending cmd: %s\n", inCommand EndDebugPrint;
+    theErr = Tcl_Eval ( theInterp, inCommand );
+    if ( *theInterp->result != 0 ) {
+      DebugPrint "Cmd: %s\n", inCommand EndDebugPrint;
+      DebugPrint "\tResult: %s\n", theInterp->result EndDebugPrint;
+    }
+    if ( TCL_OK != theErr ) {
+      DebugPrint "Cmd: %s\n", inCommand EndDebugPrint;
+      DebugPrint "\tCommand did not return OK.\n" EndDebugPrint;
+      DebugPrint "\tResult: %s\n", theInterp->result EndDebugPrint;
+    }
+  }
+}
+
 
 
 inline
