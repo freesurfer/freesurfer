@@ -15,7 +15,7 @@ function m = fast_ldbhdr(bhdrfile);
 %
 % See also fast_svbhdr and fast_mri_struct.
 %
-% $Id: fast_ldbhdr.m,v 1.2 2003/08/02 00:56:29 greve Exp $
+% $Id: fast_ldbhdr.m,v 1.3 2003/08/11 23:43:02 greve Exp $
 
 m = [];
 
@@ -80,6 +80,8 @@ end % while (1)
 fclose(fid);
 %---------------------------------------------%
 
+m.voldim = [ncols nrows nslices]'; %'
+
 TL = [tlr tla tls]';
 TR = [trr tra trs]';
 BR = [brr bra brs]';
@@ -103,7 +105,6 @@ row_res = row_fov/nrows;
 m.cdc = (TR-TL)/col_fov;
 m.rdc = (BR-TR)/row_fov;
 
-m.voldim = [ncols nrows nslices]'; %'
 m.volres = [col_res row_res thickness]';%'
 m.P0 = TL; % Assumes TL is center, not edge
 Mdc = [m.cdc m.rdc m.sdc];
