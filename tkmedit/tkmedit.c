@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/08 15:44:13 $
-// Revision       : $Revision: 1.175 $
-char *VERSION = "$Revision: 1.175 $";
+// Revision Date  : $Date: 2003/09/09 18:58:59 $
+// Revision       : $Revision: 1.176 $
+char *VERSION = "$Revision: 1.176 $";
 
 #define TCL
 #define TKMEDIT 
@@ -215,7 +215,7 @@ void ExtractVolumeName  ( char* isDataSource,
 /* only tries to prepend subdirectories if this flag is true. it is set to
    false if -f is used on the command line. */
 tBoolean gEnableFileNameGuessing = TRUE;
-
+tBoolean gGuessWarningSent = FALSE;
 
 // ==========================================================================
 
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.175 2003/09/08 15:44:13 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.176 2003/09/09 18:58:59 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2568,6 +2568,25 @@ void WriteVoxelToControlFile ( xVoxelRef iAnaIdx ) {
   /* make the file name */
   MakeFileName( "control.dat", tkm_tFileName_ControlPoints, 
     sFileName, sizeof(sFileName) );
+  
+  /* If the file name we got is ./control.dat, it means we couldn't
+     find a home directory for the subject and the file will be saved
+     locally. Warn the user of this. */
+  if( 0 == strcmp( sFileName, "./control.dat" )) {
+    if( !gGuessWarningSent ) {
+      gGuessWarningSent = TRUE;
+      tkm_DisplayError( "No Home Directory",
+			"Couldn't guess home directory",
+			"You specified the -f file to load a subject and "
+			"I can't guess the home directory from the "
+			"path. Therefore, I can't automatically save "
+			"the control points file in the proper place. "
+			"It is now in the directory from which you started "
+			"tkmedit. When you're done, you will need to move "
+			"the file control.dat to the appropriate place "
+			"in the subject directory, usually subject/tmp/." );
+    }
+  }
   
   /* open it */
   DebugNote( ("Opening control point file") );
@@ -5847,7 +5866,26 @@ void WriteControlPointFile ( ) {
   /* make the file name */
   DebugNote( ("Making file name from control.dat") );
   MakeFileName( "control.dat", tkm_tFileName_ControlPoints, 
-    sFileName, sizeof(sFileName) );
+		sFileName, sizeof(sFileName) );
+
+  /* If the file name we got is ./control.dat, it means we couldn't
+     find a home directory for the subject and the file will be saved
+     locally. Warn the user of this. */
+  if( 0 == strcmp( sFileName, "./control.dat" )) {
+    if( !gGuessWarningSent ) {
+      gGuessWarningSent = TRUE;
+      tkm_DisplayError( "No Home Directory",
+			"Couldn't guess home directory",
+			"You specified the -f file to load a subject and "
+			"I can't guess the home directory from the "
+			"path. Therefore, I can't automatically save "
+			"the control points file in the proper place. "
+			"It is now in the directory from which you started "
+			"tkmedit. When you're done, you will need to move "
+			"the file control.dat to the appropriate place "
+			"in the subject directory, usually subject/tmp/." );
+    }
+  }
   
   /* open for writing. position file ptr at beginning of file. */
   DebugNote( ("Opening control point file") );
@@ -6706,7 +6744,7 @@ void MakeFileName ( char*     isInput,
     } else {
       xUtil_snprintf(sFileName,sizeof(sFileName), "./%s", isInput);
       /* xUtil_strncpy( sFileName, isInput, sizeof(sFileName) ); */
-    }     
+    }
     break;
   }
   
