@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.16 2004/02/18 00:31:59 greve Exp $
+  $Id: mri_surf2surf.c,v 1.17 2004/02/23 03:59:08 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -32,6 +32,23 @@
 #include "prime.h"
 #include "version.h"
 
+double MRISareaTriangle(double x0, double y0, double z0, 
+			double x1, double y1, double z1, 
+			double x2, double y2, double z2);
+int MRIStriangleAngles(double x0, double y0, double z0, 
+		       double x1, double y1, double z1, 
+		       double x2, double y2, double z2,
+		       double *a0, double *a1, double *a2);
+MRI *MRISdiffusionWeights(MRIS *surf);
+MRI *MRISdiffusionSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ);
+int MRISareNeighbors(MRIS *surf, int vtxno1, int vtxno2);
+
+double MRISdiffusionEdgeWeight(MRIS *surf, int vtxno0, int vtxnonbr);
+double MRISsumVertexFaceArea(MRIS *surf, int vtxno);
+int MRIScommonNeighbors(MRIS *surf, int vtxno1, int vtxno2, 
+			int *cvtxno1, int *cvtxno2);
+int MRISdumpVertexNeighborhood(MRIS *surf, int vtxno);
+
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -47,7 +64,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.16 2004/02/18 00:31:59 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.17 2004/02/23 03:59:08 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -89,6 +106,7 @@ double fwhm=0, gstd;
 
 double fwhm_Input=0, gstd_Input=0;
 int nSmoothSteps_Input = 0;
+int usediff = 0;
 
 int debug = 0;
 
@@ -111,9 +129,12 @@ int main(int argc, char **argv)
   int nTrgMulti,nSrcMulti;
   float MnTrgMultiHits,MnSrcMultiHits;
   int nargs;
+  FACE *face;
+  VERTEX *vtx0,*vtx1,*vtx2;
+  double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.16 2004/02/18 00:31:59 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.17 2004/02/23 03:59:08 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -160,7 +181,21 @@ int main(int argc, char **argv)
   }
   if (!SrcSurfReg)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, fname) ;
-  printf("Done\n");
+
+  MRIScomputeMetricProperties(SrcSurfReg);
+  for(n = 0; n < SrcSurfReg->nfaces && 0; n++){
+    face = &SrcSurfReg->faces[n];
+    vtx0 = &SrcSurfReg->vertices[face->v[0]];
+    vtx1 = &SrcSurfReg->vertices[face->v[1]];
+    vtx2 = &SrcSurfReg->vertices[face->v[2]];
+    area = MRISareaTriangle(vtx0->x,vtx0->y,vtx0->z,
+			    vtx1->x,vtx1->y,vtx1->z,
+			    vtx2->x,vtx2->y,vtx2->z);
+    MRIStriangleAngles(vtx0->x,vtx0->y,vtx0->z,
+		       vtx1->x,vtx1->y,vtx1->z,
+		       vtx2->x,vtx2->y,vtx2->z,&a0,&a1,&a2);
+    printf("n=%d, area = %f, %f %f %f   %f\n",n,face->area,a0,a1,a2,a0+a1+a2);
+  }
 
   /* ------------------ load the source data ----------------------------*/
   printf("Loading source data\n");
@@ -223,7 +258,6 @@ int main(int argc, char **argv)
     fprintf(stderr,"ERROR loading source values from %s\n",srcvalfile);
     exit(1);
   }
-  printf("Done\n");
 
   /* Smooth input if desired */
   if(nSmoothSteps_Input > 0){
@@ -233,7 +267,8 @@ int main(int argc, char **argv)
   if(fwhm_Input > 0){
     printf("Gaussian smoothing input with fwhm = %g, std = %g\n",
 	   fwhm_Input,gstd_Input);
-    MRISgaussianSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals, 3.0);
+    if(!usediff) MRISgaussianSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals, 3.0);
+    if(usediff)  MRISdiffusionSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals);
   }
 
   if(strcmp(srcsubject,trgsubject)){
@@ -365,14 +400,14 @@ int main(int argc, char **argv)
   else {
     if(reshape){
       if(reshapefactor == 0) 
-  reshapefactor = GetClosestPrimeFactor(TrgVals->width,6);
+	reshapefactor = GetClosestPrimeFactor(TrgVals->width,6);
       
       printf("Reshaping %d (nvertices = %d)\n",reshapefactor,TrgVals->width);
       mritmp = mri_reshape(TrgVals, TrgVals->width / reshapefactor, 
-         1, reshapefactor,TrgVals->nframes);
+			   1, reshapefactor,TrgVals->nframes);
       if(mritmp == NULL){
-  printf("ERROR: mri_reshape could not alloc\n");
-  return(1);
+	printf("ERROR: mri_reshape could not alloc\n");
+	return(1);
       }
       MRIfree(&TrgVals);
       TrgVals = mritmp;
@@ -413,6 +448,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nohash")) UseHash = 0;
     else if (!strcasecmp(option, "--noreshape")) reshape = 0;
     else if (!strcasecmp(option, "--reshape"))   reshape = 1;
+    else if (!strcasecmp(option, "--usediff"))   usediff = 1;
+    else if (!strcasecmp(option, "--nousediff")) usediff = 0;
 
     /* -------- source value inputs ------ */
     else if (!strcmp(option, "--srcsubject")){
@@ -745,6 +782,8 @@ static void dump_options(FILE *fp)
   fprintf(fp,"surfreg    = %s\n",surfreg);
   fprintf(fp,"hemi       = %s\n",hemi);
   fprintf(fp,"frame      = %d\n",framesave);
+  fprintf(fp,"fwhm-in    = %g\n",fwhm_Input);
+  fprintf(fp,"fwhm-out   = %g\n",fwhm);
   return;
 }
 /* --------------------------------------------- */
@@ -923,4 +962,275 @@ int GetICOOrderFromValFile(char *filename, char *fmt)
   }
   
   return(IcoOrder);
+}
+/*---------------------------------------------------------------
+  See also mrisTriangleArea() in mrisurf.c
+  ---------------------------------------------------------------*/
+double MRISareaTriangle(double x0, double y0, double z0, 
+			double x1, double y1, double z1, 
+			double x2, double y2, double z2)
+{
+  double xx, yy, zz, a;
+      
+  xx = (y1-y0)*(z2-z0) - (z1-z0)*(y2-y0);
+  yy = (z1-z0)*(x2-x0) - (x1-x0)*(z2-z0);
+  zz = (x1-x0)*(y2-y0) - (y1-y0)*(x2-x0);
+      
+  a = 0.5 * sqrt( xx*xx + yy*yy + zz*zz );
+  return(a);
+}
+/*------------------------------------------------------------*/
+int MRIStriangleAngles(double x0, double y0, double z0, 
+		       double x1, double y1, double z1, 
+		       double x2, double y2, double z2,
+		       double *a0, double *a1, double *a2)
+{
+  double d0, d1, d2, d0s, d1s, d2s;
+      
+  /* dN is the distance of the segment opposite vertex N*/
+  d0s = (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2);
+  d1s = (x0-x2)*(x0-x2) + (y0-y2)*(y0-y2) + (z0-z2)*(z0-z2);
+  d2s = (x0-x1)*(x0-x1) + (y0-y1)*(y0-y1) + (z0-z1)*(z0-z1);
+  d0 = sqrt(d0s);
+  d1 = sqrt(d1s);
+  d2 = sqrt(d2s);
+
+  /* Law of cosines */
+  *a0 = acos( -(d0s-d1s-d2s)/(2*d1*d2) );
+  *a1 = acos( -(d1s-d0s-d2s)/(2*d0*d2) );
+  *a2 = M_PI - (*a0 + *a1);
+
+  return(0);
+}
+/*------------------------------------------------------------*/
+MRI *MRISdiffusionWeights(MRIS *surf)
+{
+  MRI *w;
+  int nnbrsmax, nnbrs, vtxno, vtxnonbr;
+  double area, wtmp;
+
+  /* count the maximum number of neighbors */
+  nnbrsmax = surf->vertices[0].vnum;
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++)
+    if(nnbrsmax < surf->vertices[vtxno].vnum) 
+      nnbrsmax = surf->vertices[vtxno].vnum;
+  printf("nnbrsmax = %d\n",nnbrsmax);
+
+  w = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, nnbrsmax);
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
+    area = MRISsumVertexFaceArea(surf, vtxno);
+    nnbrs = surf->vertices[vtxno].vnum;
+    printf("%d %6.4f   ",vtxno,area);
+    for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+      vtxnonbr = surf->vertices[vtxno].v[nthnbr];
+      wtmp = MRISdiffusionEdgeWeight(surf, vtxno, vtxnonbr);
+      MRIFseq_vox(w,vtxno,0,0,nthnbr) = (float)wtmp/area;
+      printf("%6.4f ",wtmp);
+    }    
+    printf("\n");
+    MRISdumpVertexNeighborhood(surf,vtxno);
+  }
+
+  exit(1);
+
+  return(w);
+}
+/*----------------------------------------------------------------------*/
+MRI *MRISdiffusionSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ)
+{
+  MRI *w, *SrcTmp;
+  double FWHM;
+  float wtmp,val,val0,valnbr;
+  int vtxno, nthnbr, nbrvtxno, Niters, nthiter;
+
+  if(Surf->nvertices != Src->width){
+    printf("ERROR: MRISgaussianSmooth: Surf/Src dimension mismatch\n");
+    return(NULL);
+  }
+
+  if(Targ == NULL){
+    Targ = MRIallocSequence(Src->width, Src->height, Src->depth, 
+            MRI_FLOAT, Src->nframes);
+    if(Targ==NULL){
+      printf("ERROR: MRISgaussianSmooth: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(Src->width   != Targ->width  || 
+       Src->height  != Targ->height || 
+       Src->depth   != Targ->depth  ||
+       Src->nframes != Targ->nframes){
+      printf("ERROR: MRISgaussianSmooth: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(Targ->type != MRI_FLOAT){
+      printf("ERROR: MRISgaussianSmooth: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  /* Make a copy in case it's done in place */
+  SrcTmp = MRIcopy(Src,NULL);
+
+  /* Compute the weights */
+  w = MRISdiffusionWeights(Surf);
+
+  FWHM = GStd*sqrt(log(256.0));
+  Niters = (int)((FWHM*FWHM)/(16*log(2)));
+  printf("Niters = %d, GStd = %g, FWHM = %g\n",Niters,GStd,FWHM);
+  for(nthiter = 0; nthiter < Niters; nthiter ++){
+    //printf("Step = %d\n",nthiter); fflush(stdout);
+
+    for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
+      nnbrs = Surf->vertices[vtxno].vnum;
+
+      for(frame = 0; frame < Targ->nframes; frame ++){
+	val0 = MRIFseq_vox(SrcTmp,vtxno,0,0,frame);
+	val = val0;
+	printf("%2d %5d %7.4f   ",nthiter,vtxno,val0);
+	for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+	  nbrvtxno = Surf->vertices[vtxno].v[nthnbr];
+	  valnbr = MRIFseq_vox(SrcTmp,nbrvtxno,0,0,frame) ;
+	  wtmp = MRIFseq_vox(w,vtxno,0,0,nthnbr);
+	  val += wtmp*(valnbr-val0);
+	  printf("%6.4f ",wtmp);
+	}/* end loop over neighbor */
+	printf("   %7.4f\n",val);
+
+	MRIFseq_vox(Targ,vtxno,0,0,frame) = val;
+      }/* end loop over frame */
+      
+    } /* end loop over vertex */
+    
+    MRIcopy(Targ,SrcTmp);
+  }/* end loop over smooth step */
+  
+  MRIfree(&SrcTmp);
+  MRIfree(&w);
+  
+  return(Targ);
+}
+/*-------------------------------------------------------------
+  MRISareNeighbors() - tests whether two vertices are neighbors.
+  -------------------------------------------------------------*/
+int MRISareNeighbors(MRIS *surf, int vtxno1, int vtxno2)
+{
+  int nnbrs, nthnbr, nbrvtxno;
+  nnbrs = surf->vertices[vtxno1].vnum;
+  for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+    nbrvtxno = surf->vertices[vtxno1].v[nthnbr];
+    if(nbrvtxno == vtxno2) return(1);
+  }
+  return(0);
+}
+/*-------------------------------------------------------------
+  MRIScommonNeighbors() - returns the vertex numbers of the two 
+  vertices that are common neighbors of the the two vertices 
+  listed.
+  -------------------------------------------------------------*/
+int MRIScommonNeighbors(MRIS *surf, int vtxno1, int vtxno2, 
+			int *cvtxno1, int *cvtxno2)
+{
+  int nnbrs, nthnbr, nbrvtxno;
+  
+  *cvtxno1 = -1;
+  nnbrs = surf->vertices[vtxno1].vnum;
+  for(nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
+    nbrvtxno = surf->vertices[vtxno1].v[nthnbr];
+    if(nbrvtxno == vtxno2) continue;
+    if(MRISareNeighbors(surf,nbrvtxno,vtxno2)){
+      if(*cvtxno1 == -1) *cvtxno1 = nbrvtxno;
+      else{
+	*cvtxno2 = nbrvtxno;
+	return(0);
+      }
+    }
+  }
+  return(0);
+}
+/*-------------------------------------------------------------------------
+  MRISdiffusionEdgeWeight() - computes the unnormalized weight of an
+  edge needed for diffusion-based smoothing on the surface. The actual
+  weight must be divided by the area of all the traingles surrounding
+  the center vertex. See Chung 2003. 
+  ----------------------------------------------------------------------*/
+double MRISdiffusionEdgeWeight(MRIS *surf, int vtxno0, int vtxnonbr)
+{
+  int cvtxno1, cvtxno2;
+  VERTEX *v0, *vnbr, *cv1, *cv2;
+  double a0, a1, btmp, ctmp, w;
+
+  MRIScommonNeighbors(surf, vtxno0, vtxnonbr, &cvtxno1, &cvtxno2);
+
+  v0   = &surf->vertices[vtxno0];
+  vnbr = &surf->vertices[vtxnonbr];
+  cv1  = &surf->vertices[cvtxno1];
+  cv2  = &surf->vertices[cvtxno2];
+
+  MRIStriangleAngles(cv1->x,cv1->y,cv1->z, v0->x,v0->y,v0->z,
+		     vnbr->x,vnbr->y,vnbr->z, &a0,&btmp,&ctmp);
+  MRIStriangleAngles(cv2->x,cv2->y,cv2->z, v0->x,v0->y,v0->z,
+		     vnbr->x,vnbr->y,vnbr->z, &a1,&btmp,&ctmp);
+  w = 1/tan(a0) + 1/tan(a1);
+  return(w);
+}
+/*-------------------------------------------------------------------------
+  MRISvertexSumFaceArea() - sum the area of the faces that the given
+  vertex is part of.
+  ----------------------------------------------------------------------*/
+double MRISsumVertexFaceArea(MRIS *surf, int vtxno)
+{
+  int n, nfvtx;
+  FACE *face;
+  double area;
+
+  area = 0;
+  nfvtx = 0;
+  for(n = 0; n < surf->nfaces; n++){
+    face = &SrcSurfReg->faces[n];
+    if(face->v[0] == vtxno || face->v[1] == vtxno || face->v[2] == vtxno){
+      area += face->area;
+      nfvtx ++;
+    }
+  }
+
+  if(surf->vertices[vtxno].vnum != nfvtx){
+    printf("ERROR: MRISsumVertexFaceArea: number of adjacent faces (%d) "
+	   "does not equal number of neighbors (%d)\n",
+	   nfvtx,surf->vertices[vtxno].vnum);
+    exit(1);
+  }
+
+  return(area);
+}
+/*-------------------------------------------------------------------------
+  MRISdumpVertexNeighborhood() 
+  ----------------------------------------------------------------------*/
+int MRISdumpVertexNeighborhood(MRIS *surf, int vtxno)
+{
+  int  nnbrs, nthnbr, nbrvtxno, nnbrnbrs, nthnbrnbr, nbrnbrvtxno;
+  VERTEX *v0, *v;
+
+  v0 = &surf->vertices[vtxno];
+  nnbrs = surf->vertices[vtxno].vnum;
+
+  printf("  seed vtx %d vc = [%6.3f %6.3f %6.3f], nnbrs = %d\n",vtxno,
+	 v0->x,v0->y,v0->z,nnbrs);
+
+  for(nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
+    nbrvtxno = surf->vertices[vtxno].v[nthnbr];
+    v = &surf->vertices[nbrvtxno];
+    printf("   nbr vtx %5d v%d = [%6.3f %6.3f %6.3f]    ",
+	   nbrvtxno,nthnbr,v->x,v->y,v->z);
+
+    nnbrnbrs = surf->vertices[nbrvtxno].vnum;
+    for(nthnbrnbr = 0; nthnbrnbr < nnbrnbrs; nthnbrnbr++) {
+      nbrnbrvtxno = surf->vertices[nbrvtxno].v[nthnbrnbr];
+      if(MRISareNeighbors(surf,vtxno,nbrnbrvtxno))
+	printf("%5d ",nbrnbrvtxno);
+    }
+    printf("\n");
+  }
+  return(0);
 }
