@@ -88,7 +88,8 @@ int imaPrintVal(FILE *fp, int type, void *pval);
 int imaTypeFromKey(char *key);
 
 int imaIsSiemensIMA(char *imafile);
-int imaParseName(char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo);
+int imaParseName(char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo,
+     char *Separator);
 int imaHasIMAExtension(char *filename);
 int imaCountFilesInSeries(char *imafile, int *FirstImageNo);
 
