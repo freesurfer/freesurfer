@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.30 2004/10/20 21:13:22 greve Exp $
+  $Id: mris_glm.c,v 1.31 2004/11/04 22:58:03 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -73,7 +73,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.30 2004/10/20 21:13:22 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.31 2004/11/04 22:58:03 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.30 2004/10/20 21:13:22 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.31 2004/11/04 22:58:03 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -344,8 +344,15 @@ int main(int argc, char **argv)
       strcpy(SurfReg->subject_name,subject);
       //SurfReg->hemi = hemi;
       
-      if(surfmeasure != NULL) inputfname = surfmeasure;
-      else                    inputfname = inputlist[nthsubj];
+      if(surfmeasure != NULL){
+	if(stringmatch(inputfmt,"paint") || stringmatch(inputfmt,"w") ||
+	   stringmatch(inputfmt,"wfile")){
+	  sprintf(tmpstr,"%s/%s/surf/%s",SUBJECTS_DIR,subject,surfmeasure);
+	  inputfname = tmpstr;
+	}
+	else  inputfname = surfmeasure;
+      }
+      else inputfname = inputlist[nthsubj];
       
       /* Read in the input for this subject. */
       /* If the input is a volume, then read in the registration file,
