@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/11/04 16:08:34 $
-// Revision       : $Revision: 1.54 $
+// Revision Date  : $Date: 2004/11/09 20:39:58 $
+// Revision       : $Revision: 1.55 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -488,10 +488,10 @@ GCAMread(char *fname)
   {
     if (tag == TAG_GCAMORPH_GEOM)
     {
-      fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
       GCAMreadGeom(gcam, fp);
 			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
 			{
+				fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
 				fprintf(stderr, "src geometry:\n");
 				writeVolGeom(stderr, &gcam->src);
 				fprintf(stderr, "dst geometry:\n");

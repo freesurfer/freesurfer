@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/10/27 20:33:10 $
-// Revision       : $Revision: 1.154 $
+// Revision Date  : $Date: 2004/11/09 20:39:58 $
+// Revision       : $Revision: 1.155 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -325,7 +325,8 @@ void GCAreinit(MRI *mri, GCA *gca)
   gca->c_a = mri->c_a;
   gca->c_s = mri->c_s;
 
-  printf("gca reinit c_(ras) = (%.2f, %.2f, %.2f)\n", gca->c_r, gca->c_a, gca->c_s);
+	if (DIAG_VERBOSE_ON)
+		printf("gca reinit c_(ras) = (%.2f, %.2f, %.2f)\n", gca->c_r, gca->c_a, gca->c_s);
 
   // modify width height depth
   if (gca->width != mri->width)
@@ -863,7 +864,7 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,int xv, int yv, in
   {
     TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
   }
-  if (Ggca_x == xv && Ggca_y == yv && Ggca_z == zv)
+  if (Ggca_x == xv && Ggca_y == yv && Ggca_z == zv && DIAG_VERBOSE_ON)
     fprintf(stderr, "source (%d, %d, %d) to talposition (%.2f, %.2f, %.2f)\n", xv, yv, zv, xt, yt, zt);
   // get the position in node from the talairach position
   return GCAvoxelToNode(gca, gca->mri_tal__, xt, yt, zt, pxn, pyn, pzn) ;
@@ -13009,7 +13010,8 @@ GCA *GCAcompactify(GCA *gca)
 	}
       }
 
-  printf("GCAcompactify reduced the memory use by %.f bytes.\n", byteSaved);
+	if (DIAG_VERBOSE_ON)
+		printf("GCAcompactify reduced the memory use by %.f bytes.\n", byteSaved);
 
   return gca;
 }
