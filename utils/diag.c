@@ -270,11 +270,46 @@ DiagHeartbeat(float pct_done)
 {
   static float old_pct = -10.0f ;
 
+#if 0
   if ((old_pct < 0.0f) || (old_pct > pct_done) || (pct_done < 0.00001f))
     fprintf(stderr, "\n") ;
   old_pct = pct_done ;
   if (Gdiag & DIAG_HEARTBEAT)
-    fprintf(stderr, "\r%2.1f%% finished     ",100.0f*pct_done);
+    fprintf(stderr, "%2.1f%% finished     \r",100.0f*pct_done);
   if (pct_done >= 0.999f)
     fprintf(stderr, "\n") ;
+#else
+  if (pct_done < old_pct)
+    old_pct = -20 ;
+  if (pct_done - old_pct > .10)
+  {
+    old_pct = pct_done ;
+    if (Gdiag & DIAG_HEARTBEAT)
+      fprintf(stderr, "%2.1f%% finished\n",100.0f*pct_done);
+  }
+#endif
 }
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          dummy for break points in debugger
+------------------------------------------------------*/
+void
+DiagShowPctDone(float pct_done, int nprints)
+{
+  static float old_pct = -10.0f ;
+
+  if (pct_done < old_pct)
+    old_pct = -20 ;
+  if (pct_done - old_pct > 1/(float)nprints)
+  {
+    old_pct = pct_done ;
+    if (Gdiag & DIAG_HEARTBEAT)
+      fprintf(stderr, "%2.1f%% finished\n",100.0f*pct_done);
+  }
+}
+
