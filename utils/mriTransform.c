@@ -478,3 +478,26 @@ char* Trns_GetErrorString ( Trns_tErr ieCode ) {
 
   return Trns_ksaErrorStrings [eCode];
 }
+
+void Trns_DebugPrint_ ( mriTransformRef this ) {
+
+  if( NULL != this->mAtoRAS ) {
+    DebugPrint "A to RAS:\n" EndDebugPrint;
+    MatrixPrint( stderr, this->mAtoRAS );
+  }
+  
+  if( NULL != this->mBtoRAS ) {
+    DebugPrint "B to RAS:\n" EndDebugPrint;
+    MatrixPrint( stderr, this->mBtoRAS );
+  }
+  
+  if( NULL != this->mARAStoBRAS ) {
+    DebugPrint "ARAS to BRAS:\n" EndDebugPrint;
+    MatrixPrint( stderr, this->mARAStoBRAS );
+  }
+  
+  if( NULL != this->mAtoB ) {
+    DebugPrint "A to B:\n" EndDebugPrint;
+    MatrixPrint( stderr, this->mAtoB );
+  }
+}
