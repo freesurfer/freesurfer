@@ -101,6 +101,8 @@ typedef struct
 } MRI_IMAGE, MRI ;
 
 float  MRIfindNearestNonzero(MRI *mri, int wsize, Real x0, Real y0, Real z0) ;
+float  MRIfindNearestNonzeroLocation(MRI *mri, int wsize, Real xr, Real yr, Real zr,
+                                     int *pxv, int *pyv, int *pzv) ;
 /* single pixel filtering */
 float MRIvoxelMean(MRI *mri, int x, int y, int z, int wsize) ;
 float MRIvoxelStd(MRI *mri, int x, int y, int z, float mean, int wsize) ;
