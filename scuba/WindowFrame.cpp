@@ -44,48 +44,65 @@ WindowFrame::MouseMoved( int iWindow[2], InputState& iInput ) {
 
   if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
       iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
-
-    // Calculate the delta. Make sure there is one; if not, no mouse
-    // moved event.
-    float delta[2];
-    delta[0] = iWindow[0] - mLastMoved[0];
-    delta[1] = iWindow[1] - mLastMoved[1];
-    if( delta[0] != 0 || delta[1] != 0 ) {
-
-      // Find the greater one (absolute value). Divide each delta by
-      // this value to get the step; one will be 1.0, and the other
-      // will be < 1.0.
-      float greater = fabs(delta[0]) > fabs(delta[1]) ? 
-	fabs(delta[0]) : fabs(delta[1]);
-      delta[0] /= greater;
-      delta[1] /= greater;
-
-      // We step window coords in floats, but transform to ints. Start
-      // at the last moved place.
-      float windowF[2];
-      int   windowI[2];
-      windowF[0] = mLastMoved[0];
-      windowF[1] = mLastMoved[1];
-
-      // While we're not at the current location...
-      while( !(fabs((float)iWindow[0] - windowF[0]) < 0.01 && 
-	       fabs((float)iWindow[1] - windowF[1]) < 0.01) ) {
-
-	// Get an integer value and send it to the frame.
-	windowI[0] = (int) windowF[0];
-	windowI[1] = (int) windowF[1];
-	this->DoMouseMoved( windowI, iInput );
+    
+    if( iInput.IsButtonDown() ) {
+    
+      // Calculate the delta. Make sure there is one; if not, no mouse
+      // moved event.
+      float delta[2];
+      delta[0] = iWindow[0] - mLastMoved[0];
+      delta[1] = iWindow[1] - mLastMoved[1];
+      if( delta[0] != 0 || delta[1] != 0 ) {
 	
-	// Increment the float window coords.
-	windowF[0] += delta[0];
-	windowF[1] += delta[1];
+	// Find the greater one (absolute value). Divide each delta by
+	// this value to get the step; one will be 1.0, and the other
+	// will be < 1.0.
+	float greater = fabsf(delta[0]) > fabsf(delta[1]) ?
+	  fabsf(delta[0]) : fabsf(delta[1]);
+	delta[0] /= greater;
+	delta[1] /= greater;
+	
+	// We step window coords in floats, but transform to ints. Start
+	// at the last moved place.
+	float windowF[2];
+	int   windowI[2];
+	windowF[0] = mLastMoved[0];
+	windowF[1] = mLastMoved[1];
+
+	// While we're not at the current location...
+	while( !(  fabsf((float)iWindow[0] - windowF[0]) < 0.01 && 
+		   fabsf((float)iWindow[1] - windowF[1]) < 0.01) ) {
+	  
+	  // Get an integer value and send it to the frame.
+	  windowI[0] = (int) rint( windowF[0] );
+	  windowI[1] = (int) rint( windowF[1] );
+	  
+	  if( windowI[0] > 0 && windowI[0] < mWidth-1 &&
+	      windowI[1] > 0 && windowI[1] < mHeight-1 ) {
+	    
+	    // this->DoMouseMoved( windowI, iInput );
+
+	  } else {
+
+	    cerr << "BLAH" << endl;
+	    break;
+	  }
+	  
+	  // Increment the float window coords.
+	  windowF[0] += delta[0];
+	  windowF[1] += delta[1];
+	} 
       } 
-    } 
+    } else {
+
+      this->DoMouseMoved( iWindow, iInput );
+    }
 
     // Save this position.
     mLastMoved[0] = iWindow[0];
     mLastMoved[1] = iWindow[1];
   }
+  
 }
 
 void

@@ -307,6 +307,10 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 	    }
 	  } 
 	  catch(...) {
+	    stringstream sError;
+	    sError << "couldn't get column of view " << viewID;
+	    sResult = sError.str();
+	    return error;
 	  }
 	}
       }
@@ -347,6 +351,10 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 	    }
 	  } 
 	  catch(...) {
+	    stringstream sError;
+	    sError << "couldn't get row of view " << viewID;
+	    sResult = sError.str();
+	    return error;
 	  }
 	}
       }
@@ -461,6 +469,8 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 	      }
 	    } 
 	    catch(...) {
+	      DebugOutput( << "Couldn't find a view where there was supposed "
+			   << "to be one: " << nCol << ", " << nRow );
 	    }
 	  }
 	}
@@ -657,6 +667,8 @@ ScubaFrame::DoTimer() {
 	}
       } 
       catch(...) {
+	DebugOutput( << "Couldn't find a view where there was supposed "
+		     << "to be one: " << nCol << ", " << nRow );
       }
     }
   }  
@@ -668,9 +680,11 @@ ScubaFrame::DoMouseMoved( int iWindow[2], InputState& iInput ) {
   try {
     int nRow, nCol;
     View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
-    int viewCoords[2];
-    TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
-    view->MouseMoved( viewCoords, iInput, mTool );
+    if( NULL != view ) {
+      int viewCoords[2];
+      TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
+      view->MouseMoved( viewCoords, iInput, mTool );
+    }
   }
   catch(...) {
   }
@@ -682,9 +696,11 @@ ScubaFrame::DoMouseUp( int iWindow[2], InputState& iInput ) {
   try {
     int nRow, nCol;
     View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
-    int viewCoords[2];
-    TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
-    view->MouseUp( viewCoords, iInput, mTool );
+    if( NULL != view ) {
+      int viewCoords[2];
+      TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
+      view->MouseUp( viewCoords, iInput, mTool );
+    }
   }
   catch(...) {
   } 
@@ -696,17 +712,19 @@ ScubaFrame::DoMouseDown( int iWindow[2], InputState& iInput ) {
   try {
     int nRow, nCol;
     View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
-
-    // Select this view and request a redisplay that we can draw our
-    // frame around it.
-    mnSelectedViewCol = nCol;
-    mnSelectedViewRow = nRow;
-
-    RequestRedisplay();
-
-    int viewCoords[2];
-    TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
-    view->MouseDown( viewCoords, iInput, mTool );
+    if( NULL != view ) {
+      
+      // Select this view and request a redisplay that we can draw our
+      // frame around it.
+      mnSelectedViewCol = nCol;
+      mnSelectedViewRow = nRow;
+      
+      RequestRedisplay();
+      
+      int viewCoords[2];
+      TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
+      view->MouseDown( viewCoords, iInput, mTool );
+    }
   }
   catch(...) {
   } 
