@@ -616,7 +616,7 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
       ImageValRange(dimage->oSourceImage, &fmin, &fmax) ;
       ImageScaleRange(GtmpFloatImage, fmin, fmax, 0, MAX_DISP_VAL) ;
     }
-    if (dimage->rescale_range || image->num_frame == 1)
+    else if (dimage->rescale_range || image->num_frame == 1)
       ImageScale(GtmpFloatImage, GtmpFloatImage, 0, MAX_DISP_VAL) ;
     else   /* use entire sequence to compute display range */
     {
