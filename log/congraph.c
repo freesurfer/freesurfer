@@ -419,8 +419,6 @@ initEightConnected(LOGMAP_INFO *lmi)
       continue ;
 
     pix = LOG_PIX(lmi, ring, spoke) ;
-    if ((ring == 43) && (spoke == 1))
-      ring = 43 ;
 
     if (ring >= nrings/2)  /* in right half-plane */
     {
