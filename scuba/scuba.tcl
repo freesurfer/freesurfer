@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.95 2005/04/01 19:47:03 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.96 2005/04/06 21:58:05 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4965,7 +4965,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.95 2005/04/01 19:47:03 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.96 2005/04/06 21:58:05 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5300,14 +5300,43 @@ proc DoHistogramLabel { iSourceVol iROIID iDestVol iValueRanges } {
 
 # MAIN =============================================================
 
+set argc [GetArgc]
+set argv [GetArgv]
+
+# Source our support files.
+foreach sSourceFileName { tkUtils.tcl histolabel.tcl tkcon.tcl } {
+    set lPath [list "$env(PWD)" ../scripts]
+    if { [info exists env(DEV)] } {
+	lappend lPath "$env(DEV)/scripts"
+    }
+    if { [info exists env(FREESURFER_HOME)] } {
+	lappend lPath "$env(FREESURFER_HOME)/lib/tcl"
+    }
+    set bFound 0
+    foreach sPath $lPath {
+	if { $bFound == 0 } {
+	    set sFullFileName [ file join $sPath $sSourceFileName ]
+	    if { [file exists $sFullFileName] } { 
+		set nErr [catch { source $sFullFileName } sResult]
+		if { $nErr != 0 } {
+		    puts "Error sourcing $sFullFileName: $sResult"
+		} else {
+		    puts "Using $sFullFileName"
+		    set bFound 1
+		}
+	    }
+	}
+    }    
+    if { $bFound == 0 } {
+	puts "Couldn't load $sSourceFileName: Not found in $lPath"
+    }
+}
+
 # Look at our command line args. For some we will want to process and
 # exit without bringing up all our windows. For some, we need to bring
 # up our windows first. So cache those in lCommands and we'll execute
 # them later.
 set lCommands {}
-
-set argc [GetArgc]
-set argv [GetArgv]
 
 set nArg 0
 while { $nArg < $argc } {
@@ -5316,15 +5345,31 @@ while { $nArg < $argc } {
     switch $sOption {
 	v - volume {
 
-	    incr nArg
-	    set fnVolume [lindex $argv $nArg]
-	    lappend lCommands "LoadVolume $fnVolume 1 [GetMainFrameID]"
-	    
 	    while { [expr ($nArg + 1) < $argc] &&
 		    [string range [lindex $argv [expr $nArg+1]] 0 0] != "-" } {
 		incr nArg
+
+		set sCurArg [lindex $argv $nArg]
 		set fnVolume [lindex $argv $nArg]
-		lappend lCommands "LoadVolume $fnVolume 1 [GetMainFrameID]"
+		set sLayerArgs ""
+		if { [string first : $fnVolume] != -1 } {
+		    set fnVolume \
+			[string range $sCurArg 0 \
+			 [expr [string first : $sCurArg]-1]]
+		    set sLayerArgs \
+			[string range $sCurArg \
+			 [expr [string first : $sCurArg]+1] end]
+		}
+		lappend lCommands \
+		    "set layerID \[LoadVolume $fnVolume 1 \[GetMainFrameID\]\]"
+		
+		if { $sLayerArgs != "" } {
+		    lappend lCommands \
+			"set err \[catch {
+                          ProcessLayerOptionList \$layerID $sLayerArgs
+                         } sResult\]
+                         if { 0 != \$err } { tkuErrorDlog \$sResult }"
+		}
 	    }
 	}
 	f - surface {
@@ -5368,36 +5413,6 @@ while { $nArg < $argc } {
 	}
     }
     incr nArg
-}
-
-
-# Source our support files.
-foreach sSourceFileName { tkUtils.tcl histolabel.tcl tkcon.tcl } {
-    set lPath [list "$env(PWD)" ../scripts]
-    if { [info exists env(DEV)] } {
-	lappend lPath "$env(DEV)/scripts"
-    }
-    if { [info exists env(FREESURFER_HOME)] } {
-	lappend lPath "$env(FREESURFER_HOME)/lib/tcl"
-    }
-    set bFound 0
-    foreach sPath $lPath {
-	if { $bFound == 0 } {
-	    set sFullFileName [ file join $sPath $sSourceFileName ]
-	    if { [file exists $sFullFileName] } { 
-		set nErr [catch { source $sFullFileName } sResult]
-		if { $nErr != 0 } {
-		    puts "Error sourcing $sFullFileName: $sResult"
-		} else {
-		    puts "Using $sFullFileName"
-		    set bFound 1
-		}
-	    }
-	}
-    }    
-    if { $bFound == 0 } {
-	puts "Couldn't load $sSourceFileName: Not found in $lPath"
-    }
 }
 
 
@@ -5507,7 +5522,6 @@ MakeScubaFrameBindings [GetMainFrameID]
 
 
 
-
 # Now execute all the commands we cached before.
 foreach command $lCommands {
     eval $command
@@ -5526,3 +5540,5 @@ bind $gaWidget(window) <Alt-Key-n> {
     }
     ShowHideConsole $gaView(tkcon,visible)
 }
+
+

@@ -55,6 +55,8 @@ class ScubaLayer2DMRI : public Layer {
 			    ScubaWindowToRASTranslator& iTranslator,
 			    ScubaToolState& iTool, InputState& iInput );
 
+  virtual void ProcessOption ( std::string isOption, std::string isValue );
+
   enum ColorMapMethod { grayscale, heatScale, LUT };
   void SetColorMapMethod ( ColorMapMethod iMethod ) { 
     mColorMapMethod = iMethod; }

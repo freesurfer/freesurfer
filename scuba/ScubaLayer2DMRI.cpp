@@ -1564,6 +1564,78 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
   }
 }
 
+void
+ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
+
+  char sValue[1024];
+  strcpy( sValue, isValue.c_str() );
+
+  if( 0 == isOption.compare( "colormap" ) ) {
+    if( 0 == isValue.compare( "grayscale" ) ) {
+      SetColorMapMethod( grayscale );
+    } else if( 0 == isValue.compare( "heatscale" ) ) {
+      SetColorMapMethod( heatScale );
+    } else if( 0 == isValue.compare( "lut" ) ) {
+      SetColorMapMethod( LUT );
+    } else {
+      throw runtime_error( "Bad colormap value" );
+    }
+
+  } else if( 0 == isOption.compare( "samplemethod" ) ) {
+    if( 0 == isValue.compare( "nearest" ) ) {
+      SetSampleMethod( nearest );
+    } else if( 0 == isValue.compare( "trilinear" ) ) {
+      SetSampleMethod( trilinear );
+    } else if( 0 == isValue.compare( "sinc" ) ) {
+      SetSampleMethod( sinc );
+    } else {
+      throw runtime_error( "Bad colormap value" );
+    }
+
+  } else if( 0 == isOption.compare( "lut" ) ) {
+    list<int> lutIDList;
+    ScubaColorLUT::GetIDList( lutIDList );
+    list<int>::iterator tID;
+    for( tID = lutIDList.begin(); tID != lutIDList.end(); ++tID ) {
+      int id = *tID;
+      ScubaColorLUT& lut = ScubaColorLUT::FindByID( id );
+      if( 0 == isValue.compare( lut.GetLabel() ) ) {
+	SetColorMapMethod( LUT );
+	SetColorLUT( id );
+	return;
+      }
+    }
+    if( ERANGE == errno ) {
+      throw runtime_error( "LUT not found" );
+    }
+
+  } else if( 0 == isOption.compare( "drawzeroclear" ) ) {
+    int bDrawZeroClear = strtol( sValue, (char**)NULL, 10 );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad drawzeroclear value" );
+    }
+    SetDrawZeroClear( bDrawZeroClear );
+
+  } else if( 0 == isOption.compare( "brightness" ) ) {
+    float brightness = (float) strtod( sValue, (char**)NULL );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad brightness value" );
+    }
+    SetBrightness( brightness );
+
+  } else if( 0 == isOption.compare( "contrast" ) ) {
+    float contrast = (float) strtod( sValue, (char**)NULL );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad contrast value" );
+    }
+    SetContrast( contrast );
+
+  } else {
+    
+    return Layer::ProcessOption( isOption, isValue );
+  }
+}
+
 string
 ScubaLayer2DMRI::GetColorMapMethodAsString () {
 

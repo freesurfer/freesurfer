@@ -108,6 +108,15 @@ class Layer : public DebugReporter,
 
   virtual float GetPreferredBrushRadiusIncrement ();
 
+  // Process a list of options. Just parses them into individual
+  // options and hands them to overrideable function.
+  // In format option[=value][:option[=value]]...
+  void ProcessOptionsList ( std::string isOptionList );
+
+  // Handles an invidual option. Subclass should also call this to
+  // handle generic options.
+  virtual void ProcessOption ( std::string isOption, std::string isValue );
+
  protected:
 
   // Overridable timer behavior.

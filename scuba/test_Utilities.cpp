@@ -33,35 +33,36 @@ public:
 void 
 UtilitiesTester::Test () {
 
-  stringstream ssError;
-
   try {
 
     Volume3<bool> bVol( 10, 15, 20, false );
-    try {
-      for( int nZ = 0; nZ < 20; nZ++ ) {
-	for( int nY = 0; nY < 15; nY++ ) {
-	  for( int nX = 0; nX < 10; nX++ ) {
+    for( int nZ = 0; nZ < 20; nZ++ ) {
+      for( int nY = 0; nY < 15; nY++ ) {
+	for( int nX = 0; nX < 10; nX++ ) {
 
-	    ssError << "get failed for " << nX << ", " << nY << ", " << nZ;
+	  {
+	    stringstream ssError; 
 	    bool bVal = bVol.Get( nX, nY, nZ );
 	    ssError << "initial value was not false  for " << nX 
 		    << ", " << nY << ", " << nZ;
 	    Assert( (false == bVal), ssError.str() );
-
+	  }
+	  
+	  {
+	    stringstream ssError; 
 	    ssError << "set failed for " << nX << ", " << nY << ", " << nZ;
 	    bVol.Set( nX, nY, nZ, true );
-
-	    bVal = bVol.Get( nX, nY, nZ );
+	  }
+	  
+	  {
+	    stringstream ssError; 
+	    bool bVal = bVol.Get( nX, nY, nZ );
 	    ssError << "set value was not true for " << nX 
 		    << ", " << nY << ", " << nZ;
 	    Assert( (true == bVal), ssError.str() );
 	  }
 	}
       }
-    }
-    catch(...) {
-      throw runtime_error( ssError.str() );
     }
 
     try {
@@ -109,6 +110,65 @@ UtilitiesTester::Test () {
       }
       cout << endl;
 
+    }
+
+
+    {
+      string sToSplit = "option1:option2=value2:option3";
+      string sDelimiter = ":";
+      vector<string> lsResults;
+
+      int cFound = Utilities::SplitString( sToSplit, sDelimiter, lsResults );
+
+      {
+	stringstream ssError;
+	ssError << "cFound is incorrect: should be 2, is " << cFound;
+	Assert( (2 == cFound), ssError.str() );
+      }
+      {
+	stringstream ssError;
+	ssError << "size of lsResults is incorrect: should be 3, is " 
+		<< lsResults.size();
+	Assert( (lsResults.size() == 3), ssError.str() );
+      }
+      string sResult = lsResults[0];
+      {
+	stringstream ssError;
+	ssError << "Result 0 is incorrect, should be option1, is " << sResult;
+	Assert( (sResult == "option1"), ssError.str() );
+      }
+      {
+	stringstream ssError;
+	sResult = lsResults[1];
+	ssError << "Result 1 is incorrect, should be option1, is " << sResult;
+	Assert( (sResult == "option2=value2"), ssError.str() );
+      }
+      {
+	stringstream ssError;
+	sResult = lsResults[2];
+	ssError << "Result 2 is incorrect, should be option1, is " << sResult;
+	Assert( (sResult == "option3"), ssError.str() );
+      }
+    }
+      
+    {
+      string sToSplit = "option1";
+      string sDelimiter = ":";
+      vector<string> lsResults;
+
+      int cFound = Utilities::SplitString( sToSplit, sDelimiter, lsResults );
+
+      {
+	stringstream ssError;
+	ssError << "cFound is incorrect: should be 0, is " << cFound;
+	Assert( (0 == cFound), ssError.str() );
+      }
+      {
+	stringstream ssError;
+	ssError << "size of lsResults is incorrect: should be 0, is " 
+		<< lsResults.size();
+	Assert( (lsResults.size() == 0), ssError.str() );
+      }
     }
       
   }

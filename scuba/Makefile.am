@@ -85,12 +85,12 @@ SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 		.moc/moc_viewlayersdlog.cpp \
 		.moc/moc_toolsettingsdlog.cpp \
 		.moc/moc_roisettingsdlog.cpp
-OBJMOC = .obj/moc_QtVolumeHistogram.o \
-		.obj/moc_QTScubaWidget.o \
-		.obj/moc_mainwindow.o \
-		.obj/moc_viewlayersdlog.o \
-		.obj/moc_toolsettingsdlog.o \
-		.obj/moc_roisettingsdlog.o
+OBJMOC = .obj/moc_QtVolumeHistogram.$(OBJEXT) \
+		.obj/moc_QTScubaWidget.$(OBJEXT) \
+		.obj/moc_mainwindow.$(OBJEXT) \
+		.obj/moc_viewlayersdlog.$(OBJEXT) \
+		.obj/moc_toolsettingsdlog.$(OBJEXT) \
+		.obj/moc_roisettingsdlog.$(OBJEXT)
 
 MOC      = $(QTDIR)/bin/moc
 UIC      = $(QTDIR)/bin/uic
@@ -190,62 +190,62 @@ testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 	$(UIC) mainwindow.ui -o .ui/mainwindow.h
 .ui/mainwindow.cpp: ui_dir .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h mainwindow.ui
 	$(UIC) mainwindow.ui -i mainwindow.h -o .ui/mainwindow.cpp
-.obj/mainwindow.o: obj_dir .ui/mainwindow.cpp mainwindow.ui.h .ui/mainwindow.h
-	$(CXX) $(CXXFLAGS) -o .obj/mainwindow.o .ui/mainwindow.cpp
+.obj/mainwindow.$(OBJEXT): obj_dir .ui/mainwindow.cpp mainwindow.ui.h .ui/mainwindow.h
+	$(CXX) $(CXXFLAGS) -o .obj/mainwindow.$(OBJEXT) .ui/mainwindow.cpp
 
 .ui/toolsettingsdlog.h: ui_dir toolsettingsdlog.ui
 	$(UIC) toolsettingsdlog.ui -o .ui/toolsettingsdlog.h
 .ui/toolsettingsdlog.cpp: ui_dir .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h  toolsettingsdlog.ui
 	$(UIC) toolsettingsdlog.ui -i toolsettingsdlog.h -o .ui/toolsettingsdlog.cpp
-.obj/toolsettingsdlog.o: obj_dir .ui/toolsettingsdlog.cpp toolsettingsdlog.ui.h .ui/toolsettingsdlog.h
-	$(CXX) $(CXXFLAGS) -o .obj/toolsettingsdlog.o .ui/toolsettingsdlog.cpp
+.obj/toolsettingsdlog.$(OBJEXT): obj_dir .ui/toolsettingsdlog.cpp toolsettingsdlog.ui.h .ui/toolsettingsdlog.h
+	$(CXX) $(CXXFLAGS) -o .obj/toolsettingsdlog.$(OBJEXT) .ui/toolsettingsdlog.cpp
 
 .ui/viewlayersdlog.h: ui_dir viewlayersdlog.ui
 	$(UIC) viewlayersdlog.ui -o .ui/viewlayersdlog.h
 .ui/viewlayersdlog.cpp: ui_dir .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h viewlayersdlog.ui
 	$(UIC) viewlayersdlog.ui -i viewlayersdlog.h -o .ui/viewlayersdlog.cpp
-.obj/viewlayersdlog.o: obj_dir .ui/viewlayersdlog.cpp viewlayersdlog.ui.h .ui/viewlayersdlog.h
-	$(CXX) $(CXXFLAGS) -o .obj/viewlayersdlog.o .ui/viewlayersdlog.cpp
+.obj/viewlayersdlog.$(OBJEXT): obj_dir .ui/viewlayersdlog.cpp viewlayersdlog.ui.h .ui/viewlayersdlog.h
+	$(CXX) $(CXXFLAGS) -o .obj/viewlayersdlog.$(OBJEXT) .ui/viewlayersdlog.cpp
 
 .ui/roisettingsdlog.h: ui_dir roisettingsdlog.ui
 	$(UIC) roisettingsdlog.ui -o .ui/roisettingsdlog.h
 .ui/roisettingsdlog.cpp: ui_dir .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h roisettingsdlog.ui
 	$(UIC) roisettingsdlog.ui -i roisettingsdlog.h -o .ui/roisettingsdlog.cpp
-.obj/roisettingsdlog.o: obj_dir .ui/roisettingsdlog.cpp roisettingsdlog.ui.h .ui/roisettingsdlog.h
-	$(CXX) $(CXXFLAGS) -o .obj/roisettingsdlog.o .ui/roisettingsdlog.cpp
+.obj/roisettingsdlog.$(OBJEXT): obj_dir .ui/roisettingsdlog.cpp roisettingsdlog.ui.h .ui/roisettingsdlog.h
+	$(CXX) $(CXXFLAGS) -o .obj/roisettingsdlog.$(OBJEXT) .ui/roisettingsdlog.cpp
 
-.obj/moc_QtVolumeHistogram.o: obj_dir .moc/moc_QtVolumeHistogram.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_QtVolumeHistogram.o
+.obj/moc_QtVolumeHistogram.$(OBJEXT): obj_dir .moc/moc_QtVolumeHistogram.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_QtVolumeHistogram.$(OBJEXT)
 .moc/moc_QtVolumeHistogram.cpp: moc_dir QtVolumeHistogram.h
 	$(MOC) QtVolumeHistogram.h -o .moc/moc_QtVolumeHistogram.cpp
 
-.obj/moc_QTScubaWidget.o: obj_dir .moc/moc_QTScubaWidget.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_QTScubaWidget.o
+.obj/moc_QTScubaWidget.$(OBJEXT): obj_dir .moc/moc_QTScubaWidget.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_QTScubaWidget.$(OBJEXT)
 .moc/moc_QTScubaWidget.cpp: moc_dir QTScubaWidget.h
 	$(MOC) QTScubaWidget.h -o .moc/moc_QTScubaWidget.cpp
 
-.obj/moc_mainwindow.o: obj_dir .moc/moc_mainwindow.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_mainwindow.o
+.obj/moc_mainwindow.$(OBJEXT): obj_dir .moc/moc_mainwindow.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_mainwindow.$(OBJEXT)
 .moc/moc_mainwindow.cpp: moc_dir .ui/mainwindow.h
 	$(MOC) .ui/mainwindow.h -o .moc/moc_mainwindow.cpp
 
-.obj/moc_viewlayersdlog.o: obj_dir .moc/moc_viewlayersdlog.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_viewlayersdlog.o
+.obj/moc_viewlayersdlog.$(OBJEXT): obj_dir .moc/moc_viewlayersdlog.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_viewlayersdlog.$(OBJEXT)
 .moc/moc_viewlayersdlog.cpp: moc_dir .ui/viewlayersdlog.h
 	$(MOC) .ui/viewlayersdlog.h -o .moc/moc_viewlayersdlog.cpp
 
-.obj/moc_toolsettingsdlog.o: obj_dir .moc/moc_toolsettingsdlog.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_toolsettingsdlog.o
+.obj/moc_toolsettingsdlog.$(OBJEXT): obj_dir .moc/moc_toolsettingsdlog.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_toolsettingsdlog.$(OBJEXT)
 .moc/moc_toolsettingsdlog.cpp: moc_dir .ui/toolsettingsdlog.h
 	$(MOC) .ui/toolsettingsdlog.h -o .moc/moc_toolsettingsdlog.cpp
 
-.obj/moc_roisettingsdlog.o: obj_dir .moc/moc_roisettingsdlog.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_roisettingsdlog.o
+.obj/moc_roisettingsdlog.$(OBJEXT): obj_dir .moc/moc_roisettingsdlog.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_roisettingsdlog.$(OBJEXT)
 .moc/moc_roisettingsdlog.cpp: moc_dir .ui/roisettingsdlog.h
 	$(MOC) .ui/roisettingsdlog.h -o .moc/moc_roisettingsdlog.cpp
 
-.obj/image_collection.o: obj_dir .ui/image_collection.cpp
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .obj/image_collection.o .ui/image_collection.cpp
+.obj/image_collection.$(OBJEXT): obj_dir .ui/image_collection.cpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .obj/image_collection.$(OBJEXT) .ui/image_collection.cpp
 
 .ui/image_collection.cpp: ui_dir images/filenew \
 		images/fileopen \

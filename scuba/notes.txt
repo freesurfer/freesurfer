@@ -406,12 +406,10 @@ x button for zoom in and out
 
 BRUCE'S LIST:::
 
-- rework value display so it's in a table, with vols on y axis and index/value/etc on x
+x rework value display so it's in a table, with vols on y axis and index/value/etc on x
 
-- when you do alt-c to toggle the top image, also toggle which layer is 
-selected in the "layers" tab. That way you can change it's 
-brightness/contrast (which you never would do to a layer that wasn't 
-visible)
+x when you do alt-c to toggle the top image, also toggle which layer is 
+selected in the "layers" tab.
 
 x Goto Coords sets cursor
 

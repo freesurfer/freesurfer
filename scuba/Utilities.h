@@ -2,6 +2,7 @@
 #define Utilities_h
 
 #include <list>
+#include <vector>
 #include "Point2.h"
 #include "Point3.h"
 
@@ -25,6 +26,13 @@ class Utilities {
   static float DistanceFromSegmentToPoint3f ( Point3<float>& iLineA, 
 					      Point3<float>& iLineB,
 					      Point3<float>& iPoint );
+
+  // Following is written by 
+  // Paul J. Weiss, http://www.codeproject.com/string/stringsplit.asp
+  static int SplitString( const std::string& isInput,
+			  const std::string& isDelimiter,
+			  std::vector<std::string>& oResults );
+  
 };
 
 

@@ -32,7 +32,10 @@ Layer::Layer() {
   commandMgr.AddCommand( *this, "GetLayerPreferredBrushRadiusIncrement", 1,
 			 "layerID", "Return a preferrerd brush radius "
 			 "increment based on the data." );
-
+  commandMgr.AddCommand( *this, "ProcessLayerOptionList", 2, 
+			 "layerID layerOptionList", "Process a string of "
+			 "options in the format "
+			 "option[=value][:option[=value]]..." );
 }
 
 Layer::~Layer() {
@@ -161,9 +164,112 @@ Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
     }
   }
 
+  // ProcessLayerOptionList <layerID> <layerOptions>
+  if( 0 == strcmp( isCommand, "ProcessLayerOptionList" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      try {
+	ProcessOptionsList( string(iasArgv[2]) );
+      }
+      catch( runtime_error e ) {
+	sResult = "bad options \"" + string(iasArgv[2]) + "\", \n" + e.what();
+	return error;	
+      }
+    }
+  }
+
   return ok;
 }
 
+void
+Layer::ProcessOptionsList ( string isOptionList ) {
+
+  vector<string> lsOptions;
+  int cDelims = 
+    Utilities::SplitString( isOptionList, ":", lsOptions );
+
+  // If cDelims is zero, there might still be an optionvalue here,
+  // it's just that the string we got was "option=value" so there's no
+  // delimiter. So just push the whole thing.
+  if ( cDelims == 0 ) {
+    lsOptions.push_back( isOptionList );
+  }
+  
+  bool bError = false;
+  stringstream ssErrors;
+  vector<string>::iterator tOption;
+  for( tOption = lsOptions.begin(); 
+       tOption != lsOptions.end(); ++tOption ) {
+    string sOptionValue = *tOption;
+
+    int nEquals = sOptionValue.find( '=' );
+    if( nEquals < 0 ) {
+
+      try {
+	this->ProcessOption( sOptionValue, "" );
+      }
+      catch(runtime_error e) {
+	ssErrors << e.what() << ". ";
+	bError = true;
+      }
+
+    } else {
+
+      try {
+	int z = sOptionValue.length();
+	this->ProcessOption( sOptionValue.substr( 0, nEquals ),
+			     sOptionValue.substr( nEquals+1, z-nEquals+1 ) );
+      }
+      catch(runtime_error e) {
+	ssErrors << e.what() << ". ";
+ 	bError = true;
+     }
+
+    }
+
+  }
+
+  if( bError ) {
+    throw runtime_error( ssErrors.str() );
+  }
+}
+
+void
+Layer::ProcessOption ( string isOption, string isValue ) {
+  
+  char sValue[1024];
+  strcpy( sValue, isValue.c_str() );
+
+  if( 0 == isOption.compare( "opacity" ) ) {
+    float opacity = (float) strtod( sValue, (char**)NULL );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad opacity value" );
+    }
+    SetOpacity( opacity );
+
+  } else if( 0 == isOption.compare( "visible" ) ) {
+    int visible = strtol( sValue, (char**)NULL, 10 );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Bad visible value" );
+    }
+    SetVisible( (bool)visible );
+
+  } else {
+    
+    stringstream ssError;
+    ssError << "Unrecognized option " << isOption;
+    throw runtime_error( ssError.str() );
+  }
+}
 
 void
 Layer::DoListenToMessage ( string isMessage, void* ) {
