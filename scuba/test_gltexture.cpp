@@ -29,6 +29,7 @@ int nTexture = 0;
 int width, height, depth;
 int tSize[3];
 GLuint textures[8];
+GLfloat m[16];
 
 float intensity = 1.0;
 float density = 0.0;
@@ -44,6 +45,12 @@ void LoadTextures () {
   height = mri->height;
   depth = mri->depth;
 
+  Matrix44& t = vol.GetWorldToIndexTransform().ExtractRotation();
+  cerr << t << endl;
+  m[0] = t(0,0); m[4] = t(1,0);  m[8] = t(2,0); m[12] = t(3,0); 
+  m[1] = t(0,1); m[5] = t(1,1);  m[9] = t(2,1); m[13] = t(3,1); 
+  m[2] = t(0,2); m[6] = t(1,2); m[10] = t(2,2); m[14] = t(3,2); 
+  m[3] = t(0,3); m[7] = t(1,3); m[11] = t(2,3); m[15] = t(3,3); 
 
   nSlice = depth / 2;
 
@@ -156,6 +163,7 @@ void DrawWindow () {
   GLfloat xPlane[] = { 1, 0, 0, 0 };
   GLfloat yPlane[] = { 0, 1, 0, 0 };
   GLfloat zPlane[] = { 0, 0, 1, 0 };
+  GLfloat qPlane[] = { 0, 0, 0, 1 };
 
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
   CheckError();
@@ -165,11 +173,8 @@ void DrawWindow () {
   glEnable( GL_TEXTURE_GEN_S );  CheckError();
   glEnable( GL_TEXTURE_GEN_T );  CheckError();
   glEnable( GL_TEXTURE_GEN_R );  CheckError();
+  glEnable( GL_TEXTURE_GEN_Q );  CheckError();
 
-  glTexGeni( GL_S, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR );  CheckError();
-  glTexGeni( GL_T, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR );  CheckError();
-  glTexGeni( GL_R, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR );  CheckError();
-	
   glEnable( GL_ALPHA_TEST );
   glAlphaFunc( GL_GREATER, intensity*density );
   glEnable( GL_BLEND );
@@ -205,35 +210,37 @@ void DrawWindow () {
 	  int textureSlice = nSlice % 128;
 
 	  glTranslatef( 0, 0, (float)textureSlice/(float)tSize[2] );
+
+	  //	  glMultMatrixf( m );
+
 	  glRotatef( rotation, 0, 1, 0 );
-	  
-	  glTexGenfv( GL_S, GL_EYE_PLANE, xPlane );  CheckError();
-	  glTexGenfv( GL_T, GL_EYE_PLANE, yPlane );  CheckError();
-	  glTexGenfv( GL_R, GL_EYE_PLANE, zPlane );  CheckError();
-	  
-	  
+
+	  glTexGeni( GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);CheckError();
+	  glTexGeni( GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);CheckError();
+	  glTexGeni( GL_R, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);CheckError();
+	  glTexGeni( GL_Q, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);CheckError();
+	  glTexGenfv( GL_S, GL_OBJECT_PLANE, xPlane );  CheckError();
+	  glTexGenfv( GL_T, GL_OBJECT_PLANE, yPlane );  CheckError();
+	  glTexGenfv( GL_R, GL_OBJECT_PLANE, zPlane );  CheckError();
+	  glTexGenfv( GL_Q, GL_OBJECT_PLANE, qPlane );  CheckError();
+
 	  glMatrixMode( GL_MODELVIEW );
 	  glLoadIdentity();
 	  glTranslatef( 0.0f, 0.0f, -5.0f);
 	  switch( t ) {
-	  case 0: glTranslatef( -1,  0,  0 ); break;
-	  case 1: glTranslatef(  0,  0,  0 ); break;
-	  case 2: glTranslatef( -1, -1,  0 ); break;
-	  case 3: glTranslatef(  0, -1,  0 ); break;
-	  case 4: glTranslatef( -1,  0,  0 ); break;
-	  case 5: glTranslatef(  0,  0,  0 ); break;
-	  case 6: glTranslatef( -1, -1,  0 ); break;
-	  case 7: glTranslatef(  0, -1,  0 ); break;
+	  case 0: glTranslatef( -1, -1,  0 ); break;
+	  case 1: glTranslatef(  0, -1,  0 ); break;
+	  case 2: glTranslatef( -1,  0,  0 ); break;
+	  case 3: glTranslatef(  0,  0,  0 ); break;
+	  case 4: glTranslatef( -1, -1,  0 ); break;
+	  case 5: glTranslatef(  0, -1,  0 ); break;
+	  case 6: glTranslatef( -1,  0,  0 ); break;
+	  case 7: glTranslatef(  0,  0,  0 ); break;
 	  }
 	  
 	  glColor4f( 1, 1, 1, intensity );
 	  glBegin( GL_QUADS );
-#if 0	  
-	  glVertex3f  ( -1.0f, -1.0f, 0 );
-	  glVertex3f  ( -1.0f, 1.0f, 0 );
-	  glVertex3f  ( 1.0f, 1.0f, 0 );
-	  glVertex3f  ( 1.0f, -1.0f, 0 );
-#endif
+
 	  glVertex3f( 0, 0, 0 );
 	  glVertex3f( 0, 1, 0 );
 	  glVertex3f( 1, 1, 0 );

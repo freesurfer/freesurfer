@@ -105,6 +105,9 @@ class VolumeCollection : public DataCollection {
     CalcWorldToIndexTransform();
   }
 
+  Matrix44& GetWorldToIndexTransform () {
+    return mWorldToIndexTransform.GetMainMatrix(); }
+
 protected:
 
   void CalcWorldToIndexTransform ();

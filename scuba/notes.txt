@@ -293,17 +293,18 @@ x surfaceRAS problem
   x on volume, read in c_r,a,s and compose with index->dataRAS transform
   x on surface, read cras from lta
 
-- support registration matrix properly
-  - ScubaTransform
-    - add bool IsRegistration, int srcVolume, int dstVolume, Matrix44 registration
-    - on any transformation or access, if IsRegistration, use registration matrix
-    - MakeRegistrationMatrix(int src, int dst)
-      - sets flags, calcs registration
-    - MakeNonRegistrationMatrix
-      - unsets flag
-    - tcl function for setting registration flag, src, dst
-  - scuba.tcl
-    - interface, checkbox and volume fields
+x support registration matrix properly
+  x ScubaTransform
+    x add bool IsRegistration, int srcVolume, int dstVolume
+    x tcl function for setting registration flag, src, dst
+  x scuba.tcl
+    x interface, checkbox and volume fields
+
+
+menuSubscribers, get filled when idList changes
+
+watch value of ow, when changes, disable menu, set value, enable
+
 
 
 DRAWING TOOLS:::
