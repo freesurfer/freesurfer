@@ -9,12 +9,16 @@
 #include "diag.h"
 #include "mri.h"
 #include "proto.h"
+#include "histo.h"
 #include "transform.h"
+#include "mrinorm.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.1 2002/04/09 17:42:08 fischl Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.2 2002/07/05 22:13:29 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
+static int normalize_PD(MRI *mri_PD, float target) ;
+static int discard_PD(MRI *mri_PD, short thresh, short target) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
@@ -23,9 +27,23 @@ static void print_version(void) ;
 static double FLASHforwardModel(double flip_angle, double TR, double PD, 
                                 double T1) ;
 
+MRI *MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
+                                 float w30, float TR30, float target_wm, float TE) ;
 static MRI *MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, double TE) ;
+static int remap_T1(MRI *mri_T1, float mean, float scale) ;
 
 char *Progname ;
+static int normalize = 0 ;
+static int discard = 0 ;
+static int nl_remap_T1 = 0 ;
+static float nl_scale = 0.01 ;
+static float nl_mean = 950 ;
+
+/* optimal class separation (sort of) */
+static double w30 = 0.7718 ;
+static double w5 = -0.6359 ;
+
+static int use_weighting = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -70,8 +88,23 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read PD volume %s", Progname, 
               PD_fname) ;
 
-  printf("synthesizing volume with TR=%2.1f msec, TE=%2.1f msec, and alpha=%2.2f degrees...\n",
-         TR, TE, alpha) ;
+  if (use_weighting)
+  {
+    mri_out = MRIsynthesizeWeightedVolume(mri_T1, mri_PD, w5, 20,w30, 20, 
+                                          110,TE);
+  }
+  else
+  {
+    printf("synthesizing volume with TR=%2.1f msec, TE=%2.1f msec, and alpha=%2.2f degrees...\n",
+           TR, TE, alpha) ;
+    if (normalize)
+      normalize_PD(mri_PD, 1000) ;
+    if (discard)
+      discard_PD(mri_PD, 250, 1500) ;
+    if (nl_remap_T1)
+      remap_T1(mri_T1, nl_mean, nl_scale) ;
+  }
+
   mri_out = MRIsynthesize(mri_T1, mri_PD, NULL, TR, RADIANS(alpha), TE) ;
   printf("writing output to %s.\n", out_fname) ;
   MRIwrite(mri_out, out_fname) ;
@@ -96,8 +129,40 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "remap"))
+  {
+    nl_remap_T1 = 1 ;
+    nl_mean = atof(argv[2]) ;
+    nl_scale = atof(argv[3]) ;
+    printf("remapping T1 with %2.0f * (tanh(%2.4f * (T1-%2.0f))+1.5)\n",
+           nl_mean, nl_scale, nl_mean) ;
+    nargs = 2 ;
+  }
+  else if (!stricmp(option, "w5"))
+  {
+    w5 = atof(argv[2]) ;
+    printf("setting 5 degree weight to %f\n", w5) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "w30"))
+  {
+    w30 = atof(argv[2]) ;
+    printf("setting 30 degree weight to %f\n", w30) ;
+    nargs = 1 ;
+  }
   else switch (toupper(*option))
   {
+  case 'W':
+    use_weighting = 1 ;
+    break ;
+  case 'D':
+    discard = 1 ;
+    printf("setting all PD values to constant...\n") ;
+    break ;
+  case 'N':
+    normalize = 1 ;
+    printf("normalizing PD before synthesizing image...\n") ;
+    break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
@@ -109,6 +174,7 @@ get_option(int argc, char *argv[])
     break ;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    print_usage();
     exit(1) ;
     break ;
   }
@@ -180,7 +246,11 @@ MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, d
     {
       for (z = 0 ; z < depth ; z++)
       {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         T1 = MRISvox(mri_T1, x, y, z) ;
+        if (T1 < 900 && T1 > 600)
+          DiagBreak() ;
         PD = MRISvox(mri_PD, x, y, z) ;
         flash = FLASHforwardModel(alpha, TR, PD, T1) ;
         MRISvox(mri_dst, x, y, z) = (short)nint(flash) ;
@@ -191,3 +261,162 @@ MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, d
   return(mri_dst) ;
 }
 
+static int
+normalize_PD(MRI *mri_PD, float target)
+{
+  double mean_PD, scale, val ;
+  int    x, y, z ;
+
+  for (mean_PD = 0.0, x = 0 ; x < mri_PD->width ; x++)
+  {
+    for (y = 0 ; y < mri_PD->height ; y++)
+    {
+      for (z = 0 ; z < mri_PD->depth ; z++)
+      {
+        mean_PD += (double)MRISvox(mri_PD, x, y, z) ;
+      }
+    }
+  }
+  mean_PD /= (mri_PD->width * mri_PD->height * mri_PD->depth) ;
+  scale = target / mean_PD ;
+  printf("mean PD %2.0f, scaling by %2.2f to set mean to %2.0f\n",
+         mean_PD, scale, target) ;
+  for (mean_PD = 0.0, x = 0 ; x < mri_PD->width ; x++)
+  {
+    for (y = 0 ; y < mri_PD->height ; y++)
+    {
+      for (z = 0 ; z < mri_PD->depth ; z++)
+      {
+        val = (double)MRISvox(mri_PD, x, y, z) ;
+        val *= scale ;
+        MRISvox(mri_PD, x, y, z) = (short)val ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+static int
+discard_PD(MRI *mri_PD, short thresh, short target)
+{
+  int    x, y, z ;
+  short  val ;
+
+  for (x = 0 ; x < mri_PD->width ; x++)
+  {
+    for (y = 0 ; y < mri_PD->height ; y++)
+    {
+      for (z = 0 ; z < mri_PD->depth ; z++)
+      {
+        val = MRISvox(mri_PD, x, y, z) ;
+        if (val > thresh)
+          MRISvox(mri_PD, x, y, z) = target ;
+        else
+          MRISvox(mri_PD, x, y, z) = 0 ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+static int
+remap_T1(MRI *mri_T1, float mean, float scale)
+{
+  int    x, y, z ;
+  float val ;
+
+  for (x = 0 ; x < mri_T1->width ; x++)
+  {
+    for (y = 0 ; y < mri_T1->height ; y++)
+    {
+      for (z = 0 ; z < mri_T1->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        val = (float)MRISvox(mri_T1, x, y, z) ;
+        val = mean * (tanh(scale * (val-mean))+1.5) ;
+        MRISvox(mri_T1, x, y, z) = val ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+#define MIN_REAL_VAL 100  /* with PD scaled to be 1000 */
+#define MIN_BIN  50
+MRI *
+MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
+                            float w30, float TR30, float target_wm, float TE)
+{
+  MRI *mri_dst ;
+  MRI_REGION box ;
+  float      x0, y0, z0, min_real_val ;
+  HISTOGRAM *h_mri, *h_smooth ;
+  int        mri_peak, n, min_real_bin, x, y, z, width, height, depth ;
+  MRI       *mri30, *mri5 ;
+  double    mean_PD ;
+  Real      val30, val5, val ;
+
+  mean_PD = MRImeanFrame(mri_PD, 0) ;
+  /*  MRIscalarMul(mri_PD, mri_PD, 1000.0f/mean_PD) ;*/
+  mri30 = MRIsynthesize(mri_T1, mri_PD, NULL, TR30, RADIANS(30), TE) ;
+  mri5 = MRIsynthesize(mri_T1, mri_PD, NULL, TR5, RADIANS(5), TE) ;
+  width = mri30->width ; height = mri30->height ; depth = mri30->depth ;
+
+  mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
+  MRIcopyHeader(mri_T1, mri_dst) ;
+
+  h_mri = MRIhistogram(mri30, 100) ;
+  h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+  mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 0, h_smooth->nbins) ;
+  min_real_bin = HISTOfindNextValley(h_smooth, mri_peak) ;
+  min_real_val = h_smooth->bins[min_real_bin] ;
+
+  MRIfindApproximateSkullBoundingBox(mri30, min_real_val, &box) ;
+  x0 = box.x+box.dx/3 ; y0 = box.y+box.dy/3 ; z0 = box.z+box.dz/2 ;
+  printf("using (%.0f, %.0f, %.0f) as brain centroid...\n",x0, y0, z0) ;
+  box.dx /= 4 ; box.x = x0 - box.dx/2;
+  box.dy /= 4 ; box.y = y0 - box.dy/2;
+  box.dz /= 4 ; box.z = z0 - box.dz/2;
+
+
+  printf("using box (%d,%d,%d) --> (%d, %d,%d) "
+         "to find MRI wm\n", box.x, box.y, box.z, 
+         box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
+  
+  h_mri = MRIhistogramRegion(mri30, 0, NULL, &box) ; 
+  for (n = 0 ; n < h_mri->nbins-1 ; n++)
+    if (h_mri->bins[n+1] > min_real_val)
+      break ;
+  HISTOclearBins(h_mri, h_mri, 0, n) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    HISTOplot(h_mri, "mri.histo") ;
+  mri_peak = HISTOfindLastPeak(h_mri, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+  mri_peak = h_mri->bins[mri_peak] ;
+  printf("before smoothing, mri peak at %d\n", mri_peak) ;
+  h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    HISTOplot(h_smooth, "mri_smooth.histo") ;
+  mri_peak = HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+  mri_peak = h_mri->bins[mri_peak] ;
+  printf("after smoothing, mri peak at %d\n", mri_peak) ;
+  HISTOfree(&h_smooth) ; HISTOfree(&h_mri) ;
+
+
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        MRIsampleVolumeType(mri30, x, y, z, &val30, SAMPLE_NEAREST) ;
+        MRIsampleVolumeType(mri5, x, y, z, &val5, SAMPLE_NEAREST) ;
+        val = w30*val30 + w5*val5 ;
+        MRIFvox(mri_dst, x, y, z) = val ;
+      }
+    }
+  }
+
+  MRIfree(&mri30) ; MRIfree(&mri5) ;
+  return(mri_dst) ;
+}
