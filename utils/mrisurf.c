@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/12/30 20:41:31 $
-// Revision       : $Revision: 1.316 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2005/01/03 15:37:28 $
+// Revision       : $Revision: 1.317 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -41893,7 +41893,22 @@ int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta)
   MATRIX *surf2surf = 0;
   MRI *src = 0;
   int i;
+  int ltaNULL = 0;
 
+  if (lta == NULL)
+  {
+    ltaNULL = 1;
+    lta = LTAalloc(1, NULL);
+    lta->type = LINEAR_RAS_TO_RAS;
+    MatrixIdentity(4, lta->xforms[0].m_L);
+    getVolGeom(dst, &lta->xforms[0].dst);
+    getVolGeom(dst, &lta->inv_xforms[0].src);
+    if (mris->vg.valid==1)
+    {
+      copyVolGeom(&mris->vg, &lta->xforms[0].dst);
+      copyVolGeom(&mris->vg, &lta->inv_xforms[0].src);
+    }
+  }
   src = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_VOLUME_TYPE_UNKNOWN);
   if (mris->vg.valid ==0)
   {
@@ -41924,6 +41939,8 @@ int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta)
   VectorFree(&sX); sX = 0;
   VectorFree(&dX); dX = 0;
   MatrixFree(&surf2surf); surf2surf = 0;
+  if (ltaNULL==1)
+    LTAfree(&lta);
 
   return 0;
 }
