@@ -27,6 +27,7 @@ static int  MRIsetFrame(MRI *mri, int frame, float val) ;
 static int linear = 0 ;
 static char *transform_fname = NULL ;
 static int unit_variance = 1 ;
+static char *var_fname = NULL ;
 
 /* 
    command line consists of three inputs:
@@ -79,8 +80,10 @@ main(int argc, char *argv[])
 
   in_fname = argv[1] ;
   strcpy(ref_fname, argv[2]) ;
+#if 0
   if (strchr(ref_fname, '#') == NULL)
     strcat(ref_fname, "#-2") ;   /* only read in 2 frames - I know, a hack */
+#endif
   out_fname = argv[3] ;
   FileNameOnly(out_fname, fname) ;
   FileNameRemoveExtension(fname, fname) ;
@@ -98,7 +101,20 @@ main(int argc, char *argv[])
   if (!mri_ref)
     ErrorExit(ERROR_NOFILE, "%s: could not open reference volume %s.\n",
               Progname, ref_fname) ;
-  if (unit_variance)
+  if (var_fname)  /* read in a volume of standard deviations */
+  {
+    MRI *mri_var, *mri_tmp ;
+
+    fprintf(stderr, "reading '%s'...\n", var_fname) ;
+    mri_var = MRIread(var_fname) ;
+    if (!mri_var)
+      ErrorExit(ERROR_NOFILE, "%s: could not open variance volume %s.\n",
+                Progname, var_fname) ;
+    mri_tmp = MRIconcatenateFrames(mri_ref, mri_var, NULL) ;
+    MRIfree(&mri_var) ; MRIfree(&mri_ref) ;
+    mri_ref = mri_tmp ;
+  }
+  if (unit_variance && mri_ref->nframes > 1)
     MRIsetFrame(mri_ref, 1, 1.0) ;
 #if 0
   if (mri_ref->nframes > 2)
@@ -301,6 +317,11 @@ get_option(int argc, char *argv[])
   case 'L':
     linear = 1 ;
     fprintf(stderr, "finding optimal linear alignment...\n") ;
+    break ;
+  case 'V':
+    var_fname = argv[2] ;
+    fprintf(stderr, "reading variance image from %s...\n", var_fname) ;
+    nargs = 1 ;
     break ;
   case 'N':
     parms.niterations = atoi(argv[2]) ;
