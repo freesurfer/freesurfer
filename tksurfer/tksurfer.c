@@ -718,7 +718,7 @@ float reallymat[4][4] = {
   {0.0,0.0,0.0,1.0}};
 
 /* Talairach stuff */
-LINEAR_TRANSFORM_ARRAY  *lta ;
+LINEAR_TRANSFORM_ARRAY  *lta  = NULL;
 int               transform_loaded = 0 ;
 
 /* parcellation stuff */
@@ -1154,9 +1154,13 @@ MATRIX* conv_mnital_to_tal_m_gtz = NULL;
 MATRIX* conv_tmp1_m = NULL;
 MATRIX* conv_tmp2_m = NULL;
 
+MRI* origMRI = NULL;
+
 int conv_initialize ();
-int conv_mnital_to_tal(float mnix, float mniy, float mniz,
+int conv_ras_to_mnital(float rasx, float rasy, float rasz,
 		       float* talx, float* taly, float* talz);
+int conv_ras_to_tal(float rasx, float rasy, float rasz,
+		    float* talx, float* taly, float* talz);
 
 /* ------------------------------------------------------------------------ */
 
@@ -18140,7 +18144,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.57 2003/09/08 19:44:23 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.58 2003/10/27 16:27:01 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19947,18 +19951,19 @@ update_labels(int label_set, int vno, float dmin)
   /* if we have a tal transform, compute the tal. */
   if (transform_loaded)
     {
-      LTAworldToWorld(lta, v->origx, v->origy, v->origz, 
-		      &x_mni, &y_mni, &z_mni) ;
-      sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
-	      label_set, LABEL_COORDS_MNITAL, x_mni, y_mni, z_mni );
-      Tcl_Eval(g_interp, command);
-      
-      /* now conver mni tal to the real tal. */
-      conv_mnital_to_tal( x_mni, y_mni, z_mni, &x_tal, &y_tal, &z_tal );
+      conv_ras_to_tal( v->origx, v->origy, v->origz, &x_tal, &y_tal, &z_tal );
       sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
 	      label_set, LABEL_COORDS_TAL, x_tal, y_tal, z_tal );
       Tcl_Eval(g_interp, command);
+      
+      
+      conv_ras_to_mnital( v->origx, v->origy, v->origz, 
+			  &x_mni, &y_mni, &z_mni );
+      sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
+	      label_set, LABEL_COORDS_MNITAL, x_mni, y_mni, z_mni );
+      Tcl_Eval(g_interp, command);
     }
+
   sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
 	  label_set, LABEL_COORDS_NORMAL, v->nx, v->ny, v->nz);
   Tcl_Eval(g_interp, command);
@@ -20583,7 +20588,10 @@ vset_set_current_set(int set)
 
 int conv_initialize()
 {
+  char fname[STRLEN] = "";
+  char path[STRLEN] = "";
   
+
   /* allocate our conversion matrices. */
   if (NULL != conv_mnital_to_tal_m_ltz)
     MatrixFree (&conv_mnital_to_tal_m_ltz);
@@ -20614,12 +20622,62 @@ int conv_initialize()
     MatrixFree (&conv_tmp2_m);
   conv_tmp2_m = MatrixAlloc (4, 1, MATRIX_REAL);
   
+
+  /* We need to read in the COR- header from the orig volume, if
+     available, and get the extract_i_to_r transform. */
+  if( NULL != mris ) 
+    {
+      FileNamePath (mris->fname, path);
+      sprintf (fname, "%s/../mri/orig", path);
+      
+      origMRI = MRIreadHeader (fname, MRI_CORONAL_SLICE_DIRECTORY);
+      if( NULL == origMRI ) 
+	{
+	  printf ("WARNING: Couldn't not load orig volume from %s\n"
+		  "         Talairach coords will be incorrect.\n", fname);
+	}
+    }
+
   return(NO_ERROR);
 }
 
-int conv_mnital_to_tal(float mnix, float mniy, float mniz,
-		       float* talx, float* taly, float* talz) 
+
+int conv_ras_to_mnital(float srasx, float srasy, float srasz,
+		       float* mnix, float* mniy, float* mniz) 
 {
+  Real rasx, rasy, rasz;
+
+  /* If we have the original MRI volume, use it to go from surface RAS
+     coords to normal RAS coords. Otherwise just use the surface RAS
+     coords. */
+  if (NULL != origMRI)
+    {
+      MRIsurfaceRASToRAS (origMRI, srasx, srasy, srasz,
+      			  &rasx, &rasy, &rasz);
+    }
+  else
+    {
+      rasx = srasx;
+      rasy = srasy;
+      rasz = srasz;
+    }
+  
+  /* Run the talairach transformation. */
+  if (transform_loaded && NULL != lta) 
+    {
+      LTAworldToWorld (lta, rasx, rasy, rasz, mnix, mniy, mniz);
+    }
+
+  return(NO_ERROR);
+}
+
+int conv_ras_to_tal(float srasx, float srasy, float srasz,
+		    float* talx, float* taly, float* talz)
+{
+  float mnix, mniy, mniz;
+
+  conv_ras_to_mnital (srasx, srasy, srasz, &mnix, &mniy, &mniz);
+
   *MATRIX_RELT(conv_tmp1_m,1,1) = mnix;
   *MATRIX_RELT(conv_tmp1_m,2,1) = mniy;
   *MATRIX_RELT(conv_tmp1_m,3,1) = mniz;
@@ -20637,9 +20695,10 @@ int conv_mnital_to_tal(float mnix, float mniy, float mniz,
   *talx = *MATRIX_RELT(conv_tmp2_m,1,1);
   *taly = *MATRIX_RELT(conv_tmp2_m,2,1);
   *talz = *MATRIX_RELT(conv_tmp2_m,3,1);
-  
+
   return(NO_ERROR);
 }
+
 
 /* ------------------------------------------------------------------------ */
 
