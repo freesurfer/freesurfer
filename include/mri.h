@@ -200,6 +200,7 @@ MRI   *MRIextract(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
 MRI   *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
                   int dx, int dy, int dz, int x1, int y1, int z1) ;
 
+MRI   *MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region) ;
 MRI   *MRIextractPlane(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
                         int x, int y, int z);
 MRI   *MRIextractCpolv(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, 
@@ -320,6 +321,7 @@ extern float ic_z_vertices[]  ;
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
+MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
 HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
 MRI        *MRIhistoEqualize(MRI *mri_src, MRI *mri_dst, int low) ;
 MRI        *MRIapplyHistogram(MRI *mri_src, MRI *mri_dst, HISTOGRAM *histo) ;
@@ -339,7 +341,6 @@ MRI        *MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst,
                                     HISTOGRAM *histo, MRI_REGION *region) ;
 HISTOGRAM  *MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low, 
                                       MRI_REGION *region, int norm) ;
-MRI        *MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region) ;
 int        MRIfileType(char *fname) ;
 int        MRIunpackFileName(char *inFname, int *pframe, int *ptype, 
                              char *outFname) ;
