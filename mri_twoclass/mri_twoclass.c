@@ -19,7 +19,7 @@
 #include "cma.h"
 #include "vlabels.h"
 
-static char vcid[] = "$Id: mri_twoclass.c,v 1.7 2002/07/29 20:07:00 fischl Exp $";
+static char vcid[] = "$Id: mri_twoclass.c,v 1.8 2002/09/10 14:20:51 fischl Exp $";
 
 
 /*-------------------------------- STRUCTURES ----------------------------*/
@@ -43,6 +43,7 @@ static int Gyn = -1 ;
 static int Gzn = -1 ;
 
 static int wm_flag = 0 ;
+static int vol_flag = 0 ;
 
 static float resolution = 2 ;
 static float fthresh = -1 ;
@@ -247,7 +248,7 @@ main(int argc, char *argv[])
       TransformInvert(transform, mri) ;
 
 
-      if (!wm_flag)
+      if (!wm_flag && !vol_flag)
       {
         if (!width)
         {
@@ -286,16 +287,16 @@ main(int argc, char *argv[])
         if (!mri_mean1 || !mri_mean2 || !mri_var1 || !mri_var2 || !mri_atlas_wm)
           ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %dx%dx%d summary volumes",
                     Progname, awidth, aheight, adepth) ;
-        if (n < num_class1)
-        {
-          compute_white_matter_density(mri, mri_atlas_wm,resolution,transform);
-          accumulate_white_matter_density(mri_atlas_wm, mri_mean1, mri_var1);
-        }
-        else
-        {
-          compute_white_matter_density(mri, mri_atlas_wm,resolution,transform);
-          accumulate_white_matter_density(mri_atlas_wm, mri_mean2, mri_var2);
-        }
+				if (n < num_class1)
+				{
+					compute_white_matter_density(mri, mri_atlas_wm,resolution,transform);
+					accumulate_white_matter_density(mri_atlas_wm, mri_mean1, mri_var1);
+				}
+				else
+				{
+					compute_white_matter_density(mri, mri_atlas_wm,resolution,transform);
+					accumulate_white_matter_density(mri_atlas_wm, mri_mean2, mri_var2);
+				}
       }
 
       MRIfree(&mri) ; TransformFree(&transform) ;
@@ -303,7 +304,7 @@ main(int argc, char *argv[])
   }
 
 
-  if (wm_flag)
+  if (wm_flag || vol_flag)
   {
     normalize_white_matter_density(mri_mean1, mri_var1, num_class1) ; 
     normalize_white_matter_density(mri_mean2, mri_var2, num_class2) ;
@@ -399,6 +400,11 @@ get_option(int argc, char *argv[])
   {
     wm_flag = 1 ;
     fprintf(stderr, "generating map of white matter differences...\n") ;
+  }
+  else if (!stricmp(option, "vol"))
+  {
+    vol_flag = 1 ;
+    fprintf(stderr, "generating maps of volumetric (non-labeled) differences...\n") ;
   }
   else if (!stricmp(option, "sigma"))
   {
@@ -514,7 +520,7 @@ add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,float resolution,
   int          x, y, z, width, height, depth, index, label, xv, yv, zv ;
   VOXEL_LABELS *vl ;
 
-  width = mri->width; height = mri->height; depth = mri->height;
+  width = mri->width; height = mri->height; depth = mri->depth;
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -909,8 +915,8 @@ compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm, float resolution,
   mri_filled = MRIalloc(mri_atlas_wm->width, mri_atlas_wm->height, 
                         mri_atlas_wm->depth, MRI_UCHAR) ;
 
-  width = mri->width; height = mri->height; depth = mri->height;
-  nwidth = mri_atlas_wm->width; nheight = mri_atlas_wm->height; ndepth = mri_atlas_wm->height;
+  width = mri->width; height = mri->height; depth = mri->depth;
+  nwidth = mri_atlas_wm->width; nheight = mri_atlas_wm->height; ndepth = mri_atlas_wm->depth;
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -957,7 +963,7 @@ compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm, float resolution,
     }
   }
   
-  width = mri_filled->width; height = mri_filled->height; depth = mri_filled->height;
+  width = mri_filled->width; height = mri_filled->height; depth = mri_filled->depth;
   for (nholes = x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -995,7 +1001,7 @@ accumulate_white_matter_density(MRI *mri_atlas_wm, MRI *mri_mean, MRI *mri_var)
   int    x, y, z, width, height, depth ;
   float  label ;
 
-  width = mri_atlas_wm->width; height = mri_atlas_wm->height; depth = mri_atlas_wm->height;
+  width = mri_atlas_wm->width; height = mri_atlas_wm->height; depth = mri_atlas_wm->depth;
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -1023,7 +1029,7 @@ normalize_white_matter_density(MRI *mri_mean, MRI *mri_var, int n)
   int      x, y, z, width, height, depth ;
   float    mean, var ;
 
-  width = mri_mean->width; height = mri_mean->height; depth = mri_mean->height;
+  width = mri_mean->width; height = mri_mean->height; depth = mri_mean->depth;
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -1104,4 +1110,7 @@ compute_white_matter_statistics(MRI *mri_mean1, MRI *mri_mean2, MRI *mri_var1, M
 
   return(mri_stats) ;
 }
+
+
+
 
