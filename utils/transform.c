@@ -458,6 +458,7 @@ LTAfree(LTA **plta)
     MatrixFree(&lta->inv_xforms[i].m_last_dL) ;
   }
   free(lta->xforms) ;
+  free(lta->inv_xforms);
   free(lta) ;
   return(NO_ERROR) ;
 }
