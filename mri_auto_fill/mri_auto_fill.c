@@ -44,6 +44,7 @@ static void usage_exit(int code) ;
 static float pct = 95.0f ;
 static float nsigma = 0.1f ;
 static int fix = 0 ;
+static int dilate = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -270,7 +271,13 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
+  if (!stricmp(option, "dilate"))
+  {
+    dilate = atoi(argv[2]) ;
+    fprintf(stderr, "dilating ventricles %d times before filling\n",dilate);
+    nargs = 1 ;
+  }
+  else switch (toupper(*option))
   {
   case 'N':
     nsigma = atof(argv[2]) ;
@@ -693,12 +700,12 @@ MRIthresholdFilled(MRI *mri_src, MRI *mri_T1, MRI *mri_mask, MRI *mri_inv_T1,
 }
 #if 1
 MRI *
-MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
+MRIfillVentricle(MRI *mri_inv_ventricle, MRI *mri_T1, float thresh,
                  int out_label, MRI *mri_dst)
 {
-  BUFTYPE   *pdst, *pinv_lv, out_val, T1_val, inv_lv_val, *pT1 ;
+  BUFTYPE   *pdst, *pinv_ventricle, out_val, T1_val, inv_ventricle_val, *pT1 ;
   int       width, height, depth, x, y, z,
-            ventricle_voxels;
+            ventricle_voxels, dno ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_T1, NULL) ;
@@ -709,6 +716,9 @@ MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
      */
 
 
+  for (dno = dilate ; dno > 0 ; dno--)
+    MRIdilate(mri_inv_ventricle, mri_inv_ventricle) ;
+
   ventricle_voxels = 0 ;
   for (z = 0 ; z < depth ; z++)
   {
@@ -716,12 +726,12 @@ MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
     {
       pdst = &MRIvox(mri_dst, 0, y, z) ;
       pT1 = &MRIvox(mri_T1, 0, y, z) ;
-      pinv_lv = &MRIvox(mri_inv_lv, 0, y, z) ;
+      pinv_ventricle = &MRIvox(mri_inv_ventricle, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        T1_val = *pT1++ ; inv_lv_val = *pinv_lv++ ; 
+        T1_val = *pT1++ ; inv_ventricle_val = *pinv_ventricle++ ; 
         out_val = 0 ;
-        if (inv_lv_val >= thresh)
+        if (inv_ventricle_val >= thresh)
         {
           ventricle_voxels++ ;
           out_val = out_label ;
