@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.40 2003/04/23 21:17:11 kteich Exp $
+# $Id: tkmedit.tcl,v 1.41 2003/04/23 22:32:19 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -976,6 +976,8 @@ proc DoLoadFunctionalDlog { isType } {
 	tkm_MakeFileSelector $fwFile $sPrompt gfnFunctional \
 	    [list GetDefaultLocation LoadFunctional-$gsFuncLoadType] \
 	    $glShortcutDirs
+
+	[$fwFile.ew subwidget entry] icursor end
 	
 	tkm_MakeSmallLabel $fwFileNote \
 	    "One of the binary volume files (.bfloat/.bshort/.hdr)" 400
@@ -1045,6 +1047,8 @@ proc DoSpecifyStemAndRegistration { isType ifnVolume } {
 	    [list GetDefaultLocation SpecifyRegistration] \
 	    $glShortcutDirs
 	
+	[$fwReg.ew subwidget entry] icursor end
+	
 	tkm_MakeSmallLabel $fwRegNote \
 	    "The file name of the registration file to load" 
 	
@@ -1101,6 +1105,8 @@ proc DoLoadDTIDlog {} {
 	    [list GetDefaultLocation LoadDTIVolume] \
 	    $glShortcutDirs
 
+	[$fwEVFile.ew subwidget entry] icursor end
+	
 	tkm_MakeSmallLabel $fwEVFileNote "The DTI vector volume to load" 400
 	
 	set sFAFileName ""
@@ -1108,6 +1114,8 @@ proc DoLoadDTIDlog {} {
 	    [list GetDefaultLocation LoadDTIVolume] \
 	    $glShortcutDirs
 
+	[$fwFAFile.ew subwidget entry] icursor end
+	
 	tkm_MakeSmallLabel $fwFAFileNote "The DTI FA volume to load" 400
 	
 	tkm_MakeNormalLabel $lwColor "Color orientation:"

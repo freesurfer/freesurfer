@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.43 2003/04/10 20:28:00 kteich Exp $
+# $Id: tksurfer.tcl,v 1.44 2003/04/23 22:32:19 kteich Exp $
 
 package require BLT;
 
@@ -1365,6 +1365,8 @@ proc DoLoadOverlayDlog {} {
 	    [list GetDefaultLocation LoadOverlay] \
 	    $glShortcutDirs
 	
+	[$fwFile.ew subwidget entry] icursor end
+
 	tkm_MakeSmallLabel $fwFileNote "The values file (.w) or one of the binary volume files (.bfloat/.bshort/.hdr)" 400
 	
 	tixOptionMenu $fwField -label "Into Field:" \
@@ -1423,6 +1425,8 @@ proc DoLoadTimeCourseDlog {} {
 	    [list GetDefaultLocation LoadTimeCourse] \
 	    $glShortcutDirs
 	
+	[$fwFile.ew subwidget entry] icursor end
+
 	tkm_MakeSmallLabel $fwFileNote "One of the binary volume files (.bfloat/.bshort/.hdr)" 400
 	
 	# buttons.
@@ -1504,6 +1508,8 @@ proc DoSpecifyStemAndRegistration { inField } {
 	    [list GetDefaultLocation SpecifyRegistration] \
 	    $glShortcutDirs
 	
+	[$fwReg.ew subwidget entry] icursor end
+
 	tkm_MakeSmallLabel $fwRegNote \
 	    "The file name of the registration file to load" 
 	
@@ -1557,10 +1563,12 @@ proc DoSaveValuesAsDlog {} {
 	set fwButtons          $wwDialog.fwButtons
 	
 	set sFileName [GetDefaultLocation SaveValuesAs]
-	tkm_MakeFileSelector $fwFile "Save Values:" sFileName {} \
+	tkm_MakeFileSelector $fwFile "Save Values:" sFileName \
 	    [list GetDefaultLocation SaveValuesAs] \
 	    $glShortcutDirs
 	
+	[$fwFile.ew subwidget entry] icursor end
+
 	tkm_MakeSmallLabel $fwFileNote "The file name of the values file to create" 400
 	
 	tixOptionMenu $fwField -label "From Field:" \
@@ -1627,6 +1635,7 @@ proc GDF_LoadDlog {} {
 	    [list GetDefaultLocation LoadGDF] \
 	    $glShortcutDirs
 
+	[$fwFile.ew subwidget entry] icursor end
 	
 	tkm_MakeSmallLabel $fwFileNote "The GDF file to load" 400
 	
@@ -1834,6 +1843,7 @@ proc DoDecimationDlog {} {
       [list GetDefaultLocation WriteDecimation] \
       $glShortcutDirs
 
+  [$fwFileName.ew subwidget entry] icursor end
 
   # field for spacing
   tkm_MakeEntry $fwSpacing "Spacing: " fSpacing 6 

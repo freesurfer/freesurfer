@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.23 2003/04/18 22:47:32 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.24 2003/04/23 22:32:19 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -1142,6 +1142,8 @@ proc tkm_MakeFileSelector { isFrame isText iVariable {iDefaultFunc ""} {ilDirect
       entry.expand yes \
       entry.fill x"
     
+    [$isFrame.ew subwidget entry] icursor end
+
     # the browse button
     button $isFrame.bw \
 	-text "Browse..." \
@@ -1203,6 +1205,8 @@ proc tkm_MakeDirectorySelector { isFrame isText iVariable {iDefaultFunc ""} {ilD
       entry.expand yes \
       entry.fill x"
     
+    [$isFrame.ew subwidget entry] icursor end
+
     # the browse button
     button $isFrame.bw \
 	-text "Browse..." \
