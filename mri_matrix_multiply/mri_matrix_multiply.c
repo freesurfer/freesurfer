@@ -12,7 +12,7 @@
 
 #define IN_OUT_NAMES  100
 
-char *prog_name;
+char *Progname;
 int verbose_flag = 0;
 
 int read_mat(int argc, char *argv[], int i, MATRIX *in_mat);
@@ -25,7 +25,7 @@ int register_stuff_defined = 0;
 static void usage(int exit_val)
 {
 
-  fprintf(stderr, "usage: %s [options]\n", prog_name);
+  fprintf(stderr, "usage: %s [options]\n", Progname);
   fprintf(stderr, "options are:\n");
   fprintf(stderr, "  -v verbose\n");
   fprintf(stderr, "\n");
@@ -48,14 +48,14 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.4 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.5 2004/06/01 13:51:03 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
   /* ----- get the base executable name ----- */
-  prog_name = strrchr(argv[0], '/');
-  prog_name = (prog_name == NULL ? argv[0] : prog_name + 1);
+  Progname = strrchr(argv[0], '/');
+  Progname = (Progname == NULL ? argv[0] : Progname + 1);
 
   if(argc == 1)
     usage(1);
@@ -90,19 +90,19 @@ int main(int argc, char *argv[])
     }
     else
     {
-      fprintf(stderr, "%s: unknown option %s\n", prog_name, argv[i]);
+      fprintf(stderr, "%s: unknown option %s\n", Progname, argv[i]);
     }
   }
 
   if(n_in == 0)
   {
-    fprintf(stderr, "%s: no input files specified\n", prog_name);
+    fprintf(stderr, "%s: no input files specified\n", Progname);
     usage(1);
   }
 
   if(n_out == 0)
   {
-    fprintf(stderr, "%s: no output files specified\n", prog_name);
+    fprintf(stderr, "%s: no output files specified\n", Progname);
     usage(1);
   }
 
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
   {
     if(read_mat(argc, argv, (in_names[i] < 0 ? -in_names[i] : in_names[i]), in_mat) == -1)
     {
-      fprintf(stderr, "%s: exiting...\n", prog_name);
+      fprintf(stderr, "%s: exiting...\n", Progname);
       exit(1);
     }
     if(in_names[i] < 0)
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 
       if(MatrixInverse(in_mat, in_mat) == NULL)
       {
-        fprintf(stderr, "%s: couldn't invert matrix from file %s\n", prog_name, argv[in_names[i]]);
+        fprintf(stderr, "%s: couldn't invert matrix from file %s\n", Progname, argv[in_names[i]]);
         exit(0);
       }
     }
@@ -155,7 +155,7 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
 
   if(i > argc)
   {
-    fprintf(stderr, "%s: missing input matrix\n", prog_name);
+    fprintf(stderr, "%s: missing input matrix\n", Progname);
     return(-1);
   }
 
@@ -163,7 +163,7 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
   {
     if((fin = fopen(argv[i], "r")) == NULL)
     {
-      fprintf(stderr, "%s: error opening file %s\n", prog_name, argv[i]);
+      fprintf(stderr, "%s: error opening file %s\n", Progname, argv[i]);
       return(-1);
     }
 
@@ -185,7 +185,7 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
   {
     if((fin = fopen(argv[i], "r")) == NULL)
     {
-      fprintf(stderr, "%s: error opening file %s\n", prog_name, argv[i]);
+      fprintf(stderr, "%s: error opening file %s\n", Progname, argv[i]);
       return(-1);
     }
 
@@ -197,7 +197,7 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
       if(fgets(line, STR_LEN, fin) == NULL)
       {
       fclose(fin);
-      fprintf(stderr, "%s: premature EOF in file %s\n", prog_name, argv[i]);
+      fprintf(stderr, "%s: premature EOF in file %s\n", Progname, argv[i]);
       return(-1);
       }
     }
@@ -212,7 +212,7 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
     tmpmat = MatlabRead(argv[i]);
     if(tmpmat == NULL){
       printf("%s: unknown input matrix file type for file %s\n", 
-       prog_name, argv[i]);
+       Progname, argv[i]);
       return(-1);
     }
     if(verbose_flag){
@@ -234,7 +234,7 @@ int write_mat(int argc, char *argv[], int i, MATRIX *out_mat)
 
   if(i > argc)
   {
-    fprintf(stderr, "%s: missing output matrix\n", prog_name);
+    fprintf(stderr, "%s: missing output matrix\n", Progname);
     return(-1);
   }
 
@@ -246,14 +246,14 @@ int write_mat(int argc, char *argv[], int i, MATRIX *out_mat)
 
     if((fout = fopen(argv[i], "w")) == NULL)
     {
-      fprintf(stderr, "%s: error opening file %s\n", prog_name, argv[i]);
+      fprintf(stderr, "%s: error opening file %s\n", Progname, argv[i]);
       return(-1);
     }
 
     if(!register_stuff_defined)
     {
-      fprintf(stderr, "%s: extra parameters for .dat file %s undefined\n", prog_name, argv[i]);
-      fprintf(stderr, "%s: (not writing this file)\n", prog_name);
+      fprintf(stderr, "%s: extra parameters for .dat file %s undefined\n", Progname, argv[i]);
+      fprintf(stderr, "%s: (not writing this file)\n", Progname);
       fclose(fout);
       return(-1);
     }
@@ -275,7 +275,7 @@ int write_mat(int argc, char *argv[], int i, MATRIX *out_mat)
 
     if((fout = fopen(argv[i], "w")) == NULL)
     {
-      fprintf(stderr, "%s: error opening file %s\n", prog_name, argv[i]);
+      fprintf(stderr, "%s: error opening file %s\n", Progname, argv[i]);
       return(-1);
     }
 
@@ -283,7 +283,7 @@ int write_mat(int argc, char *argv[], int i, MATRIX *out_mat)
       printf("writing transform to .xfm file %s\n", argv[i]);
 
     fprintf(fout, "MNI Transform File\n");
-    fprintf(fout, "%% Generated by %s\n", prog_name);
+    fprintf(fout, "%% Generated by %s\n", Progname);
     fprintf(fout, "\n");
     fprintf(fout, "Transform_Type = Linear;\n");
     fprintf(fout, "Linear_Transform =\n");
@@ -296,7 +296,7 @@ int write_mat(int argc, char *argv[], int i, MATRIX *out_mat)
   }
   else
   {
-    fprintf(stderr, "%s: unknown output matrix file type for file %s\n", prog_name, argv[i]);
+    fprintf(stderr, "%s: unknown output matrix file type for file %s\n", Progname, argv[i]);
     return(-1);
   }
 
