@@ -108,6 +108,7 @@ typedef struct
 #define RUN_NO_TO_RING(m, no)    ((m)->runNoToRing[no])
 #define RUN_NO_TO_SPOKE(m, no)   ((m)->runNoToSpoke[no])
 
+void    LogMapFree(LOGMAP_INFO **plmi) ;
 LOGMAP_INFO *LogMapInit(double alpha,int cols,int rows,int nrings,int nspokes);
 int    LogMapForward(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage);
 IMAGE  *LogMapSample(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
