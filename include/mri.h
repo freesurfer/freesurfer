@@ -851,6 +851,8 @@ int MRIeraseBorderPlanes(MRI *mri) ;
 MRI *MRIlog10(MRI *inmri, MRI *outmri, int negflag);
 MRI *MRIrandn(int ncols, int nrows, int nslices, int nframes,
 	      float avg, float stddev, MRI *mri);
+MRI *MRIrande(int ncols, int nrows, int nslices, int nframes,
+	      float avg, int order, MRI *mri);
 MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes,
 		float min, float max, MRI *mri);
 MRI *MRIconst(int ncols, int nrows, int nslices, int nframes,

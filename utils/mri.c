@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/02/09 21:56:06 $
-// Revision       : $Revision: 1.254 $
-char *MRI_C_VERSION = "$Revision: 1.254 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2004/02/12 05:18:34 $
+// Revision       : $Revision: 1.255 $
+char *MRI_C_VERSION = "$Revision: 1.255 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -10572,6 +10572,51 @@ MRI *MRIrandn(int ncols, int nrows, int nslices, int nframes,
 	for(c=0; c<ncols; c++){
 	  MRIFseq_vox(mri,c,r,s,f) = 
 	    stddev*PDFgaussian() + avg;
+	}
+      }
+    }
+  }
+
+  return(mri);
+}
+/*---------------------------------------------------------------------
+  MRIrande() - fills an MRI structure with values sampled from an
+  Erlang distribution with mean avg and order order. The variance
+  will be (avg^2)/order. Theoretical distribution is
+  mu = 1/avg; r = order
+  pdf = r*mu*((r*mu*x)^(r-1)) * exp(-r*mu*x) / (r-1)!
+  --------------------------------------------------------*/
+MRI *MRIrande(int ncols, int nrows, int nslices, int nframes,
+	      float avg, int order, MRI *mri)
+{
+  int c, r, s, f;
+
+  if(mri==NULL){
+    mri = MRIallocSequence(ncols, nrows, nslices, MRI_FLOAT, nframes);
+    if(mri==NULL){
+      printf("ERROR: MRIrande: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(mri->width != ncols   || mri->height != nrows || 
+       mri->depth != nslices || mri->nframes != nframes){
+      printf("ERROR: MRIrande: dimension mismatch\n");
+      return(NULL);
+    }
+    if(mri->type != MRI_FLOAT){
+      printf("ERROR: MRIrande: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  avg = avg - 1; // PDFrande() already has average of 1
+  for(f=0; f<nframes; f++){
+    for(s=0; s<nslices; s++){
+      for(r=0; r<nrows; r++){
+	for(c=0; c<ncols; c++){
+	  MRIFseq_vox(mri,c,r,s,f) = 
+	    PDFerlang(order) + avg;
 	}
       }
     }
