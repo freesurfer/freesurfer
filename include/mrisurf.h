@@ -350,6 +350,9 @@ MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src,
                                              float a, float b, float c);
 MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
 MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
+int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, 
+                                       Real xw, Real yw, Real zw,
+                                       Real *pxv, Real *pyv, Real *pzv) ;
 MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src, 
                                     MRI_SURFACE *mris_dst);
 MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
@@ -395,6 +398,7 @@ int          MRISremoveTopologicalDefects(MRI_SURFACE *mris,float curv_thresh);
 int          MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureDifference(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureMax(MRI_SURFACE *mris) ;
+int          MRISuseNegCurvature(MRI_SURFACE *mris) ;
 int          MRISuseAreaErrors(MRI_SURFACE *mris) ;
 int          MRISuseGaussianCurvature(MRI_SURFACE *mris) ;
 int          MRISclearCurvature(MRI_SURFACE *mris) ;
@@ -415,6 +419,7 @@ MRI_SURFACE  *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
                              float scale) ;
 int          MRISstoreMetricProperties(MRI_SURFACE *mris) ;
 int          MRISzeroNegativeAreas(MRI_SURFACE *mris) ;
+int          MRIScountNegativeTriangles(MRI_SURFACE *mris) ;
 int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISreadTetherFile(MRI_SURFACE *mris, char *fname, float radius) ;
 int          MRISreadVertexPositions(MRI_SURFACE *mris, char *fname) ;
