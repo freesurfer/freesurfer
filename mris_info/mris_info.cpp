@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
   cout << "num faces   : " << mris->nfaces << endl;
   cout << "num stripgs : " << mris->nstrips << endl;
   cout << "ctr         : (" << mris->xctr << ", " << mris->yctr << ", " << mris->zctr << ")" << endl;
+  cout << "vertex locs : " << (mris->useRealRAS ? "scannerRAS" : "surfaceRAS") << endl;
   if (mris->lta)
   {
     cout << "talairch.xfm: " << endl;
