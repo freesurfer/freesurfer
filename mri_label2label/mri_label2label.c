@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.13 2003/02/20 20:29:16 greve Exp $
+  $Id: mri_label2label.c,v 1.14 2003/02/20 20:33:57 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -58,7 +58,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.13 2003/02/20 20:29:16 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.14 2003/02/20 20:33:57 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -475,12 +475,10 @@ int main(int argc, char **argv)
     if(usehash) MHTfree(&TrgHash);
     if(strcmp(trgsubject,"ico")) MRISfree(&TrgSurf);
 
-  }/*---------- done with surface-based mapping -------------*/
-  printf("nlabel points = %d\n",trglabel->n_points);
-  printf("Checking for and removing duplicates\n");
-  LabelRemoveDuplicates(trglabel);
-  //printf("nlabel points = %d\n",trglabel->n_points);
+    printf("Checking for and removing duplicates\n");
+    LabelRemoveDuplicates(trglabel);
 
+  }/*---------- done with surface-based mapping -------------*/
 
   printf("Writing label file %s \n",trglabelfile);
   if(LabelWrite(trglabel,trglabelfile))
