@@ -531,7 +531,7 @@ IMAGE *
 XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
 {
   IMAGE  *I ;
-  float  mag ;
+  float  mag, fmin, fmax ;
 
   if (frame < 0)
     frame = 0 ;
@@ -606,7 +606,8 @@ XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
                    y_click, z_click, XXOR);
 #endif
   }
-  XVshowImage(xvf, which, I, 0) ;
+  MRIvalRange(mri, &fmin, &fmax) ;
+  XVshowImageRange(xvf, which, I, 0, fmin, fmax) ;
 
 
   if (Idisplay[which] && (I != Idisplay[which]))
@@ -1122,6 +1123,7 @@ xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z)
   IMAGE  *I ;
   int    xp, yp ;
   DIMAGE *dimage ;
+  float  fmin, fmax ;
 
   dimage = XVgetDimage(xvf, which, DIMAGE_IMAGE) ;
   I = Idisplay[which] ;
@@ -1153,7 +1155,8 @@ xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z)
     *IMAGEFpix(I, xp, yp) = MRIFseq_vox(mri,x, y,z, mri_frames[which]);
     break ;
   }
-  XVshowImage(xvf, which, I, 0) ;
+  MRIvalRange(mri, &fmin, &fmax) ;
+  XVshowImageRange(xvf, which, I, 0, fmin, fmax) ;
   return(NO_ERROR) ;
 }
 /*----------------------------------------------------------------------
@@ -1165,6 +1168,7 @@ IMAGE *
 XVMRIredisplayFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
 {
   IMAGE  *I ;
+  float  fmin, fmax ;
 
   if (frame < 0)
     frame = 0 ;
@@ -1231,7 +1235,9 @@ XVMRIredisplayFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
                    y_click, z_click, XXOR);
 #endif
   }
-  XVshowImage(xvf, which, I, 0) ;
+
+  MRIvalRange(mri, &fmin, &fmax) ;
+  XVshowImageRange(xvf, which, I, 0, fmin, fmax) ;
 
 
   if (Idisplay[which] && (I != Idisplay[which]))
