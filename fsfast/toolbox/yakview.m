@@ -1,8 +1,8 @@
 % yakview - views images, stat overlays, and hemodynamic responses.
-% $Id: yakview.m,v 1.2 2003/04/21 01:39:05 greve Exp $
+% $Id: yakview.m,v 1.3 2003/09/26 18:18:54 greve Exp $
 
 fprintf(1,'\n\n');
-fprintf(1,'yakview: $Id: yakview.m,v 1.2 2003/04/21 01:39:05 greve Exp $\n');
+fprintf(1,'yakview: $Id: yakview.m,v 1.3 2003/09/26 18:18:54 greve Exp $\n');
 
 if(~exist('UseVersion')) UseVersion = 2; end
 
@@ -63,14 +63,13 @@ if(ImgHistEQ)
 end
 
 if(~isempty(SigFile))
-  fprintf(1,'Loading Overlay ...      '); tic;
+  fprintf(1,'Loading Overlay\n'); tic;
   if(~SigMkMosaic)
     p = fmri_ldbfile(SigFile);
-    fprintf('%g sec\n',toc);
+    if(pneg) p = -p; end
     if(~isempty(SigMaskFile))
-      fprintf(1,'Loading Mask ...      '); tic;
+      fprintf(1,'Loading Mask \n'); tic;
       pmask = fmri_ldbfile(SigMaskFile);
-      fprintf('%g sec\n',toc);
       pmask = pmask > SigMaskThresh;
       pmask = repmat(pmask,[1 1 size(p,3)]);
       p = p.*pmask;
