@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/05/28 21:06:19 $
-// Revision       : $Revision: 1.143 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/06/03 20:14:21 $
+// Revision       : $Revision: 1.144 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -299,6 +299,8 @@ void GCAsetup(GCA *gca)
   {  MatrixFree(&(gca->tal_i_to_r__)); gca->tal_i_to_r__ = 0;}
   if (gca->tal_r_to_i__)
   {  MatrixFree(&(gca->tal_r_to_i__)); gca->tal_r_to_i__ = 0;}
+  if (gca->tmp__)
+  {  MatrixFree(&(gca->tmp__)); gca->tmp__ = 0; }
   gca->node_i_to_r__ = extract_i_to_r(gca->mri_node__);
   gca->node_r_to_i__ = extract_r_to_i(gca->mri_node__);
   gca->prior_i_to_r__ = extract_i_to_r(gca->mri_prior__);
