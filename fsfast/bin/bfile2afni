@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: bfile2afni,v 1.1 2003/03/04 21:22:08 greve Exp $'
+set VERSION = '$Id: bfile2afni,v 1.2 2004/01/04 22:30:58 greve Exp $'
 
 if($#argv == 0) goto usage_exit;
 
@@ -14,6 +14,9 @@ endif
 set inplaneres = ();    # in-plane resolution in mm (ie, slice thick)
 set betplaneres = ();   # between-plane resolution in mm (ie, slice thick)
 set TR = ();            # seconds
+set firstplane = ();    # First Frame (0-based)
+set nplanes = ();       # Number of Frames past first
+set cleanup = 1;
 
 goto parse_args;
 parse_args_return:
@@ -26,12 +29,25 @@ if(! -e $hdr0) then
   echo "ERROR: cannot find $hdr0"
   exit 1;
 endif
+
 set tmp = `cat $hdr0`;
 set nrows = $tmp[1];             # x: fastest       MGH-NMR:(R to L)
 set ncols = $tmp[2];             # y: next-fasted   MGH-NMR:(S to I)
 set nfrms = $tmp[3];             # t: next-next-fasted      
 set nslcs = `getnslices $bstem`; # z: slowest       MGH-NMR:(P to A)
 set endian = $tmp[4];              
+
+set tmpdir = ();
+if($#firstplane != 0 || $#nplanes != 0) then
+  if($#firstplane == 0) set firstplane = 0;
+  if($#nplanes == 0)    @ nplanes = $nfrms - $firstplane;
+  set tmpdir = `dirname $afnistem`/tmp-$$
+  bfileconvert -i $bstem -fp $firstplane -np $nplanes -o $tmpdir/tmp
+  if($status) exit 1;
+  set bstem = $tmpdir/tmp
+  set nfrms = $nplanes;
+  echo "tmp dir is $tmpdir"
+endif
 
 set bext = `getbext $bstem`; # bshort or bfloat
 
@@ -77,6 +93,7 @@ if($bext == bshort) then
 else # bfloat
   set code = $code3D":"0":"0":"$ncols":"$nrows":"$nfrms":"
 endif
+echo "code = $code"
 
 set afniprefix  = `basename $afnistem`;
 set afnisession = `dirname  $afnistem`;
@@ -96,8 +113,9 @@ to3d \
   -xFOV $xHalfFOV$xDir \
   -yFOV $yHalfFOV$yDir \
   -zFOV $zHalfFOV$zDir \
-  $code$bstem"_???.$bext" \
-  -gsfac 1.0 
+  -gsfac 1.0 \
+  $code$bstem"_???.$bext" 
+
 
 if($status) then
   echo "ERROR: afni to3d exited with errors"
@@ -113,6 +131,12 @@ if($#SwapCmd != 0) then
     exit 1;
   endif
 endif
+
+if($#tmpdir) then
+  #echo "Deleting tmp dir $tmpdir"
+  #rm -r $tmpdir
+endif
+
 
 exit 0;
 #-------------------------------------------------------------#
@@ -150,6 +174,16 @@ while( $#argv != 0 )
     case "-TR":
       if ( $#argv == 0) goto arg1err;
       set TR = $argv[1]; shift;
+      breaksw
+
+    case "-fp":
+      if ( $#argv == 0) goto arg1err;
+      set firstplane = $argv[1]; shift;
+      breaksw
+
+    case "-np":
+      if ( $#argv == 0) goto arg1err;
+      set nplanes = $argv[1]; shift;
       breaksw
 
     case "-umask":
@@ -236,6 +270,8 @@ usage_exit:
   echo "   -inplaneres  mm : in-plane resolution"
   echo "   -betplaneres mm : between-plane resolution"
   echo "   -TR sec         : time between volume scans"
+  echo "   -fp firstframe "
+  echo "   -np nframes "
   echo "   -version : print version and exit"
 exit 1;
 
