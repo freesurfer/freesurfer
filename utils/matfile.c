@@ -46,26 +46,26 @@ MatlabRead(const char *fname)
   int      file_type, nrows, ncols, row, col ;
   float    *fptr = NULL ;
 
-(*mat_printf)("MatlabRead: opening file %s\n",fname);
+  DiagPrintf(DIAG_WRITE, "MatlabRead: opening file %s\n",fname);
 
   fp = fopen(fname, "rb") ;
   if (!fp)
       return(NULL) ;
 
-(*mat_printf)("MatlabRead: reading header\n");
+  DiagPrintf(DIAG_WRITE, "MatlabRead: reading header\n");
 
   name = readMatHeader(fp, &mf) ;
   if(name==NULL) {
-    (*mat_printf)("MatlabRead: readHeader returned NULL\n");
+    ErrorPrintf(ERROR_BADFILE, "MatlabRead: readHeader returned NULL\n");
     return(NULL);
   }
 
-(*mat_printf)("MatlabRead: allocating real matrix (r=%d,c=%d)\n",
+DiagPrintf(DIAG_WRITE, "MatlabRead: allocating real matrix (r=%d,c=%d)\n",
    (int)mf.mrows,(int)mf.ncols);
 
   real_matrix = matAlloc((int)mf.mrows, (int)mf.ncols) ;
 
-(*mat_printf)("MatlabRead: done real mtx alloc\n");
+DiagPrintf(DIAG_WRITE, "MatlabRead: done real mtx alloc\n");
 
   if (mf.imagf)
       imag_matrix = matAlloc((int)mf.mrows, (int)mf.ncols) ;
@@ -105,7 +105,7 @@ MatlabRead(const char *fname)
   if (mf.imagf)
       matFree(imag_matrix, nrows, ncols) ;
 
-(*mat_printf)("MatlabRead: done\n");
+DiagPrintf(DIAG_WRITE, "MatlabRead: done\n");
 
   return(mat) ;
 }
@@ -151,7 +151,7 @@ MatFileRead(const char *fname, int type)
         fptr = (float *)mf->data ;
         break ;
       default:
-        (*mat_printf)("MatFileRead: unsupported data format %d\n",
+        ErrorPrintf(ERROR_BADFILE, "MatFileRead: unsupported data format %d\n",
           type) ;
         break ;
     }
@@ -203,7 +203,7 @@ MatFileWrite(const char *fname, float *data, int rows, int cols, char *name)
   fp = fopen(fname, "wb") ;
   if (!fp)
   {
-    /*(*mat_printf)("MatFileWrite(%s): could not open file\n", fname) ;
+    /*ErrorPrintf(ERROR_BADFILE, "MatFileWrite(%s): could not open file\n", fname) ;
     perror(NULL) ;*/
     return(-1) ;
   }
@@ -212,7 +212,7 @@ MatFileWrite(const char *fname, float *data, int rows, int cols, char *name)
   if (nitems != sizeof(MATHD))
   {
     fclose(fp) ;
-    /*(*mat_printf)("MatFileWrite(%s): could not write header\n", fname) ;
+    /*ErrorPrintf(ERROR_BADFILE, "MatFileWrite(%s): could not write header\n", fname) ;
     perror(NULL) ;*/
     return(-2) ;
   }
@@ -221,7 +221,7 @@ MatFileWrite(const char *fname, float *data, int rows, int cols, char *name)
   if (nitems != (int)mf.namlen)
   {
     fclose(fp) ;
-    /*(*mat_printf)("MatFileWrite(%s): could not write name\n", fname) ;
+    /*ErrorPrintf(ERROR_BADFILE, "MatFileWrite(%s): could not write name\n", fname) ;
     perror(NULL) ;*/
     return(-3) ;
   }
@@ -237,7 +237,7 @@ MatFileWrite(const char *fname, float *data, int rows, int cols, char *name)
       if (nitems != sizeof(double))
       {
         fclose(fp) ;
-        /*(*mat_printf)("MatFileWrite(%s): could not write (%d,%d)\n",
+        /*ErrorPrintf(ERROR_BADFILE, "MatFileWrite(%s): could not write (%d,%d)\n",
           fname, row, col) ;
         perror(NULL) ;*/
         return(-2) ;
@@ -269,7 +269,7 @@ matAlloc(int rows, int cols)
     matrix = (double **)calloc(rows, sizeof(double *)) ;
     if (!matrix)
     {
-        (*mat_printf)("could not allocate %d x %d matrix\n", rows, cols) ;
+        ErrorPrintf(ERROR_BADFILE, "could not allocate %d x %d matrix\n", rows, cols) ;
         /*exit(3) ;*/
   return(NULL);
     }
@@ -279,7 +279,7 @@ matAlloc(int rows, int cols)
         matrix[i] = (double *)calloc(cols, sizeof(double)) ;
         if (!matrix[i])
         {
-            (*mat_printf)("could not allocate %d x %d matrix\n", rows, cols);
+            ErrorPrintf(ERROR_BADFILE, "could not allocate %d x %d matrix\n", rows, cols);
             /*exit(3) ;*/
       return(NULL);
         }
@@ -320,7 +320,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
         type = MAT_BYTE ;
         break ;
     default:
-        (*mat_printf)("unsupported matlab format %d (%s)\n",
+        ErrorPrintf(ERROR_BADFILE, "unsupported matlab format %d (%s)\n",
                         type, type == MAT_FLOAT ? "float" : "unknown") ;
         break ;
     }
@@ -336,7 +336,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                 nitems = fread(&bval, 1, sizeof(char), fp) ;
                 if (nitems != sizeof(char))
                 {
-                    (*mat_printf)("%s: could not read val[%d, %d] from .mat file\n",
+                    ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d] from .mat file\n",
                                     Progname, row, col) ;
                     /*exit(4)*/return(-1) ;
                 }
@@ -346,7 +346,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                 nitems = fread(&sval, 1, sizeof(short), fp) ;
                 if (nitems != sizeof(char))
                 {
-                    (*mat_printf)("%s: could not read val[%d, %d] from .mat file\n",
+                    ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d] from .mat file\n",
                                     Progname, row, col) ;
                     /*exit(4)*/return(-1) ;
                 }
@@ -356,7 +356,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                 nitems = fread(&lval, 1, sizeof(long), fp) ;
                 if (nitems != sizeof(long))
                 {
-                    (*mat_printf)("%s: could not read val[%d, %d] from .mat file\n",
+                    ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d] from .mat file\n",
                                     Progname, row, col) ;
                     /*exit(4)*/return(-1) ;
                 }
@@ -366,7 +366,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                 nitems = fread(&fval, 1, sizeof(float), fp) ;
                 if (nitems != sizeof(float))
                 {
-                    (*mat_printf)("%s: could not read val[%d, %d] from .mat file\n",
+                    ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d] from .mat file\n",
                                     Progname, row, col) ;
                     /*exit(4)*/return(-1) ;
                 }
@@ -376,7 +376,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                 nitems = fread(&dval, 1, sizeof(double), fp) ;
                 if (nitems != sizeof(double))
                 {
-                    (*mat_printf)("%s: could not read val[%d, %d] from .mat file\n",
+                    ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d] from .mat file\n",
                                     Progname, row, col) ;
                     /*exit(4)*/return(-1) ;
                 }
@@ -398,7 +398,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                 nitems = fread(&dval, 1, sizeof(double), fp) ;
                 if (nitems != sizeof(double))
                 {
-      (*mat_printf)("%s: could not read val[%d, %d]"
+      ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d]"
         "from .mat file\n",Progname, row, col) ;
                     /*exit(4) ;*/
       return(-1);
@@ -420,17 +420,17 @@ readMatHeader(FILE *fp, MATFILE *mf)
     int   nitems ;
     char  *name ;
 
-(*mat_printf)("readMatHeader: fp=%lx, mf=%lx\n",fp,mf);    
+DiagPrintf(DIAG_WRITE, "readMatHeader: fp=%lx, mf=%lx\n",fp,mf);    
 
     nitems = fread(mf, 1, sizeof(MATHD), fp) ; 
     if (nitems != sizeof(MATHD))
     {
-      (*mat_printf)("%s:only read %d bytes of header\n", Progname, nitems) ;
+      ErrorPrintf(ERROR_BADFILE, "%s:only read %d bytes of header\n", Progname, nitems) ;
       /*exit(1) ;*/
       return(NULL);
     }
 
-    (*mat_printf)("readMatHeader: nitems = %d, namelen=%d\n",
+    DiagPrintf(DIAG_WRITE, "readMatHeader: nitems = %d, namelen=%d\n",
        nitems,(int)mf->namlen+1);
 
     name = (char *)calloc((int)mf->namlen+1, sizeof(char)) ;
@@ -442,14 +442,14 @@ readMatHeader(FILE *fp, MATFILE *mf)
     nitems = fread(name, sizeof(char), (int)mf->namlen, fp) ;
     if (nitems != mf->namlen)
     {
-      (*mat_printf)("%s: only read %d bytes of name (%ld specified)\n", 
+      ErrorPrintf(ERROR_BADFILE, "%s: only read %d bytes of name (%ld specified)\n", 
                         Progname, nitems, mf->namlen) ;
       /*exit(1) ;*/
       return(NULL);
     }
 
 #if 1
-    (*mat_printf)("MATFILE: %ld x %ld, type %ld, imagf %ld, name '%s'\n",
+    DiagPrintf(DIAG_WRITE, "MATFILE: %ld x %ld, type %ld, imagf %ld, name '%s'\n",
                  mf->mrows, mf->ncols, mf->type, mf->imagf, name) ;
 #endif
 
