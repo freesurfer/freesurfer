@@ -51,7 +51,7 @@
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
-static IMAGE  *TiffReadImage(char *fname)  ;
+static IMAGE  *TiffReadImage(char *fname, int frame)  ;
 static IMAGE  *TiffReadHeader(char *fname, IMAGE *I)  ;
 static int    TiffWriteImage(IMAGE *I, char *fname, int frame) ;
 static IMAGE *JPEGReadImage(char *fname);
@@ -477,7 +477,7 @@ ImageRead(char *fname)
   switch (type)
   {
   case TIFF_IMAGE:
-    I = TiffReadImage(fname) ;
+    I = TiffReadImage(fname, frame) ;
     break ;
   case MATLAB_IMAGE:
     DiagPrintf(DIAG_WRITE, 
@@ -864,7 +864,7 @@ static IMAGE *RGBReadImage(char *fname)
              Read a TIFF image from a file.
 ----------------------------------------------------------------------*/
 static IMAGE *
-TiffReadImage(char *fname) 
+TiffReadImage(char *fname, int frame0) 
 {
   IMAGE    *I ;
   TIFF     *tif = TIFFOpen(fname, "r");
@@ -901,7 +901,10 @@ TiffReadImage(char *fname)
     type = PFDOUBLE;
     break;
   }
-  I = ImageAlloc(height, width, type, nframe) ;
+  if (frame0 < 0)
+    I = ImageAlloc(height, width, type, nframe) ;
+  else
+    I = ImageAlloc(height, width, type, 1) ;
   
   iptr = I->image;
   for(frame=0;frame<nframe;frame++)
@@ -911,7 +914,7 @@ TiffReadImage(char *fname)
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGEWIDTH, &width);
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGELENGTH, &height);
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
-    ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
+    ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE,&bits_per_sample);
     for(row=0;row<height;row++)
     {
       switch (bits_per_sample)
@@ -932,7 +935,10 @@ TiffReadImage(char *fname)
                     (ERROR_BADFILE,
                      "TiffReadImage:  TIFFReadScanline returned error"));
     }
-    I->image += I->sizeimage;
+    if (frame0 < 0)
+      I->image += I->sizeimage;
+    else if (frame == frame0)  /* only interested in one frame */
+      break ;
   }
   I->image = iptr;
   
