@@ -788,7 +788,7 @@ MRIextractCpolv(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int x, int y,
         Description
 ------------------------------------------------------*/
 MRI *
-MRIextractPlane(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int x, int y, 
+MRIextractPolvPlane(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int x, int y, 
                  int z, int wsize)
 {
   float    e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
