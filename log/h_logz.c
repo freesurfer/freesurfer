@@ -859,7 +859,7 @@ mapInitRuns(LOGMAP_INFO *lmi, int max_run_len)
 static void
 mapInitLogPix(LOGMAP_INFO *lmi)
 {
-  int     i, j, ring, spoke, area, rval, nrings ;
+  int     i, j, ring, spoke, area, rval, nrings, rows, cols ;
   double  weight, max_ring, min_ring, ring_step, log_range, nrings_m1, 
          wscale ;
   float  rho, phi, x, y, min_rho, max_rho ;
@@ -903,6 +903,8 @@ wscale = 1.0 ;
   fp = fopen("weights.dat", "w") ;
 #endif
 
+  rows = lmi->nrows ;
+  cols = lmi->ncols ;
   for_each_log_pixel(lmi, ring, spoke)
   {
     area = LOG_PIX_AREA(lmi, ring, spoke) ;
@@ -912,6 +914,16 @@ wscale = 1.0 ;
       rval = nrings/2-ring ;
     else
       rval = ring - nrings/2 ;
+
+    /* don't left centroid be on border of image -- BRF for nonlocal stuff */
+    if (LOG_PIX_ROW_CENT(lmi,ring,spoke) == 0)
+      LOG_PIX_ROW_CENT(lmi,ring,spoke) = 1 ;
+    else if (LOG_PIX_ROW_CENT(lmi,ring,spoke) == rows-1)
+      LOG_PIX_ROW_CENT(lmi,ring,spoke) = rows-2 ;
+    else if (LOG_PIX_COL_CENT(lmi,ring,spoke) == 0)
+      LOG_PIX_COL_CENT(lmi,ring,spoke) = 1 ;
+    else if (LOG_PIX_COL_CENT(lmi,ring,spoke) == cols-1)
+      LOG_PIX_COL_CENT(lmi,ring,spoke) = cols-2 ;
 
 #if 0
     weight = (double)rval * ring_step + min_ring ;
@@ -2511,28 +2523,38 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
       {
       case PFFLOAT:
         /* build array of neighboring pixels - x and y are reused */
+#if 0
+        sort_farray[MEDIAN_INDEX] = *IMAGEFpix(Isrc, x1+dx,y1+dy) ;
+#else
         for (fptr = sort_farray, y = -WHALF ; y <= WHALF ; y++)
         {
           /* reflect across the boundary */
           yc = y + y1 + dy ;
+#if 0
+            /* don't need border checking as centroid wont be on border */
           if (yc < 0)
             yc = 0 ;
           else if (yc >= rows)
             yc = rows - 1 ;
+#endif
           
           fpix = IMAGEFpix(Isrc, 0, yc) ;
           for (x = -WHALF ; x <= WHALF ; x++)
           {
             xc = x1 + x + dx ;
+#if 0
+            /* don't need border checking as centroid wont be on border */
             if (xc < 0)
               xc = 0 ;
             else if (xc >= cols)
               xc = cols - 1 ;
+#endif
             
             *fptr++ = *(fpix + xc) ;
           }
         }
         qsort(sort_farray, WSQ, sizeof(float), compare_sort_farray) ;
+#endif
         *IMAGEFpix(Iout, ring, spoke) = sort_farray[MEDIAN_INDEX] ;
         break ;
       case PFBYTE:
