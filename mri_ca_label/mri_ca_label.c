@@ -25,6 +25,11 @@ static int MRIcountNbhdLabels(MRI *mri, int x, int y, int z, int label) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
+static double TR = -1 ;
+static double alpha = -1 ;
+static double TE = -1 ;
+static char *tissue_parms_fname = NULL ;
+
 char *Progname ;
 static void usage_exit(int code) ;
 
@@ -127,6 +132,16 @@ main(int argc, char *argv[])
   if (!gca)
     ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
               Progname, gca_fname) ;
+
+  if (alpha > 0)
+    mri_in->flip_angle = alpha ;
+  if (TR > 0)
+    mri_in->tr = TR ;
+  if (TE > 0)
+    mri_in->te = TE ;
+
+  if (tissue_parms_fname)   /* use FLASH forward model */
+    GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
 
   if (mri_fname)
   {
@@ -258,11 +273,14 @@ main(int argc, char *argv[])
     GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, lta,   
                        Left_Lateral_Ventricle) ;
     GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, lta,   
+                       Right_Lateral_Ventricle) ;
+#if 0
+    GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, lta,   
                        Left_Inf_Lat_Vent) ;
     GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, lta,   
-                       Right_Lateral_Ventricle) ;
-    GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, lta,   
                        Right_Inf_Lat_Vent) ;
+#endif
+    GCAexpandCortex(gca, mri_in, mri_labeled, mri_labeled, lta) ;
   }
 
   if (gca_write_iterations != 0)
@@ -272,6 +290,7 @@ main(int argc, char *argv[])
     printf("writing snapshot to %s...\n", fname) ;
     MRIwrite(mri_labeled, fname) ;
   }
+
   GCAconstrainLabelTopology(gca, mri_in, mri_labeled, mri_labeled, lta) ;
   GCAfree(&gca) ; MRIfree(&mri_in) ;
 #if 0
@@ -321,6 +340,38 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("inserting white matter segmentation from %s...\n", wm_fname) ;
   }
+  else if (!stricmp(option, "DEBUG_VOXEL"))
+  {
+    Ggca_x = atoi(argv[2]) ;
+    Ggca_y = atoi(argv[3]) ;
+    Ggca_z = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Ggca_x,Ggca_y,Ggca_z) ;
+  }
+  else if (!stricmp(option, "DEBUG_LABEL"))
+  {
+    Ggca_label = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("debugging label %d\n", Ggca_label) ;
+  }
+  else if (!stricmp(option, "TR"))
+  {
+    TR = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using TR=%2.1f msec\n", TR) ;
+  }
+  else if (!stricmp(option, "TE"))
+  {
+    TE = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using TE=%2.1f msec\n", TE) ;
+  }
+  else if (!stricmp(option, "ALPHA"))
+  {
+    nargs = 1 ;
+    alpha = RADIANS(atof(argv[2])) ;
+    printf("using alpha=%2.0f degrees\n", DEGREES(alpha)) ;
+  }
   else if (!stricmp(option, "NITER"))
   {
     mle_niter = atoi(argv[2]) ;
@@ -363,6 +414,13 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("renormalizing using predicted intensity values in %s...\n",
            renormalization_fname) ;
+  }
+  else if (!stricmp(option, "FLASH"))
+  {
+    tissue_parms_fname = argv[2] ;
+    nargs = 1 ;
+    printf("using FLASH forward model and tissue parms in %s to predict"
+           " intensity values...\n", tissue_parms_fname) ;
   }
   else if (!stricmp(option, "renormalize"))
   {
