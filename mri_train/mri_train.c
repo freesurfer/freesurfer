@@ -12,9 +12,6 @@
 #include "classify.h"
 #include "gcarray.h"
 
-#define SCALE     16
-
-static int scale = SCALE ;
 static int features = FEATURE_INTENSITY | FEATURE_ZSCORE3 | FEATURE_MEAN3 | FEATURE_DIRECTION ;
 
 static int extract = 0 ;
@@ -46,7 +43,8 @@ main(int argc, char *argv[])
   }
 
   if (argc < 3)
-    ErrorExit(ERROR_BADPARM,"usage: %s <training file name>  <mric file>");
+    ErrorExit(ERROR_BADPARM,"usage: %s <training file name>  <mric file>",
+              Progname);
 
   training_file_name = argv[1] ;
   output_file_name = argv[2] ;
@@ -87,12 +85,6 @@ get_option(int argc, char *argv[])
     if (verbose)
       fprintf(stderr, "using priors file %s\n", priors_fname) ;
     break ;
-  case 'S':
-    if (sscanf(argv[2], "%d", &scale) != 1)
-      ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
-                Progname, argv[2]) ;
-    nargs = 1 ;
-    break ;
   case 'X':
     if (sscanf(argv[2], "%d", &extract) != 1)
       ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
@@ -105,8 +97,8 @@ get_option(int argc, char *argv[])
       ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
                 Progname, argv[2]) ;
     nargs = 1 ;
-#endif
     break ;
+#endif
   case '?':
   case 'U':
     printf("usage: %s <training file> <output file>\n", Progname) ;
