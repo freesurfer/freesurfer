@@ -2702,13 +2702,13 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     parms->start_t += steps ;
     total_steps += steps ;
     pct_neg = 100.0*mris->neg_area/(mris->neg_area+mris->total_area) ;
-    if (pct_neg < min_area_pct/2)
+    if (pct_neg < min_area_pct)
       break ;
     done = n_averages == 0 ;    /* finished integrating at smallest scale */
     if (done && pct_neg > min_area_pct)  /* still too much negative area */
     {
-      if (++npasses >= max_passes)  /* can't get there from here (at least not quickly) */
-        break ; 
+      if (++npasses >= max_passes)
+        break ;     /* can't get there from here (at least not quickly) */
       done = 0 ;     
       n_averages = base_averages*2 ;  /* try, try again */
     }
