@@ -2,6 +2,27 @@
 
 #include "machine.h"
 
+double swapDouble(double d)
+{ 
+  size_t typeSize = sizeof(double);
+  char *pVar = (char *) (&d);
+  char tmp;
+  double w;
+  size_t i;
+  for (i=0; i < typeSize/2; ++i) // typeSize must be even
+  {
+    // swap front and back
+    tmp = *(pVar+2*i);
+    *(pVar+2*i) = *(pVar+typeSize-1-2*i);
+    *(pVar+typeSize-1-2*i) = tmp;
+  }
+  w = *((double *)(pVar)); // copy
+  return w;
+}
+// Note that 32 bit architecture long is 32 bit
+//           64 bit architecture long is 64 bit!!!!!
+// the following works only for 32 bit architecture
+// double is always 64 bit and float is always 32 bit
 typedef union
 {
   long  l ;
@@ -9,12 +30,13 @@ typedef union
   int   i ;
   char  buf[4] ;
   short s[2] ;
-} SWAP_LONG ;
+} SWAP_LONG32 ;
 
+/* does not work for 64 bit OS */
 long
 swapLong(long l)
 {
-  SWAP_LONG  sl ;
+  SWAP_LONG32  sl ;
   short      s ;
 
   /* first swap bytes in each word */
@@ -33,7 +55,7 @@ swapLong(long l)
 float
 swapFloat(float f)
 {
-  SWAP_LONG  sl ;
+  SWAP_LONG32  sl ;
   short      s ;
 
   /* first swap bytes in each word */
@@ -76,6 +98,8 @@ typedef union
   long    l[sizeof(double) / sizeof(long)] ;
 } SWAP_DOUBLE ;
 
+
+/* the following does not work for 64 bit
 double
 swapDouble(double d)
 {
@@ -92,10 +116,12 @@ swapDouble(double d)
 
   return(sd.d) ;
 }
+*/
+
 int
 swapInt(int i)
 {
-  SWAP_LONG  sl ;
+  SWAP_LONG32  sl ;
   short      s ;
 
   /* first swap bytes in each word */
