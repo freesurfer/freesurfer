@@ -1,3 +1,4 @@
+#define register 
 /*
   @(#)h_logz.c  1.1
   4/4/94
@@ -2870,11 +2871,11 @@ LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
   float           *spix ;
 
   if (!Idst)
-    Idst = ImageAlloc(lmi->nspokes,lmi->nrings, Isrc->pixel_format,1);
+    Idst = ImageAlloc(lmi->nspokes,lmi->nrings, PFFLOAT, 1);
   else
     ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
 
-#if 1
+#if 0
   /* non-float stuff not working yet - I don't know why */
   if ((Idst->pixel_format != PFFLOAT) || (Isrc->pixel_format != PFFLOAT))
     ErrorReturn(NULL,
@@ -2891,7 +2892,7 @@ LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
     Iin = Isrc ;
 
   if (Idst->pixel_format != PFFLOAT)
-    Iout = ImageAlloc(lmi->nspokes, lmi->nrings, Isrc->pixel_format,1);
+    Iout = ImageAlloc(lmi->nspokes, lmi->nrings, PFFLOAT,1);
   else
     Iout = Idst ;
 
