@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.1 2004/07/27 03:58:55 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.2 2004/07/28 18:23:57 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -10,7 +10,7 @@ set mag = ();
 set epi = ();
 
 # Difference between first and second echoes of the B0 Map
-set tediff = (); # Suggest 2.44 ms for 3T
+set tediff = (); # Suggest 2.46 ms for 3T
 
 # EPI Echo Spacing (MGH .58 ms)
 set esp    = (); 
@@ -486,7 +486,7 @@ EPI volume to dewarp.
 --tediff tediff
 
 Difference in the echo times of the B0 field map in ms. This number is
-set when acquiring the field map. This is often set to 2.44 ms at 3T,
+set when acquiring the field map. This is often set to 2.46 ms at 3T,
 which is the amount of time it takes for the fat and water to
 rephase. Scales with field strength.
 
