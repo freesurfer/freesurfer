@@ -11,7 +11,7 @@ function err = fast_svbhdr(m, bhdrfile, isstem)
 %
 % See also fast_ldbhdr and fast_mri_struct.
 %
-% $Id: fast_svbhdr.m,v 1.3 2003/11/19 18:34:49 greve Exp $
+% $Id: fast_svbhdr.m,v 1.4 2004/03/18 23:18:45 greve Exp $
 
 err = 1;
 
@@ -33,6 +33,14 @@ if(fid == -1)
   return;
 end
   
+if(mar(m.T)==0 & ~isempty(m.cdc))
+  % Does not look like vox2ras is set, so create from dircos
+  Mdc = [reshape1d(m.cdc) reshape1d(m.rdc) reshape1d(m.sdc)];
+  D = diag(m.volres);
+  if(isempty(m.P0)) P0 = [0 0 0]'; end
+  m.T = [Mdc*D reshape1d(P0); 0 0 0 1];
+end
+
 
 TL = m.T*[0 0 0 1]'; % Center of first vox
 TR = m.T*[m.voldim(1) 0 0 1]'; % Top-right edge + 0.5 vox
