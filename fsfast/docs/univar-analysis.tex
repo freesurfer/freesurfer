@@ -2,10 +2,10 @@
 \documentclass{article}
 \usepackage{amsmath}
 
-\setlength{\oddsidemargin}{-.5in}
+\setlength{\oddsidemargin}{+0.0in}
 \setlength{\textwidth}{6.5in}
-\setlength{\topmargin}{-.5in}
-\setlength{\textheight}{9.5in}
+\setlength{\topmargin}{0.0in}
+\setlength{\textheight}{9.6in}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -14,13 +14,14 @@
 
 \begin{LARGE}
 \begin{center}
-fMRI Analysis 101 - Univariate Analysis\\
+fMRI Analysis 101 - Univariate Analysis\footnote{This document can be
+obtained from http://surfer.nmr.mgh.harvard.edu/fsfast/univar-analysis.}\\
 Douglas N. Greve\\
-\begin{verbatim}
- $Id: univar-analysis.tex,v 1.1 2003/08/11 21:18:05 greve Exp $
-\end{verbatim}
 \end{center}
 \end{LARGE}
+\begin{verbatim}
+ $Id: univar-analysis.tex,v 1.2 2003/08/11 22:27:05 greve Exp $
+\end{verbatim}
 
 \section{Introduction}
 
@@ -177,6 +178,7 @@ where the residual error is still $r = Ry$.\\
 Degrees of Freedom (Statistics):
 \begin{equation}
 \nu = DOF = \frac{(trace(R F \Sigma F^T))^2} {trace((R F \Sigma F^T)^2)}
+\label{dof.tfil.eqn}
 \end{equation}
 
 \noindent
@@ -217,25 +219,30 @@ $Cov(\hat\beta)$ to be computed in a way that sort of takes the
 inherent noise covariance into account and so makes the false-positive
 rate closer to the ideal. This is inefficient, but not bad for blocked
 designs. For event-related designs, this can cause a massive loss in
-efficiency. 
+efficiency. It will also cause the DOF (Equation \ref{dof.tfil.eqn})
+to be less than $N_t - N_\beta$.\\
 
 \subsection{Whitening}
 
-Set $F$ to the inverse of the Cholesky decomposition of $\Sigma$:
-\begin{equation}
-F = \Sigma^{-\frac{1}{2}}
-\end{equation}
-\begin{equation}
-F \Sigma F^T = I
-\end{equation}
-This is a {\em fully efficient estimator} (ie, $DOF = N_t - N_\beta$).\\
+Setting $F = \Sigma^{-\frac{1}{2}}$ is referred to as {\em whitening
+the residuals}. Under this condition, $F \Sigma F^T = I$.  This
+results in a {\em fully efficient estimator} (ie, $DOF = N_t -
+N_\beta$). Note that there are an infinite number of $F$'s that meet
+the above condition. Typically $F$ is obtained from the Cholesky or
+singular value decompositions.\\
 
-\noindent
-Where does $\Sigma$ come from in order to compute $F$? Estimate $\Sigma$
-from the residuals. E.g., build $\Sigma$ from the autocorrelation
-function of the residuals (AR(1), AR(N), non-parametric). May need to
-compensate for coloring of the residuals. Usually some spatial
-regularization is a good idea.
+\subsection{Obtaining $\Sigma$}
+
+In order to whiten, we need an estimate of $\Sigma$. To do this, we
+exploit the fact that the covariance matrix of a time-invariant
+Gaussian process is a Toeplitz matrix of the {\em autocorrelation
+function}, or ACF. This reduces estimating $\Sigma$ to estimating the
+ACF of the noise. This is done by estimating the ACF of the
+residuals. The ACF itself is often parameterized (eg, AR(1)).  The ACF
+is often very noisy, so it's usually a good idea to apply some spatial
+regularization. Also, the residual ACF will be biased with respect to
+the true ACF, though there are ways to compensate for this (Worsley,
+et al, 2002).\\
 
 \section{Efficiency and Design Optimization}
 
@@ -431,7 +438,14 @@ which causes the motion correction regressors to span the space of the
 task-related signal. This can cause a drop in the task-related effect
 size. On the other hand, if there is stimulus-locked motion, one does
 not know whether an effect is due to motion or to stimulus. This is
-much more likely to happen during a blocked design.
+much more likely to happen during a blocked design.\\
+
+\noindent
+{\bf References:}\\
+
+\noindent
+Worsley, et al. A general statistical analysis for fMRI
+Data. NeuroImage 15, 1-15 (2002). \\
 
 
 \end{document}
