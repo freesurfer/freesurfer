@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.16 1998/08/24 19:27:01 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.17 1998/11/03 18:17:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -50,6 +50,8 @@ main(int argc, char *argv[])
                fname[100], path[100], *cp, hemi[10] ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
+
+  Gdiag = DIAG_SHOW ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
