@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.89 2005/03/02 00:16:31 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.90 2005/03/03 19:41:01 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3336,9 +3336,45 @@ proc SelectStructureInVoxelEditingListBox { inStructure } {
 	$gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
 	    selection set $nEntry
 	$gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
-	    see $Entry
+	    see $nEntry
     }
 }
+
+proc ToolSettingsChanged { iToolID } {
+    global gaTool
+    global gaLUT
+    global gaWidget
+
+    if { $gaTool(current,id) == $iToolID } {
+	
+	# Re-get some of the tool data that might have changed. Right
+	# now this function is only called when the newValue is
+	# changed.
+	set gaTool(current,newVoxelValue) \
+	    [GetToolNewVoxelValue $gaTool(current,id)]
+	tkuRefreshEntryNotify \
+	    $gaWidget(toolProperties,newVoxelValueEntry)
+
+	set nStructure [format "%.0f" $gaTool(current,newVoxelValue)]
+	if { [catch {
+	    if { [expr $nStructure <= \
+		      [GetColorLUTNumberOfEntries $gaLUT(current,id)]] } {
+		# Make sure the structure is highlighted and visible
+		# in the listbox.
+		set nEntry $gaTool(structureListOrder,indexToEntry,$nStructure)
+		$gaWidget(toolProperties,voxelStructureListBox) \
+		    subwidget listbox selection clear 0 end
+		$gaWidget(toolProperties,voxelStructureListBox) \
+		    subwidget listbox selection set $nEntry
+		$gaWidget(toolProperties,voxelStructureListBox) \
+		    subwidget listbox see $nEntry
+	    }
+	} sResult] != 0 } {
+	    ::tkcon_tcl_puts "Error: $sResult"
+	}
+    }
+}
+
 
 # SUBJECTS LOADER FUNCTIONS =============================================
 
@@ -4733,7 +4769,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.89 2005/03/02 00:16:31 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.90 2005/03/03 19:41:01 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

@@ -1,16 +1,17 @@
 #ifndef TclProgressDisplayManager_h
 #define TclProgressDisplayManager_h
 
+#include "ProgressDisplayManager.h"
 #include "string_fixed.h"
 #include <list>
 
-class TclProgressDisplayManager {
+class TclProgressDisplayManager : public ProgressDisplayManager{
 
  public:
 
-  // Gets the static reference to this class.
-  static TclProgressDisplayManager& GetManager();
-  
+  TclProgressDisplayManager() {}
+  ~TclProgressDisplayManager() {}
+
   void NewTask ( std::string isTitle,
 		 std::string isText,
 		 bool ibUseMeter,

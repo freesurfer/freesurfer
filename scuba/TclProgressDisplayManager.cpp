@@ -5,17 +5,6 @@
 
 using namespace std;
 
-TclProgressDisplayManager& 
-TclProgressDisplayManager::GetManager() {
-
-  static TclProgressDisplayManager* sManager = NULL;
-  if( NULL == sManager ) {
-    sManager = new TclProgressDisplayManager();
-  }
-
-  return *sManager;
-}
-
 void 
 TclProgressDisplayManager::NewTask( string isTitle,
 				    string isText,

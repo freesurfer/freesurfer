@@ -9,6 +9,7 @@ extern "C" {
 #include "PreferencesManager.h"
 #include "ToglManager.h"
 #include "PathManager.h"
+#include "TclProgressDisplayManager.h"
 #include "ScubaFrame.h"
 #include "ScubaView.h"
 #include "ScubaLayerFactory.h"
@@ -105,6 +106,8 @@ int main ( int argc, char** argv ) {
     ScubaDataCollectionFactory::GetFactory();
 
     PathManager::GetManager();
+
+    ProgressDisplayManager::SetManager( new TclProgressDisplayManager );
 
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     prefsMgr.UseFile( ".scuba" );

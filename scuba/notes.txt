@@ -403,12 +403,6 @@ x button for zoom in and out
   x draw min/max bars with little handles
   x click and drag handles
   x on release, emit a signal
-  
-1)  it'd be cool if, since "only" ten of the color labels show on the 
-Voxel Editing Options list, there could also be a smaller list of say the 
-five most frequently used, so that I can just click on a smaller list 
-instead of having to go back up to 1. alveus then down to 21. lateral 
-ventricle again etc all the time.
 
 BRUCE'S LIST:::
 
@@ -528,8 +522,9 @@ SaveVolumeAs
  - layer->Volume()->SetFileName
  - SaveVolume
 
-- ROI interface
+x ROI interface
 
+x progress dialog
 
 LoadLabel
  - get file name, LoadLabel( fn )

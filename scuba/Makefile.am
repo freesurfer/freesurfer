@@ -54,6 +54,7 @@ GUI_SRCS= \
 	ViewState.cpp \
 	ScubaToolState.cpp \
 	ScubaGlobalPreferences.cpp \
+	ProgressDisplayManager.cpp \
 	TclProgressDisplayManager.cpp \
 	togl.c
 

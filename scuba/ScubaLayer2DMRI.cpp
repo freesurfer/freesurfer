@@ -2,7 +2,7 @@
 #include "ScubaLayer2DMRI.h"
 #include "ViewState.h"
 #include "talairachex.h"
-#include "TclProgressDisplayManager.h"
+#include "ProgressDisplayManager.h"
 #include "Utilities.h"
 #include "Array2.h"
 #include "PathManager.h"
@@ -1117,7 +1117,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     // the params.  Hack: Added a 'f' key shortcut for
     // Jean. Definitely a better way of doing this but don't want to
     // do it now.
-    if( iInput.IsShiftKeyDown() && 
+    if( iInput.IsShiftKeyDown() && !iInput.IsControlKeyDown() &&
 	(( iInput.IsButtonDownEvent() && 
 	   (2 == iInput.Button() || 3 == iInput.Button()) )      ||
 	 ( iInput.Key()[0] == 'f' )) ) {
@@ -1156,9 +1156,26 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       delete &loc;
     }
 
+    if( iInput.IsShiftKeyDown() && iInput.IsControlKeyDown() &&
+	iInput.IsButtonDownEvent() && 2 == iInput.Button() ) {
+
+      VolumeLocation& loc =
+	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+      if( mVolume->IsInBounds( loc ) ) {
+
+	float value = mVolume->GetMRINearestValue( loc );
+	iTool.SetNewValue( value );
+
+	stringstream ssCommand;
+	ssCommand << "ToolSettingsChanged " << iTool.GetID();
+	TclCommandManager& mgr = TclCommandManager::GetManager();
+	mgr.SendCommand( ssCommand.str() );
+      }
+    }
+
     if( (iInput.IsButtonDownEvent() || iInput.IsButtonUpEvent() ||
 	 iInput.IsButtonDragEvent()) &&
-	!iInput.IsShiftKeyDown() &&
+	!iInput.IsShiftKeyDown() && !iInput.IsControlKeyDown() &&
 	(2 == iInput.Button() || 3 == iInput.Button()) ) {
 
       // Otherwise we're just brushing. If this is a mouse down event,
@@ -1866,8 +1883,8 @@ void
 ScubaLayer2DMRIFloodVoxelEdit::DoBegin () {
       
   // Create a task in the progress display manager.
-  TclProgressDisplayManager& manager =
-    TclProgressDisplayManager::GetManager();
+  ProgressDisplayManager& manager =
+    ProgressDisplayManager::GetManager();
   
   list<string> lButtons;
   lButtons.push_back( "Stop" );
@@ -1886,8 +1903,8 @@ void
 ScubaLayer2DMRIFloodVoxelEdit::DoEnd () {
 
   // End the task.
-  TclProgressDisplayManager& manager =
-    TclProgressDisplayManager::GetManager();
+  ProgressDisplayManager& manager =
+    ProgressDisplayManager::GetManager();
   manager.EndTask();
 
   // End our undo action.
@@ -1901,8 +1918,8 @@ bool
 ScubaLayer2DMRIFloodVoxelEdit::DoStopRequested () {
 
   // Check for the stop button.
-  TclProgressDisplayManager& manager = 
-    TclProgressDisplayManager::GetManager();
+  ProgressDisplayManager& manager = 
+    ProgressDisplayManager::GetManager();
   int nButton = manager.CheckTaskForButton();
   if( nButton == 0 ) {
     return true;
@@ -1975,8 +1992,8 @@ void
 ScubaLayer2DMRIFloodSelect::DoBegin () {
       
   // Create a task in the progress display manager.
-  TclProgressDisplayManager& manager =
-    TclProgressDisplayManager::GetManager();
+  ProgressDisplayManager& manager =
+    ProgressDisplayManager::GetManager();
   
   list<string> lButtons;
   lButtons.push_back( "Stop" );
@@ -2002,8 +2019,8 @@ void
 ScubaLayer2DMRIFloodSelect::DoEnd () {
 
   // End the task.
-  TclProgressDisplayManager& manager =
-    TclProgressDisplayManager::GetManager();
+  ProgressDisplayManager& manager =
+    ProgressDisplayManager::GetManager();
   manager.EndTask();
 
   // End our undo action.
@@ -2015,8 +2032,8 @@ bool
 ScubaLayer2DMRIFloodSelect::DoStopRequested () {
 
   // Check for the stop button.
-  TclProgressDisplayManager& manager = 
-    TclProgressDisplayManager::GetManager();
+  ProgressDisplayManager& manager = 
+    ProgressDisplayManager::GetManager();
   int nButton = manager.CheckTaskForButton();
   if( nButton == 0 ) {
     return true;
