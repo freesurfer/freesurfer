@@ -19,6 +19,8 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static void  usage_exit(void) ;
 
+static int sagittalNeighbors(MRI *mri, int x, int y,int z,int whalf,int label);
+static int neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label);
 static int distance_to_label(MRI *mri_labeled, int label, int x, 
                              int y, int z, int dx, int dy, 
                              int dz, int max_dist) ;
@@ -27,6 +29,12 @@ static MRI *edit_hippocampus(MRI *mri_in_labeled, MRI *mri_T1,
 
 static MRI *edit_amygdala(MRI *mri_in_labeled, MRI *mri_T1, 
                           MRI *mri_out_labeled) ;
+static MRI *edit_caudate(MRI *mri_in_labeled, MRI *mri_T1, 
+                         MRI *mri_out_labeled) ;
+static MRI *edit_lateral_ventricles(MRI *mri_in_labeled, MRI *mri_T1, 
+                                    MRI *mri_out_labeled) ;
+static MRI *edit_cortical_gray_matter(MRI *mri_in_labeled, MRI *mri_T1, 
+                         MRI *mri_out_labeled) ;
 
 
 char *Progname ;
@@ -76,7 +84,11 @@ main(int argc, char *argv[])
 
   mri_out_labeled = edit_hippocampus(mri_in_labeled, mri_T1, NULL);
   edit_amygdala(mri_out_labeled, mri_T1, mri_out_labeled);
+  edit_caudate(mri_out_labeled, mri_T1, mri_out_labeled);
+  edit_lateral_ventricles(mri_out_labeled, mri_T1, mri_out_labeled);
+  edit_cortical_gray_matter(mri_out_labeled, mri_T1, mri_out_labeled);
 
+  printf("writing output volume to %s...\n", out_fname) ;
   MRIwrite(mri_out_labeled, out_fname) ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
@@ -392,6 +404,65 @@ edit_amygdala(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
   printf("%d amygdala voxels changed.\n", total_changed) ;
   return(mri_out_labeled) ;
 }
+static MRI *
+edit_caudate(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
+{
+  int   width, height, depth, x, y, z, nchanged, label, total_changed, 
+        left, niter, change ;
+  MRI   *mri_tmp ;
+
+  mri_out_labeled = MRIcopy(mri_in_labeled, mri_out_labeled) ;
+  mri_tmp = MRIcopy(mri_out_labeled, NULL) ;
+
+  width = mri_T1->width ; height = mri_T1->height ; depth = mri_T1->depth ;
+
+  niter = total_changed = 0 ;
+  do
+  {
+    nchanged = 0 ;
+
+    /* change gray to wm if near amygdala */
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == 95 && y == 127 && z == 119)  
+            DiagBreak() ;
+          label = MRIvox(mri_tmp, x, y, z) ;
+          
+          change = left = 0 ;
+          switch (label)
+          {
+          case Unknown:
+            if (neighborLabel(mri_tmp, x, y, z, 1, Left_Caudate))
+              change = left = 1 ;
+            if (neighborLabel(mri_tmp, x, y, z, 1, Right_Caudate))
+              change = 1 ;
+            
+            if (change)
+            {
+              label = left ? 
+                Left_Cerebral_White_Matter : Right_Cerebral_White_Matter;
+              MRIvox(mri_tmp, x, y, z) = label ;
+              nchanged++ ;
+              continue ;
+            }
+          default:
+            break ;
+          }
+        }
+      }
+    }
+    MRIcopy(mri_tmp, mri_out_labeled) ;
+    total_changed += nchanged ;
+  } while ((nchanged > 0) && (niter++ < 3)) ;
+
+  MRIfree(&mri_tmp) ;
+  printf("%d unknown voxels bordering caudate changed to wm.\n",total_changed);
+  return(mri_out_labeled) ;
+}
 float
 label_mean(MRI *mri_T1, MRI *mri_labeled, int x, int y, int z, int wsize, 
            int label)
@@ -453,3 +524,167 @@ change_label(MRI *mri_T1,MRI *mri_labeled,int x,int y,int z,int wsize,int left)
   return(NO_ERROR) ;
 }
 
+static int
+neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label)
+{
+  int xi, yi, zi, xk, yk, zk ;
+  
+  for (zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        if (abs(xk)+abs(yk)+abs(zk) > 1) /* only 6-connected neighbors */
+          continue ;
+        xi = mri->xi[x+xk] ;
+        if (MRIvox(mri, xi, yi, zi) == label)
+          return(1) ;
+      }
+    }
+  }
+  return(0) ;
+}
+static int
+sagittalNeighbors(MRI *mri, int x, int y, int z, int whalf, int label)
+{
+  int nbrs = 0, yi, zi, yk, zk ;
+  
+  for (zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      if (MRIvox(mri, x, yi, zi) == label)
+        nbrs++ ;
+    }
+  }
+  return(nbrs) ;
+}
+
+static MRI *
+edit_cortical_gray_matter(MRI *mri_in_labeled,MRI *mri_T1,MRI *mri_out_labeled)
+{
+  int   width, height, depth, x, y, z, nchanged, label, total_changed, 
+        left, niter, change ;
+  MRI   *mri_tmp ;
+
+  mri_out_labeled = MRIcopy(mri_in_labeled, mri_out_labeled) ;
+  mri_tmp = MRIcopy(mri_out_labeled, NULL) ;
+
+  width = mri_T1->width ; height = mri_T1->height ; depth = mri_T1->depth ;
+
+  niter = total_changed = 0 ;
+  do
+  {
+    nchanged = 0 ;
+
+    /* change gray to wm if near amygdala */
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == 95 && y == 127 && z == 119)  
+            DiagBreak() ;
+          label = MRIvox(mri_tmp, x, y, z) ;
+          
+          change = left = 0 ;
+          switch (label)
+          {
+          case Left_Cerebral_Cortex:
+          case Unknown:
+          case Right_Cerebral_Cortex:
+            if (neighborLabel(mri_tmp,x,y,z,1,Left_Cerebral_White_Matter) &&
+                neighborLabel(mri_tmp,x,y,z,1,Right_Cerebral_White_Matter))
+            {
+              left =
+                sagittalNeighbors(mri_tmp,x,y,z,3,Left_Cerebral_White_Matter)>
+                sagittalNeighbors(mri_tmp,x,y,z,3,Right_Cerebral_White_Matter);
+
+              label = left ? 
+                Left_Cerebral_White_Matter : Right_Cerebral_White_Matter;
+              MRIvox(mri_tmp, x, y, z) = label ;
+              nchanged++ ;
+              continue ;
+            }
+          default:
+            break ;
+          }
+        }
+      }
+    }
+    MRIcopy(mri_tmp, mri_out_labeled) ;
+    total_changed += nchanged ;
+  } while ((nchanged > 0) && (niter++ < 3)) ;
+
+  MRIfree(&mri_tmp) ;
+  printf("%d midline voxels changed.\n", total_changed) ;
+  return(mri_out_labeled) ;
+}
+static MRI *
+edit_lateral_ventricles(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
+{
+  int   width, height, depth, x, y, z, nchanged, label, total_changed, 
+        left, niter, change ;
+  MRI   *mri_tmp ;
+
+  mri_out_labeled = MRIcopy(mri_in_labeled, mri_out_labeled) ;
+  mri_tmp = MRIcopy(mri_out_labeled, NULL) ;
+
+  width = mri_T1->width ; height = mri_T1->height ; depth = mri_T1->depth ;
+
+  niter = total_changed = 0 ;
+  do
+  {
+    nchanged = 0 ;
+
+    /* change gray to wm if near amygdala */
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == 95 && y == 127 && z == 119)  
+            DiagBreak() ;
+          label = MRIvox(mri_tmp, x, y, z) ;
+          
+          change = left = 0 ;
+          switch (label)
+          {
+          case Unknown:
+            if (neighborLabel(mri_tmp, x, y, z, 1, Left_Lateral_Ventricle) &&
+                neighborLabel(mri_tmp, x, y, z,1,Left_Cerebral_White_Matter))
+              change = left = 1 ;
+            if (neighborLabel(mri_tmp, x, y, z, 1, Right_Lateral_Ventricle) &&
+                neighborLabel(mri_tmp, x, y, z,1,Right_Cerebral_White_Matter))
+              change = 1 ;
+            
+            if (change)
+            {
+              label = left ? 
+                Left_Cerebral_White_Matter : Right_Cerebral_White_Matter;
+              /*              MRIvox(mri_tmp, x, y, z) = label ;*/
+              nchanged++ ;
+              continue ;
+            }
+          default:
+            break ;
+          }
+        }
+      }
+    }
+    MRIcopy(mri_tmp, mri_out_labeled) ;
+    total_changed += nchanged ;
+  } while ((nchanged > 0) && (++niter < 1)) ;
+
+  MRIfree(&mri_tmp) ;
+  printf("%d unknown voxels bordering ventricles changed to wm.\n", 
+         total_changed) ;
+  return(mri_out_labeled) ;
+}
