@@ -98,7 +98,7 @@ double sigt(double t,int df)
 {
   double sig;
   // Use 2* for two-tailed test, compatible with old version of sigt().
-  sig = 2*gsl_cdf_tdist_Q(t,(double)df) ;
+  sig = 2*gsl_cdf_tdist_Q(fabs(t),(double)df) ;
   //printf("t = %g, df=%d, sig = %g\n",t,df,sig);
   return(sig);
 }
