@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.70 2004/01/09 00:13:16 kteich Exp $
+# $Id: tkmedit.tcl,v 1.71 2004/01/09 22:34:52 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -717,7 +717,8 @@ proc GetDefaultLocation { iType } {
 		    set gsaDefaultLocation($iType) [exec pwd]
 		}
 	    }
-	    SaveLabelAs - LoadLabel - ImportSurfaceAnnotation { 
+	    SaveLabelAs - LoadLabel - ImportSurfaceAnnotation - 
+	    WriteLineLabel { 
 		if { $gsSubjectDirectory != "/" } {
 		    set gsaDefaultLocation($iType) $gsSubjectDirectory/label
 		} else {
@@ -1135,15 +1136,15 @@ set tDlogSpecs(SaveRGB) [list \
   -default1 [list GetDefaultLocation SaveRGB] \
   -presets1 $glShortcutDirs \
   -okCmd {SaveRGB %s1; SetDefaultLocation SaveRGB %s1} ]
-set tDlogSpecs(WriteLineReport) [list \
-  -title "Write Line Report" \
-  -prompt1 "Save Report As:" \
-  -note1 "The file name of the report file to write" \
-  -entry1 [list GetDefaultLocation WriteLineReport] \
-  -default1 [list GetDefaultLocation WriteLineReport] \
+set tDlogSpecs(WriteLineLabel) [list \
+  -title "Write Line Label" \
+  -prompt1 "Save Label As:" \
+  -note1 "The file name of the label file to write" \
+  -entry1 [list GetDefaultLocation WriteLineLabel] \
+  -default1 [list GetDefaultLocation WriteLineLabel] \
   -presets1 $glShortcutDirs \
-  -okCmd {WriteLineReportToFile %s1; \
-  SetDefaultLocation WriteLineReportToFile %s1} ]
+  -okCmd {WriteLineToLabel %s1; \
+  SetDefaultLocation WriteLineLabel %s1} ]
 
 proc DoFileDlog { which } {
     global tDlogSpecs
@@ -3658,8 +3659,8 @@ proc CreateMenuBar { ifwMenuBar } {
 	    "Add Line to Selection"
 	    AddLineToSelection }
 	{ command
-	    "Write Line Report to File..."
-	    {DoFileDlog WriteLineReport} }
+	    "Write Line to Label..."
+	    {DoFileDlog WriteLineLabel} }
 	{ separator }
 	{ cascade "Volume" {
 	    { command
