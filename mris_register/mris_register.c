@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.10 1999/09/28 19:27:23 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.11 2000/02/07 16:15:56 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -25,6 +25,8 @@ static void print_version(void) ;
 static int max_passes = 4 ;
 static int nbrs = 1 ;
 static float scale = 1.0f ;
+
+static int reverse_flag = 0 ;
 
 static float dalpha = 0.0f ;
 static float dbeta = 0.0f ;
@@ -144,6 +146,8 @@ main(int argc, char *argv[])
   if (nbrs > 1)
     MRISsetNeighborhoodSize(mris, nbrs) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
+  if (reverse_flag)
+    MRISreverse(mris, REVERSE_X) ; 
   mris->status = MRIS_PARAMETERIZED_SPHERE ;
   MRIScomputeMetricProperties(mris) ;
   if (!FZERO(parms.l_dist))
@@ -191,6 +195,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "rotating brain by (%2.2f, %2.2f, %2.2f)\n",
             dalpha, dbeta, dgamma) ;
     nargs = 3 ;
+  }
+  else if (!stricmp(option, "reverse"))
+  {
+    reverse_flag = 1 ;
+    fprintf(stderr, "mirror image reversing brain before morphing...\n") ;
   }
   else if (!stricmp(option, "dist"))
   {
