@@ -13,8 +13,8 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/02 13:54:48 $
-// Revision       : $Revision: 1.41 $
+// Revision Date  : $Date: 2004/06/17 15:50:56 $
+// Revision       : $Revision: 1.42 $
 
 ------------------------------------------------------------------------*/
 
@@ -1049,6 +1049,7 @@ int getMemoryUsed()
   }
   return -1;  // this should never happen
 #else
+  static int used = 0;
   if (!used)
   {
     fprintf("getMemoryUsed works only under Linux\n");
