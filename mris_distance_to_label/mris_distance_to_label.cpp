@@ -16,9 +16,9 @@ extern "C" {
 #include "timer.h"
 }
 
-#include "mri_fastmarching.h"
+#include "fastmarching.h"
 
-static char vcid[] = "$Id: mris_distance_to_label.cpp,v 1.2 2005/02/09 17:11:41 tosa Exp $";
+static char vcid[] = "$Id: mris_distance_to_label.cpp,v 1.3 2005/02/11 22:03:42 tosa Exp $";
 
 static char *aseg_fname=NULL;
 
@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
   struct timeb start; 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_distance_to_label.cpp,v 1.2 2005/02/09 17:11:41 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_distance_to_label.cpp,v 1.3 2005/02/11 22:03:42 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
