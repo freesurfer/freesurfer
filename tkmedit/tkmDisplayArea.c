@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/02/20 18:06:59 $
-// Revision       : $Revision: 1.99 $
+// Revision Date  : $Date: 2004/02/20 18:29:13 $
+// Revision       : $Revision: 1.100 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -7387,7 +7387,8 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   
   /* also see if we have functional data and can send a value for that
      as well. */     
-  if ( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] ) {
+  //  if ( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] ) {
+  if ( NULL != this->mpFunctionalVolume ) {
     
     DisableDebuggingOutput;
     if( DspA_tDisplaySet_Cursor == iSet ) {
