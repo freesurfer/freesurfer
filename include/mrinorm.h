@@ -42,7 +42,7 @@
 
 /* maximum gradient measured in (intensity change/voxel) */
 /* allow about 3 voxel change between adjacent windows */
-#define MAX_GRADIENT                        (3.0f/5.0f)
+#define MAX_GRADIENT                        (5.0f/5.0f)
 #define MAX_SKIPPED                         1
 
 /* relative to slice at Talairach origin (i.e. 4 slices above it) */
