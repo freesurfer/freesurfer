@@ -1986,6 +1986,10 @@ proc SelectViewInViewProperties { iViewID } {
     global gaWidget
     global gaView
 
+    if { [lsearch $gaView(idList) $iViewID] == -1 } {
+	return
+    }
+    
     SetSelectedViewID [GetMainFrameID] $iViewID
 
     # Get the general view properties from the specific view and
