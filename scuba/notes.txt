@@ -406,6 +406,13 @@ x button for zoom in and out
 
 BRUCE'S LIST:::
 
+- rework value display so it's in a table, with vols on y axis and index/value/etc on x
+
+- when you do alt-c to toggle the top image, also toggle which layer is 
+selected in the "layers" tab. That way you can change it's 
+brightness/contrast (which you never would do to a layer that wasn't 
+visible)
+
 x Goto Coords sets cursor
 
 - save layer setup to script
@@ -509,55 +516,6 @@ x ROI dlog
     - transform to volume
 
 
-NewVolume
- - get template volume ID
-NewVolume( templateID )
- - make volume using template
- - set label
- - make layer, add to views
-SaveVolume
- - layer->Volume()->Save()
-SaveVolumeAs
- - get filename
- - layer->Volume()->SetFileName
- - SaveVolume
-
-x ROI interface
-
-x progress dialog
-
-LoadLabel
- - get file name, LoadLabel( fn )
-LoadLabel( fn )
- - layer->Volume()->NewROIFromlabel( fn );
- - label->SetLabel()
-SaveLabel
- - layer->Volume()->WriteROIToLabel( curROI, fn )
-SaveLabelAs
- - get filename
- - curROI->SetFileName( fn )
- - SaveLabel
-ExportROIsAsLabels
- - get filename
- - layer->Volume()->WriteROIsToSegmentation( fn )
-LoadPaths
- - get filename
- - PathManager->ReadPathFile( fn )
-SavePathsAs
- - get filename
- - PathManager->WritePathFile( fn )
-ImportMarkersFromControlPoints
- - get filename
- - view->ImportControlPoints( layer()->Volume()->GetID, fn )
-ExportMarkersToControlPoints
- - get filename
- - view->ExportControlPoints( layer()->Volume()->GetID, fn )
-SaveTIFF
- - get filename
- - frame->CaptureFrameToFile( fn )
-SaveSceneSetupScript
- - get filename
- - write script
 Undo
 Redo
 Preferences

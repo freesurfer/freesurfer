@@ -1467,6 +1467,9 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
   }
 
   if( isMessage == "cursorChanged" ) {
+    
+    // Rebuild the cursor info.
+    RebuildLabelValueInfo( mCursor.xyz(), "cursor" );
 
     // If we're locked on the cursor, and the cursor is no longer in
     // our view plane, set our view now. But only focus on the

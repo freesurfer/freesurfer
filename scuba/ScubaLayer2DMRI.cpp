@@ -429,14 +429,14 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
       ssValue << value;
     }
 
-    iLabelValues[mVolume->GetLabel() + " value"] = ssValue.str();
+    iLabelValues[mVolume->GetLabel() + ",value"] = ssValue.str();
 
     int index[3];
     mVolume->RASToMRIIndex( iRAS, index );
 
     stringstream ssIndex;
     ssIndex << index[0] << " " << index[1] << " " << index[2];
-    iLabelValues[mVolume->GetLabel() + " index"] = ssIndex.str();
+    iLabelValues[mVolume->GetLabel() + ",index"] = ssIndex.str();
   }
 
   delete &loc;

@@ -64,7 +64,9 @@ SCUBA2_SRCS= \
 	QTScubaWidget.cpp \
 	QtProgressDisplayManager.cpp \
 	QtScubaUtilities.cpp \
-	QtVolumeHistogram.cpp
+	QtVolumeHistogram.cpp \
+	QtTclListener.cpp
+
 FORMS = mainwindow.ui \
 		viewlayersdlog.ui \
 		toolsettingsdlog.ui \

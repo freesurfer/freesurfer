@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.93 2005/03/22 23:01:35 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.94 2005/04/01 19:01:15 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1073,6 +1073,13 @@ proc GotoCoordsInputCallback {} {
 		[lindex $sFiltered 2]
 	    RedrawFrame [GetMainFrameID]
 	    
+	    # Update cursor.
+	    set err [catch { 
+		set labelValues [GetLabelValuesSet $gaView(current,id) cursor]
+		UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
+	    } sResult]
+	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
 	    set gCoordsInput(entry) "Enter RAS Coords"
 	    $gaWidget(coordsEntry) selection range 0 end
 
@@ -1090,6 +1097,7 @@ proc GotoCoordsInputCallback {} {
 		return;
 	    }
 
+	    # Transform coords and set cursor.
 	    set lRAS [Get2DMRIRASCoordsFromIndex $gaTool(current,targetLayer) \
 			  [lindex $sFiltered 0] [lindex $sFiltered 1] \
 			  [lindex $sFiltered 2]]
@@ -1097,6 +1105,13 @@ proc GotoCoordsInputCallback {} {
 		[lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
 	    RedrawFrame [GetMainFrameID]
  
+	    # Update cursor.
+	    set err [catch { 
+		set labelValues [GetLabelValuesSet $gaView(current,id) cursor]
+		UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
+	    } sResult]
+	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
 	    set gCoordsInput(entry) "Enter Index Coords"
 	    $gaWidget(coordsEntry) selection range 0 end
 	} else {
@@ -3784,6 +3799,185 @@ proc UpdateLabelArea { inArea ilLabelValues } {
 }
 
 proc DrawLabelArea {} {
+
+    global gaWidget
+    global glLabelValues
+
+    foreach nArea {1 2} {
+
+	if { ![info exists glLabelValues($nArea)] } {
+	    continue
+	}
+
+	# Start with empty lists and arrays.
+	set tableX {}
+	set tableY {}
+	array set normalEntries {}
+	array set tableEntries {}
+
+	# If we haven't made the frame for this area, make it.
+	set fwTop $gaWidget(labelArea,$nArea).fwTop
+	if { [catch {$fwTop config}] } {
+	    frame $fwTop
+	    pack $fwTop -fill both -expand yes
+	}
+
+	# For each label-value pair we have...
+	foreach lLabelValue $glLabelValues($nArea) {
+	    
+	    # Get the label and value. Set the value in a global
+	    # variable with the label as the index name.
+	    set label [lindex $lLabelValue 0]
+	    set value [lindex $lLabelValue 1]
+	    set glLabelValues($nArea,"$label",value) $value
+
+	    # Has comma? If so, add it to the list of table
+	    # entries. Otherwise add it to the list of normal entries.
+	    if { [string first , $label] != -1 } {
+		
+		# Parse out the x and y labels, split by the
+		# comma. Add each to the list of x and y table labels.
+		set nComma [string first , $label]
+		set sX [string range $label 0 [expr $nComma - 1]]
+		set sY [string range $label [expr $nComma + 1] end]
+
+		set tableEntries($sX,$sY) $value
+		if { [lsearch $tableX $sX] == -1 } {
+		    lappend tableX $sX
+		}
+		if { [lsearch $tableY $sY] == -1 } {
+		    lappend tableY $sY
+		}
+
+	    } else {
+
+		set normalEntries($label) $value
+	    }
+	}
+
+	# If we haven't made the normal label frame, make it.
+	set fwNormal $fwTop.fwNormal
+	if { [catch {$fwNormal config}] } {
+	    frame $fwNormal
+	    pack $fwNormal -side top -expand yes -fill x
+	}
+	# First pack our normal entries.
+	foreach label [array names normalEntries] {
+	    set fw $fwNormal.fw"$label"
+	    set ewLabel $fw.ewLabel
+	    set ewValue $fw.ewValue
+
+	    # If we haven't made this frame, make it and pack it.
+	    if { [catch {$fw config}] } {
+		frame $fw
+		pack $fw -side top -expand yes -fill x
+	    }
+
+	    # If we haven't made a label yet, make one, otherwise just
+	    # configure it with this labels contents.
+	    if { [catch {$ewLabel config}] } {
+		tkuMakeNormalLabel $ewLabel -label $label -width 14
+		pack $ewLabel -side left -anchor w
+	    } else {
+		$ewLabel.lw config -text $label
+	    }
+		
+	    # If we haven't made an entry yet, make one, otherwise
+	    # just configure the existing one.
+	    if { [catch {$ewValue config}] } {
+		set bgColor gray
+		catch { set bgColor [tix option get disabled_bg] }
+		entry $ewValue \
+		    -textvariable glLabelValues($nArea,"$label",value) \
+		    -font [tkuNormalFont] \
+		    -width 18 \
+		    -state disabled \
+		    -relief flat \
+		    -background $bgColor
+	    } else {
+		$ewValue config \
+		    -textvariable glLabelValues($nArea,"$label",value)
+		pack $ewValue -side left -anchor w
+	    }
+	}
+
+	    
+	# If we haven't made the table frame, make it.
+	set fwTable $fwTop.fwTable
+	if { [catch {$fwTable config}] } {
+	    frame $fwTable -relief sunken -border 2
+	    pack $fwTable -expand yes -fill x
+	}
+
+	# These are row headers.
+	set nCol 1
+	foreach sX $tableX {
+
+	    # If we haven't made the header label, do so, otherwise
+	    # just configure it with our contents.
+	    set cell $fwTable.lw$nCol-0
+	    if { [catch {$cell config}] } {
+		tkuMakeNormalLabel $cell -label $sX -justify center
+		grid $cell -column $nCol -row 0 -sticky ew
+	    } else {
+		$cell.lw config -text $sX
+	    }
+	    grid columnconfigure $fwTable $nCol -weight 1
+	    incr nCol
+	}
+	grid columnconfigure $fwTable 0 -weight 1
+
+	# For each row...
+	set nRow 1
+	foreach sY $tableY {
+
+	    # This is the row header. If we haven't made the label, do
+	    # so, otherwise just configure it.
+	    set cell $fwTable.lw0-$nRow
+	    if { [catch {$cell config}] } {
+		tkuMakeNormalLabel $cell -label $sY
+		grid $cell -column 0 -row $nRow -sticky ew
+	    } else {
+		$cell.lw config -text $sY
+	    }
+
+	    # These are all the values in this row. For each, if we
+	    # haven't made an entry, do so, otherwise just configure
+	    # it.
+	    set nCol 1
+	    foreach sX $tableX {
+		if { [info exists tableEntries($sX,$sY)] } {
+		    set cell $fwTable.lw$nCol-$nRow
+		    if { [catch {$cell config}] } {
+			set bgColor gray
+			catch { set bgColor [tix option get disabled_bg] }
+			entry $cell \
+			 -textvariable glLabelValues($nArea,"$sX,$sY",value) \
+			    -font [tkuNormalFont] \
+			    -state disabled \
+			    -width 15 \
+			    -relief flat \
+			    -background $bgColor
+			grid  $cell -column $nCol -row $nRow -sticky ew
+		    } else {
+			$cell config \
+			    -textvariable glLabelValues($nArea,"$sX,$sY",value)
+		    }
+		}
+		incr nCol
+	    }
+	    incr nRow
+	}
+
+	# Delete lists and arrays.
+	unset tableX
+	unset tableY
+	array unset normalEntries
+	array unset tableEntries
+    }
+}
+
+proc DrawLabelArea2 {} {
     dputs "DrawLabelArea  "
 
     global gaWidget
@@ -4767,7 +4961,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.93 2005/03/22 23:01:35 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.94 2005/04/01 19:01:15 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
