@@ -860,3 +860,21 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 
   return ok;
 }
+
+string
+ScubaToolState::GetBrushShapeAsString () {
+
+  switch( GetBrushShape() ) {
+  case voxel:
+    return "voxel";
+    break;
+  case square:
+    return "square";
+    break;
+  case circle:
+    return "circle";
+    break;
+  }
+
+  return "Unkown";
+}

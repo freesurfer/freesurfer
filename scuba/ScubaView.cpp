@@ -403,6 +403,22 @@ ScubaView::Get2DInPlane () {
   return mViewState.mInPlane;
 }
 
+string
+ScubaView::Get2DInPlaneAsString () {
+  switch( mViewState.mInPlane ) {
+  case ViewState::X:
+    return "x";
+    break;
+  case ViewState::Y:
+    return "y";
+    break;
+  case ViewState::Z:
+    return "z";
+    break;
+  }
+  return "Unknown";
+}
+
 void
 ScubaView::Get2DPlaneNormal ( float oNormal[3] ) {
 
@@ -2494,6 +2510,48 @@ ScubaView::GetNthMarker ( int inMarker, float oMarkerRAS[3] ) {
 }
 
 void
+ScubaView::ExportMarkersToControlPointsForVolume ( string ifnControlPoints,
+						   VolumeCollection& iVolume ){
+
+  // Make a list out of our visible control points.
+  list<Point3<float> > lMarkers;
+  int cMarkers = ScubaView::GetNumberOfMarkers();
+  for( int nMarker = 0; nMarker < cMarkers; nMarker++ ) {
+    if( ScubaView::IsNthMarkerVisible( nMarker ) ) {
+      float markerRAS[3];
+      ScubaView::GetNthMarker( nMarker, markerRAS );
+      lMarkers.push_back( Point3<float>( markerRAS ) );
+    }
+  }
+  
+  iVolume.ExportControlPoints( ifnControlPoints, lMarkers );
+}
+
+void
+ScubaView::ImportMarkersFromControlPointsForVolume ( string ifnControlPoints,
+						   VolumeCollection& iVolume ){
+  
+  list<Point3<float> > lControlPoints;
+  iVolume.ImportControlPoints( ifnControlPoints, lControlPoints );
+  
+  // Set the number of markers if we don't have enough.
+  int cControlPoints = lControlPoints.size();
+  int cMarkers = ScubaView::GetNumberOfMarkers();
+  if( cMarkers < cControlPoints ) {
+      ScubaView::SetNumberOfMarkers( cControlPoints );
+  }
+  
+  list<Point3<float> >::iterator tControlPoint;
+  for( tControlPoint = lControlPoints.begin();
+       tControlPoint != lControlPoints.end();
+       ++tControlPoint ) {
+    
+    ScubaView::SetNextMarker( (*tControlPoint).xyz() );
+  }
+}
+
+
+void
 ScubaView::SetFlipLeftRightYZ ( bool iFlip ) {
 
   mbFlipLeftRightInYZ = iFlip;
@@ -3212,23 +3270,9 @@ ScubaViewStaticTclListener::DoListenToTclCommand ( char* isCommand,
     }
       
     string fnControlPoints = iasArgv[2];
-    list<Point3<float> > lControlPoints;
-    vol->ImportControlPoints( fnControlPoints, lControlPoints );
+    ScubaView::ImportMarkersFromControlPointsForVolume( fnControlPoints, 
+							*vol );
 
-    // Set the number of markers if we don't have enough.
-    int cControlPoints = lControlPoints.size();
-    int cMarkers = ScubaView::GetNumberOfMarkers();
-    if( cMarkers < cControlPoints ) {
-      ScubaView::SetNumberOfMarkers( cControlPoints );
-    }
-
-    list<Point3<float> >::iterator tControlPoint;
-    for( tControlPoint = lControlPoints.begin();
-	 tControlPoint != lControlPoints.end();
-	 ++tControlPoint ) {
-      
-      ScubaView::SetNextMarker( (*tControlPoint).xyz() );
-    }
   }
   
   // ExportMarkersToControlPoints <collectionID> <fileName>
@@ -3251,19 +3295,8 @@ ScubaViewStaticTclListener::DoListenToTclCommand ( char* isCommand,
 			   "wasn't a volume.." );
     }
       
-    // Make a list out of our visible control points.
-    list<Point3<float> > lMarkers;
-    int cMarkers = ScubaView::GetNumberOfMarkers();
-    for( int nMarker = 0; nMarker < cMarkers; nMarker++ ) {
-      if( ScubaView::IsNthMarkerVisible( nMarker ) ) {
-	float markerRAS[3];
-	ScubaView::GetNthMarker( nMarker, markerRAS );
-	lMarkers.push_back( Point3<float>( markerRAS ) );
-      }
-    }
-    
     string fnControlPoints = iasArgv[2];
-    vol->ExportControlPoints( fnControlPoints, lMarkers );
+    ScubaView::ExportMarkersToControlPointsForVolume( fnControlPoints, *vol );
   }
   
   // SetViewRASCursor <X> <Y> <Z>

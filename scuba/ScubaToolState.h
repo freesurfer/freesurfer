@@ -39,6 +39,7 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
 
   void SetBrushShape ( Shape iShape ) { mBrushShape = iShape; }
   Shape GetBrushShape () { return mBrushShape; }
+  std::string GetBrushShapeAsString ();
 
   void SetBrush3D ( bool ib3D ) { mbBrush3D = ib3D; }
   bool GetBrush3D () { return mbBrush3D; }

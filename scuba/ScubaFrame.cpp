@@ -862,6 +862,26 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
   RequestRedisplay();
 }
 
+string
+ScubaFrame::GetViewConfigurationAsString () {
+
+  switch( mViewConfiguration ) {
+  case c1:
+    return "c1";
+    break;
+  case c22:
+    return "c22";
+    break;
+  case c44:
+    return "c44";
+    break;
+  case c13:
+    return "c13";
+    break;
+  }
+
+  return "Unknown";
+}
 
 View*
 ScubaFrame::GetViewAtColRow ( int iCol, int iRow ) {

@@ -39,6 +39,8 @@ class ScubaTransform : public Transform44, public IDTracker<ScubaTransform>, pub
   void SetLabel( std::string isLabel ) { msLabel = isLabel; }
   std::string GetLabel() { return msLabel; }
 
+  std::string GetValuesAsString();
+
   Transform44& operator=(ScubaTransform& iTransform) {
     m.SetMatrix( iTransform.GetMainMatrix() );
     ValuesChanged();
@@ -49,6 +51,10 @@ class ScubaTransform : public Transform44, public IDTracker<ScubaTransform>, pub
   void TreatAsRegistration ( VolumeCollection& iSourceVolume, 
 			     VolumeCollection& iDestVolume );
   void TreatAsNative ();
+
+  bool IsRegistration () { return mIsRegistration; }
+  int GetRegistrationSource ();
+  int GetRegistrationDestination ();
 
  protected:
 

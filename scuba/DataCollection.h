@@ -75,6 +75,7 @@ class DataCollection : public DebugReporter,
   void SelectROI ( int iROIID );
   virtual ScubaROI* DoNewROI ();
 
+  int GetNumberOfROIs () { return mROIMap.size(); }
   int GetSelectedROI () { return mSelectedROIID; }
 
   virtual void SetDataToWorldTransform ( int iTransformID );

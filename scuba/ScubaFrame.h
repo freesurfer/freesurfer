@@ -25,6 +25,7 @@ public:
   enum ViewConfiguration { c1, c22, c44, c13 };
   void SetViewConfiguration( ViewConfiguration iConfig );
   ViewConfiguration GetViewConfiguration() { return mViewConfiguration; }
+  std::string GetViewConfigurationAsString();
 
   virtual TclCommandResult
     DoListenToTclCommand( char* isCommand, int iArgc, char** iArgv );
@@ -57,6 +58,9 @@ public:
   // Copy layers in one view to all other views.
   void CopyLayerSettingsToAllViews ( int iViewID );
 
+  // Save a screen shot.
+  void CaptureToFile ( std::string ifn );
+
 protected:
 
   // Adjusts window coords for a view.
@@ -80,8 +84,6 @@ protected:
   // Given a window location, returns a pointer to a view. Or could
   // throw an exception.
   View* FindViewAtWindowLoc( int iWindow[2], int* onCol, int* onRow );
-
-  void CaptureToFile ( std::string ifn );
 
   // View configuration and the number of rows we have, and for each
   // row, the numbe rof columns in that row.

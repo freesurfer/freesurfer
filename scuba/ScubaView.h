@@ -52,6 +52,7 @@ public:
   void Get2DRASCenter ( float oRASCenter[3] );
   float Get2DZoomLevel ();
   ViewState::Plane Get2DInPlane ();
+  std::string Get2DInPlaneAsString ();
   void Get2DPlaneNormal ( float oNormal[3] );
 
   // Add and remove layers that this view at a specific level. Note
@@ -125,6 +126,15 @@ public:
 
   static bool IsNthMarkerVisible ( int inMarker );
   static void GetNthMarker ( int inMarker, float oMarkerRAS[3] );
+
+  // Export markers to control points for a volume.
+  static void ExportMarkersToControlPointsForVolume 
+    ( std::string ifnControlPoints,
+      VolumeCollection& iVolume );
+  static void ImportMarkersFromControlPointsForVolume
+    ( std::string ifnControlPoints,
+      VolumeCollection& iVolume );
+
 
   // Gets a histogram of values in the current view from the given
   // volume. Generates a list of RAS points in the current view and

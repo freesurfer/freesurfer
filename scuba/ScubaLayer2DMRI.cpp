@@ -1564,6 +1564,43 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
   }
 }
 
+string
+ScubaLayer2DMRI::GetColorMapMethodAsString () {
+
+  switch ( mColorMapMethod ) {
+  case grayscale:
+    return "grayscale";
+    break;
+  case heatScale:
+    return "heatScale";
+    break;
+  case LUT:
+    return "lut";
+    break;
+  }
+  return "Unknown";
+}
+
+string
+ScubaLayer2DMRI::GetSampleMethodAsString () {
+  
+  switch( mSampleMethod ) {
+  case nearest:
+    return "nearest";
+    break;
+  case trilinear:
+    return "trilinear";
+    break;
+  case sinc:
+    return "sinc";
+    break;
+  case magnitude:
+    return "magnitude";
+    break;
+  }
+  return "Unknown";
+}
+
 void
 ScubaLayer2DMRI::SetColorLUT ( int iLUTID ) {
 

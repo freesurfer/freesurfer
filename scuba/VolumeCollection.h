@@ -61,6 +61,7 @@ class VolumeCollection : public DataCollection {
   // Set the file name for this ROI. This will be used to load the MRI
   // and to save it.
   void SetFileName ( std::string& ifnMRI );
+  std::string GetFileName () { return mfnMRI; }
 
   // Creates an MRI using an existing data collection as a template.
   void MakeUsingTemplate ( int iCollectionID );

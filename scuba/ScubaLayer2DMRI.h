@@ -59,11 +59,13 @@ class ScubaLayer2DMRI : public Layer {
   void SetColorMapMethod ( ColorMapMethod iMethod ) { 
     mColorMapMethod = iMethod; }
   ColorMapMethod GetColorMapMethod () { return mColorMapMethod; }
+  std::string GetColorMapMethodAsString ();
 
   enum SampleMethod { nearest, trilinear, sinc, magnitude };
   void SetSampleMethod ( SampleMethod iSampleMethod ) {
     mSampleMethod = iSampleMethod; }
   SampleMethod GetSampleMethod () { return mSampleMethod; }
+  std::string GetSampleMethodAsString ();
 
   void SetColorLUT ( int iLUTID );
   int GetColorLUT ();

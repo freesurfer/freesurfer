@@ -303,6 +303,38 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
   return ok;
 }
 
+string
+ScubaTransform::GetValuesAsString () {
+
+  stringstream ssResult;
+  for( int r = 0; r < 4; r++ ) {
+    for( int c = 0; c < 4; c++ ) {
+      ssResult << m(c,r) << " ";
+    }
+  }
+  return ssResult.str();
+}
+
+int
+ScubaTransform::GetRegistrationSource () {
+  
+  if( mSourceVolume ) {
+    return mSourceVolume->GetID();
+  } else {
+    return -1;
+  }
+}
+
+int
+ScubaTransform::GetRegistrationDestination () {
+
+  if( mDestVolume ) {
+    return mDestVolume->GetID();
+  } else {
+    return -1;
+  }
+}
+
 void
 ScubaTransform::ValuesChanged () {
 
