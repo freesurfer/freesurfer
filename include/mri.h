@@ -244,7 +244,7 @@ MRI   *MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold,
 MRI   *MRIthresholdRangeInto(MRI *mri_src, MRI *mri_dst, 
                              BUFTYPE low_val, BUFTYPE hi_val) ;
 int   MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
-                              int *means, BUFTYPE theshold) ;
+                              double *means, BUFTYPE theshold) ;
 int   MRIclear(MRI *mri_src) ;
 
 /* these routines use trilinear interpolation */
@@ -610,12 +610,19 @@ MRI *MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label,
                           int niter, int thresh) ;
 MRI *MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label,
                         int niter);
+int    MRIwriteImageViews(MRI *mri, char *base_name, int target_size) ;
 int MRIsetValues(MRI *mri, int val) ;
+MRI    *MRIwindow(MRI *mri_src, MRI *mri_dst, int which, float x0, float y0, 
+                  float z0, float parm) ;
 int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
                                float gray_low, float gray_hi,
                                float *pmean_wm, float *psigma_wm,
                                float *pmean_gm, float *psigma_gm) ;
 
+
+#define WINDOW_GAUSSIAN  0
+#define WINDOW_HAMMING   1
+#define WINDOW_HANNING   2
 
 #define MRI_NOT_WHITE   1
 #define MRI_AMBIGUOUS   128
