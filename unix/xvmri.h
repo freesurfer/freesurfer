@@ -57,5 +57,6 @@ extern int   which_click ;
 extern int   x_click ;
 extern int   y_click ;
 extern int   z_click ;
+extern int   brush ;
 
 #endif
