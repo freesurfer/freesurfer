@@ -166,24 +166,27 @@ on each Run is done.  The summary will be printed to the stdout. If
 -scanonly is used, the summary will be put into file specified as
 the argument to -scanonly.  The output looks something like below:
 
-  1              scout_3T22cm 256 256   1   1 208-1-1.ima
-  2               scout_nostd 256 256   3   1 208-2-2.ima
-  3     mpr_ns_t1_4b130_nostd 256 256 128   1 208-3-5.ima
-  4       ep2d_irm_ts_29b3125  64  64  21   1 208-4-133.ima
-  5       ep2d_fid_ts_15b3125  64  64  21 180 208-5-135.ima
-  6       ep2d_fid_ts_15b3125  64  64  21 180 208-6-495.ima
-  7       ep2d_fid_ts_15b3125  64  64  21 180 208-7-855.ima
-  8       ep2d_fid_ts_15b3125  64  64  21 180 208-8-1215.ima
-  9       ep2d_fid_ts_15b3125  64  64  21 180 208-9-1575.ima
- 10       ep2d_fid_ts_15b3125  64  64  21 180 208-10-1935.ima
- 11              scout_3T22cm 256 256   1   1 208-11-2295.ima
- 12               scout_nostd 256 256   3   1 208-12-2296.ima
- 13       ep2d_fid_ts_15b3125  64  64  21 180 208-13-2299.ima
- 14       ep2d_fid_ts_15b3125  64  64  21 180 208-14-2659.ima
+  1              scout_3T22cm 256 256   1   1 0 208-1-1.ima
+  2               scout_nostd 256 256   3   1 0 208-2-2.ima
+  3     mpr_ns_t1_4b130_nostd 256 256 128   1 0 208-3-5.ima
+  4       ep2d_irm_ts_29b3125  64  64  21   1 0 208-4-133.ima
+  5       ep2d_fid_ts_15b3125  64  64  21 180 0 208-5-135.ima
+  6       ep2d_fid_ts_15b3125  64  64  21 180 0 208-6-495.ima
+  7       ep2d_fid_ts_15b3125  64  64  21 180 1 208-7-855.ima
+  8       ep2d_fid_ts_15b3125  64  64  21 180 0 208-8-1215.ima
+  9       ep2d_fid_ts_15b3125  64  64  21 180 0 208-9-1575.ima
+ 10       ep2d_fid_ts_15b3125  64  64  21 180 0 208-10-1935.ima
+ 11              scout_3T22cm 256 256   1   1 0 208-11-2295.ima
+ 12               scout_nostd 256 256   3   1 0 208-12-2296.ima
+ 13       ep2d_fid_ts_15b3125  64  64  21 180 0 208-13-2299.ima
+ 14       ep2d_fid_ts_15b3125  64  64  21 180 0 208-14-2659.ima
 
 The seven columns correspond to the following: (1) run/series number,
 (2) acquisition sequence, (3) columns, (4) rows, (5) slices, (6) frames,
-and (7) first IMA file in series.
+(7) series error flag, and (8) first IMA file in series. When the series
+error flag equals 1, it means that something is wrong with the series 
+(probably aborted); runs with errors will be skipped during the 
+unpacking process.
 
 EXAMPLES
 
@@ -272,7 +275,7 @@ AUTHOR
 Douglas N. Greve, Ph.D., MGH-NMR Center"
 
 puts ""
-puts {$Id: unpackimadir2,v 1.3 2002/02/26 01:33:58 greve Exp $}
+puts {$Id: unpackimadir2,v 1.4 2002/03/01 22:43:29 greve Exp $}
 puts ""
 
 exit 1;
@@ -766,12 +769,14 @@ proc ScanIMADir { imadir } {
       set nrows   [lindex $VolDim 1];
       set nslices [lindex $VolDim 2];
       set nframes [lindex $VolDim 3];
+      set runerror [exec mri_probe_ima --i $ima --attr error]
+
       # puts [format "%3d %35s %3d %3d %3d %3d %s" \
       #             $RunNo $SeqName $ncols $nrows $nslices $nframes \
       #             $imabasename]
 
       set RunInfo [list $RunNo $SeqName $ncols $nrows $nslices $nframes \
-                   $imabasename];
+                   $imabasename $runerror];
       lappend RunInfoList $RunInfo;
     }
   
@@ -859,17 +864,17 @@ foreach RunInfo $RunInfoList {
   set ncols   [lindex $RunInfo 2];
   set nrows   [lindex $RunInfo 3];
   set nslices [lindex $RunInfo 4];
-  set nframes [lindex $RunInfo 5];
+  set nframes  [lindex $RunInfo 5];
   set IMABaseName [lindex $RunInfo 6];
+  set runerror [lindex $RunInfo 7];
   if { $scanonly != 2} { 
-    puts $ScanFileId [format "%3d %25s %3d %3d %3d %3d %s" \
+    puts $ScanFileId [format "%3d %25s %3d %3d %3d %3d %d %s" \
          $RunNo $SeqName $ncols $nrows $nslices $nframes \
-         $IMABaseName]
+         $runerror $IMABaseName]
   }
-  puts [format "%3d %25s %3d %3d %3d %3d %s" \
+  puts [format "%3d %25s %3d %3d %3d %3d %d %s" \
        $RunNo $SeqName $ncols $nrows $nslices $nframes \
-       $IMABaseName]
-  
+       $runerror $IMABaseName]
 }
 
 if { $scanonly != 2} { close $ScanFileId; }
@@ -900,7 +905,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpackimadir2"
-puts $LF {$Id: unpackimadir2,v 1.3 2002/02/26 01:33:58 greve Exp $}
+puts $LF {$Id: unpackimadir2,v 1.4 2002/03/01 22:43:29 greve Exp $}
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -981,7 +986,15 @@ foreach runcfg $unpackcfg {
   set nslices [lindex $RunInfo 4];
   set nframes [lindex $RunInfo 5];
   set IMABaseName [lindex $RunInfo 6];
+  set runerror [lindex $RunInfo 7];
   set IMAFile $imadir/$IMABaseName
+
+  # If this run has an error, skip it #
+  if { $runerror } {
+    puts $LF "This run has something wrong with it (aborted?), skipping"
+    puts "This run has something wrong with it (aborted?), skipping"
+    continue;
+  }
 
   # If this run is a scout, skip it #
   puts $LF "SeqName $SeqName"
