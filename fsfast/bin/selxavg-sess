@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # selxavg-sess
 #
-# $Id: selxavg-sess,v 1.9 2004/03/29 18:24:41 greve Exp $
-set VERSION = '$Id: selxavg-sess,v 1.9 2004/03/29 18:24:41 greve Exp $';
+# $Id: selxavg-sess,v 1.10 2004/03/30 16:29:57 greve Exp $
+set VERSION = '$Id: selxavg-sess,v 1.10 2004/03/30 16:29:57 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -219,7 +219,13 @@ foreach sess ($SessList)
   set whtnmtx = ();
   foreach run ($RunList)  
     set instem = $run/$funcstem
-    set pars = ($pars $run/$parname);
+    set parfile = $run/$parname
+    if(! -e $parfile) then
+      echo "ERROR: cannot find $parfile"
+      exit 1;
+    endif
+
+    set pars = ($pars $parfile);
 
     set tpexarg = ();
     if($#tpexclude != 0) then
