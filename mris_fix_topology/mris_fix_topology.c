@@ -17,7 +17,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.17 2003/09/05 04:45:41 kteich Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.18 2004/05/19 17:19:48 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -56,7 +56,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.17 2003/09/05 04:45:41 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.18 2004/05/19 17:19:48 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -66,6 +66,8 @@ main(int argc, char *argv[])
 	parms.l_mri = 1 ;
 	parms.l_curv = 1 ;
 	parms.l_unmri = 1 ;
+	parms.niters=-1;
+	parms.genetic=0;
 
   Gdiag |= DIAG_WRITE ;
   Progname = argv[0] ;
@@ -166,6 +168,11 @@ main(int argc, char *argv[])
   fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
   MRISwrite(mris_corrected, fname) ;
 
+  /* compute the orientation changes */
+  MRISmarkOrientationChanges(mris_corrected);
+  
+
+
 #if 0
   MRISrestoreVertexPositions(mris_corrected, CANONICAL_VERTICES) ;
   sprintf(fname, "%s/%s/surf/%s.sphere%s", sdir, sname, hemi, suffix);
@@ -251,6 +258,18 @@ get_option(int argc, char *argv[])
     parms.max_unchanged = atoi(argv[2]) ;
     fprintf(stderr,"terminating evolution after %d generations without change...\n", parms.max_unchanged) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "niters"))
+  {
+    parms.niters = atoi(argv[2]) ;
+    fprintf(stderr,"stopping genetic algorithm after %d iterations\n", parms.niters) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "genetic"))
+  {
+    parms.genetic=1;
+    fprintf(stderr,"using genetic algorithm\n") ;
+    nargs = 0 ;
   }
   else if (!stricmp(option, "diag"))
   {
