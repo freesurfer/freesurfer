@@ -6,6 +6,7 @@
 #include "mrisurf.h"
 #include "mrishash.h"
 #include "label.h"
+#include "colortab.h"
 
 #define GCSA_MAGIC 0xababcdcd
 
@@ -74,6 +75,8 @@ typedef struct
   MRIS_HASH_TABLE  *mht_priors ;
   MRIS_HASH_TABLE  *mht_classifiers ;
   GCSA_INPUT       inputs[GCSA_MAX_INPUTS] ;
+	char             *ptable_fname ;   /* name of color lookup table */
+	COLOR_TABLE      *ct ;
 } GAUSSIAN_CLASSIFIER_SURFACE_ARRAY, GCSA ;
 
 

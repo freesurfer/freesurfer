@@ -22,6 +22,8 @@
 #include "matrix.h"
 #include "transform.h"
 #include "const.h"
+#include "label.h"
+#include "colortab.h"
 
 #define TALAIRACH_COORDS     0
 #define SPHERICAL_COORDS     1
@@ -228,6 +230,7 @@ typedef struct
   float        *dx2 ;             /* an extra set of gradient (not always alloced) */
   float        *dy2 ;
   float        *dz2 ;
+	COLOR_TABLE  *ct ;
 } MRI_SURFACE, MRIS ;
 
 
