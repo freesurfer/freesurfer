@@ -119,3 +119,67 @@ CTABreadFrom(FILE *fp)
 	return(ct) ;
 }
 
+int
+CTABcolorToIndex(COLOR_TABLE *pct, int r, int g, int b, int*index)
+{
+  CTE *bin;
+  int nbin;
+
+  if (NULL == pct)
+    return(ERROR_BAD_PARM);
+
+  nbin = 0;
+  while (nbin < pct->nbins)
+    {
+      bin = &(pct->bins[nbin]);
+      if (bin->r == r &&
+	  bin->g == g &&
+	  bin->b == b)
+	{
+	  *index = nbin;
+	  return(NO_ERROR);
+	}
+
+      nbin++;
+    }
+  
+  *index = -1;
+  return(ERROR_BAD_PARM);
+}
+
+int
+CTABindexToColor(COLOR_TABLE *pct, int index, int*r, int*g, int*b)
+{
+  CTE *bin;
+
+  if (NULL == pct)
+    return(ERROR_BAD_PARM);
+
+  if (index < 0 || index >= pct->nbins)
+    return(ERROR_BAD_PARM);
+    
+  bin = &(pct->bins[index]);
+  *r = bin->r;
+  *g = bin->g;
+  *b = bin->b;
+
+  return(NO_ERROR);
+}
+
+int
+CTABcopyName(COLOR_TABLE *pct, int index, char *name)
+{
+  CTE *bin;
+
+  if (NULL == pct)
+    return(ERROR_BAD_PARM);
+
+  if (index < 0 || index >= pct->nbins)
+    return(ERROR_BAD_PARM);
+    
+  bin = &(pct->bins[index]);
+  strcpy (name, bin->name);
+
+  return(NO_ERROR);
+}
+
