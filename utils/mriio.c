@@ -8323,6 +8323,12 @@ mghRead(char *fname, int read_volume, int frame)
 	ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open gzipped file",
 			   fname, frame)) ;
       }
+      if (errno)
+      {
+	errno = 0;
+	ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): zcat encountered error",
+			   fname, frame)) ;
+      }
     }
     else if (!stricmp(ext, "mgh"))
     {
