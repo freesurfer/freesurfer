@@ -604,7 +604,7 @@ Surf_tErr Surf_GetClosestVertexVoxel ( mriSurfaceRef   this,
   eResult = Surf_Verify( this );
   if( Surf_tErr_NoErr != eResult ) 
     goto error;
-  
+
   /* since we want to return results with the vertex index, it is better
      to search for the closest vertex in the surface space, not in client
      space. so convert the target point to surface space */
@@ -1070,7 +1070,11 @@ void Surf_ConvertVoxelToSurfaceSpace ( xVoxelRef       iVoxel,
   } else {
     
     /* transform voxel */
-    Trns_ConvertAtoB( iTransform, iVoxel, oSurfVox );
+    //    Trns_ConvertAtoB( iTransform, iVoxel, oSurfVox );
+    /* RKT: In the opposite of this function, CovertVertexToVoxel, we
+    use CovertBRAStoB, so we'll use ConverBtoRAS here. Even though at
+    some point we should probably fix this. */
+    Trns_ConvertBtoRAS( iTransform, iVoxel, oSurfVox );
   }
   
 }
