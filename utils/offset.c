@@ -29,6 +29,7 @@
 #include "machine.h"
 #include "proto.h"
 #include "diag.h"
+#include "timer.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -60,10 +61,13 @@ ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Ioffset)
 {
   int    rows, cols ;
   static IMAGE *Iorient = NULL ;
+  struct timeb then ;
+  int  msec ;
 
   rows = Ix->rows ;
   cols = Ix->cols ;
 
+  TimerStart(&then) ;
 #if 0
   Iorient = ImageOffsetOrientation(Ix, Iy, wsize, Iorient) ;
 #else
@@ -76,7 +80,12 @@ ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Ioffset)
   Iorient->num_frame = 2 ;
   imageOffsetFlipOrientations(Iorient, Iorient) ;
 #endif
+  msec = TimerStop(&then) ;
+  fprintf(stderr, "orientation took  %2.3f sec\n", (float)msec/1000.0f) ;
+  TimerStart(&then) ;
   Ioffset = ImageOffsetDirection(Ix, Iy, wsize, Iorient, Ioffset) ;
+  msec = TimerStop(&then) ;
+  fprintf(stderr, "direction took  %2.3f sec\n", (float)msec/1000.0f) ;
 
   return(Ioffset) ;
 }
@@ -1167,6 +1176,7 @@ compare_sort_array(const void *pf1, const void *pf2)
 IMAGE *
 ImageOffsetOrientation(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient)
 {
+#if 0
   int    x0, y0, rows, cols, x, y, whalf, xc, yc, yoff, off ;
   float  *xpix, *ypix, dx, dy, *or_xpix, *or_ypix ;
 
@@ -1228,6 +1238,17 @@ ImageOffsetOrientation(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient)
       *or_ypix++ = dy ;
     }
   }
+#else
+  Iorient = ImageAlloc(Ix->rows, Ix->cols, PFFLOAT, 2) ;
+  Iorient->num_frame = 1 ;
+  ImageMeanFilter(Ix, 3, Iorient) ;
+  Iorient->image += Iorient->sizeimage ;
+  ImageMeanFilter(Iy, 3, Iorient) ;
+  Iorient->image -= Iorient->sizeimage ;
+  Iorient->num_frame = 2 ;
+/*  imageOffsetFlipOrientations(Iorient, Iorient) ;*/
+#endif
+
   return(Iorient) ;
 }
 /*----------------------------------------------------------------------
@@ -1316,6 +1337,7 @@ ImageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
             Parameters:
 
            Description:
+             use a Bresenham line drawing algorithm to do search
 ----------------------------------------------------------------------*/
 #define FSCALE  1000.0f
 
