@@ -30,6 +30,7 @@ static double momentum = 0.9 ;
 static int kalpha = 0 ;
 static int debug_slice = -1 ;
 static int correct_PD = 0 ;
+static int synth_flag = 1 ;
 
 char *Progname ;
 static int align = 1 ;
@@ -91,7 +92,7 @@ main(int argc, char *argv[])
   double rms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.18 2003/11/07 15:18:54 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.19 2004/01/02 22:15:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -185,10 +186,20 @@ main(int argc, char *argv[])
 	nvolumes = average_volumes_with_different_echo_times(mri_flash, mri_all_flash, nvolumes_total) ;
 	if (nvolumes == 2)
 		niter = 1 ;  /* don't bother motion-correcting when we only have 2 volumes */
-	for (i = 0 ; i < nvolumes ; i++)
+	if (synth_flag > 0)
 	{
-    mri_flash_synth[i] = MRIclone(mri_flash[i], NULL) ;
-    mri_flash_synth[i]->register_mat = MRIgetVoxelToRasXform(mri_flash[i]);
+		for (i = 0 ; i < nvolumes ; i++)
+		{
+			mri_flash_synth[i] = MRIclone(mri_flash[i], NULL) ;
+			mri_flash_synth[i]->register_mat = MRIgetVoxelToRasXform(mri_flash[i]);
+		}
+	}
+	else
+	{
+		for (i = 0 ; i < nvolumes ; i++)
+		{
+			mri_flash_synth[i] = NULL ;
+		}
 	}
 	
   {
@@ -233,6 +244,12 @@ main(int argc, char *argv[])
 
     for (j=0;j<nvolumes;j++) 
 			M_reg[j] = MatrixIdentity(4,(MATRIX *)NULL);
+
+		if (niter == 0)
+		{
+			rms = estimate_ms_params(mri_flash, synth_flag ? mri_flash_synth : NULL, nvolumes, mri_T1, mri_PD, mri_sse, M_reg) ;
+			printf("parameter rms = %2.3f\n", rms) ;
+		}
 
 		for (iter=0; iter<niter; iter++) 
 		{
@@ -356,21 +373,24 @@ main(int argc, char *argv[])
       printf("writing faf map to %s...\n", fname) ;
       MRIwrite(mri_faf, fname) ;
     }
-    for (j=0;j<nvolumes;j++)
-    {
-      sprintf(fname,"%s/vol%d.mgh",out_dir,j);
-      printf("writing synthetic images to %s...\n", fname);
-      MRIwrite(mri_flash_synth[j], fname) ;
-      sprintf(fname,"%s/vol%d.lta",out_dir,j);
-      printf("writing registration matrix to %s...\n", fname);
-      lta = LTAalloc(1,NULL) ;
-      MatrixCopy(M_reg[j],lta->xforms[0].m_L) ;
-      // add src and dst information
-      getVolGeom(mri_flash_synth[j], &lta->xforms[0].src);
-      getVolGeom(mri_flash[j], &lta->xforms[0].dst);
-      lta->type = LINEAR_RAS_TO_RAS ;
-      LTAwriteEx(lta,fname) ;
-    }
+		if (synth_flag > 0)
+		{
+			for (j=0;j<nvolumes;j++)
+			{
+				sprintf(fname,"%s/vol%d.mgh",out_dir,j);
+				printf("writing synthetic images to %s...\n", fname);
+				MRIwrite(mri_flash_synth[j], fname) ;
+				sprintf(fname,"%s/vol%d.lta",out_dir,j);
+				printf("writing registration matrix to %s...\n", fname);
+				lta = LTAalloc(1,NULL) ;
+				MatrixCopy(M_reg[j],lta->xforms[0].m_L) ;
+				// add src and dst information
+				getVolGeom(mri_flash_synth[j], &lta->xforms[0].src);
+				getVolGeom(mri_flash[j], &lta->xforms[0].dst);
+				lta->type = LINEAR_RAS_TO_RAS ;
+				LTAwriteEx(lta,fname) ;
+			}
+		}
   }
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
@@ -402,6 +422,12 @@ get_option(int argc, char *argv[])
     debug_slice = atoi(argv[2]) ;
     nargs = 1 ;
     printf("debugging slice %d...\n", debug_slice) ;
+  }
+  else if (!stricmp(option, "nosynth"))
+  {
+		synth_flag = 1 ;
+    printf("disabling volume synthesis\n") ;
+		niter = 0 ;
   }
   else if (!stricmp(option, "dt"))
   {
@@ -724,17 +750,33 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mr
     if ((short)PD < 0)
       PD = (double)(0x7fff-1) ;
     MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
-    for (j = 0 ; j < nvolumes ; j++)
-    {
-      mri = mri_flash_synth[j] ;
-      MRIsetVoxVal(mri, x, y, z, 0, PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j]);
-    }
-    sse = 0;
-    for (j = 0 ; j < nvolumes ; j++)
-    {
-      err = MRIgetVoxVal(mri_flash_synth[j], x, y, z, 0)-ImageValues[j]*norm;
-      sse += err*err; 
-    }
+		if (mri_flash_synth)
+		{
+			for (j = 0 ; j < nvolumes ; j++)
+			{
+				mri = mri_flash_synth[j] ;
+				MRIsetVoxVal(mri, x, y, z, 0, PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j]);
+			}
+			sse = 0;
+			for (j = 0 ; j < nvolumes ; j++)
+			{
+				err = MRIgetVoxVal(mri_flash_synth[j], x, y, z, 0)-ImageValues[j]*norm;
+				sse += err*err; 
+			}
+		}
+		else
+		{
+			sse = 0;
+			for (j = 0 ; j < nvolumes ; j++)
+			{
+				float pred_val ;
+
+				pred_val = PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j] ;
+				err = pred_val-ImageValues[j]*norm;
+				sse += err*err; 
+			}
+		}
+
     total_sse += sse ;
     MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse));
 		if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
