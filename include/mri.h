@@ -709,7 +709,11 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
 #define DIAGONAL_FILL        230
 #define DEGENERATE_FILL      240
 
-MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_scale_option_flag);
+MRI *MRIchangeType(MRI *src, int dest_type, float f_low, 
+       float f_high, int no_scale_option_flag);
+MRI *MRISeqchangeType(MRI *vol, int dest_type, float f_low, 
+          float f_high, int no_scale_option_flag);
+
 MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type);
 MATRIX *MRIgetResampleMatrix(MRI *src, MRI *template_vol);
 int MRIlimits(MRI *mri, float *min, float *max);
