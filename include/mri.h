@@ -54,8 +54,8 @@ typedef struct
   char          fname[STR_LEN] ;
 
 /* 
-  each slice is an array of rows (mri->height of them) each of which is mri->width 
-  long.
+  each slice is an array of rows (mri->height of them) each of which is 
+  mri->width long.
 */
   BUFTYPE       ***slices ;
   int           scale ;
@@ -72,6 +72,8 @@ typedef struct
   int           *zi ;
   int           yinvert ;  /* for converting between MNC and coronal slices */
   MRI_REGION    roi ;
+  int           dof ;
+  double        mean ;   
 } MRI_IMAGE, MRI ;
 
 /* single pixel filtering */
@@ -92,12 +94,14 @@ MRI  *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 
 /* I/O functions */
 int    MRIwrite(MRI *mri, char *fpref) ;
+int    MRIappend(MRI *mri, char *fpref) ;
 int    MRIwriteInfo(MRI *mri, char *fpref) ;
 MRI   *MRIread(char *fpref) ;
 MRI   *MRIreadInfo(char *fpref) ;
 
 /* memory allocation routines */
 int   MRIfree(MRI **pmri) ;
+int   MRIfreeFrames(MRI *mri, int start_frame) ;
 MRI   *MRIalloc(int width, int height, int depth, int type) ;
 MRI   *MRIallocSequence(int width, int height,int depth,int type,int nframes);
 MRI   *MRIallocHeader(int width, int height, int depth, int type) ;
@@ -181,9 +185,9 @@ MRI   *MRIzSobelRegion(MRI *mri_src, MRI *mri_z, int frame,MRI_REGION *region);
 MRI   *MRIreduce(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreduceByte(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, 
-                         int axis) ;
+                         int axis, int src_frame, int dst_frame) ;
 MRI   *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *kernel, 
-                     int len, int axis) ;
+                     int len, int axis, int src_frame, int dst_frame) ;
 MRI   *MRIreduce1d(MRI *mri_src, MRI *mri_dst,float *kernel,int len,int axis);
 MRI   *MRIreduce1dByte(MRI *mri_src, MRI *mri_dst,float *kernel,int len,
                        int axis);
@@ -263,6 +267,8 @@ MRI   *MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 MRI   *MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize) ;
 MRI   *MRIgaussian1d(float sigma, int max_len) ;
 MRI   *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian) ;
+MRI   *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst,
+                                          MRI *mri_gaussian) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRImeanByte(MRI *mri_src, MRI *mri_dst, int wsize) ;
@@ -311,7 +317,9 @@ MRI   *MRIextractPlane(MRI *mri_src, MRI *mri_dst, int orientation, int where);
 int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
                     float dx, float dy, float dz, int fill_val);
 
+int   MRIeraseBorders(MRI *mri, int width) ;
 int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
+int   MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval);
 int   MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z, 
                               Real *pdx, Real *pdy, Real *pdz) ;
 
@@ -372,6 +380,7 @@ extern float ic_z_vertices[]  ;
 #define MRI_CORONAL_SLICE_DIRECTORY   0
 #define MRI_MINC_FILE                 1
 #define MRI_ANALYZE_FILE              2
+#define MRI_MGH_FILE                  3
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
@@ -429,5 +438,12 @@ MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, BUFTYPE mask) ;
 
 /* anything below this is not white matter */
 #define WM_MIN_VAL                       2 
+
+MRI *MRIreduceMeanAndStdByte(MRI *mri_src, MRI *mri_dst) ;
+MRI *MRIstdsToVariances(MRI *mri_std, MRI *mri_var, int source_frame) ;
+MRI *MRIvariancesToStds(MRI *mri_var, MRI *mri_std, int dst_frame) ;
+MRI *MRIconcatenateFrames(MRI *mri_frame1, MRI *mri_frame2, MRI *mri_dst);
+MRI *MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame) ;
+double MRImeanFrame(MRI *mri, int frame) ;
 
 #endif
