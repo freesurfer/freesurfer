@@ -23,6 +23,7 @@ static GCA_PARMS parms ;
 static char *parc_dir = "parc" ;
 static char *orig_dir = "orig" ;
 static char *xform_name = "talairach.xfm" ;
+static int prune = 0 ;
 
 static int ninputs = 1 ;  /* T1 intensity */
 
@@ -32,11 +33,11 @@ static char *heq_fname = NULL ;
 int
 main(int argc, char *argv[])
 {
-  char   **av, fname[STRLEN], *out_fname, *subject_name, *cp ;
-  int    ac, nargs, i ;
+  char         **av, fname[STRLEN], *out_fname, *subject_name, *cp ;
+  int          ac, nargs, i, n ;
   int          msec, minutes, seconds, nsubjects ;
   struct timeb start ;
-  GCA          *gca ;
+  GCA          *gca, *gca_prune = NULL ;
   MRI          *mri_parc, *mri_T1, *mri_eq = NULL ;
   LTA          *lta ;
 
@@ -81,64 +82,72 @@ main(int argc, char *argv[])
 
   out_fname = argv[argc-1] ;
   nsubjects = argc-2 ;
-  fprintf(stderr, "training on %d subject and writing results to %s\n",
+  printf("training on %d subject and writing results to %s\n",
           nsubjects, out_fname) ;
 
-  gca = GCAalloc(ninputs, parms.spacing, 
-                 DEFAULT_VOLUME_SIZE, DEFAULT_VOLUME_SIZE,DEFAULT_VOLUME_SIZE);
-
-  for (i = 0 ; i < nsubjects ; i++)
+  n = 0 ;
+  do
   {
-    subject_name = argv[i+1] ;
-    printf("processing subject %s, %d of %d...\n", subject_name,i+1,nsubjects);
-    sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, parc_dir) ;
-    if (DIAG_VERBOSE_ON)
-      fprintf(stderr, "reading parcellation from %s...\n", fname) ;
-    mri_parc = MRIread(fname) ;
-    if (!mri_parc)
-      ErrorExit(ERROR_NOFILE, "%s: could not read parcellation file %s",
-                Progname, fname) ;
+    gca = GCAalloc(ninputs, parms.spacing, DEFAULT_VOLUME_SIZE, 
+                   DEFAULT_VOLUME_SIZE,DEFAULT_VOLUME_SIZE);
 
-    sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, orig_dir) ;
-    if (DIAG_VERBOSE_ON)
-      fprintf(stderr, "reading co-registered T1 from %s...\n", fname) ;
-    mri_T1 = MRIread(fname) ;
-    if (!mri_T1)
-      ErrorExit(ERROR_NOFILE, "%s: could not read T1 data from file %s",
-                Progname, fname) ;
-
-    if (mri_eq)
+    for (i = 0 ; i < nsubjects ; i++)
     {
-      printf("histogram equalizing input image...\n") ;
-      MRIhistoEqualize(mri_T1, mri_eq, mri_T1, 30, 170) ;
-    }
-
-    if (xform_name)
-    {
-      sprintf(fname, "%s/%s/mri/transforms/%s", 
-              subjects_dir, subject_name, xform_name) ;
+      subject_name = argv[i+1] ;
+      printf("processing subject %s, %d of %d...\n", subject_name,i+1,
+             nsubjects);
+      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, parc_dir) ;
       if (DIAG_VERBOSE_ON)
-        fprintf(stderr, "reading transform from %s...\n", fname) ;
-      lta = LTAread(fname) ;
-      if (!lta)
-        ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
+        printf("reading parcellation from %s...\n", fname) ;
+      mri_parc = MRIread(fname) ;
+      if (!mri_parc)
+        ErrorExit(ERROR_NOFILE, "%s: could not read parcellation file %s",
                   Progname, fname) ;
+      
+      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, orig_dir) ;
+      if (DIAG_VERBOSE_ON)
+        printf("reading co-registered T1 from %s...\n", fname) ;
+      mri_T1 = MRIread(fname) ;
+      if (!mri_T1)
+        ErrorExit(ERROR_NOFILE, "%s: could not read T1 data from file %s",
+                  Progname, fname) ;
+      
+      if (mri_eq)
+      {
+        printf("histogram equalizing input image...\n") ;
+        MRIhistoEqualize(mri_T1, mri_eq, mri_T1, 30, 170) ;
+      }
+      
+      if (xform_name)
+      {
+        sprintf(fname, "%s/%s/mri/transforms/%s", 
+                subjects_dir, subject_name, xform_name) ;
+        if (DIAG_VERBOSE_ON)
+          printf("reading transform from %s...\n", fname) ;
+        lta = LTAread(fname) ;
+        if (!lta)
+          ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
+                    Progname, fname) ;
+      }
+      else
+        lta = LTAalloc(1, NULL) ;
+      
+      GCAtrain(gca, mri_T1, mri_parc, lta, gca_prune) ;
+      MRIfree(&mri_parc) ; MRIfree(&mri_T1) ; LTAfree(&lta) ;
     }
-    else
-      lta = LTAalloc(1, NULL) ;
+    GCAcompleteTraining(gca) ;
+    if (gca_prune)
+      GCAfree(&gca_prune) ;
+    gca_prune = gca ;
+  } while (n++ < prune) ;
 
-    GCAtrain(gca, mri_T1, mri_parc, lta) ;
-    MRIfree(&mri_parc) ; MRIfree(&mri_T1) ; LTAfree(&lta) ;
-  }
-
-  GCAcompleteTraining(gca) ;
   GCAwrite(gca, out_fname) ;
   GCAfree(&gca) ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  fprintf(stderr, "classifier array training took %d minutes"
+  printf("classifier array training took %d minutes"
           " and %d seconds.\n", minutes, seconds) ;
   exit(0) ;
   return(0) ;
@@ -164,7 +173,13 @@ get_option(int argc, char *argv[])
   {
     parms.spacing = atof(argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr, "spacing nodes every %2.1f mm\n", parms.spacing) ;
+    printf("spacing nodes every %2.1f mm\n", parms.spacing) ;
+  }
+  else if (!stricmp(option, "PRUNE"))
+  {
+    prune = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("pruning classifier %d times after initial training\n", prune) ;
   }
   else if (!stricmp(option, "HEQ"))
   {
@@ -177,32 +192,32 @@ get_option(int argc, char *argv[])
   {
     orig_dir = argv[2] ;
     nargs = 1 ;
-    fprintf(stderr, "reading T1 data from subject's mri/%s directory\n",
+    printf("reading T1 data from subject's mri/%s directory\n",
             orig_dir) ;
   }
   else if (!stricmp(option, "PARC_DIR"))
   {
     parc_dir = argv[2] ;
     nargs = 1 ;
-    fprintf(stderr, "reading parcellation from subject's mri/%s directory\n",
+    printf("reading parcellation from subject's mri/%s directory\n",
             parc_dir) ;
   }
   else if (!stricmp(option, "XFORM"))
   {
     xform_name = argv[2] ;
     nargs = 1 ;
-    fprintf(stderr, "reading xform from %s\n", xform_name) ;
+    printf("reading xform from %s\n", xform_name) ;
   }
   else if (!stricmp(option, "NOXFORM"))
   {
     xform_name = NULL ;
-    fprintf(stderr, "disabling application of xform...\n") ;
+    printf("disabling application of xform...\n") ;
   }
   else if (!stricmp(option, "SDIR"))
   {
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr, "using %s as subjects directory\n", subjects_dir) ;
+    printf("using %s as subjects directory\n", subjects_dir) ;
   }
   else switch (toupper(*option))
   {
