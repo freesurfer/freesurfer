@@ -596,6 +596,9 @@ ImageResize(IMAGE *Isrc, IMAGE *Idst, int drows, int dcols)
   float x_scale, y_scale ;
   int   ecode ;
 
+  if (!Idst)
+    Idst = ImageAlloc(drows, dcols, Isrc->pixel_format, Isrc->num_frame) ;
+
   x_scale = (float)dcols / (float)Isrc->cols ;
   y_scale = (float)drows / (float)Isrc->rows ;
 
