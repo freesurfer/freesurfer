@@ -3,7 +3,7 @@
 
 set inputargs = ($argv);
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set INORM_VER = '$Id: inorm,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set INORM_VER = '$Id: inorm,v 1.2 2003/12/19 21:51:14 greve Exp $';
 
 set n = `echo $argv | grep version | wc -l` 
 if($n != 0) then
@@ -17,6 +17,7 @@ set instem  = ();
 set TR = 1;
 set monly = 0;
 set thresh = .75;
+set mask = ();
 
 #set outstem = ();
 #set ReportOnly = 0;
@@ -99,24 +100,85 @@ set MLF = $mfile
 echo "inorm matlab file is $MLF" | tee -a $LF
 rm -f $MLF;
 
-echo "%%% ----------------- %%"       >> $MLF;
-echo "% matlab file to run inorm"    >> $MLF;
-echo "% This is a temporary file and may be deleted" >> $MLF;
-echo "% $MLF"                          >> $MLF;
-echo "global QuitOnError;"             >> $MLF;
-echo "QuitOnError = $QuitOnError;"     >> $MLF;
-set c = "";
-echo -n "r = fast_inorm("     >> $MLF;
-foreach arg ($inputargs)
-  echo -n "$c '$arg'"      >> $MLF;
-  set c = ",";
-end
-echo -n ");" >> $MLF;
-echo " "  >> $MLF;
-if(! $monly ) then
-  echo "quit; "  >> $MLF;
+if($#mask == 0) then
+  echo "%%% ----------------- %%"       >> $MLF;
+  echo "% matlab file to run inorm"    >> $MLF;
+  echo "% This is a temporary file and may be deleted" >> $MLF;
+  echo "% $MLF"                          >> $MLF;
+  echo "global QuitOnError;"             >> $MLF;
+  echo "QuitOnError = $QuitOnError;"     >> $MLF;
+  set c = "";
+  echo -n "r = fast_inorm("     >> $MLF;
+  foreach arg ($inputargs)
+    echo -n "$c '$arg'"      >> $MLF;
+    set c = ",";
+  end
+  echo -n ");" >> $MLF;
   echo " "  >> $MLF;
+  if(! $monly ) then
+    echo "quit; "  >> $MLF;
+    echo " "  >> $MLF;
+  endif
+else
+#------------------------------------#
+tee $MLF > /dev/null <<EOF
+
+tic;
+instem = '$instem';
+maskstem = '$mask';
+
+mask = fast_ldbslice(maskstem);
+if(isempty(mask))
+  fprintf('ERROR: could not load %s\n',maskstem);
+  return;
+end
+nmask = length(find(mask > 0.5));
+if(nmask == 0)
+  fprintf('ERROR: no mask voxels found\n');
+  return;
+end
+
+[nr nc ns] = size(mask);
+fsum = 0;
+nsum = 0;
+for slice = 1:ns
+  ind = find(mask(:,:,slice));
+  nind = length(ind);
+  if(isempty(ind)) continue; end
+
+  f = fast_ldbslice(instem,slice-1);
+  if(isempty(f))
+    fprintf('ERROR: could not load %s\n',instem);
+    return;
+  end
+
+  [fnr fnc ntp] = size(f);
+  f = reshape(f,[fnr*fnc ntp])';
+  fsum = fsum + sum(reshape1d(f(:,ind)));
+  nsum = nsum + nind*ntp;
+
+end
+fmn = fsum/nsum;
+fprintf('nsum = %d, fsum = %g, fmn = %g\n',...
+        nsum,fsum,fmn);
+
+fname = sprintf('%s.meanval',instem);
+fp = fopen(fname,'w');
+if(fp == -1)
+  fprintf('ERROR: could not open %s',fname);
+  return;
+end
+fprintf(fp,'%g\n',fmn);
+fclose(fp);
+
+fprintf('inorm done (%g)\n',toc);
+
+EOF
+#------------------------------------#
+
 endif
+
+
 
 echo "----------- Matlab file --------------" | tee -a $LF
 cat $MLF | tee -a $LF
@@ -188,6 +250,11 @@ while( $#argv != 0 )
     case "-thresh":
       if ( $#argv == 0) goto arg1err;
       set thresh = $argv[1]; shift;
+      breaksw
+
+    case "-mask":
+      if ( $#argv == 0) goto arg1err;
+      set mask = $argv[1]; shift;
       breaksw
 
     case "-TR":
