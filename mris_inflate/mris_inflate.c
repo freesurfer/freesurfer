@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.6 1997/12/19 20:58:57 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.7 1998/01/08 21:01:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -26,8 +26,8 @@ static void print_version(void) ;
 char *Progname ;
 
 static INTEGRATION_PARMS  parms ;
-static int patch_flag = 0 ;
 static int desired_curvature_set = 0 ;
+static int talairach_flag = 0 ;
 
 #define DESIRED_RADIUS   50.0   /* 10 cm radius */
 
@@ -94,82 +94,29 @@ main(int argc, char *argv[])
       strcpy(parms.base_name, "inflated") ;
   }
 
-  if (patch_flag)
-  {
-    FileNamePath(in_fname, path) ;
-    FileNameOnly(in_fname, fname) ;
-    cp = strchr(fname, '.') ;
-    if (cp)
-    {
-      strncpy(hemi, cp-2, 2) ;
-      hemi[2] = 0 ;
-    }
-    else
-      strcpy(hemi, "lh") ;
-    sprintf(fname, "%s/%s.orig", path, hemi) ;
-    mris = MRISread(fname) ;
-    if (!mris)
-      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-                Progname, fname) ;
+  mris = MRISread(in_fname) ;
+  if (!mris)
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+              Progname, in_fname) ;
 
-    MRISreadTriangleProperties(mris, fname) ;
-    FileNameOnly(in_fname, fname) ;
-    if (MRISreadPatch(mris, fname) != NO_ERROR)
-      ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
-                Progname, in_fname) ;
-  }
-  else
-  {
-    mris = MRISread(in_fname) ;
-    if (!mris)
-      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-                Progname, in_fname) ;
-  }
+  MRISsetNeighborhoodSize(mris, 2) ;
+  MRISreadOriginalProperties(mris, NULL) ;
 
-  MRIScomputeMetricProperties(mris) ;
-  MRIScomputeTriangleProperties(mris, 0) ;  /* recompute areas and normals */
-#if 0
-  MRIStalairachTransform(mris, mris) ;
-#endif
+  if (talairach_flag)
+    MRIStalairachTransform(mris, mris) ;
+
   radius = MRISaverageRadius(mris) ;
   scale = DESIRED_RADIUS/radius ;
   MRISscaleBrain(mris, mris, scale) ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "scaling brain by %2.2f\n", scale) ;
 
-  MRISstoreMetricProperties(mris) ;
-  MRISreadTriangleProperties(mris, in_fname) ;
   MRIScomputeSecondFundamentalForm(mris) ;
-#if 0
-  if (parms.niterations > 0)
-  {
-    MRISunfold(mris, &parms) ;
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "writing inflated surface to %s\n", out_fname) ;
-    radius = MRISaverageRadius(mris) ;
-    scale = DESIRED_RADIUS/radius ;
-    MRISscaleBrain(mris, mris, scale) ;
-    MRISwrite(mris, out_fname) ;
-  }
-#else
   MRISinflateBrain(mris, &parms) ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "writing inflated surface to %s\n", out_fname) ;
+  fprintf(stderr, "writing inflated surface to %s\n", out_fname) ;
   radius = MRISaverageRadius(mris) ;
   scale = DESIRED_RADIUS/radius ;
   MRISscaleBrain(mris, mris, scale) ;
   MRISwrite(mris, out_fname) ;
-#endif
 
-#if 0
-  sprintf(fname, "%s.area_error", out_fname) ;
-  printf("writing area errors to %s\n", fname) ;
-  MRISwriteAreaError(mris, fname) ;
-  sprintf(fname, "%s.angle_error", out_fname) ;
-  printf("writing angle errors to %s\n", fname) ;
-  MRISwriteAngleError(mris, fname) ;
-  MRISfree(&mris) ;
-#endif
 
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -276,6 +223,10 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'T':
+    talairach_flag = 1 ;
+    fprintf(stderr, "applying talairach transform to brain before inflation\n") ;
+    break ;
   case 'S':
     parms.l_spring = atof(argv[2]) ;
     nargs = 1 ;
@@ -286,9 +237,6 @@ get_option(int argc, char *argv[])
     parms.momentum = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "momentum = %2.2f\n", parms.momentum) ;
-    break ;
-  case 'P':
-    patch_flag = 1 ;
     break ;
   case 'F':
     parms.fi_desired = atof(argv[2]) ;
@@ -319,6 +267,7 @@ get_option(int argc, char *argv[])
     sscanf(argv[2], "%d", &parms.write_iterations) ;
     nargs = 1 ;
     fprintf(stderr, "write iterations = %d\n", parms.write_iterations) ;
+    Gdiag |= DIAG_WRITE ;
     break ;
   case 'A':
     sscanf(argv[2], "%d", &parms.n_averages) ;
