@@ -15,7 +15,7 @@
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
-static void  usage_exit(void) ;
+static void  usage_exit(int code) ;
 
 static int conform = 0 ;
 static int gentle_flag = 0 ;
@@ -47,7 +47,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.21 2003/04/15 21:17:23 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.22 2003/06/16 18:12:21 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -67,7 +67,7 @@ main(int argc, char *argv[])
   }
 
   if (argc < 3)
-    usage_exit() ;
+    usage_exit(0) ;
 
   if (argc < 1)
     ErrorExit(ERROR_BADPARM, "%s: no input name specified", Progname) ;
@@ -217,8 +217,7 @@ get_option(int argc, char *argv[])
     break ;
   case '?':
   case 'U':
-    printf("usage: %s [input directory] [output directory]\n", argv[0]) ;
-    exit(1) ;
+    usage_exit(0) ;
     break ;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
@@ -229,14 +228,32 @@ get_option(int argc, char *argv[])
   return(nargs) ;
 }
 static void
-usage_exit(void)
+usage_exit(int code)
 {
-  fprintf(stderr, "usage: %s [options] <input volume> <output volume>\n", 
-          Progname) ;
-  fprintf(stderr, "\t-n <# of 3d normalization iterations>, default=5\n") ;
-  fprintf(stderr, "\t-g <max intensity/mm gradient>, default=0.6\n") ;
-  fprintf(stderr, "\t-s <sigma>, "
-          "intensity interval pct for 3d, default=0.15\n") ;
-  exit(0) ;
+    printf("usage: %s <input volume> <output volume>\n\n", Progname) ;
+    printf("\t-slope <float s>  set the curvature slope (both n and p)\n");
+    printf("\t-pslope <float p> set the curvature pslope (default=%2.1f)\n", pslope);
+    printf("\t-nslope <float n> set the curvature nslope (default=%2.1f)\n", nslope);
+    printf("\t-debug_voxel <int x y z> set voxel for debugging\n");
+    printf("\t-auto             automatically detect class statistics (default)\n");
+    printf("\t-noauto           don't automatically detect class statistics\n");
+    printf("\t-log              log to ./segment.dat\n");
+    printf("\t-keep             keep wm edits. maintains all values of 0 and 255\n");
+    printf("\t-ghi, -gray_hi <int h> set the gray matter high limit (default=%d)\n", gray_hi);
+    printf("\t-wlo, -wm_low  <int l> set the white matter low limit (default=%d)\n", wm_low);
+    printf("\t-whi, -wm_hi <int h>   set the white matter high limit (default=%d)\n", wm_hi);
+    printf("\t-nseg <int n>      thicken the n largest thin strands (default=%d)\n", nsegments);
+    printf("\t-thicken           toggle thickening step (default=ON)\n");
+    printf("\t-fillbg            toggle filling of the basal ganglia (default=OFF)\n");
+    printf("\t-fillv             toggle filling of the ventricles (default=OFF)\n");
+    printf("\t-b <float s>       set blur sigma (default=%2.2f)\n", blur_sigma);
+    printf("\t-n <int i>         set # iterations of border classification (default=%d)\n", niter);
+    printf("\t-t <int t>         set limit to thin strands in mm (default=%d)\n", thickness);
+    printf("\t-v                 verbose\n");
+    printf("\t-p <float p>       set % threshold (default=%2.2f)\n", pct);
+    printf("\t-x <filename>      extract options from filename\n");
+    printf("\t-w <int w>         set wsize (default=%d)\n", wsize);
+    printf("\t-u                 usage\n");
+    exit(code);
 }
 
