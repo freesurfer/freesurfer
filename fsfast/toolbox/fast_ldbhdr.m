@@ -15,7 +15,7 @@ function m = fast_ldbhdr(bhdrfile);
 %
 % See also fast_svbhdr and fast_mri_struct.
 %
-% $Id: fast_ldbhdr.m,v 1.1 2003/08/01 21:19:51 greve Exp $
+% $Id: fast_ldbhdr.m,v 1.2 2003/08/02 00:56:29 greve Exp $
 
 m = [];
 
@@ -89,6 +89,11 @@ m.sdc = [nr na ns]';
 % Outer edge of voxel to outer edge of voxel
 col_fov = sqrt(sum((TR-TL).^2));
 row_fov = sqrt(sum((TR-BR).^2));
+
+if(col_fov == 0 | row_fov == 0)
+  % Probably a surface %
+  return;
+end
 
 % Compute the Column and Row Resolution %
 col_res = col_fov/ncols;
