@@ -148,7 +148,7 @@ case "$CPUTYPE" in
      CPUFLGAS="-march=athlon-xp -mfpmath=sse"
      ;;	
   opteron)
-     CPUFLAGS="-march=opteron -mfpmath=sse -msse2"
+     CPUFLAGS="-march=x86-64 -mfpmath=sse -msse2"
      ;;
   athlon64)
      CPUFLAGS="-march=x86-64 -mfpmath=sse -msse2"
