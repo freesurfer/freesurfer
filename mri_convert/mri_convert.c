@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/26 16:20:09 $
-// Revision       : $Revision: 1.80 $
+// Revision Date  : $Date: 2004/01/30 21:29:20 $
+// Revision       : $Revision: 1.81 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
   float invert_val;
   int in_info_flag, out_info_flag;
   int template_info_flag;
-	int nochange_flag ;
+  int nochange_flag ;
   int conform_flag;
   int conform_min;  // conform to the smallest dimension
   int conform_width;
@@ -104,6 +104,8 @@ int main(int argc, char *argv[])
   int smooth_parcellation_flag, smooth_parcellation_count;
   int in_like_flag;
   char in_like_name[STRLEN];
+  char out_like_name[STRLEN];
+  int out_like_flag=FALSE;
   int in_n_i, in_n_j, in_n_k;
   int in_n_i_flag, in_n_j_flag, in_n_k_flag;
   int fill_parcellation_flag;
@@ -175,7 +177,7 @@ int main(int argc, char *argv[])
   in_info_flag = FALSE;
   out_info_flag = FALSE;
   conform_flag = FALSE; // TRUE;
-	nochange_flag = FALSE ;
+  nochange_flag = FALSE ;
   parse_only_flag = FALSE;
   reorder_flag = FALSE;
   in_stats_flag = FALSE;
@@ -215,7 +217,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.80 2004/01/26 16:20:09 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.81 2004/01/30 21:29:20 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -272,27 +274,34 @@ int main(int argc, char *argv[])
       out_matrix_flag = TRUE;
     else if(strcmp(argv[i], "--force_ras_good") == 0) 
       force_ras_good = TRUE;
+    // transform related things here /////////////////////
     else if(strcmp(argv[i], "-at") == 0 || 
 	    strcmp(argv[i], "--apply_transform") == 0 || 
-	    strcmp(argv[i], "-T") == 0){
+	    strcmp(argv[i], "-T") == 0)
+    {
       get_string(argc, argv, &i, transform_fname);
       transform_flag = TRUE;
       invert_transform_flag = FALSE;
+    }
+    else if (strcmp(argv[i], "--like")==0)
+    {
+      get_string(argc, argv, &i, out_like_name);
+      out_like_flag = TRUE;
     }
     else if(strcmp(argv[i], "--devolvexfm") == 0){
       /* devolve xfm to account for cras != 0 */
       get_string(argc, argv, &i, devxfm_subject);
       DevXFM = 1;
     }
-
     else if(strcmp(argv[i], "-ait") == 0 || 
 	    strcmp(argv[i], "--apply_inverse_transform") == 0){
       get_string(argc, argv, &i, transform_fname);
       transform_flag = TRUE;
       invert_transform_flag = TRUE;
     }
+    ///////////////////////////////////////////////////////////
     else if(strcmp(argv[i], "-iis") == 0 || 
-      strcmp(argv[i], "--in_i_size") == 0)
+	    strcmp(argv[i], "--in_i_size") == 0)
     {
       get_floats(argc, argv, &i, &in_i_size, 1);
       in_i_size_flag = TRUE;
@@ -619,41 +628,41 @@ int main(int argc, char *argv[])
       if( (strcmp(unwarp_gradientType, "sonata")  != 0) &&
 	  (strcmp(unwarp_gradientType, "allegra") != 0) &&
 	  (strcmp(unwarp_gradientType, "GE") != 0) )
-	{
-	  fprintf(stderr, "\n%s: must specify gradient type ('sonata' or 'allegra' or 'GE')\n", Progname);
-	  usage_message(stdout);
-	  exit(1);
-	}
+      {
+	fprintf(stderr, "\n%s: must specify gradient type ('sonata' or 'allegra' or 'GE')\n", Progname);
+	usage_message(stdout);
+	exit(1);
+      }
       
       /* Determine whether or not to do a partial unwarp */
       get_string(argc, argv, &i, unwarp_partialUnwarp);
       if( (strcmp(unwarp_partialUnwarp, "fullUnwarp") != 0) &&
 	  (strcmp(unwarp_partialUnwarp, "through-plane")  != 0) )
-	{
-	  fprintf(stderr, "\n%s: must specify unwarping type ('fullUnwarp' or 'through-plane')\n", Progname);
-	  usage_message(stdout);
-	  exit(1);
-	}
+      {
+	fprintf(stderr, "\n%s: must specify unwarping type ('fullUnwarp' or 'through-plane')\n", Progname);
+	usage_message(stdout);
+	exit(1);
+      }
       
       /* Determine whether or not to do jacobian correction */
       get_string(argc, argv, &i, unwarp_jacobianCorrection);
       if( (strcmp(unwarp_jacobianCorrection, "JacobianCorrection")  != 0) &&
 	  (strcmp(unwarp_jacobianCorrection, "noJacobianCorrection") != 0) )
-	{
-	  fprintf(stderr, "\n%s: must specify intensity correction type ('JacobianCorrection' or 'noJacobianCorrection')\n", Progname);
-	  usage_message(stdout);
-	  exit(1);
-	}
+      {
+	fprintf(stderr, "\n%s: must specify intensity correction type ('JacobianCorrection' or 'noJacobianCorrection')\n", Progname);
+	usage_message(stdout);
+	exit(1);
+      }
       
       /* Determine interpolation type: linear or sinc */
       get_string(argc, argv, &i, unwarp_interpType);
       if( (strcmp(unwarp_interpType, "linear") != 0) &&
 	  (strcmp(unwarp_interpType, "sinc")   != 0) )
-	{
-	  fprintf(stderr, "\n%s: must specify interpolation type ('linear' or 'sinc')\n", Progname);
-	  usage_message(stdout);
-	  exit(1);
-	}
+      {
+	fprintf(stderr, "\n%s: must specify interpolation type ('linear' or 'sinc')\n", Progname);
+	usage_message(stdout);
+	exit(1);
+      }
 
       /* Get the HW for sinc interpolation (if linear interpolation,
 	 this integer value is not used) */
@@ -663,10 +672,10 @@ int main(int argc, char *argv[])
       /* Jacobian correction with through-plane only correction */ 
       if( (strcmp(unwarp_jacobianCorrection, "JacobianCorrection") == 0) &&
 	  (strcmp(unwarp_partialUnwarp, "through-plane") == 0) )      
-	{
-	  fprintf(stderr, "\n%s: Jacobian correction not valid for 'through-plane' only unwarping)\n", Progname);
-	  exit(1);
-	}
+      {
+	fprintf(stderr, "\n%s: Jacobian correction not valid for 'through-plane' only unwarping)\n", Progname);
+	exit(1);
+      }
       
       /* OPTIONS NOT CURRENTLY SUPPORTED (BUT W/ PLANS TO SUPPORT) */
       /* 1) GE unwarping not supported until we have offset data */
@@ -678,17 +687,17 @@ int main(int argc, char *argv[])
       /* 2) for GE: through-plane correction requires rewarping the
 	 in-plane unwarped image, which requires map inversion */
       if( strcmp(unwarp_partialUnwarp, "through-plane") == 0 )      
-	{
-	  fprintf(stderr, "\n%s: through-plane only unwarping not supported at present.\n", Progname);
-	  exit(1);
-	}
+      {
+	fprintf(stderr, "\n%s: through-plane only unwarping not supported at present.\n", Progname);
+	exit(1);
+      }
       /* !@# end */
       
     }
     else if(strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--usage") == 0)
-      {
-	usage(stdout);
-	exit(0);
+    {
+      usage(stdout);
+      exit(0);
     }
     /*-------------------------------------------------------------*/
     else if(strcmp(argv[i], "--status") == 0 || 
@@ -736,7 +745,7 @@ int main(int argc, char *argv[])
     }
     /*-------------------------------------------------------------*/
     else if( (strcmp(argv[i], "--nspmzeropad") == 0) ||
-       (strcmp(argv[i], "--out_nspmzeropad") == 0))
+	     (strcmp(argv[i], "--out_nspmzeropad") == 0))
     {
       /* Choose the amount of zero padding for spm output files */
       if( (argc-1) - i < 1 ){
@@ -807,7 +816,7 @@ int main(int argc, char *argv[])
   /**** Finished parsing command line ****/
   /* option inconsistency checks */
   if(force_ras_good && (in_i_direction_flag || in_j_direction_flag ||
-      in_k_direction_flag)){
+			in_k_direction_flag)){
     fprintf(stderr, "ERROR: cannot use --force_ras_good and --in_?_direction_flag\n");
     exit(1);
   }
@@ -997,10 +1006,10 @@ int main(int argc, char *argv[])
   }
 
   if (zero_ge_z_offset_flag && in_volume_type != DICOM_FILE) //E/
-    {
-      zero_ge_z_offset_flag = FALSE ;
-      fprintf(stderr, "Not a GE dicom volume: -zgez = --zero_ge_z_offset option ignored.\n");
-    }
+  {
+    zero_ge_z_offset_flag = FALSE ;
+    fprintf(stderr, "Not a GE dicom volume: -zgez = --zero_ge_z_offset option ignored.\n");
+  }
 
   printf("reading from %s...\n", in_name_only);
 
@@ -1142,29 +1151,29 @@ int main(int argc, char *argv[])
     mri->c_s = 0.0;
 
   if(unwarp_flag)
-    {
-      /* if unwarp_flag is true, unwarp the distortions due
-         to gradient coil nonlinearities */
-      printf("INFO: unwarping ... ");
-      mri_unwarped = unwarpGradientNonlinearity(mri, 
-            unwarp_gradientType, 
-            unwarp_partialUnwarp,
-            unwarp_jacobianCorrection,
-            unwarp_interpType,
-            unwarp_sincInterpHW);
-      MRIfree(&mri);
-      mri = mri_unwarped;
-      printf("done \n ");      
-    }
+  {
+    /* if unwarp_flag is true, unwarp the distortions due
+       to gradient coil nonlinearities */
+    printf("INFO: unwarping ... ");
+    mri_unwarped = unwarpGradientNonlinearity(mri, 
+					      unwarp_gradientType, 
+					      unwarp_partialUnwarp,
+					      unwarp_jacobianCorrection,
+					      unwarp_interpType,
+					      unwarp_sincInterpHW);
+    MRIfree(&mri);
+    mri = mri_unwarped;
+    printf("done \n ");      
+  }
 
   printf("TR=%2.2f, TE=%2.2f, TI=%2.2f, flip angle=%2.2f\n",
          mri->tr, mri->te, mri->ti, DEGREES(mri->flip_angle)) ;
   if(in_volume_type != OTL_FILE)
   {
-  if(fill_parcellation_flag)
-    printf("fill_parcellation flag ignored on a non-parcellation read\n");
-  if(smooth_parcellation_flag)
-    printf("smooth_parcellation flag ignored on a non-parcellation read\n");
+    if(fill_parcellation_flag)
+      printf("fill_parcellation flag ignored on a non-parcellation read\n");
+    if(smooth_parcellation_flag)
+      printf("smooth_parcellation flag ignored on a non-parcellation read\n");
   }
 
   /* ----- apply the in_like volume if it's been read ----- */
@@ -1203,15 +1212,15 @@ int main(int argc, char *argv[])
 
   if(mri->ras_good_flag == 0){
     printf("WARNING: it does not appear that there was sufficient information\n"
-     "in the input to assign orientation to the volume... \n");
+	   "in the input to assign orientation to the volume... \n");
     if(force_ras_good){
       printf("However, you have specified that the default orientation should\n"
-       "be used with by adding --force_ras_good on the command-line.\n");
+	     "be used with by adding --force_ras_good on the command-line.\n");
       mri->ras_good_flag = 1;
     }
     if(in_i_direction_flag || in_j_direction_flag || in_k_direction_flag){
       printf("However, you have specified one or more orientations on the \n"
-       "command-line using -i?d or --in-?-direction (?=i,j,k).\n");
+	     "command-line using -i?d or --in-?-direction (?=i,j,k).\n");
       mri->ras_good_flag = 1;
     }
   }
@@ -1359,14 +1368,14 @@ int main(int argc, char *argv[])
         
         MatrixFree(&(lta_transform->xforms[0].m_L));
         lta_transform->xforms[0].m_L = inverse_transform_matrix;
-				// reverse src and dst target info.
-				// since it affects the c_ras values of the result
-				// in LTAtransform()
-				// question is what to do when transform src info is invalid.
-				lt = &lta_transform->xforms[0];
-				copyVolGeom(&lt->dst, &vgtmp);
-				copyVolGeom(&lt->src, &lt->dst);
-				copyVolGeom(&vgtmp, &lt->src);
+	// reverse src and dst target info.
+	// since it affects the c_ras values of the result
+	// in LTAtransform()
+	// question is what to do when transform src info is invalid.
+	lt = &lta_transform->xforms[0];
+	copyVolGeom(&lt->dst, &vgtmp);
+	copyVolGeom(&lt->src, &lt->dst);
+	copyVolGeom(&vgtmp, &lt->src);
       }
       
       /* Think about calling MRIlinearTransform() here; need vox2vox
@@ -1382,12 +1391,25 @@ int main(int argc, char *argv[])
       /* LTAtransform() runs either MRIapplyRASlinearTransform() 
          for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
       /* MRIlinearTransform() calls MRIlinearTransformInterp() */
-      mri_transformed = LTAtransform(mri, NULL, lta_transform);
+      if (out_like_flag == 1)
+      {
+	printf("INFO: transform src into the like-volume\n");
+	MRI *tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);
+	mri_transformed = MRIalloc(tmp->width, tmp->height, tmp->depth, mri->type);
+	if (!mri_transformed)
+	{
+	  ErrorExit(ERROR_NOMEMORY, "could not allocate memory");
+	}
+	MRIcopyHeader(tmp, mri_transformed);
+	mri_transformed = LTAtransform(mri, mri_transformed, lta_transform);
+      }
+      else
+	mri_transformed = LTAtransform(mri, NULL, lta_transform);
+      
       if(mri_transformed == NULL){
         fprintf(stderr, "ERROR: applying transform to volume\n");
         exit(1);
       }
-      
       LTAfree(&lta_transform);
       MRIfree(&mri);
       mri = mri_transformed;
@@ -1635,7 +1657,7 @@ int main(int argc, char *argv[])
   if(reorder_flag){
     printf("reordering axes...\n");
     mri2 = MRIreorder(mri, NULL, reorder_vals[0], reorder_vals[1], 
-          reorder_vals[2]);
+		      reorder_vals[2]);
     if(mri2 == NULL){
       fprintf(stderr, "error reordering axes\n");
       exit(1);
@@ -1874,6 +1896,7 @@ void usage(FILE *stream)
   fprintf(stream, "  --apply_transform xfmfile (-T or -at)\n");
   fprintf(stream, "  --apply_inverse_transform xfmfile (-ait)\n");
   fprintf(stream, "  --devolvexfm subjectid : \n");
+  fprintf(stream, "  --like vol: output is embedded in a volume like vol\n");
   fprintf(stream, "\n");
 
   fprintf(stream,
