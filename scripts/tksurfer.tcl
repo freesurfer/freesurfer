@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.63 2004/11/06 01:18:45 kteich Exp $
+# $Id: tksurfer.tcl,v 1.64 2004/11/10 20:06:12 kteich Exp $
 
 package require BLT;
 
@@ -2396,11 +2396,11 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { command
 		"Time Course Graph"
 		{ Graph_ShowWindow }
-		mg_TimeCourseLoaded 
-		{ command
-		    "Group Plot"
-		    {GDF_ShowCurrentWindow; GDF_SendCurrentPoints}
-		    mg_GDFLoaded } } 
+		mg_TimeCourseLoaded }
+	    { command
+		"Group Plot"
+		{GDF_ShowCurrentWindow; GDF_SendCurrentPoints}
+		mg_GDFLoaded }
 	}}
 	{ separator }
 	{ cascade "Configure..." {
