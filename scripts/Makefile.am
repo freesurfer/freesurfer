@@ -161,3 +161,12 @@ fsgdfPlot.tcl
 recon-all: recon-all-nmr
 	cat ./recon-all-nmr | grep -v dASEGd > ./recon-all
 	chmod a+x ./recon-all
+
+# use , as the separator so that the directory path / can be passed
+SEDFLAGS = -e 's,xEXEC_PREFIXx,$(exec_prefix),g' \
+	   -e 's,xPREFIXx,$(prefix),g' \
+	   -e 's,xTIXWISHx,$(TIXWISH),g'
+
+csurf: csurf.in
+	sed < $< $(SEDFLAGS) > $@ 
+	chmod +x $@
