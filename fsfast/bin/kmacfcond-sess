@@ -1,0 +1,547 @@
+#!/bin/csh -f
+# kmacf-sess
+#
+# $Id: kmacfcond-sess,v 1.1 2003/04/22 05:38:31 greve Exp $
+set VERSION = '$Id: kmacfcond-sess,v 1.1 2003/04/22 05:38:31 greve Exp $';
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set TopDir = `pwd`;
+
+set kmacfid = ();
+set cracfid = ();
+set analysis = ();
+set nmaxlag = ();
+set FitPolyZ = 0;
+set PolyZOrder = ();
+set condmax = ();
+set Debias = ();
+set acfsdir = "acf";
+set racfid  = "racf";
+set mrun = "per";
+
+set monly = 0;
+set MLF = ();
+set QuitOnError = 0;
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# get full path for cfg and info files #
+pushd $analysis > /dev/null;
+set analysisdir = `pwd`;
+popd > /dev/null;
+set cfgfile  = $analysisdir/analysis.cfg
+set infofile = $analysisdir/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+
+## Get parameters from the info file ##
+set fsd         = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
+
+set designtype  = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+if($#designtype == 0) then
+  set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+endif
+if($designtype != "event-related" && $designtype != "blocked") then
+  echo "ERROR: the design type of this analysis is $designtype"
+  echo "  kmacfcond-sess can only be used to analyse event-related and blocked"
+  exit 1;
+endif
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/kmacfcond-$DateStr.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "kmacfcond-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "kmacfcond-sess log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0         >> $LF
+echo $inputargs >> $LF
+uname -a        >> $LF
+date            >> $LF
+
+### Go through each session ###
+set StartTime = `date`;
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  set fsdpath = $sess/$fsd
+  cd $fsdpath
+
+  if(! $monly) set MLF = /tmp/kmacf-$$.m
+  rm -f $MLF
+  echo "MLF is $MLF" |& tee -a $LF
+
+  set RunList = `getrunlist . $runlistfile`;
+  if($status || $#RunList == 0) then
+    echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+    exit 1;
+  endif
+  echo "INFO ($sessbase): RunList = $RunList" 
+
+  @ nthRun = 1;
+  foreach Run ($RunList)
+    if($#mrun != 0) echo "  Run $Run ---------------------" |& tee -a $LF
+    date |& tee -a $LF
+
+    if($#mrun == 0)  set ana = $analysis
+    if($mrun == per) set ana = $analysis-$Run;
+    #if($mrun == jk)  set ana = $analysis-jk$Run;
+    if(! -e $ana) then
+      echo "ERROR: $ana does not exist" |& tee -a $LF
+      exit 1;
+    endif
+
+    set acfdir = $ana/$acfsdir;
+    if(! -e $acfdir) then
+      echo "ERROR: $acfdir does not exist" |& tee -a $LF
+      exit 1;
+    endif
+
+    if($#mrun == 0) then
+      set nthRunId = `printf %03d $nthRun`;
+      set xmatfile  = $ana/X$Run.mat;
+    else
+      set nthRunId = "001";
+      set xmatfile  = $ana/X.mat;
+    endif
+    set kmacfstem = $acfdir/acf$nthRunId-$kmacfid-$racfid;
+    set outstem   = $acfdir/acf$nthRunId-$kmacfid-$cracfid;
+
+    if(! -e $kmacfstem"_000.hdr") then
+      echo "ERROR: cannot find $kmacfstem'_000.hdr'"
+      exit 1;
+    endif
+
+    if($#Debias != 0 && ! -e $xmatfile) then
+      echo "ERROR: cannot find $xmatfile"
+      exit 1;
+    endif
+
+    set MLFTMP = $acfdir/kmacfcond-$DateStr.m
+    rm -f $MLFTMP
+#-----------------------------------------------------------------#
+tee $MLFTMP <<EOF
+
+clear all;
+fsdpath = '$fsdpath';
+cd(fsdpath);
+
+kmacfstem   = '$kmacfstem';
+outstem     = '$outstem';
+nmaxlag     = [$nmaxlag];
+condmax     = [$condmax];
+fitpolyz    = $FitPolyZ;
+polyzorder  = [$PolyZOrder];
+debias      = '$Debias';
+xmatfile    = '$xmatfile';
+
+if(isempty(condmax)) condmax = 10^10; end
+
+tic;
+fprintf('%s\n',kmacfstem);
+
+kmacf0 = fmri_ldbvolume(kmacfstem);
+if(isempty(kmacf0)) return; end
+kmacf0 = squeeze(kmacf0)';
+kmacf = kmacf0;
+[nf nclusters] = size(kmacf);
+
+if(isempty(nmaxlag)) nmaxlag = nf; end
+kmacf = kmacf(1:nmaxlag,:); 
+
+if(~isempty(debias))
+  XX = load(xmatfile);
+  if(isempty(XX))
+    fprintf('ERROR: cannot load %s\n',xmat);
+    return;
+  end
+  X = XX.Xfinal;
+  R = eye(nf) - X*inv(X'*X)*X';
+end
+
+if(strcmp(debias,'kjw'))
+  fprintf('Debiasing with KJW\n');
+  [kmacf Mkjw] = fast_yacf_kjw(kmacf,R);
+  fprintf('Cond Mkjw: %g\n',cond(Mkjw));
+end
+
+if(strcmp(debias,'rph'))
+  fprintf('Debiasing with RPh\n');
+  racfest = zeros(nf,nclusters);
+  yacfest = zeros(nf,nclusters);
+  for k = 1:nclusters
+    racfk = kmacf(:,k);
+    phi = [1 racfk(2) nf/2];
+    fprintf('k = %d  phi0 %g %g %g  (%g)\n',k,phi(1),phi(2),phi(3),toc);
+    fprintf('  Starting search  ');
+    tStart = toc;
+    phi2 = fminsearch('fast_rphacfrmse',phi,[],racfk,R);
+    fprintf(' %g\n',toc-tStart);
+    fprintf('  phi2 %g %g %g\n',phi2(1),phi2(2),phi2(3));
+    yacfk    = fast_rphacf(phi2(1),phi2(2),phi2(3),nf);
+    racfestk = fast_cvm2acor(R*toeplitz(yacfk)*R,1);
+    %figure(1);
+    %plot(1:nf,racfk,1:nf,racfestk,1:nf,yacfk);
+    %drawnow;
+    yacfest(:,k) = yacfk;
+    racfest(:,k) = racfestk;
+  end
+
+  racfeststem = sprintf('%s-rphest',kmacfstem);
+  fprintf('INFO: saving racf est to %s\n',racfeststem);
+  clear tmp;
+  tmp(1,:,:) = racfest';
+  fmri_svbvolume(tmp,racfeststem);
+
+  kmacf = yacfest;
+end
+
+fprintf('\n\n');
+taper = tukeytaper(nmaxlag);
+kmacfout = zeros(nf,nclusters);
+for k = 1:nclusters
+  kmacfk = kmacf(:,k);
+  [cnd0 mineig0] = fast_acfcond(kmacfk);
+  cnd = cnd0;
+  mineig = mineig0;
+  ncnd = 0;
+  while(mineig < 0 | cnd > condmax)
+    kmacfk = kmacfk .* taper;
+    [cnd mineig] = fast_acfcond(kmacfk);
+    ncnd = ncnd + 1;
+  end
+  fprintf('%2d  %8.2f  %7.3f %2d %8.2f  %7.3f\n',...
+          k,cnd0,mineig0,ncnd,cnd,mineig);
+  kmacfout(1:nmaxlag,k) = kmacfk;
+end
+
+fprintf('Saving conditioned acf to %s\n',outstem);
+clear tmp;
+tmp(1,:,:) = kmacfout';
+fmri_svbvolume(tmp,outstem);
+
+fprintf('done conditioning %g\n',toc);
+
+EOF
+#-----------------------------------------------------------------#
+    cat $MLFTMP >> $MLF
+
+    @ nthRun = $nthRun + 1;
+  end # Runs
+
+  rm $MLFTMP
+  if(! $monly ) then
+    cat $MLF | matlab -display iconic |& tee -a $LF
+  endif
+
+end # Sessions
+
+echo " "
+echo "Started at $StartTime "
+echo "Ended   at `date`"
+echo " "
+echo "kmacfcond-sess Done"
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv < 1) goto arg1err;
+      set analysis = $argv[1]; shift;
+      set analysis = `basename $analysis`; # remove trailing /
+      breaksw
+
+    case "-kmacfid":
+      if ( $#argv == 0) goto arg1err;
+      set kmacfid = $argv[1]; shift;
+      breaksw
+
+    case "-cracfid":
+      if ( $#argv == 0) goto arg1err;
+      set cracfid = $argv[1]; shift;
+      breaksw
+
+    case "-racfid":
+      if ( $#argv == 0) goto arg1err;
+      set racfid = $argv[1]; shift;
+      breaksw
+
+    case "-polyz":
+      if ( $#argv == 0) goto arg1err;
+      set PolyZOrder = $argv[1]; shift;
+      set FitPolyZ = 1;
+      breaksw
+
+    case "-nmaxlag":
+      if ( $#argv == 0) goto arg1err;
+      set nmaxlag = $argv[1]; shift;
+      breaksw
+
+    case "-condmax":
+      if ( $#argv == 0) goto arg1err;
+      set condmax = $argv[1]; shift;
+      breaksw
+
+    case "-acfdir":
+      if ( $#argv == 0) goto arg1err;
+      set acfsdir = $argv[1]; shift;
+      breaksw
+
+    case "-debias":
+      if ( $#argv == 0) goto arg1err;
+      set Debias = $argv[1]; shift;
+      if("$Debias" != kjw && "$Debias" != rph) then
+         echo "ERROR: Debias = $Debias, must be kjw or rph"
+         exit 1;
+      endif
+      breaksw
+
+    case "-mrun":
+      if ( $#argv == 0) goto arg1err;
+      set mrun = $argv[1]; shift;
+      if("$mrun" != per && "$mrun" != jk) then
+        echo "ERROR: mrun = $mrun, must be per or jk"
+        exit 1;
+      endif
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-init":
+      if ( $#argv < 1) goto arg1err;
+      set InitMethod = $argv[1]; shift;
+      breaksw
+
+    case "-help":
+      goto help;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#SessList == 0) then
+     echo "ERROR: no sessions specified"
+     exit 1
+  endif
+
+  if($#analysis == 0) then
+     echo "ERROR: no analysis name specified"
+     exit 1
+  endif
+
+  if(! -d $analysis ) then
+    echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+    exit 1;
+  endif
+
+  if($#kmacfid == 0) then
+    echo "ERROR: kmacfid not specified"
+    exit 1;
+  endif
+
+  if($#cracfid == 0) then
+    echo "ERROR: cracfid not specified"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: kmacfcond-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -analysis  analysisname : name of functional analysis"
+  echo "   -kmacfid id  : as specified in kmacf-sess"
+  echo "   -cracfid cracfid : acf001-kmacfid-cracfid"
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -condmax condmax"
+  echo "   -nmaxlag nmaxlag"
+  echo "   -debias method : kjw or rph"
+  echo "   -racfid  racfid : default is $racfid"
+  echo "   -mrun   type : per or jk : must use per"
+  #echo "   -polyz   order"
+  #echo "   -acfsdir acfsdir : default is acf"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Session Arguments (Optional)"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Conditions the residual autocorrelation functions (RACFs) as produced
+by kmacf-sess. Generally, the toeplitzized RACFs will have
+eigenvectors that are close to zero or negative which make it 
+difficult or impossible to compute a whitening matrix. This will
+condition the RACFs and even attempt to remove the bias induced
+by detrending with an experimental design.
+
+The input cluster vectors (RACFs) are assumed to be in
+ana/acf/acf001-kmacfid-inid, where inid is kmracf unless changed
+with the -acfbase flag; kmracf is created by kmacf-sess.  The output
+will be stored in ana/acf/acf001-kmacfid-outid, where outid is the
+argument of the -cracfid flag.  When running kmacfwht-sess, specificy
+outbase as the argument to the -acf flag.
+
+By default, kmacfcond-sess will simply make sure that all the
+eigenvalues of the RACFs are positive, but this behavior can
+be extened as described below.
+
+-kmacfid kmacfid
+
+Identifier assigned when running kmacf-sess
+
+-cracfid cracfid
+
+Unique identifier for the conditioned RACFs (appended to the kmacfid).
+
+-condmax condmax
+
+Make sure that the condition of the RACF matrix is below condmax.
+This is accomplished by applying successive tukey tapers to the RACF
+(see tukeytaper.m).  This is not done until after all other operations
+have been performed.
+
+-nmaxlag nmaxlag
+
+Set lags beyond nmaxlag to zero (truncation). Especially helpful
+(necssary) when running kjw debias method.
+
+-debias method
+
+Remove bias in the RACF using the given method: kjw or rph. 
+See fast_kjw_mtx.m and fast_rphacf.m. 
+
+-mrun type
+
+Type must be per.

@@ -1,0 +1,610 @@
+#!/bin/csh -f
+# kmacfwht-sess
+#
+# $Id: kmacfwht-sess,v 1.1 2003/04/22 05:38:31 greve Exp $
+set VERSION = '$Id: kmacfwht-sess,v 1.1 2003/04/22 05:38:31 greve Exp $';
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M'`"
+
+set TopDir = `pwd`;
+
+set analysis = ();
+set kmacfid = ();
+set acfid   = ();
+set acfsdir = "acf";
+
+set acfoutdirname = "acfwht";
+set acfoutbase = acf;
+
+set mask = brain;
+set mrun = "per";
+
+set contrast = ();
+set cdir = allvres-wht;
+set map = sig;
+
+set svsnr = 0;
+set snrsdir = "snr-wht";
+
+set nmaxlag = ();
+set condmax = ();
+
+set monly = 0;
+set MLF = ();
+set QuitOnError = 0;
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# get full path for cfg and info files #
+pushd $analysis > /dev/null;
+set analysisdir = `pwd`;
+popd > /dev/null;
+set cfgfile  = $analysisdir/analysis.cfg
+set infofile = $analysisdir/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+
+## Get parameters from the info file ##
+set fsd         = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
+set func    = `cat $infofile | awk '{if($1 == "funcstem") print $2}'`;
+
+set designtype  = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+if($#designtype == 0) then
+  set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+endif
+if($designtype != "event-related" && $designtype != "blocked") then
+  echo "ERROR: the design type of this analysis is $designtype"
+  echo "  kmacfwht-sess can only be used to analyse event-related and blocked"
+  exit 1;
+endif
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/kmacfwht-$DateStr.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "kmacfwht-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "kmacfwht-sess log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0         >> $LF
+echo $inputargs >> $LF
+uname -a        >> $LF
+date            >> $LF
+
+### Go through each session ###
+set StartTime = `date`;
+foreach sess ($SessList)
+
+  set sessbase = `basename $sess`;
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  set fsdpath = $sess/$fsd
+  cd $fsdpath
+
+  if(! $monly) set MLF = /tmp/kmacfwht-$$.m
+  rm -f $MLF
+  echo "MLF is $MLF" |& tee -a $LF
+
+  set RunList = `getrunlist . $runlistfile`;
+  if($status || $#RunList == 0) then
+     echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+     exit 1;
+  endif
+  echo "INFO ($sessbase): RunList = $RunList" 
+
+  set maskstem = masks/$mask
+
+  @ nthRun = 1;
+  foreach Run ($RunList)
+    if($#mrun != 0) echo "  Run $Run ---------------------" |& tee -a $LF
+    date |& tee -a $LF
+
+    set funcstem = $Run/$func;
+
+    if($#mrun == 0)  set ana = $analysis
+    if($mrun == per) set ana = $analysis-$Run;
+    #if($mrun == jk)  set ana = $analysis-jk$Run;
+    if(! -e $ana) then
+      echo "ERROR: $ana does not exist" |& tee -a $LF
+      exit 1;
+    endif
+
+    if($#mrun == 0) then
+      set nthRunId = `printf %03d $nthRun`;
+      set xmatfile  = $ana/X$Run.mat;
+    else
+      set nthRunId = "001";
+      set xmatfile  = $ana/X.mat;
+    endif
+
+    set acfdir = $ana/$acfsdir;
+    if(! -e $acfdir) then
+      echo "ERROR: $acfdir does not exist" |& tee -a $LF
+      exit 1;
+    endif
+
+    set kmacfstem = $acfdir/acf$nthRunId-$kmacfid-$acfid;
+    if(! -e $kmacfstem"_000.hdr") then
+      echo "ERROR: cannot find $kmacfstem'_000.hdr'"
+      exit 1;
+    endif
+
+    set kmapstem = $acfdir/acf$nthRunId-$kmacfid-kmap
+
+    set mapdir = $ana/$cdir
+    mkdir -p $mapdir
+    set mapstem = $mapdir/$map
+
+    if($svsnr) then
+      set snrdir = $ana/$snrsdir
+      mkdir -p $snrdir
+    else
+      set snrdir = ();
+    endif
+
+    set MLFTMP = $acfdir/kmacfwht-$DateStr.m
+    rm -f $MLFTMP
+#-----------------------------------------------------------------#
+tee $MLFTMP <<EOF
+
+clear all;
+fsdpath = '$fsdpath';
+cd(fsdpath);
+
+kmacfstem   = '$kmacfstem';
+kmapstem    = '$kmapstem';
+funcstem    = '$funcstem';
+maskstem    = '$maskstem';
+mapstem     = '$mapstem';
+nmaxlag     = [$nmaxlag];
+condmax     = [$condmax];
+xmatfile    = '$xmatfile';
+snrdir      = '$snrdir';
+if(isempty(condmax)) condmax = 10^10; end
+
+tic;
+fprintf('%s\n',kmacfstem);
+
+XX = load(xmatfile);
+if(isempty(XX)) return; end
+X = XX.Xfinal;
+T = X*inv(X'*X)*X';
+R = eye(size(T)) - T;
+Ntask = XX.Nnnc*XX.Navgs_per_cond;
+Nbeta = size(X,2);
+C = zeros(1,Nbeta);
+C(1:Ntask) = 1;
+dof = size(X,1)-size(X,2);
+vmf = C*inv(X'*X)*C';
+
+[nslices nrows ncols nf] = fmri_bvoldim(funcstem);
+if(nslices == 0) return; end
+nv = nslices*nrows*ncols;
+
+if(~isempty(maskstem))
+  fprintf('Loading %s\n',maskstem);
+  mask = fmri_ldbvolume(maskstem);
+  if(isempty(mask)) return; end
+  indmask = find(mask == 1);
+  nmask = length(indmask);
+  indoutmask = find(mask ~= 1);
+else
+  indmask = [1:nv];
+  indoutmask = [];
+  nmask = nv;
+end
+
+fprintf('Loading %s\n',kmapstem);
+kmap = fmri_ldbvolume(kmapstem);
+if(isempty(kmap)) return; end
+
+fprintf('Loading %s\n',kmacfstem);
+kmacf = fmri_ldbvolume(kmacfstem);
+if(isempty(kmacf)) return; end
+kmacf = squeeze(kmacf)';
+[nf nclusters] = size(kmacf);
+kmacf0 = kmacf;
+
+fprintf('Loading %s\n',funcstem);
+y = fmri_ldbvolume(funcstem);
+if(isempty(y)) return; end
+if(size(y,4)~=nf)
+  fprintf('ERROR: dimension mismatch\n');
+  return;
+end
+y = reshape(y,[nv nf])';
+
+sigt = zeros(nslices,nrows,ncols);
+resvar = zeros(nslices,nrows,ncols);
+for k = 0:nclusters
+
+  if(k==0)
+    indk = indoutmask;
+    nindk = length(indk);
+    yc = y(:,indk);
+    Xc = X;
+    fprintf('k=0  n=%d\n',nindk);
+  else
+    indk = find(kmap==k);
+    nindk = length(indk);
+    acfk = kmacf(:,k);
+    [cnd mineig S] = fast_acfcond(acfk);
+    fprintf('k=%d, n=%d (%4.1f%%), mineig = %5.3f  cond = %5.3f (%g)\n',...
+   	    k,nindk,100*nindk/nmask, mineig, cnd, toc);
+    [u s v] = svd(S);
+    W = u*inv(sqrt(s))*v';
+    Xc = W*X;
+    yc = W*y(:,indk);  
+  end
+    
+  Bc = inv(Xc'*Xc)*Xc';
+    
+  betac = Bc*yc;
+  rc = yc - Xc*betac;
+  rvarc = sum(rc.^2)/dof;
+  cesc = C*betac;
+  vmfc = C*inv(Xc'*Xc)*C';
+  cesstdc = sqrt(rvarc*vmfc);
+  tc = cesc./cesstdc;
+  sigtc = tTest(dof,tc);
+  p2 = length(find(abs(sigtc)<.01))/nindk;
+  fprintf('  vrf: X=%g, Xc = %g, ratio = %g\n',1/vmf,1/vmfc,1/(vmf/vmfc));
+  fprintf('  P(.01) = %7.5f  %g\n',p2, p2/.01);
+  sigt(indk) = sigtc;
+  resvar(indk) = rvarc;
+end
+
+p2 = length(find(abs(sigt(indmask))<.01))/nmask;
+p3 = length(find(abs(sigt(indmask))<.001))/nmask;
+fprintf('Mask  P(.01) = %7.5f  %d, P(.001) = %7.5f %d\n',...
+        p2, p2>.01, p3, p3>.001);
+
+sigt = sign(sigt) .* log10(-abs(sigt));
+fmri_svbvolume(sigt,mapstem);
+
+if(~isempty(snrdir))
+  fprintf('Saving SNR\n');
+  resvarstem = sprintf('%s/resvar',snrdir);
+  fmri_svbvolume(resvar,resvarstem);
+  resstdstem = sprintf('%s/resstd',snrdir);
+  fmri_svbvolume(sqrt(resvar),resstdstem);
+end
+
+fprintf('done wht %g\n',toc);
+
+EOF
+#-----------------------------------------------------------------#
+    cat $MLFTMP >> $MLF
+
+    @ nthRun = $nthRun + 1;
+  end # Runs
+
+  rm $MLFTMP
+  if(! $monly ) then
+    cat $MLF | matlab -display iconic |& tee -a $LF
+  endif
+
+end # Sessions
+
+echo " "
+echo "Started at $StartTime "
+echo "Ended   at `date`"
+echo " "
+echo "kmacfwht-sess Done"
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv < 1) goto arg1err;
+      set analysis = $argv[1]; shift;
+      set analysis = `basename $analysis`; # remove trailing /
+      breaksw
+
+    case "-kmacfid":
+      if ( $#argv == 0) goto arg1err;
+      set kmacfid = $argv[1]; shift;
+      breaksw
+
+    case "-acfid":
+      if ( $#argv == 0) goto arg1err;
+      set acfid = $argv[1]; shift;
+      breaksw
+
+    case "-c":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-cdir":
+      if ( $#argv == 0) goto arg1err;
+      set cdir = $argv[1]; shift;
+      breaksw
+
+    case "-map":
+      if ( $#argv == 0) goto arg1err;
+      set map = $argv[1]; shift;
+      breaksw
+
+    case "-acfdir":
+      if ( $#argv == 0) goto arg1err;
+      set acfsdir = $argv[1]; shift;
+      breaksw
+
+    case "-acfoutdir":
+      if ( $#argv == 0) goto arg1err;
+      set acfoutdirname = $argv[1]; shift;
+      set svacf = 1;
+      breaksw
+
+    case "-svacf":
+      set svacf = 1;
+      breaksw
+
+    case "-resdir":
+      if ( $#argv == 0) goto arg1err;
+      set resdirname = $argv[1]; shift;
+      set svres = 1;
+      breaksw
+
+    case "-svres":
+      set svres = 1;
+      breaksw
+
+    case "-snrdir":
+      if ( $#argv == 0) goto arg1err;
+      set snrsdir = $argv[1]; shift;
+      set svsnr = 1;
+      breaksw
+
+    case "-svsnr":
+      set svsnr = 1;
+      breaksw
+
+    case "-nmaxlag":
+      if ( $#argv == 0) goto arg1err;
+      set nmaxlag = $argv[1]; shift;
+      breaksw
+
+    case "-condmax":
+      if ( $#argv == 0) goto arg1err;
+      set condmax = $argv[1]; shift;
+      breaksw
+
+    case "-mrun":
+      if ( $#argv == 0) goto arg1err;
+      set mrun = $argv[1]; shift;
+      if("$mrun" != per && "$mrun" != jk) then
+        echo "ERROR: mrun = $mrun, must be per or jk"
+        exit 1;
+      endif
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-mask":
+      if ( $#argv == 0) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "-nomask":
+      set mask = ();
+      breaksw
+
+    case "-help":
+      goto help;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis name specified"
+    exit 1
+  endif
+
+  if(! -d $analysis ) then
+    echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+    exit 1;
+  endif
+
+  if($#kmacfid == 0) then
+    echo "ERROR: no kmacfid specified"
+    exit 1;
+  endif
+
+  if($#acfid == 0) then
+    echo "ERROR: no acfid specified"
+    exit 1;
+  endif
+
+  if($#mrun == 0) then
+    echo "ERROR: must use mrun = per"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: kmacfwht-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -analysis  analysisname : name of functional analysis"
+  echo "   -kmacfid   kmacfid "
+  echo "   -acfid     acfid "
+  echo ""
+  echo "Optional Arguments:";
+  #echo "   -c contrast"
+  echo "   -cdir contrastdir"
+  echo "   -map map stem"
+  echo "   -mask  stem: default is brain"
+  echo "   -nomask  : do not use a mask"
+  #echo "   -mrun   type : per or jk: must use per"
+  echo "   -svsnr "
+  echo "   -snrdir snrdir : default is snr-wht "
+  #echo "   -svacf "
+  #echo "   -svres "
+  #echo "   -acfoutdir acfoutdir : default is acfwht "
+  #echo "   -resdir resdir : default is reswht "
+  #echo "   -nmaxlag nmaxlag"
+  #echo "   -condmax condmax"
+  #echo "   -acfdir  acfdir  : input acf subdir default is acf "
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Session Arguments (Optional)"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes a whitened contrast.
+
+-kmacfid kmacfid 
+
+Unique identifier assigned with running kmacf-sess
+
+-acfid
+
+Unique identifier assigned with running kmacfcond-sess (passed
+with the -cracfid flag).
+
+Example:
+
+kmacf-sess -a onoff60s -kmacfid blah -k 2 -nmaxlag 5 -nitersmax 5
+
+Creates acf001-blah-kmap and acf001-blah-racf in onoff60s-RRR/acf.
+
+kmacfcond-sess -a onoff60s -kmacfid blah -cracfid kjw -condmax 100 \
+   -debias kjw -nmaxlag 10
+
+Creates acf001-blah-kjw in onoff60s-RRR/acf.
+
+kmacfwht-sess -a onoff60s -kmacfid blah -acfid kjw -cwd -map blah -svsnr
+
+Creates blah in onoff60s-RRR/allvres-wht and resstd and resvar in
+onoff60s-RRR/snr-wht
