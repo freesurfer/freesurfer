@@ -291,7 +291,7 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   // if filename does not contain any directory separator, then add "./"
   if (!strchr(fname,DIR_SEPARATOR))
   {
-    strcat(fname_copy, CURDIR);
+    strcpy(fname_copy, CURDIR);
     strcat(fname_copy, fname);
   } 
   else
