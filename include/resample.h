@@ -87,7 +87,7 @@ MRI * vol2maskavg(MRI *SrcVol, MRI *SrcMskVol, int *nhits);
 MRI *vol2surf_linear(MRI *SrcVol, 
          MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc, 
          MRI_SURFACE *TrgSurf, float ProjFrac, 
-         int InterpMethod, int float2int);
+         int InterpMethod, int float2int, MRI *SrcHitVol);
 
 MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg, 
         MRI_SURFACE *TrgSurfReg, MRI **SrcHits,
