@@ -22,7 +22,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.77 2004/06/07 14:50:07 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.78 2004/07/27 15:56:06 tosa Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -175,6 +175,59 @@ double findMinSize(MRI *mri)
   return minsize;
 }
 
+int verifyLRSplit(MRI *mri_fill, LTA *lta, Real cc_tal_x, int *pbadRH, int *pbadLH, int *ptotRH, int *ptotLH)
+{
+  int x, y, z;
+  Real tal_x, tal_y, tal_z;
+  unsigned char val;
+  // gets linear transform and thus fill val may have non rh_fill_val or lh_fill_val
+  int badRH = 0;
+  int badLH = 0;
+  int RH = 0;
+  int LH = 0;
+  for (z =0; z < mri_fill->depth; ++z)
+    for (y=0; y < mri_fill->height; ++y)
+      for (x=0; x < mri_fill->width; ++x)
+      {
+	val = MRIvox(mri_fill, x, y, z);
+	if (val != 0)
+	{
+	  if (val == rh_fill_val)
+	    RH++;
+	  else if (val==lh_fill_val)
+	    LH++;
+	  // get the talairach coordinate position
+	  MRIvoxelToTalairachEx(mri_fill, x, y, z, &tal_x, &tal_y, &tal_z, lta);
+	  if (tal_x < cc_tal_x) // talairach coordinates less means left
+	  {  
+	    // val must be lh_fill_val, except the case when the brain bends
+	    if (val == rh_fill_val)
+	    {
+	      badRH++;
+	      if (badRH < 10)
+		fprintf(stderr, "badRH: (%d, %d, %d)\n", x, y, z);
+	    }
+	  }
+	  else if (tal_x > cc_tal_x) // talairach coordinate greater means right
+	  {
+	    // val must be rh_fill_val, except the case when the brain bends
+	    if (val == lh_fill_val)
+	    {
+	      badLH++;
+	      if (badLH < 10)
+		fprintf(stderr, "badLH: (%d, %d, %d)\n", x, y, z);
+	    }
+	  }
+	}
+      }
+  *pbadRH = badRH;
+  *pbadLH = badLH;
+  *ptotRH = RH;
+  *ptotLH = LH;
+
+  return (NO_ERROR);
+}
+
 /*-------------------------------------------------------------------
                              STATIC PROTOTYPES
 -------------------------------------------------------------------*/
@@ -238,6 +291,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
   int seed_search_size;
   double voxsize;
+  int badRH, badLH;
 
   // new
   MRI *mri_talheader;
@@ -250,7 +304,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.77 2004/06/07 14:50:07 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.78 2004/07/27 15:56:06 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1015,10 +1069,28 @@ main(int argc, char *argv[])
   fprintf(stderr,"filling took %2.1f minutes\n", (float)msec/(60*1000.0f));
 
   if (lta)
-    LTAfree(&lta);
+  {
+    int totRH, totLH;
+    totRH = 0;
+    totLH = 0;
+    verifyLRSplit(mri_fill, lta, cc_tal_x, &badRH, &badLH, &totRH, &totLH);
 
+    if ((badRH > 10000) || (badLH > 10000))
+    {
+      if (lta)
+	LTAfree(&lta);
+      MRIfree(&mri_fill);
+      MRIfree(&mri_talheader);
+
+      fprintf(stderr, "badRH = %d/%d, badLH=%d/%d\n", badRH, totRH, badLH, totLH);
+      ErrorExit(ERROR_BADPARM, "Please check filled volume.  Cerebellum may be included.\n");
+    }
+  }
+  if (lta)
+    LTAfree(&lta);
+  MRIfree(&mri_fill);
   MRIfree(&mri_talheader);
-  exit(0) ;
+
   return(0) ;
 }
 
@@ -1055,8 +1127,6 @@ fill_brain(MRI *mri_fill, MRI *mri_im, int threshold)
       {
         for (j=j0;j!=j1;j+=dir)
         {
-          if ((j == 125) && (i == 108) && (imnr == 128))
-              DiagBreak() ;
           if (MRIvox(mri_fill, j, i, imnr) ==0)   /* not filled yet */
           {
             if ((threshold<0 &&   /* previous filled off */
@@ -1119,8 +1189,6 @@ fill_holes(MRI *mri_fill)
         if (v == 0) cnt++;              /* count # of nbrs which are off */
         if (cnt>cntmax) im0=i0=x0=1;    /* break out of all 3 loops */
       }
-      if (x == 79 && i == 86 && z == 119)
-        DiagBreak() ;
       if (cnt<=cntmax)   /* toggle pixel (off to on, or on to off) */
       {
         MRIvox(mri_fill, x, i, z) = vmax; 
