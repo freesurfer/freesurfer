@@ -13,7 +13,7 @@
 #include "mri_conform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_cnr.c,v 1.4 2003/09/16 18:10:42 tosa Exp $";
+static char vcid[] = "$Id: mri_cnr.c,v 1.5 2004/02/26 19:02:25 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -35,7 +35,7 @@ main(int argc, char *argv[])
   double      cnr_total, cnr = 0.0 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_cnr.c,v 1.4 2003/09/16 18:10:42 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_cnr.c,v 1.5 2004/02/26 19:02:25 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -86,7 +86,7 @@ main(int argc, char *argv[])
         
       if (!mri_template)
         mri_template = MRIconform(mri) ;
-      mri_tmp = MRIresample(mri, mri_template, RESAMPLE_NEAREST) ;
+      mri_tmp = MRIresample(mri, mri_template, SAMPLE_NEAREST) ;
       MRIfree(&mri) ; mri = mri_tmp ;
       
       if (!j)
