@@ -1,6 +1,6 @@
 #!/bin/csh -f 
 
-set VERSION = '$Id: ghostdet,v 1.1 2004/04/28 02:18:44 greve Exp $';
+set VERSION = '$Id: ghostdet,v 1.2 2004/04/28 03:49:50 greve Exp $';
 set inputargs = ($argv);
 
 set instem   = ();
@@ -12,8 +12,10 @@ set rvarstem = ();
 set sumfile  = ();
 set gprfile  = (); # ghost-positive rate 
 set maskthresh = 0.1;
-set monly = 0;
+set allowoverlap = 0;
+set pedim = 2; # coldim, ie, row-to-row
 set synth = 0;
+set monly = 0;
 
 set PrintHelp = 0;
 if($#argv == 0) goto usage_exit;
@@ -70,7 +72,9 @@ rvarstem = '$rvarstem';
 sumfile  = '$sumfile';
 gprfile  = '$gprfile';
 maskthresh = $maskthresh;
-synth      = $synth;
+allowoverlap = $allowoverlap;
+pedim        = $pedim;
+synth        = $synth;
 
 fprintf('Loading %s\n',instem);
 [f mristruct] = fast_ldbslice(instem);
@@ -104,7 +108,9 @@ ghost = fast_ghostmask(brain);
 %indghost = find(ghost);
 
 % Find voxels in the brain that are not in the ghost
-indbrainnotghost = find(brain & ~ghost);
+if(allowoverlap) indbrainnotghost = find(brain);
+else             indbrainnotghost = find(brain & ~ghost);
+end
 [rbrain cbrain sbrain] = ind2sub(size(brain),indbrainnotghost);
 
 % For book keeping, only count the ghost voxels that are
@@ -114,13 +120,23 @@ nbrainnotghost = length(indbrainnotghost2);
 fprintf('nbrainnotghost = %d\n',nbrainnotghost);
 
 % Compute the corresponding locations in the ghost
-rghost = rbrain+round(nr/2);
-indtmp = find(rghost>nr);
-rghost(indtmp) = rghost(indtmp) - nr;
-indghostnotbrain = sub2ind(size(brain),rghost,cbrain,sbrain);
+if(pedim==2)
+  % Phase encode is in column direction, ie, from row-to-row
+  rghost = rbrain+round(nr/2);
+  indtmp = find(rghost>nr);
+  rghost(indtmp) = rghost(indtmp) - nr;
+  cghost = cbrain;
+else
+  % Phase encode is in row direction, ie, from col-to-col
+  cghost = cbrain+round(nc/2);
+  indtmp = find(cghost>nc);
+  cghost(indtmp) = cghost(indtmp) - nc;
+  rghost = rbrain;
+end
+indghostnotbrain = sub2ind(size(brain),rghost,cghost,sbrain);
 
 % Use ghost voxel waveforms to predict the waveform in the brain,
-% use quadradic (2) detrending.
+% use quadradic (2) detrending. Bigger betas are worse.
 f = reshape(f,[nv nf])'; %'
 y = f(:,indbrainnotghost);
 x = f(:,indghostnotbrain);
@@ -166,7 +182,8 @@ end
 
 if(~isempty(sigstem))
   tsigvol = zeros(nr,nc,ns);
-  tsigvol(indbrainnotghost) = -log10(tsig);
+  tsigvol(indbrainnotghost) = -log10(tsig); % pos for brain
+  %tsigvol(indghostnotbrain) = +log10(tsig); % neg for ghost
   fast_svbslice(tsigvol,sigstem,-1,'',mristruct);
 end
 
@@ -186,7 +203,9 @@ if(~isempty(sumfile))
   fprintf(fp,'pwd            %s\n',pwd);
   fprintf(fp,'instem         %s\n',instem);
   fprintf(fp,'maskstem       %s\n',maskstem);
-  fprintf(fp,'synth          %s\n',synth);
+  fprintf(fp,'pedim          %d\n',pedim);
+  fprintf(fp,'allowoverlap   %d\n',allowoverlap);
+  fprintf(fp,'synth          %d\n',synth);
   fprintf(fp,'betastem       %s\n',betastem);
   fprintf(fp,'sigstem        %s\n',sigstem);
   fprintf(fp,'rvarstem       %s\n',rvarstem);
@@ -200,7 +219,7 @@ if(~isempty(sumfile))
   fprintf(fp,'rbrainghost    %g\n',brainmean/ghostmean);
   fprintf(fp,'pthresh        %g\n',pthresh);
   fprintf(fp,'pover          %g\n',pover);
-  fprintf(fp,'rpover         %g\n',pover/pthresh);
+  fprintf(fp,'gpr            %g\n',pover/pthresh);
   fprintf(fp,'pctover        %g\n',pctover);
   fprintf(fp,'nover          %d\n',nover);
   %fprintf(fp,'\n',);
@@ -249,6 +268,11 @@ while( $#argv != 0 )
       set maskstem = $argv[1]; shift;
       breaksw
 
+    case "--mthresh":
+      if ( $#argv == 0) goto arg1err;
+      set maskthresh = $argv[1]; shift;
+      breaksw
+
     case "--p":
       if ( $#argv == 0) goto arg1err;
       set sigstem = $argv[1]; shift;
@@ -283,6 +307,15 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set monly = 1;
       set MLF = $argv[1]; shift;
+      breaksw
+
+    case "--pedim":
+      if ( $#argv == 0) goto arg1err;
+      set pedim = $argv[1]; shift;
+      breaksw
+
+    case "--overlap":
+      set allowoverlap = 1;
       breaksw
 
     case "--synth":
@@ -367,11 +400,14 @@ usage_exit:
   echo ""
   echo "  --i instem "
   echo "  --m maskstem"
+  echo "  --mthresh maskthresh"
   echo "  --p sigstem "
   echo "  --b betastem "
   echo "  --v rvarstem "
   echo "  --s sumfile "
   echo "  --gpr gprfile "
+  echo "  --overlap : allow overlap "
+  echo "  --pedim dim : 2=col (default) 1=row "
   echo "  --synth "
   echo ""
 
