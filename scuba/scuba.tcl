@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.84 2005/02/18 21:51:22 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.85 2005/02/18 22:01:42 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3647,6 +3647,9 @@ proc DrawLabelArea {} {
 	    if { $nLabel >= $gaWidget(labelArea,$nArea,numberOfLabels) } {
 		
 		frame $fw
+
+		set bgColor gray
+		catch { set bgColor [tix option get disabled_bg] }
 		
 		tkuMakeNormalLabel $ewLabel -label $label -width 14
 		entry $ewValue \
@@ -3655,7 +3658,7 @@ proc DrawLabelArea {} {
 		    -width 18 \
 		    -state disabled \
 		    -relief flat \
-		    -background [tix option get disabled_bg]
+		    -background $bgColor
 		
 		pack $ewLabel $ewValue -side left -anchor w
 		pack $fw
@@ -4603,7 +4606,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.84 2005/02/18 21:51:22 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.85 2005/02/18 22:01:42 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
