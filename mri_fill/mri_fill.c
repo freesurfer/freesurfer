@@ -11,8 +11,9 @@
 #include "proto.h"
 #include "mrimorph.h"
 #include "timer.h"
+#include "cma.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.48 2001/04/25 02:30:23 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.49 2001/06/01 14:53:57 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -122,10 +123,17 @@ static int labels[] =
 { THICKEN_FILL, NBHD_FILL, VENTRICLE_FILL, DIAGONAL_FILL, DEGENERATE_FILL };
 #define NLABELS  sizeof(labels) / (sizeof(labels[0]))
 
+static char *segmentation_fname = NULL ;
+
 /*-------------------------------------------------------------------
                              STATIC PROTOTYPES
 -------------------------------------------------------------------*/
 
+#if 0
+static int neighbors(MRI *mri, int x, int y,int z,int whalf,int label);
+#endif
+static int neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label);
+static int edit_segmentation(MRI *mri_im, MRI *mri_seg) ;
 static int get_option(int argc, char *argv[]) ;
 static void print_version(void) ;
 static void print_help(void) ;
@@ -584,6 +592,18 @@ main(int argc, char *argv[])
               neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z)) ;
   }
 
+  if (segmentation_fname)
+  {
+    MRI  *mri_seg ;
+
+    printf("reading segmented volume %s...\n", segmentation_fname) ;
+    mri_seg = MRIread(segmentation_fname) ;
+    if (!mri_seg)
+      ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
+                Progname, segmentation_fname) ;
+    edit_segmentation(mri_im, mri_seg) ;
+  }
+
   mri_lh_fill = MRIclone(mri_im, NULL) ;
   mri_rh_fill = MRIclone(mri_im, NULL) ;
   mri_lh_im = MRIcopy(mri_im, NULL) ;
@@ -870,6 +890,12 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "using (%2.1f, %2.1f, %2.1f) as lh seed\n",
             lh_tal_x, lh_tal_y, lh_tal_z) ;
     nargs = 3 ;
+  }
+  else if (!strcmp(option, "segmentation"))
+  {
+    segmentation_fname = argv[2] ;
+    fprintf(stderr, "using segmentation %s...\n", segmentation_fname) ;
+    nargs = 1 ;
   }
   else if (!strcmp(option, "rh"))
   {
@@ -2660,3 +2686,138 @@ count_diagonals(MRI *mri, int x0, int y0, int z0)
 
   return(diagonals) ;
 }
+static int
+edit_segmentation(MRI *mri_wm, MRI *mri_seg)
+{
+  int   width, height, depth, x, y, z, label, non, noff, yi ;
+
+  width = mri_wm->width ; height = mri_wm->height ; depth = mri_wm->depth ;
+
+  non = noff = 0 ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 95 && y == 127 && z == 119)  
+          DiagBreak() ;
+        label = MRIvox(mri_seg, x, y, z) ;
+        
+        switch (label)
+        {
+        case Left_Cerebellum_White_Matter:
+        case Left_Cerebellum_Exterior:
+        case Left_Cerebellum_Cortex:
+        case Right_Cerebellum_White_Matter:
+        case Right_Cerebellum_Exterior:
+        case Right_Cerebellum_Cortex:
+        case Right_Cerebral_Cortex:
+          if ((neighborLabel(mri_seg, x,y,z,1,Left_Cerebral_Cortex) == 0) &&
+              (neighborLabel(mri_seg, x,y,z,1,Right_Cerebral_Cortex) == 0))
+          {
+            if (MRIvox(mri_im, x, y, z))
+            {
+              MRIvox(mri_wm, x, y, z) = 0 ;
+              noff++ ;
+            }
+          }
+          break ;
+        case Left_Inf_Lat_Vent:
+        case Right_Inf_Lat_Vent:
+        case Left_Hippocampus:
+        case Right_Hippocampus:
+          yi = mri_wm->yi[y+1] ;
+          label = MRIvox(mri_seg, x,yi, z) ;
+          if ((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex)
+              && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
+          {
+            MRIvox(mri_wm, x, yi, z) = 255 ;
+            non++ ;
+          }
+          break ;
+        case Left_Lateral_Ventricle:
+        case Right_Lateral_Ventricle:
+          if ((neighborLabel(mri_seg, x, y, z,3,Left_Cerebral_Cortex) == 0) &&
+              (neighborLabel(mri_seg, x, y, z,3,Right_Cerebral_Cortex) == 0) &&
+              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
+          {
+#if 1
+            MRIvox(mri_wm, x, y, z) = 255 ;
+            non++ ; 
+#endif
+          }
+          break ;
+        case Left_Caudate:
+        case Right_Caudate:
+        case Left_Putamen:
+        case Right_Putamen:
+        case Left_Pallidum:
+        case Right_Pallidum:
+          if (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)
+          {
+            MRIvox(mri_wm, x, y, z) = 255 ;
+            non++ ; 
+          }
+          break ;
+        default:
+          break ;
+        }
+      }
+    }
+  }
+
+  printf("SEG EDIT: %d voxels turned on, %d voxels turned off.\n", non, noff) ;
+  return(NO_ERROR) ;
+}
+
+#if 0
+static int
+neighbors(MRI *mri, int x, int y,int z,int whalf,int label)
+{
+  int xi, yi, zi, xk, yk, zk, nbrs ;
+  
+  for (nbrs = 0, zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        if (abs(xk)+abs(yk)+abs(zk) > 1) /* only 6-connected neighbors */
+          continue ;
+        xi = mri->xi[x+xk] ;
+        if (MRIvox(mri, xi, yi, zi) == label)
+          nbrs++ ;
+      }
+    }
+  }
+  return(nbrs) ;
+}
+#endif
+
+static int
+neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label)
+{
+  int xi, yi, zi, xk, yk, zk ;
+  
+  for (zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        if (abs(xk)+abs(yk)+abs(zk) > 1) /* only 6-connected neighbors */
+          continue ;
+        xi = mri->xi[x+xk] ;
+        if (MRIvox(mri, xi, yi, zi) == label)
+          return(1) ;
+      }
+    }
+  }
+  return(0) ;
+}
+
