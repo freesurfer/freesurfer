@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.12 1999/03/01 23:30:20 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.13 1999/03/21 19:45:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -31,6 +31,7 @@ char *Progname ;
 static int navgs = 10 ;
 static int create = 1 ;
 static float sigma = 0.5f ;  /* should be around 1 */
+static int white_only = 0 ;
 
 static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE    1.0
@@ -243,15 +244,14 @@ main(int argc, char *argv[])
     MRIScomputeMetricProperties(mris) ;
   }
 
-#if 0
-    if (parms.flags & IPFLAG_NO_SELF_INT_TEST)
-    {
-      msec = TimerStop(&then) ;
-      fprintf(stderr,
-              "refinement took %2.1f minutes\n", (float)msec/(60*1000.0f));
-      exit(0) ;
-    }
-#endif
+  
+  if (white_only)
+  {
+    msec = TimerStop(&then) ;
+    fprintf(stderr,
+            "refinement took %2.1f minutes\n", (float)msec/(60*1000.0f));
+    exit(0) ;
+  }
   parms.t = parms.start_t = 0.0 ;
   strcpy(parms.base_name, GRAY_MATTER_NAME) ;
   parms.niterations = ngray ;
@@ -330,6 +330,11 @@ get_option(int argc, char *argv[])
     nbrs = atoi(argv[2]) ;
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "whiteonly"))
+  {
+    white_only = 1 ;
+    fprintf(stderr,  "only generating white matter surface\n") ;
   }
   else if (!stricmp(option, "write_vals"))
   {
@@ -528,6 +533,10 @@ print_help(void)
   fprintf(stderr, 
           "-c    create curvature and area files from white matter surface\n"
           );
+  fprintf(stderr, 
+          "-a <avgs>   average curvature values <avgs> times (default=10)\n");
+  fprintf(stderr, 
+          "-whiteonly  only generate white matter surface\n") ;
   exit(1) ;
 }
 
