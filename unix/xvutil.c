@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <string.h>
 
 #include "image.h"
 #include "utils.h"
@@ -88,6 +89,7 @@ static void xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y,
                           int which) ;
 static void xvFreeDimage(DIMAGE *dimage) ;
 static Panel_setting xvFileNameCommand(Panel_item item, Event *event) ;
+static char *xvGetTitle(int which, char *title, int with_value) ;
 
 /*----------------------------------------------------------------------
                               GLOBAL DATA
@@ -420,6 +422,7 @@ XVclearImage(XV_FRAME *xvf, int which, int dotitle)
   XClearArea(xvf->display, dimage->window, 0, 0, 0, 0, False) ;
   if (dotitle)
     XVclearImageTitle(xvf, which) ;
+  dimage->used = 0 ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -615,8 +618,11 @@ xv_dimage_repaint(Canvas canvas, Xv_Window window, Rectlist *repaint_area)
       {
         dimage = &xvf->dimages[row][col] ;
         which = row * xvf->cols + col ;
+        break ;
       }
     }
+    if (which >= 0)
+      break ;
   }
   if (dimage && dimage->used)
     XVrepaintImage(xvf, which) ;
@@ -852,8 +858,8 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       val = (double)*IMAGEIseq_pix(dimage->sourceImage, x, y, dimage->frame) ;
       break ;
     }
-    
-    sscanf(dimage->title_string, "%s", title) ; 
+
+    xvGetTitle(which, title, 0) ;
     sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n", xvf->precision) ;
     if (!xvf->noprint)
       XVprintf(xvf, 0, fmt, title, x, yprint, val) ;
@@ -864,7 +870,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         dimage2 = xvGetDimage(xvf, i, 0) ;
         if (dimage2 && (dimage2->sync == dimage->sync))
         {
-          sscanf(dimage2->title_string, "%s", title) ; 
+          xvGetTitle(i, title, 0) ;
           switch (dimage2->sourceImage->pixel_format)
           {
           case PFDOUBLE:
@@ -1638,8 +1644,8 @@ XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
     
     /* should free the ximage and the canvas, but don't know how yet */
     dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
-    sscanf(dimage->title_string, "%s", title) ; /* get rid of leading spaces */
-    XVshowImageTitle(xvf, i, title) ;
+    if (xvGetTitle(i, title, 1))
+      XVshowImageTitle(xvf, i, title) ;
 
     if (dimage->sync)
     {
@@ -1792,7 +1798,7 @@ xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y, int which)
   for (i = 0 ; i < MAX_COLORS ; i++)
     dimage->gamma[i] = (float)i ;
 
-  sprintf(dimage->title_string, "?") ;
+  strcpy(dimage->title_string, "") ;
   dimage->zoom = 1.0f ;
   dimage->which = which ;
   dimage->x = x ;
@@ -2156,5 +2162,31 @@ XVsetDepthFunc(XV_FRAME *xvf,
 {
   xvf->get_next_image = get_image ;
   return(NO_ERROR) ;
+}
+
+static char *
+xvGetTitle(int which, char *title, int with_value)
+{
+  char   *cp ;
+  DIMAGE *dimage ;
+
+  dimage = xvGetDimage(xvf, which, 0) ;
+  if (!dimage)
+    return(NULL) ;
+  strcpy(title, StrRemoveSpaces(dimage->title_string)) ;
+  if (!with_value)  /* remove embedded value in title string: <title> (val) */
+  {
+    cp = strrchr(title, '(') ;
+    if (cp)
+      *cp-- = 0 ;
+  }
+  else
+    cp = title+strlen(title) ;
+
+  if (cp)   /* strip trailing spaces */
+    while (isspace(*cp))
+      *cp-- = 0 ;
+
+  return(title) ;
 }
 
