@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "icosahedron.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.1 2000/03/27 14:20:29 fischl Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.2 2002/01/30 19:36:42 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -24,6 +24,8 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
+static char *orig_name = "orig" ;
+
 static int ico_no = 6 ;
 
 char *Progname ;
@@ -31,7 +33,7 @@ char *Progname ;
 int
 main(int argc, char *argv[])
 {
-  char         **av, *avg_surf_name, *canon_surf_name, fname[200], *sdir, 
+  char         **av, *avg_surf_name, *canon_surf_name, fname[STRLEN], *sdir, 
                *mdir, ico_fname[STRLEN], *hemi, *out_sname ;
   int          ac, nargs, i, vno, n ;
   VERTEX       *v ;
@@ -75,7 +77,7 @@ main(int argc, char *argv[])
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
-    if (MRISreadOriginalProperties(mris, "orig") != NO_ERROR)
+    if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
       ErrorExit(ERROR_BADFILE,"%s: could not read orig file for %s.\n",
                 Progname, argv[1]);
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
@@ -169,6 +171,11 @@ get_option(int argc, char *argv[])
     print_usage() ;
     exit(1) ;
     break ;
+  case 'O':
+    orig_name = argv[2] ;
+    printf("reading vertex positions from %s...\n", orig_name) ;
+    nargs = 1 ;
+    break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
@@ -192,15 +199,9 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  fprintf(stderr, 
-          "usage: %s [options] <hemi> <surface to avg> <canon surface>\n\t<output subject name> <subject> ... "
+  printf(
+         "usage: %s [options] <hemi> <surf name> <canon surface>\n\t<output subject name> <subject> ... "
           " <output curv file >\n", Progname) ;
-  fprintf(stderr, "the output curvature file will be painted onto the last "
-          "subject name specified\non the command line.\n"
-          "if the -s flag is specified then the last parameter specifies\n"
-          "the directory in which to write the statistical maps.\n"
-          "if the -o flag is specified then it overrides the last subject\n"
-          "as the output surface.\n") ;
 }
 
 static void
@@ -208,11 +209,8 @@ print_help(void)
 {
   print_usage() ;
   fprintf(stderr, 
-       "\nThis program will add a template into an average surface.\n");
+       "\nThis program will average a set of surface coordinates and genareate an average\nsurface (using Talairach coords and spherical transform).\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
-  fprintf(stderr, "-s <cond #>     generate summary statistics and write\n"
-                  "                them into sigavg<cond #>-<hemi>.w and\n"
-                  "                sigvar<cond #>-<hemi>.w.\n") ;
   exit(1) ;
 }
 
