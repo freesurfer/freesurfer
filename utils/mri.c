@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/01/27 20:03:33 $
-// Revision       : $Revision: 1.289 $
-char *MRI_C_VERSION = "$Revision: 1.289 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/01/27 20:14:43 $
+// Revision       : $Revision: 1.290 $
+char *MRI_C_VERSION = "$Revision: 1.290 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -8801,6 +8801,22 @@ MRIapplyRASlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *m_ras_xform)
   fprintf(stderr, "applying the vox to vox linear transform\n");
   MatrixPrint(stderr, m_voxel_xform);
   mri_dst = MRIlinearTransform(mri_src, mri_dst, m_voxel_xform) ;
+  MatrixFree(&m_voxel_xform) ;
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+  Convert a transform from RAS to voxel coordinates, then apply
+  it to an MRI.
+  ------------------------------------------------------*/
+MRI *
+MRIapplyRASlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *m_ras_xform, int interp)
+{
+  MATRIX   *m_voxel_xform ;
+
+  m_voxel_xform = MRIrasXformToVoxelXform(mri_src, mri_dst, m_ras_xform, NULL);
+  fprintf(stderr, "applying the vox to vox linear transform\n");
+  MatrixPrint(stderr, m_voxel_xform);
+  mri_dst = MRIlinearTransformInterp(mri_src, mri_dst, m_voxel_xform, interp) ;
   MatrixFree(&m_voxel_xform) ;
   return(mri_dst) ;
 }
