@@ -3,7 +3,7 @@
 # Passing "-old" as an argument will invoke the old func2sphere-sess (now called
 # func2sphere-sess-vss).
 
-set VERSION = '$Id: func2sph-sess,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set VERSION = '$Id: func2sph-sess,v 1.2 2003/04/02 00:28:37 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -182,6 +182,8 @@ foreach sess ($SessList)
           set sphstem  = `pwd`/$analysis/$sphdir/h-$hemi-offset
         endif
       else
+        echo "---------------------------------------------"
+        echo "$analysis/$sphdir/$item"
         mkdir -p $analysis/$sphdir/$item
         if($h == h) then
           set funcstem = $analysis/$item/h
@@ -231,21 +233,21 @@ foreach sess ($SessList)
       cp $analysis/h.sfa $analysis/$sphdir/h-$hemi.sfa
     endif
 
-    if("$designtype" == "retinotopy") then
-      # Create the h-offset #
-      meanimg -o $analysis/$sphdir/h-offset-$hemi \
-         -i $analysis/$sphdir/eccen/h-$hemi-offset \
-         -i $analysis/$sphdir/polar/h-$hemi-offset |& tee -a $LF
-      if($status) then
-        echo "ERROR: meanimg failed" |& tee -a $LF
-        exit 1;
-      endif
-      cp $analysis/polar/h.sfa $analysis/$sphdir/eccen/h-$hemi.sfa
-      cp $analysis/eccen/h.sfa $analysis/$sphdir/polar/h-$hemi.sfa
-    endif
-
    end # Loop over hemispheres #
   end # Loop over items #
+
+  if("$designtype" == "retinotopy") then
+    # Create the h-offset in sphdir #
+    meanimg -o $analysis/$sphdir/h-offset-$hemi \
+         -i $analysis/$sphdir/eccen/h-$hemi-offset \
+         -i $analysis/$sphdir/polar/h-$hemi-offset |& tee -a $LF
+    if($status) then
+      echo "ERROR: meanimg failed" |& tee -a $LF
+      exit 1;
+    endif
+    cp $analysis/polar/h.sfa $analysis/$sphdir/eccen/h-$hemi.sfa
+    cp $analysis/eccen/h.sfa $analysis/$sphdir/polar/h-$hemi.sfa
+  endif
 
   popd > /dev/null
   echo " " |& tee -a $LF
