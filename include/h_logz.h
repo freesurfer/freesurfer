@@ -122,6 +122,8 @@ LOGMAP_INFO *LogMapInit(double alpha,int cols,int rows,int nrings,
                         int nspokes);
 int    LogMapForward(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage);
 IMAGE  *LogMapSample(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
+IMAGE  *LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth,
+                       IMAGE *Idst) ;
 int    LogMapInverse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage);
 int    LogMapGradient(LOGMAP_INFO *mi, IMAGE *inImage, 
                       IMAGE *gradImage, int doweight, 
