@@ -86,9 +86,9 @@
 **	and convert the object to and from its "stream" representation.
 **	In addition, the package can parse a file which contains a stream
 **	and create its internal object.
-** Last Update:		$Author: tosa $, $Date: 2004/09/08 19:32:33 $
+** Last Update:		$Author: tosa $, $Date: 2004/09/30 15:37:48 $
 ** Source File:		$RCSfile: dcm.c,v $
-** Revision:		$Revision: 1.15 $
+** Revision:		$Revision: 1.16 $
 ** Status:		$State: Exp $
 */
 
@@ -6189,273 +6189,274 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 	  CONDITION(*rd) (void *ctx, void *buf, int toRead, int *bytesRead),
 	  CONDITION(*sk) (void *ctx, int offset, int flag))
 {
-    CONDITION
+  CONDITION
     cond;
-    int
-        byteOrder;
-    long
-        lastGroup = -1,
-        lastElement = -1;
-    U32
-	sequenceLength,
-	scannedSequenceLength;
-    PRIVATE_OBJECT
-	** object;
-    PRV_GROUP_ITEM
-	* groupItem = NULL;
-    DCM_ELEMENT
-	e;
-    CTNBOOLEAN
-	convertFlag = FALSE,
-	done = FALSE,
-	knownLength = TRUE,
-	explicitVR = FALSE,
-	acceptVRMismatch = FALSE,
-	part10Flag = FALSE;
-    unsigned char
-       *ptr = NULL;
-    PRV_ELEMENT_ITEM
-	* elementItem = NULL;
-    CTNBOOLEAN
-	fileFlag = TRUE;
-    CONDITION flag;
-    CTNBOOLEAN allowRepeatElements = FALSE;
+  int
+    byteOrder;
+  long
+    lastGroup = -1,
+    lastElement = -1;
+  U32
+    sequenceLength,
+    scannedSequenceLength;
+  PRIVATE_OBJECT
+    ** object;
+  PRV_GROUP_ITEM
+    * groupItem = NULL;
+  DCM_ELEMENT
+    e;
+  CTNBOOLEAN
+    convertFlag = FALSE,
+    done = FALSE,
+    knownLength = TRUE,
+    explicitVR = FALSE,
+    acceptVRMismatch = FALSE,
+    part10Flag = FALSE;
+  unsigned char
+    *ptr = NULL;
+  PRV_ELEMENT_ITEM
+    * elementItem = NULL;
+  CTNBOOLEAN
+    fileFlag = TRUE;
+  CONDITION flag;
+  CTNBOOLEAN allowRepeatElements = FALSE;
 
-    ptr = callerBuf;
-    if (ptr != NULL)
-	fileFlag = FALSE;
+  ptr = callerBuf;
+  if (ptr != NULL)
+    fileFlag = FALSE;
 
-    if ((opt & DCM_FILEFORMATMASK) == DCM_PART10FILE) {
-	part10Flag = TRUE;
-	opt &= ~DCM_ORDERMASK;
-	opt &= ~DCM_FILEFORMATMASK;
-	opt |= DCM_EXPLICITLITTLEENDIAN;
-    }
-    if ((opt & DCM_SPECIALFORMATMASK) == DCM_EFILM) {
-	part10Flag = TRUE;
-	opt &= ~DCM_ORDERMASK;
-	opt &= ~DCM_FILEFORMATMASK;
-	opt |= DCM_ORDERLITTLEENDIAN;
-    }
-    if ((opt & DCM_REPEATELEMENTSMASK) == DCM_ALLOWREPEATELEMENTS) {
-      allowRepeatElements = TRUE;
-    }
+  if ((opt & DCM_FILEFORMATMASK) == DCM_PART10FILE) {
+    part10Flag = TRUE;
+    opt &= ~DCM_ORDERMASK;
+    opt &= ~DCM_FILEFORMATMASK;
+    opt |= DCM_EXPLICITLITTLEENDIAN;
+  }
+  if ((opt & DCM_SPECIALFORMATMASK) == DCM_EFILM) {
+    part10Flag = TRUE;
+    opt &= ~DCM_ORDERMASK;
+    opt &= ~DCM_FILEFORMATMASK;
+    opt |= DCM_ORDERLITTLEENDIAN;
+  }
+  if ((opt & DCM_REPEATELEMENTSMASK) == DCM_ALLOWREPEATELEMENTS) {
+    allowRepeatElements = TRUE;
+  }
 
-    switch (opt & DCM_ORDERMASK) {
-    case DCM_ORDERNATIVE:
-	byteOrder = NATIVE_ORDER;
-	break;
-    case DCM_ORDERLITTLEENDIAN:
-	byteOrder = LITTLE_ORDER;
-	break;
-    case DCM_EXPLICITLITTLEENDIAN:
-	byteOrder = LITTLE_ORDER;
-	explicitVR = TRUE;
-	break;
-    case DCM_ORDERBIGENDIAN:
-	byteOrder = BIG_ORDER;
-	break;
-    case DCM_EXPLICITBIGENDIAN:
-	byteOrder = BIG_ORDER;
-	explicitVR = TRUE;
-	break;
-    default:
-	byteOrder = NATIVE_ORDER;
-	break;
-    }
-    if ((opt & DCM_CONVERTMASK) == DCM_FORMATCONVERSION)
-	convertFlag = TRUE;
-    if ((opt & DCM_VRMASK) == DCM_ACCEPTVRMISMATCH)
-	acceptVRMismatch = TRUE;
+  switch (opt & DCM_ORDERMASK) {
+  case DCM_ORDERNATIVE:
+    byteOrder = NATIVE_ORDER;
+    break;
+  case DCM_ORDERLITTLEENDIAN:
+    byteOrder = LITTLE_ORDER;
+    break;
+  case DCM_EXPLICITLITTLEENDIAN:
+    byteOrder = LITTLE_ORDER;
+    explicitVR = TRUE;
+    break;
+  case DCM_ORDERBIGENDIAN:
+    byteOrder = BIG_ORDER;
+    break;
+  case DCM_EXPLICITBIGENDIAN:
+    byteOrder = BIG_ORDER;
+    explicitVR = TRUE;
+    break;
+  default:
+    byteOrder = NATIVE_ORDER;
+    break;
+  }
+  if ((opt & DCM_CONVERTMASK) == DCM_FORMATCONVERSION)
+    convertFlag = TRUE;
+  if ((opt & DCM_VRMASK) == DCM_ACCEPTVRMISMATCH)
+    acceptVRMismatch = TRUE;
 
-    if (scannedLength != NULL)
-	*scannedLength = 0;
+  if (scannedLength != NULL)
+    *scannedLength = 0;
 
-    cond = DCM_CreateObject(callerObject, opt);
-    if (cond != DCM_NORMAL)
-	return cond;
+  cond = DCM_CreateObject(callerObject, opt);
+  if (cond != DCM_NORMAL)
+    return cond;
 
-    object = (PRIVATE_OBJECT **) callerObject;
-    if (fileFlag)
-	strcpy((*object)->fileName, name);
+  object = (PRIVATE_OBJECT **) callerObject;
+  if (fileFlag)
+    strcpy((*object)->fileName, name);
 
-    (*object)->fd = -1;
-    (*object)->rd = rd;
-    (*object)->sk = sk;
-    (*object)->userCtx = ctx;
-    (*object)->dataOptions = 0;
-    if (size == (long) DCM_UNSPECIFIEDLENGTH)
-	knownLength = FALSE;
+  (*object)->fd = -1;
+  (*object)->rd = rd;
+  (*object)->sk = sk;
+  (*object)->userCtx = ctx;
+  (*object)->dataOptions = 0;
+  if (size == (long) DCM_UNSPECIFIEDLENGTH)
+    knownLength = FALSE;
 
-    if ((fileFlag) && ((opt & DCM_DELETEMASK) == DCM_DELETEONCLOSE) && (recursionLevel == 0))
-	(*object)->deleteFlag = TRUE;
+  if ((fileFlag) && ((opt & DCM_DELETEMASK) == DCM_DELETEONCLOSE) && (recursionLevel == 0))
+    (*object)->deleteFlag = TRUE;
 
-    if (parentObject != NULL)
-	(*object)->pixelRepresentation = (*parentObject)->pixelRepresentation;
+  if (parentObject != NULL)
+    (*object)->pixelRepresentation = (*parentObject)->pixelRepresentation;
 
-    if (recursionLevel == 0 && part10Flag) {
-	flag = readPreamble(name, &ptr, fd, &size, fileOffset, knownLength,
-			    object, scannedLength);
-	if (flag != DCM_NORMAL)
-	    goto abort;
-    }
-    while (!done) {
-	flag = readGroupElement(name, &ptr, fd, &size, fileOffset, knownLength,
-			    byteOrder, explicitVR, acceptVRMismatch, object,
-				scannedLength, &e);
-	if (flag == DCM_STREAMCOMPLETE)
-	    break;
-	else if (flag != DCM_NORMAL)
-	    goto abort;
-#if 0
-	if (e.tag == DCM_MAKETAG(0x7fe0, 0x0010)) {
-	    fprintf(stderr, "Found pixels\n");
-	}
-#endif
-	flag = readVRLength(name, &ptr, fd, &size, fileOffset, knownLength,
+  if (recursionLevel == 0 && part10Flag) {
+    flag = readPreamble(name, &ptr, fd, &size, fileOffset, knownLength,
+			object, scannedLength);
+    if (flag != DCM_NORMAL)
+      goto abort;
+  }
+  while (!done) {
+    flag = readGroupElement(name, &ptr, fd, &size, fileOffset, knownLength,
 			    byteOrder, explicitVR, acceptVRMismatch, object,
 			    scannedLength, &e);
-	if (flag != DCM_NORMAL)
-	    goto abort;
+    if (flag == DCM_STREAMCOMPLETE)
+      break;
+    else if (flag != DCM_NORMAL)
+      goto abort;
+#if 0
+    if (e.tag == DCM_MAKETAG(0x7fe0, 0x0010)) {
+      fprintf(stderr, "Found pixels\n");
+    }
+#endif
+    flag = readVRLength(name, &ptr, fd, &size, fileOffset, knownLength,
+			byteOrder, explicitVR, acceptVRMismatch, object,
+			scannedLength, &e);
+    if (flag != DCM_NORMAL)
+      goto abort;
 
-	if ((e.representation == DCM_UN) &&
-	    (e.length == DCM_UNSPECIFIEDLENGTH)) {
-	    e.representation = DCM_SQ;
-	}
+    if ((e.representation == DCM_UN) &&
+	(e.length == DCM_UNSPECIFIEDLENGTH)) {
+      e.representation = DCM_SQ;
+    }
 #ifndef SMM
-	if ((e.tag == DCM_DLMITEMDELIMITATIONITEM) ||
-	    (e.tag == DCM_DLMSEQUENCEDELIMITATIONITEM)) {
-	    return DCM_NORMAL;
-	}
+    if ((e.tag == DCM_DLMITEMDELIMITATIONITEM) ||
+	(e.tag == DCM_DLMSEQUENCEDELIMITATIONITEM)) {
+      return DCM_NORMAL;
+    }
 #else
-	if (e.tag == DCM_DLMITEMDELIMITATIONITEM) {
-	    (*object)->objectSize -= 8;
-	    return DCM_NORMAL;
-	}
-	if (e.tag == DCM_DLMSEQUENCEDELIMITATIONITEM)
-	    return DCM_NORMAL;
+    if (e.tag == DCM_DLMITEMDELIMITATIONITEM) {
+      (*object)->objectSize -= 8;
+      return DCM_NORMAL;
+    }
+    if (e.tag == DCM_DLMSEQUENCEDELIMITATIONITEM)
+      return DCM_NORMAL;
 #endif
 
-	if (e.representation == DCM_SQ) {
-	    sequenceLength = e.length;
-	    scannedSequenceLength = 0;
-	    flag = readSequence(name, &ptr, fd, &sequenceLength,
-				fileOffset, recursionLevel, opt,
-				byteOrder, explicitVR, acceptVRMismatch,
-				fileFlag, remainOpenFlag,
-				convertFlag, object, &scannedSequenceLength,
-				&e, &elementItem);
-	    if (flag != DCM_NORMAL)
-		goto abort;
-	    if (size != (long) DCM_UNSPECIFIEDLENGTH)
-		size -= scannedSequenceLength;
-	    if (scannedLength != NULL)
-		*scannedLength += scannedSequenceLength;
+    if (e.representation == DCM_SQ) {
+      sequenceLength = e.length;
+      scannedSequenceLength = 0;
+      flag = readSequence(name, &ptr, fd, &sequenceLength,
+			  fileOffset, recursionLevel, opt,
+			  byteOrder, explicitVR, acceptVRMismatch,
+			  fileFlag, remainOpenFlag,
+			  convertFlag, object, &scannedSequenceLength,
+			  &e, &elementItem);
+      if (flag != DCM_NORMAL)
+	goto abort;
+      if (size != (long) DCM_UNSPECIFIEDLENGTH)
+	size -= scannedSequenceLength;
+      if (scannedLength != NULL)
+	*scannedLength += scannedSequenceLength;
 
-	} else {
+    } else {
 
-	    flag = readData(name, &ptr, fd, &size, fileOffset, knownLength,
-			  byteOrder, explicitVR, acceptVRMismatch, fileFlag,
-			    remainOpenFlag, convertFlag,
-			    object, scannedLength, &e, &elementItem);
-	    if (flag != DCM_NORMAL)
-		goto abort;
-	}
-	computeVM(object, &elementItem->element);
-
-	cond = checkAttributeOrder(&e, &lastGroup, &lastElement, allowRepeatElements);
-	if (cond != DCM_NORMAL) {
-	    if (cond == DCM_REPEATEDELEMENT) {
-		CTN_FREE(elementItem);
-		continue;
-	    } else {
-		return cond;
-	    }
-	}
-
-	cond = handleGroupItem(object, &groupItem, DCM_TAG_GROUP(e.tag));
-	if (cond != DCM_NORMAL)
-	     /* goto abort; ASG */ return cond;
-
-	if (DCM_TAG_ELEMENT(e.tag) != 0x0000) {
-	    groupItem->baseLength += 8 + elementItem->paddedDataLength;
-	    if (elementItem->element.representation == DCM_OB ||
-		elementItem->element.representation == DCM_OW ||
-		elementItem->element.representation == DCM_SQ) {
-		groupItem->longVRAttributes++;
-		(*object)->longVRAttributes++;
-	    }
-	}
-	if ((DCM_TAG_ELEMENT(e.tag) == 0x0000) && ((*object)->groupLengthFlag == FALSE)) {
-	    CTN_FREE(elementItem);
-	} else {
-	    cond = LST_Enqueue(&groupItem->elementList, elementItem);
-	    if (cond != LST_NORMAL) {
-		(void) DCM_CloseObject(callerObject);
-		return COND_PushCondition(DCM_LISTFAILURE,
-					  DCM_Message(DCM_LISTFAILURE),
-					  "readFile");
-	    }
-	    cond = updateObjectType(object, &elementItem->element);	/* repair */
-
-	    cond = updateSpecialElements(object, elementItem);	/* repair */
-	}
-
-	if (size == 0)
-	    done = TRUE;
-
-	if (part10Flag) {
-	    if ((*object)->objectSize == (DCM_PREAMBLELENGTH + 4 + 12 + (*object)->metaHeaderLength)) {
-		opt &= ~DCM_ORDERMASK;
-		opt |= (*object)->dataOptions & DCM_ORDERMASK;
-		explicitVR = FALSE;
-		switch (opt & DCM_ORDERMASK) {
-		case DCM_ORDERNATIVE:
-		    byteOrder = NATIVE_ORDER;
-		    break;
-		case DCM_ORDERLITTLEENDIAN:
-		    byteOrder = LITTLE_ORDER;
-		    break;
-		case DCM_EXPLICITLITTLEENDIAN:
-		    byteOrder = LITTLE_ORDER;
-		    explicitVR = TRUE;
-		    break;
-		case DCM_ORDERBIGENDIAN:
-		    byteOrder = BIG_ORDER;
-		    break;
-		case DCM_EXPLICITBIGENDIAN:
-		    byteOrder = BIG_ORDER;
-		    explicitVR = TRUE;
-		    break;
-		default:
-		    byteOrder = LITTLE_ORDER;
-		    explicitVR = TRUE;
-		    break;
-		}
-	    }
-	}
+      flag = readData(name, &ptr, fd, &size, fileOffset, knownLength,
+		      byteOrder, explicitVR, acceptVRMismatch, fileFlag,
+		      remainOpenFlag, convertFlag,
+		      object, scannedLength, &e, &elementItem);
+      if (flag != DCM_NORMAL)
+	goto abort;
     }
+    computeVM(object, &elementItem->element);
+
+    cond = checkAttributeOrder(&e, &lastGroup, &lastElement, allowRepeatElements);
+    if (cond != DCM_NORMAL) {
+      if (cond == DCM_REPEATEDELEMENT) {
+	CTN_FREE(elementItem);
+	continue;
+      } else {
+	CTN_FREE(elementItem);
+	return cond;
+      }
+    }
+
+    cond = handleGroupItem(object, &groupItem, DCM_TAG_GROUP(e.tag));
+    if (cond != DCM_NORMAL)
+      /* goto abort; ASG */ return cond;
+
+    if (DCM_TAG_ELEMENT(e.tag) != 0x0000) {
+      groupItem->baseLength += 8 + elementItem->paddedDataLength;
+      if (elementItem->element.representation == DCM_OB ||
+	  elementItem->element.representation == DCM_OW ||
+	  elementItem->element.representation == DCM_SQ) {
+	groupItem->longVRAttributes++;
+	(*object)->longVRAttributes++;
+      }
+    }
+    if ((DCM_TAG_ELEMENT(e.tag) == 0x0000) && ((*object)->groupLengthFlag == FALSE)) {
+      CTN_FREE(elementItem);
+    } else {
+      cond = LST_Enqueue(&groupItem->elementList, elementItem);
+      if (cond != LST_NORMAL) {
+	(void) DCM_CloseObject(callerObject);
+	return COND_PushCondition(DCM_LISTFAILURE,
+				  DCM_Message(DCM_LISTFAILURE),
+				  "readFile");
+      }
+      cond = updateObjectType(object, &elementItem->element);	/* repair */
+
+      cond = updateSpecialElements(object, elementItem);	/* repair */
+    }
+
+    if (size == 0)
+      done = TRUE;
+
+    if (part10Flag) {
+      if ((*object)->objectSize == (DCM_PREAMBLELENGTH + 4 + 12 + (*object)->metaHeaderLength)) {
+	opt &= ~DCM_ORDERMASK;
+	opt |= (*object)->dataOptions & DCM_ORDERMASK;
+	explicitVR = FALSE;
+	switch (opt & DCM_ORDERMASK) {
+	case DCM_ORDERNATIVE:
+	  byteOrder = NATIVE_ORDER;
+	  break;
+	case DCM_ORDERLITTLEENDIAN:
+	  byteOrder = LITTLE_ORDER;
+	  break;
+	case DCM_EXPLICITLITTLEENDIAN:
+	  byteOrder = LITTLE_ORDER;
+	  explicitVR = TRUE;
+	  break;
+	case DCM_ORDERBIGENDIAN:
+	  byteOrder = BIG_ORDER;
+	  break;
+	case DCM_EXPLICITBIGENDIAN:
+	  byteOrder = BIG_ORDER;
+	  explicitVR = TRUE;
+	  break;
+	default:
+	  byteOrder = LITTLE_ORDER;
+	  explicitVR = TRUE;
+	  break;
+	}
+      }
+    }
+  }
 
 #ifdef SMM
 #endif
 
-    groupItem = LST_Head(&(*object)->groupList);
-    if (groupItem != NULL) {
-	(void) LST_Position(&(*object)->groupList, groupItem);
-	while (groupItem != NULL) {
-	    elementItem = LST_Head(&groupItem->elementList);
-	    if (elementItem != NULL) {
-		if (DCM_TAG_ELEMENT(elementItem->element.tag) == 0x0000) {
-		    *elementItem->element.d.ul = groupItem->baseLength;
-		}
-	    }
-	    groupItem = LST_Next(&(*object)->groupList);
+  groupItem = LST_Head(&(*object)->groupList);
+  if (groupItem != NULL) {
+    (void) LST_Position(&(*object)->groupList, groupItem);
+    while (groupItem != NULL) {
+      elementItem = LST_Head(&groupItem->elementList);
+      if (elementItem != NULL) {
+	if (DCM_TAG_ELEMENT(elementItem->element.tag) == 0x0000) {
+	  *elementItem->element.d.ul = groupItem->baseLength;
 	}
+      }
+      groupItem = LST_Next(&(*object)->groupList);
     }
-    return DCM_NORMAL;
+  }
+  return DCM_NORMAL;
 
-abort:
-    return flag;
+ abort:
+  return flag;
 }
 
 /* locateElement
