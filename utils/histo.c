@@ -248,8 +248,8 @@ HISTOclear(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   if (!histo_dst)
     histo_dst = HISTOalloc(histo_src->nbins) ;
 
-  memset(histo_dst->counts, 0, histo_dst->nbins*sizeof(histo_dst->counts)) ;
-  memset(histo_dst->bins, 0, histo_dst->nbins*sizeof(histo_dst->bins)) ;
+  memset(histo_dst->counts, 0, histo_dst->nbins*sizeof(*histo_dst->counts)) ;
+  memset(histo_dst->bins, 0, histo_dst->nbins*sizeof(*histo_dst->bins)) ;
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
