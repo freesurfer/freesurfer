@@ -22,7 +22,6 @@ static int get_option(int argc, char *argv[]) ;
 static LTA  *register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms) ;
 static unsigned char thresh_low = 90 ;
 static unsigned char thresh_hi = 120 ;
-char *FileNameRemoveExtension(char *in_fname, char *out_fname) ;
 static int  MRIsetFrame(MRI *mri, int frame, float val) ;
 
 static int linear = 0 ;
@@ -361,18 +360,6 @@ register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   MRIlinearAlign(mri_in, mri_ref, &lparms) ;
 
   return(lparms.lta) ;
-}
-char *
-FileNameRemoveExtension(char *in_fname, char *out_fname)
-{
-  char *dot ;
-
-  if (out_fname != in_fname)
-    strcpy(out_fname, in_fname) ;
-  dot = strrchr(out_fname, '.') ;
-  if (dot)
-    *dot = 0 ;
-  return(out_fname) ;
 }
 
 static int
