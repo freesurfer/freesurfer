@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/07 21:11:57 $
-// Revision       : $Revision: 1.284 $
+// Revision Date  : $Date: 2004/06/11 19:50:30 $
+// Revision       : $Revision: 1.285 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2741,6 +2741,7 @@ mrisNormalFace(MRIS *mris, int fac,int n,float norm[])
 
         Description
 ------------------------------------------------------*/
+// here reads mri/transforms/talairach.xfm (MNI style transform) 
 static int
 mrisReadTransform(MRIS *mris, char *mris_fname)
 {
@@ -3647,6 +3648,26 @@ MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
 The following function is broken, since it is applying a
 transform for surfaceRAS space.  If transform has c_(ras)
 values, the result would be different.
+
+        conformed -----> surfaceRAS
+            |                |        [ 1 Csrc]
+            V                V        [ 0  1  ]
+           src    ----->    RAS
+            |                |
+            |                |  Xfm
+            V                V
+         talvol   ----->  talRAS
+            |                |        [ 1 -Ctal]
+            |                |        [ 0  1   ]
+            V                V
+        conformed -----> surfaceRAS
+
+Thus 
+
+       surfRASToTalSurfRAS = [ 1 -Ctal ]*[ R  T ]*[ 1 Csrc ]= [ R  T + R*Csrc - Ctal ]
+                             [ 0   1   ] [ 0  1 ] [ 0   1  ]  [ 0         1          ]
+
+We need to know the Csrc and Ctal values
 ------------------------------------------------------*/
 MRI_SURFACE *
 MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
@@ -3665,7 +3686,7 @@ MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
     ErrorReturn(mris_dst, 
                 (ERROR_BADPARM, "MRIStalairachTransform: no xform loaded")) ;
 #endif
-
+  
   xhi=yhi=zhi= -10000;
   xlo=ylo=zlo= 10000;
   for (vno = 0 ; vno < mris_src->nvertices ; vno++)
@@ -35811,3 +35832,72 @@ MRI *MRISdistSphere(MRIS *surf, double dmax)
 
   return(dist);
 }
+
+///////////////////////////////////////////////////////////
+// surfaceRASToSurfaceRAS routines
+//
+//
+//        conformed  ------>   surfaceRAS   (c_(ras) = 0)   surface lives here
+//          |                   |
+//          |                   |   [ 1  Csrc ]
+//          |                   |   [ 0  1    ]
+//          V                   V
+//         src     ------>     RAS  ( Csrc != 0 )
+//          |                   |
+//          |                   |   
+//          V                   V
+//         dst    ------->     RAS  ( Ctal  ! = 0)
+//          |                   |
+//          |                   |   [ 1   - Ctal  ]
+//          |                   |   [ 0       1   ]
+//          V                   V
+//     conformed   ------->  surfaceRAS (c_(ras) = 0 )  surface lives here for talairach space
+//
+MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta)
+{
+  MATRIX *sRASToRAS=0;
+  MATRIX *RASToSRAS=0;
+  MATRIX *tmp = 0;
+  MATRIX *res = 0;
+  MATRIX *RASToRAS = 0;
+
+  sRASToRAS = RASFromSurfaceRAS_(src);
+  RASToSRAS = surfaceRASFromRAS_(dst);
+
+  if (lta->type == LINEAR_RAS_TO_RAS)
+  {
+    tmp = MatrixMultiply(lta->xforms[0].m_L, sRASToRAS, NULL);
+    res = MatrixMultiply(RASToSRAS, tmp, NULL);
+    MatrixFree(&sRASToRAS);
+    MatrixFree(&RASToSRAS);
+    MatrixFree(&tmp);
+
+    return res;
+  }
+  else if (lta->type == LINEAR_VOX_TO_VOX)
+  {
+
+    // just make sure
+    if (!src->r_to_i__)
+      src->r_to_i__ = extract_r_to_i(src);
+    if (!dst->i_to_r__)
+      dst->i_to_r__ = extract_i_to_r(dst);
+
+    // create ras_to_ras transform
+    tmp = MatrixMultiply(lta->xforms[0].m_L, src->r_to_i__, NULL);
+    RASToRAS = MatrixMultiply(dst->i_to_r__, tmp, NULL);
+    tmp = MatrixMultiply(RASToRAS, sRASToRAS, NULL);
+    res = MatrixMultiply(RASToSRAS, tmp, NULL);
+
+    MatrixFree(&RASToRAS);
+    MatrixFree(&sRASToRAS);
+    MatrixFree(&RASToSRAS);
+    MatrixFree(&tmp);
+
+    return res;
+  }
+  else 
+    ErrorExit(ERROR_BADPARM, "%s: xfm passed is neither of RAS-to-RAS type nor Vox-To-Vox type.",
+	      Progname) ;
+}
+

@@ -985,3 +985,4 @@ MRI *MRISdistSphere(MRIS *surf, double dmax);
 int MRISgaussianWeights(MRIS *surf, MRI *dist, double GStd);
 MRI *MRISspatialFilter(MRI *Src, MRI *wdist, MRI *Targ);
 
+MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta);
