@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.2 2004/08/03 22:30:44 greve Exp $
+  $Id: mri_label2vol.c,v 1.3 2004/08/04 17:42:26 greve Exp $
 */
 
 
@@ -46,10 +46,11 @@ static int  checkhemi(char *hemi);
 static int get_proj_type_id(char *projtype);
 static int get_crs(MATRIX *Tras2vox, float x, float y, float z,
 		   int *c, int *r, int *s, MRI *vol);
+static int is_surface_label(LABEL *label);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.2 2004/08/03 22:30:44 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.3 2004/08/04 17:42:26 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -97,7 +98,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_label2vol.c,v 1.2 2004/08/03 22:30:44 greve Exp $", "$Name:  $");
+      "$Id: mri_label2vol.c,v 1.3 2004/08/04 17:42:26 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -179,6 +180,11 @@ int main(int argc, char **argv)
     srclabel = LabelRead(NULL, LabelList[nthlabel]);
     if(srclabel == NULL){
       printf("ERROR reading %s\n",LabelList[nthlabel]);
+      exit(1);
+    }
+    if(DoProj && !is_surface_label(srclabel)){
+      printf("ERROR: label %s is not a surface label.\n",
+	     LabelList[nthlabel]);
       exit(1);
     }
     // Go through each point in the label 
@@ -406,9 +412,11 @@ static void print_help(void)
   printf(
 
 "
-HELP OUTLINE:
+Help Outline:
   - SUMMARY
   - ARGUMENTS
+  - RESOLVING MULTI-LABEL AMBIGUITIES
+  - CHECKING YOUR RESULTS
   - EXAMPLES
   - KNOWN BUGS
   - SEE ALSO
@@ -429,7 +437,11 @@ ARGUMENTS
 Enter the name of the label file. For multiple labels, use multiple
 --label flags. Labels can be created manually with tkmedit and
 tksurfer or automatically from a subcortical segmentation or cortical
-annotation.
+annotation. Labels are simple text files. The first line is a header.
+Each following line contains data with 5 columns. The first column is
+the vertex number of the label point. The next 3 columns are the X, Y,
+and Z of the point. The last can be ignored. If the label is not a 
+surface-based label, then the vertex number will be -1.
 
 
 --temp tempvolid
@@ -505,6 +517,27 @@ arbitration routine. Or you could binarize to have each label
 represented separately. Takes any format accepted by mri_convert (eg,
 spm, analyze, bshort, mgh).
 
+RESOLVING MULTI-LABEL AMBIGUITIES
+
+When there are multiple lables, it is possible that more than one
+label will map to a single voxel in the output volume. When this
+happens, the voxel is assigned to the label with the most label
+points in that voxel. Note that the voxel must still pass the 
+fill threshold test in order to be considered part of the label.
+
+CHECKING YOUR RESULTS
+
+It is very important to check that the conversion of the label to the
+volume was done correctly. It may be that it is way off or it could be
+off around the edges. This is particularly true for surface-based
+labels or when converting a label to a low-resolution space.
+To check the result, load the orig volume into tkmedit. The orig
+volume should be in the label space. Load the mri_label2vol output
+volume as an overlay; this makes the labeled voxels appear as
+'activity'.  Finally, load the label itself. You should see the label
+(in green) sitting on top of the 'activity' of the labeled volume.
+See EXAMPLE 1 for an example.
+
 
 EXAMPLES
 
@@ -567,7 +600,9 @@ have a value of 2.
 
 KNOWN BUGS
 
-1. When the output type is COR, all the voxels will be zero.
+1. When the output type is COR, all the voxels will be zero. The work-around
+is to save it as some other type, then use mri_convert with --no_rescale 1
+to convert it to COR.
 
 SEE ALSO
 
@@ -714,4 +749,16 @@ static int get_crs(MATRIX *Tras2vox, float x, float y, float z,
   if(*s < 0 || *s >= vol->depth)  return(1);
 
   return(0);
+}
+/*------------------------------------------------------------*/
+static int is_surface_label(LABEL *label)
+{
+  int nthpoint,vtxno;
+
+  for(nthpoint = 0; nthpoint < label->n_points; nthpoint++){
+    vtxno = label->lv[nthpoint].vno;
+    if(vtxno == -1) return(0);
+  }
+
+  return(1);
 }
