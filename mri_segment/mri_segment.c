@@ -4,13 +4,13 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 //
-// ID             : $Id: mri_segment.c,v 1.24 2004/09/15 13:40:12 fischl Exp $
+// ID             : $Id: mri_segment.c,v 1.25 2004/09/16 19:40:28 fischl Exp $
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/09/15 13:40:12 $
-// Revision       : $Revision: 1.24 $
+// Revision Date  : $Date: 2004/09/16 19:40:28 $
+// Revision       : $Revision: 1.25 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_SEGMENT_VERSION = "$Revision: 1.24 $";
+char *MRI_SEGMENT_VERSION = "$Revision: 1.25 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,7 +96,7 @@ main(int argc, char *argv[])
   float   white_mean, white_sigma, gray_mean, gray_sigma ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.24 2004/09/15 13:40:12 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.25 2004/09/16 19:40:28 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -141,6 +141,9 @@ main(int argc, char *argv[])
     MRIcomputeClassStatistics(mri_src, mri_tmp, 30, WHITE_MATTER_MEAN,
                               &white_mean, &white_sigma, &gray_mean,
                               &gray_sigma) ;
+		if (!finite(white_mean) || !finite(white_sigma) ||
+				!finite(gray_mean) || !finite(gray_sigma))
+			ErrorExit(ERROR_BADPARM, "%s: class statistics not finite - check input volume!", Progname);
     
     if (!wm_low_set)
     {
@@ -153,8 +156,8 @@ main(int argc, char *argv[])
       wm_low += 10 ;   /* set it back to it's original value */
     if (!gray_hi_set)
       gray_hi = gray_mean + 2*gray_sigma ;
-		if (gray_hi >= white_mean)
-			gray_hi = white_mean-1 ;
+		if (gray_hi >= white_mean-white_sigma)
+			gray_hi = white_mean-white_sigma ;
     fprintf(stderr, "setting bottom of white matter range to %2.1f\n",wm_low);
     fprintf(stderr, "setting top of gray matter range to %2.1f\n", gray_hi) ;
 
