@@ -4524,7 +4524,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   dsr *hdr;
   int swap, mritype, bytes_per_voxel;
   int ncols, nrows, nslcs, nframes, row, slice, frame;
-  MATRIX *T, *PcrsCenter, *PxyzCenter;
+  MATRIX *T=NULL, *PcrsCenter, *PxyzCenter, *T1=NULL, *Q=NULL;
   MRI *mri;
   float min, max;
   struct stat StatBuf;
@@ -4595,26 +4595,31 @@ static MRI *analyzeRead(char *fname, int read_volume)
 
   /* Read the matfile, if there */
   if(FileExists(matfile)){
-    T = MatlabRead(matfile);
-    if(T == NULL){
+    T1 = MatlabRead(matfile);
+    if(T1 == NULL){
       printf("ERROR: analyzeRead(): matfile %s exists but could "
        "       not read\n",matfile);
       return(NULL);
     }
-    printf("------- Analyze Input Matrix --------\n");
+    /* Convert from 1-based to 0-based */
+    Q = MtxCRS1toCRS0(Q);
+    T = MatrixMultiply(T1,Q,T);
+    printf("------- Analyze Input Matrix (zero-based) --------\n");
     MatrixPrint(stdout,T);
     printf("-------------------------------------\n");
     mri->ras_good_flag = 1;
+    MatrixFree(&Q);
+    MatrixFree(&T1);
   }
   else {
     mri->ras_good_flag = 0;
     T = MatrixIdentity(4,NULL);
     T->rptr[1][1] =  mri->xsize;
-    T->rptr[1][4] = -mri->xsize*((mri->width-1)/2.0 + 1); /* +1 for 1-based spm */
+    T->rptr[1][4] = -mri->xsize*(mri->width/2.0);
     T->rptr[2][2] =  mri->ysize;
-    T->rptr[2][4] = -mri->ysize*((mri->height-1)/2.0 + 1);
+    T->rptr[2][4] = -mri->ysize*(mri->height/2.0);
     T->rptr[3][3] =  mri->zsize;
-    T->rptr[3][4] = -mri->zsize*((mri->depth-1)/2.0 + 1);
+    T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
   }
 
   /* ---- Assign the Geometric Paramaters -----*/
@@ -4632,11 +4637,11 @@ static MRI *analyzeRead(char *fname, int read_volume)
   mri->z_a = T->rptr[2][3]/mri->zsize;
   mri->z_s = T->rptr[3][3]/mri->zsize;
 
-  /* Center of the FOV in voxels (+1 for spm) */
+  /* Center of the FOV in voxels */
   PcrsCenter = MatrixAlloc(4, 1, MATRIX_REAL);
-  PcrsCenter->rptr[1][1] = (mri->width  - 1.0)/2.0 + 1;
-  PcrsCenter->rptr[2][1] = (mri->height - 1.0)/2.0 + 1;
-  PcrsCenter->rptr[3][1] = (mri->depth  - 1.0)/2.0 + 1;
+  PcrsCenter->rptr[1][1] = mri->width/2.0;
+  PcrsCenter->rptr[2][1] = mri->height/2.0;
+  PcrsCenter->rptr[3][1] = mri->depth/2.0;
   PcrsCenter->rptr[4][1] = 1.0;
 
   /* Center of the FOV in XYZ */
@@ -4884,9 +4889,11 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
     if(mri->ysize > 0) T->rptr[2][2] = mri->ysize;
     if(mri->zsize > 0) T->rptr[3][3] = mri->zsize;
   }
-  printf("Analyze Output Matrix\n");
-  MatrixPrint(stdout,T);
-  printf("--------------------\n");
+  if(frame == 0){
+    printf("Analyze Output Matrix\n");
+    MatrixPrint(stdout,T);
+    printf("--------------------\n");
+  }
 
   /* ----- write the matrix to the .mat file ----- */
   error_value = MatlabWrite(T, mat_fname, "M");
@@ -4938,7 +4945,7 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
     k = i + mri->depth*frame; 
     for(j = 0;j < mri->height;j++){
       if(fwrite(mri->slices[k][j], bytes_per_voxel, mri->width, fp) != 
-   mri->width)
+	 mri->width)
       {
         errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "analyzeWriteFrame(): "
