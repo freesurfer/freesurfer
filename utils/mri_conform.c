@@ -48,19 +48,12 @@ MRI *MRIconform(MRI *mri)
 
     mri2->imnr1 = 256;
 
-printf("not slices\n");
-MRIdump(mri2, stdout);
-
     return(mri2);
 
     }
   else
     {
-/*
-mri2 = MRIcopy(mri, NULL);
-mri2->slice_direction = 
-return(mri2);
-*/
+
     if(mri->type == MRI_UCHAR)
     {
       mri3 = interpolate_and_pad(mri);
@@ -108,8 +101,6 @@ return(mri2);
     mri4->slice_direction = MRI_CORONAL;
     MRIfree(&mri3);
 
-printf("slices\n");
-MRIdump(mri4, stdout);
     return(mri4);
 
     free(p_data);
