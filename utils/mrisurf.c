@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/03/16 01:05:58 $
-// Revision       : $Revision: 1.338 $
+// Revision Date  : $Date: 2005/03/16 19:29:45 $
+// Revision       : $Revision: 1.339 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -36859,7 +36859,7 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
   et = (EDGE *)calloc(nedges, sizeof(EDGE)) ;
   if (!et)
     ErrorExit(ERROR_NOMEMORY, 
-              "could not allocate %d edges for retessellation", nvertices) ;
+              "Excessive topologic defect encountered: could not allocate %d edges for retessellation", nedges) ;
 
   for (n = i = 0 ; i < nvertices ; i++)
   {
