@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -22,6 +23,8 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static void  usage_exit(void) ;
 
+static MRI *edit_border_voxels(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled) ;
+static MRI *edit_ventricular_unknowns(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled) ;
 static int sagittalNeighbors(MRI *mri, int x, int y,int z,int whalf,int label);
 static int neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label);
 static int distance_to_label(MRI *mri_labeled, int label, int x, 
@@ -42,18 +45,21 @@ static MRI *edit_cortical_gray_matter(MRI *mri_in_labeled, MRI *mri_T1,
 
 char *Progname ;
 
+static int unknown_only = 0 ;
+static int border_only = 0 ;
+
 int
 main(int argc, char *argv[])
 {
   char   **av ;
   int    ac, nargs ;
-  MRI    *mri_in_labeled, *mri_T1, *mri_out_labeled ;
+  MRI    *mri_in_labeled, *mri_T1, *mri_out_labeled = NULL ;
   char   *in_fname, *T1_fname, *out_fname ;
   int          msec, minutes, seconds ;
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_segmentation.c,v 1.8 2003/09/05 04:45:33 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_segmentation.c,v 1.9 2004/11/05 21:41:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -91,11 +97,21 @@ main(int argc, char *argv[])
 
   TimerStart(&start) ;
 
-  mri_out_labeled = edit_hippocampus(mri_in_labeled, mri_T1, NULL);
-  edit_amygdala(mri_out_labeled, mri_T1, mri_out_labeled);
-  edit_caudate(mri_out_labeled, mri_T1, mri_out_labeled);
-  edit_lateral_ventricles(mri_out_labeled, mri_T1, mri_out_labeled);  /* must be after hippo */
-  edit_cortical_gray_matter(mri_out_labeled, mri_T1, mri_out_labeled);
+	if (unknown_only == 0 && border_only == 0)
+	{
+		mri_out_labeled = edit_hippocampus(mri_in_labeled, mri_T1, NULL);
+		edit_amygdala(mri_out_labeled, mri_T1, mri_out_labeled);
+		edit_caudate(mri_out_labeled, mri_T1, mri_out_labeled);
+		edit_lateral_ventricles(mri_out_labeled, mri_T1, mri_out_labeled);  /* must be after hippo */
+		edit_cortical_gray_matter(mri_out_labeled, mri_T1, mri_out_labeled);
+	}
+	else
+		mri_out_labeled = MRIcopy(mri_in_labeled, NULL) ;
+
+	if (border_only == 0 || unknown_only != 0)
+		edit_ventricular_unknowns(mri_out_labeled, mri_T1, mri_out_labeled) ;
+	if (border_only != 0 || unknown_only == 0)
+		edit_border_voxels(mri_out_labeled, mri_T1, mri_out_labeled) ;
 
   printf("writing output volume to %s...\n", out_fname) ;
   MRIwrite(mri_out_labeled, out_fname) ;
@@ -133,11 +149,21 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx,Gy,Gz) ;
   }
+  else if (!stricmp(option, "UNKNOWN"))
+  {
+		unknown_only = 1 ;
+    printf("only correcting unknown voxels between ventricle and wm or near hypointensities\n") ;
+  }
+  else if (!stricmp(option, "BORDER"))
+  {
+		border_only = 1 ;
+    printf("only correcting border voxels\n") ;
+  }
   else switch (toupper(*option))
   {
   case '?':
   case 'U':
-    printf("usage: %s [input directory] [output directory]\n", argv[0]) ;
+    printf("usage: %s [input directory] [output directory]\n", Progname) ;
     exit(1) ;
     break ;
   default:
@@ -948,9 +974,15 @@ edit_lateral_ventricles(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
             
             if (change)
             {
+#if 0
               label = left ? 
                 Left_Cerebral_White_Matter : Right_Cerebral_White_Matter;
               /*              MRIvox(mri_tmp, x, y, z) = label ;*/
+#else
+              mle_label(mri_T1, mri_tmp, x, y, z, 9, 
+												left ? Left_Lateral_Ventricle : Right_Lateral_Ventricle,
+												left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter) ;
+#endif
               nchanged++ ;
               continue ;
             }
@@ -987,9 +1019,500 @@ edit_lateral_ventricles(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
 		}
 	}
 
+#if 0
+	/* change all unknown within 1 mm of ventricle and 1mm of  wm  to one of them */
+	for (z = 0 ; z < depth ; z++)
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			for (x = 0 ; x < width ; x++)
+			{
+				if (x == Gx && y == Gy && z == Gz)  
+					DiagBreak() ;
+				label = MRIvox(mri_out_labeled, x, y, z) ;
+				if (IS_UNKNOWN(label) == 0)
+					continue ;
+				left = label == Left_Cerebral_Cortex ;
+				olabel = left ? Left_Lateral_Ventricle : Right_Lateral_Ventricle;
+				if (MRIneighborsInWindow(mri_out_labeled, x, y, z, 5, olabel) >= 1)
+				{
+					total_changed++ ;
+					MRIvox(mri_out_labeled, x, y, z) = left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter;
+				}
+			}
+		}
+	}
+#endif
+
           
   MRIfree(&mri_tmp) ;
   printf("%d unknown voxels bordering ventricles changed to wm.\n", 
          total_changed) ;
   return(mri_out_labeled) ;
+}
+static MRI *
+edit_ventricular_unknowns(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
+{
+	int     label, x, y, z, xm1, xp1, ym1, yp1, zm1, zp1, lxp1, lxm1, lyp1, lym1, lzp1, lzm1, nchanged,
+		l1 = 0, l2 = 0, change, i, total_changed, dwm, dhypo, dven, left ;
+	MRI     *mri_in ;
+
+	mri_in = MRIcopy(mri_in_labeled, NULL) ;
+	mri_out_labeled = MRIcopy(mri_in_labeled, mri_out_labeled) ;
+
+	total_changed = 0 ;
+
+	/* first change unknowns near hypointensities to wm or hypo */
+	do
+	{
+		nchanged = 0 ;
+		for (x = 0 ; x < mri_T1->width ; x++)
+		{
+			for (y = 0 ; y < mri_T1->height ; y++)
+			{
+				for (z = 0 ; z < mri_T1->depth ; z++)
+				{
+					if (x == Gx && y == Gy && z == Gz)
+						DiagBreak() ;
+					change = 0 ; left = 0 ;
+					label = MRIvox(mri_in, x, y, z) ;
+					if ((IS_GM(label) == 0) && (IS_UNKNOWN(label) == 0))
+						continue ;
+				
+					dhypo = distance_to_label(mri_in, WM_hypointensities, x, y, z, 0, 1, 0, 2) ; /* look inferior */
+					if (dhypo > 2)
+						dhypo = distance_to_label(mri_in, WM_hypointensities, x, y, z, 0, 0, -1, 2) ;  /* look inferior */
+					if (dhypo > 2)
+						dhypo = distance_to_label(mri_in, WM_hypointensities, x, y, z, 0, 0, 1, 2) ;  /* look anterior */
+					if (dhypo > 2)
+						dhypo = distance_to_label(mri_in, WM_hypointensities, x, y, z, 0, 0, -1, 2) ;  /* look inferior */
+					if (dhypo > 2)
+						continue ;
+
+#define WM_DIST   4
+
+					dwm = distance_to_label(mri_in, Left_Cerebral_White_Matter, x, y, z, 0, -1, 0, WM_DIST) ; /* superior */
+					if (dwm > WM_DIST)
+					{
+						dwm = distance_to_label(mri_in, Right_Cerebral_White_Matter, x, y, z, 0, -1, 0, WM_DIST) ;
+					}
+					else
+						left = 1 ;
+
+					if (dwm > WM_DIST) /* not superior, look anterior */
+					{
+						dwm = distance_to_label(mri_in, Right_Cerebral_White_Matter, x, y, z, 0, 0, 1, WM_DIST) ;
+						if (dwm > WM_DIST)
+						{
+							dwm = distance_to_label(mri_in, Left_Cerebral_White_Matter, x, y, z, 0, 0, 1, WM_DIST) ;
+							if (dwm <= WM_DIST)
+								left = 1 ;
+						}
+					}
+
+					if (dwm > WM_DIST) /* not superior, or anterior look posterior */
+					{
+						dwm = distance_to_label(mri_in, Right_Cerebral_White_Matter, x, y, z, 0, 0, -1, WM_DIST) ;
+						if (dwm > WM_DIST)
+						{
+							dwm = distance_to_label(mri_in, Left_Cerebral_White_Matter, x, y, z, 0, 0, -1, WM_DIST) ;
+							if (dwm <= WM_DIST)
+								left = 1 ;
+						}
+					}
+
+					if (dwm > WM_DIST)    /* couldn't find wm anywhere (didn't look inferior), check for region of hypos */
+					{
+						dwm = distance_to_label(mri_in, WM_hypointensities, x, y, z, 0, -1, 0, WM_DIST) ;
+						if (distance_to_label(mri_in, Left_Cerebral_White_Matter, x, y, z, 0, -1, 0, 30)  <= 30)
+							left = 1 ;
+					}
+					if (dwm > WM_DIST)
+						continue ;
+					dven = distance_to_label(mri_in, left ? Left_Lateral_Ventricle : Right_Lateral_Ventricle, x, y, z, 0, 1, 0, 15) ;
+					if (dven > 15)
+					{
+						dven = distance_to_label(mri_in, left ? Left_Lateral_Ventricle : Right_Lateral_Ventricle, x, y, z, 0, 0, -1, 3) ;
+						if (dven > 3)
+							distance_to_label(mri_in, left ? Left_Lateral_Ventricle : Right_Lateral_Ventricle, x, y, z, 0, 0, 1, 3) ;
+						if (dven > 3)
+						continue ;
+					}
+
+					nchanged++ ;
+					mle_label(mri_T1, mri_out_labeled, x, y, z, 15, left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter, 
+										WM_hypointensities) ;
+				}
+			}
+		}
+
+		total_changed += nchanged ;
+		MRIcopy(mri_out_labeled, mri_in) ;
+	} while (nchanged > 0) ;
+
+	for (i = 0 ; i < 2 ; i++)
+	{
+		for ( nchanged = x = 0 ; x < mri_T1->width ; x++)
+		{
+			for (y = 0 ; y < mri_T1->height ; y++)
+			{
+				for (z = 0 ; z < mri_T1->depth ; z++)
+				{
+					if (x == Gx && y == Gy && z == Gz)
+						DiagBreak() ;
+					change = 0 ;
+					label = MRIvox(mri_in, x, y, z) ;
+					if (IS_UNKNOWN(label) == 0)
+						continue ;
+					xm1 = mri_T1->xi[x-1] ; xp1 = mri_T1->xi[x+1] ;
+					ym1 = mri_T1->yi[y-1] ; yp1 = mri_T1->yi[y+1] ;
+					zm1 = mri_T1->zi[z-1] ; zp1 = mri_T1->zi[z+1] ;
+					lxp1 = MRIvox(mri_in, xp1, y, z) ;
+					lxm1 = MRIvox(mri_in, xm1, y, z) ;
+					lyp1 = MRIvox(mri_in, x, yp1, z) ;
+					lym1 = MRIvox(mri_in, x, ym1, z) ;
+					lzp1 = MRIvox(mri_in, x, y, zp1) ;
+					lzm1 = MRIvox(mri_in, x, y, zm1) ;
+					/* if it has ventricle on one side and wm on the other, change it to wm or ventricle
+						 these are caused by slight discrepencies between the FreeSurfer ribbon and the
+						 CMA subcortical segs.
+					*/
+					if ((IS_WMH(lxm1) && IS_LAT_VENT(lxp1)) ||
+							(IS_WMH(lxp1) && IS_LAT_VENT(lxm1)))
+					{
+						change = 1 ; l1 = lxm1 ; l2 = lxp1 ;
+					}
+					if ((IS_WMH(lym1) && IS_LAT_VENT(lyp1)) ||
+							(IS_WMH(lyp1) && IS_LAT_VENT(lym1)))
+					{
+						change = 1 ; l1 = lym1 ; l2 = lyp1 ;
+					}
+					if ((IS_WMH(lzm1) && IS_LAT_VENT(lzp1)) ||
+							(IS_WMH(lzp1) && IS_LAT_VENT(lzm1)))
+					{
+						change = 1 ; l1 = lzm1 ; l2 = lzp1 ;
+					}
+					if (change)
+					{
+						nchanged++ ;
+						mle_label(mri_T1, mri_out_labeled, x, y, z, 15, l1, l2) ;
+					}
+					else /* could be two unknowns in a row */
+					{
+						int yi, olabel, wm, un, ven ;
+#define WLEN 4
+						ven = un = wm = 0 ;
+						change = 0 ;
+						for (yi = y-1 ; yi >= MAX(0,y-WLEN) ; yi--)
+						{
+							olabel = MRIvox(mri_in, x, yi, z) ;
+							/* should be only white matter and unkowns above it */
+							if (IS_WMH(olabel))
+							{
+								if (IS_WM(olabel))
+									l1 = olabel ;
+								wm++ ;
+							}
+							else if (IS_UNKNOWN(olabel))
+								un++ ;
+							else
+								change = -1 ;  /* something else there - don't change */
+						}
+						/* if there is some wm above and no other labels */
+						if ((wm >= WLEN/2) && ((wm+un) >= (WLEN-1)) && change >= 0)
+						{
+							un = 0 ;
+							for (yi = y+1 ; yi <= MIN(mri_in->height-1,y+WLEN) ; yi++)
+							{
+								olabel = MRIvox(mri_in, x, yi, z) ;
+								/* should be only ventricle and unkowns below it */
+								if (IS_LAT_VENT(olabel))
+								{
+									ven++ ;
+									l2 = olabel ;
+								}
+								else if (IS_UNKNOWN(olabel))
+									un++ ;
+								else
+									change = -1 ;
+							}
+							if (change >= 0 && ((ven+un) >= WLEN) && (ven >= WLEN/2))
+								change = 1 ;
+							if (change > 0)
+							{
+								nchanged++ ;
+								mle_label(mri_T1, mri_out_labeled, x, y, z, 15, l1, l2) ;
+							}
+						}
+						if (change <= 0)  /* look in posterior/anterior direction. If everthing is wm and ven change it */
+						{
+							int zi ;
+
+							change = wm = ven = un = 0 ;
+							for (zi = z-WLEN ; zi <= z+WLEN ; zi++)
+							{
+								if (zi < 0 || zi >= mri_in->depth)
+									continue ;
+								olabel = MRIvox(mri_in, x, y, zi) ;
+								/* should be only white matter and unkowns above it */
+								if (IS_WMH(olabel))
+								{
+									if (IS_WM(olabel))
+										l1 = olabel ;
+									wm++ ;
+								}
+								else if (IS_UNKNOWN(olabel))
+									un++ ;
+								else if (IS_LAT_VENT(olabel))
+									ven++ ;
+								else
+									change = -1 ;  /* something else there - don't change */
+							}
+							if (change >= 0 && ((ven+wm) >= WLEN) && (ven >= WLEN/2) && (wm >= WLEN/2))
+								change = 1 ;
+							if (change > 0)
+							{
+								nchanged++ ;
+								mle_label(mri_T1, mri_out_labeled, x, y, z, 15, l1, l2) ;
+							}
+						}
+						if (change <= 0)  /* look in medial/lateral direction. If everthing is wm and ven change it */
+						{
+							int xi ;
+
+							change = wm = ven = un = 0 ;
+							for (xi = x-WLEN ; xi <= x+WLEN ; xi++)
+							{
+								if (xi < 0 || xi >= mri_in->width)
+									continue ;
+								olabel = MRIvox(mri_in, xi, y, z) ;
+								/* should be only white matter and unkowns above it */
+								if (IS_WMH(olabel))
+								{
+									if (IS_WM(olabel))
+										l1 = olabel ;
+									wm++ ;
+								}
+								else if (IS_UNKNOWN(olabel))
+									un++ ;
+								else if (IS_LAT_VENT(olabel))
+								{
+									ven++ ;
+									l2 = olabel ;
+								}
+								else
+									change = -1 ;  /* something else there - don't change */
+							}
+							if (change >= 0 && ((ven+wm) >= WLEN) && (ven >= WLEN/2) && (wm >= WLEN/2))
+								change = 1 ;
+							if (change > 0)
+							{
+								nchanged++ ;
+								mle_label(mri_T1, mri_out_labeled, x, y, z, 15, l1, l2) ;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		/* now relabel cortex that is between WM and hypointensity */
+		for (x = 0 ; x < mri_T1->width ; x++)
+		{
+			for (y = 0 ; y < mri_T1->height ; y++)
+			{
+				for (z = 0 ; z < mri_T1->depth ; z++)
+				{
+					if (x == Gx && y == Gy && z == Gz)
+						DiagBreak() ;
+					change = 0 ;
+					label = MRIvox(mri_in, x, y, z) ;
+					if (IS_GM(label) == 0 && (IS_UNKNOWN(label) == 0))
+						continue ;
+					xm1 = mri_T1->xi[x-1] ; xp1 = mri_T1->xi[x+1] ;
+					ym1 = mri_T1->yi[y-1] ; yp1 = mri_T1->yi[y+1] ;
+					zm1 = mri_T1->zi[z-1] ; zp1 = mri_T1->zi[z+1] ;
+					lxp1 = MRIvox(mri_in, xp1, y, z) ;
+					lxm1 = MRIvox(mri_in, xm1, y, z) ;
+					lyp1 = MRIvox(mri_in, x, yp1, z) ;
+					lym1 = MRIvox(mri_in, x, ym1, z) ;
+					lzp1 = MRIvox(mri_in, x, y, zp1) ;
+					lzm1 = MRIvox(mri_in, x, y, zm1) ;
+					if ((IS_WM(lxm1) && IS_HYPO(lxp1)) ||
+							(IS_WM(lxp1) && IS_HYPO(lxm1)))
+					{
+						change = 1 ; l1 = lxm1 ; l2 = lxp1 ;
+					}
+					if ((IS_WM(lym1) && IS_HYPO(lyp1)) ||
+							(IS_WM(lyp1) && IS_HYPO(lym1)))
+					{
+						change = 1 ; l1 = lym1 ; l2 = lyp1 ;
+					}
+					if ((IS_WM(lzm1) && IS_HYPO(lzp1)) ||
+							(IS_WM(lzp1) && IS_HYPO(lzm1)))
+					{
+						change = 1 ; l1 = lzm1 ; l2 = lzp1 ;
+					}
+
+
+					if ((IS_HYPO(lxm1) && IS_HYPO(lxp1)) ||
+							(IS_HYPO(lxp1) && IS_HYPO(lxm1)))
+					{
+						change = 1 ; l1 = lxm1 ; l2 = lxp1 ;
+					}
+					if ((IS_HYPO(lym1) && IS_HYPO(lyp1)) ||
+							(IS_HYPO(lyp1) && IS_HYPO(lym1)))
+					{
+						change = 1 ; l1 = lym1 ; l2 = lyp1 ;
+					}
+					if ((IS_HYPO(lzm1) && IS_HYPO(lzp1)) ||
+							(IS_HYPO(lzp1) && IS_HYPO(lzm1)))
+					{
+						change = 1 ; l1 = lzm1 ; l2 = lzp1 ;
+					}
+					if (change)
+					{
+						nchanged++ ;
+						mle_label(mri_T1, mri_out_labeled, x, y, z, 15, l1, l2) ;
+					}
+				}
+			}
+		}
+		MRIcopy(mri_out_labeled, mri_in) ;
+		total_changed += nchanged ;
+	}
+
+
+	printf("%d unknown voxels changed to wm or ventricle\n", total_changed) ;
+	MRIfree(&mri_in) ;
+	return(mri_out_labeled) ;
+}
+
+static MRI *
+edit_border_voxels(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
+{
+	int     label, x, y, z, xm1, xp1, ym1, yp1, zm1, zp1, lxp1, lxm1, lyp1, lym1, lzp1, lzm1, nchanged,
+		      change, olabel ;
+	float   means[MAX_CMA_LABELS], xp1d, xm1d, yp1d, ym1d, zp1d, zm1d, val, ld ;
+	MRI     *mri_tmp ;
+
+	if (mri_in_labeled == mri_out_labeled)
+	{
+		mri_tmp = MRIcopy(mri_in_labeled, NULL) ;
+		mri_in_labeled = mri_tmp;
+	}
+	else
+		mri_tmp = NULL ;
+
+	mri_out_labeled = MRIcopy(mri_in_labeled, mri_out_labeled) ;
+	for (nchanged = x = 0 ; x < mri_T1->width ; x++)
+	{
+		for (y = 0 ; y < mri_T1->height ; y++)
+		{
+			for (z = 0 ; z < mri_T1->depth ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				change = 0 ;
+				olabel = label = MRIvox(mri_in_labeled, x, y, z) ;
+				if (IS_UNKNOWN(label))
+					continue ;
+				xm1 = mri_T1->xi[x-1] ; xp1 = mri_T1->xi[x+1] ;
+				ym1 = mri_T1->yi[y-1] ; yp1 = mri_T1->yi[y+1] ;
+				zm1 = mri_T1->zi[z-1] ; zp1 = mri_T1->zi[z+1] ;
+				lxp1 = MRIvox(mri_in_labeled, xp1, y, z) ;
+				lxm1 = MRIvox(mri_in_labeled, xm1, y, z) ;
+				lyp1 = MRIvox(mri_in_labeled, x, yp1, z) ;
+				lym1 = MRIvox(mri_in_labeled, x, ym1, z) ;
+				lzp1 = MRIvox(mri_in_labeled, x, y, zp1) ;
+				lzm1 = MRIvox(mri_in_labeled, x, y, zm1) ;
+				if (label == lxm1 &&
+						label == lxp1 &&
+						label == lym1 &&
+						label == lyp1 &&
+						label == lzm1 &&
+						label == lzp1)
+					continue ;  /* it's not a border label */
+				if (!(IS_WM(label) || IS_HIPPO(label) || IS_GM(label) || IS_UNKNOWN(label) || IS_LAT_VENT(label)))
+					continue ;
+
+
+				val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
+				means[label] = label_mean(mri_T1, mri_in_labeled, x, y, z, 15, label) ;
+				ld = fabs(means[label] - val) ;
+
+				if (ld/means[label] < 0.1)
+					continue ;
+
+				ld *= 0.5 ;  /* bias towards keeping same label */
+
+
+				if (lxm1 != label)
+					means[lxm1] = label_mean(mri_T1, mri_in_labeled, x, y, z, 15, lxm1) ;
+				if (lxp1 != label)
+					means[lxp1] = label_mean(mri_T1, mri_in_labeled, x, y, z, 15, lxp1) ;
+				if (lym1 != label)
+					means[lym1] = label_mean(mri_T1, mri_in_labeled, x, y, z, 15, lym1) ;
+				if (lyp1 != label)
+					means[lyp1] = label_mean(mri_T1, mri_in_labeled, x, y, z, 15, lyp1) ;
+				if (lzm1 != label)
+					means[lzm1] = label_mean(mri_T1, mri_in_labeled, x, y, z, 15, lzm1) ;
+				if (lzp1 != label)
+					means[lzp1] = label_mean(mri_T1, mri_in_labeled, x, y, z, 15, lzp1) ;
+				xp1d = fabs(means[lxp1] - val) ;
+				if (xp1d < ld)
+				{
+					ld = xp1d ;
+					olabel = lxp1 ;
+				}
+				xm1d = fabs(means[lxm1] - val) ;
+				if (xm1d < ld)
+				{
+					ld = xm1d ;
+					olabel = lxm1 ;
+				}
+				yp1d = fabs(means[lyp1] - val) ;
+				if (yp1d < ld)
+				{
+					olabel = lyp1 ;
+					ld = yp1d ;
+				}
+				ym1d = fabs(means[lym1] - val) ;
+				if (ym1d < ld)
+				{
+					olabel = lym1 ;
+					ld = ym1d ;
+				}
+				zp1d = fabs(means[lzp1] - val) ;
+				if (zp1d < ld)
+				{
+					olabel = lzp1 ;
+					ld = zp1d ; 
+				}
+				zm1d = fabs(means[lzm1] - val) ;
+				if (zp1d < ld)
+				{
+					olabel = lzp1 ;
+					ld = zp1d ;
+				}
+
+				/* only let certain labels change */
+				if (!(IS_WM(olabel) || IS_HIPPO(olabel) || IS_GM(olabel) || IS_UNKNOWN(olabel) || IS_LAT_VENT(olabel)))
+					continue ;
+				if ((IS_GM(label) && IS_HIPPO(olabel)) ||
+						(IS_GM(olabel) && IS_HIPPO(label)))
+					continue ;  /* don't change hippo to gm based on intensity - too similar */
+				if ((label != olabel) && MRIneighborsInWindow(mri_in_labeled, x, y, z, 3, olabel) > 5)
+				{
+					nchanged++ ;
+					MRIvox(mri_out_labeled, x, y, z) = olabel ;
+				}
+			}
+		}
+	}
+
+	if (mri_tmp) 
+		MRIfree(&mri_tmp) ;
+	printf("%d border voxels changed\n", nchanged) ;
+	return(mri_out_labeled) ;
 }
