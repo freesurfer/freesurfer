@@ -5,6 +5,11 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#if (__GNUC__ < 3)
+#include "/usr/include/g++-3/alloc.h"
+#endif
+#include <string>
+
 extern "C" {
 #include "mri.h"
 #include "transform.h"
