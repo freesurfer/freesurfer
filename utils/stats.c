@@ -635,7 +635,7 @@ StatWriteVolume(SV *sv, char *prefix)
   sprintf(fname, "%s.dat", prefix) ;
   fp = fopen(fname, "w") ;
   if (!fp)
-    ErrorReturn(NULL, (ERROR_NOFILE, 
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, 
                        "StatWriteVolume: could not open dat file %s", fname)) ;
   fprintf(fp, "tr %f\n", sv->tr) ;
   fprintf(fp, "timewindow %f\n", sv->timewindow) ;
@@ -656,8 +656,9 @@ StatWriteVolume(SV *sv, char *prefix)
     sprintf(fname, "%s_%3.3d.dof", prefix, z) ;
     fp = fopen(fname, "w") ;
     if (!fp)
-      ErrorReturn(NULL, (ERROR_NOFILE, "StatWriteVolume: could not open "
-                         "dof file %s",fname));
+      ErrorReturn(ERROR_NOFILE, 
+                  (ERROR_NOFILE, "StatWriteVolume: could not open "
+                   "dof file %s",fname));
     for (event_number = 0 ; event_number < sv->nevents ; event_number++)
       fprintf(fp, "%d %2.0f %2.0f\n", event_number, 
               sv->mean_dofs[event_number], sv->std_dofs[event_number]) ;
@@ -776,7 +777,7 @@ StatWriteRegistration(fMRI_REG *reg, char *fname)
 
   fp = fopen(fname, "w") ;
   if (!fp)
-    ErrorReturn(NULL, (ERROR_NOFILE, 
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, 
                        "StatWriteRegistration: could not open %s", fname)) ;
   fprintf(fp, "%s\n", reg->name) ;
   fprintf(fp, "%f\n", reg->in_plane_res) ;
