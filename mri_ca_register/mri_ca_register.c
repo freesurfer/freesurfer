@@ -1,3 +1,12 @@
+//
+// mri_ca_regiser.c
+//
+// by Bruce Fischl
+//
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/05/28 17:27:23 $
+// Revision       : $Revision: 1.27 $
 
 
 #include <math.h>
@@ -21,6 +30,7 @@
 #include "gcamorph.h"
 #include "transform.h"
 #include "mrisegment.h"
+#include "version.h"
 
 static int remove_bright =0 ;
 static int map_to_flash = 0 ;
@@ -109,7 +119,7 @@ main(int argc, char *argv[])
   parms.dt = 0.05 ;  /* was 5e-6 */
   parms.momentum = 0.9 ;
   parms.tol = .05 ;  /* at least .05% decrease in sse */
-	parms.l_jacobian = 1.0 ; 
+  parms.l_jacobian = 1.0 ; 
   parms.l_label = 1.0 ;
   parms.l_map = 0.0 ;
   parms.label_dist = 10.0 ;
@@ -129,6 +139,11 @@ main(int argc, char *argv[])
 
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
+
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.27 2004/05/28 17:27:23 tosa Exp $", "$Name:  $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   ac = argc ;
   av = argv ;
@@ -166,14 +181,14 @@ main(int argc, char *argv[])
     mri_tmp = MRIread(in_fname) ;
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
-								Progname, in_fname) ;
+		Progname, in_fname) ;
     
     TRs[input] = mri_tmp->tr ;
     fas[input] = mri_tmp->flip_angle ;
     TEs[input] = mri_tmp->te ;
 #if 0
-		if (mri_tmp->type == MRI_FLOAT)
-			MRIchangeType(mri_tmp, MRI_SHORT, 0, 10000,  1) ;
+    if (mri_tmp->type == MRI_FLOAT)
+      MRIchangeType(mri_tmp, MRI_SHORT, 0, 10000,  1) ;
 #endif
     
     // -mask option
@@ -183,8 +198,8 @@ main(int argc, char *argv[])
       
       mri_mask = MRIread(mask_fname) ;
       if (!mri_mask)
-				ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-									Progname, mask_fname) ;
+	ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+		  Progname, mask_fname) ;
       // if mask == 0, then set dst as 0
       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
       MRIfree(&mri_mask) ;
@@ -198,7 +213,7 @@ main(int argc, char *argv[])
     if (input == 0)
     {
       mri_inputs = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-																		mri_tmp->type, ninputs+extra) ;
+				    mri_tmp->type, ninputs+extra) ;
       // first one's header is copied
       MRIcopyHeader(mri_tmp, mri_inputs) ;
     }
@@ -226,7 +241,7 @@ main(int argc, char *argv[])
     gca = gca_tmp ;
     if (ninputs != gca->ninputs)
       ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
-								Progname, gca->ninputs, ninputs) ;
+		Progname, gca->ninputs, ninputs) ;
     GCAhistoScaleImageIntensities(gca, mri_inputs) ;
     if (novar)
       GCAunifyVariance(gca) ;
@@ -250,7 +265,7 @@ main(int argc, char *argv[])
   
   if ((ninputs+extra) != gca->ninputs)
     ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
-							Progname, gca->ninputs, ninputs) ;
+	      Progname, gca->ninputs, ninputs) ;
   
   /////////////////////////////////////////////////////////////////
   // clear six neighborhood information 
@@ -328,9 +343,9 @@ main(int argc, char *argv[])
   // assumed to be vox-to-vox
   if (!transform_loaded)   /* wasn't preloaded */
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
-	else
+  else
     // calculate inverse and cache it
-		TransformInvert(transform, mri_inputs) ;
+    TransformInvert(transform, mri_inputs) ;
 
   /////////////////////////////////////////////////
   // -novar option  (default novar = 1)
@@ -359,9 +374,9 @@ main(int argc, char *argv[])
     {
       for (i = 0 ; i < ninputs ; i++)
       {
-				mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
-				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-				MRIfree(&mri_grad) ;
+	mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
+	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+	MRIfree(&mri_grad) ;
       }
       start += ninputs ;
     }
@@ -369,9 +384,9 @@ main(int argc, char *argv[])
     {
       for (i = 0 ; i < ninputs ; i++)
       {
-				mri_grad = MRIySobel(mri_smooth, NULL, i) ;
-				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-				MRIfree(&mri_grad) ;
+	mri_grad = MRIySobel(mri_smooth, NULL, i) ;
+	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+	MRIfree(&mri_grad) ;
       }
       start += ninputs ;
     }
@@ -379,9 +394,9 @@ main(int argc, char *argv[])
     {
       for (i = 0 ; i < ninputs ; i++)
       {
-				mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
-				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-				MRIfree(&mri_grad) ;
+	mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
+	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+	MRIfree(&mri_grad) ;
       }
       start += ninputs ;
     }
@@ -415,7 +430,7 @@ main(int argc, char *argv[])
     TransformSample(transform, Gvx, Gvy, Gvz, &xf, &yf, &zf) ;
     Gsx = nint(xf) ; Gsy = nint(yf) ; Gsz = nint(zf) ;
     printf("mapping by transform (%d, %d, %d) --> (%d, %d, %d) for rgb writing\n",
-					 Gvx, Gvy, Gvz, Gsx, Gsy, Gsz) ;
+	   Gvx, Gvy, Gvz, Gsx, Gsy, Gsz) ;
   }
   
   //////////////////////////////////////////////////////////
@@ -423,24 +438,24 @@ main(int argc, char *argv[])
   if (regularize > 0)
     GCAregularizeCovariance(gca, regularize) ;
  
-	//////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////
   // -X prev.m3d option 
-	if (xform_name)
+  if (xform_name)
   {
     gcam = GCAMread(xform_name) ;
     if (!gcam)
       ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname, xform_name) ;
-		if (long_reg_fname)
-		{
-			TRANSFORM *transform ;
+    if (long_reg_fname)
+    {
+      TRANSFORM *transform ;
 
-			transform = TransformRead(long_reg_fname) ;
-			if (transform == NULL)
-				ErrorExit(ERROR_NOFILE, "%s: could not read longitudinal registration file %s", Progname, long_reg_fname) ;
+      transform = TransformRead(long_reg_fname) ;
+      if (transform == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read longitudinal registration file %s", Progname, long_reg_fname) ;
 			
-			GCAMapplyTransform(gcam, transform) ;
-			TransformFree(&transform) ;
-		}
+      GCAMapplyTransform(gcam, transform) ;
+      TransformFree(&transform) ;
+    }
   }
   else  // default is to create one
     gcam = GCAMalloc(gca->prior_width, gca->prior_height, gca->prior_depth) ;
@@ -454,9 +469,9 @@ main(int argc, char *argv[])
     gca_tl = GCAread(tl_fname) ;
     if (!gca_tl)
       ErrorExit(ERROR_NOFILE, "%s: could not temporal lobe gca %s",
-								Progname, tl_fname) ;
+		Progname, tl_fname) ;
     GCAMinit(gcam, mri_inputs, gca_tl, transform, 0) ;
-		GCAMmarkNegativeNodesInvalid(gcam);
+    GCAMmarkNegativeNodesInvalid(gcam);
     // debugging
     if (parms.write_iterations != 0)
     {
@@ -464,12 +479,12 @@ main(int argc, char *argv[])
       MRI  *mri_gca, *mri_tmp ;
       mri_gca = MRIclone(mri_inputs, NULL) ;
       GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-			if (mri_gca->nframes > 1)
-			{
-				printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
-				mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
-				MRIfree(&mri_gca) ; mri_gca = mri_tmp ;
-			}
+      if (mri_gca->nframes > 1)
+      {
+	printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
+	mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+	MRIfree(&mri_gca) ; mri_gca = mri_tmp ;
+      }
       sprintf(fname, "%s_target", parms.base_name) ;
       MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
       sprintf(fname, "%s_target.mgz", parms.base_name) ;
@@ -495,7 +510,7 @@ main(int argc, char *argv[])
     else
       GCAMcomputeMaxPriorLabels(gcam) ;
   }
-	GCAMmarkNegativeNodesInvalid(gcam) ;
+  GCAMmarkNegativeNodesInvalid(gcam) ;
 
 #if 0
   {
@@ -533,12 +548,12 @@ main(int argc, char *argv[])
     MRI  *mri_gca, *mri_tmp ;
     mri_gca = MRIclone(mri_inputs, NULL) ;
     GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-		if (mri_gca->nframes > 1)
-		{
-			printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
-			mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
-			MRIfree(&mri_gca) ; mri_gca = mri_tmp ;
-		}
+    if (mri_gca->nframes > 1)
+    {
+      printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
+      mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+      MRIfree(&mri_gca) ; mri_gca = mri_tmp ;
+    }
     sprintf(fname, "%s_target", parms.base_name) ;
     MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
     sprintf(fname, "%s_target.mgz", parms.base_name) ;
@@ -559,17 +574,17 @@ main(int argc, char *argv[])
   GCAMregister(gcam, mri_inputs, &parms) ;
 
   if (parms.l_label > 0)
-	{
+  {
     GCAMcomputeMaxPriorLabels(gcam) ;  /* start out with max prior labels again */
-		if (reset)
-		{
-			GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
-			GCAMstoreMetricProperties(gcam) ;
-		}
-		parms.l_label = 0 ;
-		printf("***************** morphing with label term set to 0 *******************************\n") ;
-		GCAMregister(gcam, mri_inputs, &parms) ;
-	}
+    if (reset)
+    {
+      GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
+      GCAMstoreMetricProperties(gcam) ;
+    }
+    parms.l_label = 0 ;
+    printf("***************** morphing with label term set to 0 *******************************\n") ;
+    GCAMregister(gcam, mri_inputs, &parms) ;
+  }
 
 #if 0
   for (iter = 0 ; iter < 3 ; iter++)
@@ -609,7 +624,7 @@ main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   printf("registration took %d minutes and %d seconds.\n", 
-				 minutes, seconds) ;
+	 minutes, seconds) ;
   if (diag_fp)
     fclose(diag_fp) ;
   exit(0) ;
