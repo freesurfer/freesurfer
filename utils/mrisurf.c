@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/30 16:08:35 $
-// Revision       : $Revision: 1.294 $
+// Revision Date  : $Date: 2004/07/30 18:57:44 $
+// Revision       : $Revision: 1.295 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2786,25 +2786,36 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
   // src information
   if (!lt->src.valid)
   {
-    // first try to get it from mri/orig
-    sprintf(transform_fname, "%s/../mri/orig", fpref) ; // reuse of the buffer
-    orig = MRIreadHeader(transform_fname, -1);
-    if (orig)
+    // first try to get it from surface itself
+    if (mris->vg.valid)
     {
-      getVolGeom(orig, &lt->src);
-      MRIfree(&orig);
-      orig = 0;
-      fprintf(stderr, "INFO: found the orig volume to get c_(ras) information for src\n");
+      fprintf(stderr, "INFO: found the orig volume info in the surface data.\n");
+      lt->src.c_r = mris->vg.c_r;
+      lt->src.c_a = mris->vg.c_a;
+      lt->src.c_s = mris->vg.c_s;
     }
     else
     {
-      fprintf(stderr, "INFO: cannot find mri/orig volume to get c_(ras) information.\n");
-      fprintf(stderr, "INFO: transform src volume information cannot be found. assume c_(ras_ = 0\n");
-      fprintf(stderr, "INFO: destination surface points may be shifted in the volume.\n");
-      fprintf(stderr, "INFO: you should put the src info in the transform.\n");
-      lt->src.c_r = 0;
-      lt->src.c_a = 0;
-      lt->src.c_s = 0;
+      // first try to get it from mri/orig
+      sprintf(transform_fname, "%s/../mri/orig", fpref) ; // reuse of the buffer
+      orig = MRIreadHeader(transform_fname, -1);
+      if (orig)
+      {
+	getVolGeom(orig, &lt->src);
+	MRIfree(&orig);
+	orig = 0;
+	fprintf(stderr, "INFO: found the orig volume to get c_(ras) information for src\n");
+      }
+      else
+      {
+	fprintf(stderr, "INFO: cannot find mri/orig volume to get c_(ras) information.\n");
+	fprintf(stderr, "INFO: transform src volume information cannot be found. assume c_(ras_ = 0\n");
+	fprintf(stderr, "INFO: destination surface points may be shifted in the volume.\n");
+	fprintf(stderr, "INFO: you should put the src info in the transform.\n");
+	lt->src.c_r = 0;
+	lt->src.c_a = 0;
+	lt->src.c_s = 0;
+      }
     }
   }
   // check dst info
