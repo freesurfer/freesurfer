@@ -1,3 +1,8 @@
+#include <pwd.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+
 
 #include <stdlib.h>
 #include <string>
@@ -6,6 +11,7 @@
 #include <stdexcept>
 #include <map>
 #include "DataCollection.h"
+#include "Scuba-impl.h"
 
 #define Assert(x,s)   \
   if(!(x)) { \
@@ -238,3 +244,5 @@ int main ( int argc, char** argv ) {
   
   exit( 0 );
 }
+
+

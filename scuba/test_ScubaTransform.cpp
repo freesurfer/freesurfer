@@ -2,6 +2,7 @@
 extern "C" {
 #include "macros.h"
 }
+#include "Scuba-impl.h"
 
 char* Progname = "test_ScubaTransform";
 
@@ -173,7 +174,7 @@ int main ( int argc, char** argv ) {
     cerr << "failed" << endl;
     exit( 1 );
   }
-
+  
   cerr << "Success" << endl;
 
   exit( 0 );
