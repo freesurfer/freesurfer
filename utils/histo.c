@@ -1237,3 +1237,14 @@ HISTOclearZeroBin(HISTOGRAM *h)
   h->counts[b] = 0 ;
   return(NO_ERROR) ;
 }
+int
+HISTOfindBin(HISTOGRAM *h, float val)
+{
+	int b ;
+
+	for (b = h->nbins-1 ; b > 0 ; b--)
+		if (h->bins[b-1] < val)
+			return(b) ;
+
+	return(0) ;
+}
