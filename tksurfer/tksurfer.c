@@ -6745,8 +6745,11 @@ send_spherical_point(char *subject_name, char *canon_name, char *orig_name)
     printf("TALAIRACH (%2.1f %2.1f %2.1f)\n",x_tal,y_tal,z_tal);
 #endif
   if (DIAG_VERBOSE_ON)
-    printf("ORIGINAL  (%2.1f %2.1f %2.1f)\n",x,y,z); PR
-						       fprintf(fp,"%f %f %f\n",sv->x,sv->y,sv->z);
+    printf("ORIGINAL  (%2.1f %2.1f %2.1f)\n",x,y,z); 
+
+  /* Write the point to the file. */
+  fprintf(fp,"%f %f %f\n",sv->x,sv->y,sv->z);
+
 #if 0
   fprintf(fp,"%f %f %f\n",x_tal,y_tal,z_tal);
 #endif
@@ -18148,7 +18151,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.59 2003/10/31 20:11:35 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.60 2003/11/28 18:26:27 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20655,13 +20658,13 @@ int conv_ras_to_mnital(float srasx, float srasy, float srasz,
 {
   Real rasx, rasy, rasz;
 
-  /* If we have the original MRI volume, use it to go from surface RAS
-     coords to normal RAS coords. Otherwise just use the surface RAS
-     coords. */
-  if (NULL != origMRI)
+  /* If we have the original MRI volume and this surface doesn't have
+     the useRealRAS flag, use it to go from surface RAS coords to
+     normal RAS coords. Otherwise just use the surface RAS coords. */
+  if (NULL != origMRI && !mris->useRealRAS)
     {
       MRIsurfaceRASToRAS (origMRI, srasx, srasy, srasz,
-      			  &rasx, &rasy, &rasz);
+			  &rasx, &rasy, &rasz);
     }
   else
     {
