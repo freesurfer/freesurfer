@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/02/09 21:45:55 $
-// Revision       : $Revision: 1.84 $
+// Revision Date  : $Date: 2004/02/26 19:03:02 $
+// Revision       : $Revision: 1.85 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
   out_stats_flag = FALSE;
   read_only_flag = FALSE;
   no_write_flag = FALSE;
-  resample_type_val = RESAMPLE_INTERPOLATE;
+  resample_type_val = SAMPLE_TRILINEAR;
   in_i_size_flag = in_j_size_flag = in_k_size_flag = FALSE;
   out_i_size_flag = out_j_size_flag = out_k_size_flag = FALSE;
   in_i_direction_flag = in_j_direction_flag = in_k_direction_flag = FALSE;
@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.84 2004/02/09 21:45:55 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.85 2004/02/26 19:03:02 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -526,15 +526,15 @@ int main(int argc, char *argv[])
     {
       get_string(argc, argv, &i, resample_type);
       if(strcmp(StrLower(resample_type), "interpolate") == 0)
-        resample_type_val = RESAMPLE_INTERPOLATE;
+        resample_type_val = SAMPLE_TRILINEAR;
       else if(strcmp(StrLower(resample_type), "nearest") == 0)
-        resample_type_val = RESAMPLE_NEAREST;
+        resample_type_val = SAMPLE_NEAREST;
       else if(strcmp(StrLower(resample_type), "weighted") == 0)
-        resample_type_val = RESAMPLE_WEIGHTED;
+        resample_type_val = SAMPLE_WEIGHTED;
       else if(strcmp(StrLower(resample_type), "sinc") == 0)
-        resample_type_val = RESAMPLE_SINC;
+        resample_type_val = SAMPLE_SINC;
       else if(strcmp(StrLower(resample_type), "cubic") == 0)
-        resample_type_val = RESAMPLE_CUBIC;
+        resample_type_val = SAMPLE_CUBIC;
       else
       {
         fprintf(stderr, "\n%s: unknown resample type \"%s\"\n", Progname, argv[i]);
@@ -1095,7 +1095,7 @@ int main(int argc, char *argv[])
       mri = mri2;
     }
 
-    resample_type_val = RESAMPLE_NEAREST;
+    resample_type_val = SAMPLE_NEAREST;
     no_scale_flag = TRUE;
 
   }
@@ -1123,7 +1123,7 @@ int main(int argc, char *argv[])
       exit(1);
     }
 
-    resample_type_val = RESAMPLE_NEAREST;
+    resample_type_val = SAMPLE_NEAREST;
     no_scale_flag = TRUE;
   }
   else
@@ -1632,11 +1632,11 @@ int main(int argc, char *argv[])
   {
     printf("Reslicing using ");
     switch(resample_type_val){
-    case RESAMPLE_INTERPOLATE: printf("trilinear interpolation \n"); break;
-    case RESAMPLE_NEAREST:     printf("nearest \n"); break;
-    case RESAMPLE_SINC:        printf("sinc \n"); break;
-    case RESAMPLE_CUBIC:       printf("cubic \n"); break;
-    case RESAMPLE_WEIGHTED:    printf("weighted \n"); break;
+    case SAMPLE_TRILINEAR: printf("trilinear interpolation \n"); break;
+    case SAMPLE_NEAREST:     printf("nearest \n"); break;
+    case SAMPLE_SINC:        printf("sinc \n"); break;
+    case SAMPLE_CUBIC:       printf("cubic \n"); break;
+    case SAMPLE_WEIGHTED:    printf("weighted \n"); break;
     }
     mri2 = MRIresample(mri, template, resample_type_val);
     if(mri2 == NULL) exit(1);
