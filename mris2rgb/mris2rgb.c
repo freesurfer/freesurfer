@@ -14,6 +14,12 @@
 #include <GL/glx.h>
 
 #if defined(Linux)|| defined(__sun__)
+#ifndef WINGDIAPI
+#define WINGDIAPI  extern
+#endif
+#ifndef APIENTRY
+#define APIENTRY
+#endif
 #include "GL/osmesa.h"
 #endif
 
@@ -29,7 +35,7 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.22 1999/02/05 17:06:37 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.23 1999/02/05 18:11:06 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
