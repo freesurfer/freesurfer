@@ -197,6 +197,8 @@ IMAGE *LogMapApplyOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ioffset,
 IMAGE *LogMapGaussianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, 
                               IMAGE *Igaussian, IMAGE *Idst) ;
 IMAGE *LogMapOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset) ;
+IMAGE *LogMapAddSaltNoise(LOGMAP_INFO *lmi, IMAGE *Isrc,IMAGE *Idst,
+        float density);
 
 #if 0
 #define for_each_neighbor(lmi, ptr, i, j, r, s) \
