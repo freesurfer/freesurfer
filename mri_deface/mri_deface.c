@@ -59,6 +59,7 @@ static FILE *diag_fp = NULL ;
 static LTA *Glta = NULL ;
 static TRANSFORM *transform = NULL ;
 
+double compute_mah_dist(float *wm_means, MATRIX *m_wm_covar, float *vals, int ninputs) ;
 static double find_optimal_linear_xform(GCA *gca, GCA_SAMPLE *gcas, 
 																				MRI *mri, 
 																				int nsamples, MATRIX *m_L, MATRIX *m_origin,
@@ -211,7 +212,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.7 2003/03/28 18:14:18 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.8 2003/03/28 21:38:17 fischl Exp $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -249,8 +250,14 @@ main(int argc, char *argv[])
 
 	if (Ggca_label >= 0)
 	{
-		double mean = GCAlabelMean(gca, Ggca_label) ;
-		printf("label %s: mean = %2.1f\n", cma_label_to_name(Ggca_label), mean) ;
+		float means[MAX_GCA_INPUTS] ;
+		int   i ;
+
+		GCAlabelMean(gca, Ggca_label, means) ;
+		printf("label %s: mean = ", cma_label_to_name(Ggca_label)) ;
+		for (i = 0 ; i < gca->ninputs ; i++)
+			printf("%2.1f ", means[i]) ;
+		printf("\n") ;
 	}
 
   gca_face = GCAread(gca_face_fname) ;
@@ -498,7 +505,8 @@ main(int argc, char *argv[])
 		printf("resampling to original coordinate system...\n");
 		mri_tmp = MRIresample(mri_out, mri_orig, RESAMPLE_NEAREST) ;
 		MRIfree(&mri_out) ; mri_out = mri_tmp ;
-		MRIwrite(mri_out, "after_resampling.mgh") ;
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+			MRIwrite(mri_out, "after_resampling.mgh") ;
 	}
 
 	MRImask(mri_orig, mri_out, mri_orig, 0, 0) ;
@@ -2249,12 +2257,13 @@ recompute_labels(MRI *mri, GCA *gca, GCA_SAMPLE *gcas,
 MRI *
 MRIremoveFace(MRI *mri_src, MRI *mri_dst, LTA *lta, GCA *gca, GCA *gca_face, int radius)
 {
-	int    x, y, z, frame, n, nerased = 0, nskipped = 0 ;
+	int       x, y, z, frame, n, nerased = 0, nskipped = 0, i ;
   TRANSFORM *transform ;
 	GCA_PRIOR *gcap_face ;
 	MRI       *mri_brain, *mri_brain2 ;
-	float     wm_mean, gm_mean, wm_var, gm_var, mah_dist ;
-	Real      val ;
+	float     wm_means[MAX_GCA_INPUTS], gm_means[MAX_GCA_INPUTS], means[MAX_GCA_INPUTS], mah_dist ;
+	float     vals[MAX_GCA_INPUTS] ;
+	MATRIX    *m_wm_covar, *m_gm_covar, *m ;
 
 	transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
   ((LTA *)transform->xform)->xforms[0].m_L = lta->xforms[0].m_L ;
@@ -2266,17 +2275,24 @@ MRIremoveFace(MRI *mri_src, MRI *mri_dst, LTA *lta, GCA *gca, GCA *gca_face, int
 	for (n = 0 ; n < 2*radius ; n++)
 		MRIdilate(mri_brain2, mri_brain2) ;
 
-	wm_mean = GCAlabelMean(gca, Left_Cerebral_White_Matter) ;
-	wm_mean = (wm_mean + GCAlabelMean(gca, Right_Cerebral_White_Matter))/2 ;
-	gm_mean = GCAlabelMean(gca, Left_Cerebral_Cortex) ;
-	gm_mean = (gm_mean + GCAlabelMean(gca, Right_Cerebral_Cortex))/2 ;
+	GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means) ;
+	GCAlabelMean(gca, Right_Cerebral_White_Matter, means) ;
+	for (i = 0 ; i < gca->ninputs ; i++)
+		wm_means[i] = (wm_means[i] + means[i]) / 2 ;
+	GCAlabelMean(gca, Left_Cerebral_Cortex, gm_means) ;
+	GCAlabelMean(gca, Right_Cerebral_Cortex, means) ;
+	for (i = 0 ; i < gca->ninputs ; i++)
+		gm_means[i] = (gm_means[i] + means[i]) / 2 ;
 
-	wm_var = GCAlabelVar(gca, Left_Cerebral_White_Matter) ;
-	wm_var = (wm_var + GCAlabelVar(gca, Right_Cerebral_White_Matter))/2 ;
-	gm_var = GCAlabelVar(gca, Left_Cerebral_Cortex) ;
-	gm_var = (gm_var + GCAlabelVar(gca, Right_Cerebral_Cortex))/2 ;
+	m_wm_covar = GCAlabelCovariance(gca, Left_Cerebral_White_Matter, NULL) ;
+	m = GCAlabelCovariance(gca, Right_Cerebral_White_Matter, NULL) ;
+	MatrixAdd(m_wm_covar, m, m_wm_covar) ;
 
-	printf("using wm = %2.1f +- %2.1f, gm = %2.1f +- %2.1f\n",wm_mean,sqrt(wm_var), gm_mean,sqrt(gm_var)) ;
+	m_gm_covar = GCAlabelCovariance(gca, Left_Cerebral_Cortex, NULL) ;
+	m = GCAlabelCovariance(gca, Right_Cerebral_Cortex, NULL) ;
+	MatrixAdd(m_gm_covar, m, m_gm_covar) ;
+
+	/*	printf("using wm = %2.1f +- %2.1f, gm = %2.1f +- %2.1f\n",wm_mean,sqrt(wm_var), gm_mean,sqrt(gm_var)) ;*/
 	for (x = 0 ; x < mri_src->width ; x++)
 	{
 		if (((x+1)%10) == 0)
@@ -2291,14 +2307,14 @@ MRIremoveFace(MRI *mri_src, MRI *mri_dst, LTA *lta, GCA *gca, GCA *gca_face, int
 					continue ;
 				if (MRIvox(mri_brain2, x, y, z) > 0)   /* within 2*radius - test image value */
 				{
-					MRIsampleVolume(mri_src, x, y, z, &val) ;
-					mah_dist = sqrt(SQR(val - wm_mean)/wm_var) ;
+					load_vals(mri_src, x, y, z, vals, gca->ninputs) ;
+					mah_dist = compute_mah_dist(wm_means, m_wm_covar, vals, gca->ninputs) ;
 					if (mah_dist < 2)
 					{
 						nskipped++ ;
 						continue ;
 					}
-					mah_dist = sqrt(SQR(val - gm_mean)/gm_var) ;
+					mah_dist = compute_mah_dist(gm_means, m_gm_covar, vals, gca->ninputs) ;
 					if (mah_dist < 2)
 					{
 						nskipped++ ;
@@ -2384,4 +2400,36 @@ fill_brain_volume(MRI *mri, GCA *gca, TRANSFORM *transform, int radius)
 	for (i = 0 ; i < radius ; i++)
 		MRIdilate(mri_brain, mri_brain) ;
 	return(mri_brain) ;
+}
+double
+compute_mah_dist(float *means, MATRIX *m_cov, float *vals, int ninputs)
+{
+	double  dsq ;
+	VECTOR  *v_vals, *v_tmp ;
+	int     i ;
+	MATRIX  *m_cov_inv = NULL ;
+
+	if (ninputs == 1)
+	{
+		double v ;
+		v = vals[0] - means[0] ;
+		dsq = v*v / *MATRIX_RELT(m_cov, 1, 1) ;
+		return(sqrt(dsq)) ;
+	}
+
+	v_vals = VectorAlloc(ninputs, MATRIX_REAL) ;
+
+	for (i = 0 ; i < ninputs ; i++)
+		VECTOR_ELT(v_vals, i+1) = means[i] - vals[i] ;
+
+	m_cov_inv = MatrixInverse(m_cov, m_cov_inv) ;
+	if (!m_cov_inv)
+		ErrorExit(ERROR_BADPARM, "singular covariance matrix!") ;
+	MatrixSVDInverse(m_cov, m_cov_inv) ;
+
+	v_tmp = MatrixMultiply(m_cov_inv, v_vals, NULL) ;  /* v_means is now inverse(cov) * v_vals */
+	dsq = VectorDot(v_tmp, v_vals) ;
+
+	MatrixFree(&m_cov_inv) ; VectorFree(&v_vals) ;
+	return(sqrt(dsq)) ;
 }
