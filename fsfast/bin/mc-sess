@@ -1,14 +1,16 @@
 #!/bin/csh -f
 # mc-sess - motion correction
 #
-# $Id: mc-sess,v 1.1 2003/03/04 21:22:09 greve Exp $
+# $Id: mc-sess,v 1.2 2003/09/20 00:43:34 greve Exp $
 
-set VERSION    = '$Id: mc-sess,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.2 2003/09/20 00:43:34 greve Exp $'
 
 set ScriptOnly = 0;
 set fsd = "bold";
 set mcmethod   = "afni"
 set targoff    = 0;
+set targoffmid = 0;
+set PerRun = 0;
 set funcstem   = f;  # stem of functional volume
 set funcmcstem = (); # stem of functional motion-corrected volume
 set PWDCMD = `getpwdcmd`;
@@ -123,14 +125,19 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  set targstem = $RunList[$targnthrun]/$funcstem
+  if(! $PerRun) set targstem = $RunList[$targnthrun]/$funcstem
   foreach run ($RunList)  
     echo "  ------- ************************** -----------" |& tee -a $LF
     echo "  ------- Motion Correcting Run $run -----------" |& tee -a $LF
     echo "  ------- ************************** -----------" |& tee -a $LF
     date |& tee -a $LF
+    if($PerRun) set targstem = $run/$funcstem
     set instem  = $run/$funcstem
     set outstem = $run/$funcmcstem
+    if($targoffmid) then
+      set nframes = `getnframes $instem`;
+      set targoff = `echo $nframes/2 | bc`;
+    endif
     set cmd = (mc-$mcmethod -i $instem -o $outstem \
                -t $targstem -toff $targoff);
     set cmd = ($cmd -ipr $inplaneres -bpr $betplaneres -TR $TR)
@@ -216,6 +223,11 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "-perrun":
+      set PerRun = 1;
+      set targoffmid = 1;
+      breaksw
+
     case "-nolog":
       set nolog = 1;
       breaksw
@@ -299,6 +311,7 @@ usage_exit:
   echo "   -umask umask       : set unix file permission mask"
   echo "   -version           : print version and exit"
   echo "   -rlf  runlistfile  : only process those in the runlist file"
+  echo "   -perrun            : MC each run separately (targ=mid)"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
