@@ -1492,6 +1492,167 @@ LABEL *MaskSurfLabel(LABEL *lbl, MRI *SurfMask,
 
   return(msklbl);
 }
+
+int
+LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
+{
+  int n, num_new_lvs, label_vno, vno, add, neighbor_index, neighbor_vno, 
+    check_vno, found;
+  LV* new_lv;
+  
+  if (NULL == area)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelErode: NULL label"));
+  if (NULL == mris)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelErode: NULL mris"));
+  if (num_times < 1)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelErode: num_times < 1"));
+
+  for (n = 0; n < num_times; n++)
+    {
+      /* Create an array of LVs the same size as the current label. */
+      new_lv = (LV*) calloc( area->n_points, sizeof(LV) );
+      if (NULL == new_lv)
+	ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,
+				    "LabelErode: couldn't allocate new_lv"));
+      num_new_lvs = 0;
+      
+      /* For each vertex in the label... */
+      for (label_vno = 0; label_vno < area->n_points; label_vno++)
+	{
+	  vno = area->lv[label_vno].vno;
+	  
+	  /* Check its neighbors in the surface. If all of them are in
+	     the label as well, add this vno to the dest label and
+	     increment our count. */
+	  add = 1;
+	  for (neighbor_index = 0; 
+	       neighbor_index < mris->vertices[vno].vnum; neighbor_index++)
+	    {
+	      neighbor_vno = mris->vertices[vno].v[neighbor_index];
+	      
+	      /* Look for neighbor_vno in the label. */
+	      found = 0;
+	      for (check_vno = 0; check_vno < area->n_points; check_vno++)
+		if (area->lv[check_vno].vno == neighbor_vno)
+		  {
+		    found = 1;
+		    break;
+		  }
+	      
+	      /* If we didn't find it, don't add this label vertex. */
+	      if (!found)
+		add = 0;
+	    }
+	  
+	  if (add)
+	    {
+	      memcpy (&new_lv[num_new_lvs], &area->lv[label_vno],
+		      sizeof(LV) );
+	      num_new_lvs++;
+	    }
+	}
+
+      /* Point the label's lv to the new one and update the number of
+	 points. */
+      free (area->lv);
+      area->lv = (LV*) realloc (new_lv, num_new_lvs * sizeof(LV));
+      area->n_points = num_new_lvs;
+      area->max_points = num_new_lvs;
+    }
+  
+  return (NO_ERROR);
+}
+
+int
+LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
+{
+  int n, num_new_lvs, vno, label_vno, add, neighbor_index, neighbor_vno,
+    found, check_vno;
+  LV* new_lv;
+
+  if (NULL == area)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelDilate: NULL label"));
+  if (NULL == mris)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelDilate: NULL mris"));
+  if (num_times < 1)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelDilate: num_times < 1"));
+
+  for (n = 0; n< num_times; n++ )
+    {
+      /* Allocate an LV array the size of the surface. */
+     new_lv = (LV*) calloc( mris->nvertices, sizeof(LV) );
+     if (NULL == new_lv)
+       ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,
+				   "LabelDilate: couldn't allocate new_lv"));
+     num_new_lvs = 0;
+      
+
+     /* Copy the existing lvs over first and increment our count. */
+     memcpy (new_lv, area->lv, area->n_points * sizeof(LV));
+     num_new_lvs = area->n_points;
+
+
+     /* For each vertex in the label... */
+     for (label_vno = 0; label_vno < area->n_points; label_vno++)
+       {
+	 vno = area->lv[label_vno].vno;
+	 
+	 /* Check its neighbors. If any are not in the label, and are
+	    not already in the new label, add it to the new label. */
+	 for (neighbor_index = 0; 
+	      neighbor_index < mris->vertices[vno].vnum; neighbor_index++)
+	   {
+	     neighbor_vno = mris->vertices[vno].v[neighbor_index];
+	     add = 0;
+	     
+	     /* Look for neighbor_vno in the label. */
+	     found = 0;
+	     for (check_vno = 0; check_vno < area->n_points; check_vno++)
+	       if (area->lv[check_vno].vno == neighbor_vno)
+		 {
+		   found = 1;
+		   break;
+		 }
+	     
+	     /* If we didn't find it, look for it in the new label. */
+	     if (!found)
+	     {
+	       found = 0;
+	       for (check_vno = 0; check_vno < num_new_lvs; check_vno++)
+		 if (new_lv[check_vno].vno == neighbor_vno)
+		   {
+		     found = 1;
+		     break;
+		   }
+
+	       /* If we didn't find it there, add it. */
+	       if (!found)
+		 add = 1;
+	     }
+	     
+	     if (add)
+	       {
+		 new_lv[num_new_lvs].vno = neighbor_vno;
+		 new_lv[num_new_lvs].x = mris->vertices[neighbor_vno].x;
+		 new_lv[num_new_lvs].y = mris->vertices[neighbor_vno].y;
+		 new_lv[num_new_lvs].z = mris->vertices[neighbor_vno].z;
+		 num_new_lvs++;
+	       }
+	   }
+       }
+     
+     /* Point the label's lv to the new one and update the number of
+	points. */
+     free (area->lv);
+     area->lv = (LV*) realloc (new_lv, num_new_lvs * sizeof(LV));
+     area->n_points = num_new_lvs;
+     area->max_points = num_new_lvs;
+    }
+  
+  return (NO_ERROR);
+}
+  
+
 static LABEL_VERTEX *
 labelFindVertexNumber(LABEL *area, int vno)
 {

@@ -1611,7 +1611,7 @@ int labl_add (LABEL* label, int* new_index);
 
 /* call when a label's internal coordinates have changed. recalcs the
    extent, finds the borders, all that stuff. */
-int labl_changed (int new_index);
+int labl_changed (int new_index, int vertices_were_removed);
 
 /* removes and deletes the label and bumps down all other labels in
    the list. */
@@ -1630,6 +1630,10 @@ int labl_select_label_by_vno (int vno);
 /* if this vno is in a label, changes the color of this vertex
    accordingly. */
 int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b );
+
+/* morphology operations. */
+int labl_erode (int index);
+int labl_dilate (int index);
 
 /* prints the label list. */
 int labl_print_list ();
@@ -9346,33 +9350,33 @@ sclv_smooth(int niter, int field)
   surface_compiled = 0 ;
   printf("surfer: sclv_smooth(%d,%s)\n",niter,sclv_field_names[field]);
   for (iter=0;iter<niter;iter++)
+    {
+      printf(".");fflush(stdout);
+      for (k=0;k<mris->nvertices;k++)
+	sclv_get_value( (&(mris->vertices[k])), 
+			field, &(mris->vertices[k].tdx));
+      for (k=0;k<mris->nvertices;k++)
 	{
-		printf(".");fflush(stdout);
-		for (k=0;k<mris->nvertices;k++)
-			sclv_get_value( (&(mris->vertices[k])), 
-											field, &(mris->vertices[k].tdx));
-		for (k=0;k<mris->nvertices;k++)
-		{
-			v = &mris->vertices[k];
-			sum=v->tdx;
-			if (k == Gdiag_no)
-				DiagBreak() ;
-			n = 1;
-			for (m=0;m<v->vnum;m++)
+	  v = &mris->vertices[k];
+	  sum=v->tdx;
+	  if (k == Gdiag_no)
+	    DiagBreak() ;
+	  n = 1;
+	  for (m=0;m<v->vnum;m++)
 	    {
 	      sum += mris->vertices[v->v[m]].tdx;
 	      n++;
 	    }
-			average = 0;
-			if( n != 0 ) 
-				average = sum / (float)n;
-			if (!finite(sum))
-				DiagBreak() ;
-			if (!finite(average))
-				DiagBreak() ;
-			sclv_set_value (v, field, average);
-		}
+	  average = 0;
+	  if( n != 0 ) 
+	    average = sum / (float)n;
+	  if (!finite(sum))
+	    DiagBreak() ;
+	  if (!finite(average))
+	    DiagBreak() ;
+	  sclv_set_value (v, field, average);
 	}
+    }
   printf("\n");PR;
   
   /* values have changed, need to recalc frequencies */
@@ -17944,6 +17948,12 @@ ERR(1,"Wrong # args: func_select_marked_vertices")
      int W_labl_select_label_by_vno WBEGIN
      ERR(2,"Wrong # args: labl_select_label_by_vno vno")
      labl_select_label_by_vno (atoi(argv[1])); WEND
+     int W_labl_erode WBEGIN
+     ERR(2,"Wrong # args: labl_erode index")
+     labl_erode (atoi(argv[1])); WEND
+     int W_labl_dilate WBEGIN
+     ERR(2,"Wrong # args: labl_dilate index")
+     labl_dilate (atoi(argv[1])); WEND
      int W_labl_print_list WBEGIN
      ERR(1,"Wrong # args: labl_print_list")
      labl_print_list(); WEND
@@ -18153,7 +18163,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.68 2004/06/10 17:49:53 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.69 2004/06/10 20:23:20 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18739,6 +18749,10 @@ int main(int argc, char *argv[])   /* new main */
 		    W_labl_remove, REND);
   Tcl_CreateCommand(interp, "labl_remove_all",
 		    W_labl_remove_all, REND);
+  Tcl_CreateCommand(interp, "labl_erode",
+		    W_labl_erode, REND);
+  Tcl_CreateCommand(interp, "labl_dilate",
+		    W_labl_dilate, REND);
   Tcl_CreateCommand(interp, "labl_select_label_by_vno",
 		    W_labl_select_label_by_vno, REND);
   Tcl_CreateCommand(interp, "labl_print_list",
@@ -22398,105 +22412,91 @@ int labl_find_and_set_border (int index)
   /* for each vertex in the label... */
   label = labl_labels[index].label;
   for (label_vno = 0; label_vno < label->n_points; label_vno++)
-	{  
-		/* get the vno and look at this vertex in the mris. if it has
-			 any neighbors that are not in the same label AND still not in
-			 the label... */
-		v = &(mris->vertices[label->lv[label_vno].vno]);
-		for (neighbor_vno = 0; neighbor_vno < v->vnum; neighbor_vno++ )
-		{
-			labl_find_label_by_vno (v->v[neighbor_vno], 0, label_index_array,
-															LABL_MAX_LABELS, &num_labels_found);
-			if( num_labels_found > 0 ) 
+    {  
+      /* get the vno and look at this vertex in the mris. if it has
+	 any neighbors that are not in the same label AND still not in
+	 the label... */
+      v = &(mris->vertices[label->lv[label_vno].vno]);
+      for (neighbor_vno = 0; neighbor_vno < v->vnum; neighbor_vno++ )
+	{
+	  labl_find_label_by_vno (v->v[neighbor_vno], 0, label_index_array,
+				  LABL_MAX_LABELS, &num_labels_found);
+	  if( num_labels_found > 0 ) 
 	    {
 	      vno_in_other_label = 0;
 	      vno_in_label = 0;
 	      for (found_label_index = 0; found_label_index < num_labels_found;
-						 found_label_index++)
-				{
-					if (label_index_array[found_label_index] != index)
-						vno_in_other_label = 1;
-					if (label_index_array[found_label_index] == index)
-						vno_in_label = 1;
-				}
-		  
+		   found_label_index++)
+		{
+		  if (label_index_array[found_label_index] != index)
+		    vno_in_other_label = 1;
+		  if (label_index_array[found_label_index] == index)
+		    vno_in_label = 1;
+		}
+	      
 	      /* it's a border if this vno is in a different (or no)
-					 label and not in this label. makr it so in the real
-					 border flag array and our temp one. */
+		 label and not in this label. makr it so in the real
+		 border flag array and our temp one. */
 	      if (vno_in_other_label && !vno_in_label)
-				{
-					border[label->lv[label_vno].vno] = TRUE;
-					num_borders++;
-				}
+		{
+		  border[label->lv[label_vno].vno] = TRUE;
+		  num_borders++;
+		}
 	    }
-			else 
+	  else 
 	    {
 	      /* it's also a border if the vno is in no label. */
 	      border[label->lv[label_vno].vno] = TRUE;
 	      num_borders++;
 	    }
-		}
 	}
+    }
 
   /* Go down the label vno list. For each one, if it's a border, check
      its surrounding vertices. For each one, if it's inside the label,
      mark it in the border2 list. */
   for (label_vno = 0; label_vno < label->n_points; label_vno++)
+    {
+      if (border[label->lv[label_vno].vno])
 	{
-		if (border[label->lv[label_vno].vno])
-		{
-			v = &(mris->vertices[label->lv[label_vno].vno]);
-			for (neighbor_vno = 0; neighbor_vno < v->vnum; neighbor_vno++ )
+	  v = &(mris->vertices[label->lv[label_vno].vno]);
+	  for (neighbor_vno = 0; neighbor_vno < v->vnum; neighbor_vno++ )
 	    {
 	      /* If it's inside the label...*/
 	      for (label_vno_check = 0; label_vno_check < label->n_points; 
-						 label_vno_check++)
-				{
-					if (label->lv[label_vno_check].vno == v->v[neighbor_vno])
-					{
-						/* Add it to border2. */
-						border2[v->v[neighbor_vno]] = 1;
-					}
-				}
-	    }
+		   label_vno_check++)
+		{
+		  if (label->lv[label_vno_check].vno == v->v[neighbor_vno])
+		    {
+		      /* Add it to border2. */
+		      border2[v->v[neighbor_vno]] = 1;
+		      num_borders2++;
+		    }
 		}
+	    }
 	}
-
+    }
+  
   /* Allocate the array on the label and go through the border and
      border2 array, writing index numbers to the label array. */
   if (NULL != labl_labels[index].border_vno)
     free (labl_labels[index].border_vno);
-
-#if 0
+  
   labl_labels[index].border_vno = 
     calloc (num_borders + num_borders2, sizeof(int));
-#else
- {
-	 int num = 0 ;
-	 for (label_vno = 0; label_vno < label->n_points; label_vno++)
-	 {
-		 v = &(mris->vertices[label->lv[label_vno].vno]);
-		 if (border[label->lv[label_vno].vno] ||
-				 border2[label->lv[label_vno].vno])
-		 {
-			 num++ ;
-		 }
-	 }
-  labl_labels[index].border_vno = calloc (num, sizeof(int));
- }
-#endif
+
   labl_labels[index].num_border_vnos = 0;
   for (label_vno = 0; label_vno < label->n_points; label_vno++)
+    {
+      v = &(mris->vertices[label->lv[label_vno].vno]);
+      if (border[label->lv[label_vno].vno] ||
+	  border2[label->lv[label_vno].vno])
 	{
-		v = &(mris->vertices[label->lv[label_vno].vno]);
-		if (border[label->lv[label_vno].vno] ||
-				border2[label->lv[label_vno].vno])
-		{
-			labl_labels[index].border_vno[labl_labels[index].num_border_vnos] = 
-				label->lv[label_vno].vno;
-			labl_labels[index].num_border_vnos++;
-		}
+	  labl_labels[index].border_vno[labl_labels[index].num_border_vnos] = 
+	    label->lv[label_vno].vno;
+	  labl_labels[index].num_border_vnos++;
 	}
+    }
   
   free (border);
   free (border2);
@@ -22507,20 +22507,20 @@ int labl_find_and_set_border (int index)
 int labl_vno_is_border (int index, int vno)
 {
   int border_index;
-
+  
   if (index < 0 || index >= labl_num_labels)
     return 0;
-
+  
   if (NULL == labl_labels[index].border_vno)
     return 0;
-
+  
   for (border_index = 0; 
        border_index < labl_labels[index].num_border_vnos; border_index++)
     {
       if (labl_labels[index].border_vno[border_index] == vno)
 	return 1;
     }
-
+  
   return 0;
 }
 
@@ -22895,7 +22895,7 @@ int labl_add_marked_vertices_to_label (int index)
   labl_labels[index].label = newlabel;
 
   /* update this label. */
-  labl_changed (index);
+  labl_changed (index, FALSE);
   
   return (ERROR_NONE);
 }
@@ -22984,7 +22984,7 @@ int labl_remove_marked_vertices_from_label (int index)
   labl_labels[index].label = newlabel;
 
   /* recalc stuff */
-  labl_changed (index);
+  labl_changed (index, TRUE);
   
   return (ERROR_NONE);
 }
@@ -23191,7 +23191,7 @@ int labl_add (LABEL* label, int* new_index)
   sprintf (labl_labels[index].name, "Label %d", labl_num_labels_created);
 
   /* calc the extent and stuff. */
-  labl_changed (index);
+  labl_changed (index, FALSE);
 
   if (g_interp)
     {
@@ -23214,7 +23214,7 @@ int labl_add (LABEL* label, int* new_index)
   return (ERROR_NONE);
 }
 
-int labl_changed (int index)
+int labl_changed (int index, int vertices_were_removed)
 {
   LABEL* label;
   float min_x, max_x;
@@ -23257,6 +23257,11 @@ int labl_changed (int index)
   /* this label needs to be recached */
   labl_labels[index].cached = FALSE;
   labl_cache_updated = FALSE;
+
+  /* if vertices were removed, we need to force rebuild the entire
+     cache. */
+  if (vertices_were_removed)
+    labl_update_cache (TRUE);
 
   /* find the border. */
   labl_find_and_set_border (index);
@@ -23467,6 +23472,35 @@ int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
   
   return (ERROR_NONE);
 }
+
+int labl_erode (int index) 
+{
+  if (index < 0 || index >= labl_num_labels)
+    return (ERROR_BADPARM);
+
+  /* Perform the erode. */
+  LabelErode (labl_labels[index].label, mris, 1);
+
+  /* Label is changed and we removed points. */
+  labl_changed (index, TRUE);
+
+  return (ERROR_NONE);
+}
+
+int labl_dilate (int index) 
+{
+  if (index < 0 || index >= labl_num_labels)
+    return (ERROR_BADPARM);
+
+  /* Dilate the label. */
+  LabelDilate (labl_labels[index].label, mris, 1);
+
+  /* Label is changed but we didn't remove points. */
+  labl_changed (index, FALSE);
+
+  return (ERROR_NONE);
+}
+
 
 int labl_print_list ()
 {

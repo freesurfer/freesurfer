@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.55 2004/03/18 17:46:43 kteich Exp $
+# $Id: tksurfer.tcl,v 1.56 2004/06/10 20:24:03 kteich Exp $
 
 package require BLT;
 
@@ -2518,6 +2518,12 @@ proc CreateMenuBar { ifwMenuBar } {
 		mg_LabelLoaded }
 	    { command "Copy Label Statistics to Overlay..."
 		{ DoLabelToOverlayDlog }
+		mg_LabelLoaded } 
+	    { command "Erode Selected Label"
+		{ labl_erode $gnSelectedLabel; UpdateAndRedraw }
+		mg_LabelLoaded } 
+	    { command "Dilate Selected Label"
+		{ labl_dilate $gnSelectedLabel; UpdateAndRedraw }
 		mg_LabelLoaded } 
 	}}
 	{ cascade "Cut" {

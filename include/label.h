@@ -73,6 +73,9 @@ int     LabelNormalizeStats(LABEL *area, float norm) ;
 LABEL *MaskSurfLabel(LABEL *lbl, MRI *SurfMask, 
          float thresh, char *masksign, int frame);
 
+int     LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times);
+int     LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times);
+
 int   LabelSetStat(LABEL *area, float stat) ;
 LABEL *LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris) ;
 
