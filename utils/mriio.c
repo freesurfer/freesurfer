@@ -1745,10 +1745,19 @@ static MRI *mincRead(char *fname, int read_volume)
   General_transform *pVox2WorldGen;
 
   /* ----- read the volume ----- */
+
+/*   we no longer much around axes and thus */
+/*   it is safe to read in the standard way    */
+  dim_names[0] = MIxspace;
+  dim_names[1] = MIyspace;
+  dim_names[2] = MIzspace;
+
+#if 0
   dim_names[0] = MIzspace;
   dim_names[1] = MIyspace;
   dim_names[2] = MIxspace;
   dim_names[3] = MItime;
+#endif
 
   if(!FileExists(fname))
   {
@@ -2423,8 +2432,8 @@ static int mincWrite(MRI *mri, char *fname)
   int signed_flag;
   int di_x, di_y, di_z;
   int vi[4];
-  int r, a, s;
-  float r_max;
+/*   int r, a, s; */
+/*   float r_max; */
   Status status;
 
 /* di gives the bogus minc index 
@@ -2440,6 +2449,16 @@ static int mincWrite(MRI *mri, char *fname)
   {
     setDirectionCosine(mri, MRI_CORONAL);
   }
+
+  /* we don't muck around axes anymore */
+  di_x = 0;
+  di_y = 1;
+  di_z = 2;
+
+#if 0
+/*  The following remapping is only valid for COR files */
+/*  In order to handle arbitrary volumes, we don't muck around */
+/*  the axes anymore  ... tosa */
 
   /* orig->minc map ***********************************/
   /* r axis is mapped to (x_r, y_r, z_r) voxel coords */
@@ -2528,6 +2547,7 @@ static int mincWrite(MRI *mri, char *fname)
       di_z = 0;
     }
   }
+#endif
 
   /* ----- set the data type ----- */
   if(mri->type == MRI_UCHAR)
