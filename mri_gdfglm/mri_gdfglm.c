@@ -5,7 +5,13 @@
   Date:    4/4/03
   Purpose: performs glm analysis given group descirptor file
            and dependent variable table
-  $Id: mri_gdfglm.c,v 1.2 2003/04/09 22:25:49 greve Exp $
+  $Id: mri_gdfglm.c,v 1.3 2003/04/09 23:24:16 greve Exp $
+
+Things to do:
+  Class-based/Covar-based partial model fit
+  Spec search ranges for given covariates.
+  Allow spec of subjects to exclude
+
 */
 
 #include <stdio.h>
@@ -60,10 +66,18 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 static int  singledash(char *flag);
 static int CheckReps(char **List, int nList);
 static double ContrastVMF(MATRIX *X, MATRIX *C);
+static int WriteAllClassDat(char *base, FSGD *fsgd, 
+			    MATRIX *y, MATRIX *yhat, 
+			    MATRIX *X, MATRIX *beta);
+
+static int WriteClassDat(char *base, char *Class, FSGD *fsgd, 
+			 MATRIX *y, MATRIX *yhat, MATRIX *X, 
+			 MATRIX *beta);
+
 //static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gdfglm.c,v 1.2 2003/04/09 22:25:49 greve Exp $";
+static char vcid[] = "$Id: mri_gdfglm.c,v 1.3 2003/04/09 23:24:16 greve Exp $";
 char *Progname = NULL;
 
 typedef struct tagCOVARPRUNE{
@@ -275,6 +289,9 @@ int main(int argc, char **argv)
   fp = fopen(OutGDFile,"w");
   gdfPrintHeader(fp,fsgd);
   fclose(fp);
+
+  /*----------------------------------------*/
+  WriteAllClassDat(OutBase,fsgd,y,yhat,X,beta);
 
 
   return(0);
@@ -540,6 +557,13 @@ or subjects have been excluded. The matfile is a matrix in matlab4
 format that contains the design matrix concatenated with the 
 final dependent variable, the fit of final dependent variable,
 and the residual.
+
+In addition, each class has its own output dat file called 
+outbase-classlabel.dat. The first column is the subject number,
+the next nCV are the nCV covariates, the next column is the final 
+dependent variable, and the final column is the best fit of the 
+dependent variable. This output is best for creating scatter
+plots.
 
 EXAMPLES:
 
@@ -914,6 +938,53 @@ static double ContrastVMF(MATRIX *X, MATRIX *C)
   MatrixFree(&CiXtXCt);
   
   return(vmf);
+}
+/*------------------------------------------------------------*/
+static int WriteAllClassDat(char *base, FSGD *fsgd, 
+		     MATRIX *y, MATRIX *yhat, MATRIX *X, MATRIX *beta)
+{
+  int nc, err;
+
+  for(nc = 0; nc < fsgd->nclasses; nc++){
+    err = WriteClassDat(base,fsgd->classlabel[nc],fsgd,
+			y,yhat,X,beta);
+    if(err) return(1);
+  }
+
+  return(0);
+}
+/*------------------------------------------------------------*/
+static int WriteClassDat(char *base, char *Class, FSGD *fsgd, 
+		  MATRIX *y, MATRIX *yhat, MATRIX *X, MATRIX *beta)
+{
+  FILE *fp;
+  int ClassNo;
+  char fname[2000];
+  int n, nth, v;
+
+  ClassNo = gdfClassNo(fsgd,Class);
+  if(ClassNo == -1) {
+    printf("ERROR: Class %s not found in fsgd\n",Class);
+    return(1);
+  }
+
+  /* SubjNo Covar1 Covar2 ... DepVar DepVarHat */
+  sprintf(fname,"%s-%s.dat",base,Class);
+  fp = fopen(fname,"w");
+  nth = 0;
+  for(n=0; n < fsgd->ninputs; n++){
+    if(fsgd->subjclassno[n] != ClassNo) continue;
+    fprintf(fp,"%2d",n); /* use absolute subj no */
+    for(v=0; v < fsgd->nvariables; v++)
+      fprintf(fp," %g",fsgd->varvals[n][v]);
+    fprintf(fp," %g",y->rptr[n+1][1]);
+    fprintf(fp," %g",yhat->rptr[n+1][1]);
+    fprintf(fp,"\n");
+    nth++;
+  }
+  fclose(fp);
+
+  return(0);
 }
 
 
