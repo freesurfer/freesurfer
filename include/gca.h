@@ -340,6 +340,7 @@ int GCAmaxLikelihoodLabel(GCA_NODE *gcan, float *vals, int ninputs, float *plike
 int GCAfreeRegionalGCAN(GCA_NODE **pgcan) ;
 GCA *GCAcompactify(GCA *gca);
 MRI *GCAreplaceImpossibleLabels(MRI *mri_inputs, GCA *gca, MRI *mri_in_labels, MRI *mri_out_labels, TRANSFORM *transform) ;
+GC1D *alloc_gcs(int nlabels, int flags, int ninputs) ;
 
 extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label ;
 
