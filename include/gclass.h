@@ -37,5 +37,6 @@ int       GCasciiWriteInto(FILE *fp, GCLASSIFY *gc) ;
 GCLASSIFY *GCasciiReadFrom(FILE *fp, GCLASSIFY *gc) ;
 int       GCasciiWriteClassInto(FILE *fp, GCLASS *gcl) ;
 GCLASS    *GCasciiReadClassFrom(FILE *fp, GCLASS *gcl) ;
+int       GCinit(GCLASSIFY *gc, int class) ;
 
 #endif
