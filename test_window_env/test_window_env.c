@@ -117,7 +117,6 @@ void FindVisual () {
   /* indexed screen */
   CLEAR_ATTRIBUTES();
   SET_ATTRIBUTE_VALUE( GLX_LEVEL, 0 );
-  SET_ATTRIBUTE( GLX_RGBA );
   SET_ATTRIBUTE_VALUE( GLX_BUFFER_SIZE, 1 );
   RUN_TEST();
   
