@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.19 2004/03/17 18:28:16 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.20 2004/03/23 20:31:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -293,7 +293,7 @@ main(int argc, char *argv[])
     for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++)
     {
       if (normalization_structures[i] == Gdiag_no)
-	DiagBreak() ;
+				DiagBreak() ;
       printf("finding control points in %s....\n", cma_label_to_name(normalization_structures[i])) ;
       gcas_struct = find_control_points(gca, gcas, nsamples, &struct_samples, n,
                                         normalization_structures[i], mri_in, transform, min_prior,
@@ -917,16 +917,16 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     h = HISTOalloc(nint(fmax-fmin)+1) ;
     h->bin_size = (fmax-fmin)/(float)h->nbins ;
     for (i = 0 ; i < h->nbins ; i++)
-      h->bins[i] = (i+1)*h->bin_size ;
+      h->bins[i] = (i+1)*h->bin_size+fmin ;
 
     for (i = 0 ; i < nsamples ; i++)
     {
       xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
       if (xv == Gx && yv == Gy && zv == Gz)
-	DiagBreak() ;
+				DiagBreak() ;
       MRIsampleVolumeFrame(mri_in, gcas[i].x,gcas[i].y,gcas[i].z, n, &val) ;
       if (FZERO(val))
-	DiagBreak() ;
+				DiagBreak() ;
       h->counts[nint(val-fmin)]++ ;
     }
 
@@ -935,17 +935,17 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     do
     {
       if (gca->ninputs == 1) /*  find  brightest peak as for  n=1 it is T1  weighted  */
-	peak = HISTOfindLastPeak(hsmooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+				peak = HISTOfindLastPeak(hsmooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
       else
-	peak = HISTOfindHighestPeakInRegion(hsmooth, 0, h->nbins-1) ;
+				peak = HISTOfindHighestPeakInRegion(hsmooth, 0, h->nbins-1) ;
       end = HISTOfindEndOfPeak(hsmooth, peak, 0.01) ;
       start = HISTOfindStartOfPeak(hsmooth, peak, 0.01) ;
       for (mean_ratio = 0.0, i = 0 ; i < nsamples ; i++)
       {
-	mean_ratio += peak / gcas[i].means[n];
+				mean_ratio += hsmooth->bins[peak] / gcas[i].means[n];
       }
       mean_ratio /= (Real)nsamples ;
-      HISTOclearBins(hsmooth, hsmooth, start, end)  ;
+      HISTOclearBins(hsmooth, hsmooth, hsmooth->bins[start], hsmooth->bins[end])  ;
     } while  (mean_ratio  < 0.5 || mean_ratio > 2.0) ;
 
     printf("%s: limiting intensities to %2.1f --> %2.1f\n", name, fmin+start, fmin+end) ;
@@ -953,11 +953,11 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     {
       xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
       if (xv == Gx && yv == Gy && zv == Gz)
-	DiagBreak() ;
+				DiagBreak() ;
       MRIsampleVolumeFrame(mri_in, gcas[i].x,gcas[i].y,gcas[i].z, n, &val) ;
       if (val-fmin < start || val-fmin > end)
       {
-	num++ ; gcas[i].label = 0 ;
+				num++ ; gcas[i].label = 0 ;
       }
     }
     HISTOfree(&h) ; HISTOfree(&hsmooth) ;
