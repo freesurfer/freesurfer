@@ -256,7 +256,6 @@ typedef union
 
 typedef union
 {
-  long  l ;
   float f ;
   int   i ;
   char  buf[4] ;
