@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.51 2003/08/20 17:24:19 kteich Exp $
+# $Id: tksurfer.tcl,v 1.52 2003/08/25 22:40:28 kteich Exp $
 
 package require BLT;
 
@@ -141,6 +141,7 @@ set gaLinkedVars(truncphaseflag) 0
 set gaLinkedVars(invphaseflag) 0
 set gaLinkedVars(revphaseflag) 0
 set gaLinkedVars(complexvalflag) 0
+set gaLinkedVars(ignorezeroesinhistogramflag) 1
 set gaLinkedVars(currentvaluefield) 0
 set gaLinkedVars(falpha) 1.0
 set gaLinkedVars(fthresh) 0
@@ -184,17 +185,18 @@ set gaLinkedVars(colortablename) ""
 # groups of variables that get sent to c code together
 array set gaLinkedVarGroups {
     scene { light0 light1 light2 light3 offset }
-    overlay { falpha colscale truncphaseflag invphaseflag revphaseflag \
-      complexvalflag foffset fthresh fmid fslope fmin fmax \
-      fnumtimepoints fnumconditions ftimepoint fcondition}
+    overlay { falpha colscale truncphaseflag invphaseflag revphaseflag 
+	complexvalflag foffset fthresh fmid fslope fmin fmax 
+	fnumtimepoints fnumconditions ftimepoint fcondition 
+	ignorezeroesinhistogramflag}
     curvature { cslope cmid cmin cmax forcegraycurvatureflag }
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
-    view { curvflag flagsurfcolor vertexset overlayflag scalebarflag \
-	       colscalebarflag verticesflag currentvaluefield drawcursorflag }
+    view { curvflag flagsurfcolor vertexset overlayflag scalebarflag 
+	colscalebarflag verticesflag currentvaluefield drawcursorflag }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
-    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag fthresh foffset fmid fslope cslope cmid angle_offset angle_cycles sulcflag surfcolor vertexset overlayflag scalebarflag colscalebarflag verticesflag cmid dipavg mouseoverflag colortablename }
+    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints }
     label { colortablename drawlabelflag labelstyle }
@@ -910,11 +912,12 @@ proc DoConfigOverlayDisplayDlog {} {
 	    { text "Complex" gaLinkedVars(complexvalflag) {} } }
 	} 
 
-	set lwOptions   $fwFlags.lwOptions
-        set cbwTruncate $fwFlags.cbwTruncate
-        set cbwInverse  $fwFlags.cbwInverse
-        set cbwReverse  $fwFlags.cbwReverse
-        set cbwComplex  $fwFlags.cbwComplex
+	set lwOptions        $fwFlags.lwOptions
+        set cbwTruncate      $fwFlags.cbwTruncate
+        set cbwInverse       $fwFlags.cbwInverse
+        set cbwReverse       $fwFlags.cbwReverse
+        set cbwComplex       $fwFlags.cbwComplex
+        set cbwIgnoreZeroes  $fwFlags.cbwIgnoreZeroes
 
         frame $fwFlags -relief ridge -border 2
 
@@ -936,12 +939,17 @@ proc DoConfigOverlayDisplayDlog {} {
 	    -variable gaLinkedVars(complexvalflag) \
 	    -text "Complex" \
 	    -font [tkm_GetNormalFont]
+	checkbutton $cbwIgnoreZeroes \
+	    -variable gaLinkedVars(ignorezeroesinhistogramflag) \
+	    -text "Ignore Zeroes in Histogram" \
+	    -font [tkm_GetNormalFont]
 
 	grid $lwOptions   -column 0 -row 0 -columnspan 4
 	grid $cbwTruncate -column 0 -row 1 -stick w
 	grid $cbwInverse  -column 1 -row 1 -stick w
 	grid $cbwReverse  -column 2 -row 1 -stick w
 	grid $cbwComplex  -column 3 -row 1 -stick w
+	grid $cbwIgnoreZeroes  -column 0 -row 2 -columnspan 4
 
 	# create the histogram frame and subunits
 	frame $fwHisto -relief ridge -border 2
