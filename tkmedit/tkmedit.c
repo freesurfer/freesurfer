@@ -3618,7 +3618,7 @@ draw_second_image(int imc, int ic, int jc)
     k++;
         } else {
     vidbuf[k]=255;
-    vidbuf[k+1] = vidbuf[k+2]= 255;
+    vidbuf[k+1] = vidbuf[k+2]= 0;
     k+=4;
         }
       }
@@ -3673,7 +3673,7 @@ draw_second_image(int imc, int ic, int jc)
     k++;
         } else {
     vidbuf[k]=255;
-    vidbuf[k+1] = vidbuf[k+2]= 255;
+    vidbuf[k+1] = vidbuf[k+2]= 0;
     k+=4;
         }
       }
@@ -3712,7 +3712,7 @@ draw_second_image(int imc, int ic, int jc)
         {
           if (all3flag && (i%2 || imnr%2)) continue;
           if (imnr/zf>=0&&imnr/zf<imnr1)
-            v = im2[imnr/zf][(ydim-1-i)/zf][jc/zf]+MAPOFFSET;
+            v = im2[imnr/zf][(ydim-1-i)/zf][jc/zf]+MAPOFFSET;  
           else v=MAPOFFSET;
           if (truncflag)
             if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
@@ -3727,7 +3727,7 @@ draw_second_image(int imc, int ic, int jc)
         k++;
       } else {
         vidbuf[k]=255;
-        vidbuf[k+1] = vidbuf[k+2]= 255;
+        vidbuf[k+1] = vidbuf[k+2]= 0;
         k+=4;
       }
     }
