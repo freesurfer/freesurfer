@@ -123,6 +123,7 @@
 #define IS_BRAIN(label)  (!IS_UNKNOWN(label) && label < Dura)
 
 #define IS_WM(label) (((label) == Left_Cerebral_White_Matter) || ((label) == Right_Cerebral_White_Matter) || ((label) == Left_Temporal_Cerebral_White_Matter) || ((label) == Right_Temporal_Cerebral_White_Matter))
+#define IS_THALAMUS(label)  (((label) == Left_Thalamus) || ((label) == Left_Thalamus_Proper) || ((label) == Right_Thalamus) || ((label) == Right_Thalamus_Proper))
 #define IS_GM(label) (((label) == Left_Cerebral_Cortex) || ((label) == Right_Cerebral_Cortex))
 
 #define IS_CEREBELLAR_WM(label) (((label) == Left_Cerebellum_White_Matter) || ((label) == Right_Cerebellum_White_Matter))
@@ -135,6 +136,7 @@
                         ((l) == Right_Lateral_Ventricle) || \
                         ((l) == Right_Inf_Lat_Vent) || \
                         ((l) == Left_Inf_Lat_Vent))
+#define IS_CSF(l) (IS_LAT_VENT(l) || ((l) == CSF) || ((l) == CSF_SA) || ((l) == Third_Ventricle) || ((l) == Fourth_Ventricle))
 
 
 #define MAX_CMA_LABEL (Corpus_Callosum+1)
