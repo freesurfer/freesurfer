@@ -770,6 +770,8 @@ MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
 int MRIeraseBorderPlanes(MRI *mri) ;
 
+MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
+
 /* Zero-padding for 3d analyze (ie, spm) format */
 #ifdef _MRIIO_SRC
   int N_Zero_Pad_Input  = -1;
