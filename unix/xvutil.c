@@ -1068,6 +1068,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
 #endif
           XVresize(xvf) ;
         XVshowAllSyncedImages(xvf, which) ;
+        XFlush(xvf->display) ;
         break;
       case '*':
         XVgamma(xvf, which, 0.02f) ;
