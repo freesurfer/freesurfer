@@ -1,4 +1,3 @@
-#ifndef SunOS
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,8 +5,8 @@
 #include <math.h>
 #include <ctype.h>
 
-#include <glut.h>
-#include <gl.h>
+#include <GL/glut.h>
+#include <GL/gl.h>
 
 #include "macros.h"
 #include "error.h"
@@ -17,8 +16,9 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: oglutil.c,v 1.8 1997/12/11 00:36:01 fischl Exp $";
-
+#if 0
+static char vcid[] = "$Id: oglutil.c,v 1.9 1997/12/15 20:41:33 fischl Exp $";
+#endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -463,4 +463,3 @@ OGLUsetFOV(int fov)
   return(NO_ERROR) ;
 }
 
-#endif
