@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.4 1998/03/05 19:27:26 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.5 1998/09/30 18:19:56 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -51,9 +51,9 @@ main(int argc, char *argv[])
   parms.projection = PROJECT_SPHERE ;
   parms.tol = 1e-0 ;
   parms.min_averages = 0 ;
-  parms.l_dist = 0.0 ;
+  parms.l_dist = 0.1 ;
   parms.l_area = 0.0 ;
-  parms.l_parea = 0.1f ;
+  parms.l_parea = 0.2f ;
   parms.l_corr = 1.0f ;
   parms.l_pcorr = 0.0f ;
   parms.niterations = 25 ;
@@ -145,11 +145,13 @@ main(int argc, char *argv[])
   MRIScomputeMetricProperties(mris) ;
   if (!FZERO(parms.l_dist))
     MRISscaleDistances(mris, scale) ;
+#if 0
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRISzeroNegativeAreas(mris) ;
   MRISstoreMetricProperties(mris) ;
+#endif
   MRISstoreMeanCurvature(mris) ;  /* use curvature from file */
-
+  MRISreadOriginalProperties(mris, NULL) ;
   MRISregister(mris, mrisp_template, &parms, max_passes) ;
   fprintf(stderr, "writing registered surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
