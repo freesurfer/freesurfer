@@ -133,6 +133,10 @@ VECTOR *VectorNormalize(VECTOR *vin, VECTOR *vout) ;
                  V3_X(vc) = V3_X(va)+V3_X(vb), \
                  V3_Y(vc) = V3_Y(va)+V3_Y(vb), \
                  V3_Z(vc) = V3_Z(va)+V3_Z(vb) ;
+#define V3_SUBTRACT(va,vb,vc) \
+                 V3_X(vc) = V3_X(va)-V3_X(vb), \
+                 V3_Y(vc) = V3_Y(va)-V3_Y(vb), \
+                 V3_Z(vc) = V3_Z(va)-V3_Z(vb) ;
 #define V3_DOT(va,vb) (V3_X(va)*V3_X(vb)+V3_Y(va)*V3_Y(vb)+V3_Z(va)*V3_Z(vb))
 #define V3_SCALAR_MUL(va,s,vb)  (V3_X(vb)=V3_X(va)*s,\
                                  V3_Y(vb)=V3_Y(va)*s,\
