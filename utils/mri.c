@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/02/26 19:03:58 $
-// Revision       : $Revision: 1.259 $
-char *MRI_C_VERSION = "$Revision: 1.259 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2004/02/29 21:58:24 $
+// Revision       : $Revision: 1.260 $
+char *MRI_C_VERSION = "$Revision: 1.260 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2347,6 +2347,8 @@ MRIinitHeader(MRI *mri)
   mri->c_r = mri->c_a = mri->c_s = 0.0;
   mri->ras_good_flag = 0;
   mri->gdf_image_stem[0] = '\0';
+  mri->tag_data = NULL;
+  mri->tag_data_size = 0;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -5618,6 +5620,7 @@ ImageToMRI(IMAGE *I)
   // hips coordinate system is inverted
   for (frames = 0; frames < nframes; ++frames)
   {
+
     for (y = 0 ; y < height ; y++)
     {
       yp = height - (y+1) ;
