@@ -1240,6 +1240,20 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
         break ;
       }
       break ;
+    case PFRGB:
+      switch(outImage->pixel_format)
+  {
+  case PFRGB:
+    memcpy(outImage->image+(dst_frame*outImage->sizeimage),
+     inImage->image+(start*inImage->sizeimage),
+     inImage->sizeimage*nframes);
+    break;
+  default:
+    ErrorExit(ERROR_UNSUPPORTED, 
+        "ImageCopyFrames: unsupported image pixel format %d -> %d",
+        inImage->pixel_format, outImage->pixel_format) ;
+  }
+      break;
     default:
       ErrorExit(ERROR_UNSUPPORTED, 
                 "ImageCopyFrames: unsupported image pixel format %d -> %d\n",
