@@ -70,7 +70,8 @@ int fwrite(void *ptr, int size, int nitems, FILE *fp) ;
 #ifdef Darwin
 #include "utils.h"
 void *malloc(size_t byteSize) ;
-#define nint(f)   ((int)(rint((double)f)))
+#define nint(f)  ((int) (floor(f + .5)))
+/* ((int)(rint((double)f))) */
 #if 0
 double drand48(void);
 #else
@@ -86,7 +87,8 @@ int ftime(struct timeb *tp) ;
 /*----------- Linux -----------------------*/
 #ifdef Linux
 #include "macros.h"
-#define nint(f)   ((int)(rint((double)f)))
+#define nint(f)  ((int) (floor(f + .5)))
+/* ((int)(rint((double)f))) */
 
 #if 0
 int getw(FILE *stream);
@@ -99,7 +101,8 @@ void swab(const void *from, void *to, size_t n);
 
 #ifdef SunOS
 int ftime(struct timeb *tp) ;
-#define nint(f)   ((int)(rint((double)f)))
+#define nint(f)   ((int) (floor(f + .5)))
+/* ((in ((int)(rint((double)f))) */
 #include <ieeefp.h>
 /*void bzero(void *s, int n);*/
 
@@ -107,14 +110,16 @@ int ftime(struct timeb *tp) ;
 
 /*----------- IRIX (SGI) -------------------*/
 #ifdef IRIX
-#define nint(f)   ((int)(rint((double)f)))
+#define nint(f)   ((int) (floor(f + .5)))
+/*  ((int)(rint((double)f))) */
 /*#define isnan(f)  0*/
 double rint(double x) ;
 #endif
 
 /*----------- MSDOS -----------------------*/
 #ifdef _MSDOS
-#define nint(f)   ((int)((double)f+(f < 0 ? -0.5 : 0.5)))
+#define nint(f)   ((int) (floor(f + .5)))
+/* ((int)((double)f+(f < 0 ? -0.5 : 0.5))) */
 #define isnan(f) 0
 #define unlink _unlink
 #define hypot  _hypot
