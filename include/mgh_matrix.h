@@ -4,7 +4,6 @@
 #define TINY 1.0e-20
 
 #ifndef SQR
-#define
 #define SQR(x) ((x)*(x))
 #endif
 
