@@ -512,7 +512,7 @@ main(int argc, char *argv[])
            (label != Right_Cerebellum_White_Matter )))
       {
         parms.gcas[i].log_p = -100000 ;
-        parms.gcas[i].label = 0 ;
+        parms.gcas[i].label = -1 ;
       }
       else
       {
@@ -531,6 +531,31 @@ main(int argc, char *argv[])
     ordered_indices = (int *)calloc(nsamples, sizeof(int)) ;
     GCArankSamples(gca, parms.gcas, nsamples, ordered_indices) ;
 
+    if (DIAG_VERBOSE_ON)
+    {
+      for (nleft_used = nright_used = i = 0 ; i < nsamples ; i++)
+      {
+        if (parms.gcas[ordered_indices[i]].label == Left_Cerebellum_White_Matter)
+          nleft_used++ ;
+        else if (parms.gcas[ordered_indices[i]].label == 
+                 Right_Cerebellum_White_Matter)
+          nright_used++ ;
+        if (parms.gcas[ordered_indices[i]].label == Right_Cerebral_White_Matter)
+          DiagBreak() ;
+        if (parms.gcas[ordered_indices[i]].x == Gx &&
+            parms.gcas[ordered_indices[i]].y == Gy &&
+            parms.gcas[ordered_indices[i]].z == Gz)
+          DiagBreak() ;
+        if ((parms.gcas[ordered_indices[i]].label == Right_Cerebral_White_Matter) &&
+            (parms.gcas[ordered_indices[i]].prior > 0.95) &&
+            fabs(MRIvox(mri_in, parms.gcas[ordered_indices[i]].x,
+                        parms.gcas[ordered_indices[i]].y,
+                        parms.gcas[ordered_indices[i]].z)-parms.gcas[ordered_indices[i]].mean) < 5)
+          DiagBreak() ;
+        
+      }
+    }
+
     /* remove the least likely samples */
     printf("sorting %d (%d/%d l/r cerebellum) white matter points by "
            "likelihood\n", nused, nleft_cbm, nright_cbm) ;
@@ -548,6 +573,12 @@ main(int argc, char *argv[])
                 parms.gcas[ordered_indices[i]].z,
                 parms.gcas[ordered_indices[i]].mean,
                 parms.gcas[ordered_indices[i]].label) ;
+      if (parms.gcas[ordered_indices[i]].label == Right_Cerebral_White_Matter)
+        DiagBreak() ;
+      if (parms.gcas[ordered_indices[i]].x == Gx &&
+          parms.gcas[ordered_indices[i]].y == Gy &&
+          parms.gcas[ordered_indices[i]].z == Gz)
+        DiagBreak() ;
 
     }
 
@@ -566,16 +597,22 @@ main(int argc, char *argv[])
                  Right_Cerebellum_White_Matter) && nright_used< min_right_cbm)
         nright_used++ ;
       else
-        parms.gcas[ordered_indices[i]].label = 0 ;
-      if (diag_fp && !IS_UNKNOWN(parms.gcas[ordered_indices[i]].label))
-        fprintf(diag_fp, "%d %d %d %2.1f %d\n",
+        parms.gcas[ordered_indices[i]].label = -1 ;
+      if (diag_fp && parms.gcas[ordered_indices[i]].label > 0)
+        fprintf(diag_fp, "%d %d %d %d %d %2.1f %d\n", i, ordered_indices[i],
                 parms.gcas[ordered_indices[i]].x,
                 parms.gcas[ordered_indices[i]].y,
                 parms.gcas[ordered_indices[i]].z,
                 parms.gcas[ordered_indices[i]].mean,
                 parms.gcas[ordered_indices[i]].label) ;
 
+      if (parms.gcas[ordered_indices[i]].label > 0 &&
+          MRIvox(mri_in, parms.gcas[ordered_indices[i]].x,
+                 parms.gcas[ordered_indices[i]].y,
+                 parms.gcas[ordered_indices[i]].z) < 50)
+        DiagBreak() ;
     }
+
 
 
 #if 0
@@ -609,13 +646,16 @@ main(int argc, char *argv[])
       if (MRIwrite(mri_norm, norm_fname)  != NO_ERROR)
         ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",
                   Progname, norm_fname);
+      
       MRIfree(&mri_norm) ;
     }
   }
 
 
+#if 0
   if (gca)
     GCAfree(&gca) ;
+#endif
   if (mri_in)
     MRIfree(&mri_in) ;
   msec = TimerStop(&start) ;
