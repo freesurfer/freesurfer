@@ -10263,10 +10263,37 @@ mghRead(char *fname, int read_volume, int frame)
 	    (mri->transform_fname)[0] = '\0';
 	  }
 	}
-	else
+	// if cannot find transform_fname, try the relative path
+	else 
 	{
-	  fprintf(stderr, "WARNING: can't find the talairach xform '%s'\n", mri->transform_fname);
-	  fprintf(stderr, "WARNING: transform is not loaded into mri\n");
+	  char pathname[STRLEN];
+	  FileNamePath(fname, pathname);
+	  sprintf(mri->transform_fname, "%s/transforms/talairach.xfm", pathname);
+	  if(FileExists(mri->transform_fname))
+	  {
+	    if(input_transform_file(mri->transform_fname, &(mri->transform)) == NO_ERROR)
+	    {
+	      mri->linear_transform = get_linear_transform_ptr(&mri->transform);
+	      mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
+	      mri->free_transform = 1;
+	      if (DIAG_VERBOSE_ON)
+		fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
+	    }
+	    else
+	    {
+	      errno = 0;
+	      ErrorPrintf(ERROR_BAD_FILE, "error loading transform from %s",mri->transform_fname);
+	      mri->linear_transform = NULL;
+	      mri->inverse_linear_transform = NULL;
+	      mri->free_transform = 1;
+	      (mri->transform_fname)[0] = '\0';
+	    }
+	  }
+	  else
+	  {
+	    fprintf(stderr, "WARNING: cannot find the talairach transform");
+	    fprintf(stderr, "WARNING: mri volume is now without talairach transform");
+	  }
 	}
       }
     }
