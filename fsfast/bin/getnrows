@@ -21,7 +21,7 @@ if(! -e $hdr) then
 endif
 
 set tmp = `cat $hdr`;
-set nrows = $tmp[2];
+set nrows = $tmp[1];
 
 echo $nrows;
 
