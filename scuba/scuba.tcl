@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.94 2005/04/01 19:01:15 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.95 2005/04/01 19:47:03 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1014,6 +1014,10 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	}
 
 	SelectViewInViewProperties $viewID
+
+	# Also select the layer that's now on the top level.
+	SelectLayerInLayerProperties \
+	    [GetLayerInViewAtLevel $viewID $nHighestLevel]
     }
 }
 
@@ -4961,7 +4965,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.94 2005/04/01 19:01:15 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.95 2005/04/01 19:47:03 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
