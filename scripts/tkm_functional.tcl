@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.21 2003/09/03 18:09:36 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.22 2003/09/10 22:31:42 kteich Exp $
 
 package require BLT;
 
@@ -21,6 +21,10 @@ set FunV_tDisplayFlag_Ol_Opaque           6
 set FunV_tDisplayFlag_TC_GraphWindowOpen  7
 set FunV_tDisplayFlag_TC_OffsetValues     8
 set FunV_tDisplayFlag_TC_PreStimOffset    9
+
+# FunD_tSampleType
+set FunD_tSampleType(nearest)   0
+set FunD_tSampleType(trilinear) 1
 
 # our global vars
 set gnTimePoint      0
@@ -43,6 +47,7 @@ set gnOverlayNumTimePoints 0
 set gnOverlayNumConditions 0
 set gsOverlayDataName ""
 set gfOverlayAlpha 1.0
+set gOverlaySampleType $FunD_tSampleType(nearest)
 
 set glAllColors {Red Green Blue Purple Brown Pink Gray LightBlue Yellow Orange}
 set gnMaxColors [llength $glAllColors]
@@ -423,10 +428,7 @@ proc Overlay_DoConfigDlog {} {
 	
 	set fwDisplaySub    [$lfwDisplay subwidget frame]
 	set fwOptions       $fwDisplaySub.fwOptions
-	set fwTruncateNeg   $fwDisplaySub.fwTruncateNeg
-	set fwReverse       $fwDisplaySub.fwReverse
-	set fwGrayscale     $fwDisplaySub.fwGrayscale
-	set fwOffset        $fwDisplaySub.fwOffset
+	set fwSampleType    $fwDisplaySub.fwSampleType
 	
 	set lOffsetOptions {}
 	if { $gbShowOverlayOffsetOptions == 1 } {
@@ -449,7 +451,12 @@ proc Overlay_DoConfigDlog {} {
 		 { text "Opaque" gbOpaque
 		     "set gbOpaque \$gbOpaque" } \
 		 $lOffsetOptions ]
-	
+	tkm_MakeRadioButtons $fwSampleType x "Sample Type" gOverlaySampleType \
+	    [list \
+		 { text "Nearest Neighbor" 0 "" } \
+		 { text "Trilinear" 1 "" } \
+		]
+
 	tixLabelFrame $lfwThreshold \
 	    -label "Threshold" \
 	    -labelside acrosstop \
@@ -494,7 +501,7 @@ proc Overlay_DoConfigDlog {} {
 	
 	
 	pack $lfwLocation $fwTimePoint $fwCondition \
-	    $lfwDisplay $fwOptions \
+	    $lfwDisplay $fwOptions $fwSampleType \
 	    $lfwThreshold $lfwAlpha $fwIgnoreThresh \
 	    $fwThresholdSliders $fwThresholdSlope $fwAlpha \
 	    $fwButtons \
@@ -658,10 +665,11 @@ proc Overlay_SaveConfiguration {} {
     global gnTimePoint gnCondition gbTruncateNegative gbReverse
     global gbIgnoreThreshold gfThreshold gbGrayscale gbOpaque
     global gbOverlayOffset gbTruncatePositive gfOverlayAlpha
+    global gOverlaySampleType
     global gnSavedTimePoint gnSavedCondition gbSavedTruncateNegative 
     global gbSavedGrayscale gbSavedIgnoreThreshold gbSavedTruncatePositive
     global gbSavedReverse gfSavedThreshold gbSavedOverlayOffset gbSavedOpaque
-    global gfSavedOverlayAlpha
+    global gfSavedOverlayAlpha gSavedOverlaySampleType
 
     set gnSavedTimePoint $gnTimePoint
     set gnSavedCondition $gnCondition
@@ -676,6 +684,7 @@ proc Overlay_SaveConfiguration {} {
 	set gfSavedThreshold($entry) $gfThreshold($entry)
     }
     set gfSavedOverlayAlpha $gfOverlayAlpha
+    set gSavedOverlaySampleType $gOverlaySampleType
 
 }
 
@@ -683,11 +692,11 @@ proc Overlay_RestoreConfiguration {} {
 
     global gnTimePoint gnCondition gbTruncateNegative gbReverse gfThreshold
     global gbOverlayOffset gbTruncatePositive gbIgnoreThreshold gbGrayscale
-    global gbOpaque
+    global gbOpaque gOverlaySampleType
     global gnSavedTimePoint gnSavedCondition gbSavedTruncateNegative
     global gbSavedTruncatePositive gbSavedGrayscale gbSavedIgnoreThreshold
     global gbSavedReverse gfSavedThreshold gbSavedOverlayOffset gbSavedOpaque
-    global gfOverlayAlpha
+    global gfOverlayAlpha gSavedOverlaySampleType
     
     set gnTimePoint $gnSavedTimePoint
     set gnCondition $gnSavedCondition
@@ -702,6 +711,7 @@ proc Overlay_RestoreConfiguration {} {
 	set gfThreshold($entry) $gfSavedThreshold($entry)
     }
     set gfOverlayAlpha $gfSavedOverlayAlpha
+    set gOverlaySampleType $gSavedOverlaySampleType
 
     Overlay_SetConfiguration
 }
@@ -710,7 +720,7 @@ proc Overlay_SetConfiguration {} {
 
     global gnTimePoint gnCondition gbTruncateNegative gbReverse gfThreshold
     global gbOverlayOffset gbTruncatePositive gbIgnoreThreshold gbGrayscale
-    global gbOpaque gfOverlayAlpha
+    global gbOpaque gfOverlayAlpha gOverlaySampleType
     global FunV_tDisplayFlag_Ol_TruncateNegative
     global FunV_tDisplayFlag_Ol_TruncatePositive
     global FunV_tDisplayFlag_Ol_ReversePhase
@@ -730,6 +740,7 @@ proc Overlay_SetConfiguration {} {
     Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_OffsetValues $gbOverlayOffset
     Overlay_SetThreshold $gfThreshold(min) $gfThreshold(mid) $gfThreshold(slope)
     SetFuncOverlayAlpha $gfOverlayAlpha
+    Overlay_SetVolumeSampleType $gOverlaySampleType
 
 }
 
@@ -739,7 +750,7 @@ proc TimeCourse_SaveConfiguration {} {
     global gbTimeCourseOffset gbPreStimOffset
     global gbSavedErrorBars gnSavedPreStimPoints gnSavedTimeResolution
     global gSavedGraphSetting glGraphColors gbSavedTimeCourseOffset
-    global gbSavedPreStimOffset
+    global gbSavedPreStimOffset 
 
     set gbSavedErrorBars $gbErrorBars
     set gnSavedPreStimPoints $gnPreStimPoints
