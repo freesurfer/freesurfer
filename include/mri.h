@@ -3,6 +3,9 @@
 
 #include "const.h"
 #include "matrix.h"
+/* remove unwanted warnings between hips_basic.h vs. volume_io/basic.h */
+#undef ABS
+#undef SIGN
 #include "volume_io.h"
 #include "box.h"
 #include "machine.h"
