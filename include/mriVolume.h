@@ -29,6 +29,8 @@ typedef enum {
   Volm_tErr_MRIVolumeNotPresent,
   Volm_tErr_ScannerTransformNotPresent,
   Volm_tErr_IdxToRASTransformNotPresent,
+  Volm_tErr_FloodMaxIterationCountReached,
+  Volm_tErr_FloodVisitCommandNotSupported,
   
   Volm_knNumErrorCodes
 } Volm_tErr;
@@ -44,6 +46,45 @@ typedef Volm_tValue *Volm_tValueRef;
 
 #define Volm_kfDefaultBrightness 0.35
 #define Volm_kfDefaultContrast   12.0
+
+#define Volm_knMaxFloodIteration 10000
+
+/* Function definition and return codes for a visit callback. The user
+   supplies their own visit function and it is called in the flood and
+   VisitAll algorithms. */
+typedef enum {
+  Volm_tVisitComm_Continue = 0,
+  Volm_tVisitComm_SkipRestOfRow,
+  Volm_tVisitComm_SkipRestOfPlane,
+  Volm_tVisitComm_Stop,
+  Volm_knNumVisitCommands
+} Volm_tVisitCommand;
+typedef Volm_tVisitCommand(*Volm_tVisitFunction)(xVoxelRef  iAnaIdx,
+						 float      iValue,
+						 void*      ipData);
+
+/* Parameters for a generic flood algorithm. */
+typedef enum {
+  Volm_tValueComparator_Invalid = -1,
+  Volm_tValueComparator_LTE = 0,
+  Volm_tValueComparator_EQ,
+  Volm_tValueComparator_GTE,
+  Volm_knNumValueComparators,
+} Volm_tValueComparator;
+
+typedef struct {
+  xVoxel           mSourceIdx;       /* The starting voxel */
+  float            mfSourceValue;    /* The value at the starting voxel */
+  float            mfFuzziness;      /* The fuzziness for the comparator */
+  Volm_tValueComparator mComparator; /* Compare type */
+  float            mfMaxDistance;    /* Max distance of flood (in voxels) */
+  tBoolean         mb3D;             /* Should the fill be in 3D? */
+  mri_tOrientation mOrientation;     /* If not, which plane? */
+  
+  Volm_tVisitFunction  mpFunction;     /* User function, called for each */ 
+  void*                mpFunctionData; /* visited. */
+
+} Volm_tFloodParams;
 
 typedef struct {
   
@@ -84,18 +125,10 @@ typedef struct {
   VECTOR* mpTmpScreenIdx;     /* Used as tmp variables in macros. */
   VECTOR* mpTmpMRIIdx;
   xVoxel  mTmpVoxel;
-} mriVolume, *mriVolumeRef;
 
-typedef enum {
-  Volm_tVisitComm_Continue = 0,
-  Volm_tVisitComm_SkipRestOfRow,
-  Volm_tVisitComm_SkipRestOfPlane,
-  Volm_tVisitComm_Stop,
-  Volm_knNumVisitCommands
-} Volm_tVisitCommand;
-typedef Volm_tVisitCommand(*Volm_tVisitFunction)(xVoxelRef  iAnaIdx,
-						 float      iValue,
-						 void*      ipData);
+  int mnFloodIterationCount; /* Used in Volm_Flood */
+
+} mriVolume, *mriVolumeRef;
 
 Volm_tErr Volm_New        ( mriVolumeRef* opVolume );
 Volm_tErr Volm_Delete     ( mriVolumeRef* iopVolume );
@@ -198,6 +231,17 @@ Volm_tErr Volm_ConvertIdxToMRIIdx  ( mriVolumeRef this,
 
 Volm_tErr Volm_GetIdxToRASTransform ( mriVolumeRef     this,
 				      mriTransformRef* opTransform );
+
+/* Generic flood algorithm. Starts at a user-supplied voxel and floods
+   outwards, in 3D or inplane, and for every valid voxel, calls the
+   user-supplied visitation function. User needs to fill out
+   Volm_tFloodParams struct. */
+Volm_tErr Volm_Flood         ( mriVolumeRef        this,
+			       Volm_tFloodParams*  iParams );
+Volm_tErr Volm_FloodIterate_ ( mriVolumeRef        this,
+			       Volm_tFloodParams*  iParams,
+			       xVoxelRef           iIdx,
+			       tBoolean*           visited );
 
 /* calls the parameter function for every voxel, passing the voxel, the
    value, and the pointer passed to it. */
