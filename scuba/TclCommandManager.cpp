@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <errno.h>
 #include "string_fixed.h"
 #include <stdexcept>
@@ -434,7 +435,7 @@ TclCommandManager::ConvertArgumentToInt ( std::string isArg ) {
 float
 TclCommandManager::ConvertArgumentToFloat ( std::string isArg ) {
 
-  float theFloat = strtof(isArg.c_str(), (char**)NULL);
+  float theFloat = strtod(isArg.c_str(), (char**)NULL);
   if( ERANGE == errno ) { 
     string sResult = "non-float value";
     throw runtime_error( sResult );

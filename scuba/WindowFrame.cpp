@@ -1,5 +1,6 @@
 #include "string_fixed.h"
 #include <stdexcept>
+#include <math.h>
 #include "WindowFrame.h"
 #include "Point2.h"
 
