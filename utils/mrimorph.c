@@ -6889,11 +6889,10 @@ dfp_step_func(int itno, float sse, void *vparms, float *p)
 static void 
 dfp_em_step_func(int itno, float sse, void *vparms, float *p)
 {
-  static int total_steps = 0 ;
   MP     *parms = (MP *)vparms ;
   int    i, row, col ;
 
-  printf("%03d: -log(p) = %2.1f\n", itno, sse) ;
+  printf("%03d: -log(p) = %2.1f\n", parms->start_t+itno, sse) ;
 
   /* read out current transform */
   for (i = row = 1 ; row <= 4 ; row++)
@@ -6913,7 +6912,7 @@ dfp_em_step_func(int itno, float sse, void *vparms, float *p)
     m_tmp = MRIvoxelXformToRasXform(g_mri_in, g_mri_ref, m_save, NULL) ;
     m_voxel = MRIrasXformToVoxelXform(parms->mri_in,parms->mri_ref,m_tmp,NULL);
     parms->lta->xforms[0].m_L = m_voxel ;
-    writeSnapshot(parms->mri_in, parms, parms->start_t+total_steps++) ;
+    writeSnapshot(parms->mri_in, parms, parms->start_t+itno) ;
     MatrixFree(&m_voxel) ; MatrixFree(&m_tmp) ;
     parms->lta->xforms[0].m_L = m_save ;
   }
@@ -7689,7 +7688,8 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
     pcurrent = 
       -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
                                       parms->transform,parms->nsamples);
-    printf("%03d: -log(p) = %2.1f\n",++i, pcurrent) ;
+		i++ ;
+		/*    printf("%03d: -log(p) = %2.1f\n",i, pcurrent) ;*/
   } while(((pcurrent - pold) / (pold)) > parms->tol) ;
 
 #if 0
@@ -7734,11 +7734,15 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
       break ;
     if (steps > 1)
       fprintf(stderr,"pass %d through quasi-newton minimization...\n",steps);
+#if 0
+		else
+			dfp_em_step_func(0, fnew, parms, p) ;
+#endif
     fold = fnew ;
-    dfp_em_step_func(0, fnew, parms, p) ;
     dfpmin(p, 12, parms->tol, &iter, &fnew, 
          computeEMAlignmentErrorFunctional,
          computeEMAlignmentGradient, dfp_em_step_func, parms) ;
+		parms->start_t += iter ;
 
     /* read out current transform */
     m_L = parms->lta->xforms[0].m_L ;

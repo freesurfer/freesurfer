@@ -2763,7 +2763,7 @@ GCAfindContrastSamples(GCA *gca, int *pnsamples, int min_spacing,
 }
 #if 1
 GCA_SAMPLE *
-GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior)
+GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior, int *exclude_list)
 {
   GCA_SAMPLE *gcas ;
   int        xi, yi, zi, width, height, depth, label, nfound,
@@ -2836,16 +2836,18 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior)
         max_prior = -1 ;
 
         if ((different_nbr_labels(gca, x, y, z, 1, 0, .1) > 0) &&
+						(exclude_list && exclude_list[0] == 0) &&
             (priors[0] >= min_prior) &&
             (priors[0] >= .9*max_priors[0]))
-          best_label = 0 ;
+          best_label = 0 ;   /* could be unknown */
         else 
           best_label = -1 ;
 
         for (label = 1 ; label < MAX_DIFFERENT_LABELS ; label++)
         {
           if ((priors[label] < min_prior) || 
-              (priors[label] < prior_factor*max_priors[label]))
+              (priors[label] < prior_factor*max_priors[label]) ||
+							(exclude_list && exclude_list[label] > 0))
             continue ;
 
           if ((best_label == 0) ||
@@ -7314,6 +7316,42 @@ GCAlabelMean(GCA *gca, int label)
   mean /= wt ;
   return(mean) ;
 }
+double
+GCAlabelVar(GCA *gca, int label)
+{
+  int       xn, yn, zn, n ;
+  GCA_NODE  *gcan ;
+  GC1D      *gc ;
+  double    wt, var ;
+  float     prior ;
+
+  /* compute overall label variance */
+  for (wt = var = 0.0, zn = 0 ; zn < gca->node_depth ; zn++)
+  {
+    for (yn = 0 ; yn < gca->node_height ; yn++)
+    {
+      for (xn = 0 ; xn < gca->node_width ; xn++)
+      {
+        gcan = &gca->nodes[xn][yn][zn] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          /* find index in lookup table for this label */
+          if (gcan->labels[n] != label)
+            continue ;
+          gc = &gcan->gcs[n] ;
+          prior = get_node_prior(gca, label, xn, yn, zn) ;
+          wt += prior ;
+          var += gc->var*prior ;
+          if (!finite(gc->var))
+            DiagBreak() ;
+                           
+        }
+      }
+    }
+  }
+  var /= wt ;
+  return(var) ;
+}
 
 int
 GCAregularizeConditionalDensities(GCA *gca, float smooth)
@@ -7574,14 +7612,25 @@ double HALF_BOX=   (60/2);
 int
 GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 {
-  float      x0, y0, z0 ;
-  int        mri_peak ;
+  float      x0, y0, z0, min_real_val, fmax, fmin ;
+  int        mri_peak, min_real_bin ;
   double     wm_mean ;
   HISTOGRAM *h_mri, *h_smooth ;
   MRI_REGION box ;
 
-  MRIfindApproximateSkullBoundingBox(mri, 50, &box) ;
-  x0 = box.x+box.dx/3 ; y0 = box.y+box.dy/3 ; z0 = box.z+box.dz/2 ;
+	MRIvalRange(mri, &fmin, &fmax) ;
+  h_mri = MRIhistogram(mri, nint(fmax-fmin+1)) ; h_mri->counts[0] = 0 ; /* ignore background */
+  h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+  mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 0, h_smooth->nbins/3) ;
+  min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
+  min_real_val = h_smooth->bins[min_real_bin] ;
+	printf("using real data threshold=%2.1f\n", min_real_val) ;
+
+  MRIfindApproximateSkullBoundingBox(mri, min_real_val, &box) ;
+	HISTOfree(&h_mri) ; HISTOfree(&h_smooth) ;
+
+	/* don't use dy - superior-inferior dimension is way too variable because of neck */
+  x0 = box.x+box.dx/3 ; y0 = box.y+box.dz/3 ; z0 = box.z+box.dz/2 ;
   printf("using (%.0f, %.0f, %.0f) as brain centroid...\n",x0, y0, z0) ;
 #if 0
   box.x = x0 - HALF_BOX*mri->xsize ; box.dx = BOX_SIZE*mri->xsize ;
@@ -7876,7 +7925,7 @@ gcaComputeConditionalLogDensity(GC1D *gc, float val, int label)
   return(log_p) ;
 }
 GCA_SAMPLE *
-GCAfindAllSamples(GCA *gca, int *pnsamples)
+GCAfindAllSamples(GCA *gca, int *pnsamples, int *exlude_list)
 {
   GCA_SAMPLE *gcas ;
   GCA_PRIOR  *gcap ;
@@ -7916,6 +7965,8 @@ GCAfindAllSamples(GCA *gca, int *pnsamples)
           }
         }
 #if 1
+				if (exlude_list[max_label] > 0)
+					continue ;
         if (IS_UNKNOWN(max_label) &&
             (different_nbr_labels(gca, x, y, z, 1, 0, .1) == 0))
           continue ;
@@ -7955,6 +8006,8 @@ GCAfindAllSamples(GCA *gca, int *pnsamples)
           }
         }
 #if 1
+				if (exlude_list[max_label] > 0)
+					continue ;
         if (IS_UNKNOWN(max_label) &&
             (different_nbr_labels(gca, x, y, z, 1, 0, .1) == 0))
           continue ;

@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/02/11 16:14:56 $
-// Revision       : $Revision: 1.214 $
-char *MRI_C_VERSION = "$Revision: 1.214 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/02/19 19:45:00 $
+// Revision       : $Revision: 1.215 $
+char *MRI_C_VERSION = "$Revision: 1.215 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -1328,7 +1328,7 @@ MRIboundingBoxNbhd(MRI *mri, int thresh, int wsize,MRI_REGION *box)
 int
 MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
 {
-  int      width, height, depth, x, y, z, x1, y1, z1, ndark, max_dark, start ;
+  int      width, height, depth, x, y, z, x1, y1, z1, ndark, max_dark, start, nlight ;
   double   means[3] ;
   Real     val ;
 
@@ -1337,8 +1337,10 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   MRIcenterOfMass(mri, means, thresh) ;
 
 
+#define MAX_LIGHT 30   /* don't let there by 3 cm of bright stuff 'outside' of brain */
+
   /* search for left edge */
-  ndark = max_dark = 0 ; 
+  nlight = ndark = max_dark = 0 ; 
   y = nint(means[1]) ; z = nint(means[2]) ;
   for (start = x1 = x = nint(means[0]) ; x >= 0 ; x--)
   {
@@ -1349,9 +1351,12 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
       if (!ndark)
         start = x ;
       ndark++ ;
+			nlight = 0  ;
     }
     else
     {
+			if (++nlight > MAX_LIGHT)
+				max_dark = 0 ;
       if (ndark > max_dark)
       {
         max_dark = ndark ; x1 = start ;
@@ -1369,7 +1374,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   box->x = x1 ;
 
   /* search for right edge */
-  ndark = max_dark = 0 ; 
+  nlight = ndark = max_dark = 0 ; 
   y = nint(means[1]) ; z = nint(means[2]) ;
   for (start = x1 = x = nint(means[0]) ; x < width ; x++)
   {
@@ -1379,9 +1384,12 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
       if (!ndark)
         start = x ;
       ndark++ ;
+			nlight = 0 ;
     }
     else
     {
+			if (++nlight > MAX_LIGHT)
+				max_dark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; x1 = start ;
@@ -1399,7 +1407,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   box->dx = x1 - box->x + 1 ;
 
   /* search for inferior edge */
-  ndark = max_dark = 0 ; 
+  nlight = ndark = max_dark = 0 ; 
   x = nint(means[0]) ; z = nint(means[2]) ;
   for (start = y1 = y = nint(means[1]) ; y >= 0 ; y--)
   {
@@ -1409,9 +1417,12 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
       if (!ndark)
         start = y ;
       ndark++ ;
+			nlight = 0 ;
     }
     else
     {
+			if (++nlight > MAX_LIGHT)
+				max_dark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; y1 = start ;
@@ -1429,7 +1440,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   box->y = y1 ;
 
   /* search for superior edge */
-  ndark = max_dark = 0 ; 
+  nlight = ndark = max_dark = 0 ; 
   x = nint(means[0]) ; z = nint(means[2]) ;
   for (start = y = y1 = nint(means[1]) ; y < height ; y++)
   {
@@ -1439,9 +1450,12 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
       if (!ndark)
         start = y ;
       ndark++ ;
+			nlight = 0 ;
     }
     else
     {
+			if (++nlight > MAX_LIGHT)
+				max_dark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; y1 = start ;
@@ -1459,7 +1473,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   box->dy = y1 - box->y + 1 ;
 
   /* search for posterior edge */
-  ndark = max_dark = 0 ; 
+  nlight = ndark = max_dark = 0 ; 
   x = nint(means[0]) ; y = nint(means[1]) ;
   for (z1 = start = z = nint(means[2]) ; z >= 0 ; z--)
   {
@@ -1469,9 +1483,12 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
       if (!ndark)
         start = z ;
       ndark++ ;
+			nlight = 0 ;
     }
     else
     {
+			if (++nlight > MAX_LIGHT)
+				max_dark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; z1 = start ;
@@ -1489,7 +1506,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   box->z = z1 ;
 
   /* search for anterior edge */
-  ndark = max_dark = 0 ; 
+  nlight = ndark = max_dark = 0 ; 
   x = nint(means[0]) ; y = nint(means[1]) ;
   for (start = z = nint(means[2]) ; z < depth ; z++)
   {
@@ -1499,9 +1516,12 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
       if (!ndark)
         start = z ;
       ndark++ ;
+			nlight = 0 ;
     }
     else
     {
+			if (++nlight > MAX_LIGHT)
+				max_dark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; z1 = start ;
@@ -2000,9 +2020,9 @@ MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
   case MRI_UNDEFINED:
     /*      ras for MRIvox(mri, i, j, k)    */
     // W = M * V, C = M * Cv -> W - C = M * (V - Cv) -> W = M *(V - Cv) + C
-    rip = xv - (mri->width) / 2.0; 
-    rjp = yv - (mri->height) / 2.0;
-    rkp = zv - (mri->depth) / 2.0;
+    rip = xv - (mri->width-1) / 2.0; 
+    rjp = yv - (mri->height-1) / 2.0;
+    rkp = zv - (mri->depth-1) / 2.0;
 
     *pxw = 
       mri->x_r * mri->xsize * rip + 
@@ -2125,9 +2145,9 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
       V3_LOAD(v_w, xw - mri->c_r, yw - mri->c_a, zw - mri->c_s) ;
       v_v = MatrixMultiply(m_R_inv, v_w, NULL) ;
 
-      *pxv = V3_X(v_v) + (mri->width)/2.0 ; // don't use 2 but 2.0 to get double promotion
-      *pyv = V3_Y(v_v) + (mri->height)/2.0 ;
-      *pzv = V3_Z(v_v) + (mri->depth)/2.0 ;
+      *pxv = V3_X(v_v) + (mri->width-1)/2.0 ; // don't use 2 but 2.0 to get double promotion
+      *pyv = V3_Y(v_v) + (mri->height-1)/2.0 ;
+      *pzv = V3_Z(v_v) + (mri->depth-1)/2.0 ;
       VectorFree(&v_v) ; VectorFree(&v_w) ; MatrixFree(&m_R_inv) ;
     }
     break;
@@ -9628,9 +9648,9 @@ MATRIX *extract_i_to_r(MRI *mri)
     m21 = mri->xsize * mri->x_a;  m22 = mri->ysize * mri->y_a;  m23 = mri->zsize * mri->z_a;
     m31 = mri->xsize * mri->x_s;  m32 = mri->ysize * mri->y_s;  m33 = mri->zsize * mri->z_s;
 
-    ci = (mri->width) / 2.0;
-    cj = (mri->height) / 2.0;
-    ck = (mri->depth) / 2.0;
+    ci = (mri->width - 1.0) / 2.0;
+    cj = (mri->height - 1.0) / 2.0;
+    ck = (mri->depth - 1.0) / 2.0;
 
     m14 = mri->c_r - (m11 * ci + m12 * cj + m13 * ck);
     m24 = mri->c_a - (m21 * ci + m22 * cj + m23 * ck);
