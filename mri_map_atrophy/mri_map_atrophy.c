@@ -12,12 +12,14 @@
 #include "transform.h"
 #include "version.h"
 #include "cma.h"
+#include "gcamorph.h"
 
 
-static char vcid[] = "$Id: mri_map_atrophy.c,v 1.1 2004/06/08 14:11:47 fischl Exp $";
+static char vcid[] = "$Id: mri_map_atrophy.c,v 1.2 2004/06/10 15:28:26 fischl Exp $";
 
 
-static MRI *make_atrophy_map(MRI *mri_time1, MRI *mri_time2, MRI *mri_dst, int *gray_labels, int ngray, int *csf_labels, int ncsf);
+static MRI *make_atrophy_map(MRI *mri_time1, MRI *mri_time2, MRI *mri_dst, TRANSFORM *transform1, TRANSFORM *transform2, 
+														 int *gray_labels, int ngray, int *csf_labels, int ncsf);
 
 int main(int argc, char *argv[]) ;
 
@@ -60,7 +62,7 @@ main(int argc, char *argv[])
   TRANSFORM   *transform1, *transform2 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_map_atrophy.c,v 1.1 2004/06/08 14:11:47 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_map_atrophy.c,v 1.2 2004/06/10 15:28:26 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -101,7 +103,7 @@ main(int argc, char *argv[])
 
 	mri_tmp = TransformApplyType(transform1, mri_time1, NULL, SAMPLE_NEAREST);  MRIfree(&mri_time1) ; mri_time1 = mri_tmp ;
 	mri_tmp = TransformApplyType(transform2, mri_time2, NULL, SAMPLE_NEAREST);  MRIfree(&mri_time2) ; mri_time2 = mri_tmp ;
-	mri_atrophy = make_atrophy_map(mri_time1, mri_time2, NULL, gray_labels, ngray, csf_labels, ncsf) ;
+	mri_atrophy = make_atrophy_map(mri_time1, mri_time2, NULL, transform1, transform2, gray_labels, ngray, csf_labels, ncsf) ;
 
   MRIwrite(mri_atrophy, out_vol) ;
 
@@ -191,19 +193,34 @@ print_version(void)
 
 
 static MRI *
-make_atrophy_map(MRI *mri_time1, MRI *mri_time2, MRI *mri_dst, int *gray_labels, int ngray, int *csf_labels, int ncsf)
+make_atrophy_map(MRI *mri_time1, MRI *mri_time2, MRI *mri_dst, TRANSFORM *transform1, TRANSFORM *transform2, 
+								 int *gray_labels, int ngray, int *csf_labels, int ncsf)
 {
-	int  x, y, z, label1, label2, n, found ;
+	int            x, y, z, label1, label2, n, found, xp, yp, zp, spacing ;
+	GCA_MORPH_NODE *gcamn1, *gcamn2 ;
+	GCA_MORPH      *gcam1, *gcam2 ;
+	float           volume ;
 
 	if (mri_dst == NULL)
-		mri_dst = MRIclone(mri_time1, NULL) ;
+	{
+		mri_dst = MRIalloc(mri_time1->width, mri_time1->height, mri_time1->depth, MRI_FLOAT) ;
+		MRIcopyHeader(mri_time1, mri_dst) ;
+	}
+
+	gcam1 = (GCA_MORPH*)transform1->xform ;
+	gcam2 = (GCA_MORPH*)transform2->xform ;
+	spacing = gcam1->spacing ;
 
 	for (x = 0 ; x < mri_time1->width ; x++)
 	{
+		xp = x / spacing;
 		for (y = 0 ; y < mri_time1->height ; y++)
 		{
+			yp = y / spacing;
 			for (z = 0 ; z < mri_time1->depth ; z++)
 			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
 				label1 = MRIgetVoxVal(mri_time1, x, y, z, 0) ;
 				label2 = MRIgetVoxVal(mri_time2, x, y, z, 0) ;
 				if (label1 == label2)
@@ -226,7 +243,15 @@ make_atrophy_map(MRI *mri_time1, MRI *mri_time2, MRI *mri_dst, int *gray_labels,
 					}
 				if (found == 0)
 					continue ;
-				MRIsetVoxVal(mri_dst, x, y, z,0, 1) ;
+				zp = z / spacing;
+				gcamn1 = &gcam1->nodes[xp][yp][zp] ;
+				gcamn2 = &gcam2->nodes[xp][yp][zp] ;
+				volume = 0 ;
+				if (FZERO(gcamn1->area) == 0)
+					volume += gcamn1->orig_area / gcamn1->area ;
+				if (FZERO(gcamn2->area) == 0)
+					volume += gcamn2->orig_area / gcamn2->area ;
+				MRIsetVoxVal(mri_dst, x, y, z, 0, volume) ;
 			}
 		}
 	}
