@@ -3,6 +3,7 @@
 #include <math.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "mri.h"
 #include "macros.h"
@@ -20,7 +21,7 @@ static void usage(int exit_val);
 
 char *Progname ;
 
-static int verbose = 1 ;
+static int verbose = 0 ;
 static int conform = 0;
 static int xdim = XDIM, ydim = YDIM, zdim = ZDIM ;
 static int raw_flag;
@@ -40,6 +41,9 @@ main(int argc, char *argv[])
   MRI    *mri, *mri2, *mri_kernel ;
   char   *in_fname, *out_fname ;
   FILE   *fin;
+  int    frame, type;
+  struct stat stat_buf;
+
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -54,12 +58,8 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 2)
-    ErrorExit(ERROR_BADPARM, "%s: no input name specified", Progname) ;
-  if (argc < 3)
-    ErrorExit(ERROR_BADPARM, "%s: no output name specified", Progname) ;
-  if (argc > 3)
-    ErrorExit(ERROR_BADPARM, "%s: too many command line parameters (%d)", Progname,argc) ;
+  if(argc != 3)
+    usage(1);
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
@@ -109,17 +109,27 @@ main(int argc, char *argv[])
     mri = mri_smooth ;
   }
 
+  /* force conform if out type is COR- */
+/*
+  strcpy(dummy1, out_fname);
+  MRIunpackFileName(dummy1, &frame, &type, dummy2);
+  if(type == MRI_CORONAL_SLICE_DIRECTORY)
+    conform = 1;
+*/
+
+  stat(out_fname, &stat_buf);
+  if(S_ISDIR(stat_buf.st_mode))
+    conform = 1;
+
   if (conform)
   {
     if(verbose)
       printf("conforming volume...\n");
     mri2 = MRIconform(mri);
+/*    MRIfree(&mri);*/
     mri = MRIcopy(mri2, NULL);
-    MRIfree(&mri2);
+/*    MRIfree(&mri2);*/
   }
-
-  if (verbose)
-    fprintf(stderr, "writing to %s...\n", out_fname) ;
 
   if (transform_fname || inverse_transform_fname)
   {
@@ -128,6 +138,9 @@ main(int argc, char *argv[])
     char *fname ;
     LTA  *lta ;
     M3D  *m3d ;
+
+    if (verbose)
+      fprintf(stderr, "applying transform...\n") ;
 
     if (inverse_transform_fname)
     {
@@ -191,16 +204,16 @@ static void usage(int exit_val)
 
   fprintf(fout, "usage: %s [options] input_file output_file\n", Progname) ;
   fprintf(fout, "  options are:\n");
-  fprintf(fout, "  -u, -?          display usage and exit\n");
+  fprintf(fout, "  -u, -?, -h      display usage and exit\n");
   fprintf(fout, "  -v              verbose\n");
   fprintf(fout, "  -conform        conform the volume to 256x256x256, uchar\n");
   fprintf(fout, "  -r x y z        reorder dimensions\n");
   fprintf(fout, "  -blur sigma     blur the volume\n");
-  fprintf(fout, "  -raw x y z type read a raw data file; type is one of:\n");
-  fprintf(fout, "                  uchar, int, long, float, short\n");
+  fprintf(fout, "  -raw x y z type read a raw data file; type is one of uchar, int,\n");
+  fprintf(fout, "                  long, float, or short\n");
+  fprintf(fout, "  -T transform    apply a transform\n");
   fprintf(fout, "  -x xdim -y ydim -z zdim\n");
   fprintf(fout, "                  reorder the axes\n");
-  fprintf(fout, "  -T transform    apply a transform\n");
 
   exit(exit_val) ;
 
@@ -344,8 +357,8 @@ get_option(int argc, char *argv[])
     break ;
   case '?':
   case 'U':
-    printf("usage: %s [input directory] [output directory]\n", argv[0]) ;
-    exit(1) ;
+  case 'H':
+    usage(0);
     break ;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
