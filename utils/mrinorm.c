@@ -316,7 +316,7 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
   {
     MRI_REGION  bbox ;
 
-    MRIboundingBox(mri, 80, &bbox) ;
+    MRIboundingBoxNbhd(mri, 50, 5, &bbox) ;
     /* place x and z at center of bounding box */
     x0_tal = bbox.x + bbox.dx/2.0 ; z0_tal = bbox.z + bbox.dz/2.0 ;
 
