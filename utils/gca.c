@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/17 16:54:56 $
-// Revision       : $Revision: 1.101 $
+// Revision Date  : $Date: 2004/03/17 22:54:22 $
+// Revision       : $Revision: 1.102 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1831,38 +1831,37 @@ GCAread(char *fname)
 		   n, gca->TRs[n], DEGREES(gca->FAs[n]), gca->TEs[n]) ;
 	  }
 	  break ;
+	case TAG_GCA_DIRCOS:
+	  gca->x_r = freadFloat(fp);
+	  gca->x_a = freadFloat(fp);
+	  gca->x_s = freadFloat(fp);
+	  gca->y_r = freadFloat(fp);
+	  gca->y_a = freadFloat(fp);
+	  gca->y_s = freadFloat(fp);
+	  gca->z_r = freadFloat(fp);
+	  gca->z_a = freadFloat(fp);
+	  gca->z_s = freadFloat(fp);
+	  gca->c_r = freadFloat(fp);
+	  gca->c_a = freadFloat(fp);
+	  gca->c_s = freadFloat(fp);
+	  gca->width = freadInt(fp);
+	  gca->height = freadInt(fp);
+	  gca->depth = freadInt(fp);
+	  gca->xsize = freadFloat(fp);
+	  gca->ysize = freadFloat(fp);
+	  gca->zsize = freadFloat(fp);
+	  
+	  printf("Direction cosines read:\n");
+	  printf(" x_r = % .4f, y_r = % .4f, z_r = % .4f\n", gca->x_r, gca->y_r, gca->z_r);
+	  printf(" x_a = % .4f, y_a = % .4f, z_a = % .4f\n", gca->x_a, gca->y_a, gca->z_a);
+	  printf(" x_s = % .4f, y_s = % .4f, z_s = % .4f\n", gca->x_s, gca->y_s, gca->z_s);
+	  printf(" c_r = % .4f, c_a = % .4f, c_s = % .4f\n", gca->c_r, gca->c_a, gca->c_s);
+          break;
 	default:
 	  ErrorPrintf(ERROR_BADFILE, "GCAread(%s): unknown tag %x\n", fname, tag) ;
 	  break ;
 	}
       }
-    }
-    else if (tag == TAG_GCA_DIRCOS)
-    {
-      gca->x_r = freadFloat(fp);
-      gca->x_a = freadFloat(fp);
-      gca->x_s = freadFloat(fp);
-      gca->y_r = freadFloat(fp);
-      gca->y_a = freadFloat(fp);
-      gca->y_s = freadFloat(fp);
-      gca->z_r = freadFloat(fp);
-      gca->z_a = freadFloat(fp);
-      gca->z_s = freadFloat(fp);
-      gca->c_r = freadFloat(fp);
-      gca->c_a = freadFloat(fp);
-      gca->c_s = freadFloat(fp);
-      gca->width = freadInt(fp);
-      gca->height = freadInt(fp);
-      gca->depth = freadInt(fp);
-      gca->xsize = freadFloat(fp);
-      gca->ysize = freadFloat(fp);
-      gca->zsize = freadFloat(fp);
-
-      printf("Direction cosines read:\n");
-      printf(" x_r = % .4f, y_r = % .4f, z_r = % .4f\n", gca->x_r, gca->y_r, gca->z_r);
-      printf(" x_a = % .4f, y_a = % .4f, z_a = % .4f\n", gca->x_a, gca->y_a, gca->z_a);
-      printf(" x_s = % .4f, y_s = % .4f, z_s = % .4f\n", gca->x_s, gca->y_s, gca->z_s);
-      printf(" c_r = % .4f, c_a = % .4f, c_s = % .4f\n", gca->c_r, gca->c_a, gca->c_s);
     }
   }
 
