@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.10 2002/11/08 22:41:48 greve Exp $
+  $Id: mris_glm.c,v 1.11 2002/11/12 20:41:53 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -61,10 +61,11 @@ int ReadAsciiMatrixSize(char *desmtxfname, int *pnrows, int *pncols);
 int ReadDesignMatrix(char *desmtxfname);
 MATRIX *ReadAsciiMatrix(char *asciimtxfname);
 int CheckDesignMatrix(MATRIX *X);
+static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.10 2002/11/08 22:41:48 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.11 2002/11/12 20:41:53 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -87,6 +88,7 @@ char *subjectlist[1000];
 int  nregressors = 0;
 MATRIX *X; /* design matrix */
 FSGD *fsgd=NULL;
+char  *gd2mtx_method = "none";
 
 char   *conmtxfname;
 MATRIX *C; /* contrast vector */
@@ -343,16 +345,17 @@ int main(int argc, char **argv)
     if(yid != NULL){
       if(MRIwriteAnyFormat(SrcVals,yid,yfmt,-1,NULL)) exit(1);
       if(fsgd != NULL){
-	sprintf(tmpstr,"%s.fsgd",yid);
+	sprintf(tmpstr,"%s.fsgd",getstem(yid));
 	strcpy(fsgd->measname,surfmeasure);
 	sprintf(fsgd->datafile,"%s_000.bfloat",yid);
       }
       fp = fopen(tmpstr,"w");
       gdfPrint(fp,fsgd);
-      fprintf(fp,"Creator     %s\n",Progname);
-      fprintf(fp,"SmoothSteps %d\n",nsmooth);
-      fprintf(fp,"SUBECTS_DIR %s\n",SUBJECTS_DIR);
-      fprintf(fp,"SynthSeed   %d\n",synthseed);
+      fprintf(fp,"Creator          %s\n",Progname);
+      fprintf(fp,"SmoothSteps      %d\n",nsmooth);
+      fprintf(fp,"SUBECTS_DIR      %s\n",SUBJECTS_DIR);
+      fprintf(fp,"SynthSeed        %d\n",synthseed);
+      fprintf(fp,"GDFMatrixMethod  %s\n",gd2mtx_method);
       fclose(fp);
     }
 
@@ -537,14 +540,22 @@ static int parse_commandline(int argc, char **argv)
     else if ( !strcmp(option, "--fsgd") ){
       if(nargc < 1) argnerr(option,1);
       fsgdfile = pargv[0];
+      nargsused = 1;
       fsgd = gdfRead(fsgdfile);
       if(fsgd==NULL) exit(1);
-      X = gdfMatrixDOSS(fsgd,NULL);
-      CheckDesignMatrix(X);
-      nsubjects = X->rows;
-      nregressors = X->cols;
-      for(m=0; m<nsubjects; m++) subjectlist[m] = fsgd->subjid[m];
-      nargsused = 1;
+      if(nth_is_arg(nargc, pargv, 1)){
+	gd2mtx_method = pargv[1]; nargsused ++;
+	if(gdfCheckMatrixMethod(gd2mtx_method)) exit(1);
+      }
+      else gd2mtx_method = "dods";
+      printf("INFO: gd2mtx_method is %s\n",gd2mtx_method);
+      if(!stringmatch(gd2mtx_method,"none")){
+	X = gdfMatrix(fsgd,gd2mtx_method,NULL);
+	CheckDesignMatrix(X);
+	nsubjects = X->rows;
+	nregressors = X->cols;
+	for(m=0; m<nsubjects; m++) subjectlist[m] = fsgd->subjid[m];
+      }
     }
     else if ( !strcmp(option, "--design") ){
       if(nargc < 1) argnerr(option,1);
@@ -836,6 +847,22 @@ the --sigt flag.
 
 COMMAND-LINE ARGUMENTS
 
+--fsgd fname <gd2mtx>
+
+Specify the design with a FreeSurfer Group Descriptor File (FSGDF).
+See http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt for more info.
+The gd2mtx is the method by which the group description is converted
+into a design matrix. Legal values are doss (Different Offset, Same
+Slope) and dods (Different Offset, Different Slope). doss will create
+a design matrix in which each class has it's own offset but forces all
+classes to have the same slope. dods models each class with it's own
+offset and slope. If neither of these models works for you, you will
+have to specify the design matrix manually. In that case, you can
+still specify an FSGDF but use 'none' as the gd2mtx. It can be
+advantageous to specify an FSGDF because this information will be
+propagated with the output data and can be used by tksurfer to display
+scatter plots.
+
 --design fname
 
 File name for design matrix. The design matrix must be in an ASCII
@@ -854,7 +881,7 @@ full analysis. Just run:
           mris_glm --design fname 
 It will print out an INFO line with the condition number. You can
 force processing with the given design matrix by PRECEDING the
---design flag with --force.
+--design flag with --force. 
 
 --surfmeas name 
 
@@ -932,8 +959,10 @@ identical to that specified with --var when doing the estimation.
 
 --y name <fmt>
 
-Save the raw data (after resampling and smoothing) into a single volume.
-This is mainly good for debugging. fmt is the format (see OUTPUT FORMATS).
+Save the raw data (after resampling and smoothing) into a single 'volume'.
+fmt is the format (see OUTPUT FORMATS). If an FSGDF has been specified
+(with --fsgdf), then this file is copied to name.fsgdf. This can be
+useful for displaying scatter plots in tksurfer.
 
 --beta name <fmt>
 
@@ -1113,9 +1142,8 @@ static void check_options(void)
     exit(1);
   }
 
-  if(desmtxfname != NULL && fsgdfile != NULL){
-    /* dont need to be so strict */
-    printf("ERROR: cannot specify a design matrix and fsgd\n");
+  if(desmtxfname != NULL && !stringmatch(gd2mtx_method,"none")){
+    printf("ERROR: cannot specify a design matrix and create matrix from fsgd\n");
     exit(1);
   }
 
@@ -1482,6 +1510,12 @@ int CheckDesignMatrix(MATRIX *X)
   float Xcondition;
   MATRIX *Xnorm;
 
+  if(X->rows <= X->cols){
+    printf("ERROR: Design Matrix: nrows (%d) <= ncols (%d)\n",
+	   X->rows,X->cols);
+    exit(1);
+  }
+
   Xnorm = MatrixNormalizeCol(X,NULL);
   Xcondition = sqrt(MatrixNSConditionNumber(Xnorm));
   MatrixFree(&Xnorm);
@@ -1502,4 +1536,25 @@ int CheckDesignMatrix(MATRIX *X)
   }
   
   return(0);
+}
+/*---------------------------------------------------*/
+static char *getstem(char *bfilename)
+{
+  char *stem;
+  int len;
+
+  /* eg, f_000.bfloat, stem = f*/
+
+  len = strlen(bfilename);
+  stem = (char *) calloc(sizeof(char),len+1);
+  
+  if(len < 12)
+    memcpy(stem,bfilename,len);
+  else
+    memcpy(stem,bfilename,len-11);
+
+  //printf("bfilename: %s\n",bfilename);
+  //printf("stem:      %s\n",stem);
+
+  return(stem);
 }
