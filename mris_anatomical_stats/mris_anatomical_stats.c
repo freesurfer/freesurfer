@@ -15,7 +15,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.13 2003/09/16 18:41:01 tosa Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.14 2003/10/09 20:47:40 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -57,11 +57,11 @@ static char *mri_name = "T1" ;
 static int noheader = 0 ;
 static char *log_file_name = NULL ;
 static int tabular_output_flag = 0;
-
+static char sdir[STRLEN] = "" ;
 int
 main(int argc, char *argv[])
 {
-  char          **av, *hemi, *sname, sdir[400], *cp, fname[500], *surf_name ;
+  char          **av, *hemi, *sname, *cp, fname[STRLEN], *surf_name ;
   int           ac, nargs, vno ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_orig ;
@@ -75,7 +75,7 @@ main(int argc, char *argv[])
   int           n_vertices = -1;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.13 2003/09/16 18:41:01 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.14 2003/10/09 20:47:40 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -98,11 +98,14 @@ main(int argc, char *argv[])
     usage_exit() ;
 
   sname = argv[1] ;
-  cp = getenv("SUBJECTS_DIR") ;
-  if (!cp)
-    ErrorExit(ERROR_BADPARM, 
-              "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
-  strcpy(sdir, cp) ;
+	if (strlen(sdir) == 0)
+	{
+		cp = getenv("SUBJECTS_DIR") ;
+		if (!cp)
+			ErrorExit(ERROR_BADPARM, 
+								"%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+		strcpy(sdir, cp) ;
+	}
 
   hemi = argv[2] ; 
   if (argc > 3)
@@ -188,8 +191,11 @@ main(int argc, char *argv[])
   MRISsetNeighborhoodSize(mris, 2) ;
   MRIScomputeSecondFundamentalForm(mris) ;
   if (annotation_name)
+	{
 /*    MRISreadAnnotFile(mris, annotation_name) ;*/
-    MRISreadAnnotation(mris, annotation_name) ;
+    if (MRISreadAnnotation(mris, annotation_name) != NO_ERROR)
+			ErrorExit(ERROR_NOFILE, "%s:  could  not read annotation file %s", Progname, annotation_name) ;
+	}
   fprintf(stderr, "done.\n") ;
 
   if (log_file_name)
@@ -294,6 +300,8 @@ main(int argc, char *argv[])
       else
       {
 
+				if (mris->ct == NULL)
+					ErrorExit(ERROR_BADFILE, "%s: no color table loaded - cannot translate annot  file",Progname);
         ct_index = CTABannotationToIndex(mris->ct, annotation);
 
         if(ct_index < 0)
@@ -415,6 +423,12 @@ get_option(int argc, char *argv[])
   {
 		noheader = 1 ;
     printf("supressing printing of headers to log file\n") ;
+  }
+  else if (!stricmp(option, "sdir"))
+  {
+		strcpy(sdir, argv[2]) ;
+    printf("using  %s as  SUBJECTS_DIR...\n", sdir)  ;
+		nargs = 1 ;
   }
   else switch (toupper(*option))
   {
