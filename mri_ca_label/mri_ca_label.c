@@ -19,6 +19,10 @@
 static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
 
+static int insert_thin_temporal_white_matter(MRI *mri_in, 
+                                             MRI *mri_labeled, 
+                                             GCA *gca, 
+                                             LTA *lta) ;
 static int distance_to_label(MRI *mri_labeled, int label, int x, 
                              int y, int z, int dx, int dy, 
                              int dz, int max_dist) ;
@@ -32,6 +36,7 @@ static int MRIcountNbhdLabels(MRI *mri, int x, int y, int z, int label) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
+static char *tl_gca_fname = NULL ;
 static double TR = -1 ;
 static double alpha = -1 ;
 static double TE = -1 ;
@@ -403,6 +408,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("inserting white matter segmentation from %s...\n", wm_fname) ;
   }
+  else if (!stricmp(option, "TL"))
+  {
+    tl_gca_fname = argv[2] ;
+    nargs = 1 ;
+    printf("using gca %s to label thin temporal lobe...\n", tl_gca_fname) ;
+  }
   else if (!stricmp(option, "DEBUG_VOXEL"))
   {
     Ggca_x = atoi(argv[2]) ;
@@ -711,6 +722,26 @@ preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
     printf("writing snapshot to %s...\n", fname) ;
     MRIwrite(mri_labeled, fname) ;
   }
+  if (tl_gca_fname)
+  {
+    GCA  *gca_tl ;
+
+    gca_tl = GCAread(tl_gca_fname) ;
+    if (!gca_tl)
+      ErrorExit(ERROR_NOFILE, "%s: could not read temporal lobe GCA file %s",
+                Progname, tl_gca_fname) ;
+
+    insert_thin_temporal_white_matter(mri_in, mri_labeled, gca_tl, lta) ;
+    GCAfree(&gca_tl) ;
+    if (gca_write_iterations != 0)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "%s_temporal.mgh", gca_write_fname) ;
+      printf("writing snapshot to %s...\n", fname) ;
+      MRIwrite(mri_labeled, fname) ;
+    }
+  }
+
   if (hippocampus_flag)
   {
     edit_hippocampus(mri_in, mri_labeled, gca, lta, mri_fixed) ;
@@ -1184,3 +1215,144 @@ edit_amygdala(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
   printf("%d amygdala voxels changed.\n", nchanged) ;
   return(NO_ERROR) ;
 }
+static int
+insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled, 
+                                  GCA *gca, LTA *lta)
+{
+  MRI       *mri_tmp, *mri_probs ;
+  int       width, height, depth, x, y, z, xn, yn, zn, n, nsamples, i ;
+  int       xmin, xmax, ymin, ymax, zmin, zmax, yi, yimax ;
+  GCA_NODE  *gcan ;
+  GC1D      *gc ;
+  GCA_SAMPLE *gcas ;
+  double     p, pmax ;
+
+  mri_tmp = MRIclone(mri_in, NULL) ;
+
+  width = mri_tmp->width ; height = mri_tmp->height ; depth = mri_tmp->depth ;
+  mri_probs = MRIalloc(width, height, depth, MRI_UCHAR) ;
+
+  xmin = width ; ymin = height ; zmin = depth ;
+  xmax = ymax = zmax = 0 ;
+  for (nsamples = x = 0 ; x < width ; x++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        GCAsourceVoxelToNode(gca, mri_in, lta, x, y, z, &xn, &yn, &zn) ;
+        gcan = &gca->nodes[xn][yn][zn] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          if (!IS_UNKNOWN(gcan->labels[n]))
+          {
+            if (x < xmin)
+              xmin = x ;
+            if (x > xmax)
+              xmax = x ;
+            if (y < ymin)
+              ymin = y ;
+            if (y > ymax)
+              ymax = y ;
+            if (z < zmin)
+              zmin = z ;
+            if (z > zmax)
+              zmax = z ;
+
+            nsamples++ ;
+            MRIvox(mri_tmp, x, y, z) = 255 ;
+            break ;
+          }
+        }
+      }
+    }
+  }
+
+  printf("allocating %d TL samples, box [%d, %d, %d] -> [%d, %d, %d]...\n", 
+         nsamples, xmin, ymin, zmin, xmax, ymax, zmax) ;
+  gcas = calloc(nsamples, sizeof(GCA_SAMPLE )) ;
+  if (!gcas)
+    ErrorExit(ERROR_NOMEMORY, "could not allocate gcas for TL insertion") ;
+
+
+  /* put in the coordinates of the samples */
+  for (i = 0, x = xmin ; x <= xmax ; x++)
+  {
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      for (y = ymin ; y <= ymax ; y++)
+      {
+        GCAsourceVoxelToNode(gca, mri_in, lta, x, y, z, &xn, &yn, &zn) ;
+        gcan = &gca->nodes[xn][yn][zn] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          gc = &gcan->gcs[n] ;
+          if (!IS_UNKNOWN(gcan->labels[n]))
+          {
+            gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
+            gcas[i].xn = xn ; gcas[i].yn = yn ; gcas[i].zn = zn ;
+            gcas[i].n = n ; gcas[i].label = gcan->labels[n] ;
+            gcas[i].prior = gc->prior ;
+            gcas[i].mean = gc->mean ;
+            gcas[i].var = gc->var ;
+            i++ ;
+            break ;
+          }
+        }
+      }
+    }
+  }
+  GCAcomputeLogSampleProbabilityUsingCoords(gca, gcas, mri_in, 
+                                            lta->xforms[0].m_L, nsamples) ;
+  for (i = 0 ; i < nsamples ; i++)
+  {
+    double p ;
+    p = exp(gcas[i].log_p) * 255 * 20 ;
+    if (p > 255.0)
+      p = 255.0 ;
+    MRIvox(mri_probs, gcas[i].x, gcas[i].y, gcas[i].z) = (char)p ;
+  }
+
+  /* put in the coordinates of the samples */
+  for (i = 0, x = xmin ; x <= xmax ; x++)
+  {
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      pmax = 0.0 ; yimax = 0 ;
+      for (y = ymin ; y <= ymax ; y++)
+      {
+        yi = mri_probs->yi[y+1] ;
+        p = MRIvox(mri_probs, x,  y, z) + MRIvox(mri_probs, x, yi, z) ;
+        if (p > pmax)
+        {
+          pmax = p ; yimax = y ;
+        }
+      }
+
+      /* erase everything except the two highest contiguous voxels */
+      for (y = ymin ; y <= ymax ; y++)
+      {
+        if (y == yimax || y == yimax+1)
+          continue ;
+        MRIvox(mri_tmp, x, y, z) = 0 ;
+      }
+    }
+  }
+
+  for (i = 0 ; i < nsamples ; i++)
+  {
+    x = gcas[i].x ; y = gcas[i].y ; z = gcas[i].z ; 
+    if (MRIvox(mri_tmp, x, y, z))
+      MRIvox(mri_labeled, x, y, z) = gcas[i].label ;
+  }
+
+  free(gcas) ;
+  printf("writing temporal lobe volume...") ;
+  MRIwrite(mri_tmp, "/tmp/temp.mgh") ;
+  MRIwrite(mri_probs, "/tmp/probs.mgh") ;
+
+  MRIfree(&mri_tmp) ; MRIfree(&mri_probs) ;
+  printf("done.\n") ;
+  return(NO_ERROR) ;
+}
+
