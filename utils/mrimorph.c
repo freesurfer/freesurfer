@@ -1617,6 +1617,8 @@ openLogFile(MORPH_PARMS *parms)
   if (!FZERO(parms->l_intensity))
     fprintf(stderr, "l_intensity = %2.4f\n", parms->l_intensity) ;
   if (!FZERO(parms->l_dist))
+    fprintf(stderr, "l_compression = %2.4f\n", parms->l_compression);
+  if (!FZERO(parms->l_dist))
     fprintf(stderr, "l_dist = %2.4f\n", parms->l_dist) ;
   if (!FZERO(parms->l_area))
     fprintf(stderr, "l_area = %2.4f\n", parms->l_area) ;
