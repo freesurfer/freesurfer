@@ -159,9 +159,7 @@ is_signa(char *fname)
     return(0) ;
 
   if ((ret = fread(h,sizeof(char),HLENGTH,fp)) != HLENGTH)
-    ErrorReturn(0, (ERROR_BADFILE, 
-                    "is_signa(%s): could not read %d byte header",
-                    fname, HLENGTH)) ;
+    return(0) ;
   get_signa_header_info((char *)&h, &header) ;
   fclose(fp) ;
 
