@@ -2,16 +2,31 @@
 
 if($#argv < 2) then
   echo "parse-measasc meas.asc varname1 <varname2 ...>"
+  echo "   NOTE: many varnames may need quotes"
   exit 1;
 endif
 
+# EPI
+# sRXSPEC.alDwellTime[0]          ns
+# m_alRegridRampupTime            us
+# m_alRegridFlattopTime           us
+# m_alRegridRampdownTime          us
+# m_alRegridDelaySamplesTime      us
+# m_lEchoSpacing                  us, same as RampUp+Flat+RampDown
+#
+# FID
+# number of echoes - sWiPMemBlock.alFree[10]
+# echo spacing     - sWiPMemBlock.adFree[2]   ms
+# time to first echo - alTE[0];               us
+
 set measasc = $argv[1];
-set varname = ($argv[2-$#argv]);
+set varname = ("$argv[2-$#argv]");
 
 if(! -e $measasc) then
   echo "ERROR: cannot find $measasc"
   exit 1;
 endif
+#echo "$varname"
 
 set tmpfile = meas.asc.$$
 cp $measasc /tmp/$tmpfile
@@ -19,7 +34,7 @@ cd /tmp
 dos2unix $tmpfile >& /dev/null
 
 set vallist = ();
-foreach v ($varname)
+foreach v ("$varname")
   set val = `cat $tmpfile |  awk -v v="$v" '{if($1 == v) print $3}'`;
   if($#val == 0) then
     echo "ERROR: cannot find $v in $measasc"
