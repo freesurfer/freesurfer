@@ -510,13 +510,23 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
       {
 	// modify dst c_(r,a,s) using the transform dst value
 	// to make the better positioning
-	printf("INFO: Modifying dst c_(r,a,s), using the transform dst\n");
+	fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using the transform dst\n");
 	mri_dst->c_r = tran->dst.c_r;
 	mri_dst->c_a = tran->dst.c_a;
 	mri_dst->c_s = tran->dst.c_s;
+	mri_dst->ras_good_flag = 1;
+      }
+      else if(getenv("USE_AVERAGE305"))
+      {
+	fprintf(stderr, "INFO: environmental variable USE_AVERAGE305 set\n");
+	fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using average_305 values\n");
+	mri_dst->c_r = -0.0950;
+	mri_dst->c_a = -16.5100;
+	mri_dst->c_s = 9.7500;
+	mri_dst->ras_good_flag = 1;
       }
       else
-	printf("INFO: Transform dst volume info is not used (valid flag = 0).\n");
+	fprintf(stderr, "INFO: Transform dst volume info is not used (valid flag = 0).\n");
 
       return(MRIapplyRASlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
     }
@@ -1347,12 +1357,19 @@ TransformSample(TRANSFORM *transform, int xv, int yv, int zv, float *px, float *
       *MATRIX_RELT(v_input, 4, 1) = 1.0 ;
       *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
     }
-    
     V3_X(v_input) = (float)xv;
     V3_Y(v_input) = (float)yv;
     V3_Z(v_input) = (float)zv;
     MatrixMultiply(lta->xforms[0].m_L, v_input, v_canon) ;
-    xt = V3_X(v_canon) ; yt = V3_Y(v_canon) ; zt = V3_Z(v_canon) ; 
+    xt = V3_X(v_canon) ; yt = V3_Y(v_canon) ; zt = V3_Z(v_canon) ;
+    if (xt < 0) xt = 0;
+    if (yt < 0) yt = 0;
+    if (zt < 0) zt = 0;
+    if (!v_canon)
+    {
+      VectorFree(&v_input);
+      VectorFree(&v_canon);
+    }
   }
   *px = xt ; *py = yt ; *pz = zt ;
   return(NO_ERROR) ;
