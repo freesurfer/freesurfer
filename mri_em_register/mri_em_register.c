@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/02/04 14:49:17 $
-// Revision       : $Revision: 1.35 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/02/26 19:03:28 $
+// Revision       : $Revision: 1.36 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -136,7 +136,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.35 2004/02/04 14:49:17 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.36 2004/02/26 19:03:28 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -285,7 +285,7 @@ main(int argc, char *argv[])
     GCA *gca_tmp ;
     
     printf("mapping GCA into %d-dimensional FLASH space...\n", mri_in->nframes) ;
-    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
+    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes, 100) ;
     GCAfree(&gca) ;
     gca = gca_tmp ;
     if (ninputs != gca->ninputs)
