@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/02/03 01:48:55 $
-// Revision       : $Revision: 1.156 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/02/14 20:21:32 $
+// Revision       : $Revision: 1.157 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7953,8 +7953,10 @@ GCAmaxLikelihoodBorderLabel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
     // set the label to this neighbor value
     MRIvox(mri_labels, x, y, z) = label ;
     // check if possible
-    if (gcaGibbsImpossibleConfiguration(gca, mri_labels, x, y, z, transform))
-      continue ;
+    if (gcaGibbsImpossibleConfiguration(gca, mri_labels, x, y, z, transform)){
+      MRIvox(mri_labels, x, y, z) = orig_label ; // added by xh
+      continue ; // shouldn't put the original label back ???? -xh
+    }
     // restore the old value
     MRIvox(mri_labels, x, y, z) = orig_label ;
 

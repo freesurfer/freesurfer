@@ -12,8 +12,8 @@
 // C. Archambeau et al Flexible and Robust Bayesian Classification by Finite Mixture Models, ESANN'2004
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/02/11 22:09:45 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2005/02/14 20:21:32 $
+// Revision       : $Revision: 1.3 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -102,7 +102,7 @@ static int fuzzy_lda = 0; /* whether use Fuzzy cov and fuzzy centroid for LDA */
 static double mybeta = 0.5; /*weight for MRF */
 
 /* eps and lambda are used for covariance regularization */
-static double eps = 1e-20;
+static double eps = 1e-30;
 static double lambda = 0.1;
 static int regularize = 0;
 
@@ -183,7 +183,7 @@ main(int argc, char *argv[])
   int indexmap[MAX_CLASSES + 1];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.2 2005/02/11 22:09:45 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.3 2005/02/14 20:21:32 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -546,7 +546,7 @@ main(int argc, char *argv[])
 	    sum_of_distance += distance2;
 	  }
 
-	  if(sum_of_distance <= 1e20){ /* Outlier */
+	  if(sum_of_distance <= 1e10){ /* Outlier */
 	    sum_of_distance = 1.0;
 	    //	    printf("(x,y,z) = (%d,%d,%d), sum_of_distance = %g\n",x,y,z, sum_of_distance);
 	    // ErrorExit(ERROR_BADPARM, "%s: overflow in computing membership function.\n", Progname);		    
@@ -624,6 +624,25 @@ main(int argc, char *argv[])
   for(i=0; i < num_classes; i++){
     printf("indexmap[%d] = %d\n", i, indexmap[i]);
   }
+
+  /* Compute class size */
+  for(c=0; c < num_classes; c++)
+    classSize[c] = 0;
+  for(z=0; z < depth; z++)
+    for(y=0; y< height; y++)
+      for(x=0; x < width; x++){
+	if(MRIvox(mri_mask, x, y, z) == 0) continue;
+	for(c=0; c < num_classes; c++){
+	  classSize[c] += MRIFvox(mri_mem[c], x, y, z);
+	}
+      }
+  
+  if(classSize[NRindex[1]] > classSize[NRindex[2]]){
+    printf("Switch to make sure least size is dura, and as final label 1\n");
+    i = NRindex[1] -1; j = NRindex[2] - 1;
+    c = NRindex[1]; NRindex[1] = NRindex[2]; NRindex[2] = c;
+    indexmap[i] = 2; indexmap[j] = 1;
+  } 
 
   if(num_classes == 4){
     /* compute the size of class 1 and class 2, and assign the one with smaller size to class 1 (dura) */
@@ -1373,7 +1392,7 @@ void update_centroids(MRI **mri_flash, MRI **mri_mem, MRI **mri_lihood, MRI *mri
   int m, c, x, y, z, depth, height, width;
   double numer, denom;
   double mem, data;
-  double scale ;
+  double scale =1.0;
   //  double kappa = exp(-4.5);
 
   depth = mri_flash[0]->depth;
@@ -1393,8 +1412,9 @@ void update_centroids(MRI **mri_flash, MRI **mri_mem, MRI **mri_lihood, MRI *mri
 	  for(x=0; x < width; x++)
 	    {
 	      if(MRIvox(mri_mask, x, y, z) > 0){
-		scale =  MRIFvox(mri_lihood[c], x, y, z);
-		scale = scale/(scale + kappa);
+		/* Use this "typicallity scale leads to poor results */
+		// scale =  MRIFvox(mri_lihood[c], x, y, z);
+		// scale = scale/(scale + kappa);
 		mem = MRIFvox(mri_mem[c], x, y, z)*scale;
 		data = MRIFvox(mri_flash[m], x, y, z);
 		numer += mem*data;
@@ -1444,7 +1464,7 @@ void update_F(MATRIX **F, MRI **mri_flash, MRI **mri_mem, MRI **mri_lihood, MRI 
   int m1, m2, c, x, y, z, depth, height, width;
   double denom;
   double mem, data1, data2;
-  double scale ;
+  double scale = 1.0;
   //  double kappa = exp(-4.5);
   MATRIX * tmpM = 0; /*used for covariance regularization */
 
@@ -1465,8 +1485,8 @@ void update_F(MATRIX **F, MRI **mri_flash, MRI **mri_mem, MRI **mri_lihood, MRI 
       for(y=0; y< height; y++)
 	for(x=0; x < width; x++){
 	  if(MRIvox(mri_mask, x, y, z) == 0) continue;
-	  scale =  MRIFvox(mri_lihood[c], x, y, z);
-	  scale = scale/(scale + kappa);
+	  // scale =  MRIFvox(mri_lihood[c], x, y, z);
+	  // scale = scale/(scale + kappa);
 	  mem = MRIFvox(mri_mem[c], x, y, z)*scale;
 	  /* mem = mem*mem; */ /* here differs from FCM */
 	  denom +=  mem;

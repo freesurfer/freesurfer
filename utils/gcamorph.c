@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/02/09 15:32:10 $
-// Revision       : $Revision: 1.60 $
+// Revision Date  : $Date: 2005/02/14 20:21:32 $
+// Revision       : $Revision: 1.61 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -3567,18 +3567,18 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
     {
       for (x = 0 ; x < gcam->width ; x++)
       {
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
-
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	
         // find nodes 
         gcamn = &gcam->nodes[x][y][z] ;
-
+	
         if (gcamn->invalid/* == GCAM_POSITION_INVALID*/)
           continue;
-
+	
         // get the source volume position 
         xf = gcamn->x ; yf = gcamn->y ; zf = gcamn->z ;
-				// make them within the range of index /////////////////////////////
+	// make them within the range of index /////////////////////////////
         if (xf < 0)
           xf = 0 ;
         if (yf < 0)
@@ -3591,46 +3591,43 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
           yf = height-1 ;
         if (zf >= depth)
           zf = depth-1 ;
-				xv = nint(xf) ; yv = nint(yf) ; zv = nint(zf) ;
-				////////////////////////////////////////////////////////////////////
+	xv = nint(xf) ; yv = nint(yf) ; zv = nint(zf) ;
+	////////////////////////////////////////////////////////////////////
         // cache position
         // xind[xv][yv][zv] += x
-
-				if (abs(xf-Gx)<1 && abs(yf-Gy) <1 && abs(zf-Gz) < 1)
-					DiagBreak() ;
-				MRIinterpolateIntoVolume(gcam->mri_xind, (Real)xf, (Real)yf, (Real)zf, (Real)x) ; // src -> gcam volume position 
-				MRIinterpolateIntoVolume(gcam->mri_yind, (Real)xf, (Real)yf, (Real)zf, (Real)y) ;
-				MRIinterpolateIntoVolume(gcam->mri_zind, (Real)xf, (Real)yf, (Real)zf, (Real)z) ;
-
+	
+	if (abs(xf-Gx)<1 && abs(yf-Gy) <1 && abs(zf-Gz) < 1)
+	  DiagBreak() ;
+	MRIinterpolateIntoVolume(gcam->mri_xind, (Real)xf, (Real)yf, (Real)zf, (Real)x) ; // src -> gcam volume position 
+	MRIinterpolateIntoVolume(gcam->mri_yind, (Real)xf, (Real)yf, (Real)zf, (Real)y) ;
+	MRIinterpolateIntoVolume(gcam->mri_zind, (Real)xf, (Real)yf, (Real)zf, (Real)z) ;
+	
         // mark counts (how many went in)
-				MRIinterpolateIntoVolume(mri_counts, (Real)xf, (Real)yf, (Real)zf, (Real)1.0) ;
+	MRIinterpolateIntoVolume(mri_counts, (Real)xf, (Real)yf, (Real)zf, (Real)1.0) ;
 #ifndef __OPTIMIZE__
         if (xv == Ggca_x && yv == Ggca_y && zv == Ggca_z)
-        {
-          if (xv >=0 && yv >= 0 && zv >= 0)
-            fprintf(stderr, "src (%d, %d, %d) corresponds to gcam (%d, %d, %d)\n",
-                    xv, yv, zv, x, y, z);
-        }
+	  {
+	    if (xv >=0 && yv >= 0 && zv >= 0)
+	      fprintf(stderr, "src (%d, %d, %d) corresponds to gcam (%d, %d, %d)\n",
+		      xv, yv, zv, x, y, z);
+	  }
 #endif
       }
     }
   }
-
-	if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
-	{
-		MRIwrite(gcam->mri_xind, "xi.mgz") ;
-		MRIwrite(mri_counts, "c.mgz") ;
-	}
-
-  // xind, yind, zind is of size (width, height, depth)
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
+  
+  if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
     {
-      for (x = 0 ; x < width ; x++)
-      {
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
+      MRIwrite(gcam->mri_xind, "xi.mgz") ;
+      MRIwrite(mri_counts, "c.mgz") ;
+    }
+  
+  // xind, yind, zind is of size (width, height, depth)
+  for (z = 0 ; z < depth ; z++){
+    for (y = 0 ; y < height ; y++){
+      for (x = 0 ; x < width ; x++){
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
         // get count
         num = MRIgetVoxVal(mri_counts, x, y, z, 0) ;
         if (num == 0)
@@ -3646,17 +3643,17 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
       }
     }
   }
-
-	MRIfree(&mri_counts) ;
-
+  
+  MRIfree(&mri_counts) ;
+  
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("performing soap bubble of x indices...\n") ;
   MRIbuildVoronoiDiagram(gcam->mri_xind, mri_ctrl, gcam->mri_xind) ;
-	if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
-		MRIwrite(gcam->mri_xind, "xi.mgz") ;
+  if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
+    MRIwrite(gcam->mri_xind, "xi.mgz") ;
   MRIsoapBubble(gcam->mri_xind, mri_ctrl, gcam->mri_xind, 5) ;
-	if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
-		MRIwrite(gcam->mri_xind, "xis.mgz") ;
+  if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
+    MRIwrite(gcam->mri_xind, "xis.mgz") ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("performing soap bubble of y indices...\n") ;
   MRIbuildVoronoiDiagram(gcam->mri_yind, mri_ctrl, gcam->mri_yind) ;
@@ -3666,13 +3663,13 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   MRIbuildVoronoiDiagram(gcam->mri_zind, mri_ctrl, gcam->mri_zind) ;
   MRIsoapBubble(gcam->mri_zind, mri_ctrl, gcam->mri_zind, 5) ;
   MRIfree(&mri_ctrl) ;
-
-	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-	{
-		MRIwrite(gcam->mri_xind, "xi.mgz") ;
-		MRIwrite(gcam->mri_yind, "yi.mgz") ;
-		MRIwrite(gcam->mri_zind, "zi.mgz") ;
-	}
+  
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      MRIwrite(gcam->mri_xind, "xi.mgz") ;
+      MRIwrite(gcam->mri_yind, "yi.mgz") ;
+      MRIwrite(gcam->mri_zind, "zi.mgz") ;
+    }
 #ifndef __OPTIMIZE__
   xv = Ggca_x; yv = Ggca_y; zv = Ggca_z;
   if (xv >= 0 && yv >= 0 && zv >= 0)
@@ -3685,7 +3682,9 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   return(NO_ERROR) ;
 }
 
-#else
+#endif
+
+#if 1
 int
 GCAMinvert(GCA_MORPH *gcam, MRI *mri)
 {
@@ -3715,11 +3714,21 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   // mri_ctrl
   mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
   MRIcopyHeader(mri, mri_ctrl);
-
+  
+  for (z = 0 ; z < depth ; z++){
+    for (y = 0 ; y < height ; y++){
+      for (x = 0 ; x < width ; x++){
+	MRISvox(gcam->mri_xind, x, y, z) = 0 ;	
+	MRISvox(gcam->mri_yind, x, y, z) = 0 ;	
+	MRISvox(gcam->mri_zind, x, y, z) = 0 ;
+	MRIvox(mri_ctrl, x, y, z) = 0 ;	
+      }
+    }
+  }
   if (!gcam->mri_xind || !gcam->mri_yind || !gcam->mri_zind || !mri_ctrl)
     ErrorExit(ERROR_NOMEMORY, "GCAMinvert: could not allocated %dx%dx%d index volumes",
               width, height, depth) ;
-
+  
   // going through gcam volume (x,y,z)
   // gcam volume points could be mapped to many points in xind, yind, and zind
   for (z = 0 ; z < gcam->depth ; z++)
@@ -3778,15 +3787,18 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
       {
         // get count
         num = MRIvox(mri_ctrl, x, y, z) ;
+	if(num < 0 || num > 255){
+	  printf("num = %d\n", num);
+	}
         if (num == 0)
           continue ;   /* nothing there */
         // give average gcam position for this points
         MRISvox(gcam->mri_xind, x, y, z) = 
-          nint((float)MRISvox(gcam->mri_xind, x, y, z)/(float)num) ;
+         nint( (float)MRISvox(gcam->mri_xind, x, y, z)/(float)num) ;
         MRISvox(gcam->mri_yind, x, y, z) = 
-          nint((float)MRISvox(gcam->mri_yind, x, y, z)/(float)num) ;
+          nint((float)MRISvox(gcam->mri_yind, x, y, z)/(float)num);
         MRISvox(gcam->mri_zind, x, y, z) = 
-          nint((float)MRISvox(gcam->mri_zind, x, y, z)/(float)num) ;
+          nint((float)MRISvox(gcam->mri_zind, x, y, z)/(float)num);
         MRIvox(mri_ctrl, x, y, z) = CONTROL_MARKED ;
       }
     }
@@ -3808,11 +3820,155 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
 #ifndef __OPTIMIZE__
   xv = Ggca_x; yv = Ggca_y; zv = Ggca_z;
   if (xv >= 0 && yv >= 0 && zv >= 0)
-    fprintf(stderr, "src (%d, %d, %d) corresponds to gcam (%d, %d, %d)\n",
+    fprintf(stderr, "src (%d, %d, %d) corresponds to gcam (%g, %g, %g)\n",
             xv, yv, zv,
             MRISvox(gcam->mri_xind, xv, yv, zv),
             MRISvox(gcam->mri_yind, xv, yv, zv),
             MRISvox(gcam->mri_zind, xv, yv, zv));
+#endif
+  return(NO_ERROR) ;
+}
+#else
+int
+GCAMinvert(GCA_MORPH *gcam, MRI *mri)
+{
+  int            x, y, z, width, height, depth, xv, yv, zv, num ;
+  MRI            *mri_ctrl ;
+  GCA_MORPH_NODE *gcamn ;
+
+  if (gcam->mri_xind)   /* already inverted */
+    return(NO_ERROR) ;
+
+  // verify the volume size ////////////////////////////////////////////
+  if (mri->width != gcam->src.width
+      || mri->height != gcam->src.height
+      || mri->depth != gcam->src.depth)
+    ErrorExit(ERROR_BADPARM, "mri passed volume size is different from the one used to create M3D data\n");
+
+  // use mri 
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+
+  // mri_xind, yind, zind
+  gcam->mri_xind = MRIalloc(width, height, depth, MRI_FLOAT) ;
+  MRIcopyHeader(mri, gcam->mri_xind);
+  gcam->mri_yind = MRIalloc(width, height, depth, MRI_FLOAT) ;
+  MRIcopyHeader(mri, gcam->mri_yind);
+  gcam->mri_zind = MRIalloc(width, height, depth, MRI_FLOAT) ;
+  MRIcopyHeader(mri, gcam->mri_zind);
+  // mri_ctrl
+  mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
+  MRIcopyHeader(mri, mri_ctrl);
+  
+  for (z = 0 ; z < depth ; z++){
+    for (y = 0 ; y < height ; y++){
+      for (x = 0 ; x < width ; x++){
+	MRIFvox(gcam->mri_xind, x, y, z) = 0 ;	
+	MRIFvox(gcam->mri_yind, x, y, z) = 0 ;	
+	MRIFvox(gcam->mri_zind, x, y, z) = 0 ;
+	MRIvox(mri_ctrl, x, y, z) = 0 ;	
+      }
+    }
+  }
+  if (!gcam->mri_xind || !gcam->mri_yind || !gcam->mri_zind || !mri_ctrl)
+    ErrorExit(ERROR_NOMEMORY, "GCAMinvert: could not allocated %dx%dx%d index volumes",
+              width, height, depth) ;
+  
+  // going through gcam volume (x,y,z)
+  // gcam volume points could be mapped to many points in xind, yind, and zind
+  for (z = 0 ; z < gcam->depth ; z++)
+  {
+    for (y = 0 ; y < gcam->height ; y++)
+    {
+      for (x = 0 ; x < gcam->width ; x++)
+      {
+        // find nodes 
+        gcamn = &gcam->nodes[x][y][z] ;
+
+        if (gcamn->invalid/* == GCAM_POSITION_INVALID*/)
+          continue;
+
+        // get the source volume position 
+        xv = nint(gcamn->x) ; yv = nint(gcamn->y) ; zv = nint(gcamn->z) ;
+	// make them within the range of index /////////////////////////////
+        if (xv < 0)
+          xv = 0 ;
+        if (yv < 0)
+          yv = 0 ;
+        if (zv < 0)
+          zv = 0 ;
+        if (xv >= width)
+          xv = width-1 ;
+        if (yv >= height)
+          yv = height-1 ;
+        if (zv >= depth)
+          zv = depth-1 ;
+	////////////////////////////////////////////////////////////////////
+        // cache position
+        // xind[xv][yv][zv] += x
+        MRIFvox(gcam->mri_xind, xv, yv, zv) += x ; // src -> gcam volume position 
+        MRIFvox(gcam->mri_yind, xv, yv, zv) += y ;
+        MRIFvox(gcam->mri_zind, xv, yv, zv) += z ;
+        // mark counts (how many went in)
+        MRIvox(mri_ctrl, xv, yv, zv) += 1 ;
+#ifndef __OPTIMIZE__
+        if (xv == Ggca_x && yv == Ggca_y && zv == Ggca_z)
+        {
+          if (xv >=0 && yv >= 0 && zv >= 0)
+            fprintf(stderr, "src (%d, %d, %d) corresponds to gcam (%d, %d, %d)\n",
+                    xv, yv, zv, x, y, z);
+        }
+#endif
+      }
+    }
+  }
+
+  // xind, yind, zind is of size (width, height, depth)
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        // get count
+        num = MRIvox(mri_ctrl, x, y, z) ;
+	if(num < 0 || num > 255){
+	  printf("num = %d\n", num);
+	}
+        if (num == 0)
+          continue ;   /* nothing there */
+        // give average gcam position for this points
+        MRIFvox(gcam->mri_xind, x, y, z) = 
+         nint( (float)MRIFvox(gcam->mri_xind, x, y, z)/(float)num) ;
+        MRIFvox(gcam->mri_yind, x, y, z) = 
+          nint((float)MRIFvox(gcam->mri_yind, x, y, z)/(float)num);
+        MRIFvox(gcam->mri_zind, x, y, z) = 
+          nint((float)MRIFvox(gcam->mri_zind, x, y, z)/(float)num);
+        MRIvox(mri_ctrl, x, y, z) = CONTROL_MARKED ;
+      }
+    }
+  }
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("performing soap bubble of x indices...\n") ;
+  MRIbuildVoronoiDiagram(gcam->mri_xind, mri_ctrl, gcam->mri_xind) ;
+  MRIsoapBubble(gcam->mri_xind, mri_ctrl, gcam->mri_xind, 5) ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("performing soap bubble of y indices...\n") ;
+  MRIbuildVoronoiDiagram(gcam->mri_yind, mri_ctrl, gcam->mri_yind) ;
+  MRIsoapBubble(gcam->mri_yind, mri_ctrl, gcam->mri_yind, 5) ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("performing soap bubble of z indices...\n") ;
+  MRIbuildVoronoiDiagram(gcam->mri_zind, mri_ctrl, gcam->mri_zind) ;
+  MRIsoapBubble(gcam->mri_zind, mri_ctrl, gcam->mri_zind, 5) ;
+  MRIfree(&mri_ctrl) ;
+
+#ifndef __OPTIMIZE__
+  xv = Ggca_x; yv = Ggca_y; zv = Ggca_z;
+  if (xv >= 0 && yv >= 0 && zv >= 0)
+    fprintf(stderr, "src (%d, %d, %d) corresponds to gcam (%g, %g, %g)\n",
+            xv, yv, zv,
+            MRIFvox(gcam->mri_xind, xv, yv, zv),
+            MRIFvox(gcam->mri_yind, xv, yv, zv),
+            MRIFvox(gcam->mri_zind, xv, yv, zv));
 #endif
   return(NO_ERROR) ;
 }

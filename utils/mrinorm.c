@@ -2940,6 +2940,7 @@ MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
 
         Description
 ------------------------------------------------------*/
+#if 0 
 static MRI *
 mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
 {
@@ -2976,6 +2977,7 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
             continue ;
           }
           /* now set this voxel to the average of the marked neighbors */
+	  /* where is the check for marked or non-marked? -xh */
           mean = 0.0f ;
           for (zk = -1 ; zk <= 1 ; zk++)
           {
@@ -3002,6 +3004,108 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   /*MRIwrite(mri_dst, "soap.mnc") ;*/
   return(mri_dst) ;
 }
+#else
+static MRI *
+mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
+{
+  int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i,
+          *pxi, *pyi, *pzi, num ;
+  BUFTYPE *pctrl, ctrl ;
+  float   *ptmp ;
+  float     mean ;
+  MRI     *mri_tmp ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  if (!mri_dst)
+    mri_dst = MRIcopy(mri_src, NULL) ;
+
+  pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
+
+  mri_tmp = MRIcopy(mri_dst, NULL) ;
+  
+  for ( z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
+      ptmp = &MRIFvox(mri_tmp, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        ctrl = *pctrl++ ;
+        if (ctrl == CONTROL_MARKED)
+          continue ;
+        num = mean = 0 ;
+        for (zk = -1 ; zk <= 1 ; zk++)
+        {
+          zi = pzi[z+zk] ;
+          for (yk = -1 ; yk <= 1 ; yk++)
+          {
+            yi = pyi[y+yk] ;
+            for (xk = -1 ; xk <= 1 ; xk++)
+            {
+              xi = pxi[x+xk] ;
+              if (MRIvox(mri_ctrl, xi, yi, zi) != CONTROL_MARKED)
+                continue ;
+              mean += MRIFvox(mri_dst, xi, yi, zi) ;
+              num++ ;
+            }
+          }
+        }
+        if (num > 0)
+          MRIFvox(mri_dst, x, y, z) = (float)mean / (float)num;
+      }
+    }
+  }
+
+  /* now propagate values outwards */
+  for (i = 0 ; i < niter ; i++)
+  {
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "soap bubble iteration %d of %d\n", i+1, niter) ;
+    for ( z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
+        ptmp = &MRIFvox(mri_tmp, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          ctrl = *pctrl++ ;
+          if (ctrl == CONTROL_MARKED)   /* marked point - don't change it */
+          {
+            ptmp++ ;
+            continue ;
+          }
+          /* now set this voxel to the average of the marked neighbors */
+          mean = 0.0;
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            zi = pzi[z+zk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = pyi[y+yk] ;
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
+                xi = pxi[x+xk] ;
+                mean += MRIFvox(mri_dst, xi, yi, zi) ;
+              }
+            }
+          }
+          *ptmp++ = (float)mean / (3.0f*3.0f*3.0f);
+        }
+      }
+    }
+    MRIcopy(mri_tmp, mri_dst) ;
+  }
+
+  MRIfree(&mri_tmp) ;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_dst, "soap.mgh") ;
+  return(mri_dst) ;
+}
+
+#endif
 /*-----------------------------------------------------
         Parameters:
 
