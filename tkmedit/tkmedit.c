@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/07/14 23:06:11 $
-// Revision       : $Revision: 1.213 $
-char *VERSION = "$Revision: 1.213 $";
+// Revision Date  : $Date: 2004/07/19 03:44:51 $
+// Revision       : $Revision: 1.214 $
+char *VERSION = "$Revision: 1.214 $";
 
 #define TCL
 #define TKMEDIT 
@@ -293,6 +293,7 @@ int     gSelectionVolumeXDimension;
 int     gSelectionVolumeYDimension;
 int     gSelectionVolumeZDimension;
 int     gSelectionCount;
+xGrowableArrayRef gSelectionArray = NULL;
 
 tkm_tErr InitSelectionModule ();
 void   DeleteSelectionModule ();
@@ -1051,7 +1052,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.213 2004/07/14 23:06:11 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.214 2004/07/19 03:44:51 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5009,7 +5010,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.213 2004/07/14 23:06:11 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.214 2004/07/19 03:44:51 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6316,8 +6317,9 @@ void DeleteSelectionModule () {
 
 tkm_tErr AllocateSelectionVolume () {
 
-  tkm_tErr   eResult     = tkm_tErr_NoErr;
-  Volm_tErr  eVolume     = Volm_tErr_NoErr;
+  tkm_tErr   eResult  = tkm_tErr_NoErr;
+  Volm_tErr  eVolume  = Volm_tErr_NoErr;
+  xGArr_tErr eArray   = xGArr_tErr_NoErr;
   
   DebugEnterFunction( ("AllocateSelectionVolume()") );
 
@@ -6339,6 +6341,15 @@ tkm_tErr AllocateSelectionVolume () {
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
 
+  /* Initialize the selection list. */
+  if( NULL == gSelectionArray ) {
+    DebugNote( ("Making selection array") );
+    eArray = xGArr_New( &gSelectionArray, sizeof(xVoxel), 10 );
+    DebugAssertThrowX( (xGArr_tErr_NoErr == eArray),
+		       eResult, tkm_tErr_CouldntAllocate );
+  }
+  xGArr_Clear( gSelectionArray );
+
   /* Set it in the window. */
   DebugNote( ("Setting selection list in window.") );
   MWin_SetSelectionSpace( gMeditWindow, -1, gSelectionVolume );
@@ -6357,7 +6368,7 @@ void AddVoxelsToSelection ( xVoxelRef iaMRIIdx, int inCount ) {
   int        nVoxel  = 0;
   Volm_tErr  eVolume = Volm_tErr_NoErr;
   float      value   = 0;
-  
+
   if ( NULL == gSelectionVolume ) {
     AllocateSelectionVolume();
   }
@@ -6368,9 +6379,12 @@ void AddVoxelsToSelection ( xVoxelRef iaMRIIdx, int inCount ) {
     /* Set this location in the selection volume to 1 */
     eVolume = Volm_GetValueAtMRIIdx( gSelectionVolume, 
 				     &iaMRIIdx[nVoxel], &value );
-    if(0 == value ) {
+    if(0 == value) {
       
       Volm_SetValueAtMRIIdx( gSelectionVolume, &iaMRIIdx[nVoxel], 1.0 );
+      
+      /* Add it to the list as well. */
+      xGArr_Add( gSelectionArray, (void*)&iaMRIIdx[nVoxel] );
       
       /* Inc our selection count. */
       gSelectionCount++;
@@ -6380,9 +6394,9 @@ void AddVoxelsToSelection ( xVoxelRef iaMRIIdx, int inCount ) {
 
 void RemoveVoxelsFromSelection ( xVoxelRef iaMRIIdx, int inCount ) {
   
-  int        nVoxel  = 0;
-  Volm_tErr  eVolume = Volm_tErr_NoErr;
-  float      value   = 0;
+  int        nVoxel     = 0;
+  Volm_tErr  eVolume    = Volm_tErr_NoErr;
+  float      value      = 0;
 
   if ( NULL == gSelectionVolume )
     return;
@@ -6395,7 +6409,7 @@ void RemoveVoxelsFromSelection ( xVoxelRef iaMRIIdx, int inCount ) {
     if( 1.0 == value ) {
       
       Volm_SetValueAtMRIIdx( gSelectionVolume, &iaMRIIdx[nVoxel], 0 );
-    
+
       /* Dec our selection count. */
       gSelectionCount--;
     }
@@ -6410,6 +6424,9 @@ void ClearSelection () {
   
   DebugNote( ("Setting selection volume to 0") );
   Volm_SetAllValues( gSelectionVolume, 0 );
+
+  DebugNote( ("Clearing selection array") );
+  xGArr_Clear( gSelectionArray );
 
   /* Zero the selection count */
   gSelectionCount = 0;
@@ -6431,7 +6448,8 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
   LABEL_VERTEX* pVertex                  = NULL;
   int           nVoxel                   = 0;
   int           eLabel                   = 0;
-  
+  xGArr_tErr    eArray                   = xGArr_tErr_NoErr;
+
   DebugEnterFunction( ("SaveSelectionToLabelFile ( isFileName=%s )",
 		       isFileName) );
   
@@ -6452,6 +6470,12 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
   /* set the number of points in the label */
   pLabel->n_points = gSelectionCount;
   
+  /* Copy subject name. */
+  Volm_CopySubjectName( gAnatomicalVolume[tkm_tVolumeType_Main],
+			pLabel->subject_name, 100 );
+
+  
+#if 0
   /* Look for selected voxels */
   nVoxel = 0;
   Volm_GetDimensions( gSelectionVolume, &nDimensionX, 
@@ -6460,9 +6484,20 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
   while( xVoxl_IncrementUntilLimits( &MRIIdx, nDimensionX-1, 
 				     nDimensionY-1, nDimensionZ-1 )) {
 
+#else      
+
+  nVoxel = 0;
+  xGArr_ResetIterator( gSelectionArray );
+  while( xGArr_tErr_NoErr == 
+	 (eArray = xGArr_NextItem( gSelectionArray, (void*)&MRIIdx )) ) {
+
+#endif
+
     Volm_GetValueAtMRIIdx_( gSelectionVolume, &MRIIdx, &selected );
     if( 0 != selected ) {
-      
+
+      printf( "got %d %d %d\n", xVoxl_ExpandInt( &MRIIdx ) );
+
       /* convert mri idx to surface ras. note we may use surface ras
 	 here because it ignores c_ras, which is what label files
 	 should to surfacebe comptaible with tksurfer.  */
@@ -6497,6 +6532,7 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
       
       /* inc our global count. */
       nVoxel++;
+
     }
   }
     
