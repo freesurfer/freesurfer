@@ -14,7 +14,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.19 1999/03/01 00:01:05 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.20 1999/08/24 16:21:21 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -105,11 +105,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
 
-#if 0
-  MRISreadOriginalProperties(mris, "white_ico") ;
-#else
   MRISstoreMetricProperties(mris) ;  /* use current surface as reference */
-#endif
 
   if (talairach_flag)
     MRIStalairachTransform(mris, mris) ;
@@ -120,11 +116,13 @@ main(int argc, char *argv[])
 
   MRISsetNeighborhoodSize(mris, nbrs) ;
   MRISaverageVertexPositions(mris, navgs) ;
+  MRISscaleBrainArea(mris) ;  /* current properties will be stored again */
   if (FZERO(parms.l_sphere))
     MRISinflateBrain(mris, &parms) ;
   else
     MRISinflateToSphere(mris, &parms) ;
   fprintf(stderr, "writing inflated surface to %s\n", out_fname) ;
+  MRIScenter(mris, mris) ;
   MRISscaleBrainArea(mris) ;
   MRISwrite(mris, out_fname) ;
   FileNamePath(out_fname, path) ;
