@@ -15,6 +15,8 @@ static int extract = 0 ;
 static int  verbose = 0 ;
 static int wsize = 5 ;
 static float pct = 0.8 ;
+static float pslope = 1.0f ;
+static float nslope = 1.0f ;
 
 char *Progname ;
 
@@ -54,7 +56,7 @@ main(int argc, char *argv[])
   fprintf(stderr, "computing orientation of gray/white interface...\n") ;
   mri_cpolv = MRIcentralPlaneOfLeastVarianceNormal(mri_src, NULL, wsize) ;
   fprintf(stderr, "labelling white matter...\n") ;
-  mri_tmp = MRIwmfilter(mri_src, mri_cpolv, NULL) ;
+  mri_tmp = MRIwmfilter(mri_src, mri_cpolv, NULL, nslope, pslope) ;
   mri_dst = MRIremoveHoles(mri_tmp, NULL, 3, pct) ;
 
   fprintf(stderr, "writing output to %s...", output_file_name) ;
@@ -78,7 +80,25 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
+  if (!stricmp(option, "slope"))
+  {
+    nslope = pslope = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using curvature slope = %2.2f\n", pslope) ;
+  }
+  else if (!stricmp(option, "pslope"))
+  {
+    pslope = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using curvature pslope = %2.2f\n", pslope) ;
+  }
+  else if (!stricmp(option, "nslope"))
+  {
+    nslope = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using curvature nslope = %2.2f\n", nslope) ;
+  }
+  else switch (toupper(*option))
   {
   case 'V':
     verbose = !verbose ;

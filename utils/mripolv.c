@@ -1429,19 +1429,25 @@ MRIpolvCount(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
 #define WHITE_LOW    90
 #define GRAY_HI      95
 #define WHITE_HI    130
-#define WSIZE       9
+#define WSIZE       13
 
 #define PSLOPE       1.0
 #define NSLOPE       1.0
 
 MRI *
-MRIwmfilter(MRI *mri_src, MRI *mri_polv, MRI *mri_dst)
+MRIwmfilter(MRI *mri_src, MRI *mri_polv, MRI *mri_dst, float nslope,
+            float pslope)
 {
   int      width, height, depth, x, y, z, whalf, vertex,xi,yi,zi,
            *pxi, *pyi, *pzi, i ;
   float    nx, ny, nz, dx, dy, dz, curv, dsq, val ;
   BUFTYPE  *pdst, *pptr, val0, /* *psrc, */gray_hi, white_low/*,mean, *pmean*/;
   MRI      *mri_curv /*, *mri_tmp*/ ;
+
+  if (FZERO(pslope))
+    pslope = PSLOPE ;
+  if (FZERO(nslope))
+    nslope = NSLOPE ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -1522,9 +1528,9 @@ MRIwmfilter(MRI *mri_src, MRI *mri_polv, MRI *mri_dst)
           gray_hi = GRAY_HI+10 ;
 #else
         if (curv < 0.0f)  /* gyrus */
-          white_low += nint(NSLOPE*curv) ;
+          white_low += nint(nslope*curv) ;
         else if (curv > 0.0f)
-          gray_hi += nint(PSLOPE*curv) ;
+          gray_hi += nint(pslope*curv) ;
 #endif
         /*        val0 = mean ;*/
         if (val0 > WHITE_HI)   /* too high to be white matter */
