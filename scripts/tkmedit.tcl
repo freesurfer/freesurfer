@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.75 2004/04/29 21:53:59 kteich Exp $
+# $Id: tkmedit.tcl,v 1.76 2004/04/29 22:09:27 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -695,9 +695,13 @@ proc UpdateVolumeValueMinMax { iVolume iMin iMax } {
     # Change slider ranges. (This will fail silently if the dlog is
     # not open.)
     catch { $gInterface(colorScaleDlog,minValueSlider,$iVolume) \
-			 config -from $iMin }
+		config -from $iMin }
+    catch { $gInterface(colorScaleDlog,minValueSlider,$iVolume) \
+		config -to $iMax }
     catch { $gInterface(colorScaleDlog,maxValueSlider,$iVolume) \
-			 config -to $iMax }
+		config -from $iMin }
+    catch { $gInterface(colorScaleDlog,maxValueSlider,$iVolume) \
+		config -to $iMax }
 }
 
 # =============================================================== DIALOG BOXES
