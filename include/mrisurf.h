@@ -105,11 +105,11 @@ typedef struct vertex_type_
   int   oripflag,origripflag;  /* cuts flags */
   float coord[3];
   float ftmp ;          /* temporary floating pt. storage */
-  float theta, phi ;    /* parameterization */
 #endif
-  int   marked;            /* for a variety of uses */
+  float theta, phi ;     /* parameterization */
+  int   marked;          /* for a variety of uses */
   int   ripflag ;
-  int   border;            /* flag */
+  int   border;          /* flag */
   float area,origarea ;
   int   tethered ;
   float K ;             /* Gaussian curvature */
@@ -293,6 +293,8 @@ int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
 
 int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteAscii(MRI_SURFACE *mris, char *fname) ;
+int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAreaError(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAngleError(MRI_SURFACE *mris, char *fname) ;
