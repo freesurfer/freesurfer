@@ -530,6 +530,7 @@ MRI *MRIthresholdLabel(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
 MRI *MRIintensitySegmentation(MRI *mri_src, MRI *mri_labeled,
                               float wm_low, float wm_hi, float gray_hi) ;
 MRI *MRImeanLabel(MRI *mri_src, MRI *mri_label, MRI*mri_dst, int wsize) ;
+int MRIvoxelsInLabel(MRI *mri, int label) ;
 MRI *MRIcpolvVote(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int wsize, 
                   int niter, int use_all) ;
 MRI *MRIcpolvThreshold(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
@@ -601,6 +602,8 @@ int MRIsetValues(MRI *mri, int val) ;
 
 #define MRI_LEFT_HEMISPHERE     255
 #define MRI_RIGHT_HEMISPHERE    127
+#define MRI_RIGHT_HEMISPHERE2   80
+
 
 /* STATS volumes have 2 images each */
 #define TRI_HI_PRIORS            0
