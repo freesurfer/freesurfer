@@ -1,5 +1,5 @@
-function [vol, M, dcminfo] = load_dicom_fl(flist)
-% [vol, M, dcminfo] = load_dicom_fl(flist)
+function [vol, M, dcminfo, mr_parms] = load_dicom_fl(flist)
+% [vol, M, dcminfo, mr_parms] = load_dicom_fl(flist)
 %
 % Loads a volume from the dicom files in flist.
 %
@@ -11,9 +11,11 @@ function [vol, M, dcminfo] = load_dicom_fl(flist)
 % vol(i1,i2,i3), xyz1 = M*[i1 i2 i3 1] where the
 % indicies are 0-based. 
 %
+% mr_parms = [tr flipangle te ti]
+%
 % Does not handle multiple frames correctly yet.
 %
-% $Id: load_dicom_fl.m,v 1.5 2003/01/23 19:57:34 greve Exp $
+% $Id: load_dicom_fl.m,v 1.6 2003/04/30 19:32:53 greve Exp $
 
 vol=[];
 M=[];
@@ -117,6 +119,19 @@ if(0 & ~strcmpi(dcminfo(1).PhaseEncodingDirection,'ROW'))
   M(:,1) = Mtmp(:,2);
   M(:,2) = Mtmp(:,1);
 end
+
+% Pull out some info from the header %
+if(isfield(dcminfo(1),'FlipAngle')) FlipAngle = pi*dcminfo(1).FlipAngle/180; 
+else FlipAngle = 0;
+end
+if(isfield(dcminfo(1),'EchoTime')) EchoTime = dcminfo(1).EchoTime; 
+else EchoTime = 0;
+end
+if(isfield(dcminfo(1),'RepetitionTime')) RepetitionTime = dcminfo(1).RepetitionTime; 
+else RepetitionTime = 0;
+end
+InversionTime = 0;
+mr_parms = [RepetitionTime FlipAngle EchoTime InversionTime];
 
 return;
 

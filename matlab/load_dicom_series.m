@@ -1,4 +1,4 @@
-function [vol, M, dcminfo] = load_dicom_series(seriesno,dcmdir,dcmfile)
+function [vol, M, dcminfo, mr_parms] = load_dicom_series(seriesno,dcmdir,dcmfile)
 % [vol, M, dcminfo] = load_dicom_series(seriesno,<dcmdir>,<dcmfile>)
 %
 % Reads in a dicom series given:
@@ -12,9 +12,11 @@ function [vol, M, dcminfo] = load_dicom_series(seriesno,dcmdir,dcmfile)
 % If a dicom file is given, then seriesno and dcmdir are determined
 % from the file and file name.
 %
+% mr_parms = [tr flipangle te ti]
+%
 % Bugs: will not load multiple frames or mosaics properly.
 %
-% $Id: load_dicom_series.m,v 1.1 2003/01/23 21:20:38 greve Exp $
+% $Id: load_dicom_series.m,v 1.2 2003/04/30 19:32:53 greve Exp $
 
 if(nargin < 1 | nargin > 3)
   fprintf('[vol, M, dcminfo] = load_dicom_series(seriesno,<dcmdir>,<dcmfile>)\n');
@@ -66,6 +68,10 @@ for n = 1:nfiles
     end
   end
 end
+if(nth==1)
+  fprintf('ERROR: could not find any dicom files in %s\n',dcmdir);
+  return;
+end
 dcminfo = dcminfo0;
 
 fprintf('INFO: search time %g sec\n',toc);
@@ -77,7 +83,7 @@ if(nfilesseries == 0)
 end
 
 % Load the volume %
-[vol M] = load_dicom_fl(seriesflist);
+[vol M tmpdcminfo mr_parms] = load_dicom_fl(seriesflist);
 
 return;
 

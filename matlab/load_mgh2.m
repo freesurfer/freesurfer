@@ -1,17 +1,20 @@
-function [vol, M] = load_mgh(fname)
-% [vol M] = load_mgh(fname)
+function [vol, M, mr_parms] = load_mgh2(fname)
+% [vol, M, mr_parms] = load_mgh2(fname)
 %
 % M is the 4x4 vox2ras transform such that
 % y(i1,i2,i3), xyz1 = M*[i1 i2 i3 1] where the
 % indicies are 0-based. If the input has multiple frames,
 % only the first frame is read.
 %
+% mr_parms = [tr flipangle te ti]
+%
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh2.m,v 1.1 2002/12/13 23:43:35 greve Exp $
+% $Id: load_mgh2.m,v 1.2 2003/04/30 19:32:53 greve Exp $
 
 vol = [];
 M = [];
+mr_parms = [];
 
 if(nargin < 1 | nargin > 1)
   msg = 'USAGE: [vol M] = load_mgh(fname)';
@@ -73,6 +76,12 @@ switch type
     vol = fread(fid, nv, 'short') ; 
   case MRI_INT,
     vol = fread(fid, nv, 'int') ; 
+end
+if(~feof(fid))
+  [mr_parms count] = fread(fid,4,'float32');
+  if(count ~= 4) 
+    fprintf('WARNING: error reading MR params\n');
+  end
 end
 fclose(fid) ;
 

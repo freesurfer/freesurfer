@@ -1,19 +1,30 @@
-function r = save_mgh2(vol, fname, M);
+function r = save_mgh2(vol, fname, M, mr_parms);
 %
-% save_mgh2(vol,fname, M);
+% save_mgh2(vol,fname, M, <mr_parms>);
 %
 % M is the 4x4 vox2ras transform such that
 % y(i1,i2,i3), xyz = M*[i1 i2 i3 1] where the
 % indicies are 0-based
 %
+% mr_parms = [tr flipangle te ti]
+%
 % See also: load_mgh, vox2ras_0to1
 %
-% $Id: save_mgh2.m,v 1.1 2002/12/13 23:44:51 greve Exp $
+% $Id: save_mgh2.m,v 1.2 2003/04/30 19:32:53 greve Exp $
 %
 
+r = 1;
 
 if(nargin < 2 | nargin > 4)
   msg = 'USAGE: save_mgh2(vol,fname,M)';
+  return;
+end
+
+if(exist('mr_parms')~=1) mr_parms = []; end
+if(isempty(mr_parms))   mr_parms = [0 0 0 0]; end
+if(length(mr_parms) ~= 4)
+  fprintf('ERROR: mr_parms length = %d, must be 4\n', ...
+	  lenght(mr_parms));
   return;
 end
 
@@ -71,23 +82,12 @@ unused_space_size = UNUSED_SPACE_SIZE-2 ;
 unused_space_size = unused_space_size - USED_SPACE_SIZE ;
 fwrite(fid, zeros(unused_space_size,1), 'char') ;
 
-
 fwrite(fid,vol,'float32');
 
-return;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-nelts = ndim1 * ndim2 ;  % bytes per slice 
-
-for row=1:rows
-  for col=1:cols
-    for z=1:ndim3
-      slice = reshape(vol(:,:,z, row, col), [ndim1 ndim2]) ;
-      fwrite(fid, slice, 'float32') ; 
-    end
-  end
-end
-
+fwrite(fid, mr_parms, 'float32') ; 
 fclose(fid) ;
 
+r = 0;
+
+return;
 
