@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # func2tal
-# $Id: func2tal,v 1.7 2003/08/27 22:57:06 greve Exp $
+# $Id: func2tal,v 1.8 2003/09/17 02:12:23 greve Exp $
 
-set FUNC2TAL_VER = '$Id: func2tal,v 1.7 2003/08/27 22:57:06 greve Exp $';
+set FUNC2TAL_VER = '$Id: func2tal,v 1.8 2003/09/17 02:12:23 greve Exp $';
 
 set inputargs = ($argv)
 
@@ -16,6 +16,7 @@ set white    = 0;
 set DontRun  = 0;
 set xfmfile  = talairach.xfm # xfm found in mri/transforms
 set fixxfm   = 1;
+set nolog    = 0;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -46,7 +47,11 @@ if(! -d $taldir ) then
 endif
 
 ########### Create a log file ##############
-set LF = $taldir/func2tal.log
+if($nolog) then
+  set LF = /dev/null
+else
+  set LF = $taldir/func2tal.log
+endif
 echo "func2tal logfile is $LF"
 rm -f $LF
 touch $LF
@@ -274,6 +279,10 @@ while( $#argv != 0 )
 
     case "-nofixxfm":
       set fixxfm = 0;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
       breaksw
 
     case "-umask":
