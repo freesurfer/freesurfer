@@ -937,10 +937,9 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   }
   else switch (event_id(event)) 
   {
-#ifdef Linux
   case MS_MIDDLE:
-    xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, TRUE, XV_SHOW, TRUE, NULL) ;
     xvf_hips = xvf ;
+    xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, TRUE, XV_SHOW, TRUE, NULL) ;
     hips_cmd_source = which ;
     break ;
   case MS_RIGHT:
@@ -948,18 +947,6 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     {
     }
     break ;
-#else
-  case MS_RIGHT:
-    xvf_hips = xvf ;
-    xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, TRUE, XV_SHOW, TRUE, NULL) ;
-    hips_cmd_source = which ;
-    break ;
-  case MS_MIDDLE:
-    if (event_is_down(event))
-    {
-    }
-    break ;
-#endif
   case LOC_DRAG:
     if (!event_left_is_down(event))
       break ;
