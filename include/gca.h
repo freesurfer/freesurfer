@@ -337,4 +337,6 @@ extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label ;
 
 #define GCA_DEFAULT_NOISE_PARAMETER  1
 
+GCA *GCAcompactify(GCA *gca);
+
 #endif
