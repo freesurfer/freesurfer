@@ -1032,16 +1032,91 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
   case ScubaToolState::straightLine:
   case ScubaToolState::edgeLine:
     
-    switch( iInput.Button() ) {
-    case 1: 
+    if( iInput.IsButtonDownEvent() ) {
+
+      Point3<float> ras( iRAS );
+	  
+      /* Button down, no current line */
+      if( NULL == mCurrentLine ) {
+
+	switch( iInput.Button() ) {
+	case 1:
+	  mFirstLineRAS.Set( iRAS );
+	  mCurrentLine = NewLine();
+	  mCurrentLine->Add( ras );
+	  mCurrentLine->MarkEndOfSegment();
+	  break;
+	case 2:
+	case 3:
+	  mCurrentLine = FindClosestLine( iRAS, iViewState );
+	  mLastLineMoveRAS.Set( iRAS );
+	  break;
+	}
+
+	/* Button down, current line */
+      } else {
+
+	switch( iInput.Button() ) {
+	case 1:
+	  mCurrentLine->Add( ras );
+	  mCurrentLine->MarkEndOfSegment();
+	  mFirstLineRAS.Set( ras );
+	  break;
+	case 2:
+	  EndLine( *mCurrentLine, iTranslator );
+	  mCurrentLine = NULL;
+	  break;
+	case 3:
+	  EndLine( *mCurrentLine, iTranslator );
+	  mCurrentLine = NULL;
+	  break;
+	}
+      }
       
-      if( iInput.IsButtonDownEvent() ) {
-	mFirstLineRAS.Set( iRAS );
-	mCurrentLine = NewLine();
-      } else if( iInput.IsButtonUpEvent() ) {
-	EndLine( *mCurrentLine, iTranslator );
-	mCurrentLine = NULL;
-      } else if( iInput.IsButtonDragEvent() ) {
+      RequestRedisplay();
+
+    } else if ( iInput.IsButtonDragEvent() ) {
+
+      /* Drag event, current line */
+      if( 2 == iInput.Button() ) {
+	
+	if( NULL != mCurrentLine ) {
+	  Point3<float> deltaRAS( iRAS[0] - mLastLineMoveRAS.x(),
+				  iRAS[1] - mLastLineMoveRAS.y(),
+				  iRAS[2] - mLastLineMoveRAS.z() );
+	  mCurrentLine->Move( deltaRAS );
+	  mLastLineMoveRAS.Set( iRAS );
+
+	  RequestRedisplay();
+	}
+      }
+
+    } else if ( iInput.IsButtonUpEvent() ) {
+
+      /* Button up, current line */
+      if( NULL != mCurrentLine ) {
+	
+	if( 3 == iInput.Button() ) {
+	  PointList3<float>* delLine = FindClosestLine( iRAS, iViewState );
+	  if( delLine == mCurrentLine ) {
+	    DeleteLine( delLine );
+	  }
+	}
+	
+	if( 3 == iInput.Button() ||
+	    2 == iInput.Button() ) {
+	  
+	  mCurrentLine = NULL;
+	}
+
+	RequestRedisplay();
+      }
+      
+    } else {
+
+      /* No mouse event, current line */
+      if( NULL != mCurrentLine ) {
+	
 	if( iTool.GetMode() == ScubaToolState::straightLine ) {
 	  StretchLineStraight( *mCurrentLine, mFirstLineRAS.xyz(), iRAS );
 	} else if( iTool.GetMode() == ScubaToolState::edgeLine ) {
@@ -1050,50 +1125,12 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 			     iTool.GetEdgeLineStraightBias(),
 			     iTool.GetEdgeLineEdgeBias() );
 	}
+	
+	RequestRedisplay();
       }
-
-      RequestRedisplay();
-      break;
-      
-    case 2:
-      
-      // Find a line, and move it.
-      if( iInput.IsButtonDownEvent() ) {
-	mCurrentLine = FindClosestLine( iRAS, iViewState );
-	mLastLineMoveRAS.Set( iRAS );
-      } else if( iInput.IsButtonDragEvent() ) {
-	if( NULL != mCurrentLine ) { 
-	  Point3<float> deltaRAS( iRAS[0] - mLastLineMoveRAS.x(),
-				  iRAS[1] - mLastLineMoveRAS.y(),
-				  iRAS[2] - mLastLineMoveRAS.z() );
-	  mCurrentLine->Move( deltaRAS );
-	  mLastLineMoveRAS.Set( iRAS );
-	}
-      } else if( iInput.IsButtonUpEvent() ) {
-	mCurrentLine = NULL;
-      }
-
-      RequestRedisplay();
-      break;
-
-    case 3:
- 
-      // Find a line on mouse down and select it. If on mouse up,
-      // we're nearest to the same line, delete it.
-      if( iInput.IsButtonDownEvent() ) {
-	mCurrentLine = FindClosestLine( iRAS, iViewState );
-      } else if( iInput.IsButtonUpEvent() ) {
-	PointList3<float>* delLine = FindClosestLine( iRAS, iViewState );
-	if( delLine == mCurrentLine ) {
-	  DeleteLine( delLine );
-	}
-	mCurrentLine = NULL;
-      }
-
-      RequestRedisplay();
-      break;
     }
-    
+      
+      
     break;
   default:
     break;
@@ -1151,7 +1188,7 @@ ScubaLayer2DMRI::StretchLineStraight ( PointList3<float>& iLine,
 				       float iRASEnd[3] ) {
   
   // Just clear the line and add the begin and end point.
-  iLine.Clear ();
+  iLine.ClearLastSegment ();
   Point3<float> begin( iRASBegin );
   Point3<float> end( iRASEnd );
   iLine.Add( begin );
@@ -1190,7 +1227,7 @@ ScubaLayer2DMRI::StretchLineAsEdge ( PointList3<float>& iLine,
 
   // Clear the line points and add the points we got from the path,
   // converting them to RAS one the way.
-  iLine.Clear();
+  iLine.ClearLastSegment();
   list<Point2<int> >::iterator tWindowPoint;
   for( tWindowPoint = windowPoints.begin();
        tWindowPoint != windowPoints.end();

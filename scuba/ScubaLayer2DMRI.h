@@ -88,6 +88,10 @@ class ScubaLayer2DMRI : public Layer {
 			      ScubaWindowToRASTranslator& iTranslator,
 			      float iStraightBias, float iEdgeBias );
 
+  // Add a vertex to the line.
+  void AddVertexToLine ( PointList3<float>& iLine,
+			 float iRASVertex[3] );
+
   // Ends a line. Adds points to volume's edge volume.
   void EndLine              ( PointList3<float>& iLine,
 			      ScubaWindowToRASTranslator& iTranslator );
