@@ -29,6 +29,10 @@
                     GLOBAL VARIABLES
 -------------------------------------------------------*/
 
+int Gvx = -1 ;
+int Gvy = -1 ;
+int Gvz = -1 ;
+
 unsigned long  Gdiag      = 0 ;
 int            Gdiag_no   = -1 ;
 int Gx = -1 ;
@@ -84,6 +88,16 @@ DiagInit(char *fname,
   cp = getenv("DIAGZ") ;
   if (cp)
     Gz = atoi(cp) ;
+  
+  cp = getenv("DIAGVX") ;
+  if (cp)
+    Gvx = atoi(cp) ;
+  cp = getenv("DIAGVY") ;
+  if (cp)
+    Gvy = atoi(cp) ;
+  cp = getenv("DIAGVZ") ;
+  if (cp)
+    Gvz = atoi(cp) ;
   
   cp = getenv("diag") ;
   if (!cp) cp = getenv("DIAG") ;
