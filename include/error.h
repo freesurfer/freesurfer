@@ -12,11 +12,7 @@
 #define ERROR_H
 
 #include <stdio.h>
-#ifdef SunOS
-#include <sys/varargs.h>
-#else
 #include <stdarg.h>
-#endif
 int     ErrorInit(char *fname, 
                   int (*vfprint)(FILE *fp, const char *fmt, va_list args),
                   int (*vprint)(const char *fmt, va_list args)) ;
