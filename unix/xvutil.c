@@ -36,10 +36,15 @@
 
 #define MAX_DISP_SCALES   4
 
+#ifdef LINUX
+#define FRAME_X             150
+#else
 #define FRAME_X             250
+#endif
 #define FRAME_Y             10
 
 #define DISPLAY_SIZE        128
+#define MIN_FRAME_WIDTH     235
 
 
 #define PANEL_HEIGHT        ((xvf->button_rows+1) * ROW_HEIGHT+4*WINDOW_PAD)
@@ -176,6 +181,8 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
   width = xvf->cols * xvf->display_size + (xvf->cols-1)*WINDOW_PAD ;
   height = PANEL_HEIGHT + 
     xvf->rows * xvf->display_size + (xvf->rows-1) * CHAR_HEIGHT ;
+  if (width < MIN_FRAME_WIDTH)
+    width = MIN_FRAME_WIDTH ;
 
   xvf->frame = (Frame)xv_create((Xv_opaque)NULL, FRAME,
                            FRAME_LABEL, name,
@@ -360,6 +367,7 @@ xvInitImages(XV_FRAME *xvf)
     for (col = 0 ; col < xvf->cols ; col++)
     {
       dimage = &xvf->dimages[row][col] ;
+      dimage->which = row * xvf->cols + col ;
 
 
       /* last canvas has its own colormap */
@@ -713,6 +721,17 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
 
   switch (event_id(event)) 
   {
+#ifdef LINUX
+  case MS_MIDDLE:
+    xv_set(hips_cmd_frame, XV_SHOW, TRUE, NULL) ;
+    hips_cmd_source = which ;
+    break ;
+  case MS_RIGHT:
+    if (event_is_down(event))
+    {
+    }
+    break ;
+#else
   case MS_RIGHT:
     xv_set(hips_cmd_frame, XV_SHOW, TRUE, NULL) ;
     hips_cmd_source = which ;
@@ -722,6 +741,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     {
     }
     break ;
+#endif
   case MS_LEFT:
   case LOC_DRAG:
     switch (dimage->sourceImage->pixel_format)
