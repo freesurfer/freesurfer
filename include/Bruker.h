@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/03 21:02:35 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2003/09/04 15:48:00 $
+// Revision       : $Revision: 1.3 $
 
 #ifndef c_bruker_h
 #define c_bruker_h
@@ -23,6 +23,7 @@ typedef struct {
   double phase1_offset;
   double slice_offset;
   double grad_matrix[9];
+  int type;           // MRI data type
   int dim;            // record the dimension (for 2d case)
 } BrukerTransform;
   
