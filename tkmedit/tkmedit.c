@@ -2857,12 +2857,13 @@ void redraw(void)
             selectedpixval, imtype2, secondpixval) ;
 #endif
   }
-  else {
-#ifdef Linux
-    draw_image_hacked(imc,ic,jc);
-#else
-    draw_image(imc,ic,jc); 
-#endif
+  else 
+  {
+    if (do_overlay)
+      draw_image_hacked(imc,ic,jc);
+    else
+      draw_image(imc,ic,jc); 
+
 
 #if 0
     wintitle(imtype);
