@@ -7218,13 +7218,15 @@ mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which)
 
         Description
 ------------------------------------------------------*/
+#include "stats.h"
 int
-MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time_point,
+MRISsampleStatVolume(MRI_SURFACE *mris, void *vsv,int time_point,
                      int coords)
 {
   VERTEX   *v ;
   int      vno, xv, yv, zv, width, height, depth ;
   Real     x, y, z, xt, yt, zt ;
+  STAT_VOLUME *sv = (STAT_VOLUME *)vsv ;
 
   if (time_point >= sv->mri_pvals[0]->nframes)
     ErrorExit(ERROR_BADPARM, 
