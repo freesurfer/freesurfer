@@ -499,6 +499,8 @@ TransformFileNameType(char *fname)
   return(file_type) ;
 }
 
+#include "volume_io.h"
+
 static LTA  *
 ltaMNIread(char *fname)
 {
@@ -507,12 +509,27 @@ ltaMNIread(char *fname)
   char             *cp, line[300] ;
   FILE             *fp ;
   int              row ;
-  MATRIX           *m_L ;
+  MATRIX           *m_L, *V, *W, *m_tmp ;
+  General_transform transform ;   /* the next two are from this struct */
+  Transform         *linear_transform ;
+  Transform         *inverse_linear_transform ;
 
   fp = fopen(fname, "r") ;
   if (!fp)
     ErrorReturn(NULL, 
                 (ERROR_NOFILE, "ltMNIread: could not open file %s",fname));
+  V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
+  W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
+  *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
+  *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
+  *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
+  *MATRIX_RELT(V, 4, 4) = 1 ;
+
+  *MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
+  *MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
+  *MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
+  *MATRIX_RELT(W, 4, 4) = 1 ;
+
   lta = LTAalloc(1, NULL) ;
   lt = &lta->xforms[0] ;
   lt->sigma = lt->x0 = lt->y0 = lt->z0 = 0 ;
@@ -531,7 +548,10 @@ ltaMNIread(char *fname)
            MATRIX_RELT(m_L,row,1), MATRIX_RELT(m_L,row,2), 
            MATRIX_RELT(m_L,row,3), MATRIX_RELT(m_L,row,4)) ;
   }
+  m_tmp = MatrixMultiply(lt->m_L, W, NULL) ;
+  MatrixMultiply(V, m_tmp, lt->m_L) ;
   /*  MatrixAsciiWriteInto(stderr, lt->m_L) ;*/
+  MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
   fclose(fp) ;
   return(lta) ;
 }
