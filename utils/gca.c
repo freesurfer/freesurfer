@@ -37,6 +37,7 @@ static double FLASHforwardModel(double flip_angle, double TR, double PD,
                                 double T1) ;
 static int    MRIorderIndices(MRI *mri, short *x_indices, short *y_indices, 
                               short *z_indices) ;
+static int gcaCheck(GCA *gca) ;
 static double gcaVoxelGibbsLogLikelihood(GCA *gca, MRI *mri_labels, 
                                          MRI *mri_inputs, int x, int y, int z, 
                                          LTA *lta, double gibbs_coef) ;
@@ -736,6 +737,7 @@ GCAcompleteTraining(GCA *gca)
     }
   }
 
+  gcaCheck(gca) ;
 
   printf("%d classifiers: %2.1f per node (%d holes filled)\n", 
          total_gcs, (float)total_gcs/(float)total_nodes,holes_filled) ;
@@ -2254,15 +2256,19 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior)
   fprintf(stderr, "total sample mean = %2.1f (%d zeros)\n", 
           total_mean/((float)nfound-nzeros), nzeros) ;
 
+  if (getenv("GCA_WRITE_CLASS"))
   {
     int  n ;
     FILE *fp ;
 
     fp = fopen("classes.dat", "w") ;
-    for (n = 0 ; n < MAX_DIFFERENT_LABELS ; n++)
-      if (label_counts[n] > 0)
-        fprintf(fp, "%d  %d\n", n, label_counts[n]) ;
-    fclose(fp) ;
+    if (fp)
+    {
+      for (n = 0 ; n < MAX_DIFFERENT_LABELS ; n++)
+        if (label_counts[n] > 0)
+          fprintf(fp, "%d  %d\n", n, label_counts[n]) ;
+      fclose(fp) ;
+    }
   }
 
   *pnsamples = nfound ;
@@ -5929,6 +5935,8 @@ GCAlabelMean(GCA *gca, int label)
           gc = &gcan->gcs[n] ;
           wt += gc->prior ;
           mean += gc->mean*gc->prior ;
+          if (!finite(gc->mean))
+            DiagBreak() ;
                            
         }
       }
@@ -6448,3 +6456,33 @@ findClosestValidGC(GCA *gca, int x0, int y0, int z0, int label)
   return(gc_min) ;
 }
 
+static int
+gcaCheck(GCA *gca)
+{
+  int x, y, z, ret = NO_ERROR, n ;
+  GCA_NODE *gcan ;
+  GC1D     *gc ;
+
+  for (x = 0 ; x < gca->width ; x++)
+  {
+    for (y = 0 ; y < gca->height ; y++)
+    {
+      for (z = 0 ; z < gca->depth ; z++)
+      {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+          DiagBreak() ;
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          gc = &gcan->gcs[n] ;
+          if (!finite(gc->mean) || !finite(gc->var))
+          {
+            ret = ERROR_BADPARM ;
+            DiagBreak() ;
+          }
+        }
+      }
+    }
+  }
+  return(ret) ;
+}
