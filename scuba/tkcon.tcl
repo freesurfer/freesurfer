@@ -187,7 +187,7 @@ proc ::tkcon::Init {args} {
 	    alias clear dir dump echo idebug lremove
 	    tkcon_puts tkcon_gets observe observe_var unalias which what
 	}
-	RCS		{RCS: @(#) $Id: tkcon.tcl,v 1.3 2004/04/03 22:05:19 kteich Exp $}
+	RCS		{RCS: $Id: tkcon.tcl,v 1.4 2004/04/03 22:32:18 kteich Exp $}
 	HEADURL		{http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/tkcon/tkcon/tkcon.tcl?rev=HEAD}
 	docs		"http://tkcon.sourceforge.net/"
 	email		{jeff@hobbs.org}
@@ -418,11 +418,12 @@ proc ::tkcon::Init {args} {
 	puts stderr "error in $PRIV(rcfile):\n$err"
 	append PRIV(errorInfo) $errorInfo
     }
+    
     if {[string compare {} $OPT(exec)]} {
 	StateCheckpoint [concat $PRIV(name) $OPT(exec)] slave
     }
-    StateCheckpoint $PRIV(name) slave
-
+#    StateCheckpoint $PRIV(name) slave
+	    
     Prompt "$title console display active (Tcl$::tcl_patchLevel / Tk$::tk_patchLevel)\n"
 }
 
