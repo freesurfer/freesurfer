@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.11 2002/12/04 23:12:21 greve Exp $
+  $Id: mri_label2label.c,v 1.12 2002/12/05 00:24:16 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -58,7 +58,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.11 2002/12/04 23:12:21 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.12 2002/12/05 00:24:16 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -72,7 +72,11 @@ char  *trgsurface   = "white";
 
 char *regmethod  = NULL;
 char *hemi       = NULL;
+char *srchemi    = NULL;
+char *trghemi    = NULL;
 char *surfreg = "sphere.reg";
+char *srcsurfreg = NULL;
+char *trgsurfreg = NULL;
 
 int srcicoorder = -1;
 int trgicoorder = -1;
@@ -173,29 +177,29 @@ int main(int argc, char **argv)
         SUBJECTS_DIR,srcsubject);
       err = regio_read_mincxfm(tmpstr, &SrcVolReg);
       if(err) {
-  fprintf(stderr,"ERROR reading %s\n",tmpstr);
-  exit(1);
+	fprintf(stderr,"ERROR reading %s\n",tmpstr);
+	exit(1);
       }
     }
     else SrcVolReg = MatrixIdentity(4,NULL);
-
+    
     /*** Load the Trg2Tal registration ***/
     if(strcmp(trgsubject,"talairach")){
       sprintf(tmpstr,"%s/%s/mri/transforms/talairach.xfm",
-        SUBJECTS_DIR,trgsubject);
+	      SUBJECTS_DIR,trgsubject);
 
       err = regio_read_mincxfm(tmpstr, &TrgVolReg);
       if(err) {
-  fprintf(stderr,"ERROR reading %s\n",tmpstr);
-  exit(1);
+	fprintf(stderr,"ERROR reading %s\n",tmpstr);
+	exit(1);
       }
     }
     else TrgVolReg = MatrixIdentity(4,NULL);
-
+    
     /* Compte the Src-to-Trg Registration */
     InvTrgVolReg = MatrixInverse(TrgVolReg,NULL);
     Src2TrgVolReg = MatrixMultiply(InvTrgVolReg,SrcVolReg,NULL);
-
+    
     /* Loop through each source label and map its xyz to target */
     for(n = 0; n < srclabel->n_points; n++){
 
@@ -203,10 +207,10 @@ int main(int argc, char **argv)
       xyzSrc->rptr[0+1][0+1] = srclabel->lv[n].x;
       xyzSrc->rptr[0+2][0+1] = srclabel->lv[n].y;
       xyzSrc->rptr[0+3][0+1] = srclabel->lv[n].z;
-
+      
       /* compute xyz location in target space */
       MatrixMultiply(Src2TrgVolReg,xyzSrc,xyzTrg);
-
+      
       /* unload vector into target label */
       trglabel->lv[n].x = xyzTrg->rptr[0+1][0+1];
       trglabel->lv[n].y = xyzTrg->rptr[0+2][0+1];
@@ -229,16 +233,17 @@ int main(int argc, char **argv)
 
   /*--------------------- SURFACE-BASED MAPPING --------------------------*/
   if(!strcmp(regmethod,"surface")){
-
+    
     printf("Starting surface-based mapping\n");
-
+    
     /*** Load the source registration surface ***/
     if(strcmp(srcsubject,"ico")){
-      sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,hemi,surfreg); 
+      sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,
+	      srchemi,srcsurfreg); 
       printf("Reading source registration \n %s\n",tmpstr);
       SrcSurfReg = MRISread(tmpstr);
       if(SrcSurfReg == NULL){
-  fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
+	fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
       printf("Rescaling ... ");
@@ -249,31 +254,32 @@ int main(int argc, char **argv)
     }
     else{
       printf("Reading icosahedron, order = %d, radius = %g\n",
-       srcicoorder,IcoRadius);
+	     srcicoorder,IcoRadius);
       SrcSurfReg = ReadIcoByOrder(srcicoorder,IcoRadius);
       if(SrcSurfReg==NULL) {
-  printf("ERROR reading icosahedron\n");
-  exit(1);
+	printf("ERROR reading icosahedron\n");
+	exit(1);
       }
     }
-      
+    
     /*** Load the target surfaces ***/
     if(strcmp(trgsubject,"ico")){
       /* load target xyz surface */
       sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,
-        hemi,trgsurface); 
+	      trghemi,trgsurface); 
       printf("Reading target surface \n %s\n",tmpstr);
       TrgSurf = MRISread(tmpstr);
       if(TrgSurf == NULL){
-  fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
+	fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
       /* load target registration surface */
-      sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,hemi,surfreg); 
+      sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,
+	      trghemi,trgsurfreg); 
       printf("Reading target registration \n %s\n",tmpstr);
       TrgSurfReg = MRISread(tmpstr);
       if(TrgSurfReg == NULL){
-  fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
+	fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
       printf("Rescaling ... ");
@@ -284,11 +290,11 @@ int main(int argc, char **argv)
     }
     else{
       printf("Reading icosahedron, order = %d, radius = %g\n",
-       trgicoorder,IcoRadius);
+	     trgicoorder,IcoRadius);
       TrgSurfReg = ReadIcoByOrder(trgicoorder,IcoRadius);
       if(TrgSurfReg==NULL) {
-  printf("ERROR reading icosahedron\n");
-  exit(1);
+	printf("ERROR reading icosahedron\n");
+	exit(1);
       }
       TrgSurf = TrgSurfReg;
     }
@@ -296,15 +302,15 @@ int main(int argc, char **argv)
     if(usehash){
       printf("Building target registration hash (res=%g).\n",hashres);
       TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL,
-              CURRENT_VERTICES,hashres);
+				      CURRENT_VERTICES,hashres);
     }
     if(useprojfrac){
-      sprintf(fname,"%s/%s/surf/%s.thickness",SUBJECTS_DIR,srcsubject,hemi);
+      sprintf(fname,"%s/%s/surf/%s.thickness",SUBJECTS_DIR,srcsubject,srchemi);
       printf("Reading thickness %s\n",fname);
       MRISreadCurvatureFile(TrgSurf, fname);
       printf("Done\n");
     }
-
+    
     /* handle source mask */
     if(srcmaskfile != NULL){
       printf("INFO: masking label\n");
@@ -312,18 +318,18 @@ int main(int argc, char **argv)
       //      srcsubject, hemi, NULL);
       
       SrcMask = MRISloadSurfVals(srcmaskfile, srcmaskfmt, SrcSurfReg,
-         NULL,NULL,NULL);
+				 NULL,NULL,NULL);
       if(SrcMask == NULL) exit(1);
       tmplabel = MaskSurfLabel(srclabel, SrcMask, 
-             srcmaskthresh, srcmasksign, srcmaskframe);
+			       srcmaskthresh, srcmasksign, srcmaskframe);
       if(tmplabel == NULL) exit(1);
       LabelFree(&srclabel) ;
       srclabel = tmplabel;
       printf("Found %d points in source label after masking.\n",
-       srclabel->n_points);
+	     srclabel->n_points);
       if(srclabel->n_points == 0){
-  printf("ERROR: no overlap between mask and label\n");
-  exit(1);
+	printf("ERROR: no overlap between mask and label\n");
+	exit(1);
       }
       trglabel->n_points = srclabel->n_points;
     }
@@ -335,9 +341,9 @@ int main(int argc, char **argv)
       /* vertex number of the source label */
       srcvtxno = srclabel->lv[n].vno;
       if(srcvtxno < 0 || srcvtxno >= SrcSurfReg->nvertices){
-  fprintf(stderr,"ERROR: label %d: vno = %d, max = %d\n",n,
-    srcvtxno, SrcSurfReg->nvertices);
-  exit(1);
+	fprintf(stderr,"ERROR: label %d: vno = %d, max = %d\n",n,
+		srcvtxno, SrcSurfReg->nvertices);
+	exit(1);
       }
       
       if(srcvtxno != 0) allzero = 0;
@@ -347,32 +353,32 @@ int main(int argc, char **argv)
       
       /* closest target vertex number */
       if(usehash){
-  trgvtxno = MHTfindClosestVertexNo(TrgHash,TrgSurfReg,srcvtx,&dmin);
-  if(trgvtxno < 0){
-    printf("ERROR: trgvtxno = %d < 0\n",trgvtxno);
-    printf("srcvtxno = %d, dmin = %g\n",srcvtxno,dmin);
-    printf("srcxyz = %g, %g, %g\n",srcvtx->x,srcvtx->y,srcvtx->z);
-    exit(1);
-  }
+	trgvtxno = MHTfindClosestVertexNo(TrgHash,TrgSurfReg,srcvtx,&dmin);
+	if(trgvtxno < 0){
+	  printf("ERROR: trgvtxno = %d < 0\n",trgvtxno);
+	  printf("srcvtxno = %d, dmin = %g\n",srcvtxno,dmin);
+	  printf("srcxyz = %g, %g, %g\n",srcvtx->x,srcvtx->y,srcvtx->z);
+	  exit(1);
+	}
       }
       else{
-  trgvtxno = MRISfindClosestVertex(TrgSurfReg,srcvtx->x,srcvtx->y,
-           srcvtx->z);
+	trgvtxno = MRISfindClosestVertex(TrgSurfReg,srcvtx->x,srcvtx->y,
+					 srcvtx->z);
       }
       /* target vertex */
       trgvtx = &(TrgSurf->vertices[trgvtxno]);
-
+      
       if(useprojabs || useprojfrac){
-  if(useprojabs)  projdist = projabs;
-  if(useprojfrac) projdist = projfrac * trgvtx->curv;
-  dx = projdist*trgvtx->nx;
-  dy = projdist*trgvtx->ny;
-  dz = projdist*trgvtx->nz;
+	if(useprojabs)  projdist = projabs;
+	if(useprojfrac) projdist = projfrac * trgvtx->curv;
+	dx = projdist*trgvtx->nx;
+	dy = projdist*trgvtx->ny;
+	dz = projdist*trgvtx->nz;
       }
       else {
-  dx = 0.0;
-  dy = 0.0;
-  dz = 0.0;
+	dx = 0.0;
+	dy = 0.0;
+	dz = 0.0;
       }
 
       trglabel->lv[n].vno = trgvtxno;
@@ -381,6 +387,11 @@ int main(int argc, char **argv)
       trglabel->lv[n].z = trgvtx->z + dz;
       trglabel->lv[n].stat = srclabel->lv[n].stat;
     }
+
+    /* Do reverse loop here: (1) go through each target vertex
+       not already in the label, (2) find closest source vertex, 
+       (3) determine if source is in the label, (4) if so add
+       the target to the label */
 
     if(allzero){
       printf("---------------------------------------------\n");
@@ -489,6 +500,16 @@ static int parse_commandline(int argc, char **argv)
       surfreg = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--srcsurfreg")){
+      if(nargc < 1) argnerr(option,1);
+      srcsurfreg = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--trgsurfreg")){
+      if(nargc < 1) argnerr(option,1);
+      trgsurfreg = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--trgicoorder")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&trgicoorder);
@@ -519,6 +540,17 @@ static int parse_commandline(int argc, char **argv)
       hemi = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--srchemi")){
+      if(nargc < 1) argnerr(option,1);
+      srchemi = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--trghemi")){
+      if(nargc < 1) argnerr(option,1);
+      trghemi = pargv[0];
+      nargsused = 1;
+    }
+
     else if (!strcmp(option, "--regmethod")){
       if(nargc < 1) argnerr(option,1);
       regmethod = pargv[0];
@@ -560,10 +592,14 @@ static void print_usage(void)
   fprintf(stdout, "   --regmethod  registration method (surface, volume) \n");
   fprintf(stdout, "\n");
   fprintf(stdout, "   --hemi        hemisphere (lh or rh) (with surface)\n");
+  fprintf(stdout, "   --srchemi     hemisphere (lh or rh) (with surface)\n");
+  fprintf(stdout, "   --trghemi     hemisphere (lh or rh) (with surface)\n");
   fprintf(stdout, "   --srcicoorder when srcsubject=ico\n");
   fprintf(stdout, "   --trgicoorder when trgsubject=ico\n");
   fprintf(stdout, "   --trgsurf     get xyz from this surface (white)\n");
   fprintf(stdout, "   --surfreg     surface registration (sphere.reg)  \n");
+  fprintf(stdout, "   --srcsurfreg  source surface registration (sphere.reg)\n");
+  fprintf(stdout, "   --trgsurfreg  target surface registration (sphere.reg)\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "   --srcmask     surfvalfile thresh <format>\n");
   fprintf(stdout, "   --srcmasksign sign (<abs>,pos,neg)\n");
@@ -659,9 +695,11 @@ static void dump_options(FILE *fp)
   fprintf(fp,"regmethod = %s\n",regmethod);
   fprintf(fp,"\n");
   if(!strcmp(regmethod,"surface")){
-    fprintf(fp,"hemi = %s\n",hemi);
+    fprintf(fp,"srchemi = %s\n",srchemi);
+    fprintf(fp,"trghemi = %s\n",trghemi);
     fprintf(fp,"trgsurface = %s\n",trgsurface);
-    fprintf(fp,"surfreg = %s\n",surfreg);
+    fprintf(fp,"srcsurfreg = %s\n",srcsurfreg);
+    fprintf(fp,"trgsurfreg = %s\n",trgsurfreg);
   }
   if(!strcmp(srcsubject,"ico")) fprintf(fp,"srcicoorder = %d\n",srcicoorder);
   if(!strcmp(trgsubject,"ico")) fprintf(fp,"trgicoorder = %d\n",trgicoorder);
@@ -744,10 +782,17 @@ static void check_options(void)
   }
 
   if(!strcmp(regmethod,"surface")){
-    if(hemi == NULL){
+    if(srchemi == NULL && trghemi == NULL && hemi == NULL){
       fprintf(stderr,"ERROR: no hemisphere specified\n");
       exit(1);
     }
+    if((srchemi == NULL && trghemi != NULL) ||
+       (srchemi != NULL && trghemi == NULL) ){
+      fprintf(stderr,"ERROR: must specify either --hemi or both --srchemi and --trghemi\n");
+      exit(1);
+    }
+    if(srchemi == NULL) srchemi = hemi;
+    if(trghemi == NULL) trghemi = hemi;
   }
   else{ /* volume */
     if(!strcmp(srcsubject,"ico") || !strcmp(trgsubject,"ico")){
@@ -787,6 +832,9 @@ static void check_options(void)
       "or fractional projection\n");
     exit(1);
   }
+
+  if(srcsurfreg == NULL) srcsurfreg = surfreg;
+  if(trgsurfreg == NULL) trgsurfreg = surfreg;
 
 
   return;
