@@ -42,6 +42,7 @@ int            mri_views[MAX_IMAGES] ;
 int            mri_depths[MAX_IMAGES] ;
 int            mri_frames[MAX_IMAGES] ;
 int            which_click = -1 ;
+int            mri_slices[MAX_IMAGES] ;
 
 /*----------------------------------------------------------------------
                            STATIC DATA
@@ -68,6 +69,7 @@ static void viewMenuItem(Menu menu, Menu_item menu_item) ;
 static IMAGE *get_next_slice(IMAGE *Iold, int which, int dir) ;
 static void repaint_handler(XV_FRAME *xvf, DIMAGE *dimage) ;
 static int mri_write_func(Event *event, DIMAGE *dimage, char *fname) ;
+static int xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z) ;
 
 /*----------------------------------------------------------------------
                               FUNCTIONS
@@ -89,6 +91,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
   MRI       *mri ;
   char      fname[100] ;
   FILE      *fp ;
+  BUFTYPE   val, old_val ;
 
   which = dimage->which ;
   mri = mris[which] ;
@@ -159,7 +162,35 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     MRIvoxelToTalairachVoxel(mri, (Real)x, (Real)y, (Real)z, &xtv,&ytv,&ztv);
   }
   MRIvoxelToWorld(mri, (Real)x, (Real)y, (Real)z, &xr, &yr, &zr) ;
-  switch (event_id(event))
+
+  if (event_shift_is_down(event))
+  {
+    if (event_left_is_down(event))
+      val = 255 ;
+    else if (event_right_is_down(event))
+      val = 1 ;
+    else
+      val = 0 ;
+
+    if (val) 
+    {
+      switch (mri->type)
+      {
+      default:
+      case MRI_UCHAR:
+        old_val = MRIseq_vox(mri, x, y, z, mri_frames[which])  ;
+        MRIseq_vox(mri, x, y, z, mri_frames[which]) = val ;
+        break ;
+      case MRI_FLOAT:
+        old_val = (BUFTYPE)MRIFseq_vox(mri, x, y, z, mri_frames[which]) ;
+        MRIFseq_vox(mri, x, y, z, mri_frames[which]) = (float)val ;
+        break ;
+      }
+      if (val != old_val)
+        xvmriRepaintValue(xvf, which, x, y, z) ;
+    }
+  }
+  else switch (event_id(event))
   {
   case LOC_DRAG:
     if (!event_left_is_down(event))
@@ -198,6 +229,32 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
         dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
         XVMRIsetView(xvf, which2, mri_views[which]) ;
       }
+      break ;
+    case '0':
+      fprintf(stderr, "turning off voxel (%d, %d, %d)\n", x, y, z) ;
+      switch (mri->type)
+      {
+      case MRI_UCHAR:
+        MRIseq_vox(mri, x, y, z, mri_frames[which]) = 1 ;
+        break ;
+      case MRI_FLOAT:
+        MRIseq_vox(mri, x, y, z, mri_frames[which]) = 0.0f ;
+        break ;
+      }
+      XVMRIshowFrame(xvf, mri, which, mri_slices[which], mri_frames[which]) ;
+      break ;
+    case '1':
+      fprintf(stderr, "turning on voxel (%d, %d, %d)\n", x, y, z) ;
+      switch (mri->type)
+      {
+      case MRI_UCHAR:
+        MRIseq_vox(mri, x, y, z, mri_frames[which]) = 255 ;
+        break ;
+      case MRI_FLOAT:
+        MRIseq_vox(mri, x, y, z, mri_frames[which]) = 1.0f ;
+        break ;
+      }
+      XVMRIshowFrame(xvf, mri, which, mri_slices[which], mri_frames[which]) ;
       break ;
     case 'G':
     case 'g':
@@ -477,7 +534,8 @@ XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
     break ;
   }
 
-  
+
+  mri_slices[which] = slice ;
   I = MRItoImageView(mri, Idisplay[which], slice, mri_views[which], frame) ;
   if (!I)
     return(NULL) ;
@@ -877,6 +935,53 @@ int
 XVMRIsetImageName(XV_FRAME *xvf, char *image_name)
 {
   FileNamePath(image_name, image_path) ;
+  return(NO_ERROR) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             Redisplay just the point (x,y,z) 
+----------------------------------------------------------------------*/
+static int
+xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z)
+{
+  MRI    *mri ;
+  IMAGE  *I ;
+  int    xp, yp ;
+  DIMAGE *dimage ;
+
+  dimage = XVgetDimage(xvf, which, DIMAGE_IMAGE) ;
+  I = Idisplay[which] ;
+  mri = mris[which] ;
+
+  switch (mri_views[which])
+  {
+  default:
+  case MRI_CORONAL:
+    xp = x ;
+    yp = y ;
+    break ;
+  case MRI_SAGITAL:
+    xp = z - mri->imnr0 ;
+    yp = y ;
+    break ;
+  case MRI_HORIZONTAL:
+    xp = x ;
+    yp = z-mri->imnr0 ;
+    break ;
+  }
+  yp = I->rows - (yp+1) ;
+  switch (I->pixel_format)
+  {
+  case PFBYTE:
+    *IMAGEpix(I, xp, yp) = MRIseq_vox(mri,x, y,z, mri_frames[which]);
+    break ;
+  case PFFLOAT:
+    *IMAGEFpix(I, xp, yp) = MRIFseq_vox(mri,x, y,z, mri_frames[which]);
+    break ;
+  }
+  XVshowImage(xvf, which, I, 0) ;
   return(NO_ERROR) ;
 }
 
