@@ -1,8 +1,8 @@
 #!/bin/csh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.3 2003/05/09 00:08:45 greve Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.3 2003/05/09 00:08:45 greve Exp $';
+# $Id: fsl_rigid_register,v 1.4 2003/05/09 00:24:34 greve Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.4 2003/05/09 00:24:34 greve Exp $';
 
 set refvol = ();
 set invol = ();
@@ -175,7 +175,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-nocleanup":
-      set nocleanup = 1;
+      set nocleanup = 0;
       breaksw
 
     case "-echo":
