@@ -2263,7 +2263,7 @@ ImageDifferentialScale(IMAGE *Isrc, IMAGE *Iout,
 
   rows = Isrc->rows ;
   cols = Isrc->cols ;
-  if (rows > outRows && cols > outCols)
+  if (rows >= outRows && cols >= outCols)
     ImageDifferentialScaleDown(Isrc, Iout, outRows, outCols) ;
   else
     if (rows <= outRows && cols <= outCols)
