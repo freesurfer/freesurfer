@@ -1,0 +1,4 @@
+#!/bin/tcsh -ef
+
+morph_subject-lh $1 
+morph_subject-rh $1
