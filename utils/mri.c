@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2004/02/12 05:22:24 $
-// Revision       : $Revision: 1.256 $
-char *MRI_C_VERSION = "$Revision: 1.256 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/02/12 19:29:42 $
+// Revision       : $Revision: 1.257 $
+char *MRI_C_VERSION = "$Revision: 1.257 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -8470,6 +8470,8 @@ MRIinverseLinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
   if   (!m_inv)
     ErrorReturn(NULL, (ERROR_BADPARM, 
                        "MRIinverseLinearTransform: xform is singular!")) ;
+  fprintf(stderr, "applying the vox-to-vox linear transform (calculated inverse)\n");
+  MatrixPrint(stderr, m_inv);
   mri_dst = MRIlinearTransform(mri_src, mri_dst, m_inv) ;
   MatrixFree(&m_inv) ;
   return(mri_dst) ;
@@ -8484,6 +8486,8 @@ MRIapplyRASlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *m_ras_xform)
   MATRIX   *m_voxel_xform ;
 
   m_voxel_xform = MRIrasXformToVoxelXform(mri_src, mri_dst, m_ras_xform, NULL);
+  fprintf(stderr, "applying the vox to vox linear transform\n");
+  MatrixPrint(stderr, m_voxel_xform);
   mri_dst = MRIlinearTransform(mri_src, mri_dst, m_voxel_xform) ;
   MatrixFree(&m_voxel_xform) ;
   return(mri_dst) ;
