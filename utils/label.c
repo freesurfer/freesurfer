@@ -13,6 +13,7 @@
 #include "label.h"
 #include "mri.h"
 
+static LABEL_VERTEX *labelFindVertexNumber(LABEL *area, int vno) ;
 static Transform *labelLoadTransform(char *subject_name, char *sdir,
                                      General_transform *transform) ;
 
@@ -1286,9 +1287,12 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
     adst = atmp ;
   }
 
+  MRISclearMarks(mris_dst) ;
   for (n = 0 ; n < asrc->n_points ; n++)
   {
     vno = asrc->lv[n].vno ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -1298,9 +1302,16 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
       ErrorPrintf(ERROR_BADPARM, "MRIScombine: cannot map vno %d", vno) ;
       continue ;
     }
+    if (vdst->marked)  /* only add this vertex once */
+      continue ;
+    vdst->marked = 1 ;  
     if (vdst-mris_dst->vertices == Gdiag_no)
       DiagBreak() ;
-    lv_dst = &adst->lv[adst->n_points++] ;
+    lv_dst = labelFindVertexNumber(adst, vdst-mris_dst->vertices) ;
+    if (lv_dst == NULL)
+      lv_dst = &adst->lv[adst->n_points++] ;
+    else if (lv_dst-adst->lv == Gdiag_no)
+      DiagBreak() ;
     lv_dst->vno = vdst-mris_dst->vertices ;
     if (lv_dst->vno == 60008)
       DiagBreak() ;
@@ -1311,16 +1322,15 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
     lv_dst->x = asrc->lv[n].x ;
     lv_dst->y = asrc->lv[n].y ;
     lv_dst->z = asrc->lv[n].z ;
-    lv_dst->stat = 1 ;
+    lv_dst->stat += asrc->lv[n].stat ;
   }
 
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_len, NULL,NULL);
   mht_src = 
     MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*max_len);
 
-  MRISclearMarks(mris_dst) ;
   MRISclearMarks(mris) ;
-  LabelMark(asrc, mris) ; LabelMark(adst, mris_dst) ;
+  LabelMarkStats(asrc, mris) ;
   do
   {
     /* map the nbr of every point in the label back to src, and if in
@@ -1330,6 +1340,17 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
     for (n = 0 ; n < adst->n_points ; n++)
     {
       v = &mris_dst->vertices[adst->lv[n].vno] ;
+      if (n == Gdiag_no)
+        DiagBreak() ;
+      if (v->marked == 0)   /* hasn't been processed for this surface yet */
+      {
+        vsrc = MHTfindClosestVertex(mht_src, mris, v) ;
+        if (vsrc && vsrc->marked)   /* in label */
+        {
+          adst->lv[n].stat += vsrc->stat ;
+          v->marked = 1 ;
+        }
+      }
       for (m = 0 ; m < v->vnum ; m++)
       {
         vn = &mris_dst->vertices[v->v[m]] ;
@@ -1355,12 +1376,16 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
           }
 
           vn->marked = 1 ;
-          lv_dst = &adst->lv[adst->n_points++] ;
+          lv_dst = labelFindVertexNumber(adst, v->v[m]) ;
+          if (lv_dst == NULL)
+            lv_dst = &adst->lv[adst->n_points++] ;
+          else if (lv_dst-adst->lv == Gdiag_no)
+            DiagBreak() ;
           lv_dst->x = adst->lv[n].x ;
           lv_dst->y = adst->lv[n].y ;
           lv_dst->z = adst->lv[n].z ;
           lv_dst->vno = v->v[m] ;
-          lv_dst->stat = 1 ;
+          lv_dst->stat += vsrc->stat ;
           if (lv_dst->vno == Gdiag_no)
             DiagBreak() ;
           if (lv_dst->vno == 55185)
@@ -1451,3 +1476,45 @@ LABEL *MaskSurfLabel(LABEL *lbl, MRI *SurfMask,
 
   return(msklbl);
 }
+static LABEL_VERTEX *
+labelFindVertexNumber(LABEL *area, int vno)
+{
+  int          n ;
+  LABEL_VERTEX *lv ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    if (lv->vno == vno)
+      return(lv) ;
+  }
+  return(NULL) ;
+}
+
+int
+LabelSetStat(LABEL *area, float stat)
+{
+  int  n ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+    area->lv[n].stat = stat ;
+
+  return(NO_ERROR) ;
+}
+
+int
+LabelMarkStats(LABEL *area, MRI_SURFACE *mris)
+{
+  int    n, vno ;
+  VERTEX *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    v = &mris->vertices[vno] ;
+    v->marked = area->lv[n].stat ;
+    v->stat = area->lv[n].stat ;
+  }
+  return(NO_ERROR) ;
+}
+
