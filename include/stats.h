@@ -82,7 +82,7 @@ typedef struct
 /* StatReadTransform() will read in this file */
 #ifdef _STATS_SRC
   char *stats_talxfm = "talairach.xfm";
-  int  statnorm_float2int = FLT2INT_TKREG;
+  int  statnorm_float2int = FLT2INT_ROUND;
   int  stats_fixxfm = 0;
   #undef _STATS_SRC
 #else
