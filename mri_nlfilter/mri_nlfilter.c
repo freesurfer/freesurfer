@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "region.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.3 1997/07/20 22:30:48 fischl Exp $";
+static char vcid[] = "$Id: mri_nlfilter.c,v 1.4 1997/07/21 03:55:16 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -41,6 +41,7 @@ static MRI *mri_gaussian ;
 
 #define REGION_SIZE   32
 
+static int region_size = REGION_SIZE ;
 int
 main(int argc, char *argv[])
 {
@@ -91,23 +92,25 @@ main(int argc, char *argv[])
   else
     mri_blur = NULL ;
 
-  for (z = 0 ; z < depth ; z += REGION_SIZE)
+  for (z = 0 ; z < depth ; z += region_size)
   {
-    for (y = 0 ; y < height ; y += REGION_SIZE)
+    DiagHeartbeat((float)z / (float)(depth-1)) ;
+    for (y = 0 ; y < height ; y += region_size)
     {
-      for (x = 0 ; x < width ; x += REGION_SIZE)
+      for (x = 0 ; x < width ; x += region_size)
       {
         region.x = x ; region.y = y ; region.z = z ;
-        region.dx = region.dy = region.dz = REGION_SIZE ;
+        region.dx = region.dy = region.dz = region_size ;
         REGIONexpand(&region, &region, (filter_window_size+1)/2) ;
         MRIclipRegion(mri_src, &region, &region) ;
-        if (Gdiag &DIAG_SHOW)
+
+        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
           fprintf(stderr, "extracting region (%d, %d, %d) --> (%d, %d, %d)...",
                   region.x,region.y,region.z, region.x+region.dx-1,
                   region.y+region.dy-1,region.z+region.dz-1) ;
         xborder = x-region.x ; yborder = y-region.y ; zborder = z-region.z ;
         mri_clip = MRIextractRegion(mri_src, NULL, &region) ;
-        if (Gdiag &DIAG_SHOW)
+        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
           fprintf(stderr, "done.\nsmoothing region and up-sampling...") ;
 
         if (mri_blur)   /* smooth the input image to generate offset field */
@@ -123,18 +126,18 @@ main(int argc, char *argv[])
         if (!mri_up)
           ErrorExit(ERROR_BADPARM, "%s: up sampling failed", Progname) ;
         MRIfree(&mri_smooth) ;
-        if (Gdiag & DIAG_SHOW)
+        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
           fprintf(stderr, "done.\n") ;
         mri_smooth = mri_up ;
         mri_grad = MRIsobel(mri_smooth, NULL, NULL) ;
         mri_dir = MRIclone(mri_smooth, NULL) ;
         MRIfree(&mri_smooth) ;
-        if (Gdiag & DIAG_SHOW)
+        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
           fprintf(stderr, "computing direction map...") ;
         mri_direction = 
           MRIoffsetDirection(mri_grad, offset_window_size, NULL, mri_dir) ;
   
-        if (Gdiag & DIAG_SHOW)
+        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
           fprintf(stderr, "computing offset magnitudes...") ;
         MRIfree(&mri_grad) ;
         mri_offset = 
@@ -143,7 +146,7 @@ main(int argc, char *argv[])
         if (!mri_offset)
           ErrorExit(ERROR_NOMEMORY, 
                     "%s: offset calculation failed", Progname) ;
-        if (Gdiag & DIAG_SHOW)
+        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
           fprintf(stderr, "done.\nfiltering image...") ;
         mri_filter_src = MRIupsample2(mri_clip, NULL) ;
         MRIfree(&mri_clip) ;
@@ -189,7 +192,7 @@ main(int argc, char *argv[])
         MRIfree(&mri_dir) ;
         MRIfree(&mri_filter_src) ;
         
-        if (Gdiag & DIAG_SHOW)
+        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
           fprintf(stderr, "applying offset field...") ;
         if (Gdiag & DIAG_WRITE)
           MRIwrite(mri_filter_dst, "minmax.mnc") ;
@@ -197,7 +200,7 @@ main(int argc, char *argv[])
         if (!mri_filtered)
           ErrorExit(ERROR_NOMEMORY, 
                     "%s: could not allocate filtered image", Progname) ;
-        if (Gdiag & DIAG_SHOW)
+        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
           fprintf(stderr, "done.\n") ;
         MRIfree(&mri_offset) ;
         MRIfree(&mri_filter_dst) ;
@@ -207,16 +210,18 @@ main(int argc, char *argv[])
         MRIfree(&mri_filtered) ;
         if (Gdiag & DIAG_WRITE)
           MRIwrite(mri_tmp, "downfilt.mnc") ;
+        region.x += xborder ; region.y += yborder ; region.z += zborder ;
+        region.dx -=2*xborder; region.dy-= 2*yborder; region.dz -= 2 * zborder;
         MRIextractIntoRegion(mri_tmp,mri_dst,xborder,yborder,zborder,&region);
         MRIfree(&mri_tmp); 
       }
     }
   }
-  if (Gdiag & DIAG_SHOW)
+  if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
     fprintf(stderr, "writing output image...") ;
   MRIwrite(mri_dst, out_fname) ;
   MRIfree(&mri_dst) ;
-  if (Gdiag & DIAG_SHOW)
+  if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
     fprintf(stderr, "done.\n") ;
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -293,6 +298,12 @@ get_option(int argc, char *argv[])
     if (blur_sigma < 0.0f)
       ErrorExit(ERROR_BADPARM, "%s: blurring sigma must be positive",Progname);
     nargs = 1 ;
+    break ;
+  case 'R':
+    sscanf(argv[2], "%d", &region_size) ;
+    nargs = 1 ;
+    if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
+      fprintf(stderr, "using region size = %d\n", region_size) ;
     break ;
   case '?':
   case 'U':
