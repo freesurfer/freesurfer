@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.5 2004/02/11 22:07:54 greve Exp $
+  $Id: mri_volsynth.c,v 1.6 2004/02/23 04:09:30 greve Exp $
 */
 
 #include <stdio.h>
@@ -40,7 +40,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.5 2004/02/11 22:07:54 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.6 2004/02/23 04:09:30 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -124,8 +124,13 @@ int main(int argc, char **argv)
     mri = MRIdrand48(dim[0], dim[1], dim[2], dim[3], 0, 1, NULL);
   else if(strcmp(pdfname,"const")==0)
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 1, NULL);
+  else if(strcmp(pdfname,"delta")==0){
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    printf("delta set at %d %d %d %d\n",dim[0]/2,dim[1]/2,dim[2]/2,dim[3]/2);
+    MRIFseq_vox(mri,dim[0]/2,dim[1]/2,dim[2]/2,dim[3]/2) = 1;
+  }
   else {
-    printf("ERROR: pdf %s unrecognized, must be gaussian or uniform\n",
+    printf("ERROR: pdf %s unrecognized, must be gaussian, uniform, const, or delta\n",
 	   pdfname);
     exit(1);
   }
@@ -309,7 +314,7 @@ static void print_usage(void)
   printf(" Value distribution flags\n");
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
-  printf("   --pdf pdfname : <gaussian>, uniform, or const\n");
+  printf("   --pdf pdfname : <gaussian>, uniform, const, delta\n");
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -319,7 +324,7 @@ static void print_help(void)
   printf("Synthesizes a volume with the given geometry and pdf. Default pdf \n");
   printf("is gaussian (mean 0, std 1). If uniform is chosen, then the min\n");
   printf("is 0 and the max is 1. If const is chosen, then all voxels are set\n");
-  printf("to 1.\n");
+  printf("to 1. If delta, the middle voxel is set to 1, the rest to 0.\n");
   printf("\n");
 
   exit(1) ;
