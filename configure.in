@@ -45,6 +45,53 @@ AC_SUBST(OS)
 AC_SUBST(OS_CPPFLAGS)
 
 ##############################################################
+# cpu optimization
+##############################################################
+
+if test "${CC}" = "gcc"; then 
+CPUFLAGS=""
+AC_MSG_CHECKING(checking for CPU ...)
+#### 
+#### cpu type: we support 
+####     pentium3, pentium4,  
+####     athlon-xp, opteron, athlon64, athlon-fx
+####      
+AC_ARG_WITH(cpu,
+  [  --with-cpu=CPUTYPE      where CPUTYPE is pentium3, pentium4, athlon-xp ....],
+  [  
+    case "$withval" in 
+     pentium3) 
+     CPUFLAGS="-march=pentium3 -mfpmath=sse"
+     ;;
+     pentium4)
+     CPUFLAGS="-march=pentium4 -mfpmath=sse"
+     ;;
+     athlon-xp)
+     CPUFLGAS="-march=athlon-xp -mfpmath=sse"
+     ;;	
+     opteron)
+     CPUFLAGS="-march=opteron -mfpmath=sse"
+     ;;
+     athlon64)
+     CPUFLAGS="-march=athlon64 -mfpmath=sse"
+     ;;
+     athlon-fx)
+     CPUFLAGS="-march=athlon-fx -mfpmath=sse"
+     ;;
+     *)
+     echo "cpu optimization not set"
+     ;;
+    esac
+  ],
+  [ echo "cpu not set" ]
+  )
+found=$CPUFLAGS 
+# set the value
+CFLAGS="$CPUFLAGS $CFLAGS"
+AC_MSG_RESULT("$found")
+fi
+
+##############################################################
 # mgh put packages and create softlinks
 # default path for mni tools
 ##############################################################
