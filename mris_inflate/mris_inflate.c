@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.14 1998/04/01 15:44:13 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.15 1998/04/01 16:00:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -79,7 +79,7 @@ main(int argc, char *argv[])
   }
 
   if (argc < 3)
-    usage_exit() ;
+    print_help() ;
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
@@ -283,19 +283,15 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "n_averages = %d\n", parms.n_averages) ;
     break ;
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
   case 'N':
     sscanf(argv[2], "%d", &parms.niterations) ;
     nargs = 1 ;
     fprintf(stderr, "niterations = %d\n", parms.niterations) ;
     break ;
+  case '?':
+  case 'U':
   default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
+    print_help() ;
     break ;
   }
 
@@ -324,6 +320,13 @@ print_help(void)
   fprintf(stderr, 
        "\nThis program will inflate a cortical surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
+  fprintf(stderr, "-n <# of iterations> - \n\t"
+          "set the maximum # of iterations (default = 55)\n") ;
+  fprintf(stderr, "-w <# of iterations> - \n\t"
+          "write out a snapshot of the inflation every #th time step.\n") ;
+  fprintf(stderr, "-dist <distance coefficient> - \n"
+        "\tspecify the relative strength of the metric preserving term in\n"
+        "\tthe cost functional versus the smoothing term (default = 0.1).\n");
   exit(1) ;
 }
 
