@@ -45,6 +45,12 @@ MRI *conform_type(MRI *mri)
   int nv, nv_needed;
   float e1, e2;
 
+  if(mri->type == MRI_UCHAR)
+  {
+    mri2 = MRIcopy(mri, NULL);
+    return(mri2);
+  }
+
   for(i = 0;i < N_BINS;i++)
     counts[i] = 0;
 
