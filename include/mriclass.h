@@ -22,6 +22,9 @@ typedef struct
   GCLASSIFY ****gcs ;
   Transform *transform ;
   Transform *inverse_transform ;
+  int       xstart ;     /* starting coord. of MRI used to train */
+  int       ystart ;
+  int       zstart ;
 } MRI_CLASSIFIER, MRIC ;
 
 
