@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.4 2003/04/08 04:50:50 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.5 2003/04/22 05:36:09 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.4 2003/04/08 04:50:50 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.5 2003/04/22 05:36:09 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -727,16 +727,35 @@ if(s.AutoWhiten)
   s.NMaxWhiten = round(s.TauMaxWhiten/s.TR);
   fprintf('TauMax = %g, NMax = %d, Pct = %g\n',s.TauMaxWhiten,...
           s.NMaxWhiten,s.PctWhiten);
-  [W AutoCor] = fast_cvm2whtn(ErrCovMtx,s.NMaxWhiten,s.PctWhiten);
+  nf = size(ErrCovMtx,1);
+
+  if(1)
+    AutoCor = fast_cvm2acor(ErrCovMtx,1);
+    [cnd mineig S] = fast_acfcond(AutoCor);
+    ncnd = 1;
+    while(mineig < 0 | cnd > 100)
+      fprintf('ncnd = %d, mineig = %g, cnd = %g\n',ncnd,mineig,cnd);
+      AutoCor = AutoCor .* tukeytaper(nf);
+      [cnd mineig S] = fast_acfcond(AutoCor);
+      ncnd = ncnd + 1;
+    end
+    fprintf('ncnd = %d, mineig = %g, cnd = %g\n',ncnd,mineig,cnd);
+    [utmp stmp vtmp] = svd(S);
+    W = utmp * inv(sqrt(stmp)) * vtmp';
+  end
+  
+  if(0)
+    [W AutoCor] = fast_cvm2whtn(ErrCovMtx,s.NMaxWhiten,s.PctWhiten);
+  end
 
   if(0)
-  [W AutoCor] = fast_cvm2whtn(ErrCovMtx,s.NMaxWhiten);
-  nf = length(AutoCor);
-  acf = AutoCor .* (.95.^[0:nf-1]');%'
-  fprintf('Toeplitz, nmax = %d\n',s.NMaxWhiten);
-  L = toeplitz(acf);
-  fprintf('InvChol\n');
-  W = inv(chol(L));
+    [W AutoCor] = fast_cvm2whtn(ErrCovMtx,s.NMaxWhiten);
+    nf = length(AutoCor);
+    acf = AutoCor .* (.95.^[0:nf-1]');
+    fprintf('Toeplitz, nmax = %d\n',s.NMaxWhiten);
+    L = toeplitz(acf);
+    fprintf('InvChol\n');
+    W = inv(chol(L));
   end
 
   whtnmtxfile = sprintf('%s-whtnmtx.bfloat',s.hvol);
