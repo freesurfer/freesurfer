@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2003/09/17 21:53:32 $                                             */
-/* Revision       : $Revision: 1.22 $                                         */
+/* Revision Date  : $Date: 2003/09/18 20:33:03 $                                             */
+/* Revision       : $Revision: 1.23 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -28,6 +28,7 @@ typedef struct
   float         y_r, y_a, y_s; 
   float         z_r, z_a, z_s; 
   float         c_r, c_a, c_s; 
+  char          fname[512];  // volume filename
 } VOL_GEOM, VG;
 
 typedef struct
@@ -128,5 +129,7 @@ void initVolGeom(VOL_GEOM *vg);
 void copyVolGeom(const VOL_GEOM *src, VOL_GEOM *dst);
 void writeVolGeom(FILE *fp, const VOL_GEOM *vg);
 void readVolGeom(FILE *fp, VOL_GEOM *vg);
+void getVolGeom(const MRI *src, VOL_GEOM *vg);
 
+int LTAvoxelXformToRASXform(const MRI *src, const MRI *dst, LT *voxTran, LT *rasTran);
 #endif
