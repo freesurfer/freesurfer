@@ -81,7 +81,7 @@ int main ( int argc, char** argv ) {
       throw runtime_error( ssError.str() );
     }
     
-#if 0
+#if 1
     rTcl = Tix_Init( interp );
     if( TCL_OK != rTcl ) {
       stringstream ssError;
