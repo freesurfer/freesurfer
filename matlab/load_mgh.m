@@ -20,7 +20,7 @@ function [vol, M, mr_parms, Mdc] = load_mgh(fname,slices,frames)
 %
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh.m,v 1.6 2003/09/21 23:10:11 greve Exp $
+% $Id: load_mgh.m,v 1.7 2003/09/21 23:15:13 greve Exp $
 
 vol = [];
 M = [];
@@ -166,16 +166,15 @@ for frame = frames
     
     switch type
      case MRI_FLOAT,
-      tmpslice = fread(fid, nvslice, 'float32') ; 
+      [tmpslice nread] = fread(fid, nvslice, 'float32') ; 
      case MRI_UCHAR,
-      tmpslice = fread(fid, nvslice, 'uchar') ; 
+      [tmpslice nread]  = fread(fid, nvslice, 'uchar') ; 
      case MRI_SHORT,
-      tmpslice = fread(fid, nvslice, 'short') ; 
+      [tmpslice nread]  = fread(fid, nvslice, 'short') ; 
      case MRI_INT,
-      tmpslice = fread(fid, nvslice, 'int') ; 
+      [tmpslice nread]  = fread(fid, nvslice, 'int') ; 
     end
 
-    nread = prod(size(tmpslice));
     if(nread ~= nvslice)
       fprintf('ERROR: load_mgh: reading slice %d, frame %d\n',slice,frame);
       fprintf('  tried to read %d, actually read %d\n',nvslice,nread);
@@ -191,7 +190,7 @@ for frame = frames
 end
 
 % seek to just beyond the last slice/frame %
-filepos = (nframes-1)*nvvol + (ndim3-1)*nvslice + filepos0;
+filepos = (nframes*nvvol)*nbytespervox + filepos0;
 fseek(fid,filepos,'bof');
 
 if(~feof(fid))
