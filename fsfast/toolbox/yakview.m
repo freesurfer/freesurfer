@@ -1,8 +1,8 @@
 % yakview - views images, stat overlays, and hemodynamic responses.
-% $Id: yakview.m,v 1.6 2004/10/29 17:46:05 greve Exp $
+% $Id: yakview.m,v 1.7 2004/12/07 23:55:08 greve Exp $
 
 fprintf(1,'\n\n');
-fprintf(1,'yakview: $Id: yakview.m,v 1.6 2004/10/29 17:46:05 greve Exp $\n');
+fprintf(1,'yakview: $Id: yakview.m,v 1.7 2004/12/07 23:55:08 greve Exp $\n');
 
 if(~exist('UseVersion')) UseVersion = 2; end
 
@@ -114,6 +114,10 @@ if(~isempty(SigFile))
       end
       if(isempty(pmask)) return; end
       pmask = abs(pmask) > SigMaskThresh;
+      if(SigMaskInv) 
+	fprintf('Inverting mask\n');
+	pmask = ~pmask; 
+      end
       pmask = repmat(pmask,[1 1 size(p,3)]);
       p = p.*pmask;
       clear pmask
@@ -140,6 +144,10 @@ if(~isempty(SigFile))
 	pmask = permute(pmask,[3 2 1 4]);
       end
       pmask = abs(pmask) > SigMaskThresh;
+      if(SigMaskInv) 
+	fprintf('Inverting mask\n');
+	pmask = ~pmask; 
+      end
       pmask = repmat(pmask,[1 1 1 size(p,4)]);
       p = p.*pmask;
       clear pmask
