@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/20 15:49:54 $
-// Revision       : $Revision: 1.152 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/09/16 19:11:41 $
+// Revision       : $Revision: 1.153 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8205,6 +8205,8 @@ cma_label_to_name(int label)
     return("Left_Hippocampus") ;
   if (label == Left_Amygdala)
     return("Left_Amygdala") ;
+  if (label == Left_Amygdala_Anterior)
+    return("Left_Amygdala_Anterior") ;
   if (label == Left_Insula)
     return("Left_Insula") ;
   if (label == Left_Operculum)
@@ -8277,6 +8279,8 @@ cma_label_to_name(int label)
     return("Right_Hippocampus") ;
   if (label == Right_Amygdala)
     return("Right_Amygdala") ;
+  if (label == Right_Amygdala_Anterior)
+    return("Right_Amygdala_Anterior") ;
   if (label == Right_Insula)
     return("Right_Insula") ;
   if (label == Right_Operculum)
