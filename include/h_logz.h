@@ -79,6 +79,7 @@ typedef struct
   double  maxr ;          /* max radius in domain */
   float   min_rho ;
   float   max_rho ;
+  float   *rhos ;
 } LOGMAP_INFO ;
 
 /*
@@ -135,7 +136,7 @@ double LogMapDiffuseCurvature(LOGMAP_INFO *lmi, IMAGE *inImage,
 int   LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, 
                       IMAGE *gradImage, float A, int doweight) ;
 
-void  LogMapPatchHoles(LOGMAP_INFO *lmi, IMAGE *logImage) ;
+void  LogMapPatchHoles(LOGMAP_INFO *lmi, IMAGE *Itv, IMAGE *Ilog) ;
 IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, 
                        float low, float hi) ;
 
