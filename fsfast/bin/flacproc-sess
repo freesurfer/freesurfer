@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.8 2004/12/07 23:20:12 greve Exp $
+# $Id: flacproc-sess,v 1.9 2004/12/10 00:35:23 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.8 2004/12/07 23:20:12 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.9 2004/12/10 00:35:23 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -77,7 +77,10 @@ fprintf('Session: %s \n',sess);
 fprintf('%g ',clock);fprintf('\n');
 
 flac = fast_ldflac(flacfile);
-if(isempty(flac)) return; end
+if(isempty(flac)) 
+  if(~monly) quit; end
+  return; 
+end
 
 flac.sess = sess;
 flac.nthrun = 1;
@@ -163,6 +166,8 @@ for nthrun = 1:nruns
 
   fprintf('Performing OLS estimation   (%6.1f)\n',toc);
   [beta, rvar, vdof, r] = fast_glmfitw(y.vol,flac.X);
+  indrvarz = find(rvar==0);
+  rvar(indrvarz) = 10e10;
 
   % Do AMD-SNC here and re-est
 
@@ -188,8 +193,11 @@ for nthrun = 1:nruns
   fprintf('Performing GLS estimation   (%6.1f)\n',toc);
   [beta rvar vdof r] = fast_glmfitw(y.vol,flac.X,nacfseg,acfseg.vol);
 
+  % Replace the zeros with means. The exact value does not really
+  % matter, but this allows images to still look ok
   indrvarz = find(rvar==0);
-  rvar(indrvarz) = 10e10;
+  indrvarnz = find(rvar~=0);
+  rvar(indrvarz) = mean(rvar(indrvarnz));
 
   fprintf('Saving estimation   (%6.1f)\n',toc);
   outdir = sprintf('%s/%s/fla/%s/%s',flac.sess,flac.fsd,...
