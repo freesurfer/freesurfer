@@ -29,7 +29,7 @@ double vz;
 class Vertex
 {
 public:
-  Vertex(double x, double y, double z, double value) 
+  Vertex(double x, double y, double z, double value=0) 
     : x_(x), y_(y), z_(z), value_(value) {}
 
   double x_; 
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.5 2004/06/03 15:28:07 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.6 2004/06/07 14:11:41 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -123,6 +123,7 @@ int main(int argc, char *argv[])
     cerr << "Could not open input volume : " << argv[2] << endl;
     return -1;
   }
+  // setting the voxel size
   vx = mriIn->xsize;
   vy = mriIn->ysize;
   vz = mriIn->zsize;
@@ -135,6 +136,7 @@ int main(int argc, char *argv[])
   int numvertices;
   flabel >> numvertices;
   cout << "number of vertices : " << numvertices << endl;
+  cout << "reading vertices ..." << endl;
   while (flabel.good())
   {
     int num;
@@ -168,7 +170,8 @@ int main(int argc, char *argv[])
     rasToVox = MRIsurfaceRASToVoxel;
   }
 
-  cout << "naive filling...." << endl;
+  cout << "filling...." << endl;
+  int added = 0;
   // first use the naive approach
   for (size_t i=0; i < vertices.size(); ++i)
   {
@@ -188,18 +191,45 @@ int main(int argc, char *argv[])
       return -1;
     }
     MRIvox(mriOut, nint(xv), nint(yv), nint(zv)) = (unsigned char) val;
+    //////////////////////////////////////////////////////////////////////////
+    // check possible others.  look around 3x3x3 neighbors
+    for (int z0=-1; z0 < 2; ++z0)
+      for (int y0=-1; y0 < 2; ++y0)
+	for (int x0=-1; x0 < 2; ++x0)
+	{
+	  int x = nint(xv) + x0;
+	  int y = nint(yv) + y0;
+	  int z = nint(zv) + z0;
+	  Real xr, yr, zr;
+	  // go back to RAS to see whether the point is close enough
+	  voxToRAS(mriIn, x, y, z, &xr, &yr, &zr);
+	  // if the difference is 1/2 voxel size mm then equal
+	  if (Vertex(xr, yr, zr) == vertices[i] && (x0+y0+z0) != 0)
+	  {
+	    MRIvox(mriOut, x, y, z ) = (unsigned char) val;
+	    cout << "\nadded another voxel point: ( " 
+		 << x << ", " << y << ", " << z <<")" << "for ras point: (" 
+		 << xr << ", " << yr << ", " << zr << ")" << endl; 
+	    added++;
+	  }
+	}
+    //////////////////////////////////////////////////////////////////////////
   }
-  cout << "naive filling done" << endl;
+  cout << "filling done" << endl;
+  if (added != 0)
+    cout << "added points " << added << endl;
   MRIfree(&mriIn);
 
   MRI *mask =0;
 
+  // the following is unnecessary, since I check the neightbor above
   if (fillup)
   {
 
     // create a mask with eroded region
     mask = MRIcopy(mriOut, NULL);
     cout << "eroding region..." << endl;
+    // add 3x3x3 neighbors
     mask = erodeRegion(mask, mriOut, val);
 
     // MRIwrite(mask, "./eroded.mgh");
@@ -291,7 +321,7 @@ int get_option(int argc, char *argv[])
   }
   else if (strcmp(option,"fillup") == 0)
   {
-    cout << "check to make sure all points are filled." << endl;
+    cout << "check to make sure all points are filled.... no longer necessary" << endl;
     fillup = 1;
   }
   else if (strcmp(option,"scale") == 0)
