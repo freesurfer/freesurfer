@@ -194,6 +194,9 @@ while( $#argv != 0 )
       set echo = 1;
       breaksw
 
+    case "-cwd":
+      breaksw
+
     case "-s":
     case "-sf":
     case "-df":
