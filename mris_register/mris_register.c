@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.1 1998/01/22 16:35:03 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.2 1998/01/27 00:23:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -23,7 +23,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static int max_passes = 4 ;
-static int nbrs = 3 ;
+static int nbrs = 2 ;
 static float scale = 0.1f ;
 
 char *Progname ;
@@ -45,13 +45,13 @@ main(int argc, char *argv[])
 
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = PROJECT_SPHERE ;
-  parms.tol = 1e-2 ;
-  parms.n_averages = 0 ;  /* don't need to average gradients */
+  parms.tol = 1e-1 ;
   parms.min_averages = 0 ;
   parms.l_dist = 1.0 ;
   parms.l_area = 0.0 ;
   parms.l_corr = .25f ;
-  parms.niterations = 25 ;
+  parms.niterations = 10 ;
+  parms.n_averages = 32 ;
   parms.write_iterations = 100 ;
   parms.dt_increase = 1.01 /* DT_INCREASE */;
   parms.dt_decrease = 0.99 /* DT_DECREASE*/ ;
@@ -61,8 +61,9 @@ main(int argc, char *argv[])
   parms.error_ratio = 1.1 /*ERROR_RATIO */;
   parms.integration_type = INTEGRATE_ADAPTIVE ;
   parms.integration_type = INTEGRATE_MOMENTUM /*INTEGRATE_LINE_MINIMIZE*/ ;
-  parms.dt = 0.1 ;
-  parms.momentum = 0.90 ;
+  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
+  parms.dt = 0.9 ;
+  parms.momentum = 0.95 ;
   parms.fi_desired = -1.0 ;
   parms.ici_desired = -1.0 ;
   parms.nbhd_size = 7 ;
@@ -161,6 +162,11 @@ get_option(int argc, char *argv[])
   {
     parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
     fprintf(stderr, "integrating with line minimization\n") ;
+  }
+  else if (!stricmp(option, "search"))
+  {
+    parms.integration_type = INTEGRATE_LM_SEARCH ;
+    fprintf(stderr, "integrating with binary search line minimization\n") ;
   }
   else if (!stricmp(option, "dt"))
   {
