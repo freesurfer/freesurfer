@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/08/02 18:44:08 $
-// Revision       : $Revision: 1.297 $
+// Revision Date  : $Date: 2004/08/02 19:22:09 $
+// Revision       : $Revision: 1.298 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -1195,6 +1195,7 @@ MRI_SURFACE  *
 MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int nfaces)
 {
   MRI_SURFACE  *mris ;
+  VOL_GEOM vg = {};
 
   if (max_vertices <= 0)
     max_vertices = nvertices ;
@@ -1206,6 +1207,7 @@ MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int nfaces)
   mris->max_vertices = max_vertices ;
   mris->max_faces = max_faces ;
   mris->useRealRAS = 0; /* just initialize */
+  mris->vg = vg;
   return(mris) ;
 }
 /*-----------------------------------------------------
@@ -26465,9 +26467,13 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
   vertex_trans = (int *)calloc(mris->nvertices, sizeof(int)) ;
   memset(vertex_trans, -1, mris->nvertices*sizeof(int)) ;
   memset(face_trans, -1, mris->nfaces*sizeof(int)) ;
+  // create a new surface
   mris_corrected = MRISoverAlloc(mris->nvertices+10, 2*mris->nfaces,
                                  kept_vertices, 2*mris->nfaces) ;
-                                 
+  // keep the extra info into the new one
+  mris_corrected->useRealRAS = mris->useRealRAS;
+  copyVolGeom(&mris->vg, &mris_corrected->vg);
+
   mris_corrected->type = MRIS_TRIANGULAR_SURFACE ;
 #if 0
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
