@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.14 1998/05/27 04:55:24 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.15 1998/11/16 21:54:27 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -189,7 +189,7 @@ main(int argc, char *argv[])
       fprintf(stderr, "%d negative triangles\n", neg) ;
       fprintf(stderr, "done.\n") ;
       {
-        int    vno, fno, tno ;
+        int    vno, fno ;
         VERTEX *v ;
         FACE   *f ;
         for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -201,9 +201,8 @@ main(int argc, char *argv[])
           for (fno = 0 ; fno < v->num ; fno++)
           {
             f = &mris->faces[v->f[fno]] ;
-            for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
-              if (f->area[tno] < 0.0f)
-                neg = 1 ;
+            if (f->area < 0.0f)
+              neg = 1 ;
           }
           if (neg)
             fprintf(stdout, "%d\n", vno) ;

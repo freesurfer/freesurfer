@@ -12,7 +12,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[]="$Id: mris_errors.c,v 1.6 1998/08/24 17:34:07 fischl Exp $";
+static char vcid[]="$Id: mris_errors.c,v 1.7 1998/11/16 21:57:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -219,7 +219,7 @@ print_version(void)
 int
 MRISareaErrors(MRI_SURFACE *mris)
 {
-  int      fno, tno, max_f = -1 ;
+  int      fno, max_f = -1 ;
   FACE     *face ;
   float    ferror, max_ferror, total_error, total_sq_error,
            error, mean_error, std_error, pct_error, n ;
@@ -230,16 +230,13 @@ MRISareaErrors(MRI_SURFACE *mris)
   {
     face = &mris->faces[fno] ;
     ferror = 0.0f ;
-    for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
-    {
-      error = face->area[tno] - face->orig_area[tno] ;
-      pct_error = error / face->orig_area[tno] * 100.0f ;
-      printf("%d %2.3f %2.3f %2.3f %2.1f\n", fno, face->orig_area[tno], 
-             face->area[tno], error, pct_error) ;
-      total_sq_error += (error * error) ;
-      ferror += fabs(error) ;
-      total_error += error ;
-    }
+    error = face->area - face->orig_area ;
+    pct_error = error / face->orig_area * 100.0f ;
+    printf("%d %2.3f %2.3f %2.3f %2.1f\n", fno, face->orig_area, 
+           face->area, error, pct_error) ;
+    total_sq_error += (error * error) ;
+    ferror += fabs(error) ;
+    total_error += error ;
     if (ferror >= max_ferror)
     {
       max_ferror = ferror ;
@@ -259,7 +256,7 @@ MRISareaErrors(MRI_SURFACE *mris)
 int
 MRISangleErrors(MRI_SURFACE *mris)
 {
-  int      fno, tno, max_f = -1, ano ;
+  int      fno, max_f = -1, ano ;
   FACE     *face ;
   FILE     *fp ;
   float    ferror, max_ferror, total_error, total_sq_error,
@@ -272,20 +269,17 @@ MRISangleErrors(MRI_SURFACE *mris)
   {
     face = &mris->faces[fno] ;
     ferror = 0.0f ;
-    for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
+    for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
     {
-      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
-      {
-        error = deltaAngle(face->angle[tno][ano], face->orig_angle[tno][ano]);
-        pct_error = error / face->orig_angle[tno][ano] * 100.0f ;
-        fprintf(fp, "%d %2.3f %2.3f %2.3f %2.1f\n", fno, 
-                (float)DEGREES(face->orig_angle[tno][ano]), 
-                (float)DEGREES(face->angle[tno][ano]), 
-                (float)DEGREES(error), (float)pct_error) ;
-        total_sq_error += (error * error) ;
-        ferror += fabs(error) ;
-        total_error += error ;
-      }
+      error = deltaAngle(face->angle[ano], face->orig_angle[ano]);
+      pct_error = error / face->orig_angle[ano] * 100.0f ;
+      fprintf(fp, "%d %2.3f %2.3f %2.3f %2.1f\n", fno, 
+              (float)DEGREES(face->orig_angle[ano]), 
+              (float)DEGREES(face->angle[ano]), 
+              (float)DEGREES(error), (float)pct_error) ;
+      total_sq_error += (error * error) ;
+      ferror += fabs(error) ;
+      total_error += error ;
     }
     if (ferror >= max_ferror)
     {
