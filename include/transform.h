@@ -27,7 +27,9 @@ typedef struct
 } TRANSFORM ;
 
 int      LTAfree(LTA **plta) ;
+LTA      *LTAreadInVoxelCoords(char *fname, MRI *mri) ;
 LTA      *LTAread(char *fname) ;
+LTA      *LTAreadTal(char *fname) ;
 int      LTAwrite(LTA *lta, char *fname) ;
 LTA      *LTAalloc(int nxforms, MRI *mri) ;
 int      LTAdivide(LTA *lta, MRI *mri) ;
