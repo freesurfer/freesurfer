@@ -8,6 +8,8 @@
 #include "box.h"
 #include "mri.h"
 
+#define MAX_INPUTS  4
+
 typedef struct
 {
   int         type ;        /* what kind of classifier are we using */
@@ -31,7 +33,6 @@ int    MRICcomputeMeans(MRIC *mric) ;
 int    MRICupdateCovariances(MRIC *mric, MRI *mri_src, MRI *mri_target, 
                              BOX *bbox) ;
 int    MRICcomputeCovariances(MRIC *mric) ;
-int    MRICcomputeInputs(MRI *mri,float src, int x,int y,int z,float *obs,
-                         int ninputs) ;
+int    MRICcomputeInputs(MRI *mri, int x,int y,int z,float *obs, int ninputs) ;
 
 #endif
