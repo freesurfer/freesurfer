@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "region.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.6 1997/10/16 20:01:55 fischl Exp $";
+static char vcid[] = "$Id: mri_nlfilter.c,v 1.7 1998/03/04 23:55:10 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -185,19 +185,20 @@ main(int argc, char *argv[])
             MRIconvolveGaussian(mri_filter_src, NULL, mri_gaussian) ;
           if (!mri_filter_dst)
             ErrorExit(ERROR_NOMEMORY, 
-                    "%s: could not allocate temporary buffer space",Progname);
+                   "%s: could not allocate temporary buffer space",Progname);
           break ;
         case FILTER_MEDIAN:
-          mri_filter_dst = MRImedian(mri_filter_src, NULL, filter_window_size);
+          mri_filter_dst = MRImedian(mri_filter_src,NULL,filter_window_size);
           if (!mri_filter_dst)
             ErrorExit(ERROR_NOMEMORY, 
-                    "%s: could not allocate temporary buffer space",Progname);
+                   "%s: could not allocate temporary buffer space",Progname);
           break ;
         case FILTER_MEAN:
-          mri_filter_dst = MRImean(mri_filter_src, NULL, filter_window_size) ;
+          mri_filter_dst = 
+            MRImeanByte(mri_filter_src, NULL, filter_window_size) ;
           if (!mri_filter_dst)
             ErrorExit(ERROR_NOMEMORY, 
-                    "%s: could not allocate temporary buffer space",Progname);
+                   "%s: could not allocate temporary buffer space",Progname);
           break ;
         case FILTER_MINMAX:
           mri_filter_dst = 
