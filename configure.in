@@ -47,7 +47,7 @@ case "${host}" in
  ;;
  x86_64-*)
  OS=Linux
- OS_CPP_FLAGS="-Wall -fwritable-strings"
+ OS_CPP_FLAGS="-Wall -fwritable-strings -m64 -mno-red-zone"
  OS_LDFLAGS="-all-static"
  LDFLAGS="-L/usr/lib64 $LDFLAGSA"
  DYNAMIC_LIB_EXT=".so"
@@ -151,10 +151,10 @@ case "$CPUTYPE" in
      CPUFLAGS="-march=opteron -mfpmath=sse -msse2"
      ;;
   athlon64)
-     CPUFLAGS="-march=athlon64 -mfpmath=sse -msse2"
+     CPUFLAGS="-march=x86-64 -mfpmath=sse -msse2"
      ;;
   athlon-fx)
-     CPUFLAGS="-march=athlon-fx -mfpmath=sse"
+     CPUFLAGS="-march=x86-64 -mfpmath=sse -msse2"
      ;;
   G4)
      CPUFLAGS="-mtune=G4"
