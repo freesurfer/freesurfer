@@ -66,11 +66,14 @@ MATRIX  *MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
                                  int dest_row, int dest_col) ;
 MATRIX *MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut);
 MATRIX *MatrixRegularize(MATRIX *mIn, MATRIX *mOut) ;
+int    MatrixSingular(MATRIX *m) ;
 
 /* determinants and eigenvectors */
 float  MatrixDeterminant(MATRIX *m) ;
 MATRIX *MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_dst) ;
-MATRIX *MatrixSVD(MATRIX *mA, float *z, MATRIX *mV) ;
+MATRIX *MatrixSVD(MATRIX *mA, VECTOR *v_z, MATRIX *mV) ;
+MATRIX *MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse) ;
+float  MatrixConditionNumber(MATRIX *m) ;
 
 /* statistical stuff */
 MATRIX *MatrixCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mMeans) ;
