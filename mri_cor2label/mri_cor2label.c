@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_cor2label.c
-  $Id: mri_cor2label.c,v 1.3 2003/01/03 20:38:24 greve Exp $
+  $Id: mri_cor2label.c,v 1.4 2003/01/03 23:14:27 greve Exp $
   Author: Douglas Greve
   Purpose: Converts values in a COR file to a label.
   -----------------------------------------------------------*/
@@ -20,7 +20,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 
-static char vcid[] = "$Id: mri_cor2label.c,v 1.3 2003/01/03 20:38:24 greve Exp $";
+static char vcid[] = "$Id: mri_cor2label.c,v 1.4 2003/01/03 23:14:27 greve Exp $";
 char *Progname ;
 int main(int argc, char *argv[]) ;
 
@@ -107,16 +107,8 @@ int main(int argc, char **argv)
     }
   }
   lb->n_points = nlabel;
-  fprintf(stderr,"Found %d label voxels\n",nlabel);
-  if(nlabel == 0){
-    printf("ERROR: found no voxels matching id %d \n",labelid);
-    exit(1);
-  }
+  printf("Found %d label voxels\n",nlabel);
 
-  if(labelfile != NULL){
-    printf("Writing label file %s\n",labelfile);
-    LabelWrite(lb,labelfile);
-  }
   if(volfile != NULL){
     printf("Writing volume to  %s\n",volfile);
     fp = fopen(volfile,"w");
@@ -128,6 +120,15 @@ int main(int argc, char **argv)
     fclose(fp);
   }
 
+  if(labelfile == NULL) exit(0);
+
+
+  if(nlabel == 0){
+    printf("ERROR: found no voxels matching id %d \n",labelid);
+    exit(1);
+  }
+  printf("Writing label file %s\n",labelfile);
+  LabelWrite(lb,labelfile);
 
   fprintf(stderr,"Centroid: %6.2f  %6.2f  %6.2f \n",
     xsum/nlabel,ysum/nlabel,zsum/nlabel);
