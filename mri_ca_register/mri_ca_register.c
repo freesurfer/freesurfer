@@ -167,7 +167,7 @@ main(int argc, char *argv[])
     GCA *gca_tmp ;
     
     printf("mapping GCA into %d-dimensional FLASH space...\n", mri_inputs->nframes) ;
-    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
+    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes, 100) ;
     GCAfree(&gca) ;
     gca = gca_tmp ;
     if (ninputs != gca->ninputs)
