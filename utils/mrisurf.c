@@ -2793,7 +2793,7 @@ MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname)
   if (vnum == NEW_VERSION_MAGIC_NUMBER)
   {
     fclose(fp) ;
-    return(MRISreadNewCurvatureFileVector(mris, fname)) ;
+    return(MRISreadNewCurvatureVector(mris, fname)) ;
   }
   
   fread3(&fnum,fp);
@@ -29575,7 +29575,7 @@ MRISreadNewCurvatureFile(MRI_SURFACE *mris, char *sname)
   return(NO_ERROR) ;
 }
 float *
-MRISreadNewCurvatureFileVector(MRI_SURFACE *mris, char *sname)
+MRISreadNewCurvatureVector(MRI_SURFACE *mris, char *sname)
 {
   int    k,vnum,fnum, vals_per_vertex ;
   float  *cvec ;
@@ -29607,7 +29607,7 @@ MRISreadNewCurvatureFileVector(MRI_SURFACE *mris, char *sname)
   if (vnum != NEW_VERSION_MAGIC_NUMBER)
   {
     fclose(fp) ;
-    return(MRISreadCurvatureFileVector(mris, fname)) ;
+    return(MRISreadCurvatureVector(mris, fname)) ;
   }
   
   vnum = freadInt(fp);
