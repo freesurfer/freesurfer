@@ -4,8 +4,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/10/27 20:31:28 $
-// Revision       : $Revision: 1.25 $
+// Revision Date  : $Date: 2005/03/25 15:15:11 $
+// Revision       : $Revision: 1.26 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -107,7 +107,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.25 2004/10/27 20:31:28 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.26 2005/03/25 15:15:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -320,7 +320,7 @@ main(int argc, char *argv[])
   }
   else
   {
-    gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
+    gcas = GCAfindAllSamples(gca, &nsamples, NULL, 1) ;
     printf("using %d sample points...\n", nsamples) ;
     GCAcomputeSampleCoords(gca, mri_in, gcas, nsamples, transform) ;
     if (sample_fname)

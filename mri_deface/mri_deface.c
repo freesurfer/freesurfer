@@ -216,7 +216,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.15 2004/04/21 21:53:29 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.16 2005/03/25 15:14:57 fischl Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     ErrorExit(ERROR_BADPARM, 
@@ -431,7 +431,7 @@ main(int argc, char *argv[])
     if (use_contrast)
       parms.gcas = GCAfindContrastSamples(gca,&nsamples, spacing,min_prior);
     else
-      parms.gcas = GCAfindStableSamples(gca, &nsamples,spacing, min_prior, exclude_list); 
+      parms.gcas = GCAfindStableSamples(gca, &nsamples,spacing, min_prior, exclude_list,1); 
     printf("spacing=%d, using %d sample points, tol=%2.2e...\n", spacing, nsamples, parms.tol) ;
     parms.nsamples = nsamples ;
     if (sample_fname)
@@ -448,7 +448,7 @@ main(int argc, char *argv[])
     parms.tol *= 10 ; i++ ;
   } 
 
-  parms.gcas = GCAfindAllSamples(gca, &nsamples, exclude_list) ;
+  parms.gcas = GCAfindAllSamples(gca, &nsamples, exclude_list,1) ;
   parms.nsamples = nsamples ;
 	
   printf("computing final MAP estimate of linear transform using %d samples...\n", nsamples) ;
