@@ -30,6 +30,8 @@ static char *control_point_fname ;
 static char *control_volume_fname = NULL ;
 static char *bias_volume_fname = NULL ;
 
+static int no1d = 0 ;
+
 int
 main(int argc, char *argv[])
 {
@@ -85,10 +87,19 @@ main(int argc, char *argv[])
   if (verbose)
     fprintf(stderr, "normalizing image...\n") ;
   TimerStart(&start) ;
-  MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
-  mri_dst = MRInormalize(mri_src, NULL, &mni) ;
-  if (!mri_dst)
-    ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
+  if (!no1d)
+  {
+    MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
+    mri_dst = MRInormalize(mri_src, NULL, &mni) ;
+    if (!mri_dst)
+      ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
+  }
+  else
+  {
+    mri_dst = MRIcopy(mri_src, NULL) ;
+    if (!mri_dst)
+      ErrorExit(ERROR_BADPARM, "%s: could not allocate volume", Progname) ;
+  }
 
   if (control_point_fname)
     MRI3dUseFileControlPoints(mri_dst, control_point_fname) ;
@@ -128,7 +139,12 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
+  if (!stricmp(option, "no1d"))
+  {
+    no1d = 1 ;
+    fprintf(stderr, "disabling 1d normalization...\n") ;
+  }
+  else switch (toupper(*option))
   {
   case 'W':
     control_volume_fname = argv[2] ;
