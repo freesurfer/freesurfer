@@ -28,8 +28,16 @@ int fwrite(void *ptr, int size, int nitems, FILE *fp) ;
 int stricmp(char *str1, char *str2) ;
 void ftime(struct timeb *tm) ;
 
-#endif
+#else
+#ifdef LINUX
 
+#include "macros.h"
+
+#define iszero    FZERO
+#define nint(f)   ((int)(rint((double)f)))
+
+#endif   /* LINUX */
+#endif   /* SPARC */
 
 #endif
 

@@ -176,7 +176,7 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
   height = PANEL_HEIGHT + 
     xvf->rows * xvf->display_size + (xvf->rows-1) * CHAR_HEIGHT ;
 
-  xvf->frame = (Frame)xv_create(NULL, FRAME,
+  xvf->frame = (Frame)xv_create((Xv_opaque)NULL, FRAME,
                            FRAME_LABEL, name,
                            XV_X,        FRAME_X,
                            XV_Y,        FRAME_Y,
@@ -188,12 +188,12 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
   xvf->black_pixel = BlackPixel(xvf->display, xvf->screen);
   xvf->white_pixel = WhitePixel(xvf->display, xvf->screen);
 
-  xvf->panel = (Panel)xv_create(xvf->frame, PANEL, XV_X, 0, XV_Y,  0, NULL) ;
+  xvf->panel = (Panel)xv_create((Xv_opaque)xvf->frame, PANEL, XV_X, 0, XV_Y,  0, NULL) ;
   xvf->gc = DefaultGC(xvf->display,DefaultScreen(xvf->display));
   XSetForeground(xvf->display, xvf->gc, xvf->black_pixel);
   XSetBackground(xvf->display, xvf->gc, xvf->white_pixel);
 
-  xv_create(xvf->panel, PANEL_BUTTON,
+  xv_create((Xv_opaque)xvf->panel, PANEL_BUTTON,
             XV_X,                  3,
             XV_Y,                  FIRST_BUTTON_ROW,
             PANEL_LABEL_STRING,    "Quit",
@@ -202,7 +202,7 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
 
   /* create a region for messages */
   xvf->msg_item[0] = (Panel_item) 
-    xv_create(xvf->panel,        PANEL_MESSAGE,
+    xv_create((Xv_opaque)xvf->panel,        PANEL_MESSAGE,
              PANEL_LABEL_BOLD,   TRUE,
              XV_X,               5,
              XV_Y,               3,
@@ -210,7 +210,7 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
              xvf->msg_str[0],
              NULL);
   xvf->msg_item[1] = (Panel_item) 
-    xv_create(xvf->panel,        PANEL_MESSAGE,
+    xv_create((Xv_opaque)xvf->panel,        PANEL_MESSAGE,
              PANEL_LABEL_BOLD,   TRUE,
              PANEL_LABEL_STRING, xvf->msg_str[1],
              XV_X,               SEVENTH_BUTTON_COL,
@@ -299,7 +299,7 @@ xvInitColors(XV_FRAME *xvf)
     }
   }
 
-  xvf->cms = (Cms)xv_create(NULL, CMS,
+  xvf->cms = (Cms)xv_create((Xv_opaque)NULL, CMS,
                        CMS_SIZE,    MAX_COLORS,
                        CMS_COLORS,  xcolors,
                        CMS_TYPE,    XV_STATIC_CMS,
@@ -336,7 +336,7 @@ xvInitImages(XV_FRAME *xvf)
       /* last canvas has its own colormap */
       if (row == xvf->rows-1 && col == xvf->cols-1)
         dimage->canvas =
-          (Canvas)xv_create(xvf->frame, CANVAS,
+          (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
                             XV_X,                  x,
                             XV_Y,                  y,
                             XV_HEIGHT,             xvf->display_size,
@@ -348,7 +348,7 @@ xvInitImages(XV_FRAME *xvf)
                             NULL);
       else
         dimage->canvas =
-          (Canvas)xv_create(xvf->frame, CANVAS,
+          (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
                             XV_X,                  x,
                             XV_Y,                  y,
                             XV_HEIGHT,             xvf->display_size,
@@ -359,7 +359,7 @@ xvInitImages(XV_FRAME *xvf)
                             NULL);
 
       dimage->title_item = (Panel_item)
-        xv_create(xvf->panel, PANEL_MESSAGE,
+        xv_create((Xv_opaque)xvf->panel, PANEL_MESSAGE,
                   PANEL_LABEL_BOLD, TRUE,
                   XV_X, x,
                   XV_Y, y-CHAR_HEIGHT+CHAR_PAD,
@@ -846,7 +846,7 @@ static void
 xvHipsCmdFrameInit(void) 
 {
   hips_cmd_frame = (Frame)
-    xv_create(NULL, FRAME,
+    xv_create((Xv_opaque)NULL, FRAME,
               XV_HEIGHT, HIPS_CMD_ROWS,
               XV_WIDTH,  HIPS_CMD_COLS,
               XV_X,      600,
@@ -856,10 +856,10 @@ xvHipsCmdFrameInit(void)
               NULL);
 
   hips_cmd_panel = 
-    (Panel)xv_create(hips_cmd_frame, PANEL, XV_X, 0, XV_Y,0,NULL);
+    (Panel)xv_create((Xv_opaque)hips_cmd_frame, PANEL, XV_X, 0, XV_Y,0,NULL);
   hips_cmd_display = (Display *)xv_get(hips_cmd_frame, XV_DISPLAY);
   hips_cmd_panel_item = (Panel_item)
-    xv_create(hips_cmd_panel, PANEL_TEXT,
+    xv_create((Xv_opaque)hips_cmd_panel, PANEL_TEXT,
               PANEL_VALUE_STORED_LENGTH,   300,
               PANEL_VALUE_DISPLAY_LENGTH,  40,
               XV_SHOW,                     TRUE,
