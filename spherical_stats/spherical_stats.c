@@ -15,7 +15,7 @@
 #include "version.h"
 
 
-static char vcid[] = "$Id: spherical_stats.c,v 1.3 2005/02/22 17:31:43 tosa Exp $";
+static char vcid[] = "$Id: spherical_stats.c,v 1.4 2005/03/23 03:03:40 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -68,6 +68,8 @@ static int global_count[100];
 static int nlabels;
 
 static float Total_Brain_Area;
+
+static int do_combine = 1;
 
 HISTOGRAM *histos[100];
 #define MAX_DIST 6.0
@@ -229,50 +231,53 @@ static void printStats(MRIS *mris, char *fname){
 
       nvertices++;
 			
-      if(v->val2==1){ /* mislabeled point */
-	mean_dist += v->d;
-	if(v->d>maxv)
-	  maxv=v->d;
-	Efract += 1.0f;
-	bin=MIN(histo->nbins-1,MAX(0,(int)(v->d/histo->bin_size)));
-	histo->counts[bin]++;
-      }
-    }
-    Efract = Efract/(float)nvertices;
-    if(Efract) mean_dist = mean_dist/(Efract*nvertices);
+			if(v->val2==1){ /* mislabeled point */
+				mean_dist += v->d;
+				if(v->d>maxv)
+					maxv=v->d;
+				Efract += 1.0f;
+				bin=MIN(histo->nbins-1,MAX(0,(int)(v->d/histo->bin_size)));
+				histo->counts[bin]++;
+			}
+		}
+		if(nvertices==0)
+			fprintf(stderr,"Could not find any common vertices for label %d\n",labels[m]);
+		else
+			Efract = Efract/(float)nvertices;
+		if(Efract) mean_dist = mean_dist/(Efract*nvertices);
 
-    larea=0;
-    for(n=0;n<mris->nfaces;n++)
-    {
-      if(mris->vertices[mris->faces[n].v[0]].val!=labels[m]) continue;
-      if(mris->vertices[mris->faces[n].v[1]].val!=labels[m]) continue;
-      if(mris->vertices[mris->faces[n].v[2]].val!=labels[m]) continue;
-      larea+=mris->faces[n].area;
-    }
-
-    larea /= Total_Brain_Area;
-
-    global_nvertices[m] += (float)nvertices;
-    mean_global_dist[m] += mean_dist;
-    mean_global_Efract[m] += Efract;
-    mean_max[m] += maxv;
-    mean_area[m] += larea;
-    mean_fraction[m] += 100.0*sqrt(larea)*Efract;
-    global_count[m]++;
-
-    normalize(histo);
-
-    for(n=0;n<histo->nbins;n++)
-      histos[m]->counts[n]+=histo->counts[n];
-
-    median_25=findMedian(histo,25);
-    median_50=findMedian(histo,50);
-    median_75=findMedian(histo,75);
-
-    mean_global_median_25[m] += median_25;
-    mean_global_median_50[m] += median_50;
-    mean_global_median_75[m] += median_75;
+		larea=0;
+		for(n=0;n<mris->nfaces;n++)
+		{
+			if(mris->vertices[mris->faces[n].v[0]].val!=labels[m]) continue;
+			if(mris->vertices[mris->faces[n].v[1]].val!=labels[m]) continue;
+			if(mris->vertices[mris->faces[n].v[2]].val!=labels[m]) continue;
+			larea+=mris->faces[n].area;
+		}
 		
+		larea /= Total_Brain_Area;
+
+		global_nvertices[m] += (float)nvertices;
+		mean_global_dist[m] += mean_dist;
+		mean_global_Efract[m] += Efract;
+		mean_max[m] += maxv;
+		mean_area[m] += larea;
+		mean_fraction[m] += 100.0*sqrt(larea)*Efract;
+		global_count[m]++;
+
+		normalize(histo);
+
+		for(n=0;n<histo->nbins;n++)
+			histos[m]->counts[n]+=histo->counts[n];
+
+		median_25=findMedian(histo,25);
+		median_50=findMedian(histo,50);
+		median_75=findMedian(histo,75);
+
+		mean_global_median_25[m] += median_25;
+		mean_global_median_50[m] += median_50;
+		mean_global_median_75[m] += median_75;
+
     fprintf(f,"Vertices# :  %d - Area : %2.3f%% \nFraction : %2.3f%% - Fraction*sqrt(Area) : %2.3f \n" ,
 	    nvertices,100.0*larea,100.0*Efract,100.0*Efract*sqrt(larea));
     fprintf(f,"Mean Distance Error : %f - Median (25,50,75) = ( %f , %f , %f ) - Max : %f\n",mean_dist,median_25,median_50,median_75,maxv);
@@ -290,7 +295,6 @@ static void printStats(MRIS *mris, char *fname){
 
   }
 
-	
 
   HISTOfree(&histo);
   fclose(f);
@@ -325,6 +329,7 @@ static int checkCollapsing(MRIS *mris){
 
 static float sphericaldistance(float x1,float y1,float z1,float x2,float y2,float z2){
 	float o,coso,dot,n1,n2;
+	float dist;
 
 	dot=x1*x2+y1*y2+z1*z2;
 
@@ -334,10 +339,17 @@ static float sphericaldistance(float x1,float y1,float z1,float x2,float y2,floa
 	coso=dot/(n1*n2);
 
 	o=acos(coso);
+	
+	dist=fabs((o*(n1+n2)/2.0f));
+
+	if(isnan(dist)){
+		return TNORM(x1-x2,y1-y2,z1-z2);
+	}
+	//fprintf(stderr,"\n ISNAN n1=%f n2=%f - coso=%f o=%f ",n1,n2,coso,o);
 
 	//	return TNORM(x1-x2,y1-y2,z1-z2); //cartesian distances
 
-	return fabs((o*(n1+n2)/2.0f));
+	return dist;
 }
 
 static void computeDistances(MRIS *mris){
@@ -375,13 +387,15 @@ static void computeDistances(MRIS *mris){
 		if(v->fieldsign>=0) continue;
 		annotation=v->annotation;
 
-		
+		//fprintf(stderr,"\nANNOTATION %d [%f]",annotation,v->fieldsign);
 
 		if(first) {
 			histos[nlabels]=HISTOalloc(100) /* min = 0 - max = 10mm */;
 			histos[nlabels]->bin_size=MAX_DIST/100.0; /* 0.1 mm */
 			labels[nlabels++]=annotation;
 		}
+
+		//		fprintf(stderr,"label = %d [%d]\n",nlabels,annotation);
 		/* compute distances for label 'annotation' */
 
 		/* first locate border labels */
@@ -389,6 +403,7 @@ static void computeDistances(MRIS *mris){
 			v=&mris->vertices[m];
 			if(v->ripflag) continue;
 			if(v->annotation!=annotation) continue; /* not a label of interest */
+			//if(v->fieldsign>0) fprintf(stderr,"#");
 			dist=0.0f;
 			count=0;
 			x=v->x;y=v->y;z=v->z;
@@ -406,14 +421,20 @@ static void computeDistances(MRIS *mris){
 			}
 		}
 
+		//		fprintf(stderr,"nlist = %d nlistvertices\n",nlistvertices);
+
 		vertexlist=(int*)malloc(nlistvertices*sizeof(int));
 		/* init the list */
 		for ( nlistvertices = m = 0 ; m <  mris->nvertices ; m++){
 			v=&mris->vertices[m];
 			if(v->ripflag) continue;
-			if(v->annotation==annotation && v->fieldsign>=0)
+			if(v->annotation==annotation && v->fieldsign>=0){
+				//fprintf(stderr,"%d-",nlistvertices);
 				vertexlist[nlistvertices++]=m;
+			}
 		}
+
+		//		fprintf(stderr,"/");
 		/* compute the inside distance to the border*/
 		for ( m = 0 ; m <  mris->nvertices ; m++){
 			v=&mris->vertices[m];
@@ -481,7 +502,7 @@ int main(int argc, char *argv[])
 	//	struct timeb start; 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: spherical_stats.c,v 1.3 2005/02/22 17:31:43 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: spherical_stats.c,v 1.4 2005/03/23 03:03:40 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -603,10 +624,13 @@ int main(int argc, char *argv[])
 		MRISwriteCurvature(mris,fname);
 
 		/* combine differences into template */
-		mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
-		MRISPcombine(mrisp, mrisp_template, 0) ;
-		MRISPfree(&mrisp) ;
+		fprintf(stderr,"Combining parameterizations 0\n");
 
+		if(do_combine){
+			mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
+			MRISPcombine(mrisp, mrisp_template, 0) ;
+			MRISPfree(&mrisp) ;
+		}
 
 		for(m=0;m<mris->nvertices;m++){
 			v=&mris->vertices[m];
@@ -621,11 +645,24 @@ int main(int argc, char *argv[])
 			sprintf(fname,"%s/%s/surf/%s.%s", subjects_dir,subject_fname,hemi,distance_error);
 		fprintf(stderr, "writing out distaces errors in file %s.%s for subject %s...\n", hemi,man_vs_auto,subject_fname) ;
 		MRISwriteCurvature(mris,fname);
+
+		if( n == nsubjects-1 ){ /* last subject */
+			if(suffix)
+				sprintf(fname,"%s/stats/%s.%s.global_stats_%d.txt", subjects_dir,hemi,suffix,nsubjects);
+			else
+				sprintf(fname,"%s/stats/%s.global_stats_%d.txt", subjects_dir,hemi,nsubjects);
+			fprintf(stderr, "writting global stats in %s...\n", fname) ;
+			printGlobalStats(mris,fname);
+		}
 		
 		/* combine differences into template */
-		mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
-		MRISPcombine(mrisp, mrisp_template, 3) ;
-		MRISPfree(&mrisp) ;
+		fprintf(stderr,"Combining parameterizations 3\n");
+
+		if(do_combine){
+			mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
+			MRISPcombine(mrisp, mrisp_template, 3) ;
+			MRISPfree(&mrisp) ;
+		}
 
 		if(mrisp_average){
 			/* loading sulcal information */
@@ -651,9 +688,13 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "writing out sulcal differences in alignment into file %s.%s for subject %s...\n", hemi,alignment_fname,subject_fname) ;
 			MRISwriteCurvature(mris,fname);
 
-			mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
-			MRISPcombine(mrisp, mrisp_template, 6) ;
-			MRISPfree(&mrisp) ;
+			fprintf(stderr,"Combining parameterizations 6 \n");
+			if(do_combine){
+				mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
+				MRISPcombine(mrisp, mrisp_template, 6) ;
+				MRISPfree(&mrisp) ;
+			}
+
 	
 #if 0		
 			/* correlation */
@@ -677,7 +718,7 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr,"\nMean and Variance Information...\n");
 	
-	if (all){
+	if (all && do_combine){
 		for(n=0 ; n < nsubjects ; n++){
 			fprintf(stderr,"\n\nPROCESSING SUBJECT %d out of %d subjects\n",n+1,nsubjects);
 
@@ -687,6 +728,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "reading surface from %s...\n", fname) ;
 			mris_atlas = MRISread(fname) ;
 
+#if 0
 			if(n==0){
 				sprintf(fname,"%s/%s/label/%s.%s", subjects_dir,subject_fname,hemi,manual_annotation);
 				MRISreadAnnotation(mris_atlas,fname);
@@ -698,6 +740,9 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "writting global stats in %s...\n", fname) ;
 				printGlobalStats(mris_atlas,fname);
 			}
+#endif
+
+			
 
 			fprintf(stderr,"Extracting mean information...\n");
 			MRISclearCurvature(mris_atlas);
@@ -753,13 +798,16 @@ int main(int argc, char *argv[])
 			}
 			MRISfree(&mris_atlas);	
 		}
-	}else{
+	}else if(do_combine){
+		
 		subject_fname=subjects_fname[0];
 		sprintf(fname,"%s/%s/surf/%s.%s", subjects_dir,subject_fname,hemi,sphere_fname);
 		fprintf(stderr, "reading surface from %s...\n", fname) ;
 		mris_atlas = MRISread(fname) ;
 
+#if 0
 		sprintf(fname,"%s/%s/label/%s.%s", subjects_dir,subject_fname,hemi,manual_annotation);
+		fprintf(stderr,"reading annotation file %s\n",fname);
 		MRISreadAnnotation(mris_atlas,fname);
 		if(suffix)
 			sprintf(fname,"%s/stats/%s.%s.global_stats.txt", subjects_dir,hemi,suffix);
@@ -767,6 +815,7 @@ int main(int argc, char *argv[])
 			sprintf(fname,"%s/stats/%s.global_stats.txt", subjects_dir,hemi);
 		fprintf(stderr, "writting global stats in %s...\n", fname) ;
 		printGlobalStats(mris_atlas,fname);
+#endif		
 
 		fprintf(stderr,"Extracting mean information...\n");
 		MRISclearCurvature(mris_atlas);
@@ -861,6 +910,9 @@ get_option(int argc, char *argv[])
   }else if(!stricmp(option, "all_stats")){
 		global_stats_per_label=1;
 		fprintf(stderr,"generating global stats file per label\n");
+	}else if(!stricmp(option, "do_not_combine")){
+		do_combine=0;
+		fprintf(stderr,"do not generate maps\n");
 	}
 	else if(!stricmp(option, "all")){
 		all=1;
