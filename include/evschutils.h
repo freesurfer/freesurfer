@@ -76,7 +76,7 @@ EVSCH *EVScb1Optimize(int nEvTypes, int *nEvReps, int nSearch);
 char  *EVScostString(int CostId);
 int    EVScostId(char *CostString);
 
-int   EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch);
+int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, MATRIX *C);
 float EVScost(EVSCH *EvSch, int CostId, float *params);
 
 int *RandPerm(int N, int *v);

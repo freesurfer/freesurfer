@@ -724,15 +724,19 @@ float EVScost(EVSCH *EvSch, int CostId, float *params)
   modified to compute the VRF differently when there are different
   numbers of stimuli in each event type.x
   -------------------------------------------------------------------*/
-int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch)
+int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, MATRIX *C)
 {
   MATRIX *X=NULL, *Xt=NULL, *XtX=NULL;
-  MATRIX *iXtX=NULL, *VRF=NULL;
-  int r,m,nTaskAvgs;
+  MATRIX *iXtX=NULL, *VRF=NULL, *Ct=NULL, *CiXtX=NULL, *CiXtXCt=NULL;
+  int r,m,nTaskAvgs,nNuisAvgs,nAvgs,Cfree,J;
   float diagsum;
   double dtmp, dtmp1, dtmp2;
 
   X = MatrixHorCat(Xtask,Xnuis,NULL); 
+  nTaskAvgs = Xtask->cols;
+  if(Xnuis != NULL) nNuisAvgs = Xnuis->cols;
+  else              nNuisAvgs = 0;
+  nAvgs     = X->cols;
 
   Xt = MatrixTranspose(X,Xt);
   XtX = MatrixMultiply(Xt,X,XtX);
@@ -740,26 +744,40 @@ int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch)
   /* Compute the Inverse */
   iXtX = MatrixInverse(XtX,NULL);
 
+  Cfree = 0;
+  if(C==NULL){
+    C = MatrixZero(nTaskAvgs,nAvgs,NULL);
+    for(m=0; m < nTaskAvgs; m++) C->rptr[m+1][m+1] = 1;
+    Cfree = 1;
+  }
+  J = C->rows;
+  Ct = MatrixTranspose(C,NULL);
+
   /* Make sure that it was actually inverted */
   if(iXtX != NULL){
     r = 0;
-    nTaskAvgs = Xtask->cols;
 
-    VRF = MatrixAlloc(nTaskAvgs,1,MATRIX_REAL);
+    CiXtX   = MatrixMultiply(C,iXtX,NULL);
+    CiXtXCt = MatrixMultiply(CiXtX,Ct,NULL);
+
+    VRF = MatrixAlloc(J,1,MATRIX_REAL);
 
     diagsum = 0.0;
-    for(m=0; m < nTaskAvgs; m++){/* exctract diag */
-      diagsum += iXtX->rptr[m+1][m+1]; 
-      VRF->rptr[m+1][1] = 1.0/(iXtX->rptr[m+1][m+1]); 
+    for(m=0; m < J; m++){/* exctract diag */
+      diagsum += CiXtXCt->rptr[m+1][m+1]; 
+      VRF->rptr[m+1][1] = 1.0/(CiXtXCt->rptr[m+1][m+1]); 
     }
     EvSch->eff = 1.0/diagsum;
-    EvSch->vrfstd = VectorStdDev(VRF,&dtmp);
+    if(J>1) EvSch->vrfstd = VectorStdDev(VRF,&dtmp);
+    else    EvSch->vrfstd = 0.0;
     EvSch->vrfavg = dtmp;
     EvSch->vrfrange = VectorRange(VRF,&dtmp1,&dtmp2);
     EvSch->vrfmin = dtmp1;
     EvSch->vrfmax = dtmp2;
 
     MatrixFree(&iXtX);
+    MatrixFree(&CiXtX);
+    MatrixFree(&CiXtXCt);
     MatrixFree(&VRF);
   }
   else r = 1;
@@ -767,6 +785,8 @@ int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch)
   MatrixFree(&X);
   MatrixFree(&Xt);
   MatrixFree(&XtX);
+  if(Cfree) MatrixFree(&C);
+  MatrixFree(&Ct);
 
   return(r);
 }

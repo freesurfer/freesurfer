@@ -47,7 +47,7 @@ Can something be done to affect the off-diagonals?
   #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 2.3 2004/07/08 21:20:32 greve Exp $";
+static char vcid[] = "$Id: optseq2.c,v 2.4 2004/10/08 21:09:38 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -64,6 +64,8 @@ static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
 static int PrintUpdate(FILE *fp, int n);
 static int CheckIntMult(float val, float res, float tol);
+static MATRIX * ContrastMatrix(float *EVContrast, 
+			       int nEVs, int nPer, int nNuis, int SumDelays);
 
 int debug = 0;
 
@@ -122,6 +124,11 @@ char *SumFile = NULL;
 char *LogFile = NULL;
 float PctDone, PctDoneLast, PctDoneSince;
 int UpdateNow;
+MATRIX *C;
+float EVContrast[1000];
+int ContrastSumDelays = 0, nEVContrast;
+char *CMtxFile=NULL;
+
 
 /*-------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -140,7 +147,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.3 2004/07/08 21:20:32 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.4 2004/10/08 21:09:38 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -207,6 +214,17 @@ int main(int argc, char **argv)
     exit(1);
   }
 
+  /* Create the contrast matrix */
+  if(nEVContrast > 0){
+    C = ContrastMatrix(EVContrast, nEvTypes,nPSDWindow,
+		       PolyOrder+1,ContrastSumDelays);
+    printf("C Contrast Matrix ----------------------\n");
+    MatrixPrint(stdout,C);
+    printf("================== ----------------------\n");
+
+    if(CMtxFile != NULL) MatlabWrite(C,CMtxFile,"C");
+  }
+
   /* Alloc the event list and load inputs */
   EvSchList = (EVSCH **) calloc(sizeof(EVSCH*),nKeep);
   if(nInFiles > 0){
@@ -214,7 +232,7 @@ int main(int argc, char **argv)
       //printf("INFO: reading %s\n",infilelist[n]);
       EvSchList[n] = EVSreadPar(infilelist[n]);
       Xfir = EVSfirMtxAll(EvSchList[n], 0, TR, Ntp, PSDMin, PSDMax, dPSD);
-      Singular = EVSdesignMtxStats(Xfir, Xpoly, EvSchList[n]);
+      Singular = EVSdesignMtxStats(Xfir, Xpoly, EvSchList[n],C);
       MatrixFree(&Xfir);
       if(Singular) continue;
       EVScb1Error(EvSchList[n]);
@@ -332,7 +350,7 @@ int main(int argc, char **argv)
     MatrixFree(&Xt);
     MatrixFree(&XtX);
 
-    Singular = EVSdesignMtxStats(Xfir, Xpoly, EvSch);
+    Singular = EVSdesignMtxStats(Xfir, Xpoly, EvSch, C);
     MatrixFree(&Xfir);
 
     if(Singular) continue;
@@ -448,6 +466,19 @@ int main(int argc, char **argv)
   dump_options(fpsum);
   fprintf(fpsum,"\n");
   fprintf(fpsum,"\n");
+  if(C != NULL){
+    fprintf(fpsum,"EV Contrast: ");
+    for(m=0; m < nEvTypes; m++) fprintf(fpsum,"%6.3f ",EVContrast[m]);
+    fprintf(fpsum,"\n");
+    fprintf(fpsum,"SumDelays = %d\n",ContrastSumDelays);
+    fprintf(fpsum,"Contrast Matrix: ----------------- \n");
+    MatrixPrint(fpsum,C);
+    fprintf(fpsum,"---------------------------------- \n");
+  }
+
+
+  fprintf(fpsum,"\n");
+  fprintf(fpsum,"\n");
   if(!NoSearch){
     fprintf(fpsum,"Searched %d iterations for %f hours\n",
 	    nSearched,tSearched);
@@ -544,6 +575,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--update"))    Update = 1;
     else if (!strcasecmp(option, "--noupdate"))  Update = 0;
     else if (!strcasecmp(option, "--nosearch"))  NoSearch = 1;
+    else if (!strcasecmp(option, "--sumdelays")) ContrastSumDelays = 1;
 
     else if (stringmatch(option, "--nsearch")){
       if(nargc < 1) argnerr(option,1);
@@ -629,9 +661,27 @@ static int parse_commandline(int argc, char **argv)
       }
       else VarEvRepsPerCond = 0;
     }
+    else if (stringmatch(option, "--evc")){
+      if(nargc < 1) argnerr(option,1);
+      nEVContrast = 0;
+      while(nth_is_arg(nargc,pargv,nEVContrast)){
+	sscanf(pargv[nEVContrast],"%f",&EVContrast[nEVContrast]);
+	nEVContrast++;
+      }
+      if(nEVContrast==0){
+	printf("ERROR: no elements to contrast vector\n");
+	exit(1);
+      }
+      nargsused = nEVContrast;
+    }
     else if (!strcmp(option, "--o")){
       if(nargc < 1) argnerr(option,1);
       outstem = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--cmtx")){
+      if(nargc < 1) argnerr(option,1);
+      CMtxFile = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--mtx")){
@@ -743,6 +793,8 @@ static void print_usage(void)
   printf("  --tsearch t : search for t hours\n");
   printf("  --focb    n : pre-optimize first order counter-balancing\n");
   printf("  --cost name <params>: eff, vrfavg, vrfavgstd\n");
+  printf("  --evc c1 c2 ... cN : event contrast\n");
+  printf("  --sumdelays : sum delays when forming contrast matrix\n");
   printf("  --seed seedval : initialize random number generator to seedval\n");
 
   printf("\n");
@@ -750,7 +802,8 @@ static void print_usage(void)
   printf("\n");
   printf("  --nkeep   n : keep n schedules\n");
   printf("  --o outstem  : save schedules in outstem-RRR.par\n");
-  printf("  --mtx mtxstem  : save deisgn matrices in mtxstem_RRR.mat\n");
+  printf("  --mtx mtxstem  : save design matrices in mtxstem_RRR.mat\n");
+  printf("  --cmtx cmtxfile  : save contrast matrix in cmtxfile\n");
   printf("  --sum file : save summary in file (outstem.sum)\n");
   printf("  --log file : save log in file (outstem.log)\n");
   printf("  --pctupdate pct : print an update after each pct done\n");
@@ -911,6 +964,22 @@ static void print_help(void)
 "and stddev VRF; there is one parameter, the weight give to the stddev \n"
 "component. \n"
 " \n"
+"--evc C1 C2 ... CN \n"
+" \n"
+"Optimize based on a contrast of the event types. Ci is the contrast \n"
+"weight for event type i. There must be as many weights as event types. \n"
+"Weights are NOT renormalized such that the sum to 1. \n"
+" \n"
+"--sumdelays \n"
+" \n"
+"Sum the delay regression parameters when computing contrast matrix. \n"
+"The event contrast (--evc) specifies how to weight the events when \n"
+"forming the contrast vector. However, there are multiple coefficients \n"
+"per event type corresponding to the delay in the FIR window. By default, \n"
+"a separate row in the contrast matrix is provided for each delay. To \n"
+"sum across the delays instead, use --sumdelays. The contrast matrix\n"
+"will have only one row in this case. \n"
+" \n"
 "--seed seedval \n"
 " \n"
 "Initialize the random number generator to seedval. If no seedval is \n"
@@ -938,6 +1007,10 @@ static void print_help(void)
 " \n"
 "Save the FIR design matrices to mtxstem_RRR.mat in Matlab 4 binary \n"
 "format. \n"
+" \n"
+"--cmtx cmtxfile \n"
+" \n"
+"Save the contrast matrix in Matlab 4 binary format. \n"
 " \n"
 "--sum summaryfile \n"
 " \n"
@@ -1011,7 +1084,14 @@ static void print_help(void)
 "regressors are specified, they are appended to the FIR matrix to give \n"
 "the final design matrix, hereafter referred as X. The various costs \n"
 "are computed from X. The forward model is then y = XB+n, which has the \n"
-"solution Bhat = inv(XtX)Xy. \n"
+"solution Bhat = inv(XtX)Xy. A contrast is Ghat = C*Bhat, where C is the\n"
+"the contrast matrix.\n"
+" \n"
+"CONTRAST MATRIX \n"
+" \n"
+"By default, the contrast matrix is the identity over all task-related \n"
+"components. The contrast matrix can be changed by specifying --evc  \n"
+"(and possibly --sumdelays). \n"
 " \n"
 "COST FUNCTIONS \n"
 " \n"
@@ -1029,19 +1109,19 @@ static void print_help(void)
 "with any other cost function. Note: FOCB requires that there be at \n"
 "least 2 event types. \n"
 " \n"
-"Efficiency (eff). Efficiency is defined as eff = 1/trace(inv(XtX)) \n"
+"Efficiency (eff). Efficiency is defined as eff = 1/trace(C*inv(Xt*X)*Ct) \n"
 "(note: any nuisance regressors are not included in the computation of \n"
 "the trace but are included in the computation of the inverse). The \n"
-"quantity trace(inv(XtX)) is a measure of the sum square error in Bhat \n"
-"(ie, B-Bhat) relative to the noise inherent in the experiment. Therefore,  \n"
+"quantity trace(C*inv(XtX)*Ct) is a measure of the sum square error in Ghat \n"
+"(ie, G-Bhat) relative to the noise inherent in the experiment. Therefore,  \n"
 "maximizing eff is a way of finding a schedule that will result in, on \n"
-"average, the least error in Bhat. \n"
+"average, the least error in Ghat. \n"
 " \n"
 "Average Variance Reduction Factor (vrfavg). The Variance Reduction Factor \n"
 "(VRF) is the amount by which the variance of an individual estimator (ie,  \n"
-"a component of Bhat) is reduced relative to the noise inherent in the \n"
+"a component of Ghat) is reduced relative to the noise inherent in the \n"
 "experiment. The VRF for a estimator is the inverse of the corresponding \n"
-"component on the diagonal of inv(XtX). The average VRF is this value \n"
+"component on the diagonal of C*inv(XtX)*Ct. The average VRF is this value \n"
 "averaged across all estimators.  This will yield similar results as when \n"
 "the efficiency is optimized. \n"
 " \n"
@@ -1326,6 +1406,11 @@ static void check_options(void)
     exit(1);
   }
 
+  if(nEVContrast > 0 && nEVContrast != nEvTypes){
+    printf("ERROR: contrast vector length != number of event types\n");
+    exit(1);
+  }
+
 
   return;
 }
@@ -1441,3 +1526,39 @@ static int CheckIntMult(float val, float res, float tol)
   if( fabs( val/res - rint(val/res) ) > tol ) return(0);
   return(1);
 }
+/*------------------------------------------------------------*/
+static MATRIX * ContrastMatrix(float *EVContrast, 
+			       int nEVs, int nPer, int nNuis, int SumDelays)
+{
+  int n, d, m, nbeta;
+
+  nbeta = nPer*nEVs + nNuis;
+
+  if(SumDelays){
+    C = MatrixZero(1,nbeta,NULL);
+    m = 0;
+    for(n=0; n<nEVs; n++){
+      for(d=0; d<nPer; d++){
+	C->rptr[1][m+1] = EVContrast[n];
+	m = m + 1;
+      }
+    }
+    return(C);
+  }
+
+
+  C = MatrixZero(nPer,nbeta,NULL);
+
+  for(n=0; n<nEVs; n++){
+    for(d=0; d<nPer; d++){
+      m = d + n*nPer;
+      C->rptr[d+1][m+1] = EVContrast[n];
+    }
+  }
+  return(C);
+}
+
+
+
+
+
