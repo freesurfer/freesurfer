@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.4 2000/04/04 16:37:17 fischl Exp $";
+static char vcid[] = "$Id: mris_make_template.c,v 1.5 2002/06/13 20:03:09 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -47,12 +47,13 @@ static int nbrs = 1 ;
 static int navgs = 0 ;
 static float scale = 1 ;
 static int no_rot = 0 ;
+static char subjects_dir[STRLEN] ;
 
 int
 main(int argc, char *argv[])
 {
-  char         **av, surf_fname[100], *template_fname, *hemi, *sphere_name,
-               subjects_dir[100], *cp, *subject, fname[100] ;
+  char         **av, surf_fname[STRLEN], *template_fname, *hemi, *sphere_name,
+               *cp, *subject, fname[STRLEN] ;
   int          ac, nargs, ino, sno ;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp, *mrisp_aligned, *mrisp_template ;
@@ -75,11 +76,14 @@ main(int argc, char *argv[])
   if (argc < 5)
     usage_exit() ;
 
-  cp = getenv("SUBJECTS_DIR") ;
-  if (!cp)
-    ErrorExit(ERROR_BADPARM, "%s: SUBJECTS_DIR not defined in environment.\n",
-              Progname) ;
-  strcpy(subjects_dir, cp) ;
+  if (!strlen(subjects_dir))  /* not specified on command line*/
+  {
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, "%s: SUBJECTS_DIR not defined in environment.\n",
+                Progname) ;
+    strcpy(subjects_dir, cp) ;
+  }
   hemi = argv[1] ;
   sphere_name = argv[2] ;
   template_fname = argv[argc-1] ;
@@ -116,6 +120,7 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRIScomputeMetricProperties(mris) ; MRISstoreMetricProperties(mris) ;
 
     for (sno = 0; sno < SURFACES ; sno++)
     {
@@ -190,6 +195,7 @@ main(int argc, char *argv[])
       if (!mris)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, surf_fname) ;
+      MRIScomputeMetricProperties(mris) ; MRISstoreMetricProperties(mris) ;
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
       sprintf(surf_fname, "%s/%s/surf/%s.%s", 
               subjects_dir, subject, hemi, "sulc") ;
@@ -284,6 +290,12 @@ get_option(int argc, char *argv[])
     nbrs = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using neighborhood size = %d\n", nbrs) ;
+  }
+  else if (!stricmp(option, "sdir"))
+  {
+    strcpy(subjects_dir, argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using SUBJECTS_DIR=%s\n", subjects_dir) ;
   }
   else if (!stricmp(option, "norot"))
   {
