@@ -14,7 +14,7 @@
 #include "mrisurf.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.1 1997/07/14 15:21:56 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.2 1997/07/14 18:19:35 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -34,6 +34,7 @@ static void mouse_handler(int button, int state, int x, int y) ;
 static void controlLights(int value) ;
 
 static void display_handler(void) ;
+static void home(MRI_SURFACE *mris) ;
 static void gfxinit(MRI_SURFACE *mris) ;
 static void set_lighting_model(float lite0, float lite1, float lite2, 
              float lite3, float newoffset) ;
@@ -58,6 +59,9 @@ static float delta_angle = 2*DELTA_ANGLE ;
 #define ELLIPSOID_LIST      2
 
 static int current_list = ORIG_SURFACE_LIST ;
+
+#define SCALE_FACTOR   0.55f
+#define FOV            (256.0f*SCALE_FACTOR)
 
 int
 main(int argc, char *argv[])
@@ -125,12 +129,14 @@ main(int argc, char *argv[])
   glutReshapeFunc(reshape_handler) ;
 
   /* create a menu and attach it to the window */
+#if 0
   glutCreateMenu(controlLights) ;
   glutAddMenuEntry("toggle light 1", 1) ;
   glutAddMenuEntry("toggle light 2", 2) ;
   glutAddMenuEntry("toggle light 3", 3) ;
   glutAddMenuEntry("toggle light 4", 4) ;
   glutAttachMenu(GLUT_RIGHT_BUTTON) ;
+#endif
 
   glutShowWindow() ;
   glutMainLoop() ;               /* enter event handling loop */
@@ -350,8 +356,6 @@ gfxinit(MRI_SURFACE *mris)
   glLoadIdentity();
   glMatrixMode(GL_PROJECTION);
 
-#define SCALE_FACTOR   0.55f
-#define FOV            (256.0f*SCALE_FACTOR)
   glOrtho(-FOV, FOV, -FOV, FOV, -10.0f*FOV, 10.0f*FOV);
 
   glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -399,9 +403,29 @@ keyboard_handler(unsigned char key, int x, int y)
   glMatrixMode(GL_MODELVIEW);
   switch (key)
   {
+  case '7':
+    glTranslatef(0.0f, 10.0f, 10.0f) ;
+    break ;
+  case '9':
+    glTranslatef(0.0f, 10.0f, -10.0f) ;
+    break ;
   case '1':
+    glTranslatef(0.0f, -10.0f, 10.0f) ;
+    break ;
+  case '3':
+    glTranslatef(0.0f, -10.0f, -10.0f) ;
+    break ;
+  case '8':
+    glTranslatef(0.0f, 10.0f, 0.0f) ;
+    break ;
   case '2':
-    current_list = key - '1' ;
+    glTranslatef(0.0f, -10.0f, 0.0f) ;
+    break ;
+  case '4':
+    glTranslatef(0.0f, 0.0f, 10.0f) ;
+    break ;
+  case '6':
+    glTranslatef(0.0f, 0.0f, -10.0f) ;
     break ;
   case '+':
     delta_angle *= 2.0f ;
@@ -414,23 +438,8 @@ keyboard_handler(unsigned char key, int x, int y)
   case 'q':
     exit(0) ;
     break ;
-  case 'r':
-    glTranslatef(10.0f, 0.0f, 0.0f) ;
-    break ;
-  case 'R':
-    glTranslatef(-10.0f, 0.0f, 0.0f) ;
-    break ;
-  case 'u':
-    glTranslatef(0.0f, 10.0f, 0.0f) ;
-    break ;
-  case 'U':
-    glTranslatef(0.0f, -10.0f, 0.0f) ;
-    break ;
-  case 'i':
-    glTranslatef(0.0f, 0.0f, 10.0f) ;
-    break ;
-  case 'I':
-    glTranslatef(0.0f, 0.0f, -10.0f) ;
+  case 'h':
+    home(mris) ;
     break ;
   case 'x':   /* local x axis is reversed */
     glRotatef(-delta_angle, 1.0f, 0.0f, 0.0f) ;
@@ -623,35 +632,52 @@ reshape_handler(int width, int height)
 static void
 mouse_handler(int button, int state, int x, int y)
 {
-  int kb_state ;
+  int kb_state, redraw = 1, width, height ;
 
   kb_state = glutGetModifiers() ;
   switch (button)
   {
   case GLUT_LEFT_BUTTON:
+    width = glutGet(GLUT_WINDOW_WIDTH) ;
+    height = glutGet(GLUT_WINDOW_HEIGHT) ;
+    x -= width/2 ; y -= height/2 ;  /* put origin to center of window */
+    if (kb_state & GLUT_ACTIVE_CTRL && state == GLUT_UP)/* zoom around click */
+    {
+      glMatrixMode(GL_PROJECTION) ;
+      glTranslatef(-SCALE_FACTOR*(float)x, SCALE_FACTOR*(float)y, 0.0f) ;
+      glScalef(2.0f, 2.0f, 2.0f) ;
+      /*      glTranslatef(0.0f, SCALE_FACTOR*y, SCALE_FACTOR*x) ;*/
+    }
+    else
+    {
+      redraw = 0 ;
+      fprintf(stderr, "(%d, %d)      \r", x, y) ;
+    }
     break ;
   case GLUT_RIGHT_BUTTON:
     if (kb_state & GLUT_ACTIVE_CTRL && state == GLUT_UP)
-    {
-      glMatrixMode(GL_PROJECTION) ;
-      glScalef(1.1f, 1.1f, 1.1f) ;
-      glutPostRedisplay() ;
-      /*      fprintf(stderr, "zooming in on (%d, %d)\n", x, y) ;*/
-    }
+      home(mris) ;
     break ;
   case GLUT_MIDDLE_BUTTON:
-    break ;
   default:
+    redraw = 0 ;
     break ;
   }
+  if (redraw)
+    glutPostRedisplay() ;
 }
 
 static void
 special_key_handler(int key, int x, int y)
 {
-  int redraw = 1 ;
+  int redraw = 1, kb_state ;
+
+  kb_state = glutGetModifiers() ;
 
   glMatrixMode(GL_MODELVIEW);
+  if (kb_state & GLUT_ACTIVE_SHIFT)
+    delta_angle = 180.0f ;
+
   switch (key)
   {
   case GLUT_KEY_F1:
@@ -766,3 +792,19 @@ controlLights(int value)
 
   glEndList() ;
 #endif
+
+static void
+home(MRI_SURFACE *mris)
+{
+  float angle ;
+
+  glLoadIdentity();
+  if (mris->hemisphere == RIGHT_HEMISPHERE)
+    angle = RIGHT_HEMISPHERE_ANGLE ;
+  else
+    angle = LEFT_HEMISPHERE_ANGLE ;
+  glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glOrtho(-FOV, FOV, -FOV, FOV, -10.0f*FOV, 10.0f*FOV);
+}
