@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # mkdesmtx-sess
 #
-# $Id: mkdesmtx-sess,v 1.1 2003/03/04 21:22:09 greve Exp $
-set VERSION = '$Id: mkdesmtx-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+# $Id: mkdesmtx-sess,v 1.2 2003/04/23 03:45:22 greve Exp $
+set VERSION = '$Id: mkdesmtx-sess,v 1.2 2003/04/23 03:45:22 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -155,6 +155,9 @@ foreach sess ($SessList)
     $cmd |& tee -a $LF
     if($status) exit 1;
     echo "-------------------------------------------" |& tee -a $LF
+
+    # Copy mtxfile to rundir
+    cp $mtxfile $run/$analysis.mat
 
     if($mktcvm) then
       echo "INFO: computing TCVM for run $run" |& tee -a $LF
