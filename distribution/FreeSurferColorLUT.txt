@@ -1,0 +1,111 @@
+  0  Unknown                            	   0    0    0     0
+  1  Left-Cerebral-Exterior             	 205   62   78     0 
+  2  Left-Cerebral-White-Matter         	 245  245  245     0 
+  3  Left-Cerebral-Cortex               	 205   62   78     0 
+  4  Left-Lateral-Ventricle             	 120   18  134     0 
+  5  Left-Inf-Lat-Vent                      196   58  250     0 
+  6  Left-Cerebellum-Exterior                 0  148    0     0           
+  7  Left-Cerebellum-White-Matter           220  248  164     0    
+  8  Left-Cerebellum-Cortex                 230  148   34     0             
+  9  Left-Thalamus                            0  118   14     0 
+ 10  Left-Thalamus-Proper                     0  118   14     0          
+ 11  Left-Caudate                           122  186  220    0          
+ 12  Left-Putamen                           236   13  176    0          
+ 13  Left-Pallidum                           12   48  255    0          
+ 14  3rd-Ventricle                          204  182  142    0    
+ 15  4th-Ventricle                           42  204  164    0    
+ 16  Brain-Stem                             119  159  176    0    
+ 17  Left-Hippocampus                       220  216   20     0    
+ 18  Left-Amygdala                          103  255  255    0    
+ 19  Left-Insula                             80  196   98     0    
+ 20  Left-Operculum                          60   58  210    0    
+ 21  Line-1                                  60   58  210    0    
+ 22  Line-2                                  60   58  210    0    
+ 23  Line-3                                  60   58  210    0    
+ 24  CSF                                     60   60   60     0    
+ 25  Left-Lesion                            255  165    0    0    
+ 26  Left-Accumbens-area                    255  165    0    0          
+ 27  Left-Substancia-Nigra                    0  255  127    0 
+ 28  Left-VentralDC                         165   42   42    0        
+ 29  Left-undetermined                      135  206  235    0       
+ 30  Left-vessel                            160   32  240    0      
+ 31  Left-choroid-plexus                      0  255  255    0        
+ 32  Left-F3orb                             100   50  100    0   
+ 33  Left-lOg                               135   50   74     0   
+ 34  Left-aOg                               122  135   50     0   
+ 35  Left-mOg                                51   50  135    0   
+ 36  Left-pOg                                74  155   60     0   
+ 37  Left-Stellate                          120   62   43    0   
+ 38  Left-Porg                               74  155   60     0   
+ 39  Left-Aorg                              122  135   50      0  
+ 40  Right-Cerebral-Exterior                205   62   78      0   
+ 41  Right-Cerebral-White-Matter              0  225    0     0   
+ 42  Right-Cerebral-Cortex                  205   62   78      0   
+ 43  Right-Lateral-Ventricle                120   18  134     0   
+ 44  Right-Inf-Lat-Vent                     196   58  250     0   
+ 45  Right-Cerebellum-Exterior                0  148    0       0   
+ 46  Right-Cerebellum-White-Matter          220  248  164     0   
+ 47  Right-Cerebellum-Cortex                230  148   34      0   
+ 48  Right-Thalamus                           0  118   14      0   
+ 49  Right-Thalamus-Proper                    0  118   14      0   
+ 50  Right-Caudate                          122  186  220     0   
+ 51  Right-Putamen                          236   13  176     0   
+ 52  Right-Pallidum                          13   48  255    0          
+ 53  Right-Hippocampus                      220  216   20      0   
+ 54  Right-Amygdala                         103  255  255     0   
+ 55  Right-Insula                            80  196   98      0   
+ 56  Right-Operculum                         60   58  210     0   
+ 57  Right-Lesion                           255  165    0     0   
+ 58  Right-Accumbens-area                   255  165    0     0   
+ 59  Right-Substancia-Nigra                   0  255  127     0   
+ 60  Right-VentralDC                        165   42   42     0   
+ 61  Right-undetermined                     135  206  235     0   
+ 62  Right-vessel                           160   32  240     0   
+ 63  Right-choroid-plexus                     0  255  255     0   
+ 64  Right-F3orb                            100   50  100     0   
+ 65  Right-lOg                              135   50   74     0   
+ 66  Right-aOg                              122  135   50     0   
+ 67  Right-mOg                               51   50  135     0   
+ 68  Right-pOg                               74  155   60     0   
+ 69  Right-Stellate                         120   62   43     0   
+ 70  Right-Porg                              74  155   60     0   
+ 71  Right-Aorg                         	 122  135   50     0
+ 72  5th-Ventricle                          120  190  150     0
+ 73  Left-Interior                        122  135   50    0
+ 74  Right-Interior                       122  135   50    0
+ 75  Left-Lateral-Ventricles              120   18  134    0
+ 76  Right-Lateral-Ventricles             120   18  134    0
+ 77  WM-hypointensities                   200   70  255    0
+ 78  Left-WM-hypointensities              124  140  178    0
+ 79  Right-WM-hypointensities             124  140  178    0
+ 80  non-WM-hypointensities               164  108  226    0
+ 81  Left-non-WM-hypointensities          164  108  226    0
+ 82  Right-non-WM-hypointensities         164  108  226    0
+ 83  Left-F1                              255  218  185    0
+ 84  Right-F1                             255  218  185    0
+ 85  Optic-Chiasm                         234  169   30    0
+ 86  Corpus_Callosum                        250 255 50 0
+ 96  Left-Amygdala-Anterior               205   10  125    0
+ 97  Right-Amygdala-Anterior              205   10  125    0
+
+101  alveus                        254	254	254	0
+102  perforant_pathway		 255	128	128	0
+103  parasubiculum		 255	255	0	0
+104  presubiculum			 64	0	64	0
+105  subiculum			 0	0	255	0
+106  CA1				 255	0	0	0
+107  CA2				 128	128	255	0
+108  CA3				 0	128	0	0
+109  CA4				 196	160	128	0
+110 GC-DG			 255	128	255	0
+111 HATA				 128	255	128	0
+112 molecular_layer_subiculum	 0	0	0	0
+113 lateral_ventricle		 255	0	255	0
+114 molecular_layer_HP            128    0       0       0
+115 hippocampal_fissure           64	255	196	0
+116 entorhinal_cortex             255	204	102	0
+117 nothing_yet                   0 0 0 0 
+118 Amygdala                          103  255  255    0    
+119 Cerebral_White_Matter               0  225    0     0   
+120 Cerebral_Cortex               	 205   62   78     0 
+121 Inf_Lat_Vent                      196   58  250     0 
