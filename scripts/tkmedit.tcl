@@ -550,7 +550,7 @@ proc GetDefaultLocation { iType } {
 		set gsaDefaultLocation($iType) $gsSubjectDirectory/mri
 	    }
 	    LoadVolumeDisplayTransform - LoadAuxVolumeDisplayTransform  { 
-		set gsaDefaultLocation($iType) $gsSubjectDirectory/transforms
+	     set gsaDefaultLocation($iType) $gsSubjectDirectory/mri/transforms
 	    }
 	    SaveLabelAs - LoadLabel - ImportSurfaceAnnotation { 
 		set gsaDefaultLocation($iType) $gsSubjectDirectory/label
@@ -759,7 +759,7 @@ set tDlogSpecs(ImportSurfaceAnnotation) [list \
 set tDlogSpecs(LoadFunctionalOverlay) [list \
   -title "Load Functional Overlay" \
   -prompt1 "Load Volume:" \
-  -type1 dir \
+  -type1 file \
   -note1 "The directory containing the binary volume to load" \
   -entry1 [list GetDefaultLocation LoadFunctionalOverlay_Volume] \
   -default1 [list GetDefaultLocation LoadFunctionalOverlay_Volume] \
