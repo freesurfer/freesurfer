@@ -102,17 +102,17 @@ main(int argc, char *argv[])
   parms.l_log_likelihood = 1.0f ;
   parms.niterations = 100 ;
   parms.levels = 5 ;
-	parms.relabel_avgs = 1 ;  /* relabel when navgs=1 */
-	parms.reset_avgs = 0 ;  /* reset metric properties when navgs=0 */
+  parms.relabel_avgs = 1 ;  /* relabel when navgs=1 */
+  parms.reset_avgs = 0 ;  /* reset metric properties when navgs=0 */
   parms.dt = 0.05 ;  /* was 5e-6 */
-	parms.momentum = 0.9 ;
+  parms.momentum = 0.9 ;
   parms.tol = .1 ;  /* at least 1% decrease in sse */
   parms.l_distance = 0.0 ;
   parms.l_jacobian = 1.0 ;
   parms.l_area = 0 ;
-	parms.l_label = 1.0 ;
-	parms.l_map = 0.0 ;
-	parms.label_dist = 3.0 ;
+  parms.l_label = 1.0 ;
+  parms.l_map = 0.0 ;
+  parms.label_dist = 3.0 ;
   parms.l_smoothness = 2 ;
   parms.start_t = 0 ;
   parms.max_grad = 0.3 ;
@@ -200,7 +200,7 @@ main(int argc, char *argv[])
   GCAfreeGibbs(gca) ;
   printf("done.\n") ;
 
-  
+  // build frames from ninputs ////////////////////////////////
   for (input = 0 ; input < ninputs ; input++)
   {
     in_fname = argv[1+input] ;
@@ -208,8 +208,8 @@ main(int argc, char *argv[])
     fflush(stdout) ;
     mri_tmp = MRIread(in_fname) ;
     if (!mri_tmp)
-    ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
-              Progname, in_fname) ;
+      ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
+		Progname, in_fname) ;
     
     TRs[input] = mri_tmp->tr ;
     fas[input] = mri_tmp->flip_angle ;
@@ -237,6 +237,7 @@ main(int argc, char *argv[])
     {
       mri_inputs = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
 				    mri_tmp->type, ninputs+extra) ;
+      // first one's header is copied
       MRIcopyHeader(mri_tmp, mri_inputs) ;
     }
     MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
@@ -279,7 +280,7 @@ main(int argc, char *argv[])
     free(labels) ; free(intensities) ;
   }
 
-
+  ////////////////////////////////////////////////
   if (example_T1)
   {
     MRI *mri_T1, *mri_seg ;
@@ -308,6 +309,7 @@ main(int argc, char *argv[])
 
   if (novar)
     GCAunifyVariance(gca) ;
+
   if (gca->flags & GCA_GRAD)
   {
     int i, start = ninputs ;
@@ -358,6 +360,7 @@ main(int argc, char *argv[])
   
   if (remove_bright)
     remove_bright_stuff(mri_inputs, gca, transform) ;
+
   if (!FZERO(blur_sigma))
   {
     MRI *mri_tmp, *mri_kernel ;
@@ -380,6 +383,7 @@ main(int argc, char *argv[])
   
   if (regularize > 0)
     GCAregularizeCovariance(gca, regularize) ;
+ 
   if (xform_name)
   {
     gcam = GCAMread(xform_name) ;
@@ -388,6 +392,7 @@ main(int argc, char *argv[])
   }
   else
     gcam = GCAMalloc(gca->prior_width, gca->prior_height, gca->prior_depth) ;
+
   if (tl_fname)
   {
     GCA *gca_tl ;
@@ -497,6 +502,7 @@ main(int argc, char *argv[])
   printf("writing output transformation to %s...\n", out_fname) ;
   if (vf_fname)
     write_vector_field(mri_inputs, gcam, vf_fname) ;
+  // GCAMwrite is used not MORPH3D
   if (GCAMwrite(gcam, out_fname) != NO_ERROR)
     ErrorExit(Gerror, "%s: GCAMwrite(%s) failed", Progname, out_fname) ;
 
@@ -512,7 +518,7 @@ main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   printf("registration took %d minutes and %d seconds.\n", 
-          minutes, seconds) ;
+	 minutes, seconds) ;
   if (diag_fp)
     fclose(diag_fp) ;
   exit(0) ;
@@ -875,11 +881,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("reading manually defined control points from %s\n", ctl_point_fname) ;
     break ;
-	case 'X':
-		xform_name = argv[2] ;
-		nargs = 1 ;
-		printf("reading previous transform from %s...\n", xform_name) ;
-		break ;
+  case 'X':
+    xform_name = argv[2] ;
+    nargs = 1 ;
+    printf("reading previous transform from %s...\n", xform_name) ;
+    break ;
   case 'K':
     parms.exp_k = atof(argv[2]) ;
     printf("setting exp_k to %2.2f (default=%2.2f)\n",
