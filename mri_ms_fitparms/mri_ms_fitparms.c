@@ -163,7 +163,26 @@ main(int argc, char *argv[])
     nvolumes++ ;
   }
 
-  
+
+  {
+		int i, j ;
+
+		for (i = 0 ; i < nvolumes ; i++)
+		{
+			for (j = i+1 ; j < nvolumes ; j++)
+			{
+				if ((mri_flash[i]->width != mri_flash[j]->width) ||
+						(mri_flash[i]->height != mri_flash[j]->height) ||
+						(mri_flash[i]->depth != mri_flash[j]->depth) ||
+						(mri_flash[i]->type != mri_flash[j]->type))
+					ErrorExit(ERROR_BADPARM, "%s:\nvolumes %d (type %d) and %d (type %d) don't match (%d x %d x %d) vs (%d x %d x %d)\n",
+										Progname, i, mri_flash[i]->type, j, mri_flash[j]->type, mri_flash[i]->width, 
+										mri_flash[i]->height, mri_flash[i]->depth, 
+										mri_flash[j]->width, mri_flash[j]->height, mri_flash[j]->depth) ;
+			}
+		}
+	}
+
   printf("using %d FLASH volumes to estimate tissue parameters.\n", nvolumes) ;
   mri_T1 = MRIclone(mri_flash[0], NULL) ;
   mri_PD = MRIclone(mri_flash[0], NULL) ;
@@ -448,6 +467,8 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mr
   for (y = 0 ; y < height ; y++)
   for (x = 0 ; x < width ; x++)
   {
+		if (x == 0 && y == 0 && z == 4)
+			DiagBreak() ;
     ss = 0;
     for (j = 0 ; j < nvolumes ; j++)
     {
