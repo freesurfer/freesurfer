@@ -19847,6 +19847,7 @@ static MRI_SURFACE *
 mrisReadTriangleFile(char *fname, double pct_over)
 {
   VERTEX      *v ;
+  FACE        *f ;
   int         nvertices, nfaces, magic, vno, fno, n ;
   char        line[STRLEN] ;
   FILE        *fp ;
@@ -19896,8 +19897,14 @@ mrisReadTriangleFile(char *fname, double pct_over)
   
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
+    f = &mris->faces[fno] ;
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)  
-      mris->faces[fno].v[n] = freadInt(fp);
+    {
+      f->v[n] = freadInt(fp);
+      if (f->v[n] >= mris->nvertices || f->v[n] < 0)
+        ErrorExit(ERROR_BADFILE, "f[%d]->v[%d] = %d - out of range!\n",
+                  fno, n, f->v[n]) ;
+    }
     
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
       mris->vertices[mris->faces[fno].v[n]].num++;
