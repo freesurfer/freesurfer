@@ -5,10 +5,6 @@
 #include "matrix.h"
 #include "volume_io.h"
 #include "box.h"
-#include "mrinorm.h"
-
-#define WM_MEAN   DEFAULT_DESIRED_WHITE_MATTER_VALUE
-#define WHITE_MATTER_MEAN  WM_MEAN
 
 #define BUFTYPE  unsigned char
 
@@ -626,5 +622,6 @@ int MRIsetValues(MRI *mri, int val) ;
 #define VENTRICLE_FILL       220
 #define DIAGONAL_FILL        230
 #define DEGENERATE_FILL      240
+
 
 #endif
