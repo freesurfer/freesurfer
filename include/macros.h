@@ -51,6 +51,7 @@
 #define FZERO(f)     (iszero(f))
 #endif
 
+#define ISINT(f)      ((float)((int)f) == f)
 #define FEQUAL(f1,f2) (FZERO(f1-f2))
 
 #ifndef SQR
