@@ -73,6 +73,14 @@ typedef enum {
   Volm_knNumValueComparators,
 } Volm_tValueComparator;
 
+/* This should be kept in sync with the SAMPLE_* constants in mri.h */
+typedef enum {
+  Volm_tSampleType_Nearest = 0,
+  Volm_tSampleType_Trilinear,
+  Volm_tSampleType_Sinc,
+  Volm_knNumSampleTypes
+} Volm_tSampleType;
+
 typedef struct {
   xVoxel           mSourceIdx;       /* The starting voxel */
   float            mfSourceValue;    /* The value at the starting voxel */
@@ -101,6 +109,8 @@ typedef struct {
   float*   mpMaxValues;     /* max projection. 3 planes, each dimension
 			       of a slice. 
 			       mpMaxValues[orientation][x][y] */
+
+  Volm_tSampleType mSampleType;  /* How to sample the volume */
   
   mriTransformRef    mIdxToRASTransform;           /* idx -> ras (by MRI) */
   //  LTA*               mDisplayTransform;            /* buf -> index */
@@ -128,7 +138,9 @@ typedef struct {
   VECTOR* mpTmpScreenIdx;     /* Used as tmp variables in macros. */
   VECTOR* mpTmpMRIIdx;
   xVoxel  mTmpVoxel;
-
+  xVoxel  mTmpVoxel2;
+  Real    mTmpReal;
+  
   int mnFloodIterationCount; /* Used in Volm_Flood */
 
 } mriVolume, *mriVolumeRef;
@@ -151,7 +163,8 @@ Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this );
 
 
 /* Use the GetColor functions when you just need to display a color on
-   the screen. */
+   the screen. It gets a sampled value and passes it through the color
+   table to return an intensity color. */
 void Volm_GetIntColorAtIdx        ( mriVolumeRef     this,
 				    xVoxelRef        iIdx,
 				    xColor3nRef      oColor );
@@ -181,6 +194,9 @@ Volm_tErr Volm_GetType              ( mriVolumeRef this,
 Volm_tErr Volm_GetValueMinMax       ( mriVolumeRef this,
 				      float*       ofMin,
 				      float*       ofMax );
+
+Volm_tErr Volm_SetSampleType  ( mriVolumeRef     this,
+				Volm_tSampleType iType );
 
 /* Use the GetValue functions when you want the real value of the
    voxel. Before calling the unsafe version, make sure the volume is
@@ -335,43 +351,51 @@ void Volm_ConvertXYSliceToIdx_  ( mri_tOrientation  iOrientation,
 				  xPoint2nRef       iPoint,
 				  int               inSlice,
 				  xVoxelRef         oIdx );
+int  Volm_GetMaxValueIndex_     ( mriVolumeRef     this,
+				  mri_tOrientation iOrientation, 
+				  xPoint2nRef      iPoint );
 
-void Volm_GetValueAtXYSlice_     ( mriVolumeRef this,
-				   mri_tOrientation  iOrientation,
-				   xPoint2nRef       iPoint,
-				   int               inSlice,
-				   float*            oValue );
-void Volm_GetValueAtIdx_         ( mriVolumeRef      this,
-				   xVoxelRef         iIdx,
-				   float*            oValue );
+void Volm_GetValueAtIdx_             ( mriVolumeRef      this,
+				       xVoxelRef         iIdx,
+				       float*            oValue );
+void Volm_GetValueAtXYSlice_         ( mriVolumeRef this,
+				       mri_tOrientation  iOrientation,
+				       xPoint2nRef       iPoint,
+				       int               inSlice,
+				       float*            oValue );
+void Volm_GetValueAtIdxFrame_        ( mriVolumeRef      this,
+				       xVoxelRef         iIdx,
+				       int               iFrame,
+				       float*            oValue );
+void Volm_GetSampledValueAtIdx_      ( mriVolumeRef      this,
+				      xVoxelRef         iIdx,
+				       float*            oValue);
+void Volm_GetSampledValueAtXYSlice_  ( mriVolumeRef this,
+				       mri_tOrientation  iOrientation,
+				       xPoint2nRef       iPoint,
+				       int               inSlice,
+				       float*            oValue );
+void Volm_GetSampledValueAtIdxFrame_ ( mriVolumeRef      this,
+				       xVoxelRef         iIdx,
+				       int               iFrame,
+				       float*            oValue );
+void Volm_GetMaxValueAtXYSlice_      ( mriVolumeRef this,
+				       mri_tOrientation iOrientation, 
+				       xPoint2nRef      iPoint,
+				       float*           oValue );
+
+
 void Volm_SetValueAtIdx_         ( mriVolumeRef      this,
 				   xVoxelRef         iIdx,
 				   float             iValue );
-void Volm_GetSincValueAtIdx_     ( mriVolumeRef      this,
-				   xVoxelRef         iIdx,
-				   Real*             irValue);
-
-void Volm_GetValueAtIdxFrame_    ( mriVolumeRef      this,
-				   xVoxelRef         iIdx,
-				   int               iFrame,
-				   float*            oValue );
 void Volm_SetValueAtIdxFrame_    ( mriVolumeRef      this,
 				   xVoxelRef         iIdx,
 				   int               iFrame,
 				   float             iValue );
-
-void Volm_GetMaxValueAtXYSlice_  ( mriVolumeRef this,
-				   mri_tOrientation iOrientation, 
-				   xPoint2nRef      iPoint,
-				   float*           oValue );
 void Volm_SetMaxValueAtXYSlice_  ( mriVolumeRef this,
 				   mri_tOrientation iOrientation, 
 				   xPoint2nRef      iPoint,
 				   float            iValue );
-int  Volm_GetMaxValueIndex_      ( mriVolumeRef     this,
-				   mri_tOrientation iOrientation, 
-				   xPoint2nRef      iPoint );
-
 
 void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
 				   xVoxelRef        iIdx,
@@ -471,24 +495,10 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
     break;                                                          \
   }
 
-#define Volm_GetValueAtXYSlice_(this,iOrientation,iPoint,inSlice,oValue) \
-  switch( iOrientation ) {                                          \
-  case mri_tOrientation_Coronal:                                    \
-    *(oValue) = MRIvox( this->mpMriValues, (iPoint)->mnX,          \
-            (iPoint)->mnY, (inSlice) );                 \
-    break;                                                          \
-  case mri_tOrientation_Horizontal:                                 \
-    *(oValue) = MRIvox( this->mpMriValues, (iPoint)->mnX,          \
-            (inSlice), (iPoint)->mnY );                 \
-    break;                                                          \
-  case mri_tOrientation_Sagittal:                                   \
-    *(oValue) = MRIvox( this->mpMriValues, (inSlice),              \
-            (iPoint)->mnY, (iPoint)->mnX );             \
-    break;                                                          \
-  default:                                                          \
-    *(oValue) = 0;                                                  \
-    break;                                                          \
-  }
+#define Volm_GetMaxValueAtXYSlice_(this,iOrientation,iPoint,oValue) \
+   *oValue = \
+  this->mpMaxValues[(iOrientation * this->mnDimensionX * this->mnDimensionY) \
+                       + ((iPoint)->mnY * this->mnDimensionX) + (iPoint)->mnX]
 
 
 #define Volm_GetValueAtIdx_(this,iIdx,oValue) \
@@ -524,6 +534,89 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
       *oValue = 0; \
       break ; \
     }
+
+#define Volm_GetValueAtXYSlice_(this,iOrientation,iPoint,inSlice,oValue) \
+  switch( iOrientation ) {                                          \
+  case mri_tOrientation_Coronal:                                    \
+    *(oValue) = MRIvox( this->mpMriValues, (iPoint)->mnX,          \
+            (iPoint)->mnY, (inSlice) );                 \
+    break;                                                          \
+  case mri_tOrientation_Horizontal:                                 \
+    *(oValue) = MRIvox( this->mpMriValues, (iPoint)->mnX,          \
+            (inSlice), (iPoint)->mnY );                 \
+    break;                                                          \
+  case mri_tOrientation_Sagittal:                                   \
+    *(oValue) = MRIvox( this->mpMriValues, (inSlice),              \
+            (iPoint)->mnY, (iPoint)->mnX );             \
+    break;                                                          \
+  default:                                                          \
+    *(oValue) = 0;                                                  \
+    break;                                                          \
+  }
+
+#define Volm_GetSampledValueAtIdx_(this,iIdx,oValue) \
+  Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &this->mTmpVoxel ); \
+ \
+  MRIsampleVolumeType( this->mpMriValues, \
+		       xVoxl_GetFloatX(&this->mTmpVoxel), \
+		       xVoxl_GetFloatY(&this->mTmpVoxel), \
+		       xVoxl_GetFloatZ(&this->mTmpVoxel), \
+		       &this->mTmpReal, \
+		       (int)this->mSampleType ); \
+ \
+  *oValue = (float)this->mTmpReal;
+
+
+#define Volm_GetSampledValueAtXYSlice_(this,iOrientation,iPoint,inSlice,oValue) \
+  switch( iOrientation ) {                                          \
+  case mri_tOrientation_Coronal:                                    \
+    (this->mTmpVoxel)->mfX = (iPoint)->mnX;                         \
+    (this->mTmpVoxel)->mfY = (iPoint)->mnY;                         \
+    (this->mTmpVoxel)->mfZ = (inSlice);                             \
+    break;                                                          \
+  case mri_tOrientation_Horizontal:                                 \
+    (this->mTmpVoxel)->mfX = (iPoint)->mnX;                         \
+    (this->mTmpVoxel)->mfY = (inSlice);                             \
+    (this->mTmpVoxel)->mfZ = (iPoint)->mnY;                         \
+    break;                                                          \
+  case mri_tOrientation_Sagittal:                                   \
+    (this->mTmpVoxel)->mfX = (inSlice);                             \
+    (this->mTmpVoxel)->mfY = (iPoint)->mnY;                         \
+    (this->mTmpVoxel)->mfZ = (iPoint)->mnX;                         \
+    break;                                                          \
+  default:                                                          \
+    DebugPrintStack;                                                \
+    DebugPrint( ("Volm_GetSampledValueAtXYSlice_ called with invalid "\
+     "orientation %d", iOrientation) );                             \
+    xVoxl_Set( (this-.mTmpVoxel), 0, 0, 0 );                        \
+    break;                                                          \
+  } \
+\
+  Volm_ConvertScreenIdxToMRIIdx_( this, &this->mTmpVoxel, \
+                                  &this->mTmpVoxel2 ); \
+ \
+  MRIsampleVolumeType( this->mpMriValues, \
+		       xVoxl_GetFloatX(&this->mTmpVoxel2), \
+		       xVoxl_GetFloatY(&this->mTmpVoxel2), \
+		       xVoxl_GetFloatZ(&this->mTmpVoxel2), \
+		       &this->mTmpReal, \
+		       (int)this->mSampleType ); \
+ \
+  *oValue = (float)this->mTmpReal;
+
+
+#define Volm_GetSampledValueAtIdxFrame_(this,iIdx,iFrame,oValue) \
+  Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &this->mTmpVoxel ); \
+ \
+  MRIsampleVolumeFrameType( this->mpMriValues, \
+			    xVoxl_GetFloatX(&this->mTmpVoxel), \
+			    xVoxl_GetFloatY(&this->mTmpVoxel), \
+			    xVoxl_GetFloatZ(&this->mTmpVoxel), \
+			    iFrame, \
+			    (int)this->mSampleType, \
+			    &value ); \
+ \
+  *oValue = (float)this->mTmpReal;
 
 #define Volm_SetValueAtIdx_(this,iIdx,iValue) \
   Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &this->mTmpVoxel ); \
@@ -645,10 +738,7 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
 		       (this->mTmpVoxel).mfY, \
 		       (this->mTmpVoxel).mfZ, \
 		       2, irValue);
-#define Volm_GetMaxValueAtXYSlice_(this,iOrientation,iPoint,oValue) \
-   *oValue = \
-  this->mpMaxValues[(iOrientation * this->mnDimensionX * this->mnDimensionY) \
-                       + ((iPoint)->mnY * this->mnDimensionX) + (iPoint)->mnX]
+
 #define Volm_SetMaxValueAtXYSlice_(this,iOrientation,iPoint,iValue ) \
    this->mpMaxValues[(iOrientation * this->mnDimensionX * this->mnDimensionY) \
                + ((iPoint)->mnY * this->mnDimensionX) + (iPoint)->mnX] = iValue
