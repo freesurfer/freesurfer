@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.13 1997/10/31 23:43:25 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.14 1997/11/01 22:42:28 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -92,6 +92,8 @@ static int compile_flags = 0 ;
 static int mean_curvature_flag = 0 ;
 static int gaussian_curvature_flag = 0 ;
 static int fit_flag = 0 ;
+
+static float light_offset = LIGHT_OFFSET ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -423,6 +425,14 @@ keyboard_handler(unsigned char key, int x, int y)
   glMatrixMode(GL_MODELVIEW);
   switch (key)
   {
+  case 'L':
+    light_offset += .5*LIGHT_OFFSET ;
+    OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, light_offset) ;
+    break ;
+  case 'l':
+    light_offset -= .5*LIGHT_OFFSET ;
+    OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, light_offset) ;
+    break ;
   case 'W':  /* write it out */
     if (mris->hemisphere == RIGHT_HEMISPHERE)
       sprintf(wname, "rh.surf") ;
