@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.1 1999/01/07 20:44:06 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.2 1999/01/21 18:29:58 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -66,7 +66,7 @@ main(int argc, char *argv[])
               Progname, fname) ;
   if (MRISreadOriginalProperties(mris, WHITE_MATTER_NAME) != NO_ERROR)
     ErrorExit(Gerror, "%s: could not read white matter surface", Progname) ;
-  fprintf(stderr, "measuring gray matter thickness of surface...\n") ;
+  fprintf(stderr, "measuring gray matter thickness...\n") ;
 
   MRISmeasureCorticalThickness(mris) ;
 
