@@ -117,7 +117,7 @@ static int analyzeWriteSeries(MRI *mri, char *fname);
 static int analyzeWrite4D(MRI *mri, char *fname);
 
 static void swap_analyze_header(dsr *hdr);
-static int decompose_b_fname(char *fname_passed, char *directory, char *stem);
+
 #if 0
 static int orient_with_register(MRI *mri);
 #endif
@@ -3897,7 +3897,7 @@ static int orient_with_register(MRI *mri)
 } /* end orient_with_register() */
 #endif
 
-static int decompose_b_fname(char *fname, char *dir, char *stem)
+int decompose_b_fname(char *fname, char *dir, char *stem)
 {
 
   char *slash, *dot, *stem_start, *underscore;
