@@ -1705,11 +1705,10 @@ static MRI *mincRead(char *fname, int read_volume)
   yfov = mri->yend - mri->ystart;
   zfov = mri->zend - mri->zstart;
 
-  mri->fov = ( xfov > yfov ? (xfov > zfov ? xfov : zfov ) : (yfov > zfov ? yfov : zfov ) );
+  mri->fov = ( xfov > yfov ? (xfov > zfov ? xfov : zfov ) : 
+         (yfov > zfov ? yfov : zfov ) );
 
   strcpy(mri->fname, fname);
-
-  exit(0);
 
   /* ----- copy the data from the file to the mri structure ----- */
   if(read_volume){
@@ -1737,17 +1736,16 @@ static MRI *mincRead(char *fname, int read_volume)
 
   pVox2WorldGen = get_voxel_to_world_transform(vol);
   pVox2WorldLin = get_linear_transform_ptr(pVox2WorldGen);
-  printf("Linear Transform\n");
+  printf("MINC Linear Transform\n");
   for(i=0;i<4;i++){
-    for(j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[i][j]);
+    for(j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[j][i]);
     printf("\n");
   }
-  printf("General Transform: %d %d\n",pVox2WorldGen->n_dimensions, 
-   pVox2WorldGen->type);
 
   delete_volume_input(&input_info);
-
   delete_volume(vol);
+
+  printf("Done reading minc\n");
 
   return(mri);
 
