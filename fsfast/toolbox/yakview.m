@@ -1,8 +1,8 @@
 % yakview - views images, stat overlays, and hemodynamic responses.
-% $Id: yakview.m,v 1.3 2003/09/26 18:18:54 greve Exp $
+% $Id: yakview.m,v 1.4 2003/09/29 00:53:22 greve Exp $
 
 fprintf(1,'\n\n');
-fprintf(1,'yakview: $Id: yakview.m,v 1.3 2003/09/26 18:18:54 greve Exp $\n');
+fprintf(1,'yakview: $Id: yakview.m,v 1.4 2003/09/29 00:53:22 greve Exp $\n');
 
 if(~exist('UseVersion')) UseVersion = 2; end
 
@@ -70,7 +70,7 @@ if(~isempty(SigFile))
     if(~isempty(SigMaskFile))
       fprintf(1,'Loading Mask \n'); tic;
       pmask = fmri_ldbfile(SigMaskFile);
-      pmask = pmask > SigMaskThresh;
+      pmask = abs(pmask) > SigMaskThresh;
       pmask = repmat(pmask,[1 1 size(p,3)]);
       p = p.*pmask;
       clear pmask
@@ -81,12 +81,10 @@ if(~isempty(SigFile))
     end
     if(~isempty(cutends))  p([1 size(p,1)],:,:) = cutends;  end
     if(~isempty(SigMaskFile))
-      fprintf(1,'Loading Mask ...      '); tic;
       if(fmtimg) pmask = fast_ldanalyze(SigMaskFile);
       else       pmask = fmri_ldbvolume(SigMaskFile);
       end
-      fprintf('%g sec\n',toc);
-      pmask = pmask > SigMaskThresh;
+      pmask = abs(pmask) > SigMaskThresh;
       pmask = repmat(pmask,[1 1 1 size(p,4)]);
       p = p.*pmask;
       clear pmask
