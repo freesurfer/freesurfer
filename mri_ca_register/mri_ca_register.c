@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "mri.h"
 #include "matrix.h"
@@ -30,6 +31,7 @@ static double TEs[MAX_GCA_INPUTS] ;
 char         *Progname ;
 static GCA_MORPH_PARMS  parms ;
 
+static int avgs = 0 ;  /* for smoothing conditional densities */
 static char *mask_fname = NULL ;
 static char *norm_fname = NULL ;
 static int renormalize = 0 ;
@@ -49,10 +51,10 @@ static char *transformed_sample_fname = NULL ;
 static char *normalized_transformed_sample_fname = NULL ;
 static char *ctl_point_fname = NULL ;
 static int novar = 1 ;
-static int relabel = 0 ;
 
 static int use_contrast = 0 ;
 static float min_prior = MIN_PRIOR ;
+static int reset = 0 ;
 
 static FILE *diag_fp = NULL ;
 
@@ -93,13 +95,14 @@ main(int argc, char *argv[])
   MRI          *mri_inputs, *mri_tmp ;
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;
   int          ac, nargs, ninputs, input, extra = 0 ;
-  int          msec, minutes, seconds/*, min_left_cbm, min_right_cbm*/ ;
+  int          msec, minutes, seconds /*, iter*/ ;
   struct timeb start ;
   GCA_MORPH    *gcam ;
 
   parms.l_log_likelihood = 1.0f ;
   parms.niterations = 100 ;
-  parms.levels = 3 ;
+  parms.levels = 4 ;
+	parms.relabel_avgs = 1 ;  /* relabel when navgs=1 */
   parms.dt = 0.05 ;  /* was 5e-6 */
 	parms.momentum = 0.9 ;
   parms.tol = .1 ;  /* at least 1% decrease in sse */
@@ -413,12 +416,12 @@ main(int argc, char *argv[])
 	}
 
 	if (!xform_name)  /* only if the transform wasn't previously created */
-		GCAMinit(gcam, mri_inputs, gca, transform, relabel) ;
+		GCAMinit(gcam, mri_inputs, gca, transform, parms.relabel_avgs >= parms.navgs) ;
 	else
 	{
 		gcam->gca = gca ;
 		GCAMcomputeOriginalProperties(gcam) ;
-		if (relabel)
+		if (parms.relabel_avgs >= parms.navgs)
 			GCAMcomputeLabels(mri_inputs, gcam) ;
 		else
 			GCAMcomputeMaxPriorLabels(gcam) ;
@@ -465,10 +468,28 @@ main(int argc, char *argv[])
     MRIfree(&mri_gca) ;
   }
 
+	if (reset)
+	{
+		GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
+		GCAMstoreMetricProperties(gcam) ;
+	}
   GCAMregister(gcam, mri_inputs, &parms) ;
+
+#if 0
+	for (iter = 0 ; iter < 3 ; iter++)
+	{
+		parms.relabel_avgs = 1 ;
+		GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
+		GCAMstoreMetricProperties(gcam) ;
+		parms.levels = 2 ;
+		parms.navgs = 1 ;
+		GCAMregister(gcam, mri_inputs, &parms) ;
+	}
+#endif
+
 #if 0
 	parms.l_distance = 0 ;
-	gcam->relabel = 1 ;
+	parms.relabel = 1 ;
 	GCAMcomputeLabels(mri_inputs, gcam) ;
   GCAMregister(gcam, mri_inputs, &parms) ;
 #endif
@@ -512,8 +533,8 @@ get_option(int argc, char *argv[])
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  StrUpper(option) ;
-  if (!strcmp(option, "DIST") || !strcmp(option, "DISTANCE"))
+	/*  StrUpper(option) ;*/
+  if (!stricmp(option, "DIST") || !stricmp(option, "DISTANCE"))
   {
     parms.l_distance = atof(argv[2]) ;
     nargs = 1 ;
@@ -535,79 +556,90 @@ get_option(int argc, char *argv[])
     renormalize = 1 ;
     printf("renormalizing GCA to MAP estimate of means\n") ;
   }
-  else if (!strcmp(option, "SMOOTH") || !strcmp(option, "SMOOTHNESS"))
+  else if (!stricmp(option, "SMOOTH") || !stricmp(option, "SMOOTHNESS"))
   {
     parms.l_smoothness = atof(argv[2]) ;
     nargs = 1 ;
     printf("l_smoothness = %2.2f\n", parms.l_smoothness) ;
   }
-  else if (!strcmp(option, "SAMPLES"))
+  else if (!stricmp(option, "SAMPLES"))
   {
     sample_fname = argv[2] ;
     nargs = 1 ;
     printf("writing control points to %s...\n", sample_fname) ;
   }
-  else if (!strcmp(option, "SMALL") || !strcmp(option, "NSMALL"))
+  else if (!stricmp(option, "SMALL") || !stricmp(option, "NSMALL"))
   {
     parms.nsmall = atoi(argv[2]) ;
     nargs = 1 ;
     printf("allowing %d small steps before terminating integration\n",
 			parms.nsmall) ;
   }
-  else if (!strcmp(option, "FIXED"))
+  else if (!stricmp(option, "FIXED"))
   {
     parms.integration_type = GCAM_INTEGRATE_FIXED ;
     printf("using fixed time-step integration\n") ;
   }
-  else if (!strcmp(option, "OPTIMAL"))
+  else if (!stricmp(option, "OPTIMAL"))
   {
     parms.integration_type = GCAM_INTEGRATE_OPTIMAL ;
     printf("using optimal time-step integration\n") ;
   }
-  else if (!strcmp(option, "NONEG"))
+  else if (!stricmp(option, "NONEG"))
   {
     parms.noneg = atoi(argv[2]) ;
     nargs = 1 ;
     printf("%s allowing temporary folds during numerical minimization\n",
 					 parms.noneg ? "not" : "") ;
   }
-  else if (!strcmp(option, "ISIZE") || !strcmp(option, "IMAGE_SIZE"))
+  else if (!stricmp(option, "ISIZE") || !stricmp(option, "IMAGE_SIZE"))
   {
     IMAGE_SIZE = atoi(argv[2]) ;
     nargs = 1 ;
     printf("setting diagnostic image size to %d\n", IMAGE_SIZE) ;
   }
-  else if (!strcmp(option, "WM"))
+  else if (!stricmp(option, "WM"))
   {
 		register_wm_flag = 1 ;
     printf("registering white matter in initial pass...\n") ;
   }
-  else if (!strcmp(option, "TL"))
+  else if (!stricmp(option, "TL"))
   {
     tl_fname = argv[2] ;
     nargs = 1 ;
     printf("reading temporal lobe atlas from %s...\n", tl_fname) ;
   }
-  else if (!strcmp(option, "RELABEL"))
+  else if (!stricmp(option, "RELABEL"))
   {
-    relabel = atoi(argv[2]) ;
+    parms.relabel = atoi(argv[2]) ;
     nargs = 1 ;
     printf("%srelabeling nodes with MAP estimates\n", 
-					 relabel ? "" : "not ") ;
+					 parms.relabel ? "" : "not ") ;
   }
-  else if (!strcmp(option, "VF"))
+  else if (!stricmp(option, "RELABEL_AVGS"))
+  {
+    parms.relabel_avgs = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("relabeling nodes with MAP estimates at avgs=%d\n", parms.relabel_avgs) ;
+  }
+  else if (!stricmp(option, "RESET"))
+  {
+		reset = 1 ;
+    printf("resetting metric properties...\n") ;
+  }
+  else if (!stricmp(option, "VF"))
   {
     vf_fname = argv[2] ;
     nargs = 1 ;
     printf("writing vector field to %s...\n", vf_fname) ;
   }
-  else if (!strcmp(option, "MASK"))
+  else if (!stricmp(option, "MASK"))
   {
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
   }
-  else if (!strcmp(option, "DIAG"))
+  else if (!stricmp(option, "DIAG"))
   {
     diag_fp = fopen(argv[2], "w") ;
     if (!diag_fp)
@@ -616,13 +648,13 @@ get_option(int argc, char *argv[])
     printf("opening diag file %s for writing\n", argv[2]) ;
     nargs = 1 ;
   }
-  else if (!strcmp(option, "TR"))
+  else if (!stricmp(option, "TR"))
   {
     TR = atof(argv[2]) ;
     nargs = 1 ;
     printf("using TR=%2.1f msec\n", TR) ;
   }
-  else if (!strcmp(option, "EXAMPLE"))
+  else if (!stricmp(option, "EXAMPLE"))
   {
     example_T1 = argv[2] ;
     example_segmentation = argv[3] ;
@@ -630,38 +662,38 @@ get_option(int argc, char *argv[])
            example_T1, example_segmentation) ;
     nargs = 2 ;
   }
-  else if (!strcmp(option, "TE"))
+  else if (!stricmp(option, "TE"))
   {
     TE = atof(argv[2]) ;
     nargs = 1 ;
     printf("using TE=%2.1f msec\n", TE) ;
   }
-  else if (!strcmp(option, "ALPHA"))
+  else if (!stricmp(option, "ALPHA"))
   {
     nargs = 1 ;
     alpha = RADIANS(atof(argv[2])) ;
     printf("using alpha=%2.0f degrees\n", DEGREES(alpha)) ;
   }
-  else if (!strcmp(option, "FSAMPLES") || !strcmp(option, "ISAMPLES"))
+  else if (!stricmp(option, "FSAMPLES") || !stricmp(option, "ISAMPLES"))
   {
     transformed_sample_fname = argv[2] ;
     nargs = 1 ;
     printf("writing transformed control points to %s...\n", 
             transformed_sample_fname) ;
   }
-  else if (!strcmp(option, "NSAMPLES"))
+  else if (!stricmp(option, "NSAMPLES"))
   {
     normalized_transformed_sample_fname = argv[2] ;
     nargs = 1 ;
     printf("writing  transformed normalization control points to %s...\n", 
             normalized_transformed_sample_fname) ;
   }
-  else if (!strcmp(option, "CONTRAST"))
+  else if (!stricmp(option, "CONTRAST"))
   {
     use_contrast = 1 ;
     printf("using contrast to find labels...\n") ;
   }
-  else if (!strcmp(option, "RENORM"))
+  else if (!stricmp(option, "RENORM"))
   {
     renormalization_fname = argv[2] ;
     nargs = 1 ;
@@ -673,25 +705,25 @@ get_option(int argc, char *argv[])
 		map_to_flash = 1 ;
     printf("using FLASH forward model to predict intensity values...\n") ;
   }
-  else if (!strcmp(option, "FLASH_PARMS"))
+  else if (!stricmp(option, "FLASH_PARMS"))
   {
     tissue_parms_fname = argv[2] ;
     nargs = 1 ;
     printf("using FLASH forward model and tissue parms in %s to predict"
            " intensity values...\n", tissue_parms_fname) ;
   }
-  else if (!strcmp(option, "TRANSONLY"))
+  else if (!stricmp(option, "TRANSONLY"))
   {
     translation_only = 1 ;
     printf("only computing translation parameters...\n") ;
   }
-  else if (!strcmp(option, "WRITE_MEAN"))
+  else if (!stricmp(option, "WRITE_MEAN"))
   {
     gca_mean_fname = argv[2] ;
     nargs = 1 ;
     printf("writing gca means to %s...\n", gca_mean_fname) ;
   }
-  else if (!strcmp(option, "PRIOR"))
+  else if (!stricmp(option, "PRIOR"))
   {
     min_prior = atof(argv[2]) ;
     nargs = 1 ;
@@ -707,59 +739,59 @@ get_option(int argc, char *argv[])
     novar = 0 ;
     printf("using variance estimates\n") ;
   }
-  else if (!strcmp(option, "DT"))
+  else if (!stricmp(option, "DT"))
   {
     parms.dt = atof(argv[2]) ;
     nargs = 1 ;
     printf("dt = %2.2e\n", parms.dt) ;
   }
-  else if (!strcmp(option, "TOL"))
+  else if (!stricmp(option, "TOL"))
   {
     parms.tol = atof(argv[2]) ;
     nargs = 1 ;
     printf("tol = %2.2e\n", parms.tol) ;
   }
-  else if (!strcmp(option, "CENTER"))
+  else if (!stricmp(option, "CENTER"))
   {
     center = 1 ;
     printf("using GCA centroid as origin of transform\n") ;
   }
-  else if (!strcmp(option, "NOSCALE"))
+  else if (!stricmp(option, "NOSCALE"))
   {
     noscale = 1 ;
     printf("disabling scaling...\n") ;
   }
-  else if (!strcmp(option, "LEVELS"))
+  else if (!stricmp(option, "LEVELS"))
   {
     parms.levels = atoi(argv[2]) ;
     nargs = 1 ;
     printf("levels = %d\n", parms.levels) ;
   }
-  else if (!strcmp(option, "LIKELIHOOD"))
+  else if (!stricmp(option, "LIKELIHOOD"))
   {
     parms.l_likelihood = atof(argv[2]) ;
     nargs = 1 ;
     printf("l_likelihood = %2.2f\n", parms.l_likelihood) ;
   }
-  else if (!strcmp(option, "LOGLIKELIHOOD"))
+  else if (!stricmp(option, "LOGLIKELIHOOD"))
   {
     parms.l_log_likelihood = atof(argv[2]) ;
     nargs = 1 ;
     printf("l_log_likelihood = %2.2f\n", parms.l_log_likelihood) ;
   }
-  else if (!strcmp(option, "LABEL"))
+  else if (!stricmp(option, "LABEL"))
   {
     parms.l_label = atof(argv[2]) ;
     nargs = 1 ;
     printf("l_label = %2.2f\n", parms.l_label) ;
   }
-  else if (!strcmp(option, "MAP"))
+  else if (!stricmp(option, "MAP"))
   {
     parms.l_map = atof(argv[2]) ;
     nargs = 1 ;
     printf("l_map = %2.2f\n", parms.l_map) ;
   }
-  else if (!strcmp(option, "LDIST") || !strcmp(option, "LABEL_DIST"))
+  else if (!stricmp(option, "LDIST") || !stricmp(option, "LABEL_DIST"))
   {
     parms.label_dist = atof(argv[2]) ;
     nargs = 1 ;
@@ -796,17 +828,30 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "avgs"))
   {
-		parms.navgs = atoi(argv[2]) ;
+		avgs = atoi(argv[2]) ;
     nargs = 1 ;
-    printf("smoothing gradient with %d averages...\n", parms.navgs) ;
+    fprintf(stderr, "applying mean filter %d times to conditional densities...\n", avgs) ;
   }
-  else if (!stricmp(option, "rthresh"))
+  else if (!stricmp(option, "cross-sequence"))
+  {
+    regularize = .5 ;
+		avgs = 2 ;
+    printf("registering sequences, equivalent to:\n") ;
+		printf("\t-renormalize\n\t-avgs %d\n\t-regularize %2.3f\n",avgs, regularize) ;
+  } 
+  else if (!stricmp(option, "area"))
+  {
+    parms.l_area = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using l_area=%2.3f\n", parms.l_area) ;
+  }
+ else if (!stricmp(option, "rthresh"))
   {
 		parms.ratio_thresh = atof(argv[2]) ;
     nargs = 1 ;
     printf("using compression ratio threshold = %2.3f...\n", parms.ratio_thresh) ;
   }
-  else switch (*option)
+  else switch (toupper(*option))
   {
   case 'J':
     parms.l_jacobian = atof(argv[2]) ;
@@ -814,9 +859,9 @@ get_option(int argc, char *argv[])
     printf("using l_jacobian=%2.3f\n", parms.l_jacobian) ;
     break ;
   case 'A':
-    parms.l_area = atof(argv[2]) ;
+		parms.navgs = atoi(argv[2]) ;
     nargs = 1 ;
-    printf("using l_area=%2.3f\n", parms.l_area) ;
+    printf("smoothing gradient with %d averages...\n", parms.navgs) ;
     break ;
   case 'F':
     ctl_point_fname = argv[2] ;
