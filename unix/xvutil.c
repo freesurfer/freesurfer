@@ -984,7 +984,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n", xvf->precision) ;
     if (!xvf->noprint)
       XVprintf(xvf, 0, fmt, title, x, yprint, val) ;
-    if (dimage->sync)
+    if (dimage->sync && !xvf->noprint)
     {
       for (i = 0 ; i < xvf->rows*xvf->cols ; i++)
       {
