@@ -285,8 +285,6 @@ CSdivide(CLUSTER_SET *cs)
   }
   fprintf(stderr, "dividing cluster %d\n", max_cluster) ;
   clusterDivide(cs->clusters+max_cluster, cs->clusters+cs->nclusters++) ;
-  cs->nsamples = cs->nobs ;
-  cs->nobs = 0 ;
   return(cs->nclusters < cs->max_clusters ? CS_CONTINUE : CS_DONE) ;
 }
 /*-----------------------------------------------------
@@ -372,6 +370,13 @@ clusterComputeStatistics(CLUSTER *cluster)
         cluster->m_scatter->rptr[col][row] = covariance ;
       }
     }
+    cluster->m_inverse = MatrixInverse(cluster->m_scatter, cluster->m_inverse) ;
+#if 0
+    fprintf(stderr, "scatter matrix:\n") ;
+    MatrixPrint(stderr, cluster->m_scatter) ;
+    fprintf(stderr, "inverse scatter matrix:\n") ;
+    MatrixPrint(stderr, cluster->m_inverse) ;
+#endif
   }
 
   cluster->m_evectors = 
@@ -394,11 +399,11 @@ clusterPrint(CLUSTER *cluster, FILE *fp)
 {
   /*  int    i ;*/
 
-  fprintf(stderr, "cluster %d has %d observations. Seed:", 
-          cluster->cno, cluster->nobs) ;
+  fprintf(fp, "cluster %d has %d observations. Seed:", 
+          cluster->cno, cluster->nsamples) ;
   MatrixPrintTranspose(fp, cluster->v_seed) ;
 #if 0
-  fprintf(stderr, "scatter matrix:\n") ;
+  fprintf(fp, "scatter matrix:\n") ;
   MatrixPrint(fp, cluster->m_scatter) ;
   if (cluster->m_evectors)
   {
@@ -528,6 +533,8 @@ CScluster(CLUSTER_SET *cs, int (*get_observation_func)
   while ((*get_observation_func)(v_obs, obs_no++, parm) == NO_ERROR)
     CSnewObservation(cs, v_obs) ;
   CScomputeStatistics(cs) ;
+  if (cs->normalize)
+    CSrenormalize(cs) ;
 
   /* now we have the proper # of clusters, use a scale-invariant metric
      to find the optimum grouping
@@ -577,6 +584,8 @@ CScomputeStatistics(CLUSTER_SET *cs)
   for (c = 0 ; c < cs->nclusters ; c++)
     clusterComputeStatistics(cs->clusters+c) ;
 
+  cs->nsamples = cs->nobs ;
+  cs->nobs = 0 ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -599,8 +608,9 @@ CScomputeDimensionStatistics(CLUSTER_SET *cs, int (*get_observation_func)
   v_obs = VectorAlloc(cs->ninputs, MATRIX_REAL) ;
   memset(cs->means, 0, cs->ninputs*sizeof(float)) ;
   memset(cs->stds, 0, cs->ninputs*sizeof(float)) ;
-  while ((*get_observation_func)(v_obs, obs_no++, parm) == NO_ERROR)
+  while ((*get_observation_func)(v_obs, obs_no, parm) == NO_ERROR)
   {
+    obs_no++ ;
     for (i = 0 ; i < cs->ninputs ; i++)
     {
       v = VECTOR_ELT(v_obs, i+1) ;
@@ -612,7 +622,7 @@ CScomputeDimensionStatistics(CLUSTER_SET *cs, int (*get_observation_func)
   for (i = 0 ; i < cs->ninputs ; i++)
   {
     mean = cs->means[i] ;
-    mean /= obs_no ;
+    mean /= (obs_no+1) ;
     cs->means[i] = mean ;
     cs->stds[i] = sqrt(cs->stds[i] / obs_no - mean*mean) ;
   }
@@ -639,6 +649,38 @@ normalizeObservation(CLUSTER_SET *cs, VECTOR *v_obs)
   {
     mean = cs->means[i-1] ; std = cs->stds[i-1] ;
     VECTOR_ELT(v_obs,i) = (VECTOR_ELT(v_obs,i) - mean) / std ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Undo the effects of input normalization so that the
+          clusters are represented in terms of the original
+          measurement spaces.
+------------------------------------------------------*/
+int
+CSrenormalize(CLUSTER_SET *cs)
+{
+  int      c, row ;
+  CLUSTER  *cluster ;
+  float    mean, sigma ;
+
+  for (c = 0 ; c < cs->nclusters ; c++)
+  {
+    cluster = cs->clusters+c ;
+    for (row = 1 ; row <= cs->ninputs ; row++)
+    {
+      mean = cs->means[row-1] ;   /* zero-based */
+      sigma = cs->stds[row-1] ;   /* zero-based */
+      VECTOR_ELT(cluster->v_seed, row) *= sigma ;
+      VECTOR_ELT(cluster->v_seed, row) += mean ;
+      VECTOR_ELT(cluster->v_means, row) *= sigma ;
+      VECTOR_ELT(cluster->v_means, row) += mean ;
+    }
   }
   return(NO_ERROR) ;
 }

@@ -6,6 +6,7 @@
 typedef struct
 {
   MATRIX  *m_scatter ;      /* within-cluster scatter matrix */
+  MATRIX  *m_inverse ;      /* inverse of scatter (covariance) matrix */
   VECTOR  *v_means ;        /* vector of means */
   VECTOR  *v_seed ;         /* used for distance-to-cluster calculations */
   MATRIX  *m_evectors ;     /* columns are eigenvectors of scatter matrix */
@@ -44,9 +45,14 @@ int          CScomputeDimensionStatistics(CLUSTER_SET *cs,
                                           int (*get_observation_func)
                                           (VECTOR *v_obs, int no, void *parm), 
                                           void *parm) ;
+int          CSrenormalize(CLUSTER_SET *cs) ;
 
 /* return values for CSdivide. Negative ones indicate error */
-#define CS_DONE       1
-#define CS_CONTINUE   0
+#define CS_CONTINUE              0
+#define CS_DONE                  1
+
+/* values for the normalize parm of CSinit */
+#define CLUSTER_DONT_NORMALIZE   0
+#define CLUSTER_NORMALIZE        1
 
 #endif
