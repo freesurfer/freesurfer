@@ -2056,7 +2056,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
 	      pct_change = 0.0 ;
 	      which = GCAM_INTEGRATE_FIXED ;
 	    }
-	    printf("switching integration type to %s (done=%d)\n",
+	    printf("\tswitching integration type to %s (done=%d)\n",
 		   which == GCAM_INTEGRATE_FIXED ? "fixed" : "optimal", done) ;
 	    good_step = nsmall = 0 ; gcamClearMomentum(gcam) ;
 	  }
