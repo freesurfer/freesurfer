@@ -2182,7 +2182,8 @@ MRISremoveNegativeVertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   {
     char fname[100] ;
 
-    sprintf(fname, "%s.out", parms->base_name) ;
+    sprintf(fname, "%s.%s.out", 
+            mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name) ;
     if (Gdiag & DIAG_WRITE)
     {
       parms->fp = fopen(fname, "w") ;
@@ -2395,7 +2396,8 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
     fprintf(stderr, "\n") ;
     if (Gdiag & DIAG_WRITE)
     {
-      sprintf(fname, "%s.out", parms->base_name) ;
+      sprintf(fname, "%s.%s.out", 
+              mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",parms->base_name);
       if (!parms->start_t)
         parms->fp = fopen(fname, "w") ;
       mrisLogIntegrationParms(parms->fp, mris,parms) ;
@@ -4343,7 +4345,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mini = 0 ; min_sse = sse_out[mini] ; 
     for (i = 1 ; i < N ; i++)
     {
-      if (Gdiag & DIAG_SHOW)
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         fprintf(stderr, "%2.2f  ", sse_out[i]) ;
       if (sse_out[i] < min_sse)
       {
@@ -4351,7 +4353,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         mini = i ;
       }
     }
-    if (Gdiag & DIAG_SHOW)
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "min %d (%2.3f)\n", mini, dt_in[mini]) ;
     mrisApplyGradient(mris, dt_in[mini]) ;
 #if 0
