@@ -521,9 +521,13 @@ int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
 int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, 
                                            int which) ;
+int   MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs, 
+                                    float pct_fixed) ;
 MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
                                   MRI *mri) ;
 int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain, 
                                    MRI *mri_wm, float nsigma) ;
+int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
+int   MRISclearMarks(MRI_SURFACE *mris) ;
 
 #endif

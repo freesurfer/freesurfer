@@ -10389,30 +10389,34 @@ MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, int which)
 ------------------------------------------------------*/
 
 #define MAX_TOTAL_MOVEMENT 3.0
-#define MAX_MOVEMENT       0.3
+#define MAX_MOVEMENT       1.5
 #define DELTA_M            0.1
-#define NSAMPLES           (2*(MAX_MOVEMENT/DELTA_M)+1)
 
 #define WHALF              (5-1)/2
 #define MAX_ITER           500
-#define DI_DIST            MAX_MOVEMENT
 #define WRITE_ITER         10
 #define AVERAGE_ITER       5000
 
+#ifdef IRIX
 #define PREVENT_SELF_INTERSECTION   0
+#else
+#define PREVENT_SELF_INTERSECTION   0
+#endif
 
 int
 MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
                     float nsigma,int where, float dt)
 {
-  int    vno, xv, yv, zv, xi, yi, zi, xo, yo, zo, nvox, i, max_v, which = 0 ;
+  int    vno, xv, yv, zv, xi, yi, zi, xo, yo, zo, nvox, i, max_v, which = 0,
+         total_vertices ;
   VERTEX *v ;
   float  mean, sigma, total_sq, total, delta, max_del, mean_wm, mean_gray,
          dist, min_error, error, min_dist, last_mean, min_change_in_mean ;
   Real   x, y, z, xw, yw, zw, central_val, val, nx, ny, nz, new_x, new_y,new_z;
   FILE   *fp ;
 #if PREVENT_SELF_INTERSECTION
-  int    xf, yf, zf, new_xv, new_yv, new_zv ;
+  Real   xf, yf, zf ;
+  int    xfv, yfv, zfv, new_xv, new_yv, new_zv ;
   MRI    *mri_filled = NULL ;
 #endif
 
@@ -10427,7 +10431,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
   /* first compute intensity of local gray/white boundary */
   mean_wm = mean_gray = 0.0f ;
   
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  for (total_vertices = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -10448,8 +10452,12 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
         {
           xi = mri_wm->xi[xo] ;
           val = (Real)MRIvox(mri_wm, xi, yi, zi) ;
-          if (val > 0)
+          if (val > WM_MIN_VAL)
           {
+#if 0
+            if (MRIneighborsOff(mri_wm, xi, yi, zi, WM_MIN_VAL) == 0)
+              continue ;   /* not a border voxel */
+#endif
             val = (Real)MRIvox(mri_brain, xi, yi, zi) ;  /* use smoothed val */
             total += val ;
             total_sq += val * val ;
@@ -10458,16 +10466,30 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
         }
       }
     }
-    mean = total / (float)nvox ;
-    sigma = sqrt(total_sq / (float)nvox - mean*mean) ;
+    if (!nvox)
+      v->val = 0.0f ;
+    else
+    {
+      mean = total / (float)nvox ;
+      sigma = sqrt(total_sq / (float)nvox - mean*mean) ;
+      MRISvertexToVoxel(v, mri_wm, &x, &y, &z) ;
+      MRIsampleVolume(mri_brain, x, y, z, &central_val) ;
+      v->val = mean - nsigma * sigma ;
+      mean_gray += v->val ;
+      mean_wm += mean ;
+      total_vertices++ ;
+    }
     
-    MRISvertexToVoxel(v, mri_wm, &x, &y, &z) ;
-    MRIsampleVolume(mri_brain, x, y, z, &central_val) ;
-    v->val = mean - nsigma * sigma ;
-    mean_gray += v->val ;
-    mean_wm += mean ;
   }
-  mean_wm /= (float)mris->nvertices ; mean_gray /= (float)mris->nvertices ;
+  mean_wm /= (float)total_vertices ; mean_gray /= (float)total_vertices ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (FZERO(v->val))   /* no border voxels nearby */
+      v->val = mean_gray ;
+  }
 
 #if 0
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -10496,7 +10518,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
       fprintf(fp, "avgs = %d\n", avgs) ;
     MRISaverageVals(mris, avgs) ;
   }
-#if 1
+#if 0
   MRISaverageVertexPositions(mris, 1) ;
 #endif
   mrisComputeNormals(mris) ;
@@ -10523,7 +10545,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
 #endif
 
     /* calculate movement for each vertex in normal direction */
-    for (max_del = total = 0.0, vno = 0 ;vno < mris->nvertices ; vno++)
+    for (max_del = total = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
@@ -10531,10 +10553,6 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
       if (v->d >= MAX_TOTAL_MOVEMENT)
         continue ;
 
-#if PREVENT_SELF_INTERSECTION
-      MRISvertexToVoxel(v, mri_filled, &x, &y, &z) ;
-      xf = nint(x) ; yf = nint(y) ; zf = nint(z) ;
-#endif
       MRISvertexToVoxel(v, mri_wm, &x, &y, &z) ;
       xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
       MRIsampleVolume(mri_brain, x, y, z, &central_val) ;
@@ -10554,6 +10572,15 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
 
       /* find optimal position for this vertex in normal direction */
 
+#if PREVENT_SELF_INTERSECTION
+      /* compute coordinates of 0.5mm voxel in which the current vertex
+         lies, so that we can use it to tell if the vertex has moved
+         into a different voxel, and therefore requires a self-intersection
+         test.
+         */
+      MRISvertexToVoxel(v, mri_filled, &xf, &yf, &zf) ;
+      xfv = nint(xf) ; yfv = nint(yf) ; zfv = nint(zf) ;
+#endif
       /* search 'inwards' */
       for (dist = 0 ; dist >= -MAX_MOVEMENT ; dist -= DELTA_M)
       {
@@ -10568,7 +10595,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
         new_xv = nint(new_x) ; new_yv = nint(new_y) ; new_zv = nint(new_z) ;
 
         /* find voxel coords in .5 mm resolution bitmap volume */
-        if ((new_xv != xf) || (new_yv != yf) || (new_zv != zf))
+        if ((new_xv != xfv) || (new_yv != yfv) || (new_zv != zfv))
         {
           /* use sub-voxel resolution to test surface self-intersection */
           if (MRItest_bit(mri_filled, new_xv, new_yv, new_zv))
@@ -10590,14 +10617,14 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
         new_x = x+dist*nx ; new_y = y+dist*ny ; new_z = z+dist*nz ;
         MRIsampleVolume(mri_brain, new_x, new_y, new_z, &val) ;
 
+#if PREVENT_SELF_INTERSECTION
         new_x = v->x+dist*v->nx ; new_y = v->y+dist*v->ny ; 
         new_z = v->z+dist*v->nz ;
-#if PREVENT_SELF_INTERSECTION
         MRIworldToVoxel(mri_filled,new_x, new_y, new_z, &new_x,&new_y,&new_z);
         new_xv = nint(new_x) ; new_yv = nint(new_y) ; new_zv = nint(new_z) ;
 
         /* find voxel coords in .5 mm resolution bitmap volume */
-        if ((new_xv != xf) || (new_yv != yf) || (new_zv != zf))
+        if ((new_xv != xfv) || (new_yv != yfv) || (new_zv != zfv))
         {
           /* use sub-voxel resolution to test surface self-intersection */
           if (MRItest_bit(mri_filled, new_xv, new_yv, new_zv))
@@ -10670,12 +10697,19 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
   MRIfree(&mri_filled) ;
 #endif
 
-#define MAX_AVERAGES 2
+#define MAX_AVERAGES 500
+  fprintf(stderr, "performing soap bubble smoothing for %d iterations...",
+          MAX_AVERAGES) ;
+#if 0
   for (i = 0 ; i < MAX_AVERAGES ; i++)
   {
     MRISaverageEveryOtherVertexPositions(mris, 1, 0) ;
     MRISaverageEveryOtherVertexPositions(mris, 1, 1) ;
   }
+#else
+  MRISsoapBubbleVertexPositions(mris, MAX_AVERAGES, .95f) ;
+#endif
+  fprintf(stderr, "done.\n") ;
 
   return(NO_ERROR) ;
 }
@@ -10762,8 +10796,9 @@ MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
         for (xo = xv-WHALF ; xo <= xv + WHALF ; xo++)
         {
           xi = mri_wm->xi[xo] ;
+
           val = (Real)MRIvox(mri_wm, xi, yi, zi) ;
-          if (val < 3)   /* it's not white matter */
+          if (val < WM_MIN_VAL)   /* it's not white matter */
           {
             val = (Real)MRIvox(mri_brain, xi, yi, zi) ;  /* use smoothed val */
             if ((val >= MIN_GRAY) && (val <= MAX_GRAY))
@@ -10865,5 +10900,101 @@ MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm,
     v->curv = dist ;
   }
 
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs, float pct_fixed)
+{
+  int    i, vno, vnb, *pnb, vnum ;
+  float  x, y, z, num ;
+  VERTEX *v, *vn ;
+
+  for (i = 0 ; i < navgs ; i++)
+  {
+    MRISclearMarks(mris) ;
+    MRISmarkRandomVertices(mris, pct_fixed) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->marked)
+        continue ;
+      x = v->x ; y = v->y ; z = v->z ;
+      pnb = v->v ;
+      vnum = v->vnum ;
+      for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+        if (vn->ripflag)
+          continue ;
+        num++ ;
+        x += vn->x ; y += vn->y ; z += vn->z ;
+      }
+      num++ ;   /* account for central vertex */
+      v->tdx = x / num ;
+      v->tdy = y / num ;
+      v->tdz = z / num ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->marked)
+        continue ;
+      v->x = v->tdx ; v->y = v->tdy ; v->z = v->tdz ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked)
+{
+  int    vno ;
+  VERTEX *v ;
+  float  r ;
+
+  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    r = randomNumber(0.0, 1.0) ;
+    if (r < prob_marked)
+      v->marked = 1 ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISclearMarks(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->marked = 0 ;
+  }
   return(NO_ERROR) ;
 }
