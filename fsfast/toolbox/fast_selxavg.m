@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.7 2003/08/12 05:30:21 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.8 2003/11/19 19:15:36 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.7 2003/08/12 05:30:21 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.8 2003/11/19 19:15:36 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -152,6 +152,7 @@ SubSampRate = round(TR/TER);
 % Get basic info from the first run %
 instem = deblank(instemlist(1,:));
 [nslices nrows ncols ntrs] = fmri_bvoldim(instem);
+mristruct = fast_ldbhdr(instem);
 
 %-----------------------------------------------------------------%
 %--------------- Beginning of Slice Loop -------------------------%
@@ -553,14 +554,21 @@ for slice = firstslice:lastslice
     tmp = hhat;
     ntmp = size(tmp,1);
     tmp = reshape(tmp',[nrows ncols ntmp]); %';
-    fname = sprintf('%s_%03d.bfloat',s.betavol,slice);
-    fmri_svbfile(tmp,fname);
-
+    err = fast_svbslice(tmp,s.betavol,slice,'',mristruct);
+    if(err) 
+      fprintf('ERROR: saving %s\n',s.betavol);
+      return;
+    end
+    
     tmp = eres_var;
     ntmp = size(tmp,1);
-    tmp = reshape(tmp',[nrows ncols ntmp]); %';
-    fname = sprintf('%s-var_%03d.bfloat',s.betavol,slice);
-    fmri_svbfile(tmp,fname);
+    tmp = reshape(tmp',[nrows ncols ntmp]);
+    fname = sprintf('%s-var',s.betavol);
+    err = fast_svbslice(tmp,fname,slice,'',mristruct);
+    if(err) 
+      fprintf('ERROR: saving %s\n',fname);
+      return;
+    end
 
     clear tmp;
   end
