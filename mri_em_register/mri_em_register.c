@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/03/31 21:45:08 $
-// Revision       : $Revision: 1.48 $
+// Revision Date  : $Date: 2005/03/31 21:50:53 $
+// Revision       : $Revision: 1.49 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -150,7 +150,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.48 2005/03/31 21:45:08 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.49 2005/03/31 21:50:53 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -325,12 +325,16 @@ main(int argc, char *argv[])
     GCA *gca_tmp ;
     int need_map_flag = 0;
     int n;
-    for (n = 0 ; n < mri_in->nframes; n++){
-      if(!FZERO(gca->TRs[n] - TRs[n])) need_map_flag = 1;
-      if(!FZERO(gca->FAs[n] - fas[n])) need_map_flag = 1;
-      if(!FZERO(gca->TEs[n] - TEs[n])) need_map_flag = 1;
-    }
 
+    if(gca->ninputs != mri_in->nframes) need_map_flag = 1;
+    else{
+      for (n = 0 ; n < mri_in->nframes; n++){
+	if(!FZERO(gca->TRs[n] - TRs[n])) need_map_flag = 1;
+	if(!FZERO(gca->FAs[n] - fas[n])) need_map_flag = 1;
+	if(!FZERO(gca->TEs[n] - TEs[n])) need_map_flag = 1;
+      }
+    }
+    
     if (nomap == 0 && need_map_flag == 1)
     {
       printf("GCAcreateFLASHGCAfromFlashGCA...\n");
