@@ -194,6 +194,9 @@ ScubaView::ScubaView() {
 }
 
 ScubaView::~ScubaView() {
+  if( NULL != mBuffer ) {
+    free( mBuffer );
+  }
 }
 
 void
