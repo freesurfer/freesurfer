@@ -7925,7 +7925,7 @@ gcaComputeConditionalLogDensity(GC1D *gc, float val, int label)
   return(log_p) ;
 }
 GCA_SAMPLE *
-GCAfindAllSamples(GCA *gca, int *pnsamples, int *exlude_list)
+GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list)
 {
   GCA_SAMPLE *gcas ;
   GCA_PRIOR  *gcap ;
@@ -7965,7 +7965,7 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exlude_list)
           }
         }
 #if 1
-				if (exlude_list[max_label] > 0)
+				if (exclude_list && exclude_list[max_label] > 0)
 					continue ;
         if (IS_UNKNOWN(max_label) &&
             (different_nbr_labels(gca, x, y, z, 1, 0, .1) == 0))
@@ -8006,7 +8006,7 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exlude_list)
           }
         }
 #if 1
-				if (exlude_list[max_label] > 0)
+				if (exclude_list && exclude_list[max_label] > 0)
 					continue ;
         if (IS_UNKNOWN(max_label) &&
             (different_nbr_labels(gca, x, y, z, 1, 0, .1) == 0))
