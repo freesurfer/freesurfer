@@ -4,8 +4,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/07 14:16:59 $
-// Revision       : $Revision: 1.28 $
+// Revision Date  : $Date: 2004/05/13 16:08:28 $
+// Revision       : $Revision: 1.29 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -260,6 +260,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 
   gcam->exp_k = parms->exp_k ;
   parms->mri = mri ;
+  //////////////////////////////////////////////////////////
   if (Gdiag & DIAG_WRITE)
   {
     sprintf(fname, "%s.log", parms->base_name) ;
@@ -272,10 +273,12 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     parms->log_fp = NULL ;
 
   base_sigma = parms->sigma ;
+
   if (parms->relabel_avgs >= parms->navgs)
     GCAMcomputeLabels(mri, gcam) ;
   else
     GCAMcomputeMaxPriorLabels(gcam) ;
+
   orig_relabel = relabel = parms->relabel ;
   for (level = parms->levels-1 ; level >= 0 ; level--)
   {
@@ -600,6 +603,9 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
   return(NO_ERROR) ;
 }
 
+////////////////////////////////////////////////
+// user is responsible for freeing gca inside
+// the gcam.
 int
 GCAMfree(GCA_MORPH **pgcam)
 {
@@ -1498,6 +1504,7 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
     {
       for (k = 0 ; k < depth ; k++)
       {
+	// get node at this point
         gcamn = &gcam->nodes[i][j][k] ;
 
         if (gcamn->invalid)
@@ -1506,6 +1513,7 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           continue;
 	}
         num = 0 ;
+	// one side
         if ((i < width-1) && (j < height-1) && (k < depth-1))
         {
           num++ ;
@@ -1521,10 +1529,13 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           GCAMN_SUB(gcamni, gcamn, v_i) ; 
           GCAMN_SUB(gcamnj, gcamn, v_j) ; 
           GCAMN_SUB(gcamnk, gcamn, v_k) ;
+	  // (v_j (x) v_k) (.) v_i (volume) 
           area = VectorTripleProduct(v_j, v_k, v_i) ;
         }
         else
           area = 0 ;
+
+	// the other side
         if ((i > 0) && (j > 0) && (k > 0))  /* left-hand coordinate system */
         {
           num++ ;
@@ -1541,10 +1552,11 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           GCAMN_SUB(gcamn, gcamni, v_i) ; 
           GCAMN_SUB(gcamnj, gcamn, v_j) ; 
           GCAMN_SUB(gcamnk, gcamn, v_k) ;
-          area += VectorTripleProduct(v_j, v_k, v_i) ;
+          // add two volume
+	  area += VectorTripleProduct(v_j, v_k, v_i) ;
         }
         if (num > 0)
-          gcamn->area = area / (float)num ;
+          gcamn->area = area / (float)num ; // average volume
         else
           gcamn->area = 0 ;
 
@@ -2443,7 +2455,8 @@ static int
 gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *parms)
 {
   static int i = 0 ;
-  
+
+  // make dx = dy = 0
   gcamClearGradient(gcam) ;
   gcamComputeMetricProperties(gcam) ;
   gcamMapTerm(gcam, mri, mri_smooth, parms->l_map)  ;
@@ -2453,6 +2466,7 @@ gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS 
   gcamDistanceTerm(gcam, mri, parms->l_distance)  ;
   gcamAreaTerm(gcam, mri, parms->l_area)  ;
   gcamSmoothnessTerm(gcam, mri, parms->l_smoothness)  ;
+  //
   if (parms->write_iterations > 0 && (Gdiag & DIAG_WRITE) && getenv("GCAM_YGRAD") != NULL)
   {
     char fname[STRLEN] ;
@@ -2467,7 +2481,9 @@ gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS 
     MRIfree(&mri_grad) ;
     
   }
+  //
   gcamSmoothGradient(gcam, parms->navgs) ;
+  //
   if (parms->write_iterations > 0 && (Gdiag & DIAG_WRITE) && getenv("GCAM_YGRAD") != NULL)
   {
     char fname[STRLEN] ;
@@ -2482,6 +2498,7 @@ gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS 
     MRIfree(&mri_grad) ;
     
   }
+  //
   gcamJacobianTerm(gcam, mri, parms->l_jacobian,parms->ratio_thresh)  ;
 
   gcamLimitGradientMagnitude(gcam, parms, mri) ;
@@ -2512,6 +2529,8 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
           gcamn->dx = gcamn->dy = gcamn->dz = 0 ;
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
+
+	// dt*length of gradient
         norm = dt*sqrt(gcamn->dx*gcamn->dx+gcamn->dy*gcamn->dy+gcamn->dz*gcamn->dz) ;
 #if 0
         if (norm > 3*parms->max_grad)
@@ -2525,7 +2544,7 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
           norm = dt*sqrt(gcamn->dx*gcamn->dx+gcamn->dy*gcamn->dy+gcamn->dz*gcamn->dz) ;
         }
 #endif
-
+	// get max norm and its position
         if (norm > max_norm)
         {
           max_norm = norm ;
@@ -2536,8 +2555,9 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
     float vals[MAX_GCA_INPUTS] ;
     int   r ;
     gcamn = &gcam->nodes[xmax][ymax][zmax] ;
+    // print the info at this position
     load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->gca->ninputs) ;
-    printf("\tmax gradient %2.3f mm @ (%d, %d, %d), A=%2.1f, R=%2.3f, ", 
+    printf("\tmax gradient %2.3f mm @ (%d, %d, %d), Area=%2.1f, Ratio of new/orig=%2.3f, ", 
            max_norm, xmax, ymax, zmax,
            gcam->nodes[xmax][ymax][zmax].area,
            gcam->nodes[xmax][ymax][zmax].area/gcam->nodes[xmax][ymax][zmax].orig_area) ;
@@ -2545,7 +2565,7 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
     for (r = 0 ; r < gcam->gca->ninputs ; r++)
       printf("%2.1f (%2.1f)  ", vals[r], gcamn->gc ? gcamn->gc->means[r] :-0.0);
     printf("\n") ;
-}
+  }
 
 #if 0
   if (max_norm > parms->max_grad)
@@ -2892,6 +2912,7 @@ GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam)
         }
         else  /* out of FOV probably */
         {
+	  gcamn->invalid = 1;
           gcamn->label = label = 0 ;
           gcamn->n = 0 ;
           gcamn->prior = 1.0 ;
@@ -3096,6 +3117,7 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
 
         // get the source volume position 
         xv = nint(gcamn->x) ; yv = nint(gcamn->y) ; zv = nint(gcamn->z) ;
+	// make them within the range of index /////////////////////////////
         if (xv < 0)
           xv = 0 ;
         if (yv < 0)
@@ -3108,6 +3130,7 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
           yv = height-1 ;
         if (zv >= depth)
           zv = depth-1 ;
+	////////////////////////////////////////////////////////////////////
         // cache position
         // xind[xv][yv][zv] += x
         MRISvox(gcam->mri_xind, xv, yv, zv) += x ; // src -> gcam volume position 
@@ -3861,10 +3884,13 @@ gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
   
   if (FZERO(l_map))
     return(0) ;
-  
+  // 3 x ninputs
   m_delI = MatrixAlloc(3, gcam->gca->ninputs, MATRIX_REAL) ;
+  // ninputs x ninputs
   m_inv_cov = MatrixAlloc(gcam->gca->ninputs, gcam->gca->ninputs, MATRIX_REAL) ;
+  // ninputs x 1
   v_means = VectorAlloc(gcam->gca->ninputs, 1) ;
+  // 3 x 1
   v_grad = VectorAlloc(3, MATRIX_REAL) ;
   
   for (x = 0 ; x < gcam->width ; x++)
@@ -3873,6 +3899,7 @@ gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
       {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
+
         gcamn = &gcam->nodes[x][y][z] ;
 
         if (gcamn->invalid)
@@ -3885,14 +3912,19 @@ gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
         {
           gcan = &gcam->gca->nodes[xn][yn][zn] ;
           gcap = &gcam->gca->priors[x][y][z] ;
+	  // get the values from mri
           load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->gca->ninputs) ;
           
           for (n = 0 ; n < gcam->gca->ninputs ; n++)
           {
+	    // get dx, dy, dz
             MRIsampleVolumeGradientFrame(mri_smooth, gcamn->x, gcamn->y, gcamn->z, &dx, &dy, &dz, n) ;
+	    // magnitude
             norm = sqrt(dx*dx+dy*dy+dz*dz) ;
+	    // non-zero, then normalize
             if (!FZERO(norm))  /* don't worry about magnitude of gradient */
             { dx /= norm ; dy /= norm ; dz /= norm ; }
+	    // store   3 x ninputs
             *MATRIX_RELT(m_delI, 1, n+1) = dx ;
             *MATRIX_RELT(m_delI, 2, n+1) = dy ;
             *MATRIX_RELT(m_delI, 3, n+1) = dz ;
@@ -3900,29 +3932,36 @@ gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
           
           if (x == Gx && y == Gy && z == Gz && (Gdiag & DIAG_SHOW))
             printf("l_map: node(%d,%d,%d), delI=(%2.2f, %2.2f, %2.2f)\n", x, y, z, dx, dy, dz) ;
+
           dx = dy = dz = 0.0f ;
           for (node_prob = 0.0, n = 0 ; n < gcap->nlabels ; n++)
           {
             gc = GCAfindGC(gcam->gca, xn, yn, zn, gcap->labels[n]) ;
             if (!gc)
               continue ;
-            
+            // mean
             load_mean_vector(gc, v_means, gcam->gca->ninputs) ;
+	    // inv_cov
             load_inverse_covariance_matrix(gc, m_inv_cov, gcam->gca->ninputs) ;
+	    // get prob
             prob = GCAcomputeConditionalDensity(gc, vals, gcam->gca->ninputs, gcap->labels[n]) ;
-            
+            // v_mean = mean - vals
             for (i = 0 ; i < gcam->gca->ninputs ; i++)
               VECTOR_ELT(v_means, i+1) -= vals[i] ;
+	    // v_mean = inv_cov * (mean - vals)
             MatrixMultiply(m_inv_cov, v_means, v_means) ;
+	    // v_grad = delI * inv_cov * (mean - value)
             MatrixMultiply(m_delI, v_means, v_grad) ;
             
             if (x == Gx && y == Gy && z == Gz && (Gdiag & DIAG_SHOW))
               printf("l_map: node(%d,%d,%d), label %s: p=%2.3f (%2.3f), D=(%2.1f,%2.1f,%2.1f)\n",
                      x, y, z, cma_label_to_name(gcap->labels[n]), prob, gcap->priors[n], 
                      prob*V3_X(v_grad), prob*V3_Y(v_grad), prob*V3_Z(v_grad)) ;
+
             dx += prob*V3_X(v_grad) ;
             dy += prob*V3_Y(v_grad) ;
             dz += prob*V3_Z(v_grad) ;
+
             node_prob += prob ;
           }
           
@@ -3935,6 +3974,7 @@ gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
           if (x == Gx && y == Gy && z == Gz && (Gdiag & DIAG_SHOW))
             printf("l_map: node(%d,%d,%d), 1/p=%2.3f, grad=(%2.2f,%2.2f,%2.2f)\n", 
                    x, y, z, 1.0/node_prob, dx, dy, dz) ;
+
           gcamn->dx += l_map * dx ; gcamn->dy += l_map * dy ; gcamn->dz += l_map * dz ;
         } //!GCA
       }
