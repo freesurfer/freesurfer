@@ -1053,6 +1053,26 @@ LogMapGradient(LOGMAP_INFO *lmi, IMAGE *inImage,
 
            Description:
 ----------------------------------------------------------------------*/
+static int mean_kernel[NBD_SIZE] = { 1, 1, 1, 1, 1, 1, 1, 1, 1 } ;
+
+IMAGE *
+LogMapSmooth(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
+{
+  if (!ImageCheckSize(Isrc, Idst, 0, 0, 0))
+  {
+    if (Idst)
+      ImageFree(&Idst) ;
+  }
+
+  logFilterNbd(lmi, mean_kernel, Isrc, Idst, 0, 0, lmi->nrings-1) ;
+  
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
 int
 LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage, 
                 float A, int doweight, int start_ring, int end_ring)
@@ -1142,11 +1162,9 @@ logFilterNbd(LOGMAP_INFO *lmi, int filter[NBD_SIZE], IMAGE *inImage,
   LOGPIX  *npix ;
 
   if (outImage->pixel_format != inImage->pixel_format)
-  {
-    fprintf(stderr,
-           "logFilterNbd: input and output format must be the same\n");
-    exit(1) ;
-  }
+    ErrorReturn(-1, 
+                (ERROR_UNSUPPORTED,
+                 "logFilterNbd: input and output format must be the same\n"));
 
   switch (inImage->pixel_format)
   {
@@ -1190,10 +1208,11 @@ logFilterNbd(LOGMAP_INFO *lmi, int filter[NBD_SIZE], IMAGE *inImage,
     }
     break ;
   default:
-    fprintf(stderr, "logFilterNbd: unsupported input image format %d\n",
-            inImage->pixel_format) ;
-    exit(2) ;
-    break ;
+    ErrorReturn(-2, 
+                (ERROR_UNSUPPORTED,
+                 "logFilterNbd: unsupported input image format %d\n",
+                 inImage->pixel_format)) ;
+    break ;   /* never used */
   }
   return(0) ;
 }
