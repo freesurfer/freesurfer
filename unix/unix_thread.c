@@ -1,4 +1,4 @@
-#ifndef LINUX
+#ifndef Linux
 /*
    @(#)unix_thread.c  1.3
    3/24/94

@@ -70,7 +70,7 @@
 #define STRALLOC(str)   ((char *)calloc(strlen(str)+1, sizeof(char)))
 #define STRCPALLOC(str) strcpy(STRALLOC(str), str)
 
-#ifdef LINUX
+#ifdef Linux
 #define exp2(f)     pow(2.0,(f))
 #define log2(f)     (log(f) / log(2.0))
 #endif

@@ -36,7 +36,7 @@
 
 #define MAX_DISP_SCALES   4
 
-#ifdef LINUX
+#ifdef Linux
 #define FRAME_X             150
 #else
 #define FRAME_X             250
@@ -44,7 +44,7 @@
 #define FRAME_Y             10
 
 #define DISPLAY_SIZE        128
-#ifdef LINUX
+#ifdef Linux
 #define MIN_FRAME_WIDTH     235
 #else
 #define MIN_FRAME_WIDTH     220
@@ -645,7 +645,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
 
   switch (event_id(event)) 
   {
-#ifdef LINUX
+#ifdef Linux
   case MS_MIDDLE:
     xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, TRUE, XV_SHOW, TRUE, NULL) ;
     hips_cmd_source = which ;

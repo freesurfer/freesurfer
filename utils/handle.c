@@ -11,7 +11,7 @@
               INCLUDE FILES
 -----------------------------------------------------------------*/
 
-#ifndef LINUX
+#ifndef Linux
 int not_used_000(void) ;
 
 int not_used_000(void)
