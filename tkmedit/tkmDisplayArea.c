@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/02/10 17:29:44 $
-// Revision       : $Revision: 1.47 $
+// Revision Date  : $Date: 2003/02/10 21:12:41 $
+// Revision       : $Revision: 1.48 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -422,7 +422,7 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
      just been a safety zone. */
   nSize = MAX( MAX(this->mnVolumeSizeX, this->mnVolumeSizeY), 
 	       this->mnVolumeSizeZ) ;
-  this->mpFrameBuffer = (GLubyte*) malloc( nSize * DspA_knNumBytesPerPixel );
+  this->mpFrameBuffer = (GLubyte*) malloc( nSize * nSize * DspA_knNumBytesPerPixel );
   if( NULL == this->mpFrameBuffer ) {
     eResult = DspA_tErr_AllocationFailed;
     goto error;
