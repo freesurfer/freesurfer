@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tdr-avgechoes
 
-set VERSION = '$Id: tdr-avgechoes,v 1.1 2003/09/25 02:11:56 greve Exp $';
+set VERSION = '$Id: tdr-avgechoes,v 1.2 2003/10/04 20:17:29 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -58,6 +58,7 @@ rm -f $MLF
   #---------------------------------------------#
 tee -a > /dev/null $MLF  <<EOF
 
+tic;
 instemlist = splitstring('$instemlist');
 telist = [$telist];
 outstem = '$outstem';
@@ -69,11 +70,13 @@ wecho = [];
 nechoes = size(instemlist,1);
 for n = 1:nechoes
   instem = deblank(instemlist(n,:));
+  fprintf('Loading %s (%g)\n',instem,toc);
   [fin mristruct] = fast_ldbslice(instem, -1);
   if(isempty(fin)) return; end
   if(strcmp(avgmethod,'avg'))
     fout = fout + fin;
   else
+    fprintf('Weighting (%g)\n',toc);
     te = telist(n);
     fscalefile = sprintf('%s.scale.dat',instem);
     frange = load(fscalefile);
@@ -89,12 +92,14 @@ end
 
 foutmin = min(reshape1d(fout));
 foutmax = max(reshape1d(fout));
-fscale = (2^15-1)/(foutmax-foutmin);
+fscale = (2^14-1)/(foutmax-foutmin);
 fout = fscale*(fout-foutmin);
+fprintf('Saving to %s (%g)\n',outstem,toc);
 fast_svbslice(fout,outstem,-1,'bshort',mristruct);
 
 if(~isempty(wechostem))
   % normalize and save the echo weights %
+  fprintf('Saving weights to to %s (%g)\n',wechostem,toc);
   wechosum = sum(wecho,4);
   ind = find(wechosum==0);
   wechosum(ind) = 1;
@@ -102,6 +107,7 @@ if(~isempty(wechostem))
   fast_svbslice(wecho,wechostem,-1,'',mristruct);
 end
 
+fprintf('tdr_avgechoes done (%g)\n',toc);
 return;
 
 EOF
