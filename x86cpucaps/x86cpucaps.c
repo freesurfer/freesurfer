@@ -268,7 +268,7 @@ char *x86cpucaps_detectcpu(int r, float gccver, int vendor_id, int cpu_id)
    family   = (cpu_id & MASK_FAMILY) >> 8;
    model    = (cpu_id & MASK_MODEL)  >> 4;
    stepping = cpu_id & MASK_STEPPING;
-   
+
    /* it's very ugly... */
    switch (vendor_id) {
 
@@ -298,10 +298,30 @@ char *x86cpucaps_detectcpu(int r, float gccver, int vendor_id, int cpu_id)
 	 strncpy(cpuname, "Pentium II/Pentium II Xeon/Celeron", LEN_CPUNAME);
 	 strncpy(kernelopt, "M686", LEN_KERNELOPT);
 	 strncpy(gcctarget, "pentium2", LEN_GCCSIMDOPT);
-       } else if ( model == 9 ) {
-	 strncpy(cpuname, "Pentium M", LEN_CPUNAME);
-	 strncpy(kernelopt, "M686", LEN_KERNELOPT);
+       } else if ( model == 7) {
+	 strncpy(cpuname, "Pentium III Katmai", LEN_CPUNAME);
+	 strncpy(kernelopt, "MPENTIUMIII", LEN_KERNELOPT);
 	 strncpy(gcctarget, "pentium3", LEN_GCCSIMDOPT);
+       } else if ( model == 8 ) {
+	 strncpy(cpuname, "Pentium III Coppermine", LEN_CPUNAME);
+	 strncpy(kernelopt, "MPENTIUMIII", LEN_KERNELOPT);
+	 strncpy(gcctarget, "pentium3", LEN_GCCSIMDOPT);
+       } else if ( model == 9 ) {  // two version of Pentium M
+	 strncpy(cpuname, "Pentium M Banias", LEN_CPUNAME);
+	 strncpy(kernelopt, "MPENTIUMIII", LEN_KERNELOPT);
+	 strncpy(gcctarget, "pentium3", LEN_GCCSIMDOPT);
+       } else if ( model == 10) {
+	 strncpy(cpuname, "Pentium III Large L2 cache", LEN_CPUNAME);
+	 strncpy(kernelopt, "MPENTIUMIII", LEN_KERNELOPT);
+	 strncpy(gcctarget, "pentium3", LEN_GCCSIMDOPT);
+       } else if ( model == 11) {
+	 strncpy(cpuname, "Pentium III Tualatin", LEN_CPUNAME);
+	 strncpy(kernelopt, "MPENTIUMIII", LEN_KERNELOPT);
+	 strncpy(gcctarget, "pentium3", LEN_GCCSIMDOPT);
+       } else if ( model == 13) {   
+	 strncpy(cpuname, "Pentium M Dothan", LEN_CPUNAME);
+	 strncpy(kernelopt, "MPENTIUM4", LEN_KERNELOPT);
+	 strncpy(gcctarget, "pentium4", LEN_GCCSIMDOPT);
        } else {
 	 strncpy(cpuname, "Pentium III/Pentium III Xeon/Celeron", LEN_CPUNAME);
 	 strncpy(kernelopt, "MPENTIUMIII", LEN_KERNELOPT);
