@@ -1,11 +1,11 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.6 2002/01/02 17:44:32 greve Exp $
+  $Id: mri_vol2surf.c,v 1.7 2002/02/18 19:57:13 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
   This replaces paint.c and is also used to convert functional
-  data onto the icosohedron.
+  data onto the icosahedron.
 
   Volume-to-Volume - V2V is a necessary step when converting functional
   data to talairach or painting onto the surface. The model as of 2/4/01
@@ -38,6 +38,7 @@
 #include "mri.h"
 #include "mri_identify.h"
 #include "mri2.h"
+#include "prime.h"
 
 //#include "bfileio.h"
 #include "registerio.h"
@@ -53,10 +54,9 @@ static void print_version(void) ;
 static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 static int  singledash(char *flag);
-
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.6 2002/01/02 17:44:32 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.7 2002/02/18 19:57:13 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -97,6 +97,8 @@ int    interpmethod = -1;
 char *mapmethod = "nnfr";
 
 int debug = 0;
+int reshape = 1;
+int reshapefactor = 0;
 
 MATRIX *Dsrc, *Wsrc, *Fsrc, *Qsrc;
 SXADAT *sxa;
@@ -104,6 +106,7 @@ SXADAT *sxa;
 char *SUBJECTS_DIR = NULL;
 MRI *SrcVol, *SurfVals, *SurfVals2;
 MRI *SrcHits, *SrcDist, *TrgHits, *TrgDist;
+MRI *mritmp;
 
 FILE *fp;
 
@@ -272,6 +275,7 @@ int main(int argc, char **argv)
       }
     }
     else {
+      reshapefactor = 6; /* 6 slices for ico target */
       fflush(stdout);
       printf("Reading icosahedron, order = %d, radius = %g\n",IcoOrder,IcoRadius);
       TrgSurfReg = ReadIcoByOrder(IcoOrder,IcoRadius);
@@ -298,7 +302,7 @@ int main(int argc, char **argv)
     printf("Done mapping surfaces\n");
     fflush(stdout);
 
-    /*Compute some stats on mapping number of trgvtxs mapped from a source vtx*/
+   /*Compute some stats on mapping number of trgvtxs mapped from a source vtx*/
     nSrc121 = 0;
     nSrcLost = 0;
     MnSrcMultiHits = 0.0;
@@ -371,8 +375,34 @@ int main(int argc, char **argv)
       SurfOut->vertices[vtx].val = MRIFseq_vox(SurfVals2,vtx,0,0,framesave) ;
     MRISwriteValues(SurfOut, outfile) ;
   }
-  else
+  else{
+    if(reshape){
+      if(reshapefactor == 0) 
+  reshapefactor = GetClosestPrimeFactor(SurfVals2->width,6);
+
+      printf("Reshaping %d (nvertices = %d)\n",reshapefactor,SurfVals2->width);
+      mritmp = mri_reshape(SurfVals2, SurfVals2->width / reshapefactor, 
+         1, reshapefactor,SurfVals2->nframes);
+      if(mritmp == NULL){
+  printf("ERROR: mri_reshape could not alloc\n");
+  return(1);
+      }
+      MRIfree(&SurfVals2);
+      SurfVals2 = mritmp;
+
+#if 0
+      /* uncomment this to undo the reshape (for testing) */
+      mritmp = mri_reshape(SurfVals2, reshapefactor*SurfVals2->width, 
+         1, 1, SurfVals2->nframes);
+      MRIfree(&SurfVals2);
+      SurfVals2 = mritmp;
+#endif
+
+
+    }
+    printf("Writing\n");
     MRIwriteType(SurfVals2,outfile,outtype);
+  }
 
   return(0);
 }
@@ -404,6 +434,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--hash")) UseHash = 1;
     else if (!strcasecmp(option, "--dontusehash")) UseHash = 0;
     else if (!strcasecmp(option, "--nohash")) UseHash = 0;
+    else if (!strcasecmp(option, "--reshape"))   reshape = 1;
+    else if (!strcasecmp(option, "--noreshape")) reshape = 0;
 
     else if ( !strcmp(option, "--default_type") ) {
       if(nargc < 1) argnerr(option,1);
@@ -578,6 +610,7 @@ static void print_usage(void)
   printf("   --out       output path\n");
   printf("   --out_type  output format\n");
   printf("   --frame     save only nth frame (with paint format)\n");
+  printf("   --noreshape do not save output as multiple 'slices'\n");
   printf("\n");
   printf(" Other Options\n");
   printf("   --help      print out information on how to use this program\n");
@@ -641,8 +674,8 @@ static void print_help(void)
 "    subject, then the surfaces are mapped using each subject's spherical\n"
 "    surface registration (?h.sphere.reg or that specified with --surfreg).\n"
 "    If the target subject is ico, then the volume is resampled onto an\n"
-"    icosohedron, which is used to uniformly sample a sphere. This requires\n"
-"    specifying the icosohedron order (see --icoorder).\n"
+"    icosahedron, which is used to uniformly sample a sphere. This requires\n"
+"    specifying the icosahedron order (see --icoorder).\n"
 "\n"
 "\n"
 "  --hemi hemisphere : lh = left hemisphere, rh = right hemisphere\n"
@@ -679,6 +712,11 @@ static void print_help(void)
 "  --frame 0-based frame number : sample and save only the given frame \n"
 "    from the source volume (needed when out_type = paint). Default 0.\n"
 "\n"
+"  --noreshape : by default, mri_vol2surf will save the output as multiple\n"
+"    'slices'. This is for logistical purposes (eg, in the analyze format\n"
+"    the size of a dimension cannot exceed 2^15). Use this flag to prevent\n"
+"    this behavior. This has no effect when the output type is paint.\n"
+"\n"
 "  --version : print version and exit.\n"
 "\n"
 "SPECIFYING THE INPUT/OUTPUT PATH and TYPE\n"
@@ -691,11 +729,15 @@ static void print_help(void)
 "\n"
 "NOTES\n"
 "\n"
-"  The output will be a data set with Nv colums, 1 row, 1 slice, and Nf frames,\n"
+"  The output will be a data set with Nv/R colums, 1 row, R slices, and Nf frames,\n"
 "  where Nv is the number of verticies in the output surface, and Nf is the \n"
 "  number of frames in the input volume (unless the output format is paint, in\n"
-"  which case only one frame is written out). Any geometry information saved\n"
-"  with the output file will be bogus.\n"
+"  which case only one frame is written out). R is the reshaping factor. R is 6 \n"
+"  for the icosaheron. For non-ico, the prime factor of Nv closest to 6 is chosen. \n"
+"  Reshaping can be important for logistical reasons (eg, Nv can easily exceed \n"
+"  the maximum number of elements allowed in the analyze format). R can be forced \n"
+"  to 1 with --noreshape. Any geometry information saved with the output file will \n"
+"  be bogus.\n"
 "\n"
 "  When resampling for fixed-effects intersubject averaging, make sure\n"
 "  to resample variance and not standard deviation. This is automatically\n"
@@ -740,9 +782,7 @@ static void print_help(void)
 "\n"
 "AUTHOR: Douglas N. Greve, Ph.D., MGH-NMR Center (greve@nmr.mgh.harvard.edu)\n"
 "\n"
-
 ) ;
-
 
   exit(1) ;
 }
