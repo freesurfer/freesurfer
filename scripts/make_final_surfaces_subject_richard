@@ -1,4 +1,4 @@
-#!/usr/local/bin/tcsh -f
+#!/bin/tcsh -f
 
 setenv DIAG 0x04040
 
