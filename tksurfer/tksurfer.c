@@ -49,6 +49,7 @@ void val_to_curv(void) ;
 void val_to_stat(void) ;
 void stat_to_val(void) ;
 
+static void label_to_stat(void) ;
 static void f_to_t(void) ;
 static void t_to_p(int dof) ;
 static void f_to_p(int numer_dof, int denom_dof) ;
@@ -16192,6 +16193,7 @@ print_help_surfer(void)
 
   printf("  remove_triangle_links            [script]\n");
 
+  printf("  label_to_stat                     [script]\n");
   printf("  f_to_t                           [script]\n");
   printf("  t_to_p                           [script]\n");
   printf("  f_to_p                           [script]\n");
@@ -16545,6 +16547,7 @@ int W_sol_plot  PARM;
 
 int W_remove_triangle_links  PARM; 
 
+int W_label_to_stat  PARM; 
 int W_f_to_t  PARM; 
 int W_t_to_p  PARM; 
 int W_f_to_p  PARM; 
@@ -17445,6 +17448,10 @@ int                  W_f_to_t  WBEGIN
   ERR(1,"Wrong # args: f_to_t ")
                        f_to_t();  WEND
 
+int                  W_label_to_stat  WBEGIN
+  ERR(1,"Wrong # args: label_to_stat ")
+                       label_to_stat();  WEND
+
 int                  W_remove_triangle_links  WBEGIN
   ERR(1,"Wrong # args: remove_triangle_links ")
                        remove_triangle_links();  WEND
@@ -18280,6 +18287,8 @@ int main(int argc, char *argv[])   /* new main */
                            W_remove_triangle_links,         REND);
   Tcl_CreateCommand(interp, "f_to_t",
                            W_f_to_t,         REND);
+  Tcl_CreateCommand(interp, "label_to_stat",
+                           W_label_to_stat,         REND);
   Tcl_CreateCommand(interp, "t_to_p",
                            W_t_to_p,         REND);
   Tcl_CreateCommand(interp, "f_to_p",
@@ -23042,6 +23051,67 @@ f_to_t(void)
     v->val = sqrt(abs(f)) ;
     if (f < 0)
       v->val = -v->val ;
+  }
+}
+
+static void
+label_to_stat(void)
+{
+  VERTEX *v ;
+  LABEL  *area ;
+  int    n, field = SCLV_VALSTAT ;
+  float  mn, mx, f ;
+  char                  cmd[STRLEN];
+
+  if (labl_selected_label == LABL_NONE_SELECTED)
+  {
+    fprintf(stderr, "no label currently selected....\n") ;
+    return ;
+  }
+
+  enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
+  area = labl_labels[labl_selected_label].label ;
+  mn = mx = 0.0 ;
+  for (n = 0  ; n < area->n_points ; n++)
+  {
+    v = &mris->vertices[area->lv[n].vno] ;
+    f = area->lv[n].stat ;
+    if (n == 0)
+      mn = mx = f ;
+    sclv_set_value(v, field, f) ;
+    /*    v->stat = f ;*/
+    if (f > mx)
+      mx = f ;
+    if (f < mn)
+      mn = f ;
+  }
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("min = %f, max = %f\n", mn, mx) ;
+  set_value_label_name(labl_labels[labl_selected_label].name, field) ;
+  sclv_field_info[field].min_value = mn;
+  sclv_field_info[field].max_value = mx;
+  sclv_field_info[field].cur_timepoint = 0;
+  sclv_field_info[field].cur_condition = 0;
+  sclv_field_info[field].num_timepoints = 1;
+  sclv_field_info[field].num_conditions = 1;
+  /* calc the frquencies */
+  sclv_calc_frequencies (field);
+  /* request a redraw. turn on the overlay flag and select this value set */
+  vertex_array_dirty = 1 ;
+  overlayflag = TRUE;
+  sclv_set_current_field (field);
+  
+  /* set the field name to the name of the file loaded */
+  if (NULL != g_interp)
+  {
+    sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, labl_labels[labl_selected_label].name);
+    Tcl_Eval (g_interp, cmd);
+    sprintf (cmd, "ShowValueLabel %d 1", field);
+    Tcl_Eval (g_interp, cmd);
+    sprintf (cmd, "UpdateLinkedVarGroup view");
+    Tcl_Eval (g_interp, cmd);
+    sprintf (cmd, "UpdateLinkedVarGroup overlay");
+    Tcl_Eval (g_interp, cmd);
   }
 }
 
