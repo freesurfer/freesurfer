@@ -19,6 +19,8 @@ ScubaToolState::ScubaToolState() {
   mFloodFuzziness = 0;
   mFloodMaxDistance = 0;
   mbFlood3D = true;
+  mEdgeLineStraightBias = 0.9;
+  mEdgeLineEdgeBias = 0.9;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetToolMode", 2, "toolID mode",
@@ -61,6 +63,19 @@ ScubaToolState::ScubaToolState() {
 			 "Sets the current brush 3D of a tool." );
   commandMgr.AddCommand( *this, "GetToolFlood3D", 1, "toolID",
 			 "Gets the current brush 3D of a tool." );
+  commandMgr.AddCommand( *this, "SetToolEdgeLineStraightBias", 2, 
+			 "toolID bias", "Sets the bias (0-1) for straight "
+			 "lines for the edge line tool." );
+  commandMgr.AddCommand( *this, "GetToolEdgeLineStraightBias", 1, 
+			 "toolID", "Returns the bias for straight "
+			 "lines for the edge line tool." );
+  commandMgr.AddCommand( *this, "SetToolEdgeLineEdgeBias", 2, 
+			 "toolID bias", "Sets the bias (0-1) for edges "
+			 "for the edge line tool." );
+  commandMgr.AddCommand( *this, "GetToolEdgeLineEdgeBias", 1, 
+			 "toolID", "Returns the bias for edges "
+			 "for the edge line tool." );
+
 }
 
 ScubaToolState::~ScubaToolState() {
@@ -452,6 +467,80 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
       sReturnFormat = "i";
       stringstream ssReturnValues;
       ssReturnValues << (int)GetFlood3D();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // SetToolEdgeLineStraightBias <toolID> <bias>
+  if( 0 == strcmp( isCommand, "SetToolEdgeLineStraightBias" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      float bias = (float) strtod( iasArgv[2], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad bias";
+	return error;
+      }
+
+      SetEdgeLineStraightBias( bias );
+    }
+  }
+
+  // GetToolEdgeLineStraightBias <toolID>
+  if( 0 == strcmp( isCommand, "GetToolEdgeLineStraightBias" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      sReturnFormat = "f";
+      stringstream ssReturnValues;
+      ssReturnValues << GetEdgeLineStraightBias();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // SetToolEdgeLineEdgeBias <toolID> <bias>
+  if( 0 == strcmp( isCommand, "SetToolEdgeLineEdgeBias" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      float bias = (float) strtod( iasArgv[2], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad bias";
+	return error;
+      }
+
+      SetEdgeLineEdgeBias( bias );
+    }
+  }
+
+  // GetToolEdgeLineEdgeBias <toolID>
+  if( 0 == strcmp( isCommand, "GetToolEdgeLineEdgeBias" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      sReturnFormat = "f";
+      stringstream ssReturnValues;
+      ssReturnValues << GetEdgeLineEdgeBias();
       sReturnValues = ssReturnValues.str();
     }
   }

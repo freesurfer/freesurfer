@@ -3,7 +3,9 @@
 using namespace std;
 
 ShortestPathFinder::ShortestPathFinder() {
-  
+
+  mStraightBias = 1;
+  mEdgeBias = 0.5;
   mLongestEdge = 0;
   mzX = mzY = 0;
   mQueue = NULL;
@@ -90,9 +92,14 @@ ShortestPathFinder::FindPath ( Point2<int>& iStartPoint,
 	if( neighbor.x() >= 0 && neighbor.x() < mzX &&
 	    neighbor.y() >= 0 && neighbor.y() < mzY ) {
 
-	  // Get the cost of this edge = value of weight volume * factor.
+	  // Get the cost of this edge = value of weight volume *
+	  // factor.  We add 0.001 to the edge cost because if it's
+	  // 0, there's no preference for straight lines, since
+	  // diagonal lines will have the same cost, which in some
+	  // cases makes a really weird looking line.
 	  float newCost = currentCost + 
-	    (this->GetEdgeCost( neighbor ) * aFactor[direction]);
+	    ( (this->GetEdgeCost( neighbor ) * mEdgeBias + 0.001) * 
+	      aFactor[direction] * (1.0 - mEdgeBias) );
 
           // If path from current point shorter than old path
           if( newCost < maCost->Get( neighbor ) ) {

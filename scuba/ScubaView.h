@@ -153,7 +153,7 @@ protected:
   void DrawOverlay ();
 
   // Rebuilds the label-value stuff.
-  void RebuildLabelValueInfo ( float iRAS[3] );
+  void RebuildLabelValueInfo ( float iRAS[3], std::string isLabel );
 
   void SetLinkedStatus ( bool ibLinked ) {mViewIDLinkedList[GetID()]=ibLinked;}
   bool GetLinkedStatus () { return mViewIDLinkedList[GetID()]; }

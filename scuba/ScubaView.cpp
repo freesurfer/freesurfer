@@ -152,6 +152,7 @@ ScubaView::ScubaView() {
   
 
   map<string,string> labelValueMap;
+  mLabelValueMaps["mouse"] = labelValueMap;
   mLabelValueMaps["cursor"] = labelValueMap;
 }
 
@@ -989,7 +990,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
   TranslateWindowToRAS( iWindow, ras );
 
   // Rebuild our label value info because the mouse has moved.
-  RebuildLabelValueInfo( ras );
+  RebuildLabelValueInfo( ras, "mouse" );
 
 
   // Handle the navigation tool.
@@ -1128,6 +1129,7 @@ ScubaView::DoMouseUp( int iWindow[2],
     switch( iInput.Button() ) {
     case 1:
       SetCursor( world );
+      RebuildLabelValueInfo( mCursor.xyz(), "cursor" );
       break;
     case 2:
       SetNextMarker( world );
@@ -1294,7 +1296,7 @@ ScubaView::DoKeyDown( int iWindow[2],
     // Rebuild our label value info because the view has moved.
     float ras[3];
     TranslateWindowToRAS( iWindow, ras );
-    RebuildLabelValueInfo( ras );
+    RebuildLabelValueInfo( ras, "mouse" );
 
   } else if( key == msZoomViewIn || key == msZoomViewOut ) {
 
@@ -1312,7 +1314,7 @@ ScubaView::DoKeyDown( int iWindow[2],
     // Rebuild our label value info because the view has moved.
     float ras[3];
     TranslateWindowToRAS( iWindow, ras );
-    RebuildLabelValueInfo( ras );
+    RebuildLabelValueInfo( ras, "mouse" );
   }
 
   RequestRedisplay();
@@ -1775,7 +1777,8 @@ ScubaView::BuildOverlay () {
 }
 
 void
-ScubaView::RebuildLabelValueInfo ( float iRAS[3] ) {
+ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
+				   string isLabel) {
 
   map<string,string> labelValueMap;
 
@@ -1808,7 +1811,7 @@ ScubaView::RebuildLabelValueInfo ( float iRAS[3] ) {
 
   // Set this labelValueMap in the array of label values under the
   // name 'cursor'.
-  mLabelValueMaps["cursor"] = labelValueMap;
+  mLabelValueMaps[isLabel] = labelValueMap;
 
 }
 

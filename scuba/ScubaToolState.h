@@ -39,6 +39,12 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetFlood3D ( bool ib3D ) { mbFlood3D = ib3D; }
   bool GetFlood3D () { return mbFlood3D; }
 
+  void SetEdgeLineStraightBias ( float iBias ) {mEdgeLineStraightBias = iBias;}
+  float GetEdgeLineStraightBias () { return mEdgeLineStraightBias; }
+
+  void SetEdgeLineEdgeBias ( float iBias ) {mEdgeLineEdgeBias = iBias;}
+  float GetEdgeLineEdgeBias () { return mEdgeLineEdgeBias; }
+
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
@@ -57,7 +63,10 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   int mFloodFuzziness;
   int mFloodMaxDistance;
   bool mbFlood3D;
-  
+
+  // Edge line settings.
+  float mEdgeLineStraightBias;
+  float mEdgeLineEdgeBias;
 };
 
 

@@ -986,7 +986,9 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  StretchLineStraight( *mCurrentLine, mFirstLineRAS.xyz(), iRAS );
 	} else if( iTool.GetMode() == ScubaToolState::edgeLine ) {
 	  StretchLineAsEdge( *mCurrentLine, mFirstLineRAS.xyz(), 
-			     iRAS, iViewState, iTranslator );
+			     iRAS, iViewState, iTranslator,
+			     iTool.GetEdgeLineStraightBias(),
+			     iTool.GetEdgeLineEdgeBias() );
 	}
       }
 
@@ -1102,12 +1104,16 @@ ScubaLayer2DMRI::StretchLineAsEdge ( PointList3<float>& iLine,
 				     float iRASBegin[3],
 				     float iRASEnd[3],
 				     ViewState& iViewState,
-				     ScubaWindowToRASTranslator& iTranslator ){
+				     ScubaWindowToRASTranslator& iTranslator,
+				     float iStraightBias, float iEdgeBias ){
 
   // Make an edge path finder.
   EdgePathFinder finder( iViewState.mBufferWidth, iViewState.mBufferHeight,
 			 (int)mVolume->GetMRIMagnitudeMaxValue(),
 			 &iTranslator, mVolume );
+  finder.DisableOutput();
+  finder.SetStraightBias( iStraightBias );
+  finder.SetEdgeBias( iEdgeBias );
 
   // Get the first point from the line and the last point as passed
   // in. Convert to window points. Then find the path between them.
@@ -1382,14 +1388,11 @@ EdgePathFinder::EdgePathFinder ( int iViewWidth, int iViewHeight,
 float 
 EdgePathFinder::GetEdgeCost ( Point2<int>& iPoint ) {
 
-  // Get the magnitude value at this point. We add 0.1 to it because
-  // if it's 0, there's no preference for straight lines, since
-  // diagonal lines will have the same cost, which in some cases makes
-  // a really weird looking line.
+  // Get the magnitude value at this point.
   float RAS[3];
   mTranslator->TranslateWindowToRAS( iPoint.xy(), RAS );
   if( mVolume->IsRASInMRIBounds( RAS ) ) {
-    return mVolume->GetMRIMagnitudeValueAtRAS( RAS ) + 0.1;
+    return mVolume->GetMRIMagnitudeValueAtRAS( RAS );
   } else {
     return mLongestEdge;
   }

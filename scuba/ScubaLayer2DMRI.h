@@ -85,7 +85,8 @@ class ScubaLayer2DMRI : public Layer {
   void StretchLineAsEdge    ( PointList3<float>& iLine,
 			      float iRASBegin[3], float iRASEnd[3],
 			      ViewState& iViewState,
-			      ScubaWindowToRASTranslator& iTranslator );
+			      ScubaWindowToRASTranslator& iTranslator,
+			      float iStraightBias, float iEdgeBias );
 
   // Ends a line. Adds points to volume's edge volume.
   void EndLine              ( PointList3<float>& iLine,

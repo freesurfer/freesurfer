@@ -18,6 +18,10 @@ class DebugReporter {
     }
   }
 
+  void DisableOutput () {
+    mbDebug = false;
+  }
+
   void SetOutputStream( std::ostream& iStream ) {
     mOutputStream = &iStream;
   }

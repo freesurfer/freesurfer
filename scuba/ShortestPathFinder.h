@@ -54,6 +54,9 @@ class ShortestPathFinder : public DebugReporter {
 
   void SetDimensions ( int izX, int izY, int iLongestEdge );
 
+  void SetStraightBias ( float iBias ) { mStraightBias = iBias; }
+  void SetEdgeBias ( float iBias ) { mEdgeBias = iBias; }
+
   void FindPath ( Point2<int>& iStartPoint, Point2<int>& iEndPoint,
 		  std::list<Point2<int> >& ioPoints );
   
@@ -63,6 +66,8 @@ class ShortestPathFinder : public DebugReporter {
   
 
  protected:
+  float mStraightBias;
+  float mEdgeBias;
   int mzX, mzY;
   float mLongestEdge;
   circularQueue *mQueue;

@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.35 2004/06/13 19:57:33 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.36 2004/06/14 01:28:12 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -742,10 +742,16 @@ proc ScubaMouseMotionCallback { inX inY iState iButton } {
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
     set err [catch { 
-	set labelValues [GetLabelValuesSet $viewID cursor] } sResult]
+	set labelValues [GetLabelValuesSet $viewID mouse]
+	UpdateLabelArea 1 $labelValues
+    } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
-    UpdateLabelArea $labelValues
+    set err [catch { 
+	set labelValues [GetLabelValuesSet $viewID cursor] 
+	UpdateLabelArea 2 $labelValues
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
 }
 
 proc ScubaMouseDownCallback { inX inY iState iButton } {
@@ -793,10 +799,10 @@ proc ScubaKeyDownCallback { inX inY iKey } {
     set viewID [GetSelectedViewID [GetMainFrameID]]
 
     set err [catch { 
-	set labelValues [GetLabelValuesSet $viewID cursor] } sResult]
+	set labelValues [GetLabelValuesSet $viewID mouse] } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
-    UpdateLabelArea $labelValues
+    UpdateLabelArea 1 $labelValues
 }
 
 proc GetPreferences {} {
@@ -856,12 +862,26 @@ proc MakeLabelArea { ifwTop } {
 
     global gaWidget
 
-    set fwLabelArea     $ifwTop.fwLabelArea
+    set fwLabelArea    $ifwTop.fwLabelArea1
 
-    frame $fwLabelArea -border 2 -relief raised
+    frame $fwLabelArea
 
-    set gaWidget(labelArea,labelValueWidgets) {}
-    set gaWidget(labelArea,numberOfLabels) 0
+    set fwLabelArea1     $fwLabelArea.fwLabelArea1
+    set fwLabelArea2     $fwLabelArea.fwLabelArea2
+
+    set gaWidget(labelArea,1) [frame $fwLabelArea1 -border 2 -relief raised]
+    set gaWidget(labelArea,2) [frame $fwLabelArea2 -border 2 -relief raised]
+
+    grid $fwLabelArea1 -column 0 -row 0 -sticky ew
+    grid $fwLabelArea2 -column 1 -row 0 -sticky ew
+
+    grid columnconfigure $fwLabelArea 0 -weight 1
+    grid columnconfigure $fwLabelArea 1 -weight 1
+
+    set gaWidget(labelArea,1,labelValueWidgets) {}
+    set gaWidget(labelArea,1,numberOfLabels) 0
+    set gaWidget(labelArea,2,labelValueWidgets) {}
+    set gaWidget(labelArea,2,numberOfLabels) 0
 
     return $fwLabelArea
 }
@@ -1225,6 +1245,7 @@ proc MakeToolsPanel { ifwTop } {
     set fwPropsBrush         $fwProps.fwPropsBrush
     set fwPropsFill          $fwProps.fwPropsFill
     set fwPropsMarker        $fwProps.fwPropsMarker
+    set fwPropsEdgeLine      $fwProps.fwPropsEdgeLine
 
     tixOptionMenu $fwMenu \
 	-label "Tools:" \
@@ -1342,6 +1363,25 @@ proc MakeToolsPanel { ifwTop } {
     set gaWidget(toolProperties,marker) $fwPropsMarker
 
 
+    tixLabelFrame $fwPropsEdgeLine \
+	-label "Edge Line Options" \
+	-labelside acrosstop \
+	-options {label.padX 5}
+
+    set fwPropsEdgeLineSub [$fwPropsEdgeLine subwidget frame]
+    
+    tkuMakeSliders $fwPropsEdgeLineSub.swEdgeBias -sliders {
+	{ -label "Edge Bias" -variable gaTool(current,edgeBias)
+	    -min 0 -max 1 -resolution 0.1
+	    -command {SetToolEdgeLineEdgeBias $gaTool(current,id) $gaTool(current,edgeBias)} }
+    }
+	
+
+    set gaWidget(toolProperties,edgeLineBias) $fwPropsEdgeLineSub.swEdgeBias
+
+    grid $fwPropsEdgeLineSub.swEdgeBias -column 0 -row 0 -sticky ew
+
+    set gaWidget(toolProperties,edgeLine) $fwPropsEdgeLine
 
 
     grid $fwMenu        -column 0 -row 0 -sticky news
@@ -2289,6 +2329,7 @@ proc SelectToolInToolProperties { iTool } {
     grid forget $gaWidget(toolProperties,brush)
     grid forget $gaWidget(toolProperties,fill)
     grid forget $gaWidget(toolProperties,marker)
+    grid forget $gaWidget(toolProperties,edgeLine)
 
     # Get the general layer properties from the specific layer and
     # load them into the 'current' slots.
@@ -2331,6 +2372,12 @@ proc SelectToolInToolProperties { iTool } {
 	}
 	marker { 
 	    grid $gaWidget(toolProperties,marker) -column 0 -row 2 -sticky ew
+	}
+	edgeLine { 
+	    grid $gaWidget(toolProperties,edgeLine) -column 0 -row 2 -sticky ew
+
+	    set gaTool(current,edgeBias) \
+		[GetToolEdgeLineEdgeBias $gaTool(current,id)]
 	}
     }
 }
@@ -2665,11 +2712,11 @@ proc ShowHideLabelArea { ibShow } {
     }
 }
 
-proc UpdateLabelArea { ilLabelValues } {
+proc UpdateLabelArea { inArea ilLabelValues } {
     dputs "UpdateLabelArea  $ilLabelValues  "
 
     global glLabelValues
-    set glLabelValues $ilLabelValues
+    set glLabelValues($inArea) $ilLabelValues
 
     DrawLabelArea
 }
@@ -2680,59 +2727,65 @@ proc DrawLabelArea {} {
     global gaWidget
     global glLabelValues
 
-    set nLabel 0
-    foreach lLabelValue $glLabelValues {
+    foreach nArea {1 2} {
 	
-	set label [lindex $lLabelValue 0]
-	set value [lindex $lLabelValue 1]
-
-	set fw $gaWidget(labelArea).fw$nLabel
-	set ewLabel $fw.ewLabel
-	set ewValue $fw.ewValue
-	
-	if { $nLabel >= $gaWidget(labelArea,numberOfLabels) } {
-
-	    frame $fw
-	    
-	    tkuMakeNormalLabel $ewLabel -label $label -width 20
-	    tkuMakeNormalLabel $ewValue -label $value -width 20
-	    
-	    pack $ewLabel $ewValue -side left -anchor w
-	    pack $fw
-
-	} else {
-	    
-	    $ewLabel.lw config -text $label
-	    $ewValue.lw config -text $value
+	if { ![info exists glLabelValues($nArea)] } {
+	    continue
 	}
 
-	incr nLabel
-    }
-
-    grid columnconfigure $gaWidget(labelArea) 0 -weight 1
-    grid columnconfigure $gaWidget(labelArea) 1 -weight 1
-
-    # Save the new number of labels. The way nLabel is incremented
-    # here, it's equal to the number of labels we're displaying. If
-    # it's less than the last total..
-    if { $nLabel > $gaWidget(labelArea,numberOfLabels) } {
-	set gaWidget(labelArea,numberOfLabels) $nLabel
-
-    } elseif { $nLabel < $gaWidget(labelArea,numberOfLabels) } {
-	
-	# Start with the nLabel before this one and go to our total,
-	# setting the labels blank. Don't save the new total because
-	# that's really the number of labels we have _created_, and we
-	# don't want to recreate them.
-	for { set nDelLabel $nLabel }  \
-	    { $nDelLabel < $gaWidget(labelArea,numberOfLabels) } \
-	    { incr nDelLabel } {
+	set nLabel 0
+	foreach lLabelValue $glLabelValues($nArea) {
+	    
+	    set label [lindex $lLabelValue 0]
+	    set value [lindex $lLabelValue 1]
+	    
+	    set fw $gaWidget(labelArea,$nArea).fw$nLabel
+	    set ewLabel $fw.ewLabel
+	    set ewValue $fw.ewValue
+	    
+	    if { $nLabel >= $gaWidget(labelArea,$nArea,numberOfLabels) } {
 		
-		set fw $gaWidget(labelArea).fw$nDelLabel
-		$fw.ewLabel.lw config -text ""
-		$fw.ewValue.lw config -text ""
+		frame $fw
+		
+		tkuMakeNormalLabel $ewLabel -label $label -width 20
+		tkuMakeNormalLabel $ewValue -label $value -width 20
+		
+		pack $ewLabel $ewValue -side left -anchor w
+		pack $fw
+		
+	    } else {
+		
+		$ewLabel.lw config -text $label
+		$ewValue.lw config -text $value
 	    }
-
+	    
+	    incr nLabel
+	}
+	
+	grid columnconfigure $gaWidget(labelArea,$nArea) 0 -weight 1
+	grid columnconfigure $gaWidget(labelArea,$nArea) 1 -weight 1
+	
+	# Save the new number of labels. The way nLabel is incremented
+	# here, it's equal to the number of labels we're displaying. If
+	# it's less than the last total..
+	if { $nLabel > $gaWidget(labelArea,$nArea,numberOfLabels) } {
+	    set gaWidget(labelArea,$nArea,numberOfLabels) $nLabel
+	    
+	} elseif { $nLabel < $gaWidget(labelArea,$nArea,numberOfLabels) } {
+	    
+	    # Start with the nLabel before this one and go to our total,
+	    # setting the labels blank. Don't save the new total because
+	    # that's really the number of labels we have _created_, and we
+	    # don't want to recreate them.
+	    for { set nDelLabel $nLabel }  \
+		{ $nDelLabel < $gaWidget(labelArea,$nArea,numberOfLabels) } \
+		{ incr nDelLabel } {
+		    
+		    set fw $gaWidget(labelArea,$nArea).fw$nDelLabel
+		    $fw.ewLabel.lw config -text ""
+		    $fw.ewValue.lw config -text ""
+		}
+	}
     }
 }
 
