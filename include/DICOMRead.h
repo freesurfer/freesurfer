@@ -25,8 +25,8 @@ typedef unsigned short int bool;
 #define false 0
 
 #ifdef _DICOMRead_SRC
-  char *SDCMStatusFile;
-  char  *SDCMListFile;
+  char *SDCMStatusFile = 0;
+  char  *SDCMListFile = 0;
 #else
   extern char *SDCMStatusFile;
   extern char  *SDCMListFile;
