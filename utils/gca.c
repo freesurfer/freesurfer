@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/02/14 20:21:32 $
-// Revision       : $Revision: 1.157 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/02/18 20:54:05 $
+// Revision       : $Revision: 1.158 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8570,11 +8570,11 @@ GCAdump(GCA *gca,MRI *mri,int x, int y, int z, TRANSFORM *transform, FILE *fp, i
     if (!GCAsourceVoxelToPrior(gca, mri, transform, x, y, z, &xp, &yp, &zp))
     {
       printf("\nGCA node at voxel (%d, %d, %d) --> node (%d, %d, %d), prior (%d, %d, %d)\n",
-	     x, y, z, xn, yn, zn, xp, yp, zp) ;
+						 x, y, z, xn, yn, zn, xp, yp, zp) ;
       gcan = &gca->nodes[xn][yn][zn] ;
       gcap = getGCAP(gca, mri, transform, x, y, z) ;
       if (gcap==NULL)
-	printf("\nGCAdump: prior point is outside.\n");
+				printf("\nGCAdump: prior point is outside.\n");
       dump_gcan(gca, gcan, fp, verbose, gcap) ;
     }
     else
