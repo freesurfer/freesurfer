@@ -1,3 +1,12 @@
+/* sorry about this - the includes have gotten circular, and I don't
+   know how else to fix it without incurring way too much pain.
+*/
+#ifndef LABEL_INCLUDED
+#define LABEL_INCLUDED
+#include "label.h"
+#endif
+
+
 #ifndef MRISURF_H
 #define MRISURF_H
 
