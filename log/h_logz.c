@@ -2321,9 +2321,9 @@ writeTimes(char *fname, LOGMAP_INFO *lmi, int niter)
     fclose(fp) ;
 }
 
-#define FSCALE  1000.0f
+#define FSCALE  100000.0f
 
-#define ISZERO(f)   FZERO(f/100000.0f)
+#define ISZERO(f)   FZERO(f*10000000.0f)
 
 static int imageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, 
                                 IMAGE *Iorient, int x0,int y0) ;
@@ -2953,11 +2953,24 @@ LogMapFilter(LOGMAP_INFO *lmi, int which, int wsize, IMAGE *Isrc, IMAGE *Idst)
 IMAGE *
 LogMapOffsetOrientation(LOGMAP_INFO *lmi, int wsize,IMAGE *Isrc,IMAGE *Iorient)
 {
+  static IMAGE *Itmp ;
   IMAGE  *Iout, *Ix, *Iy ;
   int    rows, cols ;
 
   rows = Isrc->rows ;
   cols = Isrc->cols ;
+
+  if (!ImageCheckSize(Isrc, Itmp, 0, 0, 0))
+  {
+    if (Itmp)
+      ImageFree(&Itmp) ;
+    Itmp = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+  }
+  else
+    ImageSetSize(Itmp, rows, cols) ;
+
+  LogMapMeanFilter(lmi, Isrc, Itmp) ;
+  Isrc = Itmp ;
 
   if (!Iorient)
     Iorient = ImageAlloc(lmi->nspokes,lmi->nrings, Isrc->pixel_format,2);
@@ -2974,7 +2987,7 @@ LogMapOffsetOrientation(LOGMAP_INFO *lmi, int wsize,IMAGE *Isrc,IMAGE *Iorient)
   Ix->image = Iorient->image ;
   Iy->image = Iorient->image + Ix->sizeimage ;
 
-  LogMapSobel(lmi, Isrc, NULL, Ix, Iy, 0, 0, lmi->nrings-1) ;
+  LogMapSobel(lmi, Isrc, NULL, Ix, Iy, 1, 0, lmi->nrings-1) ;
 
   ImageFree(&Ix) ;
   ImageFree(&Iy) ;
@@ -3040,7 +3053,7 @@ LogMapOffsetDirection(LOGMAP_INFO *lmi, IMAGE *Iorient, IMAGE *Ioffset)
 
       rho = LOG_PIX_RHO(lmi, x0, y0) ;
       phi = LOG_PIX_PHI(lmi, x0, y0) ;
-#define USE_JACOBIAN 1
+#define USE_JACOBIAN 0
 #if USE_JACOBIAN
       sin_phi = sin(phi) ;
       cos_phi = cos(phi) ;
@@ -3092,6 +3105,7 @@ LogMapOffsetDirection(LOGMAP_INFO *lmi, IMAGE *Iorient, IMAGE *Ioffset)
       *oxpix = lox ;
       *oypix = loy ;
     }
+
   }
 
   if (Iout != Ioffset)
@@ -3110,7 +3124,7 @@ IMAGE *
 LogMapOffsetMagnitude(LOGMAP_INFO *lmi,IMAGE *Isrc,IMAGE *Idst,int maxsteps)
 {
   int     rows, cols, x, y, ax, ay, sx, sy, x1, y1, dx, dy, odx, ody, d,
-          steps, dot, xoff, yoff, k, xold, yold ;
+          steps, dot = 0, xoff, yoff, k, xold, yold ;
   float   *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, *oxpix, *oypix ;
   LOGPIX  *pix, *npix = NULL ;
 
@@ -3139,6 +3153,9 @@ LogMapOffsetMagnitude(LOGMAP_INFO *lmi,IMAGE *Isrc,IMAGE *Idst,int maxsteps)
       ay = ABS(dy) << 1 ;
       sy = SGN(dy) ;
       
+      if (x1 == 31 && y1 == 22)
+        DiagBreak() ;
+
       pix = LOG_PIX(lmi, x1, y1) ;
       if (ax > ay)  /* x dominant, move sx in x each time step, check for y */
       {
@@ -3202,6 +3219,12 @@ LogMapOffsetMagnitude(LOGMAP_INFO *lmi,IMAGE *Isrc,IMAGE *Idst,int maxsteps)
           d += ax ;
           pix = npix ;
         }
+      }
+
+      if (dot == 0)  /* zero of vector field, not reversal */
+      {
+        xold = x ;
+        yold = y ;
       }
 
       *dst_xpix++ = (float)(xold - x1) ;
