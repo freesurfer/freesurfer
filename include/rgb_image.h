@@ -81,6 +81,28 @@ RGB_IMAGE *iopen(char *file, char *mode, unsigned int type, unsigned int dim,
     unsigned int xsize, unsigned int ysize, unsigned int zsize);
 RGB_IMAGE *fiopen(int f, char *mode, unsigned int type, unsigned int dim,
     unsigned int xsize, unsigned int ysize, unsigned int zsize);
+long reverse(unsigned long lwrd)  ;
+void cvtshorts( unsigned short *buffer, long n) ;
+void i_seterror(void (*func)(void)) ;
+#undef getpix
+#undef putpix
+int getpix(RGB_IMAGE *image) ;
+unsigned int putpix(RGB_IMAGE *image, unsigned int pix) ;
+int img_read(RGB_IMAGE *image, char *buffer, int count) ;
+int img_write(RGB_IMAGE *image, char *buffer,int count) ;
+int img_badrow(RGB_IMAGE *image, unsigned int y, unsigned int z) ;
+unsigned long img_seek(RGB_IMAGE *image, unsigned int y, unsigned int z) ;
+long img_getrowsize(RGB_IMAGE *image) ;
+void img_setrowsize(RGB_IMAGE *image, long cnt, long y, long z) ;
+int img_rle_compact(unsigned short *expbuf, int ibpp,
+      unsigned short *rlebuf, int obpp, int cnt) ;
+void img_rle_expand(unsigned short *rlebuf, int ibpp,
+      unsigned short *expbuf, int obpp) ;
+int putrow(RGB_IMAGE *image, unsigned short *buffer,
+    unsigned int y, unsigned int z)  ;
+int getrow(RGB_IMAGE *image, unsigned short *buffer,
+    unsigned int y, unsigned int z)  ;
+
 /*
  *
  * ...while iopen and fiopen can take an extended set of parameters, the 
@@ -110,4 +132,28 @@ unsigned short *ibufalloc();
 #ifdef __cplusplus
 }
 #endif
+
+unsigned long img_optseek(RGB_IMAGE *image, unsigned long offset);
+int img_write(RGB_IMAGE *image, char *buffer,int count) ;
+void cvtimage( long *buffer) ;
+void cvtlongs( long *buffer, register long n) ;
+void i_errhdlr(char *fmt, int a1, int a2, int a3, int a4)  ;
+void swapImage(RGB_IMAGE *image) ;
+
+#ifndef _IOREAD
+#define _IOREAD         0001 
+#endif
+#ifndef _IOWRT
+#define _IOWRT          0002
+#endif
+#ifndef _IOEOF
+#define _IOEOF          0020 
+#endif
+#ifndef _IOERR
+#define _IOERR          0040
+#endif
+#ifndef _IORW
+#define _IORW           0200
+#endif
+
 #endif  /* !__GL_IMAGE_H__ */

@@ -5,14 +5,15 @@
  *
  */
 #include  <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include  "rgb_image.h"
 
-unsigned long img_optseek(RGB_IMAGE *image, unsigned long offset);
 
 unsigned long img_seek(RGB_IMAGE *image, unsigned int y, unsigned int z)
 {
     if(img_badrow(image,y,z)) {
-  i_errhdlr("img_seek: row number out of range\n");
+  i_errhdlr("img_seek: row number out of range\n", 0,0,0,0);
   return EOF;
     }
     image->x = 0;
@@ -29,7 +30,7 @@ unsigned long img_seek(RGB_IMAGE *image, unsigned int y, unsigned int z)
         512L+(y*image->xsize+z*image->xsize*image->ysize)*
               BPP(image->type));
       default:
-    i_errhdlr("img_seek: weird dim\n");
+    i_errhdlr("img_seek: weird dim\n",0,0,0,0);
     break;
   }
     } else if(ISRLE(image->type)) {
@@ -41,11 +42,11 @@ unsigned long img_seek(RGB_IMAGE *image, unsigned int y, unsigned int z)
       case 3: 
     return img_optseek(image, image->rowstart[y+z*image->ysize]);
       default:
-    i_errhdlr("img_seek: weird dim\n");
+    i_errhdlr("img_seek: weird dim\n",0,0,0,0);
     break;
   }
     } else 
-  i_errhdlr("img_seek: weird image type\n");
+  i_errhdlr("img_seek: weird image type\n",0,0,0,0);
     return((unsigned long)-1);
 }
 
@@ -59,14 +60,14 @@ int img_badrow(RGB_IMAGE *image, unsigned int y, unsigned int z)
 
 int img_write(RGB_IMAGE *image, char *buffer,int count)
 {
-    int retval;
+  int retval;
 
-    retval =  write(image->file,buffer,count);
-    if(retval == count) 
-  image->offset += count;
-    else
-  image->offset = -1;
-    return retval;
+  retval =  write(image->file,buffer,count);
+  if(retval == count) 
+    image->offset += count;
+  else
+    image->offset = -1;
+  return retval;
 }
 
 int img_read(RGB_IMAGE *image, char *buffer, int count)

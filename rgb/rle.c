@@ -18,31 +18,33 @@ long img_getrowsize(RGB_IMAGE *image)
   case 3:
       return image->rowsize[image->y+image->z*image->ysize];
     }
+    return(0L) ;
 }
 
 void img_setrowsize(RGB_IMAGE *image, long cnt, long y, long z)
 {
-    int *sizeptr;
-
-    if(img_badrow(image,y,z)) 
-  return;
-    switch(image->dim) {
+  int *sizeptr;
+  
+  if(img_badrow(image,y,z)) 
+    return;
+  switch(image->dim) {
+  default:
   case 1:
-      sizeptr = &image->rowsize[0];
-      image->rowstart[0] = image->rleend;
-      break;
+    sizeptr = &image->rowsize[0];
+    image->rowstart[0] = image->rleend;
+    break;
   case 2:
-      sizeptr = &image->rowsize[y];
-      image->rowstart[y] = image->rleend;
-      break;
+    sizeptr = &image->rowsize[y];
+    image->rowstart[y] = image->rleend;
+    break;
   case 3:
-      sizeptr = &image->rowsize[y+z*image->ysize];
-      image->rowstart[y+z*image->ysize] = image->rleend;
-    } 
-    if(*sizeptr != -1) 
-  image->wastebytes += *sizeptr;
-    *sizeptr = cnt;
-    image->rleend += cnt;
+    sizeptr = &image->rowsize[y+z*image->ysize];
+    image->rowstart[y+z*image->ysize] = image->rleend;
+  } 
+  if(*sizeptr != -1) 
+    image->wastebytes += *sizeptr;
+  *sizeptr = cnt;
+  image->rleend += cnt;
 }
 
 #define docompact               \
@@ -118,7 +120,7 @@ int img_rle_compact(unsigned short *expbuf, int ibpp,
   docompact;
   return optr - rlebuf;
     } else  {
-  i_errhdlr("rle_compact: bad bpp: %d %d\n",ibpp,obpp);
+  i_errhdlr("rle_compact: bad bpp: %d %d\n",ibpp,obpp,0,0);
   return 0;
     }
 }
@@ -166,5 +168,5 @@ void img_rle_expand(unsigned short *rlebuf, int ibpp,
 
   doexpand;
     } else 
-  i_errhdlr("rle_expand: bad bpp: %d %d\n",ibpp,obpp);
+  i_errhdlr("rle_expand: bad bpp: %d %d\n",ibpp,obpp,0,0);
 }

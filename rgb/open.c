@@ -7,7 +7,11 @@
  */
 #include  <stdio.h>
 #include  <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include "proto.h"
 #include  "rgb_image.h"
+#include "machine.h"
 
 RGB_IMAGE *imgopen(int, char *, char *,unsigned int, unsigned int,
     unsigned int, unsigned int, unsigned int);
@@ -35,12 +39,12 @@ RGB_IMAGE *imgopen(int f, char *file, char *mode,
 
   image = (RGB_IMAGE*)calloc(1,sizeof(RGB_IMAGE));
   if(!image ) {
-      i_errhdlr("iopen: error on image struct alloc\n");
+      i_errhdlr("iopen: error on image struct alloc\n",0,0,0,0);
       return NULL;
   }
   rw = mode[1] == '+';
   if(rw) {
-      i_errhdlr("iopen: read/write mode not supported\n");
+      i_errhdlr("iopen: read/write mode not supported\n",0,0,0,0);
     return NULL;
   }
   if (*mode=='w') {
@@ -52,7 +56,7 @@ RGB_IMAGE *imgopen(int f, char *file, char *mode,
         }
     }
     if (f < 0) {
-        i_errhdlr("iopen: can't open output file %s\n",file);
+        i_errhdlr("iopen: can't open output file %s\n",(int)file,0,0,0);
         return NULL;
     }
     image->imagic = IMAGIC;
@@ -76,27 +80,29 @@ RGB_IMAGE *imgopen(int f, char *file, char *mode,
     isetname(image,"no name"); 
     image->wastebytes = 0;
     image->dorev = 0;
+    swapImage(image) ;
     if (write(f,image,sizeof(RGB_IMAGE)) != sizeof(RGB_IMAGE)) {
-        i_errhdlr("iopen: error on write of image header\n");
+        i_errhdlr("iopen: error on write of image header\n",0,0,0,0);
         return NULL;
     }
+    swapImage(image) ;
   } else {
     if (file)
         f = open(file, rw? 2: 0);
     if (f < 0)
         return(NULL);
     if (read(f,image,sizeof(RGB_IMAGE)) != sizeof(RGB_IMAGE)) {
-        i_errhdlr("iopen: error on read of image header\n");
+        i_errhdlr("iopen: error on read of image header\n",0,0,0,0);
         return NULL;
     }
     if( ((image->imagic>>8) | ((image->imagic&0xff)<<8)) 
                    == IMAGIC ) {
         image->dorev = 1;
-        cvtimage(image);
+        cvtimage((long *)image);
     } else
         image->dorev = 0;
     if (image->imagic != IMAGIC) {
-      i_errhdlr("iopen: bad magic in image file %x\n",image->imagic);
+      i_errhdlr("iopen: bad magic in image file %x\n",image->imagic,0,0,0);
         return NULL;
     }
   }
@@ -111,7 +117,7 @@ RGB_IMAGE *imgopen(int f, char *file, char *mode,
       image->rowstart = (unsigned int *)malloc(tablesize);
       image->rowsize = (int *)malloc(tablesize);
       if( image->rowstart == 0 || image->rowsize == 0 ) {
-    i_errhdlr("iopen: error on table alloc\n");
+    i_errhdlr("iopen: error on table alloc\n",0,0,0,0);
     return NULL;
       }
       image->rleend = 512L+2*tablesize;
@@ -125,24 +131,24 @@ RGB_IMAGE *imgopen(int f, char *file, char *mode,
     tablesize = image->ysize*image->zsize*sizeof(long);
     lseek(f, 512L, 0);
     if (read(f,image->rowstart,tablesize) != tablesize) {
-        i_errhdlr("iopen: error on read of rowstart\n");
+        i_errhdlr("iopen: error on read of rowstart\n",0,0,0,0);
         return NULL;
     }
     if(image->dorev)
-        cvtlongs(image->rowstart,tablesize);
+        cvtlongs((long *)image->rowstart,tablesize);
     if (read(f,image->rowsize,tablesize) != tablesize) {
-        i_errhdlr("iopen: error on read of rowsize\n");
+        i_errhdlr("iopen: error on read of rowsize\n",0,0,0,0);
         return NULL;
     }
     if(image->dorev)
-        cvtlongs(image->rowsize,tablesize);
+        cvtlongs((long *)image->rowsize,tablesize);
       }
   }
   image->cnt = 0;
   image->ptr = 0;
   image->base = 0;
   if( (image->tmpbuf = ibufalloc(image)) == 0 ) { 
-      i_errhdlr("iopen: error on tmpbuf alloc %d\n",image->xsize);
+      i_errhdlr("iopen: error on tmpbuf alloc %d\n",image->xsize,0,0,0);
       return NULL;
   }
   image->x = image->y = image->z = 0;
@@ -157,8 +163,8 @@ unsigned short *ibufalloc(RGB_IMAGE *image)
     return (unsigned short *)malloc(IBUFSIZE(image->xsize));
 }
 
-reverse(lwrd) 
-register unsigned long lwrd;
+long
+reverse(unsigned long lwrd) 
 {
     return ((lwrd>>24)    | 
      (lwrd>>8 & 0xff00)   | 
@@ -166,9 +172,8 @@ register unsigned long lwrd;
      (lwrd<<24)     );
 }
 
-cvtshorts( buffer, n)
-register unsigned short buffer[];
-register long n;
+void
+cvtshorts( unsigned short *buffer, long n)
 {
     register short i;
     register long nshorts = n>>1;
@@ -180,9 +185,9 @@ register long n;
     }
 }
 
-cvtlongs( buffer, n)
-register long buffer[];
-register long n;
+
+void
+cvtlongs( long *buffer, register long n)
 {
     register short i;
     register long nlongs = n>>2;
@@ -197,10 +202,10 @@ register long n;
     }
 }
 
-cvtimage( buffer )
-register long buffer[];
+void
+cvtimage( long *buffer)
 {
-    cvtshorts(buffer,12);
+    cvtshorts((unsigned short *)buffer,12);
     cvtlongs(buffer+3,12);
     cvtlongs(buffer+26,4);
 }
@@ -214,8 +219,9 @@ static void (*i_errfunc)();
   ever need be worried about, while programs that know how and
   want to can handle the errors themselves.  Olson, 11/88
 */
-i_errhdlr(fmt, a1, a2, a3, a4)  /* most args currently used is 2 */
-char *fmt;
+ /* most args currently used is 2 */
+void
+i_errhdlr(char *fmt, int a1, int a2, int a3, int a4) 
 {
   if(i_errfunc) {
     char ebuf[2048];  /* be generous; if an error includes a
@@ -230,8 +236,25 @@ char *fmt;
 }
 
 /* this function sets the error handler for i_errhdlr */
-i_seterror(func)
-void (*func)();
+void
+i_seterror(void (*func)(void))
 {
   i_errfunc = func;
 }
+void
+swapImage(RGB_IMAGE *image)
+{
+#ifdef Linux
+  image->imagic = swapShort(image->imagic) ;
+  image->type = swapShort(image->type) ;
+  image->dim = swapShort(image->dim) ;
+  image->xsize = swapShort(image->xsize) ;
+  image->ysize = swapShort(image->ysize) ;
+  image->zsize = swapShort(image->zsize) ;
+  image->min = swapInt(image->min) ;
+  image->max = swapInt(image->max) ;
+  image->wastebytes = swapShort(image->wastebytes) ; 
+  image->colormap = swapInt(image->colormap) ;
+#endif
+}
+
