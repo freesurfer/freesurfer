@@ -10,7 +10,6 @@ unsigned int iflsbuf(RGB_IMAGE *image, unsigned int c)
 {
   register unsigned short *base;
   register n, rn;
-  char c1;
   int size;
 
   if ((image->flags&_IOWRT)==0)
@@ -18,7 +17,7 @@ unsigned int iflsbuf(RGB_IMAGE *image, unsigned int c)
   if ((base=image->base)==NULL) {
     size = IBUFSIZE(image->xsize);
     if ((image->base=base=ibufalloc(image)) == NULL) {
-      i_errhdlr("flsbuf: error on buf alloc\n");
+      i_errhdlr("flsbuf: error on buf alloc\n",0,0,0,0);
       return EOF;
     }
     rn = n = 0;
