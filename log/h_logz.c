@@ -1368,13 +1368,12 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
   {
   case DIFFUSION_TIME_FOVEAL:
     /* compute ending time for Cartesian space */
-    end_time = (float)niterations * exp(2.0f*lmi->min_rho) * KERNEL_MUL ;
-    break ;
+    end_time = ((float)niterations+0.9f)*exp(2.0f*lmi->min_rho) *KERNEL_MUL;
     break ;
   case DIFFUSION_TIME_PERIPHERAL:
     /* for peripheral iterations, assume # of iterations is 10 times
        actual number to allow for fractional # of iterations */
-    end_time = (float)niterations / 10.0f * 
+    end_time = ((float)niterations + 9.9f) / 10.0f * 
       exp(2.0f*lmi->max_rho) * KERNEL_MUL ;
     niterations = (int)(end_time / (KERNEL_MUL*exp(2.0f*lmi->min_rho))) ;
     break ;
@@ -1383,7 +1382,7 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
     break ;
   case DIFFUSION_TIME_LOG:
   default:
-    end_time = (float)niterations * exp(2.0f*lmi->max_rho) * KERNEL_MUL ;
+    end_time = ((float)niterations+.9f)* exp(2.0f*lmi->max_rho) *KERNEL_MUL;
     break ;
   }
 
@@ -1402,22 +1401,13 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
       /* find starting and ending ring for this time */
       new_start_ring = lmi->nrings ;
       new_end_ring = 0 ;
+
       for (ring = start_ring ; ring <= end_ring ; ring++)
       {
-#if 1
-        /* find 1st real spoke */
-        for (spoke = nspokes/2-1 ; spoke < nspokes ; spoke++)
-          if (LOG_PIX_AREA(lmi, ring, spoke) > 0)
-          break ;
-        
-        if (spoke >= nspokes)
-          continue ;
-        
-        /* see if this ring has already reached the stopping time */
-        rho = LOG_PIX_RHO(lmi, ring, spoke) ;
-#else
         rho = lmi->rhos[ring] ;
-#endif
+        if (FZERO(rho))
+          continue ;   /* no valid pixels in this ring */
+
         time = (float)i * exp(2.0f*rho) * KERNEL_MUL ;
         if (time <= end_time)  /* this ring still requires integration */
         {
@@ -1431,34 +1421,13 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
       start_ring = new_start_ring ;
       end_ring = new_end_ring ;
 
-      if ((Gdiag & DIAG_LOGDIFF) && (start_ring < end_ring))
+      if ((Gdiag & DIAG_LOGDIFF) && (start_ring <= end_ring))
       {
         float start_rho, end_rho, stime, etime ;
         
-#if 1
-        /* find 1st real spoke */
-        for (spoke = nspokes/2-1 ; spoke < nspokes ; spoke++)
-          if (LOG_PIX_AREA(lmi, start_ring, spoke) > 0)
-            break ;
-        
-        /* see if this ring has already reached the stopping time */
-        start_rho = LOG_PIX_RHO(lmi, start_ring, spoke) ;
-#else
         start_rho = lmi->rhos[start_ring] ;
-#endif
         stime = (float)i * exp(2.0f*start_rho) * KERNEL_MUL ;
-
-#if 1
-        /* find 1st real spoke */
-        for (spoke = nspokes/2-1 ; spoke < nspokes ; spoke++)
-          if (LOG_PIX_AREA(lmi, end_ring, spoke) > 0)
-            break ;
-        
-        /* see if this ring has already reached the stopping time */
-        end_rho = LOG_PIX_RHO(lmi, end_ring, spoke) ;
-#else
         end_rho = lmi->rhos[end_ring] ;
-#endif
         etime = (float)i * exp(2.0f*end_rho) * KERNEL_MUL ;
         
         fprintf(stderr, "iteration %d, ring=%d (%2.3f) --> %d (%2.3f) "
@@ -2126,6 +2095,7 @@ logBuildRhoList(LOGMAP_INFO *lmi)
 
   nrings = lmi->nrings ;
   nspokes = lmi->nspokes ;
+
   lmi->rhos = (float *)calloc(nrings, sizeof(float)) ;
   for (ring = 0; ring < nrings; ring++) 
   {
@@ -2142,7 +2112,7 @@ logBuildRhoList(LOGMAP_INFO *lmi)
         total += rho ;
         if (rho >= max_rho)
           max_rho = rho ;
-        if (rho <= min_rho)
+        if (!FZERO(rho) && (rho <= min_rho))
           min_rho = rho ;
       }
     }
@@ -2150,5 +2120,24 @@ logBuildRhoList(LOGMAP_INFO *lmi)
       lmi->rhos[ring] = 0.0f ;
     else
       lmi->rhos[ring] = total / (float)nrho ;
+
+#if 0   
+    fprintf(stdout, "ring %d: rho %2.3f --> %2.3f, avg %2.3f, N %d\n",
+            ring, min_rho, max_rho,  lmi->rhos[ring], nrho) ;
+#endif
   }
+
+  min_rho = 1000.0f ;
+  max_rho = 0.0f ;
+  for (ring = 0; ring < nrings; ring++) 
+  {
+    rho = lmi->rhos[ring] ;
+    if (rho >= max_rho)
+      max_rho = rho ;
+    if (!FZERO(rho) && (rho <= min_rho))
+      min_rho = rho ;
+  }
+  lmi->min_rho = min_rho ;
+  lmi->max_rho = max_rho ;
+/*  fprintf(stderr, "rho: %2.3f --> %2.3f\n", min_rho, max_rho) ;*/
 }
