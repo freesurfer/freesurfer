@@ -4308,7 +4308,7 @@ mriWriteImageView(MRI *mri, char *base_name, int target_size, int view,
     {
     default:
     case MRI_CORONAL:    slice = mri->depth/2; break ;
-    case MRI_SAGITTAL:   slice = mri->width/2 ; break ;
+    case MRI_SAGITTAL:   slice = mri->width/3 ; break ;
     case MRI_HORIZONTAL: slice = mri->height/2 ; break ;
     }
   }
