@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "proto.h"
 #include "cdflib.h"
+
 static void E0000(int,int*,double*,double*,unsigned long*,
                   unsigned long*,double*,double*,double*,
                   double*,double*,double*,double*);
