@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.16 1999/06/14 17:29:49 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.17 1999/08/06 14:42:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -228,6 +228,13 @@ main(int argc, char *argv[])
   MRISstoreMetricProperties(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   fprintf(stderr, "repositioning cortical surface to gray/white boundary\n");
+
+  if (add)
+  {
+    fprintf(stderr, "adding vertices to initial tessellation...\n") ;
+    for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
+      MRISdivideLongEdges(mris, max_len) ;
+  }
   for (i = 0, sigma = 2.0f ; sigma > .2 ; sigma /= 2, i++)
   {
     if (nowhite)
