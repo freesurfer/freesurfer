@@ -14,6 +14,7 @@ int   freadInt(FILE *fp) ;
 short freadShort(FILE *fp) ;
 
 int   fwriteFloat(float f, FILE *fp) ;
+int   fwriteShort(short s, FILE *fp) ;
 int   fwriteInt(int v, FILE *fp) ;
 int   fwrite1(int v,FILE *fp) ;
 int   fwrite2(int v, FILE *fp) ;
