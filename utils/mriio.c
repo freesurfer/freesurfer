@@ -7161,7 +7161,7 @@ mghRead(char *fname, int read_volume, int frame)
   unused_space_size = UNUSED_SPACE_SIZE-sizeof(short) ;
 
   good_ras_flag = freadShort(fp) ;
-  if (good_ras_flag)     /* has RAS and voxel size info */
+  if (good_ras_flag > 0)     /* has RAS and voxel size info */
   {
     unused_space_size -= USED_SPACE_SIZE ;
     xsize = freadFloat(fp) ;
@@ -7276,8 +7276,6 @@ mghRead(char *fname, int read_volume, int frame)
       free(buf) ;
   }
 
-  fclose(fp) ;
-
   if (good_ras_flag > 0)
   {
     mri->xsize =     xsize ;
@@ -7309,6 +7307,9 @@ mghRead(char *fname, int read_volume, int frame)
     mri->te = freadFloat(fp) ;
     mri->ti = freadFloat(fp) ;
   }
+
+  fclose(fp) ;
+
   return(mri) ;
 }
 
