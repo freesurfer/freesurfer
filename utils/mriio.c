@@ -57,6 +57,7 @@
 #include "Bruker.h"
 #include "bfileio.h"
 #include "AFNI.h"
+#include "mghendian.h"
 
 // unix director separator 
 #define DIR_SEPARATOR '/'
@@ -1789,7 +1790,7 @@ printf("%d, %d, %d, %d\n", mri->width, mri->height, mri->depth, mri->nframes);
       for(i = 0;i < rows;i++)
       {
         fread(&MRISvox(mri_raw, 0, i, file_n - n_low), sizeof(short), cols, fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
         swab(&MRISvox(mri_raw, 0, i, file_n - n_low), &MRISvox(mri_raw, 0, i, file_n - n_low), sizeof(short) * cols);
 #endif
       }
@@ -2922,7 +2923,7 @@ static int bvolumeWrite(MRI *vol, char *fname_passed, int type)
   else                   buf = buffloat;
 
   swap_bytes_flag = 0;
-#ifdef Linux
+#if (BYTE_ORDER==LITTLE_ENDIAN)
   swap_bytes_flag = 1;
 #endif
 
@@ -3619,7 +3620,7 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
   }
   else{
     fscanf(fp, "%*d %*d %*d %d", &swap_bytes_flag);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN) 
     swap_bytes_flag = !swap_bytes_flag;
 #endif
     fclose(fp);
@@ -4527,7 +4528,7 @@ static MRI *genesisRead(char *fname, int read_volume)
           errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error reading from file file %s", fname_use));
         }
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
         swab(mri->slices[i-im_low][y], mri->slices[i-im_low][y], 2 * mri->width);
 #endif
       }
@@ -4748,7 +4749,7 @@ static MRI *gelxRead(char *fname, int read_volume)
           errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error reading from file file %s", fname_use));
         }
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
         swab(mri->slices[i-im_low][y], mri->slices[i-im_low][y], 2 * mri->width);
 #endif
       }
@@ -6332,7 +6333,7 @@ static MRI *gdfRead(char *fname, int read_volume)
           errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error reading from file %s", fname_use));
         }
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
         for(k = 0;k < mri->width;k++)
           MRISvox(mri, k, j, i-1) = orderShortBytes(sbuf[k]);
 #else
@@ -6353,7 +6354,7 @@ static MRI *gdfRead(char *fname, int read_volume)
           errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error reading from file %s", fname_use));
         }
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
         for(k = 0;k < mri->width;k++)
           MRIFvox(mri, k, j, i-1) = orderFloatBytes(fbuf[k]);
 #else
@@ -6442,7 +6443,7 @@ static int gdfWrite(MRI *mri, char *fname)
     for(j = 0;j < mri->height;j++)
     {
       memcpy(buf, mri->slices[i][j], buf_size);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
       if(mri->type == MRI_FLOAT)
         byteswapbuffloat(buf, buf_size);
       if(mri->type == MRI_SHORT)
@@ -6813,7 +6814,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
         errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error reading points from otl file %d", slice));
       }
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
       swab(points, points, 2 * n_rows * sizeof(short));
 #endif
     }
@@ -7194,7 +7195,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
         errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error reading points from otl file %d", slice));
       }
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
       swab(points, points, 2 * n_rows * sizeof(short));
 #endif
     }
@@ -7711,7 +7712,7 @@ static MRI *ximgRead(char *fname, int read_volume)
           errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error reading from file file %s", fname_use));
         }
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
         swab(mri->slices[i-im_low][y], mri->slices[i-im_low][y], 2 * mri->width);
 #endif
       }
@@ -7825,7 +7826,7 @@ MRI *MRIreadGeRoi(char *fname, int n_slices)
           errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadGeRoi(): error reading from file file %s", fname_use));
         }
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
         swab(mri->slices[i][y], mri->slices[i][y], 2 * mri->width);
 #endif
       }
@@ -9414,7 +9415,7 @@ static int bfloatWrite(MRI *vol, char *stem)
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
        "bfloatWrite(): can't open file %s", fname));
     }
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
     fprintf(fp, "%d %d %d %d\n", mri->height, mri->width, mri->nframes, 1);
 #else
     fprintf(fp, "%d %d %d %d\n", mri->height, mri->width, mri->nframes, 0);
@@ -9622,7 +9623,7 @@ static int bshortWrite(MRI *vol, char *fname_passed)
       for(j = 0;j < mri->height;j++)
       {
 
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
         swab(mri->slices[t*mri->depth + i][j], buf, mri->width * sizeof(short));
 #else
         memcpy(buf, mri->slices[t*mri->depth + i][j], mri->width * sizeof(short));
@@ -10047,7 +10048,7 @@ static MRI *bshortRead(char *fname_passed, int read_volume)
     else
     {
       fscanf(fp, "%*d %*d %*d %d", &swap_bytes_flag);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
       swap_bytes_flag = !swap_bytes_flag;
 #endif
       fclose(fp);
@@ -10122,7 +10123,7 @@ static MRI *bfloatRead(char *fname_passed, int read_volume)
     else
     {
       fscanf(fp, "%*d %*d %*d %d", &swap_bytes_flag);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
       swap_bytes_flag = !swap_bytes_flag;
 #endif
       fclose(fp);

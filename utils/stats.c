@@ -14,7 +14,7 @@
 #include "machine.h"
 #include "mrinorm.h"
 #include "transform.h"
-
+#include "mghendian.h"
 #include "stats.h"
 
 #define REG_ROWS      4
@@ -281,7 +281,7 @@ StatReadVolume(char *prefix)
           for (x = 0 ; x < width ; x++)
           {
             fval = buf[y*width+x] ;
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
             fval = swapFloat(fval) ;
 #endif
             MRIFseq_vox(sv->mri_avgs[event],x,y,z,t) = fval ;
@@ -300,7 +300,7 @@ StatReadVolume(char *prefix)
           for (x = 0 ; x < width ; x++)
           {
             fval = buf[y*width+x] ;
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
             fval = swapFloat(fval) ;
 #endif
             MRIFseq_vox(sv->mri_stds[event],x,y,z,t) = fval ;
@@ -335,7 +335,7 @@ StatReadVolume(char *prefix)
           for (x = 0 ; x < width ; x++)
           {
             fval = buf[y*width+x] ;
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
             fval = swapFloat(fval) ;
 #endif
             MRIFseq_vox(sv->mri_avg_dofs[event],x,y,z,t) = fval ;
@@ -354,7 +354,7 @@ StatReadVolume(char *prefix)
           for (x = 0 ; x < width ; x++)
           {
             fval = buf[y*width+x] ;
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
             fval = swapFloat(fval) ;
 #endif
             MRIFseq_vox(sv->mri_std_dofs[event],x,y,z,t) = fval ;
@@ -977,7 +977,7 @@ StatWriteVolume(SV *sv, char *prefix)
           for (x = 0 ; x < sv->slice_width ; x++)
           {
             fval = MRIFseq_vox(sv->mri_avgs[event],x,y,z,t) ;
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
             fval = swapFloat(fval) ;
 #endif
             buf[y*width+x] = fval ;
@@ -996,7 +996,7 @@ StatWriteVolume(SV *sv, char *prefix)
           for (y = 0 ; y < height ; y++){
             for (x = 0 ; x < width ; x++){
               fval = MRIFseq_vox(sv->mri_stds[event],x,y,z,t) ;
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
               fval = swapFloat(fval) ;
 #endif
               buf[y*width+x] = fval ;
@@ -1031,7 +1031,7 @@ StatWriteVolume(SV *sv, char *prefix)
             for (x = 0 ; x < sv->slice_width ; x++)
             {
               fval = MRIFseq_vox(sv->mri_avg_dofs[event],x,y,z,t) ;
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
               fval = swapFloat(fval) ;
 #endif
               buf[y*width+x] = fval ;
@@ -1051,7 +1051,7 @@ StatWriteVolume(SV *sv, char *prefix)
             for (x = 0 ; x < width ; x++)
             {
               fval = MRIFseq_vox(sv->mri_std_dofs[event],x,y,z,t) ;
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
               fval = swapFloat(fval) ;
 #endif
               buf[y*width+x] = fval ;

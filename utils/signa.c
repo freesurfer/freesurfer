@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "error.h"
 #include "signa.h"
+#include "mghendian.h"
 /*#include "idbm_hdr_def.h"*/
 
 static int orderShortBuffer(short *sbuf, int nbytes) ;
@@ -244,7 +245,7 @@ signaRead(char *fname, int read_volume_flag)
 static int
 orderShortBuffer(short *sbuf, int nbytes)
 {
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   int   i ;
 
   for (i = 0 ; i < nbytes ; i++, sbuf++)
