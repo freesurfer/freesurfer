@@ -384,6 +384,7 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
 #define MRI_WIDTH       1
 #define MRI_DEPTH       2
 
+#define MRI_UNDEFINED   -1
 #define MRI_CORONAL     0
 #define MRI_SAGITTAL    1
 #define MRI_HORIZONTAL  2
