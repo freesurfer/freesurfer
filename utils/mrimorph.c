@@ -11,8 +11,8 @@
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/02 22:08:37 $
-// Revision       : $Revision: 1.43 $
+// Revision Date  : $Date: 2004/11/22 19:33:29 $
+// Revision       : $Revision: 1.44 $
 */
 
 /*-----------------------------------------------------
@@ -1580,7 +1580,7 @@ writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n)
 
   sprintf(fname, "%s%3.3d_fsamples.mgh", parms->base_name, n) ;
 	printf("writing transformed samples to %s....\n", fname) ;
-	(LTA *)transform.xform = parms->lta ;
+	transform.xform = (void *)parms->lta ;
 	transform.type = LINEAR_VOX_TO_VOX ;
 	GCAtransformAndWriteSamples((GCA *)parms->vgca, mri, parms->gcas, parms->nsamples, fname, 
 															parms->transform) ;
