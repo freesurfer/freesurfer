@@ -1,8 +1,8 @@
-#!/bin/csh -f
+#!/bin/tcsh -f
 
 set inputargs = ($argv);
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set VERSION = '$Id: isxavg-re,v 1.2 2003/08/11 18:56:38 greve Exp $'
+set VERSION = '$Id: isxavg-re,v 1.3 2004/08/25 22:56:14 greve Exp $'
 
 # Set Default Values #
 set firstslice = 0;
