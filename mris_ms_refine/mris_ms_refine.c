@@ -20,7 +20,7 @@
 #include "histo.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.16 2003/11/03 19:36:31 fischl Exp $";
+static char vcid[] = "$Id: mris_ms_refine.c,v 1.17 2004/02/26 19:03:47 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -306,7 +306,7 @@ main(int argc, char *argv[])
   EXTRA_PARMS   ep ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.16 2003/11/03 19:36:31 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.17 2004/02/26 19:03:47 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -409,13 +409,13 @@ main(int argc, char *argv[])
     switch (sample_type)
     {
     case SAMPLE_TRILINEAR:
-      mri_flash[index] = MRIresample(mri, mri_template, RESAMPLE_INTERPOLATE) ;
+      mri_flash[index] = MRIresample(mri, mri_template, SAMPLE_TRILINEAR) ;
       break ;
     case SAMPLE_SINC:
-      mri_flash[index] = MRIresample(mri, mri_template, RESAMPLE_SINC) ;
+      mri_flash[index] = MRIresample(mri, mri_template, SAMPLE_SINC) ;
       break ;
     case SAMPLE_NEAREST:
-      mri_flash[index] = MRIresample(mri, mri_template, RESAMPLE_NEAREST) ;
+      mri_flash[index] = MRIresample(mri, mri_template, SAMPLE_NEAREST) ;
       break ;
     default:
       ErrorExit(ERROR_UNSUPPORTED, "%s: unsupported sample type %d",
@@ -441,12 +441,12 @@ main(int argc, char *argv[])
 
     if (mri_T1)
     {
-      mri_tmp = MRIresample(mri_T1, mri_template, RESAMPLE_INTERPOLATE) ;
+      mri_tmp = MRIresample(mri_T1, mri_template, SAMPLE_TRILINEAR) ;
       MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
     }
     if (mri_PD)
     {
-      mri_tmp = MRIresample(mri_PD, mri_template, RESAMPLE_INTERPOLATE) ;
+      mri_tmp = MRIresample(mri_PD, mri_template, SAMPLE_TRILINEAR) ;
       MRIfree(&mri_PD) ; mri_PD = mri_tmp ;
     }
   }
