@@ -7213,7 +7213,8 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
   v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
   v_Y = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
 
-  printf("MRIlinearTransformInterp: Applying transform\n");
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("MRIlinearTransformInterp: Applying transform\n");
 
   v_Y->rptr[4][1] = 1.0f ;
   for (y3 = 0 ; y3 < depth ; y3++)
@@ -7275,10 +7276,13 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
 
   mri_dst->ras_good_flag = 0;
 
-  printf("MRIlinearTransform: done\n");
-  printf("mri_dst:\n");
-  printf(" vox res: %g %g %g\n",mri_dst->xsize,mri_dst->ysize,mri_dst->zsize);
-  printf(" vox dim: %d %d %d\n",mri_dst->width,mri_dst->height,mri_dst->depth);
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+  {
+    printf("MRIlinearTransform: done\n");
+    printf("mri_dst:\n");
+    printf(" vox res: %g %g %g\n",mri_dst->xsize,mri_dst->ysize,mri_dst->zsize);
+    printf(" vox dim: %d %d %d\n",mri_dst->width,mri_dst->height,mri_dst->depth);
+  }
 
   return(mri_dst) ;
 }
