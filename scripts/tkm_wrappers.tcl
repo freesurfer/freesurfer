@@ -877,6 +877,7 @@ proc tkm_DoSubPercent { isPercent isString isSubstitution } {
 # -prompt[1..5] string: the prompt for the nth file
 # -type[1..5] file|dir: the type of selector (file by default)
 # -note[1..5] string:   a note to place under the prompt
+# -entry[1..5] string:  command that should eval to default field contents
 # -default[1..5] string:command that should evaluate to a default dir
 # -presets[1..5] list:  a list of preset directories to be available in the pdm
 # -okCmd string:        command to execute when okay button is hit. 
@@ -897,6 +898,7 @@ proc tkm_DoFileDlog { ilArgs } {
 	set tArgs(-prompt$nField) ""
 	set tArgs(-type$nField) "file"
 	set tArgs(-note$nField) ""
+	set tArgs(-entry$nField) ""
 	set tArgs(-default$nField) ""
 	set tArgs(-presets$nField) ""
 	set sFileName$nField ""
@@ -932,15 +934,15 @@ proc tkm_DoFileDlog { ilArgs } {
 	    # switch on the type for this field and create the approriate
 	    # selecter widget. bind it to sFileName[1..5]
 	    switch $tArgs(-type$nField) {
-		file { set sFileName$nField ""; \
+		file { set sFileName$nField [eval $tArgs(-entry$nField)]; \
 			   tkm_MakeFileSelector [set fwPrompt$nField] \
 			   "$tArgs(-prompt$nField)" sFileName$nField \
 			   $tArgs(-default$nField) $tArgs(-presets$nField)}
-		dir { set sFileName$nField ""; \
+		dir { set sFileName$nField [eval $tArgs(-entry$nField)]; \
 			  tkm_MakeDirectorySelector [set fwPrompt$nField] \
 			  "$tArgs(-prompt$nField)" sFileName$nField \
 			  $tArgs(-default$nField)  $tArgs(-presets$nField)}
-		text { set sFileName$nField $tArgs(-default$nField); \
+		text { set sFileName$nField $tArgs(-entry$nField); \
 			   tkm_MakeEntry [set fwPrompt$nField] \
 			   "$tArgs(-prompt$nField)" sFileName$nField }
 		default { continue; }
