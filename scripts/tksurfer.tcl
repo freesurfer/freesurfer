@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.46 2003/07/15 17:18:52 kteich Exp $
+# $Id: tksurfer.tcl,v 1.47 2003/07/31 21:12:35 kteich Exp $
 
 package require BLT;
 
@@ -4568,7 +4568,11 @@ set tDlogSpecs(LoadMainSurface) \
 	 -okCmd {
 	     set filename [ExpandFileName %s1 kFileName_Surface];
 	     read_surface_vertex_set 0 $filename;
-	     SetDefaultLocation LoadMainSurface %s1} ]
+	     SetDefaultLocation LoadMainSurface %s1;
+	     set gaLinkedVars(vertexset) 0;
+	     set_current_vertex_set $gaLinkedVars(vertexset);
+	     UpdateLinkedVarGroup view;
+	     UpdateAndRedraw} ]
 set tDlogSpecs(LoadInflatedSurface) \
     [list \
 	 -title "Load Inflated Vertices" \
@@ -4580,7 +4584,11 @@ set tDlogSpecs(LoadInflatedSurface) \
 	 -okCmd {
 	     set filename [ExpandFileName %s1 kFileName_Surface];
 	     read_surface_vertex_set 1 $filename;
-	     SetDefaultLocation LoadInflatedSurface %s1} ]
+	     SetDefaultLocation LoadInflatedSurface %s1;
+	     set gaLinkedVars(vertexset) 1;
+	     set_current_vertex_set $gaLinkedVars(vertexset);
+	     UpdateLinkedVarGroup view;
+	     UpdateAndRedraw} ]
 set tDlogSpecs(LoadWhiteSurface) \
     [list \
 	 -title "Load White Vertices" \
@@ -4592,7 +4600,11 @@ set tDlogSpecs(LoadWhiteSurface) \
 	 -okCmd {
 	     set filename [ExpandFileName %s1 kFileName_Surface];
 	     read_surface_vertex_set 2 $filename;
-	     SetDefaultLocation LoadWhiteSurface %s1} ]
+	     SetDefaultLocation LoadWhiteSurface %s1;
+	     set gaLinkedVars(vertexset) 2;
+	     set_current_vertex_set $gaLinkedVars(vertexset);
+	     UpdateLinkedVarGroup view;
+	     UpdateAndRedraw} ]
 set tDlogSpecs(LoadPialSurface) \
     [list \
 	 -title "Load Pial Vertices" \
@@ -4604,7 +4616,11 @@ set tDlogSpecs(LoadPialSurface) \
 	 -okCmd {
 	     set filename [ExpandFileName %s1 kFileName_Surface];
 	     read_surface_vertex_set 3 $filename;
-	     SetDefaultLocation LoadPialSurface %s1} ]
+	     SetDefaultLocation LoadPialSurface %s1;
+	     set gaLinkedVars(vertexset) 3;
+	     set_current_vertex_set $gaLinkedVars(vertexset);
+	     UpdateLinkedVarGroup view;
+	     UpdateAndRedraw} ]
 set tDlogSpecs(LoadOriginalSurface) \
     [list \
 	 -title "Load Original Vertices" \
@@ -4616,7 +4632,11 @@ set tDlogSpecs(LoadOriginalSurface) \
 	 -okCmd {
 	     set filename [ExpandFileName %s1 kFileName_Surface];
 	     read_surface_vertex_set 4 $filename;
-	     SetDefaultLocation LoadOriginalSurface %s1} ]
+	     SetDefaultLocation LoadOriginalSurface %s1;
+	     set gaLinkedVars(vertexset) 4;
+	     set_current_vertex_set $gaLinkedVars(vertexset);
+	     UpdateLinkedVarGroup view;
+	     UpdateAndRedraw} ]
 
 set tDlogSpecs(LoadTimeCourse) \
     [list \
