@@ -9,6 +9,7 @@ int    OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags,
 void   OGLUsetLightingModel(float lite0, float lite1, float lite2, 
                             float lite3, float newoffset) ;
 int    OGLUnoscale(void) ;
+int    OGLUsetFOV(int fov) ;
 
 #define SCALE_FACTOR       0.55f
 
