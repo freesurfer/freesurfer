@@ -112,7 +112,9 @@ int mri_identify(char *fname_passed)
 
   MRIgetVolumeName(fname_passed, fname);
 
-  if(is_cor(fname))
+  if (is_bruker(fname))
+    return(BRUKER_FILE);
+  else if(is_cor(fname))
     return(MRI_CORONAL_SLICE_DIRECTORY);
   else if(is_bshort(fname))
     return(BSHORT_FILE);
@@ -144,8 +146,6 @@ int mri_identify(char *fname_passed)
     return(OTL_FILE);
   else if(is_gdf(fname))
     return(GDF_FILE);
-  else if (is_bruker(fname))
-    return(BRUKER_FILE);
   else
     return(MRI_VOLUME_TYPE_UNKNOWN);
 
@@ -170,8 +170,6 @@ int is_cor(char *fname)
   base = basename(fname2);
   if(strncmp(base,"COR-",4) == 0)
     iscor = 1;
-  else // reset flag
-    iscor = 0;
 
   free(fname2);
 
