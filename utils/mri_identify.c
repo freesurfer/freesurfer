@@ -63,6 +63,10 @@ int string_to_type(char *string)
   int type = MRI_VOLUME_TYPE_UNKNOWN;
   char ls[STRLEN];
 
+  // no extension, then return 
+  if (strlen(string)==0)
+    return MRI_VOLUME_TYPE_UNKNOWN;
+
   strcpy(ls, string);
   StrLower(ls);
 
@@ -122,99 +126,107 @@ int mri_identify(char *fname_passed)
   // Before coming in here, @ and # have been processed
   // remove @ and # strings
   MRIgetVolumeName(fname_passed, fname);
-  // now get the extension
-  ext = strrchr(fname, '.');
-  ++ext; // now points to extension
-  // first use the extension to identify
-  type = string_to_type(ext);
-  ///////////////////////////////////////////////
-  // if type is found then verify
-  if (type != MRI_VOLUME_TYPE_UNKNOWN)
+
+  // check whether this is a directory
+  if (!fio_IsDirectory(fname)) // if not a directory, then do extension check
   {
-    switch(type)
-    {
-    case BRUKER_FILE:          // this cannot be identified by extension
-      if (is_bruker(fname))
-	return type;
-      break;
-    case MRI_CORONAL_SLICE_DIRECTORY:
-      if (is_cor(fname))
-	return type;
-      break;
-    case BSHORT_FILE:
-      if (is_bshort(fname))
-	return type;
-      break;
-    case BFLOAT_FILE:
-      if (is_bfloat(fname))
-	return type;
-      break;
-    case SIEMENS_DICOM_FILE:
-      if (IsSiemensDICOM(fname))
-	return type;
-      break;
-    case DICOM_FILE:
-      if (IsDICOM(fname))
-	return type;
-      break;
-    case GENESIS_FILE:
-      if (is_genesis(fname))
-	return type;
-      break;
-    case SIGNA_FILE:
-      if (is_signa(fname))
-	return type;
-      break;
-    case GE_LX_FILE:
-      if (is_ge_lx(fname))
-	return type;
-      break;
-    case SDT_FILE:
-      if (is_sdt(fname))
-	return type;
-      break;
-    case MRI_MGH_FILE:
-      if (is_mgh(fname))
-	return type;
-      break;
-    case MRI_MINC_FILE:
-      if (is_mnc(fname))
-	return type;
-      break;
-    case MRI_ANALYZE_FILE:
-      if (is_analyze(fname))
-	return type;
-      break;
-    case MRI_ANALYZE4D_FILE:
-      // must add is_analyze4d().  I have no idea what to do thus return
-      return type;
-      break;
-    case SIEMENS_FILE:
-      if (is_siemens(fname))
-	return type;
-      break;
-    case BRIK_FILE:
-      if (is_brik(fname))
-	return type;
-      break;
-    case OTL_FILE:
-      if (is_otl(fname))
-	return type;
-      break;
-    case GDF_FILE:
-      if (is_gdf(fname))
-	return type;
-      break;
-    case XIMG_FILE:
-      if (is_ximg(fname))
-	return type;
-      break;
-    case NIFTI1_FILE:
-      if (is_nifti1(fname))
-	return type;
-      break;
-    default:
-      break;
+    // now get the extension
+    ext = strrchr(fname, '.');
+    if (ext) // if found .
+    {  
+      ++ext; // now points to extension
+      // first use the extension to identify
+      type = string_to_type(ext);
+      ///////////////////////////////////////////////
+      // if type is found then verify
+      if (type != MRI_VOLUME_TYPE_UNKNOWN)
+      {
+	switch(type)
+	{
+	case BRUKER_FILE:          // this cannot be identified by extension
+	  if (is_bruker(fname))
+	    return type;
+	  break;
+	case MRI_CORONAL_SLICE_DIRECTORY:
+	  if (is_cor(fname))
+	    return type;
+	  break;
+	case BSHORT_FILE:
+	  if (is_bshort(fname))
+	    return type;
+	  break;
+	case BFLOAT_FILE:
+	  if (is_bfloat(fname))
+	    return type;
+	  break;
+	case SIEMENS_DICOM_FILE:
+	  if (IsSiemensDICOM(fname))
+	    return type;
+	  break;
+	case DICOM_FILE:
+	  if (IsDICOM(fname))
+	    return type;
+	  break;
+	case GENESIS_FILE:
+	  if (is_genesis(fname))
+	    return type;
+	  break;
+	case SIGNA_FILE:
+	  if (is_signa(fname))
+	    return type;
+	  break;
+	case GE_LX_FILE:
+	  if (is_ge_lx(fname))
+	    return type;
+	  break;
+	case SDT_FILE:
+	  if (is_sdt(fname))
+	    return type;
+	  break;
+	case MRI_MGH_FILE:
+	  if (is_mgh(fname))
+	    return type;
+	  break;
+	case MRI_MINC_FILE:
+	  if (is_mnc(fname))
+	    return type;
+	  break;
+	case MRI_ANALYZE_FILE:
+	  if (is_analyze(fname))
+	    return type;
+	  break;
+	case MRI_ANALYZE4D_FILE:
+	  // must add is_analyze4d().  I have no idea what to do thus return
+	  return type;
+	  break;
+	case SIEMENS_FILE:
+	  if (is_siemens(fname))
+	    return type;
+	  break;
+	case BRIK_FILE:
+	  if (is_brik(fname))
+	    return type;
+	  break;
+	case OTL_FILE:
+	  if (is_otl(fname))
+	    return type;
+	  break;
+	case GDF_FILE:
+	  if (is_gdf(fname))
+	    return type;
+	  break;
+	case XIMG_FILE:
+	  if (is_ximg(fname))
+	    return type;
+	  break;
+	case NIFTI1_FILE:
+	  if (is_nifti1(fname))
+	    return type;
+	  break;
+	default:
+	  break;
+	}
+      }
     }
   }
   //////////////////////////////////////////////////////////////
