@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.82 2005/02/17 19:53:30 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.83 2005/02/17 20:21:45 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2941,6 +2941,7 @@ proc UpdateCurrentViewProperties {} {
     global gaView
     global gaLayer
 
+    set sHighestLabel "None"
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 
 	# Get the current value of this layer.
@@ -2956,7 +2957,16 @@ proc UpdateCurrentViewProperties {} {
 	# Renable the callback.
 	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
 	    config -disablecallback 0
+
+	# Get the layer label.
+	if { $layerID > -1 } {
+	    set sHighestLabel [GetLayerLabel $layerID]
+	}
     }
+
+
+    # Put the title of the top layer in the window title bar.
+    wm title $gaWidget(window) "scuba: $sHighestLabel"
 }
 
 proc ViewPropertiesLevelVisibleCallback { inLevel } {
@@ -4594,7 +4604,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.82 2005/02/17 19:53:30 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.83 2005/02/17 20:21:45 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
