@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.64 2004/11/10 20:06:12 kteich Exp $
+# $Id: tksurfer.tcl,v 1.65 2004/12/12 00:50:33 kteich Exp $
 
 package require BLT;
 
@@ -984,6 +984,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	set cbwAll    $fwCopy.cbwAll
 	set fwFDR     $fwHisto.fwFDR
 	set bwFDR     $fwFDR.bwFDR
+	set cbFDRMarked $fwFDR.cbMarked
 	set ewFDRRate $fwFDR.ewFDRRate
 
 	label $lwHisto -text "Threshold" -font [tkm_GetLabelFont]
@@ -1078,10 +1079,16 @@ proc DoConfigOverlayDisplayDlog {} {
 	tkm_MakeButtons $bwFDR \
 	    [list \
 		 [list text "Set Threshold Using FDR" \
-		      {sclv_set_current_threshold_using_fdr $gFDRRate}]]
+		      {sclv_set_current_threshold_using_fdr $gFDRRate $gbFDRMarked}]]
+
 	tkm_MakeEntry $ewFDRRate "Rate" gFDRRate 4 {}
+
+	checkbutton $cbFDRMarked \
+	    -variable gbFDRMarked \
+	    -text "Only marked" \
+	    -font [tkm_GetNormalFont]
 	
-	pack $bwFDR $ewFDRRate \
+	pack $bwFDR $ewFDRRate $cbFDRMarked \
 	    -side left \
 	    -expand yes \
 	    -fill x

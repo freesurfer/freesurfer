@@ -1463,7 +1463,7 @@ int sclv_get_value_for_percentile              (int field, float percentile,
 						float* value);
 
 /* sets the threshold using FDR. */
-int sclv_set_threshold_using_fdr (int field, float rate);
+int sclv_set_threshold_using_fdr (int field, float rate, int only_marked);
 
 /* copies field settings from one field to another */
 int sclv_copy_view_settings_from_current_field (int field);
@@ -17939,8 +17939,8 @@ int W_sclv_copy_all_view_settings_from_current_field  WBEGIN
      ERR(4,"Wrong # args: sclv_set_current_threshold_from_percentile thresh mid slope")
      sclv_set_current_threshold_from_percentile(atof(argv[1]),atof(argv[2]),atof(argv[3]));  WEND
      int W_sclv_set_current_threshold_using_fdr  WBEGIN
-     ERR(2,"Wrong # args: sclv_set_current_threshold_using_fdr rate")
-     sclv_set_threshold_using_fdr(sclv_current_field,atof(argv[1]));  WEND
+     ERR(3,"Wrong # args: sclv_set_current_threshold_using_fdr rate marked")
+     sclv_set_threshold_using_fdr(sclv_current_field,atof(argv[1]),atoi(argv[2]));  WEND
      int W_sclv_send_histogram  WBEGIN
      ERR(2,"Wrong # args: sclv_send_histogram field")
      sclv_send_histogram(atoi(argv[1]));  WEND
@@ -18255,7 +18255,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.84 2004/11/18 19:56:38 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.85 2004/12/12 00:50:01 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22115,11 +22115,15 @@ int sclv_get_value_for_percentile (int field, float percentile, float* value)
   return (ERROR_NONE);
 }
 
-int sclv_set_threshold_using_fdr (int field, float rate)
+int sclv_set_threshold_using_fdr (int field, float rate, int only_marked)
 {
   double threshold;
   int err;
   int sign;
+  int *saved_undefval = NULL;
+  int vno;
+  int num_marked;
+  VERTEX* v;
 
   /* if they are truncating, they only want the positive or negative
      values. if inverse is on, they want the negative values, else
@@ -22133,12 +22137,49 @@ int sclv_set_threshold_using_fdr (int field, float rate)
       sign = 1;
   }
 
-  err = MRISfdr2vwth(mris, rate, sign, 1, 0, &threshold);
+  /* if we're only doing marked verts, go through the surface. save
+     undefval, set undefval to 1 if marked. */
+  if (only_marked)
+    {
+      saved_undefval = (int*) calloc (mris->nvertices, sizeof(int));
+      if (NULL == saved_undefval)
+	{
+	  ErrorReturn(ERROR_NO_MEMORY,(ERROR_NO_MEMORY,"sclv_set_threshold_using_fdr: couldn't allocated saved_undefval array\n"));
+	}
+      num_marked = 0;
+      for (vno = 0; vno < mris->nvertices; vno++)
+	{
+	  v = &mris->vertices[vno];
+	  saved_undefval[vno] = v->undefval;
+	  if (v->marked)
+	    v->undefval = 1;
+	  else
+	    v->undefval = 0;
+	}
+    }
+
+  /* call the fdr function. we pass our surface, the rate, the sign we
+     got before, only_marked for masked (we set undefval before), and
+     get the threshold back. */
+  err = MRISfdr2vwth(mris, rate, sign, 1, only_marked, &threshold);
   if( err ){
     printf ("surfer: Error calculating threshold with FDR.\n");
+    if (only_marked) free (saved_undefval);
     return (err);
   }
 
+  /* we we're only doing marked verts, go through and restore the
+     undefval values. */
+  if (only_marked)
+    {
+      for (vno = 0; vno < mris->nvertices; vno++)
+	{
+	  v = &mris->vertices[vno];
+	  v->undefval = saved_undefval[vno];
+	}
+      free (saved_undefval);
+    }
+  
   sclv_field_info[field].fthresh = threshold;
   sclv_field_info[field].fmid = threshold + 1.5; 
   sclv_field_info[field].fslope = 0.66; 
@@ -24679,9 +24720,9 @@ int save_tiff (char* fname)
   GLboolean swapbytes, lsbfirst;
   GLubyte* pixel_data = NULL;
   GLenum gl_error;
-  TIFF *tiff;
+  TIFF *tiff = NULL;
   tsize_t line_bytes;
-  unsigned char* line_buffer;
+  unsigned char* line_buffer = NULL;
   int scan_line_size;
   int strip_size;
   int row;
