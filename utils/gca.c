@@ -3516,7 +3516,24 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
           min_ll = new_ll ; label = gcan->labels[n] ;
         }
       }
-      if (label != old_label)
+#if 0
+      if (x == 153 && y == 120 && z == 113) /* wm gets changed to gm */
+      {
+        printf("(%d, %d, %d): old label %d, new label %d (p=%2.3f)\n",
+               x, y, z, old_label, label, min_ll) ;
+        if (label == Left_Cerebral_Cortex)
+          DiagBreak() ;
+      }
+#endif
+#if 1
+      if (((old_label == Left_Cerebral_White_Matter) && 
+          (label == Left_Cerebral_Cortex)) ||
+          ((old_label == Right_Cerebral_White_Matter) && 
+           (label == Right_Cerebral_Cortex)))  /* don't let wm become gm */
+        label = old_label ;
+#endif
+        if (label != old_label)
+
       {
         nchanged++ ;
         MRIvox(mri_changed, x, y, z) = 1 ;
@@ -3525,15 +3542,6 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
         MRIvox(mri_changed, x, y, z) = 0 ;
       MRIvox(mri_dst, x, y, z) = label ;
       
-#if 0
-      if (x == 156 && y == 124 && z == 135)  /* wm should be amygdala */
-      {
-        printf("(%d, %d, %d): old label %d, new label %d (p=%2.3f)\n",
-               x, y, z, old_label, label, min_ll) ;
-        if (label == 51)
-          DiagBreak() ;
-      }
-#endif
       
     }
     if (nchanged > 10000 && iter < 2)
@@ -4071,6 +4079,7 @@ gcaReclassifyVoxel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
   MRIvox(mri_labels, x, y, z) = new_label ;
   return(NO_ERROR) ;
 }
+#define MAX_VENTRICLE_ITERATIONS  10
 MRI *
 GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                    MRI *mri_dst, LTA *lta, int target_label)
@@ -4174,7 +4183,7 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
     }
     MRIcopy(mri_tmp, mri_dst) ;
     total_changed += nchanged ;
-    if (++i >= 3)
+    if (++i > MAX_VENTRICLE_ITERATIONS)
       break ;
   } while (nchanged > 0) ;
 
@@ -4598,7 +4607,7 @@ GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
   } 
 
   MRIfree(&mri_tmp) ;
-  printf("%d labels changed ...\n", total_changed) ;
+  printf("%d border labels changed to MLE ...\n", total_changed) ;
   return(mri_dst) ;
 }
 static int
@@ -4720,4 +4729,374 @@ gcaComputeLabelStats(GCA *gca, int target_label, float *pvar)
   if (pvar)
     *pvar = var ;
   return(mean) ;
+}
+int
+GCAaccumumateTissueStatistics(GCA *gca, MRI *mri_T1,MRI *mri_PD,
+                              MRI *mri_labeled, LTA *lta)
+{
+  int              x, y, z, n, label, biggest_label, T1, PD, xp, yp, zp ;
+  GCA_NODE         *gcan ;
+  GCA_TISSUE_PARMS *gca_tp ;
+  VECTOR           *v_parc, *v_T1 ;
+  static VECTOR *v_ras_cor = NULL, *v_ras_flash ;
+  MATRIX           *m_L ;
+  
+  v_parc = VectorAlloc(4, MATRIX_REAL) ;
+  v_T1 = VectorAlloc(4, MATRIX_REAL) ;
+  *MATRIX_RELT(v_parc, 4, 1) = 1.0 ;
+  *MATRIX_RELT(v_T1, 4, 1) = 1.0 ;
+
+  /* first build a list of all labels that exist */
+  for (biggest_label = x = 0 ; x < gca->width ; x++)
+  {
+    for (y = 0 ; y < gca->height ; y++)
+    {
+      for (z = 0 ; z < gca->height ; z++)
+      {
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          gca->tissue_parms[(int)gcan->labels[n]].label = gcan->labels[n] ;
+          if (gcan->labels[n] > biggest_label)
+            biggest_label = gcan->labels[n] ;
+        }
+      }
+    }
+  }
+
+  if (lta)
+    m_L = lta->xforms[0].m_L ;
+  else
+    m_L = NULL ;
+
+  for (label = 0 ; label <= biggest_label ; label++)
+  {
+    if (gca->tissue_parms[label].label <= 0)
+      continue ;
+    gca_tp = &gca->tissue_parms[label] ;
+    
+    for (z = 0 ; z < mri_T1->depth ; z++)
+    {
+      V3_Z(v_parc) = z ;
+      for (y = 0 ; y < mri_T1->height ; y++)
+      {
+        V3_Y(v_parc) = y ;
+        for (x = 0 ; x < mri_T1->width ; x++)
+        {
+          if (MRIvox(mri_labeled, x, y, z) != label)
+            continue ;
+          if (lta)
+          {
+            MATRIX *m_tmp ;
+            V3_X(v_parc) = x ;
+            MatrixMultiply(m_L, v_parc, v_T1) ;
+            xp = nint(V3_X(v_T1)) ; yp = nint(V3_Y(v_T1)) ; 
+            zp = nint(V3_Z(v_T1)) ;
+            
+            m_tmp = MRIgetVoxelToRasXform(mri_labeled) ;
+            v_ras_cor = MatrixMultiply(m_tmp, v_parc, v_ras_cor);
+            MatrixFree(&m_tmp) ;
+            m_tmp = MRIgetVoxelToRasXform(mri_T1) ;
+            v_ras_flash = MatrixMultiply(m_tmp, v_T1, v_ras_flash);
+            MatrixFree(&m_tmp) ;
+            if (!x && !y && !z && 0)
+            {
+              MatrixPrint(stdout, v_ras_cor) ;
+              MatrixPrint(stdout, v_ras_flash) ;
+            }
+
+            if ((xp < 0 || xp >= mri_T1->width) ||
+                (yp < 0 || yp >= mri_T1->height) ||
+                (zp < 0 || zp >= mri_T1->depth))
+              continue ;
+          }
+          else
+          {
+            xp = x ; yp = y ; zp = z ;
+          }
+
+          T1 = MRISvox(mri_T1, xp, yp, zp) ;
+          PD = MRISvox(mri_PD, xp, yp, zp) ;
+          gca_tp->total_training++ ;
+          gca_tp->T1_mean += T1 ;
+          gca_tp->T1_var += T1*T1 ;
+          gca_tp->PD_mean += PD ;
+          gca_tp->PD_var += PD*PD ;
+        }
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+int
+GCAnormalizeTissueStatistics(GCA *gca)
+{
+  int              n ;
+  double           nsamples ;
+  GCA_TISSUE_PARMS *gca_tp ;
+
+  for (n = 0 ; n < MAX_GCA_LABELS ; n++)
+  {
+    gca_tp = &gca->tissue_parms[n] ;
+    if (gca_tp->total_training <= 0)
+      continue ;
+    nsamples = gca_tp->total_training ;
+    gca_tp->T1_mean /= nsamples ;
+    gca_tp->PD_mean /= nsamples ;
+    gca_tp->T2_mean /= nsamples ;
+    gca_tp->T1_var = 
+      gca_tp->T1_var / nsamples - gca_tp->T1_mean*gca_tp->T1_mean;
+    gca_tp->PD_var = 
+      gca_tp->PD_var / nsamples - gca_tp->PD_mean*gca_tp->PD_mean;
+    printf("%30.30s: T1=%4d +- %4d, PD=%4d +- %4d \n", 
+           cma_label_to_name(n), 
+           nint(gca_tp->T1_mean), nint(sqrt(gca_tp->T1_var)),
+           nint(gca_tp->PD_mean), nint(sqrt(gca_tp->PD_var))) ;
+  }
+
+  return(NO_ERROR) ;
+}
+
+
+char *
+cma_label_to_name(int label)
+{
+  static char name[100] ;
+
+  if (label == Unknown)
+    return("Unknown") ;
+  if (label == Left_Cerebral_Exterior)
+    return("Left_Cerebral_Exterior") ;
+  if (label == Left_Cerebral_White_Matter)
+    return("Left_Cerebral_White_Matter") ;
+  if (label == Left_Cerebral_Cortex)
+    return("Left_Cerebral_Cortex") ;
+  if (label == Left_Lateral_Ventricle)
+    return("Left_Lateral_Ventricle") ;
+  if (label == Left_Inf_Lat_Vent)
+    return("Left_Inf_Lat_Vent") ;
+  if (label == Left_Cerebellum_Exterior)
+    return("Left_Cerebellum_Exterior") ;
+  if (label == Left_Cerebellum_White_Matter)
+    return("Left_Cerebellum_White_Matter") ;
+  if (label == Left_Cerebellum_Cortex)
+    return("Left_Cerebellum_Cortex") ;
+  if (label == Left_Thalamus)
+    return("Left_Thalamus") ;
+  if (label == Left_Thalamus_Proper)
+    return("Left_Thalamus_Proper") ;
+  if (label == Left_Caudate)
+    return("Left_Caudate") ;
+  if (label == Left_Putamen)
+    return("Left_Putamen") ;
+  if (label == Left_Pallidum)
+    return("Left_Pallidum") ;
+  if (label == Third_Ventricle)
+    return("Third_Ventricle") ;
+  if (label == Fourth_Ventricle)
+    return("Fourth_Ventricle") ;
+  if (label == Brain_Stem)
+    return("Brain_Stem") ;
+  if (label == Left_Hippocampus)
+    return("Left_Hippocampus") ;
+  if (label == Left_Amygdala)
+    return("Left_Amygdala") ;
+  if (label == Left_Insula)
+    return("Left_Insula") ;
+  if (label == Left_Operculum)
+    return("Left_Operculum") ;
+  if (label == Line_1)
+    return("Line_1") ;
+  if (label == Line_2)
+    return("Line_2") ;
+  if (label == Line_3)
+    return("Line_3") ;
+  if (label == CSF)
+    return("CSF") ;
+  if (label == Left_Lesion)
+    return("Left_Lesion") ;
+  if (label == Left_Accumbens_area)
+    return("Left_Accumbens_area") ;
+  if (label == Left_Substancia_Nigra)
+    return("Left_Substancia_Nigra") ;
+  if (label == Left_VentralDC)
+    return("Left_VentralDC") ;
+  if (label == Left_undetermined)
+    return("Left_undetermined") ;
+  if (label == Left_vessel)
+    return("Left_vessel") ;
+  if (label == Left_choroid_plexus)
+    return("Left_choroid_plexus") ;
+  if (label == Left_F3orb)
+    return("Left_F3orb") ;
+  if (label == Left_lOg)
+    return("Left_lOg") ;
+  if (label == Left_aOg)
+    return("Left_aOg") ;
+  if (label == Left_mOg)
+    return("Left_mOg") ;
+  if (label == Left_pOg)
+    return("Left_pOg") ;
+  if (label == Left_Stellate)
+    return("Left_Stellate") ;
+  if (label == Left_Porg)
+    return("Left_Porg") ;
+  if (label == Left_Aorg)
+    return("Left_Aorg") ;
+  if (label == Right_Cerebral_Exterior)
+    return("Right_Cerebral_Exterior") ;
+  if (label == Right_Cerebral_White_Matter)
+    return("Right_Cerebral_White_Matter") ;
+  if (label == Right_Cerebral_Cortex)
+    return("Right_Cerebral_Cortex") ;
+  if (label == Right_Lateral_Ventricle)
+    return("Right_Lateral_Ventricle") ;
+  if (label == Right_Inf_Lat_Vent)
+    return("Right_Inf_Lat_Vent") ;
+  if (label == Right_Cerebellum_Exterior)
+    return("Right_Cerebellum_Exterior") ;
+  if (label == Right_Cerebellum_White_Matter)
+    return("Right_Cerebellum_White_Matter") ;
+  if (label == Right_Cerebellum_Cortex)
+    return("Right_Cerebellum_Cortex") ;
+  if (label == Right_Thalamus)
+    return("Right_Thalamus") ;
+  if (label == Right_Thalamus_Proper)
+    return("Right_Thalamus_Proper") ;
+  if (label == Right_Caudate)
+    return("Right_Caudate") ;
+  if (label == Right_Putamen)
+    return("Right_Putamen") ;
+  if (label == Right_Pallidum)
+    return("Right_Pallidum") ;
+  if (label == Right_Hippocampus)
+    return("Right_Hippocampus") ;
+  if (label == Right_Amygdala)
+    return("Right_Amygdala") ;
+  if (label == Right_Insula)
+    return("Right_Insula") ;
+  if (label == Right_Operculum)
+    return("Right_Operculum") ;
+  if (label == Right_Lesion)
+    return("Right_Lesion") ;
+  if (label == Right_Accumbens_area)
+    return("Right_Accumbens_area") ;
+  if (label == Right_Substancia_Nigra)
+    return("Right_Substancia_Nigra") ;
+  if (label == Right_VentralDC)
+    return("Right_VentralDC") ;
+  if (label == Right_undetermined)
+    return("Right_undetermined") ;
+  if (label == Right_vessel)
+    return("Right_vessel") ;
+  if (label == Right_choroid_plexus)
+    return("Right_choroid_plexus") ;
+  if (label == Right_F3orb)
+    return("Right_F3orb") ;
+  if (label == Right_lOg)
+    return("Right_lOg") ;
+  if (label == Right_aOg)
+    return("Right_aOg") ;
+  if (label == Right_mOg)
+    return("Right_mOg") ;
+  if (label == Right_pOg)
+    return("Right_pOg") ;
+  if (label == Right_Stellate)
+    return("Right_Stellate") ;
+  if (label == Right_Porg)
+    return("Right_Porg") ;
+  if (label == Right_Aorg)
+    return("Right_Aorg") ;
+  sprintf(name, "UNKNOWN (%d)", label) ;
+  return(name) ;
+}
+MRI *
+GCArelabel_cortical_gray_and_white(GCA *gca, MRI *mri_inputs, 
+                                   MRI *mri_src, MRI *mri_dst,LTA *lta)
+{
+  int      nchanged, x, y, z, width, height, depth, total_changed,
+           label, xn, yn, zn, left, new_wm, new_gray ;
+  MRI      *mri_tmp ;
+  GCA_NODE *gcan ;
+  float    wm_mean, wm_var, gray_mean, gray_var, gray_dist, wm_dist, val ;
+
+  if (mri_src != mri_dst)
+    mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+  mri_tmp = MRIcopy(mri_dst, NULL) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+
+  total_changed = new_wm = new_gray = 0 ;
+  do
+  {
+    nchanged = 0 ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == 99 && y == 129 && z == 127)
+            DiagBreak() ;  /* gray should be wm */
+          if (x == 153 && y == 124 && z == 121)
+            DiagBreak() ;  /* gm should be wm */
+
+          label = MRIvox(mri_src, x, y, z) ;
+          if (label != Left_Cerebral_Cortex && 
+              label != Left_Cerebral_White_Matter &&
+              label != Right_Cerebral_Cortex && 
+              label != Right_Cerebral_White_Matter)
+            continue ;
+
+          val = (float)MRIvox(mri_inputs, x, y, z) ;
+          GCAsourceVoxelToNode(gca, mri_dst, lta, x, y, z, &xn, &yn, &zn) ;
+          gcan = &gca->nodes[xn][yn][zn] ;
+          if (label == Left_Cerebral_Cortex || 
+              label == Left_Cerebral_White_Matter)
+          {
+            left = 1 ;
+            gray_mean = getLabelMean(gcan, Left_Cerebral_Cortex, &gray_var) ;
+            wm_mean = getLabelMean(gcan,Left_Cerebral_White_Matter,&wm_var);
+          }
+          else
+          {
+            left = 0 ;
+            gray_mean = getLabelMean(gcan, Right_Cerebral_Cortex, &gray_var) ;
+            wm_mean =getLabelMean(gcan,Right_Cerebral_White_Matter,&wm_var);
+          }
+#if 0
+          gray_dist = fabs(gray_mean - val) / sqrt(gray_var) ;
+          wm_dist = fabs(wm_mean - val) / sqrt(wm_var) ;
+#else
+          gray_dist = fabs(gray_mean - val) ;
+          wm_dist = fabs(wm_mean - val) ;
+#endif
+          if (gray_dist < wm_dist)
+            label = left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
+          else
+            label = 
+              left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
+          if (label != MRIvox(mri_dst, x, y, z))
+          {
+            if (label == Left_Cerebral_Cortex ||label == Right_Cerebral_Cortex)
+              new_gray++ ;
+            else
+              new_wm++ ;
+            nchanged++ ;
+            MRIvox(mri_tmp, x, y, z) = label ;
+          }
+        }
+      }
+    }
+    MRIcopy(mri_tmp, mri_dst) ;
+    total_changed += nchanged ;
+  } while (nchanged > 0) ;
+
+  MRIfree(&mri_tmp) ;
+  printf("%d gm and wm labels changed (%%%2.0f to gray, %%%2.0f to white)\n", 
+         total_changed, 100.0f*(float)new_gray/total_changed,
+         100.0f*(float)new_wm/total_changed) ;
+  return(mri_dst) ;
 }
