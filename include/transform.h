@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/07/30 21:07:11 $                                             */
-/* Revision       : $Revision: 1.29 $                                         */
+/* Revision Author: $Author: fischl $                                           */
+/* Revision Date  : $Date: 2004/11/15 19:14:57 $                                             */
+/* Revision       : $Revision: 1.30 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -124,6 +124,7 @@ int       TransformSampleInverseVoxel(TRANSFORM *transform, int width, int heigh
                                       int *px, int *py, int *pz) ;
 TRANSFORM *TransformAlloc(int type, MRI *mri) ;
 int       TransformInvert(TRANSFORM *transform, MRI *mri) ;
+int       TransformSwapInverse(TRANSFORM *transform) ;
 MRI       *TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 MRI       *TransformApplyType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int interp_type) ;
 MRI       *TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
