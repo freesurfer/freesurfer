@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.25 2002/11/12 19:53:57 brucefis Exp $
+   $Id: DICOMRead.c,v 1.26 2002/12/03 21:04:55 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -78,6 +78,8 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   unsigned short *pixeldata;
   MRI *vol;
   char **SeriesList;
+  char *tmpstring;
+  int Maj, Min, MinMin;
 
   slice = 0; frame = 0; /* to avoid compiler warnings */
 
@@ -159,8 +161,17 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   vol->flip_angle  = sdfi->FlipAngle;
   if(! sdfi->IsMosaic )
     vol->tr    = sdfi->RepetitionTime;
-  else
-    vol->tr    = sdfi->RepetitionTime * (sdfi->VolDim[2]) / 1000.0; /* Plus Gap */
+  else{
+    /* The TR definition will depend upon the software version */
+    tmpstring = sdcmExtractNumarisVer(sdfi->NumarisVer, &Maj, &Min, &MinMin);
+    if(tmpstring == NULL) return(NULL);
+    free(tmpstring);
+    if(Min == 1 && MinMin <= 6)
+      vol->tr = sdfi->RepetitionTime * (sdfi->VolDim[2]) / 1000.0; 
+    else
+      vol->tr  = sdfi->RepetitionTime / 1000.0; 
+    /* Need to add any gap (eg, as in a hammer sequence */
+  }
 
   /* Return now if we're not loading pixel data */
   if(!LoadVolume) return(vol);
@@ -957,6 +968,12 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   tag=DCM_MAKETAG(0x8, 0x31);
   cond=GetString(&object, tag, &sdcmfi->AcquisitionTime);
 
+  tag=DCM_MAKETAG(0x8, 0x1090);
+  cond=GetString(&object, tag, &sdcmfi->ScannerModel);
+
+  tag=DCM_MAKETAG(0x18, 0x1020);
+  cond=GetString(&object, tag, &sdcmfi->NumarisVer);
+
   tag=DCM_MAKETAG(0x18, 0x24);
   cond=GetString(&object, tag, &sdcmfi->PulseSequence);
   if(cond != DCM_NORMAL){ sdcmfi->ErrorFlag = 1; }
@@ -979,6 +996,10 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   tag=DCM_MAKETAG(0x18, 0x86);
   cond=GetUSFromString(&object, tag, &ustmp);
   sdcmfi->EchoNo = (int) ustmp;
+
+  tag=DCM_MAKETAG(0x18, 0x1020);
+  cond=GetDoubleFromString(&object, tag, &dtmp);
+
 
   tag=DCM_MAKETAG(0x18, 0x1314);
   cond=GetDoubleFromString(&object, tag, &dtmp);
@@ -1065,6 +1086,8 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi)
 {
   fprintf(fp,"FileName          %s\n",sdcmfi->FileName);
+  fprintf(fp,"NumarisVer        %s\n",sdcmfi->NumarisVer);
+  fprintf(fp,"ScannerModel      %s\n",sdcmfi->ScannerModel);
   fprintf(fp,"PatientName       %s\n",sdcmfi->PatientName);
   fprintf(fp,"StudyDate         %s\n",sdcmfi->StudyDate);
   fprintf(fp,"StudyTime         %s\n",sdcmfi->StudyTime);
@@ -1110,6 +1133,7 @@ int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi)
   return(0);
 }
 
+/*-----------------------------------------------------------------*/
 int FreeSDCMFileInfo(SDCMFILEINFO **ppsdcmfi)
 {
   SDCMFILEINFO *p;
@@ -1128,6 +1152,69 @@ int FreeSDCMFileInfo(SDCMFILEINFO **ppsdcmfi)
 
   free(*ppsdcmfi);
   return(0);
+}
+/*-----------------------------------------------------------------
+  sdcmExtractNumarisVer() - extacts the NUMARIS version string. The
+  string can be something like "syngo MR 2002B 4VA21A", in which case
+  only the last string is the actual version string. Or it can look
+  like "4VA12B". In either case, the last string is the version
+  string. The input is the string obtained from DICOM element
+  (18,1020). The Major number is the first number in the string. The
+  Minor number is the number after VA.  The MinorMinor number is the
+  number the Minor.
+  -------------------------------------------------------------------*/
+char *sdcmExtractNumarisVer(char *e_18_1020, int *Maj, int *Min, int *MinMin)
+{
+  int l,n,m;
+  char *ver;
+
+  l = strlen(e_18_1020);
+  if(l < 6){
+    printf("ERROR: incorreclty formatted version string %s\n"
+	   "found in dicom tag 18,1020 (string len < 6)\n",e_18_1020);
+    return(NULL); 
+  }
+
+  /* dont copy blanks at the end */
+  n=l-1;
+  while(n >= 0 && e_18_1020[n] == ' ') n--;
+  if(n < 0){
+    printf("ERROR: incorreclty formatted version string %s\n"
+	   "found in dicom tag 18,1020 (all blanks)\n",e_18_1020);
+    return(NULL);
+  }
+
+  /* count length of the first non-blank string */
+  m=0;
+  while(n >= 0 && e_18_1020[n] != ' '){
+    m++;
+    n--;
+  }
+  n++;
+
+  if(m != 6){
+    printf("ERROR: incorreclty formatted version string %s\n"
+	   "found in dicom tag 18,1020 (len = %d != 6)\n",e_18_1020,m);
+    return(NULL);
+  }
+
+  ver = (char *) calloc(sizeof(char),m+1);
+  strncpy(ver,&e_18_1020[n],m);
+
+  /* Now determine major and minor release numbers */
+  if(ver[1] != 'V' || ver[2] != 'A'){
+    printf("ERROR: incorreclty formatted version string %s\n"
+	   "found in dicom tag 18,1020 (VA not in 2nd and 3rd)\n",
+	   e_18_1020);
+    return(NULL);
+  }
+
+  *Maj    = ver[0] - 48;
+  *Min    = ver[3] - 48;
+  *MinMin = ver[4] - 48;
+  //printf("Maj = %d, Min = %d, MinMin = %d\n",*Maj,*Min,*MinMin);
+
+  return(ver);
 }
 /*--------------------------------------------------------------------
   ScanSiemensDCMDir() - similar to ScanDir but returns only files that
