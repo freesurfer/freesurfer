@@ -30,7 +30,9 @@ int     ErrorPrintf(int ecode, char *fmt, ...) ;
 #define ERROR_NO_MEMORY       -2
 #define ERROR_UNSUPPORTED     -3
 #define ERROR_BADPARM         -4
+#define ERROR_BAD_PARM        ERROR_BADPARM
 #define ERROR_BADFILE         -5
+#define ERROR_BAD_FILE        ERROR_BADFILE
 #define ERROR_SIZE            -6
 
 #endif
