@@ -25514,8 +25514,9 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
     free(dl->defects[i].border) ;
   }
   free(dl) ;
-	printf("%ld mutations (%2.1f%%), %ld crossovers (%2.1f%%)\n",
-				 nmut, (float)nmut*100/(nmut+ncross), ncross, (float)ncross*100/(nmut+ncross)) ;
+	if (nmut + ncross > 0)
+		printf("%ld mutations (%2.1f%%), %ld crossovers (%2.1f%%)\n",
+					 nmut, (float)nmut*100/(nmut+ncross), ncross, (float)ncross*100/(nmut+ncross)) ;
   return(mris_corrected) ;
 }
 static int
@@ -27773,10 +27774,12 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
   fprintf(stdout, "retessellating planar representation...\n") ;
 #endif
 
-	mrisComputeOptimalRetessellation(mris, mris_corrected,mri, defect, vertex_trans,et, nedges,
-																	 h_k1,h_k2,h_white, h_gray, h_border, h_grad, mri_gray_white,
-																	 h_dot, parms) ;
-	/*	mrisRetessellateDefect(mris, mris_corrected, defect, vertex_trans, et, nedges, NULL, NULL);*/
+	if (getenv("USE_GA_TOPOLOGY_CORRECTION") != NULL)
+		mrisComputeOptimalRetessellation(mris, mris_corrected,mri, defect, vertex_trans,et, nedges,
+																		 h_k1,h_k2,h_white, h_gray, h_border, h_grad, mri_gray_white,
+																		 h_dot, parms) ;
+	else
+		mrisRetessellateDefect(mris, mris_corrected, defect, vertex_trans, et, nedges, NULL, NULL);
 
   free(et) ;
   defect_no++ ;     /* for diagnostics */

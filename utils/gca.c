@@ -10440,3 +10440,50 @@ GCAlabelCovariance(GCA *gca, int label, MATRIX *m_total)
   return(m_total) ;
 }
 
+int
+GCAlabelMeanFromImage(GCA *gca, TRANSFORM *transform, MRI *mri, int label, float *means)
+{
+  int       xn, yn, zn, n, r, xv, yv, zv ;
+  GCA_NODE  *gcan ;
+  GC1D      *gc ;
+  double    wt, val ;
+  float     prior ;
+ double MIN_MEAN_PRIOR = 0.5 ;
+
+  /* compute overall white matter mean to use as anchor for rescaling */
+	memset(means, 0, gca->ninputs*sizeof(float)) ;
+  for (wt = 0.0, zn = 0 ; zn < gca->node_depth ; zn++)
+  {
+    for (yn = 0 ; yn < gca->node_height ; yn++)
+    {
+      for (xn = 0 ; xn < gca->node_width ; xn++)
+      {
+        gcan = &gca->nodes[xn][yn][zn] ;
+				GCAnodeToSourceVoxel(gca, mri, transform, xn, yn, zn, &xv, &yv, &zv) ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          /* find index in lookup table for this label */
+          if (gcan->labels[n] != label)
+            continue ;
+          gc = &gcan->gcs[n] ;
+          prior = get_node_prior(gca, label, xn, yn, zn) ;
+					if (prior < MIN_MEAN_PRIOR)
+						continue ;
+          wt += prior ;
+					for (r = 0 ; r < gca->ninputs ; r++)
+					{
+						MRIsampleVolumeFrame(mri, xv, yv, zv, r, &val) ;
+						means[r] += val*prior ;
+						if (!finite(gc->means[r]))
+							DiagBreak() ;
+					}
+                           
+        }
+      }
+    }
+  }
+	for (r = 0 ; r < gca->ninputs ; r++)
+		means[r] /= wt ;
+  return(NO_ERROR) ;
+}
+
