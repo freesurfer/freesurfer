@@ -56,7 +56,7 @@ mni_includes=""
 # default path for mni tools
 ##############################################################
 mghdir=/usr/pubsw/
-if [(-d $mghdir)] then
+if [ [ -d $mghdir ] ]; then
   ac_mni_includes=$mghdir/include
   ac_mni_libraries=$mghdir/lib
   ac_mni_bin=$mghdir/bin
@@ -115,7 +115,6 @@ AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h limits.h locale.h malloc.h memory.
 AC_CHECK_HEADERS(sys/types.h stdint.h)
 
 # Checks for typedefs, structures, and compiler characteristics.
-AC_HEADER_STDBOOL
 AC_C_CONST
 AC_C_INLINE
 AC_TYPE_MODE_T
@@ -132,7 +131,6 @@ AC_FUNC_LSTAT
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MALLOC
 AC_FUNC_MMAP
-AC_FUNC_REALLOC
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_FUNC_STAT
