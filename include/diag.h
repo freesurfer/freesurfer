@@ -27,6 +27,7 @@ unsigned long  DiagInit(char *fname,
 
 int  DiagPrintf(unsigned long diag_bits, char *fmt, ...) ;
 void DiagBreak(void) ;  /* dummy for break points in debugger */
+void DiagHeartbeat(float pct_done) ;
 
 /* diagnostic codes */
 #define DIAG_LP         0x00000001L   /* license plate detection diagnostics */
@@ -43,6 +44,7 @@ void DiagBreak(void) ;  /* dummy for break points in debugger */
 #define DIAG_CONGRAPH   0x00000800L
 #define DIAG_BACKPROP   0x00001000L
 #define DIAG_LOGDIFF    0x00002000L
+#define DIAG_HEARTBEAT  0x00004000L
 
 #define DIAG_WAIT    0x08000000L
 #define DIAG_VERBOSE 0x10000000L   /* allows 2 levels for each type */
