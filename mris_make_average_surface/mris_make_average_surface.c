@@ -16,7 +16,7 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.7 2003/09/05 04:45:42 kteich Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.8 2003/09/22 18:59:27 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -42,11 +42,11 @@ main(int argc, char *argv[])
   VERTEX       *v ;
   MRI_SURFACE  *mris, *mris_ico ;
   MRI_SP       *mrisp, *mrisp_total ;
-	LTA          *lta ;
-	MRI          *mri ;
+  LTA          *lta ;
+  MRI          *mri ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.7 2003/09/05 04:45:42 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.8 2003/09/22 18:59:27 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -107,7 +107,7 @@ main(int argc, char *argv[])
 #if 0
     MRIStalairachTransform(mris, mris, lta) ;
 #else
-		MRIStransform(mris, mri, lta) ;
+    MRIStransform(mris, mri, lta) ;
 #endif
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
@@ -162,16 +162,17 @@ main(int argc, char *argv[])
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr,"writing average orig surface to to %s\n", fname);
   MRISwrite(mris_ico,  fname) ;
-	{
-		char path[STRLEN] ;
-		LTA  *lta ;
-
-		FileNamePath(fname, path) ;
-		lta = LTAalloc(1, NULL) ;
-		sprintf(fname, "%s/../mri/transforms/%s", path,xform_name) ;
-		LTAwrite(lta, fname) ;
-		LTAfree(&lta) ;
-	}
+  {
+    char path[STRLEN] ;
+    LTA  *lta ;
+    
+    FileNamePath(fname, path) ;
+    lta = LTAalloc(1, NULL) ;
+    // write to a different location
+    sprintf(fname, "%s/../mri/transforms/%s", path,xform_name) ;
+    LTAwriteEx(lta, fname) ;
+    LTAfree(&lta) ;
+  }
 
   MRISfree(&mris_ico) ;
   MRISPfree(&mrisp_total) ;
