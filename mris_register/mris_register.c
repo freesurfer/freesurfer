@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.2 1998/01/27 00:23:46 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.3 1998/02/27 20:57:42 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -24,7 +24,7 @@ static void print_version(void) ;
 
 static int max_passes = 4 ;
 static int nbrs = 2 ;
-static float scale = 0.1f ;
+static float scale = 1.0f ;
 
 char *Progname ;
 static char curvature_fname[100] = "" ;
@@ -45,13 +45,15 @@ main(int argc, char *argv[])
 
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = PROJECT_SPHERE ;
-  parms.tol = 1e-1 ;
+  parms.tol = 1e-2 ;
   parms.min_averages = 0 ;
-  parms.l_dist = 1.0 ;
-  parms.l_area = 0.0 ;
-  parms.l_corr = .25f ;
-  parms.niterations = 10 ;
-  parms.n_averages = 32 ;
+  parms.l_dist = 0.0 ;
+  parms.l_area = 0.1 ;
+  parms.l_parea = 0.0f ;
+  parms.l_corr = 1.0f ;
+  parms.l_pcorr = 0.0f ;
+  parms.niterations = 25 ;
+  parms.n_averages = 128 ;
   parms.write_iterations = 100 ;
   parms.dt_increase = 1.01 /* DT_INCREASE */;
   parms.dt_decrease = 0.99 /* DT_DECREASE*/ ;
@@ -64,8 +66,7 @@ main(int argc, char *argv[])
   parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
   parms.dt = 0.9 ;
   parms.momentum = 0.95 ;
-  parms.fi_desired = -1.0 ;
-  parms.ici_desired = -1.0 ;
+  parms.desired_rms_height = -1.0 ;
   parms.nbhd_size = 7 ;
   parms.max_nbrs = 8 ;
 
@@ -78,7 +79,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 3)
+  if (argc < 4)
     usage_exit() ;
 
   surf_fname = argv[1] ;
@@ -107,21 +108,36 @@ main(int argc, char *argv[])
   }
   fprintf(stderr, "reading template parameterization from %s...\n",
           template_fname) ;
+#if 1
   mrisp_template = MRISPread(template_fname) ;
   if (!mrisp_template)
     ErrorExit(ERROR_NOFILE, "%s: could not open template file %s",
                 Progname, template_fname) ;
+#else
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  MRISclearCurvature(mris) ;
+  mris->vertices[0].curv = 1.0f ;
+  MRISnormalizeCurvature(mris) ;
+  mrisp_template = MRISPalloc(1, 6) ;
+  MRISrotate(mris, mris, RADIANS(30.0f), RADIANS(30.0f), 0.0f) ;
+  MRIStoParameterization(mris, mrisp_template, 1, 0) ;
+  *IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 2) = 1 ;   /* dof */
+  /*  MRISPwrite(mrisp_template, "temp1.hipl") ;*/
+  MRIStoParameterization(mris, mrisp_template, 1, 3) ;
+  *IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 5) = 1 ;   /* dof */
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  /*  MRISPwrite(mrisp_template, "temp.hipl") ;*/
+#endif
   
   
   MRISsetNeighborhoodSize(mris, nbrs) ;
-  MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
-  MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   mris->status = MRIS_PARAMETERIZED_SPHERE ;
   MRIScomputeMetricProperties(mris) ;
   if (!FZERO(parms.l_dist))
     MRISscaleDistances(mris, scale) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+  MRISzeroNegativeAreas(mris) ;
   MRISstoreMetricProperties(mris) ;
   MRISstoreMeanCurvature(mris) ;  /* use curvature from file */
 
