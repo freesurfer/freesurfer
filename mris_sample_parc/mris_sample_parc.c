@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "annotation.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.3 2002/03/28 18:57:01 fischl Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.4 2002/03/29 20:43:41 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -34,6 +34,11 @@ static char sdir[STRLEN] ;
 static char *translation_fname = "cma_parcellation_colors.txt" ;
 static int wsize = 7 ;
 static int unknown_label = -1 ;
+static int fix_topology = 1 ;
+static int fix_label_topology(MRI_SURFACE *mris) ;
+static int resegment_label(MRI_SURFACE *mris, LABEL *segment) ;
+
+#define MAX_LABEL 1000
 
 int
 main(int argc, char *argv[])
@@ -163,7 +168,13 @@ main(int argc, char *argv[])
     }
     printf("after replacement, %d unknown vertices found\n", nzero) ;
     MRISmodeFilterZeroVals(mris) ;  /* get rid of the rest of the unknowns by mode filtering */
+    for (i = 0 ; i < nlabels ; i++)
+      LabelFree(&labels[i]) ;
+    free(labels) ;
   }
+
+  if (fix_topology)
+    fix_label_topology(mris) ;
 
   if (mode_filter)
   {
@@ -363,3 +374,129 @@ translate_indices_to_annotations(MRI_SURFACE *mris, char *translation_fname)
   return(NO_ERROR) ;
 }
 #endif
+static int
+fix_label_topology(MRI_SURFACE *mris)
+{
+  int    i, vno, nsegments, most_vertices, max_label, label, j, iter, nchanged=0,
+         max_index ;
+  LABEL **segments ;
+  VERTEX *v ;
+
+  for (max_label = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->annotation > max_label)
+      max_label = v->annotation ;
+  }
+
+  iter = 0 ;
+  do
+  {
+    nchanged = 0 ;
+    MRISsegmentAnnotated(mris, &segments, &nsegments, 0) ;
+    
+    for (i = 0 ; i < nsegments ; i++)
+    {
+      if (segments[i] == NULL)
+        continue ;
+      most_vertices = segments[i]->n_points ; max_index = i ;
+      label = mris->vertices[segments[i]->lv[0].vno].annotation ;
+      
+      /* find label with most vertices */
+      for (j = 0 ; j < nsegments ; j++)
+      {
+        if (j == i || segments[j] == NULL)
+          continue ;
+        if (mris->vertices[segments[j]->lv[0].vno].annotation != label)
+          continue ;
+        if (segments[j]->n_points > most_vertices)
+        {
+          most_vertices = segments[j]->n_points ;
+          max_index = j ;
+        }
+      }
+      
+      /* resegment all others connected-components with this label */
+      for (j = 0 ; j < nsegments ; j++)
+      {
+        if (j == max_index || segments[j] == NULL)
+          continue ;
+        if (mris->vertices[segments[j]->lv[0].vno].annotation != label)
+          continue ;
+        resegment_label(mris, segments[j]) ;
+        nchanged++ ;
+        LabelFree(&segments[j]) ;
+      }
+    }
+    for (i = 0 ; i < nsegments ; i++)
+      if (segments[i])
+        LabelFree(&segments[i]) ;
+
+    free(segments) ;
+    printf("pass %d: %d segments changed\n", iter+1, nchanged) ;
+  } while (nchanged > 0 && iter++ < 10) ;
+
+  MRISclearMarks(mris) ;
+  return(NO_ERROR) ;
+}
+
+static int
+resegment_label(MRI_SURFACE *mris, LABEL *segment)
+{
+  int    histo[MAX_LABEL], i, n, vno, ino, index, max_histo, max_index, nchanged, lno, label ;
+  VERTEX *v, *vn ;
+
+  label = mris->vertices[segment->lv[0].vno].annotation ;
+  for (ino  = 0 ; ino < 100 ; ino++)
+  {
+    nchanged = 0 ;
+    for (lno = 0 ; lno < segment->n_points ; lno++)
+    {
+      vno = segment->lv[lno].vno ;
+      v = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->val != label || v->ripflag)
+        continue ;   /* already changed */
+
+      memset(histo, 0, sizeof(histo)) ;
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        index = (int)nint(vn->val) ;
+        if (index < 0 || index > MAX_LABEL)
+          continue ;
+        if (vn->val != label)  /* don't care about same label */
+          histo[index]++ ;
+      }
+      max_histo = histo[0] ; max_index = -1 ;
+      for (i = 0 ; i < MAX_LABEL ; i++)
+      {
+        if (histo[i] > max_histo)
+        {
+          max_histo = histo[i] ;
+          max_index = i ;
+        }
+      }
+      if (max_index >= 0)
+        v->valbak = max_index ;
+    }
+    for (lno = 0 ; lno < segment->n_points ; lno++)
+    {
+      vno = segment->lv[lno].vno ;
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->val != label)
+        continue ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->val != v->valbak)
+        nchanged++ ;
+      v->val = v->annotation = v->valbak ;
+    }
+
+    /*    printf("iter %d: %d changed\n", ino, nchanged) ;*/
+    if (!nchanged)
+      break ;
+  }
+  return(NO_ERROR) ;
+}
