@@ -1,0 +1,301 @@
+#!/bin/csh -f
+# selfreqavg-sess
+
+set VERSION = '$Id: selfreqavg-sess,v 1.1 2003/10/04 20:15:53 greve Exp $';
+set cmdargv = ($argv);
+
+set analysis = ();
+set funcstem = ();
+set fsd = "bold";
+set rlf = ();
+set inorm = 0;
+set inormtarget = 1000;
+set Tcycle = ();
+set TR = ();
+set nharmonics = 1;
+set polyfit = 2;
+set extreg = ();
+set perrun = 0;
+set jkrun  = 0;
+set monly = 0;
+set MLF = ();
+set nskip = 0;
+set nolog = 0;
+set PrintHelp = 0;
+set mask = ();
+
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if(! $nolog) then
+  mkdir -p log
+  set DateStr = "`date '+%m%d%y-%H%M%S'`"
+  set LF = log/selfreqavg-sess-$DateStr.log
+  rm -f $LF
+else
+  set LF = /dev/null
+endif
+echo "log file is $LF"
+
+echo "selfreqavg-sess log file" |& tee -a $LF
+date  |& tee -a $LF
+pwd  |& tee -a $LF
+echo $cmdargv |& tee -a $LF
+
+if(! $monly) set MLF = sfa2sess_$$.m
+rm -f $MLF;
+
+# Start off this way otherwise word too long
+echo sesslist = splitstring\(\'$SessList\'\) > $MLF
+
+# Use append so dont clobber sesslist
+set TARGET = "tee -a $MLF > /dev/null"
+
+# This would have gone in the TARGET but word too long
+#sesslist = splitstring('$SessList');
+
+#---------------------------------------------------------------#
+$TARGET <<EOF
+
+ananame     = '$analysis';
+funcstem    = '$funcstem';
+fsd         = '$fsd';
+runlistfile = '$rlf';
+TR          = $TR; 
+Tcycle      = $Tcycle; 
+nharmonics  = $nharmonics; % does not include fundamental 
+polyfit     = $polyfit;
+inorm       = $inorm;
+inormtarg   = $inormtarget;
+extregstem  = splitstring('$extreg');
+maskstem    = '$mask';
+
+doperrun = $perrun;
+dojkrun  = $jkrun;
+
+conname = 'omnibus';
+phsigthresh = 2;
+condXthresh = 10e5;
+fast_selfreqavg;
+
+EOF
+#---------------------------------------------------------------#
+
+if(! $monly) then
+  # Have to do it this way because otherwise word too long
+  set mname = `basename $MLF .m`;
+  echo $mname | matlab -nodesktop -display iconic -nojvm | tee -a $LF
+  rm -f $MLF
+endif
+
+date  |& tee -a $LF
+echo "selfreqavg-sess COMPLETED"  |& tee -a $LF
+
+exit 0;
+
+############--------------##################
+parse_args:
+
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--a":
+    case "--analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "--i":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "--fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "--rlf":
+      if ( $#argv == 0) goto arg1err;
+      set rlf = $argv[1]; shift;
+      breaksw
+
+    case "--TR":
+      if ( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      breaksw
+
+    case "--Tcycle":
+      if ( $#argv == 0) goto arg1err;
+      set Tcycle = $argv[1]; shift;
+      breaksw
+
+    case "--nharmonics":
+      if ( $#argv == 0) goto arg1err;
+      set nharmonics = $argv[1]; shift;
+      breaksw
+
+    case "--polyfit":
+    case "--pf":
+      if ( $#argv == 0) goto arg1err;
+      set polyfit = $argv[1]; shift;
+      breaksw
+
+    case "--extreg":
+      if ( $#argv == 0) goto arg1err;
+      set extreg = ($extreg $argv[1]); shift;
+      breaksw
+
+    case "--inorm":
+      if ( $#argv == 0) goto arg1err;
+      set inormtarget = $argv[1]; shift;
+      set inorm = 1;
+      breaksw
+
+    case "--perrun":
+      set perrun = 1;
+      breaksw
+
+    case "--jkrun":
+      set perrun = 1;
+      breaksw
+
+    case "--mask":
+      if ( $#argv == 0) goto arg1err;
+      set mask = $argv[1]; shift;
+      breaksw
+
+    case "--nskip":
+      if ( $#argv == 0) goto arg1err;
+      set nskip = $argv[1]; shift;
+      breaksw
+
+    case "--monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1; 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+      set nolog = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set verbose = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis == 0) then
+    echo "ERROR: must specify an analysis"
+    exit 1;
+  endif
+
+  if($#funcstem == 0) then
+    echo "ERROR: must specify an input funcstem"
+    exit 1;
+  endif
+
+  if($#Tcycle == 0) then
+    echo "ERROR: must specify Tcycle"
+    exit 1;
+  endif
+
+  if($#TR == 0) then
+    echo "ERROR: must specify TR"
+    exit 1;
+  endif
+
+  if($perrun && $jkrun) then
+    echo "ERROR: cannot specify perrun and jkrun"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+
+############--------------##################
+usage_exit:
+  echo "USAGE: selfreqavg-sess"
+  echo "   --analysis ananame"
+  echo "   --i   funcstem" 
+  echo "   --fsd fsd          : default bold"
+  echo "   --rlf rlf" 
+  echo "   --TR TR            : temporal resolution (sec)"
+  echo "   --Tcycle Tcycle"
+  echo "   --nharmonics n : default is 1"
+  echo "   --polyfit order : default is 2"
+  echo "   --extreg extregstem <-extreg extregstem >"
+  echo "   --inorm  target"
+  echo "   --perrun"
+  echo "   --jkrun"
+  echo "   --monly mfile      : just create a matlab file"
+  echo "   --debug"
+  echo "   --nolog"
+  echo "   --umask umask      : set unix file permission mask"
+  echo "   --version          : print version and exit"
+
+  if(! $PrintHelp ) exit 1;
+
+exit 1;
