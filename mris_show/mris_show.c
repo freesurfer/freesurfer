@@ -16,7 +16,7 @@
 #include "oglutil.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.27 1998/05/20 19:39:10 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.28 1998/10/27 00:33:30 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -213,13 +213,14 @@ main(int argc, char *argv[])
     MRISnormalizeCurvature(mris) ;
     MRISstoreMeanCurvature(mris) ;
     starting_mse = MRIScomputeCorrelationError(mris, mrisp, param_no) ;
+    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
     if (normalize_param)
       MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
     else
       MRISfromParameterization(mrisp, mris, param_no) ;
     MRISnormalizeCurvature(mris) ;
-    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
     current_list = MRISP_LIST ;
   }
   if (ellipsoid_flag)
