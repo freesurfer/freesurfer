@@ -2,7 +2,7 @@
 % columns based on the FID map and according to the time-domain
 % reconstruction method.
 %
-% $Id: tdr_rcolmat.m,v 1.6 2003/12/03 20:42:28 greve Exp $
+% $Id: tdr_rcolmat.m,v 1.7 2003/12/19 22:17:29 greve Exp $
 
 if(0) 
   % Input and output files
@@ -70,6 +70,7 @@ if(rthreshfid > 0)
   fprintf('Found %d (%g %%) voxels below thresh\n',...
 	  nsubthresh,100*nsubthresh/nv);
 else
+  indsubthresh = [];
   fidvol1mn = 0;
 end
 
