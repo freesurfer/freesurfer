@@ -138,6 +138,15 @@ Surf_tErr Surf_GetNextAndNeighborVertex  ( mriSurfaceRef   this,
 					   xVoxelRef       oNeighborVoxel,
 					   int*            onNeighborIndex);
 
+/* ==================================================== Geometry managament */
+
+/* Copies the MRIS's VOL_GEOM field. */
+Surf_tErr Surf_CopyGeometryInformation ( mriSurfaceRef this,
+					 VOL_GEOM*     ioVolumeGeometry );
+
+Surf_tErr Surf_TransformToVolumeGeometry ( mriSurfaceRef this,
+					   VOL_GEOM*     iVolumeGeometry );
+
 /* ========================================================== Vertex access */
 
 /* get a vertex by index in voxel space */

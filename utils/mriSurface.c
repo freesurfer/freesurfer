@@ -577,6 +577,80 @@ Surf_tErr Surf_GetNextAndNeighborVertex ( mriSurfaceRef    this,
   return eResult;
 }
 
+Surf_tErr Surf_CopyGeometryInformation ( mriSurfaceRef this,
+					 VOL_GEOM*     ioVolumeGeometry ) {
+  
+  Surf_tErr eResult   = Surf_tErr_NoErr;
+  
+  DebugEnterFunction( ("Surf_CopyGeometryInformation( this=%p, "
+		       "ioVolumeGeometry=%p )", this, ioVolumeGeometry) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Surf_Verify( this );
+  DebugAssertThrow( (eResult == Surf_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (NULL != ioVolumeGeometry),
+		     eResult, Surf_tErr_InvalidParameter );
+
+  /* Copy the information out. */
+  memcpy( ioVolumeGeometry, &(this->mSurface->vg), sizeof(VOL_GEOM) );
+
+  DebugCatch;
+  DebugCatchError( eResult, Surf_tErr_NoErr, Surf_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Surf_tErr Surf_TransformToVolumeGeometry ( mriSurfaceRef this,
+					   VOL_GEOM*     iVolumeGeometry ) {
+  
+  Surf_tErr eResult  = Surf_tErr_NoErr;
+  int       eMRIS    = ERROR_NONE;
+  MRI*      mri      = NULL;
+  
+  DebugEnterFunction( ("Surf_CopyGeometryInformation( this=%p, "
+		       "iVolumeGeometry=%p )", this, iVolumeGeometry) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Surf_Verify( this );
+  DebugAssertThrow( (eResult == Surf_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (NULL != iVolumeGeometry),
+		     eResult, Surf_tErr_InvalidParameter );
+
+  /* Make a fake MRI from the volume geometry we got. */
+  mri = MRIallocHeader( iVolumeGeometry->width,
+			iVolumeGeometry->height, 
+			iVolumeGeometry->depth, MRI_VOLUME_TYPE_UNKNOWN);
+  DebugAssertThrowX( (NULL != mri),
+		     eResult, Surf_tErr_AllocationFailed );
+
+  /* Copy geometry information to the fake MRI. */
+  useVolGeomToMRI( iVolumeGeometry, mri );
+
+  /* Do the transform. */
+  eMRIS = MRISsurf2surf( this->mSurface, mri, NULL );
+  DebugAssertThrowX( (ERROR_NONE != eMRIS),
+		     eResult, Surf_tErr_ErrorAccesssingSurface );
+
+  DebugCatch;
+  DebugCatchError( eResult, Surf_tErr_NoErr, Surf_GetErrorString );
+  EndDebugCatch;
+
+  if( NULL != mri ) {
+    MRIfree( &mri );
+  }
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 
 Surf_tErr Surf_GetNthVertex ( mriSurfaceRef   this,
 			      Surf_tVertexSet iSet,
