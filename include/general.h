@@ -3,7 +3,7 @@
 
 void order(int *small, int *big) ;
 
-#if 0
+#if 1
 /* putting these prototypes in causes the canny edge detecter to fail, so 
    leave them out for now */
 short nearestshort(float x) ;
