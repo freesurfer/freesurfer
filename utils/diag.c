@@ -33,8 +33,8 @@ unsigned long  Gdiag = 0 ;
                      STATIC DATA
 -------------------------------------------------------*/
 static char diag_fname[100] = "diag.log" ;
-static int (*diag_vprintf)(char *fmt, va_list args) = vprintf ;
-static int (*diag_vfprintf)(FILE *fp, char *fmt, va_list args) = vfprintf ;
+static int (*diag_vprintf)(const char *fmt, va_list args) = vprintf ;
+static int (*diag_vfprintf)(FILE *fp, const char *fmt, va_list args) =vfprintf;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -51,8 +51,8 @@ static int (*diag_vfprintf)(FILE *fp, char *fmt, va_list args) = vfprintf ;
 ------------------------------------------------------------------------*/
 unsigned long
 DiagInit(char *fname, 
-                  int (*vfprint)(FILE *fp, char *fmt, va_list args),
-                  int (*vprint)(char *fmt, va_list args))
+                  int (*vfprint)(FILE *fp, const char *fmt, va_list args),
+                  int (*vprint)(const char *fmt, va_list args))
 {
   char *cp ;
 
