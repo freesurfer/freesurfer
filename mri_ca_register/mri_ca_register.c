@@ -156,6 +156,51 @@ main(int argc, char *argv[])
   printf("logging results to %s.log\n", parms.base_name) ;
 
   TimerStart(&start) ;
+
+  // build frames from ninputs ////////////////////////////////
+  for (input = 0 ; input < ninputs ; input++)
+  {
+    in_fname = argv[1+input] ;
+    printf("reading input volume '%s'...\n", in_fname) ;
+    fflush(stdout) ;
+    mri_tmp = MRIread(in_fname) ;
+    if (!mri_tmp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
+		Progname, in_fname) ;
+    
+    TRs[input] = mri_tmp->tr ;
+    fas[input] = mri_tmp->flip_angle ;
+    TEs[input] = mri_tmp->te ;
+    
+    if (mask_fname)
+    {
+      MRI *mri_mask ;
+      
+      mri_mask = MRIread(mask_fname) ;
+      if (!mri_mask)
+	ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+		  Progname, mask_fname) ;
+      // if mask == 0, then set dst as 0
+      MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
+      MRIfree(&mri_mask) ;
+    }
+    if (alpha > 0)
+      mri_tmp->flip_angle = alpha ;
+    if (TR > 0)
+      mri_tmp->tr = TR ;
+    if (TE > 0)
+      mri_tmp->te = TE ;
+    if (input == 0)
+    {
+      mri_inputs = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+				    mri_tmp->type, ninputs+extra) ;
+      // first one's header is copied
+      MRIcopyHeader(mri_tmp, mri_inputs) ;
+    }
+    MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
+    MRIfree(&mri_tmp) ;
+  }
+  //
   printf("reading GCA '%s'...\n", gca_fname) ;
   fflush(stdout) ;
   gca = GCAread(gca_fname) ;
@@ -201,49 +246,6 @@ main(int argc, char *argv[])
   GCAfreeGibbs(gca) ;
   printf("done.\n") ;
 
-  // build frames from ninputs ////////////////////////////////
-  for (input = 0 ; input < ninputs ; input++)
-  {
-    in_fname = argv[1+input] ;
-    printf("reading input volume '%s'...\n", in_fname) ;
-    fflush(stdout) ;
-    mri_tmp = MRIread(in_fname) ;
-    if (!mri_tmp)
-      ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
-		Progname, in_fname) ;
-    
-    TRs[input] = mri_tmp->tr ;
-    fas[input] = mri_tmp->flip_angle ;
-    TEs[input] = mri_tmp->te ;
-    
-    if (mask_fname)
-    {
-      MRI *mri_mask ;
-      
-      mri_mask = MRIread(mask_fname) ;
-      if (!mri_mask)
-	ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-		  Progname, mask_fname) ;
-      // if mask == 0, then set dst as 0
-      MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
-      MRIfree(&mri_mask) ;
-    }
-    if (alpha > 0)
-      mri_tmp->flip_angle = alpha ;
-    if (TR > 0)
-      mri_tmp->tr = TR ;
-    if (TE > 0)
-      mri_tmp->te = TE ;
-    if (input == 0)
-    {
-      mri_inputs = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-				    mri_tmp->type, ninputs+extra) ;
-      // first one's header is copied
-      MRIcopyHeader(mri_tmp, mri_inputs) ;
-    }
-    MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
-    MRIfree(&mri_tmp) ;
-  }
   
   if (renormalization_fname)
   {
