@@ -335,6 +335,11 @@ typedef struct
 #define TOL                  1e-6  /* minimum error tolerance for unfolding */
 #define DELTA_T              0.1
 
+/* VECTORIAL_REGISTRATION */
+#ifndef FIELD_CODE_INCLUDED
+#include "field_code.h" 
+#endif
+
 typedef struct
 {
   double  tol ;               /* tolerance for terminating a step */
@@ -401,22 +406,24 @@ typedef struct
 
 /* VECTORIAL_REGISTRATION
 	 The average template mrisp is assumed to be composed of several 
-	 different fields (see below for maccros). 
-	 MRISvectorRegistration will use ncorrs fields, with their corresponding 
-	 location at frames[n], 0 <= n< ncorrs in the mrisp structure.
-	 The field type is in corrfields[n] (field code is below).
-	 the corresponding correlation terms are in l_corrs[n] and l_pcorrs[n].
+	 different fields (look in 'field_code.h'). 
+	 MRISvectorRegistration will use 'nfields' fields, with their corresponding 
+	 location at fields[n].frames, 0 <= n< nfields in the mrisp structure.
+	 The field code is in fields[n].field (look in 'field_code.h').
+	 Corresponding correlation terms are in fields[n].l_corrs and fields[n].l_pcorrs.
 	 MRISvectorRegistration will use the structure VALS_VP in v->vp
 */	
-#define MAX_NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION	50
+#define MAX_NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION	20
 #define MNOFIV MAX_NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION
-	int     ncorrs;             /* the number of fields in mrisp */
-	int     corrfields[MNOFIV];       /* field code (see below) */
-	int     frames[MNOFIV];           /* corresponding frame in mrisp */ 
-	int     types[MNOFIV];            /* the field type (default,distance field...) */
-	float   l_corrs[MNOFIV];          /* correlation coefficient */
-	float   l_pcorrs[MNOFIV];         /* polar correlation coefficient */
-	float   sses[MNOFIV];             /* corresponding sse */
+	int nfields;                  /* the number of fields in mrisp */
+	FIELD_LABEL fields[MNOFIV];   /* information for each field */
+/* 	int     ncorrs;              /\* the number of fields in mrisp *\/ */
+/* 	int     corrfields[MNOFIV];       /\* field code (see below) *\/ */
+/* 	int     frames[MNOFIV];           /\* corresponding frame in mrisp *\/  */
+/* 	int     types[MNOFIV];            /\* the field type (default,distance field...) *\/ */
+/* 	float   l_corrs[MNOFIV];          /\* correlation coefficient *\/ */
+/* 	float   l_pcorrs[MNOFIV];         /\* polar correlation coefficient *\/ */
+/* 	float   sses[MNOFIV];             /\* corresponding sse *\/ */
 
   MRI     *mri_brain ;        /* for settling surfaace to e.g. g/w border */
   MRI     *mri_smooth ;       /* smoothed version of mri_brain */
@@ -431,12 +438,8 @@ extern int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, INTEGRATION_PARMS *par
 extern int (*gMRISexternalClearSSEStatus)(MRI_SURFACE *mris) ;
 extern int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) ;
 
-#ifndef FIELD_CODE_INCLUDED
-#include "field_code.h" 
-#endif
 
-
-/* This structure is used in MRISvectorRegistration 
+/* The following structure is used in MRISvectorRegistration 
 	 The original values are loaded in orig_vals
 	 The used values are in vals (for instance the  blurred orig_vals)
 */

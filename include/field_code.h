@@ -38,7 +38,24 @@
 #define		LAT_VENTRICLE_DIST_NAME      "latventricle_dist"   
 #define		INF_LAT_VENTRICLE_DIST_NAME  "inflatventricle_dist"
 
+#ifndef MAX_OF_TWO
+#define MAX_OF_TWO(a,b) ((a)>(b) ? (a):(b))
+#endif
+
 char *ReturnFieldName(int which_field);
 int IsDistanceField(int which_field);
+
+typedef struct{
+	int     field;              /* see field code above */
+	int     frame;              /* corresponding frame in mrisp */ 
+	int     type;               /* field type (default,distance field,...) */
+	float   l_corr;             /* correlation coefficient */
+	float   l_pcorr;            /* polar correlation coefficient */
+	float   sse;                /* sse associated with this field */
+}FIELD_LABEL;
+
+int InitFieldLabel(FIELD_LABEL *label);
+
+int SetFieldLabel(FIELD_LABEL *label,int field,int frame,float l_corr,float l_pcorr);
 
 #endif
