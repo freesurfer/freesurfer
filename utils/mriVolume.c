@@ -452,6 +452,18 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
   /* convert RAS->RAS transform to screen->voxel coords */
   switch (this->mDisplayTransform->type)
   {
+  case LINEAR_VOX_TO_VOX:
+    {
+      MATRIX *m_ras2ras, *m_vox2vox ;
+
+      /* assume it's in coronal->coronal coordinates */
+      Trns_GetARAStoBRAS(this->mDisplayTransform, &m_vox2vox) ;
+      m_ras2ras = MRIvoxelXformToRasXform(this->mpMriValues, this->mpMriValues, m_vox2vox, NULL);
+
+      Trns_CopyARAStoBRAS(this->mDisplayTransform, m_ras2ras) ;
+      MatrixFree(&m_vox2vox) ; MatrixFree(&m_ras2ras) ;
+    }
+    /*  NOBREAK!!  break ;*/
   case LINEAR_RAS_TO_RAS:
     {
       extern MATRIX *gm_screen2ras ;
@@ -464,7 +476,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
       m_tmp = MatrixMultiply(m_ras2ras_inverse, gm_screen2ras, NULL) ;
       MatrixMultiply(m_ras2vox, m_tmp, this->m_resample) ;
 
-      MatrixFree(&m_ras2vox) ; MatrixFree(&m_tmp) ; MatrixFree(&m_ras2ras_inverse) ;
+      MatrixFree(&m_ras2vox) ; MatrixFree(&m_tmp);MatrixFree(&m_ras2ras_inverse);
       break ;
     }
   default:   /* don't know what to do yet */
@@ -1963,9 +1975,15 @@ Volm_tValue Volm_GetNormValueAtIdx_ ( mriVolumeRef this,
   V3_Z(idx_screen) = xVoxl_GetZ(iIdx) ;
   *MATRIX_RELT(idx_screen,4,1) = 1.0 ;
   idx_mri = MatrixMultiply(this->m_resample, idx_screen, NULL) ;
+#if 0
   i[0] = floor(V3_X(idx_mri)) ;
   i[1] = floor(V3_Y(idx_mri)) ;
   i[2] = floor(V3_Z(idx_mri)) ;
+#else
+  i[0] = rint(V3_X(idx_mri)) ;
+  i[1] = rint(V3_Y(idx_mri)) ;
+  i[2] = rint(V3_Z(idx_mri)) ;
+#endif
   if (i[0] < 0 || i[1] < 0 || i[2] < 0 ||
       i[0] >= this->mpMriValues->width ||
       i[1] >= this->mpMriValues->height ||
@@ -2012,9 +2030,15 @@ void Volm_SetNormValueAtIdx_ ( mriVolumeRef     this,
   V3_Z(idx_screen) = xVoxl_GetZ(iIdx) ;
   *MATRIX_RELT(idx_screen,4,1) = 1.0 ;
   idx_mri = MatrixMultiply(this->m_resample, idx_screen, NULL) ;
+#if 0
   i[0] = floor(V3_X(idx_mri)) ;
   i[1] = floor(V3_Y(idx_mri)) ;
   i[2] = floor(V3_Z(idx_mri)) ;
+#else
+  i[0] = rint(V3_X(idx_mri)) ;
+  i[1] = rint(V3_Y(idx_mri)) ;
+  i[2] = rint(V3_Z(idx_mri)) ;
+#endif
   if (i[0] < 0 || i[1] < 0 || i[2] < 0 ||
       i[0] >= this->mpMriValues->width ||
       i[1] >= this->mpMriValues->height ||
@@ -2067,9 +2091,15 @@ float Volm_GetRawValueAtIdx_ ( mriVolumeRef     this,
   V3_Z(idx_screen) = xVoxl_GetZ(iIdx) ;
   *MATRIX_RELT(idx_screen,4,1) = 1.0 ;
   idx_mri = MatrixMultiply(this->m_resample, idx_screen, NULL) ;
+#if 0
   i[0] = floor(V3_X(idx_mri)) ;
   i[1] = floor(V3_Y(idx_mri)) ;
   i[2] = floor(V3_Z(idx_mri)) ;
+#else
+  i[0] = rint(V3_X(idx_mri)) ;
+  i[1] = rint(V3_Y(idx_mri)) ;
+  i[2] = rint(V3_Z(idx_mri)) ;
+#endif
 
   if (i[0] < 0 || i[1] < 0 || i[2] < 0 ||
       i[0] >= this->mpMriValues->width ||
