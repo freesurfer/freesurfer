@@ -11,6 +11,7 @@ map<int,View*> IDTracker<View>::mIDMap;
 View::View() {
   mWidth = 0;
   mHeight = 0;
+  mbPostRedisplay = false;
 }
 
 View::~View() {

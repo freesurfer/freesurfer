@@ -1,14 +1,11 @@
-#include <stdlib.h>
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <stdexcept>
-#include <map>
-#include "VolumeCollection.h"
-#include "DataManager.h"
-extern "C" {
-#include "mri.h"
-}
+#include "ToglManager.h"
+#include "ScubaFrame.h"
+#include "ScubaView.h"
+#include "ScubaLayer2DMRI.h"
+
+char* Progname = "test_ScubaLayers";
+
+using namespace std;
 
 #define Assert(x,s)   \
   if(!(x)) { \
@@ -18,7 +15,6 @@ extern "C" {
   throw runtime_error( ss.str() ); \
   }
 
-
 #define AssertTclOK(x) \
     if( TCL_OK != (x) ) { \
       ssError << "Tcl_Eval returned not TCL_OK: " << endl  \
@@ -27,78 +23,57 @@ extern "C" {
       throw runtime_error( ssError.str() ); \
     } \
 
-
-using namespace std;
-
-char* Progname = "test_VolumeCollection";
-
-
-
-class VolumeCollectionTester {
+class ScubaLayer2DMRITester {
 public:
   void Test( Tcl_Interp* iInterp );
 };
 
 void 
-VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
+ScubaLayer2DMRITester::Test ( Tcl_Interp* iInterp ) {
 
   stringstream ssError;
-  
+
   try {
-  
+
     string fnMRI = "/Users/kteich/work/subjects/bert/mri/T1";
-    
     char* sSubjectsDir = getenv("SUBJECTS_DIR");
-    
     if( NULL != sSubjectsDir ) {
       fnMRI = string(sSubjectsDir) + "/bert/mri/T1";
     }
-
     VolumeCollection vol;
     vol.SetFileName( fnMRI );
     MRI* mri = vol.GetMRI();
-    
-    Assert( (vol.GetTypeDescription() == "Volume"),
-	     "GetTypeDescription didn't return Volume" );
+    int collectionID = vol.GetID();
 
-    DataManager dataMgr = DataManager::GetManager();
-    MRILoader mriLoader = dataMgr.GetMRILoader();
-    Assert( 1 == mriLoader.CountLoaded(), 
-	    "CountLoaded didn't return 1" );
-    Assert( 1 == mriLoader.CountReferences(mri),
-	    "CountReferences didn't return 1" );
-
-    char* fnMRIC = strdup( fnMRI.c_str() );
-    MRI* mriComp = MRIread( fnMRIC );
-    
-    Assert( (MRImatch( mriComp, mri )), "MRImatch failed" );
-    
-    MRIfree( &mriComp );
-
-
-    // Check the tcl commands.
+    ScubaLayer2DMRI layer;
+    layer.SetVolumeCollection( vol );
+    Assert( (&vol == layer.mVolume), "Didn't set volume collection properly" );
+ 
+    // Try the tcl commands.
     char sCommand[1024];
     int rTcl;
-
-    int id = vol.GetID();
-    string fnTest = "test-name";
-    sprintf( sCommand, "SetVolumeCollectionFileName %d test-name", id );
+    
+    sprintf( sCommand, "SetVolumeCollection 99 99" );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    
-    Assert( (vol.mfnMRI == fnTest), 
-	    "Setting file name via tcl didn't work" );
 
+    int layerID = layer.GetID();
+    int volID = vol.GetID();
+    sprintf( sCommand, "SetVolumeCollection %d %d", layerID, volID );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+
+    
   }
-  catch( logic_error e ) {
+  catch( runtime_error e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }
   catch(...) {
-    cerr << "failed." << endl;
+    cerr << "failed" << endl;
     exit( 1 );
   }
-}
+};  
 
 
 
@@ -118,11 +93,8 @@ int main ( int argc, char** argv ) {
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
 
-
-    VolumeCollectionTester tester0;
-    tester0.Test( interp );
-
- 
+    ScubaLayer2DMRITester tester;
+    tester.Test( interp );
   }
   catch( runtime_error e ) {
     cerr << "failed with exception: " << e.what() << endl;
@@ -137,3 +109,5 @@ int main ( int argc, char** argv ) {
 
   exit( 0 );
 }
+
+

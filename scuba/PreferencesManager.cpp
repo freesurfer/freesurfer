@@ -13,8 +13,6 @@ using namespace std;
 
 PreferencesManager::PreferencesManager() 
   : DebugReporter() {
-
-  SetOutputStreamToCerr();
   
   mVersion = 1;
 }
@@ -44,12 +42,24 @@ PreferencesManager::UseFile( string const ifnPrefs ) {
   // If this is an absolute file name, try it.
   if( fnPrefs[0] == '/' ) {
     rStat = stat( fnPrefs.c_str(), &info );
+
+    // If that didn't work, at least make sure we can write it. If
+    // not, return an error.
+    if( !S_ISREG(info.st_mode) ) {
+      fstream testFile( fnPrefs.c_str(), ios::out );
+      if( !testFile.good() ) {
+	stringstream ssError;
+	ssError << "Cannot find or create specified preferences file: "
+		<< fnPrefs;
+	throw( logic_error( ssError.str() ) );
+      }
+    }
   }
 
-  // If that didn't work and this is not an absolute file name, try a
-  // few search paths.
-  if( !S_ISREG(info.st_mode) && fnPrefs[0] != '/' ) {
-    
+
+  // If this is not an absolute file name, try a few search paths.
+  if( fnPrefs[0] != '/' ) {
+
     // Local file first, then in home dir, then in usr/share.
     fnPrefs = "./" + ifnPrefs;
     

@@ -41,6 +41,9 @@ class ToglFrame : public DebugReporter {
   bool WantRedisplay() const { return mbPostRedisplay; }
   void RedisplayPosted() { mbPostRedisplay = false; }
 
+  int GetWidth () const { return mWidth; }
+  int GetHeight () const { return mHeight; }
+
  protected:
 
   // These are the overridable functions that subclass frames can use

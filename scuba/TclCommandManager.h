@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/10/20 20:40:04 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2004/01/17 00:06:30 $
+// Revision       : $Revision: 1.4 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -28,6 +28,8 @@ class TclCommandListener {
  public:
   void ListenToTclCommand  ( char* iCommand, int iArgc, char** iArgv );
   virtual void DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv ) = 0;
+  
+  ~TclCommandListener();
 
  protected:
   // Valid format chars are:
@@ -42,6 +44,8 @@ class TclCommandListener {
 };
 
 class TclCommandManager : public DebugReporter {
+
+  friend class TclCommandManagerTester;
 
  protected:
 
@@ -72,6 +76,11 @@ class TclCommandManager : public DebugReporter {
   // callback.
   static int HandleCommand ( ClientData iClientData, Tcl_Interp* iInterp,
 			     int argc, char** argv );
+
+  // Remove all instances of a listener.
+  void RemoveListener ( TclCommandListener& iListener );
+
+  bool Started () const { return mbStarted; }
 
  protected:
 

@@ -10,12 +10,18 @@ extern "C" {
 class SurfaceCollection : public DataCollection {
 
  public:
-  SurfaceCollection( std::string& fnMRI );
+  SurfaceCollection();
   virtual ~SurfaceCollection();
 
-  MRIS* GetMRIS() { return mMRIS; }
+  // Should return a type description unique to the subclass.
+  virtual std::string GetTypeDescription() { return "Surface"; }
+
+  void SetSurfaceFileName ( std::string& ifnMRIS );
+
+  MRIS* GetMRIS();
 
  protected:
+  std::string mfnMRIS;
   MRIS* mMRIS;
 
 };

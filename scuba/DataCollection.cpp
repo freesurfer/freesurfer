@@ -1,40 +1,27 @@
-[#include <stdexcept>
+#include <stdexcept>
 #include "DataCollection.h"
 
 using namespace std;
 
-DataCollection::ID DataCollection::mNextID = 0;
-DataCollection::CollectionIDMap DataCollection::mCollectionIDs;
+DeclareIDTracker(DataCollection);
 
-DataCollection::DataCollection( string isLabel ) {
 
-  mID = GetNextID();
-  mCollectionIDs[mID] = this;
-
-  msLabel = isLabel;
+DataCollection::DataCollection() {
 }
 
 DataCollection::~DataCollection() {
-
-  mCollectionIDs[mID] = NULL;
 }
 
 void
 DataCollection::GetInfoAtRAS( float const iX, float const iY, float const iZ,
-			      std::list<std::string> olLabels,
-			      std::list<std::string> olValues ) const {
+			      std::map<std::string,std::string>& iLabelValues ) {
 
   return;
 }
 
-DataCollection& 
-DataCollection::GetDataCollection( ID const iID ) {
+void
+DataCollection::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 
-  DataCollection* dataCln = mCollectionIDs[iID];
-  if( NULL == dataCln ) {
-    DebugOutputStatic( << "GetDataCollection ID=" << iID << " was null" );
-    throw domain_error( "ID no longer valid" );
-  }
-  
-  return *dataCln;
 }
+
+ 

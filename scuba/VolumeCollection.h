@@ -9,13 +9,23 @@ extern "C" {
 
 class VolumeCollection : public DataCollection {
 
+  friend class VolumeCollectionTester;
+
  public:
-  VolumeCollection( std::string& fnMRI );
-  virtual ~VolumeCollection();
+  VolumeCollection ();
+  virtual ~VolumeCollection ();
 
-  MRI* GetMRI() { return mMRI; }
+  // Should return a type description unique to the subclass.
+  virtual std::string GetTypeDescription() { return "Volume"; }
 
- protected:
+  void SetFileName ( std::string& ifnMRI );
+
+  MRI* GetMRI ();
+  
+  virtual void DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+
+protected:
+  std::string mfnMRI;
   MRI* mMRI;
 
 };

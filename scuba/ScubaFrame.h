@@ -31,6 +31,10 @@ public:
 
 protected:
 
+  // Sets the sizes for all of our views according to our current
+  // configuration and view size.
+  void SizeViewsToConfiguration ();
+
   // Impelmentations of the ToglFrame callbacks.
   virtual void DoDraw();
   virtual void DoReshape();

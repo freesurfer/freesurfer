@@ -8,8 +8,9 @@
 #include "InputState.h"
 #include "ViewState.h"
 #include "Layer.h"
+#include "ScubaWindowToRASTranslator.h"
 
-class ScubaView : public View {
+class ScubaView : public View, public ScubaWindowToRASTranslator {
 
   friend class ScubaViewTester;
 
@@ -27,47 +28,67 @@ class ScubaView : public View {
   void Set2DZoomLevel ( float iZoom );
   void Set2DInPlane ( ViewState::Plane iPlane );
 
-  // Adds a layers that this view at a specific level. Note that only
-  // one layer can be at a specific level, and adding a layer at a
-  // level that is already occupied will replace the existing layer.
+  // Add and remove layers that this view at a specific level. Note
+  // that only one layer can be at a specific level, and adding a
+  // layer at a level that is already occupied will replace the
+  // existing layer.
   void AddLayer ( int iLayerID, int iLevel );
+  void RemoveAllLayers ();
+  void RemoveLayerAtLevel ( int iLevel );
 
   virtual void DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
+
+  // Implement ScubaWindowToRASTranslator.
+  void TranslateWindowToRAS ( int iXWindow, int iYWindow,
+			      float& oXRAS, float& oYRAS, float& oZRAS );
 
 protected:
 
   // Tells all the layers to draw in the correct order to the frame
   // buffer and then writes the frame buffer to the GL context.
-  virtual void DoDraw();
+  virtual void DoDraw ();
 
   // Resizes the frame buffer.
-  virtual void DoReshape( int iWidth, int iHeight );
+  virtual void DoReshape ( int iWidth, int iHeight );
 
   // Passes to layers.
-  virtual void DoTimer();
+  virtual void DoTimer ();
   
   // On mouse moves, this calls GetInfoAtRAS on all Layers and writes
   // the info as strings on the window.
-  virtual void DoMouseMoved( int inX, int inY, InputState& iState );
+  virtual void DoMouseMoved ( int inX, int inY, InputState& iState );
 
   // Mouse up sets a marker at the current location. Mouse down and
   // mouse up may trigger tool effects.
-  virtual void DoMouseUp( int inX, int inY, InputState& iState );
-  virtual void DoMouseDown( int inX, int inY, InputState& iState );
+  virtual void DoMouseUp ( int inX, int inY, InputState& iState );
+  virtual void DoMouseDown ( int inX, int inY, InputState& iState );
 
   // Key up and down may trigger commands.
-  virtual void DoKeyDown( int inX, int inY, InputState& iState );
-  virtual void DoKeyUp( int inX, int inY, InputState& Translates );
+  virtual void DoKeyDown ( int inX, int inY, InputState& iState );
+  virtual void DoKeyUp ( int inX, int inY, InputState& Translates );
 
   // iState window coords to RAS coordinates based on the current
   // view port.
-  void TranslateWindowToRAS ( int iXWindow, int iYWindow,
-			      float& oXRAS, float& oYRAS, float& oZRAS );
   float ConvertWindowToRAS ( float iWindow, float iRASCenter, 
 			     float iWindowDimension );
 
   // Sets a marker in the view.
   void SetMarker ();
+
+  // The different steps in building our display. BuildFrameBuffer()
+  // tells all the layers to copy their data to the frame
+  // buffer. DrawFrameBuffer() copies it to the screen. BuildOverlay()
+  // makes the draw lists for the gl command overlay. DrawOverlay()
+  // executes the draw list.
+  void BuildFrameBuffer ();
+  void DrawFrameBuffer ();
+  void BuildOverlay();
+  void DrawOverlay ();
+
+  // Tee draw list for the view overlay and a boolean saying whether
+  // it should be rebuilt, usually when the view changes.
+  #define kOverlayDrawListID 1
+  bool mbRebuildOverlayDrawList;
 
   // List of layers and their levels (level, layerID).
   std::map<int,int> mLevelLayerIDMap;
@@ -76,7 +97,20 @@ protected:
   ViewState mViewState;
 
   // The buffer for this view.
-  GLbyte* mBuffer;
+  GLubyte* mBuffer;
+
+  // Key assignments.
+  std::string msMoveViewLeft;
+  std::string msMoveViewRight;
+  std::string msMoveViewUp;
+  std::string msMoveViewDown;
+  std::string msMoveViewIn;
+  std::string msMoveViewOut;
+  std::string msZoomViewIn;
+  std::string msZoomViewOut;
+  std::string msInPlaneXKey;
+  std::string msInPlaneYKey;
+  std::string msInPlaneZKey;
 };  
 
 class ScubaViewFactory : public ViewFactory {

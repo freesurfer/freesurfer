@@ -5,21 +5,10 @@
 using namespace std;
 
 
-SurfaceCollection::SurfaceCollection ( std::string& fnMRIS ) :
-  DataCollection( "" ) {
-  
-  DataManager dataMgr = DataManager::GetManager();
-  MRISLoader mrisLoader = dataMgr.GetMRISLoader();
+SurfaceCollection::SurfaceCollection () :
+  DataCollection() {
 
   mMRIS = NULL;
-  try { 
-    mMRIS = mrisLoader.GetData( fnMRIS );
-  }
-  catch( exception e ) {
-    throw logic_error( "Couldn't load MRIS" );
-  }
-
-  SetLabel( fnMRIS );
 }
 
 SurfaceCollection::~SurfaceCollection() {
@@ -32,4 +21,35 @@ SurfaceCollection::~SurfaceCollection() {
   catch(...) {
     cerr << "Couldn't release data"  << endl;
   }
+}
+
+
+void
+SurfaceCollection::SetSurfaceFileName ( string& ifnMRIS ) {
+
+  mfnMRIS = ifnMRIS;
+}
+
+MRIS*
+SurfaceCollection::GetMRIS () { 
+
+  if( NULL == mMRIS ) {
+    
+    DataManager dataMgr = DataManager::GetManager();
+    MRISLoader mrisLoader = dataMgr.GetMRISLoader();
+    
+    mMRIS = NULL;
+    try { 
+      mMRIS = mrisLoader.GetData( mfnMRIS );
+    }
+    catch( exception e ) {
+      throw logic_error( "Couldn't load MRIS" );
+    }
+  }
+
+  if( msLabel == "" ) {
+    SetLabel( mfnMRIS );
+  }
+
+  return mMRIS;
 }

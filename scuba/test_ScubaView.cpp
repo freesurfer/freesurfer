@@ -18,6 +18,14 @@ using namespace std;
   throw logic_error( sError.str() ); \
   }
 
+#define AssertTclOK(x) \
+    if( TCL_OK != (x) ) { \
+      sError << "Tcl_Eval returned not TCL_OK: " << endl  \
+	     << "Command: " << sCommand << endl \
+	     << "Result: " << iInterp->result; \
+      cerr << sError.str().c_str() << endl; \
+      throw logic_error( sError.str() ); \
+    } \
 
 
 
@@ -55,10 +63,13 @@ class TestLayer : public Layer {
 
 public:
   TestLayer();
-  virtual void DrawIntoBuffer( GLbyte* iBuffer, ViewState& iViewState );
+  virtual void DrawIntoBuffer( GLubyte* iBuffer, ViewState& iViewState );
   virtual void GetInfoAtRAS ( float inX, float inY, float inZ,
 			    std::map<std::string,std::string>& iLabelValues );
+  virtual string GetTypeDescription() { return "TestLayer"; }
   bool WasDrawn() const { return mbWasDrawn; }
+  int GetWidth() const { return mWidth; }
+  int GetHeight() const { return mHeight; }
 protected:
   bool mbWasDrawn;
 };
@@ -68,7 +79,7 @@ TestLayer::TestLayer() {
 }
 
 void
-TestLayer::DrawIntoBuffer( GLbyte* iBuffer, ViewState& iViewState ) {
+TestLayer::DrawIntoBuffer( GLubyte* iBuffer, ViewState& iViewState ) {
   mbWasDrawn = true;
 }
 
@@ -157,14 +168,19 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     Assert( (view.mViewState.mInPlane == ViewState::X),
 	    "Set2DInPlane failed" );
 
+
+    // Set the view size. When we add layers we'll make sure they got
+    // the right size.
+    view.Reshape( 123, 456 );
+
     // Add a bunch of layers to different levels and make sure they
     // match our own expectations.
     int const kcLayers = 10;
-    TestLayer layer[kcLayers];
+    TestLayer aLayer[kcLayers];
     int nLevel = 0;
     map<int,int> levelLayerID;
     for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
-      int layerID = layer[nLayer].GetID();
+      int layerID = aLayer[nLayer].GetID();
       levelLayerID[nLevel] = layerID;
       view.AddLayer( layerID, nLevel );
       nLevel++;
@@ -184,14 +200,45 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     }
     Assert( (!bFailed), "Adding IDs failed" );
 
+    // Check layer sizes.
+    for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
+      Assert( (aLayer[nLayer].GetWidth() == 123), "Width not set correctly" );
+      Assert( (aLayer[nLayer].GetHeight() == 456), "Height not set correctly" );
+    }
+
+    // Check removing layers.
+    int levelToRemove = 0;
+    view.RemoveLayerAtLevel( levelToRemove );
+    for( tLevelLayerID = view.mLevelLayerIDMap.begin(); 
+	 tLevelLayerID != view.mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+      int level = (*tLevelLayerID).first;
+      int layerID = (*tLevelLayerID).second;
+      if( levelToRemove == level || 
+	  layerID == levelLayerID[levelToRemove] ) {
+	cerr << "ID at level " << level << " was not removed" << endl;
+	bFailed = true;
+      }
+    }
+    Assert( (!bFailed), "Removing level failed" );
+
+    // Add it back.
+    view.AddLayer( levelLayerID[levelToRemove], levelToRemove );
+
 
     // Make sure reshaping works and creates our buffer. Make a few to
     // make sure they dispose of the old one properly. Make one with a
-    // negative size to check the error handling.
+    // negative size to check the error handling. Check the
+    // width/height on layers each time.
     view.Reshape( 200, 200 );
     Assert( (NULL != view.mBuffer), "buffer not allocated on reshape" );
+    Assert( (200 == aLayer[0].mWidth &&
+	     200 == aLayer[0].mHeight), "layer height/width not correct" );
     view.Reshape( 200, 200 );
     Assert( (NULL != view.mBuffer), "buffer not allocated on second reshape" );
+    view.Reshape( 100, 50 );
+    Assert( (NULL != view.mBuffer), "buffer not allocated on reshape" );
+    Assert( (100 == aLayer[0].mWidth &&
+	     50 == aLayer[0].mHeight), "layer width/height not correct" );
     try {
       view.Reshape( -1, 0 );
       sError << "error not thrown when reshaping with -1, 0" << endl;
@@ -211,8 +258,8 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     bFailed = false;
     view.DoDraw();
     for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
-      if( !layer[nLayer].WasDrawn() ) {
-	cerr << "layer ID " << layer[nLayer].GetID() << " not drawn" << endl;
+      if( !aLayer[nLayer].WasDrawn() ) {
+	cerr << "layer ID " << aLayer[nLayer].GetID() << " not drawn" << endl;
 	bFailed = true;
       }
     }
@@ -226,10 +273,10 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
       stringstream ssLabel;
       ssLabel << nLayer;
-      layer[nLayer].SetLabel( ssLabel.str() );
-      layer[nLayer].GetInfoAtRAS( 0, 0, 0, labelValueMap );
+      aLayer[nLayer].SetLabel( ssLabel.str() );
+      aLayer[nLayer].GetInfoAtRAS( 0, 0, 0, labelValueMap );
       if( labelValueMap[ssLabel.str()] != "Hello world" ) {
-	cerr << "layer ID " << layer[nLayer].GetID() << " not copied" << endl;
+	cerr << "layer ID " << aLayer[nLayer].GetID() << " not copied" << endl;
 	bFailed = true;
       }
     }
@@ -272,18 +319,13 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
 		0, 0,       0, 0, 100 );
 
 
-    // Test the tcl commands.
+    // Test the ScubaView tcl commands.
     char sCommand[1024];
     int rTcl;
 
     sprintf( sCommand, "SetViewRASCenter %d 1.2 3.4 5.6", view.GetID() );
     rTcl = Tcl_Eval( iInterp, sCommand );
-    if( TCL_OK != rTcl ) {
-      sError << "Tcl_Eval returned not TCL_OK: " << endl 
-	     << "Command: " << sCommand << endl
-	     << "Result: " << iInterp->result;
-      throw 0;
-    }
+    AssertTclOK( rTcl );
     Assert( (view.mViewState.mCenterRAS[0] == (float)1.2 &&
 	     view.mViewState.mCenterRAS[1] == (float)3.4 &&
 	     view.mViewState.mCenterRAS[2] == (float)5.6), 
@@ -291,25 +333,109 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
 
     sprintf( sCommand, "SetViewZoomLevel %d 3.4", view.GetID() );
     rTcl = Tcl_Eval( iInterp, sCommand );
-    if( TCL_OK != rTcl ) {
-      sError << "Tcl_Eval returned not TCL_OK: " << endl 
-	     << "Command: " << sCommand << endl
-	     << "Result: " << iInterp->result;
-      throw 0;
-    }
+    AssertTclOK( rTcl );
     Assert( (view.mViewState.mZoomLevel == (float)3.4),
 	    "SetViewZoomLevel didn't set properly" );
 
     sprintf( sCommand, "SetViewInPlane %d X", view.GetID() );
     rTcl = Tcl_Eval( iInterp, sCommand );
-    if( TCL_OK != rTcl ) {
-      sError << "Tcl_Eval returned not TCL_OK: " << endl 
-	     << "Command: " << sCommand << endl
-	     << "Result: " << iInterp->result;
-      throw 0;
-    }
+    AssertTclOK( rTcl );
     Assert( (view.mViewState.mInPlane == ViewState::X),
 	    "SetViewInPlane didn't set properly" );
+
+    int layerID = 20;
+    int level = 30;
+    sprintf( sCommand, "AddLayerToView %d %d %d", 
+	     view.GetID(), layerID, level );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+    Assert( (view.mLevelLayerIDMap[level] == layerID),
+	    "AddLayerToView didn't work" );
+
+    sprintf( sCommand, "RemoveLayerFromViewAtLevel %d %d", 
+	     view.GetID(), level );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+    map<int,int>::iterator tLevelLayer = view.mLevelLayerIDMap.find( level );
+    Assert( (tLevelLayer == view.mLevelLayerIDMap.end()),
+	    "RemoveLayerFromViewAtLevel didn't work" );
+
+
+    // Test the Layer tcl commands.
+    sprintf( sCommand, "GetLayerIDList" );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+    char* sTclResult = Tcl_GetStringResult( iInterp );
+    string sIDList( sTclResult );
+    bFailed = false;
+    for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
+      int id = aLayer[nLayer].GetID();
+      stringstream ssID;
+      ssID << id;
+      string::size_type position = sIDList.find( ssID.str(), 0 );
+      if( position == string::npos ) {
+	cerr << "ID " << id << " not found" << endl;
+	bFailed = true;
+      }
+    }
+    stringstream ssIDList( sIDList );
+    while( !ssIDList.eof() ) {
+      int id;
+      ssIDList >> id;
+      bool bIDFound = false;
+      for( int nLayer = 0; nLayer < kcLayers; nLayer++ ) {
+	if( id == aLayer[nLayer].GetID() ) {
+	  bIDFound = true;
+	  break;	  
+	}
+      }
+      if( !bIDFound ) {
+	cerr << "incorrect ID returned: " << id << endl;
+	bFailed = true;
+      }
+    }
+    Assert( (!bFailed), "GetLayerIDList failed" );
+
+    Layer& layer = aLayer[0];
+    int id = layer.GetID();
+    sprintf( sCommand, "GetLayerType %d", id );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+    sTclResult = Tcl_GetStringResult( iInterp );
+    string sLayerType( sTclResult );
+    Assert( (sLayerType == "TestLayer"), "GetLayerType didn't work" );
+
+    layer.SetOpacity( 1.5 );
+    sprintf( sCommand, "GetLayerOpacity %d", id );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+    sTclResult = Tcl_GetStringResult( iInterp );
+    string sOpacity( sTclResult );
+    Assert( (sOpacity == "1.5"), "GetLayerOpacity didn't work" );
+
+    sprintf( sCommand, "SetLayerOpacity %d 5.5", id );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+    Assert( (layer.GetOpacity() == (float)5.5), 
+	    "SetLayerOpacity didn't work" );
+
+    sprintf( sCommand, "SetLayerLabel %d testLabel", id );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+    Assert( (layer.GetLabel() == "testLabel"), 
+	    "SetLayerLabel didn't work" );
+
+    sprintf( sCommand, "GetLayerLabel %d", id );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+    sTclResult = Tcl_GetStringResult( iInterp );
+    string sLabel( sTclResult );
+    Assert( (sLabel == layer.GetLabel()), "GetLayerLabel didn't work" );
+
+
+    // Check removing all the layers. 
+    view.RemoveAllLayers();
+    Assert( (view.mLevelLayerIDMap.size() == 0 ), "RemoveAllLayers failed" );
 
   }
   catch(...) {

@@ -37,6 +37,11 @@ public:
 
   virtual void DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
 
+  // Redisplay posters.
+  void RequestRedisplay() { mbPostRedisplay = true; }
+  bool WantRedisplay() const { return mbPostRedisplay; }
+  void RedisplayPosted() { mbPostRedisplay = false; }
+
  protected:
   virtual void DoDraw();
   virtual void DoReshape( int iWidth, int iHeight );
@@ -51,6 +56,9 @@ public:
   int mHeight;
   
   std::string msLabel;
+
+  // Redisplay requested flag.
+  bool mbPostRedisplay;
 };
 
 

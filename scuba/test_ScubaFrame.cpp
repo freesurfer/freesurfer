@@ -15,6 +15,15 @@ using namespace std;
   throw logic_error( sError.str() ); \
   }
 
+#define AssertTclOK(x) \
+    if( TCL_OK != (x) ) { \
+      sError << "Tcl_Eval returned not TCL_OK: " << endl  \
+	     << "Command: " << sCommand << endl \
+	     << "Result: " << iInterp->result; \
+      cerr << sError.str().c_str() << endl; \
+      throw logic_error( sError.str() ); \
+    } \
+
 
 // Custom View implementation. ----------------------------------------
 
@@ -41,6 +50,15 @@ TestView::DoDraw() {
   stringstream ssLabel;
   ssLabel << mID << ": " << msLabel;
   string sLabel = ssLabel.str();
+
+  glColor3i( 0, 0, 0 );
+  glBegin( GL_POLYGON );
+  glVertex2d( 0, 0 );
+  glVertex2d( 0, mWidth );
+  glVertex2d( mHeight, mWidth );
+  glVertex2d( mHeight, 0 );
+  glVertex2d( 0, 0 );
+  glEnd();
 
   glColor3f( 1, 1, 1 );
   
@@ -135,11 +153,11 @@ int Test_scubaframe_Init ( Tcl_Interp* iInterp ) {
 
 class ScubaFrameTester {
 public:
-  void Test();
+  void Test( Tcl_Interp* iInterp );
 };
 
 void 
-ScubaFrameTester::Test() {
+ScubaFrameTester::Test( Tcl_Interp* iInterp ) {
 
   stringstream sError;
 
@@ -167,6 +185,25 @@ ScubaFrameTester::Test() {
       }
     }
     
+    // Check the tcl functions that return number of cols and rows.
+    char sCommand[1024];
+    int rTcl;
+    sprintf( sCommand, "GetNumberOfRowsInFrame %d", frame->GetID() );
+    rTcl = Tcl_Eval( iInterp, sCommand );
+    AssertTclOK( rTcl );
+    char* sTclResult = Tcl_GetStringResult( iInterp );
+    string scRows( sTclResult ); 
+    Assert( (scRows == "2"), "tcl function returned wrong number of rows" );
+    for( int nRow = 0; nRow < 2; nRow++ ) {
+      sprintf( sCommand, "GetNumberOfColsAtRowInFrame %d %d", 
+	       frame->GetID(), nRow );
+      rTcl = Tcl_Eval( iInterp, sCommand );
+      AssertTclOK( rTcl );
+      char* sTclResult = Tcl_GetStringResult( iInterp );
+      string scCols( sTclResult ); 
+      Assert( (scCols == "2"), "tcl function returned wrong number of cols" );
+    }
+
     sError.flush();
     sError << "deleting frame" << endl;
     delete frame;
@@ -182,15 +219,25 @@ int main( int argc, char** argv ) {
   cerr << "Beginning test" << endl;
  
   try {
+    Tcl_Interp* interp = Tcl_CreateInterp();
+    Assert( interp, "Tcl_CreateInterp returned null" );
+    
+    int rTcl = Tcl_Init( interp );
+    Assert( TCL_OK == rTcl, "Tcl_Init returned not TCL_OK" );
+    
+    TclCommandManager& commandMgr = TclCommandManager::GetManager();
+    commandMgr.SetOutputStreamToCerr();
+    commandMgr.Start( interp );
+    
     for( int nTrial = 0; nTrial < 50; nTrial++ ) {
       ScubaFrameTester tester0;
-      tester0.Test();
+      tester0.Test( interp );
 
       ScubaFrameTester tester1;
-      tester1.Test();
+      tester1.Test( interp );
 
       ScubaFrameTester tester2;
-      tester2.Test();
+      tester2.Test( interp );
     }
   }
   catch( exception e ) {

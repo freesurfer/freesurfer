@@ -57,6 +57,26 @@ int main ( int argc, char** argv ) {
 	bGood = true;
       }
       if( !bGood ) throw logic_error( "found a nonexistant object" );
+
+
+      list<int> idList;
+      A::GetIDList( idList );
+      bool abFound[5];
+      for( int nObj = 0; nObj < 5; nObj++ ) {
+	abFound[nObj] = false;
+      }
+      list<int>::iterator tID;
+      for( tID = idList.begin(); tID != idList.end(); ++tID ) {
+	int id = *tID;
+	if( id >= 0 && id < 5 ) { abFound[id] = true; }
+	else { throw logic_error( "found invalid id in id list" ); }
+      }
+      for( int nObj = 0; nObj < 5; nObj++ ) {
+	if( !abFound[nObj] ) {
+	  throw logic_error( "valid id not found in id list" ); 
+	}
+      }
+
     }
 
     bool bGood = false;

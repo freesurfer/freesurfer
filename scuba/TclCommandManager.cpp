@@ -7,13 +7,18 @@ using namespace std;
 void
 TclCommandListener::ListenToTclCommand ( char* iCommand, 
 					 int iArgc, char** iArgv ) {
-  sReturnFormat = "";
-  sReturnValues = "";
-  sResult = "";
+  sReturnFormat.clear();
+  sReturnValues.clear();
+  sResult.clear();
 
   this->DoListenToTclCommand( iCommand, iArgc, iArgv );
 }
 
+TclCommandListener::~TclCommandListener () {
+
+  TclCommandManager& commandMgr = TclCommandManager::GetManager();
+  commandMgr.RemoveListener( *this );
+}
 
 TclCommandManager::TclCommandManager() : DebugReporter() {
 
@@ -24,9 +29,12 @@ TclCommandManager::TclCommandManager() : DebugReporter() {
 TclCommandManager& 
 TclCommandManager::GetManager() {
 
-  static TclCommandManager sManager;
+  static TclCommandManager* sManager = NULL;
+  if( NULL == sManager ) {
+    sManager = new TclCommandManager();
+  }
 
-  return sManager;
+  return *sManager;
 }
 
 void
@@ -225,4 +233,16 @@ TclCommandManager::ConvertFStringToTclObj( stringstream& isFormat,
   }
 
   return rObj;
+}
+
+void
+TclCommandManager::RemoveListener ( TclCommandListener& iListener ) {
+
+  std::list<Command*>::iterator tCommand;
+  for( tCommand = mlCommands.begin(); 
+       tCommand != mlCommands.end(); ++tCommand ) {
+
+    Command* command = *tCommand;
+    command->mlListeners.remove( &iListener );
+  }
 }

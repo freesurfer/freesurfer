@@ -17,12 +17,12 @@ class TestCollection : public DataCollection {
 
 public:
   TestCollection( string isLabel ) :
-    DataCollection( isLabel ) { 
+    DataCollection() { 
+    SetLabel( isLabel );
   }
   
   virtual void GetInfoAtRAS( float const iX, float const iY, float const iZ,
-			     std::list<string> olLabels,
-			     std::list<string> olValues ) const {
+			     std::map<std::string,std::string>& iLabelValues ) {
     return;
   }
 };
@@ -43,8 +43,8 @@ int main ( int argc, char** argv ) {
 
 
     TestCollection* col4 = new TestCollection( "col4" );
-    DataCollection::ID col4ID = col4->GetID();
-    DataCollection col4comp = DataCollection::GetDataCollection( col4ID );
+    int col4ID = col4->GetID();
+    DataCollection& col4comp = DataCollection::FindByID( col4ID );
     Assert( (col4ID == col4comp.GetID()), 
 	    logic_error("Didn't get correct collection") );
     Assert( (col4->GetLabel() == col4comp.GetLabel()), 
@@ -52,7 +52,7 @@ int main ( int argc, char** argv ) {
 
     delete col4;
     try {
-      DataCollection col4comp = DataCollection::GetDataCollection( col4ID );
+      DataCollection& col4comp = DataCollection::FindByID( col4ID );
       throw( logic_error("Didn't throw on deleted collection") );
     }
     catch( ... ) {}

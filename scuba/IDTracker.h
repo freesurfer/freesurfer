@@ -1,6 +1,8 @@
+
 #ifndef IDTracker_h
 #define IDTracker_h
 
+#include <list>
 #include <map>
 #include <sstream>
 #include <stdexcept>
@@ -18,6 +20,12 @@
 //    template IDTracker<myClass>;
 //    int IDTracker<myClass>::mNextID = 0;
 //    std::map<int,myClass*> IDTracker<myClass>::mIDMap;
+
+#define DeclareIDTracker(ClassType) \
+template IDTracker<ClassType>; \
+int IDTracker<ClassType>::mNextID = 0; \
+map<int,ClassType*> IDTracker<ClassType>::mIDMap; 
+
 
 template <typename ClassType> class IDTracker {
 
@@ -47,6 +55,19 @@ public:
     }
     
     return *obj;
+  }
+
+  // Static function that will fill a list of active (non-NULL) IDs.
+  static void GetIDList( std::list<int>& iList ) {
+    
+    std::map<int,ClassType*>::iterator tIDObject;
+    for( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject ) {
+      int id = (*tIDObject).first;
+      ClassType* object = (*tIDObject).second;
+      if( NULL != object ) {
+	iList.push_back( id );
+      }
+    }
   }
 
 

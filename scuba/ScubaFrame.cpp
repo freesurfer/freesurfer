@@ -23,6 +23,8 @@ ScubaFrame::ScubaFrame( ToglFrame::ID iID )
   commandMgr.AddCommand( *this, "SetFrameViewConfiguration" );
   commandMgr.AddCommand( *this, "GetViewIDFromFrameColRow" );
   commandMgr.AddCommand( *this, "GetSelectedViewID" );
+  commandMgr.AddCommand( *this, "GetNumberOfRowsInFrame" );
+  commandMgr.AddCommand( *this, "GetNumberOfColsAtRowInFrame" );
 
   PreferencesManager& prefsMgr = PreferencesManager::GetManager();
   prefsMgr.UseFile( ".scuba" );
@@ -177,13 +179,86 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
       }
     }
   }
+
+  // GetNumberOfRowsInFrame <frameID>
+  if( 0 == strcmp( isCommand, "GetNumberOfRowsInFrame" ) ) {
+    if( 2 == iArgc ) {
+      int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad frame ID";
+	return;
+      }
+      if( mID == frameID ) {
+	stringstream cRows;
+	cRows << mcRows;
+	sReturnFormat = "i";
+	sReturnValues = cRows.str();
+	return;
+      }
+    } else {
+      sResult = "wrong # args: should be \"GetNumberOfRowsInFrame frameID\"";
+      DebugOutput( << sResult );
+      return;
+    }
+  }
+
+  // GetNumberOfColsAtRowInFrame <frameID> <row>
+  if( 0 == strcmp( isCommand, "GetNumberOfColsAtRowInFrame" ) ) {
+    if( 3 == iArgc ) {
+      int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad frame ID";
+	return;
+      }
+
+      if( mID == frameID ) {
+	int row = strtol(iasArgv[2], (char**)NULL, 10);
+	if( row >= 0 && row < mcRows ) {
+	  stringstream cCols;
+	  cCols << mcCols[row];
+	  sReturnFormat = "i";
+	  sReturnValues = cCols.str();
+	  return;
+	} else {
+	  sResult = "bad row";
+	  DebugOutput( << sResult );
+	  return;
+	}
+	
+      }
+    } else {
+      sResult = "wrong # args: should be \"GetNumberOfColsAtRowInFrame "
+	"frameID row\"";
+      DebugOutput( << sResult );
+      return;
+    }
+  }
+}
+
+void
+ScubaFrame::SizeViewsToConfiguration() {
+
+  for( int nRow = 0; nRow < mcRows; nRow++ ) {
+    int cCols = mcCols[nRow];
+    for( int nCol = 0; nCol < cCols; nCol++ ) {
+      
+      View* view;
+      try {
+	view = GetViewAtColRow( nCol, nRow );
+	view->Reshape( mWidth / cCols, mHeight / mcRows );
+      } 
+      catch(...) {
+	DebugOutput( << "Couldn't create new view because factory "
+		     << "has not been set" );
+      }
+      
+    }
+  }  
 }
 
 void
 ScubaFrame::DoDraw() {
   
-  glClear( GL_COLOR_BUFFER_BIT );
-
   for( int nRow = 0; nRow < mcRows; nRow++ ) {
     int cCols = mcCols[nRow];
     for( int nCol = 0; nCol < cCols; nCol++ ) {
@@ -205,6 +280,7 @@ ScubaFrame::DoDraw() {
       // height at the frame's width and height, otherwise we'll mess
       // up the proportions.
       glViewport( x, y, mWidth, mHeight );
+      glRasterPos2i( 0, 0 );
 
       // Tell the view to draw.
       try {
@@ -235,6 +311,9 @@ ScubaFrame::DoDraw() {
 void
 ScubaFrame::DoReshape() {
 
+  SizeViewsToConfiguration();
+
+  // Check for redraw requests.
   ViewRowMap::iterator tRow;
   for( tRow = mViews.begin(); tRow != mViews.end(); ++tRow ) {
     
@@ -243,7 +322,12 @@ ScubaFrame::DoReshape() {
     for( tCol = viewCols.begin(); tCol != viewCols.end(); ++tCol ) {
 
       View* view = (*tCol).second;
-      view->Reshape( 0, 0 );
+
+      // Post a redisplay if the view wants one.
+      if( view->WantRedisplay() ) {
+	RequestRedisplay();
+	view->RedisplayPosted();
+      }
     }
   }
 }
@@ -260,6 +344,12 @@ ScubaFrame::DoMouseMoved( int inX, int inY, InputState& iState ) {
     
     View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
     view->MouseMoved( inX, inY, iState );
+
+    // Post a redisplay if the view wants one. 
+    if( view->WantRedisplay() ) {
+      RequestRedisplay();
+      view->RedisplayPosted();
+    }
   }
   catch(...) {
   }
@@ -271,6 +361,12 @@ ScubaFrame::DoMouseUp( int inX, int inY, InputState& iState ) {
   try {
     View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
     view->MouseUp( inX, inY, iState );
+
+    // Post a redisplay if the view wants one. 
+    if( view->WantRedisplay() ) {
+      RequestRedisplay();
+      view->RedisplayPosted();
+    }
   }
   catch(...) {
   } 
@@ -291,6 +387,12 @@ ScubaFrame::DoMouseDown( int inX, int inY, InputState& iState ) {
     RequestRedisplay();
 
     view->MouseDown( inX, inY, iState );
+
+    // Post a redisplay if the view wants one. 
+    if( view->WantRedisplay() ) {
+      RequestRedisplay();
+      view->RedisplayPosted();
+    }
   }
   catch(...) {
   } 
@@ -318,6 +420,12 @@ ScubaFrame::DoKeyDown( int inX, int inY, InputState& iState ) {
 
     View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
     view->KeyDown( inX, inY, iState );
+
+    // Post a redisplay if the view wants one. 
+    if( view->WantRedisplay() ) {
+      RequestRedisplay();
+      view->RedisplayPosted();
+    }
   }
   catch(...) {
   } 
@@ -329,6 +437,12 @@ ScubaFrame::DoKeyUp( int inX, int inY, InputState& iState ) {
   try {
     View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
     view->KeyUp( inX, inY, iState );
+
+    // Post a redisplay if the view wants one. 
+    if( view->WantRedisplay() ) {
+      RequestRedisplay();
+      view->RedisplayPosted();
+    }
   }
   catch(...) {
   } 
@@ -359,7 +473,6 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
       break;
   }
 
-
   for( int nRow = 0; nRow < mcRows; nRow++ ) {
     int cCols = mcCols[nRow];
     for( int nCol = 0; nCol < cCols; nCol++ ) {
@@ -383,14 +496,10 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
 		       << "has not been set" );
 	}
       }
-
-      if( NULL != view ) {
-	view->SetWidth( mWidth / cCols );
-	view->SetHeight( mHeight / mcRows );
-      }
-      
     }
   }  
+
+  SizeViewsToConfiguration();
 
   // Make sure the selected col/row are in bounds. 
   if( mnSelectedViewRow >= mcRows ) {

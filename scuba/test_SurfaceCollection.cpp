@@ -28,7 +28,8 @@ int main ( int argc, char** argv ) {
       fnMRIS = string(sSubjectsDir) + "/bert/surf/lh.white";
     }
 
-    SurfaceCollection surf( fnMRIS );
+    SurfaceCollection surf;
+    surf.SetSurfaceFileName( fnMRIS );
     MRIS* mris = surf.GetMRIS();
     
     DataManager dataMgr = DataManager::GetManager();

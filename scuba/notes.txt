@@ -185,37 +185,145 @@ volume loading
         RegisterTclFunctions()
 
 Layer:
-  GetLayerIDList 
-    returns a list of layer IDs
-  GetLayerType <ID>
-    returns a text string {2DMRI,2DMRIS,etc}
-  GetLayerOpacity <ID>
-    Layer& layer = GetLayer(ID);
-    return layer.GetOpacity();
-  SetLayerOpacity <ID> <opacity>
-    Layer& layer = GetLayer(ID);
-    layer.SetOpacity(opacity);
+  GetLayerIDList     --- returns a list of layer IDs
+  GetLayerType <layerID>     --- returns a text string {2DMRI,2DMRIS,etc}
+  GetLayerOpacity <layerID>
+  SetLayerOpacity <layerID> <opacity>
 
-Frame:
+ScubaFrame:
   SetFrameViewConfiguration <frameID> <configuration>
-  GetViewIDFromFrameRowCol <frameID> <row> <col>   -- returns View::ID
-  GetSelectedViewID <frameID>    --- returns View::ID
+  GetViewIDFromFrameRowCol <frameID> <row> <col>   --- returns view ID
+  GetSelectedViewID <frameID>    --- returns view ID
 
-View:
-  SetViewZoomLevel <ID> <zoomLevel>
-  SetViewInPlane <ID> <plane>
-  SetViewRASCenter <ID> <X> <Y> <Z>
+ScubaView:
+  SetViewZoomLevel <viewID> <zoomLevel>
+  SetViewInPlane <viewID> <plane>
+  SetViewRASCenter <viewID> <X> <Y> <Z>
+  AddLayerToView <viewID> <layerID> <level>
+  RemoveLayerFromViewAtLevel <viewID> <level>
+  RemoveAllLayersFromView <viewID>
 
+ScubaLayerFactory:
+  MakeLayer <layerType>   --- returns layer ID
 
-  NewVolumeDataCollection <filename>
-    creates VolumeCollection(filename)
-    returns collection ID
-  New2DMRILayer <collectionID>
-    creates 2DMRILayer(collectionID)
-    returns layer ID
+ScubaLayer2DMRI:
+  SetVolumeCollection <layerID> <collectionID>
+
+DataCollection:
+  NewVolumeDataCollection <filename>   --- returns collection ID
   
 
 
-ToglFrame - doesn't automatically set ID because this is set by the togl stuff
-FrameView
-ViewLayer
+
+todo:
+
+code:
+report info at RAS
+b/c, LUT color map
+editing
+selection
+control points
+markers
+
+interfaces:
+Load Volume
+Frame: View Configuration
+Volume Info: change color map
+       load LUT
+
+
+
+
+plan :
+
+test_ScubaLayers
+- report info at RAS
+ - set label properly
+ - ScubaView not drawing last character
+
+main scuba interface window
+frame->view config
+set view state dlog
+Load Volume dialog
+output display
+
+b/c, LUT color map support
+opacity
+
+Volume Info interface
+ - change b/c or LUT
+ - change opactiy
+
+
+ScubaFrame:
+tool
+Tcl interface for setting tool (navigation, selection, editing, control points)
+
+
+ScubaView:
+key down
+ - left right down up in out zoom inplane
+
+
+
+Frame
+
+Info pane
+ - list of label/value strings in two columns
+   - first column for a marker, PDM to select marker
+     - max number of markers, default is 1 for cursor
+   - second column for mouseover
+
+
+
+Control Window
+
+
+Tools
+ global
+   ctrl-b1 zoom in
+   ctrl-b2 recenter
+   ctrl-b3 zoom out
+ - Navigation
+   b1 pan
+   b2 slice
+   b3 zoom	
+ - Marker
+   b2 make marker
+   b3 remove marker
+ - Voxel Selection
+   b2 select,   shift-b2 select fill
+   b3 unselect, shift-b3 select unfill
+ - Voxel Editing
+   b2 paint, shift-b2 paint fill, ctrl-shift-b2 set color
+   b3 erase, shift-b3 erase fill, ctrl-shift-b3 set erase color
+ - Voxel Restore
+   b2 restore,   shift-b2 restore fill
+   b3 unrestore, shift-b2 unrestore fill
+ - Control Points
+   b2 make control point
+   b3 remove control point
+
+Data Info Dlog
+ - row for each of loaded data
+ - viewing options i.e. gray or LUT, opacity
+
+Layer Info Dlog
+ - row for each layer
+ - set layer name
+ - choose data sources
+ - choose viewing options i.e. opacity
+ - choose editable options
+
+View Info
+ - row for each view
+ - linked navigation checkbox
+ - list of layers names with checkboxes
+
+Frame Info
+ - view layout
+ - special views like mosaic
+
+
+
+CURRENT : test_ScubaView is failing because view.DoDraw() is not calling the Layer's subclass DrawIntoBuffer function, just the Layer function
