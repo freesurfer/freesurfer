@@ -265,7 +265,7 @@ fgetl(char *s, int n, FILE *fp)
     if (!cp)
       return(NULL) ;
 
-    while (isspace(*cp))
+    while (isspace((int)*cp))
       cp++ ;
 
   } while (((*cp) == '#') || ((*cp) == '\n') || ((*cp) == 0)) ;
@@ -712,7 +712,7 @@ stricmp(char *str1, char *str2)
 char *
 StrRemoveSpaces(char *str)
 {
-  while (isspace(*str))
+  while (isspace((int)*str))
     str++ ;
 
   return(str) ;
@@ -799,15 +799,15 @@ FileNamePath(char *fname, char *pathName)
 char *
 StrSkipNumber(char *str)
 {
-  while (*str && isdigit(*str))
+  while (*str && isdigit((int)*str))
     str++ ;
   if (*str == '.')  /* check for floating point # */
   {
     str++ ;
-    while (*str && isdigit(*str))
+    while (*str && isdigit((int)*str))
       str++ ;
   }
-  while (*str && isspace(*str))
+  while (*str && isspace((int)*str))
     str++ ;
 
   return(str) ;
