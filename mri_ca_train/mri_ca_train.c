@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/04/06 15:15:54 $                                             */
-/* Revision       : $Revision: 1.40 $                                         */
+/* Revision Date  : $Date: 2005/04/06 15:17:19 $                                             */
+/* Revision       : $Revision: 1.41 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   parms.prior_spacing = 2.0f ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.40 2005/04/06 15:15:54 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.41 2005/04/06 15:17:19 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -176,6 +176,11 @@ main(int argc, char *argv[])
     for (nargs = i = 0 ; i < nsubjects+options ; i++)
     {
       subject_name = argv[i+1] ;
+      ///////////////////////////////////////////////////////////////////////////////////////
+      printf("***************************************************************************\n");
+      printf("processing subject %s, %d of %d...\n", subject_name,i+1-nargs,
+             nsubjects);
+
       if (stricmp(subject_name, "-NOINT") == 0)
       {
         printf("not using intensity information for subsequent subjects...\n");
@@ -392,11 +397,6 @@ main(int argc, char *argv[])
       // when loaded gca->type = GCA_FLASH, these should have been set?????
       if (i == 0 && flash)   /* first subject */
         GCAsetFlashParameters(gca, TRs, FAs, TEs) ;
-
-      ///////////////////////////////////////////////////////////////////////////////////////
-      printf("***************************************************************************\n");
-      printf("processing subject %s, %d of %d...\n", subject_name,i+1-nargs,
-             nsubjects);
 
       /////////////////////////////////////////////////////////////////////////////////
       // xform_name is given, then we can use the consistent c_(r,a,s) for gca
