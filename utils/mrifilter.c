@@ -1474,6 +1474,76 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize)
   }
   return(mri_dst) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           perform a generalized median filter on the input MRI
+------------------------------------------------------*/
+MRI *
+MRIorder(MRI *mri_src, MRI *mri_dst, int wsize, float pct)
+{
+  static BUFTYPE *sort_array = NULL ;
+  static int   sort_size = 0 ;
+  int     width, height, depth, x, y, z, whalf, x0, y0, z0,
+          order_index, wcubed, yi, zi ;
+  BUFTYPE *sptr, *pdst ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIalloc(width, height, depth, MRI_UCHAR) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  if (mri_dst->type != MRI_UCHAR)
+    ErrorReturn(mri_dst, 
+                (ERROR_UNSUPPORTED, "MRIorder: dst must be MRI_UCHAR")) ;
+
+  wcubed = (wsize*wsize*wsize) ;
+  order_index = pct*wcubed ;
+  whalf = wsize/2 ;
+
+  if (sort_array && (wcubed != sort_size))
+  {
+    free(sort_array) ;
+    sort_array = NULL ;
+  }
+  if (!sort_array)
+  {
+    sort_array = (BUFTYPE *)calloc(wcubed, sizeof(BUFTYPE)) ;
+    sort_size = wcubed ;
+  }
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        for (sptr = sort_array, z0 = -whalf ; z0 <= whalf ; z0++)
+        {
+          zi = mri_src->zi[z+z0] ;
+          for (y0 = -whalf ; y0 <= whalf ; y0++)
+          {
+            yi = mri_src->yi[y+y0] ;
+            for (x0 = -whalf ; x0 <= whalf ; x0++)
+              *sptr++ = MRIvox(mri_src, mri_src->xi[x+x0], yi, zi) ;
+          }
+        }
+
+        qsort(sort_array, wcubed, sizeof(BUFTYPE), compare_sort_array) ;
+        *pdst++ = sort_array[order_index] ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
 static int
 compare_sort_array(const void *pc1, const void *pc2)
 {
@@ -2212,4 +2282,69 @@ MRIcorrelate(MRI *mri_ref, MRI *mri_in, int xoff, int yoff, int zoff)
   }
 
   return(total) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Remove small inconsistincies in the labelling of a volume.
+------------------------------------------------------*/
+MRI *
+MRIremoveHoles(MRI *mri_src, MRI*mri_dst, int wsize, float pct)
+{
+  int     width, height, depth, x, y, z, whalf, x0, y0, z0, thresh,xi,yi,zi,
+          num_on, num_off ;
+  BUFTYPE val, *pdst, out_val ;
+  float   wcubed ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  wcubed = (float)(wsize*wsize*wsize) ;
+  thresh = nint((float)wcubed*pct) ;
+  whalf = wsize/2 ;
+
+  for (z = whalf ; z < depth ; z++)
+  {
+    for (y = whalf ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        for (out_val=num_on = num_off = 0, z0 = -whalf ; z0 <= whalf ; z0++)
+        {
+          zi = mri_src->zi[z+z0] ;
+          for (y0 = -whalf ; y0 <= whalf ; y0++)
+          {
+            yi = mri_src->yi[y+y0] ;
+            for (x0 = -whalf ; x0 <= whalf ; x0++)
+            {
+              xi = mri_src->xi[x+x0] ;
+              val = MRIvox(mri_src, xi, yi, zi) ;
+              if (!val)
+                num_off++ ;
+              else
+              {
+                if (!out_val)
+                  out_val = 0 ;
+                num_on++ ;
+              }
+            }
+          }
+        }
+        val = MRIvox(mri_src, x, y, z) ;
+        if (val && (num_off >= thresh))
+          val = 0 ;
+        else if (!val && (num_on >= thresh))
+          val = 255 ;
+        *pdst++ = val ;
+      }
+    }
+  }
+  return(mri_dst) ;
 }
