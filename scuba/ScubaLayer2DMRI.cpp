@@ -4,6 +4,7 @@
 #include "talairachex.h"
 #include "TclDlogManager.h"
 #include "Utilities.h"
+#include "Array2.h"
 
 using namespace std;
 
@@ -20,6 +21,7 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   mBrightness = 0.25;
   mContrast = 12.0;
   mCurrentLine = NULL;
+  mCurrentSnakeLine = NULL;
   mROIOpacity = 0.7;
 
   // Try setting our initial color LUT to the default LUT with
@@ -141,6 +143,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       color[0] = color[1] = color[2] = 0;
       if( mVolume->IsRASInMRIBounds( RAS ) ) {
 
+
 	float value = 0;
 	switch( mSampleMethod ) {
 	case nearest:
@@ -151,6 +154,9 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	  break;
 	case sinc:
 	  value = mVolume->GetMRISincValueAtRAS( RAS ); 
+	  break;
+	case magnitude:
+	  value = mVolume->GetMRIMagnitudeValueAtRAS( RAS );
 	  break;
 	}
 	
@@ -284,17 +290,8 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     }
   }
 
-  if( mCurrentLine ) {
-    int lineBegin[2];
-    int lineEnd[2];
-    int color[3];
-    color[0] = 255; color[1] = 0; color[2] = 0;
-    iTranslator.TranslateRASToWindow( mCurrentLine->mBeginRAS, lineBegin );
-    iTranslator.TranslateRASToWindow( mCurrentLine->mEndRAS, lineEnd );
-    DrawLineIntoBuffer( iBuffer, iWidth, iHeight, lineBegin, lineEnd,
-			color, 1, 1 );
-  }
 
+  // Line range.
   float range = 0;
   switch( iViewState.mInPlane ) {
   case 0: range = mVolume->GetVoxelXSize() / 2.0; break;
@@ -302,21 +299,39 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   case 2: range = mVolume->GetVoxelZSize() / 2.0; break;
   }
 
+  // Drawing straight lines.
+  if( mCurrentLine ) {
+    DrawStraightLineIntoBuffer( iBuffer, iWidth, iHeight, iViewState,
+				iTranslator, mCurrentLine );
+  }
   std::list<Line*>::iterator tLine;
   for( tLine = mLines.begin(); tLine != mLines.end(); ++tLine ) {
     Line* line = *tLine;
     if( iViewState.IsRASVisibleInPlane( line->mBeginRAS, range ) &&
 	iViewState.IsRASVisibleInPlane( line->mEndRAS, range ) ) {
-      int lineBegin[2];
-      int lineEnd[2];
-      int color[3];
-      color[0] = 0; color[1] = 0; color[2] = 255;
-      iTranslator.TranslateRASToWindow( line->mBeginRAS, lineBegin );
-      iTranslator.TranslateRASToWindow( line->mEndRAS, lineEnd );
-      DrawLineIntoBuffer( iBuffer, iWidth, iHeight, lineBegin, lineEnd,
-			  color, 1, 1 );
+      DrawStraightLineIntoBuffer( iBuffer, iWidth, iHeight, iViewState,
+				  iTranslator, line );
     }
   }
+
+
+  // Drawing snake lines.
+  if( mCurrentSnakeLine ) {
+    DrawSnakeLineIntoBuffer( iBuffer, iWidth, iHeight, iViewState,
+			     iTranslator, mCurrentSnakeLine );
+  }
+  std::list<SnakeLine*>::iterator tSnakeLine;
+  for( tSnakeLine = mSnakeLines.begin(); 
+       tSnakeLine != mSnakeLines.end();
+       ++tSnakeLine ) {
+    SnakeLine* line = *tSnakeLine;
+    if( iViewState.IsRASVisibleInPlane( line->mBeginRAS.xyz(), range ) &&
+	iViewState.IsRASVisibleInPlane( line->mEndRAS.xyz(), range ) ) {
+      DrawSnakeLineIntoBuffer( iBuffer, iWidth, iHeight, iViewState,
+			       iTranslator, line );
+    }
+  }
+
 }
   
 void 
@@ -463,6 +478,8 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	sampleMethod = trilinear;
       } else if( 0 == strcmp( iasArgv[2], "sinc" ) ) {
 	sampleMethod = sinc;
+      } else if( 0 == strcmp( iasArgv[2], "magnitude" ) ) {
+	sampleMethod = magnitude;
       } else {
 	sResult = "bad sampleMethod \"" + string(iasArgv[2]) +
 	  "\", should be nearest, trilinear, or sinc";
@@ -492,6 +509,9 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	break;
       case sinc:
 	sReturnValues = "sinc";
+	break;
+      case magnitude:
+	sReturnValues = "magnitude";
 	break;
       }
       sReturnFormat = "s";
@@ -951,6 +971,27 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       break;
     }
     break;
+
+  case ScubaToolState::edgeLine:
+
+    switch( iInput.Button() ) {
+    case 1: 
+
+      // If our button is down, if it's a new click, start a line. If
+      // it's dragging, just streatch the line. If the button is not
+      // down, it's a mouse up, and we'll end the line.
+      if( iInput.IsButtonDownEvent() ) {
+	StartEdgeLine( iRAS );
+      } else if( iInput.IsButtonDragEvent() ) {
+	StretchCurrentEdgeLine( iRAS, iViewState, iTranslator );
+      } else if( iInput.IsButtonUpEvent() ) {
+	EndEdgeLine( iRAS, iTranslator );
+      }
+
+      RequestRedisplay();
+      break;
+    }
+    break;
     default:
       break;
     }
@@ -1055,12 +1096,120 @@ ScubaLayer2DMRI::EndLine( float iRAS[3],
   }
 }
 
+
+void 
+ScubaLayer2DMRI::StartEdgeLine( float iRAS[3] ) {
+
+  // Create a new line and set its beginning and ending to this point.
+  mCurrentSnakeLine = new SnakeLine( iRAS );
+}
+
+void 
+ScubaLayer2DMRI::StretchCurrentEdgeLine( float iRAS[3], 
+					 ViewState& iViewState,
+				  ScubaWindowToRASTranslator& iTranslator ) {
+
+  if( mCurrentSnakeLine ) {
+
+    
+    EdgePathFinder finder( iViewState.mBufferWidth, iViewState.mBufferHeight,
+			   (int)mVolume->GetMRIMagnitudeMaxValue(),
+			   &iTranslator, mVolume );
+    //    finder.SetOutputStreamToCerr();
+
+    Point3<float> beginRAS( mCurrentSnakeLine->mBeginRAS );
+    Point3<float> endRAS( iRAS );
+    Point2<int> beginWindow;
+    Point2<int> endWindow;
+    iTranslator.TranslateRASToWindow( beginRAS.xyz(), beginWindow.xy() );
+    iTranslator.TranslateRASToWindow( endRAS.xyz(), endWindow.xy() );
+    list<Point2<int> > windowPoints;
+
+    finder.FindPath( beginWindow, endWindow, windowPoints );
+
+    mCurrentSnakeLine->mPointsRAS.clear();
+
+    list<Point2<int> >::iterator tWindowPoint;
+    for( tWindowPoint = windowPoints.begin();
+	 tWindowPoint != windowPoints.end();
+	 ++tWindowPoint ) {
+
+      Point3<float> currentRAS;
+      iTranslator.TranslateWindowToRAS( (*tWindowPoint).xy(), 
+					currentRAS.xyz() );
+      mCurrentSnakeLine->mPointsRAS.push_back( currentRAS );
+    }
+  }
+}
+
+void 
+ScubaLayer2DMRI::EndEdgeLine( float iRAS[3], 
+			  ScubaWindowToRASTranslator& iTranslator ) {
+
+  if( mCurrentSnakeLine ) {
+    
+    // Add this line.
+    mSnakeLines.push_back( mCurrentSnakeLine );
+
+    // Clear the current line.
+    mCurrentSnakeLine = NULL;
+  }
+}
+
 void
 ScubaLayer2DMRI::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
   
   oIncrements[0] = mVolume->GetVoxelXSize();
   oIncrements[1] = mVolume->GetVoxelYSize();
   oIncrements[2] = mVolume->GetVoxelZSize();
+}
+
+void
+ScubaLayer2DMRI::DrawStraightLineIntoBuffer ( GLubyte* iBuffer, 
+					      int iWidth, int iHeight,
+					      ViewState& iViewState,
+				       ScubaWindowToRASTranslator& iTranslator,
+					      Line* iLine ) {
+  
+  int lineBegin[2];
+  int lineEnd[2];
+  int color[3];
+  color[0] = 0; color[1] = 0; color[2] = 255;
+  iTranslator.TranslateRASToWindow( iLine->mBeginRAS, lineBegin );
+  iTranslator.TranslateRASToWindow( iLine->mEndRAS, lineEnd );
+  DrawLineIntoBuffer( iBuffer, iWidth, iHeight, lineBegin, lineEnd,
+		      color, 1, 1 );
+}
+
+void
+ScubaLayer2DMRI::DrawSnakeLineIntoBuffer ( GLubyte* iBuffer, 
+					   int iWidth, int iHeight,
+					   ViewState& iViewState,
+				      ScubaWindowToRASTranslator& iTranslator,
+					   SnakeLine* iLine ) {
+
+  bool bFirstPoint = true;
+  Point3<float>* pointRASA = NULL;
+  Point3<float>* pointRASB = NULL;
+  int windowA[2], windowB[2];
+  int color[3] = {255, 0, 0};
+  
+  list<Point3<float> >::iterator tPoint;
+  for( tPoint = iLine->mPointsRAS.begin();
+       tPoint != iLine->mPointsRAS.end();
+       ++tPoint ) {
+    if( bFirstPoint ) {
+      pointRASA = &(*tPoint);
+      bFirstPoint = false;
+    } else {
+      pointRASB = &(*tPoint);
+      iTranslator.TranslateRASToWindow( pointRASA->xyz(), windowA );
+      iTranslator.TranslateRASToWindow( pointRASB->xyz(), windowB );
+      DrawLineIntoBuffer( iBuffer, iWidth, iHeight, windowA, windowB,
+			  color, 1, 1 );
+      pointRASA = pointRASB;
+    }
+  }
 }
 
 
@@ -1190,3 +1339,21 @@ UndoSelectionAction::Redo () {
 }
 
 
+EdgePathFinder::EdgePathFinder ( int iViewWidth, int iViewHeight, 
+				 int iLongestEdge,
+				 ScubaWindowToRASTranslator* iTranslator,
+				 VolumeCollection* iVolume ) {
+
+  SetDimensions( iViewWidth, iViewHeight, iLongestEdge );
+  mVolume = iVolume;
+  mTranslator = iTranslator;
+}
+		  
+float 
+EdgePathFinder::GetEdgeCost ( Point2<int>& iPoint ) {
+
+  float RAS[3];
+  mTranslator->TranslateWindowToRAS( iPoint.xy(), RAS );
+  return mVolume->GetMRIMagnitudeValueAtRAS( RAS ) + 0.1;
+
+}
