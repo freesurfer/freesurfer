@@ -72,6 +72,8 @@ typedef struct vertex_type_
   float  tx, ty, tz ;     /* tmp coordinate storage */
   float  origx, origy,
          origz ;          /* original coordinates */
+  float  infx, infy, infz; /* inflated coordinates */
+  float  fx, fy, fz ;      /* flattened coordinates */
   float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
   float e2x, e2y, e2z ;  /* 2nd basis vector for the local tangent plane */
 #if 0
@@ -366,6 +368,8 @@ MRI_SURFACE  *MRISreadOverAlloc(char *fname, double pct_over) ;
 MRI_SURFACE  *MRISfastRead(char *fname) ;
 int          MRISreadOriginalProperties(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname) ;
+int          MRISreadInflatedCoordinates(MRI_SURFACE *mris, char *sname) ;
+int          MRISreadFlattenedCoordinates(MRI_SURFACE *mris, char *sname) ;
 int          MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris) ;
 int          MRIScanonicalToWorld(MRI_SURFACE *mris, Real phi, Real theta,
                                   Real *pxw, Real *pyw, Real *pzw) ;
@@ -580,6 +584,8 @@ MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 #define TMP_VERTICES        2
 #define CANONICAL_VERTICES  3
 #define CURRENT_VERTICES    4
+#define INFLATED_VERTICES   5
+#define FLATTENED_VERTICES  6
 
 
 int          MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
