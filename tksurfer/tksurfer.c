@@ -1725,7 +1725,6 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 #endif
 {
   int tclscriptflag;
-  int option=0;
   int i;
   int j;
   long last_frame_xdim;
@@ -18132,7 +18131,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.51 2003/08/22 18:20:36 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.52 2003/08/22 22:07:25 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22463,6 +22462,9 @@ int labl_import_annotation (char *fname)
   /* show the label label in the interface. */
   if (g_interp)
     Tcl_Eval (g_interp, "ShowLabel kLabel_Label 1");
+  labl_draw_flag = 1;
+  if (g_interp)
+    Tcl_Eval (g_interp, "UpdateLinkedVarGroup label");
   
   return (ERROR_NONE);
 }
