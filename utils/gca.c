@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/04/01 22:38:41 $
-// Revision       : $Revision: 1.117 $
+// Revision Date  : $Date: 2004/04/02 21:27:16 $
+// Revision       : $Revision: 1.118 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11342,10 +11342,19 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double 
 	  /////////////////////////////////////////////////
 	  else
 	  {
-
 	    /* now map intensity and covariance info over */
 	    T1 = gc_src->means[0] ; PD = gc_src->means[1] ;
-	    T1 = MAX(T1,0) ;
+	    if (T1 <= 0)
+	    {
+	      printf("WARN: ********************************************\n");
+	      printf("WARN: (%d, %d, %d) has T1 = %f <= 0 and PD = %f\n", x, y, z, T1, PD);
+	      printf("WARN: nlabels = %d\n", gcan_src->nlabels);
+	      for (i=0;i < gcan_src->nlabels; ++i)
+		printf("WARN: %d: label = %d\n", i, gcan_src->labels[i]);
+	      printf("WARN: make T1 = 10 msec\n");
+	      printf("WARN: ********************************************\n");
+	    }
+	    T1 = MAX(T1,10) ; // used to be 0. T1 should be positive
 	    if (Ggca_label == gcan_dst->labels[n])
 	    label_count++ ; 
 	    for (i = 0 ; i < gca_flash->ninputs ; i++)
