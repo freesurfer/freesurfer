@@ -10,9 +10,15 @@
 #define near
 #define hmemmove(dst,src,n)  memcpy(dst,src,n)
 
+// 32 bit OS long is 32bit.  64 bit OS long is 64 bit
+// but int is 32 bit on both
+typedef int long32;
+typedef long long long64;
+
 short  swapShort(short s) ;
-long   swapLong(long l) ;
-float   swapFloat(float l) ;
+long32 swapLong32(long32 l);
+long64 swapLong64(long64 l); 
+float  swapFloat(float l) ;
 double swapDouble(double dval) ;
 int    swapInt(int i) ;
 
@@ -28,7 +34,8 @@ int ByteSwap8(void *buf8, long int nitems);
 #define orderShortBytes(i)   swapShort(i)
 #define orderFloatBytes(i)   swapFloat(i)
 #define orderDoubleBytes(i)  swapDouble(i)
-#define orderLongBytes(i)    swapLong(i)
+#define orderLong32Bytes(i)  swapLong32(i)
+#define orderLong64Bytes(i)  swapLong64(i)
 
 #else
 

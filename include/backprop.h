@@ -8,8 +8,11 @@
 
       Description:  
 
-  $Header: /space/repo/1/dev/dev/include/backprop.h,v 1.3 2002/05/28 21:00:19 fischl Exp $
+  $Header: /space/repo/1/dev/dev/include/backprop.h,v 1.4 2004/08/26 15:27:12 tosa Exp $
   $Log: backprop.h,v $
+  Revision 1.4  2004/08/26 15:27:12  tosa
+  long to long32
+
   Revision 1.3  2002/05/28 21:00:19  fischl
   added BP_ prefix.
 
@@ -33,9 +36,9 @@
 
 typedef struct
 {
-  long    nnets ;         /* total # of nets in file */
-  long    magic ;         /* magic # for identification */
-  long    first ;         /* file offset of first net */
+  long32    nnets ;         /* total # of nets in file */
+  long32    magic ;         /* magic # for identification */
+  long32    first ;         /* file offset of first net */
 } BPFILE_HEADER ;
 
 #define BP_APPEND         0

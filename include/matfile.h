@@ -2,23 +2,24 @@
 #define MATFILE_H
        
 #include "matrix.h"
+#include "machine.h"
 
 typedef struct
 {
-    long  type ;
-    long  mrows ;
-    long  ncols ;
-    long  imagf ;
-    long  namlen ;
+    long32  type ;
+    long32  mrows ;
+    long32  ncols ;
+    long32  imagf ;
+    long32  namlen ;
 } MATHD ;
 
 typedef struct
 {
-    long  type ;
-    long  mrows ;
-    long  ncols ;
-    long  imagf ;
-    long  namlen ;
+    long32  type ;
+    long32  mrows ;
+    long32  ncols ;
+    long32  imagf ;
+    long32  namlen ;
     char  *data ;
     char  *idata ;
 } MATFILE ;

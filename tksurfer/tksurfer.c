@@ -4882,15 +4882,15 @@ void
 do_rgb_cmp_frame(long xsize,long ysize, FILE *fp)
 {
   int i,lo,hi,pos,change;
-  long fb1, fb2 ;
+  long32 fb1, fb2 ;
   
   lo = 0;
   hi = 0;
   pos = 0;
   while (lo<xsize*ysize)
     {
-      fb1 = orderLongBytes(framebuff[hi])&0xffffff ;
-      fb2 = orderLongBytes(framebuff2[hi])&0xffffff ;
+      fb1 = orderLong32Bytes(framebuff[hi])&0xffffff ;
+      fb2 = orderLong32Bytes(framebuff2[hi])&0xffffff ;
       while ((hi<xsize*ysize)&&
 	     (hi-lo<32767)&&
 	     (fb1==fb2))
@@ -4898,8 +4898,8 @@ do_rgb_cmp_frame(long xsize,long ysize, FILE *fp)
 	  hi++;
 	  if (hi < xsize*ysize)
 	    {
-	      fb1 = orderLongBytes(framebuff[hi])&0xffffff ;
-	      fb2 = orderLongBytes(framebuff2[hi])&0xffffff ;
+	      fb1 = orderLong32Bytes(framebuff[hi])&0xffffff ;
+	      fb2 = orderLong32Bytes(framebuff2[hi])&0xffffff ;
 	    }
 	}
       if (hi>lo)
@@ -4910,11 +4910,11 @@ do_rgb_cmp_frame(long xsize,long ysize, FILE *fp)
 	}
       else
 	{
-	  fb1 = orderLongBytes(framebuff[lo])&0xffffff ;
-	  fb2 = orderLongBytes(framebuff2[lo])&0xffffff ;
+	  fb1 = orderLong32Bytes(framebuff[lo])&0xffffff ;
+	  fb2 = orderLong32Bytes(framebuff2[lo])&0xffffff ;
 	  change = diff(fb1,fb2);
-	  fb1 = orderLongBytes(framebuff[hi])&0xffffff ;
-	  fb2 = orderLongBytes(framebuff2[hi])&0xffffff ;
+	  fb1 = orderLong32Bytes(framebuff[hi])&0xffffff ;
+	  fb2 = orderLong32Bytes(framebuff2[hi])&0xffffff ;
 	  while ((hi<xsize*ysize)&&
 		 (hi-lo<32767)&&
 		 (diff(fb1,fb2)==change))
@@ -4922,8 +4922,8 @@ do_rgb_cmp_frame(long xsize,long ysize, FILE *fp)
 	      hi++;
 	      if (hi < xsize*ysize)
 		{
-		  fb1 = orderLongBytes(framebuff[hi])&0xffffff ;
-		  fb2 = orderLongBytes(framebuff2[hi])&0xffffff ;
+		  fb1 = orderLong32Bytes(framebuff[hi])&0xffffff ;
+		  fb2 = orderLong32Bytes(framebuff2[hi])&0xffffff ;
 		}
 	    }
 	  i = hi-lo;
@@ -18208,7 +18208,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.73 2004/08/12 19:12:15 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.74 2004/08/26 15:30:07 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -137,7 +137,7 @@ static int nifti1Write(MRI *mri, char *fname);
 
 static void short_local_buffer_to_image(short *buf, MRI *mri, int slice, int frame) ;
 static void int_local_buffer_to_image(int *buf, MRI *mri, int slice, int frame) ;
-static void long_local_buffer_to_image(long *buf, MRI *mri, int slice, int frame) ;
+static void long32_local_buffer_to_image(long32 *buf, MRI *mri, int slice, int frame) ;
 static void float_local_buffer_to_image(float *buf, MRI *mri, int slice, int frame) ;
 static void local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) ;
 static MRI *sdtRead(char *fname, int read_volume);
@@ -8103,8 +8103,8 @@ MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type)
     if(type == 2)
     {
       for(i = 0;i < pixels;i++)
-        ((long *)buf)[i] = orderLongBytes(((long *)buf)[i]);
-      long_local_buffer_to_image((long *)buf, mri, slice, 0);
+        ((long32 *)buf)[i] = orderLong32Bytes(((long32 *)buf)[i]);
+      long32_local_buffer_to_image((long32 *)buf, mri, slice, 0);
     }
     if(type == 3)
     {
@@ -8259,10 +8259,10 @@ image_to_float_buffer(float *buf, MRI *mri, int slice)
 #endif
 
 static void
-long_local_buffer_to_image(long *buf, MRI *mri, int slice, int frame)
+long32_local_buffer_to_image(long32 *buf, MRI *mri, int slice, int frame)
 {
   int           y, width, height ;
-  long          *pslice ;
+  long32          *pslice ;
   
   width = mri->width ;
   height = mri->height ;

@@ -8,8 +8,11 @@
 
       Description:  
 
-  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.8 2002/05/28 21:00:30 fischl Exp $
+  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.9 2004/08/26 15:30:25 tosa Exp $
   $Log: backprop.c,v $
+  Revision 1.9  2004/08/26 15:30:25  tosa
+  long to long32
+
   Revision 1.8  2002/05/28 21:00:30  fischl
   added BP_ prefix.
 
@@ -203,9 +206,9 @@ BackpropFileNumberOfNets(char *fname)
               fname, hd.nnets, hd.first) ;
   if (hd.magic != BP_MAGIC)  /* try changing byte order */
   {
-    hd.magic = swapLong(hd.magic) ;
-    hd.nnets = swapLong(hd.nnets) ;
-    hd.first = swapLong(hd.first) ;
+    hd.magic = swapLong32(hd.magic) ;
+    hd.nnets = swapLong32(hd.nnets) ;
+    hd.first = swapLong32(hd.first) ;
   }
 
   if (hd.magic != BP_MAGIC)
@@ -247,9 +250,9 @@ BackpropRead(char *fname, int netno)
 
   if (hd.magic != BP_MAGIC)  /* try changing byte order */
   {
-    hd.magic = swapLong(hd.magic) ;
-    hd.nnets = swapLong(hd.nnets) ;
-    hd.first = swapLong(hd.first) ;
+    hd.magic = swapLong32(hd.magic) ;
+    hd.nnets = swapLong32(hd.nnets) ;
+    hd.first = swapLong32(hd.first) ;
     swapped = 1 ;
   }
   if (hd.magic != BP_MAGIC)
@@ -1415,7 +1418,7 @@ bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd, int swapped)
       ErrorExit(ERROR_BAD_FILE, "bpFileNewEnd: could not read pointer @%ld\n",ftell(fp));
 
     if (swapped)
-      next = swapLong(next) ;
+      next = swapLong32(next) ;
     DiagPrintf(DIAG_WRITE, "bpFileSeekEnd: next %ld @ %ld\n", next,
                 ftell(fp)-sizeof(long));
   }
@@ -1454,7 +1457,7 @@ bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno, int swapped)
       ErrorExit(ERROR_BAD_FILE, "bpFileSeekNet: could not seek to next pointer\n") ;
 
     if (swapped)
-      next = swapLong(next) ;
+      next = swapLong32(next) ;
     DiagPrintf(DIAG_WRITE, "bpFileSeekNet: %d at %ld\n", index, next) ;
   }
   if (fseek(fp, next+sizeof(long), SEEK_SET))

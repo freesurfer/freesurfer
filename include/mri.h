@@ -5,6 +5,7 @@
 #include "matrix.h"
 #include "volume_io.h"
 #include "box.h"
+#include "machine.h"
 
 #define BUFTYPE  unsigned char
 
@@ -508,7 +509,7 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
 #define MRIvox(mri,x,y,z)   (((BUFTYPE *)mri->slices[z][y])[x])
 #define MRISCvox(mri,x,y,z) (((signed char *)mri->slices[z][y])[x])
 #define MRIIvox(mri,x,y,z)  (((int *)mri->slices[z][y])[x])
-#define MRILvox(mri,x,y,z)  (((long *)mri->slices[z][y])[x])
+#define MRILvox(mri,x,y,z)  (((long32 *)mri->slices[z][y])[x])
 
 #define MRISseq_vox(mri,x,y,z,n)  (((short*)mri->slices[z+(n)*mri->depth][y])\
                                    [x])
@@ -520,7 +521,7 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
                                     mri->slices[z+(n)*mri->depth][y])[x])
 #define MRIIseq_vox(mri,x,y,z,n)  (((int *)mri->slices[z+(n)*mri->depth][y])\
                                    [x])
-#define MRILseq_vox(mri,x,y,z,n)  (((long *)mri->slices[z+(n)*mri->depth][y])\
+#define MRILseq_vox(mri,x,y,z,n)  (((long32 *)mri->slices[z+(n)*mri->depth][y])\
                                    [x])
 
 #define MRI_HEIGHT      0

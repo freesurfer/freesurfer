@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/08 17:16:36 $
-// Revision       : $Revision: 1.15 $
+// Revision Date  : $Date: 2004/08/26 15:32:07 $
+// Revision       : $Revision: 1.16 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -24,9 +24,6 @@ static int    readMatFile(FILE *fp, MATFILE *mf, double **real_matrix,
                                      double **imag_matrix) ;
 
 static void   swapBytes(MATFILE *mf) ;
-static short  swapShort(short s) ;
-static long   swapLong(long l) ;
-static double swapDouble(double dval) ;
 
 static char *MatProgname = "matfile" ;
 
@@ -391,7 +388,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
         }
 
         if (DIFFERENT_ENDIAN(mf))
-          lval = swapLong(lval) ;
+          lval = swapLong32(lval) ;
         real_matrix[row][col] = (double)lval ;
         break ;
       case MAT_FLOAT:
@@ -404,7 +401,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
           /*exit(4)*/return(-1) ;
         }
         if (DIFFERENT_ENDIAN(mf))
-          fval = (float)swapLong((long)fval) ;
+          fval = (float)swapLong32((long32)fval) ;
         real_matrix[row][col] = (double)fval ;
         break ;
       case MAT_DOUBLE:
@@ -509,81 +506,12 @@ MatReadHeader(FILE *fp, MATFILE *mf)
 static void
 swapBytes(MATFILE *mf)
 {
-  mf->type = swapLong(mf->type) ;
-  mf->mrows = swapLong(mf->mrows) ;
-  mf->ncols = swapLong(mf->ncols) ;
-  mf->namlen = swapLong(mf->namlen) ;
+  mf->type = swapLong32(mf->type) ;
+  mf->mrows = swapLong32(mf->mrows) ;
+  mf->ncols = swapLong32(mf->ncols) ;
+  mf->namlen = swapLong32(mf->namlen) ;
 }
 
-typedef union
-{
-  long l ;
-  char buf[4] ;
-  short s[2] ;
-} SWAP_LONG ;
-
-static long
-swapLong(long l)
-{
-  SWAP_LONG  sl ;
-  short      s ;
-
-  /* first swap bytes in each word */
-  sl.l = l ;
-  sl.s[0] = swapShort(sl.s[0]) ;
-  sl.s[1] = swapShort(sl.s[1]) ;
-
-  /* now swap words */
-  s = sl.s[0] ;
-  sl.s[0] = sl.s[1] ;
-  sl.s[1] = s ;
-
-  return(sl.l) ;
-}
-
-typedef union
-{
-  short  s ;
-  char   buf[sizeof(short)] ;
-} SWAP_SHORT ;
-
-static short
-swapShort(short s)
-{
-  SWAP_SHORT ss ;
-  char       c ;
-
-  /* first swap bytes in word */
-  ss.s = s ;
-  c = ss.buf[0] ;
-  ss.buf[0] = ss.buf[1] ;
-  ss.buf[1] = c ;
-
-  return(ss.s) ;
-}
-
-typedef union
-{
-  double  d ;
-  long    l[sizeof(double) / sizeof(long)] ;
-} SWAP_DOUBLE ;
-
-static double
-swapDouble(double d)
-{
-  SWAP_DOUBLE  sd ;
-  long         l ;
-
-  sd.d = d ;
-
-  sd.l[0] = swapLong(sd.l[0]) ;
-  sd.l[1] = swapLong(sd.l[1]) ;
-  l = sd.l[0] ;
-  sd.l[0] = sd.l[1] ;
-  sd.l[1] = l ;
-
-  return(sd.d) ;
-}
 /*---------------------------------------------------------------
   ReadMatlabFileVariable() - this function will read all the
   variables from a matlab file and return the matrix associated

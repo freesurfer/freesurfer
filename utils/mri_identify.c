@@ -424,7 +424,7 @@ int is_genesis(char *fname)
 {
 
   FILE *fp;
-  long magic;
+  long32 magic;
   char *dot;
 
   if(!strncmp(fname, "I.", 2))
@@ -449,7 +449,7 @@ int is_genesis(char *fname)
     fclose(fp);
     return(0);
   }
-  magic = orderLongBytes(magic);
+  magic = orderLong32Bytes(magic);
 
   fclose(fp);
 
@@ -464,7 +464,7 @@ int is_ge_lx(char *fname)
 {
 
   FILE *fp;
-  long magic;
+  long32 magic;
 
   if((fp = fopen(fname, "r")) == NULL)
   {
@@ -479,7 +479,7 @@ int is_ge_lx(char *fname)
     fclose(fp);
     return(0);
   }
-  magic = orderLongBytes(magic);
+  magic = orderLong32Bytes(magic);
 
   fclose(fp);
 
