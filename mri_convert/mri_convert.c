@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: ebeth $
-// Revision Date  : $Date: 2003/08/25 20:48:59 $
-// Revision       : $Revision: 1.58 $
+// Revision Date  : $Date: 2003/08/26 23:28:45 $
+// Revision       : $Revision: 1.59 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
   conform_size = 1.0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.58 2003/08/25 20:48:59 ebeth Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.59 2003/08/26 23:28:45 ebeth Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -727,7 +727,11 @@ int main(int argc, char *argv[])
     else if(strcmp(argv[i], "-zgez") == 0 || strcmp(argv[i], "--zero_ge_z_offset") == 0)
     {
       zero_ge_z_offset_flag = TRUE;
-      // fprintf(stderr,"GE dicom volume - zeroing z-offset c_s\n");
+    }
+    /*-------------------------------------------------------------*/ //E/
+    else if(strcmp(argv[i], "-nozgez") == 0 || strcmp(argv[i], "--no_zero_ge_z_offset") == 0)
+    {
+      zero_ge_z_offset_flag = FALSE;
     }
     /*-------------------------------------------------------------*/
     else
@@ -1867,6 +1871,8 @@ void usage(FILE *stream)
   printf("  -gis <gdf image file stem>\n");
   printf("  -zgez, --zero_ge_z_offset\n");
   printf("            set c_s=0 (appropriate for dicom files from GE machines with isocenter scanning)\n");
+  //E/  printf("  -nozgez, --no_zero_ge_z_offset\n");
+  //E/  printf("            don't set c_s=0, even if a GE volume\n");
   printf("\n");
   printf("Notes: \n");
   printf("\n");
