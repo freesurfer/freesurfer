@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/02/17 18:22:58 $
-// Revision       : $Revision: 1.237 $
-char *VERSION = "$Revision: 1.237 $";
+// Revision Date  : $Date: 2005/03/17 19:12:57 $
+// Revision       : $Revision: 1.238 $
+char *VERSION = "$Revision: 1.238 $";
 
 #define TCL
 #define TKMEDIT 
@@ -36,7 +36,7 @@ char *VERSION = "$Revision: 1.237 $";
 #include "tkmedit.h"
 
 
-#define SET_TCL_ENV_VAR 1
+#define SET_TCL_ENV_VAR 0
 #include <tcl.h>
 // #include <tclDecls.h>
 #include <tk.h>
@@ -1076,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.237 2005/02/17 18:22:58 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.238 2005/03/17 19:12:57 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5141,9 +5141,10 @@ static Tcl_Interp *interp;
 static Tcl_DString command;
 static int tty;
 
+#if SET_TCL_ENV_VAR
 static char sTclEnvVar[STRLEN] = "";
 static char sTkEnvVar[STRLEN] = "";
-
+#endif
 
 int main ( int argc, char** argv ) {
   
@@ -5161,7 +5162,7 @@ int main ( int argc, char** argv ) {
   time_t     theTime;
   char       sSubjectName[tkm_knNameLen]       = "";
   
-#ifdef SET_TCL_ENV_VAR
+#if SET_TCL_ENV_VAR
   tBoolean  bChangedEnvVar    = FALSE;
   char*      sTclLib        = NULL;
   char      sSavedTclLib[STRLEN] = "";
@@ -5205,7 +5206,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.237 2005/02/17 18:22:58 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.238 2005/03/17 19:12:57 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
