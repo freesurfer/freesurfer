@@ -56,6 +56,7 @@ void vg_print(const VOL_GEOM *vg)
     fprintf(stderr, "y_(ras) : (%7.4f, %7.4f, %7.4f)\n", vg->y_r, vg->y_a, vg->y_s);
     fprintf(stderr, "z_(ras) : (%7.4f, %7.4f, %7.4f)\n", vg->z_r, vg->z_a, vg->z_s);
     fprintf(stderr, "c_(ras) : (%7.4f, %7.4f, %7.4f)\n", vg->c_r, vg->c_a, vg->c_s);
+    fprintf(stderr, "file    : %s\n", vg->fname);
   }
   else
     fprintf(stderr, "volume geometry info is either not contained or not valid.\n");
