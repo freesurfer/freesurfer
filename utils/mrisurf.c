@@ -6675,7 +6675,11 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
   FILE *fp;
   double sum=0,sum2=0,max= -1000,min=1000;
 
+#if 0
   MRISbuildFileName(mris, sname, fname) ;
+#else
+  strcpy(fname, sname) ;
+#endif
   cp = strrchr(fname, '.') ;
   if (!cp || *(cp+1) != 'w')
     strcat(fname, ".w") ;
