@@ -1081,6 +1081,22 @@ analyzeRead(char *fname, int read_volume, int frame)
   mri->ysize = hdr.dime.pixdim[2] ;
   mri->zsize = hdr.dime.pixdim[1] ;
 
+  if (FEQUAL(mri->xsize, 1))
+  {
+    mri->zstart = mri->ystart = mri->xstart ;
+    mri->zend = mri->yend = mri->xend ;
+  }
+  else if (FEQUAL(mri->ysize, 1))
+  {
+    mri->zstart = mri->xstart = mri->ystart ;
+    mri->zend = mri->xend = mri->yend ;
+  }
+  else if (FEQUAL(mri->zsize, 1))
+  {
+    mri->ystart = mri->xstart = mri->zstart ;
+    mri->yend = mri->xend = mri->zend ;
+  }
+  
   if (type == MRI_FLOAT)
     read_float_analyze_image(fname, mri, &hdr) ;
   else
