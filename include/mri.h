@@ -100,6 +100,7 @@ typedef struct
   double        flip_angle ;  /* in radians */
 } MRI_IMAGE, MRI ;
 
+float  MRIfindNearestNonzero(MRI *mri, int wsize, Real x0, Real y0, Real z0) ;
 /* single pixel filtering */
 float MRIvoxelMean(MRI *mri, int x, int y, int z, int wsize) ;
 float MRIvoxelStd(MRI *mri, int x, int y, int z, float mean, int wsize) ;
