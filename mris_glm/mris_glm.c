@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.6 2002/10/28 18:29:34 greve Exp $
+  $Id: mris_glm.c,v 1.7 2002/10/29 17:46:57 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -31,15 +31,11 @@ Things to do:
 #include "MRIio_old.h"
 #include "mri_identify.h"
 #include "sig.h"
+#include "fmriutils.h"
 
 #ifdef X
 #undef X
 #endif
-
-MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri);
-MRI *fMRIvariance(MRI *fmri, float DOF, int RmMean, MRI *var);
-MRI *fMRIcomputeT(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *t);
-MRI *fMRIsigT(MRI *t, float DOF, MRI *p);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -66,7 +62,7 @@ MATRIX *ReadAsciiMatrix(char *asciimtxfname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.6 2002/10/28 18:29:34 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.7 2002/10/29 17:46:57 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -1397,220 +1393,6 @@ MATRIX *ReadAsciiMatrix(char *asciimtxfname)
   fclose(fp);
   return(C);
 }
-/*--------------------------------------------------------*/
-MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
-{
-  int c, r, s, fin, fout;
-  int nframesout;
-  float val;
-
-  if(inmri->nframes != M->cols){
-    printf("ERROR: fMRImatrixMultiply: input dimension mismatch\n");
-    return(NULL);
-  }
-
-  nframesout = M->rows;
-  if(outmri==NULL){
-    outmri = MRIallocSequence(inmri->width, inmri->height, inmri->depth, 
-			      MRI_FLOAT, nframesout);
-    if(outmri==NULL){
-      printf("ERROR: fMRImatrixMultiply: could not alloc\n");
-      return(NULL);
-    }
-  }
-  else{
-    if(outmri->width  != inmri->width || 
-       outmri->height != inmri->height || 
-       outmri->depth  != inmri->depth || 
-       outmri->nframes != nframesout){
-      printf("ERROR: fMRImatrixMultiply: output dimension mismatch\n");
-      return(NULL);
-    }
-    if(outmri->type != MRI_FLOAT){
-      printf("ERROR: fMRImatrixMultiply: structure passed is not MRI_FLOAT\n");
-      return(NULL);
-    }
-  }
-
-  for(c=0; c < outmri->width; c++){
-    for(r=0; r < outmri->height; r++){
-      for(s=0; s < outmri->depth; s++){
-	for(fout=0; fout < outmri->nframes; fout++){
-	  val = 0;
-	  for(fin=0; fin < inmri->nframes; fin++){
-	    val += (M->rptr[fout+1][fin+1])*MRIgetVoxVal(inmri, c, r, s, fin);
-	  }
-	  MRIFseq_vox(outmri,c,r,s,fout) = val;
-	}
-      }
-    }
-  }
-
-  return(outmri);
-}
-/*--------------------------------------------------------*/
-MRI *fMRIvariance(MRI *fmri, float DOF, int RmMean, MRI *var)
-{
-  int c, r, s, f;
-  float val,sumsqval, sumval;
-
-  if(DOF < 0) DOF = fmri->nframes;
-
-  if(var==NULL){
-    var = MRIallocSequence(fmri->width, fmri->height, fmri->depth, 
-			      MRI_FLOAT, 1);
-    if(fmri==NULL){
-      printf("ERROR: fMRIvariance: could not alloc\n");
-      return(NULL);
-    }
-  }
-  else{
-    if(var->width  != fmri->width || 
-       var->height != fmri->height || 
-       var->depth  != fmri->depth){
-      printf("ERROR: fMRIvariance: output dimension mismatch\n");
-      return(NULL);
-    }
-    if(var->type != MRI_FLOAT){
-      printf("ERROR: fMRIvariance: structure passed is not MRI_FLOAT\n");
-      return(NULL);
-    }
-  }
-
-  for(c=0; c < fmri->width; c++){
-    for(r=0; r < fmri->height; r++){
-      for(s=0; s < fmri->depth; s++){
-	sumval = 0;
-	sumsqval = 0;
-	for(f=0; f < fmri->nframes; f++){
-	  val = MRIgetVoxVal(fmri, c, r, s, f);
-	  sumsqval += (val*val);
-	  if(RmMean) sumval += val;
-	}
-	MRIFseq_vox(var,c,r,s,0) = sumsqval/DOF;
-	if(RmMean)
-	  MRIFseq_vox(var,c,r,s,0) -= ((sumval/DOF)*(sumval/DOF));
-      }
-    }
-  }
-
-  return(var);
-}
-/*--------------------------------------------------------------------*/
-MRI *fMRIcomputeT(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *t)
-{
-  int c, r, s;
-  MATRIX *Xt, *XtX, *iXtX, *CiXtX, *Ct, *CiXtXCt;
-  float srf, cesval, std;
-
-  if(C->rows != 1){
-    printf("ERROR: fMRIcomputeT: contrast matrix has more than 1 row.\n");
-    return(NULL);
-  }
-
-  if(ces->nframes != 1){
-    printf("ERROR: fMRIcomputeT: contrast effect size has more than 1 frame.\n");
-    return(NULL);
-  }
-
-  if(t==NULL){
-    t = MRIallocSequence(ces->width, ces->height, ces->depth, 
-			      MRI_FLOAT, 1);
-    if(ces==NULL){
-      printf("ERROR: fMRIcomputeT: could not alloc\n");
-      return(NULL);
-    }
-  }
-  else{
-    if(t->width  != ces->width || 
-       t->height != ces->height || 
-       t->depth  != ces->depth){
-      printf("ERROR: fMRIcomputeT: output dimension mismatch\n");
-      return(NULL);
-    }
-    if(t->type != MRI_FLOAT){
-      printf("ERROR: fMRIcomputeT: structure passed is not MRI_FLOAT\n");
-      return(NULL);
-    }
-  }
-
-  Xt      = MatrixTranspose(X,NULL);
-  XtX     = MatrixMultiply(Xt,X,NULL);
-  iXtX    = MatrixInverse(XtX,NULL);
-  CiXtX   = MatrixMultiply(C,iXtX,NULL);
-  Ct      = MatrixTranspose(C,NULL);
-  CiXtXCt = MatrixMultiply(CiXtX,Ct,NULL);
-  srf = sqrt(CiXtXCt->rptr[1][1]);
-  printf("fMRIcomputeT: srf = %g\n",srf);
-
-  for(c=0; c < ces->width; c++){
-    for(r=0; r < ces->height; r++){
-      for(s=0; s < ces->depth; s++){
-	std = sqrt(MRIgetVoxVal(var, c, r, s, 0));
-	if(std == 0)
-	  MRIFseq_vox(t,c,r,s,0) = 0;
-	else{
-	  cesval = MRIgetVoxVal(ces, c, r, s, 0);
-	  MRIFseq_vox(t,c,r,s,0) = cesval/(srf*std);
-	}
-      }
-    }
-  }
-
-  MatrixFree(&Xt);
-  MatrixFree(&XtX);
-  MatrixFree(&iXtX);
-  MatrixFree(&CiXtX);
-  MatrixFree(&Ct);
-  MatrixFree(&CiXtXCt);
-
-  return(t);
-}
-
-/*--------------------------------------------------------*/
-MRI *fMRIsigT(MRI *t, float DOF, MRI *sig)
-{
-  int c, r, s, f;
-  float tval, sigtval;
-
-  if(sig==NULL){
-    sig = MRIallocSequence(t->width, t->height, t->depth, 
-			   MRI_FLOAT, t->nframes);
-    if(t==NULL){
-      printf("ERROR: fMRIsigT: could not alloc\n");
-      return(NULL);
-    }
-  }
-  else{
-    if(t->width   != sig->width  || 
-       t->height  != sig->height || 
-       t->depth   != sig->depth  ||
-       t->nframes != sig->nframes){
-      printf("ERROR: fMRIsigT: output dimension mismatch\n");
-      return(NULL);
-    }
-    if(sig->type != MRI_FLOAT){
-      printf("ERROR: fMRIsigT: structure passed is not MRI_FLOAT\n");
-      return(NULL);
-    }
-  }
-
-  for(c=0; c < t->width; c++){
-    for(r=0; r < t->height; r++){
-      for(s=0; s < t->depth; s++){
-	for(f=0; f < t->nframes; f++){
-	  tval = MRIFseq_vox(t,c,r,s,f);
-          sigtval = sigt(tval, rint(DOF));
-	  if(tval < 0) sigtval *= -1;
-	  MRIFseq_vox(sig,c,r,s,f) = sigtval;
-	}
-      }
-    }
-  }
-
-  return(sig);
-}
-
 /*--------------------------------------------------------------------*/
 MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid, 
 			  char *SUBJECTS_DIR)
