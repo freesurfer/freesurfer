@@ -2936,7 +2936,7 @@ printf("reading volume\n");
     {
       if(data_size[mri->type] == 2)
         swab(buf, buf, mri->width * mri->height * mri->depth * data_size[mri->type]);
-      else if(data_size[mri->type == 4)
+      else if(data_size[mri->type] == 4)
         for(i = 0;i < mri->width * mri->height * mri->depth * data_size[mri->type];i+=4)
         {
           memcpy(swapbuf, &buf[i], 4);
