@@ -157,7 +157,7 @@ Volm_tErr Volm_ConvertIdxToRAS     ( mriVolumeRef this,
 				     xVoxelRef    iIdx,
 				     xVoxelRef    oRAS );
 Volm_tErr Volm_ConvertRASToIdx     ( mriVolumeRef this,
-				     xVoxelRef    iAndIdx,
+				     xVoxelRef    iRAS,
 				     xVoxelRef    oIdx );
 Volm_tErr Volm_ConvertIdxToMNITal  ( mriVolumeRef this,
 				     xVoxelRef    iIdx,
