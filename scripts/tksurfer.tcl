@@ -81,6 +81,10 @@ set surfcolor 1
 set shrinksteps 5
 set smoothsteps 5
 set smoothtype val
+set redrawlockflag 1
+
+
+set gCopyFieldTarget 0
 
 # default transform values
 set kanDefaultTransform(rotate) 90
@@ -133,7 +137,7 @@ set gaLinkedVars(verticesflag) 0
 set gaLinkedVars(cmid) 0
 set gaLinkedVars(dipavg) 0
 set gaLinkedVars(mouseoverflag) 0
-set gaLinkedVars(redrawlockflag) 0
+set gaLinkedVars(redrawlockflag) 1
 set gaLinkedVars(drawlabelflag) 1
 set gaLinkedVars(timeresolution) 0
 set gaLinkedVars(numprestimpoints) 0
@@ -149,8 +153,8 @@ array set gaLinkedVarGroups {
     curvature { cslope cmid cmin cmax }
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
-    view { surfcolor vertexset overlayflag scalebarflag colscalebarflag \
-      verticesflag currentvaluefield }
+    view { flagsurfcolor vertexset overlayflag scalebarflag \
+  colscalebarflag verticesflag currentvaluefield }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
     all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag fthresh foffset fmid fslope cslope cmid angle_offset angle_cycles sulcflag surfcolor vertexset overlayflag scalebarflag colscalebarflag verticesflag cmid dipavg mouseoverflag colortablename }
@@ -494,17 +498,39 @@ proc DoConfigLightingDlog {} {
     }
 }
 
+proc FillOverlayLayerMenu { iowOverlay } {
+    global gaScalarValueID
+    global gsaLabelContents
+
+    $iowOverlay config -disablecallback 1
+
+    set lEntries [$iowOverlay entries]
+    foreach entry $lEntries { 
+  $iowOverlay delete $entry
+    }
+      
+    set nValueIndex 0
+    while { [info exists gaScalarValueID($nValueIndex,label)] } {
+  $iowOverlay add command $nValueIndex \
+   -label $gsaLabelContents($gaScalarValueID($nValueIndex,label),name)
+  incr nValueIndex
+    }
+
+    $iowOverlay config -disablecallback 0
+}
+
 proc DoConfigOverlayDisplayDlog {} {
 
     global gDialog
     global gaLinkedVars
+    global gCopyFieldTarget
 
     set wwDialog .wwConfigOverlayDisplayDlog
 
     UpdateLinkedVarGroup overlay
 
     if { [Dialog_Create $wwDialog "Configure Overlay Display" {-borderwidth 10}] } {
-
+  
   set fwMain             $wwDialog.fwMain
   set fwTimePoint        $wwDialog.fwTimePoint
   set fwCondition        $wwDialog.fwCondition
@@ -512,9 +538,9 @@ proc DoConfigOverlayDisplayDlog {} {
   set fwFlags            $wwDialog.fwFlags
   set lfwThreshold       $wwDialog.lfwThreshold
   set fwButtons          $wwDialog.fwButtons
-
+  
   frame $fwMain
-
+  
   set nMaxCondition [expr $gaLinkedVars(fnumconditions) - 1]
   if { $nMaxCondition < 0 } {
       set nMaxCondition 0
@@ -525,77 +551,92 @@ proc DoConfigOverlayDisplayDlog {} {
   }
   
   tkm_MakeEntryWithIncDecButtons \
-    $fwTimePoint "Time Point (0-$nMaxTimePoint)" \
-    gaLinkedVars(ftimepoint) \
-    {} 1
+      $fwTimePoint "Time Point (0-$nMaxTimePoint)" \
+      gaLinkedVars(ftimepoint) \
+      {} 1
   
   tkm_MakeEntryWithIncDecButtons \
-    $fwCondition "Condition (0-$nMaxCondition)" \
-    gaLinkedVars(fcondition) \
-    {} 1
-
+      $fwCondition "Condition (0-$nMaxCondition)" \
+      gaLinkedVars(fcondition) \
+      {} 1
+  
   # color scale
   tkm_MakeRadioButtons $fwColorScale y "Color Scale" \
-    gaLinkedVars(colscale) { \
-    { text "Color Wheel (Complex)" 0 {} } \
-    { text "RYGB Wheel (Complex)" 8 {} } \
-    { text "Two Condition Green Red (Complex)" 4 {} } \
-    { text "Green to Red (Signed)" 7 {} } \
-    { text "Heat Scale (Stat, Positive)" 1 {} } \
-    { text "Blue to Red (Signed)" 6 {} } \
+      gaLinkedVars(colscale) { 
+    { text "Color Wheel (Complex)" 0 {} }
+    { text "RYGB Wheel (Complex)" 8 {} }
+    { text "Two Condition Green Red (Complex)" 4 {} }
+    { text "Green to Red (Signed)" 7 {} }
+    { text "Heat Scale (Stat, Positive)" 1 {} }
+        { text "Blue to Red (Signed)" 6 {} }
     { text "Not Here (Signed)" 9 {} } }
 
   # checkboxes for truncate, inverse, reverse phase, complex values
-  tkm_MakeCheckboxes $fwFlags y { \
-    { text "Truncate" gaLinkedVars(truncphaseflag) {} } \
-    { text "Inverse" gaLinkedVars(invphaseflag) {} } \
-    { text "Reverse" gaLinkedVars(revphaseflag) {} } \
-    { text "Complex" gaLinkedVars(complexvalflag) {} } }
+  tkm_MakeCheckboxes $fwFlags y {
+      { text "Truncate" gaLinkedVars(truncphaseflag) {} }
+      { text "Inverse" gaLinkedVars(invphaseflag) {} }
+      { text "Reverse" gaLinkedVars(revphaseflag) {} }
+      { text "Complex" gaLinkedVars(complexvalflag) {} } }
 
   # sliders for thresh, mid, field for slope
   tixLabelFrame $lfwThreshold \
-    -label "Threshold" \
-    -labelside acrosstop \
-    -options { label.padX 5 }
-
+      -label "Threshold" \
+      -labelside acrosstop \
+      -options { label.padX 5 }
+  
   set fwThresholdSub     [$lfwThreshold subwidget frame]
   set fwThresholdSliders $fwThresholdSub.fwThresholdSliders
   set fwThresholdSlope   $fwThresholdSub.fwThresholdSlope
-
-#  tkm_MakeSliders $fwThresholdSliders [list \
-#    [list {"Threshold offset"} gaLinkedVars(foffset) \
-#   -10000 10000 100 {} 1 0.25] \
-#    [list {"Threshold minimum"} gaLinkedVars(fthresh) \
-#    $gaLinkedVars(fmin) $gaLinkedVars(fmax) 100 {} 1 0.25] \
-#    [list {"Threshold midpoint"} gaLinkedVars(fmid) \
-#    $gaLinkedVars(fmin) $gaLinkedVars(fmax) 100 {} 1 0.25]]
+  set fwCopy             $fwThresholdSub.fwCopy
+  set fwCopyButton       $fwCopy.fwCopyButton
+  set fwCopyTarget       $fwCopy.fwCopyTarget
+  
+  #  tkm_MakeSliders $fwThresholdSliders [list \
+      #    [list {"Threshold offset"} gaLinkedVars(foffset) \
+      #   -10000 10000 100 {} 1 0.25] \
+      #    [list {"Threshold minimum"} gaLinkedVars(fthresh) \
+      #    $gaLinkedVars(fmin) $gaLinkedVars(fmax) 100 {} 1 0.25] \
+      #    [list {"Threshold midpoint"} gaLinkedVars(fmid) \
+      #    $gaLinkedVars(fmin) $gaLinkedVars(fmax) 100 {} 1 0.25]]
   tkm_MakeSliders $fwThresholdSliders [list \
-    [list {"Threshold offset"} gaLinkedVars(foffset) \
-    -10000 10000 100 {} 1 0.25] \
-    [list {"Threshold minimum"} gaLinkedVars(fthresh) \
-    -10000 10000 100 {} 1 0.25] \
-    [list {"Threshold midpoint"} gaLinkedVars(fmid) \
-    -10000 10000 100 {} 1 0.25]]
+       [list {"Threshold offset"} gaLinkedVars(foffset) \
+      -10000 10000 100 {} 1 0.25] \
+       [list {"Threshold minimum"} gaLinkedVars(fthresh) \
+      -10000 10000 100 {} 1 0.25] \
+       [list {"Threshold midpoint"} gaLinkedVars(fmid) \
+      -10000 10000 100 {} 1 0.25]]
   tkm_MakeEntry $fwThresholdSlope "Threshold slope" \
-    gaLinkedVars(fslope) 6
+      gaLinkedVars(fslope) 6
+  
+  frame $fwCopy
+  tkm_MakeButtons $fwCopyButton [list \
+       [list text "Copy Settings to Layer" \
+        {sclv_copy_view_settings_from_current_field $gCopyFieldTarget}]]
+  tixOptionMenu $fwCopyTarget \
+      -variable $gCopyFieldTarget
+  FillOverlayLayerMenu $fwCopyTarget
+  set gCopyFieldTarget 0
 
-  pack $fwThresholdSliders $fwThresholdSlope \
-    -side top \
-    -anchor w
+  pack $fwCopyButton $fwCopyTarget \
+      -side left
 
+  pack $fwThresholdSliders $fwThresholdSlope $fwCopy \
+      -side top \
+      -anchor w
+  
   # buttons.
   tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
-    { SendLinkedVarGroup overlay;  \
+      { SendLinkedVarGroup overlay;  \
       sclv_set_current_timepoint $gaLinkedVars(ftimepoint) $gaLinkedVars(fcondition); \
       UpdateAndRedraw; } {}
-
+  
   pack $fwMain $fwTimePoint $fwCondition $fwColorScale \
-    $fwFlags $lfwThreshold $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x         \
-    -padx 5         \
-    -pady 5
+      $fwFlags $lfwThreshold $fwButtons \
+      -side top       \
+      -expand yes     \
+      -fill x         \
+      -padx 5         \
+      -pady 5
     }
 }
 
@@ -1116,10 +1157,10 @@ proc DoCustomFillDlog {} {
     { fill_flood_from_cursor $bNoBoundary $bNoLabel $bNoCmid $bNoFThresh; UpdateAndRedraw } {} "Fill"
   
   pack $fwMain $fwText $fwFlags $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x         \
-    -padx 5         \
+      -side top       \
+      -expand yes     \
+      -fill x         \
+      -padx 5         \
     -pady 5
     }
 }
@@ -1141,9 +1182,9 @@ proc CreateMenuBar { ifwMenuBar } {
     set mbwEdit   $ifwMenuBar.mbwEdit
     set mbwView   $ifwMenuBar.mbwView
     set mbwTools  $ifwMenuBar.mbwTools
-
+    
     frame $ifwMenuBar -border 2 -relief raised
-
+  
     # file menu button
     tkm_MakeMenu $mbwFile "File" { \
       {command \
@@ -1237,8 +1278,12 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       {command "Export Annotation..." \
       {DoFileDlog ExportAnnotation} \
-      mg_LabelLoaded } \
-      }   } \
+     mg_LabelLoaded } \
+      \
+      {command "Delete All Labels" \
+      {labl_remove_all; UpdateAndRedraw} \
+     mg_LabelLoaded } \
+       } }  \
       \
       {cascade "Field Sign" { \
       {command "Load Field Sign..." \
@@ -1407,11 +1452,7 @@ proc CreateMenuBar { ifwMenuBar } {
       { check \
       "MRI Value" \
       "ShowLabel kLabel_MRIValue $gbShowLabel(kLabel_MRIValue)"\
-      gbShowLabel(kLabel_MRIValue) } \
-      { check \
-      "Parcellation" \
-      "ShowLabel kLabel_Parcellation_Name $gbShowLabel(kLabel_Parcellation_Name)"\
-      gbShowLabel(kLabel_Parcellation_Name) } }}
+      gbShowLabel(kLabel_MRIValue) }}}
       \
       { separator } \
       \
@@ -1536,6 +1577,12 @@ proc CreateMenuBar { ifwMenuBar } {
       mg_OverlayLoaded } } } \
       \
       { separator } \
+      \
+      { check  \
+      "Auto-redraw" \
+      { SendLinkedVarGroup redrawlock; UpdateAndRedraw } \
+      gaLinkedVars(redrawlockflag) } \
+      \
       \
       { check  \
       "Overlay" \
@@ -3360,7 +3407,7 @@ set tDlogSpecs(SaveSurfaceAs) [list \
   -default1 [list ExpandFileName "" kFileName_Surface] \
   -note1 "The file name of the surface to save" \
   -okCmd {set outsurf [ExpandFileName %s1 kFileName_Surface]; \
-  CheckFileAndDoCmd $outsurf write_binary_surface;} } ]
+        CheckFileAndDoCmd $outsurf write_binary_surface;} ]
 
 set tDlogSpecs(LoadMainSurface) [list \
   -title "Load Main Vertices" \
@@ -3649,8 +3696,10 @@ ShowLabel kLabel_Coords_Tal 1
 # make sure window is shoowing
 MoveToolWindow 0 0
 
-labl_load_color_table $env(CSURF_DIR)/surface_labels.txt
-set gsColorTableFileName $env(CSURF_DIR)/surface_labels.txt
+catch {
+    labl_load_color_table $env(CSURF_DIR)/surface_labels.txt
+    set gsColorTableFileName $env(CSURF_DIR)/surface_labels.txt
+}
 
 # we did it!
 dputs "Successfully parsed tksurfer.tcl"
