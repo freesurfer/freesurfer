@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.24 1999/12/03 23:15:34 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.25 1999/12/17 22:19:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -35,6 +35,7 @@ MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
 int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
 char *Progname ;
 
+static int graymid = 0 ;
 static int curvature_avgs = 10 ;
 static int create = 1 ;
 static int smoothwm = 0 ;
@@ -491,13 +492,16 @@ main(int argc, char *argv[])
        move the white matter surface out by 1/2 the thickness as an estimate
        of layer IV.
     */
-    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-    mrisFindMiddleOfGray(mris) ;
-    sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, GRAYMID_NAME,
-            suffix) ;
-    fprintf(stderr, "writing layer IV surface to %s...\n", fname) ;
-    MRISwrite(mris, fname) ;
-    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    if (graymid)
+    {
+      MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+      mrisFindMiddleOfGray(mris) ;
+      sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, GRAYMID_NAME,
+              suffix) ;
+      fprintf(stderr, "writing layer IV surface to %s...\n", fname) ;
+      MRISwrite(mris, fname) ;
+      MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    }
   }
   msec = TimerStop(&then) ;
   fprintf(stderr,"positioning took %2.1f minutes\n", (float)msec/(60*1000.0f));
@@ -529,6 +533,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "median"))
   {
     apply_median_filter = 1 ;
+  }
+  else if (!stricmp(option, "graymid"))
+  {
+    graymid = 1 ;
+    fprintf(stderr, "generating graymid surface...\n") ;
   }
   else if (!strcmp(option, "rval"))
   {
