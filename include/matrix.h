@@ -49,6 +49,8 @@ MATRIX  *MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols) ;
 int     MatrixCheck(MATRIX *m) ;
 MATRIX  *MatrixInverse(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
+MATRIX  *MatrixRightPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
+#define MatrixLeftPseudoInverse MatrixPseudoInverse
 MATRIX  *MatrixAlloc(int rows, int cols, int type) ;
 int     MatrixFree(MATRIX **pmat) ;
 MATRIX  *MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3) ;

@@ -87,6 +87,8 @@
 #define   Left_F1 83  /*                             255  218  185    0*/
 #define   Right_F1 84  /*                            255  218  185    0*/
 #define   Optic_Chiasm   85  /*                        234  169   30    0*/
+
+/* no brain labels after this please unless you fix the IS_BRAIN macro */
 #define   Dura           98
 #define   Epidermis      118
 #define   Conn_Tissue    119
@@ -118,7 +120,7 @@
 
 #define IS_UNKNOWN(label)  (((label) == Unknown) || (label == 255) || (label == Bright_Unknown) || (label == Dark_Unknown))
 
-#define IS_BRAIN(label)  (!IS_UNKNOWN(label) && (label != Fat) && (label != Bone))
+#define IS_BRAIN(label)  (!IS_UNKNOWN(label) && label < Dura)
 
 #define IS_WM(label) (((label) == Left_Cerebral_White_Matter) || ((label) == Right_Cerebral_White_Matter) || ((label) == Left_Temporal_Cerebral_White_Matter) || ((label) == Right_Temporal_Cerebral_White_Matter))
 #define IS_GM(label) (((label) == Left_Cerebral_Cortex) || ((label) == Right_Cerebral_Cortex))

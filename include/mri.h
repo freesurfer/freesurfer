@@ -194,6 +194,9 @@ MRI   *MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
 MRI   *MRIapplyRASlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
 MRI   *MRIapplyRASinverseLinearTransform(MRI *mri_src, MRI *mri_dst, 
                                          MATRIX *mA) ;
+MRI   *MRIapplyRASlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int interpMethod) ;
+MRI   *MRIapplyRASinverseLinearTransformInterp(MRI *mri_src, MRI *mri_dst, 
+                                         MATRIX *mA, int interpMethod) ;
 
 int MRIinterpCode(char *InterpString);
 char * MRIinterpString(int InterpCode);
