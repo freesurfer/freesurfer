@@ -15,7 +15,7 @@ function showfigxy(varargin)
 %
 % Note: this will take over keyboard and mousing callbacks!
 %
-% $Id: showfigxy.m,v 1.3 2004/01/16 22:24:40 greve Exp $
+% $Id: showfigxy.m,v 1.4 2004/01/21 17:19:26 greve Exp $
 %
 
 if(nargin == 0)  event = 'init'; 
@@ -43,8 +43,8 @@ switch(event)
   ud.curxytxt = uicontrol('Style', 'text','Position',  [1 1 250 20]);
   ud.mvxytxt = uicontrol('Style', 'text','Position',  [260 1 250 20]);
   ax = axis;
-  ud.curxy = [ax(1)/2 ax(2)/2];
-  ud.mvxy = [ax(1)/2 ax(2)/2];
+  ud.curxy = [(ax(1)+ax(2))/2 (ax(3)+ax(4))/2];
+  ud.mvxy  = [(ax(1)+ax(2))/2 (ax(3)+ax(4))/2];
   ud.hcursor1 = [];
   ud.hcursor2 = [];
   ud.zoom  = 0;
@@ -192,10 +192,10 @@ function ud = drawcrosshair(ud)
       delete(ud.hcursor1);
       delete(ud.hcursor2);
     end
-    hold on;
     a = axis;
     x = ud.curxy(1);
     y = ud.curxy(2);
+    hold on;
     ud.hcursor1 = plot([a(1) a(2)],[y y],ud.crosshaircolor);
     ud.hcursor2 = plot([x x],[a(3) a(4)],ud.crosshaircolor);
     hold off;
