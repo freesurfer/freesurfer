@@ -1379,6 +1379,8 @@ MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
+	if (mri_src->type == MRI_UCHAR && mri_dst->type == MRI_UCHAR)
+		return(MRIreplaceValuesUchar(mri_src, mri_dst, in_val, out_val)) ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -1389,6 +1391,47 @@ MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
         if (FEQUAL(val, in_val))
           val = out_val ;
 				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
+{
+  int     width, height, depth, x, y, z;
+	BUFTYPE  val ;
+	BUFTYPE *psrc, *pdst ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+	if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR)
+		return(MRIreplaceValues(mri_src, mri_dst, in_val, out_val)) ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+			psrc = &MRIvox(mri_src, 0, y, z) ;
+			pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        val = *psrc++ ;
+        if (FEQUAL(val, in_val))
+          val = out_val ;
+				*pdst++ = val ;
       }
     }
   }
