@@ -14,7 +14,6 @@
 #include "transform.h"
 #include "cma.h"
 #include "flash.h"
-#include "version.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -64,12 +63,6 @@ main(int argc, char *argv[])
   GCA          *gca, *gca_prune = NULL ;
   MRI          *mri_seg, *mri_tmp, *mri_eq = NULL, *mri_inputs ;
   TRANSFORM    *transform ;
-
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.14 2003/04/15 20:22:02 kteich Exp $");
-  if (nargs && argc - nargs == 1)
-    exit (0);
-  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -126,6 +119,17 @@ main(int argc, char *argv[])
 	if (gca_inputs == 0)
 		gca_inputs = ninputs ;   /* gca reads same # of inputs as we read from command line - not the case if we are mapping to flash */
   n = 0 ;
+	if (gca_flags & GCA_GRAD)
+	{
+		int extra = 0 ;
+		if (gca_flags & GCA_XGRAD)
+			extra += gca_inputs ;
+		if (gca_flags & GCA_YGRAD)
+			extra += gca_inputs ;
+		if (gca_flags & GCA_ZGRAD)
+			extra += gca_inputs ;
+		gca_inputs += extra ;
+	}
   do
   {
     gca = GCAalloc(gca_inputs, parms.prior_spacing, parms.node_spacing, DEFAULT_VOLUME_SIZE, 
@@ -232,13 +236,21 @@ main(int argc, char *argv[])
 
 				if (input == 0)
 				{
+					int nframes = ninputs ;
+
+					if (gca_flags & GCA_XGRAD)
+						nframes += ninputs ;
+					if (gca_flags & GCA_YGRAD)
+						nframes += ninputs ;
+					if (gca_flags & GCA_ZGRAD)
+						nframes += ninputs ;
 					mri_inputs = 
 						MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-							mri_tmp->type, ninputs) ;
+							mri_tmp->type, nframes) ;
 					if (!mri_inputs)
 						ErrorExit(ERROR_NOMEMORY, 
 							"%s: could not allocate input volume %dx%dx%dx%d",
-							mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
+							mri_tmp->width, mri_tmp->height, mri_tmp->depth,nframes) ;
 					MRIcopyHeader(mri_tmp, mri_inputs) ;
 				}
 									 
@@ -293,6 +305,54 @@ main(int argc, char *argv[])
 				mri_inputs = mri_tmp ;
 			}
 
+			if (gca_flags & GCA_GRAD)
+			{
+				MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
+				int i, start ;
+
+				mri_kernel = MRIgaussian1d(1.0, 30) ;
+				mri_smooth = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
+
+				if (mri_inputs->type != MRI_FLOAT)
+				{
+					mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
+					MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
+				}
+
+				start = ninputs ;
+				if (gca_flags & GCA_XGRAD)
+				{
+					for (i = 0 ; i < ninputs ; i++)
+					{
+						mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
+						MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+						MRIfree(&mri_grad) ;
+					}
+					start += ninputs ;
+				}
+				if (gca_flags & GCA_YGRAD)
+				{
+					for (i = 0 ; i < ninputs ; i++)
+					{
+						mri_grad = MRIySobel(mri_smooth, NULL, i) ;
+						MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+						MRIfree(&mri_grad) ;
+					}
+					start += ninputs ;
+				}
+				if (gca_flags & GCA_ZGRAD)
+				{
+					for (i = 0 ; i < ninputs ; i++)
+					{
+						mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
+						MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+						MRIfree(&mri_grad) ;
+					}
+					start += ninputs ;
+				}
+
+				MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
+			}
       GCAtrain(gca, mri_inputs, mri_seg, transform, gca_prune, noint) ;
       MRIfree(&mri_seg) ; MRIfree(&mri_inputs) ; TransformFree(&transform) ;
     }
@@ -359,9 +419,17 @@ main(int argc, char *argv[])
 
 				if (input == 0)
 				{
+					int nframes = ninputs ;
+
+					if (gca_flags & GCA_XGRAD)
+						nframes += ninputs ;
+					if (gca_flags & GCA_YGRAD)
+						nframes += ninputs ;
+					if (gca_flags & GCA_ZGRAD)
+						nframes += ninputs ;
 					mri_inputs = 
 						MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-							mri_tmp->type, ninputs) ;
+							mri_tmp->type, nframes) ;
 					if (!mri_inputs)
 						ErrorExit(ERROR_NOMEMORY, 
 							"%s: could not allocate input volume %dx%dx%dx%d",
@@ -416,6 +484,54 @@ main(int argc, char *argv[])
 				mri_inputs = mri_tmp ;
 			}
 
+			if (gca_flags & GCA_GRAD)
+			{
+				MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
+				int i, start ;
+
+				mri_kernel = MRIgaussian1d(1.0, 30) ;
+				mri_smooth = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
+
+				if (mri_inputs->type != MRI_FLOAT)
+				{
+					mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
+					MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
+				}
+
+				start = ninputs ;
+				if (gca_flags & GCA_XGRAD)
+				{
+					for (i = 0 ; i < ninputs ; i++)
+					{
+						mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
+						MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+						MRIfree(&mri_grad) ;
+					}
+					start += ninputs ;
+				}
+				if (gca_flags & GCA_YGRAD)
+				{
+					for (i = 0 ; i < ninputs ; i++)
+					{
+						mri_grad = MRIySobel(mri_smooth, NULL, i) ;
+						MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+						MRIfree(&mri_grad) ;
+					}
+					start += ninputs ;
+				}
+				if (gca_flags & GCA_ZGRAD)
+				{
+					for (i = 0 ; i < ninputs ; i++)
+					{
+						mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
+						MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+						MRIfree(&mri_grad) ;
+					}
+					start += ninputs ;
+				}
+
+				MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
+			}
       GCAtrainCovariances(gca, mri_inputs, mri_seg, transform) ;
       MRIfree(&mri_seg) ; MRIfree(&mri_inputs) ; TransformFree(&transform) ;
     }
@@ -510,6 +626,21 @@ get_option(int argc, char *argv[])
     parms.prior_spacing = atof(argv[2]) ;
     nargs = 1 ;
     printf("spacing priors every %2.1f mm\n", parms.prior_spacing) ;
+  }
+  else if (!stricmp(option, "XGRAD"))
+  {
+		gca_flags |= GCA_XGRAD ;
+    printf("using x gradient information in training...\n") ;
+  }
+  else if (!stricmp(option, "YGRAD"))
+  {
+		gca_flags |= GCA_YGRAD ;
+    printf("using y gradient information in training...\n") ;
+  }
+  else if (!stricmp(option, "ZGRAD"))
+  {
+		gca_flags |= GCA_ZGRAD ;
+    printf("using z gradient information in training...\n") ;
   }
   else if (!stricmp(option, "FLASH"))
   {
