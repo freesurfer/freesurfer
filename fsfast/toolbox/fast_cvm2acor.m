@@ -1,4 +1,4 @@
-function acor = fast_cvm2acor(cvm) 
+function acor = fast_cvm2acor(cvm,biased) 
 %
 % acor = fast_cvm2acor(cvm) 
 %
@@ -7,10 +7,13 @@ function acor = fast_cvm2acor(cvm)
 
 acor = [];
 
-if(nargin ~= 1)
-  fprintf('USAGE: acor = fast_cvm2acor(cvm)\n');
+if(nargin ~= 1 & nargin ~= 2)
+  fprintf('USAGE: acor = fast_cvm2acor(cvm,<biased>)\n');
   return;
 end
+
+if(exist('biased') ~= 1) biased = []; end
+if(isempty(biased)) biased = 0; end
 
 ntrs = size(cvm,1);
 
@@ -20,5 +23,11 @@ for n = 1:ntrs,
 end
 
 acor = acor/acor(1);
+
+if(biased)
+  acor = acor.*([ntrs:-1:1]');
+  acor = acor/max(acor);
+end
+
 
 return;
