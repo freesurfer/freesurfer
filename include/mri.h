@@ -607,5 +607,6 @@ int MRIsetValues(MRI *mri, int val) ;
 #define NBHD_FILL            210
 #define VENTRICLE_FILL       220
 #define DIAGONAL_FILL        230
+#define DEGENERATE_FILL      240
 
 #endif
