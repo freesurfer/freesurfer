@@ -13,7 +13,7 @@
 #include "transform.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.4 2002/10/31 18:03:43 fischl Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.5 2003/01/23 23:07:11 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -245,6 +245,7 @@ MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, d
   if (!mri_dst)
     mri_dst = MRIclone(mri_T1, NULL) ;
 
+	mri_dst->tr = TR ; mri_dst->flip_angle = alpha ; mri_dst->te = TE ; mri_dst->ti = 0 ;
   width = mri_T1->width ; height = mri_T1->height ; depth = mri_T1->depth ;
   for (x = 0 ; x < width ; x++)
   {
