@@ -50,6 +50,7 @@ set glDisplayFlag { \
   flag_MaskToFunctionalOverlay \
   flag_HistogramPercentChange \
   flag_ROIGroupOverlay \
+  flag_TensorOverlay \
   flag_ROIVolumeCount \
   flag_FocusFrame \
   flag_UndoVolume \
