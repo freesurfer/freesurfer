@@ -249,9 +249,11 @@ LabelWrite(LABEL *area, char *fname)
     ErrorExit(ERROR_NOFILE, "%s: could not open label file %s",
                 Progname, fname) ;
 
-#if 0
-  fprintf(fp, "# label %s, from subject %s\n", area->name, area->subject_name);
+#if 1
+  fprintf(fp, "#!ascii label %s, from subject %s\n", 
+          area->name, area->subject_name);
 #endif
+  fprintf(fp, "%d\n", num) ;
   for (n = 0 ; n < area->n_points ; n++)
     if (!area->deleted[n])
       fprintf(fp, "%d  %2.3f  %2.3f  %2.3f\n", area->vno[n], area->x[n], 
