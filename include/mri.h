@@ -441,6 +441,8 @@ int   MRIsampleLabeledVolume(MRI *mri, Real x, Real y, Real z, Real *pval, unsig
 int   MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval);
 int   MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z, 
                               Real *pdx, Real *pdy, Real *pdz) ;
+int   MRIsampleVolumeGradientFrame(MRI *mri, Real x, Real y, Real z, 
+																	 Real *pdx, Real *pdy, Real *pdz, int frame) ;
 int   MRIsampleVolumeDerivative(MRI *mri, Real x, Real y, Real z,
                                 Real dx, Real dy, Real dz, Real *pmag) ;
 int   MRIsampleVolumeDerivativeScale(MRI *mri, Real x, Real y, Real z,
