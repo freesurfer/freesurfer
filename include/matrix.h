@@ -200,6 +200,7 @@ MATRIX *MatrixConstVal(float val, int rows, int cols, MATRIX *X);
 MATRIX *MatrixZero(int rows, int cols, MATRIX *X);
 MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum);
 MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m);
+MATRIX *MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst) ;
 
 double VectorSum(MATRIX *v);
 double VectorMean(MATRIX *v);

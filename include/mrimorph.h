@@ -63,6 +63,7 @@ typedef struct
   GCAS       *gcas ;
   int        nsamples ;
   TRANSFORM  *transform ;
+	void       *vgca ;
 } MORPH_PARMS, MP ;
 
 
