@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: ch $
-// Revision Date  : $Date: 2003/09/09 23:03:05 $
-// Revision       : $Revision: 1.241 $
-char *MRI_C_VERSION = "$Revision: 1.241 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/09/10 22:31:56 $
+// Revision       : $Revision: 1.242 $
+char *MRI_C_VERSION = "$Revision: 1.242 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -6996,6 +6996,7 @@ MRIsampleVolumeFrameType(MRI *mri, Real x, Real y, Real z, int frame, int type, 
 
 	if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
 		type = SAMPLE_NEAREST ;
+
   switch (type)
   {
   case SAMPLE_NEAREST:
