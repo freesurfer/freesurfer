@@ -14,4 +14,23 @@ float   swapFloat(float l) ;
 double swapDouble(double dval) ;
 int    swapInt(int i) ;
 
+#ifdef Linux
+
+#define orderIntBytes(i)     swapInt(i)
+#define orderShortBytes(i)   swapShort(i)
+#define orderFloatBytes(i)   swapFloat(i)
+#define orderDoubleBytes(i)  swapDouble(i)
+#define orderLongBytes(i)    swapLong(i)
+
+#else
+
+#define orderIntBytes(i)     (i)
+#define orderShortBytes(i)   (i)
+#define orderFloatBytes(i)   (i)
+#define orderDoubleBytes(i)  (i)
+#define orderLongBytes(i)    (i)
+
+
+#endif
+
 #endif
