@@ -355,6 +355,31 @@ StrLower(char *str)
        Parameters:
 
       Description:
+         replace all occurences of the character 'csrc' in the string
+         'src' with the character 'cdst' in the string dst.
+
+    Return Values:
+ 
+------------------------------------------------------------------------*/
+char *
+StrReplace(char *src, char *dst, char csrc, int cdst)
+{
+  char *cp_src, *cp_dst ;
+
+  for (cp_src = src, cp_dst = dst ; *cp_src ; cp_src++, cp_dst++)
+  {
+    if (*cp_src == csrc)
+      *cp_dst = cdst ;
+    else
+      *cp_dst = *cp_src ;
+  }
+    
+  return(dst) ;
+}
+/*------------------------------------------------------------------------
+       Parameters:
+
+      Description:
          extract just the file name (no path) from a string.
 
     Return Values:
