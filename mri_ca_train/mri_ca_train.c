@@ -18,15 +18,17 @@ static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
 static void usage_exit(int code) ;
+static int  erase_border_planes(MRI *mri) ;
 
 static GCA_PARMS parms ;
-static char *parc_dir = "parc" ;
+static char *seg_dir = "seg" ;
 static char *orig_dir = "orig" ;
 static char *xform_name = "talairach.xfm" ;
 static int prune = 0 ;
 static float smooth = -1 ;
 
 static int ninputs = 1 ;  /* T1 intensity */
+static int navgs = 0 ;
 
 static char subjects_dir[STRLEN] ;
 static char *heq_fname = NULL ;
@@ -39,7 +41,7 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds, nsubjects ;
   struct timeb start ;
   GCA          *gca, *gca_prune = NULL ;
-  MRI          *mri_parc, *mri_T1, *mri_eq = NULL ;
+  MRI          *mri_seg, *mri_T1, *mri_eq = NULL ;
   LTA          *lta ;
 
   Progname = argv[0] ;
@@ -49,7 +51,7 @@ main(int argc, char *argv[])
   TimerStart(&start) ;
 
   parms.use_gradient = 0 ;
-  parms.spacing = 3.0f ;
+  parms.spacing = 4.0f ;
 
   ac = argc ;
   av = argv ;
@@ -97,13 +99,14 @@ main(int argc, char *argv[])
       subject_name = argv[i+1] ;
       printf("processing subject %s, %d of %d...\n", subject_name,i+1,
              nsubjects);
-      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, parc_dir) ;
+      sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, seg_dir) ;
       if (DIAG_VERBOSE_ON)
-        printf("reading parcellation from %s...\n", fname) ;
-      mri_parc = MRIread(fname) ;
-      if (!mri_parc)
-        ErrorExit(ERROR_NOFILE, "%s: could not read parcellation file %s",
+        printf("reading segmentation from %s...\n", fname) ;
+      mri_seg = MRIread(fname) ;
+      if (!mri_seg)
+        ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s",
                   Progname, fname) ;
+      erase_border_planes(mri_seg) ;
       
       sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, orig_dir) ;
       if (DIAG_VERBOSE_ON)
@@ -133,8 +136,8 @@ main(int argc, char *argv[])
       else
         lta = LTAalloc(1, NULL) ;
       
-      GCAtrain(gca, mri_T1, mri_parc, lta, gca_prune) ;
-      MRIfree(&mri_parc) ; MRIfree(&mri_T1) ; LTAfree(&lta) ;
+      GCAtrain(gca, mri_T1, mri_seg, lta, gca_prune) ;
+      MRIfree(&mri_seg) ; MRIfree(&mri_T1) ; LTAfree(&lta) ;
     }
     GCAcompleteTraining(gca) ;
     if (gca_prune)
@@ -142,10 +145,15 @@ main(int argc, char *argv[])
     gca_prune = gca ;
   } while (n++ < prune) ;
 
-  if (smooth)
+  if (smooth > 0)
   {
     printf("regularizing conditional densities with smooth=%2.2f\n", smooth) ;
     GCAregularizeConditionalDensities(gca, smooth) ;
+  }
+  if (navgs)
+  {
+    printf("applying mean filter %d times to conditional densities\n", navgs) ;
+    GCAmeanFilterConditionalDensities(gca, navgs) ;
   }
 
   GCAwrite(gca, out_fname) ;
@@ -182,6 +190,20 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("spacing nodes every %2.1f mm\n", parms.spacing) ;
   }
+  else if (!stricmp(option, "DEBUG_NODE"))
+  {
+    Ggca_x = atoi(argv[2]) ;
+    Ggca_y = atoi(argv[3]) ;
+    Ggca_z = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging node (%d, %d, %d)\n", Ggca_x,Ggca_y,Ggca_z) ;
+  }
+  else if (!stricmp(option, "DEBUG_LABEL"))
+  {
+    Ggca_label = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("debugging label %d\n", Ggca_label) ;
+  }
   else if (!stricmp(option, "PRUNE"))
   {
     prune = atoi(argv[2]) ;
@@ -202,12 +224,12 @@ get_option(int argc, char *argv[])
     printf("reading T1 data from subject's mri/%s directory\n",
             orig_dir) ;
   }
-  else if (!stricmp(option, "PARC_DIR"))
+  else if (!stricmp(option, "PARC_DIR") || !stricmp(option, "SEG_DIR"))
   {
-    parc_dir = argv[2] ;
+    seg_dir = argv[2] ;
     nargs = 1 ;
-    printf("reading parcellation from subject's mri/%s directory\n",
-            parc_dir) ;
+    printf("reading segmentation from subject's mri/%s directory\n",
+            seg_dir) ;
   }
   else if (!stricmp(option, "XFORM"))
   {
@@ -238,6 +260,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'A':
+    navgs = atoi(argv[2]) ;
+    printf("applying %d mean filters to classifiers after training\n",navgs);
+    nargs = 1 ;
+    break ;
   case '?':
   case 'U':
     usage_exit(0) ;
@@ -264,4 +291,29 @@ usage_exit(int code)
          "\t-spacing  - spacing of classifiers in canonical space\n");
   printf("\t-gradient - use intensity gradient as input to classifier.\n") ;
   exit(code) ;
+}
+static int
+erase_border_planes(MRI *mri)
+{
+  int  x, y, z ;
+
+  for (x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      MRIvox(mri, x, y, 0) = MRIvox(mri, x, y, mri->depth-1) = 0 ;
+    }
+
+  for (y = 0 ; y < mri->height ; y++)
+    for (z = 0 ; z < mri->depth ; z++)
+    {
+      MRIvox(mri, 0, y, z) = MRIvox(mri, mri->width-1, y, z) = 0 ;
+    }
+
+  for (x = 0 ; x < mri->width ; x++)
+    for (z = 0 ; z < mri->depth ; z++)
+    {
+      MRIvox(mri, x, 0, z) = MRIvox(mri, x, mri->height-1, z) = 0 ;
+    }
+
+  return(NO_ERROR) ;
 }
