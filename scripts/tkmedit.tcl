@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.56 2003/07/28 14:14:05 kteich Exp $
+# $Id: tkmedit.tcl,v 1.57 2003/07/31 20:30:54 kteich Exp $
 
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
@@ -548,6 +548,7 @@ proc UpdateFloodSelectParams { ib3D iSrc inFuzzy inDistance } {
 proc UpdateVolumeColorScaleInfo { inVolume inBrightness inContrast
 				  inMin inMax } {
     global gVolume
+
     set gVolume($inVolume,colorScale,brightness) $inBrightness
     set gVolume($inVolume,colorScale,contrast) $inContrast
     set gVolume($inVolume,colorScale,min) $inMin
@@ -1966,10 +1967,10 @@ proc DoVolumeColorScaleInfoDlog { } {
 		[list {"Aux Contrast"} gVolume(1,colorScale,contrast)  \
 		     0 30 100 "SendVolumeColorScale" 1] \
 	        [list {"Aux Min"} gVolume(1,colorScale,min)  \
-		     $gVolume(0,minValue) $gVolume(0,maxValue) \
+		     $gVolume(1,minValue) $gVolume(1,maxValue) \
 		     100 "SendVolumeColorScale" 1] \
 		[list {"Aux Max"} gVolume(1,colorScale,max) \
-		     $gVolume(1,minValue) $gVolume(0,maxValue) \
+		     $gVolume(1,minValue) $gVolume(1,maxValue) \
 		     100 "SendVolumeColorScale" 1 ] ]
 	
 	# buttons
@@ -4197,3 +4198,4 @@ foreach toolbar {main nav recon} {
 after idle { catch { ExecuteQueuedScripts } }
 
 dputs "Successfully parsed tkmedit.tcl"
+
