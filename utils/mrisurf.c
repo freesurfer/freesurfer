@@ -105,6 +105,7 @@ static int   mrisCountTotalNeighbors(MRI_SURFACE *mris) ;
 static int   mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2) ;
 static int   mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring);
 static int   mrisComputeDataTerm(MRI_SURFACE*mris,double l_val,MRI *mri_brain);
+static int   mrisComputeExpansionTerm(MRI_SURFACE *mris, double l_expand) ;
 static int   mrisComputeDistanceTerm(MRI_SURFACE *mris, 
                                               INTEGRATION_PARMS *parms) ;
 static int   mrisComputeCorrelationTerm(MRI_SURFACE *mris, 
@@ -896,6 +897,27 @@ mrisFindNeighbors(MRI_SURFACE *mris)
         Returns value:
 
         Description
+------------------------------------------------------*/
+int          
+MRISsampleAtEachDistance(MRI_SURFACE *mris,int nbhd_size,int nbrs_per_distance)
+{
+  int  n, nbrs_array[MAX_NBHD_SIZE] ;
+
+  if (!nbhd_size)
+    return(NO_ERROR) ;
+
+  if (Gdiag & (DIAG_HEARTBEAT | DIAG_SHOW))
+    fprintf(stderr, "sampling long-range distances") ;
+  for (n = 0 ; n <= nbhd_size ; n++)
+    nbrs_array[n] = nbrs_per_distance ;
+  return(MRISsampleDistances(mris, nbrs_array, nbhd_size)) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
           Expand the list of neighbors of each vertex, reallocating
           the v->v array to hold the expanded list.
 ------------------------------------------------------*/
@@ -923,6 +945,8 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    if ((Gdiag & DIAG_HEARTBEAT) && (!(vno % (mris->nvertices/25))))
+      fprintf(stderr, " %%%1.0f", 100.0f*(float)vno / (float)mris->nvertices) ;
     v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
       DiagBreak()  ;
@@ -1171,6 +1195,8 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   free(vnbrs) ;
   free(vall) ;
   VectorFree(&v1) ; VectorFree(&v2) ;
+  if (Gdiag & DIAG_HEARTBEAT)
+    fprintf(stderr, " done.\n") ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -2999,7 +3025,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
     if (mris->nsize < parms->nbhd_size)  /* resample distances on surface */
     {
       if (Gdiag & DIAG_SHOW)
-        fprintf(stderr, "resampling long-range distances...") ;
+        fprintf(stderr, "resampling long-range distances") ;
       MRISsaveVertexPositions(mris, TMP_VERTICES) ;
       MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
       MRISsampleDistances(mris, nbrs, parms->nbhd_size) ;
@@ -3246,7 +3272,7 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
       if (mris->nsize < parms->nbhd_size)  /* resample distances on surface */
       {
         if (Gdiag & DIAG_SHOW)
-          fprintf(stderr, "resampling long-range distances...") ;
+          fprintf(stderr, "resampling long-range distances") ;
         MRISsaveVertexPositions(mris, TMP_VERTICES) ;
         MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
         MRISsampleDistances(mris, nbrs, parms->nbhd_size) ;
@@ -7063,14 +7089,15 @@ mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2)
 
         Description
 ------------------------------------------------------*/
+#define ILL_CONDITIONED   500000.0
 int
 MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
 {
-  int    vno, i, n, vmax ;
+  int    vno, i, n, vmax, nbad = 0 ;
   VERTEX *vertex, *vnb ;
   MATRIX *m_U, *m_Ut, *m_tmp1, *m_tmp2, *m_inverse, *m_eigen, *m_Q ;
   VECTOR *v_c, *v_z, *v_n, *v_e1, *v_e2, *v_yi ;
-  float  k1, k2, evalues[3], a11, a12, a21, a22 ;
+  float  k1, k2, evalues[3], a11, a12, a21, a22, cond_no ;
   double ui, vi, total_area = 0.0, max_error ;
 
   if (mris->status == MRIS_PLANE)
@@ -7096,6 +7123,8 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
     if (vertex->ripflag)
       continue ;
 
+    if (vno == 49870)
+      DiagBreak() ;
     VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz) ;
     VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z) ;
     VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z) ;
@@ -7129,9 +7158,15 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
 
     m_Ut = MatrixTranspose(m_U, NULL) ;          /* Ut */
     m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL) ;   /* Ut U */
+    cond_no = MatrixConditionNumber(m_tmp2) ;
+#if 0
     m_inverse = MatrixInverse(m_tmp2, NULL) ;    /* (Ut U)^-1 */
+#else
+    m_inverse = MatrixSVDInverse(m_tmp2, NULL) ;    /* (Ut U)^-1 */
+#endif
     if (!m_inverse)   /* singular matrix - must be planar?? */
     {
+      nbad++ ;
       evalues[0] = evalues[1] = 0.0 ;
     }
     else
@@ -7144,16 +7179,35 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
       *MATRIX_RELT(m_Q,1,2) = *MATRIX_RELT(m_Q,2,1) = 2*VECTOR_ELT(v_c, 2) ;
       *MATRIX_RELT(m_Q,2,2) = 2*VECTOR_ELT(v_c, 3) ;
 
-      /* the columns of m_eigen will be the eigenvectors of m_Q */
-      if (MatrixEigenSystem(m_Q, evalues, m_eigen) == NULL)
+      if (cond_no >= ILL_CONDITIONED)
       {
+        MatrixSVDEigenValues(m_Q, evalues) ;
+        vertex->k1 = k1 = evalues[0] ;
+        vertex->k2 = k2 = evalues[1] ;
+        vertex->K = k1*k2 ; vertex->H = (k1+k2)/2 ;
         MatrixFree(&m_Ut) ;
         MatrixFree(&m_tmp2) ;
         MatrixFree(&m_U) ;
         VectorFree(&v_z) ;
         MatrixFree(&m_tmp1) ;
         MatrixFree(&m_inverse) ;
-        vertex->K = vertex->H = 0.0 ;
+        continue ;
+      }
+
+      /* the columns of m_eigen will be the eigenvectors of m_Q */
+      if (MatrixEigenSystem(m_Q, evalues, m_eigen) == NULL)
+      {
+        nbad++ ;
+        MatrixSVDEigenValues(m_Q, evalues) ;
+        vertex->k1 = k1 = evalues[0] ;
+        vertex->k2 = k2 = evalues[1] ;
+        vertex->K = k1*k2 ; vertex->H = (k1+k2)/2 ;
+        MatrixFree(&m_Ut) ;
+        MatrixFree(&m_tmp2) ;
+        MatrixFree(&m_U) ;
+        VectorFree(&v_z) ;
+        MatrixFree(&m_tmp1) ;
+        MatrixFree(&m_inverse) ;
         continue ;
       }
 
@@ -7209,6 +7263,8 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "total area = %2.3f\n", total_area);
 
+  if (Gdiag & DIAG_SHOW && (nbad > 0))
+    fprintf(stderr, "%d ill-conditioned points\n", nbad) ;
   MatrixFree(&m_eigen) ;
   VectorFree(&v_e1) ;
   VectorFree(&v_e2) ;
@@ -7352,6 +7408,57 @@ MRIScomputeCurvatureIndices(MRI_SURFACE *mris, double *pici, double *pfi)
         Description
 ------------------------------------------------------*/
 double
+MRISmaxRadius(MRI_SURFACE *mris)
+{
+  double  radius ;
+  int    vno, n ;
+  VERTEX *vertex ;
+  double x, y, z, xlo, ylo, zlo, xhi, yhi, zhi, x0, y0, z0, r ;
+
+  xhi=yhi=zhi= -10000;
+  xlo=ylo=zlo= 10000;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+#if 0
+    if (vertex->ripflag)
+      continue ;
+#endif
+    x = (double)vertex->x ; y = (double)vertex->y ; z = (double)vertex->z ;
+    if (x>xhi) xhi=x;
+    if (x<xlo) xlo=x;
+    if (y>yhi) yhi=y;
+    if (y<ylo) ylo=y;
+    if (z>zhi) zhi=z;
+    if (z<zlo) zlo=z;
+  }
+  x0 = (xlo+xhi)/2.0f ; y0 = (ylo+yhi)/2.0f ; z0 = (zlo+zhi)/2.0f ;
+  for (radius = 0.0, n = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+#if 0
+    if (vertex->ripflag)
+      continue ;
+#endif
+    n++ ;
+    x = (double)vertex->x-x0 ; 
+    y = (double)vertex->y-y0 ; 
+    z = (double)vertex->z-z0 ;
+    r = sqrt(x*x + y*y + z*z) ;
+    if (r > radius)
+      radius = r ;
+  }
+
+  return(radius) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+double
 MRISaverageRadius(MRI_SURFACE *mris)
 {
   double  radius ;
@@ -7458,6 +7565,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   {
     mrisClearGradient(mris) ;
     mrisComputeDistanceTerm(mris, parms) ;
+    mrisComputeExpansionTerm(mris, parms->l_expand) ;
     mrisComputeSpringTerm(mris, parms->l_spring) ;
     
     mrisAverageGradients(mris, n_averages) ;
@@ -7479,13 +7587,8 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       break ;
     }
     mrisTrackTotalDistance(mris) ;  /* update sulc */
-    /*
-      only compute the second fundamental form (called from 
-      MRISupdateSurface) every 5th iteration as it is the most
-      expensive part of the inflation.
-      */
     MRIScomputeMetricProperties(mris) ; 
-    if (!((n+1) % 5))   /* compute curvature also */
+    if (!((n+1) % 5))   
     {
       rms_height = MRISrmsTPHeight(mris) ;
       if (Gdiag & DIAG_SHOW)
@@ -8441,6 +8544,54 @@ mrisComputeDataTerm(MRI_SURFACE *mris, double l_val, MRI *mri_brain)
         Returns value:
 
         Description
+           Apply a uniform outward expansion force.
+------------------------------------------------------*/
+static int
+mrisComputeExpansionTerm(MRI_SURFACE *mris, double l_expand)
+{
+  int     vno ;
+  VERTEX  *v ;
+  float   radius, r, x, y, z ;
+
+  if (FZERO(l_expand))
+    return(0.0f) ;
+
+#if 0
+  radius = MRISaverageRadius(mris) ;
+#else
+  radius = MRISmaxRadius(mris) ;
+#endif
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+#if 1
+    x = v->x ; y = v->y ; z = v->z ;
+    r = sqrt(x*x+y*y+z*z) ;
+    r = (radius - r) / radius ;
+    v->dx += r*l_expand * v->nx ;
+    v->dy += r*l_expand * v->ny ;
+    v->dz += r*l_expand * v->nz ;
+#else
+    v->dx += l_expand * v->nx ;
+    v->dy += l_expand * v->ny ;
+    v->dz += l_expand * v->nz ;
+#endif
+  }
+  
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
         File Format is:
 
         name x y z
@@ -8676,6 +8827,10 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
     fprintf(fp, ", l_spring=%2.4f", parms->l_spring) ;
   if (!FZERO(parms->l_dist))
     fprintf(fp, ", l_dist=%2.4f", parms->l_dist) ;
+  if (!FZERO(parms->l_val))
+    fprintf(fp, ", l_val=%2.4f", parms->l_val) ;
+  if (!FZERO(parms->l_expand))
+    fprintf(fp, ", l_expand=%2.4f", parms->l_expand) ;
   if (!FZERO(parms->l_curv))
     fprintf(fp, ", l_curv=%2.4f", parms->l_curv) ;
   if (!FZERO(parms->l_boundary))
@@ -13839,8 +13994,13 @@ MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
   *pdz = dz /= (float)area->n_points ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
 
+        Description
+------------------------------------------------------*/
 static double
 mrisComputeValError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
@@ -13874,5 +14034,126 @@ mrisComputeValError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
   
   return(parms->l_val * sse) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           Compute the ratio of the two principal curvatures and
+           store it in the vertex->curv variable.
+------------------------------------------------------*/
+int
+MRISuseCurvatureRatio(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+  float  min_curv, max_curv, k1, k2, curv ;
+
+  /*  MRIScomputeSecondFundamentalForm(mris) ;*/
+
+  min_curv = 10000.0f ; max_curv = -min_curv ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (fabs(v->k1) > fabs(v->k2))
+    { k1 = v->k1 ; k2 = v->k2 ; }
+    else
+    { k1 = v->k2 ; k2 = v->k1 ; }
+
+    if (!FZERO(k2))
+    {
+      curv = fabs(k1 / k2) ;
+      if (curv < min_curv)
+        min_curv = curv ;
+      if (curv > max_curv)
+        max_curv = curv ;
+
+      v->curv = curv ;
+    }
+  }
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (fabs(v->k1) > fabs(v->k2))
+    { k1 = v->k1 ; k2 = v->k2 ; }
+    else
+    { k1 = v->k2 ; k2 = v->k1 ; }
+
+    if (FZERO(k2))
+    {
+      if (FZERO(k1))
+        curv = 0.0 ;
+      else
+        curv = k1 < 0 ? min_curv : max_curv ;
+      v->curv = curv ;
+    }
+  }
+
+  mris->min_curv = min_curv ; mris->max_curv = max_curv ;
+  return(NO_ERROR) ;
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           Compute the contrast of the two principal curvatures and
+           store it in the vertex->curv variable.
+------------------------------------------------------*/
+int
+MRISuseCurvatureContrast(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+  float  min_curv, max_curv, k1, k2, curv, min_k ;
+
+  /*  MRIScomputeSecondFundamentalForm(mris) ;*/
+
+  min_k = 10000.0f ; 
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->k1 < min_k)
+      min_k = v->k1 ;
+    if (v->k2 < min_k)
+      min_k = v->k2 ;
+  }
+
+  min_curv = 10000.0f ; max_curv = -min_curv ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == 107348)
+      DiagBreak() ;
+    if (v->k1 > v->k2)
+    { k1 = v->k1 ; k2 = v->k2 ; }
+    else
+    { k1 = v->k2 ; k2 = v->k1 ; }
+    k1 -= min_k ; k2 -= min_k ;
+    curv = (k1 - k2) / (k1+k2) ;
+
+    if (curv < min_curv)
+      min_curv = curv ;
+    if (curv > max_curv)
+      max_curv = curv ;
+
+    v->curv = curv ;
+  }
+
+  mris->min_curv = min_curv ; mris->max_curv = max_curv ;
+  return(NO_ERROR) ;
 }
 

@@ -271,6 +271,7 @@ typedef struct
   float   l_dist ;            /* coefficient of distance term */
   float   l_neg ;
   float   l_val ;             /* for settling surface at a specified val */
+  float   l_expand ;          /* for expanding the surface */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
@@ -356,6 +357,8 @@ MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src,
 int          MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize) ;
 int          MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize) ;
 int          MRISsampleDistances(MRI_SURFACE *mris, int *nbr_count,int n_nbrs);
+int          MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size,
+                                      int nbrs_per_distance) ;
 int          MRISscaleDistances(MRI_SURFACE *mris, float scale) ;
 MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, 
                                              MRI_SURFACE *mris_dst, 
@@ -419,11 +422,14 @@ int          MRISclearCurvature(MRI_SURFACE *mris) ;
 int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
 int          MRIScomputeCurvatureIndices(MRI_SURFACE *mris, 
                                          double *pici, double *pfi) ;
+int          MRISuseCurvatureRatio(MRI_SURFACE *mris) ;
+int          MRISuseCurvatureContrast(MRI_SURFACE *mris) ;
 
 double       MRIScomputeFolding(MRI_SURFACE *mris) ;
 
 int          MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius) ;
 double       MRISaverageRadius(MRI_SURFACE *mris) ;
+double       MRISmaxRadius(MRI_SURFACE *mris) ;
 int          MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 double       MRISrmsTPHeight(MRI_SURFACE *mris) ;
 double       MRIStotalVariation(MRI_SURFACE *mris) ;
