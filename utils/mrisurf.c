@@ -2,6 +2,9 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 #include "diag.h"
 #include "error.h"
@@ -18,6 +21,8 @@
 #include "mrishash.h"
 #include "icosahedron.h"
 #include "tritri.h"
+#include "timer.h"
+#include "anders.h"
 
 /*---------------------------- STRUCTURES -------------------------*/
 
@@ -389,6 +394,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
   VERTEX      *vertex ;
   FACE        *face ;
 
+  anders() ;
   type = mrisFileNameType(fname) ;
   if (type == MRIS_ASCII_QUADRANGLE_FILE)
   {
@@ -995,6 +1001,7 @@ MRISwrite(MRI_SURFACE *mris, char *name)
 
   char  fname[STRLEN] ;
 
+  anders() ;
   MRISbuildFileName(mris, name, fname) ;
   type = mrisFileNameType(fname) ;
   if (type == MRIS_ASCII_QUADRANGLE_FILE)
@@ -15311,7 +15318,6 @@ MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, int which)
 #define MAX_REDUCTIONS     2
 #define REDUCTION_PCT      0.5
 
-#include "timer.h"
 int
 MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
                     INTEGRATION_PARMS *parms)
@@ -19594,9 +19600,6 @@ MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
 
         Description
 ------------------------------------------------------*/
-#include <sys/types.h>
-#include <sys/time.h>
-#include <unistd.h>
 int
 MRISwriteTriangularSurface(MRI_SURFACE *mris, char *fname)
 {
