@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.21 1999/06/17 14:03:31 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.22 1999/06/17 14:45:54 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -637,7 +637,7 @@ get_option(int argc, char *argv[])
   }
   else if (!strcmp(option, "ccmask"))
   {
-		cc_mask = !cc_mask ;
+		cc_mask = 1 /*!cc_mask*/ ;
     fprintf(stderr,"%susing corpus callosum to mask possible location of "
 						"pons.\n", cc_mask ? "" : "not ");
   }
