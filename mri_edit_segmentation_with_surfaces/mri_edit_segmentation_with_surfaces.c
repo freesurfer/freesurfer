@@ -18,7 +18,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.2 2003/04/09 20:28:22 fischl Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.3 2003/04/16 16:43:28 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -28,7 +28,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 static int relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right) ;
-static int relabel_hypointensities_neighboring_gray(MRI *mri) ;
+/*static int relabel_hypointensities_neighboring_gray(MRI *mri) ;*/
 static int edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_name) ;
 static int edit_hippocampus(MRI *mri) ;
 int MRIneighbors(MRI *mri, int x0, int y0, int z0, int val) ;
@@ -99,7 +99,7 @@ main(int argc, char *argv[])
 		relabel_hypointensities(mri_aseg, mris, h) ;
 		MRISfree(&mris) ;
 	}
-	relabel_hypointensities_neighboring_gray(mri_aseg) ;
+	/*	relabel_hypointensities_neighboring_gray(mri_aseg) ;*/
 
 	edit_hippocampus(mri_aseg) ;
 	printf("writing modified segmentation to %s...\n", out_aseg_name) ;
@@ -246,7 +246,7 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
 					dot = v->nx*dx + v->ny*dy + v->nz*dz ;
 					dist = sqrt(dx*dx+dy*dy+dz*dz) ;
 				}
-				if (dot < 0 && dist > 1)
+				if (dot < 0 && dist > .5)
 				{
 					changed++ ;
 					MRIvox(mri, x, y, z) = WM_hypointensities ;
@@ -259,6 +259,7 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
 	MHTfree(&mht) ;
 	return(NO_ERROR) ;
 }
+#if 0
 int
 relabel_hypointensities_neighboring_gray(MRI *mri)
 {
@@ -294,6 +295,7 @@ relabel_hypointensities_neighboring_gray(MRI *mri)
 	printf("%d hypointense voxels neighboring cortex changed\n", changed) ;
 	return(NO_ERROR) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
