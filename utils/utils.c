@@ -29,13 +29,15 @@
 #include <errno.h>
 #include <ctype.h>
 #include <sys/types.h>
-#include <sys/time.h>
+
+#include <time.h> /* msvc (dng) */
 
 #include "nr.h"
 #include "const.h"
 #include "utils.h"
 #include "macros.h"
 #include "proto.h"
+#include "error.h"
 
 /*------------------------------------------------------------------------
                             CONSTANTS
@@ -93,7 +95,7 @@ randomNumber(double low, double hi)
   val = ran1(&idum) * range + low ;
   
   if ((val < low) || (val > hi))
-    fprintf(stderr, "randomNumber(%2.1f, %2.1f) - %2.1f\n",
+    ErrorPrintf(ERROR_BADPARM, "randomNumber(%2.1f, %2.1f) - %2.1f\n",
                (float)low, (float)hi, (float)val) ;
 
    return(val) ;
@@ -175,7 +177,8 @@ latan2(double y, double x)
       val -= 2.0 * PI ;
 
    if (oerr != errno)
-      printf("error %d, y %f, x %f\n", errno, (float)y, (float)x) ;
+      ErrorPrintf(ERROR_BADPARM,
+                  "error %d, y %f, x %f\n", errno, (float)y, (float)x) ;
    return(val) ;
 }
 /*------------------------------------------------------------------------
@@ -314,7 +317,7 @@ StrUpper(char *str)
   char *cp ;
 
   for (cp = str ; *cp ; cp++)
-    *cp = toupper(*cp) ;
+    *cp = (char)toupper(*cp) ;
 
   return(str) ;
 }
@@ -332,7 +335,7 @@ StrLower(char *str)
   char *cp ;
 
   for (cp = str ; *cp ; cp++)
-    *cp = tolower(*cp) ;
+    *cp = (char)tolower(*cp) ;
 
   return(str) ;
 }
