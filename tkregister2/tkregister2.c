@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.21 2003/11/05 00:06:15 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.22 2003/11/05 21:30:50 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.21 2003/11/05 00:06:15 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.22 2003/11/05 21:30:50 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -232,6 +232,7 @@ int blinkflag = FALSE;
 int blinkdelay = BLINK_DELAY;
 int blinktime = BLINK_TIME;
 int overlay_mode = TARGET;
+int overlay_mode_init = TARGET;
 int visible_mode = 0;
 int last_visible_mode = 0;
 int visible_plane = 0;
@@ -676,15 +677,22 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     printf("plane = %d, slice = %d\n",plane_init,slice_init);
     printf("imc = %d, jc = %d, ic = %d\n",imc,jc,ic);
   }
-  
-  /* load both buffers; sets visible_mode/plane, last_visible_mode/plane */
-  printf("Redrawing Movable\n");fflush(stdout);
-  overlay_mode = MOVEABLE;
-  redraw();
-  printf("Redrawing Target\n");fflush(stdout);
-  overlay_mode = TARGET;
-  redraw();
+
+  if(overlay_mode_init == TARGET){
+    overlay_mode = MOVEABLE;
+    redraw();
+    overlay_mode = TARGET;
+    redraw();
+  }
+  else {
+    overlay_mode = TARGET;
+    redraw();
+    overlay_mode = MOVEABLE;
+    redraw();
+  }
+
   updateflag = FALSE;
+
 
   return GL_FALSE;
 
@@ -763,6 +771,17 @@ static int parse_commandline(int argc, char **argv)
       if( strcmp(pargv[0],"hor") == 0) plane_init = HORIZONTAL;
       if(plane_init == -1000){
 	printf("ERROR: orientation %s unrecognized\n",pargv[0]);
+	exit(1);
+      }
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--volview")){
+      if(nargc < 1) argnerr(option,1);
+      overlay_mode_init = -1000;
+      if( strcmp(pargv[0],"mov") == 0)  overlay_mode_init = MOVEABLE;
+      if( strcmp(pargv[0],"targ") == 0) overlay_mode_init = TARGET;
+      if(overlay_mode_init == -1000){
+	printf("ERROR: volview %s unrecognized\n",pargv[0]);
 	exit(1);
       }
       nargsused = 1;
@@ -869,6 +888,7 @@ static void print_usage(void)
   printf("   --movbright  f : brightness of movable volume\n");
   printf("   --plane  orient  : startup view plane <cor>, sag, ax\n");
   printf("   --slice  sliceno : startup slice number\n");
+  printf("   --volview volid  : startup with targ or mov\n");
   printf("   --surf surfname : display surface as an overlay \n");
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --regheader : compute regstration from headers\n");
@@ -3454,7 +3474,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.21 2003/11/05 00:06:15 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.22 2003/11/05 21:30:50 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3584,8 +3604,8 @@ char **argv;
   /* run tcl/tk startup script to set vars, make interface; no display yet */
   printf("tkregister2: interface: %s\n",tkregister_tcl);
   code = Tcl_EvalFile(interp,tkregister_tcl);
-  plane = plane_init;
   if (*interp->result != 0)  printf(interp->result);
+  plane = plane_init;
 
   /* always start up command line shell too */
   Tk_CreateFileHandler(0, TK_READABLE, StdinProc, (ClientData) 0);
