@@ -1,19 +1,21 @@
-function fx = binomialpdf(x,n,theta)
-% fx = binomialpdf(x,n,theta)
+function fx = binomialpdf(x,ntrials,theta)
+% fx = binomialpdf(x,ntrials,theta)
 %
 % Binomial probability distribution function. Returns the probability
-% of seeing x events in n trials when the expected value of x is
-% n*theta.
+% of seeing x events in ntrials when the expected value of x is
+% ntrials*theta. (ie, the likelihood of event X is theta).
 %
-% x must be a list integers where 0 < x < n.
+% x must be a list integers where 0 < x < ntrials.
 % 0 < theta < 1
 %
-% $Id: binomialpdf.m,v 1.1 2003/08/27 03:55:00 greve Exp $
+% See also binomialcdf and binomialconf
+%
+% $Id: binomialpdf.m,v 1.2 2004/06/11 17:20:45 greve Exp $
 
 fx = [];
 
 if(nargin ~= 3)
-  fprintf('fx = binomialpdf(x,n,theta)\n');
+  fprintf('fx = binomialpdf(x,ntrials,theta)\n');
   return;
 end
 nx = length(x);
@@ -25,10 +27,10 @@ if(m ~= 0)
   return;
 end
 
-% check for all x < n %
-nover = length(find(x >= n));
+% check for all x < ntrials %
+nover = length(find(x >= ntrials));
 if(nover > 0)
-  fprintf('ERROR: all x must be < n\n');
+  fprintf('ERROR: all x must be < ntrials\n');
   return;
 end
 
@@ -42,11 +44,11 @@ end
 for nthx = 1:nx
   xx = x(nthx);
   %p(nthx) = factorial(n) / (factorial(xx) * factorial(n-xx) );
-  p(nthx) = permutation(n,xx);
+  p(nthx) = permutation(ntrials,xx);
 end
 
 % finally compute pdf %
-fx = p .* (theta.^x) .* ((1-theta).^(n-x));
+fx = p .* (theta.^x) .* ((1-theta).^(ntrials-x));
 
 return;
 

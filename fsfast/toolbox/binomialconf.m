@@ -1,22 +1,25 @@
 function [xlow, xhi, xmean, xstd] = binomialconf(n,theta,pct)
-% [xlow, xhi, xmean, xstd] = binomialconf(n,theta,pct)
+% [xlow, xhi, xmean, xstd] = binomialconf(ntrials,theta,pct)
 %
-% Computes the theoetical confidence intervals for a binomial
+% Computes the theoretical confidence intervals for a binomial
 % distribution. For a given experiment with n trials where theta is
-% the probability that the result of a trial is of type x, and x is
-% the actual number of type x, then the expected value of x is xmean =
-% n*x, the standard deviation of x is xstd = sqrt(n*theta*(1-theta)),
-% and pct percent of the time x will fall between xlow and xhi
-% (inclusive). If p = x/n, then pct percent of the time, p will fall
-% between xlow/n and xhigh/n (inclusive). Note: pct is a percent (0-100).
+% the probability that the result of a trial is of type X, and x is
+% the actual number of type X, then the expected value of x is xmean =
+% ntrials*theta, the standard deviation of x is xstd =
+% sqrt(ntrials*theta*(1-theta)), and pct percent of the time x will
+% fall between xlow and xhi (inclusive). If p = x/ntrials, then pct
+% percent of the time, p will fall between xlow/ntrials and
+% xhigh/ntrials (inclusive). This range of p will not be symetrical
+% around x/ntrials.
 %
-% n must be an integer greater than 0.
+% pct is a percent (0-100).
+% ntrials must be an integer greater than 0.
 % 0 < theta < 1
 % 0 < pct < 100.
 %
-% See also binomialpdf.
+% See also binomialpdf and binomialcdf.
 %
-% $Id: binomialconf.m,v 1.1 2003/08/27 03:55:00 greve Exp $
+% $Id: binomialconf.m,v 1.2 2004/06/11 17:20:19 greve Exp $
 
 xmean = [];
 xstd = [];
@@ -24,7 +27,7 @@ xlow = [];
 xhi = [];
 
 if(nargin ~= 3)
-  fprintf('[xlow, xhi, xmean, xstd] = binomialconf(n,theta,pct)\n');
+  fprintf('[xlow, xhi, xmean, xstd] = binomialconf(ntrials,theta,pct)\n');
   return;
 end
 
