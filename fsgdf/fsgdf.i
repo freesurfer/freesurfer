@@ -17,7 +17,7 @@
 }
 
 
-extern FSGD *gdfRead(char *gdfname);
+extern FSGD *gdfRead(char *gdfname, int loaddata);
 extern int gdfPrintStdout(FSGD *gd);
 extern int gdfGetTitle(FSGD *gd, char *OUTSTRING);
 extern int gdfGetMeasurementName(FSGD *gd, char *OUTSTRING);

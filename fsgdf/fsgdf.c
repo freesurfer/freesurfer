@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.8 2002/11/12 23:18:14 greve Exp $
+  $Id: fsgdf.c,v 1.9 2002/11/13 15:39:57 kteich Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -915,5 +915,3 @@ int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject,
 
   return(0);
 }
-
-

@@ -208,7 +208,7 @@ SWIG_TypeClientData(swig_type_info *ti, void *clientdata) {
 #endif
 
 /*
- * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.1 2002/11/12 20:52:05 kteich Exp $
+ * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.2 2002/11/13 15:39:57 kteich Exp $
  * 
  * swigtcl8.swg
  */
@@ -977,7 +977,7 @@ SWIGEXPORT(int) SWIG_init(Tcl_Interp *);
 
   #include "fsgdf.h"
 
-extern FSGD *gdfRead(char *);
+extern FSGD *gdfRead(char *,int);
 extern int gdfPrintStdout(FSGD *);
 extern int gdfGetTitle(FSGD *,char *);
 extern int gdfGetMeasurementName(FSGD *,char *);
@@ -1376,10 +1376,11 @@ extern "C" {
 static int
 _wrap_gdfRead(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
     char *arg1 ;
+    int arg2 ;
     FSGD *result;
     
-    if (SWIG_GetArgs(interp, objc, objv,"s:gdfRead gdfname ",&arg1) == TCL_ERROR) return TCL_ERROR;
-    result = (FSGD *)gdfRead(arg1);
+    if (SWIG_GetArgs(interp, objc, objv,"si:gdfRead gdfname loaddata ",&arg1,&arg2) == TCL_ERROR) return TCL_ERROR;
+    result = (FSGD *)gdfRead(arg1,arg2);
     
     Tcl_SetObjResult(interp,SWIG_NewPointerObj((void *) result, SWIGTYPE_p_FSGD,0));
     return TCL_OK;
