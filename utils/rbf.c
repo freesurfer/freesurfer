@@ -443,7 +443,7 @@ rbfGradientDescent(RBF *rbf, int (*get_observation_func)
     rbfTrain(rbf, get_observation_func, parm, TRAIN_OUTPUTS) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "\ntraining network...") ;
-  rbfTrain(rbf, get_observation_func, parm, TRAIN_ALL) ;
+/*  rbfTrain(rbf, get_observation_func, parm, TRAIN_ALL) ;*/
   if (Gdiag & DIAG_SHOW)
   {
     fprintf(stderr, "training complete.\n") ;
@@ -600,14 +600,10 @@ RBFcomputeErrors(RBF *rbf, int class, VECTOR *v_error)
     else
       target = 0.0f ;
     error = target - RVECTOR_ELT(rbf->v_outputs, i) ;
-if (!finite(error))
-  DiagBreak() ;
 
     VECTOR_ELT(v_error,i) = error ;
     total_error += error*error ;
   }
-if (!finite(total_error))
-  DiagBreak() ;
   return(total_error) ;
 }
 /*-----------------------------------------------------
@@ -941,11 +937,7 @@ if (which & TRAIN_CENTERS)
       rbfComputeHiddenActivations(rbf, v_obs) ;
       rbfComputeOutputs(rbf) ;
       error = RBFcomputeErrors(rbf, class, v_error) ;
-if (!finite(error))
-  DiagBreak() ;
       sse += error ;
-if (!finite(sse))
-  DiagBreak() ;
       if (which & TRAIN_CENTERS)
         rbfAdjustHiddenCenters(rbf, v_error) ;
 #if 1
