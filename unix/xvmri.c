@@ -82,7 +82,8 @@ void
 mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage, 
                   int *px, int *py, int *pz)
 {
-  int       x, y, z, which, depth, view, frame ;
+  int       x, y, z, which, depth, view, frame, which2 ;
+  DIMAGE    *dimage2 ;
   Real      xr, yr, zr, xt, yt, zt, xv, yv, zv, xtv, ytv, ztv ;
   float     xf, yf, zf, xft, yft, zft ;
   MRI       *mri ;
@@ -189,6 +190,15 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
   default:
     if (event_is_up(event)) switch ((char)event->ie_code)
     {
+    case 'S':   /* change all views and slices to be the same */
+      for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
+      {
+        if (which2 == which)
+          continue ;
+        dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
+        XVMRIsetView(xvf, which2, mri_views[which]) ;
+      }
+      break ;
     case 'G':
     case 'g':
       /* look in 4 places for edit.dat - same dir as image, tmp/edit.dat
@@ -615,6 +625,26 @@ get_next_slice(IMAGE *Iold, int which, int dir)
       if (Idisplay[which] && (Idisplay[which] != I))
         ImageFree(&Idisplay[which]) ;
       Idisplay[which] = I ;
+    }
+
+    /* if current image is changing depth, then change the location of
+       the current click to agree with the current depth.
+       */
+    if (which_click == which) 
+    {
+      switch (mri_views[which])
+      {
+      case MRI_CORONAL:
+        z_click = depth - mri->imnr0 ;
+        break ;
+      case MRI_SAGITAL:
+        x_click = depth ;
+        break ;
+      case MRI_HORIZONTAL:
+        y_click = depth ;
+        break ;
+      }
+      XVMRIsetPoint(xvf, which_click, x_click, y_click, z_click) ;
     }
   }
   else
