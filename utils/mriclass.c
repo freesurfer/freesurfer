@@ -261,7 +261,69 @@ MRICread(char *fname)
 
   mric = MRICalloc(nrounds, type, features, NULL) ;
   if (*prior_fname)
+  {
     mric->mri_priors = MRIread(prior_fname) ;
+    strcpy(mric->prior_fname, prior_fname) ;
+  }
+  for (round = 0 ; round < nrounds ; round++)
+  {
+    switch (type[round])
+    {
+    case CLASSIFIER_GAUSSIAN:
+      GCasciiReadFrom(fp, mric->classifier[round].gc) ;
+      break ;
+    default:
+      break ;
+    }
+  }
+
+  fclose(fp) ;
+
+  return(mric) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRIC *
+MRICquickRead(char *fname)
+{
+  MRIC  *mric ;
+  int   ninputs, type[MAX_ROUNDS], features[MAX_ROUNDS], round, nrounds ;
+  FILE  *fp ;
+  char  line[100], *cp, prior_fname[100] ;
+
+  fp = fopen(fname, "r") ;
+  if (!fp)
+    ErrorReturn(NULL, 
+                (ERROR_NO_FILE,"MRICread(%s): could not open file", fname));
+
+  prior_fname[0] = 0 ;
+  cp = fgetl(line, 99, fp) ;
+  if (sscanf(cp, "%d %s", &nrounds, prior_fname) < 1)
+  {
+    fclose(fp) ;
+    ErrorReturn(NULL, (ERROR_BADFILE, "MRICread(%s): could not scan parms",
+                fname)) ;
+  }
+  for (round = 0 ; round < nrounds ; round++)
+  {
+    cp = fgetl(line, 99, fp) ;
+    if (sscanf(cp, "%d %d 0x%x",&type[round], &ninputs,&features[round]) < 3)
+    {
+      fclose(fp) ;
+      ErrorReturn(NULL, (ERROR_BADFILE, "MRICread(%s): could not scan parms",
+                         fname)) ;
+    }
+  }
+
+  mric = MRICalloc(nrounds, type, features, NULL) ;
+  if (prior_fname[0])
+    strcpy(mric->prior_fname, prior_fname) ;
+
   for (round = 0 ; round < nrounds ; round++)
   {
     switch (type[round])
@@ -940,7 +1002,7 @@ MRICcomputeStatistics(MRIC *mric, int round)
           gcl->m_covariance->rptr[col][row] = covariance ;
         }
         if (Gdiag & DIAG_SHOW)
-          fprintf(stderr, "mean %24.24s, feature %d = %+2.3f, var = %+2.3f\n",
+          fprintf(stderr, "mean %24.24s, feature %d = %-2.3f, var = %-2.3f\n",
                   gaussian_class_names[classno], row,
                   mean_a, gcl->m_covariance->rptr[row][row]) ;
       }
@@ -949,6 +1011,14 @@ MRICcomputeStatistics(MRIC *mric, int round)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
 char *
 MRICclassName(MRIC *mric, int round, int classno)
 {
@@ -963,5 +1033,88 @@ MRICclassName(MRIC *mric, int round, int classno)
   }
 
   return(class_name) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+int
+MRICdump(FILE *fp, MRIC *mric)
+{
+  GCLASSIFY  *gc ;
+  GCLASS     *gcl ;
+  int        classno, nclasses, fno, round ;
+
+  fprintf(stderr, "mric with %d round, prior file %s\n",
+          mric->nrounds, mric->mri_priors ? mric->prior_fname : "(none)") ;
+  for (round = 0 ; round < mric->nrounds ; round++)
+  {
+    gc = mric->classifier[round].gc ;
+    nclasses = gc->nclasses ;
+    for (classno = 0 ; classno < nclasses ; classno++)
+    {
+      gcl = &gc->classes[classno] ;
+      fprintf(stderr, "  %s:\n", gaussian_class_names[classno]) ;
+      for (fno = 0 ; fno < mric->ninputs[round] ; fno++)
+      {
+        fprintf(stderr, "    feature %10.10s, mean = %+2.3f, std = %+2.3f\n",
+                MRICfeatureName(mric, round, fno),
+                gcl->m_u->rptr[fno+1][1], 
+                sqrt(gcl->m_covariance->rptr[fno+1][fno+1])) ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+char *
+MRICfeatureName(MRIC *mric, int round, int feature_number)
+{
+  int f, fno ;
+
+  /* first ninputs-1 correspond to inputs #s, rest to frames in priors */
+
+  /* find bit which corresponds to this # */
+  for (f = 0x001, fno = 0 ; f <= MAX_FEATURE ; f<<=1)
+    if ((f & mric->features[round]) && (fno++ == feature_number))
+      break ;
+
+  if (f & FEATURE_INTENSITY)
+    return("INTENSITY") ;
+  if (f & FEATURE_ZSCORE3)
+    return("ZSCORE3") ;
+  if (f & FEATURE_ZSCORE5)
+    return("ZSCORE5") ;
+  if (f & FEATURE_DIRECTION)
+    return("DIRECTION") ;
+  if (f & FEATURE_MEAN3)
+    return("MEAN3") ;
+  if (f &  FEATURE_CPOLV_MEAN3)
+    return("CPOLV MEAN3") ;
+  if (f & FEATURE_CPOLV_MEAN5)
+    return("CPOLV MEAN5") ;
+  if (f & FEATURE_CPOLV_MEDIAN3)
+    return("CPOLV MEDIAN3") ;
+  if (f & FEATURE_CPOLV_MEDIAN5)
+    return("CPOLV MEDIAN 5") ;
+  if (f & FEATURE_MIN3)
+    return("MIN3") ;
+  if (f & FEATURE_MIN5)
+    return("MIN5") ;
+  if (f & FEATURE_MIN7)
+    return("MIN7") ;
+
+  return("unknown") ;
 }
 

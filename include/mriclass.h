@@ -69,6 +69,7 @@ MRIC   *MRICalloc(int nrounds, int types[], int features[], void *parms) ;
 int    MRICfree(MRIC **pmri) ;
 int    MRICtrain(MRIC *mric, char *file_name, char *prior_fname) ;
 MRIC   *MRICread(char *fname) ;
+MRIC   *MRICquickRead(char *fname) ;
 int    MRICwrite(MRIC *mric, char *fname) ;
 MRI    *MRICclassify(MRIC *mric, MRI *mri_src, 
                      MRI *mri_dst, float conf,MRI *mri_probs,MRI *mri_classes);
@@ -81,5 +82,7 @@ int    MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src,
                             MRI *mri_wm, MRI_REGION *box) ;
 int    MRICcomputeStatistics(MRIC *mric, int round) ;
 char   *MRICclassName(MRIC *mric, int round, int classno) ;
+int    MRICdump(FILE *fp, MRIC *mric) ;
+char   *MRICfeatureName(MRIC *mric, int round, int feature_number) ;
 
 #endif
