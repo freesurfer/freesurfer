@@ -96,7 +96,8 @@ int  GCAcompleteTraining(GCA *gca) ;
 MRI  *GCAlabel(MRI *mri_src, GCA *gca, MRI *mri_dst, LTA *lta) ;
 MRI  *GCAclassify(MRI *mri_src,GCA *gca,MRI *mri_dst,LTA *lta,int max_labels);
 MRI  *GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,
-                                    LTA *lta, int max_iter, MRI *mri_fixed) ;
+                                    LTA *lta, int max_iter, MRI *mri_fixed,
+                                    int restart) ;
 GCA  *GCAreduce(GCA *gca_src) ;
 int  GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv, 
                     int *pyv, int *pzv) ;

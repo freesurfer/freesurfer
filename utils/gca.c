@@ -47,6 +47,8 @@ static double gcaNbhdGibbsLogLikelihood(GCA *gca, MRI *mri_labels,
 static GCA_SAMPLE *gcaExtractLabelAsSamples(GCA *gca, MRI *mri_labeled, 
                                             LTA *lta, 
                                             int *pnsamples, int label) ;
+static double gcaComputeConditionalDensity(GC1D *gc, float val, int label) ;
+static double gcaComputeConditionalLogDensity(GC1D *gc, float val, int label) ;
 int MRIcomputeVoxelPermutation(MRI *mri, short *x_indices, short *y_indices,
                                short *z_indices);
 GCA *gcaAllocMax(int ninputs, float spacing, int width, int height, int depth, 
@@ -552,6 +554,10 @@ GCAupdateNode(GCA *gca, MRI *mri, int xn, int yn, int zn, float val, int label,
     DiagBreak() ;
   if (xn == 23 && yn == 30 && zn == 32 && label == 41 && val < 60)
     DiagBreak() ;
+  if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z && label == Ggca_label)
+    DiagBreak() ;
+  if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+    DiagBreak() ;
 
 
   if (label > 0 && gca_prune != NULL && !noint)
@@ -731,6 +737,9 @@ GCAcompleteTraining(GCA *gca)
             }
             holes_filled++ ;
             gc->mean = gc_nbr->mean ; gc->var = gc_nbr->var ;
+            if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+              printf("filling hole @ (%d, %d, %d) with %2.1f +- %2.1f\n",
+                     x, y, z, gc->mean, sqrt(gc->var)) ;
           }
         }
       }
@@ -756,7 +765,7 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, LTA *lta)
            xn, yn, zn, n ;
   GCA_NODE *gcan ;
   GC1D     *gc ;
-  float    dist, max_p, p ;
+  float    /*dist,*/ max_p, p ;
 
   if (!mri_dst)
   {
@@ -802,19 +811,8 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, LTA *lta)
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
           gc = &gcan->gcs[n] ;
-          
-          /* compute 1-d Mahalanobis distance */
-          dist = (val-gc->mean) ;
-          if (FZERO(gc->var))  /* make it a delta function */
-          {
-            if (FZERO(dist))
-              p = 1.0 ;
-            else
-              p = 0.0 ;
-          }
-          else
-            p = 1 / sqrt(gc->var * 2 * M_PI) * exp(-dist*dist/gc->var) ;
 
+          p = gcaComputeConditionalDensity(gc, (float)val, gcan->labels[n]) ;
           p *= gc->prior ;
           if (p > max_p)
           {
@@ -3563,10 +3561,10 @@ int gca_write_iterations = 0 ;
 
 MRI  *
 GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
-                            int max_iter, MRI *mri_fixed)
+                            int max_iter, MRI *mri_fixed, int restart)
 {
   int      x, y, z, width, height, depth, label, val, iter,
-           xn, yn, zn, n, nchanged,
+           xn, yn, zn, n, nchanged, min_changed,
            index, nindices, old_label, fixed ;
   short    *x_indices, *y_indices, *z_indices ;
   GCA_NODE *gcan ;
@@ -3624,7 +3622,15 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
   for (x = 0 ; x < width ; x++)
     for (y = 0 ; y < height ; y++)
         for (z = 0 ; z < depth ; z++)
-          MRIvox(mri_changed,x,y,z) = 1 ;
+        {
+          if (restart && mri_fixed)
+          {
+            if (MRIvox(mri_fixed, x, y, z))
+              MRIvox(mri_changed,x,y,z) = 1 ;
+          }
+          else
+            MRIvox(mri_changed,x,y,z) = 1 ;
+        }
 
   old_ll = gcaGibbsImageLogLikelihood(gca, mri_dst, mri_inputs, lta) ;
   old_ll /= (double)(width*depth*height) ;
@@ -3804,6 +3810,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
     }
 #endif
 #define MIN_CHANGED 2000
+    min_changed = restart ? 0 : MIN_CHANGED ;
     if (nchanged <= MIN_CHANGED)
     {
       for (x = 0 ; x < width ; x++)
@@ -4009,7 +4016,7 @@ static double
 gcaVoxelGibbsLogLikelihood(GCA *gca, MRI *mri_labels, MRI *mri_inputs, int x, 
                       int y, int z, LTA *lta, double gibbs_coef)
 {
-  double    log_likelihood, dist, nbr_prior ;
+  double    log_likelihood/*, dist*/, nbr_prior ;
   int       xn, yn, zn, xnbr, ynbr, znbr, nbr_label, label, val,
             i,j, n;
   GCA_NODE *gcan ;
@@ -4034,9 +4041,14 @@ gcaVoxelGibbsLogLikelihood(GCA *gca, MRI *mri_labels, MRI *mri_inputs, int x,
   gc = &gcan->gcs[n] ;
   
   /* compute 1-d Mahalanobis distance */
+#if 0
   dist = (val-gc->mean) ;
   log_likelihood = 
     -log(sqrt(gc->var)) - .5*(dist*dist/gc->var) ;
+#else
+  log_likelihood = 
+    gcaComputeConditionalLogDensity(gc,(float)val,gcan->labels[n]);
+#endif
 
   nbr_prior = 0.0 ;
   for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
@@ -4347,12 +4359,8 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
       {
         for (x = 0 ; x < width ; x++)
         {
-          if (x == 140 && y == 79 && z == 136)
-            DiagBreak() ; /* wm should be ventricle (1482)*/
-          if (x == 140 && y == 111 && z == 139)
-            DiagBreak() ;  /* should be wm */
-          if (x == 138 && y == 103 && z == 139)
-            DiagBreak() ;  /* should be pallidum */
+          if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+            DiagBreak() ; 
           
           label = MRIvox(mri_dst, x, y, z) ;
           
@@ -4377,10 +4385,9 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                     gcan = &gca->nodes[xn][yn][zn] ;
                     label_mean = getLabelMean(gcan, label, &label_var) ;
             
-                    if (xi == 140 && yi == 79 && zi == 136)
-                      DiagBreak() ;   /* v should be wm */
-                    if (xi == 145 && yi == 130 && zi == 87)
-                      DiagBreak() ;   
+                    if (xi == Ggca_x && yi == Ggca_y && zi == Ggca_z)
+                      DiagBreak() ; 
+
                     val = MRIvox(mri_inputs, xi, yi, zi) ;
                     dist = val - label_mean ;
                     if (!FZERO(label_var))
@@ -4405,6 +4412,15 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                     }
                     if (pv > 5*plabel)
                     {
+                      if (xi == Ggca_x && yi == Ggca_y && zi == Ggca_z)
+                      {
+                        int olabel = MRIvox(mri_tmp, xi, yi, zi) ;
+
+                        printf("voxel (%d, %d, %d) changed from %s (%d)"
+                               "to %s (%d)\n", xi, yi, zi,
+                               cma_label_to_name(olabel), olabel,
+                               cma_label_to_name(target_label), target_label);
+                      }
                       if (xi == 140 && yi == 79 && zi == 136)
                         DiagBreak() ;   /* v should be wm */
                       nchanged++ ;
@@ -4538,8 +4554,14 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
             {
               if (wdist < ldist)
               {
-                if (x == 140 && y == 79 && z == 136)
-                  DiagBreak() ;   /* v should be wm */
+                if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+                {
+                  int olabel = MRIvox(mri_tmp, x, y, z) ;
+                  printf("voxel (%d, %d, %d) changed from %s (%d)"
+                         "to %s (%d)\n", x, y, z,
+                         cma_label_to_name(olabel), olabel,
+                         cma_label_to_name(wm_nbr), wm_nbr);
+                }
                 nchanged++ ;
                 MRIvox(mri_tmp, x, y, z) = wm_nbr ;
               }
@@ -4548,8 +4570,15 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
             {
               if (gdist < ldist)
               {
-                if (x == 140 && y == 79 && z == 136)
-                  DiagBreak() ;   /* v should be wm */
+                if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+                {
+                  int olabel = MRIvox(mri_tmp, x, y, z) ;
+                  printf("voxel (%d, %d, %d) changed from %s (%d)"
+                         "to %s (%d)\n", x, y, z,
+                         cma_label_to_name(olabel), olabel,
+                         cma_label_to_name(gray_nbr), gray_nbr);
+                }
+
                 nchanged++ ;
                 MRIvox(mri_tmp, x, y, z) = gray_nbr ;
               }
@@ -6485,4 +6514,55 @@ gcaCheck(GCA *gca)
     }
   }
   return(ret) ;
+}
+static double
+gcaComputeConditionalDensity(GC1D *gc, float val, int label)
+{
+  double  p, dist ;
+
+  /* compute 1-d Mahalanobis distance */
+  if (label == Unknown)  /* uniform distribution */
+  {
+    p = 1.0/256.0f ;
+  }
+  else   /* Gaussian distribution */
+  {
+    dist = (val-gc->mean) ;
+    if (FZERO(gc->var))  /* make it a delta function */
+    {
+      if (FZERO(dist))
+        p = 1.0 ;
+      else
+        p = 0.0 ;
+    }
+    else
+      p = 1 / sqrt(gc->var * 2 * M_PI) * exp(-dist*dist/gc->var) ;
+  }
+  return(p) ;
+}
+
+static double
+gcaComputeConditionalLogDensity(GC1D *gc, float val, int label)
+{
+  double  log_p, dist ;
+
+  /* compute 1-d Mahalanobis distance */
+  if (label == Unknown)  /* uniform distribution */
+  {
+    log_p = log(1.0/256.0f) ;
+  }
+  else   /* Gaussian distribution */
+  {
+    dist = (val-gc->mean) ;
+    if (FZERO(gc->var))  /* make it a delta function */
+    {
+      if (FZERO(dist))
+        log_p = 0.0 ;
+      else
+        log_p = BIG_AND_NEGATIVE ;
+    }
+    else
+      log_p = -log(sqrt(gc->var)) - .5*(dist*dist/gc->var) ;
+  }
+  return(log_p) ;
 }
