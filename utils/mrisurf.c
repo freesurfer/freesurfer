@@ -59,7 +59,9 @@
 #define MAX_NEG_AREA_PCT    0.005f
 
 #define MRIS_BINARY_FILE    0
-#define MRIS_ASCII_FILE     1
+/* this definition should come from mrisurf.h 
+ * #define MRIS_ASCII_FILE     1
+*/
 #define MRIS_GEO_FILE       2    /* movie.byu format */
 
 static double NEG_AREA_K=20.0 ; /* was 200 */
