@@ -40,8 +40,12 @@
 #define MAX_NBHD_SIZE       200
 #define MAX_NEG_AREA_PCT    0.1f
 
+#define MRIS_BINARY_FILE    0
+#define MRIS_ASCII_FILE     1
+
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
+static int   mrisFileNameType(char *fname) ;
 static int   mrisComputeNormals(MRI_SURFACE *mris) ;
 static int   mrisFindNeighbors(MRI_SURFACE *mris) ;
 static int   mrisRemoveRipped(MRI_SURFACE *mris) ;
@@ -365,9 +369,13 @@ MRISread(char *fname)
 int
 MRISwrite(MRI_SURFACE *mris, char *fname)
 {
-  int k,n;
+  int   k,n, type ;
   float x,y,z;
-  FILE *fp;
+  FILE  *fp;
+
+  type = mrisFileNameType(fname) ;
+  if (type == MRIS_ASCII_FILE)
+    return(MRISwriteAscii(mris, fname)) ;
 
   fp = fopen(fname,"w");
   if (fp==NULL) 
@@ -2471,19 +2479,19 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
            (++passno < max_passes)
            ) ;
 
-  /* remove most of remaining negative vertices */
+#if 0
   fprintf(stderr, "initial optimization complete - settling to equilibrium...\n") ;
   parms->niterations = 1000 ;
   mrisIntegrationEpoch(mris, parms, parms->n_averages = 0) ; 
-
-  parms->l_area = 1.0f ;
-  parms->l_dist = 0.01f ;  /* was 0.001 */
-  parms->l_angle = ANGLE_AREA_SCALE * parms->l_area ;
-  parms->niterations = niter ;
+#endif
 
   /* finally, remove all the small holes */
+  parms->l_area = 1.0f ;
+  parms->l_dist = 0.1f ;  /* was 0.001 */
+  parms->l_angle = ANGLE_AREA_SCALE * parms->l_area ;
+  parms->niterations = niter ;
   fprintf(stderr, "removing remaining folds...\n") ;
-  mrisRemoveNegativeArea(mris, parms, base_averages, MAX_NEG_AREA_PCT/4.0f, 4) ;
+  mrisRemoveNegativeArea(mris, parms, base_averages, MAX_NEG_AREA_PCT/4.0f, 4);
 
   pct_error = MRISpercentDistanceError(mris) ;
   if (Gdiag & DIAG_SHOW)
@@ -2635,21 +2643,22 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   } while (!FZERO(ending_sse) && 
            (((starting_sse-ending_sse)/starting_sse) > parms->tol)) ;
 
-  /* remove most of remaining negative vertices */
+#if 0
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, 
             "initial unfolding complete - settling to equilibrium...\n") ;
   parms->niterations = 1000 ;  /* let it go all the way to equilibrium */
   mrisIntegrationEpoch(mris, parms, parms->n_averages = 0) ; 
+#endif
+
+  /* finally, remove all the small holes */
   parms->l_area = 1.0f ;
   parms->l_dist = 0.001f ;
   parms->l_angle = ANGLE_AREA_SCALE * area_scoefs[0] ;
   parms->niterations = niter ;
-
-  /* finally, remove all the small holes */
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "removing remaining folds...\n") ;
-  mrisRemoveNegativeArea(mris, parms, base_averages, MAX_NEG_AREA_PCT/4.0f, 4) ;
+  mrisRemoveNegativeArea(mris, parms, base_averages, MAX_NEG_AREA_PCT/4.0f, 4);
   if (Gdiag & DIAG_SHOW)
     mrisLogStatus(mris, parms, stderr, 0) ;
   if (Gdiag & DIAG_WRITE)
@@ -2684,12 +2693,12 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   if (pct_neg <= min_area_pct)
     return(0) ;   /* no steps */
 
-  parms->l_dist = 0.0001f ; parms->l_area = 1.0f ;
+  parms->l_dist = 0.1f ; parms->l_area = 1.0f ;
   if (Gdiag & DIAG_SHOW)
   {
     float ratio = (float)parms->l_area / (float)parms->l_dist ;
     
-    fprintf(stderr, "area/dist = %2.3f\n", ratio) ;
+    fprintf(stderr, "area/dist = %2.3f - removing negative area\n", ratio) ;
     if (Gdiag & DIAG_WRITE)
       fprintf(parms->fp, "area/dist = %2.3f\n", ratio) ;
   }
@@ -5084,9 +5093,13 @@ mrisRipFaces(MRI_SURFACE *mris)
 int
 MRISwritePatch(MRI_SURFACE *mris, char *fname)
 {
-  int    k,i,npts;
+  int    k,i,npts, type ;
   float  x,y,z;
   FILE   *fp;
+
+  type = mrisFileNameType(fname) ;
+  if (type == MRIS_ASCII_FILE)
+    return(MRISwritePatchAscii(mris, fname)) ;
 
   npts = 0;
   for (k=0;k<mris->nvertices;k++)
@@ -8216,7 +8229,6 @@ MRISrestoreVertexPositions(MRI_SURFACE *mris, int which)
   }
   return(NO_ERROR) ;
 }
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -8252,4 +8264,123 @@ MRISpercentDistanceError(MRI_SURFACE *mris)
   }
   pct /= (double)nvertices ;
   return(100.0*pct) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int   
+mrisFileNameType(char *fname)
+{
+  int   type ;
+  char  *dot, ext[100] ;
+
+  ext[0] = 0 ;
+  dot = strrchr(fname, '@') ;   /* forces the type of the file */
+  if (dot)
+  {
+    *dot = 0 ;   /* remove it from file name so that fopen will work */
+    strcpy(ext, dot+1) ;
+  }
+  else     /* no explicit type - check extension */
+  {
+    dot = strrchr(fname, '.') ;
+    if (dot)
+      strcpy(ext, dot+1) ;
+  }
+  StrUpper(ext) ;
+  if (!strcmp(ext, "ASC"))
+    type = MRIS_ASCII_FILE ;
+  else
+    type = MRIS_BINARY_FILE ;
+
+  return(type) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISwriteAscii(MRI_SURFACE *mris, char *fname)
+{
+  int     vno, fno, n ;
+  VERTEX  *v ;
+  FACE    *face ;
+  FILE    *fp ;
+
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorReturn(ERROR_NOFILE, 
+              (ERROR_NOFILE, "MRISwriteAscii: could not open file %s",fname));
+                 
+  fprintf(fp, "#!ascii version of %s\n", mris->fname) ;
+  fprintf(fp, "%d %d\n", mris->nvertices, mris->nfaces) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    fprintf(fp, "%f  %f  %f\n", v->x, v->y, v->z) ;
+  }
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      fprintf(fp, "%d ", face->v[n]) ;
+    fprintf(fp, "\n") ;
+  }
+
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
+{
+  FILE    *fp ;
+  int     vno, fno, n ;
+  VERTEX  *v ;
+  FACE    *face ;
+
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorReturn(ERROR_NOFILE, 
+                (ERROR_NOFILE, "MRISwritePatchAscii: could not open file %s",
+                 fname));
+                 
+  fprintf(fp, "#!ascii version of patch %s\n", mris->fname) ;
+  fprintf(fp, "%d %d\n", mris->nvertices, mris->nfaces) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    fprintf(fp, "%d\n", vno) ;
+    fprintf(fp, "%f  %f  %f\n", v->x, v->y, v->z) ;
+  }
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    if (face->ripflag)
+      continue ;
+    fprintf(fp, "%d\n", fno) ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      fprintf(fp, "%d ", face->v[n]) ;
+    fprintf(fp, "\n") ;
+  }
+
+  fclose(fp) ;
+  return(NO_ERROR) ;
 }
