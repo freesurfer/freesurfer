@@ -21,6 +21,7 @@
 
 #include "window.h"
 #include "error.h"
+#include "proto.h"
 #include "xwin.h"
 #include "image.h"
 #include "xvutil.h"
@@ -65,7 +66,6 @@ static DIAG_WINDOW window_table[MAX_WINDOWS] ;
 static DIAG_WINDOW *HandleToPtr(int iWin) ;
 static void  event_handler(Event *event, DIMAGE *dimage) ;
 
-static int ncolors = 0 ;
 /*------------------------------------------------------------------------
                             STATIC PROTOTYPES
 ------------------------------------------------------------------------*/
@@ -160,6 +160,7 @@ WinClear(int iWin)
   
   /* this will clear the whole window from x, y down and to the right */
   XClearArea(pwin->xvf->display, pwin->xwin->window, 0, 0, 0, 0, False) ;
+  return(0) ;
 }
 /*------------------------------------------------------------------------
        Parameters:
@@ -360,6 +361,7 @@ WinDrawLine(int iWin, int x0, int y0, int x1, int y1, int color, int style)
   y0 = pwin->xwin->ysize - y0 ;
   y1 = pwin->xwin->ysize - y1 ;
   xDrawLine(pwin->xwin, x0, y0, x1, y1, color, style) ;
+  return(0) ;
 }
 /*------------------------------------------------------------------------
        Parameters:
@@ -377,7 +379,6 @@ WinPrintf(int iWin, int x, int y, char *fmt, ...)
   va_list args ;
   char    str[MAX_STRING] ;
   int     len ;
-  GC      gc ;
   DIAG_WINDOW  *pwin ;
 
   va_start(args, fmt) ;
@@ -425,6 +426,7 @@ WinDrawCircle(int iWin, int x0, int y0, int radius, int color)
   /* AHH! what coordinate system to use? */
 /*  y0 = pwin->xwin->ysize - y0 ;*/
   xDrawCircle(pwin->xwin, x0, y0, radius, color) ;
+  return(0) ;
 }
 /*------------------------------------------------------------------------
        Parameters:
@@ -444,6 +446,7 @@ WinSetScale(int iWin, double dXscale, double dYscale)
 
   pwin->dXscale = dXscale ;
   pwin->dYscale = dYscale ;
+  return(0) ;
 }
 /*------------------------------------------------------------------------
        Parameters:
@@ -462,6 +465,7 @@ WinGetScale(int iWin, double *pdXscale, double *pdYscale)
   pwin = HandleToPtr(iWin) ;
   *pdXscale = pwin->dXscale ;
   *pdYscale = pwin->dYscale ;
+  return(0) ;
 }
 /*------------------------------------------------------------------------
        Parameters:
@@ -482,6 +486,7 @@ WinSetRange(int iWin, double dXmin, double dXmax, double dYmin, double dYmax)
   pwin->dXmax = dXmax ;
   pwin->dYmin = dYmin ;
   pwin->dYmax = dYmax ;
+  return(0) ;
 }
 /*------------------------------------------------------------------------
        Parameters:
@@ -503,6 +508,7 @@ WinGetRange(int iWin, double *pdXmin, double *pdXmax, double *pdYmin,
   *pdXmax = pwin->dXmax ;
   *pdYmin = pwin->dYmin ;
   *pdYmax = pwin->dYmax ;
+  return(0) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
