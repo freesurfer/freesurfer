@@ -1,5 +1,5 @@
 % fast_isxavg_re_abb_sess.m
-% $Id: fast_isxavg_re_abb_sess.m,v 1.2 2003/08/05 22:28:42 greve Exp $
+% $Id: fast_isxavg_re_abb_sess.m,v 1.3 2003/08/06 18:32:14 greve Exp $
 
 % These variable must be set first
 %SessList = splitstring('$SessList');
@@ -109,7 +109,7 @@ for nthhemi = 1:nhemi
      if(c == 3)
        %[m i] = max(abs(ces));
        %ind = sub2ind(size(ces),i,1:nrows*ncols);
-       sig = -sign(ces(1,:)).*log10(abs(Fsig)); % dont try to adjust sign
+       sig = -sign(ces(2,:)).*log10(abs(Fsig)); % give sign of sin
      else
        sig = -sign(ces).*log10(abs(Fsig));
      end
