@@ -36,6 +36,7 @@ typedef enum {
   FunV_tErr_InvalidDisplayFlag,
   FunV_tErr_WrongNumberArgs,
   FunV_tErr_ErrorAccessingAnatomicalVolume,
+  FunV_tErr_CouldntLoadBrainMask,
   FunV_tErr_InvalidErrorCode,
   FunV_tErr_knNumErrorCodes
 } FunV_tErr;
@@ -236,6 +237,9 @@ FunV_tErr FunV_SetThreshold        ( tkmFunctionalVolumeRef this,
 				     FunV_tFunctionalValue  iMin,  
 				     FunV_tFunctionalValue  iMid,     
 				     FunV_tFunctionalValue  iSlope ); 
+FunV_tErr FunV_SetThresholdUsingFDR( tkmFunctionalVolumeRef this,
+				     float                  iRate,  
+				     tBoolean               ibMaskToBrain );
 FunV_tErr FunV_SetDisplayFlag      ( tkmFunctionalVolumeRef this,
 				     FunV_tDisplayFlag      iFlag,
 				     tBoolean               iNewValue );

@@ -3,6 +3,8 @@
 #include <math.h>
 #include "mri_transform.h"
 #include "xUtilities.h"
+#include "mri.h"
+#include "error.h"
 
 /* about the script */
 #define ksEnvVariable_UseLocalDirectoryForScript "DONT_USE_LOCAL_TKMFUNCTIONAL_TCL"
@@ -32,7 +34,7 @@ char *FunV_ksaErrorString [FunV_tErr_knNumErrorCodes] = {
   "Trying to draw graph when window is not inited.",
   "Couldn't find tcl/tk script file for graph.",
   "Couldn't load tcl/tk script file for graph.",
-  "Invalid pointer to function volume (was probably NULL).",
+  "Invlid pointer to function volume (was probably NULL).",
   "Invalid signature in function volume (memory probably trashed).",
   "Invalid parameter.",
   "Invalid time point.",
@@ -41,6 +43,8 @@ char *FunV_ksaErrorString [FunV_tErr_knNumErrorCodes] = {
   "Invalid threshold, min must be less than mid.",
   "Invalid display flag.",
   "Wrong number of arguments.",
+  "Error accessing anatomical volume.",
+  "Couldn't load brain volume to use ask mask.",
   "Invalid error code."
 };
 
@@ -1358,12 +1362,88 @@ FunV_tErr FunV_SetThreshold ( tkmFunctionalVolumeRef this,
   
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint( ("Error %d in FunV_SetCondition: %s\n",
+    DebugPrint( ("Error %d in FunV_SetThreshold: %s\n",
 		 eResult, FunV_GetErrorString(eResult) ) );
   }
   
  cleanup:
   
+  return eResult;
+}
+
+FunV_tErr FunV_SetThresholdUsingFDR ( tkmFunctionalVolumeRef this,
+				      float                  iRate,  
+				      tBoolean               ibMaskToBrain ) {
+  
+  FunV_tErr  eResult   = FunV_tErr_NoError;
+  FunD_tErr  eFunD     = FunD_tErr_NoError;
+  int        nSignFlag = 0;
+  float      newMin    = 0;
+  char       fnBrainVol[1024] = "";
+  MRI*       pMaskVol  = NULL;
+
+  DebugEnterFunction( ("FunV_SetThresholdUsingFDR( this=%p, iRate=%f, "
+		       "ibMaskToBrain=%d)", this, iRate, ibMaskToBrain) );
+
+  /* verify us */
+  DebugNote( ("Verifying this") );
+  eResult = FunV_Verify( this );
+  DebugAssertThrow( (FunV_tErr_NoError == eResult) );
+  
+  /* verify the rate */
+  DebugAssertThrowX( (iRate > 0 && iRate < 1), 
+		     eResult, tkm_tErr_InvalidParameter );
+
+  /* Load up the brain volume and pass that in as the mask. We can
+     pass this in 'client' space (our space) as mriFunctionalData will
+     take care of converting it properly. */
+  if( ibMaskToBrain ) {
+    DebugNote( ("Making filename for mask volume") );
+    tkm_MakeFileName( "brain", tkm_tFileName_Volume, 
+		      fnBrainVol, sizeof(fnBrainVol) );
+
+    DebugNote( ("Reading brain volume from %s", fnBrainVol) );
+    pMaskVol = MRIread( fnBrainVol );
+    DebugAssertThrowX( (NULL != pMaskVol), 
+		       eResult, FunV_tErr_CouldntLoadBrainMask );
+  }
+
+  /* Determine a sign. */
+  if( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_TruncateNegative] ) {
+    nSignFlag = 1;
+  }
+  if( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_TruncatePositive] ) {
+    nSignFlag = -1;
+  }
+  if( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_ReversePhase] ) {
+    nSignFlag = -nSignFlag;
+  }
+
+  /* Calc the FDR. */
+  DebugNote( ("Calcing FDR") );
+  eFunD = FunD_CalcFDRThreshold( this->mpOverlayVolume,
+				 this->mnCondition, this->mnTimePoint,
+				 nSignFlag, iRate, pMaskVol,
+				 &newMin );
+  DebugAssertThrowX( (FunD_tErr_NoError == eFunD), 
+		     eResult, FunV_tErr_ErrorAccessingInternalVolume );
+
+  /* Set threshold based on return value. */
+  DebugNote( ("Setting threshold") );
+  eResult = FunV_SetThreshold( this, newMin, newMin + 1.5, 0.66 );
+  DebugAssertThrow( FunV_tErr_NoError == eResult );
+
+  DebugCatch;
+  DebugCatchError( eResult, FunV_tErr_NoError, FunV_GetErrorString );
+  EndDebugCatch;
+
+  if( NULL != pMaskVol ) {
+    DebugNote( ("Freeing mask vol") );
+    MRIfree( &pMaskVol );
+  }
+  
+  DebugExitFunction;
+
   return eResult;
 }
 
@@ -1677,7 +1757,7 @@ FunV_tErr FunV_ApplyTransformToOverlay ( tkmFunctionalVolumeRef this,
   /* apply the transform */
   eVolume = FunD_ApplyTransformToRegistration( this->mpOverlayVolume, 
 					       iTransform );
-  if( FunV_tErr_NoError != eVolume ) {
+  if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
   }
@@ -3908,6 +3988,64 @@ int FunV_TclOlSetThreshold ( ClientData iClientData,
   return eTclResult;
 }
 
+int FunV_TclOlSetThresholdUsingFDR ( ClientData iClientData, 
+				     Tcl_Interp *ipInterp, 
+				     int argc, char *argv[] ){
+  
+  tkmFunctionalVolumeRef this         = NULL;
+  FunV_tErr              eResult      = FunV_tErr_NoError;
+  FunV_tFunctionalValue  rate         = 0;
+  tBoolean               bMask        = FALSE;
+  int                    eTclResult   = TCL_OK;
+  char                   sError[256]  = "";       
+
+  /* grab us from the client data ptr */
+  this = (tkmFunctionalVolumeRef) iClientData;
+  
+  /* verify us. */
+  eResult = FunV_Verify ( this );
+  if ( FunV_tErr_NoError != eResult )
+    goto error;
+  
+  /* verify the number of arguments. */
+  if ( argc != 3 ) {
+    eResult = FunV_tErr_WrongNumberArgs;
+    goto error;
+  }
+  
+  /* parse args */
+  rate   = (FunV_tFunctionalValue) atof( argv[1] );
+  bMask  = (tBoolean) atoi( argv[2] );
+  
+  /* call functio */
+  eResult = FunV_SetThresholdUsingFDR( this, rate, bMask );
+  if( FunV_tErr_NoError != eResult )
+    goto error;
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message if debugging is enabled. otherwise, the user got
+     their error message already. */
+  if ( IsDebugging && FunV_tErr_NoError != eResult ) {
+    
+    sprintf ( sError, "Error %d in FunV_TclOlSetThresholdUsingFDR: %s\n",
+	      eResult, FunV_GetErrorString(eResult) );
+    
+    DebugPrint( (sError ) );
+    
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    
+    eTclResult = TCL_ERROR;
+  }
+  
+ cleanup:
+  
+  return eTclResult;
+}
+
 int FunV_TclOlSetSampleType ( ClientData iClientData, 
 			      Tcl_Interp *ipInterp, int argc, char *argv[] ){
   
@@ -4458,6 +4596,9 @@ FunV_tErr FunV_RegisterTclCommands ( tkmFunctionalVolumeRef this,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "Overlay_SetThreshold",
 		     (Tcl_CmdProc*) FunV_TclOlSetThreshold,
+		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
+  Tcl_CreateCommand( pInterp, "Overlay_SetThresholdUsingFDR",
+		     (Tcl_CmdProc*) FunV_TclOlSetThresholdUsingFDR,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "Overlay_SetVolumeSampleType",
 		     (Tcl_CmdProc*) FunV_TclOlSetSampleType,
