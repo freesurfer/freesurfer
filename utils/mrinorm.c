@@ -38,7 +38,6 @@
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
 
-static int mriNormAddFileControlPoints(MRI *mri_ctrl, int value) ;
 static MRI *mriSplineNormalizeShort(MRI *mri_src,MRI *mri_dst, 
                                     MRI **pmri_field, float *inputs,
                                     float *outputs, int npoints) ;
@@ -1050,7 +1049,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
   mriRemoveOutliers(mri_ctrl, 2) ;
 
 #if 1
-  nctrl += mriNormAddFileControlPoints(mri_ctrl, 255) ;
+  nctrl += MRInormAddFileControlPoints(mri_ctrl, 255) ;
 #else
   /* read in control points from a file (if specified) */
   for (i = 0 ; i < num_control_points ; i++)
@@ -1418,7 +1417,7 @@ MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
   mriRemoveOutliers(mri_ctrl, 2) ;
 
 #if 1
-  nctrl += mriNormAddFileControlPoints(mri_ctrl, 255) ;
+  nctrl += MRInormAddFileControlPoints(mri_ctrl, 255) ;
 #else
   /* read in control points from a file (if specified) */
   for (i = 0 ; i < num_control_points ; i++)
@@ -1515,7 +1514,7 @@ MRI3dNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
       int nctrl ;
 
       mri_ctrl = MRIclone(mri_src, NULL) ;
-      nctrl = mriNormAddFileControlPoints(mri_ctrl, 255) ;
+      nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
       fprintf(stderr, "only using %d control points from file...\n", nctrl) ;
     }
       
@@ -1609,7 +1608,7 @@ MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
       int nctrl ;
 
       mri_ctrl = MRIclone(mri_src, NULL) ;
-      nctrl = mriNormAddFileControlPoints(mri_ctrl, 255) ;
+      nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
       fprintf(stderr, "only using %d control points from file...\n", nctrl) ;
     }
       
@@ -2346,7 +2345,8 @@ mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i,
           *pxi, *pyi, *pzi ;
   BUFTYPE *pctrl, ctrl ;
-  short   *ptmp, mean ;
+  short   *ptmp ;
+  int     mean ;
   MRI     *mri_tmp ;
 
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
@@ -2387,7 +2387,7 @@ mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
               for (xk = -1 ; xk <= 1 ; xk++)
               {
                 xi = pxi[x+xk] ;
-                mean += MRISvox(mri_dst, xi, yi, zi) ;
+                mean += (int)MRISvox(mri_dst, xi, yi, zi) ;
               }
             }
           }
@@ -2722,8 +2722,8 @@ MRI3dWriteBias(char *t_bias_volume_fname)
   return(NO_ERROR) ;
 }
 
-static int
-mriNormAddFileControlPoints(MRI *mri_ctrl, int value)
+int
+MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
 {
   int  i, nctrl ;
 
