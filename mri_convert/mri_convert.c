@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: ebeth $
-// Revision Date  : $Date: 2003/07/07 19:34:35 $
-// Revision       : $Revision: 1.55 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/08/20 15:52:34 $
+// Revision       : $Revision: 1.56 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
   conform_size = 1.0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.55 2003/07/07 19:34:35 ebeth Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.56 2003/08/20 15:52:34 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1189,7 +1189,8 @@ int main(int argc, char *argv[])
   j_dot_k = mri->y_r * mri->z_r + mri->y_a * mri->z_a + mri->y_s * mri->z_s;
   if(fabs(i_dot_j) > CLOSE_ENOUGH || fabs(i_dot_k) > CLOSE_ENOUGH || fabs(i_dot_k) > CLOSE_ENOUGH)
   {
-    printf("warning: input volume axes are not orthogonal\n");
+    printf("warning: input volume axes are not orthogonal:i_dot_j = %.6f, i_dot_k = %.6f, j_dot_k = %.6f\n",
+	   i_dot_j, i_dot_k, j_dot_k);
   }
   printf("i_ras = (%g, %g, %g)\n", mri->x_r, mri->x_a, mri->x_s);
   printf("j_ras = (%g, %g, %g)\n", mri->y_r, mri->y_a, mri->y_s);
@@ -1442,7 +1443,7 @@ int main(int argc, char *argv[])
     fov_x = template->xsize * template->width;
     fov_y = template->ysize * template->height;
     fov_z = template->zsize * template->depth;
-
+sh
     template->xend = fov_x / 2.0;
     template->xstart = -template->xend;
     template->yend = fov_y / 2.0;
@@ -1458,9 +1459,10 @@ int main(int argc, char *argv[])
   i_dot_j = template->x_r * template->y_r + template->x_a * template->y_a + template->x_s * template->y_s;
   i_dot_k = template->x_r * template->z_r + template->x_a * template->z_a + template->x_s * template->z_s;
   j_dot_k = template->y_r * template->z_r + template->y_a * template->z_a + template->y_s * template->z_s;
-  if(i_dot_j != 0.0 || i_dot_k != 0.0 || i_dot_k != 0.0)
+  if(fabs(i_dot_j) > CLOSE_ENOUGH || fabs(i_dot_k) > CLOSE_ENOUGH || fabs(i_dot_k) > CLOSE_ENOUGH)
   {
-    printf("warning: output volume axes are not orthogonal\n");
+    printf("warning: output volume axes are not orthogonal:i_dot_j = %.6f, i_dot_k = %.6f, j_dot_k = %.6f\n",
+	   i_dot_j, i_dot_k, j_dot_k);
     printf("i_ras = (%g, %g, %g)\n", template->x_r, template->x_a, template->x_s);
     printf("j_ras = (%g, %g, %g)\n", template->y_r, template->y_a, template->y_s);
     printf("k_ras = (%g, %g, %g)\n", template->z_r, template->z_a, template->z_s);
