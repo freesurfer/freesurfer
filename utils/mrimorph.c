@@ -6707,11 +6707,16 @@ mriOrthonormalizeTransform(MATRIX *m_L)
 static MRI *g_mri_in, *g_mri_ref ;
 static MP *g_parms ;
 extern void (*user_call_func)(float []) ;
+#if 0
 static void computeRigidAlignmentErrorFunctionalAndGradient(int index, 
                                                             float *p,
                                                             float *yret,
                                                             float *dydp, 
                                                             int nparms);
+static int mriLevenbergMarquardtLinearAlignPyramidLevel(MRI *mri_in, 
+                                                        MRI *mri_ref,
+                                                        MP *parms);
+#endif
 
 #if 0
 static void integration_step(float *p) ;
@@ -7002,6 +7007,7 @@ computeRigidAlignmentErrorFunctional(float *p)
   /*  fprintf(stderr, "%03d: rms = %2.3f\n", ncalls++, (float)sse) ;*/
   return((float)sse) ;   /* rms */
 }
+#if 0
 #define NPARMS 16
 static int
 mriLevenbergMarquardtLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref,
@@ -7154,3 +7160,4 @@ computeRigidAlignmentErrorFunctionalAndGradient(int index, float *p,
 
 }
                                                 
+#endif
