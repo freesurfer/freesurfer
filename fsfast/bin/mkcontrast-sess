@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # stxgrinder-sess
 #
-set VERSION = '$Id: mkcontrast-sess,v 1.2 2004/02/20 17:59:50 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.3 2004/10/19 21:50:21 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -21,6 +21,7 @@ set deltarange = ();
 set taurange   = (1.25 1.25);
 set sumconds = (-sumconds);
 set rmprestim = ();
+set CNorm = 1;
 
 set PrintHelp = 0;
 
@@ -140,6 +141,7 @@ if($nircorr != 0) then
 else
   set cmd = ($cmd -wdelay $wdelay )
 endif
+if($CNorm == 0) set cmd = ($cmd -nocnorm);
 
 ## Prepare the script, if need be ##
 if($ScriptOnly) then
@@ -210,6 +212,7 @@ while( $#argv != 0 )
       foreach tmp ($wcond)
         shift;
       end
+      set CNorm = 0; # keep condition weights, dont norm
       breaksw
 
     case "-nosumconds":
@@ -264,6 +267,10 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set analname = $argv[1]; shift;
       breaksw
+
+    case "-nocnorm":
+      set CNorm = 0;
+      breaksw;
 
     case "-ssd":
     case "-fsd":
@@ -392,6 +399,8 @@ usage_exit:
   echo "   -analysis analysisname : name of session-level functional analysis";
   echo "   -a a1 <-a a2> ... : positive contrast conditions"
   echo "   -c c1 <-c c2> ... : negative contrast conditions"
+  echo "   -ncond Nconditinos: specify number of conditions (needed with -wcond)"
+  echo "   -wcond w1 w2 ...  : set weights for each condition (needs -ncond)"
   echo "   -setwdelay        : prompt for setting of delay weights "
   echo "   -sumdelays        : sum weighted delays"
   echo "   -rmprestim        : subtract prestimulus baseline"
@@ -441,6 +450,15 @@ c1, c2, etc, are the condition numbers as found in the paradigm
 file. The -a conditions will be weighted positively. The -c conditions
 will be weighted negatively. Eg, -a 2 -c 1 -c 3 will weight conditions
 1 and 3 by -0.5 and condition 2 by +1.
+
+-ncond Nconditions
+-wcond w1 w2 w3 ...
+
+These two flags allow the user to specify weights for each condition.
+-ncond indicates the number non-null conditions. The weights for each
+condition can then be set with -wcond. This overrides the -a and -c
+flags. Eg: -ncond 3 -wcond 0.5 0.5
+
 
 -setwdelay
 

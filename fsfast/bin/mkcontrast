@@ -5,7 +5,7 @@
 ############################################################
 
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set MKCONTRAST_VER = '$Id: mkcontrast,v 1.2 2003/03/20 20:46:48 greve Exp $';
+set MKCONTRAST_VER = '$Id: mkcontrast,v 1.3 2004/10/19 21:50:21 greve Exp $';
 
 set CorrIdeal = 0;
 set monly = 0;
@@ -26,6 +26,7 @@ set datfile = ();
 set wpsa = (); # weights for pre-stim avg
 set RmPreStim = 0;
 set sxadat = ();
+set CNorm = 1;
 
 set nircorr = 0;
 set rdelta = ();
@@ -130,6 +131,7 @@ $TARGET <<EOF
   rdelta    = [$rdelta];
   rtau      = [$rtau];
   ndelays   = [$ndelays];
+  CNorm     = [$CNorm];
 
   if(isempty(WCond))
     WCond = ones(1,NCond);
@@ -141,9 +143,8 @@ $TARGET <<EOF
 
   if(nircorr == 0)
     % ---- Do not correlate with assumed response ----- %
-    % ContrastMtx_0 = fmri_mrestriction2(WCond,WDelay,sumconds,sumdelays);
     ContrastMtx_0 = fast_contrastmtx(TER,TimeWindow,TPreStim,...
-        NCond,sumconds,WCond,sumdelays,WDelay,RmPreStim);
+        NCond,sumconds,WCond,sumdelays,WDelay,RmPreStim,CNorm);
   else
     % ---- Correlate with assumed response ------- %
     if(nircorr == 1)
@@ -330,6 +331,10 @@ while( $#argv != 0 )
     case "-showcmtx":
     case "-show":
       set ShowCMtx = 1;
+      breaksw;
+
+    case "-nocnorm":
+      set CNorm = 0;
       breaksw;
 
     case "-monly":

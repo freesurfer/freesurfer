@@ -1,7 +1,7 @@
-function R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,SumDelays,WDelays,RmPrestim)
+function R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,SumDelays,WDelays,RmPrestim,CNorm)
 % 
 % R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,
-%                      SumDelays,WDelays,RmPrestim)
+%                      SumDelays,WDelays,RmPrestim,CNorm)
 %
 % SumConds = 1, forces Conditions to be weighted by WConds and summed.
 %
@@ -17,11 +17,13 @@ function R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,SumDelays,WDelay
 % RmPrestim = 1 subtract prestimulus average; will replace
 %   the prestim components of WDelays.
 %
+% CNorm = 1: set weights such that each row sums to 0
+%         0: do not change from the original
 
 R = [];
 
-if(nargin ~= 9)
-  fprintf('USAGE: R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,SumDelays,WDelays,RmPrestim)');
+if(nargin ~= 10)
+  fprintf('USAGE: R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,SumDelays,WDelays,RmPrestim,CNorm)');
   return;
 end
 
@@ -56,22 +58,26 @@ for nthCond = 1:nConds
   end
 end
 
-% Make sure that the positives of each row sum to 1
-% and that the negatives of each row sum to -1. This
-% also assures that each row sums to zero if there
-% are positives and negatives in the row.
-for nthrow = 1:size(R,1);
-  % positives %
-  ind = find(R(nthrow,:)>0);
-  if(~isempty(ind))
-    xsum = sum(R(nthrow,ind));
-    R(nthrow,ind) = R(nthrow,ind)/xsum;
-  end
-  % negatives %
-  ind = find(R(nthrow,:)<0);
-  if(~isempty(ind))
-    xsum = sum(R(nthrow,ind));
-    R(nthrow,ind) = R(nthrow,ind)/abs(xsum);
+
+if(CNorm==1)
+  % Make sure that the positives of each row sum to 1
+  % and that the negatives of each row sum to -1. This
+  % also assures that each row sums to zero if there
+  % are positives and negatives in the row.
+  fprintf('Normalizing contrast matrix\n');
+  for nthrow = 1:size(R,1);
+    % positives %
+    ind = find(R(nthrow,:)>0);
+    if(~isempty(ind))
+      xsum = sum(R(nthrow,ind));
+      R(nthrow,ind) = R(nthrow,ind)/xsum;
+    end
+    % negatives %
+    ind = find(R(nthrow,:)<0);
+    if(~isempty(ind))
+      xsum = sum(R(nthrow,ind));
+      R(nthrow,ind) = R(nthrow,ind)/abs(xsum);
+    end
   end
 end
 
