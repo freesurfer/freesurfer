@@ -224,6 +224,7 @@ MRI   *MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIscaleAndMultiply(MRI *mri1, float scale, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
 MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
+MRI   *MRIscalarMulFrame(MRI *mri_src, MRI *mri_dst, float scalar, int frame) ;
 
 #include "mrisegment.h"
 
