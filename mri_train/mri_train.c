@@ -9,6 +9,8 @@
 #include "macros.h"
 #include "utils.h"
 #include "proto.h"
+#include "classify.h"
+#include "gcarray.h"
 
 #define SCALE     16
 #define NINPUTS   2
@@ -16,6 +18,7 @@
 static int scale = SCALE ;
 static int ninputs = NINPUTS ;
 static int extract = 0 ;
+static int classifier = CLASSIFIER_GAUSSIAN ;
 
 char *Progname ;
 
@@ -46,8 +49,10 @@ main(int argc, char *argv[])
   training_file_name = argv[1] ;
   output_file_name = argv[2] ;
 
-  mric = MRIclassTrainAll(NULL, training_file_name, scale, ninputs) ;
-  MRIclassWrite(mric, output_file_name) ;
+  mric = MRICalloc(classifier, ninputs, NULL) ;
+  MRICtrain(mric, training_file_name) ;
+  MRICwrite(mric, output_file_name) ;
+  MRICfree(&mric) ;
   exit(0) ;
 }
 /*----------------------------------------------------------------------
@@ -80,9 +85,6 @@ get_option(int argc, char *argv[])
     if (sscanf(argv[2], "%d", &ninputs) != 1)
       ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
                 Progname, argv[2]) ;
-    if (ninputs != 2 && ninputs != 5)
-      ErrorExit(ERROR_BADPARM, "%s: # of inputs must be 2 (default) or 5",
-                Progname) ;
     nargs = 1 ;
     break ;
   case '?':
