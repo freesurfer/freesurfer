@@ -1703,10 +1703,10 @@ ImageLaplacian(IMAGE *Isrc, IMAGE *outImage)
   float   *fkpix, sum, *fopix, fival ;
 
   rows = Isrc->rows ;
-  cols = outImage->cols ;
+  cols = Isrc->cols ;
 
   if (!outImage)
-    outImage = ImageAlloc(rows, cols, 1, PFFLOAT) ;
+    outImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
 
   switch (Isrc->pixel_format)
   {
@@ -2471,3 +2471,43 @@ ImageCorrelateRegion(IMAGE *Isrc, IMAGE *Ikernel, IMAGE *Idst, int row0,
 
   return(Idst) ;
 }
+IMAGE *
+ImageLOGFilter(IMAGE *Isrc, float sigma, IMAGE *Idst)
+{
+  IMAGE  *Ig, *Itmp ;
+
+  Ig = ImageGaussian1d(sigma, 0) ;
+
+  Itmp = ImageConvolveGaussian(Isrc, Ig, NULL, 0) ;
+  Idst = ImageLaplacian(Itmp, Idst) ;
+#if 0
+ImageWrite(Itmp, "g.hipl") ;  
+ImageWrite(Idst, "l.hipl") ;  
+#endif
+  ImageFree(&Itmp) ;
+  ImageFree(&Ig) ;
+  return(Idst) ;
+}
+IMAGE *
+ImageDOGFilter(IMAGE *Isrc, float psigma, float nsigma, IMAGE *Idst)
+{
+  IMAGE  *Igp, *Ign, *Itmpp, *Itmpn ;
+
+  Igp = ImageGaussian1d(psigma, 0) ;
+  Ign = ImageGaussian1d(nsigma, 0) ;
+
+  Itmpp = ImageConvolveGaussian(Isrc, Igp, NULL, 0) ;
+  Itmpn = ImageConvolveGaussian(Isrc, Ign, NULL, 0) ;
+  Idst = ImageSubtract(Itmpp, Itmpn, Idst) ;
+#if 1
+ImageWrite(Itmpp, "gp.hipl") ;  
+ImageWrite(Itmpn, "gn.hipl") ;  
+ImageWrite(Idst, "dog.hipl") ;  
+#endif
+  ImageFree(&Itmpp) ;
+  ImageFree(&Itmpn) ;
+  ImageFree(&Igp) ;
+  ImageFree(&Ign) ;
+  return(Idst) ;
+}
+
