@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/24 23:27:34 $
-// Revision       : $Revision: 1.111 $
+// Revision Date  : $Date: 2004/03/25 14:51:34 $
+// Revision       : $Revision: 1.112 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,8 +23,6 @@
 #include "cma.h"
 #include "flash.h"
 #include "talairachex.h"
-
-int TOSADEBUG = 0;
 
 int Ggca_label = -1 ;
 int Ggca_x = -1 ;
@@ -755,17 +753,6 @@ int GCApriorToVoxelReal(GCA *gca, MRI *mri, Real xp, Real yp, Real zp,
   MATRIX *voxelFromRAS = mri->r_to_i__; // extract_r_to_i(mri);
   MATRIX *priorToVoxel = gca->tmp__;
   MatrixMultiply(voxelFromRAS, rasFromPrior, gca->tmp__);
-
-  if (TOSADEBUG)
-  {
-    printf("priorToVoxel\n");
-    printf("prior to ras \n");
-    MatrixPrint(stdout, rasFromPrior);
-    printf("ras to voxel \n");
-    MatrixPrint(stdout, voxelFromRAS);
-    printf("prior to voxel \n");
-    MatrixPrint(stdout, priorToVoxel);
-  }
 
   // TransformWithMatrix(priorToVoxel, xp, yp, zp, pxv, pyv, pzv);
   TransformWithMatrix(priorToVoxel, xp, yp, zp, pxv, pyv, pzv);
