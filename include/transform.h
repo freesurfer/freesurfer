@@ -32,9 +32,16 @@ int      LTAwrite(LTA *lta, char *fname) ;
 LTA      *LTAalloc(int nxforms, MRI *mri) ;
 int      LTAdivide(LTA *lta, MRI *mri) ;
 MRI      *LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta) ;
-MATRIX   *LTAtransformAtPoint(LTA *lta, float x, float y, float z,MATRIX *m_L);
+MATRIX   *LTAtransformAtPoint(LTA *lta, float x, float y,float z,MATRIX *m_L);
+int      LTAworldToWorld(LTA *lta, float x, float y, float z,
+                         float *px, float *py, float *pz);
+int      LTAinverseWorldToWorld(LTA *lta, float x, float y, float z,
+                         float *px, float *py, float *pz);
 VECTOR   *LTAtransformPoint(LTA *lta, VECTOR *v_X, VECTOR *v_Y) ;
+VECTOR   *LTAinverseTransformPoint(LTA *lta, VECTOR *v_X, VECTOR *v_Y) ;
 double   LTAtransformPointAndGetWtotal(LTA *lta, VECTOR *v_X, VECTOR *v_Y) ;
+MATRIX   *LTAinverseTransformAtPoint(LTA *lta, float x, float y, float z, 
+                                     MATRIX *m_L) ;
 
 #define TRANSFORM_ARRAY_TYPE    0
 #define MORPH_3D_TYPE           1
