@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # sliceview-sess
 #
-set VERSION = '$Id: sliceview-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set VERSION = '$Id: sliceview-sess,v 1.2 2003/09/17 02:08:21 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -39,6 +39,7 @@ set subject = ();
 set brainmaskthresh = 0;
 set mask = ();
 set rawstem0 = ();
+set pneg = 0;
 set UseVersion = "-v1";
 
 ## If there are no options, just print the usage ##
@@ -271,6 +272,7 @@ foreach sess ($SessList)
   set cmd = (yakview -i $underlay $hdr $sig $raw -sn $sliceid)
   set cmd = ($cmd -thmin $thmin -thmax $thmax $BaseEQFlag)
   set cmd = ($cmd -title $yvtitle $maskopt)
+  if($pneg) set cmd = ($cmd -pneg )
   if($#analysis != 0) then
    set datfile = $sess/$fsd/$analysis/h.dat;
    if(-e $datfile) set cmd = ($cmd -hdat $datfile)
@@ -504,6 +506,10 @@ while( $#argv != 0 )
     case "-imgeq":
     case "-baseeq":
       set BaseEQFlag = "-imgeq"
+      breaksw
+
+    case "-pneg":
+      set pneg = 1;
       breaksw
 
     case "-scriptonly":
