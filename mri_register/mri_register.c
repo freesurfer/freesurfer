@@ -112,6 +112,22 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
               Progname, in_fname) ;
 
+#if 1
+  if (mri_in->width > 128)
+  {
+    mri_in_reduced = MRIreduceByte(mri_in, NULL) ;
+    /*    MRIfree(&mri_in) ;*/
+  }
+  else
+    mri_in_reduced = mri_in ;
+  if (mri_ref->width > 128)
+  {
+    mri_ref_reduced = MRIreduceMeanAndStdByte(mri_ref, NULL) ;
+    /*    MRIfree(&mri_ref) ;*/
+  }
+  else
+    mri_ref_reduced = mri_ref ;
+
   if (linear || !parms.lta)    /* find optimal linear transformation */
   {
     MRI *mri_in_red, *mri_ref_red ;
@@ -130,22 +146,6 @@ main(int argc, char *argv[])
     fprintf(stderr, "writing output transformation to %s...\n", fname) ;
     LTAwrite(parms.lta, fname) ;
   }
-
-#if 1
-  if (mri_in->width > 128)
-  {
-    mri_in_reduced = MRIreduceByte(mri_in, NULL) ;
-    /*    MRIfree(&mri_in) ;*/
-  }
-  else
-    mri_in_reduced = mri_in ;
-  if (mri_ref->width > 128)
-  {
-    mri_ref_reduced = MRIreduceMeanAndStdByte(mri_ref, NULL) ;
-    /*    MRIfree(&mri_ref) ;*/
-  }
-  else
-    mri_ref_reduced = mri_ref ;
 
   parms.mri_ref = mri_ref ; parms.mri_in = mri_in ;
   m3d = MRI3Dmorph(mri_in_reduced, mri_ref_reduced, &parms) ;
