@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/05/14 15:56:16 $
-// Revision       : $Revision: 1.18 $
+// Revision Date  : $Date: 2003/05/21 18:55:44 $
+// Revision       : $Revision: 1.19 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.18 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.19 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -307,8 +307,8 @@ void usageHelp()
   fprintf(stderr, "\n-brainsurf surfname  : save the brain surface");
   fprintf(stderr, "\n-shk_br_surf int_h surfname : to save the brain surface shrank inward of int_h mm");
   fprintf(stderr, "\n-s int_i int_j int_k : add a seed point");
-  fprintf(stderr, "\n-c int_i int_j int_k : specify the center of the brain");
-  fprintf(stderr, "\n-r int_r             : specify the radius of the brain");
+  fprintf(stderr, "\n-c int_i int_j int_k : specify the center of the brain (in voxel unit)");
+  fprintf(stderr, "\n-r int_r             : specify the radius of the brain (in voxel unit)");
   fprintf(stderr, "\n-t int_threshold     : change the threshold in the watershed analyze process");
   fprintf(stderr, "\n-h int_hpf           : precize the preflooding height (in percent)");
   fprintf(stderr, "\n-n                   : not use the watershed analyze process");
@@ -540,7 +540,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.18 2003/05/14 15:56:16 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.19 2003/05/21 18:55:44 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1156,6 +1156,7 @@ static int calCSFIntensity(MRI_variables *MRI_var)
   return 0;
 }
 
+// COG in terms of voxel coordinates
 static int calCOGMAX(MRI_variables *MRI_var, int *x, int *y, int *z)
 {
   int i, j, k;
@@ -1214,6 +1215,7 @@ static int calCOGMAX(MRI_variables *MRI_var, int *x, int *y, int *z)
 }
 
 // using voxels whose value > CSF_intensity to calculate brain radius
+// again in voxel unit
 static int calBrainRadius(MRI_variables *MRI_var)
 {
   int m=0;
@@ -1281,11 +1283,14 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
   calCSFIntensity(MRI_var);
   
   // calculate initial estimate of COG coords and Imax (xCOG, yCOG, zCOG, and Imax)
+  // in voxel unit
   calCOGMAX(MRI_var, &x, &y, &z);
 
   // calculate intitial estimate of brain radius (rad_Brain)
+  // in voxel unit
   calBrainRadius(MRI_var);
 
+  // set r to be the half the brain size
   r=(int)(MRI_var->rad_Brain/2);
 
   fprintf(stderr,"\n      first estimation of the COG coord: x=%d y=%d z=%d r=%d",
@@ -1322,7 +1327,9 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
 
   /*allocate the Cube memory: mean intensity, variance, mean variance */
 
+  // now the r is the brain radius
   r*=2;
+  // array size of (brain radius)^3
   mean_val=(float***)malloc(r*sizeof(float**));
   var_val=(float***)malloc(r*sizeof(float**));
   mean_var=(float***)malloc(r*sizeof(float**));
@@ -1338,15 +1345,19 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
       mean_var[k][j]=(float*)malloc(r*sizeof(float));  
     }
   }
+  // now back to the half again
   r/=2;
   
-
+  // set the brain cube using the half the brain radius
+  // note (x,y,z) is the COG
   xmin=MAX(2,x-r-1);
   xmax=MIN(MRI_var->width-2,xmin+2*r);
   xmin=xmax-2*r;
-  ymin=MAX(2,y-2*r-1);  
+
+  ymin=MAX(2,y-r-1);   
   ymax=MIN(MRI_var->height-2,ymin+2*r);
   ymin=ymax-2*r;
+
   zmin=MAX(2,z-r-1);
   zmax=MIN(MRI_var->depth-2,zmin+2*r);
   zmin=zmax-2*r;
@@ -1404,7 +1415,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
     - And find the mean variance for each intensity 
       divided by the number of voxels of the same intensity 
                           -> estimation of the MRI_var->WM_intensity */ 
-
+  // mean_val, var_val are all within the brain rad cube
   r*=2; min=1000;max=0;  
   for(k=0;k<r;k++)
     for(j=0;j<r;j++)
@@ -1518,6 +1529,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
 
   ///////////////////////////////////////////////////////////////////
   retVal = Decision(parms,MRI_var);
+  // r is the half the brain radius
   if (retVal > 0)
   {
     /*find the WM coord */
@@ -1560,6 +1572,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
     jg=MRI_var->j_global_min;
     kg=MRI_var->k_global_min;
 
+    // get the number of seed points
     n=parms->nb_seed_points;
     while(n)
     {
@@ -1567,13 +1580,20 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
       j=parms->seed_coord[n-1][1];
       k=parms->seed_coord[n-1][2];
       parms->seed_coord[n-1][3]=MRIvox(MRI_var->mri_src,i,j,k);
+      // decrease the tabdim histogram column relevant to the grey value
       MRI_var->tabdim[parms->seed_coord[n-1][3]]--;
+      // set that voxel to be the Imax
       MRIvox(MRI_var->mri_src,i,j,k)=MRI_var->Imax;
+      // increase the tabdim histogram column at Imax to reflect setting 
       MRI_var->tabdim[MRI_var->Imax]++;
+      // 
       if(MRI_var->Basin[k][j][i].type!=3)
       {
+	// change the basin type to 1 for the seed point
         MRI_var->Basin[k][j][i].type=1;
+	// next points to the global min Basin
         MRI_var->Basin[k][j][i].next=(Cell*)(&MRI_var->Basin[kg][jg][ig]);
+	// increase the global min Basin size
         ((BasinCell*)(MRI_var->Basin[kg][jg][ig].next))->size++;
       }
       n--;
@@ -2056,7 +2076,9 @@ static int Lookat(int i,int j,int k,unsigned char val,int *dpt,Cell* *admax,int 
 {
   int t,n;
   unsigned char d,hp=parms->hpf;
-  Cell *add=&MRI_var->Basin[k][j][i];
+  Cell *add;
+
+  add=&MRI_var->Basin[k][j][i];
   
   /*looks if the basin has already been processing*/
 
@@ -2085,7 +2107,8 @@ static int Lookat(int i,int j,int k,unsigned char val,int *dpt,Cell* *admax,int 
           (*nb)++;
         }
       }
-    }else
+    }
+    else
     {
       d=((BasinCell*)(add->next))->depth;
      
@@ -2109,7 +2132,8 @@ static int Lookat(int i,int j,int k,unsigned char val,int *dpt,Cell* *admax,int 
       }
     }
     return 0;
-  }else if (100*(val-MRIvox(MRI_var->mri_src,i,j,k))<hp*MRI_var->Imax)
+  }
+  else if (100*(val-MRIvox(MRI_var->mri_src,i,j,k))<hp*MRI_var->Imax)
     return 1;       
   
   return 0;
@@ -2209,6 +2233,7 @@ static int Test(Coord crd,STRIP_PARMS *parms,MRI_variables *MRI_var)
       for( b = -1 ; b<2 ; b++)
         for( c = -1 ; c<2 ; c++)
         {
+	  // i > 0, j > 0, k > 0  
           tp=MRIvox(MRI_var->mri_src,i+a,j+b,k+c);  
           mean+=tp;
           var+=SQR(tp);
