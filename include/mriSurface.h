@@ -52,6 +52,7 @@ typedef enum {
 typedef struct {
 
   xVoxel mVoxel[Surf_knNumVertexSets][VERTICES_PER_FACE];
+  int    mnVertexIndex[Surf_knNumVertexSets][VERTICES_PER_FACE];
 
 } Surf_tFace, *Surf_tFaceRef;
 
@@ -122,25 +123,27 @@ Surf_tErr Surf_ConvertSurfaceToClientSpace_ ( mriSurfaceRef   this,
    which point the next vertices returned will be in a new face. when
    all faces are done, Surf_tErr_LastFace will be returned. */
 Surf_tErr Surf_SetIteratorPosition       ( mriSurfaceRef   this,
-             xVoxelRef       plane );
+					   xVoxelRef       plane );
 Surf_tErr Surf_GetNextAndNeighborVertex  ( mriSurfaceRef   this,
-             Surf_tVertexSet iSet, 
-             xVoxelRef       oNextVoxel,
-             xVoxelRef       oNeighborVoxel );
+					   Surf_tVertexSet iSet, 
+					   xVoxelRef       oNextVoxel,
+					   int*            onNextIndex,
+					   xVoxelRef       oNeighborVoxel,
+					   int*            onNeighborIndex);
 
 /* get a vertex by index in voxel space */
 Surf_tErr Surf_GetNthVertex ( mriSurfaceRef   this,
-            Surf_tVertexSet iSet,
-            int             inIndex,
-            xVoxelRef       oClientVoxel,
-            char*           osDescription );
+			      Surf_tVertexSet iSet,
+			      int             inIndex,
+			      xVoxelRef       oClientVoxel,
+			      char*           osDescription );
 
 /* find the closest vertex to the given location */
 Surf_tErr Surf_GetClosestVertexVoxel ( mriSurfaceRef   this,
-               Surf_tVertexSet iSet,
-               xVoxelRef       iClientVoxel,
-               xVoxelRef       oClientVoxel,
-               char*           osDescription );
+				       Surf_tVertexSet iSet,
+				       xVoxelRef       iClientVoxel,
+				       xVoxelRef       oClientVoxel,
+				       char*           osDescription );
 
 Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
            char*           osName );
