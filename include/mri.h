@@ -295,4 +295,7 @@ MRI        *MRIhistoNormalizeRegion(MRI *mri_src, MRI *mri_norm,
                                     MRI_REGION *h_tmp_reg) ;
 MRI        *MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region) ;
 
+/* used in MRIsplineNormalize */
+#define MAX_SPLINE_POINTS  30
+
 #endif
