@@ -47,201 +47,20 @@ static  void break_here(void){}
              calculate an x and a y offset for each point in the image
              using a modified Nitzberg-Shiota algorithm.
 ----------------------------------------------------------------------*/
-int        
-ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, float mu, 
-                    float c, IMAGE *offsetImage)
+
+IMAGE *
+ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Ioffset)
 {
-  int    x0, y0, rows, cols, x, y, whalf, xc, yc ;
-  float  sx, sy, sgn, fxpix, fypix, vsq, c1, *g, vx, vy, dot_product,
-         sxneg, sxpos, syneg, sypos, *xpix, *ypix ;
-  static float *gaussian = NULL ;
-  static int   w = 0 ;
-  FILE         *xfp = NULL, *yfp = NULL, *ofp = NULL ;
+  int    rows, cols ;
+  static IMAGE *Iorient = NULL ;
 
   rows = Ix->rows ;
   cols = Ix->cols ;
 
-  whalf = (wsize-1)/2 ;
-  c1 = c * (float)whalf ;
+  Iorient = ImageOffsetOrientation(Ix, Iy, wsize, Iorient) ;
+  Ioffset = ImageOffsetDirection(Ix, Iy, wsize, Iorient, Ioffset) ;
 
-  /* create a local gaussian window */
-  if (wsize != w)
-  {
-    free(gaussian) ;
-    gaussian = NULL ;
-    w = wsize ;
-  }
-
-  if (!gaussian)  /* allocate a gaussian bump */
-  {
-    float den, norm ;
-
-    gaussian = (float *)calloc(wsize*wsize, sizeof(float)) ;
-    den = wsize*wsize + wsize + 1 ;
-    norm = 0.0f ;
-    for (g = gaussian, y = 0 ; y < wsize ; y++)
-    {
-      yc = y - whalf ;
-      for (x = 0 ; x < wsize ; x++, g++) 
-      {
-        xc = x - whalf ;
-#if 0
-        /* Nitzberg-Shiota window */
-        *g = exp(-36.0f * sqrt(xc*xc+yc*yc) / den) ;
-#else
-#define SIGMA 0.5f
-
-        /* standard gaussian window with sigma=2 */
-        *g = (float)exp((double)-sqrt((double)xc*xc+yc*yc) / (2.0*SIGMA*SIGMA));
-#endif
-        norm += *g ;
-      }
-    }
-
-    /* normalize gaussian */
-#if 0
-    for (g = gaussian, y = 0 ; y < wsize ; y++)
-    {
-      for (x = 0 ; x < wsize ; x++, g++) 
-        *g /= norm ;
-    }
-#endif
-  }
-
-  if (Gdiag & DIAG_WRITE)
-  {
-    FILE *fp ;
-    
-    unlink("ix.dat") ;
-    unlink("iy.dat") ;
-    unlink("offset.log") ;
-
-    fp = fopen("g.dat", "w") ;
-    for (g = gaussian, y = 0 ; y < wsize ; y++)
-    {
-      for (x = 0 ; x < wsize ; x++, g++) 
-        fprintf(fp, "%2.3f  ", *g) ;
-      fprintf(fp, "\n") ;
-    }
-    fclose(fp) ;
-  }
-
-  xpix = IMAGEFpix(offsetImage, 0, 0) ;
-  ypix = IMAGEFseq_pix(offsetImage, 0, 0, 1) ;
-
-  /* for each point in the image */
-  for (y0 = 0 ; y0 < rows ; y0++)
-  {
-    for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++)
-    {
-/*
-  x and y are in window coordinates, while x0, y0, xc and yc are in image
-  coordinates.
-*/
-
-      if ((Gdiag & DIAG_WRITE) && (x0 == 14 && y0 == 63))
-      {
-        xfp = fopen("ix.dat", "a") ;
-        yfp = fopen("iy.dat", "a") ;
-        ofp = fopen("offset.log", "a") ;
-        fprintf(xfp, "(%d, %d)\n", x0, y0) ;
-        fprintf(yfp, "(%d, %d)\n", x0, y0) ;
-        fprintf(ofp, "(%d, %d)\n", x0, y0) ;
-      }
-      else
-        xfp = yfp = ofp = NULL ;
-        
-      vx = vy = sx = sy = sxneg = syneg = sxpos = sypos = 0.0f ;
-      for (g = gaussian, y = -whalf ; y <= whalf ; y++)
-      {
-        /* reflect across the boundary */
-        yc = y + y0 ;
-        if ((yc < 0) || (yc >= rows))
-        {
-          g += wsize ;
-          continue ;
-        }
-        
-        for (x = -whalf ; x <= whalf ; x++, g++)
-        {
-          xc = x0 + x ;
-          if ((xc < 0) || (xc >= cols))
-            continue ;
-          
-          fxpix = *IMAGEFpix(Ix, xc, yc) ;
-          fypix = *IMAGEFpix(Iy, xc, yc) ;
-
-          fxpix *= *g ;   /* apply gaussian window */
-          fypix *= *g ;
-
-          /* calculate sign of offset components */
-          /* Nitzberg-Shiota offset */
-          dot_product = x * fxpix + y * fypix ;
-          sx += (dot_product * fxpix) ;
-          sy += (dot_product * fypix) ;
-
-          /* calculate the average gradient direction in the nbd */
-          vx += fxpix ;
-          vy += fypix ;
-          if (xfp)
-          {
-            fprintf(ofp, 
-                    "(%d, %d): Ix %2.2f, Iy, %2.2f, sx = %2.3f, sy = %2.3f\n",
-                    xc, yc, fxpix, fypix, sx, sy) ;
-            fprintf(xfp, "%+2.3f  ", fxpix) ;
-            fprintf(yfp, "%+2.3f  ", fypix) ;
-          }
-        }
-        if (xfp)
-        {
-          fprintf(xfp, "\n") ;
-          fprintf(yfp, "\n") ;
-        }
-      }
-
-      vsq = vx*vx + vy*vy ;
-
-/*  decide whether offset should be in gradient or negative gradient direction
-*/
-#if 1
-/* 
-      ignore magnitude of sx and sy as they are the difference of the two
-      hemifields, and thus not significant.
-*/
-      sx = (sx < 0.0f) ? -1.0f : 1.0f ;
-      sy = (sy < 0.0f) ? -1.0f : 1.0f ;
-#endif
-      sgn = sx*vx + sy*vy ;
-      sgn = (sgn < 0.0f) ? -1.0f : 1.0f ;
-
-      /* calculated phi(V) */
-      vx = vx*c1 / (float)sqrt((double)(mu*mu + vsq)) ;
-      vy = vy*c1 / (float)sqrt((double)(mu*mu + vsq)) ;
-
-      /* offset should never be larger than half of the window size */
-      if (vx > whalf+1)  vx = whalf+1 ;
-      if (vx < -whalf-1) vx = -whalf-1 ;
-      if (vy > whalf+1)  vy = whalf+1 ;
-      if (vy < -whalf-1) vy = -whalf-1 ;
-
-      *xpix = -sgn * vx ;
-      *ypix = -sgn * vy ;
-      if (xfp)
-      {
-        fprintf(xfp, "\n") ;
-        fprintf(yfp, "\n") ;
-        fprintf(ofp, "\n") ;
-        fclose(xfp) ;
-        fclose(yfp) ;
-        fprintf(ofp, 
-             "vx %2.3f, vy %2.3f, sgn %2.2f, sx %2.2f, sy %2.2f, vx %2.3f, vy %2.3f\n",
-                vx, vy, sgn, sx, sy, vx, vy) ;
-        fclose(ofp) ;
-      }
-    }
-  }
-
-  return(0) ;
+  return(Ioffset) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -250,7 +69,7 @@ ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, float mu,
 ----------------------------------------------------------------------*/
 int
 ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize, 
-                          float mu, float c, IMAGE *offsetImage)
+                          float mu, float c, IMAGE *Ioffset)
 {
   int    x0, y0, rows, cols, x, y, whalf ;
   float  vx, vy, vsq, c1, *g, *xpix, *ypix ;
@@ -302,8 +121,8 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
     }
   }
 
-  xpix = IMAGEFpix(offsetImage, 0, 0) ;
-  ypix = IMAGEFseq_pix(offsetImage, 0, 0, 1) ;
+  xpix = IMAGEFpix(Ioffset, 0, 0) ;
+  ypix = IMAGEFseq_pix(Ioffset, 0, 0, 1) ;
   for (y0 = 0 ; y0 < rows ; y0++)
   {
     for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++)
@@ -342,7 +161,7 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
       }
 
 #if 0
-      /* calculated phi(V) */
+      /* calculated phi(V), only needed for original NitShi algorithm */
       vsq = vx*vx + vy*vy ;
 
       vx = vx*c1 / (float)sqrt((double)(mu*mu + vsq)) ;
@@ -915,6 +734,7 @@ ImageOffsetMedialAxis(IMAGE *Ioffset, IMAGE *Iedge)
   }
   return(Iedge) ;
 }
+#if 0
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -1018,6 +838,7 @@ ImageCalculateOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Ioffset)
 
   return(Ioffset) ;
 }
+#endif
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -1119,14 +940,15 @@ ImageOffsetScale(IMAGE *Isrc, IMAGE *Idst)
   xpix = IMAGEFpix(Ioffset, 0, 0) ;
   ypix = IMAGEFseq_pix(Ioffset, 0, 0, 1) ;
 /*
-  x0 and y0 are the coordinates of the center of the window in the unscaled image.
-  xc and yc are the coordinates of the window used for the offset computation in
-     the unscaled coordinates.
+  x0 and y0 are the coordinates of the center of the window in the 
+  unscaled image.
+  xc and yc are the coordinates of the window used for the offset 
+  computation in the unscaled coordinates.
   x and y are local window coordinates (i.e. -1 .. 1)
 */
   for (y0 = nint(0.5*(double)ystep) ; y0 < srows ; y0 += ystep)
   {
-    for (x0 = nint(0.5*(double)xstep) ; x0 < scols ; x0 += xstep, xpix++, ypix++)
+    for (x0 = nint(0.5*(double)xstep) ; x0 < scols ;x0 += xstep,xpix++,ypix++)
     {
       
 /*
@@ -1337,3 +1159,156 @@ compare_sort_array(const void *pf1, const void *pf2)
 
   return(0) ;
 }
+
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+ImageOffsetOrientation(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient)
+{
+  int    x0, y0, rows, cols, x, y, whalf, xc, yc, yoff, off ;
+  float  *xpix, *ypix, dx, dy, *or_xpix, *or_ypix ;
+
+  rows = Ix->rows ;
+  cols = Ix->cols ;
+
+  if (!Iorient)
+    Iorient = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+
+  if (!ImageCheckSize(Ix, Iorient, 0, 0, 2))
+    {
+      ImageFree(&Iorient) ;
+      Iorient = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+    }
+
+  whalf = (wsize-1)/2 ;
+  xpix = IMAGEFpix(Ix, 0, 0) ;
+  ypix = IMAGEFpix(Iy, 0, 0) ;
+  or_xpix = IMAGEFpix(Iorient, 0, 0) ;
+  or_ypix = IMAGEFseq_pix(Iorient, 0, 0, 1) ;
+  for (y0 = 0 ; y0 < rows ; y0++)
+  {
+    for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++)
+    {
+      
+/*
+  Now calculate the orientation for this point by averaging local gradient
+  orientation within the specified window.
+
+  x and y are in window coordinates, while xc and yc are in image
+  coordinates.
+*/
+      dx = dy = 0.0f ;
+      for (y = -whalf ; y <= whalf ; y++)
+      {
+        /* reflect across the boundary */
+        yc = y + y0 ;
+        if ((yc < 0) || (yc >= rows))
+          continue ;
+
+        yoff = y*cols ;
+        for (x = -whalf ; x <= whalf ; x++)
+        {
+          xc = x0 + x ;
+          if ((xc < 0) || (xc >= cols))
+            continue ;
+
+          off = yoff + x ;
+          dx += *(xpix+off) ;
+          dy += *(ypix+off) ;
+        }
+      }
+      if (dx < 0)  /* if in left half-plane, flip by 180 */
+        {
+          dx = -dx ;
+          dy = -dy ;
+        }
+      *or_xpix++ = dx ;
+      *or_ypix++ = dy ;
+    }
+  }
+  return(Iorient) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+
+IMAGE *
+ImageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient, 
+                     IMAGE *Ioffset)
+{
+  int    x0, y0, rows, cols, x, y, whalf, xc, yc, yoff, off ;
+  float  *xpix, *ypix, dx, dy, *or_xpix,*or_ypix, *oxpix, *oypix, dir, ox, oy ;
+
+  rows = Ix->rows ;
+  cols = Ix->cols ;
+
+  if (!Ioffset)
+    Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+
+  if (!ImageCheckSize(Ix, Ioffset, 0, 0, 2))
+    {
+      ImageFree(&Ioffset) ;
+      Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+    }
+
+  whalf = (wsize-1)/2 ;
+  xpix = IMAGEFpix(Ix, 0, 0) ;
+  ypix = IMAGEFpix(Iy, 0, 0) ;
+  or_xpix = IMAGEFpix(Iorient, 0, 0) ;
+  or_ypix = IMAGEFseq_pix(Iorient, 0, 0, 1) ;
+  oxpix = IMAGEFpix(Ioffset, 0, 0) ;
+  oypix = IMAGEFseq_pix(Ioffset, 0, 0, 1) ;
+  for (y0 = 0 ; y0 < rows ; y0++)
+  {
+    for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++)
+    {
+      
+/*
+  Now calculate the orientation for this point by averaging local gradient
+  orientation within the specified window.
+
+  x and y are in window coordinates, while xc and yc are in image
+  coordinates.
+*/
+      /* calculate orientation vector */
+      ox = *or_xpix++ ;
+      oy = *or_ypix++ ;
+
+      dir = 0.0f ;
+      for (y = -whalf ; y <= whalf ; y++)
+      {
+        /* reflect across the boundary */
+        yc = y + y0 ;
+        if ((yc < 0) || (yc >= rows))
+          continue ;
+        
+        yoff = y*cols ;
+        for (x = -whalf ; x <= whalf ; x++)
+        {
+          xc = x0 + x ;
+          if ((xc < 0) || (xc >= cols))
+            continue ;
+
+          off = yoff + x ;
+          dx = *(xpix+off) ;
+          dy = *(ypix+off) ;
+          dir += (x*ox + y*oy) * fabs(dx*ox + dy*oy) ;
+        }
+      }
+      if (dir > 0.0f)   /* flip by 180 */
+        {
+        ox = -ox ;
+        oy = -oy ;
+        }
+      *oxpix++ = ox ;
+      *oypix++ = oy ;
+    }
+  }
+  return(Ioffset) ;
+}
+
