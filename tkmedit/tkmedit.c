@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/07/19 03:44:51 $
-// Revision       : $Revision: 1.214 $
-char *VERSION = "$Revision: 1.214 $";
+// Revision Date  : $Date: 2004/07/19 04:05:05 $
+// Revision       : $Revision: 1.215 $
+char *VERSION = "$Revision: 1.215 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1052,7 +1052,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.214 2004/07/19 03:44:51 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.215 2004/07/19 04:05:05 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5010,7 +5010,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.214 2004/07/19 03:44:51 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.215 2004/07/19 04:05:05 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6437,9 +6437,11 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
   tkm_tErr      eResult                  = tkm_tErr_NoErr;
   Volm_tErr     eVolume                  = Volm_tErr_NoErr;
   char          sFileName[tkm_knPathLen] = "";
+#if 0
   int           nDimensionX              = 0;
   int           nDimensionY              = 0;
   int           nDimensionZ              = 0;
+#endif
   float         selected                 = 0;
   float         value                    = 0;
   xVoxel        MRIIdx;
