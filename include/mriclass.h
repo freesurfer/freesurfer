@@ -6,10 +6,13 @@
 #include "gclass.h"
 #include "artmap.h"
 #include "mri.h"
+#include "rbf.h"
 
-#define GAUSSIAN_NCLASSES                  4
+#define NCLASSES                           4
+#define GAUSSIAN_NCLASSES                  NCLASSES
 #define BACKGROUND                         0
 #define GREY_MATTER                        1
+#define GRAY_MATTER                        GREY_MATTER
 #define WHITE_MATTER                       2
 #define BRIGHT_MATTER                      3
 #define LO_LIM                             70
@@ -24,6 +27,11 @@
 #define TALAIRACH_SUBCORTICAL_GRAY_MAX_Z   35
 
 #define MAX_INPUTS             10
+
+typedef struct
+{
+  int  max_clusters[NCLASSES] ;
+} RBF_PARMS ;
 
 /* bitfield of feature types */
 #define FEATURE_INTENSITY      0x00001
@@ -50,6 +58,7 @@ typedef union
   BACKPROP   *bp ;
   ARTMAP     *artmap ;
   GCLASSIFY  *gc ;
+  RBF        *rbf ;
 } CL_UNION ;
 
 typedef struct
