@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.6 2002/11/12 22:43:55 greve Exp $
+  $Id: fsgdf.c,v 1.7 2002/11/12 22:45:18 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -125,8 +125,8 @@ static int gdfPrintV1(FILE *fp, FSGD *gd)
     fprintf(fp,"Title %s\n",gd->title);
   if(strlen(gd->measname) > 0)
     fprintf(fp,"MeasurementName %s\n",gd->measname);
-  if(strlen(gd->tesselation) > 0)
-    fprintf(fp,"Tesselation %s\n",gd->tesselation);
+  if(strlen(gd->tessellation) > 0)
+    fprintf(fp,"Tessellation %s\n",gd->tessellation);
   if(strlen(gd->regsubj) > 0)
     fprintf(fp,"RegistrationSubject %s\n",gd->regsubj);
   if(strlen(gd->datafile) > 0)
@@ -210,7 +210,7 @@ FSGD *gdfRead(char *gdfname, int LoadData)
       return(NULL);
     }
     nv = gd->data->width * gd->data->height * gd->data->depth;
-    if(strcmp(gd->tesselation,"surface")==0 && nv != gd->data->width){
+    if(strcmp(gd->tessellation,"surface")==0 && nv != gd->data->width){
       printf("INFO: gdfRead: reshaping\n");
       mritmp = mri_reshape(gd->data, nv, 1, 1, gd->data->nframes);
       MRIfree(&gd->data);
@@ -269,8 +269,8 @@ static FSGD *gdfReadV1(char *gdfname)
       continue;
     }
 
-    if(!strcasecmp(tag,"Tesselation")){
-      r = fscanf(fp,"%s",gd->tesselation);
+    if(!strcasecmp(tag,"Tessellation")){
+      r = fscanf(fp,"%s",gd->tessellation);
       if(r==EOF) goto formaterror;
       continue;
     }
