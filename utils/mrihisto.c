@@ -110,7 +110,7 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
                 (ERROR_UNSUPPORTED,"MRIhistogramRegion: must by type UCHAR"));
 #endif
 
-	MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
+  MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
   bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
   if (!nbins)
     nbins = nint(fmax - fmin + 1.5) ;
@@ -183,7 +183,7 @@ MRIhistogramLabelStruct(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
 {
   float             fmin, fmax, bin_size ;
 
-  fmin = MRIvalRange(mri, &fmin, &fmax) ;
+  MRIvalRange(mri, &fmin, &fmax) ;
   if (!nbins)
     nbins = nint((fmax - fmin) + 1.5) ;
 
@@ -213,7 +213,7 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
     fmin = 0 ; fmax = 255 ;
   }
   else
-    fmin = MRIvalRange(mri, &fmin, &fmax) ;
+    MRIvalRange(mri, &fmin, &fmax) ;
 
   if (!nbins)
     nbins = nint(fmax - fmin + 1.5) ;
@@ -312,7 +312,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
     fmin = 0 ; fmax = 255 ;
   }
   else
-		MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
+    MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
   bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
   if (!nbins)
     nbins = nint(fmax - fmin + 1.5) ;
@@ -744,7 +744,7 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
   int        val, bmin, bmax ;
   float      fval;
 
-  fmin = MRIvalRange(mri, &fmin, &fmax) ;
+  MRIvalRange(mri, &fmin, &fmax) ;
   bmin = (int)fmin ; bmax = (int)fmax ;
   if (!nbins)
     nbins = nint(fmax - fmin + 1.5) ;
