@@ -7,9 +7,9 @@ fxcfg.label = '';   % effect name
 fxcfg.model = '';   % model string
 fxcfg.params = [];  % non-string parameters
 fxcfg.sparams = []; % string parameters
-fxcfg.M = [];       % Generic matrix
+fxcfg.npmlist = []; % List of non-parametric matrices
 
-
+% fxcfg.npmlist(nthrun).M 
 
 
 
