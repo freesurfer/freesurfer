@@ -1,9 +1,76 @@
 function rt = fast_fxcfg(DoWhat,thing)
 % rt = fast_fxcfg(DoWhat,thing)
+%
+% DoWhat - string instruction
+% thing - either an fla or fx line. An fx line is only needed
+%         for parseline.
+%
+% The fla has three fields that may or may not need to be set
+% prior to calling fast_fxcfg:
+%   nthfx 
+%   nthrun
+%   sesspath
+%
+% The return value depends upon the DoWhat
+%
+% DoWhats requiring neither nthfx nor nthrun
+%
+% loadsesscfg - loads session config (must set fla.sesspath, 
+%   see also fast_sesscfg_struct). Returns the new fla.
+% nfixedreg   - total number of fixed-effect regressors
+% checkermid  - checks that all the ERMs are ok (ok = 1)
+% parseline   - gets params from an fx line (thing = line);
+%   see fast_fxcfg_FXMODEL.m where FXMODEL is name of the model.
+%
+% DoWhats requiring nthfx only
+%
+% getfxcfg    - gets nthfx fxcfg 
+% createline  - creates an fx line 
+% iserm       - returns 1 if nthfx is an ERM
+% nparams     - number of params associated with nthfx
+% nregressors - number of regressors associated with nthfx
+%
+% DoWhats requiring only the nthfx where the nthfx must be an ERM
+%
+% autopsd     - auto psd of nthfx
+% irfmatrix   - impulse response matrix 
+% irftaxis    - time associated with each row of irfmatrix 
+% erfmatrix   - event response matrix 
+% erftaxis    - time associated with each row of erfmatrix
+% 
+% DoWhats requiring nthrun only
+%
+% getevsch - gets nthrun evsch
+% getntp   - gets number of timepoints in nthrun
+% getitpx  - gets time point exclude indices for nthrun
+%
+% DoWhats requiring nthfx and (possibly) nthrun
+%
+% matrix - returns design matrix for nthfx (nthrun needed for rfx)
+%
+%
+% See also: fast_flacfg_struct, fast_flacfg_load, fast_flacfg_write,
+% fast_fxcfg_struct, fast_sesscfg_struct, fast_fla_desmat,
+%
+% See also FX Models:
+% fast_fxcfg_poly, fast_fxcfg_fir, fast_fxcfg_extreg, fast_fxcfg_gamma
+%
+%
+% $Id: fast_fxcfg.m,v 1.5 2003/05/22 03:37:47 greve Exp $
 
 % Things to do:
-%   loadsesscfg - load run weights
-%   
+%   nregressorstot - total number of regressors
+%   nrandomreg     - total number of random fx regressors
+%   indfxreg - indices of nthfx (nthrun needed for random fx) 
+%   pmfmatrix - partial model fit for nthfx (nthrun needed for random fx)
+%   main effect matrix for nthfx
+%   omnibus matrix for nthfx
+%   beta-to-fir matrix
+
+% To add new FX Models, write the fast_fxcfg_NewModel.m file. Make
+% sure that the model name in fx line is NewModel. Then add a case
+% to switch(model). Note: if the switch model is replaced with
+% eval, then no change to this file is necessary.
 
 rt = [];
 
@@ -88,6 +155,7 @@ switch(DoWhat)
     model = fxcfg.model;
   end
 
+  % Should do this with an eval %
   switch(model)
    case 'fir'
     rt = fast_fxcfg_fir(DoWhat,thing);
