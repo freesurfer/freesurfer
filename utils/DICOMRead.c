@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.51 2003/12/15 18:21:47 tosa Exp $
+   $Id: DICOMRead.c,v 1.52 2004/01/21 16:49:36 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -143,7 +143,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   IsMosaic = sdfi->IsMosaic;
 
   printf("INFO: (%3d %3d %3d), nframes = %d, ismosaic=%d\n",
-   ncols,nrows,nslices,nframes,IsMosaic);
+	 ncols,nrows,nslices,nframes,IsMosaic);
   fflush(stdout);
   fflush(stdout);
 
@@ -204,7 +204,24 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
 
   /* Dump info about the first file to stdout */
   DumpSDCMFileInfo(stdout,sdfi);
-
+  // verification of number of files vs. slices
+  if (nlist > nslices*nframes)
+  {
+    fprintf(stderr, "ERROR: nlist (%d) > nslices (%d) x frames (%d)\n",
+	    nlist, nslices, nframes);
+    fprintf(stderr, "ERROR: dump file list into fileinfo.txt.\n");
+    fprintf(stderr, "ERROR: check for consistency\n");
+    {
+      FILE *fp;
+      int i;
+      fp = fopen("./fileinfo.txt", "w");
+      for (i=0; i < nlist;++i)
+	DumpSDCMFileInfo(fp, sdfi_list[i]);
+      fclose(fp);
+    }
+    fprintf(stderr, "ERROR: set nlist = nslices*nframes.\n");
+    nlist = nslices*nframes;
+  }
   /* ------- Go through each file in the Run ---------*/
   for(nthfile = 0; nthfile < nlist; nthfile ++){
 
@@ -221,22 +238,22 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
     if(!IsMosaic){/*---------------------------------------------*/
       /* It's not a mosaic -- load rows and cols from pixel data */
       if(nthfile == 0){
-  frame = 0;
-  slice = 0;
+	frame = 0;
+	slice = 0;
       }
 #ifdef _DEBUG      
       printf("%3d %3d %3d %s \n",nthfile,slice,frame,sdfi->FileName);
       fflush(stdout);
 #endif
       for(row=0; row < nrows; row++){
-  for(col=0; col < ncols; col++){
-    MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata++);
-  }
+	for(col=0; col < ncols; col++){
+	  MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata++);
+	}
       }
       frame ++;
       if(frame >= nframes){
-  frame = 0;
-  slice ++;
+	frame = 0;
+	slice ++;
       }
     }
     else{/*---------------------------------------------*/
@@ -245,25 +262,25 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
       nmoscols = sdfi->NImageCols;
       nmosrows = sdfi->NImageRows;
       for(row=0; row < nrows; row++){
-  for(col=0; col < ncols; col++){
-    for(slice=0; slice < nslices; slice++){
-      /* compute the mosaic col and row from the volume
-         col, row , and slice */
-      err = VolSS2MosSS(col, row, slice, 
-            ncols, nrows, 
-            nmoscols, nmosrows,
-            &moscol, &mosrow, &OutOfBounds);
-      if(err || OutOfBounds){
-        FreeElementData(element);
-        free(element);
-        MRIfree(&vol);
-        exit(1);
-      }
-      /* Compute the linear index into the block of pixel data */
-      mosindex = moscol + mosrow * nmoscols;
-      MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata + mosindex);
-    }
-  }
+	for(col=0; col < ncols; col++){
+	  for(slice=0; slice < nslices; slice++){
+	    /* compute the mosaic col and row from the volume
+	       col, row , and slice */
+	    err = VolSS2MosSS(col, row, slice, 
+			      ncols, nrows, 
+			      nmoscols, nmosrows,
+			      &moscol, &mosrow, &OutOfBounds);
+	    if(err || OutOfBounds){
+	      FreeElementData(element);
+	      free(element);
+	      MRIfree(&vol);
+	      exit(1);
+	    }
+	    /* Compute the linear index into the block of pixel data */
+	    mosindex = moscol + mosrow * nmoscols;
+	    MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata + mosindex);
+	  }
+	}
       }
     }
     
