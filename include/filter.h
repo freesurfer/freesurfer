@@ -29,6 +29,12 @@
 #define FILTER_DIFFUSE_HV        13
 #define FILTER_MEAN              14
 #define FILTER_SOBEL             15
+#define FILTER_ERODE             16
+#define FILTER_DILATE            17
+#define FILTER_OPEN              18
+#define FILTER_CLOSE             19
+#define FILTER_DIRECTION         20
+
 #define FILTER_OFFSET            0x0100
 
 #define FILTER_MEDIAN_OFFSET     (FILTER_MEDIAN | FILTER_OFFSET)
