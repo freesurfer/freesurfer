@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/14 19:55:36 $
-// Revision       : $Revision: 1.290 $
+// Revision Date  : $Date: 2004/06/14 20:27:17 $
+// Revision       : $Revision: 1.291 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2791,6 +2791,7 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
       getVolGeom(orig, &lt->src);
       MRIfree(&orig);
       orig = 0;
+      fprintf(stderr, "INFO: found the orig volume to get c_(ras) information for src\n");
     }
     else
     {
