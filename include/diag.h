@@ -70,6 +70,9 @@ void DiagShowPctDone(float pct_done, int nprints) ;
 
 extern unsigned long Gdiag ;    /* global diagnostic flag */
 extern int Gdiag_no ;           /* misc. int for diagnostics */
+extern int Gx ;
+extern int Gy ;
+extern int Gz ;
 
 #define PT_NONE           0
 #define PT_CIRCLE         1

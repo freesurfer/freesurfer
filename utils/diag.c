@@ -30,6 +30,9 @@
 
 unsigned long  Gdiag      = 0 ;
 int            Gdiag_no   = -1 ;
+int Gx = -1 ;
+int Gy = -1 ;
+int Gz = -1 ;
 
 /*-----------------------------------------------------
                      STATIC DATA
@@ -70,6 +73,16 @@ DiagInit(char *fname,
   cp = getenv("DIAG_NO") ;
   if (cp)
     Gdiag_no = atoi(cp) ;
+
+  cp = getenv("DIAGX") ;
+  if (cp)
+    Gx = atoi(cp) ;
+  cp = getenv("DIAGY") ;
+  if (cp)
+    Gy = atoi(cp) ;
+  cp = getenv("DIAGZ") ;
+  if (cp)
+    Gz = atoi(cp) ;
   
   cp = getenv("diag") ;
   if (!cp) cp = getenv("DIAG") ;
