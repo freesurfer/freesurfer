@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/12/15 22:14:47 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2004/12/16 14:51:08 $
+// Revision       : $Revision: 1.3 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.2 2004/12/15 22:14:47 tosa Exp $";
+static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.3 2004/12/16 14:51:08 tosa Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -152,9 +152,10 @@ main(int argc, char *argv[])
   float         white_mean, white_std, gray_mean, gray_std ;
   double        l_intensity, current_sigma ;
   struct timeb  then ;
+  LT            *lt =0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.2 2004/12/15 22:14:47 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.3 2004/12/16 14:51:08 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -321,7 +322,7 @@ main(int argc, char *argv[])
   ///////////////////////////////////////////////////////////////////
   // convert wm into hires space
   ///////////////////////////////////////////////////////////////////
-  LT *lt = &hires_lta->xforms[0];
+  lt = &hires_lta->xforms[0];
   // fill geometry
   if (!lt->src.valid)
     getVolGeom(mri_wm, &lt->src);
