@@ -1,4 +1,6 @@
 #include <stdarg.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 /**************** hipsu.h *********************/ 
 /* Header file for hips utility functions */ 
@@ -133,9 +135,9 @@ int fhconvert(struct header *hd,struct header *hdp,int method,int fr,char *fname
 int hconvertback(struct header *hd,struct header *hdp,int method,int fr);
 int setupconvback(struct header *hd,struct header *hdp,struct header *hdcb);
 int read_imagec(struct header *hd,struct header *hdp,int method,int fr);
-int fread_imagec(struct _iobuf *fp,struct header *hd,struct header *hdp,int method,int fr,char *fname);
+int fread_imagec(FILE *fp,struct header *hd,struct header *hdp,int method,int fr,char *fname);
 int write_imagec(struct header *hd,struct header *hdp,int method,int flag,int fr);
-int fwrite_imagec(struct _iobuf *fp,struct header *hd,struct header *hdp,int method,int flag,int fr,char *fname);
+int fwrite_imagec(FILE *fp,struct header *hd,struct header *hdp,int method,int flag,int fr,char *fname);
 /******************* cut_fram.c ***********************/ 
 int cut_frame(char *inbuf,int nbytes,char *outbuf,int limit,double x0,double y0,double xn,double yn);
 /******************* desc_set.c ***********************/ 
@@ -154,19 +156,19 @@ char *formatheaderc(struct header *h,int aflag);
 int adddec(int i);
 int addstr(char *s);
 /******************* fread_ol.c ***********************/ 
-int fread_oldhdr(struct _iobuf *fp,struct header *hd,char *firsts,char *fname);
-int getline(struct _iobuf *fp,char **s ,int *l);
-int swallownl(struct _iobuf *fp);
-int hfgets(char *s,int n,struct _iobuf *fp);
+int fread_oldhdr(FILE *fp,struct header *hd,char *firsts,char *fname);
+int getline(FILE *fp,char **s ,int *l);
+int swallownl(FILE *fp);
+int hfgets(char *s,int n,FILE *fp);
 /******************* free_hea.c ***********************/ 
 int free_header(struct header *hd);
 int free_hdrcon(struct header *hd);
 /******************* futils.c ***********************/ 
-struct _iobuf *ffopen(char *name,char *mode);
-struct _iobuf *ffreopen(char *name,char *mode,struct _iobuf *stream1);
-int ffread(char *ptr,int size,int nelem,struct _iobuf *stream);
-int ffwrite(char *ptr,int size,int nelem,struct _iobuf *stream);
-struct _iobuf *hfopenr(char *filename);
+FILE *ffopen(char *name,char *mode);
+FILE *ffreopen(char *name,char *mode,FILE *stream1);
+int ffread(char *ptr,int size,int nelem,FILE *stream);
+int ffwrite(char *ptr,int size,int nelem,FILE *stream);
+FILE *hfopenr(char *filename);
 /******************* halloc.c ***********************/ 
 unsigned char *halloc(int i,int j);
 unsigned char *hmalloc(unsigned long i);
@@ -268,23 +270,23 @@ int copy_ftoff(struct header *hd,struct FIMAGEtag img);
 /******************* pyrfilti.c ***********************/ 
 #if 0
 int getpyrfilters(char *filename,struct FILTERtag *rf,struct FILTERtag *ef);
-int read_1dfilter(struct FILTERtag *f,struct _iobuf *stream,char *filename);
+int read_1dfilter(struct FILTERtag *f,FILE *stream,char *filename);
 int default_1dfilter(struct FILTERtag *f);
 #endif
 /******************* pyrio.c ***********************/ 
 #if 0
-int read_iimage(struct _iobuf *stream,struct IIMAGEtag img,int fr,char *fname);
-int read_fimage(struct _iobuf *stream,struct FIMAGEtag img,int fr,char *fname);
-int write_iimage(struct _iobuf *stream,struct IIMAGEtag img,int fr);
-int write_fimage(struct _iobuf *stream,struct FIMAGEtag img,int fr);
-int read_ipyr(struct _iobuf *stream,struct IIMAGEtag *pyr,int botlev,int toplev,int fr,char *fname);
-int read_fpyr(struct _iobuf *stream,struct FIMAGEtag *pyr,int botlev,int toplev,int fr,char *fname);
-int write_ipyr(struct _iobuf *stream,struct IIMAGEtag *pyr,int botlev,int toplev,int fr);
-int write_fpyr(struct _iobuf *stream,struct FIMAGEtag *pyr,int botlev,int toplev,int fr);
-int _read_iimage(struct _iobuf *stream,int **img ,int nr,int nc,int fr,char *fname);
-int _read_fimage(struct _iobuf *stream,float **img ,int nr,int nc,int fr,char *fname);
-int _write_iimage(struct _iobuf *stream,int **p ,int nr,int nc,int fr);
-int _write_fimage(struct _iobuf *stream,float **p ,int nr,int nc,int fr);
+int read_iimage(FILE *stream,struct IIMAGEtag img,int fr,char *fname);
+int read_fimage(FILE *stream,struct FIMAGEtag img,int fr,char *fname);
+int write_iimage(FILE *stream,struct IIMAGEtag img,int fr);
+int write_fimage(FILE *stream,struct FIMAGEtag img,int fr);
+int read_ipyr(FILE *stream,struct IIMAGEtag *pyr,int botlev,int toplev,int fr,char *fname);
+int read_fpyr(FILE *stream,struct FIMAGEtag *pyr,int botlev,int toplev,int fr,char *fname);
+int write_ipyr(FILE *stream,struct IIMAGEtag *pyr,int botlev,int toplev,int fr);
+int write_fpyr(FILE *stream,struct FIMAGEtag *pyr,int botlev,int toplev,int fr);
+int _read_iimage(FILE *stream,int **img ,int nr,int nc,int fr,char *fname);
+int _read_fimage(FILE *stream,float **img ,int nr,int nc,int fr,char *fname);
+int _write_iimage(FILE *stream,int **p ,int nr,int nc,int fr);
+int _write_fimage(FILE *stream,float **p ,int nr,int nc,int fr);
 /******************* pyrnumpi.c ***********************/ 
 int pyrnumpix(int toplev,int nr,int nc);
 /******************* pyrredex.c ***********************/ 
@@ -305,33 +307,33 @@ int ver_reflecti(struct IIMAGEtag v,int border,int rtype);
 int reflecti(struct IIMAGEtag image,int border,int rtype);
 #endif
 /******************* read_fra.c ***********************/ 
-int read_frame(struct _iobuf *fp,char *buf,int buf_limit,int *flags,double *shift_vector,double (*rot_matrix)[3],int fr,char *fname);
+int read_frame(FILE *fp,char *buf,int buf_limit,int *flags,double *shift_vector,double (*rot_matrix)[3],int fr,char *fname);
 /******************* read_hea.c ***********************/ 
 int read_header(struct header *hd);
-int fread_header(struct _iobuf *fp,struct header *hd,char *fname);
+int fread_header(FILE *fp,struct header *hd,char *fname);
 /******************* read_his.c ***********************/ 
 int read_histo(struct hips_histo *histo,int fr);
-int fread_histo(struct _iobuf *fp,struct hips_histo *histo,int fr,char *fname);
+int fread_histo(FILE *fp,struct hips_histo *histo,int fr,char *fname);
 int hdr_to_histo(struct header *hd,struct hips_histo *histo);
 /******************* read_hut.c ***********************/ 
 int read_hdr_a(struct header *hd);
-int fread_hdr_a(struct _iobuf *fp,struct header *hd,char *fname);
+int fread_hdr_a(FILE *fp,struct header *hd,char *fname);
 int read_hdr_cpf(struct header *hd,int *typelist);
-int fread_hdr_cpf(struct _iobuf *fp,struct header *hd,int *typelist,char *fname);
+int fread_hdr_cpf(FILE *fp,struct header *hd,int *typelist,char *fname);
 int read_hdr_cpfa(struct header *hd,int *typelist);
-int fread_hdr_cpfa(struct _iobuf *fp,struct header *hd,int *typelist,char *fname);
-int fread_hdr_cpfac(struct _iobuf *fp,struct header *hd,int *typelist,char *fname,int flagc,int flaga);
+int fread_hdr_cpfa(FILE *fp,struct header *hd,int *typelist,char *fname);
+int fread_hdr_cpfac(FILE *fp,struct header *hd,int *typelist,char *fname,int flagc,int flaga);
 int read_hdr_cc(struct header *hd,struct header *chd,int mask);
-int fread_hdr_cc(struct _iobuf *fp,struct header *hd,struct header *chd,int mask,char *fname);
+int fread_hdr_cc(FILE *fp,struct header *hd,struct header *chd,int mask,char *fname);
 int read_hdr_cca(struct header *hd,struct header *chd,int mask);
-int fread_hdr_cca(struct _iobuf *fp,struct header *hd,struct header *chd,int mask,char *fname);
-int fread_hdr_ccac(struct _iobuf *fp,struct header *hd,struct header *chd,int mask,char *fname,int flaga);
+int fread_hdr_cca(FILE *fp,struct header *hd,struct header *chd,int mask,char *fname);
+int fread_hdr_ccac(FILE *fp,struct header *hd,struct header *chd,int mask,char *fname,int flaga);
 /******************* read_ima.c ***********************/ 
 int read_image(struct header *hd,int fr);
-int fread_image(struct _iobuf *fp,struct header *hd,int fr,char *fname);
+int fread_image(FILE *fp,struct header *hd,int fr,char *fname);
 /******************* read_roi.c ***********************/ 
 int read_roi(struct header *hd,int fr);
-int fread_roi(struct _iobuf *fp,struct header *hd,int fr,char *fname);
+int fread_roi(FILE *fp,struct header *hd,int fr,char *fname);
 /******************* rgb.c ***********************/ 
 int h_btorgb(struct header *hdr,struct header *hdg,struct header *hdb,struct header *hdo);
 int h_btorgbz(struct header *hdr,struct header *hdg,struct header *hdb,struct header *hdo);
@@ -431,26 +433,26 @@ int update_headerc(struct header *hd,int argc,char **argv ,int pflag);
 /******************* view_fra.c ***********************/ 
 int view_frame(char *inbuf,int nbytes,char *outbuf,int limit,double dist);
 /******************* write_fr.c ***********************/ 
-int write_frame(struct _iobuf *fp,char *buf,int nbytes,double *shift_v,double (*rot_m)[3],int fr);
+int write_frame(FILE *fp,char *buf,int nbytes,double *shift_v,double (*rot_m)[3],int fr);
 /******************* write_he.c ***********************/ 
 int write_headeru(struct header *hd,int argc,char **argv );
 int write_headeru2(struct header *hd,struct header *hdp,int argc,char **argv ,int flag);
 int write_headerun(struct header *hd,int argc,char **argv );
 int write_header(struct header *hd);
-int fwrite_header(struct _iobuf *fp,struct header *hd,char *fname);
+int fwrite_header(FILE *fp,struct header *hd,char *fname);
 /******************* write_hi.c ***********************/ 
 int write_histo(struct hips_histo *histo,int fr);
-int fwrite_histo(struct _iobuf *fp,struct hips_histo *histo,int fr,char *fname);
+int fwrite_histo(FILE *fp,struct hips_histo *histo,int fr,char *fname);
 int histo_to_hdr(struct header *hd,struct hips_histo *histo);
 /******************* write_im.c ***********************/ 
 int write_image(struct header *hd,int fr);
-int fwrite_image(struct _iobuf *fp,struct header *hd,int fr,char *fname);
+int fwrite_image(FILE *fp,struct header *hd,int fr,char *fname);
 /******************* write_ro.c ***********************/ 
 int write_roi(struct header *hd,int fr);
-int fwrite_roi(struct _iobuf *fp,struct header *hd,int fr,char *fname);
+int fwrite_roi(FILE *fp,struct header *hd,int fr,char *fname);
 /******************* wsubs.c ***********************/ 
-int wnocr(struct _iobuf *fp,char *s);
-int dfprintf(struct _iobuf *fp,int i,char *fname);
+int wnocr(FILE *fp,char *s);
+int dfprintf(FILE *fp,int i,char *fname);
 /******************* xparam.c ***********************/ 
 int setparam(struct header *hda,...);
 int setparamd(struct header *hda,...);
