@@ -1741,6 +1741,85 @@ Volm_tErr Volm_ConvertMRIIdxToIdx  ( mriVolumeRef this,
   return eResult;
 }
 
+Volm_tErr Volm_ConvertMRIIdxToRAS ( mriVolumeRef this,
+				    xVoxelRef    iMRIIdx,
+				    xVoxelRef    oRAS ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  Real      rasX    = 0;
+  Real      rasY    = 0;
+  Real      rasZ    = 0;
+  
+
+  DebugEnterFunction( ("Volm_ConvertIdxToRAS( this=%p, iMRIIdx=%p, oRAS=%p )", 
+		       this, iMRIIdx, oRAS) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (iMRIIdx != NULL && oRAS != NULL), 
+		     eResult, Volm_tErr_InvalidParamater );
+  eResult = Volm_VerifyMRIIdx_( this, iMRIIdx );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  /* Convert idx to ras */
+  DebugNote( ("Converting idx to RAS with MRIvoxelToWorld") );
+  MRIvoxelToWorld( this->mpMriValues, xVoxl_ExpandFloat( iMRIIdx ),
+		   &rasX, &rasY, &rasZ );
+
+  /* stuff results */
+  DebugNote( ("Stuffing result into xVoxel") );
+  xVoxl_SetFloat( oRAS, (float)rasX, (float)rasY, (float)rasZ );
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_ConvertRASToMRIIdx ( mriVolumeRef this,
+				    xVoxelRef    iRAS,
+				    xVoxelRef    oMRIIdx ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  Real      idxX    = 0;
+  Real      idxY    = 0;
+  Real      idxZ    = 0;
+  
+  DebugEnterFunction( ("Volm_ConvertRASToIdx( this=%p, iRAS=%p, oMRIIdx=%p )", 
+		       this, iRAS, oMRIIdx) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (iRAS != NULL && oMRIIdx != NULL), 
+		     eResult, Volm_tErr_InvalidParamater );
+  
+  /* convert ras to MRI idx */
+  DebugNote( ("Converting RAS to mri idx with MRIworldToVoxel") );
+  MRIworldToVoxel( this->mpMriValues, xVoxl_ExpandFloat( iRAS ),
+		   &idxX, &idxY, &idxZ );
+  
+  /* stuff results */
+  DebugNote( ("Stuffing result into xVoxel") );
+  xVoxl_SetFloat( oMRIIdx, (float)idxX, (float)idxY, (float)idxZ );
+
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 Volm_tErr Volm_GetIdxToRASTransform ( mriVolumeRef     this,
 				      mriTransformRef* opTransform ) {
   
