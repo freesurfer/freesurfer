@@ -38,7 +38,8 @@ function rt = fast_psdwin(psdwin,DoWhat)
 %  
 % The number of points in the IRF or ERF window is computed as 
 %   nirfpsdwin = (psdmax-psdmin)/dpsd;
-%   nerfpsdwin = (erfpsdmax-psdmin-dpsd)/dpsd;
+%   nerfpsdwin = (erfpsdmax-psdmin)/dpsd;
+%                (psdmax+bcw-psdmin)/dpsd;
 %
 % The first element of the time axis vector will be psdmin, the
 % second will be psdmin+dsd.  The last component will be 
@@ -50,7 +51,7 @@ function rt = fast_psdwin(psdwin,DoWhat)
 % there is an error and DoWhat is not 'check', then an empty
 % matrix is returned.
 %  
-% $Id: fast_psdwin.m,v 1.3 2003/03/21 05:20:25 greve Exp $
+% $Id: fast_psdwin.m,v 1.4 2003/04/15 03:49:48 greve Exp $
 
 rt = [];
 
@@ -111,7 +112,7 @@ else
 end
 
 nirfpsdwin = round((psdmax-psdmin)/dpsd);
-erfpsdmax = psdmax + bcw - dpsd;
+erfpsdmax = psdmax + bcw;
 nerfpsdwin = round((erfpsdmax-psdmin)/dpsd);
 
 switch(DoWhat)
