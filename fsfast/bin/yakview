@@ -7,7 +7,7 @@
 ############################################################
 
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set YAKVIEW_VER = '\$Id: yakview,v 1.3 2003/09/17 02:07:27 greve Exp $'
+set YAKVIEW_VER = '\$Id: yakview,v 1.4 2003/09/26 18:22:55 greve Exp $'
 
 # Set Default Values #
 set imgstem = ();
@@ -356,7 +356,7 @@ rm -f $MLF;
   endif
 
   if(! $monly) then
-    cat $MLF | $MATLAB
+    cat $MLF | $MATLAB -nosplash
     rm -f $MLF;
   endif
 
