@@ -1,13 +1,13 @@
-function fftaxis = fast_fftaxis(Ntp,TR)
-% fftaxis = fast_fftaxis(Ntp,TR)
+function [fftaxis, deltafreq] = fast_fftaxis(Ntp,TR)
+% [fftaxis, deltafreq] = fast_fftaxis(Ntp,TR)
 %
 % Returns the frequencies at which the fft is computed, 
 % for DC to the nyquist frequency.
 %
-% $Id: fast_fftaxis.m,v 1.1 2003/05/22 19:38:57 greve Exp $
+% $Id: fast_fftaxis.m,v 1.2 2003/12/02 23:07:08 greve Exp $
 
 if(nargin ~= 2) 
-  msg = 'USAGE: fftaxis = fast_fftaxis(Ntp,TR)';
+  msg = 'USAGE: [fftaxis, deltafreq] = fast_fftaxis(Ntp,TR)';
   qoe(msg); error(msg);
 end
 
