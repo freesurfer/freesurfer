@@ -651,11 +651,11 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     }
     else
     {
-      ndark = 0 ;
       if (ndark > max_dark)
       {
         max_dark = ndark ; x1 = start ;
       }
+      ndark = 0 ;
     }
   }
   if (ndark > max_dark)
@@ -680,11 +680,11 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     }
     else
     {
-      ndark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; x1 = start ;
       }
+      ndark = 0 ;
     }
   }
   if (ndark > max_dark)
@@ -709,11 +709,11 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     }
     else
     {
-      ndark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; y1 = start ;
       }
+      ndark = 0 ;
     }
   }
   if (ndark > max_dark)
@@ -738,11 +738,11 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     }
     else
     {
-      ndark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; y1 = start ;
       }
+      ndark = 0 ;
     }
   }
   if (ndark > max_dark)
@@ -767,11 +767,11 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     }
     else
     {
-      ndark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; z1 = start ;
       }
+      ndark = 0 ;
     }
   }
   if (ndark > max_dark)
@@ -796,11 +796,11 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     }
     else
     {
-      ndark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; z1 = start ;
       }
+      ndark = 0 ;
     }
   }
   if (ndark > max_dark)
