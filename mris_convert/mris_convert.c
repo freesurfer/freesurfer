@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.5 1998/07/21 21:37:50 fischl Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.6 1998/08/02 23:10:42 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -28,6 +28,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 static int convertWFile(char *in_fname, char *out_fname) ;
+static int writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
@@ -37,7 +38,9 @@ static int talairach_flag = 0 ;
 static int patch_flag = 0 ;
 static int read_orig_positions = 0 ;
 static int w_file_flag = 0 ;
-static char *orig_name ;
+static int curv_file_flag = 0 ;
+static char *curv_fname ;
+static char *orig_surf_name = NULL ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -110,15 +113,9 @@ main(int argc, char *argv[])
                 Progname, in_fname) ;
     if (read_orig_positions)
     {
-#if 0
-      if (MRISreadVertexPositions(mris, "smoothwm") != NO_ERROR)
+      if (MRISreadVertexPositions(mris, orig_surf_name) != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, fname) ;
-#else
-      if (MRISreadVertexPositions(mris, orig_name) != NO_ERROR)
-        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-                  Progname, fname) ;
-#endif
     }
   }
   else
@@ -129,7 +126,12 @@ main(int argc, char *argv[])
                 Progname, in_fname) ;
   }
 
-  if (mris->patch)
+  if (curv_file_flag)
+  {
+    MRISreadCurvatureFile(mris, curv_fname) ;
+    writeAsciiCurvFile(mris, out_fname) ;
+  }
+  else if (mris->patch)
     MRISwritePatch(mris, out_fname) ;
   else
     MRISwrite(mris, out_fname) ;
@@ -158,11 +160,14 @@ get_option(int argc, char *argv[])
     print_version() ;
   else switch (toupper(*option))
   {
+  case 'C':
+    curv_file_flag = 1 ;
+    curv_fname = argv[2] ;
+    nargs = 1 ;
+    break ;
   case 'O':
     read_orig_positions = 1 ;
-    orig_name = argv[2] ;
-    fprintf(stderr, "reading original vertex positions from '%s' surface.\n",
-            orig_name) ;
+    orig_surf_name = argv[2] ;
     nargs = 1 ;
     break ;
   case 'P':
@@ -254,6 +259,32 @@ convertWFile(char *in_fname, char *out_fname)
   }
   fclose(infp) ;
   fclose(outfp) ;
+  return(NO_ERROR) ;
+}
+
+
+static int
+writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname)
+{
+  FILE   *fp ;
+  int    vno ;
+  VERTEX *v ;
+
+  fp = fopen(out_fname, "w") ;
+  if (!fp)
+    ErrorExit(ERROR_BADFILE, "%s could not open output file %s.\n",
+              Progname, out_fname) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    fprintf(fp, "%3.3d %2.5f %2.5f %2.5f %2.5f\n",
+            vno, v->x, v->y, v->z, v->curv) ;
+  }
+
+  fclose(fp) ;
   return(NO_ERROR) ;
 }
 
