@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.65 2004/12/12 00:50:33 kteich Exp $
+# $Id: tksurfer.tcl,v 1.66 2004/12/20 02:06:41 kteich Exp $
 
 package require BLT;
 
@@ -2656,6 +2656,9 @@ proc CreateMenuBar { ifwMenuBar } {
 		{ fbnd_remove_selected_boundary } }
 	    { command "Custom Fill..."
 		{ DoCustomFillDlog } }
+	    { command "Fill Uncut Area"
+		{ floodfill_marked_patch 0
+		    UpdateAndRedraw } }
 	    { command "Fill Stats"
 		{ floodfill_marked_patch 1
 		    UpdateAndRedraw }
@@ -3283,17 +3286,18 @@ proc CreateToolBar { ifwToolBar } {
     
     frame $gfwaToolBar(main) -border 2 -relief raised
     
-    tkm_MakeButtons $fwCut { \
-      { image icon_cut_line { cut_line 0; UpdateAndRedraw } \
-      "Cut Line" } \
-      { image icon_cut_closed_line { cut_line 1; UpdateAndRedraw } \
-      "Cut Closed Line" } \
-      { image icon_cut_plane { cut_plane; UpdateAndRedraw } \
-      "Cut Plane" } \
-      { image icon_cut_area { floodfill_marked_patch 0; \
-      UpdateAndRedraw } "Fill Uncut Area" } \
-      { image icon_cut_clear { restore_ripflags 2; UpdateAndRedraw } \
-      "Clear Cuts" } }
+    tkm_MakeButtons $fwCut { 
+	{ image icon_cut_line { cut_line 0; UpdateAndRedraw } 
+	    "Cut Line" } 
+	{ image icon_cut_closed_line { cut_line 1; UpdateAndRedraw } 
+	    "Cut Closed Line" } 
+	{ image icon_cut_plane { cut_plane; UpdateAndRedraw } 
+	    "Cut Plane" } 
+	{ image icon_cut_area { floodfill_marked_patch 0; 
+	    UpdateAndRedraw } "Fill Uncut Area" } 
+	{ image icon_cut_clear { restore_ripflags 2; UpdateAndRedraw } 
+	    "Clear Cuts" }
+    }
     
     tkm_MakeButtons $fwPoint { \
       { image icon_cursor_save { DoSavePoint } "Save Point" } \
