@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/07/07 22:16:00 $
-// Revision       : $Revision: 1.105 $
+// Revision Date  : $Date: 2004/07/19 03:43:32 $
+// Revision       : $Revision: 1.106 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -8236,6 +8236,10 @@ DspA_tErr DspA_WriteLineToLabel ( tkmDisplayAreaRef this,
   /* set the number of points in the label */
   pLabel->n_points = this->mNumLineVoxels;
   
+  /* Copy subject name. */
+  Volm_CopySubjectName( this->mpVolume[tkm_tVolumeType_Main],
+			pLabel->subject_name, 100 );
+
   /* Add each line voxel. */
   nVertex = 0;
   for( nLineVox = 0; nLineVox < this->mNumLineVoxels; nLineVox++ ) {
