@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # isxavg-re-abb-sess
 #
-set VERSION = '$Id: isxavg-re-abb-sess,v 1.2 2003/08/02 01:03:11 greve Exp $';
+set VERSION = '$Id: isxavg-re-abb-sess,v 1.3 2003/08/13 17:27:26 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -119,6 +119,14 @@ foreach c (cos sin avb)
   mkdir -p $outdir/$c
 end
 
+if($space == "tal") then
+  set regfile = $SessList[1]/$fsd/$analysis/$spacedir/register.dat
+  if(! -e $regfile) then
+    echo "ERROR: $regfile does not exist"
+    exit 1;
+  endif
+  cp $regfile $outdir
+endif
 if($space == "native") set space = ();
 
 if(! $monly) set MLF = /tmp/isxavg-re-abb-sess-$$.m
