@@ -180,7 +180,8 @@ set glLabel { \
   kLabel_Coords_Func_RAS \
   kLabel_Value_Func \
   kLabel_Label_ROI \
-  kLabel_Label_Head }
+  kLabel_Label_Head \
+  kLabel_Distance }
 foreach label $glLabel {
     set gfwaLabel($label,cursor) ""
     set gfwaLabel($label,mouseover) ""
@@ -196,6 +197,7 @@ set gsaLabelContents(kLabel_Coords_Func_RAS,name) "Functional RAS"
 set gsaLabelContents(kLabel_Value_Func,name) "Functional value"
 set gsaLabelContents(kLabel_Label_ROI,name) "Sgmtn label"
 set gsaLabelContents(kLabel_Label_Head,name) "Head Point"
+set gsaLabelContents(kLabel_Distance,name) "Distance"
 
 foreach label $glLabel {
     set gsaLabelContents($label,value,cursor) "none"
@@ -332,6 +334,11 @@ proc UpdateFunctionalRASCoords { iSet inX inY inZ } {
     global gsaLabelContents
     set gsaLabelContents(kLabel_Coords_Func_RAS,value,$iSet) \
       "($inX, $inY, $inZ)"
+}
+
+proc UpdateDistance { iSet ifDistance } {
+    global gsaLabelContents
+    set gsaLabelContents(kLabel_Distance,value,$iSet) $ifDistance
 }
 
 proc UpdateZoomLevel { inLevel } { 
@@ -596,6 +603,13 @@ set tDlogSpecs(LoadPialSurface) [list \
   -default1 [list GetDefaultLocation LoadPialSurface] \
   -okCmd {LoadCanonicalSurface %s1; \
   SetDefaultLocation LoadPialSurface %s1} ]
+set tDlogSpecs(WriteSurfaceValues) [list \
+  -title "Write Surface Values" \
+  -prompt1 "Save Values As:" \
+  -note1 "The file name of the values file to write" \
+  -default1 [list GetDefaultLocation WriteSurfaceValues] \
+  -okCmd {WriteSurfaceValues %s1; \
+  SetDefaultLocation WriteSurfaceValues %s1} ]
 set tDlogSpecs(LoadFunctionalOverlay) [list \
   -title "Load Functional Overlay" \
   -prompt1 "Load Volume:" \
@@ -2064,6 +2078,11 @@ proc CreateMenuBar { ifwMenuBar } {
       UnloadSurface \
       tMenuGroup_SurfaceLoading } \
       \
+      { command \
+      "Write Surface Values..." \
+      {DoFileDlog WriteSurfaceValues} \
+      tMenuGroup_SurfaceLoading } \
+      \
       { separator } \
       \
       { command \
@@ -2252,7 +2271,11 @@ proc CreateMenuBar { ifwMenuBar } {
       "Head Point Label" \
       "ShowLabel kLabel_Label_Head $gbShowLabel(kLabel_Label_Head)"\
       gbShowLabel(kLabel_Label_Head) \
-      tMenuGroup_HeadPoints } } } \
+      tMenuGroup_HeadPoints } \
+      { check \
+      "Distance" \
+      "ShowLabel kLabel_Distance $gbShowLabel(kLabel_Distance)"\
+      gbShowLabel(kLabel_Distance)  } } } \
       \
       { separator } \
       \
@@ -2455,7 +2478,7 @@ proc CreateMenuBar { ifwMenuBar } {
       { command \
       "Configure Segmentation Brush..." \
       DoEditParcBrushInfoDlog\
-      tMenuGroup_Segmentation } \
+      tMenuGroup_Parcellation } \
       \
       { separator } \
       \
@@ -2517,7 +2540,12 @@ proc CreateMenuBar { ifwMenuBar } {
       { command \
       "Find Pial Vertex..." \
       { DoFindVertexDlog $Surf_tVertexSet_Canonical } \
-      tMenuGroup_CanonicalSurfaceViewing } } } \
+      tMenuGroup_CanonicalSurfaceViewing } \
+      \
+      { command \
+      "Set Vertex Distance at Cursor" \
+      { SetSurfaceDistanceAtCursor } \
+      tMenuGroup_SurfaceLoading } } } \
       \
       { cascade "fMRI" { \
       { command \
@@ -2564,7 +2592,7 @@ proc CreateMenuBar { ifwMenuBar } {
       { command \
       "Select Current Label" \
       SelectCurrentROI \
-      tMenuGroup_Segmentation } \
+      tMenuGroup_Parcellation } \
       \
       { command \
       "Recompute Segmentation" \
@@ -2574,7 +2602,7 @@ proc CreateMenuBar { ifwMenuBar } {
       { command \
       "Graph Current Label Average" \
       GraphCurrentROIAvg \
-      tMenuGroup_Segmentation } } } \
+      tMenuGroup_Parcellation } } } \
       \
       { cascade "Head Points" { \
       \
@@ -2673,8 +2701,8 @@ proc CreateLabelFrame { ifwTop iSet } {
   tkm_MakeActiveLabel $fwLabel "" gsaLabelContents($label,name) 14
   tkm_MakeActiveLabel $fwValue "" gsaLabelContents($label,value,$iSet) 18
   pack $fwLabel $fwValue \
-    -side left \
-    -anchor w
+      -side left \
+      -anchor w
     }
 
     ShowLabel kLabel_Coords_Vol_RAS 1

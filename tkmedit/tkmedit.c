@@ -244,6 +244,8 @@ tkm_tErr LoadSurfaceVertexSet ( Surf_tVertexSet iSet,
         char*           fname );
 void     UnloadSurface        ();
 
+void     WriteSurfaceValues   ( char*           isFileName );
+
 // ===========================================================================
 
 // ========================================================= SELECTING REGIONS
@@ -2040,23 +2042,21 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSurface ) {
   if( MWin_tErr_NoErr != eWindow )
     goto error;
 
-  OutputPrint "Nearest %s vertex to %d, %d, %d:\n",
-    sSetName, xVoxl_ExpandInt( &cursor ) EndOutputPrint;
-
   /* first unadjust the point. */
   eWindow = MWin_UnadjustSurfaceAnaIdx( gMeditWindow, &cursor );
   if( MWin_tErr_NoErr != eWindow )
     goto error;
 
   /* get the vertex */
-  eSurface = Surf_GetClosestVertex( gSurface, iSurface, &cursor, &anaIdx,
-            sDescription);
+  eSurface = Surf_GetClosestVertexVoxel( gSurface, iSurface, &cursor, &anaIdx,
+           sDescription);
   if( Surf_tErr_NoErr != eSurface ) 
     goto error;
 
   /* print the result string */
   Surf_GetSurfaceSetName( iSurface, sSetName );
-  OutputPrint "\t%s\n", sDescription EndOutputPrint;
+  OutputPrint "Nearest %s vertex to %d, %d, %d:\n\t%s\n",
+    sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
 
   /* adjust it so it aligns to the surface. */
   eWindow = MWin_AdjustSurfaceAnaIdx( gMeditWindow, &anaIdx );
@@ -2413,6 +2413,15 @@ void UnloadSurface () {
 
 /* update the medit window. */
   MWin_SetSurface( gMeditWindow, -1, gSurface );
+}
+
+void WriteSurfaceValues ( char* isFileName ) {
+
+  if( !gSurface )
+    return;
+
+  /* Write the values for this surface. */
+  Surf_WriteValues( gSurface, isFileName );
 }
 
 // ===========================================================================
@@ -3243,6 +3252,24 @@ int TclUnloadAllSurfaces ( ClientData inClientData, Tcl_Interp* inInterp,
 
   if( gbAcceptingTclCommands ) {
     UnloadSurface ();
+  }  
+
+  return TCL_OK;
+}
+
+
+int TclWriteSurfaceValues ( ClientData inClientData, Tcl_Interp* inInterp,
+         int argc, char* argv[] ) {
+  
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp, 
+        "wrong # args: WriteSurfaceValues file_name:string",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+    WriteSurfaceValues ( argv[1] );
   }  
 
   return TCL_OK;
@@ -4416,6 +4443,10 @@ int main ( int argc, char** argv ) {
   
   Tcl_CreateCommand ( interp, "UnloadSurface",
           TclUnloadAllSurfaces,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
+  Tcl_CreateCommand ( interp, "WriteSurfaceValues",
+          TclWriteSurfaceValues,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "GotoMainVertex",
@@ -8940,10 +8971,14 @@ void tkm_FloodFillSegmentation ( xVoxelRef       iAnaIdx,
 
   /* see if our iteration limit was reached. if so, spit out an error. */
   if( params.mbIterationLimitReached ) {
-    DebugPrint( ( "FloodFillSegmentation: Recursion limit reached.\n"
-      ) );
+    DebugPrint( ( "FloodFillSegmentation: Recursion limit reached.\n" ) );
     strcpy( sTclArguments, 
-      "\"Flood fill recursion limit reached. The region you wished to fill was too big for me to handle. I have filled as much as I can. You should try filling again from another starting point, close to the edge of the part that was filled.\nIf you find this happening a lot, please email the programmer and bug him to change this.\"" );
+      "\"Flood fill recursion limit reached. The region you wished to "
+      "fill was too big for me to handle. I have filled as much as I "
+      "can. You should try filling again from another starting point, "
+      "close to the edge of the part that was filled.\nIf you find this "
+      "happening a lot, please email the programmer and bug him to "
+      "change this.\"" );
     tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
     goto cleanup;
   }
@@ -8951,6 +8986,18 @@ void tkm_FloodFillSegmentation ( xVoxelRef       iAnaIdx,
  cleanup:
   return;
 }
+
+void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
+         float     ifDistance ) {
+
+  if( NULL == gSurface ) {
+    return;
+  }
+
+  Surf_SetVertexValue( gSurface, Surf_tVertexSet_Main, Surf_tValueSet_Val,
+           iAnaIdx, ifDistance );
+}
+
 
 char kTclCommands [tkm_knNumTclCommands][STRLEN] = {
 
@@ -8968,6 +9015,9 @@ char kTclCommands [tkm_knNumTclCommands][STRLEN] = {
   "UpdateFunctionalCoords",
   "UpdateFunctionalRASCoords",
   "UpdateFunctionalValue",
+  "UpdateROILabel",
+  "UpdateHeadPointLabel",
+  "UpdateDistance",
   "UpdateZoomLevel",
   "UpdateOrientation",
   "UpdateDisplayFlag",
@@ -8980,9 +9030,7 @@ char kTclCommands [tkm_knNumTclCommands][STRLEN] = {
   "UpdateSurfaceLineColor",
   "UpdateParcBrushInfo",
   "UpdateVolumeColorScaleInfo",
-  "UpdateROILabel",
   "UpdateROIGroupAlpha",
-  "UpdateHeadPointLabel",
   "UpdateTimerStatus",
   "UpdateHomeDirectory",
   "UpdateVolumeDirty",

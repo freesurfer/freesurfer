@@ -90,6 +90,9 @@ typedef enum {
   tkm_tTclCommand_UpdateFunctionalCoords,
   tkm_tTclCommand_UpdateFunctionalRASCoords,
   tkm_tTclCommand_UpdateFunctionalValue,
+  tkm_tTclCommand_UpdateROILabel,
+  tkm_tTclCommand_UpdateHeadPointLabel,
+  tkm_tTclCommand_UpdateDistance,
   tkm_tTclCommand_UpdateZoomLevel,
   tkm_tTclCommand_UpdateOrientation,
   tkm_tTclCommand_UpdateDisplayFlag,
@@ -102,9 +105,7 @@ typedef enum {
   tkm_tTclCommand_UpdateSurfaceLineColor,
   tkm_tTclCommand_UpdateParcBrushInfo,
   tkm_tTclCommand_UpdateVolumeColorScale,
-  tkm_tTclCommand_UpdateROILabel,
   tkm_tTclCommand_UpdateROIGroupAlpha,
-  tkm_tTclCommand_UpdateHeadPointLabel,
   tkm_tTclCommand_UpdateTimerStatus,
   tkm_tTclCommand_UpdateHomeDirectory,
   tkm_tTclCommand_UpdateVolumeDirty,
@@ -266,6 +267,10 @@ void tkm_HandleIdle ();
 void tkm_WriteVoxelToControlFile ( xVoxelRef iAnaIdx );
 void tkm_WriteVoxelToEditFile    ( xVoxelRef iAnaIdx );
 void tkm_ReadCursorFromEditFile  ();
+
+/* writing surface distances. */
+void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
+         float     ifDistance );
 
 /* cleaning up */
 void tkm_Quit ();
