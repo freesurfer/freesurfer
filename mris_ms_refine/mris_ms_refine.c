@@ -20,7 +20,7 @@
 #include "histo.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.13 2003/09/05 04:45:43 kteich Exp $";
+static char vcid[] = "$Id: mris_ms_refine.c,v 1.14 2003/09/15 20:39:44 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -301,7 +301,7 @@ main(int argc, char *argv[])
   EXTRA_PARMS   ep ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.13 2003/09/05 04:45:43 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.14 2003/09/15 20:39:44 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1486,20 +1486,29 @@ vertex_error(MRI_SURFACE *mris, int vno, EXTRA_PARMS *ep, double *prms)
   inward_dist = ep->cv_inward_dists[vno] ;
   outward_dist = ep->cv_outward_dists[vno] ;
   mri = ep->mri_flash[0] ;
-  MRIworldToVoxel(mri, v_white->origx, v_white->origy, v_white->origz, 
+  // MRIworldToVoxel(mri, v_white->origx, v_white->origy, v_white->origz, 
+  //                 &xw, &yw, &zw) ;
+  // MRIworldToVoxel(mri, v_pial->pialx, v_pial->pialy, v_pial->pialz,
+  //                &xp, &yp, &zp) ;
+  MRIsurfaceRASToVoxel(mri, v_white->origx, v_white->origy, v_white->origz, 
                   &xw, &yw, &zw) ;
-  MRIworldToVoxel(mri, v_pial->pialx, v_pial->pialy, v_pial->pialz,
+  MRIsurfaceRASToVoxel(mri, v_pial->pialx, v_pial->pialy, v_pial->pialz,
                   &xp, &yp, &zp) ;
 
   dx = xp-xw ; dy = yp-yw ; dz = zp-zw ; 
   cortical_dist = sqrt(dx*dx + dy*dy + dz*dz) ;
   if (TOO_SMALL(cortical_dist))
   {
-    MRIworldToVoxel(mri, 
-                    v_pial->pialx+v_pial->nx, 
-                    v_pial->pialy+v_pial->nx, 
-                    v_pial->pialz+v_pial->nz,
-                    &x, &y, &z) ;
+    // MRIworldToVoxel(mri, 
+    //                 v_pial->pialx+v_pial->nx, 
+    //                 v_pial->pialy+v_pial->nx, 
+    //                 v_pial->pialz+v_pial->nz,
+    //                 &x, &y, &z) ;
+    MRIsurfaceRASToVoxel(mri, 
+			 v_pial->pialx+v_pial->nx, 
+			 v_pial->pialy+v_pial->nx, 
+			 v_pial->pialz+v_pial->nz,
+			 &x, &y, &z) ;
 
     dx = x-xw ; dy = y-yw ; dz = z-zw ; 
     dist = sqrt(dx*dx + dy*dy + dz*dz) ;
@@ -1736,16 +1745,23 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
     for (i = 0 ; i < nvolumes ; i++)
     {
       mri = mri_flash[i] ;
-      MRIworldToVoxel(mri, v_white->origx, v_white->origy, v_white->origz, &xw, &yw, &zw) ;
-      MRIworldToVoxel(mri, v_pial->pialx, v_pial->pialy, v_pial->pialz, &xp, &yp, &zp) ;
+      // converting surface vertex to volume voxel
+      // MRIworldToVoxel(mri, v_white->origx, v_white->origy, v_white->origz, &xw, &yw, &zw) ;
+      // MRIworldToVoxel(mri, v_pial->pialx, v_pial->pialy, v_pial->pialz, &xp, &yp, &zp) ;
+      MRIsurfaceRASToVoxel(mri, v_white->origx, v_white->origy, v_white->origz, &xw, &yw, &zw) ;
+      MRIsurfaceRASToVoxel(mri, v_pial->pialx, v_pial->pialy, v_pial->pialz, &xp, &yp, &zp) ;
       nx = xp - xw ; ny = yp - yw ; nz = zp - zw ; 
       dist = sqrt(nx*nx + ny*ny + nz*nz) ; 
       if (TOO_SMALL(dist))
       {
-        MRIworldToVoxel(mri, 
-                        v_pial->pialx+v_white->nx, 
-                        v_pial->pialy+v_white->ny, 
-                        v_pial->pialz+v_white->nz, &xp, &yp, &zp) ;
+        // MRIworldToVoxel(mri, 
+        //                 v_pial->pialx+v_white->nx, 
+        //                 v_pial->pialy+v_white->ny, 
+        //                 v_pial->pialz+v_white->nz, &xp, &yp, &zp) ;
+        MRIsurfaceRASToVoxel(mri, 
+			     v_pial->pialx+v_white->nx, 
+			     v_pial->pialy+v_white->ny, 
+			     v_pial->pialz+v_white->nz, &xp, &yp, &zp) ;
         nx = xp - xw ; ny = yp - yw ; nz = zp - zw ; 
         dist = sqrt(nx*nx + ny*ny + nz*nz) ; 
       }
@@ -1828,8 +1844,10 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
 #endif
 
     found_csf = 0 ; 
-    MRIworldToVoxel(mri_flash[0],v_white->origx, v_white->origy, v_white->origz, &xw,&yw,&zw);
-    MRIworldToVoxel(mri_flash[0],v_pial->pialx, v_pial->pialy, v_pial->pialz, &xp, &yp, &zp) ;
+    // MRIworldToVoxel(mri_flash[0],v_white->origx, v_white->origy, v_white->origz, &xw,&yw,&zw);
+    // MRIworldToVoxel(mri_flash[0],v_pial->pialx, v_pial->pialy, v_pial->pialz, &xp, &yp, &zp) ;
+    MRIsurfaceRASToVoxel(mri_flash[0],v_white->origx, v_white->origy, v_white->origz, &xw,&yw,&zw);
+    MRIsurfaceRASToVoxel(mri_flash[0],v_pial->pialx, v_pial->pialy, v_pial->pialz, &xp, &yp, &zp) ;
     nx = xp - xw ; ny = yp - yw ; nz = zp - zw ; 
     cortical_dist = dist = sqrt(nx*nx + ny*ny + nz*nz) ; 
     max_outward_dist = max_outward_dist_total /* - cortical_dist*/ ;
@@ -1839,18 +1857,24 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
     for (i = 0 ; i < nvolumes ; i++)
     {
       mri = mri_flash[i] ;
-      MRIworldToVoxel(mri, v_white->origx, v_white->origy, v_white->origz, &xw, &yw, &zw) ;
-      MRIworldToVoxel(mri, v_pial->pialx, v_pial->pialy, v_pial->pialz, &xp, &yp, &zp) ;
+      // MRIworldToVoxel(mri, v_white->origx, v_white->origy, v_white->origz, &xw, &yw, &zw) ;
+      // MRIworldToVoxel(mri, v_pial->pialx, v_pial->pialy, v_pial->pialz, &xp, &yp, &zp) ;
+      MRIsurfaceRASToVoxel(mri, v_white->origx, v_white->origy, v_white->origz, &xw, &yw, &zw) ;
+      MRIsurfaceRASToVoxel(mri, v_pial->pialx, v_pial->pialy, v_pial->pialz, &xp, &yp, &zp) ;
       nx = xp - xw ; ny = yp - yw ; nz = zp - zw ; 
       cortical_dist = dist = sqrt(nx*nx + ny*ny + nz*nz) ; 
       if (TOO_SMALL(dist))
       {
         Real xpn, ypn, zpn ;
 
-        MRIworldToVoxel(mri, 
-                        v_pial->pialx+v_white->nx, 
-                        v_pial->pialy+v_white->ny, 
-                        v_pial->pialz+v_white->nz, &xpn, &ypn, &zpn) ;
+        // MRIworldToVoxel(mri, 
+        //                 v_pial->pialx+v_white->nx, 
+        //                 v_pial->pialy+v_white->ny, 
+        //                 v_pial->pialz+v_white->nz, &xpn, &ypn, &zpn) ;
+        MRIsurfaceRASToVoxel(mri, 
+			     v_pial->pialx+v_white->nx, 
+			     v_pial->pialy+v_white->ny, 
+			     v_pial->pialz+v_white->nz, &xpn, &ypn, &zpn) ;
         nx = xpn - xp ; ny = ypn - yp ; nz = zpn - zp ; 
         dist = sqrt(nx*nx + ny*ny + nz*nz) ; 
       }
@@ -2664,20 +2688,30 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
 #endif
   sigma = ep->current_sigma ;
 
-  MRIworldToVoxel(ep->mri_flash[0], v_white->origx, v_white->origy,v_white->origz,
+  // MRIworldToVoxel(ep->mri_flash[0], v_white->origx, v_white->origy,v_white->origz,
+  //                &xw,&yw,&zw);
+  // MRIworldToVoxel(ep->mri_flash[0], v_pial->pialx, v_pial->pialy,v_pial->pialz,
+  //                 &xp,&yp,&zp);
+  MRIsurfaceRASToVoxel(ep->mri_flash[0], v_white->origx, v_white->origy,v_white->origz,
                   &xw,&yw,&zw);
-  MRIworldToVoxel(ep->mri_flash[0], v_pial->pialx, v_pial->pialy,v_pial->pialz,
+  MRIsurfaceRASToVoxel(ep->mri_flash[0], v_pial->pialx, v_pial->pialy,v_pial->pialz,
                   &xp,&yp,&zp);
+
   dx = xp - xw ; dy = yp - yw ; dz = zp - zw ; 
   orig_cortical_dist = cortical_dist = sqrt(dx*dx + dy*dy + dz*dz) ;
   if (TOO_SMALL(cortical_dist))
   {
     dx = v_pial->nx ; dy = v_pial->ny ; dz = v_pial->nz ;
-    MRIworldToVoxel(ep->mri_flash[0], 
-                    v_pial->pialx+v_pial->nx, 
-                    v_pial->pialy+v_pial->ny,
-                    v_pial->pialz+v_pial->nz,
-                    &xp,&yp,&zp);
+    // MRIworldToVoxel(ep->mri_flash[0], 
+    //                 v_pial->pialx+v_pial->nx, 
+    //                v_pial->pialy+v_pial->ny,
+    //                v_pial->pialz+v_pial->nz,
+    //                &xp,&yp,&zp);
+    MRIsurfaceRASToVoxel(ep->mri_flash[0], 
+			 v_pial->pialx+v_pial->nx, 
+			 v_pial->pialy+v_pial->ny,
+			 v_pial->pialz+v_pial->nz,
+			 &xp,&yp,&zp);
     dx = xp - xw ; dy = yp - yw ; dz = zp - zw ; 
     dist = sqrt(dx*dx + dy*dy + dz*dz) ;
     if (FZERO(dist))
@@ -3160,8 +3194,10 @@ sample_parameter_map(MRI_SURFACE *mris, MRI *mri, MRI *mri_res,
     dx /= dist ; dy /= dist ; dz /= dist ;
     xe = xs + max_dist*dir*dx ; ye = ys + max_dist*dir*dy ; ze = zs + max_dist*dir*dz ;
 
-    MRIworldToVoxel(mri, xs, ys, zs, &xs, &ys, &zs) ;
-    MRIworldToVoxel(mri, xe, ye, ze, &xe, &ye, &ze) ;
+    // MRIworldToVoxel(mri, xs, ys, zs, &xs, &ys, &zs) ;
+    // MRIworldToVoxel(mri, xe, ye, ze, &xe, &ye, &ze) ;
+    MRIsurfaceRASToVoxel(mri, xs, ys, zs, &xs, &ys, &zs) ;
+    MRIsurfaceRASToVoxel(mri, xe, ye, ze, &xe, &ye, &ze) ;
 
     dx = xe-xs ; dy = ye-ys ; dz = ze-zs ; 
     max_dist = sqrt(dx*dx + dy*dy + dz*dz) ;  /* in units of voxels now */
@@ -3405,19 +3441,28 @@ compute_optimal_vertex_positions(MRI_SURFACE *mris, int vno, EXTRA_PARMS *ep,
   dy = v_pial->pialy - v_white->origy ;
   dz = v_pial->pialz - v_white->origz ;
   orig_cortical_dist = dist = sqrt(dx*dx + dy*dy + dz*dz) ;
-  MRIworldToVoxel(ep->mri_flash[0], v_white->origx, v_white->origy,v_white->origz,
+  // MRIworldToVoxel(ep->mri_flash[0], v_white->origx, v_white->origy,v_white->origz,
+  //                 &xw,&yw,&zw);
+  // MRIworldToVoxel(ep->mri_flash[0], v_pial->pialx, v_pial->pialy,v_pial->pialz,
+  //                 &xp,&yp,&zp);
+  MRIsurfaceRASToVoxel(ep->mri_flash[0], v_white->origx, v_white->origy,v_white->origz,
                   &xw,&yw,&zw);
-  MRIworldToVoxel(ep->mri_flash[0], v_pial->pialx, v_pial->pialy,v_pial->pialz,
+  MRIsurfaceRASToVoxel(ep->mri_flash[0], v_pial->pialx, v_pial->pialy,v_pial->pialz,
                   &xp,&yp,&zp);
   if (TOO_SMALL(dist))
   {
     dx = v_white->nx ; dy = v_white->ny ; dz = v_white->nz ;
     dist = sqrt(dx*dx + dy*dy + dz*dz) ;
-    MRIworldToVoxel(ep->mri_flash[0], 
-                    v_pial->pialx+v_pial->nx, 
-                    v_pial->pialy+v_pial->ny,
-                    v_pial->pialz+v_pial->nz,
-                    &xp,&yp,&zp);
+    // MRIworldToVoxel(ep->mri_flash[0], 
+    //                 v_pial->pialx+v_pial->nx, 
+    //                 v_pial->pialy+v_pial->ny,
+    //                 v_pial->pialz+v_pial->nz,
+    //                 &xp,&yp,&zp);
+    MRIsurfaceRASToVoxel(ep->mri_flash[0], 
+			 v_pial->pialx+v_pial->nx, 
+			 v_pial->pialy+v_pial->ny,
+			 v_pial->pialz+v_pial->nz,
+			 &xp,&yp,&zp);
   }
 
   if (FZERO(dist))
@@ -3916,7 +3961,9 @@ scale_all_images(MRI **mri_flash, int nvolumes, MRI_SURFACE *mris, float target_
 
     for (i = 0 ; i < nvolumes ; i++)
     {
-      MRIworldToVoxel(mri_flash[i], v->x-v->nx, v->y-v->ny, v->z-v->nz, &xw, &yw, &zw) ;
+      // MRIworldToVoxel(mri_flash[i], v->x-v->nx, v->y-v->ny, v->z-v->nz, &xw, &yw, &zw) ;
+      // converting surface vertex to volume voxel
+      MRIsurfaceRASToVoxel(mri_flash[i],v->x-v->nx, v->y-v->ny, v->z-v->nz, &xw, &yw, &zw);
       MRIsampleVolumeType(mri_flash[i], xw, yw, zw, &mean_wm[i], sample_type) ;
     }
     compute_T1_PD(mean_wm, mri_flash, nvolumes, &T1, &PD) ;
@@ -3928,13 +3975,14 @@ scale_all_images(MRI **mri_flash, int nvolumes, MRI_SURFACE *mris, float target_
 
     for (i = 0 ; i < nvolumes ; i++)
     {
-      MRIworldToVoxel(mri_flash[i], v->x+v->nx, v->y+v->ny, v->z+v->nz, &xw, &yw, &zw) ;
+      // MRIworldToVoxel(mri_flash[i], v->x+v->nx, v->y+v->ny, v->z+v->nz, &xw, &yw, &zw) ;
+      // converting surface vertex to volume voxel
+      MRIsurfaceRASToVoxel(mri_flash[i],v->x+v->nx, v->y+v->ny, v->z+v->nz, &xw, &yw, &zw);
       MRIsampleVolumeType(mri_flash[i], xw, yw, zw, &mean_wm[i], sample_type) ;
     }
     compute_T1_PD(mean_wm, mri_flash, nvolumes, &T1, &PD) ;
     T1_gm_total += T1 ; PD_gm_total += PD ;
     ep->cv_gm_T1[vno] = T1 ; ep->cv_gm_PD[vno] = PD ; 
-
   }
   T1_wm_total /= (float)mris->nvertices ;
   PD_wm_total /= (float)mris->nvertices ;
@@ -4270,7 +4318,8 @@ compute_PD_limits(MRI_SURFACE *mris, EXTRA_PARMS *ep, int navgs)
     PD_min = 100000 ; PD_max = 0 ;
     for (found = n = 0 ; n < ep->max_inward_dist ; n++)
     {
-      MRIworldToVoxel(ep->mri_PD, v->x-n*v->nx, v->y-n*v->ny, v->z-n*v->nz, &x, &y, &z) ;
+      // MRIworldToVoxel(ep->mri_PD, v->x-n*v->nx, v->y-n*v->ny, v->z-n*v->nz, &x, &y, &z) ;
+      MRIsurfaceRASToVoxel(ep->mri_PD, v->x-n*v->nx, v->y-n*v->ny, v->z-n*v->nz, &x, &y, &z) ;
       MRIsampleVolumeType(ep->mri_PD, x, y, z, &PD, sample_type) ;
       MRIsampleVolumeType(ep->mri_T1, x, y, z, &T1, sample_type) ;
       if (T1 < MIN_WM_T1 || T1 > MAX_WM_T1)
@@ -4299,7 +4348,8 @@ compute_PD_limits(MRI_SURFACE *mris, EXTRA_PARMS *ep, int navgs)
     bound. */
     for (found = n = 0 ; n < ep->max_outward_dist ; n++)  
     {
-      MRIworldToVoxel(ep->mri_PD, v->x+n*v->nx, v->y+n*v->ny, v->z+n*v->nz, &x, &y, &z) ;
+      // MRIworldToVoxel(ep->mri_PD, v->x+n*v->nx, v->y+n*v->ny, v->z+n*v->nz, &x, &y, &z) ;
+      MRIsurfaceRASToVoxel(ep->mri_PD, v->x+n*v->nx, v->y+n*v->ny, v->z+n*v->nz, &x, &y, &z) ;
       MRIsampleVolumeType(ep->mri_PD, x, y, z, &PD, sample_type) ;
       MRIsampleVolumeType(ep->mri_T1, x, y, z, &T1, sample_type) ;
       if (T1 < MIN_GM_T1 || T1 > MAX_GM_T1 || PD < MIN_GM_PD)
