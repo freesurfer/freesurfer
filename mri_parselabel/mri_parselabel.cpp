@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.12 2004/06/10 19:44:45 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.13 2004/06/10 20:13:50 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -194,13 +194,6 @@ int main(int argc, char *argv[])
   //////////////////////////////////////////////////////////////////////
   // reading vertices 
   //////////////////////////////////////////////////////////////////////
-  VECTOR *vIn=0;
-  VECTOR *vOut=0;
-  if (xfname.size())
-  {
-    vIn = VectorAlloc(4, MATRIX_REAL);
-    vOut = VectorAlloc(4, MATRIX_REAL);
-  }
   MATRIX *hSRASTolSRAS = 0;
   if (xfname.size())
   {
@@ -273,18 +266,13 @@ int main(int argc, char *argv[])
     }
     else
     {
-      V4_LOAD(vIn, scale*x, scale*y, scale*z, 1.);
       v = Vertex(scale*x, scale*y, scale*z, value);
     }
     vertices.push_back(v);
   }
   count = 0;
   flabel.close();
-  // free vector
-  if (vIn)
-    VectorFree(&vIn);
-  if (vOut)
-    VectorFree(&vOut);
+
   if (lta)
     LTAfree(&lta);
   if (hSRASTolSRAS)
