@@ -17,6 +17,11 @@ static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
 
+// debug point
+int DEBUG_X =62;
+int DEBUG_Y =254;
+int DEBUG_Z =92;
+
 static void usage_exit(int code) ;
 static MRI *MRIcomputePriors(MRI *mri_priors, int ndof, MRI *mri_char_priors);
 int MRIaccumulateMeansAndVariances(MRI *mri, MRI *mri_mean, MRI *mri_std) ;
@@ -67,7 +72,7 @@ main(int argc, char *argv[])
   MRI *mri_tmp ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.19 2005/02/25 20:09:42 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.20 2005/03/01 18:52:39 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -303,8 +308,8 @@ main(int argc, char *argv[])
                     Progname) ;
 	// if(transform_fname == NULL){
 	printf("Copying geometry\n");
-	MRIcopy(mri_T1,mri_mean);
-	MRIcopy(mri_T1,mri_std);
+	MRIcopyHeader(mri_T1,mri_mean);
+	MRIcopyHeader(mri_T1,mri_std);
 	// }
       }
 
@@ -485,12 +490,12 @@ MRIaccumulateMeansAndVariances(MRI *mri, MRI *mri_mean, MRI *mri_std)
       pstd = &MRIFvox(mri_std, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 128 && y == 128 && z == 128)
-          DiagBreak() ;
         val = MRIvox(mri,x,y,z) ;
+        if (x == DEBUG_X && y == DEBUG_Y && z == DEBUG_Z)
+	  DiagBreak() ;
 #if 1
-        *pmean++ += val ;
-        *pstd++ += val*val ;
+        *pmean++ += (float) val ;
+        *pstd++ += ((float) val)*((float) val) ;
 #else
         MRIFvox(mri_mean,x,y,z) += val ;
         MRIFvox(mri_std,x,y,z) += val*val ;
@@ -515,7 +520,7 @@ MRIcomputeMeansAndStds(MRI *mri_mean, MRI *mri_std, int ndof)
     {
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 128 && y == 128 && z == 128)
+        if (x == DEBUG_X && y == DEBUG_Y && z == DEBUG_Z)
           DiagBreak() ;
         sum = MRIFvox(mri_mean,x,y,z) ;
         sum_sq = MRIFvox(mri_std,x,y,z) / ndof ;
@@ -541,7 +546,7 @@ MRIcomputeMaskedMeansAndStds(MRI *mri_mean, MRI *mri_std, MRI *mri_dof)
     {
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 128 && y == 128 && z == 128)
+        if (x == DEBUG_X && y == DEBUG_Y && z == DEBUG_Z)
           DiagBreak() ;
         sum = MRIFvox(mri_mean,x,y,z) ;
         ndof = MRIvox(mri_dof, x, y, z) ;
@@ -627,7 +632,7 @@ MRIaccumulateMaskedMeansAndVariances(MRI *mri, MRI *mri_mask, MRI *mri_dof,
       pmask = &MRIvox(mri_mask, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 128 && y == 128 && z == 128)
+        if (x == DEBUG_X && y == DEBUG_Y && z == DEBUG_Z)
           DiagBreak() ;
         mask = *pmask++ ;
         if (mask >= low_val && mask <= hi_val)
@@ -664,7 +669,7 @@ MRIupdatePriors(MRI *mri_binary, MRI *mri_priors)
       pbin = &MRIvox(mri_binary, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 128 && y == 128 && z == 128)
+        if (x == DEBUG_X && y == DEBUG_Y && z == DEBUG_Z)
           DiagBreak() ;
         prob = *pbin++ / 100.0f ;
         MRIFvox(mri_priors, x, y, z) += prob ;
@@ -697,7 +702,7 @@ MRIcomputePriors(MRI *mri_priors, int ndof, MRI *mri_char_priors)
       pchar_prior = &MRIvox(mri_char_priors, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 128 && y == 128 && z == 128)
+        if (x == DEBUG_X && y == DEBUG_Y && z == DEBUG_Z)
           DiagBreak() ;
         prior = *pprior++ ;
         if (prior > 0)
