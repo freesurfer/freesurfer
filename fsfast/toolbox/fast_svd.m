@@ -1,5 +1,5 @@
-function [u,s,v] = fast_svd(y,M)
-% [u s v] = fast_svd(y,<M>)
+function [u,s,v,M] = fast_svd(y,M)
+% [u s v M] = fast_svd(y,<M>)
 % 
 % Computes efficient SVD when the number of rows and columns are
 % not the same. It is efficient in the sense that only the minimum
@@ -15,7 +15,7 @@ function [u,s,v] = fast_svd(y,M)
 %
 % Note: all vectors are returned even if the corresponding value is 0
 %
-% $Id: fast_svd.m,v 1.4 2004/10/11 23:27:19 greve Exp $
+% $Id: fast_svd.m,v 1.5 2004/11/14 22:31:56 greve Exp $
 %
 
 u=[];
@@ -23,7 +23,7 @@ s=[];
 v=[];
 
 if(nargin < 1 | nargin > 2)
-  fprintf('[u s v] = fast_svd(y,<M>)\n');
+  fprintf('[u s v M] = fast_svd(y,<M>)\n');
   return;
 end
 
