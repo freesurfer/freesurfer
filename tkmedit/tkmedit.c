@@ -7248,11 +7248,17 @@ tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
   eVolume = Volm_New( &gSegmentationChangedVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  eVolume = Volm_ImportData( gSegmentationChangedVolume, 
+			     sSegmentationFileName );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_CouldntLoadSegmentation );
+  /*
   gSegmentationChangedVolume->mpMriValues = 
     MRIclone(gSegmentationVolume->mpMriValues,NULL);
   DebugAssertThrowX( (NULL != gSegmentationChangedVolume->mpMriValues ),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  
+  */
+
   /* enable our segmentation options */
   DebugNote( ("Enabling segmentation options in interface") );
   tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );

@@ -507,11 +507,11 @@ MWin_tErr MWin_SetVolume ( tkmMeditWindowRef this,
 
   /* set the volume */
   for ( nDispIndex = nDispIndexMin; 
-  nDispIndex < nDispIndexMax; 
-  nDispIndex++ ) {
-
+	nDispIndex < nDispIndexMax; 
+	nDispIndex++ ) {
+    
     eDispResult = DspA_SetVolume ( this->mapDisplays[nDispIndex],
-           ipVolume, inSizeX, inSizeY, inSizeZ );
+				   ipVolume, inSizeX, inSizeY, inSizeZ );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;
