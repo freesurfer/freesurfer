@@ -3682,6 +3682,52 @@ MRISwriteValues(MRI_SURFACE *mris, char *fname)
   fclose(fp);
   sum /= num;
   sum2 = sqrt(sum2/num-sum*sum);
-  printf("avg = %f, stdev = %f, min = %f, max = %f\n",sum,sum2,min,max);
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "avg = %f, stdev = %f, min = %f, max = %f\n",
+            sum,sum2,min,max);
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISreadValues(MRI_SURFACE *mris, char *fname)
+{
+  int i,k,num,ilat;
+  float f;
+  float lat;
+  FILE *fp;
+
+  fp = fopen(fname,"r");
+  if (fp==NULL) 
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE,
+                               "MRISreadValues: File %s not found\n",fname));
+  fread2(&ilat,fp);
+  lat = ilat/10.0;
+
+  for (k=0;k<mris->nvertices;k++)
+    mris->vertices[k].val=0;
+  fread3(&num,fp);
+  for (i=0;i<num;i++)
+  {
+    fread3(&k,fp);
+    fread(&f,1,sizeof(float),fp);
+    if (k>=mris->nvertices||k<0)
+      printf("surfer: vertex index out of range: %d f=%f\n",k,f);
+/*
+    else if (mris->vertices[k].dist!=0)
+      printf("surfer: subsample and data file mismatch\n");
+*/
+    else
+    {
+      mris->vertices[k].val = f;
+      /*      mris->vertices[k].dist=0;*/
+    }
+  }
+  fclose(fp);
   return(NO_ERROR) ;
 }
