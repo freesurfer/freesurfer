@@ -1,3 +1,15 @@
+//////////////////////////////////////////////////////////////
+//   mri_partial_ribbon
+//
+// originally written by Andre van der Kouwe
+//
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/04/22 21:29:57 $
+// Revision       : $Revision: 1.7 $
+//
+////////////////////////////////////////////////////////////////////
+char *MRI_PARTIAL_RIBBON_VERSION = "$Revision: 1.7 $";
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,6 +23,12 @@
 
 char *Progname;
 
+void usage()
+{
+  printf("Usage: mri_partial_ribbon innerSurf_lh outerSurf_lh innerSurf_rh outerSurf_rh input_volume output_volume cma_mask\n");
+}
+
+
 int main(int argc, char *argv[])
 {
   char *inner_mris_fname_lh,*outer_mris_fname_lh,*inner_mris_fname_rh,*outer_mris_fname_rh,*input_mri_pref,*output_mri_pref,*mask_mri_pref;
@@ -19,26 +37,27 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_partial_ribbon.c,v 1.6 2003/04/15 21:19:57 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_partial_ribbon.c,v 1.7 2003/04/22 21:29:57 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
   /* Set command-line parameters */
-  if ((argc!=7)&&(argc!=8)) {
-    printf("Usage: mri_partial_ribbon inner_surface_fname_lh outer_surface_fname_lh inner_surface_fname_rh outer_surface_fname_rh input_volume_pref output_volume_pref [mask_fname]\n");
-    exit(1);
+  if (argc < 7)
+  {
+    usage();
+    exit(-1);
   }
   Progname=argv[0];
 
-  inner_mris_fname_lh=argv[1];
-  outer_mris_fname_lh=argv[2];
-  inner_mris_fname_rh=argv[3];
-  outer_mris_fname_rh=argv[4];
-  input_mri_pref=argv[5];
-  output_mri_pref=argv[6];
+  inner_mris_fname_lh=argv[1]; // lh.white
+  outer_mris_fname_lh=argv[2]; // lh.pial
+  inner_mris_fname_rh=argv[3]; // rh.white
+  outer_mris_fname_rh=argv[4]; // rh.pial
+  input_mri_pref=argv[5];      // volume
+  output_mri_pref=argv[6];     // output
   if (argc==8)
-    mask_mri_pref=argv[7];
+    mask_mri_pref=argv[7];     // cma mask
   else
     mask_mri_pref=NULL;
 
@@ -104,7 +123,8 @@ int main(int argc, char *argv[])
 
   MRIfree(&mri);
   MRIfree(&mri_src);
-  MRIfree(&mri_mask);
+  if (mri_mask)
+    MRIfree(&mri_mask);
   MRISfree(&inner_mris_lh);
   MRISfree(&outer_mris_lh);
   MRISfree(&inner_mris_rh);
