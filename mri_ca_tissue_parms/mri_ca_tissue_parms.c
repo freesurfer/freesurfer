@@ -22,6 +22,7 @@ static int test(MRI *mri1, MRI *mri2, MRI *mri3, MATRIX *m_vol1_to_vol2_ras) ;
 char *Progname ;
 static void usage_exit(int code) ;
 
+static char *histo_parms = NULL ;
 static int write_flag = 0 ;
 static char *log_fname = NULL ;
 static char *parc_dir = "parc" ;
@@ -138,7 +139,11 @@ main(int argc, char *argv[])
       test(mri_parc, mri_T1, mri_PD, lta->xforms[0].m_L) ;
 #endif
     }
-    GCAaccumulateTissueStatistics(gca, mri_T1, mri_PD, mri_parc, lta) ;
+    if (histo_parms)
+      GCAhistogramTissueStatistics(gca,mri_T1,mri_PD,mri_parc,lta,histo_parms);
+    else
+      GCAaccumulateTissueStatistics(gca, mri_T1, mri_PD, mri_parc, lta) ;
+
     MRIfree(&mri_parc) ; MRIfree(&mri_T1) ; MRIfree(&mri_PD) ;
   }
   GCAnormalizeTissueStatistics(gca) ;
@@ -225,6 +230,12 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'H':
+    histo_parms = argv[2] ;
+    nargs = 1 ;
+    printf("writing T1/PD histograms to %s...\n", histo_parms) ;
+    break ;
+    break ;
   case 'L':
     log_fname = argv[2] ;
     nargs = 1 ;

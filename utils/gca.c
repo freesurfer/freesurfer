@@ -5757,3 +5757,112 @@ GCAregularizeConditionalDensities(GCA *gca, float smooth)
   return(NO_ERROR) ;
 }
 
+int
+GCAhistogramTissueStatistics(GCA *gca, MRI *mri_T1,MRI *mri_PD,
+                              MRI *mri_labeled, LTA *lta, char *fname)
+{
+  int              x, y, z, n, label, biggest_label, T1, PD, xp, yp, zp ;
+  GCA_NODE         *gcan ;
+  GCA_TISSUE_PARMS *gca_tp ;
+  VECTOR           *v_parc, *v_T1 ;
+  static VECTOR *v_ras_cor = NULL, *v_ras_flash ;
+  MATRIX           *m_L ;
+  FILE             *fp ;
+  
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorExit(ERROR_NOFILE, "GCAhistogramTissueStatistics: could not open %s",
+              fname) ;
+  
+  v_parc = VectorAlloc(4, MATRIX_REAL) ;
+  v_T1 = VectorAlloc(4, MATRIX_REAL) ;
+  *MATRIX_RELT(v_parc, 4, 1) = 1.0 ;
+  *MATRIX_RELT(v_T1, 4, 1) = 1.0 ;
+
+  /* first build a list of all labels that exist */
+  for (biggest_label = x = 0 ; x < gca->width ; x++)
+  {
+    for (y = 0 ; y < gca->height ; y++)
+    {
+      for (z = 0 ; z < gca->height ; z++)
+      {
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          gca->tissue_parms[(int)gcan->labels[n]].label = gcan->labels[n] ;
+          if (gcan->labels[n] > biggest_label)
+            biggest_label = gcan->labels[n] ;
+        }
+      }
+    }
+  }
+
+  if (lta)
+    m_L = lta->xforms[0].m_L ;
+  else
+    m_L = NULL ;
+
+  for (label = 0 ; label <= biggest_label ; label++)
+  {
+    if (gca->tissue_parms[label].label <= 0)
+      continue ;
+    gca_tp = &gca->tissue_parms[label] ;
+    
+    for (z = 0 ; z < mri_T1->depth ; z++)
+    {
+      V3_Z(v_parc) = z ;
+      for (y = 0 ; y < mri_T1->height ; y++)
+      {
+        V3_Y(v_parc) = y ;
+        for (x = 0 ; x < mri_T1->width ; x++)
+        {
+          if (MRIvox(mri_labeled, x, y, z) != label)
+            continue ;
+          if (borderVoxel(mri_labeled, x, y, z))
+            continue ;
+          if (lta)
+          {
+            MATRIX *m_tmp ;
+            V3_X(v_parc) = x ;
+            MatrixMultiply(m_L, v_parc, v_T1) ;
+            xp = nint(V3_X(v_T1)) ; yp = nint(V3_Y(v_T1)) ; 
+            zp = nint(V3_Z(v_T1)) ;
+            
+            m_tmp = MRIgetVoxelToRasXform(mri_labeled) ;
+            v_ras_cor = MatrixMultiply(m_tmp, v_parc, v_ras_cor);
+            MatrixFree(&m_tmp) ;
+            m_tmp = MRIgetVoxelToRasXform(mri_T1) ;
+            v_ras_flash = MatrixMultiply(m_tmp, v_T1, v_ras_flash);
+            MatrixFree(&m_tmp) ;
+            if (!x && !y && !z && 0)
+            {
+              MatrixPrint(stdout, v_ras_cor) ;
+              MatrixPrint(stdout, v_ras_flash) ;
+            }
+
+            if ((xp < 0 || xp >= mri_T1->width) ||
+                (yp < 0 || yp >= mri_T1->height) ||
+                (zp < 0 || zp >= mri_T1->depth))
+              continue ;
+          }
+          else
+          {
+            xp = x ; yp = y ; zp = z ;
+          }
+
+          T1 = MRISvox(mri_T1, xp, yp, zp) ;
+          PD = MRISvox(mri_PD, xp, yp, zp) ;
+          fprintf(fp, "%d %d %d\n", label, T1, PD) ;
+          gca_tp->total_training++ ;
+          gca_tp->T1_mean += T1 ;
+          gca_tp->T1_var += T1*T1 ;
+          gca_tp->PD_mean += PD ;
+          gca_tp->PD_var += PD*PD ;
+        }
+      }
+    }
+  }
+
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}

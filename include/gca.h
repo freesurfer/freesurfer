@@ -159,6 +159,8 @@ MRI   *GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                                float min_ratio) ;
 int   GCAaccumulateTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD, 
                                     MRI *mri_parc, LTA *lta) ;
+int   GCAhistogramTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD, 
+                                   MRI *mri_parc, LTA *lta, char *fname) ;
 int   GCAnormalizeTissueStatistics(GCA *gca) ;
 char *cma_label_to_name(int label) ;
 int  GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta) ;
