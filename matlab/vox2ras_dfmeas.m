@@ -4,9 +4,13 @@ function [M_V] = vox2ras_dfmeas(str_filename, varargin)
 %%
 %%     vox2ras_dfmeas.m (vox2ras_d{etermine}f{rom}meas)
 %%
-%% AUTHOR, VERSION
+%% AUTHOR 
 %%
-%%	Rudolph Pienaar, $Id: vox2ras_dfmeas.m,v 1.2 2004/05/26 20:16:28 rudolph Exp $
+%%	Rudolph Pienaar, 
+%%
+%% VERSION
+%%
+%%	Id: vox2ras_dfmeas.m,v 1.2 2004/05/26 20:16:28 rudolph Exp $
 %%
 %% SYNOPSIS
 %%
@@ -202,10 +206,9 @@ cmd = ['cat meas.asc | grep -a sSliceArray.asSlice | grep dInPlaneRot' ...
     		' | awk ' char(39) '{print $3}' char(39)];
 [s, inPlaneRot]    		= system(cmd);
 inPlaneRotation			= str2num(inPlaneRot);
-[M_v1, M_v2, M_Ru1, M_Ru2]	= vox2ras_solve(Vc_N, inPlaneRotation);
+[M_v1, M_v2, M_Ru1, M_Ru2]	= vox2ras_rsolve(Vc_N, inPlaneRotation);
 M_Ru1(:,3)			= M_Ru1(:,3) .* Vr_voxelDimension(3);
-M_R				= eye(4);
-M_R(1:3, 1:3)			= M_Ru1;
+M_R				= M_Ru1;
 
 %% Parse meas.asc file for sPosition vector
 Vc_Ps = zeros(3,1);

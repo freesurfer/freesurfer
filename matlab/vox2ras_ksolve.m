@@ -4,9 +4,13 @@ function [M_V] = vox2ras_ksolve(M_R, Vc_Ps, varargin)
 %%
 %%     vox2ras_ksolve.m (vox2ras_k{-space column}solve) 
 %%
-%% AUTHOR, VERSION
+%% AUTHOR
 %%
-%%	Rudolph Pienaar, $Id: vox2ras_ksolve.m,v 1.2 2004/05/26 20:16:28 rudolph Exp $
+%%	Rudolph Pienaar, 
+%%
+%% VERSION
+%%
+%%	$Id: vox2ras_ksolve.m,v 1.3 2004/05/26 21:33:47 rudolph Exp $
 %%
 %% SYNOPSIS
 %%

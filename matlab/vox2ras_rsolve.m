@@ -4,9 +4,13 @@ function [M_v1, M_v2, M_Ru1, M_Ru2] = vox2ras_rsolve(Vc_C, inPlaneRotation)
 %%
 %%     vox2ras_rsolve.m (vox2ras_r{otation matrix}solve) 
 %%
-%% AUTHOR, VERSION
+%% AUTHOR
 %%
-%%	Rudolph Pienaar, $Id: vox2ras_rsolve.m,v 1.2 2004/05/26 20:16:28 rudolph Exp $
+%%	Rudolph Pienaar
+%%
+%% VERSION
+%%
+%% 	$Id: vox2ras_rsolve.m,v 1.3 2004/05/26 21:33:47 rudolph Exp $
 %%
 %% SYNOPSIS
 %%
@@ -106,7 +110,7 @@ M3_v1 = [
 ];
 
 for col=1:3,
-	M_v1(:,col) = M_v1(:,col) ./ norm(M_v1(:,col));
+	M3_v1(:,col) = M3_v1(:,col) ./ norm(M3_v1(:,col));
 end
 
 M3_v2 = [
@@ -116,7 +120,7 @@ M3_v2 = [
 ];
 
 for col=1:3,
-	M_v2(:,col) = M_v2(:,col) ./ norm(M_v2(:,col));
+	M3_v2(:,col) = M3_v2(:,col) ./ norm(M3_v2(:,col));
 end
 
 %% The above calculated rotation matrices define an (x,y) plane
