@@ -5691,7 +5691,7 @@ void ExtractSubjectName ( char* isDataSource,
   int  nLastSlash = 0;
   
   /* look for 'subjects' in the title */
-  sWord = strstr( isDataSource, "subjects/" );
+  sWord = strstr( isDataSource, "/subjects/" );
   if( NULL != sWord ) {
     
     /* we're at the s in subjects now. scoot ahead to the slash. */
