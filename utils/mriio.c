@@ -1323,7 +1323,7 @@ analyzeRead(char *fname, int read_volume, int frame)
 {
   MRI    *mri, *mri_dst ;
   dsr    hdr;
-  int    type, max_dim, width, height, depth ;
+  int    type, width, height, depth ;
   int    ox, oy, oz;
 
   read_analyze_header(fname, &hdr) ;
@@ -2684,7 +2684,7 @@ swab(pixel_data, pixel_data, mri->height * mri->width * 2);
   }
   else if(strncmp(slice_direction, "Sag", 3) == 0)
   {
-    mri->xdir = ZDIM;
+    mri->xdir = -ZDIM;
     mri->ydir = YDIM;
     mri->zdir = XDIM;
   }
