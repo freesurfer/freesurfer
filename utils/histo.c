@@ -841,4 +841,15 @@ HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct,
 
   return(npeaks) ;
 }
+int
+HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax)
+{
+  int    bin_no ;
+  float  bin_size ;
+
+  bin_size = (bmax - bmin + 1) / (float)histo->nbins ;
+  bin_no = nint((val - bmin) / bin_size) ;
+  histo->counts[bin_no]++ ;
+  return(bin_no) ;
+}
 
