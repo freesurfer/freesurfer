@@ -17,7 +17,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.20 1998/11/16 20:25:12 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.21 1999/03/14 17:27:55 fischl Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -210,6 +210,9 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   max_curv = mris->max_curv ;
   if (-min_curv > max_curv)
     max_curv = -min_curv ;
+
+  if (FZERO(max_curv) && FZERO(min_curv))
+    max_curv = 1 ;
 
   /** Pre-processing to paint MEG/EEG activation/temporal information **/
   if (flags & VAL_FLAG)
