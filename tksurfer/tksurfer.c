@@ -1,6 +1,12 @@
 /*============================================================================
   Copyright (c) 1996 Martin Sereno and Anders Dale
   =============================================================================*/
+
+#ifdef HAVE_CONFIG_H 
+#include <config.h>
+#endif /* HAVE_CONFIG_H */
+#undef VERSION
+
 #define TCL
 #define TKSURFER 
 #define TCL8
@@ -170,12 +176,14 @@ char *Progname = "surfer" ;
 // It seems that the later version of Tix uses ITcl and ITk.
 // stupid tix people who cannot handle version.   I had to use gcc version.
 // you cannot include itk.h either(producing so many unknowns) either.
-// #ifndef Itcl_Init
-// int Itcl_Init(Tcl_Interp* interp);
-// #endif
-// #ifndef Itk_Init
-// int Itk_Init(Tcl_Interp* interp);
-// #endif
+#if NEEDS_ITCL_ITK
+#ifndef Itcl_Init
+int Itcl_Init(Tcl_Interp* interp);
+#endif
+#ifndef Itk_Init
+int Itk_Init(Tcl_Interp* interp);
+#endif
+#endif
 
 /* make these decls if the headers are screwed up */
 #ifndef Blt_Init
@@ -18324,7 +18332,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.87 2004/12/17 00:27:43 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.88 2004/12/22 15:29:40 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18516,10 +18524,13 @@ int main(int argc, char *argv[])   /* new main */
   // later version of Tix needs these.  Unfortunately Tix does not define Major and Minor
   // to distinguish what it is (stupidity).  I had to use gnu ;-(....
   // Do the following only for RedHat Enterprise Linux only
-  // if (Itcl_Init(interp) == TCL_ERROR) {
-  //   fprintf(stderr, "Itcl_Init failed: %s\n", interp->result); }
-  // if (Itk_Init(interp) == TCL_ERROR) {
-  //   fprintf(stderr, "Itk_Init failed: %s\n", interp->result); }
+
+#if NEEDS_ITCL_ITK
+  if (Itcl_Init(interp) == TCL_ERROR) {
+    fprintf(stderr, "Itcl_Init failed: %s\n", interp->result); }
+  if (Itk_Init(interp) == TCL_ERROR) {
+     fprintf(stderr, "Itk_Init failed: %s\n", interp->result); }
+#endif
 
   /* begin rkt */
   if (Tix_Init(interp) == TCL_ERROR) {
