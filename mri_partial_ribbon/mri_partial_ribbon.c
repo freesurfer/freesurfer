@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 
   /* Set command-line parameters */
   if (argc!=5) {
-    printf("Usage: mri_crop_ribbon inner_surface_fname outer_surface_fname input_volume_pref output_volume_pref\n");
+    printf("Usage: mri_partial_ribbon inner_surface_fname outer_surface_fname input_volume_pref output_volume_pref\n");
     exit(1);
   }
   Progname=argv[0];
@@ -65,4 +65,5 @@ int main(int argc, char *argv[])
 
   return 0;
 }
+
 
