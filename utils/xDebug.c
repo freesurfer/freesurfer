@@ -9,9 +9,9 @@ tBoolean xDbg_gbSegfaulted = FALSE;
 FILE*    xDbg_gStream      = NULL;
 int      xDbg_gType        = xDebug_Nothing;
 char*    xDbg_gsRequest    = NULL;
-char xDbg_sStackDesc[xDbg_knMaxDescLength];
-char xDbg_sCurNoteDesc[xDbg_knMaxDescLength];
-
+char     xDbg_sStackDesc[xDbg_knMaxDescLength]   = "";
+char     xDbg_sCurNoteDesc[xDbg_knMaxDescLength] = "";
+int      xDbg_gLineNumberOfError = 0;
 
 
 char masStackTitle[xDbg_knMaxStackDepth][xDbg_knMaxDescLength];
