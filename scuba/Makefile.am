@@ -72,7 +72,7 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testSurfaceCollection testScubaLayers testScubaLayer2DMRI \
 	testScubaLayer2DMRIS testScubaView testScubaFrame \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
-	testVectorOps
+	testVectorOps testRASToVoxel
 
 TESTS=$(check_PROGRAMS) 
 
@@ -94,6 +94,8 @@ testPath_SOURCES=test_Path.cpp \
 testShortestPathFinder_SOURCES=test_ShortestPathFinder.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testVectorOps_SOURCES=test_VectorOps.cpp \
+	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testRASToVoxel_SOURCES= test_RASToVoxel.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 
 testToglManager_SOURCES=test_ToglManager.cpp \
