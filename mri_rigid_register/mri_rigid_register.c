@@ -462,8 +462,20 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
 #endif
   MATRIX   *vox2ras_source, *ras2vox_source, *vox2ras_target, *ras2vox_target, *vox_s2vox_t;
   MATRIX   *M_reg_bak, *M_reg_opt, *M_tmp, *M_delta, *M_delta1, *M_delta2, *M_delta3, *M_delta4, *M_delta5, *M_delta6;
-  MATRIX   *voxmat1, *voxmat2;
-  double   voxval1[MAX_VOX], voxval2[MAX_VOX];
+  MATRIX   *voxmat1, *voxmat2, *m_trans;
+  double   voxval1[MAX_VOX], voxval2[MAX_VOX], source_means[3], target_means[3];
+
+	MRIcenterOfMass(mri_source, source_means, 0) ;
+	MRIcenterOfMass(mri_target, target_means, 0) ;
+	m_trans = MatrixIdentity(4, NULL) ;
+	*MATRIX_RELT(m_trans, 1, 4) = target_means[0]-source_means[0] ;
+	*MATRIX_RELT(m_trans, 2, 4) = target_means[1]-source_means[1] ;
+	*MATRIX_RELT(m_trans, 3, 4) = target_means[2]-source_means[2] ;
+	printf("aligning centroids with translation (%2.1f, %2.1f, %2.1f)\n",
+				 *MATRIX_RELT(m_trans, 1, 4), *MATRIX_RELT(m_trans, 2, 4), *MATRIX_RELT(m_trans, 3, 4)) ;
+	M_tmp = MatrixMultiply(m_trans, M_reg, NULL) ; MatrixCopy(M_tmp, M_reg) ;
+	MatrixFree(&M_tmp) ; MatrixFree(&m_trans) ;
+	
 
   vox2ras_source = MRIgetVoxelToRasXform(mri_source) ;
   vox2ras_target = MRIgetVoxelToRasXform(mri_target) ;
@@ -586,6 +598,9 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
           voxval2[indx] = val2;
           val1 = voxval1[indx];
           err = val1-val2;
+					/* ignore background voxels when doing fine alignment */
+					if (tx <= 2 && (FZERO(val1) || FZERO(val2)))
+						err = 0 ;
           sse += err*err;
         }
         sse /= nvalues;
