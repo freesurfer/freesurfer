@@ -16,7 +16,7 @@ function rt = fast_fxcfg_extreg(DoWhat,thing)
 % ExtReg Parameters:
 %  1. fname - name relative to fsd/RRR (stored in sparams not params)
 %  2. nextreg  - number of extreg to use (-1 for all) (stored in params)
-% $Id: fast_fxcfg_extreg.m,v 1.1 2003/03/21 05:19:06 greve Exp $
+% $Id: fast_fxcfg_extreg.m,v 1.2 2003/05/07 04:29:58 greve Exp $
 
 rt = [];
 
@@ -135,8 +135,9 @@ line = [];
 fxcfg = fast_fxcfg('getfxcfg',flacfg);
 if(isempty(fxcfg)) return; end
 
-line = sprintf('Effect %s %s %s %s',fxcfg.fxtype,...
-	       fxcfg.label,fxcfg.model,fxcfg.sparams(1));
+line = sprintf('Effect %s %s %s %s %d',fxcfg.fxtype,...
+	       fxcfg.label,fxcfg.model,...
+	       deblank(fxcfg.sparams(1,:)),fxcfg.params(1));
 
 return;
 
