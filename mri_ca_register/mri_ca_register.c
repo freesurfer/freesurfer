@@ -28,20 +28,23 @@ static char *norm_fname = NULL ;
 
 static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
+static int register_wm_flag = 0 ;
 
 static double TR = -1 ;
 static double alpha = -1 ;
 static double TE = -1 ;
+static char *tl_fname = NULL ;
 
 static char *sample_fname = NULL ;
 static char *transformed_sample_fname = NULL ;
 static char *normalized_transformed_sample_fname = NULL ;
 static char *ctl_point_fname = NULL ;
 static int novar = 0 ;
+static int relabel = 0 ;
 
 static int use_contrast = 0 ;
 static float min_prior = MIN_PRIOR ;
-static double tol = .5 ;
+static double tol = 1 ;
 static double tx = 0.0 ;
 static double ty = 0.0 ;
 static double tz = 0.0 ;
@@ -59,6 +62,7 @@ static char *renormalization_fname = NULL ;
 static char *tissue_parms_fname = NULL ;
 static int center = 1 ;
 static int nreductions = 1 ;
+static char *xform_name = NULL ;
 static int noscale = 0 ;
 static int transform_loaded = 0 ;
 static char *gca_mean_fname = NULL ;
@@ -91,18 +95,22 @@ main(int argc, char *argv[])
   GCA_MORPH    *gcam ;
 
   parms.l_likelihood = 1.0f ;
-  parms.niterations = 100 ;
+  parms.niterations = 3 ;
   parms.levels = 3 ;   /* use default */
   parms.dt = 0.1 ;  /* was 5e-6 */
   parms.tol = tol ;  /* at least 1% decrease in sse */
   parms.l_distance = 0.0 ;
   parms.l_jacobian = 40.0 ;
   parms.l_area = 0 ;
+	parms.l_label = 1.0 ;
+	parms.l_map = 1.0 ;
+	parms.label_dist = 3.0 ;
   parms.l_smoothness = 0.0 ;
   parms.start_t = 0 ;
   parms.max_grad = 0.3 ;
   parms.sigma = 1.0f ;
   parms.exp_k = 20 ;
+	parms.navgs = 0 ;
 
   Progname = argv[0] ;
   setRandomSeed(-1L) ;
@@ -291,8 +299,49 @@ main(int argc, char *argv[])
   }
 
 
-  gcam = GCAMalloc(gca->prior_width, gca->prior_height, gca->prior_depth) ;
-  GCAMinit(gcam, mri_in, gca, transform) ;
+	if (xform_name)
+	{
+		gcam = GCAMread(xform_name) ;
+		if (!gcam)
+			ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname, xform_name) ;
+	}
+	else
+		gcam = GCAMalloc(gca->prior_width, gca->prior_height, gca->prior_depth) ;
+	if (tl_fname)
+	{
+		GCA *gca_tl ;
+
+		gca_tl = GCAread(tl_fname) ;
+		if (!gca_tl)
+			ErrorExit(ERROR_NOFILE, "%s: could not temporal lobe gca %s",
+								Progname, tl_fname) ;
+		GCAMinit(gcam, mri_in, gca_tl, transform, 0) ;
+		if (parms.write_iterations != 0)
+		{
+			char fname[STRLEN] ;
+			MRI  *mri_gca ;
+			mri_gca = MRIclone(mri_in, NULL) ;
+			GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+			sprintf(fname, "%s_target", parms.base_name) ;
+			MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+			sprintf(fname, "%s_target.mgh", parms.base_name) ;
+			printf("writing target volume to %s...\n", fname) ;
+			MRIwrite(mri_gca, fname) ;
+			MRIfree(&mri_gca) ;
+		}
+		GCAMregister(gcam, mri_in, &parms) ;
+		printf("temporal lobe registration complete - registering whole brain...\n") ;
+		GCAfree(&gca_tl) ;
+	}
+
+	if (!xform_name)  /* only if the transform wasn't previously created */
+		GCAMinit(gcam, mri_in, gca, transform, relabel) ;
+	else
+	{
+		gcam->gca = gca ;
+		GCAMcomputeOriginalProperties(gcam) ;
+		GCAMcomputeMaxPriorLabels(gcam) ;
+	}
   if (parms.write_iterations != 0)
   {
     char fname[STRLEN] ;
@@ -300,7 +349,7 @@ main(int argc, char *argv[])
     mri_gca = MRIclone(mri_in, NULL) ;
     GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
     sprintf(fname, "%s_target", parms.base_name) ;
-    MRIwriteImageViews(mri_gca, fname, 400) ;
+    MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
     sprintf(fname, "%s_target.mgh", parms.base_name) ;
     printf("writing target volume to %s...\n", fname) ;
     MRIwrite(mri_gca, fname) ;
@@ -319,6 +368,19 @@ main(int argc, char *argv[])
   }
 #endif
 
+	if (tl_fname == NULL && register_wm_flag)
+	{
+		GCAMsetStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ; /* disable everything */
+		GCAMsetLabelStatus(gcam, Left_Cerebral_White_Matter, GCAM_USE_LIKELIHOOD) ;
+		GCAMsetLabelStatus(gcam, Right_Cerebral_White_Matter, GCAM_USE_LIKELIHOOD) ;
+		GCAMsetLabelStatus(gcam, Left_Cerebellum_White_Matter, GCAM_USE_LIKELIHOOD) ;
+		GCAMsetLabelStatus(gcam, Right_Cerebellum_White_Matter, GCAM_USE_LIKELIHOOD) ;
+
+		printf("initial white matter registration...\n") ;
+		GCAMregister(gcam, mri_in, &parms) ;
+		GCAMsetStatus(gcam, GCAM_USE_LIKELIHOOD) ; /* disable everything */
+		printf("initial white matter registration complete - full registration...\n") ;
+	}
   GCAMregister(gcam, mri_in, &parms) ;
 
   printf("writing output transformation to %s...\n", out_fname) ;
@@ -378,6 +440,30 @@ get_option(int argc, char *argv[])
     sample_fname = argv[2] ;
     nargs = 1 ;
     printf("writing control points to %s...\n", sample_fname) ;
+  }
+  else if (!strcmp(option, "ISIZE") || !strcmp(option, "IMAGE_SIZE"))
+  {
+    IMAGE_SIZE = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("setting diagnostic image size to %d\n", IMAGE_SIZE) ;
+  }
+  else if (!strcmp(option, "WM"))
+  {
+		register_wm_flag = 1 ;
+    printf("registering white matter in initial pass...\n") ;
+  }
+  else if (!strcmp(option, "TL"))
+  {
+    tl_fname = argv[2] ;
+    nargs = 1 ;
+    printf("reading temporal lobe atlas from %s...\n", tl_fname) ;
+  }
+  else if (!strcmp(option, "RELABEL"))
+  {
+    relabel = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("%srelabeling nodes with MAP estimates\n", 
+					 relabel ? "" : "not ") ;
   }
   else if (!strcmp(option, "VF"))
   {
@@ -515,7 +601,25 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("l_likelihood = %2.2f\n", parms.l_likelihood) ;
   }
-  else if (!stricmp(option, "reduce"))
+  else if (!strcmp(option, "LABEL"))
+  {
+    parms.l_label = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("l_label = %2.2f\n", parms.l_label) ;
+  }
+  else if (!strcmp(option, "MAP"))
+  {
+    parms.l_map = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("l_map = %2.2f\n", parms.l_map) ;
+  }
+  else if (!strcmp(option, "LDIST") || !strcmp(option, "LABEL_DIST"))
+  {
+    parms.label_dist = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("label_dist = %2.2f\n", parms.label_dist) ;
+  }
+  else if (!stricmp(option, "REDUCE"))
   {
     nreductions = atoi(argv[2]) ;
     nargs = 1 ;
@@ -544,6 +648,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("intensity normalizing and writing to %s...\n",norm_fname);
   }
+  else if (!stricmp(option, "avgs"))
+  {
+		parms.navgs = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("smoothing gradient with %d averages...\n", parms.navgs) ;
+  }
   else switch (*option)
   {
   case 'J':
@@ -561,6 +671,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("reading manually defined control points from %s\n", ctl_point_fname) ;
     break ;
+	case 'X':
+		xform_name = argv[2] ;
+		nargs = 1 ;
+		printf("reading previous transform from %s...\n", xform_name) ;
+		break ;
   case 'D':
     tx = atof(argv[2]) ; ty = atof(argv[3]) ; tz = atof(argv[4]) ;
     nargs = 3 ;
