@@ -1,0 +1,229 @@
+#!/bin/csh -f
+# glmfourier-sess
+#
+
+set VERSION = '$Id: glmfourier-sess,v 1.1 2004/06/03 23:35:02 greve Exp $';
+set analysis = ();
+set monly = ();
+set MLF = ();
+set PrintHelp = 0;
+
+set cmdargs = ($argv);
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set cfgfile  = $analysis/analysis.cfg
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+
+## Get parameters from the info file ##
+set TR        = `cat $infofile | awk '{if($1 == "TR") print $2}'`;
+set fsd       = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set funcstem  = `cat $infofile | awk '{if($1 == "funcstem") print $2}'`;
+set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
+
+set period     = `cat $cfgfile | awk '{if($1 == "period") print $2}'`;
+set nharmonics = `cat $cfgfile | awk '{if($1 == "nharmonics") print $2}'`;
+set polyorder  = `cat $cfgfile | awk '{if($1 == "polyorder") print $2}'`;
+set nbins      = `cat $cfgfile | awk '{if($1 == "nbins") print $2}'`;
+set mask       = `cat $cfgfile | awk '{if($1 == "mask") print $2}'`;
+set extreg     = `cat $cfgfile | awk '{if($1 == "extreg") print $2}'`;
+set nextreg    = `cat $cfgfile | awk '{if($1 == "nextreg") print $2}'`;
+
+set LF = log/glmfourier.log
+if(-e $LF) mv $LF $LF.bak
+
+date | tee -a $LF
+pwd  | tee -a $LF
+echo $0  | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+hostname  | tee -a $LF
+
+if(! $monly) set MLF = /tmp/glmfourier-sess.$$.m
+rm -f $MLF
+
+set MLFtmp = /tmp/glmfourier-sess.tmp.$$.m
+
+#------------------------------------------------------------------#
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  ### Check that the target directory is there ###
+  if(! -d $sess/$fsd) then
+    echo "ERROR: $sess/$fsd does not exist"   | tee -a $LF
+    exit 1;
+  endif
+
+  ### Check that the target directory is writable ###
+  if(! -w $sess/$fsd) then
+    echo "ERROR: $sess/$fsd is not writable"   | tee -a $LF
+    exit 1;
+  endif
+
+  set RunList = `getrunlist $sess/$fsd $runlistfile`;
+  echo "RunList $RunList" | tee -a $LF
+
+  ## Go through each run ##
+  foreach run ($RunList)
+
+    set runpath = $sess/$fsd/$run
+
+    set cmd = (glmfourier --y $runpath/$funcstem)
+    set cmd = ($cmd --p $period --nharm $nharmonics --poly $polyorder)
+    if($#extreg  != 0) set cmd = ($cmd --extreg $runpath/$extreg)
+    if($#nextreg != 0) set cmd = ($cmd --nextreg $nextreg)
+    set cmd = ($cmd --tr $TR --nbins $nbins)
+    if($#mask != 0) set cmd = ($cmd --mask $sess/$fsd/masks/$mask)
+    set cmd = ($cmd --o $sess/$fsd/$analysis-$run)
+    set cmd = ($cmd --monly $MLFtmp)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+
+    echo "clear all;" >> $MLF
+    cat $MLFtmp >> $MLF
+
+  end # Loop over runs
+
+end # Loop over sessions #
+
+rm -f $MLFtmp
+
+set StartTime = `date`;
+if(! $monly) then
+  cat $MLF | matlab -display iconic
+  rm -f $MLF
+endif
+
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "glmfourier-sess Done"    | tee -a $LF
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-analysis":
+    case "-a":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#analysis == 0) then
+  echo "ERROR: must spec analysis"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: glmfourier-sess"
+  echo ""
+  echo " -a analysis"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo ""
+  echo "Other Arguments"
+  echo "   -umask umask    : set unix file permission mask"
+  echo "   -version        : print version and exit"
+  echo "   -help           : print help and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+
+
