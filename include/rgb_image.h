@@ -122,6 +122,8 @@ void isetcolormap(RGB_IMAGE *image, int colormap);
 
 int iclose(RGB_IMAGE *image);
 int putrow(RGB_IMAGE *image, unsigned short *buffer,unsigned int y,unsigned int z);
+int putrow_uc(RGB_IMAGE *image, unsigned char *buffer,
+    unsigned int y, unsigned int z)  ;
 int getrow(RGB_IMAGE *image, unsigned short *buffer,unsigned int y,unsigned int z);
 
 RGB_IMAGE *iopen();
