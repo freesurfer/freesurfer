@@ -106,7 +106,7 @@ static int             hips_cmd_source = 0 ;
 static void            (*XVevent_handler)(Event *event, DIMAGE *dimage) = NULL;
 static void            (*XVkb_handler)(Event *event, DIMAGE *dimage) = NULL;
 static void            (*XVquit_func)(void) = NULL;
-static void            (*XVrepaint_handler)(XV_FRAME *xvf, DIMAGE *dimage)=NULL;
+static void            (*XVrepaint_handler)(XV_FRAME *xvf,DIMAGE *dimage)=NULL;
 
 /*----------------------------------------------------------------------
             Parameters:
@@ -513,13 +513,15 @@ XVrepaintImage(XV_FRAME *xvf, int which)
   IMAGE *image ;
 
   dimage = xvGetDimage(which, 0) ;
-  if (!dimage)
+  if (!dimage || dimage->entered)
     return ;
+  dimage->entered = 1 ;
   image = dimage->dispImage ;
   XPutImage(xvf->display, (Drawable)dimage->window, xvf->gc, dimage->ximage, 
             0, 0, 0, 0, image->cols, image->rows);
   if (XVrepaint_handler)
     (*XVrepaint_handler)(xvf, dimage) ;
+  dimage->entered = 0 ;
 }
 /*----------------------------------------------------------------------
             Parameters:
