@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.2 1998/03/05 19:29:56 fischl Exp $";
+static char vcid[] = "$Id: mris_make_template.c,v 1.3 1998/03/18 16:22:58 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -46,12 +46,13 @@ static char *curvature_names[] =
 static int nbrs = 1 ;
 static int navgs = 0 ;
 static float scale = 1 ;
+static int no_rot = 0 ;
 
 int
 main(int argc, char *argv[])
 {
   char         **av, surf_fname[100], *template_fname, *hemi, *sphere_name,
-               subjects_dir[100], *cp, *subject ;
+               subjects_dir[100], *cp, *subject, fname[100] ;
   int          ac, nargs, ino, sno ;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp, *mrisp_aligned, *mrisp_template ;
@@ -82,11 +83,14 @@ main(int argc, char *argv[])
   hemi = argv[1] ;
   sphere_name = argv[2] ;
   template_fname = argv[argc-1] ;
-  if (!FileExists(template_fname))  /* first time - create it */
+  if (1 || !FileExists(template_fname))  /* first time - create it */
   {
     fprintf(stderr, "creating new parameterization...\n") ;
     mrisp_template = MRISPalloc(scale, PARAM_IMAGES); 
-    mrisp_aligned = MRISPalloc(scale, PARAM_IMAGES); 
+    if (no_rot)  /* don't do rigid alignment */
+      mrisp_aligned = NULL ;
+    else
+      mrisp_aligned = MRISPalloc(scale, PARAM_IMAGES); 
   }
   else
   {
@@ -153,9 +157,31 @@ main(int argc, char *argv[])
   {
     MRI_SP *mrisp_tmp ;
 
+    if (Gdiag & DIAG_WRITE)
+    {
+      char *cp1 ;
+      
+      FileNameOnly(template_fname, fname) ;
+      cp = strchr(fname, '.') ;
+      if (cp)
+      {
+        cp1 = strrchr(fname, '.') ;
+        if (cp1 && cp1 != cp)
+          strncpy(parms.base_name, cp+1, cp1-cp-1) ;
+        else
+          strcpy(parms.base_name, cp+1) ;
+      }
+      else
+        strcpy(parms.base_name, "template") ;
+      sprintf(fname, "%s.%s.out", hemi, parms.base_name);
+      parms.fp = fopen(fname, "w") ;
+      printf("writing output to '%s'\n", fname) ;
+    }
     for (ino = 0 ; ino < argc-1 ; ino++)
     {
       subject = argv[ino] ;
+      if (Gdiag & DIAG_WRITE)
+        fprintf(parms.fp, "processing subject %s\n", subject) ;
       fprintf(stderr, "processing subject %s\n", subject) ;
       sprintf(surf_fname, "%s/%s/surf/%s.%s", 
               subjects_dir, subject, hemi, sphere_name) ;
@@ -174,14 +200,17 @@ main(int argc, char *argv[])
       parms.mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
       parms.mrisp_template = mrisp_template ;
       parms.l_corr = 1.0f ;
-      MRISrigidBodyAlignGlobal(mris, &parms, 4.0, 16.0, 8) ;
+
+      MRISrigidBodyAlignGlobal(mris, &parms, 4.0, 32.0, 8) ;
       MRISPfree(&parms.mrisp) ;
 
+#if 0
       /* write out rotated surface */
       sprintf(surf_fname, "%s.rot", mris->fname) ;
       fprintf(stderr, "writing out rigidly aligned surface to '%s'\n",
               surf_fname) ;
       MRISwrite(mris, surf_fname) ;
+#endif
 
       /* now generate new parameterization using the optimal alignment */
       for (sno = 0; sno < SURFACES ; sno++)
@@ -220,6 +249,9 @@ main(int argc, char *argv[])
       MRISfree(&mris) ;
     }
 
+    if (Gdiag & DIAG_WRITE)
+      fclose(parms.fp) ;
+
     mrisp_tmp = mrisp_aligned ; mrisp_aligned = mrisp_template ;
     mrisp_template = mrisp_tmp ;
     MRISPfree(&mrisp_aligned) ;
@@ -253,8 +285,18 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using neighborhood size = %d\n", nbrs) ;
   }
+  else if (!stricmp(option, "norot"))
+  {
+    no_rot = 1 ;
+    fprintf(stderr, "not aligning hemispheres before averaging.\n") ;
+  }
   else switch (toupper(*option))
   {
+  case 'W':
+    Gdiag |= DIAG_WRITE ;
+    if (isdigit(*argv[2]))
+      nargs = 1 ;
+    break ;
   case 'S':
     scale = atof(argv[2]) ;
     fprintf(stderr, "scaling parameterization by %2.1f\n", scale) ;
