@@ -22,5 +22,6 @@ int   fwrite2(int v, FILE *fp) ;
 int   fwrite3(int v, FILE *fp) ;
 int   fwrite4(int v, FILE *fp) ;
 
+#define fwriteLong(l, fp)   fwrite4((int)l, fp)
 
 #endif
