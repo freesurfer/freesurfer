@@ -73,6 +73,9 @@
 #define   Right_Stellate  69/*                       120   62   43     0   */
 #define   Right_Porg  70/*                            74  155   60     0   */
 #define   Right_Aorg  71/*                          122  135   50     0*/
+#define   Fifth_Ventricle 72                        156   25  250    0 */
+#define   Right_Temporal_Cerebral_White_Matter  73      /*  240  240  240     0 */
+#define   Left_Temporal_Cerebral_White_Matter  74       /* 240  240  240     0 */
 #define   Bone        80 /*  100 100 100 0 */                         
 #define   Fat         81 /*  255 255 255 0 */
 #define   Bright_Unknown  82   /* 100 240 240 0 */
@@ -83,6 +86,18 @@
 #define IS_UNKNOWN(label)  (((label) == Unknown) || (label < 0) || (label == Bright_Unknown) || (label == Dark_Unknown))
 
 #define IS_BRAIN(label)  (!IS_UNKNOWN(label) && (label != Fat) && (label != Bone))
+
+#define IS_WM(label) (((label) == Left_Cerebral_White_Matter) || ((label) == Right_Cerebral_White_Matter) || ((label) == Left_Temporal_Cerebral_White_Matter) || ((label) == Right_Temporal_Cerebral_White_Matter))
+
+#define IS_HIPPO(l) (((l) == Left_Hippocampus) || ((l) == Right_Hippocampus))
+#define IS_AMYGDALA(l) (((l) == Left_Amygdala) || ((l) == Right_Amygdala))
+#define IS_CORTEX(l) (((l) == Left_Cerebral_Cortex) || \
+                      ((l) == Right_Cerebral_Cortex))
+#define IS_LAT_VENT(l) (((l) == Left_Lateral_Ventricle) || \
+                        ((l) == Right_Lateral_Ventricle) || \
+                        ((l) == Right_Inf_Lat_Vent) || \
+                        ((l) == Left_Inf_Lat_Vent))
+
 
 #define MAX_CMA_LABEL 83
 
