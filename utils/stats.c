@@ -594,7 +594,11 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
           x = nint(xr) ; y = nint(yr) ; z = nint(zr) ;
           if ((vno == 161) ||  (x == 15 && y == 20 && z == 3 && t == 0))
             DiagBreak() ;
-          
+
+          if ((x < 0) || (y < 0) || (z < 0) || (z >= mri_avg->depth) || 
+              (y >= mri_avg->height) || (x >= mri_avg->width))
+            continue ;
+              
 /* 
    at this point (xv,yv,zv) is a functional coordinate, and (x,y,z) is
    the corresponding structural coordinate.
