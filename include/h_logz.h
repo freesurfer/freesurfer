@@ -128,6 +128,8 @@ int   LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage,
                       IMAGE *gradImage, float A, int doweight) ;
 
 void  LogMapPatchHoles(LOGMAP_INFO *lmi, IMAGE *logImage) ;
+IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, float low,
+                       float hi) ;
 
 #if 0
 #define for_each_neighbor(lmi, ptr, i, j, r, s) \
