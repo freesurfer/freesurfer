@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.19 2003/05/09 19:24:22 kteich Exp $
+# $Id: mkfsdist,v 1.20 2003/05/14 19:12:41 kteich Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
@@ -16,20 +16,20 @@
 
 # TO MAKE THE DISTRO:
 
-# - Create the target directory, something like freesurfer-VERSION/. this
-#   is the destination directory. For example, ~/work/freesurfer-0.8.2/.
+# - Create the target directory, something like freesurfer-DATE/. this
+#   is the destination directory. For example, ~/work/freesurfer-030512/.
 
 # - Copy freesurfer_dev or freesurfer_alpha to a new directory called
 #   freesurfer/. For example, ~/work/freesurfer/.
 
 # - Run mkfsdist:
-#    $ mkfsdist ~/work/freesurfer freesurfer-0.8.2 PLATFORM
+#    $ mkfsdist ~/work/freesurfer ~/work/freesurfer-030512 PLATFORM
 #   with appropriate substitutions. PLATFORM can be Linux or Darwin 
 #   or Solaris.
 
-# - mkfsdist will fill ~/work/freesurfer with tarballs and other
+# - mkfsdist will fill ~/work/freesurfer-030512 with tarballs and other
 #   files. Tar up this directory:
-#    $ tar cfzv freesurfer-0.8.2-Linux.tar.gz ~/work/freesurfer
+#    $ tar cfzv freesurfer-030512-Linux.tar.gz ~/work/freesurfer-030512
 #   with appropriate OS name in the tarball name.
 
 
@@ -71,7 +71,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.19 2003/05/09 19:24:22 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.20 2003/05/14 19:12:41 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -112,7 +112,7 @@ if($#argv < 3) then
   echo "     --no-bert-func, --bert-func (default yes)"
   echo "     --no-data: equivalent to --no-average, --no-minc, --no-talairach, --no-bert-*"
   echo ""
-  echo "Ex: mkfsdist ~/work/freesurfer ~/work/freesurfer-0.8.2 Linux --no-data"
+  echo "Ex: mkfsdist ~/work/freesurfer ~/work/freesurfer-030512 Linux --auto-seg"
   echo ""
   exit 1;
 endif
@@ -263,7 +263,7 @@ set DateStr = "`date '+%Y%m%d'`"
 touch $TARGET_DIR/$DateStr
 
 # Create a log file #
-set LF = $TARGET_DIR/mkfsdist.log
+set LF = mkfsdist-$PLATFORM-$DateStr.log
 if(-e $LF) mv $LF $LF.old
 echo "Log file is $LF"
 
@@ -336,6 +336,11 @@ find $SOURCE_DIR_REL -name \*.old >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name .xdebug\* >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name tar-exclude >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name tar-exclude-more >> $EXCLUDE_FILE
+
+# For the distribution, we exclude the UpdateFromSnapshot.sh script
+# and UPDATE instructions.
+find $SOURCE_DIR_REL -name UpdateFromSnapshot.sh >> $EXCLUDE_FILE
+find $SOURCE_DIR_REL -name UPDATE >> $EXCLUDE_FILE
 
 
 echo "--------------------------------------------" | tee -a $LF
@@ -467,7 +472,7 @@ endif # specials for freesurfer_alpha #
 
 echo "Compressing tar file `date`"| tee -a $LF
 gzip $TF
-
+    
 
 
 #-- Tar up the minc bin and libs -------#
@@ -476,7 +481,7 @@ if( $MINC ) then
     echo "Tarring minc" | tee -a $LF
     date | tee -a $LF
     pushd /space/lyon/9/pubsw > /dev/null
-    set TF = $TARGET_DIR/minc-$PLATFORM.tar.gz
+    set TF = $TARGET_DIR/minc.tar.gz
     rm -f $TF
     # Look for the right mni package. If found, tar it.
     set mni_platform = $PLATFORM
