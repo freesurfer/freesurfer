@@ -42,5 +42,6 @@ extern int   mri_views[] ;
 extern int   mri_depths[] ;
 extern MRI   *mris[] ;
 extern int   mri_frames[] ;
+extern int   which_click ;
 
 #endif

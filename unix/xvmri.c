@@ -40,6 +40,7 @@ MRI            *mris[MAX_IMAGES] ;
 int            mri_views[MAX_IMAGES] ;
 int            mri_depths[MAX_IMAGES] ;
 int            mri_frames[MAX_IMAGES] ;
+int            which_click = -1 ;
 
 /*----------------------------------------------------------------------
                            STATIC DATA
@@ -53,7 +54,6 @@ static Panel_item     view_panel ;
 static int            x_click ;
 static int            y_click ;
 static int            z_click ;
-static int            which_click = -1 ;
 
 /*----------------------------------------------------------------------
                         STATIC PROTOTYPES
