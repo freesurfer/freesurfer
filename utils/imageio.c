@@ -38,7 +38,7 @@
 #include "tiffio.h"
 #include "jpeglib.h"
 #include "rgb_image.h"
-#ifdef Linux
+#ifndef IRIX
 #include "pgm.h"
 #include "ppm.h"
 #include "pbm.h"
@@ -1105,7 +1105,7 @@ static int JPEGWriteImage(IMAGE *I, char *fname, int frame)
 }
 #endif
 
-#ifndef Linux
+#ifdef IRIX
 static IMAGE *JPEGReadImage(char *fname) {return(NULL);}
 static IMAGE *JPEGReadHeader(FILE *fp, IMAGE *I) {return(NULL);}
 static int JPEGWriteImage(IMAGE *I, char *fname, int frame) {return(0);}
