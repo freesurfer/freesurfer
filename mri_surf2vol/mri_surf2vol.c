@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.8 2003/11/13 19:12:44 greve Exp $
+  $Id: mri_surf2vol.c,v 1.9 2004/07/06 19:03:46 fischl Exp $
 */
 
 #include <stdio.h>
@@ -42,7 +42,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2vol.c,v 1.8 2003/11/13 19:12:44 greve Exp $";
+static char vcid[] = "$Id: mri_surf2vol.c,v 1.9 2004/07/06 19:03:46 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -56,6 +56,7 @@ char *surfname = "white";
 char *srcsubject = NULL;
 char *targsubject = NULL;
 float projfrac = 0;
+static int fillribbon = 0 ;
 
 char *tempvolpath;
 char *tempvolfmt;
@@ -97,7 +98,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2vol.c,v 1.8 2003/11/13 19:12:44 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2vol.c,v 1.9 2004/07/06 19:03:46 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -118,7 +119,7 @@ int main(int argc, char **argv)
 
   /* Read in the tkregister registration */
   err = regio_read_register(volregfile, &srcsubject, &ipr, &bpr, 
-          &intensity, &Ma2vTKR, &float2int);
+														&intensity, &Ma2vTKR, &float2int);
   if(err) exit(1);
 
   /* Read in the template volume header */
@@ -157,7 +158,7 @@ int main(int argc, char **argv)
   fflush(stdout);
 
   /* Load the thickness for projection along the normal*/
-  if(projfrac != 0){
+  if((projfrac != 0) || (fillribbon != 0)){
     sprintf(fname,"%s/%s/surf/%s.%s",subjectsdir,srcsubject,hemi,"thickness");
     printf("Reading thickness %s\n",fname);
     MRISreadCurvatureFile(SrcSurf, fname);
@@ -172,30 +173,30 @@ int main(int argc, char **argv)
       MRISreadValues(SrcSurf,surfvalpath);
       SurfVal = MRIallocSequence(SrcSurf->nvertices, 1, 1,MRI_FLOAT,1);
       for(vtx = 0; vtx < SrcSurf->nvertices; vtx ++){
-	MRIFseq_vox(SurfVal,vtx,0,0,0) = SrcSurf->vertices[vtx].val;
+				MRIFseq_vox(SurfVal,vtx,0,0,0) = SrcSurf->vertices[vtx].val;
       }
     }
     else { 
       printf("INFO: reading  %s as %s\n",surfvalpath,surfvalfmt);
       SurfVal =  MRIreadType(surfvalpath,surfvalfmtid);
       if(SurfVal == NULL){
-	printf("ERROR: could not read %s as %s\n",surfvalpath,surfvalfmt);
-	exit(1);
+				printf("ERROR: could not read %s as %s\n",surfvalpath,surfvalfmt);
+				exit(1);
       }
       if(SurfVal->height != 1 || SurfVal->depth != 1){
-	reshapefactor = SurfVal->height * SurfVal->depth;
-	printf("INFO: Reshaping %f\n",reshapefactor);
-	mritmp = mri_reshape(SurfVal, reshapefactor*SurfVal->width, 
-			     1, 1, SurfVal->nframes);
-	MRIfree(&SurfVal);
-	SurfVal = mritmp;
+				reshapefactor = SurfVal->height * SurfVal->depth;
+				printf("INFO: Reshaping %f\n",reshapefactor);
+				mritmp = mri_reshape(SurfVal, reshapefactor*SurfVal->width, 
+														 1, 1, SurfVal->nframes);
+				MRIfree(&SurfVal);
+				SurfVal = mritmp;
       }
       if(SurfVal->width != SrcSurf->nvertices){
-	fprintf(stderr,"ERROR: dimesion inconsitency in source data\n");
-	fprintf(stderr,"       Number of surface vertices = %d\n",
-		SrcSurf->nvertices);
-	fprintf(stderr,"      Number of value vertices = %d\n",SurfVal->width);
-	exit(1);
+				fprintf(stderr,"ERROR: dimesion inconsitency in source data\n");
+				fprintf(stderr,"       Number of surface vertices = %d\n",
+								SrcSurf->nvertices);
+				fprintf(stderr,"      Number of value vertices = %d\n",SurfVal->width);
+				exit(1);
       }
     }
     
@@ -214,7 +215,7 @@ int main(int argc, char **argv)
 
   /*---------- Allocate the output volume ------------------*/
   OutVol = MRIallocSequence(TempVol->width, TempVol->height, 
-          TempVol->depth,  MRI_FLOAT, SurfVal->nframes);
+														TempVol->depth,  MRI_FLOAT, SurfVal->nframes);
   if(OutVol == NULL){
     printf("ERROR: could not alloc output volume MRI\n");
     exit(1);
@@ -223,15 +224,43 @@ int main(int argc, char **argv)
   OutVol->nframes = SurfVal->nframes;
 
   printf("INFO: mapping vertices to closest voxel\n");
-  VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
-  if(VtxVol == NULL){
-    printf("ERROR: could not map vertices to voxels\n");
-    exit(1);
-  }
-  
-  printf("INFO: resampling surface to volume\n");  
-  nhits = MRIsurf2Vol(SurfVal, OutVol, VtxVol);
-  printf("INFO: sampled %d voxels in the volume\n",nhits);
+	if (fillribbon)   /* fill entire ribbon */
+	{
+		int n ;
+		for (nhits = 0, projfrac = 0.0 ; projfrac <= 1.0 ; projfrac += 0.05)
+		{
+			VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
+			if(VtxVol == NULL){
+				printf("ERROR: could not map vertices to voxels\n");
+				exit(1);
+			}
+		
+			n = MRIsurf2Vol(SurfVal, OutVol, VtxVol);
+			printf("INFO: resampling surface to volume at projfrac=%2.2f, %d hits\n",
+						 projfrac, n);  
+			nhits += n ;
+			MRIfree(&VtxVol) ;
+		}
+#if 0
+		/* nhits is not valid yet for filling the ribbon. MRIsurf2Vol needs to be
+			 rewritten to take into account the fact that the same voxel get mapped
+			 many times
+		*/
+		printf("INFO: sampled %d voxels in the volume\n",nhits);
+#endif
+	}
+	else  /* sample from one point */
+	{
+		VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
+		if(VtxVol == NULL){
+			printf("ERROR: could not map vertices to voxels\n");
+			exit(1);
+		}
+		
+		printf("INFO: resampling surface to volume\n");  
+		nhits = MRIsurf2Vol(SurfVal, OutVol, VtxVol);
+		printf("INFO: sampled %d voxels in the volume\n",nhits);
+	}
 
   /* count the number of hits */
 
@@ -294,8 +323,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       surfvalpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-	surfvalfmt = pargv[1]; nargsused ++;
-	surfvalfmtid = string_to_type(surfvalfmt);
+				surfvalfmt = pargv[1]; nargsused ++;
+				surfvalfmtid = string_to_type(surfvalfmt);
       }
     }
     else if (istringnmatch(option, "--srcsubject",9)){
@@ -310,13 +339,18 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       hemi = pargv[0]; nargsused = 1;
       if(strcmp(hemi,"lh") && strcmp(hemi,"rh")){
-	printf("ERROR: hemi = %s, must be lh or rh\n",hemi);
-	exit(1);
+				printf("ERROR: hemi = %s, must be lh or rh\n",hemi);
+				exit(1);
       }
     }
     else if ( !strcmp(option, "--projfrac") ) {
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&projfrac); nargsused = 1;
+    }
+    else if ( !strcmp(option, "--fillribbon") ) {
+      if(nargc < 0) argnerr(option,1);
+      nargsused = 0;
+			fillribbon = 1 ;
     }
     else if (istringnmatch(option, "--volreg",8)){
       if(nargc < 1) argnerr(option,1);
@@ -326,24 +360,24 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       outvolpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-	outvolfmt = pargv[1]; nargsused ++;
-	outvolfmtid = string_to_type(outvolfmt);
+				outvolfmt = pargv[1]; nargsused ++;
+				outvolfmtid = string_to_type(outvolfmt);
       }
     }
     else if (istringnmatch(option, "--vtxvol",0)){
       if(nargc < 1) argnerr(option,1);
       vtxvolpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-	vtxvolfmt = pargv[1]; nargsused ++;
-	vtxvolfmtid = string_to_type(vtxvolfmt);
+				vtxvolfmt = pargv[1]; nargsused ++;
+				vtxvolfmtid = string_to_type(vtxvolfmt);
       }
     }
     else if (istringnmatch(option, "--template",6)){
       if(nargc < 1) argnerr(option,1);
       tempvolpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-	tempvolfmt = pargv[1]; nargsused ++;
-	tempvolfmtid = string_to_type(tempvolfmt);
+				tempvolfmt = pargv[1]; nargsused ++;
+				tempvolfmtid = string_to_type(tempvolfmt);
       }
     }
     else if ( !strcmp(option, "--dim") ) {
@@ -384,7 +418,7 @@ static int parse_commandline(int argc, char **argv)
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-  fprintf(stderr,"       Did you really mean -%s ?\n",option);
+				fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -408,6 +442,7 @@ static void print_usage(void)
   printf("  --hemi    hemisphere (lh or rh)\n");
   printf("  --surf    surfname (default is white)\n");
   printf("  --projfrac thickness fraction \n");
+  printf("  --fillribbon\n");
   printf("  --volreg   volume registration file\n");
   printf("  --template <fmt> output like this volume <fmt>\n");
   printf("  \n");
@@ -461,6 +496,10 @@ static void print_help(void)
 "cortical thickncess along the surface normal. For example, to place\n"
 "the vertex half way into the cortical sheet, set fraction = 0.5. The\n"
 "fraction can be any number (including negatives).\n"
+"\n"
+"--fillribbon\n"
+"\n"
+"Fill the entire ribbon (iterate projfrac from 0 to 1)\n"
 "\n"
 "--volreg volume registration file\n"
 "\n"
