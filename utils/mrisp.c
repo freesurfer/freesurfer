@@ -357,11 +357,15 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale,int fno)
     mrisp = MRISPalloc(scale, 1) ;
   else
     ImageClearArea(mrisp->Ip, -1, -1, -1, -1, 0, fno) ;
-  
+
+#if 0  
   if (FZERO(mris->radius))
     a = b = c = MRISaverageRadius(mris) ;
   else
     a = b = c = mris->radius ;
+#else
+    a = b = c = MRISaverageRadius(mris) ;
+#endif
 
   filled = (int **)calloc(U_DIM(mrisp), sizeof(int *)) ;
   distances = (float **)calloc(U_DIM(mrisp), sizeof(float *)) ;
@@ -611,10 +615,14 @@ MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
   if (!mris)
     mris = MRISclone(mrisp->mris) ;
 
+#if 0
   if (FZERO(mris->radius))
     a = b = c = MRISaverageRadius(mris) ;
   else
     a = b = c = mris->radius ;
+#else
+    a = b = c = MRISaverageRadius(mris) ;
+#endif
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -695,10 +703,14 @@ MRISnormalizeFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
   if (!mris)
     mris = MRISclone(mrisp->mris) ;
 
+#if 0
   if (FZERO(mris->radius))
     a = b = c = MRISaverageRadius(mris) ;
   else
     a = b = c = mris->radius ;
+#else
+    a = b = c = MRISaverageRadius(mris) ;
+#endif
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -784,10 +796,14 @@ MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
   else
     ImageClearArea(mrisp->Ip, -1, -1, -1, -1, 0, -1) ;
 
+#if 0
   if (FZERO(mris->radius))
     a = b = c = MRISaverageRadius(mris) ;
   else
     a = b = c = mris->radius ;
+#else
+    a = b = c = MRISaverageRadius(mris) ;
+#endif
 
   filled = (int **)calloc(U_DIM(mrisp), sizeof(int *)) ;
   distances = (float **)calloc(U_DIM(mrisp), sizeof(float *)) ;
@@ -963,10 +979,14 @@ MRISgradientFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris)
   if (!mris)
     mris = MRISclone(mrisp->mris) ;
 
+#if 0
   if (FZERO(mris->radius))
     a = b = c = MRISaverageRadius(mris) ;
   else
     a = b = c = mris->radius ;
+#else
+    a = b = c = MRISaverageRadius(mris) ;
+#endif
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
