@@ -20,7 +20,7 @@ function rt = fast_fxcfg_fir(DoWhat,thing)
 %  4. PSDMax
 %  5. BCW
 %
-% $Id: fast_fxcfg_fir.m,v 1.6 2003/05/07 04:29:40 greve Exp $
+% $Id: fast_fxcfg_fir.m,v 1.7 2003/08/04 01:43:23 greve Exp $
 
 rt = [];
 
@@ -102,12 +102,13 @@ return;
 %------------------------------------------------------------%
 function fxcfg = parseline(line)
 % Read and check input line
-% InputLine: Effect Fixed Label FIR EvId PSDMin dPSD PSDMax
+% InputLine: Effect Fixed Label FIR EvId PSDMin dPSD PSDMax BCW
 % Parameters:
 %  1. EventId
 %  2. PSDMin
 %  3. dPSD
 %  4. PSDMax
+%  5. BCW
 
 fxcfg = [];
 
