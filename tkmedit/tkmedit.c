@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/11/06 01:59:48 $
-// Revision       : $Revision: 1.231 $
-char *VERSION = "$Revision: 1.231 $";
+// Revision Date  : $Date: 2004/12/20 02:08:29 $
+// Revision       : $Revision: 1.232 $
+char *VERSION = "$Revision: 1.232 $";
 
 #define TCL
 #define TKMEDIT 
@@ -745,23 +745,21 @@ void PrintEntryWrapper      ( xUndL_tEntryPtr  iEntry );
 /* a volume for saving multiple edited voxel values so that they can be undone
    in a flood-fill style */
 
-xSparseVolumeRef gUndoVolume = NULL;
+int            gUndoVolumeDimensions[3];
+tBoolean***    gUndoVoxelFlagVolume = NULL;
+Volm_tValue*** gUndoVoxelValueVolume = NULL;
 
 typedef struct {
   int mRestoreValue;
 } UndoVolumeEntry, *UndoVolumeEntryRef;
 
-UndoVolumeEntryRef NewUndoVolumeEntry    ( int         iValue );
-void       DeleteUndoVolumeEntry  ( UndoVolumeEntryRef*iEntry );
-void       DeleteUndoVolumeEntryWrapper ( void*         iEntry );
-
-/* initializes and deletes the volume */
+/* initializes and deletes the volumes */
 tkm_tErr InitUndoVolume    ();
 void   DeleteUndoVolume ();
 
 /* adds a value to the volume at an anatomical index */
-void   AddMRIIdxAndValueToUndoVolume ( xVoxelRef iMRIIdx,
-				       int       iValue );
+void   AddMRIIdxAndValueToUndoVolume ( xVoxelRef    iMRIIdx,
+				       Volm_tValue  iValue );
 
 /* sees if there is a value for this MRI idx, i.e. if it can be undone */
 tBoolean IsMRIIdxInUndoVolume         ( xVoxelRef iMRIIdx );
@@ -1070,7 +1068,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.231 2004/11/06 01:59:48 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.232 2004/12/20 02:08:29 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5167,7 +5165,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.231 2004/11/06 01:59:48 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.232 2004/12/20 02:08:29 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -10649,66 +10647,65 @@ void PrintEntryWrapper ( xUndL_tEntryPtr iEntry ) {
 
 /* =========================================================== UNDO VOLUME */
 
-UndoVolumeEntryRef NewUndoVolumeEntry ( int iValue ) {
-  
-  UndoVolumeEntryRef entry = NULL;
-  
-  entry = (UndoVolumeEntryRef) malloc( sizeof( UndoVolumeEntry ) );
-  if( NULL == entry ) {
-    DebugPrint( ("NewUndoVolumeEntry: Couldn't create undo volume entry.\n") );
-    goto cleanup;
-  }
-  
-  entry->mRestoreValue = iValue;
-  
- cleanup:
-  
-  return entry;
-}
-
-void DeleteUndoVolumeEntry ( UndoVolumeEntryRef* iEntry ) {
-  
-  UndoVolumeEntryRef entry = NULL;
-  
-  if( NULL == iEntry )
-    return;
-  
-  entry = *iEntry;
-  if( NULL == entry )
-    return;
-  
-  free( entry );
-  
-  *iEntry = NULL;
-}
-
-void DeleteUndoVolumeEntryWrapper ( void* iEntry ) {
-  
-  UndoVolumeEntryRef entry = NULL;
-  entry = (UndoVolumeEntryRef)iEntry;
-  DeleteUndoVolumeEntry( &entry );
-}
-
 tkm_tErr InitUndoVolume () {
   
   tkm_tErr   eResult = tkm_tErr_NoErr;
-  xSVol_tErr eVolume = xSVol_tErr_NoErr;
-  MRI       *mri_main ;
-  
-  mri_main = gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ;
+  Volm_tErr  eVolume = Volm_tErr_NoErr;
+  int        nZ      = 0;
+  int        nY      = 0;
   
   DebugEnterFunction( ("InitUndoVolume()") );
   
   /* delete the volume if it exists */
-  if( NULL != gUndoVolume )
+  if( NULL != gUndoVoxelValueVolume || 
+      NULL != gUndoVoxelFlagVolume )
     DeleteUndoVolume();
   
-  /* allocate the volume */
-  DebugNote( ("Creating undo volume") );
-  eVolume = xSVol_New( &gUndoVolume, mri_main->width, mri_main->height, 
-           mri_main->depth );
-  DebugAssertThrowX( (xSVol_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_Unrecoverable );
+  /* Get dimensions of the main MRI. */
+  eVolume = Volm_GetDimensions( gAnatomicalVolume[tkm_tVolumeType_Main],
+				&gUndoVolumeDimensions[0],
+				&gUndoVolumeDimensions[1],
+				&gUndoVolumeDimensions[2]);
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+  
+  /* allocate the flag volume */
+  DebugNote( ("Creating gUndoVoxelFlagVolume") );
+  gUndoVoxelFlagVolume = 
+    (tBoolean***) calloc( gUndoVolumeDimensions[2], sizeof(tBoolean**) );
+  DebugAssertThrowX( (NULL != gUndoVoxelFlagVolume),
+		     eResult, tkm_tErr_CouldntAllocate );
+  for( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ ) {
+    gUndoVoxelFlagVolume[nZ] =
+      (tBoolean**) calloc( gUndoVolumeDimensions[1], sizeof(tBoolean*) );
+    DebugAssertThrowX( (NULL != gUndoVoxelFlagVolume[nZ]),
+		       eResult, tkm_tErr_CouldntAllocate );
+    for( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ ) {
+      gUndoVoxelFlagVolume[nZ][nY] =
+	(tBoolean*) calloc( gUndoVolumeDimensions[0], sizeof(tBoolean) );
+      DebugAssertThrowX( (NULL != gUndoVoxelFlagVolume[nZ][nY]),
+			 eResult, tkm_tErr_CouldntAllocate );
+    }
+  }
+    
+  /* allocate the value volume */
+  DebugNote( ("Creating gUndoVoxelValueVolume") );
+  gUndoVoxelValueVolume = 
+    (Volm_tValue***) calloc( gUndoVolumeDimensions[2], sizeof(Volm_tValue**) );
+  DebugAssertThrowX( (NULL != gUndoVoxelValueVolume),
+		     eResult, tkm_tErr_CouldntAllocate );
+  for( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ ) {
+    gUndoVoxelValueVolume[nZ] =
+      (Volm_tValue**) calloc( gUndoVolumeDimensions[1], sizeof(Volm_tValue*) );
+    DebugAssertThrowX( (NULL != gUndoVoxelValueVolume[nZ]),
+		       eResult, tkm_tErr_CouldntAllocate );
+    for( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ ) {
+      gUndoVoxelValueVolume[nZ][nY] =
+	(Volm_tValue*) calloc( gUndoVolumeDimensions[0], sizeof(Volm_tValue) );
+      DebugAssertThrowX( (NULL != gUndoVoxelValueVolume[nZ][nY]),
+			 eResult, tkm_tErr_CouldntAllocate );
+    }
+  }
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -10717,112 +10714,133 @@ tkm_tErr InitUndoVolume () {
   DebugExitFunction;
   
   return eResult;
-  
 }
 
 void DeleteUndoVolume () {
   
-  xSVol_tErr eVolume = xSVol_tErr_NoErr;
-  
-  if( NULL != gUndoVolume ) {
-    
-    eVolume = xSVol_Delete( &gUndoVolume, DeleteUndoVolumeEntryWrapper );
-    if( xSVol_tErr_NoErr != eVolume ) {
-      DebugPrint( ( "DeleteUndoVolume: Couldn't delete the undo volume.\n"
-        ) );
+  int       nZ      = 0;
+  int       nY      = 0;
+
+  DebugEnterFunction( ("DeleteUndoVolume()") );
+
+  if( NULL != gUndoVoxelValueVolume ) {
+    DebugNote( ("Deleting gUndoVoxelValueVolume") );
+    for( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ ) {
+      for( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ ) {
+	free( gUndoVoxelValueVolume[nZ][nY] );
+      }
+      free( gUndoVoxelValueVolume[nZ] );
     }
+    free( gUndoVoxelValueVolume );
+    gUndoVoxelValueVolume = NULL;
   }
+
+  if( NULL != gUndoVoxelFlagVolume ) {
+    DebugNote( ("Deleting gUndoVoxelFlagVolume") );
+    for( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ ) {
+      for( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ ) {
+	free( gUndoVoxelFlagVolume[nZ][nY] );
+      }
+      free( gUndoVoxelFlagVolume[nZ] );
+    }
+    free( gUndoVoxelFlagVolume );
+    gUndoVoxelFlagVolume = NULL;
+  }
+
+  DebugExitFunction;
 }
 
 void AddMRIIdxAndValueToUndoVolume ( xVoxelRef    iMRIIdx,
-				     int          iValue ) {
+				     Volm_tValue  iValue ) {
   
-  UndoVolumeEntryRef entry = NULL;
-  xSVol_tErr       eVolume = xSVol_tErr_NoErr;
+  tkm_tErr eResult = tkm_tErr_NoErr;
   
-  if( NULL == gUndoVolume ) {
-    DebugPrint( ("AddMRIIdxAndValueToUndoVolume: Undo volume not inited.\n") );
-    goto cleanup;
-  }
+  DebugEnterFunction( ("AddMRIIdxAndValueToUndoVolume( iMRIIdx=%p, iValue=%f)",
+		       iMRIIdx, iValue) );
+
+  DebugNote( ("Checking if undo volumes exist") );
+  DebugAssertThrowX( (NULL != gUndoVoxelFlagVolume &&
+		      NULL != gUndoVoxelValueVolume),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+
+  DebugNote( ("Checking params") );
+  DebugAssertThrowX( (NULL != iMRIIdx),
+		     eResult, tkm_tErr_InvalidParameter );
+
+  /* Set the flag here. */
+  gUndoVoxelFlagVolume[xVoxl_GetZ(iMRIIdx)][xVoxl_GetY(iMRIIdx)][xVoxl_GetX(iMRIIdx)] = 1;
+
+  /* Set the value here. */
+  gUndoVoxelValueVolume[xVoxl_GetZ(iMRIIdx)][xVoxl_GetY(iMRIIdx)][xVoxl_GetX(iMRIIdx)] = iValue;
   
-  /* try getting a voxel at this location */
-  eVolume = xSVol_Get( gUndoVolume, iMRIIdx, (void**)&entry );
-  if( xSVol_tErr_NoErr != eVolume )
-    goto cleanup;
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
   
-  /* if it exists, delete it */
-  if( NULL != entry ) {
-    eVolume = xSVol_Set( gUndoVolume, iMRIIdx, NULL );
-    if( xSVol_tErr_NoErr != eVolume )
-      goto cleanup;
-    
-    DeleteUndoVolumeEntry( &entry );
-    entry = NULL;
-  }
-  
-  /* create a new voxel */
-  entry = NewUndoVolumeEntry( iValue );
-  if( NULL == entry )
-    goto cleanup;
-  
-  /* set the voxel at this location */
-  eVolume = xSVol_Set( gUndoVolume, iMRIIdx, entry );
-  if( xSVol_tErr_NoErr != eVolume )
-    goto cleanup;
-  
- cleanup:
-  return;
+  DebugExitFunction;
 }
 
 tBoolean IsMRIIdxInUndoVolume ( xVoxelRef iMRIIdx ) {
   
-  tBoolean           bIsInVolume = FALSE;
-  xSVol_tErr         eVolume     = xSVol_tErr_NoErr;
-  UndoVolumeEntryRef entry       = NULL;
+  tkm_tErr eResult     = tkm_tErr_NoErr;
+  tBoolean bIsInVolume = FALSE;
   
-  if( NULL == gUndoVolume ) {
-    DebugPrint( ( "IsAnaIdxInUndoVolume: Undo volume not inited.\n"
-      ) );
-    goto cleanup;
-  }
+  DebugEnterFunction( ("IsMRIIdxInUndoVolume( iMRIIdx=%p )", iMRIIdx) );
+
+  DebugNote( ("Checking if undo volumes exist") );
+  DebugAssertThrowX( (NULL != gUndoVoxelFlagVolume &&
+		      NULL != gUndoVoxelValueVolume),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+
+  DebugNote( ("Checking params") );
+  DebugAssertThrowX( (NULL != iMRIIdx),
+		     eResult, tkm_tErr_InvalidParameter );
+
+  /* Return the flag here. */
+  bIsInVolume =  gUndoVoxelFlagVolume[xVoxl_GetZ(iMRIIdx)][xVoxl_GetY(iMRIIdx)][xVoxl_GetX(iMRIIdx)];
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
   
-  /* try getting a voxel at this location */
-  eVolume = xSVol_Get( gUndoVolume, iMRIIdx, (void**)&entry );
-  if( xSVol_tErr_NoErr != eVolume )
-    goto cleanup;
-  
-  /* if we got on, it's in the volume */
-  if( NULL != entry )
-    bIsInVolume = TRUE;
-  
- cleanup:
-  
+  DebugExitFunction;
+
   return bIsInVolume;
 }
 
 void RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx ) {
   
-  Volm_tErr          eVolume = Volm_tErr_NoErr;
-  UndoVolumeEntryRef entry   = NULL;
-  int                nZ      = 0;
-  int                nY      = 0;
-  int                nX      = 0;
-  xVoxel             MRIIdx;
+  tkm_tErr  eResult = tkm_tErr_NoErr;
+  Volm_tErr eVolume = Volm_tErr_NoErr;
+  int       nZ      = 0;
+  int       nY      = 0;
+  int       nX      = 0;
+  xVoxel    MRIIdx;
   
-  /* if this voxel is in the volume... */
-  xSVol_Get( gUndoVolume, iMRIIdx, (void**)&entry );
-  if( NULL != entry ) {
-    
-    /* restore the value */
-    Volm_SetValueAtMRIIdx_( gAnatomicalVolume[tkm_tVolumeType_Main], iMRIIdx,
-			    (Volm_tValue)entry->mRestoreValue );
-    
-    /* remove the voxel */
-    xSVol_Set( gUndoVolume, iMRIIdx, NULL );
-    DeleteUndoVolumeEntry( &entry );
-    
+  
+  DebugEnterFunction( ("IsMRIIdxInUndoVolume( iMRIIdx=%p )", iMRIIdx) );
 
-    /* try restoring surrounding voxels as well. */
+  DebugNote( ("Checking if undo volumes exist") );
+  DebugAssertThrowX( (NULL != gUndoVoxelFlagVolume &&
+		      NULL != gUndoVoxelValueVolume),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+
+  DebugNote( ("Checking params") );
+  DebugAssertThrowX( (NULL != iMRIIdx),
+		     eResult, tkm_tErr_InvalidParameter );
+
+
+  /* if this voxel is in the volume... */
+  if( gUndoVoxelFlagVolume[xVoxl_GetZ(iMRIIdx)][xVoxl_GetY(iMRIIdx)][xVoxl_GetX(iMRIIdx)] ) {
+
+    /* Restore the value */
+    Volm_SetValueAtMRIIdx_( gAnatomicalVolume[tkm_tVolumeType_Main], iMRIIdx,
+			    (Volm_tValue)gUndoVoxelValueVolume[xVoxl_GetZ(iMRIIdx)][xVoxl_GetY(iMRIIdx)][xVoxl_GetX(iMRIIdx)] );
+    
+    /* "Remove" it from the volume. */
+    gUndoVoxelFlagVolume[xVoxl_GetZ(iMRIIdx)][xVoxl_GetY(iMRIIdx)][xVoxl_GetX(iMRIIdx)] = FALSE;
+
+    /* Try restoring surrounding voxels as well. */
     for( nZ = xVoxl_GetZ(iMRIIdx)-1; nZ <= xVoxl_GetZ(iMRIIdx)+1; nZ++ )
       for( nY = xVoxl_GetY(iMRIIdx)-1; nY <= xVoxl_GetY(iMRIIdx)+1; nY++ )
 	for( nX = xVoxl_GetX(iMRIIdx)-1; nX <= xVoxl_GetX(iMRIIdx)+1; nX++ ) {
@@ -10837,18 +10855,43 @@ void RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx ) {
     
     UpdateAndRedraw();
   }
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
 }
 
 void ClearUndoVolume () {
   
-  if( NULL == gUndoVolume ) {
-    DebugPrint( ("ClearUndoVolume: Undo volume not inited.\n") );
-    return;
+  tkm_tErr  eResult = tkm_tErr_NoErr;
+  int       nX      = 0;
+  int       nY      = 0;
+  int       nZ      = 0;
+  
+  DebugEnterFunction( ("DeleteUndoVolume()") );
+
+  DebugNote( ("Checking if undo volumes exist") );
+  DebugAssertThrowX( (NULL != gUndoVoxelFlagVolume &&
+		      NULL != gUndoVoxelValueVolume),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+
+ /* Set all the flags to FALSE. */
+  DebugNote( ("Setting flags in gUndoVoxelFlagVolume to false") );
+  for( nZ = 0; nZ < gUndoVolumeDimensions[2]; nZ++ ) {
+    for( nY = 0; nY < gUndoVolumeDimensions[1]; nY++ ) {
+      for( nX = 0; nX < gUndoVolumeDimensions[0]; nX++ ) {
+	gUndoVoxelFlagVolume[nZ][nY][nX] = FALSE;
+      }
+    }
   }
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
   
-  xSVol_Purge( gUndoVolume, DeleteUndoVolumeEntryWrapper );
-  
-  UpdateAndRedraw();
+  DebugExitFunction;
 }
 
 /* ============================================================ HEAD POINTS */
