@@ -7215,15 +7215,17 @@ select_orig_vertex_coordinates(int *vindex)
   mind = 1e10;
   if (origsurfloaded == FALSE)
     {
-      printf("surfer: ### wrong number of vertices/faces in file %s\n",fname);PR
-										printf("        using current position instead of orig...\n");PR
-																		for (k = 0 ; k < mris->nvertices ; k++)
-																		  {
-																		    x=mris->vertices[k].x; y = mris->vertices[k].y; z = mris->vertices[k].z;
-																		    d = SQR(x-px)+SQR(y-py)+SQR(z-pz);
-																		    if (d<mind) 
-																		      {mind=d;*vindex=k;}
-																		  }
+      printf("surfer: ### wrong number of vertices/faces in file %s\n",fname);
+      PR;
+      printf("        using current position instead of orig...\n");
+      PR;
+      for (k = 0 ; k < mris->nvertices ; k++)
+	{
+	  x=mris->vertices[k].x; y = mris->vertices[k].y; z = mris->vertices[k].z;
+	  d = SQR(x-px)+SQR(y-py)+SQR(z-pz);
+	  if (d<mind) 
+	    {mind=d;*vindex=k;}
+	}
     }
   else   /* find closest original vertex */
     {
@@ -7242,8 +7244,8 @@ select_orig_vertex_coordinates(int *vindex)
   /* begin rkt */
   if (selection>=0)
     draw_cursor(selection,TRUE);
-  if (k>=0)
-    update_labels(LABELSET_CURSOR, k, d);
+  if (*vindex>=0)
+    update_labels(LABELSET_CURSOR, *vindex, sqrt(mind));
   /* end rkt */
   
   print_vertex_data(*vindex, stdout, sqrt(mind)) ;
@@ -18332,7 +18334,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.91 2004/12/30 19:43:21 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.92 2005/01/01 23:33:26 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20271,7 +20273,6 @@ update_labels(int label_set, int vno, float dmin)
   int field;
   int label_index_array[LABL_MAX_LABELS];
   int num_labels_found;
-  
 
   /* make sure we an interpreter to send commands to */
   if(g_interp==NULL)
