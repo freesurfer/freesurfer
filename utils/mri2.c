@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.7 2004/11/01 22:32:47 greve Exp $
+  $Id: mri2.c,v 1.8 2004/11/03 22:16:35 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -689,10 +689,10 @@ int MRIdimMismatch(MRI *v1, MRI *v2, int frameflag)
      threshold (if it also meets the sign criteria). If the mask is
      0, then ovol will be set to 0 at that location. Pass NULL if
      not using a mask.
-  fdrthresh - FDR threshold between 0 and 1. If log10flag is set,
-     then fdrthresh = -log10(fdrthresh). ovol voxels with p values 
-     GREATER than fdrthresh will be 0. Note that this is the same
-     as requiring -log10(p) > -log10(fdrthresh).
+  vwth - voxel-wise threshold between 0 and 1. If log10flag is set,
+     then vwth = -log10(vwth). ovol voxels with p values 
+     GREATER than vwth will be 0. Note that this is the same
+     as requiring -log10(p) > -log10(vwth).
   ovol - output volume. Pass NULL if no output volume is needed.
 
   So, for the ovol to be set to something non-zero, the vol must
@@ -708,7 +708,7 @@ int MRIdimMismatch(MRI *v1, MRI *v2, int frameflag)
   Ref: http://www.sph.umich.edu/~nichols/FDR/FDR.m
   *----------------------------------------------------*/
 int MRIfdr(MRI *vol, int frame, double fdr, int signid, int log10flag,
-	   MRI *mask, double *fdrthresh, MRI *ovol)
+	   MRI *mask, double *vwth, MRI *ovol)
 {
   double *p=NULL, val=0.0, valnull=0.0, maskval;
   int Nv, np, c, r ,s, maskflag=0;
@@ -780,11 +780,11 @@ int MRIfdr(MRI *vol, int frame, double fdr, int signid, int log10flag,
     return(1);
   }
 
-  *fdrthresh = fdrthreshold(p,np,fdr);
+  *vwth = fdr2vwth(p,np,fdr);
   free(p);
 
   if(ovol == NULL){
-    if(log10flag) *fdrthresh = -log10(*fdrthresh);
+    if(log10flag) *vwth = -log10(*vwth);
     return(0);
   }
 
@@ -818,7 +818,7 @@ int MRIfdr(MRI *vol, int frame, double fdr, int signid, int log10flag,
 	val = fabs(val);
 	if(log10flag) val = pow(10,-val);
 	
-	if(val > *fdrthresh){
+	if(val > *vwth){
 	  // Set to null if greather than thresh
 	  MRIFseq_vox(ovol,c,r,s,0) = valnull;
 	  continue;
@@ -831,7 +831,7 @@ int MRIfdr(MRI *vol, int frame, double fdr, int signid, int log10flag,
       }
     }
   }
-  if(log10flag) *fdrthresh = -log10(*fdrthresh);
+  if(log10flag) *vwth = -log10(*vwth);
 
   return(0);
 }

@@ -1308,10 +1308,10 @@ MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
      a vertex is 1, then its val will be used to compute the threshold
      (if the val also meets the sign criteria). If the undefval is
      0, then val2 will be set to 0.
-  fdrthresh - FDR threshold between 0 and 1. If log10flag is set,
-     then fdrthresh = -log10(fdrthresh). Vertices with p values 
-     GREATER than fdrthresh have val2=0. Note that this is the same
-     as requiring -log10(p) > -log10(fdrthresh).
+  vwth - voxel-wise threshold between 0 and 1. If log10flag is set,
+     then vwth = -log10(vwth). Vertices with p values 
+     GREATER than vwth have val2=0. Note that this is the same
+     as requiring -log10(p) > -log10(vwth).
 
   So, for the val2 to be set to something non-zero, the val must
   meet the sign, mask, and threshold criteria. If val meets all
@@ -1325,7 +1325,7 @@ MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
   Ref: http://www.sph.umich.edu/~nichols/FDR/FDR.m
   ---------------------------------------------------------------*/
 int MRISfdr(MRIS *surf, double fdr, int signid, 
-	    int log10flag, int maskflag, double *fdrthresh)
+	    int log10flag, int maskflag, double *vwth)
 {
   double *p=NULL, val, val2null;
   int vtxno, np;
@@ -1354,7 +1354,7 @@ int MRISfdr(MRIS *surf, double fdr, int signid,
     return(1);
   }
 
-  *fdrthresh = fdrthreshold(p,np,fdr);
+  *vwth = fdr2vwth(p,np,fdr);
 
   // Perform the thresholding
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
@@ -1378,7 +1378,7 @@ int MRISfdr(MRIS *surf, double fdr, int signid,
     val = fabs(val);
     if(log10flag) val = pow(10,-val);
 
-    if(val > *fdrthresh){
+    if(val > *vwth){
       // Set to null if greather than thresh
       surf->vertices[vtxno].val2 = val2null;
       continue;
@@ -1389,8 +1389,8 @@ int MRISfdr(MRIS *surf, double fdr, int signid,
     surf->vertices[vtxno].val2 = surf->vertices[vtxno].val;
   }
 
-  // Change the fdrthresh to log10 if needed
-  if(log10flag) *fdrthresh = -log10(*fdrthresh);
+  // Change the vwth to log10 if needed
+  if(log10flag) *vwth = -log10(*vwth);
   free(p);
 
   return(0);

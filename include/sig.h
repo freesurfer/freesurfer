@@ -10,7 +10,8 @@ void gser(float *gamser,float a,float x, float *gln) ;
 void gcf(float *gammcf, float a, float x, float *gln) ;
 float gammp(float a,float x) ;
 
-double fdrthreshold(double *p, int np, double fdr);
+double fdr2vwth(double *p, int np, double fdr);
+double vwth2fdr(double *p, int np, double vwth);
 int doublecompar(const void *v1, const void *v2);
 
 #endif
