@@ -283,14 +283,15 @@ MRIreadInfo(char *fpref)
     {
       if (!stricmp(cmd, "xform") || !stricmp(cmd, "transform"))
       {
-        if (mri->transform_fname[0] == '/')  /* not a relative path */
-          sprintf(fname,"%s", mri->transform_fname);
+        if (*mri->transform_fname != '/') /* relative path, add prefix */
+          sprintf(fname, "%s/%s", fpref, mri->transform_fname) ;
         else
-          sprintf(fname,"%s/%s", fpref,mri->transform_fname);
-        /*      fprintf(stderr, "loading xfm file '%s'\n", fname) ;*/
-        if (input_transform_file(fname, &mri->transform) != OK)
+          strcpy(fname, mri->transform_fname) ; /* absolute path */
+        FileNameAbsolute(fname, mri->transform_fname) ;
+        if (input_transform_file(mri->transform_fname, &mri->transform) != OK)
           ErrorPrintf(ERROR_NO_MEMORY, 
-                      "MRIreadInfo: could not read xform file '%s'\n", fname) ;
+                      "MRIreadInfo: could not read xform file '%s'\n", 
+                      mri->transform_fname) ;
         else
         {
           mri->linear_transform = get_linear_transform_ptr(&mri->transform) ;
