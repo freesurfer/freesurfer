@@ -196,32 +196,31 @@ testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 # testVolumeHistogram_LDFLAGS=-L${QTDIR}/lib -lqt-mt
 #endif
 
-
 # All the scuba2 stuff.
 .ui/mainwindow.h: mainwindow.ui
 	$(UIC) mainwindow.ui -o .ui/mainwindow.h
-.ui/mainwindow.cpp: .ui/mainwindow.h mainwindow.ui
+.ui/mainwindow.cpp: .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h mainwindow.ui
 	$(UIC) mainwindow.ui -i mainwindow.h -o .ui/mainwindow.cpp
 .obj/mainwindow.o: .ui/mainwindow.cpp mainwindow.ui.h .ui/mainwindow.h
 	$(CXX) $(CXXFLAGS) -o .obj/mainwindow.o .ui/mainwindow.cpp
 
 .ui/toolsettingsdlog.h: toolsettingsdlog.ui
 	$(UIC) toolsettingsdlog.ui -o .ui/toolsettingsdlog.h
-.ui/toolsettingsdlog.cpp: .ui/toolsettingsdlog.h toolsettingsdlog.ui
+.ui/toolsettingsdlog.cpp: .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h  toolsettingsdlog.ui
 	$(UIC) toolsettingsdlog.ui -i toolsettingsdlog.h -o .ui/toolsettingsdlog.cpp
 .obj/toolsettingsdlog.o: .ui/toolsettingsdlog.cpp toolsettingsdlog.ui.h .ui/toolsettingsdlog.h
 	$(CXX) $(CXXFLAGS) -o .obj/toolsettingsdlog.o .ui/toolsettingsdlog.cpp
 
 .ui/viewlayersdlog.h: viewlayersdlog.ui
 	$(UIC) viewlayersdlog.ui -o .ui/viewlayersdlog.h
-.ui/viewlayersdlog.cpp: .ui/viewlayersdlog.h viewlayersdlog.ui
+.ui/viewlayersdlog.cpp: .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h viewlayersdlog.ui
 	$(UIC) viewlayersdlog.ui -i viewlayersdlog.h -o .ui/viewlayersdlog.cpp
 .obj/viewlayersdlog.o: .ui/viewlayersdlog.cpp viewlayersdlog.ui.h .ui/viewlayersdlog.h
 	$(CXX) $(CXXFLAGS) -o .obj/viewlayersdlog.o .ui/viewlayersdlog.cpp
 
 .ui/roisettingsdlog.h: roisettingsdlog.ui
 	$(UIC) roisettingsdlog.ui -o .ui/roisettingsdlog.h
-.ui/roisettingsdlog.cpp: .ui/roisettingsdlog.h roisettingsdlog.ui
+.ui/roisettingsdlog.cpp: .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h roisettingsdlog.ui
 	$(UIC) roisettingsdlog.ui -i roisettingsdlog.h -o .ui/roisettingsdlog.cpp
 .obj/roisettingsdlog.o: .ui/roisettingsdlog.cpp roisettingsdlog.ui.h .ui/roisettingsdlog.h
 	$(CXX) $(CXXFLAGS) -o .obj/roisettingsdlog.o .ui/roisettingsdlog.cpp
