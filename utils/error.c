@@ -19,6 +19,8 @@
 #include <hips_error.h>
 
 #include "error.h"
+#include "hips.h"
+#include "proto.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
