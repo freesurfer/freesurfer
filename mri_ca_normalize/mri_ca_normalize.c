@@ -36,6 +36,7 @@ static float min_prior = 0.6 ;
 static FILE *diag_fp = NULL ;
 
 
+static void usage_exit(int code) ;
 static int get_option(int argc, char *argv[]) ;
 
 static char *renormalization_fname = NULL ;
@@ -93,7 +94,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.12 2003/04/15 20:17:59 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.13 2003/06/13 15:24:26 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -493,9 +494,7 @@ get_option(int argc, char *argv[])
     break ;
   case '?':
   case 'U':
-    printf("usage: %s <in volume> <atlas> <transform> <normalized volume>\n", 
-           argv[0]) ;
-    exit(1) ;
+		usage_exit(0) ;
     break ;
   case 'P':
     ctl_point_pct = atof(argv[2]) ;
@@ -913,3 +912,30 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 	return(NO_ERROR) ;
 }
 
+static void
+usage_exit(int code)
+{
+    printf("usage: %s <in volume> <atlas> <transform> <normalized volume>\n\n", 
+           Progname) ;
+    printf("\t-fsamples <filename>         write control points to filename\n");
+    printf("\t-nsamples <filename>         write transformed normalization control points to filename\n");
+    printf("\t-mask <mri_vol>              use mri_vol to mask input\n");
+    printf("\t-f <filename>                define control points from filename\n");
+    printf("\t-fonly <filename>            only use control points from filename\n");
+    printf("\t-diag <filename>             write to log file\n");
+    printf("\t-debug_voxel <x> <y> <z>     debug voxel\n");
+    printf("\t-debug_node <x> <y> <z>      debug node\n");
+    printf("\t-tr <float n>                set TR in msec\n");
+    printf("\t-te <float n>                set TE in msec\n");
+    printf("\t-alpha <float n>             set alpha in radians\n");
+    printf("\t-example <mri_vol> <segmentation> use T1 (mri_vol) and segmentation as example\n");
+    printf("\t-novar                       do not use variance estimates\n");
+    printf("\t-renorm <mri_vol>            renormalize using predicted intensity values in mri_vol\n");
+    printf("\t-flash                       use FLASH forward model to predict intensity values\n");
+    printf("\t-prior <float t>             use prior threshold t (default=.6)\n");
+    printf("\t-w                           write normalized volume each nregion iteration to norm(n).mgh(see -n)\n");
+    printf("\t-n <int n>                   use n regions/struct for normalization\n");
+    printf("\t-v <int n>                   does nothing as far as i can tell, but an option\n");
+    printf("\t-p <float p>                 use top p percent(default=.25) white matter points as control points\n"); 
+    exit(code) ;
+}
