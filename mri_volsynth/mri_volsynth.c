@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.4 2003/07/15 20:33:13 greve Exp $
+  $Id: mri_volsynth.c,v 1.5 2004/02/11 22:07:54 greve Exp $
 */
 
 #include <stdio.h>
@@ -40,7 +40,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.4 2003/07/15 20:33:13 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.5 2004/02/11 22:07:54 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -351,7 +351,7 @@ static void check_options(void)
   }
   if(seed < 0){
     gettimeofday(&tv, NULL);
-    seed = tv.tv_sec;
+    seed = tv.tv_sec + tv.tv_usec;
   }
   if(seedfile != NULL){
     fp = fopen(seedfile,"w");
