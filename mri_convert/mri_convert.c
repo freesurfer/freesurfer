@@ -1641,7 +1641,7 @@ void usage(FILE *stream)
   "  brik          - same as afni\n"
   "  bshort        - MGH-NMR bshort format\n"
   "  bfloat        - MGH-NMR bfloat format\n"
-  "  sdt           - Varian (??)\n"
+  "  sdt           - Varian (?)\n"
   "  outline       - MGH-NMR Outline format\n"
   "  otl           - same as outline\n"
   "  gdf           - ???\n"
