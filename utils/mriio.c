@@ -444,8 +444,10 @@ MRIfileType(char *fname)
 MRI *
 MRIfromVolume(Volume volume)
 {
-  MRI *mri ;
-  int type, width, height, depth, x, y, z, ystep, y1, ndim, nframes ;
+  MRI   *mri ;
+  int   type, width, height, depth, x, y, z, ystep, y1, ndim, nframes,
+        sizes[4] ;
+  Real  separations[4] ;
 
 /*
    the MNC coordinate system is related to coronal slices in the following way:
@@ -455,15 +457,17 @@ MRIfromVolume(Volume volume)
    y  -->  z
    x  -->  x
 */
-  ndim = volume->array.n_dimensions ;
+  ndim = get_volume_n_dimensions(volume) ;
+  get_volume_sizes(volume, sizes) ;
   if (ndim > 3)
-    nframes = volume->array.sizes[3] ;
+    nframes = sizes[3] ;
   else
     nframes = 1 ;
-  width = volume->array.sizes[0] ;
-  height = volume->array.sizes[2] ;
-  depth = volume->array.sizes[1] ;
-  ystep = nint(volume->separations[2]) ;
+  width = sizes[0] ;
+  height = sizes[2] ;
+  depth = sizes[1] ;
+  get_volume_separations(volume, separations) ;
+  ystep = nint(separations[2]) ;
   switch (volume->array.data_type)
   {
   case NC_BYTE:  type = MRI_UCHAR ; break ;
@@ -524,9 +528,9 @@ MRIfromVolume(Volume volume)
   mri->slice_direction = MRI_CORONAL ;
   mri->imnr0 = 0 ;
   mri->imnr1 = depth - 1 ;
-  mri->xsize = (volume->separations[0]) ;
-  mri->ysize = (volume->separations[2]) ;
-  mri->zsize = (volume->separations[1]) ;
+  mri->xsize = separations[0] ;
+  mri->ysize = separations[2] ;
+  mri->zsize = separations[1] ;
   mri->xstart = (float)volume->world_space_for_translation_voxel[0] ;
   mri->zstart = (float)volume->world_space_for_translation_voxel[1] ;
   mri->ystart = (float)volume->world_space_for_translation_voxel[2] ;
