@@ -7,12 +7,12 @@
 #define UCHAR  unsigned char
 #endif
 
-#define MAX_BINS  1024
+#define MAX_BINS  10000
 typedef struct
 {
   int     nbins ;
-  float   bins[MAX_BINS] ;   /* upper end of the range that maps to this bin */
-  float   counts[MAX_BINS] ; /* # of voxels which map to this bin */
+  float   *bins ;   /* upper end of the range that maps to this bin */
+  float   *counts ; /* # of voxels which map to this bin */
 } HISTOGRAM, HISTO ;
 
 int       HISTOfree(HISTOGRAM **phisto) ;
