@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/04/07 21:05:48 $
-// Revision       : $Revision: 1.10 $
+// Revision Date  : $Date: 2005/02/25 20:10:59 $
+// Revision       : $Revision: 1.11 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -18,14 +18,14 @@
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
-#include "mrisurf.h"
 #include "mri.h"
+#include "mrisurf.h"
 #include "macros.h"
 #include "icosahedron.h"
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.10 2004/04/07 21:05:48 tosa Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.11 2005/02/25 20:10:59 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -41,12 +41,13 @@ static char *xform_name = "talairach.xfm" ;
 static int ico_no = 6 ;
 
 char *Progname ;
+static char sdir[STRLEN];
 
 int
 main(int argc, char *argv[])
 {
-  char         **av, *avg_surf_name, *canon_surf_name, fname[STRLEN], *sdir, 
-               *mdir, ico_fname[STRLEN], *hemi, *out_sname ;
+  char         **av, *avg_surf_name, *canon_surf_name, fname[STRLEN], 
+    *mdir, ico_fname[STRLEN], *hemi, *out_sname ;
   int          ac, nargs, i, vno, n ;
   VERTEX       *v ;
   MRI_SURFACE  *mris, *mris_ico ;
@@ -55,7 +56,7 @@ main(int argc, char *argv[])
   MRI          *mri ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.10 2004/04/07 21:05:48 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.11 2005/02/25 20:10:59 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -67,9 +68,6 @@ main(int argc, char *argv[])
   mdir = getenv("FREESURFER_HOME") ;
   if (!mdir)
     ErrorExit(ERROR_BADPARM, "%s: no FREESURFER_HOME in envoronment.\n",Progname);
-  sdir = getenv("SUBJECTS_DIR") ;
-  if (!sdir)
-    ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n",Progname);
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
@@ -78,7 +76,12 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
-
+  if (!strlen(sdir))
+  {
+    strcpy(sdir, getenv("SUBJECTS_DIR")) ;
+    if (!sdir)
+      ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n",Progname);
+  }
   if (argc < 6)
     usage_exit() ;
 
@@ -96,20 +99,20 @@ main(int argc, char *argv[])
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, fname) ;
+		Progname, fname) ;
     if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
       ErrorExit(ERROR_BADFILE,"%s: could not read orig file for %s.\n",
                 Progname, argv[1]);
 
     sprintf(fname, "%s/%s/mri/transforms/%s", sdir, argv[i], xform_name) ;
-		lta = LTAread(fname) ;
-		if (!lta)
-			ErrorExit(ERROR_BADPARM, "%s: could not read transform from %s", Progname, fname) ;
+    lta = LTAreadEx(fname) ;
+    if (!lta)
+      ErrorExit(ERROR_BADPARM, "%s: could not read transform from %s", Progname, fname) ;
 
     sprintf(fname, "%s/%s/mri/T1", sdir, argv[i]) ;
-		mri = MRIreadHeader(fname, MRI_CORONAL_SLICE_DIRECTORY) ;
-		if (!mri)
-		  ErrorExit(ERROR_BADPARM, "%s: could not read reference MRI volume from %s", Progname, fname) ;
+    mri = MRIreadHeader(fname, MRI_UCHAR); // MRI_CORONAL_SLICE_DIRECTORY) ;
+    if (!mri)
+      ErrorExit(ERROR_BADPARM, "%s: could not read reference MRI volume from %s", Progname, fname) ;
 
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
@@ -169,7 +172,7 @@ main(int argc, char *argv[])
   }
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, out_sname, hemi, avg_surf_name) ;
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr,"writing average orig surface to to %s\n", fname);
+    fprintf(stderr,"writing average %s surface to to %s\n", avg_surf_name, fname);
   MRISwrite(mris_ico,  fname) ;
   {
     char path[STRLEN] ;
@@ -205,23 +208,28 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "sdir"))
+  {
+    strcpy(sdir, argv[2]) ;
+    nargs = 1 ;
+  }
   else switch (toupper(*option))
   {
   case 'I':
     ico_no = atoi(argv[2]) ;
     nargs = 1 ;
     break ;
-	case 'X':
-		xform_name = argv[2] ;
-		nargs = 1 ;
-		printf("using xform %s...\n", xform_name) ;
-		break ;
+  case 'X':
+    xform_name = argv[2] ;
+    nargs = 1 ;
+    printf("using xform %s...\n", xform_name) ;
+    break ;
   case '?':
   case 'U':
     print_usage() ;
     exit(1) ;
     break ;
-	case 'S':
+  case 'S':
   case 'O':
     orig_name = argv[2] ;
     printf("reading vertex positions from %s...\n", orig_name) ;
