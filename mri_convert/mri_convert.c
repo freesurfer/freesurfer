@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/08/20 15:52:34 $
-// Revision       : $Revision: 1.56 $
+// Revision Date  : $Date: 2003/08/20 16:04:31 $
+// Revision       : $Revision: 1.57 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
   conform_size = 1.0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.56 2003/08/20 15:52:34 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.57 2003/08/20 16:04:31 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1443,7 +1443,6 @@ int main(int argc, char *argv[])
     fov_x = template->xsize * template->width;
     fov_y = template->ysize * template->height;
     fov_z = template->zsize * template->depth;
-sh
     template->xend = fov_x / 2.0;
     template->xstart = -template->xend;
     template->yend = fov_y / 2.0;
