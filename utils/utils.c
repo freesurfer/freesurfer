@@ -13,8 +13,8 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/09/02 18:37:01 $
-// Revision       : $Revision: 1.44 $
+// Revision Date  : $Date: 2004/09/02 19:08:39 $
+// Revision       : $Revision: 1.45 $
 
 ------------------------------------------------------------------------*/
 
@@ -46,6 +46,7 @@
 #include "error.h"
 #include "image.h"
 #include "macros.h"
+#include "mghendian.h"
 
 /*------------------------------------------------------------------------
                             CONSTANTS
@@ -916,16 +917,44 @@ char *AppendString(char *src, char *app)
 // sign(1), e(23-30), f(0-22)
 //
 /* -1 if value is -inf, 1 if val is inf, 0 otherwise */
+//
+#if __BYTE_ORDER == __BIG_ENDIAN
+union ieee754_float
+  {
+    float f;
+
+    /* This is the IEEE 754 single-precision format.  */
+    struct
+      {
+	unsigned int negative:1;
+	unsigned int exponent:8;
+	unsigned int mantissa:23;
+      } ieee;
+  };
+#else // little endian
+union ieee754_float
+  {
+    float f;
+
+    /* This is the IEEE 754 single-precision format.  */
+    struct
+      {
+	unsigned int mantissa:23;
+	unsigned int exponent:8;
+	unsigned int negative:1;
+      } ieee;
+  };
+#endif
+
 int devIsinf(float value)
 {
-  unsigned int *c;
-  unsigned int s, e, f;
+  unsigned int s,e,f;
 
-  c = (unsigned int *)&value;
-
-  s = (*c & 0x80000000) >> 31; // sign
-  e = (*c & 0x7f800000) >> 23; // exponent
-  f = (*c & 0x007fffff);       // mantissa
+  union ieee754_float v;
+  v.f = value;
+  s = v.ieee.negative;
+  e = v.ieee.exponent;
+  f = v.ieee.mantissa;
 
   if(e == 255 && s == 0 && f == 0)
     return(1);
@@ -939,14 +968,13 @@ int devIsinf(float value)
 /* isnan non-zero if NaN, 0 otherwise */
 int devIsnan(float value)
 {
-  unsigned int *c;
   unsigned int s, e, f;
 
-  c = (unsigned int *)&value;
-
-  s = (*c & 0x80000000) >> 31;
-  e = (*c & 0x7f800000) >> 23;
-  f = (*c & 0x007fffff);
+  union ieee754_float v;
+  v.f = value;
+  s = v.ieee.negative;
+  e = v.ieee.exponent;
+  f = v.ieee.mantissa;
 
   if(e == 255 && f != 0)
     return(1);
