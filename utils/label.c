@@ -454,6 +454,8 @@ LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     v->ripflag = 0 ;
   }
+  MRISripFaces(mris) ;
+  MRISremoveRipped(mris) ;
   return(NO_ERROR) ;
 }
 
