@@ -5375,6 +5375,16 @@ mrisAverageGradients(MRI_SURFACE *mris, int num_avgs)
           continue ;
         num++ ;
         dx += vn->dx ; dy += vn->dy ; dz += vn->dz ;
+#if 0
+        if (vno == Gdiag_no)
+        {
+          float dot ;
+          dot = vn->dx*v->dx + vn->dy*v->dy + vn->dz*v->dz ;
+          if (dot < 0)
+            fprintf(stderr, "vn %d: dot = %2.3f, dx = (%2.3f, %2.3f, %2.3f)\n",
+                    v->v[vnb], dot, vn->dx, vn->dy, vn->dz) ;
+        }
+#endif
       }
       num++ ;
       v->tdx = dx / num ;
@@ -12448,6 +12458,14 @@ MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
   MRISbuildFileName(mris, name, fname) ;
   if (type == MRIS_GEO_FILE)
     return(mrisReadGeoFilePositions(mris, fname)) ;
+  else if (type == MRIS_ICO_FILE)
+#if 1
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED,
+                 "%s: reading ico file positions unsupported")) ;
+#else
+    return(mrisReadIcoFilePositions(mris, fname)) ;
+#endif
   fp = fopen(fname, "rb") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE,
@@ -16678,20 +16696,21 @@ int
 MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                         MRI *mri_smooth, Real inside_hi, Real border_hi,
                         Real border_low, Real outside_low, double sigma,
-                        float max_thickness)
+                        float max_thickness, FILE *log_fp)
 {
   Real    val, x, y, z, max_mag_val, xw, yw, zw,mag,max_mag, max_mag_dist=0.0f,
           previous_val, next_val, min_val,inward_dist,outward_dist,xw1,yw1,zw1,
-          min_val_dist, orig_dist, dx, dy, dz ;
+          min_val_dist, orig_dist, dx, dy, dz, previous_mag, next_mag ;
   int     total_vertices, vno, nmissing = 0, nout = 0, nin = 0, nfound = 0,
-          nalways_missing = 0 ;
+          nalways_missing = 0, local_max_found, ngrad_max, ngrad, nmin ;
   float   mean_border, mean_in, mean_out, dist, nx, ny, nz, mean_dist ;
   double  current_sigma ;
   VERTEX  *v ;
+  FILE    *fp = NULL ;
 
   /* first compute intensity of local gray/white boundary */
   mean_dist = mean_in = mean_out = mean_border = 0.0f ;
-
+  ngrad_max = ngrad = nmin = 0 ;
   MRISclearMarks(mris) ;  /* for soap bubble smoothing later */
   for (total_vertices = vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -16714,7 +16733,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
        The border will then be constrained to be within that region.
     */
     inward_dist = 1.0 ; outward_dist = -1.0 ;
-    for (current_sigma = sigma ; current_sigma <= 10*sigma ; current_sigma *= 2)
+    for (current_sigma = sigma; current_sigma <= 10*sigma; current_sigma *= 2)
     {
       for (dist = 0 ; dist > -max_thickness ; dist -= 0.5)
       {
@@ -16754,9 +16773,14 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       current_sigma = sigma ;  /* couldn't find anything */
 
     if (vno == Gdiag_no)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "v%2.0f.log", sigma*100) ;
+      fp = fopen(fname, "w") ;
       fprintf(stderr, 
               "v %d: inward dist %2.2f, outward dist %2.2f, sigma %2.1f\n",
               vno, inward_dist, outward_dist, current_sigma) ;
+    }
               
     v->val2 = current_sigma ;
     /*
@@ -16767,14 +16791,34 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
 
     /* search in the normal direction to find the min value */
     max_mag_val = -10.0f ; mag = 5.0f ; max_mag = 0.0f ; min_val = 10000.0 ;
-    min_val_dist = 0.0f ;
+    min_val_dist = 0.0f ; local_max_found = 0 ;
     for (dist = inward_dist ; dist <= outward_dist ; dist += STEP_SIZE)
     {
+#if 1
       x = v->x + v->nx*(dist-1) ; 
       y = v->y + v->ny*(dist-1) ; 
       z = v->z + v->nz*(dist-1) ;
       MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
       MRIsampleVolume(mri_brain, xw, yw, zw, &previous_val) ;
+#else
+      /* find max val within 1 mm in inwards direction */
+      {
+        float  d ;
+        Real   tmp_val ;
+
+        previous_val = 0 ;
+        for (d = 0.25 ; d <= 1.5 ; d += 0.25)
+        {
+          x = v->x + v->nx*(d-1) ; 
+          y = v->y + v->ny*(d-1) ; 
+          z = v->z + v->nz*(d-1) ;
+          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          MRIsampleVolume(mri_brain, xw, yw, zw, &tmp_val) ;
+          if (tmp_val > previous_val)
+            previous_val = tmp_val ;
+        }
+      }
+#endif
 
       /* the previous point was inside the surface */
       if (previous_val < inside_hi && previous_val >= border_low)
@@ -16784,8 +16828,20 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
 
-        MRIsampleVolumeDerivativeScale(mri_brain, xw, yw, zw, nx, ny, nz,&mag,
-                                       sigma);
+        x = v->x + v->nx*(dist+STEP_SIZE) ;
+        y = v->y + v->ny*(dist+STEP_SIZE) ;
+        z = v->z + v->nz*(dist+STEP_SIZE) ;
+        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRIsampleVolumeDerivativeScale(mri_brain, xw, yw, zw, nx, ny, nz,
+                                       &next_mag, sigma);
+
+        x = v->x + v->nx*(dist-STEP_SIZE) ;
+        y = v->y + v->ny*(dist-STEP_SIZE) ;
+        z = v->z + v->nz*(dist-STEP_SIZE) ;
+        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRIsampleVolumeDerivativeScale(mri_brain, xw, yw, zw, nx, ny, nz,
+                                       &previous_mag, sigma);
+
         if (val < min_val)
         {
           min_val = val ;  /* used if no gradient max is found */
@@ -16793,7 +16849,29 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         }
 
         /* if gradient is big and val is in right range */
-        if ((fabs(mag) > max_mag) && ((val <=border_hi) && (val>= border_low)))
+        x = v->x + v->nx*dist;
+        y = v->y + v->ny*dist;
+        z = v->z + v->nz*dist;
+        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRIsampleVolumeDerivativeScale(mri_brain, xw, yw, zw, nx, ny, nz,&mag,
+                                       sigma);
+#if 0
+        if (outside_low <= 1)  /* hack!!!! - don't use it on pial surface */
+        { previous_mag = next_mag = fabs(mag)-1 ;}
+#endif
+        if (vno == Gdiag_no)
+          fprintf(fp, "%2.3f  %2.3f  %2.3f  %2.3f  %2.3f\n",
+                 dist, val, mag, previous_mag, next_mag) ;
+
+        /*
+          if no local max has been found, or this one has a greater magnitude,
+          and it is in the right intensity range....
+          */
+        if ((!local_max_found || (fabs(mag) > max_mag)) && 
+            (fabs(mag) > fabs(previous_mag)) &&
+            (fabs(mag) > fabs(next_mag)) &&
+            (val <= border_hi) && (val >= border_low)
+            )
         {
           x = v->x + v->nx*(dist+1) ;
           y = v->y + v->ny*(dist+1) ;
@@ -16802,21 +16880,50 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
           if (next_val >= outside_low && next_val <= border_hi)
           {          
+            local_max_found = 1 ;
             max_mag_dist = dist ;
             max_mag = fabs(mag) ;
-#if 0
-            max_mag_val = (2*previous_val+val)/3 ;  /* at top of gradient */
-#else
             max_mag_val = val ;
-#endif
           }
         }
+        else
+        {
+          /*
+            if no local max found yet, just used largest gradient
+            if the intensity is in the right range.
+            */
+          if ((local_max_found == 0) &&
+              (fabs(mag) > max_mag) && 
+              (val <= border_hi) && 
+              (val >= border_low)
+              )
+          {
+            x = v->x + v->nx*(dist+1) ;
+            y = v->y + v->ny*(dist+1) ;
+            z = v->z + v->nz*(dist+1) ;
+            MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+            MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
+            if (next_val >= outside_low && next_val <= border_hi)
+            {          
+              max_mag_dist = dist ;
+              max_mag = fabs(mag) ;
+              max_mag_val = val ;
+            }
+          }
+        }
+
       }
     }
 
+    if (vno == Gdiag_no)
+      fclose(fp) ;
 
     if (max_mag_val > 0)   /* found the border value */
     {
+      if (local_max_found)
+        ngrad_max++ ;
+      else
+        ngrad++ ;
       if (max_mag_dist > 0)
       {
         nout++ ; nfound++ ;
@@ -16841,6 +16948,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
     {
       if (min_val < 1000)
       {
+        nmin++ ;
         v->d = min_val_dist ;
 #if 0
         if (min_val > border_hi)  /* found a low value, but not low enough */
@@ -16869,8 +16977,10 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       }
     }
     if (vno == Gdiag_no)
-      fprintf(stderr, "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
-              Gdiag_no, v->val, v->mean, v->d) ;
+      fprintf(stderr, 
+              "v %d, target value = %2.1f, mag = %2.1f, dist = %2.2f, %s\n",
+              Gdiag_no, v->val, v->mean, v->d,
+              local_max_found ? "local max" : max_mag_val > 0 ? "grad":"min");
 #if 0
     if (vno == 44289 || vno == 91080 || vno == 92286 || vno == 46922)
       fprintf(stderr, "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
@@ -16901,6 +17011,25 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           mean_border, nmissing, nalways_missing, mean_dist, 
           mean_in, 100.0f*(float)nin/(float)nfound, 
           mean_out, 100.0f*(float)nout/(float)nfound) ;
+  fprintf(stdout, "%2.2f%% local maxima, %2.2f%% large gradients "
+          "and %2.2f%% min vals\n",
+          100.0f*(float)ngrad_max/(float)mris->nvertices,
+          100.0f*(float)ngrad/(float)mris->nvertices,
+          100.0f*(float)nmin/(float)mris->nvertices) ;
+  if (log_fp)
+  {
+    fprintf(log_fp, 
+            "mean border=%2.1f, %d (%d) missing vertices, mean dist %2.1f "
+            "[%2.1f (%%%2.1f)->%2.1f (%%%2.1f))]\n",
+            mean_border, nmissing, nalways_missing, mean_dist, 
+            mean_in, 100.0f*(float)nin/(float)nfound, 
+            mean_out, 100.0f*(float)nout/(float)nfound) ;
+    fprintf(log_fp, "%2.2f%% local maxima, %2.2f%% large gradients "
+            "and %2.2f%% min vals\n",
+            100.0f*(float)ngrad_max/(float)mris->nvertices,
+            100.0f*(float)ngrad/(float)mris->nvertices,
+            100.0f*(float)nmin/(float)mris->nvertices) ;
+  }
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
