@@ -6144,7 +6144,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
   int main_header_flag;
   int i, j;
   int gdf_header_flag;
-  char type[STRLEN];
+  char type[STRLEN], global_type[STRLEN];
   char *c;
   short *points;
   int n_read;
@@ -6153,6 +6153,8 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
   int source_x, source_y;
   char alt_compare[STRLEN];
   int empty_label_flag;
+  int ascii_short_flag;
+  int row;
 
   for(i = 0;i < 512;i++)
     memset(cma_field[i], 0x00, 512 * 2);
@@ -6179,6 +6181,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
 
   n_cols = -1;
   type[0] = '\0';
+  global_type[0] = '\0';
 
   while(main_header_flag)
   {
@@ -6196,8 +6199,8 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
       sscanf(line, "%*s %d", &n_cols);
     if(strncmp(line, "TYPE", 4) == 0)
     {
-      strcpy(type, &(line[5]));
-      c = strrchr(type, '\n');
+      strcpy(global_type, &(line[5]));
+      c = strrchr(global_type, '\n');
       if(c != NULL)
         *c = '\0';
     }
@@ -6234,6 +6237,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
     n_rows = -1;
     seed_x = seed_y = -1;
     label[0] = '\0';
+    type[0] = '\0';
 
     empty_label_flag = 0;
 
@@ -6296,10 +6300,22 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
       ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined SEED in otl file %d", slice));
     }
 
-    if(strcmp(type, "short") != 0 && type[0] != '\0')
+    if(type[0] == '\0')
+      strcpy(type, global_type);
+
+    if(strcmp(type, "ascii short") == 0)
+      ascii_short_flag = TRUE;
+    else if(strcmp(type, "short") == 0)
+      ascii_short_flag = FALSE;
+    else if(type[0] == '\0')
     {
       errno = 0;
-      ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "unsupported TYPE \"%s\"in otl file %d", type, slice));
+      ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "undefined TYPE in otl file %d", slice));
+    }
+    else
+    {
+      errno = 0;
+      ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "unsupported TYPE \"%s\" in otl file %d", type, slice));
     }
 
     do
@@ -6319,12 +6335,32 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
       ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "error allocating memory for points in otl file %d", slice));
     }
 
-    n_read = fread(points, 2, n_rows * 2, fp);
-    if(n_read != n_rows * 2)
+    if(ascii_short_flag)
     {
-      free(points);
-      errno = 0;
-      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error reading points from otl file %d", slice));
+      for(row = 0;row < n_rows;row++)
+      {
+        fgets(line, STRLEN, fp);
+        if(feof(fp))
+        {
+          free(points);
+          errno = 0;
+          ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature end of file while reading points from otl file %d", slice));
+        }
+        sscanf(line, "%hd %hd", &(points[2*row]), &(points[2*row+1]));
+      }
+    }
+    else
+    {
+      n_read = fread(points, 2, n_rows * 2, fp);
+      if(n_read != n_rows * 2)
+      {
+        free(points);
+        errno = 0;
+        ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error reading points from otl file %d", slice));
+      }
+#ifdef Linux
+      swab(points, points, 2 * n_rows * sizeof(short));
+#endif
     }
 
     fgets(line, STRLEN, fp);
@@ -6334,10 +6370,6 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
       errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error after points (\"END POINTS\" expected but not found) in otl file %d", slice));
     }
-
-#ifdef Linux
-    swab(points, points, 2 * n_rows * sizeof(short));
-#endif
 
     if(!empty_label_flag)
     {
