@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.3 2004/08/04 17:42:26 greve Exp $
+  $Id: mri_label2vol.c,v 1.4 2004/08/04 18:52:32 greve Exp $
 */
 
 
@@ -27,6 +27,7 @@
 #include "version.h"
 #include "registerio.h"
 #include "resample.h"
+#include "annotation.h"
 
 
 #define PROJ_TYPE_NONE 0
@@ -47,10 +48,11 @@ static int get_proj_type_id(char *projtype);
 static int get_crs(MATRIX *Tras2vox, float x, float y, float z,
 		   int *c, int *r, int *s, MRI *vol);
 static int is_surface_label(LABEL *label);
+static int load_annotation(char *annotfile, MRIS *Surf);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.3 2004/08/04 17:42:26 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.4 2004/08/04 18:52:32 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -67,6 +69,7 @@ char *OutVolId = NULL;
 char *HitVolId = NULL;
 char *subject = NULL;
 char *hemi    = NULL;
+char *AnnotFile = NULL;
 char *SurfId  = "white";
 
 MRI_SURFACE *Surf=NULL;
@@ -79,6 +82,7 @@ MATRIX *R, *Tvox2ras, *Tras2vox;
 double ProjDepth;
 int   ProjTypeId;
 int   DoProj = 0;
+int   SurfNeeded = 0;
 char  *SUBJECTS_DIR = NULL;
 char  *thicknessname = "thickness";
 char  fname[1000];
@@ -98,7 +102,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_label2vol.c,v 1.3 2004/08/04 17:42:26 greve Exp $", "$Name:  $");
+      "$Id: mri_label2vol.c,v 1.4 2004/08/04 18:52:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -145,7 +149,7 @@ int main(int argc, char **argv)
   printf("Label RAS-to-Vox: --------\n");
   MatrixPrint(stdout,Tras2vox);
 
-  if(DoProj){
+  if(SurfNeeded){
     SUBJECTS_DIR = getenv("SUBJECTS_DIR");
     if(SUBJECTS_DIR==NULL){
       fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
@@ -162,6 +166,16 @@ int main(int argc, char **argv)
 	    hemi,thicknessname);
     printf("Reading thickness %s\n",fname);
     MRISreadCurvatureFile(Surf, fname);
+
+    if(AnnotFile != NULL){
+      // Load annotation file, get number of labels from it
+      nlabels = load_annotation(AnnotFile,Surf);
+      if(nlabels==0){
+	printf("ERROR: load annot file %s\n",AnnotFile);
+	exit(1);
+      }
+    }
+
   }
 
   // Create hit volume based on template, one frame for each label
@@ -175,18 +189,28 @@ int main(int argc, char **argv)
   HitVol->nframes = nlabels;
 
   // Go through each label
+  printf("nlabels = %d\n",nlabels);
   for(nthlabel = 0; nthlabel < nlabels; nthlabel++){
     printf("nthlabel = %d\n",nthlabel);
-    srclabel = LabelRead(NULL, LabelList[nthlabel]);
-    if(srclabel == NULL){
-      printf("ERROR reading %s\n",LabelList[nthlabel]);
-      exit(1);
+
+    if(AnnotFile == NULL){
+      srclabel = LabelRead(NULL, LabelList[nthlabel]);
+      if(srclabel == NULL){
+	printf("ERROR reading %s\n",LabelList[nthlabel]);
+	exit(1);
+      }
     }
+    if(AnnotFile != NULL){
+      srclabel = annotation2label(nthlabel,Surf);
+      if(srclabel == NULL) continue;
+    }
+
     if(DoProj && !is_surface_label(srclabel)){
       printf("ERROR: label %s is not a surface label.\n",
 	     LabelList[nthlabel]);
       exit(1);
     }
+
     // Go through each point in the label 
     for(nthpoint = 0; nthpoint < srclabel->n_points; nthpoint++){
       if(debug) printf("  nthpoint = %d\n",nthpoint);
@@ -299,6 +323,12 @@ static int parse_commandline(int argc, char **argv)
       nlabels++;
       nargsused = 1;
     }
+    else if (!strcmp(option, "--annot")){
+      if(nargc < 1) argnerr(option,1);
+      AnnotFile = pargv[0];
+      SurfNeeded = 1;
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--temp")){
       if(nargc < 1) argnerr(option,1);
       TempVolId = pargv[0];
@@ -387,14 +417,17 @@ static void print_usage(void)
   printf("USAGE: mri_label2vol\n") ;
   printf("\n");
   printf("   --label labelid <--label labelid>  \n");
+  printf("   --annot annotfile : surface annotation file  \n");
+  printf("\n");
   printf("   --temp tempvolid : template volume\n");
   printf("   --reg regmat : VolXYZ = R*LabelXYZ\n");
+  printf("\n");
   printf("   --fillthresh thresh : between 0 and 1 (def 0)\n");
   printf("   --labvoxvol voxvol : volume of each label point (def 1mm3)\n");
-  printf("\n");
   printf("   --proj type start stop delta\n");
-  printf("   --subject subjectid\n");
-  printf("   --hemi hemi\n");
+  printf("\n");
+  printf("   --subject subjectid : needed with --proj or --annot\n");
+  printf("   --hemi hemi : needed with --proj or --annot\n");
   printf("\n");
   printf("   --o volid : output volume\n");
   printf("   --hits hitvolid : each frame is nhits for a label\n");
@@ -443,6 +476,18 @@ the vertex number of the label point. The next 3 columns are the X, Y,
 and Z of the point. The last can be ignored. If the label is not a 
 surface-based label, then the vertex number will be -1.
 
+--annot annotfile
+
+FreeSurfer can perform automatic parcellation of the cortical surface,
+the results of which are stored in an annotation file. This is a
+binary file that assigns each surface vertex to a cortical area
+designated by a unique number. These annotations can be converted to
+separate labels using mri_annotation2label. These labels can then be
+input to mri_label2vol using --label. Or, the annotation file can be
+read in directly using --annot. The map of annotation numbers to 
+annotation names can be found at Simple_surface_labels2002.txt 
+in $FREESURFER_HOME. Note that you have to add 1 to the number in 
+this file to get the number stored in the output volume.
 
 --temp tempvolid
 
@@ -575,8 +620,8 @@ mri_label2vol
   --o cent-lh_000.bshort
 
 3. Convert a surface label into a binary mask in the functional space.
-Sample a 1mm ribbon 2mm below the gray/white surface. Do
-not require a fill threshold:
+Sample a 1mm ribbon 2mm below the gray/white surface. Do not require a 
+fill threshold:
 
 mri_label2vol 
   --label lh-avg_central_sulcus.label 
@@ -603,6 +648,10 @@ KNOWN BUGS
 1. When the output type is COR, all the voxels will be zero. The work-around
 is to save it as some other type, then use mri_convert with --no_rescale 1
 to convert it to COR.
+
+2. Cannot convert surface labels with different hemispheres.
+
+
 
 SEE ALSO
 
@@ -638,27 +687,33 @@ static void argnerr(char *option, int n)
 /* --------------------------------------------- */
 static void check_options(void)
 {
-  if(nlabels == 0){
-    printf("ERROR: you must spec at least one label\n");
+  if(DoProj) SurfNeeded = 1;
+
+  if(nlabels == 0 && AnnotFile == NULL){
+    printf("ERROR: you must spec at least one label or annot file\n");
+    exit(1);
+  }
+  if(nlabels != 0 && AnnotFile != NULL){
+    printf("ERROR: you cannot specify a label AND an annot file\n");
     exit(1);
   }
   if(OutVolId == NULL){
     printf("ERROR: no output specified\n");
     exit(1);
   }
-  if(DoProj){
+  if(SurfNeeded){
     if(subject == NULL){
-      printf("ERROR: subject needed in order to load surface for projection\n");
+      printf("ERROR: subject needed in order to load surface.\n");
       exit(1);
     }
     if(hemi == NULL){
-      printf("ERROR: hemi needed in order to load surface for projection\n");
+      printf("ERROR: hemi needed in order to load surface.\n");
       exit(1);
     }
   }
-  if(subject != NULL && !DoProj)
+  if(subject != NULL && !DoProj && AnnotFile==NULL)
     printf("INFO: subject not needed, igorning.\n");
-  if(hemi != NULL && !DoProj)
+  if(hemi != NULL && !DoProj && AnnotFile==NULL)
     printf("INFO: hemi not needed, igorning.\n");
 
   return;
@@ -668,8 +723,11 @@ static void dump_options(FILE *fp)
 {
   int n;
   fprintf(fp,"Number of labels: %d\n",nlabels);
-  for(n=0;n<nlabels;n++)
-    fprintf(fp,"%s\n",LabelList[n]);
+  if(nlabels > 0){
+    for(n=0;n<nlabels;n++)
+      fprintf(fp,"%s\n",LabelList[n]);
+  }
+  fprintf(fp,"Annot File:      %s\n",AnnotFile);
   fprintf(fp,"Template Volume: %s\n",TempVolId);
   fprintf(fp,"Outut Volume: %s\n",OutVolId);
   fprintf(fp,"Registration File: %s\n",RegMatFile);
@@ -761,4 +819,29 @@ static int is_surface_label(LABEL *label)
   }
 
   return(1);
+}
+/*------------------------------------------------------------*/
+static int load_annotation(char *annotfile, MRIS *Surf)
+{
+  int err, vtxno, annot, annotid, annotidmax;
+  VERTEX *vtx;
+
+  printf("Loading annotations from %s\n",annotfile);
+  err = MRISreadAnnotation(Surf, annotfile);
+  if(err){
+    printf("ERROR: could not load %s\n",annotfile);
+    exit(1);
+  }
+
+  // Count the number of annotations
+  annotidmax = -1;
+  for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
+    vtx = &(Surf->vertices[vtxno]);
+    annot = Surf->vertices[vtxno].annotation;
+    annotid = annotation_to_index(annot);
+    if(annotidmax < annotid) annotidmax = annotid; 
+  }
+
+  printf("annotidmax = %d\n",annotidmax);
+  return(annotidmax);
 }
