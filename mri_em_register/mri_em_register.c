@@ -25,7 +25,7 @@ static char *norm_fname = NULL ;
 static char *sample_fname = NULL ;
 static char *transformed_sample_fname = NULL ;
 
-#define MIN_SPACING   4.0
+#define MIN_SPACING   2.0
 static float min_spacing = MIN_SPACING ;
 
 static int use_contrast = 0 ;
@@ -448,7 +448,7 @@ register_mri(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, int passno)
   return(NO_ERROR) ;
 }
 
-#define DEFAULT_MAX_STEPS 10
+#define DEFAULT_MAX_STEPS 5
 static double MAX_ANGLES = DEFAULT_MAX_STEPS ;
 #define MAX_ANGLE       RADIANS(30)
 #define MIN_ANGLE       RADIANS(2)
