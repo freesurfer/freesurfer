@@ -10,8 +10,9 @@
 #include "proto.h"
 #include "mrisurf.h"
 #include "macros.h"
+#include "utils.h"
 
-static char vcid[]="$Id: mris_errors.c,v 1.2 1997/09/25 22:32:15 fischl Exp $";
+static char vcid[]="$Id: mris_errors.c,v 1.3 1997/12/10 23:23:11 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -25,11 +26,14 @@ int MRISareaErrors(MRI_SURFACE *mris) ;
 char *Progname ;
 static MRI_SURFACE  *mris ;
 
+static int patch_flag = 0 ;
+static int write_flag = 0 ;
 
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname, *out_fname, fname[100] ;
+  char         *cp, **av, *in_fname, *out_fname, fname[100], path[100], 
+               name[100], hemi[100] ;
   int          ac, nargs ;
 
   Progname = argv[0] ;
@@ -54,20 +58,56 @@ main(int argc, char *argv[])
   cp = strrchr(out_fname, '.') ;
 #endif
 
-  mris = MRISread(in_fname) ;
-  if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, in_fname) ;
-
-  MRISreadTriangleProperties(mris, in_fname) ;
-  MRISareaErrors(mris) ;
-
-  if (0)
+  if (patch_flag)   /* read in orig surface before reading in patch */
   {
-    sprintf(fname, "%s.area_error", out_fname) ;
+    FileNamePath(in_fname, path) ;
+    cp = strrchr(in_fname, '.') ;
+    if (cp)
+    {
+      strncpy(hemi, cp-2, 2) ;
+      hemi[2] = 0 ;
+    }
+    else
+      strcpy(hemi, "lh") ;
+    sprintf(fname, "%s/%s.smoothwm", path, hemi) ;
+    mris = MRISread(fname) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                Progname, fname) ;
+    MRIScomputeMetricProperties(mris) ;
+    MRISstoreMetricProperties(mris) ;
+    FileNameOnly(in_fname, name) ;
+    if (MRISreadPatch(mris, name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
+                Progname, name) ;
+  }
+  else
+  {
+    mris = MRISread(in_fname) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                Progname, in_fname) ;
+
+    MRISstoreCurrentPositions(mris) ;
+    MRISreadVertexPositions(mris, "smoothwm") ;
+    MRIScomputeMetricProperties(mris) ;
+    MRISstoreMetricProperties(mris) ;
+    MRISrestoreOldPositions(mris) ;
+  }
+
+  MRIScomputeMetricProperties(mris) ;  /* recompute areas and normals */
+  if (write_flag)
+  {
+    MRISareaErrors(mris) ;
+    MRISangleErrors(mris) ;
+  }
+
+  if (1)
+  {
+    sprintf(fname, "%s.area_error", in_fname) ;
     printf("writing area errors to %s\n", fname) ;
     MRISwriteAreaError(mris, fname) ;
-    sprintf(fname, "%s.angle_error", out_fname) ;
+    sprintf(fname, "%s.angle_error", in_fname) ;
     printf("writing angle errors to %s\n", fname) ;
     MRISwriteAngleError(mris, fname) ;
   }
@@ -96,6 +136,13 @@ get_option(int argc, char *argv[])
     print_version() ;
   else switch (toupper(*option))
   {
+  case 'W':
+    write_flag = 1 ;
+    break ;
+  case 'P':
+    patch_flag = 1 ;
+    nargs = 0 ;
+    break ;
   case '?':
   case 'U':
     print_usage() ;
@@ -178,6 +225,55 @@ MRISareaErrors(MRI_SURFACE *mris)
   std_error = sqrt(total_sq_error / (float)n - mean_error*mean_error) ;
   fprintf(stderr, "max error occurs at %d, error = %2.3f\n",max_f, max_ferror);
   fprintf(stderr, "mean error = %2.3f, std = %2.3f\n", mean_error, std_error);
+  return(NO_ERROR) ;
+}
+
+
+int
+MRISangleErrors(MRI_SURFACE *mris)
+{
+  int      fno, tno, max_f = -1, ano ;
+  FACE     *face ;
+  FILE     *fp ;
+  float    ferror, max_ferror, total_error, total_sq_error,
+           error, mean_error, std_error, pct_error, n ;
+
+  fp = fopen("angle.err", "w") ;
+  MRISupdateEllipsoidSurface(mris) ;
+  total_error = total_sq_error = max_ferror = 0.0f ;
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    ferror = 0.0f ;
+    for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
+    {
+      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+      {
+        error = deltaAngle(face->angle[tno][ano], face->orig_angle[tno][ano]);
+        pct_error = error / face->orig_angle[tno][ano] * 100.0f ;
+        fprintf(fp, "%d %2.3f %2.3f %2.3f %2.1f\n", fno, 
+                DEGREES(face->orig_angle[tno][ano]), 
+                DEGREES(face->angle[tno][ano]), DEGREES(error), pct_error) ;
+        total_sq_error += (error * error) ;
+        ferror += fabs(error) ;
+        total_error += error ;
+      }
+    }
+    if (ferror >= max_ferror)
+    {
+      max_ferror = ferror ;
+      max_f = fno ;
+    }
+  }
+
+  n = (float)(2*mris->nfaces) ;
+  mean_error = total_error / n ;
+  std_error = sqrt(total_sq_error / (float)n - mean_error*mean_error) ;
+  fprintf(stderr, "max angle error occurs at %d, error = %2.3f\n",
+          max_f, DEGREES(max_ferror));
+  fprintf(stderr, "mean angle error = %2.3f, std = %2.3f\n", 
+          DEGREES(mean_error), DEGREES(std_error));
+  fclose(fp) ;
   return(NO_ERROR) ;
 }
 
