@@ -51,6 +51,7 @@ int      LTAtoVoxelCoords(LTA *lta, MRI *mri) ;
 #define TRANSFORM_ARRAY_TYPE    0
 #define MORPH_3D_TYPE           1
 #define MNI_TRANSFORM_TYPE      2
+#define MATLAB_ASCII_TYPE       3
 
 int      TransformFileNameType(char *fname) ;
 
