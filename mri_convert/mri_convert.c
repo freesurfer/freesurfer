@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: ch $
-// Revision Date  : $Date: 2003/12/11 21:12:02 $
-// Revision       : $Revision: 1.77 $
+// Revision Date  : $Date: 2004/01/13 21:44:29 $
+// Revision       : $Revision: 1.78 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.77 2003/12/11 21:12:02 ch Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.78 2004/01/13 21:44:29 ch Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1034,7 +1034,7 @@ int main(int argc, char *argv[])
       read_otl_flags |= READ_OTL_FILL_FLAG;
     else
     {
-      printf("notice: unfilled parcellaions currently unimplemented\n");
+      printf("notice: unfilled parcellations currently unimplemented\n");
       printf("notice: filling outlines\n");
       read_otl_flags |= READ_OTL_FILL_FLAG;
     }
