@@ -22,10 +22,6 @@
 #include "transform.h"
 #include "mrisegment.h"
 
-#ifdef DMALLOC
-#include "/usr/pubsw/packages/dmalloc/5.3.0/include/dmalloc.h"
-#endif
-
 static int remove_bright =0 ;
 static int map_to_flash = 0 ;
 static double TRs[MAX_GCA_INPUTS] ;
@@ -105,9 +101,9 @@ main(int argc, char *argv[])
   struct timeb start ;
   GCA_MORPH    *gcam ;
 
-  parms.l_log_likelihood = 1.0f ;
-  parms.niterations = 100 ;
-  parms.levels = 5 ;
+  parms.l_log_likelihood = 0.2f ;
+  parms.niterations = 500 ;
+  parms.levels = 6 ;
   parms.relabel_avgs = -1 ;  /* never relabel, was 1 */
   parms.reset_avgs = 0 ;  /* reset metric properties when navgs=0 */
   parms.dt = 0.05 ;  /* was 5e-6 */
@@ -117,12 +113,12 @@ main(int argc, char *argv[])
   parms.l_label = 1.0 ;
   parms.l_map = 0.0 ;
   parms.label_dist = 10.0 ;
-  parms.l_smoothness = 1 ;
+  parms.l_smoothness = .4 ;
   parms.start_t = 0 ;
   parms.max_grad = 0.3 ;
   parms.sigma = 2.0f ;
-  parms.exp_k = 5 ;
-  parms.navgs = 64 ;
+  parms.exp_k = 20 ;
+  parms.navgs = 256 ;
   parms.noneg = True ;
   parms.ratio_thresh = 0.125 ;
   parms.nsmall = 1 ;
@@ -476,7 +472,7 @@ main(int argc, char *argv[])
 			}
       sprintf(fname, "%s_target", parms.base_name) ;
       MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s_target.mgh", parms.base_name) ;
+      sprintf(fname, "%s_target.mgz", parms.base_name) ;
       printf("writing target volume to %s...\n", fname) ;
       MRIwrite(mri_gca, fname) ;
       MRIfree(&mri_gca) ;
@@ -508,7 +504,7 @@ main(int argc, char *argv[])
 
     gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
     GCAtransformAndWriteSamples(gca, mri_inputs, gcas, nsamples, 
-                                "gcas_fsamples.mgh", transform) ;
+                                "gcas_fsamples.mgz", transform) ;
     free(gcas) ;
   }
 #endif
@@ -545,7 +541,7 @@ main(int argc, char *argv[])
 		}
     sprintf(fname, "%s_target", parms.base_name) ;
     MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-    sprintf(fname, "%s_target.mgh", parms.base_name) ;
+    sprintf(fname, "%s_target.mgz", parms.base_name) ;
     printf("writing target volume to %s...\n", fname) ;
     MRIwrite(mri_gca, fname) ;
     MRIfree(&mri_gca) ;
