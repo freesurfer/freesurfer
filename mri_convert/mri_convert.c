@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: ebeth $
-// Revision Date  : $Date: 2003/08/26 23:28:45 $
-// Revision       : $Revision: 1.59 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/08/29 16:43:25 $
+// Revision       : $Revision: 1.60 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
   conform_size = 1.0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.59 2003/08/26 23:28:45 ebeth Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.60 2003/08/29 16:43:25 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1090,8 +1090,8 @@ int main(int argc, char *argv[])
       printf("done \n ");      
     }
 
-  printf("TR=%2.2f, te=%2.2f, flip angle=%2.2f\n",
-         mri->tr, mri->te, DEGREES(mri->flip_angle)) ;
+  printf("TR=%2.2f, TE=%2.2f, TI=%2.2f, flip angle=%2.2f\n",
+         mri->tr, mri->te, mri->ti, DEGREES(mri->flip_angle)) ;
   if(in_volume_type != OTL_FILE)
   {
   if(fill_parcellation_flag)
