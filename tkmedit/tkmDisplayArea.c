@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/07/11 20:12:52 $
-// Revision       : $Revision: 1.77 $
+// Revision Date  : $Date: 2003/07/25 20:43:42 $
+// Revision       : $Revision: 1.78 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -906,7 +906,7 @@ DspA_tErr DspA_SetControlPointsSpace ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_SetSelectionSpace( tkmDisplayAreaRef this,
-				  char***           ipVolume ) {
+				  mriVolumeRef      ipVolume ) {
   
   DspA_tErr eResult = DspA_tErr_NoErr;
   
@@ -924,12 +924,12 @@ DspA_tErr DspA_SetSelectionSpace( tkmDisplayAreaRef this,
     eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_Selection, TRUE );
     if( DspA_tErr_NoErr != eResult )
       goto error;
+
+    /* find the center of the selection and go there */
+    //    eResult = DspA_SetCursorToCenterOfSpace( this, ipVolume );
+    if( DspA_tErr_NoErr != eResult )
+      goto error;
   }
-  
-  /* find the center of the selection and go there */
-  eResult = DspA_SetCursorToCenterOfSpace( this, ipVolume );
-  if( DspA_tErr_NoErr != eResult )
-    goto error;
   
   DspA_Redraw_( this );
   
@@ -2590,19 +2590,21 @@ DspA_tErr DspA_GetSlice ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_SetCursorToCenterOfSpace ( tkmDisplayAreaRef this,
-					  char***           ipVolume ) {
+					  mriVolumeRef      ipVolume ) {
   
-  DspA_tErr  eResult   = DspA_tErr_NoErr;
-  tBoolean   bGotLabel = FALSE;
-  int        nZ        = 0;
-  int        nY        = 0;
-  int        nX        = 0;
-  int        nMinX     = 0;
-  int        nMaxX     = 0;
-  int        nMinY     = 0;
-  int        nMaxY     = 0;
-  int        nMinZ     = 0;
-  int        nMaxZ     = 0;
+  DspA_tErr  eResult     = DspA_tErr_NoErr;
+  tBoolean   bGotLabel   = FALSE;
+  int        nDimensionX = 0;
+  int        nDimensionY = 0;
+  int        nDimensionZ = 0;
+  float      value       = 0;
+  xVoxel     idx;
+  int        nMinX       = 0;
+  int        nMaxX       = 0;
+  int        nMinY       = 0;
+  int        nMaxY       = 0;
+  int        nMinZ       = 0;
+  int        nMaxZ       = 0;
   xVoxel     cursor;
 
   DebugEnterFunction( ("DspA_SetCursorToCenterOfSpace( this=%p, ipVolume=%p )",
@@ -2617,22 +2619,25 @@ DspA_tErr DspA_SetCursorToCenterOfSpace ( tkmDisplayAreaRef this,
   bGotLabel = FALSE;
   nMinX = nMinY = nMinZ = 999999;
   nMaxX = nMaxY = nMaxZ = 0;
-  for( nZ = 0; nZ < this->mnVolumeSizeZ; nZ++ ) {
-    for( nY = 0; nY < this->mnVolumeSizeY; nY++ ) {
-      for( nX = 0; nX < this->mnVolumeSizeX; nX++ ) {
-	if( this->mpSelection[nZ][nY][nX] ) {
-	  bGotLabel = TRUE;
-	  if( nZ > nMaxZ ) nMaxZ = nZ;
-	  if( nY > nMaxY ) nMaxY = nY;
-	  if( nX > nMaxX ) nMaxX = nX;
-	  if( nZ < nMinZ ) nMinZ = nZ;
-	  if( nY < nMinY ) nMinY = nY;
-	  if( nX < nMinX ) nMinX = nX;
-	}
-      }
+  Volm_GetDimensions( ipVolume, &nDimensionX, 
+		      &nDimensionY, &nDimensionZ );
+  xVoxl_Set( &idx, 0, 0, 0 );
+  while( xVoxl_IncrementUntilLimits( &idx, nDimensionX-1, 
+				     nDimensionY-1, nDimensionZ-1 )) {
+
+    Volm_GetValueAtIdx( ipVolume, &idx, &value );
+    if( 0 != value ) {
+      
+      bGotLabel = TRUE;
+      if( xVoxl_GetZ(&idx) > nMaxZ ) nMaxZ = xVoxl_GetZ(&idx);
+      if( xVoxl_GetY(&idx) > nMaxY ) nMaxY = xVoxl_GetY(&idx);
+      if( xVoxl_GetX(&idx) > nMaxX ) nMaxX = xVoxl_GetX(&idx);
+      if( xVoxl_GetZ(&idx) < nMinZ ) nMinZ = xVoxl_GetZ(&idx);
+      if( xVoxl_GetY(&idx) < nMinY ) nMinY = xVoxl_GetY(&idx);
+      if( xVoxl_GetX(&idx) < nMinX ) nMinX = xVoxl_GetX(&idx);
     }
   }  
-
+  
   if( bGotLabel ) {
 
     /* Set the cursor to the center of those bounds. */
@@ -3657,6 +3662,9 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
 			      void(*ipFunction)(xVoxelRef,int,void*) ) {
   
   DspA_tErr        eResult     = DspA_tErr_NoErr;
+  int              nDimensionX = 0;
+  int              nDimensionY = 0;
+  int              nDimensionZ = 0;
   int              nXCenter    = 0;
   int              nYCenter    = 0;
   int              nZCenter    = 0;
@@ -3669,16 +3677,31 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
   int              nYMax       = 0;
   int              nZMin       = 0;
   int              nZMax       = 0;
-  xVoxelRef        pVolumeVox  = NULL;
+  xVoxel           MRIIdx;
   xVoxelRef        paBrushedVoxs = NULL;
   int              nBrushedVoxs = 0;
 
-  xVoxl_New( &pVolumeVox );
-  
+  DebugEnterFunction( ("DspA_BrushVoxels_( this=%p, ipCenterVox=%p, "
+		       "ipData=%p )", this, ipCenterVox, ipData) );
+
+  /* Convert the center vox to an MRI index. Also get the dimensions
+     of the right volume. */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
+    Volm_ConvertIdxToMRIIdx( this->mpVolume[tkm_tVolumeType_Aux], 
+			     ipCenterVox, &MRIIdx );
+    Volm_GetDimensions( this->mpVolume[tkm_tVolumeType_Aux], 
+			&nDimensionX, &nDimensionY, &nDimensionZ );
+  } else {
+    Volm_ConvertIdxToMRIIdx( this->mpVolume[tkm_tVolumeType_Main], 
+			     ipCenterVox, &MRIIdx );
+    Volm_GetDimensions( this->mpVolume[tkm_tVolumeType_Main], 
+			&nDimensionX, &nDimensionY, &nDimensionZ );
+  }
+
   /* get our center voxel. */
-  nXCenter = xVoxl_GetX( ipCenterVox );
-  nYCenter = xVoxl_GetY( ipCenterVox );
-  nZCenter = xVoxl_GetZ( ipCenterVox );
+  nXCenter = xVoxl_GetX( &MRIIdx );
+  nYCenter = xVoxl_GetY( &MRIIdx );
+  nZCenter = xVoxl_GetZ( &MRIIdx );
   
   /* set all radii to the brush radius. we subtract one because of our 
      looping bounds. */
@@ -3708,14 +3731,14 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
 
   /* Calc the limits and cap them. */
   nXMin = MAX( nXCenter - nXRadius, 0 );
-  nXMax = MIN( nXCenter + nXRadius, this->mnVolumeSizeX-1 );
+  nXMax = MIN( nXCenter + nXRadius, nDimensionX );
   nYMin = MAX( nYCenter - nYRadius, 0 );
-  nYMax = MIN( nYCenter + nYRadius, this->mnVolumeSizeY-1 );
+  nYMax = MIN( nYCenter + nYRadius, nDimensionY );
   nZMin = MAX( nZCenter - nZRadius, 0 );
-  nZMax = MIN( nZCenter + nZRadius, this->mnVolumeSizeZ-1 );
+  nZMax = MIN( nZCenter + nZRadius, nDimensionZ );
 
   /* set our voxel. */
-  xVoxl_Set( pVolumeVox, nXMin, nYMin, nZMin );
+  xVoxl_Set( &MRIIdx, nXMin, nYMin, nZMin );
 
   /* Allocate the array of voxels. Set it to the max it can be, with
      is the size of the cuboid in the bounds calc'd above. */
@@ -3731,21 +3754,21 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
 	
     /* if we're circular, check the radius. if no good, continue. */
     if( DspA_tBrushShape_Circle == sBrush.mShape &&
-	( (nXCenter - xVoxl_GetX(pVolumeVox)) *
-	  (nXCenter - xVoxl_GetX(pVolumeVox)) +
-	  (nYCenter - xVoxl_GetY(pVolumeVox)) *
-	  (nYCenter - xVoxl_GetY(pVolumeVox)) +
-	  (nZCenter - xVoxl_GetZ(pVolumeVox)) *
-	  (nZCenter - xVoxl_GetZ(pVolumeVox)) >
+	( (nXCenter - xVoxl_GetX(&MRIIdx)) *
+	  (nXCenter - xVoxl_GetX(&MRIIdx)) +
+	  (nYCenter - xVoxl_GetY(&MRIIdx)) *
+	  (nYCenter - xVoxl_GetY(&MRIIdx)) +
+	  (nZCenter - xVoxl_GetZ(&MRIIdx)) *
+	  (nZCenter - xVoxl_GetZ(&MRIIdx)) >
 	  (sBrush.mnRadius-1) * (sBrush.mnRadius-1) ) ) {
       continue;
     }
     
     /* Add this voxel to the list and increment the count. */
-    xVoxl_Copy( &(paBrushedVoxs[nBrushedVoxs]), pVolumeVox );
+    xVoxl_Copy( &(paBrushedVoxs[nBrushedVoxs]), &MRIIdx );
     nBrushedVoxs++;
 
-  } while( xVoxl_IncrementWithMinsUntilLimits( pVolumeVox, nXMin, nYMin,
+  } while( xVoxl_IncrementWithMinsUntilLimits( &MRIIdx, nXMin, nYMin,
 					       nXMax, nYMax, nZMax ));
   
   /* run the function on these voxels. */
@@ -3764,14 +3787,14 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
   }
   
  cleanup:
-  xVoxl_Delete( &pVolumeVox );
   
   if( NULL != paBrushedVoxs ) {
     free( paBrushedVoxs );
   }
 
+  DebugExitFunction;
+
   return eResult;
-  
 }
 
 void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipaVoxel, int inCount,
@@ -5315,12 +5338,17 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
   DspA_tErr     eResult  = DspA_tErr_NoErr;
   xPoint2n      bufferPt = {0,0};
   GLubyte*      pFrame   = NULL;
-  xVoxel        anaIdx;
   xColor3f      color;
+  xVoxel        anaIdx;
+  float         value    = 0;
   int           yMin     = 0;
   int           yMax     = 0;
   int           yInc     = 0;
   
+  if( !tkm_IsSelectionPresent() ) {
+    goto cleanup;
+  }
+
   /* get a ptr to the frame buffer. */
   pFrame = this->mpFrameBuffer;
 
@@ -5340,16 +5368,17 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
       if ( DspA_tErr_NoErr != eResult )
 	goto error;
       
-      if( xVoxl_GetX(&anaIdx) >= 0 && xVoxl_GetX(&anaIdx) < 256 &&
-	  xVoxl_GetY(&anaIdx) >= 0 && xVoxl_GetY(&anaIdx) < 256 &&
-	  xVoxl_GetZ(&anaIdx) >= 0 && xVoxl_GetZ(&anaIdx) < 256 ) {
+      if( xVoxl_GetX(&anaIdx) != 0 &&
+	  xVoxl_GetY(&anaIdx) != 0 &&
+	  xVoxl_GetZ(&anaIdx) != 0 ) {
+	
 
-	if( this->mpSelection
-	    [xVoxl_GetZ(&anaIdx)][xVoxl_GetY(&anaIdx)][xVoxl_GetX(&anaIdx)] ) {
+	Volm_GetValueAtIdx_( this->mpSelection, &anaIdx, &value );
+	if( 1.0 == value ) {
 	  
 	  /* get the current color in the buffer */
 	  xColr_SetFloat( &color, (float)pFrame[DspA_knRedPixelCompIndex] /
-			  (float)DspA_knMaxPixelValue,
+			(float)DspA_knMaxPixelValue,
 			  (float)pFrame[DspA_knGreenPixelCompIndex] /
 			  (float)DspA_knMaxPixelValue,
 			  (float)pFrame[DspA_knBluePixelCompIndex] /
@@ -5366,10 +5395,9 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
 	  pFrame[DspA_knBluePixelCompIndex]  = 
 	    (GLubyte)(color.mfBlue * (float)DspA_knMaxPixelValue);
 	  pFrame[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
-	  
 	}
       }
-	
+
       /* advance our pointer. */
       pFrame += DspA_knNumBytesPerPixel;
     }
@@ -6883,7 +6911,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   /* and the seg label if we have one */
   if( NULL != this->mSegmentationVolume[tkm_tSegType_Main] ) {
 
-    tkm_GetSegLabel( tkm_tSegType_Main, iAnaIdx, &nSegLabelIndex, sLabel );
+    tkm_GetSegLabel( tkm_tSegType_Main, &MRIIdx, &nSegLabelIndex, sLabel );
     
     /* if this is a click, and this is the seg volume we're looking
        at, set the index */
@@ -6900,7 +6928,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
         this->mabDisplayFlags[DspA_tDisplayFlag_SegLabelVolumeCount] &&
 	!this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume]) {
 
-      tkm_CalcSegLabelVolume( tkm_tSegType_Main, iAnaIdx, &nValue );
+      tkm_CalcSegLabelVolume( tkm_tSegType_Main, &MRIIdx, &nValue );
       sprintf( sTclArguments, "%s \"%s (%d)\"",
                DspA_ksaDisplaySet[iSet], sLabel, nValue );
       
@@ -6923,7 +6951,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   /* and the aux seg label if we have one */
   if( NULL != this->mSegmentationVolume[tkm_tSegType_Aux] ) {
 
-    tkm_GetSegLabel( tkm_tSegType_Aux, iAnaIdx, &nSegLabelIndex, sLabel );
+    tkm_GetSegLabel( tkm_tSegType_Aux, &MRIIdx, &nSegLabelIndex, sLabel );
     
     /* if this is a click, and this is the seg volume we're looking
        at, set the index */
@@ -6940,7 +6968,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
         this->mabDisplayFlags[DspA_tDisplayFlag_SegLabelVolumeCount] &&
 	this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume]) {
 
-      tkm_CalcSegLabelVolume( tkm_tSegType_Aux, iAnaIdx, &nValue );
+      tkm_CalcSegLabelVolume( tkm_tSegType_Aux, &MRIIdx, &nValue );
       sprintf( sTclArguments, "%s \"%s (%d)\"",
                DspA_ksaDisplaySet[iSet], sLabel, nValue );
       

@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/07/11 22:35:25 $
-// Revision       : $Revision: 1.163 $
-char *VERSION = "$Revision: 1.163 $";
+// Revision Date  : $Date: 2003/07/25 20:43:53 $
+// Revision       : $Revision: 1.164 $
+char *VERSION = "$Revision: 1.164 $";
 
 #define TCL
 #define TKMEDIT 
@@ -302,7 +302,7 @@ void AverageSurfaceVertexPositions        ( int             inNumAverages );
    the usual functions for adding and removing voxels as well as
    saving them out to a file. */
 
-char*** gSelectionVolume;
+mriVolumeRef gSelectionVolume = NULL;
 int     gSelectionVolumeXDimension;
 int     gSelectionVolumeYDimension;
 int     gSelectionVolumeZDimension;
@@ -405,7 +405,7 @@ void RotateVolume    ( mri_tOrientation iAxis,
 		       float      ifDegrees );
 
 void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
-					xVoxelRef       ipaVoxel, 
+					xVoxelRef       iaMRIIdx, 
 					int             inCount,
 					Volm_tValue     inLow,
 					Volm_tValue     inHigh, 
@@ -420,8 +420,8 @@ void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
 				 int             iAnaZ1,
 				 float           iNewValue );
 
-int EditAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue );
-int EditAuxAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue );
+int EditAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue );
+int EditAuxAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue );
 
 void ConvertRASToAnaIdx ( xVoxelRef iRAS,
 			  xVoxelRef oAnaIdx );
@@ -523,15 +523,15 @@ void SetSegmentationAlpha ( float ifAlpha );
    function will blend the label color according to the opacity alpha
    and return the new color. */
 void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
-				   xVoxelRef   inVoxel,
-				   xColor3fRef iBaseColor,
-				   xColor3fRef oColor );
+				   xVoxelRef    iMRIIdx,
+				   xColor3fRef  iBaseColor,
+				   xColor3fRef  oColor );
 
 /* Returns the name of the label and/or label index for a location. */
-void GetSegLabel        ( tkm_tSegType iVolume,
-			  xVoxelRef   ipVoxel, 
-			  int*        onIndex,
-			  char*       osLabel );
+void GetSegLabel  ( tkm_tSegType iVolume,
+		    xVoxelRef    iMRIIdx, 
+		    int*         onIndex,
+		    char*        osLabel );
 
 /* Adds all voxels in a label to the selection. */
 tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
@@ -539,7 +539,7 @@ tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
 
 /* Graphs the average of all the voxels in a label. */
 tkm_tErr GraphSegLabel  ( tkm_tSegType iVolume,
-		     int          inIndex );
+			  int          inIndex );
 
 /* Calls GCAreclassifyUsingGibbsPriors to recalc the segmentation
    using changed values, finally updating the segemention values with
@@ -549,18 +549,18 @@ tkm_tErr GraphSegLabel  ( tkm_tSegType iVolume,
    segmentation. */
 tkm_tSegType gRecaluclatingSegemention = tkm_tSegType_Main;
 void RecomputeSegmentation ( tkm_tSegType iVolume );
-static void RecomputeUpdateCallback( MRI* iMRIValues );
+static void RecomputeUpdateCallback ( MRI* iMRIValues );
 
 /* A call back for a visit function. If the two values are equal
    (there's a float in ipnTarget) then this voxel will be added to the
    selection. */
-Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iAnaIdx,
+Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iMRIIdx,
 						float     iValue,
 						void*     ipnTarget );
 /* A call back for a visit function. If the two values are equal
    (there's a float in ipnTarget) then this voxel will be added to the
    functional selection so it can later be graphed. */
-Volm_tVisitCommand AddSimilarVoxelToGraohAvg  ( xVoxelRef iAnaIdx,
+Volm_tVisitCommand AddSimilarVoxelToGraohAvg  ( xVoxelRef iMRIIdx,
 						float     iValue,
 						void*     ipnTarget );
 
@@ -568,33 +568,35 @@ Volm_tVisitCommand AddSimilarVoxelToGraohAvg  ( xVoxelRef iAnaIdx,
    ExportChangedSegmentationVolume, for each value that is 1, sets the
    value in the dest volume to the value in the src volume. Uses
    tkm_tExportSegmentationParamsRef. */
-Volm_tVisitCommand SetChangedSegmentationValue ( xVoxelRef iAnaIdx,
+Volm_tVisitCommand SetChangedSegmentationValue ( xVoxelRef iMRIIdx,
 						 float     iValue,
 						 void*     iData );
 
 /* A callback to an undo entry. Sets the segmentation volume value at
    this index, as well as the changed volume index.  */
 int  EditSegmentation ( tkm_tSegType iVolume,
-			xVoxelRef    iAnaIdx,
+			xVoxelRef    iMRIIdx,
 			int          inIndex );
 
 /* Calculates the volume of a contiguous label. */
-void CalcSegLabelVolume        ( tkm_tSegType iVolume,
-			    xVoxelRef    ipVoxel,
+typedef struct {
+  float mSourceLabel;
+  int   mCount;
+} tkm_tSumSimilarSegmentationParams;
+void CalcSegLabelVolume   ( tkm_tSegType iVolume,
+			    xVoxelRef    iMRIIdx,
 			    int*         onVolume );
-void IterateCalcSegLabelVolume ( tkm_tSegType iVolume,
-			    xVoxelRef    iAnaIdx, 
-			    int          inIndex, 
-			    tBoolean*    iVisited, 
-			    int*         onVolume );
+Volm_tVisitCommand SumSimilarValues ( xVoxelRef iMRIIdx,
+				      float     iValue,
+				      void*     iData );
 
 /* Use to set the segmentation value. Also adds to the undo
    list. TODO: Add it to the undo list, it doesn't currently. */
 void SetSegmentationValue    ( tkm_tSegType iVolume,
-			       xVoxelRef    iAnaIdx,
+			       xVoxelRef    iMRIIdx,
 			       int          inIndex );
 void SetSegmentationValues   ( tkm_tSegType iVolume,
-			       xVoxelRef    iaAnaIdx,
+			       xVoxelRef    iaMRIIdx,
 			       int          inCount,
 			       int          inIndex );
 
@@ -605,14 +607,14 @@ typedef struct {
   int          mnCount;
 } tkm_tFloodFillCallbackData;
 tkm_tErr FloodFillSegmentation ( tkm_tSegType      iVolume,
-				 xVoxelRef         iAnaIdx,
+				 xVoxelRef         iMRIIdx,
 				 int               inIndex,
 				 tBoolean          ib3D,
 				 tkm_tVolumeTarget iSrc,
 				 int               inFuzzy,
 				 int               inDistance );
 /* Callback for the flood. */
-Volm_tVisitCommand FloodFillSegmentationCallback ( xVoxelRef iAnaIdx,
+Volm_tVisitCommand FloodFillSegmentationCallback ( xVoxelRef iMRIIdx,
 						   float     iValue,
 						   void*     iData );
 
@@ -695,9 +697,9 @@ typedef struct {
 } UndoEntry, *UndoEntryRef;
 
 void NewUndoEntry      ( UndoEntryRef*    opEntry, 
-            tUndoActionFunction iFunction,
-            xVoxelRef    iVoxel, 
-            int      inValue );
+			 tUndoActionFunction iFunction,
+			 xVoxelRef    iVoxel, 
+			 int      inValue );
 void DeleteUndoEntry      ( UndoEntryRef*    ioEntry );
 void PrintUndoEntry      ( UndoEntryRef    iEntry );
 
@@ -1045,7 +1047,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.163 2003/07/11 22:35:25 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.164 2003/07/25 20:43:53 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5169,7 +5171,7 @@ int main ( int argc, char** argv ) {
   /* read tcl/tk internal startup scripts */
   eTcl = Tcl_Init( interp );
   if( TCL_OK != eTcl ) {
-    DebugPrint( ("Tcl_Init returned %d\n", (int)eTcl) );
+    DebugPrint( ("Tcl_Init returned %d: %s\n", (int)eTcl, interp->result) );
     tkm_DisplayError( "Initializing Tcl",
           "Error initializing Tcl",
           "For some reason, Tcl couldn't be initialized. Possible "
@@ -5180,7 +5182,7 @@ int main ( int argc, char** argv ) {
   }
   eTcl = Tk_Init( interp );
   if( TCL_OK != eTcl ) {
-    DebugPrint( ("Tk_Init returned %d\n", (int)eTcl) );
+    DebugPrint( ("Tk_Init returned %d: %s\n", (int)eTcl, interp->result) );
     tkm_DisplayError( "Initializing Tk",
           "Error initializing Tk",
           "For some reason, Tk couldn't be initialized. Possible "
@@ -5191,7 +5193,7 @@ int main ( int argc, char** argv ) {
   }
   eTcl = Tix_Init( interp );
   if( TCL_OK != eTcl ) {
-    DebugPrint( ("Tix_Init returned %d\n", (int)eTcl) );
+    DebugPrint( ("Tix_Init returned %d: %s\n", (int)eTcl, interp->result) );
     tkm_DisplayError( "Initializing Tix",
           "Error initializing Tix",
           "For some reason, Tix couldn't be initialized. Possible "
@@ -5202,7 +5204,7 @@ int main ( int argc, char** argv ) {
   }
   eTcl = Blt_Init( interp );
   if( TCL_OK != eTcl ) {
-    DebugPrint( ("Blt_Init returned %d\n", (int)eTcl) );
+    DebugPrint( ("Blt_Init returned %d: %s\n", (int)eTcl, interp->result) );
     tkm_DisplayError( "Initializing BLT",
           "Error initializing BLT",
           "For some reason, BLT couldn't be initialized. Possible "
@@ -6112,8 +6114,7 @@ void DeleteSelectionModule () {
 tkm_tErr AllocateSelectionVolume () {
 
   tkm_tErr   eResult     = tkm_tErr_NoErr;
-  int        nZ          = 0;
-  int        nY          = 0;
+  Volm_tErr  eVolume     = Volm_tErr_NoErr;
   
   DebugEnterFunction( ("AllocateSelectionVolume()") );
 
@@ -6121,59 +6122,19 @@ tkm_tErr AllocateSelectionVolume () {
 
   /* If the volume already exists, delete it. */
   if( NULL != gSelectionVolume ) 
-    free( gSelectionVolume );
+    Volm_Delete( &gSelectionVolume );
 
-#if 0
-  /* Get the dimensions of the anatomical volume. */
-  eVolume = Volm_GetDimensions( gAnatomicalVolume[tkm_tVolumeType_Main],
-				&gSelectionVolumeXDimension, 
-				&gSelectionVolumeYDimension, 
-				&gSelectionVolumeZDimension );
+  /* Clone the anatomical. */
+  DebugNote( ("Cloning anatomical") );
+  eVolume = Volm_DeepClone( gAnatomicalVolume[tkm_tVolumeType_Main], 
+			    &gSelectionVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_CouldntAllocate );
+
+  DebugNote( ("Setting selection volume to 0") );
+  eVolume = Volm_SetAllValues( gSelectionVolume, 0 );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
-#else
-
-  /* RKT - that's what it _should_ be able to do, but since we use
-     'screen space' coordinates for anatomical index bounds in here
-     (i.e. see where it sets gnAnatomicalDimension{X,Y,Z} to 256, not
-     the volume dimensions), we do that here too. */
-  gSelectionVolumeXDimension = 256;
-  gSelectionVolumeYDimension = 256;
-  gSelectionVolumeZDimension = 256;
-
-#endif
-
-  /* We increment the dimensions by a fudge factor to allow for
-     rounding errors in the drawing code when converting to anatomical
-     indices, it makes it faster because we don't have to test
-     bounds. */
-  gSelectionVolumeXDimension += 2;
-  gSelectionVolumeYDimension += 2;
-  gSelectionVolumeZDimension += 2;
-
-  /* Allocate our volume. */
-  DebugNote( ("Allocating zs") );
-  gSelectionVolume = 
-    (char***) calloc( gSelectionVolumeZDimension, sizeof(char**) );
-  DebugAssertThrowX( (NULL != gSelectionVolume),
-		     eResult, tkm_tErr_CouldntAllocate );
-  for( nZ = 0; nZ < gSelectionVolumeZDimension; nZ++ ) {
-
-    DebugNote( ("Allocating z = %d", nZ) );
-    gSelectionVolume[nZ] = 
-      (char**) calloc( gSelectionVolumeYDimension, sizeof(char*) );
-    DebugAssertThrowX( (NULL != gSelectionVolume),
-		       eResult, tkm_tErr_CouldntAllocate );
-
-    for( nY = 0; nY < gSelectionVolumeYDimension; nY++ ) {
-
-      DebugNote( ("Allocating y = %d", nY) );
-      gSelectionVolume[nZ][nY] = 
-	(char*) calloc( gSelectionVolumeXDimension, sizeof(char) );
-      DebugAssertThrowX( (NULL != gSelectionVolume),
-			 eResult, tkm_tErr_CouldntAllocate );
-    }
-  }
 
   /* Set it in the window. */
   DebugNote( ("Setting selection list in window.") );
@@ -6188,10 +6149,11 @@ tkm_tErr AllocateSelectionVolume () {
   return eResult;
 }
 
-void AddVoxelsToSelection ( xVoxelRef iaAnaIdx, int inCount ) {
+void AddVoxelsToSelection ( xVoxelRef iaMRIIdx, int inCount ) {
   
   int        nVoxel  = 0;
-  xVoxel     anaIdx;
+  Volm_tErr  eVolume = Volm_tErr_NoErr;
+  float      value   = 0;
   
   if ( NULL == gSelectionVolume ) {
     AllocateSelectionVolume();
@@ -6200,58 +6162,51 @@ void AddVoxelsToSelection ( xVoxelRef iaAnaIdx, int inCount ) {
   /* For each voxel we got... */
   for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
     
-    /* Allocate a copy of the voxel */
-    xVoxl_Copy( &anaIdx, &(iaAnaIdx[nVoxel]) );
-    
     /* Set this location in the selection volume to 1 */
-    gSelectionVolume
-      [xVoxl_GetZ(&anaIdx)][xVoxl_GetY(&anaIdx)][xVoxl_GetX(&anaIdx)] = 1;
-
-    /* Inc our selection count. */
-    gSelectionCount++;
+    eVolume = Volm_GetValueAtMRIIdx( gSelectionVolume, 
+				     &iaMRIIdx[nVoxel], &value );
+    if(0 == value ) {
+      
+      Volm_SetValueAtMRIIdx( gSelectionVolume, &iaMRIIdx[nVoxel], 1.0 );
+      
+      /* Inc our selection count. */
+      gSelectionCount++;
+    }
   }
 }
 
-void RemoveVoxelsFromSelection ( xVoxelRef iaAnaIdx, int inCount ) {
+void RemoveVoxelsFromSelection ( xVoxelRef iaMRIIdx, int inCount ) {
   
   int        nVoxel  = 0;
-  xVoxel     anaIdx;
-  
+  Volm_tErr  eVolume = Volm_tErr_NoErr;
+  float      value   = 0;
+
   if ( NULL == gSelectionVolume )
     return;
   
   for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
     
-    /* Copy the voxel into the location voxel. */
-    xVoxl_Copy( &anaIdx, &(iaAnaIdx[nVoxel]) );
-    
     /* Set this location in the selection volume to 0 */
-    gSelectionVolume
-      [xVoxl_GetZ(&anaIdx)][xVoxl_GetY(&anaIdx)][xVoxl_GetX(&anaIdx)] = 0;
+    eVolume = Volm_GetValueAtMRIIdx( gSelectionVolume, 
+				     &iaMRIIdx[nVoxel], &value );
+    if( 1.0 == value ) {
+      
+      Volm_SetValueAtMRIIdx( gSelectionVolume, &iaMRIIdx[nVoxel], 0 );
     
-    /* Dec our selection count. */
-    gSelectionCount--;
+      /* Dec our selection count. */
+      gSelectionCount--;
+    }
   }
 }
 
 
 void ClearSelection () {
 
-  int nZ = 0;
-  int nY = 0;
-  int nX = 0;
-  
   if ( NULL == gSelectionVolume )
     return;
   
-  /* Set all values in the volume to 0 */
-  for( nZ = 0; nZ < gSelectionVolumeZDimension; nZ++ ) {
-    for( nY = 0; nY < gSelectionVolumeYDimension; nY++ ) {
-      for( nX = 0; nX < gSelectionVolumeXDimension; nX++ ) {
-	gSelectionVolume[nZ][nY][nX] = 0;
-      }
-    }
-  }  
+  DebugNote( ("Setting selection volume to 0") );
+  Volm_SetAllValues( gSelectionVolume, 0 );
 
   /* Zero the selection count */
   gSelectionCount = 0;
@@ -6262,10 +6217,12 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
   tkm_tErr      eResult                  = tkm_tErr_NoErr;
   Volm_tErr     eVolume                  = Volm_tErr_NoErr;
   char          sFileName[tkm_knPathLen] = "";
-  int           nX                       = 0;
-  int           nY                       = 0;
-  int           nZ                       = 0;
-  xVoxel        idx;
+  int           nDimensionX              = 0;
+  int           nDimensionY              = 0;
+  int           nDimensionZ              = 0;
+  float         value                    = 0;
+  xVoxel        MRIIdx;
+  xVoxel        anaIdx;
   xVoxel        ras;
   LABEL*        pLabel                   = NULL;
   LABEL_VERTEX* pVertex                  = NULL;
@@ -6273,7 +6230,7 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
   int           eLabel                   = 0;
   
   DebugEnterFunction( ("SaveSelectionToLabelFile ( isFileName=%s )",
-           isFileName) );
+		       isFileName) );
   
   DebugAssertThrowX( (NULL != gSelectionVolume),
 		     eResult, tkm_tErr_NoErr );
@@ -6294,44 +6251,42 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
   
   /* Look for selected voxels */
   nVoxel = 0;
-  for( nZ = 0; nZ < gSelectionVolumeZDimension; nZ++ ) {
-    for( nY = 0; nY < gSelectionVolumeYDimension; nY++ ) {
-      for( nX = 0; nX < gSelectionVolumeXDimension; nX++ ) {
+  Volm_GetDimensions( gSelectionVolume, &nDimensionX, 
+		      &nDimensionY, &nDimensionZ );
+  xVoxl_Set( &MRIIdx, 0, 0, 0 );
+  while( xVoxl_IncrementUntilLimits( &MRIIdx, nDimensionX-1, 
+				     nDimensionY-1, nDimensionZ-1 )) {
 
-	if( gSelectionVolume[nZ][nY][nX] ) {
-	  
-	  /* Fill out a voxel */
-	  xVoxl_Set( &idx, nX, nY, nZ );
-	  
-	  /* convert voxel to ras */
-	  eVolume = 
-	    Volm_ConvertIdxToRAS(gAnatomicalVolume[tkm_tVolumeType_Main],
-				 &idx, &ras );
-	  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
-			     eResult, tkm_tErr_ErrorAccessingVolume );
-	  
-	  /* get a ptr the vertex in the label file. */
-	  DebugNote( ("Geting ptr to vertex %d", nVoxel) );
-	  pVertex = &(pLabel->lv[nVoxel]);
-  
-	  /* set the vertex */
-	  DebugNote( ("Setting values of vertex %d", nVoxel) );
-	  pVertex->x = xVoxl_GetFloatX( &ras );
-	  pVertex->y = xVoxl_GetFloatY( &ras );
-	  pVertex->z = xVoxl_GetFloatZ( &ras );
-	  
-	  /* set the vno to -1, which is significant somewhere outside
-	     the realm of tkmedit. set stat value to something decent
-	     and deleted to not */
-	  pVertex->vno = -1;
-	  pVertex->stat = 0;
-	  pVertex->deleted = FALSE;
-	  
-	  /* inc our global count. */
-	  nVoxel++;
-	}
-
-      }
+    Volm_GetValueAtMRIIdx_( gSelectionVolume, &MRIIdx, &value );
+    if( 0 != value ) {
+      
+      /* convert mri idx to ras */
+      eVolume = Volm_ConvertMRIIdxToIdx( gSelectionVolume, &MRIIdx, &anaIdx );
+      DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
+			 eResult, tkm_tErr_ErrorAccessingVolume );
+      eVolume = Volm_ConvertIdxToRAS( gSelectionVolume, &anaIdx, &ras );
+      DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
+			 eResult, tkm_tErr_ErrorAccessingVolume );
+      
+      /* get a ptr the vertex in the label file. */
+      DebugNote( ("Geting ptr to vertex %d", nVoxel) );
+      pVertex = &(pLabel->lv[nVoxel]);
+      
+      /* set the vertex */
+      DebugNote( ("Setting values of vertex %d", nVoxel) );
+      pVertex->x = xVoxl_GetFloatX( &ras );
+      pVertex->y = xVoxl_GetFloatY( &ras );
+      pVertex->z = xVoxl_GetFloatZ( &ras );
+      
+      /* set the vno to -1, which is significant somewhere outside
+	 the realm of tkmedit. set stat value to something decent
+	 and deleted to not */
+      pVertex->vno = -1;
+      pVertex->stat = 0;
+      pVertex->deleted = FALSE;
+      
+      /* inc our global count. */
+      nVoxel++;
     }
   }
     
@@ -6355,16 +6310,17 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
 
 tkm_tErr LoadSelectionFromLabelFile ( char* isFileName ) {
   
-  tkm_tErr  eResult         = tkm_tErr_NoErr;
-  Volm_tErr  eVolume         = Volm_tErr_NoErr;
-  char    sFileName[tkm_knPathLen]   = "";
-  LABEL*  pLabel         = NULL;
+  tkm_tErr      eResult         = tkm_tErr_NoErr;
+  Volm_tErr     eVolume         = Volm_tErr_NoErr;
+  char          sFileName[tkm_knPathLen]   = "";
+  LABEL*        pLabel         = NULL;
   LABEL_VERTEX* pVertex         = NULL;
-  int    nNumVoxels       = 0;
-  int    nVoxel         = 0;
-  xVoxel  ras;
-  xVoxel  idx;
-  char    sError[tkm_knErrStringLen] = "";
+  int           nNumVoxels       = 0;
+  int           nVoxel         = 0;
+  xVoxel        ras;
+  xVoxel        anaIdx;
+  xVoxel        MRIIdx;
+  char          sError[tkm_knErrStringLen] = "";
   
   DebugEnterFunction( ("LoadSelectionFromLabelFile ( isFileName=%s)",
            isFileName) );
@@ -6391,13 +6347,16 @@ tkm_tErr LoadSelectionFromLabelFile ( char* isFileName ) {
       
       /* transform from ras to voxel */
       xVoxl_SetFloat( &ras, pVertex->x, pVertex->y, pVertex->z );
-      eVolume = Volm_ConvertRASToIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
-              &ras, &idx );
+      eVolume = Volm_ConvertRASToIdx( gSelectionVolume, &ras, &anaIdx );
       DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
-       eResult, tkm_tErr_ErrorAccessingVolume );
+			 eResult, tkm_tErr_ErrorAccessingVolume );
+      eVolume = 
+	Volm_ConvertIdxToMRIIdx( gSelectionVolume, &anaIdx, &MRIIdx );
+      DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
+			 eResult, tkm_tErr_ErrorAccessingVolume );
       
       /* add to selection */
-      AddVoxelsToSelection( &idx, 1 );
+      AddVoxelsToSelection( &MRIIdx, 1 );
     }
   }    
   
@@ -6427,11 +6386,12 @@ tkm_tErr LoadSelectionFromLabelFile ( char* isFileName ) {
 
 void GraphSelectedRegion () {
   
-  xVoxel     voxel;
   FunV_tErr  eFunctional = FunV_tErr_NoError;
-  int        nX                       = 0;
-  int        nY                       = 0;
-  int        nZ                       = 0;
+  int        nDimensionX = 0;
+  int        nDimensionY = 0;
+  int        nDimensionZ = 0;
+  float      value       = 0;
+  xVoxel     idx;
   
   DebugEnterFunction( ("GraphSelectedRegion()") );
   
@@ -6443,27 +6403,23 @@ void GraphSelectedRegion () {
     goto error;
   
   /* Look for selected voxels. */
-  for( nZ = 0; nZ < gSelectionVolumeZDimension; nZ++ ) {
-    for( nY = 0; nY < gSelectionVolumeYDimension; nY++ ) {
-      for( nX = 0; nX < gSelectionVolumeXDimension; nX++ ) {
+  Volm_GetDimensions( gSelectionVolume, &nDimensionX, 
+		      &nDimensionY, &nDimensionZ );
+  xVoxl_Set( &idx, 0, 0, 0 );
+  while( xVoxl_IncrementUntilLimits( &idx, nDimensionX-1, 
+				     nDimensionY-1, nDimensionZ-1 )) {
 
-	if( gSelectionVolume[nZ][nY][nX] ) {
+    Volm_GetValueAtIdx( gSelectionVolume, &idx, &value );
+    if( 0 != value ) {
 	  
-	  /* Fill out a voxel */
-	  xVoxl_Set( &voxel, nX, nY, nZ );
-	  
-	  
-	  /* add it to the functional display list. */
-	  eFunctional = 
-	    FunV_AddAnatomicalVoxelToSelectionRange( gFunctionalVolume, 
-						     &voxel );
-	  if( FunV_tErr_NoError != eFunctional )
-	    goto error;
-	}
-      }
+      /* add it to the functional display list. */
+      eFunctional = 
+	FunV_AddAnatomicalVoxelToSelectionRange( gFunctionalVolume, &idx );
+      if( FunV_tErr_NoError != eFunctional )
+	goto error;
     }
   }
-
+  
   /* finish the list */
   eFunctional = FunV_EndSelectionRange( gFunctionalVolume );
   if( FunV_tErr_NoError != eFunctional )
@@ -6473,8 +6429,7 @@ void GraphSelectedRegion () {
   DebugCatch;
   
   if( eFunctional != FunV_tErr_NoError ) {
-    DebugPrint( ( "FunV error %d in GraphSelectedRegion.\n", 
-      eFunctional ) );
+    DebugPrint( ( "FunV error %d in GraphSelectedRegion.\n", eFunctional ) );
     OutputPrint "Error graphing selection.\n" EndOutputPrint;
   }
   
@@ -7574,6 +7529,14 @@ void SetVolumeResampleMethod  ( tkm_tVolumeType      iVolume,
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
   
+  /* If this is the main volume, also set the selection volume. */
+  if( tkm_tVolumeType_Main == iVolume ) {
+    DebugNote( ("Setting resample method in selection volume") );
+    eVolume = Volm_SetResampleMethod( gSelectionVolume, iMethod );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		       eResult, tkm_tErr_ErrorAccessingVolume );
+  }
+
   /* update the tcl window */
   xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d %d", 
 		  (int)iVolume, (int)iMethod );
@@ -7702,7 +7665,7 @@ void RotateVolume ( mri_tOrientation  iAxis,
 }
 
 void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
-					xVoxelRef       iaVoxel, 
+					xVoxelRef       iaMRIIdx, 
 					int             inCount,
 					Volm_tValue     inLow,
 					Volm_tValue     inHigh, 
@@ -7720,8 +7683,8 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
   for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
 
     /* get the value at this point. */
-    Volm_GetValueAtIdx( gAnatomicalVolume[iVolume], 
-			&(iaVoxel[nVoxel]), &value );
+    Volm_GetValueAtMRIIdx( gAnatomicalVolume[iVolume], 
+			   &(iaMRIIdx[nVoxel]), &value );
     newValue = (int)value;
   
     /* if it's in the range... */
@@ -7733,8 +7696,8 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
     
     /* if values are different, set and add to undo list. */
     if( value != newValue ) {
-      Volm_SetValueAtIdx( gAnatomicalVolume[iVolume], 
-			  &(iaVoxel[nVoxel]), newValue );
+      Volm_SetValueAtMRIIdx( gAnatomicalVolume[iVolume], 
+			     &(iaMRIIdx[nVoxel]), newValue );
       
       switch( iVolume ) {
       case tkm_tVolumeType_Main:
@@ -7742,15 +7705,15 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
 	   using the EditAnatomicalVolume function and also add it to the
 	   undo volume. */
 	AddVoxelAndValueToUndoList( EditAnatomicalVolume, 
-				    &(iaVoxel[nVoxel]), value ); 
-	AddAnaIdxAndValueToUndoVolume( &(iaVoxel[nVoxel]), value ); 
+				    &(iaMRIIdx[nVoxel]), value ); 
+	AddAnaIdxAndValueToUndoVolume( &(iaMRIIdx[nVoxel]), value ); 
 	break;
 	
       case tkm_tVolumeType_Aux:
 	/* if this is an edit on the aux volume, add it to the undo list
 	   using the EditAuxAnatomicalVolume function. */
 	AddVoxelAndValueToUndoList( EditAuxAnatomicalVolume, 
-				    &(iaVoxel[nVoxel]), value ); 
+				    &(iaMRIIdx[nVoxel]), value ); 
 	break;
 
       default:
@@ -7824,22 +7787,22 @@ void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
   DebugExitFunction;
 }
 
-int EditAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue ) {
+int EditAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue ) {
   
   tkm_tErr    eResult = tkm_tErr_NoErr;
   Volm_tErr   eVolume = Volm_tErr_NoErr;
   float        value   = 0;
   
-  DebugEnterFunction( ("EditAnatomicalVolume( iAnaIdx=%d,%d,%d, inValue=%d)",
-		       xVoxl_ExpandInt(iAnaIdx), inValue) );
+  DebugEnterFunction( ("EditAnatomicalVolume( iMRIIdx=%p, inValue=%d)",
+		       iMRIIdx, inValue) );
   
   /* get the current value so we can return it. set the new value */
-  eVolume = Volm_GetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-				iAnaIdx, &value );
+  eVolume = Volm_GetValueAtMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
+				   iMRIIdx, &value );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
-  eVolume = Volm_SetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-				iAnaIdx, inValue );
+  eVolume = Volm_SetValueAtMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
+				   iMRIIdx, inValue );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
   
@@ -7852,22 +7815,22 @@ int EditAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue ) {
   return (int)value;
 }
 
-int EditAuxAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue ) {
+int EditAuxAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue ) {
   
   tkm_tErr    eResult = tkm_tErr_NoErr;
   Volm_tErr   eVolume = Volm_tErr_NoErr;
   float        value   = 0;
   
-  DebugEnterFunction(("EditAuxAnatomicalVolume( iAnaIdx=%d,%d,%d, inValue=%d)",
-		       xVoxl_ExpandInt(iAnaIdx), inValue) );
+  DebugEnterFunction(("EditAuxAnatomicalVolume( iMRIIdx=%p, inValue=%d)",
+		       iMRIIdx, inValue) );
   
   /* get the current value so we can return it. set the new value */
-  eVolume = Volm_GetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Aux], 
-				iAnaIdx, &value );
+  eVolume = Volm_GetValueAtMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Aux], 
+				   iMRIIdx, &value );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
-  eVolume = Volm_SetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Aux], 
-				iAnaIdx, inValue );
+  eVolume = Volm_SetValueAtMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Aux], 
+				   iMRIIdx, inValue );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
   
@@ -8365,10 +8328,7 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
   /* Create the new volume from the existing anatomical. Set it to all
      zeroes. */
   DebugNote( ("Creating new segmentation volume") );
-  eVolume = Volm_New( &newVolume );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  eVolume = Volm_CreateFromVolume( newVolume, gAnatomicalVolume[iFromVolume] );
+  eVolume = Volm_DeepClone( gAnatomicalVolume[iFromVolume], &newVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   eVolume = Volm_SetAllValues( newVolume, 0 );
@@ -8385,10 +8345,7 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
   /* allocate flag volume from the new segmentation volume. set
      everything in it to zero */
   DebugNote( ("Creating segmentation flag volume") );
-  eVolume = Volm_New( &newChangedVolume );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  eVolume = Volm_CreateFromVolume( newChangedVolume, newVolume );
+  eVolume = Volm_DeepClone( newVolume, &newChangedVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_CouldntLoadSegmentation );
   eVolume = Volm_SetAllValues( newChangedVolume, 0 );
@@ -8969,7 +8926,7 @@ void SetSegmentationAlpha ( float ifAlpha ) {
 }
 
 void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume, 
-				   xVoxelRef    ipVoxel,        
+				   xVoxelRef    iMRIIdx,        
 				   xColor3fRef  iBaseColor,
 				   xColor3fRef  oColor ) {
   
@@ -8978,7 +8935,7 @@ void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
   xColor3f   roiColor;
   
   /* get the index of this voxel */
-  GetSegLabel( iVolume, ipVoxel, &index, NULL );
+  GetSegLabel( iVolume, iMRIIdx, &index, NULL );
   
   /* If 0, just use the base color */
   if( 0 == index ) {
@@ -9012,18 +8969,18 @@ void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
 }
 
 void GetSegLabel ( tkm_tSegType iVolume,
-		   xVoxelRef    ipVoxel, 
+		   xVoxelRef    iMRIIdx, 
 		   int*         onIndex,
 		   char*        osLabel ) {
   
   CLUT_tErr   eColorTable  = CLUT_tErr_NoErr;
   Volm_tErr   eVolume      = Volm_tErr_NoErr;
   int         index        = 0;
-  float       fValue        = 0;
+  float       fValue       = 0;
   
   /* get the voxel at this location */
   eVolume = 
-    Volm_GetValueAtIdx( gSegmentationVolume[iVolume], ipVoxel, &fValue );
+    Volm_GetValueAtMRIIdx( gSegmentationVolume[iVolume], iMRIIdx, &fValue );
   if( Volm_tErr_NoErr == eVolume ) {
     index = (int)fValue;
   } else {
@@ -9064,7 +9021,7 @@ void GetSegLabel ( tkm_tSegType iVolume,
   return;
 }
 
-Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iAnaIdx,
+Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iMRIIdx,
 						float     iValue,
 						void*     ipnTarget ) {
   int nIndex = 0;
@@ -9074,29 +9031,34 @@ Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iAnaIdx,
   nTargetIndex = *(int*)ipnTarget;
   
   if( nIndex == nTargetIndex )
-    AddVoxelsToSelection( iAnaIdx, 1 );
+    AddVoxelsToSelection( iMRIIdx, 1 );
   
   return Volm_tVisitComm_Continue;
 }
 
-Volm_tVisitCommand AddSimilarVoxelToGraohAvg ( xVoxelRef iAnaIdx,
+Volm_tVisitCommand AddSimilarVoxelToGraohAvg ( xVoxelRef iMRIIdx,
 					       float     iValue,
 					       void*     ipnTarget ) {
-  int nIndex = 0;
-  int nTargetIndex = 0;
-  
+  int    nIndex       = 0;
+  int    nTargetIndex = 0;
+  xVoxel anaIdx;
+
   nIndex = (int) iValue;
   nTargetIndex = *(int*)ipnTarget;
   
-  if( nIndex == nTargetIndex )
-    FunV_AddAnatomicalVoxelToSelectionRange( gFunctionalVolume, iAnaIdx );
+  if( nIndex == nTargetIndex ) {
+    Volm_ConvertMRIIdxToIdx( gSegmentationVolume[tkm_tSegType_Main],
+			     iMRIIdx, &anaIdx );
+    FunV_AddAnatomicalVoxelToSelectionRange( gFunctionalVolume, &anaIdx );
+  }
   
   return Volm_tVisitComm_Continue;
 }
 
-Volm_tVisitCommand SetChangedSegmentationValue ( xVoxelRef iAnaIdx,
+Volm_tVisitCommand SetChangedSegmentationValue ( xVoxelRef iMRIIdx,
 						 float     iValue,
 						 void*     iData ) {
+
   tkm_tExportSegmentationParamsRef params = NULL;
   float                            value;
 
@@ -9106,8 +9068,8 @@ Volm_tVisitCommand SetChangedSegmentationValue ( xVoxelRef iAnaIdx,
 
     /* Get the value from the segmentation volume and set it in the
        volume to export. */
-    Volm_GetValueAtIdx( params->mSrcVolume, iAnaIdx, &value );
-    Volm_SetValueAtIdx( params->mDestVolume, iAnaIdx, value );
+    Volm_GetValueAtIdx( params->mSrcVolume, iMRIIdx, &value );
+    Volm_SetValueAtIdx( params->mDestVolume, iMRIIdx, value );
   }
   
   return Volm_tVisitComm_Continue;
@@ -9278,16 +9240,14 @@ void RecomputeSegmentation ( tkm_tSegType iVolume ) {
 }
 
 int EditSegmentation ( tkm_tSegType iVolume,
-		       xVoxelRef    iAnaIdx,
+		       xVoxelRef    iMRIIdx,
 		       int          inIndex ) {
 
-  int        nOldValue = 0;
-  Volm_tValue newValue = 0;
-  static int nVolumeIndexBugs = 0;
+  float       fOldValue = 0;
+  static int  nVolumeIndexBugs = 0;
 
-  DebugEnterFunction( ("EditSegmentation( iVolume=%d, iAnaIdx=%d,%d,%d, "
-		       "inIndex=%d )", iVolume, xVoxl_ExpandInt( iAnaIdx ),
-		       inIndex) );
+  DebugEnterFunction( ("EditSegmentation( iVolume=%d, iMRIIdx=%p, "
+		       "inIndex=%d )", iVolume, iMRIIdx, inIndex) );
 
   /* For some reason, David was getting random bugs where iVolume
      would be way out of bounds. I'm trying to track this down while
@@ -9297,7 +9257,7 @@ int EditSegmentation ( tkm_tSegType iVolume,
     if( nVolumeIndexBugs == 1 ) {
       fprintf( stderr, 
 	       "ATTENTION: Please send the .xdebug_tkmedit file\n"
-	       "           to Kevin when you're done. Thanks.\n" );
+	       "           to kteich@nmr.mgh.harvard.edu when you're done.\n");
     }
     if( nVolumeIndexBugs < 5 ) {
       xDbg_Printf( "EditSegmentation: iVolume was %d. Stack:\n", iVolume );
@@ -9306,170 +9266,109 @@ int EditSegmentation ( tkm_tSegType iVolume,
     iVolume = tkm_tSegType_Main;
   }
 
-  GetSegLabel( iVolume, iAnaIdx, &nOldValue, NULL );
-  newValue = (Volm_tValue)inIndex;
-  Volm_SetValueAtIdx( gSegmentationVolume[iVolume], iAnaIdx, newValue );
-  Volm_SetValueAtIdx( gSegmentationChangedVolume[iVolume], iAnaIdx, 1 );
+  /* Get the old value for the undo entry. */
+  DebugNote( ("Getting old value") );
+  Volm_GetValueAtMRIIdx( gSegmentationVolume[iVolume], iMRIIdx, &fOldValue );
+
+  /* Change the value in the segmentation and changed volumes. */
+  DebugNote( ("Setting value in segmentation volume") );
+  Volm_SetValueAtMRIIdx( gSegmentationVolume[iVolume], 
+			 iMRIIdx, (float)inIndex );
+  DebugNote( ("Setting value in segmentation changed volume") );
+  Volm_SetValueAtMRIIdx( gSegmentationChangedVolume[iVolume], 
+			 iMRIIdx, (float)1 );
   
   DebugExitFunction;
 
-  return nOldValue;
+  return (int)fOldValue;
 }
 
 void CalcSegLabelVolume ( tkm_tSegType iVolume,
-			  xVoxelRef    iAnaIdx,
-			  int*         onVolume ) {
+			  xVoxelRef    iMRIIdx,
+			  int*         oCount ) {
   
   tkm_tErr  eResult = tkm_tErr_NoErr;
-  int      index   = 0;
-  tBoolean* visited = NULL;
-  int      nSize      = 0;
-#ifdef Solaris
-  int      i         = 0;
-#endif
+  Volm_tErr eVolume = Volm_tErr_NoErr;
+  int       index   = 0;
+  tkm_tSumSimilarSegmentationParams params;
+
+  DebugEnterFunction( ("CalcSegLabelVolume( iMRIIdx=%p, oCount=%p )",
+		       iMRIIdx, oCount) );
+  DebugAssertThrowX( (NULL != iMRIIdx && NULL != oCount),
+		     eResult, tkm_tErr_InvalidParameter );
   
-  DebugEnterFunction( ("CalcSegLabelVolume( iAnaIdx=%p, onVolume=%p )",
-           iAnaIdx, onVolume) );
-  
-  DebugAssertThrowX( (NULL != iAnaIdx && NULL != onVolume),
-         eResult, tkm_tErr_InvalidParameter );
-  
-  /* initialize count to 0 */
-  *onVolume = 0;
-  
-  DebugNote( ("Allocating visited tracker volume") );
-  nSize = 
-    gnAnatomicalDimensionX * 
-    gnAnatomicalDimensionY * 
-    gnAnatomicalDimensionZ ;
-  visited = (tBoolean*) malloc( sizeof(tBoolean) * nSize) ;
-  DebugAssertThrowX( (NULL != visited), eResult, tkm_tErr_CouldntAllocate );
-  
-  /* zero it. solaris doesn't like bzero here... ??? */
-#ifdef Solaris
-  for( i = 0; i < nSize; i++ )
-    visited[i] = FALSE;
-#else
-  bzero( visited, nSize * sizeof( tBoolean ) );
-#endif
   
   DebugNote( ("Getting initial value at %d,%d,%d", 
-        xVoxl_ExpandInt( iAnaIdx )) );
-  GetSegLabel( iVolume, iAnaIdx, &index, NULL );
-  if( 0 == index ) {
-    DebugGotoCleanup;
-  }
+	      xVoxl_ExpandInt( iMRIIdx )) );
+  GetSegLabel( iVolume, iMRIIdx, &index, NULL );
+  DebugAssertQuietThrow( (0 != index) );
+
+  /* Initialize params */
+  params.mCount = 0;
+  params.mSourceLabel = index;
   
-  /* recursivly iterate with these values */
-  DebugNote( ("Starting iteration") );
-  IterateCalcSegLabelVolume( iVolume, iAnaIdx, index, visited, onVolume );
+  /* Export the thing to a COR volume. */
+  DebugNote( ("Running compare") );
+  eVolume = 
+    Volm_VisitAllVoxels( gSegmentationVolume[iVolume],
+			 &SetChangedSegmentationValue, (void*)&params );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
+  DebugNote( ("Setting return value") );
+  *oCount = params.mCount;
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
   
-  DebugNote( ("Freeing visited volume") );
-  if( NULL != visited )
-    free( visited );
   
   DebugExitFunction;
 }
 
-void IterateCalcSegLabelVolume ( tkm_tSegType iVolume,
-				 xVoxelRef    iAnaIdx, 
-				 int          inIndex, 
-				 tBoolean*    iVisited, 
-				 int*         onVolume ) {
+Volm_tVisitCommand SumSimilarValues ( xVoxelRef iMRIIdx,
+				      float     iValue,
+				      void*     iData ) {
+
+  tkm_tSumSimilarSegmentationParams*  params = NULL;
+
+  params = (tkm_tSumSimilarSegmentationParams*)iData;
   
-  
-  Volm_tErr    eVolume   = Volm_tErr_NoErr;
-  int         nZ   = 0;
-  int         nBeginX   = 0;
-  int         nEndX   = 0;
-  int         nBeginY   = 0;
-  int         nEndY   = 0;
-  int         nBeginZ   = 0;
-  int         nEndZ   = 0;
-  int         nY   = 0;
-  int         nX   = 0;
-  xVoxel       anaIdx;
-  int         index   = 0;
-  
-  /* if we've already been here, exit */
-  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, 
-				     gnAnatomicalDimensionY ) ] == 1 ) {
-    goto cleanup;
+  /* If the values are the same, increment the count. */
+  if( FEQUAL( iValue, params->mSourceLabel ) ) {
+    params->mCount++;
   }
   
-  /* make this voxel as visited */
-  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, 
-				 gnAnatomicalDimensionY ) ] = 1;
-  
-  
-  /* get index at this point */
-  GetSegLabel( iVolume, iAnaIdx, &index, NULL );
-  
-  /* if this is not the voxel we're looking for, exit. */
-  if( index != inIndex ) {
-    goto cleanup;
-  }
-  
-  /* inc our counter */
-  (*onVolume)++;
-  
-  /* calc our bounds */
-  nBeginX = xVoxl_GetX(iAnaIdx) - 1;
-  nEndX   = xVoxl_GetX(iAnaIdx) + 1;
-  nBeginY = xVoxl_GetY(iAnaIdx) - 1;
-  nEndY   = xVoxl_GetY(iAnaIdx) + 1;
-  nBeginZ = xVoxl_GetZ(iAnaIdx) - 1;
-  nEndZ   = xVoxl_GetZ(iAnaIdx) + 1;
-  
-  /* check the surrounding voxels */
-  for( nZ = nBeginZ; nZ <= nEndZ; nZ++ ) {
-    for( nY = nBeginY; nY <= nEndY; nY++ ) {
-      for( nX = nBeginX; nX <= nEndX; nX++ ) {
-	xVoxl_Set( &anaIdx, nX, nY, nZ );
-	eVolume = 
-	  Volm_VerifyIdx( gAnatomicalVolume[tkm_tVolumeType_Main], &anaIdx );
-	if( Volm_tErr_NoErr == eVolume ) {
-	  IterateCalcSegLabelVolume( iVolume, &anaIdx, inIndex, 
-				     iVisited, onVolume );
-	}
-      }
-    }
-  }
-  
- cleanup:
-  ;
+  return Volm_tVisitComm_Continue;
 }
 
+
 void SetSegmentationValue ( tkm_tSegType iVolume,
-			    xVoxelRef    iAnaIdx,
+			    xVoxelRef    iMRIIdx,
 			    int          inIndex ) {
   
-  DebugEnterFunction( ("SetSegmentationValue( iVolume=%d, iaAnaIdx=%p "
-		       "inIndex=%d )", iVolume, iAnaIdx, inIndex) );
+  DebugEnterFunction( ("SetSegmentationValue( iVolume=%d, iaMRIIdx=%p "
+		       "inIndex=%d )", iVolume, iMRIIdx, inIndex) );
 
   DebugNote( ("Passing to EditSegmentation") );
-  EditSegmentation( iVolume, iAnaIdx, inIndex );
+  EditSegmentation( iVolume, iMRIIdx, inIndex );
 
   DebugExitFunction;
 }
 
 void SetSegmentationValues ( tkm_tSegType iVolume,
-			     xVoxelRef    iaAnaIdx,
+			     xVoxelRef    iaMRIIdx,
 			     int          inCount,
 			     int          inIndex ) {
 
   int nVoxel = 0;
   
-  DebugEnterFunction( ("SetSegmentationValues( iVolume=%d, iaAnaIdx=%p "
-		       "inCount=%d, inIndex=%d )", iVolume, iaAnaIdx,
+  DebugEnterFunction( ("SetSegmentationValues( iVolume=%d, iaMRIIdx=%p "
+		       "inCount=%d, inIndex=%d )", iVolume, iaMRIIdx,
 		       inCount, inIndex) );
 
   for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
-    EditSegmentation( iVolume, &(iaAnaIdx[nVoxel]), inIndex );
+    EditSegmentation( iVolume, &(iaMRIIdx[nVoxel]), inIndex );
   }
 
   DebugExitFunction;
@@ -11167,6 +11066,11 @@ void tkm_ClearSelection () {
   ClearSelection ();
 }
 
+tBoolean tkm_IsSelectionPresent () {
+  
+  return (gSelectionCount > 0);
+}
+
 void tkm_FloodSelect ( xVoxelRef         iSeedAnaIdx,
 		       tBoolean          ib3D,
 		       tkm_tVolumeTarget iSrc,
@@ -11341,27 +11245,27 @@ void tkm_CalcSegLabelVolume ( tkm_tSegType iVolume,
 }
 
 void tkm_EditSegmentation ( tkm_tSegType iVolume,
-			    xVoxelRef    iAnaIdx,
+			    xVoxelRef    iMRIIdx,
 			    int          inIndex ) {
   
-  DebugEnterFunction( ("tkm_EditSegmentation( iVolume=%d, iAnaIdx=%p, "
-		       "inIndex=%d )", iVolume, iAnaIdx, inIndex) );
+  DebugEnterFunction( ("tkm_EditSegmentation( iVolume=%d, iMRIIdx=%p, "
+		       "inIndex=%d )", iVolume, iMRIIdx, inIndex) );
 
-  SetSegmentationValue( iVolume, iAnaIdx, inIndex );
+  SetSegmentationValue( iVolume, iMRIIdx, inIndex );
 
   DebugExitFunction;
 }
 
 void tkm_EditSegmentationArray ( tkm_tSegType iVolume,
-				 xVoxelRef    iaAnaIdx,
+				 xVoxelRef    iaMRIIdx,
 				 int          inCount,
 				 int          inIndex ) {
   
-  DebugEnterFunction( ("tkm_EditSegmentationArray( iVolume=%d, iaAnaIdx=%p "
-		       "inCount=%d, inIndex=%d )", iVolume, iaAnaIdx,
+  DebugEnterFunction( ("tkm_EditSegmentationArray( iVolume=%d, iaMRIIdx=%p "
+		       "inCount=%d, inIndex=%d )", iVolume, iaMRIIdx,
 		       inCount, inIndex) );
 
-  SetSegmentationValues( iVolume, iaAnaIdx, inCount, inIndex );
+  SetSegmentationValues( iVolume, iaMRIIdx, inCount, inIndex );
 
   DebugExitFunction;
 }
