@@ -187,7 +187,6 @@ typedef enum {
 } tkm_tDTIVolumeType;
 
 typedef enum {
-  
   tkm_tAxis_X = 0,
   tkm_tAxis_Y,
   tkm_tAxis_Z,

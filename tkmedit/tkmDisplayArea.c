@@ -102,7 +102,6 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   tkmDisplayAreaRef this         = NULL;
   int               nFlag        = 0;
   int               nSurface     = 0;
-  int               nDTI         = 0;
   xColor3f          color;
   
   /* allocate us. */
@@ -176,9 +175,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mGCATransform           = NULL;
   this->mVLI1                   = NULL;
   this->mVLI2                   = NULL;
-  for( nDTI = 0; nDTI < tkm_knNumDTIVolumeTypes; nDTI++ ) {
-    this->mpDTIVolume[nDTI] = NULL;
-  }
+  this->mpDTIVolume             = NULL;
   
   /* set default brush info */
   sBrush.mnRadius = 1;
@@ -883,7 +880,6 @@ DspA_tErr DspA_SetVLIs  ( tkmDisplayAreaRef this,
 
 
 DspA_tErr DspA_SetDTIVolume  ( tkmDisplayAreaRef this,
-			       tkm_tDTIVolumeType  iType,
 			       mriVolumeRef        iVolume ) {
   
   
@@ -895,20 +891,15 @@ DspA_tErr DspA_SetDTIVolume  ( tkmDisplayAreaRef this,
   if( DspA_tErr_NoErr != eResult )
     goto error;
   
-  if( iType < 0 || iType >= tkm_knNumDTIVolumeTypes ) {
-    eResult = DspA_tErr_InvalidParameter;
-    goto error;
-  }
-  
   /* Save the volume. */
-  this->mpDTIVolume[iType] = iVolume;
+  this->mpDTIVolume = iVolume;
   
   /* Show the DTI options if we got a volume.  */
   sprintf( sTclArguments, "%d", (int)(NULL != iVolume) );
   tkm_SendTclCommand( tkm_tTclCommand_ShowDTIOptions, sTclArguments );
   
   /* turn DTI display on. */
-  if( NULL != this->mpDTIVolume[iType] ) {
+  if( NULL != this->mpDTIVolume ) {
     eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_DTIOverlay, TRUE );
     if( DspA_tErr_NoErr != eResult )
       goto error;
@@ -1584,10 +1575,7 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
   case DspA_tDisplayFlag_DTIOverlay:
     
     /* if no DTI data, set to false. */
-    if( NULL == this->mpDTIVolume[tkm_tDTIVolumeType_X] ||
-	NULL == this->mpDTIVolume[tkm_tDTIVolumeType_Y] ||
-	NULL == this->mpDTIVolume[tkm_tDTIVolumeType_Z] ||
-	NULL == this->mpDTIVolume[tkm_tDTIVolumeType_FA] ) {
+    if( NULL == this->mpDTIVolume ) {
       bNewValue = FALSE;
     }
     

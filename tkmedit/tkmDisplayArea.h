@@ -269,7 +269,7 @@ struct tkmDisplayArea {
   VLI*                   mVLI2 ;
   char                   isVLI1_name[STRLEN] ;
   char                   isVLI2_name[STRLEN] ;
-  mriVolumeRef           mpDTIVolume[tkm_knNumDTIVolumeTypes];
+  mriVolumeRef           mpDTIVolume;
 };
 typedef struct tkmDisplayArea tkmDisplayArea;
 typedef tkmDisplayArea *tkmDisplayAreaRef;
@@ -340,7 +340,6 @@ DspA_tErr DspA_SetVLIs                       ( tkmDisplayAreaRef this,
 					       char*             isVLI1_name,
 					       char*             isVLI2_name);
 DspA_tErr DspA_SetDTIVolume                  ( tkmDisplayAreaRef  this, 
-					       tkm_tDTIVolumeType iType,
 					       mriVolumeRef       iVolume );
 
 /* viewing state changes */

@@ -974,9 +974,8 @@ MWin_tErr MWin_SetVLIs  ( tkmMeditWindowRef this,
 }
 
 MWin_tErr MWin_SetDTIVolume  ( tkmMeditWindowRef  this,
-             int                inDispIndex,
-             tkm_tDTIVolumeType iType,
-             mriVolumeRef       iVolume ) {
+			       int                inDispIndex,
+			       mriVolumeRef       iVolume ) {
   
   MWin_tErr eResult     = MWin_tErr_NoErr;
   DspA_tErr eDispResult = DspA_tErr_NoErr;
@@ -1005,8 +1004,7 @@ MWin_tErr MWin_SetDTIVolume  ( tkmMeditWindowRef  this,
   nDispIndex < nDispIndexMax; 
   nDispIndex++ ) {
 
-    eDispResult = DspA_SetDTIVolume ( this->mapDisplays[nDispIndex],
-              iType, iVolume );
+    eDispResult = DspA_SetDTIVolume ( this->mapDisplays[nDispIndex], iVolume );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;

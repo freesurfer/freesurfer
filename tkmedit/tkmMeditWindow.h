@@ -143,7 +143,6 @@ MWin_tErr MWin_SetVLIs            ( tkmMeditWindowRef this,
 				    char*       isVLI2_name );
 MWin_tErr MWin_SetDTIVolume         ( tkmMeditWindowRef   this, 
 				      int                 inDispIndex,
-				      tkm_tDTIVolumeType  iType,
 				      mriVolumeRef        iVolume );
 
 

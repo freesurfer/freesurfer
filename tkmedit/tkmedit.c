@@ -469,16 +469,19 @@ void SwapROIGroupAndVolume ( mriVolumeRef   iGroup,
 
 // =============================================================== DTI VOLUMES
 
-mriVolumeRef gDTIVolume[tkm_knNumDTIVolumeTypes];
+mriVolumeRef gDTIVolume;
+tAxis gaDTIAxisForComponent[xColr_knNumComponents];
 float gfDTIAlpha = 0.6;
 
-tkm_tErr LoadDTIVolume ( tkm_tDTIVolumeType iType, 
-       char*        isName );
+tkm_tErr LoadDTIVolume ( char*              isName,
+			 tAxis              iRedAxis,
+			 tAxis              iGreenAxis,
+			 tAxis              iBlueAxis );
 
 void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
-        mri_tOrientation iPlane,
-        xColor3fRef      iBaseColor,
-        xColor3fRef      oColor );
+			  mri_tOrientation iPlane,
+			  xColor3fRef      iBaseColor,
+			  xColor3fRef      oColor );
 
 // ===========================================================================
 
@@ -3994,17 +3997,15 @@ int TclLoadDTIVolumes ( ClientData inClientData, Tcl_Interp* inInterp,
   
   if ( argc != 5 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadDTIVolumes "
-        "x_volume_name:string y_volume_name:string"
-        "z_volume_name:string FA_volume_name:string",
-        TCL_VOLATILE );
+		    "volume_name:string red_axis:[0=x,y=1,z=2] "
+		    "green_axis:[0=x,y=1,z=2] blue_axis:[0=x,y=1,z=2]",
+		    TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
-    eResult = LoadDTIVolume( tkm_tDTIVolumeType_X, argv[1] );
-    eResult = LoadDTIVolume( tkm_tDTIVolumeType_Y, argv[2] );
-    eResult = LoadDTIVolume( tkm_tDTIVolumeType_Z, argv[3] );
-    eResult = LoadDTIVolume( tkm_tDTIVolumeType_FA, argv[4] );
+    eResult = LoadDTIVolume( argv[1], 
+			     atoi(argv[2]), atoi(argv[3]), atoi(argv[4]) );
   }
   
   return TCL_OK;
@@ -8155,8 +8156,10 @@ void SwapROIGroupAndVolume ( mriVolumeRef   iGroup,
 
 // =============================================================== DTI VOLUMES
 
-tkm_tErr LoadDTIVolume ( tkm_tDTIVolumeType iType, 
-       char*        isName ) {
+tkm_tErr LoadDTIVolume ( char*              isName,
+			 tAxis              iRedAxis,
+			 tAxis              iGreenAxis,
+			 tAxis              iBlueAxis ) {
   
   tkm_tErr     eResult = tkm_tErr_NoErr;
   Volm_tErr    eVolm = Volm_tErr_NoErr;
@@ -8164,18 +8167,21 @@ tkm_tErr LoadDTIVolume ( tkm_tDTIVolumeType iType,
   char         sNameWithHint[tkm_knPathLen] = "";
   mriVolumeRef volume = NULL;
   
-  DebugEnterFunction( ("LoadDTIVolume( iType=%d, isName=%s )",
-           (int)iType, isName) );
-  
-  DebugAssertThrowX( (iType >= 0 && iType < tkm_knNumDTIVolumeTypes),
-         eResult, tkm_tErr_InvalidParameter );
+  DebugEnterFunction( ("LoadDTIVolume( isName=%s, iRedAxis=%d, "
+		       "iGreenAxis=%d, iBlueAxis=%d )", isName,
+		       (int)iRedAxis, (int)iGreenAxis, (int)iBlueAxis ));
   DebugAssertThrowX( (NULL != isName), eResult, tkm_tErr_InvalidParameter );
-  
+  DebugAssertThrowX( (iRedAxis >= 0 && iRedAxis < knNumAxes),
+		     eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (iGreenAxis >= 0 && iGreenAxis < knNumAxes),
+		     eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (iBlueAxis >= 0 && iBlueAxis < knNumAxes),
+		     eResult, tkm_tErr_InvalidParameter );
   
   /* Create our volume */
   eVolm = Volm_New( &volume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolm), 
-         eResult, tkm_tErr_ErrorAccessingVolume );
+		     eResult, tkm_tErr_ErrorAccessingVolume );
   
   /* First try loading it with just this name. */
   DebugNote( ("Importing data %s", isName) );
@@ -8201,22 +8207,27 @@ tkm_tErr LoadDTIVolume ( tkm_tDTIVolumeType iType,
   
   /* If we still don't have it, throw an error. */
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolm), 
-         eResult, tkm_tErr_CouldntLoadDTIVolume );
+		     eResult, tkm_tErr_CouldntLoadDTIVolume );
   
-  /* If we already have a volume in this slot, delete it. */
-  if( NULL != gDTIVolume[iType] ) {
-    Volm_Delete( &gDTIVolume[iType] );
+  /* If we already have a volume, delete it. */
+  if( NULL != gDTIVolume ) {
+    Volm_Delete( &gDTIVolume );
   }
   
   /* Use this volume. */
-  gDTIVolume[iType] = volume;
+  gDTIVolume = volume;
   
   /* Set it in the window. */
   if( NULL != gMeditWindow ) {
     DebugNote( ("Setting DTI volume in main window") );
-    MWin_SetDTIVolume( gMeditWindow, -1, iType, gDTIVolume[iType] );
+    MWin_SetDTIVolume( gMeditWindow, -1, gDTIVolume );
   }
-  
+
+  /* Save the axis -> component settings */
+  gaDTIAxisForComponent[xColr_tComponent_Red] = iRedAxis;
+  gaDTIAxisForComponent[xColr_tComponent_Green] = iGreenAxis;
+  gaDTIAxisForComponent[xColr_tComponent_Blue] = iBlueAxis;
+
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   
@@ -8236,46 +8247,53 @@ tkm_tErr LoadDTIVolume ( tkm_tDTIVolumeType iType,
 }
 
 void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
-        mri_tOrientation iPlane,
-        xColor3fRef      iBaseColor,
-        xColor3fRef      oColor ) {
+			  mri_tOrientation iPlane,
+			  xColor3fRef      iBaseColor,
+			  xColor3fRef      oColor ) {
   
-  float     x = 0;
-  float     y = 0;
-  float     z = 0;
-  float     FA = 0;
-  float     sqrtFA = 0;
-  float     r = 0;
-  float     g = 0;
-  float     b = 0;
-
-  /* Get the x, y, z, FA values */
-  Volm_GetValueAtIdx( gDTIVolume[tkm_tDTIVolumeType_X], iAnaIdx, &x);
-  Volm_GetValueAtIdx( gDTIVolume[tkm_tDTIVolumeType_Y], iAnaIdx, &y);
-  Volm_GetValueAtIdx( gDTIVolume[tkm_tDTIVolumeType_Z], iAnaIdx, &z);
-  Volm_GetValueAtIdx( gDTIVolume[tkm_tDTIVolumeType_FA], iAnaIdx, &FA);
-  sqrtFA = sqrt(FA);
+  Volm_tErr eVolm = Volm_tErr_NoErr;
+  float     x     = 0;
+  float     y     = 0;
+  float     z     = 0;
+  xColr_tComponent comp;
+  xColor3f  color;
   
-  /* Make the colors */
-  r = sqrtFA * fabs(x);
-  g = sqrtFA * fabs(y);
-  b = sqrtFA * fabs(z);
-
-  if( r != 0 && g != 0 && b != 0 ) {
-    
-    /* Blend with the destination color. */
-    oColor->mfRed = (gfDTIAlpha * r) + 
-      (float)((1.0-gfDTIAlpha) * iBaseColor->mfRed);
-    oColor->mfGreen = (gfDTIAlpha * g) + 
-      (float)((1.0-gfDTIAlpha) * iBaseColor->mfGreen);
-    oColor->mfBlue = (gfROIAlpha * b) + 
-      (float)((1.0-gfDTIAlpha) * iBaseColor->mfBlue);
-  
-  } else {
-
+  /* Make sure this voxel is in the bounds of the DTI volume */
+  eVolm = Volm_VerifyIdxInMRIBounds( gDTIVolume, iAnaIdx );
+  if( Volm_tErr_NoErr != eVolm ) {
     *oColor = *iBaseColor;
+    return;
   }
 
+  /* Get the x, y, and z values. frame 0 has the x value, 1 has y, and
+     2 has z. */
+  Volm_GetValueAtIdxFrame( gDTIVolume, iAnaIdx, 0, &x );
+  Volm_GetValueAtIdxFrame( gDTIVolume, iAnaIdx, 1, &y );
+  Volm_GetValueAtIdxFrame( gDTIVolume, iAnaIdx, 2, &z );
+
+  if( x != 0 && y != 0 && z != 0 ) {
+    
+    /* Map to the colors. */
+    for( comp = xColr_tComponent_Red; comp <= xColr_tComponent_Blue; comp++ ) {
+      switch( gaDTIAxisForComponent[comp] ) {
+      case tAxis_X: xColr_SetComponent( &color, comp, fabs(x) ); break;
+      case tAxis_Y: xColr_SetComponent( &color, comp, fabs(y) ); break;
+      case tAxis_Z: xColr_SetComponent( &color, comp, fabs(z) ); break;
+      default: xColr_SetComponent( &color, comp, 0 ); break;
+      }
+    }
+  
+    /* Blend with the destination color. */
+    oColor->mfRed = MIN( 1, (gfDTIAlpha * color.mfRed) + 
+      (float)((1.0-gfDTIAlpha) * iBaseColor->mfRed));
+    oColor->mfGreen = MIN( 1, (gfDTIAlpha * color.mfGreen) + 
+      (float)((1.0-gfDTIAlpha) * iBaseColor->mfGreen));
+    oColor->mfBlue = MIN( 1, (gfROIAlpha * color.mfBlue) + 
+      (float)((1.0-gfDTIAlpha) * iBaseColor->mfBlue));
+  
+  } else {
+    *oColor = *iBaseColor;
+  }
 }
             
 
