@@ -1,7 +1,7 @@
 #ifndef ScubaColorLUT_h
 #define ScubaColorLUT_h
 
-#include <string>
+#include "string_fixed.h"
 extern "C" {
 #include "colortab.h"
 }

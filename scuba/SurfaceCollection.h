@@ -1,7 +1,7 @@
 #ifndef SurfaceCollection_H
 #define SurfaceCollection_H
 
-#include <string>
+#include "string_fixed.h"
 #include "DataCollection.h"
 extern "C" {
 #include "mrisurf.h"

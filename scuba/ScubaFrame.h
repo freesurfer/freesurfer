@@ -1,7 +1,7 @@
 #ifndef ScubaFrame_h
 #define ScubaFrame_h
 
-#include <string>
+#include "string_fixed.h"
 #include "ToglManager.h"
 #include "TclCommandManager.h"
 #include "IDTracker.h"

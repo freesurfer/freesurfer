@@ -1,7 +1,7 @@
 #ifndef View_h
 #define View_h
 
-#include <string>
+#include "string_fixed.h"
 #include "IDTracker.h"
 #include "DebugReporter.h"
 #include "InputState.h"

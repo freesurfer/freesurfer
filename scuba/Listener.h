@@ -1,7 +1,7 @@
 #ifndef Listener_h
 #define Listener_h
 
-#include <string>
+#include "string_fixed.h"
 
 class Listener {
 

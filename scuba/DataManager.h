@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/11/02 20:01:57 $
-// Revision       : $Revision: 1.5 $
+// Revision Date  : $Date: 2004/04/28 21:53:48 $
+// Revision       : $Revision: 1.6 $
 
 #ifndef DataManager_h
 #define DataManager_h
@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <list>
 #include <map>
-#include <string>
+#include "string_fixed.h"
 #include "DebugReporter.h"
 
 

@@ -1,7 +1,7 @@
 #ifndef ScubaTransform_h
 #define ScubaTransform_h
 
-#include <string>
+#include "string_fixed.h"
 extern "C" {
 #include "matrix.h"
 }

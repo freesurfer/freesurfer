@@ -3,15 +3,15 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/03/24 17:06:13 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2004/04/28 21:53:48 $
+// Revision       : $Revision: 1.5 $
 
 #ifndef PreferencesManager_h
 #define PreferencesManager_h
 
 #include <stdlib.h>
 #include <map>
-#include <string>
+#include "string_fixed.h"
 #include "DebugReporter.h"
 
 class PreferencesManager : public DebugReporter {

@@ -1,7 +1,7 @@
 #ifndef VolumeCollection_H
 #define VolumeCollection_H
 
-#include <string>
+#include "string_fixed.h"
 #include "DataCollection.h"
 #include "ScubaROIVolume.h"
 extern "C" {

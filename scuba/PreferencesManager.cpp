@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <string>
+#include "string_fixed.h"
 #include <list>
 #include <stdexcept>
 #include <sstream>

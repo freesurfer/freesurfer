@@ -1,4 +1,4 @@
-#include <string>
+#include "string_fixed.h"
 #include "ScubaToolState.h"
 
 using namespace std;

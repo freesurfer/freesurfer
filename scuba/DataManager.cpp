@@ -1,5 +1,5 @@
 #include <iostream>
-#include <string>
+#include "string_fixed.h"
 #include <list>
 #include <stdexcept>
 #include "DataManager.h"

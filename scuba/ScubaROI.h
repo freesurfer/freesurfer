@@ -1,7 +1,7 @@
 #ifndef ScubaROI_h
 #define ScubaROI_h
 
-#include <string>
+#include "string_fixed.h"
 #include "DebugReporter.h"
 #include "TclCommandManager.h"
 #include "IDTracker.h"

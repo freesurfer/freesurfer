@@ -1,7 +1,7 @@
 #ifndef ScubaDataCollectionFactory_h
 #define ScubaDataCollectionFactory_h
 
-#include <string>
+#include "string_fixed.h"
 #include "DebugReporter.h"
 #include "TclCommandManager.h"
 #include "DataCollection.h"

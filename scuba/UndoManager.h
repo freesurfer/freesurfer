@@ -1,7 +1,7 @@
 #ifndef UndoManager_h
 #define UndoManager_h
 
-#include <string>
+#include "string_fixed.h"
 #include <list>
 #include "TclCommandManager.h"
 

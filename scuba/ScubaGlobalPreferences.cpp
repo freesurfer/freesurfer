@@ -1,4 +1,4 @@
-#include <string>
+#include "string_fixed.h"
 #include "ScubaGlobalPreferences.h"
 #include "PreferencesManager.h"
 

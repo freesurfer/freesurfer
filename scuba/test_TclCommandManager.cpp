@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <string>
+#include "string_fixed.h"
 #include <iostream>
 #include <tcl.h>
 #include <stdexcept>

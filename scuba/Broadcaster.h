@@ -2,7 +2,7 @@
 #define Broadcaster_h
 
 #include <list>
-#include <string>
+#include "string_fixed.h"
 #include "Listener.h"
 
 class Broadcaster {

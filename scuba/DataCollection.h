@@ -4,7 +4,7 @@
 
 #include <map>
 #include <list>
-#include <string>
+#include "string_fixed.h"
 #include "DebugReporter.h"
 #include "IDTracker.h"
 #include "TclCommandManager.h"

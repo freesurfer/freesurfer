@@ -1,7 +1,7 @@
 #ifndef TclProgressDisplayManager_h
 #define TclProgressDisplayManager_h
 
-#include <string>
+#include "string_fixed.h"
 #include <list>
 
 class TclProgressDisplayManager {

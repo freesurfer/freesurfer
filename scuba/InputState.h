@@ -2,7 +2,7 @@
 #define InputState_h
 
 #include <iostream>
-#include <string>
+#include "string_fixed.h"
 
 class InputState {
   friend class ToglManager;

@@ -1,4 +1,4 @@
-#include <string>
+#include "string_fixed.h"
 #include <stdexcept>
 
 #include "Volume3.h"

@@ -1,7 +1,7 @@
 #ifndef ScubaView_h
 #define ScubaView_h
 
-#include <string>
+#include "string_fixed.h"
 #include <gl.h>
 #include "View.h"
 #include "DataCollection.h"

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/04/03 22:04:02 $
-// Revision       : $Revision: 1.8 $
+// Revision Date  : $Date: 2004/04/28 21:53:48 $
+// Revision       : $Revision: 1.9 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <list>
 #include <tcl.h>
-#include <string>
+#include "string_fixed.h"
 #include <iostream>
 #include <stdexcept>
 #include <sstream>

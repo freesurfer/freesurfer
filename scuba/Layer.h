@@ -1,7 +1,7 @@
 #ifndef Layer_h
 #define Layer_h
 
-#include <string>
+#include "string_fixed.h"
 #include <gl.h>
 #include <map>
 #include "ViewState.h"

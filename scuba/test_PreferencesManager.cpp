@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/17 00:06:30 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2004/04/28 21:53:49 $
+// Revision       : $Revision: 1.4 $
 
 #include <stdlib.h>
-#include <string>
+#include "string_fixed.h"
 #include <iostream>
 #include <sstream>
 #include <stdexcept>

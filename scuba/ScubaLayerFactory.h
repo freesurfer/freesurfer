@@ -1,7 +1,7 @@
 #ifndef ScubaLayerFactory_h
 #define ScubaLayerFactory_h
 
-#include <string>
+#include "string_fixed.h"
 #include "DebugReporter.h"
 #include "TclCommandManager.h"
 #include "Layer.h"
