@@ -19,6 +19,7 @@
 #define OUT_GCCTARGET 2
 #define OUT_GCCSIMD   3
 #define OUT_GCCALL    4
+#define OUT_MODEL     5
 
 struct x86cpucaps cpucaps;
 struct simdcaps sdcaps;   
@@ -35,6 +36,7 @@ void print_usage()
    printf("    -s, --outsimdopt             print optimal gcc SIMD options only\n");
    printf("    -k, --outkernelopt           print optimal ProcessorType for\n");
    printf("                                 kernel building only\n");
+   printf("    -m, --outmodel               print cpu model\n");
    printf("    -v, --version                print version and exit\n\n");
 
    return;
@@ -83,47 +85,50 @@ void print_simdcaps(int i)
 
 void print_cpuinfo(int outmode)
 {
-   switch (outmode) 
-     {
-      case OUT_KERNELOPT:
-	printf("%s\n", cpucaps.kernelopt);
-	break;
-      case OUT_GCCTARGET:
-      case OUT_GCCSIMD:
-      case OUT_GCCALL:
-	if (outmode != OUT_GCCSIMD ) printf("%s ", cpucaps.gcctarget);
-	if (outmode != OUT_GCCTARGET ) printf("%s", cpucaps.gccsimdopt);
-	printf("\n");
-	break;
-      default:
-	printf("\n");
-	printf("CPU info                           : %d - %d - %d (%s)\n",
-	       cpucaps.cpu_family, cpucaps.cpu_model, cpucaps.cpu_stepping,
-	       cpucaps.vendor_name);
-	printf("CPU Model Name                     : %s\n", cpucaps.cpu_name);
-	printf("Recommended Kernel building option : %s\n", cpucaps.kernelopt);
-	printf("Recommended gcc (%.4f) target    : %s %s\n", cpucaps.gccver, cpucaps.gcctarget, cpucaps.gccsimdopt);
+  switch (outmode) 
+  {
+  case OUT_KERNELOPT:
+    printf("%s\n", cpucaps.kernelopt);
+    break;
+  case OUT_GCCTARGET:
+  case OUT_GCCSIMD:
+  case OUT_GCCALL:
+    if (outmode != OUT_GCCSIMD ) printf("%s ", cpucaps.gcctarget);
+    if (outmode != OUT_GCCTARGET ) printf("%s", cpucaps.gccsimdopt);
+    printf("\n");
+    break;
+  case OUT_MODEL:
+    printf("%s\n", cpucaps.cpu_name);
+    break;
+  default:
+    printf("\n");
+    printf("CPU info                           : %d - %d - %d (%s)\n",
+	   cpucaps.cpu_family, cpucaps.cpu_model, cpucaps.cpu_stepping,
+	   cpucaps.vendor_name);
+    printf("CPU Model Name                     : %s\n", cpucaps.cpu_name);
+    printf("Recommended Kernel building option : %s\n", cpucaps.kernelopt);
+    printf("Recommended gcc (%.4f) target    : %s %s\n", cpucaps.gccver, cpucaps.gcctarget, cpucaps.gccsimdopt);
 
-	printf("checking Intel SIMD capability     : ");
-	print_simdcaps(cpucaps.intel_simd);
+    printf("checking Intel SIMD capability     : ");
+    print_simdcaps(cpucaps.intel_simd);
 
-	printf("checking AMD 3DNow! capability     : ");
-	print_simdcaps(cpucaps.amd_simd);
-	printf("\n");
+    printf("checking AMD 3DNow! capability     : ");
+    print_simdcaps(cpucaps.amd_simd);
+    printf("\n");
 
 #ifndef _WIN32_
-	if (sdcaps.has_sse == TRUE) 
-	     sdcaps.has_sse= x86cpucaps_check_sse_supported(sdcaps.has_sse,DEBUG);
+    if (sdcaps.has_sse == TRUE) 
+      sdcaps.has_sse= x86cpucaps_check_sse_supported(sdcaps.has_sse,DEBUG);
 #endif
 	
-	printf("SIMD capabilities checking results\n");
-	printf("   SSE2:%d, SSE:%d, MMXext:%d, MMX:%d,  3DNow!Ex:%d, 3DNow!:%d\n",
-	     sdcaps.has_sse2,sdcaps.has_sse,sdcaps.has_mmxext, sdcaps.has_mmx,
-	     sdcaps.has_3dnowext,sdcaps.has_3dnow);
+    printf("SIMD capabilities checking results\n");
+    printf("   SSE2:%d, SSE:%d, MMXext:%d, MMX:%d,  3DNow!Ex:%d, 3DNow!:%d\n",
+	   sdcaps.has_sse2,sdcaps.has_sse,sdcaps.has_mmxext, sdcaps.has_mmx,
+	   sdcaps.has_3dnowext,sdcaps.has_3dnow);
 
-     }
+  }
    
-   return;
+  return;
 }
 
 float getgccver(char *gccver) 
@@ -178,7 +183,7 @@ int main(int argc, char *argv[])
        {"outkernelopt", 0, NULL, 'k'}
      };
 	
-     c = getopt_long (argc, argv, "hvw:gsk", long_options, &option_index);
+     c = getopt_long (argc, argv, "hvw:gskm", long_options, &option_index);
      if (c == EOF ) break;
 
      switch (c) {
@@ -186,15 +191,19 @@ int main(int argc, char *argv[])
        if (optarg) cpucaps.gccver = getgccver(optarg);
        break;
 
-     case 'k':
-       outmode = OUT_KERNELOPT;
-       break;
-
      case 'g':
        if (outmode == OUT_GCCSIMD) 
 	 outmode = OUT_GCCALL;
        else
 	 outmode = OUT_GCCTARGET;
+       break;
+
+     case 'k':
+       outmode = OUT_KERNELOPT;
+       break;
+
+     case 'm':
+       outmode = OUT_MODEL;
        break;
 
      case 's':
