@@ -811,6 +811,7 @@ MRIfromVolume(Volume volume, int start_frame, int end_frame)
   switch (volume->nc_data_type)
   {
   case NC_BYTE:  type = MRI_UCHAR ; break ;
+  case NC_SHORT: type = MRI_SHORT ; break ;
   case NC_FLOAT: type = MRI_FLOAT ; break ;
   default:  
     ErrorReturn(NULL, 
@@ -847,6 +848,30 @@ MRIfromVolume(Volume volume, int start_frame, int end_frame)
             else
               MRIseq_vox(mri, x, y1, z, frame-start_frame) = 
                 GET_MULTIDIM_TYPE_4D(volume->array, BUFTYPE, x, z, y, frame) ;
+          }
+        }
+      }
+    }
+    break ;
+  case MRI_SHORT:
+    for (frame = start_frame ; frame <= end_frame ; frame++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          if (ystep < 0)
+            y1 = y ;
+          else
+            y1 = height - y - 1 ;
+          for (x = 0 ; x < width ; x++)
+          {
+            if (ndim <= 3)
+              MRISvox(mri, x, y1, z) = 
+                GET_MULTIDIM_TYPE_3D(volume->array, short, x, z, y) ;
+            else
+              MRISseq_vox(mri, x, y1, z, frame-start_frame) = 
+                GET_MULTIDIM_TYPE_4D(volume->array, short, x, z, y, frame) ;
           }
         }
       }
