@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.2 2004/10/17 18:33:53 greve Exp $
+% $Id: flac_customize.m,v 1.3 2004/11/13 16:46:07 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -39,13 +39,14 @@ runpath = sprintf('%s/%s',fsdpath,runid);
 fstem = sprintf('%s/%s',runpath,flac.funcstem);
 
 % Get the number of time points
-[nslices nrows ncols ntp] = fmri_bvoldim(fstem);
-if(nslices == 0) 
+mri = MRIread(fstem,1);
+if(isempty(mri))
   fprintf('ERROR: attempting to read %s\n',fstem);
   flacnew = [];
   return; 
 end
-flacnew.ntp = ntp;
+flacnew.mri = mri;
+flacnew.ntp = mri.nframes;
 
 nev = length(flac.ev);
 for nthev = 1:nev
@@ -76,7 +77,7 @@ for nthev = 1:nev
     if(size(X,2)~=1) X = squeeze(X)';
     else             X = squeeze(X);
     end
-    if(size(X,1) ~= ntp)
+    if(size(X,1) ~= flacnew.ntp)
       fprintf('ERROR: nonpar time point mismatch %s\n',nonparpath);
       flacnew = [];
       return;
@@ -89,7 +90,7 @@ for nthev = 1:nev
     % Demean
     X = X(:,1:ev.params(1));
     Xmn = mean(X,1);
-    X = X - repmat(Xmn,[ntp 1]);
+    X = X - repmat(Xmn,[flacnew.ntp 1]);
     flacnew.ev(nthev).X = X;
     continue;
   end
