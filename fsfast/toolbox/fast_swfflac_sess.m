@@ -6,6 +6,7 @@ tic;
 % sesspath = '~/links/sg1/xval/dng';
 % outfspec  = 'fmcsm5-swf-bh';
 % contrast
+% gscaleuse = 1;
 % alpha = 0.5;
 % pthresh = -log10(sigthreshold) regularization
 % ytikreg = .1 % Tikhonov regularization parameter
@@ -17,11 +18,21 @@ tic;
 % targflacfile = '~/links/sg1/xval/flac/rest.flac';
 % 
 
+fast_swfflac_sess_ver = '$Id';
+
+SynthSeed = round(sum(100*clock)); 
+randn('state',SynthSeed); 
+rand('state',SynthSeed); 
+
+fprintf('%s\n',fast_swfflac_sess_ver);
 fprintf('contrast = %s\n',contrast);
 fprintf('alpha = %g\n',alpha);
 fprintf('pthresh = %g (%g)\n',pthresh,10^(-pthresh));
 fprintf('ytkreg = %g\n',ytikreg);
+fprintf('gscaleuse = %d\n',gscaleuse);
 fprintf('synthtarg = %g\n',synthtarg);
+fprintf('SynthSeed = %g\n',SynthSeed);
+
 
 % Delete the okfile, if it exists
 tmp = sprintf('rm -f %s',okfile);
@@ -222,21 +233,26 @@ for jthrun = 1:nruns
   % best-fit signal. This will have no effect the final functional
   % analysis, but it will make the ranges of values before and after
   % SWF more similar which facilitates comparison.
-  Ctask = eye(size(jX,2));
-  Ctask = Ctask(indtask,:);
-  [b0 rvar0 vdof0] = fast_glmfitw(y.vol(:,indmask),jX);
-  [F0 dof10 dof20] = fast_fratiow(b0,jX,rvar0,Ctask);
-  p0 = FTest(dof10, dof20, F0);
-  ind0 = find(p0 < .01);
-  if(isempty(ind0)) ind0 = [1:length(indmask)]; end
-  s0 = jX(:,indtask)*b0(indtask,ind0);
-  bswf = (inv(jX'*jX)*jX')*yswf(:,ind0);
-  sswf = jX(:,indtask)*bswf(indtask,:);
-  a0 = mean(std(s0),2);
-  aswf = mean(std(sswf),2);
-  gscale = a0/aswf;
-  fprintf('  a0 = %g, aswf = %g, gscale = %g\n',a0,aswf,gscale);
-  yswf = yswf*gscale;
+  if(gscaleuse)
+    Ctask = eye(size(jX,2));
+    Ctask = Ctask(indtask,:);
+    [b0 rvar0 vdof0] = fast_glmfitw(y.vol(:,indmask),jX);
+    [F0 dof10 dof20] = fast_fratiow(b0,jX,rvar0,Ctask);
+    p0 = FTest(dof10, dof20, F0);
+    ind0 = find(p0 < .01);
+    if(isempty(ind0)) ind0 = [1:length(indmask)]; end
+    s0 = jX(:,indtask)*b0(indtask,ind0);
+    bswf = (inv(jX'*jX)*jX')*yswf(:,ind0);
+    sswf = jX(:,indtask)*bswf(indtask,:);
+    a0 = mean(std(s0),2);
+    aswf = mean(std(sswf),2);
+    gscale = a0/aswf;
+    fprintf('  a0 = %g, aswf = %g, gscale = %g\n',a0,aswf,gscale);
+    yswf = yswf*gscale;
+  else
+    gscale = 1;
+  end
+  fprintf('  gscale = %g\n',gscale);
   
   % Set mean to be the same as the original
   ymn = mean(y.vol(:,indmask));  
@@ -256,6 +272,21 @@ for jthrun = 1:nruns
 		      jflac.formatext);
   fprintf('  Saving to %s (%6.1f)\n',yhatfspec,toc);    
   MRIwrite(yhat,yhatfspec);
+
+  logfile = sprintf('%s/%s/%s/%s.log',jflac.sess,jflac.fsd,...
+		      jflac.runlist(jflac.nthrun,:),outfspec);
+  fp = fopen(logfile,'w');
+  fprintf(fp,'%s\n',fast_swfflac_sess_ver);
+  fprintf(fp,'contrast = %s\n',contrast);
+  fprintf(fp,'alpha = %g\n',alpha);
+  fprintf(fp,'pthresh = %g (%g)\n',pthresh,10^(-pthresh));
+  fprintf(fp,'ytkreg = %g\n',ytikreg);
+  fprintf(fp,'gscaleuse = %d\n',gscaleuse);
+  fprintf(fp,'gscale    = %g\n',gscale);
+  fprintf(fp,'synthtarg = %g\n',synthtarg);
+  fprintf(fp,'SynthSeed = %g\n',SynthSeed);
+  fclose(fp);
+
   
   % This computes how a given voxel (RCS) is projected to the rest
   % of the volume. This is a row from the spatial filter reshaped
