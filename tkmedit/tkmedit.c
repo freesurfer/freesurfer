@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/06/12 01:09:19 $
-// Revision       : $Revision: 1.158 $
-char *VERSION = "$Revision: 1.158 $";
+// Revision Date  : $Date: 2003/06/12 19:53:51 $
+// Revision       : $Revision: 1.159 $
+char *VERSION = "$Revision: 1.159 $";
 
 #define TCL
 #define TKMEDIT 
@@ -599,6 +599,7 @@ void SetSegmentationValues   ( tkm_tSegType iVolume,
 typedef struct {
   tkm_tSegType mTargetVolume;
   int          mnNewSegLabel;
+  int          mnCount;
 } tkm_tFloodFillCallbackData;
 tkm_tErr FloodFillSegmentation ( tkm_tSegType      iVolume,
 				 xVoxelRef         iAnaIdx,
@@ -1041,7 +1042,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.158 2003/06/12 01:09:19 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.159 2003/06/12 19:53:51 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -9442,6 +9443,7 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType    iVolume,
      callback. */
   callbackData.mTargetVolume = iVolume;
   callbackData.mnNewSegLabel = inIndex;
+  callbackData.mnCount       = 0;
 
   /* Set the callback function data. Tell it to use the callback data
      we just initialized. */
@@ -9493,9 +9495,29 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType    iVolume,
   /* Now get the source volume value. */
   Volm_GetValueAtIdx( sourceVolume, iAnaIdx, &params.mfSourceValue );
 
+  /* Start listening for a cancel. */
+  StartListeningForUserCancel();
+
   /* Do it! */
   eVolume = Volm_Flood( sourceVolume, &params );
+  if( Volm_tErr_FloodMaxIterationCountReached == eVolume ) {
+    strcpy( sTclArguments, 
+	    "\"The area you tried to filled was too large, and tkmedit "
+	    "couldn't select all of it. Try clicking near the edge of "
+	    "the region it filled to continue with another "
+	    "flood fill. \"" );
+    tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
+  }
   
+  /* If we selected more than 1000 voxels, we printed a message and
+     started printing update dots. Now close off the message. */
+  if( callbackData.mnCount > 1000 ) {
+    printf( "done. %d voxels filled. \n", callbackData.mnCount );
+  }
+
+  /* Stop listening for the cancel. */
+  StopListeningForUserCancel();
+
   UpdateAndRedraw();
   
   DebugCatch;
@@ -9516,6 +9538,23 @@ Volm_tVisitCommand FloodFillSegmentationCallback ( xVoxelRef iAnaIdx,
   callbackData = (tkm_tFloodFillCallbackData*)iData;
   EditSegmentation( callbackData->mTargetVolume, iAnaIdx, 
 		    callbackData->mnNewSegLabel );
+
+  /* Incremenet our count. If it's over 1000, print a message saying
+     the user can cancel and start printing update dots. */
+  callbackData->mnCount++;
+  if( callbackData->mnCount == 1000 ) {
+    printf( "Filling (press ctrl-c to cancel) " );
+  }
+  if( callbackData->mnCount > 1000 && 
+      callbackData->mnCount % 100 == 0 ) {
+    printf( "." );
+    fflush( stdout );
+  }
+  
+  /* Check the user cancel. If they canceled, stop. */
+  if( DidUserCancel() ) {
+    return Volm_tVisitComm_Stop;
+  }
 
   return Volm_tVisitComm_Continue;
 }
