@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/02/05 23:37:40 $
-// Revision       : $Revision: 1.325 $
+// Revision Date  : $Date: 2005/02/05 23:43:28 $
+// Revision       : $Revision: 1.326 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -4661,7 +4661,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		/* normalize mean (only) intensities for target */
 		MRISfromParameterizations(parms->mrisp_template, mris, frames,indices , nframes);
 		for( n = 0 ; n < nframes ; n++){
-			fprintf(stderr,"normalized target field %d (-> %d)...\n",n,indices[n]);
+			fprintf(stderr,"normalized target field %d (frame = %d - field %d)...\n",n,indices[n],parms->corrfields[indices[n]]);
 			MRISsetValuesToCurvatures(mris,indices[n]);
 			MRISnormalizeField(mris,IS_DISTANCE_FIELD(parms->corrfields[indices[n]])) ;
 			MRISsetCurvaturesToValues(mris,indices[n]);
@@ -4694,7 +4694,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		/* normalize mean intensities for source */
 		MRISfromParameterizations(parms->mrisp, mris, frames,indices,nframes);
 		for( n = 0 ; n < nframes ; n++){
-			fprintf(stderr,"normalized source field %d (-> %d)...\n",n,indices[n]);
+			fprintf(stderr,"normalized source field %d (frame = %d - field %d)...\n",n,indices[n],parms->corrfields[indices[n]]);
 			MRISsetValuesToCurvatures(mris,indices[n]);
 			MRISnormalizeField(mris,IS_DISTANCE_FIELD(parms->corrfields[indices[n]])) ;
 			MRISsetCurvaturesToValues(mris,indices[n]);
