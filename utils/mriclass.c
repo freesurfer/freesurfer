@@ -368,7 +368,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
         if (classno == WHITE_MATTER && prob > conf)
           *pdst++ = 255 ;
         else
-          *pdst++ = src ;
+          *pdst++ = 0 /*src*/ ;
       }
     }
   }
