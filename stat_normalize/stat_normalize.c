@@ -1,0 +1,237 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <ctype.h>
+
+#include "macros.h"
+#include "error.h"
+#include "diag.h"
+#include "proto.h"
+#include "mrisurf.h"
+#include "stats.h"
+#include "volume_io.h"
+
+static char vcid[] = "$Id: stat_normalize.c,v 1.1 1999/04/13 19:58:53 fischl Exp $";
+
+int main(int argc, char *argv[]) ;
+
+static int  get_option(int argc, char *argv[]) ;
+static void usage_exit(void) ;
+static void print_usage(void) ;
+static void print_help(void) ;
+static void print_version(void) ;
+
+char *Progname ;
+
+static float resolution = 8.0f ;  
+static float fov = 256.0f ;
+static int   coordinate_system = TALAIRACH_COORDS ;
+static char  *hemi ;
+static char  *surf_name ;   /* used if in surface-based coordinates */
+
+int
+main(int argc, char *argv[])
+{
+  char        **av, *in_prefix, *out_prefix, out_fname[100], name[100],
+              path[100], *coord_name, fname[100], *cp, subjects_dir[100] ;
+  int         ac, nargs, ino, event ;
+  SV          *sv, *sv_avg = NULL ;
+  MRI_SURFACE *mris ;
+
+  Progname = argv[0] ;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
+
+  ac = argc ;
+  av = argv ;
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
+
+  if (argc < 2)
+    print_help() ;
+  cp = getenv("SUBJECTS_DIR") ;
+  if (!cp)
+    ErrorExit(ERROR_BADPARM, 
+              "%s: SUBJECTS_DIR not specified in the environment", Progname) ;
+  strcpy(subjects_dir, cp) ;
+
+  switch (coordinate_system)
+  {
+  default:
+  case TALAIRACH_COORDS:  coord_name = "Talairach" ;  break ;
+  case SPHERICAL_COORDS:  coord_name = "Spherical" ;  break ;
+  case ELLIPSOID_COORDS:  coord_name = "Ellipsoid" ;  break ;
+  }
+
+  out_prefix = argv[argc-1] ;
+
+#if 0
+  if (StatVolumeExists(out_prefix))
+    sv_avg = StatReadVolume(out_prefix) ;
+#endif
+      
+  for (ino = 1 ; ino < argc-1 ; ino++)
+  {
+    /* for each path/prefix specified, go through all slices */
+    in_prefix = argv[ino] ;
+    fprintf(stderr, "reading stat volume %s.\n", in_prefix) ;
+    FileNamePath(in_prefix, path) ;
+    FileNameOnly(in_prefix, name) ;
+
+    sv = StatReadVolume(in_prefix) ;
+    if (!sv)
+      ErrorExit(ERROR_NOFILE, "%s: could not read stat files %s", 
+                Progname, in_prefix) ;
+
+    if (!sv_avg)
+      sv_avg = StatAllocStructuralVolume(sv, fov, resolution, coord_name) ;
+    switch (coordinate_system)
+    {
+    default:
+    case TALAIRACH_COORDS:
+      StatAccumulateTalairachVolume(sv_avg, sv) ;
+      break ;
+    case SPHERICAL_COORDS:
+    case ELLIPSOID_COORDS:
+      sprintf(fname, "%s/%s/surf/%s.orig", subjects_dir, sv->reg->name, hemi) ;
+      fprintf(stderr, "reading surface %s\n", fname) ;
+      mris = MRISread(fname) ;
+      if (!mris)
+        ErrorExit(ERROR_NOFILE,"%s: could not read surface %s",Progname,fname);
+
+      /* load the coordinates in the canonical surface space for this surf. */
+      if (MRISreadCanonicalCoordinates(mris, surf_name) != NO_ERROR)
+        ErrorExit(ERROR_NOFILE, "%s: could not read canonical surface %s.",
+                  Progname, surf_name) ;
+      fprintf(stderr, "adding %s to the average\n", sv->reg->name) ;
+      StatAccumulateSurfaceVolume(sv_avg, sv, mris) ;
+      MRISfree(&mris) ;
+      break ;
+    }
+
+#if 0
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      sprintf(out_fname, "avg%d.mnc", ino-1) ;
+      MRIwrite(sv->mri_avgs[0], out_fname) ;
+    }
+#endif
+
+    StatFree(&sv) ;
+  }
+
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) 
+    for (event = 0 ; event < sv_avg->nevents ; event++)
+  {
+    sprintf(out_fname, "avg%d.mnc", event) ;
+    MRIwrite(sv_avg->mri_avgs[event], out_fname) ;
+    sprintf(out_fname, "std%d.mnc", event) ;
+    MRIwrite(sv_avg->mri_stds[event], out_fname) ;
+  }
+
+  fprintf(stderr, "writing average volume to %s.\n", out_prefix) ;
+  StatWriteVolume(sv_avg, out_prefix) ;
+  StatFree(&sv_avg) ;
+
+  exit(0) ;
+  return(0) ;  /* for ansi */
+}
+
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int
+get_option(int argc, char *argv[])
+{
+  int  nargs = 0 ;
+  char *option ;
+  
+  option = argv[1] + 1 ;            /* past '-' */
+  if (!stricmp(option, "-help"))
+    print_help() ;
+  else if (!stricmp(option, "-version"))
+    print_version() ;
+  else switch (toupper(*option))
+  {
+  case 'E':
+    coordinate_system = ELLIPSOID_COORDS ;
+    hemi = argv[2] ;
+    surf_name = argv[3] ;
+    nargs = 2 ;
+    break ;
+  case 'S':
+    coordinate_system = SPHERICAL_COORDS ;
+    hemi = argv[2] ;
+    surf_name = argv[3] ;
+    nargs = 2 ;
+    break ;
+  case '?':
+  case 'U':
+    print_usage() ;
+    exit(1) ;
+    break ;
+  case 'R':
+    sscanf(argv[2], "%f", &resolution) ;
+    nargs = 1 ;
+    break ;
+  case 'f':
+    sscanf(argv[2], "%f", &fov) ;
+    nargs = 1 ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
+
+  return(nargs) ;
+}
+
+static void
+usage_exit(void)
+{
+  print_usage() ;
+  exit(1) ;
+}
+
+static void
+print_usage(void)
+{
+  fprintf(stderr, 
+          "usage: %s [options] <input sv prefix> <output sv prefix>\n",
+          Progname) ;
+  fprintf(stderr, "options are:\n") ;
+  fprintf(stderr,
+        "\t-r <resolution>            - set output resolution (def=8mm)\n") ;
+  fprintf(stderr,
+        "\t-f <field of view>         - set output field of view (def=256)\n");
+  fprintf(stderr,
+        "\t-S <hemisphere> <surface>  - average in spherical coordinates\n");
+
+}
+
+static void
+print_help(void)
+{
+  print_usage() ;
+  fprintf(stderr, 
+          "\nThis program will convert average a sequence of\n") ;
+  fprintf(stderr,"volume-based statistics in Talairach space:\n\n");
+  exit(1) ;
+}
+
+static void
+print_version(void)
+{
+  fprintf(stderr, "%s\n", vcid) ;
+  exit(1) ;
+}
+
