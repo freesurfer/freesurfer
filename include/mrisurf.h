@@ -400,6 +400,8 @@ MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src,
                                     MRI_SURFACE *mris_dst);
 MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
                          int max_passes) ;
+MRI_SURFACE  *MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
+                         int max_passes) ;
 int          MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template, 
                            INTEGRATION_PARMS *parms, int max_passes) ;
 int          MRISrigidBodyAlignLocal(MRI_SURFACE *mris, 
