@@ -28,6 +28,8 @@
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
+#define DEBUG 0
+
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
@@ -305,7 +307,10 @@ CSdivide(CLUSTER_SET *cs)
       ErrorExit(ERROR_BADPARM, "CSdivide: all clusters have < 2 members") ;
   }
 
+#if DEBUG
   fprintf(stderr, "dividing cluster %d\n", max_cluster) ;
+#endif
+
   clusterDivide(cs->clusters+max_cluster, cs->clusters+cs->nclusters++) ;
   return(cs->nclusters < cs->max_clusters ? CS_CONTINUE : CS_DONE) ;
 }
@@ -393,32 +398,42 @@ clusterComputeStatistics(CLUSTER *cluster)
       }
     }
     cluster->det = MatrixDeterminant(cluster->m_scatter) ;
-    if (FZERO(cluster->det/100) || cluster->det < 0.0f)
+    if (FZERO(cluster->det) || cluster->det < 0.0f)
     {
+      /* the scatter matrix is ill-conditioned or actually singular. If
+         this is because there are too few observations, not much can be done 
+         except to regularize the matrix and get an inverse. Otherwise, we
+         can use svd to get a 'better' inverse.
+         */
       cluster->ill_conditioned = 1 ;
-      MatrixRegularize(cluster->m_scatter, cluster->m_scatter) ;
-      cluster->det = MatrixDeterminant(cluster->m_scatter) ;
+      if (1 || cluster->nobs < 3)  /* no information to do any better */
+      {
+        MatrixRegularize(cluster->m_scatter, cluster->m_scatter) ;
+        cluster->m_inverse = 
+          MatrixInverse(cluster->m_scatter, cluster->m_inverse);
+      }
+      else
+        cluster->m_inverse = 
+          MatrixSVDInverse(cluster->m_scatter, cluster->m_inverse);
     }
     else
+    {
       cluster->ill_conditioned = 0 ;
-
-#if 0
-    ErrorReturn(ERROR_BADPARM, 
-                (ERROR_BADPARM, "clusterComputeStatistics: cluster %d: "
-                 "scatter matrix is singular", cluster->cno)) ;
-#endif
-    cluster->m_inverse = MatrixInverse(cluster->m_scatter, cluster->m_inverse);
+      cluster->m_inverse = 
+        MatrixInverse(cluster->m_scatter, cluster->m_inverse);
+    }
     if (!cluster->m_inverse)
       ErrorReturn(ERROR_BADPARM, 
                   (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
                    "singular inverse scatter matrix", cluster->cno)) ;
+#if 0
     cluster->det = MatrixDeterminant(cluster->m_inverse) ;
-#if 1
-    if (FZERO(cluster->det/100) || cluster->det < 0.0f)
+    if (cluster->det < 0.0f)
       ErrorReturn(ERROR_BADPARM, 
                   (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
                    "singular inverse scatter matrix", cluster->cno)) ;
 #endif
+
 #if 0
     fprintf(stderr, "scatter matrix:\n") ;
     MatrixPrint(stderr, cluster->m_scatter) ;
@@ -500,19 +515,23 @@ clusterVariance(CLUSTER *cluster)
           Divide this cluster in two by offsetting the mean vectors in
           the direction of the largest eigenvector.
 ------------------------------------------------------*/
+#define SMALL 1e-4
+
 static CLUSTER *
 clusterDivide(CLUSTER *csrc, CLUSTER *cdst)
 {
   VECTOR  *v_e ;
   float   len ;
 
+  v_e = MatrixColumn(csrc->m_evectors, NULL, 1) ; /* extract eigenvector */
+
+#if DEBUG
   fprintf(stderr, "initial cluster centroid at: ") ;
   MatrixPrintTranspose(stderr, csrc->v_means) ;
 
-  v_e = MatrixColumn(csrc->m_evectors, NULL, 1) ; /* extract eigenvector */
-
   fprintf(stderr, "evector: ") ;
   MatrixPrintTranspose(stderr, v_e) ;
+#endif
 
   /*
     split the cluster by moving the two new seed values in the direction
@@ -521,19 +540,21 @@ clusterDivide(CLUSTER *csrc, CLUSTER *cdst)
     a little, we keep the other clusters relatively intact.
     */
   len = sqrt(csrc->evalues[0]) ;
-  VectorScalarMul(v_e, .0001f*len, v_e) ;
+  VectorScalarMul(v_e, SMALL*len, v_e) ;
   VectorAdd(csrc->v_means, v_e, cdst->v_seed) ;
   VectorScalarMul(v_e, -1.0f, v_e) ;
   VectorAdd(csrc->v_means, v_e, csrc->v_seed) ;
   VectorFree(&v_e) ;
 
+#if DEBUG
   fprintf(stderr, "cluster %d split into two:\n", csrc->cno) ;
   fprintf(stderr, "mean 1: ") ;
   MatrixPrintTranspose(stderr, csrc->v_seed) ;
   fprintf(stderr, "mean 2: ") ;
   MatrixPrintTranspose(stderr, cdst->v_seed) ;
+#endif
   
-#if 0
+#if DEBUG
   clusterPrint(csrc, stderr) ;
   clusterPrint(cdst, stderr) ;
 #endif
@@ -569,6 +590,7 @@ CScluster(CLUSTER_SET *cs, int (*get_observation_func)
 
   do
   {
+    /*CSprint(cs, stderr) ;*/
     CSreset(cs) ;
     obs_no = 0 ;
     while ((*get_observation_func)(v_obs, obs_no++, parm) == NO_ERROR)
@@ -850,6 +872,8 @@ clusterWriteInto(FILE *fp, CLUSTER *cluster)
           cluster->cno, cluster->det) ;
   fprintf(fp, "# scatter matrix:\n") ;
   MatrixAsciiWriteInto(fp, cluster->m_scatter) ;
+  fprintf(fp, "# inverse scatter matrix:\n") ;
+  MatrixAsciiWriteInto(fp, cluster->m_inverse) ;
   fprintf(fp, "# mean vector:\n") ;
   VectorAsciiWriteInto(fp, cluster->v_means) ;
   fprintf(fp, "# seed point:\n") ;
@@ -880,9 +904,9 @@ clusterReadFrom(FILE *fp, CLUSTER *cluster)
     ErrorReturn(NULL, 
                 (ERROR_BADFILE, "clusterReadFrom: could not scan parms"));
   MatrixAsciiReadFrom(fp, cluster->m_scatter) ;
+  cluster->m_inverse = MatrixAsciiReadFrom(fp, cluster->m_inverse) ;
   VectorAsciiReadFrom(fp, cluster->v_means) ;
   VectorAsciiReadFrom(fp, cluster->v_seed) ;
-  cluster->m_inverse = MatrixInverse(cluster->m_scatter, NULL) ;
   cluster->det = MatrixDeterminant(cluster->m_inverse) ;
   cluster->m_evectors = 
     MatrixEigenSystem(cluster->m_scatter, cluster->evalues, 
