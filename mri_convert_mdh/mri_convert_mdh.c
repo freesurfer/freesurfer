@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.12 2003/12/19 21:48:02 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.13 2003/12/23 14:59:53 tosa Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.12 2003/12/19 21:48:02 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.13 2003/12/23 14:59:53 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1692,7 +1692,7 @@ int MDHloadEchoChan(char *measout, int ChanId, int EchoId, int nReps,
   FILE *fp;
   long offset;
   float *adc, *rptr, *iptr;
-  int rep, slice, n1, n2, n1max, n2max, row, echo, chan, col, d;
+  int rep, slice, n1, n2, n1max=0, n2max=0, row=0, echo=0, chan, col, d;
   int ADCSizeBytes;
 
   fp = fopen(measout,"r");
