@@ -2,9 +2,9 @@ function r = fast_bfileconvert(varargin)
 % r = fast_bfileconvert(varargin)
 % Converts a bfile into another bfile. Eg, bfloat into bshort,
 % Little endian into big endian, etc.
-% '$Id: fast_bfileconvert.m,v 1.2 2003/10/02 19:15:10 greve Exp $'
+% '$Id: fast_bfileconvert.m,v 1.3 2004/04/05 21:19:49 greve Exp $'
 
-version = '$Id: fast_bfileconvert.m,v 1.2 2003/10/02 19:15:10 greve Exp $';
+version = '$Id: fast_bfileconvert.m,v 1.3 2004/04/05 21:19:49 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -49,6 +49,7 @@ for slice = s.firstslice:s.lastslice
     yi(iz) = max(reshape1d(yi));
   end
 
+  if(s.oddplanes) yi = yi(:,:,1:2:end);  end
 
   %% Save the data %%
   %outfname = sprintf('%s_%03d.%s',s.outvol,nthslice-1,s.outvolext);
@@ -56,6 +57,17 @@ for slice = s.firstslice:s.lastslice
   fast_svbslice(yi,s.outvol,nthslice-1,s.outvolext,mristruct);
 
   nthslice = nthslice + 1;
+end
+
+if(s.rescaleshort)
+  fprintf('Rescaling to fit in a bshort\n');
+  y = fast_ldbslice(s.outvol);
+  ymin = min(reshape1d(y));
+  ymax = max(reshape1d(y));
+  fprintf('ymin = %g, ymax = %g\n',ymin,ymax);  
+  f = (2^15-1)/(ymax-ymin);
+  y = f*(y-ymin);
+  fast_svbslice(y,s.outvol,-1,s.outvolext,mristruct);  
 end
 
 r = 0;
@@ -136,6 +148,9 @@ function s = parse_args(varargin)
         s.nplanes = sscanf(inputargs{narg},'%d',1);
         narg = narg + 1;
 
+      case {'-oddframes','-oddplanes'}
+        s.oddplanes = 1;
+
       case '-o',
         arg1check(flag,narg,ninputargs);
         s.outvol = inputargs{narg};
@@ -153,6 +168,9 @@ function s = parse_args(varargin)
 
       case '-ln2log10', 
         s.ln2log10 = 1;
+
+      case '-rescale-short', 
+        s.rescaleshort = 1; % rescale to fit in bshort
 
       case '-monly', % ignore
         arg1check(flag,narg,ninputargs);
@@ -216,6 +234,7 @@ function s = bfc_struct
   s.nslices    = -1;
   s.firstplane = 0;
   s.nplanes    = -1;
+  s.oddplanes  = 0;
   s.outvol     = '';
   s.outvolext     = '';
   s.outvolendian  = -1;
@@ -236,6 +255,7 @@ function s = bfc_print_struct(s,fid)
   fprintf(fid,'nslices      %d\n',s.nslices);
   fprintf(fid,'firstplane   %d\n',s.firstplane);
   fprintf(fid,'nplanes      %d\n',s.nplanes);
+  fprintf(fid,'oddplanes    %d\n',s.oddplanes);
   fprintf(fid,'outvol       %s\n',s.invol);
   fprintf(fid,'outvolext    %s\n',s.involext);
   fprintf(fid,'outvolendian %d\n',s.involendian);
