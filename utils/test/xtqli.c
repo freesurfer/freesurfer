@@ -1,5 +1,8 @@
 /* Driver for routine tqli */
-
+//
+// On Linux the following fails with -O for the eigenvalues at 5, 9, 10
+// Make sure that you don't optimize but with -ffloat-store
+//
 #include <stdio.h>
 #include <math.h>
 #define NRANSI
@@ -51,6 +54,7 @@ int main(void)
 	printf("%12.6f %12.6f %12.6f\n",
 	       a[j][i],f[j],f[j]/a[j][i]);
     }
+    printf("Verify the last column values are the same as the eigenvalue.\n");
     printf("Press ENTER to continue...\n");
     (void) getchar();
   }
