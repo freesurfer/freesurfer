@@ -53,10 +53,11 @@ function rt = fast_fxcfg(DoWhat,thing)
 % fast_fxcfg_struct, fast_sesscfg_struct, fast_fla_desmat,
 %
 % See also FX Models:
-% fast_fxcfg_poly, fast_fxcfg_fir, fast_fxcfg_extreg, fast_fxcfg_gamma
+% fast_fxcfg_poly, fast_fxcfg_fir, fast_fxcfg_extreg,
+% fast_fxcfg_gamma, fast_fxcfg_spmhrf
 %
 %
-% $Id: fast_fxcfg.m,v 1.7 2003/08/21 03:43:46 greve Exp $
+% $Id: fast_fxcfg.m,v 1.8 2003/08/28 04:29:33 greve Exp $
 
 % Things to do:
 %   nregressorstot - total number of regressors
@@ -161,6 +162,8 @@ switch(DoWhat)
     rt = fast_fxcfg_fir(DoWhat,thing);
    case 'gamma'
     rt = fast_fxcfg_gamma(DoWhat,thing);
+   case 'spmhrf'
+    rt = fast_fxcfg_spmhrf(DoWhat,thing);
    case 'polynomial'
     rt = fast_fxcfg_poly(DoWhat,thing);
    case 'extreg'
