@@ -16,7 +16,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.34 2000/03/20 15:26:00 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.35 2000/03/20 17:24:26 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -696,6 +696,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "median"))
   {
     apply_median_filter = 1 ;
+  }
+  else if (!stricmp(option, "noauto"))
+  {
+    auto_detect_stats = 0 ;
+    fprintf(stderr, "disabling auto-detection of border ranges...\n") ;
   }
   else if (!stricmp(option, "inoutin"))
   {
