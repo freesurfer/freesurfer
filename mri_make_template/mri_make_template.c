@@ -55,6 +55,9 @@ static int stats_only = 0 ;
 
 static char subjects_dir[STRLEN] = "" ;
 
+/* Devolve the XFM so that it works when the c_ras != 0 */
+static int DevXFM = 1; 
+
 int
 main(int argc, char *argv[])
 {
@@ -64,9 +67,12 @@ main(int argc, char *argv[])
          *mri_priors = NULL ;
   char   *subject_name, *out_fname, fname[STRLEN] ;
   TRANSFORM *transform ;
+  MATRIX *T;
+  LTA    *lta;
+  MRI *mri_tmp ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.15 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.16 2003/12/04 01:54:28 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -84,6 +90,8 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
+  if(DevXFM == 0) printf("INFO: NOT devolving XFM\n");
+
   if (!strlen(subjects_dir))
   {
     cp = getenv("SUBJECTS_DIR") ;
@@ -93,8 +101,7 @@ main(int argc, char *argv[])
     strcpy(subjects_dir, cp) ;
   }
 
-  if (argc < 3)
-    usage_exit(1) ;
+  if (argc < 3)  usage_exit(1) ;
 
   out_fname = argv[argc-1] ;
 
@@ -131,8 +138,6 @@ main(int argc, char *argv[])
         MRIbinarize(mri_binary, mri_binary, WM_MIN_VAL, 0, 100) ;
         if (transform_fname && no_transform-- <= 0)
         {
-          MRI       *mri_tmp ;
-          
           sprintf(fname, "%s/%s/mri/transforms/%s", 
                   subjects_dir, subject_name, transform_fname) ;
           
@@ -219,28 +224,34 @@ main(int argc, char *argv[])
       MRIfree(&mri) ;
     }
   }
+
   else
   {
     /* for each subject specified on cmd line */
-    if (xform_mean_fname)
-    {
+
+    if (xform_mean_fname){
       m_xform_mean = MatrixAlloc(4,4,MATRIX_REAL) ;
-      /*      m_xform_covariance = MatrixAlloc(12,12,MATRIX_REAL) ;*/
+      /* m_xform_covariance = MatrixAlloc(12,12,MATRIX_REAL) ;*/
     }
-    for (dof = 0, i = 1 ; i < argc-1 ; i++) 
-    {
-      if (*argv[i] == '-')   /* don't do transform for next subject */
-      { no_transform = 1 ; continue ; }
+    
+    dof = 0;
+    for (i = 1 ; i < argc-1 ; i++) {
+
+      if (*argv[i] == '-'){   
+	/* don't do transform for next subject */
+	no_transform = 1 ; 
+	continue ; 
+      }
       dof++ ;
+
       subject_name = argv[i] ;
       sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, T1_name);
       fprintf(stderr, "%d of %d: reading %s...\n", i, argc-2, fname) ;
       mri_T1 = MRIread(fname) ;
       if (!mri_T1)
         ErrorExit(ERROR_NOFILE,"%s: could not open volume %s",Progname,fname);
-      if (transform_fname && no_transform-- <= 0)
-      {
-        MRI       *mri_tmp ;
+
+      if(transform_fname){
         
         sprintf(fname, "%s/%s/mri/transforms/%s", 
                 subjects_dir, subject_name, transform_fname) ;
@@ -251,13 +262,26 @@ main(int argc, char *argv[])
           ErrorExit(ERROR_NOFILE, 
                     "%s: could not open transform file %s\n",
                     Progname, fname) ;
+	if(DevXFM){
+	  printf("INFO: devolving XFM\n");
+	  lta = (LTA *)transform->xform;
+	  MatrixFree(&lta->xforms[0].m_L);
+	  T = DevolveXFM(subject_name, NULL, transform_fname);
+	  if(T == NULL) exit(1);
+	  lta->xforms[0].m_L = T;
+	}
+	printf("transform matrix -----------------------\n");
+	MatrixPrint(stdout,((LTA *)transform->xform)->xforms[0].m_L);
+	printf("----- -----------------------\n");
+
         mri_tmp = TransformApply(transform, mri_T1, NULL) ;
-        MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
+        MRIfree(&mri_T1) ; 
+	mri_T1 = mri_tmp ;
         TransformFree(&transform) ;
         fprintf(stderr, "transform application complete.\n") ;
       }
-      if (!mri_mean)
-      {
+
+      if (!mri_mean){
         mri_mean = 
           MRIalloc(mri_T1->width, mri_T1->height, mri_T1->depth, MRI_FLOAT) ;
         mri_std = 
@@ -265,15 +289,21 @@ main(int argc, char *argv[])
         if (!mri_mean || !mri_std)
           ErrorExit(ERROR_NOMEMORY, "%s: could not allocate templates.\n",
                     Progname) ;
+	if(transform_fname == NULL){
+	  printf("Copying geometry\n");
+	  MRIcopy(mri_T1,mri_mean);
+	  MRIcopy(mri_T1,mri_std);
+	}
       }
 
-      if (!stats_only)
-      {
+      if(!stats_only){
         fprintf(stderr, "updating mean and variance estimates...\n") ;
         MRIaccumulateMeansAndVariances(mri_T1, mri_mean, mri_std) ;
       }
+
       MRIfree(&mri_T1) ;
-    }
+      no_transform = 0;
+    } /* end loop over subjects */
 
     if (xform_mean_fname)
     {
@@ -344,7 +374,7 @@ main(int argc, char *argv[])
     }
     MRIfree(&mri_std) ; MRIfree(&mri) ;
 
-  }
+  } /* end if binarize */
 
   exit(0) ;
   return(0) ;
@@ -398,6 +428,9 @@ get_option(int argc, char *argv[])
     break ;
   case 'N':
     first_transform = 1 ;  /* don't use transform on first volume */
+    break ;
+  case 'D':
+    DevXFM = 0 ;  /* don't devolve XFM */
     break ;
   case 'T':
     transform_fname = argv[2] ;
