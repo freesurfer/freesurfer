@@ -156,6 +156,19 @@ freadInt(FILE *fp)
   return(i) ;
 }
 
+short
+freadShort(FILE *fp)
+{
+  int   nread ;
+	short s ;
+
+  nread = fread(&s,sizeof(short),1,fp);
+#ifdef Linux
+  s = swapShort(s) ;
+#endif
+  return(s) ;
+}
+
 int
 fwriteInt(int v, FILE *fp)
 {
