@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/30 20:19:59 $
-// Revision       : $Revision: 1.116 $
+// Revision Date  : $Date: 2004/04/01 22:38:41 $
+// Revision       : $Revision: 1.117 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11231,6 +11231,7 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double 
   MATRIX     *m_jacobian, *m_cov_src = NULL, *m_cov_dst = NULL, *m_jacobian_T = NULL, *m_tmp = NULL ;
   int        n, x, y, z, i, j, v, label_count = 0 ;
   double     T1, PD, label_means[MAX_GCA_INPUTS] ;
+  int        countUnknown = 0;
   
   if (gca_T1PD->ninputs != 2)
     ErrorExit(ERROR_BADPARM, 
@@ -11331,39 +11332,51 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double 
 	      gc_dst->labels[i][j]  = gc_src->labels[i][j] ;
 	    }
 	  }
-	  
-	  /* now map intensity and covariance info over */
-	  T1 = gc_src->means[0] ; PD = gc_src->means[1] ;
-	  T1 = MAX(T1,0) ;
-	  if (Ggca_label == gcan_dst->labels[n])
-	    label_count++ ; 
-	  for (i = 0 ; i < gca_flash->ninputs ; i++)
+	  /////////////////////////////////////////////////
+	  // unknow label, leave it alone
+	  if (gcan_src->nlabels == 1 && gcan_src->labels[0] == Unknown)
 	  {
-	    gc_dst->means[i] = 
-	      FLASHforwardModel(T1, PD, TR[i], fa[i], TE[i]) ;
-	    if (x == Gx && y == Gy && z == Gz &&
-		(Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
-	      printf("gcan(%d, %d, %d) %s: image[%d] (fa=%2.1f) predicted mean "
-		     "(%2.1f,%2.1f) --> %2.1f\n",
-		     x, y, z, cma_label_to_name(gcan_dst->labels[n]), i, DEGREES(fa[i]),
-		     T1, PD, gc_dst->means[i]) ;
-	    *MATRIX_RELT(m_jacobian, i+1, 1) = dFlash_dT1(T1, PD, TR[i], fa[i], TE[i]) ;
-	    *MATRIX_RELT(m_jacobian, i+1, 2) = dFlash_dPD(T1, PD, TR[i], fa[i], TE[i]) ;
-	    if (gcan_dst->labels[n] == Ggca_label)
-	    {
-	      label_means[i] += gc_dst->means[i] ;
-	    }
+	    m_cov_dst = MatrixIdentity(gca_flash->ninputs, m_cov_dst);
+	    countUnknown++;
 	  }
-#define MIN_T1 50
-	  if (T1 < MIN_T1)
-	    m_cov_dst = MatrixIdentity(gca_flash->ninputs, m_cov_dst) ;
+	  /////////////////////////////////////////////////
 	  else
 	  {
-	    m_cov_src = load_covariance_matrix(gc_src, m_cov_src, gca_T1PD->ninputs) ;
-	    m_jacobian_T = MatrixTranspose(m_jacobian, m_jacobian_T) ;
-	    m_tmp = MatrixMultiply(m_cov_src, m_jacobian_T, m_tmp) ;
-	    m_cov_dst = MatrixMultiply(m_jacobian, m_tmp, m_cov_dst) ;
+
+	    /* now map intensity and covariance info over */
+	    T1 = gc_src->means[0] ; PD = gc_src->means[1] ;
+	    T1 = MAX(T1,0) ;
+	    if (Ggca_label == gcan_dst->labels[n])
+	    label_count++ ; 
+	    for (i = 0 ; i < gca_flash->ninputs ; i++)
+	    {
+	      gc_dst->means[i] = 
+		FLASHforwardModel(T1, PD, TR[i], fa[i], TE[i]) ;
+	      if (x == Gx && y == Gy && z == Gz &&
+		  (Ggca_label < 0 || Ggca_label == gcan_src->labels[n]))
+		printf("gcan(%d, %d, %d) %s: image[%d] (fa=%2.1f) predicted mean "
+		       "(%2.1f,%2.1f) --> %2.1f\n",
+		       x, y, z, cma_label_to_name(gcan_dst->labels[n]), i, DEGREES(fa[i]),
+		       T1, PD, gc_dst->means[i]) ;
+	      *MATRIX_RELT(m_jacobian, i+1, 1) = dFlash_dT1(T1, PD, TR[i], fa[i], TE[i]) ;
+	      *MATRIX_RELT(m_jacobian, i+1, 2) = dFlash_dPD(T1, PD, TR[i], fa[i], TE[i]) ;
+	      if (gcan_dst->labels[n] == Ggca_label)
+	      {
+		label_means[i] += gc_dst->means[i] ;
+	      }
+	    }
+#define MIN_T1 50
+	    if (T1 < MIN_T1)
+	      m_cov_dst = MatrixIdentity(gca_flash->ninputs, m_cov_dst) ;
+	    else
+	    {
+	      m_cov_src = load_covariance_matrix(gc_src, m_cov_src, gca_T1PD->ninputs) ;
+	      m_jacobian_T = MatrixTranspose(m_jacobian, m_jacobian_T) ;
+	      m_tmp = MatrixMultiply(m_cov_src, m_jacobian_T, m_tmp) ;
+	      m_cov_dst = MatrixMultiply(m_jacobian, m_tmp, m_cov_dst) ;
+	    }
 	  }
+	  ///////////////////////////////////////
 	  for (v = i = 0 ; i < gca_flash->ninputs ; i++)
 	  {
 	    for (j = i ; j < gca_flash->ninputs ; j++, v++)
@@ -11398,6 +11411,8 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double 
 
   gca_flash->type = GCA_FLASH;
   GCAcopyDCToGCA(gca_T1PD, gca_flash) ;
+
+  printf("unknown label count is %d\n", countUnknown);
 
   return(gca_flash) ;
 }
