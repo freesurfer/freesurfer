@@ -19,10 +19,11 @@ extern double oglu_fov ;
 #define PATCH_FLAG   0x0001
 #define TP_FLAG      0x0002   /* show tangent plane and principal directions */
                               /*  of marked vertices */
-#define MESH_FLAG    0x0004
-#define COORD_FLAG   0x0008   /* draw canonical coordinate system */
-#define BW_FLAG      0x0010   /* only use black and white */
-#define NEG_FLAG     0x0020   /* show negative vertices (flat maps only) */
+#define MESH_FLAG     0x0004
+#define COORD_FLAG    0x0008   /* draw canonical coordinate system */
+#define BW_FLAG       0x0010   /* only use black and white */
+#define NEG_FLAG      0x0020   /* show negative vertices (flat maps only) */
+#define NOBORDER_FLAG 0x0040   /* don't draw a border */
 
 #define LIGHT_OFFSET  0.25
 
