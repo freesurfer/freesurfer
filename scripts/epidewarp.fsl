@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.7 2004/12/02 18:52:59 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.8 2004/12/02 19:13:38 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -689,8 +689,7 @@ http://www.ami.hut.fi/instructions/epi_distortion.html
 
 BUGS
 
-1. Currently does not work when the B0 field map has a different
-in-plane resolution than the EPI.
+None (yet).
 
 BUG REPORTING
 
@@ -704,7 +703,8 @@ the program, log file, and a description of the problem.
 AUTHORS
 
 Doug Greve, Dave Tuch, Tom Liu, and Bryon Mueller with generous help
-from the FSL crew.
+from the FSL crew (www.fmrib.ox.ac.uk/fsl) and the Biomedical
+Informatics Research Network (www.nbirn.net).
 
 
 
