@@ -12,7 +12,7 @@ function [K, phmat] = fast_dftmtx(N_or_Phase)
 % For a vector f = randn(N,1); then F = fftshift(K*f); will be the
 % same as fft(f). Actually, only the magnitudes will be the same.
 %
-% $Id: fast_dftmtx.m,v 1.2 2003/09/10 03:00:56 greve Exp $
+% $Id: fast_dftmtx.m,v 1.3 2003/09/15 06:11:43 greve Exp $
 
 if(nargin ~= 1)
   fprintf('[K phmat] = fast_dftmtx(N_or_Phase)\n');
@@ -29,7 +29,7 @@ end
 
 r = [0:N-1];
 r = r - r(N/2 + 1);
-ph0 = ph0 - ph0(N/2+1);
+ph0 = ph0 - ph0(N/2+1); % Force phase to pass thru 0 at N/2 + 1
 phmat = (ph0 * r); % outer product
 K = exp(-i * phmat);
 
