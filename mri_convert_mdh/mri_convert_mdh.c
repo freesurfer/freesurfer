@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.7 2003/09/05 04:45:32 kteich Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.8 2003/09/11 19:48:21 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -57,6 +57,7 @@ int MDHversion(char *measoutpath);
 char *MDHascPath(char *measoutdir);
 int AssignFakeDCs(MRI *mri, float dcSag, float dcCor, float dcTra);
 int MDHdump(char *measoutpath);
+int MDHadcStats(char *measoutpath);
 int *MDHind2sub(int *siz, int ind, int ndim, int *sub);
 
 /*--------------------------------------------------------------------*/
@@ -73,7 +74,7 @@ static int  isflag(char *flag);
 static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
 char *srcdir, *outdir;
-int rev, infoonly=1, dumpmdh=0, debug=0;
+int rev, infoonly=1, dumpmdh=0, debug=0, adcstats=0;
 
 int DimSpeced=0;
 int nPerLine, nPCNs, nEchos, nPELs, nSlices, nFrames, FastestDim=0;
@@ -103,7 +104,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.7 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.8 2003/09/11 19:48:21 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -140,6 +141,11 @@ int main(int argc, char **argv)
 
   if(dumpmdh){
     MDHdump(measoutpath);
+    exit(0);
+  }
+
+  if(adcstats){
+    MDHadcStats(measoutpath);
     exit(0);
   }
 
@@ -194,7 +200,7 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  if(rev) printf("INFO: applying reversals\n");
+  //if(rev) printf("INFO: applying reversals\n");
 
   echor = (MRI**) calloc(sizeof(MRI*),nEchos);
   echoi = (MRI**) calloc(sizeof(MRI*),nEchos);
@@ -420,7 +426,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--info"))    infoonly = 1;
     else if (!strcasecmp(option, "--dump"))    dumpmdh = 1;
-    else if (!strcasecmp(option, "--rev"))     rev = 1;
+    else if (!strcasecmp(option, "--adcstats")) adcstats = 1;
+    //else if (!strcasecmp(option, "--rev"))     rev = 1;
 
     else if (stringmatch(option, "--srcdir")){
       if(nargc < 1) argnerr(option,1);
@@ -493,11 +500,14 @@ static void print_usage(void)
   printf("\n");
   printf("   --srcdir dir : directory with meas.out\n");
   printf("   --outdir dir : output directory\n");
-  printf("   --rev        : apply reversals \n");
+  //printf("   --rev        : apply reversals \n");
   printf("   --dim nframes nslices nechoes nlines nperline npcns\n");
   printf("   --fasterdim dimname : line or echo\n");
   printf("   --TR TR \n");
   printf("   --TE TE1 TE2 ... \n");
+  printf("\n");
+  printf("   --dump : dump info about each adc (but not adc) \n");
+  printf("   --adcstats : dump min, max, and avg over all adcs \n");
   printf("\n");
   printf("   --help : a short story about a Spanish boy named Manual\n");
   printf("\n");
@@ -536,10 +546,20 @@ static void print_help(void)
 "Directory where the ouput will be stored. If this directory does not\n"
 "exist, it will be created (only for one level). \n"
 "\n"
-"--rev\n"
+"--rev (DOES NOT WORK)\n"
 "\n"
-"Reverse the readouts for even lines. Bug: should reverse lines for\n"
-"even number echos, but does not do this yet.\n"
+"DOES NOT WORK Reverse the readouts for even lines. Bug: should reverse \n"
+"lines for even number echos, but does not do this yet.\n"
+"\n"
+"--dump\n"
+"\n"
+"Print out the header info for each readout line (but not the ADC\n"
+"data itself). Only the source dir needs to be given for this option.\n"
+"\n"
+"-adcstats\n"
+"\n"
+"Print out min, max, and avg over all ADCs. Only the source dir \n"
+"needs to be given for this option. This is good for finding spikes.\n"
 "\n"
 "BUGS:\n"
 "\n"
@@ -1503,6 +1523,52 @@ int MDHdump(char *measoutpath)
   fclose(fp);
 
   printf("n = %d\n",n);
+  return(n);
+}
+/*--------------------------------------------------------------
+  MDHadcStats - compute stats for data
+  ---------------------------------------------------------------*/
+int MDHadcStats(char *measoutpath)
+{
+  FILE *fp;
+  unsigned long offset;
+  int n,m;
+  //float TimeStamp0=0.0;
+  MDH *mdh=NULL;
+  int mdhversion;
+  float adc[10000];
+  double min, max, avg, sum;
+
+  mdhversion = MDHversion(measoutpath);
+  fp = fopen(measoutpath,"r");
+  fread(&offset,sizeof(long),1, fp);
+  //printf("offset = %ld\n",offset);
+  fseek(fp,offset,SEEK_SET);
+
+  min =  10e12;
+  max = -10e12;
+  sum = 0;
+  n = 1;
+  while(!feof(fp)){
+    mdh = ReadMiniHeader(fp,mdh,mdhversion);
+    if(feof(fp)) break;
+    //if(n==1) TimeStamp0 = mdh->TimeStamp;
+    //mdh->TimeStamp -= TimeStamp0;
+    //printf("n = %d ---------------------------------\n",n);
+    //PrintMiniHeader(stdout,mdh);
+    //fseek(fp,2*mdh->Ncols*sizeof(float),SEEK_CUR);
+    fread(adc,sizeof(float), 2*mdh->Ncols, fp);
+    for(m=0; m < 2*mdh->Ncols; m++){
+      if(min > adc[m]) min = adc[m];
+      if(max < adc[m]) max = adc[m];
+      sum = sum + adc[m];
+    }
+    n++;
+  }
+  fclose(fp);
+
+  avg = sum/(2*n*mdh->Ncols);
+  printf("n = %d, min = %g, max = %g, avg = %g\n",n,min,max,avg);
   return(n);
 }
 
