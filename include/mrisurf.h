@@ -862,6 +862,7 @@ typedef struct
 	double  l_unmri ;
 	int volume_resolution; /* used if l_unmri is on */
 	int keep; /* keep every vertex in the defect */
+	int edge_table; /*using edge table or not */
 	char *save_fname; /* save results into folder name save_fname */
 	int defect_number; /* save only for one specific defect */
 	int verbose; /* outputs information */
@@ -872,6 +873,7 @@ typedef struct
 
 int MRIScenterSphere(MRI_SURFACE *mris);
 int MRISmarkOrientationChanges(MRI_SURFACE *mris);
+MRIS* MRISremoveRippedSurfaceElements(MRIS *mris);
 
 MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, 
                                  MRI_SURFACE *mris_corrected, MRI *mri, MRI *mri_wm,
