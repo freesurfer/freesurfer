@@ -4,7 +4,7 @@
 #include <math.h>
 #include <ctype.h>
 
-
+#include "utils.h"
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.11 2001/06/01 15:46:07 fischl Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.12 2002/05/24 20:49:34 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -30,6 +30,7 @@ static void print_version(void) ;
 static int convertToWFile(char *in_fname, char *out_fname) ;
 static int convertFromWFile(char *in_fname, char *out_fname) ;
 static int writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) ;
+static int writeVTKCurvFile(MRI_SURFACE *mris, char *out_fname) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
@@ -142,8 +143,18 @@ main(int argc, char *argv[])
 
   if (curv_file_flag)
   {
+    char *cp ;
+
+#if 0
     MRISreadCurvatureFile(mris, curv_fname) ;
-    writeAsciiCurvFile(mris, out_fname) ;
+#else
+    MRISreadValues(mris, curv_fname) ;  /* will read curv and .w file format */
+#endif    
+    cp = strrchr(out_fname, '.') ;
+    if (cp && (stricmp(cp+1, "VTK") == 0))
+      writeVTKCurvFile(mris, out_fname) ;
+    else
+      writeAsciiCurvFile(mris, out_fname) ;
   }
   else if (mris->patch)
     MRISwritePatch(mris, out_fname) ;
@@ -331,9 +342,37 @@ writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname)
     if (v->ripflag)
       continue ;
     fprintf(fp, "%3.3d %2.5f %2.5f %2.5f %2.5f\n",
-            vno, v->x, v->y, v->z, v->curv) ;
+            vno, v->x, v->y, v->z, v->val) ;  /* used to  be v->curv */
   }
 
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+
+static int
+writeVTKCurvFile(MRI_SURFACE *mris, char *fname)
+{
+  FILE  *fp ;
+  int   i ;
+  char  fname_only[STRLEN], *cp ;
+
+  printf("writing surface geometry and scalar field into VTK file %s...\n", fname) ;
+  MRISwriteVTK(mris, fname) ;
+  fp = fopen(fname, "a") ;
+  if (!fp)
+    ErrorExit(ERROR_NOFILE, "%s: could not open vtk file %s",Progname, fname) ;
+
+
+  FileNameOnly(fname, fname_only) ;
+  cp = strrchr(fname_only, '.') ;
+  if (cp)
+    *cp = 0 ;
+  fprintf(fp, "POINT_DATA %d\n", mris->nvertices) ;
+  fprintf(fp, "SCALARS %s float\n", fname_only) ;
+  fprintf(fp, "LOOKUP_TABLE default\n") ;
+  for (i = 0 ; i < mris->nvertices ; i++)
+    fprintf(fp, "%f\n",mris->vertices[i].val); 
+  
   fclose(fp) ;
   return(NO_ERROR) ;
 }
