@@ -3,6 +3,7 @@
 extern "C" {
 #include "GL/glut.h"
 #include "rgb_image.h"
+#include "tiffio.h"
 }
 #include "ScubaView.h"
 
@@ -883,68 +884,38 @@ ScubaFrame::CaptureToFile ( string ifn ) {
   
   GLint rowlength, skiprows, skippixels, alignment;
   GLboolean swapbytes, lsbfirst;
-  int nNumBytes = 0;
-  GLenum eGL;
-  RGB_IMAGE *image;
-  int y,size;
-  unsigned short *r,*g,*b;
-  unsigned short  *red = NULL;
-  unsigned short  *green = NULL;
-  unsigned short  *blue = NULL;
-  FILE *fp;
-  
-  size = mWidth * mHeight;
-  nNumBytes = sizeof( unsigned short ) * size;
+  GLubyte* pixelData = NULL;
   
   try { 
 
-    red  = (unsigned short*) malloc( nNumBytes );
-    if( NULL == red ) {
-      throw runtime_error( "Couldn't allocate red buffer." );
-    }
-    green = (unsigned short*) malloc( nNumBytes );
-    if( NULL == green ) {
-      throw runtime_error( "Couldn't allocate green buffer." );
-    }
-    blue  = (unsigned short*) malloc( nNumBytes );
-    if( NULL == blue ) {
-      throw runtime_error( "Couldn't allocate blue buffer ." );
-    }
-    
+    // Read from the front buffer.
     glReadBuffer( GL_FRONT );
     
+    // Save our unpack attributes.
     glGetBooleanv(GL_UNPACK_SWAP_BYTES, &swapbytes);
     glGetBooleanv(GL_UNPACK_LSB_FIRST, &lsbfirst);
     glGetIntegerv(GL_UNPACK_ROW_LENGTH, &rowlength);
     glGetIntegerv(GL_UNPACK_SKIP_ROWS, &skiprows);
     glGetIntegerv(GL_UNPACK_SKIP_PIXELS, &skippixels);
     glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
-  
+
+    // Set them.
     glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    
-    glReadPixels(0, 0, mWidth, mHeight, GL_RED,  
-		 GL_UNSIGNED_SHORT, (GLvoid *)red);
-    eGL = glGetError ();
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    // Read RGB pixel data.
+    pixelData = (GLubyte*) malloc( mWidth * mHeight * 3 );
+    glReadPixels(0, 0, mWidth, mHeight, GL_RGB,
+		 GL_UNSIGNED_BYTE, (GLvoid*)pixelData);
+    GLenum eGL = glGetError ();
     if( GL_NO_ERROR != eGL ) {
       throw runtime_error( "Error reading pixels" );
     }
-    glReadPixels(0, 0, mWidth, mHeight, GL_GREEN,
-		 GL_UNSIGNED_SHORT, (GLvoid *)green);
-    eGL = glGetError ();
-    if( GL_NO_ERROR != eGL ) {
-      throw runtime_error( "Error reading pixels" );
-    }
-    glReadPixels(0, 0, mWidth, mHeight, GL_BLUE, 
-		 GL_UNSIGNED_SHORT, (GLvoid *)blue);
-    eGL = glGetError ();
-    if( GL_NO_ERROR != eGL ) {
-      throw runtime_error( "Error reading pixels" );
-    }
-    
+
+    // Restore the attributes.
     glPixelStorei(GL_UNPACK_SWAP_BYTES, swapbytes);
     glPixelStorei(GL_UNPACK_LSB_FIRST, lsbfirst);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, rowlength);
@@ -952,35 +923,59 @@ ScubaFrame::CaptureToFile ( string ifn ) {
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, skippixels);
     glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
 
+    // Open a TIFF.
     char fn[1000];
     strcpy( fn, ifn.c_str() );
-    fp = fopen(fn,"w");
-    if (fp==NULL){
-      throw runtime_error( "Can't write file." );
+    TIFF* fTIFF = TIFFOpen( fn, "w" );
+    if( NULL == fTIFF ) {
+      throw runtime_error( "Couldn't create file." );
     }
-    fclose(fp);
-    image = iopen(fn,"w",UNCOMPRESSED(1), 3, mWidth, mHeight, 3);
-    for(y = 0 ; y < mHeight; y++) {
-      r = red + y * mWidth;
-      g = green + y * mWidth;
-      b = blue + y * mWidth;
-      putrow(image, r, y, 0);
-      putrow(image, g, y, 1);
-      putrow(image, b, y, 2);
+
+    // Set the TIFF info.
+    TIFFSetField( fTIFF, TIFFTAG_IMAGEWIDTH, mWidth );
+    TIFFSetField( fTIFF, TIFFTAG_IMAGELENGTH, mHeight );
+    TIFFSetField( fTIFF, TIFFTAG_SAMPLESPERPIXEL, 3 );
+    TIFFSetField( fTIFF, TIFFTAG_BITSPERSAMPLE, 8 );
+    TIFFSetField( fTIFF, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT );
+    TIFFSetField( fTIFF, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG );
+    TIFFSetField( fTIFF, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB );
+
+    // Calculate some sizes and allocate a line buffer.
+    tsize_t cLineBytes = 3 * mWidth;
+    unsigned char* lineBuffer = NULL;
+    int scanLineSize = TIFFScanlineSize( fTIFF );
+    if( scanLineSize != cLineBytes ) {
+      cerr << "scanLineSize = " << scanLineSize << ", cLineBytes = "
+	   << cLineBytes << endl;
     }
-    iclose(image);
-  
+    
+    lineBuffer = (unsigned char*) _TIFFmalloc( scanLineSize  );
+    if( NULL == lineBuffer ) {
+      throw runtime_error( "Couldn't allocate line buffer." );
+    }
+
+    // Set the strip size to default.
+    int stripSize = TIFFDefaultStripSize( fTIFF, mWidth * 3 );
+    TIFFSetField( fTIFF, TIFFTAG_ROWSPERSTRIP, stripSize );
+
+    // Write line by line (bottom to top).
+    for( int nRow = 0; nRow < mHeight; nRow++ ) {
+      memcpy( lineBuffer, 
+	      &pixelData[(mHeight-nRow-1) * cLineBytes], 
+	      cLineBytes );
+      TIFFWriteScanline( fTIFF, lineBuffer, nRow, 0 );
+    }
+
+    // Close the tiff file and free the line buffer.
+    TIFFClose( fTIFF );
+    _TIFFfree( lineBuffer );
   }
 
   catch(...) {
   }
 
-  if( NULL != red ) 
-    free( red ); 
-  if( NULL != green ) 
-    free( green ); 
-  if( NULL != blue ) 
-    free( blue );
+  if( NULL != pixelData ) 
+    free( pixelData );
 }
 
 
