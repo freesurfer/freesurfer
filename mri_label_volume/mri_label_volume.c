@@ -134,7 +134,7 @@ main(int argc, char *argv[])
     else
       log_fp = NULL ;
 
-    if (compute_pct)
+    if (compute_pct || icv_fname)
     {
       printf("%d voxels (%2.1f mm^3) in label %d, %%%2.6f of brain volume (%2.0f)\n", 
              volume, volume*vox_volume,label, 100.0*(float)volume/(float)brain_volume,
