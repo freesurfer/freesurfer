@@ -6604,12 +6604,11 @@ static MRI *gdfRead(char *fname, int read_volume)
   int size[2];
   int path_d, ipr_d, st_d, u_d, dt_d, o_d, s_d, x_ras_d, y_ras_d, z_ras_d, c_ras_d;
   int data_type;
-  int orientation;
+  int orientation = MRI_UNDEFINED;
   char *or;
   char os_orig[STRLEN];
   float units_factor;
   char file_path_1[STRLEN], file_path_2[STRLEN];
-  char gdf_path[STRLEN];
   int i, j, k;
   short *sbuf = NULL;
   float *fbuf = NULL;
@@ -6724,8 +6723,15 @@ static MRI *gdfRead(char *fname, int read_volume)
 
   if(!(o_d))
   {
-    printf("missing field ORIENTATION in file %s; assuming 'coronal'\n", fname);
-    sprintf(orientation_string, "coronal");
+    if(x_ras_d && y_ras_d && z_ras_d)
+    {
+      printf("missing field ORIENTATION in file %s, but you've got {xyz}_{ras}, so never mind\n", fname);
+    }
+    else
+    {
+      printf("missing field ORIENTATION in file %s; assuming 'coronal'\n", fname);
+      sprintf(orientation_string, "coronal");
+    }
   }
 
   if(!(dt_d))
@@ -6766,7 +6772,7 @@ static MRI *gdfRead(char *fname, int read_volume)
     orientation = MRI_SAGITTAL;
   else if(strncmp(or, "ax", 2) == 0 || strncmp(or, "hor", 3) == 0)
     orientation = MRI_HORIZONTAL;
-  else
+  else if(!(x_ras_d && y_ras_d && z_ras_d))
   {
     errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "gdfRead(): can't determine orientation from string '%s'", os_orig));
@@ -6800,9 +6806,17 @@ static MRI *gdfRead(char *fname, int read_volume)
   c++;
   strcpy(file_path_2, c);
 
+#if 0
+
+  /* cardviews takes IMAGE_FILE_PATH relative to the working */
+  /* directory -- so we skip this step - ch                  */
+
   /* ----- relative path -- go from directory with the .gdf file ----- */
   if(file_path_1[0] != '/')
   {
+
+    char gdf_path[STRLEN];
+
     if(fname[0] == '/')
       sprintf(gdf_path, "%s", fname);
     else
@@ -6815,6 +6829,7 @@ static MRI *gdfRead(char *fname, int read_volume)
     strcpy(file_path_1, gdf_path);
     
   }
+#endif
 
   pad_zeros_flag = FALSE;
 
@@ -6867,18 +6882,39 @@ static MRI *gdfRead(char *fname, int read_volume)
   
   strcpy(mri->fname, fname);
 
-  /* 
-     direction cosine is not set.  we pick a particular kind
-     of direction cosine.  If the volume is different you have
-     to modify (how?)
-  */
-  if (setDirectionCosine(mri, orientation) != NO_ERROR)
-    return NULL;
+  /* --- set volume orientation --- */
+  if(x_ras_d && y_ras_d && z_ras_d)
+  {
+    mri->x_r = x_r;  mri->x_a = x_a;  mri->x_s = x_s;
+    mri->y_r = y_r;  mri->y_a = y_a;  mri->y_s = y_s;
+    mri->z_r = z_r;  mri->z_a = z_a;  mri->z_s = z_s;
+    mri->ras_good_flag = TRUE;
+  }
+  else
+  {
+    /* 
+       direction cosine is not set.  we pick a particular kind
+       of direction cosine.  If the volume is different you have
+       to modify (how?)
+    */
+    if (setDirectionCosine(mri, orientation) != NO_ERROR)
+    {
+      MRIfree(&mri);
+      return NULL;
+    }
+    printf("warning: gdf volume may be incorrectly oriented\n");
+  }
 
-  // if(bad_ras_fill(mri) != NO_ERROR)
-  //  return(NULL);
-
-  printf("warning: gdf volume may be incorrectly oriented or centered\n");
+  /* --- set volume center --- */
+  if(c_ras_d)
+  {
+    mri->c_r = c_r;  mri->c_a = c_a;  mri->c_s = c_s;
+  }
+  else
+  {
+    mri->c_r = mri->c_a = mri->c_s = 0.0;
+    printf("warning: gdf volume may be incorrectly centered\n");
+  }
 
   if(!read_volume)
     return(mri);
@@ -8092,7 +8128,7 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
 
 static MRI *ximgRead(char *fname, int read_volume)
 {
-/**/
+
   char fname_format[STRLEN];
   char fname_dir[STRLEN];
   char fname_base[STRLEN];
