@@ -59,6 +59,7 @@ int   RBFclassify(RBF *rbf, VECTOR *v_obs) ;
 int   RBFwrite(RBF *rbf, char *fname) ;
 RBF   *RBFread(char *fname) ;
 RBF   *RBFcopyWeights(RBF *rbf_src, RBF *rbf_dst) ;
+float RBFcomputeErrors(RBF *rbf, int class, VECTOR *v_error) ;
                
 
 #endif
