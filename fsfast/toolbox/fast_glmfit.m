@@ -1,25 +1,38 @@
-function [beta, rvar, dof] = fast_glmfit(y,X)
-% [beta, rvar, dof] = fast_glmfit(y,X)
+function [beta, rvar, vdof, r] = fast_glmfit(y,X,Sn)
+% [beta, rvar, vdof, r] = fast_glmfit(y,X,<Sn>)
 %
+% Sn is the covariance matrix of the noise after any filtering.
 
-if(nargin ~= 2)
-  fprintf('[beta, rvar, dof] = fast_glmfit(y,X)\n');
+if(nargin ~= 2 & nargin ~= 3)
+  fprintf('[beta, rvar, vdof, r] = fast_glmfit(y,X,<Sn>)\n');
   return;
 end
+
+if(exist('Sn') ~= 1) Sn = []; end
 
 [nf nv] = size(y);
 if(size(X,1) ~= nf)
   fprintf('ERROR: X and y have different number of frames\n');
   return;
 end
-dof = size(X,1) - size(X,2);
+
+if(~isempty(Sn))
+  if(size(Sn,1) ~= nf)
+    fprintf('ERROR: Sn dimension mismatch\n');
+    return;
+  end
+  R = eye(nf)-X*inv(X'*X)*X';
+  vdof = trace(R*Sn);
+else
+  vdof = size(X,1) - size(X,2);
+end
 
 beta = (inv(X'*X)*X')*y;
 
 if(nargout == 1) return; end
 
 r = y - X*beta;
-rvar = sum(r.^2)/dof;
+rvar = sum(r.^2)/vdof;
 
 return;
 
