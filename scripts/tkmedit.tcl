@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.64 2003/09/18 21:50:50 kteich Exp $
+# $Id: tkmedit.tcl,v 1.65 2003/09/29 15:35:29 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -103,6 +103,10 @@ set DspA_tBrushTarget(mainaux) 2
 set DspA_tBrushShape_Circle 0
 set DspA_tBrushShape_Square 1
 
+# DspA_tBrushMode
+set DspA_tBrushMode(set)   0
+set DspA_tBrushMode(clone) 1
+
 # DspA_tMarker
 set DspA_tMarker_Crosshair 0
 set DspA_tMarker_Diamond   1
@@ -121,8 +125,8 @@ set ksaViewPresetString(1) "multiple"
 set ksaViewPresetString(2) "mosaic"
 
 # tkm_tVolumeType
-set tkm_tVolumeType_Main 0
-set tkm_tVolumeType_Aux  1
+set tkm_tVolumeType(main) 0
+set tkm_tVolumeType(aux)  1
 
 # tkm_tVolumeTarget
 set tkm_tVolumeTarget_MainAna 0
@@ -190,12 +194,12 @@ set gSegBrush(color) 0
 set gSegBrush(3d) 0
 set gSegBrush(fuzzy) 0
 set gSegBrush(distance) 0
-set gSegBrush(src) $tkm_tVolumeType_Main
+set gSegBrush(src) $tkm_tVolumeType(main)
 set glSegEditColors {}
 
 # flood select params
 set gFloodSelectParams(3d) 0
-set gFloodSelectParams(src) $tkm_tVolumeType_Main
+set gFloodSelectParams(src) $tkm_tVolumeType(main)
 set gFloodSelectParams(fuzzy) 0
 set gFloodSelectParams(distance) 0
 
@@ -263,7 +267,9 @@ set gBrushInfo(shape)    $DspA_tBrushShape_Square
 set gBrushInfo(3d)       true
 
 foreach tool "$DspA_tBrush_EditOne $DspA_tBrush_EditTwo" {
+    set gEditBrush($tool,mode)  0
     set gEditBrush($tool,new)  0
+    set gEditBrush($tool,cloneSource)  0
     set gEditBrush($tool,high) 0
     set gEditBrush($tool,low)  0
 }
@@ -286,7 +292,7 @@ foreach surface "$tkm_tSurfaceType(main) $tkm_tSurfaceType(aux)" {
 }
 
 # general volume info
-foreach volume "$tkm_tVolumeType_Main $tkm_tVolumeType_Aux" {
+foreach volume "$tkm_tVolumeType(main) $tkm_tVolumeType(aux)" {
     set gVolume($volume,colorScale,brightness) 0
     set gVolume($volume,colorScale,contrast) 0
     set gVolume($volume,colorScale,min) 0
@@ -486,11 +492,13 @@ proc UpdateBrushShape { inRadius iShape ib3D } {
     set gBrushInfo(3d)     $ib3D
 }
 
-proc UpdateBrushInfo { inBrush inLow inHigh inNewValue } {
+proc UpdateBrushInfo { inBrush inLow inHigh inNewValue inMode inCloneSource } {
     global gEditBrush
-    set gEditBrush($inBrush,low)  $inLow
-    set gEditBrush($inBrush,high) $inHigh
-    set gEditBrush($inBrush,new)  $inNewValue
+    set gEditBrush($inBrush,low)          $inLow
+    set gEditBrush($inBrush,high)         $inHigh
+    set gEditBrush($inBrush,new)          $inNewValue
+    set gEditBrush($inBrush,mode)         $inMode
+    set gEditBrush($inBrush,cloneSource)  $inCloneSource
 }
 
 proc UpdateCursorColor { ifRed ifGreen ifBlue } {
@@ -1529,6 +1537,8 @@ proc DoEditBrushInfoDlog {} {
     global gDialog
     global ksaBrushString
     global DspA_tBrush_EditOne DspA_tBrush_EditTwo
+    global DspA_tBrushMode
+    global tkm_tVolumeType
     global gEditBrush
     global gVolume
 
@@ -1536,42 +1546,62 @@ proc DoEditBrushInfoDlog {} {
 
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Edit Brush Info" {-borderwidth 10}] } {
-  
-  set fwTop                $wwDialog.fwTop
-  set fwInfo               $fwTop.fwInfo
-  set fwButtons            $wwDialog.fwButtons
-  
-  frame $fwTop
-  
+	
+	set fwTop                $wwDialog.fwTop
+	set fwInfo               $fwTop.fwInfo
+	set fwButtons            $wwDialog.fwButtons
+	
+	frame $fwTop
+	
   tixNoteBook $fwInfo
   foreach tool "$DspA_tBrush_EditOne $DspA_tBrush_EditTwo" {
 
       $fwInfo add pane$tool -label $ksaBrushString($tool)
 
       set fw [$fwInfo subwidget pane$tool]
-      set fwScales          $fw.fwScales
+      set fwThresh         $fw.fwThresh
+      set fwMode           $fw.fwMode
+      set fwNewValue       $fw.fwNewValue
+      set fwCloneSrc       $fw.fwCloneSrc
       set fwDefaults       $fw.fwDefaults
-
+      
       # low, high, and new value sliders
-      tkm_MakeSliders $fwScales \
+      tkm_MakeSliders $fwThresh \
 	  [list \
 	       [list {"Low"} gEditBrush($tool,low) \
 		    $gVolume(0,minValue) $gVolume(0,maxValue) \
-		    100 "SetEditBrushConfiguration" 1] \
+		    200 "SetEditBrushConfiguration" 1] \
 	       [list {"High"} gEditBrush($tool,high) \
 		    $gVolume(0,minValue) $gVolume(0,maxValue) \
-		    100 "SetEditBrushConfiguration" 1 ]\
-	       [list {"New Value"} gEditBrush($tool,new) \
-		    $gVolume(0,minValue) $gVolume(0,maxValue) \
-		    100 "SetEditBrushConfiguration" 1 ]]
+		    200 "SetEditBrushConfiguration" 1 ]]
+
+      tkm_MakeRadioButtons $fwMode y "Mode" gEditBrush($tool,mode) \
+	  [list \
+	       [list text "New Value" $DspA_tBrushMode(set) \
+		  "SetBrushInfoModeParamsState set $fwCloneSrc $fwNewValue"] \
+	       [list text "Clone" $DspA_tBrushMode(clone) \
+		  "SetBrushInfoModeParamsState clone $fwCloneSrc $fwNewValue"]]
+
+      tkm_MakeEntry $fwNewValue "New Value" gEditBrush($tool,new) \
+	  6 "SetEditBrushConfiguration"
       
+      tkm_MakeRadioButtons $fwCloneSrc y "Clone Source" \
+	  gEditBrush($tool,cloneSource) \
+	  [list \
+	       [list text "Main Volume" $tkm_tVolumeType(main) \
+		    "SetEditBrushConfiguration"] \
+	       [list text "Aux Volume"  $tkm_tVolumeType(aux) \
+		    "SetEditBrushConfiguration"]]
+
+
+
       # defaults button
       tkm_MakeButtons $fwDefaults \
 	  [list \
 	       [list text "Restore Defaults" "SetBrushInfoToDefaults $tool"]]
 
       # pack them in a column
-      pack $fwScales $fwDefaults \
+      pack $fwThresh $fwMode $fwNewValue $fwCloneSrc $fwDefaults \
         -side top                           \
         -anchor w                           \
         -expand yes                         \
@@ -1586,6 +1616,31 @@ proc DoEditBrushInfoDlog {} {
     -expand yes     \
     -fill x
    }
+}
+
+proc SetBrushInfoModeParamsState { iWhich cloneBase setBase } {
+
+    set cloneState disabled
+    set cloneTextColor gray
+    set setState disabled
+    set setTextColor gray
+    if { $iWhich == "clone" } { 
+	set cloneState normal 
+	set cloneTextColor black
+    }
+    if { $iWhich == "set" } { 
+	set setState normal 
+	set setTextColor black
+    }
+
+    [$cloneBase subwidget label] config -fg $cloneTextColor
+    [$cloneBase subwidget frame].rb0 config -state $cloneState
+    [$cloneBase subwidget frame].rb1 config -state $cloneState
+    [$cloneBase subwidget frame].lw0 config -state $cloneState
+    [$cloneBase subwidget frame].lw1 config -state $cloneState
+
+    $setBase.lwLabel config -fg $setTextColor
+    $setBase.ewEntry config -state $setState
 }
 
 proc DoSegmentationVolumeDisplayInfoDlog { } {
@@ -2627,8 +2682,12 @@ proc SetEditBrushConfiguration { } {
     global DspA_tBrush_EditOne DspA_tBrush_EditTwo
 
     foreach tool "$DspA_tBrush_EditOne $DspA_tBrush_EditTwo" {
-	SetBrushInfo $tool $gEditBrush($tool,low) $gEditBrush($tool,high) \
-	    $gEditBrush($tool,new)
+	SetBrushInfo $tool \
+	    $gEditBrush($tool,low) \
+	    $gEditBrush($tool,high) \
+	    $gEditBrush($tool,new) \
+	    $gEditBrush($tool,mode) \
+	    $gEditBrush($tool,cloneSource)
     }
 }
 
@@ -2666,10 +2725,10 @@ proc SendFloodSelectParams {} {
 
 proc SendVolumeColorScale { } {
 
-    global tkm_tVolumeType_Main tkm_tVolumeType_Aux
+    global tkm_tVolumeType
     global gVolume
 
-    foreach volume "$tkm_tVolumeType_Main $tkm_tVolumeType_Aux" {
+    foreach volume "$tkm_tVolumeType(main) $tkm_tVolumeType(aux)" {
 	SetVolumeColorScale $volume \
 	    $gVolume($volume,colorScale,brightness) \
 	    $gVolume($volume,colorScale,contrast) \
