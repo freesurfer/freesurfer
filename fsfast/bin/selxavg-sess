@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # selxavg-sess
 #
-# $Id: selxavg-sess,v 1.2 2003/04/08 04:52:51 greve Exp $
-set VERSION = '$Id: selxavg-sess,v 1.2 2003/04/08 04:52:51 greve Exp $';
+# $Id: selxavg-sess,v 1.3 2003/05/07 23:59:34 greve Exp $
+set VERSION = '$Id: selxavg-sess,v 1.3 2003/05/07 23:59:34 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -171,6 +171,13 @@ foreach sess ($SessList)
       exit 1;
     endif
     set RunList = (`cat $runlistfile`);
+    foreach run ($RunList)
+      if(! -e $run) then
+        echo "ERROR: cannot find run $run in `pwd`";
+        echo "Make sure runs in run list file are 3-digit, zero padded"
+        exit 1;
+      endif
+    end
   endif
 
   set seqinfo = seq.info
