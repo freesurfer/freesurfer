@@ -1,4 +1,4 @@
-% $Id: convert_unwarp_resample.m,v 1.3 2003/07/31 21:51:07 ebeth Exp $
+% $Id: convert_unwarp_resample.m,v 1.4 2003/08/12 18:14:25 ebeth Exp $
 %
 %% convert_unwarp_resample.m contains: 
 % convert_unwarp_resample()
@@ -13,7 +13,7 @@
 %% also relevant:
 % unwarp_scanners_table.m makes GRADWARPPATH/table.mat
 %  - to change table.mat, add extra structure to unwarp_scanners_table.m and rerun
-% $DEV/scripts/dcm2mgh
+% $DEV/scripts/grad_unwarp
 %   - invokes convert_unwarp_resample()
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -103,7 +103,7 @@ if(unwarpflag)
   if ~strcmp(user_gradwarpfile,'')
     if (isempty(strfind(user_gradwarpfile,'/')))
       % minor kludge: suggests user supplied a dewarp type (e.g. sonata)
-      % instead of path (e.g. /space/dijon//foo/etc)
+      % instead of path (e.g. /space/dijon/foo/etc)
       gradwarpfile = type2map(user_gradwarpfile);
     else
       gradwarpfile = user_gradwarpfile;
@@ -117,7 +117,8 @@ end
 
 % If there wasn't much to do:
 if(~corfovflag & ~unwarpflag)
-  save_mgh(vol,outfile,M0);
+  fprintf('Writing MGH output file %s\n',outfile);
+  save_mgh(vol,outfile,M0,mr_parms);
   return;
 end
 
