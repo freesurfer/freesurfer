@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # sliceview-sess
 #
-set VERSION = '$Id: sliceview-sess,v 1.2 2003/09/17 02:08:21 greve Exp $';
+set VERSION = '$Id: sliceview-sess,v 1.3 2003/09/23 22:19:35 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -264,10 +264,10 @@ foreach sess ($SessList)
   endif
 
   set yvtitle = `basename $sess`;
-  set yvtitle = $yvtitle-`basename $underlay`;
-  if($#hdr != 0 ) set yvtitle = $yvtitle-$analysis$append
-  if($#sig != 0 ) set yvtitle = $yvtitle-$contrast-$map
-  set yvtitle = $yvtitle-$sliceid
+  #set yvtitle = $yvtitle-`basename $underlay`;
+  if($#analysis != 0 ) set yvtitle = $yvtitle-$analysis$append
+  if($#sig != 0 )      set yvtitle = $yvtitle-$contrast-$map
+  if($sliceid != mos)  set yvtitle = $yvtitle-$sliceid
 
   set cmd = (yakview -i $underlay $hdr $sig $raw -sn $sliceid)
   set cmd = ($cmd -thmin $thmin -thmax $thmax $BaseEQFlag)
