@@ -317,8 +317,8 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
       while (npix--)
       {
         cval = *cpix ;
-        cpix->real = swapDouble(cval.real) ;
-        cpix->imag = swapDouble(cval.imag) ;
+        cpix->real = swapFloat(cval.real) ;
+        cpix->imag = swapFloat(cval.imag) ;
         cpix++ ;
       }
       break ;
@@ -4550,7 +4550,7 @@ ImageUnpad(IMAGE *Isrc, IMAGE *Idst, int rows, int cols)
 int
 ImageValid(IMAGE *I)
 {
-  long   size, total, bad ;
+  long   size, total, bad, swapped_bad ;
   float  *fpix ;
   double *dpix, exponent, val ;
   DCPIX  *dcpix, dcval ;
@@ -4558,9 +4558,12 @@ ImageValid(IMAGE *I)
 
   size = (long)I->rows * (long)I->cols * (long)I->num_frame ;
 
-  total = bad = 0 ;
+  swapped_bad = total = bad = 0L;
   switch (I->pixel_format)
   {
+  default:
+    return(1) ;  /* assume unsupported types are valid */
+    break ;
   case PFFLOAT:
     fpix = IMAGEFpix(I, 0, 0); 
     while (size--)
@@ -4575,6 +4578,14 @@ ImageValid(IMAGE *I)
 
       if ((exponent > 6.0) || (exponent < -20))
         bad++ ;
+
+      val = swapFloat(val) ;
+      exponent = log10(fabs(val)) ;
+      if (exponent > 10.0)   /* any values this big are indicative */
+        return(1) ;
+
+      if ((exponent > 6.0) || (exponent < -20))
+        swapped_bad++ ;
     }
     break ;
   case PFDOUBLE:
@@ -4591,6 +4602,13 @@ ImageValid(IMAGE *I)
 
       if ((exponent > 6.0) || (exponent < -20))
         bad++ ;
+      val = swapDouble(val) ;
+      exponent = log10(fabs(val)) ;
+      if (exponent > 10.0)   /* any values this big are indicative */
+        return(1) ;
+
+      if ((exponent > 6.0) || (exponent < -20))
+        swapped_bad++ ;
     }
     break ;
   case PFDBLCOM:
@@ -4612,6 +4630,24 @@ ImageValid(IMAGE *I)
         exponent = log10(fabs(dcval.imag)) ;
         if (exponent > 10.0)   /* any values this big are indicative */
           return(0) ;
+
+        if ((exponent > 6.0) || (exponent < -20))
+          bad++ ;
+      }
+
+      /* check it if it were byte-reversed */
+      val = swapDouble(dcval.real) ;
+      exponent = log10(fabs(val)) ;
+      if (exponent > 10.0)   /* any values this big are indicative */
+        return(1) ;
+      if ((exponent > 6.0) || (exponent < -20))
+        bad++ ;
+      else  /* check imaginary part */
+      {
+        val = swapDouble(dcval.imag) ;
+        exponent = log10(fabs(val)) ;
+        if (exponent > 10.0)   /* any values this big are indicative */
+          return(1) ;
 
         if ((exponent > 6.0) || (exponent < -20))
           bad++ ;
@@ -4641,16 +4677,35 @@ ImageValid(IMAGE *I)
         if ((exponent > 6.0) || (exponent < -20))
           bad++ ;
       }
+
+      /* check it if it were byte-reversed */
+      val = (double)swapFloat(cval.real) ;
+      exponent = log10(fabs(val)) ;
+      if (exponent > 10.0)   /* any values this big are indicative */
+        return(1) ;
+      if ((exponent > 6.0) || (exponent < -20))
+        bad++ ;
+      else  /* check imaginary part */
+      {
+        val = (double)swapFloat(cval.imag) ;
+        exponent = log10(fabs(val)) ;
+        if (exponent > 10.0)   /* any values this big are indicative */
+          return(1) ;
+
+        if ((exponent > 6.0) || (exponent < -20))
+          bad++ ;
+      }
     }
     break ;
   }
 
   if (total)
   {
-    float pct ;
+    float pct, swapped_pct ;
 
     pct = (float)bad / (float)total ;
-    return(pct < 0.50f) ;   /* less than 50% of non-zero pixels bad */
+    swapped_pct = (float)swapped_bad / (float)total ;
+    return(pct < swapped_pct) ;
   }
 
   return(1) ;
