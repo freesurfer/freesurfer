@@ -29,7 +29,7 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.20 1998/10/27 00:34:00 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.21 1998/11/09 21:31:14 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -144,7 +144,7 @@ static int param_no = -1 ;
 static int normalize_param = 0 ;
 
 static char *wfile_name = NULL ;
-static int soap_bubble_iterations = 5 ;
+static int soap_bubble_iterations = 0 ;
 static char *output_name = NULL ;
 
 #define MAX_POINTS 100
@@ -155,6 +155,8 @@ static float phi_spoint[MAX_POINTS], theta_spoint[MAX_POINTS] ;
 static int num_spoints = 0 ;
 static int mark_color = 1 ;
 static float light = 0.0f ;
+
+extern double fthresh, pre_fthresh, fmid, fslope, time_fthresh ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -362,7 +364,6 @@ main(int argc, char *argv[])
     mark_centroids(mris, centroid_fnames, centroid_colors, centroid_files) ;
     if (mrisp)
     {
-      MRISsaveVertexPositions(mris, TMP_VERTICES) ;
       MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
       if (normalize_param)
       {
@@ -370,7 +371,7 @@ main(int argc, char *argv[])
       }
       else
         MRISfromParameterization(mrisp, mris, 0) ;
-      MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+      MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
     }
     if (curvature_fname)
       MRISreadCurvatureFile(mris, curvature_fname) ;
@@ -854,6 +855,61 @@ get_option(int argc, char *argv[])
             phi_spoint[num_spoints], theta_spoint[num_spoints]) ;
     num_spoints++ ;
   }
+  else if (!stricmp(option, "time"))
+    {
+      compile_flags |= TIME_FLAG ;
+      fprintf(stderr, "Processing temporal information ...\n") ;
+    }  
+  else if (!stricmp(option, "stan"))
+    {
+      compile_flags |= STAN_FLAG ;
+      fprintf(stderr, "Processing spatio-temporal analysis results ...\n") ;
+    }  
+  else if (!stricmp(option, "lin"))
+    {
+      compile_flags |= LIN_FLAG ;
+      fprintf(stderr, "Processing linear estimation results ...\n") ;
+    }  
+  else if (!stricmp(option, "fthresh"))
+    {
+    nargs = 1 ;
+    fthresh = atof(argv[2]) ;
+    fprintf(stderr, "fthresh = %f \n", fthresh) ;
+    }  
+  else if (!stricmp(option, "pre_fthresh"))
+    {
+    nargs = 1 ;
+    pre_fthresh = atof(argv[2]) ;
+    fprintf(stderr, "pre_fthresh = %f \n", pre_fthresh) ;
+    }  
+  else if (!stricmp(option, "fmid"))
+    {
+    nargs = 1 ;
+    fmid = atof(argv[2]) ;
+    fprintf(stderr, "fmid = %f \n", fmid) ;
+    }  
+  else if (!stricmp(option, "fslope"))
+    {
+    nargs = 1 ;
+    fslope = atof(argv[2]) ;
+    fprintf(stderr, "fslope = %f \n", fslope) ;
+    }  
+  else if (!stricmp(option, "t_fthresh"))
+    {
+    nargs = 1 ;
+    time_fthresh = atof(argv[2]) ;
+    fprintf(stderr, "time_fthresh = %f \n", time_fthresh) ;
+    }  
+  else if (!stricmp(option, "cscale"))
+    {
+      compile_flags |= CSCALE_FLAG ;
+      fprintf(stderr, "Drawing color scale ...\n") ;
+    }  
+  else if (!stricmp(option, "legend"))
+    {
+      compile_flags |= LEG_FLAG ;
+      fprintf(stderr, "Writing color scale legend ...\n") ;
+    }  
   else switch (toupper(*option))
   {
   case 'W':
@@ -1243,10 +1299,23 @@ mark_centroids(MRI_SURFACE *mris, char *centroid_fnames[],
 int
 MRISsoapBubble(MRI_SURFACE *mris, int niter)
 {
-  int     vno, n, i ;
+  int     vno, n, i, cmpt ;
   VERTEX  *v, *vn ;
   double  mean ;
 
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if(v->val > pre_fthresh) 
+    {
+      v->marked = 1 ;
+    }
+    else 
+    {
+      v->val = 0.0 ;
+    }
+  }
+  
   for (i = 0 ; i < niter ; i++)
   {
     if (!(i % niter/10))
@@ -1254,27 +1323,34 @@ MRISsoapBubble(MRI_SURFACE *mris, int niter)
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
-      if (v->ripflag/* || v->marked*/)
+      if (v->ripflag || (v->marked==1))
         continue ;
 
       /* compute average of self and neighbors */
-      mean = v->val ;
+      mean = 0.0 ; cmpt = 0 ;
       for (n = 0 ; n < v->vnum ; n++)
       {
         vn = &mris->vertices[v->v[n]] ;
-        mean += vn->val ;
+  if(vn->marked) {
+    mean += vn->val ;
+    cmpt++ ;
+  }
       }
-      v->d = mean / (double)(v->vnum+1.0f) ;
-    }
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag/* || v->marked*/)
-        continue ;
-      v->val = v->d ;
+      if(compile_flags & TIME_FLAG) {
+  if (cmpt>(i/2)) {
+    v->val = mean / (double)(cmpt) ;
+    v->marked = 1 ;
+  }
+      }
+      else {
+  if (cmpt>(i/2)) {
+    v->val = mean / (double)(cmpt) ;
+    v->marked = 2 ;
+  }
+      }
     }
   }
-
+  
   fprintf(stderr, "\n") ;
   return(NO_ERROR) ;
 }
