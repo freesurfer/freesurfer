@@ -2423,18 +2423,14 @@ MWin_tErr MWin_Redraw ( tkmMeditWindowRef this ) {
 MWin_tErr MWin_RedrawAll ( tkmMeditWindowRef this ) {
 
   MWin_tErr eResult     = MWin_tErr_NoErr;
-  //  DspA_tErr eDisplay    = DspA_tErr_NoErr;
   int       nDispIndex  = 0;
 
-  /* go thru each display area and set its rebuild slice flag
-     and force it to draw. */
+  /* go thru each display area and set its rebuild slice flag. */
   for ( nDispIndex = 0; 
-  nDispIndex < MWin_knMaxNumAreas; 
-  nDispIndex++ ) {
+	nDispIndex < MWin_knMaxNumAreas; 
+	nDispIndex++ ) {
     
     this->mapDisplays[nDispIndex]->mbSliceChanged = TRUE;
-    //    eDisplay = DspA_HandleDraw_( this->mapDisplays[nDispIndex] );
-
   }
 
   /* now draw ourselves. */

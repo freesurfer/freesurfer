@@ -4812,10 +4812,12 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
       continue;
     }
     
-    /* check to see if we already have this list. if so, don't build it. */
+    /* check to see if we already have this list. if so, don't build
+       it unless the slice changed flag is set.. */
     list = DspA_GetSurfaceList_( this, iType, this->mOrientation, surface,
 				 DspA_GetCurrentSliceNumber_(this) );
-    if( NULL != list ) {
+    if( NULL != list &&
+	!this->mbSliceChanged ) {
       continue;
     }
     

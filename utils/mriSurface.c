@@ -655,33 +655,6 @@ float Surf_GetVertexCoord ( vertex_type*      iVertex,
   }
 }
 
-Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
-				   char*           osName ) {
-  
-  Surf_tErr eResult = Surf_tErr_NoErr;
-  
-  if( iSet < 0 || iSet >= Surf_knNumVertexSets ||
-      NULL == osName  ) {
-    eResult = Surf_tErr_InvalidParameter;
-    goto error;
-  }
-  
-  strcpy( osName, Surf_ksaVertexSets[iSet] );
-  
-  goto cleanup;
-  
- error:
-  
-  if( Surf_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in Surf_GetSurfaceSetName: %s\n",
-		 eResult, Surf_GetErrorString( eResult ) ) );
-  }
-  
- cleanup:
-  
-  return eResult;
-}
-
 Surf_tErr Surf_SetVertexValue ( mriSurfaceRef   this,
 				Surf_tVertexSet iVertexSet,
 				Surf_tValueSet  iValueSet,
@@ -834,6 +807,71 @@ Surf_tErr Surf_GetDistance ( mriSurfaceRef this,
   return eResult;
 }
 
+
+Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
+				   char*           osName ) {
+  
+  Surf_tErr eResult = Surf_tErr_NoErr;
+  
+  if( iSet < 0 || iSet >= Surf_knNumVertexSets ||
+      NULL == osName  ) {
+    eResult = Surf_tErr_InvalidParameter;
+    goto error;
+  }
+  
+  strcpy( osName, Surf_ksaVertexSets[iSet] );
+  
+  goto cleanup;
+  
+ error:
+  
+  if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Surf_GetSurfaceSetName: %s\n",
+		 eResult, Surf_GetErrorString( eResult ) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+Surf_tErr Surf_AverageVertexPositions ( mriSurfaceRef this,
+					int           inNumAverages ) {
+
+  Surf_tErr eResult = Surf_tErr_NoErr;
+  int       eMRIS   = NO_ERROR;
+
+  eResult = Surf_Verify( this );
+  if( Surf_tErr_NoErr != eResult ) 
+    goto error;
+  
+  /* Call the MRIS function. */
+  eMRIS = MRISaverageVertexPositions( this->mSurface, inNumAverages );
+  if( NO_ERROR != eMRIS ) 
+    goto error;
+
+  /* Since that changes the vertex positions, reconvert our client
+     space cache. */
+  Surf_ConvertSurfaceToClientSpace_( this, Surf_tVertexSet_Main );
+
+  goto cleanup;
+  
+ error:
+  
+  if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Surf_AverageVertexPositions: %s\n",
+		 eResult, Surf_GetErrorString( eResult ) ) );
+  }
+  
+  if( NO_ERROR != eMRIS ) {
+    DebugPrint( ("Error %d (from MRIS) in Surf_AverageVertexPositions\n",
+		 eMRIS) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
 
 void Surf_GetClosestVertex ( mriSurfaceRef   this,
 			     Surf_tVertexSet iSet,

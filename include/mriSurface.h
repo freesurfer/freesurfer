@@ -7,7 +7,7 @@
 #include "xVoxel.h"
 
 typedef enum {
-
+  
   Surf_tErr_NoErr = 0,
   Surf_tErr_InvalidObject,
   Surf_tErr_InvalidParameter,
@@ -23,7 +23,7 @@ typedef enum {
 } Surf_tErr;
 
 typedef enum {
-
+  
   Surf_tOrientation_X = 0,
   Surf_tOrientation_Y,
   Surf_tOrientation_Z,
@@ -31,7 +31,7 @@ typedef enum {
 } Surf_tOrientation;
 
 typedef enum { 
-
+  
   Surf_tVertexSet_None = -1,
   Surf_tVertexSet_Main = 0,
   Surf_tVertexSet_Original,
@@ -40,78 +40,76 @@ typedef enum {
 } Surf_tVertexSet;
 
 typedef enum {
-
+  
   Surf_tValueSet_None = -1,
   Surf_tValueSet_Val = 0,
-
+  
   Surf_knNumValueSets
 } Surf_tValueSet;
 
 #define Surf_kSignature 0x0934cba4
 
 typedef struct {
-
+  
   xVoxel mVoxel[Surf_knNumVertexSets][VERTICES_PER_FACE];
   int    mnVertexIndex[Surf_knNumVertexSets][VERTICES_PER_FACE];
-
+  
 } Surf_tFace, *Surf_tFaceRef;
 
 typedef struct {
-
+  
   long mSignature;
-
+  
   /* source file name */
   char* msFileName;
-
+  
   /* surface object */
   MRIS* mSurface;
   
   /* face list */
   Surf_tFace* maFaces; 
-
+  
   /* for checking which faces to iterate over */
   float mfLongestEdge;
-
+  
   /* transform object. a->b = client->surface space */
   mriTransformRef mTransform;
-
+  
   /* load status */
   tBoolean mabVertexSetLoaded[ Surf_knNumVertexSets ];
-
+  
   /* iterator state */
   Surf_tOrientation mIterOrientation;
   float             mfIterPlane;
   int               mnCurFace;
   int               mnCurVertex;
-
+  
 } mriSurface, *mriSurfaceRef;
 
 /* transformer should be a->b client->surface coordinate system */
 Surf_tErr Surf_New    ( mriSurfaceRef*  opSurface,
-      char*           isFileName,
-      mriTransformRef iTransform );
+			char*           isFileName,
+			mriTransformRef iTransform );
 Surf_tErr Surf_Delete ( mriSurfaceRef* iopSurface );
+
+/* ==================================================================== IO */
 
 /* loads a vertex set. if Main, will reload the entire MRIS. if original
    or pial, will just shift out the vertex sets */
 Surf_tErr Surf_LoadVertexSet ( mriSurfaceRef   this,
-             char*           isName,
-             Surf_tVertexSet iSet );
+			       char*           isName,
+			       Surf_tVertexSet iSet );
 
 /* writes the val fields to a separate file. */
 Surf_tErr Surf_WriteValues ( mriSurfaceRef  this,
-           char*          isFileName );
+			     char*          isFileName );
 
 /* return status of a vertex set */
 Surf_tErr Surf_IsVertexSetLoaded ( mriSurfaceRef   this,
-           Surf_tVertexSet iSet,
-           tBoolean*       obIsLoaded );
+				   Surf_tVertexSet iSet,
+				   tBoolean*       obIsLoaded );
 
-/* for each face in the mris surface, create a Surf_tFace, and put the
-   vertex values in it in client coord system */
-Surf_tErr Surf_ConvertSurfaceToClientSpace_ ( mriSurfaceRef   this,
-                Surf_tVertexSet iSet );
-
+/* ======================================================= Vertex iteration */
 
 /* for iterating thru the vertices in the surface. first step is to set the 
    iteration start point by passing an orientation and plane. the plane should
@@ -131,6 +129,8 @@ Surf_tErr Surf_GetNextAndNeighborVertex  ( mriSurfaceRef   this,
 					   xVoxelRef       oNeighborVoxel,
 					   int*            onNeighborIndex);
 
+/* ========================================================== Vertex access */
+
 /* get a vertex by index in voxel space */
 Surf_tErr Surf_GetNthVertex ( mriSurfaceRef   this,
 			      Surf_tVertexSet iSet,
@@ -145,45 +145,60 @@ Surf_tErr Surf_GetClosestVertexVoxel ( mriSurfaceRef   this,
 				       xVoxelRef       oClientVoxel,
 				       char*           osDescription );
 
-Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
-           char*           osName );
-
-
 /* sets a vertex value within the MRIS structure. */
 Surf_tErr Surf_SetVertexValue ( mriSurfaceRef   this,
-        Surf_tVertexSet iVertexSet,
-        Surf_tValueSet  iValueSet,
-        xVoxelRef       iClientVoxel,
-        float           iValue );
+				Surf_tVertexSet iVertexSet,
+				Surf_tValueSet  iValueSet,
+				xVoxelRef       iClientVoxel,
+				float           iValue );
 Surf_tErr Surf_GetVertexValue ( mriSurfaceRef   this,
-        Surf_tVertexSet iVertexSet,
-        Surf_tValueSet  iValueSet,
-        xVoxelRef       iClientVoxel,
-        float*          opValue );
+				Surf_tVertexSet iVertexSet,
+				Surf_tValueSet  iValueSet,
+				xVoxelRef       iClientVoxel,
+				float*          opValue );
 
 /* get distance between two points in surface space. */
 Surf_tErr Surf_GetDistance ( mriSurfaceRef this,
-           xVoxelRef     iClientVoxel1,
-           xVoxelRef     iClientVoxel2,
-           float*        ofDistance );
+			     xVoxelRef     iClientVoxel1,
+			     xVoxelRef     iClientVoxel2,
+			     float*        ofDistance );
+
+Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
+				   char*           osName );
+
+
+/* ============================================================== Processing */
+
+/* Most of these are just wrappers to functions in mrisurf.c */
+
+Surf_tErr Surf_AverageVertexPositions ( mriSurfaceRef this,
+					int           inNumAverages );
+
+/* =============================================================== Internal  */
+
+/* for each face in the mris surface, create a Surf_tFace, and put the
+   vertex values in it in client coord system */
+Surf_tErr Surf_ConvertSurfaceToClientSpace_ ( mriSurfaceRef   this,
+					      Surf_tVertexSet iSet );
+
 
 /* helper functions */
 float Surf_GetVertexCoord ( vertex_type*      iVertex,
-          Surf_tVertexSet   iSet,
-          Surf_tOrientation iOrientation );
+			    Surf_tVertexSet   iSet,
+			    Surf_tOrientation iOrientation );
 void Surf_GetClosestVertex ( mriSurfaceRef   this,
-           Surf_tVertexSet iSet,
-           xVoxelRef       iSurfaceVoxel,
-           vertex_type**   opVertex,
-           int*            onIndex,
-           float*          ofDistance);
+			     Surf_tVertexSet iSet,
+			     xVoxelRef       iSurfaceVoxel,
+			     vertex_type**   opVertex,
+			     int*            onIndex,
+			     float*          ofDistance);
 void Surf_ConvertVertexToVoxel ( vertex_type*    iVertex,
-         Surf_tVertexSet iSet,
-         mriTransformRef iTransform,
-         xVoxelRef       oVoxel );
+				 Surf_tVertexSet iSet,
+				 mriTransformRef iTransform,
+				 xVoxelRef       oVoxel );
 void Surf_ConvertVoxelToSurfaceSpace ( xVoxelRef       iVoxel,
-               mriTransformRef iTransform,
-               xVoxelRef       oSurfVox );
+				       mriTransformRef iTransform,
+				       xVoxelRef       oSurfVox );
 
 Surf_tErr Surf_Verify ( mriSurfaceRef this );
 char* Surf_GetErrorString ( Surf_tErr ieCode );

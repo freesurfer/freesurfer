@@ -242,21 +242,32 @@ xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB );
 
 mriSurfaceRef gSurface[tkm_knNumSurfaceTypes];
 
-tkm_tErr LoadSurface        ( tkm_tSurfaceType iType, 
-        char*     isName );
+tkm_tErr LoadSurface          ( tkm_tSurfaceType iType, 
+				char*     isName );
 tkm_tErr LoadSurfaceVertexSet ( tkm_tSurfaceType iType, 
-        Surf_tVertexSet   iSet,
-        char*     fname );
-void   UnloadSurface        ( tkm_tSurfaceType iType );
+				Surf_tVertexSet   iSet,
+				char*     fname );
+void   UnloadSurface          ( tkm_tSurfaceType iType );
 
-void   WriteSurfaceValues   ( tkm_tSurfaceType iType, 
-        char*     isFileName );
+void   WriteSurfaceValues     ( tkm_tSurfaceType iType, 
+				char*     isFileName );
+
+void GotoSurfaceVertex                    ( Surf_tVertexSet iSurface, 
+					    int inVertex );
+void FindNearestSurfaceVertex             ( Surf_tVertexSet iSet );
+void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet );
+void AverageSurfaceVertexPositions        ( int inNumAverages );
 
 // ===========================================================================
 
 // ========================================================= SELECTING REGIONS
 
-/* selecting regions works much like editing. the user chooses a brush shape and size and paints in a region. the tool can be toggled between selecting and unselecting. the selected pixels are kept in a voxel space for optimized retreival in the draw loop. there are the usual functions for adding and removing voxels as well as saving them out to a file. */
+/* selecting regions works much like editing. the user chooses a brush
+   shape and size and paints in a region. the tool can be toggled
+   between selecting and unselecting. the selected pixels are kept in
+   a voxel space for optimized retreival in the draw loop. there are
+   the usual functions for adding and removing voxels as well as
+   saving them out to a file. */
 
 x3DListRef gSelectedVoxels;
 
@@ -2002,10 +2013,14 @@ void GotoSurfaceVertex ( Surf_tVertexSet iSurface, int inVertex ) {
   char      sDescription[STRLEN];
   char      sSetName[STRLEN];
   
+  /* make sure we have a surface. */
+  if( NULL == gSurface[tkm_tSurfaceType_Main] )
+    goto error;
+
   /* get the vertex */
   eSurface = Surf_GetNthVertex( gSurface[tkm_tSurfaceType_Main],
-        iSurface, inVertex, &anaIdx,
-        sDescription );
+				iSurface, inVertex, &anaIdx,
+				sDescription );
   if( Surf_tErr_NoErr != eSurface ) 
     goto error;
   
@@ -2044,6 +2059,10 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSet ) {
   char      sDescription[STRLEN];
   char      sSetName[STRLEN];
   
+  /* make sure we have a surface. */
+  if( NULL == gSurface[tkm_tSurfaceType_Main] )
+    goto error;
+
   /* get the cursor */
   eWindow = MWin_GetCursor ( gMeditWindow, &cursor );
   if( MWin_tErr_NoErr != eWindow )
@@ -2096,6 +2115,10 @@ void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet ) {
   char      sDescription[STRLEN];
   char      sSetName[STRLEN];
   
+  /* make sure we have a surface. */
+  if( NULL == gSurface[tkm_tSurfaceType_Main] )
+    goto error;
+
   /* get the cursor */
   eWindow = MWin_GetCursor ( gMeditWindow, &cursor );
   if( MWin_tErr_NoErr != eWindow )
@@ -2136,6 +2159,37 @@ void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet ) {
   
   DebugPrint( ( "Error in FindNearestInterpolatedSurfaceVertex( %d )\n",
 		(int)iSet ) );
+  
+ cleanup:
+  return;
+}
+
+void AverageSurfaceVertexPositions ( int inNumAverages ) {
+  
+  Surf_tErr eSurface = Surf_tErr_NoErr;
+  MWin_tErr eWindow  = MWin_tErr_NoErr;
+
+  /* make sure we have a surface. */
+  if( NULL == gSurface[tkm_tSurfaceType_Main] )
+    goto error;
+
+  /* call the average function. */
+  eSurface = Surf_AverageVertexPositions( gSurface[tkm_tSurfaceType_Main],
+					  inNumAverages );
+  if( Surf_tErr_NoErr != eSurface )
+    goto error;
+  
+  /* redraw the window. */
+  eWindow = MWin_RedrawAll( gMeditWindow );
+  if( MWin_tErr_NoErr != eWindow )
+    goto error;
+  
+  goto cleanup;
+  
+ error:
+  
+  DebugPrint( ( "Error in AverageSurfaceVertexPositions( %d )\n",
+		(int)inNumAverages ) );
   
  cleanup:
   return;
@@ -3602,6 +3656,24 @@ int TclShowNearestInterpolatedCanonicalVertex ( ClientData inClientData,
   return TCL_OK;
 }
 
+int TclAverageSurfaceVertexPositions ( ClientData inClientData, 
+				       Tcl_Interp* inInterp,
+				       int argc, char* argv[] ) {
+  
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp,
+		    "wrong # args: AverageSurfaceVertexPositions num_averages",
+		    TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    AverageSurfaceVertexPositions ( atoi(argv[1]) );
+  }  
+  
+  return TCL_OK;
+}
+
 
 int TclLoadSegmentationVolume ( ClientData inClientData, 
         Tcl_Interp* inInterp,
@@ -4714,6 +4786,10 @@ int main ( int argc, char** argv ) {
   
   Tcl_CreateCommand ( interp, "ShowNearestInterpolatedCanonicalVertex",
 		      TclShowNearestInterpolatedCanonicalVertex,
+		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
+  Tcl_CreateCommand ( interp, "AverageSurfaceVertexPositions",
+		      TclAverageSurfaceVertexPositions,
 		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadSegmentationVolume",
