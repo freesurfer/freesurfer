@@ -23,7 +23,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.82 2004/10/27 20:31:41 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.83 2005/01/21 15:57:43 fischl Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -79,6 +79,7 @@ static char vcid[] = "$Id: mri_fill.c,v 1.82 2004/10/27 20:31:41 fischl Exp $";
                                 GLOBAL DATA
 -------------------------------------------------------------------*/
 
+static int fillven = 0 ;
 static FILE *log_fp = NULL ;
 static int lh_fill_val = MRI_LEFT_HEMISPHERE ;
 static int rh_fill_val = MRI_RIGHT_HEMISPHERE ;
@@ -309,7 +310,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.82 2004/10/27 20:31:41 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.83 2005/01/21 15:57:43 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -357,9 +358,9 @@ main(int argc, char *argv[])
     MRI *mri_p_wm ;
     char subjects_dir[STRLEN], mri_dir[STRLEN], *cp ;
 
-    cp = getenv("MRI_DIR") ;
+    cp = getenv("FREESURFER_HOME") ;
     if (!cp)
-      ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment",
+      ErrorExit(ERROR_BADPARM, "%s: could not read FREESURFER_HOME from environment",
                 Progname) ;
     strcpy(mri_dir, cp) ;
 
@@ -981,9 +982,9 @@ main(int argc, char *argv[])
     MRI *mri_p_ventricle, *mri_fg, *mri_bg, *mri_T1, *mri_ventricle ;
     char subjects_dir[STRLEN], mri_dir[STRLEN], *cp ;
 
-    cp = getenv("MRI_DIR") ;
+    cp = getenv("FREESURFER_HOME") ;
     if (!cp)
-      ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment",
+      ErrorExit(ERROR_BADPARM, "%s: could not read FREESURFER_HOME from environment",
                 Progname) ;
     strcpy(mri_dir, cp) ;
 
@@ -1246,6 +1247,12 @@ get_option(int argc, char *argv[])
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d,  %d,  %d)\n", Gx, Gy, Gz)  ;
+  }
+  else if (!strcmp(option, "fillven"))
+  {
+		fillven = atoi(argv[2]) ;
+		printf("%sfilling ventricles\n", fillven ? "not " : "") ;
+    nargs = 1 ;
   }
   else if (!strcmp(option, "lh"))
   {
@@ -2758,9 +2765,9 @@ mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix,
   MRI  *mri_mean, *mri_std, *mri_tmp ;
   char *mri_dir, fname[STRLEN] ;
 
-  mri_dir = getenv("MRI_DIR") ;
+  mri_dir = getenv("FREESURFER_HOME") ;
   if (!mri_dir)
-    ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment\n") ;
+    ErrorExit(ERROR_BADPARM, "%s: could not read FREESURFER_HOME from environment\n") ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_T1, NULL) ;
@@ -2805,9 +2812,9 @@ mriReadBinaryProbabilities(char *atlas_name, char *suffix, M3D *m3d,
   MRI  *mri_priors, *mri_T1, *mri_on_conditional, *mri_off_conditional, *mri_tmp ;
   char *mri_dir, *subjects_dir, fname[STRLEN] ;
 
-  mri_dir = getenv("MRI_DIR") ;
+  mri_dir = getenv("FREESURFER_HOME") ;
   if (!mri_dir)
-    ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment\n") ;
+    ErrorExit(ERROR_BADPARM, "%s: could not read FREESURFER_HOME from environment\n") ;
   subjects_dir = getenv("SUBJECTS_DIR") ;
   if (!subjects_dir)
     ErrorExit(ERROR_BADPARM, 
@@ -3308,19 +3315,19 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
       for (x = 0 ; x < width ; x++)
       {
         if (x == Gx && y == Gy && z == Gz)  
-           DiagBreak() ;
+					DiagBreak() ;
         label = MRIvox(mri_seg, x, y, z) ;
         
         switch (label)
         {
-	case Unknown:
-	  wsize=5 ;
-	  if (MRIlabelsInNbhd(mri_seg, x, y, z, (wsize-1)/2, Unknown) < (wsize*wsize*wsize-1))
-	    break ;
+				case Unknown:
+					wsize=5 ;
+					if (MRIlabelsInNbhd(mri_seg, x, y, z, (wsize-1)/2, Unknown) < (wsize*wsize*wsize-1))
+						break ;
 	  
-	  /* !!! no break - erase unknown if it is surrounded by only  unknowns */
+					/* !!! no break - erase unknown if it is surrounded by only  unknowns */
 	  
-	  /* erase these  labels */
+					/* erase these  labels */
         case Left_Cerebellum_White_Matter:
         case Left_Cerebellum_Exterior:
         case Left_Cerebellum_Cortex:
@@ -3344,15 +3351,15 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
           }
           break ;
 	  
-	  /* fill these */
-	case Left_Lesion:
-	case Right_Lesion:
-	case WM_hypointensities:
-	case Left_WM_hypointensities:
-	case Right_WM_hypointensities:
-	case non_WM_hypointensities:
-	case Left_non_WM_hypointensities:
-	case Right_non_WM_hypointensities:
+					/* fill these */
+				case Left_Lesion:
+				case Right_Lesion:
+				case WM_hypointensities:
+				case Left_WM_hypointensities:
+				case Right_WM_hypointensities:
+				case non_WM_hypointensities:
+				case Left_non_WM_hypointensities:
+				case Right_non_WM_hypointensities:
           if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
               (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0) &&
               (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
@@ -3364,6 +3371,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 					break ;
         case Left_Lateral_Ventricle:
         case Right_Lateral_Ventricle:
+					if (fillven == 0)
+						break ;
         case Left_Inf_Lat_Vent:
         case Right_Inf_Lat_Vent:
           if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
@@ -3385,36 +3394,63 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
             MRIvox(mri_filled, x, yi, z) = 255 ;
             non++ ;
           }
+					if (label == Left_Inf_Lat_Vent || label ==  Right_Inf_Lat_Vent)  /* fill inferior wm */
+					{
+						int xi,  olabel ;
+	    
+						xi = label ==  Left_Inf_Lat_Vent ?  mri_wm->xi[x-1] :  mri_wm->xi[x+1] ;
+						olabel = MRIvox(mri_seg, xi, y, z) ;
+						if (olabel != label)  /* voxel lateral to this one is not hippocampus   */
+						{
+							MRIvox(mri_wm, xi, y, z) = 255 ;
+							MRIvox(mri_filled, xi, y, z) = 255 ;
+							non++ ;
+						}
+	    
+						yi = mri_wm->yi[y+1] ;
+						label = MRIvox(mri_seg, x,yi, z) ;
+						if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
+								 (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
+								&& (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
+						{
+							MRIvox(mri_wm, x, yi, z) = 255 ;
+							MRIvox(mri_filled, x, yi, z) = 255 ;
+							yi = mri_wm->yi[y+2] ;
+							MRIvox(mri_wm, x, yi, z) = 255 ;
+							MRIvox(mri_filled, x, yi, z) = 255 ;
+							non += 2 ;
+						}
+					}
           break ;
         case Left_Hippocampus:
         case Right_Hippocampus:
-	  {
-	    int xi,  olabel ;
+					{
+						int xi,  olabel ;
 	    
-	    xi = label == Right_Hippocampus ?  mri_wm->xi[x-1] :  mri_wm->xi[x+1] ;
-	    olabel = MRIvox(mri_seg, xi, y, z) ;
-	    if (olabel != label)  /* voxel lateral to this one is not hippocampus   */
-	    {
-	      MRIvox(mri_wm, xi, y, z) = 255 ;
-	      MRIvox(mri_filled, xi, y, z) = 255 ;
-	      non++ ;
-	    }
+						xi = label == Right_Hippocampus ?  mri_wm->xi[x-1] :  mri_wm->xi[x+1] ;
+						olabel = MRIvox(mri_seg, xi, y, z) ;
+						if (olabel != label)  /* voxel lateral to this one is not hippocampus   */
+						{
+							MRIvox(mri_wm, xi, y, z) = 255 ;
+							MRIvox(mri_filled, xi, y, z) = 255 ;
+							non++ ;
+						}
 	    
-	    yi = mri_wm->yi[y+1] ;
-	    label = MRIvox(mri_seg, x,yi, z) ;
-	    if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
-		 (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
-		&& (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
-	    {
-	      MRIvox(mri_wm, x, yi, z) = 255 ;
-	      MRIvox(mri_filled, x, yi, z) = 255 ;
-	      yi = mri_wm->yi[y+2] ;
-	      MRIvox(mri_wm, x, yi, z) = 255 ;
-	      MRIvox(mri_filled, x, yi, z) = 255 ;
-	      non += 2 ;
-	    }
-	    break ;
-				}
+						yi = mri_wm->yi[y+1] ;
+						label = MRIvox(mri_seg, x,yi, z) ;
+						if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
+								 (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
+								&& (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
+						{
+							MRIvox(mri_wm, x, yi, z) = 255 ;
+							MRIvox(mri_filled, x, yi, z) = 255 ;
+							yi = mri_wm->yi[y+2] ;
+							MRIvox(mri_wm, x, yi, z) = 255 ;
+							MRIvox(mri_filled, x, yi, z) = 255 ;
+							non += 2 ;
+						}
+						break ;
+					}
         case Left_Accumbens_area:
         case Right_Accumbens_area:
         case Left_Caudate:
@@ -3448,37 +3484,37 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
     {
       for (y = 0 ; y < height ; y++)
       {
-	for (x = 0 ; x < width ; x++)
-	{
-	  if (x == Gx && y == Gy && z == Gz)  
-	    DiagBreak() ;
-	  if  (MRIvox(mri_filled, x,  y, z) == 0)
-	    continue  ;
-	  for (xk = -1 ; xk <= 1 ; xk++)
-	  {
-	    xi = mri_filled->xi[x+xk] ;
-	    for (yk = -1 ; yk <= 1 ; yk++)
-	    {
-	      yi = mri_filled->yi[y+yk] ;
-	      for (zk = -1 ; zk <= 1 ; zk++)
-	      {
-		zi = mri_filled->zi[z+zk] ;
-		if (xi == Gx && yi == Gy && zi == Gz)  
-		  DiagBreak() ;
-		label = MRIvox(mri_seg, xi, yi, zi) ;
-		if (IS_WM(label) &&  (MRIvox(mri_wm, xi, yi, zi) < WM_MIN_VAL))
-		{
-		  nchanged++ ;
-		  MRIvox(mri_wm, xi, yi, zi) = 255 ;
+				for (x = 0 ; x < width ; x++)
+				{
+					if (x == Gx && y == Gy && z == Gz)  
+						DiagBreak() ;
+					if  (MRIvox(mri_filled, x,  y, z) == 0)
+						continue  ;
+					for (xk = -1 ; xk <= 1 ; xk++)
+					{
+						xi = mri_filled->xi[x+xk] ;
+						for (yk = -1 ; yk <= 1 ; yk++)
+						{
+							yi = mri_filled->yi[y+yk] ;
+							for (zk = -1 ; zk <= 1 ; zk++)
+							{
+								zi = mri_filled->zi[z+zk] ;
+								if (xi == Gx && yi == Gy && zi == Gz)  
+									DiagBreak() ;
+								label = MRIvox(mri_seg, xi, yi, zi) ;
+								if (IS_WM(label) &&  (MRIvox(mri_wm, xi, yi, zi) < WM_MIN_VAL))
+								{
+									nchanged++ ;
+									MRIvox(mri_wm, xi, yi, zi) = 255 ;
 #if 0
-		  MRIvox(mri_filled, xi, yi, zi) = 255 ;
+									MRIvox(mri_filled, xi, yi, zi) = 255 ;
 #endif
-		  non++ ;  
-		}
-	      }
-	    }
-	  }
-	}
+									non++ ;  
+								}
+							}
+						}
+					}
+				}
       }
     }
     printf("%d additional wm voxels added\n", nchanged)  ;
