@@ -5,6 +5,7 @@
 #include "mri.h"
 #include "mrisurf.h"
 #include "macros.h"
+#include "cma.h"
 
 #define IMGSIZE 256
 
@@ -15,6 +16,7 @@ MRI *MRIbitwiseand(MRI *mri1,MRI *mri2,MRI *mri_dst);
 MRI *MRIbitwiseor(MRI *mri1,MRI *mri2,MRI *mri_dst);
 MRI *MRIbitwisenot(MRI *mri_src,MRI *mri_dst);
 MRI *MRImajority(MRI *mri_src,MRI *mri_dst);
+MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri_dst,int hemisphere);
 
 /* MRIribbon determines the space between the inner and outer MRI surfaces provided, */
 /* and creates a volume in mri_dst corresponding to the input format mri_src */
@@ -460,7 +462,7 @@ printf("    (filled %d voxels)\n",newfilled);
   return mri_dst;
 }
 
-MRI *MRISpartialribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_src,MRI *mri_dst)
+MRI *MRISpartialribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_src,MRI *mri_dst,MRI *mri_mask,int hemisphere)
 {
   MRI *mri_inter1,*mri_inter2;
 
@@ -501,8 +503,90 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_
   printf("Converting volume to original resolution...\n");
   MRImajority(mri_dst,mri_dst);
 
+  /* If masked, change to CMA labels, add white matter label and apply to mask. */
+  if (mri_mask) {
+    /* Create white matter volume in mri_inter1, including shell */
+    printf("Creating full volume outside inner shell...\n");
+    MRISshell(mri_src,inner_mris,mri_inter1);
+    MRISfloodoutside(mri_inter1,mri_inter2);
+
+    printf("Inverting volume...\n");
+    MRISaccentuate(mri_inter2,mri_inter2,1,254);
+    /* White matter volume includes inner surface (note that complement of 0 is 1, therefore accentuate). */
+    MRIcomplement(mri_inter2,mri_inter2);
+    MRISaccentuate(mri_inter2,mri_inter2,1,254);
+
+    /* mri_dst contains cerebral cortex, mri_inter2 contains white matter and some of the gray inner shell */
+    printf("Merging labelled volumes...\n");
+    MRIcopy(mri_dst,mri_inter1);
+    MRImergecortexwhitecma(mri_inter1,mri_inter2,mri_mask,mri_dst,hemisphere);
+  }
+
   MRIfree(&mri_inter1);
   MRIfree(&mri_inter2);
+
+  return mri_dst;
+}
+
+MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri_dst,int hemisphere)
+{
+  /* mri_cortex = cerebral cortex is labelled as 255, all else is 0.
+     mri_white  = white matter and some of the inner gray matter shell is labelled as 255, all else is 0.
+     mri_cma    = CMA labelled volume.
+
+     This function takes the mri_cma volume and replaces all instances of:
+       Left_Cerebral_Cortex;
+       Left_Cerebral_White_Matter;
+       Right_Cerebral_Cortex;
+       Right_Cerebral_White_Matter;
+       Uknown,
+     with:
+       Left/Right_Cerebral_Cortex if labelled in mri_cortex;
+       Left/Right_Cerebral_White_Matter if labelled in mri_white (and not also labelled in mri_cortex),
+       where left/right hemisphere is given by hemisphere;
+       Unknown otherwise.
+  */
+
+  int width,height,depth,i,j,k,vox;
+
+  width=mri_cma->width;
+  height=mri_cma->height;
+  depth=mri_cma->depth;
+  if (!mri_dst) {
+    mri_dst = MRIalloc(width,height,depth,mri_cma->type);
+    MRIcopyHeader(mri_cma,mri_dst);
+  }
+
+  for (k=0; k<depth; k++)
+    for (j=0; j<height; j++)
+      for (i=0; i<width; i++) {
+        vox=MRIvox(mri_cma,i,j,k);
+        MRIvox(mri_dst,i,j,k)=vox;
+        if (hemisphere==MRI_LEFT_HEMISPHERE) {
+          if ((vox==Left_Cerebral_Cortex)||(vox==Left_Cerebral_White_Matter)||(vox==Unknown)) {
+            if (MRIvox(mri_cortex,i,j,k)==255)
+              MRIvox(mri_dst,i,j,k)=Left_Cerebral_Cortex;
+            else {
+              if (MRIvox(mri_white,i,j,k)==255)
+                MRIvox(mri_dst,i,j,k)=Left_Cerebral_White_Matter;
+              else
+                MRIvox(mri_dst,i,j,k)=Unknown;
+            }
+          }
+        }
+        if (hemisphere==MRI_RIGHT_HEMISPHERE) {
+          if ((vox==Right_Cerebral_Cortex)||(vox==Right_Cerebral_White_Matter)||(vox==Unknown)) {
+            if (MRIvox(mri_cortex,i,j,k)==255)
+              MRIvox(mri_dst,i,j,k)=Right_Cerebral_Cortex;
+            else {
+              if (MRIvox(mri_white,i,j,k)==255)
+                MRIvox(mri_dst,i,j,k)=Right_Cerebral_White_Matter;
+              else
+                MRIvox(mri_dst,i,j,k)=Unknown;
+            }
+          }
+        }
+      }
 
   return mri_dst;
 }
