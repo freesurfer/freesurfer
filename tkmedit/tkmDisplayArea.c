@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/02/12 18:54:52 $
-// Revision       : $Revision: 1.50 $
+// Revision Date  : $Date: 2003/02/26 22:04:38 $
+// Revision       : $Revision: 1.51 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -4968,19 +4968,17 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
   int                 nSlice               = 0;
   Surf_tVertexSet     surface              = Surf_tVertexSet_Main;
   xPoint2f            zeroPoint            = {0,0};
-  xVoxelRef           curPlane             = NULL;
+  xVoxel              curPlane;
   DspA_tSurfaceListNode drawListNode;
-  xVoxelRef           anaVertex            = NULL; 
-  xVoxelRef           anaNeighborVertex    = NULL;
+  xVoxel              anaVertex;
+  xVoxel              anaNeighborVertex;
+  xVoxel              normAnaVertex;
+  xVoxel              normAnaNeighborVertex;
   int                 nVertexIndex         = -1;
   int                 nNeighborVertexIndex = -1;
   xPoint2f            intersectionPt       = {0, 0};
   xPoint2f            interpIntersectionPt = {0, 0};
   tBoolean            bPointsOnThisFace    = FALSE;
-  
-  xVoxl_New( &curPlane );
-  xVoxl_New( &anaVertex );
-  xVoxl_New( &anaNeighborVertex );
   
   /* get the current slice. */
   nSlice = DspA_GetCurrentSliceNumber_( this );
@@ -5023,8 +5021,8 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
     /* make a voxel with our current slice in it and
        set the iterator to our view */
     DspA_ConvertPlaneToVolume_ ( this, &zeroPoint, nSlice, this->mOrientation,
-				 curPlane ); 
-    eSurface = Surf_SetIteratorPosition( this->mpSurface[iType], curPlane );
+				 &curPlane ); 
+    eSurface = Surf_SetIteratorPosition( this->mpSurface[iType], &curPlane );
     if( Surf_tErr_NoErr != eSurface )
       goto error;
     
@@ -5033,20 +5031,22 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
     /* while we have vertices to check.. */
     while( (eSurface = Surf_GetNextAndNeighborVertex( this->mpSurface[iType],
 						      surface,
-						      anaVertex, 
+						      &anaVertex, 
 						      &nVertexIndex,
-						      anaNeighborVertex, 
+						      &anaNeighborVertex, 
 						      &nNeighborVertexIndex ))
 	   != Surf_tErr_LastFace ) {
       
       /* if the line between these two points intersects the
 	 current plane... */
-      DspA_NormalizeVoxel_( anaVertex, 
-			    this->mOrientation, anaVertex );
-      DspA_NormalizeVoxel_( anaNeighborVertex, 
-			    this->mOrientation, anaNeighborVertex );
-      if ( xUtil_LineIntersectsPlane( anaVertex, anaNeighborVertex, nSlice, 
+      DspA_NormalizeVoxel_( &anaVertex, 
+			    this->mOrientation, &normAnaVertex );
+      DspA_NormalizeVoxel_( &anaNeighborVertex, 
+			    this->mOrientation, &normAnaNeighborVertex );
+      if ( xUtil_LineIntersectsPlane( &normAnaVertex, &normAnaNeighborVertex, 
+				      nSlice, 
 				      &intersectionPt, &interpIntersectionPt)){
+
 	/* fill out a node. */
 	drawListNode.mbVertex = TRUE;
 	drawListNode.mnOriginalVertexIndex = nVertexIndex;
@@ -5056,12 +5056,8 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
 
 	/* the original vertex is just the (unnormalized) anatomical
 	   vertex. same with the neighbor vertex. */
-	DspA_UnnormalizeVoxel_( anaVertex,
-				this->mOrientation,
-				&drawListNode.mOriginalVertex );
-	DspA_UnnormalizeVoxel_( anaNeighborVertex,
-				this->mOrientation,
-				&drawListNode.mNeighborVertex );
+	xVoxl_Copy( &drawListNode.mOriginalVertex, &anaVertex );
+	xVoxl_Copy( &drawListNode.mNeighborVertex, &anaNeighborVertex );
 
 	/* the interp vertex is a normalized point with x/y coords of
 	   the intersection point and the z coord of the cur slice,
@@ -5105,7 +5101,7 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
       }
       
     }
-    
+
     /* if surface error is just on last face, clear it. */
     if( Surf_tErr_LastFace == eSurface ) 
       eSurface = Surf_tErr_NoErr;
@@ -5132,10 +5128,6 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
   }
   
  cleanup:
-  
-  xVoxl_Delete( &curPlane );
-  xVoxl_Delete( &anaVertex );
-  xVoxl_Delete( &anaNeighborVertex );
   
   return eResult;
 }
