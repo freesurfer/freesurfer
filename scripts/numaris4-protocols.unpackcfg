@@ -16,12 +16,15 @@
 # 1. The protcol name is as found in DICOM tag 0x18, 0x1030 with any
 # white space removed.
 # 
-# $Id: numaris4-protocols.unpackcfg,v 1.1 2002/02/26 01:23:59 greve Exp $
+# $Id: numaris4-protocols.unpackcfg,v 1.2 2002/04/16 20:33:11 greve Exp $
 #
 localizer                scout        bshort f
 SagMPRAGE8Min            3danat       COR    na
 SagMPRAGE4Min            3danat       COR    na
 SagMPR8Minrevroscaled    3danat       COR    na
+FlatSag3D_scaled_4min    3danat       COR    na
 T1ep2dHighRes            t1epi        bshort f
 T2TSEAxialHiRes          t2conv       bshort f
 ep2d_mosaic_mgh          bold         bshort f
+Doug_functional          bold         bshort f
+t1w_epi                  t1epi        bshort f
