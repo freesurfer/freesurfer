@@ -334,4 +334,7 @@ int GCAreplaceRightWithLeft(GCA *gca) ;
 
 extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label ;
 
+
+#define GCA_DEFAULT_NOISE_PARAMETER  1
+
 #endif
