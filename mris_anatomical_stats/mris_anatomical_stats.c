@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.3 1999/01/29 22:57:19 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.4 1999/02/01 15:11:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -131,6 +131,8 @@ main(int argc, char *argv[])
     LABEL  *area ;
 
     area = LabelRead(sname, label_name) ;
+    if (!area)
+      ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", sname) ;
     LabelRipRestOfSurface(area, mris) ;
     LabelFree(&area) ;
     MRIScomputeMetricProperties(mris) ;
