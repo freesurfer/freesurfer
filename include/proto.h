@@ -74,6 +74,8 @@ void swab(const void *from, void *to, size_t n);
 #ifdef SunOS
 #define nint(f)   ((int)(rint((double)f)))
 int stricmp(char *str1, char *str2) ;
+#include <ieeefp.h>
+
 #endif
 
 /*----------- IRIX (SGI) -------------------*/
