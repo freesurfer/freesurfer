@@ -2,7 +2,7 @@
 
 set inputargs = ($argv);
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set VERSION = '$Id: isxavg-re,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set VERSION = '$Id: isxavg-re,v 1.2 2003/08/11 18:56:38 greve Exp $'
 
 # Set Default Values #
 set firstslice = 0;
@@ -108,6 +108,17 @@ if(! $monly ) then
   echo "------- matlab output --------------------" | tee -a $LF
   cat $MLF | $MATLAB -display iconic 
   rm $MLF
+
+  set bhdr0 = $instems[1].bhdr
+  if(-e $bhdr0) then
+    if($#tstem)       cp $bhdr0 $tstem.bhdr
+    if($#sigstem)     cp $bhdr0 $sigstem.bhdr
+    if($#minsigstem)  cp $bhdr0 $minsigstem.bhdr
+    if($#iminsigstem) cp $bhdr0 $iminsigstem.bhdr
+    if($#avgstem)     cp $bhdr0 $avgstem.bhdr
+    if($#stdstem)     cp $bhdr0 $stdstem.bhdr
+  endif
+
 endif
 
 echo " " | tee -a $LF
