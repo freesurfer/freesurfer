@@ -62,13 +62,6 @@ scuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER
 LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL)
 scuba_LDFLAGS=
 
-if WANT_QTSCUBA
-	bin_PROGRAMS += qtscuba
-	qtscuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) QTScubaWidget.cpp qtscuba.cpp
-	qtscuba_CXXFLAGS=-I${QTDIR}/include
-	qtscuba_LDFLAGS=-L${QTDIR}/lib -lqt-mt
-endif
-
 foodir=$(prefix)/lib/tcl
 foo_SCRIPTS=scuba.tcl tkcon.tcl
 
@@ -81,6 +74,14 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testScubaView testScubaFrame \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
 	testVectorOps testRASToVoxel testCoordTimer
+
+# if WANT_QTSCUBA
+# bin_PROGRAMS += qtscuba
+# qtscuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) QTScubaWidget.cpp qtscuba.cpp
+# qtscuba_CXXFLAGS=-I${QTDIR}/include
+# qtscuba_LDFLAGS=-L${QTDIR}/lib -lqt-mt
+# check_PROGRAMS += testVolumeHistogram
+# endif
 
 TESTS=$(check_PROGRAMS) 
 
@@ -148,3 +149,8 @@ testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
 
 
+# if WANT_QTSCUBA
+# testVolumeHistogram_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) QtVolumeHistogram.cpp test_VolumeHistogram.cpp
+# testVolumeHistogram_CXXFLAGS=-I${QTDIR}/include
+# testVolumeHistogram_LDFLAGS=-L${QTDIR}/lib -lqt-mt
+# endif

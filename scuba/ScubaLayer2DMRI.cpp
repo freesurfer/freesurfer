@@ -29,6 +29,10 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   mbEditableROI = true;
   mbClearZero = false;
   mTimersSinceLastAutosave = 0;
+  mMinVisibleValue = 0;
+  mMaxVisibleValue = 0;
+  mBufferIncSize[0] = mBufferIncSize[1] = -1;
+  mRowStartRAS = mColIncrementRAS = NULL;
 
   // Try setting our initial color LUT to the default LUT with
   // id 0. If it's not there, create it.
@@ -152,20 +156,70 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   }
 
   GLubyte* dest = iBuffer;
-  int window[2];
-  float RAS[3];
+  int window[2], window2[2];
+  float RAS[3], RAS2[3];
   float value = 0;
   int color[3];
 
+  // Init our buffers if necessary.
+  if( iWidth != mBufferIncSize[0] || iHeight != mBufferIncSize[1] ) {
+
+    // Delete existing buffer if necessary.
+    if( mRowStartRAS != NULL ) {
+      for( int nRow = 0; nRow < mBufferIncSize[1]; nRow++ )
+	free( mRowStartRAS[nRow] );
+      free( mRowStartRAS );
+    }
+
+    if( mColIncrementRAS != NULL ) {
+      for( int nRow = 0; nRow < mBufferIncSize[1]; nRow++ )
+	free( mColIncrementRAS[nRow] );
+      free( mColIncrementRAS );
+    }
+
+    // Init new buffer arrays.
+    mRowStartRAS =     (float**) calloc(iHeight, sizeof(float*));
+    mColIncrementRAS = (float**) calloc(iHeight, sizeof(float*));
+    for( int nRow = 0; nRow < iHeight; nRow++ ) {
+      mRowStartRAS[nRow] =     (float*) calloc( 3, sizeof(float) );
+      mColIncrementRAS[nRow] = (float*) calloc( 3, sizeof(float) );
+    }
+
+    // Save the size of our new buffer.
+    mBufferIncSize[0] = iWidth;
+    mBufferIncSize[1] = iHeight;
+  }
+
+  // Find the increments.
+  for( int nRow = 0; nRow < iHeight; nRow++ ) {
+
+    window[0] = 0; window[1] = nRow;
+    iTranslator.TranslateWindowToRAS( window, mRowStartRAS[nRow] );
+    
+    window2[0] = 1; window2[1] = nRow;
+    iTranslator.TranslateWindowToRAS( window2, RAS2 );
+    mColIncrementRAS[nRow][0] = RAS2[0] - mRowStartRAS[nRow][0];
+    mColIncrementRAS[nRow][1] = RAS2[1] - mRowStartRAS[nRow][1];
+    mColIncrementRAS[nRow][2] = RAS2[2] - mRowStartRAS[nRow][2];
+  }
+
+  // Create a dummy location, we'll change it soon. Note to self:
+  // learn how to use C++ references properly.
+  RAS[0] = RAS[1] = RAS[2] = 0;
+  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS );
+
   for( window[1] = 0; window[1] < iHeight; window[1]++ ) {
+
+    // Grab the RAS beginning for this row.
+    RAS[0] = mRowStartRAS[window[1]][0];
+    RAS[1] = mRowStartRAS[window[1]][1];
+    RAS[2] = mRowStartRAS[window[1]][2];
+
     for( window[0] = 0; window[0] < iWidth; window[0]++ ) {
 
-      // Translate the window coord to an RAS and put it in our cache.
-      iTranslator.TranslateWindowToRAS( window, RAS );
+      // Set the location from this RAS.
+      loc.SetFromRAS( RAS );
 
-      VolumeLocation& loc = (VolumeLocation&) 
-	mVolume->MakeLocationFromRAS( RAS );
-      
       int selectColor[3];
       if( mVolume->IsInBounds( loc ) ) {
 
@@ -201,8 +255,13 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	}
       }
 
-      delete &loc;
+      // Increment the dest buffer pointer.
       dest += mBytesPerPixel;
+
+      // Increment the RAS point.
+      RAS[0] += mColIncrementRAS[window[1]][0];
+      RAS[1] += mColIncrementRAS[window[1]][1];
+      RAS[2] += mColIncrementRAS[window[1]][2];
     }
   }
 
@@ -236,7 +295,6 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       }
     }
   }
-
 
 }
 
@@ -961,23 +1019,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       if( mVolume->IsInBounds( loc ) ) {
 
 	VolumeCollectionFlooder::Params params;
-	params.mSourceCollection  = iTool.GetFloodSourceCollection();
-	params.mbStopAtPaths      = iTool.GetFloodStopAtPaths();
-	params.mbStopAtROIs       = iTool.GetFloodStopAtROIs();
-	params.mb3D               = iTool.GetFlood3D();
-	params.mFuzziness         = iTool.GetFloodFuzziness();
-	params.mMaxDistance       = iTool.GetFloodMaxDistance();
-	params.mViewNormal[0]     = iViewState.mPlaneNormal[0];
-	params.mViewNormal[1]     = iViewState.mPlaneNormal[1];
-	params.mViewNormal[2]     = iViewState.mPlaneNormal[2];
-	params.mbOnlyZero         = iTool.GetOnlyFloodZero();
-	params.mFuzzinessType     = 
-	  (VolumeCollectionFlooder::Params::FuzzinessType) iTool.GetFuzzinessType();
-	if( !iTool.GetFlood3D() ) {
-	  params.mbWorkPlaneX     = (iViewState.mInPlane == 0);
-	  params.mbWorkPlaneY     = (iViewState.mInPlane == 1);
-	  params.mbWorkPlaneZ     = (iViewState.mInPlane == 2);
-	}
+	SetFloodParams( iTool, iViewState, params );
 
 	// Create and run the flood object.
 	VolumeCollectionFlooder* flooder = NULL;
@@ -1226,7 +1268,41 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  }
 
 	  pathMgr.ManagePath( *mCurrentPath );
+
+	  // If Shift is down, fill this path.
+	  if( iInput.IsShiftKeyDown() ) {
+	    Point3<float> seed;
+	    float offsets[6][3];
+	    bzero( offsets, sizeof(float) * 6 * 3 );
+	    offsets[0][0] = GetPreferredBrushRadiusIncrement();
+	    offsets[1][1] = GetPreferredBrushRadiusIncrement();
+	    offsets[2][2] = GetPreferredBrushRadiusIncrement();
+	    offsets[3][0] = -GetPreferredBrushRadiusIncrement();
+	    offsets[4][1] = -GetPreferredBrushRadiusIncrement();
+	    offsets[5][2] = -GetPreferredBrushRadiusIncrement();
+	    for( int nOffset = 0; nOffset < 6; nOffset++ ) {
+	      try {
+		seed.Set( ras[0] + offsets[nOffset][0], 
+			  ras[1] + offsets[nOffset][1], 
+			  ras[2] + offsets[nOffset][2] );
+		if( mCurrentPath->PointInPath( seed ) ) {
+		  cerr << "filling at " << seed << endl;
+		  VolumeCollectionFlooder::Params params;
+		  SetFloodParams( iTool, iViewState, params );
+		  params.mMaxDistance = 10;
+		  params.mb3D = false;
+		  params.mbStopAtPaths = true;
+		  ScubaLayer2DMRIFloodVoxelEdit flooder( iTool.GetNewValue() );
+		  flooder.Flood( *mVolume, seed.xyz(), params );
+		  break;
+		}
+	      }
+	      catch(...) {}
+	    }
+	  }
+
 	  mCurrentPath = NULL;
+
 	  break;
 	}
       }
@@ -1521,6 +1597,30 @@ ScubaLayer2DMRI::GetPreferredBrushRadiusIncrement () {
 	 MIN ( mVolume->GetVoxelYSize(), mVolume->GetVoxelZSize() ) );
   return (smallestVoxelSize / 2.0);
 }
+
+void
+ScubaLayer2DMRI::SetFloodParams ( ScubaToolState& iTool, ViewState& iViewState,
+				  VolumeCollectionFlooder::Params& ioParams ) {
+
+  ioParams.mSourceCollection  = iTool.GetFloodSourceCollection();
+  ioParams.mbStopAtPaths      = iTool.GetFloodStopAtPaths();
+  ioParams.mbStopAtROIs       = iTool.GetFloodStopAtROIs();
+  ioParams.mb3D               = iTool.GetFlood3D();
+  ioParams.mFuzziness         = iTool.GetFloodFuzziness();
+  ioParams.mMaxDistance       = iTool.GetFloodMaxDistance();
+  ioParams.mViewNormal[0]     = iViewState.mPlaneNormal[0];
+  ioParams.mViewNormal[1]     = iViewState.mPlaneNormal[1];
+  ioParams.mViewNormal[2]     = iViewState.mPlaneNormal[2];
+  ioParams.mbOnlyZero         = iTool.GetOnlyFloodZero();
+  ioParams.mFuzzinessType     = 
+    (VolumeCollectionFlooder::Params::FuzzinessType) iTool.GetFuzzinessType();
+  if( !iTool.GetFlood3D() ) {
+    ioParams.mbWorkPlaneX     = (iViewState.mInPlane == 0);
+    ioParams.mbWorkPlaneY     = (iViewState.mInPlane == 1);
+    ioParams.mbWorkPlaneZ     = (iViewState.mInPlane == 2);
+  }
+}
+
 
 void
 ScubaLayer2DMRI::DoTimer () {

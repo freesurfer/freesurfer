@@ -104,6 +104,9 @@ class ScubaLayer2DMRI : public Layer {
 
   virtual float GetPreferredBrushRadiusIncrement ();
 
+  void SetFloodParams ( ScubaToolState& iTool, ViewState& iViewState,
+			VolumeCollectionFlooder::Params& ioParams );
+
  
  protected:
 
@@ -136,6 +139,11 @@ class ScubaLayer2DMRI : public Layer {
   Path<float>*   mCurrentPath;
   Point3<float>  mFirstPathRAS;
   Point3<float>  mLastPathMoveRAS;
+
+  // Remembering the screen increments.
+  int mBufferIncSize[2];
+  float** mRowStartRAS;
+  float** mColIncrementRAS;
 };
 
 // Flooders ============================================================

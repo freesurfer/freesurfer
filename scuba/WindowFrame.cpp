@@ -60,6 +60,7 @@ WindowFrame::MouseMoved( int iWindow[2], InputState& iInput ) {
 	// will be < 1.0.
 	float greater = fabsf(delta[0]) > fabsf(delta[1]) ?
 	  fabsf(delta[0]) : fabsf(delta[1]);
+
 	delta[0] /= greater;
 	delta[1] /= greater;
 	
@@ -85,6 +86,9 @@ WindowFrame::MouseMoved( int iWindow[2], InputState& iInput ) {
 	  // Increment the float window coords.
 	  windowF[0] += delta[0];
 	  windowF[1] += delta[1];
+
+	  if( windowF[0] < -10 || windowF[1] < -10 ) 
+	    exit( 1 );
 	} 
       } 
     } else {

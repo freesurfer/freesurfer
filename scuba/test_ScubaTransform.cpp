@@ -94,11 +94,14 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
     mWorldToIndexTransform.ApplyTransform( mDataToIndexTransform );
 
     Transform44& t = mWorldToIndexTransform;
-    Assert((t(0,0) == -0.5 && t(1,0) == 0 && t(2,0) == 0 && t(3,0) == 128 &&
-	    t(0,1) == 0 && t(1,1) == 0 && t(2,1) == -0.5 && t(3,1) == 128 &&
-	    t(0,2) == 0 && t(1,2) == 0.5 && t(2,2) == 0 && t(3,2) == 128 &&
-	    t(0,3) == 0 && t(1,3) == 0 && t(2,3) == 0 && t(3,3) == 1),
-	   "ApplyTransform case didn't work.");
+    if ( !(t(0,0) == -0.5 && t(1,0) == 0 && t(2,0) == 0 && t(3,0) == 128 &&
+	   t(0,1) == 0 && t(1,1) == 0 && t(2,1) == -0.5 && t(3,1) == 128 &&
+	   t(0,2) == 0 && t(1,2) == 0.5 && t(2,2) == 0 && t(3,2) == 128 &&
+	   t(0,3) == 0 && t(1,3) == 0 && t(2,3) == 0 && t(3,3) == 1) ) {
+
+      cerr << t << endl;
+      Assert( 0, "ApplyTransform case didn't work." );
+    }
 
 
 

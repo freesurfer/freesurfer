@@ -385,7 +385,7 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       mLevelLayerIDMap[iLevel] = iLayerID;
 
       // Set the layer's width and height.
-      layer.SetWidth( mWidth );
+      layer.SetWidth( mWidth);
       layer.SetHeight( mHeight );
 
       // Set pixel size.
@@ -2524,7 +2524,7 @@ ScubaView::BuildOverlay () {
   ScubaGlobalPreferences& prefs = ScubaGlobalPreferences::GetPreferences();
   if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawCoordinateOverlay )) {
 
-    int window[2];
+    int window[2] = {0, 0};
     float ras[3];
     char sXLabel, sYLabel, sZLabel;
     float left, right, top, bottom, plane;

@@ -665,6 +665,7 @@ ScubaFrame::DoReshape() {
 void
 ScubaFrame::DoTimer() {
 
+#if 0
   // In our timer function we scan our views and ask if they want
   // redisplays.
   for( int nRow = 0; nRow < mcRows; nRow++ ) {
@@ -686,6 +687,7 @@ ScubaFrame::DoTimer() {
       }
     }
   }  
+#endif
 }
 
 void
@@ -693,11 +695,16 @@ ScubaFrame::DoMouseMoved( int iWindow[2], InputState& iInput ) {
 
   try {
     int nRow, nCol;
+    
     View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
     if( NULL != view ) {
       int viewCoords[2];
       TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
       view->MouseMoved( viewCoords, iInput, mTool );
+      if( view->WantRedisplay() ) {
+	RequestRedisplay();
+	view->RedisplayPosted();
+      }
     }
   }
   catch(...) {
@@ -875,6 +882,7 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
 
 View*
 ScubaFrame::GetViewAtColRow( int iCol, int iRow ) {
+
   try { 
     View* view = (mViews[iRow])[iCol];
     if( NULL == view ) {

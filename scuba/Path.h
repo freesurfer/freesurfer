@@ -29,6 +29,10 @@ class Path : public IDTracker<Path<T> >,
 
   T GetSquaredDistanceOfClosestPoint ( T iMinDistance, Point3<T>& iWhere );
 
+  // Returns whether a point is in this path. Path must be an inplane
+  // polygon and be closed, otherwise the result won't be useful.
+  bool PointInPath ( Point3<T>& iPoint );
+  
   void Move ( Point3<T>& iDelta );
 
   int GetNumVertices () { return mVertices.size(); }

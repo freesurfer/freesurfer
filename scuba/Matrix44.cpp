@@ -374,34 +374,13 @@ Matrix44::ApplyTransformMatrix ( Matrix44& iTransform ) {
   cerr << "translateNew " << translateNew << endl;
   cerr << "rotateNew " << rotateNew << endl;
 #endif
-
+  
   // Now compose everything together.
   Matrix44 tmp3 = translateNew * translate;
   Matrix44 tmp4 = tmp3 * scaleApply;
   Matrix44 tmp5 = tmp4 * scale;
   Matrix44 tmp6 = tmp5 * rotateNew;
-  Matrix44 t = tmp5 * rotate;
-  //  Matrix44 t = translateNew * translate * scaleApply * scale * rotateNew * rotate;
-
-#if 0
-  cerr << "rotate";
-  cerr << rotate << endl;
-
-  cerr << "rotateNew * rotate";
-  cerr << rotateNew * rotate << endl;
-
-  cerr << "scale * rotateNew * rotate";
-  cerr << scale * rotateNew * rotate << endl;
-
-  cerr << "scaleApply * scale * rotateNew * rotate";
-  cerr << scaleApply * scale * rotateNew * rotate << endl;
-
-  cerr << "translate * scaleApply * scale * rotateNew * rotate";
-  cerr << translate * scaleApply * scale * rotateNew * rotate << endl;
-
-  cerr << "translateNew * translate * scaleApply * scale * rotateNew * rotate";
-  cerr << translateNew * translate * scaleApply * scale * rotateNew * rotate << endl;
-#endif
+  Matrix44 t = tmp6 * rotate;
 
   // Set us.
   SetMatrix( t );

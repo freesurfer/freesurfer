@@ -66,6 +66,7 @@ PreferencesManager::UseFile( string const ifnPrefs ) {
     // Local file first, then in home dir, then in usr/share.
     fnPrefs = "./" + ifnPrefs;
     
+    info.st_mode = (mode_t) 0; // Keep valgrind from complaining.
     rStat = stat( fnPrefs.c_str(), &info );
     if( !S_ISREG(info.st_mode) ) {
       char* homeDir = getenv("HOME");
@@ -266,7 +267,7 @@ PreferencesManager::WriteFile() {
 
   fPrefs << "begin-header" << endl;
   fPrefs << "# Scuba preferences file written " << ctime(&curTime);
-  fPrefs << "# $Id: PreferencesManager.cpp,v 1.11 2004/10/18 03:10:23 kteich Exp $" << endl;
+  fPrefs << "# $Id: PreferencesManager.cpp,v 1.12 2004/12/05 20:21:46 kteich Exp $" << endl;
   fPrefs << msHeader << endl << endl;
   fPrefs << "end-header" << endl << endl;
 

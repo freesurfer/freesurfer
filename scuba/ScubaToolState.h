@@ -12,6 +12,10 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
 
   enum Mode { navigation, plane, marker, voxelEditing, 
 	      roiEditing, straightPath, edgePath };
+  enum Shape { voxel, square, circle };
+  enum FuzzinessType { seed, gradient };
+
+  // Accessors.
   void SetMode ( Mode iMode ) { mMode = iMode; }
   Mode GetMode () { return mMode; }
 
@@ -30,7 +34,6 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetBrushRadius ( float iRadius ) { mBrushRadius = iRadius; }
   float GetBrushRadius () { return mBrushRadius; }
 
-  enum Shape { voxel, square, circle };
   void SetBrushShape ( Shape iShape ) { mBrushShape = iShape; }
   Shape GetBrushShape () { return mBrushShape; }
 
@@ -64,7 +67,6 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetOnlyFloodZero ( bool ibOnlyZero ) { mbOnlyFloodZero = ibOnlyZero; }
   bool GetOnlyFloodZero () { return mbOnlyFloodZero; }
 
-  enum FuzzinessType { seed, gradient };
   void SetFuzzinessType ( FuzzinessType iType ) { mFloodFuzzinessType =iType; }
   FuzzinessType GetFuzzinessType () { return mFloodFuzzinessType; }
 

@@ -372,6 +372,31 @@ VolumeCollection::GetMRINearestValue ( VolumeLocation& iLoc ) {
   
 }
 
+float
+VolumeCollection::GetMRINearestValueAtIndexUnsafe ( int iIndex[3] ) {
+
+  Real value = 0;
+  
+  switch( mMRI->type ) {
+  case MRI_UCHAR:
+    value = (float)MRIvox(mMRI, iIndex[0], iIndex[1], iIndex[2] );
+    break ;
+  case MRI_SHORT:
+    value = (float)MRISvox(mMRI, iIndex[0], iIndex[1], iIndex[2] );
+    break ;
+  case MRI_INT:
+    value = (float)MRIIvox(mMRI, iIndex[0], iIndex[1], iIndex[2] );
+    break ;
+  case MRI_FLOAT:
+    value = MRIFvox(mMRI, iIndex[0], iIndex[1], iIndex[2] );
+    break ;
+  default:
+    value = 0;
+  }
+  
+  return (float)value;
+}
+
 float 
 VolumeCollection::GetMRITrilinearValue ( VolumeLocation& iLoc ) {
 
@@ -1337,6 +1362,11 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
     return;
   }
 
+  // Set all bins to zero.
+  for( int nBin = 0; nBin < icBins; nBin++ ) {
+    oBinCounts[nBin] = 0;
+  }
+
   // Find values for all the RAS points. Save the highs and lows.
   float low = 999999;
   float high = -999999;
@@ -1366,6 +1396,42 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
   }
 
   oMinBinValue = low;
+  oBinIncrement = binIncrement;
+}
+
+void
+VolumeCollection::MakeHistogram ( int icBins,
+				  float iMinIgnore, float iMaxIgnore,
+				  float& oMinBinValue, float& oBinIncrement,
+				  map<int,int>& oBinCounts ) {
+
+  float binIncrement = (mMRIMaxValue - mMRIMinValue) / (float)icBins;
+
+  // Set all bins to zero.
+  for( int nBin = 0; nBin < icBins; nBin++ ) {
+    oBinCounts[nBin] = 0;
+  }
+
+  int index[3];
+  for( index[2] = 0; index[2] < mMRI->depth; index[2]++ ) {
+    for( index[1] = 0; index[1] < mMRI->height; index[1]++ ) {
+      for( index[0] = 0; index[0] < mMRI->width; index[0]++ ) {
+	
+	float value = GetMRINearestValueAtIndexUnsafe( index );
+	if( value >= iMinIgnore && value <= iMaxIgnore )
+	  continue;
+
+	int nBin = (int)floor( (value - mMRIMinValue) / (float)binIncrement );
+	if( nBin == icBins && value == mMRIMaxValue ) { 
+	  nBin = icBins-1;
+	}
+	oBinCounts[nBin]++;
+
+      }
+    }
+  }
+
+  oMinBinValue = mMRIMinValue;
   oBinIncrement = binIncrement;
 }
 
@@ -1719,5 +1785,14 @@ VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
 				 float const iRAS[3] )
   : DataLocation( iRAS ), mVolume( iVolume ) {
 
+  mVolume.RASToMRIIndex( iRAS, mIdx );
+}
+
+void
+VolumeLocation::SetFromRAS ( float const iRAS[3] ) {
+
+  mRAS[0] = iRAS[0];
+  mRAS[1] = iRAS[1];
+  mRAS[2] = iRAS[2];
   mVolume.RASToMRIIndex( iRAS, mIdx );
 }

@@ -1,6 +1,8 @@
 #include <math.h>
 #include "VectorOps.h"
 
+const float VectorOps::Epsilon = 0.00001;
+
 Point3<float> operator* ( float s, Point3<float>& v ) {
   return Point3<float>( v[0]*s, v[1]*s, v[2]*s );
 }
@@ -29,6 +31,16 @@ Point3<float> operator+ ( Point3<float> v, Point3<float> u ) {
 
 Point3<float> operator- ( Point3<float>& v, Point3<float>& u ) {
   return Point3<float>( v[0]-u[0], v[1]-u[1], v[2]-u[2] );
+}
+
+bool operator== ( Point3<float>& v, Point3<float>& u ) {
+  return ( fabs(v[0] - u[0]) < VectorOps::Epsilon &&
+	   fabs(v[1] - u[1]) < VectorOps::Epsilon &&
+	   fabs(v[2] - u[2]) < VectorOps::Epsilon );
+}
+
+bool operator!= ( Point3<float>& v, Point3<float>& u ) {
+  return !(v == u);
 }
 
 #if 0
@@ -80,7 +92,7 @@ VectorOps::RadsBetweenVectors ( Point3<float>& u, Point3<float>& v ) {
   double lu  = Length(u);
   double lv  = Length(v);
   double costheta = dot / (lu*lv);
-  if( fabs( costheta - -1.0 ) < 0.0001 ) return M_PI;
+  if( fabs( costheta - -1.0 ) < Epsilon ) return M_PI;
   return acos( costheta );
 }
 
@@ -89,6 +101,24 @@ VectorOps::Normalize ( Point3<float>& u ) {
   float length = Length(u);
   return Point3<float>( u[0]/length, u[1]/length, u[2]/length );
 }
+
+VectorOps::IntersectionResult
+VectorOps::PointInSegment ( Point3<float>& p,
+			    Point3<float>& q1, Point3<float> q2 ) {
+
+  if( q1[0] != q2[0] ) {
+    if( q1[0] <= p[0] && p[0] <= q2[0] ) return intersect;
+    if( q1[0] >= p[0] && p[0] >= q2[0] ) return intersect;
+  } else if( q2[1] != q2[1] ) {
+    if( q1[1] <= p[1] && p[1] <= q2[1] ) return intersect;
+    if( q1[1] >= p[1] && p[1] >= q2[1] ) return intersect;
+  } else {
+    if( q1[2] <= p[2] && p[2] <= q2[2] ) return intersect;
+    if( q1[2] >= p[2] && p[2] >= q2[2] ) return intersect;
+  }
+  return dontIntersect;
+}
+
 
 VectorOps::IntersectionResult 
 VectorOps::SegmentIntersectsPlane ( Point3<float>& p1, Point3<float>& p2,
@@ -101,8 +131,8 @@ VectorOps::SegmentIntersectsPlane ( Point3<float>& p1, Point3<float>& p2,
   float D = Dot( n, u );
   float N = -Dot( n, w );
   
-  if (fabs(D) < 0.00001) {          // segment is parallel to plane
-    if (fabs(N) < 0.00001)          // segment lies in plane
+  if (fabs(D) < Epsilon) {          // segment is parallel to plane
+    if (fabs(N) < Epsilon)          // segment lies in plane
       return segmentInPlane;
     else
       return segmentParallelToPlane; // no intersection
@@ -115,5 +145,114 @@ VectorOps::SegmentIntersectsPlane ( Point3<float>& p1, Point3<float>& p2,
   
   oIntersection = p1 + sI * u;    // compute segment intersect point
 
+  return intersect;
+}
+
+float
+VectorOps::PerpProduct ( Point3<float>& u, Point3<float>& v ) {
+
+  return( u[1]*v[2] - u[2]*v[1] + 
+	  u[2]*v[0] - u[0]*v[2] +
+	  u[0]*v[1] - u[1]*v[0] );
+}
+
+VectorOps::IntersectionResult
+VectorOps::SegmentIntersectsSegment ( Point3<float>& p1, Point3<float>& p2,
+				      Point3<float>& q1, Point3<float>& q2,
+				      Point3<float>& oIntersection ) {
+
+  Point3<float> u = p2 - p1;
+  Point3<float> v = q2 - q1;
+  Point3<float> w = p1 - q1;
+  float D = PerpProduct( u, v );
+
+  // This is true if they are parallel or either one is a point.
+  if( fabs(D) < Epsilon ) {
+    
+    // This is true if they are not collinear, so no intersection.
+    if( PerpProduct(u,w) != 0 ||
+	PerpProduct(v,w) != 0 ) {
+      return dontIntersect;
+    }
+
+    // Check if they are points.
+    float du = Dot( u, u );
+    float dv = Dot( v, v );
+    if( 0 == du && 0 == dv ) {
+      // Check if they are the same point. If not, no intersection, if
+      // so, they intersect at the point.
+      if( p1 != q1 ) {
+	return dontIntersect;
+      } else {
+	oIntersection = p1;
+	return intersect;
+      }
+    }
+
+    // p is the single point. Check if it's in q. If so, return p.
+    if( 0 == du ) {
+      if( PointInSegment( p1, q1, q2 ) == intersect ) {
+	oIntersection = p1;
+	return intersect;
+      } else {
+	return dontIntersect;
+      }
+    }
+    // q is the single point. Check if it's in p. If so, return q.
+    if( 0 == dv ) {
+      if( PointInSegment( q1, p1, p2 ) == intersect ) {
+	oIntersection = q1;
+	return intersect;
+      } else {
+	return dontIntersect;
+      }
+    }
+
+    // They are collinear. They may overlap or not.
+    // Find the endpoints of p in the equation of q.
+    float t0, t1;
+    Point3<float> w2 = p2 - q1;
+    if( 0 != v[0] ) {
+      t0 = w[0] / v[0];
+      t1 = w2[0] / v[0];
+    } else if( 0 != v[1] ) {
+      t0 = w[1] / v[1];
+      t1 = w2[1] / v[1];
+    } else {
+      t0 = w[2] / v[2];
+      t1 = w2[2] / v[2];
+    }
+    if( t0 > t1 ) { // Make sure t0 < t1.
+      float t = t0;
+      t0 = t1;
+      t1 = t;
+    }
+    if( t0 > 1 || t1 < 0 ) {
+      return dontIntersect;  // No overlap
+    }
+    t0 = t0 < 0 ? 0 : t0; // Clip t0 to 0.
+    t1 = t1 > 1 ? 1 : t1; // Clip t1 to 1.
+    if( t0 == t1 ) { // Intersection is a point.
+      oIntersection = q1 + (t0 * v);
+      return intersect;
+    }
+
+    // Intersection is a segment.
+    oIntersection = q1 + (t0 * v);
+    // oIntersection2 = q[0] + t1 * v;
+    return intersect;
+  }
+  
+  // Segments are skew and may intersect. Get intersect parameter for
+  // p and q and see if they intersect.
+  float pI = PerpProduct( v, w ) / D;
+  if( pI < 0 || pI > 1 ) 
+    return dontIntersect;
+
+  float qI = PerpProduct( u, w ) / D;
+  if( qI < 0 || qI > 1 )
+    return dontIntersect;
+  
+  oIntersection = p1 + (pI * u);
   return intersect;
 }

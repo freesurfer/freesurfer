@@ -33,6 +33,7 @@ class VolumeLocation : public DataLocation {
   VolumeLocation ( VolumeCollection& iVolume, float const iRAS[3] );
   ~VolumeLocation () {}
   int* Index() { return mIdx; }
+  void SetFromRAS( float const iRAS[3] );
  protected:
   VolumeCollection& mVolume;
   int mIdx[3];
@@ -172,6 +173,12 @@ class VolumeCollection : public DataCollection {
 		       float& oMinBinValue, float& oBinIncrement,
 		       std::map<int,int>& oBinCounts );
 
+  // Return a histogram for the entire volume.
+  void MakeHistogram ( int icBins, 
+		       float iMinIgnore, float iMaxIgnore,
+		       float& oMinBinValue, float& oBinIncrement,
+		       std::map<int,int>& oBinCounts );
+
   virtual void DataChanged ();
 
   // For autosaving.
@@ -192,6 +199,10 @@ protected:
 
   // Calculates the magnitude volume and saves it in mMagnitudeMRI.
   void MakeMagnitudeVolume ();
+
+  // Faster way of getting values.
+  float GetMRINearestValueAtIndexUnsafe ( int iIndex[3] );
+
 
   // Filename to use when reading or writing.
   std::string mfnMRI;

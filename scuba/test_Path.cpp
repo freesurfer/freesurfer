@@ -155,6 +155,47 @@ PathTester::Test () {
 	      "Vertices not moved correctly." );
     }
 
+    
+    // Test point inside path.
+    l.Clear();
+    f.Set( -0.5, 0, 0 ); l.AddVertex( f );
+    f.Set( 0, -0.5, 0 ); l.AddVertex( f );
+    f.Set( 0.5, 0, 0 ); l.AddVertex( f );
+    f.Set( 0, 0.5, 0 ); l.AddVertex( f );
+    bool bIn;
+    try {
+      bIn = l.PointInPath( f );
+      Assert( (0), "PointInPath failed to throw for open path." );
+    }
+    catch(...) {}
+    f.Set( -0.5, 0, 0 ); l.AddVertex( f );
+    f.Set( 0, 0, 0 );
+    bIn = l.PointInPath( f );
+    Assert( (bIn), "PointInPath failed." );
+    f.Set( 1, 1, 0 );
+    bIn = l.PointInPath( f );
+    Assert( (!bIn), "PointInPath failed." );
+    try {
+      f.Set( 1, 1, 1 );
+      bIn = l.PointInPath( f );
+      Assert( (0), "PointInPath failed to throw point in same plane." );
+    }
+    catch(...) {}
+
+    l.Clear();
+    f.Set( -0.5, 0, 0 ); l.AddVertex( f );
+    f.Set( 0, -0.5, 1 ); l.AddVertex( f );
+    f.Set( 0.5, 0, 0 ); l.AddVertex( f );
+    f.Set( 0, 0.5, 0 ); l.AddVertex( f );
+    f.Set( -0.5, 0, 0 ); l.AddVertex( f );
+    try {
+      bIn = l.PointInPath( f );
+      Assert( (0), "PointInPath failed to throw for non planar path." );
+    }
+    catch(...) {}
+
+
+
     // Test stream r/writing.
     ofstream sw( "/tmp/path.test", ios::out );
     int const cPaths = 10;

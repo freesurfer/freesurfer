@@ -32,6 +32,14 @@ VectorOpsTester::Test () {
     Point3<float> p;
     Point3<float> q;
 
+    p.Set( 1, 2, 3 ); q.Set( 4, 5, 6 );
+    Assert( !(p == q), "== didn't work." );
+    Assert( (p != q), "!= didn't work." );
+    p.Set( 1, 2, 3 ); q.Set( 1, 2, 3 );
+    Assert( (p == q), "== didn't work." );
+    Assert( !(p != q), "!= didn't work." );
+
+
     const int cVals = 10;
     float vals[cVals]; 
     for( int n = 0; n < cVals; n++ ) {
@@ -112,6 +120,57 @@ VectorOpsTester::Test () {
 
     Assert( fabs(sum - M_PI*2.0) < 0.0001,
 	    "angle sum was wrong" );
+
+
+    Point3<float> p1, p2, q1, q2;
+    p1.Set( 0, 0, 0 ); p2.Set( 0, 0, 2 );
+    q1.Set( -1, 0, 1 ); q2.Set( 1, 0, 1 );
+    rIntersect = VectorOps::SegmentIntersectsSegment( p1, p2, q1, q2, x );
+    Assert( (rIntersect == VectorOps::intersect),
+	    "SegmentIntersectsSegment didn't intersect" );
+    { 
+      stringstream ssError;
+      ssError << "SegmentIntersectsSegment returned incorrect intersect: " 
+	      << x << endl;
+      Assert( (x[0] == 0 && x[1] == 0 && x[2] == 1), ssError.str() );
+    }
+
+    p1.Set( 0, 0, 0 ); p2.Set( 0, 0, 2 );
+    q1.Set( 0, 0, 2 ); q2.Set( 0, 0, 4 );
+    rIntersect = VectorOps::SegmentIntersectsSegment( p1, p2, q1, q2, x );
+    Assert( (rIntersect == VectorOps::intersect),
+	    "SegmentIntersectsSegment didn't intersect" );
+    { 
+      stringstream ssError;
+      ssError << "SegmentIntersectsSegment returned incorrect intersect: " 
+	      << x << endl;
+      Assert( (x[0] == 0 && x[1] == 0 && x[2] == 2), ssError.str() );
+    }
+
+    p1.Set( 0, 0, 0 ); p2.Set( 0, 0, 2 );
+    q1.Set( 0, 0, 2 ); q2.Set( 0, 0, 2 );
+    rIntersect = VectorOps::SegmentIntersectsSegment( p1, p2, q1, q2, x );
+    Assert( (rIntersect == VectorOps::intersect),
+	    "SegmentIntersectsSegment didn't intersect" );
+    { 
+      stringstream ssError;
+      ssError << "SegmentIntersectsSegment returned incorrect intersect: " 
+	      << x << endl;
+      Assert( (x[0] == 0 && x[1] == 0 && x[2] == 2), ssError.str() );
+    }
+
+    p1.Set( 0, 0, 2 ); p2.Set( 0, 0, 2 );
+    q1.Set( 0, 0, 2 ); q2.Set( 0, 0, 2 );
+    rIntersect = VectorOps::SegmentIntersectsSegment( p1, p2, q1, q2, x );
+    Assert( (rIntersect == VectorOps::intersect),
+	    "SegmentIntersectsSegment didn't intersect" );
+    { 
+      stringstream ssError;
+      ssError << "SegmentIntersectsSegment returned incorrect intersect: " 
+	      << x << endl;
+      Assert( (x[0] == 0 && x[1] == 0 && x[2] == 2), ssError.str() );
+    }
+
 
   }
   catch( runtime_error e ) {

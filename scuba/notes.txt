@@ -393,9 +393,20 @@ x button for zoom in and out
 - draw polygon ROI tool
   - draw straight lines, autofill on close
 
-
-
+- histogram object
+  x SetVolumeSource ( VolumeCollection& )
+  - draw axis
+  x on mouseover, get value and count
+  x status area on bottom to display current count
+  x draw min/max bars with little handles
+  x click and drag handles
+  x on release, emit a signal
+  
 BRUCE'S LIST:::
+
+- goto vertex
+
+- writeable coords for goto
 
 x data collection transform 
 x markers
