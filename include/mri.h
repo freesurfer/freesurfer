@@ -366,6 +366,11 @@ float MRIsampleZDerivative(MRI *mri, int x, int y, int z, int dir) ;
 MRI   *MRIupsample2(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIdownsample2(MRI *mri_src, MRI *mri_dst) ;
 
+/* cortical ribbon */
+MRI   *MRIribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_src,MRI *mri_dst);
+MRI   *MRIaccentuate(MRI *mri_src,MRI *mri_dst,int lo_thresh,int hi_thresh);
+MRI   *MRIshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst);
+MRI   *MRIfloodoutside(MRI *mri_src,MRI *mri_dst);
 
 
 #include "image.h"
