@@ -466,47 +466,49 @@ MRIpolvMedianRegion(MRI *mri_src, MRI *mri_dst,MRI *mri_polv,int wsize,
         Description
 ------------------------------------------------------*/
 MRI *
-MRIextractPlanes(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int x, int y, 
+MRIextractPlane(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int x, int y, 
                  int z, int wsize)
 {
-  float    a, b, c ;
-  int      vertex, whalf, xk, yk, zk, pno, xp, yp, xoff ;
-  BUFTYPE  *psrc, val ;
+  float    e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
+  int      vertex, whalf, xk, yk, xi, yi, zi ;
 
   init_basis_vectors() ;
   whalf = (wsize-1)/2 ;
 
   if (!mri_dst)
-    mri_dst = MRIalloc(wsize*wsize, wsize, 1, MRI_UCHAR) ;
+  {
+    mri_dst = MRIalloc(wsize, wsize, 1, MRI_UCHAR) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+    mri_dst->xstart = x-whalf*mri_dst->xsize ;
+    mri_dst->ystart = y-whalf*mri_dst->ysize ;
+    mri_dst->zstart = z-whalf*mri_dst->zsize ;
+    mri_dst->xend = mri_dst->xstart + wsize*mri_dst->xsize ;
+    mri_dst->yend = mri_dst->ystart + wsize*mri_dst->ysize ;
+    mri_dst->zend = mri_dst->zstart + wsize*mri_dst->zsize ;
+    mri_dst->imnr0 = z + mri_src->imnr0 ;
+    mri_dst->imnr1 = mri_dst->imnr0 + wsize - 1 ;
+  }
 
   vertex = (int)MRIvox(mri_polv, x, y, z) ;
-  a = ic_x_vertices[vertex] ;   /* vector on unit sphere */
-  b = ic_y_vertices[vertex] ;
-  c = ic_z_vertices[vertex] ;
+  e1_x = e1_x_v[vertex] ;   /* get basis vectors for plane */
+  e1_y = e1_y_v[vertex] ;
+  e1_z = e1_z_v[vertex] ;
+  e2_x = e2_x_v[vertex] ;
+  e2_y = e2_y_v[vertex] ;
+  e2_z = e2_z_v[vertex] ;
   
-  /* calculate the variance of all planes orthogonal to (a,b,c) */
-  for (zk = -whalf ; zk <= whalf ; zk++)
+  for (yk = -whalf ; yk <= whalf ; yk++)
   {
-    for (yk = -whalf ; yk <= whalf ; yk++)
+    xbase = (float)x + (float)yk * e2_x ;
+    ybase = (float)y + (float)yk * e2_y ;
+    zbase = (float)z + (float)yk * e2_z ;
+    for (xk = -whalf ; xk <= whalf ; xk++)
     {
-      psrc = &MRIvox(mri_src, x-whalf, y+yk, z+zk) ;
-      for (xk = -whalf ; xk <= whalf ; xk++)
-      {
-        /* pno is the index (#) of the plane we are in */
-        
-        /* find the index of this plane (projection on normal) */
-        pno = whalf + (int)(zk*c + yk*b + xk*a + 0.5) ;
-        pno = (pno < 0) ? 0 : (pno > wsize-1) ? wsize-1 : pno ;
-        val = (float)*psrc++ ;
-        xp = whalf + (int)(xk*a + 0.5) ;
-        xp = (xp < 0) ? 0 : (xp > wsize-1) ? wsize-1 : xp ;
-        yp = whalf + (int)(yk*b + 0.5) ;
-        yp = (yp < 0) ? 0 : (yp > wsize-1) ? wsize-1 : yp ;
-
-        /* lay out the planes one after the other horizontally */
-        xoff = pno + wsize ;
-        MRIvox(mri_dst, xoff+xp, yp, 0) = val ;
-      }
+      /* in-plane vect. is linear combination of scaled basis vects */
+      xi = mri_src->xi[nint(xbase + xk*e1_x)] ;
+      yi = mri_src->yi[nint(ybase + xk*e1_y)] ;
+      zi = mri_src->zi[nint(zbase + xk*e1_z)] ;
+      MRIvox(mri_dst, xk+whalf,yk+whalf,0) = MRIvox(mri_src, xi, yi, zi) ;
     }
   }
 
