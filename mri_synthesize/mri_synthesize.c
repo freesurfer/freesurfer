@@ -13,8 +13,9 @@
 #include "transform.h"
 #include "mrinorm.h"
 #include "version.h"
+#include "flash.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.12 2004/04/02 22:07:52 fischl Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.13 2004/10/27 20:32:01 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -28,14 +29,16 @@ static void print_help(void) ;
 static int  transform_T1_values_using_joint_pdf(MRI *mri_T1, char *jpdf_name, int invert) ;
 static void print_version(void) ;
 static int  apply_bias_field(MRI *mri, int nbias, float *bias_coefs[3][2]) ;
+#if 0
 static double FLASHforwardModel(double flip_angle, double TR, double PD, 
                                 double T1) ;
+#endif
 
 static MRI *MRIsynthesizeWithFAF(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, double TE, 
 																 int nfaf, float *faf_coefs[3][2]) ;
 MRI *MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
                                  float w30, float TR30, float target_wm, float TE) ;
-static MRI *MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, double TE) ;
+static MRI *MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_T2star, MRI *mri_dst, double TR, double alpha, double TE) ;
 static int remap_T1(MRI *mri_T1, float mean, float scale) ;
 
 char *Progname ;
@@ -47,6 +50,7 @@ static float nl_mean = 950 ;
 static char *jpdf_name = NULL ;
 static int invert = 0 ;
 static float PDsat = 0.0 ;
+static char *T2star_fname = NULL ;
 
 static int extract = 0 ;
 
@@ -72,11 +76,11 @@ main(int argc, char *argv[])
 {
   char        **av, *out_fname, *T1_fname, *PD_fname ;
   int         ac, nargs ;
-  MRI         *mri_T1, *mri_PD, *mri_out ;
+  MRI         *mri_T1, *mri_PD, *mri_out, *mri_T2star = NULL ;
   float       TR, TE, alpha ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.12 2004/04/02 22:07:52 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.13 2004/10/27 20:32:01 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -130,6 +134,15 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read PD volume %s", Progname, 
               PD_fname) ;
 
+	if (T2star_fname != NULL)
+	{
+		printf("reading T2* volume from %s...\n", T2star_fname) ;
+		mri_T2star = MRIread(T2star_fname) ;
+		if (!mri_T2star)
+			ErrorExit(ERROR_NOFILE, "%s: could not read T2* volume %s", Progname, 
+								T2star_fname) ;
+	}
+
 	if (PDsat > 0)
 		saturate_PD(mri_PD, PDsat) ;
 	if (extract)
@@ -158,7 +171,7 @@ main(int argc, char *argv[])
 		if (nfaf > 0)
 			mri_out = MRIsynthesizeWithFAF(mri_T1, mri_PD, NULL, TR, RADIANS(alpha), TE, nfaf, faf_coefs) ;
 		else
-			mri_out = MRIsynthesize(mri_T1, mri_PD, NULL, TR, RADIANS(alpha), TE) ;
+			mri_out = MRIsynthesize(mri_T1, mri_PD, mri_T2star, NULL, TR, RADIANS(alpha), TE) ;
   }
 
 	if (nbias > 0)
@@ -200,6 +213,12 @@ get_option(int argc, char *argv[])
 		PDsat = atof(argv[2]) ;
 		nargs = 1 ;
 		printf("saturating PD with tanh(PD/(%2.1f*(max-min)))\n", PDsat) ;
+	}
+	else if (!stricmp(option, "T2") || !stricmp(option, "T2star"))
+	{
+		T2star_fname = argv[2] ;
+		nargs = 1 ;
+		printf("using T2* volume %s for synthesis\n", T2star_fname) ;
 	}
 	else if (!stricmp(option, "bias"))
 	{
@@ -401,6 +420,7 @@ print_version(void)
   exit(1) ;
 }
 
+#if 0
 static double
 FLASHforwardModel(double flip_angle, double TR, double PD, double T1)
 {
@@ -416,9 +436,9 @@ FLASHforwardModel(double flip_angle, double TR, double PD, double T1)
     FLASH *= (1-E1)/(1-CFA*E1);
   return(FLASH) ;
 }
-
+#endif
 static MRI *
-MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, double TE)
+MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_T2star, MRI *mri_dst, double TR, double alpha, double TE)
 {
   int   x, y, z, width, height, depth ;
   Real flash, T1, PD ;
@@ -443,7 +463,14 @@ MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, d
         if (T1 < 900 && T1 > 600)
           DiagBreak() ;
 				MRIsampleVolume(mri_PD, x, y, z, &PD) ;
-        flash = FLASHforwardModel(alpha, TR, PD, T1) ;
+				if (mri_T2star)
+				{
+					Real T2star ;
+					MRIsampleVolume(mri_T2star, x, y, z, &T2star) ;
+					flash = FLASHforwardModelT2star(T1, PD, T2star, TR, alpha, TE) ;
+				}
+				else
+					flash = FLASHforwardModel(T1, PD, TR, alpha, TE) ;
         MRIsetVoxVal(mri_dst, x, y, z, 0, flash) ;
 				if (!finite(flash))
 					DiagBreak() ;
@@ -554,8 +581,8 @@ MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
   width = mri_T1->width ; height = mri_T1->height ; depth = mri_T1->depth ;
   mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
   MRIcopyHeader(mri_T1, mri_dst) ;
-  mri30 = MRIsynthesize(mri_T1, mri_PD, NULL, TR30, RADIANS(30), TE) ;
-  mri5 = MRIsynthesize(mri_T1, mri_PD, NULL, TR5, RADIANS(5), TE) ;
+  mri30 = MRIsynthesize(mri_T1, mri_PD, NULL, NULL, TR30, RADIANS(30), TE) ;
+  mri5 = MRIsynthesize(mri_T1, mri_PD, NULL, NULL, TR5, RADIANS(5), TE) ;
 #if 0
   mean_PD = MRImeanFrame(mri_PD, 0) ;
   /*  MRIscalarMul(mri_PD, mri_PD, 1000.0f/mean_PD) ;*/
@@ -806,7 +833,7 @@ MRIsynthesizeWithFAF(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double a
         if (T1 < 900 && T1 > 600)
           DiagBreak() ;
 				MRIsampleVolume(mri_PD, x, y, z, &PD) ;
-        flash = FLASHforwardModel(xb*yb*zb*alpha, TR, PD, T1) ;
+				flash = FLASHforwardModel(T1, PD, TR, xb*yb*zb*alpha, TE) ;
         MRIsetVoxVal(mri_dst, x, y, z, 0, flash) ;
       }
     }
