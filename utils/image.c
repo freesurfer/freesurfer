@@ -4669,6 +4669,51 @@ ImageDownsample2(IMAGE *Isrc, IMAGE *Idst)
             Parameters:
 
            Description:
+              downsample an image by 2 in the x direction
+              (no lowpass filtering)
+----------------------------------------------------------------------*/
+IMAGE *
+ImageDownsample2Horizontal(IMAGE *Isrc, IMAGE *Idst)
+{
+  int    srows, scols, drows, dcols, drow, dcol ;
+  byte   *sptr, *dptr ;
+
+  srows = Isrc->rows ;
+  scols = Isrc->cols ;
+  drows = srows ;
+  dcols = scols / 2 ;
+
+  if (!ImageCheckSize(Isrc, Idst, drows, dcols, 0))
+  {
+    if (Idst)
+      ImageFree(&Idst) ;
+    Idst = ImageAlloc(drows, dcols, Isrc->pixel_format, Isrc->num_frame);
+  }
+
+  if (Isrc->pixel_format != PFBYTE)
+    ErrorReturn(Idst, 
+                (ERROR_UNSUPPORTED, 
+             "ImageDownsample2Horizontal: unsupported input pixel format %d", 
+                       Isrc->pixel_format)) ;
+  if (Idst->pixel_format != PFBYTE)
+    ErrorReturn(Idst, 
+                (ERROR_UNSUPPORTED, 
+             "ImageDownsample2Horizontal: unsupported output pixel format %d", 
+                 Idst->pixel_format)) ;
+
+  sptr = IMAGEpix(Isrc, 0, 0) ;
+  dptr = IMAGEpix(Idst, 0, 0) ;
+  for (drow = 0 ; drow < drows ; drow++)
+  {
+    for (dcol = 0 ; dcol < dcols ; dcol++, sptr++)
+      *dptr++ = *sptr++ ;
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
               upsample an image by 2 using a peg filter for
               interpolation (convolution with 2x2 array of ones)
 ----------------------------------------------------------------------*/
