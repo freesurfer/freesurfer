@@ -20,6 +20,10 @@ class SurfaceCollection : public DataCollection {
 
   MRIS* GetMRIS();
 
+  // For getting the surface to data transform from a volume.
+  void SetDataToSurfaceTransformFromVolume ( VolumeCollection& iVolume );
+  void SetDataToSurfaceTransformToDefault ();
+
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
@@ -46,6 +50,9 @@ class SurfaceCollection : public DataCollection {
   // surface->data->world. We composite these in the last transform.
   Transform44 mDataToSurfaceTransform;
   Transform44 mWorldToSurfaceTransform;
+
+  bool mbIsUsingVolumeForTransform;
+  VolumeCollection* mTransformVolume;
 
   void CalcWorldToSurfaceTransform ();
 };
