@@ -1530,7 +1530,7 @@ int labl_import_annotation (char* fname);
 int labl_export_annotation (char* fname);
 
 /* makes the marked vertices a new label. */
-int labl_new_from_marked_vertices ();
+int labl_new_from_marked_vertices ( int *new_index_out);
 
 /* add marked verts to an exisiting label */
 int labl_add_marked_vertices_to_label (int index);
@@ -1669,9 +1669,13 @@ typedef struct {
   char dont_cross_cmid;
   char dont_cross_fthresh;
 
+  char use_multiple_seeds;
+
   int action;
   int argument;
   
+  int new_label_index; /* set if the action is NEW_LABEL */
+
 } FILL_PARAMETERS;
 
 int fill_flood_from_seed (int vno, FILL_PARAMETERS* params);
@@ -17846,7 +17850,7 @@ ERR(1,"Wrong # args: func_select_marked_vertices")
      labl_export_annotation (argv[1]); WEND
      int W_labl_new_from_marked_vertices WBEGIN
      ERR(1,"Wrong # args: labl_new_from_marked_vertices")
-     labl_new_from_marked_vertices (); WEND
+     labl_new_from_marked_vertices (NULL); WEND
      int W_labl_mark_vertices WBEGIN
      ERR(2,"Wrong # args: labl_mark_vertices index")
      labl_mark_vertices (atoi(argv[1])); WEND
@@ -17892,12 +17896,18 @@ int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
 			      int argc,char *argv[])
 {
   FILL_PARAMETERS params;
+  char first_fill;
+  int seed;
+  int seeds[MAXMARKED];
+  int nseeds;
+  int n;
   
-  if (argc != 7)
+  if (argc != 8)
     {
       Tcl_SetResult(interp,"Wrong # args: fill_flood_from_cursor "
 		    "dont_cross_boundary dont_cross_label dont_cross_cmid "
-		    "dont_cross_fthresh action argument",TCL_VOLATILE);
+		    "dont_cross_fthresh use_multiple_seeds action argument",
+		    TCL_VOLATILE);
       return TCL_ERROR;
     }
   
@@ -17905,9 +17915,53 @@ int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
   params.dont_cross_label    = atoi(argv[2]);
   params.dont_cross_cmid     = atoi(argv[3]);
   params.dont_cross_fthresh  = atoi(argv[4]);
-  params.action              = atoi(argv[5]);
-  params.argument            = atoi(argv[6]);
-  fill_flood_from_seed (selection, &params);
+  params.use_multiple_seeds  = atoi(argv[5]);
+  params.action              = atoi(argv[6]);
+  params.argument            = atoi(argv[7]);
+
+  if (params.use_multiple_seeds)
+    {
+      /* Since making a label will mess with the marked array, we need to 
+	 copy the marked verts to use them as seeds. */
+      for (n = 0; n < nmarked; n++)
+	seeds[n] = marked[n];
+      nseeds = nmarked;
+
+      /* Clear the marked verts so any extraneous ones don't end up in the 
+	 label. */
+      clear_all_vertex_marks();
+
+      /* Fill for each seed point. */
+      first_fill = TRUE;
+      for (n = 0; n < nseeds; n++)
+	{
+	  fill_flood_from_seed (seeds[n], &params);
+	  
+	  /* If this was the first fill and this was a NEW_LABEL
+	     action, take the new label index that was pasesd back in
+	     the params block and make it the new argument of a
+	     ADD_LABEL action, so that the next label is added to the
+	     one we just made. */
+	  if (first_fill && FILL_ACTION_NEW_LABEL == params.action )
+	    {
+	      first_fill = FALSE;
+	      params.action = FILL_ACTION_ADD_LABEL;
+	      params.argument = params.new_label_index;
+	    }
+	}
+    }
+  else
+    {
+      /* Use the selection as the seed. */
+      seed = selection;
+
+      /* Clear the marked verts so any extraneous ones don't end up in the 
+	 label. */
+      clear_all_vertex_marks();
+
+      /* Fill using the first seed. */
+      fill_flood_from_seed (seed, &params);
+    }
   
   return TCL_OK;
 }
@@ -22024,7 +22078,7 @@ int labl_export_annotation (char *fname)
   return (ERROR_NONE);
 }
 
-int labl_new_from_marked_vertices () 
+int labl_new_from_marked_vertices (int *new_index_out) 
 {
   LABEL* label = NULL;
   int num_marked_verts;
@@ -22083,6 +22137,10 @@ int labl_new_from_marked_vertices ()
   clear_all_vertex_marks ();
   
   surface_compiled = 0 ;
+
+  /* return the new index if they want it. */
+  if (NULL != new_index_out)
+    *new_index_out = new_index;
 
   return (ERROR_NONE);
 }
@@ -22841,7 +22899,6 @@ int fbnd_new_line_from_marked_vertices ()
   int num_checked;
   float vu_x, vu_y, vu_z;
   float srcdst_x, srcdst_y, srcdst_z;
-  int skipped_verts;
   
   dist = (float*) calloc (mris->nvertices, sizeof(float));
   pred = (int*) calloc (mris->nvertices, sizeof(int));
@@ -22849,7 +22906,6 @@ int fbnd_new_line_from_marked_vertices ()
   path = (int*) calloc (mris->nvertices, sizeof(int));
   num_path = 0;
   num_checked = 0;
-  skipped_verts = 0;
   
   printf ("surfer: making line");
   cncl_start_listening ();
@@ -22925,7 +22981,6 @@ int fbnd_new_line_from_marked_vertices ()
 		       (vu_y * srcdst_y) +
 		       (vu_z * srcdst_z)  < 0 )
 		    {
-		      skipped_verts++;
 		      continue;
 		    }
 		  
@@ -23289,6 +23344,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
   float fvalue;
   float seed_curv = 0;
   float seed_fvalue = 0;
+  int new_index;
   
   if (seed_vno < 0 || seed_vno >= mris->nvertices)
     return (ERROR_BADPARM);
@@ -23418,7 +23474,8 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
     {
     case FILL_ACTION_NEW_LABEL:
       /* make a new label from the marked vertices. */
-      labl_new_from_marked_vertices ();
+      labl_new_from_marked_vertices (&new_index);
+      params->new_label_index = new_index;
       break;
     case FILL_ACTION_ADD_LABEL:
       /* add the marked vertices to the label spec'd in the argument. */
