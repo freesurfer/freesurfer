@@ -173,6 +173,8 @@ MRI   *MRIerode6(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIdilate6(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIopen6(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIclose6(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIunion(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
+MRI   *MRIintersect(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 
 /* filtering operations */
 MRI   *MRIgaussian1d(float sigma, int max_len) ;
