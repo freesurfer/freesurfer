@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.25 1999/12/17 22:19:04 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.26 2000/01/03 19:34:53 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -44,7 +44,7 @@ static int overlay = 0 ;
 
 static int apply_median_filter = 0 ;
 
-static int nbhd_size = 20 ;
+static int nbhd_size = 2 ;
 
 static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE    1.0
