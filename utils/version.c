@@ -13,7 +13,7 @@
    processed, so the caller can shorten their own argc/argv variables,
    like this:
 
-    nargs = handle_version_option (argc, argv, "$Id: version.c,v 1.2 2003/03/19 18:04:26 kteich Exp $");
+    nargs = handle_version_option (argc, argv, "$Id: version.c,v 1.3 2003/03/19 21:11:27 kteich Exp $");
     argc -= nargs ;
     argv += nargs ;
 
@@ -43,6 +43,19 @@ handle_version_option (int argc, char** argv, char* id_string)
 # endif
 #endif
 
+#ifdef Linux
+#  define __PLATFORM__ "Linux"
+#endif
+#ifdef Darwin
+#  define __PLATFORM__ "Darwin"
+#endif
+#ifdef IRIX
+#  define __PLATFORM__ "IRIX"
+#endif
+#ifdef Solaris
+#  define __PLATFORM__ "Solaris"
+#endif
+
   int narg = 0;
   int nnarg = 0;
   int num_processed_args = 0;
@@ -64,19 +77,8 @@ handle_version_option (int argc, char** argv, char* id_string)
 	    fprintf (stdout, "%s ", argv[nnarg]);
 	  fprintf (stdout, "\n");
 	  
-	  /* See if we can get the OS string. Print out the version
-	     information with or without it. */
-	  os = getenv("OS");
-	  if (NULL != os)
-	    {
-	      fprintf (stdout, "%s Platform: %s GCC: %d\n",
-		       id_string, os, __GNUC_VERSION__);
-	    }
-	  else
-	    {
-	      fprintf (stdout, "%s Platform: UNKNOWN GCC: %d\n",
-		       id_string, __GNUC_VERSION__);
-	    }
+	  fprintf (stdout, "%s Platform: %s GCC: %d\n",
+		   id_string, __PLATFORM__, __GNUC_VERSION__);
 	  
 	  num_processed_args++;
 	}
