@@ -433,12 +433,18 @@ clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster)
       else
         cluster->m_inverse = 
           MatrixSVDInverse(cluster->m_scatter, cluster->m_inverse);
+      cluster->det = MatrixDeterminant(cluster->m_scatter) ;
+      if (cluster->det <= 0.0f)
+        cluster->norm = 1.0f ;  /* no good choice */
+      else
+        cluster->norm = 1.0f / sqrt(cluster->det) ;
     }
     else
     {
       cluster->ill_conditioned = 0 ;
       cluster->m_inverse = 
         MatrixInverse(cluster->m_scatter, cluster->m_inverse);
+      cluster->norm = 1.0f / sqrt(cluster->det) ;
     }
     if (!cluster->m_inverse)
       ErrorReturn(ERROR_BADPARM, 
@@ -918,7 +924,7 @@ CSreadFrom(FILE *fp, CLUSTER_SET *cs)
 static int
 clusterWriteInto(FILE *fp, CLUSTER *cluster)
 {
-  fprintf(fp, "\n# cluster %d\n", cluster->cno) ;
+  fprintf(fp, "\n# cluster %d (nobs, nsamples, cno, det)\n", cluster->cno) ;
   fprintf(fp, "%d %d %d %f\n", cluster->nobs, cluster->nsamples,
           cluster->cno, cluster->det) ;
   fprintf(fp, "# scatter matrix:\n") ;
@@ -956,6 +962,46 @@ clusterReadFrom(FILE *fp, CLUSTER *cluster)
                 (ERROR_BADFILE, "clusterReadFrom: could not scan parms"));
   MatrixAsciiReadFrom(fp, cluster->m_scatter) ;
   cluster->m_inverse = MatrixAsciiReadFrom(fp, cluster->m_inverse) ;
+  /*
+    recompute the inverse scatter matrix to allow the user to edit
+    the scatter matrix by hand.
+    */
+  cluster->det = MatrixDeterminant(cluster->m_scatter) ;
+  if (FZERO(cluster->det) || cluster->det < 0.0f)
+  {
+    /* the scatter matrix is ill-conditioned or actually singular. If
+       this is because there are too few observations, not much can be done 
+       except to regularize the matrix and get an inverse. Otherwise, we
+       can use svd to get a 'better' inverse.
+       */
+    cluster->ill_conditioned = 1 ;
+    if (1 || cluster->nobs < 3)  /* no information to do any better */
+    {
+      MatrixRegularize(cluster->m_scatter, cluster->m_scatter) ;
+      cluster->m_inverse = 
+        MatrixInverse(cluster->m_scatter, cluster->m_inverse);
+    }
+    else
+      cluster->m_inverse = 
+        MatrixSVDInverse(cluster->m_scatter, cluster->m_inverse);
+    cluster->det = MatrixDeterminant(cluster->m_scatter) ;
+    if (cluster->det <= 0.0f)
+      cluster->norm = 1.0f ;  /* no good choice */
+    else
+      cluster->norm = 1.0f / sqrt(cluster->det) ;
+  }
+  else
+  {
+    cluster->norm = 1.0f / sqrt(cluster->det) ;
+    cluster->ill_conditioned = 0 ;
+    cluster->m_inverse = 
+      MatrixInverse(cluster->m_scatter, cluster->m_inverse);
+  }
+  if (!cluster->m_inverse)
+    ErrorReturn(NULL, 
+                (ERROR_BADPARM, "clusterAsciiReadFrom: cluster %d "
+                 "singular inverse scatter matrix", cluster->cno)) ;
+
   VectorAsciiReadFrom(fp, cluster->v_means) ;
   VectorAsciiReadFrom(fp, cluster->v_seed) ;
   cluster->det = MatrixDeterminant(cluster->m_inverse) ;
