@@ -208,7 +208,7 @@ SWIG_TypeClientData(swig_type_info *ti, void *clientdata) {
 #endif
 
 /*
- * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.4 2002/11/18 21:35:29 kteich Exp $
+ * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.5 2004/05/27 18:14:48 tosa Exp $
  * 
  * swigtcl8.swg
  */
@@ -1023,7 +1023,6 @@ static swig_type_info *SWIG_POINTER_char_pp = 0;
 static int ptrvalue(Tcl_Interp *interp, char *ptrvalue, int index, const char *type) {
   void     *ptr;
   char     *s;
-  int      error = 0;
 
   if (type) {
     if (strlen(type) == 0) type = 0;
@@ -1096,7 +1095,6 @@ static int ptrcreate(Tcl_Interp *interp, char *type, char *ptrvalue, int numelem
   void     *ptr;
   int       sz;
   swig_type_info *cast = 0;
-  char      temp[40];
 
   /* Check the type string against a variety of possibilities */
 
@@ -1298,8 +1296,8 @@ static int ptrset(Tcl_Interp *interp, char *ptrvalue, char *value, int index, co
 
 static int ptradd(Tcl_Interp *interp, char *ptrvalue, int offset) {
 
-  char *r,*s;
-  void *ptr,*junk;
+  char *s;
+  void *ptr;
   swig_type_info *type = 0;
   swig_type_info stype;
 
