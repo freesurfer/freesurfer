@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.5 2001/12/17 17:48:03 greve Exp $
+  $Id: mri_vol2surf.c,v 1.6 2002/01/02 17:44:32 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -56,7 +56,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.5 2001/12/17 17:48:03 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.6 2002/01/02 17:44:32 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -822,9 +822,17 @@ static void check_options(void)
 
   if(trgsubject != NULL && strcmp(trgsubject,"ico") && IcoOrder > -1){
     fprintf(stderr,"ERROR: --icoorder can only be used with "
-      "'--trgsubject ico'\n");
+      "--trgsubject ico\n");
     exit(1);    
   }
+
+  if(trgsubject != NULL && !strcmp(trgsubject,"ico") && IcoOrder < 0){
+    fprintf(stderr,"ERROR: need to specify --icoorder with "
+      "--trgsubject ico\n");
+    exit(1);    
+  }
+
+
 
   return;
 }
