@@ -1,7 +1,7 @@
 #!/bin/csh -f
-# stxgrinder2-sess
+# stxgrinder-sess
 #
-set VERSION = '$Id: stxgrinder-sess,v 1.5 2003/08/04 17:47:10 greve Exp $';
+set VERSION = '$Id: stxgrinder-sess,v 1.6 2003/08/04 17:49:25 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -40,14 +40,14 @@ if(! -e $logdir | ! -w $logdir) then
   echo "WARNING: could not create $logdir"
   set LF = /dev/null
 else
-  set LF = $logdir/stxgrinder2-sess.log
+  set LF = $logdir/stxgrinder-sess.log
   if(-e $LF) mv $LF $LF.old
 endif
 echo "--------------------------------------------------------------"
-echo "stxgrinder2-sess logfile is $LF"
+echo "stxgrinder-sess logfile is $LF"
 echo "--------------------------------------------------------------"
 
-echo "stxgrinder2-sess log file" >> $LF
+echo "stxgrinder-sess log file" >> $LF
 echo $VERSION >> $LF
 id            >> $LF
 pwd           >> $LF
@@ -134,7 +134,7 @@ end
 
 echo "Contrast List: $contrastlist"
 
-if(! $monly) set MLF = /tmp/stxgrinder2-sess-$$.m
+if(! $monly) set MLF = /tmp/stxgrinder-sess-$$.m
 echo MLF is $MLF
 rm -f $MLF
 
@@ -169,7 +169,7 @@ echo "" | tee -a $LF
 echo "" | tee -a $LF
 echo "Started at $StartTime" | tee -a $LF
 echo "Ended   at `date`"     | tee -a $LF
-echo "stxgrinder2-sess completed" | tee -a $LF
+echo "stxgrinder-sess completed" | tee -a $LF
 echo " "
 echo " "
 
@@ -342,7 +342,7 @@ arg1err:
 ############--------------##################
 usage_exit:
   echo " "
-  echo "USAGE: stxgrinder2-sess"
+  echo "USAGE: stxgrinder-sess"
   echo ""
   echo "   -a analysisname : session-level functional analysis name"
   echo "   -c  contrast <-c contrast> : contrasts"
@@ -377,7 +377,7 @@ BEGINHELP
 FS-FAST utility to compute contrasts for testing hypotheses based on a
 general linear model (GLM), including t and F statistics,
 significances of those statistics, and contrast effects sizes
-(ces). This replaces stxgrinder-sess.
+(ces). 
 
 COMMAND-LINE ARGUMENTS
 
@@ -390,7 +390,7 @@ Analysis as created by mkanalysis-sess.new and computed by selxavg-sess.
 Contrast as created by mkcontrast-sess. Multiple contrasts can be
 specified with multiple -c flags. This is a convenience only; the
 results will be exactly the same if the two contrasts are computed
-with separate calls to stxgrinder2-sess. See also -all.
+with separate calls to stxgrinder-sess. See also -all.
 
 -all
 
@@ -493,9 +493,6 @@ iminsig - index of best significance (when J>1)
 
 NOTES:
 
-stxgrinder2-sess is argument-for-argument compatible with 
-stxgrinder-sess.
-
 The significances are stored as -log10(p).
 
 For t-tests, the signifiance is given the same sign as the t-value.
@@ -504,6 +501,8 @@ For F-tests, the signifiance is not given a sign. This is the only
 difference with stxgrinder-sess.
 
 t-test is not saved when contrast is omnibus or zomnibus
+
+An "old" version of stxgrinder-sess is available as stxgrinder0-sess.
 
 BUGS
 
