@@ -37,15 +37,17 @@
 static int      clusterInit(CLUSTER *cluster, int ninputs) ;
 static int      clusterFree(CLUSTER *cluster) ;
 static int      clusterNewObservation(CLUSTER *cluster, VECTOR *v_obs) ;
-static float    clusterDistance(CLUSTER *cluster, VECTOR *v_obs) ;
-static int      clusterComputeStatistics(CLUSTER *cluster) ;
+static float    clusterDistance(CLUSTER_SET *cs,CLUSTER *cluster,VECTOR*v_obs);
+static int      clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster) ;
 static int      clusterPrint(CLUSTER *cluster, FILE *fp) ;
 static float    clusterVariance(CLUSTER *cluster) ;
 static CLUSTER  *clusterDivide(CLUSTER *csrc, CLUSTER *cdst) ;
-static int      normalizeObservation(CLUSTER_SET *cs, VECTOR *v_obs) ;
 static int      clusterWriteInto(FILE *fp, CLUSTER *cluster) ;
 static CLUSTER  *clusterReadFrom(FILE *fp, CLUSTER *cluster) ;
 static int      clusterCopy(CLUSTER *csrc, CLUSTER *cdst) ;
+#if 0
+static int      normalizeObservation(CLUSTER_SET *cs, VECTOR *v_obs) ;
+#endif
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -240,16 +242,13 @@ CSnewObservation(CLUSTER_SET *cs, VECTOR *v_obs)
   int    c, min_cluster ;
   float  min_dist, dist ;
 
-  if (cs->normalize)
-    normalizeObservation(cs, v_obs) ;
-
-  min_dist = clusterDistance(cs->clusters+0, v_obs) ;
+  min_dist = clusterDistance(cs, cs->clusters+0, v_obs) ;
   min_cluster = 0 ;
   cs->nobs++ ;
 
   for (c = 1 ; c < cs->nclusters ; c++)
   {
-    dist = clusterDistance(cs->clusters+c, v_obs) ;
+    dist = clusterDistance(cs, cs->clusters+c, v_obs) ;
     if ((dist < min_dist) || 
         ((FEQUAL(dist,min_dist) && 
           cs->clusters[c].nobs < cs->clusters[min_cluster].nobs)))
@@ -258,6 +257,7 @@ CSnewObservation(CLUSTER_SET *cs, VECTOR *v_obs)
       min_cluster = c ;
     }
   }
+
   clusterNewObservation(cs->clusters+min_cluster, v_obs) ;
   return(NO_ERROR) ;
 }
@@ -354,14 +354,31 @@ clusterNewObservation(CLUSTER *cluster, VECTOR *v_obs)
           vector.
 ------------------------------------------------------*/
 static float
-clusterDistance(CLUSTER *cluster, VECTOR *v_obs)
+clusterDistance(CLUSTER_SET *cs, CLUSTER *cluster, VECTOR *v_obs)
 {
-  float  dist ;
+  float  dist, mean, sigma, v1, v2, d ;
+  int    row ;
 
+#if 1
+  for (dist = 0.0f, row = 1 ; row <= v_obs->rows ; row++)
+  {
+    sigma = cs->stds[row-1] ;
+    mean = cs->means[row-1] ;
+    if (FZERO(sigma))
+      sigma = 1e-4 ;
+
+    v1 = (VECTOR_ELT(v_obs, row) - mean) / sigma ;
+    v2 = (VECTOR_ELT(cluster->v_seed, row) - mean) / sigma ;
+    d = v2 - v1 ;
+    dist += d*d ;  /* actually, use square of Euclidean distance */
+  }
+
+#else
 #if 0
   dist = VectorNormalizedDot(cluster->v_seed, v_obs) ;
 #else
   dist = VectorDistance(cluster->v_seed, v_obs) ;
+#endif
 #endif
   return(dist) ;
 }
@@ -375,7 +392,7 @@ clusterDistance(CLUSTER *cluster, VECTOR *v_obs)
           of means and scatter matrices for this cluster
 ------------------------------------------------------*/
 static int
-clusterComputeStatistics(CLUSTER *cluster)
+clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster)
 {
   float   mean_a, mean_b, covariance ;
   int     nobs, row, col ;
@@ -392,7 +409,7 @@ clusterComputeStatistics(CLUSTER *cluster)
       mean_a = VECTOR_ELT(cluster->v_means, row) ;
       for (col = 1 ; col <= row ; col++)
       {
-        mean_b = cluster->v_means->rptr[col][1] ;
+        mean_b = VECTOR_ELT(cluster->v_means, col) ;
         covariance = cluster->m_scatter->rptr[row][col] / nobs - mean_a*mean_b;
         cluster->m_scatter->rptr[row][col] = covariance ;
         cluster->m_scatter->rptr[col][row] = covariance ;
@@ -610,6 +627,10 @@ CScluster(CLUSTER_SET *cs, int (*get_observation_func)
         CSnewObservation(cs, v_obs) ;
       if (CScomputeStatistics(cs) != NO_ERROR)
         return(Gerror) ;
+      if (cs->nobs < cs->max_clusters)
+        ErrorReturn(ERROR_BADPARM, 
+                    (ERROR_BADPARM, "CScluster: not enough observations (%d)"
+                     " to generate %d clusters", cs->nobs, cs->max_clusters)) ;
     } while (CSdivide(cs) == CS_CONTINUE) ;
     
     /* Go through the data one more time to rebuild scatter matrices and means 
@@ -622,8 +643,8 @@ CScluster(CLUSTER_SET *cs, int (*get_observation_func)
       return(Gerror) ;
   } while (cs->nclusters < cs->max_clusters) ;
 
-  if (cs->normalize)
-    CSrenormalize(cs) ;
+  /*  if (cs->normalize)*/
+/*    CSrenormalize(cs) ;*/
 
   /* now we have the proper # of clusters, use a scale-invariant metric
      to find the optimum grouping
@@ -654,6 +675,7 @@ CSreset(CLUSTER_SET *cs)
     MatrixClear(cluster->m_scatter) ;
     VectorClear(cluster->v_means) ;
   }
+  cs->nobs = 0 ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -671,7 +693,7 @@ CScomputeStatistics(CLUSTER_SET *cs)
   int    c, c1 ;
 
   for (c = 0 ; c < cs->nclusters ; c++)
-    if (clusterComputeStatistics(cs->clusters+c) != NO_ERROR)
+    if (clusterComputeStatistics(cs, cs->clusters+c) != NO_ERROR)
     {
       /* this cluster has failed for some reason (no observations?),
          delete it and continue */
@@ -682,7 +704,7 @@ CScomputeStatistics(CLUSTER_SET *cs)
     }
 
   cs->nsamples = cs->nobs ;
-  cs->nobs = 0 ;
+  /*  cs->nobs = 0 ;*/
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -736,6 +758,7 @@ CScomputeDimensionStatistics(CLUSTER_SET *cs, int (*get_observation_func)
           Normalize the observation using the mean and standard
           deviation of each dimension.
 ------------------------------------------------------*/
+#if 0
 static int
 normalizeObservation(CLUSTER_SET *cs, VECTOR *v_obs)
 {
@@ -745,10 +768,12 @@ normalizeObservation(CLUSTER_SET *cs, VECTOR *v_obs)
   for (i = 1 ; i <= v_obs->rows ; i++)
   {
     mean = cs->means[i-1] ; std = cs->stds[i-1] ;
-    VECTOR_ELT(v_obs,i) = (VECTOR_ELT(v_obs,i) - mean) / std ;
+    if (!FZERO(std))
+      VECTOR_ELT(v_obs,i) = (VECTOR_ELT(v_obs,i) - mean) / std ;
   }
   return(NO_ERROR) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
