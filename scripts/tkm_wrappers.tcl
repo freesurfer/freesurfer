@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.24 2003/04/23 22:32:19 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.25 2003/06/12 01:02:28 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -837,28 +837,80 @@ proc tkm_MakeSliders { isFrame ilSliders } {
     grid columnconfigure $isFrame 3 -weight 0
 }
 
-proc tkm_MakeColorPicker { isFrame isLabel iRedVar iGreenVar iBlueVar iCmd inWidth } {
-    
-    tixLabelFrame $isFrame \
-	-label $isLabel \
-	-labelside acrosstop \
-	-options { label.padX 5 }
-    
-    set fwColorSub  [$isFrame subwidget frame]
-    set fwColors    $fwColorSub.fwColors
-    
-    tkm_MakeSliders $fwColors [list\
-				   [list {"Red"} $iRedVar 0 1 $inWidth $iCmd 1 0.1 ] \
-				   [list {"Green"} $iGreenVar 0 1 $inWidth $iCmd 1 0.1 ] \
-				   [list {"Blue"} $iBlueVar 0 1 $inWidth $iCmd 1 0.1 ]]
-    
-    pack $fwColors \
-	-side top \
-	-anchor w \
-	-expand yes \
-	-fill x
+
+set gColorPickerInfo(id) 0
+proc tkm_MakeColorPickers { isFrame ilPickers } {
+    global kLabelFont
+    global gColorPickerInfo
+
+    frame $isFrame
+
+    set nPicker 0
+    foreach lPicker $ilPickers {
+
+	set isLabel [lindex $lPicker 0]
+	set iRedVar [lindex $lPicker 1]
+	set iGreenVar [lindex $lPicker 2]
+	set iBlueVar [lindex $lPicker 3]
+	set iCmd [lindex $lPicker 4]
+
+	upvar #0 $iRedVar red
+	upvar #0 $iGreenVar green
+	upvar #0 $iBlueVar blue
+	
+	set id $gColorPickerInfo(id)
+	incr gColorPickerInfo(id)
+	
+	tkm_MakeNormalLabel $isFrame.fwLabel-$nPicker $isLabel
+	
+	canvas $isFrame.fwColor-$nPicker -height 20 -width 20
+	
+	button $isFrame.bwChange-$nPicker \
+	    -font $kLabelFont \
+	    -text "Change color..." \
+	    -command "ColorPicker_CreateWindow $id tkm_ColorPickerCallback"
+	
+	$isFrame.fwColor-$nPicker create rectangle 0 0 20 20 \
+	    -fill [format "#%.2x%.2x%.2x" $red $green $blue] \
+	    -tag color
+	
+	set gColorPickerInfo($id,canvas) $isFrame.fwColor-$nPicker
+	set gColorPickerInfo($id,command) $iCmd
+	set gColorPickerInfo($id,redVar) $iRedVar
+	set gColorPickerInfo($id,greenVar) $iGreenVar
+	set gColorPickerInfo($id,blueVar) $iBlueVar
+
+	grid $isFrame.fwLabel-$nPicker  -column 0 -row $nPicker -sticky w
+	grid $isFrame.fwColor-$nPicker  -column 1 -row $nPicker -sticky we
+	grid $isFrame.bwChange-$nPicker -column 2 -row $nPicker -sticky e
+
+	incr nPicker
+    }
+
+    grid columnconfigure $isFrame 0 -weight 0
+    grid columnconfigure $isFrame 1 -weight 1
+    grid columnconfigure $isFrame 2 -weight 0
 }
 
+proc tkm_ColorPickerCallback { iID iRed iGreen iBlue } {
+    global gColorPickerInfo
+
+    upvar #0 $gColorPickerInfo($iID,redVar) red
+    upvar #0 $gColorPickerInfo($iID,greenVar) green
+    upvar #0 $gColorPickerInfo($iID,blueVar) blue
+
+    set red $iRed
+    set green $iGreen
+    set blue $iBlue
+
+    $gColorPickerInfo($iID,command)
+
+    $gColorPickerInfo($iID,canvas) delete color
+
+    $gColorPickerInfo($iID,canvas) create rectangle 0 0 20 20 \
+	-fill [format "#%.2x%.2x%.2x" $iRed $iGreen $iBlue]
+    
+}
 
 # replaces the percent symbols in a string with a substitution string:
 # i.e. tkm_DoSubPercent { %s1 "Hello %s1" "World" }
@@ -1459,4 +1511,110 @@ proc Dialog_Close { iwwTop } {
 	#  wm withdraw $iwwTop
 	destroy $iwwTop
     }
+}
+
+proc ColorPicker_CreatePicker { iwTop iID iCallbackFunction {izSquare 16} } {
+    global gColorPickerCB
+
+    # Picker config.
+    set kzSquareX $izSquare
+    set kzSquareY $izSquare
+    set klSquaresX 25
+    set klSquaresY 9
+    
+    # 216 colors
+    set kcReds 4
+    set kcGreens 4
+    set kcBlues 8
+
+    set gColorPickerCB $iCallbackFunction
+
+    frame $iwTop
+
+    set cwPicker       $iwTop.cwPicker
+
+    # Create the canvas with the right width and height
+    canvas $cwPicker \
+	-width [expr $kzSquareX * $klSquaresX] \
+	-height [expr $kzSquareY * $klSquaresY]
+
+    # Find the color increments for each next square.
+    set redInc   [expr 256 / $kcReds]
+    set greenInc [expr 256 / $kcGreens]
+    set blueInc  [expr 256 / $kcBlues]
+
+    # Start off with color 0,0,0.
+    set r 0
+    set g 0
+    set b 0
+
+    # For each square...
+    for { set nY 0 } { $nY < $klSquaresY } { incr nY } {
+	for { set nX 0 } { $nX < $klSquaresX } { incr nX } {
+	    
+	    # Create a square in the current color, converting our
+	    # numerical values to a hex color value. Also give it the
+	    # common tag 'color' and a tag made out of its numerical
+	    # color components.
+	    $cwPicker create rectangle \
+		[expr $nX * $kzSquareX] [expr $nY * $kzSquareY] \
+		[expr ($nX+1) * $kzSquareX] [expr ($nY+1) * $kzSquareY] \
+		-fill [format "#%.2x%.2x%.2x" $r $g $b] \
+		-tags "color $r-$g-$b"
+
+	    # Increment our numerical color values in the order of r,
+	    # g, and then b. With the increments we have, we'll
+	    # actually get to 256, but we really want a top value of
+	    # 255, so check for the 256 and bump it down to
+	    # 255. (Dividing with 255 when finding the increments
+	    # doesn't give us the full 0-255 range.
+	    incr r $redInc
+	    if { $r == 256 } { set r 255 }
+	    if { $r > 255 } {
+		set r 0
+		incr g $greenInc
+		if { $g == 256 } { set g 255 }
+		if { $g > 255 } {
+		    set g 0
+		    incr b $blueInc
+		    if { $b == 256 } { set b 255 }
+		    if { $b > 255 } {
+			set b 0
+		    }
+		}
+	    }
+	}
+    }
+
+    # When we click on a color square, call the function.
+    $cwPicker bind color <Button-1> "ColorPicker_HandleClick $iID %W"
+
+    pack $cwPicker -fill both
+}
+
+proc ColorPicker_HandleClick { iID icwPicker } {
+    global gColorPickerCB
+
+    # Get the numerical tag from the current element, the one the
+    # mouse is in. This is our r-g-b tag. Extract the numerical elements.
+    set color [lindex [$icwPicker gettags current] 1]
+    scan $color "%d-%d-%d" r g b
+
+    # Detroy the color picker dlog.
+    destroy .wwColorPicker
+
+    # Call the callback function.
+    $gColorPickerCB $iID $r $g $b
+}
+
+proc ColorPicker_CreateWindow { iID iCallbuckFunction } {
+
+    # Make a new window, put a color picker inside it with our given
+    # callback function, and pack it.
+    toplevel .wwColorPicker 
+    wm title .wwColorPicker "Choose a color..."
+    tkm_MakeNormalLabel .wwColorPicker.lwInstructions "Chose a color..."
+    ColorPicker_CreatePicker .wwColorPicker.cpwColor $iID $iCallbuckFunction
+    pack .wwColorPicker.lwInstructions .wwColorPicker.cpwColor \
+	-side top
 }
