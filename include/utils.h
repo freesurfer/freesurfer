@@ -24,6 +24,7 @@
 
 double randomNumber(double low, double hi) ;
 double normAngle(double angle) ;
+float deltaAngle(float angle1, float angle2) ;
 double calcDeltaPhi(double phi1, double phi2) ;
 #if 1
 double latan2(double y, double x) ;
