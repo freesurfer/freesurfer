@@ -353,7 +353,7 @@ StrLower(char *str)
 char *
 FileName(char *full_name)
 {
-  char *fname, *colon, *at ;
+  char *fname, *number, *at ;
 
   fname = strrchr(full_name, '/') ;
   if (!fname)
@@ -364,9 +364,9 @@ FileName(char *full_name)
   if (*fname == '@')
     fname++ ;
 
-  colon = strrchr(fname, ':') ;
-  if (colon)
-    *colon = 0 ;
+  number = strrchr(fname, '#') ;
+  if (number)
+    *number = 0 ;
   at = strrchr(fname, '@') ;
   if (at)
     *at = 0 ;
@@ -405,16 +405,16 @@ FileExists(char *fname)
 int
 FileType(char *fname)
 {
-  char *dot, buf[100], *colon ;
+  char *dot, buf[100], *number ;
 
   if (*fname == '@')
     return(LIST_FILE) ;
 
   strcpy(buf, fname) ;
   dot = strrchr(buf, '@') ;
-  colon = strchr(buf, ':') ;
-  if (colon)
-    *colon = 0 ;  /* don't consider : part of extension */
+  number = strchr(buf, '#') ;
+  if (number)
+    *number = 0 ;  /* don't consider : part of extension */
   if (!dot)
     dot = strrchr(buf, '.') ;
 
@@ -443,13 +443,13 @@ FileType(char *fname)
 int
 FileNumber(char *fname)
 {
-  char buf[100], *colon ;
+  char buf[100], *number ;
   int  num ;
 
   strcpy(buf, fname) ;
-  colon = strchr(buf, ':') ;
-  if (colon)
-    sscanf(colon+1, "%d", &num) ;
+  number = strchr(buf, '#') ;
+  if (number)
+    sscanf(number+1, "%d", &num) ;
   else
     num = -1 ;
   return(num) ;
@@ -516,7 +516,7 @@ FileNumberOfEntries(char *fname)
 
       Description:
          extract the file name including path, removing additional
-         modifiers such as '@' and ':'
+         modifiers such as '@' and '#'
 
     Return Values:
         nothing.
@@ -524,15 +524,15 @@ FileNumberOfEntries(char *fname)
 char *
 FileFullName(char *full_name)
 {
-  char *fname, *colon, *at ;
+  char *fname, *number, *at ;
 
   fname = full_name ;
   if (*fname == '@')
     fname++ ;
 
-  colon = strrchr(fname, ':') ;
-  if (colon)
-    *colon = 0 ;
+  number = strrchr(fname, '#') ;
+  if (number)
+    *number = 0 ;
   at = strrchr(fname, '@') ;
   if (at)
     *at = 0 ;
@@ -581,10 +581,13 @@ FileTmpName(char *basename)
 void
 FileRename(char *inName, char *outName)
 {
+#ifndef _MSDOS
   char  cmd_string[200] ;
-
   sprintf(cmd_string, "mv %s %s", inName, outName) ;
   system(cmd_string) ;
+#else
+  rename(inName,outName);
+#endif
 }
 /*------------------------------------------------------------------------
        Parameters:
@@ -600,9 +603,9 @@ angleDistance(float theta1, float theta2)
 {
   float adist ;
 
-  adist = fabs(theta1 - theta2) ;
+  adist = (float)fabs(theta1 - theta2) ;
   if (adist >= PI)
-    adist = fabs(adist - 2*PI) ;
+    adist = (float)fabs(adist - 2*PI) ;
 
   return(adist) ;
 }

@@ -109,7 +109,7 @@ KernelCopy(KIMAGE *ksrc, KIMAGE *kdst, int src_row, int src_col,
   register float   *src_w, *dst_w ;
 
   if (src_row == 8 && dst_row == 8)
-    src_row = 8 ;
+    src_col = src_row = 8 ;  /* remove warning for now */
 
   src_kernel = KIMAGEpix(ksrc, dst_row, dst_col) ;
   dst_kernel = KIMAGEpix(kdst, dst_row, dst_col) ;
@@ -422,7 +422,7 @@ KernelNormalize(KIMAGE *kimage, int row, int col)
     w = kernel->weights[krow] ;
     for (kcol = 0 ; kcol < cols ; kcol++)
     {
-      total += fabs(*w++) ;
+      total += (float)fabs(*w++) ;
     }
   }
 

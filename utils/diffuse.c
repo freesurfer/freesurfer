@@ -12,8 +12,8 @@
 #include "error.h"
 
 /* sobel x and y filter coefficients */
-float sy[9] = { -.25, -.5, -.25,   0, 0, 0,   .25, .5, .25} ;
-float sx[9] = {-.25, 0, .25,  -.5, 0, .5,   -.25,  0,  .25} ;
+float sy[9] = { -0.25f, -0.5f, -0.25f,  0.0f, 0.0f, 0.0f,  0.25f, 0.5f, 0.25f};
+float sx[9] = {-0.25f,   0.0f, 0.25f,  -0.5f, 0.0f, 0.5f, -0.25f, 0.0f, 0.25f};
 
 /*----------------------------------------------------------------------
             Parameters:
@@ -166,9 +166,11 @@ ImageDiffuseCurvature(IMAGE *inImage,IMAGE *outImage, double A,
 
   ImageCopy(inImage, tmpImage) ;
 
+#if 0
   if (0 && (Gdiag & DIAG_WRITE))
     fp = fopen("diffuse.dat", "w") ;
   else
+#endif
     fp = NULL ;
 
 #if FOUR_CONNECTED
@@ -186,7 +188,7 @@ ImageDiffuseCurvature(IMAGE *inImage,IMAGE *outImage, double A,
     if (kimage)
       KernelImageCopy(kimage, ksrc) ;
 
-    ImageCurvature(tmpImage, A, gradImage) ;
+    ImageCurvature(tmpImage, (float)A, gradImage) ;
     for (x = 0 ; x < cols ; x++)
     {
       xe = xE[x] ;
@@ -437,9 +439,11 @@ ImageDiffuseHV(IMAGE *inImage, IMAGE *outImage, double k, int niter,
 
   ImageCopy(inImage, tmpImage) ;
 
+#if 0
   if (0 && (Gdiag & DIAG_WRITE))
     fp = fopen("diffuse.dat", "w") ;
   else
+#endif
     fp = NULL ;
 
   for (i = 0 ; i < niter ; i++)
@@ -628,9 +632,11 @@ ImageDiffusePerona(IMAGE *inImage, IMAGE *outImage, double k, int niter,
 
   ImageCopy(inImage, tmpImage) ;
 
+#if 0
   if (0 && (Gdiag & DIAG_WRITE))
     fp = fopen("diffuse.dat", "w") ;
   else
+#endif
     fp = NULL ;
 
 #if FOUR_CONNECTED
@@ -768,9 +774,11 @@ static  IMAGE *tmpImage = NULL ;
 
   ImageCopy(inImage, tmpImage) ;
 
+#if 0
   if (0 && (Gdiag & DIAG_WRITE))
     fp = fopen("diffuse.dat", "w") ;
   else
+#endif
     fp = NULL ;
 
   for (i = 0 ; i < niter ; i++)
@@ -892,7 +900,7 @@ ImageCurvature(IMAGE *inImage, float A, IMAGE *gradImage)
     {
       xval = *xpix++ ;
       yval = *ypix++ ;
-      gval = sqrt(1 + Asq * (xval * xval + yval * yval)) ;
+      gval = (float)sqrt(1.0 + (double)(Asq * (xval * xval + yval * yval))) ;
       *gradpix++ = gval ;
     }
   }

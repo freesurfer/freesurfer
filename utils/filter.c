@@ -121,7 +121,7 @@ ImageWrite(IF, "IF.hipl");
 ImageWrite(IG, "IG.hipl");
 
   /* now apply actual filter */
-  sigma_sq = 2.0f * sigma * sigma ;
+  sigma_sq = 2.0f * (float)(sigma * sigma) ;
   dpix = IMAGEFpix(Iout, 0, 0) ;
   for (y = 0 ; y < rows ; y++)
   {
@@ -151,7 +151,7 @@ ImageWrite(IG, "IG.hipl");
           Fval = *IMAGEFpix(IF, xs, ys) ;
           Gval = *IMAGEFpix(IG, xs, ys) ;
 
-          fval = exp(-(Eval*xk*xk + 2*Fval*xk*yk + Gval*yk*yk) / sigma_sq) ;
+          fval = (float)exp(-(Eval*xk*xk + 2*Fval*xk*yk + Gval*yk*yk)/sigma_sq);
 #if DEBUG_FILTER
           if (x == Gx && y == Gy)
             *IMAGEFpix(Ifilter, xk+whalf, yk+whalf) = fval ;

@@ -19,8 +19,8 @@ TimerStop(struct timeb *then)
   int          msec, now_msec, then_msec ;
 
   ftime(&now) ;
-  then_msec = then->time * 1000 + then->millitm ;
-  now_msec = now.time * 1000 + now.millitm ;
+  then_msec = (int)then->time * 1000 + (int)then->millitm ;
+  now_msec = (int)now.time * 1000 + (int)now.millitm ;
   msec = now_msec - then_msec ;
   return(msec) ;
 }

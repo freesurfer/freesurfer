@@ -34,6 +34,7 @@
 #include "machine.h"
 #include "proto.h"
 #include "diag.h"
+#include "canny.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -91,7 +92,7 @@ alloc_image_buffer(struct header *hd)
     hd->imdealloc = (h_boolean) FALSE; /*dng*/
     return(HIPS_OK);
   }
-  if((hd->image = hcalloc(hd->sizeimage*hd->num_frame,sizeof(byte))) == 
+  if((hd->image = hcalloc((long)hd->sizeimage*(long)hd->num_frame,sizeof(byte))) == 
      (byte *)NULL)    return(HIPS_ERROR);
   if (hd->pixel_format == PFMSBF || hd->pixel_format == PFLSBF) 
   {
@@ -237,7 +238,7 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
   }
   else              /* read only specified frames */
   {
-    if (fseek(fp, I->sizeimage*start, SEEK_CUR) < 0)
+    if (fseek(fp, (long)I->sizeimage*(long)start, SEEK_CUR) < 0)
     {
       ImageFree(&I) ;
       ErrorReturn(NULL, 
@@ -405,7 +406,11 @@ ImageReadType(char *fname, int pixel_format)
 {
   IMAGE *Itmp, *I ;
 
-  Itmp = ImageRead(fname) ;
+  Itmp = ImageRead(fname) ;          
+  if (!Itmp)
+    ErrorReturn(NULL, (ERROR_NO_FILE, 
+      "ImageReadType(%s, %d): could not read image",
+      fname, pixel_format)) ;
   if (Itmp->pixel_format != pixel_format)
   {
     I = ImageAlloc(Itmp->rows, Itmp->cols, pixel_format, Itmp->num_frame) ;
@@ -1297,16 +1302,16 @@ ImageType(char *fname)
 int
 ImageFrame(char *fname)
 {
-  char *colon, buf[200] ;
+  char *number, buf[200] ;
   int   frame ;
 
   strcpy(buf, fname) ;
-  colon = strrchr(buf, ':') ;
+  number = strrchr(buf, '#') ;
 
-  if (colon)
+  if (number)
   {
-    sscanf(colon+1, "%d", &frame) ;
-    *colon = 0 ;
+    sscanf(number+1, "%d", &frame) ;
+    *number = 0 ;
   }
   else
     frame = 0 ;
@@ -2205,7 +2210,7 @@ int
 ImageValRange(IMAGE *image, float *pfmin, float *pfmax)
 {
   float  fmax, fmin, *fpix ;
-  int    size, imax, imin, *ipix ;
+  unsigned int    size, imax, imin, *ipix ; /* "unsiged" added dng */
   byte   bmin, bmax, *bpix ;
 
   size = image->rows * image->cols * image->num_frame ;
@@ -2465,17 +2470,17 @@ ImageReplace(IMAGE *Isrc, IMAGE *Idst, float inpix, float outpix)
 int
 ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
 {
-  char *colon, *dot, buf[100] ;
+  char *number, *dot, buf[100] ;
 
   strcpy(outFname, inFname) ;
-  colon = strrchr(outFname, ':') ;
+  number = strrchr(outFname, '#') ;
   dot = strrchr(outFname, '.') ;
 
-  if (colon)   /* : in filename indicates frame # */
+  if (number)   /* : in filename indicates frame # */
   {
-    if (sscanf(colon+1, "%d", pframe) < 1)
+    if (sscanf(number+1, "%d", pframe) < 1)
       *pframe = -1 ;
-    *colon = 0 ;
+    *number = 0 ;
   }
   else
     *pframe = -1 ;
@@ -2865,7 +2870,7 @@ ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
       for (x = 0 ; x < wsize ; x++, g++) 
       {
         xc = x - whalf ;
-        *g = exp(-36.0f * sqrt(xc*xc+yc*yc) / den) ;
+        *g = (float)exp(-36.0 * sqrt((double)(xc*xc+yc*yc)) / (double)den) ;
         norm += *g ;
       }
     }
@@ -2918,7 +2923,7 @@ ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
             xc = cols - (xc - cols + 1) ;
           
           fpix = *IMAGEFpix(gradImage, xc, yc) ;
-          val = exp(-fpix*fpix / k)/*  * *g++ */ ;
+          val = (double)exp((double)(-fpix*fpix / k))/*  * *g++ */ ;
           norm += val ;
           *filterPix++ = val ;
         }
@@ -2940,17 +2945,17 @@ ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
 /*  ImageWrite(filterSequence, "filter.hipl") ;*/
   return(0) ;
 }
+#if 0
 /*----------------------------------------------------------------------
             Parameters:
-
            Description:
 ----------------------------------------------------------------------*/
-int
-ImageCalculateMomentOffset(IMAGE *gradImage, int wsize, float c,
+int ImageCalculateMomentOffset(IMAGE *gradImage, int wsize, float c,
                           IMAGE *offsetImage)
 {
   return(0) ;
 }
+#endif
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -3010,7 +3015,7 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
       for (x = 0 ; x < wsize ; x++, g++) 
       {
         xc = x - whalf ;
-        *g = exp(-36.0f * sqrt(xc*xc+yc*yc) / den) ;
+        *g = (float)exp(-36.0 * sqrt((double)(xc*xc+yc*yc)) / (double)den) ;
         norm += *g ;
       }
     }
@@ -3060,7 +3065,7 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
             xc = cols - 1 ;
           
           fpix = *IMAGEFpix(gradImage, xc, yc) ;
-          val = exp(-fpix*fpix / k)/*  * *g++ */ ;
+          val = (float)exp((double)(-fpix*fpix / k))/*  * *g++ */ ;
           norm += val ;
           *filterPix++ = val ;
         }
@@ -3170,7 +3175,7 @@ ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, float mu,
 #define SIGMA 0.5f
 
         /* standard gaussian window with sigma=2 */
-        *g = exp(-sqrt(xc*xc+yc*yc) / (2.0f*SIGMA*SIGMA)) ;
+        *g = (float)exp((double)-sqrt((double)xc*xc+yc*yc) / (2.0*SIGMA*SIGMA));
 #endif
         norm += *g ;
       }
@@ -3293,8 +3298,8 @@ ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, float mu,
       sgn = (sgn < 0.0f) ? -1.0f : 1.0f ;
 
       /* calculated phi(V) */
-      vx = vx*c1 / sqrt(mu*mu + vsq) ;
-      vy = vy*c1 / sqrt(mu*mu + vsq) ;
+      vx = vx*c1 / (float)sqrt((double)(mu*mu + vsq)) ;
+      vy = vy*c1 / (float)sqrt((double)(mu*mu + vsq)) ;
 
       /* offset should never be larger than half of the window size */
       if (vx > whalf+1)  vx = whalf+1 ;
@@ -3362,7 +3367,7 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
       for (x = 0 ; x < wsize ; x++, g++) 
       {
         xc = x - whalf ;
-        *g = exp(-36.0f * sqrt(xc*xc+yc*yc) / den) ;
+        *g = (float)exp(-36.0 * sqrt((double)(xc*xc+yc*yc)) / (double)den) ;
         norm += *g ;
       }
     }
@@ -3417,8 +3422,8 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
       vsq = vx*vx + vy*vy ;
 
       /* calculated phi(V) */
-      vx = vx*c1 / sqrt(mu*mu + vsq) ;
-      vy = vy*c1 / sqrt(mu*mu + vsq) ;
+      vx = vx*c1 / (float)sqrt((double)(mu*mu + vsq)) ;
+      vy = vy*c1 / (float)sqrt((double)(mu*mu + vsq)) ;
       *xpix = -vx ;
       *ypix = -vy ;
     }
@@ -3466,7 +3471,7 @@ ImageAbs(IMAGE *inImage, IMAGE *outImage)
       case PFBYTE:
         cOut = IMAGEpix(outImage, 0, 0) + pix_per_frame * frameno ;
         while (size--)
-          *cOut++ = abs(*cIn++) ;
+          *cOut++ = (byte)abs((int)(*cIn++)) ;
         break ;
       case PFINT:
         iOut = IMAGEIpix(outImage, 0, 0) + pix_per_frame * frameno ;
@@ -3574,7 +3579,7 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
       {
         xval = *xpix++ ;
         yval = *ypix++ ;
-        gval = sqrt(xval * xval + yval * yval) ;
+        gval = (float)sqrt((double)(xval * xval + yval * yval)) ;
         *gradpix++ = gval ;
       }
     }
@@ -3659,7 +3664,7 @@ ImageConvolve3x3(IMAGE *inImage, float kernel[], IMAGE *outImage)
         for (x = 0 ; x < cols ; x++, fopix++)
         {
           fkpix = kernel ;
-          for (sum = 0.0, k = 0, yk = -1 ; yk <= 1 ; yk++)
+          for (sum = 0.0f, k = 0, yk = -1 ; yk <= 1 ; yk++)
           {
             yi = y + yk ;    /* image coordinate */
             if (yi < 0)
@@ -3887,7 +3892,7 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
               the pyramid 1 level.
 ----------------------------------------------------------------------*/
 #define KERNEL_SIZE 5
-#define K_A         0.4
+#define K_A         0.4f
 static float kernel[KERNEL_SIZE]  = 
 {
   0.25f - K_A/2.0f, .25f, K_A, 0.25f, 0.25f-K_A/2.0f
@@ -4068,8 +4073,8 @@ ImageGaussian(float xsigma, float ysigma)
   {
     fx = (float)(x-xhalf) ;
     if (fabs(fx) <= xtwo_sigma)
-      k = exp(-fx*fx/(xtwo_sigma*xsigma)) ;  /* parens added!! */
-    else if (xtwo_sigma < fabs(fx) && fabs(fx) <= 4*xsigma)
+      k = (float)exp((double)(-fx*fx/(xtwo_sigma*xsigma))) ; 
+    else if (xtwo_sigma < (float)fabs(fx) && (float)fabs(fx) <= 4.0f*xsigma)
       k = 1.0f / (16.0f * M_E * M_E) * pow(4.0f - fabs(fx)/xsigma, 4.0) ;
     else
       k = 0 ;
@@ -4082,9 +4087,9 @@ ImageGaussian(float xsigma, float ysigma)
   {
     fy = (float)(y-yhalf) ;
     if (fabs(fy) <= ytwo_sigma)
-      k = exp(-fy*fy/(ytwo_sigma*ysigma)) ;  /* parens added!! */
+      k = (float)exp((double)(-fy*fy/(ytwo_sigma*ysigma))) ;
     else if (ytwo_sigma < fabs(fy) && fabs(fy) <= 4*ysigma)
-      k = 1.0f / (16.0f * M_E * M_E) * pow(4.0f - fabs(fy)/ysigma, 4.0) ;
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) * (float)pow(4.0 - fabs(fy)/(double)ysigma, 4.0) ;
     else
       k = 0 ;
 
@@ -4133,9 +4138,9 @@ ImageGaussian1d(float sigma, int max_len)
   {
     fx = (float)(x-half) ;
     if (fabs(fx) <= two_sigma)
-      k = exp(-fx*fx/(two_sigma*sigma)) ;  /* parens added!! */
-    else if (two_sigma < fabs(fx) && fabs(fx) <= 4*sigma)
-      k = 1.0f / (16.0f * M_E * M_E) * pow(4.0f - fabs(fx)/sigma, 4.0f) ;
+      k = (float)exp((double)(-fx*fx/(two_sigma*sigma))) ;
+    else if (two_sigma < fabs(fx) && fabs(fx) <= 4.0f*sigma)
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) * pow(4.0f - fabs(fx)/(double)sigma, 4.0) ;
     else
       k = 0 ;
 
@@ -4807,7 +4812,7 @@ ImageNormalizeOffsetDistances(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
       
       if (fabs(dx) > fabs(dy))  /* use unit steps in x direction */
       {
-        delta = dx / fabs(dx) ;
+        delta = dx / (float)fabs(dx) ;
         slope = delta  * dy / dx ;
         for (i = 0, yf = (float)y0+slope, x = x0+delta; i <= maxsteps;
              x += delta, yf += slope, i++)
@@ -4827,7 +4832,7 @@ ImageNormalizeOffsetDistances(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
       }
       else                     /* use unit steps in y direction */
       {
-        delta = dy / fabs(dy) ;
+        delta = dy / (float)fabs(dy) ;
         slope = delta * dx /dy ;
         for (i = 0, xf = (float)x0+slope, y = y0+delta; i < maxsteps;
              y += delta, xf += slope, i++)
@@ -4915,22 +4920,22 @@ ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
       /* fill the offset vector array */
       dx = *src_xpix ;
       dy = *src_ypix ;
-      if (x0 == 30 && y0 == 40 && 0)
-        fprintf(stderr, "input (%d, %d) = (%2.1f, %2.1f)\n",
-                x0, y0, dx, dy) ;
+
+
+
 
       /* calculate orthogonal slope = -dx/dy */
       f = dx ;
       dx = dy ;
       dy = -f ;
-      mag = hypot(dx, dy) ;
+      mag = (float)hypot(dx, dy) ;
 
       if (ISSMALL(mag))/* don't know what direction to search in */
         continue ;
       else
         if (fabs(dx) > fabs(dy))  /* use unit steps in x direction */
       {
-        delta = dx / fabs(dx) ;
+        delta = dx / (float)fabs(dx) ;
         slope = delta  * dy / dx ;  /* orthogonal slope */
         
         yf = (float)y0-(float)whalf*slope    ;
@@ -4949,13 +4954,13 @@ ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
             wdx[i] = dx ;
             wdy[i] = dy ;
             wmag[i] = (float)hypot((double)dx, (double)dy) ;
-            wphase[i] = latan2((double)dy, (double)dx) ;
+            wphase[i] = (float)latan2((double)dy, (double)dx) ;
           }
         }
       }
       else                     /* use unit steps in y direction */
       {
-        delta = dy / fabs(dy) ;
+        delta = dy / (float)fabs(dy) ;
         slope = delta * dx /dy ;          /* orthogonal slope */
         xf = (float)x0-(float)whalf*slope ;
         y = y0 - whalf * delta ;
@@ -4973,7 +4978,7 @@ ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
             wdx[i] = dx ;
             wdy[i] = dy ;
             wmag[i] = (float)hypot((double)dx, (double)dy) ;
-            wphase[i] = latan2((double)dy, (double)dx) ;
+            wphase[i] = (float)latan2((double)dy, (double)dx) ;
           }
         }
       }

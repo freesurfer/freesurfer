@@ -20,7 +20,7 @@ static long   swapLong(long l) ;
 static double swapDouble(double dval) ;
 #endif
 
-static char *Progname = "matfile" ;
+static char *MatProgname = "matfile" ;
 
 static int (*mat_printf)(const char *szFormat, ...)=NULL;
 int Matlab_Install_printf( int (*new_printf)(const char *szFormat, ...) )
@@ -343,7 +343,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
         {
           ErrorPrintf(ERROR_BADFILE, 
                       "%s: could not read val[%d, %d] from .mat file\n",
-                      Progname, row, col) ;
+                      MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
         real_matrix[row][col] = (double)bval ;
@@ -354,7 +354,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
         {
           ErrorPrintf(ERROR_BADFILE, 
                       "%s: could not read val[%d, %d] from .mat file\n",
-                      Progname, row, col) ;
+                      MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
 #ifndef SPARC
@@ -369,7 +369,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
         {
           ErrorPrintf(ERROR_BADFILE, 
                       "%s: could not read val[%d, %d] from .mat file\n",
-                      Progname, row, col) ;
+                      MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
 
@@ -385,7 +385,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
         {
           ErrorPrintf(ERROR_BADFILE, 
                       "%s: could not read val[%d, %d] from .mat file\n",
-                      Progname, row, col) ;
+                      MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
 #ifndef SPARC
@@ -400,7 +400,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
         {
           ErrorPrintf(ERROR_BADFILE, 
                       "%s: could not read val[%d, %d] from .mat file\n",
-                      Progname, row, col) ;
+                      MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
 #ifndef SPARC
@@ -426,7 +426,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
         if (nitems != sizeof(double))
         {
           ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d]"
-                      "from .mat file\n",Progname, row, col) ;
+                      "from .mat file\n",MatProgname, row, col) ;
           /*exit(4) ;*/
           return(-1);
         }
@@ -434,6 +434,10 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
       default:
         break ;
       }
+#ifndef SPARC
+      if (mf->type >= MATFILE_SPARC)
+        dval = swapDouble(dval) ;
+#endif
       imag_matrix[row][col] = dval ;
     }
   }
@@ -453,7 +457,7 @@ DiagPrintf(DIAG_WRITE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);
     if (nitems != sizeof(MATHD))
     {
       ErrorPrintf(ERROR_BADFILE, "%s:only read %d bytes of header\n", 
-                  Progname, nitems) ;
+                  MatProgname, nitems) ;
       /*exit(1) ;*/
       return(NULL);
     }
@@ -481,7 +485,7 @@ DiagPrintf(DIAG_WRITE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);
     {
       ErrorPrintf(ERROR_BADFILE, 
                   "%s: only read %d bytes of name (%ld specified)\n", 
-                        Progname, nitems, mf->namlen) ;
+                        MatProgname, nitems, mf->namlen) ;
       /*exit(1) ;*/
       return(NULL);
     }

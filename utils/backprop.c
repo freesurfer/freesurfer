@@ -8,10 +8,10 @@
 
       Description:  
 
-  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.4 1996/06/26 11:05:09 fischl Exp $
+  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.5 1996/06/27 17:29:23 fischl Exp $
   $Log: backprop.c,v $
-  Revision 1.4  1996/06/26 11:05:09  fischl
-  made is machine independent
+  Revision 1.5  1996/06/27 17:29:23  fischl
+  windows compatability
 
 ----------------------------------------------------------------------*/
 
@@ -23,10 +23,9 @@
 #include <string.h>
 #include <math.h>
 #include <memory.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
-
+#include <unistd.h>
 #include "machine.h"
 #include "backprop.h"
 #include "diag.h"
@@ -223,7 +222,7 @@ BackpropFileNumberOfNets(char *fname)
     return(-1) ;
   }
 
-  return(hd.nnets) ;
+  return((int)hd.nnets) ;
 }
 /*----------------------------------------------------------------------
     Parameters:
@@ -272,7 +271,7 @@ BackpropRead(char *fname, int netno)
     return(NULL) ;
   }
   if (netno < 0)        /* read last net in file */
-    netno = hd.nnets ;
+    netno = (int)hd.nnets ;
 
   DiagPrintf(DIAG_WRITE, "BackpropRead(%s, %d): %d nets, 1st at %ld\n",
               fname, netno, hd.nnets, hd.first) ;
@@ -312,7 +311,7 @@ BackpropRead(char *fname, int netno)
       fclose(fp) ;
     exit(-2) ;
   }
-  if (fread(min_out, sizeof(float), noutputs, fp) != noutputs)
+  if (fread(min_out, sizeof(float), noutputs, fp) != (size_t)noutputs)
   {
     fprintf(stderr, "BackpropRead(%s): could not read min_out\n",
             fname) ;
@@ -320,7 +319,7 @@ BackpropRead(char *fname, int netno)
       fclose(fp) ;
     exit(-2) ;
   }
-  if (fread(max_out, sizeof(float), noutputs, fp) != noutputs)
+  if (fread(max_out, sizeof(float), noutputs, fp) != (size_t)noutputs)
   {
     fprintf(stderr, "BackpropRead(%s): could not read max_out\n",
             fname) ;
@@ -342,7 +341,7 @@ BackpropRead(char *fname, int netno)
   {
     backprop->user = (char *)calloc(ubytes, sizeof(char)) ;
     backprop->user_bytes = ubytes ;
-    if (fread(backprop->user, sizeof(char), ubytes, fp) != ubytes)
+    if (fread(backprop->user, sizeof(char), ubytes, fp) != (size_t)ubytes)
     {
       fprintf(stderr, "BackpropRead: could not read %d user bytes\n",
               ubytes) ;
@@ -525,7 +524,7 @@ BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
     backprop->trate, backprop->momentum, backprop->user_bytes) ;
 
   if (fwrite(backprop->mean_out, sizeof(float), backprop->noutputs, fp) != 
-      backprop->noutputs)
+      (size_t)backprop->noutputs)
   {
     fprintf(stderr, "BackpropWrite(%s): could not write min output vector\n",
             fname) ;
@@ -533,7 +532,7 @@ BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
   }
 
   if (fwrite(backprop->std_out, sizeof(float), backprop->noutputs, fp) != 
-      backprop->noutputs)
+      (size_t)backprop->noutputs)
   {
     fprintf(stderr, "BackpropWrite(%s): could not write max output vector\n",
             fname) ;
@@ -543,7 +542,7 @@ BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
   if (backprop->user_bytes > 0)
   {
     if (fwrite(backprop->user, sizeof(char), backprop->user_bytes, fp) != 
-        backprop->user_bytes)
+        (size_t)backprop->user_bytes)
     {
       fprintf(stderr, "BackpropWrite: could not write %d user bytes\n",
               backprop->user_bytes) ;
@@ -605,7 +604,7 @@ BackpropProcess(BACKPROP *backprop, float *I)
   bpLayerFeedForward(I, hidden, 1) ;
   bpLayerFeedForward(hidden->x, output, 0) ;
 
-  for (maxX = 0.0, i = 0 ; i < backprop->noutputs ; i++)
+  for (maxX = 0.0f, i = 0 ; i < backprop->noutputs ; i++)
   {
     if (output->x[i] > maxX)
     {
@@ -1076,7 +1075,7 @@ bpCalculateHiddenDeltas(BACKPROP *backprop)
   pdeli = &hidden->deltas[0] ;
   for (i = 0 ; i < hnunits ; i++)
   {
-    *pdeli = 0.0 ;
+    *pdeli = 0.0f ;
 
 #if 0
     if (Gdiag & DIAG_BACKPROP)
@@ -1193,12 +1192,12 @@ bpInitLayerWeights(LAYER *layer)
 
   /* initialize weights and biases to random values between -1 and 1 */
   for (j = 0 ; j < layer->nunits ; j++)
-    layer->biases[j] = randomNumber(-rlim, rlim) ;
+    layer->biases[j] = (float)randomNumber(-rlim, rlim) ;
 
   for (j = 0 ; j < layer->nunits ; j++)
   {
     for (i = 0 ; i < layer->ninputs ; i++)
-      Wij(layer, i, j) = randomNumber(-rlim, rlim) ;
+      Wij(layer, i, j) = (float)randomNumber(-rlim, rlim) ;
   }
 }
 /*----------------------------------------------------------------------
@@ -1494,7 +1493,7 @@ bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd, int swapped)
   }
 
   /* file ptr should be at location of end of pointer chain, not beyond it */
-  if (fseek(fp, -sizeof(long), SEEK_CUR))
+  if (fseek(fp, -(long)sizeof(long), SEEK_CUR))
   {
     fprintf(stderr, "bpFileSeekEndPtr: could not seek back sizeof(long)\n") ;
     exit(1) ;

@@ -27,9 +27,14 @@ LPAFreadImageAnswer(LPAF *lpaf, int current)
   char   *fullname, fname[100] ;
   FILE   *fp ;
   IMAGE  Iheader ;
-  int    i, ecode, *parms, frame, current_frame ;
+  int    i, ecode, frame, current_frame ;
   LP_BOX *lpb ;
   struct extpar *xp ;
+#ifdef _MSDOS
+  long   *parms ;
+#else
+  int    *parms ;
+#endif
 
   fullname = lpaf->filelist[current] ;
 
@@ -58,11 +63,19 @@ LPAFreadImageAnswer(LPAF *lpaf, int current)
   for (frame = 0, xp = Iheader.params ; xp ; xp = xp->nextp)
     if (frame++ == current_frame)
       break ;
-
+                  
+ /*
+  if hips file created on Sun, then the parameters are actually longs.
+*/
+ #ifndef _MSDOS
   parms = xp->val.v_pi ;
+ #else
+  parms = (long *)xp->val.v_pi ;
+ #endif
 
+ #ifndef _MSDOS
   if (parms[0] < 0 || parms[0] >= Iheader.cols)
-  {
+  {                        
     parms[0] = swapInt(parms[0]) ;
     parms[1] = swapInt(parms[1]) ;
     for (i = 0 ; i < NPOINTS ; i++)
@@ -71,16 +84,28 @@ LPAFreadImageAnswer(LPAF *lpaf, int current)
       parms[2+2*i+1] = swapInt(parms[2*i+1]) ;
     }
   }
+  #else
+  if (parms[0] < 0 || parms[0] >= (long)Iheader.cols)
+  {
+    parms[0] = swapLong(parms[0]) ;
+    parms[1] = swapLong(parms[1]) ;
+    for (i = 0 ; i < NPOINTS ; i++)
+    {
+      parms[2+2*i] = swapLong(parms[2*i]) ;
+      parms[2+2*i+1] = swapLong(parms[2*i+1]) ;
+    }
+  }
+  #endif
 
-  if (parms[0] == INIT_VAL)  /* not yet written with real value */
+  if ((int)parms[0] == INIT_VAL)  /* not yet written with real value */
     return(0) ;
 
-  lpb->xc = parms[0] ;
-  lpb->yc  = parms[1] ;
+  lpb->xc = (int)parms[0] ;
+  lpb->yc  = (int)parms[1] ;
   for (i = 0 ; i < NPOINTS ; i++)
   {
-    lpb->xp[i] = parms[2+2*i] ;
-    lpb->yp[i] = parms[2+2*i+1] ;
+    lpb->xp[i] = (int)parms[2+2*i] ;
+    lpb->yp[i] = (int)parms[2+2*i+1] ;
   }
 
   if (lpb->xc < 0 || lpb->xc >= Iheader.cols || 
@@ -252,7 +277,7 @@ lpafFillEntries(LP_ANSWER_FILE *lpaf, char *fname, int entryno)
       fclose(fp) ;
       break ;
     default:
-      sprintf(buf, "%s:%d", base_name, i) ;
+      sprintf(buf, "%s#%d", base_name, i) ;
       lpaf->filelist[entryno+i] = (char *)calloc(strlen(buf)+1, sizeof(char));
       strcpy(lpaf->filelist[entryno+i], buf) ;
       break ;
