@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.9 2002/09/06 19:46:31 greve Exp $
+  $Id: mri_surf2surf.c,v 1.10 2002/10/23 15:56:48 fischl Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -17,7 +17,7 @@
 #include "icosahedron.h"
 #include "fio.h"
 
-#include "MRIio.h"
+#include "MRIio_old.h"
 #include "error.h"
 #include "diag.h"
 #include "mrisurf.h"
@@ -46,7 +46,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.9 2002/09/06 19:46:31 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.10 2002/10/23 15:56:48 fischl Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
