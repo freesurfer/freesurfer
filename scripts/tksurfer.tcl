@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.59 2004/07/09 17:48:59 kteich Exp $
+# $Id: tksurfer.tcl,v 1.60 2004/08/04 20:56:23 kteich Exp $
 
 package require BLT;
 
@@ -2035,6 +2035,69 @@ proc UpdateCustomFillDlog {} {
 }
 
 
+proc DoLoadLabelValueFileDlog {} {
+
+    global gDialog gaLinkedVars
+    global gaScalarValueID gsaLabelContents
+    global glShortcutDirs
+    global sFileName
+
+    set wwDialog .wwImportLabelValuesDlog
+
+    set knWidth 400
+    
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Load Label Value" {-borderwidth 10}] } {
+	
+	set fwFile             $wwDialog.fwFile
+	set fwFileNote         $wwDialog.fwFileNote
+	set fwField            $wwDialog.fwField
+	set fwFieldNote        $wwDialog.fwFieldNote
+	set fwButtons          $wwDialog.fwButtons
+	
+	set sFileName [GetDefaultLocation LoadOverlay]
+	tkm_MakeFileSelector $fwFile "Load Label Value File:" sFileName \
+	    [list GetDefaultLocation LoadOverlay] \
+	    $glShortcutDirs
+	
+	[$fwFile.ew subwidget entry] icursor end
+
+	tkm_MakeSmallLabel $fwFileNote "The label value file" 400
+	
+	tixOptionMenu $fwField -label "Into Field:" \
+	    -variable nFieldIndex \
+	    -options {
+		label.anchor e
+		label.width 5
+		menubutton.width 8
+	    }
+	
+	tkm_MakeSmallLabel $fwFieldNote "The layer into which to load the values" 400
+	FillOverlayLayerMenu $fwField first-empty
+	
+	# buttons.
+        tkm_MakeCancelOKButtons $fwButtons $wwDialog { 
+	    SetDefaultLocation LoadOverlay $sFileName;
+	    sclv_load_label_value_file $sFileName $nFieldIndex
+	}
+	
+	pack $fwFile $fwFileNote $fwField $fwFieldNote $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+	
+	# after the next idle, the window will be mapped. set the min
+	# width to our width and the min height to the mapped height.
+	after idle [format {
+	    update idletasks
+	    wm minsize %s %d [winfo reqheight %s]
+	    wm geometry %s =%dx[winfo reqheight %s]
+	} $wwDialog $knWidth $wwDialog $wwDialog $knWidth $wwDialog] 
+    }
+}
+
 proc CreateWindow { iwwTop } {
     global ksWindowName
     frame $iwwTop
@@ -2091,6 +2154,9 @@ proc CreateMenuBar { ifwMenuBar } {
 	{command
 	    "Load Time Course..."
 	    {DoLoadTimeCourseDlog} }
+	{command
+	    "Load Label Value File..."
+	    {DoLoadLabelValueFileDlog} }
 	{ separator }
 	{command
 	    "Load Group Descriptor File..."

@@ -1461,6 +1461,8 @@ int sclv_get_normalized_color_for_value (int field, float value,
 					 float *outGreen,
 					 float *outBlue);
 
+int sclv_load_label_value_file (char* fname, int field);
+
 /* ---------------------------------------------------------------------- */
 
 /* ------------------------------------------------------ multiple labels */
@@ -17766,6 +17768,10 @@ ERR(1,"Wrong # args: swap_buffers")
      ERR(2,"Wrong # args: set_current_vertex_set file")
      vset_set_current_set(atoi(argv[1]));  WEND
      
+     int                  W_sclv_load_label_value_file  WBEGIN 
+     ERR(3,"Wrong # args: sclv_load_label_value_file fname field")
+     sclv_load_label_value_file(argv[1],atoi(argv[2]));  WEND
+
      int W_func_load_timecourse (ClientData clientData,Tcl_Interp *interp,
 				 int argc,char *argv[])
 {
@@ -18168,7 +18174,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.71 2004/07/19 03:47:17 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.72 2004/08/04 20:56:15 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18790,6 +18796,8 @@ int main(int argc, char *argv[])   /* new main */
 		    (Tcl_CmdProc*) W_sclv_read_bfile_values, REND);
   Tcl_CreateCommand(interp, "sclv_write_binary_values", 
 		    (Tcl_CmdProc*) W_sclv_write_binary_values, REND);
+  Tcl_CreateCommand(interp, "sclv_load_label_value_file", 
+		    (Tcl_CmdProc*) W_sclv_load_label_value_file, REND);
   Tcl_CreateCommand(interp, "sclv_smooth", 
 		    (Tcl_CmdProc*) W_sclv_smooth, REND);
   Tcl_CreateCommand(interp, "sclv_set_overlay_alpha", 
@@ -22141,6 +22149,127 @@ int sclv_get_normalized_color_for_value (int field, float value,
   *outRed = ((float)r / 255.0);
   *outGreen = ((float)g / 255.0);
   *outBlue = ((float)b / 255.0);
+  return (ERROR_NONE);
+}
+
+int sclv_load_label_value_file (char *fname, int field) 
+{
+  FILE* fp = NULL;
+  int line_number = 0;
+  char line[1024] = "";
+  int num_read = 0;
+  char label_name[256] = "";
+  float value = 0;
+  char hemisphere[256] = "";
+  float min, max;
+  int label_index = 0;
+  LABEL* label = NULL;
+  int label_vno = 0;
+  int vno = 0;
+  VERTEX* v = NULL;
+  char val_name[1024];
+  char cmd[1024];
+
+  /* unload this field if it already exists */
+  sclv_unload_field (field);
+  
+  /* Go through the file line by line. */
+  fp = fopen (fname, "r");
+  if (NULL == fp)
+    {
+      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_load_label_value_file: couldn't read file %s\n", fname));
+    }
+
+  line_number = 1;
+  min = 9999;
+  max = -9999;
+  while (!feof(fp))
+    { 
+      /* Read a label name, value, and hemisphere. */
+      fgetl (line, 1024, fp);
+      num_read = sscanf (line, "%s %f %s", label_name, &value, hemisphere);
+      if (3 != num_read)
+	{
+	  printf ("sclv_load_label_value_file: error reading line "
+		  "%d: %s\n", line_number, line);
+	  continue;
+	}
+
+      /* If this is our hemisphere... */
+      if (0 == strcmp (hemisphere, stem))
+	{
+
+	  /* Update min/max. */
+	  if (value < min)
+	    min = value;
+	  if (value > max)
+	    max = value;
+      
+	  /* Go through the labels. If one's name matches this label name... */
+	  for (label_index = 0; label_index < labl_num_labels; label_index++)
+	    {
+	      if (0 == strcmp (labl_labels[label_index].name, label_name))
+		{
+		  label = labl_labels[label_index].label;
+		  
+		  /* Go through the label points and set the sclv to
+		     this value. */
+		  for (label_vno = 0; label_vno < label->n_points; label_vno++)
+		    {
+		      vno = label->lv[label_vno].vno;
+		      v = &mris->vertices[vno];
+		      
+		      sclv_set_value (v, field, value);
+		    }
+		}
+	    }
+	}
+
+      line_number++;
+    }
+
+  fclose (fp);
+
+
+  /* mark this field as not binary */
+  sclv_field_info[field].is_binary_volume = FALSE;
+  
+  /* save the range */
+  sclv_field_info[field].min_value = min;
+  sclv_field_info[field].max_value = max;
+  
+  /* dummy info for time point and conditions, since .w files only have 
+     one plane of info */
+  sclv_field_info[field].cur_timepoint = 0;
+  sclv_field_info[field].cur_condition = 0;
+  sclv_field_info[field].num_timepoints = 1;
+  sclv_field_info[field].num_conditions = 1;
+  
+  /* calc the frquencies */
+  sclv_calc_frequencies (field);
+  
+  /* request a redraw. turn on the overlay flag and select this value set */
+  vertex_array_dirty = 1 ;
+  overlayflag = TRUE;
+  sclv_set_current_field (field);
+  
+  /* set the field name to the name of the file loaded */
+  if (NULL != g_interp)
+    {
+      FileNameOnly (fname, val_name);
+      sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, val_name);
+      Tcl_Eval (g_interp, cmd);
+      sprintf (cmd, "ShowValueLabel %d 1", field);
+      Tcl_Eval (g_interp, cmd);
+      sprintf (cmd, "UpdateLinkedVarGroup view");
+      Tcl_Eval (g_interp, cmd);
+      sprintf (cmd, "UpdateLinkedVarGroup overlay");
+      Tcl_Eval (g_interp, cmd);
+    }
+  
+  /* enable the menu items */
+  enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
+
   return (ERROR_NONE);
 }
 
