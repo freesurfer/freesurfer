@@ -28,18 +28,17 @@ static void usage_exit(int code) ;
 #define EDIT_VOLUME   3
 #define MAX_VOLUMES   4
 
-static float pct = 0.05f ;
-
+static float pct = 0.0f ;
+static int nsize = 0 ;
 
 int
 main(int argc, char *argv[])
 {
   char   **av ;
-  int    ac, nargs, i, nsize ;
+  int    ac, nargs, i ;
   MRI    *mri, *mri_template, *mri_inverse_template ;
   char   *in_fname, *template_fname, *out_fname, *xform_fname, fname[100] ;
   M3D    *m3d ;
-  float  threshold ;
   struct  timeb start ;
   int     msec ;
 
@@ -78,8 +77,6 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read template volume %s.\n",
               Progname, template_fname) ;
 
-  threshold = pct * (float)mri_template->dof ;
-
   fprintf(stderr, "reading transform %s...", xform_fname) ;
   m3d = MRI3DreadSmall(xform_fname) ;
   if (!m3d)
@@ -88,16 +85,16 @@ main(int argc, char *argv[])
   fprintf(stderr, "done.\n") ;
   fprintf(stderr, 
           "template has %d degrees of freedom - setting thresh = %2.1f\n",
-          mri_template->dof, threshold) ;
+          mri_template->dof, pct) ;
   fprintf(stderr, "applying inverse transform...") ;
   mri_inverse_template = MRIapplyInverse3DMorph(mri_template, m3d, NULL) ;
   MRIfree(&mri_template) ;
   MRIwrite(mri_inverse_template, "inverse.mgh") ;
-  nsize = nint(m3d->node_spacing)+1 ;/* don't erase anything close to white */
+  if (!nsize)  /* don't erase anything close to white */
+    nsize = nint(m3d->node_spacing)+1 ;
   MRI3DmorphFree(&m3d) ;
   fprintf(stderr, "done.\nthresholding inverse image (spacing=%d)...",nsize) ;
-  MRImaskThresholdNeighborhood(mri, mri_inverse_template, mri, threshold,
-                               nsize) ;
+  MRImaskThresholdNeighborhood(mri, mri_inverse_template, mri, pct, nsize) ;
   fprintf(stderr, "done.\n") ;
 
   if (MRIwrite(mri, out_fname) != NO_ERROR)
@@ -124,11 +121,16 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
+  case 'N':
+    nsize = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "white matter buffer zone set to %d voxels\n",nsize) ;
+    break ;
   case 'T':
   case 'P':
-    pct = atof(argv[2]) / 100.0f ;  /* make it percent */
+    pct = atof(argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr, "using threshold = %2.1f%%\n", pct*100.0f) ;
+    fprintf(stderr, "using threshold = %2.1f%%\n", pct) ;
     break ;
   case '?':
   case 'U':
