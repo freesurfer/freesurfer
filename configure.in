@@ -55,7 +55,7 @@ mni_includes=""
 # mgh put packages and create softlinks
 # default path for mni tools
 ##############################################################
-mghdir=/usr/pubsw/
+mghdir=/usr/pubsw
 if [ [ -d $mghdir ] ]; then
   ac_mni_includes=$mghdir/include
   ac_mni_libraries=$mghdir/lib
