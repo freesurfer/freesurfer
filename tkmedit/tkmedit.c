@@ -41,7 +41,9 @@
 
 #ifdef TCL
 #  define PR   {if(promptflag){fputs("% ", stdout);} fflush(stdout);}
+#ifndef IRIX
 int            tk_NumMainWindows = 0;
+#endif
 #else
 #  define PR
 #endif
@@ -3622,7 +3624,7 @@ goto_orig_vertex(int vno) {
   HiliteSurfaceVertex ( v, kSurfaceType_Original );
 
   // set the cursor and go there.
-  SetCursorToRASPt ( (Real)(v->x), (Real)(v->y), (Real)(v->z) );
+  SetCursorToRASPt ( (Real)(v->origx), (Real)(v->origy), (Real)(v->origz) );
   RecenterViewToScreenPt ( jc, ic, imc );
 
   redraw() ;
@@ -3646,7 +3648,7 @@ goto_canon_vertex(int vno) {
   HiliteSurfaceVertex ( v, kSurfaceType_Canonical );
 
   // set the cursor and go there.
-  SetCursorToRASPt ( (Real)(v->x), (Real)(v->y), (Real)(v->z) );
+  SetCursorToRASPt ( (Real)(v->cx), (Real)(v->cy), (Real)(v->cz) );
   RecenterViewToScreenPt ( jc, ic, imc );
 
   redraw() ;
