@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_add_template.c,v 1.2 1998/01/24 15:53:45 fischl Exp $";
+static char vcid[] = "$Id: mris_add_template.c,v 1.3 1998/02/22 22:28:11 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -38,7 +38,7 @@ int
 main(int argc, char *argv[])
 {
   char         **av, surf_fname[100], *template_fname, *out_fname, *surf_dir,
-               *hemi ;
+               *hemi, *sphere_name ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp, *mrisp_template ;
@@ -56,16 +56,17 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 4)
+  if (argc < 5)
     usage_exit() ;
 
   surf_dir = argv[1] ;
   hemi = argv[2] ;
-  out_fname = template_fname = argv[3] ;
-  if (argc > 4)
-    out_fname = argv[4] ;
+  sphere_name = argv[3] ;
+  out_fname = template_fname = argv[4] ;
+  if (argc > 5)
+    out_fname = argv[5] ;
 
-  sprintf(surf_fname, "%s/%s.%s", surf_dir, hemi, SPHERE_NAME) ;
+  sprintf(surf_fname, "%s/%s.%s", surf_dir, hemi, sphere_name) ;
   fprintf(stderr, "reading new surface %s...\n", surf_fname) ;
   mris = MRISread(surf_fname) ;
   if (!mris)
@@ -122,10 +123,15 @@ main(int argc, char *argv[])
   {
     MRIScomputeSecondFundamentalForm(mris) ;
     MRISuseMeanCurvature(mris) ;
-    MRISaverageCurvatures(mris, navgs) ;
   }
+  MRISaverageCurvatures(mris, navgs) ;
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-  fprintf(stderr, "computing parameterization for surface %s...\n",surf_fname);
+  if (curvature_fname[0])
+    fprintf(stderr, "computing parameterization for surface %s (%s)...\n",
+            surf_fname, curvature_fname);
+  else
+    fprintf(stderr, "computing parameterization for surface %s...\n",
+            surf_fname);
   MRISnormalizeCurvature(mris) ;
   mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
   MRISPcombine(mrisp, mrisp_template, 3) ;
@@ -203,7 +209,7 @@ static void
 print_usage(void)
 {
   fprintf(stderr, 
-          "usage: %s [options] <surface dir> <hemisphere> <average surface>\n",
+          "usage: %s [options] <surface dir> <hemisphere> <surface name> <average surface>\n",
           Progname) ;
 }
 
