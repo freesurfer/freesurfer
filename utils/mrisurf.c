@@ -7425,7 +7425,6 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
       strcat(fname, ".annot") ;
   }
 
-  printf("writing annotations to %s\n", fname) ;
   fp = fopen(fname,"r");
   if (fp==NULL) 
     ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "could not read annot file %s",
@@ -12982,7 +12981,7 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
       vn = &mris->vertices[min_vno] ;
       dx = x - vn->x ; dy = y - vn->y ; dz = z - vn->z ; 
       
-      fprintf(stdout, "v %d repulse term:        (%2.3f, %2.3f, %2.3f)\n",
+      fprintf(stdout, "v %d self repulse term:   (%2.3f, %2.3f, %2.3f)\n",
               vno, sx, sy, sz) ;
       fprintf(stdout, "min_dist @ %d = %2.2f, scale = %2.1f\n",
               min_vno, min_d, min_scale) ;
@@ -13500,7 +13499,7 @@ mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
       vn = &mris->vertices[max_vno] ;
       dx = x - vn->x ; dy = y - vn->y ; dz = z - vn->z ; 
 
-      fprintf(stdout, "v %d repulse term:        (%2.3f, %2.3f, %2.3f)\n",
+      fprintf(stdout, "v %d inside repulse term:  (%2.3f, %2.3f, %2.3f)\n",
               vno, sx, sy, sz) ;
       fprintf(stdout, "max_scale @ %d = %2.2f, max dot = %2.2f\n", 
               max_vno, max_scale, max_dot) ;
