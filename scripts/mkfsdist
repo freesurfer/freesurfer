@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.27 2003/05/16 16:20:17 kteich Exp $
+# $Id: mkfsdist,v 1.28 2003/05/16 16:43:25 kteich Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
@@ -71,7 +71,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.27 2003/05/16 16:20:17 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.28 2003/05/16 16:43:25 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -281,7 +281,7 @@ set DateStr = "`date '+%Y%m%d'`"
 touch $TARGET_DIR/$DateStr
 
 # Create a log file #
-set LF = mkfsdist-$PLATFORM-$DateStr.log
+set LF = ${PWD}/mkfsdist-$PLATFORM-$DateStr.log
 if(-e $LF) mv $LF $LF.old
 echo "Log file is $LF"
 
@@ -514,7 +514,7 @@ if( $MINC ) then
     if( "$PLATFORM" == "Solaris" ) then
 	set mni_platform = Solaris
     endif
-    set mnidir = $mni_platform/packages/mni
+    set mnidir = $mni_platform/packages
     if(! -e $mnidir) then
 	echo "WARNING: cannot find $mnidir" | tee -a $LF
     else
