@@ -938,3 +938,15 @@ int devFinite(float value)
 } /* end devFinite() */
 
 /* eof */
+char *
+FileNameRemoveExtension(char *in_fname, char *out_fname)
+{
+  char *dot ;
+
+  if (out_fname != in_fname)
+    strcpy(out_fname, in_fname) ;
+  dot = strrchr(out_fname, '.') ;
+  if (dot)
+    *dot = 0 ;
+  return(out_fname) ;
+}
