@@ -131,6 +131,17 @@ fwrite4(int v,FILE *fp)
   return(fwrite(&v,4,1,fp));
 }
 
+int
+fwriteShort(short s, FILE *fp)
+{
+  int   ret ;
+
+  ret = fread(&s,sizeof(short),1,fp);
+#ifdef Linux
+  s = swapShort(s) ;
+#endif
+  return(s) ;
+}
 float
 freadFloat(FILE *fp)
 {
@@ -160,7 +171,7 @@ short
 freadShort(FILE *fp)
 {
   int   nread ;
-	short s ;
+  short s ;
 
   nread = fread(&s,sizeof(short),1,fp);
 #ifdef Linux
