@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.7 1998/01/08 16:43:43 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.8 1998/01/08 22:34:05 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -67,7 +67,7 @@ main(int argc, char *argv[])
   parms.l_boundary = 0.0 ;
   parms.l_curv = 0.0 ;
   parms.niterations = 1 ;
-  parms.write_iterations = 10 ;
+  parms.write_iterations = 1000 ;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.dt_increase = 1.01 /* DT_INCREASE */;
   parms.dt_decrease = 0.98 /* DT_DECREASE*/ ;
