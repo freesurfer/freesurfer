@@ -398,9 +398,10 @@ typedef struct
   int     frame_no ;          /* current frame in template parameterization */
   MRI_SP  *mrisp_template ;   /* parameterization of canonical surface */
   float   sigma ;             /* blurring scale */
+
 /* VECTORIAL_REGISTRATION
 	 The average template mrisp is assumed to be composed of several 
-	 different fields (most likely 11 different fields: see below). 
+	 different fields (see below for maccros). 
 	 MRISvectorRegistration will use ncorrs fields, with their corresponding 
 	 location at frames[n], 0 <= n< ncorrs in the mrisp structure.
 	 The field type is in corrfields[n] (field code is below).
@@ -412,6 +413,7 @@ typedef struct
 	int     ncorrs;             /* the number of fields in mrisp */
 	int     corrfields[MNOFIV];       /* field code (see below) */
 	int     frames[MNOFIV];           /* corresponding frame in mrisp */ 
+	int     types[MNOFIV];            /* the field type (default,distance field...) */
 	float   l_corrs[MNOFIV];          /* correlation coefficient */
 	float   l_pcorrs[MNOFIV];         /* polar correlation coefficient */
 	float   sses[MNOFIV];             /* corresponding sse */
@@ -429,38 +431,10 @@ extern int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, INTEGRATION_PARMS *par
 extern int (*gMRISexternalClearSSEStatus)(MRI_SURFACE *mris) ;
 extern int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) ;
 
+#ifndef FIELD_CODE_INCLUDED
+#include "field_code.h" 
+#endif
 
-#define NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION 11
-/* field code: definition of the field type*/
-#define INFLATED_CURV_CORR_FRAME       0
-#define SULC_CORR_FRAME                1
-#define CURVATURE_CORR_FRAME           2 
-#define GRAYMID_CORR_FRAME             3
-#define T1MID_CORR_FRAME               4 
-#define T2MID_CORR_FRAME               5
-#define PDMID_CORR_FRAME               6
-#define AMYGDALA_CORR_FRAME            7 
-#define HIPPOCAMPUS_CORR_FRAME         8
-#define PALLIDUM_CORR_FRAME            9
-#define PUTAMEN_CORR_FRAME            10
-#define CAUDATE_CORR_FRAME            11
-#define LAT_VENTRICLE_CORR_FRAME      12
-#define INF_LAT_VENTRICLE_CORR_FRAME  13 
-
-#define IS_DISTANCE_FIELD(n) (((n) < 7 ) ? 0 : 1 )
-
-/* corresponding surface names */
-/* GRAYMID_NAME  has already been defined above */
-#define		T1MID_NAME                   "T1mid"   
-#define		T2MID_NAME                   "T2mid"
-#define		PDMID_NAME                   "PDmid"
-#define		AMYGDALA_DIST_NAME           "amygdala_dist"
-#define		HIPPOCAMPUS_DIST_NAME        "hippocampus_dist"  
-#define		PALLIDUM_DIST_NAME           "pallidum_dist"
-#define		PUTAMEN_DIST_NAME            "putamen_dist"
-#define		CAUDATE_DIST_NAME            "caudate_dist" 
-#define		LAT_VENTRICLE_DIST_NAME      "latventricle_dist"   
-#define		INF_LAT_VENTRICLE_DIST_NAME  "inflatventricle_dist"
 
 /* This structure is used in MRISvectorRegistration 
 	 The original values are loaded in orig_vals

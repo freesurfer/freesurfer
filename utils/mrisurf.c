@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/02/11 16:12:07 $
-// Revision       : $Revision: 1.329 $
+// Revision Date  : $Date: 2005/02/11 19:27:54 $
+// Revision       : $Revision: 1.330 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -14,7 +14,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <unistd.h>
-
+ 
 #include "diag.h"
 #include "error.h"
 #include "utils.h"
@@ -4619,7 +4619,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 			MRISresetNeighborhoodSize(mris,1);/*only use nearest neighbor distances*/
 			MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
 		}
-		MRISnormalizeField(mris,IS_DISTANCE_FIELD(parms->corrfields[n]));
+		MRISnormalizeField(mris,parms->types[n]);
 		MRISsetCurvaturesToOrigValues(mris,n);
 	}
 
@@ -4679,7 +4679,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		for( n = 0 ; n < nframes ; n++){
 			fprintf(stderr,"normalized target field %d (frame = %d - field %d)...\n",n,indices[n],parms->corrfields[indices[n]]);
 			MRISsetValuesToCurvatures(mris,indices[n]);
-			MRISnormalizeField(mris,IS_DISTANCE_FIELD(parms->corrfields[indices[n]])) ;
+			MRISnormalizeField(mris,parms->types[indices[n]]) ;
 			MRISsetCurvaturesToValues(mris,indices[n]);
 
 #if 0
@@ -4712,7 +4712,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		for( n = 0 ; n < nframes ; n++){
 			fprintf(stderr,"normalized source field %d (frame = %d - field %d)...\n",n,indices[n],parms->corrfields[indices[n]]);
 			MRISsetValuesToCurvatures(mris,indices[n]);
-			MRISnormalizeField(mris,IS_DISTANCE_FIELD(parms->corrfields[indices[n]])) ;
+			MRISnormalizeField(mris,parms->types[indices[n]]) ;
 			MRISsetCurvaturesToValues(mris,indices[n]);
 #if 0
 			sprintf(fname, "%s.source_%d_%d", mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",n,(int)(2*sigma));
@@ -16219,7 +16219,7 @@ mrisComputeVectorCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,in
 			if (!use_stds)
 				std = 1.0f ;
 			
-			if(IS_DISTANCE_FIELD(parms->corrfields[ind[n]]))
+			if(parms->types[ind[n]])
 				std=MAX(0.01,std);
 
 			delta = (src - target) / std ;
