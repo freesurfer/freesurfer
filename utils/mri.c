@@ -946,6 +946,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
 {
   int      width, height, depth, x, y, z, x1, y1, z1, ndark, max_dark, start ;
   double   means[3] ;
+  Real     val ;
 
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
@@ -957,7 +958,9 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   y = nint(means[1]) ; z = nint(means[2]) ;
   for (start = x1 = x = nint(means[0]) ; x >= 0 ; x--)
   {
-    if (MRIvox(mri, x, y, z) < thresh)
+    MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
+        
+    if (val < thresh)
     {
       if (!ndark)
         start = x ;
@@ -986,7 +989,8 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   y = nint(means[1]) ; z = nint(means[2]) ;
   for (start = x1 = x = nint(means[0]) ; x < width ; x++)
   {
-    if (MRIvox(mri, x, y, z) < thresh)
+    MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
+    if (val < thresh)
     {
       if (!ndark)
         start = x ;
@@ -1015,7 +1019,8 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   x = nint(means[0]) ; z = nint(means[2]) ;
   for (start = y1 = y = nint(means[1]) ; y >= 0 ; y--)
   {
-    if (MRIvox(mri, x, y, z) < thresh)
+    MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
+    if (val < thresh)
     {
       if (!ndark)
         start = y ;
@@ -1044,7 +1049,8 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   x = nint(means[0]) ; z = nint(means[2]) ;
   for (start = y = y1 = nint(means[1]) ; y < height ; y++)
   {
-    if (MRIvox(mri, x, y, z) < thresh)
+    MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
+    if (val < thresh)
     {
       if (!ndark)
         start = y ;
@@ -1073,7 +1079,8 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   x = nint(means[0]) ; y = nint(means[1]) ;
   for (z1 = start = z = nint(means[2]) ; z >= 0 ; z--)
   {
-    if (MRIvox(mri, x, y, z) < thresh)
+    MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
+    if (val < thresh)
     {
       if (!ndark)
         start = z ;
@@ -1102,7 +1109,8 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   x = nint(means[0]) ; y = nint(means[1]) ;
   for (start = z = nint(means[2]) ; z < depth ; z++)
   {
-    if (MRIvox(mri, x, y, z) < thresh)
+    MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
+    if (val < thresh)
     {
       if (!ndark)
         start = z ;
@@ -2267,14 +2275,9 @@ int
 MRIcenterOfMass(MRI *mri,double *means, BUFTYPE threshold)
 {
   int     width, height, depth, x, y, z ;
-  BUFTYPE *psrc, val ;
   long    npoints ;
   double  mx, my, mz, weight ;
-
-  if (mri->type != MRI_UCHAR)
-    ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED, 
-                 "MRIcenterOfMass: unsupported input type %d", mri->type)) ;
+  Real    val ;
 
   width = mri->width ;
   height = mri->height ;
@@ -2286,10 +2289,9 @@ MRIcenterOfMass(MRI *mri,double *means, BUFTYPE threshold)
   {
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIvox(mri, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        val = *psrc++ ;
+        MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
         if (val > threshold)
         {
           weight += val ;
@@ -7404,13 +7406,11 @@ MRImeanFrame(MRI *mri, int frame)
 {
   int       width, height, depth, x, y, z ;
   double    mean ;
-  BUFTYPE   *psrc ;
+  Real      val ;
 
   width = mri->width ; 
   height = mri->height ;
   depth = mri->depth ;
-  if (mri->type != MRI_UCHAR)
-    ErrorReturn(0.0,(ERROR_UNSUPPORTED,"MRImeanFrame: src must be UCHAR"));
   if (mri->nframes <= frame)
     ErrorReturn(0.0,(ERROR_BADPARM,
                      "MRImeanFrame: frame %d out of bounds (%d)",
@@ -7420,10 +7420,10 @@ MRImeanFrame(MRI *mri, int frame)
   {
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIseq_vox(mri, 0, y, z, frame) ;
       for (x = 0 ; x < width ; x++)
       {
-        mean += (double)*psrc++ ;
+        MRIsampleVolumeType(mri, x, y, z, &val, SAMPLE_NEAREST) ;
+        mean += (double)val ;
       }
     }
   }
