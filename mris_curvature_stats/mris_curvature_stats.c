@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature_stats.c,v 1.1 1999/12/15 22:55:51 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature_stats.c,v 1.2 2000/01/05 18:16:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -38,7 +38,7 @@ static double means[MAX_FILES] ;
 int
 main(int argc, char *argv[])
 {
-  char         **av, *out_fname, surf_name[STRLEN], fname[STRLEN], *sdir ;
+  char         **av, surf_name[STRLEN], fname[STRLEN], *sdir ;
   char         *hemi, *subject_name, *curv_fname ;
   int          ac, nargs, i ;
   MRI_SURFACE  *mris ;
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 6)
+  if (argc < 4)
     usage_exit() ;
 
   /* parameters are 
@@ -69,7 +69,6 @@ main(int argc, char *argv[])
      2. hemisphere
   */
   subject_name = argv[1] ; hemi = argv[2] ;
-  out_fname = argv[argc-1] ;
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject_name, hemi, surf_name) ;
   mris = MRISread(fname) ;
   if (!mris)
@@ -87,7 +86,9 @@ main(int argc, char *argv[])
     LabelFree(&area) ;
   }
 #define START_i  3
-  for (n = total_sq = total = 0.0, i = START_i ; i < argc-1 ; i++)
+  if (label_name)
+    fprintf(stdout, "%s: ", label_name) ;
+  for (n = total_sq = total = 0.0, i = START_i ; i < argc ; i++)
   {
     curv_fname = argv[i] ;
     if (MRISreadCurvatureFile(mris, curv_fname) != NO_ERROR)
@@ -98,22 +99,23 @@ main(int argc, char *argv[])
 
     MRISaverageCurvatures(mris, navgs) ;
     mean = MRIScomputeAverageCurvature(mris, &sigma) ;
-    fprintf(stderr, "curvature file %s: %2.2f += %2.2f\n", 
+    fprintf(stdout, "curvature file %s: %2.2f += %2.2f\n", 
             curv_fname, mean, sigma) ;
     means[i-START_i] = mean ;
     total += mean ; total_sq += mean*mean ;
     n += 1.0 ;
   }
 
-  if (n)
+  if (n > 1.8)
   {
     mean = total / n ;
     sigma = sqrt(total_sq/n - mean*mean) ;
+    fprintf(stdout, "mean across %d subjects: %2.3f +- %2.3f\n",
+            (int)n, mean, sigma) ;
   }
   else
     mean = sigma = 0.0 ;
-  fprintf(stderr, "mean across %d subjects: %2.3f +- %2.3f\n",
-          (int)n, mean, sigma) ;
+  
 
   MRISfree(&mris) ;
   if (output_fname)
