@@ -1031,11 +1031,15 @@ MRIreplaceValues(MRI *mri_src, MRI *mri_dst, BUFTYPE in_val, BUFTYPE out_val)
         Description
 ------------------------------------------------------*/
 MRI *
-MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,BUFTYPE mask,BUFTYPE out_val)
+MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
 {
   int     width, height, depth, x, y, z;
-  BUFTYPE *pdst, *psrc, *pmask, val, mask_val ;
+  BUFTYPE *pmask, mask_val ;
+  float   val ;
 
+  if (mri_mask->type != MRI_UCHAR)
+    ErrorReturn(NULL,
+                (ERROR_UNSUPPORTED, "MRImask: mask voxel type must be UCHAR")) ;
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -1043,21 +1047,43 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,BUFTYPE mask,BUFTYPE out_val)
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
+  if (mri_src->type != mri_dst->type)
+    ErrorReturn(NULL,
+                (ERROR_UNSUPPORTED, "MRImask: src and dst must be same type")) ;
+
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      psrc = &MRIvox(mri_src, 0, y, z) ;
       pmask = &MRIvox(mri_mask, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        val = *psrc++ ;
         mask_val = *pmask++ ;
-        if (mask_val == mask)
-          *pdst++ = out_val ;
-        else
-          *pdst++ = val ;
+        switch (mri_src->type)
+        {
+        default:
+          ErrorReturn(NULL,
+                      (ERROR_UNSUPPORTED, "MRImask: unsupported src voxel type %d",
+                       mri_src->type)) ;
+        case MRI_UCHAR:
+          val = (float)MRIvox(mri_src, x, y, z) ;
+          if (mask_val == mask)
+            val = out_val ;
+          MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(val) ;
+          break ;
+        case MRI_SHORT:
+          val = (float)MRISvox(mri_src, x, y, z) ;
+          if (mask_val == mask)
+            val = out_val ;
+          MRISvox(mri_dst, x, y, z) = (short)nint(val) ;
+          break ;
+        case MRI_FLOAT:
+          val = MRIFvox(mri_src, x, y, z) ;
+          if (mask_val == mask)
+            val = out_val ;
+          MRIFvox(mri_dst, x, y, z) = val ;
+          break ;
+        }
       }
     }
   }
