@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
+#include <libgen.h>
 #include "mri.h"
 #include "proto.h"
 #include "mri_identify.h"
