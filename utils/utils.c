@@ -538,3 +538,51 @@ FileFullName(char *full_name)
 
   return(fname) ;
 }
+/*------------------------------------------------------------------------
+       Parameters:
+
+      Description:
+         create a temporary filename which is not currently in use
+
+    Return Values:
+       pointer to the filename
+------------------------------------------------------------------------*/
+char *
+FileTmpName(char *basename)
+{
+  static char fname[100] ;
+  int         i ;
+  FILE        *fp ;
+
+  if (!basename)
+    basename = "tmp" ;
+
+  i = 0 ;
+  do
+  {
+    sprintf(fname, "%s%d", basename, i++) ;
+    fp = fopen(fname, "r") ;
+    if (fp)
+      fclose(fp) ;
+  } while (fp) ;
+
+  return(fname) ;
+}
+/*------------------------------------------------------------------------
+       Parameters:
+
+      Description:
+         create a temporary filename which is not currently in use
+
+    Return Values:
+       pointer to the filename
+------------------------------------------------------------------------*/
+void
+FileRename(char *inName, char *outName)
+{
+  char  cmd_string[200] ;
+
+  sprintf(cmd_string, "mv %s %s", inName, outName) ;
+  system(cmd_string) ;
+}
+
