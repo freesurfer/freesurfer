@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <string.h>
+#include <ctype.h>
 #include <math.h>
 
 #include "diag.h"
@@ -64,7 +66,6 @@ typedef struct
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
 static int mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2) ;
-static int mrisDumpTriangle(MRI_SURFACE *mris, int fno) ;
 static int mrisMarkBadEdgeVertices(MRI_SURFACE *mris, int mark) ;
 static int mrisCheckSurface(MRI_SURFACE *mris) ;
 static int mrisComputeCanonicalBasis(MRI_SURFACE *mris, int fno,
@@ -79,6 +80,7 @@ static int mrisComputeCanonicalEdgeBasis(MRI_SURFACE *mris, EDGE *edge1,
                                          EDGE *edge2, double origin[3],
                                          double e0[3], double e1[3]);
 #if 0
+static int mrisDumpTriangle(MRI_SURFACE *mris, int fno) ;
 static int mrisDilateAmbiguousVertices(MRI_SURFACE *mris, int mark,int ndil) ;
 static int triangleNeighbors(MRI_SURFACE *mris, int fno1, int fno2) ;
 #endif
@@ -20511,8 +20513,10 @@ static int       mrisTessellateDefect(MRI_SURFACE *mris,
                                       DEFECT *defect, int *vertex_trans) ;
 static int       intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, 
                                EDGE *e, int *vertex_trans);
+#if 0
 static int       mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect,
                                       int vno, int *vertex_trans) ;
+#endif
 static int       vertexNeighbor(MRI_SURFACE *mris, int vno1, int vno2) ;
 
 #define AREA_THRESHOLD     35.0f
@@ -21987,6 +21991,7 @@ compare_edge_length(const void *pe0, const void *pe1)
 
   return(0) ;
 }
+#if 0
 static int
 mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect, int vno, 
                      int *vertex_trans)
@@ -22039,6 +22044,7 @@ mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect, int vno,
   }
   return(NO_ERROR) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -23801,7 +23807,7 @@ mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
-
+#if 0
 static int
 mrisDumpTriangle(MRI_SURFACE *mris, int fno)
 {
@@ -23838,4 +23844,4 @@ mrisDumpTriangle(MRI_SURFACE *mris, int fno)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
-
+#endif
