@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_sphere.c,v 1.2 1997/12/19 19:36:21 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.3 1998/01/08 16:44:48 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -33,11 +33,13 @@ static float base_dt_scale = BASE_DT_SCALE ;
 static int nbrs = 2 ;
 static int inflate = 0 ;
 static double disturb = 0 ;
-static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static float min_neg_pct = 0.05f/100.0f ;  /* less than 0.05% negative */
 static int   min_neg = 20 ;
 static int   nospring = 0 ;
-static int   max_passes = 3 ;
+static int   max_passes = 2 ;
+static int   randomly_project = 0 ;
+static float scale = 1.0 ;
+static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 
 int
 main(int argc, char *argv[])
@@ -68,7 +70,7 @@ main(int argc, char *argv[])
   parms.write_iterations = 25 ;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.dt_increase = 1.01 /* DT_INCREASE */;
-  parms.dt_decrease = 0.98 /* DT_DECREASE*/ ;
+  parms.dt_decrease = 0.99 /* DT_DECREASE*/ ;
   parms.error_ratio = 1.03 /*ERROR_RATIO */;
   parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
   parms.momentum = 0.9 ;
@@ -76,8 +78,8 @@ main(int argc, char *argv[])
   parms.ici_desired = -1.0 ;
   parms.base_name[0] = 0 ;
   parms.Hdesired = 0.0 ;   /* a flat surface */
-  parms.nbhd_size = 4 ;
-  parms.max_nbrs = 20 ;
+  parms.nbhd_size = 7 ;
+  parms.max_nbrs = 8 ;
 
   ac = argc ;
   av = argv ;
@@ -87,6 +89,8 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
+
+  parms.scale = scale ;
 
   if (argc < 3)
     usage_exit() ;
@@ -111,8 +115,7 @@ main(int argc, char *argv[])
               Progname, in_surf_fname) ;
 
 
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "reading original vertex positions...") ;
+  fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
     mrisDisturbVertices(mris, disturb) ;
   if (parms.niterations > 0)
@@ -120,26 +123,14 @@ main(int argc, char *argv[])
     MRISreadOriginalProperties(mris, "smoothwm") ;
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr,"surface projected - minimizing metric distortion...\n");
-    /*      MRISscaleUp(mris) ;*/
+    fprintf(stderr,"surface projected - minimizing metric distortion...\n");
     MRIStalairachTransform(mris, mris) ;
-    MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f) ;
-    MRISunfold(mris, &parms, max_passes) ;  /* optimize metric properties of flat map */
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
+    MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
+    MRISunfold(mris, &parms, max_passes) ;  
+    fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
     MRISwrite(mris, out_fname) ;
   }
 
-#if 0
-  sprintf(fname, "%s.area_error", out_fname) ;
-  printf("writing area errors to %s\n", fname) ;
-  MRISwriteAreaError(mris, fname) ;
-  sprintf(fname, "%s.angle_error", out_fname) ;
-  printf("writing angle errors to %s\n", fname) ;
-  MRISwriteAngleError(mris, fname) ;
-  MRISfree(&mris) ;
-#endif
 
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -299,6 +290,11 @@ get_option(int argc, char *argv[])
     parms.base_dt = base_dt_scale*parms.dt ;
     nargs = 1;
     break ;
+  case 'S':
+    scale = atof(argv[2]) ;
+    fprintf(stderr, "scaling brain by = %2.3f\n", (float)scale) ;
+    nargs = 1 ;
+    break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
@@ -307,6 +303,10 @@ get_option(int argc, char *argv[])
     disturb = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "disturbing vertex positions by %2.3f\n",(float)disturb) ;
+    break ;
+  case 'R':
+    randomly_project = !randomly_project ;
+    fprintf(stderr, "using random placement for projection.\n") ;
     break ;
   case 'M':
     parms.integration_type = INTEGRATE_MOMENTUM ;
