@@ -683,5 +683,4 @@ int MRIwrite(MRI *mri, char *fname);
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
 MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 
-
 #endif
