@@ -16,8 +16,9 @@
 #include "fio.h"
 #include "mrishash.h"
 #include "sig.h"
+#include "label.h"
 
-static char vcid[] = "$Id: mris_twoclass.c,v 1.2 2000/11/06 02:26:38 fischl Exp $";
+static char vcid[] = "$Id: mris_twoclass.c,v 1.3 2000/12/22 20:10:29 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -160,6 +161,8 @@ static float fthresh = 2.0 ;
 static int min_labels = MIN_LABELS ;
 
 static int bonferroni = 0 ;
+static FILE *labels_fp = NULL ;
+static char *out_label_fname = NULL ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -698,6 +701,61 @@ main(int argc, char *argv[])
           stat_type == STAT_T ? "t" : 
           stat_type == STAT_MEAN ? "m" :"f", hemi) ; 
   MRISwriteValues(mris, fname) ;
+  if (labels_fp)
+  {
+    char   line[STRLEN] ;
+    FILE   *out_fp ;
+    LABEL  *area ;
+    int    i ;
+    double mean, var, thick ;
+
+    out_fp = fopen(out_label_fname, "w") ;
+    if (!out_fp)
+      ErrorExit(ERROR_BADFILE, "%s: could not open label report file %s",
+                Progname, out_label_fname) ;
+
+    while (fgetl(line, STRLEN, labels_fp))
+    {
+      area = LabelRead(output_subject, line) ;
+      if (!area)
+      {
+        fprintf(stderr, "%s: could not read label %s", Progname,line) ;
+        continue ;
+      }
+      fprintf(out_fp, "%s  ", line) ;
+      for (n = 0 ; n < num_class1 ; n++)
+      {
+        mean = var = 0.0 ;
+        for (i = 0 ; i < area->n_points ; i++)
+        {
+          thick = c1_thickness[n][i] ;
+          mean += thick ;
+          var += (thick*thick) ;
+        }
+        mean /= (double)area->n_points ;
+        var = var / (double)area->n_points - (mean*mean) ;
+        fprintf(out_fp, "%2.3f %2.4f  ", mean, var) ;
+      }
+      for (n = 0 ; n < num_class2 ; n++)
+      {
+        mean = var = 0.0 ;
+        for (i = 0 ; i < area->n_points ; i++)
+        {
+          thick = c2_thickness[n][i] ;
+          mean += thick ;
+          var += (thick*thick) ;
+        }
+        mean /= (double)area->n_points ;
+        var = var / (double)area->n_points - (mean*mean) ;
+        fprintf(out_fp, "%2.3f %2.4f  ", mean, var) ;
+      }
+      fprintf(out_fp, "\n") ;
+      LabelFree(&area) ;
+    }
+    fclose(out_fp) ;
+    fclose(labels_fp) ;
+  }
+
   if (condition_0 >= 0)  /* write means and variances */
   {
     char  path[STRLEN] ;
@@ -1094,6 +1152,17 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "writing test.dat for subject %s\n", test_subject) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "labels"))
+  {
+    labels_fp = fopen(argv[2], "r") ;
+    if (!labels_fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open label file list '%s'",
+                Progname, argv[2]) ;
+    out_label_fname = argv[3] ;
+    fprintf(stderr, "reading label names out of %s and writing report to %s\n",
+            argv[2], out_label_fname) ;
+    nargs = 2 ;
+  }
   else if (!stricmp(option, "wfile"))
   {
     wfile_flag = TRUE ;
@@ -1335,6 +1404,18 @@ cvector_compute_t_test(float *c1_mean, float *c1_var,
     }
     else
     {
+      if (num_class1 == 1 || num_class2 == 1)
+      {
+        int dof_out = num_class1 + num_class2 ;
+        /*
+          if one of the means is not a population but a single subject
+          then use standard deviation rather than standard error.
+        */
+        denom = sqrt((dof_out-1)*
+                     ((c1_var[i]/num_class1) + (c2_var[i]/num_class2))) ;
+      }
+      else
+        denom = sqrt((c1_var[i]/num_class1) + (c2_var[i]/num_class2)) ;
       t = numer / denom ;
       p = sigt(t, num_class1+num_class2-2) ;
       p = log10(p) ;
