@@ -217,11 +217,19 @@ Surf_tErr Surf_WriteValues ( mriSurfaceRef this,
 			     char*         isFileName ) {
   
   Surf_tErr eResult = Surf_tErr_NoErr;
-  
+  int     vno;
+
   eResult = Surf_Verify( this );
   if( Surf_tErr_NoErr != eResult ) 
     goto error;
   
+  for( vno = 0; vno < this->mSurface->nvertices; vno++ ) {
+    if( this->mSurface->vertices[vno].val != 0 ) {
+      fprintf( stderr, "vertex %d = %.2f\n", vno, 
+	       this->mSurface->vertices[vno].val );
+    }
+  }
+
   /* Write the val field */
   MRISwriteValues( this->mSurface, isFileName );
   printf( "Surface values written to %s.\n", isFileName );
@@ -702,7 +710,9 @@ Surf_tErr Surf_SetVertexValue ( mriSurfaceRef   this,
   Surf_tErr eResult = Surf_tErr_NoErr;
   xVoxel    surfaceVoxel;
   VERTEX*   vertex = NULL;
-  
+  int       nVno   = 0;
+  float     fDistance = 0;
+
   eResult = Surf_Verify( this );
   if( Surf_tErr_NoErr != eResult ) 
     goto error;
@@ -712,7 +722,7 @@ Surf_tErr Surf_SetVertexValue ( mriSurfaceRef   this,
   Surf_ConvertVoxelToSurfaceSpace( iClientVoxel, this->mTransform,
 				   &surfaceVoxel );
   Surf_GetClosestVertex( this, iVertexSet, &surfaceVoxel, &vertex,
-			 NULL, NULL );
+			 &nVno, &fDistance );
   if( NULL == vertex ) {
     eResult = Surf_tErr_ErrorAccesssingSurface;
     goto error;
@@ -722,6 +732,8 @@ Surf_tErr Surf_SetVertexValue ( mriSurfaceRef   this,
   switch( iValueSet ) {
   case Surf_tValueSet_Val:
     vertex->val = iValue;
+    fprintf( stderr, "vertex %d (%.2f,%.2f,%.2f, d=%.2f) set to %.2f\n",
+	     nVno, vertex->x, vertex->y, vertex->z, fDistance, iValue );
     break;
   default:
     return Surf_tErr_InvalidParameter;
