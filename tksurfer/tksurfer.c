@@ -91,7 +91,7 @@ static char *sphere_reg ;
 #include "label.h"
 /*#include "surfer.h"*/
 #include "fio.h"
-#include "MRIio.h"
+#include "MRIio_old.h"
 /*#include "volume_io.h"*/
 #include "rgb_image.h"
 #include "transform.h"
@@ -7587,7 +7587,7 @@ read_stds(int cond_no)
 }
 
 #include "mriFunctionalDataAccess.h"
-#include "mritransform.h"
+#include "mri_transform.h"
 #include "xVoxel.h"
 
 /* begin rkt */
