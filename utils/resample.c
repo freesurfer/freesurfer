@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.9 2002/09/06 19:44:26 greve Exp $
+  $Id: resample.c,v 1.10 2003/05/15 21:11:01 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -996,41 +996,45 @@ MATRIX * ConstMatrix(int rows, int cols, float val)
   has the vertex number of the corresponding point on the surface. If
   there is no corresponding point, then the value will be -1. See
   MRImapSurf2VolClosest().  MRI vol must have already been allocated.
+  Returns -1 on error, otherwise returns the number of voxels in
+  the volume that have been hit by the surface.
   ----------------------------------------------------------------*/
 int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map)
 {
-  int vtx, c, r, s, f;
+  int vtx, c, r, s, f, nhits;
   float val;
 
   if(vol->width  != map->width ||
      vol->height != map->height||
      vol->depth  != map->depth ){
     printf("ERROR: vol and map dimensions differ\n");
-    return(1);
+    return(-1);
   }
 
   if(surfvals->nframes != vol->nframes){
     printf("ERROR: surfvals and vol have different number of frames\n");
-    return(1);
+    return(-1);
   }
 
+  nhits = 0;
   for(c=0; c < vol->width; c++){
     for(r=0; r < vol->height; r++){
       for(s=0; s < vol->depth; s++){
-  vtx = MRIIseq_vox(map,c,r,s,0);
-  for(f = 0; f < vol->nframes; f++){
-    if(vtx < 0){
-      MRIsetVoxVal(vol,c,r,s,f,0.0);
-      continue;
-    }
-    val = MRIgetVoxVal(surfvals,vtx,0,0,f);
-    MRIsetVoxVal(vol,c,r,s,f,val);
-  }
+	vtx = MRIIseq_vox(map,c,r,s,0);
+	for(f = 0; f < vol->nframes; f++){
+	  if(vtx < 0){
+	    MRIsetVoxVal(vol,c,r,s,f,0.0);
+	    continue;
+	  }
+	  val = MRIgetVoxVal(surfvals,vtx,0,0,f);
+	  MRIsetVoxVal(vol,c,r,s,f,val);
+	  nhits++;
+	}
       }
     }
   }
-
-  return(0);
+  
+  return(nhits);
 }
 /*-------------------------------------------------------------------
   MRImapSurf2VolClosest() - the purpose of this function is to create
