@@ -72,6 +72,7 @@ static char *tissue_parms_fname = NULL ;
 static int center = 1 ;
 static int nreductions = 1 ;
 static int noscale = 0 ;
+static int noiscale = 0 ;
 static int num_xforms = 1 ;
 static int transform_loaded = 0 ;
 static char *gca_mean_fname = NULL ;
@@ -797,7 +798,7 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     MRIwriteImageViews(mri, "before_intensity", 400) ;
   }
 
-  if (!passno)
+  if (!passno && !noiscale)
     GCAhistoScaleImageIntensities(gca, mri) ;
 
   /* first align centroids */
@@ -1377,6 +1378,11 @@ get_option(int argc, char *argv[])
   {
     noscale = 1 ;
     printf("disabling scaling...\n") ;
+  }
+  else if (!strcmp(option, "NOISCALE"))
+  {
+    noiscale = 1 ;
+    printf("disabling intensity scaling...\n") ;
   }
   else if (!strcmp(option, "NUM"))
   {
