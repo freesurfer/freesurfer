@@ -23422,7 +23422,7 @@ MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parms)
     }
     parms->start_t += n ;
   }
-  if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
+  if (mht)
     MHTfree(&mht) ;
   return(NO_ERROR) ;
 }
