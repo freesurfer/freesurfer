@@ -12,7 +12,7 @@
 #include "mrisurf.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.2 1998/01/11 03:05:40 fischl Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.3 1998/05/20 15:11:42 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -33,6 +33,7 @@ char *Progname ;
 
 static int talairach_flag = 0 ;
 static int patch_flag = 0 ;
+static int read_orig_positions = 0 ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -89,6 +90,12 @@ main(int argc, char *argv[])
     if (MRISreadPatch(mris, in_fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
                 Progname, in_fname) ;
+    if (read_orig_positions)
+    {
+      if (MRISreadVertexPositions(mris, "smoothwm") != NO_ERROR)
+        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                  Progname, fname) ;
+    }
   }
   else
   {
@@ -127,6 +134,9 @@ get_option(int argc, char *argv[])
     print_version() ;
   else switch (toupper(*option))
   {
+  case 'O':
+    read_orig_positions = 1 ;
+    break ;
   case 'P':
     patch_flag = 1 ;
     nargs = 0 ;
