@@ -749,6 +749,17 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     fprintf(stderr, "could not find appropriate window in event!\n") ;
     return ;
   }
+  if ((dimage->used == DIMAGE_HISTOGRAM) && (dimage->histo != NULL))
+  {
+    x = (int)((float)x / dimage->xscale) ;
+    if (x < 0)
+      x = 0 ;
+    else if (x >= dimage->histo->nbins)
+      x = dimage->histo->nbins-1 ;
+    XVprintf(xvf, 0, "histo[%d] = %d", x, dimage->histo->counts[x]) ;
+    return ;
+  }
+
   if (dimage->used != DIMAGE_IMAGE)
     return ;
 
@@ -2329,6 +2340,10 @@ XVshowHistogram(XV_FRAME *xvf, int which, HISTOGRAM *histo)
   if (!dimage)
     return(NO_ERROR) ;
 
+  if (dimage->histo)
+    HISTOfree(&dimage->histo) ;
+
+  dimage->histo = HISTOcopy(histo, NULL) ;
   dimage->used = DIMAGE_HISTOGRAM ;
   display = xvf->display ;
   window = dimage->window ;
