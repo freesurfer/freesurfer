@@ -5,10 +5,11 @@ function [voxshift, err] = tdr_peshift(volref,krvol,tol)
 % krvol is the movable volume with its rows reconned
 %   but not its columns (see tdr_recon_rows).
 %
-% tol is the tolerance. Default is .05
+% tol is the bracket tolerance. Default is .025
 %
+% See also tdr_recon_rows.m tdr_recon_cols.m
 %
-% $Id: tdr_peshift.m,v 1.1 2003/10/28 04:30:07 greve Exp $
+% $Id: tdr_peshift.m,v 1.2 2003/11/06 19:42:25 greve Exp $
 
 
 voxshift = [];
@@ -16,10 +17,8 @@ if(nargin ~= 2)
   fprintf('voxshift = tdr_peshift(volref,krvol)\n');
   return;
 end
-if(exist('tol') ~= 1) tol = .05; end
+if(exist('tol') ~= 1) tol = .025; end
 nmax = 30;
-
-tic;
 
 % Get a bracket for the minimum (hopefully) %
 ashift = -20;
@@ -56,8 +55,8 @@ while(tolcheck > 2*tol & nth <= nmax)
   shift = [ashift bshift cshift xshift];
   [minerr iminerr] = min(err);
   minerrshift = shift(iminerr);
-  fprintf('n = %2d, tol = %6.4f, shift = %7.4f, err = %7.4f (%g)\n',...
-	  nth,cshift-ashift,minerrshift,minerr*1e7,toc);
+  %fprintf('n = %2d, tol = %6.4f, shift = %7.4f, err = %7.4f (%g)\n',...
+  %	  nth,cshift-ashift,minerrshift,minerr*1e7,toc); % need tic;
   tolcheck = cshift-ashift;
   nth = nth + 1;
 end
