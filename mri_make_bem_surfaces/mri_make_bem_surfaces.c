@@ -181,10 +181,12 @@ main(int argc,char *argv[])
     }
 
     make_filenames(data_dir);
-
+    
     sprintf(pname,"%s",argv[1]);
     sprintf(fpref,"%s/%s",data_dir,pname);
-
+    sprintf(ofname, "%s/bem", fpref);
+    mkdir(ofname, 0777);
+    
 #if 1
     /* Shrinkwrap "brain" -> initial estimate of inner_skull.tri */
     sprintf(mfname,"%s/mri/brain/COR-",fpref);
@@ -224,13 +226,12 @@ main(int argc,char *argv[])
     sprintf(ofname,"%s/bem/inner_skull.tri",fpref);
     sprintf(gfname,"%s/bem/inner_skull_tmp.tri",fpref);
 
-    if (stat(mfname, &buf)) {
+/*    if (stat(mfname, &buf)) {
       printf("Cannot find flash5 data\n");
-      printf("Best guess at inner_skull.tri is in inner_skull_tmp.tri\n");
       
       exit(0);
     }
-    
+*/  
     read_geometry(gfname);
     read_image_info(mfname);
     read_images(mfname);
@@ -290,7 +291,10 @@ read_image_info(char *fpref)
   sprintf(fname,"%s.info",fpref);
   fptr = fopen(fname,"r");
   if (fptr==NULL) {
-    printf("trishrink: File %s not found\n",fname); exit(0);}
+    printf("trishrink: File %s not found\n",fname);
+    printf("Best guess at inner_skull.tri is in inner_skull_tmp.tri\n");
+    exit(0);
+  }
   fscanf(fptr,"%*s %d",&imnr0);
   fscanf(fptr,"%*s %d",&imnr1);
   fscanf(fptr,"%*s %*d");
