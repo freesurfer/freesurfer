@@ -459,7 +459,7 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
     return ;
   dimage->used = 1 ;
   dimage->frame = frame ;
-  if (dimage->zoom == 1.0f)
+  if ((image != dimage->sourceImage) || (dimage->dx == 0))
   {
     if (dimage->zoomImage != dimage->sourceImage)
       ImageFree(&dimage->zoomImage) ;
@@ -467,12 +467,8 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   }
   else   /* image from here on in refers to the zoomed image */
   {
-    int dx, dy ;
-
-    dx = nint((float)image->cols/dimage->zoom) ;
-    dy = nint((float)image->rows/dimage->zoom) ;
     dimage->zoomImage = 
-      ImageExtract(image, NULL, dimage->x0, dimage->y0, dx, dy) ;
+      ImageExtract(image, NULL, dimage->x0, dimage->y0, dimage->dx,dimage->dy);
     dimage->sourceImage = image ;
     image = dimage->zoomImage ;
   }
@@ -677,44 +673,75 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   if (y >= dimage->sourceImage->rows) y = dimage->sourceImage->rows - 1 ;
   if (x >= dimage->sourceImage->cols) x = dimage->sourceImage->cols - 1 ;
 
-  if (event_ctrl_is_down(event)) switch (event_id(event)) 
+  if (event_ctrl_is_down(event)) 
   {
-  case MS_RIGHT:
-    if (first)
+    switch (event_id(event)) 
     {
-      fprintf(stderr, "setting origin to (%d, %d)\n", x, y) ;
-      dimage->x0 = x ;
-      dimage->y0 = y ;
-    }
-    XVzoom(xvf, which, 0.9f) ;
-    break ;
-  case MS_LEFT:
-    if (first)
-    {
-      fprintf(stderr, "setting origin to (%d, %d)\n", x, y) ;
-      dimage->x0 = x ;
-      dimage->y0 = y ;
-    }
-    XVzoom(xvf, which, 1.1f) ;
-    break ;
-  case LOC_DRAG:
-    if (event_left_is_down(event))
-      XVzoom(xvf, which, 1.1f) ;
-    else if (event_right_is_down(event))
-      XVzoom(xvf, which, 0.9f) ;
-    break ;
-  default:
-    if (event_is_up(event))
-    {
-      switch ((char)event->ie_code)
+    case MS_RIGHT:
+      break ;
+    case MS_LEFT:
+      if (event_is_down(event))
       {
-      case '\n':
-      case '\r':
-        XVzoom(xvf, which, 1.0f / dimage->zoom) ;
-        break ;
+        dimage->x1 = x ;
+        dimage->y1 = y ;
       }
+      else if (event_is_up(event))  /* erase box and show zoomed image */
+      {
+        XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
+                  dimage->dy1, XXOR) ;
+        if (dimage->dx1 < 0)
+        {
+          dimage->x0 = dimage->x1 + dimage->dx1 - 1 ;
+          dimage->dx1 *= -1 ;
+        }
+        else
+          dimage->x0 = dimage->x1 ;
+        if (dimage->dy1 < 0)
+        {
+          dimage->y0 = dimage->y1 + dimage->dy1 - 1 ;
+          dimage->dy1 *= -1 ;
+        }
+        else
+          dimage->y0 = dimage->y1 ;
+
+        if ((dimage->dx1 >= 2) || (dimage->dy1 >= 2))
+        {
+          dimage->dx = dimage->dx1 ;
+          dimage->dy = dimage->dy1 ;
+          XVshowImage(xvf, which, dimage->sourceImage, 0) ;
+        }
+          
+        dimage->x1 = dimage->y1 = 0 ;  /* no longer drawing */
+        dimage->dx1 = dimage->dy1 = 0 ;
+      }
+      break ;
+    case LOC_DRAG:
+      if (event_left_is_down(event))  /* draw rubber band box */
+      {
+        if (dimage->x1)   /* erase old box */
+          XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
+                    dimage->dy1, XXOR) ;
+        dimage->dx1 = x - dimage->x1 ;
+        dimage->dy1 = y - dimage->y1 ;
+        XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
+                  dimage->dy1, XXOR) ;
+      }
+      break ;
+    default:
+      if (event_is_up(event))
+      {
+        switch ((char)event->ie_code)
+        {
+        case '\n':
+        case '\r':
+          dimage->dx1 = dimage->dy1 = dimage->dx = dimage->dy = 
+            dimage->x0 = dimage->y0 = dimage->x1 = dimage->y1 = 0 ;
+          XVshowImage(xvf, which, dimage->sourceImage, 0) ;
+          break ;
+        }
+      }
+      break ;
     }
-    break ;
   }
   else switch (event_id(event)) 
   {
@@ -739,6 +766,9 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     }
     break ;
 #endif
+  case LOC_DRAG:
+    if (!event_left_is_down(event))
+      break ;
   case MS_LEFT:
     switch (dimage->sourceImage->pixel_format)
     {
@@ -1043,8 +1073,9 @@ XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color)
 
   xscale = dimage->xscale ;
   yscale = dimage->yscale ;
-  x = nint(((float)x+0.5f) * xscale) ;
-  y = nint((float)(((dimage->sourceImage->rows-1) - y) + 0.5f) * yscale) ;
+  x = nint(((float)(x-dimage->x0)+0.5f) * xscale) ;
+  y = nint((float)(((dimage->sourceImage->rows-1) - 
+                    (y-dimage->y0)) + 0.5f) * yscale) ;
   XSetLineAttributes(display, gc, 0, LineSolid, CapRound, JoinBevel) ;
   
   x0 = x - 4 ;
@@ -1115,8 +1146,8 @@ XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
   xscale = dimage->xscale ;
   yscale = dimage->yscale ;
 
-  x = nint(((float)x) * xscale) ;
-  y = nint((float)(((dimage->sourceImage->rows) - y)) * yscale) ;
+  x = nint((float)(x-dimage->x0) * xscale) ;
+  y = nint((float)(((dimage->zoomImage->rows) - (y-dimage->y0))) * yscale) ;
   dx = nint((float)dx * xscale) ;
   dy = nint((float)-dy * yscale) ;
 
@@ -1177,8 +1208,9 @@ XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
   /* convert to window coordinate system */
   xscale = dimage->xscale ;
   yscale = dimage->yscale ;
-  x = nint(((float)x +0.5f)* xscale) ;
-  y = nint((float)(((dimage->sourceImage->rows-1) - y) +0.5f)* yscale) ;
+  x = nint(((float)(x-dimage->x0) +0.5f)* xscale) ;
+  y = nint((float)(((dimage->zoomImage->rows-1) - 
+                    (y-dimage->y0)) +0.5f)* yscale) ;
   dx = nint((float)dx * xscale) ;
   dy = nint((float)-dy * yscale) ;
 
@@ -1240,8 +1272,9 @@ XVdrawArrow(XV_FRAME *xvf, int which, int x, int y,float dx,float dy,int color)
   /* convert to window coordinate system */
   xscale = dimage->xscale ;
   yscale = dimage->yscale ;
-  x = nint(((float)x+0.5f) * xscale) ;
-  y = nint(((float)((dimage->sourceImage->rows-1) - y) + 0.5f) * yscale) ;
+  x = nint(((float)(x-dimage->x0)+0.5f) * xscale) ;
+  y = nint(((float)((dimage->zoomImage->rows-1) - 
+                    (y-dimage->y0)) + 0.5f) * yscale) ;
   dx = nint(dx * xscale) ;
   dy = nint(-dy * yscale) ;
 
@@ -1377,6 +1410,7 @@ int
 XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
 {
   DIMAGE    *dimage ;
+  char      title[100] ;
 
   dimage = xvGetDimage(which, 1) ;
   if (!dimage || rows <= 0 || cols <= 0)
@@ -1398,6 +1432,8 @@ XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
 
   /* should free the ximage and the canvas, but don't know how yet */
   dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
+  sscanf(dimage->title_string, "%s", title) ; /* get rid of leading spaces */
+  XVshowImageTitle(xvf, which, title) ;
   return(0) ;
 }
 /*----------------------------------------------------------------------
