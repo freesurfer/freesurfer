@@ -8385,14 +8385,28 @@ mghRead(char *fname, int read_volume, int frame)
   {
     mri = MRIallocHeader(width, height, depth, type) ;
     mri->dof = dof ; mri->nframes = nframes ;
-    fseek(fp, mri->nframes*width*height*depth*bpv, SEEK_CUR) ;
+    if (gzipped) // pipe cannot seek
+    {
+      int count;
+      for (count=0; count < mri->nframes*width*height*depth*bpv; count++)
+	fgetc(fp);
+    }
+    else
+      fseek(fp, mri->nframes*width*height*depth*bpv, SEEK_CUR) ;
   }
   else
   {
     if (frame >= 0)
     {
       start_frame = end_frame = frame ;
-      fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
+      if (gzipped) // pipe cannot seek
+      {
+	int count;
+	for (count=0; count < frame*width*height*depth*bpv; count++)
+	  fgetc(fp);
+      }
+      else
+	fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
       nframes = 1 ;
     }
     else
@@ -8505,16 +8519,7 @@ mghRead(char *fname, int read_volume, int frame)
 	    );
     setDirectionCosine(mri, MRI_CORONAL);
   }
-#if 0
-  // feof(fp) check does not work, since feof is not signaled until you read
-  if (!feof(fp))
-  {
-    mri->tr = freadFloat(fp) ;
-    mri->flip_angle = freadFloat(fp) ;
-    mri->te = freadFloat(fp) ;
-    mri->ti = freadFloat(fp) ;
-  }
-#endif
+  // read TR, Flip, TE, TI, FOV
   if (freadFloatEx(&(mri->tr), fp))
     if (freadFloatEx(&fval, fp))
     {
@@ -8531,19 +8536,23 @@ mghRead(char *fname, int read_volume, int frame)
   // current position, then skip the end of the file and get the
   // position there. Anything in between is tag data. If there is
   // some, allocate the tag buffer to that size and read in the dat.
-  tag_data_begin = ftell( fp );
-  fseek( fp, 0, SEEK_END );
-  tag_data_end = ftell( fp );
-  tag_data_size = tag_data_end - tag_data_begin;
-  mri->tag_data_size = tag_data_size;
-  if( tag_data_size > 0 ) {
-    fseek( fp, SEEK_SET, tag_data_begin );
-    mri->tag_data = malloc( tag_data_size );
-    if( NULL != mri->tag_data ) {
-      fread( mri->tag_data, tag_data_size, 1, fp );
+  if (gzipped)
+    fprintf(stderr, "not reading the tag data at this time\n");
+  else
+  {
+    tag_data_begin = ftell( fp );
+    fseek( fp, 0, SEEK_END );
+    tag_data_end = ftell( fp );
+    tag_data_size = tag_data_end - tag_data_begin;
+    mri->tag_data_size = tag_data_size;
+    if( tag_data_size > 0 ) 
+    {
+      fseek( fp, SEEK_SET, tag_data_begin );
+      mri->tag_data = malloc( tag_data_size );
+      if( NULL != mri->tag_data ) 
+	fread( mri->tag_data, tag_data_size, 1, fp );
     }
   }
-
   // fclose(fp) ;
   myclose(fp);
 
