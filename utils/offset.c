@@ -1215,7 +1215,6 @@ ImageOffsetOrientation(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient)
 
            Description:
 ----------------------------------------------------------------------*/
-
 IMAGE *
 ImageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient, 
                      IMAGE *Ioffset)
@@ -1293,7 +1292,126 @@ ImageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
   }
   return(Ioffset) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
 
+           Description:
+----------------------------------------------------------------------*/
+#define FSCALE  1000.0f
+
+IMAGE *
+ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
+{
+  int  rows, cols, x, y, ax, ay, sx, sy, x1, y1, dx, dy, odx, ody, d, xn, yn,
+       steps ;
+  float *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, *oxpix, *oypix, dot ;
+
+  if (!Idst)
+    Idst = ImageAlloc(Isrc->rows, Isrc->cols,Isrc->pixel_format,
+                      Isrc->num_frame);
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  src_xpix = IMAGEFpix(Isrc, 0, 0) ;
+  src_ypix = IMAGEFseq_pix(Isrc, 0, 0, 1) ;
+  dst_xpix = IMAGEFpix(Idst, 0, 0) ;
+  dst_ypix = IMAGEFseq_pix(Idst, 0, 0, 1) ;
+  for (y1 = 0 ; y1 < rows ; y1++)
+  {
+    for (x1 = 0 ; x1 < cols ; x1++)
+    {
+      /* do a Bresenham algorithm do find the offset line at this point */
+      dx = nint(*src_xpix * FSCALE) ;
+      dy = nint(*src_ypix * FSCALE) ;
+      x = x1 ;
+      y = y1 ;
+      ax = ABS(dx) << 1 ;
+      sx = SGN(dx) ;
+      ay = ABS(dy) << 1 ;
+      sy = SGN(dy) ;
+      
+      oxpix = src_xpix++ ;
+      oypix = src_ypix++ ;
+      
+      if (ax > ay)  /* x dominant */
+      {
+        d = ay - (ax >> 1) ;
+        for (steps = 0 ; steps < maxsteps ; steps++)
+        {
+          odx = nint(*oxpix * FSCALE) ;
+          ody = nint(*oypix * FSCALE) ;
+          dot = odx * dx + ody * dy ;
+          if (dot <= 0)
+            break ;
+          if (d >= 0)
+          {
+            yn = y + sy ;
+            if (yn < 0 || yn >= rows)
+              break ;
+            oxpix += (sy * cols) ;
+            oypix += (sy * cols) ;
+            d -= ax ;
+          }
+          else
+            yn = y ;
+          oxpix += sx ;
+          oypix += sx ;
+          xn = x + sx ;
+          if (xn < 0 || xn >= cols)
+            break ;
+
+          x = xn ;
+          y = yn ;
+          d += ay ;
+        }
+      }
+      else    /* y dominant */
+      {
+        d = ax - (ay >> 1) ;
+        for (steps = 0 ; steps < maxsteps ; steps++)
+        {
+          odx = nint(*oxpix * FSCALE) ;
+          ody = nint(*oypix * FSCALE) ;
+          dot = odx * dx + ody * dy ;
+          if (dot <= 0)
+            break ;
+          if (d >= 0)
+          {
+            xn = x + sx ;
+            if (xn < 0 || xn >= cols)
+              break ;
+            oxpix += sx ;
+            oypix += sx ;
+            d -= ay ;
+          }
+          else
+            xn = x ;
+          yn = y + sy ;
+          if (yn < 0 || yn >= rows)
+            break ;
+
+          x = xn ;
+          y = yn ;
+          oypix += (sy * cols) ;
+          oxpix += (sy * cols) ;
+          d += ax ;
+        }
+      }
+      *dst_xpix++ = (float)(x - x1) ;
+      *dst_ypix++ = (float)(y - y1) ;
+    }
+  }
+
+ImageWrite(Idst, "offset.hipl") ;
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              calculate direction using Nitzberg-Shiota formula
+----------------------------------------------------------------------*/
 IMAGE *
 ImageNitshiOffsetDirection(IMAGE *Ix,IMAGE *Iy,int wsize,IMAGE *Iorient,
                                IMAGE *Ioffset)
