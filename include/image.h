@@ -185,6 +185,10 @@ void    ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis) ;
 void    ImageConvolve1dByte(IMAGE *I, IMAGE *J, float k[], int len, int axis) ;
 IMAGE   *ImageGaussian(float xsigma, float ysigma) ;
 IMAGE   *ImageGaussian1d(float sigma, int max_len) ;
+IMAGE   *ImageCircularConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout, 
+                              int dst_frameno) ;
+void    ImageCircularConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, 
+                                int axis) ;
 IMAGE   *ImageConvolveGaussianByte(IMAGE *inImage, IMAGE *gImage, 
                                   IMAGE *outImage, int dst_frameno) ;
 IMAGE   *ImageConvolveGaussian(IMAGE *inImage, IMAGE *gImage, 
