@@ -23,6 +23,7 @@
 
 #include "image.h"
 #include "const.h"
+#include "histo.h"
 
 #if 1
 #ifdef STDC_SWITCHED
@@ -122,6 +123,7 @@ typedef struct
 } XV_FRAME ;
 
 
+int  XVshowHistogram(XV_FRAME *xvf, int which, HISTOGRAM *mrih) ;
 XV_FRAME *XValloc(int rows, int cols, int button_rows, int display_rows, 
                   int display_cols, char *name, Notify_value (*poll)(void)) ;
 int XVprintf(XV_FRAME *xvf, int which, ...) ;
@@ -188,5 +190,11 @@ int XVsetDepthFunc(XV_FRAME *xvf,
 #define EIGHTH_BUTTON_ROW    SEVENTH_BUTTON_ROW+ROW_HEIGHT
 #define LAST_BUTTON_ROW      EIGHTH_BUTTON_ROW
 
+
+#define DIMAGE_UNUSED        0
+#define DIMAGE_IMAGE         1
+#define DIMAGE_HISTOGRAM     2
+#define DIMAGE_ALLOC         3
+#define DIMAGE_ALLOCATED     4
 
 #endif
