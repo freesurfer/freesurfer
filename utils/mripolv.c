@@ -634,6 +634,24 @@ MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
   float    xbase, ybase, zbase, *pe1_x, *pe1_y, *pe1_z,
            *pe2_x, *pe2_y, *pe2_z, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z ;
 
+  if (getenv("USE_CACHED_CPOLV"))
+  {
+    char fname[100] ;
+    MRI  *mri_tmp ;
+
+    /* try and read previously computed CPOLV file from disk */
+    sprintf(fname, "%s/cpolv.mnc", mri_src->fname) ;
+    mri_tmp = MRIread(fname) ;
+    if (mri_tmp)
+    {
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, "reading previously calculated cpolv %s\n", fname) ;
+      mri_dst = MRIcopy(mri_tmp, NULL) ;
+      MRIfree(&mri_tmp) ;
+      return(mri_dst) ;
+    }
+  }
+
   init_basis_vectors() ;
     
   pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
