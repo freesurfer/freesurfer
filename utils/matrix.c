@@ -2051,3 +2051,27 @@ Vector3Angle(VECTOR *v1, VECTOR *v2)
   return(angle) ;
 }
 
+int
+MatrixWriteTxt(char *fname, MATRIX *mat)
+{
+  FILE   *fp ;
+  int     row, col ;
+
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorReturn(NULL,
+                (ERROR_NO_FILE, "MatrixWriteTxt(%s) - file open failed\n", 
+                 fname));
+
+
+  for (row = 1 ; row <= mat->rows ; row++)
+  {
+    for (col = 1 ; col <= mat->cols ; col++)
+      fprintf(fp, "%+4.5f ", mat->rptr[row][col]) ;
+    fprintf(fp, "\n") ;
+  }
+
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+
