@@ -3,6 +3,9 @@
 
 #include <stdio.h>
 
+/* matrices and vectors are the same data type, vector will only 
+   have one column (by default) or one row.
+ */
 typedef struct
 {
   int   type ;
@@ -10,7 +13,7 @@ typedef struct
   int   cols ;
   float **rptr;    /* pointer to an array of rows */
   float *data;     /* pointer to base of data */
-} MATRIX ;
+} MATRIX, VECTOR ;
 
 typedef struct
 {
@@ -61,10 +64,20 @@ MATRIX  *MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
                                  int start_col, int rows, int cols, 
                                  int dest_row, int dest_col) ;
 MATRIX *MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut);
+
+/* determinants and eigenvectors */
 float  MatrixDeterminant(MATRIX *m) ;
 MATRIX *MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_dst) ;
 MATRIX *MatrixSVD(MATRIX *mA, float *z, MATRIX *mV) ;
-MATRIX *MatrixCovariance(MATRIX *mInputs, MATRIX *mCov, MATRIX *mMeans) ;
+
+/* statistical stuff */
+MATRIX *MatrixCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mMeans) ;
+MATRIX *MatrixUpdateCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mMeans);
+MATRIX *MatrixUpdateMeans(MATRIX *mInputs, VECTOR *mMeans, VECTOR *mNobs) ;
+MATRIX *MatrixFinalMeans(VECTOR *mMeans, VECTOR *mNobs) ;
+MATRIX *MatrixFinalCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mNobs);
+
+/* misc. I/O functions */
 int    MatrixAsciiWriteInto(FILE *fp, MATRIX *m) ;
 MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
 

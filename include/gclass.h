@@ -17,6 +17,7 @@ typedef struct
   MATRIX  *m_u ;           /* vector of means */
   MATRIX  *m_W ;           /* -0.5 Sigma^-1 */
   MATRIX  *m_wT ;          /* sigma^-1 u */
+  int     ill_cond ;       /* is this class ill-conditioned */
 } GAUSSIAN_CLASS, GCLASS ;
 
 typedef struct
