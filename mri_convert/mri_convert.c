@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: ch $
-// Revision Date  : $Date: 2003/10/03 16:56:02 $
-// Revision       : $Revision: 1.70 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/11/03 22:32:13 $
+// Revision       : $Revision: 1.71 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,7 @@ void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals);
 void get_string(int argc, char *argv[], int *pos, char *val);
 void usage_message(FILE *stream);
 void usage(FILE *stream);
-float findMinSize(MRI *mri);
+float findMinSize(MRI *mri, int *conform_width);
 
 int debug=0;
 
@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
   int template_info_flag;
   int conform_flag;
   int conform_min;  // conform to the smallest dimension
+  int conform_width;
   int parse_only_flag;
   int reorder_flag;
   int in_stats_flag, out_stats_flag;
@@ -208,7 +209,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.70 2003/10/03 16:56:02 ch Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.71 2003/11/03 22:32:13 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1418,18 +1419,24 @@ int main(int argc, char *argv[])
     {
       if(out_volume_type == MRI_CORONAL_SLICE_DIRECTORY)
       {
+	conform_width = 256;
         if (conform_min == TRUE)
-          conform_size = findMinSize(mri);
-        template->width = template->height = template->depth = 256;
+	{
+          conform_size = findMinSize(mri, &conform_width);
+	}
+        template->width = template->height = template->depth = conform_width;
         template->imnr0 = 1;
-        template->imnr1 = 256;
+        template->imnr1 = conform_width;
         template->type = MRI_UCHAR;
         template->thick = conform_size;
         template->ps = conform_size;
         template->xsize = template->ysize = template->zsize = conform_size;
-        printf("Data is conformed to %g mm size for all directions\n", conform_size); 
-        template->xstart = template->ystart = template->zstart = -128.0;
-        template->xend = template->yend = template->zend = 128.0;
+	printf("Original Data has (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
+	       mri->xsize, mri->ysize, mri->zsize, mri->width, mri->height, mri->depth);
+        printf("Data is conformed to %g mm size and %d voxels for all directions\n", 
+	       conform_size, conform_width); 
+        template->xstart = template->ystart = template->zstart = - conform_width/2;
+        template->xend = template->yend = template->zend = conform_width/2;
         template->x_r = -1.0;  template->x_a =  0.0;  template->x_s =  0.0;
         template->y_r =  0.0;  template->y_a =  0.0;  template->y_s = -1.0;
         template->z_r =  0.0;  template->z_a =  1.0;  template->z_s =  0.0;
@@ -1921,9 +1928,10 @@ void usage(FILE *stream)
 
 } /* end usage() */
 
-float findMinSize(MRI *mri)
+float findMinSize(MRI *mri, int *conform_width)
 {
-  float xsize, ysize, zsize;
+  double xsize, ysize, zsize, minsize;
+  double fwidth, fheight, fdepth, fmax;
   xsize = mri->xsize;
   ysize = mri->ysize;
   zsize = mri->zsize;
@@ -1937,9 +1945,27 @@ float findMinSize(MRI *mri)
   // y > z > x    x min
   // z > y > x    x min
   if (xsize > ysize)
-    return (ysize > zsize) ? zsize : ysize;
+    minsize = (ysize > zsize) ? zsize : ysize;
   else
-    return (zsize > xsize) ? xsize : zsize;
-  
+    minsize = (zsize > xsize) ? xsize : zsize;
+
+  // now decide the conformed_width
+  // algorighm ----------------------------------------------
+  // calculate the size in mm for all three directions
+  fwidth = mri->xsize*mri->width;
+  fheight = mri->ysize*mri->height;
+  fdepth = mri->zsize*mri->depth;
+  // pick the largest
+  if (fwidth> fheight)
+    fmax = (fwidth > fdepth) ? fwidth : fdepth;
+  else
+    fmax = (fdepth > fheight) ? fdepth : fheight;
+
+  *conform_width = (int) ceil(fmax/minsize);
+  // just to make sure that if smaller than 256, use 256 anyway
+  if (*conform_width < 256)
+    *conform_width = 256;
+
+  return (float) minsize;
 }
 /* EOF */
