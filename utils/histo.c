@@ -1062,24 +1062,26 @@ HISTOfindNextValley(HISTOGRAM *h, int b0)
 }
 
 int
-HISTOfindNextPeak(HISTOGRAM *h, int b0)
+HISTOfindNextPeak(HISTOGRAM *h, int b0, int whalf)
 {
-  int  b ;
-  float prev_val, val, next_val ;
+  int   b, bk, peak = 0 ;
+  float val ;
 
   if (b0 > (h->nbins-2))
     return(b0) ;
-  prev_val = h->counts[b0] ;
-	next_val = h->counts[b0+2] ;
-  for (b = b0+1 ; b < h->nbins-1 ; b++)
+  for (b = b0+1 ; b <= h->nbins-whalf ; b++)
   {
     val = h->counts[b] ;
-		next_val = h->counts[b+1] ;
-    if (val > prev_val && val > next_val)
-      return(b) ;
-    prev_val = val ;
+		for (peak = 1, bk = b-whalf ; bk <= b+whalf ; bk++)
+			if (h->counts[bk] > val)
+			{
+				peak = 0 ;
+				break ;
+			}
+		if (peak)
+			break ;
   }
-  return(-1) ;
+  return(peak ? b : -1) ;
 }
 
 int
