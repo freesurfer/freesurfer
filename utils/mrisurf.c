@@ -15260,7 +15260,7 @@ MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
       VECTOR_ELT(vdf, n+1) = df ;
       *MATRIX_RELT(mz, n+1, 1) = x1 - x0 ;
       *MATRIX_RELT(mz, n+1, 2) = y1 - y0 ;
-      if (mris->patch)
+      if (!mris->patch)
         *MATRIX_RELT(mz, n+1, 3) = z1 - z0 ;
     }
     mzt = MatrixTranspose(mz, NULL) ;
