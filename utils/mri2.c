@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.4 2002/02/18 19:49:45 greve Exp $
+  $Id: mri2.c,v 1.5 2002/07/18 19:18:14 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -326,17 +326,22 @@ int mri_framepower(MRI *vol, float *framepower)
 
   return(0);
 }
-/*----------------------------------------------------------
+/*-------------------------------------------------------------------
   mri_binarize() - converts each element to either 0 or 1 depending
-  upon whether the value of the element is above or below the 
-  threshold. Can be done in-place (ie, vol=volbin). If volbin is
-  NULL, then a new MRI vol is allocated and returned. tail is either
-  positive, negative, or absolute (NULL=positive).
-  ----------------------------------------------------------*/
-MRI *mri_binarize(MRI *vol, float thresh, char *tail, MRI *volbin, int *nover)
+  upon whether the value of the element is above or below the
+  threshold. If the invert flag is set to 1, then the binarization is
+  inverted. Can be done in-place (ie, vol=volbin). If volbin is NULL,
+  then a new MRI vol is allocated and returned. tail is either
+  positive, negative, or absolute (NULL=positive). nover is the
+  number of voxels in vol that meet the threshold criteria
+  (ie, the number of 1's in volbin).
+  -----------------------------------------------------------------*/
+MRI *mri_binarize(MRI *vol, float thresh, char *tail, int invert,
+      MRI *volbin, int *nover)
 {
   int r,c,s,f, tailcode;
   float val;
+  int b, onval, offval;
   MRI *voltmp;
 
   if(tail == NULL) tail = "positive";
@@ -357,6 +362,17 @@ MRI *mri_binarize(MRI *vol, float thresh, char *tail, MRI *volbin, int *nover)
   }
   else voltmp = volbin;
 
+  if(!invert){
+    onval  = 1;
+    offval = 0;
+    printf("NOT INVERTING\n");
+  }
+  else{
+    onval  = 0;
+    offval = 1;
+    printf("INVERTING\n");
+  }
+
   *nover = 0;
   for(r=0;r<vol->height;r++){
     for(c=0;c<vol->width;c++){
@@ -367,12 +383,10 @@ MRI *mri_binarize(MRI *vol, float thresh, char *tail, MRI *volbin, int *nover)
     case 2: val = -val; break;
     case 3: val = fabs(val); break;
     }
-    if(val > thresh){
-      val = 1.0;
-      (*nover) ++;
-    }
-    else             val = 0.0;
-    MRIFseq_vox(voltmp,c,r,s,f) = val;
+    if(val > thresh) b = onval;
+    else             b = offval;
+    if(b) (*nover) ++;
+    MRIFseq_vox(voltmp,c,r,s,f) = b;
   }
       }
     }
