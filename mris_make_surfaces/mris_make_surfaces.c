@@ -12,12 +12,11 @@
 #include "timer.h"
 #include "mrisurf.h"
 #include "mri.h"
-#include "mrishash.h"
 #include "macros.h"
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.30 2000/01/28 19:20:33 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.31 2000/02/03 15:41:20 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -34,6 +33,8 @@ MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
 
 int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
 int MRIremoveEditT1(MRI *mri_T1, MRI *mri_wm) ;
+
+
 char *Progname ;
 
 static int graymid = 0 ;
@@ -55,6 +56,7 @@ static float base_dt_scale = BASE_DT_SCALE ;
 static int add = 0 ;
 
 static double l_tsmooth = 0.0 ;
+static double l_surf_repulse = 5.0 ;
 
 static int smooth = 5 ;
 static int vavgs = 5 ;
@@ -89,7 +91,7 @@ static float max_thickness = 5.0 ;
 #define MIN_WHITE_BORDER_GRAY  70
 
 #define MAX_GRAY               95
-#define MIN_GRAY               60
+#define MIN_GRAY               50
 #define MAX_CSF_BORDER_GRAY    75
 #define MIN_CSF                10
 
@@ -128,6 +130,8 @@ main(int argc, char *argv[])
   parms.dt_decrease = 0.50 /* DT_DECREASE*/ ;
   parms.error_ratio = 50.0 /*ERROR_RATIO */;
   /*  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;*/
+  parms.l_surf_repulse = 0.0 ;
+  parms.l_repulse = 1 ;
 
   ac = argc ;
   av = argv ;
@@ -314,7 +318,7 @@ main(int argc, char *argv[])
     if (vavgs)
     {
       fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
-      MRISaverageVals(mris, vavgs) ;
+      MRISaverageMarkedVals(mris, vavgs) ;
       if (Gdiag_no > 0)
       {
         VERTEX *v ;
@@ -421,6 +425,8 @@ main(int argc, char *argv[])
   sprintf(parms.base_name, "%s%s", pial_name, suffix) ;
   parms.niterations = ngray ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* save white-matter */
+  parms.l_surf_repulse = l_surf_repulse ;
+
   MRISsetVals(mris, -1) ;  /* clear target intensities */
 
   if (smooth)
@@ -431,6 +437,7 @@ main(int argc, char *argv[])
 
   fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
   current_sigma = pial_sigma ;
+  parms.l_repulse = 0 ;
   for (n_averages = max_pial_averages, i = 0 ; 
        n_averages >= min_pial_averages ; 
        n_averages /= 2, current_sigma /= 2, i++)
@@ -465,7 +472,7 @@ main(int argc, char *argv[])
     if (vavgs)
     {
       fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
-      MRISaverageVals(mris, vavgs) ;
+      MRISaverageMarkedVals(mris, vavgs) ;
     }
 
 #if 0
@@ -537,7 +544,7 @@ main(int argc, char *argv[])
       if (vavgs)
       {
         fprintf(stderr,"averaging target values for %d iterations...\n",vavgs);
-        MRISaverageVals(mris, vavgs) ;
+        MRISaverageMarkedVals(mris, vavgs) ;
         if (Gdiag_no > 0)
         {
           VERTEX *v ;
@@ -837,8 +844,8 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "momentum = %2.2f\n", parms.momentum) ;
     break ;
   case 'R':
-    parms.l_repulse = atof(argv[2]) ;
-    fprintf(stderr, "l_repulse = %2.3f\n", parms.l_repulse) ;
+    l_surf_repulse = atof(argv[2]) ;
+    fprintf(stderr, "l_surf_repulse = %2.3f\n", l_surf_repulse) ;
     nargs = 1 ;
     break ;
   case 'B':
@@ -1155,7 +1162,7 @@ MRIremoveEditT1(MRI *mri_T1, MRI *mri_wm)
           if (val > 125)  /* not white matter and bright (e.g. eye sockets) */
           {
             nremoved++ ;
-            val = 255 ;
+            val = 0 ;
           }
         }
         *pT1++ = val ;
