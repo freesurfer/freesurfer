@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.4 2001/02/27 17:28:05 greve Exp $
+  $Id: mri_vol2surf.c,v 1.5 2001/12/17 17:48:03 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -36,9 +36,10 @@
 #include "diag.h"
 #include "mrisurf.h"
 #include "mri.h"
+#include "mri_identify.h"
 #include "mri2.h"
 
-#include "bfileio.h"
+//#include "bfileio.h"
 #include "registerio.h"
 #include "resample.h"
 #include "selxavgio.h"
@@ -52,15 +53,18 @@ static void print_version(void) ;
 static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 static int  singledash(char *flag);
-static int  check_format(char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.4 2001/02/27 17:28:05 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.5 2001/12/17 17:48:03 greve Exp $";
 char *Progname = NULL;
 
+char *defaulttypestring;
+int  defaulttype = MRI_VOLUME_TYPE_UNKNOWN;
+
 char *srcvolid   = NULL;
-char *srcfmt     = NULL;
+char *srctypestring = NULL;
+int   srctype = MRI_VOLUME_TYPE_UNKNOWN;
 char *srcregfile = NULL;
 char *srcwarp    = NULL;
 int   srcoldreg  = 0;
@@ -82,8 +86,8 @@ MRI_SURFACE *TrgSurfReg = NULL;
 int UseHash = 1;
 
 char *outfile  = NULL;
-char *ofmt     = NULL;
-int  outtype;
+char *outtypestring = NULL;
+int  outtype = MRI_VOLUME_TYPE_UNKNOWN;
 
 char *srchitfile = NULL;
 char *trghitfile = NULL;
@@ -105,17 +109,20 @@ FILE *fp;
 
 char tmpstr[2000];
 
-int float2int_src;
+int   float2int_src;
 char  *float2int_string = "round";
-int    float2int = 0;
+int    float2int = -1;
 int ReverseMapFlag = 0;
 
 int framesave = 0;
 
+/*------------------------------------------------------------------*/
+/*------------------------------------------------------------------*/
+/*------------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
   int n,err, f, vtx, svtx, tvtx;
-  int nrows_src, ncols_src, nslcs_src, nfrms, endian, srctype;
+  int nrows_src, ncols_src, nslcs_src, nfrms;
   float ipr, bpr, intensity;
   float colres_src=0, rowres_src=0, slcres_src=0;
   float *framepower = NULL;
@@ -142,31 +149,47 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  /* get info about the source volume */
-  if(!strcmp(srcfmt,"bvolume")){
-    err = bf_getvoldim(srcvolid,&nrows_src,&ncols_src,
-           &nslcs_src,&nfrms,&endian,&srctype);
-    if(err) exit(1);
-    /* Dsrc: read the source registration file */
-    err = regio_read_register(srcregfile, &srcsubject, &ipr, &bpr, 
-            &intensity, &Dsrc, &float2int_src);
-    if(err) exit(1);
-    colres_src = ipr; /* in-plane resolution */
-    rowres_src = ipr; /* in-plane resolution */
-    slcres_src = bpr; /* between-plane resolution */
+  /* Load the registration matrix */
+  err = regio_read_register(srcregfile, &srcsubject, &ipr, &bpr, 
+          &intensity, &Dsrc, &float2int_src);
+  if(err) exit(1);
+
+  /* voxel indices conversion from float to integer */
+  if(float2int < 0) float2int = float2int_src;
+  else {
+    if(float2int != float2int_src){
+      printf("INFO: float2int on the command line (%d) overrides that \n"
+       "      in the registration file (%d).\n",float2int,
+       float2int_src);
+    }
   }
-  if(!strcmp(srcfmt,"cor")){
-    nrows_src = 256;
-    ncols_src = 256;
-    nslcs_src = 256;
-    endian = 0;
-    nfrms = 1;
-    srctype = 0;
-    colres_src = 1;
-    rowres_src = 1;
-    slcres_src = 1;
+  printf("INFO: float2int code = %d\n",float2int);
+
+  /* Load the Source Volume */
+  SrcVol =  MRIreadType(srcvolid,srctype);
+  if(SrcVol == NULL){
+    printf("ERROR: could not read %s as type %d\n",srcvolid,srctype);
+    exit(1);
   }
-  printf("Source Volume: %d %d %d %d\n",nrows_src,ncols_src,nslcs_src,nfrms);
+  if(SrcVol->type != MRI_FLOAT){
+    printf("INFO: chaning type to float\n");
+    SrcVol = MRISeqchangeType(SrcVol,MRI_FLOAT,0,0,0);
+  }
+
+  printf("Done loading volume\n");
+  ncols_src = SrcVol->width;
+  nrows_src = SrcVol->height;
+  nslcs_src = SrcVol->depth;
+  nfrms = SrcVol->nframes;
+  colres_src = ipr; /* in-plane resolution */
+  rowres_src = ipr; /* in-plane resolution */
+  slcres_src = bpr; /* between-plane resolution */
+
+  if(framesave >= nfrms){
+    printf("ERROR: frame = %d, input volume limits to < %d\n",framesave,nfrms);
+    exit(1);
+  }
+
   /* Wsrc: Get the source warping Transform */
   Wsrc = NULL;
 
@@ -176,17 +199,6 @@ int main(int argc, char **argv)
   /* Qsrc: Compute the quantization matrix for src volume */
   Qsrc = FOVQuantMatrix(ncols_src,  nrows_src,  nslcs_src, 
       colres_src, rowres_src, slcres_src); 
-
-  /* load in the (possibly 4-D) source volume */
-  printf("Loading volume %s ...",srcvolid); fflush(stdout);
-  if(!strcmp(srcfmt,"bvolume")){
-    SrcVol = mri_load_bvolume(srcvolid);
-    if(SrcVol == NULL) exit(1);
-  }
-  else{
-    SrcVol = mri_load_cor_as_float(srcvolid);
-  }
-  printf("Done loading volume\n");
 
   /* If this is a statistical volume, raise each frame to it's appropriate
      power (eg, stddev needs to be squared)*/
@@ -316,7 +328,7 @@ int main(int argc, char **argv)
     printf("nTrg121 = %5d, nTrgMulti = %5d, MnTrgMultiHits = %g\n",
      nTrg121,nTrgMulti,MnTrgMultiHits);
 
-    if(!strcasecmp(ofmt,"w") || !strcasecmp(ofmt,"paint"))
+    if(!strcasecmp(outtypestring,"w") || !strcasecmp(outtypestring,"paint"))
       SurfOut = TrgSurfReg;
     else
       MRISfree(&TrgSurfReg);
@@ -349,29 +361,18 @@ int main(int argc, char **argv)
     mri_framepower(SurfVals2,framepower);
     sxa->nrows = 1;
     sxa->ncols = SurfVals2->width;
+    sv_sxadat_by_stem(sxa,outfile);
   }
 
-  /* save the target volume in an appropriate format */
-  if(!strcasecmp(ofmt,"bshort") || !strcasecmp(ofmt,"bfloat") || 
-     !strcasecmp(ofmt,"bfile")  || !strcasecmp(ofmt,"bvolume") ){
-    /*-------------- bvolume --------------*/
-    if(!strcasecmp(ofmt,"bfile")  || !strcasecmp(ofmt,"bvolume") )
-      outtype = srctype;
-    else if(!strcasecmp(ofmt,"bshort")) outtype = BF_SHORT;
-    else if(!strcasecmp(ofmt,"bfloat")) outtype = BF_FLOAT;
-
-    printf("Saving volume to %s as bvolume\n",outfile); fflush(stdout);
-    mri_save_as_bvolume(SurfVals2,outfile,endian,outtype); 
-
-    /* for a stat volume, save the .dat file */
-    if(is_sxa_volume(srcvolid)) sv_sxadat_by_stem(sxa,outfile);
-  }
-  if(!strcasecmp(ofmt,"w") || !strcasecmp(ofmt,"paint")){
+  if(outtypestring != NULL && 
+     (!strcasecmp(outtypestring,"w") || !strcasecmp(outtypestring,"paint"))){
     /*-------------- paint or .w --------------*/
     for(vtx = 0; vtx < SurfVals2->width; vtx++)
       SurfOut->vertices[vtx].val = MRIFseq_vox(SurfVals2,vtx,0,0,framesave) ;
     MRISwriteValues(SurfOut, outfile) ;
   }
+  else
+    MRIwriteType(SurfVals2,outfile,outtype);
 
   return(0);
 }
@@ -404,15 +405,25 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--dontusehash")) UseHash = 0;
     else if (!strcasecmp(option, "--nohash")) UseHash = 0;
 
+    else if ( !strcmp(option, "--default_type") ) {
+      if(nargc < 1) argnerr(option,1);
+      defaulttypestring = pargv[0];
+      defaulttype = string_to_type(defaulttypestring);
+      nargsused = 1;
+    }
     /* -------- source volume inputs ------ */
-    else if (!strcmp(option, "--srcvol")){
+    else if (!strcmp(option, "--srcvol") ||
+       !strcmp(option, "--src")){
       if(nargc < 1) argnerr(option,1);
       srcvolid = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--srcfmt")){
+    else if (!strcmp(option, "--src_type") ||
+       !strcmp(option, "--srcvol_type") ||
+       !strcmp(option, "--srcfmt")){
       if(nargc < 1) argnerr(option,1);
-      srcfmt = pargv[0];
+      srctypestring = pargv[0];
+      srctype = string_to_type(srctypestring);
       nargsused = 1;
     }
     else if (!strcmp(option, "--srcreg")){
@@ -501,9 +512,15 @@ static int parse_commandline(int argc, char **argv)
       }
       nargsused = 1;
     }
-    else if (!strcmp(option, "--o")){
+    else if (!strcmp(option, "--o") || !strcmp(option, "--out")) {
       if(nargc < 1) argnerr(option,1);
       outfile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--out_type") || !strcmp(option, "--ofmt")){
+      if(nargc < 1) argnerr(option,1);
+      outtypestring = pargv[0];
+      outtype = string_to_type(outtypestring);
       nargsused = 1;
     }
     else if (!strcmp(option, "--srchits")){
@@ -514,11 +531,6 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--trghits")){
       if(nargc < 1) argnerr(option,1);
       trghitfile = pargv[0];
-      nargsused = 1;
-    }
-    else if (!strcmp(option, "--ofmt")){
-      if(nargc < 1) argnerr(option,1);
-      ofmt = pargv[0];
       nargsused = 1;
     }
     else{
@@ -541,49 +553,203 @@ static void usage_exit(void)
 /* --------------------------------------------- */
 static void print_usage(void)
 {
-  fprintf(stderr, "USAGE: %s \n",Progname) ;
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --srcvol    input volume path \n");
-  fprintf(stderr, "   --srcfmt    input volume format \n");
-  fprintf(stderr, "   --srcreg    source anat2scanner registration  \n");
-  fprintf(stderr, "   --srcoldreg interpret srcreg as old-style reg.dat \n");
-  fprintf(stderr, "   --srcwarp   source scanner warp table\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --surf       target surface (white) \n");
-  fprintf(stderr, "   --hemi       hemisphere (lh or rh) \n");
-  fprintf(stderr, "   --trgsubject target subject (if different than reg)\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, " Options for use with --trgsubject\n");
-  fprintf(stderr, "   --surfreg    surface registration (sphere.reg)  \n");
-  fprintf(stderr, "   --nohash flag to keep the hash table from being used. \n");
-  fprintf(stderr, "   --icoorder   order of icosahedron when trgsubject=ico\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, " Options for projecting along the surface normal:\n");
-  fprintf(stderr, "   --projfrac  (0->1) projection along normal \n");  
-  fprintf(stderr, "   --thickness thickness file (thickness)\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, " Options for output\n");
-  fprintf(stderr, "   --o         output path\n");
-  fprintf(stderr, "   --ofmt      output format\n");
-  fprintf(stderr, "   --frame     save only nth frame (with --ofmt paint)\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --interp    interpolation method (<nearest>, tli, or sinc)\n");
-  fprintf(stderr, "   --float2int float-to-int conversion method "
-    "(<round>, floor, or tkreg )\n");
-
-  fprintf(stderr, "\n");
+  printf("USAGE: %s \n",Progname) ;
+  printf("\n");
+  printf("   --src       input volume path \n");
+  printf("   --src_type  input volume format \n");
+  printf("   --srcreg    source registration  \n");
+  printf("   --float2int float-to-int conversion method "
+    "(<round>, tkregister )\n");
+  printf("\n");
+  printf("   --trgsubject target subject (if different than reg)\n");
+  printf("   --hemi       hemisphere (lh or rh) \n");
+  printf("   --surf       target surface (white) \n");
+  printf("\n");
+  printf(" Options for use with --trgsubject\n");
+  printf("   --surfreg    surface registration (sphere.reg)  \n");
+  printf("   --icoorder   order of icosahedron when trgsubject=ico\n");
+  //printf("   --nohash flag to keep the hash table from being used. \n");
+  printf("\n");
+  printf(" Options for projecting along the surface normal:\n");
+  printf("   --projfrac  (0->1) projection along normal \n");  
+  //printf("   --thickness thickness file (thickness)\n");
+  printf("\n");
+  printf(" Options for output\n");
+  printf("   --out       output path\n");
+  printf("   --out_type  output format\n");
+  printf("   --frame     save only nth frame (with paint format)\n");
+  printf("\n");
+  printf(" Other Options\n");
+  printf("   --help      print out information on how to use this program\n");
+  printf("   --version   print out version and exit\n");
+  printf("\n");
+  //  printf("   --interp    interpolation method (<nearest>, tli, or sinc)\n");
+  printf("%s\n", vcid) ;
+  printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void)
 {
   print_usage() ;
-  fprintf(stderr, "\nThis program will resample one volume into another. \n") ;
+
+  printf(
+"This program will resample a volume onto a surface of a subject or the \n"
+"sphere. The output can be viewed on the surface (using tksurfer) or can \n"
+"be using for surface-based intersubject averaging. This program supersedes\n"
+"paint.\n"
+"\n"
+"OPTIONS\n"
+"\n"
+"  --src path to input volume (see below)\n"
+"  --src_type type of input volume (see below)\n"
+"\n"
+"  --srcreg file : registration file as computed by tkregister,\n"
+"    tkmedit, mri_make_register, or spmmat2register. This file\n"
+"    has the following format:\n"
+"\n"
+"        subjectname\n"
+"        in-plane resolution(mm)\n"
+"        between-plane resolution(mm)\n"
+"        intensity\n"
+"        m11 m12 m13 x0\n"
+"        m21 m22 m33 y0\n"
+"        m31 m22 m33 z0\n"
+"          0   0   0  1\n"
+"        <float2int_method>\n"
+"\n"
+"    where subjectname is the name of the subject as found in \n"
+"    $SUBJECTS_DIR, in-plane resolution is the distance between\n"
+"    adjacent rows or columes, between-plane resolution is the \n"
+"    distance between adjacent slices, intensity is ignored, and \n"
+"    the remainder is the 4x4 affine tranform that converts XYZ in\n"
+"    the input volume to XYZ in the subject's anatomical space.\n"
+"    The volume is mapped onto the surface of subject subjectname\n"
+"    (unless --trgsubject is specified). There may or may not be \n"
+"    another line with the method used to convert voxel indices\n"
+"    from floating to integer during registration. If tkregiser was\n"
+"    used to register the volume, the method should be blank or 'tkregister'\n"
+"    (no quotes), otherwise it should be 'round'. This can be overridden \n"
+"    with --float2int.\n"
+"\n"
+"  --float2int method: override float2int method in registration file.\n"
+"    See BUGS.\n"
+"\n"
+"  --trgsubject target subject name : resample volume onto this subject \n"
+"    instead of the one found in the registration file. The target subject \n"
+"    can be either a subject name (as found in $SUBJECTS_DIR) or ico \n"
+"    (to map onto the sphere). If the target subject is not the source \n"
+"    subject, then the surfaces are mapped using each subject's spherical\n"
+"    surface registration (?h.sphere.reg or that specified with --surfreg).\n"
+"    If the target subject is ico, then the volume is resampled onto an\n"
+"    icosohedron, which is used to uniformly sample a sphere. This requires\n"
+"    specifying the icosohedron order (see --icoorder).\n"
+"\n"
+"\n"
+"  --hemi hemisphere : lh = left hemisphere, rh = right hemisphere\n"
+"\n"
+"  --surf surfacename : the surface on which to resample. The default is\n"
+"    white. It will look for $SUBJECTS_DIR/subjectname/surf/?h.surfacename\n"
+"\n"
+"  --surfreg intersubject registration surface : default (sphere.reg).\n"
+"    This is a representation of a subject's cortical surface after it\n"
+"    has been registered/morphed with a template spherical surface.\n"
+"\n"
+"  --icoorder icosahedron order number: this specifies the size of the\n"
+"    icosahedron according to the following table: \n"
+"              Order  Number of Vertices\n"
+"                0              12 \n"
+"                1              42 \n"
+"                2             162 \n"
+"                3             642 \n"
+"                4            2562 \n"
+"                5           10242 \n"
+"                6           40962 \n"
+"                7          163842 \n"
+"    In general, it is best to use the largest size available.\n"
+"\n"
+"  --projfrac fraction : fraction (0,1) of the cortical thickness \n"
+"    at each vertex to project along the surface normal. Default 0. \n"
+"    When set at 0.5 with the white surface, this should sample in the middle \n"
+"    of the cortical surface. This requires that a ?h.thickness file \n"
+"    exist for the source subject. \n"
+"\n"
+"  --out  output path : location to store the data (see below)\n"
+"  --out_type format of output (see below)\n"
+"\n"
+"  --frame 0-based frame number : sample and save only the given frame \n"
+"    from the source volume (needed when out_type = paint). Default 0.\n"
+"\n"
+"  --version : print version and exit.\n"
+"\n"
+"SPECIFYING THE INPUT/OUTPUT PATH and TYPE\n"
+"\n"
+"  mri_vol2surf accepts all input/output types as mri_convert (see \n"
+"  mri_convert --help for more information). In addition, an output \n"
+"  type of 'paint' can be specified. This outputs data in a form\n"
+"  that can be easily read by tksurfer (also known as a '.w file').\n"
+"  See BUGS for more information on paint output.\n"
+"\n"
+"NOTES\n"
+"\n"
+"  The output will be a data set with Nv colums, 1 row, 1 slice, and Nf frames,\n"
+"  where Nv is the number of verticies in the output surface, and Nf is the \n"
+"  number of frames in the input volume (unless the output format is paint, in\n"
+"  which case only one frame is written out). Any geometry information saved\n"
+"  with the output file will be bogus.\n"
+"\n"
+"  When resampling for fixed-effects intersubject averaging, make sure\n"
+"  to resample variance and not standard deviation. This is automatically\n"
+"  accomplished when the input volume has been produced by the FS-FAST \n"
+"  selxavg program.\n"
+"\n"
+"EXAMPLES:\n"
+"\n"
+"  1. To paint the third frame of bfloat volume sig registered with tkregister\n"
+"      onto a the left hemisphere of a surface\n"
+"\n"
+"     mri_vol2surf --src sig --src_type bfloat --srcreg register.dat \n"
+"       --hemi lh --o ./sig-lh.w --out_type paint --float2int tkregister\n"
+"       --frame 2\n"
+"\n"
+"     This will create sig-lh.w in the current directory, which can then\n"
+"     be loaded into tksurfer\n"
+"\n"
+"  2. To convert an analyze volume onto the sphere (right hemisphere)\n"
+"\n"
+"     mri_vol2surf --src sig.img --src_type analyze --srcreg register.dat \n"
+"       --hemi rh --o ./sig-rh.img --out_type analyze --float2int round\n"
+"       --trgsubject ico --icoorder 7\n"
+"\n"
+"BUG REPORTS: send bugs to analysis-bugs@nmr.mgh.harvard.edu. Make sure \n"
+"  to include the version and full command-line.\n"
+"\n"
+"BUGS:\n"
+"\n"
+"  When the output format is paint, the output file must be specified with\n"
+"  a partial path (eg, ./data-lh.w) or else the output will be written into\n"
+"  the subject's anatomical directory.\n"
+"\n"
+"  Currently no support for searching along the surface normal for a maximum\n"
+"  value (as can be done with the paint program)\n"
+"\n"
+"  The ability to put the float2int conversion method in the registration file\n"
+"  is new as of Fall 2001. Consequently, there may be some registration files\n"
+"  that do not have a method string, which will force the method to be that\n"
+"  of tkregister. This is can be overridden with --float2int.\n"
+"\n"
+"\n"
+"AUTHOR: Douglas N. Greve, Ph.D., MGH-NMR Center (greve@nmr.mgh.harvard.edu)\n"
+"\n"
+
+) ;
+
+
   exit(1) ;
 }
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  printf("%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -611,15 +777,43 @@ static void check_options(void)
   }
 
   if(interpmethod != INTERP_NEAREST){
-    fprintf(stderr,"ERROR: currently only nearest interpolation is supported\n");
+    fprintf(stderr,"ERROR: currently only nearest interpolation "
+      "is supported\n");
     exit(1);
   }
 
-  if(srcfmt == NULL) srcfmt = "bvolume";
-  check_format(srcfmt);
+  if(srcregfile == NULL){
+    printf("ERROR: must specify a source registration file\n");
+    exit(1);
+  }
 
-  if(ofmt == NULL) ofmt = "bvolume";
-  check_format(ofmt);
+  if(srctype == MRI_VOLUME_TYPE_UNKNOWN) {
+    if(defaulttype == MRI_VOLUME_TYPE_UNKNOWN)
+      srctype = mri_identify(srcvolid);
+    else
+      srctype = defaulttype;
+  }
+  if(srctype == MRI_VOLUME_TYPE_UNKNOWN){
+    fprintf(stderr,"ERROR: could not determine type of %s\n",srcvolid);
+    exit(1);
+  }
+
+  if(outtypestring != NULL && 
+     (!strcasecmp(outtypestring,"w") || !strcasecmp(outtypestring,"paint"))){
+    printf("INFO: output format is paint\n");
+  }
+  else{
+    if(outtype == MRI_VOLUME_TYPE_UNKNOWN) {
+      if(defaulttype == MRI_VOLUME_TYPE_UNKNOWN){
+  outtype = mri_identify(outfile);
+  if(outtype == MRI_VOLUME_TYPE_UNKNOWN){
+    fprintf(stderr,"ERROR: could not determine type of %s\n",outfile);
+    exit(1);
+  }
+      }
+      else outtype = defaulttype;
+    }
+  }
 
   if(hemi == NULL){
     fprintf(stderr,"ERROR: no hemifield specified\n");
@@ -627,7 +821,8 @@ static void check_options(void)
   }
 
   if(trgsubject != NULL && strcmp(trgsubject,"ico") && IcoOrder > -1){
-    fprintf(stderr,"ERROR: --icoorder can only be used with '--trgsubject ico'\n");
+    fprintf(stderr,"ERROR: --icoorder can only be used with "
+      "'--trgsubject ico'\n");
     exit(1);    
   }
 
@@ -635,29 +830,10 @@ static void check_options(void)
 }
 
 /* --------------------------------------------- */
-int check_format(char *trgfmt)
-{
-  if( strcasecmp(trgfmt,"bvolume") != 0 &&
-      strcasecmp(trgfmt,"bfile") != 0 &&
-      strcasecmp(trgfmt,"bshort") != 0 &&
-      strcasecmp(trgfmt,"bfloat") != 0 &&
-      strcasecmp(trgfmt,"w") != 0 &&
-      strcasecmp(trgfmt,"paint") != 0 &&
-      strcasecmp(trgfmt,"cor") != 0 ){
-    fprintf(stderr,"ERROR: format %s unrecoginized\n",trgfmt);
-    fprintf(stderr,"Legal values are: bvolume, bfile, bshort, bfloat, and cor\n");
-    fprintf(stderr,"                  paint, w\n");
-    exit(1);
-  }
-  return(0);
-}
-
-/* --------------------------------------------- */
 static void dump_options(FILE *fp)
 {
   fprintf(fp,"srcvol = %s\n",srcvolid);
-  if(srcfmt != NULL) fprintf(fp,"srcfmt = %s\n",srcfmt);
-  else                  fprintf(fp,"srcfmt unspecified\n");
+  if(srctypestring != NULL) fprintf(fp,"srctype = %s\n",srctypestring);
   if(srcregfile != NULL) fprintf(fp,"srcreg = %s\n",srcregfile);
   else                  fprintf(fp,"srcreg unspecified\n");
   fprintf(fp,"srcregold = %d\n",srcoldreg);
@@ -691,4 +867,74 @@ static int singledash(char *flag)
   return(0);
 }
 
+/* These are from before using MRIread() */
+#if 0
+  /* get info about the source volume */
+  if(!strcmp(srcfmt,"bvolume")){
+    err = bf_getvoldim(srcvolid,&nrows_src,&ncols_src,
+           &nslcs_src,&nfrms,&endian,&srctype);
+    if(err) exit(1);
+    /* Dsrc: read the source registration file */
+    colres_src = ipr; /* in-plane resolution */
+    rowres_src = ipr; /* in-plane resolution */
+    slcres_src = bpr; /* between-plane resolution */
+  }
+  if(!strcmp(srcfmt,"cor")){
+    nrows_src = 256;
+    ncols_src = 256;
+    nslcs_src = 256;
+    endian = 0;
+    nfrms = 1;
+    srctype = 0;
+    colres_src = 1;
+    rowres_src = 1;
+    slcres_src = 1;
+  }
+  printf("Source Volume: %d %d %d %d\n",nrows_src,ncols_src,nslcs_src,nfrms);
+
+  /* load in the (possibly 4-D) source volume */
+  printf("Loading volume %s ...",srcvolid); fflush(stdout);
+  if(!strcmp(srcfmt,"bvolume")){
+    SrcVol = mri_load_bvolume(srcvolid);
+    if(SrcVol == NULL) exit(1);
+  }
+  else{
+    SrcVol = mri_load_cor_as_float(srcvolid);
+  }
+#endif
+#if 0
+  /* save the target volume in an appropriate format */
+  if(!strcasecmp(ofmt,"bshort") || !strcasecmp(ofmt,"bfloat") || 
+     !strcasecmp(ofmt,"bfile")  || !strcasecmp(ofmt,"bvolume") ){
+    /*-------------- bvolume --------------*/
+    if(!strcasecmp(ofmt,"bfile")  || !strcasecmp(ofmt,"bvolume") )
+      outtype = srctype;
+    else if(!strcasecmp(ofmt,"bshort")) outtype = BF_SHORT;
+    else if(!strcasecmp(ofmt,"bfloat")) outtype = BF_FLOAT;
+
+    printf("Saving volume to %s as bvolume\n",outfile); fflush(stdout);
+    mri_save_as_bvolume(SurfVals2,outfile,endian,outtype); 
+
+    /* for a stat volume, save the .dat file */
+    if(is_sxa_volume(srcvolid)) sv_sxadat_by_stem(sxa,outfile);
+  }
+/* --------------------------------------------- */
+int check_format(char *trgfmt)
+{
+  if( strcasecmp(trgfmt,"bvolume") != 0 &&
+      strcasecmp(trgfmt,"bfile") != 0 &&
+      strcasecmp(trgfmt,"bshort") != 0 &&
+      strcasecmp(trgfmt,"bfloat") != 0 &&
+      strcasecmp(trgfmt,"w") != 0 &&
+      strcasecmp(trgfmt,"paint") != 0 &&
+      strcasecmp(trgfmt,"cor") != 0 ){
+    fprintf(stderr,"ERROR: format %s unrecoginized\n",trgfmt);
+    fprintf(stderr,"Legal values are: bvolume, bfile, bshort, bfloat, and cor\n");
+    fprintf(stderr,"                  paint, w\n");
+    exit(1);
+  }
+  return(0);
+}
+
+#endif
 
