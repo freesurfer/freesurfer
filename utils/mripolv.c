@@ -627,10 +627,10 @@ MRI *
 MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
 {
   int      width, height, depth, x, y, z, whalf, vertex, xk, yk,
-           mini, maxi, xi, yi, zi, *pxi, *pyi, *pzi, zk ;
+           mini, maxi, xi, yi, zi, *pxi, *pyi, *pzi, x1, y1, z1, x0, y0,z0;
   float    min_var, max_var, total, total_sq, nv, varv, avgv, val,
            background_val, fmax ;
-  BUFTYPE  *pdst, max_val, *psrc ;
+  BUFTYPE  *pdst, max_val ;
   float    xbase, ybase, zbase, *pe1_x, *pe1_y, *pe1_z,
            *pe2_x, *pe2_y, *pe2_z, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z ;
 
@@ -651,37 +651,31 @@ MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
   depth -= whalf ;   /* don't do outer ring of pixels, so we don't have */
   width -= whalf ;   /* to deal with boundary conditions */
   height -= whalf ;
-  for (z = whalf ; z < depth ; z++)
+  if (mri_src->roi.dx > 0)
   {
-    DiagHeartbeat((float)(z-whalf) / (float)(depth-whalf-1)) ;
-    for (y = whalf ; y < height ; y++)
+    x0 = MAX(whalf, mri_src->roi.x) ;
+    y0 = MAX(whalf, mri_src->roi.y) ;
+    z0 = MAX(whalf, mri_src->roi.z) ;
+    x1 = MIN(x0 + mri_src->roi.dx - 1, width) ;
+    y1 = MIN(y0 + mri_src->roi.dy - 1, height) ;
+    z1 = MIN(z0 + mri_src->roi.dz - 1, depth) ;
+  }
+  else
+  {
+    x0 = y0 = z0 = whalf ;
+    x1 = width-1 ;
+    y1 = height-1 ;
+    z1 = depth-1 ;
+  }
+
+  for (z = z0 ; z <= z1 ; z++)
+  {
+    DiagHeartbeat((float)(z-z0) / (float)z1) ;
+    for (y = y0 ; y <= y1 ; y++)
     {
-      pdst = &MRIvox(mri_dst, whalf, y, z) ;
-      for (x = whalf ; x < width ; x++)
+      pdst = &MRIvox(mri_dst, x0, y, z) ;
+      for (x = x0 ; x <= x1 ; x++)
       {
-#if 0
-/* 
-   first check to see whether we are in a background region, and, if so,
-   don't process this point.
-   */
-        max_val = 0 ;
-        for (zk = -1 ; zk <= 1 ; zk++)
-        {
-          for (yk = -1 ; yk <= 1 ; yk++)
-          {
-            psrc = &MRIvox(mri_src, x-1, y+yk, z+zk) ;
-            for (xk = -1 ; xk <= 1 ; xk++)
-            {
-              val = *psrc++ ;
-              if (val > max_val)
-                max_val = val ;
-            }
-          }
-        }
-        if (max_val < background_val) /* all background */
-          break ;
-#endif
-        
         /*
           for this point (x,y,z), go through a set of directions on the unit
           sphere. For each direction, find all the planes orthogonal to that
