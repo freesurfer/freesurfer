@@ -512,6 +512,7 @@ if ((total_d > 10000.0) || (vertex->curv > 1000.0))
 
     Ip = mrisp->Ip ;
     Itmp = ImageClone(Ip) ;
+    ImageCopyFrames(Ip, Itmp, 0, Ip->num_frame, 0) ;
     unfilled = 0 ; ;
     for (u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
     {
@@ -569,8 +570,9 @@ if ((total_d > 10000.0) || (vertex->curv > 1000.0))
     ImageFree(&Ip) ;
     npasses++ ;
   } while (unfilled > 0) ;
-  fprintf(stderr, "filling %d elements took %d passes\n",
-          nfilled, npasses) ;
+  if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+    fprintf(stderr, "filling %d elements took %d passes\n",
+            nfilled, npasses) ;
 #endif
 
   for (u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
