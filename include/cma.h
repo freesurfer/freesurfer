@@ -125,4 +125,46 @@
    ((l) == WM_hypointensities) || \
    ((l) == non_WM_hypointensities))
 
+/* --- below: see cma.c --- */
+
+#define MAX_OUTLINE_CLAIMS 10
+
+#define CMA_FILL_NONE     0
+#define CMA_FILL_OUTLINE  1
+#define CMA_FILL_INTERIOR 2
+
+typedef struct {
+  int n_claims;
+  int interior_claim_flag;
+  short claim_labels[MAX_OUTLINE_CLAIMS];
+  float claim_values[MAX_OUTLINE_CLAIMS];
+  float no_label_claim;
+} CMAoutlineClaim;
+
+typedef struct {
+  int width, height;
+  CMAoutlineClaim **claim_field;
+  unsigned char **fill_field;
+} CMAoutlineField;
+
+CMAoutlineField *CMAoutlineFieldAlloc(int width, int height);
+int CMAfreeOutlineField(CMAoutlineField **of);
+
+int CMAclearFillField(CMAoutlineField *field);
+int CMAfill(CMAoutlineField *field, short seed_x, short seed_y);
+
+int CMAclaimPoints(CMAoutlineField *field, short label, short *points, int n_points, short seed_x, short seed_y);
+int CMAassignLabels(CMAoutlineField *field);
+
+int CMAvalueClaims(CMAoutlineClaim *claim);
+int CMAvalueAllClaims(CMAoutlineField *field);
+
+/* the weights to give claims of nearby points -- see cma.c */
+#define OTL_CLAIM_WEIGHT_CENTER   1.000
+#define OTL_CLAIM_WEIGHT_SIDE     0.500
+#define OTL_CLAIM_WEIGHT_DIAGONAL 0.707
+
+short CMAtotalClaims(CMAoutlineField *field, int x, int y);
+int CMAaddWeightedTotals(CMAoutlineClaim *claim, float weight, float *claim_totals);
+
 #endif
