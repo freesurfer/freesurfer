@@ -1890,9 +1890,9 @@ FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
   }
   
   /* get the data */
-  eVolume =FunD_GetDataAtAnaIdx( this->mpOverlayVolume, ipVoxel,
-				 this->mnCondition, this->mnTimePoint,
-				 &fValue );
+  eVolume =FunD_GetData( this->mpOverlayVolume, ipVoxel,
+			 this->mnCondition, this->mnTimePoint,
+			 &fValue );
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_InvalidAnatomicalVoxel;
     *opValue = 0;
@@ -1904,8 +1904,8 @@ FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
       && NULL != this->mpOverlayOffsetVolume ) {
     
     /* get the offset at this value. only one plane in offset data. */
-    eVolume = FunD_GetDataAtAnaIdx( this->mpOverlayOffsetVolume, ipVoxel,
-				    0, 0, &fOffset );
+    eVolume = FunD_GetData( this->mpOverlayOffsetVolume, ipVoxel,
+			    0, 0, &fOffset );
     if( FunD_tErr_NoError == eVolume ) {
       
       /* divide the functional value by the offset and mult by 100 to 
@@ -2823,9 +2823,9 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
       
       /* get all values at this voxel */
       eVolume = 
-	FunD_GetDataAtAnaIdxForAllTimePoints( this->mpTimeCourseVolume,
-					      pVoxel, inCondition,
-					      oafValues );
+	FunD_GetDataForAllTimePoints( this->mpTimeCourseVolume,
+				      pVoxel, inCondition,
+				      oafValues );
       
       /* if it wasn't out of bounds... */
       if( FunD_tErr_NoError == eVolume ) {
@@ -2836,8 +2836,8 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
 	  
 	  /* get the offset at this value. only one plane in offset data. */
 	  eVolume = 
-	    FunD_GetDataAtAnaIdx( this->mpTimeCourseOffsetVolume, 
-				  pVoxel, 0, 0, &fOffset );
+	    FunD_GetData( this->mpTimeCourseOffsetVolume, 
+			  pVoxel, 0, 0, &fOffset );
 	  if( FunD_tErr_NoError == eVolume ) {
 	    
 	    /* divide all functional values by the offset and mult by 100 to 
@@ -2860,8 +2860,8 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
 	    && NULL != this->mpOverlayOffsetVolume ) {
 	  
 	  /* get the offset at this value and add it to the sum. */
-	  eVolume = FunD_GetDataAtAnaIdx( this->mpTimeCourseOffsetVolume, 
-					  pVoxel, 0, 0, &fOffset );
+	  eVolume = FunD_GetData( this->mpTimeCourseOffsetVolume, 
+				  pVoxel, 0, 0, &fOffset );
 	  if( FunD_tErr_NoError == eVolume ) {
 	    fOffsetSum += fOffset;
 	  }
