@@ -1,3 +1,7 @@
+/** \file nifti1.h
+    \brief Official definition of the nifti1 header.  Written by Bob Cox, SSCC, NIMH.
+ */
+
 #ifndef _NIFTI_HEADER_
 #define _NIFTI_HEADER_
 
@@ -81,6 +85,8 @@
    information.  We recommend that the combined header+data filename suffix
    be ".nii".  When the dataset is stored in one file, the first byte of image
    data is stored at byte location (int)vox_offset in this combined file.
+   The minimum allowed value of vox_offset is 352; for compatibility with
+   some software, vox_offset should be an integral multiple of 16.
 
    GRACE UNDER FIRE:
    ----------------
@@ -121,6 +127,12 @@
 extern "C" {
 #endif
 /*=================*/
+
+/*! \struct nifti_1_header
+    \brief Data structure defining the fields in the nifti1 header.
+           This binary header should be found at the beginning of a valid
+           NIFTI-1 header file.
+ */
                         /*************************/  /************************/
 struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
                         /*************************/  /************************/
@@ -187,6 +199,97 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
 typedef struct nifti_1_header nifti_1_header ;
 
 /*---------------------------------------------------------------------------*/
+/* HEADER EXTENSIONS:
+   -----------------
+   After the end of the 348 byte header (e.g., after the magic field),
+   the next 4 bytes are a char array field named "extension". By default,
+   all 4 bytes of this array should be set to zero. In a .nii file, these
+   4 bytes will always be present, since the earliest start point for
+   the image data is byte #352. In a separate .hdr file, these bytes may
+   or may not be present. If not present (i.e., if the length of the .hdr
+   file is 348 bytes), then a NIfTI-1 compliant program should use the
+   default value of extension={0,0,0,0}. The first byte (extension[0])
+   is the only value of this array that is specified at present. The other
+   3 bytes are reserved for future use.
+
+   If extension[0] is nonzero, it indicates that extended header information
+   is present in the bytes following the extension array. In a .nii file,
+   this extended header data is before the image data (and vox_offset
+   must be set correctly to allow for this). In a .hdr file, this extended
+   data follows extension and proceeds (potentially) to the end of the file.
+
+   The format of extended header data is weakly specified. Each extension
+   must be an integer multiple of 16 bytes long. The first 8 bytes of each
+   extension comprise 2 integers:
+      int esize , ecode ;
+   These values may need to be byte-swapped, as indicated by dim[0] for
+   the rest of the header.
+     * esize is the number of bytes that form the extended header data
+       + esize must be a positive integral multiple of 16
+       + this length includes the 8 bytes of esize and ecode themselves
+     * ecode is a non-negative integer that indicates the format of the
+       extended header data that follows
+       + different ecode values are assigned to different developer groups
+       + at present, the "registered" values for code are
+         = 0 = unknown private format (not recommended!)
+         = 2 = DICOM format (i.e., attribute tags and values)
+         = 4 = AFNI group (i.e., ASCII XML-ish elements)
+   In the interests of interoperability (a primary rationale for NIfTI),
+   groups developing software that uses this extension mechanism are
+   encouraged to document and publicize the format of their extensions.
+   To this end, the NIfTI DFWG will assign even numbered codes upon request
+   to groups submitting at least rudimentary documentation for the format
+   of their extension; at present, the contact is mailto:rwcox@nih.gov.
+   The assigned codes and documentation will be posted on the NIfTI
+   website. All odd values of ecode (and 0) will remain unassigned;
+   at least, until the even ones are used up, when we get to 2,147,483,646.
+
+   Note that the other contents of the extended header data section are
+   totally unspecified by the NIfTI-1 standard. In particular, if binary
+   data is stored in such a section, its byte order is not necessarily
+   the same as that given by examining dim[0]; it is incumbent on the
+   programs dealing with such data to determine the byte order of binary
+   extended header data.
+
+   Multiple extended header sections are allowed, each starting with an
+   esize,ecode value pair. The first esize value, as described above,
+   is at bytes #352-355 in the .hdr or .nii file (files start at byte #0).
+   If this value is positive, then the second (esize2) will be found
+   starting at byte #352+esize1 , the third (esize3) at byte #352+esize1+esize2,
+   et cetera.  Of course, in a .nii file, the value of vox_offset must
+   be compatible with these extensions. If a malformed file indicates
+   that an extended header data section would run past vox_offset, then
+   the entire extended header section should be ignored. In a .hdr file,
+   if an extended header data section would run past the end-of-file,
+   that extended header data should also be ignored.
+
+   With the above scheme, a program can successively examine the esize
+   and ecode values, and skip over each extended header section if the
+   program doesn't know how to interpret the data within. Of course, any
+   program can simply ignore all extended header sections simply by jumping
+   straight to the image data using vox_offset.
+-----------------------------------------------------------------------------*/
+   
+/*! \struct nifti1_extender
+    \brief This structure represents a 4-byte string that should follow the
+           binary nifti_1_header data in a NIFTI-1 header file.  If the char
+           values are {1,0,0,0}, the file is expected to contain extensions,
+           values of {0,0,0,0} imply the file does not contain extensions.
+           Other sequences of values are not currently defined.
+ */
+struct nifti1_extender { char extension[4] ; } ;
+typedef struct nifti1_extender nifti1_extender ;
+
+/*! \struct nifti1_extension
+    \brief Data structure defining the fields of a header extension.
+ */
+struct nifti1_extension {
+   int esize , ecode ;
+   char *edata ;
+} ;
+typedef struct nifti1_extension nifti1_extension ;
+
+/*---------------------------------------------------------------------------*/
 /* DATA DIMENSIONALITY (as in ANALYZE 7.5):
    ---------------------------------------
      dim[0] = number of dimensions;
@@ -250,9 +353,9 @@ typedef struct nifti_1_header nifti_1_header ;
    ------------
    If the magic field is "n+1", then the voxel data is stored in the
    same file as the header.  In this case, the voxel data starts at offset
-   (int)vox_offset into the header file.  Thus, vox_offset=348.0 means that
+   (int)vox_offset into the header file.  Thus, vox_offset=352.0 means that
    the data starts immediately after the NIFTI-1 header.  If vox_offset is
-   greater than 348, the NIFTI-1 format does not say anything about the
+   greater than 352, the NIFTI-1 format does not say much about the
    contents of the dataset file between the end of the header and the
    start of the data.
 
@@ -274,6 +377,48 @@ typedef struct nifti_1_header nifti_1_header ;
    order of the header (which is determined by examining dim[0]).
 
    Floating point types are presumed to be stored in IEEE-754 format.
+-----------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+/* DETAILS ABOUT vox_offset:
+   ------------------------
+   In a .nii file, the vox_offset field value is interpreted as the start
+   location of the image data bytes in that file. In a .hdr/.img file pair,
+   the vox_offset field value is the start location of the image data
+   bytes in the .img file.
+    * If vox_offset is less than 352 in a .nii file, it is equivalent
+      to 352 (i.e., image data never starts before byte #352 in a .nii file).
+    * The default value for vox_offset in a .nii file is 352.
+    * In a .hdr file, the default value for vox_offset is 0.
+    * vox_offset should be an integer multiple of 16; otherwise, some
+      programs may not work properly (e.g., SPM). This is to allow
+      memory-mapped input to be properly byte-aligned.
+   Note that since vox_offset is an IEEE-754 32 bit float (for compatibility
+   with the ANALYZE-7.5 format), it effectively has a 24 bit mantissa. All
+   integers from 0 to 2^24 can be represented exactly in this format, but not
+   all larger integers are exactly storable as IEEE-754 32 bit floats. However,
+   unless you plan to have vox_offset be potentially larger than 16 MB, this
+   should not be an issue. (Actually, any integral multiple of 16 up to 2^27
+   can be represented exactly in this format, which allows for up to 128 MB
+   of random information before the image data.  If that isn't enough, then
+   perhaps this format isn't right for you.)
+
+   In a .img file (i.e., image data stored separately from the NIfTI-1
+   header), data bytes between #0 and #vox_offset-1 (inclusive) are completely
+   undefined and unregulated by the NIfTI-1 standard. One potential use of
+   having vox_offset > 0 in the .hdr/.img file pair storage method is to make
+   the .img file be a copy of (or link to) a pre-existing image file in some
+   other format, such as DICOM; then vox_offset would be set to the offset of
+   the image data in this file. (It may not be possible to follow the
+   "multiple-of-16 rule" with an arbitrary external file; using the NIfTI-1
+   format in such a case may lead to a file that is incompatible with software
+   that relies on vox_offset being a multiple of 16.)
+
+   In a .nii file, data bytes between #348 and #vox_offset-1 (inclusive) may
+   be used to store user-defined extra information; similarly, in a .hdr file,
+   any data bytes after byte #347 are available for user-defined extra
+   information. The (very weak) regulation of this extra header data is
+   described elsewhere.
 -----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
@@ -323,6 +468,10 @@ typedef struct nifti_1_header nifti_1_header ;
 
 #undef DT_UNKNOWN  /* defined in dirent.h on some Unix systems */
 
+/*! \defgroup NIFTI1_DATATYPES
+    \brief nifti1 datatype codes
+    @{
+ */
                             /*--- the original ANALYZE 7.5 type codes ---*/
 #define DT_NONE                    0
 #define DT_UNKNOWN                 0     /* what it says, dude           */
@@ -354,9 +503,15 @@ typedef struct nifti_1_header nifti_1_header ;
 #define DT_FLOAT128             1536     /* long double (128 bits)       */
 #define DT_COMPLEX128           1792     /* double pair (128 bits)       */
 #define DT_COMPLEX256           2048     /* long double pair (256 bits)  */
+/* @} */
+
 
                             /*------- aliases for all the above codes ---*/
 
+/*! \defgroup NIFTI1_DATATYPE_ALIASES
+    \brief aliases for the nifti1 datatype codes
+    @{
+ */
                                        /*! unsigned char. */
 #define NIFTI_TYPE_UINT8           2
                                        /*! signed short. */
@@ -387,6 +542,7 @@ typedef struct nifti_1_header nifti_1_header ;
 #define NIFTI_TYPE_COMPLEX128   1792
                                        /*! 256 bit complex = 2 128 bit floats */
 #define NIFTI_TYPE_COMPLEX256   2048
+/* @} */
 
                      /*-------- sample typedefs for complicated types ---*/
 #if 0
@@ -514,6 +670,10 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
        p1 = degrees of freedom
        R/sqrt(1-R*R) is t-distributed with p1 DOF. */
 
+/*! \defgroup NIFTI1_INTENT_CODES
+    \brief nifti1 intent codes, to describe intended meaning of dataset contents
+    @{
+ */
 #define NIFTI_INTENT_CORREL      2
 
   /*! [C2, chap 28] Student t statistic (1 param): p1 = DOF. */
@@ -625,13 +785,21 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 #define NIFTI_INTENT_PVAL       22
 
+  /*! Data is ln(p-value) (no params). */
+
+#define NIFTI_INTENT_LOGPVAL    23
+
+  /*! Data is log10(p-value) (no params). */
+
+#define NIFTI_INTENT_LOG10PVAL  24
+
   /*! Smallest intent_code that indicates a statistic. */
 
 #define NIFTI_FIRST_STATCODE     2
 
   /*! Largest intent_code that indicates a statistic. */
 
-#define NIFTI_LAST_STATCODE     22
+#define NIFTI_LAST_STATCODE     24
 
  /*---------- these values for intent_code aren't for statistics ----------*/
 
@@ -724,6 +892,12 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 #define NIFTI_INTENT_QUATERNION 1010
 
+ /*! Dimensionless value - no params - although, as in _ESTIMATE 
+     the name of the parameter may be stored in intent_name.     */
+
+#define NIFTI_INTENT_DIMLESS    1011
+/* @} */
+
 /*---------------------------------------------------------------------------*/
 /* 3D IMAGE (VOLUME) ORIENTATION AND LOCATION IN SPACE:
    ---------------------------------------------------
@@ -783,7 +957,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    is not recommended, and is present mainly for compatibility with
    ANALYZE 7.5 files.
 
-   METHOD 2 (used when qform_code > 0, which should be the "normal case):
+   METHOD 2 (used when qform_code > 0, which should be the "normal" case):
    ---------------------------------------------------------------------
    The (x,y,z) coordinates are given by the pixdim[] scales, a rotation
    matrix, and a shift.  This method is intended to represent
@@ -873,7 +1047,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    The orientation of the (x,y,z) axes relative to the (i,j,k) axes
    in 3D space is specified using a unit quaternion [a,b,c,d], where
    a*a+b*b+c*c+d*d=1.  The (b,c,d) values are all that is needed, since
-   we require that a = sqrt(1.0-b*b+c*c+d*d) be nonnegative.  The (b,c,d)
+   we require that a = sqrt(1.0-(b*b+c*c+d*d)) be nonnegative.  The (b,c,d)
    values are stored in the (quatern_b,quatern_c,quatern_d) fields.
 
    The quaternion representation is chosen for its compactness in
@@ -912,10 +1086,10 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
      [a,b,c,d] = a*1 + b*I + c*J + d*K
      where
        I*I = J*J = K*K = -1 (I,J,K are square roots of -1)
-       I*J =  K  J*K =  I  K*I =  J
-       J*I = -K  K*J = -I  I*K = -J  (not commutative!)
+       I*J =  K    J*K =  I    K*I =  J
+       J*I = -K    K*J = -I    I*K = -J  (not commutative!)
      For example
-       [a,b,0,0] * [0,0,0,1] = [0,-b,0,a]
+       [a,b,0,0] * [0,0,0,1] = [0,0,-b,a]
      since this expands to
        (a+b*I)*(K) = (a*K+b*I*K) = (a*K-b*J).
 
@@ -975,6 +1149,10 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    /* [qs]form_code value:  */      /* x,y,z coordinate system refers to:    */
    /*-----------------------*/      /*---------------------------------------*/
 
+/*! \defgroup NIFTI1_XFORM_CODES
+    \brief nifti1 xform codes to describe the "standard" coordinate system
+    @{
+ */
                                     /*! Arbitrary coordinates (Method 1). */
 
 #define NIFTI_XFORM_UNKNOWN      0
@@ -996,6 +1174,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
                                     /*! MNI 152 normalized coordinates. */
 
 #define NIFTI_XFORM_MNI_152      4
+/* @} */
 
 /*---------------------------------------------------------------------------*/
 /* UNITS OF SPATIAL AND TEMPORAL DIMENSIONS:
@@ -1026,13 +1205,19 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    (0,8,16,32,...,56) into the combined value for xyzt_units.
 
    Note that codes are provided to indicate the "time" axis units are
-   actually frequency in Hertz (_HZ) or in part-per-million (_PPM).
+   actually frequency in Hertz (_HZ), in part-per-million (_PPM)
+   or in radians-per-second (_RADS).
 
    The toffset field can be used to indicate a nonzero start point for
    the time axis.  That is, time point #m is at t=toffset+m*pixdim[4]
    for m=0..dim[4]-1.
 -----------------------------------------------------------------------------*/
 
+/*! \defgroup NIFTI1_UNITS
+    \brief nifti1 units codes to describe the unit of measurement for
+           each dimension of the dataset
+    @{
+ */
                                /*! NIFTI code for unspecified units. */
 #define NIFTI_UNITS_UNKNOWN 0
 
@@ -1057,6 +1242,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_UNITS_HZ     32
                                /*! NIFTI code for ppm. */
 #define NIFTI_UNITS_PPM    40
+                               /*! NIFTI code for radians per second. */
+#define NIFTI_UNITS_RADS   48
+/* @} */
 
 #undef  XYZT_TO_SPACE
 #undef  XYZT_TO_TIME
@@ -1146,16 +1334,23 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define DIM_INFO_TO_FREQ_DIM(di)   ( ((di)     ) & 0x03 )
 #define DIM_INFO_TO_PHASE_DIM(di)  ( ((di) >> 2) & 0x03 )
 #define DIM_INFO_TO_SLICE_DIM(di)  ( ((di) >> 4) & 0x03 )
- 
+
 #undef  FPS_INTO_DIM_INFO
 #define FPS_INTO_DIM_INFO(fd,pd,sd) ( ( ( ((char)(fd)) & 0x03)      ) |  \
                                       ( ( ((char)(pd)) & 0x03) << 2 ) |  \
                                       ( ( ((char)(sd)) & 0x03) << 4 )  )
 
+/*! \defgroup NIFTI1_SLICE_ORDER
+    \brief nifti1 slice order codes, describing the acquisition order
+           of the slices
+    @{
+ */
+#define NIFTI_SLICE_UNKNOWN  0
 #define NIFTI_SLICE_SEQ_INC  1
 #define NIFTI_SLICE_SEQ_DEC  2
 #define NIFTI_SLICE_ALT_INC  3
 #define NIFTI_SLICE_ALT_DEC  4
+/* @} */
 
 /*---------------------------------------------------------------------------*/
 /* UNUSED FIELDS:
