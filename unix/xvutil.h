@@ -123,6 +123,7 @@ void buttonQuit(Panel_item item, Event *event) ;
 int XVaddImageCol(XV_FRAME *xvf) ;
 int XVdeleteImageCol(XV_FRAME *xvf) ;
 int XVsetPrecision(XV_FRAME *xvf, int precision) ;
+int XVbrighten(XV_FRAME *xvf, int offset) ;
 
 #define WINDOW_PAD          3
 
