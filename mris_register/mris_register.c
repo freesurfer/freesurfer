@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.9 1999/09/23 22:16:05 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.10 1999/09/28 19:27:23 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -51,7 +51,7 @@ main(int argc, char *argv[])
 
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = PROJECT_SPHERE ;
-  parms.tol = 1e-0 ;
+  parms.tol = 1e-0*10 ;
   parms.min_averages = 0 ;
   parms.l_area = 0.0 ;
 #if 0
@@ -63,6 +63,7 @@ main(int argc, char *argv[])
   parms.l_dist = 0.0 ;
   parms.l_corr = 0.0f ;
 #endif
+  parms.l_nlarea = 1 ;
   parms.l_pcorr = 0.0f ;
   parms.niterations = 25 ;
   parms.n_averages = 256 ;
@@ -196,6 +197,11 @@ get_option(int argc, char *argv[])
     sscanf(argv[2], "%f", &parms.l_dist) ;
     nargs = 1 ;
     fprintf(stderr, "l_dist = %2.3f\n", parms.l_dist) ;
+  }
+  else if (!stricmp(option, "norot"))
+  {
+    fprintf(stderr, "disabling initial rigid alignment...\n") ;
+    parms.flags |= IP_NO_RIGID_ALIGN ;
   }
   else if (!stricmp(option, "lm"))
   {
