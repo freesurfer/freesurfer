@@ -97,12 +97,12 @@ catch {
 
 catch {
     if { [string compare $env(TKM_FONT_FAMILY) helvetica] == 0 } {
-
+  
   set kNormalFont -*-helvetica-medium-r-normal-*-12-*-*-*-*-*-*-*
   set kSmallFont -*-helvetica-medium-i-normal-*-10-*-*-*-*-*-*-*
   set kLabelFont -*-helvetica-bold-r-normal-*-14-*-*-*-*-*-*-*
   set kHighlightBgColor white
-
+  
   catch {
       if { [string compare $env(TKM_FONT_SIZE) small] == 0 } {
     set kNormalFont -*-helvetica-medium-r-normal-*-11-*-*-*-*-*-*-*
@@ -110,7 +110,7 @@ catch {
     set kLabelFont -*-helvetica-medium-r-normal-*-11-*-*-*-*-*-*-*
       }
   }
-
+  
   catch {
       if { [string compare $env(TKM_FONT_SIZE) large] == 0 } {
     set kNormalFont -*-helvetica-medium-r-normal-*-14-*-*-*-*-*-*-*
@@ -128,104 +128,104 @@ proc tkm_GetSmallFont {} { global kSmallFont; return $kSmallFont }
 proc tkm_GetLabelFont {} { global kLabelFont; return $kLabelFont }
 
 proc tkm_MakeBigLabel { isFrame isText {inWrapLength 0} } {
-
+    
     global kLabelFont
-
+    
     frame $isFrame
-
+    
     tixLabelWidget $isFrame.label \
-      -label $isText
-
+  -label $isText
+    
     $isFrame.label subwidget label configure -font $kLabelFont -justify left
     if { $inWrapLength != 0 } {
   $isFrame.label subwidget label configure -wraplength $inWrapLength
     }
-
+    
     pack $isFrame.label \
-      -side left \
-      -anchor w
+  -side left \
+  -anchor w
 }
 
 proc tkm_MakeSmallLabel { isFrame isText {inWrapLength 0} } {
-
+    
     global kSmallFont
-
+    
     frame $isFrame
-
+    
     tixLabelWidget $isFrame.label \
-      -label $isText
-
+  -label $isText
+    
     $isFrame.label subwidget label configure -font $kSmallFont -justify left
-
+    
     if { $inWrapLength != 0 } {
   $isFrame.label subwidget label configure -wraplength $inWrapLength
     }
-
+    
     pack $isFrame.label \
-      -side left \
-      -anchor w
+  -side left \
+  -anchor w
 }
 
 proc tkm_MakeNormalLabel { isFrame isText {inWrapLength 0} } {
-
+    
     global kNormalFont
-
+    
     frame $isFrame
-
+    
     tixLabelWidget $isFrame.label \
-      -label $isText
-
+  -label $isText
+    
     $isFrame.label subwidget label configure -font $kNormalFont -justify left
     if { $inWrapLength != 0 } {
   $isFrame.label subwidget label configure -wraplength $inWrapLength
     }
-
+    
     pack $isFrame.label \
-      -side left \
-      -anchor w
-
+  -side left \
+  -anchor w
+    
 }
 
 proc tkm_MakeActiveLabel { isFrame isText isVariable {inWidth -1} } {
-
+    
     global kNormalFont kHighlightBgColor
-
+    
     frame $isFrame
-
+    
     if { $isText != "" } {
   tkm_MakeNormalLabel $isFrame.lw $isText
-
+  
   pack $isFrame.lw \
-    -side left \
-    -anchor w
-    }
-
-    entry $isFrame.ew \
-      -textvariable $isVariable \
-      -width $inWidth \
-      -font $kNormalFont \
-      -state disabled \
-      -relief flat
-
-    pack $isFrame.ew \
       -side left \
-      -anchor w \
-      -expand yes \
-      -fill x
+      -anchor w
+    }
+    
+    entry $isFrame.ew \
+  -textvariable $isVariable \
+  -width $inWidth \
+  -font $kNormalFont \
+  -state disabled \
+  -relief flat
+    
+    pack $isFrame.ew \
+  -side left \
+  -anchor w \
+  -expand yes \
+  -fill x
 }
 
 proc tkm_MakeCheckboxes { isFrame isDirection ilCheckboxes } {
-
+    
     global kLabelFont kNormalFont kHighlightBgColor
     global knBalloonWait
-
+    
     frame $isFrame
-
+    
     # { text label variable command tooltip }
     # { image image_name variable command tooltip }
-
+    
     tixBalloon $isFrame.baw -initwait $knBalloonWait
-   
+    
     # for each checkbox...
     set nCheckbox 0
     foreach lCheckbox $ilCheckboxes {
@@ -289,21 +289,21 @@ proc tkm_MakeCheckboxes { isFrame isDirection ilCheckboxes } {
       
       default { continue }
   }
-
+  
   # do we have a tool tip? if so, create one for the checkbox. try
   # to create one for the label, but if we did an image we don't have
   # one.
   if { [lindex $lCheckbox 4] != "" } {
       $isFrame.baw bind $cbw \
-        -balloonmsg [lindex $lCheckbox 4]
-
+    -balloonmsg [lindex $lCheckbox 4]
+      
       catch { $isFrame.baw bind $lw \
-        -balloonmsg [lindex $lCheckbox 4] }
+      -balloonmsg [lindex $lCheckbox 4] }
   }
-
+  
   incr nCheckbox
     }
-
+    
     grid columnconfigure $isFrame 0 -weight 0
     grid columnconfigure $isFrame 1 -weight 1
 }
@@ -312,83 +312,83 @@ proc tkm_MakeCheckbox { isFrame isType isTextOrImage iVariable iSetFunction {isT
     
     global kLabelFont kNormalFont kHighlightBgColor
     global knBalloonWait
-
+    
     frame $isFrame
-
+    
     if { $isType == "text" } {
   checkbutton $isFrame.cb \
-    -text $isTextOrImage \
-    -variable $iVariable \
-    -font $kNormalFont 
+      -text $isTextOrImage \
+      -variable $iVariable \
+      -font $kNormalFont 
     } else {
   checkbutton $isFrame.cb \
-    -image $isTextOrImage \
-    -variable $iVariable \
-    -font $kNormalFont \
-    -indicatoron false \
-    -selectcolor gray
+      -image $isTextOrImage \
+      -variable $iVariable \
+      -font $kNormalFont \
+      -indicatoron false \
+      -selectcolor gray
     }
-
+    
     if { $isTooltip != "" } {
   tixBalloon $isFrame.baw -initwait $knBalloonWait
   $isFrame.baw bind $isFrame.cb -balloonmsg $isTooltip
     }
-
+    
     bind $isFrame.cb <ButtonRelease-1> $iSetFunction
-
+    
     pack $isFrame.cb \
-      -anchor w
+  -anchor w
 }
 
 proc tkm_MakeRadioButtons { isFrame isDirection isTitle iVariable ilRadioButtons } {
-
+    
     global kLabelFont kNormalFont kHighlightBgColor
     global knBalloonWait
-
+    
     if { $isTitle != "" } {
-
+  
   tixLabelFrame $isFrame \
-    -label $isTitle \
-    -labelside acrosstop \
-    -options { label.padX 5 }
-
+      -label $isTitle \
+      -labelside acrosstop \
+      -options { label.padX 5 }
+  
   set fwMain [$isFrame subwidget frame]
     } else {
   set fwMain [frame $isFrame]
     }
-
+    
     # { text  label      value cmd tooltip }
     # { image image_name value cmd tooltip }
-
+    
     tixBalloon $fwMain.baw -initwait $knBalloonWait
-   
+    
     # for each radio button...
     set nRadioButton 0
     foreach lRadioButton $ilRadioButtons {
-
+  
   # grab the type.
   set sType [lindex $lRadioButton 0]
   
   # make names for the radio and the label.
   set rbw $fwMain.rb$nRadioButton
   set lw  $fwMain.lw$nRadioButton
-
+  
   # text or image?
   switch $sType {
-
+      
       text {
     
     # text. make a normal radio and label.
     radiobutton $rbw              \
-      -command [lindex $lRadioButton 3]  \
-      -font $kNormalFont    \
-      -variable $iVariable  \
-      -relief flat          \
-      -value [lindex $lRadioButton 2]
+        -command [lindex $lRadioButton 3]  \
+        -font $kNormalFont    \
+        -variable $iVariable  \
+        -relief flat          \
+        -value [lindex $lRadioButton 2]
     label $lw \
-      -font $kNormalFont \
-      -text [lindex $lRadioButton 1]
-
+        -font $kNormalFont \
+        -text [lindex $lRadioButton 1]
+    
     # if horizontal, pack all in the same row. if vertical.
     # pack the checkbox, than the label, in the
     # same row as the number of this checkbox.
@@ -396,7 +396,7 @@ proc tkm_MakeRadioButtons { isFrame isDirection isTitle iVariable ilRadioButtons
         h - x { 
       grid $rbw -column [expr 2 * $nRadioButton] -row 0
       grid $lw -column [expr 1 + [expr 2 * $nRadioButton]] \
-        -row 0 -sticky w
+          -row 0 -sticky w
         }
         v - y { 
       grid $rbw -column 0 -row $nRadioButton
@@ -408,12 +408,12 @@ proc tkm_MakeRadioButtons { isFrame isDirection isTitle iVariable ilRadioButtons
       image { 
     # image. create a checkbox with an image label. no text label.
     radiobutton $rbw              \
-      -image [lindex $lRadioButton 1] \
-      -variable $iVariable \
-      -command [lindex $lRadioButton 3] \
-      -indicatoron false \
-      -selectcolor gray
-
+        -image [lindex $lRadioButton 1] \
+        -variable $iVariable \
+        -command [lindex $lRadioButton 3] \
+        -indicatoron false \
+        -selectcolor gray
+    
     # if horizontal, pack in increasing columns. if vertical,
     # pack in increasing rows.
     switch $isDirection {
@@ -425,90 +425,90 @@ proc tkm_MakeRadioButtons { isFrame isDirection isTitle iVariable ilRadioButtons
         }
     }
       }
-
+      
       default { continue }
   }
-
+  
   # do we have a tool tip? if so, create one for the checkbox. try
   # to create one for the label, but if we did an image we don't have
   # one.
   if { [lindex $lRadioButton 4] != "" } {
       $fwMain.baw bind $cbw \
-        -balloonmsg [lindex $lRadioButton 4]
-
+    -balloonmsg [lindex $lRadioButton 4]
+      
       catch { $fwMain.baw bind $lw \
-        -balloonmsg [lindex $lRadioButton 4] }
+      -balloonmsg [lindex $lRadioButton 4] }
   }
-
+  
   incr nRadioButton
     }
-
+    
     grid columnconfigure $fwMain 0 -weight 0
     grid columnconfigure $fwMain 1 -weight 1
 }
 
 proc tkm_MakeRadioButton { isFrame isText iVariable iValue {iCmd ""} } {
-
+    
     global kLabelFont kNormalFont kHighlightBgColor 
-
+    
     frame $isFrame
     
     radiobutton $isFrame.rbw        \
-      -text $isText         \
-      -command $iCmd        \
-      -font $kNormalFont    \
-      -variable $iVariable  \
-      -relief flat          \
-      -value $iValue
-
+  -text $isText         \
+  -command $iCmd        \
+  -font $kNormalFont    \
+  -variable $iVariable  \
+  -relief flat          \
+  -value $iValue
+    
     pack $isFrame.rbw    \
-      -side left \
-      -anchor w
+  -side left \
+  -anchor w
 }
 
 proc tkm_MakeEntry { isFrame isText iVariable {inWidth -1} {iSetFunction ""} } {
-
+    
     global kLabelFont kNormalFont
     
     frame $isFrame
-
+    
     if { $isText != "" } {
   
   label $isFrame.lwLabel \
-    -text $isText \
-    -font $kNormalFont
+      -text $isText \
+      -font $kNormalFont
   
   pack $isFrame.lwLabel \
-    -side left \
-    -anchor w
+      -side left \
+      -anchor w
     }
-
+    
     entry $isFrame.ewEntry \
-      -font $kNormalFont \
-      -textvariable $iVariable \
-      -width $inWidth \
-      -selectbackground green \
-      -insertbackground black
+  -font $kNormalFont \
+  -textvariable $iVariable \
+  -width $inWidth \
+  -selectbackground green \
+  -insertbackground black
     
     pack $isFrame.ewEntry \
-      -side right \
-      -anchor e \
-      -expand yes \
-      -fill x
-
+  -side right \
+  -anchor e \
+  -expand yes \
+  -fill x
+    
     if { $iSetFunction != "" } {
   bind $isFrame.ewEntry <Return> $iSetFunction
     }
-
+    
 }
 
 proc tkm_MakeButtons { isFrame ilButtons {isDirection x} } {
-
+    
     global kLabelFont kNormalFont
     global knBalloonWait
-
+    
     frame $isFrame
-
+    
     # { text label command tooltip }
     # { image image command tooltip }
     
@@ -522,37 +522,37 @@ proc tkm_MakeButtons { isFrame ilButtons {isDirection x} } {
   if { [string compare $sType "text"] == 0 } {
       
       button $isFrame.bw$nButton \
-        -font $kLabelFont \
-        -text [lindex $lButton 1] \
-        -command [lindex $lButton 2] 
-
+    -font $kLabelFont \
+    -text [lindex $lButton 1] \
+    -command [lindex $lButton 2] 
+      
   } 
   if { [string compare $sType "image"] == 0 } {
       
       button $isFrame.bw$nButton \
-        -image [lindex $lButton 1] \
-        -command [lindex $lButton 2]
+    -image [lindex $lButton 1] \
+    -command [lindex $lButton 2]
       
   }
   
   switch $isDirection {
       h - x {
     pack $isFrame.bw$nButton \
-      -side left \
-      -expand yes
+        -side left \
+        -expand yes
       }
       v - y {
     pack $isFrame.bw$nButton \
-      -side top \
-      -expand yes \
-      -fill x \
-      -pady 2
+        -side top \
+        -expand yes \
+        -fill x \
+        -pady 2
       }
   }
-
+  
   if { [lindex $lButton 3] != "" } {
       $isFrame.baw bind $isFrame.bw$nButton \
-        -balloonmsg [lindex $lButton 3]
+    -balloonmsg [lindex $lButton 3]
   }
   
   incr nButton
@@ -560,23 +560,23 @@ proc tkm_MakeButtons { isFrame ilButtons {isDirection x} } {
 }
 
 proc tkm_MakeMenu { isMenuButton isMenuName ilMenuItems } {
-
+    
     global kLabelFont kNormalFont glUnderlineList
-
+    
     # for every letter in menu name..
     # if this letter is not in the underline list...
     # add the letter to the list.
     # underline this index.
     # if no letters left, underline nothing.
-
+    
     menubutton $isMenuButton \
-      -text $isMenuName \
-      -font $kNormalFont \
-      -menu $isMenuButton.mw
-#      -underline $nUnderline
-
+  -text $isMenuName \
+  -font $kNormalFont \
+  -menu $isMenuButton.mw
+    #      -underline $nUnderline
+    
     # start an underline list for this menu
-
+    
     tkm_AddMenuItemsToMenu $isMenuButton.mw $ilMenuItems
 }
 
@@ -587,52 +587,52 @@ proc tkm_MakeMenu { isMenuButton isMenuName ilMenuItems } {
 # { separator }
 
 proc tkm_AddItemsToCascade { isCascadeMenuItem ilMenuItems } {
-
+    
     tkm_AddMenuItemsToMenu $isCascadeMenuItem $ilMenuItems
 }
 
 proc tkm_AddMenuItemsToMenu { isMenu ilMenuItems } {
-
+    
     global kLabelFont kNormalFont glUnderlineList
-
+    
     menu $isMenu
     set nItemNum 1
-
+    
     foreach lItem $ilMenuItems {
-
+  
   set sType [lindex $lItem 0]
-
+  
   set bProcessed 0
-
+  
   if { [string compare $sType "command"] == 0 } {
-
+      
       # for every letter in item name..
       # if this letter is not in the local underline list...
       # add the letter to the list.
       # underline this index.
       # if no letters left, underline nothing.
-
+      
       $isMenu add command \
-        -label [lindex $lItem 1] \
-        -command [lindex $lItem 2] \
-        -font $kNormalFont
-#              -underline $nUnderline
-
+    -label [lindex $lItem 1] \
+    -command [lindex $lItem 2] \
+    -font $kNormalFont
+      #              -underline $nUnderline
+      
       set sGroupName [lindex $lItem 3]
       if { [string compare $sGroupName ""] != 0 } {
     tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
       }
-     
+      
       set bProcessed 1
   }
   if { [string compare $sType "radio" ] == 0 } {
       $isMenu add radio \
-        -label [lindex $lItem 1] \
-        -command [lindex $lItem 2] \
-        -variable [lindex $lItem 3] \
-        -value [lindex $lItem 4] \
-        -font $kNormalFont      
-
+    -label [lindex $lItem 1] \
+    -command [lindex $lItem 2] \
+    -variable [lindex $lItem 3] \
+    -value [lindex $lItem 4] \
+    -font $kNormalFont      
+      
       set sGroupName [lindex $lItem 5]
       if { [string compare $sGroupName ""] != 0 } {
     tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
@@ -642,11 +642,11 @@ proc tkm_AddMenuItemsToMenu { isMenu ilMenuItems } {
   }
   if { [string compare $sType "check" ] == 0 } {
       $isMenu add check \
-        -label [lindex $lItem 1] \
-        -command [lindex $lItem 2] \
-        -variable [lindex $lItem 3] \
-        -font $kNormalFont      
-
+    -label [lindex $lItem 1] \
+    -command [lindex $lItem 2] \
+    -variable [lindex $lItem 3] \
+    -font $kNormalFont      
+      
       set sGroupName [lindex $lItem 4]
       if { [string compare $sGroupName ""] != 0 } {
     tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
@@ -660,24 +660,24 @@ proc tkm_AddMenuItemsToMenu { isMenu ilMenuItems } {
   }
   if { [string compare $sType "cascade"] == 0 } {
       $isMenu add cascade \
-        -label [lindex $lItem 1] \
-        -menu $isMenu.cmw$nItemNum \
-        -font $kNormalFont      
-
+    -label [lindex $lItem 1] \
+    -menu $isMenu.cmw$nItemNum \
+    -font $kNormalFont      
+      
       set lCascadeItems [lindex $lItem 2]
       tkm_AddMenuItemsToMenu $isMenu.cmw$nItemNum $lCascadeItems
-
+      
       set sGroupName [lindex $lItem 3]
       if { [string compare $sGroupName ""] != 0 } {
     tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
       }
       set bProcessed 1
   }
-
+  
   if { $bProcessed == 0 } {
       puts "Error!!!!! $sType not recognized"
   }
-
+  
   if { $bProcessed == 1 } {
       incr nItemNum
   }
@@ -685,99 +685,99 @@ proc tkm_AddMenuItemsToMenu { isMenu ilMenuItems } {
 }
 
 proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep {iRange {}} } {
-
+    
     global kLabelFont kNormalFont
     global $iVariable
     global glDisabledWidgets
-
+    
     frame $isFrame
-
+    
     tixControl $isFrame.control \
-      -command $iSetFunc \
-      -label $isText \
-      -variable $iVariable \
-      -step $ifStep \
-      -disablecallback true \
-      -selectmode immediate
-
+  -command $iSetFunc \
+  -label $isText \
+  -variable $iVariable \
+  -step $ifStep \
+  -disablecallback true \
+  -selectmode immediate
+    
     if {[llength $iRange] == 2} {
   $isFrame.control config -min [lindex $iRange 0]
   $isFrame.control config -max [lindex $iRange 1]
     }
-
+    
     tkm_EnableLater $isFrame.control
-
+    
     $isFrame.control subwidget label configure -font $kNormalFont
-
+    
     pack $isFrame.control \
-      -anchor w
-
+  -anchor w
+    
 }
 
 # tkm_MakeSlider fwFrame {"prefix" "suffix"} var 0 100 50 {} 1 
 
 proc tkm_MakeSlider { isFrame ilsText iVariable inMin inMax inLength iSetFunc ibIncludeEntry {ifResolution 1.0} } {
-
+    
     frame $isFrame
-
+    
     if { [lindex $ilsText 0] != "" } {
   
   tkm_MakeNormalLabel $isFrame.fwLabel [lindex $ilsText 0]
   pack $isFrame.fwLabel \
-    -side left    \
-    -anchor w     \
-    -expand no
+      -side left    \
+      -anchor w     \
+      -expand no
     }
-
+    
     scale $isFrame.sw -orient horizontal \
-      -variable $iVariable         \
-      -from $inMin                 \
-      -to $inMax                   \
-      -length $inLength            \
-      -resolution $ifResolution    \
-      -showvalue false
+  -variable $iVariable         \
+  -from $inMin                 \
+  -to $inMax                   \
+  -length $inLength            \
+  -resolution $ifResolution    \
+  -showvalue false
     bind $isFrame.sw <ButtonRelease> $iSetFunc
     bind $isFrame.sw <B1-Motion>     $iSetFunc
-
+    
     pack $isFrame.sw    \
-      -side left  \
-      -anchor w   \
-      -expand yes \
-      -fill x
-
+  -side left  \
+  -anchor w   \
+  -expand yes \
+  -fill x
+    
     if { [lindex $ilsText 1] != "" } {
   
   tkm_MakeNormalLabel $isFrame.fwLabel2 [lindex $ilsText 1]
   pack $isFrame.fwLabel2 \
-    -side left     \
-    -anchor w      \
-    -expand no
+      -side left     \
+      -anchor w      \
+      -expand no
     }
-
+    
     if { $ibIncludeEntry == 1 } {
   
   entry $isFrame.ew                \
-    -textvariable $iVariable \
-    -width 6                 \
-    -selectbackground green  \
-    -insertbackground black
+      -textvariable $iVariable \
+      -width 6                 \
+      -selectbackground green  \
+      -insertbackground black
   bind $isFrame.ew <Return> $iSetFunc
-
+  
   pack $isFrame.ew   \
-    -side left \
-    -anchor w  \
-    -expand no
+      -side left \
+      -anchor w  \
+      -expand no
     }
 }
 
 proc tkm_MakeSliders { isFrame ilSliders } {
-
+    
     frame $isFrame
-
-
+    
+    
     set nSlider 0
     foreach lSlider $ilSliders {
-
+  
   set lText       [lindex $lSlider 0]
   set sLeftText   [lindex $lText 0]
   set sRightText  [lindex $lText 1]
@@ -789,46 +789,46 @@ proc tkm_MakeSliders { isFrame ilSliders } {
   set bEntry      [lindex $lSlider 6]
   set fResolution [lindex $lSlider 7]
   set sOrientation [lindex $lSlider 8]
-
+  
   if { $fResolution == "" } {
       set fResolution 1.0
   }
   if { $sOrientation == "" } {
       set sOrientation horizontal
   }
-
+  
   tkm_MakeNormalLabel $isFrame.fwLeft$nSlider  $sLeftText
   tkm_MakeNormalLabel $isFrame.fwRight$nSlider $sRightText
   
   scale $isFrame.sw$nSlider -orient $sOrientation \
-    -variable $sVariable         \
-    -from $fMin                  \
-    -to $fMax                    \
-    -length $nLength             \
-    -resolution $fResolution     \
-    -showvalue false
+      -variable $sVariable         \
+      -from $fMin                  \
+      -to $fMax                    \
+      -length $nLength             \
+      -resolution $fResolution     \
+      -showvalue false
   bind $isFrame.sw$nSlider <ButtonRelease> $sFunction
   bind $isFrame.sw$nSlider <B1-Motion>     $sFunction
   
   grid $isFrame.fwLeft$nSlider   -column 0 -row $nSlider -sticky w
   grid $isFrame.sw$nSlider       -column 1 -row $nSlider -sticky we
   grid $isFrame.fwRight$nSlider  -column 2 -row $nSlider -sticky w
-
+  
   if { $bEntry == 1 } {
       
       entry $isFrame.ew$nSlider        \
-        -textvariable $sVariable \
-        -width 6                 \
-        -selectbackground green  \
+    -textvariable $sVariable \
+    -width 6                 \
+    -selectbackground green  \
     -insertbackground black
       bind $isFrame.ew$nSlider <Return> $sFunction
-
+      
       grid $isFrame.ew$nSlider -column 3 -row $nSlider
   }
-
+  
   incr nSlider
     }
-
+    
     grid columnconfigure $isFrame 0 -weight 0
     grid columnconfigure $isFrame 1 -weight 1
     grid columnconfigure $isFrame 2 -weight 0
@@ -836,25 +836,25 @@ proc tkm_MakeSliders { isFrame ilSliders } {
 }
 
 proc tkm_MakeColorPicker { isFrame isLabel iRedVar iGreenVar iBlueVar iCmd inWidth } {
-
+    
     tixLabelFrame $isFrame \
-      -label $isLabel \
-      -labelside acrosstop \
-      -options { label.padX 5 }
+  -label $isLabel \
+  -labelside acrosstop \
+  -options { label.padX 5 }
     
     set fwColorSub  [$isFrame subwidget frame]
     set fwColors    $fwColorSub.fwColors
     
     tkm_MakeSliders $fwColors [list\
-      [list {"Red"} $iRedVar 0 1 $inWidth $iCmd 1 0.1 ] \
-      [list {"Green"} $iGreenVar 0 1 $inWidth $iCmd 1 0.1 ] \
-      [list {"Blue"} $iBlueVar 0 1 $inWidth $iCmd 1 0.1 ]]
+           [list {"Red"} $iRedVar 0 1 $inWidth $iCmd 1 0.1 ] \
+           [list {"Green"} $iGreenVar 0 1 $inWidth $iCmd 1 0.1 ] \
+           [list {"Blue"} $iBlueVar 0 1 $inWidth $iCmd 1 0.1 ]]
     
     pack $fwColors \
-      -side top \
-      -anchor w \
-      -expand yes \
-      -fill x
+  -side top \
+  -anchor w \
+  -expand yes \
+  -fill x
 }
 
 
@@ -877,8 +877,9 @@ proc tkm_DoSubPercent { isPercent isString isSubstitution } {
 # -prompt[1..5] string: the prompt for the nth file
 # -type[1..5] file|dir: the type of selector (file by default)
 # -note[1..5] string:   a note to place under the prompt
+# -default[1..5] string:command that should evaluate to a default dir
+# -presets[1..5] list:  a list of preset directories to be available in the pdm
 # -okCmd string:        command to execute when okay button is hit. 
-#                       %s[1..5] is replaced with the file name entered.
 # -cancelCmd string:    command to execute when cancel button is hit
 #
 proc tkm_DoFileDlog { ilArgs } {
@@ -897,6 +898,7 @@ proc tkm_DoFileDlog { ilArgs } {
   set tArgs(-type$nField) "file"
   set tArgs(-note$nField) ""
   set tArgs(-default$nField) ""
+  set tArgs(-presets$nField) ""
   set sFileName$nField ""
     }
     
@@ -905,7 +907,7 @@ proc tkm_DoFileDlog { ilArgs } {
     
     # dialog name. make it the name of the title, subbing dashes for spaces.
     regsub -all { } .wwDlogFile$tArgs(-title) {-} wwDialog
-
+    
     # do percent substitutions in ok command for %s1 thru %s5
     foreach nField $lFields {
   set tArgs(-okCmd) \
@@ -933,11 +935,11 @@ proc tkm_DoFileDlog { ilArgs } {
     file { set sFileName$nField ""; \
          tkm_MakeFileSelector [set fwPrompt$nField] \
          "$tArgs(-prompt$nField)" sFileName$nField \
-         $tArgs(-default$nField) }
+         $tArgs(-default$nField) $tArgs(-presets$nField)}
     dir { set sFileName$nField ""; \
         tkm_MakeDirectorySelector [set fwPrompt$nField] \
         "$tArgs(-prompt$nField)" sFileName$nField \
-        $tArgs(-default$nField) }
+        $tArgs(-default$nField)  $tArgs(-presets$nField)}
     text { set sFileName$nField $tArgs(-default$nField); \
          tkm_MakeEntry [set fwPrompt$nField] \
          "$tArgs(-prompt$nField)" sFileName$nField }
@@ -961,7 +963,7 @@ proc tkm_DoFileDlog { ilArgs } {
     -padx 5         \
     -pady 5
   }
-
+  
   # create the buttons. bind the ok command and the cancel command.
   # before calling the ok command, update the file selector variables.
   # TODO: nicer way to write this command string?
@@ -997,39 +999,39 @@ proc tkm_DoFileDlog { ilArgs } {
 
 proc tkm_MakeCancelApplyOKButtons { isFrame isTop iOKCmd {iCancelCmd ""} } {
     tkm_MakeDialogButtons $isFrame $isTop [list \
-       [list Apply "$iOKCmd"] \
-       [list Close "$iCancelCmd" "Cancel"] \
-       [list OK "$iOKCmd"] \
-    ]
+                 [list Apply "$iOKCmd"] \
+                 [list Close "$iCancelCmd" "Cancel"] \
+                 [list OK "$iOKCmd"] \
+                ]
 }
 
 proc tkm_MakeCloseButton { isFrame isTop {iCloseCmd ""} } {
     tkm_MakeDialogButtons $isFrame $isTop [list \
-       [list Close "$iCloseCmd"] \
-    ]
+                 [list Close "$iCloseCmd"] \
+                ]
 }
 
 proc tkm_MakeApplyCloseButtons { isFrame isTop iApplyCmd {iCloseCmd ""} {isApplyText "Apply"}} {
     tkm_MakeDialogButtons $isFrame $isTop [list \
-       [list Apply "$iApplyCmd"] \
-       [list Close "$iCloseCmd"] \
-    ]
+                 [list Apply "$iApplyCmd"] \
+                 [list Close "$iCloseCmd"] \
+                ]
 }
 
 proc tkm_MakeCancelOKButtons { isFrame isTop iOKCmd {iCancelCmd ""} } {
     tkm_MakeDialogButtons $isFrame $isTop [list \
-       [list OK "$iOKCmd"] \
-       [list Close "$iCancelCmd" "Cancel"] \
-    ]
+                 [list OK "$iOKCmd"] \
+                 [list Close "$iCancelCmd" "Cancel"] \
+                ]
 }
 
 # tkm_MakeDialogButtons      fwFrame wwDlog {button}
 # button = {type cmd [label]}
 # types: apply, OK, help, close
 proc tkm_MakeDialogButtons { isFrame isTop ilButtons } {
-
+    
     set lButtonsToMake {}
-
+    
     # Use these to keep track of whether or not we should bind certain
     # buttons. If we get the button in the list, we'll set its bind
     # index here to the button index we got.
@@ -1037,7 +1039,7 @@ proc tkm_MakeDialogButtons { isFrame isTop ilButtons } {
     set nBindClose -1
     set nBindApply -1
     set nBindOK -1
-
+    
     # Go through the list of buttons we got. First look for help
     # buttons, then close, then apply, then OK, so we can build a
     # button list to pass to tkm_MakeButtons later one. I use a switch
@@ -1101,10 +1103,10 @@ proc tkm_MakeDialogButtons { isFrame isTop ilButtons } {
       }
   }
     }
-
+    
     # Now pass the list we made to tkm_MakeButtons.
     tkm_MakeButtons $isFrame $lButtonsToMake
-
+    
     # Now do the bindings. bind Return key to OK, space bar to Apply,
     # and Escape to Close. Note that we refer to the buttons by name,
     # and this is dependent on how tkm_MakeButtons names the buttons.
@@ -1124,7 +1126,7 @@ proc tkm_MakeDialogButtons { isFrame isTop ilButtons } {
 
 # ================================================== FILE AND DIR SELECTORS
 
-proc tkm_MakeFileSelector { isFrame isText iVariable {iDefaultFunc ""}} {
+proc tkm_MakeFileSelector { isFrame isText iVariable {iDefaultFunc ""} {ilDirectories ""}} {
     
     frame $isFrame -width 200
     
@@ -1139,7 +1141,7 @@ proc tkm_MakeFileSelector { isFrame isText iVariable {iDefaultFunc ""}} {
     # the browse button
     button $isFrame.bw \
   -text "Browse..." \
-  -command "tkm_BrowseFile $iVariable {$iDefaultFunc}"
+  -command "tkm_BrowseFile $iVariable {$iDefaultFunc} {$ilDirectories}"
     
     # pack it in a grid
     grid $isFrame.ew -column 0 -row 0 -sticky ew
@@ -1148,14 +1150,19 @@ proc tkm_MakeFileSelector { isFrame isText iVariable {iDefaultFunc ""}} {
     grid columnconfigure $isFrame 1 -weight 0
 }
 
-proc tkm_BrowseFile { iVariable {iDefaultFunc ""} } {
+proc tkm_BrowseFile { iVariable {iDefaultFunc ""} {ilDirectories ""} } {
     
     # create the dialog box if it doesn't already exist
     set wwDirDlog [tix filedialog tixFileSelectDialog]
-
+    
     # set the default location 
     if { $iDefaultFunc != "" } {
   [$wwDirDlog subwidget fsbox] configure -directory [eval $iDefaultFunc]
+    }
+    
+    foreach sDirectory $ilDirectories {
+  [[$wwDirDlog subwidget fsbox] subwidget filter] \
+      appendhistory $sDirectory
     }
     
     # when they click ok, call the tkm_HandleSelectDirectory function,
@@ -1175,7 +1182,7 @@ proc tkm_UpdateFileSelectorVariable { isFrame } {
     $isFrame.ew update;
 }
 
-proc tkm_MakeDirectorySelector { isFrame isText iVariable {iDefaultFunc ""}} {
+proc tkm_MakeDirectorySelector { isFrame isText iVariable {iDefaultFunc ""} {ilDirectories ""}} {
     
     frame $isFrame -width 200
     
@@ -1190,8 +1197,8 @@ proc tkm_MakeDirectorySelector { isFrame isText iVariable {iDefaultFunc ""}} {
     # the browse button
     button $isFrame.bw \
   -text "Browse..." \
-  -command "tkm_BrowseDirectory $iVariable {$iDefaultFunc}"
-
+  -command "tkm_BrowseDirectory $iVariable {$iDefaultFunc} {$ilDirectories}"
+    
     # pack it in a grid
     grid $isFrame.ew -column 0 -row 0 -sticky ew
     grid $isFrame.bw -column 1 -row 0
@@ -1199,17 +1206,22 @@ proc tkm_MakeDirectorySelector { isFrame isText iVariable {iDefaultFunc ""}} {
     grid columnconfigure $isFrame 1 -weight 0
 }
 
-proc tkm_BrowseDirectory { iVariable {iDefaultFunc ""} } {
+proc tkm_BrowseDirectory { iVariable {iDefaultFunc ""} {ilDirectories ""} } {
     
     # create the dialog box if it doesn't already exist
     set wwDirDlog .wwDirDlog
     if ![winfo exists $wwDirDlog] {
   tixDirSelectDialog $wwDirDlog
     }
-
+    
     # set the default location 
     if { $iDefaultFunc != "" } {
   [$wwDirDlog subwidget dirbox] configure -value [eval $iDefaultFunc]
+    }
+    
+    foreach sDirectory $ilDirectories {
+  [[[$wwDirDlog subwidget dirbox] subwidget dircbx] subwidget combo]\
+      appendhistory $sDirectory
     }
     
     # when they click ok, call the tkm_HandleSelectDirectory function,
@@ -1234,24 +1246,24 @@ proc tkm_UpdateDirectorySelectorVariable { isFrame } {
 proc tkm_AddItemToMenuGroup { isGroupName ifwMenuObject inMenuItemNum } {
     
     global glMenuGroups
-
+    
     # add this menu / item pair to the list
     lappend glMenuGroups($isGroupName) "$ifwMenuObject $inMenuItemNum"
 }
 
 proc tkm_SetMenuItemGroupStatus { isGroupName ibEnable } {
-
+    
     global glMenuGroups
-
+    
     # for each menu / item pair in the list
     foreach lMenuItemPair $glMenuGroups($isGroupName) {
-
+  
   # first item is a menu button
   set mbwMenu [lindex $lMenuItemPair 0]
   
   # second item is a list of items
   set nMenuItem [lindex $lMenuItemPair 1]
-
+  
   if { $ibEnable == 0 } {
       if { [catch {$mbwMenu entryconfigure $nMenuItem -state disabled} sResult] } {
     set sType [$mbwMenu type $nMenuItem]
@@ -1267,41 +1279,41 @@ proc tkm_SetMenuItemGroupStatus { isGroupName ibEnable } {
 }
 
 proc tkm_MakeToolbar { isFrame ibRadio isVariable iCommand ilButtons } {
-
+    
     global kNormalFont
     global knBalloonWait
-
+    
     frame $isFrame
-
+    
     if { $ibRadio == 1 } {
   set bAllowZero false
     } else {
   set bAllowZero true
     }
-
+    
     tixSelect $isFrame.tbw \
-      -allowzero $bAllowZero \
-      -radio $ibRadio \
-      -command $iCommand \
-      -disablecallback true
-
+  -allowzero $bAllowZero \
+  -radio $ibRadio \
+  -command $iCommand \
+  -disablecallback true
+    
     tkm_EnableLater $isFrame.tbw
-
-# { text   name text   tooltip }
-# { bitmap name bitmap tooltip }
-# note name is also the name of the subwidget so can't start with uppercase
-
+    
+    # { text   name text   tooltip }
+    # { bitmap name bitmap tooltip }
+    # note name is also the name of the subwidget so can't start with uppercase
+    
     tixBalloon $isFrame.baw -initwait $knBalloonWait
-
+    
     foreach lButton $ilButtons {
-
+  
   set sType [lindex $lButton 0]
-
+  
   if { [string compare $sType "text"] == 0 } {
       set sName [lindex $lButton 1]
       set sText [lindex $lButton 2]
       $isFrame.tbw add $sName -text $sText \
-        -font $kNormalFont
+    -font $kNormalFont
   } 
   if { [string compare $sType "image"] == 0 } {
       set sName [lindex $lButton 1]
@@ -1312,9 +1324,9 @@ proc tkm_MakeToolbar { isFrame ibRadio isVariable iCommand ilButtons } {
       }
   } 
     }
-
+    
     $isFrame.tbw config -variable $isVariable
-
+    
     pack $isFrame.tbw
 }
 
@@ -1322,12 +1334,12 @@ proc tkm_MakeToolbar { isFrame ibRadio isVariable iCommand ilButtons } {
 proc tkm_EnableLater { ifwIn } {
     
     global glDisabledWidgets
-
+    
     lappend glDisabledWidgets $ifwIn
 }
 
 proc tkm_Finish { } {
-
+    
     global glDisabledWidgets
     
     # enabled the disabled widgets
@@ -1339,41 +1351,41 @@ proc tkm_Finish { } {
 set gfwProgressTime ""
 
 proc tkm_MakeProgressDlog { isName isMessage } {
-
-#    global gfwProgressTime
-
-#    set wwDialog .wwProgressDlog
-
+    
+    #    global gfwProgressTime
+    
+    #    set wwDialog .wwProgressDlog
+    
     # try to create the dlog...
-#    if { [Dialog_Create $wwDialog $isName {-borderwidth 10}] } {
-  
-#  set fwLabel           $wwDialog.fwLabel
-#  set gfwProgressTime   $wwDialog.fwTime
+    #    if { [Dialog_Create $wwDialog $isName {-borderwidth 10}] } {
     
-#  tkm_MakeBigLabel $fwLabel $isMessage
-#  tkm_MakeNormalLabel $gfwProgressTime "0 / 100"
+    #  set fwLabel           $wwDialog.fwLabel
+    #  set gfwProgressTime   $wwDialog.fwTime
     
-#  pack $fwLabel $gfwProgressTime -side top
-#    }
+    #  tkm_MakeBigLabel $fwLabel $isMessage
+    #  tkm_MakeNormalLabel $gfwProgressTime "0 / 100"
+    
+    #  pack $fwLabel $gfwProgressTime -side top
+    #    }
 }
 
 proc tkm_UpdateProgressDlog { isMessage inCurrent } {
-
-#    global gfwProgressTime
-
-#    [$gfwProgressTime.label subwidget label] configure -text "$inCurrent / 100"
+    
+    #    global gfwProgressTime
+    
+    #    [$gfwProgressTime.label subwidget label] configure -text "$inCurrent / 100"
 }
 
 proc tkm_DestroyProgressDlog { } {
-
-#    Dialog_Close .wwProgressDlog
+    
+    #    Dialog_Close .wwProgressDlog
 }
 
 
 proc Dialog_Create { iwwTop isTitle iArgs } {
-
+    
     global gDialog
-
+    
     if [winfo exists $iwwTop] {
   puts "exists!"
   switch -- [wm state $iwwTop] {
@@ -1396,11 +1408,11 @@ proc Dialog_Create { iwwTop isTitle iArgs } {
 }
 
 proc Dialog_Wait { iwwTop iVarName {iFocus {}} } {
-
+    
     upvar $iVarName var
-
+    
     bind $iwwTop <Destroy> {list set $iVarName cancel}
-
+    
     if {[string length $iFocus] == 0} {
   set focus $iwwTop
     }
@@ -1412,7 +1424,7 @@ proc Dialog_Wait { iwwTop iVarName {iFocus {}} } {
     catch {
   grab $iwwTop
     }
-
+    
     tkwait variable $iVarName
     catch {
   grab release $iwwTop
@@ -1421,12 +1433,12 @@ proc Dialog_Wait { iwwTop iVarName {iFocus {}} } {
 }
 
 proc Dialog_Close { iwwTop } {
-
+    
     global gDialog
     
     catch {
   set gDialog(geo,$iwwTop) [wm geometry $iwwTop]
-#  wm withdraw $iwwTop
+  #  wm withdraw $iwwTop
   destroy $iwwTop
     }
 }
