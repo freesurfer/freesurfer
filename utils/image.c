@@ -882,6 +882,9 @@ ImageClearArea(IMAGE *I, int r0, int c0, int rows, int cols, float val)
   int     row, col ;
   byte    *cptr, cval ;
 
+  if (r0 < 0) r0 = 0 ;
+  if (c0 < 0) c0 = 0 ;
+
   if (rows < 0) rows = I->rows ;
   if (cols < 0) cols = I->cols ;
 
@@ -5243,7 +5246,7 @@ ImageApplyOffset(IMAGE *Isrc, IMAGE *Ioffset, IMAGE *Idst)
               use an offset vector field to specify edge locations.
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageOffsetEdgeDetect(IMAGE *Ioffset, IMAGE *Iedge)
+ImageOffsetMedialAxis(IMAGE *Ioffset, IMAGE *Iedge)
 {
   int    x, y, rows, cols, dx, dy ;
   float  *dx_pix, *dy_pix ;
@@ -5267,8 +5270,7 @@ ImageOffsetEdgeDetect(IMAGE *Ioffset, IMAGE *Iedge)
 #endif
 
   /* assume everything is an edge */
-  ImageClearArea(Iout, -1, -1, -1, -1, 1.0f) ;  
-  edge = IMAGEpix(Iout, 0, 0) ;
+  ImageClearArea(Iout, -1, -1, -1, -1, 0.0f) ;  
   dx_pix = IMAGEFpix(Ioffset, 0, 0) ;
   dy_pix = IMAGEFseq_pix(Ioffset, 0, 0, 1) ;
 
@@ -5279,7 +5281,7 @@ ImageOffsetEdgeDetect(IMAGE *Ioffset, IMAGE *Iedge)
       dx = (int)*dx_pix++ ;
       dy = (int)*dy_pix++ ;
       edge = IMAGEpix(Iout, x+dx, y+dy) ;
-      *edge = (UCHAR)0 ;  /* not an edge pixel */
+      (*edge)++ ;               /* count # of times used */
     }
   }
 
