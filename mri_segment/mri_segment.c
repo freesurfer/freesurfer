@@ -181,10 +181,13 @@ main(int argc, char *argv[])
 
     mri_old = MRIread(output_file_name) ;
     if (!mri_old)
-      ErrorExit(ERROR_NOFILE, "%s: could not read file %s to preserve edits",
+      ErrorPrintf(ERROR_NOFILE, "%s: could not read file %s to preserve edits",
                 Progname, output_file_name) ;
-    MRIcopyLabel(mri_old, mri_dst, 255) ;
-    MRIfree(&mri_old) ;
+    else
+    {
+      MRIcopyLabel(mri_old, mri_dst, 255) ;
+      MRIfree(&mri_old) ;
+    }
   }
   MRIwrite(mri_dst, output_file_name) ;
 
@@ -220,6 +223,12 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "auto"))
   {
     auto_detect_stats = !auto_detect_stats ;
+    fprintf(stderr, "%sautomatically detecting class statistics...\n",
+            auto_detect_stats ? "" : "not ") ;
+  }
+  else if (!stricmp(option, "noauto"))
+  {
+    auto_detect_stats = 0 ;
     fprintf(stderr, "%sautomatically detecting class statistics...\n",
             auto_detect_stats ? "" : "not ") ;
   }
