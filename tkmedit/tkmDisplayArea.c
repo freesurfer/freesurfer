@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/02/10 22:15:43 $
-// Revision       : $Revision: 1.49 $
+// Revision Date  : $Date: 2003/02/12 18:54:52 $
+// Revision       : $Revision: 1.50 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -2424,12 +2424,6 @@ DspA_tErr DspA_HandleEvent ( tkmDisplayAreaRef this,
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
-  if( xGWin_tEventType_MouseUp == ipEvent->mType
-      || xGWin_tEventType_MouseDown == ipEvent->mType
-      || xGWin_tEventType_MouseMoved == ipEvent->mType ) {
-    
-  }
-  
   switch ( ipEvent->mType ) {
     
   case xGWin_tEventType_Draw:
@@ -2458,10 +2452,17 @@ DspA_tErr DspA_HandleEvent ( tkmDisplayAreaRef this,
     
   case xGWin_tEventType_MouseMoved:
     
+    /* This function will return an error when the mouse point is out
+       of bounds, but handles it correctly, so we don't need to pass
+       it up. Clear the error code if so. */
     eResult = DspA_HandleMouseMoved_( this, ipEvent );
-    if ( DspA_tErr_NoErr != eResult )
+    if ( DspA_tErr_NoErr != eResult &&
+	 DspA_tErr_InvalidVolumeVoxel != eResult ) {
       goto error;
-    
+    } else {
+      eResult = DspA_tErr_NoErr;
+    }
+
     break;
     
   case xGWin_tEventType_KeyDown:
@@ -2471,7 +2472,6 @@ DspA_tErr DspA_HandleEvent ( tkmDisplayAreaRef this,
       goto error;
     
     break;
-    
     
   default:
     break;
@@ -2815,7 +2815,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
 				   xGWin_tEventRef   ipEvent ) {
   DspA_tErr          eResult      = DspA_tErr_NoErr;
   xPoint2n           bufferPt     = {0,0};
-  xVoxelRef          pVolumeVox   = NULL;
+  xVoxel             anaIdx;
   DspA_tBrush        brushAction  = DspA_tBrush_None;
   DspA_tSelectAction selectAction = DspA_tSelectAction_None;
   xPoint2f           delta;
@@ -2825,6 +2825,9 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
   int                nNewZoomLevel= 0;
   tkm_tSegType       segType      = tkm_tSegType_Main;
   
+  DebugEnterFunction( ("DspA_HandleMouseMoved_( this=%p, ipEvent=%p )",
+		       this, ipEvent) );
+
   /* For some reason we get MouseMoved events for points at the same
      value as the window width or height. So check that here and if
      that's the case, skip. */
@@ -2832,27 +2835,29 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
       ipEvent->mWhere.mnY == this->mnHeight )
     goto cleanup;
 
-  xVoxl_New( &pVolumeVox );
-  
   eResult = DspA_ConvertScreenToBuffer_( this, &(ipEvent->mWhere), &bufferPt );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
-  eResult = DspA_ConvertBufferToVolume_( this, &bufferPt, pVolumeVox );
+  eResult = DspA_ConvertBufferToVolume_( this, &bufferPt, &anaIdx );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
 #if 0
-  DebugPrint( ("Mouse moved screen x %d y %d buffer x %d y %d volume %d %d %d\n",
-	       ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
-	       xVoxl_ExpandInt( pVolumeVox ) ) );
+  DebugPrint(("Mouse moved screen x %d y %d buffer x %d"
+	      "y %d volume %d %d %d\n", ipEvent->mWhere.mnX, 
+	      ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
+	      xVoxl_ExpandInt( &anaIdx ) ) );
 #endif
   
-  eResult = DspA_VerifyVolumeVoxel_( this, pVolumeVox );
-  if ( DspA_tErr_NoErr == eResult )
+  eResult = DspA_VerifyVolumeVoxel_( this, &anaIdx );
+  if ( DspA_tErr_NoErr == eResult ) {
     DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Mouseover, 
-				     pVolumeVox );
-  
+				     &anaIdx );
+  } else {
+    goto cleanup;
+  }
+
   /* save this mouse location */
   this->mMouseLocation = ipEvent->mWhere;
   
@@ -2930,7 +2935,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
     }
     
     /* brush the voxels */
-    eResult = DspA_BrushVoxels_( this, pVolumeVox, (void*)&brushAction,
+    eResult = DspA_BrushVoxels_( this, &anaIdx, (void*)&brushAction,
 				 DspA_BrushVoxelsInThreshold_ );
     if( DspA_tErr_NoErr != eResult )
       goto error;
@@ -2954,7 +2959,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
     
     /* edit the parc volume */
     sParcBrush.mDest = segType;
-    eResult = DspA_BrushVoxels_( this, pVolumeVox, 
+    eResult = DspA_BrushVoxels_( this, &anaIdx, 
 				 NULL, DspA_EditSegmentationVoxels_ );
     if( DspA_tErr_NoErr != eResult )
       goto error;
@@ -2979,7 +2984,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
     }
     
     /* brush the voxels */
-    eResult = DspA_BrushVoxels_( this, pVolumeVox,
+    eResult = DspA_BrushVoxels_( this, &anaIdx,
 				 (void*)&selectAction, DspA_SelectVoxels_ );
     if( DspA_tErr_NoErr != eResult )
       goto error;
@@ -3004,7 +3009,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
   
  cleanup:
   
-  xVoxl_Delete( &pVolumeVox );
+  DebugExitFunction;
   
   return eResult;
 }
@@ -4278,7 +4283,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   xColor3f              segColor    = {0,0,0};
   xColor3f              dtiColor    = {0,0,0};
   int                   nY          = 0;
-  
+
   //  xUtil_StartTimer();
   
   /* make our voxels */
@@ -4312,7 +4317,6 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   
   DisableDebuggingOutput;
   
-  /* go thru the buffer... */
   for ( nY = 0; nY < this->mnVolumeSizeY; nY ++ ) {
     for ( volumePt.mnX = 0; 
 	  volumePt.mnX < this->mnVolumeSizeX; volumePt.mnX ++ ) {
@@ -4325,10 +4329,21 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
       if ( DspA_tErr_NoErr != eResult )
 	goto error;
       
-      /* check it. */
-      eResult = DspA_VerifyVolumeVoxel_( this, pVoxel );
-      if( DspA_tErr_NoErr == eResult ) {
+      /* I removed the code that checked the voxel here, since it
+	 shouldn't be necessary and is really slow. */
+      /*
+	eResult = DspA_VerifyVolumeVoxel_( this, pVoxel );
+	if( DspA_tErr_NoErr == eResult ) {
+	if ( xVoxl_GetX( pVoxel ) >= 0 &&
+   	   xVoxl_GetY( pVoxel ) >= 0 &&
+	   xVoxl_GetZ( pVoxel ) >= 0 &&
+	   xVoxl_GetX( pVoxel ) < this->mnVolumeSizeX &&
+	   xVoxl_GetY( pVoxel ) < this->mnVolumeSizeY &&
+	   xVoxl_GetZ( pVoxel ) < this->mnVolumeSizeZ ) {
+      */
 	
+      if( 1 ) {
+
 	/* if we are drawing anatomical data... */
 	if( this->mabDisplayFlags[DspA_tDisplayFlag_Anatomical] ) {
 	  
@@ -5737,8 +5752,8 @@ DspA_tErr DspA_ConvertVolumeToBuffer_ ( tkmDisplayAreaRef this,
   /* now zoom the coords to our zoomed buffer state */
   fX = (fZoomLevel * (fX - xVoxl_GetFloatX(this->mpZoomCenter))) +
     (fVolumeSize/2.0);
-  fY = (fZoomLevel * (fY - 
-		      GLDRAW_Y_FLIP_FLOAT(xVoxl_GetFloatY(this->mpZoomCenter)))) +
+  fY = (fZoomLevel * 
+	(fY - GLDRAW_Y_FLIP_FLOAT(xVoxl_GetFloatY(this->mpZoomCenter)))) +
     (fVolumeSize/2.0);
   
   /* return the point */
