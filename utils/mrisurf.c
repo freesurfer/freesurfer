@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/29 18:15:49 $
-// Revision       : $Revision: 1.293 $
+// Revision Date  : $Date: 2004/07/30 16:08:35 $
+// Revision       : $Revision: 1.294 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -639,17 +639,19 @@ MRISreadOverAlloc(char *fname, double pct_over)
         mris->vertices[mris->faces[fno+1].v[n]].num++;
       }
     }
+    mris->useRealRAS = 0;
     // new addition
-    if (freadIntEx(&tag, fp))
+    while (freadIntEx(&tag, fp))
     {
       if (tag == TAG_USEREALRAS)
+      {
 	if (!freadIntEx(&mris->useRealRAS,fp)) // set useRealRAS
 	  mris->useRealRAS = 0; // if error, set to default
-    }
-    else // no tag found.
-    {
-      // mark vertex coordinates are using the conformed (256^3) and c_(r,a,s) = 0.
-      mris->useRealRAS = 0;
+      }
+      else if (tag == TAG_SURF_GEOM)
+      {
+	readVolGeom(fp, &mris->vg);
+      }
     }
     fclose(fp);
   }
@@ -1234,6 +1236,7 @@ MRISalloc(int nvertices, int nfaces)
               "MRISalloc(%d, %d): could not allocate faces",
               nfaces, sizeof(FACE));
   mris->useRealRAS = 0; /* just initialize */
+  mris->vg.valid = 0;   /* mark invalid */
   return(mris) ;
 }
 /*-----------------------------------------------------
@@ -22045,6 +22048,9 @@ MRISwriteTriangularSurface(MRI_SURFACE *mris, char *fname)
   fwriteInt(TAG_USEREALRAS, fp);
   fwriteInt(mris->useRealRAS, fp);
 
+  fwriteInt(TAG_SURF_GEOM, fp);
+  writeVolGeom(fp, &mris->vg);
+
   fclose(fp);
   return(NO_ERROR) ;
 }
@@ -22241,16 +22247,18 @@ mrisReadTriangleFile(char *fname, double pct_over)
       mris->vertices[mris->faces[fno].v[n]].num++;
   }
   // new addition
-  if (freadIntEx(&tag, fp))
+  mris->useRealRAS = 0;
+  while (freadIntEx(&tag, fp))
   {
     if (tag == TAG_USEREALRAS)
+    {
       if (!freadIntEx(&mris->useRealRAS,fp)) // set useRealRAS
 	mris->useRealRAS = 0; // if error, set to default
-  }
-  else // no tag found.
-  {
-    // mark vertex coordinates are using the conformed (256^3) and c_(r,a,s) = 0.
-    mris->useRealRAS = 0;
+    }
+    else if (tag == TAG_SURF_GEOM)
+    {
+      readVolGeom(fp, &mris->vg);
+    }
   }
   fclose(fp);
   return(mris) ;
@@ -23737,7 +23745,35 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
   // if volumes are not given, then try to get them from transform
   lt = &lta->xforms[0];
 
-  // if mri is given, then override the one stored in the transform
+  // check the c_ras values
+  if (lta->type == LINEAR_RAS_TO_RAS)
+  {
+    if (mri && lt->src.valid == 1)
+    {
+      if (!FZERO(lt->src.c_r - lt->src.c_r) 
+	  || !FZERO(lt->src.c_a - lt->src.c_a) 
+	  || !FZERO(lt->src.c_s - lt->src.c_s))
+      {
+	fprintf(stderr, "WARNING:*********************************************************\n");
+	fprintf(stderr, "WARNING: c_(ras) values are not equal for the input volume and the transform src.\n");
+	fprintf(stderr, "WARNING: The transformed surface position may be shifted.\n");
+	fprintf(stderr, "WARNING:*********************************************************\n");
+      }
+    }
+    if (mri && mris->vg.valid == 1)
+    {
+      if (!FZERO(mris->vg.c_r - mris->vg.c_r) 
+	  || !FZERO(mris->vg.c_a - mris->vg.c_a) 
+	  || !FZERO(mris->vg.c_s - mris->vg.c_s))
+      {
+	fprintf(stderr, "WARNING:*********************************************************\n");
+	fprintf(stderr, "WARNING: c_(ras) values are not equal for the input volume and the surface stored volume.\n");
+	fprintf(stderr, "WARNING: The transformed surface position may be shifted.\n");
+	fprintf(stderr, "WARNING:*********************************************************\n");
+      }
+    }
+  }
+  // if mri is not given, then use the one stored in the transform
   if (!mri && lt->src.valid == 1)
   {
     srcPresent = 0;
@@ -23747,6 +23783,17 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     mri->x_a = lt->src.x_a; mri->y_a = lt->src.y_a; mri->z_a = lt->src.z_a; mri->c_a = lt->src.c_a;
     mri->x_s = lt->src.x_s; mri->y_s = lt->src.y_s; mri->z_s = lt->src.z_s; mri->c_s = lt->src.c_s;
     mri->xsize = lt->src.xsize; mri->ysize = lt->src.ysize; mri->zsize = lt->src.zsize;
+    mri->ras_good_flag = 1;
+  }
+  // if mri is not given, get it from the surface 
+  else if (!mri && mris->vg.valid == 1)
+  {
+    fprintf(stderr, "INFO:try to get src info from the surface.\n");
+    mri = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR);
+    mri->x_r = mris->vg.x_r; mri->y_r = mris->vg.y_r; mri->z_r = mris->vg.z_r; mri->c_r = mris->vg.c_r;
+    mri->x_a = mris->vg.x_a; mri->y_a = mris->vg.y_a; mri->z_a = mris->vg.z_a; mri->c_a = mris->vg.c_a;
+    mri->x_s = mris->vg.x_s; mri->y_s = mris->vg.y_s; mri->z_s = mris->vg.z_s; mri->c_s = mris->vg.c_s;
+    mri->xsize = mris->vg.xsize; mri->ysize = mris->vg.ysize; mri->zsize = mris->vg.zsize;
     mri->ras_good_flag = 1;
   }
   else if (!mri)
@@ -23826,7 +23873,9 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     v->x = xw ; v->y = yw ; v->z = zw ;
   }
   mrisComputeSurfaceDimensions(mris) ;
-
+  // save the volume information from dst
+  getVolGeom(mri_dst, &mris->vg);
+ 
  mristransform_cleanup:
   // free memory //////////////////////////////
   if (RASFromSurfaceRAS)
