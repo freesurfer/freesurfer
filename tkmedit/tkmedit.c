@@ -9067,7 +9067,7 @@ char kTclCommands [tkm_knNumTclCommands][STRLEN] = {
   "BarChart_Draw",
 
   /* interface configuration */
-  "raise .; wm geometry .",
+  "wm deiconify .; raise .; wm geometry .",
   "CsurfInterface",
   "tkm_Finish",
 
