@@ -632,7 +632,7 @@ float lookupInParametricSpace(float u, float v, int frame)
     if(do_interpolate==1)
       return sampleData(x,y,z,frame); 
     else
-      return rawFVData[(int)floor(y)][(int)floor(fvslices-z)*fvwidth+(int)floor(x)+frame*fvwidth*fvheight];
+      return rawFVData[(int)floor(y)][(int)floor(fheight-z)*fvwidth+(int)floor(x)+frame*fvwidth*fvheight];
       
   } else {
     return -30000;
