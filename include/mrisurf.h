@@ -299,6 +299,7 @@ typedef struct
   float   l_expand ;          /* for uniformly expanding the surface */
   float   l_grad ;            /* gradient term */
   float   l_convex ;          /* convexity term */
+  float   l_tsmooth ;         /* thickness smoothness term */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
@@ -628,7 +629,8 @@ MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
 int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain, 
                                    MRI *mri_wm, float nsigma) ;
 #else
-int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size) ;
+int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, 
+                                   float max_thickness) ;
 #endif
 
 int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
@@ -667,7 +669,8 @@ int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
 
 int   MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                               MRI *mri_smooth, Real inside_hi, Real border_hi,
-                              Real border_low, Real outside_low) ;
+                              Real border_low, Real outside_low, double sigma,
+                              float max_dist);
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                                    MRI *mri_smooth);
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
