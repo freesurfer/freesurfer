@@ -222,7 +222,7 @@ main(int argc, char *argv[])
 #if 0
   GCAhistoScaleImageIntensities(gca, mri_in) ;
 #endif
-  gcas = GCAfindAllSamples(gca, &nsamples) ;
+  gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
   printf("using %d sample points...\n", nsamples) ;
   GCAcomputeSampleCoords(gca, mri_in, gcas, nsamples, transform) ;
   if (sample_fname)
