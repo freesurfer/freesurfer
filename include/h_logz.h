@@ -47,6 +47,8 @@ typedef struct _LOGPIX
   int   area ;           /* # of Cartesian pixels that map to this log pix */
   int   row_cent ;       /* centroid of logmap pixel in Cartesian space */
   int   col_cent ;       /* centroid of logmap pixel in Cartesian space */
+  float xcent ;          /* centroid of logmap pixel in Cartesian space */
+  float ycent ;          /* centroid of logmap pixel in Cartesian space */
   int   spoke ;          /* the spoke # of this pixel */
   int   ring ;           /* the ring # of this pixel */
   int   n_neighbors ;    /* # of neighbors of this logpix */
@@ -116,6 +118,8 @@ typedef struct
 #define LOG_PIX_AREA(m, r, s)    LOG_PIX(m, r, s)->area
 #define LOG_PIX_ROW_CENT(m,r,s)  LOG_PIX(m, r, s)->row_cent
 #define LOG_PIX_COL_CENT(m,r,s)  LOG_PIX(m, r, s)->col_cent
+#define LOG_PIX_ROW_FCENT(m,r,s)  LOG_PIX(m, r, s)->ycent
+#define LOG_PIX_COL_FCENT(m,r,s)  LOG_PIX(m, r, s)->xcent
 #define LOG_PIX_SPOKE(m,r,s)     LOG_PIX(m, r, s)->spoke
 #define LOG_PIX_RING(m,r,s)      LOG_PIX(m, r, s)->ring
 #define LOG_PIX_WEIGHT(m,r,s)    LOG_PIX(m, r, s)->weight
@@ -143,6 +147,7 @@ LOGMAP_INFO *LogMapInit(double alpha,int cols,int rows,int nrings,
                         int nspokes);
 int    LogMapForward(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage);
 IMAGE  *LogMapSample(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
+IMAGE  *LogMapInverseSample(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE  *LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth,
                        IMAGE *Idst) ;
 int    LogMapInverse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage);
@@ -173,6 +178,9 @@ IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst,
                        float low, float hi) ;
 int   LogMapInitForwardFilter(LOGMAP_INFO *lmi, int which) ;
 IMAGE *LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
+IMAGE *LogMapInverseFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst);
+IMAGE *LogMapInverseBilinear(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst);
+IMAGE *LogMapInverseFilterGaussian(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst);
 
 
 IMAGE *LogMapMedianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, 
