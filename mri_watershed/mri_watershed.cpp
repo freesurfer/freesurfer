@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/09 22:47:12 $
-// Revision       : $Revision: 1.27 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2004/09/03 15:14:47 $
+// Revision       : $Revision: 1.28 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.27 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.28 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,6 +63,9 @@ extern "C" {
 #define OUTPUT_CURVES 0
 
 #define VERBOSE_MODE 0
+
+#define WRITE_SURFACES 0
+#define NO_SELF_INTERSECTION 0
 
 
 #define MAX_MASK_VOLUMES  50
@@ -580,7 +583,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.27 2004/06/09 22:47:12 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.28 2004/09/03 15:14:47 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3015,7 +3018,7 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
   ////////////////////////////////////////////////////////////////////////
   init_surf_to_image(0.8*MRI_var->rad_Brain,0.8*MRI_var->rad_Brain,0.8*MRI_var->rad_Brain,MRI_var);
 
-  fprintf(stderr,"\n      smoothing...");
+	//  fprintf(stderr,"\n      smoothing...");
   //////////////////////////////////////////////////////////////////////////////////////
   // using smaller brain radius to expand to the surface
   // MRISshrink1(MRI_var);
@@ -3078,7 +3081,12 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
 
     // we built mris_curv, mris_var_curv, mris_dCOG, and mris_var_dCOG in 
     // ValidationSurfaceShape().
-    // if validation failed and user asked for atlas correction
+    /*scale the fields to the current map*/
+    fprintf(stderr,"\nScaling of atlas fields onto current surface fields");
+    MRISsaveVertexPositions(MRI_var->mris, ORIGINAL_VERTICES) ;
+    MRISscaleFields(MRI_var->mris,MRI_var->mris_curv,MRI_var->mris_var_curv,CURV_MODE);
+    MRISscaleFields(MRI_var->mris,MRI_var->mris_dCOG,MRI_var->mris_var_dCOG,DIST_MODE); 
+		// if validation failed and user asked for atlas correction
     if((!MRI_var->validation) && MRI_var->atlas)
     {
       fprintf(stderr,"\nCorrecting the shape of the surface...");
@@ -3086,13 +3094,13 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
       MRISCorrectSurface(MRI_var);
       //if (parms->surf_dbg)
       //  write_image(MRI_var);
+			/*scale the fields to the current map*/
+			fprintf(stderr,"\nScaling of atlas fields onto current surface fields");
+			MRISsaveVertexPositions(MRI_var->mris, ORIGINAL_VERTICES) ;
+			MRISscaleFields(MRI_var->mris,MRI_var->mris_curv,MRI_var->mris_var_curv,CURV_MODE);
+			MRISscaleFields(MRI_var->mris,MRI_var->mris_dCOG,MRI_var->mris_var_dCOG,DIST_MODE); 
     }
-    /*scale the fields to the current map*/
-    fprintf(stderr,"\nScaling of atlas fields onto current surface fields");
-    MRISsaveVertexPositions(MRI_var->mris, ORIGINAL_VERTICES) ;
-    MRISscaleFields(MRI_var->mris,MRI_var->mris_curv,MRI_var->mris_var_curv,CURV_MODE);
-    MRISscaleFields(MRI_var->mris,MRI_var->mris_dCOG,MRI_var->mris_var_dCOG,DIST_MODE); 
-
+    
     fprintf(stderr,"\n\n************FINAL ITERATIVE TEMPLATE DEFORMATION************");
     /*Compute local intensity values*/
     fprintf(stderr,"\nCompute Local values csf/gray");
@@ -4532,6 +4540,10 @@ static void MRISsmooth_surface(MRI_SURFACE *mris,int niter)
   int iter,k,m,n;
   float x,y,z;  
 
+#if WRITE_SURFACES
+	static int niterations=0;
+	char fname[200];
+#endif
 
   for (iter=0;iter<niter;iter++)
   {
@@ -4566,6 +4578,13 @@ static void MRISsmooth_surface(MRI_SURFACE *mris,int niter)
       v->y=(v->y + y)/2;  
       v->z=(v->z + z)/2;  
     }
+
+#if WRITE_SURFACES
+		sprintf(fname,"./rh.smoothing%d",niterations);
+		niterations++;
+		MRISwrite(mris,fname);
+#endif
+
   }
 }
 
@@ -5216,7 +5235,7 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var)
   if(MRI_var->atlas)
   {
     fprintf(stderr,"\nRigid alignment...");
-    mrisRigidBodyAlignGlobal(mris_curv, mris_dCOG, &parms, mode, 4.0, 32.0, 8) ;
+		mrisRigidBodyAlignGlobal(mris_curv, mris_dCOG, &parms, mode, 4.0, 32.0, 8) ;
     fprintf(stderr,"\ndone");
   }
   else
@@ -5314,7 +5333,6 @@ static void MRIScenterCOG(MRI_SURFACE *mris)
      (float)x,(float)y,(float)z);*/
 }
 
-
 void MRISscale(MRI_SURFACE *mris)
 {
   int k;
@@ -5342,7 +5360,6 @@ double MRISradius(MRI_SURFACE *mris)
     }
   return(sqrt(r/(double)mris->nvertices));
 }
-
 
 static void MRISinitSurfaces(MRIS *mris_curv,MRIS *mris_dCOG, const MRIS *mrisphere)
 {
@@ -5633,6 +5650,10 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,MRI_variables *MRI
   float validation_percentage;
   float wgpospercentage,wgnegpercentage;
 
+#if WRITE_SURFACES
+	char fname[100];
+#endif
+
   fprintf(stderr,"\nLocalization of inacurate regions: Erosion-Dilatation steps");
 
   nbWrongVertices1=0;
@@ -5658,6 +5679,11 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,MRI_variables *MRI
     }
     mrisphere->vertices[k].curv=sse;//tanh(sse/ERROR_THRESHOLD);
   }
+
+#if WRITE_SURFACES
+	sprintf(fname,"./rh.error");
+	MRISwriteCurvature(mrisphere,fname);
+#endif
 
   mean_sse/=nvertices;
   var_sse=var_sse/nvertices-SQR(mean_sse);
@@ -5698,7 +5724,6 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,MRI_variables *MRI
 	wgnegpercentage+=1.; // the current surfeace is smaller
     }
   }
-
   
   validation_percentage=100.*(float)nbWrongVertices2/mrisphere->nvertices;
 
@@ -5865,6 +5890,120 @@ static void MRISscaleFields(MRIS *mris_src,MRIS *mris_fdst,MRIS *mris_vdst,int w
   }
 }
 
+#if NO_SELF_INTERSECTION
+static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno);
+static int mrisRemoveNormalGradientComponent(MRI_SURFACE *mris, int vno);
+static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno);
+#endif
+
+#if NO_SELF_INTERSECTION
+#define MIN_NBR_DIST  (0.25)
+static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
+{
+  VERTEX   *v, *vn ;
+  int      n ;
+  float    dx, dy, dz, dot, x, y, z, dist ;
+
+  v = &mris->vertices[vno] ;
+  
+  x = v->x ; y = v->y ; z = v->z ; 
+  for (n = 0 ; n < v->vnum ; n++)
+  {
+    vn = &mris->vertices[v->v[n]] ;
+    dx = vn->x - x ; dy = vn->y - y ; dz = vn->z - z ;
+    dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+
+    /* too close - take out gradient component in this dir. */
+    if (dist <= MIN_NBR_DIST)  
+    {
+      dx /= dist ; dy /= dist ; dz /= dist ;
+      dot = dx*v->odx + dy*v->ody + dz*v->odz ;
+      if (dot > 0.0)
+      {
+        v->odx -= dot*dx ;
+        v->ody -= dot*dy ;
+        v->odz -= dot*dz ;
+      }
+    }
+  }
+
+  return(NO_ERROR) ;
+}
+
+static int mrisRemoveNormalGradientComponent(MRI_SURFACE *mris, int vno)
+{
+  VERTEX   *v ;
+  float    dot ;
+
+  v = &mris->vertices[vno] ;
+  
+  dot = v->nx*v->odx + v->ny*v->ody + v->nz*v->odz ;
+  v->odx -= dot*v->nx ;
+  v->ody -= dot*v->ny ;
+  v->odz -= dot*v->nz ;
+
+  return(NO_ERROR) ;
+}
+
+static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno)
+{
+  VERTEX   *v ;
+
+  v = &mris->vertices[vno] ;
+
+  mrisRemoveNeighborGradientComponent(mris, vno) ;
+  if (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz))
+  {
+    mrisRemoveNormalGradientComponent(mris, vno) ;
+    if (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz))
+    {
+      v->odx = v->ody = v->odz = 0.0 ;
+      return(NO_ERROR) ;
+    }
+  }
+
+  return(NO_ERROR) ;
+}
+#endif
+
+static int mrisAverageGradients(MRIS *mris,int niter){
+	int vno, vnum,*pnb,vnb;
+	float dx,dy,dz,dot,num;
+	VERTEX *v,*vn;
+	
+	while(niter--){
+		for (vno = 0 ; vno < mris->nvertices ; vno++) {
+			v = &mris->vertices[vno] ;
+			
+			dx = v->odx ; dy = v->ody ; dz = v->odz ;
+			pnb = v->v ;
+			
+			vnum = v->vnum ;
+			for (num = 0.0f , vnb = 0 ; vnb < vnum ; vnb++) {
+				vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+				
+				dot = vn->odx * v->odx + vn->ody * v->ody + vn->odz*v->odz ;
+				if (dot < 0)
+					continue ;  /* pointing in opposite directions */
+				
+				num++ ;
+				dx += vn->odx ; dy += vn->ody ; dz += vn->odz ;	
+			}
+			num++ ;
+			v->tdx = dx / num ;
+			v->tdy = dy / num ;
+			v->tdz = dz / num ;
+		}
+		for (vno = 0 ; vno < mris->nvertices ; vno++) {
+			v = &mris->vertices[vno] ;
+			v->odx=v->tdx;
+			v->ody=v->tdy;
+			v->odz=v->tdz;
+		}
+	}
+	return NO_ERROR;
+}
+
 
 //correction of the segmentation by incorporating an atlas-based force
 static void MRISCorrectSurface(MRI_variables *MRI_var)
@@ -5888,13 +6027,24 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
   float ***dist;
   float cout,pcout=0,coutbuff,varbuff,mean_sd[10],mean_dist[10];
 
+#if WRITE_SURFACES
+	char fname[100];
+	MRIS *mris_tmp;
+#endif
 
   double xCOG,yCOG,zCOG;
   double dCOG;
 
+#if NO_SELF_INTERSECTION
+	/* to avoid self-intersection */ 
+	MHT    *mht = NULL ;
+#endif
+
+
   xCOG=yCOG=zCOG=0; /* to stop compilator warnings !*/ 
 
   mris=MRI_var->mris;
+
 
   MRISsetNeighborhoodSize(mris, 1) ;
   MRIScomputeNormals(mris);
@@ -5910,6 +6060,9 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
     }  
   }
 
+#if WRITE_SURFACES
+	mris_tmp=MRISclone(mris);
+#endif
 
   for(k=0;k<mris->nvertices;k++)
     for (m=0;m<4;m++)
@@ -5940,6 +6093,16 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
   // iteration starts here
   for (iter=0;niter;iter++)
   {
+#if NO_SELF_INTERSECTION
+		/* avoid self-intersection */
+		mht = MHTfillTable(mris, mht) ;
+#endif
+
+#if WRITE_SURFACES
+		sprintf(fname,"./rh.s_c%d",iter);
+		MRISwrite(mris,fname);
+#endif
+
     cout = lm = d10 = f1m = f2m = f3m = dm = 0;
     xCOG = yCOG = zCOG = 0;
     for (k=0;k<mris->nvertices;k++)
@@ -5961,30 +6124,44 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
     for (k=0;k<mris->nvertices;k++)
     {
       mris->vertices[k].val=0;  
-   
-      if((iter<30) && (!MRI_var->mrisphere->vertices[k].val))
-	continue;
+
+#if WRITE_SURFACES  //to write out shape correction information
+			mris_tmp->vertices[k].curv=0;
+#endif
+
+			//      if((iter<4) && (!MRI_var->mrisphere->vertices[k].val))
+			if(!MRI_var->mrisphere->vertices[k].val)
+				continue;
             
       // distance from the center of gravity
       dCOG=sqrt(SQR(mris->vertices[k].tx-xCOG)
-		+SQR(mris->vertices[k].ty-yCOG)
-		+SQR(mris->vertices[k].tz-zCOG));
+								+SQR(mris->vertices[k].ty-yCOG)
+								+SQR(mris->vertices[k].tz-zCOG));
 
       // difference between a cog distance of a particular vertex from a
       // template vs. a cog distance of a current vertex
       force3=(MRI_var->mris_dCOG->vertices[k].curv-dCOG)/
-	sqrt(MRI_var->mris_var_dCOG->vertices[k].curv);
+				sqrt(MRI_var->mris_var_dCOG->vertices[k].curv);
       
       force3=0.5*tanh(2*force3);
       
       mris->vertices[k].val=force3;
-      
+
+#if WRITE_SURFACES
+			mris_tmp->vertices[k].curv=force3;
+#endif     
+
       f3m+=force3;
     }
     MRISaverageVals(mris,2);
     
-    for (k=0;k<mris->nvertices;k++)
-    {
+
+#if WRITE_SURFACES
+		sprintf(fname,"./rh.s_cvalues%d",iter);
+		MRISwriteCurvature(mris_tmp,fname);
+#endif
+
+    for (k=0;k<mris->nvertices;k++){
       v = &mris->vertices[k];
       x = v->tx;
       y = v->ty;
@@ -6019,23 +6196,23 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
       szt=sz-szn;
 
       v->nc=nc;
-      
+		      
       //*******************************************
       //Iteration
       force3=v->val;
       if(force3!=0 || (SQR(v->odx)+SQR(v->ody)+SQR(v->odz))!=0)
       {
-	ct=0.8;
-	force1=0.5;
+				ct=0.8;
+				force1=0.5;
       }
       else
-      {
-	force1=0.1;
-	ct=0.2;
-      }
-      
+				{
+					force1=0.1;
+					ct=0.2;
+				}
+		     
       f1m+=force1;
-
+			
       // dX = ct * St + force1 * Sn + force3 * Vn
       dx = sxt*ct + force1*sxn+v->nx*force3;
       dy = syt*ct + force1*syn+v->ny*force3;
@@ -6049,15 +6226,38 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
       // if too big, make it smaller
       if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0)
       {
-	dx /= d;
-	dy /= d;
-	dz /= d;
+				dx /= d;
+				dy /= d;
+				dz /= d;
       }
+		
+			if(FZERO(v->val)){ 
+				dx = dy = dz = 0.0;
+			}
+		
       // cache the current value
       v->odx = dx;
       v->ody = dy;
       v->odz = dz;
-      
+		}
+	
+		// average gradients 
+		mrisAverageGradients(mris,3);
+			
+		for (k=0;k<mris->nvertices;k++){
+			 v = &mris->vertices[k];
+			  x = v->tx;
+				y = v->ty;
+				z = v->tz;
+#if NO_SELF_INTERSECTION
+			/* check if we can update the surface */
+			MHTremoveAllFaces(mht, mris, &mris->vertices[k]);
+			mrisLimitGradientDistance(mris, mht, k) ;
+#endif
+			dx=v->odx;
+			dy=v->ody;
+			dz=v->odz;
+
       d=sqrt(dx*dx+dy*dy+dz*dz);
       
       dm+=d;
@@ -6144,7 +6344,17 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
   }
   fprintf(stderr,"%d iterations",iter);
 
-  MRIScomputeNormals(mris);
+#if WRITE_SURFACES
+	sprintf(fname,"./shape_correction%d",iter);
+	MRISwrite(mris,fname);
+	MRISfree(&mris_tmp);
+#endif
+
+#if NO_SELF_INTERSECTION
+	MHTfree(&mht) ;
+#endif
+	
+	MRIScomputeNormals(mris);
 }
 
 /*compute local values and store them into mrisphere*/
@@ -6534,6 +6744,267 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
   }
 }
 
+static double estimateNRG(MRI_variables *MRI_var, double cx, double cy ,double cz);
+static void computeGradient(MRI_variables *MRI_var,double cx, double cy ,double cz,double *gx,double *gy, double *gz);
+static int computeCOG(MRI_variables *MRI_var,double *xCOG, double *yCOG, double *zCOG,int mode);
+
+/* compute the NRG associated with the center (cx,cy,cz) */
+static double estimateNRG(MRI_variables *MRI_var ,double cx, double cy ,double cz){
+  int n;
+  double NRG;
+	double dCOG;
+	MRIS *mris;
+
+	mris=MRI_var->mris;
+
+  for(NRG = 0, n = 0 ; n < mris->nvertices ; n++){
+		dCOG=sqrt(SQR(mris->vertices[n].x-cx)+SQR(mris->vertices[n].y-cy)
+							+SQR(mris->vertices[n].z-cz));
+		NRG+=SQR(dCOG-MRI_var->mris_dCOG->vertices[n].curv)/
+			MRI_var->mris_var_dCOG->vertices[n].curv;
+  }
+  return NRG;
+}
+
+/* compute the gradient of the energy defined above at location (cx,cy,cz) */
+static void computeGradient(MRI_variables *MRI_var,double cx, double cy ,double cz,double *gx,double *gy, double *gz){
+  int n;
+  double tx,ty,tz,dCOG;
+	MRIS *mris;
+	
+	mris=MRI_var->mris;
+
+  tx=ty=tz=0.0;
+  for(tx = 0 , ty = 0 , tz = 0 , n = 0 ; n < mris->nvertices ; n++){
+		dCOG=sqrt(SQR(mris->vertices[n].x-cx)+SQR(mris->vertices[n].y-cy)
+							+SQR(mris->vertices[n].z-cz));
+		tx += (1.0-MRI_var->mris_dCOG->vertices[n].curv/dCOG)/MRI_var->mris_var_dCOG->vertices[n].curv
+			*(mris->vertices[n].x-cx);
+		
+		ty += (1.0-MRI_var->mris_dCOG->vertices[n].curv/dCOG)/MRI_var->mris_var_dCOG->vertices[n].curv
+			*(mris->vertices[n].y-cy);
+
+		tz += (1.0-MRI_var->mris_dCOG->vertices[n].curv/dCOG)/MRI_var->mris_var_dCOG->vertices[n].curv
+			*(mris->vertices[n].z-cz);
+
+  }
+  (*gx)=tx/(double)mris->nvertices;
+  (*gy)=ty/(double)mris->nvertices;
+  (*gz)=tz/(double)mris->nvertices;
+}
+
+/* compute the center of gravity of the surface 
+	 if more is zero: using normal average
+	 if more is one: take into account potential errors with average shape */
+static int computeCOG(MRI_variables *MRI_var,double *xCOG, double *yCOG, double *zCOG,int mode){
+	int k;
+	double x,y,z;
+	VERTEX *v;
+	MRIS *mris;
+	int niters;
+	/* NRG parameters */
+  double NRG,last_NRG;
+  /* gradient parameters */
+  double dx,dy,dz,d,epsilon;
+	
+	mris=MRI_var->mris;	
+	/* initial guess */
+	x=y=z=0.0;
+	for (k=0;k<mris->nvertices;k++){
+      v = &mris->vertices[k];
+      x += v->x;
+      y += v->y;
+      z += v->z;
+    }
+    // get the center of gravity of surfaces
+    x /= mris->nvertices;
+    y /= mris->nvertices;
+    z /= mris->nvertices;
+
+	switch(mode){
+	case 0:
+		(*xCOG)=x;
+		(*yCOG)=y;
+		(*zCOG)=z;
+		break;
+	default:
+	case 1:
+		/* compute the initial NRG */
+		NRG=estimateNRG(MRI_var,x,y,z);
+		fprintf(stderr,"Computing COG for corrected surface\nInitial Configuration: NRG=%lf, ( %f , %f , %f )"
+						,NRG, x, y, z); 
+		/* iteratively minize the NRG */
+		last_NRG=NRG+1.0;
+		niters=0;
+		while(NRG<last_NRG){
+			niters++;
+			last_NRG=NRG;
+			/* compute the gradient */
+			computeGradient(MRI_var,x,y,z,&dx,&dy,&dz);
+			
+			/* bound gradient by displacement of 1.0 mm */
+			d=sqrt(SQR(dx)+SQR(dy)+SQR(dz));
+			if(d>1.0){
+				dx/=d;
+				dy/=d;
+				dz/=d;
+			}
+			/*   fprintf(stderr,"\n gradient:(%f,%f,%f)",dx,dy,dz); */
+    
+			epsilon=2.0;
+			while(NRG>=last_NRG){
+				epsilon/=2.0;
+				NRG=estimateNRG(MRI_var,x+epsilon*dx,y+epsilon*dy,z+epsilon*dz);
+				d=sqrt(SQR(dx)+SQR(dy)+SQR(dz));
+				if(epsilon*d<0.00000000001) //FZERO(epsilon*(SQR(dx)+SQR(dy)+SQR(dz)))) 
+					break;
+			}
+		
+			if(NRG<last_NRG){
+				x=x+epsilon*dx;
+				y=y+epsilon*dy;
+				z=z+epsilon*dz;
+				
+				/*				fprintf(stderr,"\nNew Minimum found: NRG=%lf,( %f , %f , %f )"
+									,NRG , x, y,z);*/ 
+			}else
+				NRG=estimateNRG(MRI_var,x,y,z);
+		}  
+
+		fprintf(stderr,"\nFinal Minimum found: NRG=%lf, ( %f , %f , %f )"
+						, estimateNRG(MRI_var,x,y,z), x, y,z); 
+
+		(*xCOG)=x;
+		(*yCOG)=y;
+		(*zCOG)=z;
+		
+		break;
+	}
+	return NO_ERROR;
+}
+
+static MRI* generateFinalMRI(MRI_variables *MRI_var){
+	MRI *mri,*mri_src,*mri_orig;
+	MRIS *mris,*mrisphere;
+	int k,u,v,numu,numv,i,j,imnr;
+	float x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax,dCOG,val,
+		px0,py0,pz0,px1,py1,pz1,px,py,pz;
+	FACE *face;
+	double tx,ty,tz,xCOG,yCOG,zCOG;
+	int changed,new_val;
+	
+	mri_orig=MRI_var->mri_orig;
+	mri_src=MRI_var->mri_src;
+	mri=MRIclone(MRI_var->mri_orig,NULL);
+	
+	mris=MRI_var->mris;
+	mrisphere=MRI_var->mrisphere;
+
+	// extract the volume
+	MRISpeelBrain(0.0,mri,MRI_var->mris,1);
+
+	//compute COG coord
+	computeCOG(MRI_var,&xCOG,&yCOG,&zCOG,1);
+
+	
+	//write surface values in the volume
+	for( k = 0 ; k < mris->nfaces ; k++){
+		face=&mris->faces[k];
+		if((mrisphere->vertices[face->v[0]].val==0) &&
+			 (mrisphere->vertices[face->v[1]].val==0) &&
+			 (mrisphere->vertices[face->v[2]].val==0))
+			continue;
+
+		//compute value for face
+		val=0.0;
+		for(u=0;u<3;u++){
+			dCOG=sqrt(SQR(mris->vertices[face->v[u]].x-xCOG)
+								+SQR(mris->vertices[face->v[u]].y-yCOG)+
+								SQR(mris->vertices[face->v[u]].z-zCOG));
+			val=MAX(val,MRI_var->mris_dCOG->vertices[face->v[u]].curv-dCOG
+							+3.*sqrt(MRI_var->mris_var_dCOG->vertices[face->v[u]].curv));
+		}
+		
+		// calculate three vertices
+    x0 =mris->vertices[mris->faces[k].v[0]].x;    
+    y0 =mris->vertices[mris->faces[k].v[0]].y;    
+    z0 =mris->vertices[mris->faces[k].v[0]].z;    
+    x1 =mris->vertices[mris->faces[k].v[1]].x;    
+    y1 =mris->vertices[mris->faces[k].v[1]].y;    
+    z1 =mris->vertices[mris->faces[k].v[1]].z;    
+    x2 =mris->vertices[mris->faces[k].v[2]].x;    
+    y2 =mris->vertices[mris->faces[k].v[2]].y;    
+    z2 =mris->vertices[mris->faces[k].v[2]].z;
+    
+		// calculate the sides
+    d0 = sqrt(SQR(x1-x0)+SQR(y1-y0)+SQR(z1-z0));
+    d1 = sqrt(SQR(x2-x1)+SQR(y2-y1)+SQR(z2-z1));
+    d2 = sqrt(SQR(x0-x2)+SQR(y0-y2)+SQR(z0-z2));
+    dmax = (d0>=d1&&d0>=d2)?d0:(d1>=d0&&d1>=d2)?d1:d2;
+
+    numu = int(ceil(2*d0));
+    numv = int(ceil(2*dmax));
+      
+    for (v=0;v<=numv;v++)
+    {
+      px0 = x0 + (x2-x0)*v/numv;
+      py0 = y0 + (y2-y0)*v/numv;
+      pz0 = z0 + (z2-z0)*v/numv;
+      px1 = x1 + (x2-x1)*v/numv;
+      py1 = y1 + (y2-y1)*v/numv;
+      pz1 = z1 + (z2-z1)*v/numv;
+      for (u=0;u<=numu;u++)
+      {
+        px = px0 + (px1-px0)*u/numu;
+        py = py0 + (py1-py0)*u/numu;
+        pz = pz0 + (pz1-pz0)*u/numu;
+
+				myWorldToVoxel(mri,px,py,pz,&tx,&ty,&tz);
+	
+				imnr=(int)(tz+0.5);
+				j=(int)(ty+0.5);
+				i=(int)(tx+0.5);
+				if (i>=0 && i<mri->width && j>=0 && j<mri->height && imnr>=0 && imnr<mri->depth)
+					MRIvox(mri,i,j,imnr) = 1+(int)(val);
+      }  
+    }
+  }
+
+	//expand volume if values are greater than 1
+	changed=1;
+	while(changed){
+		changed=0;
+
+		for(k = 1 ; k< mri->depth-1 ; k++)
+			for(j = 1 ; j < mri->height-1 ; j++)
+				for(i = 1 ; i < mri->width-1 ; i++){
+					new_val=MRIvox(mri,i,j,k)-1;
+					if(new_val>0){
+						if(MRIvox(mri,i-1,j,k)<new_val){changed=1;MRIvox(mri,i-1,j,k)=new_val;}
+						if(MRIvox(mri,i+1,j,k)<new_val){changed=1;MRIvox(mri,i+1,j,k)=new_val;}
+						if(MRIvox(mri,i,j-1,k)<new_val){changed=1;MRIvox(mri,i,j-1,k)=new_val;}
+						if(MRIvox(mri,i,j+1,k)<new_val){changed=1;MRIvox(mri,i,j+1,k)=new_val;}
+						if(MRIvox(mri,i,j,k-1)<new_val){changed=1;MRIvox(mri,i,j,k-1)=new_val;}
+						if(MRIvox(mri,i,j,k+1)<new_val){changed=1;MRIvox(mri,i,j,k+1)=new_val;}
+					}
+				}
+	}
+
+	MRIwrite(mri,"./tmp4");
+
+	//merge mri and mri_src
+	for(k = 0 ; k< mri->depth ; k++)
+			for(j = 0 ; j < mri->height ; j++)
+				for(i = 0 ; i < mri->width ; i++)
+					if(MRIvox(mri_src,i,j,k) || MRIvox(mri,i,j,k))
+						MRIvox(mri,i,j,k)=MRIvox(mri_orig,i,j,k);
+
+	MRIwrite(mri,"./tmp2");
+	MRIwrite(mri_src,"./tmp3");
+	fprintf(stderr,"done\n");
+	return mri;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 static void MRISFineSegmentation(MRI_variables *MRI_var)
@@ -6574,6 +7045,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
  
   int csf,trn,grm;
   MRI *mri;
+	int allocation;
   
   float coeff3,coeff4;
 
@@ -6581,15 +7053,23 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
   double dCOG;
 
 
+#if WRITE_SURFACES
+	char fname[100];
+	MRIS *mris_tmp;
+#endif
+
   /*last 10 iterations -> converge with a sub-voxel accuracy
     to the closest gradient*/
   MRIGRADIENT=0;
-
 
   xCOG=yCOG=zCOG=0; /* to stop compilator warnings !*/ 
 
   mris=MRI_var->mris;
   mrisphere=MRI_var->mrisphere;
+
+#if WRITE_SURFACES
+	mris_tmp=MRISclone(mris);
+#endif
 
   MRISsetNeighborhoodSize(mris, 2) ;
   MRIScomputeNormals(mris);
@@ -6599,10 +7079,13 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
   dist = (float ***) malloc( mris->nvertices*sizeof(float**) );
 
   // if the atlas is not used
-  if(MRI_var->validation || (MRI_var->atlas==0))
+  allocation=0;
+	if(MRI_var->validation || (MRI_var->atlas==0))
     mri=MRI_var->mri_src;
-  else
-    mri=MRI_var->mri_orig;
+  else{
+		allocation=1;
+    mri=generateFinalMRI(MRI_var);
+	}
 
   // if atlas is set
   if((MRI_var->validation==0) && MRI_var->atlas)
@@ -6630,6 +7113,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
       dist[it][jt] = (float*) calloc( 3, sizeof(float));
     }  
   }
+
   // force coefficients
   E=(1/rmin+1/rmax)/2;
   F=6/(1/rmin-1/rmax);  
@@ -6665,6 +7149,12 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
   {
     cout = lm = d10 = f1m = f2m = f3m = f4m = dm = 0;
     xCOG = yCOG = zCOG = 0;
+
+#if WRITE_SURFACES
+		sprintf(fname,"./rh.finedeformation%d",iter);
+		MRISwrite(mris,fname);
+#endif
+
     for (k=0;k<mris->nvertices;k++)
     {
       v = &mris->vertices[k];
@@ -6679,6 +7169,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
     xCOG/=mris->nvertices;
     yCOG/=mris->nvertices;
     zCOG/=mris->nvertices;
+
     // compute surface properties
     MRIScomputeMetricProperties(mris) ;
     MRIScomputeNormals(mris);
@@ -6699,7 +7190,12 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
         MRI_var->mris_var_dCOG->vertices[k].curv;
       
       mris->vertices[k].val=force3;
-      
+
+#if WRITE_SURFACES
+			mris_tmp->vertices[k].curv=(MRI_var->mris_dCOG->vertices[k].curv-dCOG)/
+				MRI_var->mris_var_dCOG->vertices[k].curv;
+#endif
+ 
       f3m+=force3;
 
       // coeff4
@@ -6711,7 +7207,12 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
       f4m+=force4;
     }
     MRISaverageVals(mris,2);
-    
+  
+#if WRITE_SURFACES
+		sprintf(fname,"./rh.d_err%d",iter);
+		MRISwriteCurvature(mris_tmp,fname);
+#endif
+  
     for (k=0;k<mris->nvertices;k++)
     {
       csf=int(mrisphere->vertices[k].x);
@@ -6774,151 +7275,151 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
         /******************************/
       if(!MRIGRADIENT)
       {
-	find_normal(nx,ny,nz,n1,n2,MRI_var->direction);
-	for (h=0;h<4;h++)
-	  for (a=-1;a<2;a++)
-	    for (b=-1;b<2;b++)
-	    {
-	      myWorldToVoxel(MRI_var->mri_orig,(x-nx*h+n1[0]*a+n2[0]*b),
-			      (y-ny*h+n1[1]*a+n2[1]*b),
-			      (z-nz*h+n1[2]*a+n2[2]*b),&tx,&ty,&tz);
-	      kt=(int)(tz+0.5);
-	      jt=(int)(ty+0.5);
-	      it=(int)(tx+0.5);
-	      
-	      if ((kt<0||kt>=MRI_var->depth||it<0||it>=MRI_var->width||jt<0||jt>=MRI_var->height))
-		val=0;
-	      else
-		val=MRIvox(mri,it,jt,kt);
-	      
-	      test_samp[h][3*b+a+4] = val;
-	    }
-  
-	val=test_samp[0][4];
-	
-	force=0.0f;
-	if (!val)     /*|| val>fmax)*/
-	  force=-0.25;
-	else if (val<=csf)
-	  force=-0.1;
-	else if (val<trn)
-	  force=0.0;
-	else if(val>fmax)
-	  force=-0.1;
-	else 
-	{      
-	  for(h=1;h<10;h++)
-	  {
-	    prev_val=val;
-	    myWorldToVoxel(MRI_var->mri_orig,(x-nx*h),(y-ny*h),(z-nz*h),&tx,&ty,&tz);
-	    kt=(int)(tz+0.5);
-	    jt=(int)(ty+0.5);
-	    it=(int)(tx+0.5);
-	    
-	    if ((kt<0||kt>=MRI_var->depth||it<0||it>=MRI_var->width||jt<0||jt>=MRI_var->height))
-	      val=0;
-	    else 
-	      val=MRIvox(mri,it,jt,kt);
-	    
-	    if(MRI_var->validation==0)
-	    {
-	      if(val<trn && prev_val<trn)
-	      {
-		force=-0.1;
-		break;
-	      }
-	    }
-	    if(val>fmax && prev_val>fmax)
-	    {
-	      force=-0.2;
-	      break;
-	    }
-	    prev_val=val;
-	  }
-	  if(force==0.0f)
-	  {
-	    mean(test_samp,samp_mean);
-	    
-	    if (samp_mean[1]<trn  &&  samp_mean[2]<trn)
-	    {
-	      if (samp_mean[0]*100>samp_mean[1]*90)
-		if (samp_mean[1]*100>samp_mean[2]*90)
-		  force=-0.1;
-	    }
-	    else
-	    {
-	      nb_GM=0;
-	      nb_TR=0;
-	      nb_GTM=0;
-	      for (h=0;h<4;h++)
-	      {
-		if (samp_mean[h]>=grm)
-		  nb_GM++;
-		if (samp_mean[h]<trn)
-		  nb_TR++;
-	      }
-	      
-	      if (nb_TR>=3)
-		force=-0.2;
-	      else if (nb_GM>=3 && samp_mean[0]>trn)
-		force=0.7;
-	      else if (nb_GM==2 && samp_mean[0]>trn)
-		force=0.5; 
-	      else if (nb_TR==0)
-		force=0.3;
-	      else
-	      {
-		nb_GM=0;
-		nb_TR=0;
-		for (h=0;h<4;h++)
-		{
-		  for (a=0;a<9;a++)
-		  {
-		    if (test_samp[h][a]>=grm)
-		      nb_GM++;
-		    else if (test_samp[h][a]<trn)
-		      nb_TR++;
-		    else
-		      nb_GTM++;
-		  }
-		}
-		
-		if (nb_TR>=18)
-		  force=-0.3;
-		else if (nb_GM>=18)
-		  force=0.5;
-		else if (nb_GM>=15)
-		  force=0.3;
-		else
-		{
-		  if (nb_GM>9 && nb_TR<9)
-		    force=0.5;
-		  else if (nb_GTM>30)
-		    force=0.1;
-		  else
-		    force=-0.0;
-		}
-	      }
-	    }
-	  }
-	}
+				find_normal(nx,ny,nz,n1,n2,MRI_var->direction);
+				for (h=0;h<4;h++)
+					for (a=-1;a<2;a++)
+						for (b=-1;b<2;b++)
+							{
+								myWorldToVoxel(MRI_var->mri_orig,(x-nx*h+n1[0]*a+n2[0]*b),
+															 (y-ny*h+n1[1]*a+n2[1]*b),
+															 (z-nz*h+n1[2]*a+n2[2]*b),&tx,&ty,&tz);
+								kt=(int)(tz+0.5);
+								jt=(int)(ty+0.5);
+								it=(int)(tx+0.5);
+								
+								if ((kt<0||kt>=MRI_var->depth||it<0||it>=MRI_var->width||jt<0||jt>=MRI_var->height))
+									val=0;
+								else
+									val=MRIvox(mri,it,jt,kt);
+								
+								test_samp[h][3*b+a+4] = val;
+							}
+				
+				val=test_samp[0][4];
+				
+				force=0.0f;
+				if (!val)     /*|| val>fmax)*/
+					force=-0.25;
+				else if (val<=csf)
+					force=-0.1;
+				else if (val<trn)
+					force=0.0;
+				else if(val>fmax)
+					force=-0.1;
+				else 
+					{      
+						for(h=1;h<10;h++)
+							{
+								prev_val=val;
+								myWorldToVoxel(MRI_var->mri_orig,(x-nx*h),(y-ny*h),(z-nz*h),&tx,&ty,&tz);
+								kt=(int)(tz+0.5);
+								jt=(int)(ty+0.5);
+								it=(int)(tx+0.5);
+								
+								if ((kt<0||kt>=MRI_var->depth||it<0||it>=MRI_var->width||jt<0||jt>=MRI_var->height))
+									val=0;
+								else 
+									val=MRIvox(mri,it,jt,kt);
+								
+								if(MRI_var->validation==0)
+									{
+										if(val<trn && prev_val<trn)
+											{
+												force=-0.1;
+												break;
+											}
+									}
+								if(val>fmax && prev_val>fmax)
+									{
+										force=-0.2;
+										break;
+									}
+								prev_val=val;
+							}
+						if(force==0.0f)
+							{
+								mean(test_samp,samp_mean);
+								
+								if (samp_mean[1]<trn  &&  samp_mean[2]<trn)
+									{
+										if (samp_mean[0]*100>samp_mean[1]*90)
+											if (samp_mean[1]*100>samp_mean[2]*90)
+												force=-0.1;
+									}
+								else
+									{
+										nb_GM=0;
+										nb_TR=0;
+										nb_GTM=0;
+										for (h=0;h<4;h++)
+											{
+												if (samp_mean[h]>=grm)
+													nb_GM++;
+												if (samp_mean[h]<trn)
+													nb_TR++;
+											}
+										
+										if (nb_TR>=3)
+											force=-0.2;
+										else if (nb_GM>=3 && samp_mean[0]>trn)
+											force=0.7;
+										else if (nb_GM==2 && samp_mean[0]>trn)
+											force=0.5; 
+										else if (nb_TR==0)
+											force=0.3;
+										else
+											{
+												nb_GM=0;
+												nb_TR=0;
+												for (h=0;h<4;h++)
+													{
+														for (a=0;a<9;a++)
+															{
+																if (test_samp[h][a]>=grm)
+																	nb_GM++;
+																else if (test_samp[h][a]<trn)
+																	nb_TR++;
+																else
+																	nb_GTM++;
+															}
+													}
+												
+												if (nb_TR>=18)
+													force=-0.3;
+												else if (nb_GM>=18)
+													force=0.5;
+												else if (nb_GM>=15)
+													force=0.3;
+												else
+													{
+														if (nb_GM>9 && nb_TR<9)
+															force=0.5;
+														else if (nb_GTM>30)
+															force=0.1;
+														else
+															force=-0.0;
+													}
+											}
+									}
+							}
+					}
       }
       else
-      {
-	/*determine the normal direction in Voxel coordinates*/
-	x = v->x ; y = v->y ; z = v->z ;
-	myWorldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
-	x = v->x + v->nx ; y = v->y + v->ny ; z = v->z + v->nz ;
-	myWorldToVoxel(mri, x, y, z, &xw1, &yw1, &zw1) ;
-	nx = xw1 - xw ; ny = yw1 - yw ; nz = zw1 - zw ; 
-	
-	/*calculate local values*/
-	myWorldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
-	MRIsampleVolume(mri, xw, yw, zw, &IntVal) ;
-	MRIsampleVolumeDerivativeScale(mri, xw, yw, zw, nx, ny,nz,&GradVal,1.);
-	
-	force=0.020*(trn-IntVal)*GradVal;
-      }
+				{
+					/*determine the normal direction in Voxel coordinates*/
+					x = v->x ; y = v->y ; z = v->z ;
+					myWorldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+					x = v->x + v->nx ; y = v->y + v->ny ; z = v->z + v->nz ;
+					myWorldToVoxel(mri, x, y, z, &xw1, &yw1, &zw1) ;
+					nx = xw1 - xw ; ny = yw1 - yw ; nz = zw1 - zw ; 
+					
+					/*calculate local values*/
+					myWorldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+					MRIsampleVolume(mri, xw, yw, zw, &IntVal) ;
+					MRIsampleVolumeDerivativeScale(mri, xw, yw, zw, nx, ny,nz,&GradVal,1.);
+					
+					force=0.020*(trn-IntVal)*GradVal;
+				}
 
       /*brainatlas force*/
       force3=v->val;
@@ -7028,19 +7529,19 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
     {
       if(iter==30 && MRI_var->validation==0)
       {
-	fprintf(stderr,"\n      The shape of the surface was incorrect,"
-		"\n      hence we rigidly realign the surface with the template");
-	MRI_var->validation=ValidationSurfaceShape(MRI_var);
-        /*the sphere surface was freed and realocated*/
-	mrisphere=MRI_var->mrisphere;
+				fprintf(stderr,"\n      The shape of the surface was incorrect,"
+								"\n      hence we rigidly realign the surface with the template");
+				MRI_var->validation=ValidationSurfaceShape(MRI_var);
+				/*the sphere surface was freed and realocated*/
+				mrisphere=MRI_var->mrisphere;
       }
       if(VERBOSE_MODE)
-	fprintf(stderr,"\nScaling of atlas fields onto current surface fields");
+				fprintf(stderr,"\nScaling of atlas fields onto current surface fields");
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
       MRISscaleFields(mris,MRI_var->mris_dCOG,MRI_var->mris_var_dCOG,DIST_MODE);
       MRISscaleFields(mris,MRI_var->mris_curv,MRI_var->mris_var_curv,CURV_MODE);
       if(VERBOSE_MODE)
-	fprintf(stderr,"\nCompute Local Values csf/gray");  
+				fprintf(stderr,"\nCompute Local Values csf/gray");  
       MRISComputeLocalValues(MRI_var);
     }
     if (niter==graditer)
@@ -7049,7 +7550,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
 	// if(((iter>10)&&(10000*cout<.01))||(iter>100))
       { 
         niter--;
-	MRIGRADIENT=1;
+				MRIGRADIENT=1;
       }
     }
     else
@@ -7060,7 +7561,20 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
   }
   fprintf(stderr,"%d iterations\n",iter);
 
+#if WRITE_SURFACES
+		sprintf(fname,"./rh.finedeformation%d",iter);
+		MRISwrite(mris,fname);
+#endif
+
   MRIScomputeNormals(mris);
+
+#if WRITE_SURFACES
+	MRISfree(&mris_tmp);
+#endif
+
+	if(allocation)
+		MRIfree(&mri);
+
 
   /*free memory*/
   for( it = 0; it < mris->nvertices; it++ ) 
@@ -7600,6 +8114,10 @@ static void FitShape(MRI_variables *MRI_var, const int convLimit, const int maxI
   //  char surf_fname[100];
 
 
+#if WRITE_SURFACES
+	char fname[100];
+#endif
+
   double lm,d10m[3],d10,f1m,f2m,dm,dbuff;  
   float ***dist;
   float cout,cout_prec,coutbuff,varbuff,mean_sd[10],mean_dist[10];
@@ -7658,6 +8176,12 @@ static void FitShape(MRI_variables *MRI_var, const int convLimit, const int maxI
       v->ty = v->y;
       v->tz = v->z;
     }
+
+#if WRITE_SURFACES
+		sprintf(fname,"./rh.fitshape%d",iter);
+		MRISwrite(mris,fname);
+#endif
+		
 
     for (k=0;k<mris->nvertices;k++)
     {
@@ -7860,6 +8384,11 @@ static void FitShape(MRI_variables *MRI_var, const int convLimit, const int maxI
       niter--;
   }
   fprintf(stderr,"%d iterations",iter); 
+
+#if WRITE_SURFACES
+		sprintf(fname,"./rh.fitshape%d",iter);
+		MRISwrite(mris,fname);
+#endif
 
   /*free memory*/
   for( it = 0; it < mris->nvertices; it++ ) 
