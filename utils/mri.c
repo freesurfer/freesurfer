@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/03/17 22:53:07 $
-// Revision       : $Revision: 1.218 $
-char *MRI_C_VERSION = "$Revision: 1.218 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/03/28 22:08:21 $
+// Revision       : $Revision: 1.219 $
+char *MRI_C_VERSION = "$Revision: 1.219 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2008,31 +2008,25 @@ MRItalairachVoxelToWorld(MRI *mri, Real xtv, Real ytv, Real ztv,
 }
 /*-----------------------------------------------------
 ------------------------------------------------------*/
+#define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
+                                  VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
+
 int
 MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv, 
                 Real *pxw, Real *pyw, Real *pzw)
 {
-  Real   rip, rjp, rkp ; // Real is "double" in volume_io/basic.h
+  VECTOR *vw, *vv;
+  MATRIX *RfromI = extract_i_to_r(mri);
+  vv = VectorAlloc(4, MATRIX_REAL) ;
+  V4_LOAD(vv, xv, yv, zv, 1.) ;    
+  vw = MatrixMultiply(RfromI, vv, NULL) ;
+  *pxw = V3_X(vw);
+  *pyw = V3_Y(vw);
+  *pzw = V3_Z(vw);
 
-    /*      ras for MRIvox(mri, i, j, k)    */
-    // W = M * V, C = M * Cv -> W - C = M * (V - Cv) -> W = M *(V - Cv) + C
-    rip = xv - (mri->width) / 2.0; 
-    rjp = yv - (mri->height) / 2.0;
-    rkp = zv - (mri->depth) / 2.0;
-
-    *pxw = 
-      mri->x_r * mri->xsize * rip + 
-      mri->y_r * mri->ysize * rjp + 
-      mri->z_r * mri->zsize * rkp + mri->c_r;
-    *pyw = 
-      mri->x_a * mri->xsize * rip + 
-      mri->y_a * mri->ysize * rjp + 
-      mri->z_a * mri->zsize * rkp + mri->c_a;
-    *pzw = 
-      mri->x_s * mri->xsize * rip + 
-      mri->y_s * mri->ysize * rjp + 
-      mri->z_s * mri->zsize * rkp + mri->c_s;
-
+  MatrixFree(&RfromI);
+  VectorFree(&vv);
+  VectorFree(&vw);
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -2081,65 +2075,19 @@ int
 MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw, 
                 Real *pxv, Real *pyv, Real *pzv)
 {
-  switch (mri->slice_direction)
-  {
-	default:
-  case MRI_UNDEFINED:
-    {
-      // W - C = M *(V - Cv) -> V = M^(-1) * (W-C) + Cv
-      MATRIX *m_R, *m_R_inv ;
-      VECTOR *v_w, *v_v ;
-      m_R = MatrixAlloc(3,3,MATRIX_REAL) ;
-      *MATRIX_RELT(m_R,1,1) = mri->x_r*mri->xsize ;
-      *MATRIX_RELT(m_R,1,2) = mri->y_r*mri->ysize ;
-      *MATRIX_RELT(m_R,1,3) = mri->z_r*mri->zsize ;
+  VECTOR *vv, *vw;
+  MATRIX *IfromR = extract_r_to_i(mri);
+  vw = VectorAlloc(4, MATRIX_REAL) ;
+  V4_LOAD(vw, xw, yw, zw, 1.) ;    
+  vv = MatrixMultiply(IfromR, vw, NULL) ;
+  *pxv = V3_X(vv);
+  *pyv = V3_Y(vv);
+  *pzv = V3_Z(vv);
 
-      *MATRIX_RELT(m_R,2,1) = mri->x_a*mri->xsize ;
-      *MATRIX_RELT(m_R,2,2) = mri->y_a*mri->ysize ;
-      *MATRIX_RELT(m_R,2,3) = mri->z_a*mri->zsize ;
+  MatrixFree(&IfromR);
+  VectorFree(&vv);
+  VectorFree(&vw);
 
-      *MATRIX_RELT(m_R,3,1) = mri->x_s*mri->xsize ;
-      *MATRIX_RELT(m_R,3,2) = mri->y_s*mri->ysize ;
-      *MATRIX_RELT(m_R,3,3) = mri->z_s*mri->zsize ;
-      
-      m_R_inv = MatrixInverse(m_R, NULL) ;
-      if (!m_R_inv)
-      {
-        MatrixPrint(stderr, m_R) ;
-        ErrorExit(ERROR_BADPARM, "MRIRASToVoxel: noninvertible xform") ;
-      }
-      MatrixFree(&m_R) ;
-      v_w = VectorAlloc(3, MATRIX_REAL) ;
-      V3_LOAD(v_w, xw - mri->c_r, yw - mri->c_a, zw - mri->c_s) ;
-      v_v = MatrixMultiply(m_R_inv, v_w, NULL) ;
-
-      *pxv = V3_X(v_v) + (mri->width)/2.0 ; // don't use 2 but 2.0 to get double promotion
-      *pyv = V3_Y(v_v) + (mri->height)/2.0 ;
-      *pzv = V3_Z(v_v) + (mri->depth)/2.0 ;
-      VectorFree(&v_v) ; VectorFree(&v_w) ; MatrixFree(&m_R_inv) ;
-    }
-    break;
-  case MRI_CORONAL:
-#if 0
-    *pxv = ((Real)mri->xend - xw) / mri->xsize ;
-    *pzv = (yw - (Real)mri->zstart) / mri->zsize ;
-    *pyv = (-zw - (Real)mri->ystart) / mri->ysize ;
-#else
-    trans_SetBounds ( mri->xstart, mri->xend, mri->ystart, mri->yend, 
-                      mri->zstart, mri->zend );
-    trans_SetResolution ( mri->xsize, mri->ysize, mri->zsize );
-    trans_RASToVoxel(xw, yw, zw, pxv, pyv, pzv) ;
-#endif
-    break ;
-#if 0
-  default:
-    ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED,
-                 "MRIworldToVoxel: unsupported slice direction %d", 
-                 mri->slice_direction)) ;
-    break ;
-#endif
-  }
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
