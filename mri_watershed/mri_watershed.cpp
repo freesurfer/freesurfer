@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/11/15 20:58:25 $
-// Revision       : $Revision: 1.29 $
+// Revision Date  : $Date: 2005/01/21 15:57:30 $
+// Revision       : $Revision: 1.30 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.29 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.30 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -583,7 +583,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.29 2004/11/15 20:58:25 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.30 2005/01/21 15:57:30 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3130,7 +3130,7 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
 /*load a geometry from a file into mris*/
 static void read_geometry(int type,MRI_variables *MRI_var,char *surf_fname)
 {
-  char fname[100], *mri_dir; 
+  char fname[500], *mri_dir; 
 
   mri_dir = getenv("FREESURFER_HOME");
   if (mri_dir==0)
@@ -4256,7 +4256,7 @@ static void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
   int int_smooth=1;
   
   MRIS *mris;
-  //  char surf_fname[100];
+  //  char surf_fname[500];
 
   double tx,ty,tz;
 
@@ -5142,7 +5142,7 @@ rtanh(float x)
 static int ValidationSurfaceShape(MRI_variables *MRI_var)
 {
   double init_sse,var_init_sse,rot_sse,var_rot_sse;
-  char surf_fname[100],*mri_dir;
+  char surf_fname[500],*mri_dir;
   MRI_SP *mrisp_template;
   MRIS *mrisphere,*mris_curv,*mris_dCOG;
   INTEGRATION_PARMS parms ;
@@ -5651,7 +5651,7 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,MRI_variables *MRI
   float wgpospercentage,wgnegpercentage;
 
 #if WRITE_SURFACES
-	char fname[100];
+	char fname[500];
 #endif
 
   fprintf(stderr,"\nLocalization of inacurate regions: Erosion-Dilatation steps");
@@ -6028,7 +6028,7 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
   float cout,pcout=0,coutbuff,varbuff,mean_sd[10],mean_dist[10];
 
 #if WRITE_SURFACES
-	char fname[100];
+	char fname[500];
 	MRIS *mris_tmp;
 #endif
 
@@ -7030,7 +7030,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
 
   
   MRIS *mris,*mrisphere;
-  //  char surf_fname[100];
+  //  char surf_fname[500];
 
   double tx,ty,tz;
   double xw,yw,zw,xw1,yw1,zw1;
@@ -7054,7 +7054,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
 
 
 #if WRITE_SURFACES
-	char fname[100];
+	char fname[500];
 	MRIS *mris_tmp;
 #endif
 
@@ -8111,11 +8111,11 @@ static void FitShape(MRI_variables *MRI_var, const int convLimit, const int maxI
   int int_smooth=10;
 
   MRIS *mris;
-  //  char surf_fname[100];
+  //  char surf_fname[500];
 
 
 #if WRITE_SURFACES
-	char fname[100];
+	char fname[500];
 #endif
 
   double lm,d10m[3],d10,f1m,f2m,dm,dbuff;  
