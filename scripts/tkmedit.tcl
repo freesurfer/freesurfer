@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.50 2003/06/10 18:02:33 kteich Exp $
+# $Id: tkmedit.tcl,v 1.51 2003/06/12 01:03:19 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -120,10 +120,17 @@ set tkm_tVolumeTarget_AuxSeg  3
 set ksaDisplayedVolumeString(0) "main"
 set ksaDisplayedVolumeString(1) "aux"
 
+# tkm_tSurfaceType
+set tkm_tSurfaceType(main) 0
+set tkm_tSurfaceType(aux)  1
+
+set ksaSurfaceTypeString(0) "Main"
+set ksaSurfaceTypeString(1) "Aux"
+
 # Surf_tVertexSet
-set Surf_tVertexSet_Main      0
-set Surf_tVertexSet_Original  1
-set Surf_tVertexSet_Pial 2
+set Surf_tVertexSet(main)      0
+set Surf_tVertexSet(original)  1
+set Surf_tVertexSet(pial) 2
 
 set ksaSurfaceVertexSetString(0) "Main Surface"
 set ksaSurfaceVertexSetString(1) "Original Surface"
@@ -251,14 +258,15 @@ set gCursor(color,blue) 0
 set gCursor(shape) $DspA_tMarker_Crosshair
 
 # surface
-foreach surface "$Surf_tVertexSet_Main $Surf_tVertexSet_Original \
-  $Surf_tVertexSet_Pial" {
-    set gSurface($surface,width) 0
-    set gSurface($surface,color,red)   0
-    set gSurface($surface,color,green) 0
-    set gSurface($surface,color,blue)  0
+foreach surface "$tkm_tSurfaceType(main) $tkm_tSurfaceType(aux)" {
+    foreach set "$Surf_tVertexSet(main) $Surf_tVertexSet(original) \
+                 $Surf_tVertexSet(pial)" {
+	set gSurface($surface,$set,width) 0
+	set gSurface($surface,$set,color,red)   0
+	set gSurface($surface,$set,color,green) 0
+	set gSurface($surface,$set,color,blue)  0
+    }
 }
-
 
 # general volume info
 foreach volume "$tkm_tVolumeType_Main $tkm_tVolumeType_Aux" {
@@ -468,9 +476,11 @@ proc UpdateBrushInfo { inBrush inLow inHigh inNewValue } {
 
 proc UpdateCursorColor { ifRed ifGreen ifBlue } {
     global gCursor
-    set gCursor(color,red) $ifRed
-    set gCursor(color,blue) $ifBlue
-    set gCursor(color,green) $ifGreen
+
+    # Need to go from 0-1 based colors to 256 based colors.
+    set gCursor(color,red) [expr round($ifRed * 255)]
+    set gCursor(color,blue) [expr round($ifBlue * 255)]
+    set gCursor(color,green) [expr round($ifGreen * 255)]
 }
 
 proc UpdateCursorShape { iShape } {
@@ -478,16 +488,18 @@ proc UpdateCursorShape { iShape } {
     set gCursor(shape) $iShape
 }
 
-proc UpdateSurfaceLineWidth { iSurface inWidth } {
+proc UpdateSurfaceLineWidth { iSurface iSet inWidth } {
     global gSurface
-    set gSurface($iSurface,width) $inWidth
+    set gSurface($iSurface,$iSet,width) $inWidth
 }
 
-proc UpdateSurfaceLineColor { iSurface ifRed ifGreen ifBlue } {
+proc UpdateSurfaceLineColor { iSurface iSet ifRed ifGreen ifBlue } {
     global gSurface
-    set gSurface($iSurface,color,red) $ifRed
-    set gSurface($iSurface,color,green) $ifGreen
-    set gSurface($iSurface,color,blue) $ifBlue
+    
+    # Need to go from 0-1 based colors to 256 based colors.
+    set gSurface($iSurface,$iSet,color,red) [expr round($ifRed * 255)]
+    set gSurface($iSurface,$iSet,color,green) [expr round($ifGreen * 255)]
+    set gSurface($iSurface,$iSet,color,blue) [expr round($ifBlue * 255)]
 }
 
 proc UpdateSegBrushInfo { inColor ib3D iSrc inFuzzy inDistance } {
@@ -581,15 +593,33 @@ proc SendLinkedCursorValue { } {
     SetLinkedCursorFlag $gbLinkedCursor
 }
 
-proc SendSurfaceInformation { iSurface } {
+proc SendSurfaceInformation { } {
+    global tkm_tSurfaceType Surf_tVertexSet
     global gSurface
-    SetSurfaceLineWidth $iSurface $gSurface($iSurface,width)
-    SetSurfaceLineColor $iSurface $gSurface($iSurface,color,red) $gSurface($iSurface,color,green) $gSurface($iSurface,color,blue)
+
+    foreach surface "$tkm_tSurfaceType(main) $tkm_tSurfaceType(aux)" {
+	foreach set "$Surf_tVertexSet(main) $Surf_tVertexSet(original) \
+                     $Surf_tVertexSet(pial)" {
+
+	    SetSurfaceLineWidth $surface $set $gSurface($surface,$set,width)
+	    
+	    # Need to go from 256-based colors to 0-1 colors
+	    SetSurfaceLineColor $surface $set \
+		[expr $gSurface($surface,$set,color,red).0 / 255.0]\
+		[expr $gSurface($surface,$set,color,green).0 / 255.0] \
+		[expr $gSurface($surface,$set,color,blue).0 / 255.0]
+	}
+    }
 }
 
 proc SendCursorConfiguration {} {
     global gCursor
-    SetCursorColor $gCursor(color,red) $gCursor(color,green) $gCursor(color,blue)
+	    
+    # Need to go from 256-based colors to 0-1 colors
+    SetCursorColor \
+	[expr $gCursor(color,red).0 / 255.0] \
+	[expr $gCursor(color,green).0 / 255.0] \
+	[expr $gCursor(color,blue).0 / 255.0]
     SetCursorShape $gCursor(shape)
 }
 
@@ -994,18 +1024,17 @@ proc DoFileDlog { which } {
 
 proc FindVertex { inVertex } {
 
-    global Surf_tVertexSet_Main Surf_tVertexSet_Original
-    global Surf_tVertexSet_Pial
+    global Surf_tVertexSet
     global gFindingSurface
-
-    if { $Surf_tVertexSet_Main   == $gFindingSurface } {
-  GotoMainVertex $inVertex
+    
+    if { $Surf_tVertexSet(main)   == $gFindingSurface } {
+	GotoMainVertex $inVertex
     }
-    if { $Surf_tVertexSet_Original  == $gFindingSurface } {
-  GotoOriginalVertex $inVertex
+    if { $Surf_tVertexSet(original)  == $gFindingSurface } {
+	GotoOriginalVertex $inVertex
     }
-    if { $Surf_tVertexSet_Pial == $gFindingSurface } {
-  GotoPialVertex $inVertex
+    if { $Surf_tVertexSet(pial) == $gFindingSurface } {
+	GotoPialVertex $inVertex
     }
 }
 
@@ -1568,120 +1597,113 @@ proc DoCursorInfoDlog { } {
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Cursor Info" {-borderwidth 10}] } {
   
-  set fwTop                $wwDialog.fwTop 
-  set lfwColor             $fwTop.lfwColor
-  set lfwShape             $fwTop.lfwShape
-  set fwButtons            $wwDialog.fwButtons
-  
-  frame $fwTop
-  
-  # color
-  tixLabelFrame $lfwColor \
-    -label "Color" \
-    -labelside acrosstop \
-    -options { label.padX 5 }
+	set fwTop                $wwDialog.fwTop 
+	set fwColor              $fwTop.fwColor
+	set lfwShape             $fwTop.lfwShape
+	set fwButtons            $wwDialog.fwButtons
+	
+	frame $fwTop
+	
+	# color
+	tkm_MakeColorPickers $fwColor \
+	    [list [list "Color" gCursor(color,red) gCursor(color,green) \
+		       gCursor(color,blue) "SendCursorConfiguration"]]
 
-  set fwColorSub           [$lfwColor subwidget frame]
-  set fwColors             $fwColorSub.fwRedSlider
-
-  tkm_MakeSliders $fwColors {\
-    { {"Red"} \
-    gCursor(color,red) 0 1 80 "SendCursorConfiguration" 1 0.1 } \
-    { {"Green"} \
-    gCursor(color,green) 0 1 80 "SendCursorConfiguration" 1 0.1 } \
-    {  {"Blue"} \
-    gCursor(color,blue) 0 1 80 "SendCursorConfiguration" 1 0.1 } }
-
-  pack $fwColors \
-    -side top \
-    -anchor w \
-    -expand yes \
-    -fill x
-
-  # shape
-  tixLabelFrame $lfwShape \
-    -label "Shape" \
-    -labelside acrosstop \
-    -options { label.padX 5 }
-
-  set fwShapeSub           [$lfwShape subwidget frame]
-  set fwShape              $fwShapeSub.fwShape
-
-  tkm_MakeToolbar $fwShape \
-    1 \
-    gCursor(shape) \
-    {puts "cursor toolbar"} { \
-    { image 0 icon_marker_crosshair "Crosshair" } \
-    { image 1 icon_marker_diamond "Diamond" } }
-
-  pack $fwShape \
-    -side left \
-    -anchor w
-
-  # buttons. 
-  tkm_MakeApplyCloseButtons $fwButtons $wwDialog SendCursorConfiguration
-
-  pack $fwTop $lfwColor $lfwShape $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x
-   }
-
+	# shape
+	tixLabelFrame $lfwShape \
+	    -label "Shape" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+	
+	set fwShapeSub           [$lfwShape subwidget frame]
+	set fwShape              $fwShapeSub.fwShape
+	
+	tkm_MakeToolbar $fwShape \
+	    1 \
+	    gCursor(shape) \
+	    {puts "cursor toolbar"} {
+		{ image 0 icon_marker_crosshair "Crosshair" }
+		{ image 1 icon_marker_diamond "Diamond" } }
+	
+	pack $fwShape \
+	    -side left \
+	    -anchor w
+	
+	# buttons. 
+	tkm_MakeApplyCloseButtons $fwButtons $wwDialog SendCursorConfiguration
+	
+	pack $fwTop $fwColor $lfwShape $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x
+    }
 }
 
 proc DoSurfaceInfoDlog { } {
 
     global gDialog
     global gSurface
-    global Surf_tVertexSet_Main Surf_tVertexSet_Original 
-    global Surf_tVertexSet_Pial
+    global Surf_tVertexSet
+    global tkm_tSurfaceType
     global ksaSurfaceVertexSetString
+    global ksaSurfaceTypeString
 
     set wwDialog .wwSurfaceInfoDlog
 
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Surface Info" {-borderwidth 10}] } {
-  
-  set fwTop     $wwDialog.fwTop 
-  set fwButtons $wwDialog.fwButtons
+	
+	set fwTop     $wwDialog.fwTop
+	set fwButtons $wwDialog.fwButtons
+	
+	frame $fwTop
+	
+	tkm_MakeBigLabel $fwTop.lwColors "Colors"
 
-  frame $fwTop
+	set lPickers {}
+	foreach surface "$tkm_tSurfaceType(main) $tkm_tSurfaceType(aux)" {
+	    foreach set "$Surf_tVertexSet(main) $Surf_tVertexSet(original) \
+                         $Surf_tVertexSet(pial)" {
+		
+		lappend lPickers \
+    [list "$ksaSurfaceTypeString($surface) $ksaSurfaceVertexSetString($set)" \
+	     gSurface($surface,$set,color,red) \
+	     gSurface($surface,$set,color,green) \
+	     gSurface($surface,$set,color,blue) \
+	     "SendSurfaceInformation"]
+	    }
+	}		
+	tkm_MakeColorPickers $fwTop.fwColors $lPickers
 
-  foreach surface "$Surf_tVertexSet_Main $Surf_tVertexSet_Original \
-    $Surf_tVertexSet_Pial" {
-      
-      set fwSurface $fwTop.fwSurface$surface
-      set fwColor   $fwSurface.fwColor
-      set fwWidth   $fwSurface.fwWidth
-      
-      frame $fwSurface 
+	tkm_MakeBigLabel $fwTop.lwWidths "Widths"
 
-      # color
-      tkm_MakeColorPicker $fwColor $ksaSurfaceVertexSetString($surface) \
-        gSurface($surface,color,red) \
-        gSurface($surface,color,green) \
-        gSurface($surface,color,blue) \
-        "SendSurfaceInformation $surface" 80
+	set lSliders {}
+	foreach surface "$tkm_tSurfaceType(main) $tkm_tSurfaceType(aux)" {
+	    foreach set "$Surf_tVertexSet(main) $Surf_tVertexSet(original) \
+                         $Surf_tVertexSet(pial)" {
 
-      # width
-      tkm_MakeSliders $fwWidth [list \
-        [list {"Width"} gSurface($surface,width) 1 20 80 \
-        "SendSurfaceInformation $surface" 1]]
-      
-      pack $fwSurface $fwColor $fwWidth \
-        -side top \
-        -anchor w
-  }
-
-  # buttons. 
-  tkm_MakeCloseButton $fwButtons $wwDialog
-
-  pack $fwTop  $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x
-   }
-
+		lappend lSliders \
+ [list "\"$ksaSurfaceTypeString($surface) $ksaSurfaceVertexSetString($set)\"" \
+                gSurface($surface,$set,width) 1 20 80 \
+                "SendSurfaceInformation" 1]
+	    }
+	}
+	tkm_MakeSliders $fwTop.fwWidths $lSliders
+	
+	pack $fwTop.lwColors $fwTop.fwColors \
+	    $fwTop.lwWidths $fwTop.fwWidths \
+	    -side top \
+	    -anchor w
+	
+	# buttons. 
+	tkm_MakeCloseButton $fwButtons $wwDialog
+	
+	pack $fwTop $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x
+    }
+    
 }
 
 proc DoEditSegBrushInfoDlog { } {
@@ -2721,7 +2743,7 @@ proc SetAndSendDisplayFlag { iFlag iValue } {
 
 proc MakeKeyBindings { iwTop } {
 
-    global Surf_tVertexSet_Main Surf_tVertexSet_Original Surf_tVertexSet_Pial
+    global Surf_tVertexSet
     global gnZoomLevel
 
     bind $iwTop <Control-Key-1> \
@@ -2731,15 +2753,15 @@ proc MakeKeyBindings { iwTop } {
     bind $iwTop <Control-Key-m> \
 	{ToggleAndSendDisplayFlag flag_MainSurface}
     bind $iwTop <Alt-Key-m> \
-	{FindNearestSurfaceVertex $Surf_tVertexSet_Main}
+	{FindNearestSurfaceVertex $Surf_tVertexSet(main)}
     bind $iwTop <Control-Key-o> \
 	{ToggleAndSendDisplayFlag flag_OriginalSurface}
     bind $iwTop <Alt-Key-o> \
-	{FindNearestSurfaceVertex $Surf_tVertexSet_Original}
+	{FindNearestSurfaceVertex $Surf_tVertexSet(original)}
     bind $iwTop <Control-Key-p> \
 	{ToggleAndSendDisplayFlag flag_PialSurface}
     bind $iwTop <Alt-Key-p> \
-	{FindNearestSurfaceVertex $Surf_tVertexSet_Pial}
+	{FindNearestSurfaceVertex $Surf_tVertexSet(pial)}
     bind $iwTop <Control-Key-v> \
 	{ToggleAndSendDisplayFlag flag_DisplaySurfaceVertices}
     bind $iwTop <Control-Key-i> \
@@ -3394,15 +3416,15 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { separator }
 	    { command
 		"Find Main Vertex..."
-		{ DoFindVertexDlog $Surf_tVertexSet_Main } 
+		{ DoFindVertexDlog $Surf_tVertexSet(main) } 
 		tMenuGroup_SurfaceViewing }
 	    { command
 		"Find Original Vertex..."
-		{ DoFindVertexDlog $Surf_tVertexSet_Original }
+		{ DoFindVertexDlog $Surf_tVertexSet(original) }
 		tMenuGroup_OriginalSurfaceViewing }
 	    { command
 		"Find Pial Vertex..."
-		{ DoFindVertexDlog $Surf_tVertexSet_Pial }
+		{ DoFindVertexDlog $Surf_tVertexSet(pial) }
 		tMenuGroup_PialSurfaceViewing }
 	    { separator }
 	    { command
@@ -4106,4 +4128,3 @@ foreach toolbar {main nav recon} {
 after idle { catch { ExecuteQueuedScripts } }
 
 dputs "Successfully parsed tkmedit.tcl"
-
