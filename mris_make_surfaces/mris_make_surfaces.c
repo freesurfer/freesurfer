@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.28 2000/01/20 15:38:51 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.29 2000/01/28 19:18:50 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -78,12 +78,20 @@ static int max_pial_averages = 16 ;
 static int min_pial_averages = 2 ;
 static int max_white_averages = 4 ;
 static int min_white_averages = 0 ;
-static float pial_sigma = 4.0f ;
+static float pial_sigma = 2.0f ;
 static float white_sigma = 2.0f ;
 static float max_thickness = 5.0 ;
 
 
-#define MIN_GRAY   60
+#define MAX_WHITE             120
+#define MAX_BORDER_WHITE      105
+#define MIN_BORDER_WHITE       85
+#define MIN_WHITE_BORDER_GRAY  70
+
+#define MAX_GRAY               95
+#define MIN_GRAY               60
+#define MAX_CSF_BORDER_GRAY    75
+#define MIN_CSF                10
 
 int
 main(int argc, char *argv[])
@@ -92,7 +100,7 @@ main(int argc, char *argv[])
   int           ac, nargs, i, label_val, replace_val, msec, n_averages ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL, 
-                *mri_filled, *mri_T1 ;
+                *mri_filled, *mri_T1, *mri_T1_save ;
   float         max_len ;
   double        l_intensity, current_sigma ;
   struct timeb  then ;
@@ -214,6 +222,8 @@ main(int argc, char *argv[])
     }
   }
   /* remove other hemi */
+  mri_T1_save = MRIcopy(mri_T1, NULL) ;
+  MRIdilateLabel(mri_filled, mri_filled, replace_val, 1) ;
   MRImask(mri_T1, mri_filled, mri_T1, replace_val,0) ;
   MRIfree(&mri_filled) ;
 
@@ -296,8 +306,11 @@ main(int argc, char *argv[])
 
     parms.n_averages = n_averages ; 
     MRISprintTessellationStats(mris, stderr) ;
-    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 120, 100, 85, 70,
-                            current_sigma, 2*max_thickness) ;
+    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, MAX_WHITE, 
+                            MAX_BORDER_WHITE, MIN_BORDER_WHITE, 
+                            MIN_WHITE_BORDER_GRAY,
+                            current_sigma, 2*max_thickness,
+                            parms.fp) ;
     MRISfindExpansionRegions(mris) ;
     if (vavgs)
     {
@@ -346,23 +359,11 @@ main(int argc, char *argv[])
         while (MRISdivideLongEdges(mris, max_len) > 0)
         {}
     }
-#if 0
-    parms.l_nspring = 0 ;  /* only first time smooth surface */
-#endif
     if (!n_averages)
       break ;
   }
 
-#if 0
-  {
-    double l_intensity ;
-
-    /* ensure the surface is 2nd order smooth */
-    l_intensity = parms.l_intensity ; parms.l_intensity = 0.0 ;
-    MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
-    parms.l_intensity = l_intensity ;
-  }
-#endif
+  /*  MRIfree(&mri_T1) ;  mri_T1 = mri_T1_save ; */
   if (!nowhite)
   {
     sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname,hemi,WHITE_MATTER_NAME,
@@ -460,8 +461,9 @@ main(int argc, char *argv[])
       parms.l_intensity = 0.1 ;
 #endif
     parms.n_averages = n_averages ; parms.l_tsmooth = l_tsmooth ;
-    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 95, 75, MIN_GRAY, 0,
-                            current_sigma, max_thickness+1) ;
+    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, MAX_GRAY, 
+                            MAX_CSF_BORDER_GRAY, MIN_GRAY, MIN_CSF,
+                            current_sigma, max_thickness+1, parms.fp) ;
     if (vavgs)
     {
       fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
@@ -529,8 +531,10 @@ main(int argc, char *argv[])
       
       parms.n_averages = n_averages ; 
       MRISprintTessellationStats(mris, stderr) ;
-      MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 120, 100, 85, 70,
-                              current_sigma, 2*max_thickness) ;
+      MRIScomputeBorderValues(mris, mri_T1, mri_smooth, MAX_WHITE, 
+                              MAX_BORDER_WHITE, MIN_BORDER_WHITE, 
+                              MIN_WHITE_BORDER_GRAY,
+                              current_sigma, 2*max_thickness, parms.fp) ;
       MRISfindExpansionRegions(mris) ;
       if (vavgs)
       {
