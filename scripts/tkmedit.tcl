@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.49 2003/06/09 18:20:06 kteich Exp $
+# $Id: tkmedit.tcl,v 1.50 2003/06/10 18:02:33 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -138,6 +138,11 @@ set mri_tCoordSpace_VolumeIdx 0
 set mri_tCoordSpace_RAS       1
 set mri_tCoordSpace_Talairach 2
 
+# Volm_tSampleType
+set Volm_tSampleType(nearest)   0
+set Volm_tSampleType(trilinear) 1
+set Volm_tSampleType(sinc)      2
+
 set ksaLinkedCursorString(0) notlinked
 set ksaLinkedCursorString(1) linked
 
@@ -264,6 +269,8 @@ foreach volume "$tkm_tVolumeType_Main $tkm_tVolumeType_Aux" {
 
     set gVolume($volume,minValue) 0
     set gVolume($volume,maxValue) 0
+
+    set gVolume($volume,sampleType) $Volm_tSampleType(nearest)
 }
 
 # initialize global vars
@@ -528,6 +535,11 @@ proc UpdateVolumeColorScaleInfo { inVolume inBrightness inContrast
     set gVolume($inVolume,colorScale,max) $inMax
 }
 
+proc UpdateVolumeSampleType { inVolume iType } {
+    global gVolume
+    set gVolume($inVolume,sampleType) $iType
+}
+
 proc UpdateDTIVolumeAlpha { ifAlpha } {
     global gfDTIVolumeAlpha
     set gfDTIVolumeAlpha $ifAlpha
@@ -579,6 +591,11 @@ proc SendCursorConfiguration {} {
     global gCursor
     SetCursorColor $gCursor(color,red) $gCursor(color,green) $gCursor(color,blue)
     SetCursorShape $gCursor(shape)
+}
+
+proc SendVolumeSampleType { iVolume } {
+    global gVolume
+    SetVolumeSampleType $iVolume $gVolume($iVolume,sampleType)
 }
 
 proc UpdateVolumeValueMinMax { iVolume iMin iMax } {
@@ -3132,7 +3149,43 @@ proc CreateMenuBar { ifwMenuBar } {
 		DoDTIVolumeDisplayInfoDlog
 		tMenuGroup_DTIOptions } 
 	}}
-	{ separator }
+	{ cascade "Anatomical Sampling" {
+	    { cascade "Main Volume" {
+		{ radio 
+		    "Nearest Neighbor"
+		    "SendVolumeSampleType 0"
+		    gVolume(0,sampleType)
+		    0 }
+		{ radio 
+		    "Trilinear"
+		    "SendVolumeSampleType 0"
+		    gVolume(0,sampleType)
+		    1 }
+		{ radio 
+		    "Sinc"
+		    "SendVolumeSampleType 0"
+		    gVolume(0,sampleType)
+		    2 }
+	    }}
+	    { cascade "Aux Volume" {
+		{ radio 
+		    "Nearest Neighbor"
+		    "SendVolumeSampleType 1"
+		    gVolume(1,sampleType)
+		    0 }
+		{ radio 
+		    "Trilinear"
+		    "SendVolumeSampleType 1"
+		    gVolume(1,sampleType)
+		    1 }
+		{ radio 
+		    "Sinc"
+		    "SendVolumeSampleType 1"
+		    gVolume(1,sampleType)
+		    2 }
+	    }}
+	}}
+	    { separator }
 	{ check 
 	    "Anatomical Volume:Ctrl A"
 	    "SendDisplayFlagValue flag_Anatomical"
