@@ -17,9 +17,7 @@ end
 # this is just needed for diagnostic purposes
 setenv DIAG 0x04048
 
-# rkt: changed to use new talairach
-# talairach $1
-talairach_mgh $1
+talairach $1
 
 # intensity normalize the data 
 mri_normalize ../mri/orig ../mri/T1
