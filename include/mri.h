@@ -297,7 +297,9 @@ MRI   *MRIdiffusePerona(MRI *mri_src, MRI *mri_dst,
                              double k, int niter,double slope);
 MRI   *MRIdirectionMap(MRI *mri_grad, MRI *mri_direction, int wsize);
 MRI   *MRIdirectionMapUchar(MRI *mri_grad, MRI *mri_direction, int wsize);
-void calCRASforSampleVolume(MRI *src, MRI *sampled, Real *pr, Real *pa, Real *ps);
+void  MRIcalcCRASforSampledVolume(MRI *src, MRI *sampled, Real *pr, Real *pa, Real *ps);
+void  MRIcalcCRASforExtractedVolume(MRI *src, int x0, int y0, int z0, int x1, int y1, int z1, 
+				Real *pr, Real *pa, Real *ps);
 
 /* offset stuff */
 MRI   *MRIoffsetDirection(MRI *mri_grad, int wsize, MRI *mri_direction,

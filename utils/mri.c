@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/01/26 16:32:00 $
-// Revision       : $Revision: 1.282 $
-char *MRI_C_VERSION = "$Revision: 1.282 $";
+// Revision Date  : $Date: 2005/01/26 19:33:28 $
+// Revision       : $Revision: 1.283 $
+char *MRI_C_VERSION = "$Revision: 1.283 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -39,6 +39,7 @@ char *MRI_C_VERSION = "$Revision: 1.282 $";
 #include "matrix.h"
 #include "pdf.h"
 #include "cma.h"
+#include "talairachex.h"
 
 extern int errno;
 
@@ -2683,10 +2684,15 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
       }
     }
   }
-#if 0
-  mri_dst->imnr0 = z0 + mri_src->imnr0 - z1;
-  mri_dst->imnr1 = mri_dst->imnr0+mri_dst->depth-1 ;
-#endif
+  // calculate c_ras
+  Real c_r, c_a, c_s;
+  MRIcalcCRASforExtractedVolume(mri_src, x0, y0, z0, x1, y1, z1, &c_r, &c_a, &c_s); 
+  mri_dst->c_r = c_r;
+  mri_dst->c_a = c_a;
+  mri_dst->c_s = c_s;
+  // initialize cached transform
+  MRIreInitCache(mri_dst);
+
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
@@ -11351,5 +11357,100 @@ MRIcomputeLabelNbhd(MRI *mri_labels, MRI *mri_vals, int x, int y, int z, int *la
 		if (label_counts[label] > 0)
 			label_means[label] /= label_counts[label] ;
 	return(NO_ERROR) ;
+}
+
+/** 
+ * void MRIcalCRASforSampledVolume
+ * 
+ * @param src MRI* volume
+ * @param dst MRI* sampled volume
+ * @param pr  output ptr to c_r 
+ * @param pa  output ptr to c_a 
+ * @param ps  output ptr to c_s
+ */
+void MRIcalcCRASforSampledVolume(MRI *src, MRI *dst, Real *pr, Real *pa, Real *ps)
+{
+  // get the voxel position of the "center" voxel of the dst in the src volume
+  // i.e. sample is 2, then get the voxel position 64 in the src volume
+  //      thus  it is 128.5 (in the src) for 64 (in the dst)
+  Real sx, sy, sz;
+  int dx, dy, dz;
+  int samplex, sampley, samplez;
+
+  // error check first
+  if ((src->width)%(dst->width) != 0)
+    ErrorExit(ERROR_BADPARM, "src width must be integer multiple of dst width");
+  if ((src->height)%(dst->height) != 0)
+    ErrorExit(ERROR_BADPARM, "src height must be integer multiple of dst height");
+  if ((src->depth)%(dst->depth) != 0)
+    ErrorExit(ERROR_BADPARM, "src depth must be integer multiple of dst depth");
+
+  samplex = src->width/dst->width;
+  sampley = src->height/dst->height;
+  samplez = src->depth/dst->depth;
+
+  // "center" voxel position in dst
+  dx = dst->width/2; // if the length is odd, then it does the right thing (truncation)
+  dy = dst->height/2;// i.e.  0 1 2 then 3/2 = 1,  0 1 2 3 then 4/2=2
+  dz = dst->depth/2;
+  // corresponding position in src
+  sx = dx*samplex + (samplex-1.)/2.; // ((dx*samplex - 0.5) + ((dx+1)*samplex -0.5))/2.
+  sy = dy*sampley + (sampley-1.)/2.;
+  sz = dz*samplez + (samplez-1.)/2.;
+  //
+  // Example
+  // | 0 1 2 | 3 4 5 | 6 7 8 | -(sample by 3).  
+  // |   0   |   1   |   2   |                    1 (3/2) in dst corresponds to 1*3+(3-1)/2 = 4! in src
+  //
+  // | 0 1 2 3 | 4 5 6 7 |     -(sample by 4)->0 1     
+  // |    0    |    1    |                        1 (2/2) in dst corresponds to 1*4+(4-1)/2 = 5.5 in src
+  
+  // get ras of the "center" voxel position in dst
+  if (!src->i_to_r__)
+  {
+    src->i_to_r__ = extract_i_to_r(src);
+    src->r_to_i__ = extract_r_to_i(src);
+  }
+  TransformWithMatrix(src->i_to_r__, sx, sy, sz, pr, pa, ps);
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "c_ras for sample volume is (%f, %f, %f) compared with the src (%f, %f, %f)\n",
+	    *pr, *pa, *ps, src->c_r, src->c_a, src->c_s);
+}
+
+/** 
+ * MRIcalcCRASfroExtractedVolume
+ * 
+ * @param src  MRI* src volume
+ * @param x0   start position
+ * @param y0 
+ * @param z0 
+ * @param x1   end position
+ * @param y1 
+ * @param z1 
+ * @param pr   output Real*  c_r 
+ * @param pa                 c_a
+ * @param ps                 c_s
+ */
+void MRIcalcCRASforExtractedVolume(MRI *src, int x0, int y0, int z0, int x1, int y1, int z1, 
+				Real *pr, Real *pa, Real *ps)
+{
+  int cx, cy, cz;
+  // The "center" voxel position of the extracted volume in the original voxel position 
+  // is given by
+  cx = (x0+x1+1)/2;  // integer divide cutoff extra
+  cy = (y0+y1+1)/2;
+  cz = (z0+z1+1)/2;
+
+  if (!src->i_to_r__)
+  {
+    src->i_to_r__ = extract_i_to_r(src);
+    src->r_to_i__ = extract_r_to_i(src);
+  }
+  TransformWithMatrix(src->i_to_r__, cx, cy, cz, pr, pa, ps);
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "c_ras for sample volume is (%f, %f, %f) compared with the src (%f, %f, %f)\n",
+	    *pr, *pa, *ps, src->c_r, src->c_a, src->c_s);
 }
 
