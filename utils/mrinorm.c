@@ -3090,6 +3090,7 @@ MRI3dUseFileControlPoints(MRI *mri, char *fname)
   int useRealRAS = 0;
 
   pArray = MRIreadControlPoints(fname, &count, &useRealRAS);
+  num_control_points = count;
 
   // initialize xctrl, yctrl, zctrl
   if (xctrl)
