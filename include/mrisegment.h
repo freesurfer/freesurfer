@@ -42,5 +42,6 @@ int              MRIsegmentDilateThreshold(MRI_SEGMENTATION *mriseg,
 int              MRIcompactSegments(MRI_SEGMENTATION *mriseg) ;
 int              MRIremoveSmallSegments(MRI_SEGMENTATION *mriseg,
                                         int min_voxels) ;
+int              MRIsegmentMax(MRI_SEGMENTATION *mriseg) ;
 
 #endif
