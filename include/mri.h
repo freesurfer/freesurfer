@@ -196,6 +196,8 @@ MRI   *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
 
 MRI   *MRIextractPlanes(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
                         int x, int y, int z);
+MRI   *MRIextractValues(MRI *mri_src, MRI *mri_dst, float min_val, 
+                        float max_val) ;
 
 /* morphology */
 MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
