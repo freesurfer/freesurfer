@@ -124,6 +124,8 @@ XValloc(int rows, int cols, int button_rows, int display_rows,
   if (!xvf)
     return(NULL) ;
 
+  xvf->noprint = 0 ;
+  xvf->ydir = -1 ;
   xvf->precision = DEFAULT_PRECISION ;
   xvf->rows = rows ;
   xvf->cols = cols ;
@@ -627,7 +629,7 @@ xvGetDimage(XV_FRAME *xvf, int which, int alloc)
 static void
 xv_dimage_event_handler(Xv_Window xv_window, Event *event)
 {
-  int        x, y, i ;
+  int        x, y, yprint, i ;
   double     val = 0.0 ;
   Window     window ;
   int        row, col, which = -1, rows, cols ;
@@ -665,8 +667,8 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   x = (int)((float)x / dimage->xscale) ;
   y = (int)((float)y / dimage->yscale) ;
 
-  /* convert y to hips coordinate sysem */
-  y = (dimage->zoomImage->rows-1) - y ;  
+  
+  y = (dimage->zoomImage->rows-1) - y ;/* convert y to hips coordinate sysem */
 
   x += dimage->x0 ;
   y += dimage->y0 ;
@@ -676,6 +678,11 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   if (x < 0) x = 0 ;
   if (y >= dimage->sourceImage->rows) y = dimage->sourceImage->rows - 1 ;
   if (x >= dimage->sourceImage->cols) x = dimage->sourceImage->cols - 1 ;
+
+  if (xvf->ydir >= 0)
+    yprint = (dimage->sourceImage->rows-1)-y ;
+  else
+    yprint = y ;
 
   if (event_ctrl_is_down(event)) 
   {
@@ -725,6 +732,10 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         else
           dimage->y0 = dimage->y1 ;
 
+        if (dimage->x0 + dimage->dx1 >= dimage->sourceImage->cols)
+          dimage->dx1 = dimage->sourceImage->cols - dimage->x0 - 1 ;
+        if (dimage->y0 + dimage->dy1 >= dimage->sourceImage->rows)
+          dimage->dy1 = dimage->sourceImage->rows - dimage->y0 - 1 ;
         if ((dimage->dx1 >= 2) || (dimage->dy1 >= 2))
         {
           rows = xvf->display_rows ;
@@ -810,7 +821,8 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     
     sscanf(dimage->title_string, "%s", title) ; 
     sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n", xvf->precision) ;
-    XVprintf(xvf, 0, fmt, title, x, y, val) ;
+    if (!xvf->noprint)
+      XVprintf(xvf, 0, fmt, title, x, yprint, val) ;
     if (dimage->sync)
     {
       for (i = 0 ; i < xvf->rows*xvf->cols ; i++)
@@ -905,7 +917,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   if (XVevent_handler)
   {
     event_x(event) = x ;
-    event_y(event) = y ;
+    event_y(event) = yprint ;
     (*XVevent_handler)(event, dimage) ;
   }
   if (!event_ctrl_is_down(event))
@@ -1945,6 +1957,22 @@ XVshowAllSyncedImages(XV_FRAME *xvf, int which)
     if (dimage2 && (dimage2->sync == dimage->sync))
       XVshowImage(xvf, which2, dimage2->sourceImage, dimage2->frame) ;
   }
+  return(NO_ERROR) ;
+}
+
+int
+XVsetPrintStatus(XV_FRAME *xvf, int status)
+{
+  if (!status)
+    xvf->noprint = 1 ;
+  else
+    xvf->noprint = 0 ;
+  return(NO_ERROR) ;
+}
+int
+XVsetYDir(XV_FRAME *xvf, int ydir)
+{
+  xvf->ydir = ydir ;
   return(NO_ERROR) ;
 }
 
