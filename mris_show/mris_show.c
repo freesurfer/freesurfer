@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.22 1998/01/27 21:53:09 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.23 1998/02/23 05:34:35 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -81,7 +81,7 @@ static float delta_angle = 2*DELTA_ANGLE ;
 
 
 static int current_list = ORIG_SURFACE_LIST ;
-
+static int normalize_flag = 0 ;
 static INTEGRATION_PARMS  parms ;
 
 
@@ -195,6 +195,8 @@ main(int argc, char *argv[])
     MRISupdateEllipsoidSurface(mris) ;
     findAreaExtremes(mris) ;
   }
+  if (normalize_flag)
+    MRISnormalizeCurvature(mris) ;
   MRISaverageCurvatures(mris, navgs) ;
   if (nonmax_flag)
   /*MRISnonmaxSuppress(mris)*/ ;
@@ -332,6 +334,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     compile_flags |= COORD_FLAG ;
   }
+  else if (!stricmp(option, "canon"))
+  {
+    coord_fname = argv[2] ;
+    fprintf(stderr, "reading canonical coordinate system from %s\n", argv[2]) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "cslope"))
   {
     sscanf(argv[2], "%f", &cslope) ;
@@ -431,9 +439,7 @@ get_option(int argc, char *argv[])
     exit(1) ;
     break ;
   case 'N':
-    sscanf(argv[2], "%d", &parms.niterations) ;
-    nargs = 1 ;
-    fprintf(stderr, "using niterations = %d\n", parms.niterations) ;
+    normalize_flag = 1 ;
     break ;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
