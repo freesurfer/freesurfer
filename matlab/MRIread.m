@@ -15,9 +15,9 @@ function mri = MRIread(fstring,headeronly)
 % 1-based indices. The volume is rows, cols, slices frames,
 % but the vox2ras expects col, row, slice.
 %
-% If headeronly=1, then the pixel data is not read in.
+% If headeronly=1, then the pixel data are not read in.
 %
-% $Id: MRIread.m,v 1.4 2004/11/13 16:44:28 greve Exp $
+% $Id: MRIread.m,v 1.5 2004/11/18 00:47:55 greve Exp $
 
 mri = [];
 
@@ -88,13 +88,18 @@ end
 
 mri.fspec = fspec;
 mri.pwd = pwd;
+
 mri.flip_angle = flip_angle;
 mri.tr  = tr;
 mri.te  = te;
 mri.ti  = ti;
 
-mri.vox2ras0 = M;
-mri.vox2ras1 = vox2ras_0to1(M);
+% Assumes indices are 0-based. See vox2ras1 below for 1-based.  Note:
+% MRIwrite() derives all geometry information (ie, direction cosines,
+% voxel resolution, and P0 from vox2ras0. If you change other geometry
+% elements of the structure, it will not be reflected in the output
+% volume.
+mri.vox2ras0 = M; 
 
 % Dimensions not redundant when using header only
 volsz(length(volsz)+1:4) = 1; % Make sure all dims are represented
@@ -107,12 +112,14 @@ mri.nframes = volsz(4);
 %--------------------------------------------------------------------%
 % Everything below is redundant in that they can be derivied from
 % stuff above, but they are in the MRI struct defined in mri.h, so I
-% thought I would add them here for completeness.
+% thought I would add them here for completeness.  Note: MRIwrite()
+% derives all geometry information (ie, direction cosines, voxel
+% resolution, and P0 from vox2ras0. If you change other geometry
+% elements below, it will not be reflected in the output volume.
 
 mri.xsize = sqrt(sum(M(:,1).^2));
 mri.ysize = sqrt(sum(M(:,2).^2));
 mri.zsize = sqrt(sum(M(:,3).^2));
-mri.volres = [mri.xsize mri.ysize mri.zsize];
 
 mri.x_r = M(1,1)/mri.xsize;
 mri.x_a = M(2,1)/mri.xsize;
@@ -126,15 +133,24 @@ mri.z_r = M(1,3)/mri.zsize;
 mri.z_a = M(2,3)/mri.zsize;
 mri.z_s = M(3,3)/mri.zsize;
 
-% Matrix of direction cosines
-mri.Mdc = [M(1:3,1)/mri.xsize M(1:3,2)/mri.ysize M(1:3,3)/mri.zsize];
-
 ic = [(mri.width)/2 (mri.height)/2 (mri.depth)/2 1]';
 c = M*ic;
 mri.c_r = c(1);
 mri.c_a = c(2);
 mri.c_s = c(3);
 %--------------------------------------------------%
+
+%-------- The stuff here is for convenience --------------
+
+% 1-based vox2ras. Good for doing transforms in matlab
+mri.vox2ras1 = vox2ras_0to1(M); 
+
+% Matrix of direction cosines
+mri.Mdc = [M(1:3,1)/mri.xsize M(1:3,2)/mri.ysize M(1:3,3)/mri.zsize];
+
+% Vector of voxel resolutions
+mri.volres = [mri.xsize mri.ysize mri.zsize];
+
 
 
 return;
