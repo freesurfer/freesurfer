@@ -55,9 +55,9 @@ typedef struct vertex_type_
   double dx, dy, dz ;     /* current change in position */
   double odx, ody, odz ;  /* last change of position (for momentum) */
   double tdx, tdy, tdz ;  /* temporary storage for averaging gradient */
-  float  ox,oy,oz;        /* last position (for undoing time steps) */
   float  curv;            /* curr curvature */
   float  val;             /* scalar data value (file: rh.val, sig2-rh.w) */
+  float  imag_val ;       /* imaginary part of complex data value */
   float  cx, cy, cz ;     /* coordinates in canonical coordinate system */
   float  tx, ty, tz ;     /* tmp coordinate storage */
   float  origx, origy,
@@ -65,6 +65,7 @@ typedef struct vertex_type_
   float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
   float e2x, e2y, e2z ;  /* 2nd basis vector for the local tangent plane */
 #if 0
+  float  ox,oy,oz;        /* last position (for undoing time steps) */
   float mx,my,mz;        /* last movement */
   float dipx,dipy,dipz;  /* dipole position */
   float dipnx,dipny,dipnz; /* dipole orientation */
@@ -109,20 +110,23 @@ typedef struct vertex_type_
   int   oripflag,origripflag;  /* cuts flags */
   float coord[3];
   float ftmp ;          /* temporary floating pt. storage */
+  int   tethered ;
+  int   label ;         /* is this vertex part of a labeled region? */
 #endif
   float theta, phi ;     /* parameterization */
   int   marked;          /* for a variety of uses */
   int   ripflag ;
   int   border;          /* flag */
   float area,origarea ;
-  int   tethered ;
   float K ;             /* Gaussian curvature */
   float H ;             /* mean curvature */
   float k1, k2 ;        /* the principal curvatures */
-  int   label ;         /* is this vertex part of a labeled region? */
   float *dist ;         /* original distance to neighboring vertices */
   float *dist_orig ;    /* original distance to neighboring vertices */
   int   neg ;           /* 1 if the normal vector is inverted */
+  double mean ;
+  double mean_imag ;    /* imaginary part of complex statistic */
+  double std_error ;
 } vertex_type, VERTEX ;
 
 typedef struct
@@ -266,6 +270,7 @@ typedef struct
   float   l_boundary ;        /* coefficient of boundary term */
   float   l_dist ;            /* coefficient of distance term */
   float   l_neg ;
+  float   l_val ;             /* for settling surface at a specified val */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
@@ -298,12 +303,13 @@ typedef struct
   int     frame_no ;          /* current frame in template parameterization */
   MRI_SP  *mrisp_template ;   /* parameterization of canonical surface */
   float   sigma ;             /* blurring scale */
+  MRI     *mri_brain ;        /* for settling surfaace to e.g. g/w border */
 } INTEGRATION_PARMS ;
 
 
 /* can't include this before structure, as stats.h includes this file. */
 #include "stats.h"
-
+#include "label.h"
 
 int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y, 
                                     float z) ;
@@ -319,11 +325,14 @@ int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
+int          MRISreadImagValues(MRI_SURFACE *mris, char *fname) ;
+int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
 
 int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteGeo(MRI_SURFACE *mris, char *fname) ;
 int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteDists(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 int          MRISnormalizeCurvature(MRI_SURFACE *mris) ;
 int          MRISnonmaxSuppress(MRI_SURFACE *mris) ;
@@ -524,8 +533,13 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 #define REVERSE_Y     1
 #define REVERSE_Z     2
 
+#if 1
+int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm, 
+                          float nsigma,int where, INTEGRATION_PARMS *parms);
+#else
 int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm, 
                           float nsigma,int where, float dt);
+#endif
 int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, 
                                            int which) ;
@@ -533,13 +547,36 @@ int   MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs,
                                     float pct_fixed) ;
 MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
                                   MRI *mri) ;
+#if 0
 int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain, 
                                    MRI *mri_wm, float nsigma) ;
+#else
+int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain) ;
+#endif
 
 int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
 int   MRISclearMarks(MRI_SURFACE *mris) ;
 int   MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISreverse(MRI_SURFACE *mris, int which) ;
 int   MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct) ;
+double MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which) ;
+int   MRISnegateValues(MRI_SURFACE *mris) ;
+int   MRIScopyMeansToValues(MRI_SURFACE *mris) ;
+int   MRIScopyImaginaryMeansToValues(MRI_SURFACE *mris) ;
+int   MRIScopyStandardErrorsToValues(MRI_SURFACE *mris) ;
+int   MRISaccumulateMeansInVolume(MRI_SURFACE *mris, MRI *mri, int mris_dof, 
+                                  int mri_dof, int coordinate_system, int sno);
+int   MRISaccumulateStandardErrorsInVolume(MRI_SURFACE *mris, MRI *mri, 
+                                           int mris_dof, int mri_dof, 
+                                           int coordinate_system, int sno) ;
+int   MRISaccumulateMeansOnSurface(MRI_SURFACE *mris, int total_dof,
+                                   int new_dof);
+int   MRISaccumulateImaginaryMeansOnSurface(MRI_SURFACE *mris, int total_dof,
+                                   int new_dof);
+int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris, 
+                                            int total_dof,int new_dof);
+int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
+                                            float *pdx,float *pdy,float *pdz);
+
 
 #endif
