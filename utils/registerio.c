@@ -131,12 +131,13 @@ int regio_print_register(FILE *fp, char *subject, float inplaneres,
   fprintf(fp,"%f\n",betplaneres);
   fprintf(fp,"%f\n",intensity);
 
-  for(r=0;r<4;r++){
+  for(r=0;r<3;r++){
     for(c=0;c<4;c++){
       fprintf(fp,"%e ",R->rptr[r+1][c+1]);
     }
     fprintf(fp,"\n");
   }
+  fprintf(fp,"0 0 0 1\n");
 
   switch(float2int){
   case FLT2INT_TKREG: f2imethod = "tkregister"; break;
