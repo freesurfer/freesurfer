@@ -445,6 +445,10 @@ MatrixPrint(FILE *fp, MATRIX *mat)
 {
   int  row, col, rows, cols ;
 
+	if (fp == NULL)
+		ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "MatrixPrint: fp = NULL!")) ;
+	if (mat == NULL)
+		ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "MatrixPrint: mat = NULL!")) ;
   rows = mat->rows ;
   cols = mat->cols ;
 
@@ -511,7 +515,7 @@ MatrixPrintOneLine(FILE *fp, MATRIX *mat)
         fprintf(fp, " | ") ;
 #else
       if (col < cols)
-        fprintf(fp, "  ") ;
+        fprintf(fp, " ") ;
 #endif
     }
     fprintf(fp, ";   ") ;
