@@ -26687,6 +26687,16 @@ MRISimportValVector(MRI_SURFACE *mris, float *vals)
   return(NO_ERROR) ;
 }
 int
+MRISexportValVector(MRI_SURFACE *mris, float *vals)
+{
+  int     vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    vals[vno] = mris->vertices[vno].val ;
+
+  return(NO_ERROR) ;
+}
+int
 MRISmaskLabel(MRI_SURFACE *mris, LABEL *area)
 {
   int     i ;

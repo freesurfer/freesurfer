@@ -718,6 +718,7 @@ int MRISsetOriginalFileName(char *orig_name) ;
 int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
 int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
 int MRISimportValVector(MRI_SURFACE *mris, float *vals) ;
+int MRISexportValVector(MRI_SURFACE *mris, float *vals) ;
 int MRISmaskLabel(MRI_SURFACE *mris, LABEL *area) ;
 int MRISmaskNotLabel(MRI_SURFACE *mris, LABEL *area) ;
 int MRISripLabel(MRI_SURFACE *mris, LABEL *area) ;
