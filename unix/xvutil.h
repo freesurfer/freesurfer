@@ -60,6 +60,7 @@ typedef struct
   int         frame ;
   int         used ;
   int         entered ;   /* to prevent re-entrancy in repaint proc. */
+  int         which ;
 } DISPLAY_IMAGE, DIMAGE ;
 
 typedef struct
