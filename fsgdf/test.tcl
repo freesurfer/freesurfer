@@ -9,7 +9,8 @@ if { [info exists env(FSDEV_TEST_DATA)] } {
 }
 
 FsgdfPlot_Init
-FsgdfPlot_ParseHeader "$fnTestDataDir/fsgdf/y-lh.fsgd"
+set err [FsgdfPlot_ParseHeader "$fnTestDataDir/fsgdf/y-lh.fsgd"]
+if { $err } { puts "!!!! FsgdfPlot_ParseHeader failed." ; exit }
 FsgdfPlot_ShowWindow
 FsgdfPlot_SetPoint 10000 0 0
 FsgdfPlot_SetInfo "vno 10000"
