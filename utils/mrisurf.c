@@ -53,6 +53,8 @@ static void  mrisNormalize(float v[3]) ;
 static float mrisTriangleArea(MRIS *mris, int fac, int n) ;
 static int   mrisNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
 static int   mrisReadTransform(MRIS *mris, char *mris_fname) ;
+static MRI_SURFACE *mrisReadAsciiFile(char *fname) ;
+
 static int   mrisReadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 /*static int   mrisReadFieldsign(MRI_SURFACE *mris, char *fname) ;*/
 static double mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
@@ -186,90 +188,101 @@ MRISread(char *fname)
 {
   MRI_SURFACE *mris ;
   int         nfaces, nvertices, magic, version, ix, iy, iz, vno, fno, n, m,
-              imnr, imnr0, imnr1 ;
+              imnr, imnr0, imnr1, type ;
   float       x, y, z, xhi, xlo, yhi, ylo, zhi, zlo ;
   FILE        *fp ;
   VERTEX      *vertex ;
   FACE        *face ;
 
-  fp = fopen(fname, "rb") ;
-  if (!fp)
-    ErrorReturn(NULL,(ERROR_NOFILE,"MRISread(%s): could not open file",fname));
-
-  fread3(&magic, fp) ;
-  if (magic == NEW_VERSION_MAGIC_NUMBER) 
+  type = mrisFileNameType(fname) ;
+  if (type == MRIS_ASCII_FILE)
   {
-    version = -1;
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      fprintf(stderr, "new surface file format\n");
+    mris = mrisReadAsciiFile(fname) ;
+    if (!mris)
+      return(NULL) ;
+    version = -1 ;
   }
-  else 
+  else
   {
-    rewind(fp);
-    version = 0;
+    fp = fopen(fname, "rb") ;
+    if (!fp)
+      ErrorReturn(NULL,(ERROR_NOFILE,"MRISread(%s): could not open file",
+                        fname));
+
+    fread3(&magic, fp) ;
+    if (magic == NEW_VERSION_MAGIC_NUMBER) 
+    {
+      version = -1;
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+        fprintf(stderr, "new surface file format\n");
+    }
+    else 
+    {
+      rewind(fp);
+      version = 0;
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+        printf("surfer: old surface file format\n");
+    }
+    fread3(&nvertices, fp);
+    fread3(&nfaces, fp);
+    
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      printf("surfer: old surface file format\n");
+      fprintf(stderr, "reading %d vertices and %d faces.\n",nvertices,nfaces);
+    
+    mris = MRISalloc(nvertices, nfaces) ;
+    
+    imnr0 = 1000 ;
+    imnr1 = 0 ;
+    for (vno = 0 ; vno < nvertices ; vno++)
+    {
+      vertex = &mris->vertices[vno] ;
+      fread2(&ix,fp);
+      fread2(&iy,fp);
+      fread2(&iz,fp);
+      vertex->x = ix/100.0;
+      vertex->y = iy/100.0;
+      vertex->z = iz/100.0;
+      vertex->label = NO_LABEL ;
+      imnr = (int)((vertex->y-START_Y)/SLICE_THICKNESS+0.5);
+      if (imnr > imnr1)
+        imnr1 = imnr ;
+      if (imnr < imnr0)
+        imnr0 = imnr ;
+      if (version == 0)  /* old surface format */
+      {
+        fread1(&vertex->num,fp);
+        vertex->f = (int *)calloc(vertex->num,sizeof(int));
+        if (!vertex->f)
+          ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d faces",
+                    vertex->num) ;
+        vertex->n = (int *)calloc(vertex->num,sizeof(int));
+        if (!vertex->n)
+          ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d nbrs",
+                    vertex->n) ;
+        for (n=0;n<vertex->num;n++)
+          fread3(&vertex->f[n],fp);
+      } else vertex->num = 0;
+    }
+    
+    for (fno = 0 ; fno < mris->nfaces ; fno++)
+    {
+      for (n = 0 ; n < 4 ; n++)
+      {
+        fread3(&mris->faces[fno].v[n],fp);
+        if (version < 0)   /* new surface format */
+          mris->vertices[mris->faces[fno].v[n]].num++;
+      }
+    }
+    fclose(fp);
   }
-  fread3(&nvertices, fp);
-  fread3(&nfaces, fp);
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stderr, "reading %d vertices and %d faces.\n",nvertices,nfaces);
-
-  mris = MRISalloc(nvertices, nfaces) ;
   strcpy(mris->fname, fname) ;
   if (strstr(fname, "rh"))
     mris->hemisphere = RIGHT_HEMISPHERE ;
   else
     mris->hemisphere = LEFT_HEMISPHERE ;
-
-  imnr0 = 1000 ;
-  imnr1 = 0 ;
-  for (vno = 0 ; vno < nvertices ; vno++)
+  if ((version<0) || type == MRIS_ASCII_FILE)
   {
-    vertex = &mris->vertices[vno] ;
-    fread2(&ix,fp);
-    fread2(&iy,fp);
-    fread2(&iz,fp);
-    vertex->x = ix/100.0;
-    vertex->y = iy/100.0;
-    vertex->z = iz/100.0;
-    vertex->label = NO_LABEL ;
-    imnr = (int)((vertex->y-START_Y)/SLICE_THICKNESS+0.5);
-    if (imnr > imnr1)
-      imnr1 = imnr ;
-    if (imnr < imnr0)
-      imnr0 = imnr ;
-    if (version == 0)  /* old surface format */
-    {
-      fread1(&vertex->num,fp);
-      vertex->f = (int *)calloc(vertex->num,sizeof(int));
-      if (!vertex->f)
-        ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d faces",
-                  vertex->num) ;
-      vertex->n = (int *)calloc(vertex->num,sizeof(int));
-      if (!vertex->n)
-        ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d nbrs",
-                  vertex->n) ;
-      for (n=0;n<vertex->num;n++)
-        fread3(&vertex->f[n],fp);
-    } else vertex->num = 0;
-  }
-
-  /*  fprintf(stderr, "surfer: imnr0=%d, imnr1=%d\n",imnr0,imnr1);*/
-  for (fno=0;fno<nfaces;fno++)
-  {
-    for (n=0;n<4;n++)
-    {
-      fread3(&mris->faces[fno].v[n],fp);
-      if (version < 0)   /* new surface format */
-        mris->vertices[mris->faces[fno].v[n]].num++;
-    }
-  }
-  fclose(fp);
-  if (version<0)
-  {
-    for (vno = 0 ; vno< nvertices ; vno++)
+    for (vno = 0 ; vno< mris->nvertices ; vno++)
     {
       vertex = &mris->vertices[vno] ;
       mris->vertices[vno].f = 
@@ -278,7 +291,7 @@ MRISread(char *fname)
         ErrorExit(ERROR_NOMEMORY, 
                   "MRISread(%s): could not allocate %d faces at %dth vertex",
                   fname, vno, mris->vertices[vno].num) ;
-
+      
       mris->vertices[vno].n = 
         (int *)calloc(mris->vertices[vno].num,sizeof(int));
       if (!mris->vertices[vno].n)
@@ -287,7 +300,7 @@ MRISread(char *fname)
                   fname, vno, mris->vertices[vno].num) ;
       mris->vertices[vno].num = 0 ;
     }
-    for (fno = 0 ; fno < nfaces ; fno++)
+    for (fno = 0 ; fno < mris->nfaces ; fno++)
     {
       face = &mris->faces[fno] ;
       for (n = 0 ; n < VERTICES_PER_FACE ; n++)
@@ -298,7 +311,7 @@ MRISread(char *fname)
 
   xhi=yhi=zhi= -10000;
   xlo=ylo=zlo= 10000;
-  for (vno = 0 ; vno < nvertices ; vno++)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     mris->vertices[vno].curv = 0;
     mris->vertices[vno].origarea = -1;
@@ -343,12 +356,18 @@ MRISread(char *fname)
   mrisComputeNormals(mris);
   mrisComputeVertexDistances(mris) ;
   mrisReadTransform(mris, fname) ;
-/*  mrisComputeTangentPlanes(mris) ;*/
-  if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR)
-    return(NULL) ;
-
-  if (mrisReadBinaryAreas(mris, fname) != NO_ERROR)
-    return(NULL) ;
+  if (type == MRIS_ASCII_FILE)
+  {
+    MRIScomputeSecondFundamentalForm(mris) ;
+    MRISuseMeanCurvature(mris) ;
+  }
+  else 
+  {
+    if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR)
+      return(NULL) ;
+    if (mrisReadBinaryAreas(mris, fname) != NO_ERROR)
+      return(NULL) ;
+  }
 
   /*  mrisFindPoles(mris) ;*/
   MRIScomputeTriangleProperties(mris,0) ;  /* compute areas and normals */
@@ -1334,7 +1353,7 @@ mrisNormalFace(MRIS *mris, int fac,int n,float norm[])
 static int
 mrisReadTransform(MRIS *mris, char *mris_fname)
 {
-  char transform_fname[100], fpref[100] ;
+  char transform_fname[100], fpref[300] ;
 
   FileNamePath(mris_fname, fpref) ;
   sprintf(transform_fname, "%s/../mri/transforms/talairach.xfm", fpref) ;
@@ -1366,15 +1385,10 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
 int
 MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname)
 {
-  char   fname[100], fpref[100], hemi[20], *cp ;
-  
-  cp = strrchr(mris_fname, '.') ;
-  if (!cp)
-    ErrorReturn(ERROR_BADPARM, 
-                (ERROR_BADPARM, "MRISreadBinaryCurvature(%s): could not scan "
-                 "hemisphere from fname", mris_fname)) ;
-  strncpy(hemi, cp-2, 2) ; hemi[2] = 0 ;
+  char   fname[100], fpref[100], hemi[20] ;
+
   FileNamePath(mris_fname, fpref) ;
+  strcpy(hemi, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
   sprintf(fname, "%s/%s.curv", fpref, hemi) ;
   return(MRISreadCurvatureFile(mris, fname)) ;
 }
@@ -1440,18 +1454,13 @@ mrisReadBinaryAreas(MRI_SURFACE *mris, char *mris_fname)
   int   k,vnum,fnum;
   float f;
   FILE  *fp;
-  char  fname[100], fpref[100], hemi[20], *cp ;
+  char  fname[100], fpref[100], hemi[20] ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "reading area file...") ;
 
-  cp = strrchr(mris_fname, '.') ;
-  if (!cp)
-    ErrorReturn(ERROR_BADPARM, 
-                (ERROR_BADPARM, "mrisReadBinaryAreas(%s): could not scan "
-                 "hemisphere from fname", mris_fname)) ;
-  strncpy(hemi, cp-2, 2) ; hemi[2] = 0 ;
   FileNamePath(mris_fname, fpref) ;
+  strcpy(hemi, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
   sprintf(fname, "%s/%s.area", fpref, hemi) ;
 
   /*  mris->orig_area = 0.0f ;*/
@@ -5006,7 +5015,7 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
 int
 MRISreadPatch(MRI_SURFACE *mris, char *pname)
 {
-  int         ix, iy, iz, k, i, j, npts;
+  int         ix, iy, iz, k, i, j, npts ;
   FILE        *fp ;
   char        fname[100], path[100], *cp ;
 
@@ -6240,9 +6249,6 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
     m_U = MatrixAlloc(vertex->vtotal, 3, MATRIX_REAL) ;
     v_z = VectorAlloc(vertex->vtotal, MATRIX_REAL) ;
 
-    if (vno == 28765 /* 12264 */)
-      DiagBreak() ;
-
     if (vno == Gdiag_no)
       DiagBreak() ;
 
@@ -6416,6 +6422,7 @@ MRISuseGaussianCurvature(MRI_SURFACE *mris)
     vertex->curv = vertex->K ;
   }
 
+  mris->min_curv = mris->Kmin ; mris->max_curv = mris->Kmax ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -6439,6 +6446,7 @@ MRISuseMeanCurvature(MRI_SURFACE *mris)
     vertex->curv = vertex->H ;
   }
 
+  mris->min_curv = mris->Hmin ; mris->max_curv = mris->Hmax ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -8310,14 +8318,14 @@ MRISwriteAscii(MRI_SURFACE *mris, char *fname)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    fprintf(fp, "%f  %f  %f\n", v->x, v->y, v->z) ;
+    fprintf(fp, "%f  %f  %f  %d\n", v->x, v->y, v->z, v->ripflag) ;
   }
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
     face = &mris->faces[fno] ;
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
       fprintf(fp, "%d ", face->v[n]) ;
-    fprintf(fp, "\n") ;
+    fprintf(fp, "%d\n", face->ripflag) ;
   }
 
   fclose(fp) ;
@@ -8334,9 +8342,13 @@ int
 MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
 {
   FILE    *fp ;
-  int     vno, fno, n, nvertices, nfaces ;
+  int     vno, fno, n, nvertices, nfaces, type ;
   VERTEX  *v ;
   FACE    *face ;
+
+  type = mrisFileNameType(fname) ;
+  if (type == MRIS_ASCII_FILE)
+    return(MRISwriteAscii(mris, fname)) ;
 
   fp = fopen(fname, "w") ;
   if (!fp)
@@ -8385,3 +8397,101 @@ MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static MRI_SURFACE *
+mrisReadAsciiFile(char *fname)
+{
+  MRI_SURFACE   *mris ;
+  char    line[200], *cp ;
+  int     vno, fno, n, nvertices, nfaces, patch ;
+  VERTEX  *v ;
+  FACE    *face ;
+  FILE    *fp ;
+
+  fp = fopen(fname, "r") ;
+  if (!fp)
+    ErrorReturn(NULL, 
+              (ERROR_NOFILE, 
+               "MRISreadAsciiFile: could not open file %s",fname));
+
+  patch = 0 ;
+  cp = fgetl(line, 100, fp) ;
+  sscanf(cp, "%d %d\n", &nvertices, &nfaces) ;
+  mris = MRISalloc(nvertices, nfaces) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    fscanf(fp, "%f  %f  %f  %d\n", &v->x, &v->y, &v->z, &v->ripflag) ;
+    if (v->ripflag)
+      patch = 1 ;
+  }
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+    {
+      fscanf(fp, "%d ", &face->v[n]) ;
+      mris->vertices[face->v[n]].num++;
+    }
+    fscanf(fp, "%d\n", &face->ripflag) ;
+  }
+
+  mris->patch = patch ;
+  if (patch)
+    mris->status = MRIS_PLANE ;
+  fclose(fp) ;
+  return(mris) ;
+}
+#if 0
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static MRI_SURFACE *
+mrisReadAsciiPatchFile(char *fname)
+{
+  MRI_SURFACE   *mris ;
+  char    line[200], *cp ;
+  int     vno, fno, n, nvertices, nfaces ;
+  VERTEX  *v ;
+  FACE    *face ;
+  FILE    *fp ;
+
+  fp = fopen(fname, "r") ;
+  if (!fp)
+    ErrorReturn(NULL, 
+              (ERROR_NOFILE, 
+               "MRISreadAsciiFile: could not open file %s",fname));
+
+  cp = fgetl(line, 100, fp) ;
+  sscanf(cp, "%d %d\n", &nvertices, &nfaces) ;
+  mris = MRISalloc(nvertices, nfaces) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    fscanf(fp, "%f  %f  %f\n", &v->x, &v->y, &v->z) ;
+  }
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+    {
+      fscanf(fp, "%d ", &face->v[n]) ;
+      mris->vertices[face->v[n]].num++;
+    }
+    fscanf(fp, "\n") ;
+  }
+
+  fclose(fp) ;
+  return(mris) ;
+}
+#endif
