@@ -232,6 +232,30 @@ MATRIX *vg_r_to_i(const VOL_GEOM *vg)
   return mat;
 }
 
+int vg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2)
+{
+  if (vg1->valid == vg2->valid)
+    if (vg1->width == vg2->width)
+      if (vg1->height == vg2->height)
+	if (vg1->depth == vg2->depth)
+	  if (vg1->xsize == vg2->xsize)
+	    if (vg1->ysize == vg2->ysize)
+	      if (vg1->zsize == vg2->zsize)
+		if (FZERO(vg1->x_r - vg2->x_r))
+		  if (FZERO(vg1->x_a - vg2->x_a))
+		    if (FZERO(vg1->x_s - vg2->x_s))
+		      if (FZERO(vg1->y_r - vg2->y_r))
+			if (FZERO(vg1->y_a - vg2->y_a))
+			  if (FZERO(vg1->y_s - vg2->y_s))
+			    if (FZERO(vg1->z_r - vg2->z_r))
+			      if (FZERO(vg1->z_a - vg2->z_a))
+				if (FZERO(vg1->z_s - vg2->z_s))
+				  if (FZERO(vg1->c_r - vg2->c_r))
+				    if (FZERO(vg1->c_a - vg2->c_a))
+				      if (FZERO(vg1->c_s - vg2->c_s))
+					return 1;
+  return 0;
+}
 /*-----------------------------------------------------
         Parameters:
 
