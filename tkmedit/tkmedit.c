@@ -2440,8 +2440,13 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         sx += w.x;   /* convert back to screen pos (ugh) */
         sy = 1024 - w.y - sy;
 
-        // call processclick to handle it.
-        if ( button2pressed || button3pressed ) {
+        // call processclick to handle it, but only if ctrl is not down, 
+        // cuz we don't want to do multiple zooms. this is kind of messy,
+        // because event processing shouldn't have to know about input
+        // bindings. TODO: pass processclick() the buttons, the modifiers,
+        // and the event type (down, up, or drag).
+        if ( (button2pressed || button3pressed) &&
+             !ctrlkeypressed ) {
           ProcessClick( sx, sy );
         }
 
@@ -3232,25 +3237,85 @@ pix_to_rgb(char *fname)
 }
 
 void
-downslice(void)
-{
+downslice () {
+
+  int theVoxX, theVoxY, theVoxZ;
+  int theScreenX, theScreenY, theScreenZ;
+
+  // get the screen pt as a voxel
+  ScreenToVoxel ( plane, jc, ic, imc, 
+                  &theVoxX, &theVoxY, &theVoxZ );
+
+  // switch on the current plane...
+  switch ( plane ) {
+
+  case CORONAL:
+    theVoxZ --;
+    break;
+
+  case HORIZONTAL:
+    theVoxY --;
+    break;
+
+  case SAGITTAL:
+    theVoxX --;
+    break;
+  }
+
+  // set the voxel back to the cursor
+  VoxelToScreen ( theVoxX, theVoxY, theVoxZ,
+                  plane, &theScreenX, &theScreenY, &theScreenZ );
+  SetCursorToScreenPt ( theScreenX, theScreenY, theScreenZ );
+
+  /*
   if (plane==CORONAL)
     imc = (imc<zf)?imnr1*zf-zf+imc:imc-zf;
   else if (plane==HORIZONTAL)
     ic = (ic<zf)?ydim-zf+ic:ic-zf;
   else if (plane==SAGITTAL)
     jc = (jc<zf)?xdim-zf+jc:jc-zf;
+  */
 }
 
 void
-upslice(void)
-{
+upslice () {
+
+  int theVoxX, theVoxY, theVoxZ;
+  int theScreenX, theScreenY, theScreenZ;
+
+  // get the screen pt as a voxel
+  ScreenToVoxel ( plane, jc, ic, imc, 
+                  &theVoxX, &theVoxY, &theVoxZ );
+
+  // switch on the current plane...
+  switch ( plane ) {
+
+  case CORONAL:
+    theVoxZ ++;
+    break;
+
+  case HORIZONTAL:
+    theVoxY ++;
+    break;
+
+  case SAGITTAL:
+    theVoxX ++;
+    break;
+  }
+
+  // set the voxel back to the cursor
+  VoxelToScreen ( theVoxX, theVoxY, theVoxZ,
+                  plane, &theScreenX, &theScreenY, &theScreenZ );
+  SetCursorToScreenPt ( theScreenX, theScreenY, theScreenZ );
+
+  /*
   if (plane==CORONAL)
     imc = (imc>=imnr1*zf-zf)?imc+zf-imnr1*zf:imc+zf;
   else if (plane==HORIZONTAL)
     ic = (ic>=ydim-zf)?ic+zf-ydim:ic+zf;
   else if (plane==SAGITTAL)
     jc = (jc>=xdim-zf)?jc+zf-xdim:jc+zf;
+  */
 }
 
 void
@@ -7574,8 +7639,8 @@ char **argv;
   checkLicense(envptr);
 #endif
 
-  //sprintf(tkmedit_tcl,"%s","tkmedit.tcl");  // for testing local script file
-  sprintf(tkmedit_tcl,"%s/lib/tcl/%s",envptr,"tkmedit.tcl"); 
+  sprintf(tkmedit_tcl,"%s","tkmedit.tcl");  // for testing local script file
+  //sprintf(tkmedit_tcl,"%s/lib/tcl/%s",envptr,"tkmedit.tcl"); 
   if ((fp=fopen(tkmedit_tcl,"r"))==NULL) {
     printf("tkmedit: script %s not found\n",tkmedit_tcl);
     exit(1);
@@ -7859,7 +7924,7 @@ char **argv;
   // kt - new commands summary
   printf("\nNew commands, see inverse/Notes/tkmedit.txt for details.\n");
   printf("\nMagnification:\n");
-  printf("\t-zf: switch to change scale factor from command line\n");
+  printf("\t-z: switch to change scale factor from command line\n");
   printf("\tCtrl-button 1: Zoom in\n");
   printf("\tCtrl-button 3: Zoom out\n");
   printf("\nControl points:\n");
@@ -9128,6 +9193,8 @@ void ScreenToVoxel ( int inPlane,               // the plane we're in
   // if we're out of bounds...
   if ( ! IsScreenPointInBounds ( inPlane, j, i, im ) ) {
     
+    DebugPrint "ScreenToVoxel(): Input screen pt was invalid.\n" EndDebugPrint;
+
     // just try not to crash. 
     *x = *y = *z = 0;
     return;
@@ -9169,6 +9236,8 @@ void ScreenToVoxel ( int inPlane,               // the plane we're in
 
   // check again...
   if ( ! IsVoxelInBounds ( *x, *y, *z ) ) {
+
+    DebugPrint "ScreenToVoxel(): Valid screen point (%d,%d,%d) converted to invalid voxel.\n", j, i, im EndDebugPrint;
 
     // again, try not to crash.
     *x = *y = *z = 0;
@@ -9243,6 +9312,8 @@ void VoxelToScreen ( int x, int y, int z,       // incoming voxel coords
   // voxel coords should be in good space
   if ( ! IsVoxelInBounds ( x, y, z ) ) {
 
+    DebugPrint "VoxelToScreen(): Input voxel was invalid.\n" EndDebugPrint;
+
     // try not to crash.
     *j = *i = *im = 0;
     return;
@@ -9282,6 +9353,8 @@ void VoxelToScreen ( int x, int y, int z,       // incoming voxel coords
 
   // check again
   if ( ! IsScreenPointInBounds ( inPlane, *j, *i, *im ) ) {
+
+    DebugPrint "VoxelToScreen(): Valid voxel (%d,%d,%d) converted to invalid screen pt.\n", x, y, z EndDebugPrint;
 
     // try not to crash.
     *j = *i = *im = 0;

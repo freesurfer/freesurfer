@@ -379,22 +379,10 @@ proc changeslice { dir } {
   if {$dir == "up"} { upslice; redraw }
   if {$dir == "down"} { downslice; redraw }
 
-    # kt - changed to use conversion function (for consistency)
+    # kt - the c code handles the conversions now
     # if {$plane==$cor} { set newimc [expr $imc/$zf] }
     # if {$plane==$hor} { set newic [expr $ic/$zf] }
     # if {$plane==$sag} { set newjc [expr $jc/$zf] }
-
-    if {$plane==$cor} {
-        set newimc [lindex [ScreenToVoxel $plane $jc $ic $imc] 2]
-    }
-
-    if {$plane==$hor} {
-        set newic [lindex [ScreenToVoxel $plane $jc $ic $imc] 1]
-    }
-
-    if {$plane==$sag} {
-        set newjc [lindex [ScreenToVoxel $plane $jc $ic $imc] 0]
-    }
 }
 
 proc rotheadpts { angle } {
