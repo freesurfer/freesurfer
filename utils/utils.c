@@ -35,9 +35,10 @@
 #include "nr.h"
 #include "const.h"
 #include "utils.h"
-#include "macros.h"
 #include "proto.h"
 #include "error.h"
+#include "image.h"
+#include "macros.h"
 
 /*------------------------------------------------------------------------
                             CONSTANTS
@@ -351,13 +352,23 @@ StrLower(char *str)
 char *
 FileName(char *full_name)
 {
-  char *fname ;
+  char *fname, *colon, *at ;
 
   fname = strrchr(full_name, '/') ;
   if (!fname)
     fname = full_name ;
   else
     fname++ ;   /* skip '/' */
+
+  if (*fname == '@')
+    fname++ ;
+
+  colon = strrchr(fname, ':') ;
+  if (colon)
+    *colon = 0 ;
+  at = strrchr(fname, '@') ;
+  if (at)
+    *at = 0 ;
 
   return(fname) ;
 }
@@ -381,4 +392,149 @@ FileExists(char *fname)
 
   return(fp != NULL) ;
 }
+/*------------------------------------------------------------------------
+       Parameters:
 
+      Description:
+         determine the file type from the name
+
+    Return Values:
+
+------------------------------------------------------------------------*/
+int
+FileType(char *fname)
+{
+  char *dot, buf[100], *colon ;
+
+  if (*fname == '@')
+    return(LIST_FILE) ;
+
+  strcpy(buf, fname) ;
+  dot = strrchr(buf, '@') ;
+  colon = strchr(buf, ':') ;
+  if (colon)
+    *colon = 0 ;  /* don't consider : part of extension */
+  if (!dot)
+    dot = strrchr(buf, '.') ;
+
+  if (dot)
+  {
+    dot++ ;
+    StrUpper(buf) ;
+    if (!strcmp(dot, "MAT"))
+      return(MATLAB_FILE) ;
+    else if (!strcmp(dot, "HIPL")||!strcmp(dot, "HIPS") || !strcmp(dot,"HIP"))
+      return(HIPS_FILE) ;
+    else if (!strcmp(dot, "LST"))
+      return(LIST_FILE) ;
+  }
+  return(UNKNOWN_FILE) ;
+}
+/*------------------------------------------------------------------------
+       Parameters:
+
+      Description:
+         if a number is specified return it, otherwise return -1
+
+    Return Values:
+
+------------------------------------------------------------------------*/
+int
+FileNumber(char *fname)
+{
+  char buf[100], *colon ;
+  int  num ;
+
+  strcpy(buf, fname) ;
+  colon = strchr(buf, ':') ;
+  if (colon)
+    sscanf(colon+1, "%d", &num) ;
+  else
+    num = -1 ;
+  return(num) ;
+}
+/*------------------------------------------------------------------------
+       Parameters:
+
+      Description:
+          determine the number of separate entries in a file
+
+      Return Values:
+
+------------------------------------------------------------------------*/
+int
+FileNumberOfEntries(char *fname)
+{
+  int  type, num, nentries ;
+  FILE *fp ;
+  char buf[100], line[200], *cp ;
+
+  strcpy(buf, fname) ;   /* we will modify fname, don't ruin callers copy */
+  fname = buf ;
+  
+  num = FileNumber(fname) ;
+  if (num == -1)
+  {
+    type = FileType(fname) ;
+    switch (type)
+    {
+    case LIST_FILE:
+      fp = fopen(FileName(fname), "rb") ;
+      if (!fp)
+        ErrorReturn(-1, (ERROR_NO_FILE, 
+                         "FileNumberOfEntries: could not open %s",
+                         FileName(fname))) ;
+      cp = fgetl(line, 199, fp) ;
+      nentries = 0 ;
+      while (cp)
+      {
+        sscanf(cp, "%s", buf) ;
+        num = FileNumberOfEntries(buf) ;
+        nentries += num ;
+        cp = fgetl(line, 199, fp) ;
+      }
+      fclose(fp) ;
+      
+      break ;
+    case HIPS_FILE:
+      nentries = ImageNumFrames(fname) ;
+      break ;
+    case MATLAB_FILE:
+    default:
+      nentries = 1 ;
+      break ;
+    }
+  }
+  else
+    nentries = 1 ;
+
+  return(nentries) ;
+}
+/*------------------------------------------------------------------------
+       Parameters:
+
+      Description:
+         extract the file name including path, removing additional
+         modifiers such as '@' and ':'
+
+    Return Values:
+        nothing.
+------------------------------------------------------------------------*/
+char *
+FileFullName(char *full_name)
+{
+  char *fname, *colon, *at ;
+
+  fname = full_name ;
+  if (*fname == '@')
+    fname++ ;
+
+  colon = strrchr(fname, ':') ;
+  if (colon)
+    *colon = 0 ;
+  at = strrchr(fname, '@') ;
+  if (at)
+    *at = 0 ;
+
+  return(fname) ;
+}
