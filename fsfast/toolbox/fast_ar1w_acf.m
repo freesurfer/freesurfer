@@ -12,8 +12,11 @@ if(nargin ~= 3)
   return;quit;
 end
 
-nn = [0:nf-1]'; %'
-acf = (1-alpha)*rho.^nn;
-acf(1) = 1;
+nv = size(alpha,2);
+
+nn = repmat([0:nf-1]',[1 nv]);
+rho = repmat(rho,[nf 1]);
+acf = (rho.^nn) .* repmat((1-alpha),[nf 1]);
+acf(1,:) = 1;
 
 return;
