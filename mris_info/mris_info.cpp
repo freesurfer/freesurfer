@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <cstdio>
 #include <vector>
 #if (__GNUC__ < 3)
 #include "/usr/include/g++-3/alloc.h"
@@ -11,6 +12,7 @@
 #include <string>
 
 extern "C" {
+#include "fio.h"
 #include "mri.h"
 #include "transform.h"
 #include "mrisurf.h"
@@ -18,12 +20,12 @@ extern "C" {
   char *Progname = "mris_info";
 }
 
+// copied from mrisurf.c
+#define QUAD_FILE_MAGIC_NUMBER      (-1 & 0x00ffffff)
+#define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
+#define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
+
 using namespace std;
-
-
-
-
-
 
 int main(int argc, char *argv[])
 {
@@ -46,8 +48,24 @@ int main(int argc, char *argv[])
     cerr << "could not open " << argv[1] << endl;
     return -1;
   }
+
   cout << "SURFACE INFO ================================================== " << endl;
   cout << "type        : " << type[mris->type].c_str() << endl;
+  if (mris->type == MRIS_BINARY_QUADRANGLE_FILE)
+  {
+    FILE *fp = fopen(argv[1], "rb") ;
+    int magic;
+    fread3(&magic, fp) ;
+    if (magic == QUAD_FILE_MAGIC_NUMBER) 
+    {
+      cout << "              QUAD_FILE_MAGIC_NUMBER" << endl;
+    }
+    else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) 
+    {
+      cout << "              NEW_QUAD_FILE_MAGIC_NUMBER" << endl;
+    }
+    fclose(fp);
+  }
   cout << "num vertices: " << mris->nvertices << endl;
   cout << "num faces   : " << mris->nfaces << endl;
   cout << "num stripgs : " << mris->nstrips << endl;
