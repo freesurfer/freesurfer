@@ -615,5 +615,6 @@ int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
                                    MRI *mri_wm, float nsigma) ;
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                                   MRI *mri_wm, float nsigma) ;
+int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs) ;
 
 #endif
