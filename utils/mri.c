@@ -1311,6 +1311,7 @@ MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
 
   switch (mri->slice_direction)
   {
+  default:
   case MRI_UNDEFINED:
     /*      ras for MRIvox(mri, i, j, k)    */
     ip = xv - (mri->width-1) / 2;
@@ -1348,12 +1349,14 @@ MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
     /*  fprintf(stderr, "zw = (%d - %2.0f + 1) + %2.1f = %2.1f\n",
         mri->depth, zv, mri->zstart, *pzw) ;*/
     break ;
+#if 0
   default:
     ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED,
                  "MRIvoxelToWorld: unsupported slice direction %d", 
                  mri->slice_direction)) ;
     break ;
+#endif
   }
 
   return(NO_ERROR) ;
