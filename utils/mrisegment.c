@@ -845,7 +845,8 @@ MRIcompactSegments(MRI_SEGMENTATION *mriseg)
     mriseg->segments = newseg;
     mriseg->max_segments = s;
     mriseg->nsegments = s;
-    fprintf(stderr, "\n        segments reduced to %d\n", s);
+		if (DIAG_VERBOSE_ON)
+			fprintf(stderr, "\n        segments reduced to %d\n", s);
   }
   else
   {
