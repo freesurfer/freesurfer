@@ -526,6 +526,7 @@ CPPFLAGS="${ax_tcl_cppflags} ${CPPFLAGS}"
 LDFLAGS="${ax_tcl_ldflags} ${LDFLAGS}"
 LIBS="${ax_tcl_libs} ${LIBS}"
 
+# I set all errors to return 0 to distingusih Tix_Init() error
 AC_TRY_RUN([
 #include <stdio.h>
 #include <stdlib.h>
@@ -543,10 +544,10 @@ int main()
   interp = Tcl_CreateInterp();
   eTcl = Tcl_Init( interp );
   if( TCL_OK != eTcl ) 
-    return 1;
+    return 0;
   eTcl = Tk_Init(interp);
   if( TCL_OK != eTcl ) 
-    return 2;
+    return 0;
   eTcl = Tix_Init( interp );
   if( TCL_OK != eTcl ) 
     return -1;
@@ -554,6 +555,7 @@ int main()
 }], ax_needs_itcl_itk=no, ax_needs_itcl_itk=yes, [])
 # end of AC_TRY_RUN
 ])
+# end of AC_CACHE_CHECK
 
 if test x$ax_needs_itcl_itk = xyes; then
 AC_DEFINE(NEEDS_ITCL_ITK, 1, [Tix_Init() needs Itcl_Init() and Itk_Init()])
