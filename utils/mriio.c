@@ -8398,19 +8398,6 @@ local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
 
 #define MGH_VERSION       1
 
-// imitate behavior of fread()
-size_t 
-freadFloatEx(float *pf, FILE *fp)
-{
-  int   ret ;
-  // 4 byte size 1 element -> ret =1 or 0
-  ret = fread(pf,4,1,fp); // cannot distinguish feof nor ferror.  caller must check
-#ifdef Linux
-  *pf = swapFloat(*pf) ;
-#endif
-  return ret;
-}
-
 static MRI *
 mghRead(char *fname, int read_volume, int frame)
 {
