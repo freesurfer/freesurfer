@@ -92,11 +92,11 @@ typedef struct vertex_type_
   uchar num;               /* number neighboring faces */
   int   *f;                /* array neighboring face numbers */
   uchar *n;                /* [0-3, num long] */
-  char  vnum;              /* number neighboring vertices */
+  uchar vnum;              /* number neighboring vertices */
   int   *v;                /* array neighboring vertex numbers, vnum long */
-  char  v2num ;            /* number of 2-connected neighbors */
-  char  v3num ;            /* number of 3-connected neighbors */
-  char  vtotal ;        /* total # of neighbors, will be same as one of above*/
+  uchar  v2num ;            /* number of 2-connected neighbors */
+  uchar  v3num ;            /* number of 3-connected neighbors */
+  short  vtotal ;        /* total # of neighbors, will be same as one of above*/
   float d ;              /* for distance calculations */
   uchar nsize ;            /* size of neighborhood (e.g. 1, 2, 3) */
 #if 0
