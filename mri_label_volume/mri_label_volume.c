@@ -19,15 +19,14 @@ static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
 static char *log_fname = NULL ;
-static char *brain_fname = NULL ;
 static void usage_exit(int code) ;
 
 static int in_label = -1 ;
 static int out_label = -1 ;
 
+static int all_flag = 0 ;
 static int compute_pct = 0 ;
 
-static char  *all_fname = NULL ;
 int
 main(int argc, char *argv[])
 {
@@ -52,7 +51,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 3)
+  if ((all_flag && argc < 2) || (all_flag == 0 && argc < 3))
     usage_exit(1) ;
 
 
@@ -64,6 +63,17 @@ main(int argc, char *argv[])
   if (in_label >= 0)
     MRIreplaceValues(mri, mri, in_label, out_label) ;
 
+	if (all_flag)
+	{
+		int   nvox ;
+		float volume ;
+		
+		nvox = MRItotalVoxelsOn(mri, 0) ;
+		volume = nvox * mri->xsize * mri->ysize * mri->zsize ;
+		printf("total volume = %d voxels, %2.1f mm^3\n", nvox, volume) ;
+		exit(0) ;
+	}
+
   if (compute_pct)
   {
     for (brain_volume = label = 0 ; label <= MAX_CMA_LABEL ; label++)
@@ -72,19 +82,6 @@ main(int argc, char *argv[])
         continue ;
       brain_volume += MRIvoxelsInLabel(mri, label) ;
     }
-  }
-  else if (brain_fname)
-  {
-    MRI *mri_brain ;
-
-    mri_brain = MRIread(brain_fname) ;
-    if (!mri_brain)
-      ErrorExit(ERROR_NOFILE, "%s: could not read brain volume from %s",
-                Progname, brain_fname) ;
-    MRIbinarize(mri_brain, mri_brain, 1, 0, 255) ;
-    brain_volume = MRIvoxelsInLabel(mri_brain, 255) ;
-    MRIfree(&mri_brain) ;
-    compute_pct = 1 ; /* use this brain volume to normalize */
   }
   else
     brain_volume = 1 ;
@@ -132,23 +129,6 @@ main(int argc, char *argv[])
     }
   }
 
-  if (all_fname != NULL)
-  {
-
-    for (brain_volume = label = 0 ; label <= MAX_CMA_LABEL ; label++)
-    {
-      if (!IS_BRAIN(label))
-        continue ;
-      brain_volume += MRIvoxelsInLabel(mri, label) ;
-    }
-    printf("%d voxels in brain\n", brain_volume) ;
-    log_fp = fopen(all_fname, "w") ;
-    if (log_fp == NULL)
-      ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
-                Progname, all_fname) ;
-    fprintf(log_fp,"%df\n", brain_volume) ;
-    fclose(log_fp) ;
-  }
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -175,20 +155,15 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
-  case 'A':
-    all_fname = argv[2] ;
-    nargs = 1 ;
-    printf("writing total brain volume to %s...\n", all_fname) ;
-    break ;
+	case 'A':
+		all_flag = 1 ;
+		printf("computing volume of all non-zero voxels\n") ;
+		break ;
   case 'T':
     in_label = atoi(argv[2]) ;
     out_label = atoi(argv[3]) ;
     nargs = 2 ;
     printf("translating label %d to label %d\n", in_label, out_label) ;
-    break ;
-  case 'B':
-    brain_fname = argv[2] ;
-    nargs = 1 ;
     break ;
   case 'L':
     log_fname = argv[2] ;
@@ -218,11 +193,10 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <volume> <label 1> <label 2> ...\n", Progname) ;
+  printf("usage: %s [options] <volume 1> <volume 2>",
+         Progname) ;
   printf(
-       "\tp             - compute brain volume as a pct of all brain labels\n"
-       "\tl <log fname> - log results to file (note %%d will include label #)\n"
-       "\tb <brain vol> - load brain vol and use it to normalize volumes\n"
+         "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
          );
   exit(code) ;
 }

@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.9 2002/07/03 20:02:36 greve Exp $
+  $Id: mri_label2label.c,v 1.10 2002/10/23 15:56:12 fischl Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -34,7 +34,7 @@
 #include "icosahedron.h"
 #include "fio.h"
 
-#include "MRIio.h"
+#include "MRIio_old.h"
 #include "error.h"
 #include "diag.h"
 #include "mrisurf.h"
@@ -58,7 +58,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.9 2002/07/03 20:02:36 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.10 2002/10/23 15:56:12 fischl Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;

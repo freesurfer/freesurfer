@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.4 2001/05/15 21:42:00 greve Exp $
+  $Id: mri_annotation2label.c,v 1.5 2002/10/23 15:56:09 fischl Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -53,7 +53,7 @@
 
 #include <string.h>
 
-#include "MRIio.h"
+#include "MRIio_old.h"
 #include "error.h"
 #include "diag.h"
 #include "mrisurf.h"
@@ -72,7 +72,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.4 2001/05/15 21:42:00 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.5 2002/10/23 15:56:09 fischl Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
