@@ -4216,4 +4216,57 @@ ImageValid(IMAGE *I)
 
   return(1) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              compute the pixel entropy of an image
+----------------------------------------------------------------------*/
+double
+ImageEntropy(IMAGE *I, int pairflag)
+{
+  IMAGE     *Itmp = NULL, *Ibyte ;
+  int       *table, ecode, nframes, frame, count ;
+  double    total_entropy = 0.0 ;
+
+  Ibyte = ImageAlloc(I->rows, I->cols, PFBYTE, 1) ;
+  if (I->pixel_format != PFBYTE)
+    Itmp = ImageAlloc(I->rows, I->cols, I->pixel_format, 1) ;
+  
+  nframes = I->num_frame ;
+  if (pairflag)
+    table = (int *)calloc(256*256, sizeof(int)) ;
+  else
+    table = (int *)calloc(256, sizeof(int)) ;
+    
+  for (frame = 0 ; frame < nframes ; frame++)
+  {
+    switch (I->pixel_format)
+    {
+    case PFBYTE:
+      ImageCopyFrames(I, Ibyte, frame, 1, 0) ;
+      break ;
+    default:
+      ImageCopyFrames(I, Itmp, frame, 1, 0) ;
+      ImageScale(Itmp, Itmp, 0.0f, 255.0f) ;
+      ImageCopy(Itmp, Ibyte) ;
+      break ;
+    }
+    ecode = h_entropycnt(Ibyte, table, 0) ;
+    if (ecode != HIPS_OK)
+      ErrorReturn(NULL, (ecode, "ImageEntropy: h_entropycnt failed")) ;
+
+  }
+
+  /* the 1st histo slot is used for underflows, and the last for overflows*/
+  count = nframes*I->rows*I->cols ;
+  total_entropy = h_entropy(table, count, 0) ;
+
+  if (Itmp)
+    ImageFree(&Itmp) ;
+
+  ImageFree(&Ibyte) ;
+  free(table) ;
+  return(total_entropy) ;
+}
 
