@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/08 17:08:59 $
-// Revision       : $Revision: 1.22 $
+// Revision Date  : $Date: 2004/07/08 17:17:52 $
+// Revision       : $Revision: 1.23 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -19,6 +19,7 @@
 #include "machine.h"
 #include "proto.h"
 #include "error.h"
+#include "mghendian.h"
 
 FILE *MGHopen_file(char *fname, char *rwmode)
 {

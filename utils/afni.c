@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/08 17:06:39 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2004/07/08 17:17:20 $
+// Revision       : $Revision: 1.5 $
 //
 // moved out from mriio.c
 //
@@ -17,6 +17,7 @@
 #include "mri.h"
 #include "AFNI.h"
 #include "machine.h"
+#include "mghendian.h"
 
 #ifdef Linux
 extern void swab(const void *from, void *to, size_t n);
