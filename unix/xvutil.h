@@ -59,6 +59,7 @@ typedef struct
   int         rescale_range ;
   int         frame ;
   int         used ;
+  int         entered ;   /* to prevent re-entrancy in repaint proc. */
 } DISPLAY_IMAGE, DIMAGE ;
 
 typedef struct
