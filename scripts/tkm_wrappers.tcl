@@ -33,7 +33,7 @@
 
 # tkm_SetMenuItemGroupStatus group_name 0|1
 
-# tkm_MakeEntryWithIncDecButtons fwFrame "Label" variable {function} step
+# tkm_MakeEntryWithIncDecButtons fwFrame "Label" variable {function} step range
 # tkm_MakeSlider fwFrame {"Left text" "Right text"} variable
 #                min max length {function} 1|0=include_entry [resolution] 
 #                [horizontal|vertical]
@@ -62,6 +62,11 @@
 # tkm_MakeApplyCloseButtons  fwFrame wwDlog {apply_function} [{close_function}]
 #                            [Apply_button_text]
 # tkm_MakeCancelOKButtons    fwFrame wwDlog {ok_fuction} [{cancel_function}]
+# tkm_MakeApplyCloseButtons  fwFrame wwDlog {apply_function} [{close_function}]
+#                            [Apply_button_text]
+# tkm_MakeDialogButtons      fwFrame wwDlog {button}
+# button = {type cmd [label]}
+# types: apply, OK, help, close
 
 # tkm_MakeFileSelector fwFrame "Prompt:" variable default_lcoation_func
 # tkm_UpdateFileSelectorVariable fwFrame
@@ -220,27 +225,27 @@ proc tkm_MakeCheckboxes { isFrame isDirection ilCheckboxes } {
     # for each checkbox...
     set nCheckbox 0
     foreach lCheckbox $ilCheckboxes {
-
+  
   # grab the type.
   set sType [lindex $lCheckbox 0]
   
   # make names for the checkbox and the label.
   set cbw $isFrame.cb$nCheckbox
   set lw  $isFrame.lw$nCheckbox
-
+  
   # text or image?
   switch $sType {
-
+      
       text {
     
     # text. make a normal checkbox and label.
     checkbutton $cbw \
-      -variable [lindex $lCheckbox 2] \
-      -command [lindex $lCheckbox 3]
+        -variable [lindex $lCheckbox 2] \
+        -command [lindex $lCheckbox 3]
     label $lw \
-      -font $kNormalFont \
-      -text [lindex $lCheckbox 1]
-
+        -font $kNormalFont \
+        -text [lindex $lCheckbox 1]
+    
     # if horizontal, pack all in the same row. if vertical.
     # pack the checkbox, than the label, in the
     # same row as the number of this checkbox.
@@ -248,7 +253,7 @@ proc tkm_MakeCheckboxes { isFrame isDirection ilCheckboxes } {
         h - x { 
       grid $cbw -column [expr 2 * $nCheckbox] -row 0
       grid $lw -column [expr 1 + [expr 2 *$nCheckbox]] \
-        -row 0 -sticky w
+          -row 0 -sticky w
         }
         v - y { 
       grid $cbw -column 0 -row $nCheckbox
@@ -260,12 +265,12 @@ proc tkm_MakeCheckboxes { isFrame isDirection ilCheckboxes } {
       image { 
     # image. create a checkbox with an image label. no text label.
     checkbutton $cbw \
-      -image [lindex $lCheckbox 1] \
-      -variable [lindex $lCheckbox 2] \
-      -command [lindex $lCheckbox 3] \
-      -indicatoron false \
-      -selectcolor gray
-
+        -image [lindex $lCheckbox 1] \
+        -variable [lindex $lCheckbox 2] \
+        -command [lindex $lCheckbox 3] \
+        -indicatoron false \
+        -selectcolor gray
+    
     # if horizontal, pack in increasing columns. if vertical,
     # pack in increasing rows.
     switch $isDirection {
@@ -277,7 +282,7 @@ proc tkm_MakeCheckboxes { isFrame isDirection ilCheckboxes } {
         }
     }
       }
-
+      
       default { continue }
   }
 
@@ -488,7 +493,7 @@ proc tkm_MakeEntry { isFrame isText iVariable {inWidth -1} {iSetFunction ""} } {
       -fill x
 
     if { $iSetFunction != "" } {
-  bind $isFrame.ewEntry <Return> "$iSetFunction [set $iVariable]"
+  bind $isFrame.ewEntry <Return> $iSetFunction
     }
 
 }
@@ -675,7 +680,7 @@ proc tkm_AddMenuItemsToMenu { isMenu ilMenuItems } {
     }
 }
 
-proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep } {
+proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep {iRange {}} } {
 
     global kLabelFont kNormalFont
     global $iVariable
@@ -691,6 +696,11 @@ proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep }
       -disablecallback true \
       -selectmode immediate
 
+    if {[llength $iRange] == 2} {
+  $isFrame.control config -min [lindex $iRange 0]
+  $isFrame.control config -max [lindex $iRange 1]
+    }
+
     tkm_EnableLater $isFrame.control
 
     $isFrame.control subwidget label configure -font $kNormalFont
@@ -698,44 +708,6 @@ proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep }
     pack $isFrame.control \
       -anchor w
 
-}
-
-proc nothing {} {
-
-    label $isFrame.lwText \
-      -text $isText \
-      -font $kNormalFont
-
-    entry $isFrame.ewEntry \
-      -textvariable $iVariable \
-      -width $inWidth
-    bind $isFrame.ewEntry <Return> $iSetFunc
-
-    button $isFrame.bwDec \
-      -text "-" \
-      -font $kNormalFont \
-      -padx 2 \
-      -pady 0 \
-      -bd 0
-    bind $isFrame.bwDec <ButtonRelease-1> $iDecFunc
-
-    button $isFrame.bwInc \
-      -text "+" \
-      -font $kNormalFont \
-      -padx 2 \
-      -pady 0 \
-      -bd 0
-    bind $isFrame.bwInc <ButtonRelease-1> $iIncFunc
-
-    pack $isFrame.lwText \
-      -side left \
-      -padx 2 \
-      -anchor w
-
-    pack $isFrame.bwInc $isFrame.bwDec $isFrame.ewEntry \
-      -side right \
-      -padx 2 \
-      -anchor e
 }
 
 # tkm_MakeSlider fwFrame {"prefix" "suffix"} var 0 100 50 {} 1 
@@ -906,12 +878,12 @@ proc tkm_DoSubPercent { isPercent isString isSubstitution } {
 # -cancelCmd string:    command to execute when cancel button is hit
 #
 proc tkm_DoFileDlog { ilArgs } {
-
+    
     global gDialog
-
+    
     set lFields {1 2 3 4 5}
     set knWidth 400
-
+    
     # set default arguments for all fields
     set tArgs(-title) "No title"
     set tArgs(-okCmd) "puts \$sFileName"
@@ -923,17 +895,17 @@ proc tkm_DoFileDlog { ilArgs } {
   set tArgs(-default$nField) ""
   set sFileName$nField ""
     }
-
+    
     # allow passed options to override defaults
     array set tArgs $ilArgs
-
+    
     # dialog name. make it the name of the title, subbing dashes for spaces.
     regsub -all { } .wwDlogFile$tArgs(-title) {-} wwDialog
 
     # do percent substitutions in ok command for %s1 thru %s5
     foreach nField $lFields {
   set tArgs(-okCmd) \
-    [tkm_DoSubPercent %s$nField $tArgs(-okCmd) \$sFileName$nField]
+      [tkm_DoSubPercent %s$nField $tArgs(-okCmd) \$sFileName$nField]
     }
     
     # if we can bring up the dialog
@@ -955,19 +927,19 @@ proc tkm_DoFileDlog { ilArgs } {
       # selecter widget. bind it to sFileName[1..5]
       switch $tArgs(-type$nField) {
     file { set sFileName$nField ""; \
-      tkm_MakeFileSelector [set fwPrompt$nField] \
-      "$tArgs(-prompt$nField)" sFileName$nField \
-      $tArgs(-default$nField) }
+         tkm_MakeFileSelector [set fwPrompt$nField] \
+         "$tArgs(-prompt$nField)" sFileName$nField \
+         $tArgs(-default$nField) }
     dir { set sFileName$nField ""; \
-      tkm_MakeDirectorySelector [set fwPrompt$nField] \
-      "$tArgs(-prompt$nField)" sFileName$nField \
-      $tArgs(-default$nField) }
+        tkm_MakeDirectorySelector [set fwPrompt$nField] \
+        "$tArgs(-prompt$nField)" sFileName$nField \
+        $tArgs(-default$nField) }
     text { set sFileName$nField $tArgs(-default$nField); \
-      tkm_MakeEntry [set fwPrompt$nField] \
-      "$tArgs(-prompt$nField)" sFileName$nField }
+         tkm_MakeEntry [set fwPrompt$nField] \
+         "$tArgs(-prompt$nField)" sFileName$nField }
     default { continue; }
       }
-
+      
       # if they requested a note, make one, otherwise just an empty
       # frame.
       set fwNote $wwDialog.fwNote$nField
@@ -976,14 +948,14 @@ proc tkm_DoFileDlog { ilArgs } {
       } else {
     frame $fwNote
       }
-
+      
       # pack this prompt and note
       pack [set fwPrompt$nField] $fwNote \
-        -side top       \
-        -expand yes     \
-        -fill x         \
-        -padx 5         \
-        -pady 5
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
   }
 
   # create the buttons. bind the ok command and the cancel command.
@@ -997,205 +969,265 @@ proc tkm_DoFileDlog { ilArgs } {
     catch { tkm_UpdateFileSelectorVariable $fwPrompt4 };\
     catch { tkm_UpdateFileSelectorVariable $fwPrompt5 };\
     $tArgs(-okCmd)" \
-    "$tArgs(-cancelCmd)"
-
+      "$tArgs(-cancelCmd)"
+  
   # pack the buttons
   pack  $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x         \
-    -padx 5         \
-    -pady 5
+      -side top       \
+      -expand yes     \
+      -fill x         \
+      -padx 5         \
+      -pady 5
   
   # after the next idle, the window will be mapped. set the min
   # width to our width and the min height to the mapped height.
   after idle [format {
       update idletasks
       wm minsize %s %d [winfo reqheight %s]
-  } $wwDialog $knWidth $wwDialog] 
-  }
+      wm geometry %s =%dx[winfo reqheight %s]
+  } $wwDialog $knWidth $wwDialog $wwDialog $knWidth $wwDialog]
+    }
 }
 
 
 
 proc tkm_MakeCancelApplyOKButtons { isFrame isTop iOKCmd {iCancelCmd ""} } {
-
-    global kLabelFont
-
-    frame $isFrame
-    
-    button $isFrame.bwApply \
-      -text "Apply" \
-      -command "$iOKCmd" \
-      -font $kLabelFont
-
-    button $isFrame.bwOK \
-      -text "OK" \
-      -command "$iOKCmd; Dialog_Close $isTop" \
-      -font $kLabelFont
-
-    button $isFrame.bwCancel \
-      -text "Cancel" \
-      -command "$iCancelCmd; Dialog_Close $isTop" \
-      -font $kLabelFont
-
-    bind $isTop <Return> \
-      "$isTop.fwButtons.bwOK flash; $isTop.fwButtons.bwOK invoke"
-    bind $isTop <space> \
-      "$isTop.fwButtons.bwApply flash; $isTop.fwButtons.bwApply invoke"
-    bind $isTop <Escape> \
-      "$isTop.fwButtons.bwCancel flash; $isTop.fwButtons.bwCancel invoke"
-    pack $isFrame.bwOK $isFrame.bwApply $isFrame.bwCancel \
-      -side right \
-      -padx 5 \
-      -pady 5
-
+    tkm_MakeDialogButtons $isFrame $isTop [list \
+       [list Apply "$iOKCmd"] \
+       [list Close "$iCancelCmd" "Cancel"] \
+       [list OK "$iOKCmd"] \
+    ]
 }
 
 proc tkm_MakeCloseButton { isFrame isTop {iCloseCmd ""} } {
-
-    global kLabelFont
-
-    frame $isFrame
-
-    button $isFrame.bwClose \
-      -text "Close" \
-      -command "$iCloseCmd; Dialog_Close $isTop" \
-      -font $kLabelFont
-
-    bind $isTop <Escape> \
-      "$isTop.fwButtons.bwClose flash; $isTop.fwButtons.bwClose invoke"
-    pack $isFrame.bwClose \
-      -side right \
-      -padx 5 \
-      -pady 5
-
+    tkm_MakeDialogButtons $isFrame $isTop [list \
+       [list Close "$iCloseCmd"] \
+    ]
 }
 
 proc tkm_MakeApplyCloseButtons { isFrame isTop iApplyCmd {iCloseCmd ""} {isApplyText "Apply"}} {
-
-    global kLabelFont
-
-    frame $isFrame
-    
-    button $isFrame.bwApply \
-      -text $isApplyText \
-      -command "$iApplyCmd" \
-      -font $kLabelFont
-
-    button $isFrame.bwClose \
-      -text "Close" \
-      -command "$iCloseCmd; Dialog_Close $isTop" \
-      -font $kLabelFont
-
-    bind $isTop <space> \
-      "$isTop.fwButtons.bwApply flash; $isTop.fwButtons.bwApply invoke"
-    bind $isTop <Escape> \
-      "$isTop.fwButtons.bwClose flash; $isTop.fwButtons.bwClose invoke"
-    pack $isFrame.bwApply $isFrame.bwClose \
-      -side right \
-      -padx 5 \
-      -pady 5
-
+    tkm_MakeDialogButtons $isFrame $isTop [list \
+       [list Apply "$iApplyCmd"] \
+       [list Close "$iCloseCmd"] \
+    ]
 }
 
 proc tkm_MakeCancelOKButtons { isFrame isTop iOKCmd {iCancelCmd ""} } {
-
-    global kLabelFont
-
-    frame $isFrame
-    
-    button $isFrame.bwOK \
-      -text "OK" \
-      -command "$iOKCmd; Dialog_Close $isTop" \
-      -font $kLabelFont
-
-    button $isFrame.bwCancel \
-      -text "Cancel" \
-      -command "$iCancelCmd; Dialog_Close $isTop" \
-      -font $kLabelFont
-
-    bind $isTop <Return> \
-      "$isTop.fwButtons.bwOK flash; $isTop.fwButtons.bwOK invoke"
-    bind $isTop <Escape> \
-      "$isTop.fwButtons.bwCancel flash; $isTop.fwButtons.bwCancel invoke"
-    pack $isFrame.bwOK $isFrame.bwCancel \
-      -side right \
-      -padx 5 \
-      -pady 5
-
+    tkm_MakeDialogButtons $isFrame $isTop [list \
+       [list OK "$iOKCmd"] \
+       [list Close "$iCancelCmd" "Cancel"] \
+    ]
 }
 
-proc tkm_MakeFileSelector { isFrame isText iVariable {iDefaultFunc ""}} {
+# tkm_MakeDialogButtons      fwFrame wwDlog {button}
+# button = {type cmd [label]}
+# types: apply, OK, help, close
+proc tkm_MakeDialogButtons { isFrame isTop ilButtons } {
 
+    set lButtonsToMake {}
+
+    # Use these to keep track of whether or not we should bind certain
+    # buttons. If we get the button in the list, we'll set its bind
+    # index here to the button index we got.
+    set nButton 0
+    set nBindClose -1
+    set nBindApply -1
+    set nBindOK -1
+
+    # Go through the list of buttons we got. First look for help
+    # buttons, then close, then apply, then OK, so we can build a
+    # button list to pass to tkm_MakeButtons later one. I use a switch
+    # statement here because the syntax is easier.
+    foreach lButton $ilButtons {
+  set sType [lindex $lButton 0]
+  switch $sType {
+      ok - OK {
+    set sCommand "[lindex $lButton 1]; Dialog_Close $isTop"
+    set sLabel "OK"
+    if {[llength $lButton] == 3} {
+        set sLabel [lindex $lButton 2]
+    }
+    lappend lButtonsToMake [list text $sLabel $sCommand]
+    set nBindOK $nButton
+    incr nButton
+      }
+  }
+    }
+    foreach lButton $ilButtons {
+  set sType [lindex $lButton 0]
+  switch $sType {
+      apply - Apply {
+    set sCommand [lindex $lButton 1]
+    set sLabel "Apply"
+    if {[llength $lButton] == 3} {
+        set sLabel [lindex $lButton 2]
+    }
+    lappend lButtonsToMake [list text $sLabel $sCommand]
+    set nBindApply $nButton
+    incr nButton
+      }
+  }
+    }
+    foreach lButton $ilButtons {
+  set sType [lindex $lButton 0]
+  switch $sType {
+      close - Close {
+    set sCommand "[lindex $lButton 1]; Dialog_Close $isTop"
+    set sLabel "Close"
+    if {[llength $lButton] == 3} {
+        set sLabel [lindex $lButton 2]
+    }
+    lappend lButtonsToMake [list text $sLabel $sCommand]
+    set nBindClose $nButton
+    incr nButton
+      }
+  }
+    }
+    foreach lButton $ilButtons {
+  set sType [lindex $lButton 0]
+  switch $sType {
+      help - Help {
+    set sCommand [lindex $lButton 1]
+    set sLabel "Help"
+    if {[llength $lButton] == 3} {
+        set sLabel [lindex $lButton 2]
+    }
+    lappend lButtonsToMake [list text $sLabel $sCommand]
+    incr nButton
+      }
+  }
+    }
+
+    # Now pass the list we made to tkm_MakeButtons.
+    tkm_MakeButtons $isFrame $lButtonsToMake
+
+    # Now do the bindings. bind Return key to OK, space bar to Apply,
+    # and Escape to Close. Note that we refer to the buttons by name,
+    # and this is dependent on how tkm_MakeButtons names the buttons.
+    if { $nBindOK > -1 } {
+  bind $isTop <Return> \
+      "$isFrame.bw$nBindOK flash; $isFrame.bw$nBindOK invoke"
+    }
+    if { $nBindApply > -1 } {
+  bind $isTop <space> \
+      "$isFrame.bw$nBindApply flash; $isFrame.bw$nBindApply invoke"
+    }
+    if { $nBindClose > -1 } {
+  bind $isTop <Escape> \
+      "$isFrame.bw$nBindClose flash; $isFrame.bw$nBindClose invoke"
+    }
+}
+
+# ================================================== FILE AND DIR SELECTORS
+
+proc tkm_MakeFileSelector { isFrame isText iVariable {iDefaultFunc ""}} {
+    
     frame $isFrame -width 200
     
-    upvar $iVariable theVar 
-
-    tixFileEntry $isFrame.few \
-      -label $isText \
-      -labelside top \
-      -variable $iVariable \
-      -options {
-         entry.expand yes
-         entry.fill x
-             }
+    # the entry
+    tixLabelEntry $isFrame.ew \
+  -label $isText \
+  -labelside acrosstop \
+  -options "entry.textVariable $iVariable \
+      entry.expand yes \
+      entry.fill x"
     
-    # set the value of the field to the value of the variable
-    $isFrame.few config -value $theVar
+    # the browse button
+    button $isFrame.bw \
+  -text "Browse..." \
+  -command "tkm_BrowseFile $iVariable {$iDefaultFunc}"
+
+    # pack it in a grid
+    grid $isFrame.ew -column 0 -row 0 -sticky ew
+    grid $isFrame.bw -column 1 -row 0
+    grid columnconfigure $isFrame 0 -weight 1
+    grid columnconfigure $isFrame 1 -weight 0
+}
+
+proc tkm_BrowseFile { iVariable {iDefaultFunc ""} } {
+    
+    # create the dialog box if it doesn't already exist
+    set wwDirDlog [tix filedialog tixFileSelectDialog]
 
     # set the default location 
     if { $iDefaultFunc != "" } {
-  $isFrame.few filedialog subwidget fsbox configure -directory \
-    [eval $iDefaultFunc]
+#  [$wwDirDlog subwidget filebox] \
+      subwidget dirlist configure -value [eval $iDefaultFunc]
     }
-
-    pack $isFrame.few \
-      -side left \
-      -expand yes \
-      -fill x
+    
+    # when they click ok, call the tkm_HandleSelectDirectory function,
+    # passing in the variable from the parent dialog.
+    $wwDirDlog config -command "tkm_HandleSelectDirectory $iVariable"
+    
+    $wwDirDlog popup
 }
 
-proc tkm_UpdateFileSelectorVariable { isFrame } {
+proc tkm_HandleSelectFile { iVariable iFile } {
+    # set the variable.
+    upvar $iVariable theVar 
+    set theVar $iFile
+}
 
-    $isFrame.few update
+proc tkm_UpdateDirectoryFileVariable { isFrame } {
+    $isFrame.ew update;
 }
 
 proc tkm_MakeDirectorySelector { isFrame isText iVariable {iDefaultFunc ""}} {
     
     frame $isFrame -width 200
     
-    upvar $iVariable theVar 
-
-    tixFileEntry $isFrame.few \
-      -label $isText \
-      -labelside top \
-      -variable $iVariable \
-      -dialogtype tixDirSelectDialog \
-      -options {
-          entry.expand yes
-          entry.fill x
-            }
+    # the entry
+    tixLabelEntry $isFrame.ew \
+  -label $isText \
+  -labelside acrosstop \
+  -options "entry.textVariable $iVariable \
+      entry.expand yes \
+      entry.fill x"
     
-    # set the value of the field to the value of the variable
-    $isFrame.few config -value $theVar
+    # the browse button
+    button $isFrame.bw \
+  -text "Browse..." \
+  -command "tkm_BrowseDirectory $iVariable {$iDefaultFunc}"
+
+    # pack it in a grid
+    grid $isFrame.ew -column 0 -row 0 -sticky ew
+    grid $isFrame.bw -column 1 -row 0
+    grid columnconfigure $isFrame 0 -weight 1
+    grid columnconfigure $isFrame 1 -weight 0
+}
+
+proc tkm_BrowseDirectory { iVariable {iDefaultFunc ""} } {
+    
+    # create the dialog box if it doesn't already exist
+    set wwDirDlog .wwDirDlog
+    if ![winfo exists $wwDirDlog] {
+  tixDirSelectDialog $wwDirDlog
+    }
 
     # set the default location 
     if { $iDefaultFunc != "" } {
-  [$isFrame.few filedialog subwidget dirbox] \
-    subwidget dirlist configure -value [eval $iDefaultFunc]
+  [$wwDirDlog subwidget dirbox] \
+      subwidget dirlist configure -value [eval $iDefaultFunc]
     }
     
-    pack $isFrame.few \
-      -side left \
-      -expand yes \
-      -fill x
+    # when they click ok, call the tkm_HandleSelectDirectory function,
+    # passing in the variable from the parent dialog.
+    $wwDirDlog config -command "tkm_HandleSelectDirectory $iVariable"
+    
+    $wwDirDlog popup
+}
+
+proc tkm_HandleSelectDirectory { iVariable iDir } {
+    # set the variable.
+    upvar $iVariable theVar 
+    set theVar $iDir
 }
 
 proc tkm_UpdateDirectorySelectorVariable { isFrame } {
-
-    $isFrame.few update;
+    $isFrame.ew update;
 }
+
+# =========================================================================
 
 proc tkm_AddItemToMenuGroup { isGroupName ifwMenuObject inMenuItemNum } {
     
