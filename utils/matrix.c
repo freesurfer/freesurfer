@@ -2059,7 +2059,7 @@ MatrixWriteTxt(char *fname, MATRIX *mat)
 
   fp = fopen(fname, "w") ;
   if (!fp)
-    ErrorReturn(NULL,
+    ErrorReturn(ERROR_NO_FILE,
                 (ERROR_NO_FILE, "MatrixWriteTxt(%s) - file open failed\n", 
                  fname));
 
