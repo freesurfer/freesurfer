@@ -665,6 +665,13 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
 	mri_dst->c_a = tran->dst.c_a;
 	mri_dst->c_s = tran->dst.c_s;
 	mri_dst->ras_good_flag = 1;
+	// now we cache transform and thus we have to do the following whenever
+	// we change direction cosines
+	if (mri_dst->i_to_r__) { MatrixFree(&mri_dst->i_to_r__); mri_dst->i_to_r__ = 0; }
+	if (mri_dst->r_to_i__) { MatrixFree(&mri_dst->r_to_i__); mri_dst->r_to_i__ = 0; }
+	mri_dst->i_to_r__ = extract_i_to_r(mri_dst);
+	mri_dst->r_to_i__ = extract_r_to_i(mri_dst);
+	
       }
       else if(getenv("USE_AVERAGE305"))
       {
@@ -674,6 +681,12 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
 	mri_dst->c_a = -16.5100;
 	mri_dst->c_s = 9.7500;
 	mri_dst->ras_good_flag = 1;
+	// now we cache transform and thus we have to do the following whenever
+	// we change direction cosines
+	if (mri_dst->i_to_r__) { MatrixFree(&mri_dst->i_to_r__); mri_dst->i_to_r__ = 0; }
+	if (mri_dst->r_to_i__) { MatrixFree(&mri_dst->r_to_i__); mri_dst->r_to_i__ = 0; }
+	mri_dst->i_to_r__ = extract_i_to_r(mri_dst);
+	mri_dst->r_to_i__ = extract_r_to_i(mri_dst);
       }
       else
 	fprintf(stderr, "INFO: Transform dst volume info is not used (valid flag = 0).\n");
