@@ -1131,7 +1131,7 @@ gcamSmoothGradient(GCA_MORPH *gcam, double sigma)
 #endif
 
 MRI *
-GCAMapplyMorph(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
+GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
 {
   int        width, height, depth, x, y, z,
              xm1, ym1, zm1, xp1, yp1, zp1 ;
@@ -1278,7 +1278,7 @@ GCAMapplyMorph(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
 }
 
 MRI *
-GCAMapplyInverseMorph(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed)
+GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed)
 {
   int        width, height, depth, x, y, z ;
   float      xd, yd, zd ;
@@ -1313,7 +1313,7 @@ GCAMapplyInverseMorph(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed)
         default:
           ErrorReturn(NULL, 
                       (ERROR_UNSUPPORTED, 
-                       "GCAMapplyInverseMorph: unsupported volume type %d",
+                       "GCAMmorphToAtlas: unsupported volume type %d",
                        mri_morphed->type)) ;
           break ;
         }
@@ -1447,7 +1447,7 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
   GCA_MORPH_NODE *gcamn ;
   int            x, y, z, xv, yv, zv ;
 
-  mri_morphed = GCAMapplyInverseMorph(parms->mri, gcam, NULL) ;
+  mri_morphed = GCAMmorphToAtlas(parms->mri, gcam, NULL) ;
   sprintf(base_name, "%s_%3.3d", parms->base_name, iter) ;
   sprintf(fname, "%s.mgh", base_name) ;
   printf("writing snapshot to %s\n", fname) ;

@@ -19,7 +19,7 @@
 #include "cma.h"
 #include "vlabels.h"
 
-static char vcid[] = "$Id: mri_twoclass.c,v 1.4 2001/06/27 21:50:38 fischl Exp $";
+static char vcid[] = "$Id: mri_twoclass.c,v 1.5 2002/07/19 16:32:16 fischl Exp $";
 
 
 /*-------------------------------- STRUCTURES ----------------------------*/
@@ -55,10 +55,10 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 static int  add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,
-                                         float resolution, LTA *lta);
+                                         float resolution, TRANSFORM *transform);
 
 static int voxel_to_node(MRI *mri, float resolution, int xv, int yv, int zv, 
-                         int *pxn, int *pyn, int *pzn, LTA *lta) ;
+                         int *pxn, int *pyn, int *pzn, TRANSFORM *transform) ;
 static char *xform_fname = "talairach.lta" ;
 static MRI *compute_voxel_statistics(VL ***voxel_labels_class1, 
                                      VL ***voxel_labels_class2,
@@ -96,7 +96,7 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds ;
   VL           ***voxel_labels_class1 = NULL, ***voxel_labels_class2=NULL, 
                ***vls ;
-  LTA          *lta ;
+  TRANSFORM    *transform ;
   VLI          *vli1 = NULL, *vli2 = NULL ;
   
 
@@ -208,10 +208,11 @@ main(int argc, char *argv[])
                   Progname, fname) ;
       sprintf(fname, "%s/%s/mri/transforms/%s", subjects_dir,subject_name,
               xform_fname);
-      lta = LTAread(fname) ;
-      if (!lta)
+      transform = TransformRead(fname) ;
+      if (!transform)
         ErrorExit(ERROR_NOFILE, "%s: could not read transform %s",
                   Progname, fname) ;
+      TransformInvert(transform, mri) ;
 
 
       if (!width)
@@ -230,8 +231,8 @@ main(int argc, char *argv[])
       }
 
       vls = n < num_class1 ? voxel_labels_class1 : voxel_labels_class2 ;
-      add_volume_labels_to_average(mri, vls, resolution, lta) ;
-      MRIfree(&mri) ; LTAfree(&lta) ;
+      add_volume_labels_to_average(mri, vls, resolution, transform) ;
+      MRIfree(&mri) ; TransformFree(&transform) ;
     }
   }
 
@@ -423,7 +424,7 @@ print_version(void)
 
 static int
 add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,float resolution, 
-                             LTA *lta)
+                             TRANSFORM *transform)
 {
   int          x, y, z, width, height, depth, index, label, xv, yv, zv ;
   VOXEL_LABELS *vl ;
@@ -438,7 +439,7 @@ add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,float resolution,
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         label = MRIvox(mri, x, y, z) ;
-        voxel_to_node(mri, resolution, x, y, z, &xv, &yv, &zv, lta) ;
+        voxel_to_node(mri, resolution, x, y, z, &xv, &yv, &zv, transform) ;
         index = find_label_index(voxel_labels, xv, yv, zv,label) ;
         if (xv == Gxn && yv == Gyn && zv == Gzn)
           printf("(%d, %d, %d) --> (%d,%d,%d), label = %d\n",
@@ -501,15 +502,42 @@ add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,float resolution,
 
 static int
 voxel_to_node(MRI *mri, float resolution, int xv, int yv, int zv, 
-              int *pxn, int *pyn, int *pzn, LTA *lta)
+              int *pxn, int *pyn, int *pzn, TRANSFORM *transform)
 {
-  static VECTOR *v_input, *v_canon = NULL ;
+#if 1
   float  xt, yt, zt, xscale, yscale, zscale ;
   int    width, height, depth ;
 
-  xscale = mri->xsize / resolution ;
+  TransformSample(transform, xv*mri->xsize, yv*mri->ysize, zv*mri->zsize, &xt, &yt, &zt) ;
+
+  xt = nint(xt/mri->xsize) ; yt = nint(yt/mri->ysize) ; zt = nint(zt/mri->zsize); 
+  width = mri->width/resolution ;
+  height = mri->height/resolution ;
+  depth = mri->depth/resolution ;
+  xscale = mri->xsize / resolution ; 
   yscale = mri->ysize / resolution ;
   zscale = mri->zsize / resolution ;
+  *pxn = nint((xt) * xscale) ;
+  if (*pxn < 0)
+    *pxn = 0 ;
+  else if (*pxn >= width)
+    *pxn = width-1 ;
+
+  *pyn = nint((yt) * yscale) ;
+  if (*pyn < 0)
+    *pyn = 0 ;
+  else if (*pyn >= height)
+    *pyn = height-1 ;
+
+  *pzn = nint((zt) * zscale) ;
+  if (*pzn < 0)
+    *pzn = 0 ;
+  else if (*pzn >= depth)
+    *pzn = depth-1 ;
+#else
+  static VECTOR *v_input, *v_canon = NULL ;
+  int    width, height, depth ;
+
 
   width = mri->width * xscale ;
   height = mri->height * yscale ;
@@ -551,7 +579,7 @@ voxel_to_node(MRI *mri, float resolution, int xv, int yv, int zv,
     *pzn = 0 ;
   else if (*pzn >= depth)
     *pzn = depth-1 ;
-
+#endif
   return(NO_ERROR) ;
 }
 

@@ -72,8 +72,8 @@ int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
 int       GCAMwrite(GCA_MORPH *gcam, char *fname) ;
 GCA_MORPH *GCAMread(char *fname) ;
 int       GCAMfree(GCA_MORPH **pgcam) ;
-MRI       *GCAMapplyMorph(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst) ;
-MRI       *GCAMapplyInverseMorph(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst) ;
+MRI       *GCAMmorphFromAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst) ;
+MRI       *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst) ;
 int       GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 int       GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, 
                             GCA_MORPH_PARMS *parms) ;
