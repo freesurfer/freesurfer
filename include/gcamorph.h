@@ -110,6 +110,8 @@ int       GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam) ;
 int       GCAMcomputeOriginalProperties(GCA_MORPH *gcam) ;
 int       GCAMstoreMetricProperties(GCA_MORPH *gcam) ;
 int       GCAMcopyNodePositions(GCA_MORPH *gcam, int from, int to) ;
+MRI       *GCAMextract_density_map(MRI *mri_seg, MRI *mri_intensity, GCA_MORPH *gcam, int label, MRI *mri_out) ;
+int       GCAMsample(GCA_MORPH *gcam, float xv, float yv, float zv, float *px, float *py, float *pz) ;
 
 #define GCAM_IGNORE_LIKELIHOOD 0x0001
 #define GCAM_USE_LIKELIHOOD    0x0000
