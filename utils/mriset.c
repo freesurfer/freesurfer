@@ -305,33 +305,67 @@ MRIerode(MRI *mri_src, MRI *mri_dst)
   else
     same = 0 ;
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
-        min_val = 255 ;
-        for (z0 = -1 ; z0 <= 1 ; z0++)
-        {
-          zi = mri_src->zi[z+z0] ;
-          for (y0 = -1 ; y0 <= 1 ; y0++)
-          {
-            yi = mri_src->yi[y+y0] ;
-            for (x0 = -1 ; x0 <= 1 ; x0++)
-            {
-              xi = mri_src->xi[x+x0] ;
-              val = MRIvox(mri_src, xi,yi,zi) ;
-              if (val < min_val)
-                min_val = val ;
-            }
-          }
-        }
-        *pdst++ = min_val ;
-      }
-    }
-  }
+	if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR)
+	{
+		Real fmin_val, fval ;
+
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					fmin_val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+					for (z0 = -1 ; z0 <= 1 ; z0++)
+					{
+						zi = mri_src->zi[z+z0] ;
+						for (y0 = -1 ; y0 <= 1 ; y0++)
+						{
+							yi = mri_src->yi[y+y0] ;
+							for (x0 = -1 ; x0 <= 1 ; x0++)
+							{
+								xi = mri_src->xi[x+x0] ;
+								fval = MRIgetVoxVal(mri_src, xi,yi,zi, 0) ;
+								if (fval < fmin_val)
+									fmin_val = fval ;
+							}
+						}
+					}
+					MRIsetVoxVal(mri_dst, x, y, z, 0, fmin_val) ;
+				}
+			}
+		}
+	}
+	else
+	{
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				pdst = &MRIvox(mri_dst, 0, y, z) ;
+				for (x = 0 ; x < width ; x++)
+				{
+					min_val = 255 ;
+					for (z0 = -1 ; z0 <= 1 ; z0++)
+					{
+						zi = mri_src->zi[z+z0] ;
+						for (y0 = -1 ; y0 <= 1 ; y0++)
+						{
+							yi = mri_src->yi[y+y0] ;
+							for (x0 = -1 ; x0 <= 1 ; x0++)
+							{
+								xi = mri_src->xi[x+x0] ;
+								val = MRIvox(mri_src, xi,yi,zi) ;
+								if (val < min_val)
+									min_val = val ;
+							}
+						}
+					}
+					*pdst++ = min_val ;
+				}
+			}
+		}
+	}
   if (same)
   {
     MRIcopy(mri_dst, mri_src) ;
