@@ -300,6 +300,9 @@ int open_window(char *name) ;
 void draw_surface(void) ;
 int read_binary_surface(char *fname) ;
 int read_surface(char *fname) ;
+void show_orig_surface(void) ;
+void show_current_surface(void) ;
+int read_orig_vertex_positions(char *name) ;
 int read_binary_surf(char *fname) ;
 int show_vertex(void) ;
 int dump_vertex(int vno) ;
@@ -3901,6 +3904,38 @@ draw_second_image(int imc, int ic, int jc)
   }
 }
 
+void
+show_orig_surface(void)
+{
+  MRISrestoreVertexPositions(mris, ORIG_VERTICES) ;
+  redraw() ;
+}
+void
+show_current_surface(void)
+{
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  redraw() ;
+}
+
+int
+read_orig_vertex_positions(char *name)
+{
+  char fname[STRLEN], *cp ;
+
+  if (!mris)
+    return(NO_ERROR) ;
+
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  if (MRISreadVertexPositions(mris, name) != NO_ERROR)
+  {
+    fprintf(stderr, "could not read original vertex positions from %s\n",name);
+    return(Gerror) ;
+  }
+  MRISsaveVertexPositions(mris, ORIG_VERTICES) ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  return(NO_ERROR) ;
+}
+
 int
 read_surface(char *name)
 {
@@ -5392,6 +5427,18 @@ int                  W_read_surface  WBEGIN
   ERR(2,"Wrong # args: read_surface <surface file>")
                        read_surface(argv[1]); WEND
 
+int                  W_read_orig_vertex_positions  WBEGIN
+  ERR(2,"Wrong # args: read_orig_vertex_positions <surface file>")
+                       read_orig_vertex_positions(argv[1]); WEND
+
+int                  W_show_current_surface  WBEGIN
+  ERR(1,"Wrong # args: show_current_surface ")
+                       show_current_surface(); WEND
+
+int                  W_show_orig_surface  WBEGIN
+  ERR(1,"Wrong # args: show_orig_surface ")
+                       show_orig_surface(); WEND
+
 int                  W_wmfilter_corslice  WBEGIN
   ERR(1,"Wrong # args: wmfilter_corslice")
                        wmfilter_corslice(imc); WEND
@@ -5544,6 +5591,12 @@ char **argv;
   Tcl_CreateCommand(interp, "dump_vertex",        W_dump_vertex,   REND);
   Tcl_CreateCommand(interp, "read_binary_surf",   W_read_binary_surf,   REND);
   Tcl_CreateCommand(interp, "read_surface",       W_read_surface,   REND);
+  Tcl_CreateCommand(interp, "read_orig_vertex_positions",       
+                    W_read_orig_vertex_positions,   REND);
+
+  Tcl_CreateCommand(interp, "orig",               W_show_orig_surface,REND);
+  Tcl_CreateCommand(interp, "current",             W_show_current_surface,REND);
+  
   Tcl_CreateCommand(interp, "wmfilter_corslice",  W_wmfilter_corslice,  REND);
   Tcl_CreateCommand(interp, "norm_slice",         W_norm_slice,         REND);
   Tcl_CreateCommand(interp, "norm_allslices",     W_norm_allslices,     REND);
