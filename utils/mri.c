@@ -7438,13 +7438,13 @@ and for dest
         if(dest->type == MRI_UCHAR)
           MRIvox(dest, di, dj, dk) = (unsigned char)val;
         if(dest->type == MRI_SHORT)
-          MRISvox(dest, di, dj, dk) = (unsigned char)val;
+          MRISvox(dest, di, dj, dk) = (short)val;
         if(dest->type == MRI_INT)
-          MRIIvox(dest, di, dj, dk) = (unsigned char)val;
+          MRIIvox(dest, di, dj, dk) = (int)val;
         if(dest->type == MRI_LONG)
-          MRILvox(dest, di, dj, dk) = (unsigned char)val;
+          MRILvox(dest, di, dj, dk) = (long)val;
         if(dest->type == MRI_FLOAT)
-          MRIFvox(dest, di, dj, dk) = (unsigned char)val;
+          MRIFvox(dest, di, dj, dk) = (float)val;
 
       }
     }
