@@ -56,17 +56,6 @@
 #define CHAR_HEIGHT          20
 #define CHAR_PAD             5
 
-#define ROW_HEIGHT           30
-#define FIRST_BUTTON_ROW     30
-#define SECOND_BUTTON_ROW    60
-#define THIRD_BUTTON_ROW     90
-#define FOURTH_BUTTON_ROW    120
-#define FIFTH_BUTTON_ROW     150
-#define SIXTH_BUTTON_ROW     180
-#define SEVENTH_BUTTON_ROW   210
-#define EIGHTH_BUTTON_ROW    240
-#define LAST_BUTTON_ROW      EIGHTH_BUTTON_ROW
-
 #define FIRST_BUTTON_COL     5
 #define SECOND_BUTTON_COL    60
 #define THIRD_BUTTON_COL     200
