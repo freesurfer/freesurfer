@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.47 2004/05/20 15:55:40 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.48 2004/10/27 20:30:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -240,12 +240,12 @@ main(int argc, char *argv[])
       mri_grad = MRIsobel(mri_smooth, NULL, NULL) ;
       mri_dir = MRIdirectionMapUchar(mri_grad, NULL, 5) ;
       MRIfree(&mri_grad) ; 
-      MRIwrite(mri_dir, "dir.mgh") ;
+      MRIwrite(mri_dir, "dir.mgz") ;
 #else
       mri_dir = MRIgradientDir2ndDerivative(mri_tmp, NULL, 5) ;
       MRIscaleAndMultiply(mri_tmp, 128.0, mri_dir, mri_tmp) ;
-      MRIwrite(mri_dir, "lap.mgh") ;
-      MRIwrite(mri_tmp, "filtered.mgh") ;
+      MRIwrite(mri_dir, "lap.mgz") ;
+      MRIwrite(mri_tmp, "filtered.mgz") ;
 #endif
       MRIfree(&mri_dir) ; MRIfree(&mri_smooth) ;
       exit(1) ;
@@ -427,8 +427,8 @@ main(int argc, char *argv[])
     MRIfree(&mri_eq) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      fprintf(stderr, "writing equalized volume to %s...\n", "heq.mgh") ;
-      MRIwrite(mri_inputs, "heq.mgh") ;
+      fprintf(stderr, "writing equalized volume to %s...\n", "heq.mgz") ;
+      MRIwrite(mri_inputs, "heq.mgz") ;
     }
   }
 
@@ -438,7 +438,7 @@ main(int argc, char *argv[])
     mri_labeled = MRIread(read_fname) ;
     if (!mri_labeled)
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
-                Progname, out_fname) ;
+                Progname, read_fname) ;
   }
   else
   {
@@ -473,7 +473,7 @@ main(int argc, char *argv[])
 			if (gca_write_iterations != 0)
 			{
 				char fname[STRLEN] ;
-				sprintf(fname, "%s_pre.mgh", gca_write_fname) ;
+				sprintf(fname, "%s_pre.mgz", gca_write_fname) ;
 				printf("writing snapshot to %s...\n", fname) ;
 				MRIwrite(mri_labeled, fname) ;
 			}
@@ -507,7 +507,7 @@ main(int argc, char *argv[])
 			mri_labeled = MRIread(read_fname) ;
 			if (!mri_labeled)
 				ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
-									Progname, out_fname) ;
+									Progname, read_fname) ;
 			printf("applying transform %s to previously computed segmentation %s\n",
 						 reg_fname, read_fname) ;
 			transform = TransformRead(reg_fname) ;
@@ -526,7 +526,7 @@ main(int argc, char *argv[])
 			if (gca_write_iterations != 0)
 			{
 				char fname[STRLEN] ;
-				sprintf(fname, "%s_pre.mgh", gca_write_fname) ;
+				sprintf(fname, "%s_pre.mgz", gca_write_fname) ;
 				printf("writing snapshot to %s...\n", fname) ;
 				MRIwrite(mri_labeled, fname) ;
 			}
@@ -575,7 +575,7 @@ main(int argc, char *argv[])
   if (gca_write_iterations != 0)
   {
     char fname[STRLEN] ;
-    sprintf(fname, "%s_post.mgh", gca_write_fname) ;
+    sprintf(fname, "%s_post.mgz", gca_write_fname) ;
     printf("writing snapshot to %s...\n", fname) ;
     MRIwrite(mri_labeled, fname) ;
   }
@@ -1035,7 +1035,7 @@ preprocess(MRI *mri_inputs, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
   if (gca_write_iterations != 0)
   {
     char fname[STRLEN] ;
-    sprintf(fname, "%s_cortex.mgh", gca_write_fname) ;
+    sprintf(fname, "%s_cortex.mgz", gca_write_fname) ;
     printf("writing snapshot to %s...\n", fname) ;
     MRIwrite(mri_labeled, fname) ;
   }
@@ -1056,7 +1056,7 @@ preprocess(MRI *mri_inputs, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
     if (gca_write_iterations != 0)
     {
       char fname[STRLEN] ;
-      sprintf(fname, "%s_temporal.mgh", gca_write_fname) ;
+      sprintf(fname, "%s_temporal.mgz", gca_write_fname) ;
       printf("writing snapshot to %s...\n", fname) ;
       MRIwrite(mri_labeled, fname) ;
     }
@@ -2358,8 +2358,8 @@ insert_thin_temporal_white_matter(MRI *mri_inputs, MRI *mri_labeled,
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     printf("writing temporal lobe volume...") ;
-    MRIwrite(mri_tmp, "temp.mgh") ;
-    MRIwrite(mri_probs, "probs.mgh") ;
+    MRIwrite(mri_tmp, "temp.mgz") ;
+    MRIwrite(mri_probs, "probs.mgz") ;
   }
   
   for (i = 0 ; i < nsamples ; i++)
