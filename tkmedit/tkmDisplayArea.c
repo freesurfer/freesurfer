@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/02/26 22:04:38 $
-// Revision       : $Revision: 1.51 $
+// Revision Date  : $Date: 2003/03/10 23:27:54 $
+// Revision       : $Revision: 1.52 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -2621,6 +2621,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 	
       } else {
 	
+	parcBrush.mDest = segType;
 	eResult = DspA_BrushVoxels_( this, pVolumeVox,  
 				     NULL, DspA_EditSegmentationVoxels_ );
 	if( DspA_tErr_NoErr != eResult )
