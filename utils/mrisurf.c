@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/02/14 04:33:07 $
-// Revision       : $Revision: 1.332 $
+// Revision Date  : $Date: 2005/02/24 17:09:17 $
+// Revision       : $Revision: 1.333 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -4296,6 +4296,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         MRISfromParameterization(mrisp_template, mris, ino);
 				MRISnormalizeCurvature(mris) ;
         sprintf(fname, "%s/%s.target", path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh") ;
+				
         if (Gdiag & DIAG_SHOW)
           fprintf(stdout, "writing curvature file %s...\n", fname) ;
         MRISwriteCurvature(mris, fname) ;
@@ -32561,7 +32562,6 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 			ne/=2;
 			fprintf(stdout,"After retessellation of defect %d, we have euler=%d (%d,%d,%d)\n\n",i,nv+nf-ne,nv,ne,nf);
 		}
-		exit(-1);
   }
 	
 
