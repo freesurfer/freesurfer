@@ -1153,6 +1153,7 @@ MATRIX* conv_mnital_to_tal_m_ltz = NULL;
 MATRIX* conv_mnital_to_tal_m_gtz = NULL;
 MATRIX* conv_tmp1_m = NULL;
 MATRIX* conv_tmp2_m = NULL;
+MATRIX* surfaceRAStoRAS = NULL;
 
 MRI* origMRI = NULL;
 
@@ -5840,13 +5841,16 @@ read_image_info(char *fpref)
 void
 read_talairach(char *fname)    /* marty: ignore abs paths in COR-.info */
 {
-  lta = LTAread(fname) ;
+  lta = LTAreadEx(fname) ;
   if (lta==NULL)
     printf("surfer: Talairach xform file not found (ignored)\n");
   else
     {
       transform_loaded = TRUE;
-      lta->xforms[0].m_L = DevolveXFM(pname, lta->xforms[0].m_L, fname);
+      if( lta->type == LINEAR_VOX_TO_VOX ) 
+	{
+	  lta->xforms[0].m_L = DevolveXFM(pname, lta->xforms[0].m_L, fname);
+	}
     }
 }
 
@@ -18144,7 +18148,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.58 2003/10/27 16:27:01 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.59 2003/10/31 20:11:35 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20636,6 +20640,10 @@ int conv_initialize()
 	  printf ("WARNING: Couldn't not load orig volume from %s\n"
 		  "         Talairach coords will be incorrect.\n", fname);
 	}
+      else 
+	{
+	  surfaceRAStoRAS = surfaceRASFromRAS_( origMRI );
+	}
     }
 
   return(NO_ERROR);
@@ -20663,9 +20671,11 @@ int conv_ras_to_mnital(float srasx, float srasy, float srasz,
     }
   
   /* Run the talairach transformation. */
-  if (transform_loaded && NULL != lta) 
+  if (transform_loaded && 
+      NULL != lta &&
+      lta->type == LINEAR_RAS_TO_RAS) 
     {
-      LTAworldToWorld (lta, rasx, rasy, rasz, mnix, mniy, mniz);
+      LTAworldToWorldEx (lta, rasx, rasy, rasz, mnix, mniy, mniz);
     }
 
   return(NO_ERROR);
