@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/05/27 21:28:14 $
-// Revision       : $Revision: 1.19 $
+// Revision Date  : $Date: 2003/06/17 15:14:58 $
+// Revision       : $Revision: 1.20 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.19 $";
+char *MRI_INFO_VERSION = "$Revision: 1.20 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.19 2003/05/27 21:28:14 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.20 2003/06/17 15:14:58 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -131,11 +131,6 @@ static void do_file(char *fname)
 	 mri->type == MRI_BITMAP  ? "BITMAP" :
 	 mri->type == MRI_TENSOR  ? "TENSOR" :
 	 mri->type == MRI_FLOAT   ? "FLOAT" : "UNKNOWN", mri->type) ;
-  printf("slice directon: %s (%d)\n",
-	 mri->slice_direction == MRI_CORONAL    ? "CORONAL" :
-	 mri->slice_direction == MRI_SAGITTAL   ? "SAGITTAL" :
-	 mri->slice_direction == MRI_HORIZONTAL ? "HORIZONTAL" : "UNKNOWN",
-	 mri->slice_direction) ;
   printf("           fov: %2.3f\n", mri->fov) ;
   printf("        xstart: %2.1f, xend: %2.1f\n", mri->xstart, mri->xend) ;
   printf("        ystart: %2.1f, yend: %2.1f\n", mri->ystart, mri->yend) ;
