@@ -56,7 +56,23 @@ typedef struct _LOGPIX
   struct _LOGPIX    *nbd[9] ;    /* 8-connected neighbors and self */
   float  rho ;           /* radial log coordinate */
   float  phi ;           /* angular log coordinate */
+  int    ncpix ;         /* # of cart. pix that map to this logpix */
 } LOGPIX ;
+
+#define MAX_PIX  5
+typedef struct
+{
+  int npix ;      /* # of log pix that this cart. pixel contributes to */
+  /* array of log pixels that this pixel contributes to */
+  LOGPIX *logpix[MAX_PIX] ;
+} CARTESIAN_PIXEL, CP ;
+
+typedef struct
+{
+  int    rows ;
+  int    cols ;
+  CP     *pix ;    /* array of LUTs for doing mapping */
+} CARTESIAN_MAP_INFO, CMI ;
 
 typedef struct
 {
@@ -82,6 +98,7 @@ typedef struct
   float   *rhos ;
   int     *start_spoke ;  /* first spoke with real data in each ring */
   int     *end_spoke ;    /* last  spoke with real data in each ring */
+  CMI     cmi ;           /* for overlapping logmap construction */
 } LOGMAP_INFO ;
 
 /*
@@ -117,6 +134,10 @@ typedef struct
 #define RUN_NO_TO_RING(m, no)    ((m)->runNoToRing[no])
 #define RUN_NO_TO_SPOKE(m, no)   ((m)->runNoToSpoke[no])
 
+/* constants for LogMapInitForwardFilter */
+#define LMI_FORWARD_FILTER_CIRCLE    0
+#define LMI_FORWARD_FILTER_GAUSSIAN  1
+
 void    LogMapFree(LOGMAP_INFO **plmi) ;
 LOGMAP_INFO *LogMapInit(double alpha,int cols,int rows,int nrings,
                         int nspokes);
@@ -144,6 +165,9 @@ int   LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage,
 void  LogMapPatchHoles(LOGMAP_INFO *lmi, IMAGE *Itv, IMAGE *Ilog) ;
 IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, 
                        float low, float hi) ;
+int   LogMapInitForwardFilter(LOGMAP_INFO *lmi, int which) ;
+IMAGE *LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
+
 
 #if 0
 #define for_each_neighbor(lmi, ptr, i, j, r, s) \
