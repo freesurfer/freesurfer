@@ -9,6 +9,7 @@
 #include "matfile.h"
 #include "matrix.h"
 #include "error.h"
+#include "proto.h"
 
 static char   *readMatHeader(FILE *fp, MATFILE *mf) ;
 static double **matAlloc(int rows, int ncols) ;
@@ -36,7 +37,7 @@ MatlabRead(const char *fname)
   char     *name ;
   double   **real_matrix, **imag_matrix ;
   int      file_type, nrows, ncols, row, col ;
-  float    *fptr ;
+  float    *fptr = NULL ;
 
   fp = fopen(fname, "rb") ;
   if (!fp)
@@ -95,8 +96,8 @@ MatFileRead(const char *fname, int type)
     double   **real_matrix, **imag_matrix ;
     char     bval ;
     int      file_type, nrows, ncols, row, col ;
-    char     *cptr ;
-    float    *fptr ;
+    char     *cptr = NULL ;
+    float    *fptr = NULL ;
 
     fp = fopen(fname, "rb") ;
     if (!fp)
@@ -245,7 +246,7 @@ matAlloc(int rows, int cols)
     matrix = (double **)calloc(rows, sizeof(double *)) ;
     if (!matrix)
     {
-        fprintf(stderr, "could not allocate %ld x %ld matrix\n", rows, cols) ;
+        fprintf(stderr, "could not allocate %d x %d matrix\n", rows, cols) ;
         exit(3) ;
     }
 
@@ -254,7 +255,7 @@ matAlloc(int rows, int cols)
         matrix[i] = (double *)calloc(cols, sizeof(double)) ;
         if (!matrix[i])
         {
-            fprintf(stderr, "could not allocate %ld x %ld matrix\n", rows, cols) ;
+            fprintf(stderr, "could not allocate %d x %d matrix\n", rows, cols);
             exit(3) ;
         }
     }
@@ -409,7 +410,7 @@ readMatHeader(FILE *fp, MATFILE *mf)
     nitems = fread(name, sizeof(char), (int)mf->namlen, fp) ;
     if (nitems != mf->namlen)
     {
-      fprintf(stderr, "%s: only read %d bytes of name (%d specified)\n", 
+      fprintf(stderr, "%s: only read %d bytes of name (%ld specified)\n", 
                         Progname, nitems, mf->namlen) ;
       exit(1) ;
     }
