@@ -30074,7 +30074,7 @@ MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf,
   int srctype,reshapefactor=0,f;
   float *framepower = NULL;
   SXADAT *sxa;
-  int freesurface = 0;
+  int freesurface = 0, err=0;
 
   if(Surf == NULL){
     /*-------- set SUBJECTS DIR -------------*/
@@ -30106,8 +30106,17 @@ MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf,
   if(!strcmp(typestring,"curv")){ /* curvature file */
     sprintf(fname,"%s/%s/surf/%s.%s",subjectsdir,subject,hemi,srcvalfile);
     printf("Reading curvature file %s\n",fname);
-    MRISreadCurvatureFile(Surf, fname);
+    err = MRISreadCurvatureFile(Surf, fname);
+    if(err){
+      printf("ERROR: reading curvature\n");
+      return(NULL);
+    }
     SrcVals = MRIcopyMRIS(NULL, Surf, 0, "curv");
+    if(SrcVals == NULL){
+      printf("ERROR: converting surface curv to MRI\n");
+      return(NULL);
+    }
+
     //SrcVals = MRIallocSequence(Surf->nvertices, 1, 1,MRI_FLOAT,1);
     //for(vtx = 0; vtx < Surf->nvertices; vtx++){
     //  MRIFseq_vox(SrcVals,vtx,0,0,0) = Surf->vertices[vtx].curv;
@@ -30287,7 +30296,7 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field)
     MRIsetVoxVal(mri, vtx, 0, 0, Frame, val);
   }
 
-  return(0);
+  return(mri);
 }
 /*-------------------------------------------------------------------
   MRISsmoothMRI() - smooths values on the surface when the surface
