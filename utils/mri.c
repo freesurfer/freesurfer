@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/02/29 21:58:24 $
-// Revision       : $Revision: 1.260 $
-char *MRI_C_VERSION = "$Revision: 1.260 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/03/23 19:54:35 $
+// Revision       : $Revision: 1.261 $
+char *MRI_C_VERSION = "$Revision: 1.261 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2058,7 +2058,9 @@ MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
   VECTOR *vw, *vv;
   MATRIX *RfromI;
 
-  RfromI = extract_i_to_r(mri);
+  if (!mri->i_to_r__)
+    mri->i_to_r__ = extract_i_to_r(mri);
+  RfromI = mri->i_to_r__; // extract_i_to_r(mri);
 
   vv = VectorAlloc(4, MATRIX_REAL) ;
   V4_LOAD(vv, xv, yv, zv, 1.) ;    
@@ -2067,7 +2069,7 @@ MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
   *pyw = V3_Y(vw);
   *pzw = V3_Z(vw);
 
-  MatrixFree(&RfromI);
+  // MatrixFree(&RfromI);
   VectorFree(&vv);
   VectorFree(&vw);
   return(NO_ERROR) ;
@@ -2086,8 +2088,8 @@ MRIworldToTalairachVoxel(MRI *mri, Real xw, Real yw, Real zw,
 }
 /*-----------------------------------------------------
 ------------------------------------------------------*/
-int   MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
-                int *pxv, int *pyv, int *pzv)
+int MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
+			 int *pxv, int *pyv, int *pzv)
 {
   Real xv, yv, zv;
   MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
@@ -2173,9 +2175,9 @@ MATRIX *surfaceRASFromVoxel_(MRI *mri)
   MATRIX *sRASFromVoxel;
   double m14, m24, m34;
 
-  rasFromVoxel = extract_i_to_r(mri);
+  rasFromVoxel = mri->i_to_r__; // extract_i_to_r(mri);
   sRASFromVoxel = MatrixCopy(rasFromVoxel, NULL);
-  MatrixFree(&rasFromVoxel);
+  // MatrixFree(&rasFromVoxel);
   // modify 
   m14 = *MATRIX_RELT(sRASFromVoxel, 1,4);
   *MATRIX_RELT(sRASFromVoxel, 1,4) = m14 - mri->c_r;
@@ -2304,8 +2306,9 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
   VECTOR *vv, *vw;
   MATRIX *IfromR;
 
-  IfromR = extract_r_to_i(mri);
-
+  if (!mri->r_to_i__)
+    mri->r_to_i__ = extract_r_to_i(mri);
+  IfromR = mri->r_to_i__;
   vw = VectorAlloc(4, MATRIX_REAL) ;
   V4_LOAD(vw, xw, yw, zw, 1.) ;    
   vv = MatrixMultiply(IfromR, vw, NULL) ;
@@ -2313,7 +2316,6 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
   *pyv = V3_Y(vv);
   *pzv = V3_Z(vv);
 
-  MatrixFree(&IfromR);
   VectorFree(&vv);
   VectorFree(&vw);
 
@@ -4322,6 +4324,8 @@ MRIallocHeader(int width, int height, int depth, int type)
   mri->subject_name[0] = '\0';
   mri->path_to_t1[0] = '\0';
   mri->fname_format[0] = '\0';
+  mri->i_to_r__ = 0;
+  mri->r_to_i__ = 0;
   return(mri) ;
 }
 /*-----------------------------------------------------
@@ -4391,8 +4395,14 @@ MRIfree(MRI **pmri)
   if(mri->register_mat != NULL)
     MatrixFree(&(mri->register_mat));
 
+  if (mri->i_to_r__)
+    MatrixFree(&mri->i_to_r__);
+  if (mri->r_to_i__)
+    MatrixFree(&mri->r_to_i__);
+
   free(mri) ;
   *pmri = NULL ;
+  
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -4677,6 +4687,9 @@ int MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
   strcpy(mri_dst->fname_format, mri_src->fname_format);
 
   strcpy(mri_dst->gdf_image_stem, mri_src->gdf_image_stem);
+
+  MatrixCopy(mri_src->i_to_r__, mri_dst->i_to_r__);
+  MatrixCopy(mri_src->r_to_i__, mri_dst->r_to_i__);
 
   return(NO_ERROR) ;
 }
@@ -10797,48 +10810,48 @@ MRI *MRIconst(int ncols, int nrows, int nslices, int nframes,
 int
 MRInormalizeSequence(MRI *mri, float target)
 {
-	int    x, y, z, frame ;
-	double norm ;
-	Real   val ;
+  int    x, y, z, frame ;
+  double norm ;
+  Real   val ;
 
-	for (x = 0 ; x < mri->width ; x++)
+  for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	for (frame = 0, norm = 0 ; frame < mri->nframes ; frame++)
 	{
-		for (y = 0 ; y < mri->height ; y++)
-		{
-			for (z = 0 ; z < mri->depth ; z++)
-			{
-				for (frame = 0, norm = 0 ; frame < mri->nframes ; frame++)
-				{
-					MRIsampleVolumeFrame(mri, x, y, z, frame, &val) ;
-					norm += (val*val) ;
-				}
-				norm = sqrt(norm) / target ;
-				if (FZERO(norm))
-					norm = 1 ;				
-				for (frame = 0 ; frame < mri->nframes ; frame++)
-				{
-					switch (mri->type)
-					{
-					default:
-						ErrorReturn(ERROR_UNSUPPORTED,
-							(ERROR_UNSUPPORTED, "MRInormalizeSequence: unsupported input type %d",
-							mri->type)) ;
-						break ;
-					case MRI_SHORT:
-						MRISseq_vox(mri, x, y, z, frame) = MRISseq_vox(mri, x, y, z, frame) / norm ; 
-						break ;
-					case MRI_FLOAT:
-						MRIFseq_vox(mri, x, y, z, frame) /= norm ; 
-						break ;
-					case MRI_UCHAR:
-						MRIseq_vox(mri, x, y, z, frame) /= norm ; 
-						break ;
-					}
-				}
-			}
-		}
+	  MRIsampleVolumeFrame(mri, x, y, z, frame, &val) ;
+	  norm += (val*val) ;
 	}
+	norm = sqrt(norm) / target ;
+	if (FZERO(norm))
+	  norm = 1 ;				
+	for (frame = 0 ; frame < mri->nframes ; frame++)
+	{
+	  switch (mri->type)
+	  {
+	  default:
+	    ErrorReturn(ERROR_UNSUPPORTED,
+			(ERROR_UNSUPPORTED, "MRInormalizeSequence: unsupported input type %d",
+			 mri->type)) ;
+	    break ;
+	  case MRI_SHORT:
+	    MRISseq_vox(mri, x, y, z, frame) = MRISseq_vox(mri, x, y, z, frame) / norm ; 
+	    break ;
+	  case MRI_FLOAT:
+	    MRIFseq_vox(mri, x, y, z, frame) /= norm ; 
+	    break ;
+	  case MRI_UCHAR:
+	    MRIseq_vox(mri, x, y, z, frame) /= norm ; 
+	    break ;
+	  }
+	}
+      }
+    }
+  }
 
-	return(NO_ERROR) ;
+  return(NO_ERROR) ;
 }
 
