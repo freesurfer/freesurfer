@@ -9,6 +9,8 @@
 #include "macros.h"
 #include "proto.h"
 
+#include "gsl/gsl_cdf.h"
+
 #define ITMAX 100
 #define EPS 3.0e-7
 
@@ -91,8 +93,16 @@ float betai(float a, float b, float x)
 
 /* End from numrec_c */
 
+double sigt(double t,int df)
+{
+  double sig;
+  // Use 2* for two-tailed test, compatible with old version of sigt().
+  sig = 2*gsl_cdf_tdist_Q(t,(double)df) ;
+  //printf("t = %g, df=%d, sig = %g\n",t,df,sig);
+  return(sig);
+}
 
-#if 1
+#if 0
 #define MAXT    30.0
 #define MAXDOF 200
 /* note, everything here is Doug's fault */
@@ -116,21 +126,6 @@ double sigt(double t,int df)
     printf("### Numerical error: sigt(%e,%d) = %e\n",t,df,sig);
   if(sig > 1.0) sig = 1.0;
   
-  return sig;
-}
-#else
-double sigt(double t, int df)
-{
-  double sig;
-
-  if (df==0)
-    sig = 1;
-  else if (df<50)
-    sig = betai(0.5*df,0.5,df/(df+t*t));
-  else
-    sig = 1/sqrt(2*M_PI)*exp(-0.5*(t*t)); /* use Normal approximation */ 
-  if (!finite(sig))
-    printf("### Numerical error: sigt(%e,%d) = %e\n",t,df,sig);
   return sig;
 }
 #endif
