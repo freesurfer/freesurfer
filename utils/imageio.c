@@ -1453,7 +1453,7 @@ RGBwrite(IMAGE *I, char *fname, int frame)
 #ifdef IRIX
   image = iopen(fname,"w",RLE(1), 2, I->cols, I->rows, 1);
 #else
-  image = iopen(fname,"w",VERBATIM(1), 2, I->cols, I->rows, 1);
+  image = iopen(fname,"w",UNCOMPRESSED(1), 2, I->cols, I->rows, 1);
 #endif
   r = (unsigned short *)calloc(I->cols, sizeof(unsigned short)) ;
   for (y = 0 ; y < I->rows; y++) 
