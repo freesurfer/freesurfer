@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include "const.h"
+#include "version.h"
 
 #define MAX_FILES  10000
 
@@ -37,6 +38,13 @@ int main(int argc, char *argv[])
   int i;
   struct stat stat_buf;
   DIR *dp;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: check_siemens_dir.c,v 1.3 2003/04/14 22:58:07 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   /* ----- get the basename of the executable ----- */
   Progname = strrchr(argv[0], '/');
