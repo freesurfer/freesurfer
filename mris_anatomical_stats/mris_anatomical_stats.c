@@ -15,7 +15,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.14 2003/10/09 20:47:40 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.15 2004/02/17 20:01:04 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -67,6 +67,8 @@ main(int argc, char *argv[])
   MRI           *mri_wm, *mri_kernel = NULL, *mri_orig ;
   double        gray_volume, wm_volume, thickness_mean, thickness_var,
                 total_abs_mean_curvature, total_abs_gaussian_curvature, ici, fi ;
+  double        InterVertexDistAvg,InterVertexDistStdDev;
+  double        VertexRadiusAvg,VertexRadiusStdDev;
   int           annotation = 0 ;
   FILE          *log_fp = NULL ;
   VERTEX        *v ;
@@ -75,7 +77,7 @@ main(int argc, char *argv[])
   int           n_vertices = -1;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.14 2003/10/09 20:47:40 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.15 2004/02/17 20:01:04 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -98,23 +100,20 @@ main(int argc, char *argv[])
     usage_exit() ;
 
   sname = argv[1] ;
-	if (strlen(sdir) == 0)
-	{
-		cp = getenv("SUBJECTS_DIR") ;
-		if (!cp)
-			ErrorExit(ERROR_BADPARM, 
-								"%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
-		strcpy(sdir, cp) ;
-	}
-
+  if (strlen(sdir) == 0)
+    {
+      cp = getenv("SUBJECTS_DIR") ;
+      if (!cp)
+	ErrorExit(ERROR_BADPARM, 
+		  "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+      strcpy(sdir, cp) ;
+    }
+  
   hemi = argv[2] ; 
-  if (argc > 3)
-    surf_name = argv[3] ;
-  else
-    surf_name = WHITE_MATTER_NAME ;
+  if (argc > 3)  surf_name = argv[3] ;
+  else           surf_name = WHITE_MATTER_NAME ;
 
-  if (sigma > 0.0)
-    mri_kernel = MRIgaussian1d(sigma, 100) ;
+  if (sigma > 0.0)  mri_kernel = MRIgaussian1d(sigma, 100) ;
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
@@ -154,6 +153,10 @@ main(int argc, char *argv[])
   
 #endif
 
+  fprintf(stderr,"Computing inter-vertex distance\n");
+  InterVertexDistAvg = MRISavgInterVetexDist(mris, &InterVertexDistStdDev);
+  VertexRadiusAvg = MRISavgVetexRadius(mris, &VertexRadiusStdDev);
+
   if (label_name)
   {
     LABEL  *area ;
@@ -187,7 +190,7 @@ main(int argc, char *argv[])
 #endif
   MRIScopyCurvatureToImagValues(mris) ;   /* save thickness measures */
 
-  fprintf(stderr, "done.\ncomputing second fundamental form...") ;
+  fprintf(stderr, "\ncomputing second fundamental form...") ;
   MRISsetNeighborhoodSize(mris, 2) ;
   MRIScomputeSecondFundamentalForm(mris) ;
   if (annotation_name)
@@ -328,6 +331,10 @@ main(int argc, char *argv[])
                 total_abs_gaussian_curvature) ;
         fprintf(stdout, "folding index                           = %2.3f\n", fi);
         fprintf(stdout, "intrinsic curvature index               = %2.3f\n",ici);
+        fprintf(stdout, "avg inter-vertex dist (mm)              = %g +/- %g\n",
+		InterVertexDistAvg,InterVertexDistStdDev);
+        fprintf(stdout, "avg vertex radius (mm)                  = %g +/- %g\n",
+		VertexRadiusAvg,VertexRadiusStdDev);
 
       }
 
@@ -368,6 +375,11 @@ main(int argc, char *argv[])
     MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
     fprintf(stdout, "folding index                           = %2.3f\n", fi);
     fprintf(stdout, "intrinsic curvature index               = %2.3f\n", ici);
+    fprintf(stdout, "avg inter-vertex dist (mm)              = %g +/- %g\n",
+	    InterVertexDistAvg,InterVertexDistStdDev);
+    fprintf(stdout, "avg vertex radius (mm)                  = %g +/- %g\n",
+	    VertexRadiusAvg,VertexRadiusStdDev);
+
   }
   if (log_fp)
   {

@@ -572,7 +572,9 @@ int          MRIScomputeCurvatureIndices(MRI_SURFACE *mris,
 int          MRISuseCurvatureRatio(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureContrast(MRI_SURFACE *mris) ;
 
-double       MRIScomputeFolding(MRI_SURFACE *mris) ;
+double MRIScomputeFolding(MRI_SURFACE *mris) ;
+double MRISavgInterVetexDist(MRIS *Surf, double *StdDev);
+double MRISavgVetexRadius(MRIS *Surf, double *StdDev);
 
 int          MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius) ;
 double       MRISaverageRadius(MRI_SURFACE *mris) ;

@@ -34432,3 +34432,71 @@ mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwra
 	return(0.0) ;
 #endif
 }
+/*-------------------------------------------------------------
+  MRISavgInterVetexDist() - computes the average and stddev of
+  the distance between neighboring vertices. If StdDev is NULL,
+  it is ignored.
+  -------------------------------------------------------------*/
+double MRISavgInterVetexDist(MRIS *Surf, double *StdDev)
+{
+  double Avg, Sum, Sum2, d;
+  VERTEX *vtx1,*vtx2;
+  int nNNbrs, nthNNbr, NbrVtxNo, VtxNo;
+  long N;
+
+  Sum = 0;
+  Sum2 = 0;
+  N = 0;
+  for(VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++){
+    vtx1 = &Surf->vertices[VtxNo] ;
+    nNNbrs = Surf->vertices[VtxNo].vnum;
+    for(nthNNbr = 0; nthNNbr < nNNbrs; nthNNbr++){
+      NbrVtxNo = Surf->vertices[VtxNo].v[nthNNbr];
+      vtx2 = &Surf->vertices[NbrVtxNo] ;
+      d = sqrt( (vtx1->x-vtx2->x)*(vtx1->x-vtx2->x) +
+		(vtx1->y-vtx2->y)*(vtx1->y-vtx2->y) +
+		(vtx1->z-vtx2->z)*(vtx1->z-vtx2->z) );
+      Sum  += d;
+      Sum2 += (d*d);
+      N++;
+    }
+  }
+  Avg = Sum/N;
+  if(StdDev != NULL) *StdDev = sqrt( N*(Sum2/N - Avg*Avg)/(N-1) );
+
+  //printf("\n\nN = %ld, Sum = %g, Sum2 = %g, Avg=%g, Std = %g\n\n",
+  // N,Sum,Sum2,Avg,*StdDev);
+
+  return(Avg);
+}
+
+/*-------------------------------------------------------------
+  MRISavgVetexRadius() - computes the average and stddev of
+  the distance from the origin to each vertex. If StdDev is NULL,
+  it is ignored.
+  -------------------------------------------------------------*/
+double MRISavgVetexRadius(MRIS *Surf, double *StdDev)
+{
+  double Avg, Sum, Sum2, d;
+  VERTEX *vtx;
+  int VtxNo, N;
+
+  Sum = 0;
+  Sum2 = 0;
+  for(VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++){
+    vtx = &Surf->vertices[VtxNo] ;
+    d = sqrt( vtx->x*vtx->x + vtx->y*vtx->y + vtx->z*vtx->z );
+    Sum  += d;
+    Sum2 += (d*d);
+  }
+
+  N = Surf->nvertices;
+  Avg = Sum/N;
+  if(StdDev != NULL) *StdDev = sqrt( N*(Sum2/N - Avg*Avg)/(N-1) );
+
+  //printf("\n\nN = %ld, Sum = %g, Sum2 = %g, Avg=%g, Std = %g\n\n",
+  // N,Sum,Sum2,Avg,*StdDev);
+
+  return(Avg);
+}
+
