@@ -75,4 +75,5 @@
 #define   Right_Aorg  71/*                          122  135   50     0*/
 
 
+#define IS_UNKNOWN(label)  (((label) == Unknown) || (label < 0))
 #endif
