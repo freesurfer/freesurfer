@@ -1,16 +1,16 @@
-function [vol, M, mr_parms] = load_mgh(fname)
-% [vol, M, mr_parms] = load_mgh(fname)
+function [vol, M, mr_parms, Mdc] = load_mgh_mdc(fname)
+% [vol, M, mr_parms, Mdc] = load_mgh(fname)
 %
 % M is the 4x4 vox2ras transform such that
 % y(i1,i2,i3), xyz1 = M*[i1 i2 i3 1] where the
-% indicies are 0-based. If the input has multiple frames,
+% indices are 0-based. If the input has multiple frames,
 % only the first frame is read.
 %
 % mr_parms = [tr flipangle te ti]
 %
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh.m,v 1.3 2003/05/26 05:49:20 greve Exp $
+% $Id: load_mgh.m,v 1.4 2003/07/21 16:23:12 ebeth Exp $
 
 vol = [];
 M = [];
