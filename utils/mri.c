@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/07/25 15:39:33 $
-// Revision       : $Revision: 1.237 $
-char *MRI_C_VERSION = "$Revision: 1.237 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/08/27 19:30:43 $
+// Revision       : $Revision: 1.238 $
+char *MRI_C_VERSION = "$Revision: 1.238 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -3544,10 +3544,11 @@ MRI * MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
 /*-----------------------------------------------------------
   MRIaverage() - computes average of source and destination.
   ------------------------------------------------------*/
-MRI * MRIaverage(MRI *mri_src, int dof, MRI *mri_dst)
+MRI *
+MRIaverage(MRI *mri_src, int dof, MRI *mri_dst)
 {
-  int     width, height, depth, x, y, z, src, dst ;
-  BUFTYPE *psrc, *pdst ;
+  int     width, height, depth, x, y, z, f ;
+	Real    src, dst ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -3561,23 +3562,26 @@ MRI * MRIaverage(MRI *mri_src, int dof, MRI *mri_dst)
 
   if (!MRIcheckSize(mri_src, mri_dst,0,0,0))
     ErrorReturn(NULL, 
-                (ERROR_BADPARM,"MRISaverage: incompatible volume dimensions"));
+                (ERROR_BADPARM,"MRIaverage: incompatible volume dimensions"));
+#if 0
   if ((mri_src->type != MRI_UCHAR) || (mri_dst->type != MRI_UCHAR))
     ErrorReturn(NULL, 
                 (ERROR_UNSUPPORTED,
                  "MRISaverage: unsupported voxel format %d",mri_src->type));
-    
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
-        src = (int)*pdst * dof ;
-        dst = (int)*psrc++ ;
-        *pdst++ = (BUFTYPE)((src + dst) / (dof + 1)) ;
+#endif
+
+	for (f = 0 ; f < mri_src->nframes ; f++)
+	{
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					MRIsampleVolumeFrameType(mri_src, x,  y, z, f, SAMPLE_NEAREST, &src) ;
+					MRIsampleVolumeFrameType(mri_dst, x,  y, z, f, SAMPLE_NEAREST, &dst) ;
+					MRIsetVoxVal(mri_dst, x, y, z, f, (dst*dof+src)/(Real)(dof+1))  ;
+				}
       }
     }
   }
