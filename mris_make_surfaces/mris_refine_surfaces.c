@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/12/15 21:37:24 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2004/12/15 22:14:47 $
+// Revision       : $Revision: 1.2 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,9 +26,9 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.1 2004/12/15 21:37:24 tosa Exp $";
+static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.2 2004/12/15 22:14:47 tosa Exp $";
 
-int debug__ = 1; /// tosa debug
+int debug__ = 0; /// tosa debug
 
 
 int main(int argc, char *argv[]) ;
@@ -154,7 +154,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.1 2004/12/15 21:37:24 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.2 2004/12/15 22:14:47 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
