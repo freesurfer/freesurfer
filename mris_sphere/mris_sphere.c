@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.16 1999/07/24 15:25:38 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.17 1999/08/13 19:27:07 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -45,7 +45,7 @@ static float inflate_area  = 0.0f ;
 static float inflate_tol  = 1.0f ;
 static int   inflate_avgs = 0 ;
 static float inflate_nlarea  = 0.0f ;
-static int   inflate_iterations = 200 ;
+static int   inflate_iterations = 300 ;
 
 static char *orig_name = "smoothwm" ;
 static int smooth_avgs = 0 ;
