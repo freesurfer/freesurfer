@@ -20,13 +20,15 @@ static MRI *compute_bias(MRI *mri_src, MRI *mri_dst, MRI *mri_bias) ;
 static int conform = 0 ;
 static int gentle_flag = 0 ;
 
+static char *mask_fname ;
 char *Progname ;
 
+static int prune = 0 ;
 static MRI_NORM_INFO  mni ;
 static int verbose = 1 ;
 static int num_3d_iter = 2 ;
 
-static float intensity_above = 20 ;
+static float intensity_above = 25 ;
 static float intensity_below = 10 ;
 
 static char *control_point_fname ;
@@ -48,7 +50,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.28 2004/06/01 21:07:58 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.29 2004/07/16 21:31:58 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -84,6 +86,17 @@ main(int argc, char *argv[])
   if (!mri_src)
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
               Progname, in_fname) ;
+	if (mask_fname)
+	{
+		MRI *mri_mask ;
+		
+		mri_mask = MRIread(mask_fname) ;
+		if (!mri_mask)
+			ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+								Progname, mask_fname) ;
+		MRImask(mri_src, mri_mask, mri_src, 0, 0) ;
+		MRIfree(&mri_mask) ;
+	}
 	if (read_flag)
 	{
 		MRI *mri_ctrl ;
@@ -164,7 +177,7 @@ main(int argc, char *argv[])
     else
       MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,mri_dst,
                      intensity_above, intensity_below,
-                     control_point_fname != NULL && !n && no1d);
+                     control_point_fname != NULL && !n && no1d, prune);
   }
 
   if (bias_volume_fname)
@@ -209,6 +222,12 @@ get_option(int argc, char *argv[])
     no1d = 1 ;
     fprintf(stderr, "disabling 1d normalization...\n") ;
   }
+  else if (!stricmp(option, "MASK"))
+  {
+    mask_fname = argv[2] ;
+    nargs = 1 ;
+    printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+  }
   else if (!stricmp(option, "conform"))
   {
     conform = 1 ;
@@ -221,6 +240,25 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+	case 'D':
+		Gx = atoi(argv[2]) ;
+		Gy = atoi(argv[3]) ;
+		Gz = atoi(argv[4]) ;
+		nargs = 3 ;
+		printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+		break ;
+	case 'V':
+		Gvx = atoi(argv[2]) ;
+		Gvy = atoi(argv[3]) ;
+		Gvz = atoi(argv[4]) ;
+		nargs = 3 ;
+		printf("debugging alternative voxel (%d, %d, %d)\n", Gvx, Gvy, Gvz) ;
+		break ;
+	case 'P':
+		prune = atoi(argv[2]) ;
+		nargs = 1 ;
+		printf("turning control point pruning %s\n", prune ? "on" : "off") ;
+		break ;
 	case 'R':
 		read_flag = 1 ;
     nargs = 2 ;
@@ -258,9 +296,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "using max gradient = %2.3f\n", mni.max_gradient) ;
     nargs = 1 ;
     break ;
+#if 0
   case 'V':
     verbose = !verbose ;
     break ;
+#endif
   case 'N':
     num_3d_iter = atoi(argv[2]) ;
     nargs = 1 ;
