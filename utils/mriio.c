@@ -6525,10 +6525,9 @@ static MRI *gdfRead(char *fname, int read_volume)
   char file_path[STRLEN];
   float ipr[2];
   float st;
-  float center[3];
   char units_string[STRLEN], orientation_string[STRLEN], data_type_string[STRLEN];
   int size[2];
-  int path_d, ipr_d, st_d, u_d, dt_d, o_d, s_d, c_d;
+  int path_d, ipr_d, st_d, u_d, dt_d, o_d, s_d, x_ras_d, y_ras_d, z_ras_d, c_ras_d;
   int data_type;
   int orientation;
   char *or;
@@ -6544,6 +6543,10 @@ static MRI *gdfRead(char *fname, int read_volume)
   char fname_use[STRLEN];
   int pad_zeros_flag;
   int file_offset = 0;
+  float x_r, x_a, x_s;
+  float y_r, y_a, y_s;
+  float z_r, z_a, z_s;
+  float c_r, c_a, c_s;
 
   if((fp = fopen(fname, "r")) == NULL)
   {
@@ -6552,7 +6555,7 @@ static MRI *gdfRead(char *fname, int read_volume)
   }
 
   /* --- defined flags --- */
-  path_d = ipr_d = st_d = u_d = dt_d = o_d = s_d = c_d = FALSE;
+  path_d = ipr_d = st_d = u_d = dt_d = o_d = s_d = x_ras_d = y_ras_d = z_ras_d = c_ras_d = FALSE;
 
   while(fgets(line, STRLEN, fp) != NULL)
   {
@@ -6586,6 +6589,26 @@ static MRI *gdfRead(char *fname, int read_volume)
       sscanf(line, "%*s %d %d", &size[0], &size[1]);
       s_d = TRUE;
     }
+    else if(strncmp(line, "FS_X_RAS", 8) == 0)
+    {
+      sscanf(line, "%*s %f %f %f", &x_r, &x_a, &x_s);
+      x_ras_d = TRUE;
+    }
+    else if(strncmp(line, "FS_Y_RAS", 8) == 0)
+    {
+      sscanf(line, "%*s %f %f %f", &y_r, &y_a, &y_s);
+      y_ras_d = TRUE;
+    }
+    else if(strncmp(line, "FS_Z_RAS", 8) == 0)
+    {
+      sscanf(line, "%*s %f %f %f", &z_r, &z_a, &z_s);
+      z_ras_d = TRUE;
+    }
+    else if(strncmp(line, "FS_C_RAS", 8) == 0)
+    {
+      sscanf(line, "%*s %f %f %f", &c_r, &c_a, &c_s);
+      c_ras_d = TRUE;
+    }
     else if(strncmp(line, "DATA_TYPE", 9) == 0)
     {
       strcpy(data_type_string, &line[10]);
@@ -6597,15 +6620,9 @@ static MRI *gdfRead(char *fname, int read_volume)
       strcpy(os_orig, orientation_string);
       o_d = TRUE;
     }
-    else if(strncmp(line, "DISPLAY_CENTER", 14) == 0)
-    {
-      sscanf(line, "%*s %f %f %f", &center[0], &center[1], &center[2]);
-      c_d = TRUE;
-    }
     else if(strncmp(line, "FILE_OFFSET", 11) == 0)
     {
       sscanf(line, "%*s %d", &file_offset);
-      c_d = TRUE;
     }
     else
     {
@@ -6640,12 +6657,6 @@ static MRI *gdfRead(char *fname, int read_volume)
   {
     printf("missing field DATA_TYPE in file %s; assuming 'short'\n", fname);
     sprintf(data_type_string, "short");
-  }
-
-  if(!(c_d))
-  {
-    printf("missing field DISPLAY_CENTER in file %s; assuming center of volume is origin'\n", fname);
-    center[0] = center[1] = center[2] = -1.0;
   }
 
   if(!(u_d))
@@ -6791,15 +6802,6 @@ static MRI *gdfRead(char *fname, int read_volume)
 
   // if(bad_ras_fill(mri) != NO_ERROR)
   //  return(NULL);
-
-  // I set c_(r,a,s) above and thus no need to do the following
-#if 0
-  /* ----- hack ----- */
-  center[0] = (mri->width  - 1.0) / 2.0;  // -1 is wrong.  our convention is to 
-  center[1] = (mri->height - 1.0) / 2.0;  // have center voxel to be integers.
-  center[2] = (mri->depth  - 1.0) / 2.0;
-  center_voxel_to_voxel_center(mri, center[0], center[1], center[2]);
-#endif
 
   printf("warning: gdf volume may be incorrectly oriented or centered\n");
 
@@ -7036,6 +7038,13 @@ static int gdfWrite(MRI *mri, char *fname)
   fprintf(fp, "SIZE %d %d\n", mri->width, mri->height);
   fprintf(fp, "IP_RES %g %g\n", mri->xsize, mri->ysize);
   fprintf(fp, "SL_THICK %g\n", mri->zsize);
+  if(mri->ras_good_flag)
+  {
+    fprintf(fp, "FS_X_RAS %f %f %f\n", mri->x_r, mri->x_a, mri->x_s);
+    fprintf(fp, "FS_Y_RAS %f %f %f\n", mri->y_r, mri->y_a, mri->y_s);
+    fprintf(fp, "FS_Z_RAS %f %f %f\n", mri->z_r, mri->z_a, mri->z_s);
+    fprintf(fp, "FS_C_RAS %f %f %f\n", mri->c_r, mri->c_a, mri->c_s);
+  }
   fprintf(fp, "FILE_OFFSET 0\n");
   if(mri->type == MRI_UCHAR)
     fprintf(fp, "DATA_TYPE unsigned char\n");
