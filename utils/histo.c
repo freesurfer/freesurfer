@@ -99,7 +99,7 @@ HISTOalloc(int nbins)
 
   histo->bins = (float *)calloc(nbins, sizeof(float)) ;
   histo->counts = (float *)calloc(nbins, sizeof(float)) ;
-  fprintf(stderr, "histo->bins and ->counts allocated %d bins\n", nbins);
+  // fprintf(stderr, "histo->bins and ->counts allocated %d bins\n", nbins);
   if (!histo->counts || !histo->bins)
     ErrorExit(ERROR_NOMEMORY, "HISTOalloc(%d): could not allocate histogram",nbins) ;
   histo->nbins = nbins ;
@@ -510,7 +510,7 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
   {
     if (histo_dst->nbins < histo_src->nbins)
     {
-      fprintf(stderr, "histo_dst->nbins = %d, histo_src->nbins - %d\n",
+      fprintf(stderr, "realloc: histo_dst->nbins = %d, histo_src->nbins - %d\n",
               histo_dst->nbins, histo_src->nbins);
       HISTOrealloc(histo_dst, nbins);
     }
