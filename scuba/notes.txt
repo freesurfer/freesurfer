@@ -301,6 +301,19 @@ x View calls Layer::HandleTool ( RAS, ToolState, InputState )
 x - should set,get,min/max stuff be in VolumeCollection? Layer is doing a lot of stuff
 
 display transform interface on view level
+- ScubaTransform class
+  - GetTransformList -- returns list of IDs
+  - Get/SetTransformLabel, Get/SetTransformMatrix
+- transforms panel
+  - list of transforms
+  - two matrix displays, one is 'current', one is 'apply'
+  - can load from external file or set values automatically in apply transform
+  - 'apply' button on apply side multiples new matrix to current
+- view props has a new transform field
+- ScubaView gets new tcl functions:
+  - SetViewTransformID and GetViewTransformID <viewID> <transformID>
+
+
 
 
 consider linking ScubaFrame's selected view to the gaView(current) view in scuba.tcl, link view configuration in scuba.tcl and select view in view props automatically. the 't' view selecting key would need to be reimplemented in scuba.tcl.
