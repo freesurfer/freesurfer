@@ -25,29 +25,26 @@ typedef struct{
 
 typedef struct {
         short int dim[8];               /*required*/
-        short int unused8;
-        short int unused9;
-        short int unused10;
-        short int unused11;
-        short int unused12;
-        short int unused13;
-        short int unused14;
+        char vox_units[4];
+        char cal_units[8];
+        short int unused1;
         short int datatype;             /*required: 0=unk,1=1 bit/pix,2=8bits,4=16 bits*/
                                         /*8=32 bits (signed int),16=32 bits (floating pt)*/
                                         /*32=64 bits (2 floats),64=64 bits (double)     */
         short int bitpix;               /*bits/pixel*/
         short int dim_un0;
         float pixdim[8];                /*real world values of dimensions mm ms*/
-        float funused8;                 /* Scale */
-        float funused9;
-        float funused10;
-        float funused11;
-        float funused12;
-        float funused13;
-        float compressed;
-        float verified;
+        float vox_offset;
+        float roi_scale;
+        float funused1;
+        float funused2;
+        float cal_max;
+        float cal_min;
+        int compressed;
+        int verified;
         int glmax,glmin;                /*required*/
 } image_dimension;
+
 typedef struct {
         char descrip[80];               /*Will be displayed when loading*/
         char aux_file[24];
