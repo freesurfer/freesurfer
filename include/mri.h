@@ -461,10 +461,18 @@ MRI   *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst) ;
 /* surfaceRAS and voxel routines */
 MATRIX *surfaceRASFromVoxel_(MRI *mri);
 MATRIX *voxelFromSurfaceRAS_(MRI *mri);
+MATRIX *surfaceRASFromRAS_(MRI *mri);
+MATRIX *RASFromSurfaceRAS_(MRI *mri);
+
 int MRIvoxelToSurfaceRAS(MRI *mri, Real xv, Real yv, Real zv, 
 			 Real *xs, Real *ys, Real *zs);
-int MRIsurfaceRASToVoxel(MRI *mri, Real xr, Real yr, Real zr, 
+int MRIsurfaceRASToVoxel(MRI *mri, Real xr, Real yr, Real zr,
 			 Real *xv, Real *yv, Real *zv);
+int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr, 
+		       Real *xsr, Real *ysr, Real *zsr);
+int MRIsurfaceRASToRAS(MRI *mri, Real xsr, Real ysr, Real zsr,
+		       Real *xr, Real *yr, Real *zr);
+
 
 #include "image.h"
 

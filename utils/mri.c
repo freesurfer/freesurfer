@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/19 16:53:55 $
-// Revision       : $Revision: 1.243 $
-char *MRI_C_VERSION = "$Revision: 1.243 $";
+// Revision Date  : $Date: 2003/10/24 20:53:43 $
+// Revision       : $Revision: 1.244 $
+char *MRI_C_VERSION = "$Revision: 1.244 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2186,6 +2186,64 @@ MATRIX *surfaceRASFromVoxel_(MRI *mri)
 
   return sRASFromVoxel;
 }                             
+
+MATRIX *surfaceRASFromRAS_(MRI *mri)
+{
+  MATRIX *sRASFromRAS;
+  sRASFromRAS = MatrixAlloc(4, 4, MATRIX_REAL);
+  MatrixIdentity(4, sRASFromRAS);
+  *MATRIX_RELT(sRASFromRAS, 1,4) = - mri->c_r;
+  *MATRIX_RELT(sRASFromRAS, 2,4) = - mri->c_a;
+  *MATRIX_RELT(sRASFromRAS, 3,4) = - mri->c_s;
+  return sRASFromRAS;
+}
+
+MATRIX *RASFromSurfaceRAS_(MRI *mri)
+{
+  MATRIX *RASFromSRAS;
+  RASFromSRAS = MatrixAlloc(4, 4, MATRIX_REAL);
+  MatrixIdentity(4, RASFromSRAS);
+  *MATRIX_RELT(RASFromSRAS, 1,4) = mri->c_r;
+  *MATRIX_RELT(RASFromSRAS, 2,4) = mri->c_a;
+  *MATRIX_RELT(RASFromSRAS, 3,4) = mri->c_s;
+  return RASFromSRAS;
+}
+
+int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr, 
+		       Real *xsr, Real *ysr, Real *zsr)
+{
+  MATRIX *surfaceRASFromRAS=0;
+  VECTOR *v, *sr;
+  v = VectorAlloc(4, MATRIX_REAL);
+  V4_LOAD(v, xr, yr, zr, 1.);
+  surfaceRASFromRAS = surfaceRASFromRAS_(mri);
+  sr = MatrixMultiply(surfaceRASFromRAS, v, NULL);
+  *xsr = V3_X(sr);
+  *ysr = V3_Y(sr);
+  *zsr = V3_Z(sr);
+  MatrixFree(&surfaceRASFromRAS);
+  VectorFree(&v);
+  VectorFree(&sr);
+  return (NO_ERROR);
+}
+
+int MRIsurfaceRASToRAS(MRI *mri, Real xsr, Real ysr, Real zsr,
+		       Real *xr, Real *yr, Real *zr)
+{
+  MATRIX *RASFromSurfaceRAS=0;
+  VECTOR *v, *r;
+  v = VectorAlloc(4, MATRIX_REAL);
+  V4_LOAD(v, xsr, ysr, zsr, 1.);
+  RASFromSurfaceRAS = RASFromSurfaceRAS_(mri);
+  r = MatrixMultiply(RASFromSurfaceRAS, v, NULL);
+  *xr = V3_X(r);
+  *yr = V3_Y(r);
+  *zr = V3_Z(r);
+  MatrixFree(&RASFromSurfaceRAS);
+  VectorFree(&v);
+  VectorFree(&r);
+  return (NO_ERROR);
+}
 
 int MRIvoxelToSurfaceRAS(MRI *mri, Real xv, Real yv, Real zv, 
 		       Real *xs, Real *ys, Real *zs)
