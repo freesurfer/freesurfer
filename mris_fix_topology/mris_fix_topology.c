@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.12 2001/05/07 21:13:15 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.13 2002/10/23 15:57:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -37,11 +37,10 @@ static char *orig_name = "orig" ;
 static char suffix[STRLEN] = "" ;
 static int  add = 1 ;
 static int  write_inflated = 0 ;
-static int nsmooth = 10 ;
+static int nsmooth = 5 ;
 
-#define MAX_VERTICES  0
-#define MAX_FACES     0
 static char sdir[STRLEN] = "" ;
+static TOPOLOGY_PARMS parms ;
 
 int
 main(int argc, char *argv[])
@@ -53,6 +52,12 @@ main(int argc, char *argv[])
   int           msec, nvert, nfaces, nedges, eno ;
   float         max_len ;
   struct timeb  then ;
+
+	parms.max_patches = 100 ;
+	parms.max_unchanged = 10 ;
+	parms.l_mri = 1 ;
+	parms.l_curv = 1 ;
+	parms.l_unmri = 1 ;
 
   Gdiag |= DIAG_WRITE ;
   Progname = argv[0] ;
@@ -118,7 +123,7 @@ main(int argc, char *argv[])
   fprintf(stderr, "using quasi-homeomorphic spherical map to tessellate "
           "cortical surface...\n") ;
 
-  mris_corrected = MRIScorrectTopology(mris, NULL, mri, nsmooth) ;
+  mris_corrected = MRIScorrectTopology(mris, NULL, mri, nsmooth, &parms) ;
   MRISfree(&mris) ;
   eno = MRIScomputeEulerNumber(mris_corrected, &nvert, &nfaces, &nedges) ;
   fprintf(stderr, "after topology correction, eno=%d (nv=%d, nf=%d, ne=%d,"
@@ -202,6 +207,36 @@ get_option(int argc, char *argv[])
     fprintf(stderr,"reading inflated coordinates from '%s'\n",inflated_name);
     nargs = 1 ;
   }
+  else if (!stricmp(option, "mri"))
+  {
+    parms.l_mri = atof(argv[2]) ;
+    fprintf(stderr,"setting l_mri = %2.2f\n", parms.l_mri) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "curv"))
+  {
+    parms.l_curv = atof(argv[2]) ;
+    fprintf(stderr,"setting l_curv = %2.2f\n", parms.l_curv) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "unmri"))
+  {
+    parms.l_unmri = atof(argv[2]) ;
+    fprintf(stderr,"setting l_unmri = %2.2f\n", parms.l_unmri) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "patches"))
+  {
+    parms.max_patches = atoi(argv[2]) ;
+    fprintf(stderr,"using %d defect patches/generation...\n", parms.max_patches) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "generations"))
+  {
+    parms.max_unchanged = atoi(argv[2]) ;
+    fprintf(stderr,"terminating evolution after %d generations without change...\n", parms.max_unchanged) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "diag"))
   {
     printf("saving diagnostic information....\n") ;
@@ -244,6 +279,12 @@ get_option(int argc, char *argv[])
   {
     orig_name = argv[2] ;
     fprintf(stderr,"reading original coordinates from '%s'\n",orig_name);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "seed"))
+  {
+		setRandomSeed(atol(argv[2])) ;
+    fprintf(stderr,"setting seed for random number genererator to %d\n", atoi(argv[2])) ;
     nargs = 1 ;
   }
   else switch (toupper(*option))
