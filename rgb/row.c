@@ -40,7 +40,7 @@ int putrow(RGB_IMAGE *image, unsigned short *buffer,
     img_seek(image,y,z);
     cnt = image->xsize;
     if (img_write(image,(char *)(image->tmpbuf),cnt) != cnt) {
-        i_errhdlr("putrow: error on write of row\n");
+        i_errhdlr("putrow: error on write of row\n",0,0,0,0);
         return -1;
     } else
         return cnt;
@@ -64,7 +64,7 @@ int putrow(RGB_IMAGE *image, unsigned short *buffer,
     if (img_write(image,(char *)(buffer),cnt) != cnt) {
         if(image->dorev)  
       cvtshorts(buffer,cnt);
-        i_errhdlr("putrow: error on write of row\n");
+        i_errhdlr("putrow: error on write of row\n",0,0,0,0);
         return -1;
     } else {
         if(image->dorev)  
@@ -74,7 +74,7 @@ int putrow(RGB_IMAGE *image, unsigned short *buffer,
     /* NOTREACHED */
 
       default:
-    i_errhdlr("putrow: weird bpp\n");
+    i_errhdlr("putrow: weird bpp\n",0,0,0,0);
   }
     } else if(ISRLE(image->type)) {
   switch(BPP(image->type)) {
@@ -93,7 +93,7 @@ int putrow(RGB_IMAGE *image, unsigned short *buffer,
     img_setrowsize(image,cnt,y,z);
     img_seek(image,y,z);
     if (img_write(image,(char *)(image->tmpbuf),cnt) != cnt) {
-        i_errhdlr("putrow: error on write of row\n");
+        i_errhdlr("putrow: error on write of row\n",0,0,0,0);
         return -1;
     } else
         return image->xsize;
@@ -119,7 +119,7 @@ int putrow(RGB_IMAGE *image, unsigned short *buffer,
     if (img_write(image,(char *)(image->tmpbuf),cnt) != cnt) {
         if(image->dorev)
       cvtshorts(image->tmpbuf,cnt);
-        i_errhdlr("putrow: error on write of row\n");
+        i_errhdlr("putrow: error on write of row\n",0,0,0,0);
         return -1;
     } else {
         if(image->dorev)
@@ -129,10 +129,10 @@ int putrow(RGB_IMAGE *image, unsigned short *buffer,
     /* NOTREACHED */
 
       default:
-    i_errhdlr("putrow: weird bpp\n");
+    i_errhdlr("putrow: weird bpp\n",0,0,0,0);
   }
     } else 
-  i_errhdlr("putrow: weird image type\n");
+  i_errhdlr("putrow: weird image type\n",0,0,0,0);
     return(-1);
 }
 
@@ -156,7 +156,7 @@ int getrow(RGB_IMAGE *image, unsigned short *buffer,
       case 1: 
     if (img_read(image,(char *)image->tmpbuf,image->xsize) 
                   != image->xsize) {
-        i_errhdlr("getrow: error on read of row\n");
+        i_errhdlr("getrow: error on read of row\n",0,0,0,0);
         return -1;
     } else {
         cptr = (unsigned char *)image->tmpbuf;
@@ -170,7 +170,7 @@ int getrow(RGB_IMAGE *image, unsigned short *buffer,
       case 2: 
     cnt = image->xsize<<1; 
     if (img_read(image,(char *)(buffer),cnt) != cnt) {
-        i_errhdlr("getrow: error on read of row\n");
+        i_errhdlr("getrow: error on read of row\n",0,0,0,0);
         return -1;
     } else {
         if(image->dorev)
@@ -180,7 +180,7 @@ int getrow(RGB_IMAGE *image, unsigned short *buffer,
     /* NOTREACHED */
 
       default:
-    i_errhdlr("getrow: weird bpp\n");
+    i_errhdlr("getrow: weird bpp\n",0,0,0,0);
     break;
   }
     } else if(ISRLE(image->type)) {
@@ -189,7 +189,7 @@ int getrow(RGB_IMAGE *image, unsigned short *buffer,
     if( (cnt = img_getrowsize(image)) == -1 )
         return -1;
     if( img_read(image,(char *)(image->tmpbuf),cnt) != cnt ) {
-        i_errhdlr("getrow: error on read of row\n");
+        i_errhdlr("getrow: error on read of row\n",0,0,0,0);
         return -1;
     } else {
         img_rle_expand(image->tmpbuf,1,buffer,2);
@@ -201,7 +201,7 @@ int getrow(RGB_IMAGE *image, unsigned short *buffer,
     if( (cnt = img_getrowsize(image)) == -1 )
         return -1;
     if( cnt != img_read(image,(char *)(image->tmpbuf),cnt) ) {
-        i_errhdlr("getrow: error on read of row\n");
+        i_errhdlr("getrow: error on read of row\n",0,0,0,0);
         return -1;
     } else {
         if(image->dorev)
@@ -212,9 +212,10 @@ int getrow(RGB_IMAGE *image, unsigned short *buffer,
     /* NOTREACHED */
 
       default:
-    i_errhdlr("getrow: weird bpp\n");
+    i_errhdlr("getrow: weird bpp\n",0,0,0,0);
     break;
   }
     } else 
-  i_errhdlr("getrow: weird image type\n");
+  i_errhdlr("getrow: weird image type\n",0,0,0,0);
+   return(-1) ;
 }
