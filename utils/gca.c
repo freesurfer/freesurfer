@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/02/02 14:30:29 $
-// Revision       : $Revision: 1.92 $
+// Revision Date  : $Date: 2004/02/04 21:55:45 $
+// Revision       : $Revision: 1.93 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -826,25 +826,30 @@ GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int
   // got the point in mri_tal__ position
   if (transform->type != MORPH_3D_TYPE)
   {
-    lta = (LTA *) transform->xform;
-    // get the talairach to orig 
-    TransformWithMatrix(lta->inv_xforms[0].m_L, xt, yt, zt, &xc, &yc, &zc);
-    // TransformSampleInverse(transform, xt, yt, zt, &xc, &yc, &zc);
-    if (xc < -0.5) 
-      errCode = ERROR_BADPARM;
-    else if (yc < -0.5) 
-      errCode = ERROR_BADPARM;
-    else if (zc < -0.5) 
-      errCode = ERROR_BADPARM;
-    else if (xc > (width-1+.5)) 
-      errCode = ERROR_BADPARM;
-    else if (yc > (height-1+.5)) 
-      errCode = ERROR_BADPARM;
-    else if (zc > (depth-1+.5)) 
-      errCode = ERROR_BADPARM;
-    xv = xc;
-    yv = yc;
-    zv = zc;
+    if (transform->type == LINEAR_VOX_TO_VOX) // from src to talairach volume
+    {
+      lta = (LTA *) transform->xform;
+      // get the talairach to orig 
+      TransformWithMatrix(lta->inv_xforms[0].m_L, xt, yt, zt, &xc, &yc, &zc);
+      // TransformSampleInverse(transform, xt, yt, zt, &xc, &yc, &zc);
+      if (xc < -0.5) 
+	errCode = ERROR_BADPARM;
+      else if (yc < -0.5) 
+	errCode = ERROR_BADPARM;
+      else if (zc < -0.5) 
+	errCode = ERROR_BADPARM;
+      else if (xc > (width-1+.5)) 
+	errCode = ERROR_BADPARM;
+      else if (yc > (height-1+.5)) 
+	errCode = ERROR_BADPARM;
+      else if (zc > (depth-1+.5)) 
+	errCode = ERROR_BADPARM;
+      xv = xc;
+      yv = yc;
+      zv = zc;
+    }
+    else
+      ErrorExit(ERROR_BADPARM, "GCApriorToSourceVoxelFloat: needs vox-to-vox transform") ;      
   }
   else // go directly from template to source
   {
@@ -3162,9 +3167,12 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
       countOutside++;
     }
   }
+
+#ifndef __OPTIMIZE__
   if (nsamples > 3000)
-    fprintf(stderr, "num samples outside %d (good ones %d), contributed %.1f(%.1f)\n", 
-	    countOutside, nsamples-countOutside, outside_log_p, total_log_p);
+    fprintf(stderr, "good samples %d (outside %d) log_p = %.1f (outside %.1f)\n",
+	    nsamples-countOutside, countOutside, total_log_p, outside_log_p);
+#endif
 
   return((float)total_log_p) ;
 }
