@@ -16,7 +16,7 @@
 #include "oglutil.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.28 1998/10/27 00:33:30 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.29 1998/11/16 20:24:49 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -62,6 +62,10 @@ static void controlLights(int value) ;
 
 static void display_handler(void) ;
 static void home(MRI_SURFACE *mris) ;
+
+int MRIScheckSphericalOrientation(MRI_SURFACE *mris) ;
+int MRISinvertSurface(MRI_SURFACE *mris) ;
+int MRISfillSurface(MRI_SURFACE *mris) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
@@ -119,6 +123,13 @@ static char title[200] ;
 
 static double starting_mse = 0.0f ;
 
+static float scale = 1.0f ;
+
+static int ic = 0 ;
+
+static float lighting_offset = 0.25f ;
+static float light = 0.0f ;
+
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
@@ -158,8 +169,9 @@ main(int argc, char *argv[])
   surf_fname = in_fname = argv[1] ;
   out_fname = argv[2] ;
 
-  if (patch_flag)   /* read in orig surface before reading in patch */
+  if (patch_flag && !strstr(surf_fname, ".geo"))
   {
+    /* read in orig surface before reading in patch */
     FileNamePath(surf_fname, path) ;
     FileNameOnly(surf_fname, name) ;
     cp = strchr(name, '.') ;
@@ -186,6 +198,11 @@ main(int argc, char *argv[])
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
+  }
+  if (!FEQUAL(scale,1))
+  {
+    MRIScenter(mris, mris) ;
+    MRISscaleBrain(mris, mris,scale) ;
   }
   if (coord_fname)
   {
@@ -281,6 +298,8 @@ main(int argc, char *argv[])
   OGLUinit(mris, frame_xdim, frame_ydim) ; /* specify lighting and such */
   if (fit_flag)
     oglu_fov = 0.0 ;
+  if (!FZERO(light))
+    OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, light) ;
 
   /* now compile the surface tessellation */
   glNewList(current_list, GL_COMPILE) ;
@@ -353,6 +372,12 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "light"))
+  {
+    light = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "setting lighting to %2.2f\n", light) ;
+  }
   else if (!stricmp(option, "nparam"))
   {
     char *cp ;
@@ -425,6 +450,12 @@ get_option(int argc, char *argv[])
     noscale = 1 ;
   else if (!stricmp(option, "scale"))
     noscale = 0 ;
+  else if (!stricmp(option, "rescale"))
+  {
+    scale = atof(argv[2]) ;
+    fprintf(stderr, "scaling brain by %2.2f\n", scale) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "nonmax"))
     nonmax_flag = 1 ;
   else if (!stricmp(option, "fov"))
@@ -646,6 +677,16 @@ keyboard_handler(unsigned char key, int x, int y)
     glMatrixMode(GL_PROJECTION);
     glTranslatef(10.0f, 0.0f, 0.0f) ;
     break ;
+  case 'b':
+  case 'B':   /* brighter */
+    lighting_offset *= 1.5f ;
+    OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, lighting_offset) ;
+    break ;
+  case 'd':   /* dimmer */
+  case 'D':
+    lighting_offset /= 1.5f ;
+    OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, lighting_offset) ;
+    break ;
   case '+':
     delta_angle *= 2.0f ;
     fprintf(stderr, "delta angle = %2.2f\n", delta_angle) ;
@@ -697,8 +738,6 @@ keyboard_handler(unsigned char key, int x, int y)
     glRotatef(-delta_angle, 0.0f, 1.0f, 0.0f) ;
     break ;
 #endif
-  case 'D':
-  case 'd':
   case 'r':
     redraw = 1 ;
     break ;
@@ -766,6 +805,29 @@ keyboard_handler(unsigned char key, int x, int y)
       break ;
     }
     compiled[current_list] = 1 ;
+    break ;
+  case 'm':
+  case 'M':
+    if (compile_flags & MESH_FLAG)
+      compile_flags &= ~MESH_FLAG ;
+    else
+      compile_flags |= MESH_FLAG ;
+    glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+    OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
+    glEndList() ;
+    break ;
+  case 'F':
+  case 'f':
+    glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+    MRISfillSurface(mris) ;
+    glEndList() ;
+    break ;
+  case 'i':
+  case 'I':
+    MRISinvertSurface(mris) ;
+    glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+    OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
+    glEndList() ;
     break ;
   default:
     fprintf(stderr, "unknown normal key=%d\n", key) ;
@@ -1021,152 +1083,292 @@ home(MRI_SURFACE *mris)
 static void
 findAreaExtremes(MRI_SURFACE *mris)
 {
-  int     fno, tno, fmax, tmax, fmin, tmin ;
+  int     fno, fmax, fmin ;
   FACE    *face ;
   float   min_area, max_area;
 
-  fmax = fmin = tmax = tmin = 0 ;
+  fmax = fmin = 0 ;
   min_area = 10000.0f ; max_area = -10000.0f ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
     face = &mris->faces[fno] ;
-    for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
+    if (face->area > max_area)
     {
-      if (face->area[tno] > max_area)
+      max_area = face->area ;
+      fmax = fno ;
+      if (face->area < min_area)
       {
-        max_area = face->area[tno] ;
-        fmax = fno ;
-        tmax = tno ;
-      }
-      if (face->area[tno] < min_area)
-      {
-        min_area = face->area[tno] ;
+        min_area = face->area ;
         fmin = fno ;
-        tmin = tno ;
       }
     }
   }
-  fprintf(stderr, "min_area = %2.3f at f %d, t %d\n", min_area, fmin, tmin) ;
-  fprintf(stderr, "max_area = %2.3f at f %d, t %d\n", max_area, fmax, tmax) ;
+  fprintf(stderr, "min_area = %2.3f at f %d\n", min_area, fmin) ;
+  fprintf(stderr, "max_area = %2.3f at f %d\n", max_area, fmax) ;
 }
 
-#if 0
-static void
-set_color(float val, float curv, int mode)
+int
+MRISinvertSurface(MRI_SURFACE *mris)
 {
-  short r,g,b;
-  float f,fr,fg,fb,tmpoffset;
+  int     vno ;
+  VERTEX  *v ;
 
-  if (curv<0)  tmpoffset = cvfact*offset;
-  else         tmpoffset = offset;
-
-  if (mode==GREEN_RED_CURV)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    f = tanh(cslope*(curv-cmid));
-    if (f>0) {
-      r = 255 * (offset/blufact + 0.95*(1-offset/blufact)*fabs(f));
-      g = 255 * (offset/blufact*(1 - fabs(f)));
-    }
-    else {
-      r = 255 * (offset/blufact*(1 - fabs(f)));
-      g = 255 * (offset/blufact + 0.95*(1-offset/blufact)*fabs(f));
-    }
-    b = 255 * (offset*blufact*(1 - fabs(f)));
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->nx *= -1 ; v->ny *= -1 ; v->nz *= -1 ;
   }
-
-  if (mode==GREEN_RED_VAL)   /* single val positive or signed */
-  {
-    if (colscale==HEAT_SCALE)
-    {
-      set_stat_color(val,&fr,&fg,&fb,tmpoffset);
-      r=fr; g=fg; b=fb;
-    }
-    else
-    if (colscale==CYAN_TO_RED || colscale==BLU_GRE_RED || colscale==JUST_GRAY)
-    {
-      if (val<fthresh) 
-      {
-        r = g = 255 * (tmpoffset/blufact);
-        b =     255 * (tmpoffset*blufact);
-      }
-      else 
-      {
-        if (fslope!=0)
-          f = (tanh(fslope*fmid)+tanh(fslope*(val-fmid)))/(2-tanh(fslope*fmid));
-        else
-          f = (val<0)?0:((val>1)?1:val);
-        set_positive_color(f,&fr,&fg,&fb,tmpoffset);
-        r=fr; g=fg; b=fb;
-      }
-    }
-    else
-    {
-      if (fabs(val)<fthresh) 
-      {
-        r = g = 255 * (tmpoffset/blufact);
-        b =     255 * (tmpoffset*blufact);
-      }
-      else 
-      {
-        if (fslope!=0)
-        {
-          if (fmid==0)
-            f = tanh(fslope*(val));
-          else
-          {
-            if (val<0)
-              f = -(tanh(fslope*fmid) + tanh(fslope*(-val-fmid)))/
-                   (2-tanh(fslope*fmid));
-            else
-              f = (tanh(fslope*fmid) + tanh(fslope*( val-fmid)))/
-                  (2-tanh(fslope*fmid));
-          }
-        }
-        else
-          f = (val<-1)?-1:((val>1)?1:val);
-        if (revphaseflag)
-          f = -f;
-        set_signed_color(f,&fr,&fg,&fb,tmpoffset);
-        r=fr; g=fg; b=fb;
-      }
-    }
-  }
-
-  if (mode==FIELDSIGN_POS || mode==FIELDSIGN_NEG) {
-    if (val<fthresh) {
-      r = g = 255 * (tmpoffset/blufact);
-      b =     255 * (tmpoffset*blufact);
-    }
-    else {
-      f = (1.0 + tanh(fslope*(val-fmid)))/2.0;
-      if (mode==FIELDSIGN_POS) {
-        b = 255 * (tmpoffset + 0.95*(1-tmpoffset)*fabs(f));
-        r = g = 255* (tmpoffset*(1 - fabs(f)));
-      }
-      else {
-        b = 255 * (tmpoffset*(1 - fabs(f)));
-        r = g = 255 * (tmpoffset + 0.95*(1-tmpoffset)*fabs(f));
-      }
-    }
-  }
-
-  if (mode==BORDER)  /* AMD 5/27/95 */
-  {
-    r = 255;
-    g = 255;
-    b = 0;
-  }
-
-  if (mode==MARKED)
-  {
-    r = 255;
-    g = 255;
-    b = 255;
-  }
-
-  r = (r<0)?0:(r>255)?255:r;
-  g = (g<0)?0:(g>255)?255:g;
-  b = (b<0)?0:(b>255)?255:b;
-  glColor3ub(r,g,b);
+  return(NO_ERROR) ;
 }
+int
+MRIScheckSphericalOrientation(MRI_SURFACE *mris)
+{
+  int     vno ;
+  VERTEX  *v ;
+  float   dot ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    dot = v->nx * v->x + v->ny * v->y + v->nz * v->z ;
+    if (dot < 0)
+    {
+      fprintf(stderr, "vertex %d: x = (%2.1f,%2.1f,%2.1f), "
+              "n = (%2.1f,%2.1f,%2.1f), dot = %2.1f.\n",
+              vno, v->x, v->y, v->z, v->nx, v->ny, v->nz, dot) ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+
+static int mrisFillFace(MRI_SURFACE *mris, int fno) ;
+static void load_brain_coords(float x,float y, float z, float *v) ;
+int
+MRISfillSurface(MRI_SURFACE *mris)
+{
+  int    fno ;
+  float  vn[3], v0[3], v1[3], v2[3] ;
+  VERTEX *v_0, *v_1, *v_2 ;
+  FACE   *f ;
+
+  /* draw surface in red */
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    v_0 = &mris->vertices[f->v[0]] ;
+    v_1 = &mris->vertices[f->v[1]] ;
+    v_2 = &mris->vertices[f->v[2]] ;
+    load_brain_coords(f->nx,f->ny,f->nz,vn);
+    load_brain_coords(v_0->x,v_0->y,v_0->z,v0);
+    load_brain_coords(v_1->x,v_1->y,v_1->z,v1);
+    load_brain_coords(v_2->x,v_2->y,v_2->z,v2);
+    glBegin(GL_LINES) ;
+    glColor3ub(0,255,0) ;
+    glNormal3fv(vn);
+    glVertex3fv(v0);
+    glVertex3fv(v1);
+    glVertex3fv(v2);
+    glVertex3fv(v0);
+    glEnd() ;
+  }
+
+  for (fno = 0 ; fno < 1 /*mris->nfaces*/ ; fno++)
+    mrisFillFace(mris, fno) ;
+  return(NO_ERROR) ;
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+        Description
+        each face has 2 triangles defined by it:
+
+       V0    b     V2
+        o----------o
+        |        /       
+        |      /         
+      a |    /            
+        |  /             
+        |/      
+        o
+       V1      b        V2        
+------------------------------------------------------*/
+#if 0
+#define SAMPLE_DIST   0.25
+#else
+#define SAMPLE_DIST   25
 #endif
+
+static int
+mrisFillFace(MRI_SURFACE *mris, int fno)
+{
+  Real   x, y, z, xa, ya, za, xc, yc, zc, t0, t1, adx, ady, adz, dx, dy, dz, 
+         cdx, cdy, cdz, alen, clen, delta_t0, delta_t1, len ;
+  VERTEX *v0, *v1, *v2 ;
+  FACE   *face ;
+  float  vn[3], vstart[3], vend[3] ;
+  int    i ;
+
+  face = &mris->faces[fno] ;
+  if (face->ripflag)
+    return(NO_ERROR) ;
+
+  for (i = 0 ; i < 3 ; i++)
+  {
+    switch (i)
+    {
+    default:
+    case 0:
+      v0 = &mris->vertices[face->v[0]] ;
+      v1 = &mris->vertices[face->v[1]] ;
+      v2 = &mris->vertices[face->v[2]] ;
+      break ;
+    case 1:
+      v0 = &mris->vertices[face->v[1]] ;
+      v1 = &mris->vertices[face->v[2]] ;
+      v2 = &mris->vertices[face->v[0]] ;
+      break ;
+    case 2:
+      v0 = &mris->vertices[face->v[2]] ;
+      v1 = &mris->vertices[face->v[0]] ;
+      v2 = &mris->vertices[face->v[1]] ;
+      break ;
+    }
+
+    adx = v1->x - v0->x ; ady = v1->y - v0->y ; adz = v1->z - v0->z ;
+    alen = sqrt(SQR(adx)+SQR(ady)+SQR(adz)) ;
+    cdx = v2->x - v0->x ; cdy = v2->y - v0->y ; cdz = v2->z - v0->z ;
+    clen = sqrt(SQR(cdx)+SQR(cdy)+SQR(cdz)) ;
+    
+    /*
+      sample along legs of the triangle making sure the maximum spacing
+      between samples (along the longer leg) is SAMPLE_DIST.
+    */
+    
+    /*move along v0->v1 and v3->v2 lines and draw in crossing line to fill face*/
+    /* t0 parameterizes lines from v0->v1 and v0->v2 */
+    if (FZERO(alen) && FZERO(clen))
+      delta_t0 = 0.99 ;
+    else
+      delta_t0 = (alen > clen) ? (SAMPLE_DIST / alen) : (SAMPLE_DIST / clen ) ;
+    if (FZERO(delta_t0))
+      ErrorReturn(ERROR_BADPARM, 
+                  (ERROR_BADPARM,
+                   "mrisFillFace: face %d has infinite leg (%d, %d)\n",
+                   fno, alen, clen)) ;
+    
+    if (delta_t0 >= 1.0)
+      delta_t0 = 0.99 ;
+    
+    /* delta_t0 is % of alen or clen (whichever is bigger) of SAMPLE_DIST */
+    for (t0 = 0 ; t0 <= 1.0f ; t0 += delta_t0)
+    {
+      /* compute points (xa,ya,za) and (xc,yc,zc) on the a and c lines resp. */
+      xa = v0->x + t0*adx ; ya = v0->y + t0*ady ; za = v0->z + t0*adz ;
+      xc = v0->x + t0*cdx ; yc = v0->y + t0*cdy ; zc = v0->z + t0*cdz ;
+      dx = xc-xa ; dy = yc-ya ; dz = zc-za ;
+      len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
+      if (FZERO(len))
+        delta_t1 = 0.99 ;
+      else
+      {
+        delta_t1 = SAMPLE_DIST / len ;  /* sample at SAMPLE_DIST intervals */
+        if (delta_t1 >= 1.0f)
+          delta_t1 = 0.99 ;
+      }
+
+      /* now draw a line from (xa,ya,za) to (xc, yc, zc) */
+      load_brain_coords(face->nx,face->ny,face->nz,vn);
+      load_brain_coords(xa, ya, za, vstart);
+      for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1)
+      {
+        /* compute a point on the line connecting a and c */
+        x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
+#if 1
+        glBegin(GL_POINTS) ;
+        glColor3ub(255,255,255) ;
+        glNormal3fv(vn);
+        load_brain_coords(x, y, z, vend);
+        glVertex3fv(vstart);
+        glVertex3fv(vend);
+        glEnd() ;
+        memmove(vstart, vend, 3*sizeof(float)) ;
+#else
+        MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+        xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;  /* voxel coordinate */
+        MRIset_bit(mri, xv, yv, zv) ;                 /* mark it filled */
+#endif
+      }
+      glBegin(GL_POINTS) ;
+      glColor3ub(255,255,255) ;
+      glNormal3fv(vn);
+      load_brain_coords(x, y, z, vstart);
+      load_brain_coords(xc, yc, zc, vend);
+      glVertex3fv(vstart);
+      glVertex3fv(vend);
+      glEnd() ;
+    }
+    t0 = 1.0f ;
+    /* compute points (xa,ya,za) and (xc,yc,zc) on the a and c lines resp. */
+    xa = v0->x + t0*adx ; ya = v0->y + t0*ady ; za = v0->z + t0*adz ;
+    xc = v0->x + t0*cdx ; yc = v0->y + t0*cdy ; zc = v0->z + t0*cdz ;
+    dx = xc-xa ; dy = yc-ya ; dz = zc-za ;
+    len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
+    if (FZERO(len))
+      delta_t1 = 0.99 ;
+    else
+    {
+      delta_t1 = SAMPLE_DIST / len ;  /* sample at SAMPLE_DIST intervals */
+      if (delta_t1 >= 1.0f)
+        delta_t1 = 0.99 ;
+    }
+    
+    /* now draw a line from (xa,ya,za) to (xc, yc, zc) */
+    load_brain_coords(face->nx,face->ny,face->nz,vn);
+    load_brain_coords(xa, ya, za, vstart);
+    for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1)
+    {
+      /* compute a point on the line connecting a and c */
+      x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
+#if 1
+      glBegin(GL_POINTS) ;
+      glColor3ub(255,255,255) ;
+      glNormal3fv(vn);
+      load_brain_coords(x, y, z, vend);
+      glVertex3fv(vstart);
+      glVertex3fv(vend);
+      glEnd() ;
+      memmove(vstart, vend, 3*sizeof(float)) ;
+#else
+      MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+      xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;  /* voxel coordinate */
+      MRIset_bit(mri, xv, yv, zv) ;                 /* mark it filled */
+#endif
+    }
+    glBegin(GL_POINTS) ;
+    glColor3ub(255,255,255) ;
+    glNormal3fv(vn);
+    load_brain_coords(x, y, z, vstart);
+    load_brain_coords(xc, yc, zc, vend);
+    glVertex3fv(vstart);
+    glVertex3fv(vend);
+    glEnd() ;
+  }
+
+  return(NO_ERROR) ;
+}
+static void
+load_brain_coords(float x,float y, float z, float *v)
+{
+  v[0] = -x;
+  v[1] = z;
+  v[2] = y;
+}

@@ -17,7 +17,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.19 1998/11/09 21:32:00 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.20 1998/11/16 20:25:12 fischl Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -268,11 +268,11 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       }
       glEnd() ;
     }
-    for (n=0;n<4;n++)
+    for (n=0;n<VERTICES_PER_FACE;n++)
       if (mris->vertices[f->v[n]].marked)
         marked = mris->vertices[f->v[n]].marked ;
 
-    glBegin(GL_QUADS) ;
+    glBegin(GL_TRIANGLES) ;
     for (n=0;n<VERTICES_PER_FACE;n++)
     {
       v = &mris->vertices[f->v[n]];

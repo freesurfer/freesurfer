@@ -11,8 +11,7 @@
 #define SPHERICAL_COORDS     1
 #define ELLIPSOID_COORDS     2
 
-#define VERTICES_PER_FACE    4
-#define TRIANGLES_PER_FACE   2
+#define VERTICES_PER_FACE    3
 #define ANGLES_PER_TRIANGLE  3
 
 #define INFLATED_NAME        "inflated"
@@ -40,13 +39,13 @@ typedef struct _area_label
 typedef struct face_type_
 {
   int    v[VERTICES_PER_FACE];           /* vertex numbers of this face */
-  float  nx[TRIANGLES_PER_FACE] ;
-  float  ny[TRIANGLES_PER_FACE] ;
-  float  nz[TRIANGLES_PER_FACE] ;
-  float  area[TRIANGLES_PER_FACE] ;
-  float  orig_area[TRIANGLES_PER_FACE] ;
-  float  angle[TRIANGLES_PER_FACE][ANGLES_PER_TRIANGLE] ;
-  float  orig_angle[TRIANGLES_PER_FACE][ANGLES_PER_TRIANGLE]  ;
+  float  nx ;
+  float  ny ;
+  float  nz ;
+  float  area ;
+  float  orig_area ;
+  float  angle[ANGLES_PER_TRIANGLE] ;
+  float  orig_angle[ANGLES_PER_TRIANGLE]  ;
   int    ripflag;                        /* ripped face */
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
@@ -426,7 +425,7 @@ MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris) ;
 
 
 
-int          MRIScomputeTriangleProperties(MRI_SURFACE *mris, int no_angles) ;
+int          MRIScomputeTriangleProperties(MRI_SURFACE *mris) ;
 int          MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time,
                                   int use_talairach_xform);
 
@@ -581,8 +580,7 @@ int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain,
 int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, 
                                            int which) ;
-int   MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs, 
-                                    float pct_fixed) ;
+int   MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) ;
 MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
                                   MRI *mri) ;
 #if 0
@@ -625,11 +623,24 @@ int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                                   MRI *mri_smooth, float gray_surface);
 int  MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size,int max_nbrs);
+int  MRISscaleCurvature(MRI_SURFACE *mris, float scale) ;
+int  MRISwriteTriangularSurface(MRI_SURFACE *mris, char *fname) ;
 int  MRISripFaces(MRI_SURFACE *mris) ;
 int  MRISremoveRipped(MRI_SURFACE *mris) ;
 int  MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname) ;
 int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;
+
+#define MRIS_BINARY_QUADRANGLE_FILE    0    /* homegrown */
+#define MRIS_ASCII_QUADRANGLE_FILE     1    /* homegrown */
+#define MRIS_GEO_TRIANGLE_FILE         2    /* movie.byu format */
+#define MRIS_ICO_SURFACE               3
+#define MRIS_TRIANGULAR_SURFACE        MRIS_ICO_SURFACE
+
+
+#define IS_QUADRANGULAR(mris) \
+   ((mris->type == MRIS_BINARY_QUADRANGLE_FILE) || \
+    (mris->type == MRIS_ASCII_QUADRANGLE_FILE))
 
 #define RH_LABEL           127
 #define LH_LABEL           255

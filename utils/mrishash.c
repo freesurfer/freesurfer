@@ -188,8 +188,9 @@ MHTfillTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht)
       }
     }
     var /= (n-1) ;
-    fprintf(stderr, "buckets: mean = %2.1f +- %2.2f, max = %d\n",
-            mean, sqrt(var), mx) ;
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "buckets: mean = %2.1f +- %2.2f, max = %d\n",
+              mean, sqrt(var), mx) ;
   }
   ncalls++ ;
   return(mht) ;
@@ -1018,7 +1019,7 @@ static int
 checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1)
 {
   double v0[3], v1[3], v2[3], u0[3], u1[3], u2[3] ;
-  int    fno2, filled, n1, n2, nbr, j ;
+  int    fno2, filled, n1, n2, nbr ;
   FACE   *f1, *f2 ;
 
   if (fno1 >= mris->nfaces)
@@ -1027,127 +1028,67 @@ checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1)
   f1 = &mris->faces[fno1] ;
 
   /* fill vertices of 1st triangle */
-  for (j = 0 ; j < 2 ; j++)
+  v0[0] = (double)mris->vertices[f1->v[0]].x ;
+  v0[1] = (double)mris->vertices[f1->v[0]].y ;
+  v0[2] = (double)mris->vertices[f1->v[0]].z ;
+  v1[0] = (double)mris->vertices[f1->v[1]].x ;
+  v1[1] = (double)mris->vertices[f1->v[1]].y ;
+  v1[2] = (double)mris->vertices[f1->v[1]].z ;
+  v2[0] = (double)mris->vertices[f1->v[2]].x ;
+  v2[1] = (double)mris->vertices[f1->v[2]].y ;
+  v2[2] = (double)mris->vertices[f1->v[2]].z ;
+  for (fno2 = 0 ; fno2 < mris->nfaces ; fno2++)
   {
-    if (j == 0)
-    {
-      v0[0] = (double)mris->vertices[f1->v[0]].x ;
-      v0[1] = (double)mris->vertices[f1->v[0]].y ;
-      v0[2] = (double)mris->vertices[f1->v[0]].z ;
-      v1[0] = (double)mris->vertices[f1->v[1]].x ;
-      v1[1] = (double)mris->vertices[f1->v[1]].y ;
-      v1[2] = (double)mris->vertices[f1->v[1]].z ;
-      v2[0] = (double)mris->vertices[f1->v[2]].x ;
-      v2[1] = (double)mris->vertices[f1->v[2]].y ;
-      v2[2] = (double)mris->vertices[f1->v[2]].z ;
-    }
-    else
-    {
-      v0[0] = (double)mris->vertices[f1->v[1]].x ;
-      v0[1] = (double)mris->vertices[f1->v[1]].y ;
-      v0[2] = (double)mris->vertices[f1->v[1]].z ;
-      v1[0] = (double)mris->vertices[f1->v[2]].x ;
-      v1[1] = (double)mris->vertices[f1->v[2]].y ;
-      v1[2] = (double)mris->vertices[f1->v[2]].z ;
-      v2[0] = (double)mris->vertices[f1->v[3]].x ;
-      v2[1] = (double)mris->vertices[f1->v[3]].y ;
-      v2[2] = (double)mris->vertices[f1->v[3]].z ;
-    }
-    for (fno2 = 0 ; fno2 < mris->nfaces ; fno2++)
-    {
-      f2 = &mris->faces[fno2] ;
-      
-      nbr = 0 ;
-      for (n1 = 0 ; !nbr && n1 < VERTICES_PER_FACE ; n1++)
-        for (n2 = 0 ; !nbr && n2 < VERTICES_PER_FACE ; n2++)
-        {
-          if (f1->v[n1] == f2->v[n2])
-            nbr = 1 ;  /* they share a vertex - don't count it as filled */
-        }
-      if (nbr)
-        continue ;
-      u0[0] = (double)mris->vertices[f2->v[0]].x ;
-      u0[1] = (double)mris->vertices[f2->v[0]].y ;
-      u0[2] = (double)mris->vertices[f2->v[0]].z ;
-      u1[0] = (double)mris->vertices[f2->v[1]].x ;
-      u1[1] = (double)mris->vertices[f2->v[1]].y ;
-      u1[2] = (double)mris->vertices[f2->v[1]].z ;
-      u2[0] = (double)mris->vertices[f2->v[2]].x ;
-      u2[1] = (double)mris->vertices[f2->v[2]].y ;
-      u2[2] = (double)mris->vertices[f2->v[2]].z ;
-      filled = tri_tri_intersect(v0,v1,v2,u0,u1,u2) ;
-      if (filled)
+    f2 = &mris->faces[fno2] ;
+    
+    nbr = 0 ;
+    for (n1 = 0 ; !nbr && n1 < VERTICES_PER_FACE ; n1++)
+      for (n2 = 0 ; !nbr && n2 < VERTICES_PER_FACE ; n2++)
       {
-        int    intersect, n ;
-        VERTEX *v ;
-        
-        fprintf(stderr, 
-                "face %d (%d,%d,%d) intersects with face %d (%d,%d,%d)!!!\n", 
-                fno1, f1->v[0],f1->v[1],f1->v[2],
-                fno2, f2->v[0],f2->v[1],f2->v[2]) ;
-        MRISwrite(mris, "lh.bad") ;
-        DiagBreak() ;
-        intersect = mhtDoesFaceIntersect(mht, mris, fno1) ;
-        if (!intersect)
-          mhtHatchFace(mht, mris, fno1, 1) ;
-        intersect = mhtDoesFaceIntersect(mht, mris, fno2) ;
-        if (!intersect)
-          mhtHatchFace(mht, mris, fno2, 1) ;
-        MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-        for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-        {
-          v = &mris->vertices[f1->v[n]] ;
-          intersect = MHTisVectorFilled(mht, mris, f1->v[n],v->dx,v->dy,v->dz);
-          v = &mris->vertices[f2->v[n]] ;
-        }
-        for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-        {
-          v = &mris->vertices[f2->v[n]] ;
-          intersect = MHTisVectorFilled(mht, mris, f2->v[n],v->dx,v->dy,v->dz);
-          v = &mris->vertices[f2->v[n]] ;
-        }
+        if (f1->v[n1] == f2->v[n2])
+          nbr = 1 ;  /* they share a vertex - don't count it as filled */
       }
-
-      u0[0] = (double)mris->vertices[f2->v[1]].x ;
-      u0[1] = (double)mris->vertices[f2->v[1]].y ;
-      u0[2] = (double)mris->vertices[f2->v[1]].z ;
-      u1[0] = (double)mris->vertices[f2->v[2]].x ;
-      u1[1] = (double)mris->vertices[f2->v[2]].y ;
-      u1[2] = (double)mris->vertices[f2->v[2]].z ;
-      u2[0] = (double)mris->vertices[f2->v[3]].x ;
-      u2[1] = (double)mris->vertices[f2->v[3]].y ;
-      u2[2] = (double)mris->vertices[f2->v[3]].z ;
-      filled = tri_tri_intersect(v0,v1,v2,u0,u1,u2) ;
-      if (filled)
+    if (nbr)
+      continue ;
+    u0[0] = (double)mris->vertices[f2->v[0]].x ;
+    u0[1] = (double)mris->vertices[f2->v[0]].y ;
+    u0[2] = (double)mris->vertices[f2->v[0]].z ;
+    u1[0] = (double)mris->vertices[f2->v[1]].x ;
+    u1[1] = (double)mris->vertices[f2->v[1]].y ;
+    u1[2] = (double)mris->vertices[f2->v[1]].z ;
+    u2[0] = (double)mris->vertices[f2->v[2]].x ;
+    u2[1] = (double)mris->vertices[f2->v[2]].y ;
+    u2[2] = (double)mris->vertices[f2->v[2]].z ;
+    filled = tri_tri_intersect(v0,v1,v2,u0,u1,u2) ;
+    if (filled)
+    {
+      int    intersect, n ;
+      VERTEX *v ;
+      
+      fprintf(stderr, 
+              "face %d (%d,%d,%d) intersects with face %d (%d,%d,%d)!!!\n", 
+              fno1, f1->v[0],f1->v[1],f1->v[2],
+              fno2, f2->v[0],f2->v[1],f2->v[2]) ;
+      MRISwrite(mris, "lh.bad") ;
+      DiagBreak() ;
+      intersect = mhtDoesFaceIntersect(mht, mris, fno1) ;
+      if (!intersect)
+        mhtHatchFace(mht, mris, fno1, 1) ;
+      intersect = mhtDoesFaceIntersect(mht, mris, fno2) ;
+      if (!intersect)
+        mhtHatchFace(mht, mris, fno2, 1) ;
+      MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+      for (n = 0 ; n < VERTICES_PER_FACE ; n++)
       {
-        int    intersect, n ;
-        VERTEX *v ;
-        
-        fprintf(stderr, 
-                "face %d (%d,%d,%d) intersects with face %d (%d,%d,%d)!!!\n", 
-                fno1, f1->v[0],f1->v[1],f1->v[2],
-                fno2, f2->v[0],f2->v[1],f2->v[2]) ;
-        MRISwrite(mris, "lh.bad") ;
-        DiagBreak() ;
-        intersect = mhtDoesFaceIntersect(mht, mris, fno1) ;
-        if (!intersect)
-          mhtHatchFace(mht, mris, fno2, 1) ;
-        intersect = mhtDoesFaceIntersect(mht, mris, fno2) ;
-        if (!intersect)
-          mhtHatchFace(mht, mris, fno1, 1) ;
-        MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-        for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-        {
-          v = &mris->vertices[f1->v[n]] ;
-          intersect = MHTisVectorFilled(mht, mris, f1->v[n],v->dx,v->dy,v->dz);
-          v = &mris->vertices[f2->v[n]] ;
-        }
-        for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-        {
-          v = &mris->vertices[f2->v[n]] ;
-          intersect = MHTisVectorFilled(mht, mris, f2->v[n],v->dx,v->dy,v->dz);
-          v = &mris->vertices[f2->v[n]] ;
-        }
+        v = &mris->vertices[f1->v[n]] ;
+        intersect = MHTisVectorFilled(mht, mris, f1->v[n],v->dx,v->dy,v->dz);
+        v = &mris->vertices[f2->v[n]] ;
+      }
+      for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      {
+        v = &mris->vertices[f2->v[n]] ;
+        intersect = MHTisVectorFilled(mht, mris, f2->v[n],v->dx,v->dy,v->dz);
+        v = &mris->vertices[f2->v[n]] ;
       }
     }
   }
@@ -1288,64 +1229,32 @@ mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
   }
 
   /* fill vertices of 1st triangle */
-  for (j = 0 ; j < 2 ; j++)
-  {
-    if (j == 0)
-    {
-      v0[0] = (double)mris->vertices[f1->v[0]].x ;
-      v0[1] = (double)mris->vertices[f1->v[0]].y ;
-      v0[2] = (double)mris->vertices[f1->v[0]].z ;
-      v1[0] = (double)mris->vertices[f1->v[1]].x ;
-      v1[1] = (double)mris->vertices[f1->v[1]].y ;
-      v1[2] = (double)mris->vertices[f1->v[1]].z ;
-      v2[0] = (double)mris->vertices[f1->v[2]].x ;
-      v2[1] = (double)mris->vertices[f1->v[2]].y ;
-      v2[2] = (double)mris->vertices[f1->v[2]].z ;
-    }
-    else
-    {
-      v0[0] = (double)mris->vertices[f1->v[1]].x ;
-      v0[1] = (double)mris->vertices[f1->v[1]].y ;
-      v0[2] = (double)mris->vertices[f1->v[1]].z ;
-      v1[0] = (double)mris->vertices[f1->v[2]].x ;
-      v1[1] = (double)mris->vertices[f1->v[2]].y ;
-      v1[2] = (double)mris->vertices[f1->v[2]].z ;
-      v2[0] = (double)mris->vertices[f1->v[3]].x ;
-      v2[1] = (double)mris->vertices[f1->v[3]].y ;
-      v2[2] = (double)mris->vertices[f1->v[3]].z ;
-    }
+  v0[0] = (double)mris->vertices[f1->v[0]].x ;
+  v0[1] = (double)mris->vertices[f1->v[0]].y ;
+  v0[2] = (double)mris->vertices[f1->v[0]].z ;
+  v1[0] = (double)mris->vertices[f1->v[1]].x ;
+  v1[1] = (double)mris->vertices[f1->v[1]].y ;
+  v1[2] = (double)mris->vertices[f1->v[1]].z ;
+  v2[0] = (double)mris->vertices[f1->v[2]].x ;
+  v2[1] = (double)mris->vertices[f1->v[2]].y ;
+  v2[2] = (double)mris->vertices[f1->v[2]].z ;
     
-    for (i = 0 ; i < nfaces ; i++)
-    {
-      
-      /* fill vertices of 2nd triangle */
-      f2 = &mris->faces[flist[i]] ;
-      u0[0] = (double)mris->vertices[f2->v[0]].x ;
-      u0[1] = (double)mris->vertices[f2->v[0]].y ;
-      u0[2] = (double)mris->vertices[f2->v[0]].z ;
-      u1[0] = (double)mris->vertices[f2->v[1]].x ;
-      u1[1] = (double)mris->vertices[f2->v[1]].y ;
-      u1[2] = (double)mris->vertices[f2->v[1]].z ;
-      u2[0] = (double)mris->vertices[f2->v[2]].x ;
-      u2[1] = (double)mris->vertices[f2->v[2]].y ;
-      u2[2] = (double)mris->vertices[f2->v[2]].z ;
-      intersect = tri_tri_intersect(v0,v1,v2,u0,u1,u2) ;
-      if (intersect)
-        return(1) ;
-
-      u0[0] = (double)mris->vertices[f2->v[1]].x ;
-      u0[1] = (double)mris->vertices[f2->v[1]].y ;
-      u0[2] = (double)mris->vertices[f2->v[1]].z ;
-      u1[0] = (double)mris->vertices[f2->v[2]].x ;
-      u1[1] = (double)mris->vertices[f2->v[2]].y ;
-      u1[2] = (double)mris->vertices[f2->v[2]].z ;
-      u2[0] = (double)mris->vertices[f2->v[3]].x ;
-      u2[1] = (double)mris->vertices[f2->v[3]].y ;
-      u2[2] = (double)mris->vertices[f2->v[3]].z ;
-      intersect = tri_tri_intersect(v0,v1,v2,u0,u1,u2) ;
-      if (intersect)
-        return(1) ;
-    }
+  for (i = 0 ; i < nfaces ; i++)
+  {
+    /* fill vertices of 2nd triangle */
+    f2 = &mris->faces[flist[i]] ;
+    u0[0] = (double)mris->vertices[f2->v[0]].x ;
+    u0[1] = (double)mris->vertices[f2->v[0]].y ;
+    u0[2] = (double)mris->vertices[f2->v[0]].z ;
+    u1[0] = (double)mris->vertices[f2->v[1]].x ;
+    u1[1] = (double)mris->vertices[f2->v[1]].y ;
+    u1[2] = (double)mris->vertices[f2->v[1]].z ;
+    u2[0] = (double)mris->vertices[f2->v[2]].x ;
+    u2[1] = (double)mris->vertices[f2->v[2]].y ;
+    u2[2] = (double)mris->vertices[f2->v[2]].z ;
+    intersect = tri_tri_intersect(v0,v1,v2,u0,u1,u2) ;
+    if (intersect)
+      return(1) ;
   }
   return(0) ;
 }
