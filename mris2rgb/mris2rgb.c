@@ -13,7 +13,8 @@
 #include <GL/glut.h>
 #include <GL/glx.h>
 
-#if defined(Linux)|| defined(__sun__)
+/*#if defined(Linux)|| defined(__sun__)*/
+#ifdef Linux
 #ifndef WINGDIAPI
 #define WINGDIAPI  extern
 #endif
@@ -36,7 +37,7 @@
 #include "label.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.27 1999/10/13 18:10:36 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.28 2000/04/04 16:41:23 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -121,7 +122,8 @@ static int current_list = ORIG_SURFACE_LIST ;
 
 static int curvature_flag = 0 ;
 
-#if defined(Linux) || defined(__sun__)
+/*#if defined(Linux) || defined(__sun__)*/
+#ifdef Linux
 static OSMesaContext context ;
 static void *buffer = NULL ;
 
@@ -1104,7 +1106,8 @@ print_version(void)
 static void
 xend(void)
 {
-#if defined(Linux) || defined(__sun__)
+  /*#if defined(Linux) || defined(__sun__)*/
+#ifdef Linux
   OSMesaDestroyContext(context);
   if (buffer)
   {
@@ -1121,7 +1124,8 @@ xend(void)
 static void
 xinit(void)
 {
-#if defined(Linux) || defined(__sun__)
+  /*#if defined(Linux) || defined(__sun__)*/
+#ifdef Linux
   context = OSMesaCreateContext( GL_RGBA, NULL );
   /* Allocate the image buffer */
   buffer = calloc(1, frame_xdim * frame_ydim * 4 );
@@ -1281,7 +1285,8 @@ grabPixels(unsigned int width, unsigned int height, unsigned short *red,
 static void
 clear_pixmaps(MRI_SURFACE *mris)
 {
-#if defined(Linux) || defined(__sun__)
+  /*#if defined(Linux) || defined(__sun__)*/
+#ifdef Linux
   OSMesaDestroyContext(context);
   if (buffer)
   {
