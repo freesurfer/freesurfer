@@ -67,13 +67,13 @@
 **			The stack is maintained as a simple stack array.  If
 **			it overflows, we dump the stack to stdout and reset it.
 **
-** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:35:43 $
+** Last Update:		$Author: tosa $, $Date: 2004/06/22 14:33:46 $
 ** Source File:		$RCSfile: condition.c,v $
-** Revision:		$Revision: 1.4 $
+** Revision:		$Revision: 1.5 $
 ** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.4 $ $RCSfile: condition.c,v $";
+static char rcsid[] = "$Revision: 1.5 $ $RCSfile: condition.c,v $";
 
 
 /*
@@ -459,7 +459,7 @@ dumpstack(FILE * lfp)
         index;
 
     for (index = 0; index <= stackPtr; index++)
-	fprintf(lfp, "%8x %s\n", EDBStack[index].statusCode,
+	fprintf(lfp, "%8x %s\n", (unsigned int) EDBStack[index].statusCode,
 		EDBStack[index].statusText);
 }
 

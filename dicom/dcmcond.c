@@ -42,13 +42,13 @@
 ** Intent:		Define the ASCIZ messages that go with each DCM
 **			error number and provide a function for looking up
 **			the error message.
-** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:35:44 $
+** Last Update:		$Author: tosa $, $Date: 2004/06/22 14:33:46 $
 ** Source File:		$RCSfile: dcmcond.c,v $
-** Revision:		$Revision: 1.3 $
+** Revision:		$Revision: 1.4 $
 ** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.3 $ $RCSfile: dcmcond.c,v $";
+static char rcsid[] = "$Revision: 1.4 $ $RCSfile: dcmcond.c,v $";
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -152,13 +152,13 @@ DCM_Message(CONDITION condition)
     return NULL;
 }
 
-DCM_DumpVector()
+void DCM_DumpVector()
 {
     int index;
 
     for (index = 0; index < (int) DIM_OF(messageVector); index++) {
 	if (messageVector[index].message != NULL)
-	    printf("%8x %8d %s\n", messageVector[index].cond,
+	    printf("%8x %8ld %s\n", (unsigned int) messageVector[index].cond,
 		   messageVector[index].cond,
 		   messageVector[index].message);
     }
