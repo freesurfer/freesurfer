@@ -2,7 +2,7 @@
 % reconstruction according to the time-domain reconstruction
 % algorithm 
 %
-% $Id: tdr_recon.m,v 1.6 2003/12/19 22:24:38 greve Exp $
+% $Id: tdr_recon.m,v 1.7 2004/01/12 02:30:29 greve Exp $
 tic;
 
 
@@ -106,6 +106,7 @@ if(fixpedrift)
   fclose(fp);
 end
 
+dgbeta = zeros(2,1,nslices,nframes);
 vol = zeros(nrows,ncols,nslices,nframes);
 %vol = zeros(nrows,ncols,nslices,nframes);
 for nthAcqSlice = 1:nslices
@@ -139,7 +140,8 @@ for nthAcqSlice = 1:nslices
     %if(perev) kepi = flipud(kepi);  end 
     
     % Recon the rows %
-    kepi2 = tdr_deghost(kepi,Rrow,perev);
+    [kepi2 dgbetatmp] = tdr_deghost(kepi,Rrow,perev);
+    dgbeta(:,1,sliceno,frame) = dgbetatmp;
     %kepi2 = kepi*Rrow; % without deghosting
     
     if(~usefid)
@@ -192,6 +194,21 @@ if(~isempty(fidstem))
   fast_svbslice(fidvol1,fidstem,-1,[],mristruct);
 end
 
+% Save the deghosting parameters %
+fname = sprintf('%s.dgbeta',funcstem);
+fast_svbslice(dgbeta,fname,-1,'bfloat',mristruct);
+if(1)
+fname = sprintf('%s.dgbeta.int',funcstem);
+fp = fopen(fname,'w');
+fmt = repmat('%g ',[1 nslices]);
+fmt = sprintf('%s\\n',fmt);
+fprintf(fp,fmt,squeeze(dgbeta(1,1,:,:)));
+fclose(fp);
+fname = sprintf('%s.dgbeta.slope',funcstem);
+fp = fopen(fname,'w');
+fprintf(fp,fmt,squeeze(dgbeta(2,1,:,:)));
+fclose(fp);
+end
 
 % Rescale for bshort, save scaling
 volmin = min(reshape1d(vol));
