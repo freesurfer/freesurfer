@@ -140,12 +140,20 @@ typedef struct vertex_type_
   float std_error ;
 } vertex_type, VERTEX ;
 
+typedef struct 
+{
+  int nvertices;
+  unsigned int *vertex_indizes;
+} STRIP;
+
 typedef struct
 {
   int          nvertices ;      /* # of vertices on surface */
   int          nfaces ;         /* # of faces on surface */
+  int          nstrips;
   VERTEX       *vertices ;
   FACE         *faces ;
+  STRIP        *strips;
   float        xctr ;
   float        yctr ;
   float        zctr ;
