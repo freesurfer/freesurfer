@@ -16,9 +16,12 @@
 #include <stdio.h>
 #define sparc 1
 #include <stdarg.h>
+#include <stdlib.h>
+#include <math.h>
 
 #include "xwin.h"
 #include "diag.h"
+#include "proto.h"
 
 #define BORDERWIDTH     10
 #define FONT            "-adobe-courier-bold-r-normal--*-100-*-*-*-*-iso8859-1"
@@ -87,7 +90,6 @@ open_xwindow(xwin,displayname,xpos,ypos,xsize,ysize,title,eventmask)
     char title[];
     long eventmask;
 {
-  int i, j;
   GC create_gc();
   XWMHints xwmh;
   unsigned long valuemask ;
@@ -251,10 +253,11 @@ xDrawLine(xwindow_type *xwin, int x0, int y0, int x1, int y1, int color,
                int style)
 {
   int ox, oy ;
-   GC  gc ;
+  GC  gc ;
   
   if (!xwin) return ;
-  
+
+  gc = xwin->black ;  /* default */
   x0 *= xwin->scale ;
   y0 *= xwin->scale ;
   x1 *= xwin->scale ;
@@ -328,6 +331,7 @@ xDrawLines(xwindow_type *xwin, XSegment *segs, int nsegs, int color)
     gc = xwin->white ;
     break ;
   default:
+    gc = xwin->black ;
     break ;
   }
   XDrawSegments(xwin->display, xwin->window, gc, segs, nsegs) ;
@@ -517,6 +521,7 @@ xDrawPoint(xwindow_type *xwin, int x, int y, int color)
   
   switch (color)
   {
+  default:
   case xBLACK:
     gc = xwin->black ;
     break ;
@@ -525,8 +530,6 @@ xDrawPoint(xwindow_type *xwin, int x, int y, int color)
     break ;
   case xFLIP:
     gc = xwin->flip ;
-  default:
-    break ;
   }
 
   for (x = xstart ; x <= xend ; x++)
@@ -541,7 +544,7 @@ xShowWindowAttributes(xwindow_type *xwin, FILE *fp)
   XGetWindowAttributes(xwin->display, xwin->window, &xattribs) ;
   
   fprintf(fp, "xwin @%lx, x %d, y %d, width %d, height %d, border %d\n",
-          xwin, xattribs.x, xattribs.y, xattribs.width, xattribs.height, 
+          (long)xwin, xattribs.x, xattribs.y, xattribs.width, xattribs.height, 
           xattribs.border_width) ;
   fprintf(fp, "class %s, event_mask %lx:\n",
           xattribs.class == InputOnly ? "InputOnly" : "InputOutput",
@@ -720,10 +723,9 @@ xShowEvent(unsigned long event, FILE *fp)
 void
 xShowDisplayInfo(xwindow_type *xwin, FILE *fp)
 {
-  int  ret, major_ver, minor_rev, release, cells, planes ;
+  int   /* ret, */ major_ver, minor_rev, release, cells, planes ;
   char *display_name, *vendor_name ;
   Visual *visual ;
-  XVisualInfo xinfo ;
   
   display_name = DisplayString(xwin->display) ;
   
@@ -761,11 +763,13 @@ xShowDisplayInfo(xwindow_type *xwin, FILE *fp)
     fprintf(fp, "%s\n", "StaticGray") ;
     break ;
   }
-  
+
+#if 0
   if (ret)
     fprintf(fp, "GrayScale available\n") ;
   else
     fprintf(fp, "no GrayScale available\n") ;
+#endif
 }
 
 #define NPLANES 0
@@ -822,7 +826,6 @@ xprintf(xwindow_type *xwin, int x, int y, char *fmt, ...)
   va_list args ;
   char    str[MAX_STRING] ;
   int     len ;
-  GC      gc ;
 
 
   va_start(args, fmt) ;
