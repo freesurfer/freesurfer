@@ -739,7 +739,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
           dimage->dx1 = dimage->sourceImage->cols - dimage->x0 - 1 ;
         if (dimage->y0 + dimage->dy1 >= dimage->sourceImage->rows)
           dimage->dy1 = dimage->sourceImage->rows - dimage->y0 - 1 ;
-        if ((dimage->dx1 >= 2) || (dimage->dy1 >= 2))
+        if ((dimage->dx1 >= 2) && (dimage->dy1 >= 2))
         {
           float rscale, cscale ;
 
@@ -1576,6 +1576,9 @@ XVresize(XV_FRAME *xvf)
 
   y = PANEL_HEIGHT ;
   max_width = 0 ;
+  dimage = &xvf->dimages[0][0] ;
+  xvf->display_rows = dimage->dispImage->rows ;
+  xvf->display_cols = dimage->dispImage->cols ;
   for (row = 0 ; row < xvf->rows ; row++)
   {
     x = 0 ;
