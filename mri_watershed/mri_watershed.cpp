@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/03 15:00:22 $
-// Revision       : $Revision: 1.6 $
+// Revision Date  : $Date: 2003/04/03 15:10:37 $
+// Revision       : $Revision: 1.7 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.6 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.7 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -291,27 +291,28 @@ void usageHelp()
 {
   fprintf(stderr, "\nUsage: %s [options] input_file output_file", Progname);
   fprintf(stderr, "\noptions are:");
-  fprintf(stderr, "\n-less                : to shrink the surface");
-  fprintf(stderr, "\n-more                : to expand the surface");
-  fprintf(stderr, "\n-wat                 : only to use the watershed algorithm");
-  fprintf(stderr, "\n-T1                  : to specify T1 input volume");
+  fprintf(stderr, "\n-atlas               : use the atlas information to correct the segmentation");
+  fprintf(stderr, "\n-less                : shrink the surface");
+  fprintf(stderr, "\n-more                : expand the surface");
+  fprintf(stderr, "\n-wat                 : use only the watershed algorithm");
+  fprintf(stderr, "\n-T1                  : specify T1 input volume");
   fprintf(stderr, "\n-wat+temp            : watershed algo and first template smoothing");
-  fprintf(stderr, "\n-first_temp          : first template smoothing + local matching"); 
-  fprintf(stderr, "\n-surf_debug          : to visualize the surfaces onto the output volume");
-  fprintf(stderr, "\n-surf surface_name   : to save the BEM surfaces");
-  fprintf(stderr, "\n-brainsurf surface_name: to save the brain surface");
+  fprintf(stderr, "\n-first_temp          : use only the first template smoothing + local matching"); 
+  fprintf(stderr, "\n-surf_debug          : visualize the surfaces onto the output volume");
+  fprintf(stderr, "\n-surf surface_name   : save the BEM surfaces");
+  fprintf(stderr, "\n-brainsurf surface_name: save the brain surface");
   fprintf(stderr, "\n-shk_br_surf h_shk surface_name: to save the brain surface shrank inward of h_snk mm");
-  fprintf(stderr, "\n-s int_i int_j int_k : to add a seed point");
-  fprintf(stderr, "\n-c int_i int_j int_k : to specify the center of the brain");
-  fprintf(stderr, "\n-r int_r             : to specify the radius of the brain");
-  fprintf(stderr, "\n-t int_threshold     : to change the threshold in the watershed analyze process");
-  fprintf(stderr, "\n-h int_hpf           : to precize the preflooding height (in percent)");
-  fprintf(stderr, "\n-n                   : not to use the watershed analyze process");
-  fprintf(stderr, "\n-LABEL               : to labelize the output volume into scalp, skull, csf, gray and white");
+  fprintf(stderr, "\n-s int_i int_j int_k : add a seed point");
+  fprintf(stderr, "\n-c int_i int_j int_k : specify the center of the brain");
+  fprintf(stderr, "\n-r int_r             : specify the radius of the brain");
+  fprintf(stderr, "\n-t int_threshold     : change the threshold in the watershed analyze process");
+  fprintf(stderr, "\n-h int_hpf           : precize the preflooding height (in percent)");
+  fprintf(stderr, "\n-n                   : not use the watershed analyze process");
+  fprintf(stderr, "\n-LABEL               : labelize the output volume into scalp, skull, csf, gray and white");
   fprintf(stderr, "\n-man int_csf int_trn int_gray: to change the different parameters csf_max, transition_intensity and GM_intensity");
-  fprintf(stderr, "\n-mask                : to mask a volume with the brain mask");
-  fprintf(stderr, "\n-atlas               : to use the atlas information to eventually correct the segmentation");
-  fprintf(stderr, "\n--version            : to show the current version\n\n");
+  fprintf(stderr, "\n-mask                : mask a volume with the brain mask");
+  fprintf(stderr, "\n--help               : show the this usage message");
+  fprintf(stderr, "\n--version            : show the current version\n\n");
 }
 
 /*-----------------------------------------------------
@@ -342,7 +343,7 @@ int main(int argc, char *argv[])
 
   /************* Command line****************/
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.6 2003/04/03 15:00:22 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.7 2003/04/03 15:10:37 tosa Exp $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -460,12 +461,17 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
   option = argv[1] + 1 ;            /* past '-' */
   
   option = argv[1] + 1 ;            /* past '-' */
-  if (!strcmp(option, "-version"))
+  if (!strcmp(option, "-help"))
+  {
+    usageHelp();
+    exit(0);
+  }
+  else if (!strcmp(option, "-version"))
   {
     fprintf(stderr,"%s\n\n", MRI_WATERSHED_VERSION );
     exit(0);
-  } else 
-  if (!strcmp(option, "more"))
+  } 
+  else if (!strcmp(option, "more"))
   {
     parms->skull_type=1;
     nargs = 0 ;
