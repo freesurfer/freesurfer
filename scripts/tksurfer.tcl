@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.49 2003/08/06 15:40:35 kteich Exp $
+# $Id: tksurfer.tcl,v 1.50 2003/08/06 17:31:53 kteich Exp $
 
 package require BLT;
 
@@ -157,6 +157,7 @@ set gaLinkedVars(cslope) 0
 set gaLinkedVars(cmid) 0
 set gaLinkedVars(cmin) 0
 set gaLinkedVars(cmax) 0
+set gaLinkedVars(forcegraycurvatureflag) 0
 set gaLinkedVars(angle_cycles) 0
 set gaLinkedVars(angle_offset) 0
 set gaLinkedVars(sulcflag) 0
@@ -186,7 +187,7 @@ array set gaLinkedVarGroups {
     overlay { falpha colscale truncphaseflag invphaseflag revphaseflag \
       complexvalflag foffset fthresh fmid fslope fmin fmax \
       fnumtimepoints fnumconditions ftimepoint fcondition}
-    curvature { cslope cmid cmin cmax }
+    curvature { cslope cmid cmin cmax forcegraycurvatureflag }
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
     view { curvflag flagsurfcolor vertexset overlayflag scalebarflag \
@@ -1269,6 +1270,7 @@ proc DoConfigCurvatureDisplayDlog {} {
 
   set fwMain             $wwDialog.fwMain
   set lfwThreshold       $wwDialog.lfwThreshold
+  set fwGrayscale        $wwDialog.fwGrayscale
   set fwButtons          $wwDialog.fwButtons
 
   frame $fwMain
@@ -1293,11 +1295,16 @@ proc DoConfigCurvatureDisplayDlog {} {
     -side top \
     -anchor w
 
+  tkm_MakeCheckboxes $fwGrayscale x {
+      { text "Binary gray" gaLinkedVars(forcegraycurvatureflag) {} 
+	  "Always draw curvature in binary gray" }
+  }
+
   # buttons.
   tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
     { SendLinkedVarGroup curvature; UpdateAndRedraw } {}
 
-  pack $fwMain $lfwThreshold $fwButtons \
+  pack $fwMain $lfwThreshold $fwGrayscale $fwButtons \
     -side top       \
     -expand yes     \
     -fill x         \
@@ -2300,105 +2307,106 @@ proc CreateMenuBar { ifwMenuBar } {
 		{DoConfigCurvatureDisplayDlog}
 		mg_CurvatureLoaded }
 	    { command "Phase Encoded Data Display..."
-		{DoConfigPhaseEncodedDataDisplayDlog} } }
-	    { separator }
-	    {cascade "Surface Configuration" {
-		{ radio "Main"
-		    { set_current_vertex_set $gaLinkedVars(vertexset)
+		{DoConfigPhaseEncodedDataDisplayDlog} }
+	}}
+	{ separator }
+	{ cascade "Surface Configuration" {
+	    { radio "Main"
+		{ set_current_vertex_set $gaLinkedVars(vertexset)
 			UpdateLinkedVarGroup view
-			UpdateAndRedraw }
-		    gaLinkedVars(vertexset)
-		    0 }
-		{ radio "Inflated"
-		    { set_current_vertex_set $gaLinkedVars(vertexset)
-			UpdateLinkedVarGroup view
-			UpdateAndRedraw }
-		    gaLinkedVars(vertexset)
-		    1
-		    mg_InflatedVSetLoaded }
-		{ radio "White"
-		   { set_current_vertex_set $gaLinkedVars(vertexset)
-		       UpdateLinkedVarGroup view
-		       UpdateAndRedraw }
-		    gaLinkedVars(vertexset)
-		    2
-		    mg_WhiteVSetLoaded }
-		{ radio "Pial"
-		    { set_current_vertex_set $gaLinkedVars(vertexset)
-			UpdateLinkedVarGroup view
-			UpdateAndRedraw }
-		    gaLinkedVars(vertexset)
-		    3
-		    mg_PialVSetLoaded }
-		{ radio "Original"
-		    { set_current_vertex_set $gaLinkedVars(vertexset)
-			UpdateLinkedVarGroup view
-			UpdateAndRedraw }
-		    gaLinkedVars(vertexset)
-		    4
-		    mg_OriginalVSetLoaded }
-	    }}
-	    {cascade "Overlay Layer" {
-		{ radio "Overlay Layer 1"
-		    { SetOverlayField }
-		    gaLinkedVars(currentvaluefield)
-		    0
-		    mg_OverlayLoaded }
-		{ radio "Overlay Layer 2"
-		    { SetOverlayField }
-		    gaLinkedVars(currentvaluefield)
-		    1
-		    mg_OverlayLoaded }
-		{ radio "Overlay Layer 3"
-		    { SetOverlayField }
-		    gaLinkedVars(currentvaluefield)
-		    2
-		    mg_OverlayLoaded }
-		{ radio "Overlay Layer 4"
-		    { SetOverlayField }
-		    gaLinkedVars(currentvaluefield)
-		    3
-		    mg_OverlayLoaded }
-		{ radio "Overlay Layer 5"
-		    { SetOverlayField }
-		    gaLinkedVars(currentvaluefield)
-		    4
-		    mg_OverlayLoaded }
-		{ radio "Overlay Layer 6"
-		    { SetOverlayField }
-		    gaLinkedVars(currentvaluefield)
-		    5
-		    mg_OverlayLoaded }
-		{ radio "Overlay Layer 7"
-		    { SetOverlayField }
-		    gaLinkedVars(currentvaluefield)
-		    6
-		    mg_OverlayLoaded }
-		{ radio "Overlay Layer 8"
-		    { SetOverlayField }
-		    gaLinkedVars(currentvaluefield)
-		    7
-		    mg_OverlayLoaded }
-		{ radio "Overlay Layer 9"
-		    { SetOverlayield }
-		    gaLinkedVars(currentvaluefield)
-		    8
-		    mg_OverlayLoaded }
-	    }}
-	    {cascade "Label Style" {
-		{ radio "Filled"
-		    { SendLinkedVarGroup label
-			UpdateAndRedraw }
-		    gaLinkedVars(labelstyle)
-		    0
-		    mg_LabelLoaded }
-		{ radio "Outline"
-		    { SendLinkedVarGroup label
-			UpdateAndRedraw }
-		    gaLinkedVars(labelstyle)
-		    1
-		    mg_LabelLoaded } }
-	    }}
+		    UpdateAndRedraw }
+		gaLinkedVars(vertexset)
+		0 }
+	    { radio "Inflated"
+		{ set_current_vertex_set $gaLinkedVars(vertexset)
+		    UpdateLinkedVarGroup view
+		    UpdateAndRedraw }
+		gaLinkedVars(vertexset)
+		1
+		mg_InflatedVSetLoaded }
+	    { radio "White"
+		{ set_current_vertex_set $gaLinkedVars(vertexset)
+		    UpdateLinkedVarGroup view
+		    UpdateAndRedraw }
+		gaLinkedVars(vertexset)
+		2
+		mg_WhiteVSetLoaded }
+	    { radio "Pial"
+		{ set_current_vertex_set $gaLinkedVars(vertexset)
+		    UpdateLinkedVarGroup view
+		    UpdateAndRedraw }
+		gaLinkedVars(vertexset)
+		3
+		mg_PialVSetLoaded }
+	    { radio "Original"
+		{ set_current_vertex_set $gaLinkedVars(vertexset)
+		    UpdateLinkedVarGroup view
+		    UpdateAndRedraw }
+		gaLinkedVars(vertexset)
+		4
+		mg_OriginalVSetLoaded }
+	}}
+	{cascade "Overlay Layer" {
+	    { radio "Overlay Layer 1"
+		{ SetOverlayField }
+		gaLinkedVars(currentvaluefield)
+		0
+		mg_OverlayLoaded }
+	    { radio "Overlay Layer 2"
+		{ SetOverlayField }
+		gaLinkedVars(currentvaluefield)
+		1
+		mg_OverlayLoaded }
+	    { radio "Overlay Layer 3"
+		{ SetOverlayField }
+		gaLinkedVars(currentvaluefield)
+		2
+		mg_OverlayLoaded }
+	    { radio "Overlay Layer 4"
+		{ SetOverlayField }
+		gaLinkedVars(currentvaluefield)
+		3
+		mg_OverlayLoaded }
+	    { radio "Overlay Layer 5"
+		{ SetOverlayField }
+		gaLinkedVars(currentvaluefield)
+		4
+		mg_OverlayLoaded }
+	    { radio "Overlay Layer 6"
+		{ SetOverlayField }
+		gaLinkedVars(currentvaluefield)
+		5
+		mg_OverlayLoaded }
+	    { radio "Overlay Layer 7"
+		{ SetOverlayField }
+		gaLinkedVars(currentvaluefield)
+		6
+		mg_OverlayLoaded }
+	    { radio "Overlay Layer 8"
+		{ SetOverlayField }
+		gaLinkedVars(currentvaluefield)
+		7
+		mg_OverlayLoaded }
+	    { radio "Overlay Layer 9"
+		{ SetOverlayield }
+		gaLinkedVars(currentvaluefield)
+		8
+		mg_OverlayLoaded }
+	}}
+	{cascade "Label Style" {
+	    { radio "Filled"
+		{ SendLinkedVarGroup label
+		    UpdateAndRedraw }
+		gaLinkedVars(labelstyle)
+		0
+		mg_LabelLoaded }
+	    { radio "Outline"
+		{ SendLinkedVarGroup label
+		    UpdateAndRedraw }
+		gaLinkedVars(labelstyle)
+		1
+		mg_LabelLoaded }
+	}}
 	{ separator }
 	{ check 
 	    "Auto-redraw"
