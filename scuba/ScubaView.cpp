@@ -1256,8 +1256,8 @@ float
 ScubaView::ConvertWindowToRAS ( float iWindow, float iRASCenter, 
 				float iWindowDimension ) {
 
-  return (iWindow / mViewState.mZoomLevel) +
-    iRASCenter - (iWindowDimension / 2.0 / mViewState.mZoomLevel);
+  return ((iWindow - iWindowDimension / 2.0) / mViewState.mZoomLevel) + 
+    iRASCenter;
 }
 
 void

@@ -83,6 +83,9 @@ class VolumeCollection : public DataCollection {
   int  NewROIFromLabel ( std::string ifnLabel );
   void WriteROIsToSegmentation ( std::string ifnVolume );
 
+  float* GetMinRASBounds () { return mMinRASBounds; }
+  float* GetMaxRASBounds () { return mMaxRASBounds; }
+
 protected:
   std::string mfnMRI;
   MRI* mMRI;

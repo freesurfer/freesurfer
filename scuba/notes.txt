@@ -245,9 +245,6 @@ x  - code to draw snake line
 x  - connects first and last points on redraw
 x  - add edge line to edge volume
 
-- lines
- - need to add removing function
-  - remove from edge volume properly
 
 x - live reslicing
 x  - each view gets a color
@@ -274,9 +271,6 @@ BRUCE'S LIST:::
 BUGS:::
 - fix radius in brush, it's really ugly
 - tabbing when in console switches frame, disable?
-- dlog box on fill 
-  - way to suspend the redraw in the middle of the fill?
-  - way to have a progress bar without a percent?
 - brings up tkcon window briefly when booting
 - ctrl-click to zoom in while in line tool draws line - handleTool should check to see if ctrl is down
 - info pane doesn't update when changing slices
@@ -294,3 +288,12 @@ nav tools draw onscreen sliders for feedback
  - start at mouse point, use expo scale towards edge for min/max values
 
 
+
+
+profiling
+DrawIntoBuffer with loop=1
+  togl: 29.2%
+  glut: 27.2%
+DrawIntoBuffer with loop=8
+  togl: 27.2%
+  glut: 26.4%

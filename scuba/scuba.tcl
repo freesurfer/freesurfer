@@ -611,7 +611,7 @@ proc MakeScubaFrame { ifwTop } {
     set fwScuba $ifwTop.fwScuba
     
     set frameID [GetNewFrameID]
-    togl $fwScuba -width 512 -height 512 -rgba true -ident $frameID -time 20
+    togl $fwScuba -width 512 -height 512 -rgba true -ident $frameID -time 1
 
     bind $fwScuba <Motion> \
 	"%W MouseMotionCallback %x %y %b; ScubaMouseMotionCallback %x %y %b"
@@ -3219,3 +3219,18 @@ bind $gaWidget(window) <Key-8> {set gaTool(current,radius) 8; SetToolBrushRadius
 bind $gaWidget(window) <Key-9> {set gaTool(current,radius) 9; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
 
 
+
+set nRAS -64
+proc UpdateFrame {} {
+    global nRAS
+    
+    if { $nRAS < 64 } {
+	SetViewRASCenter 0 $nRAS 0 0
+	incr nRAS
+	RedrawFrame 0
+	after idle { UpdateFrame }
+    }
+
+}
+
+#after 1000  { UpdateFrame }

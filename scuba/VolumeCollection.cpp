@@ -356,10 +356,28 @@ VolumeCollection::GetMRINearestValueAtRAS ( float iRAS[3] ) {
 
   Real value = 0;
   if( NULL != mMRI ) {
-    float index[3];
+    int index[3];
     RASToMRIIndex( iRAS, index );
-    MRIsampleVolumeType( mMRI, index[0], index[1], index[2],
+    switch( mMRI->type ) {
+      case MRI_UCHAR:
+	value = (float)MRIvox(mMRI, index[0], index[1], index[2]);
+	break ;
+      case MRI_SHORT:
+	value = (float)MRISvox(mMRI, index[0], index[1], index[2]);
+	break ;
+      case MRI_INT:
+	value = (float)MRIIvox(mMRI, index[0], index[1], index[2]);
+	break ;
+      case MRI_FLOAT:
+	value = MRIFvox(mMRI, index[0], index[1], index[2]);
+	break ;
+      default:
+	value = 0 ;
+      }
+#if 0 
+   MRIsampleVolumeType( mMRI, index[0], index[1], index[2],
 			 &value, SAMPLE_NEAREST );
+#endif
   }
   return (float)value;
 }
@@ -590,7 +608,7 @@ VolumeCollection::SelectRAS ( float iRAS[3] ) {
     volumeROI->SelectVoxel( index );
 
     // Also mark this in the selection voxel.
-    mSelectedVoxels->Set( index[0], index[1], index[2], true );
+    mSelectedVoxels->Set_Unsafe( index[0], index[1], index[2], true );
   }
 }
 
@@ -623,7 +641,7 @@ VolumeCollection::UnselectRAS ( float iRAS[3] ) {
       }
     }
     if( !bSelected ) {
-      mSelectedVoxels->Set( index[0], index[1], index[2], false );
+      mSelectedVoxels->Set_Unsafe( index[0], index[1], index[2], false );
     }
   }
 }
@@ -634,7 +652,7 @@ VolumeCollection::IsRASSelected ( float iRAS[3], int oColor[3] ) {
   // Check the selection volume cache first.
   int index[3];
   RASToMRIIndex( iRAS, index );
-  if( !(mSelectedVoxels->Get( index[0], index[1], index[2] )) )
+  if( !(mSelectedVoxels->Get_Unsafe( index[0], index[1], index[2] )) )
     return false;
 
   try {
@@ -682,7 +700,7 @@ VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
   // Check the selectin volume cache first.
   int index[3];
   RASToMRIIndex( iRAS, index );
-  if( !(mSelectedVoxels->Get( index[0], index[1], index[2] )) )
+  if( !(mSelectedVoxels->Get_Unsafe( index[0], index[1], index[2] )) )
     return false;
 
   bool bSelected = false;
@@ -727,7 +745,7 @@ VolumeCollection::MarkRASEdge ( float iRAS[3] ) {
   if( NULL != mMRI ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
-    mEdgeVoxels->Set( index[0], index[1], index[2], true );
+    mEdgeVoxels->Set_Unsafe( index[0], index[1], index[2], true );
   }
 }
 
@@ -737,7 +755,7 @@ VolumeCollection::UnmarkRASEdge ( float iRAS[3] ) {
   if( NULL != mMRI ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
-    mEdgeVoxels->Set( index[0], index[1], index[2], false );
+    mEdgeVoxels->Set_Unsafe( index[0], index[1], index[2], false );
   }
 }
 
@@ -747,7 +765,7 @@ VolumeCollection::IsRASEdge ( float iRAS[3] ) {
   if( NULL != mMRI ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
-    return mEdgeVoxels->Get( index[0], index[1], index[2] );
+    return mEdgeVoxels->Get_Unsafe( index[0], index[1], index[2] );
   } else {
     return false;
   }
@@ -1066,10 +1084,10 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       continue;
     }
 
-    if( bVisited.Get( point.x(), point.y(), point.z() ) ) {
+    if( bVisited.Get_Unsafe( point.x(), point.y(), point.z() ) ) {
       continue;
     }
-    bVisited.Set( point.x(), point.y(), point.z(), true );
+    bVisited.Set_Unsafe( point.x(), point.y(), point.z(), true );
 
     // Get RAS.
     float ras[3];

@@ -9,7 +9,7 @@ using namespace std;
 
 ViewFactory* ScubaFrame::mFactory = NULL;
 
-ScubaFrame::ScubaFrame( ToglFrame::ID iID ) 
+ScubaFrame::ScubaFrame( ID iID ) 
   : ToglFrame( iID ) {
 
   DebugOutput( << "Created ScubaFrame " << iID );
