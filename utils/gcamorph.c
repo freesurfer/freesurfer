@@ -400,6 +400,10 @@ GCAMread(char *fname)
     {
       fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
       GCAMreadGeom(gcam, fp);
+      fprintf(stderr, "src geometry:\n");
+      writeVolGeom(stderr, &gcam->src);
+      fprintf(stderr, "dst geometry:\n");
+      writeVolGeom(stderr, &gcam->dst);
     }
     else
     {
