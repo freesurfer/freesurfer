@@ -71,7 +71,7 @@ typedef struct vertex_type_
   float e2x, e2y, e2z ;  /* 2nd basis vector for the local tangent plane */
 #if 1
   float  ox,oy,oz;        /* last position (for undoing time steps) */
-  float mx,my,mz;        /* last movement */
+  float mx,my,mz;         /* last movement */
   float dipx,dipy,dipz;  /* dipole position */
   float dipnx,dipny,dipnz; /* dipole orientation */
   float nc;              /* curr length normal comp */
@@ -348,7 +348,7 @@ int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
-int          MRISreadValuesScale(MRI_SURFACE *mris, char *fname) ;
+int          MRISreadValuesBak(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadImagValues(MRI_SURFACE *mris, char *fname) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
 

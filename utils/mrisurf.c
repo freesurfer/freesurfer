@@ -6524,7 +6524,7 @@ MRISreadValues(MRI_SURFACE *mris, char *fname)
         Description
 ------------------------------------------------------*/
 int
-MRISreadValuesScale(MRI_SURFACE *mris, char *fname)
+MRISreadValuesBak(MRI_SURFACE *mris, char *fname)
 {
   int i,k,num,ilat;
   float f;
@@ -6534,7 +6534,7 @@ MRISreadValuesScale(MRI_SURFACE *mris, char *fname)
   fp = fopen(fname,"r");
   if (fp==NULL)
     ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE,
-                               "MRISreadValuesScale: File %s not found\n",fname));
+                               "MRISreadValuesBak: File %s not found\n",fname));
   fread2(&ilat,fp);
   lat = ilat/10.0;
 
@@ -6546,10 +6546,10 @@ MRISreadValuesScale(MRI_SURFACE *mris, char *fname)
     fread3(&k,fp);
     f = freadFloat(fp) ;
     if (k>=mris->nvertices||k<0)
-      printf("MRISreadValuesScale: vertex index out of range: %d f=%f\n",k,f);
+      printf("MRISreadValuesBak: vertex index out of range: %d f=%f\n",k,f);
     else
       {
-      mris->vertices[k].val *= f;
+      mris->vertices[k].valbak = f;
       }
     }
   fclose(fp);
