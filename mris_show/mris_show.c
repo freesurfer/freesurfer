@@ -1,0 +1,768 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <ctype.h>
+
+#include <glut.h>
+#include <gl.h>
+
+#include "macros.h"
+#include "error.h"
+#include "diag.h"
+#include "proto.h"
+#include "mrisurf.h"
+#include "macros.h"
+
+static char vcid[] = "$Id: mris_show.c,v 1.1 1997/07/14 15:21:56 fischl Exp $";
+
+int main(int argc, char *argv[]) ;
+
+static int  get_option(int argc, char *argv[]) ;
+static void usage_exit(void) ;
+static void print_usage(void) ;
+static void print_help(void) ;
+static void print_version(void) ;
+static void load_brain_coords(float x,float y, float z, float v[]) ;
+static int  MRISGLcompile(MRI_SURFACE *mris) ;
+/* static void rotate_brain(float angle, char c) ;*/
+
+static void keyboard_handler(unsigned char key, int x, int y) ;
+static void special_key_handler(int key, int x, int y) ;
+static void reshape_handler(int width, int height) ;
+static void mouse_handler(int button, int state, int x, int y) ;
+static void controlLights(int value) ;
+
+static void display_handler(void) ;
+static void gfxinit(MRI_SURFACE *mris) ;
+static void set_lighting_model(float lite0, float lite1, float lite2, 
+             float lite3, float newoffset) ;
+
+char *Progname ;
+char *surf_fname ;
+static MRI_SURFACE  *mris, *mris_orig, *mris_ellipsoid = NULL ;
+
+static long frame_xdim = 600;
+static long frame_ydim = 600;
+
+static int show_temporal_region_flag = 0 ;
+static int talairach_flag = 0 ;
+
+#define DELTA_ANGLE  18.0f
+static float delta_angle = 2*DELTA_ANGLE ;
+
+#define RIGHT_HEMISPHERE_ANGLE   90.0
+#define LEFT_HEMISPHERE_ANGLE   -90.0
+
+#define ORIG_SURFACE_LIST   1
+#define ELLIPSOID_LIST      2
+
+static int current_list = ORIG_SURFACE_LIST ;
+
+int
+main(int argc, char *argv[])
+{
+  char         **av, *in_fname, *out_fname, wname[200] ;
+  int          ac, nargs ;
+  float        angle ;
+
+  Progname = argv[0] ;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
+
+  ac = argc ;
+  av = argv ;
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
+
+  if (argc < 2)
+    usage_exit() ;
+
+  surf_fname = in_fname = argv[1] ;
+  out_fname = argv[2] ;
+  mris_orig = mris = MRISread(in_fname) ;
+  if (talairach_flag)
+    MRIStalairachTransform(mris_orig, mris_orig) ;
+  MRIScenter(mris_orig, mris_orig) ;
+  if (!mris)
+    exit(Gerror) ;
+#if 0
+  fprintf(stderr, "(%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f), ctr "
+          "(%2.1f, %2.1f, %2.1f)\n",
+          mris->xlo, mris->ylo, mris->zlo, mris->xhi, mris->yhi, mris->zhi,
+          mris->xctr, mris->yctr, mris->zctr);
+#endif
+
+  glutInit(&argc, argv) ;  /* pass -geometry and such to  GLUT */
+  glutInitWindowSize(frame_xdim, frame_ydim) ;
+
+/* 
+   use double buffering, RBF color stuff, and a depth buffer for 
+   hidden surface removal 
+   */
+  glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH) ;
+  sprintf(wname, "%scortical surface reconstruction '%s'", 
+          talairach_flag ? "talairached " : "", in_fname) ;
+  glutCreateWindow(wname) ;          /* open the window */
+  glutHideWindow() ;
+  glutDisplayFunc(display_handler) ; /* specify a drawing callback function */
+  gfxinit(mris) ;                    /* specify lighting and such */
+
+  if (mris->hemisphere == RIGHT_HEMISPHERE)
+    angle = RIGHT_HEMISPHERE_ANGLE ;
+  else
+    angle = LEFT_HEMISPHERE_ANGLE ;
+  glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+
+  /* handle reshaping, keyboard and mouse events */
+  glutKeyboardFunc(keyboard_handler) ;
+  glutSpecialFunc(special_key_handler) ;
+  glutMouseFunc(mouse_handler) ;
+  glutReshapeFunc(reshape_handler) ;
+
+  /* create a menu and attach it to the window */
+  glutCreateMenu(controlLights) ;
+  glutAddMenuEntry("toggle light 1", 1) ;
+  glutAddMenuEntry("toggle light 2", 2) ;
+  glutAddMenuEntry("toggle light 3", 3) ;
+  glutAddMenuEntry("toggle light 4", 4) ;
+  glutAttachMenu(GLUT_RIGHT_BUTTON) ;
+
+  glutShowWindow() ;
+  glutMainLoop() ;               /* enter event handling loop */
+  MRISfree(&mris) ;
+
+  exit(0) ;
+  return(0) ;  /* for ansi */
+}
+
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int
+get_option(int argc, char *argv[])
+{
+  int  nargs = 0 ;
+  char *option ;
+  
+  option = argv[1] + 1 ;            /* past '-' */
+  if (!stricmp(option, "-help"))
+    print_help() ;
+  else if (!stricmp(option, "-version"))
+    print_version() ;
+  else switch (toupper(*option))
+  {
+  case 'T':
+    talairach_flag = 1 ;
+    break ;
+  case '?':
+  case 'U':
+    print_usage() ;
+    exit(1) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
+
+  return(nargs) ;
+}
+
+static void
+usage_exit(void)
+{
+  print_usage() ;
+  exit(1) ;
+}
+
+static void
+print_usage(void)
+{
+  fprintf(stderr, 
+          "usage: %s [options] <input image file>\n",
+          Progname) ;
+}
+
+static void
+print_help(void)
+{
+  print_usage() ;
+  fprintf(stderr, 
+          "\nThis program will display an MRI surface reconstruction.\n") ;
+  fprintf(stderr, "\nvalid options are:\n\n") ;
+  exit(1) ;
+}
+
+static void
+print_version(void)
+{
+  fprintf(stderr, "%s\n", vcid) ;
+  exit(1) ;
+}
+
+static int meshr = 100;   /* mesh color */
+static int meshg = 100;
+static int meshb = 100;
+
+float pup = 0.07;  /* dist point above surface */
+
+#define POLE_DISTANCE   1.0f   /* color everything within 1 mm of pole */
+
+int
+MRISGLcompile(MRI_SURFACE *mris)
+{
+  int          k,n, red, green, blue ;
+  face_type    *f;
+  vertex_type  *v ;
+  float        v1[3], xf, yf, zf, xt, yt, zt, xo, yo, zo, xd, yd, zd,td,fd,od,
+               min_curv, max_curv ;
+  Real         x, y, z, xtal,ytal,ztal ;
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "compiling surface tesselation...") ;
+
+  xf = mris->v_frontal_pole->x ;
+  yf = mris->v_frontal_pole->y ;
+  zf = mris->v_frontal_pole->z ;
+  if (mris->v_temporal_pole)
+  {
+    xt = mris->v_temporal_pole->x ;
+    yt = mris->v_temporal_pole->y ;
+    zt = mris->v_temporal_pole->z ;
+  }
+  else
+    xt = yt = zt = 0.0f ;
+
+  xo = mris->v_occipital_pole->x ;
+  yo = mris->v_occipital_pole->y ;
+  zo = mris->v_occipital_pole->z ;
+  min_curv = mris->min_curv ;
+  max_curv = mris->max_curv ;
+  ytal = 10000.0f ;  /* disable temporal region stuff */
+  for (k=0;k<mris->nfaces;k++) if (!mris->faces[k].ripflag)
+  {
+    f = &mris->faces[k];
+    glBegin(GL_QUADS) ;
+    for (n=0;n<4;n++)
+    {
+      v = &mris->vertices[f->v[n]];
+
+      xd = v->x - xf ; yd = v->y - yf ; zd = v->z - zf ;
+      fd = xd*xd + yd*yd + zd*zd ;  /* distance to frontal pole */
+      if (mris->v_temporal_pole)
+      {
+        xd = v->x - xt ; yd = v->y - yt ; zd = v->z - zt ;
+        td = xd*xd + yd*yd + zd*zd ;  /* distance to temporal pole */
+      }
+      else
+        td = 1000.0f ;
+      xd = v->x - xo ; yd = v->y - yo ; zd = v->z - zo ;
+      od = xd*xd + yd*yd + zd*zd ;  /* distance to occipital pole */
+
+      if (show_temporal_region_flag)
+      {
+        x = (Real)v->x ; y = (Real)v->y ; z = (Real)v->z ;
+        transform_point(mris->linear_transform, -x, z, y, &xtal, &ytal,&ztal);
+      }
+      if (ytal < MAX_TALAIRACH_Y)
+          glColor3ub(0,0,meshb) ;      /* paint the temporal pole blue */
+      else if (td < POLE_DISTANCE)
+        glColor3ub(0,0,255) ;          /* paint the temporal pole blue */
+      else if (fd < POLE_DISTANCE)
+        glColor3ub(255,255,0);         /* paint the frontal pole yellow */
+      else if (od < POLE_DISTANCE)
+        glColor3ub(255,255,255);       /* paint the occipital pole white */
+      else   /* color it depending on curvature */
+      {
+#define MIN_GRAY  25
+#define MAX_COLOR (150 - MIN_GRAY)
+
+        red = green = blue = MIN_GRAY ;
+        if (FZERO(max_curv) || FZERO(min_curv))
+          glColor3ub(meshr,meshg,meshb);    /* paint it gray */
+
+/* curvatures seem to be sign-inverted??? */
+        if (v->curv > 0)  /* color it red */
+        {
+          red = MIN_GRAY + nint((MAX_COLOR*((v->curv-min_curv)/(-min_curv))));
+          glColor3ub(red,green,blue);  /* specify the RGB color */
+        }
+        else              /* color it green */
+        {
+          green = MIN_GRAY + nint((MAX_COLOR*((max_curv-v->curv)/(max_curv))));
+          glColor3ub(red,green,blue);  /* specify the RGB color */
+        }
+      }
+      load_brain_coords(v->nx,v->ny,v->nz,v1);
+      glNormal3fv(v1);                /* specify the normal for lighting */
+      load_brain_coords(v->x,v->y,v->z,v1);
+      glVertex3fv(v1);                /* specify the position of the vertex*/
+    }
+    glEnd() ;   /* done specifying this polygon */
+  }
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "done.\n") ;
+
+  return(NO_ERROR) ;
+}
+
+static void
+load_brain_coords(float x,float y, float z, float v[])
+{
+  v[0] = -x;
+  v[1] = z;
+  v[2] = y;
+}
+
+#define SHOW_AXES  0
+
+#define COMPILE_SURFACE 1
+static void
+display_handler(void)
+{
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
+#if COMPILE_SURFACE
+  glCallList(current_list) ;      /* render sphere display list */
+#else
+  MRISGLcompile(mris) ;
+#endif
+
+#if SHOW_AXES
+  glCallList(2) ;      /* show axes */
+#endif
+  glutSwapBuffers() ;  /* swap rendered buffer into display */
+}
+
+static void
+gfxinit(MRI_SURFACE *mris)
+{
+  int   error ;
+
+  glViewport(0,0,frame_xdim,frame_ydim);
+  glLoadIdentity();
+  glMatrixMode(GL_PROJECTION);
+
+#define SCALE_FACTOR   0.55f
+#define FOV            (256.0f*SCALE_FACTOR)
+  glOrtho(-FOV, FOV, -FOV, FOV, -10.0f*FOV, 10.0f*FOV);
+
+  glClearColor(0.0, 0.0, 0.0, 1.0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  set_lighting_model(-1.0f, -1.0f, -1.0f, -1.0f, -1.0f) ;
+
+  glDepthFunc(GL_LEQUAL);
+  glEnable(GL_DEPTH_TEST);
+
+  /* now specify where the model is in space */
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+
+#if 0
+  /* MRI coords (vs. viewer:translate_brain_) */
+  glTranslatef(mris->xctr, -mris->zctr,-mris->yctr); 
+#endif
+
+#if COMPILE_SURFACE
+  glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+  MRISGLcompile(mris) ;
+  glEndList() ;
+#endif
+
+  error = glGetError() ;
+  if (error != GL_NO_ERROR)
+  {
+    const char *errstr ;
+
+    errstr = gluErrorString(error) ;
+    fprintf(stderr, "GL error %d: %s\n", error, errstr) ;
+    exit(1) ;
+  }
+}
+
+
+
+static void
+keyboard_handler(unsigned char key, int x, int y)
+{
+  int   redraw = 1 ;
+  char  wname[100] ;
+  float angle ;
+
+  glMatrixMode(GL_MODELVIEW);
+  switch (key)
+  {
+  case '1':
+  case '2':
+    current_list = key - '1' ;
+    break ;
+  case '+':
+    delta_angle *= 2.0f ;
+    redraw = 0 ;
+    break ;
+  case '-':
+    delta_angle *= 0.5f ;
+    redraw = 0 ;
+    break ;
+  case 'q':
+    exit(0) ;
+    break ;
+  case 'r':
+    glTranslatef(10.0f, 0.0f, 0.0f) ;
+    break ;
+  case 'R':
+    glTranslatef(-10.0f, 0.0f, 0.0f) ;
+    break ;
+  case 'u':
+    glTranslatef(0.0f, 10.0f, 0.0f) ;
+    break ;
+  case 'U':
+    glTranslatef(0.0f, -10.0f, 0.0f) ;
+    break ;
+  case 'i':
+    glTranslatef(0.0f, 0.0f, 10.0f) ;
+    break ;
+  case 'I':
+    glTranslatef(0.0f, 0.0f, -10.0f) ;
+    break ;
+  case 'x':   /* local x axis is reversed */
+    glRotatef(-delta_angle, 1.0f, 0.0f, 0.0f) ;
+    break ;
+  case 'X':
+    glRotatef(delta_angle, 1.0f, 0.0f, 0.0f) ;
+    break ;
+  case 'y':   /* local y is actually z coordinate */
+    glRotatef(delta_angle, 0.0f, 0.0f, 1.0f) ;
+    break ;
+  case 'Y':
+    glRotatef(-delta_angle, 0.0f, 0.0f, 1.0f) ;
+    break ;
+  case 'z':   /* local z is actually y axis */
+    glRotatef(delta_angle, 0.0f, 1.0f, 0.0f) ;
+    break ;
+  case 'Z':
+    glRotatef(-delta_angle, 0.0f, 1.0f, 0.0f) ;
+    break ;
+  case 'D':
+  case 'd':
+    redraw = 1 ;
+    break ;
+  case 'T':
+  case 't':
+    sprintf(wname, "talairached cortical surface reconstruction '%s'", 
+            surf_fname);
+    MRIStalairachTransform(mris_orig, mris_orig) ;
+    MRIScenter(mris_orig, mris_orig) ;
+#if COMPILE_SURFACE
+    glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+    MRISGLcompile(mris_orig) ;
+    glEndList() ;
+#endif
+    glutSetWindowTitle(wname) ;
+    break ;
+  case 'P':
+  case 'p':
+    mris_ellipsoid = MRISprojectOntoEllipsoid(mris, NULL, 0.0f, 0.0f, 0.0f);
+    mris = mris_ellipsoid ;
+#if COMPILE_SURFACE
+    glNewList(ELLIPSOID_LIST, GL_COMPILE) ;
+    MRISGLcompile(mris) ;
+    glEndList() ;
+#endif
+    current_list = ELLIPSOID_LIST ;
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    if (mris_ellipsoid->hemisphere == RIGHT_HEMISPHERE)
+      angle = RIGHT_HEMISPHERE_ANGLE ;
+    else
+      angle = LEFT_HEMISPHERE_ANGLE ;
+    glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+    break ;
+  default:
+    redraw = 0 ;
+    break ;
+  }
+  if (redraw)
+    glutPostRedisplay() ;
+}
+
+#define LIGHT0_BR  0.4 /* was 0.2 */
+#define LIGHT1_BR  0.0 
+#define LIGHT2_BR  0.6 /* was 0.3 */
+#define LIGHT3_BR  0.2 /* was 0.1 */
+#define OFFSET 0.25   /* was 0.15 */
+static void
+set_lighting_model(float lite0, float lite1, float lite2, float lite3, 
+                   float newoffset)
+{
+  float offset = OFFSET ;
+  static GLfloat mat0_ambient[] =  { 0.0, 0.0, 0.0, 1.0 };
+  static GLfloat mat0_diffuse[] =  { OFFSET, OFFSET, OFFSET, 1.0 };
+  static GLfloat mat0_emission[] = { 0.0, 0.0, 0.0, 1.0 };
+  static GLfloat light0_diffuse[] = { LIGHT0_BR, LIGHT0_BR, LIGHT0_BR, 1.0 };
+  static GLfloat light1_diffuse[] = { LIGHT1_BR, LIGHT1_BR, LIGHT1_BR, 1.0 };
+  static GLfloat light2_diffuse[] = { LIGHT2_BR, LIGHT2_BR, LIGHT2_BR, 1.0 };
+  static GLfloat light3_diffuse[] = { LIGHT3_BR, LIGHT3_BR, LIGHT3_BR, 1.0 };
+  static GLfloat light0_position[] = { 0.0, 0.0, 1.0, 0.0 };
+  static GLfloat light1_position[] = { 0.0, 0.0,-1.0, 0.0 };
+  static GLfloat light2_position[] = { 0.6, 0.6, 1.6, 0.0 };
+  static GLfloat light3_position[] = {-1.0, 0.0, 0.0, 0.0 };
+  static GLfloat lmodel_ambient[] =  { 0.0, 0.0, 0.0, 0.0 };
+
+  if (lite0 < 0.0)     lite0 = light0_diffuse[0];
+  if (lite1 < 0.0)     lite1 = light1_diffuse[0];
+  if (lite2 < 0.0)     lite2 = light2_diffuse[0];
+  if (lite3 < 0.0)     lite3 = light3_diffuse[0];
+  newoffset = offset;
+
+  /* material: change DIFFUSE,EMISSION (purpler: EMISSION=0.05*newoffset) */
+  mat0_diffuse[0] = mat0_diffuse[1] = mat0_diffuse[2] = newoffset;
+  mat0_emission[0] = mat0_emission[1] = mat0_emission[2] = 0.1*newoffset;
+
+  /* lights: change DIFFUSE */
+  light0_diffuse[0] = light0_diffuse[1] = light0_diffuse[2] = lite0;
+  light1_diffuse[0] = light1_diffuse[1] = light1_diffuse[2] = lite1;
+  light2_diffuse[0] = light2_diffuse[1] = light2_diffuse[2] = lite2;
+  light3_diffuse[0] = light3_diffuse[1] = light3_diffuse[2] = lite3;
+
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+    glLoadIdentity();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, mat0_ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat0_diffuse);
+    glMaterialfv(GL_FRONT, GL_EMISSION, mat0_emission);
+
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_diffuse);
+    glLightfv(GL_LIGHT2, GL_DIFFUSE, light2_diffuse);
+    glLightfv(GL_LIGHT3, GL_DIFFUSE, light3_diffuse);
+
+    /* might need to move */
+    glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
+    glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
+    glLightfv(GL_LIGHT2, GL_POSITION, light2_position);
+    glLightfv(GL_LIGHT3, GL_POSITION, light3_position);
+
+    /* turn off default global 0.2 ambient (inf. viewpnt, not 2-sided OK) */
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
+    glEnable(GL_COLOR_MATERIAL);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHT1);
+    glEnable(GL_LIGHT2);
+    glEnable(GL_LIGHT3);
+  glPopMatrix();
+}
+#if 0
+static void
+rotate_brain(float angle, char c)
+{
+  int i,j,k;
+  float m[4][4], m1[4][4], m2[4][4]; /* Matrix m,m1,m2; */
+  float sa,ca;
+
+  glGetFloatv(GL_MODELVIEW_MATRIX,(float *)(m)) ;
+
+  for (i=0;i<4;i++)
+  {
+    for (j=0;j<4;j++)
+      m1[i][j] = (i==j)?1.0:0.0;
+  }
+  angle = angle*PI/180;
+  sa = sin(angle);
+  ca = cos(angle);
+  if (c=='y')
+  {
+    m1[0][0] = m1[2][2] = ca;
+    m1[2][0] = -(m1[0][2] = sa);
+  } 
+  else if (c=='x') 
+  {
+    m1[1][1] = m1[2][2] = ca;
+    m1[1][2] = -(m1[2][1] = sa);
+  } 
+  else if (c=='z') 
+  {
+    m1[0][0] = m1[1][1] = ca;
+    m1[1][0] = -(m1[0][1] = sa);
+  } 
+  else 
+  {
+    printf("surfer: ### Illegal axis %c\n",c);return;
+  }
+  for (i=0;i<4;i++)
+  {
+    for (j=0;j<4;j++) 
+    {
+      m2[i][j] = 0;
+      for (k=0;k<4;k++)
+        m2[i][j] += m[i][k]*m1[k][j];
+    }
+  }
+
+  glLoadMatrixf((float *)m) ;
+}
+#endif
+static void
+reshape_handler(int width, int height)
+{
+  int new_dim ;
+
+  new_dim = MIN(width, height) ;
+  glViewport(0,0,frame_xdim = new_dim, frame_ydim = new_dim);
+}
+
+static void
+mouse_handler(int button, int state, int x, int y)
+{
+  int kb_state ;
+
+  kb_state = glutGetModifiers() ;
+  switch (button)
+  {
+  case GLUT_LEFT_BUTTON:
+    break ;
+  case GLUT_RIGHT_BUTTON:
+    if (kb_state & GLUT_ACTIVE_CTRL && state == GLUT_UP)
+    {
+      glMatrixMode(GL_PROJECTION) ;
+      glScalef(1.1f, 1.1f, 1.1f) ;
+      glutPostRedisplay() ;
+      /*      fprintf(stderr, "zooming in on (%d, %d)\n", x, y) ;*/
+    }
+    break ;
+  case GLUT_MIDDLE_BUTTON:
+    break ;
+  default:
+    break ;
+  }
+}
+
+static void
+special_key_handler(int key, int x, int y)
+{
+  int redraw = 1 ;
+
+  glMatrixMode(GL_MODELVIEW);
+  switch (key)
+  {
+  case GLUT_KEY_F1:
+    break ;
+  case GLUT_KEY_LEFT:
+    glRotatef(delta_angle, 0.0f, 1.0f, 0.0f) ;
+    break ;
+  case GLUT_KEY_RIGHT:
+    glRotatef(-delta_angle, 0.0f, 1.0f, 0.0f) ;
+    break ;
+  case GLUT_KEY_DOWN:
+    glRotatef(-delta_angle, 1.0f, 0.0f, 0.0f) ;
+    break ;
+  case GLUT_KEY_UP:
+    glRotatef(delta_angle, 1.0f, 0.0f, 0.0f) ;
+    break ;
+#define GLUT_KEY_DELETE (GLUT_KEY_INSERT+1)
+  case GLUT_KEY_DELETE:
+  case GLUT_KEY_PAGE_UP:
+    glRotatef(delta_angle, 0.0f, 0.0f, 1.0f) ;
+    break ;
+  case GLUT_KEY_PAGE_DOWN:
+    glRotatef(-delta_angle, 0.0f, 0.0f, 1.0f) ;
+    break ;
+  case GLUT_KEY_INSERT:
+    break ;
+  case GLUT_KEY_HOME:
+    break ;
+  default:
+    redraw = 0 ;
+    break ;
+  }
+  if (redraw)
+    glutPostRedisplay() ;
+}
+
+
+#define NUM_LIGHTS 4
+static void
+controlLights(int value)
+{
+  static int light_enabled[NUM_LIGHTS] = {1, 1, 1, 1} ;
+
+  light_enabled[value] = !light_enabled[value] ;
+
+  switch (value)
+  {
+  case 1:
+    if (light_enabled[value])
+      glEnable(GL_LIGHT0);
+    else
+      glDisable(GL_LIGHT0) ;
+    break ;
+  case 2:
+    if (light_enabled[value])
+      glEnable(GL_LIGHT1);
+    else
+      glDisable(GL_LIGHT1) ;
+    break ;
+  case 3:
+    if (light_enabled[value])
+      glEnable(GL_LIGHT2) ;
+    else
+      glDisable(GL_LIGHT2) ;
+    break ;
+  case 4:
+    if (light_enabled[value])
+      glEnable(GL_LIGHT3);
+    else
+      glDisable(GL_LIGHT3) ;
+    break ;
+  default:
+    break ;
+  }
+
+  glutPostRedisplay() ;
+}
+
+#if SHOW_AXES
+  /* build axes */
+  glNewList(2, GL_COMPILE) ;
+
+  /* x axis */
+  glBegin(GL_LINE) ;
+  glColor3ub(meshr,0,0) ;
+  load_brain_coords(mris->xlo-30,mris->yctr,mris->zctr,v1);
+  glVertex3fv(v1);               
+  load_brain_coords(mris->xhi+30,mris->yctr,mris->zctr,v1);
+  glColor3ub(meshr,0,0) ;
+  glVertex3fv(v1);               
+  glEnd() ;
+
+  /* y axis */
+  glBegin(GL_LINE) ;
+  load_brain_coords(mris->xctr,mris->ylo-30,mris->zctr,v1);
+  glColor3ub(meshr,0,0) ;
+  glVertex3fv(v1);               
+  load_brain_coords(mris->xctr,mris->yhi+30,mris->zctr,v1);
+  glColor3ub(meshr,0,0) ;
+  glVertex3fv(v1);               
+  glEnd() ;
+
+  /* z axis */
+  glBegin(GL_LINE) ;
+  load_brain_coords(mris->xctr,mris->yctr,mris->zlo-30,v1);
+  glColor3ub(meshr,0,0) ;
+  glVertex3fv(v1);               
+  load_brain_coords(mris->xctr,mris->yctr,mris->zhi+30,v1);
+  glColor3ub(meshr,0,0) ;
+  glVertex3fv(v1);               
+  glEnd() ;
+
+  glEndList() ;
+#endif
