@@ -7948,7 +7948,7 @@ sclv_write_binary_values(char *fname, int field)
     {
       saved_vals = (float*) calloc (mris->nvertices, sizeof(float));
       if (saved_vals==NULL)
-	ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"sclv_read_binary_values: calloc with %d elmnts failed\n", mris->nvertices));
+	ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"sclv_write_binary_values: calloc with %d elmnts failed\n", mris->nvertices));
       
       for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
@@ -18151,7 +18151,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.62 2004/03/05 20:23:53 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.63 2004/03/16 20:58:03 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
