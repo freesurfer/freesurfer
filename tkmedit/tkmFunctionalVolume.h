@@ -168,12 +168,14 @@ FunV_tErr FunV_LoadOverlay    ( tkmFunctionalVolumeRef this,
 				mriTransformRef        iTransform,
 				char*                  isPathAndStem,
 				char*                  isOffsetPath,
-				char*                  isRegistration );
+				char*                  isRegistration,
+				mriVolumeRef           iAnatomicalVolume );
 FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
 				mriTransformRef        iTransform,
 				char*                  isPathAndStem,
 				char*                  isOffsetPath,
-				char*                  isRegistration );
+				char*                  isRegistration,
+				mriVolumeRef           iAnatomicalVolume );
 
 /* this loads a specific volume. will delete one if it already exists. */
 FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
@@ -182,6 +184,7 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
 				       char*                  isFileName,
 				       char*                  isHeaderStem,
 				       char*                  isRegPath,
+				       mriVolumeRef          iAnatomicalVolume,
 				       tBoolean               ibPrintErrors );
 
 /* sets conversion method in all volumes */
