@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.9 1998/01/10 18:54:27 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.10 1998/02/01 00:56:28 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -36,7 +36,7 @@ static float base_dt_scale = BASE_DT_SCALE ;
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname, *out_fname, fname[100], *cp ;
+  char         **av, *in_fname, *out_fname, fname[100], *cp, path[100] ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
   double       radius, scale ;
@@ -116,7 +116,11 @@ main(int argc, char *argv[])
   scale = DESIRED_RADIUS/radius ;
   MRISscaleBrain(mris, mris, scale) ;
   MRISwrite(mris, out_fname) ;
-
+  FileNamePath(out_fname, path) ;
+  sprintf(fname, "%s/%s.sulc", path, 
+          mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
+  fprintf(stderr, "writing sulcal depths to %s\n", fname) ;
+  MRISwriteCurvature(mris, fname) ;
 
   exit(0) ;
   return(0) ;  /* for ansi */
