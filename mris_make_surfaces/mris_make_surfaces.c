@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.23 1999/10/25 22:45:27 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.24 1999/12/03 23:15:34 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -32,14 +32,16 @@ static MRI  *MRIsmoothMasking(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
 MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
                       int out_label, MRI *mri_dst);
 
+int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
 char *Progname ;
 
-static int navgs = 10 ;
+static int curvature_avgs = 10 ;
 static int create = 1 ;
 static int smoothwm = 0 ;
-static float sigma = 0.5f ;  /* should be around 1 */
 static int white_only = 0 ;
 static int overlay = 0 ;
+
+static int apply_median_filter = 0 ;
 
 static int nbhd_size = 20 ;
 
@@ -49,12 +51,12 @@ static float base_dt_scale = BASE_DT_SCALE ;
 
 static int add = 0 ;
 
-static int smooth = 0 ;
-static int nwhite = 5 /*15*/ ;
-static int ngray = 10 /*45*/ ;
+static int smooth = 10 ;
+static int vavgs = 5 ;
+static int nwhite = 25 /*5*/ ;
+static int ngray = 30 /*45*/ ;
 
 static int nowhite = 0 ;
-static float gray_surface = 55.0f ;
 static int nbrs = 2 ;
 static int write_vals = 0 ;
 
@@ -67,16 +69,20 @@ static char pial_name[100] = "pial" ;
 static int lh_label = LH_LABEL ;
 static int rh_label = RH_LABEL ;
 
+static int max_averages = 16 ;
+static int min_averages = 2 ;
+static float sigma = 1.0f ;
+
 int
 main(int argc, char *argv[])
 {
   char          **av, *hemi, *sname, sdir[400], *cp, fname[500], mdir[STRLEN];
-  int           ac, nargs, i, label_val, replace_val, msec ;
+  int           ac, nargs, i, label_val, replace_val, msec, n_averages ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL, 
                 *mri_filled, *mri_T1 ;
   float         max_len ;
-  double        l_intensity ;
+  double        l_intensity, current_sigma ;
   struct timeb  then ;
   M3D           *m3d ;
 
@@ -88,19 +94,18 @@ main(int argc, char *argv[])
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = NO_PROJECTION ;
   parms.tol = 1e-4 ;
-  parms.dt = 0.25f ;
+  parms.dt = 0.5f ;
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
-  parms.n_averages = 2 /*8*/ /* 32*/ ; /*N_AVERAGES*/ ;
-  parms.l_tspring = 1.0f ; parms.l_curv = 1.0 ; parms.l_intensity = 0.2 ;
-
-
+  parms.l_spring = 1.0f ; parms.l_curv = 1.0 ; parms.l_intensity = 0.2 ;
+  parms.l_spring = 0.0f ; parms.l_curv = 1.0 ; parms.l_intensity = 0.2 ;
+  parms.l_tspring = 1.0f ; parms.l_nspring = 0.5f ;
 
   parms.niterations = 0 ;
   parms.write_iterations = 5 /*WRITE_ITERATIONS */;
   parms.integration_type = INTEGRATE_MOMENTUM ;
   parms.momentum = 0.8 ;
   parms.dt_increase = 1.0 /* DT_INCREASE */;
-  parms.dt_decrease = 1.0 /* DT_DECREASE*/ ;
+  parms.dt_decrease = 0.50 /* DT_DECREASE*/ ;
   parms.error_ratio = 50.0 /*ERROR_RATIO */;
   /*  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;*/
 
@@ -153,6 +158,15 @@ main(int argc, char *argv[])
   if (!mri_T1)
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
+  if (apply_median_filter)
+  {
+    MRI *mri_tmp ;
+
+    fprintf(stderr, "applying median filter to T1 image...\n") ;
+    mri_tmp = MRImedian(mri_T1, NULL, 3) ;
+    MRIfree(&mri_T1) ;
+    mri_T1 = mri_tmp ;
+  }
 
   if (xform_fname)
   {
@@ -214,11 +228,16 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
 
-  MRISaverageVertexPositions(mris, smooth) ;
+  if (smooth && !nowhite)
+  {
+    printf("smoothing surface for %d iterations...\n", smooth) ;
+    MRISaverageVertexPositions(mris, smooth) ;
+  }
+    
   if (nbrs > 1)
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
-  strcpy(parms.base_name, WHITE_MATTER_NAME) ;
+  sprintf(parms.base_name, "%s%s", WHITE_MATTER_NAME, suffix) ;
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
   MRISstoreMetricProperties(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
@@ -233,21 +252,47 @@ main(int argc, char *argv[])
   }
   l_intensity = parms.l_intensity ;
   MRISsetVals(mris, -1) ;  /* clear white matter intensities */
-  for (i = 0, sigma = 2.0f ; sigma > .2 ; sigma /= 2, i++)
+
+  current_sigma = sigma ;
+  for (n_averages = max_averages, i = 0 ; n_averages >= min_averages ; 
+       n_averages /= 2, i++)
   {
-    parms.l_intensity = l_intensity * sigma ;
     if (nowhite)
       break ;
-    mri_kernel = MRIgaussian1d(sigma, 100) ;
-    fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", sigma) ;
+
+    mri_kernel = MRIgaussian1d(current_sigma, 100) ;
+    fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", 
+            current_sigma) ;
+    current_sigma /= 2 ;
     if (!mri_smooth)
       mri_smooth = MRIclone(mri_T1, NULL) ;
     MRIconvolveGaussian(mri_T1, mri_smooth, mri_kernel) ;
     MRIfree(&mri_kernel) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      char fname[200] ;
+      sprintf(fname, "sigma%.0f.mgh", sigma) ;
+      fprintf(stderr, "writing smoothed volume to %s...\n", fname) ; 
+      MRIwrite(mri_smooth, fname) ;
+    }
 
+    parms.n_averages = n_averages ; 
     MRISprintTessellationStats(mris, stderr) ;
+    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 120, 100, 90, 70) ;
+    MRISfindExpansionRegions(mris) ;
+    if (vavgs)
+    {
+      fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
+      MRISaverageVals(mris, vavgs) ;
+      if (Gdiag_no > 0)
+      {
+        VERTEX *v ;
+        v = &mris->vertices[Gdiag_no] ;
+        fprintf(stderr,"v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
+              Gdiag_no, v->val, v->mean, v->d) ;
+      }
+    }
 
-    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 120, 100, 100, 70) ;
 
     /*
       there are frequently regions of gray whose intensity is fairly
@@ -260,6 +305,7 @@ main(int argc, char *argv[])
       term in the cost functional instead of just using one to find
       the target intensities).
     */
+#if 0
     if (!i)
     {
       parms.l_nspring = 1.0 ;
@@ -267,6 +313,7 @@ main(int argc, char *argv[])
     }
     else
       parms.l_nspring = 0.0 ;
+#endif
 
     if (write_vals)
     {
@@ -280,7 +327,11 @@ main(int argc, char *argv[])
         while (MRISdivideLongEdges(mris, max_len) > 0)
         {}
     }
+#if 0
     parms.l_nspring = 0 ;  /* only first time smooth surface */
+#endif
+    if (!n_averages)
+      break ;
   }
 
 #if 0
@@ -316,7 +367,7 @@ main(int argc, char *argv[])
       MRIScomputeMetricProperties(mris) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;
-      MRISaverageCurvatures(mris, navgs) ;
+      MRISaverageCurvatures(mris, curvature_avgs) ;
       sprintf(fname, "%s.curv%s",
               mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", suffix);
       fprintf(stderr, "writing smoothed curvature to %s\n", fname) ;
@@ -347,22 +398,54 @@ main(int argc, char *argv[])
             "refinement took %2.1f minutes\n", (float)msec/(60*1000.0f));
     exit(0) ;
   }
+
+
   parms.t = parms.start_t = 0 ;
-  strcpy(parms.base_name, GRAY_MATTER_NAME) ;
+  sprintf(parms.base_name, "%s%s", pial_name, suffix) ;
   parms.niterations = ngray ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* save white-matter */
-  parms.l_nspring = .5 ;   /* only for first iteration */
   MRISsetVals(mris, -1) ;  /* clear target intensities */
-  for (sigma = 2.0f ; sigma > .2 ; sigma /= 2 )
-  {
-    parms.l_intensity = l_intensity * sigma ;
-    fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", sigma) ;
-    mri_kernel = MRIgaussian1d(sigma, 100) ;
-    mri_smooth = MRIconvolveGaussian(mri_T1, mri_smooth, mri_kernel) ;
-    MRIfree(&mri_kernel) ;
 
-    fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
+  if (smooth)
+  {
+    printf("smoothing surface for %d iterations...\n", smooth) ;
+    MRISaverageVertexPositions(mris, smooth) ;
+  }
+
+  fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
+  current_sigma = sigma ;
+  for (n_averages = max_averages, i = 0 ; n_averages >= min_averages ; 
+       n_averages /= 2, i++)
+  {
+
+    mri_kernel = MRIgaussian1d(current_sigma, 100) ;
+    fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", 
+            current_sigma) ;
+    current_sigma /= 2 ;
+    if (!mri_smooth)
+      mri_smooth = MRIclone(mri_T1, NULL) ;
+    MRIconvolveGaussian(mri_T1, mri_smooth, mri_kernel) ;
+    MRIfree(&mri_kernel) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      char fname[200] ;
+      sprintf(fname, "sigma%.0f.mgh", sigma) ;
+      fprintf(stderr, "writing smoothed volume to %s...\n", fname) ; 
+      MRIwrite(mri_smooth, fname) ;
+    }
+#if 0
+    parms.l_intensity = l_intensity * sigma ;
+    if (parms.l_intensity < 0.1)
+      parms.l_intensity = 0.1 ;
+#endif
+    parms.n_averages = n_averages ;
     MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 90, 75, 65, 0) ;
+    if (vavgs)
+    {
+      fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
+      MRISaverageVals(mris, vavgs) ;
+    }
+
 #if 0
     if (parms.start_t == 0)
     {
@@ -376,7 +459,9 @@ main(int argc, char *argv[])
       MRISwriteValues(mris, fname) ;
     }
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
-    parms.l_nspring = 0 ;
+    /*    parms.l_nspring = 0 ;*/
+    if (!n_averages)
+      break ;
   }
 
 #if 0
@@ -440,6 +525,10 @@ get_option(int argc, char *argv[])
     nbrs = atoi(argv[2]) ;
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "median"))
+  {
+    apply_median_filter = 1 ;
   }
   else if (!strcmp(option, "rval"))
   {
@@ -531,6 +620,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "smoothing for %d iterations\n", smooth) ;
   }
+  else if (!stricmp(option, "vavgs"))
+  {
+    vavgs = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "smoothing values for %d iterations\n", vavgs) ;
+  }
   else if (!stricmp(option, "intensity"))
   {
     parms.l_intensity = atof(argv[2]) ;
@@ -561,13 +656,6 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "writing smoothed (%d iterations) wm surface\n",
             smoothwm) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "pial"))
-  {
-    gray_surface = atof(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, 
-           "settting pial surface target value to %2.1f\n", gray_surface) ;
   }
   else if (!stricmp(option, "ngray"))
   {
@@ -615,15 +703,26 @@ get_option(int argc, char *argv[])
             "doing quick (no self-intersection) surface positioning.\n") ;
     break ;
   case 'A':
-    parms.n_averages = atoi(argv[2]) ;
-    fprintf(stderr, "using n_averages = %d\n", parms.n_averages) ;
+    max_averages = atoi(argv[2]) ;
+    fprintf(stderr, "using n_averages = %d\n", max_averages) ;
     nargs = 1 ;
+    if (isdigit(*argv[3]))
+    {
+      min_averages = atoi(argv[3]) ;
+      fprintf(stderr, "using min_averages = %d\n", min_averages) ;
+      nargs++ ;
+    }
     break ;
   case 'M':
     parms.integration_type = INTEGRATE_MOMENTUM ;
     parms.momentum = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "momentum = %2.2f\n", parms.momentum) ;
+    break ;
+  case 'R':
+    parms.l_repulse = atof(argv[2]) ;
+    fprintf(stderr, "l_repulse = %2.3f\n", parms.l_repulse) ;
+    nargs = 1 ;
     break ;
   case 'B':
     base_dt_scale = atof(argv[2]) ;
@@ -847,5 +946,61 @@ MRIsmoothMasking(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask_val,
     }
   }
   return(mri_dst) ;
+}
+
+int
+MRISfindExpansionRegions(MRI_SURFACE *mris)
+{
+  int    vno, num, n, num_long, total ;
+  float  d, dsq, mean, std, dist ;
+  VERTEX *v, *vn ;
+
+  d = dsq = 0.0f ;
+  for (total = num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag || v->val <= 0)
+      continue ;
+    num++ ;
+    dist = fabs(v->d) ;
+    d += dist ; dsq += (dist*dist) ;
+  }
+
+  mean = d / num ;
+  std = sqrt(dsq/num - mean*mean) ;
+  fprintf(stderr, "mean absolute distance = %2.2f +- %2.2f\n", mean, std) ;
+
+  for (num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    v->curv = 0 ;
+    if (v->ripflag || v->val <= 0)
+      continue ;
+    if (fabs(v->d) < mean+2*std)
+      continue ;
+    for (num_long = num = 1, n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      if (vn->val <= 0 || v->ripflag)
+        continue ;
+      if (fabs(vn->d) >= mean+2*std)
+        num_long++ ;
+      num++ ;
+    }
+
+    if ((float)num_long / (float)num > 0.25)
+    {
+      v->curv = fabs(v->d) ;
+      total++ ;
+#if 0
+      fprintf(stderr, "v %d long: (%d of %d)\n", vno, num_long, num) ;
+#endif
+    }
+  }
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "%d vertices more than 2 sigmas from mean.\n", total) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRISwriteCurvature(mris, "long") ;
+  return(NO_ERROR) ;
 }
 
