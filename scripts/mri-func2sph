@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set FUNC2SPH_VER = '$Id: mri-func2sph,v 1.1 1999/10/26 15:09:57 greve Exp $';
+set FUNC2SPH_VER = '$Id: mri-func2sph,v 1.2 2000/02/19 01:41:00 greve Exp $';
 
 set icosize  = 10242;
 set hemi     = ()
@@ -20,34 +20,37 @@ parse_args_return:
 goto check_args;
 check_args_return:
 
+## Make sure that the input volume exists ##
 set tmp = $instem"_000.hdr";
 if(! -e $tmp) then
    echo "ERROR: cannot find $tmp"
    exit 1;
 else
 
+## Autodetect the input type ##
 if("$intype" == "auto") then
-  set tmp = $instem"_hcov_000.bfloat";
-  if(-e $tmp) then
-    set intype = "selxavg";
+  set datfile = $instem.dat;
+  if(! -e $datfile) then
+    set intype = "bvolume";
   else
-    set tmp = $instem.dat
-    if(-e $tmp) then
+    set n = `grep Version $datfile | wc -l`;
+    if($n == 0) then 
       set intype = "selavg";
     else
-      set intype = "bvolume";
+      set intype = "selxavg";
     endif
   endif
 endif
-
 echo "Detected input volume as type $intype";
 
+## Make sure that the hole-filling vit exists ##
 set icofill = $MRI_DIR/lib/bem/ic$icosize.vit
 if(! -e $icofill ) then
   echo "ERROR: cannot find $icofill"
   exit 1;
 endif
 
+## Make sure that the func-to-ico vit exists ##
 set func2ico  = $fvitdir/$hemi.func-to-ic$icosize.vit
 if(! -e $func2ico ) then
   echo "ERROR: cannot find $func2ico"
@@ -55,7 +58,7 @@ if(! -e $func2ico ) then
 endif
 
 set outdir  = `dirname $outstem`;
-mkdir -p $outdir
+if(! -d $outdir) mkdir $outdir
 
 
 echo "------ ------ Hemisphere $hemi ------ ------ "
@@ -118,11 +121,11 @@ set outfile    = $outstem"_000.bfloat"
   if($intype == selxavg) then
     echo "  Copying selxavg-related files"
     cp $instem.dat $outstem.dat
-    cp $instem"_hcov_000.bfloat" $outstem"_hcov_000.bfloat"
-    cp $instem"_hcov_000.hdr" $outstem"_hcov_000.hdr"
-    if(0) then
-      echo "INFO: resampling selxavg seg files"
-      mri-func2sph -i $instem"_seg" -o $outstem"_seg" -hemi $hemi\
+    #cp $instem"_hcov_000.bfloat" $outstem"_hcov_000.bfloat"
+    #cp $instem"_hcov_000.hdr" $outstem"_hcov_000.hdr"
+    if(1) then
+      echo "INFO: resampling selxavg offset files"
+      mri-func2sph -i $instem"-offset" -o $outstem"-offset" -hemi $hemi\
          -fvitdir $fvitdir -niters $niters -icosize $icosize  \
          -intype bvolume -umask $newumask
     endif
