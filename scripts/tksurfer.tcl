@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.58 2004/07/07 21:34:12 kteich Exp $
+# $Id: tksurfer.tcl,v 1.59 2004/07/09 17:48:59 kteich Exp $
 
 package require BLT;
 
@@ -1574,12 +1574,7 @@ proc DoSaveValuesAsDlog {} {
 	
 	tkm_MakeSmallLabel $fwFieldNote "The layer to save" 400
 	
-	set nIndex 0
-	while { [info exists gaScalarValueID($nIndex,label)] } {
-	    $fwField add command $nIndex \
-		-label $gsaLabelContents($gaScalarValueID($nIndex,label),name)
-	    incr nIndex
-	}
+	FillOverlayLayerMenu $fwField current
 	
 	# buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
