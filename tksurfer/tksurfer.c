@@ -582,6 +582,7 @@ int mouseoverflag = TRUE; /* show mouseover information */
 int redrawlockflag = FALSE; /* redraw on window uncover events */
 int simpledrawmodeflag = TRUE; /* draw based on scalar values */
 int forcegraycurvatureflag = FALSE; /* always draw grayscale curvature */
+int drawcursorflag = TRUE; /* draw the cyan cursor */
 Tcl_Interp *g_interp = NULL;
 
 int curwindowleft = 0; /* keep track of window position, updated on move */
@@ -882,7 +883,7 @@ void twocond(int c0, int c1) ;
 void redraw_second(void) ;
 void blinkbuffers(void) ;
 void redraw_overlay(void) ;
-void draw_cursor(int vindex,int onoroff) ;
+void draw_cursor(int vindex,int onoroff ) ;
 void draw_all_cursor(void) ;
 void draw_all_vertex_cursor(void) ;
 void clear_all_vertex_cursor(void) ;
@@ -5093,15 +5094,19 @@ draw_cursor(int vindex,int onoroff)
 {
   /* begin rkt */
 # if 1
-  if (onoroff)
+  /* don't draw if our flag isn't on. */
+  if (drawcursorflag)
     {
-      RGBcolor (0, 255, 255);
+      if (onoroff)
+	{
+	  RGBcolor (0, 255, 255);
+	  draw_vertex_hilite (vindex);
+	}
+      else
+	{
+	  set_color (0, 0, GREEN_RED_CURV);
       draw_vertex_hilite (vindex);
-    }
-  else
-    {
-      set_color (0, 0, GREEN_RED_CURV);
-      draw_vertex_hilite (vindex);
+	}
     }
   
   return;
@@ -18122,7 +18127,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.49 2003/08/06 16:46:04 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.50 2003/08/20 17:22:19 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18799,6 +18804,8 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"drawlabelflag",(char *)&labl_draw_flag,
 	      TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"forcegraycurvatureflag",(char *)&forcegraycurvatureflag,
+	      TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"drawcursorflag",(char *)&drawcursorflag,
 	      TCL_LINK_BOOLEAN);
   /* end rkt */
   /*=======================================================================*/
