@@ -4,8 +4,8 @@
 /* date       :8/27/2003                  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/04 15:48:17 $
-// Revision       : $Revision: 1.5 $
+// Revision Date  : $Date: 2003/09/04 16:51:42 $
+// Revision       : $Revision: 1.6 $
 
 // there are many files present in Bruker directory
 //
@@ -112,7 +112,7 @@
 
 /* Martin Hoerrmann. */
 
-char *BRUCKER_C_VERSION= "$Revision: 1.5 $";
+char *BRUCKER_C_VERSION= "$Revision: 1.6 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -268,32 +268,36 @@ int checkBrukerFiles(char *fname, char *methodFile, char *acqpFile, char *dataFi
   return 1;
 }
 
-int separate_parameter_and_value(char *sWholeLine, char *sParameter, char *sValue)
+int splitParameterValue(char *sWholeLine, char *sParameter, char *sValue)
 {
-  char *P0, *P1;
+  char *p0, *p1;
 
-  P0 = strstr(sWholeLine,"##");
-  if ( !P0 ) return(1); /* ignore line */
-  P0+=2;                        /* advance past ## */
-  strcpy(sParameter,P0);        /* initialize sParameter */
-  P0 = sParameter;              /* reset P0 */
-  while ( *P0 != '=' ) 
-    P0++;    /* search for '=' */
-  *P0 = '\0';                   /* terminate string */
-  P0++;                         /* step past '=' */
-  strcpy(sValue,P0);            /* initialize sValue */
-  /* Use P1 (sValue) to copy rest of line (sParameter string) */
-  for (P1=sValue; *P0; P0++, P1++)
-    *P1 = *P0;
+  // check to make sure that ## is at the beginning
+  p0 = strstr(sWholeLine,"##");
+  if ( !p0 ) 
+    return(0); /* ignore line */
+  //
+  p0+=2;                        /* advance past ## */
+  // locate '='
+  p1 = strchr(p0, '=');
+  if (!p1)
+    return (0);
+  *p1 = '\0'; // mark end of Parameter
+  // copy parameter
+  strcpy(sParameter, p0);
+  // now points to Value
+  p1++; 
+  // copy Value
+  strcpy(sValue,p1);            /* initialize sValue */
   /* Eliminate parentheses and CR in the value string. */
-  for (P0=sValue; *P0; P0++)
+  for (p0=sValue; *p0; p0++)
   {
-    if ( *P0=='(' || *P0==')') 
-      *P0=' ';
-    else if ( *P0=='\n')
-      *P0='\0';
+    if ( *p0=='(' || *p0==')') 
+      *p0=' ';
+    else if ( *p0=='\n')
+      *p0='\0';
   }
-  return(0);
+  return 1;
 }
 
 int readBrukerD3proc(char *d3procFile, int *px, int *py, int *pz, int *ptype, int *pnframes)
@@ -303,7 +307,6 @@ int readBrukerD3proc(char *d3procFile, int *px, int *py, int *pz, int *ptype, in
   char Value[128];
   char Parameter[256];
   int lRead;
-  int ignore;
 
   fp = fopen(d3procFile,"r");
   if (fp ==0)
@@ -313,7 +316,7 @@ int readBrukerD3proc(char *d3procFile, int *px, int *py, int *pz, int *ptype, in
   }
   while (fgets(line, sizeof(line), fp))
   {
-    if ((ignore = separate_parameter_and_value(line, Parameter, Value)))
+    if (!splitParameterValue(line, Parameter, Value))
       continue;
 
     // now gets the values
@@ -493,7 +496,6 @@ int readBrukerAcqp(char *acqpFile,
   char line[512];
   char Parameter[256];
   char Value[128];
-  int ignore=0;
   int lRead=0;
   int dim=0;
 
@@ -505,7 +507,7 @@ int readBrukerAcqp(char *acqpFile,
   }
   while (fgets(line, sizeof(line), fp))
   {
-    if ((ignore = separate_parameter_and_value(line, Parameter, Value)))
+    if (!splitParameterValue(line, Parameter, Value))
       continue;
 
     // now gets the values
@@ -628,7 +630,6 @@ int readBrukerReco(char *recoFile, BrukerTransform *pTran)
   char line[512];
   char Parameter[256];
   char Value[128];
-  int ignore=0;
   int lRead=0;
   int dim = 0;
   int i;
@@ -641,7 +642,7 @@ int readBrukerReco(char *recoFile, BrukerTransform *pTran)
   }
   while (fgets(line, sizeof(line), fp))
   {
-    if ((ignore = separate_parameter_and_value(line, Parameter, Value)))
+    if (!splitParameterValue(line, Parameter, Value))
       continue;
 
     // now gets the values
