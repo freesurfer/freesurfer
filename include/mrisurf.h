@@ -738,6 +738,7 @@ MRI   *MRISfloodoutside(MRI *mri_src,MRI *mri_dst);
 
 /* actual constants are in mri.h */
 #define RH_LABEL           MRI_RIGHT_HEMISPHERE
+#define RH_LABEL2          MRI_RIGHT_HEMISPHERE2
 #define LH_LABEL           MRI_LEFT_HEMISPHERE
 
 #define MRISPvox(m,u,v)   (*IMAGEFpix(m->Ip,u,v))
