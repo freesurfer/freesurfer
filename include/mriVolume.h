@@ -298,6 +298,16 @@ Volm_tErr Volm_ConvertRASToMRIIdx  ( mriVolumeRef this,
 				     xVoxelRef    iRAS,
 				     xVoxelRef    oMRIIdx );
 
+/* Use these when converting an RAS coming from the surface to an MRI
+   index. This is different than normal RAS because surface RAS always
+   has c_ras = 0, where volume RAS doesn't.  */
+Volm_tErr Volm_ConvertMRIIdxToSurfaceRAS  ( mriVolumeRef this,
+					    xVoxelRef    iMRIIdx,
+					    xVoxelRef    oSurfaceRAS );
+Volm_tErr Volm_ConvertSurfaceRASToMRIIdx  ( mriVolumeRef this,
+					    xVoxelRef    iSurfaceRAS,
+					    xVoxelRef    oMRIIdx );
+
 Volm_tErr Volm_GetIdxToRASTransform ( mriVolumeRef     this,
 				      mriTransformRef* opTransform );
 

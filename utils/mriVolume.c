@@ -1820,6 +1820,86 @@ Volm_tErr Volm_ConvertRASToMRIIdx ( mriVolumeRef this,
   return eResult;
 }
 
+
+Volm_tErr Volm_ConvertMRIIdxToSurfaceRAS ( mriVolumeRef this,
+					   xVoxelRef    iMRIIdx,
+					   xVoxelRef    oSurfaceRAS ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  Real      rasX    = 0;
+  Real      rasY    = 0;
+  Real      rasZ    = 0;
+  
+
+  DebugEnterFunction( ("Volm_ConvertIdxToSurfaceRAS( this=%p, iMRIIdx=%p, "
+		       "oRAS=%p )", this, iMRIIdx, oSurfaceRAS) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (iMRIIdx != NULL && oSurfaceRAS != NULL), 
+		     eResult, Volm_tErr_InvalidParamater );
+  eResult = Volm_VerifyMRIIdx_( this, iMRIIdx );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  /* Convert idx to ras */
+  DebugNote( ("Converting idx to surface RAS with MRIvoxelToSurfaceRAS") );
+  MRIvoxelToSurfaceRAS( this->mpMriValues, xVoxl_ExpandFloat( iMRIIdx ),
+			&rasX, &rasY, &rasZ );
+
+  /* stuff results */
+  DebugNote( ("Stuffing result into xVoxel") );
+  xVoxl_SetFloat( oSurfaceRAS, (float)rasX, (float)rasY, (float)rasZ );
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_ConvertSurfaceRASToMRIIdx ( mriVolumeRef this,
+					   xVoxelRef    iSurfaceRAS,
+					   xVoxelRef    oMRIIdx ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  Real      idxX    = 0;
+  Real      idxY    = 0;
+  Real      idxZ    = 0;
+  
+  DebugEnterFunction( ("Volm_ConvertRASToIdx( this=%p, iSurfaceRAS=%p, "
+		       "oMRIIdx=%p )", this, iSurfaceRAS, oMRIIdx) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (iSurfaceRAS != NULL && oMRIIdx != NULL), 
+		     eResult, Volm_tErr_InvalidParamater );
+  
+  /* convert ras to MRI idx */
+  DebugNote( ("Converting surface RAS to mri idx with MRIsurfaceRASToVoxel") );
+  MRIsurfaceRASToVoxel( this->mpMriValues, xVoxl_ExpandFloat( iSurfaceRAS ),
+			&idxX, &idxY, &idxZ );
+  
+  /* stuff results */
+  DebugNote( ("Stuffing result into xVoxel") );
+  xVoxl_SetFloat( oMRIIdx, (float)idxX, (float)idxY, (float)idxZ );
+
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 Volm_tErr Volm_GetIdxToRASTransform ( mriVolumeRef     this,
 				      mriTransformRef* opTransform ) {
   
