@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.11 1999/02/01 20:51:59 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.12 1999/03/01 23:30:20 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -29,7 +29,7 @@ static int  mrisFindMiddleOfGray(MRI_SURFACE *mris) ;
 char *Progname ;
 
 static int navgs = 10 ;
-static int create = 0 ;
+static int create = 1 ;
 static float sigma = 0.5f ;  /* should be around 1 */
 
 static INTEGRATION_PARMS  parms ;
@@ -37,22 +37,25 @@ static INTEGRATION_PARMS  parms ;
 static float base_dt_scale = BASE_DT_SCALE ;
 
 
-static int smooth = 2 ;
-static int nwhite = 15 /*25*/ ;
-static int ngray = 45 /*100*/ ;
+static int smooth = 0 ;
+static int nwhite = 5 /*15*/ ;
+static int ngray = 10 /*45*/ ;
 
 static int nowhite = 0 ;
 static float gray_surface = 55.0f ;
 static int nbrs = 2 ;
 static int write_vals = 0 ;
 
+static char *orig_name = ORIG_NAME ;
+static char *suffix = "" ;
+
 int
 main(int argc, char *argv[])
 {
   char          **av, *hemi, *sname, sdir[400], *cp, fname[500] ;
-  int           ac, nargs ;
+  int           ac, nargs, i ;
   MRI_SURFACE   *mris ;
-  MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth, 
+  MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL, 
                 *mri_filled, *mri_T1 ;
   int           label_val, replace_val ;
   int           msec ;
@@ -119,8 +122,6 @@ main(int argc, char *argv[])
               "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
   strcpy(sdir, cp) ;
   
-  if (sigma > 0.0)
-    mri_kernel = MRIgaussian1d(sigma, 100) ;
   sprintf(fname, "%s/%s/mri/filled", sdir, sname) ;
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_filled = MRIread(fname) ;
@@ -139,7 +140,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
 
-  MRImask(mri_T1, mri_filled, mri_T1, replace_val) ; /* remove other hemi */
+  MRImask(mri_T1, mri_filled, mri_T1, replace_val,65) ; /* remove other hemi */
   MRIfree(&mri_filled) ;
 
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
@@ -149,61 +150,100 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
 
-  if (mri_kernel)
-  {
-    fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", sigma) ;
-    mri_smooth = MRIclone(mri_T1, NULL) ;
-    MRIconvolveGaussian(mri_T1, mri_smooth, mri_kernel) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) 
-      MRIwrite(mri_smooth, "/tmp/brain_smooth.mnc") ;
-  }
-  else
-    mri_smooth = mri_T1 ;
-
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, ORIG_NAME) ;
+  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
   fprintf(stderr, "reading original surface position from %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
 
+  MRISaverageVertexPositions(mris, smooth) ;
   if (nbrs > 1)
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
-  if (!nowhite)
+  strcpy(parms.base_name, WHITE_MATTER_NAME) ;
+  MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
+  MRISstoreMetricProperties(mris) ;
+  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+  fprintf(stderr, "repositioning cortical surface to gray/white boundary\n");
+  for (i = 0, sigma = 2.0f ; sigma > .2 ; sigma /= 2, i++)
   {
-    fprintf(stderr, "computing target intensity values...\n") ;
-    if (smooth)
-      MRISsmoothSurfaceNormals(mris, smooth);
-    MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
-    MRIScomputeWhiteSurfaceValues(mris, mri_T1, mri_smooth, mri_wm) ;
+    if (nowhite)
+      break ;
+    mri_kernel = MRIgaussian1d(sigma, 100) ;
+    fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", sigma) ;
+    mri_smooth = MRIclone(mri_T1, NULL) ;
+    MRIconvolveGaussian(mri_T1, mri_smooth, mri_kernel) ;
+    MRIfree(&mri_kernel) ;
+
+    MRISprintTessellationStats(mris, stderr) ;
+    
+#if 0
+    MRIScomputeWhiteSurfaceValues(mris, mri_T1, mri_smooth) ;
+#else
+    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 120, 95, 70) ;
+#endif
+
+    /*
+      there are frequently regions of gray whose intensity is fairly
+      flat. We want to make sure the surface settles at the innermost
+      edge of this region, so on the first pass, set the target
+      intensities artificially high so that the surface will move
+      all the way to white matter before moving outwards to seek the
+      border (I know it's a hack, but it improves the surface in
+      a few areas. The alternative is to explicitly put a gradient-seeking
+      term in the cost functional instead of just using one to find
+      the target intensities).
+    */
+    if (!i)
+    {
+      parms.l_nspring = 1.0 ;
+      MRISscaleVals(mris, 1.05) ;  /* move inwards on first pass */
+    }
+    else
+      parms.l_nspring = 0.0 ;
+
     if (write_vals)
     {
-      sprintf(fname, "./%s-white.w", hemi) ;
+      sprintf(fname, "./%s-white%2.2f.w", hemi, sigma) ;
       MRISwriteValues(mris, fname) ;
     }
-    fprintf(stderr,"repositioning cortical surface to gray/white boundary\n");
-    strcpy(parms.base_name, WHITE_MATTER_NAME) ;
-    
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
-
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, WHITE_MATTER_NAME) ;
+    parms.l_nspring = 0 ;  /* only first time smooth surface */
+  }
+  if (!nowhite)
+  {
+    sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname,hemi,WHITE_MATTER_NAME,
+            suffix);
     fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
-    if (create)
+    if (create)   /* write out curvature and area files */
     {
       MRIScomputeMetricProperties(mris) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
-      sprintf(fname, "%s.curv",mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh");
+      sprintf(fname, "%s.curv%s",
+              mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", suffix);
       fprintf(stderr, "writing smoothed curvature to %s\n", fname) ;
       MRISwriteCurvature(mris, fname) ;
-      sprintf(fname, "%s.area",mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh");
+      sprintf(fname, "%s.area%s",
+              mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", suffix);
       fprintf(stderr, "writing smoothed area to %s\n", fname) ;
       MRISwriteArea(mris, fname) ;
+      MRISprintTessellationStats(mris, stderr) ;
     }
+  }
+  else   /* read in previously generated white matter surface */
+  {
+    sprintf(fname, "%s%s", WHITE_MATTER_NAME, suffix) ;
+    if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
+      ErrorExit(Gerror, "%s: could not read white matter surfaces.",
+                Progname) ;
+    MRIScomputeMetricProperties(mris) ;
+  }
 
+#if 0
     if (parms.flags & IPFLAG_NO_SELF_INT_TEST)
     {
       msec = TimerStop(&then) ;
@@ -211,57 +251,59 @@ main(int argc, char *argv[])
               "refinement took %2.1f minutes\n", (float)msec/(60*1000.0f));
       exit(0) ;
     }
-  }
-  else
-  {
-    if (MRISreadVertexPositions(mris, "white") != NO_ERROR)
-      ErrorExit(Gerror, "%s: could not read white matter surfaces.",
-                Progname) ;
-    MRIScomputeMetricProperties(mris) ;
-  }
-
-  if (mri_kernel)
-  {
-    fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", sigma) ;
-    MRIconvolveGaussian(mri_smooth, mri_smooth, mri_kernel) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) 
-      MRIwrite(mri_smooth, "/tmp/brain_smooth2.mnc") ;
-    MRIfree(&mri_kernel) ;
-  }
-  else
-    mri_smooth = mri_T1 ;
-
-  fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
-  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* save white-matter */
-  parms.niterations = ngray ;
+#endif
   parms.t = parms.start_t = 0.0 ;
   strcpy(parms.base_name, GRAY_MATTER_NAME) ;
-  MRIScomputeGraySurfaceValues(mris, mri_T1, mri_smooth, gray_surface) ;
-  if (write_vals)
+  parms.niterations = ngray ;
+  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* save white-matter */
+  parms.l_nspring = .5 ;   /* only for first iteration */
+  for (sigma = 2.0f ; sigma > .2 ; sigma /= 2 )
   {
-    sprintf(fname, "./%s-gray.w", hemi) ;
-    MRISwriteValues(mris, fname) ;
-  }
-  MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+    fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", sigma) ;
+    mri_kernel = MRIgaussian1d(sigma, 100) ;
+    mri_smooth = MRIconvolveGaussian(mri_T1, mri_smooth, mri_kernel) ;
+    MRIfree(&mri_kernel) ;
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, GRAY_MATTER_NAME) ;
+    fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
+#if 0
+    MRIScomputeGraySurfaceValues(mris, mri_T1, mri_smooth, gray_surface) ;
+#else
+    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 90, 60, 0) ;
+#endif
+    if (write_vals)
+    {
+      sprintf(fname, "./%s-gray%2.2f.w", hemi, sigma) ;
+      MRISwriteValues(mris, fname) ;
+    }
+    MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+    parms.l_nspring = 0 ;
+  }
+
+  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, GRAY_MATTER_NAME,
+          suffix) ;
   fprintf(stderr, "writing pial surface to %s...\n", fname) ;
   MRISwrite(mris, fname) ;
-  MRISmeasureCorticalThickness(mris) ;
-  fprintf(stderr, 
-          "writing cortical thickness estimate to 'thickness' file.\n") ;
-  MRISwriteCurvature(mris, "thickness") ;
+  if (!(parms.flags & IPFLAG_NO_SELF_INT_TEST))
+  {
+    fprintf(stderr, "measuring cortical thickness...\n") ;
+    MRISmeasureCorticalThickness(mris) ;
+    fprintf(stderr, 
+            "writing cortical thickness estimate to 'thickness' file.\n") ;
+    sprintf(fname, "thickness%s", suffix) ;
+    MRISwriteCurvature(mris, fname) ;
 
-  /* at this point, the v->curv slots contain the cortical surface. Now
-     move the white matter surface out by 1/2 the thickness as an estimate
-     of layer IV.
-     */
-  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-  mrisFindMiddleOfGray(mris) ;
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, GRAYMID_NAME) ;
-  fprintf(stderr, "writing layer IV surface to %s...\n", fname) ;
-  MRISwrite(mris, fname) ;
-  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    /* at this point, the v->curv slots contain the cortical surface. Now
+       move the white matter surface out by 1/2 the thickness as an estimate
+       of layer IV.
+    */
+    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+    mrisFindMiddleOfGray(mris) ;
+    sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, GRAYMID_NAME,
+            suffix) ;
+    fprintf(stderr, "writing layer IV surface to %s...\n", fname) ;
+    MRISwrite(mris, fname) ;
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  }
   msec = TimerStop(&then) ;
   fprintf(stderr,"positioning took %2.1f minutes\n", (float)msec/(60*1000.0f));
   exit(0) ;
@@ -390,15 +432,25 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'S':
+    suffix = argv[2] ;
+    fprintf(stderr, "using %s as suffix\n", suffix) ;
+    nargs = 1 ;
+    break ;
   case '?':
   case 'U':
     print_usage() ;
     exit(1) ;
     break ;
+  case 'O':
+    orig_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "reading original vertex positions from %s\n", orig_name);
+    break ;
   case 'Q':
     parms.flags |= IPFLAG_NO_SELF_INT_TEST ;
     fprintf(stderr, 
-            "doing quick (no self-intersection) white matter refinement.\n") ;
+            "doing quick (no self-intersection) surface positioning.\n") ;
     break ;
   case 'A':
     parms.n_averages = atoi(argv[2]) ;
