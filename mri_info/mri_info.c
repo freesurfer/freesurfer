@@ -29,13 +29,14 @@ static void read_minc_file(char *fname, struct stat stat_buf);
 static void read_mgh_file(char *fname, struct stat stat_buf);
 static void read_analyze_file(char *fname, struct stat stat_buf);
 static void read_cor(char *fname);
+static void read_brik_file(char *fname, struct stat stat_buf);
 static void read_short(FILE *fp, int offset, short *val);
 static void read_int(FILE *fp, int offset, int *val);
 static void read_string(FILE *fp, int offset, char *val, int length);
 static void read_float(FILE *fp, int offset, float *val);
 static void read_double(FILE *fp, int offset, double *val);
-static int read_analyze_header(char *fname, dsr *bufptr);
-static int read_ge_header(FILE *fp, int offset, struct ge_header *header);
+static void read_analyze_header(char *fname, dsr *bufptr);
+static void read_ge_header(FILE *fp, int offset, struct ge_header *header);
 
 static char *month[] = {
   "Month Zero",
@@ -55,7 +56,7 @@ static void usage(char *prog_name, int exit_val)
 
 
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 
   if(argc < 2)
@@ -63,7 +64,7 @@ main(int argc, char *argv[])
     usage(argv[0], 1);
     }
 
-  for(*argv++;*argv;*argv++)
+  for(argv++;*argv;argv++)
     do_file(*argv);
 
   exit(0);
@@ -77,7 +78,6 @@ static void do_file(char *fname)
   int type;
   char *at;
   char fname2[200];
-  char buf[20];
   int i;
 
   strcpy(fname2, fname) ;
@@ -144,6 +144,8 @@ static void do_file(char *fname)
       type = SIEMENS_FILE;
     else if(is_analyze(fname2))
       type = MRI_ANALYZE_FILE;
+    else if(is_brik(fname2))
+      type = BRIK_FILE;
     else if(is_mgh(fname2))
       type = MRI_MGH_FILE;
     else if(is_mnc(fname2))
@@ -182,6 +184,10 @@ static void do_file(char *fname)
 
     case MRI_MINC_FILE:
       read_minc_file(fname2, stat_buf);
+      break;
+
+    case BRIK_FILE:
+      read_brik_file(fname2, stat_buf);
       break;
 
     case MRI_CORONAL_SLICE_DIRECTORY:
@@ -248,6 +254,93 @@ static void read_double(FILE *fp, int offset, double *val)
 
 } /* end read_double() */
 
+static void read_brik_file(char *fname, struct stat stat_buf)
+{
+
+  FILE *fp;
+  char type_line[STRLEN], name_line[STRLEN], type[STRLEN], name[STRLEN], count_line[STRLEN];
+  int count;
+  char buf[10000];
+  int vals[50];
+  int i;
+  char fname2[STRLEN];
+  char *ext;
+
+  strcpy(fname2, fname);
+  if((ext = strstr(fname2, "BRIK")) != NULL)
+    sprintf(ext, "HEAD");
+
+  if((fp = fopen(fname2, "r")) == NULL)
+  {
+    fprintf(stderr, "error opening file %s\n", fname);
+    return;
+  }
+
+  printf("file name: %s\n", fname);
+  printf("file size: %d\n", (int)(stat_buf.st_size));
+  printf("file type: BRIK\n");
+
+  while(!feof(fp))
+  {
+    type_line[0] = '\0';
+    while(!feof(fp) && strncmp(type_line, "type", 4))
+      fgets(type_line, STRLEN, fp);
+    if(!feof(fp))
+    {
+      name_line[0] = '\0';
+      fgets(name_line, STRLEN, fp);
+      fgets(count_line, STRLEN, fp);
+      sscanf(type_line, "type = %s", type);
+      sscanf(name_line, "name = %s", name);
+      sscanf(count_line, "count = %d", &count);
+
+      if(strcmp(type, "integer-attribute") == 0)
+        for(i = 0;i < count;i++)
+          fscanf(fp, "%d", &vals[i]);
+      if(strcmp(type, "string-attribute") == 0)
+      {
+        if(count < 10000)
+          fread(buf, 1, count, fp);
+        else
+          count = 0;
+        buf[count] = '\0';
+        for(i = 0;i < count;i++)
+          if(buf[i] == '~')
+            buf[i] = '\0';
+      }
+
+      if(strcmp(name, "BYTEORDER_STRING") == 0)
+      {
+        if(strcmp(buf, "`MSB_FIRST") == 0)
+          printf("byteorder: big-endian\n");
+        if(strcmp(buf, "`LSB_FIRST") == 0)
+          printf("byteorder: little-endian\n");
+      }
+      if(strcmp(name, "DATASET_DIMENSIONS") == 0)
+      {
+        printf("width: %d\n", vals[0]);
+        printf("height: %d\n", vals[1]);
+      }
+      if(strcmp(name, "IDCODE_DATE") == 0)
+        printf("idcode date: %s\n", &buf[1]);
+      if(strcmp(name, "IDCODE_STRING") == 0)
+        printf("idcode string: %s\n", &buf[1]);
+      if(strcmp(name, "TYPESTRING") == 0)
+        printf("typestring: %s\n", &buf[1]);
+      if(strcmp(name, "DATASET_NAME") == 0)
+        printf("dataset name: %s\n", &buf[1]);
+      if(strcmp(name, "ANATOMY_PARENTNAME") == 0)
+        printf("anatomy parentname: %s\n", &buf[1]);
+      if(strncmp(name, "LABEL_", 6) == 0)
+        printf("label %s: %s\n", &name[6], &buf[1]);
+
+    }
+  }
+
+  fclose(fp);
+
+}  /*  end read_brik_file()  */
+
 static void read_ge_5x_file(char *fname, struct stat stat_buf)
 {
 
@@ -265,7 +358,7 @@ static void read_ge_5x_file(char *fname, struct stat stat_buf)
   }
 
   printf("file name: %s\n", fname);
-  printf("file size: %d\n", stat_buf.st_size);
+  printf("file size: %d\n", (int)(stat_buf.st_size));
   printf("file type: GE Signa 5.x\n");
 
   read_ge_header(fp, 0, &header);
@@ -357,7 +450,7 @@ static void read_ge_8x_file(char *fname, struct stat stat_buf)
   }
 
   printf("file name: %s\n", fname);
-  printf("file size: %d\n", stat_buf.st_size);
+  printf("file size: %d\n", (int)(stat_buf.st_size));
   printf("file type: GE Signa 8.x\n");
 
   read_ge_header(fp, 3228, &header);
@@ -455,7 +548,7 @@ static void read_siemens_file(char *fname, struct stat stat_buf)
   }
 
   printf("file name: %s\n", fname);
-  printf("file size: %d\n", stat_buf.st_size);
+  printf("file size: %d\n", (int)(stat_buf.st_size));
   printf("file type: Siemens\n");
 
   read_int(fp, 0, &i1);
@@ -511,7 +604,7 @@ static void read_minc_file(char *fname, struct stat stat_buf)
   int ndim;
 
   printf("file name: %s\n", fname);
-  printf("file size: %d\n", stat_buf.st_size);
+  printf("file size: %d\n", (int)(stat_buf.st_size));
   printf("file type: MINC\n");
 
   dim_names[0] = MIxspace;
@@ -580,7 +673,7 @@ static void read_mgh_file(char *fname, struct stat stat_buf)
   }
 
   printf("file name: %s\n", fname);
-  printf("file size: %d\n", stat_buf.st_size);
+  printf("file size: %d\n", (int)(stat_buf.st_size));
   printf("file type: MGH\n");
 
   version = freadInt(fp) ;
@@ -616,7 +709,7 @@ static void read_analyze_file(char *fname, struct stat stat_buf)
   }
 
   printf("file name: %s\n", fname);
-  printf("file size: %d\n", stat_buf.st_size);
+  printf("file size: %d\n", (int)(stat_buf.st_size));
   printf("file type: analyze\n");
 
   read_analyze_header(fname, &header);
@@ -696,7 +789,7 @@ static void read_cor(char *fname)
     return;
   }
 
-  printf("file name: %d\n", fname);
+  printf("file name: %s\n", fname);
   printf("file type: coronal slice directory\n");
 
   fscanf(fp, "%*s %d", &i);
@@ -734,7 +827,7 @@ static void read_cor(char *fname)
 } /* end read_cor() */
 
 
-static int read_ge_header(FILE *fp, int offset, struct ge_header *header)
+static void read_ge_header(FILE *fp, int offset, struct ge_header *header)
 {
 
   char buf[156];
@@ -780,7 +873,7 @@ static int read_ge_header(FILE *fp, int offset, struct ge_header *header)
 } /* end read_ge_header() */
 
 /* lifted from mriio.c */
-static int
+static void
 read_analyze_header(char *fname, dsr *bufptr)
 {
   FILE *fp;
