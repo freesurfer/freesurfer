@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/08/12 18:01:28 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2004/08/27 15:16:40 $
+// Revision       : $Revision: 1.2 $
 
 #include <iostream>
 #include <iomanip>
@@ -22,10 +22,16 @@ extern "C" {
 
 using namespace std;
 
+double gflip_angle=0;
+float gte=0;
+float gtr=0;
+float gti=0;
+
 void print_usage()
 {
   cout << "Usage: mri_modify <-xras xr xa xs> <-yras yr ya ys> <-zras zr za zs> <-cras cr ca cs> " << endl;
-  cout << "                   <-xsize size> <-ysize size> <-zsize size> involume outvolume" << endl;
+  cout << "                   <-xsize size> <-ysize size> <-zsize size> " << endl;
+  cout << "                   <-TR recoverytime> <-TE echotime> <-TI inversiontime> <-FA angledegree> involume outvolume" << endl;
 }
 
 int get_option(int argc, char *argv[], VOL_GEOM &vg)
@@ -81,6 +87,27 @@ int get_option(int argc, char *argv[], VOL_GEOM &vg)
     vg.zsize = atof(argv[2]);
     nargs=1;
   }
+  else if (!strcmp(option, "TR"))
+  {
+    gtr=atof(argv[2]);
+    nargs=1;
+  }
+  else if (!strcmp(option, "TE"))
+  {
+    gte=atof(argv[2]);
+    nargs=1;
+  }
+  else if (!strcmp(option, "TI"))
+  {
+    gti=atof(argv[2]);
+    nargs=1;
+  }
+  else if (!strcmp(option, "FA"))
+  {
+    // mri stores it as radian
+    gflip_angle=RADIANS(atof(argv[2]));
+    nargs=1;
+  }
   return nargs;
 }
 
@@ -88,7 +115,7 @@ int main(int argc, char *argv[])
 {
   int nargs;
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_modify.cpp,v 1.1 2004/08/12 18:01:28 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_modify.cpp,v 1.2 2004/08/27 15:16:40 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -184,6 +211,17 @@ int main(int argc, char *argv[])
 
   useVolGeomToMRI(&vgOut,mri); 
 
+  // now TR, TE, TI, flip_angle
+  if (gtr)
+    mri->tr = gtr;
+  if (gte)
+    mri->te = gte;
+  if (gti)
+    mri->ti = gti;
+  if (gflip_angle)
+    mri->flip_angle = gflip_angle;
+
+  // write it out
   MRIwrite(mri, outvol);
 
   return 0;
