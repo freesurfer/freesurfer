@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/01/30 19:29:32 $
-// Revision       : $Revision: 1.13 $
+// Revision Date  : $Date: 2003/01/31 17:46:08 $
+// Revision       : $Revision: 1.14 $
 //
 //
 // How it works.
@@ -51,10 +51,10 @@
 //        y = yy0+(vertex[k].imnr-0.5)*st;
 //        z = zz1-(vertex[k].i-0.5)*ps;
 //
-//    for xx1 = (width/2)*ps , yy0 = - (height/2)*ps, zz1 = (depth/2)*st.
+//    for xx1 = (width/2)*ps , yy0 = - (depth/2)*st, zz1 = (height/2)*ps.
 //
 //  
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.13 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.14 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -505,8 +505,8 @@ write_binary_surface2(char *fname)
   for (k=0;k<vertex_index;k++)
   {
     x = xx1-(vertex[k].j-0.5)*ps;
-    y = yy0+(vertex[k].imnr-0.5)*st;
-    z = zz1-(vertex[k].i-0.5)*ps;
+    y = zz0+(vertex[k].imnr-0.5)*st;
+    z = yy1-(vertex[k].i-0.5)*ps;
     fwrite2((int)(x*100),fp);
     fwrite2((int)(y*100),fp);
     fwrite2((int)(z*100),fp);
