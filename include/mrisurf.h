@@ -305,8 +305,9 @@ typedef struct
 #include "stats.h"
 
 
-int MRISfindClosestCannonicalVertex(MRI_SURFACE *mris, float x, float y, 
+int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y, 
                                     float z) ;
+int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z) ;
 double       MRIScomputeCorrelationError(MRI_SURFACE *mris, 
                                          MRI_SP *mrisp_template, int fno) ;
 MRI_SURFACE  *MRISread(char *fname) ;
