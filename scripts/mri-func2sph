@@ -1,0 +1,261 @@
+#!/bin/csh -f
+
+set FUNC2SPH_VER = '$Id: mri-func2sph,v 1.1 1999/10/26 15:09:57 greve Exp $';
+
+set icosize  = 10242;
+set hemi     = ()
+set fvitdir  = ();
+set instem   = ();
+set outstem  = ();
+set niters   = 100;
+set ErrorMsg = "";
+set intype   = "auto";
+set newumask = `umask`;
+
+if($#argv == 0) goto usage_exit;
+
+goto parse_args;
+parse_args_return:
+
+goto check_args;
+check_args_return:
+
+set tmp = $instem"_000.hdr";
+if(! -e $tmp) then
+   echo "ERROR: cannot find $tmp"
+   exit 1;
+else
+
+if("$intype" == "auto") then
+  set tmp = $instem"_hcov_000.bfloat";
+  if(-e $tmp) then
+    set intype = "selxavg";
+  else
+    set tmp = $instem.dat
+    if(-e $tmp) then
+      set intype = "selavg";
+    else
+      set intype = "bvolume";
+    endif
+  endif
+endif
+
+echo "Detected input volume as type $intype";
+
+set icofill = $MRI_DIR/lib/bem/ic$icosize.vit
+if(! -e $icofill ) then
+  echo "ERROR: cannot find $icofill"
+  exit 1;
+endif
+
+set func2ico  = $fvitdir/$hemi.func-to-ic$icosize.vit
+if(! -e $func2ico ) then
+  echo "ERROR: cannot find $func2ico"
+  exit 1;
+endif
+
+set outdir  = `dirname $outstem`;
+mkdir -p $outdir
+
+
+echo "------ ------ Hemisphere $hemi ------ ------ "
+set tmpoutfile = $outstem-ic$icosize.tmp
+set outfile    = $outstem"_000.bfloat"
+
+  #-------------------------------------------------------------------#
+  echo "------ Resampling"
+  set cmd = "vss-resample -s $instem -f $intype -vit $func2ico -t $tmpoutfile";
+  $cmd
+  set rt = $status;
+  if($rt) then
+    echo "ERROR: vss-resample returned with status $rt"
+    echo $cmd
+    exit 1;
+  endif
+
+  #-------------------------------------------------------------------#
+  if($niters > 0) then
+    set tmpfillfile = $outstem-ic$icosize.tmpfill
+    echo "------ Filling Holes "
+    set cmd = "vss-fillholes $tmpoutfile $icofill $niters $tmpfillfile"
+    $cmd
+    set rt = $status;
+    if($rt) then
+      echo "ERROR: vss-fillholes returned with status $rt"
+      echo $cmd
+      exit 1;
+    endif
+  else
+    set tmpfillfile = $tmpoutfile
+  endif
+
+  #-------------------------------------------------------------------#
+  echo "------ Converting to BFile Format"
+  if($icosize == 10242) then
+    set nr = 18;
+    set nc = 569;
+  else
+    set nr = $icosize;
+    set nc = 1;
+  endif
+  set cmd = "vss-convert -vss $tmpoutfile -o $outstem -of $intype $nr $nc 1"
+  $cmd
+  set rt = $status;
+  if($rt) then
+    echo "ERROR: vss-convert returned with status $rt"
+    echo $cmd
+    exit 1;
+  endif
+
+  rm -f $tmpoutfile $tmpfillfile
+
+  if($intype == selavg) then
+    echo "  Copying selavg-related files"
+    cp $instem.dat $outstem.dat
+    cp $instem"_000.dof" $outstem"_000.dof"
+  endif
+
+  if($intype == selxavg) then
+    echo "  Copying selxavg-related files"
+    cp $instem.dat $outstem.dat
+    cp $instem"_hcov_000.bfloat" $outstem"_hcov_000.bfloat"
+    cp $instem"_hcov_000.hdr" $outstem"_hcov_000.hdr"
+    if(0) then
+      echo "INFO: resampling selxavg seg files"
+      mri-func2sph -i $instem"_seg" -o $outstem"_seg" -hemi $hemi\
+         -fvitdir $fvitdir -niters $niters -icosize $icosize  \
+         -intype bvolume -umask $newumask
+    endif
+  endif
+
+
+echo "mri-func2sph completed successfully"
+
+exit 0;
+#####################################
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-icosize":
+    case "-ic":
+      if ( $#argv == 0) goto arg1err;
+      set icosize = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      if("$hemi" != "lh" && "$hemi" != "rh") then
+        echo "ERROR: -hemi must be either lh or rh ($hemi)"
+        exit 1;
+      endif
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      set InDir = `dirname $instem`;
+      breaksw
+
+    case "-intype":
+      if ( $#argv == 0) goto arg1err;
+      set intype = $argv[1]; shift;
+      breaksw
+
+    case "-fvitdir":
+      if ( $#argv == 0) goto arg1err;
+      set fvitdir = $argv[1]; shift;
+      breaksw
+
+    case "-niters":
+      if ( $#argv == 0) goto arg1err;
+      set niters = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+    case "-um":
+      if ( $#argv == 0) goto arg1err;
+      echo "INFO: Setting umask to $argv[1]"
+      set newumask = $argv[1]; shift;
+      umask $newumask
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      goto usage_exit;
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+
+#----------------------------------------------------------------#
+check_args:
+
+  if($#instem == 0) then
+    echo "ERROR: must specify an input stem";
+    exit 1;
+  endif  
+
+  if(! -d $InDir ) then
+    echo "ERROR: cannot find $InDir"
+    exit 1;
+  endif  
+
+  if($#outstem == 0) then
+    echo "ERROR: must specify an output stem";
+    exit 1;
+  endif  
+
+  if($#hemi == 0) then
+    echo "ERROR: must specify a hemisphere";
+    exit 1;
+  endif  
+
+  if($#fvitdir == 0) then
+    echo "ERROR: must specify an fvtidir stem";
+    exit 1;
+  endif  
+
+  if(! -d $fvitdir ) then
+    echo "ERROR: cannot find $fvitdir"
+    exit 1;
+  endif
+
+  if($#intype > 0) then
+    if("$intype" != "auto" && "$intype" != "bvolume" && \
+       "$intype" != "selavg" && "$intype" != "selxavg") then
+      echo "ERROR: intype set to $intype"
+      echo "  must be one of: auto, bvolume, selavg, selxavg"
+      exit 1;
+    endif
+  endif
+
+goto check_args_return;
+
+#----------------------------------------------------------------#
+usage_exit:
+  echo "\nUSAGE: \n\n mri-func2sph "
+  echo "   -i        instem             required"
+  echo "   -o        outstem            required"
+  echo "   -hemi     lh, rh hemisphere  required"
+  echo "   -fvitdir  func vit dir       required"
+  echo "   -niters   hole-filling iters $niters"
+  echo "   -icosize  icosahedron size   $icosize"
+  echo "   -intype   type of input      auto-detect"
+  echo "   -umask    newumask"
+  echo "\n $FUNC2SPH_VER \n"
+exit 1;

@@ -1,0 +1,273 @@
+#!/bin/csh -f
+
+set STRUCTVITS_VER = '$Id: mri-structvits,v 1.1 1999/10/26 15:08:57 greve Exp $';
+
+set subject  = ();
+set icosize  = 10242;
+set hemilist = (lh rh);
+set vitdir   = ();
+set dist     = 2;
+set origsurfname = orig
+set sphsurfname  = sphere
+set cansurfname  = sphere.dist_new
+set noforce  = 0;
+set mailuser = ()
+set ErrorMsg = "";
+
+goto parse_args;
+parse_args_return:
+
+if($#subject != 1) then
+  echo "\nUSAGE: \n\n mri-structvits "
+  echo "   -subject  subject name       --required--"
+  echo "   -orig     orig surface       $origsurfname"
+  echo "   -sphere   spherical surface  $sphsurfname"
+  echo "   -can      canonical surface  $cansurfname"
+  echo "   -icosize  icosahedron size   $icosize"
+  echo "   -hemi     hemifield(s)       lh rh"
+  echo "   -outdir   output directory   SubjectsDir/svit"
+  echo "   -dist     distance (mm)      $dist mm"
+  echo "   -update   dont create if already exists"
+#  echo "   -noforce  dont create if already exists"
+  echo "   -umask    newumask"
+  echo "   -mail     user"
+  echo "\n $STRUCTVITS_VER \n"
+  exit 1;
+endif
+
+if($#vitdir == 0) then
+  set vitdir = $SUBJECTS_DIR/$subject/svit
+endif
+
+mkdir -p $vitdir
+
+if(! -d $vitdir ) then
+  set ErrorMsg = "ERROR: cannot find directory $vitdir"
+  goto error_exit;
+endif
+
+cd $vitdir
+
+echo "\n$STRUCTVITS_VER\n"
+echo "Subject:  $subject"
+echo "Orig:     $origsurfname"
+echo "Sphere:   $sphsurfname"
+echo "Can:      $cansurfname"
+echo "IcoSize:  $icosize"
+echo "Dist:     $dist"
+echo "OutDir:   $vitdir"
+echo "noforce:  $noforce"
+
+echo "Started at `date`"
+foreach hemi ($hemilist)
+
+  echo "\n\n"
+  echo "------------------------------------------------------"
+  echo "------------- Hemifield $hemi ------------------------"
+  echo "`date` "
+  echo "------------------------------------------------------"
+  echo "\n\n"
+
+  set origsurf = $SUBJECTS_DIR/$subject/surf/$hemi.$origsurfname
+  set sphsurf  = $SUBJECTS_DIR/$subject/surf/$hemi.$sphsurfname
+  set cansurf  = $SUBJECTS_DIR/$subject/surf/$hemi.$cansurfname
+
+  if(! -f $origsurf ) then
+    set ErrorMsg = "ERROR: $origsurf does not exist"
+    goto error_exit;
+  endif
+  if(! -f $sphsurf ) then
+    set ErrorMsg = "ERROR: $sphsurf does not exist"
+    goto error_exit;
+  endif
+  if(! -f $cansurf ) then
+    set ErrorMsg = "ERROR: $cansurf does not exist"
+    goto error_exit;
+  endif
+
+  set s2iccvit = $hemi.sph-to-ic$icosize-cc.vit
+  set ico_sc   = $hemi.ic$icosize-sc.vss
+  set s2iscvit = $hemi.sph-to-ic$icosize-sc.vit
+  set i2sscvit = $hemi.ic$icosize-to-sph-sc.vit
+
+
+  # -------- generate vit for filling holes in orig ---------------#
+  if(-f $hemi.$origsurfname-fill.vit &&  $noforce) then
+     echo "$hemi.$origsurfname-fill.vit already exists, skipping"
+  else
+    echo "------- $hemi.$origsurfname-fill.vit `date` ---------"
+    vss-surf2vit -subject $subject -hemi $hemi -surface $origsurfname \
+                 -vit $hemi.$origsurfname-fill.vit
+    if($status) then
+      set ErrorMsg = "ERROR: vss-surf2vit"
+      goto error_exit;
+    endif
+  endif
+
+  # --- csurf to ico vit in cannonical coords -------- #
+  if(-f $s2iccvit &&  $noforce) then
+     echo "$s2iccvit already exists, skipping"
+  else
+    echo "------- $s2iccvit `date` ------------- "
+    vss-buildvit -s $cansurf -f surf -t ic$icosize -f ico \
+                 -knearest 1 -vit $s2iccvit
+    if($status) then
+      set ErrorMsg = "ERROR: vss-buildvit"
+      goto error_exit;
+    endif
+  endif
+
+  # --- compute compute the ico vtx locations in spherical space -- #
+  if(-f $ico_sc &&  $noforce) then
+     echo "$ico_sc already exists, skipping"
+  else
+    echo "-------- $ico_sc `date` -----------------"
+    vss-resample -s $sphsurf -f surf -vit $s2iccvit -t $ico_sc
+    if($status) then
+      set ErrorMsg = "ERROR: vss-resample"
+      goto error_exit;
+    endif
+  endif
+
+  # --- csurf to ico vit in spherical coords ---------- #
+  if(-f $s2iscvit&&  $noforce) then
+     echo "$s2iscvit already exists, skipping"
+  else
+    echo "-------- $s2iscvit `date` ----------------"
+    vss-buildvit -s $sphsurf -f surf -t  $ico_sc \
+                 -distthresh $dist -vit $s2iscvit
+    if($status) then
+      set ErrorMsg = "ERROR: vss-buildvit"
+      goto error_exit;
+    endif
+  endif
+
+  # --- ico to csurf vit in spherical coords ---------- #
+  if(-f $i2sscvit &&  $noforce) then
+     echo "$i2sscvit  already exists, skipping"
+  else
+    echo "-------- $i2sscvit `date` ----------------"
+    vss-buildvit -s  $ico_sc -t $sphsurf -f surf \
+                 -knearest 1 -vit $i2sscvit
+    if($status) then
+      set ErrorMsg = "ERROR: vss-buildvit"
+      goto error_exit;
+    endif
+  endif
+
+end
+
+if($#mailuser == 1) then
+  echo "mri-structvits $subject $icosize finished at `date`" | \
+  echo "" | mail -s "mri-structvits $subject `date`" $mailuser;
+endif
+
+echo "Finished at `date`"
+echo "mri-structvits completed successfully"
+
+
+exit 0;
+###########################################
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-subject":
+    case "-su":
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "-orig"
+    case "-or"
+      if ( $#argv == 0) goto arg1err;
+      set origsurfname = $argv[1]; shift;
+      breaksw
+
+    case "-sphere"
+    case "-sp"
+      if ( $#argv == 0) goto arg1err;
+      set sphsurfname = $argv[1]; shift;
+      breaksw
+
+    case "-can"
+    case "-ca"
+      if ( $#argv == 0) goto arg1err;
+      set cansurfname = $argv[1]; shift;
+      breaksw
+
+    case "-icosize":
+    case "-ic":
+      if ( $#argv == 0) goto arg1err;
+      set icosize = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+    case "-he":
+      if ( $#argv == 0) goto arg1err;
+      set hemilist = $argv[1]; shift;
+      if("$hemilist" != "lh" && "$hemilist" != "rh") then
+        echo "ERROR: -hemi must be either lh or rh ($hemilist)"
+        exit 1;
+      endif
+      breaksw
+
+    case "-outdir":
+    case "-ou":
+      if ( $#argv == 0) goto arg1err;
+      set vitdir = $argv[1]; shift;
+      breaksw
+
+    case "-dist":
+    case "-di":
+      if ( $#argv == 0) goto arg1err;
+      set dist = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+    case "-um":
+      if ( $#argv == 0) goto arg1err;
+      echo "INFO: Setting umask to $argv[1]"
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-mail":
+    case "-ma":
+      if ( $#argv == 0) goto arg1err;
+      set mailuser = $argv[1]; shift
+      breaksw
+
+    case "-noforce":
+      set noforce = 1;
+      breaksw
+
+    case "-update":
+      set noforce = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+
+############-----------------------###############
+error_exit:
+  echo "-----------------------------------------"
+  echo $ErrorMsg;
+  echo "-----------------------------------------"
+  if($#mailuser > 0) then
+      echo $ErrorMsg | mail -s "mri-structvits $subject FAILED" $mailuser;
+  endif
+  exit 1;

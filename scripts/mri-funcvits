@@ -1,0 +1,257 @@
+#!/bin/csh -f
+
+set FUNCVITS_VER = '$Id: mri-funcvits,v 1.1 1999/10/26 15:09:34 greve Exp $';
+
+set stem     = ();
+set outdir   = ();
+set icosize  = 10242;
+set hemilist = (lh rh);
+set svitdir  = ();
+set icodir   = ();
+set origsurfname = orig
+set sphsurfname  = sphere
+set cansurfname  = sphere.dist_new
+set noforce = 0;
+set mailuser = ()
+
+goto parse_args;
+parse_args_return:
+
+if($#stem != 1 || $#outdir != 1) then
+  echo "\nUSAGE: \n\n mri-funcvits "
+  echo "   -stem     template stem      --required--"
+  echo "   -outdir   output directory   --required--"
+  echo "   -orig     orig surface       $origsurfname"
+  echo "   -sphere   spherical surface  $sphsurfname"
+  echo "   -icosize  icosahedron size   $icosize"
+  echo "   -hemi     hemifield(s)       lh rh"
+  echo "   -svitdir  svit directory     SubjectsDir/subject/svit"
+  echo "   -icodir   ico directory      $MRI_DIR/lib/bem"
+  echo "   -umask    newumask"
+  echo "   -mail     user"
+  echo "   -noforce  dont create if already exists"
+  echo "\n $FUNCVITS_VER \n"
+  exit 1;
+endif
+
+set TemplateDir  = `dirname $stem`;
+if(! -d $TemplateDir ) then
+  echo "ERROR: cannot find directory $TemplateDir"
+  exit 1;
+endif
+
+set TemplateBase = `basename $stem`;
+pushd $TemplateDir >& /dev/null
+set  TemplateDir = `pwd`;
+popd  >& /dev/null
+
+set TemplateStem = $TemplateDir/$TemplateBase
+
+set regfile = $TemplateDir/register.dat
+if(! -f $regfile ) then
+  echo "ERROR: cannot find $regfile";
+  exit 1;
+endif
+
+set subject = `head -n 1 $regfile`
+if($#svitdir == 0) then
+  set svitdir   = $SUBJECTS_DIR/$subject/svit
+endif
+if(! -d $svitdir ) then
+  echo "ERROR: cannot find directory $svitdir"
+  exit 1;
+endif
+
+if($#icodir == 0) then
+  set icodir   = $MRI_DIR/lib/bem/
+endif
+if(! -d $icodir ) then
+  echo "ERROR: cannot find directory $icodir"
+  exit 1;
+endif
+
+mkdir -p $outdir
+if(! -d $outdir ) then
+  echo "ERROR: cannot create directory $outdir"
+  exit 1;
+endif
+cd $outdir
+
+echo "\n$FUNCVITS_VER\n"
+echo "Stem:     $stem"
+echo "OutDir:   $outdir"
+echo "Subject:  $subject"
+echo "Orig:     $origsurfname"
+echo "Sphere:   $sphsurfname"
+echo "IcoSize:  $icosize"
+echo "VitDir:   $svitdir"
+echo "IcoDir:   $icodir"
+echo "noforce:  $noforce"
+
+echo "Started at `date`"
+
+foreach hemi ($hemilist)
+
+  echo "\n\n"
+  echo "------------------------------------------------------"
+  echo "------------- Hemifield $hemi ------------------------"
+  echo "`date` "
+  echo "------------------------------------------------------"
+  echo "\n\n"
+
+  set sphsurf  = $SUBJECTS_DIR/$subject/surf/$hemi.$sphsurfname
+  set cansurf  = $SUBJECTS_DIR/$subject/surf/$hemi.$cansurfname
+  set origsurf = $SUBJECTS_DIR/$subject/surf/$hemi.orig
+
+  set s2iscvit   = $svitdir/$hemi.sph-to-ic$icosize-sc.vit
+  set csurffc    = $hemi.csurf-fc.vss
+  set func2csurf = $hemi.func-to-csurf.vit
+  set func2ico   = $hemi.func-to-ic$icosize.vit
+
+  # -- Compute location of csurf vertices in func coords ---------- #
+  if(-f $csurffc &&  $noforce) then
+     echo "$csurffc  already exists, skipping"
+  else
+    echo "---- $csurffc `date`--------"
+    vss-project -i $origsurf -f surf -pm $regfile -f register \
+                -o $csurffc
+    if($status) then
+      echo "ERROR: vss-project"
+      exit 1;
+    endif
+  endif
+
+  # --- func2csurf ---------- #
+  if(-f $func2csurf  &&  $noforce) then
+     echo "$func2csurf  already exists, skipping"
+  else
+    echo "---- $func2csurf `date`--------"
+    vss-buildvit -s $TemplateStem -f bvolume-coords -t $csurffc \
+                 -mli -vit $func2csurf
+    if($status) then
+      echo "ERROR: vss-buildvit"
+      exit 1;
+    endif
+  endif
+
+  # --- func2ico ---------- #
+  if(-f $func2ico  &&  $noforce) then
+     echo "$func2ico  already exists, skipping"
+  else
+    echo "--- $func2ico  `date`"
+    vss-cascadevit -a2b $func2csurf -b2c $s2iscvit \
+          -a2c $func2ico
+    if($status) then
+      echo "ERROR: vss-cascadevit"
+      exit 1;
+    endif
+    echo "$func2ico done at `date`"
+  endif
+
+end 
+
+if($#mailuser == 1) then
+  echo "mri-funcvits $subject $icosize finished at `date`" | \
+    mail -s "mri-funcvits $subject `date`" $mailuser;
+endif
+
+echo "Finished at `date`"
+echo "mri-funcvits completed successfully"
+
+
+exit 0;
+###########################################
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-stem":
+    case "-st":
+      if ( $#argv == 0) goto arg1err;
+      set stem = $argv[1]; shift;
+      breaksw
+
+    case "-orig"
+    case "-or"
+      if ( $#argv == 0) goto arg1err;
+      set origsurfname = $argv[1]; shift;
+      breaksw
+
+    case "-sphere"
+    case "-sp"
+      if ( $#argv == 0) goto arg1err;
+      set sphsurfname = $argv[1]; shift;
+      breaksw
+
+    case "-can"
+    case "-ca"
+      if ( $#argv == 0) goto arg1err;
+      set cansurfname = $argv[1]; shift;
+      breaksw
+
+    case "-icosize":
+    case "-ic":
+      if ( $#argv == 0) goto arg1err;
+      set icosize = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+    case "-he":
+      if ( $#argv == 0) goto arg1err;
+      set hemilist = $argv[1]; shift;
+      if("$hemilist" != "lh" && "$hemilist" != "rh") then
+        echo "ERROR: -hemi must be either lh or rh ($hemilist)"
+        exit 1;
+      endif
+      breaksw
+
+    case "-outdir":
+    case "-ou":
+      if ( $#argv == 0) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "-svitdir":
+    case "-sv":
+      if ( $#argv == 0) goto arg1err;
+      set svitdir = $argv[1]; shift;
+      breaksw
+
+    case "-icodir":
+      if ( $#argv == 0) goto arg1err;
+      set icodir = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+    case "-um":
+      if ( $#argv == 0) goto arg1err;
+      echo "INFO: Setting umask to $argv[1]"
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-mail":
+    case "-ma":
+      if ( $#argv == 0) goto arg1err;
+      set mailuser = $argv[1]; shift
+      breaksw
+
+    case "-noforce":
+      set noforce = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
