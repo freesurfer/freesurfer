@@ -20,7 +20,7 @@
 #include "histo.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.14 2003/09/15 20:39:44 tosa Exp $";
+static char vcid[] = "$Id: mris_ms_refine.c,v 1.15 2003/10/02 13:57:08 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -301,7 +301,7 @@ main(int argc, char *argv[])
   EXTRA_PARMS   ep ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.14 2003/09/15 20:39:44 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.15 2003/10/02 13:57:08 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3958,6 +3958,8 @@ scale_all_images(MRI **mri_flash, int nvolumes, MRI_SURFACE *mris, float target_
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
 
     for (i = 0 ; i < nvolumes ; i++)
     {
@@ -4196,11 +4198,13 @@ compute_parameter_maps(MRI **mri_flash, int nvolumes, MRI **pmri_T1,
     {
       for (x = 0 ; x < width ; x++)
       {
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak()  ;
         for (i = 0 ; i < nvolumes ; i++)
           MRIsampleVolume(mri_flash[i], x, y, z, &image_vals[i]) ;
         compute_T1_PD(image_vals, mri_flash, nvolumes, &T1, &PD) ;
-        MRISvox(mri_T1, x, y, z) = T1 ;
-        MRISvox(mri_PD, x, y, z) = PD ;
+				MRIsetVoxVal(mri_T1, x, y,z,0,T1);
+				MRIsetVoxVal(mri_PD, x, y,z,0,PD);
       }
     }
   }
