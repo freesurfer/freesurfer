@@ -6924,107 +6924,12 @@ MRIScopyValuesToImagValues(MRI_SURFACE *mris)
 int
 MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
 {
-  int         vno ;
-  VERTEX      *vertex ;
-  float       d, x, y, z, r, theta, phi ;
-#if 1
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
     return(Gerror) ;
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-#else
-  int         nvertices, magic, version, ix, iy, iz, vno, n, nfaces, crap,type;
-  FILE        *fp ;
-  VERTEX      *vertex ;
-  char        fname[200], path[200], *cp ;
-  float       d, x, y, z, r, theta, phi ;
-
-  cp = strchr(sname, '/') ;
-  if (!cp)                 /* no path - use same one as mris was read from */
-  {
-    FileNamePath(mris->fname, path) ;
-    cp = strstr(sname, "rh.") ;
-    if (!cp)
-      cp = strstr(sname, "lh.") ;
-    if (!cp)   /* no hemisphere specified */
-      sprintf(fname, "%s/%s.%s", path, 
-              mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", sname) ;
-    else
-      sprintf(fname, "%s/%s", path, sname) ;
-  }
-  else   
-    strcpy(fname, sname) ;  /* path specified explcitly */
-  fp = fopen(fname, "rb") ;
-  if (!fp)
-    ErrorReturn(ERROR_NOFILE,
-                (ERROR_NOFILE,
-                 "MRISreadCanonicalCoordinates(%s): could not open file",
-                 fname));
-
-  fread3(&magic, fp) ;
-  if (magic == NEW_VERSION_MAGIC_NUMBER) 
-  {
-    version = -1;
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      fprintf(stderr, "new surface file format\n");
-  }
-  else 
-  {
-    rewind(fp);
-    version = 0;
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      printf("surfer: old surface file format\n");
-  }
-  fread3(&nvertices, fp);
-  fread3(&nfaces, fp); nfaces *= 2 ;
-
-  if ((nvertices != mris->nvertices) || (nfaces != mris->nfaces))
-    ErrorReturn(ERROR_BADPARM, 
-                (ERROR_BADPARM,
-                "MRISreadCanonicalSurface(%s): nfaces %d (%d) or nvertices "
-                "%d (%d) mismatch", fname,
-                nfaces, mris->nfaces, nvertices, mris->nvertices)) ;
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stderr, "reading %d vertices and %d faces.\n",nvertices,nfaces);
-
-  for (vno = 0 ; vno < nvertices ; vno++)
-  {
-    vertex = &mris->vertices[vno] ;
-    fread2(&ix,fp);
-    fread2(&iy,fp);
-    fread2(&iz,fp);
-    vertex->cx = ix/100.0;
-    vertex->cy = iy/100.0;
-    vertex->cz = iz/100.0;
-    if (version == 0)  /* old surface format */
-    {
-      fread1(&crap,fp);
-      for (n=0;n<vertex->num;n++)   /* skip over face data */
-        fread3(&crap,fp);
-    } 
-#if 0
-    else 
-      vertex->num = 0;
-#endif
-  }
-#endif
-  r = mris->radius = MRISaverageRadius(mris) ;
-  r = mris->radius = (float)nint(mris->radius) ;
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    vertex = &mris->vertices[vno] ;
-    x = vertex->cx ;
-    y = vertex->cy ;
-    z = vertex->cz ;
-    theta = atan2(y/r, x/r) ;
-    if (theta < 0.0f)
-      theta = 2 * M_PI + theta ;  /* make it 0 --> 2*PI */
-    d = r*r-z*z ; if (d < 0.0) d = 0.0 ;
-    phi = atan2(sqrt(d), z) ;
-    vertex->theta = theta ; vertex->phi = phi ;
-  }
+  MRIScomputeCanonicalCoordinates(mris) ;
   return(NO_ERROR) ;
 }
 
@@ -8906,6 +8811,56 @@ MRISaverageRadius(MRI_SURFACE *mris)
     x = (double)vertex->x-x0 ; 
     y = (double)vertex->y-y0 ; 
     z = (double)vertex->z-z0 ;
+    radius += sqrt(x*x + y*y + z*z) ;
+  }
+
+  radius /= (double)n ;
+  return(radius) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Descripton
+------------------------------------------------------*/
+double
+MRISaverageCanonicalRadius(MRI_SURFACE *mris)
+{
+  double  radius ;
+  int    vno, n ;
+  VERTEX *vertex ;
+  double x, y, z, xlo, ylo, zlo, xhi, yhi, zhi, x0, y0, z0 ;
+
+  xhi=yhi=zhi= -10000;
+  xlo=ylo=zlo= 10000;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+#if 0
+    if (vertex->ripflag)
+      continue ;
+#endif
+    x = (double)vertex->cx ; y = (double)vertex->cy ; z = (double)vertex->cz ;
+    if (x>xhi) xhi=x;
+    if (x<xlo) xlo=x;
+    if (y>yhi) yhi=y;
+    if (y<ylo) ylo=y;
+    if (z>zhi) zhi=z;
+    if (z<zlo) zlo=z;
+  }
+  x0 = (xlo+xhi)/2.0f ; y0 = (ylo+yhi)/2.0f ; z0 = (zlo+zhi)/2.0f ;
+  for (radius = 0.0, n = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+#if 0
+    if (vertex->ripflag)
+      continue ;
+#endif
+    n++ ;
+    x = (double)vertex->cx-x0 ; 
+    y = (double)vertex->cy-y0 ; 
+    z = (double)vertex->cz-z0 ;
     radius += sqrt(x*x + y*y + z*z) ;
   }
 
@@ -12115,6 +12070,37 @@ MRISsaveVertexPositions(MRI_SURFACE *mris, int which)
       v->tx = v->x ; v->ty = v->y ; v->tz = v->z ;
       break ;
     }
+  }
+  if (which == CANONICAL_VERTICES)
+    MRIScomputeCanonicalCoordinates(mris) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris)
+{
+  float   theta, phi, r, d, x, y, z ;
+  VERTEX  *v ;
+  int     vno ;
+
+  r = mris->radius = MRISaverageCanonicalRadius(mris) ;
+  r = mris->radius = (float)nint(mris->radius) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    x = v->cx ; y = v->cy ; z = v->cz ;
+    theta = atan2(y/r, x/r) ;
+    if (theta < 0.0f)
+      theta = 2 * M_PI + theta ;  /* make it 0 --> 2*PI */
+    d = r*r-z*z ; if (d < 0.0) d = 0.0 ;
+    phi = atan2(sqrt(d), z) ;
+    v->theta = theta ; v->phi = phi ;
   }
   return(NO_ERROR) ;
 }
