@@ -1,0 +1,215 @@
+#!/bin/csh -f
+#  
+#  
+
+set SPH2SURF_VER = '$Id: mri-sph2surf,v 1.1 2000/02/10 22:56:03 greve Exp $';
+
+set subject = ();
+set hemi    = ();
+set instem  = ();
+set outstem = ();
+set offset  =  0;
+set svitdir = ();
+
+if($#argv == 0) goto usage_exit;
+
+goto parse_args;
+parse_args_return:
+
+if($#svitdir == 0) then
+  set svitdir = $SUBJECTS_DIR/$subject/svit
+endif
+
+goto check_args;
+check_args_return:
+
+set ico2surfvit = $svitdir/$hemi.ic10242-to-sph-sc.vit 
+if(! -e $ico2surfvit) then
+  echo "ERROR: cannot find $ico2surfvit"
+  exit 1;
+endif
+
+set infile = $instem-$hemi"_000.bfloat"
+if(! -e $infile) then
+  set infile = $instem-$hemi"_000.bshort"
+  if(! -e $infile) then
+    echo "ERROR: cannot find input file $infile"
+    exit 1;
+  endif
+endif
+
+set tmpfile = $outstem-$hemi-$subject.vss
+vss-resample -s $instem-$hemi -f bvolume \
+             -t $tmpfile \
+             -vit $ico2surfvit
+set st = $status
+if($st) then
+  echo "ERROR: vss-resample exited with status $st"
+  exit $st;
+endif
+
+set outfile = $outstem-$hemi.w
+vss-convert -vss $tmpfile -o $outfile -of paint $offset
+
+set st = $status
+if($st) then
+  echo "ERROR: vss-convert exited with status $st"
+  exit $st;
+endif
+
+rm -f $tmpfile
+
+exit 0;
+################################################
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-version":
+      echo $SPH2SURF_VER ;
+      exit 0;
+      breaksw
+
+    case "-help":
+      goto help;
+      help_return:
+      exit 0;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      if("$hemi" != "lh" && "$hemi" != "rh") then
+        echo "ERROR: -hemi must be either lh or rh ($hemi)"
+        exit 1;
+      endif
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      set InDir = `dirname $instem`;
+      breaksw
+
+    case "-svitdir":
+      if ( $#argv == 0) goto arg1err;
+      set svitdir = $argv[1]; shift;
+      if(! -e $svitdir ) then
+        echo "ERROR: cannot find svitdir $svitdir"
+        exit 1;
+      endif
+      breaksw
+
+    case "-s":
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "-offset":
+      if ( $#argv == 0) goto arg1err;
+      set offset = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+    case "-um":
+      if ( $#argv == 0) goto arg1err;
+      echo "INFO: Setting umask to $argv[1]"
+      set newumask = $argv[1]; shift;
+      umask $newumask
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      goto usage_exit;
+      exit 1;
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+
+############--------------##################
+check_args:
+  
+  if($#instem == 0) then
+    echo "ERROR: must specify an input stem"
+    exit 1;
+  endif
+
+  if($#outstem == 0) then
+    echo "ERROR: must specify an output stem"
+    exit 1;
+  endif
+
+  if($#hemi == 0) then
+    echo "ERROR: must specify a hemi"
+    exit 1;
+  endif
+
+  if($#subject == 0) then
+    echo "ERROR: must specify a subject"
+    exit 1;
+  endif
+
+goto check_args_return;
+
+#----------------------------------------------------------------#
+usage_exit:
+  echo "\nUSAGE: \nmri-sph2surf "
+  echo "   -i        instem             required"
+  echo "   -o        outstem            required"
+  echo "   -hemi     lh, rh hemisphere  required"
+  echo "   -s        subject            required"
+  echo "   -offset   offset             $offset"
+  echo "   -svitdir  dir                $SUBJECTS_DIR/subject/svit"
+  echo "   -umask    newumask"
+  echo "   -verbose "
+  echo "   -version "
+  echo "\n $SPH2SURF_VER \n"
+exit 1;
+
+#----------------------------------------------------------------#
+help:
+
+  echo "\n $SPH2SURF_VER "
+  echo "\nUSAGE: \nmri-sph2surf "
+  echo "   -i        instem             required"
+  echo "   -o        outstem            required"
+  echo "   -hemi     lh, rh hemisphere  required"
+  echo "   -s        subject            required"
+  echo "   -offset   offset             $offset"
+  echo "   -svitdir  dir                $SUBJECTS_DIR/subject/svit"
+  echo "   -umask    newumask"
+  echo "   -verbose "
+  echo "   -version "
+  echo "   -help "
+
+echo "\n"
+echo "instem is the stem of a bfloat file.  The input file name"
+echo "  must take the form instem-lh_000.bfloat (or rh).  This is"
+echo "  the form produced by mri-func2sph."
+echo ""
+echo "The output file will have the name outstem-lh.w (or rh)."
+echo ""
+echo "offset is the zero-based plane/frame number (same as in paint)."
+echo "\n"
+exit 1;
+
+goto help_return;
