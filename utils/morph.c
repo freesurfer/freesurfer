@@ -879,7 +879,7 @@ morphFilter(IMAGE *Isrc, IMAGE *Idst)
                  row_start, row_end, col_start, col_end, *dpix, *endpix ;
   register int   val, frow, fcol ;
 
-  row_pix = (int)rows = Isrc->rows ;
+  row_pix = rows = Isrc->rows ;
   cols = (int)Isrc->cols ;
 
   /* first do borders - top row */
