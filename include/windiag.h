@@ -15,7 +15,11 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
+#ifdef SunOS
+#include <sys/varargs.h>
+#else
 #include <stdarg.h>
+#endif
 
 #include "image.h"
 

@@ -14,7 +14,11 @@
 ------------------------------------------------------------------------*/
 
 #include <stdio.h>
+#ifdef SunOS
+#include <sys/varargs.h>
+#else
 #include <stdarg.h>
+#endif
 #include <math.h>
 
 #include <xview/notify.h>
