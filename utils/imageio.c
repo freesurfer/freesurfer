@@ -915,7 +915,7 @@ TiffReadImage(char *fname, int frame0)
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_FILLORDER, &fillorder);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_COMPRESSION, &compression);
 
-  fprintf(stderr, "tiff info\n");
+  fprintf(stderr, "\ntiff info\n");
   fprintf(stderr, "         size: (%d, %d)\n", width, height);
   fprintf(stderr, "samples/pixel: %d\n", nsamples);
   fprintf(stderr, "  bits/sample: %d\n", bits_per_sample);
