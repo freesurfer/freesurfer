@@ -15,7 +15,7 @@
 #include "cma.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.62 2003/07/10 22:42:10 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.63 2003/07/11 18:47:49 tosa Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -189,7 +189,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.62 2003/07/10 22:42:10 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.63 2003/07/11 18:47:49 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -328,7 +328,7 @@ main(int argc, char *argv[])
             x_cc, y_cc, z_cc, cc_tal_x, cc_tal_y, cc_tal_z) ;
   if (!pons_seed_set)   /* find pons automatically - no help from user */
   {
-    MRI  *mri_mask ;
+    MRI  *mri_mask=NULL ;
 
     if (cc_mask)   /* limit pons to be directly below corpus callosum */
     {
@@ -357,7 +357,8 @@ main(int argc, char *argv[])
     if (mri_tmp != mri_im)
     {
       MRIfree(&mri_tmp) ;
-      MRIfree(&mri_mask) ;
+      if (mri_mask)
+	MRIfree(&mri_mask) ;
     }
   }
   mri_pons = 
@@ -366,7 +367,7 @@ main(int argc, char *argv[])
                        pons_seed_set);
   if (!pons_seed_set && !mri_pons)  /* first attempt failed - try different */
   {
-    MRI  *mri_mask ;
+    MRI  *mri_mask=NULL ;
 
     fprintf(stderr, 
             "initial attempt at finding brainstem failed - initiating backup "
@@ -395,7 +396,8 @@ main(int argc, char *argv[])
     if (mri_tmp != mri_tal)
     {
       MRIfree(&mri_tmp) ;
-      MRIfree(&mri_mask) ;
+      if (mri_mask)
+	MRIfree(&mri_mask) ;
     }
     mri_pons = 
       find_cutting_plane(mri_tal, pons_tal_x,pons_tal_y, pons_tal_z,
