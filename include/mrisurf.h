@@ -15,6 +15,10 @@
 #define TRIANGLES_PER_FACE   2
 #define ANGLES_PER_TRIANGLE  3
 
+#define INFLATED_NAME        "inflated"
+#define SMOOTH_NAME          "smoothwm"
+#define SPHERE_NAME          "sphere"
+
 typedef struct _area_label
 {
   char     name[100] ;        /* name of region */
@@ -151,7 +155,7 @@ typedef struct
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
   int               free_transform ;
-  float        radius ;           /* radius (if status==MRIS_SPHERE) */
+  double       radius ;           /* radius (if status==MRIS_SPHERE) */
   float        a, b, c ;          /* ellipsoid parameters */
   char         fname[100] ;       /* file it was originally loaded from */
   float        Hmin ;             /* min mean curvature */
@@ -165,14 +169,90 @@ typedef struct
   MRIS_AREA_LABEL *labels ;       /* nlabels of these (may be null) */
   int          nsize ;            /* size of neighborhoods */
   float        avg_nbrs ;         /* mean # of vertex neighbors */
+  void         *vp ;              /* for misc. use */
 } MRI_SURFACE, MRIS ;
+
+
+#define IPFLAG_HVARIABLE           0x0001   /* for parms->flags */
+
+#define INTEGRATE_LINE_MINIMIZE    0
+#define INTEGRATE_MOMENTUM         1
+#define INTEGRATE_ADAPTIVE         2
+
+#define MRIS_SURFACE               0
+#define MRIS_PATCH                 1
+#define MRIS_CUT                   MRIS_PATCH
+#define MRIS_PLANE                 2
+#define MRIS_ELLIPSOID             3
+#define MRIS_SPHERE                4
+#define MRIS_PARAMETERIZED_SPHERE  5
+
+
+/*
+  the following structure is built after the surface has been morphed
+  into a parameterizable surface (such as a sphere or an ellipsoid). It
+  contains relevant data (such as curvature or sulc) which represented
+  in the plane of the parameterization. This then allows operations such
+  as convolution to be carried out directly in the parameterization space
+  */
+
+/* 
+   define it for a sphere, the first axis (x or u) goes from 0 to pi,
+   the second axis (y or v) goes from 0 to 2pi.
+*/
+#define PHI_MAX                   M_PI
+#define U_MAX                     PHI_MAX
+#define X_DIM(mrisp)              (mrisp->Ip->cols)
+#define U_DIM(mrisp)              X_DIM(mrisp)
+#define PHI_DIM(mrisp)            X_DIM(mrisp)
+#define PHI_MAX_INDEX(mrisp)      (X_DIM(mrisp)-1)
+#define U_MAX_INDEX(mrisp)        (PHI_MAX_INDEX(mrisp))
+
+#define THETA_MAX                 (2.0*M_PI)
+#define Y_DIM(mrisp)              (mrisp->Ip->rows)
+#define V_DIM(mrisp)              (Y_DIM(mrisp))
+#define THETA_DIM(mrisp)          (Y_DIM(mrisp))
+#define THETA_MAX_INDEX(mrisp)    (Y_DIM(mrisp)-1)
+#define V_MAX_INDEX(mrisp)        (THETA_MAX_INDEX(mrisp))
+
+typedef struct
+{
+  MRI_SURFACE  *mris ;        /* surface it came from (if any) */
+  IMAGE        *Ip ;        
+#if 0
+  /* 2-d array of curvature, or sulc in parms */
+  float        data[X_DIM][Y_DIM] ;
+  float        distances[X_DIM][Y_DIM] ;
+  int          vertices[X_DIM][Y_DIM] ;   /* vertex numbers */
+#endif
+  float        sigma ;                    /* blurring scale */
+} MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
+
+#define L_ANGLE              0.25f /*was 0.01*/ /* coefficient of angle term */
+#define L_AREA               1.0f    /* coefficient of angle term */
+#define N_AVERAGES           4096
+#define WRITE_ITERATIONS     10
+#define NITERATIONS          1
+#define NO_PROJECTION        0
+#define PROJECT_ELLIPSOID    1
+#define ELLIPSOID_PROJECTION PROJECT_ELLIPSOID
+#define PROJECT_PLANE        2
+#define PLANAR_PROJECTION    PROJECT_PLANE
+#define PROJECT_SPHERE       3
+
+#define MOMENTUM             0.8
+#define EPSILON              0.25
+
+#define TOL                  1e-6  /* minimum error tolerance for unfolding */
+#define DELTA_T              0.1
 
 
 typedef struct
 {
   double  tol ;               /* tolerance for terminating a step */
   float   l_angle ;           /* coefficient of angle term */
-  float   l_area ;            /* coefficient of area term */
+  float   l_area ;            /* coefficient of (negative) area term */
+  float   l_parea ;           /* coefficient of (all) area term */
   float   l_corr ;            /* coefficient of correlation term */
   float   l_curv ;            /* coefficient of curvature term */
   float   l_spring ;          /* coefficient of spring term */
@@ -208,76 +288,12 @@ typedef struct
   double  starting_sse ;
   double  ending_sse ;
   double  scale ;             /* scale current distances to mimic spring */
+  MRI_SP  *mrisp ;            /* parameterization  of this surface */
+  int     frame_no ;          /* current frame in template parameterization */
+  MRI_SP  *mrisp_template ;   /* parameterization of canonical surface */
+  float   sigma ;             /* blurring scale */
 } INTEGRATION_PARMS ;
 
-#define IPFLAG_HVARIABLE           0x0001   /* for parms->flags */
-
-#define INTEGRATE_LINE_MINIMIZE    0
-#define INTEGRATE_MOMENTUM         1
-#define INTEGRATE_ADAPTIVE         2
-
-#define MRIS_SURFACE               0
-#define MRIS_PATCH                 1
-#define MRIS_CUT                   MRIS_PATCH
-#define MRIS_PLANE                 2
-#define MRIS_ELLIPSOID             3
-#define MRIS_SPHERE                4
-
-
-/*
-  the following structure is built after the surface has been morphed
-  into a parameterizable surface (such as a sphere or an ellipsoid). It
-  contains relevant data (such as curvature or sulc) which represented
-  in the plane of the parameterization. This then allows operations such
-  as convolution to be carried out directly in the parameterization space
-  */
-
-/* 
-   define it for a sphere, the first axis (x or u) goes from 0 to pi,
-   the second axis (y or v) goes from 0 to 2pi.
-*/
-#define PHI_MAX                   M_PI
-#define U_MAX                     PHI_MAX
-#define X_DIM(mrisp)              (mrisp->Ip->cols)
-#define U_DIM(mrisp)              X_DIM(mrisp)
-#define PHI_DIM(mrisp)            X_DIM(mrisp)
-#define PHI_MAX_INDEX(mrisp)      (X_DIM(mrisp)-1)
-#define U_MAX_INDEX(mrisp)        (PHI_MAX_INDEX(mrisp))
-
-#define THETA_MAX                 (2.0*M_PI)
-#define Y_DIM(mrisp)              (mrisp->Ip->rows)
-#define V_DIM(mrisp)              (Y_DIM(mrisp))
-#define THETA_DIM(mrisp)          (Y_DIM(mrisp))
-#define THETA_MAX_INDEX(mrisp)    (Y_DIM(mrisp)-1)
-#define V_MAX_INDEX(mrisp)        (THETA_MAX_INDEX(mrisp))
-
-typedef struct
-{
-  MRI_SURFACE  *mris ;        /* surface it came from */
-  IMAGE        *Ip ;        
-#if 0
-  /* 2-d array of curvature, or sulc in parms */
-  float        data[X_DIM][Y_DIM] ;
-  float        distances[X_DIM][Y_DIM] ;
-  int          vertices[X_DIM][Y_DIM] ;   /* vertex numbers */
-#endif
-} MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
-
-#define L_ANGLE              0.25f /*was 0.01*/ /* coefficient of angle term */
-#define L_AREA               1.0f    /* coefficient of angle term */
-#define N_AVERAGES           4096
-#define WRITE_ITERATIONS     10
-#define NITERATIONS          1
-#define NO_PROJECTION        0
-#define PROJECT_ELLIPSOID    1
-#define ELLIPSOID_PROJECTION PROJECT_ELLIPSOID
-#define PROJECT_PLANE        2
-#define PLANAR_PROJECTION    PROJECT_PLANE
-#define MOMENTUM             0.8
-#define EPSILON              0.25
-
-#define TOL                  1e-6  /* minimum error tolerance for unfolding */
-#define DELTA_T              0.1
 
 /* can't include this before structure, as stats.h includes this file. */
 #include "stats.h"
@@ -296,21 +312,25 @@ int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
+int          MRISnormalizeCurvature(MRI_SURFACE *mris) ;
 int          MRISwriteAreaError(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAngleError(MRI_SURFACE *mris, char *fname) ;
 int          MRISwritePatch(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteValues(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
+int          MRISaverageCurvatures(MRI_SURFACE *mris, int navgs) ;
 
 MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
 MRI_SURFACE  *MRISprojectOntoSphere(MRI_SURFACE *mris_src, 
-                                       MRI_SURFACE *mris_dst, float r) ;
+                                       MRI_SURFACE *mris_dst, double r) ;
 MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, 
                                        MRI_SURFACE *mris_dst, 
                                        float a, float b, float c) ;
 int          MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize) ;
+int          MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize) ;
 int          MRISsampleDistances(MRI_SURFACE *mris, int *nbr_count,int n_nbrs);
+int          MRISscaleDistances(MRI_SURFACE *mris, float scale) ;
 MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, 
                                              MRI_SURFACE *mris_dst, 
                                              float a, float b, float c);
@@ -318,8 +338,12 @@ MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
 MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
 MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src, 
                                     MRI_SURFACE *mris_dst);
-MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes) ;
-MRI_SURFACE  *MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes);
+MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
+                         int max_passes) ;
+int          MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template, 
+                           INTEGRATION_PARMS *parms, int max_passes) ;
+MRI_SURFACE  *MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
+                                 int max_passes);
 MRI_SURFACE  *MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 MRI_SURFACE  *MRISremoveNegativeVertices(MRI_SURFACE *mris, 
                                          INTEGRATION_PARMS *parms,
@@ -331,17 +355,9 @@ MRI_SURFACE  *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
 
 MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri) ;
 MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris) ;
-MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, 
-                                     float scale) ;
-MRI_SURFACE  *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris) ;
-MRI_SP       *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma) ;
-MRI_SP       *MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, 
-                         MRI_SP *mrisp_tmp, MRI_SP *mrisp_dst) ;
-MRI_SP       *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du, 
-                             int dv) ;
-MRI_SP       *MRISPclone(MRI_SP *mrisp_src) ;
-MRI_SP       *MRISPalloc(MRI_SURFACE *mris, float scale) ;
-int          MRISPfree(MRI_SP **pmrisp) ;
+
+
+
 int          MRIScomputeTriangleProperties(MRI_SURFACE *mris, int no_angles) ;
 int          MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time,
                                   int use_talairach_xform);
@@ -373,6 +389,7 @@ double       MRIScurvatureError(MRI_SURFACE *mris, double Kd) ;
 MRI_SURFACE  *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
                              float scale) ;
 int          MRISstoreMetricProperties(MRI_SURFACE *mris) ;
+int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISreadTetherFile(MRI_SURFACE *mris, char *fname, float radius) ;
 int          MRISreadVertexPositions(MRI_SURFACE *mris, char *fname) ;
 int          MRIScomputeMetricProperties(MRI_SURFACE *mris) ;
@@ -380,6 +397,28 @@ int          MRISrestoreOldPositions(MRI_SURFACE *mris) ;
 int          MRISstoreCurrentPositions(MRI_SURFACE *mris) ;
 int          MRISupdateSurface(MRI_SURFACE *mris) ;
 double       MRISpercentDistanceError(MRI_SURFACE *mris) ;
+
+
+MRI_SP       *MRISPcombine(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno);
+double       MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, 
+                              MRI_SURFACE *mris,
+                              float x, float y, float z, int fno) ;
+MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, 
+                                     float scale, int fno) ;
+MRI_SURFACE  *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris,
+                                       int fno) ;
+MRI_SP       *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma,
+                        int fno) ;
+MRI_SP       *MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, 
+                         MRI_SP *mrisp_tmp, MRI_SP *mrisp_dst) ;
+MRI_SP       *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du, 
+                             int dv) ;
+MRI_SP       *MRISPclone(MRI_SP *mrisp_src) ;
+MRI_SP       *MRISPalloc(float scale, int nfuncs) ;
+int          MRISPfree(MRI_SP **pmrisp) ;
+MRI_SP       *MRISPread(char *fname) ;
+int          MRISPwrite(MRI_SP *mrisp, char *fname) ;
+
 
 #define ORIGINAL_VERTICES   0
 #define ORIG_VERTICES       ORIGINAL_VERTICES
