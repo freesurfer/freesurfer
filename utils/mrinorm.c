@@ -599,7 +599,11 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
   for (slice = starting_slice+1 ; slice < npeaks ; slice++)
   {
     dI = outputs[slice] - outputs[old_slice] ;
+#if 0
     dy = inputs[slice] - inputs[old_slice] ;
+#else
+    dy = inputs[slice] - inputs[slice-1] ;
+#endif
     grad = fabs(dI / dy) ;
     deleted[slice] =  
       ((grad > max_gradient) || 
@@ -616,7 +620,11 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
   for (slice = starting_slice-1 ; slice >= 0 ; slice--)
   {
     dI = outputs[old_slice] - outputs[slice] ;
+#if 0
     dy = inputs[slice] - inputs[old_slice] ;
+#else
+    dy = inputs[slice+1] - inputs[slice] ;
+#endif
     grad = fabs(dI / dy) ;
     deleted[slice] =  
       ((grad > max_gradient) ||
@@ -667,6 +675,9 @@ MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni)
 
   MRInormFillHistograms(mri_src, mni) ;
   npeaks = MRInormFindPeaks(mni, inputs, outputs) ;
+  if (npeaks == 0)
+    ErrorReturn(NULL,
+                (ERROR_BADPARM,"MRInormalize: could not find any valid peaks"));
   mri_dst = MRIsplineNormalize(mri_src, mri_dst,NULL,inputs,outputs,npeaks);
 
   if (Gdiag & DIAG_SHOW)
