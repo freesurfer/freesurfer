@@ -397,7 +397,7 @@ MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
         Description
 ------------------------------------------------------*/
 HISTOGRAM *
-MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, int norm)
+MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, int high,int norm)
 {
   int       i, total, total_pix ;
   HISTOGRAM *histo ;
@@ -410,18 +410,31 @@ MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, int norm)
   if (!histo_eq)
     histo_eq = HISTOalloc(histo->nbins) ;
 
-  for (total_pix = 0, i = low ; i < histo->nbins ; i++)
+  for (total_pix = 0, i = low ; i <= high ; i++)
     total_pix += histo->counts[i] ;
 
-  for (total = 0, i = low ; i < histo->nbins ; i++)
+  for (i = 0 ; i < low ; i++)
+  {
+    histo_eq->counts[i] = 0 ;
+    histo_eq->bins[i] = i ;
+  }
+
+  for (total = 0, i = low ; i <= high ; i++)
   {
     total += histo->counts[i] ;
     if (norm)
-      histo_eq->counts[i] = nint(255.0f * (float)total / (float)total_pix) ;
+      histo_eq->counts[i] = nint(255.0f*(float)total / (float)total_pix) ;
     else
       histo_eq->counts[i] = total ;
+    histo->bins[i] = i ;
+  }
+  for (i = high+1 ; i < histo->nbins ; i++)
+  {
+    histo_eq->counts[i] = histo_eq->counts[high]+i ;
+    histo_eq->bins[i] = i ;
   }
 
+  histo_eq->nbins = histo->nbins ;
   HISTOfree(&histo) ;
   return(histo_eq) ;
 }
@@ -433,13 +446,63 @@ MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, int norm)
         Description
 ------------------------------------------------------*/
 MRI *
-MRIhistoEqualize(MRI *mri_src, MRI *mri_dst, int low)
+MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
 {
-  HISTOGRAM  histo_eq ;
+  HISTOGRAM  histo_src, histo_template ;
+  int       width, height, depth, x, y, z, index ;
+  BUFTYPE   *psrc, *pdst, sval, dval ;
+  float     pct ;
 
-  MRIgetEqualizeHisto(mri_src, &histo_eq, low, 1) ;
-  mri_dst = MRIapplyHistogram(mri_src, mri_dst, &histo_eq) ;
-/*  MRIcrunch(mri_dst, mri_dst) ;*/
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  MRIgetEqualizeHisto(mri_src, &histo_src, low, high, 1) ;
+  MRIgetEqualizeHisto(mri_template, &histo_template, low, high, 1) ;
+
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    HISTOplot(&histo_src, "cum_src.plt") ;
+    HISTOplot(&histo_template, "cum_template.plt") ;
+  }
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 137 && y == 87 && z == 36)
+          DiagBreak() ;
+        sval = *psrc++ ; dval = sval ;
+        if (sval > 80 && sval < 95)
+          DiagBreak() ;
+        if (sval >= 83 && sval <= 85)
+          DiagBreak() ;
+
+        if ((sval >= low) && (sval <= high))
+        {
+          pct = histo_src.counts[sval] ;
+          for (index = low ; index < histo_template.nbins ; index++)
+          {
+            if (histo_template.counts[index] >= pct)
+            {
+              dval = index ;
+              break ;
+            }
+          }
+        }
+        if (sval >= 83 && sval <= 85)
+          DiagBreak() ;
+        if (dval == 110)
+          DiagBreak() ;
+        *pdst++ = dval ;
+      }
+    }
+  }
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
