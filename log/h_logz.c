@@ -88,6 +88,11 @@ static void  mapCalculateParms(LOGMAP_INFO *lmi) ;
 static int    logFilterNbd(LOGMAP_INFO *lmi, int filter[NBD_SIZE], 
                            IMAGE *inImage, IMAGE *outImage, 
                            int doweight, int start_ring, int end_ring) ;
+static IMAGE *logSobelX(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, 
+                        int doweight, int start_ring, int end_ring) ;
+static IMAGE *logSobelY(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, 
+                        int doweight, int start_ring, int end_ring) ;
+
 #define NEW_DIFFUSION 1
 #if !NEW_DIFFUSION
 static double diffusionCalculateK(LOGMAP_INFO *lmi,IMAGE *image,double k);
@@ -1028,8 +1033,14 @@ LogMapSobel(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *gradImage,
   ImageSetSize(Iy, Isrc->rows, Isrc->cols) ;
   Iy->pixel_format = Ix->pixel_format = Isrc->pixel_format ;
 
+#if 0
   logFilterNbd(lmi, isx, Isrc, Ix, doweight, start_ring, end_ring) ;
   logFilterNbd(lmi, isy, Isrc, Iy, doweight, start_ring, end_ring) ;
+#else
+  logSobelX(lmi, Isrc, Ix, doweight, start_ring, end_ring) ;
+  logSobelY(lmi, Isrc, Iy, doweight, start_ring, end_ring) ;
+#endif
+
 
   if (gradImage)
   {
@@ -2967,6 +2978,7 @@ struct timeb then ;
     ImageSetSize(Itmp, rows, cols) ;
 
 
+#if 0
   if (Gdiag & DIAG_TIMER)
     TimerStart(&then) ;
   LogMapMeanFilter(lmi, Isrc, Itmp) ;
@@ -2976,6 +2988,9 @@ struct timeb then ;
     fprintf(stderr, "mean filter took   %3.3d msec (%2.1f Hz)\n", 
             msec, 1000.0f / ((float)msec)) ;
   }
+#else
+  Itmp = Isrc ;
+#endif
 
   Isrc = Itmp ;
 
@@ -3683,3 +3698,247 @@ lmConvolve1d(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Igaussian, IMAGE *Idst,
 
   return(NO_ERROR) ;
 }
+
+static IMAGE *
+logSobelX(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, int doweight, 
+          int start_ring, int end_ring)
+{
+  int rows, cols ;
+  register int     ring, spoke, val, n_ring, n_spoke ;
+  register float   fval ;
+  LOGPIX           *npix, **nbd ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, Isrc->pixel_format, 1) ;
+
+
+  if (Idst->pixel_format != Isrc->pixel_format)
+    ErrorReturn(Idst, 
+                (ERROR_UNSUPPORTED,
+                 "logSobelX: input and output format must be the same\n"));
+
+  switch (Isrc->pixel_format)
+  {
+  case PFINT:
+    for_each_ring(lmi, ring, spoke, start_ring, end_ring)
+    {
+      nbd = &LOG_PIX_NBD(lmi, ring, spoke, 0) ;
+
+      /* do positive pixels first */
+      npix = nbd[N_NE] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      val = *IMAGEIpix(Isrc, n_ring, n_spoke) ;
+
+      npix = nbd[N_E] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      val += 2 * *IMAGEIpix(Isrc, n_ring, n_spoke) ;
+      
+      npix = nbd[N_SE] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      val += *IMAGEIpix(Isrc, n_ring, n_spoke) ;
+
+      /* now do negative pixels */
+      npix = nbd[N_NW] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      val -= *IMAGEIpix(Isrc, n_ring, n_spoke) ;
+
+      npix = nbd[N_W] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      val -= 2 * *IMAGEIpix(Isrc, n_ring, n_spoke) ;
+      
+      npix = nbd[N_SW] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      val -= *IMAGEIpix(Isrc, n_ring, n_spoke) ;
+      *IMAGEFpix(Idst, ring, spoke) = val/8 ;
+    }
+    if (doweight)
+      for_each_ring(lmi, ring, spoke, start_ring, end_ring)
+        *IMAGEIpix(Idst, ring,spoke) = 
+        nint((float)*IMAGEIpix(Idst, ring,spoke) *
+             LOG_PIX_WEIGHT(lmi,ring,spoke)) ;
+    break ;
+  case PFFLOAT:
+    for_each_ring(lmi, ring, spoke, start_ring, end_ring)
+    {
+      nbd = &LOG_PIX_NBD(lmi, ring, spoke, 0) ;
+
+      /* do positive pixels first */
+      npix = nbd[N_NE] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      fval = *IMAGEFpix(Isrc, n_ring, n_spoke) ;
+
+      npix = nbd[N_E] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      fval += 2 * *IMAGEFpix(Isrc, n_ring, n_spoke) ;
+      
+      npix = nbd[N_SE] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      fval += *IMAGEFpix(Isrc, n_ring, n_spoke) ;
+
+      /* now do negative pixels */
+      npix = nbd[N_NW] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      fval -= *IMAGEFpix(Isrc, n_ring, n_spoke) ;
+
+      npix = nbd[N_W] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      fval -= 2 * *IMAGEFpix(Isrc, n_ring, n_spoke) ;
+      
+      npix = nbd[N_SW] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      fval -= *IMAGEFpix(Isrc, n_ring, n_spoke) ;
+
+      *IMAGEFpix(Idst, ring, spoke) = fval*.125f ;
+    }
+    if (doweight)
+      for_each_ring(lmi, ring, spoke, start_ring, end_ring)
+        *IMAGEFpix(Idst, ring,spoke) *= LOG_PIX_WEIGHT(lmi,ring,spoke);
+    break ;
+  default:
+    ErrorReturn(Idst, 
+                (ERROR_UNSUPPORTED,
+                 "logSobelX: unsupported input image format %d\n",
+                 Isrc->pixel_format)) ;
+    break ;   /* never used */
+  }
+
+  return(Idst) ;
+}
+
+
+static IMAGE *
+logSobelY(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, int doweight, 
+          int start_ring, int end_ring)
+{
+  int rows, cols ;
+  register int     ring, spoke, val, n_ring, n_spoke ;
+  register float   fval ;
+  LOGPIX           *npix, **nbd ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, Isrc->pixel_format, 1) ;
+
+
+  if (Idst->pixel_format != Isrc->pixel_format)
+    ErrorReturn(Idst, 
+                (ERROR_UNSUPPORTED,
+                 "logsobelY: input and output format must be the same\n"));
+
+  switch (Isrc->pixel_format)
+  {
+  case PFINT:
+    for_each_ring(lmi, ring, spoke, start_ring, end_ring)
+    {
+      nbd = &LOG_PIX_NBD(lmi, ring, spoke, 0) ;
+
+      /* do positive pixels first */
+      npix = nbd[N_SE] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      val = *IMAGEIpix(Isrc, n_ring, n_spoke) ;
+
+      npix = nbd[N_S] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      val += 2 * *IMAGEIpix(Isrc, n_ring, n_spoke) ;
+      
+      npix = nbd[N_SW] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      val += *IMAGEIpix(Isrc, n_ring, n_spoke) ;
+
+      /* now do negative pixels */
+      npix = nbd[N_NE] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      val -= *IMAGEIpix(Isrc, n_ring, n_spoke) ;
+
+      npix = nbd[N_N] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      val -= 2 * *IMAGEIpix(Isrc, n_ring, n_spoke) ;
+      
+      npix = nbd[N_NW] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      val -= *IMAGEIpix(Isrc, n_ring, n_spoke) ;
+      *IMAGEFpix(Idst, ring, spoke) = (val/8) ;
+    }
+    if (doweight)
+      for_each_ring(lmi, ring, spoke, start_ring, end_ring)
+        *IMAGEIpix(Idst, ring,spoke) = 
+        nint((float)*IMAGEIpix(Idst, ring,spoke) *
+             LOG_PIX_WEIGHT(lmi,ring,spoke)) ;
+    break ;
+  case PFFLOAT:
+    for_each_ring(lmi, ring, spoke, start_ring, end_ring)
+    {
+      nbd = &LOG_PIX_NBD(lmi, ring, spoke, 0) ;
+
+      /* do positive pixels first */
+      npix = nbd[N_SE] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      fval = *IMAGEFpix(Isrc, n_ring, n_spoke) ;
+
+      npix = nbd[N_S] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      fval += 2 * *IMAGEFpix(Isrc, n_ring, n_spoke) ;
+      
+      npix = nbd[N_SW] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      fval += *IMAGEFpix(Isrc, n_ring, n_spoke) ;
+
+      /* now do negative pixels */
+      npix = nbd[N_NE] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      fval -= *IMAGEFpix(Isrc, n_ring, n_spoke) ;
+
+      npix = nbd[N_N] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      fval -= 2 * *IMAGEFpix(Isrc, n_ring, n_spoke) ;
+      
+      npix = nbd[N_NW] ;
+      n_ring = npix->ring ;
+      n_spoke = npix->spoke ;
+      fval -= *IMAGEFpix(Isrc, n_ring, n_spoke) ;
+
+      *IMAGEFpix(Idst, ring, spoke) = -fval*.125f ;
+    }
+    if (doweight)
+      for_each_ring(lmi, ring, spoke, start_ring, end_ring)
+        *IMAGEFpix(Idst, ring,spoke) *= LOG_PIX_WEIGHT(lmi,ring,spoke);
+    break ;
+  default:
+    ErrorReturn(Idst, 
+                (ERROR_UNSUPPORTED,
+                 "logSobelY: unsupported input image format %d\n",
+                 Isrc->pixel_format)) ;
+    break ;   /* never used */
+  }
+
+  return(Idst) ;
+}
+
