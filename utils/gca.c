@@ -5883,24 +5883,24 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
 
 						load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
             if (wm_nbr)
-              wdist = GCAmahDistIdentityCovariance(gc_wm, vals, gca->ninputs) ;
+              wdist = sqrt(GCAmahDistIdentityCovariance(gc_wm, vals, gca->ninputs)) ;
             else
               wdist = 1e10 ;
             if (gray_nbr)
-              gdist = GCAmahDistIdentityCovariance(gc_gm, vals, gca->ninputs) ;
+              gdist = sqrt(GCAmahDistIdentityCovariance(gc_gm, vals, gca->ninputs)) ;
             else
               gdist = 1e10 ;
 
-            if (gc_wm == NULL || GCAmahDist(gc_wm, vals, gca->ninputs) > 1.5)
+            if (gc_wm == NULL || sqrt(GCAmahDist(gc_wm, vals, gca->ninputs)) > 1.5)
               wdist = 1e10 ; /* hack - don't label unlikely white */
-            if (gc_gm == NULL || GCAmahDist(gc_gm, vals, gca->ninputs) > 1.5)
+            if (gc_gm == NULL || sqrt(GCAmahDist(gc_gm, vals, gca->ninputs)) > 1.5)
               gdist = 1e10 ;  /* hack - don't label unlikely gray */
             
             GCAsourceVoxelToNode(gca, mri_dst, transform, x, y, z,  &xn, &yn, &zn) ;
             gcan = &gca->nodes[xn][yn][zn] ;
 						gc_label = GCAfindGC(gca, xn, yn, zn, label) ;
 						if (gc_label)
-							ldist = GCAmahDistIdentityCovariance(gc_label, vals, gca->ninputs) ;
+							ldist = sqrt(GCAmahDistIdentityCovariance(gc_label, vals, gca->ninputs)) ;
 						else
 							ldist = 1e10 ;
             ldist *= .75 ;  /* bias towards retaining label */
@@ -7058,7 +7058,7 @@ GCAnormalizeTissueStatistics(GCA *gca)
 char *
 cma_label_to_name(int label)
 {
-  static char name[100] ;
+  static char name[STRLEN] ;
 
   if (label == Unknown)
     return("Unknown") ;
@@ -7233,6 +7233,10 @@ cma_label_to_name(int label)
 		return("Left_non_WM_hypointensities") ; 
 	if (label == Right_non_WM_hypointensities)
 		return("Right_non_WM_hypointensities") ; 
+	if (label == Fifth_Ventricle)
+		return("Fifth_Ventricle") ; 
+	if (label == Optic_Chiasm)
+		return("Optic_Chiasm") ; 
   return(name) ;
 }
 MRI *
@@ -7292,8 +7296,8 @@ GCArelabel_cortical_gray_and_white(GCA *gca, MRI *mri_inputs,
 
 					if (!gc_wm || !gc_gray)
 						continue ;
-          gray_dist = GCAmahDistIdentityCovariance(gc_gray, vals, gca->ninputs) ;
-          wm_dist = GCAmahDistIdentityCovariance(gc_wm, vals, gca->ninputs) ;
+          gray_dist = sqrt(GCAmahDistIdentityCovariance(gc_gray, vals, gca->ninputs)) ;
+          wm_dist = sqrt(GCAmahDistIdentityCovariance(gc_wm, vals, gca->ninputs)) ;
           if (gray_dist < wm_dist)
             label = left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
           else
@@ -10546,6 +10550,7 @@ GCAlabelMeanFromImage(GCA *gca, TRANSFORM *transform, MRI *mri, int label, float
   return(NO_ERROR) ;
 }
 
+static double pthresh = 0.5 ;
 int
 GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 {
@@ -10587,7 +10592,7 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 			std = 4*sqrt(*MATRIX_RELT(m_cov, frame+1,frame+1)) ;
 			MatrixFree(&m_cov) ;
 			label_means[l] = means[frame] ;
-			printf("label %s: mean = %2.3f +- %2.1f\n", cma_label_to_name(l), label_means[l], std) ;
+			printf("label %s (%d): mean = %2.3f +- %2.1f\n", cma_label_to_name(l), l, label_means[l], std) ;
 			if (l == Gdiag_no)
 				DiagBreak() ;
 			if (FZERO(label_means[l]))
@@ -10607,7 +10612,7 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 							DiagBreak() ;
 						gcap = &gca->priors[xp][yp][zp] ;
 						prior = getPrior(gcap, l) ;
-						if (prior < 0.5)
+						if (prior < pthresh)
 							continue ;
 						GCApriorToSourceVoxel(gca, mri, transform, xp, yp, zp, &x, &y, &z) ;
 						MRIsampleVolumeFrame(mri, x, y, z, frame, &val) ;

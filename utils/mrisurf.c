@@ -3974,16 +3974,17 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       parms->sigma = sigma = sigmas[i] ;
       parms->dt = base_dt ;
       if (Gdiag & DIAG_SHOW)
-        fprintf(stdout, "\nblurring surfaces with sigma=%2.2f...", sigma) ;
+        fprintf(stdout, "\nblurring surfaces with sigma=%2.2f...\n", sigma) ;
       if (Gdiag & DIAG_WRITE)
         fprintf(parms->fp,"\ncorrelating surfaces with with sigma=%2.2f\n",
                 sigma) ;
       if (Gdiag & DIAG_WRITE && !i && !parms->start_t)
       {
         MRISfromParameterization(mrisp_template, mris, ino);
+				MRISnormalizeCurvature(mris) ;
         sprintf(fname, "%s/%s.target", path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh") ;
         if (Gdiag & DIAG_SHOW)
-          fprintf(stdout, "writing curvature file %s...", fname) ;
+          fprintf(stdout, "writing curvature file %s...\n", fname) ;
         MRISwriteCurvature(mris, fname) ;
         if (Gdiag & DIAG_SHOW)
           fprintf(stdout, "done.\n") ;
