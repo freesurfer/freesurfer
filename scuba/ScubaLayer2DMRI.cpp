@@ -265,6 +265,8 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     }
   }
 
+  delete &loc;
+
   // Line range.
   float range = 0;
   switch( iViewState.mInPlane ) {
@@ -442,6 +444,8 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
     ssIndex << index[0] << " " << index[1] << " " << index[2];
     iLabelValues[mVolume->GetLabel() + " index"] = ssIndex.str();
   }
+
+  delete &loc;
 }
   
 TclCommandListener::TclCommandResult 
@@ -1041,6 +1045,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
 	RequestRedisplay();
       }      
+      delete &loc;
     }
 
     if( (iInput.IsButtonDownEvent() || iInput.IsButtonUpEvent() ||
@@ -1183,6 +1188,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	    // Add the undo item.
 	    undoList.AddAction( action );
 	  }
+
+	  delete &loc;
 	}
 	RequestRedisplay();
       }
@@ -1719,6 +1726,8 @@ ScubaLayer2DMRIFloodVoxelEdit::DoVoxel ( float iRAS[3] ) {
     new UndoVoxelEditAction( mVolume, mValue, origValue, iRAS );
 
   undoList.AddAction( action );
+
+  delete &loc;
 }
 
 UndoVoxelEditAction::UndoVoxelEditAction ( VolumeCollection* iVolume,
@@ -1737,6 +1746,7 @@ UndoVoxelEditAction::Undo () {
 
   VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS );
   mVolume->SetMRIValue( loc, mOrigValue );
+  delete &loc;
 }
 
 void
@@ -1744,6 +1754,7 @@ UndoVoxelEditAction::Redo () {
 
   VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS );
   mVolume->SetMRIValue( loc, mNewValue );
+  delete &loc;
 }
 
 // ============================================================
@@ -1831,6 +1842,8 @@ ScubaLayer2DMRIFloodSelect::DoVoxel ( float iRAS[3] ) {
       new UndoSelectionAction( mVolume, false, iRAS );
     undoList.AddAction( action );
   }
+
+  delete &loc;
 }
 
 UndoSelectionAction::UndoSelectionAction ( VolumeCollection* iVolume,
@@ -1851,6 +1864,8 @@ UndoSelectionAction::Undo () {
   } else {
     mVolume->Select( loc );
   }
+
+  delete &loc;
 }
 
 void
@@ -1862,6 +1877,8 @@ UndoSelectionAction::Redo () {
   } else {
     mVolume->Unselect( loc );
   }
+
+  delete &loc;
 }
 
 
@@ -1939,4 +1956,6 @@ EdgePathFinder::GetEdgeCost ( Point2<int>& iPoint ) {
   } else {
     return mLongestEdge;
   }
+
+  delete &loc;
 }

@@ -1106,8 +1106,10 @@ VolumeCollection::WriteROIToLabel ( int iROIID, string ifnLabel ) {
 	    label->lv[nPoint].stat = GetMRINearestValue( loc );
 	    label->lv[nPoint].vno = -1;
 	    label->lv[nPoint].deleted = false;
-
+	    
 	    nPoint++;
+
+	    delete &loc;
 	  }
 	}
       }
@@ -1379,6 +1381,7 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
     if( value < low ) { low = value; }
     if( value > high ) { high = value; }
     values.push_back( value );
+    delete &loc;
   }
 
   float binIncrement = (high - low) / (float)icBins;
@@ -1553,11 +1556,6 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
   
   this->DoBegin();
 
-  Volume3<bool>* bVisited =
-    new Volume3<bool>( iVolume.mMRI->width, 
-		       iVolume.mMRI->height, 
-		       iVolume.mMRI->depth, false );
-
   // Get the source volume.
   VolumeCollection* sourceVol = NULL;
   try { 
@@ -1570,6 +1568,12 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     throw runtime_error( "Couldn't find source volume." );
   }
   bool bDifferentSource = sourceVol->GetID() != iVolume.GetID();
+
+  // Init a visited volume.
+  Volume3<bool>* bVisited =
+    new Volume3<bool>( iVolume.mMRI->width, 
+		       iVolume.mMRI->height, 
+		       iVolume.mMRI->depth, false );
 
   // Save the initial value.
   VolumeLocation& seedLoc =
@@ -1597,15 +1601,21 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 
     // Check the bound of this volume and the source one.
     if( !iVolume.IsInBounds( loc ) ) { 
-     continue;
+      delete &loc;
+      delete &sourceLoc;
+      continue;
     }
     if( bDifferentSource && !sourceVol->IsInBounds( loc ) ) { 
-     continue;
+      delete &loc;
+      delete &sourceLoc;
+      continue;
     }
 
     Point3<int> index;
     iVolume.RASToMRIIndex( ras.xyz(), index.xyz() );
     if( bVisited->Get_Unsafe( index.x(), index.y(), index.z() ) ) {
+      delete &loc;
+      delete &sourceLoc;
       continue;
     }
     bVisited->Set_Unsafe( index.x(), index.y(), index.z(), true );
@@ -1662,11 +1672,16 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       }
 
       // If we crossed a path, continue.
-      if( bCross )
+      if( bCross ) {
+	delete &loc;
+	delete &sourceLoc;
 	continue;
+      }
     }
     if( iParams.mbStopAtROIs ) {
       if( iVolume.IsOtherRASSelected( ras.xyz(), iVolume.GetSelectedROI() ) ) {
+	delete &loc;
+	delete &sourceLoc;
 	continue;
       }
     }
@@ -1677,6 +1692,8 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 			     ((ras[1]-iRASSeed[1]) * (ras[1]-iRASSeed[1])) + 
 			     ((ras[2]-iRASSeed[2]) * (ras[2]-iRASSeed[2])) );
       if( distance > iParams.mMaxDistance ) {
+	delete &loc;
+	delete &sourceLoc;
 	continue;
       }
     }
@@ -1686,31 +1703,39 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     if( iParams.mbOnlyZero ) {
       float value = iVolume.GetMRINearestValue( loc );
       if( value != 0 ) {
+	delete &loc;
+	delete &sourceLoc;
 	continue;
       }
     }
 
     // Check fuzziness.
     if( iParams.mFuzziness > 0 ) {
-      VolumeLocation& loc =
-	(VolumeLocation&) sourceVol->MakeLocationFromRAS( ras.xyz() );
       float value = sourceVol->GetMRINearestValue( loc );
       switch( iParams.mFuzzinessType ) {
       case Params::seed:
-	if( fabs( value - seedValue ) > iParams.mFuzziness )
+	if( fabs( value - seedValue ) > iParams.mFuzziness ) {
+	  delete &loc;
+	  delete &sourceLoc;
 	  continue;
+	}
 	break;
       case Params::gradient: {
 	float sourceValue = 
 	  sourceVol->GetMRINearestValue( sourceLoc );
-	if( fabs( value - sourceValue ) > iParams.mFuzziness )
+	if( fabs( value - sourceValue ) > iParams.mFuzziness ) {
+	  delete &loc;
+	  delete &sourceLoc;
 	  continue;
+	}
       } break;
       }
     }
 
     // Call the user compare function to give them a chance to bail.
     if( !this->CompareVoxel( ras.xyz() ) ) {
+      delete &loc;
+      delete &sourceLoc;
       continue;
     }
     
@@ -1772,10 +1797,14 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       checkPairs.push_back( newPair );
 
     }
-
+    delete &loc;
+    delete &sourceLoc;
   }
 
   this->DoEnd();
+
+  delete &seedLoc;
+  delete bVisited;
 
   mVolume = NULL;
   mParams = NULL;
