@@ -226,4 +226,8 @@ IMAGE *LogMapGaussianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc,
 #define DIFFUSION_TIME_FOVEAL         2  /*     ||        foveal   ||   */
 #define DIFFUSION_TIME_CARTESIAN      3  /* run for equivalent cart. it. */
 
+
+int log_median(LOGMAP_INFO *lmi, IMAGE *hdi, IMAGE *hdo, int size) ;
+
+
 #endif
