@@ -585,7 +585,7 @@ if (DEBUG_POINT(x,y,z))
           if (ISWHITE(classno) && (prob > conf))
           {
             if (!src && mric->features[round] == FEATURE_CPOLV_MEDIAN5)
-              *pdst = 255 ;
+              *pdst++ = 255 ;
             else
               *pdst++ = src ;
           }
