@@ -24,6 +24,7 @@ static char *normalized_transformed_sample_fname = NULL ;
 static char *mask_fname = NULL ;
 static char *sample_fname = NULL ;
 static char *ctl_point_fname = NULL ;
+static int ctl_points_only = 0 ;
 static int novar = 0 ;
 
 static float min_prior = 0.6 ;
@@ -173,6 +174,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
               Progname, in_fname) ;
 
+	GCAhistoScaleImageIntensities(gca, mri_in) ;
   if (mask_fname)
   {
 		int i ;
@@ -231,6 +233,8 @@ main(int argc, char *argv[])
   {
     for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++)
     {
+			if (ctl_points_only)
+				break  ;
       printf("finding control points in %s....\n", cma_label_to_name(normalization_structures[i])) ;
       gcas_struct = find_control_points(gca, gcas, nsamples, &struct_samples, n,
                                         normalization_structures[i], mri_in, transform, min_prior,
@@ -324,6 +328,11 @@ get_option(int argc, char *argv[])
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+  }
+  else if (!strcmp(option, "FONLY"))
+  {
+		ctl_points_only = 1 ;
+    printf("only using control points from file\n") ;
   }
   else if (!strcmp(option, "DIAG"))
   {
