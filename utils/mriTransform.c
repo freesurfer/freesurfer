@@ -1231,6 +1231,8 @@ Trns_tErr Trns_ConvertMatrixBtoRAS ( mriTransformRef this,
   return eResult;
 }
 
+/* don't use the next function when copying mAtoB or mBtoA */
+/* they will be replaced by recalculated ones              */
 Trns_tErr Trns_CalcMatricies_ ( mriTransformRef this ) {
 
   Trns_tErr eResult = Trns_tErr_NoErr;
