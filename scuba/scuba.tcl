@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.47 2004/08/19 17:53:03 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.48 2004/08/20 17:55:25 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3728,7 +3728,7 @@ wm withdraw .
 tkuFinish
 
 # Make the default color LUTs.
-foreach fnLUT {tkmeditColorsCMA tkmeditParcColorsCMA surface_labels.txt Simple_surface_labels2002.txt} {
+foreach fnLUT {tkmeditColorsCMA tkmeditParcColorsCMA surface_labels.txt Simple_surface_labels2002.txt jeans_labels.txt} {
     if { [file exists $env(FREESURFER_HOME)/$fnLUT] } {
 	set lutID [MakeNewColorLUT]
 	SetColorLUTLabel $lutID "$fnLUT"
