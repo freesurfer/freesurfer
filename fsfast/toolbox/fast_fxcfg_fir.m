@@ -20,7 +20,7 @@ function rt = fast_fxcfg_fir(DoWhat,thing)
 %  4. PSDMax
 %  5. BCW
 %
-% $Id: fast_fxcfg_fir.m,v 1.5 2003/04/15 03:56:52 greve Exp $
+% $Id: fast_fxcfg_fir.m,v 1.6 2003/05/07 04:29:40 greve Exp $
 
 rt = [];
 
@@ -50,7 +50,7 @@ switch(DoWhat)
   rt = 1;
  
  case 'nparams'
-  rt = 4;
+  rt = 5;
  
  case 'nregressors'
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
@@ -176,10 +176,11 @@ line = [];
 fxcfg = fast_fxcfg('getfxcfg',flacfg);
 if(isempty(fxcfg)) return; end
 
-line = sprintf('Effect %s %s %s %d %g %g %g\n',...
+line = sprintf('Effect %s %s %s %d %g %g %g %g',...
 	       fxcfg.fxtype,fxcfg.label,fxcfg.model,...
 	       fxcfg.params(1),fxcfg.params(2),...
-	       fxcfg.params(3),fxcfg.params(4));
+	       fxcfg.params(3),fxcfg.params(4),...
+	       fxcfg.params(5));
 return;
 
 
