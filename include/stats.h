@@ -67,6 +67,9 @@ typedef struct
   Transform         *inverse_linear_transform ;
 } STAT_VOLUME, SV  ;
   
+/* can't include this before structure, as mrisurf.h includes this file. */
+#include "mrisurf.h"
+
 SV        *StatReadVolume(char *prefix) ;
 fMRI_REG  *StatReadRegistration(char *fname) ;
 int       StatWriteVolume(SV *sv, char *prefix) ;
@@ -76,8 +79,10 @@ int       StatFreeRegistration(fMRI_REG **preg) ;
 int       StatFree(SV **psv) ;
 SV        *StatAllocVolume(SV *sv, int nevents, int width, int height,
                            int nslices, int time_points, int which) ;
-SV        *StatAllocTalairachVolume(SV *sv, float fov, float resolution) ;
+SV        *StatAllocStructuralVolume(SV *sv, float fov, float resolution,
+                                     char *name) ;
 int       StatAccumulateTalairachVolume(SV *sv_tal, SV *sv) ;
+int       StatAccumulateSurfaceVolume(SV *sv_tal, SV *sv, MRI_SURFACE *mris) ;
 int       StatReadTransform(STAT_VOLUME *sv, char *name) ;
 int       StatVolumeExists(char *prefix) ;
 

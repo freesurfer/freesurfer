@@ -70,7 +70,8 @@ StatReadRegistration(char *fname)
   fclose(fp) ;
   reg->fmri2mri = MatrixInverse(reg->mri2fmri, NULL) ;
   if (!reg->fmri2mri)
-    ErrorExit(ERROR_BADPARM, "StatReadReg: singular registration matrix") ;
+    ErrorExit(ERROR_BADPARM, "StatReadReg(%s): singular registration matrix",
+              fname) ;
 
   return(reg) ;
 }
@@ -459,7 +460,7 @@ StatAllocVolume(SV *sv, int nevents, int width, int height,
         nothing.
 ------------------------------------------------------------------------*/
 SV *
-StatAllocTalairachVolume(SV *sv, float fov, float resolution)
+StatAllocStructuralVolume(SV *sv, float fov, float resolution, char *name)
 {
   SV     *sv_tal ;
   int    width, height, depth, event ;
@@ -468,7 +469,7 @@ StatAllocTalairachVolume(SV *sv, float fov, float resolution)
   sv_tal = StatAllocVolume(NULL, sv->nevents, width, height, depth, 
                      sv->time_per_event,ALLOC_MEANS|ALLOC_STDS|ALLOC_DOFS);
 
-  strcpy(sv_tal->reg->name, "talairach") ;
+  strcpy(sv_tal->reg->name, name) ;
   sv_tal->nslices = depth ;
   sv_tal->slice_width = width ;
   sv_tal->slice_height = height ;
@@ -490,6 +491,182 @@ StatAllocTalairachVolume(SV *sv, float fov, float resolution)
   sv_tal->tr = sv->tr ;
   sv_tal->timewindow = sv->timewindow ;
   return(sv_tal) ;
+}
+/*------------------------------------------------------------------------
+       Parameters:
+
+      Description:
+  
+    Return Values:
+        nothing.
+------------------------------------------------------------------------*/
+int
+StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
+{
+  int    x, y, z, width, height, depth, event, t, xv, yv, zv, swidth, sheight,
+         sdepth, vno ;
+  Real   xf, yf, zf, xr, yr, zr ;
+  float  mean, surf_mean, std, surf_std, surf_dof, dof, xoff, yoff, zoff, 
+         sxoff, syoff, szoff, xs, ys, zs ;
+  VECTOR *v_struct, *v_func ;
+  MRI    *mri_avg, *mri_std ;
+  VERTEX *vertex ;
+
+  v_func = VectorAlloc(4, MATRIX_REAL) ;
+  v_struct = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v_func, 4) = VECTOR_ELT(v_struct, 4) = 1.0f ;
+
+  width = sv_surf->mri_avgs[0]->width ;
+  height = sv_surf->mri_avgs[0]->height ;
+  depth = sv_surf->mri_avgs[0]->depth ;
+
+  swidth = sv->mri_avgs[0]->width ;
+  sheight = sv->mri_avgs[0]->height ;
+  sdepth = sv->mri_avgs[0]->depth ;
+
+  xoff = (float)(width-1)/2.0f ;
+  yoff = (float)(height-1)/2.0f ;
+  zoff = (float)(depth-1)/2.0f ;
+
+  sxoff = (float)(sv->slice_width-1)/2.0f ;
+  syoff = (float)(sv->slice_height-1)/2.0f ;
+  szoff = (float)(sv->nslices-1)/2.0f ;
+
+  mri_avg = MRIallocSequence(width, height, depth, MRI_FLOAT, 2) ;
+  MRIcopyHeader(sv_surf->mri_avgs[0], mri_avg) ;
+  mri_std = MRIallocSequence(width, height, depth, MRI_FLOAT, 2) ;
+  MRIcopyHeader(sv_surf->mri_stds[0], mri_std) ;
+
+  for (event = 0 ; event < sv_surf->nevents ; event++)
+  {
+    sv_surf->mean_dofs[event] += sv->mean_dofs[event] ;
+    sv_surf->std_dofs[event] += sv->std_dofs[event] ;
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr, "\rprocessing event %d of %d....", 
+              event+1, sv_surf->nevents) ;
+
+    for (t = 0 ; t < sv_surf->time_per_event ; t++)
+    {
+      MRIclear(mri_avg) ; MRIclear(mri_std) ;
+/* 
+   sample from the surface, through the strucural space, into the functional 
+   one. 
+ */
+
+/* 
+   first build average volume for this subjects. This is to avoid sampling
+   from the volume into the surface which would take forever since it
+   would require searching the entire surface for the nearest point for
+   every point in the volume.
+   */
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        vertex = &mris->vertices[vno] ;
+
+/* 
+   read the functional data from the coordinates in 'folded' space, then
+   write them into the structural volume using the canonical coordinates.
+*/
+        xs = vertex->x ; ys = vertex->y ; zs = vertex->z ;
+
+        /* transform it into functional space */
+        VECTOR3_LOAD(v_struct, xs, ys, zs) ;
+        MatrixMultiply(sv->reg->mri2fmri, v_struct, v_func) ;
+
+        /* transform it into a (functional) voxel coordinate */
+        MRIworldToVoxel(sv->mri_avgs[event], (Real)V3_X(v_func), 
+                        (Real)V3_Y(v_func), (Real)V3_Z(v_func), &xf, &yf, &zf);
+        xv = nint(xf) ; yv = nint(yf) ; zv = nint(zf) ;
+
+        if (xv >= 0 && xv < swidth &&
+            yv >= 0 && yv < sheight &&
+            zv >= 0 && zv < sdepth)
+        {
+          /* convert from canonical surface coordinate to voxel coordinate */
+          xs = vertex->cx ; ys = vertex->cy ; zs = vertex->cz ;
+          MRIworldToVoxel(sv_surf->mri_avgs[event], xs, ys, zs, &xr, &yr, &zr);
+          x = nint(xr) ; y = nint(yr) ; z = nint(zr) ;
+          if ((vno == 161) ||  (x == 15 && y == 20 && z == 3 && t == 0))
+            DiagBreak() ;
+          
+/* 
+   at this point (xv,yv,zv) is a functional coordinate, and (x,y,z) is
+   the corresponding structural coordinate.
+ */
+          /* update means */
+          surf_mean = MRIFseq_vox(mri_avg, x, y, z, 0) ;
+          surf_dof  = MRIFseq_vox(mri_avg, x, y, z, 1) ;
+          mean = MRIFseq_vox(sv->mri_avgs[event], xv, yv, zv, t) ;
+          surf_mean = (surf_mean * surf_dof + mean) / (surf_dof+1) ;
+          MRIFseq_vox(mri_avg, x, y, z, 0) = surf_mean ;
+          MRIFseq_vox(mri_avg, x, y, z, 1) = ++surf_dof ;
+
+#if 0         
+          if (x == 15 && y == 20 && z == 3 && t == 0)
+            fprintf(stderr, "adding mean %2.3f, avg = %2.3f\n",mean,surf_mean);
+#endif
+
+          /* update stds */
+          surf_std = MRIFseq_vox(mri_std, x, y, z, 0) ;
+          surf_dof = MRIFseq_vox(mri_std, x, y, z, 1) ;
+          std = MRIFseq_vox(sv->mri_stds[event], xv, yv, zv, t) ;
+          
+          /* work with variances so things are linear */
+          surf_std *= surf_std ; std *= std ;
+          surf_std = sqrt((surf_std * surf_dof + std)/(surf_dof+1));
+          MRIFseq_vox(mri_std, x, y, z, 0) = surf_std ;
+          MRIFseq_vox(mri_std, x, y, z, 1) = ++surf_dof ;
+        }
+      }
+
+/* 
+   now use the intermediate structural volumes to update the
+   cross-subject average volume.
+   */
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+          {
+            if (x == 15 && y == 20 && z == 3 && t == 0)
+              DiagBreak() ;
+
+            /* update means */
+            surf_mean = MRIFseq_vox(sv_surf->mri_avgs[event], x, y, z, t) ;
+            surf_dof = MRIFseq_vox(sv_surf->mri_avg_dofs[event], x, y, z, t) ;
+            mean = MRIFvox(mri_avg, x, y, z) ;
+            dof = sv->mean_dofs[event] ;
+            surf_mean = (surf_mean * surf_dof + mean * dof) / (surf_dof + dof);
+            surf_dof += dof ;
+            MRIFseq_vox(sv_surf->mri_avg_dofs[event], x, y, z, t) = surf_dof ;
+            MRIFseq_vox(sv_surf->mri_avgs[event], x, y, z, t) = surf_mean ;
+          
+            /* update stds */
+            surf_std = MRIFseq_vox(sv_surf->mri_stds[event], x, y, z, t) ;
+            surf_dof = MRIFseq_vox(sv_surf->mri_std_dofs[event], x, y, z, t) ;
+            std = MRIFvox(mri_std, x, y, z) ;
+            dof = sv->std_dofs[event] ;
+          
+            /* work with variances so things are linear */
+            surf_std *= surf_std ; std *= std ;
+            surf_std = sqrt((surf_std * surf_dof + std * dof)/(surf_dof+dof));
+            surf_dof += dof ;
+            MRIFseq_vox(sv_surf->mri_std_dofs[event], x, y, z, t) = surf_dof ;
+            MRIFseq_vox(sv_surf->mri_stds[event], x, y, z, t) = surf_std ;
+          }
+        }
+      }
+    }
+  }
+
+  MRIfree(&mri_std) ; MRIfree(&mri_avg) ;
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "done.\n") ;
+  VectorFree(&v_func) ;
+  VectorFree(&v_struct) ;
+  return(NO_ERROR) ;
 }
 /*------------------------------------------------------------------------
        Parameters:
