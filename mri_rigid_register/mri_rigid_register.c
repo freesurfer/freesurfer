@@ -24,17 +24,18 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
-static int align = 1 ;
 static int window_flag = 0 ;
 static MORPH_PARMS  parms ;
 
 static void usage_exit(int code) ;
 
 static int niter=10 ;
+static int voxel_xform = 0 ;
 static float thresh = 25 ;
 static int conform = 0 ;
 static int sinc_flag = 1;
 static int sinchalfwindow = 3;
+static int max_ndelta = 3;
 
 static char *residual_name = NULL ;
 
@@ -48,6 +49,7 @@ static char *residual_name = NULL ;
 static int nwrite = 0 ;
 static char *write_volumes[MAX_WRITE] ;
 static char *out_fnames[MAX_WRITE] ;
+static int apply_xform = 0 ;
 
 static void estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_traget, MATRIX *M_reg);
 
@@ -62,6 +64,8 @@ main(int argc, char *argv[])
   struct timeb start ;
   MATRIX *M_reg ;
   LTA    *lta ;
+  MATRIX *vox2ras_source, *ras2vox_source, *vox2ras_target, *ras2vox_target, 
+         *vox_s2vox_t, *m, *m_tmp ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -95,9 +99,9 @@ main(int argc, char *argv[])
   printf("reading target from %s...\n", target_fname) ;
   mri_target = MRIread(target_fname) ;
   if (!mri_src)
-    ErrorExit(ERROR_NOFILE, "%s: could not read src MRI from %s", src_fname) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not read src MRI from %s", Progname,src_fname) ;
   if (!mri_target)
-    ErrorExit(ERROR_NOFILE, "%s: could not read dst MRI from %s", target_fname) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not read dst MRI from %s", Progname,target_fname) ;
 
 #if 0
   if (conform)
@@ -121,8 +125,20 @@ main(int argc, char *argv[])
   
   printf("writing registration matrix to %s...\n", out_fname);
   lta = LTAalloc(1,NULL) ;
-  MatrixCopy(M_reg,lta->xforms[0].m_L) ;
-  lta->type = LINEAR_RAS_TO_RAS ;
+  vox2ras_source = MRIgetVoxelToRasXform(mri_src) ;
+  vox2ras_target = MRIgetVoxelToRasXform(mri_target) ;
+  ras2vox_source = MatrixInverse(vox2ras_source, NULL);
+  ras2vox_target = MatrixInverse(vox2ras_target, NULL);
+  m_tmp = MatrixMultiply(M_reg,vox2ras_source, NULL);
+  vox_s2vox_t =MatrixMultiply(ras2vox_target,m_tmp, NULL);
+  m = MatrixInverse(vox_s2vox_t, NULL) ;
+  MatrixCopy(m, lta->xforms[0].m_L) ;
+
+  if (voxel_xform)
+    lta->type = LINEAR_VOXEL_TO_VOXEL ;
+  else
+    LTAvoxelTransformToCoronalRasTransform(lta) ;
+
   LTAwrite(lta,out_fname) ;
   MRIfree(&mri_src) ;
 
@@ -216,6 +232,12 @@ get_option(int argc, char *argv[])
     nwrite++ ;
     nargs = 2 ;
     break ;
+  case 'A':
+    apply_xform = 1 ;
+    break ;
+  case 'V':
+    voxel_xform = 1 ;
+    break ;
   case 'M':
     parms.momentum = atof(argv[2]) ;
     nargs = 1 ;
@@ -231,10 +253,6 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("ignoring locations in which all images are less than %2.2f\n", 
            thresh) ;
-    break ;
-  case 'A':
-    align = 1 ;
-    printf("aligning volumes before averaging...\n") ;
     break ;
   case '?':
   case 'U':
@@ -331,6 +349,8 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
     }
   }
 
+  printf("nvalues = %d\n", nvalues);
+
   voxmat1 = MatrixAlloc(4,nvalues,MATRIX_REAL); 
   voxmat2 = MatrixCopy(voxmat1, NULL);
 
@@ -346,9 +366,17 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
       voxmat1->rptr[2][indx] = y;
       voxmat1->rptr[3][indx] = z;
       voxmat1->rptr[4][indx] = 1;
+      xf=x; yf=y; zf=z;
+      MRIsampleVolume(mri_source, xf, yf, zf, &val1) ;
+      voxval1[indx] = val1;
+/*
       voxval1[indx] = MRISvox(mri_source, x, y, z); 
+*/
     }
   }
+
+  if (Gdiag & DIAG_SHOW)
+    printf("M_reg (initial)\n"); MatrixPrint(stdout,M_reg);
   
   M_delta = MatrixIdentity(4,NULL);
   M_delta1 = MatrixIdentity(4,NULL);
@@ -362,7 +390,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
   M_reg_bak = MatrixCopy(M_reg_opt, NULL);
   M_tmp = MatrixCopy(M_reg, NULL);
 
-  best_sse = 10000000;
+  best_sse = 1e30;
   for (stepindx=0; stepindx<NSTEP; stepindx++) 
   {
     scale = step[stepindx];
@@ -379,6 +407,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
       for (axi = -1; axi <= 1; axi++)
       for (ayi = -1; ayi <= 1; ayi++)
       for (azi = -1; azi <= 1; azi++)
+      if (((txi!=0)+(tyi!=0)+(tzi!=0)+(axi!=0)+(ayi!=0)+(azi!=0))<=max_ndelta)
       {
         tx = txi*dt*scale;
         ty = tyi*dt*scale;
@@ -447,7 +476,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
 */
           if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
           {
-            printf("M_reg\n"); MatrixPrint(stdout,M_reg);
+            printf("M_reg_opt\n"); MatrixPrint(stdout,M_reg_opt);
             printf("vox_s2vox_t\n"); MatrixPrint(stdout,vox_s2vox_t);
           }
           changed = 1;
@@ -455,13 +484,25 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
       }
      
     }
-    printf("step %d: sse = %f (%f)\n",stepindx,sse,sqrt(sse));
+    printf("step %d: best_sse = %f (%f)\n",stepindx,best_sse,sqrt(best_sse));
     if (Gdiag & DIAG_SHOW)
     {
-      printf("M_reg\n"); MatrixPrint(stdout,M_reg);
+      printf("M_reg_opt\n"); MatrixPrint(stdout,M_reg_opt);
+/*
       printf("vox_s2vox_t\n"); MatrixPrint(stdout,vox_s2vox_t);
+*/
     }
   }
+  if (apply_xform)
+  {
+    MRI *mri_xformed ;
+
+    mri_xformed = MRIclone(mri_source, NULL) ;
+    apply_transform(mri_source, mri_target, M_reg_opt, mri_xformed) ;
+    MRIwrite(mri_xformed, "xformed.mgh") ;
+    MRIfree(&mri_xformed) ;
+  }
+
   MatrixCopy(M_reg_opt, M_reg);
 }
 
