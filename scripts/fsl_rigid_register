@@ -1,8 +1,8 @@
 #!/bin/csh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.1 2003/05/08 17:39:34 greve Exp $
-set VERSION = '$Id';
+# $Id: fsl_rigid_register,v 1.2 2003/05/08 17:57:22 greve Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.2 2003/05/08 17:57:22 greve Exp $';
 
 set refvol = ();
 set invol = ();
@@ -13,6 +13,7 @@ set tmpdir = /tmp/fsl_rigid_register.$$;
 set cleanup = 1;
 set PrintHelp = 0;
 set applyxfm = ();
+set dof = 6;
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep version | wc -l` 
@@ -41,19 +42,15 @@ echo $outvol
 set outdir = `dirname $outvol`;
 mkdir -p $outdir
 
-
-if($#applyxfm == 0 || 1) then
-  # Still need ref to get mat file #
-  # Convert ref to analyze #
-  set refvolbase = $tmpdir/refvol.fsl_rigid_register
-  set refvolimg  = $refvolbase.img
-  set cmd = (mri_convert $refvol $refvolimg)
-  echo "--------------------------------------"
-  pwd
-  echo $cmd
-  $cmd
-  if($status) exit 1;
-endif
+# Convert reference to analyze
+set refvolbase = $tmpdir/refvol.fsl_rigid_register
+set refvolimg  = $refvolbase.img
+set cmd = (mri_convert $refvol $refvolimg)
+echo "--------------------------------------"
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
 
 # Convert input to analyze #
 set involbase = $tmpdir/invol.fsl_rigid_register
@@ -75,9 +72,9 @@ set cmd = ($cmd -bins 256 -cost corratio )
 set cmd = ($cmd -searchrx -90 90 -searchry -90 90 -searchrz -90 90)
 set cmd = ($cmd  -dof 6 -interp $interp)
 set cmd = ($cmd -ref $refvolbase.hdr -omat $outvolbase.fslmat)
-if($#applyxfm != 0) then
-  set cmd = ($cmd -init $applyxfm -applyxfm)
-endif
+set cmd = ($cmd -dof $dof)
+if($#applyxfm != 0) set cmd = ($cmd -init $applyxfm -applyxfm)
+
 
 echo "--------------------------------------"
 pwd
@@ -147,6 +144,11 @@ while( $#argv != 0 )
     case "-interp":
       if ( $#argv < 1) goto arg1err;
       set interp = $argv[1]; shift;
+      breaksw
+
+    case "-dof":
+      if ( $#argv < 1) goto arg1err;
+      set dof = $argv[1]; shift;
       breaksw
 
     case "-tmp":
@@ -240,6 +242,7 @@ usage_exit:
   echo "Optional Arguments"
   echo "   -applyxfm xfmfile : do not reg, just apply xfm to input"
   echo "   -interp method : <trilinear>, nearestneighbour, sinc"
+  echo "   -dof dof : use dof instead of 6"
   echo "   -tmp  tmpdir (default is $tmpdir)"
   echo ""
   echo "   -version : print version and exit"
@@ -269,6 +272,7 @@ output using the FSL mat file supplied as the argument to the
 -applyxfm.  The ref volume is still needed in order to get the proper
 geometry for the output file.
 
+Non-rigid registration can be performed by changing the dof from 6.
 
 BUGS: 
 
