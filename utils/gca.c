@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/02/05 16:12:53 $
-// Revision       : $Revision: 1.94 $
+// Revision Date  : $Date: 2004/02/05 19:09:29 $
+// Revision       : $Revision: 1.95 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -159,6 +159,17 @@ static int boundsCheck(int ix, int iy, int iz, MRI *mri);
 static MRI *mri_node__  = 0;
 static MRI *mri_prior__ = 0;
 static MRI *mri_tal__ = 0;
+
+void GCAsetVolGeom(GCA *gca, VOL_GEOM *vg)
+{
+  vg->width = gca->width; vg->height = gca->height; vg->depth = gca->depth;
+  vg->xsize = gca->xsize; vg->ysize = gca->ysize; vg->zsize = gca->zsize;
+  vg->x_r = gca->x_r;vg->y_r = gca->y_r;vg->z_r = gca->z_r;
+  vg->x_a = gca->x_a;vg->y_a = gca->y_a;vg->z_a = gca->z_a;
+  vg->x_s = gca->x_s;vg->y_s = gca->y_s;vg->z_s = gca->z_s;
+  vg->c_r = gca->c_r;vg->c_a = gca->c_a;vg->c_s = gca->c_s;
+  vg->valid = 1;
+}
 
 void GCAcopyDCToMRI(GCA *gca, MRI *mri)
 {
