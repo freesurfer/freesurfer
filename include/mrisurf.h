@@ -776,13 +776,13 @@ int    MRISexpandSurface(MRI_SURFACE *mris, float distance) ;
 /* cortical ribbon */
 MRI   *MRISribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_src,MRI *mri_dst);
 MRI   *MRISaccentuate(MRI *mri_src,MRI *mri_dst,int lo_thresh,int hi_thresh);
-MRI   *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst);
+MRI   *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag);
 MRI   *MRISfloodoutside(MRI *mri_src,MRI *mri_dst);
 
 /* high resolution cortical ribbon */
-MRI   *MRISpartialribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_src,MRI *mri_dst,MRI *mri_mask,int hemisphere);
+MRI   *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI_SURFACE *inner_mris_rh,MRI_SURFACE *outer_mris_rh,MRI *mri_src,MRI *mri_dst,MRI *mri_mask);
 MRI   *MRISpartialaccentuate(MRI *mri_src,MRI *mri_dst,int lo_thresh,int hi_thresh);
-MRI   *MRISpartialshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst);
+MRI   *MRISpartialshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag);
 MRI   *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst);
 
 #define MRIS_BINARY_QUADRANGLE_FILE    0    /* homegrown */
