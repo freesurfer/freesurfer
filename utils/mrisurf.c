@@ -2160,8 +2160,8 @@ static float area_coefs[] =
 static float dist_coefs[] = 
     { 0.0001f, 0.001f, 0.01f, 0.1f, 1.0f, 1.0f, 1.0f,  1.0f } ;
 #else
-static float area_coefs[] = { 1.0f,   /*1.0f,  1.0f, 0.1f,*/ 0.01f } ;
-static float dist_coefs[] = { 0.001f, /*0.01f, 0.1f, 1.0f,*/ 1.0f } ;
+static float area_coefs[] = { 1.0f,   1.0f,  1.0f,  1.0f, 0.1f, 0.01f } ;
+static float dist_coefs[] = { 0.001f, 0.01f, 0.1f,  1.0f, 1.0f, 1.0f } ;
 #endif
 
 #define NCOEFS  sizeof(area_coefs) / sizeof(area_coefs[0])
@@ -2178,7 +2178,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   starting_sse = ending_sse = 0.0f ;   /* compiler warning */
   memset(nbrs, 0, MAX_NBHD_SIZE*sizeof(nbrs[0])) ;
-#if 0
+#if 1
   if (mris->nsize < 2)
     nbrs[2] = nint(NBR_COEF*2.0) ;
   nbrs[4] = nint(NBR_COEF*4.0) ; nbrs[8] = nint(NBR_COEF * 8.0) ;
@@ -2266,10 +2266,21 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   } while (!FZERO(ending_sse) && 
            (((starting_sse-ending_sse)/starting_sse) > parms->tol)) ;
 
-#if 0
-  if (ending_sse > starting_sse)
-    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-#endif
+  /* remove most of remaining negative vertices */
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "flattening complete - removing remaining folds...\n") ;
+  parms->niterations = 1000 ;
+  parms->n_averages = 0 ;
+  parms->l_area = area_coefs[0] ;
+  parms->l_dist = dist_coefs[0] ;
+  steps = mrisIntegrate(mris, parms) ;
+  parms->start_t += steps ;
+  MRIScomputeTriangleProperties(mris,0) ;  /* compute areas and normals */
+  mrisOrientSurface(mris) ;
+  if (Gdiag & DIAG_SHOW)
+    mrisLogStatus(mris, parms, stderr, 0) ;
+  if (Gdiag & DIAG_WRITE)
+    mrisLogStatus(mris, parms, parms->fp, 0) ;
 
   if (Gdiag & DIAG_SHOW)
     fclose(parms->fp) ;
@@ -7577,17 +7588,20 @@ MRISreadOriginalProperties(MRI_SURFACE *mris, char *sname)
   if (!sname)
     sname = "smoothwm" ;
 
-  MRISstoreCurrentPositions(mris) ;
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
 
   old_status = mris->status ;
   mris->status = MRIS_PATCH ;  /* so no orientating will be done */
   MRISreadVertexPositions(mris, sname) ;
+  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
+  MRIScomputeTriangleProperties(mris, 0) ;/* make sure angles are calculated */
   MRISstoreMetricProperties(mris) ;
-
   mris->status = old_status ;
-  MRISrestoreOldPositions(mris) ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
+  MRIScomputeTriangleProperties(mris, 0) ;/* make sure angles are calculated */
+  mrisOrientSurface(mris) ;
         
   return(NO_ERROR) ;
 }
