@@ -36,7 +36,7 @@ static char subjects_dir[STRLEN] ;
 int
 main(int argc, char *argv[])
 {
-  LTA          *lta = NULL ;
+  TRANSFORM    *transform = NULL ;
   char         **av, fname[STRLEN], *gca_fname, *subject_name, *cp ;
   int          ac, nargs, i, n ;
   int          msec, minutes, seconds, nsubjects ;
@@ -118,8 +118,8 @@ main(int argc, char *argv[])
 
       sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, xform_name) ;
       printf("reading xform from %s...\n", fname) ;
-      lta = LTAread(fname) ;
-      if (!lta)
+      transform = TransformRead(fname) ;
+      if (!transform)
         ErrorExit(ERROR_NOFILE, "%s: could not read xform from %s",
                   Progname, fname) ;
 #if 0
@@ -128,9 +128,13 @@ main(int argc, char *argv[])
       printf("RAS (0,0,0) -->\n") ;
       MatrixPrint(stdout, v_tmp2) ;
 #endif
-      MRIrasXformToVoxelXform(mri_parc, mri_T1,
-                              lta->xforms[0].m_L,
-                              lta->xforms[0].m_L) ;
+
+      if (transform->type == LINEAR_RAS_TO_RAS)
+      {
+        MATRIX *m_L ;
+        m_L = ((LTA *)transform->xform)->xforms[0].m_L ;
+        MRIrasXformToVoxelXform(mri_parc, mri_T1, m_L,m_L) ;
+      }
 #if 0
       v_tmp2 = MatrixMultiply(lta->xforms[0].m_L, v_tmp, v_tmp2) ;
       printf("voxel (0,0,0) -->\n") ;
@@ -140,9 +144,9 @@ main(int argc, char *argv[])
 #endif
     }
     if (histo_parms)
-      GCAhistogramTissueStatistics(gca,mri_T1,mri_PD,mri_parc,lta,histo_parms);
+      GCAhistogramTissueStatistics(gca,mri_T1,mri_PD,mri_parc,transform,histo_parms);
     else
-      GCAaccumulateTissueStatistics(gca, mri_T1, mri_PD, mri_parc, lta) ;
+      GCAaccumulateTissueStatistics(gca, mri_T1, mri_PD, mri_parc, transform) ;
 
     MRIfree(&mri_parc) ; MRIfree(&mri_T1) ; MRIfree(&mri_PD) ;
   }
