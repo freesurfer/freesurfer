@@ -15,7 +15,7 @@ int ifilbuf(RGB_IMAGE *image)
   if (image->base==NULL) {
     size = IBUFSIZE(image->xsize);
     if ((image->base = ibufalloc(image)) == NULL) {
-      i_errhdlr("can't alloc image buffer\n");
+      i_errhdlr("can't alloc image buffer\n",0,0,0,0);
       return EOF;
     }
   }

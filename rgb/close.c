@@ -4,8 +4,9 @@
  *        Paul Haeberli - 1984
  *
  */
-#include  <stdio.h>
-#include  <stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include  "rgb_image.h"
 
 int iclose(RGB_IMAGE *image)
@@ -16,26 +17,28 @@ int iclose(RGB_IMAGE *image)
     img_optseek(image, 0);
     if (image->flags&_IOWRT) {
   if(image->dorev)
-      cvtimage(image);
+      cvtimage((long *)image);
+  swapImage(image) ;
   if (img_write(image,(char *)image,sizeof(RGB_IMAGE)) != sizeof(RGB_IMAGE)) {
-      i_errhdlr("iclose: error on write of image header\n");
+      i_errhdlr("iclose: error on write of image header\n",0,0,0,0);
       return EOF;
   }
+  swapImage(image) ;
   if(image->dorev)
-      cvtimage(image);
+      cvtimage((long *)image);
   if(ISRLE(image->type)) {
       img_optseek(image, 512L);
       tablesize = image->ysize*image->zsize*sizeof(long);
       if(image->dorev)
-    cvtlongs(image->rowstart,tablesize);
+    cvtlongs((long *)image->rowstart,(long)tablesize);
       if (img_write(image,(char *)(image->rowstart),tablesize) != tablesize) {
-    i_errhdlr("iclose: error on write of rowstart\n");
+    i_errhdlr("iclose: error on write of rowstart\n",0,0,0,0);
     return EOF;
       }
       if(image->dorev)
-    cvtlongs(image->rowsize,tablesize);
+    cvtlongs((long *)image->rowsize,tablesize);
       if (img_write(image,(char *)(image->rowsize),tablesize) != tablesize) {
-    i_errhdlr("iclose: error on write of rowsize\n");
+    i_errhdlr("iclose: error on write of rowsize\n",0,0,0,0);
     return EOF;
       }
   }
@@ -56,7 +59,7 @@ int iclose(RGB_IMAGE *image)
     }
     ret = close(image->file);
     if(ret != 0) 
-  i_errhdlr("iclose: error on close of file\n");
+  i_errhdlr("iclose: error on close of file\n",0,0,0,0);
     free(image);
     return ret;
 }
