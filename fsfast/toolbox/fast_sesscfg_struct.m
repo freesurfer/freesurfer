@@ -8,6 +8,7 @@ sesscfg.runweight = [];     % List of weights for each run
 sesscfg.fstemlist = '';     % List of abs path to func stems for each run
 sesscfg.evschfilelist = ''; % List of abs path to EvSch Files (needed?)
 sesscfg.evschlist = [];     % Array of event schedules, one for each run
+sesscfg.volsize = [];       % rows, cols, slices
 
 % evschlist(nthrun).evsch
 % evsch must have at least 2 columns:
