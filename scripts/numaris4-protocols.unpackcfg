@@ -25,7 +25,7 @@
 # 4. This file format is subject to change, particularly to add
 # options to apply distortion correction when unpacking.
 # 
-# $Id: numaris4-protocols.unpackcfg,v 1.15 2002/10/10 21:29:52 greve Exp $
+# $Id: numaris4-protocols.unpackcfg,v 1.16 2002/10/16 23:29:42 greve Exp $
 #
 localizer                scout        bshort f
 circle_localizer         scout        bshort f
@@ -36,6 +36,7 @@ SagMPR8Minrevroscaled    3danat       COR    na
 FlatSag3D_scaled_4min    3danat       COR    na
 FlatSag3Drevroscaled     3danat       COR    na
 t1mpragesagscaled        3danat       COR    na
+t1_mprage_sag_scaled     3danat       COR    na
 T1ep2dHighRes            t1epi        bshort f
 ep2dt1w                  t1epi        bshort f
 T2TSEAxialHiRes          t2conv       bshort f
