@@ -151,6 +151,7 @@ int   MRIcopyHeader(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcopy(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction) ;
 int   MRIboundingBox(MRI *mri, int thresh, MRI_REGION *region) ;
+int   MRIfindSkullBoundingBox(MRI *mri, int thresh, MRI_REGION *region) ;
 int   MRIboundingBoxNbhd(MRI *mri, int thresh, int wsize,MRI_REGION *region) ;
 
 /* coordinate transforms */
