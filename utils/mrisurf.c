@@ -10412,6 +10412,7 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 #endif
     target = MRISPfunctionVal(parms->mrisp_template, mris, x, y, z, 
                               parms->frame_no) ;
+#define DEFAULT_STD  10.0f
 #define DISABLE_STDS  0
 #if DISABLE_STDS
 std = 1.0f ;
@@ -10419,7 +10420,7 @@ std = 1.0f ;
     std = MRISPfunctionVal(parms->mrisp_template,mris,x,y,z,parms->frame_no+1);
     std = sqrt(std) ;
     if (FZERO(std))
-      std = FSMALL ;
+      std = DEFAULT_STD /*FSMALL*/ ;
     if (!use_stds)
       std = 1.0f ;
 #endif
@@ -10478,7 +10479,7 @@ mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     std = MRISPfunctionVal(parms->mrisp_template,mris,x,y,z,parms->frame_no+1);
     std = sqrt(std) ;
     if (FZERO(std))
-      std = FSMALL ;
+      std = DEFAULT_STD /*FSMALL*/ ;
 #if DISABLE_STDS
 std = 1.0f ;
 #endif
@@ -10579,7 +10580,7 @@ mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     std = MRISPfunctionVal(parms->mrisp_template,mris,x,y,z,parms->frame_no+1);
     std = sqrt(std) ;
     if (FZERO(std))
-      std = FSMALL ;
+      std = DEFAULT_STD /*FSMALL*/ ;
 #if DISABLE_STDS
 std = 1.0f ;
 #endif
