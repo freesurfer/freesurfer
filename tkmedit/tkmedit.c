@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/06/06 15:30:59 $
-// Revision       : $Revision: 1.155 $
-char *VERSION = "$Revision: 1.155 $";
+// Revision Date  : $Date: 2003/06/09 18:19:26 $
+// Revision       : $Revision: 1.156 $
+char *VERSION = "$Revision: 1.156 $";
 
 #define TCL
 #define TKMEDIT 
@@ -385,8 +385,11 @@ tkm_tErr SetVolumeDirty ( tkm_tVolumeType iVolume, tBoolean ibDirty );
 tkm_tErr IsVolumeDirty ( tkm_tVolumeType iVolume, tBoolean* obDirty );
 
 void SetVolumeBrightnessAndContrast ( tkm_tVolumeType iVolume,
-				      float        ifBrightness,
-				      float        ifContrast );
+				      float           ifBrightness,
+				      float           ifContrast );
+void SetVolumeColorMinMax           ( tkm_tVolumeType iVolume,
+				      float           ifMin,
+				      float           ifMax );
 
 void ThresholdVolume ( int    inLevel,
 		       tBoolean      ibAbove,
@@ -422,11 +425,13 @@ void ConvertAnaIdxToRAS ( xVoxelRef iAnaIdx,
 
 float gfaBrightness[tkm_knNumVolumeTypes]; 
 float gfaContrast[tkm_knNumVolumeTypes]; 
+float gfaAnaColorMin[tkm_knNumVolumeTypes]; 
+float gfaAnaColorMax[tkm_knNumVolumeTypes]; 
 
 void SetVolumeBrightnessAndContrast  ( tkm_tVolumeType iVolume,
 				       float        ifBrightness,
 				       float        ifContrast );
-void SendBrightnessAndContrastUpdate ( tkm_tVolumeType iVolume );
+void SendVolumeColorScaleUpdate ( tkm_tVolumeType iVolume );
 
 // ========================================================= FUNCTIONAL VOLUME
 
@@ -1014,6 +1019,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   float         fBrightnessAux        = 0;
   float         fContrastAux          = 0;
   tBoolean      bBrightContrastAux    = FALSE;
+  float         fColorMinMain        = 0;
+  float         fColorMaxMain          = 0;
+  tBoolean      bColorMain    = FALSE;
+  float         fColorMinAux        = 0;
+  float         fColorMaxAux         = 0;
+  tBoolean      bColorAux    = FALSE;
 
   DebugEnterFunction( ("ParseCmdLineArgs( argc=%d, argv=%s )", 
            argc, argv[0]) );
@@ -1027,7 +1038,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.155 2003/06/06 15:30:59 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.156 2003/06/09 18:19:26 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1054,20 +1065,21 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("               : in $SUBJECTS_DIR/subject/mri or specify absolute path\n");
     printf("\n");
     printf("-bc-main <brightness> <contrast> : brightness and contrast for main volume\n");
-    printf("-bc-aux <brightness> <contrast> : brightness and contrast for aux volume\n");
-    printf("\n");
-    printf("-overlay <path/stem>      : load functional overlay volume\n");
+    printf("-mm-main <min> <max>             : color scale min and max for main volume\n");
+    printf("-bc-aux <brightness> <contrast>  : brightness and contrast for aux volume\n");
+    printf("-mm-aux <min> <max>              : color scale min and max for aux volume\n");
+    printf("-overlay <path/stem>        : load functional overlay volume\n");
     printf("-overlay-reg <registration> : load registration file for overlay volume \n");
     printf("                            : (default is register.dat in same path as\n");
     printf("                            :  volume)\n");
     printf("\n");
-    printf("-fthresh <value>      : specfify min, mid, and slope threshold\n");
-    printf("-fmid <value>        : values for functional overlay display\n");
+    printf("-fthresh <value>       : specfify min, mid, and slope threshold\n");
+    printf("-fmid <value>          : values for functional overlay display\n");
     printf("-fslope <value>        : (default is 0, 1.0, and 1.0)\n");
-    printf("-fsmooth <sigma>      : smooth functional overlay after loading\n");
+    printf("-fsmooth <sigma>       : smooth functional overlay after loading\n");
     printf("\n");
     printf("-revphaseflag <1|0>      : reverses phase display in overlay (default off)\n");
-    printf("-truncphaseflag <1|0>      : truncates overlay values below 0 (default off)\n");
+    printf("-truncphaseflag <1|0>    : truncates overlay values below 0 (default off)\n");
     printf("-overlaycache <1|0>      : uses overlay cache (default off)\n");
     printf("\n");
     printf("-sdir <subjects dir>       : (default is getenv(SUBJECTS_DIR)\n");
@@ -1080,7 +1092,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-segmentation <volume> <colors>    : load segmentation volume and color file\n");
     printf("-aux-segmentation <volume> <colors>: load aux segmentation volume and color file\n");
     printf("-segmentation-opacity <opacity>    : opacity of the segmentation \n");
-    printf("                                  : overlay (default is 0.3)\n");
+    printf("                                   : overlay (default is 0.3)\n");
     printf("\n");
     printf("-headpts <points> [<trans>]   : load head points file and optional\n");
     printf("                              : transformation\n");
@@ -1160,6 +1172,30 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  nCurrentArg += 1;
 	}
 	
+      } else if( MATCH( sArg, "-mm-main" ) ) {
+  
+	/* check for the 2 values following the switch */
+	if( argc > nCurrentArg + 2
+	    && '-' != argv[nCurrentArg+1][0]
+	    && '-' != argv[nCurrentArg+2][0] ) {
+	  
+	  /* get the values */
+	  DebugNote( ("Parsing -mm-main option") );
+	  fColorMinMain = atof( argv[nCurrentArg+1] );
+	  fColorMaxMain = atof( argv[nCurrentArg+2] );
+	  bColorMain = TRUE;
+	  nCurrentArg +=3 ;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -mm-main option",
+			    "Expected two arguments",
+			    "This option needs two arguments: the min"
+			    "and the max color values for the volume." );
+	  nCurrentArg += 1;
+	}
+	
       } else if( MATCH( sArg, "-bc-aux" ) ) {
   
 	/* check for the 2 values following the switch */
@@ -1181,6 +1217,30 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 			    "Expected two arguments",
 			    "This option needs two arguments: the brightness"
 			    "and the contrast for the volume." );
+	  nCurrentArg += 1;
+	}
+	
+      } else if( MATCH( sArg, "-mm-aux" ) ) {
+  
+	/* check for the 2 values following the switch */
+	if( argc > nCurrentArg + 2
+	    && '-' != argv[nCurrentArg+1][0]
+	    && '-' != argv[nCurrentArg+2][0] ) {
+	  
+	  /* get the values */
+	  DebugNote( ("Parsing -mm-aux option") );
+	  fColorMinAux = atof( argv[nCurrentArg+1] );
+	  fColorMaxAux = atof( argv[nCurrentArg+2] );
+	  bColorAux = TRUE;
+	  nCurrentArg +=3 ;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -mm-aux option",
+			    "Expected two arguments",
+			    "This option needs two arguments: the min"
+			    "and the max color values for the volume." );
 	  nCurrentArg += 1;
 	}
 	
@@ -2057,10 +2117,14 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     }
   }
   
-  /* If we got a non-default brightness and contrast, set it now. */
+  /* If we got a non-default brightness and contrast or min and max,
+     set it now. */
   if( bBrightContrastMain ) {
     SetVolumeBrightnessAndContrast( tkm_tVolumeType_Main, 
 				    fBrightnessMain, fContrastMain );
+  }
+  if( bColorMain ) {
+    SetVolumeColorMinMax( tkm_tVolumeType_Main, fColorMinMain, fColorMaxMain );
   }
 
   /* if reading in an aux image... */
@@ -2068,10 +2132,14 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     DebugNote( ("Loading aux volume %s", sAuxVolume) );
     eResult = LoadVolume( tkm_tVolumeType_Aux, sAuxVolume );
 
-    /* If we got a non-default brightness and contrast, set it now. */
+  /* If we got a non-default brightness and contrast or min and max,
+     set it now. */
     if( bBrightContrastAux ) {
       SetVolumeBrightnessAndContrast( tkm_tVolumeType_Aux, 
 				      fBrightnessAux, fContrastAux );
+    }
+    if( bColorAux ) {
+      SetVolumeColorMinMax( tkm_tVolumeType_Aux, fColorMinAux, fColorMaxAux );
     }
   }
   
@@ -3609,8 +3677,8 @@ int TclSetVolumeColorScale ( ClientData inClientData, Tcl_Interp* inInterp,
   
   tkm_tVolumeType volume = tkm_tVolumeType_Main;
   
-  if ( argc != 4 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: SetVolumeColorScale volume threshold:float squash:float",
+  if ( argc != 6 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: SetVolumeColorScale volume threshold:float squash:float min:float max:float",
         TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -3626,6 +3694,7 @@ int TclSetVolumeColorScale ( ClientData inClientData, Tcl_Interp* inInterp,
       if( NULL != gAnatomicalVolume[ volume ] ) {
 	SetVolumeBrightnessAndContrast( volume,
 					atof( argv[2] ), atof( argv[3] ));
+	SetVolumeColorMinMax( volume, atof( argv[4] ), atof( argv[5] ));
       }
     }
   }
@@ -5506,9 +5575,9 @@ int main ( int argc, char** argv ) {
   SendCachedTclCommands ();
   
   /* send the brightness and contrast to the tcl window. */
-  SendBrightnessAndContrastUpdate( tkm_tVolumeType_Main );
+  SendVolumeColorScaleUpdate( tkm_tVolumeType_Main );
   if( NULL != gAnatomicalVolume[tkm_tVolumeType_Aux] ) {
-    SendBrightnessAndContrastUpdate( tkm_tVolumeType_Aux );
+    SendVolumeColorScaleUpdate( tkm_tVolumeType_Aux );
   }
   
   /* set default segmentation alpha */
@@ -6867,13 +6936,14 @@ void HandleUserCancelCallback (int signal) {
 tkm_tErr LoadVolume ( tkm_tVolumeType iType,
 		      char*      isName ) {
   
-  tkm_tErr eResult        = tkm_tErr_NoErr;
-  Volm_tErr eVolume = Volm_tErr_NoErr;
-  char     sPath[tkm_knPathLen]      = "";
-  char*     pEnd          = NULL;
-  char     sError[tkm_knErrStringLen]    = "";
-  mriVolumeRef newVolume = NULL;
-  
+  tkm_tErr     eResult                        = tkm_tErr_NoErr;
+  Volm_tErr    eVolume                        = Volm_tErr_NoErr;
+  char         sPath[tkm_knPathLen]           = "";
+  char*        pEnd                           = NULL;
+  char         sError[tkm_knErrStringLen]     = "";
+  mriVolumeRef newVolume                      = NULL;
+  char         sTclArguments[tkm_knTclCmdLen] = "";
+
   DebugEnterFunction( ("LoadVolume( iType=%d,  isName=%s )", 
            (int)iType, isName) );
   
@@ -6947,7 +7017,16 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
    gnAnatomicalDimensionX, gnAnatomicalDimensionY, gnAnatomicalDimensionZ  );
   */
 
-  /* set the default color scale */
+  /* Set the default color scale. Get the value min and max from the
+     volume and use that. Use default brightness and contrast. */
+  Volm_GetValueMinMax( gAnatomicalVolume[iType], 
+		       &gfaAnaColorMin[iType], &gfaAnaColorMax[iType] );
+  sprintf( sTclArguments, "%d %.2f %.2f", (int)iType, 
+	   gfaAnaColorMin[iType], gfaAnaColorMax[iType] );
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeValueMinMax, sTclArguments );
+		      
+
+  SetVolumeColorMinMax( iType, gfaAnaColorMin[iType], gfaAnaColorMax[iType] );
   SetVolumeBrightnessAndContrast( iType, 
 				  Volm_kfDefaultBrightness,
 				  Volm_kfDefaultContrast );
@@ -7306,8 +7385,8 @@ tkm_tErr IsVolumeDirty ( tkm_tVolumeType iVolume, tBoolean* obDirty ) {
 }
 
 void SetVolumeBrightnessAndContrast ( tkm_tVolumeType iVolume,
-              float        ifBrightness,
-              float        ifContrast ) {
+				      float           ifBrightness,
+				      float           ifContrast ) {
   
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
@@ -7332,7 +7411,7 @@ void SetVolumeBrightnessAndContrast ( tkm_tVolumeType iVolume,
 		     eResult, tkm_tErr_ErrorAccessingVolume );
   
   /* update the tcl window */
-  SendBrightnessAndContrastUpdate( iVolume );
+  SendVolumeColorScaleUpdate( iVolume );
   
   /* big redraw */
   MWin_RedrawAll( gMeditWindow );
@@ -7344,12 +7423,51 @@ void SetVolumeBrightnessAndContrast ( tkm_tVolumeType iVolume,
   DebugExitFunction;
 }
 
-void SendBrightnessAndContrastUpdate ( tkm_tVolumeType iVolume ) {
+void SetVolumeColorMinMax ( tkm_tVolumeType iVolume,
+			    float           ifMin,
+			    float           ifMax ) {
+  
+  tkm_tErr  eResult         = tkm_tErr_NoErr;
+  Volm_tErr eVolume         = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("SetVolumeColorMinMax ( iVolume=%d, "
+		       "ifMin=%.2f, ifMax=%.2f )",
+		       (int)iVolume, ifMin, ifMax) );
+  
+  DebugAssertThrowX( (iVolume >= 0 && iVolume < tkm_knNumVolumeTypes), 
+		     eResult, tkm_tErr_InvalidParameter );
+
+  /* save these values. */
+  gfaAnaColorMin[iVolume] = ifMin;
+  gfaAnaColorMax[iVolume] = ifMax;
+
+  /* set the values in the volume. */
+  DebugNote( ("Setting min and max") );
+  eVolume = Volm_SetColorMinMax( gAnatomicalVolume[iVolume], 
+				 gfaAnaColorMin[iVolume],
+				 gfaAnaColorMax[iVolume] );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+  
+  /* update the tcl window */
+  SendVolumeColorScaleUpdate( iVolume );
+  
+  /* big redraw */
+  MWin_RedrawAll( gMeditWindow );
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+}
+
+void SendVolumeColorScaleUpdate ( tkm_tVolumeType iVolume ) {
   
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   char      sTclArguments[tkm_knTclCmdLen] = "";
   
-  DebugEnterFunction( ("SendBrightnessAndContrastUpdate ( iVolume=%d )",
+  DebugEnterFunction( ("SendVolumeColorScaleUpdate ( iVolume=%d )",
 		       (int)iVolume) );
   
   DebugAssertThrowX( (iVolume >= 0 && iVolume < tkm_knNumVolumeTypes), 
@@ -7357,10 +7475,10 @@ void SendBrightnessAndContrastUpdate ( tkm_tVolumeType iVolume ) {
 
   /* update the tcl window */
   DebugNote( ("Sending color scale update to tcl window") );
-  xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d %f %f",
-		  (int)iVolume, gfaBrightness[iVolume], gfaContrast[iVolume] );
+  xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d %f %f %f %f",
+		  (int)iVolume, gfaBrightness[iVolume], gfaContrast[iVolume],
+		  gfaAnaColorMin[iVolume], gfaAnaColorMax[iVolume]);
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeColorScale, sTclArguments );
-  
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -11163,6 +11281,7 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "UpdateSegmentationColorTable",
   "UpdateVolumeDirty",
   "UpdateAuxVolumeDirty",
+  "UpdateVolumeValueMinMax",
   
   /* display status */
   "ShowVolumeCoords",

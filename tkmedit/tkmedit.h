@@ -122,6 +122,7 @@ typedef enum {
   tkm_tTclCommand_UpdateSegmentationColorTable,
   tkm_tTclCommand_UpdateVolumeDirty,
   tkm_tTclCommand_UpdateAuxVolumeDirty,
+  tkm_tTclCommand_UpdateVolumeValueMinMax,
   
   /* display status */
   tkm_tTclCommand_ShowVolumeCoords,

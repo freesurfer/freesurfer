@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.48 2003/05/21 17:28:22 kteich Exp $
+# $Id: tkmedit.tcl,v 1.49 2003/06/09 18:20:06 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -254,11 +254,17 @@ foreach surface "$Surf_tVertexSet_Main $Surf_tVertexSet_Original \
     set gSurface($surface,color,blue)  0
 }
 
-# volume color scale
-set gfVolumeColorScaleThresh($tkm_tVolumeType_Main) 0
-set gfVolumeColorScaleSquash($tkm_tVolumeType_Main) 0
-set gfVolumeColorScaleThresh($tkm_tVolumeType_Aux) 0
-set gfVolumeColorScaleSquash($tkm_tVolumeType_Aux) 0
+
+# general volume info
+foreach volume "$tkm_tVolumeType_Main $tkm_tVolumeType_Aux" {
+    set gVolume($volume,colorScale,brightness) 0
+    set gVolume($volume,colorScale,contrast) 0
+    set gVolume($volume,colorScale,min) 0
+    set gVolume($volume,colorScale,max) 0
+
+    set gVolume($volume,minValue) 0
+    set gVolume($volume,maxValue) 0
+}
 
 # initialize global vars
 set gsSubjectDirectory "/"
@@ -513,10 +519,13 @@ proc UpdateFloodSelectParams { ib3D iSrc inFuzzy inDistance } {
     set gFloodSelectParams(distance) $inDistance
 }
 
-proc UpdateVolumeColorScaleInfo { inVolume inThresh inSquash } {
-    global gfVolumeColorScaleThresh gfVolumeColorScaleSquash 
-    set gfVolumeColorScaleThresh($inVolume) $inThresh
-    set gfVolumeColorScaleSquash($inVolume) $inSquash
+proc UpdateVolumeColorScaleInfo { inVolume inBrightness inContrast
+				  inMin inMax } {
+    global gVolume
+    set gVolume($inVolume,colorScale,brightness) $inBrightness
+    set gVolume($inVolume,colorScale,contrast) $inContrast
+    set gVolume($inVolume,colorScale,min) $inMin
+    set gVolume($inVolume,colorScale,max) $inMax
 }
 
 proc UpdateDTIVolumeAlpha { ifAlpha } {
@@ -570,6 +579,13 @@ proc SendCursorConfiguration {} {
     global gCursor
     SetCursorColor $gCursor(color,red) $gCursor(color,green) $gCursor(color,blue)
     SetCursorShape $gCursor(shape)
+}
+
+proc UpdateVolumeValueMinMax { iVolume iMin iMax } {
+    global gVolume
+
+    set gVolume($iVolume,minValue) $iMin
+    set gVolume($iVolume,maxValue) $iMax
 }
 
 # =============================================================== DIALOG BOXES
@@ -1832,43 +1848,50 @@ proc DoEditFloodSelectParamsDlog { } {
 proc DoVolumeColorScaleInfoDlog { } {
 
     global gDialog
-    global gfVolumeColorScaleThresh gfVolumeColorScaleSquash 
-    global gfSavedVolumeColorScaleThresh gfSavedVolumeColorScaleSquash 
+    global gVolume
 
     set wwDialog .wwVolumeColorScaleInfoDlog
 
-    set gfSavedVolumeColorScaleSquash(0) $gfVolumeColorScaleSquash(0)
-    set gfSavedVolumeColorScaleThresh(0) $gfVolumeColorScaleThresh(0)
-    set gfSavedVolumeColorScaleSquash(1) $gfVolumeColorScaleSquash(1)
-    set gfSavedVolumeColorScaleThresh(1) $gfVolumeColorScaleThresh(1)
-
     # try to create the dlog...
-    if { [Dialog_Create $wwDialog "Brightness / Contrast" {-borderwidth 10}] } {
+    if { [Dialog_Create $wwDialog \
+	      "Brightness / Contrast" {-borderwidth 10}] } {
 
-  set fwSliders    $wwDialog.fwSliders
-  set fwButtons    $wwDialog.fwButtons
-
-  
-  # brightness and contrast for main and aux sliders
-  tkm_MakeSliders $fwSliders { \
-    { {"Brightness"} gfVolumeColorScaleThresh(0) \
-    1 0 100 "SendVolumeColorScale" 1 0.01 } \
-    { {"Contrast"} gfVolumeColorScaleSquash(0) \
-    0 30 100 "SendVolumeColorScale" 1 } \
-    { {"Aux Brightness"} gfVolumeColorScaleThresh(1) \
-    1 0 100 "SendVolumeColorScale" 1 0.01 } \
-    { {"Aux Contrast"} gfVolumeColorScaleSquash(1) \
-    0 30 100 "SendVolumeColorScale" 1 } }
-  
-  # buttons
-  tkm_MakeCloseButton $fwButtons $wwDialog
-
-  pack $fwSliders $fwButtons  \
-    -side top    \
-    -expand yes     \
-    -fill x         \
-    -padx 5         \
-    -pady 5
+	set fwSliders    $wwDialog.fwSliders
+	set fwButtons    $wwDialog.fwButtons
+	
+	# brightness and contrast for main and aux sliders
+	tkm_MakeSliders $fwSliders [list \
+		[list {"Brightness"} gVolume(0,colorScale,brightness) \
+		     1 0 100 "SendVolumeColorScale" 1 0.01] \
+		[list {"Contrast"} gVolume(0,colorScale,contrast) \
+		     0 30 100 "SendVolumeColorScale" 1] \
+		[list {"Min"} gVolume(0,colorScale,min) \
+		     $gVolume(0,minValue) $gVolume(0,maxValue) \
+		     100 "SendVolumeColorScale" 1] \
+		[list {"Max"} gVolume(0,colorScale,max) \
+		     $gVolume(0,minValue) $gVolume(0,maxValue) \
+		     100 "SendVolumeColorScale" 1] \
+					\
+	        [list {"Aux Brightness"} gVolume(1,colorScale,brightness) \
+		     1 0 100 "SendVolumeColorScale" 1 0.01] \
+		[list {"Aux Contrast"} gVolume(1,colorScale,contrast)  \
+		     0 30 100 "SendVolumeColorScale" 1] \
+	        [list {"Aux Min"} gVolume(1,colorScale,min)  \
+		     $gVolume(0,minValue) $gVolume(0,maxValue) \
+		     100 "SendVolumeColorScale" 1] \
+		[list {"Aux Max"} gVolume(1,colorScale,max) \
+		     $gVolume(1,minValue) $gVolume(0,maxValue) \
+		     100 "SendVolumeColorScale" 1 ] ]
+	
+	# buttons
+	tkm_MakeCloseButton $fwButtons $wwDialog
+	
+	pack $fwSliders $fwButtons  \
+	    -side top    \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
     }
 }
 
@@ -2502,14 +2525,16 @@ proc SendFloodSelectParams {} {
 
 proc SendVolumeColorScale { } {
 
-    global gfVolumeColorScaleThresh gfVolumeColorScaleSquash 
+    global tkm_tVolumeType_Main tkm_tVolumeType_Aux
+    global gVolume
 
-    SetVolumeColorScale 0 \
-      $gfVolumeColorScaleThresh(0) \
-      $gfVolumeColorScaleSquash(0)
-    SetVolumeColorScale 1 \
-      $gfVolumeColorScaleThresh(1) \
-      $gfVolumeColorScaleSquash(1)
+    foreach volume "$tkm_tVolumeType_Main $tkm_tVolumeType_Aux" {
+	SetVolumeColorScale $volume \
+	    $gVolume($volume,colorScale,brightness) \
+	    $gVolume($volume,colorScale,contrast) \
+	    $gVolume($volume,colorScale,min) \
+	    $gVolume($volume,colorScale,max) 
+    }
 }
 
 # ======================================================== INTERFACE MODIFIERS
