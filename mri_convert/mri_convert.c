@@ -9,6 +9,8 @@
 #include "utils.h"
 #include "transform.h"
 #include "mrimorph.h"
+#include "DICOMRead.h"
+#include "unwarpGradientNonlinearity.h"
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
 #define CLOSE_ENOUGH  (5e-3)
@@ -25,7 +27,7 @@ char *Progname;
 
 int main(int argc, char *argv[])
 {
-
+  MRI *mri_unwarped;
   MRI *mri, *mri2, *template, *mri_in_like;
   int i;
   int reorder_vals[3];
@@ -87,6 +89,9 @@ int main(int argc, char *argv[])
   int no_scale_flag;
   int temp_type;
   int roi_flag;
+  FILE *fptmp;
+
+  for(i=0;i<argc;i++) printf("%s ",argv[i]);
 
   /* ----- keep the compiler quiet ----- */
   mri2 = NULL;
@@ -422,7 +427,7 @@ int main(int argc, char *argv[])
     else if(strcmp(argv[i], "-ot") == 0 || strcmp(argv[i], "--out_type") == 0)
     {
       get_string(argc, argv, &i, out_type_string);
-      forced_out_type = string_to_type(out_type_string);
+      forced_out_type = string_to_type(out_type_string);/* see mri_identify.c */
       force_out_type_flag = TRUE;
     }
     else if(strcmp(argv[i], "-sn") == 0 || strcmp(argv[i], "--subject_name") == 0)
@@ -473,11 +478,156 @@ int main(int argc, char *argv[])
       get_ints(argc, argv, &i, &no_scale_flag, 1);
       no_scale_flag = (no_scale_flag == 0 ? FALSE : TRUE);
     }
+    else if(strcmp(argv[i], "--unwarp_gradient_nonlinearity") == 0)
+      {
+  /* !@# start */
+  unwarp_flag = 1;
+
+  /* Determine gradient type: sonata or allegra */
+  get_string(argc, argv, &i, unwarp_gradientType);
+  if( (strcmp(unwarp_gradientType, "sonata")  != 0) &&
+      (strcmp(unwarp_gradientType, "allegra") != 0) &&
+      (strcmp(unwarp_gradientType, "GE") != 0) )
+    {
+      fprintf(stderr, "\n%s: must specify gradient type ('sonata' or 'allegra' or 'GE')\n", Progname);
+      usage_message(stderr);
+      exit(1);
+    }
+  
+  /* Determine whether or not to do a partial unwarp */
+  get_string(argc, argv, &i, unwarp_partialUnwarp);
+  if( (strcmp(unwarp_partialUnwarp, "fullUnwarp") != 0) &&
+      (strcmp(unwarp_partialUnwarp, "through-plane")  != 0) )
+    {
+      fprintf(stderr, "\n%s: must specify unwarping type ('fullUnwarp' or 'through-plane')\n", Progname);
+      usage_message(stderr);
+      exit(1);
+    }
+
+  /* Determine whether or not to do jacobian correction */
+  get_string(argc, argv, &i, unwarp_jacobianCorrection);
+  if( (strcmp(unwarp_jacobianCorrection, "JacobianCorrection")  != 0) &&
+      (strcmp(unwarp_jacobianCorrection, "noJacobianCorrection") != 0) )
+    {
+      fprintf(stderr, "\n%s: must specify intensity correction type ('JacobianCorrection' or 'noJacobianCorrection')\n", Progname);
+      usage_message(stderr);
+      exit(1);
+    }
+
+  /* Determine interpolation type: linear or sinc */
+  get_string(argc, argv, &i, unwarp_interpType);
+  if( (strcmp(unwarp_interpType, "linear") != 0) &&
+      (strcmp(unwarp_interpType, "sinc")   != 0) )
+    {
+      fprintf(stderr, "\n%s: must specify interpolation type ('linear' or 'sinc')\n", Progname);
+      usage_message(stderr);
+      exit(1);
+    }
+
+  /* Get the HW for sinc interpolation (if linear interpolation,
+           this integer value is not used) */
+  get_ints(argc, argv, &i, &unwarp_sincInterpHW, 1);
+
+  /* OPTIONS THAT THERE ARE NO PLANS TO SUPPORT */
+  /* Jacobian correction with through-plane only correction */ 
+  if( (strcmp(unwarp_jacobianCorrection, "JacobianCorrection") == 0) &&
+      (strcmp(unwarp_partialUnwarp, "through-plane") == 0) )      
+    {
+      fprintf(stderr, "\n%s: Jacobian correction not valid for 'through-plane' only unwarping)\n", Progname);
+      exit(1);
+    }
+
+  /* OPTIONS NOT CURRENTLY SUPPORTED (BUT W/ PLANS TO SUPPORT) */
+  /* 1) GE unwarping not supported until we have offset data */
+  if( strcmp(unwarp_gradientType, "GE") == 0 )
+    {
+      fprintf(stderr, "\n%s: unwarping data from GE scanners not supported at present.\n", Progname);
+      exit(1);
+    }    
+  
+  /* 2) for GE: through-plane correction requires rewarping the
+           in-plane unwarped image, which requires map inversion */
+  if( strcmp(unwarp_partialUnwarp, "through-plane") == 0 )      
+    {
+      fprintf(stderr, "\n%s: through-plane only unwarping not supported at present.\n", Progname);
+      exit(1);
+    }
+  /* !@# end */
+  
+      }
     else if(strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--usage") == 0)
     {
       usage(stdout);
       exit(0);
     }
+    /*-------------------------------------------------------------*/
+    else if(strcmp(argv[i], "--status") == 0 || 
+      strcmp(argv[i], "--statusfile") == 0)
+    {
+      /* File name to write percent complete for Siemens DICOM */
+      if( (argc-1) - i < 1 ){
+  fprintf(stderr,"ERROR: option --statusfile requires one argument\n");
+  exit(1);
+      }
+      i++;
+      SDCMStatusFile = (char *) calloc(strlen(argv[i])+1,sizeof(char));
+      memcpy(SDCMStatusFile,argv[i],strlen(argv[i]));
+      fptmp = fopen(SDCMStatusFile,"w");
+      if(fptmp == NULL){
+  fprintf(stderr,"ERROR: could not open %s for writing\n",
+    SDCMStatusFile);
+  exit(1);
+      }
+      fprintf(fptmp,"0\n");
+      fclose(fptmp);
+    }
+    /*-------------------------------------------------------------*/
+    else if(strcmp(argv[i], "--sdcmlist") == 0)
+    {
+      /* File name that contains a list of Siemens DICOM files
+   that are in the same run as the one listed on the
+   command-line. If not present, the directory will be scanned,
+   but this can take a while.
+      */
+      if( (argc-1) - i < 1 ){
+  fprintf(stderr,"ERROR: option --sdcmlist requires one argument\n");
+  exit(1);
+      }
+      i++;
+      SDCMListFile = (char *) calloc(strlen(argv[i])+1,sizeof(char));
+      memcpy(SDCMListFile,argv[i],strlen(argv[i]));
+      fptmp = fopen(SDCMListFile,"r");
+      if(fptmp == NULL){
+  fprintf(stderr,"ERROR: could not open %s for reading\n",
+    SDCMListFile);
+  exit(1);
+      }
+      fclose(fptmp);
+    }
+    /*-------------------------------------------------------------*/
+    else if( (strcmp(argv[i], "--nspmzeropad") == 0) ||
+       (strcmp(argv[i], "--out_nspmzeropad") == 0))
+    {
+      /* Choose the amount of zero padding for spm output files */
+      if( (argc-1) - i < 1 ){
+  fprintf(stderr,"ERROR: option --out_nspmzeropad requires one argument\n");
+  exit(1);
+      }
+      i++;
+      sscanf(argv[i],"%d",&N_Zero_Pad_Output);
+    }
+    /*-------------------------------------------------------------*/
+    else if( (strcmp(argv[i], "--in_nspmzeropad") == 0))
+    {
+      /* Choose the amount of zero padding for spm input files */
+      if( (argc-1) - i < 1 ){
+  fprintf(stderr,"ERROR: option --in_nspmzeropad requires one argument\n");
+  exit(1);
+      }
+      i++;
+      sscanf(argv[i],"%d",&N_Zero_Pad_Input);
+    }
+    /*-------------------------------------------------------------*/
     else
     {
       if(argv[i][0] == '-')
@@ -759,6 +909,22 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  if(unwarp_flag)
+    {
+      /* if unwarp_flag is true, unwarp the distortions due
+   to gradient coil nonlinearities */
+      printf("INFO: unwarping ... ");
+      mri_unwarped = unwarpGradientNonlinearity(mri, 
+            unwarp_gradientType, 
+            unwarp_partialUnwarp,
+            unwarp_jacobianCorrection,
+            unwarp_interpType,
+            unwarp_sincInterpHW);
+      MRIfree(&mri);
+      mri = mri_unwarped;
+      printf("done \n ");      
+    }
+
   printf("TR=%2.2f, te=%2.2f, flip angle=%2.2f\n",
          mri->tr, mri->te, mri->flip_angle) ;
   if(in_volume_type != OTL_FILE)
@@ -895,41 +1061,50 @@ int main(int argc, char *argv[])
   if(transform_flag)
   {
 
-    printf("applying transformation from file %s...\n", transform_fname);
+    printf("INFO: Applying transformation from file %s...\n", transform_fname);
 
     if(!FileExists(transform_fname))
     {
-      fprintf(stderr, "can't find transform file %s\n", transform_fname);
+      fprintf(stderr,"ERROR: cannot find transform file %s\n",transform_fname);
       exit(1);
     }
 
     transform_type = TransformFileNameType(transform_fname);
-    if(transform_type == MNI_TRANSFORM_TYPE || transform_type == TRANSFORM_ARRAY_TYPE)
+    if(transform_type == MNI_TRANSFORM_TYPE || 
+       transform_type == TRANSFORM_ARRAY_TYPE)
     {
-
-      if((lta_transform = LTAread(transform_fname)) == NULL)
+      lta_transform = LTAread(transform_fname);
+      if(lta_transform  == NULL)
       {
-        fprintf(stderr, "error reading transform from file %s\n", transform_fname);
+        fprintf(stderr, "ERROR: Reading transform from file %s\n", 
+    transform_fname);
         exit(1);
       }
 
       if(invert_transform_flag)
       {
-
-        if((inverse_transform_matrix = MatrixInverse(lta_transform->xforms[0].m_L, NULL)) == NULL)
+  inverse_transform_matrix = MatrixInverse(lta_transform->xforms[0].m_L,
+             NULL);
+        if(inverse_transform_matrix == NULL)
         {
-          fprintf(stderr, "error inverting transform\n");
+          fprintf(stderr, "ERROR: inverting transform\n");
+    MatrixPrint(stdout,lta_transform->xforms[0].m_L);
           exit(1);
         }
 
         MatrixFree(&(lta_transform->xforms[0].m_L));
         lta_transform->xforms[0].m_L = inverse_transform_matrix;
-
       }
 
-      if((mri_transformed = LTAtransform(mri, NULL, lta_transform)) == NULL)
+      printf("INFO: resampling input volume \n");
+      printf("Resampling Matirx: \n");
+      MatrixPrint(stdout,lta_transform->xforms[0].m_L);
+      printf("---------------------------------\n");
+
+      mri_transformed = LTAtransform(mri, NULL, lta_transform);
+      if(mri_transformed == NULL)
       {
-        fprintf(stderr, "error applying transform to volume\n");
+        fprintf(stderr, "ERROR: applying transform to volume\n");
         exit(1);
       }
 
@@ -939,12 +1114,14 @@ int main(int argc, char *argv[])
       mri = mri_transformed;
 
     }
+
     else if(transform_type == MORPH_3D_TYPE)
     {
 
       if((m3d_transform = MRI3DreadSmall(transform_fname)) == NULL)
       {
-        fprintf(stderr, "error reading transform from file %s\n", transform_fname);
+        fprintf(stderr, "error reading transform from file %s\n", 
+    transform_fname);
         exit(1);
       }
 
@@ -1323,6 +1500,61 @@ void usage(FILE *stream)
   fprintf(stream, "\n");
   fprintf(stream, "  -odt, --out_data_type <uchar|short|int|float>\n");
   fprintf(stream, "\n");
+  fprintf(stream, "  --unwarp_gradient_nonlinearity \n"
+                  "      <sonata | allegra | GE> \n"
+                  "      <fullUnwarp | through-plane> \n"
+                  "      <JacobianCorrection | noJacobianCorrection> \n"
+                  "      <linear | sinc> \n"
+            "      <sincInterpHW>  \n"); 
+  fprintf(stream, "\n");
+  fprintf(stream, "--apply_transform xfmfile (-T or -at)\n");
+  fprintf(stream, "--apply_inverse_transform xfmfile (-ait)\n");
+
+  fprintf(stream, 
+
+  "\n"
+  "SPECIFYING THE INPUT AND OUTPUT FILE TYPES\n"
+  "\n"
+  "The file type can be specified in two ways. First, mri_convert will try \n"
+  "to figure it out on its own from the format of the file name (eg, files that\n"
+  "end in .img are assumed to be in spm analyze format). Second, the user can \n"
+  "explicity set the type of file using --in_type and/or --out_type.\n"
+  "\n"
+  "Legal values for --in_type (-it) and --out_type (-ot) are:\n"
+  "\n"
+  "  cor           - MGH-NMR COR format\n"
+  "  minc          - MNI's Medical Imaging NetCDF format (output may not work)\n"
+  "  analyze       - 3D analyze (same as spm)\n"
+  "  analyze4d     - 4D analyze \n"
+  "  spm           - SPM Analyze format (same as analyze and analyze3d)\n"
+  "  ge            - GE Genesis format (input only)\n"
+  "  gelx          - GE LX (input only)\n"
+  "  lx            - same as gelx\n"
+  "  siemens       - Siemens IMA (input only)\n"
+  "  dicom         - generic DICOM Format (iput only)\n"
+  "  siemens_dicom - Siemens DICOM Format (iput only)\n"
+  "  afni          - AFNI format\n"
+  "  brik          - same as afni\n"
+  "  bshort        - MGH-NMR bshort format\n"
+  "  bfloat        - MGH-NMR bfloat format\n"
+  "  sdt           - Varian (??)\n"
+  "  outline       - MGH-NMR Outline format\n"
+  "  otl           - same as outline\n"
+  "  gdf           - ???\n"
+  "\n"
+  "CONVERTING TO SPM-ANALYZE FORMAT \n"
+  "\n"
+  "Converting to SPM-Analyze format can be done in two ways, depeding upon\n"
+  "whether a single frame or multiple frames are desired. For a single frame,\n"
+  "simply specify the output file name with a .img extension, and mri_convert \n"
+  "will save the first frame into the file.  For multiple frames, specify the \n"
+  "base as the output file name and add --out_type spm. This will save each \n"
+  "frame as baseXXX.img where XXX is the three-digit, zero-padded frame number.\n"
+  "Frame numbers begin at one. By default, the width the of zero padding is 3.\n"
+  "This can be controlled with --in_nspmzeropad N where N is the new width.\n"
+  "\n"
+
+  );
 
 } /* end usage() */
 
