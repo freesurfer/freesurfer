@@ -1,14 +1,14 @@
 #!/bin/csh -f
 # fsf-kmnacf
 
-set VERSION = '$Id: fsf-kmnacf,v 1.1 2004/05/27 03:20:47 greve Exp $'
+set VERSION = '$Id: fsf-kmnacf,v 1.2 2004/05/27 04:37:12 greve Exp $'
 set inputargs = ($argv);
 set kmracfmatfile = ();
 set arorder = 2;
 set initmethod = ();
 set residstem  = ();
 set WeightExp  = 1;
-set UseWhite = 0;
+set UseWhite = 1;
 set outmatfile = ();
 
 set monly = 0;
@@ -43,7 +43,7 @@ tee $MLF > /dev/null <<EOF
 
 tic;
 kmracfmatfile = '$kmracfmatfile';
-arorder    = '$arorder';
+arorder    =  $arorder;
 initmethod = '$initmethod';
 residstem  = '$residstem';
 WeightExp  =  $WeightExp;
@@ -54,35 +54,57 @@ kmr = load(kmracfmatfile);
 if(isempty(kmr)) return; end
 
 nf = size(kmr.kmracf,1);
+nn = 1:nf;
 
 if(WeightExp > 0) w = (1./[1:nf]').^WeightExp; 
 else              w = [];
 end
 
+if(strcmp(initmethod,'arburg'))
+  fprintf('Loading residuals\n');
+  r = fast_ldbslice(residstem);
+  if(isempty(r)) return; end
+  r = fast_vol2mat(r);
+  if(~isempty(kmr.mask))
+    indmask = find(kmr.mask);
+    r = r(:,indmask);
+  end
+  for c = 1:kmr.nclasses
+    ind = find(kmr.kmap==c);
+    rmn(:,c) = mean(r(:,ind),2);
+  end
+else
+  rmn = [];
+end
+
+
 p0   = zeros(kmr.nclasses,arorder+UseWhite);
 popt = zeros(kmr.nclasses,arorder+UseWhite);
 
+fprintf('Starting loop through classes\n');
 for c = 1:kmr.nclasses
-  fprintf('Opt class %d (%g)\n',c,toc);
 
    switch(initmethod)
-
      case 'ar1'
        phi = zeros(1,arorder);
        phi(1) = kmr.kmracf(2,c);
        alpha = 0;
+     case 'arburg'
+       arbtmp = arburg(rmn(:,c),arorder);
+       phi = -arbtmp(2:end);
+       alpha = 0.5;
      case 'ar1w'
-       phi = zeros(1,arorder);
-       [alpha phi(1)] = fast_ar1w_fit(kmr.kmracf(1:4,c));
-       p0(c,:) = [phi alpha];
+       %phi = zeros(1,arorder);
+       phi = .1*ones(1,arorder);
+       [alpha phi1] = fast_ar1w_fit(kmr.kmracf(1:4,c));
+       if(alpha < 0) alpha = .01; end
+       phi(1) = phi1;
      case 'rand'
        phi = 1.9*(rand(1,2)-.5);
        while(max(abs(roots([1 -phi])))>.95)
          phi = 1.9*(rand(1,2)-.5);
        end
        alpha = rand;
-    end
-
    end
 
    if(UseWhite) p0(c,:) = [phi alpha];
@@ -98,20 +120,30 @@ for c = 1:kmr.nclasses
      return;
    end
 
+   fiterr0(c) = fast_arnw_fiterr(p0(c,:),kmr.kmracf(:,c),kmr.R,w,~UseWhite);
+
+   tstartopt = toc;
    [popt(c,:) fiterr(c) exitflag(c) optstr(c)] = ...
-      fminsearch('fast_arnw_fiterr',p0(c,:),[],kmr.kmracf,kmr.R,w,UseWhite);
+      fminsearch('fast_arnw_fiterr',p0(c,:),[],kmr.kmracf(:,c),kmr.R,w,~UseWhite);
+   tendopt = toc;
+   topt(c) = tendopt-tstartopt;
+   niters(c) = optstr(c).iterations;
+
+   fprintf('C = %2d,  niters = %4d,  topt = %3.2f\n',c,niters(c),topt(c));
+
+   [tmp racfopt(:,c)] = fast_arnw_fiterr(popt(c,:),kmr.kmracf(:,c),kmr.R,w,~UseWhite);
 
    if(UseWhite)
-     nacfopt(:,c) = fast_arnw_acf(popt(1:end-1),nf,popt(end));
+     nacfopt(:,c) = fast_arnw_acf(popt(c,1:end-1),nf,popt(c,end));
    else
-     nacfopt(:,c) = fast_arnw_acf(popt,nf);
+     nacfopt(:,c) = fast_arnw_acf(popt(c,:),nf);
    end
 
 end
 
 save(outmatfile,'kmracfmatfile','arorder','initmethod','residstem','WeightExp',...
-     'UseWhite','kmr','nf','w','p0','popt','maxroot','fiterr','exitflat',...
-     'optstr','nacfopt');
+     'UseWhite','kmr','nf','w','p0','popt','maxroot','fiterr0','fiterr',...
+     'exitflag','optstr','nacfopt','racfopt','niters','topt','rmn');
 
 fprintf('fsf-kmnacf: matlab: done (t=%g)\n',toc);
 
