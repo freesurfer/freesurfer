@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.6 1998/11/11 22:09:53 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.7 1998/11/16 20:29:07 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -37,7 +37,7 @@ static float base_dt_scale = BASE_DT_SCALE ;
 
 static int smooth = 2 ;
 static int nwhite = 15 /*25*/ ;
-static int ngray = 65 /*100*/ ;
+static int ngray = 45 /*100*/ ;
 
 static float gray_surface = 55.0f ;
 static int nbrs = 2 ;
