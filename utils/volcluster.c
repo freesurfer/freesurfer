@@ -10,9 +10,9 @@
 #include "volcluster.h"
 
 static int ConvertMNI2Tal(float  xmni, float  ymni, float  zmni,
-			  float *xtal, float *ytal, float *ztal);
+        float *xtal, float *ytal, float *ztal);
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
-			  float *x, float *y, float *z);
+        float *x, float *y, float *z);
 
 
 
@@ -100,13 +100,13 @@ int clustDumpCluster(FILE *fp, VOLCLUSTER *vc, MRI *vol, int frame)
 
 /*------------------------------------------------------------------------*/
 int clustDumpClusterList(FILE *fp, VOLCLUSTER **vclist, int nlist, 
-			 MRI *vol, int frame)
+       MRI *vol, int frame)
 {
   int n;
 
   for( n = 0; n < nlist; n++){
     fprintf(fp,"%3d %5d %5d %g-------------------------------\n",
-	    n,vclist[n]->nmembers,vclist[n]->maxmember, vclist[n]->maxval);
+      n,vclist[n]->nmembers,vclist[n]->maxmember, vclist[n]->maxval);
     clustDumpCluster(fp, vclist[n], vol, frame);
   }
 
@@ -131,9 +131,9 @@ int clustValueInRange(float val, float thmin, float thmax, int thsign)
 }
 /*------------------------------------------------------------------------*/
 MRI *clustInitHitMap(MRI *vol, int frame, 
-		     float thmin, float thmax, int thsign, 
-		     int *nhits, int **hitcol, int **hitrow, int **hitslc,
-		     MRI *binmask, int maskframe)
+         float thmin, float thmax, int thsign, 
+         int *nhits, int **hitcol, int **hitrow, int **hitslc,
+         MRI *binmask, int maskframe)
 {
   MRI *HitMap;
   int row, col, slc;
@@ -148,12 +148,12 @@ MRI *clustInitHitMap(MRI *vol, int frame,
   for(col = 0; col < vol->width; col ++){
     for(row = 0; row < vol->height; row ++){
       for(slc = 0; slc < vol->depth; slc ++){
-	if(binmask != NULL){
-	  maskval = MRIIseq_vox(binmask,col,row,slc,maskframe);
-	  if(maskval == 0) continue;
-	}
-	val = MRIFseq_vox(vol,col,row,slc,frame);
-	if(clustValueInRange(val,thmin,thmax,thsign)) nh++;
+  if(binmask != NULL){
+    maskval = MRIIseq_vox(binmask,col,row,slc,maskframe);
+    if(maskval == 0) continue;
+  }
+  val = MRIFseq_vox(vol,col,row,slc,frame);
+  if(clustValueInRange(val,thmin,thmax,thsign)) nh++;
       }
     }
   }
@@ -203,23 +203,23 @@ MRI *clustInitHitMap(MRI *vol, int frame,
   for(col = 0; col < vol->width; col ++){
     for(row = 0; row < vol->height; row ++){
       for(slc = 0; slc < vol->depth; slc ++){
-	val = MRIFseq_vox(vol,col,row,slc,frame);
-	if(binmask != NULL){
-	  maskval = MRIIseq_vox(binmask,col,row,slc,maskframe);
-	  //printf("%2d %2d %2d  %d %g\n",col,row,slc,maskval,val);
-	  if(maskval == 0){
-	    MRIIseq_vox(HitMap,col,row,slc,0) = 1;
-	    continue;
-	  }
-	}
-	if(clustValueInRange(val,thmin,thmax,thsign)){
-	  hcol[nh] = col;
-	  hrow[nh] = row;
-	  hslc[nh] = slc;
-	  MRIIseq_vox(HitMap,col,row,slc,0) = 0;
-	  nh ++;
-	}
-	else MRIIseq_vox(HitMap,col,row,slc,0) = 1;
+  val = MRIFseq_vox(vol,col,row,slc,frame);
+  if(binmask != NULL){
+    maskval = MRIIseq_vox(binmask,col,row,slc,maskframe);
+    //printf("%2d %2d %2d  %d %g\n",col,row,slc,maskval,val);
+    if(maskval == 0){
+      MRIIseq_vox(HitMap,col,row,slc,0) = 1;
+      continue;
+    }
+  }
+  if(clustValueInRange(val,thmin,thmax,thsign)){
+    hcol[nh] = col;
+    hrow[nh] = row;
+    hslc[nh] = slc;
+    MRIIseq_vox(HitMap,col,row,slc,0) = 0;
+    nh ++;
+  }
+  else MRIIseq_vox(HitMap,col,row,slc,0) = 1;
       }
     }
   }
@@ -293,7 +293,7 @@ int clustAddMember(VOLCLUSTER *vc, int col, int row, int slc)
 }
 /*------------------------------------------------------------------------*/
 int clustGrowOneVoxel(VOLCLUSTER *vc, int col0, int row0, int slc0, 
-		      MRI *HitMap, int AllowDiag)
+          MRI *HitMap, int AllowDiag)
 {
   int col, row, slc;
   int dcol, drow, dslc;
@@ -304,23 +304,23 @@ int clustGrowOneVoxel(VOLCLUSTER *vc, int col0, int row0, int slc0,
     for( drow = -1; drow <= +1; drow++ ){
       for( dslc = -1; dslc <= +1; dslc++ ){
 
-	col = col0 + dcol;
-	if(col < 0 || col >= HitMap->width) continue;
-	
-	row = row0 + drow;
-	if(row < 0 || row >= HitMap->height) continue;
+  col = col0 + dcol;
+  if(col < 0 || col >= HitMap->width) continue;
+  
+  row = row0 + drow;
+  if(row < 0 || row >= HitMap->height) continue;
 
-	slc = slc0 + dslc;
-	if(slc < 0 || slc >= HitMap->depth) continue;
+  slc = slc0 + dslc;
+  if(slc < 0 || slc >= HitMap->depth) continue;
 
-	if(!AllowDiag && dcol != 0 && drow != 0 && dslc != 0) continue;
+  if(!AllowDiag && dcol != 0 && drow != 0 && dslc != 0) continue;
 
-	if(MRIIseq_vox(HitMap,col,row,slc,0)) continue;
-	//printf("Adding %3d %3d %3d\n",col,row,slc);
+  if(MRIIseq_vox(HitMap,col,row,slc,0)) continue;
+  //printf("Adding %3d %3d %3d\n",col,row,slc);
 
-	clustAddMember(vc,col,row,slc);
-	MRIIseq_vox(HitMap,col,row,slc,0) = 1;
-	nadded ++;
+  clustAddMember(vc,col,row,slc);
+  MRIIseq_vox(HitMap,col,row,slc,0) = 1;
+  nadded ++;
 
       }
     }
@@ -386,8 +386,8 @@ int clustMaxMember(VOLCLUSTER *vc, MRI *vol, int frame, int thsign)
 }
 /*------------------------------------------------------------------------*/
 VOLCLUSTER **clustPruneBySize(VOLCLUSTER **vclist, int nlist, 
-			      float voxsize, float sizethresh, 
-			      int *nkeep)
+            float voxsize, float sizethresh, 
+            int *nkeep)
 {
   VOLCLUSTER **vcprune;
   int n;
@@ -415,7 +415,7 @@ VOLCLUSTER **clustPruneBySize(VOLCLUSTER **vclist, int nlist,
 }
 /*------------------------------------------------------------------------*/
 VOLCLUSTER **clustPruneByDistance(VOLCLUSTER **vclist, int nlist, 
-				  float distthresh, int *nkeep)
+          float distthresh, int *nkeep)
 {
   VOLCLUSTER **vcprune;
   int n1, n2, nmax1, nmax2;
@@ -449,34 +449,34 @@ VOLCLUSTER **clustPruneByDistance(VOLCLUSTER **vclist, int nlist,
       /*-- Compare to every other cluster -- */
       keep = 1;
       for(n2=0; n2 < nlist ; n2++){
-	
-	if(n1 == n2) continue; /* dont compare to self */
-	
-	nmax2 = vclist[n2]->maxmember;
-	max2 = vclist[n2]->maxval;
-	x2   = vclist[n2]->x[nmax2];
-	y2   = vclist[n2]->y[nmax2];
-	z2   = vclist[n2]->z[nmax2];
-	
-	/* Compute the distance from the max of one to the max of the
-	   other */
-	d = sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2) );
+  
+  if(n1 == n2) continue; /* dont compare to self */
+  
+  nmax2 = vclist[n2]->maxmember;
+  max2 = vclist[n2]->maxval;
+  x2   = vclist[n2]->x[nmax2];
+  y2   = vclist[n2]->y[nmax2];
+  z2   = vclist[n2]->z[nmax2];
+  
+  /* Compute the distance from the max of one to the max of the
+     other */
+  d = sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2) );
 
-	/* If the distance is less than threshold and the max of the
-	   first is less than the max of the second, throw out the
-	   first (dont worry about the second here */
-	if(d < distthresh && max1 < max2) {
-	  //printf("Pruning %d: (%5.2f %5.2f %5.2f) (%5.2f %5.2f %5.2f) %g\n",
-	  // n1,x1,y1,z1,x2,y2,z2,d);
-	  keep = 0;
-	  break;
-	}
+  /* If the distance is less than threshold and the max of the
+     first is less than the max of the second, throw out the
+     first (dont worry about the second here */
+  if(d < distthresh && max1 < max2) {
+    //printf("Pruning %d: (%5.2f %5.2f %5.2f) (%5.2f %5.2f %5.2f) %g\n",
+    // n1,x1,y1,z1,x2,y2,z2,d);
+    keep = 0;
+    break;
+  }
 
       }/* end n2 loop */
 
       if(keep){
-	if(pass == 2) vcprune[(*nkeep)] = clustCopyCluster(vclist[n1]);
-	(*nkeep) ++;
+  if(pass == 2) vcprune[(*nkeep)] = clustCopyCluster(vclist[n1]);
+  (*nkeep) ++;
       }
 
     }/* end n1 loop */
@@ -510,7 +510,7 @@ VOLCLUSTER *clustCopyCluster(VOLCLUSTER *vc)
 }
 /*----------------------------------------------------------------*/
 VOLCLUSTER **clustCopyClusterList(VOLCLUSTER **vclist, int nlist,
-				  VOLCLUSTER **vclist2)
+          VOLCLUSTER **vclist2)
 {
   int n;
 
@@ -542,7 +542,7 @@ int clustCompareCluster(const void *a, const void *b)
 }
 /*----------------------------------------------------------------*/
 VOLCLUSTER **clustSortClusterList(VOLCLUSTER **vclist, int nlist,
-				  VOLCLUSTER **vcsorted)
+          VOLCLUSTER **vcsorted)
 {
 
   if(vcsorted == NULL) 
@@ -566,7 +566,7 @@ int clustComputeXYZ(VOLCLUSTER *vc, MATRIX *CRS2XYZ)
 
   for(n=0; n < vc->nmembers; n++){
     ConvertCRS2XYZ(vc->col[n],vc->row[n],vc->slc[n], CRS2XYZ,
-		   &(vc->x[n]), &(vc->y[n]), &(vc->z[n]) );
+       &(vc->x[n]), &(vc->y[n]), &(vc->z[n]) );
 
   }
 
@@ -585,16 +585,16 @@ int clustComputeTal(VOLCLUSTER *vc, MATRIX *CRS2MNI)
 
   for(n=0; n < vc->nmembers; n++){
     ConvertCRS2XYZ(vc->col[n],vc->row[n],vc->slc[n], CRS2MNI,
-		   &(vc->x[n]), &(vc->y[n]), &(vc->z[n]) );
+       &(vc->x[n]), &(vc->y[n]), &(vc->z[n]) );
     ConvertMNI2Tal(  vc->x[n],    vc->y[n],   vc->z[n],
-		   &(vc->x[n]), &(vc->y[n]), &(vc->z[n]) );
+       &(vc->x[n]), &(vc->y[n]), &(vc->z[n]) );
   }
 
   return(0);
 }
 /*----------------------------------------------------------------*/
 MRI * clustClusterList2Vol(VOLCLUSTER **vclist, int nlist, MRI *tvol,
-			   int frame, int ValOption)
+         int frame, int ValOption)
 {
   MRI *vol;
   int nthvc, n;
@@ -607,19 +607,19 @@ MRI * clustClusterList2Vol(VOLCLUSTER **vclist, int nlist, MRI *tvol,
   for(nthvc = 0; nthvc < nlist; nthvc++){
     vc = vclist[nthvc];
     for(n = 0; n < vc->nmembers; n++){
-	val = MRIFseq_vox(tvol,vc->col[n],vc->row[n],vc->slc[n],frame);
+  val = MRIFseq_vox(tvol,vc->col[n],vc->row[n],vc->slc[n],frame);
       if(ValOption == 1)
-	MRIFseq_vox(vol,vc->col[n],vc->row[n],vc->slc[n],frame) = val;
+  MRIFseq_vox(vol,vc->col[n],vc->row[n],vc->slc[n],frame) = val;
       else
-	MRIFseq_vox(vol,vc->col[n],vc->row[n],vc->slc[n],frame) = nthvc + 1;
+  MRIFseq_vox(vol,vc->col[n],vc->row[n],vc->slc[n],frame) = nthvc + 1;
     }
   }
   return(vol);
 }
 /*----------------------------------------------------------------*/
 LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
-			  float colres, float rowres, float sliceres, 
-			  MATRIX *FSA2Func)
+        float colres, float rowres, float sliceres, 
+        MATRIX *FSA2Func)
 {
   LABEL *label;
   MATRIX *CRS2Func, *Func2CRS, *Func2FSA;
@@ -629,7 +629,7 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
 
   /* Compute the Cluster XYZ in Functional FOV space */
   Func2CRS = FOVQuantMatrix(vol->width, vol->height, vol->depth, 
-			    colres, rowres, sliceres); 
+          colres, rowres, sliceres); 
   CRS2Func = MatrixInverse(Func2CRS,NULL);
   clustComputeXYZ(vc,CRS2Func);
 
@@ -650,9 +650,9 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
     /* go through functional space in incr of 1 mm */
     for(x = xc - colres/2;   x <= xc + colres/2;  x += 1.0){
       for(y = yc - sliceres/2; y <= yc + sliceres/2; y += 1.0){
-	for(z = zc - rowres/2;   z <= zc + rowres/2;   z += 1.0){
-	  nlabel ++;
-	}
+  for(z = zc - rowres/2;   z <= zc + rowres/2;   z += 1.0){
+    nlabel ++;
+  }
       }
     }
   }
@@ -672,21 +672,21 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
     /* go through functional space in incr of 1 mm */
     for(x = xc - colres/2; x <= xc + colres/2; x += 1.0){
       for(y = yc - sliceres/2; y <= yc + sliceres/2; y += 1.0){
-	for(z = zc - rowres/2; z <= zc + rowres/2; z += 1.0){
+  for(z = zc - rowres/2; z <= zc + rowres/2; z += 1.0){
 
-	  /* convert Functional XYZ FSA XYZ */
-	  xyzFunc->rptr[1][1] = x;
-	  xyzFunc->rptr[2][1] = y;
-	  xyzFunc->rptr[3][1] = z;
-	  MatrixMultiply(Func2FSA,xyzFunc,xyzFSA);
-	  
-	  /* assign fields to label */
-	  label->lv[nlabel].x = rint(xyzFSA->rptr[1][1]);
-	  label->lv[nlabel].y = rint(xyzFSA->rptr[2][1]);
-	  label->lv[nlabel].z = rint(xyzFSA->rptr[3][1]);
-	  label->lv[nlabel].stat   = val;
-	  nlabel ++;
-	}
+    /* convert Functional XYZ FSA XYZ */
+    xyzFunc->rptr[1][1] = x;
+    xyzFunc->rptr[2][1] = y;
+    xyzFunc->rptr[3][1] = z;
+    MatrixMultiply(Func2FSA,xyzFunc,xyzFSA);
+    
+    /* assign fields to label */
+    label->lv[nlabel].x = rint(xyzFSA->rptr[1][1]);
+    label->lv[nlabel].y = rint(xyzFSA->rptr[2][1]);
+    label->lv[nlabel].z = rint(xyzFSA->rptr[3][1]);
+    label->lv[nlabel].stat   = val;
+    nlabel ++;
+  }
       }
     }
   }
@@ -713,7 +713,7 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
   operations.
   ----------------------------------------------------------------*/
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
-			  float *x, float *y, float *z)
+        float *x, float *y, float *z)
 {
   MATRIX *crs, *xyz;
 
@@ -740,7 +740,7 @@ static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
   to do with clustering.
   -----------------------------------------------------------*/
 static int ConvertMNI2Tal(float  xmni, float  ymni, float  zmni,
-			  float *xtal, float *ytal, float *ztal)
+        float *xtal, float *ytal, float *ztal)
 {
   MATRIX *T, *xyzMNI, *xyzTal;
 
@@ -748,17 +748,17 @@ static int ConvertMNI2Tal(float  xmni, float  ymni, float  zmni,
   T = MatrixAlloc(4, 4, MATRIX_REAL);
   if(zmni >= 0.0){
     stuff_four_by_four(T, 
-		       .9900,  .0000, .0000, 0,
-		       .0000,  .9688, .0460, 0,
-		       .0000, -.0485, .9189, 0,
-		       .0000,  .0000, .0000, 1);
+           .9900,  .0000, .0000, 0,
+           .0000,  .9688, .0460, 0,
+           .0000, -.0485, .9189, 0,
+           .0000,  .0000, .0000, 1);
   }
   else {
     stuff_four_by_four(T, 
-		       .9900,  .0000, .0000, 0,
-		       .0000,  .9688, .0420, 0,
-		       .0000, -.0485, .8390, 0,
-		       .0000,  .0000, .0000, 1);
+           .9900,  .0000, .0000, 0,
+           .0000,  .9688, .0420, 0,
+           .0000, -.0485, .8390, 0,
+           .0000,  .0000, .0000, 1);
   }
 
   xyzMNI = MatrixAlloc(4, 1, MATRIX_REAL);
