@@ -1456,9 +1456,22 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
 
 void
 VolumeCollection::MakeHistogram ( int icBins,
-				  float iMinIgnore, float iMaxIgnore,
+				  float iMinThresh, float iMaxThresh,
 				  float& oMinBinValue, float& oBinIncrement,
 				  map<int,int>& oBinCounts ) {
+
+  if( iMinThresh < mMRIMinValue || iMinThresh > mMRIMaxValue ||
+      iMaxThresh < mMRIMinValue || iMaxThresh > mMRIMaxValue ) {
+    throw runtime_error( "Thresh values out of bounds." );
+  }
+
+  if( iMinThresh >= iMaxThresh ) {
+    throw runtime_error( "Min thresh is greater than max thresh." );
+  }
+
+  if( icBins <= 0 ) {
+    throw runtime_error( "Number of bins is less than zero." );
+  }
 
   float binIncrement = (mMRIMaxValue - mMRIMinValue) / (float)icBins;
 
@@ -1473,11 +1486,11 @@ VolumeCollection::MakeHistogram ( int icBins,
       for( index[0] = 0; index[0] < mMRI->width; index[0]++ ) {
 	
 	float value = GetMRINearestValueAtIndexUnsafe( index );
-	if( value >= iMinIgnore && value <= iMaxIgnore )
+	if( value < iMinThresh || value > iMaxThresh )
 	  continue;
 
 	int nBin = (int)floor( (value - mMRIMinValue) / (float)binIncrement );
-	if( nBin == icBins && value == mMRIMaxValue ) { 
+	if( nBin == icBins && value == iMaxThresh ) { 
 	  nBin = icBins-1;
 	}
 	oBinCounts[nBin]++;

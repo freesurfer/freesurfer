@@ -182,6 +182,16 @@ Layer::DataChanged () {
 }
 
 void
+Layer::SetLabel ( string isLabel ) {
+  msLabel = isLabel;
+}
+
+string
+Layer::GetLabel () {
+  return msLabel;
+}
+
+void
 Layer::SetWidth( int iWidth ) { 
   mWidth = iWidth; 
 }

@@ -66,8 +66,8 @@ class Layer : public DebugReporter,
   // request a redisplay.
   virtual void DataChanged ();
 
-  void SetLabel( std::string isLabel ) { msLabel = isLabel; }
-  std::string GetLabel() { return msLabel; }
+  void SetLabel( std::string isLabel );
+  std::string GetLabel();
 
   void SetOpacity( float iOpacity ) { mOpacity = iOpacity; }
   float GetOpacity() { return mOpacity; }

@@ -88,6 +88,13 @@ class ScubaLayer2DMRI : public Layer {
   void SetMaxVisibleValue ( float iValue );
   float GetMaxVisibleValue () { return mMaxVisibleValue; }
 
+  void SetHeatScaleMinThreshold ( float iValue );
+  float GetHeatScaleMinThreshold () { return mHeatScaleMinThreshold; }
+  void SetHeatScaleMidThreshold ( float iValue );
+  float GetHeatScaleMidThreshold () { return mHeatScaleMidThreshold; }
+  void SetHeatScaleMaxThreshold ( float iValue );
+  float GetHeatScaleMaxThreshold () { return mHeatScaleMaxThreshold; }
+
   float GetROIOpacity () { return mROIOpacity; }
   void SetROIOpacity ( float iOpacity ) { mROIOpacity = iOpacity; }
 
@@ -137,6 +144,9 @@ class ScubaLayer2DMRI : public Layer {
   float mBrightness, mContrast;
   //  std::map<int,float> mGrayscaleLUT; // 0-255
   int mGrayscaleLUT[256]; // 0-255
+
+  // For heatScale drawing.
+  float mHeatScaleMinThreshold, mHeatScaleMidThreshold, mHeatScaleMaxThreshold;
 
   // Our look up table.
   ScubaColorLUT* mColorLUT;

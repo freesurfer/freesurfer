@@ -179,7 +179,7 @@ class VolumeCollection : public DataCollection {
 
   // Return a histogram for the entire volume.
   void MakeHistogram ( int icBins, 
-		       float iMinIgnore, float iMaxIgnore,
+		       float iMinThresh, float iMaxThresh,
 		       float& oMinBinValue, float& oBinIncrement,
 		       std::map<int,int>& oBinCounts );
 

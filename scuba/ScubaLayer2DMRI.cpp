@@ -129,8 +129,16 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
 
   mVolume = &iVolume;
 
+  float oneTenth;
+  oneTenth = (mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 10.0;
+
   mVolume->GetMRI();
   SetMinVisibleValue( mVolume->GetMRIMinValue() );
+  SetHeatScaleMaxThreshold( mVolume->GetMRIMaxValue() - oneTenth );
+  SetHeatScaleMidThreshold
+    ( ((mVolume->GetMRIMaxValue() - mVolume->GetMRIMinValue()) / 2.0) + 
+      mVolume->GetMRIMinValue() );
+  SetHeatScaleMinThreshold( mVolume->GetMRIMinValue() + oneTenth );
   SetMaxVisibleValue( mVolume->GetMRIMaxValue() );
 
   mVolume->AddListener( this );
@@ -304,46 +312,46 @@ ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,GLubyte* const iBase,
   if( (!mbClearZero || (mbClearZero && iValue != 0)) &&
        (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) ) {
     
-    float midValue;
-    midValue = (mMaxVisibleValue - mMinVisibleValue) / 2.0 + mMinVisibleValue;
+    float minValue = mHeatScaleMinThreshold;
+    float midValue = mHeatScaleMidThreshold;
+    float maxValue = mHeatScaleMaxThreshold;
     
-    if( fabs(iValue) >= mMinVisibleValue &&
-	fabs(iValue) <= mMaxVisibleValue ) {
+    if( fabs(iValue) >= minValue &&
+	fabs(iValue) <= maxValue ) {
       
       float tmp;
-      if ( fabs(iValue) > mMinVisibleValue &&
+      if ( fabs(iValue) > minValue &&
 	   fabs(iValue) < midValue ) {
-      tmp = fabs(iValue);
-      tmp = (1.0/(midValue-mMinVisibleValue)) *
-	(tmp-mMinVisibleValue)*(tmp-mMinVisibleValue) + 
-	mMinVisibleValue;
-      iValue = (iValue<0) ? -tmp : tmp;
+	tmp = fabs(iValue);
+	tmp = (1.0/(midValue-minValue)) * (tmp-minValue)*(tmp-minValue) + 
+	  minValue;
+	iValue = (iValue<0) ? -tmp : tmp;
       }
       
       /* calc the color */
       float red, green, blue;
       if( iValue >= 0 ) {
-	red = ((iValue<mMinVisibleValue) ? 0.0 : 
+	red = ((iValue<minValue) ? 0.0 : 
 	       (iValue<midValue) ? 
-	       (iValue-mMinVisibleValue)/
-	       (midValue-mMinVisibleValue) :
+	       (iValue-minValue)/
+	       (midValue-minValue) :
 	       1.0);
 	green = ((iValue<midValue) ? 0.0 :
-		 (iValue<mMaxVisibleValue) ? 
+		 (iValue<maxValue) ? 
 		 (iValue-midValue)/
-		 (mMaxVisibleValue-midValue) : 1.0);
+		 (maxValue-midValue) : 1.0);
 	blue = 0.0; 
       } else {
 	iValue = -iValue;
 	red = 0.0;
 	green = ((iValue<midValue) ? 0.0 :
-		 (iValue<mMaxVisibleValue) ? 
+		 (iValue<maxValue) ? 
 		 (iValue-midValue)/
-		 (mMaxVisibleValue-midValue) : 1.0);
-	blue = ((iValue<mMinVisibleValue) ? 0.0 :
+		 (maxValue-midValue) : 1.0);
+	blue = ((iValue<minValue) ? 0.0 :
 		(iValue<midValue) ? 
-		(iValue-mMinVisibleValue)/
-		(midValue-mMinVisibleValue) : 
+		(iValue-minValue)/
+		(midValue-minValue) : 
 		1.0);
       }
       
@@ -1484,7 +1492,7 @@ ScubaLayer2DMRI::SetMinVisibleValue ( float iValue ) {
 
   mMinVisibleValue = iValue; 
   if( mMinVisibleValue >= mMaxVisibleValue ) {
-    mMinVisibleValue = mMinVisibleValue - 1;
+    mMinVisibleValue = mMinVisibleValue - 0.00001;
   }
 }
 
@@ -1492,9 +1500,40 @@ void
 ScubaLayer2DMRI::SetMaxVisibleValue ( float iValue ) { 
   mMaxVisibleValue = iValue; 
   if( mMaxVisibleValue <= mMinVisibleValue ) {
-    mMaxVisibleValue = mMinVisibleValue + 1;
+    mMaxVisibleValue = mMinVisibleValue + 0.00001;
   }
 }
+ 
+void
+ScubaLayer2DMRI::SetHeatScaleMinThreshold ( float iValue ) {
+
+  mHeatScaleMinThreshold = iValue; 
+  if( mHeatScaleMinThreshold >= mHeatScaleMidThreshold ) {
+    mHeatScaleMinThreshold = mHeatScaleMidThreshold - 0.0001;
+  }
+}
+
+void
+ScubaLayer2DMRI::SetHeatScaleMidThreshold ( float iValue ) {
+
+  mHeatScaleMidThreshold = iValue; 
+  if( mHeatScaleMidThreshold <= mHeatScaleMinThreshold ) {
+    mHeatScaleMidThreshold = mHeatScaleMinThreshold + 0.0001;
+  }
+  if( mHeatScaleMidThreshold >= mHeatScaleMaxThreshold ) {
+    mHeatScaleMidThreshold = mHeatScaleMaxThreshold - 0.0001;
+  }
+}
+
+void
+ScubaLayer2DMRI::SetHeatScaleMaxThreshold ( float iValue ) {
+
+  mHeatScaleMaxThreshold = iValue; 
+  if( mHeatScaleMaxThreshold <= mHeatScaleMidThreshold ) {
+    mHeatScaleMaxThreshold = mHeatScaleMidThreshold + 0.0001;
+  }
+}
+
  
 
 // PATHS =================================================================

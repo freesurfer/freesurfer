@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.78 2005/02/08 19:58:52 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.79 2005/02/09 20:44:48 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2084,6 +2084,7 @@ proc MakeViewPropertiesPanel { ifwTop } {
     # Row 4: The table for draw layers.
     frame $fw4 -relief raised -border 2
     tkuMakeNormalLabel $fw4.lwLevel -label "Lvl"
+    tkuMakeNormalLabel $fw4.lwVisible -label "Vis"
     tkuMakeNormalLabel $fw4.lwLocked -label "Lckd"
     tkuMakeNormalLabel $fw4.lwLayer -label "Layer"
 
@@ -2091,6 +2092,10 @@ proc MakeViewPropertiesPanel { ifwTop } {
 
 	tkuMakeNormalLabel $fw4.lw$nLevel \
 	    -label "$nLevel"
+
+	checkbutton $fw4.cbwVisible$nLevel \
+	    -variable gaView(current,visible$nLevel) \
+	    -command "ViewPropertiesLevelVisibleCallback $nLevel"
 
 	checkbutton $fw4.cbwLocked$nLevel \
 	    -variable gaView(current,lockedShuffle$nLevel)
@@ -2104,21 +2109,25 @@ proc MakeViewPropertiesPanel { ifwTop } {
     }
 
     grid $fw4.lwLevel   -column 0 -row 0
-    grid $fw4.lwLocked  -column 1 -row 0
-    grid $fw4.lwLayer   -column 2 -row 0
+    grid $fw4.lwVisible -column 1 -row 0
+    grid $fw4.lwLocked  -column 2 -row 0
+    grid $fw4.lwLayer   -column 3 -row 0
 
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	grid $fw4.lw$nLevel \
 	    -column 0 -row [expr $nLevel + 1] -sticky w
-	grid $fw4.cbwLocked$nLevel  \
+	grid $fw4.cbwVisible$nLevel \
 	    -column 1 -row [expr $nLevel + 1] -sticky w
+	grid $fw4.cbwLocked$nLevel  \
+	    -column 2 -row [expr $nLevel + 1] -sticky w
 	grid $fw4.mwDraw$nLevel \
-	    -column 2 -row [expr $nLevel + 1] -sticky ew
+	    -column 3 -row [expr $nLevel + 1] -sticky ew
     }
 
     grid columnconfigure $fw4 0 -weight 0
     grid columnconfigure $fw4 1 -weight 0
-    grid columnconfigure $fw4 2 -weight 1
+    grid columnconfigure $fw4 2 -weight 0
+    grid columnconfigure $fw4 3 -weight 1
 
     # Row 5: The transform menu.
     frame $fw5
@@ -2888,6 +2897,9 @@ proc SelectViewInViewProperties { iViewID } {
     tkuRefreshEntryNotify $gaWidget(toolProperties,numMarkersEntry)
 
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	set gaView(current,visible$nLevel) \
+	    [GetLevelVisibilityInView $iViewID $nLevel]
+
 	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
 	    config -disablecallback 1
 	set gaView(current,draw$nLevel) \
@@ -2940,6 +2952,13 @@ proc UpdateCurrentViewProperties {} {
     }
 }
 
+proc ViewPropertiesLevelVisibleCallback { inLevel } {
+
+    global gaView
+
+    SetLevelVisibilityInView $gaView(current,id) $inLevel $gaView(current,visible$inLevel)
+    RedrawFrame [GetMainFrameID]
+}
 
 # This builds the view ID list from the current view configuration and
 # populates the menu that selects the view in the view props panel. It
@@ -4568,7 +4587,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.78 2005/02/08 19:58:52 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.79 2005/02/09 20:44:48 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

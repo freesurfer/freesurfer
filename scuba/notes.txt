@@ -406,11 +406,11 @@ x button for zoom in and out
   
 BRUCE'S LIST:::
 
-- alt-c behavior but lock in a layer
+x alt-c behavior but lock in a layer
 
 - goto vertex
 
-- writeable coords for goto
+x writeable coords for goto
 
 - write out voxel intensities on a path
   - Generate Summary tool
@@ -478,17 +478,15 @@ x auto-config on change view modes
 
 x connect keybindings
 
-- get the new layers window working
+x get the new layers window working
   x working on pdmTransform
   x ignore markers for histogram.
-    - doesn't set properly for small_values.mgz
-  - min/mid/max marker for heat scale
+  x min/mid/max marker for heat scale
+  - shuffle layers
+    - locked layers
 
 x default dirs for file dlogs if subject is loaded
 
-QtVolumeHistogram
-  - still crashing sometimes when mousing over bars, rigorous testing
-    - crashes right after "got rect"
 
 - when current layer/data collection change, update menus
   - Save Volume <VolumeName>

@@ -63,6 +63,13 @@ public:
   void RemoveAllLayers ();
   void RemoveLayerAtLevel ( int iLevel );
 
+  // Get the first draw level with no layer assigned to it.
+  int GetFirstUnusedDrawLevel ();
+
+  // If a level is not visible, it won't be drawn.
+  void SetDrawLevelVisibility ( int inLevel, bool ibVisible );
+  bool GetDrawLevelVisibility ( int inLevel );
+
   // Sets the same layers in another view.
   void CopyLayerSettingsToView ( ScubaView& iView );
 
@@ -84,9 +91,6 @@ public:
   // Implement ScubaWindowToRASTranslator.
   void TranslateWindowToRAS ( int const iWindow[2], float oRAS[3] );
   void TranslateRASToWindow ( float const iRAS[3], int oWindow[2] );
-
-  // Get the first draw level with no layer assigned to it.
-  int GetFirstUnusedDrawLevel ();
 
   // Set the flag to rebuild the draw overlay.
   void RebuildOverlayDrawList () { mbRebuildOverlayDrawList = true; }
@@ -203,6 +207,7 @@ protected:
 
   // List of layers and their levels (level, layerID).
   std::map<int,int> mLevelLayerIDMap;
+  std::map<int,bool> mLevelVisibilityMap;
   
   // Current view information for this view.
   ViewState mViewState;

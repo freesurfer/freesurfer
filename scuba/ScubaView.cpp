@@ -120,6 +120,12 @@ ScubaView::ScubaView() {
   commandMgr.AddCommand( *this, "RemoveLayerFromViewAtLevel", 2, 
 			 "viewID layer",
 			 "Remove a layer from a view." );
+  commandMgr.AddCommand( *this, "SetLevelVisibilityInView", 3, 
+			 "viewID level visibility",
+			 "Sets the visibility for a level in a view." );
+  commandMgr.AddCommand( *this, "GetLevelVisibilityInView", 2, 
+			 "viewID level",
+			 "Returns the visibility for a level in a view." );
   commandMgr.AddCommand( *this, "GetLabelValuesSet", 2, "viewID setName",
 			 "Get a set of label value pairs." );
   commandMgr.AddCommand( *this, "GetFirstUnusedDrawLevelInView", 1, "viewID",
@@ -404,6 +410,11 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
 	layer.GetPreferredInPlaneIncrements( mInPlaneMovementIncrements );
       }
 
+      // Start out visible.
+      if( mLevelVisibilityMap.find( iLevel ) == mLevelVisibilityMap.end() ) {
+	mLevelVisibilityMap[iLevel] = true;
+      }
+
       // Listen to it.
       layer.AddListener( this );
 
@@ -439,6 +450,41 @@ void
 ScubaView::RemoveLayerAtLevel ( int iLevel ) {
 
   mLevelLayerIDMap.erase( iLevel );
+}
+
+int
+ScubaView::GetFirstUnusedDrawLevel () {
+
+  int highestLevel = 0;
+  map<int,int>::iterator tLevelLayerID;
+  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+
+    int level = (*tLevelLayerID).first;
+    
+    highestLevel = level + 1;
+  }
+
+  return highestLevel;
+}
+
+void
+ScubaView::SetDrawLevelVisibility ( int inLevel, bool ibVisible ) {
+
+  if( mLevelVisibilityMap[inLevel] != ibVisible ) {
+
+    mLevelVisibilityMap[inLevel] = ibVisible;
+    RequestRedisplay();
+  }
+}
+
+bool
+ScubaView::GetDrawLevelVisibility ( int inLevel ) {
+
+  if( mLevelVisibilityMap.find( inLevel ) == mLevelVisibilityMap.end() ) 
+    mLevelVisibilityMap[inLevel] = true;
+
+  return mLevelVisibilityMap[inLevel];
 }
 
 void 
@@ -712,8 +758,44 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     }
   }
 
-  // RemoveAllLayersFromView <viewID>
-  if( 0 == strcmp( isCommand, "RemoveAllLayersFromView" ) ) {
+  // SetLevelVisibilityInView <viewID> <level> <visibility>
+  if( 0 == strcmp( isCommand, "SetLevelVisibilityInView" ) ) {
+
+    int viewID;
+    try {
+      viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad viewID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      int nLevel;
+      try {
+	nLevel = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad level: ") + e.what();
+	return error;
+      }
+
+      bool bVisible;
+      try {
+	bVisible = TclCommandManager::ConvertArgumentToBoolean( iasArgv[3] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad visibility: ") + e.what();
+	return error;
+      }
+
+      SetDrawLevelVisibility( nLevel, bVisible );
+    }
+  }
+
+  // GetLevelVisibilityInView <viewID> <level>
+  if( 0 == strcmp( isCommand, "GetLevelVisibilityInView" ) ) {
     int viewID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad view ID";
@@ -722,7 +804,17 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     
     if( mID == viewID ) {
       
-      RemoveAllLayers();
+      int nLevel;
+      try {
+	nLevel = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad level: ") + e.what();
+	return error;
+      }
+
+      sReturnValues = TclCommandManager::ConvertBooleanToReturnValue( GetDrawLevelVisibility( nLevel ) );
+      sReturnFormat = "i";
     }
   }
 
@@ -2276,22 +2368,6 @@ ScubaView::GetNthMarker ( int inMarker, float oMarkerRAS[3] ) {
   }
 }
 
-int
-ScubaView::GetFirstUnusedDrawLevel () {
-
-  int highestLevel = 0;
-  map<int,int>::iterator tLevelLayerID;
-  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
-       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
-
-    int level = (*tLevelLayerID).first;
-    
-    highestLevel = level + 1;
-  }
-
-  return highestLevel;
-}
-
 void
 ScubaView::SetFlipLeftRightYZ ( bool iFlip ) {
 
@@ -2459,6 +2535,10 @@ ScubaView::BuildFrameBuffer () {
   map<int,int>::iterator tLevelLayerID;
   for( tLevelLayerID = mLevelLayerIDMap.begin(); 
        tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+
+    int nLevel = (*tLevelLayerID).first;
+    if( !mLevelVisibilityMap[nLevel] ) 
+      continue;
 
     int layerID = (*tLevelLayerID).second;
     try { 
