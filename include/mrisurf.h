@@ -592,7 +592,7 @@ MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
 int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain, 
                                    MRI *mri_wm, float nsigma) ;
 #else
-int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain) ;
+int   MRISmeasureCorticalThickness(MRI_SURFACE *mris) ;
 #endif
 
 int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
