@@ -41,9 +41,9 @@
 ** Author, Date:	Stephen M. Moore, 2-Jun-93
 ** Intent:		This include file defines constants for all of
 **			the standard UIDs defined in the DICOM standard.
-** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:31 $
+** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:36:24 $
 ** Source File:		$RCSfile: dicom_uids.h,v $
-** Revision:		$Revision: 1.2 $
+** Revision:		$Revision: 1.3 $
 ** Status:		$State: Exp $
 */
 
@@ -54,8 +54,8 @@
 extern "C" {
 #endif
 
-#define	MIR_IMPLEMENTATIONCLASSUID		"1.2.840.113654.2.3.1995.3.0.4"
-#define	MIR_IMPLEMENTATIONVERSIONNAME		"MIRCTN17MAY2002"
+#define	MIR_IMPLEMENTATIONCLASSUID		"1.2.840.113654.2.3.1995.3.0.5"
+#define	MIR_IMPLEMENTATIONVERSIONNAME		"MIRCTN13DEC2002"
 #define	MIR_SOPCLASSKILLSERVER			"1.2.840.113654.2.30.1"
 #define	MIR_SOPCLASSRESETSERVER			"1.2.840.113654.2.30.2"
 
@@ -184,6 +184,8 @@ extern "C" {
 #define	DICOM_SOPMODALITYWORKLIST_FIND		"1.2.840.10008.5.1.4.31"
 
 #define	DICOM_SOPGPWORKLIST_FIND		"1.2.840.10008.5.1.4.32.1"
+#define	DICOM_SOPGPSPS				"1.2.840.10008.5.1.4.32.2"
+#define	DICOM_SOPGPPPS				"1.2.840.10008.5.1.4.32.3"
 
 typedef enum {
     UID_PATIENT = 2,

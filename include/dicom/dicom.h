@@ -46,18 +46,19 @@
 **			Radiology.  It also defines unique identifiers
 **			for standard classes and objects defined by the
 **			standard.
-** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:30 $
+** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:36:24 $
 ** Source File:		$RCSfile: dicom.h,v $
-** Revision:		$Revision: 1.2 $
+** Revision:		$Revision: 1.3 $
 ** Status:		$State: Exp $
 */
 
 #ifndef DICOM_IS_IN
 #define DICOM_IS_IN 1
 
-//#ifdef _MSC_VER
+/* RKT - commented this out, don't know why */
+/* #ifdef _MSC_VER */
 #include "dicom_platform.h"
-//#endif
+/* #endif */
 
 #ifdef  __cplusplus
 extern "C" {
@@ -78,8 +79,10 @@ extern "C" {
 ** also want to define INTSIZE and LONGSIZE.
 */
 
-//    short c;
-//    char c;			/* See note above */
+  /* RKT - commented this out, our shorts are ints. but it seems to
+     work anyway. */
+  /*     short c; */
+  /*     char c;  */		/* See note above */
 #endif
 
     typedef unsigned short U16;	/* unsigned, 16 bit */
@@ -101,14 +104,14 @@ extern "C" {
 ** This code will trip the compiler.
 */
 
-//    short c;
-//    char c;			/* See note above */
+  /* RKT - commented this out, our shorts are ints. but it seems to
+     work anyway. */
+  /*     short c; */
+  /*     char c;  */		/* See note above */
 
 #endif
 
 #endif
-
-
 
 #define	FORM_COND(facility, severity, value) \
 	(CONDITION)((((unsigned long)value)<<16) | \

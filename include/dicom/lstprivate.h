@@ -42,9 +42,9 @@
 ** Author, Date:	Thomas R. Leith, xx-May-92
 ** Intent:		This module defines private structures
 **			used by the LST facility.
-** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:31 $
+** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:36:24 $
 ** Source File:		$RCSfile: lstprivate.h,v $
-** Revision:		$Revision: 1.2 $
+** Revision:		$Revision: 1.3 $
 ** Status:		$State: Exp $
 */
 

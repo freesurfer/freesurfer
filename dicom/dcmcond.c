@@ -42,13 +42,13 @@
 ** Intent:		Define the ASCIZ messages that go with each DCM
 **			error number and provide a function for looking up
 **			the error message.
-** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:19 $
+** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:35:44 $
 ** Source File:		$RCSfile: dcmcond.c,v $
-** Revision:		$Revision: 1.2 $
+** Revision:		$Revision: 1.3 $
 ** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.2 $ $RCSfile: dcmcond.c,v $";
+static char rcsid[] = "$Revision: 1.3 $ $RCSfile: dcmcond.c,v $";
 
 #include <stdio.h>
 #include <sys/types.h>

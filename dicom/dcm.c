@@ -86,16 +86,16 @@
 **	and convert the object to and from its "stream" representation.
 **	In addition, the package can parse a file which contains a stream
 **	and create its internal object.
-** Last Update:		$Author: vicka $, $Date: 2003/01/16 17:55:04 $
+** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:35:44 $
 ** Source File:		$RCSfile: dcm.c,v $
-** Revision:		$Revision: 1.7 $
+** Revision:		$Revision: 1.8 $
 ** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.7 $ $RCSfile: dcm.c,v $";
+static char rcsid[] = "$Revision: 1.8 $ $RCSfile: dcm.c,v $";
+
 
 #include "ctn_os.h"
-#include <ctype.h>
 
 #include "dicom.h"
 #include "condition.h"
@@ -165,6 +165,7 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
 
 static CONDITION
     verifyFormat(PRV_ELEMENT_ITEM * item);
+#if 0
 static CONDITION
 readFile(char *name, unsigned char *callerBuf, int fd, long size,
 	 off_t fileOffset, int recursionLevel,
@@ -173,6 +174,7 @@ readFile(char *name, unsigned char *callerBuf, int fd, long size,
 	 void *ctx,
 	 CONDITION(*rd) (void *ctx, void *buf, int toRead, int *bytesRead),
 	 CONDITION(*sk) (void *ctx, int offset, int flag));
+#endif
 static CONDITION
 readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 	  off_t * fileOffset, int recursionLevel,
@@ -277,6 +279,7 @@ DCM_OpenFile(const char *name, unsigned long opt, DCM_OBJECT ** callerObject)
 #endif
     if ((fd < 0) && ((opt & DCM_FILENAMEMASK) == DCM_TRYFILENAMECHANGE)) {
 	char mapName[1024];
+	perror(name);
 	remapFileName(name, mapName);
 #ifdef _MSC_VER
 	fd = open(mapName, O_RDONLY | O_BINARY);
@@ -490,11 +493,11 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 	while ((element = LST_Pop(&group->elementList)) != NULL) {
 	    if (debug)
 		fprintf(stderr, "DCM_CloseObject: Element %08x\n",
-			(int)element->element.tag);
+			element->element.tag);
 	    if (element->element.representation == DCM_SQ) {
 		if (debug)
 		    fprintf(stderr, "Sequence List Address: %x\n",
-			    (int)element->element.d.sq);
+			    element->element.d.sq);
 		if (element->element.d.sq != NULL) {
 		    while ((sequenceItem = LST_Pop(&element->element.d.sq)) != NULL) {
 			(void) DCM_CloseObject(&sequenceItem->object);
@@ -505,7 +508,7 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 	    } else if (element->fragmentFlag) {
 		if (debug)
 		    fprintf(stderr, "Fragment List Address: %x\n",
-			    (int)element->element.d.fragments);
+			    element->element.d.fragments);
 		if (element->element.d.fragments != NULL) {
 		    while ((fragmentItem = LST_Pop(&element->element.d.fragments)) != NULL) {
 			CTN_FREE(fragmentItem);
@@ -514,7 +517,7 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 		}
 	    }
 	    if (debug)
-		fprintf(stderr, "DCM_CloseObject: free %8x\n", (int)element);
+		fprintf(stderr, "DCM_CloseObject: free %8x\n", element);
 
 	    CTN_FREE(element);
 	}
@@ -1464,7 +1467,7 @@ DCM_ImportStream(unsigned char *buf, unsigned long length,
 			       DCM_Message(DCM_ILLEGALOPTION), "Byte order",
 				  "DCM_ImportStream");
 
-    return readFile("", buf, -1, length, 0, 0, opt, callerObject, NULL, NULL,
+    return readFile1("", buf, -1, length, 0, 0, opt, NULL, callerObject, NULL, NULL,
 		    NULL, NULL, NULL);
 }
 
@@ -2413,7 +2416,6 @@ DCM_GetSequenceElement(DCM_OBJECT ** object, DCM_TAG top, DCM_ELEMENT * e)
 {
     PRIVATE_OBJECT **obj;
     CONDITION cond;
-    PRV_GROUP_ITEM *groupItem;
     PRV_ELEMENT_ITEM *elementItem;
     DCM_SEQUENCE_ITEM *seqItem;
 
@@ -3400,7 +3402,7 @@ typedef struct {
     char code[3];
 }   VRMAP;
 
-static VRMAP *vrMap = {
+static VRMAP vrMap[] = {
     {DCM_AE, "AE"},
     {DCM_AS, "AS"},
     {DCM_AT, "AT"},
@@ -3704,7 +3706,7 @@ exportFixedFields(DCM_ELEMENT * e,
 **	    Set caller's rtnLength to the amount of data copied.
 **
 */
-static union {
+union {
     unsigned short sh[2];
     unsigned char ch[4];
 }   groupElement;
@@ -4011,17 +4013,14 @@ exportPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 	int byteOrder, int explicitVR)
 {
   DCM_ELEMENT * element;
-  int nBytes;
   CONDITION cond;
-  U32 toExport;
   U32 bytesExported = 0;
   U32 exportLength = 0;
-  int length;
   U32 rtnLength;
   U32 remainingData;
   unsigned char* dst;
   unsigned char* src;
-  int c;
+  U32 c;
 
   if (encapsulatedPixels) {
     return exportEncapsulatedPixels(object, item, buffer,
@@ -4598,18 +4597,19 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
 	    }
 	}
 	elementItem = LST_Head(&groupItem->elementList);
-	if (elementItem != NULL)
+	if (elementItem != NULL) {
 	    (void) LST_Position(&groupItem->elementList, elementItem);
-	if (DCM_TAG_ELEMENT(elementItem->element.tag) == 0x0000) {
-	    U32 l;
-	    l = computeGroupLength(groupItem, explicitVR);
-	    *elementItem->element.d.ul = l;
+	    if (DCM_TAG_ELEMENT(elementItem->element.tag) == 0x0000) {
+		U32 l;
+		l = computeGroupLength(groupItem, explicitVR);
+		*elementItem->element.d.ul = l;
 
 /* We have some problems computing group length for groups with sequences.
 ** For now, just remove this attribute, except for group 0000 and 0002.
 */
-	    if (groupItem->group != 0x0000 && groupItem->group != 0x0002)
-		elementItem = LST_Next(&groupItem->elementList);
+		if (groupItem->group != 0x0000 && groupItem->group != 0x0002)
+		    elementItem = LST_Next(&groupItem->elementList);
+	    }
 	}
 	while (elementItem != NULL) {
 	    if (c <= 20) {
@@ -4997,6 +4997,7 @@ verifyFormat(PRV_ELEMENT_ITEM * item)
 ** Algorithm:
 **	Description of the algorithm (optional) and any other notes.
 */
+#if 0
 static CONDITION
 readFile(char *name, unsigned char *callerBuf, int fd, long size,
 	 off_t fileOffset, int recursionLevel,
@@ -5496,6 +5497,7 @@ readFile(char *name, unsigned char *callerBuf, int fd, long size,
     }
     return DCM_NORMAL;
 }
+#endif
 
 static CONDITION
 readPreamble(const char *name, unsigned char **ptr, int fd, U32 * size,
@@ -5541,7 +5543,9 @@ readPreamble(const char *name, unsigned char **ptr, int fd, U32 * size,
 
     if (knownLength)
 	*size -= DCM_PREAMBLELENGTH + sizeof(label);
-    *fileOffset += (off_t) DCM_PREAMBLELENGTH + sizeof(label);
+    if (fileOffset != NULL) {
+      *fileOffset += (off_t) DCM_PREAMBLELENGTH + sizeof(label);
+    }
     if (*ptr != NULL)
 	*ptr += DCM_PREAMBLELENGTH + sizeof(label);
     (*object)->objectSize += DCM_PREAMBLELENGTH + sizeof(label);
@@ -5581,15 +5585,23 @@ readGroupElement(const char *name, unsigned char **ptr, int fd, U32 * size,
     }
     if (*ptr == NULL) {
 	if (fd != -1) {
+#ifdef _WIN32
+	    nBytes = _read(fd, buf, 4);
+#else
 	    nBytes = read(fd, buf, 4);
+#endif
 	} else {
 	    cond = (*object)->rd((*object)->userCtx, buf, 4, &nBytes);
 	}
 
-	if (nBytes != 4)
+	if (nBytes != 4) {
+	    perror("");
+	    printf("Bytes read: %d\n", nBytes);
+
 	    return COND_PushCondition(DCM_FILEACCESSERROR,
 				      DCM_Message(DCM_FILEACCESSERROR), name,
 				      "readGroupElement");
+	}
 	localPtr = buf;
     } else {
 	localPtr = *ptr;
@@ -5597,7 +5609,9 @@ readGroupElement(const char *name, unsigned char **ptr, int fd, U32 * size,
 
     if (knownLength)
 	*size -= 4;
-    *fileOffset += (off_t) 4;
+    if (fileOffset != NULL) {
+      *fileOffset += (off_t) 4;
+    }
     if (scannedLength != NULL)
 	(*scannedLength) += 4;
     (*object)->objectSize += 4;
@@ -5654,7 +5668,11 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
     }
     if (*ptr == NULL) {
 	if (fd != -1) {
+#ifdef _WIN32
+	    nBytes = _read(fd, buf, 4);
+#else
 	    nBytes = read(fd, buf, 4);
+#endif
 	} else {
 	    cond = (*object)->rd((*object)->userCtx, buf, 4, &nBytes);
 	}
@@ -5664,12 +5682,16 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 				      DCM_Message(DCM_FILEACCESSERROR), name,
 				      "readVRLength");
 	localPtr = buf;
-    } else
+    } else {
 	localPtr = *ptr;
+	*ptr += 4;
+    }
 
     if (knownLength)
 	*size -= 4;
-    *fileOffset += (off_t) 4;
+    if (fileOffset != NULL) {
+      *fileOffset += (off_t) 4;
+    }
     if (scannedLength != NULL)
 	(*scannedLength) += 4;
     (*object)->objectSize += 4;
@@ -5679,8 +5701,8 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 	explicitVR = FALSE;	/* Special rule for delimitors */
     }
     if (explicitVR) {
-	vrCode[0] = buf[0];
-	vrCode[1] = buf[1];
+	vrCode[0] = localPtr[0];
+	vrCode[1] = localPtr[1];
 	vrCode[2] = '\0';
 	vrPtr = lookupVRCode(vrCode);
 	if (vrPtr == NULL)
@@ -5719,8 +5741,9 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 		GET_SHORT_REVERSE_ORDER(localPtr + 2, shortLength);
 	    }
 	    e->length = shortLength;
-	    if (*ptr != NULL)
+/*	    if (*ptr != NULL)
 		*ptr += 4;
+ */
 	    calculatedLength = TRUE;
 	} else {
 	    if ((*size < 4) && knownLength) {
@@ -5733,7 +5756,11 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 	    }
 	    if (*ptr == NULL) {
 		if (fd != -1) {
+#ifdef _WIN32
+		    nBytes = _read(fd, buf, 4);
+#else
 		    nBytes = read(fd, buf, 4);
+#endif
 		} else {
 		    cond = (*object)->rd((*object)->userCtx, buf, 4, &nBytes);
 		}
@@ -5743,12 +5770,16 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 				     DCM_Message(DCM_FILEACCESSERROR), name,
 					      "readVRLength");
 		localPtr = buf;
-	    } else
+	    } else {
 		localPtr = *ptr;
+		*ptr += 4;
+	    }
 
 	    if (knownLength)
 		*size -= 4;
-	    *fileOffset += (off_t) 4;
+	    if (fileOffset != 0) {
+	      *fileOffset += (off_t) 4;
+	    }
 	    if (scannedLength != NULL)
 		(*scannedLength) += 4;
 	    (*object)->objectSize += 4;
@@ -5760,8 +5791,9 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 	} else {
 	    GET_LONG_REVERSE_ORDER(localPtr, e->length);
 	}
-	if (*ptr != NULL)
+/*	if (*ptr != NULL)
 	    *ptr += 4;
+ */
     }
     if (debug) {
 	char localVR[10];
@@ -5833,7 +5865,9 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
 		    localLength);
 
 	sequenceLength = 0;
-	itemTagOffset = *fileOffset;
+	if (fileOffset != NULL) {
+	  itemTagOffset = *fileOffset;
+	}
 
 	flag = readGroupElement(name, ptr, fd, &localLength, fileOffset, knownLength,
 				byteOrder, explicitVR, acceptVRMismatch, object, &sequenceLength, &tagE);
@@ -5869,7 +5903,8 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
 			     object, &sequenceObject, &sequenceLength,
 			  remainOpenFlag, (*object)->userCtx, (*object)->rd,
 			     (*object)->sk);
-	    *ptr = localPtr;
+	    if (!fileFlag)
+	      *ptr = localPtr + sequenceLength;
 	    if (cond == DCM_NORMAL) {
 		sequenceItem = CTN_MALLOC(sizeof(*sequenceItem));
 		if (sequenceItem == NULL)
@@ -5997,13 +6032,13 @@ readData(const char *name, unsigned char **ptr, int fd, U32 * size,
     int nBytes;
 
     pixelFlag = (e->tag == DCM_PXLPIXELDATA);
-    cond = newElementItem(e, (pixelFlag == FALSE), elementItem);
+    cond = newElementItem(e, ((pixelFlag == FALSE) || (fileFlag == FALSE)), elementItem);
     if (cond != DCM_NORMAL) {
 	(void) DCM_CloseObject((DCM_OBJECT **) object);
 	return cond;
     }
-    if (pixelFlag) {
-	if (fileFlag)
+    if (pixelFlag && fileFlag) {
+/*	if (fileFlag) */
 	    *remainOpenFlag = TRUE;
 	(*elementItem)->byteOrder = byteOrder;
 	(*elementItem)->dataOffset = *fileOffset;
@@ -6060,9 +6095,9 @@ readData(const char *name, unsigned char **ptr, int fd, U32 * size,
 			DCM_Message(DCM_FILEACCESSERROR), name, "readFile");
 	    }
 	} else {
-	    (void) memcpy((*elementItem)->element.d.ot, ptr,
+	    (void) memcpy((*elementItem)->element.d.ot, *ptr,
 			  (*elementItem)->element.length);
-	    ptr += (*elementItem)->originalDataLength;
+	    *ptr += (*elementItem)->originalDataLength;
 	}
 #ifdef LITTLE_ENDIAN_ARCHITECTURE
 	if ((*elementItem)->element.representation == DCM_AT)
@@ -6078,7 +6113,9 @@ readData(const char *name, unsigned char **ptr, int fd, U32 * size,
     }
     if (*size != (long) DCM_UNSPECIFIEDLENGTH)
 	*size -= (*elementItem)->originalDataLength;
-    *fileOffset += (off_t) (*elementItem)->originalDataLength;
+    if (fileOffset != NULL) {
+      *fileOffset += (off_t) (*elementItem)->originalDataLength;
+    }
     if (scannedLength != NULL)
 	(*scannedLength) += (*elementItem)->originalDataLength;
 
@@ -6295,8 +6332,8 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 	else if (flag != DCM_NORMAL)
 	    goto abort;
 #if 0
-	if (e.tag == DCM_MAKETAG(0x003a, 0x1000)) {
-	    fprintf(stderr, "Found waveform\n");
+	if (e.tag == DCM_MAKETAG(0x7fe0, 0x0010)) {
+	    fprintf(stderr, "Found pixels\n");
 	}
 #endif
 	flag = readVRLength(name, &ptr, fd, &size, fileOffset, knownLength,

@@ -42,13 +42,13 @@
 ** Author, Date:	Thomas R. Leith, 15-Apr-93
 ** Intent:		This package implements atomic functions on
 **			linked lists.
-** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:19 $
+** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:35:44 $
 ** Source File:		$RCSfile: lst.c,v $
-** Revision:		$Revision: 1.2 $
+** Revision:		$Revision: 1.3 $
 ** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.2 $ $RCSfile: lst.c,v $";
+static char rcsid[] = "$Revision: 1.3 $ $RCSfile: lst.c,v $";
 
 #include <stdlib.h>
 #include <string.h>

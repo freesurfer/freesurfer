@@ -67,15 +67,13 @@
 **			The stack is maintained as a simple stack array.  If
 **			it overflows, we dump the stack to stdout and reset it.
 **
-** Last Update:		$Author: brucefis $, $Date: 2002/11/12 19:50:33 $
+** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:35:43 $
 ** Source File:		$RCSfile: condition.c,v $
-** Revision:		$Revision: 1.3 $
+** Revision:		$Revision: 1.4 $
 ** Status:		$State: Exp $
 */
 
-#if 0
-static char rcsid[] = "$Revision: 1.3 $ $RCSfile: condition.c,v $";
-#endif
+static char rcsid[] = "$Revision: 1.4 $ $RCSfile: condition.c,v $";
 
 
 /*
@@ -172,8 +170,8 @@ COND_PushCondition(CONDITION cond, char *controlString,...)
 		      EDBStack[stackPtr].statusText);
 
     if (stackPtr >= MAXEDB - 2) {
-      //	dumpstack(stderr);
-      //	fprintf(stderr, "CONDITION Stack overflow\n");
+	dumpstack(stderr);
+	fprintf(stderr, "CONDITION Stack overflow\n");
 	stackPtr = 0;
     }
 #ifdef CTN_USE_THREADS
@@ -461,7 +459,7 @@ dumpstack(FILE * lfp)
         index;
 
     for (index = 0; index <= stackPtr; index++)
-	fprintf(lfp, "%8x %s\n", (unsigned int)EDBStack[index].statusCode,
+	fprintf(lfp, "%8x %s\n", EDBStack[index].statusCode,
 		EDBStack[index].statusText);
 }
 

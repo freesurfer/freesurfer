@@ -44,9 +44,9 @@
 ** Intent:		This module defines function prototypes for the
 **			CONDITION facility which is used to record status
 **			and error messages on a stack.
-** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:30 $
+** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:36:23 $
 ** Source File:		$RCSfile: condition.h,v $
-** Revision:		$Revision: 1.2 $
+** Revision:		$Revision: 1.3 $
 ** Status:		$State: Exp $
 */
 
