@@ -52,7 +52,7 @@
 #include "DICOMRead.h"
 #include "imautils.h"
 #include "cma.h"
-
+#include "Bruker.h"
 #include "bfileio.h"
 
 // unix director separator 
@@ -479,6 +479,10 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   else if(type == SIEMENS_DICOM_FILE)
   {
     mri = sdcmLoadVolume(fname_copy, volume_flag);
+  }
+  else if (type == BRUKER_FILE)
+  {
+    mri = brukerRead(fname_copy, volume_flag);
   }
   else
   {
