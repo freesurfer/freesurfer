@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.13 1999/03/21 19:45:49 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.14 1999/04/18 03:16:53 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -173,7 +173,8 @@ main(int argc, char *argv[])
       break ;
     mri_kernel = MRIgaussian1d(sigma, 100) ;
     fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", sigma) ;
-    mri_smooth = MRIclone(mri_T1, NULL) ;
+    if (!mri_smooth)
+      mri_smooth = MRIclone(mri_T1, NULL) ;
     MRIconvolveGaussian(mri_T1, mri_smooth, mri_kernel) ;
     MRIfree(&mri_kernel) ;
 
