@@ -39,6 +39,7 @@ IMAGE          *Idisplay[MAX_IMAGES] = { NULL } ;
 MRI            *mris[MAX_IMAGES] ;
 int            mri_views[MAX_IMAGES] ;
 int            mri_depths[MAX_IMAGES] ;
+int            mri_frames[MAX_IMAGES] ;
 
 /*----------------------------------------------------------------------
                            STATIC DATA
@@ -288,7 +289,7 @@ XVMRIdrawRegion(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
-XVMRIshow(XV_FRAME *xvf, MRI *mri, int which, int slice)
+XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
 {
   IMAGE  *I ;
   float  mag ;
@@ -298,6 +299,8 @@ XVMRIshow(XV_FRAME *xvf, MRI *mri, int which, int slice)
 
   if (!mri)
     return(NULL) ;
+
+  mri_frames[which] = frame ;
 
   if (slice < 0)  /* set slice to middle of slice direction */
   {
@@ -327,7 +330,7 @@ XVMRIshow(XV_FRAME *xvf, MRI *mri, int which, int slice)
   }
 
   
-  I = MRItoImageView(mri, Idisplay[which], slice, mri_views[which], 0) ;
+  I = MRItoImageView(mri, Idisplay[which], slice, mri_views[which], frame) ;
   if (!I)
     return(NULL) ;
 
@@ -361,6 +364,16 @@ XVMRIshow(XV_FRAME *xvf, MRI *mri, int which, int slice)
 
   mris[which] = mri ;
   return(I) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+XVMRIshow(XV_FRAME *xvf, MRI *mri, int which, int slice)
+{
+  return(XVMRIshowFrame(xvf, mri, which, slice, 0)) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -453,11 +466,13 @@ viewMenuItem(Menu menu, Menu_item menu_item)
       if (dimage2 && mri2 && (dimage2->sync == sync))
       {
         XVMRIsetView(xvf, which2, view) ;
-        XVMRIshow(xvf, mri2, which2, slice) ;
+        XVMRIshowFrame(xvf, mri2, which2, slice, mri_frames[which2]) ;
       }
     }
   }
-  XVMRIshow(xvf, mri, which, slice) ;  /* will reset syncs */
+
+  /* will reset syncs */
+  XVMRIshowFrame(xvf, mri, which, slice, mri_frames[which]) ;  
   if (sync)  /* if they were synced, reinstate it */
     XVsyncAll(xvf, which) ;
 }
@@ -485,7 +500,8 @@ get_next_slice(IMAGE *Iold, int which, int dir)
     else
       offset = 0 ;
 
-    I = MRItoImageView(mri, Idisplay[which], depth-offset, mri_views[which],0);
+    I = MRItoImageView(mri, Idisplay[which], depth-offset, mri_views[which],
+                       mri_frames[which]);
     
     if (!I)
       I = Idisplay[which] ;         /* failed to get next slice */
@@ -513,7 +529,7 @@ XVMRIshowAll(XV_FRAME *xvf)
   int i ;
 
   for (i = 0 ; i < MAX_IMAGES ; i++)
-    XVMRIshow(xvf, mris[i], i, mri_depths[i]) ;
+    XVMRIshowFrame(xvf, mris[i], i, mri_depths[i], mri_frames[i]) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
