@@ -17,6 +17,8 @@
 
 #define NO_NEG_DISTANCE_TERM  0
 #define ONLY_NEG_AREA_TERM    1
+#define POS_AREA_SCALE        0.1
+#define ANGLE_AREA_SCALE      0.0
 
 #define ORIG_AREAS          0
 #define CURRENT_AREAS       1
@@ -2123,14 +2125,32 @@ MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
         Description
 ------------------------------------------------------*/
-#define MAX_AREA   100.0f
+#if 1
+#define MAX_AREA   1000.0f
 #define MIN_AREA   0.01f
 #define AREA_STEP  0.1f /* (MIN_AREA / MAX_AREA)*/
+#else
+#define MAX_AREA   parms->l_area
+#define MIN_AREA   parms->l_area
+#define AREA_STEP  0.1f /* (MIN_AREA / MAX_AREA)*/
+#endif
+
+
+#if 1
+static float area_coefs[] = { 1.0f,   1.0f,  1.0f, 1.0f, 0.1f, 0.01f, 0.001f };
+static float dist_coefs[] = { 0.001f, 0.01f, 0.1f, 1.0f, 1.0f, 1.0f,  1.0f } ;
+#else
+static float area_coefs[] = { 1.0f,  1.0f, 1.0f, 0.1f, 0.01f };
+static float dist_coefs[] = { 0.01f, 0.1f, 1.0f, 1.0f, 1.0f } ;
+#endif
+
+#define NCOEFS  sizeof(area_coefs) / sizeof(area_coefs[0])
+
 
 MRI_SURFACE *
 MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  int     base_averages, n_avgs, done, steps, total_steps ;
+  int     base_averages, n_avgs, done, steps, total_steps, i ;
   double  starting_sse, ending_sse, l_area ;
 
   if (Gdiag & DIAG_SHOW)
@@ -2154,13 +2174,22 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   do
   {
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-    parms->l_area = MIN_AREA ;  /* same as at end of loop */
+    parms->l_area = 1.0f ; 
     starting_sse = mrisComputeSSE(mris, parms) ;
-    for (l_area = MAX_AREA ; l_area >= (MIN_AREA*.9) ; l_area *= AREA_STEP)
+    for (i = 0 ; i < NCOEFS ; i++)
     {
       done = 0 ;
-      parms->l_area = l_area ;
-      fprintf(stderr, "using l_area = %2.2f\n", (float)l_area) ;
+      parms->l_dist = dist_coefs[i] ;
+      parms->l_area = area_coefs[i] ;
+      parms->l_angle = ANGLE_AREA_SCALE * area_coefs[i] ;
+      if (Gdiag & DIAG_SHOW)
+      {
+        float ratio = (float)parms->l_area / (float)parms->l_dist ;
+
+        fprintf(stderr, "area/dist = %2.3f\n", ratio) ;
+        if (Gdiag & DIAG_WRITE)
+          fprintf(parms->fp, "area/dist = %2.3f\n", ratio) ;
+      }
       for (total_steps = 0, n_avgs = base_averages ; !done ; n_avgs /= 2)
       {
         parms->n_averages = n_avgs ;     /* # of averages == scale */
@@ -2175,7 +2204,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         done = n_avgs == parms->min_averages ;
       }
     }
-    parms->l_area = MIN_AREA ;  /* same as at end of loop */
+    parms->l_area = 1.0f ;  /* same as at end of loop */
     ending_sse = mrisComputeSSE(mris, parms) ;
   } while (!FZERO(ending_sse) && ((starting_sse-ending_sse) > parms->tol)) ;
 
@@ -2530,15 +2559,19 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         continue ;
       for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
       {
+        delta = (double)(area_scale*face->area[tno] - face->orig_area[tno]) ;
 #if ONLY_NEG_AREA_TERM
         if (face->area[tno] >= 0.0f)
-          continue ;
+          delta *= POS_AREA_SCALE ;
 #endif
-        delta = (double)(area_scale*face->area[tno] - face->orig_area[tno]) ;
         sse_area += delta*delta ;
         for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
         {
           delta = deltaAngle(face->angle[tno][ano],face->orig_angle[tno][ano]);
+#if ONLY_NEG_AREA_TERM
+        if (face->angle[tno][ano] >= 0.0f)
+          delta *= POS_AREA_SCALE ;
+#endif
           sse_angle += delta*delta ;
         }
         if (!finite(sse_area) || !finite(sse_angle))
@@ -6796,7 +6829,7 @@ mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   VECTOR  *v_a, *v_b, *v_c, *v_d, *v_a_x_n, *v_b_x_n, *v_c_x_n, *v_d_x_n,
           *v_n0, *v_n, *v_n1, *v_tmp, *v_sum ;
   FACE    *face ;
-  float   orig_area0, area0, orig_area1, area1, 
+  float   orig_area0, area0, orig_area1, area1,
           delta0, delta1, l_area, l_angle, delta, len, area_scale ;
 
   if (mris->patch)
@@ -6851,10 +6884,10 @@ mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
 #if ONLY_NEG_AREA_TERM
     /* disable area stuff for positive vertices */
-    if (face->area[0] >= 0.0)
-      delta0 = 0.0f ;
+    if (face->area[0] >= 0.0f)
+      delta0 *= POS_AREA_SCALE ;
     if (face->area[1] >= 0.0f)
-      delta1 = 0.0f ;
+      delta1 *= POS_AREA_SCALE ;
 #endif
 
     if (fno == 1235 || fno == 1237)
@@ -6907,6 +6940,10 @@ mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         case 2: vo = v3 ; va = v2 ; vb = v1 ; break ;
         }
         delta = deltaAngle(face->angle[tno][ano],face->orig_angle[tno][ano]);
+#if ONLY_NEG_AREA_TERM
+        if (face->angle[tno][ano] >= 0.0f)
+          delta *= POS_AREA_SCALE ;
+#endif
         delta *= parms->l_angle ;
         VERTEX_EDGE(v_a, vo, va) ; VERTEX_EDGE(v_b, vo, vb) ;
         
