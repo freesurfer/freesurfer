@@ -60,7 +60,9 @@ static int mincWrite(MRI *mri, char *fname);
 static int bshortWrite(MRI *mri, char *fname_passed);
 static int bfloatWrite(MRI *mri, char *stem);
 static int write_bhdr(MRI *mri, FILE *fp);
+#ifdef READ_BHDR
 static int read_bhdr(MRI *mri, FILE *fp);
+#endif
 static MRI *bshortRead(char *fname_passed, int read_volume);
 static MRI *bfloatRead(char *stem, int read_volume);
 static MRI *genesisRead(char *stem, int read_volume);
@@ -2666,6 +2668,7 @@ static int write_bhdr(MRI *mri, FILE *fp)
 
 } /* end write_bhdr() */
 
+#ifdef READ_BHDR
 int read_bhdr(MRI *mri, FILE *fp)
 {
 
@@ -2804,6 +2807,7 @@ int read_bhdr(MRI *mri, FILE *fp)
   return(NO_ERROR);
 
 } /* end read_bhdr() */
+#endif
 
 static MRI *genesisRead(char *fname, int read_volume)
 {
