@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "annotation.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.1 2002/01/10 00:37:27 fischl Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.2 2002/01/24 17:48:12 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -32,6 +32,7 @@ static char *surf_name = WHITE_MATTER_NAME ;
 static char *thickness_name = "thickness" ;
 static char sdir[STRLEN] ;
 static char *translation_fname = "cma_parcellation_colors.txt" ;
+static int wsize = 7 ;
 
 int
 main(int argc, char *argv[])
@@ -98,16 +99,26 @@ main(int argc, char *argv[])
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
 
-    d = v->curv*.5*0 ;  /* halfway out */
+    d = v->curv*.5 ;  /* halfway out */
     x = v->x+d*v->nx ; y = v->y+d*v->ny ; z = v->z+d*v->nz ;
     MRIworldToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
+    v->annotation = v->val = 
+      MRIfindNearestNonzero(mri_parc, wsize, xw, yw, zw) ;
+#if 0
     v->val = v->annotation = MRIvox(mri_parc, nint(xw), nint(yw), nint(zw)) ;
+#endif
   }
   if (mode_filter)
   {
     printf("mode filtering sample labels...\n") ;
+#if 0
     MRISmodeFilterZeroVals(mris) ;
+#else
+    MRISmodeFilterVals(mris, mode_filter) ;
+#endif
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
@@ -151,10 +162,19 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'V':
+    Gdiag_no = atoi(argv[2]) ;
+    nargs = 1 ;
+    break ;
   case 'F':
     mode_filter = atoi(argv[2]) ;
     nargs = 1 ;
     printf("applying mode filter %d times to parcellation\n", mode_filter) ; 
+    break ;
+  case 'W':
+    wsize = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("using window size=%d for sampling\n", wsize) ;
     break ;
   case 'T':
     thickness_name = argv[2] ;
