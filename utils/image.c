@@ -325,17 +325,39 @@ ImageFReadHeader(FILE *fp, char *fname)
 {
   IMAGE   *I = NULL ;
   int     ecode ;
+  int     type, frame ;
+  char    buf[100] ;
+
+  strcpy(buf, fname) ;   /* don't destroy callers string */
+  fname = buf ;
+  ImageUnpackFileName(fname, &frame, &type, fname) ;
 
   I = (IMAGE *)calloc(1, sizeof(IMAGE)) ;
   if (!I)
     ErrorExit(ERROR_NO_MEMORY, "ImageReadHeader: could not allocate header\n");
-  ecode = fread_header(fp, I, fname) ;
-  if (ecode != HIPS_OK)
+
+  switch (type)
   {
-    fclose(fp) ;
-    ErrorReturn(NULL, (ERROR_NO_FILE, 
-                     "ImageReadHeader(%s): fread_header failed (%d)\n", 
-                     fname, ecode)) ;
+  case MATLAB_IMAGE:
+  {
+    MATFILE mf ;
+    
+    MatReadHeader(fp, &mf) ;
+    init_header(I, "matlab", "seq", 1, "today", (int)mf.mrows, (int)mf.ncols,
+                PFFLOAT, 1, "temp") ;
+  }
+    break ;
+  case HIPS_IMAGE:
+  default:
+    ecode = fread_header(fp, I, fname) ;
+    if (ecode != HIPS_OK)
+    {
+      fclose(fp) ;
+      ErrorReturn(NULL, (ERROR_NO_FILE, 
+                         "ImageReadHeader(%s): fread_header failed (%d)\n", 
+                         fname, ecode)) ;
+    }
+    break ;
   }
 
   return(I) ;
@@ -574,11 +596,15 @@ ImageResize(IMAGE *Isrc, IMAGE *Idst, int drows, int dcols)
   float x_scale, y_scale ;
   int   ecode ;
 
-  if (!Idst)
-    Idst = ImageAlloc(drows, dcols, Isrc->pixel_format, Isrc->num_frame) ;
-
   x_scale = (float)dcols / (float)Isrc->cols ;
   y_scale = (float)drows / (float)Isrc->rows ;
+
+  if (drows == dcols && Isrc->rows == Isrc->cols && (!ISINT(x_scale) ||
+      !ISINT(y_scale)))
+    return(ImageRescale(Isrc, Idst, (float)drows / (float)Isrc->rows)) ;
+
+  if (!Idst)
+    Idst = ImageAlloc(drows, dcols, Isrc->pixel_format, Isrc->num_frame) ;
 
   if (FEQUAL(x_scale, 1.0f))
     ImageCopy(Isrc, Idst) ;
