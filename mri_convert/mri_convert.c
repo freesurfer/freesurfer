@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: ch $
-// Revision Date  : $Date: 2003/10/02 23:03:58 $
-// Revision       : $Revision: 1.69 $
+// Revision Date  : $Date: 2003/10/03 16:56:02 $
+// Revision       : $Revision: 1.70 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
 
   /* ----- keep the compiler quiet ----- */
   mri2 = NULL;
-  forced_in_type = forced_out_type = MRI_VOLUME_TYPE_UNKNOWN;
+  forced_in_type = forced_out_type = forced_template_type = MRI_VOLUME_TYPE_UNKNOWN;
   invert_transform_flag = FALSE;
 
   /* ----- get the program name ----- */
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.69 2003/10/02 23:03:58 ch Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.70 2003/10/03 16:56:02 ch Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
