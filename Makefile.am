@@ -43,7 +43,7 @@ FSLUTILS=fslutils
 
 STATSDIRS=optseq2 spm2bfloat statcombine stat_normalize
 
-MISCDIRS=regdat2xfm brik2bfloat minc_to_bshort test_window_env paint
+MISCDIRS=regdat2xfm brik2bfloat minc_to_bshort test_window_env paint scripts
 
 SUBDIRS=unix dicom hipsstubs rgb utils fsgdf $(MRISUBDIRS) $(MRISSUBDIRS) $(GLSUBDIRS) $(FSGDF) $(FSLUTILS) $(STATSDIRS) \
 $(MISCDIRS) scuba
