@@ -8,10 +8,10 @@
 
       Description:  
 
-  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.6 1996/06/27 18:21:58 fischl Exp $
+  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.7 1996/06/28 18:29:05 fischl Exp $
   $Log: backprop.c,v $
-  Revision 1.6  1996/06/27 18:21:58  fischl
-  windows compatibility
+  Revision 1.7  1996/06/28 18:29:05  fischl
+  don't use fprintf or exit
 
 ----------------------------------------------------------------------*/
 
@@ -32,6 +32,7 @@
 #include "utils.h"
 #include "macros.h"
 #include "proto.h"
+#include "error.h"
 
 /*-----------------------------------------------------------------
               MACROS AND CONSTANTS
@@ -150,24 +151,15 @@ BackpropAlloc(int ninputs, int noutputs, int nhidden, float trate,
   backprop->trate_up = TRATE_INCREASE ;
   backprop->trate_down = TRATE_DECREASE ;
   if (!backprop->mean_out)
-  {
-    fprintf(stderr, "BackpropAlloc: could not output range vector\n") ;
-    exit(-4) ;
-  }
+    ErrorExit(ERROR_BAD_FILE,  "BackpropAlloc: could not output range vector\n") ;
   backprop->std_out = (float *)calloc(noutputs, sizeof(float)) ;
   if (!backprop->std_out)
-  {
-    fprintf(stderr, "BackpropAlloc: could not output range vector\n") ;
-    exit(-4) ;
-  }
+    ErrorExit(ERROR_BAD_FILE,  "BackpropAlloc: could not output range vector\n") ;
   memcpy(backprop->mean_out, mean_out, noutputs*sizeof(float)) ;
   memcpy(backprop->std_out, std_out, noutputs*sizeof(float)) ;
   backprop->errors = (float *)calloc(noutputs, sizeof(float)) ;
   if (!backprop->errors)
-  {
-    fprintf(stderr, "BackpropAlloc: could not allocate error vector\n") ;
-    exit(-3) ;
-  }
+   ErrorExit(ERROR_BAD_FILE,  "BackpropAlloc: could not allocate error vector\n") ;
 
   backprop->trate = trate ;
   bpInitLayer(&backprop->hidden, ninputs, nhidden) ;
@@ -200,13 +192,10 @@ BackpropFileNumberOfNets(char *fname)
     fp = stdin ;
 
   if (fread(&hd, sizeof(hd), 1, fp) != 1)
-  {
-    fprintf(stderr, 
+    ErrorExit(ERROR_BAD_FILE,  
             "BackpropNumberOfNets(%s): could not read header from file\n",
             fname) ;
-    perror(NULL) ;
-    return(-1);
-  }
+            
   DiagPrintf(DIAG_WRITE,"BackpropNumberOfNets(%s): %d nets, 1st at %ld\n",
               fname, hd.nnets, hd.first) ;
   if (hd.magic != BP_MAGIC)  /* try changing byte order */
@@ -217,10 +206,8 @@ BackpropFileNumberOfNets(char *fname)
   }
 
   if (hd.magic != BP_MAGIC)
-  {
-    fprintf(stderr, "BackpropFileNumberOfNets(%s): bad magic #\n", fname) ;
-    return(-1) ;
-  }
+    ErrorReturn(ERROR_BAD_FILE, (ERROR_BAD_FILE, "BackpropFileNumberOfNets(%s): bad magic #\n", 
+                                 fname)) ;
 
   return((int)hd.nnets) ;
 }
@@ -252,12 +239,9 @@ BackpropRead(char *fname, int netno)
     fp = stdin ;
 
   if (fread(&hd, sizeof(hd), 1, fp) != 1)
-  {
-    fprintf(stderr, "BackpropRead(%s): could not read header from file\n",
-            fname) ;
-    perror(NULL) ;
-    return(NULL);
-  }
+    ErrorReturn(NULL, (ERROR_BAD_FILE, 
+      "BackpropRead(%s): could not read header from file\n", fname)) ;
+
   if (hd.magic != BP_MAGIC)  /* try changing byte order */
   {
     hd.magic = swapLong(hd.magic) ;
@@ -266,10 +250,8 @@ BackpropRead(char *fname, int netno)
     swapped = 1 ;
   }
   if (hd.magic != BP_MAGIC)
-  {
-    fprintf(stderr, "BackpropRead(%s): bad magic #\n", fname) ;
-    return(NULL) ;
-  }
+    ErrorReturn(NULL, (ERROR_BAD_FILE, "BackpropRead(%s): bad magic #\n", fname)) ;
+
   if (netno < 0)        /* read last net in file */
     netno = (int)hd.nnets ;
 
@@ -289,43 +271,36 @@ BackpropRead(char *fname, int netno)
   {
     if (fp != stdin)
       fclose(fp) ;
-    fprintf(stderr, "could not scan parameters from bp file %s\n",
-            fname) ;
-    return(NULL) ;
+    ErrorReturn(NULL, (ERROR_BAD_FILE, "could not scan parameters from bp file %s\n", fname)) ;
   }
   min_out = (float *)calloc(noutputs, sizeof(float)) ;
   if (!min_out)
   {
-    fprintf(stderr, "BackpropRead(%s): could not allocate min_out\n",
+    if (fp != stdin) fclose(fp) ;
+    ErrorExit(ERROR_BAD_FILE,  "BackpropRead(%s): could not allocate min_out\n",
             fname) ;
-    if (fp != stdin)
-      fclose(fp) ;
-    exit(-2) ;
   }
   max_out = (float *)calloc(noutputs, sizeof(float)) ;
   if (!max_out)
   {
-    fprintf(stderr, "BackpropRead(%s): could not allocate max_out\n",
-            fname) ;
     if (fp != stdin)
       fclose(fp) ;
-    exit(-2) ;
+    ErrorExit(ERROR_BAD_FILE,  "BackpropRead(%s): could not allocate max_out\n",
+            fname) ;
   }
   if (fread(min_out, sizeof(float), noutputs, fp) != (size_t)noutputs)
   {
-    fprintf(stderr, "BackpropRead(%s): could not read min_out\n",
-            fname) ;
     if (fp != stdin)
       fclose(fp) ;
-    exit(-2) ;
+    ErrorExit(ERROR_BAD_FILE,  "BackpropRead(%s): could not read min_out\n",
+            fname) ;
   }
   if (fread(max_out, sizeof(float), noutputs, fp) != (size_t)noutputs)
   {
-    fprintf(stderr, "BackpropRead(%s): could not read max_out\n",
-            fname) ;
     if (fp != stdin)
       fclose(fp) ;
-    exit(-2) ;
+    ErrorExit(ERROR_BAD_FILE,  "BackpropRead(%s): could not read max_out\n",
+            fname) ;
   }
   if (swapped)
   {
@@ -343,11 +318,9 @@ BackpropRead(char *fname, int netno)
     backprop->user_bytes = ubytes ;
     if (fread(backprop->user, sizeof(char), ubytes, fp) != (size_t)ubytes)
     {
-      fprintf(stderr, "BackpropRead: could not read %d user bytes\n",
-              ubytes) ;
       if (fp != stdin)
         fclose(fp) ;
-      return(NULL) ;
+      ErrorReturn(NULL,(ERROR_BAD_FILE, "BackpropRead: could not read %d user bytes\n",ubytes));
     }
   }
   bpReadLayer(fp, &backprop->hidden) ;
@@ -455,49 +428,30 @@ BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
   case BP_WRITE:   /* create a new file */
     fp = fopen(fname, "w") ;
     if (!fp)
-    {
-      fprintf(stderr, "BackpropWrite(%s): could not create file\n",fname) ;
-      exit(-3) ;
-    }
+      ErrorExit(ERROR_BAD_FILE,  "BackpropWrite(%s): could not create file\n",fname) ;
     hd.nnets = 1 ;
     hd.magic = BP_MAGIC ;
     hd.first = 0L ;   /* will be filled in with ptr to 1st network */
     if (fwrite(&hd, sizeof(hd), 1, fp) != 1)
-    {
-      fprintf(stderr, "BackpropWrite(%s): could not write header\n", fname) ;
-      exit(-1) ;
-    }
+      ErrorExit(ERROR_BAD_FILE,  "BackpropWrite(%s): could not write header\n", fname) ;
     fclose(fp) ;
     fp = fopen(fname, "r+") ;
     if (!fp)
-    {
-      fprintf(stderr,
-              "BackpropWrite(%s): could not create file for appending\n",
+      ErrorExit(ERROR_BAD_FILE, "BackpropWrite(%s): could not create file for appending\n",
               fname) ;
-      exit(-3) ;
-    }
     break ;
   case BP_APPEND:
     fp = fopen(fname, "r+") ;
     if (!fp)
-    {
-      fprintf(stderr,
-              "BackpropWrite(%s): could not create file for appending\n",
-              fname) ;
-      exit(-3) ;
-    }
+      ErrorReturn(-3, (ERROR_BAD_FILE,
+              "BackpropWrite(%s): could not create file for appending\n", fname)) ;
+
     if (fread(&hd, sizeof(hd), 1, fp) != 1)
-    {
-      fprintf(stderr, "BackpropWrite(%s): could not read header from file\n",
-              fname) ;
-      perror(NULL) ;
-      return(-3);
-    }
+      ErrorReturn(-3, (ERROR_BAD_FILE,
+        "BackpropWrite(%s): could not read header from file\n", fname)) ;
+
     if (hd.magic != BP_MAGIC)
-    {
-      fprintf(stderr, "BackpropWrite(%s): bad magic #\n", fname) ;
-      return(-4) ;
-    }
+      ErrorReturn(-4, (ERROR_BAD_FILE, "BackpropWrite(%s): bad magic #\n", fname)) ;
     break ;
   }
 
@@ -506,17 +460,11 @@ BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
 
   /* put NULL pointer to indicate the end of the ptr chain */
   if (fseek(fp, 0L, SEEK_END))
-  {
-    fprintf(stderr,"BackpropWrite(%s): could not seek to end of file\n",fname);
-    exit(2) ;
-  }
+    ErrorExit(ERROR_BAD_FILE, "BackpropWrite(%s): could not seek to end of file\n",fname);
 
   fpos = 0L ;
   if (fwrite(&fpos, sizeof(fpos), 1, fp) != 1)
-  {
-    fprintf(stderr, "BackpropWrite(%s): could not write null\n", fname) ;
-    exit(-1) ;
-  }
+    ErrorExit(ERROR_BAD_FILE,  "BackpropWrite(%s): could not write null\n", fname) ;
 
   DiagPrintf(DIAG_WRITE, "nulls written in file, fpos @ %ld\n", ftell(fp)) ;
   fprintf(fp, "%d %d %d %f %f %d\n",
@@ -525,29 +473,21 @@ BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
 
   if (fwrite(backprop->mean_out, sizeof(float), backprop->noutputs, fp) != 
       (size_t)backprop->noutputs)
-  {
-    fprintf(stderr, "BackpropWrite(%s): could not write min output vector\n",
+    ErrorExit(ERROR_BAD_FILE,  "BackpropWrite(%s): could not write min output vector\n",
             fname) ;
-    exit(-1) ;
-  }
 
   if (fwrite(backprop->std_out, sizeof(float), backprop->noutputs, fp) != 
       (size_t)backprop->noutputs)
-  {
-    fprintf(stderr, "BackpropWrite(%s): could not write max output vector\n",
+    ErrorExit(ERROR_BAD_FILE,  "BackpropWrite(%s): could not write max output vector\n",
             fname) ;
-    exit(-1) ;
-  }
 
   if (backprop->user_bytes > 0)
   {
     if (fwrite(backprop->user, sizeof(char), backprop->user_bytes, fp) != 
         (size_t)backprop->user_bytes)
-    {
-      fprintf(stderr, "BackpropWrite: could not write %d user bytes\n",
-              backprop->user_bytes) ;
-      return(-1) ;
-    }
+      ErrorReturn(ERROR_BAD_FILE,
+                  (ERROR_BAD_FILE, "BackpropWrite: could not write %d user bytes\n",
+                   backprop->user_bytes)) ;
   }
 
   bpWriteLayer(fp, &backprop->hidden) ;
@@ -853,11 +793,8 @@ BackpropTrainEpoch(BACKPROP *bp, int ntrials,
   inputs = (float *)calloc(bp->ninputs, sizeof(float)) ;
   targets = (float *)calloc(bp->noutputs, sizeof(float)) ;
   if (!input_tested | !inputs | !targets)
-  {
-    fprintf(stderr, "BackpropTrainEpoch(%d): could not allocated arrays\n",
+    ErrorExit(ERROR_BAD_FILE,  "BackpropTrainEpoch(%d): could not allocated arrays\n",
             ntrials) ;
-    exit(-3) ;
-  }
 
   /* reset training parameters */
   for (i = 0 ; i < bp->noutputs ; i++)
@@ -1434,10 +1371,8 @@ bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd, int swapped)
   int   err ;
 
   if (fseek(fp, 0L, SEEK_END))
-  {
-    fprintf(stderr, "bpFileNewEnd: could not seek to end\n") ;
-    exit(1) ;
-  }
+    ErrorExit(ERROR_BAD_FILE, "bpFileNewEnd: could not seek to end\n") ;
+
   end = ftell(fp) ;
   
   bpFileSeekEndPtr(fp, hd, swapped) ;
@@ -1445,13 +1380,9 @@ bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd, int swapped)
               end, ftell(fp)) ;
   fseek(fp, 0L, SEEK_CUR) ;
   if ((err = fwrite(&end, sizeof(end), 1, fp)) != 1)
-  {
-    fprintf(stderr, 
+    ErrorExit(ERROR_BAD_FILE, 
             "bpFileNewEnd: %d, could not write new end location %ld @ %ld\n",
             err, end, ftell(fp)) ;
-    perror(NULL) ;
-    exit(-3) ;
-  }
 
   return(ftell(fp)) ;
 }
@@ -1476,16 +1407,10 @@ bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd, int swapped)
   while (next)
   {
     if (fseek(fp, next, SEEK_SET))
-    {
-      fprintf(stderr, "bpFileSeekEndPtr: could not seek to %ld\n", next) ;
-      exit(1) ;
-    }   
+      ErrorExit(ERROR_BAD_FILE, "bpFileSeekEndPtr: could not seek to %ld\n", next) ;
     if (fread(&next, sizeof(next), 1, fp) != 1)
-    {
-      fprintf(stderr, "bpFileNewEnd: could not read pointer @%ld\n",ftell(fp));
-      perror(NULL) ;
-      exit(-1) ;
-    }
+      ErrorExit(ERROR_BAD_FILE, "bpFileNewEnd: could not read pointer @%ld\n",ftell(fp));
+
     if (swapped)
       next = swapLong(next) ;
     DiagPrintf(DIAG_WRITE, "bpFileSeekEnd: next %ld @ %ld\n", next,
@@ -1494,10 +1419,8 @@ bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd, int swapped)
 
   /* file ptr should be at location of end of pointer chain, not beyond it */
   if (fseek(fp, -(long)sizeof(long), SEEK_CUR))
-  {
-    fprintf(stderr, "bpFileSeekEndPtr: could not seek back sizeof(long)\n") ;
-    exit(1) ;
-  }   
+    ErrorExit(ERROR_BAD_FILE, "bpFileSeekEndPtr: could not seek back sizeof(long)\n") ;
+
   return(ftell(fp)) ;
 }
 /*----------------------------------------------------------------------
@@ -1523,26 +1446,16 @@ bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno, int swapped)
   for (index = 0 ; index <= netno ; index++)
   {
     if (fseek(fp, next, SEEK_SET))
-    {
-      fprintf(stderr, "bpFileSeekNet: could not seek to %ld\n", next) ;
-      exit(1) ;
-    }   
+      ErrorExit(ERROR_BAD_FILE, "bpFileSeekNet: could not seek to %ld\n", next) ;
     if (fread(&next, sizeof(next), 1, fp) != 1)
-    {
-      fprintf(stderr, "bpFileSeekNet: could not seek to next pointer\n") ;
-      perror(NULL) ;
-      exit(-1) ;
-    }
+      ErrorExit(ERROR_BAD_FILE, "bpFileSeekNet: could not seek to next pointer\n") ;
+
     if (swapped)
       next = swapLong(next) ;
     DiagPrintf(DIAG_WRITE, "bpFileSeekNet: %d at %ld\n", index, next) ;
   }
   if (fseek(fp, next+sizeof(long), SEEK_SET))
-  {
-    fprintf(stderr, "bpFileSeekNet: could not seek forward sizeof(long)\n") ;
-    perror(NULL) ;
-    exit(-3) ;
-  }
+    ErrorExit(ERROR_BAD_FILE, "bpFileSeekNet: could not seek forward sizeof(long)\n") ;
 
   return(next+sizeof(long)) ;
 }
@@ -1561,36 +1474,24 @@ bpChangeNumberOfNets(FILE *fp, int nnets)
   DiagPrintf(DIAG_WRITE, "bpChangeNumberOfNets(%d)\n", nnets) ;
 
   if (fseek(fp, 0L, SEEK_SET))
-  {
-    fprintf(stderr, 
+    ErrorExit(ERROR_BAD_FILE,  
             "bpChangeNumberOfNets(%d): could not seek to start of file\n",
             nnets) ;
-    perror(NULL) ;
-    exit(-2) ;
-  }
+
   if (fread(&hd, sizeof(hd), 1, fp) != 1)
-  {
-    fprintf(stderr, "bpChangeNumberOfNets(%d): could not read header\n",
+    ErrorExit(ERROR_BAD_FILE, "bpChangeNumberOfNets(%d): could not read header\n",
             nnets) ;
-    perror(NULL) ;
-    exit(-2) ;
-  }
+
   hd.nnets += nnets ;
   if (fseek(fp, 0L, SEEK_SET))
-  {
-    fprintf(stderr, 
+    ErrorExit(ERROR_BAD_FILE, 
             "bpChangeNumberOfNets(%d): could not seek to start of file\n",
             nnets) ;
-    perror(NULL) ;
-    exit(-2) ;
-  }
+
   if (fwrite(&hd, sizeof(hd), 1, fp) != 1)
-  {
-    fprintf(stderr, "bpChangeNumberOfNets(%d): could not write header\n", 
+    ErrorExit(ERROR_BAD_FILE, "bpChangeNumberOfNets(%d): could not write header\n", 
             nnets) ;
-    perror(NULL) ;
-    exit(-1) ;
-  }
+
   return(0) ;
 }
 
