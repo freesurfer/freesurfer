@@ -19,7 +19,7 @@
 #include "cma.h"
 #include "vlabels.h"
 
-static char vcid[] = "$Id: mri_twoclass.c,v 1.6 2002/07/26 20:20:53 fischl Exp $";
+static char vcid[] = "$Id: mri_twoclass.c,v 1.7 2002/07/29 20:07:00 fischl Exp $";
 
 
 /*-------------------------------- STRUCTURES ----------------------------*/
@@ -68,6 +68,8 @@ static int  add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,
 
 static int voxel_to_node(MRI *mri, float resolution, int xv, int yv, int zv, 
                          int *pxn, int *pyn, int *pzn, TRANSFORM *transform) ;
+static int voxel_to_node_float(MRI *mri, float resolution, int xv, int yv, int zv, 
+                               float *pxn, float *pyn, float *pzn, TRANSFORM *transform) ;
 static int node_to_voxel(MRI *mri, float resolution, int xn, int yn, int zn, 
                          int *pxv, int *pyv, int *pzv, TRANSFORM *transform) ;
 static char *xform_fname = "talairach.lta" ;
@@ -584,6 +586,41 @@ add_volume_labels_to_average(MRI *mri, VL ***voxel_labels,float resolution,
 }
 
 static int
+voxel_to_node_float(MRI *mri, float resolution, int xv, int yv, int zv, 
+                    float *pxn, float *pyn, float *pzn, TRANSFORM *transform)
+{
+  float  xt, yt, zt, xscale, yscale, zscale ;
+  int    width, height, depth ;
+
+  TransformSample(transform, xv*mri->xsize, yv*mri->ysize, zv*mri->zsize, &xt, &yt, &zt) ;
+
+  xt = nint(xt/mri->xsize) ; yt = nint(yt/mri->ysize) ; zt = nint(zt/mri->zsize); 
+  width = mri->width/resolution ;
+  height = mri->height/resolution ;
+  depth = mri->depth/resolution ;
+  xscale = mri->xsize / resolution ; 
+  yscale = mri->ysize / resolution ;
+  zscale = mri->zsize / resolution ;
+  *pxn = (xt) * xscale ;
+  if (*pxn < 0)
+    *pxn = 0 ;
+  else if (*pxn >= width)
+    *pxn = width-1 ;
+
+  *pyn = (yt) * yscale ;
+  if (*pyn < 0)
+    *pyn = 0 ;
+  else if (*pyn >= height)
+    *pyn = height-1 ;
+
+  *pzn = (zt) * zscale ;
+  if (*pzn < 0)
+    *pzn = 0 ;
+  else if (*pzn >= depth)
+    *pzn = depth-1 ;
+  return(NO_ERROR) ;
+}
+static int
 voxel_to_node(MRI *mri, float resolution, int xv, int yv, int zv, 
               int *pxn, int *pyn, int *pzn, TRANSFORM *transform)
 {
@@ -863,13 +900,17 @@ static int
 compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm, float resolution,
                              TRANSFORM *transform)
 {
-  int          x, y, z, width, height, depth, label, xv, yv, zv, nholes ;
+  int          x, y, z, width, height, depth, nwidth, nheight, ndepth, label, nholes ;
   MRI          *mri_filled ;
+  float        xvf, yvf, zvf ;
+  int          xm, xp, ym, yp, zm, zp, xv, yv, zv ;
+  Real         xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
 
   mri_filled = MRIalloc(mri_atlas_wm->width, mri_atlas_wm->height, 
                         mri_atlas_wm->depth, MRI_UCHAR) ;
 
   width = mri->width; height = mri->height; depth = mri->height;
+  nwidth = mri_atlas_wm->width; nheight = mri_atlas_wm->height; ndepth = mri_atlas_wm->height;
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -879,15 +920,39 @@ compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm, float resolution,
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         label = MRIvox(mri, x, y, z) ;
-        voxel_to_node(mri, resolution, x, y, z, &xv, &yv, &zv, transform) ;
-        if (xv == Gxn && yv == Gyn && zv == Gzn)
-          printf("(%d, %d, %d) --> (%d,%d,%d), label = %d\n",
-                 x, y, z, xv, yv, zv, label) ;
+        voxel_to_node_float(mri, resolution, x, y, z, &xvf, &yvf, &zvf, transform) ;
 
-        if (xv == Gxn && yv == Gyn && zv == Gzn)
+        if (nint(xvf) == Gxn && nint(yvf) == Gyn && nint(zvf) == Gzn)
+          printf("(%d, %d, %d) --> (%d,%d,%d), label = %d\n",
+                 x, y, z, nint(xvf), nint(yvf), nint(zvf), label) ;
+
+        xm = MAX((int)xvf, 0) ;  xp = MIN(nwidth-1, xm+1) ;
+        ym = MAX((int)yvf, 0) ;  yp = MIN(nheight-1, ym+1) ;
+        zm = MAX((int)zvf, 0) ;  zp = MIN(ndepth-1, zm+1) ;
+
+        xmd = xvf - (float)xm ; ymd = yvf - (float)ym ; zmd = zvf - (float)zm ;
+        xpd = (1.0f - xmd) ;    ypd = (1.0f - ymd) ;    zpd = (1.0f - zmd) ;
+
+        if (nint(xvf) == Gxn && nint(yvf) == Gyn && nint(zvf) == Gzn)
           DiagBreak() ;
-        MRIFvox(mri_atlas_wm, xv, yv, zv) = MRIFvox(mri_atlas_wm, xv, yv, zv) + label ;
-        MRIvox(mri_filled, xv, yv, zv) = 1 ;
+
+        MRIFvox(mri_atlas_wm, xm, ym, zm) = xpd * ypd * zpd * label + MRIFvox(mri_atlas_wm, xm, ym, zm) ;
+        MRIFvox(mri_atlas_wm, xm, ym, zp) = xpd * ypd * zmd * label + MRIFvox(mri_atlas_wm, xm, ym, zp) ;
+        MRIFvox(mri_atlas_wm, xm, yp, zm) = xpd * ymd * zpd * label + MRIFvox(mri_atlas_wm, xm, yp, zm) ;
+        MRIFvox(mri_atlas_wm, xm, yp, zp) = xpd * ymd * zmd * label + MRIFvox(mri_atlas_wm, xm, yp, zp) ;
+        MRIFvox(mri_atlas_wm, xp, ym, zm) = xmd * ypd * zpd * label + MRIFvox(mri_atlas_wm, xp, ym, zm) ;
+        MRIFvox(mri_atlas_wm, xp, ym, zp) = xmd * ypd * zmd * label + MRIFvox(mri_atlas_wm, xp, ym, zp) ;
+        MRIFvox(mri_atlas_wm, xp, yp, zm) = xmd * ymd * zpd * label + MRIFvox(mri_atlas_wm, xp, yp, zm) ;
+        MRIFvox(mri_atlas_wm, xp, yp, zp) = xmd * ymd * zmd * label + MRIFvox(mri_atlas_wm, xp, yp, zp) ;
+
+        MRIvox(mri_filled, xm, ym, zm) = 1 ;
+        MRIvox(mri_filled, xm, ym, zp) = 1 ;
+        MRIvox(mri_filled, xm, yp, zm) = 1 ;
+        MRIvox(mri_filled, xm, yp, zp) = 1 ;
+        MRIvox(mri_filled, xp, ym, zm) = 1 ;
+        MRIvox(mri_filled, xp, ym, zp) = 1 ;
+        MRIvox(mri_filled, xp, yp, zm) = 1 ;
+        MRIvox(mri_filled, xp, yp, zp) = 1 ;
       }
     }
   }
