@@ -6518,43 +6518,11 @@ MRISaverageRadius(MRI_SURFACE *mris)
 int
 MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  int     base_averages, n_averages, done, total_steps, n, write_iterations,
-          niterations, nv, nsmall ;
-  INTEGRATION_PARMS _parms ;
-  double  first_fi, delta_t = 0.0, fi, ici, fi_desired;
-
-  if (!parms)   /* use all defaults */
-  {
-    parms = &_parms ;
-    parms->tol = TOL ;
-    parms->n_averages = N_AVERAGES ;
-    strcpy(parms->base_name, "unfold") ;
-    parms->l_angle = L_ANGLE ;
-    parms->l_area = L_AREA ;
-    parms->niterations = NITERATIONS ;
-    parms->write_iterations = WRITE_ITERATIONS ;
-  }
-  else  /* put in default parameters if not otherwise specified */
-  {
-    if (parms->tol <= 0.0f)
-      parms->tol = TOL ;
-    if (parms->n_averages < 0)
-      parms->n_averages = N_AVERAGES ;
-    if (!strlen(parms->base_name))
-      strcpy(parms->base_name, "inflate") ;
-    if (parms->l_angle < 0.0f)
-      parms->l_angle = L_ANGLE ;
-    if (parms->l_area < 0.0f)
-      parms->l_area = L_AREA ;
-    if (parms->niterations <= 0)
-      parms->niterations = NITERATIONS ;
-    if (parms->write_iterations < 0)
-      parms->write_iterations = WRITE_ITERATIONS ;
-  }
+  int     n_averages, n, write_iterations, niterations ;
+  double  delta_t = 0.0, fi, ici, fi_desired;
 
   write_iterations = parms->write_iterations ;
-  base_averages = parms->n_averages ;
-
+  n_averages = parms->n_averages ;
 
   if (Gdiag & DIAG_WRITE)
   {
@@ -6570,9 +6538,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   mrisProjectSurface(mris) ;
   MRIScomputeSecondFundamentalForm(mris) ;
   parms->start_t = 0 ;
-  nv = mrisValidVertices(mris) ;
   niterations = parms->niterations ;
-  total_steps = 0 ;
   fi_desired = parms->fi_desired ;
   fprintf(stderr, "inflating to desired folding index = %2.3f\n", 
           parms->fi_desired);
@@ -6584,90 +6550,72 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n", 
-            0, 0.0f, (float)ici,(float)fi, parms->n_averages) ;
+            0, 0.0f, (float)ici,(float)fi, n_averages) ;
   else
     fprintf(stderr, "\rstep %3.3d: FI=%2.1f (target=%2.1f)   ", 0, 
             fi, fi_desired);
   if (Gdiag & DIAG_WRITE)
   {
     fprintf(parms->fp, "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n", 
-            0, 0.0f, (float)ici, (float)fi, parms->n_averages) ;
+            0, 0.0f, (float)ici, (float)fi, n_averages) ;
     fflush(parms->fp) ;
   }
 
-  do
+  for (n = 0 ; n < niterations ; n++)
   {
-    done = 0 ;
-    MRIScomputeCurvatureIndices(mris, &ici, &first_fi) ;
-    first_fi = ici ;
-    for (n_averages = base_averages ; !done ; n_averages /= 2)
+    mrisClearGradient(mris) ;
+    mrisComputeDistanceTerm(mris, parms) ;
+    mrisComputeSpringTerm(mris, parms) ;
+    
+    mrisAverageGradients(mris, n_averages) ;
+    switch (parms->integration_type)
     {
-      parms->n_averages = n_averages ;     /* # of averages == scale */
-      mrisClearMomentum(mris) ;
-      nsmall = 0 ;
-      for (n = 0 ; n < niterations ; n++)
-      {
-        mrisClearGradient(mris) ;
-        mrisComputeDistanceTerm(mris, parms) ;
-        mrisComputeSpringTerm(mris, parms) ;
-
-        mrisAverageGradients(mris, n_averages) ;
-        switch (parms->integration_type)
-        {
-        default:
-        case INTEGRATE_LINE_MINIMIZE:
-          delta_t = mrisLineMinimize(mris, parms) ;
-          break ;
-        case INTEGRATE_MOMENTUM:
-          delta_t = mrisMomentumTimeStep(mris, parms) ;
-          break ;
-        case INTEGRATE_ADAPTIVE:
-          mrisAdaptiveTimeStep(mris, parms);
-          break ;
-        }
-        /*
-          only compute the second fundamental form (called from 
-          MRISupdateSurface) every 5th iteration as it is the most
-          expensive part of the inflation.
-          */
-        if (!((n+total_steps+1) % 5))   /* compute curvature also */
-        {
-          MRISupdateSurface(mris) ;
-          MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
-          if (Gdiag & DIAG_SHOW)
-            fprintf(stderr, 
-                    "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n", 
-                    n+total_steps+1,(float)delta_t, (float)ici,(float)fi,
-                    n_averages);
-          else
-            fprintf(stderr, "\rstep %3.3d: FI=%2.1f (target=%2.1f)   ", 
-                    n+total_steps+1, fi, fi_desired) ;
-          if (Gdiag & DIAG_WRITE)
-          {
-            fprintf(parms->fp,
-                    "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n",
-                    n+total_steps+1,(float)delta_t,(float)ici,(float)fi,
-                    n_averages);
-            fflush(parms->fp) ;
-          }
-          if (fi < fi_desired)
-            break ;
-          
-          if ((parms->write_iterations > 0) &&
-              !((total_steps+n+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
-            mrisWriteSnapshot(mris, parms, total_steps+n+1) ;
-        }
-        else
-          MRIScomputeMetricProperties(mris) ;  /* don't compute curvature */
-      }
-      if (fi < fi_desired)  /* done */
-        break ;
-      parms->start_t += n ;
-      total_steps += n ;
-      parms->dt = parms->base_dt ;         /* reset time step */
-      done = n_averages == 0 ;    /* finished integrating at smallest scale */
+    default:
+    case INTEGRATE_LINE_MINIMIZE:
+      delta_t = mrisLineMinimize(mris, parms) ;
+      break ;
+    case INTEGRATE_MOMENTUM:
+      delta_t = mrisMomentumTimeStep(mris, parms) ;
+      break ;
+    case INTEGRATE_ADAPTIVE:
+      mrisAdaptiveTimeStep(mris, parms);
+      break ;
     }
-  } while (fi >= fi_desired) ;
+    /*
+      only compute the second fundamental form (called from 
+      MRISupdateSurface) every 5th iteration as it is the most
+      expensive part of the inflation.
+      */
+    if (!((n+1) % 5))   /* compute curvature also */
+    {
+      MRISupdateSurface(mris) ;
+      MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, 
+                "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n", 
+                n+1,(float)delta_t, (float)ici,(float)fi,
+                n_averages);
+      else
+        fprintf(stderr, "\rstep %3.3d: FI=%2.1f (target=%2.1f)   ", 
+                n+1, fi, fi_desired) ;
+      if (Gdiag & DIAG_WRITE)
+      {
+        fprintf(parms->fp,
+                "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n",
+                n+1,(float)delta_t,(float)ici,(float)fi,
+                n_averages);
+        fflush(parms->fp) ;
+      }
+      
+      if ((parms->write_iterations > 0) &&
+          !((n+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
+        mrisWriteSnapshot(mris, parms, n+1) ;
+      if (fi < fi_desired)
+        break ;
+    }
+    else
+      MRIScomputeMetricProperties(mris) ;  /* don't compute curvature */
+  }
 
   fprintf(stderr, "\ninflation complete.\n") ;
   if (Gdiag & DIAG_WRITE)
