@@ -1,5 +1,6 @@
 #ifndef __GL_RGB_IMAGE_H__
 #define __GL_RGB_IMAGE_H__
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -157,10 +158,5 @@ void swapImage(RGB_IMAGE *image) ;
 #ifndef _IORW
 #define _IORW           0200
 #endif
-
-
-int    RGBwrite(IMAGE *I, char *fname, int frame) ;
-IMAGE *RGBReadImage(char *fname);
-IMAGE *RGBReadHeader(char *fname, IMAGE *);
 
 #endif  /* !__GL_IMAGE_H__ */
