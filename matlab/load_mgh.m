@@ -20,7 +20,7 @@ function [vol, M, mr_parms, ras_xform] = load_mgh(fname,slices,frames)
 %
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh.m,v 1.11 2004/06/01 21:07:33 fischl Exp $
+% $Id: load_mgh.m,v 1.12 2004/06/03 18:14:54 fischl Exp $
 
 vol = [];
 M = [];
@@ -146,8 +146,15 @@ if(slices(1) <= 0 & frames(1) <= 0)
     return;
   end
   vol = reshape(vol,[ndim1 ndim2 ndim3 nframes]);
+	if (gzipped >=0)
+		unix(sprintf('rm %s', fname));
+	end
   return;
 
+end
+
+if (gzipped >=0)
+	unix(sprintf('rm %s', fname));
 end
 
 %----- only gets here if a subest of slices/frames are to be loaded ---------%
@@ -217,9 +224,5 @@ end
 
 fclose(fid) ;
 
-if (gzipped >=0)
-	sprintf('rm /tmp/%s', fname);
-%	unix(sprintf('rm /tmp/%s', fname));
-end
 
 return;
