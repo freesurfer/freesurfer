@@ -511,6 +511,13 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
     GtmpByteImage = ImageAlloc(image->cols, image->rows, PFBYTE, 1) ;
     GtmpByteImage2 = ImageAlloc(image->cols, image->rows, PFBYTE, 1) ;
   }
+  else
+  {
+    GtmpFloatImage->cols = GtmpByteImage->cols = GtmpByteImage2->cols = 
+      image->cols ;
+    GtmpFloatImage->rows = GtmpByteImage->rows = GtmpByteImage2->rows = 
+      image->rows ;
+  }
 
   ImageCopyFrames(image, GtmpFloatImage, frame, 1, 0) ;
   if (dimage->rescale_range || image->num_frame == 1)
@@ -733,6 +740,9 @@ XVshowImageTitle(XV_FRAME *xvf, int which, ...)
 
   row = which / xvf->cols ;
   col = which % xvf->cols ;
+  if (row >= xvf->rows)
+    return(0) ;
+
   item = xvf->dimages[row][col].title_item ;
   str = xvf->dimages[row][col].title_string ;
   vsprintf(str, fmt, args) ;
@@ -802,11 +812,15 @@ xvHipsCommand(Panel_item item, Event *event)
   dimage = xvGetDimage(hips_cmd_source, 0) ;
   if (!dimage)
     return ;
+#if 1
+  ImageWrite(dimage->sourceImage, "out.hipl") ;
+#else
   if (ImageWriteFrames(dimage->sourceImage, "out.hipl", dimage->frame, 1) < 0)
   {
     XVprintf(xvf, 0, "write failed\n") ;
     return(0) ;
   }
+#endif
 
   if (strlen(hips_cmd_str) < 4)
     return(0) ;
@@ -962,6 +976,12 @@ XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
   case XGREEN:
     gc = dimage->greenGC ;
     break ;
+  case XYELLOW:
+    gc = dimage->yellowGC ;
+    break ;
+  case XPURPLE:
+    gc = dimage->purpleGC ;
+    break ;
   case XRED:
   default:
     gc = dimage->redGC ;
@@ -970,6 +990,7 @@ XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
 
   /* convert to window coordinate system */
   scale = dimage->scale ;
+
   x = nint(((float)x) * scale) ;
   y = nint((float)(((dimage->sourceImage->rows) - y)) * scale) ;
   dx = nint((float)dx * scale) ;
