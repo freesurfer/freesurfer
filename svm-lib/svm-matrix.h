@@ -15,7 +15,6 @@
 #define __SVM_MATRIX_H__
 
 #include <stdio.h>
-#include <iostream.h>
 
 #include "svm-vector.h"
 
