@@ -1372,15 +1372,15 @@ MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
   int     width, height, depth, x, y, z;
   float   val ;
 
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
-
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
   if (mri_src->type == MRI_UCHAR && mri_dst->type == MRI_UCHAR)
     return(MRIreplaceValuesUchar(mri_src, mri_dst, in_val, out_val)) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
 
   for (z = 0 ; z < depth ; z++)
   {
@@ -1412,15 +1412,15 @@ MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
   BUFTYPE *psrc, *pdst ;
   BUFTYPE uinval, uoutval;
 
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
-
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
   if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR)
     return(MRIreplaceValues(mri_src, mri_dst, in_val, out_val)) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
 
   // don't do cast too many times.  do it once
   uinval = (BUFTYPE) in_val;
@@ -1506,16 +1506,16 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
   BUFTYPE *pmask ;
   float   val ;
 
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
-
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
   if (mri_src->type != mri_dst->type)
     ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED, "MRImask: src and dst must be same type")) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
 
   for (z = 0 ; z < depth ; z++)
   {
@@ -1551,12 +1551,12 @@ MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
   int     width, height, depth, x, y, z;
   BUFTYPE *pdst, *psrc, *pmask, val, mask_val ;
 
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
-
-  if (!mri_dst)
-    mri_dst = MRIclone(mri_src, NULL) ;
 
   for (z = 0 ; z < depth ; z++)
   {
