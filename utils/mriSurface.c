@@ -50,8 +50,8 @@ Surf_tErr Surf_New ( mriSurfaceRef*  opSurface,
   /* set longest face to nothing */
   this->mfLongestEdge = 0;
   
-  /* save the transformation */
-  this->mTransform = iTransform;
+  /* copy the transformation */
+  Trns_DeepClone( iTransform, &this->mTransform );
   
   /* set the loaded flags */
   this->mabVertexSetLoaded[ Surf_tVertexSet_Main ]     = TRUE; 
