@@ -2454,7 +2454,7 @@ gelxRead(char *fname, int read_volume, int frame)
   mri->imnr0 = 1 ;
   mri->imnr1 = depth;
 
-  mri->ps = 0.001;
+  mri->ps = 1 /*0.001*/;
   mri->tr = 0 ;
   mri->te = 0 ;
   mri->ti = 0 ;
@@ -2591,7 +2591,7 @@ siemensRead(char *fname, int read_volume, int frame)
 
   mri->imnr0 = 1 ;
   mri->imnr1 = ino_max - ino_min + 1;
-  mri->ps = 0.001;
+  mri->ps = 1 /*0.001*/;
   mri->tr = 0 ;
   mri->te = 0 ;
   mri->ti = 0 ;
