@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: check_siemens_dir.c,v 1.3 2003/04/14 22:58:07 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: check_siemens_dir.c,v 1.4 2003/09/04 20:31:37 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
