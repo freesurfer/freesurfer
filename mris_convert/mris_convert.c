@@ -12,7 +12,7 @@
 #include "mrisurf.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.1 1998/01/09 17:36:24 fischl Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.2 1998/01/11 03:05:40 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -97,7 +97,8 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
   }
-  if (patch_flag)
+
+  if (mris->patch)
     MRISwritePatch(mris, out_fname) ;
   else
     MRISwrite(mris, out_fname) ;
