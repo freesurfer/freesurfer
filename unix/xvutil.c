@@ -120,6 +120,8 @@ static void            (*XVkb_handler)(Event *event, DIMAGE *dimage) = NULL;
 static void            (*XVquit_func)(void) = NULL;
 static void            (*XVrepaint_handler)(XV_FRAME *xvf,DIMAGE *dimage)=NULL;
 
+static int             brightness_shift = 0 ;  /* yuck - but what the hell */
+
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -365,6 +367,29 @@ xvInitColors(XV_FRAME *xvf)
 
            Description:
 ----------------------------------------------------------------------*/
+int
+XVbrighten(XV_FRAME *xvf, int offset)
+{
+  int           which ;
+  DIMAGE        *dimage ;
+
+  /* global is a hack, but too much trouble otherwise */
+  brightness_shift += offset ;  
+  for (which = 0 ; which < xvf->rows*xvf->cols; which++)
+  {
+    dimage = xvGetDimage(which, 0) ;
+    if (!dimage)
+      continue ;
+    XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
+  }
+
+  return(NO_ERROR) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
 static void
 xvInitImages(XV_FRAME *xvf)
 {
@@ -445,7 +470,7 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   DIMAGE        *dimage ;
   unsigned long *substtable ;
   byte          bytelut[MAX_COLORS] ;
-  int           i, rows, cols, srows, scols ;
+  int           i, rows, cols, srows, scols, c ;
 
   dimage = xvGetDimage(which, 1) ;
   if (!dimage)
@@ -526,7 +551,14 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   /* use current colormap */
   substtable = (unsigned long *) xv_get(xvf->cms,CMS_INDEX_TABLE);
   for (i=0;i<MAX_COLORS;i++)
-    bytelut[i] = (byte)substtable[i];
+  {
+    c = i + brightness_shift ;
+    if (c < 0)
+      c = 0 ;
+    if (c > MAX_GRAY)
+      c = MAX_GRAY ;
+    bytelut[i] = (byte)substtable[c];
+  }
 #if 0
   if (MAX_COLORS == 64)
     h_shift_b(dimage->dispImage, dimage->dispImage, -2);
@@ -698,6 +730,23 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   default:
     if (!event_is_ascii(event))
       return ;
+    if (event_is_up(event))
+    {
+      switch ((char)event->ie_code)
+      {
+      case '+':
+        XVbrighten(xvf, 1) ;
+        break ;
+      case '-':
+        XVbrighten(xvf, -1) ;
+        break ;
+      case '\n':
+      case '\r':
+        brightness_shift = 0 ;
+        XVbrighten(xvf, 0) ;
+        break ;
+      }
+    }
     break ;
   }
   if (XVevent_handler)
