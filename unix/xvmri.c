@@ -23,6 +23,7 @@
 #include "xvmri.h"
 #include "error.h"
 #include "diag.h"
+#include "histo.h"
 
 /*----------------------------------------------------------------------
                            GLOBAL DATA
@@ -43,7 +44,7 @@ mri_event_handler(XV_FRAME *xvf,int depth,MRI *mri,Event *event,DIMAGE *dimage,
 {
   int       x, y, z ;
   Real      xr, yr, zr ;
-  MRI_HISTO *mrih ;
+  HISTOGRAM *histo ;
   float     fmin, fmax ;
   XV_FRAME  *xvnew ;
 
@@ -107,35 +108,14 @@ mri_event_handler(XV_FRAME *xvf,int depth,MRI *mri,Event *event,DIMAGE *dimage,
       if (event_is_up(event))
       {
         MRIvalRange(mri, &fmin, &fmax) ;
-        mrih = MRIhistogram(mri, (int)(fmax - fmin + 1)) ;
+        histo = MRIhistogram(mri, (int)(fmax - fmin + 1)) ;
         xvnew = XValloc(1, 1, 2, 200, 200, "histogram tool", NULL) ;
-        XVMRIshowHistogram(xvnew, 0, mrih) ;
+        XVshowHistogram(xvnew, 0, histo) ;
         xv_main_loop(xvnew->frame);
-        /*        MRIdumpHistogram(mrih, stderr) ;*/
-        MRIfreeHistogram(&mrih) ;
+        HISTOfree(&histo) ;
         break ;
       }
     }
     break ;
   }
-}
-/*----------------------------------------------------------------------
-            Parameters:
-
-           Description:
-----------------------------------------------------------------------*/
-int
-XVMRIshowHistogram(XV_FRAME *xvf, int which, MRI_HISTO *mrih)
-{
-  int  binno, max_count, nbins ;
-
-  nbins = mrih->nbins ;
-  max_count = 0 ;
-  for (binno = 1 ; binno < nbins ; binno++)  /* ignore 0th bin */
-    if (mrih->counts[binno] > max_count)
-      max_count = mrih->counts[binno] ;
-
-  fprintf(stderr, "max_count = %d\n", max_count) ;
-
-  return(NO_ERROR) ;
 }
