@@ -538,7 +538,8 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   if (((image != dimage->sourceImage) && (image != dimage->oSourceImage)) || 
       (dimage->dx == 0))
   {
-    dimage->oSourceImage = image ;
+    if (image != dimage->sourceImage)  /* not an internal call */
+      dimage->oSourceImage = image ;
     if (dimage->zoomImage != dimage->sourceImage)
       ImageFree(&dimage->zoomImage) ;
     if (dimage->sourceImage != image)
@@ -716,7 +717,8 @@ XVshowImageRange(XV_FRAME *xvf, int which, IMAGE *image, int frame,
   if (((image != dimage->sourceImage) && (image != dimage->oSourceImage)) || 
       (dimage->dx == 0))
   {
-    dimage->oSourceImage = image ;
+    if (image != dimage->sourceImage)  /* not an internal call */
+      dimage->oSourceImage = image ;
     if (dimage->zoomImage != dimage->sourceImage)
       ImageFree(&dimage->zoomImage) ;
     if (dimage->sourceImage != image)
@@ -2495,7 +2497,7 @@ XVshowAllSyncedImages(XV_FRAME *xvf, int which)
   XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
 #endif
 
-  for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
+  if (dimage->sync) for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
   {
     dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
     if (dimage2 && (dimage2->sync == dimage->sync))
