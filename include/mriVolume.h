@@ -71,6 +71,12 @@ typedef enum {
   Volm_tValueComparator_GTE,
   Volm_knNumValueComparators,
 } Volm_tValueComparator;
+/* Optional comparator function for the flood function. Return true
+   for a successful flood, i.e. it should continue on this voxel,and
+   false if not. */
+typedef tBoolean(*Volm_tFloodComparatorFunction)(xVoxelRef  iMRIIdx,
+						 float      iValue,
+						 void*      ipData);
 
 /* This should be kept in sync with the SAMPLE_* constants in mri.h */
 typedef enum {
@@ -90,7 +96,9 @@ typedef struct {
   xVoxel           mSourceIdx;       /* The starting voxel */
   float            mfSourceValue;    /* The value at the starting voxel */
   float            mfFuzziness;      /* The fuzziness for the comparator */
-  Volm_tValueComparator mComparator; /* Compare type */
+  Volm_tValueComparator mComparatorType;          /* Compare type */
+  Volm_tFloodComparatorFunction mComparatorFunc;  /* Compare function */
+  void*            mComparatorFuncData;           /* Compare function data */
   float            mfMaxDistance;    /* Max distance of flood (in voxels) */
   tBoolean         mb3D;             /* Should the fill be in 3D? */
   mri_tOrientation mOrientation;     /* If not, which plane? */

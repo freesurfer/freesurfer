@@ -1890,12 +1890,16 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
   DebugAssertThrowX( (iParams->mfSourceValue >= this->mfMinValue &&
 		      iParams->mfSourceValue <= this->mfMaxValue),
 		     eResult, Volm_tErr_InvalidParamater );
-  DebugAssertThrowX( (iParams->mComparator > Volm_tValueComparator_Invalid &&
-		      iParams->mComparator < Volm_knNumValueComparators),
-		     eResult, Volm_tErr_InvalidParamater );
-  DebugAssertThrowX( (iParams->mOrientation > mri_tOrientation_None &&
-		      iParams->mOrientation < mri_knNumOrientations),
-		     eResult, Volm_tErr_InvalidParamater );
+  if( NULL == iParams->mComparatorFunc ) {
+   DebugAssertThrowX((iParams->mComparatorType>Volm_tValueComparator_Invalid &&
+			iParams->mComparatorType < Volm_knNumValueComparators),
+		       eResult, Volm_tErr_InvalidParamater );
+  }
+  if( FALSE == iParams->mb3D ) {
+    DebugAssertThrowX( (iParams->mOrientation > mri_tOrientation_None &&
+			iParams->mOrientation < mri_knNumOrientations),
+		       eResult, Volm_tErr_InvalidParamater );
+  }
   DebugAssertThrowX( (iParams->mpFunction != NULL),
 		     eResult, Volm_tErr_InvalidParamater );
   
@@ -1939,28 +1943,43 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
       }
       visited[nVisitedIndex] = TRUE;
   
-      /* Get the value and do the comparison. If it's okay, go on, if
+      /* Get the value and do the comparison. If we have a type and
+	 not a function, just look at the values. Otherwise call the
+	 comparator function they gave us. If it's okay, go on, if
 	 not, continue. */
       Volm_GetValueAtIdx_( this, curVoxel, &fValue );
-      switch( iParams->mComparator ) {
-      case Volm_tValueComparator_LTE:
-	if( !(fValue <= iParams->mfSourceValue + iParams->mfFuzziness) ) {
+      if( NULL != iParams->mComparatorFunc ) {
+
+	/* Call the comparator function they gave us. If it returns
+	   false, continue. */
+	if( FALSE == iParams->mComparatorFunc( curVoxel, fValue, 
+					       iParams->mComparatorFuncData )){
 	  continue;
 	}
-	break;
-      case Volm_tValueComparator_EQ:
+
+      } else {
+	
+	/* Compare ths source value and the original value. */
+	switch( iParams->mComparatorType ) {
+	case Volm_tValueComparator_LTE:
+	  if( !(fValue <= iParams->mfSourceValue + iParams->mfFuzziness) ) {
+	    continue;
+	  }
+	  break;
+	case Volm_tValueComparator_EQ:
 	if( !(iParams->mfSourceValue - iParams->mfFuzziness <= fValue &&
 	      fValue <= iParams->mfSourceValue + iParams->mfFuzziness) ) {
 	  continue;
 	}
 	break;
-      case Volm_tValueComparator_GTE:
-	if( !(fValue >= iParams->mfSourceValue - iParams->mfFuzziness) ) {
-	  continue;
+	case Volm_tValueComparator_GTE:
+	  if( !(fValue >= iParams->mfSourceValue - iParams->mfFuzziness) ) {
+	    continue;
+	  }
+	  break;
+	default:
+	  break;
 	}
-	break;
-      default:
-	break;
       }
       
       /* Check distance if >0. if it's over our max distance, exit. */
