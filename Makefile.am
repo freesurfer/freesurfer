@@ -7,7 +7,7 @@ MRISUBDIRS=check_siemens_dir repair_siemens_file mkxsubjreg rbftest rawtocor \
 mri_add_xform_to_header mri_annotation2label mri_auto_fill mri_average mri_build_priors \
 mri_ca_label mri_ca_normalize mri_ca_tissue_parms mri_ca_register mri_ca_train mri_cc mri_cht2p \
 mri_cnr mri_compute_overlap mri_convert mri_convert_mdh mri_copy_values mri_cor2label \
-mri_deface \
+mri_deface mri_hires_register \
 mri_edit_segmentation mri_edit_segmentation_with_surfaces mri_em_register mri_estimate_tissue_parms \
 mri_evaluate_morph mri_extract mri_extract_conditions mri_extract_label \
 mri_fill mri_gca_ambiguous mri_head mri_histo_eq mri_info mri_joint_density \
@@ -20,7 +20,7 @@ mri_segment mri_seghead mri_surfacemask mri_strip_skull mri_strip_subject_info m
 mri_surf2vol mri_surfcluster mri_synthesize \
 mri_tessellate mri_transform mri_train mri_twoclass \
 mri_volcluster mri_volsynth mri_vol2roi mri_vol2surf mri_watershed mri_wmfilter \
-mri_xvolavg mri_threshold
+mri_xvolavg mri_threshold mri_edit_wm_with_aseg mri_make_density_map
 MRISSUBDIRS=stim stim_polar tridec \
 mris_add_template mris_anatomical_stats mris_annot_to_segmentation mris_average_curvature \
 mris_ca_label mris_ca_train mris_classify_thickness mris_compute_acorr mris_compute_overlap mris_convert \

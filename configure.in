@@ -747,14 +747,14 @@ AC_OUTPUT(\
 Makefile \
 unix/Makefile dicom/Makefile rgb/Makefile utils/Makefile hipsstubs/Makefile log/Makefile \
 mris2rgb/Makefile nmovie/Makefile mris_show/Makefile tkmedit/Makefile tkregister/Makefile \
-tkregister2/Makefile tksurfer/Makefile \
+tkregister2/Makefile tksurfer/Makefile mri_hires_register/Makefile \
 check_siemens_dir/Makefile repair_siemens_file/Makefile mkxsubjreg/Makefile \
 rbftest/Makefile rawtocor/Makefile \
 mri_add_xform_to_header/Makefile mri_annotation2label/Makefile mri_auto_fill/Makefile mri_edit_wm_with_aseg/Makefile \
 mri_average/Makefile mri_build_priors/Makefile mri_ca_label/Makefile mri_ca_normalize/Makefile \
 mri_ca_tissue_parms/Makefile mri_ca_register/Makefile mri_ca_train/Makefile mri_cc/Makefile mri_cor2label/Makefile \
 mri_cnr/Makefile mri_compute_overlap/Makefile mri_convert/Makefile mri_convert_mdh/Makefile \
-mri_copy_values/Makefile mri_deface/Makefile mri_edit_segmentation/Makefile \
+mri_copy_values/Makefile mri_deface/Makefile mri_edit_segmentation/Makefile mri_make_density_map/Makefile \
 mri_edit_segmentation_with_surfaces/Makefile mri_em_register/Makefile mri_estimate_tissue_parms/Makefile \
 mri_evaluate_morph/Makefile mri_extract/Makefile mri_extract_conditions/Makefile \
 mri_extract_label/Makefile mri_fill/Makefile mri_gca_ambiguous/Makefile mri_gdfglm/Makefile \
