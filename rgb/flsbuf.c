@@ -9,7 +9,7 @@
 unsigned int iflsbuf(RGB_IMAGE *image, unsigned int c)
 {
   register unsigned short *base;
-  register n, rn;
+  register int n, rn;
   int size;
 
   if ((image->flags&_IOWRT)==0)
