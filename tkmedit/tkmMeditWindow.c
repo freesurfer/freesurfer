@@ -2482,6 +2482,10 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
   static unsigned long int msec1, msec2;
 #endif
 
+#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
+  struct timeval tv;
+#endif
+
   /* verify us. */
   eResult = MWin_Verify ( this );
   if ( MWin_tErr_NoErr != eResult )
@@ -2672,8 +2676,6 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
     
     /* Sleep for a bit to ease off on the CPU. */
 #if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
-  struct timeval tv;
-  
   tv.tv_sec = 0;
   tv.tv_usec = 10000;
   select(0, NULL, NULL, NULL, &tv);
