@@ -756,6 +756,7 @@ distribution/docs/Makefile mri_modify/Makefile \
 utils/test/Makefile \
 mri_watershed/brain_volume/Makefile \
 mri_cht2p/Makefile \
+mri_vol2vol/Makefile \
 dngtester/Makefile \
 dummy/Makefile
  ) 
