@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.39 2003/07/07 20:12:04 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.40 2003/07/08 19:08:13 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -672,9 +672,9 @@ get_option(int argc, char *argv[])
     printf("regularizing covariance to be %2.2f Cclass + %2.2f Cpooled\n",(1-regularize),regularize) ;
 		nargs = 1 ;
   }
-  else if (!stricmp(option, "cross-sequence"))
+  else if (!stricmp(option, "cross-sequence") || !stricmp(option, "cross_sequence"))
   {
-    regularize = .8 ;
+    regularize = .5 ;
 		renormalize_iter = 1 ;
 		renormalize_wsize = 9 ;
 		avgs = 2 ;
@@ -808,6 +808,7 @@ usage_exit(int code)
 {
   printf("usage: %s [options] <input volume(s)> <xform> <gca file>"
          " <output volume>\n\n", Progname) ;
+  printf("\t-cross-sequence              label a volume acquired with sequence different than atlas\n");
   printf("\t-nogibbs                     disable gibbs priors\n");
   printf("\t-wm <path>                   use wm segmentation\n");
   printf("\t-conform                     interpolate volume to be isotropic 1mm^3\n");
