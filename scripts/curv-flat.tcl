@@ -17,10 +17,10 @@ set flatzrot 0
 set flatscale 1.0
 
 #### read default patch view if there
-source $env(MRI_DIR)/lib/tcl/setdefpatchview.tcl
+source $env(FREESURFER_HOME)/lib/tcl/setdefpatchview.tcl
 
 #### read non-cap setenv vars (or ext w/correct rgbname) to override defaults
-source $env(MRI_DIR)/lib/tcl/readenv.tcl
+source $env(FREESURFER_HOME)/lib/tcl/readenv.tcl
 
 #### read curvature (or sulc)
 puts "tksurfer: [file tail $script]: read curvature"
@@ -46,7 +46,7 @@ rotate_brain_x -90
 
 #### save requested rgbs (transforms done here)
 puts "tksurfer: [file tail $script]: save rgb's"
-source $env(MRI_DIR)/lib/tcl/saveflat.tcl
+source $env(FREESURFER_HOME)/lib/tcl/saveflat.tcl
 
 if ![info exists noexit] { exit }
 

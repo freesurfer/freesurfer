@@ -125,9 +125,9 @@ set sourceDir $archiveDir
 #set indexFile  [file join [file dirname $archiveDir] index2.txt ]
 set indexFile  /space/newdata/1/ima_index.txt
 
-set env(MRI_DIR) /space/lyon/1/home/inverse/freesurfer_alpha
-set noArchBin "$env(MRI_DIR)/bin/noarch"
-set archBin "$env(MRI_DIR)/bin/[exec uname]"
+set env(FREESURFER_HOME) /space/lyon/1/home/inverse/freesurfer_alpha
+set noArchBin "$env(FREESURFER_HOME)/bin/noarch"
+set archBin "$env(FREESURFER_HOME)/bin/[exec uname]"
 set cdromDir "/mnt/cdrom"
 
 set mincOnly 0
@@ -1618,7 +1618,7 @@ proc QueryDB {  } \
 
         #load the sql package 
         #the file pkgIndex.tcl must be in same dir as sql.so
-        lappend auto_path $env(MRI_DIR)/local/bin/[exec uname]
+        lappend auto_path $env(FREESURFER_HOME)/local/bin/[exec uname]
         if {[catch {package require Sql} errorMsg]} \
            {
               CreateAlertDialog Error $errorMsg
@@ -3140,7 +3140,7 @@ while  { $ntharg < $argc } {
 
   switch -exact -- $option {
     -unpackimadir2 {
-       set seqcfgfile "$env(MRI_DIR)/scanseq.unpackcfg"
+       set seqcfgfile "$env(FREESURFER_HOME)/scanseq.unpackcfg"
        set unpackimadir_cmd unpackimadir2
        set seqcfgoption "-seqcfg $seqcfgfile"
        #puts stdout "SeqCfgFile $seqcfgfile"

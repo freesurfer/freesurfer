@@ -10,7 +10,7 @@ set offsetsteps 25
 ### maybe just print defaults
 if [info exists justvars] {
   puts "offsetmovie.tcl: ==> print defaults"
-  source $env(MRI_DIR)/lib/tcl/printdef.tcl
+  source $env(FREESURFER_HOME)/lib/tcl/printdef.tcl
   return
 }
 
@@ -19,7 +19,7 @@ if [winfo viewable .] {    ;# make popup
   tmpcontrols "OFFSET MOVIE" { rgbname offsetsteps }
   if {!$userok} { return }
 } else {                   ;# batch scripts; re-read env to override defaults
-  source $env(MRI_DIR)/lib/tcl/readenv.tcl
+  source $env(FREESURFER_HOME)/lib/tcl/readenv.tcl
 }
 
 puts "offsetmovie.tcl: making movie of angle_offsets"

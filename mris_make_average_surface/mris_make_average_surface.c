@@ -16,7 +16,7 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.5 2003/04/17 18:41:34 kteich Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.6 2003/08/05 19:19:17 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -46,7 +46,7 @@ main(int argc, char *argv[])
 	MRI          *mri ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.5 2003/04/17 18:41:34 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.6 2003/08/05 19:19:17 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -55,9 +55,9 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  mdir = getenv("MRI_DIR") ;
+  mdir = getenv("FREESURFER_HOME") ;
   if (!mdir)
-    ErrorExit(ERROR_BADPARM, "%s: no MRI_DIR in envoronment.\n",Progname);
+    ErrorExit(ERROR_BADPARM, "%s: no FREESURFER_HOME in envoronment.\n",Progname);
   sdir = getenv("SUBJECTS_DIR") ;
   if (!sdir)
     ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n",Progname);

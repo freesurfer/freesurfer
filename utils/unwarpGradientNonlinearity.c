@@ -444,21 +444,21 @@ int uGN_loadGradientData(char *unwarp_gradientType,
   FILE *fp;
   float tmpMat[16];
   int numEls;
-  char *MRI_DIR;
+  char *FREESURFER_HOME;
   char dataFile[STRLEN];
   float tmpF;
   int tmpI;
   int BYTESWAP = 0;
   char fileDescriptor[STRLEN];
 
-  MRI_DIR = getenv("MRI_DIR");
-  if(!MRI_DIR)
+  FREESURFER_HOME = getenv("FREESURFER_HOME");
+  if(!FREESURFER_HOME)
     {
-      printf("Error: MRI_DIR not defined\n");
+      printf("Error: FREESURFER_HOME not defined\n");
       exit(1);
     }      
 
-  strcpy(dataFile, MRI_DIR);
+  strcpy(dataFile, FREESURFER_HOME);
 
   /* Determine gradient type: sonata or allegra */
   if(strcmp(unwarp_gradientType, "sonata")  == 0)
@@ -503,7 +503,7 @@ int uGN_loadGradientData(char *unwarp_gradientType,
   {
     printf("Error: because floats or ints are not 4-bytes\n");
     printf("on this architecture, there was a problem reading\n");
-    printf("in the distortion offset data in %s/data/\n", MRI_DIR);
+    printf("in the distortion offset data in %s/data/\n", FREESURFER_HOME);
     exit(1);
   }
     }

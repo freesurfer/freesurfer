@@ -32,7 +32,7 @@ set offset 0.20         ;# default lighting offset
 set statflag 0          ;# default Fourier (no F stats)
 
 #### read non-cap setenv vars (or ext w/correct rgbname) to override defaults
-source $env(MRI_DIR)/lib/tcl/readenv.tcl
+source $env(FREESURFER_HOME)/lib/tcl/readenv.tcl
 
 #### read curvature (or sulc)
 puts "tksurfer: [file tail $script]: read curvature"
@@ -74,12 +74,12 @@ do_lighting_model -1 -1 -1 -1 $offset ;# -1 => nochange; diffuse curv (def=0.15)
 
 #### save requested rgbs
 puts "tksurfer: [file tail $script]: save rgb's"
-source $env(MRI_DIR)/lib/tcl/saveviews.tcl
+source $env(FREESURFER_HOME)/lib/tcl/saveviews.tcl
 
 #### save phasemovie
 if [info exists phasemovie] {
   puts "tksurfer: [file tail $script]: save phasemovie"
-  source $env(MRI_DIR)/lib/tcl/phasemovie.tcl
+  source $env(FREESURFER_HOME)/lib/tcl/phasemovie.tcl
 }
 
 if ![info exists noexit] { exit }

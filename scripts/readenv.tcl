@@ -43,7 +43,7 @@ if [info exists rgbname] {
 ### maybe just print defaults
 if [info exists justvars] {
   puts "readenv.tcl: ==> print defaults"
-  source $env(MRI_DIR)/lib/tcl/printdef.tcl
+  source $env(FREESURFER_HOME)/lib/tcl/printdef.tcl
   exit
 }
 

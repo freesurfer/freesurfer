@@ -18115,7 +18115,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.47 2003/08/01 16:18:21 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.48 2003/08/05 19:19:25 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18136,9 +18136,9 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* get tksurfer tcl startup script location from environment */
-  envptr = getenv("MRI_DIR");
+  envptr = getenv("FREESURFER_HOME");
   if (envptr==NULL) {
-    printf("tksurfer: env var MRI_DIR undefined (use setenv)\n");
+    printf("tksurfer: env var FREESURFER_HOME undefined (use setenv)\n");
     printf("    [dir containing mri distribution]\n");
     exit(0);
   }
@@ -18154,8 +18154,8 @@ int main(int argc, char *argv[])   /* new main */
      2) tksurfer.tcl in local dir
      3) tksurfer.new.tcl in TKSURFER_SCRIPTS_DIR
      4) tksurfer.tcl in TKSURFER_SCRIPTS_DIR
-     5) tksurfer.new.tcl in MRI_DIR/lib/tcl
-     6) tksurfer.tcl in MRI_DIR/lib/tcl
+     5) tksurfer.new.tcl in FREESURFER_HOME/lib/tcl
+     6) tksurfer.tcl in FREESURFER_HOME/lib/tcl
   */
   
   found_script = FALSE;
@@ -18223,7 +18223,7 @@ int main(int argc, char *argv[])   /* new main */
   
   /* end rkt */
   
-  /* look for script: (1) cwd, (2) MRI_DIR/lib/tcl, (3) [same]/alias.tcl */
+  /* look for script: (1) cwd, (2) FREESURFER_HOME/lib/tcl, (3) [same]/alias.tcl */
   sprintf(script_tcl,"%s/lib/tcl/twocond-views.tcl",envptr);  /* default */
   if (argc==6) 
     {
@@ -18239,7 +18239,7 @@ int main(int argc, char *argv[])   /* new main */
 	  
 	  strcpy(script_tcl,argv[5]);
 	  fp = fopen(script_tcl,"r");  /* first, look in cwd */
-	  if (fp==NULL)                /* then MRI_DIR/lib/tcl dir */
+	  if (fp==NULL)                /* then FREESURFER_HOME/lib/tcl dir */
 	    {
 	      sprintf(script_tcl,"%s/lib/tcl/%s",envptr,argv[5]);
 	      fp = fopen(script_tcl,"r");

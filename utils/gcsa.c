@@ -76,9 +76,9 @@ GCSAalloc(int ninputs, int icno_priors, int icno_classifiers)
   gcsa->icno_priors = icno_priors ;
   gcsa->icno_classifiers = icno_classifiers ;
   gcsa->ninputs = ninputs ;
-  cp = getenv("MRI_DIR") ;
+  cp = getenv("FREESURFER_HOME") ;
   if (!cp)
-    ErrorExit(ERROR_BADPARM,"%s: MRI_DIR not defined in environment",Progname);
+    ErrorExit(ERROR_BADPARM,"%s: FREESURFER_HOME not defined in environment",Progname);
   /* generate a lower-res table for the classifiers */
   sprintf(fname, "%s/lib/bem/ic%d.tri", cp, icno_classifiers) ;
   gcsa->mris_classifiers = ICOread(fname) ; 

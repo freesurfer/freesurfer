@@ -20,7 +20,7 @@
 #include "histo.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.11 2003/07/22 18:46:27 tosa Exp $";
+static char vcid[] = "$Id: mris_ms_refine.c,v 1.12 2003/08/05 19:19:17 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -301,7 +301,7 @@ main(int argc, char *argv[])
   EXTRA_PARMS   ep ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.11 2003/07/22 18:46:27 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.12 2003/08/05 19:19:17 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -372,10 +372,10 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read FLASH transform from %s...\n", 
               Progname, fname) ;
 
-  cp = getenv("MRI_DIR") ;
+  cp = getenv("FREESURFER_HOME") ;
   if (!cp)
     ErrorExit(ERROR_BADPARM, 
-              "%s: MRI_DIR not defined in environment.\n", Progname) ;
+              "%s: FREESURFER_HOME not defined in environment.\n", Progname) ;
   strcpy(mdir, cp) ;
 
 

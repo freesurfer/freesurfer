@@ -36,7 +36,7 @@ if [info exists justvars] {
   puts "phasemovie.tcl: ==> print defaults"
   puts "  setenv phasemovie: save default phasemovie using most recent view"
   puts "  (sequence of) single views still shown but not saved"
-  source $env(MRI_DIR)/lib/tcl/printdef.tcl
+  source $env(FREESURFER_HOME)/lib/tcl/printdef.tcl
   return
 }
 
@@ -45,7 +45,7 @@ if [winfo viewable .] {    ;# make popup
   tmpcontrols "PHASE MOVIE" { rgbname phasemin phasemax phasewidth phasesteps }
   if {!$userok} { return }
 } else {                   ;# batch scripts; re-read env to override defaults
-  source $env(MRI_DIR)/lib/tcl/readenv.tcl
+  source $env(FREESURFER_HOME)/lib/tcl/readenv.tcl
 }
 
 if { [info exists nosave] } {

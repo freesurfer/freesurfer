@@ -13,7 +13,7 @@
 #include "proto.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.14 2003/04/16 19:00:13 kteich Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.15 2003/08/05 19:19:17 kteich Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -80,7 +80,7 @@ main(int argc,char *argv[])
   MRI   *mri_src, *mri_dst ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_wmfilter.c,v 1.14 2003/04/16 19:00:13 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_wmfilter.c,v 1.15 2003/08/05 19:19:17 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -118,10 +118,10 @@ main(int argc,char *argv[])
     printf("environment variable SUBJECTS_DIR undefined (use setenv)\n");
     exit(0);
   }
-  mri_dir = getenv("MRI_DIR");
+  mri_dir = getenv("FREESURFER_HOME");
   if (mri_dir==NULL)
   {
-    printf("environment variable MRI_DIR undefined (use setenv)\n");
+    printf("environment variable FREESURFER_HOME undefined (use setenv)\n");
     exit(0);
   }
   

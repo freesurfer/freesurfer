@@ -1,13 +1,13 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.58 2003/08/04 15:15:09 kteich Exp $
+# $Id: tkmedit.tcl,v 1.59 2003/08/05 19:19:23 kteich Exp $
 
 
-source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
+source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
 
 foreach sSourceFileName { tkm_wrappers.tcl } {
 
-    set lPath [list "." "../scripts" "$env(MRI_DIR)/lib/tcl"]
+    set lPath [list "." "../scripts" "$env(FREESURFER_HOME)/lib/tcl"]
     set bFound 0
 
     foreach sPath $lPath {
@@ -29,7 +29,7 @@ foreach sSourceFileName { tkm_wrappers.tcl } {
 
 # constants
 set ksWindowName "TkMedit Tools"
-set ksImageDir   "$env(MRI_DIR)/lib/images/"
+set ksImageDir   "$env(FREESURFER_HOME)/lib/images/"
 
 # mri_tOrientation
 set mri_tOrientation_Coronal    0
@@ -308,8 +308,8 @@ proc BuildShortcutDirsList {} {
     if { [info exists env(FREESURFER_DATA)] } {
 	lappend glShortcutDirs $env(FREESURFER_DATA)
     }
-    if { [info exists env(MRI_DIR)] } {
-	lappend glShortcutDirs $env(MRI_DIR)
+    if { [info exists env(FREESURFER_HOME)] } {
+	lappend glShortcutDirs $env(FREESURFER_HOME)
     }
     if { [info exists env(PWD)] } {
 	lappend glShortcutDirs $env(PWD)
@@ -704,8 +704,8 @@ proc GetDefaultLocation { iType } {
 	    Segmentation_ColorTable { 
 		if { $gsSegmentationColorTable != "" } {
 		    set gsaDefaultLocation($iType) $gsSegmentationColorTable
-		} elseif { [info exists env(CSURF_DIR)] } {
-		    set gsaDefaultLocation($iType) $env(CSURF_DIR)/
+		} elseif { [info exists env(FREESURFER_HOME)] } {
+		    set gsaDefaultLocation($iType) $env(FREESURFER_HOME)/
 		} else {
 		    set gsaDefaultLocation($iType) $gsSubjectDirectory 
 		}
@@ -721,8 +721,8 @@ proc GetDefaultLocation { iType } {
 		set gsaDefaultLocation($iType) ""
 	    }
 	    LoadGCA_Volume - SaveGCA {
-		if { [info exists env(CSURF_DIR)] } {
-		    set gsaDefaultLocation($iType) $env(CSURF_DIR)/average
+		if { [info exists env(FREESURFER_HOME)] } {
+		    set gsaDefaultLocation($iType) $env(FREESURFER_HOME)/average
 		} else {
 		    set gsaDefaultLocation($iType) $gsSubjectDirectory
 		}

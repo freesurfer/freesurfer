@@ -1,17 +1,17 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.47 2003/07/31 21:12:35 kteich Exp $
+# $Id: tksurfer.tcl,v 1.48 2003/08/05 19:19:23 kteich Exp $
 
 package require BLT;
 
-source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
+source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
 
 foreach sSourceFileName { tkm_wrappers.tcl fsgdfPlot.tcl } {
 
     set sScriptsDir ""
     catch { set sScriptsDir "$env(TKSURFER_SCRIPTS_DIR)" }
     set sMRIDir ""
-    catch { set sMRIDir "$env(MRI_DIR)/lib/tcl" }
+    catch { set sMRIDir "$env(FREESURFER_HOME)/lib/tcl" }
 
     set lPath [list "." $sScriptsDir "../scripts" $sMRIDir]
     set bFound 0
@@ -36,7 +36,7 @@ foreach sSourceFileName { tkm_wrappers.tcl fsgdfPlot.tcl } {
 # ================================================================== CONSTANTS
 
 set ksWindowName "TkSurfer Tools"
-set ksImageDir   "$env(MRI_DIR)/lib/images/"
+set ksImageDir   "$env(FREESURFER_HOME)/lib/images/"
 
 # ===================================================== DEFAULT FILE LOCATIONS
 
@@ -46,7 +46,7 @@ set ksImageDir   "$env(MRI_DIR)/lib/images/"
 
 # subject/surf : surface, vertices
 # subject/surf + pwd : overlay, time course, curvature, path
-# CSURF_DIR : clut
+# FREESURFER_HOME : clut
 # subject/label + pwd : label, annotation
 # subject/fmri + pwd : field sign, field mask
 # subject/rgb + pwd : rgb
@@ -60,7 +60,7 @@ array set gaFileNameDefDirs [list \
     kFileName_RGB       "$home/$subject/rgb" \
     kFileName_Home      "$home/$subject" \
     kFileName_PWD       "$env(PWD)" \
-    kFileName_CSURF     "$env(CSURF_DIR)" \
+    kFileName_CSURF     "$env(FREESURFER_HOME)" \
 ]
 
 # determine the list of shortcut dirs for the file dlog boxes
@@ -72,8 +72,8 @@ if { [info exists env(SUBJECTS_DIR)] } {
 if { [info exists env(FREESURFER_DATA)] } {
     lappend glShortcutDirs $env(FREESURFER_DATA)
 }
-if { [info exists env(MRI_DIR)] } {
-    lappend glShortcutDirs $env(MRI_DIR)
+if { [info exists env(FREESURFER_HOME)] } {
+    lappend glShortcutDirs $env(FREESURFER_HOME)
 }
 if { [info exists env(PWD)] } {
     lappend glShortcutDirs $env(PWD)
@@ -4357,9 +4357,9 @@ proc ExpandFileName { isFileName {iFileType ""} } {
 		$session/[string range $isFileName 2 end]
 	} 
 	"#" {
-	    if { [info exists env(CSURF_DIR)] } {
+	    if { [info exists env(FREESURFER_HOME)] } {
 		set sExpandedFileName \
-		    $env(CSURF_DIR)/lib/tcl/[string range $isFileName 2 end]
+		    $env(FREESURFER_HOME)/lib/tcl/[string range $isFileName 2 end]
 	    } else {
 		set sExpandedFileName $isFileName
 	    }
@@ -5033,7 +5033,7 @@ MoveToolWindow 0 0
 # try loading a default color table. catch it so it doesn't complain
 # if we fail.
 catch {
-    labl_load_color_table $env(CSURF_DIR)/surface_labels.txt
+    labl_load_color_table $env(FREESURFER_HOME)/surface_labels.txt
 }
 
 # Init the fsgdf code.
@@ -5045,11 +5045,11 @@ FsgdfPlot_Init
 dputs "Successfully parsed tksurfer.tcl"
 
 # now try parsing the prefs files. first look in
-# $MRI_DIR/lib/tcl/tksurfer_init.tcl, then
+# $FREESURFER_HOME/lib/tcl/tksurfer_init.tcl, then
 # $SUBJECTS_DIR/scripts/tksurfer_init.tcl, then
 # $subject/scripts/tksurfer_init.tcl, then
 # ~/scripts/tksurfer_init.tcl.
-foreach fnUserScript [list $env(MRI_DIR)/lib/tcl/tksurfer_init.tcl $env(SUBJECTS_DIR)/scripts/tksurfer_init.tcl $home/$subject/scripts/tksurfer_init.tcl ~/tksurfer_init.tcl] {
+foreach fnUserScript [list $env(FREESURFER_HOME)/lib/tcl/tksurfer_init.tcl $env(SUBJECTS_DIR)/scripts/tksurfer_init.tcl $home/$subject/scripts/tksurfer_init.tcl ~/tksurfer_init.tcl] {
     if { [file exists $fnUserScript] } {
 	catch { 
 	    dputs "Reading $fnUserScript"

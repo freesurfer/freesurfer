@@ -246,7 +246,7 @@ proc helpwin { helpfile {cols 50} {rows 10} {location std} } {
   set nm .help
   while {[info commands $nm] == "$nm"} {set nm ${nm}x}
   if {$location == "std"} {
-    set helpfile $env(MRI_DIR)/lib/help/$program/$helpfile
+    set helpfile $env(FREESURFER_HOME)/lib/help/$program/$helpfile
   } else {
     set helpfile $location/$helpfile
   }

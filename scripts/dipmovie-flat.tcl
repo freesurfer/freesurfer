@@ -31,7 +31,7 @@ set dipspacing undefined
 set offset 0.20
 
 #### read non-cap setenv vars (or ext w/correct rgbname) to override defaults
-source $env(MRI_DIR)/lib/tcl/readenv.tcl
+source $env(FREESURFER_HOME)/lib/tcl/readenv.tcl
 
 #### read curvature (or sulc)
 puts "tksurfer: [file tail $script]: read curvature"

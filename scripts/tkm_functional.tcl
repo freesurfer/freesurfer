@@ -1,14 +1,14 @@
 #! /usr/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.18 2003/08/04 20:10:54 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.19 2003/08/05 19:19:23 kteich Exp $
 
 package require BLT;
 
-source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
+source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
 
 foreach sSourceFileName { tkm_wrappers.tcl } {
 
-    set lPath [list "." "../scripts" "$env(MRI_DIR)/lib/tcl"]
+    set lPath [list "." "../scripts" "$env(FREESURFER_HOME)/lib/tcl"]
     set bFound 0
     
     foreach sPath $lPath {

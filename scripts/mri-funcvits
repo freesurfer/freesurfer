@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set FUNCVITS_VER = '$Id: mri-funcvits,v 1.4 2000/09/27 22:26:31 greve Exp $';
+set FUNCVITS_VER = '$Id: mri-funcvits,v 1.5 2003/08/05 19:19:21 kteich Exp $';
 
 set stem     = ();
 set outdir   = ();
@@ -30,7 +30,7 @@ if($#stem != 1 || $#outdir != 1) then
   echo "   -icosize   icosahedron size   $icosize"
   echo "   -hemi      hemifield(s)       lh rh"
   echo "   -svitdir   svit directory     SubjectsDir/subject/svit"
-  echo "   -icodir    ico directory      $MRI_DIR/lib/bem"
+  echo "   -icodir    ico directory      $FREESURFER_HOME/lib/bem"
   echo "   -umask     newumask"
   echo "   -mail      user"
   echo "   -noforce   dont create if already exists"
@@ -76,7 +76,7 @@ if(! -d $svitdir ) then
 endif
 
 if($#icodir == 0) then
-  set icodir   = $MRI_DIR/lib/bem/
+  set icodir   = $FREESURFER_HOME/lib/bem/
 endif
 if(! -d $icodir ) then
   echo "ERROR: cannot find directory $icodir"

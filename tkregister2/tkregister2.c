@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.14 2003/06/01 05:29:15 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.15 2003/08/05 19:19:25 kteich Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.14 2003/06/01 05:29:15 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.15 2003/08/05 19:19:25 kteich Exp $";
 #endif /* lint */
 
 #define TCL
@@ -3380,7 +3380,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.14 2003/06/01 05:29:15 greve Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.15 2003/08/05 19:19:25 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3388,9 +3388,9 @@ char **argv;
   initcolormap();
 
   /* get tkregister tcl startup script location from environment */
-  envptr = getenv("MRI_DIR");
+  envptr = getenv("FREESURFER_HOME");
   if (envptr==NULL) {
-    printf("tkregister: env var MRI_DIR undefined (use setenv)\n");
+    printf("tkregister: env var FREESURFER_HOME undefined (use setenv)\n");
     printf("    [dir containing mri distribution]\n");
     exit(1);
   }

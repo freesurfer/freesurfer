@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.11 2003/04/16 17:57:22 kteich Exp $
+  $Id: mri_surf2surf.c,v 1.12 2003/08/05 19:19:16 kteich Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -47,7 +47,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.11 2003/04/16 17:57:22 kteich Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.12 2003/08/05 19:19:16 kteich Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -89,7 +89,7 @@ int nthstep, nnbrs, nthnbr, nbrvtx, frame;
 int debug = 0;
 
 char *SUBJECTS_DIR = NULL;
-char *MRI_DIR = NULL;
+char *FREESURFER_HOME = NULL;
 SXADAT *sxa;
 FILE *fp;
 
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.11 2003/04/16 17:57:22 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.12 2003/08/05 19:19:16 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -131,16 +131,16 @@ int main(int argc, char **argv)
     fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
   }
-  MRI_DIR = getenv("MRI_DIR") ;
-  if(MRI_DIR==NULL){
-    fprintf(stderr,"ERROR: MRI_DIR not defined in environment\n");
+  FREESURFER_HOME = getenv("FREESURFER_HOME") ;
+  if(FREESURFER_HOME==NULL){
+    fprintf(stderr,"ERROR: FREESURFER_HOME not defined in environment\n");
     exit(1);
   }
 
   /* --------- Load the registration surface for source subject --------- */
   if(!strcmp(srcsubject,"ico")){ /* source is ico */
     SrcIcoOrder = GetICOOrderFromValFile(srcvalfile,srctypestring);
-    sprintf(fname,"%s/lib/bem/ic%d.tri",MRI_DIR,SrcIcoOrder);
+    sprintf(fname,"%s/lib/bem/ic%d.tri",FREESURFER_HOME,SrcIcoOrder);
     SrcSurfReg = ReadIcoByOrder(SrcIcoOrder, IcoRadius);
     printf("Source Ico Order = %d\n",SrcIcoOrder);
   }
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
     /* ------- Source and Target Subjects are different -------------- */
     /* ------- Load the registration surface for target subject ------- */
     if(!strcmp(trgsubject,"ico")){
-      sprintf(fname,"%s/lib/bem/ic%d.tri",MRI_DIR,TrgIcoOrder);
+      sprintf(fname,"%s/lib/bem/ic%d.tri",FREESURFER_HOME,TrgIcoOrder);
       TrgSurfReg = ReadIcoByOrder(TrgIcoOrder, IcoRadius);
       reshapefactor = 6;
     }

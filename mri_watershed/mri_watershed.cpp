@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/06/03 14:56:04 $
-// Revision       : $Revision: 1.21 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/08/05 19:19:17 $
+// Revision       : $Revision: 1.22 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.21 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.22 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -539,7 +539,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.21 2003/06/03 14:56:04 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.22 2003/08/05 19:19:17 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3062,9 +3062,9 @@ static void read_geometry(int type,MRI_variables *MRI_var,char *surf_fname)
 {
   char fname[100], *mri_dir; 
 
-  mri_dir = getenv("MRI_DIR");
+  mri_dir = getenv("FREESURFER_HOME");
   if (mri_dir==0)
-    Error("\n\nCannot find the environment variable MRI_DIR\n");
+    Error("\n\nCannot find the environment variable FREESURFER_HOME\n");
 
   switch(type)
   {
@@ -5096,7 +5096,7 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var)
     MRI_var->mris_var_dCOG=NULL;
   }
   // read in icosahedron data (highly tessellated one)
-  mri_dir = getenv("MRI_DIR");
+  mri_dir = getenv("FREESURFER_HOME");
   sprintf(surf_fname,"%s/lib/bem/ic5.tri",mri_dir);
   mrisphere = MRISread(surf_fname) ;
   if (!mrisphere)

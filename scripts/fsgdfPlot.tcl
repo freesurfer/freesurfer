@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: fsgdfPlot.tcl,v 1.6 2003/04/23 21:16:50 kteich Exp $
+# $Id: fsgdfPlot.tcl,v 1.7 2003/08/05 19:19:21 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -17,7 +17,7 @@ if { [info exists env(OS)] } {
 set bFound 0
 catch { lappend lPath . }
 catch { lappend lPath $env(FSGDF_DIR) }
-catch { lappend lPath $env(MRI_DIR)/lib/$env(OS) }
+catch { lappend lPath $env(FREESURFER_HOME)/lib/$env(OS) }
 catch { lappend lPath $env(DEV)/lib/$env(OS) }
 
 set gbLibLoaded 0
@@ -37,7 +37,7 @@ if { !$gbLibLoaded } {
 
 # Also look for tkUtils.tcl.
 foreach sSourceFileName { tkUtils.tcl } {
-    set lPath [list "." "$env(MRI_DIR)/lib/tcl"]
+    set lPath [list "." "$env(FREESURFER_HOME)/lib/tcl"]
     set bFound 0
     foreach sPath $lPath {
        if { $bFound == 0 } {

@@ -30,7 +30,7 @@ set dlat 5
 set normtype 1
 
 #### read non-cap setenv vars (or ext w/correct rgbname) to override defaults
-source $env(MRI_DIR)/lib/tcl/readenv.tcl
+source $env(FREESURFER_HOME)/lib/tcl/readenv.tcl
 
 set sol_lat0 $lat0
 set sol_lat1 $lat1

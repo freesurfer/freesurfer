@@ -24,7 +24,7 @@ void chklc(void)
   if (getenv(str) != NULL)
     return ;
 
-  cp = getenv("MRI_DIR");
+  cp = getenv("FREESURFER_HOME");
  
   if (cp)
 	{

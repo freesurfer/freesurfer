@@ -12,7 +12,7 @@ if [info exists justvars] {
   puts "  customview (one additional view): setenv custom{transform(s)}"
   puts \
  "  order: \[lat\] => xrot => yrot => zrot => xtrans => ytrans => scalepercent"
-  source $env(MRI_DIR)/lib/tcl/printdef.tcl
+  source $env(FREESURFER_HOME)/lib/tcl/printdef.tcl
   return
 }
 

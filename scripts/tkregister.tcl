@@ -52,7 +52,7 @@ set blinkflag FALSE
 set initdelay $blinkdelay
 
 ### source standard widget wrapper code
-source $env(MRI_DIR)/lib/tcl/wrappers.tcl
+source $env(FREESURFER_HOME)/lib/tcl/wrappers.tcl
 
 ############################################################################
 proc setfile { varName value } {
@@ -426,7 +426,7 @@ edlabval $f "scan" $session n 6 44
 $f.scan.e config -font $ffontb -state disabled
 $f.scan.e xview end
 set f .head.env
-buttons $f READENV { source $env(MRI_DIR)/lib/tcl/readenv.tcl; redraw } col 0 5
+buttons $f READENV { source $env(FREESURFER_HOME)/lib/tcl/readenv.tcl; redraw } col 0 5
 
 ## main save panel
 # save,read reg

@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/08/01 19:40:13 $
-// Revision       : $Revision: 1.168 $
-char *VERSION = "$Revision: 1.168 $";
+// Revision Date  : $Date: 2003/08/05 19:19:24 $
+// Revision       : $Revision: 1.169 $
+char *VERSION = "$Revision: 1.169 $";
 
 #define TCL
 #define TKMEDIT 
@@ -75,7 +75,7 @@ MATRIX *gm_ras2screen = NULL ;
 char *tkm_ksaErrorStrings [tkm_knNumErrorCodes] = {
   "No error.",
   "A parameter to this function was invalid.",
-  "The environment variable MRI_DIR is not defined.",
+  "The environment variable FREESURFER_HOME is not defined.",
   "The environment variable SUBJECTS_DIR is not defined.",
   "Couldn't get the current working directory.",
   "Couldn't initialize Tcl.",
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.168 2003/08/01 19:40:13 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.169 2003/08/05 19:19:24 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -4937,7 +4937,7 @@ int main ( int argc, char** argv ) {
   
   /* if there is no interface name, i.e. if they didn't pass one in on
      the command line, look in the local directory for the script, then
-     in MRI_DIR/lib/tcl. if we can't fine, we have to exit. */
+     in FREESURFER_HOME/lib/tcl. if we can't fine, we have to exit. */
   pFile = NULL;
   bFoundInterface = FALSE;
 
@@ -5000,16 +5000,16 @@ int main ( int argc, char** argv ) {
 
   if ( !bFoundInterface ) {
 
-    /* finally try in MRI_DIR/lib/tcl. make sure we have MRI_DIR
+    /* finally try in FREESURFER_HOME/lib/tcl. make sure we have FREESURFER_HOME
        defined */
-    DebugNote( ("Getting MRI_DIR env var") );
-    pEnvVar = getenv("MRI_DIR");
+    DebugNote( ("Getting FREESURFER_HOME env var") );
+    pEnvVar = getenv("FREESURFER_HOME");
     if( NULL == pEnvVar) {
       tkm_DisplayError( "Trying to find interface file",
 			"No valid file found",
 			"Tkmedit couldn't find a valid interface file "
 			"(tkmedit.tcl). Normally this is in the directory "
-			"specified in the MRI_DIR varible, but this was "
+			"specified in the FREESURFER_HOME varible, but this was "
 			"not set in your environment. Tkmedit needs this "
 			"file to run." );
       PrintCachedTclErrorDlogsToShell();
@@ -5033,7 +5033,7 @@ int main ( int argc, char** argv ) {
           "No valid file found",
           "Tkmedit couldn't find a valid interface file. "
           "Normally this is in the directory specified in "
-          "the MRI_DIR varible, but it can also be in the same "
+          "the FREESURFER_HOME varible, but it can also be in the same "
           "directory as tkmedit. Tkmedit needs this file to "
           "run. Try reinstalling your distribution." );
     PrintCachedTclErrorDlogsToShell();

@@ -15,7 +15,7 @@
 #include "annotation.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.7 2003/05/29 20:12:13 fischl Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.8 2003/08/05 19:19:17 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,7 +53,7 @@ main(int argc, char *argv[])
   Real          x, y, z, xw, yw, zw ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.7 2003/05/29 20:12:13 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.8 2003/08/05 19:19:17 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -322,9 +322,9 @@ translate_indices_to_annotations(MRI_SURFACE *mris, char *translation_fname)
   int    nlines, i, vno, *r, *g, *b, *indices ;
   VERTEX *v ;
 
-  cp = getenv("CSURF_DIR") ;
+  cp = getenv("FREESURFER_HOME") ;
   if (!cp)
-    ErrorExit(ERROR_BADPARM, "%s: CSURF_DIR not defined in environment", Progname) ;
+    ErrorExit(ERROR_BADPARM, "%s: FREESURFER_HOME not defined in environment", Progname) ;
   sprintf(fname, "%s/%s", cp, translation_fname) ;
   fp = fopen(fname, "r") ;
   if (!fp)

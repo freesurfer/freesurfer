@@ -22,10 +22,10 @@ using namespace std;
 int main()
 {
   MRIS *mris;
-  char *mri_dir = getenv("MRI_DIR");
+  char *mri_dir = getenv("FREESURFER_HOME");
   if (mri_dir==0)
   {
-    cerr << "MRI_DIR not set.  I cannot find .tri files" << endl;
+    cerr << "FREESURFER_HOME not set.  I cannot find .tri files" << endl;
     return -1;
   }
   for (int index=0; index < 8; ++index)

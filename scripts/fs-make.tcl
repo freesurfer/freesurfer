@@ -23,7 +23,7 @@ set complexname 3               ;# analyse infix
 set smoothsteps 50
 
 #### read non-cap setenv vars (or ext w/correct rgbname) to override defaults
-source $env(MRI_DIR)/lib/tcl/readenv.tcl
+source $env(FREESURFER_HOME)/lib/tcl/readenv.tcl
 
 #### read curvature (or sulc)
 puts "tksurfer: [file tail $script]: read curvature"

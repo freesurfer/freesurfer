@@ -4,12 +4,12 @@
 // modified mri_watershed.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/03/14 23:06:19 $
-// Revision       : $Revision: 1.2 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/08/05 19:19:17 $
+// Revision       : $Revision: 1.3 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.2 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.3 $";
 
 using namespace std;
 
@@ -2645,7 +2645,7 @@ static void read_geometry(int type,MRI_variables *MRI_var,char *surf_fname)
 {
   char fname[100], *mri_dir; 
 
-  mri_dir = getenv("MRI_DIR");
+  mri_dir = getenv("FREESURFER_HOME");
   switch(type)
   {
   case 0:

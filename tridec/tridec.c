@@ -17,7 +17,7 @@ main(int argc,char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tridec.c,v 1.2 2003/04/15 16:49:32 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tridec.c,v 1.3 2003/08/05 19:19:26 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -33,10 +33,10 @@ main(int argc,char *argv[])
     printf("environment variable SUBJECTS_DIR undefined (use setenv)\n");
     exit(0);
   }
-  mri_dir = getenv("MRI_DIR");
+  mri_dir = getenv("FREESURFER_HOME");
   if (mri_dir==NULL)
   {
-    printf("environment variable MRI_DIR undefined (use setenv)\n");
+    printf("environment variable FREESURFER_HOME undefined (use setenv)\n");
     exit(0);
   }
 

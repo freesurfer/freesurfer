@@ -7,7 +7,7 @@
 /* about the script */
 #define ksEnvVariable_UseLocalDirectoryForScript "DONT_USE_LOCAL_TKMFUNCTIONAL_TCL"
 #define ksFileName_InterfaceScript "tkm_functional.tcl"
-#define ksDir_LibraryPath          getenv ( "MRI_DIR" )
+#define ksDir_LibraryPath          getenv ( "FREESURFER_HOME" )
 #define ksDir_LibrarySubPath       "/lib/tcl/"
 
 #define knLengthOfGraphDataItem              18 // for "100.1 1000.12345 "

@@ -46,7 +46,7 @@ read_named_annotation_table(char *name)
   cp = strchr(name, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
 	{
-		cp = getenv("MRI_DIR") ;
+		cp = getenv("FREESURFER_HOME") ;
 		if (!cp)
 			cp = "." ;
 	}
@@ -101,7 +101,7 @@ read_annotation_table(void)
   if (num_entries)
     return(NO_ERROR) ;   /* already read */
 
-  cp = getenv("MRI_DIR") ;
+  cp = getenv("FREESURFER_HOME") ;
   if (!cp)
     cp = "." ;
 

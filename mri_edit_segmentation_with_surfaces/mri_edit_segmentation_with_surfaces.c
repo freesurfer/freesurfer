@@ -19,7 +19,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.6 2003/06/13 15:28:46 fischl Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.7 2003/08/05 19:19:16 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -110,7 +110,7 @@ main(int argc, char *argv[])
 		if (mris->ct == NULL)  /* color table not in annotation file */
 		{
 			char *cp, fname[STRLEN] ;
-			cp = getenv("CSURF_DIR") ;
+			cp = getenv("FREESURFER_HOME") ;
 			sprintf(fname, "%s/Simple_surface_labels2002.txt", cp) ;
 			printf("reading colortable from %s...\n", fname) ;
 			mris->ct = CTABread(fname) ;

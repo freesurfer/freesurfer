@@ -38,7 +38,7 @@ set KS      5
 set pphase  6
 
 ### source standard widget wrapper code
-source $env(MRI_DIR)/lib/tcl/wrappers.tcl
+source $env(FREESURFER_HOME)/lib/tcl/wrappers.tcl
 
 ############################################################################
 proc setfile { varName value } {  ;# makes "varName"abbrev if it doesn't exist

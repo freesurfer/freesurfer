@@ -8122,8 +8122,8 @@ ICOreadVertexPositions(MRI_SURFACE *mris, char *fname, int which)
 
 /*------------------------------------------------------------------
   MRI_SURFACE *ReadIcoByOrder() -- loads an icosaheron given it's
-  "order".  Reads the MRI_DIR environment variable, then loads the
-  file "MRI_DIR/lib/bem/ic%d.tri" where %d is the "order".  As read in,
+  "order".  Reads the FREESURFER_HOME environment variable, then loads the
+  file "FREESURFER_HOME/lib/bem/ic%d.tri" where %d is the "order".  As read in,
   the vertices of the icosahedron are on the unit sphere. If RescaleFactor
   is greater than zero, the coordinates of each vertex are multiplied
   by RescaleFactor (ie, the new sphere has a radius of RescaleFactor).
@@ -8132,13 +8132,13 @@ ICOreadVertexPositions(MRI_SURFACE *mris, char *fname, int which)
   -------------------------------------------------------------------*/
 MRI_SURFACE *ReadIcoByOrder(int IcoOrder, float RescaleFactor)
 {
-  char *MRI_DIR, trifile[2048];
+  char *FREESURFER_HOME, trifile[2048];
   MRI_SURFACE *surf;
   VERTEX *v;
   int vtx;
 
-  MRI_DIR = getenv("MRI_DIR") ;
-  sprintf(trifile,"%s/lib/bem/ic%d.tri",MRI_DIR,IcoOrder);
+  FREESURFER_HOME = getenv("FREESURFER_HOME") ;
+  sprintf(trifile,"%s/lib/bem/ic%d.tri",FREESURFER_HOME,IcoOrder);
   printf("   Reading icosahedron %s\n", trifile) ;
   surf = ICOread(trifile);
   if(surf == NULL){

@@ -15,7 +15,7 @@
 #include "cma.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.65 2003/07/31 22:00:21 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.66 2003/08/05 19:19:16 kteich Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -189,7 +189,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.65 2003/07/31 22:00:21 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.66 2003/08/05 19:19:16 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -237,9 +237,9 @@ main(int argc, char *argv[])
     MRI *mri_p_wm ;
     char subjects_dir[STRLEN], mri_dir[STRLEN], *cp ;
 
-    cp = getenv("MRI_DIR") ;
+    cp = getenv("FREESURFER_HOME") ;
     if (!cp)
-      ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment",
+      ErrorExit(ERROR_BADPARM, "%s: could not read FREESURFER_HOME from environment",
                 Progname) ;
     strcpy(mri_dir, cp) ;
 
@@ -641,9 +641,9 @@ main(int argc, char *argv[])
     MRI *mri_p_ventricle, *mri_fg, *mri_bg, *mri_T1, *mri_ventricle ;
     char subjects_dir[STRLEN], mri_dir[STRLEN], *cp ;
 
-    cp = getenv("MRI_DIR") ;
+    cp = getenv("FREESURFER_HOME") ;
     if (!cp)
-      ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment",
+      ErrorExit(ERROR_BADPARM, "%s: could not read FREESURFER_HOME from environment",
                 Progname) ;
     strcpy(mri_dir, cp) ;
 
@@ -2175,9 +2175,9 @@ mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix,
   MRI  *mri_mean, *mri_std, *mri_tmp ;
   char *mri_dir, fname[STRLEN] ;
 
-  mri_dir = getenv("MRI_DIR") ;
+  mri_dir = getenv("FREESURFER_HOME") ;
   if (!mri_dir)
-    ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment\n") ;
+    ErrorExit(ERROR_BADPARM, "%s: could not read FREESURFER_HOME from environment\n") ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_T1, NULL) ;
@@ -2222,9 +2222,9 @@ mriReadBinaryProbabilities(char *atlas_name, char *suffix, M3D *m3d,
   MRI  *mri_priors, *mri_T1, *mri_on_conditional, *mri_off_conditional, *mri_tmp ;
   char *mri_dir, *subjects_dir, fname[STRLEN] ;
 
-  mri_dir = getenv("MRI_DIR") ;
+  mri_dir = getenv("FREESURFER_HOME") ;
   if (!mri_dir)
-    ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment\n") ;
+    ErrorExit(ERROR_BADPARM, "%s: could not read FREESURFER_HOME from environment\n") ;
   subjects_dir = getenv("SUBJECTS_DIR") ;
   if (!subjects_dir)
     ErrorExit(ERROR_BADPARM, 

@@ -30,10 +30,10 @@ set smoothsteps 0
 set offset 0.20
 
 #### read default patch view if there
-source $env(MRI_DIR)/lib/tcl/setdefpatchview.tcl
+source $env(FREESURFER_HOME)/lib/tcl/setdefpatchview.tcl
 
 #### read non-cap setenv vars (or ext w/correct rgbname) to override defaults
-source $env(MRI_DIR)/lib/tcl/readenv.tcl
+source $env(FREESURFER_HOME)/lib/tcl/readenv.tcl
 
 #### read curvature (or sulc)
 puts "tksurfer: [file tail $script]: read curvature"
@@ -59,7 +59,7 @@ do_lighting_model -1 -1 -1 -1 $offset  ;# -1(def); offset=curvdiffuse (def=0.15)
 
 #### save requested rgbs (transforms done here)
 puts "tksurfer: [file tail $script]: save rgb's"
-source $env(MRI_DIR)/lib/tcl/saveflat.tcl
+source $env(FREESURFER_HOME)/lib/tcl/saveflat.tcl
 
 if ![info exists noexit] { exit }
 

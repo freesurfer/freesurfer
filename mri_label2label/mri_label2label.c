@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.15 2003/04/15 21:05:53 kteich Exp $
+  $Id: mri_label2label.c,v 1.16 2003/08/05 19:19:16 kteich Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -59,7 +59,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.15 2003/04/15 21:05:53 kteich Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.16 2003/08/05 19:19:16 kteich Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -97,7 +97,7 @@ int usehash = 1;
 int debug = 0;
 
 char *SUBJECTS_DIR = NULL;
-char *MRI_DIR = NULL;
+char *FREESURFER_HOME = NULL;
 FILE *fp;
 
 char tmpstr[2000];
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.15 2003/04/15 21:05:53 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.16 2003/08/05 19:19:16 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -150,9 +150,9 @@ int main(int argc, char **argv)
     fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
   }
-  MRI_DIR = getenv("MRI_DIR") ;
-  if(MRI_DIR==NULL){
-    fprintf(stderr,"ERROR: MRI_DIR not defined in environment\n");
+  FREESURFER_HOME = getenv("FREESURFER_HOME") ;
+  if(FREESURFER_HOME==NULL){
+    fprintf(stderr,"ERROR: FREESURFER_HOME not defined in environment\n");
     exit(1);
   }
 

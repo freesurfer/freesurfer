@@ -17,7 +17,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.10 2003/07/18 19:51:31 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.11 2003/08/05 19:19:17 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,7 +53,7 @@ main(int argc, char *argv[])
   LABEL           *area, *area_avg = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.10 2003/07/18 19:51:31 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.11 2003/08/05 19:19:17 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -108,9 +108,9 @@ main(int argc, char *argv[])
     osurf = surf_name ;
   out_fname = argv[argc-1] ;
 
-  cp = getenv("MRI_DIR") ;
+  cp = getenv("FREESURFER_HOME") ;
   if (!cp)
-    ErrorExit(ERROR_BADPARM,"%s: MRI_DIR not defined in environment",Progname);
+    ErrorExit(ERROR_BADPARM,"%s: FREESURFER_HOME not defined in environment",Progname);
 
   sprintf(fname, "%s/lib/bem/ic%d.tri", cp, which_ic) ;
   mris_avg = ICOread(fname) ;

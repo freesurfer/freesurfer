@@ -31,10 +31,10 @@
 #   script.
 #
 #
-# $Id: FreeSurferEnv.csh,v 1.2 2003/05/09 16:08:12 kteich Exp $
+# $Id: FreeSurferEnv.csh,v 1.3 2003/08/05 19:19:16 kteich Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.2 2003/05/09 16:08:12 kteich Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.3 2003/08/05 19:19:16 kteich Exp $'
 
 ## Get the name of the operating system
 set os = `uname -s`
@@ -106,8 +106,8 @@ if(! $?FSL_DIR  || $FS_OVERRIDE) then
   setenv FSL_DIR $FREESURFER_HOME/fsl
 endif
 
-setenv MRI_DIR          $FREESURFER_HOME 
-setenv CSURF_DIR        $FREESURFER_HOME
+setenv FREESURFER_HOME          $FREESURFER_HOME 
+setenv FREESURFER_HOME        $FREESURFER_HOME
 setenv LOCAL_DIR        $FREESURFER_HOME/local
 setenv FUNCTIONALS_DIR  $FREESURFER_HOME/sessions
 
@@ -223,8 +223,8 @@ set path = ( $path \
              $FSFAST_HOME/bin     \
              $FSFAST_HOME/bin/$os \
              $LOCAL_DIR/bin/$os         \
-             $CSURF_DIR/bin/noarch      \
-             $CSURF_DIR/bin/$os         \
+             $FREESURFER_HOME/bin/noarch      \
+             $FREESURFER_HOME/bin/$os         \
              $FSL_BIN                   \
              $AFNI_BIN                  \
             )
