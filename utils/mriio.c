@@ -72,6 +72,7 @@
 extern void swab(const void *from, void *to, size_t n);
 #endif
 
+static int rawWrite(MRI *mri, char *fname) ;
 #if 0
 static int NormalizeVector(float *v, int n);
 static MRI *mincRead2(char *fname, int read_volume);
@@ -833,6 +834,10 @@ int MRIwriteType(MRI *mri, char *fname, int type)
   else if(type == MRI_MINC_FILE)
   {
     error = mincWrite(mri, fname);
+  }
+  else if(type == RAW_FILE)
+  {
+    error = rawWrite(mri, fname);
   }
   else if(type == BHDR)
   {
@@ -12184,5 +12189,37 @@ MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
 	if (nans > 0)
 		ErrorPrintf(ERROR_BADPARM, "WARNING: %d NaNs found in volume %s...\n", nans, mri_src->fname) ;
 	return(mri_dst) ;
+}
+
+static int
+rawWrite(MRI *mri, char *fname)
+{
+	int  x, y, z ;
+	FILE *fp ;
+	Real val ;
+	float fval ;
+
+	fp = fopen(fname, "wb") ;
+
+	for (x = 0 ; x < mri->width ; x++)
+	{
+		for (y = 0 ; y < mri->height ; y++)
+		{
+			for (z = 0 ; z < mri->depth ; z++)
+			{
+				val = MRIgetVoxVal(mri, x, y, z, 0) ;
+				fval = (float)val ;
+				if (fwrite(&fval, sizeof(float), 1, fp) != 1)
+				{
+					errno = 0;
+					ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
+																			"rawWrite(): error writing to file %s", fname));
+				}
+			}
+		}
+	}
+
+	fclose(fp) ;
+	return(NO_ERROR) ;
 }
 
