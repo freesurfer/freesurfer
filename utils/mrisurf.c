@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/02/24 17:09:17 $
-// Revision       : $Revision: 1.333 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2005/02/25 22:56:10 $
+// Revision       : $Revision: 1.334 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -25642,7 +25642,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
   // Note: if mri_dst is not given, override the one stored in the transform
   if (!mri_dst && lt->dst.valid == 1){
     dstPresent = 0;
-    fprintf(stderr, "INFO:try to get dst info from transform.\n");
+    fprintf(stderr, "INFO: Get dst info from transform.\n");
     lt = &lta->xforms[0];
     mri_dst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR);
     mri_dst->x_r = lt->dst.x_r; mri_dst->y_r = lt->dst.y_r; mri_dst->z_r = lt->dst.z_r; 
