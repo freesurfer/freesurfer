@@ -9,7 +9,7 @@
 %
 % Note: the images are still not flipped up-down
 %
-% $Id: tdr_fidmat2.m,v 1.4 2004/01/22 00:50:25 greve Exp $
+% $Id: tdr_fidmat2.m,v 1.5 2004/04/13 19:45:21 greve Exp $
 
 fidmatversion = 2;
 
@@ -38,7 +38,7 @@ if(0)
 
 end
 
-nT2sFit = 3; % number of echoes to use to fit the T2s and B0
+nT2sFit = 5; % number of echoes to use to fit the T2s and B0
 
 nv = nrows*ncols;
 evenrows = [2:2:nrows];
@@ -90,7 +90,11 @@ B0  = zeros(nrows,ncolskeep,nslices);
 epiref_undist = zeros(nrows,ncolskeep,nslices);
 kepiref_dist  = zeros(nrows,ncols,nslices);
 
-sliceorder = tdr_sliceorder(nslices,1);
+if(interleaved)
+  sliceorder = tdr_sliceorder(nslices,1);
+else
+  sliceorder = 1:nslices;
+end
 for acqsliceno = 1:nslices
   sliceno = sliceorder(acqsliceno); 
   %sliceno = acqsliceno;
@@ -192,8 +196,8 @@ fprintf('Saving mat file (%g)\n',toc);
 save(outmat,'fiddir','fidecho1ped','fidechospacing','nfidechoes',...
      'fidfwhm','epiechospacing','delsamp','tDwell','TE',...
      'perev','rorev','D','D0','T2s','B0','epiref_dist','epiref_undist',...
-     'sliceorder','pedmat','colkeep','nT2sFit','kepiref_dist',...
-     'fidmatversion','nkcols');
+     'sliceorder','interleaved','pedmat','colkeep','nT2sFit',...
+     'kepiref_dist','fidmatversion','nkcols');
 
 fprintf('tdr_fidmat2 done (%g)\n',toc);
 
