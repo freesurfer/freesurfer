@@ -13,7 +13,7 @@
 #include "timer.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.50 2001/06/01 17:04:51 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.51 2001/06/20 17:31:30 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -2723,6 +2723,18 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
             }
           }
           break ;
+        case Left_Lateral_Ventricle:
+        case Right_Lateral_Ventricle:
+          if ((neighborLabel(mri_seg, x, y, z,3,Left_Cerebral_Cortex) == 0) &&
+              (neighborLabel(mri_seg, x, y, z,3,Right_Cerebral_Cortex) == 0) &&
+              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
+          {
+#if 1
+            MRIvox(mri_wm, x, y, z) = 255 ;
+            non++ ; 
+#endif
+          }
+          /*          break ;   NO BREAK (intended) */
         case Left_Inf_Lat_Vent:
         case Right_Inf_Lat_Vent:
         case Left_Hippocampus:
@@ -2734,18 +2746,6 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
           {
             MRIvox(mri_wm, x, yi, z) = 255 ;
             non++ ;
-          }
-          break ;
-        case Left_Lateral_Ventricle:
-        case Right_Lateral_Ventricle:
-          if ((neighborLabel(mri_seg, x, y, z,3,Left_Cerebral_Cortex) == 0) &&
-              (neighborLabel(mri_seg, x, y, z,3,Right_Cerebral_Cortex) == 0) &&
-              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
-          {
-#if 1
-            MRIvox(mri_wm, x, y, z) = 255 ;
-            non++ ; 
-#endif
           }
           break ;
         case Left_Accumbens_area:
