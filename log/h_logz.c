@@ -1235,7 +1235,7 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
 
 {
   int     ring, spoke, i, rows, cols, n_ring, n_spoke, ci, j ;
-  float   weight, c[NBD_SIZE], fvals[NBD_SIZE], w[NBD_SIZE], dst_val, rho ;
+  float   weight, c[NBD_SIZE], fvals[NBD_SIZE], dst_val, rho ;
   FILE    *fp ;
   LOGPIX  *pix ;
   static  IMAGE *tmpImage = NULL, *gradImage = NULL ;
@@ -1280,22 +1280,6 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
 
   ImageCopy(inImage, tmpImage) ;
 
-/* 
-   the w array account for the nonuniform spacing of pixels in the radial
-   direction
-*/
-  for (i = 0 ; i < NBD_SIZE ; i++)
-    w[i] = 1.0f ;
-  if (doweight)
-  {
-    w[N_NE] = 1.0f / M_E ;
-    w[N_E] = 1.0f / M_E ;
-    w[N_SE] = 1.0f / M_E ;
-    w[N_NW] = M_E ;
-    w[N_W] = M_E ;
-    w[N_SW] = M_E ;
-  }
-
   if (0 && (Gdiag & DIAG_WRITE))
     fp = fopen("diffuse.dat", "w") ;
   else
@@ -1324,7 +1308,7 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
         n_spoke = LOG_PIX_NBD(lmi, ring, spoke, j)->spoke ;
 
         fvals[j] = *IMAGEFpix(tmpImage, n_ring, n_spoke) ;
-        c[j] = w[j] * KERNEL_MUL * C(*IMAGEFpix(gradImage, n_ring, n_spoke),k);
+        c[j] = KERNEL_MUL * C(*IMAGEFpix(gradImage, n_ring, n_spoke),k);
       }
 
       for (c[N_SELF] = 1.0f, ci = 0 ; ci < NBD_SIZE ; ci++)
@@ -1496,7 +1480,7 @@ LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *inImage,IMAGE *outImage,
 {
 /*  LOGPIX    *npix ;*/
   int       ring, spoke, n_ring, n_spoke, i, j, ci ; 
-  float     c[NBD_SIZE], fvals[NBD_SIZE], w[NBD_SIZE], dst_val ;
+  float     c[NBD_SIZE], fvals[NBD_SIZE], dst_val ;
   FILE      *fp ;
   IMAGE *srcImage, *dstImage, *tmpImagePtr ;
   static  IMAGE *tmpImage = NULL, *gradImage = NULL ;
@@ -1549,22 +1533,6 @@ LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *inImage,IMAGE *outImage,
   srcImage = tmpImage ;
   dstImage = outImage ;
 
-/* 
-   the w array account for the nonuniform spacing of pixels in the radial
-   direction
-*/
-  for (i = 0 ; i < NBD_SIZE ; i++)
-    w[i] = 1.0f ;
-  if (doweight)
-  {
-    w[N_NE] = 1.0f / M_E ;
-    w[N_E] = 1.0f / M_E ;
-    w[N_SE] = 1.0f / M_E ;
-    w[N_NW] = M_E ;
-    w[N_W] = M_E ;
-    w[N_SW] = M_E ;
-  }
-
   for (i = 0 ; i < niterations ; i++)
   {
     if (fp)
@@ -1580,7 +1548,7 @@ LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *inImage,IMAGE *outImage,
         n_ring = LOG_PIX_NBD(lmi, ring, spoke, j)->ring ;
         n_spoke = LOG_PIX_NBD(lmi, ring, spoke, j)->spoke ;
         fvals[j] = *IMAGEFpix(srcImage, n_ring, n_spoke) ;
-        c[j] = w[j] * KERNEL_MUL / *IMAGEFpix(gradImage, n_ring, n_spoke) ;
+        c[j] = KERNEL_MUL / *IMAGEFpix(gradImage, n_ring, n_spoke) ;
       }
 
       /* center coefficient is 1 - (sum of the other coefficients) */
