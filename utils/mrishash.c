@@ -219,6 +219,18 @@ MHTisFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno,
   yv = WORLD_TO_VOXEL(mht,yw) ; 
   zv = WORLD_TO_VOXEL(mht,zw) ;
 
+  if (xv < 0)
+    xv = 0 ;
+  if (xv >= TABLE_SIZE)
+    xv = TABLE_SIZE-1 ;
+  if (yv < 0)
+    yv = 0 ;
+  if (yv >= TABLE_SIZE)
+    yv = TABLE_SIZE-1 ;
+  if (zv < 0)
+    zv = 0 ;
+  if (zv >= TABLE_SIZE)
+    zv = TABLE_SIZE-1 ;
   if (fno == Gdiag_no)
     DiagBreak() ;
   if (xv < 0 || yv < 0 || zv < 0 ||
@@ -582,6 +594,18 @@ mhtAddFacePosition(MRIS_HASH_TABLE *mht, int xv, int yv, int zv, int fno)
   MHB   *bin ;
   MHBT  *bucket ;
 
+  if (xv < 0)
+    xv = 0 ;
+  if (xv >= TABLE_SIZE)
+    xv = TABLE_SIZE-1 ;
+  if (yv < 0)
+    yv = 0 ;
+  if (yv >= TABLE_SIZE)
+    yv = TABLE_SIZE-1 ;
+  if (zv < 0)
+    zv = 0 ;
+  if (zv >= TABLE_SIZE)
+    zv = TABLE_SIZE-1 ;
   if (xv < 0 || yv < 0 || zv < 0 ||
       xv >= TABLE_SIZE || yv >= TABLE_SIZE || zv >= TABLE_SIZE)
   {
@@ -660,6 +684,18 @@ mhtRemoveFacePosition(MRIS_HASH_TABLE *mht, int xv, int yv, int zv,int fno)
   MHBT   *bucket ;
   MHB    *bin ;
 
+  if (xv < 0)
+    xv = 0 ;
+  if (xv >= TABLE_SIZE)
+    xv = TABLE_SIZE-1 ;
+  if (yv < 0)
+    yv = 0 ;
+  if (yv >= TABLE_SIZE)
+    yv = TABLE_SIZE-1 ;
+  if (zv < 0)
+    zv = 0 ;
+  if (zv >= TABLE_SIZE)
+    zv = TABLE_SIZE-1 ;
   if (xv < 0 || yv < 0 || zv < 0 ||
       xv >= TABLE_SIZE || yv >= TABLE_SIZE || zv >= TABLE_SIZE)
   {
