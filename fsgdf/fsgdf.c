@@ -1,7 +1,9 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.3 2002/11/12 19:53:01 brucefis Exp $
+  $Id: fsgdf.c,v 1.4 2002/11/12 20:40:18 greve Exp $
+
+  See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
   1. Tags are NOT case sensitive.
   2. Labels are case sensitive.
@@ -538,13 +540,16 @@ MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X)
 }
 /*--------------------------------------------------------
   gdfMatrixDODS() - creates a design matrix that models each
-  class as having a Different Offset and Different Slope.
+  class as having a Different Offset and Different Slope. The
+  number of rows in the matrix will equal the number of 
+  subjets. The number of columns will equal the number of 
+  classes times the (number of varibles + 1). The first
+  Nclasses columns will be the offsets, the next Nclasses
+  columns will be the first variable, etc.
   ---------------------------------------------------------*/
 MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X)
 {
   int nrows, ncols, n,r,v,c;
-
-  exit(1);
 
   nrows = gd->ninputs;
   ncols = gd->nclasses * ( gd->nvariables + 1);
@@ -552,16 +557,47 @@ MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X)
   X = MatrixZero(nrows,ncols,X);
   if(X==NULL) return(NULL);
 
-  for(r=0; r<nrows; r++){
+  for(r=0; r < nrows; r++){
 
     n = gd->subjclassno[r];
-    X->rptr[r+1][n+1] = 1;
+    c = n;
+    X->rptr[r+1][c+1] = 1;
     
     for(v = 0; v < gd->nvariables; v++){
-      c = v + gd->nclasses + n*gd->nvariables ;
+      c += gd->nclasses;
       X->rptr[r+1][c+1] = gd->varvals[r][v];
     }
   }
+
+  return(X);
+}
+
+/*---------------------------------------------------*/
+int gdfCheckMatrixMethod(char *gd2mtx_method)
+{
+  if( strcmp(gd2mtx_method,"doss") == 0 ||
+      strcmp(gd2mtx_method,"dods") == 0 ||
+      strcmp(gd2mtx_method,"none") == 0  
+      ) return(0);
+
+  printf("ERROR: gd2mtx method %s unrecoginzied.\n",gd2mtx_method);
+  printf("       Legal values are dods, doss, and none.\n");
+  return(1);
+}
+/*---------------------------------------------------*/
+MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X)
+{
+  if(gdfCheckMatrixMethod(gd2mtx_method)) return(NULL);
+
+  if(strcmp(gd2mtx_method,"none") == 0){
+    printf("ERROR: cannot create matrix when method is none\n");
+    return(NULL);
+  }
+
+  if(strcmp(gd2mtx_method,"doss") == 0)
+    X = gdfMatrixDOSS(gd,X);
+  if(strcmp(gd2mtx_method,"dods") == 0)
+    X = gdfMatrixDODS(gd,X);
 
   return(X);
 }
@@ -849,4 +885,5 @@ int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject,
 
   return(0);
 }
+
 
