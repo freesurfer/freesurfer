@@ -826,7 +826,6 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       else if (event_is_up(event))  /* erase box and show zoomed image */
       {
         int dir = xvf->ydir ;
-DiagBreak() ;
         xvf->ydir = -1 ;
         XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
                   dimage->dy1, XXOR) ;
