@@ -53,10 +53,7 @@ static char *xform_mean_fname = NULL ;
 static char *xform_covariance_fname = NULL ;
 static int stats_only = 0 ;
 
-static char subjects_dir[STRLEN] = "" ;
-
-/* Devolve the XFM so that it works when the c_ras != 0 */
-static int DevXFM = 1; 
+static char subjects_dir[STRLEN];
 
 int
 main(int argc, char *argv[])
@@ -66,13 +63,11 @@ main(int argc, char *argv[])
   MRI    *mri, *mri_mean = NULL, *mri_std, *mri_T1,*mri_binary,*mri_dof=NULL,
          *mri_priors = NULL ;
   char   *subject_name, *out_fname, fname[STRLEN] ;
-  TRANSFORM *transform ;
-  MATRIX *T;
   LTA    *lta;
   MRI *mri_tmp ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.16 2003/12/04 01:54:28 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.17 2003/12/09 19:57:16 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -89,8 +84,6 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
-
-  if(DevXFM == 0) printf("INFO: NOT devolving XFM\n");
 
   if (!strlen(subjects_dir))
   {
@@ -142,14 +135,18 @@ main(int argc, char *argv[])
                   subjects_dir, subject_name, transform_fname) ;
           
           fprintf(stderr, "reading transform %s...\n", fname) ;
-          transform = TransformRead(fname) ;
-          if (!transform)
-              ErrorExit(ERROR_NOFILE, 
-                        "%s: could not open transform file %s\n",
-                        Progname, fname) ;
-          mri_tmp = TransformApply(transform, mri_T1, NULL) ;
+	  ////////////////////////////////////////////////////////
+	  lta = LTAreadEx(fname);
+	  if (lta == NULL)
+	    ErrorExit(ERROR_NOFILE, 
+		      "%s: could not open transform file %s\n",
+		      Progname, fname) ;
+	  /* LTAtransform() runs either MRIapplyRASlinearTransform() 
+	     for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
+	  /* MRIlinearTransform() calls MRIlinearTransformInterp() */
+	  mri_tmp = LTAtransform(mri_T1, NULL, lta);
           MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
-          TransformFree(&transform) ;
+	  LTAfree(&lta); lta = NULL;
           fprintf(stderr, "transform application complete.\n") ;
         }
         if (which == BUILD_PRIORS)
@@ -257,31 +254,27 @@ main(int argc, char *argv[])
                 subjects_dir, subject_name, transform_fname) ;
         
         fprintf(stderr, "reading transform %s...\n", fname) ;
-        transform = TransformRead(fname) ;
-        if (!transform)
-          ErrorExit(ERROR_NOFILE, 
-                    "%s: could not open transform file %s\n",
-                    Progname, fname) ;
-	if(DevXFM){
-	  printf("INFO: devolving XFM\n");
-	  lta = (LTA *)transform->xform;
-	  MatrixFree(&lta->xforms[0].m_L);
-	  T = DevolveXFM(subject_name, NULL, transform_fname);
-	  if(T == NULL) exit(1);
-	  lta->xforms[0].m_L = T;
-	}
+	////////////////////////////////////////////////////////
+	lta = LTAreadEx(fname);
+	if (lta == NULL)
+	  ErrorExit(ERROR_NOFILE, 
+		    "%s: could not open transform file %s\n",
+		    Progname, fname) ;
 	printf("transform matrix -----------------------\n");
-	MatrixPrint(stdout,((LTA *)transform->xform)->xforms[0].m_L);
+	MatrixPrint(stdout,lta->xforms[0].m_L);
+	/* LTAtransform() runs either MRIapplyRASlinearTransform() 
+	   for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
+	/* MRIlinearTransform() calls MRIlinearTransformInterp() */
+	mri_tmp = LTAtransform(mri_T1, NULL, lta);
 	printf("----- -----------------------\n");
-
-        mri_tmp = TransformApply(transform, mri_T1, NULL) ;
         MRIfree(&mri_T1) ; 
 	mri_T1 = mri_tmp ;
-        TransformFree(&transform) ;
+	LTAfree(&lta);
         fprintf(stderr, "transform application complete.\n") ;
       }
 
-      if (!mri_mean){
+      if (!mri_mean)
+      {
         mri_mean = 
           MRIalloc(mri_T1->width, mri_T1->height, mri_T1->depth, MRI_FLOAT) ;
         mri_std = 
@@ -289,11 +282,11 @@ main(int argc, char *argv[])
         if (!mri_mean || !mri_std)
           ErrorExit(ERROR_NOMEMORY, "%s: could not allocate templates.\n",
                     Progname) ;
-	if(transform_fname == NULL){
+	// if(transform_fname == NULL){
 	  printf("Copying geometry\n");
 	  MRIcopy(mri_T1,mri_mean);
 	  MRIcopy(mri_T1,mri_std);
-	}
+	// }
       }
 
       if(!stats_only){
@@ -428,9 +421,6 @@ get_option(int argc, char *argv[])
     break ;
   case 'N':
     first_transform = 1 ;  /* don't use transform on first volume */
-    break ;
-  case 'D':
-    DevXFM = 0 ;  /* don't devolve XFM */
     break ;
   case 'T':
     transform_fname = argv[2] ;
