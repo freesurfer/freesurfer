@@ -22,6 +22,8 @@ ScubaToolState::ScubaToolState() {
   mEdgePathEdgeBias = 0.9;
   mLayerTarget = -1;
   mFloodSourceCollection = -1;
+  mNewValue = 0;
+  mEraseValue = 0;
   mbOnlyFillZero = false;
   mbOnlyFloodZero = false;
 
@@ -38,6 +40,10 @@ ScubaToolState::ScubaToolState() {
 			 "Sets the new voxel value of a tool." );
   commandMgr.AddCommand( *this, "GetToolNewVoxelValue", 1, "toolID",
 			 "Gets the new voxel value of a tool." );
+  commandMgr.AddCommand( *this, "SetToolEraseVoxelValue", 2, "toolID value",
+			 "Sets the erase voxel value of a tool." );
+  commandMgr.AddCommand( *this, "GetToolEraseVoxelValue", 1, "toolID",
+			 "Gets the erase voxel value of a tool." );
   commandMgr.AddCommand( *this, "SetToolOnlyBrushZero", 2, "toolID onlyZero",
 			 "Specify whether the brush should only affect zero "
 			 "values.." );
@@ -224,6 +230,42 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 
       stringstream ssValues;
       ssValues << GetNewValue();
+      sReturnValues = ssValues.str();
+      sReturnFormat = "f";
+    }
+  }
+
+  // SetToolEraseVoxelValue <toolID> <value>
+  if( 0 == strcmp( isCommand, "SetToolEraseVoxelValue" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      float value = strtod(iasArgv[2], (char**)NULL);
+      if( ERANGE == errno ) {
+	sResult = "bad radius";
+	return error;
+      }
+      SetEraseValue( value );
+    }
+  }
+
+  // GetToolEraseVoxelValue <toolID>
+  if( 0 == strcmp( isCommand, "GetToolEraseVoxelValue" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      stringstream ssValues;
+      ssValues << GetEraseValue();
       sReturnValues = ssValues.str();
       sReturnFormat = "f";
     }

@@ -21,6 +21,9 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetNewValue ( float iValue ) { mNewValue = iValue; }
   float GetNewValue () { return mNewValue; }
 
+  void SetEraseValue ( float iValue ) { mEraseValue = iValue; }
+  float GetEraseValue () { return mEraseValue; }
+
   void SetOnlyBrushZero ( bool ibOnlyZero ) { mbOnlyFillZero = ibOnlyZero; }
   bool GetOnlyBrushZero () { return mbOnlyFillZero; }
 
@@ -82,6 +85,7 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
 
   // Voxel edit settings.
   float mNewValue;
+  float mEraseValue;
   float mbOnlyFillZero;
 
   // Flood settings.
