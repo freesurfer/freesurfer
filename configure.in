@@ -745,7 +745,7 @@ export DEV
 
 AC_OUTPUT(\
 Makefile \
-unix/Makefile dicom/Makefile rgb/Makefile utils/Makefile hipsstubs/Makefile log/Makefile \
+unix/Makefile dicom/Makefile rgb/Makefile utils/Makefile hipsstubs/Makefile log/Makefile utilscpp/Makefile \
 mris2rgb/Makefile nmovie/Makefile mris_show/Makefile tkmedit/Makefile tkregister/Makefile \
 tkregister2/Makefile tksurfer/Makefile mri_hires_register/Makefile \
 check_siemens_dir/Makefile repair_siemens_file/Makefile mkxsubjreg/Makefile \
@@ -793,7 +793,7 @@ brik2bfloat/Makefile minc_to_bshort/Makefile paint/Makefile \
 histo_compute_joint_density/Makefile histo_register_block/Makefile scripts/Makefile images/Makefile \
 distribution/Makefile distribution/lib/Makefile distribution/lib/bem/Makefile distribution/average/Makefile \
 distribution/docs/Makefile mri_modify/Makefile \
-utils/test/Makefile \
+utils/test/Makefile utilscpp/test/Makefile \
 mri_watershed/brain_volume/Makefile \
 mri_cht2p/Makefile \
 mri_vol2vol/Makefile \
