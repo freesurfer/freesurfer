@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/08 23:02:45 $
-// Revision       : $Revision: 1.95 $
+// Revision Date  : $Date: 2004/01/09 00:12:50 $
+// Revision       : $Revision: 1.96 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -84,6 +84,7 @@ char *DspA_ksaErrorStrings [DspA_knNumErrorCodes] = {
   "Error accessing head point list.",
   "Error accessing list.",
   "Couldn't find a closest voxel.",
+  "Error opening file.",
   "Invalid error code."
 };
 
@@ -7892,6 +7893,98 @@ DspA_tErr DspA_SmartCutAtCursor ( tkmDisplayAreaRef this ) {
 }
 
 
+
+DspA_tErr DspA_AddLineToSelection ( tkmDisplayAreaRef this ) {
+  
+  DspA_tErr eResult   = DspA_tErr_NoErr;
+  xVoxel    MRIIdx;
+  int       nLineVox  = 0;
+
+  DebugEnterFunction( ("DspA_AddLineToSelection( this=%p )", this) );
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  DebugAssertThrow( (eResult == DspA_tErr_NoErr) );
+
+  /* Add each voxel to the selection. */
+  for( nLineVox = 0; nLineVox < this->mNumLineVoxels; nLineVox++ ) {
+    
+    /* Convert to mri idx. */
+    Volm_ConvertIdxToMRIIdx( this->mpVolume[tkm_tVolumeType_Main],
+			     &(this->mLineVoxels[nLineVox]), 
+			     &MRIIdx );
+    
+    tkm_SelectVoxel( &MRIIdx );
+  }
+
+  /* Redraw ourselves. */
+  this->mbSliceChanged = TRUE;
+  DspA_Redraw_( this );
+
+  DebugCatch;
+  DebugCatchError( eResult, DspA_tErr_NoErr, DspA_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+DspA_tErr DspA_WriteLineReportToFile ( tkmDisplayAreaRef this,
+				       char*             isFileName) {
+  
+  DspA_tErr eResult   = DspA_tErr_NoErr;
+  xVoxel    MRIIdx;
+  int       nLineVox  = 0;
+  FILE*     reportFile = NULL;
+  float     value = 0;
+
+  DebugEnterFunction( ("DspA_WriteLineReportToFile( this=%p, isFileName=%s )",
+		       this, isFileName) );
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  DebugAssertThrow( (eResult == DspA_tErr_NoErr) );
+
+  /* Open or create the file. */
+  reportFile = fopen( isFileName, "w+" );
+  DebugAssertThrowX( (reportFile), eResult, DspA_tErr_ErrorOpeningFile );
+
+  /* Write data for each voxel in the selection. */
+  for( nLineVox = 0; nLineVox < this->mNumLineVoxels; nLineVox++ ) {
+    
+    /* Convert to mri idx. */
+    Volm_ConvertIdxToMRIIdx( this->mpVolume[tkm_tVolumeType_Main],
+			     &(this->mLineVoxels[nLineVox]), 
+			     &MRIIdx );
+    
+    /* Get the value. */
+    Volm_GetValueAtMRIIdx_( this->mpVolume[tkm_tVolumeType_Main],
+			    &MRIIdx, &value );
+
+    /* Write this line. */
+    fprintf( reportFile, "%d %d %d\t %f\n",
+	     xVoxl_ExpandInt( &MRIIdx ), value );
+  }
+
+  /* Redraw ourselves. */
+  this->mbSliceChanged = TRUE;
+  DspA_Redraw_( this );
+
+  DebugCatch;
+  DebugCatchError( eResult, DspA_tErr_NoErr, DspA_GetErrorString );
+  EndDebugCatch;
+
+  if( NULL != reportFile ) {
+    fclose( reportFile );
+  }
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+ 
 DspA_tErr DspA_Verify ( tkmDisplayAreaRef this ) {
   
   DspA_tErr eResult = DspA_tErr_NoErr;

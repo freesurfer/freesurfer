@@ -39,6 +39,7 @@ typedef enum {
   DspA_tErr_ErrorAccessingHeadPointList,
   DspA_tErr_ErrorAccessingList,
   DspA_tErr_CouldntFindClosestVoxel,
+  DspA_tErr_ErrorOpeningFile,
   DspA_tErr_InvalidErrorCode,
   DspA_knNumErrorCodes
 } DspA_tErr;
@@ -626,6 +627,13 @@ DspA_tErr DspA_SetSurfaceDistanceAtCursor ( tkmDisplayAreaRef this );
    region from that edge to the same plane at the cursor by setting
    those values to 0.*/
 DspA_tErr DspA_SmartCutAtCursor ( tkmDisplayAreaRef this );
+
+/* Adds the voxels in the line to the selection. */
+DspA_tErr DspA_AddLineToSelection ( tkmDisplayAreaRef this );
+
+/* Writes a text file report with the values of the voxels in the line. */
+DspA_tErr DspA_WriteLineReportToFile ( tkmDisplayAreaRef this,
+				       char*             isFileName );
 
 /* tkmedit needs to get the selected head pt */
 DspA_tErr DspA_GetSelectedHeadPt ( tkmDisplayAreaRef   this,

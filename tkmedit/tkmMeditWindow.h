@@ -386,6 +386,14 @@ int MWin_TclSmartCutAtCursor ( ClientData  iClientData,
 			       Tcl_Interp* ipInterp,
 			       int   argc,
 			       char*   argv[] );
+int MWin_TclAddLineToSelection ( ClientData  iClientData, 
+				 Tcl_Interp* ipInterp,
+				 int   argc,
+				 char*   argv[] );
+int MWin_TclWriteLineReportToFile ( ClientData  iClientData, 
+				    Tcl_Interp* ipInterp,
+				    int   argc,
+				    char*   argv[] );
 int MWin_TclSetFuncOverlayAlpha ( ClientData  iClientData, 
 				  Tcl_Interp* ipInterp,
 				  int   argc,
