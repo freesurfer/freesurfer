@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/04/01 21:00:07 $
-// Revision       : $Revision: 1.66 $
+// Revision Date  : $Date: 2005/04/03 02:26:50 $
+// Revision       : $Revision: 1.67 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -5651,13 +5651,13 @@ gcamAreaIntensityTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_area_
 	GCA_MORPH_NODE *gcamn, *gcamn_nbr, *gcamn_nbrs[MAX_NBR_NODES] ;
 	MRI            *mri_dx, *mri_dy, *mri_dz, *mri_ctrl ;
 
+	if (DZERO(l_area_intensity))
+		return(NO_ERROR) ;
+
 	mri_dx = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT) ;
 	mri_dy = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT) ;
 	mri_dz = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT) ;
 	mri_ctrl = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_UCHAR) ;
-
-	if (DZERO(l_area_intensity))
-		return(NO_ERROR) ;
 
 	/* first compute and fillin each node's predicted value */
 	for (x = 0 ; x < gcam->width ; x++)
