@@ -684,6 +684,7 @@ float MRIvolumeDeterminant(MRI *mri);
 
 int mriio_command_line(int argc, char *argv[]);
 int mriio_set_subject_name(char *name);
+int MRIgetVolumeName(char *string, char *name_only);
 MRI *MRIread(char *fname);
 MRI *MRIreadType(char *fname, int type);
 MRI *MRIreadInfo(char *fname);
