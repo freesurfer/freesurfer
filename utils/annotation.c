@@ -17,6 +17,18 @@ typedef struct
 static ATABLE_ELT *atable ;
 static int num_entries = 0 ;
 
+/*-----------------------------------------------*/
+int print_annotation_table(FILE *fp)
+{
+  int n;
+  if (num_entries <= 0) read_annotation_table() ;
+
+  for(n = 0; n < num_entries; n++)
+    fprintf(fp,"%3d   %s\n",atable[n].index,atable[n].name);
+  return(0);
+}
+
+/*-----------------------------------------------*/
 int
 read_annotation_table(void)
 {
