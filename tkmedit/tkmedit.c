@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/11/23 00:45:12 $
-// Revision       : $Revision: 1.184 $
-char *VERSION = "$Revision: 1.184 $";
+// Revision Date  : $Date: 2003/12/08 08:03:39 $
+// Revision       : $Revision: 1.185 $
+char *VERSION = "$Revision: 1.185 $";
 
 #define TCL
 #define TKMEDIT 
@@ -253,6 +253,16 @@ xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB );
 
 #include "mriSurface.h"
 
+/* This flag toggles between using sufaceRAS coordinates and worldRAS
+   coordinates for all RAS based output that is going to tksurfer at
+   some point. This flag is actually specified in the surface
+   strucutre, useRealRAS. If it is 1, we use worldRAS functions, if
+   not, we use surfaceRAS functions. If a surface is not loaded, it's
+   0 by default. If a surface is load with useRealRAS on, the user
+   will be asked if they want to switch modes. */
+tBoolean gbUseRealRAS = FALSE;
+tBoolean gbSetFirstUseRealRAS = TRUE;
+
 mriSurfaceRef gSurface[tkm_knNumSurfaceTypes];
 
 tkm_tErr LoadSurface          ( tkm_tSurfaceType iType, 
@@ -269,12 +279,17 @@ tkm_tErr LoadSurfaceAnnotation ( tkm_tSurfaceType iType,
 void   WriteSurfaceValues     ( tkm_tSurfaceType iType, 
 				char*            isFileName );
 
-
 void GotoSurfaceVertex                    ( Surf_tVertexSet iSurface, 
 					    int             inVertex );
 void FindNearestSurfaceVertex             ( Surf_tVertexSet iSet );
 void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet );
 void AverageSurfaceVertexPositions        ( int             inNumAverages );
+
+void SetUseRealRAS ( tBoolean ibUseRealRAS );
+
+/* Calculates a surface client transformation based on the
+   gbUseRealRAS and sets it in the surface. */
+tkm_tErr CalcAndSetSurfaceClientTransformation( tkm_tSurfaceType iType );
 
 // ===========================================================================
 
@@ -1034,7 +1049,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.184 2003/11/23 00:45:12 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.185 2003/12/08 08:03:39 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2561,6 +2576,132 @@ void AverageSurfaceVertexPositions ( int inNumAverages ) {
   return;
 }
 
+void SetUseRealRAS ( tBoolean ibUseRealRAS ) {
+
+  /* If the values are different, set it and then send the update to
+     tcl. */
+  if( gbUseRealRAS != ibUseRealRAS ) {
+
+    gbUseRealRAS = ibUseRealRAS;
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateUseRealRAS, 
+			gbUseRealRAS ? "1" : "0" );
+
+    /* Recalc the surface transform. */
+    CalcAndSetSurfaceClientTransformation( tkm_tSurfaceType_Main );
+    
+    /* Mark the surface dirty. */
+    MWin_SetSurface( gMeditWindow, -1, tkm_tSurfaceType_Main, 
+		     gSurface[tkm_tSurfaceType_Main] );
+
+    /* redraw the window. */
+    MWin_RedrawAll( gMeditWindow );
+  }
+}
+
+
+
+tkm_tErr CalcAndSetSurfaceClientTransformation ( tkm_tSurfaceType iType ) {
+
+  tkm_tErr        eResult          = tkm_tErr_NoErr;
+  Trns_tErr       eTrns            = Trns_tErr_NoErr;
+  mriTransformRef surfaceTransform = NULL;
+  MATRIX*         tmp1             = NULL;
+  MATRIX*         tmp2             = NULL;
+
+  DebugEnterFunction( ("CalcAndSetSurfaceClientTransformation( iType=%d )",
+		       (int)iType) );
+
+  // gIdxToRASTransform keeps track of
+  //        src ---> RAS
+  //  non-   |        |
+  //  triv   |        |identity
+  //         V        V
+  //    conformed --> RAS
+  //      256^3          
+  DebugNote( ("Cloning gIdxToRASTransform to get surfaceTransform") );
+  eTrns = Trns_DeepClone( gIdxToRASTransform, &surfaceTransform );
+  DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
+		     eResult, tkm_tErr_CouldntAllocate );
+
+  // surfaceTransform keeps track of
+  //
+  //           known
+  //        src ---> RAS
+  //         |        |
+  // non-    |        | non-trivial
+  // triv    V        V
+  //   conformed---> RAS  (c_(r,a,s) = 0)
+  //    256^3  standard 
+  //
+  /* If we are using real RAS, we just use the extract_i_to_r
+     transform for src->conformed, otherwise use the standard. */
+  if( gbUseRealRAS ) {
+
+    tmp1 = MatrixCopy( extract_i_to_r( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ), NULL );
+
+  } else {
+    
+    Trns_GetBtoRAS(surfaceTransform, &tmp1); 
+    *MATRIX_RELT(tmp1, 1, 1) = -1;
+    *MATRIX_RELT(tmp1, 2, 1) =  0;
+    *MATRIX_RELT(tmp1, 3, 1) =  0;
+    
+    *MATRIX_RELT(tmp1, 1, 2) =  0;
+    *MATRIX_RELT(tmp1, 2, 2) =  0;
+    *MATRIX_RELT(tmp1, 3, 2) = -1;
+    
+    *MATRIX_RELT(tmp1, 1, 3) =  0;
+    *MATRIX_RELT(tmp1, 2, 3) =  1;
+    *MATRIX_RELT(tmp1, 3, 3) =  0;
+    
+    *MATRIX_RELT(tmp1, 1, 4) = 128;
+    *MATRIX_RELT(tmp1, 2, 4) = -128;
+    *MATRIX_RELT(tmp1, 3, 4) = 128;
+  }
+
+  Trns_CopyBtoRAS(surfaceTransform, tmp1);
+
+  // in order to calculate ARAStoBRAS,
+  // we use   ( RAS-> src ) then  ( src -> conformed )  then ( B->RAS )
+  tmp1 = MatrixInverse(gIdxToRASTransform->mAtoRAS, NULL);
+  tmp2 = MatrixMultiply(gIdxToRASTransform->mAtoB, tmp1, NULL);
+  tmp1 = MatrixMultiply(surfaceTransform->mBtoRAS, tmp2, NULL);
+  Trns_CopyARAStoBRAS(surfaceTransform, tmp1);
+
+  Surf_SetTransform( gSurface[iType], surfaceTransform );
+
+#if 0
+  DebugPrint(("AtoRAS-1\n"));
+  MatrixPrint(stderr,tmp1);
+  DebugPrint(("AtoB\n"));
+  MatrixPrint(stderr,surfaceTransform->mAtoB);
+  DebugPrint(("tmp2\n"));
+  MatrixPrint(stderr,tmp2);
+  DebugPrint(("BtoRAS\n"));
+  MatrixPrint(stderr,surfaceTransform->mBtoRAS);
+  DebugPrint(("ARAStoBRAS\n"));
+  MatrixPrint(stderr,surfaceTransform->mARAStoBRAS);
+#endif
+
+  goto cleanup;
+  
+ error:
+  
+ cleanup:
+
+  if( NULL != tmp1 )
+    MatrixFree(&tmp1);
+  if( NULL != tmp2 )
+    MatrixFree(&tmp2);
+
+  DebugExitFunction;
+
+  return eResult;
+}
+
+
+
+
 void WriteVoxelToControlFile ( xVoxelRef iMRIIdx ) {
   
   tkm_tErr  eResult         = tkm_tErr_NoErr;
@@ -2649,9 +2790,14 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
   /* convert idx to ras */
   eVolume = Volm_ConvertIdxToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
 				     iAnaIdx, &MRIIdx );
-  eVolume = 
-    Volm_ConvertMRIIdxToSurfaceRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
-				 &MRIIdx, &ras );
+  if( gbUseRealRAS ) {
+    eVolume = Volm_ConvertMRIIdxToRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
+				       &MRIIdx, &ras );
+  } else {
+    eVolume = 
+      Volm_ConvertMRIIdxToSurfaceRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
+				      &MRIIdx, &ras );
+  }
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
          eResult, tkm_tErr_ErrorAccessingVolume );
   
@@ -2731,9 +2877,14 @@ void ReadCursorFromEditFile ( char* isFileName ) {
   xVoxl_SetFloat( &ras, fRASX, fRASY, fRASZ );
   
   /* convert to screen voxel. */
-  eVolume = 
-    Volm_ConvertSurfaceRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
-				    &ras, &MRIIdx );
+  if( gbUseRealRAS ) {
+    eVolume = Volm_ConvertRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
+				       &ras, &MRIIdx );
+  } else {
+    eVolume = 
+      Volm_ConvertSurfaceRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
+				      &ras, &MRIIdx );
+  }
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 		     eResult, tkm_tErr_ErrorAccessingVolume );
   eVolume = Volm_ConvertMRIIdxToIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
@@ -2771,7 +2922,6 @@ void UpdateAndRedraw () {
   }
 }
 
-
 void tkm_HandleIdle () {
   
   /* just call the tk event handling function */
@@ -2785,12 +2935,10 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   
   tkm_tErr  eResult           = tkm_tErr_NoErr;
   Surf_tErr eSurface           = Surf_tErr_NoErr;
-  Trns_tErr eTrns             = Trns_tErr_NoErr;
   tBoolean  bLoaded           = FALSE;
   char      sName[tkm_knPathLen]       = "";
   char      sError[tkm_knErrStringLen] = "";
-  mriTransformRef surfaceTransform = NULL;
-  MATRIX *tmp1, *tmp2;
+  tBoolean  bUseRealRAS;
 
   DebugEnterFunction( ("LoadSurface( iType=%d, isName=%s )", 
            (int)iType, isName) );
@@ -2809,82 +2957,12 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
     Surf_Delete( &gSurface[iType] );
   }
 
-  // gIdxToRASTransform keeps track of
-  //        src ---> RAS
-  //  non-   |        |
-  //  triv   |        |identity
-  //         V        V
-  //    conformed --> RAS
-  //      256^3          
-  DebugNote( ("Cloning gIdxToRASTransform to get surfaceTransform") );
-  eTrns = Trns_DeepClone( gIdxToRASTransform, &surfaceTransform );
-  DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
-		     eResult, tkm_tErr_CouldntAllocate );
-
-  // surfaceTransform keeps track of
-  //
-  //           known
-  //        src ---> RAS
-  //         |        |
-  // non-    |        | non-trivial
-  // triv    V        V
-  //   conformed---> RAS  (c_(r,a,s) = 0)
-  //    256^3  standard 
-  //
-  Trns_GetBtoRAS(surfaceTransform, &tmp1); 
-  *MATRIX_RELT(tmp1, 1, 1) = -1;
-  *MATRIX_RELT(tmp1, 2, 1) =  0;
-  *MATRIX_RELT(tmp1, 3, 1) =  0;
-
-  *MATRIX_RELT(tmp1, 1, 2) =  0;
-  *MATRIX_RELT(tmp1, 2, 2) =  0;
-  *MATRIX_RELT(tmp1, 3, 2) = -1;
-
-  *MATRIX_RELT(tmp1, 1, 3) =  0;
-  *MATRIX_RELT(tmp1, 2, 3) =  1;
-  *MATRIX_RELT(tmp1, 3, 3) =  0;
-
-  *MATRIX_RELT(tmp1, 1, 4) = 128;
-  *MATRIX_RELT(tmp1, 2, 4) = -128;
-  *MATRIX_RELT(tmp1, 3, 4) = 128;
-
-  Trns_CopyBtoRAS(surfaceTransform, tmp1);
-
-  // in order to calculate ARAStoBRAS,
-  // we use   ( RAS-> src ) then  ( src -> conformed )  then ( B->RAS )
-  tmp1 = MatrixInverse(gIdxToRASTransform->mAtoRAS, NULL);
-  tmp2 = MatrixMultiply(gIdxToRASTransform->mAtoB, tmp1, NULL);
-  tmp1 = MatrixMultiply(surfaceTransform->mBtoRAS, tmp2, NULL);
-  Trns_CopyARAStoBRAS(surfaceTransform, tmp1);
-
-#if 0
-  DebugPrint(("AtoRAS-1\n"));
-  MatrixPrint(stderr,tmp1);
-  DebugPrint(("AtoB\n"));
-  MatrixPrint(stderr,surfaceTransform->mAtoB);
-  DebugPrint(("tmp2\n"));
-  MatrixPrint(stderr,tmp2);
-  DebugPrint(("BtoRAS\n"));
-  MatrixPrint(stderr,surfaceTransform->mBtoRAS);
-  DebugPrint(("ARAStoBRAS\n"));
-  MatrixPrint(stderr,surfaceTransform->mARAStoBRAS);
-#endif
-
-  MatrixFree(&tmp1);
-  MatrixFree(&tmp2);
-
   /* create the surface */
   DebugNote( ("Creating surface") );
-  eSurface = Surf_New( &gSurface[iType], sName, surfaceTransform);
+  eSurface = Surf_New( &gSurface[iType], sName );
   DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
          eResult, tkm_tErr_CouldntLoadSurface );
 
-
-#if 0
-  printf("LoadSurface surfaceTransform================================\n");
-  Trns_DebugPrint_( surfaceTransform );
-#endif
- 
   /* see if it was loaded */
   DebugNote( ("Loading main vertex set") );
   eSurface = Surf_IsVertexSetLoaded( gSurface[iType], Surf_tVertexSet_Main, 
@@ -2895,6 +2973,18 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   DebugNote( ("Setting surface in main window") );
   MWin_SetSurface( gMeditWindow, -1, iType, gSurface[iType] );
   
+  /* If this is not the first time we're setting gbUseRealRAS, make
+     sure the useRealRAS flags match up. If not, prompt the user. If
+     it is the first time, just set it. This will also set the surface
+     transform accordingly. */
+  Surf_UsesRealRAS( gSurface[iType], &bUseRealRAS );
+  if( gbSetFirstUseRealRAS ) {
+    SetUseRealRAS( bUseRealRAS );
+    gbSetFirstUseRealRAS = FALSE;
+  } else if( bUseRealRAS != gbUseRealRAS ) {
+    tkm_SendTclCommand( tkm_tTclCommand_DoResolveUseRealRASDlog, "" );
+  }
+
   /* turn on the loading and viewing options for surfaces in our interface.
      also turn the surface display onn in the window. turn on the 
      interpolated vertex display. */
@@ -2914,7 +3004,7 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   LoadSurfaceVertexSet( iType, Surf_tVertexSet_Original, "orig" );
   DebugNote( ("Loading pial set") );
   LoadSurfaceVertexSet( iType, Surf_tVertexSet_Pial, "pial" );
-  
+
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   
@@ -2926,8 +3016,6 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
         "type that tkmedit recognizes "
         "or the file was unreadable due to permissions." );
   EndDebugCatch;
-  
-  Trns_Delete( &surfaceTransform );
 
   DebugExitFunction;
   
@@ -4302,6 +4390,24 @@ int TclAverageSurfaceVertexPositions ( ClientData inClientData,
 }
 
 
+int TclSetUseRealRAS ( ClientData inClientData, 
+		       Tcl_Interp* inInterp,
+		       int argc, char* argv[] ) {
+  
+  if ( argc != 2) {
+    Tcl_SetResult ( inInterp, "wrong # args: SetUseRealRAS use_real_ras",
+		    TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    SetUseRealRAS( atoi(argv[1]) );
+  }  
+  
+  return TCL_OK;
+}
+
+
 int TclNewSegmentationVolume ( ClientData inClientData, 
 			       Tcl_Interp* inInterp,
 			       int argc, char* argv[] ) {
@@ -4880,7 +4986,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.184 2003/11/23 00:45:12 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.185 2003/12/08 08:03:39 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -5497,6 +5603,10 @@ int main ( int argc, char** argv ) {
 		      TclAverageSurfaceVertexPositions,
 		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
+  Tcl_CreateCommand ( interp, "SetUseRealRAS",
+		      TclSetUseRealRAS, 
+		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+
   Tcl_CreateCommand ( interp, "NewSegmentationVolume",
 		      TclNewSegmentationVolume,
 		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
@@ -6274,11 +6384,16 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
     Volm_GetValueAtMRIIdx_( gSelectionVolume, &MRIIdx, &value );
     if( 0 != value ) {
       
-      /* convert mri idx to surface ras. note we use surface ras here
-	 because it ignores c_ras, which is what label files should to
-	 be comptaible with tksurfer.  */
-      eVolume = 
-	Volm_ConvertMRIIdxToSurfaceRAS( gSelectionVolume, &MRIIdx, &ras );
+      /* convert mri idx to surface ras. note we may use surface ras
+	 here because it ignores c_ras, which is what label files
+	 should to be comptaible with tksurfer.  */
+      if( gbUseRealRAS ) {
+	eVolume = 
+	  Volm_ConvertMRIIdxToRAS( gSelectionVolume, &MRIIdx, &ras );
+      } else {
+	eVolume = 
+	  Volm_ConvertMRIIdxToSurfaceRAS( gSelectionVolume, &MRIIdx, &ras );
+      }
       DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 			 eResult, tkm_tErr_ErrorAccessingVolume );
       
@@ -6358,11 +6473,16 @@ tkm_tErr LoadSelectionFromLabelFile ( char* isFileName ) {
     /* only process verticies that arn't deleted. */
     if ( !(pVertex->deleted) ) {
       
-      /* transform from ras to voxel. note we use surface ras here,
-	 see note in SaveSelectionToLabelFile. */
+      /* transform from ras to voxel. note we may use surface ras
+	 here, see note in SaveSelectionToLabelFile. */
       xVoxl_SetFloat( &ras, pVertex->x, pVertex->y, pVertex->z );
-      eVolume = 
-	Volm_ConvertSurfaceRASToMRIIdx( gSelectionVolume, &ras, &MRIIdx );
+      if( gbUseRealRAS ) {
+	eVolume = 
+	  Volm_ConvertRASToMRIIdx( gSelectionVolume, &ras, &MRIIdx );
+      } else {
+	eVolume = 
+	  Volm_ConvertSurfaceRASToMRIIdx( gSelectionVolume, &ras, &MRIIdx );
+      }
       DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 			 eResult, tkm_tErr_ErrorAccessingVolume );
       
@@ -11302,6 +11422,10 @@ void tkm_ShowNearestSurfaceVertex ( Surf_tVertexSet iVertexSet ) {
   FindNearestSurfaceVertex( iVertexSet );
 }
 
+tBoolean tkm_UseRealRAS () {
+
+  return gbUseRealRAS;
+}
 
 char *kTclCommands [tkm_knNumTclCommands] = {
   
@@ -11335,6 +11459,7 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "UpdateCursorShape",
   "UpdateSurfaceLineWidth",
   "UpdateSurfaceLineColor",
+  "UpdateUseRealRAS",
   "UpdateSegBrushInfo",
   "UpdateVolumeColorScaleInfo",
   "UpdateSegmentationVolumeAlpha",
@@ -11389,6 +11514,7 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "tkm_Finish",
   
   /* misc */
+  "DoResolveUseRealRASDlog",
   "ErrorDlog",
   "FormattedErrorDlog",
   "AlertDlog",
