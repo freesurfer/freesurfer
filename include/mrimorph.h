@@ -6,6 +6,7 @@
 #include "matrix.h"
 #include "transform.h"
 #include "mrisurf.h"
+#include "gca.h"
 
 typedef struct
 {
@@ -47,6 +48,7 @@ typedef struct
   int        morph_skull ;
   int        disable_neck ;
   MRI        *mri_red_in, *mri_red_ref ;  /* current (reduced) volumes */
+  GCA        *gca_red ;
   MATRIX     *m_xform_mean ;        /* cross-subject mean of xform parms */
   MATRIX     *m_xform_covariance ;  /* covariance matrix of xform parms */
   MATRIX     *m_inv_cov ;           /* inverse of above */
@@ -56,6 +58,8 @@ typedef struct
   int        max_levels ;
   MRI        *mri_crop ;            /* boolean image 1=cropped region */
   int        scout_flag ;
+  MRI        *mri_classified ;
+  float      factor ;               /* for stabilizing integration */
 } MORPH_PARMS, MP ;
 
 
@@ -118,6 +122,7 @@ int       MRIlabelCentroid(MRI *mri_label,int l,float *px,float *py,float *pz);
 int       MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms);
 int       MRIrigidAlign(MRI *mri_in,MRI *mri_ref, MORPH_PARMS *parms, 
                         MATRIX *m_L);
+int       MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L);
 int       MRIinitTranslation(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) ;
 int       MRIinitScaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) ;
 int       MRIfindMeans(MRI *mri, float *means) ;
@@ -137,5 +142,8 @@ MRI_SURFACE   *MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms) ;
 int           MRIeraseNeck(MRI *mri, NECK_PARMS *np) ;
 
 #define M3D_MAGIC  0xabcdef42
+
+#define DEFAULT_IMAGE_SIZE       400
+extern int IMAGE_SIZE ;
 
 #endif
