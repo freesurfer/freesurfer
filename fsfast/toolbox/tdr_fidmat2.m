@@ -9,34 +9,36 @@
 %
 % Note: the images are still not flipped up-down
 %
-% $Id: tdr_fidmat2.m,v 1.1 2003/12/01 04:54:17 greve Exp $
+% $Id: tdr_fidmat2.m,v 1.2 2003/12/19 22:16:58 greve Exp $
 
 fidmatversion = 2;
 
-if(1)
+if(0)
   fiddir = '/home/greve/sg1/dng072203/fid1/mgh';
   TE    = 20;     % Echo time in ms
   perev = 0;
   outmat = '/home/greve/sg1/dng072203/D20.1.B.mat';
   fidfwhm = 0;
+
+  % Free induction decay (FID) timing parameters
+  fidecho1ped = 1810;   % PED of first echo (us)
+  fidechospacing = 820; % Time between FID echoes (Actually use double)
+  nfidechoes = 99; % But we'll only use half (odd echoes), should get from file
+  
+  % EPI timing parameters - note EPI data not needed here
+  epiechospacing = 470; % us
+  delsamp = 30;         % us
+  tDwell = 3.2;         % us
+  
+  % Dimensions: applies to both EPI and FID - should just get this from data
+  nrows = 64;
+  ncols = 128;
+  nslices = 35;
+
 end
 
 nT2sFit = 5; % number of echoes to use to fit the T2s and B0
 
-% Free induction decay (FID) timing parameters
-fidecho1ped = 1810;   % PED of first echo (us)
-fidechospacing = 820; % Time between FID echoes (Actually use double)
-nfidechoes = 99; % But we'll only use half (odd echoes), should get from file
-
-% EPI timing parameters - note EPI data not needed here
-epiechospacing = 470; % us
-delsamp = 30;         % us
-tDwell = 3.2;         % us
-
-% Dimensions: applies to both EPI and FID - should just get this from data
-nrows = 64;
-ncols = 128;
-nslices = 35;
 nv = nrows*ncols;
 evenrows = [2:2:nrows];
 oddrows  = [1:2:nrows];
@@ -45,8 +47,11 @@ oddrows  = [1:2:nrows];
 tic;
 
 % Only keep the interior half of the columns
-colkeep = [ncols/4 : ncols/2 + ncols/4 - 1];
+c1 = ncols/4 + 1;
+c2 = c1 + ncols/2 -1;
+colkeep = [c1:c2];
 ncolskeep = length(colkeep);
+nkcols = ncols;
 
 % Only use odd FID echoes
 fidechospacing_odd = 2*fidechospacing;
@@ -186,7 +191,7 @@ save(outmat,'fiddir','fidecho1ped','fidechospacing','nfidechoes',...
      'fidfwhm','epiechospacing','delsamp','tDwell','TE',...
      'perev','D','D0','T2s','B0','epiref_dist','epiref_undist',...
      'sliceorder','pedmat','colkeep','nT2sFit','kepiref_dist',...
-     'fidmatversion');
+     'fidmatversion','nkcols');
 
 fprintf('tdr_fidmat2 done (%g)\n',toc);
 
