@@ -12,9 +12,10 @@
 #include "timer.h"
 #include "mrisurf.h"
 #include "mri.h"
+#include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.1 1998/06/16 17:02:41 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.2 1998/09/04 23:02:18 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -37,14 +38,20 @@ static float base_dt_scale = BASE_DT_SCALE ;
 static int sigma_set = 0 ;
 static int nsigma_set = 0 ;
 
+static int nwhite = 15 /*25*/ ;
+static int ngray = 65 /*100*/ ;
+
+static float gray_surface = 65.0f ;
 
 int
 main(int argc, char *argv[])
 {
-  char          **av, *hemi, *sname, sdir[400], *cp, *wstr, fname[500] ;
+  char          **av, *hemi, *sname, sdir[400], *cp, fname[500] ;
   int           ac, nargs ;
   MRI_SURFACE   *mris ;
-  MRI           *mri_wm, *mri_brain, *mri_kernel = NULL, *mri_smooth ;
+  MRI           *mri_wm, *mri_brain, *mri_kernel = NULL, *mri_smooth, 
+                *mri_filled ;
+  int           label_val, replace_val ;
   int           msec ;
   struct timeb  then ;
 
@@ -55,7 +62,7 @@ main(int argc, char *argv[])
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = NO_PROJECTION ;
   parms.tol = 1e-4 ;
-  parms.dt = 0.1f ;
+  parms.dt = 0.75f ;
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
   parms.n_averages = 8 /* 32*/ ; /*N_AVERAGES*/ ;
 #if 0
@@ -87,13 +94,11 @@ main(int argc, char *argv[])
     usage_exit() ;
 
   /* set default parameters for white and gray matter surfaces */
-  wstr = argv[1] ;
-  if (!parms.niterations)
-    parms.niterations = 25 ;
+  parms.niterations = nwhite ;
   if (!sigma_set)
     sigma = 0.25f ;
   if (parms.momentum < 0.0)
-    parms.momentum = 0.75 ;
+    parms.momentum = 0.0 /*0.75*/ ;
 
   TimerStart(&then) ;
   sname = argv[1] ;
@@ -112,6 +117,22 @@ main(int argc, char *argv[])
   if (!mri_brain)
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
+
+  sprintf(fname, "%s/%s/mri/filled", sdir, sname) ;
+  fprintf(stderr, "reading volume %s...\n", fname) ;
+  mri_filled = MRIread(fname) ;
+  if (!mri_filled)
+    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
+              Progname, fname) ;
+  if (!stricmp(hemi, "lh"))
+  { label_val = LH_LABEL ; replace_val = RH_LABEL ; }
+  else
+  { label_val = RH_LABEL ; replace_val = LH_LABEL ; }
+  MRImask(mri_brain, mri_filled, mri_brain, replace_val) ;
+  /*  MRIwrite(mri_brain, "/tmp/brain.mnc") ;*/
+  MRIfree(&mri_filled) ;
+
+
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
@@ -138,14 +159,13 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
 
-  fprintf(stderr, "repositioning cortical surface to gray/white boundary.\n") ;
+  fprintf(stderr, "repositioning cortical surface to gray/white boundary.\n");
   if (!nsigma_set)
     nsigma = 0.1f ;
   MRISaverageVertexPositions(mris, 4) ;
   strcpy(parms.base_name, WHITE_MATTER_NAME) ;
   MRIScomputeWhiteSurfaceValues(mris, mri_brain, mri_wm, nsigma) ;
-  MRISpositionSurface(mris, mri_brain, mri_wm, mri_smooth,nsigma,
-                      WHITE_SURFACE,&parms);
+  MRISpositionSurface(mris, mri_brain, mri_smooth,&parms);
 
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, WHITE_MATTER_NAME) ;
   fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
@@ -155,13 +175,12 @@ main(int argc, char *argv[])
     nsigma = 1.5f ;
   fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* save white-matter */
-  parms.niterations = 100 ;
+  parms.niterations = ngray ;
   parms.t = parms.start_t = 0.0 ;
   parms.l_nspring = 0.5 ;
   strcpy(parms.base_name, GRAY_MATTER_NAME) ;
-  MRIScomputeGraySurfaceValues(mris, mri_brain, mri_wm, nsigma) ;
-  MRISpositionSurface(mris, mri_brain, mri_wm, mri_smooth,nsigma,
-                      GRAY_SURFACE,&parms);
+  MRIScomputeGraySurfaceValues(mris, mri_brain, mri_wm, nsigma, gray_surface) ;
+  MRISpositionSurface(mris, mri_brain, mri_smooth,&parms);
 
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, GRAY_MATTER_NAME) ;
   fprintf(stderr, "writing pial surface to %s...\n", fname) ;
@@ -175,11 +194,12 @@ main(int argc, char *argv[])
      move the white matter surface out by 1/2 the thickness as an estimate
      of layer IV.
      */
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   mrisFindMiddleOfGray(mris) ;
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, GRAYMID_NAME) ;
   fprintf(stderr, "writing layer IV surface to %s...\n", fname) ;
   MRISwrite(mris, fname) ;
-
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   msec = TimerStop(&then) ;
   fprintf(stderr,"positioning took %2.1f minutes\n", (float)msec/(60*1000.0f));
   exit(0) ;
@@ -251,6 +271,28 @@ get_option(int argc, char *argv[])
   {
     parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
     fprintf(stderr, "integrating with line minimization\n") ;
+  }
+  else if (!stricmp(option, "nwhite"))
+  {
+    nwhite = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, 
+           "integrating gray/white surface positioning for %d time steps\n",
+           nwhite) ;
+  }
+  else if (!stricmp(option, "pial"))
+  {
+    gray_surface = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, 
+           "settting pial surface target value to %2.1f\n", gray_surface) ;
+  }
+  else if (!stricmp(option, "ngray"))
+  {
+    ngray = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr,"integrating pial surface positioning for %d time steps\n",
+            nwhite) ;
   }
   else if (!stricmp(option, "sigma"))
   {
@@ -350,13 +392,14 @@ mrisFindMiddleOfGray(MRI_SURFACE *mris)
   VERTEX  *v ;
   float   nx, ny, nz, thickness ;
 
+  MRISaverageCurvatures(mris, 3) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
     nx = v->nx ; ny = v->ny ; nz = v->nz ;
-    thickness = v->curv ;
+    thickness = 0.5 * v->curv ;
     v->x = v->origx + thickness * nx ;
     v->y = v->origy + thickness * ny ;
     v->z = v->origz + thickness * nz ;
