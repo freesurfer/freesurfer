@@ -721,6 +721,8 @@ void sagnorm_allslices(void) ;
 void sagnorm_corslice(int imc) ;
 void alloc_second_im(void) ;
 void smooth_surface(int niter) ;
+static void SmoothFunctionalData(mriFunctionalDataRef mpOverlayVolume, 
+                                 float sigma) ;
 
 char *Progname ;
 
@@ -814,7 +816,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   tBoolean                bMid                                  = FALSE;
   FunV_tFunctionalValue   mid                                   = 0;
   tBoolean                bSlope                                = FALSE;
+  tBoolean                bSmooth                               = FALSE;
   FunV_tFunctionalValue   slope                                 = 0;
+  float                   sigma                                 = 0;
   tBoolean                bRevPhaseFlag                         = FALSE;
   int                     nRevPhaseFlag                         = 0;
   tBoolean                bTruncPhaseFlag                       = FALSE;
@@ -870,6 +874,7 @@ printf("-fthresh <value>            : specfify min, mid, and slope threshold\n")
 printf("-fmid <value>               : values for functional overlay display\n");
 printf("-fslope <value>             : (default is 0, 1.0, and 1.0)\n");
 printf("\n");
+printf("-fsmooth <sigma>            : smooth functional overlay after loading\n");
 printf("-revphaseflag <1|0>         : reverses phase display in overlay (default off)\n");
 printf("-truncphaseflag <1|0>       : truncates overlay values below 0 (default off)\n");
 printf("-overlaycache <1|0>         : uses overlay cache (default off)\n");
@@ -1257,7 +1262,9 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       nCurrentArg += 1;
     }
 
-  } else if( MATCH( sArg, "-fslope" ) ) {
+  } 
+  else if( MATCH( sArg, "-fslope" ) ) 
+  {
 
     /* check for the value following the switch */
     if( argc > nCurrentArg + 1 &&
@@ -1279,7 +1286,32 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       nCurrentArg += 1;
     }
 
-  } else if( MATCH( sArg, "-revphaseflag" ) ) {
+  } 
+  else if( MATCH( sArg, "-fsmooth" ) ) 
+  {
+
+    /* check for the value following the switch */
+    if( argc > nCurrentArg + 1 &&
+        '-' != argv[nCurrentArg+1][0] ) {
+
+      /* get the value */
+      DebugNote( ("Parsing -fsmooh option") );
+      sigma = (float) atof( argv[nCurrentArg+1] );
+      bSmooth = TRUE;
+      nCurrentArg +=2 ;
+
+    } else { 
+      
+      /* misuse of that switch */
+      tkm_DisplayError( "Parsing -fsmooth option",
+            "Expected an argument",
+            "This option needs an argument: the sigma of the Gaussian "
+            "value to use." );
+      nCurrentArg += 1;
+    }
+
+  } 
+  else if( MATCH( sArg, "-revphaseflag" ) ) {
 
     /* check for the value following the switch */
     if( argc > nCurrentArg + 1
@@ -1747,6 +1779,8 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       eResult = LoadFunctionalOverlay( sOverlayPathAndStem,
                psOverlayOffsetPathAndStem,
                psOverlayRegistration );
+      if (bSmooth == TRUE)
+        SmoothFunctionalData(gFunctionalVolume->mpOverlayVolume, sigma);
     }
 
     /* load functional time course data */
@@ -2975,6 +3009,68 @@ int TclCrashHard ( ClientData inClientData,
   *pBadPtr = 1;
 
   return TCL_OK;
+}
+int TclSmoothFunctionalData ( ClientData inClientData, 
+       Tcl_Interp* inInterp,
+       int argc, char* argv[] )
+{
+  float     sigma = atof(argv[1]) ;
+
+  if (NULL == gFunctionalVolume)  
+    return TCL_OK ; /* print some message about funv vol not loaded */
+  SmoothFunctionalData(gFunctionalVolume->mpOverlayVolume, sigma) ;
+  FunV_InitOverlayCache_(gFunctionalVolume) ;
+  UpdateAndRedraw();
+  return TCL_OK;
+}
+
+
+static void
+SmoothFunctionalData(mriFunctionalDataRef mpOverlayVolume, float sigma)
+{
+  MRI       *mri_kernel, *mri ;
+  int       x, y, z, width, height, depth ;
+  xVoxelRef theFunctionalVoxel = NULL;
+  float     theValue ;
+
+  xVoxl_New ( &theFunctionalVoxel );
+  printf("smoothing with sigma = %2.2f...\n", sigma) ;
+  mri_kernel = MRIgaussian1d(sigma, 100) ;
+
+  width = mpOverlayVolume->mNumCols ;
+  height =  mpOverlayVolume->mNumRows ;
+  depth = mpOverlayVolume->mNumSlices ;
+  mri = MRIalloc(width, height, depth, MRI_FLOAT) ;
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        xVoxl_Set ( theFunctionalVoxel, x, y, z );
+        theValue = FunD_GetValue ( mpOverlayVolume, 
+                                   theFunctionalVoxel, 0, 0) ;
+        MRIFvox(mri, x, y, z) = theValue ;
+      }
+    }
+  }
+
+  MRIconvolveGaussian(mri, mri, mri_kernel) ;
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        xVoxl_Set ( theFunctionalVoxel, x, y, z );
+        theValue = MRIFvox(mri, x, y, z) ;
+        FunD_SetValue ( mpOverlayVolume, theFunctionalVoxel, 0, 0, theValue) ;
+      }
+    }
+  }
+
+  MRIfree(&mri_kernel) ; MRIfree(&mri) ;
+  xVoxl_Delete ( &theFunctionalVoxel );
 }
 
 int TclTranslateOverlayRegistration ( ClientData inClientData, 
@@ -4596,6 +4692,8 @@ int main ( int argc, char** argv ) {
   /* register tcl commands */
   DebugNote( ("Registering tkmedit tcl commands") );
   Tcl_CreateCommand ( interp, "CrashHard", TclCrashHard,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( interp, "SmoothFunctionalData", TclSmoothFunctionalData,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
 
   Tcl_CreateCommand ( interp, "DebugPrint", TclDebugPrint,
