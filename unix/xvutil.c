@@ -313,6 +313,7 @@ xvInitColors(XV_FRAME *xvf)
       break ;
     case GREEN_INDEX:
       xcolors[i].red = xcolors[i].blue = 100<<shift ;
+      xcolors[i].red = xcolors[i].blue = 75<<shift ;
       xcolors[i].green = 255<<shift ;
       break ;
 #endif
