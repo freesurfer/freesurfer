@@ -19,6 +19,9 @@ MatrixCopy(MATRIX *mIn, MATRIX *mOut)
 {
   int row, rows, cols ;
 
+  if(mIn == NULL)
+    return(NULL);
+
   rows = mIn->rows ;
   cols = mIn->cols ;
 
