@@ -1127,7 +1127,7 @@ IMAGE *
 ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
 {
   int  rows, cols, x, y, ax, ay, sx, sy, x1, y1, dx, dy, odx, ody, d, xn, yn,
-       steps, dot ;
+       steps, dot, xold, yold ;
   float *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, *oxpix, *oypix ;
 
   if (!Idst)
@@ -1148,8 +1148,8 @@ ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
       /* do a Bresenham algorithm do find the offset line at this point */
       dx = nint(*src_xpix * FSCALE) ;
       dy = nint(*src_ypix * FSCALE) ;
-      x = x1 ;
-      y = y1 ;
+      xold = x = x1 ;
+      yold = y = y1 ;
       ax = ABS(dx) << 1 ;
       sx = SGN(dx) ;
       ay = ABS(dy) << 1 ;
@@ -1186,6 +1186,8 @@ ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
           if (xn < 0 || xn >= cols)
             break ;
 
+          xold = x ;
+          yold = y ;
           x = xn ;
           y = yn ;
           d += ay ;
@@ -1197,11 +1199,11 @@ ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
         for (steps = 0 ; steps < maxsteps ; steps++)
         {
           odx = nint(*oxpix * FSCALE) ;
-          ody = nint(*oypix * FSCALE) ;
+          ody = nint(*oypix * FSCALE) ;   /* offset vector at this point */
           dot = odx * dx + ody * dy ;
-          if (dot <= 0)
+          if (dot <= 0)  /* vector field has reversed or changed directions */
             break ;
-          if (d >= 0)
+          if (d >= 0)   /* move in x direction also */
           {
             xn = x + sx ;
             if (xn < 0 || xn >= cols)
@@ -1210,12 +1212,14 @@ ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
             oypix += sx ;
             d -= ay ;
           }
-          else
+          else          /* only move in y direction */
             xn = x ;
           yn = y + sy ;
           if (yn < 0 || yn >= rows)
             break ;
 
+          xold = x ;
+          yold = y ;
           x = xn ;
           y = yn ;
           oypix += (sy * cols) ;
@@ -1224,8 +1228,13 @@ ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
         }
       }
 
-      *dst_xpix++ = (float)(x - x1) ;
-      *dst_ypix++ = (float)(y - y1) ;
+      if (dot == 0)  /* zero of vector field, not reversal */
+      {
+        xold = x ;
+        yold = y ;
+      }
+      *dst_xpix++ = (float)(xold - x1) ;
+      *dst_ypix++ = (float)(yold - y1) ;
     }
   }
 
