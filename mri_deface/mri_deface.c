@@ -160,42 +160,42 @@ main(int argc, char *argv[])
   struct timeb start ;
   float        old_log_p, log_p ;
 
-	for (i = 0 ; i < MAX_CMA_LABEL ; i++)
-	{
-		switch (i)
-		{
-		case Unknown: 
-		case Left_Hippocampus:
-		case Right_Hippocampus:
-		case Left_Amygdala:
-		case Right_Amygdala:
-		case Left_Caudate:
-		case Right_Caudate:
-		case Left_Pallidum:
-		case Right_Pallidum:
-		case Left_Putamen:
-		case Right_Putamen:
-		case Left_Thalamus:
-		case Right_Thalamus:
-		case Left_Thalamus_Proper:
-		case Right_Thalamus_Proper:
-		case Left_Accumbens_area:
-		case Right_Accumbens_area:
-			exclude_list[i] = 1 ;
-			break ;
-		case Left_Cerebellum_Exterior:
-		case Left_Cerebellum_Cortex:
-		case Left_Cerebellum_White_Matter:
-		case Right_Cerebellum_Exterior:
-		case Right_Cerebellum_Cortex:
-		case Right_Cerebellum_White_Matter:
-			exclude_list[i] = 0 ;
-			break ;
-		default:
-			exclude_list[i] = 0 ;
-			break ;
-		}
-	}
+  for (i = 0 ; i < MAX_CMA_LABEL ; i++)
+  {
+    switch (i)
+    {
+    case Unknown: 
+    case Left_Hippocampus:
+    case Right_Hippocampus:
+    case Left_Amygdala:
+    case Right_Amygdala:
+    case Left_Caudate:
+    case Right_Caudate:
+    case Left_Pallidum:
+    case Right_Pallidum:
+    case Left_Putamen:
+    case Right_Putamen:
+    case Left_Thalamus:
+    case Right_Thalamus:
+    case Left_Thalamus_Proper:
+    case Right_Thalamus_Proper:
+    case Left_Accumbens_area:
+    case Right_Accumbens_area:
+      exclude_list[i] = 1 ;
+      break ;
+    case Left_Cerebellum_Exterior:
+    case Left_Cerebellum_Cortex:
+    case Left_Cerebellum_White_Matter:
+    case Right_Cerebellum_Exterior:
+    case Right_Cerebellum_Cortex:
+    case Right_Cerebellum_White_Matter:
+      exclude_list[i] = 0 ;
+      break ;
+    default:
+      exclude_list[i] = 0 ;
+      break ;
+    }
+  }
   parms.l_intensity = 1.0f ;
   parms.niterations = 100 ;
   parms.levels = -1 ;   /* use default */
@@ -214,11 +214,11 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.11 2003/09/05 04:45:33 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.12 2004/02/03 15:44:35 tosa Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
-    exit (0);
-
+    ErrorExit(ERROR_BADPARM, 
+	      "usage: %s <in volume> <brain template> <face template> <defaced output volume>\n", argv[0]) ;
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
@@ -230,7 +230,7 @@ main(int argc, char *argv[])
 
   if (argc < 5)
     ErrorExit(ERROR_BADPARM, 
-							"usage: %s <in volume> <brain template> <face template> <defaced output volume>\n", argv[0]) ;
+	      "usage: %s <in volume> <brain template> <face template> <defaced output volume>\n", argv[0]) ;
 
   in_fname = argv[1] ;
   gca_fname = argv[2] ;
@@ -249,18 +249,18 @@ main(int argc, char *argv[])
   if (gca == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
-	parms.vgca = gca ;  /* for diagnostics in MRIemAlign */
-	if (Ggca_label >= 0)
-	{
-		float means[MAX_GCA_INPUTS] ;
-		int   i ;
+  parms.vgca = gca ;  /* for diagnostics in MRIemAlign */
+  if (Ggca_label >= 0)
+  {
+    float means[MAX_GCA_INPUTS] ;
+    int   i ;
 
-		GCAlabelMean(gca, Ggca_label, means) ;
-		printf("label %s: mean = ", cma_label_to_name(Ggca_label)) ;
-		for (i = 0 ; i < gca->ninputs ; i++)
-			printf("%2.1f ", means[i]) ;
-		printf("\n") ;
-	}
+    GCAlabelMean(gca, Ggca_label, means) ;
+    printf("label %s: mean = ", cma_label_to_name(Ggca_label)) ;
+    for (i = 0 ; i < gca->ninputs ; i++)
+      printf("%2.1f ", means[i]) ;
+    printf("\n") ;
+  }
 
   gca_face = GCAread(gca_face_fname) ;
   if (gca_face == NULL)
@@ -314,15 +314,15 @@ main(int argc, char *argv[])
   if (!mri_in)
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
               Progname, in_fname) ;
-	mri_orig = MRIcopy(mri_in, NULL) ;
+  mri_orig = MRIcopy(mri_in, NULL) ;
   if (mri_in->type!=MRI_UCHAR)
-	{
-		MRI *mri_tmp ;
+  {
+    MRI *mri_tmp ;
 
-		printf("changing type of input volume to 8 bits/voxel...\n") ;
-		mri_tmp = MRIconform(mri_in) ;
-		mri_in = mri_tmp ;
-	}
+    printf("changing type of input volume to 8 bits/voxel...\n") ;
+    mri_tmp = MRIconform(mri_in) ;
+    mri_in = mri_tmp ;
+  }
   if (parms.write_iterations != 0)
   {
     char fname[STRLEN] ;
@@ -383,7 +383,7 @@ main(int argc, char *argv[])
     MRI *mri_tmp ;
     
     printf("translating second volume by (%2.1f, %2.1f, %2.1f)\n",
-            tx, ty, tz) ;
+	   tx, ty, tz) ;
     mri_tmp = MRItranslate(mri_in, NULL, tx, ty, tz) ;
     MRIfree(&mri_in) ;
     mri_in = mri_tmp ;
@@ -404,19 +404,19 @@ main(int argc, char *argv[])
     MRIfree(&mri_in) ; mri_in = mri_tmp ;
   }
 
-	parms.lta->xforms[0].m_L = MatrixIdentity(4, NULL) ;
-	if (parms.write_iterations != 0)
-	{
-		char fname[STRLEN] ;
-		MRI *mri_aligned ;
+  parms.lta->xforms[0].m_L = MatrixIdentity(4, NULL) ;
+  if (parms.write_iterations != 0)
+  {
+    char fname[STRLEN] ;
+    MRI *mri_aligned ;
 		
-		mri_aligned = MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
-		sprintf(fname, "%s_conformed.mgh", parms.base_name) ;
-		MRIwrite(mri_aligned, fname) ;
-		sprintf(fname, "%s_conformed", parms.base_name) ;
-		MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-		MRIfree(&mri_aligned) ;
-	}
+    mri_aligned = MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
+    sprintf(fname, "%s_conformed.mgh", parms.base_name) ;
+    MRIwrite(mri_aligned, fname) ;
+    sprintf(fname, "%s_conformed", parms.base_name) ;
+    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+    MRIfree(&mri_aligned) ;
+  }
 
 
   i = 0 ;
@@ -424,74 +424,74 @@ main(int argc, char *argv[])
   if (gca_reduced != gca)
     GCAfree(&gca_reduced) ;
 #endif
-	for (spacing = max_spacing, scale = 0 ; scale < nscales ; scale++, spacing /= 2)
-	{
-		if (use_contrast)
-			parms.gcas = GCAfindContrastSamples(gca,&nsamples, spacing,min_prior);
-		else
-			parms.gcas = GCAfindStableSamples(gca, &nsamples,spacing, min_prior, exclude_list); 
-		printf("spacing=%d, using %d sample points, tol=%2.2e...\n", spacing, nsamples, parms.tol) ;
-		parms.nsamples = nsamples ;
-		if (sample_fname)
-		{
-			GCAwriteSamples(gca, mri_in, parms.gcas, nsamples, sample_fname) ;
-			printf("samples written\n") ;
-		}
-		old_log_p = GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in, transform, nsamples) ;
-		register_mri(mri_in, gca, &parms,i, spacing) ;
-		log_p = GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in, transform, nsamples) ;
+  for (spacing = max_spacing, scale = 0 ; scale < nscales ; scale++, spacing /= 2)
+  {
+    if (use_contrast)
+      parms.gcas = GCAfindContrastSamples(gca,&nsamples, spacing,min_prior);
+    else
+      parms.gcas = GCAfindStableSamples(gca, &nsamples,spacing, min_prior, exclude_list); 
+    printf("spacing=%d, using %d sample points, tol=%2.2e...\n", spacing, nsamples, parms.tol) ;
+    parms.nsamples = nsamples ;
+    if (sample_fname)
+    {
+      GCAwriteSamples(gca, mri_in, parms.gcas, nsamples, sample_fname) ;
+      printf("samples written\n") ;
+    }
+    old_log_p = GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in, transform, nsamples) ;
+    register_mri(mri_in, gca, &parms,i, spacing) ;
+    log_p = GCAcomputeLogSampleProbability(gca, parms.gcas, mri_in, transform, nsamples) ;
 		
-		printf("pass %d, spacing %d: log(p) = %2.1f (old=%2.1f)\n", i+1, spacing, log_p, old_log_p) ;
-		free(parms.gcas) ;
-		parms.tol *= 10 ; i++ ;
+    printf("pass %d, spacing %d: log(p) = %2.1f (old=%2.1f)\n", i+1, spacing, log_p, old_log_p) ;
+    free(parms.gcas) ;
+    parms.tol *= 10 ; i++ ;
   } 
 
-	parms.gcas = GCAfindAllSamples(gca, &nsamples, exclude_list) ;
-	parms.nsamples = nsamples ;
+  parms.gcas = GCAfindAllSamples(gca, &nsamples, exclude_list) ;
+  parms.nsamples = nsamples ;
 	
-	printf("computing final MAP estimate of linear transform using %d samples...\n", nsamples) ;
+  printf("computing final MAP estimate of linear transform using %d samples...\n", nsamples) ;
 	
-	parms.mri_in = mri_in ;  /* for diagnostics */
-	if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
-	{
-		MRI *mri_aligned ;
-		char fname[STRLEN] ;
+  parms.mri_in = mri_in ;  /* for diagnostics */
+  if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
+  {
+    MRI *mri_aligned ;
+    char fname[STRLEN] ;
 		
-		mri_aligned = MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L);
-		sprintf(fname, "%s_before_final_alignment.mgh", parms.base_name) ;
-		MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-		MRIfree(&mri_aligned) ;
-	}
-	parms.tol = tol ;  /* otherwise NRC can get upset */
-	MRIemAlign(mri_in, gca, &parms, parms.lta->xforms[0].m_L) ;
+    mri_aligned = MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L);
+    sprintf(fname, "%s_before_final_alignment.mgh", parms.base_name) ;
+    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+    MRIfree(&mri_aligned) ;
+  }
+  parms.tol = tol ;  /* otherwise NRC can get upset */
+  MRIemAlign(mri_in, gca, &parms, parms.lta->xforms[0].m_L) ;
     
 #if 0
-	printf("final EM transform:\n") ;
-	MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
-	printf("\n") ;
+  printf("final EM transform:\n") ;
+  MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
+  printf("\n") ;
 	
 #define DELTA_SCALE 0.01
-	update_optimal_transform(mri_in, gca, parms.gcas, nsamples,
-													 parms.lta->xforms[0].m_L, DELTA_SCALE, parms.write_iterations, 3,
-													 3) ;
-	compare_transform(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
-	recompute_labels(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
-	compare_transform(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
+  update_optimal_transform(mri_in, gca, parms.gcas, nsamples,
+			   parms.lta->xforms[0].m_L, DELTA_SCALE, parms.write_iterations, 3,
+			   3) ;
+  compare_transform(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
+  recompute_labels(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
+  compare_transform(mri_in, gca, parms.gcas, nsamples, parms.lta->xforms[0].m_L) ;
 #endif
-	printf("final transform:\n") ;
-	MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
-	printf("\n") ;
+  printf("final transform:\n") ;
+  MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
+  printf("\n") ;
 	
-	if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
-	{
-		MRI *mri_aligned ;
-		char fname[STRLEN] ;
+  if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
+  {
+    MRI *mri_aligned ;
+    char fname[STRLEN] ;
 		
-		mri_aligned = MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L);
-		sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
-		MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-		MRIfree(&mri_aligned) ;
-	}
+    mri_aligned = MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L);
+    sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
+    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+    MRIfree(&mri_aligned) ;
+  }
 
   if (transformed_sample_fname)
   {
@@ -500,21 +500,21 @@ main(int argc, char *argv[])
     printf("samples written\n") ;
   }
   printf("anonymizing volume...\n") ;
-	MRIreplaceValues(mri_in, mri_in, 255, 254) ;
-	mri_out = MRIremoveFace(mri_in, NULL, parms.lta, gca, gca_face, radius, 255) ;
-	{
-		MRI *mri_tmp ;
+  MRIreplaceValues(mri_in, mri_in, 255, 254) ;
+  mri_out = MRIremoveFace(mri_in, NULL, parms.lta, gca, gca_face, radius, 255) ;
+  {
+    MRI *mri_tmp ;
 
-		printf("resampling to original coordinate system...\n");
-		mri_tmp = MRIresample(mri_out, mri_orig, RESAMPLE_NEAREST) ;
-		MRIfree(&mri_out) ; mri_out = mri_tmp ;
-		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-			MRIwrite(mri_out, "after_resampling.mgh") ;
-	}
+    printf("resampling to original coordinate system...\n");
+    mri_tmp = MRIresample(mri_out, mri_orig, RESAMPLE_NEAREST) ;
+    MRIfree(&mri_out) ; mri_out = mri_tmp ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_out, "after_resampling.mgh") ;
+  }
 
-	MRImask(mri_orig, mri_out, mri_orig, 255, fill_val) ;
-	printf("writing anonymized volume to %s...\n", out_fname) ;
-	MRIwrite(mri_orig, out_fname) ;
+  MRImask(mri_orig, mri_out, mri_orig, 255, fill_val) ;
+  printf("writing anonymized volume to %s...\n", out_fname) ;
+  MRIwrite(mri_orig, out_fname) ;
 
 #if 0
   if (gca)
@@ -527,7 +527,7 @@ main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   printf("deidentification took %d minutes and %d seconds.\n", 
-          minutes, seconds) ;
+	 minutes, seconds) ;
   if (diag_fp)
     fclose(diag_fp) ;
   exit(0) ;
