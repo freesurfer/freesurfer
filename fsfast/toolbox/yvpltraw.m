@@ -448,21 +448,23 @@ return;
 function [ud, err] = load_tpx(ud)
 
 err = 0;
-if(isempty(ud.XX.tpxlist)) return; end
+if(isempty(ud.XX.tpxlist) & ud.ad.Nskip == 0) return; end
 
 for nthrun = 1:ud.ad.Nruns,
-  tpxfile = deblank(ud.XX.tpxlist(nthrun,:));
-  if(~strcmp(tpxfile,'noexcl'))
-    run = ud.ad.runlist(nthrun);
-    stem = sprintf('%s/%03d/%s',ud.fsd,run,ud.ad.funcstem);
-    [nslices nrows ncols ntrs] = fmri_bvoldim(stem);
-    tpxfile = sprintf('%s/%s',ud.fsd,tpxfile);
-    %fprintf('loading %s\n',tpxfile);			  
-    [indTPExcl indTPIncl] = fast_ldtpexcl(tpxfile,ud.ad.TR,...
-					  ntrs,ud.ad.Nskip);
+  run = ud.ad.runlist(nthrun);
+  stem = sprintf('%s/%03d/%s',ud.fsd,run,ud.ad.funcstem);
+  if(~isempty(ud.XX.tpxlist))
+    tpxfile = deblank(ud.XX.tpxlist(nthrun,:));
+    if(~strcmp(tpxfile,'noexcl'))
+      [nslices nrows ncols ntrs] = fmri_bvoldim(stem);
+      tpxfile = sprintf('%s/%s',ud.fsd,tpxfile);
+      [indTPExcl indTPIncl] = fast_ldtpexcl(tpxfile,ud.ad.TR,...
+					    ntrs,ud.ad.Nskip);
+    end
   else
-    indTPExcl = [];
-    indTPIncl = [];
+    [nslices nrows ncols ntrs] = fmri_bvoldim(stem);
+    indTPExcl = 1:ud.ad.Nskip;
+    indTPIncl = ud.ad.Nskip+1:ntrs;
   end
   
   ud.tpx(nthrun).incl = indTPIncl;
