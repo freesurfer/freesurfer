@@ -61,7 +61,7 @@ static int bshortWrite(MRI *mri, char *fname_passed);
 static int bfloatWrite(MRI *mri, char *stem);
 static int write_bhdr(MRI *mri, FILE *fp);
 static int read_bhdr(MRI *mri, FILE *fp);
-static MRI *bshortRead(char *stem, int read_volume);
+static MRI *bshortRead(char *fname_passed, int read_volume);
 static MRI *bfloatRead(char *stem, int read_volume);
 static MRI *genesisRead(char *stem, int read_volume);
 static MRI *gelxRead(char *stem, int read_volume);
@@ -75,6 +75,8 @@ static MRI *read_afni_header(FILE *fp, int *big_endian_flag);
 static char *get_afni_string(FILE *fp, int count, char *name);
 static int *get_afni_int(FILE *fp, int count, char *name);
 static float *get_afni_float(FILE *fp, int count, char *name);
+static int decompose_b_fname(char *fname_passed, char *directory, char *stem);
+static int orient_with_register(MRI *mri);
 
 /********************************************/
 
@@ -2178,28 +2180,403 @@ static int bfloatWrite(MRI *mri, char *stem)
 
 } /* end bfloatWrite() */
 
-static MRI *bshortRead(char *stem, int read_volume)
+static MRI *bshortRead(char *fname_passed, int read_volume)
 {
 
   MRI *mri;
   FILE *fp;
   char fname[STRLEN];
+  char directory[STRLEN];
+  char stem[STRLEN];
+  int result;
+  char register_fname[STRLEN], analyse_fname[STRLEN];
+  char sn[STRLEN];
+  float ipr, st, intensity;
+  float m11, m12, m13, m14;
+  float m21, m22, m23, m24;
+  float m31, m32, m33, m34;
+  float m41, m42, m43, m44;
+  char t1_path[STRLEN];
+  char fname_descrip[STRLEN];
+  int nslices, nt;
+  int nx, ny;
+  int i, j;
+  int swap_bytes_flag;
+  float fov_x, fov_y, fov_z;
+  MATRIX *m;
+  int res;
 
-ErrorReturn(NULL, (ERROR_UNSUPPORTED, "no bshort read yet..."));
-  /* ----- dummy values -- just allocate the header ----- */
-  mri = MRIallocHeader(1, 1, 1, MRI_SHORT);
+  result = decompose_b_fname(fname_passed, directory, stem);
+  if(result != NO_ERROR)
+    return(NULL);
 
-  /* ----- start by looking for register.dat and analyse.dat ----- */
-  sprintf(fname, "%s.bhdr", stem);
-  if((fp = fopen(fname, "r")) != NULL)
+  if(directory[0] == '\0')
+    sprintf(directory, ".");
+
+  /* ----- start by looking for a register.dat and analyse.dat ----- */
+  sprintf(register_fname, "%s/register.dat", directory);
+  sprintf(analyse_fname, "%s/analyse.dat", directory);
+
+  if((fp = fopen(register_fname, "r")) != NULL)
   {
-    read_bhdr(mri, fp);
+    fscanf(fp, "%s", sn);
+    fscanf(fp, "%f", &ipr);
+    fscanf(fp, "%f", &st);
+    fscanf(fp, "%f", &intensity);
+    fscanf(fp, "%f %f %f %f", &m11, &m12, &m13, &m14);
+    fscanf(fp, "%f %f %f %f", &m21, &m22, &m23, &m24);
+    fscanf(fp, "%f %f %f %f", &m31, &m32, &m33, &m34);
+    fscanf(fp, "%f %f %f %f", &m41, &m42, &m43, &m44);
     fclose(fp);
+  }
+  else
+  {
+    ErrorReturn(NULL, (ERROR_BADFILE, "bshortRead(): can't read file %s", register_fname));
+  }
+
+  if((fp = fopen(analyse_fname, "r")) != NULL)
+  {
+    fscanf(fp, "%s", t1_path);
+    fscanf(fp, "%s", fname_descrip);
+    fscanf(fp, "%d %d", &nslices, &nt);
+    fscanf(fp, "%d %d", &nx, &ny);
+    fclose(fp);
+  }
+  else
+  {
+    ErrorReturn(NULL, (ERROR_BADFILE, "bshortRead(): can't read file %s", analyse_fname));
+  }
+
+  if(read_volume)
+  {
+    mri = MRIallocSequence(nx, ny, nslices, MRI_SHORT, nt);
+  }
+  else
+  {
+    mri = MRIallocHeader(nx, ny, nslices, MRI_SHORT);
+    mri->nframes = nt;
+  }
+
+  strcpy(mri->fname, fname_passed);
+  mri->slice_direction = MRI_UNDEFINED;
+  mri->imnr0 = 1;
+  mri->imnr1 = nslices;
+  mri->xsize = mri->ysize = mri->ps = ipr;
+  mri->zsize = mri->thick = st;
+
+  fov_x = mri->xsize * mri->width;
+  fov_y = mri->ysize * mri->height;
+  fov_z = mri->zsize * mri->depth;
+
+  mri->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) : (fov_y > fov_z ? fov_y : fov_z));
+
+  mri->xend = fov_x / 2.0;
+  mri->xstart = -mri->xend;
+  mri->yend = fov_y / 2.0;
+  mri->ystart = -mri->yend;
+  mri->zend = fov_z / 2.0;
+  mri->zstart = -mri->zend;
+
+  mri->brightness = intensity;
+  strcpy(mri->subject_name, sn);
+  strcpy(mri->path_to_t1, t1_path);
+  strcpy(mri->fname_format, fname_descrip);
+
+  m = MatrixAlloc(4, 4, MATRIX_REAL);
+  if(m == NULL)
+  {
+    MRIfree(&mri);
+    ErrorReturn(NULL, (ERROR_NO_MEMORY, "bshortRead(): error allocating matrix"));
+  }
+
+  stuff_four_by_four(m, m11, m12, m13, m14, 
+                        m21, m22, m23, m24, 
+                        m31, m32, m33, m34, 
+                        m41, m42, m43, m44);
+
+  mri->register_mat = m;
+
+  res = orient_with_register(mri);
+  if(res != NO_ERROR)
+    return(NULL);
+
+  if(read_volume)
+  {
+
+    sprintf(fname, "%s/%s_%03d.hdr", directory, stem, 0);
+    if((fp = fopen(fname, "r")) == NULL)
+    {
+      fprintf(stderr, "can't open file %s; assuming big-endian bshorts\n", fname);
+      swap_bytes_flag = 0;
+    }
+    else
+    {
+      fscanf(fp, "%*d %*d %*d %d", &swap_bytes_flag);
+#ifdef Linux
+      swap_bytes_flag = !swap_bytes_flag;
+#endif
+      fclose(fp);
+    }
+
+    for(i = 0;i < nslices;i++)
+    {
+
+      sprintf(fname, "%s/%s_%03d.bshort", directory, stem, i);
+
+      if((fp = fopen(fname, "r")) == NULL)
+      {
+        MRIfree(&mri);
+        ErrorReturn(NULL, (ERROR_BADFILE, "bshortRead(): error opening file %s", fname));
+      }
+
+      for(j = 0;j < ny;j++)
+      {
+        if(fread(mri->slices[i][j], sizeof(short), nx, fp) != nx)
+        {
+          fclose(fp);
+          MRIfree(&mri);
+          ErrorReturn(NULL, (ERROR_BADFILE, "bshortRead(): error reading from file %s", fname));
+        }
+        if(swap_bytes_flag)
+          swab(mri->slices[i][j], mri->slices[i][j], nx * sizeof(short));
+      }
+
+      fclose(fp);
+
+    }
+
   }
 
   return(mri);
 
 } /* end bshortRead() */
+
+static int orient_with_register(MRI *mri)
+{
+
+  MRI *subject_mri;
+  char *subjects_dir;
+  char subject_directory[STRLEN];
+  MATRIX *sa, *fa;
+  MATRIX *sr, *fr;
+  MATRIX *rinv, *sainv;
+  MATRIX *r1, *r2;
+  int res;
+  float det;
+
+  subject_mri = NULL;
+  if((subjects_dir = getenv("SUBJECTS_DIR")) != NULL)
+  {
+    sprintf(subject_directory, "%s/%s/mri/T1", subjects_dir, mri->subject_name);
+    if((subject_mri = MRIreadInfo(subject_directory)) == NULL)
+    {
+      ErrorPrintf(ERROR_BADPARM, "can't get get information from %s; ", subject_directory);
+      sprintf(subject_directory, "%s/%s/mri/T1", subjects_dir, mri->subject_name);
+      ErrorPrintf(ERROR_BADPARM, "trying %s instead...\n", subject_directory);
+      if((subject_mri = MRIreadInfo(subject_directory)) == NULL)
+        ErrorPrintf(ERROR_BADPARM, "can't get information from %s\n", subject_directory);
+    }
+  }
+  else
+    ErrorPrintf(ERROR_BADPARM, "can't get environment variable SUBJECTS_DIR");
+
+  if(subject_mri == NULL)
+  {
+
+    ErrorPrintf(ERROR_BADPARM, "guessing at COR- orientation...\n");
+
+    subject_mri = MRIallocHeader(256, 256, 256, MRI_UCHAR);
+    subject_mri->fov = 256.0;
+    subject_mri->thick = subject_mri->ps = 1.0;
+    subject_mri->xsize = subject_mri->ysize = subject_mri->zsize = 1.0;
+    subject_mri->x_r = -1.0;  subject_mri->x_a =  0.0;  subject_mri->x_s =  0.0;
+    subject_mri->y_r =  0.0;  subject_mri->y_a =  0.0;  subject_mri->y_s = -1.0;
+    subject_mri->z_r =  0.0;  subject_mri->z_a =  1.0;  subject_mri->z_s =  0.0;
+    subject_mri->c_r =  0.0;  subject_mri->c_a =  0.0;  subject_mri->c_s =  0.0;
+    subject_mri->ras_good_flag = 1;
+
+  }
+
+  det = MatrixDeterminant(mri->register_mat);
+  if(det == 0.0)
+  {
+    MRIfree(&subject_mri);
+    ErrorPrintf(ERROR_BADPARM, "orient_with_register(): registration matrix has zero determinant");
+    ErrorPrintf(ERROR_BADPARM, "matrix is:");
+    MatrixPrint(stderr, mri->register_mat);
+    return(ERROR_BADPARM);
+  }
+
+  rinv = MatrixInverse(mri->register_mat, NULL);
+
+  if(rinv == NULL)
+  {
+    MRIfree(&subject_mri);
+    ErrorPrintf(ERROR_BADPARM, "orient_with_register(): error inverting registration matrix");
+    ErrorPrintf(ERROR_BADPARM, "matrix is:");
+    MatrixPrint(stderr, mri->register_mat);
+    return(ERROR_BADPARM);
+  }
+
+  sr = extract_i_to_r(subject_mri);
+
+  sa = MatrixAlloc(4, 4, MATRIX_REAL);
+  fa = MatrixAlloc(4, 4, MATRIX_REAL);
+
+  if(sr == NULL || sa == NULL || fa == NULL)
+  {
+    if(sr != NULL)
+      MatrixFree(&sr);
+    if(sa != NULL)
+      MatrixFree(&sa);
+    if(fa != NULL)
+      MatrixFree(&fa);
+    MatrixFree(&rinv);
+    MRIfree(&subject_mri);
+    ErrorReturn(ERROR_NO_MEMORY, (ERROR_NO_MEMORY, "orient_with_register(): error allocating matrix"));
+  }
+
+  stuff_four_by_four(sa, -subject_mri->xsize, 0.0, 0.0, subject_mri->width * subject_mri->xsize / 2.0,
+                         0.0, 0.0, subject_mri->zsize, -subject_mri->depth * subject_mri->zsize / 2.0,
+                         0.0, -subject_mri->ysize, 0.0, subject_mri->height * subject_mri->ysize / 2.0,
+                         0.0, 0.0, 0.0, 1.0);
+
+  MRIfree(&subject_mri);
+
+  stuff_four_by_four(fa, -mri->xsize, 0.0, 0.0, mri->width * mri->xsize / 2.0,
+                         0.0, 0.0, mri->zsize, -mri->depth * mri->zsize / 2.0,
+                         0.0, -mri->ysize, 0.0, mri->height * mri->ysize / 2.0,
+                         0.0, 0.0, 0.0, 1.0);
+  det = MatrixDeterminant(sa);
+  if(det == 0.0)
+  {
+    MatrixFree(&sr);
+    MatrixFree(&sa);
+    MatrixFree(&fa);
+    MatrixFree(&rinv);
+    ErrorPrintf(ERROR_BADPARM, "orient_with_register(): destination (ijk) -> r space matrix has zero determinant");
+    ErrorPrintf(ERROR_BADPARM, "matrix is:");
+    MatrixPrint(stderr, sa);
+    return(ERROR_BADPARM);
+  }
+
+  sainv = MatrixInverse(sa, NULL);
+  MatrixFree(&sa);
+
+  if(sainv == NULL)
+  {
+    MatrixFree(&sr);
+    MatrixFree(&sa);
+    MatrixFree(&fa);
+    MatrixFree(&rinv);
+    ErrorPrintf(ERROR_BADPARM, "orient_with_register(): error inverting destination (ijk) -> r space matrix");
+    ErrorPrintf(ERROR_BADPARM, "matrix is:");
+    MatrixPrint(stderr, sainv);
+    return(ERROR_BADPARM);
+  }
+
+  r1 = MatrixMultiply(rinv, fa, NULL);
+  MatrixFree(&rinv);
+  MatrixFree(&fa);
+  if(r1 == NULL)
+  {
+    MatrixFree(&sr);
+    MatrixFree(&sa);
+    MatrixFree(&sainv);
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "orient_with_register(): error multiplying matrices"));
+  }
+
+  r2 = MatrixMultiply(sainv, r1, NULL);
+  MatrixFree(&r1);
+  MatrixFree(&sainv);
+  if(r2 == NULL)
+  {
+    MatrixFree(&sr);
+    MatrixFree(&sa);
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "orient_with_register(): error multiplying matrices"));
+  }
+
+  fr = MatrixMultiply(sr, r2, NULL);
+  MatrixFree(&sr);
+  MatrixFree(&r2);
+  if(fr == NULL)
+  {
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "orient_with_register(): error multiplying matrices"));
+  }
+
+  res = apply_i_to_r(mri, fr);
+  MatrixFree(&fr);
+
+  if(res != NO_ERROR)
+    return(res);
+
+  return(NO_ERROR);
+
+} /* end orient_with_register() */
+
+static int decompose_b_fname(char *fname, char *dir, char *stem)
+{
+
+  char *slash, *dot, *stem_start, *underscore;
+  int fname_length;
+  int und_pos;
+  char fname_copy[STRLEN];
+
+  /*
+
+  options for file names:
+
+  stem_xxx.bshort
+  stem_xxx
+  stem_.bshort
+  stem_
+  stem.bshort
+  stem
+
+  with or without a preceding directory
+
+  */
+
+  strcpy(fname_copy, fname);
+
+  slash = strrchr(fname_copy, '/');
+  dot = strrchr(fname_copy, '.');
+  underscore = strrchr(fname_copy, '_');
+
+  if(slash == NULL)
+  {
+    stem_start = fname_copy;
+    sprintf(dir, ".");
+  }
+  else
+  {
+    *slash = '\0';
+    strcpy(dir, fname_copy);
+    stem_start = slash + 1;
+  }
+
+  if(*stem_start == '\0')
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "decompose_b_fname(): bad bshort/bfloat file specifier \"%s\"", fname));
+
+  if(dot != NULL)
+    if(strcmp(dot, ".bshort") == 0 || strcmp(dot, ".bfloat") == 0)
+      *dot = '\0';
+
+  fname_length = strlen(stem_start);
+
+  if(underscore == NULL)
+    strcpy(stem, stem_start);
+  else
+  {
+    und_pos = (underscore - stem_start);
+    if(und_pos == fname_length - 1 || und_pos == fname_length - 4)
+      *underscore = '\0';
+    strcpy(stem, stem_start);
+  }
+
+  return(NO_ERROR);
+
+} /* end decompose_b_fname() */
 
 static MRI *bfloatRead(char *sten, int read_volume)
 {
