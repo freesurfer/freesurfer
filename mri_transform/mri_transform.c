@@ -15,7 +15,8 @@
 #define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 //E/ should be in transform.h if it isn't already
 
-static char vcid[] = "$Id: mri_transform.c,v 1.7 2004/11/17 20:50:06 fischl Exp $";
+double MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label) ;
+static char vcid[] = "$Id: mri_transform.c,v 1.8 2004/11/19 16:22:48 fischl Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -38,25 +39,29 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 char *Progname ;
+static int quiet_mode = 0 ;
+static char *subject_name ;
 static char *out_like_fname = NULL ;
 static int invert_flag = 0 ;
 static int resample_type = SAMPLE_TRILINEAR ;
+static int nlabels = 0 ;
+static int labels[1000] ;
 
 int
 main(int argc, char *argv[])
 {
   char        **av, *in_vol, *out_vol, *xform_fname ;
-  int         ac, nargs, i, ras_flag = 0 ;
+  int         ac, nargs, i, ras_flag = 0, nxform_args ;
   MRI         *mri_in, *mri_out, *mri_tmp ;
   LTA         *lta ;
   MATRIX      *m, *m_total ;
-  TRANSFORM   *transform ;
+  TRANSFORM   *transform = NULL ;
 
   VECTOR *mine;
   VECTOR *c;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.7 2004/11/17 20:50:06 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.8 2004/11/19 16:22:48 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -74,13 +79,13 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 4)
+  if (((argc < 4) && (nlabels == 0)) || ((argc < 3) && (nlabels > 0)))
     usage_exit() ;
 
   in_vol = argv[1] ;
   out_vol = argv[argc-1] ;
 
-  printf("reading volume from %s...\n", in_vol) ;
+  fprintf(stderr, "reading volume from %s...\n", in_vol) ;
   mri_in = MRIread(in_vol) ;
   if (!mri_in)
     ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume %s", Progname, 
@@ -115,7 +120,8 @@ main(int argc, char *argv[])
 	}
   MRIcopyPulseParameters(mri_in, mri_out) ;
   m_total = MatrixIdentity(4, NULL) ;
-  for (i = 2 ; i < argc-1 ; i++)
+	nxform_args = nlabels > 0 ? argc : argc-1 ;
+  for (i = 2 ; i < nxform_args ; i++)
   {
     xform_fname = argv[i] ;
     if (strcmp(xform_fname, "-I") == 0)
@@ -123,7 +129,7 @@ main(int argc, char *argv[])
       invert_flag = 1 ;
       continue ;
     }
-    printf("reading transform %s...\n", xform_fname) ;
+    fprintf(stderr, "reading transform %s...\n", xform_fname) ;
     transform = TransformRead(xform_fname) ;
     if (!transform)
       ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", 
@@ -146,7 +152,7 @@ main(int argc, char *argv[])
       if (invert_flag)
       {
         MATRIX *m_tmp ;
-        printf("inverting transform...\n") ;
+        fprintf(stderr, "inverting transform...\n") ;
         m_tmp = MatrixInverse(m, NULL) ;
         if (!m_tmp)
           ErrorExit(ERROR_BADPARM, "%s: transform is singular!") ;
@@ -157,7 +163,7 @@ main(int argc, char *argv[])
       if (ras_flag)  /* convert it to a voxel transform */
       {
         MATRIX *m_tmp ;
-        printf("converting RAS xform to voxel xform...\n") ;
+        fprintf(stderr, "converting RAS xform to voxel xform...\n") ;
 				if (lta->type == LINEAR_RAS_TO_RAS)
 					m_tmp = MRIrasXformToVoxelXform(mri_in, mri_out, m_total, NULL) ;
 				else if (lta->type == LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
@@ -176,28 +182,51 @@ main(int argc, char *argv[])
 				c->rptr[4][1] = 1.;
 				mine = MatrixMultiply(m_tmp, c, NULL);
 				MatrixPrint(stdout, mine);
-				printf("voxel pos = %.2f, %.2f, %.2f for %.2f, %.2f, %.2f\n",
+				fprintf(stderr, "voxel pos = %.2f, %.2f, %.2f for %.2f, %.2f, %.2f\n",
 							 mine->rptr[1][1], mine->rptr[2][1], mine->rptr[3][1],
 							 c->rptr[1][1], c->rptr[2][1], c->rptr[3][1]);
 				VectorFree(&mine);
 				/////////////////////////////////////////////////////////////
 
         MatrixFree(&m_total) ; m_total = m_tmp ;
-      }
+			}
       LTAfree(&lta) ;
-      MRIlinearTransformInterp(mri_in, mri_out, m_total, resample_type) ;
+			invert_flag = 0 ;
     }
-    else
-    {
-      if (invert_flag)
-        mri_out = TransformApplyInverse(transform, mri_in, NULL) ;
-      else
-        mri_out = TransformApply(transform, mri_in, NULL) ;
-    }
-    invert_flag = 0 ;
   }
-  
-  printf("writing output to %s.\n", out_vol) ;
+	if (transform->type != MORPH_3D_TYPE)
+	{
+		if (nlabels > 0)
+		{
+			double dist ;
+			int    n ;
+
+			if (subject_name)
+				printf("%s  ", subject_name) ;
+			for (n = 0 ; n < nlabels ; n++)
+			{
+				dist = MRIcomputeLinearTransformLabelDist(mri_in, m_total, labels[n]) ;
+				if (quiet_mode)
+					printf("%f ", dist) ;
+				//					printf("%d %f ", labels[n], dist) ;
+				else
+					printf("label %d moved on average %2.3f voxels\n", labels[n], dist) ;
+			}
+			printf("\n") ;
+			exit(0) ;
+		}
+		else
+			MRIlinearTransformInterp(mri_in, mri_out, m_total, resample_type) ;
+	}
+	else
+	{
+		if (invert_flag)
+			mri_out = TransformApplyInverse(transform, mri_in, NULL) ;
+		else
+			mri_out = TransformApply(transform, mri_in, NULL) ;
+	}
+
+  fprintf(stderr, "writing output to %s.\n", out_vol) ;
 
   //E/ reinstate what MRIlinearTransform zorched
   if (out_like_fname)
@@ -253,6 +282,20 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+	case 'Q':
+		quiet_mode = 1 ;
+		break ;
+	case 'S':
+		subject_name = argv[2] ;
+		nargs = 1  ;
+		break ;
+	case 'D':
+		if (nlabels >= 1000)
+			ErrorExit(ERROR_NOMEMORY, "%s: too many labels (%d)", Progname, nlabels) ;
+		labels[nlabels] = atoi(argv[2]) ;
+		nargs = 1 ;
+		fprintf(stderr, "computing average distance traversed by label %d\n", labels[nlabels]) ;
+		nlabels++ ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
@@ -388,4 +431,52 @@ MT_CoronalRasXformToVoxelXform
   MatrixFree(&D_trg_inv);
 
   return(m_vox_s2vox_t);
+}
+double
+MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label)
+{
+  int    x1, x2, x3, width, height, depth, nvox ;
+  VECTOR *v_X, *v_Y ;   /* original and transformed coordinate systems */
+  Real   y1, y2, y3, total_dist, dist ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+  v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
+  v_Y = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("MRIlinearTransformInterp: Applying transform\n");
+
+	total_dist = 0.0 ;
+  v_Y->rptr[4][1] = 1.0f ;
+  v_X->rptr[4][1] = 1.0f ;
+	nvox = 0 ;
+  for (x3 = 0 ; x3 < depth ; x3++)
+  {
+    V3_Z(v_X) = x3 ;
+    for (x2 = 0 ; x2 < height ; x2++)
+    {
+      V3_Y(v_X) = x2 ;
+      for (x1 = 0 ; x1 < width ; x1++)
+      {
+				if (MRIvox(mri_src, x1, x2, x3) != label)
+					continue ;
+        V3_X(v_X) = x1 ;
+        MatrixMultiply(mA, v_X, v_Y) ;
+        
+        y1 = V3_X(v_Y) ; y2 = V3_Y(v_Y) ; y3 = V3_Z(v_Y) ;
+
+				dist = sqrt(SQR(x1-y1)+SQR(x2-y2)+SQR(x3-y3)) ;
+				total_dist += dist ;
+				nvox++ ;
+      }
+    }
+  }
+
+  MatrixFree(&v_X) ;
+  MatrixFree(&v_Y) ;
+
+	if (nvox == 0)
+		nvox = 1 ;
+
+  return(total_dist / (float)nvox) ;
 }
