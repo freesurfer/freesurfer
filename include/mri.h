@@ -281,6 +281,10 @@ int   MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
 
 int   MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
                                  MRI_REGION *dst_region) ;
+MRI   *MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation, 
+                                int x, int y, int z, int size) ;
+int   MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask,
+                              int orientation, int x, int y, int z, int size) ;
 
 /* resampling routines */
 MRI   *MRIupsample2(MRI *mri_src, MRI *mri_dst) ;
@@ -320,10 +324,11 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
 
 #define MRI_CORONAL     0
 #define MRI_SAGITAL     1
+#define MRI_SAGITTAL    MRI_SAGITAL
 #define MRI_HORIZONTAL  2
 #define MRI_AXIAL       MRI_HORIZONTAL
 
-/* vertices of an icasohedron (sp?), used by all POLV functions */
+/* vertices of an icosahedron (sp?), used by all POLV functions */
 #define NVERTICES    22
 extern float ic_x_vertices[]  ;
 extern float ic_y_vertices[]  ;
@@ -372,6 +377,8 @@ MRI        *MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance,
                                 float x0, float y0, float z0, float r) ;
 MRI        *MRIupdateDistanceMap(MRI *mri_distance) ;
 MRI        *MRIfill(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y, 
+                    int seed_z, int threshold, int fill_val) ;
+MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y, 
                     int seed_z, int threshold, int fill_val) ;
                     
 
