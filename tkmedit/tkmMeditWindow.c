@@ -171,43 +171,6 @@ MWin_tErr MWin_Delete ( tkmMeditWindowRef* ioppWindow ) {
   return eResult;
 }
 
-#if 0
-
-MWin_tErr MWin_SetWindowTitle ( tkmMeditWindowRef this,
-        char*             isTitle ) {
-
-  MWin_tErr  eResult  = MWin_tErr_NoErr;
-  xGWin_tErr eGWin    = xGWin_tErr_NoErr;
-
-  /* verify us. */
-  eResult = MWin_Verify ( this );
-  if ( MWin_tErr_NoErr != eResult )
-    goto error;
-
-  /* set the gl window title */
-  eGWin = xGWin_SetWindowTitle( this->mpGLutWindow, isTitle );
-  if( eGWin != xGWin_tErr_NoErr ) {
-    eResult = MWin_tErr_ErrorAccessingWindow;
-    goto error;
-  }
-
-  goto cleanup;
-
- error:
-
-  /* print error message */
-  if ( MWin_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in MWin_SetWindowTitle: %s\n",
-      eResult, MWin_GetErrorString(eResult) ) );
-  }
-
- cleanup:
-
-  return eResult;
-}
-
-#endif
-
 MWin_tErr MWin_SetWindowTitle ( tkmMeditWindowRef this,
         char*             isTitle ) {
 
