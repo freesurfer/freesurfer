@@ -2682,32 +2682,55 @@ ImageAddSaltNoise(IMAGE *inImage,IMAGE *outImage, float density)
 {
   long     npix ;
   float  *inPix, *outPix, gnoise, in ;
+  byte   *psrc, *pdst, bin ;
 
-  if (inImage->pixel_format != PFFLOAT)
-    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
-                     "ImageAddSaltNoise: unsupported input format %d\n",
-                     inImage->pixel_format)) ;
-
-  if (outImage->pixel_format != PFFLOAT)
+  if (inImage->pixel_format != outImage->pixel_format)
     ErrorReturn(-1, (ERROR_UNSUPPORTED, 
                      "ImageAddSaltNoise: unsupported output format %d\n",
                      outImage->pixel_format)) ;
 
   npix = (long)inImage->rows * inImage->cols * inImage->num_frame ;
-  inPix = IMAGEFpix(inImage, 0, 0) ;
-  outPix = IMAGEFpix(outImage, 0, 0) ;
-  while (npix--)
+  switch (inImage->pixel_format)
   {
-    gnoise = (float)randomNumber(0.0, 1.0) ;
-    in = *inPix++ ;
-    if (gnoise < density)
+  case PFFLOAT:
+    inPix = IMAGEFpix(inImage, 0, 0) ;
+    outPix = IMAGEFpix(outImage, 0, 0) ;
+    while (npix--)
     {
-      if (gnoise < density/2.0f)
-        in = 0.0f ;
-      else
-        in = 1.0f ;
+      gnoise = (float)randomNumber(0.0, 1.0) ;
+      in = *inPix++ ;
+      if (gnoise < density)
+      {
+        if (gnoise < density/2.0f)
+          in = 0.0f ;
+        else
+          in = 1.0f ;
+      }
+      *outPix++ = in ;
     }
-    *outPix++ = in ;
+    break ;
+  case PFBYTE:
+    psrc = IMAGEpix(inImage, 0, 0) ;
+    pdst = IMAGEpix(outImage, 0, 0) ;
+    while (npix--)
+    {
+      gnoise = (float)randomNumber(0.0, 1.0) ;
+      bin = *psrc++ ;
+      if (gnoise < density)
+      {
+        if (gnoise < density/2.0f)
+          bin = 0 ;
+        else
+          bin = 255 ;
+      }
+      *pdst++ = bin ;
+    }
+    break ;
+  default:
+    ErrorReturn(-1, (ERROR_UNSUPPORTED, 
+                     "ImageAddSaltNoise: unsupported input format %d\n",
+                     inImage->pixel_format)) ;
+    break ;
   }
   return(0) ;
 }
