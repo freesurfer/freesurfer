@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.14 2004/06/01 16:15:15 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.15 2004/08/17 18:49:28 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.14 2004/06/01 16:15:15 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.15 2004/08/17 18:49:28 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -191,15 +191,25 @@ for slice = firstslice:lastslice
       end
 
       if(c > 10000000)
+	fprintf('\n');
         fprintf('ERROR: paradigm is ill-conditioned (%g).\n',c);
         fprintf('Check your paradigm file for file for periodicities\n');
         fprintf('or for some event types that all ways follow other\n');
         fprintf('event types (or itself).\n');
 	if(TR ~= TER)
+	  fprintf('\n');
 	  fprintf('It could also be due to the fact that the TER\n');
 	  fprintf('does not equal the TR. SubTR estimation only works\n');
 	  fprintf('when the event schedule has been optimized with\n');
 	  fprintf('SubTR estimation in mind.\n');
+	  fprintf('\n');
+	end
+	if(~isempty(tpxlist))
+	  fprintf('\n');
+	  fprintf('It could also be due to excluded time points.\n');
+	  fprintf('Try running without excluded time points to .\n');
+	  fprintf('see if the problem goes away.\n');
+	  fprintf('\n');
 	end
         return;
       end
