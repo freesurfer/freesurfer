@@ -68,10 +68,14 @@
 #define FIRST_FNAME_COL      5
 #define SECOND_FNAME_COL     400
 
-#define HIPS_CMD_ROWS       30
-#define HIPS_CMD_COLS       400
+#define HIPS_CMD_ROWS        (CHAR_HEIGHT+2*CHAR_PAD)
+#define HIPS_CMD_COLS        400
 
-#define DEFAULT_PRECISION   4
+#define DEBUG_ROWS           (CHAR_HEIGHT*2*CHAR_PAD)
+#define DEBUG_COLS           150
+
+#define DEFAULT_PRECISION    4
+
 /*----------------------------------------------------------------------
                               PROTOTYPES
 ----------------------------------------------------------------------*/
@@ -90,11 +94,12 @@ static void xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y,
 static void xvFreeDimage(DIMAGE *dimage) ;
 static Panel_setting xvFileNameCommand(Panel_item item, Event *event) ;
 static char *xvGetTitle(XV_FRAME *xvf,int which, char *title, int with_value) ;
+static void debugMenuItem(Menu menu, Menu_item menu_item) ;
+static void show_diags(long diag) ;
 
 /*----------------------------------------------------------------------
                               GLOBAL DATA
 ----------------------------------------------------------------------*/
-static int debug_it = 0 ;
 
 #define MAX_XVFS  10
 static int      nxvfs = 0 ;
@@ -103,11 +108,17 @@ static IMAGE *GtmpFloatImage = NULL, *GtmpByteImage = NULL,
   *GtmpByteImage2 = NULL, *GtmpScaledFloatImage = NULL ;
 
 static Frame           hips_cmd_frame ;
-static Display        *hips_cmd_display;
 static Panel_item      hips_cmd_panel_item ;
 static Panel           hips_cmd_panel ;
 static char            hips_cmd_str[301] ;
 static int             hips_cmd_source = 0 ;
+
+static Menu           debug_menu ;
+static char           debug_str[100] ;
+static Panel_item     debug_panel_item ;
+static Panel          debug_panel ;
+static Frame          debug_frame ;
+
 static void            (*XVevent_handler)(Event *event, DIMAGE *dimage) = NULL;
 static void            (*XVkb_handler)(Event *event, DIMAGE *dimage) = NULL;
 static void            (*XVquit_func)(void) = NULL;
@@ -234,6 +245,32 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
             PANEL_LABEL_STRING,    "Quit",
             PANEL_NOTIFY_PROC,     buttonQuit,
             NULL);
+
+  debug_frame = (Frame)
+    xv_create(xvf->frame, FRAME_CMD,
+              XV_HEIGHT, DEBUG_ROWS,
+              XV_WIDTH,  DEBUG_COLS,
+              XV_X,      600,
+              XV_Y,      310,
+              FRAME_LABEL, "DIAGNOSTIC",
+              XV_SHOW,   FALSE,
+              NULL);
+  debug_panel = 
+    (Panel)xv_create((Xv_opaque)debug_frame, PANEL, XV_X, 0, XV_Y,0,NULL);
+  debug_menu = (Menu)
+    xv_create((Xv_opaque)NULL, MENU_TOGGLE_MENU,
+              MENU_NOTIFY_PROC,    debugMenuItem,
+              MENU_STRINGS,        "WRITE", "SHOW", "TIMER", 
+                                   "INPUT", "HEARTBEAT", NULL,
+              NULL) ;
+  sprintf(debug_str, "debug: 0x%lx", Gdiag) ;
+  debug_panel_item = (Panel_item)
+    xv_create(debug_panel, PANEL_BUTTON,
+              PANEL_LABEL_STRING,    debug_str,
+              PANEL_ITEM_MENU,       debug_menu,
+              NULL) ;
+  show_diags(Gdiag) ;
+
 
   /* create a region for messages */
   xvf->msg_item[0] = (Panel_item) 
@@ -1050,6 +1087,10 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         xvf->rescale = 0 ;
         XVshowAll(xvf) ;
         break ;
+      case 'd':
+      case 'D':
+        xv_set(debug_frame, XV_SHOW, TRUE, FRAME_CMD_PUSHPIN_IN, TRUE,NULL) ;
+        break ;
       case 'R':
         xvf->rescale = 1 ;
         XVshowAll(xvf) ;
@@ -1068,9 +1109,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         rows = nint((float)dimage->dispImage->rows*scale) ;
         cols = nint((float)dimage->dispImage->cols*scale) ;
         XVsetImageSize(xvf, which, rows, cols) ;
-#if 1
         if (rows > xvf->display_rows || cols > xvf->display_cols)
-#endif
           XVresize(xvf) ;
         XVshowAllSyncedImages(xvf, which) ;
         XFlush(xvf->display) ;
@@ -1098,14 +1137,9 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         break ;
       }
       }
-      break ;
-    case 'D':
-    case 'd':
-      debug_it = 1 ;
-      XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
-      break ;
     }
   }
+
   if (XVevent_handler && !event_ctrl_is_down(event))
   {
     event_x(event) = x ;
@@ -1301,7 +1335,6 @@ xvHipsCmdFrameInit(XV_FRAME *xvf)
 
   hips_cmd_panel = 
     (Panel)xv_create((Xv_opaque)hips_cmd_frame, PANEL, XV_X, 0, XV_Y,0,NULL);
-  hips_cmd_display = (Display *)xv_get(hips_cmd_frame, XV_DISPLAY);
   hips_cmd_panel_item = (Panel_item)
     xv_create((Xv_opaque)hips_cmd_panel, PANEL_TEXT,
               PANEL_VALUE_STORED_LENGTH,   300,
@@ -1313,6 +1346,79 @@ xvHipsCmdFrameInit(XV_FRAME *xvf)
 #endif
               PANEL_VALUE,                 hips_cmd_str,
               NULL) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static void 
+debugMenuItem(Menu menu, Menu_item menu_item)
+{
+  char *menu_str ;
+
+  menu_str = (char *)xv_get(menu_item, MENU_STRING) ;
+  if (!stricmp(menu_str, "NONE"))
+    Gdiag = 0 ;
+  else if (!stricmp(menu_str, "WRITE"))
+  {
+    if (Gdiag & DIAG_WRITE)
+      Gdiag &= ~DIAG_WRITE ;
+    else 
+    {
+      Gdiag |= DIAG_WRITE ;
+    }
+  }
+  else if (!stricmp(menu_str, "SHOW"))
+  {
+    if (Gdiag & DIAG_SHOW)
+      Gdiag &= ~DIAG_SHOW ;
+    else Gdiag |= DIAG_SHOW ;
+  }
+  else if (!stricmp(menu_str, "TIMER"))
+  {
+    if (Gdiag & DIAG_TIMER)
+      Gdiag &= ~DIAG_TIMER ;
+    else 
+      Gdiag |= DIAG_TIMER ;
+  }
+  else if (!stricmp(menu_str, "MOVIE"))
+  {
+    if (Gdiag & DIAG_MOVIE)
+      Gdiag &= ~DIAG_MOVIE ;
+    else Gdiag |= DIAG_MOVIE ;
+  }
+  else if (!stricmp(menu_str, "WRITE"))
+  {
+    if (Gdiag & DIAG_WRITE)
+      Gdiag &= ~DIAG_WRITE ;
+    else 
+    {
+      Gdiag |= DIAG_WRITE ;
+    }
+  }
+  else if (!stricmp(menu_str, "INPUT"))
+  {
+    if (Gdiag & DIAG_INPUT)
+      Gdiag &= ~DIAG_INPUT ;
+    else 
+    {
+      Gdiag |= DIAG_INPUT ;
+    }
+  }
+  else if (!stricmp(menu_str, "HEARTBEAT"))
+  {
+    if (Gdiag & DIAG_HEARTBEAT)
+      Gdiag &= ~DIAG_HEARTBEAT ;
+    else 
+    {
+      Gdiag |= DIAG_HEARTBEAT ;
+    }
+  }
+  sprintf(debug_str, "debug: 0x%lx", Gdiag) ;
+  xv_set(debug_panel_item, PANEL_LABEL_STRING, debug_str, NULL) ;
+  show_diags(Gdiag) ;
+  xv_set(debug_frame, FRAME_CMD_PUSHPIN_IN, FALSE, XV_SHOW, FALSE, NULL) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -2427,5 +2533,36 @@ XVsetWriteFunc(XV_FRAME *xvf, char *frame_name, char *prompt_str,
 #endif
   xvf->write_func = write_func ;
   return(NO_ERROR) ;
+}
+
+static void
+show_diags(long diag)
+{
+  int        i, value ;
+  Menu_item  menu_item ;
+  char       *menu_str ;
+
+
+  for (i = 1 ; i <= 5 ; i++)
+  {
+    menu_item = xv_get(debug_menu, MENU_NTH_ITEM, i) ;
+    if (!menu_item)
+      continue ;
+    menu_str = (char *)xv_get(menu_item, MENU_STRING) ;
+    if (!stricmp(menu_str, "WRITE"))
+      value = (Gdiag & DIAG_WRITE) ;
+    else if (!stricmp(menu_str, "SHOW"))
+      value = (Gdiag & DIAG_SHOW) ;
+    else if (!stricmp(menu_str, "TIMER"))
+      value = (Gdiag & DIAG_TIMER) ;
+    else if (!stricmp(menu_str, "INPUT"))
+      value = (Gdiag & DIAG_INPUT) ;
+    else if (!stricmp(menu_str, "HEARTBEAT"))
+      value = (Gdiag & DIAG_HEARTBEAT) ;
+    else
+      value = FALSE ;
+
+    xv_set(menu_item, MENU_SELECTED, value?TRUE:FALSE, NULL) ;
+  }
 }
 
