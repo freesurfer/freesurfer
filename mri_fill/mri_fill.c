@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.19 1999/06/07 01:36:49 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.20 1999/06/16 19:32:43 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -600,7 +600,7 @@ get_option(int argc, char *argv[])
   {
     rh_fill_val = atoi(argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr,"using %d as fill val for right hemisphere.\n",rh_fill_val);
+    fprintf(stderr,"using %d as fill val for left hemisphere.\n",rh_fill_val);
   }
   else switch (toupper(*option))
   {
