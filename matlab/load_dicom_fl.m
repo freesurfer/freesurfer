@@ -15,7 +15,7 @@ function [vol, M, dcminfo, mr_parms] = load_dicom_fl(flist)
 %
 % Does not handle multiple frames correctly yet.
 %
-% $Id: load_dicom_fl.m,v 1.8 2003/07/24 21:16:08 ebeth Exp $
+% $Id: load_dicom_fl.m,v 1.9 2003/07/30 19:18:09 ebeth Exp $
 
 vol=[];
 M=[];
@@ -136,7 +136,6 @@ if(strcmpi(Manufacturer,'ge medical systems'))
   % Z0 = Z + offsetZ;  [XYZ1]' = M*[CRS1]', need to add to M(3,4)(?)
   M(3,4) = M(3,4) - offsetZ;
 end
-return;
 
 % if(strcmpi(Manufacturer,'ge medical systems')) 
 %   M(3,4) = 0; % Wow - that was actually completely wrong!
