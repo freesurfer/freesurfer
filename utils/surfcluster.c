@@ -2,13 +2,15 @@
   surfcluster.c - routines for growing clusters on the surface
   based on intensity thresholds and area threshold. Note: this
   makes use of the undefval in the MRI_SURFACE structure.
-  $Id: surfcluster.c,v 1.3 2002/04/09 18:46:57 greve Exp $
+  $Id: surfcluster.c,v 1.4 2002/04/10 22:07:47 greve Exp $
   ----------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 
+#include "error.h"
+#include "diag.h"
 #include "mri.h"
 #include "resample.h"
 #include "matrix.h"
@@ -70,6 +72,13 @@ SCS *sclustMapSurfClusters(MRI_SURFACE *Surf, float thmin, float thmax,
 
   /* Sort the clusters by descending maxval */
   scs_sorted  = SortSurfClusterSum(scs, *nClusters);
+
+  if(Gdiag_no > 0){
+    printf("--- Surface Cluster Summary (unsorted) ---------------\n");
+    DumpSurfClusterSum(stdout,scs,*nClusters);
+    printf("---------- sorted ---------------\n");
+    DumpSurfClusterSum(stdout,scs_sorted,*nClusters);
+  }
 
   /* Remap the cluster numbers to match the sorted */
   sclustReMap(Surf, *nClusters, scs_sorted);
@@ -243,7 +252,7 @@ SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters)
   scs = (SCS *) calloc(*nClusters, sizeof(SCS));
 
   for(n = 0; n < *nClusters ; n++){
-    scs[n].clusterno = n;
+    scs[n].clusterno = n+1;
     scs[n].area   = sclustSurfaceArea(n+1, Surf, &scs[n].nmembers);
     scs[n].maxval = sclustSurfaceMax(n+1,  Surf, &scs[n].vtxmaxval);
     scs[n].x = Surf->vertices[scs[n].vtxmaxval].x;
@@ -271,8 +280,8 @@ int DumpSurfClusterSum(FILE *fp, SCS *scs, int nClusters)
   int n;
 
   for(n=0; n < nClusters; n++){
-    fprintf(fp,"%4d  %8.4f  %6d    %6.2f  %4d   %5.1f %5.1f %5.1f   "
-      "%5.1f %5.1f %5.1f\n",n+1,
+    fprintf(fp,"%4d  %4d  %8.4f  %6d    %6.2f  %4d   %5.1f %5.1f %5.1f   "
+      "%5.1f %5.1f %5.1f\n",n,scs[n].clusterno,
       scs[n].maxval, scs[n].vtxmaxval, 
       scs[n].area,scs[n].nmembers,
       scs[n].x, scs[n].y, scs[n].z,
@@ -307,10 +316,16 @@ int sclustReMap(MRI_SURFACE *Surf, int nClusters, SCS *scs_sorted)
 {
   int vtx, vtx_clusterno, c;
 
+  if(Gdiag_no > 0){
+    printf("sclustReMap:\n");
+    for(c=1; c <= nClusters; c++)
+      printf("new = %3d old = %3d\n",c,scs_sorted[c-1].clusterno);
+  }
+
   for(vtx = 0; vtx < Surf->nvertices; vtx++){
     vtx_clusterno = Surf->vertices[vtx].undefval;
     for(c=1; c <= nClusters; c++){
-      if(vtx_clusterno == scs_sorted[c].clusterno){
+      if(vtx_clusterno == scs_sorted[c-1].clusterno){
   Surf->vertices[vtx].undefval = c;
   break;
       }
