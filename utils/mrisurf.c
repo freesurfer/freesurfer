@@ -28327,6 +28327,16 @@ MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs)
   return(NO_ERROR) ;
 }
 int
+MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs)
+{
+  int     vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    curvs[vno] = (double)mris->vertices[vno].curv ;
+
+  return(NO_ERROR) ;
+}
+int
 MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs)
 {
   int     vno ;

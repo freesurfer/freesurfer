@@ -769,6 +769,7 @@ int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
 int MRISsetOriginalFileName(char *orig_name) ;
 
 int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
+int MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs) ;
 #define MRISexportCurvatureVector  MRISextractCurvatureVector
 
 int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
