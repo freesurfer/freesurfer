@@ -21,6 +21,7 @@
 char         *Progname ;
 static MORPH_PARMS  parms ;
 
+static char *mask_fname = NULL ;
 static char *norm_fname = NULL ;
 
 static char *example_T1 = NULL ;
@@ -101,7 +102,7 @@ static double blur_sigma = 0.0f ;
 
 #define NPARMS           12
 #define NSAMPLES        (NPARMS*20)
-#define DEFAULT_CTL_POINT_PCT   .2
+#define DEFAULT_CTL_POINT_PCT   .25
 static double ctl_point_pct = DEFAULT_CTL_POINT_PCT ;
 static int nsamples = NSAMPLES ;
 
@@ -240,6 +241,20 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
               Progname, in_fname) ;
 
+  if (mask_fname)
+  {
+    MRI *mri_mask ;
+
+    mri_mask = MRIread(mask_fname) ;
+    if (!mri_mask)
+      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+                Progname, mask_fname) ;
+
+    MRImask(mri_in, mri_mask, mri_in, 0, 0) ;
+    MRIfree(&mri_mask) ;
+  }
+
+    
   if (alpha > 0)
     mri_in->flip_angle = alpha ;
   if (TR > 0)
@@ -372,7 +387,7 @@ main(int argc, char *argv[])
   }
 
   parms.lta->xforms[0].m_L = MatrixIdentity(4, NULL) ;
-#define MAX_ITER 3
+#define MAX_ITER 1
   i = 0 ;
   do
   {
@@ -386,6 +401,8 @@ main(int argc, char *argv[])
 
     printf("pass %d: log(p) = %2.1f (old=%2.1f)\n", i+1, log_p, old_log_p) ;
     done = (((log_p - old_log_p) / fabs(old_log_p)) < tol) ;
+    if (++i >= MAX_ITER)
+      break ;
     if (!done)
     {
       free(parms.gcas) ;
@@ -394,10 +411,50 @@ main(int argc, char *argv[])
       printf("using %d sample points...\n", nsamples) ;
       parms.nsamples = nsamples ;
     }
-    if (i++ >= MAX_ITER)
-      break ;
   } while (!done) ;
+
+  {
+    free(parms.gcas) ;
+    parms.gcas = GCAfindAllSamples(gca, &nsamples) ;
+    parms.nsamples = nsamples ;
+
+    printf("computing final MAP estimate of linear transform using %d samples...\n",
+           nsamples) ;
+    
+    parms.mri_in = mri_in ;  /* for diagnostics */
+    if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
+    {
+      MRI *mri_aligned ;
+      
+      mri_aligned = 
+        MRIapplyRASlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
+      MRIwriteImageViews(mri_aligned, "before_final_alignment", 400) ;
+      MRIfree(&mri_aligned) ;
+    }
+    MRIemAlign(mri_in, gca, &parms, parms.lta->xforms[0].m_L) ;
+    
+    printf("final transform:\n") ;
+    MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
+    printf("\n") ;
+    
+    if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
+    {
+      MRI *mri_aligned ;
+      
+      mri_aligned = 
+        MRIapplyRASlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
+      MRIwriteImageViews(mri_aligned, "after_final_alignment", 400) ;
+      MRIfree(&mri_aligned) ;
+    }
+  }
   
+  printf("writing output transformation to %s...\n", out_fname) ;
+#if 0
+  MRIvoxelXformToRasXform(mri_in, mri_in, 
+                          parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
+#endif
+  LTAwrite(parms.lta, out_fname) ;
+
   if (transformed_sample_fname)
   {
     printf("writing transformed samples to %s...\n", 
@@ -518,12 +575,6 @@ main(int argc, char *argv[])
   }
 
 
-  printf("writing output transformation to %s...\n", out_fname) ;
-#if 0
-  MRIvoxelXformToRasXform(mri_in, mri_in, 
-                          parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
-#endif
-  LTAwrite(parms.lta, out_fname) ;
   if (gca)
     GCAfree(&gca) ;
   if (mri_in)
@@ -1074,6 +1125,12 @@ get_option(int argc, char *argv[])
     sample_fname = argv[2] ;
     nargs = 1 ;
     printf("writing control points to %s...\n", sample_fname) ;
+  }
+  else if (!strcmp(option, "MASK"))
+  {
+    mask_fname = argv[2] ;
+    nargs = 1 ;
+    printf("using MR volume %s to mask input volume...\n", mask_fname) ;
   }
   else if (!strcmp(option, "DIAG"))
   {
