@@ -5,11 +5,12 @@ function v = fast_ldbvoxel(stem,c,r,s,base)
 % is more than one frame, all frames are read in.
 % crs are assumed to be zero-based, unless base is set to 1.
 %
+% $Id: fast_ldbvoxel.m,v 1.2 2003/04/08 04:49:03 greve Exp $
 
 v=[];
 
 if(nargin ~= 4 & nargin ~= 5)
-  fprintf('v = fast_ldbvoxel(stem,c,r,s,base)\n');
+  fprintf('v = fast_ldbvoxel(stem,c,r,s,<base>)\n');
   return;
 end
 
