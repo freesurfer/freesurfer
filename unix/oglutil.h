@@ -21,6 +21,7 @@ extern double oglu_fov ;
 #define MESH_FLAG    0x0004
 #define COORD_FLAG   0x0008   /* draw canonical coordinate system */
 #define BW_FLAG      0x0010   /* only use black and white */
+#define NEG_FLAG     0x0020   /* show negative vertices (flat maps only) */
 
 #define LIGHT_OFFSET  0.25
 
