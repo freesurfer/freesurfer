@@ -545,6 +545,51 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
         Description
 ------------------------------------------------------*/
 int
+HISTOfindLastPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
+{
+  int  peak, b, bw, nbins, whalf, center_val, max_count, other_val, min_count ;
+
+  peak = HISTOfindHighestPeakInRegion(h, 0, h->nbins) ;
+  if (peak < 0)
+    return(-1) ;
+  max_count = h->counts[peak] ;
+
+  min_count = nint(min_pct * (float)max_count) ;
+  whalf = (wsize-1)/2 ;
+  nbins = h->nbins ;
+
+/*
+   check to see if the value at b is bigger than anything else within
+   a whalfxwhalf window on either side.
+*/
+  for (b = nbins-1 ; b >= 0 ; b--)
+  {
+    center_val = h->counts[b] ;
+    if (center_val <= min_count)
+      continue ;
+    peak = 1 ;
+    for (bw = b-whalf ; bw <= b+whalf ; bw++)
+    {
+      if (bw < 0 || bw >= nbins)
+        continue ;
+      other_val = h->counts[bw] ;
+      if (other_val > center_val)
+        peak = 0 ;
+    }
+    if (peak)
+      return(b) ;
+  }
+
+  return(-1) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
 {
   int  peak, b, bw, nbins, whalf, center_val, max_count, other_val, min_count ;
