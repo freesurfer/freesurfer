@@ -62,7 +62,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.4 2002/04/02 19:53:40 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.5 2002/04/02 19:55:51 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -371,7 +371,7 @@ int main(int argc, char **argv)
   /* Write clusters numbers to a volume */
   if(outcnid != 0){
     outvol = clustClusterList2Vol(ClusterList, nclusters, vol,frame, 0);
-    printf("INFO: writing OCN to %s as type %d\n",outcnid,outtype);
+    printf("INFO: writing OCN to %s as type %d\n",outcnid,outcntype);
     MRIwriteType(outvol,outcnid,outcntype);
     MRIfree(&outvol);
   }
