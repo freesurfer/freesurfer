@@ -78,6 +78,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read template volume %s.\n",
               Progname, template_fname) ;
 
+  threshold = pct * (float)mri_template->dof ;
 
   fprintf(stderr, "reading transform %s...", xform_fname) ;
   m3d = MRI3DreadSmall(xform_fname) ;
@@ -90,7 +91,6 @@ main(int argc, char *argv[])
           mri_template->dof, threshold) ;
   fprintf(stderr, "applying inverse transform...") ;
   mri_inverse_template = MRIapplyInverse3DMorph(mri_template, m3d, NULL) ;
-  threshold = pct * (float)mri_template->dof ;
   MRIfree(&mri_template) ;
   MRIwrite(mri_inverse_template, "inverse.mgh") ;
   nsize = nint(m3d->node_spacing)+1 ;/* don't erase anything close to white */
