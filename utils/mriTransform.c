@@ -92,7 +92,7 @@ Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
 
   /* try to read a transform and make sure we got it */
   DebugNote( ("Trying to read transform file %s", isLTAFileName) );
-  LTATransform = LTAread( isLTAFileName );
+  LTATransform = LTAreadEx( isLTAFileName );
   DebugAssertThrowX( (NULL != LTATransform),
          eResult, Trns_tErr_LTAImportFailed );
 
