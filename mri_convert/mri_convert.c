@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/22 14:02:41 $
-// Revision       : $Revision: 1.64 $
+// Revision Author: $Author: ch $
+// Revision Date  : $Date: 2003/09/23 20:32:59 $
+// Revision       : $Revision: 1.65 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.64 2003/09/22 14:02:41 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.65 2003/09/23 20:32:59 ch Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -842,6 +842,13 @@ int main(int argc, char *argv[])
   if(force_in_type_flag && forced_in_type == MRI_VOLUME_TYPE_UNKNOWN)
   {
     fprintf(stderr, "\n%s: unknown input volume type %s\n", Progname, in_type_string);
+    usage_message(stdout);
+    exit(1);
+  }
+
+  if(force_out_type_flag && forced_out_type == MRI_VOLUME_TYPE_UNKNOWN)
+  {
+    fprintf(stderr, "\n%s: unknown output volume type %s\n", Progname, in_type_string);
     usage_message(stdout);
     exit(1);
   }
