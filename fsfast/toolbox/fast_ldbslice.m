@@ -1,9 +1,13 @@
-function [f, nv, nf] = fast_ldbslice(bstem,sliceno)
+function [f, nv, nf, bhdrstr] = fast_ldbslice(bstem,sliceno)
 % [f nv nf] = fast_ldbslice(bstem, <sliceno>)
 % If sliceno is not given or if it is < 0, then
 % the volume is loaded. nv is the number of spatial
 % voxels (ie, nrows*cols if a slice or nrows*cols*nslice 
 % if a volume). nf is the number of frames.
+%
+% bhdrstr is a string dump of the bhdr file, if it exists
+%
+
 
 f = [];
 nv = [];
@@ -50,5 +54,15 @@ else
   else nf = 1;
   end
 end
+
+bhdrfile = sprintf('%s.bhdr',bstem);
+fid = fopen(bhdrfile,'r');
+if(fid ~= -1)
+  bhdrstr = fread(fid); % get the dump
+  fclose(fid);
+else
+  bhdrstr = '';
+end
+
 
 return;
