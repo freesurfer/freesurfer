@@ -232,6 +232,39 @@ int regio_read_mincxfm(char *xfmfile, MATRIX **R)
   return(0);
 }
 /* -------------------------------------------------------------- 
+   regio_write_mincxfm() - writes a 3x4 transform in something
+   like a minc xfm file.
+   -------------------------------------------------------------- */
+int regio_write_mincxfm(char *xfmfile, MATRIX *R)
+{
+  FILE *fp;
+  int r,c;
+  time_t time_now;
+
+  fp = fopen(xfmfile,"w");
+  if(fp==NULL){
+    perror("regio_write_mincxfm");
+    printf("Could open %s for writing\n",xfmfile);
+    return(1);
+  }
+  fprintf(fp,"MNI Transform File\n");
+  fprintf(fp,"%% This file was created by %s\n",Progname);
+  time(&time_now);
+  fprintf(fp,"%% %s\n", ctime(&time_now));
+  fprintf(fp,"\n");
+  fprintf(fp,"Transform_Type = Linear;\n");
+  fprintf(fp,"Linear_Transform =\n");
+
+  for(r=0;r<3;r++){ /* note: upper limit = 3 for xfm */
+    for(c=0;c<4;c++)
+      fprintf(fp,"%e ",R->rptr[r+1][c+1]);
+    fprintf(fp,"\n");
+  }
+
+  fclose(fp);
+  return(0);
+}
+/* -------------------------------------------------------------- 
    regio_read_xfm4() - reads a 4x4 transform as the last four
    lines of the xfmfile. Blank lines at the end will defeat it.
    -------------------------------------------------------------- */
