@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.8 2002/02/27 00:28:47 greve Exp $
+  $Id: mri_vol2roi.c,v 1.9 2002/03/10 21:54:56 greve Exp $
 */
 
 #include <stdio.h>
@@ -51,7 +51,7 @@ int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc,
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.8 2002/02/27 00:28:47 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.9 2002/03/10 21:54:56 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -85,6 +85,8 @@ LABEL *Label;
 
 char  *float2int_string = NULL;
 int    float2int = -1;
+
+int   UseNewL2M = 0;
 
 int debug = 0;
 
@@ -258,6 +260,10 @@ int main(int argc, char **argv)
   /* --------- load in the (possibly 4-D) source volume --------------*/
   printf("Loading volume %s ...",srcvolid); fflush(stdout);
   mSrcVol = mri_load_bvolume(srcvolid);
+  mSrcVol->xsize = colres_src;
+  mSrcVol->ysize = rowres_src;
+  mSrcVol->zsize = slcres_src;
+  
   if(mSrcVol == NULL) exit(1);
   printf("done\n");
   /* If this is a statistical volume, raise each frame to it's appropriate
@@ -278,17 +284,24 @@ int main(int argc, char **argv)
 
   /*--------- Prepare the final mask ------------------------*/
   if(Label != NULL){
-    mFinalMskVol = label2mask_linear(mSrcVol, Qsrc, Fsrc, Wsrc, 
-             Dsrc, mSrcMskVol,
-             Msrc2lbl, Label, float2int, 
-             &nlabelhits, &nfinalhits);
+    if(UseNewL2M)
+      mFinalMskVol = label2mask_linear2(mSrcVol, Qsrc, Fsrc, Wsrc, 
+          Dsrc, mSrcMskVol,
+          Msrc2lbl, Label, float2int, 
+          &nlabelhits, &nfinalhits);
+    else
+      mFinalMskVol = label2mask_linear(mSrcVol, Qsrc, Fsrc, Wsrc, 
+               Dsrc, mSrcMskVol,
+               Msrc2lbl, Label, float2int, 
+               &nlabelhits, &nfinalhits);
+
     if(mFinalMskVol == NULL) exit(1);
   }
   else {
     mFinalMskVol = mSrcMskVol;
     nfinalhits = nmskhits;
   }
-
+  
   if(!oldtxtstyle){
     /* count the number of functional voxels = 1 in the mask */
     nfinalhits = 0;
@@ -402,6 +415,7 @@ static int parse_commandline(int argc, char **argv)
 
     else if (!strcasecmp(option, "--oldtxtstyle"))    oldtxtstyle = 1;
     else if (!strcasecmp(option, "--plaintxtstyle"))  plaintxtstyle = 1;
+    else if (!strcasecmp(option, "--usenewl2m"))  UseNewL2M = 1;
 
     /* -------- ROI output file ------ */
     else if (!strcmp(option, "--roiavgtxt")){
