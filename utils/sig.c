@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <values.h>
 
 #include "error.h"
 #include "sig.h"
@@ -91,6 +92,33 @@ float betai(float a, float b, float x)
 /* End from numrec_c */
 
 
+#if 1
+#define MAXT    30.0
+#define MAXDOF 200
+/* note, everything here is Doug's fault */
+double sigt(double t,int df)
+{
+  double sig=0.0,sig1,sig2;
+
+  if (df==0)    
+    sig = 1;
+  else if (df < MAXDOF && fabs(t) < MAXT)
+    sig = betai(0.5*df,0.5,df/(df+t*t));
+
+  if(df>MAXDOF || sig < DBL_MIN){
+    sig1 = erfc(fabs(t)/sqrt(2.0));        
+    sig2 = 1.0/sqrt(2.0*M_PI)*exp(-0.5*(t*t)); /* use Normal approximation */
+    if(sig1 > sig2)  sig = sig1;
+    else             sig = sig2;
+  }
+
+  if (!finite(sig))
+    printf("### Numerical error: sigt(%e,%d) = %e\n",t,df,sig);
+  if(sig > 1.0) sig = 1.0;
+  
+  return sig;
+}
+#else
 double sigt(double t, int df)
 {
   double sig;
@@ -105,7 +133,7 @@ double sigt(double t, int df)
     printf("### Numerical error: sigt(%e,%d) = %e\n",t,df,sig);
   return sig;
 }
-
+#endif
 /*
 float sigt(float t, int df)
 {
