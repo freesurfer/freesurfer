@@ -1171,6 +1171,9 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
   eVolume = FunD_ConvertTimePointToSecond( this->mpOverlayVolume,
 					   this->mnTimePoint, &fSecond );
   
+  fprintf( stderr, "mnTimePoint set to %d, fSecond = %.2f\n",
+	   this->mnTimePoint, fSecond );
+
   /* send the new value to tcl */
   sprintf( sTclArguments, "%d %f", this->mnTimePoint, fSecond );
   FunV_SendTclCommand_( this, FunV_tTclCommand_Ol_UpdateTimePoint, 
