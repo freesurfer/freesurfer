@@ -38,5 +38,5 @@ mris_w_to_curv
 
 FSGDF=mri_gdfglm mris_glm
 
-SUBDIRS=unix dicom hipsstubs rgb utils $(MRISUBDIRS) $(MRISSUBDIRS) $(GLSUBDIRS) $(FSGDF)
+SUBDIRS=unix dicom hipsstubs rgb utils fsgdf $(MRISUBDIRS) $(MRISSUBDIRS) $(GLSUBDIRS) $(FSGDF)
 

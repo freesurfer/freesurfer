@@ -42,22 +42,35 @@ case "${host}" in
 ## choose static version if shared and static present
  OS_LDFLAGS="-all-static"
  DYNAMIC_LIB_EXT=".so"
- ;;
- *-apple-darwin*)
- OS=Darwin
- OS_CPPFLAGS="-fno-common"
- OS_LDFLAGS=
- DYNAMIC_LIB_EXT=".dylib"
+ SHARED_CFLAGS="-fPIC"
+ SHARED_LDFLAGS="-shared"
  ;;
  x86_64-*)
- OS=Linux64
+ OS=Linux-x86_64
  OS_CPP_FLAGS="-Wall -fwritable-strings"
+ LDFLAGS="-L/usr/lib64 $LDFLAGSA"
+ DYNAMIC_LIB_EXT=".so"
+ SHARED_CFLAGS="-fPIC"
+ SHARED_LDFLAGS="-shared"
  ;; 
+ *-apple-darwin*)
+ OS=Darwin
+ OS_CPPFLAGS=
+ OS_LDFLAGS=
+ DYNAMIC_LIB_EXT=".dylib"
+ SHARED_CFLAGS="-fno-common"
+ SHARED_LDFLAGS="-dynamiclib"
+ ;;
 esac
 AC_SUBST(OS)
 AC_SUBST(OS_CPPFLAGS)
 AC_SUBST(OS_LDFLAGS)
 AC_SUBST(DYNAMIC_LIB_EXT)
+
+# export
+AC_SUBST(SHARED_CFLAGS)
+AC_SUBST(SHARED_LDFLAGS)
+
 ##############################################################
 # cpu optimization
 ##############################################################
@@ -169,7 +182,7 @@ CXXFLAGS="$CPUFLAGS $CXXFLAGS"
 AC_MSG_RESULT($found)
 #####
 else
-  AC_MSG_NOTICE([cpu optimization not done, since gcc is not used])
+  AC_MSG_NOTICE([cpu optimization not done. you must use gcc.])
 # if gcc
 fi
 ##############################################################
@@ -598,6 +611,6 @@ mris_sample_parc/Makefile mris_segment_vals/Makefile mris_smooth/Makefile mris_s
 mris_spherical_average/Makefile mris_surface_to_vol_distances/Makefile mrisp_paint/Makefile \
 mris_talairach/Makefile mris_thickness/Makefile mris_thickness_comparison/Makefile \
 mris_transform/Makefile mris_translate_annotation/Makefile mris_twoclass/Makefile \
-mris_w_to_curv/Makefile) 
+mris_w_to_curv/Makefile fsgdf/Makefile) 
 
 
