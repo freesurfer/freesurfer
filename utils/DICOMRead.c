@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.69 2004/10/01 16:24:54 tosa Exp $
+   $Id: DICOMRead.c,v 1.70 2004/10/01 20:16:17 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -2011,16 +2011,17 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
   SDCMFILEINFO *sdfi, *sdfitmp, *sdfi0;
   int nthfile, NRuns, nthrun, nthslice, nthframe;
   int nfilesperrun, firstpass, nframes;
-  char *FirstFileName;
-  int *RunList, *RunNoList;
+  char *FirstFileName = 0;
+  int *RunList=0, *RunNoList=0;
 
   nframes = 0; /* to stop compiler warnings */
 
   RunNoList = sdfiRunNoList(sdfi_list,nlist,&NRuns);
-  if(NRuns==0) return(NRuns);
+  if(NRuns==0) 
+    return(NRuns);
 
-  for(nthrun = 0; nthrun < NRuns; nthrun ++){
-
+  for(nthrun = 0; nthrun < NRuns; nthrun ++)
+  {
     FirstFileName = sdfiFirstFileInRun(RunNoList[nthrun], sdfi_list, nlist);
     RunList = sdfiRunFileList(FirstFileName,sdfi_list, nlist, &nfilesperrun);
 
@@ -2084,9 +2085,12 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
       sdfi->ErrorFlag = sdfi0->ErrorFlag;
     }
 
-    free(RunList);
-    free(RunNoList);
-    free(FirstFileName);
+    if (RunList)
+      free(RunList);
+    if (RunNoList)
+      free(RunNoList);
+    if (FirstFileName)
+      free(FirstFileName);
   } /* end loop over runs */
 
   return(NRuns);
@@ -2102,17 +2106,21 @@ int *sdfiRunNoList(SDCMFILEINFO **sdfi_list, int nlist, int *NRuns)
   int nthrun;
 
   *NRuns = sdfiCountRuns(sdfi_list, nlist);
-  if(*NRuns == 0) return(NULL);
+  if(*NRuns == 0) 
+    return(NULL);
 
   RunNoList = (int *) calloc(*NRuns, sizeof(int));
 
   nthrun = 0;
   PrevRunNo = -1;
-  for(nthfile = 0; nthfile < nlist; nthfile ++){
+  for(nthfile = 0; nthfile < nlist; nthfile ++)
+  {
     sdfi = sdfi_list[nthfile];
-    if(PrevRunNo == sdfi->RunNo) continue;
+    if(PrevRunNo == sdfi->RunNo) 
+      continue;
     PrevRunNo = sdfi->RunNo;
     RunNoList[nthrun] = sdfi->RunNo;
+    fprintf(stderr, "RunNo = %d\n", sdfi->RunNo);
     nthrun++;
   }
   return(RunNoList);
@@ -2127,9 +2135,11 @@ int sdfiCountRuns(SDCMFILEINFO **sdfi_list, int nlist)
 
   NRuns = 0;
   PrevRunNo = -1;
-  for(nthfile = 0; nthfile < nlist; nthfile ++){
+  for(nthfile = 0; nthfile < nlist; nthfile ++)
+  {
     sdfi = sdfi_list[nthfile];
-    if(PrevRunNo == sdfi->RunNo) continue;
+    if(PrevRunNo == sdfi->RunNo) 
+      continue;
     PrevRunNo = sdfi->RunNo;
     NRuns ++;
   }
