@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "macros.h"
 #include "volume_io.h"
@@ -78,10 +79,13 @@ LabelRead(char *subject_name, char *label_name)
   strcpy(area->name, label_name) ;
 
   /* read in the file */
+  printf("Opening label file %s\n",fname);
   fp = fopen(fname, "r") ;
+  if(errno) perror(NULL);
   if (!fp)
     ErrorReturn(NULL, (ERROR_NOFILE, "%s: could not open label file %s",
                        Progname, fname)) ;
+
 
   cp = fgetl(line, 199, fp) ;
   if (!cp)
