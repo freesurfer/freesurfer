@@ -684,6 +684,7 @@ int MRISripDefectiveFaces(MRI_SURFACE *mris) ;
 int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
 int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
+int MRISsetOriginalFile(char *orig_name) ;
 
 #if 1
 #include "mrishash.h"
