@@ -1,4 +1,4 @@
-function fmri_svbfile(y, BFileName, Endian)
+function err = fmri_svbfile(y, BFileName, Endian)
 %
 % fmri_svbfile(y,BFileName,Endian)
 %
@@ -13,8 +13,9 @@ function fmri_svbfile(y, BFileName, Endian)
 %
 % See also: LdBFile
 %
-% $Id: fmri_svbfile.m,v 1.1 2003/03/04 20:47:40 greve Exp $
+% $Id: fmri_svbfile.m,v 1.2 2003/12/19 22:26:32 greve Exp $
 
+err = 1 ;
 if(nargin ~= 2 & nargin ~= 3) 
   error('USAGE: SvBFile(y,BFileName,<Endian>)');
 end
@@ -93,5 +94,7 @@ if(count ~= prod(size(y)))
                 count,prod(size(y)));
   qoe(msg);  error(msg);
 end
+
+err = 0;
 
 return;
