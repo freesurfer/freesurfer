@@ -1,3 +1,4 @@
+#ifndef LINUX
 /*
    @(#)unix_thread.c  1.3
    3/24/94
@@ -399,3 +400,18 @@ MachThreadExit(status)
 {
    pod_exit(status) ;
 }
+#else
+#include "mthread.h"
+
+int MachThreadInit(int nthreads, int stacksize, int npriorities) {return(1);}
+int MachThreadStart(char *name, void (*func)(int iTid, void *parm), int iTid, 
+                    void *parm, int priority) {return(1) ;}
+int MachThreadYield(int iTid) {return(1) ;}
+int MachThreadKill(int iTid) {return(1) ;}
+int MachThreadSleep(int iTid, long lUsec) {return(1) ;}
+int MachThreadSuspend(int iTid) {return(1) ;}
+int MachThreadResume(int iTid) {return(1) ;}
+int MachThreadGetTid(void) {return(1) ;}
+void MachThreadExit(int status) {}
+
+#endif
