@@ -1,0 +1,270 @@
+#!/bin/csh -f
+# Zero-pad fmri data
+#
+# $Id: zpadfmri,v 1.1 2004/02/19 20:38:44 greve Exp $
+
+set VERSION = '$Id: zpadfmri,v 1.1 2004/02/19 20:38:44 greve Exp $';
+set cmdargs = ($argv);
+
+set invol    = ();
+set outvol   = ();
+set ncluster = ();
+set npad     = ();
+
+set mfile   = ();
+set monly   = 0;
+set PrintHelp = 0;
+
+if($#argv == 0)  goto usage_exit;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+echo " "
+echo " "
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if($#mfile == 0) then
+  set mfile = /tmp/run_txt2bfile_$$.m
+else
+  set monly = 1;
+endif
+
+#------------------------------------------#
+tee $mfile <<EOF
+
+tic;
+if($monly) QuitOnError = 0;
+else       QuitOnError = 1;
+end
+
+invol   = '$invol';
+outvol  = '$outvol';
+ncluster = $ncluster;
+npad     = $npad;
+
+[ns nr nc nf endian bext] = fmri_bvoldim(invol);
+if(isempty(ns))
+  fprintf('ERROR: could not load %s',invol);
+  if(QuitOnError) quit; end
+  return; 
+end
+
+if(rem(nf,ncluster) ~= 0)
+  fprintf('ERROR: number of frames (%d) is not an integer number of number in cluster (%d)\n',...
+	  nf,ncluster);
+  if(QuitOnError) quit; end
+  return; 
+end
+
+nclusters = nf/ncluster;
+nspacing = ncluster+npad;
+nfinal = nclusters*nspacing;
+
+ind = [];
+for n = 1:ncluster
+  ind = [ind [n : nspacing : nfinal]];
+end
+
+fprintf('nslices %d \n',ns);
+fprintf('slice ');
+for s = 1:ns
+  fprintf('%d ',s);
+  [f mristruct] = fast_ldbslice(invol,s-1);
+  f2 = zeros(nr,nc,nfinal);
+  f2(:,:,ind) = f;
+  fast_svbslice(f2,outvol,s-1,bext,mristruct);
+end
+fprintf('\n');
+
+zp = ones(nfinal,1);
+zp(ind) = 0;
+indzp = find(zp);
+
+tpx = mristruct.tr*(indzp-1);
+tpxfile = sprintf('%s.tpx',outvol);
+fp = fopen(tpxfile,'w');
+fprintf(fp,'%g\n',tpx);
+fclose(fp);
+
+fprintf('matlab: zpadfmri done (%g sec)\n',toc);
+
+if(QuitOnError) quit; end
+return;
+
+EOF
+#------------------------------------------#
+
+date
+if(! $monly) then
+  cat $mfile | matlab -display iconic
+  rm $mfile
+  if(-e $invol.meanval) cp $invol.meanval $outvol.meanval
+endif
+
+date
+echo "zpadfmri done "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      breaksw
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "-ncluster":
+      if ( $#argv == 0) goto arg1err;
+      set ncluster = $argv[1]; shift;
+      breaksw
+
+    case "-npad":
+      if ( $#argv == 0) goto arg1err;
+      set npad = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#invol == 0) then
+    echo "ERROR: no input volume specified"
+    exit 1;
+  endif
+  if($#outvol == 0) then
+    echo "ERROR: no output specified"
+    exit 1;
+  endif
+  if($#npad == 0) then
+    echo "ERROR: no padding specified"
+    exit 1;
+  endif
+  if($#ncluster == 0) then
+    echo "ERROR: ncluster not specified"
+    exit 1;
+  endif
+  set outdir = `dirname $outvol`;
+  mkdir -p $outdir;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: zpadfmri"
+  echo " "
+  echo "   -i input volume  : input volume to add zero pads to"
+  echo "   -o output volume : stem of output volume"
+  echo "   -ncluster nc     : number of TRs between pads (default is 1)"
+  echo "   -npad     npad   : number of zero TR pads"
+  echo " "
+  echo "   -help "
+  echo "   -debug "
+  echo "   -monly mfile "
+  echo "   -umask umask  : set unix file permission mask"
+  echo "   -version      : print version and exit"
+  echo " "
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Add TRs filled with zeros between real data. There will be ncluster
+real data points with npad zeros between them. In addition, a
+time-point exclude file (outvol.tpx) will be generated. This lists the
+times (in sec) of the time points that have been zero-filled.  This
+file can be used with FS-FAST to exclude the padded zeros (see
+mkanalysis-sess.new, -tpef outvol.tpx).
+
+NOTES:
+
+The number of frames in the input volume must be an integer multiple
+of ncluster.
+
+This should be run AFTER all preprocessing (ie, motion correction,
+smoothing, and intensity normalization).
+
+EXAMPLE:
+
+The input volume has 151 time points. The acquisition was set up
+such that 3 TRs where collected followed by 7 TRs where no data
+were collected (silence in the scanner). The run:
+
+  zpadfmri -i f -o fzp -ncluster 3 -npad 7
+
+fzp will have 1510 frames. The first 3 frames will have real data.
+The next 7 frames will have zeros. The next 3 will have real data, etc.
+There will also be a file called fzp.tpx.
