@@ -6,8 +6,7 @@
 # responses.
 ############################################################
 
-set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set YAKVIEW_VER = '\$Id: yakview,v 1.4 2003/09/26 18:22:55 greve Exp $'
+set YAKVIEW_VER = '\$Id: yakview,v 1.5 2004/10/29 17:46:05 greve Exp $'
 
 # Set Default Values #
 set imgstem = ();
@@ -69,7 +68,6 @@ if ( $#argv < 2 ) then
   echo ""
   echo ""
   echo "  yakview: $YAKVIEW_VER"
-  echo "  fMRIA Version $fmrianalver";
   echo "  Author: Douglas N. Greve"
   echo "          Massachusetts General Hospital - NMR Center"
   echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
@@ -78,7 +76,6 @@ if ( $#argv < 2 ) then
 endif
 
 echo "  yakview: $YAKVIEW_VER"
-echo "  fMRIA Version $fmrianalver";
 
 set MATLAB = `getmatlab`;
 if($status) exit 1;
@@ -107,26 +104,26 @@ if( $slice == -1 ) then
   endif
 else
   # Stem and slice are specified #
- if($fmtimg == 0) then
-  set bext = `getbext $imgstem`;
-  if($status) then
-    echo "$bext";
-    exit 1;
-  endif
-  set ImgFile = $imgstem$SliceStr.$bext;
-  if(! $IsMosaic && ! -e $ImgFile ) then
-    echo "ERROR: cannot find $ImgFile"
-    exit 1;
-  endif
-  if($IsMosaic && ! -e $ImgFile || $ForceMkMosaic) then
-    echo "INFO: Creating base mosaic on-the-fly"
-    set ImgMkMosaic = 1;
+  if($fmtimg == 0) then
+    set bext = `getbext $imgstem`;
+    if($status) then
+      echo "$bext";
+      exit 1;
+    endif
+    set ImgFile = $imgstem$SliceStr.$bext;
+    if(! $IsMosaic && ! -e $ImgFile ) then
+      echo "ERROR: cannot find $ImgFile"
+      exit 1;
+    endif
+    if($IsMosaic && ! -e $ImgFile || $ForceMkMosaic) then
+      echo "INFO: Creating base mosaic on-the-fly"
+      set ImgMkMosaic = 1;
+      set ImgFile = $imgstem;
+    endif
+  else
+    #set ImgMkMosaic = 1;
     set ImgFile = $imgstem;
-  endif
- else
-  set ImgMkMosaic = 1;
-  set ImgFile = $imgstem;
- endif # if($fmtimg == 0) then
+  endif # if($fmtimg == 0) then
 endif
 
 ######## Sig (Overlay) Image  ######################
@@ -157,7 +154,7 @@ if($#sigstem != 0) then
       set SigFile = $sigstem;
     endif
    else
-    set SigMkMosaic = 1;
+    #set SigMkMosaic = 1;
     set SigFile = $sigstem;
    endif # if($fmtimg == 0) then
   endif
@@ -173,52 +170,69 @@ if($#sigmaskstem != 0) then
       exit 1;
     endif
   else
-    # Stem and slice are specified #
-    set bext = `getbext $sigmaskstem`;
-    if($status) then
-      echo "$bext";
-      exit 1;
-    endif
-    set SigMaskFile = $sigmaskstem$SliceStr.$bext;
-    if(! $IsMosaic && ! -e $SigMaskFile ) then
-      echo "ERROR: cannot find $SigMaskFile"
-      exit 1;
-    endif
-    if($IsMosaic && ! -e $SigMaskFile || $ForceMkMosaic) then
-      echo "INFO: Creating overlay mosaic on-the-fly"
-      set SigMkMosaic = 1;
+   if($fmtimg == 0) then
+      # Stem and slice are specified #
+      set bext = `getbext $sigmaskstem`;
+      if($status) then
+        echo "$bext";
+        exit 1;
+      endif
+      set SigMaskFile = $sigmaskstem$SliceStr.$bext;
+      if(! $IsMosaic && ! -e $SigMaskFile ) then
+        echo "ERROR: cannot find $SigMaskFile"
+        exit 1;
+      endif
+      if($IsMosaic && ! -e $SigMaskFile || $ForceMkMosaic) then
+        echo "INFO: Creating overlay mosaic on-the-fly"
+        set SigMkMosaic = 1;
+        set SigMaskFile = $sigmaskstem;
+      endif
+    else
       set SigMaskFile = $sigmaskstem;
-    endif
-  endif
+      if(! -e $sigmaskstem) then
+        echo "ERROR: cannot find $SigMaskFile" 
+        exit 1;
+      endif
+    endif # fmtimg
+  endif # slice == -1
 endif
 
 ######## Raw Image  ######################
 if( $#rawstem == 1 ) then
-  if( $slice == -1 ) then 
-    # Full file name is specified #
-    set RawFile = $rawstem
-    if( ! -r $RawFile) then
-      echo "ERROR: Cannot find file $RawFile"
-      exit 1;
+  if($fmtimg == 0) then
+    if( $slice == -1 ) then 
+      # Full file name is specified #
+      set RawFile = $rawstem
+      if( ! -r $RawFile) then
+        echo "ERROR: Cannot find file $RawFile"
+        exit 1;
+      endif
+    else
+      # Stem and slice are specified #
+      set bext = `getbext $rawstem`;
+      if($status) then
+        echo "$bext";
+        exit 1;
+      endif
+      set RawFile = $rawstem$SliceStr.$bext;
+      if(! $IsMosaic && ! -e $RawFile ) then
+        echo "ERROR: cannot find $RawFile"
+        exit 1;
+      endif
+      if($IsMosaic && ! -e $RawFile || $ForceMkMosaic) then
+        echo "INFO: Creating raw mosaic on-the-fly"
+        set RawMkMosaic = 1;
+        set RawFile = $rawstem;
+      endif
     endif
   else
-    # Stem and slice are specified #
-    set bext = `getbext $rawstem`;
-    if($status) then
-      echo "$bext";
+    set RawFile = $rawstem;
+    if($IsMosaic || $ForceMkMosaic) set RawMkMosaic = 1;
+    if(! -e $RawFile) then
+      echo "ERROR: cannot find $SigMaskFile" 
       exit 1;
     endif
-    set RawFile = $rawstem$SliceStr.$bext;
-    if(! $IsMosaic && ! -e $RawFile ) then
-      echo "ERROR: cannot find $RawFile"
-      exit 1;
-    endif
-    if($IsMosaic && ! -e $RawFile || $ForceMkMosaic) then
-      echo "INFO: Creating raw mosaic on-the-fly"
-      set RawMkMosaic = 1;
-      set RawFile = $rawstem;
-    endif
-  endif
+  endif # fmtimg
 endif
 
 ######## Hemodynamic Response Image  ######################
@@ -540,6 +554,10 @@ while( $#argv != 0 )
       set fmtimg = 1;
       breaksw
 
+    case "-mgh":
+      set fmtimg = 2;
+      breaksw
+
     case "-debug":
       set verbose
       set echo
@@ -576,6 +594,18 @@ check_params:
   if($#MosaicDirection == 0) set MosaicDirection = slice;
 
   if($MosaicDirection != slice) set ForceMkMosaic = 1;
+
+  # Autodetect if MGH format
+  if($fmtimg == 0) then
+    set tmp = `basename $imgstem .mgh`
+    set tmp2 = $tmp.mgh
+    if(-e $tmp2) then
+      echo "Autodetected as mgh format"
+     set fmtimg = 2;
+    endif
+  endif
+
+
 
 goto check_params_return;
 ############--------------##################

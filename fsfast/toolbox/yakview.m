@@ -1,8 +1,8 @@
 % yakview - views images, stat overlays, and hemodynamic responses.
-% $Id: yakview.m,v 1.5 2004/03/22 20:29:30 greve Exp $
+% $Id: yakview.m,v 1.6 2004/10/29 17:46:05 greve Exp $
 
 fprintf(1,'\n\n');
-fprintf(1,'yakview: $Id: yakview.m,v 1.5 2004/03/22 20:29:30 greve Exp $\n');
+fprintf(1,'yakview: $Id: yakview.m,v 1.6 2004/10/29 17:46:05 greve Exp $\n');
 
 if(~exist('UseVersion')) UseVersion = 2; end
 
@@ -26,21 +26,37 @@ fprintf(1,'Offset %s \n',OffFile);
 fprintf(1,'Raw Data %s \n',RawFile); 
 fprintf(1,'RawFunc: %s', rawfunc);
 fprintf(1,'\n\n');
+if(~ImgMkMosaic) sliceno = str2num(SliceNo); end
 
 fprintf(1,'Loading Base ...       '); tic;
 if(~ImgMkMosaic)
-  s = fast_ldbfile(ImgFile,1);
+  switch(fmtimg)
+   case 0, 
+    s = fast_ldbfile(ImgFile,1);
+   case 1, 
+    s = fast_ldanalyze(ImgFile);
+    s = permute(s, [2 3 1]);
+    s = s(:,:,sliceno+1);
+   case 2, 
+    s = load_mgh(ImgFile,sliceno+1,1);
+    s = permute(s,[2 1]);
+  end
   if(isempty(s))
     fprintf('ERROR: loading %s\n',ImgFile);
     return;
   end
-  
   fprintf('%g sec\n',toc);
   s = s(:,:,1); % keep only first plane of the base 
   basesize = size(s);
 else
-  if(fmtimg) s = fast_ldanalyze(ImgFile);
-  else       s = fmri_ldbvolume(ImgFile);
+  switch(fmtimg)
+   case 0, 
+    s = fmri_ldbvolume(ImgFile);
+   case 1, 
+    s = fast_ldanalyze(ImgFile);
+   case 2, 
+    s = load_mgh(ImgFile,[],1);
+    s = permute(s,[3 2 1 4]);
   end
   fprintf('%g  sec\n',toc);
   s = s(:,:,:,1);
@@ -70,24 +86,58 @@ end
 if(~isempty(SigFile))
   fprintf(1,'Loading Overlay\n'); tic;
   if(~SigMkMosaic)
-    p = fmri_ldbfile(SigFile);
+    switch(fmtimg)
+     case 0, 
+      p = fmri_ldbfile(SigFile);
+     case 1, 
+      p = fast_ldanalyze(SigFile);
+      p = permute(p, [2 3 1]);
+      p = p(:,:,sliceno+1);
+     case 2, 
+      p = squeeze(load_mgh(SigFile,sliceno+1));
+      p = permute(p,[2 1 3]);
+    end
+    if(isempty(p)) return; end
     if(pneg) p = -p; end
     if(~isempty(SigMaskFile))
       fprintf(1,'Loading Mask \n'); tic;
-      pmask = fmri_ldbfile(SigMaskFile);
+      switch(fmtimg)
+       case 0, 
+	pmask = fmri_ldbfile(SigMaskFile);
+       case 1, 
+	pmask = fast_ldanalyze(SigMaskFile);
+	pmask = permute(pmask, [2 3 1]);
+	pmask = pmask(:,:,sliceno+1);
+       case 2, 
+	pmask = load_mgh(SigMaskFile,sliceno+1,1);
+	pmask = permute(pmask,[2 1]);
+      end
+      if(isempty(pmask)) return; end
       pmask = abs(pmask) > SigMaskThresh;
       pmask = repmat(pmask,[1 1 size(p,3)]);
       p = p.*pmask;
       clear pmask
     end
   else
-    if(fmtimg) p = fast_ldanalyze(SigFile);
-    else       p = fmri_ldbvolume(SigFile);
+    switch(fmtimg)
+     case 0, 
+      p = fmri_ldbvolume(SigFile);
+     case 1, 
+      p = fast_ldanalyze(SigFile);      
+     case 2, 
+      p = load_mgh(SigFile);
+      p = permute(p,[3 2 1 4]);
     end
     if(~isempty(cutends))  p([1 size(p,1)],:,:) = cutends;  end
     if(~isempty(SigMaskFile))
-      if(fmtimg) pmask = fast_ldanalyze(SigMaskFile);
-      else       pmask = fmri_ldbvolume(SigMaskFile);
+      switch(fmtimg)
+       case 0, 
+	pmask = fmri_ldbvolume(SigMaskFile);
+       case 1, 
+	pmask = fast_ldanalyze(SigMaskFile);
+       case 2, 
+	pmask = load_mgh(SigMaskFile,[],1);
+	pmask = permute(pmask,[3 2 1 4]);
       end
       pmask = abs(pmask) > SigMaskThresh;
       pmask = repmat(pmask,[1 1 1 size(p,4)]);
@@ -176,12 +226,29 @@ if(~isempty(HDRFile))
   if(~isempty(OffFile))
     fprintf(1,'Loading Offset  ...      '); tic;
     if(~OffMkMosaic)
-      hoffset = fmri_ldbfile(OffFile);
+      switch(fmtimg)
+       case 0, 
+	hoffset = fmri_ldbfile(OffFile);
+       case 1, 
+	hoffset = fast_ldanalyze(OffMaskFile);
+	hoffset = permute(hoffset, [2 3 1]);
+	hoffset = hoffset(:,:,sliceno+1);
+       case 2, 
+	hoffset = load_mgh(OffMaskFile,sliceno+1,1);
+	hoffset = permute(hoffset,[2 1]);
+      end
+      if(isempty(hoffset)) return; end
       fprintf('%g sec\n',toc);
       hoffset = hoffset(:,:,1);
     else
-      if(fmtimg) hoffset = fast_ldanalyze(OffFile);
-      else       hoffset = fmri_ldbvolume(OffFile);
+      switch(fmtimg)
+       case 0, 
+	hoffset = fmri_ldbvolume(OffFile);
+       case 1, 
+	hoffset = fast_ldanalyze(OffFile);
+       case 2, 
+	hoffset = load_mgh(OffFile,[],1);
+	hoffset = permute(hoffset,[3 2 1 4]);
       end
       fprintf('%g  sec\n',toc);
       hoffset = hoffset(:,:,:,1);
@@ -203,10 +270,33 @@ yraw = [];
 if(~isempty(RawFile))
   fprintf(1,'Loading Raw Data ...       '); tic;
   if(~RawMkMosaic)
-    yraw = fmri_ldbfile(RawFile);
+    switch(fmtimg)
+     case 0, 
+      yraw = fmri_ldbfile(RawFile);
+     case 1, 
+      fprintf('ERROR: cannot use analyze fmt with raw\n');
+      return;
+      yraw = fast_ldanalyze(RawFile);
+      yraw = permute(yraw, [2 3 1]);
+      yraw = yraw(:,:,sliceno+1);
+     case 2, 
+      yraw = squeeze(load_mgh(RawFile,sliceno+1));
+      yraw = permute(yraw,[2 1 3]);
+    end
+    if(isempty(yraw)) return; end
     fprintf('%g sec\n',toc);
   else
-    yraw = fmri_ldbvolume(RawFile);
+    switch(fmtimg)
+     case 0, 
+      yraw = fmri_ldbvolume(RawFile);
+     case 1, 
+      fprintf('ERROR: cannot use analyze fmt with raw\n');
+      return;
+      yraw = fast_ldanalyze(RawFile);
+     case 2, 
+      yraw = load_mgh(RawFile);
+      yraw = permute(yraw,[3 2 1 4]);
+    end
     fprintf('%g  sec\n',toc);
     fprintf(1,'Making Raw Data Mosaic ... '); tic;
     yraw = permute(yraw, [2 3 1 4]);  
