@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.27 2000/01/18 17:42:00 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.28 2000/01/20 15:38:51 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -33,6 +33,7 @@ MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
                       int out_label, MRI *mri_dst);
 
 int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
+int MRIremoveEditT1(MRI *mri_T1, MRI *mri_wm) ;
 char *Progname ;
 
 static int graymid = 0 ;
@@ -213,26 +214,27 @@ main(int argc, char *argv[])
     }
   }
   /* remove other hemi */
-  MRImask(mri_T1, mri_filled, mri_T1, replace_val,MIN_GRAY) ;
+  MRImask(mri_T1, mri_filled, mri_T1, replace_val,0) ;
   MRIfree(&mri_filled) ;
 
+  sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
+  fprintf(stderr, "reading volume %s...\n", fname) ;
+  mri_wm = MRIread(fname) ;
+  if (!mri_wm)
+    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
+              Progname, fname) ;
+  MRIremoveEditT1(mri_T1, mri_wm) ;
   if (overlay)
   {
     fprintf(stderr, "overlaying editing into T1 volume...\n") ;
-    sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
-    fprintf(stderr, "reading volume %s...\n", fname) ;
-    mri_wm = MRIread(fname) ;
-    if (!mri_wm)
-      ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
-                Progname, fname) ;
     MRImask(mri_T1, mri_wm, mri_T1, 
             WM_EDITED_ON_VAL, DEFAULT_DESIRED_WHITE_MATTER_VALUE);
     MRIsmoothMasking(mri_T1, mri_wm, mri_T1, WM_EDITED_ON_VAL, 15) ;
     sprintf(fname, "%s/%s/mri/T1_overlay", sdir, sname) ;
     MRIwrite(mri_T1, fname) ;
-    MRIfree(&mri_wm) ;
   }
 
+  MRIfree(&mri_wm) ;
   sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
   fprintf(stderr, "reading original surface position from %s...\n", fname) ;
   mris = MRISreadOverAlloc(fname, 1.1) ;
@@ -1117,3 +1119,50 @@ MRISfindExpansionRegions(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
+int
+MRIremoveEditT1(MRI *mri_T1, MRI *mri_wm)
+{
+  int     width, height, depth, x, y, z, nremoved, nthresholded ;
+  BUFTYPE *pT1, *pwm, val, wm ;
+
+  width = mri_T1->width ;
+  height = mri_T1->height ;
+  depth = mri_T1->depth ;
+
+  nremoved = nthresholded = 0 ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pT1 = &MRIvox(mri_T1, 0, y, z) ;
+      pwm = &MRIvox(mri_wm, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        val = *pT1 ;
+        wm = *pwm++ ;
+        if (wm >= WM_MIN_VAL)  /* labeled as white */
+        {
+          if (val > DEFAULT_DESIRED_WHITE_MATTER_VALUE)
+          {
+            nthresholded++ ;
+            val = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
+          }
+        }
+        else
+        {
+          if (val > 125)  /* not white matter and bright (e.g. eye sockets) */
+          {
+            nremoved++ ;
+            val = 255 ;
+          }
+        }
+        *pT1++ = val ;
+      }
+    }
+  }
+  fprintf(stderr, 
+          "%d bright non-wm voxels removed, %d bright wm thresholded.\n",
+          nremoved, nthresholded) ;
+
+  return(NO_ERROR) ;
+}
