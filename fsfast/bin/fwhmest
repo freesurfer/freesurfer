@@ -15,6 +15,8 @@ set MaskStem = ();
 set tmpdir = ();
 set outfile = ();
 set monly = 0;
+set fmt = ();
+set fmtext = ();
 set MLF = ();
 set cleanup = 1;
 
@@ -70,24 +72,27 @@ rm -f $MLF
 set outstem = $tmpdir/f;
 
   #-----------------------------------------------------#
-tee $MLF <<EOF
+tee $MLF > /dev/null <<EOF
   instem  = '$InStem';
   outstem = '$outstem';
   order   = [$PolyOrder];
   doffile = '$doffile';
   xmatfile = '$xmatfile';
   extregstem = '$extregstem';
+  fmtext = '$fmtext';
 
-  [f mristruct] = fast_ldbslice(instem);
+  %[f mristruct] = fast_ldbslice(instem);
+  fspec = sprintf('%s%s',instem,fmtext);
+  f = MRIread(fspec);
   if(isempty(f))
-    fprintf('ERROR: loading %s\n',instem);
+    fprintf('ERROR: loading %s\n',fspec);
     return;
   end
 
-  szf = size(f);
+  szf = size(f.vol);
   nv = prod(szf(1:3));
   nf = szf(4);
-  f = reshape(f,[nv nf])';
+  f.vol = reshape(f.vol,[nv nf])';
 
   X = [];
 
@@ -122,14 +127,18 @@ tee $MLF <<EOF
 
   if(~isempty(X))
     R = eye(nf) - X*inv(X'*X)*X';
-    f = R*f;
+    f.vol = R*f.vol;
     dof = size(X,1) - size(X,2);
   else
     dof = nf;
   end
 
-  f = reshape(f',szf);
-  fast_svbslice(f,outstem,-1,'',mristruct);
+  f.vol = reshape(f.vol',szf);
+
+  fspec = sprintf('%s%s',outstem,fmtext);
+  MRIwrite(f,fspec);
+
+  %fast_svbslice(f,outstem,-1,'',mristruct);
 
   fp = fopen(doffile,'w');
   fprintf(fp,'%g\n',dof);
@@ -140,19 +149,32 @@ EOF
   #-----------------------------------------------------#
 
 cat $MLF | matlab -nospash -display iconic |& tee -a $LF
-mri_convert $outstem"_000.bfloat" $tmpdir/f.img
+if($fmt == bvolume) then
+  mri_convert $outstem"_000.bfloat" $tmpdir/f.img
+else
+  mri_convert $outstem$fmtext $tmpdir/f.img
+endif
 
 smoothest:
 
 if($PolyOrder < 0 && $#xmatfile == 0 && $#extregstem == 0) then
-  set dof = `getnframes $InStem`;
+  #set dof = `getnframes $InStem`;
+  set dof = `mri_info --nframes $InStem$fmtext `;
   echo $dof > $doffile
-  set bext = `getbext $InStem`;
-  mri_convert $InStem"_000.$bext" $tmpdir/f.img
+  if($fmt == bvolume) then
+    set bext = `getbext $InStem`;
+    mri_convert $InStem"_000.$bext" $tmpdir/f.img
+  else
+    mri_convert $InStem$fmtext $tmpdir/f.img
+  endif
 endif
 
-set bext = `getbext $MaskStem`;
-mri_convert $MaskStem"_000.$bext" $tmpdir/mask.img
+if($fmt == bvolume) then
+  set bext = `getbext $MaskStem`;
+  mri_convert $MaskStem"_000.$bext" $tmpdir/mask.img
+else
+  mri_convert $MaskStem$fmtext $tmpdir/mask.img
+endif
 
 set dof = `cat $doffile`;
 set cmd = (smoothest -V -d $dof -m $tmpdir/mask.img -r $tmpdir/f.img)
@@ -216,6 +238,11 @@ while( $#argv != 0 )
       umask $1; shift;
       breaksw
 
+    case "--fmt":
+      if ( $#argv == 0) goto arg1err;
+      set fmt = $argv[1]; shift;
+      breaksw
+
     case "--nocleanup":
       set cleanup = 0;
       breaksw
@@ -250,6 +277,32 @@ check_params:
   endif
   if($#outfile == 0) set outfile = $InStem.fwhm.dat
 
+  if($#fmt == 0) then
+    echo "Autodetecting format"
+    if(-e $InStem.mgh) then
+      set fmt = "mgh";
+    else if(-e $InStem.mgz) then
+      set fmt = "mgz";
+    else if(-e $InStem.bhdr) then
+      set fmt = "bhdr";
+    else
+      echo "ERROR: cannot find $Instem"
+      exit 1;
+    endif
+    echo "Detected $fmt format"
+  endif
+
+  if("$fmt" == "bvolume") then
+    set fmtext = ();
+  else if("$fmt" == "mgh") then
+    set fmtext = ".mgh";
+  else if("$fmt" == "mgz") then
+    set fmtext = ".mgz";
+  else
+    echo "ERROR: format $fmt unrecognized"
+    exit 1;
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -266,6 +319,7 @@ usage_exit:
   echo "  --i instem "
   echo "  --mask maskstem"
   echo ""
+  echo "  --fmt format : bvolume, mgh, or mgz"
   echo "  --polyfit N : default is 0"
   echo "  --X xmatfile"
   echo "  --extreg extregstem"
