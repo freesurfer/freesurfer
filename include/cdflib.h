@@ -45,16 +45,10 @@ void cumt(double*,double*,double*,double*);
 void cumtnc(double*,double*,double*,double*,double*);
 double devlpl(double [],int*,double*);
 double dinvnr(double *p,double *q);
-static void E0000(int,int*,double*,double*,unsigned long*,
-                  unsigned long*,double*,double*,double*,
-                  double*,double*,double*,double*);
 void dinvr(int*,double*,double*,unsigned long*,unsigned long*);
 void dstinv(double*,double*,double*,double*,double*,double*,
             double*);
 double dt1(double*,double*,double*);
-static void E0001(int,int*,double*,double*,double*,double*,
-                  unsigned long*,unsigned long*,double*,double*,
-                  double*,double*);
 void dzror(int*,double*,double*,double*,double *,
            unsigned long*,unsigned long*);
 void dstzr(double *zxlo,double *zxhi,double *zabstl,double *zreltl);
@@ -87,5 +81,15 @@ long fifmod(long,long);
 void ftnstop(char*);
 extern int ipmpar(int*);
 
+#if 0
+static void E0000(int,int*,double*,double*,unsigned long*,
+                  unsigned long*,double*,double*,double*,
+                  double*,double*,double*,double*);
+static void E0001(int,int*,double*,double*,double*,double*,
+                  unsigned long*,unsigned long*,double*,double*,
+                  double*,double*);
+#endif
+
+double sigf(float F, int df1, int df2) ;
 
 #endif
