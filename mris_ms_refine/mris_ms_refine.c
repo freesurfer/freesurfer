@@ -20,7 +20,7 @@
 #include "histo.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.10 2003/07/22 16:41:15 tosa Exp $";
+static char vcid[] = "$Id: mris_ms_refine.c,v 1.11 2003/07/22 18:46:27 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -301,7 +301,7 @@ main(int argc, char *argv[])
   EXTRA_PARMS   ep ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.10 2003/07/22 16:41:15 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.11 2003/07/22 18:46:27 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -393,7 +393,6 @@ main(int argc, char *argv[])
     if (!mri_flash[index])
       ErrorExit(ERROR_NOFILE, "%s: could not read FLASH volume from %s...\n", 
                 Progname, fname) ;
-    setMRIforSurface(mri);/////////////////////////////////////////////////
     /*    init_lookup_table(mri_flash[index]) ;*/
 
     if (!mri_template)
@@ -454,7 +453,6 @@ main(int argc, char *argv[])
   if (!mri_filled)
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
-  setMRIforSurface(mri_filled); /////////////////////////////////////////////
 
   if (!stricmp(hemi, "lh"))
   { label_val = lh_label ; replace_val = rh_label ; }
@@ -858,7 +856,6 @@ get_option(int argc, char *argv[])
     if (!mri_T1)
       ErrorExit(ERROR_NOFILE, "%s: could not read T1 volume from %s",
                 Progname, argv[2]) ;
-    setMRIforSurface(mri_T1); ///////////////////////////////////////////////
     nargs = 1 ;
   }
   else if (!stricmp(option, "TOL"))
@@ -875,7 +872,6 @@ get_option(int argc, char *argv[])
     if (!mri_PD)
       ErrorExit(ERROR_NOFILE, "%s: could not read PD volume from %s",
                 Progname, argv[2]) ;
-    setMRIforSurface(mri_PD); ///////////////////////////////////////////////
     nargs = 1 ;
   }
   else if (!stricmp(option, "brain"))
