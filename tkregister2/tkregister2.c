@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.4 2002/09/09 20:32:26 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.5 2002/10/25 20:00:20 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.4 2002/09/09 20:32:26 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.5 2002/10/25 20:00:20 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -25,7 +25,7 @@ static char vcid[] = "$Id: tkregister2.c,v 1.4 2002/09/09 20:32:26 greve Exp $";
 #include "utils.h"
 #include "const.h"
 #include "machine.h"
-#include "MRIio.h"
+#include "MRIio_old.h"
 #include "mri.h"
 #include "mrisurf.h"
 #include "mri_identify.h"
