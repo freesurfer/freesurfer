@@ -11,6 +11,7 @@
 #include "mrimorph.h"
 #include "DICOMRead.h"
 #include "unwarpGradientNonlinearity.h"
+#include "version.h"
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
 #define CLOSE_ENOUGH  (5e-3)
@@ -29,6 +30,7 @@ char *Progname;
 
 int main(int argc, char *argv[])
 {
+  int nargs = 0;
   MRI *mri_unwarped;
   MRI *mri, *mri2, *template, *mri_in_like;
   int i;
@@ -181,6 +183,11 @@ int main(int argc, char *argv[])
   gdf_image_stem[0] = '\0';
   in_matrix_flag = FALSE;
   out_matrix_flag = FALSE;
+
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.49 2003/03/28 18:21:28 kteich Exp $");
+  argc -= nargs ;
+  if (1 == argc)
+    exit (0);
 
   for(i = 1;i < argc;i++)
   {
