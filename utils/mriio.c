@@ -51,6 +51,7 @@
 #include "mriColorLookupTable.h"
 #include "dicom.h"
 #include "DICOMRead.h"
+#include "imautils.h"
 
 #include "bfileio.h"
 
@@ -1231,10 +1232,18 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   int slice_in_mosaic;
   int file;
   char ima[4];
+  IMAFILEINFO *ifi;
 
   /* ----- stop compiler complaints ----- */
   mri = NULL;
   mosaic_size = 0;
+
+
+  ifi = imaLoadFileInfo(fname);
+  if(ifi == NULL){
+    printf("ERROR: siemensRead(): %s\n",fname);
+    return(NULL);
+  }
 
   strcpy(fname_use, fname);
 
@@ -1331,7 +1340,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   }
 
   /* --- structural --- */
-  if(n_slices == 1)
+  if(n_slices == 1 && ! ifi->IsMosaic)
   {
     n_slices = n_files;
     n_t = 1;
