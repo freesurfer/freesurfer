@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkmedit-sess
 #
-set VERSION = '$Id: tkmedit-sess,v 1.4 2003/08/21 23:36:45 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.5 2003/08/23 00:23:43 greve Exp $';
 set inputargs = ($argv);
 
 which pawd > /dev/null
@@ -22,7 +22,7 @@ set mapisxavgmethod  = ();
 set contrast   = ();
 set space      = ();
 set subject    = ();
-set mrivolid   = T1;
+set mrivolid   = orig;
 
 set mapdir = ();
 set hdrdir = ();
@@ -54,6 +54,9 @@ set segmentation = ();
 set segcolor = ();
 set segopacity = .3;
 set mriread = "";
+
+set talreg = 0; # show on tal using register.tal
+
 set nolog = 0;
 
 set n = `echo $argv | grep version | wc -l` 
@@ -88,7 +91,7 @@ echo "--------------------------------------------------------------"
 
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
-echo "fucn2tal-sess log file" >> $LF
+echo "tkmedit-sess log file" >> $LF
 echo $VERSION   >> $LF
 echo "FAST Version $FASTVER"  >> $LF
 id            >> $LF
@@ -163,7 +166,11 @@ if(! $nohdr) then
   set hdrstem = $hdrdir/h
 
   if($space == native) then
-    set regfile = $sess/$fsd/register.dat;
+    if(! $talreg) then
+      set regfile = $sess/$fsd/register.dat;
+    else
+      set regfile = $sess/$fsd/register.tal;
+    endif
   else
     set regfile = $hdrdir/register.dat;
   endif
@@ -203,7 +210,11 @@ if(! $nosig) then
   set mapstem = $mapdir/$map
 
   if($space == native) then
-    set regfile = $mapsess/$mapfsd/register.dat;
+    if(! $talreg) then
+      set regfile = $sess/$fsd/register.dat;
+    else
+      set regfile = $sess/$fsd/register.tal;
+    endif
   else
     set regfile = $maphdrdir/register.dat;
   endif
@@ -583,6 +594,10 @@ while( $#argv != 0 )
       set nosig = 1;
       breaksw
 
+    case "-talreg":
+      set talreg = 1;
+      breaksw
+
     case "-nolog":
       set nolog = 1;
       breaksw
@@ -773,6 +788,11 @@ check_params:
     set fslope = `echo "(1.0/($fmid-$fthresh))" | bc -l`;
     echo "INFO: thresholds: fthresh = $fthresh, fmid = $fmid"
     echo "                  fsat = $fsat, fslope = $fslope"
+  endif
+
+  if($talreg && $space != native) then
+    echo "ERROR: space must be native with -talreg. Rerun without -space."
+    exit 1
   endif
 
 goto check_params_return;
