@@ -13,8 +13,8 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/17 15:51:52 $
-// Revision       : $Revision: 1.43 $
+// Revision Date  : $Date: 2004/09/02 18:37:01 $
+// Revision       : $Revision: 1.44 $
 
 ------------------------------------------------------------------------*/
 
@@ -904,18 +904,28 @@ char *AppendString(char *src, char *app)
   return(tmp);
 }
 
+/////////////////////////////////////////////////////////
+// IEEE754 defines
+// see 
+// http://cch.loria.fr/documentation/IEEE754/numerical_comp_guide/index.html
+//
+// +INF   sign 0, exponent 255, fraction 0
+// -INF   sign 1, exponent 255, fraction 0
+// NaN    sign ?, exponent 255, fraction non-zero
+//
+// sign(1), e(23-30), f(0-22)
+//
 /* -1 if value is -inf, 1 if val is inf, 0 otherwise */
 int devIsinf(float value)
 {
+  unsigned int *c;
+  unsigned int s, e, f;
 
-  unsigned long *c;
-  unsigned long s, e, f;
+  c = (unsigned int *)&value;
 
-  c = (unsigned long *)&value;
-
-  s = (*c & 0x80000000) >> 31;
-  e = (*c & 0x7f800000) >> 23;
-  f = (*c & 0x007fffff);
+  s = (*c & 0x80000000) >> 31; // sign
+  e = (*c & 0x7f800000) >> 23; // exponent
+  f = (*c & 0x007fffff);       // mantissa
 
   if(e == 255 && s == 0 && f == 0)
     return(1);
@@ -924,17 +934,15 @@ int devIsinf(float value)
     return(-1);
 
   return(0);
-
 } /* end devIsinf() */
 
 /* isnan non-zero if NaN, 0 otherwise */
 int devIsnan(float value)
 {
+  unsigned int *c;
+  unsigned int s, e, f;
 
-  unsigned long *c;
-  unsigned long s, e, f;
-
-  c = (unsigned long *)&value;
+  c = (unsigned int *)&value;
 
   s = (*c & 0x80000000) >> 31;
   e = (*c & 0x7f800000) >> 23;
@@ -944,18 +952,15 @@ int devIsnan(float value)
     return(1);
 
   return(0);
-
 } /* end devIsnan() */
 
 /* non-zero if neither infinite nor NaN, 0 otherwise */
 int devFinite(float value)
 {
-
   if(!devIsinf(value) && !devIsnan(value))
     return(1);
 
   return(0);
-
 } /* end devFinite() */
 
 /* eof */
