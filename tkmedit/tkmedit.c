@@ -887,7 +887,7 @@ void getPlane(char* fbuffer, int zf, int xoff, int yoff)
          floating point calculation is to slow on R5000 and
          this cast during memory access kills the remaining speed
          */
-      dhcache[myoff+w] = im[(int)z][(int)(256-1/zf-y)][(int)x];
+      dhcache[myoff+w] = im[(int)z][(int)(256-1-y)][(int)x];
       x += sux;
       y += suy; 
       z += suz;
