@@ -1,5 +1,5 @@
 /*
- *       FILE NAME:   mripolv.c
+ *       FILE NAME:   mrisegment.c
  *
  *       DESCRIPTION: utilities for calculating and filtering
  *                    MRI data based on planes of least variance
