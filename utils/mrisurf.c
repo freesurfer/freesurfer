@@ -1581,17 +1581,18 @@ mrisTriangleArea(MRIS *mris, int fac, int n)
 static int
 mrisNormalFace(MRIS *mris, int fac,int n,float norm[])
 {
-  int     n0,n1;
+  int     n0,n1, *pv ;
   FACE    *f;
   float   v0[3],v1[3];
-  VERTEX  *v, *vn0, *vn1 ;
+  register VERTEX  *v, *vn0, *vn1 ;
 
   n0 = (n==0)?3:n-1;
   n1 = (n==3)?0:n+1;
   f = &mris->faces[fac];
-  vn0 = &mris->vertices[f->v[n0]] ;
-  vn1 = &mris->vertices[f->v[n1]] ;
-  v =  &mris->vertices[f->v[n]] ;
+  pv = f->v ;
+  vn0 = &mris->vertices[pv[n0]] ;
+  vn1 = &mris->vertices[pv[n1]] ;
+  v =  &mris->vertices[pv[n]] ;
   v0[0] = v->x - vn0->x; v0[1] = v->y - vn0->y; v0[2] = v->z - vn0->z;
   v1[0] = vn1->x - v->x; v1[1] = vn1->y - v->y; v1[2] = vn1->z - v->z;
   mrisNormalize(v0);
@@ -3191,14 +3192,14 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
      */
   cmod = 1.0f ;
   if (!FZERO(l_corr))
-  { sdenom = "corr" ; pdenom = &parms->l_corr  ; cmod = 100.0f ; }
+  { sdenom = "corr" ; pdenom = &parms->l_corr  ; cmod = 10.0f ; }
   else
   { sdenom = "dist" ; pdenom = &parms->l_dist  ; }
 
   if (!FZERO(l_area))
   { snum = "area" ;   pnum = &parms->l_area ; }
   else if (!FZERO(l_parea))
-#if 0
+#if 1
   { snum = "parea" ;  pnum = &parms->l_parea  ; }
 #else
   { snum = "area" ;  pnum = &parms->l_area  ; }
@@ -3235,10 +3236,12 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       n_averages = base_averages*4 ;  /* try, try again */
     }
   }
+#if 0
   mrisComputeNormals(mris) ;
   mrisComputeVertexDistances(mris) ;
   MRIScomputeTriangleProperties(mris,0) ;  /* compute areas and normals */
   mrisOrientSurface(mris) ;
+#endif
   parms->n_averages = old_averages  ;   /* hack, but no time to clean up now */
   parms->l_area = l_area ; parms->l_parea = l_parea ; 
   parms->l_spring = l_spring ;
@@ -3296,10 +3299,12 @@ mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averag
         parms->scale = 1.0f ;
     }
   }
+#if 0
   mrisComputeNormals(mris) ;
   mrisComputeVertexDistances(mris) ;
   MRIScomputeTriangleProperties(mris,0) ;  /* compute areas and normals */
   mrisOrientSurface(mris) ;
+#endif
   parms->n_averages = old_averages  ;  /* hack, but no time to clean up now */
   return(total_steps) ;
 }
@@ -3927,7 +3932,9 @@ mrisCountNegativeTriangles(MRI_SURFACE *mris)
 int
 MRISupdateEllipsoidSurface(MRI_SURFACE *mris)
 {
+#if 0
   MRIScomputeTriangleProperties(mris,0) ;  /* recompute areas and normals */
+#endif
   mrisOrientEllipsoid(mris) ;      /* orient the normals and angles */
   return(NO_ERROR) ;
 }
@@ -4531,7 +4538,9 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mag = sqrt(dx*dx+dy*dy+dz*dz) ;
     grad += dx*dx+dy*dy+dz*dz ;
     mean_delta += mag ;
+#if 0
     if (!FZERO(mag))
+#endif
       n++ ;
     if (mag > max_delta)
       max_delta = mag ;
@@ -9933,6 +9942,7 @@ MRISzeroNegativeAreas(MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -9943,7 +9953,7 @@ MRISzeroNegativeAreas(MRI_SURFACE *mris)
 int
 MRISfindClosestCannonicalVertex(MRI_SURFACE *mris, float x, float y, float z)
 {
-  int    vno, min_v ;
+  int    vno, min_v=-1 ;
   VERTEX *v ;
   float  d, min_d, dx, dy, dz ;
 
@@ -10024,3 +10034,43 @@ MRISuseCurvatureMax(MRI_SURFACE *mris)
   mris->min_curv = kmin ; mris->max_curv = kmax ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISuseNegCurvature(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *vertex ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    vertex->curv = vertex->neg ;
+  }
+
+  mris->min_curv = 0 ; mris->max_curv = 1 ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, Real xw, Real yw, 
+                          Real zw, Real *pxv, Real *pyv, Real *pzv)
+{
+  Real  xt, yt, zt ;
+
+  transform_point(mris->linear_transform, xw, yw, zw, &xt, &yt, &zt) ;
+  MRIworldToVoxel(mri, xt, yt, zt, pxv, pyv, pzv) ;
+  return(NO_ERROR) ;
+}
+
