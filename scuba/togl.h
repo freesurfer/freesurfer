@@ -1,4 +1,4 @@
-/* $Id: togl.h,v 1.1 2003/11/02 20:01:57 kteich Exp $ */
+/* $Id: togl.h,v 1.2 2004/09/08 16:42:02 kteich Exp $ */
 
 /*
  * Togl - a Tk OpenGL widget
@@ -10,6 +10,9 @@
 
 /*
  * $Log: togl.h,v $
+ * Revision 1.2  2004/09/08 16:42:02  kteich
+ * wrapped include tcl.h with a USE_NON_CONST define
+ *
  * Revision 1.1  2003/11/02 20:01:57  kteich
  * *** empty log message ***
  *
@@ -105,7 +108,9 @@
 # endif
 #endif
 
+#define USE_NON_CONST
 #include <tcl.h>
+#undef USE_NON_CONST
 #include <tk.h>
 #include <GL/gl.h>
 #ifdef TOGL_X11

@@ -3,7 +3,11 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+extern "C" {
+#define USE_NON_CONST
 #include <tcl.h>
+#undef USE_NON_CONST
+}
 #include "DataManager.h"
 
 #define Assert(x,s)   \

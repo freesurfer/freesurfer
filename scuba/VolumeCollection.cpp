@@ -795,7 +795,7 @@ VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
 void
 VolumeCollection::FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
 					  float iPointC[3], float iPointD[3],
-					  float iHeight,
+					  float iMaxDistance,
 					  list<Point3<float> >& oPoints ) {
 
   Point3<float> squareRAS[4];

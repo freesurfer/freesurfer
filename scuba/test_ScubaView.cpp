@@ -2,7 +2,9 @@
 #include <sstream>
 extern "C" {
 #include "glut.h"
+#define USE_NON_CONST
 #include "tcl.h"
+#undef USE_NON_CONST
 }
 #include "ScubaView.h"
 #include "ScubaFrame.h"

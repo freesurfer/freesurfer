@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/06/18 20:04:58 $
-// Revision       : $Revision: 1.12 $
+// Revision Date  : $Date: 2004/09/08 16:42:02 $
+// Revision       : $Revision: 1.13 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -12,11 +12,17 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <list>
-#include <tcl.h>
 #include "string_fixed.h"
 #include <iostream>
 #include <stdexcept>
 #include <sstream>
+
+extern "C" {
+#define USE_NON_CONST
+#include <tcl.h>
+#undef USE_NON_CONST
+}
+
 #include "DebugReporter.h"
 
 // This class should be subclassed and the DoListenToTclCommand to
