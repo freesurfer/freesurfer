@@ -46,7 +46,6 @@ set archiveDir /space/sharbot/1/siemens
 set sourceDir $archiveDir
 set indexFile  [file join [file dirname $archiveDir] index2.txt ]
 
-
 set env(MRI_DIR) /space/annecy/5/users/inverse/freesurfer_alpha
 set noArchBin "$env(MRI_DIR)/bin/noarch"
 set archBin "$env(MRI_DIR)/bin/[exec uname]"
@@ -68,11 +67,11 @@ array set knownSequences {
                             ep3d  bold
                             mpr   3danat
                             se    t1conv
-	                    tse7  t2conv
+                      tse7  t2conv
                             tse5  protoden
                             flash flash
                             default default
-	                  }
+                    }
 set sessionIndex 0;         #default selection in listbox
 set targetDirWritable 0;    #default permission
 set sequenceDialogClosed 0; #default state: dialog is open?
@@ -181,12 +180,7 @@ Primarily for debugging purposes."
 set transferIMAhelp "\
 This option will copy ima files directly, with no triage."
 
-set transferBshortHelp "\
-Temporarily disabled
-
-Translate ima files to bshort format. The integrity of the
-output has not yet been independently verified.
-Bshort files are sorted according to sequence type."
+set transferBshortHelp "Convert the Siemens IMA data for the selected session into the Sessions Format used by FS-FAST. Functional data is converted into bshort format, and structural data is converted into COR format."
 
 set transferMINChelp "\
 Temporarily disabled
@@ -202,9 +196,7 @@ The server writes minc files to /space/incoming/minc
 To access these files, use the utility \"browse-sessions\""
 
 set bugHelp "\
-This is a pre-release version.
-E-mail tony@nmr.mgh.harvard.edu
-to report errors."
+To report errors send email to analysis-bugs@nmr.mgh.harvard.edu. Include the following: (1) Date and approximate time of scan, (2) Scanner used, (3) Subject name, (4) Number of runs and type of each run, (5) destination directory, (6) log file, and (7) the nature of the problem."
 
 #-----------------------------------------------------------------------------------------#
 # include the progress bar source code
@@ -218,8 +210,8 @@ source $noArchBin/progressbar.tcl
 
 if {[info exists env(ARCHIVE_DIR)]}  \
     { 
-	if { [ file isdirectory $env(ARCHIVE_DIR) ] && [ file readable $env(ARCHIVE_DIR)] } \
-	    { set archiveDir $env(ARCHIVE_DIR) }
+  if { [ file isdirectory $env(ARCHIVE_DIR) ] && [ file readable $env(ARCHIVE_DIR)] } \
+      { set archiveDir $env(ARCHIVE_DIR) }
     }
 
 
@@ -234,10 +226,10 @@ if { ! [file isdirectory $archiveDir] } \
 
 if { ! [file executable $archBin/mri_info ] } \
     {
-	tk_messageBox -type ok -default ok -title "Error" \
-	    -message $exitStatus \
-	    -icon error
-	exit
+  tk_messageBox -type ok -default ok -title "Error" \
+      -message $exitStatus \
+      -icon error
+  exit
 
 
     }
@@ -250,64 +242,64 @@ if { ! [file executable $archBin/mri_info ] } \
 
 proc Dialog_Create {top title args} \
      {
-	global dialog
-	 if { [winfo exists $top] } \
+  global dialog
+   if { [winfo exists $top] } \
           {
-		switch -- [wm state $top] \
+    switch -- [wm state $top] \
                     {
-			normal    {
-				    # Raise a buried window
-				      raise $top
-			          }
-			withdrawn -
-			iconic    {
-			 	    # Open and restore geometry
-				     wm deiconify $top
-				    catch { wm geometry $top $dialog(geo,$top) }
-			          }
-		    }
+      normal    {
+            # Raise a buried window
+              raise $top
+                }
+      withdrawn -
+      iconic    {
+             # Open and restore geometry
+             wm deiconify $top
+            catch { wm geometry $top $dialog(geo,$top) }
+                }
+        }
 
-		return 0
-	  } \
+    return 0
+    } \
         else {
-		eval {toplevel $top} $args
-		wm title $top $title
-		return 1
-	}
+    eval {toplevel $top} $args
+    wm title $top $title
+    return 1
+  }
 }
 
 
 proc Dialog_Wait {top varName {focus {}}} \
   {
-	upvar $varName var
+  upvar $varName var
 
-	# Poke the variable if the user nukes the window
-	bind $top <Destroy> [list set $varName cancel]
+  # Poke the variable if the user nukes the window
+  bind $top <Destroy> [list set $varName cancel]
 
-	# Grab focus for the dialog
-	if {[string length $focus] == 0} { set focus $top }
-	set old [focus -displayof $top]
-	focus $focus
-	catch {tkwait visibility $top}
-	catch {grab $top}
+  # Grab focus for the dialog
+  if {[string length $focus] == 0} { set focus $top }
+  set old [focus -displayof $top]
+  focus $focus
+  catch {tkwait visibility $top}
+  catch {grab $top}
 
-	# Wait for the dialog to complete
-	tkwait variable $varName
-	catch {grab release $top}
-	focus $old
+  # Wait for the dialog to complete
+  tkwait variable $varName
+  catch {grab release $top}
+  focus $old
   }
 
 #--------------------------------------------------------------------------------------#
 
 proc Dialog_Dismiss {top} \
   {
-	global dialog
-	# Save current size and position
-	catch {
-		# window may have been deleted
-		set dialog(geo,$top) [wm geometry $top]
-		wm withdraw $top
-	      }
+  global dialog
+  # Save current size and position
+  catch {
+    # window may have been deleted
+    set dialog(geo,$top) [wm geometry $top]
+    wm withdraw $top
+        }
         .commandFrame.viewProgressButton config -state normal
   }
 
@@ -319,7 +311,7 @@ proc CreateOutputMonitor {} \
         set f .outputWindow
 
         if {[Dialog_Create $f "Event Log" -borderwidth 10 ] } \
-	   {
+     {
                              
               set f .outputWindow
               set tf [ frame $f.textBoxFrame ]
@@ -336,7 +328,7 @@ proc CreateOutputMonitor {} \
               button $bf.closeButton -text Close -command { DeleteOutputMonitor }
               button $bf.clearButton -text Clear -command { $log delete 1.0 end }
               pack $bf.clearButton -side left
-	      pack $bf.closeButton 
+        pack $bf.closeButton 
        
               pack $tf -fill both -expand true
               pack $bf
@@ -361,7 +353,7 @@ proc CreateProgressBarWindow { caption } \
         set pbw .myProgressBarWindow
 
         if {[Dialog_Create $pbw "Progress" -borderwidth 10 ] } \
-	   {
+     {
                              
               #set pbw .myProgressBarWindow
               
@@ -374,10 +366,10 @@ proc CreateProgressBarWindow { caption } \
               bind $pbw <Control-c> { DestroyProgressBarWindow }
               
           } \
-	 else \
+   else \
            {
              $pbw.progressLabel configure -text $caption
-	   }
+     }
 
         
     }
@@ -398,7 +390,7 @@ proc CreateSearchDialog {} \
         #puts "$beforeDate $beforeMonth $beforeYear"
 
         if {[Dialog_Create $sd "Search" -borderwidth 10 ] } \
-	   {
+     {
                              
               set sd .searchDialog
 
@@ -409,8 +401,8 @@ proc CreateSearchDialog {} \
               set dateFrame  [ frame $sd.dateBoxFrame ]
               set titleLabel [ label $dateFrame.titleLabel -text ""]
               set dateLabel  [ label $dateFrame.dateLabel  -text "DD"]
-	      set monthLabel [ label $dateFrame.monthLabel -text "MM"]
-	      set yearLabel  [ label $dateFrame.yearLabel  -text "YY"]
+        set monthLabel [ label $dateFrame.monthLabel -text "MM"]
+        set yearLabel  [ label $dateFrame.yearLabel  -text "YY"]
               grid  $titleLabel $dateLabel $monthLabel $yearLabel
 
               label $dateFrame.afterLabel -text "After"
@@ -446,7 +438,7 @@ proc CreateSearchDialog {} \
 
    #--- bind ----#
               bind $nameFrame.nameEntryBox <Return> { QueryDB }
-	      bind $sd <Control-c>       { set searchString ""; DestroySearchDialog }
+        bind $sd <Control-c>       { set searchString ""; DestroySearchDialog }
               
           }
 
@@ -468,12 +460,12 @@ proc CreateSessionInfoView {myIMAfile} \
         set siv .sessionInfoView
 
         if {[Dialog_Create $siv "Session Info" -borderwidth 10 ] } \
-	   {
+     {
                              
               set siv .sessionInfoView
               set infoFrame [ frame $siv.infoFrame ]
               set t [ text $infoFrame.t -setgrid true -wrap word -width 60 -height 30 \
-			  -yscrollcommand "$infoFrame.sy set " ]
+        -yscrollcommand "$infoFrame.sy set " ]
               scrollbar $infoFrame.sy -orient vert -command "$infoFrame.t yview"
 
               button $siv.closeButton -text Close -command { DestroySessionInfoView }
@@ -493,24 +485,24 @@ proc CreateSessionInfoView {myIMAfile} \
               $t tag configure bold -font {times 12 bold}
 
 # -- read file  ---#
-	      if { [ catch {open "|$archBin/mri_info $myIMAfile" r} IN ] } \
+        if { [ catch {open "|$archBin/mri_info $myIMAfile" r} IN ] } \
                  {$t insert end "$IN"; return 1}
        
-	      set headerLines [ split [ read $IN ] \n ]
-	      close $IN
+        set headerLines [ split [ read $IN ] \n ]
+        close $IN
 
 #--  print file header in text box  ---#
-# 		    set start [ $t search -count cnt -regexp "\:.*" 1.0 end ]
-# 	            $t tag add bold [expr $start + 1] $cnt
+#         set start [ $t search -count cnt -regexp "\:.*" 1.0 end ]
+#               $t tag add bold [expr $start + 1] $cnt
 
               foreach line $headerLines \
-		  {  
-		      set linePart [ split $line : ]
-		      $t insert end "[ lindex $linePart 0 ] : " 
-		      $t insert end "[ lindex $linePart 1 ]\n" bold
-		}
+      {  
+          set linePart [ split $line : ]
+          $t insert end "[ lindex $linePart 0 ] : " 
+          $t insert end "[ lindex $linePart 1 ]\n" bold
+    }
            #end of dialog create
-	  }
+    }
      #end of function
     }
 
@@ -532,24 +524,24 @@ proc CreateAlertDialog {title alertMessage} \
         set numberOfLines 30
 
 # -- determine size  ---#
-	set textLines [ split $alertMessage \n ]
+  set textLines [ split $alertMessage \n ]
         foreach line $textLines \
-	    {
-		set lineLength [string length $line ]
-		if { $lineLength > 60} { set lineLength 60 }
+      {
+    set lineLength [string length $line ]
+    if { $lineLength > 60} { set lineLength 60 }
                 if { $lineLength > $longestLine } { set longestLine $lineLength }
-	    }
-	if { $numberOfLines > [llength $textLines ] } { set numberOfLines [llength $textLines ] }
+      }
+  if { $numberOfLines > [llength $textLines ] } { set numberOfLines [llength $textLines ] }
 
         if {[Dialog_Create $ad $title -borderwidth 10 ] } \
-	   {
+     {
                              
               set ad .alertDialog
               set msgFrame [ frame $ad.msgFrame ]
               set t [ text $msgFrame.t -setgrid true -wrap word \
-			               -width [expr $longestLine + 2] \
+                     -width [expr $longestLine + 2] \
                                        -height [expr $numberOfLines + 1] \
-			         -yscrollcommand "$msgFrame.sy set" ]
+               -yscrollcommand "$msgFrame.sy set" ]
               scrollbar $msgFrame.sy -orient vert -command "$msgFrame.t yview"
 
               button $ad.closeButton -text Close -command { DestroyAlertDialog }
@@ -573,12 +565,12 @@ proc CreateAlertDialog {title alertMessage} \
 
 
               foreach line $textLines \
-		  {  
+      {  
 
                     $t insert end "$line\n"
-		}
+    }
            #end of dialog create
-	  }
+    }
      #end of function
     }
 
@@ -604,7 +596,7 @@ proc CreateSequenceDialog { sessionNumber} \
        #sequenceFiles:   array of lists. each key is a seqtype. Each list contains filenames
        #sequenceTypes:  list of sesionsequence types like ep2d, mpr, se, etc
        #knownSequences: associative array of sequence types to dirNames
-	#fbInfo:         associative array; keys are currentDir and currentFile
+  #fbInfo:         associative array; keys are currentDir and currentFile
        #puts "lastSessionScanned $lastSessionScanned"
        #puts "sessionNumber $sessionNumber"
        set sequenceProgressLabel "Percent of\nsession scanned"
@@ -614,10 +606,10 @@ proc CreateSequenceDialog { sessionNumber} \
 
 
         if {[Dialog_Create $seqd Sequences -borderwidth 10 ] } \
-	   {
+     {
               set seqd .sequenceDialog
               set sequenceDialogClosed 0
-	      set progressFrame [frame $seqd.progressFrame ]
+        set progressFrame [frame $seqd.progressFrame ]
               label $progressFrame.progressLabel -textvariable sequenceProgressLabel
               label $progressFrame.progressValue -textvariable percentOfSequencesScanned
               button $progressFrame.cancelButton -text Cancel \
@@ -631,11 +623,11 @@ proc CreateSequenceDialog { sessionNumber} \
               pack $progressFrame -side right
               update
 
-	      if {$lastSessionScanned != $sessionNumber} \
+        if {$lastSessionScanned != $sessionNumber} \
                  { 
-		     if { [GetSequences $sessionNumber] } \
-			 { puts "GetSequences failed"; DestroySequenceDialog; return 1}
-	          }
+         if { [GetSequences $sessionNumber] } \
+       { puts "GetSequences failed"; DestroySequenceDialog; return 1}
+            }
 
 
               pack forget $progressFrame
@@ -646,30 +638,30 @@ proc CreateSequenceDialog { sessionNumber} \
               set tableFrame [ frame $seqd.tableFrame -relief ridge -borderwidth 4 ]
                
 # -- table header  ---#
-	      set sequenceLabelFrame [ frame $tableFrame.sequenceLabelFrame \
+        set sequenceLabelFrame [ frame $tableFrame.sequenceLabelFrame \
                                        -relief ridge -borderwidth 2 -bg grey50 \
-					   -height $rowHeight -width $columnWidth ]
+             -height $rowHeight -width $columnWidth ]
               grid $sequenceLabelFrame -sticky news -row 0 -column 0
               label $sequenceLabelFrame.label -text Sequence
               pack  $sequenceLabelFrame.label -fill x -fill y
 
-	      set countLabelFrame [ frame $tableFrame.countLabelFrame \
+        set countLabelFrame [ frame $tableFrame.countLabelFrame \
                                     -relief ridge -borderwidth 2 -bg grey50 \
-					-height $rowHeight -width $columnWidth ]
+          -height $rowHeight -width $columnWidth ]
               grid $countLabelFrame -sticky news -row 0 -column 1
               label $countLabelFrame.label -text Count
               pack  $countLabelFrame.label -fill x -fill y
 
-	      set dirLabelFrame [ frame $tableFrame.dirLabelFrame \
+        set dirLabelFrame [ frame $tableFrame.dirLabelFrame \
                                   -relief ridge -borderwidth 2 -bg grey50 \
-				      -height $rowHeight -width $columnWidth ]
+              -height $rowHeight -width $columnWidth ]
               grid $dirLabelFrame -sticky news -row 0 -column 2
               label $dirLabelFrame.label -text Dir
               pack  $dirLabelFrame.label -fill both -expand true
 
-# 	      set transferLabelFrame [ frame $tableFrame.transferLabelFrame \
+#         set transferLabelFrame [ frame $tableFrame.transferLabelFrame \
 #                                   -relief ridge -borderwidth 2 -bg grey50 \
-# 				      -height $rowHeight -width $columnWidth ]
+#               -height $rowHeight -width $columnWidth ]
 #               grid $transferLabelFrame -sticky news -row 0 -column 3
 #               label $transferLabelFrame.label -text Transfer
 #               pack  $transferLabelFrame.label -fill both -expand true
@@ -679,29 +671,29 @@ proc CreateSequenceDialog { sessionNumber} \
 set row 1
 # -- table content  ---#
               foreach sequenceType $sequenceTypes \
-		{
-		  set l [frame $tableFrame.${sequenceType}LabelFrame \
+    {
+      set l [frame $tableFrame.${sequenceType}LabelFrame \
                                    -relief ridge -borderwidth 2 \
                                     -height $rowHeight -width $columnWidth ]
                   grid $l -sticky news -row $row -column 0
                   label  $l.label -text $sequenceType
                   grid $l.label -sticky news
 
-		  set c [frame $tableFrame.${sequenceType}CountFrame \
+      set c [frame $tableFrame.${sequenceType}CountFrame \
                                        -relief ridge -borderwidth 2 \
                                        -height $rowHeight -width $columnWidth ]
                   grid $c -sticky news -row $row -column 1
-		  label  $c.label \
+      label  $c.label \
                       -text [llength $sequenceFiles($sequenceType) ]
                   grid $c.label -sticky news
 
-		  set d [frame $tableFrame.${sequenceType}dirFrame \
+      set d [frame $tableFrame.${sequenceType}dirFrame \
                                              -relief ridge -borderwidth 2  \
                                              -height $rowHeight -width $columnWidth ]
                   grid $d -sticky news -row $row -column 2
                   button $d.button -text "$knownSequences($sequenceType)" \
                                    -width 8 \
-		                   -command "GetSeqDir $sequenceType"
+                       -command "GetSeqDir $sequenceType"
                   grid $d.button -sticky news
 
 #                   set ch [frame $tableFrame.${sequenceType}checkbuttonFrame \
@@ -710,7 +702,7 @@ set row 1
 #                   grid $ch -sticky news -row $row -column 3
 #                   set ch.checkbuttonState 1
 #                   checkbutton $ch.checkbutton -variable ch.checkbuttonState \
-# 		      -command "if \${ch.checkbuttonState} \
+#           -command "if \${ch.checkbuttonState} \
 #                        \"lappend sequenceTypes $sequenceType\" \
 #                        else \"DeleteSequenceListItem $sequenceType\"
 #                        "
@@ -720,7 +712,7 @@ set row 1
 
                   grid  $l $c $d
                   incr row
-		}
+    }
 
 # --- controls  ---#
               set buttonFrame [ frame $seqd.buttonFrame ]
@@ -748,7 +740,7 @@ set row 1
 
 
            
-	  }; #end of dialog create
+    }; #end of dialog create
 
      return 0
     }; #end of function
@@ -775,7 +767,7 @@ proc CreateFileBrowser { dirType callersDir } \
         set fb .fileBrowser
 
         if {[Dialog_Create $fb "Select $dirType Directory" -borderwidth 10 ] } \
-	   {
+     {
                              
     #--- wigets ----#
             set fb .fileBrowser
@@ -784,7 +776,7 @@ proc CreateFileBrowser { dirType callersDir } \
             scrollbar $dirFrame.leftScroll -command "$dirFrame.fileList yview"
             set dirPick [listbox $dirFrame.fileList \
                   -yscroll "$dirFrame.leftScroll set" -font fixed \
-		  -relief sunken -width 60 -height 15 -setgrid yes ]
+      -relief sunken -width 60 -height 15 -setgrid yes ]
 
 
             set spacer1 [ frame $fb.spacer1 -height 15 ]
@@ -804,15 +796,15 @@ proc CreateFileBrowser { dirType callersDir } \
                                      {
                                        set newDirSelected 1
                                      } \
-				  else {
-				         set response [tk_messageBox -type yesno \
+          else {
+                 set response [tk_messageBox -type yesno \
                                                       -default yes -title "Warning" \
-						 -message "make $fbInfo(currentDir)" \
-					         -icon warning ]
+             -message "make $fbInfo(currentDir)" \
+                   -icon warning ]
                                          if {[string match yes $response]} \
-					     { file mkdir $fbInfo(currentDir)}
-				       }
-				}
+               { file mkdir $fbInfo(currentDir)}
+               }
+        }
     #--- pack ----#
             pack $dirFrame.fileList -side left -fill both -expand true 
             pack $dirFrame.leftScroll  -side left -fill y -expand true 
@@ -834,37 +826,37 @@ proc CreateFileBrowser { dirType callersDir } \
             { 
               set fileIndex [  .fileBrowser.dirFrame.fileList curselection ]
               set subDir [ .fileBrowser.dirFrame.fileList get $fileIndex ]
-		if { [string match ".." $subDir ]} \
-		     { set fbInfo(currentFile) [ file dirname $fbInfo(currentFile) ] } \
-		else { set fbInfo(currentFile) $fbInfo(currentDir)/$subDir }
+    if { [string match ".." $subDir ]} \
+         { set fbInfo(currentFile) [ file dirname $fbInfo(currentFile) ] } \
+    else { set fbInfo(currentFile) $fbInfo(currentDir)/$subDir }
 
-		if {[ file isdirectory $fbInfo(currentFile) ] && [ file readable $fbInfo(currentFile) ] } \
+    if {[ file isdirectory $fbInfo(currentFile) ] && [ file readable $fbInfo(currentFile) ] } \
                  {
-		   set fbInfo(currentDir) $fbInfo(currentFile)
+       set fbInfo(currentDir) $fbInfo(currentFile)
                    .fileBrowser.dirFrame.fileList del 0 end
 
-		     if {[ file isdirectory "$fbInfo(currentDir)/.." ] } \
-		       { .fileBrowser.dirFrame.fileList insert end ".." }
+         if {[ file isdirectory "$fbInfo(currentDir)/.." ] } \
+           { .fileBrowser.dirFrame.fileList insert end ".." }
  
-		     foreach listEntry [split [ exec /bin/ls -1 $fbInfo(currentDir) ] \n] \
+         foreach listEntry [split [ exec /bin/ls -1 $fbInfo(currentDir) ] \n] \
                     {
                       .fileBrowser.dirFrame.fileList insert end $listEntry
                     }
                  }
             }
 
-	 bind $fb.dirEntryBox <Return> {
+   bind $fb.dirEntryBox <Return> {
 
              #set fileName [ .fileBrowser.dirEntryBox get ]
              #set fbInfo(currentFile) $fbInfo(currentDir)
 
-	     if {[ file isdirectory $fbInfo(currentDir) ]} \
+       if {[ file isdirectory $fbInfo(currentDir) ]} \
                  {
                    #set fbInfo(currentDir) $fbInfo(currentFile)
 
                    .fileBrowser.dirFrame.fileList del 0 end
  
-		   foreach listEntry [split [ exec /bin/ls -1 $fbInfo(currentDir) ] \n] \
+       foreach listEntry [split [ exec /bin/ls -1 $fbInfo(currentDir) ] \n] \
                     {
                       .fileBrowser.dirFrame.fileList insert end $listEntry
                     }
@@ -872,38 +864,38 @@ proc CreateFileBrowser { dirType callersDir } \
 
             }
 
-	    bind $fb <Control-c>   { fbInfo(currentDir) $archiveDir; set newDirSelected 2 }
-	    bind $fb <Alt-q>       { fbInfo(currentDir) $archiveDir; set newDirSelected 2 }
+      bind $fb <Control-c>   { fbInfo(currentDir) $archiveDir; set newDirSelected 2 }
+      bind $fb <Alt-q>       { fbInfo(currentDir) $archiveDir; set newDirSelected 2 }
 
 
    #--- main ----#
 
 
             if {  ! [ file exists "$fbInfo(currentDir)" ] && [string match "Destination" $dirType] } \
-		{
-		    if {[catch "file mkdir $fbInfo(currentDir)" errorMsg ] } \
-			{
-                          CreateAlertDialog $errorMsg	   
+    {
+        if {[catch "file mkdir $fbInfo(currentDir)" errorMsg ] } \
+      {
+                          CreateAlertDialog $errorMsg     
                           set fbInfo(currentDir) $env(HOME)
-			}
-		}
+      }
+    }
 
 
 
-	    if {[ file isdirectory "$fbInfo(currentDir)/.." ] } \
-		       { .fileBrowser.dirFrame.fileList insert end ".." } \
+      if {[ file isdirectory "$fbInfo(currentDir)/.." ] } \
+           { .fileBrowser.dirFrame.fileList insert end ".." } \
             else \
                 {
                    
                 }
 
-	    foreach listEntry [split [ exec /bin/ls -1 $fbInfo(currentDir) ] \n ] \
+      foreach listEntry [split [ exec /bin/ls -1 $fbInfo(currentDir) ] \n ] \
                {
                  #puts "$listEntry *"
                  .fileBrowser.dirFrame.fileList insert end $listEntry
                }
          
-	}
+  }
 
     }
 
@@ -916,19 +908,19 @@ proc DestroyFileBrowser {} \
 
 proc Log {pipeName} \
     {
-	global  pipeState log 
+  global  pipeState log 
         if [eof $pipeName] { KillPipe $pipeName } \
         else \
-	    {
+      {
                gets $pipeName line
-# 		if { ! [string compare $line "Done sending files." ] } \
+#     if { ! [string compare $line "Done sending files." ] } \
 #                    { 
 #                        $log insert end "log: $line\n"
 #                        $log see end
 #                       if {[catch {close $pipeName} errorMsg ]} \
 #                          {
-# 			     CreateAlertDialog "Error: Log" $errorMsg
-# 	                 }
+#            CreateAlertDialog "Error: Log" $errorMsg
+#                    }
 #                       set  pipeState 1
 #                       return 0
 #                    }
@@ -951,21 +943,21 @@ proc KillPipe {pipeName} \
 
 
       if {[catch {close $pipeName} errorMsg ]} \
-	    {
+      {
               $log insert end $errorMsg\n
               $log see end
 
 #              foreach pid [pid $pipeName] \
-# 	      {
+#         {
 
 #                 if {[catch {exec kill $pid} errorMsg ]} \
-# 	           { 
+#              { 
 #                     CreateAlertDialog "Error" "Could not close process $pid\n$errorMsg"
 #                     return 1
-# 		   }
+#        }
 #               }
-	    }
-	set pipeState 1
+      }
+  set pipeState 1
         return 0 
     }
 
@@ -978,36 +970,36 @@ proc ReadIndexFile { indexFile } \
         global session numberOfSessions
         set x 0
 
-	if { [file readable $indexFile ] } \
-	  {
+  if { [file readable $indexFile ] } \
+    {
             set indexFileHandle [ open $indexFile r]
             foreach line [split [read $indexFileHandle ] \n ] \
-	      {
+        {
                   # if line has less than 8 fields and 7 delimiters, skip
                   if {[string length $line] < 15 } { continue }
 
                   # break up fields into a list
-		  set fields [ split $line \t ]
+      set fields [ split $line \t ]
                   if { [ llength $fields ] != 8 } \
                      { puts "$indexFile:line $x: [llength $fields] fields read, 8 expected"
                        continue
                      }
 
                   #load 2-D array with each field
-	          for {set i 0} {$i < 8} {incr i} \
-	             {
-	      	        set session($x,$i) [lindex $fields $i]
+            for {set i 0} {$i < 8} {incr i} \
+               {
+                  set session($x,$i) [lindex $fields $i]
                         #puts "\$session($x,$i)=$session($x,$i)"
-	             }
+               }
 
-	          #puts "$x $session($x,7)"
+            #puts "$x $session($x,7)"
                   incr x
-	      }
+        }
            }
 
         set numberOfSessions  [expr $x-1]
         LoadListBox
-	return 0
+  return 0
 
     }
 
@@ -1018,20 +1010,20 @@ proc GetHeaderInfo { myIMAfile} \
     {
        global headerInfo archBin
        set myIndex 0
-	if { [ catch {open "|$archBin/mri_info $myIMAfile" r} IN ] } \
+  if { [ catch {open "|$archBin/mri_info $myIMAfile" r} IN ] } \
            {puts "$IN"; return 1}
        #set IN [ open "|mri_info $myIMAfile" r ]
-	set headerLines [ split [ read $IN ] \n ]
-	close $IN
+  set headerLines [ split [ read $IN ] \n ]
+  close $IN
 
         foreach headerLine $headerLines \
           {
              set rawHeaderIndex [ lindex [ split $headerLine : ] 0 ]
-	     regsub -all " " $rawHeaderIndex "_" headerIndex
+       regsub -all " " $rawHeaderIndex "_" headerIndex
              set rawHeaderValue [ lindex [ split $headerLine : ] 1 ] 
-	     regsub -all {^[" "]} $rawHeaderValue "" headerValue
-	     #puts "$headerIndex:$headerValue"
-	     set headerInfo($headerIndex) $headerValue
+       regsub -all {^[" "]} $rawHeaderValue "" headerValue
+       #puts "$headerIndex:$headerValue"
+       set headerInfo($headerIndex) $headerValue
        
           }
         return 1
@@ -1046,13 +1038,13 @@ proc GetHeaderInfo { myIMAfile} \
 
 proc GetSessionInfoFromFile { sessionIndex } \
     {
-	global headerInfo session
+  global headerInfo session
 
 # set defaults
         set headerInfo(patient_name)     "unknown"
         set headerInfo(patient_id)       "unknown"
-	set headerInfo(study_date)       "unknown"
-	set headerInfo(registration_date) "00000000"
+  set headerInfo(study_date)       "unknown"
+  set headerInfo(registration_date) "00000000"
         set headerInfo(registration_time) "000000"
         set headerInfo(experimenter)      "unknown"
         set headerInfo(experiment_name)   "unknown"
@@ -1061,16 +1053,16 @@ proc GetSessionInfoFromFile { sessionIndex } \
         if { [ catch { GetHeaderInfo $session($sessionIndex,7) } exitStatus ] } \
             { CreateAlertDialog Error $exitStatus; return 1}
 
-	set session($sessionIndex,0) $headerInfo(patient_name)
-	set session($sessionIndex,1) $headerInfo(patient_id)
-	set session($sessionIndex,2) $headerInfo(study_date)
-	set session($sessionIndex,3) $headerInfo(registration_date)
-	set session($sessionIndex,4) $headerInfo(registration_time)
-	set session($sessionIndex,5) $headerInfo(experimenter)
-	set session($sessionIndex,6) $headerInfo(experiment_name)
+  set session($sessionIndex,0) $headerInfo(patient_name)
+  set session($sessionIndex,1) $headerInfo(patient_id)
+  set session($sessionIndex,2) $headerInfo(study_date)
+  set session($sessionIndex,3) $headerInfo(registration_date)
+  set session($sessionIndex,4) $headerInfo(registration_time)
+  set session($sessionIndex,5) $headerInfo(experimenter)
+  set session($sessionIndex,6) $headerInfo(experiment_name)
 
         update
-	
+  
          return 0
 
     }
@@ -1089,12 +1081,12 @@ proc GetSessionDescriptors { i } \
         set IDpadString ""
         set namePadString ""
 
-	if { $i >= $numberOfSessions } \
+  if { $i >= $numberOfSessions } \
            { set i [ expr $numberOfSessions - 1 ] }
         
 
         #patient name
-	set padSize [expr 30 - [ string length $session($i,0) ] ]
+  set padSize [expr 30 - [ string length $session($i,0) ] ]
         if { $padSize < 0} { set padSize 0}
         while {$padSize} { append namePadString " "; incr padSize -1 }
 
@@ -1155,10 +1147,10 @@ for {set dirNumber 0} { $dirNumber < $numberOfNewDirs } {incr dirNumber} \
     set dirContents [ exec ls -1 $dirList($dirNumber) ]
      foreach bareFileName $dirContents   \
       {
-	set fileName [ file join $dirList($dirNumber) $bareFileName ]
+  set fileName [ file join $dirList($dirNumber) $bareFileName ]
 
         #get the first scan as a sample
-	if { [ file isfile $fileName ] } \
+  if { [ file isfile $fileName ] } \
            { 
              #puts $fileName
              if {[catch {exec mri_info $fileName | grep sequence } exitStatus]} \
@@ -1167,11 +1159,11 @@ for {set dirNumber 0} { $dirNumber < $numberOfNewDirs } {incr dirNumber} \
                      continue
                    } \
                else \
-		   {
+       {
                       #found a sequencename, now search for "scout"
                       #puts "$exitStatus"
                       if {[string match "*scout*" $exitStatus]} \
-		           { 
+               { 
                              # ignore this scout
                              #puts "[file tail $fileName]: scout" 
                            } \
@@ -1184,7 +1176,7 @@ for {set dirNumber 0} { $dirNumber < $numberOfNewDirs } {incr dirNumber} \
                            incr index
                            break 
                          }
-		  }; #end of found sequence name
+      }; #end of found sequence name
             }; # end of is file
       
       }; # end of foreach 
@@ -1232,79 +1224,79 @@ proc LoadListBox {} \
 proc CheckDirOK {} \
     {
         global targetDir sourceDir archiveDir targetDirWritable
-	set targetDirReady 0
-	set sourceDirReady 0
+  set targetDirReady 0
+  set sourceDirReady 0
 
         if { ! $targetDirWritable } \
-	    {
+      {
 
         if [ file exists $targetDir ] \
-	    {
-		if { [ string compare [ exec ls $targetDir ] ""]} \
-		    {
-			set overwriteAnswer [tk_messageBox -type yesno \
+      {
+    if { [ string compare [ exec ls $targetDir ] ""]} \
+        {
+      set overwriteAnswer [tk_messageBox -type yesno \
                                              -default yes \
                                              -title "$targetDir not empty" \
                                              -message "Overwrite contents of $targetDir" \
-				             -icon question ]
+                     -icon question ]
                         if { ![string compare $overwriteAnswer no]} \
                            {
                              set targetDirWritable 0
                              return 0}
                         
-		    }
+        }
 
-	    }
+      }
 
 
-	if { ! [ file exists $targetDir ]} \
+  if { ! [ file exists $targetDir ]} \
            { 
               if { [ file writable [ file dirname $targetDir ] ] } \
                  { file mkdir $targetDir } \
               else \
-	       {
+         {
                   tk_messageBox -type ok -default ok -title "Error" \
                        -message "could not create $targetDir" -icon error 
                   set targetDir .
                   return 0
-	       }
-	   }
+         }
+     }
 
-	if { ![ file isdirectory $targetDir ] } \
-	       {
+  if { ![ file isdirectory $targetDir ] } \
+         {
                   tk_messageBox -type ok -default ok -title "Error" \
                        -message "$targetDir is not a directory" -icon error 
                   set targetDir .
                   return 0
-	       }
+         }
 
 
-	if { ! [ file writable $targetDir ] } \
+  if { ! [ file writable $targetDir ] } \
               {
                   tk_messageBox -type ok -default ok -title "Error" \
                        -message "$targetDir is not writeable" -icon error 
                   set targetDir .
                   return 0
-	       }
+         }
    set targetDirWritable 1
 
   }
 
-	if { ! [ file isdirectory $sourceDir ] }\
+  if { ! [ file isdirectory $sourceDir ] }\
               {
                   tk_messageBox -type ok -default ok -title "Error" \
                        -message "$sourceDir is not a directory" -icon error 
                   set sourceDir $archiveDir
                   return 0
-	       }
+         }
 
- 	if { ![ file readable $sourceDir ] } \
+   if { ![ file readable $sourceDir ] } \
               {
                   tk_messageBox -type ok -default ok -title "Error" \
                        -message "$sourceDir is not readable" -icon error 
                   set sourceDir $archiveDir
                   return 0
-	       }
+         }
 
     return 1
 
@@ -1326,7 +1318,7 @@ proc TransferIMAfiles {destinationDir} \
 
     foreach fileName $dirContents \
       {
-	#puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
+  #puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
         if { $copyDone } \
            { 
              $log insert end "Transfer aborted\n$numberOfFilesTransferred files transferred\n"
@@ -1337,9 +1329,9 @@ proc TransferIMAfiles {destinationDir} \
            }
 
         if {[catch {exec cp ${sourceDir}/${fileName} ${destinationDir}/${fileName} } \
-			 errorMsg ]} {puts stderr $errorMsg}
+       errorMsg ]} {puts stderr $errorMsg}
         incr numberOfFilesTransferred       
-	$log insert end "${destinationDir}/${fileName}\n"
+  $log insert end "${destinationDir}/${fileName}\n"
         $log see end
 
         set progressValue [ expr $numberOfFilesTransferred*100/$dirLength ]
@@ -1366,7 +1358,7 @@ proc TransferMINCfiles {destinationDir} \
        #set dirLength [ llength $dirContents ]
        #puts "dirLength $dirLength"
 
-	#puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
+  #puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
         if { $copyDone } \
            { 
              $log insert end "Transfer aborted\n"
@@ -1376,15 +1368,15 @@ proc TransferMINCfiles {destinationDir} \
            }
 
        if { ! [ file exists $archBin/ima2mnc ] } \
-	   {
-	        CreateAlertDialog "Error" \
+     {
+          CreateAlertDialog "Error" \
                    "Couldn't find $archBin/ima2mnc"
              return 1
-	   }
+     }
 #       puts "$archBin/ima2mnc -range 1 3 -host bourget -aetitle bay2fmri -port 50082 $sourceDir $destinationDir"
        #puts "$archBin/ima2mnc  $sourceDir $destinationDir"
 
-	set unpackmincdirPipe [open "|$archBin/ima2mnc $sourceDir $destinationDir" ]
+  set unpackmincdirPipe [open "|$archBin/ima2mnc $sourceDir $destinationDir" ]
 
         fileevent $unpackmincdirPipe readable {Log $unpackmincdirPipe}
         fconfigure $unpackmincdirPipe -blocking 0
@@ -1409,7 +1401,7 @@ proc DicomPushMinc {destinationDir} \
 
         set bareFileName [ file tail $session($sessionIndex,7) ]
 
-	if {[regexp {^[0-9]+} $bareFileName sessionNumber]} \
+  if {[regexp {^[0-9]+} $bareFileName sessionNumber]} \
            { } \
         else \
            {
@@ -1422,7 +1414,7 @@ proc DicomPushMinc {destinationDir} \
         if {[string match "martyrium*" $env(HOSTNAME) ]} \
            {puts "$dicomSendCommand $mosaicString $archiveHost $portNumber bay2fmri $sessionNumber -dir $sourceDir -max_outstanding 0"}
 
-	set unpackmincdirPipe [open "|$dicomSendCommand $mosaicString $archiveHost $portNumber bay2fmri $sessionNumber -dir $sourceDir -max_outstanding 0" ]
+  set unpackmincdirPipe [open "|$dicomSendCommand $mosaicString $archiveHost $portNumber bay2fmri $sessionNumber -dir $sourceDir -max_outstanding 0" ]
 
       fileevent $unpackmincdirPipe readable {Log $unpackmincdirPipe}
       fconfigure $unpackmincdirPipe -blocking 0
@@ -1445,13 +1437,13 @@ proc TransferBshortFiles {destinationDir} \
            lastSessionScanned sessionIndex
     
     if { $lastSessionScanned != $sessionIndex } \
-	{ 
-	  if { [CreateSequenceDialog $sessionIndex]} \
-	      { 
+  { 
+    if { [CreateSequenceDialog $sessionIndex]} \
+        { 
                  if { $copyDone } {return 1} \
                  else { CreateAlertDialog "Error" "Session Scan failed"; return 1 }
-	      }
-	}
+        }
+  }
 
     set numberOfFilesToTransfer 0
     foreach sequenceName $sequenceTypes \
@@ -1468,22 +1460,22 @@ proc TransferBshortFiles {destinationDir} \
     foreach sequenceName $sequenceTypes \
       {
           # make dest dir if non-existant
-	  if { ! [ file exists ${destinationDir}/$knownSequences($sequenceName)]} \
-	      {
-		  if {[ catch "file mkdir [file join $destinationDir $knownSequences($sequenceName)]" errormsg] } \
+    if { ! [ file exists ${destinationDir}/$knownSequences($sequenceName)]} \
+        {
+      if {[ catch "file mkdir [file join $destinationDir $knownSequences($sequenceName)]" errormsg] } \
                       { 
                          CreateAlertDialog Error $errormsg
                          continue
-		      }
+          }
 
-	      }
+        }
 
         foreach fileName $sequenceFiles($sequenceName) \
           {
               set imaFilePath  [file join $sourceDir $fileName ]
               set bshortFilePath [file join $destinationDir [file join $knownSequences($sequenceName) [ file rootname $fileName ].bshort ] ]
 
-	     puts "cp $imaFilePath $bshortFilePath"
+       puts "cp $imaFilePath $bshortFilePath"
              if { $copyDone } \
                 { 
                 $log insert end "Transfer aborted\n$numberOfFilesTransferred files transferred\n"
@@ -1502,15 +1494,15 @@ proc TransferBshortFiles {destinationDir} \
                    $log see end
                  } \
               else \
-	        {
+          {
                   # successful copy
                    incr numberOfFilesTransferred       
-	          $log insert end "$bshortFilePath\n"
+            $log insert end "$bshortFilePath\n"
                   $log see end
-	        }
+          }
               set progressValue [ expr $numberOfFilesTransferred*100/$numberOfFilesToTransfer ]
              update
-	  }; #end fileName $sequenceFiles($sequenceName)
+    }; #end fileName $sequenceFiles($sequenceName)
       }; #foreach sequenceName $sequenceTypes
 
     $log insert end "\n$numberOfFilesTransferred files transferred\nTransfer complete\n"
@@ -1528,7 +1520,7 @@ proc Ima2sessions {destinationDir} \
     {
        global sourceDir copyDone log noArchBin archBin ima2sessionsPipe
 
-	#puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
+  #puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
         if { $copyDone } \
            { 
              $log insert end "Transfer aborted\n"
@@ -1538,15 +1530,15 @@ proc Ima2sessions {destinationDir} \
            }
 
        if { ! [ file exists $noArchBin/unpackimadir ] } \
-	   {
-	        CreateAlertDialog "Error" \
+     {
+          CreateAlertDialog "Error" \
                    "Couldn't find $noArchBin/unpackimadir"
              return 1
-	   }
+     }
 
        #puts "$noArchBin/unpackimadir  -src $sourceDir -targ $destinationDir"
 
-	set ima2sessionsPipe [open "|$noArchBin/unpackimadir -src $sourceDir -targ $destinationDir" ]
+  set ima2sessionsPipe [open "|$noArchBin/unpackimadir -src $sourceDir -targ $destinationDir" ]
 
         fileevent $ima2sessionsPipe readable { Log $ima2sessionsPipe }
         fconfigure $ima2sessionsPipe -blocking 0
@@ -1567,15 +1559,15 @@ proc CreateMINCfiles {destinationDir} \
     {
 
         global archBin 
-	set imaDir "/tmp/ima[pid]"	
+  set imaDir "/tmp/ima[pid]"  
       file mkdir $imaDir
       TransferIMAfiles $imaDir
       set dirContents [ exec ls $imaDir ]
       foreach fileName $dirContents \
-	 {
+   {
             puts "mri_convert ${imaDir}/${fileName} ${destinationDir}/${fileName}"
-	     if {[catch {exec $archBin/mri_convert ${imaDir}/${fileName} ${destinationDir}/[file rootname $fileName].mnc } errorMsg ]} {puts stderr $errorMsg}
-	  }
+       if {[catch {exec $archBin/mri_convert ${imaDir}/${fileName} ${destinationDir}/[file rootname $fileName].mnc } errorMsg ]} {puts stderr $errorMsg}
+    }
       puts "IMA -> MINC done\n"
       #file delete -force $imaDir
     }
@@ -1586,7 +1578,7 @@ proc CreateMINCfiles {destinationDir} \
 proc ConvertMINCfiles {mincOnly} \
     {
       global targetDir
-      set mincDir "/tmp/minc[pid]"	
+      set mincDir "/tmp/minc[pid]"  
       file mkdir $mincDir
       ConvertIMAfiles $mincDir
       set unpackmincdirPipe [open "|unpackmincdir  -src $mincDir -targ $targetDir $mincOnly" ]
@@ -1607,16 +1599,16 @@ proc SearchDescriptors {} \
        #puts $searchString
        #puts $displayedSessions
        foreach listIndex $displayedSessions \
-	 {
+   {
            
            if { [ string match "*$searchString*" $session($listIndex,0) ] } \
-	       {
-		  lappend hitList $listIndex
+         {
+      lappend hitList $listIndex
                   #puts "$session($listIndex,0)"
-	       }
+         }
          }
 
-	if { ! [ info exists hitList ] } \
+  if { ! [ info exists hitList ] } \
            { 
               tk_messageBox -type ok \
                             -default ok -title "debug" \
@@ -1631,10 +1623,10 @@ proc SearchDescriptors {} \
        $sessionInfoFrame.sessionList delete 0 end
 
        foreach listIndex $displayedSessions \
-	 {
+   {
            $sessionInfoFrame.sessionList insert end [ GetSessionDescriptors $listIndex ]
            #puts [ GetSessionDescriptors $listIndex ]
-	 }
+   }
 
        update
 
@@ -1665,7 +1657,7 @@ proc GetSequences {sessionNumber} \
         set currentFileNumber 1
 
        foreach fileName $fileNames \
-	 {
+   {
              if { $copyDone } {return 2}
 
              #update sequence dialog, if open
@@ -1675,17 +1667,17 @@ proc GetSequences {sessionNumber} \
 
              set fullFileName [file join $sessionDir $fileName]
              #puts "$fullFileName"
-	     if {[catch {exec $archBin/mri_info $fullFileName}   exitStatus]} \
+       if {[catch {exec $archBin/mri_info $fullFileName}   exitStatus]} \
                { 
-	         set response [tk_messageBox -type yesno \
+           set response [tk_messageBox -type yesno \
                                   -default no -title "Error" \
-	                          -icon error \
-				  -message "$exitStatus\n\nContinue?" ]
+                            -icon error \
+          -message "$exitStatus\n\nContinue?" ]
                   if {[string match yes $response]} {continue} else { return 1}
 
                }
 
-	    set sequenceLine "sequence name: unknown"
+      set sequenceLine "sequence name: unknown"
             set lines [ split $exitStatus "\n" ]
 
             foreach line $lines \
@@ -1695,22 +1687,22 @@ proc GetSequences {sessionNumber} \
                        set sequenceLine $line
                        break
                      } 
-	      }
+        }
 
             #puts "$fileName: line is $line"
             set sequenceTypeFound 0
             set temp [split  $sequenceLine : ]
-	    set sequencePath [ lindex $temp 1 ]
-	    set sequenceProgramName [file tail $sequencePath]
+      set sequencePath [ lindex $temp 1 ]
+      set sequenceProgramName [file tail $sequencePath]
             #puts "$fileName: sequence is $sequenceString"
 
-	    foreach sequenceType [array names knownSequences ] \
-	       {
-		   if {[ string match "*${sequenceType}*" $sequenceProgramName ]} \
-		       {
+      foreach sequenceType [array names knownSequences ] \
+         {
+       if {[ string match "*${sequenceType}*" $sequenceProgramName ]} \
+           {
                            #add this type to current list of types
                            if {[lsearch $sequenceTypes $sequenceType] == -1} \
-			      { lappend sequenceTypes $sequenceType }
+            { lappend sequenceTypes $sequenceType }
 
                          #collect the filename for this type
                          #puts "$sequenceType found"
@@ -1718,42 +1710,42 @@ proc GetSequences {sessionNumber} \
                          set sequenceTypeFound 1
                          break
                        }
-	       }
+         }
 
-	     if {! $sequenceTypeFound} {lappend sequenceFiles(default) $fileName}
+       if {! $sequenceTypeFound} {lappend sequenceFiles(default) $fileName}
 
 
          incr currentFileNumber
          update
-	 }; #end foreach fileNames
+   }; #end foreach fileNames
        
 # remove default from lists if unused
        if { ! [info exists sequenceFiles(default)]} \
-	   {
+     {
              puts "default dir is empty"
-	     set sequenceTypes [ lreplace $sequenceTypes [lsearch $sequenceTypes default] \
-				      [lsearch $sequenceTypes default] ]
-	   }
+       set sequenceTypes [ lreplace $sequenceTypes [lsearch $sequenceTypes default] \
+              [lsearch $sequenceTypes default] ]
+     }
 
 # print results - be sure to comment out
    if {[string match "martyrium.*" $env(HOSTNAME)]} \
-	   {
-	       puts "My dirs"
-	       foreach dirName [array names sequenceFiles] \
-		   {
-		       puts "\t$dirName: [llength $sequenceFiles($dirName)]"
-		       if {[catch "open /home/tony/Dicom/tempdir/$dirName w" OUT ]} \
-			   {puts $OUT; continue}
-		       foreach fileName $sequenceFiles($dirName) {puts $OUT $fileName}
-		       close $OUT
-		   }
+     {
+         puts "My dirs"
+         foreach dirName [array names sequenceFiles] \
+       {
+           puts "\t$dirName: [llength $sequenceFiles($dirName)]"
+           if {[catch "open /home/tony/Dicom/tempdir/$dirName w" OUT ]} \
+         {puts $OUT; continue}
+           foreach fileName $sequenceFiles($dirName) {puts $OUT $fileName}
+           close $OUT
+       }
 
-	       puts "My sequences: $sequenceTypes"
-	       foreach sequenceType $sequenceTypes \
-		   {
-		       puts "\t$sequenceType: $knownSequences($sequenceType)"
-		   }
-	   }
+         puts "My sequences: $sequenceTypes"
+         foreach sequenceType $sequenceTypes \
+       {
+           puts "\t$sequenceType: $knownSequences($sequenceType)"
+       }
+     }
 
        set lastSessionScanned $sessionNumber
        return 0
@@ -1778,8 +1770,8 @@ proc StartTransfer {} \
         $commandFrame.stopButton config -state normal
 
         switch -exact $transferType \
-	 {
-	     minc    { TransferMINCfiles $targetDir }
+   {
+       minc    { TransferMINCfiles $targetDir }
 
              #bshorts { TransferBshortFiles $targetDir }
              bshorts { Ima2sessions $targetDir }
@@ -1789,8 +1781,8 @@ proc StartTransfer {} \
              ima     { TransferIMAfiles $targetDir }
 
              default { TransferIMAfiles $targetDir }
-	 }
-	   
+   }
+     
          tkwait variable copyDone
 
          $commandFrame.stopButton config -state disabled
@@ -1806,28 +1798,28 @@ proc GetSeqDir { sequenceType } \
     {
         global knownSequences fbInfo targetDir newDirSelected
 
-	set newDirSelected 0
-	#disable change archive/destdir options
-	.menubar.mFile entryconfigure 1 -state disabled
-	.menubar.mFile entryconfigure 2 -state disabled
+  set newDirSelected 0
+  #disable change archive/destdir options
+  .menubar.mFile entryconfigure 1 -state disabled
+  .menubar.mFile entryconfigure 2 -state disabled
 
-	CreateFileBrowser "Destination" "${targetDir}/$knownSequences($sequenceType)"
-	tkwait variable newDirSelected
+  CreateFileBrowser "Destination" "${targetDir}/$knownSequences($sequenceType)"
+  tkwait variable newDirSelected
 
-	DestroyFileBrowser
+  DestroyFileBrowser
 
         if { $newDirSelected == 2 } { return $knownSequences($sequenceType) }
 
         set newDir [file tail $fbInfo(currentDir)]
-	set knownSequences($sequenceType) $newDir
-	#puts "$newDir selected"
+  set knownSequences($sequenceType) $newDir
+  #puts "$newDir selected"
 
         .sequenceDialog.tableFrame.${sequenceType}dirFrame.button configure -text  $newDir
         set $knownSequences($sequenceType) $newDir
 
-	.menubar.mFile entryconfigure 1 -state normal
-	.menubar.mFile entryconfigure 2 -state normal
-	#"set newDir \[ CreateFileBrowser destination $targetDir \]"
+  .menubar.mFile entryconfigure 1 -state normal
+  .menubar.mFile entryconfigure 2 -state normal
+  #"set newDir \[ CreateFileBrowser destination $targetDir \]"
     }
 
 
@@ -1836,7 +1828,7 @@ proc GetSeqDir { sequenceType } \
 proc DeleteSequenceListItem { listItem } \
     {
         global sequenceTypes 
-	return [ lreplace $sequenceTypes [ lsearch sequenceTypes $listItem ] ]
+  return [ lreplace $sequenceTypes [ lsearch sequenceTypes $listItem ] ]
     }
 
 
@@ -1852,9 +1844,9 @@ proc QueryDB {  } \
         .menubar.mFile entryconfigure 2 -state disabled; #change destination
 
         for {set index 0} {$index <= [ .menubar.mView index end] } {incr index} \
-	    {
+      {
                .menubar.mView entryconfigure $index -state disabled
-	    }
+      }
 
 
         set afterTimeStamp  "${afterYear}${afterMonth}${afterDate}"
@@ -1864,14 +1856,14 @@ proc QueryDB {  } \
         #the file pkgIndex.tcl must be in same dir as sql.so
         lappend auto_path $env(MRI_DIR)/local/bin/[exec uname]
         if {[catch {package require Sql} errorMsg]} \
-	    {
+      {
               CreateAlertDialog Error $errorMsg
               return 1
             }
 
        # Connect to the database
-	if {[catch {set conn [sql connect bourget query]} errorMsg]} \
-	    {
+  if {[catch {set conn [sql connect bourget query]} errorMsg]} \
+      {
               CreateAlertDialog Error $errorMsg
               return 1
             }
@@ -1891,7 +1883,7 @@ proc QueryDB {  } \
        while {[set row [sql fetchrow $conn]] != ""} \
          {
             set x 0
-	     foreach item $row { set session($index,$x) $item; incr x }
+       foreach item $row { set session($index,$x) $item; incr x }
             #puts "$session($index,0)"
             incr index
 
@@ -1908,9 +1900,9 @@ proc QueryDB {  } \
         .menubar.mFile entryconfigure 2 -state normal; #change destination
 
         for {set index 0} {$index <= [ .menubar.mView index end] } {incr index} \
-	    {
+      {
                .menubar.mView entryconfigure $index -state normal
-	    }
+      }
 
 
        return 0
@@ -1928,7 +1920,7 @@ menu .menubar
 . config -menu .menubar
 foreach menuWidget { File View Option Help } \
     {
-	set $menuWidget [ menu .menubar.m$menuWidget ]
+  set $menuWidget [ menu .menubar.m$menuWidget ]
         .menubar add cascade -label $menuWidget -menu .menubar.m$menuWidget 
     }
 
@@ -1938,13 +1930,13 @@ $File add command -label "Change archives" -command \
                         .menubar.mFile entryconfigure 1 -state disabled
                         .menubar.mFile entryconfigure 2 -state disabled
 
-			CreateFileBrowser "Archive" $archiveDir
-			tkwait variable newDirSelected
+      CreateFileBrowser "Archive" $archiveDir
+      tkwait variable newDirSelected
 
-			   if { $newDirSelected == 1 } \
-			      { set archiveDir $fbInfo(currentDir) }
+         if { $newDirSelected == 1 } \
+            { set archiveDir $fbInfo(currentDir) }
 
-	               if { [CheckDirOK] } { $commandFrame.startButton configure -state normal } \
+                 if { [CheckDirOK] } { $commandFrame.startButton configure -state normal } \
                         else { $commandFrame.startButton configure -state disabled }
 
 
@@ -1959,13 +1951,13 @@ $File add command -label "New destination dir" -command \
                         .menubar.mFile entryconfigure 1 -state disabled
                         .menubar.mFile entryconfigure 2 -state disabled
 
-			CreateFileBrowser "Destination" $targetDir
-			tkwait variable newDirSelected
+      CreateFileBrowser "Destination" $targetDir
+      tkwait variable newDirSelected
 
-			   if { $newDirSelected == 1 } \
-			      { set targetDir $fbInfo(currentDir) }
+         if { $newDirSelected == 1 } \
+            { set targetDir $fbInfo(currentDir) }
 
-	               if { [CheckDirOK] } { $commandFrame.startButton configure -state normal } \
+                 if { [CheckDirOK] } { $commandFrame.startButton configure -state normal } \
                         else { $commandFrame.startButton configure -state disabled }
 
                          DestroyFileBrowser
@@ -1993,23 +1985,23 @@ $View add command -label "All sessions"   -state normal \
                                     set beforeYear  [clock format $currentTime -format %Y ]
                                     set patientName ""
                                     QueryDB
-				       }
+               }
 
 
 $View add command -label "Slice"  -command \
                { set fileName [ tk_getOpenFile  -title "Select ima file" \
                                                 -filetypes $typeList \
                                                 -initialdir $archiveDir ]
-			
-		  if {  [file readable $fileName ] } \
-		       { 
-			 if [ catch {exec $noArchBin/tkmedit_wrapper $fileName } exitStatus ] \
+      
+      if {  [file readable $fileName ] } \
+           { 
+       if [ catch {exec $noArchBin/tkmedit_wrapper $fileName } exitStatus ] \
                               {  tk_messageBox -type ok \
                                               -default ok -title "Error" \
-					      -message $exitStatus
-			      }
-		        }
-		}
+                -message $exitStatus
+            }
+            }
+    }
 
 $View add command -label "Sequences" -command {
                                                    #puts "sessionIndex $sessionIndex"
@@ -2026,19 +2018,19 @@ $Option add command -label "Load text DB"   -state disabled \
 
 $Option add command -label "Search"   -state normal \
                                        -command { CreateSearchDialog
-				       }
+               }
 
 $Option add command -label "state info" -state disabled \
                                         -command { 
                                               CreateAlertDialog "State" \
-					       "sessions: $numberOfSessions\nArchive Dir: $archiveDir\nDest Dir: $targetDir" }
+                 "sessions: $numberOfSessions\nArchive Dir: $archiveDir\nDest Dir: $targetDir" }
 
 
          #--------- Help ------------#
 
 $Help add command -label "Eh?" -command { tk_messageBox -type ok \
                                               -default ok -title "Eh?" \
-					      -icon question \
+                -icon question \
                                               -message $eh }
 
 
@@ -2092,15 +2084,15 @@ $OptionHelp add command -label "state info" \
 
 
 
-$Help add cascade -label Transfer -menu $Help.transfer
+$Help add cascade -label "Output Format" -menu $Help.transfer
 
 set TransferHelp [menu $Help.transfer -tearoff 0 ]
 
-$TransferHelp add command -label "IMA" \
-                  -command { CreateAlertDialog "IMA" $transferIMAhelp }
-
 $TransferHelp add command -label "Sessions" \
                   -command { CreateAlertDialog "b short" $transferBshortHelp }
+
+$TransferHelp add command -label "IMA" \
+                  -command { CreateAlertDialog "IMA" $transferIMAhelp }
 
 $TransferHelp add command -label "minc" \
                   -command { CreateAlertDialog "minc" $transferMINChelp }
@@ -2124,7 +2116,7 @@ set sessionInfoFrame [ frame .leftFrame.sessionInfoFrame -borderwidth 1  ]
 scrollbar $sessionInfoFrame.leftScroll -command "$sessionInfoFrame.sessionList yview"
 set sessionPick [listbox $sessionInfoFrame.sessionList \
                   -yscroll "$sessionInfoFrame.leftScroll set" -font fixed \
-		  -relief sunken -width 60 -height 15 -setgrid yes ]
+      -relief sunken -width 60 -height 15 -setgrid yes ]
 
 
 #  pack sessionFrame  #
@@ -2158,8 +2150,8 @@ button $commandFrame.stopButton -text "stop" \
                                 -state disabled \
                                 -command \
                                 {
-				  set copyDone 1
-				  if { [ info exists unpackmincdirPipe] } \
+          set copyDone 1
+          if { [ info exists unpackmincdirPipe] } \
                                        { KillPipe $unpackmincdirPipe }
                                  
                                  $commandFrame.stopButton config -state disabled
@@ -2175,11 +2167,10 @@ frame       $commandFrame.spacer1 -height 15
 
 set tranferTypeFrame [ frame $commandFrame.tranferTypeFrame -borderwidth 2 -relief ridge  ]
 
-label       $tranferTypeFrame.transferTypeLabel -text "Transfer type"
-radiobutton $tranferTypeFrame.bshortsRadioButton -text "Sessions" -value bshorts -variable transferType -state normal
-radiobutton $tranferTypeFrame.mincRadioButton -text "MINC" -value minc -variable transferType -state normal
-
-radiobutton $tranferTypeFrame.imaRadioButton -text "IMA"   -value ima  -variable transferType
+label       $tranferTypeFrame.transferTypeLabel  -text "Output Format"
+radiobutton $tranferTypeFrame.bshortsRadioButton -text "Sessions\n(bshort)" -value bshorts -variable transferType -state normal
+radiobutton $tranferTypeFrame.mincRadioButton    -text "MINC" -value minc -variable transferType -state normal
+radiobutton $tranferTypeFrame.imaRadioButton     -text "IMA"   -value ima  -variable transferType
 
 $tranferTypeFrame.bshortsRadioButton select
 
@@ -2191,8 +2182,8 @@ $tranferTypeFrame.bshortsRadioButton select
 
 #  pack transfer radio buttons  #
 pack $tranferTypeFrame.transferTypeLabel -pady 5 -padx 5 ; #-anchor c
-pack $tranferTypeFrame.imaRadioButton      -anchor w
 pack $tranferTypeFrame.bshortsRadioButton  -anchor w
+pack $tranferTypeFrame.imaRadioButton      -anchor w
 pack $tranferTypeFrame.mincRadioButton     -anchor w
 
 
@@ -2227,12 +2218,12 @@ bind $sessionPick <ButtonRelease-3> \
   { 
     set sessionIndex [ $sessionInfoFrame.sessionList curselection ]
       if { $sessionIndex > -1 } \
-	{ CreateSessionInfoView $session($sessionIndex,7)}
+  { CreateSessionInfoView $session($sessionIndex,7)}
   }
 
 bind .leftFrame.targetDirEntryBox <Return> \
     {
-	if { [CheckDirOK] } { $commandFrame.startButton configure -state normal } \
+  if { [CheckDirOK] } { $commandFrame.startButton configure -state normal } \
          else { $commandFrame.startButton configure -state disabled }
     }
 
@@ -2255,19 +2246,19 @@ if { $argc > 1 } \
 
 switch -exact $argc \
     {
-      0  { set targetDir $env(HOME) }
+      0  { set targetDir "." } #      0  { set targetDir $env(HOME) }
 
       1  {
             if { [file isdirectory $targetDir] && [ file writable  $targetDir] } \
                { set targetDir [ lindex $argv 0 ] }
-	 }
+   }
  
       default  { 
                   tk_messageBox -type ok -default ok -title "Command Line Help" \
-	  			 	                 -icon question \
+                              -icon question \
                                                          -message $commandLineHelp
                 set targetDir .
-	       }
+         }
 
 
     }
@@ -2277,7 +2268,7 @@ switch -exact $argc \
 if {! [file readable $archiveDir ] } \
     { 
        tk_messageBox -type ok -default ok -title "Command Line Help" \
-					      -icon error \
+                -icon error \
                                               -message "Could not find archive directory $archiveDir"
        exit
     }
@@ -2294,14 +2285,14 @@ wm title . "NMR Scanner Archive: Retrieve"
 if {[QueryDB]} \
     {
         CreateAlertDialog Error "Could not connect to archive database\nAttempting to access secondary index"
-	if {[ReadIndexFile $indexFile]} \
-	    {
+  if {[ReadIndexFile $indexFile]} \
+      {
               CreateAlertDialog Error "Could not read secondary index\nAttempting to read incoming directory"
-		if {[ReadIncomingDir]} \
-	         {
+    if {[ReadIncomingDir]} \
+           {
                     CreateAlertDialog Error "Could not read incoming directory"
                     exit
-	         }
+           }
             }
     }
 
