@@ -893,6 +893,8 @@ int TransformFileNameType(char *fname)
     StrUpper(buf) ;
     if (!strcmp(dot, "M3D"))
       return(MORPH_3D_TYPE) ;
+    else if (!strcmp(dot, "M3Z"))
+      return(MORPH_3D_TYPE);
     else if (!strcmp(dot, "LTA"))
       return(TRANSFORM_ARRAY_TYPE) ;
     else if (!strcmp(dot, "FSLMAT"))
@@ -1375,6 +1377,7 @@ TransformRead(char *fname)
 int
 TransformFree(TRANSFORM **ptrans)
 {
+  int errCode = NO_ERROR;
   TRANSFORM *trans ;
   
   trans = *ptrans ; *ptrans = NULL ;
@@ -1382,15 +1385,15 @@ TransformFree(TRANSFORM **ptrans)
   switch (trans->type)
   {
   default:
-    LTAfree((LTA **)(&trans->xform)) ;
+    errCode = LTAfree((LTA **)(&trans->xform)) ;
     break ;
   case MORPH_3D_TYPE:
-    GCAMfree((GCA_MORPH **)(&trans->xform)) ;
+    errCode = GCAMfree((GCA_MORPH **)(&trans->xform)) ;
     break ;
   }
   free(trans) ;
     
-  return(NO_ERROR) ;
+  return errCode;
 }
 
 /*
@@ -1398,6 +1401,7 @@ TransformFree(TRANSFORM **ptrans)
   it maps. Note that the caller will scale this down depending on the spacing of
   the gca/gcamorph.
 */
+// no range check is done here.   user must validate the range 
 int
 TransformSample(TRANSFORM *transform, float xv, float yv, float zv, float *px, float *py, float *pz)
 {
@@ -1414,6 +1418,8 @@ TransformSample(TRANSFORM *transform, float xv, float yv, float zv, float *px, f
     if (!gcam->mri_xind)
       ErrorReturn(ERROR_UNSUPPORTED, 
                   (ERROR_UNSUPPORTED, "TransformSample: gcam has not been inverted!")) ;
+
+    // the following should not happen /////////////////
     if (xv < 0)
       xv = 0 ;
     if (xv >= gcam->mri_xind->width)
@@ -1426,7 +1432,8 @@ TransformSample(TRANSFORM *transform, float xv, float yv, float zv, float *px, f
       zv = 0 ;
     if (zv >= gcam->mri_zind->depth)
       zv = gcam->mri_zind->depth-1 ;
-		xi = nint(xv) ; yi = nint(yv) ; zi = nint(zv) ;
+
+    xi = nint(xv) ; yi = nint(yv) ; zi = nint(zv) ;
     xt = (int)MRISvox(gcam->mri_xind, xi, yi, zi)*gcam->spacing ;
     yt = (int)MRISvox(gcam->mri_yind, xi, yi, zi)*gcam->spacing ;
     zt = (int)MRISvox(gcam->mri_zind, xi, yi, zi)*gcam->spacing ;
@@ -1448,9 +1455,11 @@ TransformSample(TRANSFORM *transform, float xv, float yv, float zv, float *px, f
     V3_Z(v_input) = zv;
     MatrixMultiply(lta->xforms[0].m_L, v_input, v_canon) ;
     xt = V3_X(v_canon) ; yt = V3_Y(v_canon) ; zt = V3_Z(v_canon) ;
+    
     if (xt < 0) xt = 0;
     if (yt < 0) yt = 0;
     if (zt < 0) zt = 0;
+
     if (!v_canon)
     {
       VectorFree(&v_input);
@@ -1481,12 +1490,14 @@ TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv, float *px, 
   {
     gcam = (GCA_MORPH *)transform->xform ;
     xn = nint(xv/gcam->spacing) ; yn = nint(yv/gcam->spacing) ; zn = nint(zv/gcam->spacing) ;
+
     if (xn >= gcam->width)
       xn = gcam->width-1 ;
     if (yn >= gcam->height)
       yn = gcam->height-1 ;
     if (zn >= gcam->depth)
       yn = gcam->depth-1 ;
+
     gcamn = &gcam->nodes[xn][yn][zn] ;
     xt = gcamn->x ; yt = gcamn->y ; zt = gcamn->z ;
     // if marked invalid, then return error
