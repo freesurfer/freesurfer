@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # selxavg-jk-sess
 #
-# $Id: selxavg-jk-sess,v 1.1 2003/03/04 21:22:09 greve Exp $
-set VERSION = '$Id: selxavg-jk-sess,v 1.1 2003/03/04 21:22:09 greve Exp $';
+# $Id: selxavg-jk-sess,v 1.2 2003/03/19 06:04:01 greve Exp $
+set VERSION = '$Id: selxavg-jk-sess,v 1.2 2003/03/19 06:04:01 greve Exp $';
 set FASTVER = `cat $FSFAST_HOME/docs/version`;
 
 set inputargs = ($argv);
@@ -14,6 +14,8 @@ set synthflag = ();
 set sveres   = 1;
 set svsignal = 0;
 set svsnr    = 1;
+set firstslice = ();
+set nslices    = ();
 
 if($#argv == 0) then
   goto usage_exit;
@@ -167,7 +169,7 @@ foreach sess ($SessList)
       set instems = ($instems -i $instem $tpexarg);
     end
 
-    set cmd = selxavg2
+    set cmd = (selxavg2)
     set cmd = ($cmd -TR $TR -parname $parname -o $analysisdir/h )
     set cmd = ($cmd $instems $tpexcludes -cfg $cfgfile $synthflag)
     set cmd = ($cmd -ipr $inplaneres)
@@ -175,6 +177,8 @@ foreach sess ($SessList)
     if($sveres)   set cmd = ($cmd -eresdir   $analysisdir/eres)
     if($svsignal) set cmd = ($cmd -signaldir $analysisdir/signal)
     if($svsnr)    set cmd = ($cmd -snrdir    $analysisdir/estsnr)
+    if($#firstslice != 0) set cmd = ($cmd -firstslice $firstslice);
+    if($#nslices != 0) set cmd = ($cmd -nslices $nslices);
     echo "-------------------------------------------------" |& tee -a $LF
     pwd |& tee -a $LF
     echo $cmd |& tee -a $LF
@@ -227,6 +231,18 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set analysis = $argv[1]; shift;
       set analysis = `basename $analysis`; # remove trailing /
+      breaksw
+
+    case "-firstslice":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set firstslice = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+    case "-ns":
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
       breaksw
 
     case "-nosveres":
