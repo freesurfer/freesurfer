@@ -23171,6 +23171,9 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta)
   VERTEX *v ;
   Real   xv, yv, zv, xw, yw, zw ;
   VECTOR *v_X, *v_Y ;
+  int i;
+  MATRIX *m;
+  MRI *dst;
 
   v_X  = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
   v_Y  = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
@@ -23178,24 +23181,56 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta)
   if (mri)
   {
     v_X->rptr[4][1] = 1.0f / mri->thick ;
-    
+
+    if (lta->type == LINEAR_RAS_TO_RAS)
+    {
+      dst = MRIcopy(mri, NULL);// allocated
+      // must change to LINEAR_VOX_TO_VOX
+      for (i=0; i < lta->num_xforms; ++i)
+      {
+	if (lta->xforms[i].dst.valid==1)
+	{
+	  // modify so that dst will have the transform target c_(r,a,s) value
+	  printf("INFO: modify the target c_(r,a,s) to (%f, %f, %f)\n",
+		 lta->xforms[i].dst.c_r, lta->xforms[i].dst.c_a, lta->xforms[i].dst.c_a);
+	  dst->c_r = lta->xforms[i].dst.c_r;
+	  dst->c_a = lta->xforms[i].dst.c_a;
+	  dst->c_s = lta->xforms[i].dst.c_s;
+	}
+	else
+	  fprintf(stderr, "WARNING: could not get the transform target info. Position may be shifted.\n");
+	m = MRIrasXformToVoxelXform(mri, dst, lta->xforms[i].m_L, NULL); // allocated
+	MatrixFree(&(lta->xforms[i].m_L));
+	lta->xforms[i].m_L = m; // replace the matrix
+      }				   
+      lta->type = LINEAR_VOX_TO_VOX;
+      MRIfree(&dst);
+    }
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
         continue ;
+      // transform vertex point to actual voxel point
       MRISvertexToVoxel(v, mri, &xv, &yv, &zv) ;
       V3_X(v_X) = xv ; V3_Y(v_X) = yv ; V3_Z(v_X) = zv ;
+      // transform vox-to-vox
       LTAtransformPoint(lta, v_X, v_Y) ;
       xv = V3_X(v_Y) ; yv = V3_Y(v_Y) ; zv = V3_Z(v_Y) ;
-      MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw) ;
+      //MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw) ;
+      MRIvoxelToSurfaceRAS(mri, xv, yv, zv, &xw, &yw, &zw); // convert back to surface
       v->x = xw ; v->y = yw ; v->z = zw ;
     }
   }
   else
   {
     v_X->rptr[4][1] = 1.0f ;
-    
+
+    if (lta->type == LINEAR_VOX_TO_VOX)
+    {
+      // must modify to LINEAR_RAS_TO_RAS
+      fprintf(stderr, "WARNING: Using VOX_TO_VOX transform.  Must use RAS_TO_RAS transform\n");
+    }
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
@@ -23206,8 +23241,6 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta)
       v->x = V3_X(v_Y) ; v->y = V3_Y(v_Y) ; v->z = V3_Z(v_Y) ;
     }
   }
-
-  
   VectorFree(&v_X) ; VectorFree(&v_Y) ; 
   mrisComputeSurfaceDimensions(mris) ;
   return(NO_ERROR) ;
