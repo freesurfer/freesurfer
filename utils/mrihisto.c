@@ -351,8 +351,9 @@ HISTOGRAM *
 MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low, 
                           MRI_REGION *region, int norm)
 {
-  int       i, total, total_pix, *pc, *pdst, nbins ;
+  int       i, nbins ;
   HISTOGRAM histo ;
+  float     *pc, *pdst, total, total_pix ;
 
 
   if (mri->type != MRI_UCHAR)
