@@ -1,5 +1,5 @@
 function [f, nv, nf, bhdrstr] = fast_ldbslice(bstem,sliceno)
-% [f nv nf] = fast_ldbslice(bstem, <sliceno>)
+% [f nv nf bhdrstr] = fast_ldbslice(bstem, <sliceno>)
 % If sliceno is not given or if it is < 0, then
 % the volume is loaded. nv is the number of spatial
 % voxels (ie, nrows*cols if a slice or nrows*cols*nslice 

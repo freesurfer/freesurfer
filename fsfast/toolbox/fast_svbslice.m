@@ -1,5 +1,5 @@
 function err = fast_svbslice(y,stem,sliceno,bext,bhdrstr)
-% err = fast_svbslice(y,stem,sliceno,<bext>)
+% err = fast_svbslice(y,stem,sliceno,bext,bhdrstr)
 %
 % size(y) = [rows cols frames]
 % sliceno is zero-based
@@ -9,11 +9,11 @@ function err = fast_svbslice(y,stem,sliceno,bext,bhdrstr)
 % if sliceno is < 0 then size(y) = [slices rows cols frames]
 % and each slice is saved.
 %
-% $Id: fast_svbslice.m,v 1.3 2003/07/31 15:12:06 greve Exp $
+% $Id: fast_svbslice.m,v 1.4 2003/08/01 00:03:50 greve Exp $
 
 err = 1;
 
-if(nargin < 2 & nargin > 4)
+if(nargin < 2 | nargin > 5)
   fprintf('err = fast_svbslice(y,stem,sliceno,<bext>,<bhdrstr>)\n');
   return;
 end
