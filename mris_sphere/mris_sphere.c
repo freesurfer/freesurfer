@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.18 1999/09/28 13:38:06 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.19 1999/10/04 00:09:42 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -238,8 +238,8 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "lm"))
   {
-    parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
-    fprintf(stderr, "integrating with line minimization\n") ;
+    parms.integration_type = INTEGRATE_LM_SEARCH ;
+    fprintf(stderr, "integrating using binary search line minimization\n") ;
   }
   else if (!stricmp(option, "avgs"))
   {
