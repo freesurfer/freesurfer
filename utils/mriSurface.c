@@ -1015,18 +1015,41 @@ void Surf_ConvertVertexToVoxel ( vertex_type*    iVertex,
   
   /* if we don't have a transform, just copy vertex into voxel */
   if( NULL == iTransform ) {
+    oVoxel->mfX = ((iSet == Surf_tVertexSet_Main) ? iVertex->x :
+		      (iSet == Surf_tVertexSet_Original) ? iVertex->origx :
+		      iVertex->cx );
+    oVoxel->mfY = ((iSet == Surf_tVertexSet_Main) ? iVertex->y :
+		      (iSet == Surf_tVertexSet_Original) ? iVertex->origy :
+		      iVertex->cy );
+    oVoxel->mfZ = ((iSet == Surf_tVertexSet_Main) ? iVertex->z :
+		      (iSet == Surf_tVertexSet_Original) ? iVertex->origz :
+		      iVertex->cz );
+#if 0
     xVoxl_SetFloat( oVoxel, 
 		    Surf_GetVertexCoord( iVertex, iSet, Surf_tOrientation_X ),
 		    Surf_GetVertexCoord( iVertex, iSet, Surf_tOrientation_Y ),
 		    Surf_GetVertexCoord( iVertex, iSet, Surf_tOrientation_Z ));
+#endif
   } else {
     
     /* stuff the vertex into a voxel */
+#if 0
     xVoxl_SetFloat( &sTmpVertex, 
 		    Surf_GetVertexCoord( iVertex, iSet, Surf_tOrientation_X ),
 		    Surf_GetVertexCoord( iVertex, iSet, Surf_tOrientation_Y ),
 		    Surf_GetVertexCoord( iVertex, iSet, Surf_tOrientation_Z ));
+#endif
     
+    sTmpVertex.mfX = ((iSet == Surf_tVertexSet_Main) ? iVertex->x :
+		      (iSet == Surf_tVertexSet_Original) ? iVertex->origx :
+		      iVertex->cx );
+    sTmpVertex.mfY = ((iSet == Surf_tVertexSet_Main) ? iVertex->y :
+		    (iSet == Surf_tVertexSet_Original) ? iVertex->origy :
+		    iVertex->cy );
+    sTmpVertex.mfZ = ((iSet == Surf_tVertexSet_Main) ? iVertex->z :
+		      (iSet == Surf_tVertexSet_Original) ? iVertex->origz :
+		      iVertex->cz );
+
     /* transform voxel */
     Trns_ConvertBtoA( iTransform, &sTmpVertex, oVoxel );
   }
