@@ -14,7 +14,7 @@
 #include "mrisurf.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.6 1997/09/09 15:33:00 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.7 1997/09/12 21:49:03 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -31,9 +31,7 @@ static void keyboard_handler(unsigned char key, int x, int y) ;
 static void special_key_handler(int key, int x, int y) ;
 static void reshape_handler(int width, int height) ;
 static void mouse_handler(int button, int state, int x, int y) ;
-#if 0
 static void controlLights(int value) ;
-#endif
 
 static void display_handler(void) ;
 static void home(MRI_SURFACE *mris) ;
@@ -44,7 +42,7 @@ static void set_lighting_model(float lite0, float lite1, float lite2,
 char *Progname ;
 char *surf_fname ;
 static MRI_SURFACE  *mris, *mris_orig, *mris_ellipsoid = NULL ;
-
+static int marked_vertex = -1 ;
 static long frame_xdim = 600;
 static long frame_ydim = 600;
 
@@ -105,7 +103,7 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
-
+MRISupdateEllipsoidSurface(mris) ;
   if (talairach_flag)
     MRIStalairachTransform(mris_orig, mris_orig) ;
   MRIScenter(mris_orig, mris_orig) ;
@@ -180,6 +178,10 @@ get_option(int argc, char *argv[])
     print_version() ;
   else switch (toupper(*option))
   {
+  case 'V':
+    sscanf(argv[2], "%d", &marked_vertex) ;
+    nargs = 1 ;
+    break ;
   case 'T':
     talairach_flag = 1 ;
     break ;
@@ -299,11 +301,9 @@ MRISGLcompile(MRI_SURFACE *mris)
         x = (Real)v->x ; y = (Real)v->y ; z = (Real)v->z ;
         transform_point(mris->linear_transform, -x, z, y, &xtal, &ytal,&ztal);
       }
-#if 0
-      if (f->v[n] == 79891)
-        glColor3ub(0,0,200) ;      /* paint the temporal pole blue */
-#endif
-      if (ytal < MAX_TALAIRACH_Y)
+      if (k == marked_vertex)
+        glColor3ub(0,0,240) ;      /* paint the marked vertex blue */
+      else if (ytal < MAX_TALAIRACH_Y)
         glColor3ub(0,0,meshb) ;      /* paint the temporal pole blue */
       else if (td < POLE_DISTANCE)
         glColor3ub(0,0,255) ;          /* paint the temporal pole blue */
@@ -775,6 +775,11 @@ special_key_handler(int key, int x, int y)
     break ;
   case GLUT_KEY_HOME:
     break ;
+#if 0
+  case GLUT_KEY_ESCAPE:
+    exit(0) ;
+    break ;
+#endif
   default:
     redraw = 0 ;
     break ;
@@ -783,7 +788,7 @@ special_key_handler(int key, int x, int y)
     glutPostRedisplay() ;
 }
 
-#if 0
+
 #define NUM_LIGHTS 4
 static void
 controlLights(int value)
@@ -825,9 +830,7 @@ controlLights(int value)
   glutPostRedisplay() ;
 }
 
-#endif
-
-#if 0
+#if SHOW_AXES
   /* build axes */
   glNewList(2, GL_COMPILE) ;
 
