@@ -6,11 +6,11 @@ function [M_V] = vox2ras_ksolve(M_R, Vc_Ps, varargin)
 %%
 %% AUTHOR
 %%
-%%	Rudolph Pienaar, 
+%%	Rudolph Pienaar
 %%
 %% VERSION
 %%
-%%	$Id: vox2ras_ksolve.m,v 1.4 2004/06/03 18:11:28 rudolph Exp $
+%%	$Id: vox2ras_ksolve.m,v 1.5 2004/06/08 19:10:21 rudolph Exp $
 %%
 %% SYNOPSIS
 %%

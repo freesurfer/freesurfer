@@ -6,11 +6,11 @@ function [M_V] = vox2ras_dfmeas(str_filename, varargin)
 %%
 %% AUTHOR 
 %%
-%%	Rudolph Pienaar, 
+%%	Rudolph Pienaar
 %%
 %% VERSION
 %%
-%%	$Id: vox2ras_dfmeas.m,v 1.6 2004/06/08 19:09:08 rudolph Exp $
+%%	$Id: vox2ras_dfmeas.m,v 1.7 2004/06/08 19:10:21 rudolph Exp $
 %%
 %% SYNOPSIS
 %%
