@@ -44,6 +44,8 @@
 #define BACKGROUND_VAL   10
 #define MAX_EXP          200
 
+static int    m3RecomputeTranslation(MORPH_3D *m3d, MRI *mri_in, 
+                                     MRI *mri_ref, MORPH_PARMS *parms) ;
 static int    m3dPositionBorderNodes(MORPH_3D *m3d) ;
 static float  m3dNodeAverageExpansion(MORPH_3D *m3d, int i, int j, int k) ;
 #if 0
@@ -1926,7 +1928,7 @@ m3dNonlinearAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d,
   MNP        *mnp ;
 
   width = m3d->width ; height = m3d->height ; depth = m3d->depth ; 
-  m3d->neg = 0 ;
+  /*  m3d->neg = 0 ;*/
 #if SCALE_INVARIANT
   n3 = m3d->node_spacing * m3d->node_spacing * m3d->node_spacing ;
 #else
@@ -1940,8 +1942,10 @@ m3dNonlinearAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d,
       {
         mn = &m3d->nodes[i][j][k] ;
         mnp = &m3d->pnodes[i][j][k] ;
+#if 0
         if ((mnp->area <= 0) && !FZERO(mnp->orig_area))
           m3d->neg++ ;
+#endif
         /* scale up the area coefficient if the area of the current node is
            close to 0 or already negative */
         if (!FZERO(mnp->orig_area))
@@ -1985,7 +1989,7 @@ m3dAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d)
   MNP        *mnp ;
 
   width = m3d->width ; height = m3d->height ; depth = m3d->depth ; 
-  m3d->neg = 0 ;
+  /*  m3d->neg = 0 ;*/
 #if SCALE_INVARIANT
   n3 = m3d->node_spacing * m3d->node_spacing * m3d->node_spacing ;
 #else
@@ -1999,8 +2003,10 @@ m3dAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d)
       {
         mn = &m3d->nodes[i][j][k] ;
         mnp = &m3d->pnodes[i][j][k] ;
+#if 0
         if ((mnp->area <= 0) || !FZERO(mnp->orig_area))
           m3d->neg++ ;
+#endif
         delta = (mnp->area - mnp->orig_area) / n3 ;
         sse += delta * delta * mri_in->thick ;
         if (!finitep(delta) || !finitep(sse))
@@ -2426,15 +2432,17 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   m3dMorphSkull(m3d, mris_in_skull,mris_ref_skull,mri_ref_pyramid[MAX_LEVEL]);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    MRI *mri_tmp ;
 
     fprintf(stderr,
             "writing post skull morphing surface and image views...\n");
-    mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
     MRISwrite(mris_in_skull, "postxform.geo") ;
-    mriWriteImageViews(mri_tmp, "postxform", IMAGE_SIZE) ;
-    MRIfree(&mri_tmp) ;
   }
+#if 1
+  m3RecomputeTranslation(m3d, mri_in_pyramid[MIN_LEVEL], 
+                         mri_ref_pyramid[MIN_LEVEL], parms) ;
+#else
+  m3RecomputeTranslation(m3d, parms->mri_in, parms->mri_ref, parms) ;
+#endif
   m3dStoreMetricProperties(m3d) ;
 #if 0
   if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
@@ -2486,10 +2494,31 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
       parms->l_intensity = base_intensity * (sigma+1) * 
         (max_thick / mri_in_pyramid[i]->thick) ;
 #endif
+      /*
+        if negative areas have been created (i.e. crossing of coordinate
+        lines), then remove them by doing an integration epoch with
+        no blurring, then continue with the normal integration.
+        */
+      if (m3d->neg > 0 && sigma > 0)
+      {
+        double tol = parms->tol ;
+        parms->tol = 0 ;   /* only until negative nodes are fixed */
+        fprintf(stderr, 
+                "unfolding lattice, dt=%2.3f, l_int=%2.2f, tol=%2.2f\n", 
+                parms->dt, parms->l_intensity,parms->tol) ;
+        if ((Gdiag & DIAG_WRITE) && parms->log_fp)
+          fprintf(parms->log_fp,
+                  "unfolding lattice, dt=%2.2f, l_int=%2.2f, tol=%2.2f.\n",
+                  parms->dt, sigma, parms->l_intensity, parms->tol);
+        parms->sigma = 0 ;
+        m3dAlignPyramidLevel(mri_in_pyramid[i], mri_ref_pyramid[i], 
+                             mri_ref_pyramid[i], parms, m3d) ;
+        parms->tol = tol ;
+      }
       fprintf(stderr, 
               "aligning pyramid level %d, dt=%2.3f, sigma=%2.2f, l_int=%2.2f,"
-              "tol=%2.2f\n", i, parms->dt, sigma, parms->l_intensity,
-              parms->tol) ;
+              "tol=%2.2f, neg=%d\n", i, parms->dt, sigma, parms->l_intensity,
+              parms->tol, m3d->neg) ;
       if ((Gdiag & DIAG_WRITE) && parms->log_fp)
         fprintf(parms->log_fp,
           "aligning pyramid level %d, dt=%2.2f, sigma=%2.2f, l_int=%2.2f,"
@@ -3676,8 +3705,8 @@ m3dAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
                 last_avg, current_avg, (last_avg - current_avg)/current_avg);
       fprintf(stderr, "last avg=%2.2f, current avg = %2.2f, ratio=%2.3f\n\n",
               last_avg, current_avg, (last_avg - current_avg) / current_avg);
-      if (((last_avg - current_avg) / current_avg < parms->tol) && 
-          (last_neg <= m3d->neg)) 
+      if ((((last_avg - current_avg) / current_avg < parms->tol) ||
+           FZERO(parms->tol)) && (last_neg <= m3d->neg)) 
         break ;
       last_neg = m3d->neg ;
       last_avg = current_avg ;
@@ -6291,6 +6320,49 @@ m3dPositionBorderNodes(MORPH_3D *m3d)
     }
   }
 #endif
+  return(NO_ERROR) ;
+}
+
+/* 
+   note that mri_in and mri_ref will be copied so that the neck can
+   be erased from both without changing the caller's volumes.
+   */
+static int
+m3RecomputeTranslation(MORPH_3D *m3d, MRI *mri_in, MRI *mri_ref, 
+                       MORPH_PARMS *parms)
+{
+  float  in_means[4], ref_means[4] ;
+  double dx, dy, dz ;
+  MRI    *mri_in_xformed ;
+
+  mri_in = MRIcopy(mri_in, NULL) ; mri_ref = MRIcopy(mri_ref, NULL) ;
+  MRIeraseNeck(mri_ref, &parms->ref_np) ;
+  MRIeraseNeck(mri_in, &parms->ref_np) ;
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr,
+            "recomputing translation values based on skull morph...\n");
+  mri_in_xformed = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
+  if (Gdiag & DIAG_WRITE)
+    mriWriteImageViews(mri_in_xformed, "postxform", IMAGE_SIZE) ;
+  MRIfindCenterOfBrain(mri_in, in_means, in_means+1, in_means+2) ;
+  MRIfindCenterOfBrain(mri_in_xformed, ref_means, ref_means+1, ref_means+2) ;
+  dx = (double)(ref_means[0] - in_means[0]) * mri_in->thick ;
+  dy = (double)(ref_means[1] - in_means[1]) * mri_in->thick ;
+  dz = (double)(ref_means[2] - in_means[2]) * mri_in->thick ;
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "translating morph by (%2.1f,%2.1f,%2.1f)\n",dx,dy,dz);
+  m3dTranslate(m3d, dx, dy, dz) ;
+  MRIfree(&mri_in_xformed) ; 
+  if (Gdiag & DIAG_WRITE)
+  {
+    MRI  *mri_tmp ;
+    mriWriteImageViews(mri_in, "input", IMAGE_SIZE) ;
+    mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
+    mriWriteImageViews(mri_tmp, "posttrans", IMAGE_SIZE) ;
+    MRIfree(&mri_tmp) ;
+  }
+  MRIfree(&mri_in) ;  MRIfree(&mri_ref) ;
   return(NO_ERROR) ;
 }
 
