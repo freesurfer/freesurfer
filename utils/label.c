@@ -1333,6 +1333,7 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
 
   MRISclearMarks(mris) ;
   LabelMarkStats(asrc, mris) ;
+
   do
   {
     /* map the nbr of every point in the label back to src, and if in
@@ -1342,6 +1343,8 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
     for (n = 0 ; n < adst->n_points ; n++)
     {
       v = &mris_dst->vertices[adst->lv[n].vno] ;
+			if (adst->lv[n].vno == Gdiag_no)
+				DiagBreak() ;
       if (n == Gdiag_no)
         DiagBreak() ;
       if (v->marked == 0)   /* hasn't been processed for this surface yet */
@@ -1399,6 +1402,7 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
       }
     }
   } while (nfilled != 0) ;
+
   return(adst) ;
 }
 
@@ -1514,7 +1518,7 @@ LabelMarkStats(LABEL *area, MRI_SURFACE *mris)
   {
     vno = area->lv[n].vno ;
     v = &mris->vertices[vno] ;
-    v->marked = area->lv[n].stat ;
+    v->marked = 1 ;
     v->stat = area->lv[n].stat ;
   }
   return(NO_ERROR) ;
