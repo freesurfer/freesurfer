@@ -8,6 +8,8 @@ tic;
 % contrast
 % gscaleuse = 1;
 % alpha = 0.5;
+% sncor = 0; % Assume(1) or don't (0) that the noise and signal are
+% spatially correlated
 % pthresh = -log10(sigthreshold) regularization
 % ytikreg = .1 % Tikhonov regularization parameter
 % synthtarg = 0; % Synth target data with WGN
@@ -29,6 +31,7 @@ fprintf('contrast = %s\n',contrast);
 fprintf('alpha = %g\n',alpha);
 fprintf('pthresh = %g (%g)\n',pthresh,10^(-pthresh));
 fprintf('ytkreg = %g\n',ytikreg);
+fprintf('sncor = %d\n',sncor);
 fprintf('gscaleuse = %d\n',gscaleuse);
 fprintf('synthtarg = %g\n',synthtarg);
 fprintf('SynthSeed = %g\n',SynthSeed);
@@ -41,7 +44,8 @@ unix(tmp);
 % Handle the row,col,slice list. 1-based
 if(~exist('rcslist','var')) rcslist = []; end
 if(~isempty(rcslist))
-  rcslist = reshape(rcslist',[3 2])';
+  nlist = length(rcslist)/3;
+  rcslist = reshape(rcslist',[3 nlist])';
 end
 
 % Load the flac
@@ -156,7 +160,14 @@ for jthrun = 1:nruns
     end
     conmask.vol = conmask.vol | (abs(con.vol) > pthresh);
 
-  end
+  end % Loop over kthrun
+  
+  % Make sure the dimensions are consistent
+  ntpmin = min(size(sjk,1),size(rjk,1));
+  sjk = sjk(1:ntpmin,:);
+  rjk = rjk(1:ntpmin,:);
+  
+  % Get the stuff inside and outside the contrast mask
   conmask.vol = conmask.vol & mask.vol;
   indconmask = find(conmask.vol);
   Nvconmask = length(indconmask);
@@ -217,8 +228,11 @@ for jthrun = 1:nruns
   
   % Apply the spatial Wiener filter 
   fprintf('  Applying spatial Wiener filter (%6.1f)\n',toc);  
-  yswf = ((y.vol(:,indmask)*Vy)*((inv(Sy.^2)*(Vy'*Vs)*(Ss.^2))))*Vs';
-  
+  if(sncor == 0)
+    yswf = ((y.vol(:,indmask)*Vy)*((inv(Sy.^2)*(Vy'*Vs)*(Ss.^2))))*Vs';
+  else
+    yswf = ((y.vol(:,indmask)*Vy)*inv(Sy)*Uy'*Us*Ss)*Vs'; % Assume sncor    
+  end
   % Could do it this way (gives exact same answer), but it is not 
   % much faster but a little more complicated, so why bother?
   % Nv = size(Vy,1);
@@ -277,10 +291,11 @@ for jthrun = 1:nruns
 		      jflac.runlist(jflac.nthrun,:),outfspec);
   fp = fopen(logfile,'w');
   fprintf(fp,'%s\n',fast_swfflac_sess_ver);
-  fprintf(fp,'contrast = %s\n',contrast);
-  fprintf(fp,'alpha = %g\n',alpha);
-  fprintf(fp,'pthresh = %g (%g)\n',pthresh,10^(-pthresh));
-  fprintf(fp,'ytkreg = %g\n',ytikreg);
+  fprintf(fp,'contrast  = %s\n',contrast);
+  fprintf(fp,'alpha     = %g\n',alpha);
+  fprintf(fp,'pthresh   = %g (%g)\n',pthresh,10^(-pthresh));
+  fprintf(fp,'ytkreg    = %g\n',ytikreg);
+  fprintf(fp,'sncor     = %d\n',sncor);
   fprintf(fp,'gscaleuse = %d\n',gscaleuse);
   fprintf(fp,'gscale    = %g\n',gscale);
   fprintf(fp,'synthtarg = %g\n',synthtarg);

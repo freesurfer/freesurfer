@@ -3,7 +3,7 @@
 % fast_swfflac_sess.m, and, they should really be combined,
 % but it was easier to do it this way.
 %
-% $Id: fast_nswfflac_sess.m,v 1.1 2004/12/10 00:36:48 greve Exp $
+% $Id: fast_nswfflac_sess.m,v 1.2 2005/01/23 17:09:33 greve Exp $
 % 
 tic;
 
@@ -12,6 +12,7 @@ tic;
 % sesspath = '~/links/sg1/xval/dng';
 % outfspec  = 'fmcsm5-swf-bh';
 % contrast
+% nswfdim
 % synthtarg = 0; % Synth target data with WGN
 % okfile = '/tmp/ok.ok';
 %
@@ -21,6 +22,13 @@ tic;
 % 
 
 fprintf('contrast = %s\n',contrast);
+fprintf('alpha = %g\n',alpha);
+%fprintf('pthresh = %g (%g)\n',pthresh,10^(-pthresh));
+fprintf('ytkreg = %g\n',ytikreg);
+fprintf('sncor = %d\n',sncor);
+fprintf('gscaleuse = %d\n',gscaleuse);
+fprintf('contrast = %s\n',contrast);
+fprintf('nswfdim = %d\n',nswfdim);
 fprintf('synthtarg = %g\n',synthtarg);
 
 % Delete the okfile, if it exists
@@ -143,7 +151,12 @@ for jthrun = 1:nruns
     end
 
   end
-  
+
+  % Make sure the dimensions are consistent
+  ntpmin = min(size(sjk,1),size(rjk,1));
+  sjk = sjk(1:ntpmin,:);
+  rjk = rjk(1:ntpmin,:);
+
   % Compute the expected observable
   yjk = sjk + rjk;
   clear sjk;  
@@ -167,9 +180,11 @@ for jthrun = 1:nruns
   [Un Sn Vn] = fast_svd(rjk);
   clear rjk;
   
-  % Only keep the non-zero components
+  % Only keep the top nswfdim components
   dSn = diag(Sn);
-  ind = find(dSn > dSn(1)*1e-6);
+  ind = 1:nswfdim;
+  cpvs = 100*sum(dSn(ind))/sum(dSn);
+  fprintf('  CPVS = %6.2f for nswfdim = %d\n',cpvs,nswfdim);
   Un = Un(:,ind);
   Vn = Vn(:,ind);
   Sn = Sn(ind,ind);
@@ -193,30 +208,38 @@ for jthrun = 1:nruns
   
   % Apply the spatial Wiener filter to get the noise estimate
   fprintf('  Applying spatial Wiener filter (%6.1f)\n',toc);  
-  nswf = ((y.vol(:,indmask)*Vy)*((inv(Sy.^2)*(Vy'*Vn)*(Sn.^2))))*Vn';
+  if(sncor == 0)
+    nswf = ((y.vol(:,indmask)*Vy)*((inv(Sy.^2)*(Vy'*Vn)*(Sn.^2))))*Vn';
+  else
+    nswf = ((y.vol(:,indmask)*Vy)*inv(Sy)*Uy'*Un*Sn)*Vn'; % Assume sncor    
+  end
   
   % Subtract the noise from the observable
   yswf = y.vol(:,indmask) - nswf;
 
-  % This computes a global scaling factor base on the variance of the
-  % best-fit signal. This will have no effect the final functional
-  % analysis, but it will make the ranges of values before and after
-  % SWF more similar which facilitates comparison.
-  Ctask = eye(size(jX,2));
-  Ctask = Ctask(indtask,:);
-  [b0 rvar0 vdof0] = fast_glmfitw(y.vol(:,indmask),jX);
-  [F0 dof10 dof20] = fast_fratiow(b0,jX,rvar0,Ctask);
-  p0 = FTest(dof10, dof20, F0);
-  ind0 = find(p0 < .01);
-  if(isempty(ind0)) ind0 = [1:length(indmask)]; end
-  s0 = jX(:,indtask)*b0(indtask,ind0);
-  bswf = (inv(jX'*jX)*jX')*yswf(:,ind0);
-  sswf = jX(:,indtask)*bswf(indtask,:);
-  a0 = mean(std(s0),2);
-  aswf = mean(std(sswf),2);
-  gscale = a0/aswf;
-  fprintf('  a0 = %g, aswf = %g, gscale = %g\n',a0,aswf,gscale);
-  yswf = yswf*gscale;
+  if(0)
+    % This computes a global scaling factor base on the variance of the
+    % best-fit signal. This will have no effect the final functional
+    % analysis, but it will make the ranges of values before and after
+    % SWF more similar which facilitates comparison.
+    Ctask = eye(size(jX,2));
+    Ctask = Ctask(indtask,:);
+    [b0 rvar0 vdof0] = fast_glmfitw(nswf,jX);
+    [F0 dof10 dof20] = fast_fratiow(b0,jX,rvar0,C);
+    p0 = FTest(dof10, dof20, F0);
+    ind0 = find(p0 < .01);
+    if(isempty(ind0)) ind0 = [1:length(indmask)]; end
+    s0 = jX(:,indtask)*b0(indtask,ind0);
+    bswf = (inv(jX'*jX)*jX')*yswf(:,ind0);
+    sswf = jX(:,indtask)*bswf(indtask,:);
+    a0 = mean(std(s0),2);
+    aswf = mean(std(sswf),2);
+    gscale = a0/aswf;
+    fprintf('  a0 = %g, aswf = %g, gscale = %g\n',a0,aswf,gscale);
+    yswf = yswf*gscale;
+  else
+    gscale = 1;
+  end
   
   % Set mean to be the same as the original
   ymn = mean(y.vol(:,indmask));  
@@ -237,6 +260,22 @@ for jthrun = 1:nruns
   fprintf('  Saving to %s (%6.1f)\n',yhatfspec,toc);    
   MRIwrite(yhat,yhatfspec);
   
+  logfile = sprintf('%s/%s/%s/%s.log',jflac.sess,jflac.fsd,...
+		      jflac.runlist(jflac.nthrun,:),outfspec);
+  fp = fopen(logfile,'w');
+  fprintf(fp,'swfflac with -nswf\n');
+  fprintf(fp,'contrast  = %s\n',contrast);
+  fprintf(fp,'alpha     = %g\n',alpha);
+  %fprintf(fp,'pthresh   = %g (%g)\n',pthresh,10^(-pthresh));
+  fprintf(fp,'ytkreg    = %g\n',ytikreg);
+  fprintf(fp,'sncor     = %d\n',sncor);
+  fprintf(fp,'nswfdim = %d\n',nswfdim);
+  fprintf(fp,'CPVS  %6.2f\n',cpvs);
+  %fprintf(fp,'gscaleuse = %d\n',gscaleuse);
+  fprintf(fp,'gscale    = %g\n',gscale);
+  fprintf(fp,'synthtarg = %g\n',synthtarg);
+  fclose(fp);
+
   % This computes how a given voxel (RCS) is projected to the rest
   % of the volume. This is a row from the spatial filter reshaped
   % into a volume. The row is extracted by applying the filter to
