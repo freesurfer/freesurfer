@@ -379,6 +379,7 @@ int          MRISremoveTopologicalDefects(MRI_SURFACE *mris,float curv_thresh);
 int          MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris) ;
 int          MRISuseAreaErrors(MRI_SURFACE *mris) ;
 int          MRISuseGaussianCurvature(MRI_SURFACE *mris) ;
+int          MRISclearCurvature(MRI_SURFACE *mris) ;
 int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
 int          MRIScomputeCurvatureIndices(MRI_SURFACE *mris, 
                                          double *pici, double *pfi) ;
