@@ -6,7 +6,7 @@ function ev = flac_ev_parse(tline)
 %
 % EV EVName ModelName Type <parameters>
 %
-% $Id: flac_ev_parse.m,v 1.1 2004/10/16 05:09:36 greve Exp $
+% $Id: flac_ev_parse.m,v 1.2 2004/10/17 18:35:43 greve Exp $
 
 ev = [];
 if(nargin > 1)
@@ -20,6 +20,7 @@ ev.type       = [];  % task or nuis
 ev.params     = [];  % params
 ev.ishrf      = 0;   % Flag for HRFs
 ev.psdwin     = [];  % HRF psd window [min d max]
+ev.npsd       = [];  % Number of items in psd win
 ev.stf        = '';  % Stimulus timing file name
 ev.st         = [];  % Stimulus timing [tonset duration weight]
 ev.Xfir       = [];  % FIR matrix for HRFs
@@ -44,9 +45,9 @@ if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
 switch (ev.model)
  
  %--------------------------------------------
- case {'meanoffset'} % Mean offset
+ case {'baseline'} % Baseline/Mean offset
   % 0 parameters:
-  % EV   Offset meanoffset nuiss
+  % EV  Baseline baseline nuiss
   ev.nreg = 1;
   ev.ishrf = 0;  
   
@@ -80,7 +81,8 @@ switch (ev.model)
   if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
   ev.psdwin(3) = sscanf(item,'%f',1); % psdmax
 
-  ev.nreg = round((ev.psdwin(3)-ev.psdwin(1))/ev.psdwin(2));
+  ev.npsd = round((ev.psdwin(3)-ev.psdwin(1))/ev.psdwin(2));
+  ev.nreg = ev.nreg;
   ev.ishrf = 1;  
   
  %--------------------------------------------
@@ -95,9 +97,10 @@ switch (ev.model)
   
   [item c] = sscanfitem(tline,7);
   if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
-  ev.params(2) = sscanf(item,'%d',1); % dpsd
+  ev.params(2) = sscanf(item,'%f',1); % dpsd
   
   ev.psdwin = [0 ev.params(2) 40];
+  ev.npsd = round((ev.psdwin(3)-ev.psdwin(1))/ev.psdwin(2));
   ev.ishrf = 1;    
   ev.nreg = ev.params(1) + 1;
   
@@ -134,7 +137,12 @@ switch (ev.model)
   ev.nreg = ev.params(1);
   ev.ishrf = 0;  
 
-end
+ otherwise
+  fprintf('ERROR: model %s unrecoginized\n');
+  ev = [];
+  return;
+  
+end % switch
 
 
 return;
