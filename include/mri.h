@@ -52,6 +52,10 @@ typedef struct
   float         te ;        /* time to echo */
   float         ti ;        /* time to inversion */
   char          fname[STR_LEN] ;
+  int           xdir ;      /* these are the actual directions of the structure axes, */
+  int           ydir ;      /* set when the volume is read, to be used to orient the  */
+  int           zdir ;      /* structure (if needed) with                             */
+                            /* MRIreorder(src, dest, src->xdir, src->ydir, src->zdir) */
 
 /* 
   each slice is an array of rows (mri->height of them) each of which is 
@@ -388,11 +392,11 @@ extern float ic_z_vertices[]  ;
 #define MRI_MINC_FILE                 1
 #define MRI_ANALYZE_FILE              2
 #define MRI_MGH_FILE                  3
-#define GE_5X_FILE                    4
-#define GE_8X_FILE                    5
+#define GENESIS_FILE                  4
+#define GE_LX_FILE                    5
 #define SIEMENS_FILE                  6
 #define BRIK_FILE                     7
-
+#define BSHORT_FILE                   8
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
