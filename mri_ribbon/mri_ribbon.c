@@ -14,12 +14,12 @@ char *Progname;
 int main(int argc, char *argv[])
 {
   char *inner_mris_fname,*outer_mris_fname,*input_mri_pref,*output_mri_pref;
-  MRI *mri,*mri_src;
-  MRI_SURFACE *inner_mris,*outer_mris;
+  MRI *mri=0,*mri_src=0;
+  MRI_SURFACE *inner_mris=0,*outer_mris=0;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ribbon.c,v 1.5 2003/09/05 04:45:37 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ribbon.c,v 1.6 2004/11/09 15:57:57 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
   MRIwrite(mri,output_mri_pref);
 
   MRIfree(&mri);
+  MRIfree(&mri_src);
   MRISfree(&inner_mris);
   MRISfree(&outer_mris);
 
