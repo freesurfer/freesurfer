@@ -552,7 +552,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 
     case LINEAR_RAS_TO_RAS:
       //E/ could probably fix it for this case
-    case LINEAR_RAS_TO_CORONAL_RAS:
+      //    case LINEAR_RAS_TO_CORONAL_RAS:
       //E/ this case was probably a mistake
       {
 	extern MATRIX *gm_screen2ras ;
@@ -560,8 +560,8 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 	
 	if (this->mDisplayTransform->type == LINEAR_VOX_TO_VOX)
 	  fprintf(stderr, "Don't really know what to do with a LTA of type LINEAR_VOX_TO_VOX - we'll pretend it's LINEAR_VOX_TO_CONFORM_VOX and see what happens.\n");
-	if (this->mDisplayTransform->type == LINEAR_RAS_TO_CORONAL_RAS)
-	  fprintf(stderr, "Don't really know what to do with a LTA of type LINEAR_RAS_TO_CORONAL_RAS - we'll pretend it's LINEAR_CORONAL_RAS_TO_CORONAL_RAS and see what happens.\n");
+	//	if (this->mDisplayTransform->type == LINEAR_RAS_TO_CORONAL_RAS)
+	//	  fprintf(stderr, "Don't really know what to do with a LTA of type LINEAR_RAS_TO_CORONAL_RAS - we'll pretend it's LINEAR_CORONAL_RAS_TO_CORONAL_RAS and see what happens.\n");
 	if (this->mDisplayTransform->type == LINEAR_RAS_TO_RAS)
 	  fprintf(stderr, "Don't really know what to do with a LTA of type LINEAR_RAS_TO_RAS - we'll pretend it's LINEAR_CORONAL_RAS_TO_CORONAL_RAS and see what happens.\n");
 
@@ -584,7 +584,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 	// Or ras_c2ras_s.  Uhh..
 
 #ifdef _VLDT_DEBUG
-	fprintf(stderr, "Volm_LoadDisplayTransform: case LINEAR_RAS_TO_CORONAL_RAS or fell through\n");
+	fprintf(stderr, "Volm_LoadDisplayTransform: case LINEAR_RAS_TO_RAS or fell through\n");
 	fprintf(stderr, "m_ras2ras (= m_ras_s2ras_c, I think) = \n");
 	MatrixPrint(stderr, m_ras2ras) ;
 	fprintf(stderr, "m_ras2vox (= m_ras2vox_s) = \n");
@@ -604,7 +604,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 	break ;
       }
     default:   /* don't know what to do yet */
-      fprintf(stderr, "LTA type isn't LINEAR_VOX_TO_VOX, LINEAR_RAS_TO_RAS, nor LINEAR_RAS_TO_CORONAL_RAS or the new ones - don't know what to do.\n");
+      fprintf(stderr, "LTA type isn't LINEAR_VOX_TO_VOX, LINEAR_RAS_TO_RAS, nor LINEAR_CORONAL_RAS_TO_CORONAL_RAS or the new ones - don't know what to do.\n");
       break ;
     }
   
@@ -658,7 +658,8 @@ MATRIX *Volm_VoxelXformToCoronalRasXform(MRI *mri_src, MATRIX *m_vox_c2vox_s, MA
 }
 */
 
-
+#if 0
+//E/ this case was worthless
 MATRIX *Volm_V2CVXtoR2CRX(MRI *mri_src, MATRIX *m_vox_s2vox_c, MATRIX *m_ras_s2ras_c)
 {
   MATRIX   *V, *W, *m_tmp ;
@@ -695,7 +696,7 @@ MATRIX *Volm_V2CVXtoR2CRX(MRI *mri_src, MATRIX *m_vox_s2vox_c, MATRIX *m_ras_s2r
   MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
   return(m_ras_s2ras_c) ;
 }
-
+#endif
 
 
 #if 0
