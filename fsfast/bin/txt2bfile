@@ -1,0 +1,309 @@
+#!/bin/csh -f
+
+set VERSION = '$Id: txt2bfile,v 1.1 2004/01/30 23:13:13 greve Exp $';
+set cmdargs = ($argv);
+
+set txtfile   = ();
+set outvol    = ();
+set orthogpct = 100;
+set mergevol  = ();
+set nmerge    = 0;
+set mfile   = ();
+set monly   = 0;
+set PrintHelp = 0;
+
+if($#argv == 0)  goto usage_exit;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+echo " "
+echo " "
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if($#mfile == 0) then
+  set mfile = /tmp/run_txt2bfile_$$.m
+else
+  set monly = 1;
+endif
+
+#------------------------------------------#
+tee $mfile <<EOF
+
+if($monly) QuitOnError = 0;
+else       QuitOnError = 1;
+end
+
+txtfile  = '$txtfile';
+outvol   = '$outvol';
+mergevol = '$mergevol';
+nmerge   = $nmerge';
+orthogpct = $orthogpct;
+
+txt = load(txtfile);
+if(isempty(txt))
+  fprintf('ERROR: could not load %s',txtfile);
+  if(QuitOnError) quit; end
+  return; 
+end
+
+[nf nv] = size(txt);
+
+if(~isempty(mergevol))
+  mv = squeeze(fast_ldbslice(mergevol))';
+  if(isempty(mv))
+    fprintf('ERROR: could not load %s',mergevol);
+    if(QuitOnError) quit; end
+    return; 
+  end
+  if(size(mv,1) ~= nf)
+    fprintf(['ERROR: merge volume and text file '...
+            'have a different number of frames\n']);
+    if(QuitOnError) quit; end
+    return; 
+    quit;
+  end
+
+  if(nmerge > 0)
+    if(size(mv,2) < nmerge)
+      fprintf(['ERROR: merge volume only has %d columns '...
+              'whereas you have specified that %d columns '...
+   	      'be merged\n'],size(mv,2),nmerge);
+      if(QuitOnError) quit; end
+      return; 
+      quit;
+    end
+    mv = mv(:,1:nmerge);
+  end
+  txt = [txt mv];
+  [nf nv] = size(txt);
+end
+
+if(orthogpct < 100)
+  mntxt = mean(txt);
+  txt = txt - repmat(mntxt,[nf 1]);
+  [u s v] = svd(txt);
+  pct = 100*cumsum(diag(s)/trace(s));
+  [mtmp n] = min(abs(pct-orthogpct));
+  fprintf('INFO: keeping %d regressors\n',n);
+  txt = u(:,1:n);
+  [nf nv] = size(txt);
+end
+
+v = zeros(1,nv,1,nf);
+v(1,:,1,:) = txt';
+fast_svbslice(v,outvol,-1);
+
+EOF
+#------------------------------------------#
+
+if(! $monly) then
+  cat $mfile | matlab -display iconic
+  rm $mfile
+  # bhdr now handled in fast_bfileconvert
+  #set ibhdr = $invol.bhdr
+  #set obhdr = $outvol.bhdr
+  #if(-e $ibhdr && ! -e $obhdr) cp $ibhdr $obhdr
+endif
+
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      breaksw
+
+    case "-txt":
+      if ( $#argv == 0) goto arg1err;
+      set txtfile = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "-merge":
+      if ( $#argv == 0) goto arg1err;
+      set mergevol = $argv[1]; shift;
+      breaksw
+
+    case "-nmerge":
+      if ( $#argv == 0) goto arg1err;
+      set nmerge = $argv[1]; shift;
+      breaksw
+
+    case "-orthogpct":
+      if ( $#argv == 0) goto arg1err;
+      set orthogpct = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#txtfile == 0) then
+    echo "ERROR: no text file specified"
+    exit 1;
+  endif
+  if(! -e $txtfile) then
+    echo "ERROR: cannot find $txtfile"
+    exit 1;
+  endif
+  if($#outvol == 0) then
+    echo "ERROR: no output specified"
+    exit 1;
+  endif
+  set outdir = `dirname $outvol`;
+  mkdir $outdir;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: txt2bfile"
+  echo "Arguments:";
+  echo " "
+  echo "   -txt txtfile  : input text file with number to convert"
+  echo "   -o output volume : stem of output 'volume'"
+  echo "   -merge volume    : merge with already existing 'volume'"
+  echo "   -nmerge n        : only use the first n from merge volume"
+  echo "   -orthogpct pct   : orthoganalize, keeping pct percent"
+  echo " "
+  echo "   -help "
+  echo "   -debug "
+  echo "   -monly mfile "
+  echo "   -umask umask  : set unix file permission mask"
+  echo "   -version      : print version and exit"
+  echo " "
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Converts a list of numbers in a text file to a bfloat "volume" and
+possibly merges with another bfloat volume. This is a particularly
+useful utility for creating external regressor files for use with
+FS-FAST (see the -extreg option of mkanalysis-sess.new). External
+regressors are "regressors of no-interest" (also known as nuissance
+regressors).
+
+The list of numbers should be a matrix (ie, each row should have
+the same number of columns, and each column should have the same
+number of rows). When creating an external regressor file, the
+number of rows should equal the number of time points, making
+the number of columns equal to the number of regressors. For example,
+if a file contained the following numbers:
+
+      5.0  8.0  9.7
+      2.3  6.0 -4.1
+    100.0  7.2 15.9
+     16.0 31.7 -2.3
+
+There would be 4 time points and 3 regressors. If this file were
+called data.txt, then running:
+
+  txt2bfile -txt data.txt -o data
+
+would produce data_000.bfloat and data_000.hdr. If you look in the
+.hdr file, you will see "1 3 4 0" indicating 3 regressors and 4 time
+points.
+
+To use this as an external regressor, create one for each run and copy
+data_000.{bfloat,hdr} into the run directory. Then call
+mkanalysis-sess.new with -extreg data. 
+
+NOTE: it is HIGHLY recommended that you orthogonalize the regressors
+in order to keep them from becoming linearly dependent. To do this,
+add -orthogpct PCT, where PCT is a percent (ie, between 0 and
+100). This will do a principal component analysis (PCA) of the
+regressors only keep those components that explain PCT percent of the
+variance across the regressors. The closer PCT is to 100, the less
+changed the external regressors will be. I recommend about 90. NOTE:
+this will reduce the number of regressors.
+
+MERGING WITHOTHER EXTERNAL REGRESSORS
+
+FS-FAST will only handle one extern regressor file, so if you have
+your own set of external regressors and you want to use the motion
+correction regressors (MCR), then you will need to merge yours with
+the MCRs. To do this, cd into the run directory. There will be a 
+bfloat "volume" called mcextreg (i,e mcextreg_000.bfloat and 
+mcextreg_000.hdr). This volume will have 6 regressors, but you will
+only want to use the first three. To merge these two together run
+
+  txt2bfile -txt data.txt -o data -merge mcextreg -nmerge 3 \
+     -orthogpct 90
+
+This will merge the first 3 MCRs with your own regressors and 
+orthogonalize them.
+
+
+
