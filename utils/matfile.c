@@ -454,7 +454,7 @@ MatReadHeader(FILE *fp, MATFILE *mf)
     nitems = fread(mf, 1, sizeof(MATHD), fp) ; 
     if (nitems != sizeof(MATHD))
     {
-      ErrorPrintf(ERROR_BADFILE, "%s:only read %d bytes of header\n", 
+      ErrorPrintf(ERROR_BADFILE, "%s: only read %d bytes of header\n", 
                   MatProgname, nitems) ;
       /*exit(1) ;*/
       return(NULL);
@@ -572,4 +572,145 @@ swapDouble(double d)
   sd.l[1] = l ;
 
   return(sd.d) ;
+}
+/*---------------------------------------------------------------
+  ReadMatlabFileVariable() - this function will read all the
+  variables from a matlab file and return the matrix associated
+  with the given variable name.
+  -------------------------------------------------------------*/
+MATRIX *ReadMatlabFileVariable(char *fname, char *varname)
+{
+  MLFC *mlfc;
+  int n;
+  MATRIX *M;
+
+  mlfc = ReadMatlabFileContents(fname);
+  if(mlfc == NULL) return(NULL);
+
+  M = NULL;
+  for(n=0; n < mlfc->nvars; n++){
+    if(strcmp(varname,mlfc->varname[n]) == 0){
+      M = MatrixCopy(mlfc->varmtx[n],NULL);
+      break;
+    }
+  }
+
+  MLFCfree(&mlfc);
+
+  if(M==NULL) 
+    printf("ERROR: varname %s not found in %s\n",varname,fname);
+    
+  return(M);
+}
+
+
+/*---------------------------------------------------------------
+  ReadMatlabFileContents() - this function will read all the
+  variables from a matlab file, including the variable name
+  and data matrix.
+  -------------------------------------------------------------*/
+MLFC *ReadMatlabFileContents(const char *fname)
+{      
+  MLFC     *mlfc;
+  MATRIX   *mat ;                        
+  MATFILE  mf ;
+  FILE     *fp ;
+  char     *name, c;
+  double   **real_matrix, **imag_matrix ;
+  int      file_type, nrows, ncols, row, col, len ;
+  float    *fptr = NULL ;
+
+  fp = fopen(fname, "rb") ;
+  if (fp == NULL){
+    printf("ERROR: could not open %s\n",fname);
+    return(NULL) ;
+  }
+
+  mlfc = (MLFC *) calloc(sizeof(MLFC),1);
+  len = strlen(fname);
+  mlfc->mfile = (char *) calloc(sizeof(char),len+1);
+  memcpy(mlfc->mfile,fname,len);
+
+  while(1){
+
+    c = fgetc(fp);
+    if(c==EOF) break;
+    else ungetc(c,fp);
+
+    name = MatReadHeader(fp, &mf) ;
+    if(name==NULL) break;
+
+    mlfc->varname[mlfc->nvars] = name;
+
+    real_matrix = matAlloc((int)mf.mrows, (int)mf.ncols) ;
+    if (mf.imagf)  imag_matrix = matAlloc((int)mf.mrows, (int)mf.ncols) ;
+    else           imag_matrix = NULL ;
+
+    file_type = readMatFile(fp, &mf, real_matrix, imag_matrix) ;
+    nrows = (int)mf.mrows ;
+    ncols = (int)mf.ncols ;
+
+    mat = MatrixAlloc(nrows, ncols, mf.imagf ? MATRIX_COMPLEX : MATRIX_REAL);
+
+    /* matrix row pointer is 1 based in both row and column */
+    for (row = 1 ; row <= nrows ; row++)
+      {
+	if (mf.imagf) fptr = (float *)MATRIX_CELT(mat,row,1) ;
+	else         fptr = MATRIX_RELT(mat,row,1) ;
+	
+	for (col = 1 ; col <= ncols ; col++){
+	  *fptr++ = (float)real_matrix[row-1][col-1] ;
+	  if (mf.imagf)
+	    *fptr++ = (float)imag_matrix[row-1][col-1] ;
+	}
+      }
+    
+    matFree(real_matrix, nrows, ncols) ;
+    if (mf.imagf) matFree(imag_matrix, nrows, ncols) ;
+
+    mlfc->varmtx[mlfc->nvars] = mat;
+    mlfc->nvars++;
+  }
+
+  fclose(fp);
+
+  if(mlfc->nvars == 0){
+    printf("ERROR: did not find any variable in %s\n",fname);
+    free(mlfc->mfile);
+    free(mlfc);
+    return(NULL);
+  }
+
+  return(mlfc) ;
+}
+/*-------------------------------------------------------*/
+int MLFCprint(FILE *fp, MLFC *mlfc)
+{
+  int n;
+
+  fprintf(fp,"mfile: %s\n",mlfc->mfile);
+  fprintf(fp,"number of variables: %d\n",mlfc->nvars);
+
+  for(n=0; n < mlfc->nvars; n++){
+    fprintf(fp,"n = %d ---------------------\n",n);
+    fprintf(fp,"%s\n",mlfc->varname[n]);
+    MatrixPrint(fp,mlfc->varmtx[n]);
+  }
+  
+  return(0);
+}
+/*-------------------------------------------------------*/
+int MLFCfree(MLFC **ppmlfc){
+  MLFC *mlfc;
+  int n;
+
+  mlfc = *ppmlfc;
+  free(mlfc->mfile);
+
+  for(n=0; n < mlfc->nvars; n++){
+    free(mlfc->varname[n]);
+    MatrixFree(&mlfc->varmtx[n]);
+  }
+
+  free(*ppmlfc);
 }
