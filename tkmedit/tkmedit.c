@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/06/13 14:39:29 $
-// Revision       : $Revision: 1.161 $
-char *VERSION = "$Revision: 1.161 $";
+// Revision Date  : $Date: 2003/07/11 20:13:19 $
+// Revision       : $Revision: 1.162 $
+char *VERSION = "$Revision: 1.162 $";
 
 #define TCL
 #define TKMEDIT 
@@ -393,6 +393,9 @@ void SetVolumeColorMinMax           ( tkm_tVolumeType iVolume,
 
 void SetVolumeSampleType  ( tkm_tVolumeType  iVolume,
 			    Volm_tSampleType iType );
+
+void SetVolumeResampleMethod  ( tkm_tVolumeType      iVolume,
+				Volm_tResampleMethod iMethod );
 
 void ThresholdVolume ( int    inLevel,
 		       tBoolean      ibAbove,
@@ -1042,7 +1045,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.161 2003/06/13 14:39:29 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.162 2003/07/11 20:13:19 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -3737,6 +3740,36 @@ int TclSetVolumeSampleType ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 
+int TclSetVolumeResampleMethod ( ClientData inClientData, Tcl_Interp* inInterp,
+				 int argc, char* argv[] ) {
+  
+  tkm_tVolumeType      volume  = tkm_tVolumeType_Main;
+  Volm_tResampleMethod method  = Volm_tResampleMethod_RAS;
+
+  if ( argc != 3 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: SetVolumeResampleMethod volume "
+		    "method:0=RAS,1=slice", TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    
+    /* Get a volume index and sample type. */
+    volume = atoi( argv[1] );
+    method = (Volm_tResampleMethod)atoi( argv[2] );
+
+    /* make sure it's main or aux. if we have that volume, set the brightness
+       and contrast for it. */
+    if( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
+      if( NULL != gAnatomicalVolume[ volume ] ) {
+	SetVolumeResampleMethod( volume, method );
+      }
+    }
+  }
+  
+  return TCL_OK;
+}
+
 int TclSaveLabel ( ClientData inClientData, Tcl_Interp* inInterp,
        int argc, char* argv[] ) {
   
@@ -5366,6 +5399,10 @@ int main ( int argc, char** argv ) {
   
   Tcl_CreateCommand ( interp, "SetVolumeSampleType",
 		      TclSetVolumeSampleType,
+		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
+  Tcl_CreateCommand ( interp, "SetVolumeResampleMethod",
+		      TclSetVolumeResampleMethod,
 		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SaveLabel",
@@ -7516,6 +7553,41 @@ void SetVolumeSampleType  ( tkm_tVolumeType  iVolume,
   xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d %d", 
 		  (int)iVolume, (int)iType );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeSampleType, sTclArguments );
+  
+  /* big redraw */
+  MWin_RedrawAll( gMeditWindow );
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+}
+
+void SetVolumeResampleMethod  ( tkm_tVolumeType      iVolume,
+				Volm_tResampleMethod iMethod ) {
+
+  tkm_tErr  eResult         = tkm_tErr_NoErr;
+  Volm_tErr eVolume         = Volm_tErr_NoErr;
+  char      sTclArguments[tkm_knTclCmdLen] = "";
+  
+  DebugEnterFunction( ("SetVolumeResampleMethod ( iVolume=%d, iMethod=%d )",
+		       (int)iVolume, (int)iMethod) );
+  
+  DebugAssertThrowX( (iVolume >= 0 && iVolume < tkm_knNumVolumeTypes), 
+		     eResult, tkm_tErr_InvalidParameter );
+
+  /* Set the type in the volume. */
+  DebugNote( ("Setting resample method") );
+  eVolume = Volm_SetResampleMethod( gAnatomicalVolume[iVolume], iMethod );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+  
+  /* update the tcl window */
+  xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d %d", 
+		  (int)iVolume, (int)iMethod );
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeResampleMethod, 
+		      sTclArguments );
   
   /* big redraw */
   MWin_RedrawAll( gMeditWindow );
@@ -11378,6 +11450,7 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "UpdateAuxVolumeDirty",
   "UpdateVolumeValueMinMax",
   "UpdateVolumeSampleType",
+  "UpdateVolumeResampleMethod",
   
   /* display status */
   "ShowVolumeCoords",
