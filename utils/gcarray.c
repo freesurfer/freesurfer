@@ -482,7 +482,7 @@ GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
 #define PRETTY_SURE   .90f
 
 MRI *
-GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst, 
+GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst, 
             float conf, MRI *mri_probs, MRI *mri_classes)
 {
   MATRIX     *m_inputs ;
@@ -492,7 +492,13 @@ GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst,
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
   float      *pzscore, prob, *pprobs = NULL ;
   Real       xt, yt, zt, xv, yv, zv ;
+  MRI        *mri_std, *mri_zscore, *mri_mean ;
 
+  mri_mean = MRImean(mri_src, NULL, 3) ;
+  mri_std = MRIstd(mri_src, mri_std, NULL, 3) ;
+  mri_zscore = MRInorm(mri_src, NULL, mri_mean, mri_std) ;
+  MRIfree(&mri_std) ;
+  MRIfree(&mri_mean) ;
   if (conf < 0.0f || conf >= 1.0f)
     conf = PRETTY_SURE ;
 
@@ -560,8 +566,6 @@ GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst,
           zc = depth-1 ;
         gc = gcarray->gcs[zc][yc][xc] ;
         src = *psrc++ ;
-if (x == 110 && y == 31 && z == 52)
-  DiagBreak() ;
         m_inputs->rptr[1][1] = src ;
         m_inputs->rptr[2][1] = *pzscore++ ;
         if (gcarray->nvars > 2)
@@ -587,6 +591,7 @@ if (x == 110 && y == 31 && z == 52)
   }
 
   MatrixFree(&m_inputs) ;
+  MRIfree(&mri_zscore) ;
 
   return(mri_dst) ;
 }
@@ -785,8 +790,10 @@ GCarrayThreshold(GCARRAY *gcarray, MRI *mri_probs, MRI *mri_classes,
         class = (int)*pclasses++ ;
         if (prob >= threshold && class == WHITE_MATTER)
           *pdst++ = 255 ;
+#if 0
         else if (class == WHITE_MATTER)
           *pdst++ = 128 ;
+#endif
         else
           *pdst++ = 0 ;
       }
