@@ -1,6 +1,8 @@
 #ifndef GCSA_H
 #define GCSA_H
 
+#include <stdio.h>
+
 #include "mrisurf.h"
 #include "mrishash.h"
 
@@ -126,6 +128,7 @@ float GCAlabelProbability(MRI *mri_src, GCA *gca, LTA *lta,
 MRI   *GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                                MRI *mri_dst, LTA *lta, int max_iter,
                                float min_ratio) ;
+int GCSAdump(GCSA *gcsa, int vno, MRI_SURFACE *mris, FILE *fp) ;
 
 #define MIN_PRIOR  0.5
 
