@@ -48,6 +48,7 @@ main(int argc, char *argv[])
   MORPH_3D     *m3d ;
   MRI          *mri_in_reduced, *mri_ref_reduced ;
 
+  parms.morph_skull = 0 ;
   parms.niterations = 100 ;
   parms.l_intensity = 1.0 ;
   parms.levels = -1 ;   /* use default */
@@ -206,6 +207,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "dt = %2.2e\n", parms.dt) ;
   }
+  else if (!stricmp(option, "skull"))
+  {
+    parms.morph_skull = 1 ;
+    fprintf(stderr, "morphing skulls into register before 3d morph\n") ;
+  }
   else if (!strcmp(option, "NOVAR"))
   {
     unit_variance = 1 ;
@@ -335,16 +341,22 @@ register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   memset(&lparms, 0, sizeof(lparms)) ;
   lparms.write_iterations = parms->write_iterations ;
   lparms.mri_ref = mri_ref ; lparms.mri_in = mri_in ;
-  lparms.dt = 5e-6 ; lparms.tol = 1e-3 ; lparms.niterations = 25 ;
+  lparms.dt = 5e-6 ; lparms.tol = 1e-4 ; lparms.niterations = 200 ;
   lparms.momentum = 0.8 ;
   lparms.l_intensity = 1.0f ;
   lparms.lta = LTAalloc(1, mri_in) ;
   if (MRIfindNeck(mri_ref, mri_ref, thresh_low, thresh_hi, &lparms, 1, 
                   &lparms.ref_np) == NULL)
-    ErrorExit(ERROR_BADPARM, "%s: registration failed", Progname) ;
+  {
+    lparms.disable_neck = 1 ;
+    ErrorPrintf(ERROR_BADPARM, "%s: registration failed", Progname) ;
+  }
   if (MRIfindNeck(mri_in, mri_in, thresh_low, thresh_hi, &lparms, 
                   -1,&lparms.in_np)  == NULL)
-    ErrorExit(ERROR_BADPARM, "%s: registration failed", Progname) ;
+  {
+    lparms.disable_neck = 1 ;
+    ErrorPrintf(ERROR_BADPARM, "%s: registration failed", Progname) ;
+  }
 
   MRIlinearAlign(mri_in, mri_ref, &lparms) ;
 
