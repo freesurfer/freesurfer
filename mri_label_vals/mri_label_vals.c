@@ -34,7 +34,7 @@ main(int argc, char *argv[])
   MRI    *mri ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.3 2003/09/15 15:18:55 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.4 2003/09/15 18:02:44 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -57,29 +57,28 @@ main(int argc, char *argv[])
   if (argc < 2)
     usage_exit(1) ;
 
-	vol_name = argv[1] ;
-	label_name = argv[2]  ;
-	out_name = argv[3] ;
+  vol_name = argv[1] ;
+  label_name = argv[2]  ;
+  out_name = argv[3] ;
 
   mri = MRIread(vol_name) ;
   if (!mri)
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s",Progname, vol_name) ;
-	area = LabelRead(NULL, label_name) ;
+  area = LabelRead(NULL, label_name) ;
   if (!area)
     ErrorExit(ERROR_NOFILE, "%s: could not read label from %s",Progname, label_name) ;
-
-	for (i = 0 ;  i  < area->n_points ; i++)
-	{
-		Real  xw, yw, zw, xv, yv, zv, val ;
-
-		xw =  area->lv[i].x ;
-		yw =  area->lv[i].y ;
-		zw =  area->lv[i].z ;
-		// MRIworldToVoxel(mri, xw, yw,  zw, &xv, &yv, &zv) ;
-		MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
-		MRIsampleVolumeType(mri, xv,  yv, zv, &val, SAMPLE_NEAREST) ;
-		printf("%f\n", val)  ;
-	}
+  
+  for (i = 0 ;  i  < area->n_points ; i++)
+  {
+    Real  xw, yw, zw, xv, yv, zv, val ;
+    
+    xw =  area->lv[i].x ;
+    yw =  area->lv[i].y ;
+    zw =  area->lv[i].z ;
+    MRIworldToVoxel(mri, xw, yw,  zw, &xv, &yv, &zv) ;
+    MRIsampleVolumeType(mri, xv,  yv, zv, &val, SAMPLE_NEAREST) ;
+    printf("%f\n", val)  ;
+  }
 
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
