@@ -134,7 +134,6 @@ if test "$CPUTYPE" = "NO"; then
       *)
       ;;
     esac
-    ;; 
   ;;
   esac
 fi
