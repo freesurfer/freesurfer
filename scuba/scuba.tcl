@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.71 2005/02/02 16:46:14 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.72 2005/02/03 23:11:56 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -548,6 +548,7 @@ proc MakeToolBar { ifwTop } {
     global gaTool
     global gaFrame
     global gaView
+    global gCoordsInput
 
     set fwToolBar     $ifwTop.fwToolBar
 
@@ -609,11 +610,23 @@ proc MakeToolBar { ifwTop } {
 
     set gaView(current,inPlane) x
 
-    button $fwToolBar.bwZoomOut  -image icon_zoom_out -command { ZoomViewOut }
-    button $fwToolBar.bwZoomIn   -image icon_zoom_in -command { ZoomViewIn }
+    button $fwToolBar.bwZoomOut  -image icon_zoom_out \
+	-command { ZoomViewOut; RedrawFrame [GetMainFrameID] }
+    button $fwToolBar.bwZoomIn   -image icon_zoom_in \
+	-command { ZoomViewIn; RedrawFrame [GetMainFrameID] }
+
+
+    frame $fwToolBar.fwCoordsInput
+    tkuMakeEntry $fwToolBar.fwCoordsInput.ew \
+	-variable gCoordsInput \
+	-command { GotoCoordsInputCallback } \
+	-width 20
+    set gCoordsInput "Goto RAS Coords"
+    pack $fwToolBar.fwCoordsInput.ew \
+	-fill x
 
     pack $fwToolBar.fwTool $fwToolBar.fwView $fwToolBar.fwInPlane \
-	$fwToolBar.bwZoomOut $fwToolBar.bwZoomIn \
+	$fwToolBar.bwZoomOut $fwToolBar.bwZoomIn $fwToolBar.fwCoordsInput \
 	-side left
 
     return $fwToolBar
@@ -813,6 +826,7 @@ proc ScubaMouseMotionCallback { inX inY iState iButton } {
     global gaFrame
     global gaLayer
     global gaTool
+    global gaWidget
 
     # state 257 = mouse 1 + shift. Change the brightness or contrast.
     if { $gaTool($gaFrame([GetMainFrameID],toolID),mode) == "navigation" &&
@@ -855,14 +869,14 @@ proc ScubaMouseMotionCallback { inX inY iState iButton } {
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
     set err [catch { 
-	set labelValues [GetLabelValuesSet $viewID mouse]
-	UpdateLabelArea 1 $labelValues
+	set labelValues [GetLabelValuesSet $viewID cursor]
+	UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
     set err [catch { 
-	set labelValues [GetLabelValuesSet $viewID cursor] 
-	UpdateLabelArea 2 $labelValues
+	set labelValues [GetLabelValuesSet $viewID mouse] 
+	UpdateLabelArea $gaWidget(labelArea,nMouseArea) $labelValues
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 }
@@ -975,7 +989,7 @@ proc ScubaKeyDownCallback { inX inY iState iKey } {
 	set labelValues [GetLabelValuesSet $viewID mouse] } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
-    UpdateLabelArea 1 $labelValues
+    UpdateLabelArea $gaWidget(labelArea,nMouseArea) $labelValues
 
     # Check for the mouse key equivs.
     foreach {sKey nButton} {
@@ -987,6 +1001,33 @@ proc ScubaKeyDownCallback { inX inY iState iKey } {
 	    ScubaMouseDownCallback $inX $inY $iState $nButton
 	}
     }
+}
+
+proc GotoCoordsInputCallback {} {
+
+    global gCoordsInput
+
+    # Get the input string.
+    set sCoords $gCoordsInput
+
+    # [-+]? matches the leading - or +
+    # \d+ matches a series of digits like 12
+    # \d+\.\d+ matches floating point numbers like 12.34
+    set sFiltered [regexp -inline -all -- {[-+]?\d+|[-+]?\d+\.\d+} $sCoords]
+
+    # Make sure we have three elements.
+    if { [llength $sFiltered] != 3 } {
+	tkuErrorDlog "Invalid coordinate string. Make sure there are three numbers."
+
+    } else {
+
+	# Set the cursor.
+	SetViewRASCenter 0 \
+	    [lindex $sFiltered 0] [lindex $sFiltered 1] [lindex $sFiltered 2]
+	RedrawFrame [GetMainFrameID]
+    }
+
+    set gCoordsInput "Enter RAS Coords"
 }
 
 proc GetPreferences {} {
@@ -1079,13 +1120,20 @@ proc MakeLabelArea { ifwTop } {
     frame $fwLabelArea
 
     set fwLabelArea1     $fwLabelArea.fwLabelArea1
+    set lwLabelArea1     $fwLabelArea.lwLabelArea1
     set fwLabelArea2     $fwLabelArea.fwLabelArea2
+    set lwLabelArea2     $fwLabelArea.lwLabelArea2
+
+    tkuMakeNormalLabel $lwLabelArea1 -label "Cursor" -font [tkuLabelFont]
+    tkuMakeNormalLabel $lwLabelArea2 -label "Mouse"  -font [tkuLabelFont]
 
     set gaWidget(labelArea,1) [frame $fwLabelArea1 -border 2 -relief raised]
     set gaWidget(labelArea,2) [frame $fwLabelArea2 -border 2 -relief raised]
 
-    grid $fwLabelArea1 -column 0 -row 0 -sticky ew
-    grid $fwLabelArea2 -column 1 -row 0 -sticky ew
+    grid $lwLabelArea1 -column 0 -row 0 -sticky ew
+    grid $fwLabelArea1 -column 0 -row 1 -sticky ew
+    grid $lwLabelArea2 -column 1 -row 0 -sticky ew
+    grid $fwLabelArea2 -column 1 -row 1 -sticky ew
 
     grid columnconfigure $fwLabelArea 0 -weight 1
     grid columnconfigure $fwLabelArea 1 -weight 1
@@ -1094,6 +1142,9 @@ proc MakeLabelArea { ifwTop } {
     set gaWidget(labelArea,1,numberOfLabels) 0
     set gaWidget(labelArea,2,labelValueWidgets) {}
     set gaWidget(labelArea,2,numberOfLabels) 0
+
+    set gaWidget(labelArea,nCursorArea) 1
+    set gaWidget(labelArea,nMouseArea) 2
 
     return $fwLabelArea
 }
@@ -3883,10 +3934,10 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 
 
     set err [catch { set fnVolume [FindFile $ifnVolume] } sResult]
-    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
 
     set err [catch { set colID [MakeVolumeCollection $fnVolume] } sResult]
-    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
 
     if { $ibCreateLayer } {
 
@@ -3896,7 +3947,7 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 
 	set err [catch {
 	    Set2DMRILayerVolumeCollection $layerID $colID } sResult]
-	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	if { 0 != $err } { tkuErrorDlog $sResult; return -1 }
 	
 	if { $iFrameIDToAdd != -1 } {
 	    SetLayerInAllViewsInFrame $iFrameIDToAdd $layerID
@@ -3920,6 +3971,8 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
     AddDirToShortcutDirsList [file dirname $ifnVolume]
 
     SetStatusBarText "Loaded $ifnVolume."
+
+    return $layerID
 }
 
 proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
@@ -3928,10 +3981,10 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
     set layerID -1
 
     set err [catch { set fnSurface [FindFile $ifnSurface] } sResult]
-    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
 
     set err [catch { set colID [MakeSurfaceCollection $fnSurface] } sResult]
-    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
 
     if { $ibCreateLayer } {
 
@@ -3941,7 +3994,7 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
 
 	set err [catch {
 	    Set2DMRISLayerSurfaceCollection $layerID $colID } sResult]
-	if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+	if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
 	
 	if { $iFrameIDToAdd != -1 } {
 	    SetLayerInAllViewsInFrame $iFrameIDToAdd $layerID
@@ -3957,17 +4010,17 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
 
     SetStatusBarText "Loaded $ifnSurface."
     
-    return layerID
+    return $layerID
 }
 
 proc LoadTransform { ifnLTA } {
     dputs "LoadTransform"
     
     set err [catch { set fnTransform [FindFile $ifnLTA] } sResult]
-    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
 
     set err [catch { set transformID [MakeNewTransform] } sResult]
-    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
 
     set sLabel [ExtractLabelFromFileName $fnTransform]
 
@@ -3977,11 +4030,13 @@ proc LoadTransform { ifnLTA } {
 
     set err [catch {
 	LoadTransformFromLTAFile $transformID $fnTransform } sResult]
-    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
 
     SelectTransformInTransformProperties $transformID
 
     SetStatusBarText "Loaded $ifnLTA."
+
+    return $transformID
 }
 
 proc DoSaveVolume {} {
@@ -4383,7 +4438,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.71 2005/02/02 16:46:14 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.72 2005/02/03 23:11:56 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -4602,7 +4657,7 @@ while { $nArg < $argc } {
 	c - script {
 	    incr nArg
 	    set fnScript [lindex $argv $nArg]
-	    lappend lCommands "after idle { source $fnScript }"
+	    lappend lCommands "after 100 { source $fnScript }"
 	}
 	
 	help - default {
@@ -4762,6 +4817,9 @@ ShowHideConsole $gaView(tkcon,visible)
 GetPreferences
 
 MakeScubaFrameBindings [GetMainFrameID]
+
+
+
 
 # Now execute all the commands we cached before.
 foreach command $lCommands {
