@@ -308,6 +308,8 @@ char *x86cpucaps_detectcpu(int r, float gccver, int vendor_id, int cpu_id)
 	 strncpy(gcctarget, "pentium3", LEN_GCCSIMDOPT);
        }
      } else if ( family > 6 ) { /* family == 15 */
+       // interestingly Xeon returns 15-2-7 (the same as P4-M)
+       // Pentium M uses the same optimization
        strncpy(cpuname, "Pentium 4", LEN_CPUNAME);
        strncpy(kernelopt, "MPENTIUM4", LEN_KERNELOPT);
        strncpy(gcctarget, "pentium4", LEN_GCCSIMDOPT);
