@@ -39,6 +39,7 @@ static void read_float(FILE *fp, int offset, float *val);
 static void read_double(FILE *fp, int offset, double *val);
 static void read_analyze_header(char *fname, dsr *bufptr);
 static void read_ge_header(FILE *fp, int offset, struct ge_header *header);
+static void flip_analyze_header(dsr *header);
 
 static char *month[] = {
   "Month Zero",
@@ -757,9 +758,33 @@ static void read_analyze_file(char *fname, struct stat stat_buf)
 
   read_analyze_header(fname, &header);
 
-  printf("width: %d\n", header.dime.dim[3]);
+  printf("byte order: ");
+  if(header.hk.sizeof_hdr != sizeof(header))
+  {
+    flip_analyze_header(&header);
+    if(header.hk.sizeof_hdr != sizeof(header))
+    {
+      printf("unknown\n");
+      return;
+    }
+#ifdef Linux
+    printf("big-endian\n");
+#else
+    printf("little-endian\n");
+#endif
+  }
+  else
+  {
+#ifdef Linux
+    printf("little-endian\n");
+#else
+    printf("big-endian\n");
+#endif
+  }
+
+  printf("width: %d\n", header.dime.dim[1]);
   printf("height: %d\n", header.dime.dim[2]);
-  printf("depth: %d\n", header.dime.dim[1]);
+  printf("depth: %d\n", header.dime.dim[3]);
   printf("voxel size: %g, %g, %g, %g, %g, %g, %g, %g\n", header.dime.pixdim[0], header.dime.pixdim[1], header.dime.pixdim[2], header.dime.pixdim[3], header.dime.pixdim[4], header.dime.pixdim[5], header.dime.pixdim[6], header.dime.pixdim[7]);
   printf("data type: ");
   switch(header.dime.datatype)
@@ -1064,5 +1089,46 @@ read_analyze_header(char *fname, dsr *bufptr)
 #endif
 
 }
+
+static void flip_analyze_header(dsr *header)
+{
+
+  int i;
+
+  header->hk.sizeof_hdr = orderIntBytes(header->hk.sizeof_hdr);
+  header->hk.extents = orderIntBytes(header->hk.extents);
+  header->hk.session_error = orderShortBytes(header->hk.session_error);
+
+  for(i = 0;i < 8;i++)
+  {
+    header->dime.dim[i] = orderShortBytes(header->dime.dim[i]);
+    header->dime.pixdim[i] = orderFloatBytes(header->dime.pixdim[i]);
+  }
+
+  header->dime.unused1 = orderShortBytes(header->dime.unused1);
+  header->dime.datatype = orderShortBytes(header->dime.datatype);
+  header->dime.bitpix = orderShortBytes(header->dime.bitpix);
+  header->dime.dim_un0 = orderShortBytes(header->dime.dim_un0);
+  header->dime.vox_offset = orderFloatBytes(header->dime.vox_offset);
+  header->dime.roi_scale = orderFloatBytes(header->dime.roi_scale);
+  header->dime.funused1 = orderFloatBytes(header->dime.funused1);
+  header->dime.funused2 = orderFloatBytes(header->dime.funused2);
+  header->dime.cal_max = orderFloatBytes(header->dime.cal_max);
+  header->dime.cal_min = orderFloatBytes(header->dime.cal_min);
+  header->dime.compressed = orderIntBytes(header->dime.compressed);
+  header->dime.verified = orderIntBytes(header->dime.verified);
+  header->dime.glmax = orderIntBytes(header->dime.glmax);
+  header->dime.glmin = orderIntBytes(header->dime.glmin);
+
+  header->hist.views = orderIntBytes(header->hist.views);
+  header->hist.vols_added = orderIntBytes(header->hist.vols_added);
+  header->hist.start_field = orderIntBytes(header->hist.start_field);
+  header->hist.field_skip = orderIntBytes(header->hist.field_skip);
+  header->hist.omax = orderIntBytes(header->hist.omax);
+  header->hist.omin = orderIntBytes(header->hist.omin);
+  header->hist.smax = orderIntBytes(header->hist.smax);
+  header->hist.smin = orderIntBytes(header->hist.smin);
+
+}  /*  end flip_analyze_header()  */
 
 /* EOF */
