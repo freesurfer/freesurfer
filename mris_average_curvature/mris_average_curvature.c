@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_average_curvature.c,v 1.7 2003/09/05 04:45:39 kteich Exp $";
+static char vcid[] = "$Id: mris_average_curvature.c,v 1.8 2004/03/16 20:57:30 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -39,12 +39,12 @@ main(int argc, char *argv[])
 {
   char         **av, *in_fname, *out_fname, *surf_name, fname[200], *sdir, 
                *hemi ;
-  int          ac, nargs, i ;
+  int          ac, nargs, i, skipped ;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp, *mrisp_total ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.7 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.8 2004/03/16 20:57:30 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -78,17 +78,26 @@ main(int argc, char *argv[])
   out_fname = argv[argc-1] ;
 
   mrisp_total = MRISPalloc(1, 3) ;
+	skipped = 0 ;
   for (i = 4 ; i < argc-1 ; i++)
   {
     fprintf(stderr, "processing subject %s...\n", argv[i]) ;
     sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i], hemi, surf_name) ;
     mris = MRISread(fname) ;
     if (!mris)
-      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+		{
+      ErrorPrintf(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
+			skipped++ ;
+			continue ;
+		}
     if (MRISreadCurvatureFile(mris, in_fname) != NO_ERROR)
-      ErrorExit(ERROR_BADFILE,"%s: could not read curvature file %s.\n",
+		{
+			skipped++ ;
+      ErrorPrintf(ERROR_BADFILE,"%s: could not read curvature file %s.\n",
                 Progname, in_fname);
+			continue ;
+		}
 #if 0
     if (normalize_flag)
       MRISnormalizeCurvature(mris) ;
@@ -169,6 +178,9 @@ main(int argc, char *argv[])
       fprintf(stderr,"writing blurred pattern to surface to %s\n",out_fname);
     MRISwriteCurvature(mris, out_fname) ;
   }
+
+	if (skipped > 0)
+		printf("%d subjects skipped...\n", skipped) ;
 
   MRISfree(&mris) ;
   MRISPfree(&mrisp_total) ;
