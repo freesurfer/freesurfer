@@ -8630,11 +8630,11 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 			HISTOplot(h_mri, "mri.histo") ;
 		if (gca->ninputs == 1)   /* assume it is T1-weighted */
-			mri_peak = HISTOfindLastPeak(h_mri, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+			mri_peak = HISTOfindLastPeak(h_mri, 2*HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
 		else
 			mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins * h_mri->bin_size);
 		mri_peak = h_mri->bins[mri_peak] ;
-		printf("before smoothing, mri peak at %d\n", mri_peak) ;
+ 		printf("before smoothing, mri peak at %d\n", mri_peak) ;
 		h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
 		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 			HISTOplot(h_smooth, "mri_smooth.histo") ;

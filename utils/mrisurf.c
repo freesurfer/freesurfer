@@ -343,6 +343,7 @@ static int   mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 static int   mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                                int t) ;
 static int   mrisTrackTotalDistance(MRI_SURFACE *mris) ;
+static int   mrisTrackTotalDistanceNew(MRI_SURFACE *mris) ;
 static int  mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno) ;
 static int mrisFillFace(MRI_SURFACE *mris, MRI *mri, int fno) ;
 static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on) ;
@@ -15972,6 +15973,31 @@ MRISnonmaxSuppress(MRI_SURFACE *mris)
         Returns value:
 
         Description
+				same as  below, but tracks odx,ody,odz fields
+------------------------------------------------------*/
+static int
+mrisTrackTotalDistanceNew(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+  float  nc ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    nc = v->odx*v->nx + v->ody*v->ny + v->odz*v->nz ;
+    v->curv += nc ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
 ------------------------------------------------------*/
 static int
 mrisTrackTotalDistance(MRI_SURFACE *mris)
@@ -16784,7 +16810,7 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes,
             0, 0.0f, (float)sse/(float)mris->nvertices, 
             (float)pial_sse/(float)mris->nvertices, 
             (float)wm_sse/(float)mris->nvertices, (float)rms);
-
+																/*  */
   if (Gdiag & DIAG_WRITE)
   {
     fprintf(parms->fp, "%3.3d: dt: %2.4f, sse=%2.2f, pial sse=%2.2f, wm sse=%2.2f, rms=%2.2f\n", 
@@ -17030,6 +17056,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   MRIScomputeNormals(mris) ;
   mrisClearDistances(mris) ;
 
+	MRISclearCurvature(mris) ;  /* curvature will be used to calculate sulc */
+
   /* write out initial surface */
   if ((parms->write_iterations > 0) && (Gdiag&DIAG_WRITE) && !parms->start_t)
     mrisWriteSnapshot(mris, parms, 0) ;
@@ -17146,6 +17174,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     } while (!done) ;
     last_sse = sse ; last_rms = rms ;
 #endif
+		mrisTrackTotalDistanceNew(mris) ;  /* computes signed  deformation amount */
     rms = mrisRmsValError(mris, mri_brain) ;
     sse = MRIScomputeSSE(mris, parms) ;
     if (Gdiag & DIAG_SHOW)
