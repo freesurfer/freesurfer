@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/02 22:47:22 $
-// Revision       : $Revision: 1.40 $
+// Revision Date  : $Date: 2004/04/05 14:58:14 $
+// Revision       : $Revision: 1.41 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -136,7 +136,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.40 2004/04/02 22:47:22 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.41 2004/04/05 14:58:14 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -287,7 +287,7 @@ main(int argc, char *argv[])
     
     printf("mapping GCA into %d-dimensional FLASH space...\n", mri_in->nframes) ;
     // that means gca->ninputs = nframes
-    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes, 100) ;
+    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
     // now the type is set gca->type = GCA_FLASH
     GCAfree(&gca) ;
     gca = gca_tmp ;
