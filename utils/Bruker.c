@@ -3,9 +3,9 @@
 /* created by : y.tosa                    */
 /* date       :8/27/2003                  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/04 17:13:04 $
-// Revision       : $Revision: 1.7 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/01/12 21:52:49 $
+// Revision       : $Revision: 1.8 $
 
 // there are many files present in Bruker directory
 //
@@ -112,7 +112,7 @@
 
 /* Martin Hoerrmann. */
 
-char *BRUCKER_C_VERSION= "$Revision: 1.7 $";
+char *BRUCKER_C_VERSION= "$Revision: 1.8 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -334,18 +334,20 @@ int readBrukerD3proc(char *d3procFile, int *px, int *py, int *pz, int *ptype, in
       lRead = sscanf(Value, "%d", pnframes);
       if (*pnframes > 1)
       {
-	fprintf(stderr, "ERROR: nframes %d but one is supported.\n", *pnframes);
-	return 0;
+				fprintf(stderr, "ERROR: nframes %d but one is supported.\n", *pnframes);
+				return 0;
       }
     }
     else if ( !strcmp( Parameter, "$DATTYPE") )
     {
       if (strcmp(Value, "ip_short")==0)
-	*ptype = MRI_SHORT;
+				*ptype = MRI_SHORT;
+      else if (strcmp(Value, "ip_int")==0)
+				*ptype = MRI_INT;
       else
       {
-	fprintf(stderr, "ERROR: currently only short type is supported.\n");
-	return 0;
+				fprintf(stderr, "ERROR: currently only short and int types are supported (Value=%s).\n", Value);
+				return 0;
       }
     }
   }
@@ -724,12 +726,14 @@ int readBrukerReco(char *recoFile, BrukerTransform *pTran)
     }
     else if ( !strcmp( Parameter, "$RECO_wordtype"))
     {
-      if (strncmp(Value, "_16BIT_SGN_INT", 13)==0)
-	pTran->type = MRI_SHORT;
+      if ((strncmp(Value, "_16BIT_SGN_INT", 13)==0))
+				pTran->type = MRI_SHORT;
+      else if ((strncmp(Value, "_32BIT_SGN_INT", 13)==0))
+				pTran->type = MRI_INT;
       else
       {
-	fprintf(stderr, "INFO: unsupported data type %s\n", Value);
-	return 0;
+				fprintf(stderr, "INFO: unsupported data type %s\n", Value);
+				return 0;
       }
     }
     else if ( !strcmp( Parameter, "$RECO_mode"))

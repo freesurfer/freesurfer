@@ -1430,41 +1430,12 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
       {
 				if (x == Gx && y == Gy && z == Gz)
 					DiagBreak() ;
-				switch (mri_mask->type)
-				{
-				case MRI_UCHAR: mask_val = *pmask++ ; break ;
-				case MRI_SHORT: mask_val = MRISvox(mri_mask, x, y, z) ; break ;
-				default:
-					ErrorReturn(NULL,
-											(ERROR_UNSUPPORTED, "MRImask: unsupported mask voxel type %d",
-											 mri_mask->type)) ;
-				}
+				mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
+				val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
 					
-        switch (mri_src->type)
-        {
-        default:
-          ErrorReturn(NULL,
-                      (ERROR_UNSUPPORTED, "MRImask: unsupported src voxel type %d",
-                       mri_src->type)) ;
-        case MRI_UCHAR:
-          val = (float)MRIvox(mri_src, x, y, z) ;
-          if (mask_val == mask)
-            val = out_val ;
-          MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(val) ;
-          break ;
-        case MRI_SHORT:
-          val = (float)MRISvox(mri_src, x, y, z) ;
-          if (mask_val == mask)
-            val = out_val ;
-          MRISvox(mri_dst, x, y, z) = (short)nint(val) ;
-          break ;
-        case MRI_FLOAT:
-          val = MRIFvox(mri_src, x, y, z) ;
-          if (mask_val == mask)
-            val = out_val ;
-          MRIFvox(mri_dst, x, y, z) = val ;
-          break ;
-        }
+				if (mask_val == mask)
+					val = out_val ;
+				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
       }
     }
   }
