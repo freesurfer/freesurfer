@@ -8,7 +8,7 @@ function p = FTest(dof1, dof2, F, dof2max)
 %
 % Ref: Numerical Rec in C, pg 229.
 %
-% $Id: FTest.m,v 1.1 2003/03/04 20:47:40 greve Exp $
+% $Id: FTest.m,v 1.2 2003/04/29 02:53:50 greve Exp $
 %
 if(nargin ~= 3 & nargin ~= 4)
   msg = 'Usage: p = FTest(dof1, dof2, F, <dof2max>)';
@@ -23,7 +23,9 @@ if(length(dof2) > 1)
   error('dof2 must be a scalar');
 end
 
-if(nargin == 4) dof2 = min(dof2,dof2max); end
+if(exist('dof2max') ~= 1) dof2max = []; end
+if(isempty(dof2max))      dof2max = dof2; end
+dof2 = min(dof2,dof2max);
 
 z = dof2./(dof2 + dof1 * F);
 p = betainc(z, dof2/2, dof1/2);
