@@ -16,11 +16,11 @@ function yak(varargin)
 %
 % yak(cbstring) % for callback functions
 %
-% $Id: yak.m,v 1.2 2003/07/19 00:17:03 greve Exp $
+% $Id: yak.m,v 1.3 2003/08/03 23:54:42 greve Exp $
 
 if(nargin == 0)
   msg = 'USAGE: hfig = yak(flag,options)';
-  msg = sprintf('%s\n$Id: yak.m,v 1.2 2003/07/19 00:17:03 greve Exp $',msg);
+  msg = sprintf('%s\n$Id: yak.m,v 1.3 2003/08/03 23:54:42 greve Exp $',msg);
   qoe(msg);error(msg);
 end
 
@@ -166,11 +166,16 @@ if(Init)
   ud.hcbar = colorbar;
 
   set(gcf,'WindowButtonDownFcn','yak(''wbd'')');
-  set(gcf,'WindowButtonUpFcn','yak(''wbu'')');
-  set(gcf,'WindowButtonMotionFcn','yak(''wbm'')');
+  %set(gcf,'WindowButtonUpFcn','yak(''wbu'')');
+  %set(gcf,'WindowButtonMotionFcn','yak(''wbm'')');
   set(gcf,'KeyPressFcn',        'yak(''kbd'')');
   set(gcf,'DeleteFcn',          'yak(''delete'')');
 
+  set(gcf,'Interruptible','off'); % smooth animations %
+  set(gcf,'DoubleBuffer','on');   % smooth animations %
+  set(gcf,'BusyAction','cancel'); % dont build up a lot of events %
+  set(gcf,'renderer','painters'); % seems to be the best
+  
   s = sprintf('%5d, %3s, %4.2f, %4.2f',...
               ud.CurPlaneNo,ud.OverlaySign,ud.PMin,ud.PMax);
 
