@@ -34,8 +34,9 @@
 #include "tiff.h"
 #include "tiffio.h"
 #include "label.h"
+#include "macros.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.25 1999/05/20 04:30:56 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.26 1999/05/21 19:12:35 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -781,15 +782,16 @@ get_option(int argc, char *argv[])
     compile_flags |= NOBORDER_FLAG ;
   else if (!stricmp(option, "cparms"))
   {
-    double coord_thickness, coord_spacing ;
+    double coord_thickness ;
+    int num_coord_lines ;
 
     coord_thickness = atof(argv[2]) ;
-    coord_spacing = atof(argv[3]) ;
+    num_coord_lines = atoi(argv[3]) ;
     fprintf(stderr, 
-        "spacing coordinate lines %2.2f degrees apart, with thickness %2.2f\n",
-            coord_spacing, coord_thickness) ;
+        "drawing %d coordinate lines, with thickness %2.2f\n",
+            num_coord_lines, coord_thickness) ;
     nargs = 2 ;
-    OGLUsetCoordParms(coord_thickness, coord_spacing) ;
+    OGLUsetCoordParms(coord_thickness, num_coord_lines) ;
   }
   else if (!stricmp(option, "coord"))
   {

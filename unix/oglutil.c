@@ -17,7 +17,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.23 1999/05/10 03:09:53 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.24 1999/05/21 19:15:17 fischl Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -452,14 +452,13 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   {
     float  cheight = 15*0.05 ; /* dist edge above surface (0.05 in surfer.c) */
     FACE   *f ;
-    float  nx,ny,nz;
+    float  nx,ny,nz ;
     float  cross_x[4],cross_y[4],cross_z[4];
     int    nintersections;
     VERTEX *va, *vb, *vf[VERTICES_PER_FACE] ;
     double avg_coord, phi_avg, theta_avg, coorda, coordb, coord_line ;
     double fcoords[VERTICES_PER_FACE], frac ;
     int    cno, fvno ;
-
 
     for (k = 0 ; k < mris->nfaces ; k++)
     {
@@ -494,7 +493,9 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           RGBcolor(180,135,255);
           RGBcolor(150,255,255);
           RGBcolor(255,230, 0) ;  
-          glLineWidth(1.0f);
+          RGBcolor(0,0, 255) ;      /* blue */
+          RGBcolor(255,255, 0) ;  
+          glLineWidth(oglu_coord_thickness) ;
           for (fvno = 0 ; fvno < VERTICES_PER_FACE ; fvno++)
             fcoords[fvno] = DEGREES(vf[fvno]->phi) ;
         }
@@ -504,7 +505,9 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           RGBcolor(180,135,255);
           RGBcolor(150,255,255);
           RGBcolor(255,230, 0) ;  
-          glLineWidth(1.0f);
+          RGBcolor(0,0, 255) ;      /* blue */
+          RGBcolor(255,255, 0) ;    /* yellow */
+          glLineWidth(oglu_coord_thickness) ;
           for (fvno = 0 ; fvno < VERTICES_PER_FACE ; fvno++)
             fcoords[fvno] = DEGREES(vf[fvno]->theta) ;
         }
@@ -542,6 +545,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           if (nintersections >= 2)   /* draw the line */
           {
             glBegin(GL_LINES) ;
+    
             load_brain_coords(nx,ny,nz,v1);
             glNormal3fv(v1);
             load_brain_coords(cross_x[0]+cheight*nx,cross_y[0]+cheight*ny,
@@ -886,10 +890,10 @@ OGLUsetFOV(int fov)
 }
 
 int
-OGLUsetCoordParms(double coord_thickness, double coord_spacing)
+OGLUsetCoordParms(double coord_thickness, int num_coord_lines)
 {
   oglu_coord_thickness = coord_thickness ;
-  oglu_coord_spacing = coord_spacing ;
+  oglu_coord_spacing = 360.0 / (double)num_coord_lines ;
   return(NO_ERROR) ;
 }
 
