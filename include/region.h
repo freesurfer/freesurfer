@@ -15,6 +15,7 @@ MRI_REGION *REGIONunion(MRI_REGION *reg1, MRI_REGION *reg2, MRI_REGION *rdst);
 MRI_REGION *REGIONalloc(void) ;
 MRI_REGION *REGIONcopy(MRI_REGION *rsrc, MRI_REGION *rdst) ;
 int        REGIONinside(MRI_REGION *reg, int x, int y, int z) ;
+MRI_REGION *REGIONexpand(MRI_REGION *rsrc, MRI_REGION *rdst, int n) ;
 
 
 #define REGION_INSIDE      1
