@@ -82,7 +82,8 @@ MHTfillVertexTableRes(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which,
   if (!mht)
     ErrorExit(ERROR_NO_MEMORY, 
               "MHTfillVertexTable: could not allocate hash table.\n") ;
-  
+
+  mht->which_vertices = which ;
   mht->vres = res ;
   for (xv = 0 ; xv < TABLE_SIZE ; xv++)
   {
@@ -1576,3 +1577,97 @@ int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
 
   return(vtxno_min) ;
 }
+#define MAX_VERTICES 50000
+int *
+MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, 
+                                int vno, float max_dist, int *pvnum)
+{
+  int       vertices[MAX_VERTICES], *returned_vertices ;
+  VERTEX    *vdst, *v ;
+  int       i, xk, yk, zk, vnum ;
+  double    dist ;
+  MHB       *bin ;
+  MHBT      *bucket ;
+  float     x, y, z ;
+
+  v = &mris->vertices[vno] ;
+  for (vnum = 0, zk = -1 ; zk <= 1 ; zk++)
+  {
+    for (yk = -1 ; yk <= 1 ; yk++)
+    {
+      for (xk = -1 ; xk <= 1 ; xk++)
+      {      
+        switch (mht->which_vertices)
+        {
+        default:
+        case CURRENT_VERTICES:
+          x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->x)+xk) ;
+          y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->y)+yk) ;
+          z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->z)+zk) ;
+          break ;
+        case CANONICAL_VERTICES:
+          x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->cx)+xk) ;
+          y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->cy)+yk) ;
+          z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->cz)+zk) ;
+          break ;
+        case ORIGINAL_VERTICES:
+          x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->origx)+xk) ;
+          y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->origy)+yk) ;
+          z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->origz)+zk) ;
+          break ;
+        }
+        bucket = MHTgetBucket(mht, x, y, z) ;
+        if (!bucket)
+          continue ;
+        bin = bucket->bins ; 
+        for (i = 0 ; i < bucket->nused ; i++, bin++)
+        {
+          vdst = &mris->vertices[bin->fno] ;
+          if (vdst->ripflag)
+            continue ;  /* already processed */
+
+          if (bin->fno == Gdiag_no)
+            DiagBreak() ;
+          switch (mht->which_vertices)
+          {
+          default:
+          case CURRENT_VERTICES:
+            dist = sqrt(SQR(vdst->x-v->x)+SQR(vdst->y-v->y)+SQR(vdst->z-v->z)) ;
+            break ;
+          case CANONICAL_VERTICES:
+            dist = 
+              sqrt(SQR(vdst->cx-v->cx)+SQR(vdst->cy-v->cy)+SQR(vdst->cz-v->cz));
+            break ;
+          case ORIGINAL_VERTICES:
+            dist = 
+              sqrt(SQR(vdst->origx-v->origx)+
+                   SQR(vdst->origy-v->origy)+SQR(vdst->origz-v->origz));
+            break ;
+          }
+          if (dist < max_dist)
+          {
+            if (vnum >= MAX_VERTICES)
+              ErrorExit(ERROR_NOMEMORY, 
+                        "MHTgetAllVerticesWithinDistance: couldn't"
+                        "fit vertices!") ;
+            vdst->ripflag = 1 ;
+            vertices[vnum++] = bin->fno ;
+          }
+        }
+      }
+    }
+  }
+
+  returned_vertices = (int *)calloc(vnum, sizeof(int)) ;
+  if (!returned_vertices)
+    ErrorExit(ERROR_NOMEMORY, 
+              "MHTgetAllVerticesWithinDistance: couldn't allocate %d int array",
+              vnum) ;
+
+  memmove(returned_vertices, vertices, vnum*sizeof(int)) ;
+  *pvnum = vnum;
+  for (i = 0 ; i < vnum ; i++)
+    mris->vertices[vertices[i]].ripflag = 0 ;
+  return(returned_vertices) ;
+}
+
