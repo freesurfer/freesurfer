@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/21 21:13:36 $
-// Revision       : $Revision: 1.292 $
+// Revision Date  : $Date: 2004/07/29 18:15:49 $
+// Revision       : $Revision: 1.293 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2807,7 +2807,7 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
   // check dst info
   if (!lt->dst.valid)
   {
-    fprintf(stderr, "INFO: transform src volume information cannot be found.\n");
+    fprintf(stderr, "INFO: transform dst volume information cannot be found.\n");
     fprintf(stderr, "INFO: if the target is MNI average_305, then you can do 'setenv USE_AVERAGE305 true'\n");
     fprintf(stderr, "INFO: otherwise c_(ras) is set to 0. destination surface points may be shifted.\n");
     if (getenv("USE_AVERAGE305"))
