@@ -82,6 +82,7 @@ typedef struct
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
+static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs) ;
 #if 0
 static int mrisAverageWeightedGradients(MRI_SURFACE *mris, int num_avgs) ;
@@ -152,7 +153,6 @@ static int   mrisCheck(MRI_SURFACE *mris) ;
 static int   mrisClipGradient(MRI_SURFACE *mris, float max_len) ;
 static int   mrisClipMomentumGradient(MRI_SURFACE *mris, float max_len) ;
 #endif
-static int   mrisFileNameType(char *fname) ;
 static int   mrisComputeSurfaceDimensions(MRI_SURFACE *mris) ;
 static int   mrisFindNeighbors(MRI_SURFACE *mris) ;
 static void  mrisNormalize(float v[3]) ;
@@ -427,7 +427,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
   FACE        *face ;
 
   chklc() ;    /* check to make sure license.dat is present */
-  type = mrisFileNameType(fname) ;
+  type = MRISfileNameType(fname) ;
   if (type == MRIS_ASCII_TRIANGLE_FILE)
   {
     mris = mrisReadAsciiFile(fname) ;
@@ -744,7 +744,7 @@ MRISfastRead(char *fname)
   FACE        *face ;
 
   mris = NULL ; fp = NULL ;
-  type = mrisFileNameType(fname) ;
+  type = MRISfileNameType(fname) ;
   if (type == MRIS_ASCII_TRIANGLE_FILE)
   {
     mris = mrisReadAsciiFile(fname) ;
@@ -1035,7 +1035,7 @@ MRISwrite(MRI_SURFACE *mris, char *name)
 
   chklc() ;
   MRISbuildFileName(mris, name, fname) ;
-  type = mrisFileNameType(fname) ;
+  type = MRISfileNameType(fname) ;
   if (type == MRIS_ASCII_TRIANGLE_FILE)
     return(MRISwriteAscii(mris, fname)) ;
   else if (type == MRIS_VTK_FILE)
@@ -2716,21 +2716,26 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
   int    k,i,vnum,fnum;
   float  curv, curvmin, curvmax;
   FILE   *fp;
-  char   *cp, path[STRLEN], fname[STRLEN] ;
+  char   *cp, path[STRLEN], fname[STRLEN], type ;
   
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
   {
     cp = strchr(sname, '.') ;
     FileNamePath(mris->fname, path) ;
-    if (cp)
+    if (cp && ((strncmp(cp-2, "lh", 2) == 0) || (strncmp(cp-2, "rh", 2) == 0)))
       sprintf(fname, "%s/%s", path, sname) ;
     else   /* no hemisphere specified */
       sprintf(fname, "%s/%s.%s", path, 
               mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
   }
   else   
-    strcpy(fname, sname) ;  /* path specified explcitly */
+    strcpy(fname, sname) ;  /* path specified explicitly */
+
+
+	type = MRISfileNameType(fname) ;
+	if (type == MRIS_ASCII_FILE)
+		return(mrisReadAsciiCurvatureFile(mris, fname)) ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) 
     fprintf(stdout, "reading curvature file...") ;
@@ -8052,7 +8057,7 @@ MRISwritePatch(MRI_SURFACE *mris, char *fname)
   float  x,y,z;
   FILE   *fp;
 
-  type = mrisFileNameType(fname) ;
+  type = MRISfileNameType(fname) ;
   if (type == MRIS_ASCII_TRIANGLE_FILE)
     return(MRISwritePatchAscii(mris, fname)) ;
   else if (type == MRIS_GEO_TRIANGLE_FILE)
@@ -13753,7 +13758,7 @@ MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
   VERTEX  *vertex ;
   FILE    *fp ;
 
-  type = mrisFileNameType(name) ;
+  type = MRISfileNameType(name) ;
   MRISbuildFileName(mris, name, fname) ;
   if (type == MRIS_GEO_FILE)
     return(mrisReadGeoFilePositions(mris, fname)) ;
@@ -14235,12 +14240,13 @@ MRISpercentDistanceError(MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
-static int   
-mrisFileNameType(char *fname)
+int   
+MRISfileNameType(char *fname)
 {
   int   type ;
-  char  *dot, ext[STRLEN] ;
+  char  *dot, ext[STRLEN], str[STRLEN] ;
 
+	FileNameOnly(fname, str) ; fname = str ; /* remove path */
   ext[0] = 0 ;
   dot = strrchr(fname, '@') ;   /* forces the type of the file */
   if (dot)
@@ -14434,7 +14440,7 @@ MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
   VERTEX  *v ;
   FACE    *face ;
 
-  type = mrisFileNameType(fname) ;
+  type = MRISfileNameType(fname) ;
 #if 0
   if (type == MRIS_ASCII_TRIANGLE_FILE)
     return(MRISwriteAscii(mris, fname)) ;
@@ -31110,7 +31116,7 @@ MRISreadVerticesOnly(char *fname)
   SMALL_VERTEX  *vertex ;
   FILE          *fp ;
 
-  type = mrisFileNameType(fname) ;
+  type = MRISfileNameType(fname) ;
   switch (type)
   {
   case MRIS_ASCII_TRIANGLE_FILE:
@@ -33501,6 +33507,36 @@ MRISclearFlags(MRI_SURFACE *mris, int flags)
 
 	for (vno = 0 ; vno < mris->nvertices ; vno++)
 		mris->vertices[vno].flags &= (~flags) ;
+	return(NO_ERROR) ;
+}
+
+static int
+mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, char *fname)
+{
+	FILE   *fp ;
+	int    vno ;
+	char   line[STRLEN], *cp ;
+	VERTEX *v ;
+
+  fp = fopen(fname, "r") ;
+  if (!fp)
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "%s could not open output file %s.\n",
+																mrisReadAsciiCurvatureFile, fname)) ;
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+		cp = fgetl(line, 100, fp) ;
+		if (!cp)
+			break ;
+    if (sscanf(line, "%*d %*f %*f %*f %f\n", &v->curv) != 1)
+			ErrorReturn(ERROR_BADFILE, 
+								(ERROR_BADFILE, 
+								 "mrisReadAsciiCurvatureFile(%s): could not scan curvature from line '%s'",fname,line));
+	}
+
+	fclose(fp) ;
 	return(NO_ERROR) ;
 }
 
