@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.3 2001/02/07 22:42:35 greve Exp $
+  $Id: mri_vol2surf.c,v 1.4 2001/02/27 17:28:05 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -56,7 +56,7 @@ static int  check_format(char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.3 2001/02/07 22:42:35 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.4 2001/02/27 17:28:05 greve Exp $";
 char *Progname = NULL;
 
 char *srcvolid   = NULL;
@@ -166,6 +166,7 @@ int main(int argc, char **argv)
     rowres_src = 1;
     slcres_src = 1;
   }
+  printf("Source Volume: %d %d %d %d\n",nrows_src,ncols_src,nslcs_src,nfrms);
   /* Wsrc: Get the source warping Transform */
   Wsrc = NULL;
 
@@ -185,7 +186,7 @@ int main(int argc, char **argv)
   else{
     SrcVol = mri_load_cor_as_float(srcvolid);
   }
-  printf("done\n");
+  printf("Done loading volume\n");
 
   /* If this is a statistical volume, raise each frame to it's appropriate
      power (eg, stddev needs to be squared)*/
@@ -202,6 +203,7 @@ int main(int argc, char **argv)
     printf("INFO: Adjusting Frame Power\n");  fflush(stdout);
     mri_framepower(SrcVol,framepower);
   }
+  fflush(stdout);
 
   /* Load the surface for subject indicated by registration file*/
   sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,hemi,surfname);
@@ -209,7 +211,8 @@ int main(int argc, char **argv)
   Surf = MRISread(fname) ;
   if (!Surf)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, fname) ;
-  printf("Done\n");
+  printf("Done reading source surface\n");
+  fflush(stdout);
 
   /* Load the thickness for projection along the normal*/
   if(ProjFrac > 0){
@@ -221,32 +224,67 @@ int main(int argc, char **argv)
 
   /* Map the values from the volume to the surface */
   printf("Mapping Source Volume onto Source Subject Surface\n");
+  fflush(stdout);
   SurfVals = vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc, 
            Surf, ProjFrac, interpmethod, 
            float2int);
+  fflush(stdout);
+  if(SurfVals == NULL){
+    printf("ERROR: mapping volume to source\n");
+    exit(1);
+  }
+  printf("Done mapping volume to surface\n");
+  fflush(stdout);
   MRIfree(&SrcVol);
 
   if(trgsubject != NULL && strcmp(trgsubject,srcsubject)){
     /* load in the source subject registration */
     sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,hemi,surfreg);    
+    printf("Reading source surface registration \n  %s\n",fname);
     SrcSurfReg = MRISread(fname);
-    if(SrcSurfReg==NULL) exit(1);
+    if(SrcSurfReg==NULL) {
+      printf("ERROR: reading %s\n",fname);
+      exit(1);
+    }
+    printf("Done loading source registration surface\n");
+    fflush(stdout);
 
     /* load in the target subject registration */
     if(strcmp(trgsubject,"ico")){
-      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,hemi,surfreg);    
+      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,hemi,surfreg); 
+      printf("Reading target registration \n   %s\n",fname);
       TrgSurfReg = MRISread(fname);
+      if(TrgSurfReg == NULL){
+  printf("ERROR: could not read %s\n",fname);
+        exit(1);
+      }
     }
-    else TrgSurfReg = ReadIcoByOrder(IcoOrder,IcoRadius);
-    if(TrgSurfReg==NULL) exit(1);
+    else {
+      fflush(stdout);
+      printf("Reading icosahedron, order = %d, radius = %g\n",IcoOrder,IcoRadius);
+      TrgSurfReg = ReadIcoByOrder(IcoOrder,IcoRadius);
+      if(TrgSurfReg==NULL) {
+  printf("ERROR reading icosahedron\n");
+  exit(1);
+      }
+    }
+    printf("Done loading target registration surface\n");
+    fflush(stdout);
 
     if(!strcmp(mapmethod,"nnfr")) ReverseMapFlag = 1;
     else                          ReverseMapFlag = 0;
 
     printf("Mapping Surfaces (%s -> %s)\n",srcsubject,trgsubject);
+    fflush(stdout);
     SurfVals2 = surf2surf_nnfr(SurfVals, SrcSurfReg,TrgSurfReg,
              &SrcHits,&SrcDist,&TrgHits,&TrgDist,
              ReverseMapFlag,UseHash);
+    if(SurfVals2 == NULL){
+      printf("ERROR: mapping surfaces\n");
+      exit(1);
+    }
+    printf("Done mapping surfaces\n");
+    fflush(stdout);
 
     /*Compute some stats on mapping number of trgvtxs mapped from a source vtx*/
     nSrc121 = 0;
