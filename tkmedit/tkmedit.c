@@ -14,6 +14,7 @@
 #include "error.h"
 #include "diag.h"
 #include "utils.h"
+#include "const.h"
 
 
 
@@ -124,7 +125,7 @@ int            tk_NumMainWindows = 0;
 #define POSTANT   0
 #define INFSUP    1
 #define RIGHTLEFT 2  /* radiol */
-#define NAME_LENGTH  100
+#define NAME_LENGTH  STRLEN
 #define MAX_DIR_DEPTH  30
 #define TMP_DIR          "tmp"             /* relative to subjectsdir/pname */
 #define TRANSFORM_DIR    "mri/transforms"  /* ditto */
@@ -337,7 +338,7 @@ char *Progname ;
 
 #ifdef USE_LICENSE
 
-extern char *crypt(char *, char *) ;
+extern char *crypt(const char *, const char *) ;
 /* Licensing */
 void checkLicense(char* dirname)
 {
@@ -471,7 +472,7 @@ void setupFVC(float tcx, float tcy, float tcz)
 int countFVSlices(const char* prefix)
 {
   int slice_number = 0;
-  char fname[255];
+  char fname[STRLEN];
   FILE* fp;
 
   do
@@ -3119,7 +3120,7 @@ read_images(char *fpref)
 {
   int i,j,k;
   FILE *fptr, *xfptr;
-  char fname[100], char_buf[100];
+  char fname[STRLEN], char_buf[STRLEN];
 
   sprintf(fname,"%s.info",fpref);
   fptr = fopen(fname,"r");
@@ -3294,7 +3295,7 @@ write_images(char *fpref)
 {
   int k;
   FILE *fptr;
-  char fname[100];
+  char fname[STRLEN];
 
   if (!editflag) { 
     printf(
@@ -3920,8 +3921,6 @@ show_current_surface(void)
 int
 read_orig_vertex_positions(char *name)
 {
-  char fname[STRLEN], *cp ;
-
   if (!mris)
     return(NO_ERROR) ;
 
@@ -5471,8 +5470,8 @@ char **argv;
   static char *display = NULL;
   char tkmedit_tcl[NAME_LENGTH];
   char script_tcl[NAME_LENGTH];
-  char *envptr, *getenv();
-  FILE *fp, *fopen();
+  char *envptr;
+  FILE *fp ;
 
   initmap_hacked();
   /* get tkmedit tcl startup script location from environment */
