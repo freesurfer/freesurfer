@@ -73,7 +73,7 @@
 #ifdef _MSDOS
 #include <math.h>
 #define exp2(f)     pow(2.0,(f))
-#define log2(f)     (log(f) / log(10.0))
+#define log2(f)     (log(f) / log(2.0))
 #ifndef M_E
 #define M_E 2.718282 /* exp(1) */
 #endif
