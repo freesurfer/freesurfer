@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/06/05 20:39:22 $
-// Revision       : $Revision: 1.73 $
+// Revision Date  : $Date: 2003/06/11 13:41:55 $
+// Revision       : $Revision: 1.74 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -6729,16 +6729,15 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 	int   decs ;
 	
 	f = fabs(fVolumeValue) ;
-	if (f > 1)
-	  decs = 2 ;
-	else if (f > .1)
-	  decs = 3 ;
-	else if (f > .01)
-	  decs = 4 ;
-	else if (f > 0.001)
-	  decs = 5 ;
-	else
-	  decs = 6 ;
+	if (f > 1) decs = 2 ;
+	else if (f > .1) decs = 3 ;
+	else if (f > .01) decs = 4 ;
+	else if (f > 0.001) decs = 5 ;
+	else if (f > 0.0001) decs = 6 ;
+	else if (f > 0.00001) decs = 7 ;
+	else if (f > 0.000001) decs = 8 ;
+	else if (f > 0.0000001) decs = 9 ;
+	else decs = 10 ;
 	
 	sprintf(fmt, "%%s %%2.%df", decs) ;
 	sprintf( sTclArguments, fmt, 
@@ -6772,16 +6771,15 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 	    int   decs ;
 	    
 	    f = fabs(fVolumeValue) ;
-	    if (f > 1)
-	      decs = 2 ;
-	    else if (f > .1)
-	      decs = 3 ;
-	    else if (f > .01)
-	      decs = 4 ;
-	    else if (f > 0.001)
-	      decs = 5 ;
-	    else
-	      decs = 6 ;
+	    if (f > 1)     decs = 2 ;
+	    else if (f > .1) decs = 3 ;
+	    else if (f > .01) decs = 4 ;
+	    else if (f > 0.001) decs = 5 ;
+	    else if (f > 0.0001) decs = 6 ;
+	    else if (f > 0.00001) decs = 7 ;
+	    else if (f > 0.000001) decs = 8 ;
+	    else if (f > 0.0000001) decs = 9 ;
+	    else decs = 10 ;
 	    
 	    sprintf(fmt, "%%s %%2.%df", decs) ;
 	    sprintf( sTclArguments, fmt, 
