@@ -25,6 +25,9 @@
 #define DEBUG_U  -1 /*117  */
 #define DEBUG_V  -1 /* 396  */
 
+static int spherical_coordinate(double x, double y, double z,double *pphi,
+                                double *ptheta) ;
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -1817,5 +1820,44 @@ MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area)
     }
   }
   return(mrisp) ;
+}
+
+int
+MRISPcoordinate(MRI_SP *mrisp, float x, float y, float z, int *pu, int *pv)
+{
+  double phi, theta, uf, vf ;
+  int    u, v ;
+
+  spherical_coordinate(x, y, z, &phi, &theta) ;
+  uf = PHI_DIM(mrisp) * phi / PHI_MAX ;
+  vf = THETA_DIM(mrisp) * theta / THETA_MAX ;
+  u = nint(uf) ;
+  v = nint(vf) ;
+  if (u < 0)  /* enforce spherical topology  */
+    u = -u ;
+  if (u >= U_DIM(mrisp))
+    u = U_DIM(mrisp) - (u-U_DIM(mrisp)+1) ;
+  if (v < 0)  /* enforce spherical topology  */
+    v += V_DIM(mrisp) ;
+  if (v >= V_DIM(mrisp))
+    v -= V_DIM(mrisp) ;
+  *pu = u ; *pv = v ;
+  return(NO_ERROR) ;
+}
+static int
+spherical_coordinate(double x, double y, double z,double *pphi,double *ptheta)
+{
+  double r, d ;
+
+  r = sqrt(x*x + y*y + z*z) ;
+  d = r*r-z*z ; 
+  if (d < 0.0) 
+    d = 0.0 ;
+
+  *pphi = atan2(sqrt(d), z) ;
+  *ptheta = atan2(y/r, x/r) ;
+    if (*ptheta < 0.0f)
+      *ptheta = 2 * M_PI + *ptheta ;  /* make it 0 --> 2*PI */
+  return(NO_ERROR) ;
 }
 
