@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.7 2002/11/12 22:45:18 greve Exp $
+  $Id: fsgdf.c,v 1.8 2002/11/12 23:18:14 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -107,7 +107,7 @@ int gdfPrintHeader(FILE *fp, FSGD *gd)
 /*--------------------------------------------------*/
 int gdfPrintStdout(FSGD *gd)
 {
-  return gdfPrint(stdout,gd);
+  return gdfPrintHeader(stdout,gd);
 }
 
 /*--------------------------------------------------*/
