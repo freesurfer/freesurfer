@@ -472,6 +472,11 @@ clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster)
                       cluster->m_evectors) ;
   VectorCopy(cluster->v_means, cluster->v_seed) ;
   cluster->nsamples = cluster->nobs ;
+  if (!cluster->m_evectors)
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM,
+                                "clusterComputeStatistics: cluster %d could not "
+                                "compute eigenvectors", cluster->cno)) ;
+
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -973,10 +978,11 @@ clusterCopy(CLUSTER *csrc, CLUSTER *cdst)
   MatrixCopy(csrc->m_scatter, cdst->m_scatter) ;
   if (csrc->m_inverse)
     MatrixCopy(csrc->m_inverse, cdst->m_inverse) ;
-  MatrixCopy(csrc->m_evectors, cdst->m_evectors) ;
+  if (csrc->m_evectors)
+    MatrixCopy(csrc->m_evectors, cdst->m_evectors) ;
+  memmove(cdst->evalues, csrc->evalues, csrc->m_scatter->rows*sizeof(float)) ;
   VectorCopy(csrc->v_means, cdst->v_means) ;
   VectorCopy(csrc->v_seed, cdst->v_seed) ;
-  memmove(cdst->evalues, csrc->evalues, csrc->m_scatter->rows*sizeof(float)) ;
   cdst->nobs = csrc->nobs ;
   cdst->nsamples = csrc->nsamples ;
   cdst->det = csrc->det ;
