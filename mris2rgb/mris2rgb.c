@@ -27,12 +27,13 @@
 #include "oglutil.h"
 #include "tiff.h"
 #include "tiffio.h"
+#include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.9 1998/04/18 18:06:05 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.10 1998/04/23 15:38:06 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
-#define MAX_MARKED               100
+#define MAX_MARKED               10000
 #define RIGHT_HEMISPHERE_ANGLE   90.0
 #define LEFT_HEMISPHERE_ANGLE   -90.0
 #define BIG_FOV                 300   /* for unfolded hemispheres */
@@ -140,7 +141,7 @@ main(int argc, char *argv[])
 {
   char            **av, *in_fname, *out_prefix, out_fname[100], name[100],
     path[100], *cp, hemi[100], fname[100], *surf_fname ;
-  int             ac, nargs, size, ino, old_status ;
+  int             ac, nargs, size, ino, old_status, i ;
   float           angle = 0.0f ;
   unsigned short  *red=NULL, *green=NULL, *blue=NULL;
   unsigned char   *rgb=NULL;
@@ -223,6 +224,8 @@ main(int argc, char *argv[])
     else
       MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
+    for (i = 0 ; i < nmarked ; i++)
+      mris->vertices[marked_vertices[i]].marked = 1 ;
     if (talairach_flag)
     {
       MRIStalairachTransform(mris, mris) ;
@@ -515,6 +518,20 @@ get_option(int argc, char *argv[])
     tiff_flag = 1;
   else switch (toupper(*option))
   {
+  case 'L':
+  {
+    LABEL *area ;
+    int   i ;
+
+    fprintf(stderr, "reading label file %s\n",argv[2]) ;
+    nargs = 1 ;
+    area = LabelRead(NULL, argv[2]) ;
+    if (nmarked+area->n_points >= MAX_MARKED)
+      area->n_points = MAX_MARKED - nmarked ;
+    for (i = 0 ; i < area->n_points ; i++)
+      marked_vertices[nmarked++] = area->vno[i] ;
+    LabelFree(&area) ;
+  }
   case 'N':
     normalize_flag = 1 ;
     break ;
