@@ -268,7 +268,7 @@ AUTHOR
 Douglas N. Greve, Ph.D., MGH-NMR Center"
 
 puts ""
-puts {$Id: unpackimadir2,v 1.1 2002/02/12 00:00:31 greve Exp $}
+puts {$Id: unpackimadir2,v 1.2 2002/02/14 22:04:25 greve Exp $}
 puts ""
 
 exit 1;
@@ -787,7 +787,7 @@ proc GetRunInfo {  RunNo RunInfoList } {
 }
 
 #----------------------------------------------------#
-#----------- Main -----------------------------------#
+#----------- main -----------------------------------#
 #----------------------------------------------------#
 
 # global imadir targdir sortmethod cfgfile unpackcfg ;
@@ -819,7 +819,12 @@ if {! [file exists $imadir]} {
 }
 
 # Get list of information about each run #
+puts "Scanning directory $imadir"
+puts "Please wait ..."
 set RunInfoList [ScanIMADir $imadir];
+
+set NRuns [llength $RunInfoList] 
+puts "Found $NRuns Runs"
 
 if { $scanonly != 2} { 
 
@@ -885,7 +890,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpackimadir2"
-puts $LF {$Id: unpackimadir2,v 1.1 2002/02/12 00:00:31 greve Exp $}
+puts $LF {$Id: unpackimadir2,v 1.2 2002/02/14 22:04:25 greve Exp $}
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -949,11 +954,11 @@ foreach runcfg $unpackcfg {
   set Name   [lindex $runcfg 3];
 
   puts $LF "---------------------------------------------------------"
-  puts $LF "Run $RunNo -----------------------------------------"
+  puts $LF "Run $RunNo/$NRuns----------------------------------------"
   puts $LF [exec date];
   puts $LF $runcfg
   puts "---------------------------------------------------------"
-  puts "Run $RunNo -----------------------------------------"
+  puts "Run $RunNo/$NRuns----------------------------------------"
   puts [exec date];
   puts $runcfg
 
