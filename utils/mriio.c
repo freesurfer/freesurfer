@@ -225,7 +225,8 @@ void setMRIforSurface(MRI *mri)
 {
   if (!mriOKforSurface(mri))
     ErrorExit(ERROR_BADPARM, 
-                "%s: the volume is not conformed, that is, the volume must be 256^3 and in CORONAL direction.\n", Progname) ;
+                "%s: the volume is not conformed, that is, the volume must be in CORONAL direction.\n", Progname) ;
+#if 0
   else
   {
     // we checked conformed in mriOKforSurface(). The only thing missing is c_(r,a,s) = 0
@@ -238,6 +239,7 @@ void setMRIforSurface(MRI *mri)
     mri->i_to_r__ = extract_i_to_r(mri);
     mri->r_to_i__ = extract_r_to_i(mri);
   }
+#endif
 }
 
 int mriio_command_line(int argc, char *argv[])
@@ -4262,6 +4264,7 @@ static MRI *genesisRead(char *fname, int read_volume)
   MRI *header;
   float xfov, yfov, zfov;
   float nlength;
+  int twoformats = 0;
 
   /* ----- check the first (passed) file ----- */
   if(!FileExists(fname))
@@ -4285,13 +4288,17 @@ static MRI *genesisRead(char *fname, int read_volume)
   }
 
   /* ----- derive the file name format (for sprintf) ----- */
+  // this one fix fname_format only
   if(strncmp(fname_base, "I.", 2) == 0)
   {
+    twoformats = 0;
     im_init = atoi(&fname_base[2]);
     sprintf(fname_format, "I.%%03d");
   }
+  // this one fix both fname_format and fname_format2
   else if(strlen(fname_base) >= 3) /* avoid core dumps below... */
   {
+    twoformats = 1;
     c = &fname_base[strlen(fname_base)-3];
     if(strcmp(c, ".MR") == 0)
     {
@@ -4317,13 +4324,19 @@ static MRI *genesisRead(char *fname, int read_volume)
     ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
   }
 
-  strcpy(temp_string, fname_format);
-  sprintf(fname_format, "%s%s", fname_dir, temp_string);
-  strcpy(temp_string, fname_format2);
-  sprintf(fname_format2, "%s%s", fname_dir, temp_string);
-
+  if (strlen(fname_format) != 0)
+  {
+    strcpy(temp_string, fname_format);
+    sprintf(fname_format, "%s%s", fname_dir, temp_string);
+    printf("fname_format  : %s\n", fname_format);
+  }
+  if (strlen(fname_format2) != 0)
+  {
+    strcpy(temp_string, fname_format2);
+    sprintf(fname_format2, "%s%s", fname_dir, temp_string);
+    printf("fname_format2 : %s\n", fname_format2);
+  }
   /* ----- find the low and high files ----- */
-  // test fname_format first
   im_low = im_init;
   do
   {
@@ -4339,22 +4352,30 @@ static MRI *genesisRead(char *fname, int read_volume)
     sprintf(fname_use, fname_format, im_high);
   } while(FileExists(fname_use));
   im_high--;
-  // now test fname_format2
-  im_low2 = im_init;
-  do
-  {
-    im_low2--;
-    sprintf(fname_use, fname_format2, im_low2);
-  } while(FileExists(fname_use));
-  im_low2++;
 
-  im_high2 = im_init;
-  do
+  if (twoformats)
   {
-    im_high2++;
-    sprintf(fname_use, fname_format2, im_high2);
-  } while(FileExists(fname_use));
-  im_high2--;
+    // now test fname_format2
+    im_low2 = im_init;
+    do
+    {
+      im_low2--;
+      sprintf(fname_use, fname_format2, im_low2);
+    } while(FileExists(fname_use));
+    im_low2++;
+    
+    im_high2 = im_init;
+    do
+    {
+      im_high2++;
+      sprintf(fname_use, fname_format2, im_high2);
+    } while(FileExists(fname_use));
+    im_high2--;
+  }
+  else
+  {
+    im_high2 = im_low2 = 0;
+  }
   // now decide which one to pick
   if ((im_high2-im_low2) > (im_high-im_low))
   {
