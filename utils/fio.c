@@ -134,8 +134,6 @@ fwrite4(int v,FILE *fp)
 int
 fwriteShort(short s, FILE *fp)
 {
-  int   ret ;
-
 #ifdef Linux
   s = swapShort(s) ;
 #endif
