@@ -22,5 +22,7 @@ int is_siemens(char *fname);
 int is_brik(char *fname);
 int is_bshort(char *fname);
 int is_sdt(char *fname);
+int is_gdf(char *fname);
+int is_otl(char *fname);
 
 /* EOF */

@@ -50,6 +50,8 @@ int string_to_type(char *string)
     type = SDT_FILE;
   if(strcmp(ls, "otl") == 0 || strcmp(ls, "outline") == 0)
     type = OTL_FILE;
+  if(strcmp(ls, "gdf") == 0)
+    type = GDF_FILE;
 
   return(type);
 
@@ -82,6 +84,10 @@ int mri_identify(char *fname_passed)
     return(BRIK_FILE);
   else if(is_bshort(fname))
     return(BSHORT_FILE);
+  else if(is_otl(fname))
+    return(GDF_FILE);
+  else if(is_gdf(fname))
+    return(GDF_FILE);
   else
     return(MRI_VOLUME_TYPE_UNKNOWN);
 
@@ -441,5 +447,37 @@ int is_sdt(char *fname)
   return(1);
 
 } /* end is_sdt() */
+
+int is_gdf(char *fname)
+{
+
+  char *dot;
+
+  dot = strrchr(fname, '.');
+  if(dot != NULL)
+  {
+    if(strcmp(dot, ".gdf") == 0)
+      return(TRUE);
+  }
+
+  return(FALSE);
+
+} /* end is_gdf() */
+
+int is_otl(char *fname)
+{
+
+  char *dot;
+
+  dot = strrchr(fname, '.');
+  if(dot != NULL)
+  {
+    if(strcmp(dot, ".otl") == 0)
+      return(TRUE);
+  }
+
+  return(FALSE);
+
+} /* end is_otl() */
 
 /* EOF */
