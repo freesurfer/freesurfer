@@ -19,7 +19,7 @@
 #define DCM_MULTIPLESTUDIES 2
 
 typedef unsigned short int BOOL;
-typedef unsigned short int bool;
+// typedef unsigned short int bool;
 
 #define true 1
 #define false 0
@@ -194,7 +194,7 @@ int sdfiNFilesInRun(char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist);
 int sdfiCountFilesInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist);
 int *sdfiRunFileList(char *dcmfile, SDCMFILEINFO **sdfi_list, 
          int nlist, int *NRunList);
-MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume);
+MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly);
 int sdfiVolCenter(SDCMFILEINFO *sdfi);
 int sdfiFixImagePosition(SDCMFILEINFO *sdfi);
 int sdfiSameSlicePos(SDCMFILEINFO *sdfi1, SDCMFILEINFO *sdfi2);
