@@ -19712,7 +19712,7 @@ update_labels(int label_set, int vno, float dmin)
   Tcl_Eval(g_interp, command);
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_DISTANCE, dmin);
   Tcl_Eval(g_interp, command);
-  sprintf(command, "UpdateLabel %d %d \"(%.2f, %.2f, %.2f)\"", 
+  sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
 	  label_set, LABEL_COORDS_RAS, v->origx, v->origy, v->origz);
   Tcl_Eval(g_interp, command);
   if (MRIflag && MRIloaded) 
@@ -19720,7 +19720,7 @@ update_labels(int label_set, int vno, float dmin)
       imnr = (int)((v->y-yy0)/st+0.5);
       i = (int)((zz1-v->z)/ps+0.5);
       j = (int)((xx1-v->x)/ps+0.5);
-      sprintf(command, "UpdateLabel %d %d \"(%d, %d, %d)\"",
+      sprintf(command, "UpdateLabel %d %d \"(%d  %d  %d)\"",
 	      label_set, LABEL_COORDS_INDEX, imnr, i, j);
       Tcl_Eval(g_interp, command);
       sprintf(command, "UpdateLabel %d %d %d", 
@@ -19732,17 +19732,17 @@ update_labels(int label_set, int vno, float dmin)
     {
       LTAworldToWorld(lta, v->origx, v->origy, v->origz, 
 		      &x_mni, &y_mni, &z_mni) ;
-      sprintf(command, "UpdateLabel %d %d \"(%.2f, %.2f, %.2f)\"", 
+      sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
 	      label_set, LABEL_COORDS_MNITAL, x_mni, y_mni, z_mni );
       Tcl_Eval(g_interp, command);
       
       /* now conver mni tal to the real tal. */
       conv_mnital_to_tal( x_mni, y_mni, z_mni, &x_tal, &y_tal, &z_tal );
-      sprintf(command, "UpdateLabel %d %d \"(%.2f, %.2f, %.2f)\"", 
+      sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
 	      label_set, LABEL_COORDS_TAL, x_tal, y_tal, z_tal );
       Tcl_Eval(g_interp, command);
     }
-  sprintf(command, "UpdateLabel %d %d \"(%.2f, %.2f, %.2f)\"", 
+  sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
 	  label_set, LABEL_COORDS_NORMAL, v->nx, v->ny, v->nz);
   Tcl_Eval(g_interp, command);
   
@@ -19786,10 +19786,10 @@ update_labels(int label_set, int vno, float dmin)
       phi = atan2(sqrt(dd), z) ;
       theta = atan2(y/rr, x/rr) ;
       
-      sprintf(command, "UpdateLabel %d %d \"(%.2f, %.2f, %.2f)\"",
+      sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
 	      label_set, LABEL_COORDS_SPHERE_XYZ, sx, sy, sz );
       Tcl_Eval(g_interp, command);
-      sprintf(command, "UpdateLabel %d %d \"(%2.1f, %2.1f)\"", 
+      sprintf(command, "UpdateLabel %d %d \"(%2.1f  %2.1f)\"", 
 	      label_set, LABEL_COORDS_SPHERE_RT, DEGREES(phi), DEGREES(theta) );
       Tcl_Eval(g_interp, command);
     }
@@ -19858,7 +19858,7 @@ update_labels(int label_set, int vno, float dmin)
   r = v->annotation & 0x00ff ;
   g = (v->annotation >> 8) & 0x00ff ;
   b = (v->annotation >> 16) & 0x00ff ;
-  sprintf(command, "UpdateLabel %d %d \"%d (%d, %d, %d)\"", 
+  sprintf(command, "UpdateLabel %d %d \"%d (%d  %d  %d)\"", 
 	  label_set, LABEL_ANNOTATION, v->annotation, r, g, b);
   Tcl_Eval(g_interp, command);
   //    }
