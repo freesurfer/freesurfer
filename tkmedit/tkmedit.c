@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/03/12 20:42:05 $
-// Revision       : $Revision: 1.200 $
-char *VERSION = "$Revision: 1.200 $";
+// Revision Date  : $Date: 2004/03/12 21:09:37 $
+// Revision       : $Revision: 1.201 $
+char *VERSION = "$Revision: 1.201 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1034,7 +1034,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.200 2004/03/12 20:42:05 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.201 2004/03/12 21:09:37 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -4982,7 +4982,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.200 2004/03/12 20:42:05 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.201 2004/03/12 21:09:37 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -8568,15 +8568,16 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
   /* Create the new volume from the existing anatomical. Set it to all
      zeroes. */
   DebugNote( ("Creating new segmentation volume") );
-  eVolume = Volm_DeepClone( gAnatomicalVolume[iFromVolume], &newVolume );
+  eVolume = Volm_New( &newVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  eVolume = Volm_CreateFromVolume( newVolume, gAnatomicalVolume[iFromVolume]);
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   eVolume = Volm_SetAllValues( newVolume, 0 );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
-  /* Change the file name */
-  
 
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
