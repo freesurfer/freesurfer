@@ -706,18 +706,23 @@ MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
       for (x = 0 ; x < width ; x++)
       {
         src = *psrc++ ;
+        MRIvoxelToTalairach(mri_target, (Real)x, (Real)y, (Real)z,&xt, &yt,&zt);
         wm = *pwm++ ;
         if (wm == 255)
         {
-          MRIvoxelToTalairach(mri_target, (Real)x, (Real)y, (Real)z,
-                                 &xt, &yt, &zt) ;
           if (zt < TALAIRACH_SUBCORTICAL_GRAY_MAX_Z)
             target = SUBCORTICAL_GRAY_MATTER ;
           else
             target = WHITE_MATTER ;
         }
         else if (wm)
-          target = WHITE_MATTER ;
+        {
+          if ((src < HI_SUBCORTICAL_GRAY) && 
+              (zt < TALAIRACH_SUBCORTICAL_GRAY_MAX_Z))
+            target = SUBCORTICAL_GRAY_MATTER ;
+          else
+            target = WHITE_MATTER ;
+        }
         else if (src > hi_lim)
           target = BRIGHT_MATTER ;
         else if (src < lo_lim)
