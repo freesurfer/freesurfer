@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: ch $
-// Revision Date  : $Date: 2004/01/13 21:44:29 $
-// Revision       : $Revision: 1.78 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/01/20 21:01:53 $
+// Revision       : $Revision: 1.79 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
   float invert_val;
   int in_info_flag, out_info_flag;
   int template_info_flag;
+	int nochange_flag ;
   int conform_flag;
   int conform_min;  // conform to the smallest dimension
   int conform_width;
@@ -174,6 +175,7 @@ int main(int argc, char *argv[])
   in_info_flag = FALSE;
   out_info_flag = FALSE;
   conform_flag = FALSE; // TRUE;
+	nochange_flag = FALSE ;
   parse_only_flag = FALSE;
   reorder_flag = FALSE;
   in_stats_flag = FALSE;
@@ -213,7 +215,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.78 2004/01/13 21:44:29 ch Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.79 2004/01/20 21:01:53 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -236,6 +238,8 @@ int main(int argc, char *argv[])
       get_string(argc, argv, &i, out_name);
     else if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--conform") == 0)
       conform_flag = TRUE;
+    else if (strcmp(argv[i], "-nc") == 0 || strcmp(argv[i], "--nochange") == 0)
+      nochange_flag = TRUE;
     else if (strcmp(argv[i], "-cm") == 0 || strcmp(argv[i], "--conform_min") == 0)
     {
       conform_min = TRUE;
@@ -1567,7 +1571,7 @@ int main(int argc, char *argv[])
   if(read_only_flag)  exit(0);
 
   /* ----- change type if necessary ----- */
-  if(mri->type != template->type)
+  if(mri->type != template->type && nochange_flag == FALSE)
   {
     printf("changing data type from %d to %d (noscale = %d)...\n",
            mri->type,template->type,no_scale_flag);
@@ -1851,6 +1855,8 @@ void usage(FILE *stream)
   fprintf(stream, "  -rt, --resample_type <interpolate|weighted|nearest|sinc|cubic> (default is interpolate)\n");
   fprintf(stream, "\n");
   fprintf(stream, "  --no_scale flag <-ns>: 1 = dont rescale values for COR\n");
+  fprintf(stream, "\n");
+  fprintf(stream, "  -nc --nochange - don't change type of input to that of template\n");
   fprintf(stream, "\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -tr TR : TR in seconds\n");
