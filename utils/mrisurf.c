@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/02/05 23:43:28 $
-// Revision       : $Revision: 1.326 $
+// Revision Date  : $Date: 2005/02/06 00:12:40 $
+// Revision       : $Revision: 1.327 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -4209,7 +4209,12 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       nbrs[i] = parms->max_nbrs ;
   }
 
-  for (sno = 1 ; sno < SURFACES ; sno++)
+	if(parms->flags & IP_NO_SULC) 
+		sno = 2 ; 
+	else
+		sno = 1 ;
+
+  for (; sno < SURFACES ; sno++)
   {
     if (!first && ((parms->flags & IP_USE_CURVATURE) == 0))
       break ;
@@ -14726,6 +14731,7 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt)
 							100.0*mris->neg_orig_area/(mris->orig_area),
 							parms->n_averages);
 			for ( n = 0 ; n < parms->ncorrs ; n++ ){
+				if(FZERO(parms->l_corrs[n]+parms->l_pcorrs[n])) continue;
 				fprintf(stderr,"(%d: %2.3f)  ",n,parms->sses[n]);
 				if((n%6)==5) fprintf(stderr,"\n");
 			}
