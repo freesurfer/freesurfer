@@ -15,7 +15,7 @@
 #include "cma.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.68 2003/08/19 17:20:14 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.69 2003/08/19 18:16:29 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -149,6 +149,7 @@ static MRI *find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,
                               int orientation, int *pxv, int *pvy, int *pzv,
                                int seed_set) ;
 static int find_slice_center(MRI *mri,  int *pxo, int *pyo) ;
+static int find_cc_seed_with_segmentation(MRI *mri_tal, MRI *mri_seg, Real *pcc_tal_x, Real *cc_tal_y, Real *cc_tal_z) ;
 static int find_corpus_callosum(MRI *mri, Real *ccx, Real *ccy, Real *ccz) ;
 static int find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
                      int x_cc, int y_cc, int z_cc, int which) ;
@@ -184,13 +185,13 @@ main(int argc, char *argv[])
   Real    xr, yr, zr, dist, min_dist ;
   MRI     *mri_cc, *mri_pons, *mri_lh_fill, *mri_rh_fill, *mri_lh_im, 
           *mri_rh_im /*, *mri_blur*/, *mri_labels, *mri_tal, *mri_tmp, *mri_tmp2,
-          *mri_saved_labels ;
+          *mri_saved_labels, *mri_seg ;
   int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc, xi, yi, zi ;
   MORPH_3D  *m3d ;
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.68 2003/08/19 17:20:14 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.69 2003/08/19 18:16:29 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -288,6 +289,22 @@ main(int argc, char *argv[])
     fprintf(stderr, "done.\nsearching for cutting planes...") ;
   mri_tal = MRItoTalairach(mri_im, NULL) ;
   MRIbinarize(mri_tal, mri_tal, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
+  if (segmentation_fname)
+  {
+    printf("reading segmented volume %s...\n", segmentation_fname) ;
+    mri_seg = MRIread(segmentation_fname) ;
+    if (!mri_seg)
+      ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
+                Progname, segmentation_fname) ;
+		if  (mri_im->linear_transform == 0)
+		{
+			if (find_cc_seed_with_segmentation(mri_tal, mri_seg, &cc_tal_x, &cc_tal_y, &cc_tal_z) == NO_ERROR)
+				cc_seed_set = 1;
+		}
+	}
+	else
+		mri_seg = NULL;
+
   if (!cc_seed_set)
   {
     if (find_corpus_callosum(mri_tal,&cc_tal_x,&cc_tal_y,&cc_tal_z) 
@@ -310,6 +327,15 @@ main(int argc, char *argv[])
     mri_cc = 
       find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
                          &x_cc, &y_cc, &z_cc, cc_seed_set) ;
+		if (!mri_cc && mri_seg)
+		{
+			if (find_cc_seed_with_segmentation(mri_tal, mri_seg, &cc_tal_x, &cc_tal_y, &cc_tal_z) == NO_ERROR)
+				cc_seed_set = 1;
+			mri_cc = 
+				find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
+													 &x_cc, &y_cc, &z_cc, cc_seed_set) ;
+		}
+
     if (!mri_cc)
       ErrorExit(ERROR_BADPARM, "%s: could not find corpus callosum", Progname);
   }
@@ -579,13 +605,6 @@ main(int argc, char *argv[])
 
   if (segmentation_fname)
   {
-    MRI  *mri_seg ;
-
-    printf("reading segmented volume %s...\n", segmentation_fname) ;
-    mri_seg = MRIread(segmentation_fname) ;
-    if (!mri_seg)
-      ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
-                Progname, segmentation_fname) ;
     MRIeraseTalairachPlaneNew(mri_seg, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
                          SLICE_SIZE, fill_val);
     edit_segmentation(mri_im, mri_seg) ;
@@ -2763,6 +2782,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
           break ;
 
 					/* fill these */
+				case Left_Lesion:
+				case Right_Lesion:
 				case WM_hypointensities:
 				case Left_WM_hypointensities:
 				case Right_WM_hypointensities:
@@ -3010,5 +3031,75 @@ extend_to_lateral_borders(MRI *mri_src, MRI *mri_dst, int mask)
   }
 
   return(mri_dst) ;
+}
+
+static int
+find_cc_seed_with_segmentation(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pcc_tal_y, Real *pcc_tal_z)
+{
+	int  x,  y, z, label, npoints, olabel ;
+	Real xcc, ycc,  zcc ;
+	float  dist,min_dist, min_x, min_y,min_z;
+
+	xcc = ycc = zcc = 0.0  ; npoints = 0 ;
+	for (x = 0 ; x  < mri->width ; x++)
+	{
+		for (y = 0 ; y  < mri->height ; y++)
+		{
+			for (z = 0 ; z  < mri->width ; z++)
+			{
+				label = MRIvox(mri_seg, x,  y, z) ;
+				if (!IS_WM(label))
+					continue  ;
+				if (label == Left_Cerebral_White_Matter)
+					olabel =  Right_Cerebral_White_Matter ;
+				else
+					olabel =  Left_Cerebral_White_Matter ;
+
+				if (neighborLabel(mri_seg, x, y, z,  1, olabel) > 0)
+				{
+					xcc +=  x ; ycc += y ; zcc += z ; npoints++ ;
+				}
+			}
+		}
+	}
+	if (npoints <= 0)
+		ErrorExit(ERROR_BADFILE, "%s: could not find any points where lh and rh wm  are nbrs", Progname) ;
+
+	xcc /= (Real)npoints  ; ycc /= (Real)npoints ; zcc /= (Real)npoints ;
+
+	/* now search for the point closest to the centroid that is a  wm point and satisfies the lh/rh constraint */
+	min_dist  = 1000000 ; min_x = xcc ; min_y = ycc ;  min_z = zcc  ;
+	for (x = 0 ; x  < mri->width ; x++)
+	{
+		for (y = 0 ; y  < mri->height ; y++)
+		{
+			for (z = 0 ; z  < mri->width ; z++)
+			{
+				label = MRIvox(mri_seg, x,  y, z) ;
+				if (!IS_WM(label) || (MRIvox(mri, x, y, z)  < WM_MIN_VAL))
+					continue  ;
+				if (label == Left_Cerebral_White_Matter)
+					olabel =  Right_Cerebral_White_Matter ;
+				else
+					olabel =  Left_Cerebral_White_Matter ;
+
+				if (neighborLabel(mri_seg, x, y, z,  1, olabel) > 0)
+				{
+					dist = SQR(x-xcc) + SQR(y-ycc) + SQR(z-zcc)  ;
+					if (dist <  min_dist)
+					{
+						min_dist  = dist ;
+						min_x = x ; min_y = y ; min_z = z ;
+					}
+				}
+			}
+		}
+	}
+
+	MRIvoxelToWorld(mri, min_x, min_y, min_z, pcc_tal_x, pcc_tal_y, pcc_tal_z) ;
+	printf("segmentation indicates cc at (%d,  %d,  %d) --> (%2.1f, %2.1f, %2.1f)\n",
+				 nint(xcc), nint(ycc), nint(zcc), *pcc_tal_x, *pcc_tal_y, *pcc_tal_z) ;
+	
+	return(NO_ERROR) ;
 }
 
