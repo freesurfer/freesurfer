@@ -14,7 +14,7 @@
 #include "mrisurf.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.5 1997/09/08 20:46:56 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.6 1997/09/09 15:33:00 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -31,7 +31,9 @@ static void keyboard_handler(unsigned char key, int x, int y) ;
 static void special_key_handler(int key, int x, int y) ;
 static void reshape_handler(int width, int height) ;
 static void mouse_handler(int button, int state, int x, int y) ;
+#if 0
 static void controlLights(int value) ;
+#endif
 
 static void display_handler(void) ;
 static void home(MRI_SURFACE *mris) ;
@@ -781,7 +783,7 @@ special_key_handler(int key, int x, int y)
     glutPostRedisplay() ;
 }
 
-
+#if 0
 #define NUM_LIGHTS 4
 static void
 controlLights(int value)
@@ -823,7 +825,9 @@ controlLights(int value)
   glutPostRedisplay() ;
 }
 
-#if SHOW_AXES
+#endif
+
+#if 0
   /* build axes */
   glNewList(2, GL_COMPILE) ;
 
