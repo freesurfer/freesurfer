@@ -148,6 +148,7 @@ HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   if (!histo_dst)
     histo_dst = HISTOalloc(histo_src->nbins) ;
   histo_dst->nbins = histo_src->nbins ;
+	histo_dst->bin_size = histo_src->bin_size ;
   memcpy(histo_dst->counts, histo_src->counts, sizeof(*histo_src->counts)*histo_src->nbins) ;
   memcpy(histo_dst->bins, histo_src->bins, sizeof(*histo_src->bins)*histo_src->nbins) ;
   return(histo_dst) ;
