@@ -43,14 +43,10 @@ case "${host}" in
  OS=Darwin
  OS_CPPFLAGS=
  OS_LDFLAGS=
- AC_ARG_WITH([apple-opengl-framework],
-               [],[],[])
  ;;
  x86_64-*linux*)
  OS=Linux64
  OS_CPP_FLAGS="-Wall -fwritable-strings"
- AC_ARG_ENABLE([lib64],
-               [],[],[])
  ;; 
 esac
 AC_SUBST(OS)
@@ -70,7 +66,7 @@ AC_MSG_CHECKING(checking for CPU ...)
 ####     athlon-xp, opteron, athlon64, athlon-fx
 ####      
 AC_ARG_WITH(cpu,
-  [  --with-cpu=CPUTYPE      where CPUTYPE is pentium3, pentium4, athlon-xp ....],
+  [  --with-cpu=CPUTYPE      where CPUTYPE is pentium3, pentium4, athlon-xp, G4, G5,  ....],
   [  
     case "$withval" in 
      pentium3) 
@@ -90,6 +86,12 @@ AC_ARG_WITH(cpu,
      ;;
      athlon-fx)
      CPUFLAGS="-march=athlon-fx -mfpmath=sse"
+     ;;
+     G4)
+     CPUFLAGS="-mtune=G4"
+     ;;
+     G5)
+     CPUFLAGS="-mtune=G5"
      ;;
      *)
      echo "cpu optimization not set"
