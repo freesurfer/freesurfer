@@ -118,6 +118,7 @@ get_option(int argc, char *argv[])
 
   return(nargs) ;
 }
+#if 0
 static Transform *
 load_transform(char *subject_name, General_transform *transform)
 {
@@ -133,6 +134,7 @@ load_transform(char *subject_name, General_transform *transform)
     fprintf(stderr, "transform read successfully from %s\n", xform_fname) ;
   return(get_linear_transform_ptr(transform)) ;
 }
+#endif
 
 static float
 compute_label_area(MRI_SURFACE *mris, char *subject_name, char *area_name)
