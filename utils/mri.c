@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/05/16 18:40:30 $
-// Revision       : $Revision: 1.226 $
-char *MRI_C_VERSION = "$Revision: 1.226 $";
+// Revision Date  : $Date: 2003/05/16 19:21:54 $
+// Revision       : $Revision: 1.227 $
+char *MRI_C_VERSION = "$Revision: 1.227 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -65,7 +65,7 @@ static long mris_alloced = 0 ;
 /*----------------------------------------------------------
   MRIxfmCRS2XYZ() - computes the matrix needed to compute the
   XYZ of the center of a voxel at a given Col, Row, and Slice
-  from the native geometry of the volume:
+  from the native geometry of the volume
 
               x         col
               y  = T *  row
@@ -4140,7 +4140,7 @@ MRIallocHeader(int width, int height, int depth, int type)
   mri->subject_name[0] = '\0';
   mri->path_to_t1[0] = '\0';
   mri->fname_format[0] = '\0';
-  mri->slice_direction = MRI_CORONAL;
+  mri->slice_direction = MRI_UNDEFINED;
   return(mri) ;
 }
 /*-----------------------------------------------------
