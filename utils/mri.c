@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/01/21 22:35:02 $
-// Revision       : $Revision: 1.207 $
-char *MRI_C_VERSION = "$Revision: 1.207 $";
+// Revision Date  : $Date: 2003/01/22 19:26:29 $
+// Revision       : $Revision: 1.208 $
+char *MRI_C_VERSION = "$Revision: 1.208 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -746,7 +746,7 @@ MRIscalarMulFrame(MRI *mri_src, MRI *mri_dst, float scalar, int frame)
 int
 MRIvalRange(MRI *mri, float *pmin, float *pmax)
 {
-  int      width, height, depth, x, y, z ;
+  int      width, height, depth, x, y, z, frame ;
   float    fmin, fmax, *pf, val ;
   BUFTYPE  *pb ;
 
@@ -759,70 +759,82 @@ MRIvalRange(MRI *mri, float *pmin, float *pmax)
   switch (mri->type)
   {
   case MRI_FLOAT:
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        pf = &MRIFvox(mri, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-        {
-          val = *pf++ ;
-          if (val < fmin)
-            fmin = val ;
-          if (val > fmax)
-            fmax = val ;
-        }
-      }
-    }
+		for (frame = 0 ; frame < mri->nframes ; frame++)
+		{
+			for (z = 0 ; z < depth ; z++)
+			{
+				for (y = 0 ; y < height ; y++)
+				{
+					pf = &MRIFseq_vox(mri, 0, y, z, frame) ;
+					for (x = 0 ; x < width ; x++)
+					{
+						val = *pf++ ;
+						if (val < fmin)
+							fmin = val ;
+						if (val > fmax)
+							fmax = val ;
+					}
+				}
+			}
+		}
     break ;
   case MRI_INT:
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        for (x = 0 ; x < width ; x++)
-        {
-          val = (float)MRIIvox(mri, x, y, z) ;
-          if (val < fmin)
-            fmin = val ;
-          if (val > fmax)
-            fmax = val ;
-        }
-      }
-    }
+		for (frame = 0 ; frame < mri->nframes ; frame++)
+		{
+			for (z = 0 ; z < depth ; z++)
+			{
+				for (y = 0 ; y < height ; y++)
+				{
+					for (x = 0 ; x < width ; x++)
+					{
+						val = (float)MRIIseq_vox(mri, x, y, z, frame) ;
+						if (val < fmin)
+							fmin = val ;
+						if (val > fmax)
+							fmax = val ;
+					}
+				}
+			}
+		}
     break ;
   case MRI_SHORT:
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        for (x = 0 ; x < width ; x++)
-        {
-          val = (float)MRISvox(mri, x, y, z) ;
-          if (val < fmin)
-            fmin = val ;
-          if (val > fmax)
-            fmax = val ;
-        }
-      }
-    }
+		for (frame = 0 ; frame < mri->nframes ; frame++)
+		{
+			for (z = 0 ; z < depth ; z++)
+			{
+				for (y = 0 ; y < height ; y++)
+				{
+					for (x = 0 ; x < width ; x++)
+					{
+						val = (float)MRISseq_vox(mri, x, y, z, frame) ;
+						if (val < fmin)
+							fmin = val ;
+						if (val > fmax)
+							fmax = val ;
+					}
+				}
+			}
+		}
     break ;
   case MRI_UCHAR:
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        pb = &MRIvox(mri, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-        {
-          val = (float)*pb++ ;
-          if (val < fmin)
-            fmin = val ;
-          if (val > fmax)
-            fmax = val ;
-        }
-      }
-    }
+		for (frame = 0 ; frame < mri->nframes ; frame++)
+		{
+			for (z = 0 ; z < depth ; z++)
+			{
+				for (y = 0 ; y < height ; y++)
+				{
+					pb = &MRIseq_vox(mri, 0, y, z, frame) ;
+					for (x = 0 ; x < width ; x++)
+					{
+						val = (float)*pb++ ;
+						if (val < fmin)
+							fmin = val ;
+						if (val > fmax)
+							fmax = val ;
+					}
+				}
+			}
+		}
     break ;
   default:
     ErrorReturn(ERROR_UNSUPPORTED, 
