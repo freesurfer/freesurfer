@@ -1,7 +1,7 @@
 #include "mriSurface.h"
 #include "error.h"
 
-char Surf_ksaErrorStrings [Surf_knNumErrorCodes][256] = {
+char *Surf_ksaErrorStrings [Surf_knNumErrorCodes] = {
   
   "No error.",
   "Invalid pointer to object.",
@@ -17,7 +17,7 @@ char Surf_ksaErrorStrings [Surf_knNumErrorCodes][256] = {
   "Invalid error code."
 };
 
-char Surf_ksaVertexSets [Surf_knNumVertexSets][256] = {
+char *Surf_ksaVertexSets [Surf_knNumVertexSets] = {
   "main", "original", "pial"
 };
 

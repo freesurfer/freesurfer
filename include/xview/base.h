@@ -9,7 +9,11 @@
 #ifndef xview_base_DEFINED
 #define xview_base_DEFINED
 #include <string.h>
+#ifndef Darwin
 #include <malloc.h>
+#else
+void *malloc(size_t byteSize) ;
+#endif
 
 #include <xview/xv_c_types.h>
 

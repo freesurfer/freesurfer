@@ -12,7 +12,7 @@ MATRIX *Volm_MRIgetRasToVoxelXform(MRI *mri);
 MATRIX *Volm_MRIgetVoxelToRasXform(MRI *mri);
 /*E*/
 
-char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] = {
+char *Volm_ksaErrorStrings[Volm_knNumErrorCodes] = {
   "No error.",
   "Invalid signature.",
   "Invalid parameter.",

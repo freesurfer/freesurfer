@@ -9,7 +9,9 @@
 #include <sys/time.h>
 #include <ctype.h>
 #include <dirent.h>
+#ifndef Darwin
 #include <malloc.h>
+#endif
 #include "error.h"
 #include "diag.h"
 #include "mri.h"
@@ -20,7 +22,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probe_ima.c,v 1.7 2002/03/09 00:23:18 greve Exp $";
+static char vcid[] = "$Id: mri_probe_ima.c,v 1.8 2002/11/12 19:53:38 brucefis Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);

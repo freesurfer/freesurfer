@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <sys/types.h>
 /*#include <sys/time.h>*/
 #include <time.h>
@@ -64,6 +65,23 @@ int fseek(FILE *fp, long offset, int whence) ;
 int fread(void *ptr, int size, int nitems, FILE *fp) ;
 int fwrite(void *ptr, int size, int nitems, FILE *fp) ;
 #endif   /* SunOS */
+
+/*----------- Mac OS/X -----------------------*/
+#ifdef Darwin
+#include "utils.h"
+void *malloc(size_t byteSize) ;
+#define nint(f)   ((int)(rint((double)f)))
+#if 0
+double drand48(void);
+#else
+#define drand48()   randomNumber(0.0, 1.0)
+#endif
+void srand48(long seed); 
+#define log2(d)  log10(d)/log10(2)
+#define exp2(d)  pow(2.0, d)
+int ftime(struct timeb *tp) ;
+
+#endif
 
 /*----------- Linux -----------------------*/
 #ifdef Linux

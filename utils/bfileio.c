@@ -4,7 +4,7 @@ Purpose: Routines for handling bfile (bshort and bfloat) I/O.
 Author:  Douglas Greve
 Date:    11/22/00
 
-$Id: bfileio.c,v 1.5 2001/11/19 20:01:32 fischl Exp $
+$Id: bfileio.c,v 1.6 2002/11/12 19:53:58 brucefis Exp $
 
 Bfile names are assumed to have the following format:
   stem_%03d.bext 
@@ -254,7 +254,7 @@ float * bf_ldbfile(char * bfname, int *nrows, int *ncols, int *nfrms)
   /* create a buffer to hold the data */
   fdata = calloc(ntot, sizeof(float));
   if(fdata == NULL){
-    sprintf(bfmsg,"bf_ldbfile(): could not alloc float %d",ntot*sizeof(float));
+    sprintf(bfmsg,"bf_ldbfile(): could not alloc float %d",(int)(ntot*sizeof(float)));
     bferr = 1; fprintf(stderr,"%s \n",bfmsg);
     fclose(fp);
     return(NULL);
@@ -269,12 +269,12 @@ float * bf_ldbfile(char * bfname, int *nrows, int *ncols, int *nfrms)
       perror("bf_ldbfile");
       sprintf(bfmsg,"bf_ldbfile(): error reading %s",bfname);
       bferr = 1; fprintf(stderr,"%s \n",bfmsg);
-      fprintf(stderr," ntoberead = %d, nread = %d\n",ntot,nread);
+      fprintf(stderr," ntoberead = %d, nread = %d\n",(int)ntot,nread);
       free(fdata);
       return(NULL);
     }
     if(endian != archendian) /* swap bytes if necessary */
-      byteswapbuffloat(fdata, ntot*sizeof(float));
+      byteswapbuffloat(fdata, (int)ntot*sizeof(float));
   }
 
   /* --------------------- bshort ---------------------------*/
@@ -282,7 +282,7 @@ float * bf_ldbfile(char * bfname, int *nrows, int *ncols, int *nfrms)
     /* create a temp short buf */
     sdata = calloc(ntot, sizeof(short));
     if(sdata == NULL){
-      sprintf(bfmsg,"bf_ldbfile(): could not alloc %d",ntot*sizeof(short));
+      sprintf(bfmsg,"bf_ldbfile(): could not alloc %d",(int)(ntot*sizeof(short)));
       bferr = 1; fprintf(stderr,"%s \n",bfmsg);
       free(fdata);
       return(NULL);
@@ -294,7 +294,7 @@ float * bf_ldbfile(char * bfname, int *nrows, int *ncols, int *nfrms)
       perror("bf_ldbfile");
       sprintf(bfmsg,"bf_ldbfile(): error reading %s",bfname);
       bferr = 1; fprintf(stderr,"%s \n",bfmsg);
-      fprintf(stderr," ntoberead = %d, nread = %d\n",ntot,nread);
+      fprintf(stderr," ntoberead = %d, nread = %d\n",(int)ntot,nread);
       free(fdata);
       free(sdata);
       return(NULL);
@@ -359,9 +359,9 @@ int bf_svbfile(float *bfdata, char *bfname,
       /* copy data to temp buf and swap bytes */
       fdata = (float *) calloc(ntot,sizeof(float));
       if(fdata == NULL){
-  sprintf(bfmsg,"bf_svbfile() could not alloc float %d\n",ntot);
-  bferr = 1; fprintf(stderr,"%s \n",bfmsg);
-  return(1);
+	sprintf(bfmsg,"bf_svbfile() could not alloc float %d\n",(int)ntot);
+	bferr = 1; fprintf(stderr,"%s \n",bfmsg);
+	return(1);
       }
       fdatadealloc = 1;
       memcpy(fdata, bfdata, ntot*sizeof(float));
@@ -378,7 +378,7 @@ int bf_svbfile(float *bfdata, char *bfname,
       perror("bf_svbfile");
       sprintf(bfmsg,"bf_svbfile(): error writing to %s",bfname);
       bferr = 1; fprintf(stderr,"%s \n",bfmsg);
-      fprintf(stderr," ntobewritten = %d, nwritten = %d\n",ntot,nwrote);
+      fprintf(stderr," ntobewritten = %d, nwritten = %d\n",(int)ntot,nwrote);
       return(1);
     }
   }
@@ -388,7 +388,7 @@ int bf_svbfile(float *bfdata, char *bfname,
     /* copy data into a short buffer */
     sdata = (short *) calloc(ntot,sizeof(short));
     if(sdata == NULL){
-      sprintf(bfmsg,"bf_svbfile(): could not alloc short %d\n",ntot);
+      sprintf(bfmsg,"bf_svbfile(): could not alloc short %d\n",(int)ntot);
       bferr = 1; fprintf(stderr,"%s \n",bfmsg);
       return(1);
     }
@@ -407,7 +407,7 @@ int bf_svbfile(float *bfdata, char *bfname,
       perror("bf_svbfile");
       sprintf(bfmsg,"bf_svbfile(): error writing to %s",bfname);
       bferr = 1; fprintf(stderr,"%s \n",bfmsg);
-      fprintf(stderr," ntobewritten = %d, nwritten = %d\n",ntot,nwrote);
+      fprintf(stderr," ntobewritten = %d, nwritten = %d\n",(int)ntot,nwrote);
       return(1);
     }
   }

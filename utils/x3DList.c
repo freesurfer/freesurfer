@@ -3,7 +3,7 @@
 #include "xList.h"
 #include "xDebug.h"
 
-char x3Lst_ksaErrorString [x3Lst_knNumErrorCodes][256] = {
+char *x3Lst_ksaErrorString [x3Lst_knNumErrorCodes] = {
   "No error.",
   "Invalid space ptr.",
   "Invalid signature.",

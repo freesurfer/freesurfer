@@ -2,7 +2,7 @@
   Name: mosaic.c
   Author: Douglas Greve
   Date: 09/12/01
-  $Id: mosaic.c,v 1.1 2001/09/19 18:24:05 greve Exp $
+  $Id: mosaic.c,v 1.2 2002/11/12 19:54:00 brucefis Exp $
   Description: routines to convert between mosaics and volumes
 
   ncvol - number of columns in the volume
@@ -34,7 +34,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#ifndef Darwin
 #include <malloc.h>
+#else
+#include "proto.h"
+#endif
 #include "mosaic.h"
 #include "math.h"
 

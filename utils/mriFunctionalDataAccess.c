@@ -24,7 +24,7 @@
 #define kFileName_Register                           "register.dat"
 
 
-char FunD_ksaErrorString [FunD_tErr_knNumErrorCodes][256] = {
+char *FunD_ksaErrorString [FunD_tErr_knNumErrorCodes] = {
   "No error.",
   "Invalid ptr to volume (was probably NULL).",
   "Path not found.",

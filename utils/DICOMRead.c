@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.24 2002/09/10 21:48:48 kteich Exp $
+   $Id: DICOMRead.c,v 1.25 2002/11/12 19:53:57 brucefis Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -16,7 +16,12 @@
 #include <sys/time.h>
 #include <ctype.h>
 #include <dirent.h>
+#ifndef Darwin
 #include <malloc.h>
+#else
+void *malloc(size_t size);
+
+#endif
 #include <math.h>
 #include "mri.h"
 #include "mri_identify.h"
@@ -3120,7 +3125,7 @@ void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStu
     {
       if ((dicomArray[n]=(DICOMInfo *)calloc(1, sizeof(DICOMInfo)))==NULL)
   {
-    printf("DICOM conversion (SortFiles): can not allocate %d bytes\n", sizeof(DICOMInfo));
+    printf("DICOM conversion (SortFiles): can not allocate %d bytes\n", (int)sizeof(DICOMInfo));
     exit(1);
   }
       GetDICOMInfo(fNames[n], dicomArray[n], FALSE, 1);

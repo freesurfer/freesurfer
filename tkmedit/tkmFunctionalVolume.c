@@ -15,7 +15,7 @@
 #define knMaxCommandLength                   50
 
                                    /* error strings */
-char FunV_ksaErrorString [FunV_tErr_knNumErrorCodes][256] = {
+char *FunV_ksaErrorString [FunV_tErr_knNumErrorCodes] = {
   "No error.",
   "Internal allocation failed.",
   "Internal deletion failed.",
@@ -44,7 +44,7 @@ char FunV_ksaErrorString [FunV_tErr_knNumErrorCodes][256] = {
   "Invalid error code."
 };
 
-char FunV_ksaTclCommand [FunV_knNumTclCommands][256] = {
+char *FunV_ksaTclCommand [FunV_knNumTclCommands] = {
   "Overlay_DoConfigDlog",
   "Overlay_UpdateNumTimePoints",
   "Overlay_UpdateNumConditions",

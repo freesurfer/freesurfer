@@ -10,6 +10,7 @@ extern char     *crypt(const char *, const char *);
 
 void chklc(void)
 {
+  /*#ifndef Darwin*/
   char  dirname[STRLEN], *cp ;
   FILE* lfile;
   char* email;
@@ -24,10 +25,17 @@ void chklc(void)
     return ;
 
   cp = getenv("MRI_DIR");
+ 
   if (cp)
-    strcpy(dirname, cp) ;
+   {
+     strncpy(dirname, cp, STRLEN) ;
+    }
   else
-    strcpy(dirname, ".") ;
+  {
+    dirname[0] = 46; /*  ascii "."   */
+     dirname[1] = 0;
+  }
+ 
 
   lfilename = (char*)calloc(1,512);
   email = (char*)calloc(1,512);
@@ -44,10 +52,12 @@ void chklc(void)
     fscanf(lfile,"%s\n",key);
     
     sprintf(gkey,"%s.%s",email,magic);
+#ifndef Darwin
     if (strcmp(key,crypt(gkey,"*C*O*R*T*E*C*H*S*0*1*2*3*"))!=0) {
       printf("No valid license key !\n");
       exit(-1);
     }
+#endif
   }
   else {
     printf("License file not found !\n");
@@ -59,5 +69,6 @@ void chklc(void)
   free(gkey);
   free(lfilename);
   return;  
+  /*#endif*/
 }
 

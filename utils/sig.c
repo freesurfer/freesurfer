@@ -1,7 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#ifdef Darwin
+#include <float.h>
+#else
 #include <values.h>
+#endif
 
 #include "error.h"
 #include "sig.h"

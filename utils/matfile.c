@@ -713,4 +713,5 @@ int MLFCfree(MLFC **ppmlfc){
   }
 
   free(*ppmlfc);
+  return(0) ;	
 }

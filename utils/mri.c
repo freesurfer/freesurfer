@@ -7840,14 +7840,30 @@ MRImeanFrame(MRI *mri, int frame)
   return(mean) ;
 }
 
+#ifndef UCHAR_MIN
 #define UCHAR_MIN  0.0
+#endif
+#ifndef UCHAR_MAX
 #define UCHAR_MAX  255.0
+#endif
+#ifndef SHORT_MIN
 #define SHORT_MIN  -32768.0
+#endif
+#ifndef SHORT_MAX
 #define SHORT_MAX  32767.0
+#endif
+#ifndef INT_MIN
 #define INT_MIN    -2147483648.0
+#endif
+#ifndef INT_MAX
 #define INT_MAX    2147483647.0
+#endif
+#ifndef LONG_MIN
 #define LONG_MIN   -2147483648.0
+#endif
+#ifndef LONG_MAX
 #define LONG_MAX   2147483647.0
+#endif
 
 #define N_HIST_BINS 1000
 

@@ -64,7 +64,7 @@ int Tix_SafeInit ( Tcl_Interp* interp );
 MATRIX *gm_screen2ras = NULL ;
 MATRIX *gm_ras2screen = NULL ;
 
-char tkm_ksaErrorStrings [tkm_knNumErrorCodes][tkm_knErrStringLen] = {
+char *tkm_ksaErrorStrings [tkm_knNumErrorCodes] = {
   "No error.",
   "A parameter to this function was invalid.",
   "The environment variable MRI_DIR is not defined.",
@@ -180,7 +180,7 @@ typedef enum {
 } tkm_tFileName;
 
 /* subdirectories local to subject's home dir */
-char ksaFileNameSubDirs[tkm_knNumFileNameTypes][tkm_knPathLen] = {
+char *ksaFileNameSubDirs[tkm_knNumFileNameTypes] = {
   "fmri", "", "bem", "surf", "mri", "mri/transforms", "label", "mri", "", "image/rgb", "tmp", "tmp", "lib/tcl"
 };
 
@@ -9746,7 +9746,7 @@ void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
 }
 
 
-char kTclCommands [tkm_knNumTclCommands][STRLEN] = {
+char *kTclCommands [tkm_knNumTclCommands] = {
   
   "UpdateLinkedCursorFlag",
   "UpdateVolumeCursor",

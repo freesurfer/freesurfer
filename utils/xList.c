@@ -3,7 +3,7 @@
 #include "xList.h"
 #include "xDebug.h"
 
-static char xList_ksaError [xList_knNumErrorCodes] [256] = {
+static char *xList_ksaError [xList_knNumErrorCodes]  = {
 
   "No error",
   "List allocation failed.",

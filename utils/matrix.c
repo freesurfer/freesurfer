@@ -184,8 +184,11 @@ MATRIX *
 MatrixAlloc(int rows, int cols, int type)
 {
   MATRIX *mat ;
-  int    row, nelts, i;
+  int    row, nelts;
+#ifdef _POSIX_MAPPED_FILES
+  int    i;
   float  f;
+#endif
 
   mat = (MATRIX *)calloc(1, sizeof(MATRIX)) ;
   if (!mat)
@@ -310,7 +313,9 @@ MatrixFree(MATRIX **pmat)
     if (mat->type == MATRIX_COMPLEX)
       nelts *= 2 ;
 
+#ifdef _POSIX_MAPPED_FILES
     munmap(mat->data, (nelts+2) * sizeof(float)) ;
+#endif
     fclose(mat->mmapfile) ;
   }
   else{

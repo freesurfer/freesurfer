@@ -3,7 +3,7 @@
 #include "xSparseVolume.h"
 #include "xDebug.h"
 
-char xSVol_ksaErrorStrings [xSVol_knNumErrorCodes][256] = {
+char *xSVol_ksaErrorStrings [xSVol_knNumErrorCodes] = {
 
   "No error.",
   "Invalid pointer to object.",

@@ -13,7 +13,9 @@
 #include <sys/time.h>
 #include <ctype.h>
 #include <dirent.h>
+#ifndef Darwin
 #include <malloc.h>
+#endif
 #include <GL/glut.h>
 #include "error.h"
 #include "diag.h"
@@ -22,10 +24,11 @@
 #include "DICOMRead.h"
 #include "mri2.h"
 #include "bfileio.h"
+#include "proto.h"
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.3 2002/09/10 22:02:28 kteich Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.4 2002/11/12 19:53:38 brucefis Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);

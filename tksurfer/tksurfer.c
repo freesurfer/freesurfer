@@ -466,8 +466,8 @@ double icstrength=1.0;   /* icurv force */
 int curvim_allocated=FALSE;
 int curvim_averaged=0;
 
-float sf=0.55;      /* initial scale factor */
-float zf=1.0;       /* current scale */
+static float sf=0.55;      /* initial scale factor */
+static float zf=1.0;       /* current scale */
 
 double scalebar_xpos = SCALEBAR_XPOS;
 double scalebar_ypos = SCALEBAR_YPOS;
@@ -1155,7 +1155,7 @@ int conv_mnital_to_tal(float mnix, float mniy, float mniz,
 #define UNDO_CUT          2
 #define NUM_UNDO_ACTIONS  3
 
-char undo_action_strings[NUM_UNDO_ACTIONS][NAME_LENGTH] = 
+char *undo_action_strings[NUM_UNDO_ACTIONS] = 
   {
     "INVALID UNDO ACTION",
     "Nothing to Undo",
@@ -1301,7 +1301,7 @@ int func_convert_error (FunD_tErr error);
 #define SCLV_FSMASK       7
 #endif
 
-static char sclv_field_names [NUM_SCALAR_VALUES][255] = {
+static char *sclv_field_names [NUM_SCALAR_VALUES] = {
   "val", "val2", "valbak", "val2bak", "valstat", "imagval",
   "mean", "meanimag", "std_error"};
 
@@ -17979,7 +17979,7 @@ int main(int argc, char *argv[])   /* new main */
   char alias_tcl[NAME_LENGTH];
   char *envptr;
   FILE *fp;
-#if defined(Linux) || defined(sun) || defined(SunOS)
+#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
   struct timeval tv;
 #endif
   /* begin rkt */
@@ -18889,7 +18889,7 @@ int main(int argc, char *argv[])   /* new main */
     }
     do_one_gl_event(interp);
     
-#if defined(Linux) || defined(sun) || defined(SunOS)
+#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
     tv.tv_sec = 0;
     tv.tv_usec = 10000;
     select(0, NULL, NULL, NULL, &tv);

@@ -3,7 +3,7 @@
 #include "xGrowableArray.h"
 #include "xDebug.h"
 
-char xGArr_ksaErrorStrings [xGArr_knNumErrorCodes][256] = {
+char *xGArr_ksaErrorStrings [xGArr_knNumErrorCodes] = {
 
   "No error.",
   "Invalid object.",

@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include "pdf.h"
+#include "proto.h"
+#include "utils.h"
 
 /*********************************************************
  * Name:    PDFgaussian(void)

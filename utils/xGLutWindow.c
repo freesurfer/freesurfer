@@ -4,7 +4,7 @@
 
 static xGLutWindowRef mLookupList [xGWin_knMaxNumWindows];
 
-static char ksErrorStrings [xGWin_knNumErrorCodes][256] = {
+static char *ksErrorStrings [xGWin_knNumErrorCodes] = {
   "No error.",
   "Invalid window ptr (probably NULL).",
   "Invalid window signature.",

@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.2 2002/11/08 21:34:08 kteich Exp $
+  $Id: fsgdf.c,v 1.3 2002/11/12 19:53:01 brucefis Exp $
 
   1. Tags are NOT case sensitive.
   2. Labels are case sensitive.
@@ -50,7 +50,11 @@
 #include "fsgdf.h"
 
 /* This should be in ctype.h, but the compiler complains */
+#ifndef Darwin
+#ifndef isblank
 int isblank (int c);
+#endif
+#endif
 
 
 static FSGD *gdfReadV1(char *gdfname);

@@ -86,15 +86,16 @@
 **	and convert the object to and from its "stream" representation.
 **	In addition, the package can parse a file which contains a stream
 **	and create its internal object.
-** Last Update:		$Author: kteich $, $Date: 2002/09/10 21:40:19 $
+** Last Update:		$Author: brucefis $, $Date: 2002/11/12 19:50:34 $
 ** Source File:		$RCSfile: dcm.c,v $
-** Revision:		$Revision: 1.5 $
+** Revision:		$Revision: 1.6 $
 ** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.5 $ $RCSfile: dcm.c,v $";
+static char rcsid[] = "$Revision: 1.6 $ $RCSfile: dcm.c,v $";
 
 #include "ctn_os.h"
+#include <ctype.h>
 
 #include "dicom.h"
 #include "condition.h"
@@ -489,11 +490,11 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 	while ((element = LST_Pop(&group->elementList)) != NULL) {
 	    if (debug)
 		fprintf(stderr, "DCM_CloseObject: Element %08x\n",
-			element->element.tag);
+			(int)element->element.tag);
 	    if (element->element.representation == DCM_SQ) {
 		if (debug)
 		    fprintf(stderr, "Sequence List Address: %x\n",
-			    element->element.d.sq);
+			    (int)element->element.d.sq);
 		if (element->element.d.sq != NULL) {
 		    while ((sequenceItem = LST_Pop(&element->element.d.sq)) != NULL) {
 			(void) DCM_CloseObject(&sequenceItem->object);
@@ -504,7 +505,7 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 	    } else if (element->fragmentFlag) {
 		if (debug)
 		    fprintf(stderr, "Fragment List Address: %x\n",
-			    element->element.d.fragments);
+			    (int)element->element.d.fragments);
 		if (element->element.d.fragments != NULL) {
 		    while ((fragmentItem = LST_Pop(&element->element.d.fragments)) != NULL) {
 			CTN_FREE(fragmentItem);
@@ -513,7 +514,7 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 		}
 	    }
 	    if (debug)
-		fprintf(stderr, "DCM_CloseObject: free %8x\n", element);
+		fprintf(stderr, "DCM_CloseObject: free %8x\n", (int)element);
 
 	    CTN_FREE(element);
 	}
@@ -3399,7 +3400,7 @@ typedef struct {
     char code[3];
 }   VRMAP;
 
-static VRMAP vrMap[] = {
+static VRMAP *vrMap = {
     {DCM_AE, "AE"},
     {DCM_AS, "AS"},
     {DCM_AT, "AT"},

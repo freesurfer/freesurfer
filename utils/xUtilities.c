@@ -6,7 +6,7 @@
 #include <stdarg.h>
 #include "xUtilities.h"
 
-char xUtil_ksaErrorString [xUtil_tErr_knNumErrorCodes][256] = {
+char *xUtil_ksaErrorString [xUtil_tErr_knNumErrorCodes] = {
   "No error.",
   "Invalid error code."
 };

@@ -1,7 +1,7 @@
 #include "tkmMeditWindow.h"
 #include "tkmDisplayArea.h"
 
-char MWin_ksaErrorStrings [MWin_knNumErrorCodes][256] = {
+char *MWin_ksaErrorStrings [MWin_knNumErrorCodes] = {
 
   "No error",
   "Allocation failed.",

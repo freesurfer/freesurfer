@@ -2,7 +2,7 @@
 #include "xUndoList.h"
 #include "xDebug.h"
 
-static char xUndL_ksaError [xUndL_knNumErrorCodes] [256] = {
+static char *xUndL_ksaError [xUndL_knNumErrorCodes]  = {
   
   "No error.",
   "Allocation of undo list structure failed.",

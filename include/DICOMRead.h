@@ -12,7 +12,6 @@
 #ifndef INTSIZE
 #define INTSIZE 16
 #endif
-#define INTSIZE 16
 #define LONGSIZE 32
 
 #define DCM_NOERROR 0

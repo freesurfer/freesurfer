@@ -3,7 +3,7 @@
 #include <math.h>
 #include "mriHeadPointList.h"
 
-char HPtL_ksaErrorStrings [HPtL_knNumErrorCodes][256] = {
+char *HPtL_ksaErrorStrings [HPtL_knNumErrorCodes] = {
 
   "No error.",
   "Invalid object.",

@@ -3,7 +3,7 @@
 #include "mriTransform.h"
 #include "macros.h"
 
-char Trns_ksaErrorStrings [Trns_knNumErrorCodes][256] = {
+char *Trns_ksaErrorStrings [Trns_knNumErrorCodes] = {
 
   "No error.",
   "Invalid pointer to object.",

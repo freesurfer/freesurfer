@@ -65,7 +65,6 @@
 ------------------------------------------------------------------------*/
 
 
-double drand48(void) ;
 
 /*------------------------------------------------------------------------
                               FUNCTIONS
@@ -233,7 +232,17 @@ fComplementCode(double *pdIn, double *pdOut, int iLen)
   }
 }
 
-#ifdef _HOME_
+#ifdef Darwin
+void srand48(long seed) ;
+void
+srand48(long seed)
+{
+  setRandomSeed(seed) ;
+}
+#endif
+
+#ifdef Darwin_not_used
+double drand48(void) ;
 /*------------------------------------------------------------------------
        Parameters:
 

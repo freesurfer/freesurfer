@@ -53,7 +53,7 @@ static DspA_tMarker sCursorShape = DspA_tMarker_Crosshair;
 /* static focused display. */
 static tkmDisplayAreaRef sFocusedDisplay = NULL;
 
-char DspA_ksaErrorStrings [DspA_knNumErrorCodes][STRLEN] = {
+char *DspA_ksaErrorStrings [DspA_knNumErrorCodes] = {
   "No error",
   "Allocation failed.",
   "Invalid ptr to object, was probably null.",
@@ -78,19 +78,19 @@ char DspA_ksaErrorStrings [DspA_knNumErrorCodes][STRLEN] = {
   "Invalid error code."
 };
 
-char DspA_ksaOrientation [mri_knNumOrientations][STRLEN] = {
+char *DspA_ksaOrientation [mri_knNumOrientations] = {
   "Coronal",
   "Horizontal",
   "Sagittal"
 };
 
-char DspA_ksaSurface [Surf_knNumVertexSets][STRLEN] = {
+char *DspA_ksaSurface [Surf_knNumVertexSets] = {
   "Main",
   "Original",
   "Canonical"
 };
 
-char DspA_ksaDisplaySet [DspA_knNumDisplaySets][STRLEN] = {
+char *DspA_ksaDisplaySet [DspA_knNumDisplaySets] = {
   "cursor",
   "mouseover"
 };

@@ -8,6 +8,8 @@
 #include "matrix.h"
 #include "matfile.h"
 #include "evschutils.h"
+#include "proto.h"
+#include "utils.h"
 
 static int EVScompare(const void *evsch1, const void *evsch2);
 
