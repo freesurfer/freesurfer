@@ -37,6 +37,16 @@ typedef struct
 
 #define mri_pvals        mri_avgs
 
+/* This is so applications can specify different xforms */
+/* StatReadTransform() will read in this file */
+#ifdef _STATS_SRC
+  char *stats_talxfm = "talairach.xfm";
+#else
+  extern char *stats_talxfm;
+#endif
+
+
+
 typedef struct
 {
   /* from .dat file */
