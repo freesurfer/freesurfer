@@ -27,6 +27,7 @@ MATRIX *MRIgetConformMatrix(MRI *mri)
     mri->x_r = -1.0;  mri->x_a =  0.0;  mri->x_s =  0.0;
     mri->y_r =  0.0;  mri->y_a =  0.0;  mri->y_s = -1.0;
     mri->z_r =  0.0;  mri->z_a =  1.0;  mri->z_s =  0.0;
+    mri->c_r =  0.0;  mri->c_a =  0.0;  mri->c_s =  0.0;
  } 
 
   templ = MRIallocHeader(256, 256, 256, MRI_UCHAR);
@@ -41,12 +42,11 @@ MATRIX *MRIgetConformMatrix(MRI *mri)
   templ->x_r = -1.0;      templ->x_a =  0.0;      templ->x_s =  0.0;
   templ->y_r =  0.0;      templ->y_a =  0.0;      templ->y_s = -1.0;
   templ->z_r =  0.0;      templ->z_a =  1.0;      templ->z_s =  0.0;
-  templ->c_r =  0.0;      templ->c_a =  0.0;      templ->c_s =  0.0;
-  // definition of the conform one is that c_(r,a,s) = 0 at (128,128,128).
+  templ->c_r =  mri->c_r; templ->c_a =  mri->c_a; templ->c_s =  mri->c_s;
+  templ->ras_good_flag = 1; // use c_(r,a,s)
   templ->slice_direction = MRI_CORONAL;
   templ->tr = mri->tr ; templ->te = mri->te ; 
   templ->flip_angle = mri->flip_angle ; templ->ti = mri->ti ; 
-
 
   m_resample = MRIgetResampleMatrix(mri, templ);
 
@@ -67,7 +67,8 @@ MRI *MRIconform(MRI *mri)
     res->x_r = -1.0;  res->x_a =  0.0;  res->x_s =  0.0;
     res->y_r =  0.0;  res->y_a =  0.0;  res->y_s = -1.0;
     res->z_r =  0.0;  res->z_a =  1.0;  res->z_s =  0.0;
- } 
+    res->c_r =  0.0;  res->c_a =  0.0;  res->c_s =  0.0;
+  } 
 
   templ = MRIallocHeader(256, 256, 256, MRI_UCHAR);
 
@@ -82,6 +83,7 @@ MRI *MRIconform(MRI *mri)
   templ->y_r =  0.0;      templ->y_a =  0.0;      templ->y_s = -1.0;
   templ->z_r =  0.0;      templ->z_a =  1.0;      templ->z_s =  0.0;
   templ->c_r = res->c_r;  templ->c_a = res->c_a;  templ->c_s = res->c_s;
+  templ->ras_good_flag = 1; // use c_(r,a,s) 
   templ->slice_direction = MRI_CORONAL;
   templ->tr = mri->tr ; templ->te = mri->te ; 
   templ->flip_angle = mri->flip_angle ; templ->ti = mri->ti ; 
