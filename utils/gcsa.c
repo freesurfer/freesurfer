@@ -792,7 +792,7 @@ GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
   static MATRIX *m_cov_inv = NULL ;
   static VECTOR *v_tmp = NULL, *v_x = NULL ;
 
-  if (v_x && ninputs != v_x->cols)
+  if (v_x && ninputs != v_x->rows)
   {
     MatrixFree(&m_cov_inv) ; MatrixFree(&v_tmp) ;
     VectorFree(&v_x) ;
@@ -1947,6 +1947,27 @@ GCSAputInputType(GCSA *gcsa, int type, char *fname, int navgs,int flags,int ino)
   if (fname)
     strcpy(gcsa->inputs[ino].fname, fname) ;
   gcsa->inputs[ino].flags = flags ;
+  return(NO_ERROR) ;
+}
+
+int
+GCSAsetCovariancesToIdentity(GCSA *gcsa)
+{
+  GCSA_NODE  *gcsan ;
+  GCS        *gcs ;
+  int        i, n ;
+
+  for (i = 0 ; i < gcsa->mris_classifiers->nvertices ; i++)
+  {
+    if (i == Gdiag_no)
+      DiagBreak() ;
+    gcsan = &gcsa->gc_nodes[i] ;
+    for (n = 0 ; n < gcsan->nlabels ; n++)
+    {
+      gcs = &gcsan->gcs[n] ;
+      MatrixIdentity(gcsa->ninputs, gcs->m_cov) ;
+    }
+  }
   return(NO_ERROR) ;
 }
 
