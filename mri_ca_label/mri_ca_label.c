@@ -326,7 +326,7 @@ main(int argc, char *argv[])
         GCAanneal(mri_in, gca, mri_labeled, lta, max_iter) ;
       else
         GCAreclassifyUsingGibbsPriors(mri_in, gca, mri_labeled, lta, max_iter,
-                                      mri_fixed, 0);
+                                      mri_fixed, 0, NULL);
     }
   }
   GCAmaxLikelihoodBorders(gca, mri_in, mri_labeled, mri_labeled,lta,mle_niter,
