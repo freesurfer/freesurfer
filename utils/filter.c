@@ -1923,3 +1923,171 @@ imageMeanFilter2x2(IMAGE *Isrc, IMAGE *Idst)
 
   return(0) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             gray-scale 3x3 dilation - local max
+----------------------------------------------------------------------*/
+IMAGE *
+ImageGreyDilate(IMAGE *Isrc, IMAGE *Idst)
+{
+  IMAGE   *Iout ;
+  int     rows, cols, x, y, xk, yk, xi, yi, frame ;
+  float   image_fmin, image_fmax, fmax, *fopix, *fipix ;
+
+  if (Isrc->pixel_format != PFFLOAT)
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
+                       "ImageDilate: unsupported input format %d",
+                       Isrc->pixel_format)) ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+
+  if (Idst->pixel_format != PFFLOAT)
+    Iout = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+  else
+    Iout = Idst ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  ImageValRange(Isrc, &image_fmin, &image_fmax) ;
+  for (frame = 0 ; frame < Isrc->num_frame ; frame++)
+  {
+    switch (Isrc->pixel_format)
+    {
+    case PFFLOAT:
+      fopix = (float *)IMAGEFseq_pix(Iout, 0, 0, frame) ;
+      for (y = 0 ; y < rows ; y++)
+      {
+        for (x = 0 ; x < cols ; x++, fopix++)
+        {
+          fmax = image_fmin ;
+          for (yk = -1 ; yk <= 1 ; yk++)
+          {
+            yi = y + yk ;    /* image coordinate */
+            if (yi < 0)
+              yi = 0 ;
+            else if (yi >= rows)
+              yi = rows-1 ;
+            
+            for (xk = -1 ; xk <= 1 ; xk++)
+            {
+              xi = x + xk ;   /* image coordinate */
+              if (xi < 0)
+                xi = 0 ;
+              else if (xi >= cols)
+                xi = cols-1 ;
+              fipix = IMAGEFseq_pix(Isrc, xi, yi, frame) ;
+              if (*fipix > fmax)
+                fmax = *fipix ;
+            }
+          }
+          *fopix = fmax ;
+        }
+      }
+      break ;
+    default:
+      ErrorReturn(NULL, 
+                  (ERROR_UNSUPPORTED,
+                   "ImageDilate: unsupported pixel format %d\n",
+                   Isrc->pixel_format)) ;
+      exit(-1);
+      break ;
+    }
+  }
+
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+ImageGreyErode(IMAGE *Isrc, IMAGE *Idst)
+{
+  IMAGE   *Iout ;
+  int     rows, cols, x, y, xk, yk, xi, yi, frame ;
+  float   image_fmin, image_fmax, fmin, *fopix, *fipix ;
+
+  if (Isrc->pixel_format != PFFLOAT)
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
+                       "ImageDilate: unsupported input format %d",
+                       Isrc->pixel_format)) ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+
+  if (Idst->pixel_format != PFFLOAT)
+    Iout = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+  else
+    Iout = Idst ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  ImageValRange(Isrc, &image_fmin, &image_fmax) ;
+  for (frame = 0 ; frame < Isrc->num_frame ; frame++)
+  {
+    switch (Isrc->pixel_format)
+    {
+    case PFFLOAT:
+      fopix = (float *)IMAGEFseq_pix(Iout, 0, 0, frame) ;
+      for (y = 0 ; y < rows ; y++)
+      {
+        for (x = 0 ; x < cols ; x++, fopix++)
+        {
+          fmin = image_fmax ;
+          for (yk = -1 ; yk <= 1 ; yk++)
+          {
+            yi = y + yk ;    /* image coordinate */
+            if (yi < 0)
+              yi = 0 ;
+            else if (yi >= rows)
+              yi = rows-1 ;
+            
+            for (xk = -1 ; xk <= 1 ; xk++)
+            {
+              xi = x + xk ;   /* image coordinate */
+              if (xi < 0)
+                xi = 0 ;
+              else if (xi >= cols)
+                xi = cols-1 ;
+              fipix = IMAGEFseq_pix(Isrc, xi, yi, frame) ;
+              if (*fipix < fmin)
+                fmin = *fipix ;
+            }
+          }
+          *fopix = fmin ;
+        }
+      }
+      break ;
+    default:
+      ErrorReturn(NULL, 
+                  (ERROR_UNSUPPORTED,
+                   "ImageErode: unsupported pixel format %d\n",
+                   Isrc->pixel_format)) ;
+      break ;
+    }
+  }
+
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
