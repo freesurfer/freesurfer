@@ -139,7 +139,9 @@ main(int argc, char *argv[])
   if (gca == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
-
+  printf("freeing gibbs priors...") ;
+  GCAfreeGibbs(gca) ;
+  printf("done.\n") ;
 
   if (novar)
     GCAunifyVariance(gca) ;
@@ -288,7 +290,7 @@ main(int argc, char *argv[])
   }
 
 
-  gcam = GCAMalloc(gca->width, gca->height, gca->depth) ;
+  gcam = GCAMalloc(gca->prior_width, gca->prior_height, gca->prior_depth) ;
   GCAMinit(gcam, mri_in, gca, transform) ;
   if (parms.write_iterations != 0)
   {
@@ -324,8 +326,10 @@ main(int argc, char *argv[])
   if (GCAMwrite(gcam, out_fname) != NO_ERROR)
     ErrorExit(Gerror, "%s: GCAMwrite(%s) failed", Progname, out_fname) ;
 
+#if 0
   if (gca)
     GCAfree(&gca) ;
+#endif
   GCAMfree(&gcam) ;
   if (mri_in)
     MRIfree(&mri_in) ;

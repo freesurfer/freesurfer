@@ -14,7 +14,8 @@
 
 typedef struct
 {
-  float   spacing ;
+  float   prior_spacing ;
+  float   node_spacing ;
   int     use_gradient ;
 } GCA_PARMS ;
 
@@ -25,9 +26,9 @@ typedef struct
 
 typedef struct
 {
-  int    xn ;         /* node coordinates */
-  int    yn ;
-  int    zn ;
+  int    xp ;         /* prior coordinates */
+  int    yp ;
+  int    zp ;
   int    label ;
   int    n ;          /* index in gcan structure */
   float  prior ;
@@ -46,18 +47,21 @@ typedef struct
 {
   float   mean ;
   float   var ;
-  float   prior ;
-#if 0
-  float   *label_priors[GIBBS_NEIGHBORHOOD] ;
-  char    *labels[GIBBS_NEIGHBORHOOD] ;
-  short   nlabels[ GIBBS_NEIGHBORHOOD];
-#else
   float   **label_priors ;
   char    **labels ;
   short   *nlabels;
-#endif
   short   n_just_priors ;
+  int     ntraining ;
 } GC1D, GAUSSIAN_CLASSIFIER_1D ;
+
+typedef struct
+{
+  short nlabels ;
+  short max_labels ;
+  char  *labels ;
+  float *priors ;
+  int   total_training ;
+} GCA_PRIOR ;
 
 typedef struct
 {
@@ -82,11 +86,16 @@ typedef struct
 
 typedef struct
 {
-  float     spacing ;    /* inter-node spacing */
-  int       width ;
-  int       height ;
-  int       depth ;
+  float     node_spacing ;    /* inter-node spacing */
+  float     prior_spacing ;    /* inter-prior spacing */
+  int       node_width ;
+  int       node_height ;
+  int       node_depth ;
   GCA_NODE  ***nodes ;
+  int       prior_width ;
+  int       prior_height ;
+  int       prior_depth ;
+  GCA_PRIOR ***priors ;
   int       ninputs ;
   GCA_TISSUE_PARMS tissue_parms[MAX_GCA_LABELS] ;
   int    flags ;
@@ -94,9 +103,11 @@ typedef struct
 
 
 int  GCAunifyVariance(GCA *gca) ;
+int  GCAvoxelToPrior(GCA *gca, MRI *mri,
+                    int xv, int yv, int zv, int *pxp,int *pyp,int *pzp);
 int  GCAvoxelToNode(GCA *gca, MRI *mri,
                     int xv, int yv, int zv, int *pxn,int *pyn,int *pzn);
-GCA  *GCAalloc(int ninputs, float spacing, int width, int height, int depth, int flags) ;
+GCA  *GCAalloc(int ninputs, float prior_spacing, float node_spacing, int width, int height, int depth, int flags) ;
 int  GCAfree(GCA **pgca) ;
 int  GCANfree(GCA_NODE *gcan) ;
 int  GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, 
@@ -111,6 +122,8 @@ MRI  *GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,
                                     int restart, void (*update_func)(MRI *));
 GCA  *GCAreduce(GCA *gca_src) ;
 int  GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv, 
+                    int *pyv, int *pzv) ;
+int  GCApriorToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv, 
                     int *pyv, int *pzv) ;
 float GCAcomputeLogImageProbability(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                                     TRANSFORM *transform) ;
@@ -133,6 +146,9 @@ MRI  *GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM *transform,
 int    GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
                                  int xv, int yv, int zv, 
                                  int *pxn, int *pyn, int *pzn) ;
+int    GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
+                                 int xv, int yv, int zv, 
+                                 int *pxp, int *pyp, int *pzp) ;
 int  GCAnodeToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform, 
                           int xv, int yv, int zv,
                           int *pxn, int *pyn, int *pzn) ;
@@ -216,7 +232,16 @@ int     GCAhistoScaleImageIntensities(GCA *gca, MRI *mri) ;
 int     GCAhisto(GCA *gca, int nbins, int **pcounts) ;
 int     GCAcomputeVoxelLikelihoods(GCA *gca, MRI *mri_in, int x, int y, int z, 
                                    TRANSFORM *transform, int *labels, double *likelihoods);
-
+GCA_PRIOR *getGCAP(GCA *gca, MRI *mri, TRANSFORM *transform, int xv, int yv, int zv) ;
+float getPrior(GCA_PRIOR *gcap, int label) ;
+int   GCApriorToNode(GCA *gca, int xp, int yp, int zp, int *pxn, int *pyn, int *pzn) ;
+int   GCAfreeGibbs(GCA *gca) ;
+GC1D *GCAfindPriorGC(GCA *gca, int xp, int yp, int zp,int label) ;
+int  GCApriorToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int yp, int zp, 
+                           int *pxv, int *pyv, int *pzv) ;
+int  GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform, 
+                                int xp, int yp, int zp, 
+                                float *pxv, float *pyv, float *pzv) ;
 
 #define MIN_PRIOR  0.5
 

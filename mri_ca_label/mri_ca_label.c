@@ -627,8 +627,8 @@ insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm, int parcellation_type,
   int      x, y, z, width, depth, height, change_label[1000], n, label,
            nchanged, rh, lh, xn, yn, zn ;
   MRI      *mri_fixed ;
-  GCA_NODE *gcan ;
   double   wm_prior ;
+  GCA_PRIOR *gcap ;
 
   mri_fixed = MRIclone(mri_wm, NULL) ;
 
@@ -652,12 +652,12 @@ insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm, int parcellation_type,
           continue ;
         
         GCAsourceVoxelToNode(gca, mri_labeled, transform, x, y, z, &xn, &yn, &zn) ;
-        gcan = &gca->nodes[xn][yn][zn] ;
+        gcap = getGCAP(gca, mri_labeled, transform, x, y, z) ;
         wm_prior = 0.0 ;
-        for (n = 0 ; n < gcan->nlabels ; n++)
-          if (gcan->labels[n] == Right_Cerebral_White_Matter ||
-              gcan->labels[n] == Left_Cerebral_White_Matter)
-            wm_prior = gcan->gcs[n].prior ;
+        for (n = 0 ; n < gcap->nlabels ; n++)
+          if (gcap->labels[n] == Right_Cerebral_White_Matter ||
+              gcap->labels[n] == Left_Cerebral_White_Matter)
+            wm_prior = gcap->priors[n] ;
 #define PRIOR_THRESH 0.1
 #define FIXED_PRIOR  0.5
         if (wm_prior < PRIOR_THRESH)
@@ -1423,10 +1423,10 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
                                   GCA *gca, TRANSFORM *transform, GCA *gca_all)
 {
   MRI       *mri_tmp, *mri_probs, *mri_tmp_labels ;
-  int       width, height, depth, x, y, z, xn, yn, zn, n, nsamples, i ;
+  int       width, height, depth, x, y, z, xn, yn, zn, n, nsamples, i, xp, yp, zp ;
   int       xmin, xmax, ymin, ymax, zmin, zmax,yi,zi, yimax, ximax, zimax,
             **added, nchanged, label ;
-  GCA_NODE  *gcan ;
+  GCA_PRIOR *gcap ;
   GC1D      *gc ;
   GCA_SAMPLE *gcas ;
   double     p, pmax ;
@@ -1445,11 +1445,11 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
     {
       for (y = 0 ; y < height ; y++)
       {
-        GCAsourceVoxelToNode(gca, mri_in, transform, x, y, z, &xn, &yn, &zn) ;
-        gcan = &gca->nodes[xn][yn][zn] ;
-        for (n = 0 ; n < gcan->nlabels ; n++)
+        GCAsourceVoxelToPrior(gca, mri_in, transform, x, y, z, &xp, &yp, &zp) ;
+        gcap = &gca->priors[xp][yp][zp] ;
+        for (n = 0 ; n < gcap->nlabels ; n++)
         {
-          if (!IS_UNKNOWN(gcan->labels[n]))
+          if (!IS_UNKNOWN(gcap->labels[n]))
           {
             if (x < xmin)
               xmin = x ;
@@ -1474,7 +1474,7 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
 
   printf("allocating %d TL samples, box [%d, %d, %d] -> [%d, %d, %d]...\n", 
          nsamples, xmin, ymin, zmin, xmax, ymax, zmax) ;
-  gcas = calloc(nsamples, sizeof(GCA_SAMPLE )) ;
+  gcas = calloc(nsamples, sizeof(GCA_SAMPLE)) ;
   if (!gcas)
     ErrorExit(ERROR_NOMEMORY, "could not allocate gcas for TL insertion") ;
 
@@ -1486,17 +1486,17 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
     {
       for (y = ymin ; y <= ymax ; y++)
       {
-        GCAsourceVoxelToNode(gca, mri_in, transform, x, y, z, &xn, &yn, &zn) ;
-        gcan = &gca->nodes[xn][yn][zn] ;
-        for (n = 0 ; n < gcan->nlabels ; n++)
+        GCAsourceVoxelToPrior(gca, mri_in, transform, x, y, z, &xp, &yp, &zp) ;
+        gcap = &gca->priors[xp][yp][zp] ;
+        for (n = 0 ; n < gcap->nlabels ; n++)
         {
-          gc = &gcan->gcs[n] ;
-          if (!IS_UNKNOWN(gcan->labels[n]))
+          if (!IS_UNKNOWN(gcap->labels[n]))
           {
+            gc = GCAfindPriorGC(gca, xp, yp, zp, gcap->labels[n]) ;
             gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
-            gcas[i].xn = xn ; gcas[i].yn = yn ; gcas[i].zn = zn ;
-            gcas[i].n = n ; gcas[i].label = gcan->labels[n] ;
-            gcas[i].prior = gc->prior ;
+            gcas[i].xp = xp ; gcas[i].yp = yp ; gcas[i].zp = zp ;
+            gcas[i].n = n ; gcas[i].label = gcap->labels[n] ;
+            gcas[i].prior = gcap->priors[n] ;
             gcas[i].mean = gc->mean ;
             gcas[i].var = gc->var ;
             i++ ;
@@ -1957,17 +1957,17 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
             MRIvox(mri_labeled, x, yi, z) = label ;
           }
 #else
-          GCAsourceVoxelToNode(gca_all, mri_in, transform, x, yi, z, &xn, &yn, &zn) ;
-          gcan = &gca_all->nodes[xn][yn][zn] ;
+          GCAsourceVoxelToPrior(gca_all, mri_in, transform, x, yi, z, &xn, &yn, &zn) ;
+          gcap = &gca_all->priors[xn][yn][zn] ;
           if (label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex)
           {
             int left ;
             
             left = (label == Left_Cerebral_Cortex) ;
             label = left ? Left_Hippocampus : Right_Hippocampus ;
-            for (n = 0 ; n < gcan->nlabels ; n++)
+            for (n = 0 ; n < gcap->nlabels ; n++)
             {
-              if (gcan->labels[n] == label)  /* it's possible */
+              if (gcap->labels[n] == label)  /* it's possible */
               {
                 if (x == Ggca_x && yi == Ggca_y && z == Ggca_z)  
                 {
