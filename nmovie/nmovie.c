@@ -499,7 +499,7 @@ void ConvertImages(int nframes, char **argv)
       I = ImageRead(argv[i+1]);
       if (!I)
         ErrorExit(ERROR_NOFILE, 
-                  "%s: could not read image file %s\n",argv[i+1]);
+                  "%s: could not read image file %s\n", Progname,argv[i+1]);
       rgb2xcol(I,imgdata,i);
       ImageFree(&I);
     }
@@ -588,7 +588,7 @@ int main(int argc, char **argv)
       I = ImageReadHeader(argv[i]);
       if (!I)
         ErrorExit(ERROR_NOFILE, 
-                  "%s: could not read image file %s\n",argv[i]);
+                  "%s: could not read image file %s\n",Progname,argv[i]);
       switch (I->pixel_format)
       {
       case PFBYTE:
