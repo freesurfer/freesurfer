@@ -11,7 +11,7 @@
 #include "mrisurf.h"
 #include "macros.h"
 
-static char vcid[]="$Id: mris_errors.c,v 1.1 1997/09/23 21:55:27 fischl Exp $";
+static char vcid[]="$Id: mris_errors.c,v 1.2 1997/09/25 22:32:15 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -20,7 +20,7 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-int    MRISareaErrors(MRI_SURFACE *mris) ;
+int MRISareaErrors(MRI_SURFACE *mris) ;
 
 char *Progname ;
 static MRI_SURFACE  *mris ;
@@ -59,6 +59,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
 
+  MRISreadTriangleProperties(mris, in_fname) ;
   MRISareaErrors(mris) ;
 
   if (0)
@@ -144,38 +145,38 @@ print_version(void)
 int
 MRISareaErrors(MRI_SURFACE *mris)
 {
-  int      vno, fno, max_v = -1, n ;
-  VERTEX   *v ;
-  float    verror, max_verror, total_error, total_sq_error,
-           error, mean_error, std_error, pct_error ;
+  int      fno, tno, max_f = -1 ;
+  FACE     *face ;
+  float    ferror, max_ferror, total_error, total_sq_error,
+           error, mean_error, std_error, pct_error, n ;
 
   MRISupdateEllipsoidSurface(mris) ;
-  total_error = total_sq_error = max_verror = 0.0f ;
-  n = 0 ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  total_error = total_sq_error = max_ferror = 0.0f ;
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
-    v = &mris->vertices[vno] ;
-    verror = 0.0f ;
-    for (fno = 0 ; fno < v->num ; n++, fno++)  /* for each neighboring face */
+    face = &mris->faces[fno] ;
+    ferror = 0.0f ;
+    for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
     {
-      error = v->tri_area[fno] - v->orig_tri_area[fno] ;
-      pct_error = error / v->orig_tri_area[fno] * 100.0f ;
-      printf("%d %d %d %2.3f %2.3f %2.3f %2.1f\n", n, vno, fno, 
-             v->orig_tri_area[fno], v->tri_area[fno], error, pct_error) ;
+      error = face->area[tno] - face->orig_area[tno] ;
+      pct_error = error / face->orig_area[tno] * 100.0f ;
+      printf("%d %2.3f %2.3f %2.3f %2.1f\n", fno, face->orig_area[tno], 
+             face->area[tno], error, pct_error) ;
       total_sq_error += (error * error) ;
-      verror += fabs(error) ;
+      ferror += fabs(error) ;
       total_error += error ;
     }
-    if (verror >= max_verror)
+    if (ferror >= max_ferror)
     {
-      max_verror = verror ;
-      max_v = vno ;
+      max_ferror = ferror ;
+      max_f = fno ;
     }
   }
 
-  mean_error = total_error / (float)n ;
+  n = (float)(2*mris->nfaces) ;
+  mean_error = total_error / n ;
   std_error = sqrt(total_sq_error / (float)n - mean_error*mean_error) ;
-  fprintf(stderr, "max error occurs at %d, error = %2.3f\n",max_v, max_verror);
+  fprintf(stderr, "max error occurs at %d, error = %2.3f\n",max_f, max_ferror);
   fprintf(stderr, "mean error = %2.3f, std = %2.3f\n", mean_error, std_error);
   return(NO_ERROR) ;
 }
