@@ -230,40 +230,42 @@ main(int argc, char *argv[])
     mri_in = MRIread(write_volumes[i]) ;
 
     if (!mri_in)
-      {
-	if (exit_if_writefile_not_found)
-	  ErrorExit(ERROR_NOFILE, "%s: could not read volume %s", Progname, write_volumes[i]) ;
-	else
-	  {
-	    fprintf(stderr, "%s: could not read volume %s - skipping...\n", Progname, write_volumes[i]) ; 
-	    continue;
-	  }
-      }
+		{
+			if (exit_if_writefile_not_found)
+				ErrorExit(ERROR_NOFILE, "%s: could not read volume %s", Progname, write_volumes[i]) ;
+			else
+			{
+				fprintf(stderr, "%s: could not read volume %s - skipping...\n", Progname, write_volumes[i]) ; 
+				continue;
+			}
+		}
 #if 1
     mri_xformed = MRR_MRIhybrid(mri_in, mri_target, NULL);
     apply_transform(mri_in, mri_target, M_reg, mri_xformed) ;
+		MRIcopyHeader(mri_in, mri_xformed) ;
 #else
     //E/ Someone could work on this when things quiet down - to make
     //this option act more like mri_transform -
     if (apply_out_type == 1) // -out_like mri_target
-      {
-	mri_xformed = MRR_MRIhybrid(mri_in, mri_target, NULL);
-	apply_transform(mri_in, mri_target, M_reg, mri_xformed) ;
-      }
+		{
+			mri_xformed = MRR_MRIhybrid(mri_in, mri_target, NULL);
+			apply_transform(mri_in, mri_target, M_reg, mri_xformed) ;
+		}
     else if (apply_out_type == 2) // -out_like tkmedit template - coronal 1mm^3 256^3 c_ras=0 but not UCHAR
       // for compatibility with mri_transform, which won't know about target unless you specify -out_like.
-      {
-	mri_xformed = MRIalloc(256,256,256,  mri_in->type);
-	mri_xformed->x_r = -1.0;      mri_xformed->x_a =  0.0;      mri_xformed->x_s =  0.0;
-	mri_xformed->y_r =  0.0;      mri_xformed->y_a =  0.0;      mri_xformed->y_s = -1.0;
-	mri_xformed->z_r =  0.0;      mri_xformed->z_a =  1.0;      mri_xformed->z_s =  0.0;
-	mri_xformed->c_r =  0.0;      mri_xformed->c_a =  0.0;      mri_xformed->c_s =  0.0; //?
-	
-	apply_transform(mri_in, mri_xformed, M_reg, mri_xformed) ;
-      }
+		{
+			mri_xformed = MRIalloc(256,256,256,  mri_in->type);
+			mri_xformed->x_r = -1.0;      mri_xformed->x_a =  0.0;      mri_xformed->x_s =  0.0;
+			mri_xformed->y_r =  0.0;      mri_xformed->y_a =  0.0;      mri_xformed->y_s = -1.0;
+			mri_xformed->z_r =  0.0;      mri_xformed->z_a =  1.0;      mri_xformed->z_s =  0.0;
+			mri_xformed->c_r =  0.0;      mri_xformed->c_a =  0.0;      mri_xformed->c_s =  0.0; //?
+			
+			apply_transform(mri_in, mri_xformed, M_reg, mri_xformed) ;
+		}
 #endif
-
+		
     printf("writing transformed volume to %s...\n", out_fnames[i]) ;
+		MRIcopyHeader(mri_in, mri_xformed) ;
     MRIwrite(mri_xformed, out_fnames[i]) ;
     MRIfree(&mri_xformed) ; MRIfree(&mri_in) ;
   }
