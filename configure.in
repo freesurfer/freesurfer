@@ -571,12 +571,12 @@ AC_SUBST(LIBS_MGH)
 #####################################################
 AC_MSG_NOTICE(Making sure that all libraries can be compilable ...)
 AC_CHECK_LIB([m], [floor])
-AC_CHECK_LIB([z], [gzopen])
+AC_CHECK_LIB([z], [gzopen])X
 AC_CHECK_LIB([crypt], [crypt],[],[echo "MacOSX won't need this"])
 AC_CHECK_LIB([tiff], [TIFFGetVersion],[],
-  [AC_MSG_ERROR("FATAL:tiff lib not found. Please install.")] )
+  [AC_MSG_ERROR("FATAL:tiff lib not found. Please install tiff header files and libs.")] )
 AC_CHECK_LIB([jpeg], [jpeg_start_compress],[],
-  [AC_MSG_ERROR("FATAL:jpeg lib not found. Please install.")] )
+  [AC_MSG_ERROR("FATAL:jpeg lib not found. Please install jpeg lib.")] )
 # three mni libs
 AC_CHECK_LIB([netcdf], [nccreate],[],
   [AC_MSG_ERROR("FATAL:netcdf lib not found.  Set LDFLAGS or --with-mni-dir.")] )
@@ -589,6 +589,11 @@ AC_CHECK_LIB([volume_io], [transform_point],[],
 ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
+
+# just checking gsl but not set LIBS. wanted to check libgsl which contains the undefed cblas routines
+AC_CHECK_LIB([gslcblas], [cblas_dsdot], [],
+  [AC_MSG_ERROR("FATAL:gsl lib not found. Please install gsl header files and libs.")] )
+LIBS=$ac_save_libs
 
 ## check Tcl/Tk/BLT
 CPPFLAGS="$CPPFLAGS $TCL_CFLAGS"
