@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.21 2004/02/13 21:44:43 greve Exp $
+  $Id: mris_glm.c,v 1.22 2004/03/05 07:42:06 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -68,7 +68,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.21 2004/02/13 21:44:43 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.22 2004/03/05 07:42:06 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -131,6 +131,8 @@ int   eresvar_in_fmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *tid  = NULL;
 char *tfmt = NULL;
 int   tfmtid = MRI_VOLUME_TYPE_UNKNOWN;
+char *tmaxfile = NULL;
+float tmax;
 
 char *sigid  = NULL;
 char *sigfmt = NULL;
@@ -176,7 +178,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.21 2004/02/13 21:44:43 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.22 2004/03/05 07:42:06 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -455,7 +457,7 @@ int main(int argc, char **argv)
   }
 
 
-  if(tid != NULL || sigid != NULL || cesid != NULL){
+  if(tid != NULL || sigid != NULL || cesid != NULL ||tmaxfile != NULL){
     printf("INFO: computing contrast effect size \n");fflush(stdout);
     ces = fMRImatrixMultiply(beta,C,NULL);
     if(cesid != NULL){
@@ -465,13 +467,23 @@ int main(int argc, char **argv)
     }
   }
 
-  if(tid != NULL || sigid != NULL){
+  if(tid != NULL || sigid != NULL || tmaxfile != NULL){
     printf("INFO: computing t \n"); fflush(stdout);
     t = fMRIcomputeT(ces, X, C, eresvar, NULL);
     if(tid != NULL) {
       if(IsSurfFmt(tfmt) && IcoSurf == NULL)
 	IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
       if(MRIwriteAnyFormat(t,tid,tfmt,0,IcoSurf)) exit(1);
+    }
+    if(tmaxfile != NULL){
+      tmax = fabs(MRIFseq_vox(t,0,0,0,0));
+      for(vtx = 0; vtx < t->width; vtx++){
+	if(tmax < fabs(MRIFseq_vox(t,vtx,0,0,0)) )
+	  tmax = fabs(MRIFseq_vox(t,vtx,0,0,0));
+      }
+      fp = fopen(tmaxfile,"a");
+      fprintf(fp,"%f %f\n",tmax,-log10(sigt(tmax,DOF)));
+      fclose(fp);
     }
   }
 
@@ -747,6 +759,10 @@ static int parse_commandline(int argc, char **argv)
 	exit(1);
       }
     }
+    else if (!strcmp(option, "--tmax")){
+      tmaxfile = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--sigt")){
       if(nargc < 1) argnerr(option,1);
       sigid = pargv[0];
@@ -812,6 +828,7 @@ static void print_usage(void)
   printf("   --ces     name <fmt> : contrast effect size  \n");
   printf("   --t       name <fmt> : t-ratio of contrast \n");
   printf("   --sigt    name <fmt> : signficance of t-ratio (ie, t-Test) \n");
+  printf("   --tmax fname : append max t (and min p) to fname \n");
   printf("\n");
   printf("Synthesis Options\n");
   printf("   --gaussian mean std : synthesize data with guassian\n");
@@ -1069,6 +1086,11 @@ static void print_help(void)
 "--t name <fmt>\n"
 "\n"
 "Save the t-ratio of the contrast.\n"
+"\n"
+"--tmax filename\n"
+"\n"
+"Append the maximum t value and corresponding -log10(p) in text file \n"
+"filename. Good for simulations. Best when used with --guassian.\n"
 "\n"
 "--sigt name <fmt>\n"
 "\n"
