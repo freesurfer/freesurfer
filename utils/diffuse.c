@@ -130,7 +130,7 @@ ImageDiffuseCurvature(IMAGE *inImage,IMAGE *outImage, double A,
     exit(2) ;
   }
 
-  if (!ImageCheckSize(inImage, outImage, 0, 0, 0))
+  if (!ImageCheckSize(inImage, tmpImage, 0, 0, 0))
   {
     if (tmpImage)
       ImageFree(&tmpImage) ;

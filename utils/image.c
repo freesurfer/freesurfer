@@ -1550,7 +1550,7 @@ ImageWriteFrames(IMAGE *image, char *fname, int start, int nframes)
 {
   IMAGE  *tmp_image ;
   
-  tmp_image = ImageAlloc(image->cols, image->rows,image->pixel_format,nframes);
+  tmp_image = ImageAlloc(image->rows, image->cols,image->pixel_format,nframes);
   ImageCopyFrames(image, tmp_image, start, nframes, 0) ;
   ImageWrite(tmp_image, fname) ;
   ImageFree(&tmp_image) ;
@@ -2240,7 +2240,7 @@ ImageReplace(IMAGE *Isrc, IMAGE *Idst, float inpix, float outpix)
   hsize_t    npix ;
 
   if (!Idst)
-    Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, Isrc->num_frame) ;
+    Idst = ImageAlloc(Isrc->rows,Isrc->cols,Isrc->pixel_format,Isrc->num_frame);
 
   if (Idst->pixel_format != Isrc->pixel_format)
     ErrorReturn(NULL, (ERROR_BADPARM, "ImageReplace: src and dst formats must match")) ;
@@ -3199,7 +3199,7 @@ ImageAbs(IMAGE *inImage, IMAGE *outImage)
   cols = inImage->cols ;
   if (!outImage)
   {
-    outImage = ImageAlloc(cols, rows, 1, inImage->pixel_format) ;
+    outImage = ImageAlloc(rows, cols, 1, inImage->pixel_format) ;
   }
 
   nframes = inImage->num_frame ;
@@ -3292,7 +3292,7 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
     {
       if (xImage)
         ImageFree(&xImage) ;
-      xImage = ImageAlloc(cols, rows, PFFLOAT, 1) ;
+      xImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
     }
     else
     {
@@ -3308,7 +3308,7 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
     {
       if (yImage)
         ImageFree(&yImage) ;
-      yImage = ImageAlloc(cols, rows, PFFLOAT, 1) ;
+      yImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
     }
     else
     {
@@ -3569,9 +3569,22 @@ ImageConvolveGaussian(IMAGE *inImage,IMAGE *gImage, IMAGE *outImage,
   kernel = IMAGEFpix(gImage, 0, 0) ;
   ksize = gImage->cols ;
   ImageConvolve1d(inImage, tmpImage, kernel, ksize, IMAGE_VERTICAL) ;
+{
+  static int gno = 0 ;
+  char fname[100] ;
+  sprintf(fname, "t%d.hipl", gno++) ;
+ImageWrite(tmpImage, fname) ;
+}
+
   buf = IMAGEFpix(outImage, 0, 0) ;
   outImage->image = (UCHAR *)IMAGEFseq_pix(outImage, 0, 0, dst_frameno) ;
   ImageConvolve1d(tmpImage, outImage, kernel, ksize, IMAGE_HORIZONTAL) ;
+{
+  static int gno = 0 ;
+  char fname[100] ;
+  sprintf(fname, "g%d.hipl", gno++) ;
+ImageWrite(outImage, fname) ;
+}
   outImage->image = (UCHAR *)buf ;
   return(outImage) ;
 }
@@ -3614,8 +3627,13 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
             xi = width - 1 ;
 #endif
           
+          if (!FZERO(*IMAGEFpix(I,xi,y)))
+            halflen = len/2 ;
+
           total = total + k[i] * *IMAGEFpix(I, xi, y) ;
         }
+        if (!FZERO(total))
+          halflen = len/2 ;
         *IMAGEFpix(J, x, y) = total ;
       }
     }
@@ -3643,8 +3661,12 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
           else if (yi >= height)
             yi = height - 1 ;
 #endif          
+          if (!FZERO(*IMAGEFpix(I,x,yi)))
+            halflen = len/2 ;
           total = total + k[i] * *IMAGEFpix(I, x, yi) ;
         }
+        if (!FZERO(total))
+          halflen = len/2 ;
         *IMAGEFpix(J, x, y) = total ;
       }
     }
@@ -3822,7 +3844,7 @@ ImageGaussian1d(float sigma)
   /* build the kernel in k */
   len = (int)nint(8.0f * sigma)+1 ;
   half = len/2 ;
-  image = ImageAlloc(len, 1, PFFLOAT, 1) ;
+  image = ImageAlloc(1, len, PFFLOAT, 1) ;
 
   norm = 0.0f ;
   two_sigma = 2.0f * sigma ;
@@ -4220,7 +4242,7 @@ ImagePrincipalComponents(IMAGE *image, int nterms, IMAGE **pcoefImage)
   evectors = (float *)calloc((UINT)(nevalues*pix_per_frame), sizeof(float)) ;
 
   /* 2 extra frames - 1 for mean vector, and one for eigenvalues */
-  pcImage = ImageAlloc(image->cols, image->rows, PFFLOAT, nterms+2) ;
+  pcImage = ImageAlloc(image->rows, image->cols, PFFLOAT, nterms+2) ;
   rows = pcImage->rows ;
   cols = pcImage->cols ;
   
@@ -4284,7 +4306,7 @@ MatFileWrite("pc.mat", (float *)pcImage->image, pcImage->num_frame,
     # of principal components to be used in reconstruction. Each frame 
     contains one coefficient per frame in the input image.
 */
-    *pcoefImage = coefImage = ImageAlloc(image->num_frame, 1, PFFLOAT,nterms);
+    *pcoefImage = coefImage = ImageAlloc(1, image->num_frame, PFFLOAT,nterms);
     if (!coefImage)
     {
       fprintf(stderr, 
@@ -4368,7 +4390,7 @@ ImageReconstruct(IMAGE *pcImage, IMAGE *coefImage, IMAGE *xrImage,
   nterms = coefImage->num_frame ; /* # of terms in expansion */
 
   if (!xrImage)
-    xrImage = ImageAlloc(cols, rows, PFFLOAT, nframes) ;
+    xrImage = ImageAlloc(rows, cols, PFFLOAT, nframes) ;
   if (!xrImage)
   {
     fprintf(stderr, "ImageReconstruct: could not allocate image!\n") ;
