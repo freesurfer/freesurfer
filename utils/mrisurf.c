@@ -2239,7 +2239,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   if (Gdiag & DIAG_WRITE)
   {
-    sprintf(fname, "%s%4.4d.dat", FileName(parms->base_name,NULL), parms->t+1);
+    sprintf(fname, "%s%4.4d.dat", FileName(parms->base_name), parms->t+1);
     fp = fopen(fname, "w") ;
   }
 
@@ -2275,7 +2275,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     float delta, predicted_sse ;
     FILE  *fp2 ;
 
-    sprintf(fname, "nn%s%4.4d.dat",FileName(parms->base_name,NULL),parms->t+1);
+    sprintf(fname, "nn%s%4.4d.dat",FileName(parms->base_name), parms->t+1) ;
     fp2 = fopen(fname, "w") ;
 
     delta = max_dt / 100.0f ;
