@@ -41,7 +41,6 @@ main(int argc, char *argv[])
   MRI    *mri, *mri2, *mri_kernel ;
   char   *in_fname, *out_fname ;
   FILE   *fin;
-  int    frame, type;
   struct stat stat_buf;
 
 
