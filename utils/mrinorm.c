@@ -41,7 +41,9 @@
 static MRI *mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked,
                                      MRI *mri_dst, int mark, int nbr_mark) ;
 static int mriRemoveOutliers(MRI *mri, int min_nbrs) ;
+#if 0
 static MRI *mriDownsampleCtrl2(MRI *mri_src, MRI *mri_dst) ;
+#endif
 static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,
                                int niter) ;
 static MRI *mriSoapBubbleExpandFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,
@@ -602,8 +604,8 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                          float intensity_below, MRI *mri_ctrl)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi, 
-          *pzi, ctrl, nctrl ;
-  BUFTYPE *psrc, val0, val, low_thresh, hi_thresh ;
+          *pzi, ctrl, nctrl, nfilled, too_low, total_filled ;
+  BUFTYPE val0, val, low_thresh, hi_thresh ;
 
   if (!wm_target)
     wm_target = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
@@ -616,20 +618,19 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
     find points which are close to wm_target, and in relatively
     homogenous regions.
   */
+  low_thresh = wm_target-intensity_below; 
+  hi_thresh =  wm_target+intensity_above;
   for (nctrl = z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         val0 = MRIvox(mri_src, x, y, z) ;
-        if (val0 >= wm_target-intensity_below && val0 <= wm_target+intensity_above)
+        if (val0 >= low_thresh && val0 <= hi_thresh)
         {
-          low_thresh = wm_target-intensity_below; 
-          hi_thresh =  wm_target+intensity_above;
-
-#define WHALF  ((5-1)/2)
+#define WSIZE   5
+#define WHALF  ((WSIZE-1)/2)
           ctrl = 1 ;
           for (zk = -WHALF ; ctrl && zk <= WHALF ; zk++)
           {
@@ -655,6 +656,67 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
       }
     }
   }
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "%d 5x5x5 control points found\n", nctrl) ;
+
+  /*  add all voxels that neighbor a control point and are in a 3x3x3
+      neighborhood that has unambiguous intensities 
+      (should push things out close to the border).
+  */
+  total_filled = 0 ;
+  do
+  {
+    nfilled = 0 ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          val0 = MRIvox(mri_src, x, y, z) ;
+          ctrl = MRIvox(mri_ctrl, x, y, z) ;
+          too_low = 0 ;
+          if (val0 >= low_thresh && val0 <= hi_thresh && !ctrl)
+          {
+            for (zk = -1 ; zk <= 1 ; zk++)
+            {
+              zi = pzi[z+zk] ;
+              for (yk = -1 ; yk <= 1 ; yk++)
+              {
+                yi = pyi[y+yk] ;
+                for (xk = -1 ; xk <= 1 ; xk++)
+                {
+                  if ((abs(xk) + abs(yk) + abs(zk)) > 1)
+                    continue ;  /* only allow 4 (6 in 3-d) connectivity */
+                  xi = pxi[x+xk] ;
+                  ctrl = MRIvox(mri_ctrl, xi, yi, zi) ;
+                  val = MRIvox(mri_src, xi, yi, zi) ;
+                  if (val > hi_thresh || val < low_thresh)
+                  {
+                    too_low = 1 ; ctrl = 0 ;
+                  }
+                  if (ctrl || too_low)
+                    break ;
+                }
+                if (ctrl || too_low)
+                  break ;
+              }
+              if (ctrl || too_low)
+                break ;
+            }
+            MRIvox(mri_ctrl, x, y, z) = ctrl ;
+            if (ctrl)
+              nfilled++ ;
+          }
+        }
+      }
+    }
+    total_filled += nfilled ;
+  } while (nfilled > 0) ;
+  nctrl += total_filled ;
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr,"%d contiguous 3x3x3 control points added\n",total_filled);
+
 #undef WHALF
   mriRemoveOutliers(mri_ctrl, 2) ;
   if (Gdiag & DIAG_SHOW)
@@ -668,6 +730,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 
         Description
 ------------------------------------------------------*/
+#if 0
 MRI *
 MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
 {
@@ -690,6 +753,22 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
   MRIfree(&mri_tmp) ;
   return(mri_bias) ;
 }
+#else
+MRI *
+MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
+{
+  int     width, height, depth ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+
+  mri_bias = MRIclone(mri_src, NULL) ;
+  fprintf(stderr, "building Voronoi diagram...\n") ;
+  MRIbuildVoronoiDiagram(mri_src, mri_ctrl, mri_bias) ;
+  fprintf(stderr, "performing soap bubble smoothing...\n") ;
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 3) ;
+  return(mri_bias) ;
+}
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -1484,6 +1563,7 @@ mriRemoveOutliers(MRI *mri, int min_nbrs)
     fprintf(stderr, "%d control points deleted.\n", deleted) ;
   return(NO_ERROR) ;
 }
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -1542,3 +1622,4 @@ mriDownsampleCtrl2(MRI *mri_src, MRI *mri_dst)
   mri_dst->zsize = mri_src->zsize*2 ;
   return(mri_dst) ;
 }
+#endif
