@@ -243,7 +243,7 @@ proc UpdateValueLabelName { inValueIndex isName } {
     .w.fwMenuBar.mbwView.mw.cmw2 entryconfigure [expr 12 + $inValueIndex] \
       -label $isName
     # view->overlay menu
-    .w.fwMenuBar.mbwView.mw.cmw7 entryconfigure [expr 1 + $inValueIndex] \
+    .w.fwMenuBar.mbwView.mw.cmw8 entryconfigure [expr 1 + $inValueIndex] \
       -label $isName
 }
 
@@ -273,6 +273,11 @@ proc SwapValueLabelNames { inValueIndexA inValueIndexB } {
     # set the swap field info name.
     set gaSwapFieldInfo($labelA,label) $sLabelContentsB
     set gaSwapFieldInfo($labelB,label) $sLabelContentsA
+}
+
+proc RequestOverlayInfoUpdate {} {
+    # tell the c code to send us the current overlay info.
+    sclv_send_current_field_info
 }
 
 # ==================================================================== GLOBALS
@@ -700,6 +705,7 @@ proc DoConfigOverlayDisplayDlog {} {
     global gaLinkedVars
     global gCopyFieldTarget
     global gbwHisto
+    global gsHistoValue
     
     set wwDialog .wwConfigOverlayDisplayDlog
     
@@ -764,6 +770,7 @@ proc DoConfigOverlayDisplayDlog {} {
   set ewMid    $fwThresh.ewMid
   set ewMax    $fwThresh.ewMax
   set ewSlope  $fwThresh.ewSlope
+  set ewValue  $fwHisto.ewValue
   set fwCopy   $fwHisto.fwCopy
   set bwCopy   $fwCopy.bwCopy
   set owTarget $fwCopy.owTarget
@@ -783,11 +790,22 @@ proc DoConfigOverlayDisplayDlog {} {
       { SetMax %W [%W axis invtransform x %x] 1 }
 
   # bind the bututon pressing events that do the zooming.
-  bind $gbwHisto <Control-ButtonPress-2>   { Histo_RegionStart %W %x %y }
-  bind $gbwHisto <Control-B2-Motion>      { Histo_RegionMotion %W %x %y }
-  bind $gbwHisto <Control-ButtonRelease-2> { Histo_RegionEnd %W %x %y }
+  bind $gbwHisto <Control-ButtonPress-1>   { Histo_RegionStart %W %x %y }
+  bind $gbwHisto <Control-B1-Motion>      { Histo_RegionMotion %W %x %y }
+  bind $gbwHisto <Control-ButtonRelease-1> { Histo_RegionEnd %W %x %y }
   bind $gbwHisto <Control-ButtonRelease-3> { Histo_Unzoom %W }
 
+  # when the mouse moves over the histogram, find the closest
+  # bar and print its data to the active label. the y is the
+  # height of the bar.
+  bind $gbwHisto <Motion> {
+      if { [$gbwHisto element closest %x %y aFound -halo 1] } { 
+    set gsHistoValue "Value ~$aFound(x) Count [expr round($aFound(y))]"
+      } else {
+    set gsHistoValue "Move mouse over graph bar"
+      }
+  }
+    
   # make the entries for the threshold values.
   frame $fwThresh
 
@@ -804,6 +822,11 @@ proc DoConfigOverlayDisplayDlog {} {
   $ewMin.lwLabel config -fg red 
   $ewMid.lwLabel config -fg blue
   $ewMax.lwLabel config -fg green
+
+  # this is the field that will show the current value of the
+  # graph.
+  tkm_MakeActiveLabel $ewValue "Current value: " gsHistoValue 20
+  set gsHistoValue "Move mouse over graph bar"
 
   # set initial values for the histogram.
   SetMin $gbwHisto $gaLinkedVars(fthresh)
@@ -829,12 +852,15 @@ proc DoConfigOverlayDisplayDlog {} {
       -side left
   
   pack $gbwHisto -fill both -expand yes
-  pack $fwThresh $fwCopy -side top
+  pack $fwThresh -side top
+  pack $ewValue -side top -expand yes -fill x
+  pack $fwCopy -side top
 
   # buttons.
   tkm_MakeDialogButtons $fwButtons $wwDialog [list \
     [list Apply { SendLinkedVarGroup overlay; 
-        SetOverlayTimepointAndCondition; }] \
+        SetOverlayTimepointAndCondition;
+        RequestOverlayInfoUpdate; }] \
     [list Close {}] \
     [list Help {ShowOverlayHelpWindow}] \
   ]
@@ -872,7 +898,7 @@ Next is the color scale. You can change the color scheme in which the overlay la
 
 Next are four boolean options for configuring the data display. Truncate will only show positive values if checked. If Inverse is checked, negative values will be shown in the positive value colors and vice versa. Reverse will switch the sign of the data; with Reverse and Truncate checked, you can show only the negative data. Complex is for special configurations involving multiple overlay layers.
 
-The histogram can be used to set the color scale threshold values graphically. If your data has a wide range of values, you may first want to zoom in on the most populated area of the histogram. Hold down the control key and drag with mouse button two (middle) to select the range on which you want to zoom in.
+The histogram can be used to set the color scale threshold values graphically. If your data has a wide range of values, you may first want to zoom in on the most populated area of the histogram. Hold down the control key and drag with mouse button one (usually left) to select the range on which you want to zoom in. Control-mouse-three (usually right) to unzoom.
 
 You will see three vertical lines: a red one representing the minimum threshold, a blue one representing the midpoint, and a red one representing the maximum threshold. (Note that the maximum threshold does not represent a cut-off point above which no values will be drawn, but the point at which all values above will be drawn in the maximum 'hot' color.) You can set the min threshold with mouse button one (usually left), the midpoint with button two (middle), and the maximum point with button three (usually right). The colors of the bars in the histogram represent the color in which those values will be drawn on the surface.
 
@@ -966,7 +992,7 @@ proc UpdateOverlayDlogInfo {} {
       $gwGraph axis configure x -stepsize $widthPerTick
   }
     } result]
-#    if {$err != 0} {puts "ERROR: $result"}
+#    if {$err != 0} {puts "ERROR updating histo: $result"}
 
     # change the range of the threshold sliders. 
     catch {
@@ -1459,8 +1485,7 @@ proc DoDecimationDlog {} {
   # buttons.
   set okCmd { DoDecimation $sFileName $fSpacing; UpdateAndRedraw}
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-      "tkm_UpdateFileSelectorVariable $fwFileName; \
-    $okCmd"
+      "$okCmd"
   
   pack $fwMain $fwFileName $fwSpacing $fwButtons \
     -side top       \

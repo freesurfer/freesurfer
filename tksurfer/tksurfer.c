@@ -12498,27 +12498,12 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
       /* get a red/green color based on the currently 
          selected field if it is above fthresh. */
       sclv_get_value (v, sclv_current_field, &val);
-      if (val > fthresh || -val < -fthresh)
+      if (val > fthresh || val < -fthresh)
         {
           get_color_vals (val, v->curv, REAL_VAL,  
               &r, &g, &b);
-          //              &r_overlay, &g_overlay, &b_overlay);
         }
     }
-
-        /* if r1,g1,b1 is equal to the gray background,
-     don't color anything, because we may cover up the
-     label. if it's not, there's activation here, and we
-     should cover the label. */
-        /*
-        if ( r_overlay != r_base || 
-       g_overlay != g_base || 
-       b_overlay != b_base ) {
-    r = r_overlay;
-    g = g_overlay;
-    b = b_overlay;
-        }
-        */
       } 
     
     /* let the boundary code color this vertex, if it wants to. */
@@ -16738,6 +16723,7 @@ int W_sclv_copy_view_settings_from_current_field PARM;
 int W_sclv_copy_view_settings_from_field PARM;
 int W_sclv_set_current_threshold_from_percentile PARM;
 int W_sclv_send_histogram PARM;
+int W_sclv_send_current_field_info PARM;
 int W_sclv_get_normalized_color_for_value PARM;
 int W_clear_vertex_marks PARM;
 int W_swap_vertex_fields PARM;
@@ -17674,6 +17660,10 @@ int W_sclv_set_current_threshold_from_percentile  WBEGIN
 int W_sclv_send_histogram  WBEGIN
      ERR(2,"Wrong # args: sclv_send_histogram field")
      sclv_send_histogram(atoi(argv[1]));  WEND
+int W_sclv_send_current_field_info  WBEGIN
+     ERR(1,"Wrong # args: sclv_send_current_field_info")
+     sclv_send_current_field_info(); WEND
+
 int W_sclv_get_normalized_color_for_value (ClientData clientData,
              Tcl_Interp *interp,
              int argc,char *argv[])
@@ -18402,6 +18392,8 @@ int main(int argc, char *argv[])   /* new main */
         W_sclv_set_current_threshold_from_percentile, REND);
   Tcl_CreateCommand(interp, "sclv_send_histogram",
         W_sclv_send_histogram, REND);
+  Tcl_CreateCommand(interp, "sclv_send_current_field_info",
+        W_sclv_send_current_field_info, REND);
   Tcl_CreateCommand(interp, "sclv_get_normalized_color_for_value",
         W_sclv_get_normalized_color_for_value, REND);
 
@@ -20921,16 +20913,16 @@ sclv_calc_frequencies(int field)
       
     /* get the value range. */
     num_values = (sclv_field_info[field].max_value - 
-      sclv_field_info[field].min_value) + 1;
+      sclv_field_info[field].min_value);
     valPerBin = num_values / (float)sclv_field_info[field].num_freq_bins;
-    
+
     /* for each vertex, get the scalar value. find the bin it
        should go in and inc the count in that bin. */
     for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
         v = &mris->vertices[vno] ;
         sclv_get_value (v, field, &value);
-        bin = (value - sclv_field_info[field].min_value) / valPerBin;
+        bin = (float)(value - sclv_field_info[field].min_value) / (float)valPerBin;
         sclv_field_info[field].frequencies[condition][timepoint][bin]++;
       }
   }
@@ -20948,9 +20940,12 @@ sclv_calc_frequencies(int field)
     printf ("\t---------------------- \n");
     for (bin = 0; bin < sclv_field_info[field].num_freq_bins; bin++)
       {
-        printf ("\tcond %d tp %d bin %d = %d\n",
-          condition, timepoint, bin,
-    sclv_field_info[field].frequencies[condition][timepoint][bin]);
+        if (sclv_field_info[field].frequencies[condition][timepoint][bin] != 0)
+    {
+      printf ("\tcond %d tp %d bin %d = %d\n",
+        condition, timepoint, bin,
+        sclv_field_info[field].frequencies[condition][timepoint][bin]);
+    }
       }
   }
     }
