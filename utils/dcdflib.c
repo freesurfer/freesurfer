@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "proto.h"
 #include "cdflib.h"
-
+static void E0000(int,int*,double*,double*,unsigned long*,
+                  unsigned long*,double*,double*,double*,
+                  double*,double*,double*,double*);
+static void E0001(int,int*,double*,double*,double*,double*,
+                  unsigned long*,unsigned long*,double*,double*,
+                  double*,double*);
 /*
  * A comment about ints and longs - whether ints or longs are used should
  * make no difference, but where double r-values are assigned to ints the
@@ -9079,12 +9083,21 @@ long fifmod(long a,long b)
 FTNSTOP:
 Prints msg to standard error and then exits
 ************************************************************************/
-#ifndef EXIT_FAILURE
-#define EXIT_FAILURE 1
-#endif
 void ftnstop(char* msg)
 /* msg - error message */
 {
   if (msg != NULL) fprintf(stderr,"%s\n",msg);
   exit(EXIT_FAILURE); /* EXIT_FAILURE from stdlib.h, or use an int */
+}
+double sigf(float F, int df1, int df2)
+{
+  double q, p, bound, d_df1, d_df2, d_F ;
+  double  sig ;
+  int    status, which ;
+
+  d_df1 = (double)df1 ; d_df2 = (double)df2 ; d_F = (double)F ;
+  which = 1 ;
+  cdff(&which, &p, &q, &d_F, &d_df1, &d_df2, &status, &bound) ;
+  sig = q ;
+  return sig;
 }
