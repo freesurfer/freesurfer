@@ -22485,7 +22485,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
       mris->vertices[defect->vertices[n]].val = defect->area ;
     }
   }
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  if (Gdiag & DIAG_WRITE/* && DIAG_VERBOSE_ON*/)
     MRISwriteValues(mris, "defect_area") ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "%d defects found, arbitrating ambiguous regions...\n",
