@@ -4,7 +4,7 @@
 #include <math.h>
 #include <ctype.h>
 
-#include <GL/glut.h>
+#include <GL/glu.h>
 #include <GL/gl.h>
 
 #include "macros.h"
@@ -17,7 +17,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.21 1999/03/14 17:27:55 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.22 1999/03/23 00:06:09 fischl Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
