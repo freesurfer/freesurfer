@@ -4,9 +4,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <sys/types.h>
-#include <sys/time.h>
+/*#include <sys/time.h>*/
+#include <time.h>
 #include <sys/timeb.h>
 
+/*----------- SPARC -----------------------*/
 #ifdef SPARC
 
 int ftime(struct timeb *tp) ;
@@ -31,17 +33,24 @@ int fseek(FILE *fp, long offset, int whence) ;
 int fread(void *ptr, int size, int nitems, FILE *fp) ;
 int fwrite(void *ptr, int size, int nitems, FILE *fp) ;
 int stricmp(char *str1, char *str2) ;
-
-#else
-#ifdef LINUX
-
-#include "macros.h"
-
-int stricmp(char *str1, char *str2) ;
-#define nint(f)   ((int)(rint((double)f)))
-
-#endif   /* LINUX */
 #endif   /* SPARC */
 
-#endif
+/*----------- LINUX -----------------------*/
+#ifdef LINUX
+#include "macros.h"
+int stricmp(char *str1, char *str2) ;
+#define nint(f)   ((int)(rint((double)f)))
+#endif   /* LINUX */
+
+/*----------- MSDOS -----------------------*/
+#ifdef _MSDOS
+#define nint(f)   ((int)((double)f+0.5))
+#define isnan(f) 0
+#define unlink _unlink
+#define hypot  _hypot
+
+#endif   /* MSDOS */
+
+#endif   /* #ifndef PROTO_H */
+
 
