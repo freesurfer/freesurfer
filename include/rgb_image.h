@@ -83,7 +83,7 @@ RGB_IMAGE *fiopen(int f, char *mode, unsigned int type, unsigned int dim,
     unsigned int xsize, unsigned int ysize, unsigned int zsize);
 long reverse(unsigned long lwrd)  ;
 void cvtshorts( unsigned short *buffer, long n) ;
-void i_seterror(void (*func)(void)) ;
+void i_seterror(void (*func)(char *)) ;
 #undef getpix
 #undef putpix
 int getpix(RGB_IMAGE *image) ;
