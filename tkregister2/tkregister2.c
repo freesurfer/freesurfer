@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.6 2003/02/19 21:58:02 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.7 2003/03/11 21:31:21 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.6 2003/02/19 21:58:02 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.7 2003/03/11 21:31:21 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -1806,7 +1806,7 @@ void select_pixel(short sx, short sy)
 int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 {
   XEvent current, ahead;
-  char buf[1000];
+  char buf[1000], c;
   char command[NAME_LENGTH];
   KeySym ks;
   static int ctrlkeypressed = FALSE;
@@ -1819,6 +1819,7 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
   XWindowAttributes wat;
   Window junkwin;
   int rx, ry;
+  float d,r;
 
   blinkbuffers();
 
@@ -1916,14 +1917,72 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	case XK_n: interpmethod = SAMPLE_NEAREST; updateflag = TRUE; break;
 	case XK_t: interpmethod = SAMPLE_TRILINEAR; updateflag = TRUE; break;
 	case XK_x: plane=SAGITTAL;   updateflag = TRUE; break;
+
+	  /* translate up or down */
+	case XK_p: 
+	case '.':
+	  if(plane == SAGITTAL)   c = 'z';
+	  if(plane == CORONAL)    c = 'z';
+	  if(plane == HORIZONTAL) c = 'y';
+	  if(ks == 'p') translate_brain(-.5,c);
+	  if(ks == '.') translate_brain(+.5,c);
+	  updateflag = TRUE; 
+	  break;
+
+	  /* translate left or right */
+	case XK_l: 
+	case ';':
+	  d = 0.5;
+	  if(plane == SAGITTAL)   {c = 'y'; d = -0.5;}
+	  if(plane == CORONAL)    c = 'x';
+	  if(plane == HORIZONTAL) c = 'x';
+	  if(ks == ';') translate_brain(+d,c);
+	  if(ks == 'l') translate_brain(-d,c);
+	  updateflag = TRUE; 
+	  break;
+
+	  /* rotate */
+	case '[':
+	case ']':
+	  r = +2.0;
+	  if(plane == SAGITTAL)   c = 'x';
+	  if(plane == CORONAL)    c = 'y';
+	  if(plane == HORIZONTAL) {c = 'z'; r = -2.0;}
+	  if(ks == ']') rotate_brain(+r,c); /* in tenths of deg */
+	  if(ks == '[') rotate_brain(-r,c); /* in tenths of deg */
+	  updateflag = TRUE; 
+	  break;
+
+	  /* scale horizontally */
+	case XK_Insert:
+	case XK_Delete:
+	  if(plane == SAGITTAL)   c = 'y';
+	  if(plane == CORONAL)    c = 'x';
+	  if(plane == HORIZONTAL) c = 'x';
+	  if(ks == XK_Insert) scale_brain(+0.995,c);
+	  if(ks == XK_Delete) scale_brain(+1.005,c);
+	  updateflag = TRUE; 
+	  break;
+
+	  /* scale vertically */
+	case XK_Home:
+	case XK_End:
+	  if(plane == SAGITTAL)   c = 'z';
+	  if(plane == CORONAL)    c = 'z';
+	  if(plane == HORIZONTAL) c = 'y';
+	  if(ks == XK_Home) scale_brain(+0.995,c);
+	  if(ks == XK_End) scale_brain(+1.005,c);
+	  updateflag = TRUE; 
+	  break;
+
 	case XK_y: plane=HORIZONTAL; updateflag = TRUE; break;
 	case XK_z: plane=CORONAL;    updateflag = TRUE; break;
 	case XK_s: if(LoadSurf) UseSurf = !UseSurf; updateflag = TRUE; break;
 
           /* others */
-          case XK_Up:
-            
-            Tcl_Eval(interp,
+	case XK_Up:
+	  
+	  Tcl_Eval(interp,
                   "set fscale_2 [expr $fscale_2 * 1.5]; set updateflag TRUE");
             break;
           case XK_Down:
@@ -2330,8 +2389,10 @@ void rotate_brain(float a,char c)
   float m1[4][4],m2[4][4];
   float sa,ca;
 
-  printf("Rotating by %g deg around axis %c about point ",a/10.0,c);
-  printf("xc=%g, yc=%g, zc=%g\n",xc,yc,zc);
+  if(debug){
+    printf("rotating: a = %g deg, c = %c\n",a/10.0,c);
+    printf("xc=%g, yc=%g, zc=%g\n",xc,yc,zc);
+  }
 
   if (c=='x')
   {
@@ -2423,6 +2484,8 @@ void translate_brain(float a, char c)
   int i,j,k;
   float m1[4][4],m2[4][4];
 
+  if(debug) printf("translating: a = %g, c = %c\n",a,c);
+
   for (i=0;i<4;i++)
   for (j=0;j<4;j++)
     m1[i][j] = (i==j)?1.0:0.0;
@@ -2450,6 +2513,8 @@ void scale_brain(float s, char c)
 {
   int i,j,k;
   float m1[4][4],m2[4][4];
+
+  if(debug) printf("scaling: s = %g, c = %c\n",s,c);
 
   for (i=0;i<4;i++)
   for (j=0;j<4;j++)
