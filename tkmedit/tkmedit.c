@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/25 17:22:40 $
-// Revision       : $Revision: 1.140 $
-char *VERSION = "$Revision: 1.140 $";
+// Revision Date  : $Date: 2003/04/30 18:06:36 $
+// Revision       : $Revision: 1.141 $
+char *VERSION = "$Revision: 1.141 $";
 
 #define TCL
 #define TKMEDIT 
@@ -946,6 +946,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   tBoolean      bLoadingAuxSegmentation      = FALSE;
   char        sAuxSegmentationPath[tkm_knPathLen]  = "";
   char        sAuxSegmentationColorFile[tkm_knPathLen] = "";
+  tBoolean      bLoadingVLI       = FALSE;
+  char          sVLIFile1[tkm_knPathLen] = "";
+  char          sVLIFile2[tkm_knPathLen] = "";
   tBoolean      bThresh        = FALSE;
   FunV_tFunctionalValue    min          = 0;
   tBoolean      bMid          = FALSE;
@@ -995,7 +998,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.140 2003/04/25 17:22:40 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.141 2003/04/30 18:06:36 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1389,6 +1392,30 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 			    "This option needs two arguments: the path of "
 			    "the COR volume and the name of the colors "
 			    "file." );
+	  nCurrentArg ++;
+	}
+	
+      } else if( MATCH( sArg, "-voxel-label" ) ) {
+	
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 2 &&
+	    '-' != argv[nCurrentArg+1][0] &&
+	    '-' != argv[nCurrentArg+2][0] ) {
+	  
+	  /* copy both file names */
+	  DebugNote( ("Parsing -voxel-label option") );
+	  xUtil_strncpy( sVLIFile1, argv[nCurrentArg+1], sizeof(sVLIFile1) );
+	  xUtil_strncpy( sVLIFile2, argv[nCurrentArg+2], sizeof(sVLIFile2) );
+	  bLoadingVLI = TRUE;
+	  nCurrentArg += 3;
+	  
+	} else {
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -voxel-label option",
+			    "Expected two arguments",
+			    "This option needs two arguments: the file "
+			    "names of the VLI volumes." );
 	  nCurrentArg ++;
 	}
 	
@@ -2051,6 +2078,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 				      sAuxSegmentationColorFile );
   }
   
+  /* load VLIs */
+  if( bLoadingVLI ) {
+    eResult = LoadVLIs( sVLIFile1, sVLIFile2 );
+  }
+
   /* load the label */
   if( bLoadingLabel ) {
     eResult = LoadSelectionFromLabelFile( sLabel );
