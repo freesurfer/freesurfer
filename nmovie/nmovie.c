@@ -25,14 +25,21 @@
 #define FORWARD 0
 #define REVERSE 1
 
+#define INTERVAL_INC 15
+
 /* -------- Prototypes -------- */
 void useage(void);
 void quit_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 void repaint_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 void loop_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 void stop_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
-void timer_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
+void timer_proc(XtPointer ptr, XtIntervalId *id);
 void swing_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
+void slower_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
+void faster_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
+void forward_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
+void back_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
+void start_timer(void);
 static void XInit(int *argc, char ***argv);
 static int highbit(unsigned long ul);
 static void XSetupDisplay(int nframes);
@@ -68,6 +75,7 @@ int pfmt=0,rows=0,cols=0;
 int running = 0;
 int direction = FORWARD;
 int curframe=0;
+unsigned long interval = 33; /* 1s */
 /* -------- End Global Variables ------- */
 
 /* -------- Static Variables -------- */
@@ -76,7 +84,11 @@ static XtActionsRec actions[] = {
   {"Swing", swing_proc},
   {"Stop", stop_proc},
   {"Refresh", repaint_proc},
-  {"Quit", quit_proc}
+  {"Faster",faster_proc},
+  {"Slower",slower_proc},
+  {"Quit", quit_proc},
+  {"Forward",forward_proc},
+  {"Back",back_proc}
 };
 
 static char *fallback_resources[] = {
@@ -95,14 +107,16 @@ static char *fallback_resources[] = {
   "*Stop.fromHoriz:        Slower",
   "*Stop.Translations:     #override <Btn1Down>,<Btn1Up>:Stop()",
   "*Faster.fromHoriz:      Swing",
+  "*Faster.Translations:   #override <Btn1Down>:Faster()",
   "*Slower.fromHoriz:      Faster",
+  "*Slower.Translations:   #override <Btn1Down>:Slower()",
   "*Quit.Translations:     #replace <Btn1Down>,<Btn1Up>:Quit() notify()",
   "*Quit.sensitive:        True",
   "*Quit.fromHoriz:        Stop",
-  "*Canvas.Translations:   #override <Expose>:Refresh()",
+  "*Canvas.baseTranslations:   #override <Expose>:Refresh()",
   NULL
 };
-
+static char ckeys[] = "#override <Key>Left:Back()\n <Key>Right:Forward()";
 static XtIntervalId timer;
 /* -------- End Static Variables -------- */
 
@@ -114,13 +128,42 @@ void useage(void)
 
 void start_timer(void)
 {
-  unsigned long interval = 33; /* 1s */
-
   XFlush(xi.disp);
   timer = XtAppAddTimeOut(xi.context, interval, timer_proc, NULL);
 }
 
-void timer_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
+void forward_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
+{
+  curframe++;
+  if (curframe==nframes)
+    curframe = nframes-1;
+
+  repaint_proc(canvas,NULL,NULL,NULL);
+}
+
+void back_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
+{
+  curframe--;
+  if (curframe<0)
+    curframe = 0;
+ 
+  repaint_proc(canvas,NULL,NULL,NULL);
+}
+
+void faster_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
+{
+  if ((interval<INTERVAL_INC)) 
+    interval = 1;
+  else
+    interval -= INTERVAL_INC;
+}
+
+void slower_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
+{
+  interval += INTERVAL_INC;
+}
+
+void timer_proc(XtPointer ptr, XtIntervalId *id)
 {
   switch (running)
     {
@@ -233,6 +276,12 @@ static void XInit(int *argc, char ***argv)
 static void XSetupDisplay(int nframes)
 {
   XGCValues xgcv;
+  XtAccelerators keys;
+  
+  /* Had to do it this way since embedding the keystrokes in the fallback
+     resources failed to work properly -- what a kludge. */
+
+  keys = XtParseAcceleratorTable(ckeys);
 
   xi.depth = DefaultDepthOfScreen(DefaultScreenOfDisplay(xi.disp));
 
@@ -269,8 +318,9 @@ static void XSetupDisplay(int nframes)
 				    buttons, NULL);
   canvas = XtVaCreateManagedWidget("Canvas", simpleWidgetClass, frame, 
 				   XtNwidth, cols,
-				   XtNheight, rows, NULL);
-  XtInstallAllAccelerators(frame,toplevel);
+				   XtNheight, rows,
+				   XtNaccelerators, keys, NULL);
+  XtInstallAllAccelerators(canvas,toplevel);
   XtRealizeWidget(toplevel);
   xi.canvas = XtWindow(canvas);
 
@@ -390,6 +440,7 @@ void ConvertImages(int nframes, char **argv)
     {
       I = ImageRead(argv[i+1]);
       rgb2xcol(I,imgdata,i);
+      ImageFree(&I);
     }
 }
 
