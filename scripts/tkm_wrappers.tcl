@@ -5,15 +5,17 @@ set kSmallFont -*-lucida-medium-i-normal-*-10-*-*-*-*-*-*-*
 set kLabelFont -*-lucida-bold-r-normal-*-14-*-*-*-*-*-*-*
 set kHighlightBgColor white
 
+
 proc tkm_MakeBigLabel { isTop isText } {
 
     global kLabelFont
 
     frame $isTop
 
-    label $isTop.label \
-      -text $isText \
-      -font $kLabelFont
+    tixLabelWidget $isTop.label \
+      -label $isText
+
+    $isTop.label subwidget label configure -font $kLabelFont
 
     pack $isTop.label \
       -side left \
@@ -26,9 +28,10 @@ proc tkm_MakeSmallLabel { isTop isText } {
 
     frame $isTop
 
-    label $isTop.label \
-      -text $isText \
-      -font $kSmallFont
+    tixLabelWidget $isTop.label \
+      -label $isText
+
+    $isTop.label subwidget label configure -font $kSmallFont
 
     pack $isTop.label \
       -side left \
@@ -41,9 +44,10 @@ proc tkm_MakeNormalLabel { isTop isText } {
 
     frame $isTop
 
-    label $isTop.label \
-      -text $isText \
-      -font $kNormalFont
+    tixLabelWidget $isTop.label \
+      -label $isText
+
+    $isTop.label subwidget label configure -font $kNormalFont
 
     pack $isTop.label \
       -side left \
@@ -55,23 +59,28 @@ proc tkm_MakeActiveLabel { isTop isText isVariable {inWidth -1} } {
 
     global kNormalFont kHighlightBgColor
 
-   frame $isTop
+    frame $isTop
 
-    label $isTop.lw \
-      -text $isText \
-      -font $kNormalFont
+    if { $isText != "" } {
+  tkm_MakeNormalLabel $isTop.lw $isText
+
+  pack $isTop.lw \
+    -side left \
+    -anchor w
+    }
 
     entry $isTop.ew \
       -textvariable $isVariable \
       -width $inWidth \
       -font $kNormalFont \
       -state disabled \
-      -highlightbackground $kHighlightBgColor \
       -relief flat
 
-    pack $isTop.lw $isTop.ew \
+    pack $isTop.ew \
       -side left \
-      -anchor w
+      -anchor w \
+      -expand yes \
+      -fill x
 }
 
 proc tkm_MakeCheckbox { isTop isText iVariable iSetFunction } {
@@ -83,8 +92,7 @@ proc tkm_MakeCheckbox { isTop isText iVariable iSetFunction } {
     checkbutton $isTop.cb \
       -text $isText \
       -variable $iVariable \
-      -font $kNormalFont \
-      -highlightbackground $kHighlightBgColor
+      -font $kNormalFont 
 
     bind $isTop.cb <ButtonRelease-1> $iSetFunction
 
@@ -104,8 +112,7 @@ proc tkm_MakeRadioButton { isTop isText iVariable iValue {iCmd ""} } {
       -font $kNormalFont    \
       -variable $iVariable  \
       -relief flat          \
-      -value $iValue        \
-      -highlightbackground $kHighlightBgColor
+      -value $iValue
 
     pack $isTop.rbw    \
       -side left \
@@ -250,12 +257,28 @@ proc tkm_MakeMenu { isMenuButton isMenuName ilMenuItems } {
     }
 }
 
-proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc iDecFunc iIncFunc {inWidth 3} } {
+proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep } {
 
     global kLabelFont kNormalFont
     global $iVariable
 
     frame $isFrame
+
+    tixControl $isFrame.control \
+      -command $iSetFunc \
+      -label $isText \
+      -selectmode immediate \
+      -variable $iVariable \
+      -step $ifStep
+
+    $isFrame.control subwidget label configure -font $kNormalFont
+
+    pack $isFrame.control \
+      -anchor w
+
+}
+
+proc nothing {} {
 
     label $isFrame.lwText \
       -text $isText \
@@ -381,6 +404,33 @@ proc tkm_MakeCancelApplyOKButtons { isFrame isTop iOKCmd {iCancelCmd ""} } {
 
 }
 
+proc tkm_MakeApplyCloseButtons { isFrame isTop iApplyCmd {iCloseCmd ""} } {
+
+    global kLabelFont
+
+    frame $isFrame
+    
+    button $isFrame.bwApply \
+      -text "Apply" \
+      -command "$iApplyCmd" \
+      -font $kLabelFont
+
+    button $isFrame.bwClose \
+      -text "Close" \
+      -command "$iCloseCmd; Dialog_Close $isTop" \
+      -font $kLabelFont
+
+    bind $isTop <space> \
+      "$isTop.fwButtons.bwApply flash; $isTop.fwButtons.bwApply invoke"
+    bind $isTop <Escape> \
+      "$isTop.fwButtons.bwClose flash; $isTop.fwButtons.bwClose invoke"
+    pack $isFrame.bwApply $isFrame.bwClose \
+      -side right \
+      -padx 5 \
+      -pady 5
+
+}
+
 proc tkm_MakeCancelOKButtons { isFrame isTop iOKCmd {iCancelCmd ""} } {
 
     global kLabelFont
@@ -411,52 +461,74 @@ proc tkm_MakeCancelOKButtons { isFrame isTop iOKCmd {iCancelCmd ""} } {
 proc tkm_MakeFileSelector { isTop isText iVariable } {
 
     frame $isTop -width 200
-
-    tkm_MakeNormalLabel $isTop.lw $isText
-
-    tkm_MakeSmallLabel $isTop.lw2 "i.e. /home/myName/myDirectory/myFile.dat"
-    tkm_MakeEntry $isTop.ew "" $iVariable
     
-    pack $isTop.lw $isTop.lw2 $isTop.ew \
-      -side top \
+    tixFileEntry $isTop.few \
+      -label $isText \
+      -labelside top \
+      -selectmode immediate \
+      -variable $iVariable \
+      -options {
+         entry.expand yes
+         entry.fill x
+             }
+    
+    pack $isTop.few \
+      -side left \
       -expand yes \
-      -fill x \
-      -anchor w
+      -fill x
+}
+
+proc tkm_UpdateFileSelectorVariable { isTop } {
+
+    $isTop.few invoke;
 }
 
 proc tkm_MakeDirectorySelector { isTop isText iVariable } {
 
     frame $isTop -width 200
 
-    tkm_MakeNormalLabel $isTop.lw $isText
-
-    tkm_MakeSmallLabel $isTop.lw2 "i.e. /home/myName/myDirectory"
-    tkm_MakeEntry $isTop.ew "" $iVariable
+    tixFileEntry $isTop.few \
+      -label $isText \
+      -labelside top \
+      -selectmode immediate \
+      -variable $iVariable \
+      -dialogtype tixDirSelectDialog \
+      -options {
+         entry.expand yes
+         entry.fill x
+             }
     
-    pack $isTop.lw $isTop.lw2 $isTop.ew \
-      -side top \
+    pack $isTop.few \
+      -side left \
       -expand yes \
-      -fill x \
-      -anchor w
+      -fill x
+}
+
+proc tkm_UpdateDirectorySelectorVariable { isTop } {
+
+    $isTop.few invoke;
 }
 
 proc tkm_AddItemToMenuGroup { isGroupName ifwMenuObject inMenuItemNum } {
     
     global glMenuGroups
 
-    set glMenuGroups($isGroupName,0) $ifwMenuObject
-    lappend glMenuGroups($isGroupName,1) $inMenuItemNum
+    # add this menu / item pair to the list
+    lappend glMenuGroups($isGroupName) "$ifwMenuObject $inMenuItemNum"
 }
 
 proc tkm_SetMenuItemGroupStatus { isGroupName ibEnable } {
 
     global glMenuGroups
 
-    # first item is a menu button
-    set mbwMenu $glMenuGroups($isGroupName,0)
-    
-    # second item is a list of items
-    foreach nMenuItem $glMenuGroups($isGroupName,1) {
+    # for each menu / item pair in the list
+    foreach lMenuItemPair $glMenuGroups($isGroupName) {
+
+  # first item is a menu button
+  set mbwMenu [lindex $lMenuItemPair 0]
+  
+  # second item is a list of items
+  set nMenuItem [lindex $lMenuItemPair 1]
 
   if { $ibEnable == 0 } {
       $mbwMenu entryconfigure $nMenuItem -state disabled
