@@ -700,7 +700,7 @@ MRIhistogram(MRI *mri, int nbins)
   float      fmin, fmax, bin_size ;
   Real       val ;
 
-  fmin = MRIvalRange(mri, &fmin, &fmax) ;
+  MRIvalRange(mri, &fmin, &fmax) ; // fmin = is wrong!
   if (!nbins)
     nbins = nint(fmax - fmin + 1.5) ;
 
