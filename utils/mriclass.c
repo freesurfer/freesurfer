@@ -323,7 +323,6 @@ MRICwrite(MRIC *mric, char *fname)
 
 ------------------------------------------------------*/
 #define PRETTY_SURE              .90f
-#define DEFINITELY_BACKGROUND    (LO_LIM-10)
 
 MRI *
 MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst, 
@@ -331,7 +330,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
 {
   MATRIX     *m_inputs, *m_priors ;
   GCLASSIFY  *gc ;
-  int        x, y, z, width, depth, height, classno, nclasses, row, xt, yt, zt;
+  int        x, y, z, width, depth, height, classno, nclasses, row, xt, yt,zt;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
   float      prob, *pprobs = NULL, inputs[MAX_INPUTS+1] ;
   Real       xrt, yrt, zrt ;
@@ -374,38 +373,30 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
       for (x = 0 ; x < width ; x++)
       {
         src = *psrc++ ;
-        if (src < DEFINITELY_BACKGROUND)
+        if (mri_priors)
         {
-          classno = BACKGROUND ;
-          prob = 1.0f ;
+          MRIvoxelToVoxel(mri_src, mri_priors,
+                          (Real)x, (Real)y, (Real)z,&xrt, &yrt,&zrt);
+          xt = mri_priors->xi[nint(xrt)] ;
+          yt = mri_priors->yi[nint(yrt)] ;
+          zt = mri_priors->zi[nint(zrt)] ;
+          for (classno = 0 ; classno < nclasses ; classno++)
+            m_priors->rptr[classno+1][1] = 
+              MRIFseq_vox(mri_priors, xt, yt, zt, classno) ;
         }
-        else
-        {
-          if (mri_priors)
-          {
-            MRIvoxelToVoxel(mri_src, mri_priors,
-                            (Real)x, (Real)y, (Real)z,&xrt, &yrt,&zrt);
-            xt = mri_priors->xi[nint(xrt)] ;
-            yt = mri_priors->yi[nint(yrt)] ;
-            zt = mri_priors->zi[nint(zrt)] ;
-            for (classno = 0 ; classno < nclasses ; classno++)
-              m_priors->rptr[classno+1][1] = 
-                MRIFseq_vox(mri_priors, xt, yt, zt, classno) ;
-          }
-          MRICcomputeInputs(mri_src, x, y, z, inputs, mric->features) ;
-          for (row = 1 ; row <= mric->ninputs ; row++)
-            m_inputs->rptr[row][1] = inputs[row] ;
-          
-          /* now classify this observation */
-          classno = GCclassify(gc, m_inputs, m_priors, &prob) ;
-        }
+        MRICcomputeInputs(mri_src, x, y, z, inputs, mric->features) ;
+        for (row = 1 ; row <= mric->ninputs ; row++)
+          m_inputs->rptr[row][1] = inputs[row] ;
+        
+        /* now classify this observation */
+        classno = GCclassify(gc, m_inputs, m_priors, &prob) ;
 
         if (pclasses)
           *pclasses++ = (BUFTYPE)classno ;
         if (pprobs)
           *pprobs++ = prob ;
         if (classno == WHITE_MATTER && prob > conf)
-          *pdst++ = 255 ;
+          *pdst++ = src ;
         else
           *pdst++ = 0 /*src*/ ;
       }
@@ -415,7 +406,8 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
   fprintf(stderr, "total = %d, buffered = %d, computed = %d\n",
           total, buffered, total_computed);
   fprintf(stderr, "efficiency = %2.3f%%\n", 
-          100.0f*(float)buffered / (float)total) ;
+          100.0f*(float)(mri_src->width*mri_src->height*mri_src->depth) / 
+          (float)total_computed) ;
   MatrixFree(&m_inputs) ;
   if (m_priors)
     MatrixFree(&m_priors) ;
