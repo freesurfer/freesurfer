@@ -1055,7 +1055,7 @@ FunV_tErr FunV_SetNumPreStimPoints ( tkmFunctionalVolumeRef this,
 		    inNumPreStimPoints );
     tkm_DisplayError( sError, "Invalid number of points.",
 		      "Tkmedit couldn't set the number of pre-stim time points "
-		      "to the value you specfied. Please make sure it is "
+		      "to the value you specified. Please make sure it is "
 		      "greater than 0 and less than the total number of time "
 		      "points." );
   }
