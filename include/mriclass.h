@@ -28,8 +28,9 @@ typedef struct
 } MRI_CLASSIFIER, MRIC ;
 
 
-MRIC    *MRIclassAlloc(int width, int height, int depth, int scale, int nvars);
-int     MRIclassTrainAll(MRIC *mric, char *training_file_name) ;
+MRIC    *MRIclassAlloc(MRI *mri_template, int scale, int nvars);
+MRIC    *MRIclassTrainAll(MRIC *mric, char *training_file_name, int scale,
+                          int nvars) ;
 int     MRIclassSetTransform(MRIC *mric, Transform *transform, 
                              Transform *inverse_transform) ;
 int     MRIclassFree(MRIC **pmric) ;
