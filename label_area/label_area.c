@@ -12,7 +12,7 @@
 #include "utils.h"
 #include "mrisurf.h"
 
-void main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static void print_usage(void) ;
 
@@ -30,7 +30,7 @@ static char subjects_dir[NAME_LEN] = "" ;
 
 
 
-void
+int
 main(int argc, char *argv[])
 {
   int          ac, nargs, i ;
@@ -85,6 +85,7 @@ main(int argc, char *argv[])
   if (verbose)
     fprintf(stderr, "done.\n") ;
   exit(0) ;
+  return(0) ;  /* ansi */
 }
 
 /*----------------------------------------------------------------------
