@@ -34,6 +34,7 @@ static GC1D *gcaFindHighestPriorGC(GCA *gca, int x, int y, int z,int label,
                                  int wsize) ;
 
 static int mriFillRegion(MRI *mri, int x,int y,int z,int fill_val,int whalf);
+static int gcaFindMaxPriors(GCA *gca, float *max_priors) ;
 
 int
 GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn, 
@@ -927,6 +928,8 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
   {
     if (i == Gdiag_no)
       DiagBreak() ;
+    if (Gdiag_no == gcas[i].label)
+      DiagBreak() ;
 
     xn = gcas[i].xn ; yn = gcas[i].yn ; zn = gcas[i].zn ; 
     GCAnodeToVoxel(gca, mri_inputs, xn, yn, zn, &xt, &yt, &zt) ;
@@ -948,6 +951,9 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
     gc = &gcan->gcs[gcas[i].n] ;
          
     dist = (val-gc->mean) ;
+#define TRIM_DIST 20
+    if (abs(dist) > TRIM_DIST)
+      dist = TRIM_DIST ;
     total_log_p +=
       -log(sqrt(gc->var)) - 
       0.5 * (dist*dist/gc->var) +
@@ -1701,11 +1707,12 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior)
              label_counts[MAX_DIFFERENT_LABELS], best_label, nzeros ;
   float      max_prior, total_mean, /*mean_dist,*/ best_mean_dist,
              priors[MAX_DIFFERENT_LABELS], means[MAX_DIFFERENT_LABELS], 
-             vars[MAX_DIFFERENT_LABELS] ;
+             vars[MAX_DIFFERENT_LABELS], max_priors[MAX_DIFFERENT_LABELS] ;
   MRI        *mri_filled ;
 
 #define MIN_UNKNOWN_DIST  8
 
+  gcaFindMaxPriors(gca, max_priors) ;
   memset(label_counts, 0, sizeof(label_counts)) ;
   width = gca->width ; height = gca->height ; depth = gca->depth ;
   gcas = calloc(width*height*depth, sizeof(GCA_SAMPLE)) ;
@@ -1750,19 +1757,27 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior)
 
         for (label = 1 ; label < MAX_DIFFERENT_LABELS ; label++)
         {
-          if (priors[label] < min_prior)
+          if ((priors[label] < min_prior) || 
+              (priors[label] < .9*max_priors[label]))
             continue ;
 
           if ((best_label == 0) ||
               (priors[label] > max_prior) ||
               (FEQUAL(priors[label], max_prior) && 
                label_counts[best_label] > label_counts[label]))
-            /*              (mean_dist > 2*best_mean_dist))*/
           {
             best_label = label ;
             max_prior = priors[label] ;
           }
         }
+#if 1
+        if (nfound > 0)
+        {
+          double p = randomNumber(0, 1.0) ;
+          if (p < ((double)label_counts[best_label] / nfound))
+            continue ;
+        }
+#endif
         if (best_label >= 0)
         {
           if (best_label == 0)
@@ -2389,6 +2404,36 @@ mriFillRegion(MRI *mri, int x, int y, int z, int fill_val, int whalf)
       {
         zi = mri->zi[z+zk] ;
         MRIvox(mri, xi, yi, zi) = fill_val ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+static int
+gcaFindMaxPriors(GCA *gca, float *max_priors)
+{
+  int      width, depth, height, x, y, z, n, label ;
+  GCA_NODE *gcan ;
+  GC1D     *gc ;
+
+  memset(max_priors, 0, MAX_DIFFERENT_LABELS*sizeof(float)) ;
+  width = gca->width ; height = gca->height ; depth = gca->depth ;
+
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          gc = &gcan->gcs[n] ;
+          label = gcan->labels[n] ;
+          if (gc->prior > max_priors[label])
+            max_priors[label] = gc->prior ;
+        }
       }
     }
   }
