@@ -14,12 +14,18 @@ function [Xptm_run, Rptm] = fast_polytrendmtx(run,ntrs,nruns,order)
 % single run is computed as:
 %   Rptm = eye(ntrs) - X*inv(X'*X)*X';
 %
-% $Id: fast_polytrendmtx.m,v 1.2 2004/05/19 01:39:08 greve Exp $
+% $Id: fast_polytrendmtx.m,v 1.3 2004/06/03 20:07:05 greve Exp $
 %
 
 if(nargin ~= 4)
   msg = 'USAGE: Xptm = fast_polytrendmtx(run,ntrs,nruns,order)';
   qoe(msg);error(msg);
+end
+
+if(order < 0) 
+  Xptm_run = [];
+  Rptm = [];
+  return;
 end
 
 Xptm = ones(ntrs,1);
