@@ -4,7 +4,6 @@
 #include "image.h"
 
 
-#define NPOINTS             (IN_SIZE*IN_SIZE)
 #define IN_SIZE             3
 #define NHALF_IN            ((IN_SIZE-1)/2)
 #define HALF_IN             (IN_SIZE/2)
