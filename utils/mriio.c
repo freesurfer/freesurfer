@@ -4644,6 +4644,7 @@ static int DumpAnalyzeHeader(FILE *fp, dsr *hdr)
   fprintf(fp,"  bitpix        %d\n",hdr->dime.bitpix);
   fprintf(fp,"  glmax         %g\n",(float)hdr->dime.glmax);
   fprintf(fp,"  glmin         %g\n",(float)hdr->dime.glmin);
+  fprintf(fp,"  orient        %d\n",hdr->hist.orient);
 
   return(0);
 
@@ -4731,6 +4732,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   float min, max;
   struct stat StatBuf;
   int nv,nreal;
+  char direction[64];
 
   fp = NULL;
 
@@ -4813,24 +4815,94 @@ static MRI *analyzeRead(char *fname, int read_volume)
     MatrixFree(&Q);
     MatrixFree(&T1);
   }
-  else {
-    mri->ras_good_flag = 0;
-    T = MatrixIdentity(4,NULL);
-    T->rptr[1][1] =  mri->xsize;
-    T->rptr[1][4] = -mri->xsize*(mri->width/2.0);
-    T->rptr[2][2] =  mri->ysize;
-    T->rptr[2][4] = -mri->ysize*(mri->height/2.0);
-    T->rptr[3][3] =  mri->zsize;
-    T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
+  else 
+  {
+    /* when not found, it is a fun exercise.                      */ 
+    /* see http://wideman-one.com/gw/brain/analyze/formatdoc.htm  */
+    /* for amgibuities.                                           */
+    /* I will follow his advise                                   */
+    /* hist.orient  Mayo name  	Voxel[Index0, Index1, Index2] */
+    /*                          Index0 	Index1 	Index2              */
+    /* 0 transverse unflipped 	R-L 	P-A 	I-S     */
+    /* 1 coronal unflipped 	R-L 	I-S 	P-A     */
+    /* 2 sagittal unflipped 	P-A 	I-S 	R-L     */
+    /* 3 transverse flipped 	R-L 	A-P 	I-S     */
+    /* 4 coronal flipped 	R-L 	S-I 	P-A     */
+    /* 5 sagittal flipped 	P-A 	S-I 	R-L     */
+    if (hdr->hist.orient==0)  /* x = - r, y = a, z = s */
+    {
+      strcpy(direction, "transverse unflipped");
+      T = MatrixIdentity(4,NULL);
+      T->rptr[1][1] =  -mri->xsize;
+      T->rptr[2][2] =  mri->ysize;
+      T->rptr[3][3] =  mri->zsize;
+      T->rptr[1][4] = mri->xsize*(mri->width/2.0);
+      T->rptr[2][4] = -mri->ysize*(mri->height/2.0);
+      T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
+    }
+    else if (hdr->hist.orient==1) /* x = -r, y = s, z = a */
+    {
+      strcpy(direction, "coronal unflipped");
+      T = MatrixIdentity(4,NULL);
+      T->rptr[1][1] = -mri->xsize;
+      T->rptr[2][3] =  mri->zsize;
+      T->rptr[3][2] =  mri->ysize;
+      T->rptr[1][4] = mri->xsize*(mri->width/2.0);
+      T->rptr[2][4] = -mri->zsize*(mri->depth/2.0);
+      T->rptr[3][4] = -mri->ysize*(mri->height/2.0);
+    }
+    else if (hdr->hist.orient==2) /* x = a, y = s, z = -r */
+    {
+      strcpy(direction, "sagittal unflipped");
+      T = MatrixIdentity(4,NULL);
+      T->rptr[1][3] =  -mri->zsize;                  
+      T->rptr[2][1] =  mri->xsize;
+      T->rptr[3][2] =  mri->ysize;
+      T->rptr[1][4] = mri->zsize*(mri->depth/2.0);
+      T->rptr[2][4] = -mri->xsize*(mri->width/2.0);
+      T->rptr[3][4] = -mri->ysize*(mri->height/2.0);
+    }
+    else if (hdr->hist.orient==3) /* x = -r, y = -a, z = s */
+    {
+      strcpy(direction, "transverse flipped");
+      T = MatrixIdentity(4,NULL);
+      T->rptr[1][1] =  -mri->xsize;
+      T->rptr[2][2] =  -mri->ysize;
+      T->rptr[3][3] =  mri->zsize;
+      T->rptr[1][4] = mri->xsize*(mri->width/2.0);
+      T->rptr[2][4] = mri->ysize*(mri->height/2.0);
+      T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
+    }
+    else if (hdr->hist.orient==4) /* x = -r, y = -s, z = a */
+    {
+      strcpy(direction, "coronal flipped");
+      T = MatrixIdentity(4,NULL);
+      T->rptr[1][1] = -mri->xsize;
+      T->rptr[2][3] =  mri->zsize;
+      T->rptr[3][2] = -mri->ysize;
+      T->rptr[1][4] =  mri->xsize*(mri->width/2.0);
+      T->rptr[2][4] = -mri->zsize*(mri->depth/2.0);
+      T->rptr[3][4] =  mri->ysize*(mri->height/2.0);
+    }
+    else if (hdr->hist.orient==5) /* x = a, y = -s, z = -r */
+    {
+      strcpy(direction, "sagittal flipped");
+      T = MatrixIdentity(4,NULL);
+      T->rptr[1][3] = -mri->zsize;                  
+      T->rptr[2][1] =  mri->xsize;
+      T->rptr[3][2] = -mri->ysize;
+      T->rptr[1][4] =  mri->zsize*(mri->depth/2.0);
+      T->rptr[2][4] = -mri->xsize*(mri->width/2.0);
+      T->rptr[3][4] =  mri->ysize*(mri->height/2.0);
+    }
+    mri->ras_good_flag = 1;
     fprintf(stderr,
             "-----------------------------------------------------------------\n"
-            "Could not find the direction cosine information.\n"
-            "Will use the HORIZONTAL orientation.\n"
+            "Follow Analyze 7.5 voxel order from hdr->hist.orient value: %s.\n"
             "If not suitable, please provide the information in %s file\n"
             "-----------------------------------------------------------------\n",
-            matfile
-            );
-
+	    direction, matfile
+	    );
   }
 
   /* ---- Assign the Geometric Paramaters -----*/
