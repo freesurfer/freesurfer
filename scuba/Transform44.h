@@ -30,6 +30,8 @@ class Transform44 : public DebugReporter {
   void SetMainTransform ( Matrix44& iMatrix );
   void SetMainTransform ( Transform44&  iTransform );
 
+  void MakeIdentity ();
+
   void MakeRotation ( float iCenterPoint[3], 
 		      float iRotationVector[3],
 		      float iRadians );

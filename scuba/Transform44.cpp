@@ -51,6 +51,13 @@ Transform44::SetMainTransform ( Transform44&  iTransform ) {
 }
 
 void
+Transform44::MakeIdentity () {
+
+  m.MakeIdentity();
+  ValuesChanged();
+}
+
+void
 Transform44::MakeRotation ( float iCenterPoint[3], 
 			    float iRotationVector[3],
 			    float iRadians ) {
