@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfssnapshot
-# $Id: mkfssnapshot,v 1.1 2003/05/14 19:12:41 kteich Exp $
+# $Id: mkfssnapshot,v 1.2 2003/06/30 20:09:21 kteich Exp $
 #
 # Purpose: creates a FreeSurfer snapshot in the directory specified on
 # the command-line. This is not a full release, but merely a
@@ -61,7 +61,7 @@
 #  files found in tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfssnapshot,v 1.1 2003/05/14 19:12:41 kteich Exp $';
+set VERSION = '$Id: mkfssnapshot,v 1.2 2003/06/30 20:09:21 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -122,7 +122,7 @@ endif
 
 # Check that source dir is there #
 if(! -e $SOURCE_DIR) then
-  echo "ERROR: cannot find $FSA_DIR"
+  echo "ERROR: cannot find $SOURCE_DIR"
   exit 1;
 endif
 
