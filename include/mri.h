@@ -553,11 +553,13 @@ int  MRIcentralPlaneOfLeastVarianceNormalVoxel(MRI *mri_src, int wsize,
                                                int x, int y, int z) ;
 int  MRIvertexToVector(int vertex, float *pdx, float *pdy, float *pdz) ;
 int MRIcpolvMedianCurveVoxel(MRI *mri, MRI *mri_labeled, int x0, int y0, 
-                             int z0, int wsize, float len) ;
+                             int z0, int wsize, float len, float gray_hi,
+                             float wm_low) ;
 float MRIcpolvMedianAtVoxel(MRI *mri_src, int vertex, 
                              float x, float y, float z, int wsize);
 MRI   *MRIcpolvMedianCurveSegment(MRI *mri,MRI *mri_labeled, MRI *mri_dst,
-                                int wsize,float len);
+                                  int wsize,float len, float gray_hi,
+                                  float wm_low);
 
 MRI   *MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst) ;
 int   MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x, 
