@@ -4061,6 +4061,29 @@ int read_bhdr(MRI *mri, FILE *fp)
     }
   } /* end while(!feof()) */
 
+  //  vox to ras matrix is
+  //
+  //  Xr*Sx  Yr*Sy  Zr*Sz  Tr
+  //  Xa*Sx  Ya*Sy  Za*Sz  Ta
+  //  Xs*Sx  Ys*Sy  Zs*Sz  Ts
+  //    0      0      0    1
+  //
+  //  Therefore
+  //
+  //  trr = Xr*Sx*W + Tr, tlr = Tr
+  //  tra = Xa*Sx*W + Ta, tla = Ta
+  //  trs = Xs*Sx*W + Ts, tls = Ts 
+  //
+  //  Thus 
+  //  
+  //  Sx = sqrt ( ((trr-tlr)/W)^2 + ((tra-tla)/W)^2 + ((trs-tls)/W)^2)
+  //     since Xr^2 + Xa^2 + Xs^2 = 1
+  //  Xr = (trr-tlr)/(W*Sx)
+  //  Xa = (tra-tla)/(W*Sx)
+  //  Xs = (trs-tls)/(W*Sx)
+  //
+  //  Similar things for others
+  //
   xr = (trr - tlr) / mri->width;
   xa = (tra - tla) / mri->width;
   xs = (trs - tls) / mri->width;
