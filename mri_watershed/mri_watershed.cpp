@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/09 14:07:59 $
-// Revision       : $Revision: 1.11 $
+// Revision Date  : $Date: 2003/04/09 19:12:50 $
+// Revision       : $Revision: 1.12 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.11 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.12 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -545,7 +545,7 @@ int main(int argc, char *argv[])
 
   /************* Command line****************/
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.11 2003/04/09 14:07:59 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.12 2003/04/09 19:12:50 tosa Exp $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -3115,6 +3115,7 @@ init_surf_to_image(float rx, float ry, float rz,MRI_variables *MRI_var)
     mris->vertices[k].y = Ry*mris->vertices[k].y + y;    
     mris->vertices[k].z = Rz*mris->vertices[k].z + z;
   }
+  MRIScomputeNormals(mris);
 }
 
 
