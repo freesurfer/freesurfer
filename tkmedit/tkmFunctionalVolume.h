@@ -137,6 +137,9 @@ struct tkmFunctionalVolume {
   void       (*mpOverlayChangedFunction)(void);
   void       (*mpSendTkmeditTclCmdFunction)(tkm_tTclCommand,char*);
   void       (*mpSendTclCommandFunction)(char*);
+
+  /* keep track of tkregMat */
+  MATRIX *tkregMat;
 };
 typedef struct tkmFunctionalVolume tkmFunctionalVolume;
 typedef tkmFunctionalVolume *tkmFunctionalVolumeRef;
