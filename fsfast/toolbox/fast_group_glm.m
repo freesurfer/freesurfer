@@ -1,5 +1,5 @@
 % fast_group_glm.m - see groupreg-sess
-% $Id: fast_group_glm.m,v 1.3 2005/01/18 20:51:24 greve Exp $
+% $Id: fast_group_glm.m,v 1.4 2005/01/19 17:45:40 greve Exp $
 %
 % InstemList = splitstring('$InstemList');
 % FLAXMatList = splitstring('$FLAXMatList');
@@ -11,10 +11,11 @@
 % gconmatfile = '$gconmat';
 % QuitOnError = ~[$monly];
 % hemicode = 'lh'; hemicode = '';
+% nthframe = 1;
 
 tic;
 
-ver = '$Id: fast_group_glm.m,v 1.3 2005/01/18 20:51:24 greve Exp $';
+ver = '$Id: fast_group_glm.m,v 1.4 2005/01/19 17:45:40 greve Exp $';
 fprintf('%s\n',ver);
 
 Cflastruct = load(FLAConMat);
@@ -76,6 +77,11 @@ if(nf > 1)
   return;
 end
 
+if(nthframe > nf)
+  fprintf('ERROR: frame=%d > nframes=%d\n',nthframe,nf);
+  return;
+end
+
 nvslice = nr*nc;
 
 mristruct = fast_ldbhdr(instem);
@@ -105,7 +111,8 @@ for slice = 1:ns
       if(QuitOnError) exit; end
       return;
     end
-    yn = reshape(yn,[nvslice nf])';
+    yn = yn(:,:,nthframe);
+    yn = reshape(yn,[nvslice 1])';
 
     if(synth) yn = randn(size(yn)); end
     
@@ -140,15 +147,14 @@ for slice = 1:ns
   fprintf('  Found %d voxels with data for all inputs\n',ndata);
   if(WLS)
     yvarsum = sum(yvar);
-    nv = nr*nc;
     nbeta = size(X,2);
-    beta = zeros(nbeta,nv);
-    rvar = zeros(1,nv);
-    F    = zeros(1,nv);
-    Fsig = ones(1,nv);
-    ces  = zeros(1,nv);
+    beta = zeros(nbeta,nvslice);
+    rvar = zeros(1,nvslice);
+    F    = zeros(1,nvslice);
+    Fsig = ones(1,nvslice);
+    ces  = zeros(1,nvslice);
     % weight is 1/std
-    w = zeros(ninputs,nv);
+    w = zeros(ninputs,nvslice);
     w(:,inddata) = 1./sqrt(yvar(:,inddata));
     % Rescale weight so that the sum=1 at each voxel
     wsum = sum(w);
