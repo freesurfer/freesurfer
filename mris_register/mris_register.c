@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.17 2003/09/05 04:45:43 kteich Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.18 2004/01/27 21:07:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -25,6 +25,9 @@ static void print_version(void) ;
 static int  compute_area_ratios(MRI_SURFACE *mris) ;
 
 static int max_passes = 4 ;
+static float min_degrees = 0.5 ;
+static float max_degrees = 8.0 ;
+static int   nangles = 8 ;
 static int nbrs = 1 ;
 static float scale = 1.0f ;
 
@@ -52,7 +55,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp_template ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.17 2003/09/05 04:45:43 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.18 2004/01/27 21:07:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -166,7 +169,7 @@ main(int argc, char *argv[])
   MRISstoreMeanCurvature(mris) ;  /* use curvature from file */
   /*  MRISsetOriginalFileName(mris, orig_name) ;*/
   MRISreadOriginalProperties(mris, orig_name) ;
-  MRISregister(mris, mrisp_template, &parms, max_passes) ;
+  MRISregister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
   fprintf(stderr, "writing registered surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
   if (jacobian_fname)
@@ -224,6 +227,24 @@ get_option(int argc, char *argv[])
   {
     reverse_flag = 1 ;
     fprintf(stderr, "mirror image reversing brain before morphing...\n") ;
+  }
+  else if (!stricmp(option, "min_degrees"))
+  {
+    min_degrees = atof(argv[2]) ;
+    fprintf(stderr, "setting min angle for search to %2.2f degrees\n", min_degrees) ;
+		nargs = 1 ;
+  }
+  else if (!stricmp(option, "max_degrees"))
+  {
+    max_degrees = atof(argv[2]) ;
+    fprintf(stderr, "setting max angle for search to %2.2f degrees\n", max_degrees) ;
+		nargs = 1 ;
+  }
+  else if (!stricmp(option, "nangles"))
+  {
+    nangles = atoi(argv[2]) ;
+    fprintf(stderr, "setting # of angles/search per scale to %d\n", nangles) ;
+		nargs = 1 ;
   }
   else if (!stricmp(option, "jacobian"))
   {
