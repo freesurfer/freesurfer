@@ -579,6 +579,7 @@ DspA_tErr DspA_GetOrientation   ( tkmDisplayAreaRef this,
 DspA_tErr DspA_GetZoomLevel     ( tkmDisplayAreaRef this, 
 				  int*              oZoomLevel );
 int DspA_GetCurrentSliceNumber_ ( tkmDisplayAreaRef this );
+int DspA_GetCurrentSliceNumberInMRIIdx_ ( tkmDisplayAreaRef this );
 
 /* draw data into the histogram window */
 DspA_tErr DspA_DrawHistogram ( tkmDisplayAreaRef        this,
