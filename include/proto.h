@@ -51,7 +51,7 @@ int stricmp(char *str1, char *str2) ;
 
 /*----------- MSDOS -----------------------*/
 #ifdef _MSDOS
-#define nint(f)   ((int)((double)f+0.5))
+#define nint(f)   ((int)((double)f+(f < 0 ? -0.5 : 0.5)))
 #define isnan(f) 0
 #define unlink _unlink
 #define hypot  _hypot
