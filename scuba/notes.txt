@@ -166,6 +166,7 @@ volume loading
      - send to View
        - view transforms to 3/5D point, calls on Layers
          - polls DataCollection for info
+	 - calls update functions via tcl manager
 
 - linked cursors
  - tk pass clicks to ToglManager

@@ -42,6 +42,12 @@ ToglManager::ReshapeCallback ( struct Togl* iTogl ) {
   int width = Togl_Width( iTogl );
   int height = Togl_Height( iTogl );
   frame->Reshape( width, height );
+
+  /* Post a redisplay if the frame wants one. */
+  if( frame->WantRedisplay() ) {
+    Togl_PostRedisplay( iTogl );
+    frame->RedisplayPosted();
+  }
 }
 
 void
@@ -50,6 +56,12 @@ ToglManager::TimerCallback ( struct Togl* iTogl ) {
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
   frame->Timer();
+
+  /* Post a redisplay if the frame wants one. */
+  if( frame->WantRedisplay() ) {
+    Togl_PostRedisplay( iTogl );
+    frame->RedisplayPosted();
+  }
 }
 
 int
@@ -62,6 +74,13 @@ ToglManager::MouseMotionCallback ( struct Togl* iTogl,
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
   frame->MouseMoved( atoi(iArgv[2]), atoi(iArgv[3]), atoi(iArgv[4]), 0 );
+
+  /* Post a redisplay if the frame wants one. */
+  if( frame->WantRedisplay() ) {
+    Togl_PostRedisplay( iTogl );
+    frame->RedisplayPosted();
+  }
+
   return TCL_OK;
 }
 
@@ -75,6 +94,13 @@ ToglManager::MouseDownCallback ( struct Togl* iTogl,
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
   frame->MouseDown( atoi(iArgv[2]), atoi(iArgv[3]), atoi(iArgv[4]), 0 );
+
+  /* Post a redisplay if the frame wants one. */
+  if( frame->WantRedisplay() ) {
+    Togl_PostRedisplay( iTogl );
+    frame->RedisplayPosted();
+  }
+
   return TCL_OK;
 }
 
@@ -87,6 +113,13 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
   frame->MouseUp( atoi(iArgv[2]), atoi(iArgv[3]), atoi(iArgv[4]), 0 );
+
+  /* Post a redisplay if the frame wants one. */
+  if( frame->WantRedisplay() ) {
+    Togl_PostRedisplay( iTogl );
+    frame->RedisplayPosted();
+  }
+
   return TCL_OK;
 }
 
@@ -99,6 +132,13 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
   frame->KeyDown( atoi(iArgv[2]), atoi(iArgv[3]), string(iArgv[4]), 0 );
+
+  /* Post a redisplay if the frame wants one. */
+  if( frame->WantRedisplay() ) {
+    Togl_PostRedisplay( iTogl );
+    frame->RedisplayPosted();
+  }
+
   return TCL_OK;
 }
 
@@ -111,6 +151,13 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
   frame->KeyUp( atoi(iArgv[2]), atoi(iArgv[3]), string(iArgv[4]), 0 );
+
+  /* Post a redisplay if the frame wants one. */
+  if( frame->WantRedisplay() ) {
+    Togl_PostRedisplay( iTogl );
+    frame->RedisplayPosted();
+  }
+
   return TCL_OK;
 }
 
@@ -214,7 +261,6 @@ ToglFrame::KeyUp( int inX, int inY, string isKey, int iModifers ) {
   this->DoKeyUp( inX, inY, isKey, iModifers );
 }
 
-
 void
 ToglFrame::DoDraw() {
 
@@ -262,5 +308,3 @@ ToglFrame::DoKeyUp( int inX, int inY, string isKey, int iModifers ) {
 
   DebugOutput( << "ToglFrame " << mID << ": DoKeyUp()" );
 }
-
-

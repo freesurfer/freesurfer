@@ -23,18 +23,13 @@ protected:
   virtual void DoKeyUp( int inX, int inY, string isKey, int iModifers );
 
   bool bTimerCalled;
-
-  static int const kcBytesPerPixel;
-  GLubyte* mFrameBuffer;
 };
 
-int const TestFrame::kcBytesPerPixel = 4;
 
 TestFrame::TestFrame( ToglFrame::ID iID ) : ToglFrame( iID ) {
   DebugOutput( << "Created TestFrame " << iID );
   SetOutputStreamToCerr();
   bTimerCalled = false;
-  mFrameBuffer = NULL;
 }
 
 TestFrame::~TestFrame() {
@@ -56,26 +51,6 @@ TestFrame::DoDraw() {
 
 void
 TestFrame::DoReshape() {
-
-  if( NULL != mFrameBuffer ) {
-    free( mFrameBuffer );
-  }
-
-  mFrameBuffer = (GLubyte*) malloc( mWidth * mHeight * kcBytesPerPixel );
-  if( NULL == mFrameBuffer ) {
-    DebugOutput( << "Allocation of buffer with width " << mWidth
-		 << " and height " << mHeight << " failed" );
-    throw logic_error( "Couldn't allocate buffer" );
-  }
-
-  for( int nPixel = 0; 
-       nPixel < mWidth * mHeight * kcBytesPerPixel; 
-       nPixel += kcBytesPerPixel ) {
-    mFrameBuffer[nPixel] = (GLubyte) 0;
-    mFrameBuffer[nPixel+1] = (GLubyte) 0;
-    mFrameBuffer[nPixel+2] = (GLubyte) 0;
-    mFrameBuffer[nPixel+3] = (GLubyte) 1;
-  }
 }
 
 void

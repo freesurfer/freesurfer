@@ -27,6 +27,10 @@ class ToglFrame : public DebugReporter {
   
   ID GetID() const { return mID; }
   
+  void PostRedisplay() { mbPostRedisplay = true; }
+  bool WantRedisplay() { return mbPostRedisplay; }
+  void RedisplayPosted() { mbPostRedisplay = false; }
+
  protected:
   virtual void DoDraw();
   virtual void DoReshape();
@@ -41,6 +45,8 @@ class ToglFrame : public DebugReporter {
   int mWidth;
 
   ID mID;
+
+  bool mbPostRedisplay;
 };
 
 class ToglFrameFactory {
@@ -55,7 +61,7 @@ class ToglManager {
  public:
   // These are the Togl callbacks that we will register to get event
   // notifications from the Togl system. ToglManager determines to
-  // which window they apple and calls ToglFrame functions in a
+  // which window they apply and calls ToglFrame functions in a
   // Togl-free way.
   static void DrawCallback ( struct Togl* iTogl );
   static void CreateCallback ( struct Togl* iTogl );
