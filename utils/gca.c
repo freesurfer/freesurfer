@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/24 23:08:34 $
-// Revision       : $Revision: 1.110 $
+// Revision Date  : $Date: 2004/03/24 23:27:34 $
+// Revision       : $Revision: 1.111 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -184,25 +184,16 @@ void GCAcopyDCToGCA(GCA *gca, GCA *gca_dst)
   gca_dst->x_s = gca->x_s; gca_dst->y_s = gca->y_s; gca_dst->z_s = gca->z_s;
   gca_dst->c_r = gca->c_r; gca_dst->c_a = gca->c_a; gca_dst->c_s = gca->c_s;
   // 
-  if (gca_dst->node_i_to_r__) MatrixFree(&gca_dst->node_i_to_r__);
-  if (gca_dst->prior_i_to_r__) MatrixFree(&gca_dst->prior_i_to_r__);
-  if (gca_dst->tal_i_to_r__) MatrixFree(&gca_dst->tal_i_to_r__);
-  if (gca_dst->node_r_to_i__) MatrixFree(&gca_dst->node_r_to_i__);
-  if (gca_dst->prior_r_to_i__) MatrixFree(&gca_dst->prior_r_to_i__);
-  if (gca_dst->tal_r_to_i__) MatrixFree(&gca_dst->tal_r_to_i__);
-  gca_dst->node_i_to_r__ = MatrixCopy(gca->node_i_to_r__, NULL);
-  gca_dst->node_r_to_i__ = MatrixCopy(gca->node_r_to_i__, NULL);
-  gca_dst->prior_i_to_r__ = MatrixCopy(gca->prior_i_to_r__, NULL);
-  gca_dst->prior_r_to_i__ = MatrixCopy(gca->prior_r_to_i__, NULL);
-  gca_dst->tal_i_to_r__ = MatrixCopy(gca->tal_i_to_r__, NULL);
-  gca_dst->tal_r_to_i__ = MatrixCopy(gca->tal_r_to_i__, NULL);
+  gca_dst->node_i_to_r__ = MatrixCopy(gca->node_i_to_r__, gca_dst->node_i_to_r__);
+  gca_dst->node_r_to_i__ = MatrixCopy(gca->node_r_to_i__, gca_dst->node_r_to_i__);
+  gca_dst->prior_i_to_r__ = MatrixCopy(gca->prior_i_to_r__, gca_dst->prior_i_to_r__);
+  gca_dst->prior_r_to_i__ = MatrixCopy(gca->prior_r_to_i__, gca_dst->prior_r_to_i__);
+  gca_dst->tal_i_to_r__ = MatrixCopy(gca->tal_i_to_r__, gca_dst->tal_i_to_r__);
+  gca_dst->tal_r_to_i__ = MatrixCopy(gca->tal_r_to_i__, gca_dst->tal_r_to_i__);
   // 
-  if (gca_dst->mri_prior__) MRIfree(&gca_dst->mri_prior__);
-  if (gca_dst->mri_node__) MRIfree(&gca_dst->mri_node__);
-  if (gca_dst->mri_tal__) MRIfree(&gca_dst->mri_tal__);
-  gca_dst->mri_prior__ = MRIcopy(gca->mri_prior__, NULL);
-  gca_dst->mri_node__ = MRIcopy(gca->mri_node__, NULL);
-  gca_dst->mri_tal__ = MRIcopy(gca->mri_tal__, NULL);
+  gca_dst->mri_prior__ = MRIcopy(gca->mri_prior__, gca_dst->mri_prior__);
+  gca_dst->mri_node__ = MRIcopy(gca->mri_node__, gca_dst->mri_node__);
+  gca_dst->mri_tal__ = MRIcopy(gca->mri_tal__, gca_dst->mri_tal__);
 }
 
 void GCAcleanup(GCA *gca)
