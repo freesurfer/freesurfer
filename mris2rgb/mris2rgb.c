@@ -36,8 +36,9 @@
 #include "tiffio.h"
 #include "label.h"
 #include "macros.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.30 2003/04/08 20:51:21 tosa Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.31 2003/04/17 17:16:23 kteich Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -184,6 +185,12 @@ main(int argc, char *argv[])
   unsigned short  *red=NULL, *green=NULL, *blue=NULL;
   unsigned char   *rgb=NULL;
   
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.31 2003/04/17 17:16:23 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
+
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
