@@ -20,8 +20,8 @@ static void usage_exit(int code) ;
 
 
 static int erode = 0 ;
-static double fmin = 10 ;
-static double fmax = 5000 ;
+static double cfmin = 10 ;
+static double cfmax = 5000 ;
 static double step = 10 ;
 
 
@@ -38,7 +38,7 @@ main(int argc, char *argv[])
 	Real         val1, val2 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_joint_density.c,v 1.3 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_joint_density.c,v 1.4 2004/06/29 14:11:30 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -79,9 +79,9 @@ main(int argc, char *argv[])
 	MRIcopy(mri_nonbrain, mri_tmp) ; MRIfree(&mri_nonbrain) ; mri_nonbrain = mri_tmp ;
 	MRIdilateLabel(mri_nonbrain, mri_nonbrain, 128, erode) ;
 
-	/*	fmin = MIN(fmin1, fmin2) ; fmax = MAX(fmax1, fmax2) ;*/
+	/*	cfmin = MIN(fmin1, fmin2) ; cfmax = MAX(fmax1, fmax2) ;*/
 
-	nbins = nint(((fmax - fmin + 1) / step)+.99) ;
+	nbins = nint(((cfmax - cfmin + 1) / step)+.99) ;
 	printf("computing joint density with %d bins...\n", nbins) ;
 
 	joint_density = (int **)calloc(nbins, sizeof(int *)) ;
@@ -105,13 +105,13 @@ main(int argc, char *argv[])
 					continue ;  /* close to border of brain */
 
 				MRIsampleVolume(mri1, x, y, z, &val1) ;
-				if (val1 > fmax || val1 < fmin)
+				if (val1 > cfmax || val1 < cfmin)
 					continue ;
 				MRIsampleVolume(mri2, x, y, z, &val2) ;
-				if (val2 > fmax || val2 < fmin)
+				if (val2 > cfmax || val2 < cfmin)
 					continue ;
-				i = nint((val1-fmin)/step) ;
-				j = nint((val2-fmin)/step) ;
+				i = nint((val1-cfmin)/step) ;
+				j = nint((val2-cfmin)/step) ;
 				joint_density[i][j]++ ;
 			}
 		}
@@ -121,7 +121,7 @@ main(int argc, char *argv[])
 	fp = fopen(argv[3], "w") ;
 	if (fp == NULL)
 		ErrorExit(ERROR_NOFILE, "%s: could not open output file %s", Progname, argv[3]) ;
-	fprintf(fp, "nbins = %d;\n fmin = %f ;\n fmax = %f  ; \nfstep = %f;\n", nbins, fmin, fmax, step) ;
+	fprintf(fp, "nbins = %d;\n cfmin = %f ;\n cfmax = %f  ; \nfstep = %f;\n", nbins, cfmin, cfmax, step) ;
 	fprintf(fp, "joint_density = [...\n") ;
 	for (i = 0  ; i < nbins ; i++)
 	{
@@ -162,9 +162,9 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "max"))
   {
-		fmax = atof(argv[2]) ;
+		cfmax = atof(argv[2]) ;
 		nargs = 1 ;
-		printf("using max val %2.2f in histogram\n", fmax) ;
+		printf("using max val %2.2f in histogram\n", cfmax) ;
   }
   else if (!stricmp(option, "erode"))
   {
@@ -174,9 +174,9 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "min"))
   {
-		fmin = atof(argv[2]) ;
+		cfmin = atof(argv[2]) ;
 		nargs = 1 ;
-		printf("using min val %2.2f in histogram\n", fmin) ;
+		printf("using min val %2.2f in histogram\n", cfmin) ;
   }
   else switch (toupper(*option))
   {
