@@ -114,3 +114,45 @@ unpack_mnc.tcl \
 unpacksdcmdir \
 wfilemask \
 xsanatreg
+
+tcldir = $(prefix)/lib/tcl
+tcl_SCRIPTS= \
+check_func_ras_coords.tcl \
+curv-flat.tcl \
+curv-views.tcl \
+dara_data.tcl \
+dipmovie-flat.tcl \
+eccen-flat.tcl \
+eccen-views.tcl \
+fs-flat.tcl \
+fs-make.tcl \
+fs-views.tcl \
+mk-fieldsign.tcl \
+offsetmovie.tcl \
+phasemovie.tcl \
+polar-flat.tcl \
+polar-views.tcl \
+readenv.tcl \
+real-flat.tcl \
+real-views.tcl \
+saveflat.tcl \
+saveviews.tcl \
+segment_subject \
+setdefpatchview.tcl \
+solmovie-flat.tcl \
+tkanalyse.tcl \
+tkm_common.tcl \
+tkm_dialog.tcl \
+tkmedit.tcl \
+tkm_functional.tcl \
+tkm_graph.tcl \
+tkm_wrappers.tcl \
+tkregister.tcl \
+tkregister2.tcl \
+tksurfer.tcl \
+tkUtils.tcl \
+twocond-flat.tcl \
+twocond-masked-views.tcl \
+twocond-views.tcl \
+wrappers.tcl \
+fsgdfPlot.tcl
