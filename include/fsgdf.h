@@ -63,7 +63,7 @@ int     gdfOffsetSlope(FSGD *gd, int classno, int varno,
 		   int c, int r, int s, float *offset, float *slope);
 int gdfCountItemsOnLine(FILE *fp);
 int gdfCountItemsInString(char *str);
-int gdfClassNo(FSGD *gd, char *class);
+int gdfClassNo(FSGD *gd, char *class_number);
 int gdfGetVarLabelNo(FSGD *gd, char *LabelName);
 int gdfStringIndex(char *str, char **list, int nlist);
 
@@ -81,7 +81,7 @@ int gdfGetDefaultVariable(FSGD *gd, char *label);
 int gdfGetDefaultVariableIndex(FSGD *gd, int *nvariable);
 int gdfGetNumSubjects(FSGD *gd, int *nsubjects);
 int gdfGetNthSubjectID(FSGD *gd, int nsubject, char *id);
-int gdfGetNthSubjectClass(FSGD *gd, int nsubject, int *class);
+int gdfGetNthSubjectClass(FSGD *gd, int nsubject, int *class_number);
 int gdfGetNthSubjectNthValue(FSGD *gd, int nsubject, 
 			     int nvariable, float *value);
 int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject, 

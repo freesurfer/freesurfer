@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.19 2003/06/30 20:39:32 greve Exp $
+  $Id: fsgdf.c,v 1.20 2004/06/11 21:04:32 kteich Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -286,7 +286,7 @@ static FSGD *gdfReadV1(char *gdfname)
   FILE *fp;
   char tag[1000];
   char tmpstr[1000];
-  char class[100];
+  char class_name[100];
   int version,r,n,m;
 
   fp = fopen(gdfname,"r");
@@ -401,15 +401,15 @@ static FSGD *gdfReadV1(char *gdfname)
 	return(NULL);
       }
       n = gd->ninputs; /* current input number */
-      r = fscanf(fp,"%s %s",gd->subjid[n],class);
+      r = fscanf(fp,"%s %s",gd->subjid[n],class_name);
       if(r==EOF){
 	printf("Input line %d: ",n+1); 
 	goto formaterror;
       }
-      r = gdfClassNo(gd,class);
+      r = gdfClassNo(gd,class_name);
       if(r < 0){
 	printf("Input line %d, subjid = %s, class %s not defined \n",
-	       n+1,gd->subjid[n],class); 
+	       n+1,gd->subjid[n],class_name); 
 	goto formaterror;
       }
       gd->subjclassno[n] = r;
@@ -472,11 +472,11 @@ static FSGD *gdfReadV1(char *gdfname)
   gdfClassNo() - returns the zero-based class number 
   associated with a class label.
   --------------------------------------------------*/
-int gdfClassNo(FSGD *gd, char *class)
+int gdfClassNo(FSGD *gd, char *class_number)
 {
   int code;
   for(code=0; code < gd->nclasses; code++)
-    if(!strcmp(gd->classlabel[code],class)) return(code);
+    if(!strcmp(gd->classlabel[code],class_number)) return(code);
   return(-1);
 }
 /*--------------------------------------------------
@@ -1038,14 +1038,14 @@ int gdfGetNthSubjectID(FSGD *gd, int nsubject, char *id)
   gdfGetNthSubjectClass() - returns the index of the nth subject's
   class in the output parameter where nsubject is from 0 -> ninputs.
   ------------------------------------------------------------*/
-int gdfGetNthSubjectClass(FSGD *gd, int nsubject, int *class)
+int gdfGetNthSubjectClass(FSGD *gd, int nsubject, int *class_number)
 {
   if(NULL == gd)
     return(-1);
   if(nsubject < 0 || nsubject >= gd->ninputs)
     return(-1);
 
-  *class = gd->subjclassno[nsubject];
+  *class_number = gd->subjclassno[nsubject];
 
   return(0);
 }
