@@ -1,6 +1,8 @@
-function X = fast_fla_desmat(flacfg,mthrun,mthruntype)
-% X = fast_fla_desmat(flacfg,<mthrun,mthruntype>)
+function [X, flacfg] = fast_fla_desmat(flacfg,mthrun,mthruntype)
+% [X flacfg] = fast_fla_desmat(flacfg,<mthrun,mthruntype>)
 % mthruntype = 0 or [] (all runs), 1 (perrun), 2 (jkrun)
+% Also assigns fxcfg.regind for each fx/run but only in the
+% returned flacfg.
 
 X = [];
 
@@ -42,6 +44,13 @@ else
   mthrunlist = 1:nruns; 
 end  
 
+% Get the total number of fixed effects regressors
+nfixedreg = fast_fxcfg('nfixedreg',flacfg);
+
+% save in order to restore before return
+nthrunsv = flacfg.nthrun;
+nthfxsv = flacfg.nthfx;
+
 % Build the Design Matrix
 Xfe = []; % fixed  part
 Xre = []; % random part
@@ -61,10 +70,18 @@ for nthrun = mthrunlist
     % Get matrix for this effect
     Xtmp = fast_fxcfg('matrix',flacfg);
     if(isempty(Xtmp)) return; end
+    nreg = size(Xtmp,2);
     
     % Append it to the proper type
-    if(strcmp(fx.fxtype,'fixed'))  Xferun = [Xferun Xtmp];  end
-    if(strcmp(fx.fxtype,'random')) Xrerun = [Xrerun Xtmp]; end
+    if(strcmp(fx.fxtype,'fixed'))  
+      flacfg.fxlist(nthfx).fx.regind{1} = [1:nreg]' + size(Xferun,2);
+      Xferun = [Xferun Xtmp];  
+    end
+    if(strcmp(fx.fxtype,'random')) 
+      flacfg.fxlist(nthfx).fx.regind{nthrun} = ...
+	  [1:nreg]' + size(Xrerun,2) + nfixedreg;
+      Xrerun = [Xrerun Xtmp]; 
+    end
   end
 
   % Accumulated fixed effects
@@ -79,5 +96,9 @@ end
 
 % Finally!
 X = [Xfe Xre];
+
+% restore 
+flacfg.nthrun = nthrunsv;
+flacfg.nthfx = nthfxsv;
 
 return;
