@@ -20,7 +20,7 @@
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
 
-#ifdef __linux__
+#ifdef Linux
 #include <X11/extensions/xf86dga.h>
 #endif 
 
@@ -84,7 +84,7 @@ typedef struct {
 Widget frame,toplevel,quit_bt,canvas,buttons,stop_bt,loop_bt,swing_bt;
 Widget fast_bt,slow_bt;
 int shmext,nframes;
-#ifdef __linux__
+#ifdef Linux
 int dgaext;
 #endif 
 XImage *ximg;
@@ -301,7 +301,7 @@ static int highbit(unsigned long ul)
 
 static void XInit(int *argc, char ***argv)
 {
-#ifdef __linux__
+#ifdef Linux
   int ebase,errbase,flags;
 #endif 
 
@@ -316,7 +316,7 @@ static void XInit(int *argc, char ***argv)
   shmext = XShmQueryExtension(xi.disp);
   xi.screenno = DefaultScreen(xi.disp);
 
-#ifdef __linux__
+#ifdef Linux
   if (XF86DGAQueryExtension(xi.disp,&ebase,&errbase))
     {
       XF86DGAQueryDirectVideo(xi.disp, xi.screenno, &flags);
