@@ -488,6 +488,7 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
       total += kernel[x] * (float)histo_src->counts[b1] ;
     }
     histo_dst->counts[b] = nint(total) ;
+    histo_dst->bins[b] = histo_src->bins[b] ;
   }
   return(histo_dst) ;
 }
