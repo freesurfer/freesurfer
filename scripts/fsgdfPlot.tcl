@@ -1,39 +1,44 @@
 #! /usr/bin/tixwish
 
-# $Id: fsgdfPlot.tcl,v 1.9 2004/08/20 20:47:10 tosa Exp $
+# $Id: fsgdfPlot.tcl,v 1.10 2004/09/15 16:23:43 kteich Exp $
 
 package require Tix;
 package require BLT;
 
-# Look for the library in the following place. If we can't find it, bail.
-# set fnLib "libtclfsgdf.so"
-# if { [info exists env(OS)] } {
-#    switch $env(OS) {
-#	"Darwin" { set fnLib "libtclfsgdf.dylib" }
-#	"Linux" { set fnLib "libtclfsgdf.so" }
-#    }
-# } 
-
-set bFound 0
-catch { lappend lPath . }
-catch { lappend lPath $env(FSGDF_DIR) }
-catch { lappend lPath $env(FREESURFER_HOME)/lib/$env(OS) }
-catch { lappend lPath $env(DEV)/lib/$env(OS) }
-
-set gbLibLoaded 0
-foreach sPath $lPath {
-
-    set fnLibrary [file join $sPath $fnLib]
-    set err [catch {load $fnLibrary fsgdf} sResult]
-    if { 0 == $err } {
-	puts "Using $fnLibrary"
-	set gbLibLoaded 1
-	break
+if { 0 } {
+    # Look for the library in the following place. If we can't find it, bail.
+    set fnLib "libtclfsgdf.so"
+    if { [info exists env(OS)] } {
+	switch $env(OS) {
+	    "Darwin" { set fnLib "libtclfsgdf.dylib" }
+	    "Linux" { set fnLib "libtclfsgdf.so" }
+	}
     } 
+    
+    set bFound 0
+    catch { lappend lPath . }
+    catch { lappend lPath $env(FSGDF_DIR) }
+    catch { lappend lPath $env(FREESURFER_HOME)/lib/$env(OS) }
+    catch { lappend lPath $env(DEV)/lib/$env(OS) }
+    
+    set gbLibLoaded 0
+    foreach sPath $lPath {
+	
+	set fnLibrary [file join $sPath $fnLib]
+	set err [catch {load $fnLibrary fsgdf} sResult]
+	if { 0 == $err } {
+	    puts "Using $fnLibrary"
+	    set gbLibLoaded 1
+	    break
+	} 
+    }
+    if { !$gbLibLoaded } {
+	puts "Couldn't load $fnLib."
+    }
 }
-if { !$gbLibLoaded } {
-    puts "Couldn't load $fnLib."
-}
+
+set gbLibLoaded 1
+
 
 # This function finds a file from a list of directories.
 proc FindFile { ifnFile ilDirs } {
