@@ -35,5 +35,6 @@ extern double oglu_fov ;
 #define MARK_ORANGE         6
 #define MARK_RED            7
 #define MARK_GREEN          8
+#define MARK_CYAN           9
 
 #endif
