@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/28 18:16:15 $
-// Revision       : $Revision: 1.4 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/04/02 19:04:39 $
+// Revision       : $Revision: 1.5 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.4 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.5 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -240,13 +240,14 @@ static void FitShape(MRI_variables *MRI_var, const int convLimit, const int maxI
 		      const double &nx, const double &ny, const double &nz,
 		      MRI_variables *mri_var)
 		     );
-static void  read_geometry(int type,MRI_variables *MRI_var,char *surf_fname);
+static void read_geometry(int type,MRI_variables *MRI_var,char *surf_fname);
 static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var);
 static void brain_params(MRI_variables *MRI_var);
 static void init_surf_to_image(float rx, float ry, float rz,MRI_variables *MRI_var);
 static void write_image(MRI_variables *MRI_var);
 static void init_direction(MRI_variables *MRI_var);
-static void find_normal(float nx,float ny, float nz,float* n1,float *n2,  float direction[26][3]);
+static void find_normal(const float nx,const float ny, const float nz,float* n1,float *n2,
+			float direction[26][3]);
 static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var);
 static void analyseCSF(unsigned long *CSF_percent,MRI_variables *MRI_var);
 static void analyseGM(unsigned long *CSF_percent,unsigned long *int_percent,MRI_variables *MRI_var);
@@ -271,10 +272,10 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var);
 static void MRIScenterCOG(MRI_SURFACE *mris);
 void MRISscale(MRI_SURFACE *mris);
 double MRISradius(MRI_SURFACE *mris);
-static void MRISinitSurfaces(MRIS *mris_curv,MRIS *mris_dCOG,MRIS *mrisphere);
+static void MRISinitSurfaces(MRIS *mris_curv,MRIS *mris_dCOG, const MRIS *mrisphere);
 static void MRISdistanceToCOG(MRI_SURFACE *mris);
 static double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int use_stds);
-void MRISchangeCoordinates(MRI_SURFACE *mris,MRI_SURFACE *mris_orig);
+void MRISchangeCoordinates(MRI_SURFACE *mris, const MRI_SURFACE *mris_orig);
 static int
 mrisRigidBodyAlignGlobal(MRIS *mris,MRIS *mris_dist, INTEGRATION_PARMS *parms,
         int mode,float min_degrees, float max_degrees, int nangles);
@@ -301,7 +302,7 @@ int main(int argc, char *argv[])
 
   /************* Command line****************/
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.4 2003/03/28 18:16:15 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.5 2003/04/02 19:04:39 tosa Exp $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -568,47 +569,66 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     parms->manual_GM_INTENSITY=atoi(argv[4]);
     nargs=3;
   }
-  else switch (toupper(*option))
+  // check one character options -s, -c, -r, -t, -n
+  else if (strlen(option) == 1)
   {
-  case 'N':
-    parms->watershed_analyze=0;
-    nargs = 0 ;
-    fprintf(stderr,"Mode:          No watershed analyze\n") ;
-    break ;
-  case 'S':
-    if(parms->nb_seed_points>=30)
-      Error("\ntoo many seed points\n");
-    parms->seed_coord[parms->nb_seed_points][0]=atoi(argv[2]);
-    parms->seed_coord[parms->nb_seed_points][1]=atoi(argv[3]);
-    parms->seed_coord[parms->nb_seed_points][2]=atoi(argv[4]);
-    nargs=3;
-    parms->nb_seed_points++;
-    break ;
-  case 'C':
-    fprintf(stderr,"Mode:          Brain Center manually specified\n") ;
-    parms->cx=atoi(argv[2]);
-    parms->cy=atoi(argv[3]);
-    parms->cz=atoi(argv[4]);
-    nargs=3;
-    break ;
-  case 'R':
-    fprintf(stderr,"Mode:          Brain Radius manually specified\n") ;
-    parms->rb=atoi(argv[2]);
-    nargs=1;
-    break ;
-  case 'H':
-    parms->hpf=atoi(argv[2]);
-    nargs=1;
-    break ;
-  case 'T':
-    parms->threshold_analyze=atoi(argv[2]);
-    fprintf(stderr,"Mode:          Threshold changed to %d\n",parms->threshold_analyze) ;
-    nargs = 1 ;
-    break ;
-  default:
+    switch (toupper(*option))
+    {
+    case 'N':
+      parms->watershed_analyze=0;
+      nargs = 0 ;
+      fprintf(stderr,"Mode:          No watershed analyze\n") ;
+      break ;
+    case 'S':
+      if(parms->nb_seed_points>=30)
+	Error("\ntoo many seed points\n");
+      if (argc < 7)
+	Error("\n-s option needs 3 seed points, input, output argument\n");
+      parms->seed_coord[parms->nb_seed_points][0]=atoi(argv[2]);
+      parms->seed_coord[parms->nb_seed_points][1]=atoi(argv[3]);
+      parms->seed_coord[parms->nb_seed_points][2]=atoi(argv[4]);
+      nargs=3;
+      parms->nb_seed_points++;
+      break ;
+    case 'C':
+      fprintf(stderr,"Mode:          Brain Center manually specified\n") ;
+      if (argc < 7)
+	Error("\n-c option needs 3 coordinate of the brain center, input, and output argument\n");
+      parms->cx=atoi(argv[2]);
+      parms->cy=atoi(argv[3]);
+      parms->cz=atoi(argv[4]);
+      nargs=3;
+      break ;
+    case 'R':
+      fprintf(stderr,"Mode:          Brain Radius manually specified\n") ;
+      if (argc < 5)
+	Error("\n-r needs radius, input, and output argument.\n");
+      parms->rb=atoi(argv[2]);
+      nargs=1;
+      break ;
+    case 'H':
+      if (argc < 5)
+	Error("\n-h needs preflooding height, input, and output argument.\n");
+      parms->hpf=atoi(argv[2]);
+      nargs=1;
+      break ;
+    case 'T':
+      if (argc < 5)
+	Error("\n-t needs threshold, input, and output argument.\n");
+      parms->threshold_analyze=atoi(argv[2]);
+      fprintf(stderr,"Mode:          Threshold changed to %d\n",parms->threshold_analyze) ;
+      nargs = 1 ;
+      break ;
+    default:
+      printf("Mode:          unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
+  }
+  else
+  {
     printf("Mode:          unknown option %s\n", argv[1]) ;
     exit(1) ;
-    break ;
   }
   return(nargs) ;
 } 
@@ -2900,7 +2920,7 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
   // using smaller brain radius to expand to the surface
   // MRISshrink1(MRI_var);
   FitShape(MRI_var, 5, 150, calcForce1);
-  MRISwrite(MRI_var->mris, "surface");
+  MRISwrite(MRI_var->mris, "surface1");
   brainsize = calcBrainSize(MRI_var->mri_src, MRI_var->mris);
   fprintf(stderr, "\n                  step1 brainsize = %d\n", brainsize);
 
@@ -2945,6 +2965,7 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
       fprintf(stderr,"\n      matching...");
       // MRISshrink2(MRI_var);
       FitShape(MRI_var, 1, 100, calcForce2);
+      MRISwrite(MRI_var->mris, "surface2");
       brainsize = calcBrainSize(MRI_var->mri_src, MRI_var->mris);
       fprintf(stderr, "\n                  step2 brainsize = %d\n", brainsize);
     }
@@ -2981,10 +3002,12 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
     fprintf(stderr,"\nFine Segmentation...");
 
     MRISFineSegmentation(MRI_var);
+    MRISwrite(MRI_var->mris, "surface3");
     brainsize = calcBrainSize(MRI_var->mri_src, MRI_var->mris);
     fprintf(stderr, "\n                  step3 brainsize = %d\n", brainsize);
 
     MRISgoToClosestDarkestPoint(MRI_var);
+    MRISwrite(MRI_var->mris, "surface4");
     brainsize = calcBrainSize(MRI_var->mri_src, MRI_var->mris);
     fprintf(stderr, "\n                  step4 brainsize = %d\n", brainsize);
     if (parms->surf_dbg)
@@ -3185,6 +3208,7 @@ static void write_image(MRI_variables *MRI_var)
     }
 }
 
+/*Initialize 26 vectors in "each direction" */
 static void init_direction(MRI_variables *MRI_var)
 {
   int i,j,k,p=0;
@@ -3204,7 +3228,7 @@ static void init_direction(MRI_variables *MRI_var)
 }
 
 /* Find 2 normals to a  vector nx, ny, nz */
-static void find_normal(float nx,float ny, float nz,float* n1,float *n2,  float direction[26][3])
+static void find_normal(const float nx, const float ny, const float nz,float* n1,float *n2,  float direction[26][3])
 {
   float ps,ps_buff;
   int p,k;
@@ -4356,7 +4380,7 @@ static void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
   free(dist);
 }
 
-/*Initialize 26 vectors in "each direction" */
+
 
 static void mean(float tab[4][9],float *moy)
 {
@@ -4364,6 +4388,13 @@ static void mean(float tab[4][9],float *moy)
   for (p=0;p<4;p++)
     moy[p]=(2*tab[p][4]+tab[p][1]+tab[p][3]+tab[p][5]+
              tab[p][7])/6;
+  // picking 3*b + a + 4 (a, b are orthogonal directions to the normal
+  //  1, 3, 5, 7 -> (a,b) = (0,-1), (-1,0),(1, 0), (0, 1)  
+  //  4          ->       = (0, 0)
+  // i.e.
+  //             X
+  //           X C X   center is weighted twice, the rest is once.
+  //             X
 }
 
 
@@ -4970,43 +5001,43 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var)
 
   validation=0;
   /*free the surfaces if non NULL*/
- if(MRI_var->mrisphere)
+  if(MRI_var->mrisphere)
   {
     MRISfree(&MRI_var->mrisphere);
     MRI_var->mrisphere=NULL;
   }
- if(MRI_var->mris_curv)
- {
-   MRISfree(&MRI_var->mris_curv);
-   MRI_var->mris_curv=NULL;
- } 
- if(MRI_var->mris_var_curv)
- {  
-   MRISfree(&MRI_var->mris_var_curv);
-   MRI_var->mris_var_curv=NULL;
- }
- if(MRI_var->mris_dCOG)
- {  
-   MRISfree(&MRI_var->mris_dCOG);
-   MRI_var->mris_dCOG=NULL;
- }
- if(MRI_var->mris_var_dCOG)
- {
-   MRISfree(&MRI_var->mris_var_dCOG);
-   MRI_var->mris_var_dCOG=NULL;
- }
-
+  if(MRI_var->mris_curv)
+  {
+    MRISfree(&MRI_var->mris_curv);
+    MRI_var->mris_curv=NULL;
+  } 
+  if(MRI_var->mris_var_curv)
+  {  
+    MRISfree(&MRI_var->mris_var_curv);
+    MRI_var->mris_var_curv=NULL;
+  }
+  if(MRI_var->mris_dCOG)
+  {  
+    MRISfree(&MRI_var->mris_dCOG);
+    MRI_var->mris_dCOG=NULL;
+  }
+  if(MRI_var->mris_var_dCOG)
+  {
+    MRISfree(&MRI_var->mris_var_dCOG);
+    MRI_var->mris_var_dCOG=NULL;
+  }
+  // read in icosahedron data
   mri_dir = getenv("MRI_DIR");
   sprintf(surf_fname,"%s/lib/bem/ic5.tri",mri_dir);
   mrisphere = MRISread(surf_fname) ;
   if (!mrisphere)
-     ErrorExit(ERROR_NOFILE, "%s: could not open surface file %s",
-                Progname, surf_fname) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not open surface file %s",
+	      Progname, surf_fname) ;
 
   //calculating sphere radius and scaling it to 100mm
   MRIScenterCOG(mrisphere);
   mrisphere->radius=MRISradius(mrisphere); 
-  MRISscale(mrisphere);
+  MRISscale(mrisphere); // make radius 100. 
 
   MRI_var->mrisphere=mrisphere;
 
@@ -5049,7 +5080,8 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var)
     fprintf(stderr,"\nRigid alignment...");
     mrisRigidBodyAlignGlobal(mris_curv, mris_dCOG,&parms,mode,4.0, 32.0, 8) ;
     fprintf(stderr,"\ndone");
-  }else
+  }
+  else
     fprintf(stderr,"\nNo Rigid alignment: Atlas Mode Off");
   
   //clone the rotated surfaces and the corresponding parameterizations
@@ -5145,11 +5177,11 @@ void MRISscale(MRI_SURFACE *mris)
   double r;
   r=100./mris->radius;
   for(k=0;k<mris->nvertices;k++)
-    {
-      mris->vertices[k].x=mris->vertices[k].x*r;
-      mris->vertices[k].y=mris->vertices[k].y*r;
-      mris->vertices[k].z=mris->vertices[k].z*r;
-    }
+  {
+    mris->vertices[k].x=mris->vertices[k].x*r;
+    mris->vertices[k].y=mris->vertices[k].y*r;
+    mris->vertices[k].z=mris->vertices[k].z*r;
+  }
   mris->radius=100;
 }
 
@@ -5168,7 +5200,7 @@ double MRISradius(MRI_SURFACE *mris)
 }
 
 
-static void MRISinitSurfaces(MRIS *mris_curv,MRIS *mris_dCOG,MRIS *mrisphere)
+static void MRISinitSurfaces(MRIS *mris_curv,MRIS *mris_dCOG, const MRIS *mrisphere)
 {
   int iter_smooth;
   int navgs,nbrs;
@@ -5176,7 +5208,6 @@ static void MRISinitSurfaces(MRIS *mris_curv,MRIS *mris_dCOG,MRIS *mrisphere)
   iter_smooth=ITER_SMOOTH;
   navgs=NBR_AVGS;
   nbrs=NBR_NGBS;
-
 
   //Intialize curvature field Surface
   MRISsmooth_surface(mris_curv,iter_smooth);
@@ -5188,7 +5219,7 @@ static void MRISinitSurfaces(MRIS *mris_curv,MRIS *mris_dCOG,MRIS *mrisphere)
   MRISaverageCurvatures(mris_curv, navgs) ;
   MRISnormalizeCurvature(mris_curv) ;
   //Initialize distance to COG surface
-  MRISchangeCoordinates(mris_dCOG,mris_curv);
+  MRISchangeCoordinates(mris_dCOG, mris_curv);
   MRISsaveVertexPositions(mris_dCOG, ORIGINAL_VERTICES) ;
   MRISsetNeighborhoodSize(mris_dCOG, nbrs) ;
   MRIScomputeMetricProperties(mris_dCOG) ;
@@ -5292,8 +5323,8 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     return(1000.0) ;
 }
 
-
-void MRISchangeCoordinates(MRI_SURFACE *mris,MRI_SURFACE *mris_orig)
+// use orig to change the vertices position and radius
+void MRISchangeCoordinates(MRI_SURFACE *mris, const MRI_SURFACE *mris_orig)
 {
   int p;
   for(p=0;p<mris->nvertices;p++)
@@ -5453,13 +5484,15 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,MRI_variables *MRI
   fprintf(stderr,"\nLocalization of inacurate regions: Erosion-Dilatation steps");
 
   nbWrongVertices1=0;
-  for(mean_sse=0 , var_sse=0 , k=0;k<nvertices;k++)
+  // go through all vertices
+  for(mean_sse=0 , var_sse=0 , k=0; k<nvertices; k++)
   {
-    sse=SQR(mris_curv->vertices[k].curv-MRI_var->mris_curv->vertices[k].curv)
-      /MRI_var->mris_var_curv->vertices[k].curv;
-    sse+=SQR(mris_dCOG->vertices[k].curv
-          -MRI_var->mris_dCOG->vertices[k].curv)
+    sse=SQR(mris_curv->vertices[k].curv - MRI_var->mris_curv->vertices[k].curv)
+        /MRI_var->mris_var_curv->vertices[k].curv;
+
+    sse += SQR(mris_dCOG->vertices[k].curv - MRI_var->mris_dCOG->vertices[k].curv)
          /MRI_var->mris_var_dCOG->vertices[k].curv;
+
     sse/=2.;
     mean_sse+=sse;
     var_sse+=SQR(sse);
@@ -5467,7 +5500,7 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,MRI_variables *MRI
       mrisphere->vertices[k].val=0.;
     else 
     {
-      nbWrongVertices1++;
+      nbWrongVertices1++; 
       mrisphere->vertices[k].val=1.;
     }
     mrisphere->vertices[k].curv=sse;//tanh(sse/ERROR_THRESHOLD);
@@ -5478,23 +5511,26 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,MRI_variables *MRI
  
   MRISsetNeighborhoodSize(mrisphere, 1) ;
   //Erosion step
-  MRISaverageVals(mrisphere,3);
+  MRISaverageVals(mrisphere,3);   // change mrisphere with neighboring averaged grey scale (iterated 3 times)
+  // less than 1, then 0.
   for(k=0;k<nvertices;k++)
     if(mrisphere->vertices[k].val<1.)
       mrisphere->vertices[k].val=0.;
 
   //Dilatation Step
   nbWrongVertices2=0;
-  MRISaverageVals(mrisphere,5);
+  MRISaverageVals(mrisphere,5);   // change with neighboring averaged grey scale (iterated 5 times)
   for(k=0;k<nvertices;k++)
     if(mrisphere->vertices[k].val>0.0 
-       && mrisphere->vertices[k].curv>ERROR_THRESHOLD)
+       && mrisphere->vertices[k].curv>ERROR_THRESHOLD) 
     {
       mrisphere->vertices[k].val=1.;
-    }else
+    }
+    else
       mrisphere->vertices[k].val=0.;
 
-  MRISaverageVals(mrisphere,3);
+  MRISaverageVals(mrisphere,3);   // another average iterated 3 times
+
   wgpospercentage=wgnegpercentage=0;
   for(k=0;k<nvertices;k++)
   {    
@@ -5502,10 +5538,10 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,MRI_variables *MRI
     {
       nbWrongVertices2++;
       mrisphere->vertices[k].val=1.;
-      if((mris_dCOG->vertices[k].curv-MRI_var->mris_dCOG->vertices[k].curv)>0)
-   wgpospercentage+=1.;
+      if((mris_dCOG->vertices[k].curv - MRI_var->mris_dCOG->vertices[k].curv)>0)
+	wgpospercentage+=1.;
       else
-  wgnegpercentage+=1.;
+	wgnegpercentage+=1.;
     }
   }
 
@@ -5516,8 +5552,8 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,MRI_variables *MRI
           "\n      before Erosion-Dilatation %2.2f%% of inacurate vertices"
           "\n      after  Erosion-Dilatation %2.2f%% of inacurate vertices"
           ,mean_sse,sqrt(var_sse),
-    100.*(float)nbWrongVertices1/mrisphere->nvertices,
-    validation_percentage);
+	  100.*(float)nbWrongVertices1/mrisphere->nvertices,
+	  validation_percentage);
 
   if(validation_percentage>1.) /*(mean_sse>2) || (mean_sse>1 && sqrt(var_sse)>3))*/
   {
@@ -7198,7 +7234,7 @@ void calcForce2(double &force0, double &force1, double &force,
   float samp_mean[4];
   float test_samp[4][9];
   double tx, ty, tz;
-  double val;
+  double val = 0.;
   double r,F,E,rmin=3.33,rmax=10.;
   float n1[3],n2[3];
 
@@ -7248,7 +7284,9 @@ void calcForce2(double &force0, double &force1, double &force,
       }
   
   val=test_samp[0][4];
-  
+
+  force = 0.; // initialize
+
   if (!val)     /*|| val>fmax)*/
     force=-0.25;
   else if (val<=MRI_var->CSF_MAX)
@@ -7346,6 +7384,8 @@ static void FitShape(MRI_variables *MRI_var, const int convLimit, const int maxI
   float decay=0.8,update=0.9;
   
   int int_smooth=10;
+
+  static int step=0;
 
   MRIS *mris;
   //  char surf_fname[100];
@@ -7582,6 +7622,13 @@ static void FitShape(MRI_variables *MRI_var, const int convLimit, const int maxI
       MRISwrite(MRI_var->mris,surf_fname);
       }*/
 
+    if (iter%10==1)
+    {
+      char buf[256];
+      sprintf(buf,"Step%dIter%2d",step, iter);
+      MRISwrite(MRI_var->mris, buf);
+    }
+
     if (niter==int_smooth)  
     {
       if(((iter>20)&&(10000*cout< convLimit))||(iter> maxIter))
@@ -7603,4 +7650,6 @@ static void FitShape(MRI_variables *MRI_var, const int convLimit, const int maxI
       free(dist[it]);
   }
   free(dist);
+  step++;
 }
+
