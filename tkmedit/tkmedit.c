@@ -793,7 +793,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 #if 0
   tBoolean                bSetConversionMethod                  = FALSE;
 #endif
+#if 0
   FunD_tConversionMethod  convMethod       = FunD_tConversionMethod_FFF;
+#endif
   tBoolean                bLoadingHeadPts                       = FALSE;
   tBoolean                bHaveHeadPtsTransform                 = FALSE;
   char                    sHeadPts[tkm_knPathLen]               = "";
