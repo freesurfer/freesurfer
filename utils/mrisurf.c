@@ -15124,6 +15124,96 @@ mrisCheck(MRI_SURFACE *mris)
         Description
 ------------------------------------------------------*/
 int
+MRISminFilterCurvatures(MRI_SURFACE *mris, int niter)
+{
+  int    i, vno, vnb, *pnb, vnum ;
+  float  curv ;
+  VERTEX *v, *vn ;
+
+  for (i = 0 ; i < niter ; i++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      curv = v->curv ;
+      pnb = v->v ;
+      vnum = v->vnum ;
+      for (vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+        if (vn->ripflag)
+          continue ;
+        if (vn->curv < curv)
+          curv = vn->curv ;
+      }
+      v->tdx = curv ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      v->curv = v->tdx ;
+    }
+  }
+  mrisComputeCurvatureValues(mris) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter)
+{
+  int    i, vno, vnb, *pnb, vnum ;
+  float  curv ;
+  VERTEX *v, *vn ;
+
+  for (i = 0 ; i < niter ; i++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      curv = v->curv ;
+      pnb = v->v ;
+      vnum = v->vnum ;
+      for (vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+        if (vn->ripflag)
+          continue ;
+        if (vn->curv > curv)
+          curv = vn->curv ;
+      }
+      v->tdx = curv ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      v->curv = v->tdx ;
+    }
+  }
+  mrisComputeCurvatureValues(mris) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
 {
   int    i, vno, vnb, *pnb, vnum ;
