@@ -183,3 +183,19 @@ freesurferenv.csh: freesurferenv.xxx
 
 foodir=$(prefix)
 foo_SCRIPTS=freesurferenv.csh
+
+# work on tixwish files
+fsgdfPlot.tcl : fsgdfPlot.xxx
+	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
+
+tkmedit.tcl : tkmedit.xxx
+	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
+
+tkm_functional.tcl: tkm_functional.xxx
+	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
+
+tkm_wrappers.tcl: tkm_wrappers.xxx
+	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
+
+tksurfer.tcl: tksurfer.xxx
+	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
