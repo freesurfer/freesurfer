@@ -18,7 +18,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.1 2003/04/07 20:34:17 fischl Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.2 2003/04/09 20:28:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -30,6 +30,7 @@ static void print_version(void) ;
 static int relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right) ;
 static int relabel_hypointensities_neighboring_gray(MRI *mri) ;
 static int edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_name) ;
+static int edit_hippocampus(MRI *mri) ;
 int MRIneighbors(MRI *mri, int x0, int y0, int z0, int val) ;
 
 static char *annot_name = "aparc.annot" ;
@@ -100,6 +101,7 @@ main(int argc, char *argv[])
 	}
 	relabel_hypointensities_neighboring_gray(mri_aseg) ;
 
+	edit_hippocampus(mri_aseg) ;
 	printf("writing modified segmentation to %s...\n", out_aseg_name) ;
 	MRIwrite(mri_aseg, out_aseg_name) ;
   exit(0) ;
@@ -377,6 +379,9 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
 					/* don't change voxels where the wm surface normal is pointing superiorly */
 					if (v->nz >= 0)
 					{
+						dist = sqrt(SQR(v->x-xw)+SQR(v->y-yw)+SQR(v->z-zw)) ;
+						if (dist > 2)  /* don't process amygdala that is far from surface */
+							continue ;
 						if (((fabs(v->nz) > fabs(v->nx)) || (fabs(v->nz) > fabs(v->ny))))
 							continue ;   /* this voxel is superior to wm surface */
 						/* at this point, the wm vertex is running nearly inferior-superior, so use
@@ -498,4 +503,57 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
 	return(NO_ERROR) ;
 }
 
+
+static int
+edit_hippocampus(MRI *mri)
+{
+	int   x, y, z, right, changed, total = 0, yi, yk, found, label ;
+
+	do
+	{
+		changed =  0 ;
+		for (x = 0 ; x < mri->width ; x++)
+		{
+			for (y = 0 ; y < mri->height ; y++)
+			{
+				for (z = 0 ; z < mri->depth ; z++)
+				{
+					if (x == Gx && y == Gy && z == Gz)
+						DiagBreak() ;
+					label = MRIvox(mri, x, y, z) ;
+					if (IS_CORTEX(label) == 0)
+						continue ;
+					right = (label == Right_Cerebral_Cortex) ;
+					yi = mri->yi[y-1] ;  /* voxel immediately superior */
+					if (IS_HIPPO(MRIvox(mri, x, yi, z)) == 0)
+						continue ;
+
+					/* check for wm within 3 mm inferior */
+					for (found = 0, yk = 1 ; yk <= 3 ; yk++)
+					{
+						yi = mri->yi[y+yk] ;  /* inferior voxel */
+						if (IS_WM(MRIvox(mri, x, yi, z)) != 0)
+						{
+							found = 1 ;
+							break ;
+						}
+					}
+					if (!found)
+						continue ;
+					
+					if (x == Gx && y == Gy && z == Gz)
+						printf("changing voxel (%d, %d, %d) from %s to ",Gx, Gy, Gz, cma_label_to_name(label)) ;
+					changed++ ;
+					MRIvox(mri, x, y, z) = right ? Right_Hippocampus : Left_Hippocampus ;
+					if (x == Gx && y == Gy && z == Gz)
+						printf("%s\n", cma_label_to_name(MRIvox(mri, x, y, z))) ;
+				}
+			}
+		}
+		total += changed ;
+	} while (changed > 0) ;
+
+	printf("%d cortex voxels changed to hippocampus...\n", total) ;
+	return(NO_ERROR)  ;
+}
 
