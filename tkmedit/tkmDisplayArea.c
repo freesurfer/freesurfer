@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/25 17:48:37 $
-// Revision       : $Revision: 1.87 $
+// Revision Date  : $Date: 2003/09/29 15:34:53 $
+// Revision       : $Revision: 1.88 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -1986,11 +1986,13 @@ DspA_tErr DspA_SetBrushInfo ( tkmDisplayAreaRef this,
   if( sFocusedDisplay == this ) {
     
     /* send the tcl update. */
-    sprintf ( sTclArguments, "%d %f %f %f",
+    sprintf ( sTclArguments, "%d %f %f %f %d %d",
 	      (int)iBrush,
 	      sBrush.mInfo[iBrush].mLow,
 	      sBrush.mInfo[iBrush].mHigh,
-	      sBrush.mInfo[iBrush].mNewValue );
+	      sBrush.mInfo[iBrush].mNewValue,
+	      sBrush.mInfo[iBrush].mMode,
+	      sBrush.mInfo[iBrush].mCloneSource );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushInfo, sTclArguments );
   }
   
@@ -3669,11 +3671,13 @@ DspA_tErr DspA_SetBrushInfoToDefault ( tkmDisplayAreaRef this,
   if( sFocusedDisplay == this ) {
     
     /* send the tcl update. */
-    sprintf ( sTclArguments, "%d %d %d %d",
+    sprintf ( sTclArguments, "%d %f %f %f %d %d",
 	      (int)iBrush,
-	      (int)sBrush.mInfo[iBrush].mLow,
-	      (int)sBrush.mInfo[iBrush].mHigh,
-	      (int)sBrush.mInfo[iBrush].mNewValue );
+	      (float)sBrush.mInfo[iBrush].mLow,
+	      (float)sBrush.mInfo[iBrush].mHigh,
+	      (float)sBrush.mInfo[iBrush].mNewValue,
+	      (int)sBrush.mInfo[iBrush].mMode,
+	      (int)sBrush.mInfo[iBrush].mCloneSource );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushInfo, sTclArguments );
   }
   
@@ -3846,36 +3850,50 @@ void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipaVoxel, int inCount,
     return;
   }
 
-  /* edit the voxel according to what the brush target is. */
-  switch( sBrush.mTarget ) {
-  case DspA_tBrushTarget_Main:
-    tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Main, 
-					  ipaVoxel, inCount,
-					  sBrush.mInfo[brush].mLow,
-					  sBrush.mInfo[brush].mHigh,
-					  sBrush.mInfo[brush].mNewValue );
-    break;
-  case DspA_tBrushTarget_Aux:
-    tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Aux, 
-					  ipaVoxel, inCount,
-					  sBrush.mInfo[brush].mLow,
-					  sBrush.mInfo[brush].mHigh,
-					  sBrush.mInfo[brush].mNewValue );
-    break;
-  case DspA_tBrushTarget_MainAux:
-    tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Main,
-					  ipaVoxel, inCount,
-					  sBrush.mInfo[brush].mLow,
-					  sBrush.mInfo[brush].mHigh,
-					  sBrush.mInfo[brush].mNewValue );
-    tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Aux,
-					  ipaVoxel, inCount,
-					  sBrush.mInfo[brush].mLow,
-					  sBrush.mInfo[brush].mHigh,
-					  sBrush.mInfo[brush].mNewValue );
-    break;
-  default:
-    break;
+  /* edit the voxel according to what the brush target and mode is. */
+  if( DspA_tBrushTarget_Main == sBrush.mTarget || 
+      DspA_tBrushTarget_MainAux == sBrush.mTarget ) {
+
+    switch( sBrush.mInfo[brush].mMode ) {
+    case DspA_tBrushMode_Set:
+      tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Main,
+					    ipaVoxel, inCount,
+					    sBrush.mInfo[brush].mLow,
+					    sBrush.mInfo[brush].mHigh,
+					    sBrush.mInfo[brush].mNewValue );
+      break;
+    case DspA_tBrushMode_Clone:
+      tkm_CloneAnatomicalVolumeInRangeArray( tkm_tVolumeType_Main,
+					     sBrush.mInfo[brush].mCloneSource,
+					     ipaVoxel, inCount,
+					     sBrush.mInfo[brush].mLow,
+					     sBrush.mInfo[brush].mHigh );
+      break;
+    default:
+      break;
+    }
+  }
+  if( DspA_tBrushTarget_Aux == sBrush.mTarget || 
+      DspA_tBrushTarget_MainAux == sBrush.mTarget ) {
+
+    switch( sBrush.mInfo[brush].mMode ) {
+    case DspA_tBrushMode_Set:
+      tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Aux,
+					    ipaVoxel, inCount,
+					    sBrush.mInfo[brush].mLow,
+					    sBrush.mInfo[brush].mHigh,
+					    sBrush.mInfo[brush].mNewValue );
+      break;
+    case DspA_tBrushMode_Clone:
+      tkm_CloneAnatomicalVolumeInRangeArray( tkm_tVolumeType_Aux,
+					     sBrush.mInfo[brush].mCloneSource,
+					     ipaVoxel, inCount,
+					     sBrush.mInfo[brush].mLow,
+					     sBrush.mInfo[brush].mHigh );
+      break;
+    default:
+      break;
+    }
   }
 }
 
@@ -6730,11 +6748,13 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
   
   /* send the threshold info. */
   for( brush = 0; brush < DspA_knNumBrushes; brush++ ) {
-    sprintf ( sTclArguments, "%d %d %d %d",
+    sprintf ( sTclArguments, "%d %f %f %f %d %d",
 	      (int)brush,
-	      (int)sBrush.mInfo[brush].mLow, 
-	      (int)sBrush.mInfo[brush].mHigh,
-	      (int)sBrush.mInfo[brush].mNewValue );
+	      (float)sBrush.mInfo[brush].mLow, 
+	      (float)sBrush.mInfo[brush].mHigh,
+	      (float)sBrush.mInfo[brush].mNewValue,
+	      (int)sBrush.mInfo[brush].mMode,
+	      (int)sBrush.mInfo[brush].mCloneSource );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushInfo, sTclArguments );
   }
   
