@@ -246,17 +246,20 @@ typedef struct
 } MRI_SURFACE, MRIS ;
 
 
-#define IPFLAG_HVARIABLE           0x0001   /* for parms->flags */
-#define IPFLAG_NO_SELF_INT_TEST    0x0002
-#define IPFLAG_QUICK               0x0004  /* sacrifice quality for speed */
-#define IPFLAG_ADD_VERTICES        0x0008
-#define IP_USE_CURVATURE           0x0010         /* was 0x0001 !!! */
-#define IP_NO_RIGID_ALIGN          0x0020         /* was 0x0002 !!! */
-#define IP_RETRY_INTEGRATION       0x0040         /* was 0x0004 !!! */
+#define IPFLAG_HVARIABLE                0x0001   /* for parms->flags */
+#define IPFLAG_NO_SELF_INT_TEST         0x0002
+#define IPFLAG_QUICK                    0x0004  /* sacrifice quality for speed */
+#define IPFLAG_ADD_VERTICES             0x0008
+#define IP_USE_CURVATURE                0x0010         /* was 0x0001 !!! */
+#define IP_NO_RIGID_ALIGN               0x0020         /* was 0x0002 !!! */
+#define IP_RETRY_INTEGRATION            0x0040         /* was 0x0004 !!! */
 /* VECTORIAL_REGISTRATION*/
-#define IP_USE_MULTIFRAMES         0x0080
+#define IP_USE_MULTIFRAMES              0x0080
+#define IP_NO_SULC                      0x0100
 /* MRIScorrectTopology : topology preserving patch deformation */
-#define IPFLAG_PRESERVE_TOPOLOGY   0x0100 /* apply topology preserving gradient */
+#define IPFLAG_PRESERVE_TOPOLOGY                  0x1000 /* apply topology preserving gradient */
+#define IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA   0x2000 /* apply gradients that preserve positive areas */
+#define IPFLAG_MAXIMIZE_SPHERICAL_POSITIVE_AREA   0x4000  /* apply  gradients that will maximize the positive areas */
 
 #define INTEGRATE_LINE_MINIMIZE    0  /* use quadratic fit */
 #define INTEGRATE_MOMENTUM         1
@@ -271,6 +274,7 @@ typedef struct
 #define MRIS_SPHERE                4
 #define MRIS_PARAMETERIZED_SPHERE  5
 #define MRIS_RIGID_BODY            6
+#define MRIS_SPHERICAL_PATCH       7
 
 
 /*
