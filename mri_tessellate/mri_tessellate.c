@@ -3,10 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "fio.h"
 #include "const.h"
 #include "diag.h"
 #include "proto.h"
+#include "macros.h"
 #include "error.h"
 #include "MRIio.h"
 
@@ -14,8 +16,12 @@
 #define IMGSIZE     256
 #define NUMVALS     256
 #define MAXIM       256
-#define MAXFACES    1000000
+#define MAXFACES    2000000
 #define MAXVERTICES 1000000
+
+static int get_option(int argc, char *argv[]) ;
+
+static int all_flag = 0 ;
 
 typedef struct face_type_
 {
@@ -51,7 +57,7 @@ int imax=IMGSIZE;
 int jmin=0;
 int jmax=255;
 
-int value;
+static int value;
 
 int main(int argc, char *argv[]) ;
 static void read_images(char *fpref) ;
@@ -72,50 +78,59 @@ char *Progname ;
 int
 main(int argc, char *argv[])
 {
-    char ifpref[STRLEN],ofpref[STRLEN] /*,*data_dir*/;
-    char *getenv();
+  char ifpref[STRLEN],ofpref[STRLEN] /*,*data_dir*/;
+  int  nargs ;
 
-    DiagInit(NULL, NULL, NULL) ;
-    ErrorInit(NULL, NULL, NULL) ;
-    Progname = argv[0] ;
-    if (argc<4)
-    {
-      printf("Usage: %s <input volume> <label> <output surface>\n",Progname);
-      exit(1);
-    }
+  DiagInit(NULL, NULL, NULL) ;
+  ErrorInit(NULL, NULL, NULL) ;
+  Progname = argv[0] ;
 
-    sscanf(argv[2],"%d",&value);
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
+
+
+  if (argc<4)
+  {
+    printf("Usage: %s <input volume> <label> <output surface>\n",Progname);
+    exit(1);
+  }
+  
+  sscanf(argv[2],"%d",&value);
 #if 0
-    data_dir = getenv("SUBJECTS_DIR");
-    if (data_dir==NULL)
-    {
-      printf("environment variable SUBJECTS_DIR undefined (use setenv)\n");
-      exit(1);
-    }
-    sprintf(ifpref,"%s/%s/mri/filled/COR-",data_dir,argv[1]);
-    sprintf(ofpref,"%s/%s/surf/%s.orig",data_dir,argv[1],argv[3]);
+  data_dir = getenv("SUBJECTS_DIR");
+  if (data_dir==NULL)
+  {
+    printf("environment variable SUBJECTS_DIR undefined (use setenv)\n");
+    exit(1);
+  }
+  sprintf(ifpref,"%s/%s/mri/filled/COR-",data_dir,argv[1]);
+  sprintf(ofpref,"%s/%s/surf/%s.orig",data_dir,argv[1],argv[3]);
 #else
-    sprintf(ifpref,"%s/COR-",argv[1]);
-    sprintf(ofpref,"%s",argv[3]);
+  sprintf(ifpref,"%s/COR-",argv[1]);
+  sprintf(ofpref,"%s",argv[3]);
 #endif
-
-    face = (face_type *)lcalloc(MAXFACES,sizeof(face_type));
-    face_index_table0 = (int *)lcalloc(6*65536,sizeof(int));
-    face_index_table1 = (int *)lcalloc(6*65536,sizeof(int));
-
-    vertex = (vertex_type *)lcalloc(MAXVERTICES,sizeof(vertex_type));
-    vertex_index_table = (int *)lcalloc(8*65536,sizeof(int));
-
-    read_images(ifpref);
-
-    make_surface();
+  
+  face = (face_type *)lcalloc(MAXFACES,sizeof(face_type));
+  face_index_table0 = (int *)lcalloc(6*65536,sizeof(int));
+  face_index_table1 = (int *)lcalloc(6*65536,sizeof(int));
+  
+  vertex = (vertex_type *)lcalloc(MAXVERTICES,sizeof(vertex_type));
+  vertex_index_table = (int *)lcalloc(8*65536,sizeof(int));
+  
+  read_images(ifpref);
+  
+  make_surface();
 #if 0
-    write_surface();
-    write_binary_surface(ofpref);
+  write_surface();
+  write_binary_surface(ofpref);
 #endif
-    write_binary_surface2(ofpref);
-    exit(0) ;
-    return(0) ;
+  write_binary_surface2(ofpref);
+  exit(0) ;
+  return(0) ;
 }
 
 static void
@@ -231,7 +246,7 @@ facep(int im0, int i0, int j0, int im1, int i1, int j1)
   return (im0>=0&&im0<numimg&&i0>=imin&&i0<imax&&j0>=jmin&&j0<jmax&&
           im1>=0&&im1<numimg&&i1>=imin&&i1<imax&&j1>=jmin&&j1<jmax&&
           im[im0][i0][j0] != im[im1][i1][j1] &&
-          (im[im0][i0][j0]==value||im[im1][i1][j1]==value));
+          ((im[im0][i0][j0]==value||im[im1][i1][j1]==value) || all_flag));
 }
 static void
 check_face(int im0, int i0, int j0, int im1, int i1,int j1, int f, int n,
@@ -241,20 +256,23 @@ check_face(int im0, int i0, int j0, int im1, int i1,int j1, int f, int n,
   int f_ind;
 
   if ((im0>=0&&im0<numimg&&i0>=imin&&i0<imax&&j0>=jmin&&j0<jmax&&
-       im1>=0&&im1<numimg&&i1>=imin&&i1<imax&&j1>=jmin&&j1<jmax&&
-       (im[im0][i0][j0]==value) && (im[im1][i1][j1]!=value)))
+       im1>=0&&im1<numimg&&i1>=imin&&i1<imax&&j1>=jmin&&j1<jmax))
   {
-    if (n==0)
+    if ((all_flag && ((im[im0][i0][j0] != im[im1][i1][j1]!=value))) ||
+        (((im[im0][i0][j0]==value) && (im[im1][i1][j1]!=value))))
     {
-      add_face(im0,i0,j0,f,prev_flag);
+      if (n==0)
+      {
+        add_face(im0,i0,j0,f,prev_flag);
+      }
+      if (prev_flag)
+        f_ind = face_index_table0[f_pack];
+      else
+        f_ind = face_index_table1[f_pack];
+      face[f_ind].v[n] = v_ind;
+      if (vertex[v_ind].num<9)
+        vertex[v_ind].f[vertex[v_ind].num++] = f_ind;
     }
-    if (prev_flag)
-      f_ind = face_index_table0[f_pack];
-    else
-      f_ind = face_index_table1[f_pack];
-    face[f_ind].v[n] = v_ind;
-    if (vertex[v_ind].num<9)
-      vertex[v_ind].f[vertex[v_ind].num++] = f_ind;
   }
 }
 
@@ -443,4 +461,38 @@ write_binary_surface2(char *fname)
       fwrite3(face[k].v[n],fp);
   }
   fclose(fp);
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int
+get_option(int argc, char *argv[])
+{
+  int  nargs = 0 ;
+  char *option ;
+  
+  option = argv[1] + 1 ;            /* past '-' */
+  if (!stricmp(option, "an option"))
+  {
+  }
+  else switch (toupper(*option))
+  {
+  case 'A':
+    all_flag = 1 ;
+    printf("tessellating the surface of all voxels with different labels\n") ;
+    break ;
+  case '?':
+  case 'U':
+    printf("Usage: %s <input volume> <label> <output surface>\n",Progname);
+    exit(1) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
+
+  return(nargs) ;
 }
