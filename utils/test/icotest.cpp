@@ -9,6 +9,9 @@
 //
 #include <iostream>
 #include <fstream>
+#if (__GNUC__ < 3)
+#include "/usr/include/g++-3/alloc.h"
+#endif
 #include <sstream>
 #include <string>
 
