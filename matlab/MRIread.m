@@ -14,7 +14,7 @@ function mri = MRIread(fspec,headeronly)
 %
 % If headeronly=1, then the pixel data is not read in.
 %
-% $Id: MRIread.m,v 1.2 2004/11/10 18:39:49 greve Exp $
+% $Id: MRIread.m,v 1.3 2004/11/10 19:01:22 greve Exp $
 
 mri = [];
 
@@ -29,6 +29,7 @@ if(MRIisMGH(fspec))
   [mri.vol, M, mr_parms, volsz] = load_mgh(fspec,headeronly);
   if(isempty(M))
     fprintf('ERROR: loading %s as MGH\n',fspec);
+    mri = [];
     return;
   end
   if(~headeronly)
@@ -48,6 +49,7 @@ else
     [mri.vol bmri] = fast_ldbslice(fspec);  
     if(isempty(mri.vol))
       fprintf('ERROR: loading %s as bvolume\n',fspec);
+      mri = [];
       return;
     end
     volsz = size(mri.vol);
@@ -56,6 +58,7 @@ else
     bmri = fast_ldbhdr(fspec);
     if(isempty(bmri))
       fprintf('ERROR: loading %s as bvolume\n',fspec);
+      mri = [];
       return;
     end
     [nslices nrows ncols ntp] = fmri_bvoldim(fspec);
