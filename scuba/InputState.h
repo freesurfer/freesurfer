@@ -13,11 +13,15 @@ class InputState {
   bool IsAltKeyDown();
   bool IsControlKeyDown();
   int Button();
+  bool IsButtonDown();
+  bool IsButtonDragging();
   std::string Key();
  protected:
   bool mbShiftKey;
   bool mbAltKey;
   bool mbControlKey;
+  bool mbButtonDown;
+  bool mbButtonDragging;
   int mButton;
   std::string msKey;
 };

@@ -16,6 +16,38 @@ ScubaToolState::ScubaToolState() {
 			 "Sets the current mode of a tool." );
   commandMgr.AddCommand( *this, "GetToolMode", 1, "toolID",
 			 "Gets the current mode of a tool." );
+  commandMgr.AddCommand( *this, "SetToolBrushRadius", 2, "toolID radius",
+			 "Sets the current brush radius of a tool." );
+  commandMgr.AddCommand( *this, "GetToolBrushRadius", 1, "toolID",
+			 "Gets the current brush radius of a tool." );
+  commandMgr.AddCommand( *this, "SetToolBrushShape", 2, "toolID shape",
+			 "Sets the current brush shape of a tool. shape "
+			 "should be square or circle." );
+  commandMgr.AddCommand( *this, "GetToolBrushShape", 1, "toolID",
+			 "Gets the current brush shape of a tool, "
+			 "square or circle." );
+  commandMgr.AddCommand( *this, "SetToolBrush3D", 2, "toolID 3D",
+			 "Sets the current brush 3D of a tool." );
+  commandMgr.AddCommand( *this, "GetToolBrush3D", 1, "toolID",
+			 "Gets the current brush 3D of a tool." );
+  commandMgr.AddCommand( *this, "SetToolFloodStopAtLines", 2, "toolID stop",
+			 "Specify whether a tool flood should stop at lines.");
+  commandMgr.AddCommand( *this, "GetToolFloodStopAtLines", 1, "toolID",
+			 "Returns whether or not a tool flood will stop "
+			 "at lines." );
+  commandMgr.AddCommand( *this, "SetToolFloodStopAtROIs", 2, "toolID stop",
+			 "Specify whether a tool flood should stop at ROIs." );
+  commandMgr.AddCommand( *this, "GetToolFloodStopAtROIs", 1, "toolID",
+			 "Returns whether or not a tool flood will stop "
+			 "at ROIs." );
+  commandMgr.AddCommand( *this, "SetToolFloodFuzziness", 2, "toolID fuzziness",
+			 "Specify a tool flood's fuzziness." );
+  commandMgr.AddCommand( *this, "GetToolFloodFuzziness", 1, "toolID",
+			 "Returns a tool flood's fuzziness." );
+  commandMgr.AddCommand( *this, "SetToolFlood3D", 2, "toolID 3D",
+			 "Sets the current brush 3D of a tool." );
+  commandMgr.AddCommand( *this, "GetToolFlood3D", 1, "toolID",
+			 "Gets the current brush 3D of a tool." );
 }
 
 ScubaToolState::~ScubaToolState() {
@@ -43,9 +75,11 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 	newMode = voxelEditing;
       } else if ( 0 == strcmp( iasArgv[2], "roiEditing" )) {
 	newMode = roiEditing;
+      } else if ( 0 == strcmp( iasArgv[2], "straightLine" )) {
+	newMode = straightLine;
       } else {
 	sResult = "bad mode \"" + string(iasArgv[2]) + 
-	  "\", should be navigation, voxelEditing, roiEditing.";
+	  "\", should be navigation, voxelEditing, roiEditing, straightLine.";
 	return error;
       }
       SetMode( newMode );
@@ -72,8 +106,293 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
       case roiEditing:
 	sReturnValues = "roiEditing";
 	break;
+      case straightLine:
+	sReturnValues = "straightLine";
+	break;
       }
       sReturnFormat = "s";
+    }
+  }
+
+  // SetToolBrushRadius <toolID> <radius>
+  if( 0 == strcmp( isCommand, "SetToolBrushRadius" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      int radius = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad radius";
+	return error;
+      }
+      SetBrushRadius( radius );
+    }
+  }
+
+  // GetToolBrushRadius <toolID>
+  if( 0 == strcmp( isCommand, "GetToolBrushRadius" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      stringstream ssValues;
+      ssValues << GetBrushRadius();
+      sReturnValues = ssValues.str();
+      sReturnFormat = "i";
+    }
+  }
+
+  // SetToolBrushShape <toolID> <shape>
+  if( 0 == strcmp( isCommand, "SetToolBrushShape" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      Shape shape;
+      if( 0 == strcmp( iasArgv[2], "square" )) {
+	shape = square;
+      } else if ( 0 == strcmp( iasArgv[2], "circle" )) {
+	shape = circle;
+      } else {
+	sResult = "bad shape \"" + string(iasArgv[2]) + 
+	  "\", should be square or circle.";
+	return error;
+      }
+      SetBrushShape( shape );
+    }
+  }
+
+  // GetToolBrushShape <toolID>
+  if( 0 == strcmp( isCommand, "GetToolBrushShape" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      switch( GetBrushShape() ) {
+      case square:
+	sReturnValues = "square";
+	break;
+      case circle:
+	sReturnValues = "circle";
+	break;
+      }
+      sReturnFormat = "s";
+    }
+  }
+
+  // SetToolBrush3D <toolID> <3D>
+  if( 0 == strcmp( isCommand, "SetToolBrush3D" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+      
+      if( 0 == strcmp( iasArgv[2], "true" ) || 
+	  0 == strcmp( iasArgv[2], "1" )) {
+	SetBrush3D( true );
+      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
+		 0 == strcmp( iasArgv[2], "0" ) ) {
+	SetBrush3D( false );
+      } else {
+	sResult = "bad 3D\"" + string(iasArgv[2]) +
+	  "\", should be true, 1, false, or 0";
+	return error;	
+      }
+    }
+  }
+
+  // GetToolBrush3D <toolID>
+  if( 0 == strcmp( isCommand, "GetToolBrush3D" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << (int)GetBrush3D();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // SetToolFloodStopAtLines <toolID> <stop>
+  if( 0 == strcmp( isCommand, "SetToolFloodStopAtLines" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+      
+      if( 0 == strcmp( iasArgv[2], "true" ) || 
+	  0 == strcmp( iasArgv[2], "1" )) {
+	SetFloodStopAtLines( true );
+      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
+		 0 == strcmp( iasArgv[2], "0" ) ) {
+	SetFloodStopAtLines( false );
+      } else {
+	sResult = "bad stop \"" + string(iasArgv[2]) +
+	  "\", should be true, 1, false, or 0";
+	return error;	
+      }
+    }
+  }
+
+  // GetToolFloodStopAtLines <toolID>
+  if( 0 == strcmp( isCommand, "GetToolFloodStopAtLines" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << (int)GetFloodStopAtLines();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // SetToolFloodStopAtROIs <toolID> <stop>
+  if( 0 == strcmp( isCommand, "SetToolFloodStopAtROIs" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+      
+      if( 0 == strcmp( iasArgv[2], "true" ) || 
+	  0 == strcmp( iasArgv[2], "1" )) {
+	SetFloodStopAtROIs( true );
+      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
+		 0 == strcmp( iasArgv[2], "0" ) ) {
+	SetFloodStopAtROIs( false );
+      } else {
+	sResult = "bad stop \"" + string(iasArgv[2]) +
+	  "\", should be true, 1, false, or 0";
+	return error;	
+      }
+    }
+  }
+
+  // GetToolFloodStopAtROIs <toolID>
+  if( 0 == strcmp( isCommand, "GetToolFloodStopAtROIs" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << (int)GetFloodStopAtROIs();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // SetToolFloodFuzziness <toolID> <fuzziness>
+  if( 0 == strcmp( isCommand, "SetToolFloodFuzziness" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      int fuzziness = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad ";
+	return error;
+      }
+      SetFloodFuzziness( fuzziness );
+    }
+  }
+
+  // GetToolFloodFuzziness <toolID>
+  if( 0 == strcmp( isCommand, "GetToolFloodFuzziness" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << (int)GetFloodFuzziness();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // SetToolFlood3D <toolID> <3D>
+  if( 0 == strcmp( isCommand, "SetToolFlood3D" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+      
+      if( 0 == strcmp( iasArgv[2], "true" ) || 
+	  0 == strcmp( iasArgv[2], "1" )) {
+	SetFlood3D( true );
+      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
+		 0 == strcmp( iasArgv[2], "0" ) ) {
+	SetFlood3D( false );
+      } else {
+	sResult = "bad 3D\"" + string(iasArgv[2]) +
+	  "\", should be true, 1, false, or 0";
+	return error;	
+      }
+    }
+  }
+
+  // GetToolFlood3D <toolID>
+  if( 0 == strcmp( isCommand, "GetToolFlood3D" ) ) {
+    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad tool ID";
+      return error;
+    }
+    
+    if( GetID() == toolID ) {
+
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << (int)GetFlood3D();
+      sReturnValues = ssReturnValues.str();
     }
   }
 

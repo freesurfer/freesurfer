@@ -924,7 +924,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
     int layerID = (*tLevelLayerID).second;
     try {
       Layer& layer = Layer::FindByID( layerID );
-      layer.HandleTool( ras, iTool, iInput );
+      layer.HandleTool( ras, *this, iTool, iInput );
       if( layer.WantRedisplay() ) {
 	RequestRedisplay();
 	layer.RedisplayPosted();
@@ -977,7 +977,7 @@ ScubaView::DoMouseUp( int iWindow[2],
     int layerID = (*tLevelLayerID).second;
     try {
       Layer& layer = Layer::FindByID( layerID );
-      layer.HandleTool( ras, iTool, iInput );
+      layer.HandleTool( ras, *this, iTool, iInput );
       if( layer.WantRedisplay() ) {
 	RequestRedisplay();
 	layer.RedisplayPosted();
@@ -1011,7 +1011,7 @@ ScubaView::DoMouseDown( int iWindow[2],
     int layerID = (*tLevelLayerID).second;
     try {
       Layer& layer = Layer::FindByID( layerID );
-      layer.HandleTool( ras, iTool, iInput );
+      layer.HandleTool( ras, *this, iTool, iInput );
       if( layer.WantRedisplay() ) {
 	RequestRedisplay();
 	layer.RedisplayPosted();
@@ -1214,6 +1214,7 @@ ScubaView::ConvertRASToWindow ( float iRAS, float iRASCenter,
   return ((iRAS - iRASCenter) * mViewState.mZoomLevel) +
     (iWindowDimension / 2.0);
 }
+
 
 int
 ScubaView::GetFirstUnusedDrawLevel () {

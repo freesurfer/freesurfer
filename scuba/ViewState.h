@@ -10,6 +10,10 @@ class ViewState {
 
   ViewState();
 
+  // Checks if an RAS coord is visible in the plane within a certain
+  // range.
+  bool IsRASVisibleInPlane ( float iRAS[3], float iRange );
+
   float mCenterRAS[3];
   float mZoomLevel;            
   Plane mInPlane;

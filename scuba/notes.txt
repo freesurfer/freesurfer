@@ -1,4 +1,4 @@
----====--- PLAN
+ x]---====--- PLAN
 
 featureset 1
 
@@ -372,29 +372,51 @@ x - ScubaLayer2DMRI
 x   - VolumeCollection::IsRASSelected needs to check all ROIs, return the color
 x     - if multiple selections, blend colors
 x   - in DrawIntoBuffer, get color of ROI and do blending
-  - selection opacity 
+x   - selection opacity 
 
 
-ROIs
- - multiple
- - must be resolution independent, or dependent on resolution of volume/data
-   - if just list of RAS coords, might not work between 1mm and 0.8mm res vols
- - selections are tied to volume collections
-   - need volume collection panel with data, list of ROIs
+x line tool
+x  - new tool
+x  - mouse 1 down to begin, mouse up to end
+x    - try rubber band updating
+x  - keep list of line objects
+x  - draw line with voxel line drawing
+x  - function to determine if RAS coordinate is in plane with granularity
+  - mouse 2 to select 
+    - can hit delete to erase line
 
+x lines
+x  - volume collection has edge volume
+x  - MarkRASEdge(), UnmarkRASEdge(), IsRASEdge()
+x  - move line drawing code to FindPointsOnLine() in Utilities.cpp
+x  - ScubaLayer2DMRI calls FindPoitnsOnLine with DrawPixel() to draw its lines
+x  - ScubaLayer2DMRI calls FindPoitnsOnLine() to add points to edges
+ - when fill, check that volume for stopping
+
+x tool settings panel
+x  - radius, shape, 3d
+x  - tool specific panels
+x    - roi: stop params (roi, lines), fuzziness
 
 
 Edit ROI tool
- - color or structure settings
- - brush
-   - select voxels in any 'selectable' volume collection 
- - fill
-   - option for stopping at existing ROI
-   - always stops at lines
+ - fill, shift-click
+
+- VolumeCollection::FloodVolumeAtRAS with function parameter for callback
+  - params struct to pass 
+
 
 line tools
  - draw series of lines with different tools, i.e. polygon, circle, weighted
  - just act as 'fill boundaries'
+
+
+
+
+
+
+- volume drawing caching
+  - problem is voxel sizes, so what if we resize and align the volume so that each voxel == 1 RAS point, and then create a volume of xyz translations, map<float[3],float[3]>, so the left-side RAS coords can just be rint-ed ... this would work for voxel size < 1, but waht about > 1, maybe just a matter of fixing the bounds
 
 
 
@@ -463,7 +485,10 @@ BUGS:::
 - save tkcon history when quit?
 - ROI properies
   - no LUT is selected on startup
-
+- view flip pref not saved
+- line drawn outside window will crash
+- when load /tmp/test.mgh, zoom in, doesn't draw until change min to 1
+- need some way of specifying in plane on fill
 
 future ideas:
 

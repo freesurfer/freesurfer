@@ -2,6 +2,7 @@
 #include "ScubaLayer2DMRI.h"
 #include "ViewState.h"
 #include "talairachex.h"
+#include "Utilities.h"
 
 using namespace std;
 
@@ -17,6 +18,8 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   mColorMapMethod = grayscale;
   mBrightness = 0.25;
   mContrast = 12.0;
+  mCurrentLine = NULL;
+  mROIOpacity = 0.7;
 
   // Try setting our initial color LUT to the default LUT with
   // id 0. If it's not there, create it.
@@ -84,6 +87,10 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
 			 "Returns the minimum value of the volume." );
   commandMgr.AddCommand( *this, "Get2DMRILayerMaxValue", 1, "layerID",
 			 "Returns the maximum value of the volume." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerROIOpacity", 2,"layerID opacity",
+			 "Sets the opacity of the ROI for a layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerROIOpacity", 1, "layerID",
+			 "Returns the opacity of the ROI for a layer." );
   
 }
 
@@ -95,10 +102,12 @@ void
 ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
 
   mVolume = &iVolume;
-  BuildGrayscaleLUT();
 
+  mVolume->GetMRI();
   mMinVisibleValue = mVolume->GetMRIMinValue();
   mMaxVisibleValue = mVolume->GetMRIMaxValue();
+
+  BuildGrayscaleLUT();
 }
 
 void 
@@ -221,21 +230,20 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 
 	  int selectColor[3];
 	  if( mVolume->IsRASSelected( RAS, selectColor ) ) {
-#if 0
-	    color[0] = (int) (((float)color[0] * 0.3) +
-			      ((float)selectColor[0] * 0.7));
-	    color[1] = (int) (((float)color[1] * 0.3) +
-			      ((float)selectColor[1] * 0.7));
-	    color[2] = (int) (((float)color[2] * 0.3) +
-			      ((float)selectColor[2] * 0.7));
-#else
-	    color[0] = selectColor[0];
-	    color[1] = selectColor[1];
-	    color[2] = selectColor[2];
-#endif
+	    color[0] = (int) (((float)color[0] * (1.0 - mROIOpacity)) +
+			      ((float)selectColor[0] * mROIOpacity));
+	    color[1] = (int) (((float)color[1] * (1.0 - mROIOpacity)) +
+			      ((float)selectColor[1] * mROIOpacity));
+	    color[2] = (int) (((float)color[2] * (1.0 - mROIOpacity)) +
+			      ((float)selectColor[2] * mROIOpacity));
 	  }
 
-	  
+#if 1
+	  if( mVolume->IsRASEdge( RAS ) ) {
+	    color[0] = 255; color[1] = color[2] = 0;
+	  }
+#endif
+
 	  // Write the RGB value to the buffer. Write a 255 in the
 	  // alpha byte.
 	  dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
@@ -254,6 +262,41 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     }
   }
 
+
+
+  if( mCurrentLine ) {
+    int lineBegin[2];
+    int lineEnd[2];
+    int color[3];
+    color[0] = 255; color[1] = 0; color[2] = 0;
+    iTranslator.TranslateRASToWindow( mCurrentLine->mBeginRAS, lineBegin );
+    iTranslator.TranslateRASToWindow( mCurrentLine->mEndRAS, lineEnd );
+    DrawLineIntoBuffer( iBuffer, iWidth, iHeight, lineBegin, lineEnd,
+			color, 1, 1 );
+  }
+
+  float range;
+  switch( iViewState.mInPlane ) {
+  case 0: range = mVolume->GetVoxelXSize() / 2.0; break;
+  case 1: range = mVolume->GetVoxelYSize() / 2.0; break;
+  case 2: range = mVolume->GetVoxelZSize() / 2.0; break;
+  }
+
+  std::list<Line*>::iterator tLine;
+  for( tLine = mLines.begin(); tLine != mLines.end(); ++tLine ) {
+    Line* line = *tLine;
+    if( iViewState.IsRASVisibleInPlane( line->mBeginRAS, range ) &&
+	iViewState.IsRASVisibleInPlane( line->mEndRAS, range ) ) {
+      int lineBegin[2];
+      int lineEnd[2];
+      int color[3];
+      color[0] = 0; color[1] = 0; color[2] = 255;
+      iTranslator.TranslateRASToWindow( line->mBeginRAS, lineBegin );
+      iTranslator.TranslateRASToWindow( line->mEndRAS, lineEnd );
+      DrawLineIntoBuffer( iBuffer, iWidth, iHeight, lineBegin, lineEnd,
+			  color, 1, 1 );
+    }
+  }
 }
   
 void 
@@ -615,11 +658,12 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
       
       float value = strtof( iasArgv[2], (char**)NULL );
       if( ERANGE == errno ) {
-	sResult = "bad opacity";
+	sResult = "bad value";
 	return error;
       }
       
       SetMinVisibleValue( value );
+      BuildGrayscaleLUT();
     }
   }
 
@@ -651,11 +695,12 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
       
       float value = strtof( iasArgv[2], (char**)NULL );
       if( ERANGE == errno ) {
-	sResult = "bad opacity";
+	sResult = "bad value";
 	return error;
       }
       
       SetMaxVisibleValue( value );
+      BuildGrayscaleLUT();
     }
   }
   
@@ -691,11 +736,48 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     }
   }
 
+  // Get2DMRILayerROIOpacity <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerROIOpacity" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      sReturnFormat = "f";
+      stringstream ssReturnValues;
+      ssReturnValues << GetROIOpacity();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // Set2DMRILayerROIOpacity <layerID> <opacity>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerROIOpacity" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      float opacity = strtof( iasArgv[2], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad opacity";
+	return error;
+      }
+      
+      SetROIOpacity( opacity );
+    }
+  }
+  
   return Layer::DoListenToTclCommand( isCommand, iArgc, iasArgv );
 }
 
 void
-ScubaLayer2DMRI::HandleTool ( float iRAS[3],
+ScubaLayer2DMRI::HandleTool ( float iRAS[3], 
+			      ScubaWindowToRASTranslator& iTranslator,
 			      ScubaToolState& iTool, InputState& iInput ) {
   
   switch( iTool.GetMode() ) {
@@ -707,21 +789,58 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3],
       RequestRedisplay();
       break;
     }
+    break;
 
   case ScubaToolState::roiEditing:
 
     switch( iInput.Button() ) {
     case 2: 
-      mVolume->SelectRAS( iRAS );
-      RequestRedisplay();
+      if( iInput.IsShiftKeyDown() ) {
+	ScubaLayer2DMRIFloodSelect select( true );
+	VolumeCollectionFlooder::Params params;
+	select.Flood( *mVolume, iRAS, params );
+      } else {
+	mVolume->SelectRAS( iRAS );
+	RequestRedisplay();
+      }
       break;
     case 3: 
-      mVolume->UnselectRAS( iRAS );
+      if( iInput.IsShiftKeyDown() ) {
+	ScubaLayer2DMRIFloodSelect select( false );
+	VolumeCollectionFlooder::Params params;
+	select.Flood( *mVolume, iRAS, params );
+      } else {
+	mVolume->UnselectRAS( iRAS );
+	RequestRedisplay();
+      }
+      break;
+    }
+    break;
+
+  case ScubaToolState::straightLine:
+
+    switch( iInput.Button() ) {
+    case 1: 
+
+      // If our button is down, if it's a new click, start a line. If
+      // it's dragging, just streatch the line. If the button is not
+      // down, it's a mouse up, and we'll end the line.
+      if( iInput.IsButtonDown() ) {
+	if( iInput.IsButtonDragging() ) {
+	  StretchCurrentLine( iRAS );
+	} else {
+	  StartLine( iRAS );
+	}
+      } else {
+	EndLine( iRAS, iTranslator );
+      }
+
       RequestRedisplay();
       break;
     }
+    break;
+    
   }
-
 }
 
 void
@@ -740,9 +859,6 @@ ScubaLayer2DMRI::SetColorLUT ( int iLUTID ) {
 void
 ScubaLayer2DMRI::BuildGrayscaleLUT () {
 
-  MRI* mri = mVolume->GetMRI();
-  if( NULL == mri ) return;
-
   for( float nEntry = 0; nEntry < cGrayscaleLUTEntries; nEntry+=1 ) {
 
     // Get the value using the actual min/max to get highest
@@ -758,5 +874,88 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
 
     // Assign in table.
     mGrayscaleLUT[(int)nEntry] = normValue;
+  }
+}
+
+void 
+ScubaLayer2DMRI::StartLine( float iRAS[3] ) {
+
+  // Create a new line and set its beginning and ending to this point.
+  mCurrentLine = new Line();
+  mCurrentLine->mEndRAS[0] = mCurrentLine->mBeginRAS[0] = iRAS[0];
+  mCurrentLine->mEndRAS[1] = mCurrentLine->mBeginRAS[1] = iRAS[1];
+  mCurrentLine->mEndRAS[2] = mCurrentLine->mBeginRAS[2] = iRAS[2];
+}
+
+void 
+ScubaLayer2DMRI::StretchCurrentLine( float iRAS[3] ) {
+
+  // Just update the current line endings.
+  if( mCurrentLine ) {
+    mCurrentLine->mEndRAS[0] = iRAS[0];
+    mCurrentLine->mEndRAS[1] = iRAS[1];
+    mCurrentLine->mEndRAS[2] = iRAS[2];
+  }
+}
+
+void 
+ScubaLayer2DMRI::EndLine( float iRAS[3], 
+			  ScubaWindowToRASTranslator& iTranslator ) {
+
+  if( mCurrentLine ) {
+
+    // Set the line ending.
+    mCurrentLine->mEndRAS[0] = iRAS[0];
+    mCurrentLine->mEndRAS[1] = iRAS[1];
+    mCurrentLine->mEndRAS[2] = iRAS[2];
+
+    // Push this onto our list of lines.
+    mLines.push_back( mCurrentLine );
+    
+
+    // Get window coords for our line beginning and ending. Get a list
+    // of window points between those two points. For each one,
+    // translate it back to an RAS and then tell the volume to mark it
+    // as an edge.
+    int fromWindow[2];
+    int toWindow[2];
+    iTranslator.TranslateRASToWindow( mCurrentLine->mBeginRAS, fromWindow );
+    iTranslator.TranslateRASToWindow( mCurrentLine->mEndRAS, toWindow );
+    
+    list<Point2<int> > points;
+    Utilities::FindPointsOnLine2d( fromWindow, toWindow, 1, points );
+    
+    list<Point2<int> >::iterator tPoints;
+    for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
+      
+      Point2<int>& point = *tPoints;
+      int index[2];
+      index[0] = point.x();
+      index[1] = point.y();
+      float ras[3];
+      iTranslator.TranslateWindowToRAS( index, ras );
+      mVolume->MarkRASEdge( ras );
+    }
+
+    // Clear the current line.
+    mCurrentLine = NULL;
+  }
+}
+
+ScubaLayer2DMRIFloodSelect::ScubaLayer2DMRIFloodSelect ( bool ibSelect ) {
+  mbSelect = ibSelect;
+}
+
+bool
+ScubaLayer2DMRIFloodSelect::CompareVoxel ( float iRAS[3] ) {
+  return true;
+}
+
+void
+ScubaLayer2DMRIFloodSelect::DoVoxel ( float iRAS[3] ) {
+  if( mbSelect ) {
+    mVolume->SelectRAS( iRAS );
+  } else {
+    mVolume->UnselectRAS( iRAS );
   }
 }

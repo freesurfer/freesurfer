@@ -53,20 +53,26 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   list<int> drawList;
   int cIntersectionsInFace = 0;
   int intersectionPair[2][2];
-  
+
+  // We need to look for intersections of edges in a face and the
+  // current plane.
   for( int nFace = 0; nFace < surf->nfaces; nFace++ ) {
 
     cIntersectionsInFace = 0;
 
+    // Look at each edge in this face...
     FACE* face = &(surf->faces[nFace]);
     for( int nVertex = 0; nVertex < VERTICES_PER_FACE; nVertex++ ) {
 
       int nNextVertex = nVertex + 1;
       if( nNextVertex >= VERTICES_PER_FACE ) nNextVertex = 0;
 
+      // Get the vertices.
       VERTEX* vertex = &(surf->vertices[face->v[nVertex]]);
       VERTEX* nextVertex = &(surf->vertices[face->v[nNextVertex]]);
 
+      // Get the coordinate we need to compare for this plane. We look
+      // at the inplane coordinates in each vertex.
       float vertexCoord, nextVertexCoord, planeCoord;
       switch( iViewState.mInPlane ) {
       case 0: // X
@@ -85,7 +91,12 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	planeCoord      = iViewState.mCenterRAS[2];
 	break;
       }
+
+      // If they cross the view's in plane coordinate...
       if( (vertexCoord - planeCoord) * (nextVertexCoord - planeCoord) <= 0.0 ) {
+
+	// Calculate the intersection point of the edge with this
+	// plane.
 	float f = (planeCoord - vertexCoord) / (nextVertexCoord - vertexCoord);
 
 	float world[3];
@@ -107,12 +118,17 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	  break;
 	}
 
+	// Translate it to a window coord. If it's in the view...
 	int window[2];
 	iTranslator.TranslateRASToWindow( world, window );
 
 	if( window[0] >= 0 && window[0] < iWidth && 
 	    window[1] >= 0 && window[1] < iHeight ) { 
 
+	  // Add this intersection window point to our pair. If we
+	  // have two intersections, they make a line of the
+	  // intersection of this face and the in plane, so add them
+	  // to the list of points to draw.
 	  intersectionPair[cIntersectionsInFace][0] = window[0];
 	  intersectionPair[cIntersectionsInFace][1] = window[1];
 	  
@@ -131,14 +147,18 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     }
   }
 
+
+  // Draw all the intersection points we just calced.
   bool bDraw = false;
   int window1[2];
   int window2[2];
-
   list<int>::iterator tDrawList;
   for( tDrawList = drawList.begin(); 
        tDrawList != drawList.end(); ++tDrawList ) {
     
+    // First time around, just save a point, next time around, draw
+    // the line they make. Also draw pixels for the intersection
+    // points themselves.
     if( !bDraw ) {
 
       window1[0] = *tDrawList;

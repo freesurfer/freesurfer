@@ -26,6 +26,16 @@ int InputState::Button() {
   return mButton;
 }
 
+bool 
+InputState::IsButtonDown() {
+  return mbButtonDown;
+}
+
+bool 
+InputState::IsButtonDragging() {
+  return mbButtonDragging;
+}
+
 string InputState::Key() { 
   return msKey;
 }

@@ -1,6 +1,8 @@
 #include <iostream>
 #include "Layer.h"
 #include "macros.h"
+#include "Utilities.h"
+#include "Point2.h"
 
 using namespace std;
 
@@ -142,7 +144,7 @@ Layer::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 }
 
 void
-Layer::HandleTool ( float iRAS[3],
+Layer::HandleTool ( float iRAS[3], ScubaWindowToRASTranslator& iTranslator,
 		    ScubaToolState& iTool, InputState& iInput ){
 
 }
@@ -283,44 +285,20 @@ Layer::DrawLineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 			    int iFromWindow[2], int iToWindow[2],
 			    int iColor[3], int iThickness, float iOpacity ) {
   
-  int dx = iToWindow[0] - iFromWindow[0];
-  int ax = abs(dx) * 2;
-  int sx = dx > 0 ? 1 : dx < 0 ? -1 : 0; // sign of dx
 
-  int dy = iToWindow[1] - iFromWindow[1];
-  int ay = abs(dy) * 2;
-  int sy = dy > 0 ? 1 : dy < 0 ? -1 : 0; // sign of dy
+  list<Point2<int> > points;
+  Utilities::FindPointsOnLine2d( iFromWindow, iToWindow, iThickness,
+				 points );
 
-  int cur[2];
-  cur[0] = iFromWindow[0];
-  cur[1] = iFromWindow[1];
+  list<Point2<int> >::iterator tPoints;
+  for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
 
-  if( ax > ay ) {
-
-    int d = ay - (ax / 2);
-    while( cur[0] != iToWindow[0] ) {
-      DrawPixelIntoBuffer( iBuffer, iWidth, iHeight, cur, iColor, iOpacity );
-      if( d >= 0 ) {
-	cur[1] += sy;
-	d -= ax;
-      } 
-      cur[0] += sx;
-      d += ay;
-    }
-
-  } else {
-
-    int d = ax - (ay / 2);
-    while( cur[1] != iToWindow[1] ) {
-      DrawPixelIntoBuffer( iBuffer, iWidth, iHeight, cur, iColor, iOpacity );
-      if( d >= 0 ) {
-	cur[0] += sx;
-	d -= ay;
-      } 
-      cur[1] += sy;
-      d += ax;
-    }
-
+    Point2<int>& point = *tPoints;
+    int window[2];
+    window[0] = point.x();
+    window[1] = point.y();
+    DrawPixelIntoBuffer( iBuffer, iWidth, iHeight, window,
+			 iColor, iOpacity );
   }
 }
 

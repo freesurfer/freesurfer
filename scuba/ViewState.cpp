@@ -17,3 +17,27 @@ std::ostream& operator << ( std::ostream& os, ViewState& iInput ) {
 }
 
 
+bool
+ViewState::IsRASVisibleInPlane ( float iRAS[3], float iRange ) {
+
+  float rasCoord;
+  float viewCoord;
+
+  switch( mInPlane ) {
+  case ViewState::X:
+    rasCoord = iRAS[0];
+    viewCoord = mCenterRAS[0];
+    break;
+  case ViewState::Y:
+    rasCoord = iRAS[1];
+    viewCoord = mCenterRAS[1];
+    break;
+  case ViewState::Z:
+    rasCoord = iRAS[2];
+    viewCoord = mCenterRAS[2];
+    break;
+  }
+
+  return( fabs(viewCoord - rasCoord) <= iRange );
+}
+

@@ -80,6 +80,9 @@ ToglManager::MouseMotionCallback ( struct Togl* iTogl,
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
 
+  // Mouse is dragging.
+  mState.mbButtonDragging = true;
+
   int windowCoords[2];
   windowCoords[0] = atoi(iArgv[2]);
   windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
@@ -105,6 +108,10 @@ ToglManager::MouseDownCallback ( struct Togl* iTogl,
 
   // Record this in the keyboard state.
   mState.mButton = atoi(iArgv[4]);
+
+  // Mouse down.
+  mState.mbButtonDown = true;
+  mState.mbButtonDragging = false;
 
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
@@ -134,6 +141,10 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   // Record this in the keyboard state.
   mState.mButton = atoi(iArgv[4]);
   
+  // Mouse up.
+  mState.mbButtonDown = false;
+  mState.mbButtonDragging = false;
+
   ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
   ToglFrame* frame = mFrames[id];
 
@@ -258,7 +269,9 @@ ToglManager::ExitCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   mState.mbControlKey = false;
   mState.mButton = 0;
   mState.msKey = "";
-
+  mState.mbButtonDown = false;
+  mState.mbButtonDragging = false;
+  
   return TCL_OK;
 }
 

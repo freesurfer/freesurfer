@@ -1,7 +1,7 @@
 
 package require Tix
 
-load [file dirname [info script]]/scuba[info sharedlibextension] scuba
+load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 
 # Also look for tkUtils.tcl.
 foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
@@ -435,6 +435,7 @@ proc MakeToolBar { ifwTop } {
 	    { -type image -name navigation -image icon_navigate } 
 	    { -type image -name voxelEditing -image icon_edit_volume } 
 	    { -type image -name roiEditing -image icon_edit_label } 
+	    { -type image -name straightLine -image icon_line_tool } 
 	}
 
     set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation
@@ -475,11 +476,13 @@ proc ToolBarWrapper { isName iValue } {
     global gaLayer
     global gaFrame
     global gaROI
+    global gaTool
 
     if { $iValue == 1 } {
 	switch $isName {
-	    navigation - voxelEditing - roiEditing {
+	    navigation - voxelEditing - roiEditing - straightLine {
 		SetToolMode $gaFrame([GetMainFrameID],toolID) $isName
+		SelectToolInToolProperties $isName
 	    }
 	    c1 - c22 - c13 {
 		SetFrameViewConfiguration [GetMainFrameID] $isName
@@ -502,6 +505,10 @@ proc ToolBarWrapper { isName iValue } {
 	    structure - free {
 		SetROIType $gaROI(current,id) $gaROI(current,type)
 		RedrawFrame [GetMainFrameID]
+	    }
+	    circle - square {
+		SetToolBrushShape $gaFrame([GetMainFrameID],toolID) \
+		    $gaTool(current,brushShape)
 	    }
 	}
     }
@@ -528,7 +535,7 @@ proc MakeScubaFrame { ifwTop } {
     set fwScuba $ifwTop.fwScuba
     
     set frameID [GetNewFrameID]
-    togl $fwScuba -width 512 -height 512 -rgba true -ident $frameID
+    togl $fwScuba -width 512 -height 512 -rgba true -ident $frameID -time 100
 
     bind $fwScuba <Motion> \
 	"%W MouseMotionCallback %x %y %b; ScubaMouseMotionCallback %x %y %b"
@@ -721,47 +728,80 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 proc MakePropertiesPanel { ifwTop } {
     dputs "MakePropertiesPanel  $ifwTop  "
 
+    global gaPanel
     global gaWidget
 
     set fwTop  $ifwTop.fwProps
-    
-    tixListNoteBook $fwTop
 
-    foreach {panelName sLabel} {
-	collectionPanel "Data Collections"
-	layerPanel Layers
-	viewPanel Views
-	subjectsLoader Subjects
-	transformPanel Transforms
-	lutPanel "Color LUTs"
-    } {
-	
-	$fwTop subwidget hlist add $panelName -text $sLabel
-	$fwTop add $panelName -label $sLabel
-    }
-    $fwTop subwidget hlist config -width 12
+    frame $fwTop
+    
+    tkuMakeToolbar $fwTop.tbwPanelsTop \
+	-allowzero 1 -radio 1 \
+	-variable gaPanel(currentTop) \
+	-command PanelBarWrapper \
+	-buttons {
+	    {-type text -name subjectsLoader -label "Subjects"}
+	    {-type text -name viewProperties -label "Views"}
+	    {-type text -name layerProperties -label "Layers"}
+	    {-type text -name toolProperties -label "Tools"}
+	}
+    tkuMakeToolbar $fwTop.tbwPanelsBottom \
+	-allowzero 1 -radio 1 \
+	-variable gaPanel(currentBottom) \
+	-command PanelBarWrapper \
+	-buttons {
+	    {-type text -name collectionProperties -label "Data"}
+	    {-type text -name transformProperties -label "Transforms"}
+	    {-type text -name lutProperties -label "Color LUTs"}
+	}
+    
+    pack $fwTop.tbwPanelsTop $fwTop.tbwPanelsBottom -side top \
+	-fill x -expand yes
+    
+    pack [frame $fwTop.fwPanel]
 
     set gaWidget(collectionProperties) \
-	[MakeDataCollectionsPropertiesPanel [$fwTop subwidget collectionPanel]]
+	[MakeDataCollectionsPropertiesPanel $fwTop.fwPanel]
     set gaWidget(layerProperties) \
-	[MakeLayerPropertiesPanel [$fwTop subwidget layerPanel]]
+	[MakeLayerPropertiesPanel $fwTop.fwPanel]
     set gaWidget(viewProperties) \
-	[MakeViewPropertiesPanel [$fwTop subwidget viewPanel]]
+	[MakeViewPropertiesPanel $fwTop.fwPanel]
     set gaWidget(subjectsLoader) \
-	[MakeSubjectsLoaderPanel [$fwTop subwidget subjectsLoader]]
+	[MakeSubjectsLoaderPanel $fwTop.fwPanel]
     set gaWidget(transformProperties) \
-	[MakeTransformsPanel [$fwTop subwidget transformPanel]]
+	[MakeTransformsPanel $fwTop.fwPanel]
     set gaWidget(lutProperties) \
-	[MakeLUTsPanel [$fwTop subwidget lutPanel]]
+	[MakeLUTsPanel $fwTop.fwPanel]
+    set gaWidget(toolProperties) \
+	[MakeToolsPanel $fwTop.fwPanel]
 
-    pack $gaWidget(collectionProperties)
-    pack $gaWidget(layerProperties)
-    pack $gaWidget(viewProperties)
-    pack $gaWidget(subjectsLoader)
-    pack $gaWidget(transformProperties)
-    pack $gaWidget(lutProperties)
-
+    set gaPanel(currentTop) subjectsLoader
+    PanelBarWrapper subjectsLoader 1
+    
     return $fwTop
+}
+
+proc PanelBarWrapper { isName iValue } {
+    dputs "PanelBarWrapper  $isName $iValue  "
+
+    global gaPanel
+    global gaWidget
+
+    if { $iValue == 0 } {
+	pack forget $gaWidget($isName)
+    }
+    if { $iValue == 1 } {
+	pack $gaWidget($isName)
+	switch $isName {
+	    subjectsLoader - viewProperties - 
+	    layerProperties - toolProperties {
+		set gaPanel(currentBottom) ""
+	    }
+	    collectionProperties - transformProperties - lutProperties {
+		set gaPanel(currentTop) ""
+	    }
+	}
+    }
 }
 
 proc MakeDataCollectionsPropertiesPanel { ifwTop } {
@@ -772,7 +812,7 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     global gaROI
     global glShortcutDirs
 
-    set fwTop        $ifwTop.fwLayerProps
+    set fwTop        $ifwTop.fwCollectionsProps
     set fwMenu       $fwTop.fwMenu
     set fwProps      $fwTop.fwProps
     set fwROIs       $fwTop.fwROIs
@@ -913,6 +953,118 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     return $fwTop
 }
 
+proc MakeToolsPanel { ifwTop } {
+    dputs "MakeToolsPanel  $ifwTop  "
+
+    global gaWidget
+    global gaTool
+
+    set fwTop        $ifwTop.fwToolsProps
+    set fwMenu       $fwTop.fwMenu
+    set fwProps      $fwTop.fwProps
+
+    frame $fwTop
+
+    frame $fwMenu
+    tixOptionMenu $fwMenu.menu \
+	-label "Tools:" \
+	-variable gaTool(current,menuIndex) \
+	-command { ToolPropertiesMenuCallback }
+    set gaWidget(toolProperties,menu) $fwMenu.menu
+    pack $fwMenu.menu
+
+    FillMenuFromList $fwMenu.menu \
+	{ navigation voxelEditing roiEditing straightLine }  "" \
+	{ "Navigation" "Voxel Editing" "ROI Editing" "Straight Line" } false
+
+    frame $fwProps
+    set fwPropsCommon        $fwProps.fwPropsCommon
+    set fwPropsNavigation    $fwProps.fwPropsNavigation
+    set fwPropsVoxelEditing  $fwProps.fwPropsVoxelEditing
+    set fwPropsROIEditing    $fwProps.fwPropsROIEditing
+    set fwPropsStraightLine  $fwProps.fwPropsStraightLine
+
+    frame $fwPropsCommon
+    
+    tkuMakeToolbar $fwPropsCommon.tbwBrushShape \
+	-allowzero false \
+	-radio true \
+	-variable gaTool(current,brushShape) \
+	-command { ToolBarWrapper } \
+	-buttons {
+	    {-type text -name circle -label "Circle"}
+	    {-type text -name square -label "Square"}
+	}
+
+    tkuMakeSliders $fwPropsCommon.swRadius -sliders {
+	{-label "Radius" -variable gaTool(current,radius) 
+	    -min 1 -max 20
+	    -command {SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius)} }
+    }
+
+    tkuMakeCheckboxes $fwPropsCommon.cb3D \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Work in 3D" 
+		-variable gaTool(current,brush3D)
+		-command {SetToolBrush3D $gaFrame([GetMainFrameID],toolID) $gaTool(current,brush3D)}}
+	}
+
+    grid $fwPropsCommon.tbwBrushShape -column 0 -row 0 -sticky ew
+    grid $fwPropsCommon.swRadius      -column 0 -row 1 -sticky ew
+    grid $fwPropsCommon.cb3D          -column 0 -row 1 -sticky ew
+
+
+    frame $fwPropsNavigation
+    set gaWidget(toolProperties,navigation) $fwPropsNavigation
+
+    frame $fwPropsVoxelEditing
+    set gaWidget(toolProperties,voxelEditing) $fwPropsVoxelEditing
+
+    frame $fwPropsROIEditing
+
+    tkuMakeCheckboxes $fwPropsROIEditing.cbFillOptions \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Stop at other ROIs" 
+		-variable gaTool(current,stopROI)
+		-command {SetToolFloodStopAtROIs $gaFrame([GetMainFrameID],toolID) $gaTool(current,stopROI)}}
+	    {-type text -label "Stop at lines" 
+		-variable gaTool(current,stopLines)
+		-command {SetToolFloodStopAtLines $gaFrame([GetMainFrameID],toolID) $gaTool(current,stopLines)}}
+	}
+    
+    tkuMakeSliders $fwPropsROIEditing.swFuzziness -sliders {
+	{-label "Fill Fuzziness" -variable gaTool(current,fuzziness) 
+	    -min 0 -max 20 -entry true
+	    -command {SetToolFloodFuzziness $gaFrame([GetMainFrameID],toolID) $gaTool(current,fuzziness)}}
+    }
+
+    tkuMakeCheckboxes $fwPropsROIEditing.cb3D \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Work in 3D" 
+		-variable gaTool(current,flood3D)
+		-command {SetToolFlood3D $gaFrame([GetMainFrameID],toolID) $gaTool(current,flood3D)}}
+	}
+
+    grid $fwPropsROIEditing.cbFillOptions -column 0 -row 0 -sticky ew
+    grid $fwPropsROIEditing.swFuzziness   -column 0 -row 1 -sticky ew
+    grid $fwPropsROIEditing.cb3D          -column 0 -row 2 -sticky ew
+
+    set gaWidget(toolProperties,roiEditing) $fwPropsROIEditing
+
+    frame $fwPropsStraightLine
+    set gaWidget(toolProperties,straightLine) $fwPropsStraightLine
+
+    grid $fwPropsCommon -column 0 -row 0 -sticky news
+
+    grid $fwMenu     -column 0 -row 0 -sticky new
+    grid $fwProps    -column 0 -row 1 -sticky news
+
+    return $fwTop
+}
+
 
 proc MakeLayerPropertiesPanel { ifwTop } {
     dputs "MakeLayerPropertiesPanel  $ifwTop  "
@@ -1013,12 +1165,20 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     }
     set gaWidget(layerProperties,minMaxSliders) $fwProps2DMRI.swMinMax
 
+    tkuMakeSliders $fwProps2DMRI.swROIOpacity -sliders {
+	{-label "ROI Opacity" -variable gaLayer(current,roiOpacity) 
+	    -min 0 -max 1 -resolution 0.1 
+	    -command {Set2DMRILayerROIOpacity $gaLayer(current,id) $gaLayer(current,roiOpacity); RedrawFrame [GetMainFrameID]}}
+    }
+
+
     grid $fwProps2DMRI.tbwColorMapMethod -column 0 -row 0 -sticky ew
     grid $fwProps2DMRI.mwLUT             -column 0 -row 1 -sticky ew
     grid $fwProps2DMRI.cbwClearZero      -column 0 -row 2 -sticky ew
     grid $fwProps2DMRI.tbwSampleMethod   -column 0 -row 3 -sticky ew
     grid $fwProps2DMRI.swBC              -column 0 -row 4 -sticky ew
     grid $fwProps2DMRI.swMinMax          -column 0 -row 5 -sticky ew
+    grid $fwProps2DMRI.swROIOpacity      -column 0 -row 6 -sticky ew
     set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
 
     # hack, necessary to init color pickers first time
@@ -1127,7 +1287,7 @@ proc MakeTransformsPanel { ifwTop } {
     global gaWidget
     global gaTransform
 
-    set fwTop      $ifwTop.fwSubjects
+    set fwTop      $ifwTop.fwTransforms
     set fwMenu     $fwTop.fwMenu
     set fwProps    $fwTop.fwProps
     set fwCommands $fwTop.fwCommands
@@ -1192,7 +1352,7 @@ proc MakeLUTsPanel { ifwTop } {
     global gaLUT
     global glShortcutDirs
 
-    set fwTop      $ifwTop.fwSubjects
+    set fwTop      $ifwTop.fwLUTs
     set fwMenu     $fwTop.fwMenu
     set fwProps    $fwTop.fwProps
     set fwCommands $fwTop.fwCommands
@@ -1564,6 +1724,8 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		[Get2DMRILayerMinVisibleValue $iLayerID]
 	    set gaLayer(current,maxVisibleValue) \
 		[Get2DMRILayerMaxVisibleValue $iLayerID]
+	    set gaLayer(current,roiOpacity) \
+		[Get2DMRILayerROIOpacity $iLayerID]
 
 	    # Set the LUT menu.
 	    $gaWidget(layerProperties,lutMenu) config -disablecallback 1
@@ -1765,6 +1927,60 @@ proc UpdateViewList {} {
 
     FillMenuFromList $gaWidget(viewProperties,menu) $gaView(idList) \
 	"" $gaView(labelList) false
+}
+
+# TOOL PROPERTIES FUNCTIONS =============================================
+
+proc ToolPropertiesMenuCallback { iTool } {
+    SelectToolInToolProperties $iTool
+}
+
+proc SelectToolInToolProperties { iTool } {
+    dputs "SelectToolInToolProperties  $iTool"
+
+    global gaWidget
+    global gaTool
+
+    # Unpack the type-specific panels.
+    grid forget $gaWidget(toolProperties,navigation)
+    grid forget $gaWidget(toolProperties,voxelEditing)
+    grid forget $gaWidget(toolProperties,roiEditing)
+    grid forget $gaWidget(toolProperties,straightLine)
+
+    # Get the general layer properties from the specific layer and
+    # load them into the 'current' slots.
+    set gaTool(current,type) $iTool
+
+    # Make sure that this is the item selected in the menu. Disale the
+    # callback and set the value of the menu to the layer ID. Then
+    # reenable the callback.
+    $gaWidget(toolProperties,menu) config -disablecallback 1
+    $gaWidget(toolProperties,menu) config -value $iTool
+    $gaWidget(toolProperties,menu) config -disablecallback 0
+    
+    # Do the type specific stuff.
+    switch $gaTool(current,type) {
+	navigation { 
+	    # Pack the type panel.
+	    grid $gaWidget(toolProperties,navigation) \
+		-column 0 -row 1 -sticky news
+	}
+	voxelEditing { 
+	    # Pack the type panel.
+	    grid $gaWidget(toolProperties,voxelEditing) \
+		-column 0 -row 1 -sticky news
+	}
+	roiEditing { 
+	    # Pack the type panel.
+	    grid $gaWidget(toolProperties,roiEditing) \
+		-column 0 -row 1 -sticky news
+	}
+	straightLine { 
+	    # Pack the type panel.
+	    grid $gaWidget(toolProperties,straightLine) \
+		-column 0 -row 1 -sticky news
+	}
+    }
 }
 
 # SUBJECTS LOADER FUNCTIONS =============================================
@@ -2453,7 +2669,8 @@ grid $gaWidget(labelArea) \
     -column $gaWidget(labelArea,column) -row $gaWidget(labelArea,row) \
     -sticky ew
 grid $gaWidget(properties) -sticky n \
-    -column $gaWidget(properties,column) -row $gaWidget(properties,row)
+    -column $gaWidget(properties,column) -row $gaWidget(properties,row) \
+    -rowspan 2
 
 grid columnconfigure $gaWidget(window) 0 -weight 1
 grid columnconfigure $gaWidget(window) 1 -weight 0

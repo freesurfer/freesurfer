@@ -5,6 +5,7 @@
 #include "ScubaLayerFactory.h"
 #include "ScubaLayer2DMRI.h"
 #include "ScubaDataCollectionFactory.h"
+#include "Scuba-impl.h"
 
 char* Progname = "scuba";
 

@@ -32,7 +32,8 @@ class ScubaLayer2DMRI : public Layer {
   virtual TclCommandResult
     DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
 
-  virtual void HandleTool ( float iRAS[3],
+  virtual void HandleTool ( float iRAS[3], 
+			    ScubaWindowToRASTranslator& iTranslator,
 			    ScubaToolState& iTool, InputState& iInput );
 
   enum ColorMapMethod { grayscale, heatScale, LUT };
@@ -58,6 +59,13 @@ class ScubaLayer2DMRI : public Layer {
   void SetMaxVisibleValue ( float iValue ) { mMaxVisibleValue = iValue; }
   float GetMaxVisibleValue () { return mMaxVisibleValue; }
 
+  float GetROIOpacity () { return mROIOpacity; }
+  void SetROIOpacity ( float iOpacity ) { mROIOpacity = iOpacity; }
+
+  void StartLine( float iRAS[3] );
+  void StretchCurrentLine( float iRAS[3] );
+  void EndLine( float iRAS[3], ScubaWindowToRASTranslator& iTranslator );
+  
  protected:
   VolumeCollection* mVolume;
   
@@ -71,6 +79,27 @@ class ScubaLayer2DMRI : public Layer {
   
   bool mbClearZero;
   float mMinVisibleValue, mMaxVisibleValue;
+
+  float mROIOpacity;
+  
+  struct Line {
+    float mBeginRAS[3];
+    float mEndRAS[3];
+  };
+  Line* mCurrentLine;
+  std::list<Line*> mLines;
+};
+
+
+class ScubaLayer2DMRIFloodSelect : public VolumeCollectionFlooder {
+ public:
+  ScubaLayer2DMRIFloodSelect ( bool ibSelect );
+  ~ScubaLayer2DMRIFloodSelect () {}
+
+  virtual bool CompareVoxel ( float iRAS[3] );
+  virtual void DoVoxel ( float iRAS[3] );
+
+  bool mbSelect;
 };
 
 

@@ -7,10 +7,12 @@
 extern "C" {
 #include "mri.h"
 }
+#include "Volume3.h"
 
 class VolumeCollection : public DataCollection {
 
   friend class VolumeCollectionTester;
+  friend class VolumeCollectionFlooder;
 
  public:
   VolumeCollection ();
@@ -26,10 +28,17 @@ class VolumeCollection : public DataCollection {
   float GetMRIMinValue () { return mMRIMinValue; }
   float GetMRIMaxValue () { return mMRIMaxValue; }
 
+  float GetVoxelXSize ();
+  float GetVoxelYSize ();
+  float GetVoxelZSize ();
+
   void RASToMRIIndex ( float iRAS[3], int oIndex[3] );
   void RASToMRIIndex ( float iRAS[3], float oIndex[3] );
+  void MRIIndexToRAS ( int iIndex[3], float oRAS[3] );
+  void MRIIndexToRAS ( float iIndex[3], float oRAS[3] );
 
   bool IsRASInMRIBounds ( float iRAS[3] );
+  bool IsMRIIndexInMRIBounds ( int iIndex[3] );
 
   float GetMRINearestValueAtRAS ( float iRAS[3] );
   float GetMRITrilinearValueAtRAS ( float iRAS[3] );
@@ -46,15 +55,47 @@ class VolumeCollection : public DataCollection {
   void UnselectRAS ( float iRAS[3] );
   bool IsRASSelected ( float iRAS[3], int oColor[3] );
 
+  void InitEdgeVolume ();
+  void MarkRASEdge ( float iRAS[3] );
+  void UnmarkRASEdge ( float iRAS[3] );
+  bool IsRASEdge ( float iRAS[3] );
+
 protected:
   std::string mfnMRI;
   MRI* mMRI;
 
   MATRIX* mWorldToIndexMatrix;
+  MATRIX* mIndexToWorldMatrix;
   VECTOR* mWorldCoord;
   VECTOR* mIndexCoord;
 
   float mMRIMinValue, mMRIMaxValue;
+
+  Volume3<bool>* mEdgeVoxels;
+};
+
+class VolumeCollectionFlooder {
+ public:
+  VolumeCollectionFlooder ();
+  ~VolumeCollectionFlooder ();
+
+  virtual bool CompareVoxel ( float iRAS[3] );
+  virtual void DoVoxel ( float iRAS[3] );
+
+  class Params {
+  public:
+    Params ();
+    bool mbStopAtEdges;
+    bool mbStopAtROIs;
+    bool mb3D;
+    
+    int mFuzziness;
+    bool mbDiagonal;
+  };
+
+  void Flood ( VolumeCollection& iVolume, float iRASSeed[3], Params& iParams );
+  VolumeCollection* mVolume;
+  Params* mParams;
 };
 
 

@@ -1,6 +1,8 @@
 #include <stdexcept>
+#include <vector>
 #include "VolumeCollection.h"
 #include "DataManager.h"
+#include "Point3.h"
 
 using namespace std;
 
@@ -9,8 +11,10 @@ VolumeCollection::VolumeCollection () :
   DataCollection() {
   mMRI = NULL;
   mWorldToIndexMatrix = NULL;
+  mIndexToWorldMatrix = NULL;
   mWorldCoord = VectorAlloc( 4, MATRIX_REAL );
   mIndexCoord = VectorAlloc( 4, MATRIX_REAL );
+  mEdgeVoxels = NULL;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetVolumeCollectionFileName", 2, 
@@ -41,6 +45,9 @@ VolumeCollection::~VolumeCollection() {
   if( NULL != mWorldToIndexMatrix ) {
     MatrixFree( &mWorldToIndexMatrix );
   }
+  if( NULL != mIndexToWorldMatrix ) {
+    MatrixFree( &mIndexToWorldMatrix );
+  }
 }
 
 void
@@ -69,6 +76,7 @@ VolumeCollection::GetMRI() {
     }
 
     mWorldToIndexMatrix = extract_r_to_i( mMRI );
+    mIndexToWorldMatrix = extract_i_to_r( mMRI );
     UpdateMRIValueRange();
 
     // Size all the rois we may have.
@@ -82,6 +90,9 @@ VolumeCollection::GetMRI() {
 	ScubaROIVolume* roi = (ScubaROIVolume*)(*tIDROI).second;
 	roi->SetROIBounds( bounds );
     }
+
+    // Init the edge volume.
+    InitEdgeVolume();
   }
 
   return mMRI; 
@@ -95,10 +106,34 @@ VolumeCollection::UpdateMRIValueRange () {
   }
 }
 
+float 
+VolumeCollection::GetVoxelXSize () {
+
+  if( NULL != mMRI ) {
+    return mMRI->xsize;
+  }
+}
+
+float 
+VolumeCollection::GetVoxelYSize () {
+
+  if( NULL != mMRI ) {
+    return mMRI->ysize;
+  }
+}
+
+float 
+VolumeCollection::GetVoxelZSize () {
+
+  if( NULL != mMRI ) {
+    return mMRI->zsize;
+  }
+}
+
+
 void
 VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
   
-  Real index[3];
   VECTOR_ELT( mWorldCoord, 1 ) = iRAS[0];
   VECTOR_ELT( mWorldCoord, 2 ) = iRAS[1];
   VECTOR_ELT( mWorldCoord, 3 ) = iRAS[2];
@@ -112,7 +147,6 @@ VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
 void
 VolumeCollection::RASToMRIIndex ( float iRAS[3], float oIndex[3] ) {
   
-  Real index[3];
   VECTOR_ELT( mWorldCoord, 1 ) = iRAS[0];
   VECTOR_ELT( mWorldCoord, 2 ) = iRAS[1];
   VECTOR_ELT( mWorldCoord, 3 ) = iRAS[2];
@@ -123,6 +157,32 @@ VolumeCollection::RASToMRIIndex ( float iRAS[3], float oIndex[3] ) {
   oIndex[2] = VECTOR_ELT( mIndexCoord, 3 );
 }
 
+void
+VolumeCollection::MRIIndexToRAS ( int iIndex[3], float oRAS[3] ) {
+  
+  VECTOR_ELT( mIndexCoord, 1 ) = iIndex[0];
+  VECTOR_ELT( mIndexCoord, 2 ) = iIndex[1];
+  VECTOR_ELT( mIndexCoord, 3 ) = iIndex[2];
+  VECTOR_ELT( mIndexCoord, 4 ) = 1.0;
+  MatrixMultiply( mIndexToWorldMatrix, mIndexCoord, mWorldCoord );
+  oRAS[0] = VECTOR_ELT( mWorldCoord, 1 );
+  oRAS[1] = VECTOR_ELT( mWorldCoord, 2 );
+  oRAS[2] = VECTOR_ELT( mWorldCoord, 3 );
+}
+
+void
+VolumeCollection::MRIIndexToRAS ( float iIndex[3], float oRAS[3] ) {
+  
+  VECTOR_ELT( mIndexCoord, 1 ) = iIndex[0];
+  VECTOR_ELT( mIndexCoord, 2 ) = iIndex[1];
+  VECTOR_ELT( mIndexCoord, 3 ) = iIndex[2];
+  VECTOR_ELT( mIndexCoord, 4 ) = 1.0;
+  MatrixMultiply( mIndexToWorldMatrix, mIndexCoord, mWorldCoord );
+  oRAS[0] = VECTOR_ELT( mWorldCoord, 1 );
+  oRAS[1] = VECTOR_ELT( mWorldCoord, 2 );
+  oRAS[2] = VECTOR_ELT( mWorldCoord, 3 );
+}
+
 bool 
 VolumeCollection::IsRASInMRIBounds ( float iRAS[3] ) {
 
@@ -130,6 +190,18 @@ VolumeCollection::IsRASInMRIBounds ( float iRAS[3] ) {
       return ( iRAS[0] > mMRI->xstart && iRAS[0] < mMRI->xend &&
 	       iRAS[1] > mMRI->ystart && iRAS[1] < mMRI->yend &&
 	       iRAS[2] > mMRI->zstart && iRAS[2] < mMRI->zend );
+  } else {
+    return false;
+  }
+}
+
+bool 
+VolumeCollection::IsMRIIndexInMRIBounds ( int iIndex[3] ) {
+
+  if( NULL != mMRI ) {
+      return ( iIndex[0] >= 0 && iIndex[0] < mMRI->width &&
+	       iIndex[1] >= 0 && iIndex[1] < mMRI->height &&
+	       iIndex[2] >= 0 && iIndex[2] < mMRI->depth );
   } else {
     return false;
   }
@@ -326,3 +398,177 @@ VolumeCollection::IsRASSelected ( float iRAS[3], int oColor[3] ) {
   }
 }
 
+void 
+VolumeCollection::InitEdgeVolume () {
+
+  if( NULL != mMRI ) {
+
+    if( NULL != mEdgeVoxels ) {
+      delete mEdgeVoxels;
+    }
+    
+    mEdgeVoxels = 
+      new Volume3<bool>( mMRI->width, mMRI->height, mMRI->depth, false );
+  }
+}
+
+void 
+VolumeCollection::MarkRASEdge ( float iRAS[3] ) {
+
+  if( NULL != mMRI ) {
+    int index[3];
+    RASToMRIIndex( iRAS, index );
+    mEdgeVoxels->Set( index[2], index[1], index[0], true );
+  }
+}
+
+void 
+VolumeCollection::UnmarkRASEdge ( float iRAS[3] ) {
+
+  if( NULL != mMRI ) {
+    int index[3];
+    RASToMRIIndex( iRAS, index );
+    mEdgeVoxels->Set( index[2], index[1], index[0], false );
+  }
+}
+
+bool 
+VolumeCollection::IsRASEdge ( float iRAS[3] ) {
+
+  if( NULL != mMRI ) {
+    int index[3];
+    RASToMRIIndex( iRAS, index );
+    return mEdgeVoxels->Get( index[2], index[1], index[0] );
+  } else {
+    return false;
+  }
+}
+
+VolumeCollectionFlooder::VolumeCollectionFlooder () {
+  mVolume = NULL;
+  mParams = NULL;
+}
+
+VolumeCollectionFlooder::~VolumeCollectionFlooder () {
+}
+
+VolumeCollectionFlooder::Params::Params () {
+  mbStopAtEdges = true;
+  mbStopAtROIs  = true;
+  mb3D          = true;
+  mFuzziness    = 1;
+  mbDiagonal    = false;
+}
+
+
+
+void 
+VolumeCollectionFlooder::DoVoxel ( float iRAS[3] ) {
+
+}
+
+bool 
+VolumeCollectionFlooder::CompareVoxel ( float iRAS[3] ) {
+return true;
+}
+
+void
+VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume, 
+				 float iRASSeed[3], Params& iParams ) {
+  
+  mVolume = &iVolume;
+  mParams = &iParams;
+
+  Volume3<bool> bVisited( iVolume.mMRI->width, 
+			  iVolume.mMRI->height, 
+			  iVolume.mMRI->depth, false );
+
+  // Push the seed onto the list. 
+  int index[3];
+  iVolume.RASToMRIIndex( iRASSeed, index );
+  Point3<int> seed( index );
+  vector<Point3<int> > points;
+  points.push_back( seed );
+  while( points.size() > 0 ) {
+    
+    Point3<int> point = points.back();
+    points.pop_back();
+
+    int index[3];
+    index[0] = point.x();
+    index[1] = point.y();
+    index[2] = point.z();
+
+    if( !iVolume.IsMRIIndexInMRIBounds( index ) ) {
+      continue;
+    }
+
+    if( bVisited.Get( point.z(), point.y(), point.x() ) ) {
+      continue;
+    }
+    bVisited.Set( point.z(), point.y(), point.x(), true );
+
+    // Get RAS.
+    float ras[3];
+    iVolume.MRIIndexToRAS( index, ras );
+
+    // Check if this is an edge or an ROI. If so, and our params say
+    // not go to here, continue.
+    if( iParams.mbStopAtEdges ) {
+      if( iVolume.IsRASEdge( ras ) ) {
+	continue;
+      }
+    }
+    if( iParams.mbStopAtROIs ) {
+      int color[3];
+      if( iVolume.IsRASSelected( ras, color ) ) {
+	continue;
+      }
+    }
+    
+    // Check max distance.
+
+    // Call the user compare function to give them a chance to bail.
+    if( !this->CompareVoxel( ras ) ) {
+      continue;
+    }
+    
+    // Call the user function.
+    this->DoVoxel( ras );
+
+    // Add adjacent voxels.
+    int nBeginX = MAX( index[0] - 1, 0 );
+    int nEndX   = MIN( index[0] + 1, iVolume.mMRI->width );
+    int nBeginY = MAX( index[1] - 1, 0 );
+    int nEndY   = MIN( index[1] + 1, iVolume.mMRI->height );
+    int nBeginZ = MAX( index[2] - 1, 0 );
+    int nEndZ   = MIN( index[2] + 1, iVolume.mMRI->depth );
+    Point3<int> newPoint;
+    if( iParams.mbDiagonal ) {
+      for( int nZ = nBeginZ; nZ <= nEndZ; nZ++ ) {
+	for( int nY = nBeginY; nY <= nEndY; nY++ ) {
+	  for( int nX = nBeginX; nX <= nEndX; nX++ ) {
+	    newPoint.Set( nX, nY, nZ );
+	    points.push_back( newPoint );
+	  }
+	}
+      }
+    } else {
+      newPoint.Set( nBeginX, index[1], index[2] );
+      points.push_back( newPoint );
+      newPoint.Set( nEndX, index[1], index[2] );
+      points.push_back( newPoint );
+      newPoint.Set( index[0], nBeginY, index[2] );
+      points.push_back( newPoint );
+      newPoint.Set( index[0], nEndY, index[2] );
+      points.push_back( newPoint );
+      newPoint.Set( index[0], index[1], nBeginZ );
+      points.push_back( newPoint );
+      newPoint.Set( index[0], index[1], nEndZ );
+      points.push_back( newPoint );
+    }
+  }
+
+  mVolume = NULL;
+  mParams = NULL;
+}
