@@ -447,6 +447,19 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
   double     mean, var, val ;
   HISTOGRAM  *histo, *hsmooth ;
   GC1D       *gc ;
+	MRI        *mri_T1 = NULL ;
+
+#if 0
+	{
+		char fname[STRLEN] ;
+		sprintf(fname, "%s/../T1", mri_in->fname) ;
+		mri_T1 = MRIread(fname) ;
+#if 0
+		if (!mri_T1)
+			ErrorExit(ERROR_NOFILE, "could not read T1 volume %s...", fname) ;
+#endif
+	}
+#endif
 
   histo = HISTOalloc(256) ; hsmooth = HISTOalloc(256) ;
   for (nsamples = i = 0 ; i < total_samples ; i++)
@@ -522,7 +535,23 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
           histo->counts[(int)val]++ ;
           mean += val ;
           var += (val*val) ;
-        }
+#if 0
+					if (mri_T1)
+					{
+						val = MRIvox(mri_T1, gcas_region[i].x,gcas_region[i].y,gcas_region[i].z) ;
+						if (val < 85 || val > 130)
+						{
+							FILE *fp ;
+							fp = fopen("badpoints.log", "a") ;
+							fprintf(fp, "%s: (%d, %d, %d): %f\n",
+											mri_in->fname, (int)gcas_region[i].x,(int)gcas_region[i].y,(int)gcas_region[i].z,val) ;
+							fclose(fp) ;
+							printf("!!!!!!!!!!!!!!!!!!!!!!! %s: (%d, %d, %d): %f !!!!!!!!!!!!!!!!!!!!!!!!!!!\n",
+										 mri_in->fname, (int)gcas_region[i].x,(int)gcas_region[i].y,(int)gcas_region[i].z,val) ;
+						}
+					}
+#endif
+				}
 
         HISTOsmooth(histo, hsmooth, 2) ;
         histo_peak = HISTOfindLastPeakRelative(hsmooth, 3, .25) ;
@@ -599,6 +628,8 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
   HISTOfree(&histo) ; HISTOfree(&hsmooth) ;
   free(gcas_region) ;
   free(gcas) ;
+	if (mri_T1)
+		MRIfree(&mri_T1) ;
   return(gcas_norm) ;
 }
 
