@@ -547,14 +547,15 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
 int
 HISTOfindLastPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
 {
-  int  peak, b, bw, nbins, whalf, center_val, max_count, other_val, min_count ;
+  int  peak, b, bw, nbins, whalf, other_val ;
+  float max_count, min_count, center_val ;
 
   peak = HISTOfindHighestPeakInRegion(h, 0, h->nbins) ;
   if (peak < 0)
     return(-1) ;
   max_count = h->counts[peak] ;
 
-  min_count = nint(min_pct * (float)max_count) ;
+  min_count = min_pct * max_count ;
   whalf = (wsize-1)/2 ;
   nbins = h->nbins ;
 
@@ -592,7 +593,8 @@ HISTOfindLastPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
 int
 HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
 {
-  int  peak, b, bw, nbins, whalf, center_val, max_count, other_val, min_count ;
+  int  peak, b, bw, nbins, whalf ;
+  float min_count, max_count, center_val, other_val ;
 
   for (max_count = b = 0 ; b < h->nbins ; b++)
   {
@@ -604,7 +606,7 @@ HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
   if (!max_count)
     return(-1) ;
 
-  min_count = nint(min_pct * (float)max_count) ;
+  min_count = (min_pct * (float)max_count) ;
   whalf = (wsize-1)/2 ;
   nbins = h->nbins ;
 
@@ -642,7 +644,8 @@ HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
 int
 HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct)
 {
-  int  peak, b, bw, nbins, whalf, center_val, max_count, other_val, min_count ;
+  int  peak, b, bw, nbins, whalf ;
+  float center_val, max_count, other_val, min_count ;
 
   for (max_count = b = 0 ; b < h->nbins ; b++)
   {
@@ -654,7 +657,7 @@ HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct)
   if (!max_count)
     return(-1) ;
 
-  min_count = nint(min_pct * (float)max_count) ;
+  min_count = min_pct * max_count ;
   whalf = (wsize-1)/2 ;
   nbins = h->nbins ;
 
@@ -755,9 +758,8 @@ int
 HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int b0, 
                           int b1)
 {
-  int    peak, b, bw, nbins, whalf, center_val, max_count, other_val, 
-         min_count, total ;
-  float  mean_count ;
+  int    peak, b, bw, nbins, whalf ;
+  float  mean_count, min_count, max_count, other_val, center_val, total ;
 
   for (max_count = b = 0 ; b < h->nbins ; b++)
   {
@@ -769,7 +771,7 @@ HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int b0,
   if (!max_count)
     return(-1) ;
 
-  min_count = nint(min_pct * (float)max_count) ;
+  min_count = min_pct * max_count ;
   whalf = (wsize-1)/2 ;
   nbins = h->nbins ;
 
@@ -818,8 +820,8 @@ int
 HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, 
                            int b0, int b1)
 {
-  int  peak, b, bw, nbins, whalf, center_val, max_count, other_val, min_count,
-       total ;
+  int   peak, b, bw, nbins, whalf ;
+  float center_val, max_count, other_val, min_count, total ;
 
   for (max_count = b = 0 ; b < h->nbins ; b++)
   {
@@ -831,7 +833,7 @@ HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
   if (!max_count)
     return(-1) ;
 
-  min_count = nint(min_pct * (float)max_count) ;
+  min_count = min_pct * max_count ;
   whalf = (wsize-1)/2 ;
   nbins = h->nbins ;
 
