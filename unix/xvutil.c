@@ -1026,7 +1026,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
             for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
             {
               dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
-              if (dimage2 && (dimage2->sync == dimage->sync))
+              if (dimage2 /* && (dimage2->sync == dimage->sync)*/)
               {
                 dimage2->sourceImage = 
                   (*xvf->get_next_image)(dimage2->sourceImage, which2, 1) ;
