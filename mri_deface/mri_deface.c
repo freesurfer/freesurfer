@@ -45,6 +45,7 @@ static int novar = 0 ;
 static int max_spacing = MAX_SPACING ;
 static int nscales = 1 ;
 
+static char *xform_fname = NULL ;
 static int use_contrast = 0 ;
 static float min_prior = MIN_PRIOR ;
 static double tol ;
@@ -214,7 +215,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.13 2004/02/03 15:53:48 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.14 2004/02/26 19:03:05 fischl Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     ErrorExit(ERROR_BADPARM, 
@@ -481,7 +482,13 @@ main(int argc, char *argv[])
   printf("final transform:\n") ;
   MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
   printf("\n") ;
-	
+
+	if (xform_fname != NULL)
+	{
+		printf("writing transform to %s...\n", xform_fname) ;
+		LTAwrite(parms.lta, xform_fname) ;
+	}
+
   if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
   {
     MRI *mri_aligned ;
@@ -506,7 +513,7 @@ main(int argc, char *argv[])
     MRI *mri_tmp ;
 
     printf("resampling to original coordinate system...\n");
-    mri_tmp = MRIresample(mri_out, mri_orig, RESAMPLE_NEAREST) ;
+    mri_tmp = MRIresample(mri_out, mri_orig, SAMPLE_NEAREST) ;
     MRIfree(&mri_out) ; mri_out = mri_tmp ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_out, "after_resampling.mgh") ;
@@ -1370,6 +1377,12 @@ get_option(int argc, char *argv[])
     nsamples = atoi(argv[2]) ;
     nargs = 1 ;
     printf("using %d samples of GCA...\n", nsamples) ;
+  }
+  else if (!stricmp(option, "XFORM"))
+  {
+		xform_fname = argv[2] ;
+    nargs = 1 ;
+    printf("writing transform to %s....\n", xform_fname) ;
   }
   else if (!stricmp(option, "norm"))
   {
@@ -2312,38 +2325,40 @@ MRIremoveFace(MRI *mri_src, MRI *mri_dst, LTA *lta, GCA *gca, GCA *gca_face, int
     {
       for (z = 0 ; z < mri_src->depth ; z++)
       {
-	if (x == Gx && y == Gy && z == Gz)
-	  DiagBreak() ;
-	if (MRIvox(mri_brain, x, y, z)  > 0)
-	  continue ;
-	if (MRIvox(mri_brain2, x, y, z) > 0)   /* within 2*radius - test image value */
-	{
-	  load_vals(mri_src, x, y, z, vals, gca->ninputs) ;
-	  mah_dist = compute_mah_dist(wm_means, m_wm_covar, vals, gca->ninputs) ;
-	  if (mah_dist < 2)
-	  {
-	    nskipped++ ;
-	    continue ;
-	  }
-	  mah_dist = compute_mah_dist(gm_means, m_gm_covar, vals, gca->ninputs) ;
-	  if (mah_dist < 2)
-	  {
-	    nskipped++ ;
-	    continue ;
-	  }
-	}
-
-	gcap_face = getGCAP(gca_face, mri_src, transform, x, y, z) ;
-	for (n = 0 ; n < gcap_face->nlabels ; n++)
-	{
-	  if (!IS_UNKNOWN(gcap_face->labels[n]) && (gcap_face->priors[n] > 0.0001))
-	  {
-	    for (frame = 0 ; frame < mri_dst->nframes ; frame++)
-	      MRIseq_vox(mri_dst, x, y, z, frame) = fill_val ;
-	    nerased++ ;
-	    break ;
-	  }
-	}
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				if (MRIvox(mri_brain, x, y, z)  > 0)
+					continue ;
+				if (MRIvox(mri_brain2, x, y, z) > 0)   /* within 2*radius - test image value */
+				{
+					load_vals(mri_src, x, y, z, vals, gca->ninputs) ;
+					mah_dist = compute_mah_dist(wm_means, m_wm_covar, vals, gca->ninputs) ;
+					if (mah_dist < 2)
+					{
+						nskipped++ ;
+						continue ;
+					}
+					mah_dist = compute_mah_dist(gm_means, m_gm_covar, vals, gca->ninputs) ;
+					if (mah_dist < 2)
+					{
+						nskipped++ ;
+						continue ;
+					}
+				}
+				
+				gcap_face = getGCAP(gca_face, mri_src, transform, x, y, z) ;
+				if (gcap_face == NULL)
+					continue ;
+				for (n = 0 ; n < gcap_face->nlabels ; n++)
+				{
+					if (!IS_UNKNOWN(gcap_face->labels[n]) && (gcap_face->priors[n] > 0.0001))
+					{
+						for (frame = 0 ; frame < mri_dst->nframes ; frame++)
+							MRIseq_vox(mri_dst, x, y, z, frame) = fill_val ;
+						nerased++ ;
+						break ;
+					}
+				}
       }
     }
   }
@@ -2369,11 +2384,13 @@ brain_in_region(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, i
       yi = mri->yi[y+yk] ;
       for (zk = -whalf ; zk <= whalf ; zk++)
       {
-	zi = mri->zi[z+zk] ;
-	gcap = getGCAP(gca, mri, transform, xi, yi, zi) ;
-	for (n = 0 ; n < gcap->nlabels ; n++)
-	  if (IS_BRAIN(gcap->labels[n]))
-	    return(1) ;
+				zi = mri->zi[z+zk] ;
+				gcap = getGCAP(gca, mri, transform, xi, yi, zi) ;
+				if (gcap == NULL)
+					continue ;
+				for (n = 0 ; n < gcap->nlabels ; n++)
+					if (IS_BRAIN(gcap->labels[n]))
+						return(1) ;
       }
     }
   }
@@ -2395,16 +2412,18 @@ fill_brain_volume(MRI *mri, GCA *gca, TRANSFORM *transform, int radius)
     {
       for (z = 0 ; z < mri->depth ; z++)
       {
-	MRIvox(mri_brain, x, y, z) = 0 ;
-	gcap = getGCAP(gca, mri, transform, x, y, z) ;
-	for (n = 0 ; n < gcap->nlabels ; n++)
-	{
-	  if (IS_BRAIN(gcap->labels[n]))
-	  {
-	    MRIvox(mri_brain, x, y, z) = 128 ;
-	    break ;
-	  }
-	}
+				MRIvox(mri_brain, x, y, z) = 0 ;
+				gcap = getGCAP(gca, mri, transform, x, y, z) ;
+				if (gcap == NULL)
+					continue ;
+				for (n = 0 ; n < gcap->nlabels ; n++)
+				{
+					if (IS_BRAIN(gcap->labels[n]))
+					{
+						MRIvox(mri_brain, x, y, z) = 128 ;
+						break ;
+					}
+				}
       }
     }
   }
