@@ -2202,8 +2202,8 @@ FunV_tErr FunV_GetAvgFunctionalValue ( tkmFunctionalVolumeRef this,
 
   /* if they want the ras too, convert and return it. */
   if( NULL != oFuncRAS ) {
-    FunD_ConvertFuncIdxToFuncRAS( this->mpOverlayVolume, 
-          &funcIdx, &funcRAS );
+    FunD_ConvertAnaIdxToFuncRAS( this->mpOverlayVolume, 
+                                 pVoxel, &funcRAS );
     xVoxl_Copy( oFuncRAS, &funcRAS );
   }
 
