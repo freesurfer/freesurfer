@@ -47,12 +47,15 @@ typedef struct face_type_
   float  orig_area ;
   float  angle[ANGLES_PER_TRIANGLE] ;
   float  orig_angle[ANGLES_PER_TRIANGLE]  ;
-  int    ripflag;                        /* ripped face */
+  char   ripflag;                        /* ripped face */
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
 #endif
 } face_type, FACE ;
 
+#ifndef uchar
+#define uchar  unsigned char
+#endif
 typedef struct vertex_type_
 {
   float x,y,z;            /* curr position */
@@ -79,21 +82,23 @@ typedef struct vertex_type_
   float valbak;          /* scalar data stack */
   float val2bak;         /* complex comp data stack */
   float stat;            /* statistic */
+#if 0
   int undefval;          /* [previously dist=0] */
   int old_undefval;      /* for smooth_val_sparse */
   int fixedval;          /* [previously val=0] */
+#endif
   float fieldsign;       /* fieldsign--final: -1,0,1 (file: rh.fs) */
   float fsmask;          /* significance mask (file: rh.fm) */
-  int num;               /* number neighboring faces */
-  int *f;                /* array neighboring face numbers */
-  int *n;                /* [0-3, num long] */
-  int vnum;              /* number neighboring vertices */
-  int *v;                /* array neighboring vertex numbers, vnum long */
-  int v2num ;            /* number of 2-connected neighbors */
-  int v3num ;            /* number of 3-connected neighbors */
-  int vtotal ;        /* total # of neighbors, will be same as one of above*/
+  uchar num;               /* number neighboring faces */
+  int   *f;                /* array neighboring face numbers */
+  uchar *n;                /* [0-3, num long] */
+  char  vnum;              /* number neighboring vertices */
+  int   *v;                /* array neighboring vertex numbers, vnum long */
+  char  v2num ;            /* number of 2-connected neighbors */
+  char  v3num ;            /* number of 3-connected neighbors */
+  char  vtotal ;        /* total # of neighbors, will be same as one of above*/
   float d ;              /* for distance calculations */
-  int nsize ;            /* size of neighborhood (e.g. 1, 2, 3) */
+  uchar nsize ;            /* size of neighborhood (e.g. 1, 2, 3) */
 #if 0
   float *tri_area ;      /* array of triangle areas - num long */
   float *orig_tri_area ; /* array of original triangle areas - num long */
@@ -115,22 +120,24 @@ typedef struct vertex_type_
   float smx,smy,smz,osmx,osmy,osmz;            /* smoothed curr,last move */
 #endif
   int   annotation;     /* area label (defunct--now from label file name!) */
-  int   oripflag,origripflag;  /* cuts flags */
+  char   oripflag,origripflag;  /* cuts flags */
+#if 0
   float coords[3];
+#endif
   float theta, phi ;     /* parameterization */
-  int   marked;          /* for a variety of uses */
-  int   ripflag ;
-  int   border;          /* flag */
+  char   marked;          /* for a variety of uses */
+  char   ripflag ;
+  char   border;          /* flag */
   float area,origarea ;
   float K ;             /* Gaussian curvature */
   float H ;             /* mean curvature */
   float k1, k2 ;        /* the principal curvatures */
   float *dist ;         /* original distance to neighboring vertices */
   float *dist_orig ;    /* original distance to neighboring vertices */
-  int   neg ;           /* 1 if the normal vector is inverted */
-  double mean ;
-  double mean_imag ;    /* imaginary part of complex statistic */
-  double std_error ;
+  char   neg ;           /* 1 if the normal vector is inverted */
+  float mean ;
+  float mean_imag ;    /* imaginary part of complex statistic */
+  float std_error ;
 } vertex_type, VERTEX ;
 
 typedef struct
@@ -271,7 +278,8 @@ typedef struct
   float   l_angle ;           /* coefficient of angle term */
   float   l_area ;            /* coefficient of (negative) area term */
   float   l_parea ;           /* coefficient of (all) area term */
-  float   l_narea ;           /* coefficient of (all) area term */
+  float   l_nlarea ;          /* coefficient of nonlinear area term */
+  float   l_nldist ;          /* coefficient of nonlinear distance term */
   float   l_corr ;            /* coefficient of correlation term */
   float   l_pcorr ;           /* polar correlation for rigid body */
   float   l_curv ;            /* coefficient of curvature term */
@@ -374,7 +382,9 @@ int          MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 MRI_SURFACE  *MRISoverAlloc(int max_vertices, int max_faces, 
                             int nvertices, int nfaces) ;
 MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
+int          MRISfreeDists(MRI_SURFACE *mris) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
+int   MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs);
 MRI_SURFACE  *MRISprojectOntoSphere(MRI_SURFACE *mris_src, 
                                        MRI_SURFACE *mris_dst, double r) ;
 MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, 
@@ -464,6 +474,7 @@ double       MRIScomputeFolding(MRI_SURFACE *mris) ;
 int          MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius) ;
 double       MRISaverageRadius(MRI_SURFACE *mris) ;
 double       MRISmaxRadius(MRI_SURFACE *mris) ;
+int          MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 int          MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 double       MRISrmsTPHeight(MRI_SURFACE *mris) ;
 double       MRIStotalVariation(MRI_SURFACE *mris) ;
@@ -584,11 +595,13 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 int   MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz) ;
 int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, 
                           MRI *mri_smooth, INTEGRATION_PARMS *parms);
+int   MRISscaleVals(MRI_SURFACE *mris, float scale) ;
 int   MRISsetVals(MRI_SURFACE *mris, float val) ;
 int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, 
                                            int which) ;
 int   MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) ;
+int   MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs) ;
 MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
                                   MRI *mri) ;
 #if 0
@@ -628,8 +641,11 @@ int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris,
 int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
                                             float *pdx,float *pdy,float *pdz);
 
+int   MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
+                              MRI *mri_smooth, Real inside_hi, Real inside_low,
+                              Real outside_low) ;
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
-                                   MRI *mri_smooth,MRI *mri_wm);
+                                   MRI *mri_smooth);
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                                   MRI *mri_smooth, float gray_surface);
 int  MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size,int max_nbrs);
@@ -644,6 +660,13 @@ int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
 int  MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta) ;
 int  MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz) ;
+double MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
+                                     double *pmin, double *pmax, int *pvno);
+double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
+                                     double *pmin, double *pmax);
+int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
+int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
+int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
 
 #if 1
 #include "mrishash.h"
