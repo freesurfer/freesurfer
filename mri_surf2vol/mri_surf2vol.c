@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.1 2002/04/18 19:28:29 greve Exp $
+  $Id: mri_surf2vol.c,v 1.2 2002/04/18 19:30:42 greve Exp $
 */
 
 #include <stdio.h>
@@ -41,7 +41,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2vol.c,v 1.1 2002/04/18 19:28:29 greve Exp $";
+static char vcid[] = "$Id: mri_surf2vol.c,v 1.2 2002/04/18 19:30:42 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 
   /* Read in the tkregister registration */
   err = regio_read_register(volregfile, &srcsubject, &ipr, &bpr, 
-			    &intensity, &Ma2vTKR, &float2int);
+          &intensity, &Ma2vTKR, &float2int);
   if(err) exit(1);
 
   /* Read in the template volume header */
@@ -170,14 +170,14 @@ int main(int argc, char **argv)
       reshapefactor = SurfVal->height * SurfVal->depth;
       printf("INFO: Reshaping %f\n",reshapefactor);
       mritmp = mri_reshape(SurfVal, reshapefactor*SurfVal->width, 
-			   1, 1, SurfVal->nframes);
+         1, 1, SurfVal->nframes);
       MRIfree(&SurfVal);
       SurfVal = mritmp;
     }
     if(SurfVal->width != SrcSurf->nvertices){
       fprintf(stderr,"ERROR: dimesion inconsitency in source data\n");
       fprintf(stderr,"       Number of surface vertices = %d\n",
-	      SrcSurf->nvertices);
+        SrcSurf->nvertices);
       fprintf(stderr,"       Number of value vertices = %d\n",SurfVal->width);
       exit(1);
     }
@@ -188,8 +188,8 @@ int main(int argc, char **argv)
 
   /*---------- Allocate the output volume ------------------*/
   OutVol = MRIallocSequence(TempVol->width, TempVol->height, 
-			    TempVol->depth, SurfVal->nframes,
-			    MRI_FLOAT);
+          TempVol->depth, SurfVal->nframes,
+          MRI_FLOAT);
   if(OutVol == NULL){
     printf("ERROR: could not alloc output volume MRI\n");
     exit(1);
@@ -269,8 +269,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       surfvalpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-	surfvalfmt = pargv[1]; nargsused ++;
-	surfvalfmtid = string_to_type(surfvalfmt);
+  surfvalfmt = pargv[1]; nargsused ++;
+  surfvalfmtid = string_to_type(surfvalfmt);
       }
     }
     else if (istringnmatch(option, "--srcsubject",9)){
@@ -281,8 +281,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       hemi = pargv[0]; nargsused = 1;
       if(strcmp(hemi,"lh") && strcmp(hemi,"rh")){
-	printf("ERROR: hemi = %s, must be lh or rh\n",hemi);
-	exit(1);
+  printf("ERROR: hemi = %s, must be lh or rh\n",hemi);
+  exit(1);
       }
     }
     else if ( !strcmp(option, "--projfrac") ) {
@@ -297,24 +297,24 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       outvolpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-	outvolfmt = pargv[1]; nargsused ++;
-	outvolfmtid = string_to_type(outvolfmt);
+  outvolfmt = pargv[1]; nargsused ++;
+  outvolfmtid = string_to_type(outvolfmt);
       }
     }
     else if (istringnmatch(option, "--vtxvol",0)){
       if(nargc < 1) argnerr(option,1);
       vtxvolpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-	vtxvolfmt = pargv[1]; nargsused ++;
-	vtxvolfmtid = string_to_type(vtxvolfmt);
+  vtxvolfmt = pargv[1]; nargsused ++;
+  vtxvolfmtid = string_to_type(vtxvolfmt);
       }
     }
     else if (istringnmatch(option, "--template",6)){
       if(nargc < 1) argnerr(option,1);
       tempvolpath = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-	tempvolfmt = pargv[1]; nargsused ++;
-	tempvolfmtid = string_to_type(tempvolfmt);
+  tempvolfmt = pargv[1]; nargsused ++;
+  tempvolfmtid = string_to_type(tempvolfmt);
       }
     }
     else if ( !strcmp(option, "--dim") ) {
@@ -355,7 +355,7 @@ static int parse_commandline(int argc, char **argv)
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+  fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -567,16 +567,16 @@ static void check_options(void)
     if(vtxvolfmt == NULL){
       vtxvolfmtid = mri_identify(vtxvolpath);
       if(vtxvolfmtid == MRI_VOLUME_TYPE_UNKNOWN){
-	printf("ERROR: cannot recognize the type of %s\n",vtxvolpath);
-	exit(1);
+  printf("ERROR: cannot recognize the type of %s\n",vtxvolpath);
+  exit(1);
       }
       vtxvolfmt = type_to_string(vtxvolfmtid);
     }
     else{
       vtxvolfmtid = string_to_type(vtxvolfmt);
       if(vtxvolfmtid == MRI_VOLUME_TYPE_UNKNOWN){
-	printf("ERROR: cannot recognize format %s\n",vtxvolfmt);
-	exit(1);
+  printf("ERROR: cannot recognize format %s\n",vtxvolfmt);
+  exit(1);
       }
     }
   }
@@ -609,8 +609,8 @@ static void check_options(void)
     if(! istringnmatch(surfvalfmt,"paint",0)){
       surfvalfmtid = string_to_type(surfvalfmt);
       if(surfvalfmtid == MRI_VOLUME_TYPE_UNKNOWN){
-	printf("ERROR: cannot recognize format %s\n",surfvalfmt);
-	exit(1);
+  printf("ERROR: cannot recognize format %s\n",surfvalfmt);
+  exit(1);
       }
     }
   }
@@ -655,17 +655,17 @@ static void dump_options(FILE *fp)
 
   return;
   fprintf(fp,"dim      %3d %3d %3d\n",
-	  dim[0],dim[1],dim[2]);
+    dim[0],dim[1],dim[2]);
   fprintf(fp,"res      %6.4f %6.4f %6.4f\n",
-	  res[0],res[1],res[2]);
+    res[0],res[1],res[2]);
   fprintf(fp,"xyz0  %6.4f %6.4f %6.4f\n",
-	  xyz0[0], xyz0[1], xyz0[2]);
+    xyz0[0], xyz0[1], xyz0[2]);
   fprintf(fp,"col   dircos  %6.4f %6.4f %6.4f\n",
-	  cdircos[0],cdircos[1],cdircos[2]);
+    cdircos[0],cdircos[1],cdircos[2]);
   fprintf(fp,"row   dircos  %6.4f %6.4f %6.4f\n",
-	  rdircos[0],rdircos[1],rdircos[2]);
+    rdircos[0],rdircos[1],rdircos[2]);
   fprintf(fp,"slice dircos  %6.4f %6.4f %6.4f\n",
-	  sdircos[0],sdircos[1],sdircos[2]);
+    sdircos[0],sdircos[1],sdircos[2]);
   fprintf(fp,"precision %s\n",precision);
 
   return;
