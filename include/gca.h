@@ -173,6 +173,8 @@ int GCAdump(GCA *gca, MRI *mri, int x, int y, int z, LTA *lta, FILE *fp,
             int verbose) ;
 int GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, 
                               int num) ;
+int GCArenormalizeToExample(GCA *gca, MRI *mri_seg, MRI *mri_T1) ;
+
 double  GCAlabelMean(GCA *gca, int label) ;
 int     GCAregularizeConditionalDensities(GCA *gca, float smooth) ;
 int     GCAmeanFilterConditionalDensities(GCA *gca, float navgs) ;
