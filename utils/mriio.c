@@ -315,17 +315,25 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
 {
 
   MRI *mri, *mri2;
-  char fname_copy[STRLEN];
+  char fname_copy[STRLEN]; 
   char *at, *pound, *colon;
   char *ep;
   int i, j, k, t;
   int volume_frames;
 
-  // if filename does not contain any directory separator, then add "./"
+  // if filename does not contain any directory separator, then add cwd
   if (!strchr(fname,DIR_SEPARATOR))
   {
-    strcpy(fname_copy, CURDIR);
-    strcat(fname_copy, fname);
+    char *cwd = getcwd(NULL, 0); // posix 1 extension (allocate as much space needed)
+    if (cwd)
+    {
+      strcpy(fname_copy, cwd);
+      strcat(fname_copy, "/"); 
+      strcat(fname_copy, fname);
+      free(cwd);
+    }
+    else // why fail?
+      strcpy(fname_copy, fname);
   } 
   else
     strcpy(fname_copy, fname);
@@ -699,11 +707,18 @@ MRI *MRIreadHeader(char *fname, int type)
 
   usetype = type;
 
-  // if there is no director separator, add "./" at the beginning
   if (!strchr(fname,DIR_SEPARATOR))
   {
-    strcpy(modFname, CURDIR);
-    strcat(modFname, fname);
+    char *cwd = getcwd(NULL, 0); // posix 1 extension (allocate as much space needed)
+    if (cwd)
+    {
+      strcpy(modFname, cwd);
+      strcat(modFname, "/"); 
+      strcat(modFname, fname);
+      free(cwd);
+    }
+    else // why fail?
+      strcpy(modFname, fname);
   } 
   else
     strcpy(modFname, fname);
@@ -3980,11 +3995,21 @@ int read_bhdr(MRI *mri, FILE *fp)
 
   char line[STRLEN];
   char *l;
-  float tlr, tla, tls; /* top left coordinates */
-  float trr, tra, trs; /* top right coordinates */
-  float brr, bra, brs; /* bottom right coordinates */
-  float xr, xa, xs;
-  float yr, ya, ys;
+  float tlr=0.;
+  float tla=0.;
+  float tls=0.; /* top left coordinates */
+  float trr=0.;
+  float tra=0.;
+  float trs=0.; /* top right coordinates */
+  float brr=0.;
+  float bra=0.;
+  float brs=0.; /* bottom right coordinates */
+  float xr=0.;
+  float xa=0.;
+  float xs=0.;
+  float yr=0.;
+  float ya=0.;
+  float ys=0.;
   MATRIX *T, *CRSCenter, *RASCenter;
 
   while(!feof(fp)){
@@ -4051,18 +4076,36 @@ int read_bhdr(MRI *mri, FILE *fp)
   xa = (tra - tla) / mri->width;
   xs = (trs - tls) / mri->width;
   mri->xsize = sqrt(xr*xr + xa*xa + xs*xs);
-  mri->x_r = xr / mri->xsize;
-  mri->x_a = xa / mri->xsize;
-  mri->x_s = xs / mri->xsize;
-
+  if (mri->xsize) // avoid nan
+  {
+    mri->x_r = xr / mri->xsize;
+    mri->x_a = xa / mri->xsize;
+    mri->x_s = xs / mri->xsize;
+  }
+  else // fake values
+  {
+    mri->xsize = 1;
+    mri->x_r = -1;
+    mri->x_a = 0;
+    mri->x_s = 0;
+  }
   yr = (brr - trr) / mri->height;
   ya = (bra - tra) / mri->height;
   ys = (brs - trs) / mri->height;
   mri->ysize = sqrt(yr*yr + ya*ya + ys*ys);
-  mri->y_r = yr / mri->ysize;
-  mri->y_a = ya / mri->ysize;
-  mri->y_s = ys / mri->ysize;
-
+  if (mri->ysize) // avoid nan
+  {
+    mri->y_r = yr / mri->ysize;
+    mri->y_a = ya / mri->ysize;
+    mri->y_s = ys / mri->ysize;
+  }
+  else // fake values
+  {
+    mri->ysize = 1;
+    mri->y_r = 0;
+    mri->y_a = 0;
+    mri->y_s = -1;
+  }
   T = MRIxfmCRS2XYZ(mri,0);
 
   T->rptr[1][4] = tlr;
