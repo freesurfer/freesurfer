@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/24 22:09:16 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2003/09/25 21:53:45 $
+// Revision       : $Revision: 1.5 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.4 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.5 $";
 
 using namespace std;
 
@@ -275,6 +275,12 @@ double MRISradius(MRI_SURFACE *mris);
 void MRISchangeCoordinates(MRI_SURFACE *mris,MRI_SURFACE *mris_orig);
 /*mri->type correction*/
 
+// declare function pointer
+int  (*MyvoxelToWorld)(MRI *mri, Real xv, Real yv, Real zv, 
+		       Real *xw, Real *yw, Real *zw) ;
+int  (*MyworldToVoxel)(MRI *mri, Real xw, Real yw, Real zw,
+		       Real *pxv, Real *pyv, Real *pzv) ;
+
 void getTimeString(char *buf)
 {
   time_t t;
@@ -333,6 +339,9 @@ int main(int argc, char *argv[])
 	    "\nInput:\t%s", in_fname);
   }
   /*************** PROG *********************/
+  char *debug = getenv("DEBUG_BRAIN");
+  if (debug)
+    parms->surf_dbg =1;
 
 
   /* initialisation */
@@ -593,6 +602,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
     Error("\ndifferent types of mri structures...\n");
 
   MRI_var=init_variables(mri_with_skull);
+
   MRI_var->verbose_mode=parms->surf_dbg;
 
   MRI_var->mri_src=mri_tp;
@@ -648,6 +658,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
       /*writing out the surface*/
       sprintf(fname,parms->surfname);
       strcat(fname,"_brain_surface");
+      MRI_var->mris->useRealRAS = 1;
       MRISwrite(MRI_var->mris,fname);
     }
     
@@ -2506,6 +2517,21 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
     MRI_var->rad_Brain=parms->rb;
     fprintf(stderr,"\n      modification of the brain radius to %d",(int)MRI_var->rad_Brain);
   }
+  char *realRAS = getenv("REAL_RAS");
+  if (realRAS)
+  {
+    MyworldToVoxel = &MRIworldToVoxel;
+    MyvoxelToWorld = &MRIvoxelToWorld;
+    MRI_var->mris->useRealRAS=1;
+    printf("\nINFO: surface is saved with real RAS values\n");
+  }
+  else
+  {
+    MyworldToVoxel = &MRIsurfaceRASToVoxel;
+    MyvoxelToWorld = &MRIvoxelToSurfaceRAS;
+    MRI_var->mris->useRealRAS=0;
+    printf("\nINFO: surface is saved with conformed RAS with c_(r,a,s) = 0\n");
+  }
   ////////////////////////////////////////////////////////////////////////
   init_surf_to_image(0.8*MRI_var->rad_Brain,0.8*MRI_var->rad_Brain,0.8*MRI_var->rad_Brain,MRI_var);
   //init_surf_to_image(1.2*MRI_var->rad_Brain,1.2*MRI_var->rad_Brain,1.2*MRI_var->rad_Brain,MRI_var);
@@ -2642,7 +2668,7 @@ init_surf_to_image(float rx, float ry, float rz,MRI_variables *MRI_var)
   mris=MRI_var->mris;
   nvertices=mris->nvertices;
   
-  MRIvoxelToWorld(MRI_var->mri_src,MRI_var->xCOG,MRI_var->yCOG,MRI_var->zCOG
+  MyvoxelToWorld(MRI_var->mri_src,MRI_var->xCOG,MRI_var->yCOG,MRI_var->zCOG
       ,&x,&y,&z);
   Rx=rx;Ry=rz;Rz=ry;
 
@@ -2697,7 +2723,7 @@ static void write_image(MRI_variables *MRI_var, int val)
         py = py0 + (py1-py0)*u/numu;
         pz = pz0 + (pz1-pz0)*u/numu;
         
-        MRIworldToVoxel(MRI_var->mri_orig,px,py,pz,&tx,&ty,&tz);
+        MyworldToVoxel(MRI_var->mri_orig,px,py,pz,&tx,&ty,&tz);
   
         imnr=(int)(tz+0.5);
         j=(int)(ty+0.5);
@@ -2716,7 +2742,7 @@ static void write_image(MRI_variables *MRI_var, int val)
     py=mris->vertices[k].y;
     pz=mris->vertices[k].z;
     
-    MRIworldToVoxel(MRI_var->mri_orig,px,py,pz,&tx,&ty,&tz);
+    MyworldToVoxel(MRI_var->mri_orig,px,py,pz,&tx,&ty,&tz);
     
     imnr=(int)(tz+0.5);
     j=(int)(ty+0.5);
@@ -2864,7 +2890,7 @@ static unsigned long MRISpeelBrain(float h,MRI* mri_dst,MRIS *mris,unsigned char
         pz = pz0 + (pz1-pz0)*u/numu;
 
 	// get the value of voxel coords
-	MRIworldToVoxel(mri_dst,px,py,pz,&tx,&ty,&tz);
+	MyworldToVoxel(mri_dst,px,py,pz,&tx,&ty,&tz);
 	
 	imnr=(int)(tz+0.5);
 	j=(int)(ty+0.5);
@@ -3193,7 +3219,7 @@ static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src)
           for (b=-1;b<2;b++)
           {
 	    // get the RAS value
-            MRIworldToVoxel(MRI_var->mri_orig,(x-nx*h+n1[0]*a+n2[0]*b),
+            MyworldToVoxel(MRI_var->mri_orig,(x-nx*h+n1[0]*a+n2[0]*b),
                             (y-ny*h+n1[1]*a+n2[1]*b),
                             (z-nz*h+n1[2]*a+n2[2]*b),&tx,&ty,&tz);
             kt=(int)(tz+0.5);
@@ -3551,7 +3577,7 @@ void calcForce1(
   {
     double tx, ty, tz;
     // look at outside side voxels (h < 0)
-    MRIworldToVoxel(MRI_var->mri_orig,(x-nx*h),
+    MyworldToVoxel(MRI_var->mri_orig,(x-nx*h),
                         (y-ny*h),(z-nz*h),&tx,&ty,&tz);
     int kt=(int)(tz+0.5);
     int jt=(int)(ty+0.5);
@@ -3571,7 +3597,7 @@ void calcForce1(
   {
     double tx, ty, tz;
     // look at inside voxes (h > 0)
-    MRIworldToVoxel(MRI_var->mri_orig,(x-nx*h),
+    MyworldToVoxel(MRI_var->mri_orig,(x-nx*h),
 		    (y-ny*h),(z-nz*h),&tx,&ty,&tz);
     int kt=(int)(tz+0.5);
     int jt=(int)(ty+0.5);
@@ -3627,7 +3653,7 @@ void calcForceGM(
       for (b=-1;b<2;b++)
       {
 	// get the voxel value
-	MRIworldToVoxel(MRI_var->mri_orig,(x-nx*h+n1[0]*a+n2[0]*b),
+	MyworldToVoxel(MRI_var->mri_orig,(x-nx*h+n1[0]*a+n2[0]*b),
 			(y-ny*h+n1[1]*a+n2[1]*b),
 			(z-nz*h+n1[2]*a+n2[2]*b),&tx,&ty,&tz);
 	kt=(int)(tz+0.5);
@@ -3752,7 +3778,7 @@ void calcForceMine(
     
     double tx, ty, tz;
     // look at outside side voxels (h < 0)
-    MRIworldToVoxel(MRI_var->mri_orig,(x-nx*h),
+    MyworldToVoxel(MRI_var->mri_orig,(x-nx*h),
                         (y-ny*h),(z-nz*h),&tx,&ty,&tz);
     kt=(int)(tz+0.5);
     jt=(int)(ty+0.5);
@@ -3771,7 +3797,7 @@ void calcForceMine(
   {
     double tx, ty, tz;
     // look at inside voxes (h > 0)
-    MRIworldToVoxel(MRI_var->mri_orig,(x-nx*h),
+    MyworldToVoxel(MRI_var->mri_orig,(x-nx*h),
 		    (y-ny*h),(z-nz*h),&tx,&ty,&tz);
     kt=(int)(tz+0.5);
     jt=(int)(ty+0.5);
@@ -3784,7 +3810,7 @@ void calcForceMine(
 	countinside++;
   }
   // get the current position in voxel unit
-  MRIworldToVoxel(MRI_var->mri_orig,x,y,z, &tx, &ty,&tz);
+  MyworldToVoxel(MRI_var->mri_orig,x,y,z, &tx, &ty,&tz);
   kt=(int)(tz+0.5);
   jt=(int)(ty+0.5);
   it=(int)(tx+0.5);
@@ -3864,7 +3890,7 @@ void calcForce2(
     for (a=-1;a<2;a++)
       for (b=-1;b<2;b++)
       {
-	MRIworldToVoxel(MRI_var->mri_orig,
+	MyworldToVoxel(MRI_var->mri_orig,
 			(x-nx*h+n1[0]*a+n2[0]*b),
 			(y-ny*h+n1[1]*a+n2[1]*b),
 			(z-nz*h+n1[2]*a+n2[2]*b),&tx,&ty,&tz);
