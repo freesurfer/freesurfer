@@ -2,7 +2,7 @@
 % columns based on the FID map and according to the time-domain
 % reconstruction method.
 %
-% $Id: tdr_rcolmat.m,v 1.3 2003/11/06 19:42:45 greve Exp $
+% $Id: tdr_rcolmat.m,v 1.4 2003/11/07 00:42:42 greve Exp $
 
 if(0) 
   % Input and output files
@@ -14,6 +14,8 @@ if(0)
   
   % Segmentation theshold the first echo of the FID Map
   rthreshfid = 0.2;
+  
+  boldweight = 0;
   
   % SVD regularization percentage
   regmethod = 'svdpct'; % tikhonov or svdpct 
@@ -70,7 +72,12 @@ for sliceno = 1:nslices
       Dcol = Dcol ./ repmat(abs(Dcol0),[nrows 1]);
       %Dcol = Dcol ./ repmat(abs(Dcol(1,:)),[nrows 1]);
     end
-
+    
+    if(boldweight)
+      pedcol = pedmat(:,imgcol);
+      Dcol = Dcol .* repmat(pedcol,[1 nrows]);
+    end
+    
     % Compute the encoding matrix
     FcolTDR = Dcol .* Fcol;
 
@@ -101,6 +108,6 @@ fprintf('Saving to %s\n',rcolmatfile);
 save(rcolmatfile,'fidmatfile','dnorm','regmethod',...
      'fidvol1mn','fidvol1','TE','TEList','perev',...
      'svdregpct','tikregfact','Rtdr','RtdrCond','RtdrDim',...
-     'T2s','B0','epiref_dist','epiref_undist');
+     'T2s','B0','epiref_dist','epiref_undist','boldweight');
 fprintf('Done (%g)\n',toc);
 
