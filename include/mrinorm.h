@@ -10,6 +10,7 @@
 #define CONTROL_NONE       0
 #define CONTROL_MARKED     1
 #define CONTROL_TMP        2
+#define CONTROL_NBR        3
 
 #define DEFAULT_DESIRED_WHITE_MATTER_VALUE  110
 #define DEFAULT_SMOOTH_SIGMA                2.0f
