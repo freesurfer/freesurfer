@@ -350,6 +350,7 @@ MRI_SURFACE  *MRISread(char *fname) ;
 MRI_SURFACE  *MRISfastRead(char *fname) ;
 int          MRISreadOriginalProperties(MRI_SURFACE *mris, char *sname) ;
 int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname) ;
+int          MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris) ;
 int          MRIScanonicalToWorld(MRI_SURFACE *mris, Real phi, Real theta,
                                   Real *pxw, Real *pyw, Real *pzw) ;
 int          MRISreadPatch(MRI_SURFACE *mris, char *pname) ;
@@ -475,6 +476,7 @@ double       MRIScomputeFolding(MRI_SURFACE *mris) ;
 
 int          MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius) ;
 double       MRISaverageRadius(MRI_SURFACE *mris) ;
+double       MRISaverageCanonicalRadius(MRI_SURFACE *mris) ;
 double       MRISmaxRadius(MRI_SURFACE *mris) ;
 int          MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 int          MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
