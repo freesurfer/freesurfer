@@ -2,7 +2,7 @@
 % columns based on the FID map and according to the time-domain
 % reconstruction method.
 %
-% $Id: tdr_rcolmat.m,v 1.5 2003/12/01 04:57:02 greve Exp $
+% $Id: tdr_rcolmat.m,v 1.6 2003/12/03 20:42:28 greve Exp $
 
 if(0) 
   % Input and output files
@@ -115,6 +115,9 @@ for sliceno = 1:nslices
      case 'svdpct'
       [FcolTDRreg FcolTDRdim] = fast_svdregpct(FcolTDR,svdregpct);
       RcolTDR = inv(FcolTDRreg);
+     otherwise 
+      fprintf('ERROR: regularization method %s not recognized\n',regmethod);
+      return;
     end
     
     % Normalize the rows of the recon matrix %
@@ -148,7 +151,7 @@ else
        'T2s','B0','epiref_dist','epiref_undist','boldweight',...
        'sliceorder','pedmat','colkeep','nT2sFit','rthreshfid',...
        'indsubthresh','kepiref_dist','epirecon_undist',...
-       'fidmatversion');
+       'fidmatversion','nkcols');
 end
 fprintf('Done (%g)\n',toc);
 
