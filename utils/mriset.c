@@ -32,7 +32,7 @@
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
-#define DEBUG_POINT(x,y,z)  (((x) == 15)&&((y)==6)&&((z)==15))
+#define DEBUG_POINT(x,y,z)  (((x==21) && (y==14)) &&((z)==7))
 
 /*-----------------------------------------------------
                     STATIC DATA
@@ -656,6 +656,76 @@ MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
         else
           out = 128 ;   /* both on or both off */
         *pdst++ = out ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Cross-correlate to MRIs
+------------------------------------------------------*/
+MRI *
+MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize)
+{
+  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, whalf, offset;
+  BUFTYPE *pdst, max_val, val, *pdir, min_val ;
+
+  whalf = (wsize-1) / 2 ;
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      pdir = &MRIvox(mri_dir, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        offset = *pdir++ ;
+        max_val = 0 ;
+        min_val = 255 ;
+        if (offset != OFFSET_ZERO) for (z0 = -whalf ; z0 <= whalf ; z0++)
+        {
+          zi = mri_src->zi[z+z0] ;
+          for (y0 = -whalf ; y0 <= whalf ; y0++)
+          {
+            yi = mri_src->yi[y+y0] ;
+            for (x0 = -whalf ; x0 <= whalf ; x0++)
+            {
+              xi = mri_src->xi[x+x0] ;
+              val = MRIvox(mri_src, xi,yi,zi) ;
+              if (val > max_val)
+                max_val = val ;
+              if (val < min_val)
+                min_val = val ;
+            }
+          }
+        }
+        switch (offset)
+        {
+        case OFFSET_GRADIENT_DIRECTION:
+          val = max_val ;  
+          break ;
+        case OFFSET_NEGATIVE_GRADIENT_DIRECTION:
+          val = min_val ;
+          break ;
+        default:
+        case OFFSET_ZERO:
+          val = MRIvox(mri_src, x, y, z) ;
+          break ;
+        }
+        *pdst++ = val ;
       }
     }
   }
