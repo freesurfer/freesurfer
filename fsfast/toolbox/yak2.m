@@ -16,11 +16,11 @@ function yak2(varargin)
 %
 % yak(cbstring) % for callback functions
 %
-% $Id: yak2.m,v 1.4 2003/12/01 23:56:42 greve Exp $
+% $Id: yak2.m,v 1.5 2004/01/15 03:38:15 greve Exp $
 
 if(nargin == 0)
   msg = 'USAGE: hfig = yak2(flag,options)';
-  msg = sprintf('%s\n$Id: yak2.m,v 1.4 2003/12/01 23:56:42 greve Exp $',msg);
+  msg = sprintf('%s\n$Id: yak2.m,v 1.5 2004/01/15 03:38:15 greve Exp $',msg);
   qoe(msg);error(msg);
 end
 
@@ -186,6 +186,8 @@ if(Init)
   set(gcf,'UserData',ud);
   ud.hcbar = colorbar;
 
+  set(gcf,'DoubleBuffer','on');
+  
   set(gcf,'WindowButtonDownFcn',  'yak2(''wbd'')');
   set(gcf,'WindowButtonUpFcn',    'yak2(''wbu'')');
   set(gcf,'WindowButtonMotionFcn','yak2(''wbm'')');
