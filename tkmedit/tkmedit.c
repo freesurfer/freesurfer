@@ -326,7 +326,7 @@ void ReadVolumeWithMRIRead ( char * inFileOrPath );
 
                                      /* pixel offsets in bits, used in drawing
                                         loops to composite pixels together */
-#ifdef IRIX
+#if defined(IRIX) || defined(SunOS)
 #define kPixelOffset_Alpha                0
 #define kPixelOffset_Green                8
 #define kPixelOffset_Blue                 16
@@ -341,7 +341,7 @@ void ReadVolumeWithMRIRead ( char * inFileOrPath );
                                        /* color values for 
                                           drawing functions */
            
-#ifdef IRIX
+#if defined(IRIX) || defined(SunOS)
 #define kRGBAColor_Red      0xff0000ff
 #define kRGBAColor_Green    0x00ff00ff
 #define kRGBAColor_Yellow   0xffff00ff
@@ -8075,6 +8075,7 @@ char **argv;
   FILE *fp ;
   char theErr;
 
+  
   // kt
 
   // init our debugging macro code, if any.
