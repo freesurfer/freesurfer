@@ -22,6 +22,12 @@
 #define CRS2IND
 
 
+#ifdef RESAMPLE_SOURCE_CODE_FILE
+  char *ResampleVtxMapFile;
+#else
+  extern char *ResampleVtxMapFile;
+#endif
+
 int interpolation_code(char *interpolation_string);
 int float2int_code(char *float2int_string);
 
