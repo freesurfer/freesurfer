@@ -116,8 +116,9 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
 
   whalf = (wsize-1)/2 ;
 #if 1
-  c1 = NS_FSCALE * c / (float)wsize ;
+  c1 = c ;
 #else
+  c1 = NS_FSCALE * c / (float)wsize ;
   c1 = NS_FSCALE * c ;
 #endif
 
