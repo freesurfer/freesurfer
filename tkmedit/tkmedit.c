@@ -141,6 +141,7 @@ int            tk_NumMainWindows = 0;
 #define CVIDBUF 25
 
 int selectedpixval = 0;
+int secondpixval = 0 ;
 int updatepixval = TRUE;
 int plane = CORONAL;
 int xnum=256,ynum=256;
@@ -226,6 +227,7 @@ float x_click, y_click, z_click ;
 char *subjectsdir;   /* SUBJECTS_DIR */
 char *srname;        /* sessiondir--from cwd */
 char *pname;         /* name */
+char *title_str ;    /* window title */
 char *imtype;        /* e.g., T1 */
 char *imtype2;        /* e.g., T1 */
 char *surface;       /* e.g., rh.smooth */
@@ -1731,7 +1733,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
             break;
           case XK_d:
             if (altkeypressed) Tcl_Eval(interp,
-              ".mri.main.left.view.butt.left.asurfflag.ck invoke");
+              ".mri.main.left.view.butt.left.asurface.ck invoke");
             break;
           case XK_b:
             if (altkeypressed) Tcl_Eval(interp,
@@ -2548,7 +2550,7 @@ void set_cursor(float xpt, float ypt, float zpt)
 {
   double dzf;
   Real   x, y, z, x_tal, y_tal, z_tal ;
-  int    secondpixelval, xi, yi, zi ;
+  int    xi, yi, zi ;
 
   x = y = z = 0.0;
   if (ptype==0) /* Horizontal */
@@ -2581,11 +2583,11 @@ void set_cursor(float xpt, float ypt, float zpt)
   {
     xi = (int)(jc/zf) ; yi = (int)((ydim-1-ic)/zf) ; zi = (int)(imc/zf) ;
     selectedpixval = im[zi][yi][xi];
-    printf("val=%d ",selectedpixval);
+    printf("%s=%d ",imtype,selectedpixval);
     if (second_im_allocated) 
     {
-      selectedpixval = secondpixelval = im2[zi][yi][xi];
-      printf("(2nd val=%d ",secondpixelval);
+      selectedpixval = secondpixval = im2[zi][yi][xi];
+      printf("(%s=%d ",imtype2, secondpixval);
     }
   }
   if (ptype==0) /* Horizontal */
@@ -2674,7 +2676,12 @@ void redraw(void)
   /* clear(); */
   if (drawsecondflag && second_im_allocated) {
     draw_second_image(imc,ic,jc);
+#if 0    
     wintitle(imtype2);
+#else
+    sprintf(title_str, "%s:%s (%s=%d, %s=%d)", pname, imtype2,imtype, 
+            selectedpixval, imtype2, secondpixval) ;
+#endif
   }
   else {
 #ifdef Linux
@@ -2682,8 +2689,18 @@ void redraw(void)
 #else
     draw_image(imc,ic,jc); 
 #endif
+
+#if 0
     wintitle(imtype);
+#else
+    if (second_im_allocated)
+      sprintf(title_str, "%s:%s (%s=%d, %s=%d)", pname, imtype,imtype, 
+              selectedpixval, imtype2, secondpixval) ;
+    else
+      sprintf(title_str, "%s:%s (%s=%d)", pname, imtype,imtype,selectedpixval);
+#endif
   }
+  wintitle(title_str);
   if (ptsflag && !all3flag) drawpts();
   if (surfflag && surfloaded)
     draw_surface();
@@ -3234,11 +3251,11 @@ select_pixel( short sx, short sy, int printflag)
     {
       xi = (int)(jc/zf) ; yi = (int)((ydim-1-ic)/zf) ; zi = (int)(imc/zf) ;
       selectedpixval = im[zi][yi][xi];
-      printf("val=%d ",selectedpixval);
+      printf("%s=%d ",imtype,selectedpixval);
       if (second_im_allocated) 
       {
-        selectedpixval =im2[zi][yi][xi];        
-        printf("2nd val=%d ",selectedpixval); 
+        secondpixval =im2[zi][yi][xi];        
+        printf("%s=%d ", imtype2,secondpixval); 
       }
     }
     if (ptype==0) /* Horizontal */
@@ -4362,6 +4379,7 @@ make_filenames(char *lsubjectsdir,char *lsrname, char *lpname, char *limdir,
   subjectsdir = (char *)malloc(NAME_LENGTH*sizeof(char)); /* malloc for tcl */
   srname = (char *)malloc(NAME_LENGTH*sizeof(char));
   pname = (char *)malloc(NAME_LENGTH*sizeof(char));
+  title_str = (char *)malloc(NAME_LENGTH*sizeof(char));
   imtype = (char *)malloc(NAME_LENGTH*sizeof(char));
   imtype2 = (char *)malloc(NAME_LENGTH*sizeof(char));
   surface = (char *)malloc(NAME_LENGTH*sizeof(char));
@@ -5333,6 +5351,7 @@ char **argv;
   Tcl_LinkVar(interp,"transform",   (char *)&xffname,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"script",      (char *)&rfname,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"selectedpixval",(char *)&selectedpixval, TCL_LINK_INT);
+  Tcl_LinkVar(interp,"secondpixval",(char *)&secondpixval, TCL_LINK_INT);
   /*=======================================================================*/
   /***** twitzels stuff ****/
   Tcl_LinkVar(interp,"f2thresh",(char *)&f2thresh, TCL_LINK_DOUBLE);
