@@ -699,6 +699,7 @@ MWin_tErr MWin_SetROIGroup ( tkmMeditWindowRef this,
 }
 MWin_tErr MWin_SetSurface ( tkmMeditWindowRef this, 
           int               inDispIndex,
+          tkm_tSurfaceType  iType,
           mriSurfaceRef     ipSurface ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
@@ -727,9 +728,9 @@ MWin_tErr MWin_SetSurface ( tkmMeditWindowRef this,
   for ( nDispIndex = nDispIndexMin; 
   nDispIndex < nDispIndexMax; 
   nDispIndex++ ) {
-
+    
     eDispResult = DspA_SetSurface ( this->mapDisplays[nDispIndex],
-            ipSurface );
+            iType, ipSurface );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;
@@ -2475,7 +2476,10 @@ MWin_tErr MWin_PlaceToolWindow_ ( tkmMeditWindowRef this ) {
      glutGet( GLUT_WINDOW_X ),
      glutGet( GLUT_WINDOW_Y ) + this->mnHeight + 
      MWin_knSpaceBetweenWindowAndPanel );
-    tkm_SendTclCommand( tkm_tTclCommand_MoveToolWindow, sTclArguments );
+  tkm_SendTclCommand( tkm_tTclCommand_MoveToolWindow, sTclArguments );
+
+  /* raise it */
+  tkm_SendTclCommand( tkm_tTclCommand_RaiseToolWindow, "" );
     
   goto cleanup;
 
