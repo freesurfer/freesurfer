@@ -742,7 +742,11 @@ FileNameAbsolute(char *fname, char *absFname)
 #ifndef Linux
     getwd(pathname) ;
 #else
+#if 0
     getcwd(pathname, MAXPATHLEN-1) ;
+#else
+    sprintf(pathname, ".") ;
+#endif
 #endif
     sprintf(absFname, "%s/%s", pathname, fname) ;
   }
@@ -770,7 +774,11 @@ FileNamePath(char *fname, char *pathName)
 #ifndef Linux
     getwd(pathName)  ;    /* no path at all, must be cwd */
 #else
+#if 0
     getcwd(pathName, MAXPATHLEN-1) ;
+#else
+    sprintf(pathName, ".") ;
+#endif
 #endif
 
   return(pathName) ;
