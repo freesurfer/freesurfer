@@ -59,6 +59,7 @@ MATRIX  *MatrixRead(char *fname) ;
 int     MatrixWrite(MATRIX *mIn, char *fname, char *name) ;
 MATRIX  *MatrixIdentity(int n, MATRIX *mI) ;
 int     MatrixPrint(FILE *fp, MATRIX *mat) ;
+int     MatrixPrintOneLine(FILE *fp, MATRIX *mat) ;
 int     MatrixPrintTranspose(FILE *fp, MATRIX *mat) ;
 MATRIX  *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixAdd(MATRIX *m1, MATRIX *m2, MATRIX *mOut) ;

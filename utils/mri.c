@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/01/24 15:25:57 $
-// Revision       : $Revision: 1.210 $
-char *MRI_C_VERSION = "$Revision: 1.210 $";
+// Revision Date  : $Date: 2003/01/27 20:16:48 $
+// Revision       : $Revision: 1.211 $
+char *MRI_C_VERSION = "$Revision: 1.211 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -832,6 +832,99 @@ MRIvalRange(MRI *mri, float *pmin, float *pmax)
 						if (val > fmax)
 							fmax = val ;
 					}
+				}
+			}
+		}
+    break ;
+  default:
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, "MRIvalRange: unsupported type %d",
+                 mri->type)) ;
+  }
+
+  *pmin = fmin ;
+  *pmax = fmax ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+------------------------------------------------------*/
+int
+MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame)
+{
+  int      width, height, depth, x, y, z ;
+  float    fmin, fmax, *pf, val ;
+  BUFTYPE  *pb ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  fmin = 10000.0f ;
+  fmax = -10000.0f ;
+  switch (mri->type)
+  {
+  case MRI_FLOAT:
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				pf = &MRIFseq_vox(mri, 0, y, z, frame) ;
+				for (x = 0 ; x < width ; x++)
+				{
+					val = *pf++ ;
+					if (val < fmin)
+						fmin = val ;
+					if (val > fmax)
+						fmax = val ;
+				}
+			}
+		}
+    break ;
+  case MRI_INT:
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					val = (float)MRIIseq_vox(mri, x, y, z, frame) ;
+					if (val < fmin)
+						fmin = val ;
+					if (val > fmax)
+						fmax = val ;
+				}
+			}
+		}
+    break ;
+  case MRI_SHORT:
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					val = (float)MRISseq_vox(mri, x, y, z, frame) ;
+					if (val < fmin)
+						fmin = val ;
+					if (val > fmax)
+						fmax = val ;
+				}
+			}
+		}
+    break ;
+  case MRI_UCHAR:
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				pb = &MRIseq_vox(mri, 0, y, z, frame) ;
+				for (x = 0 ; x < width ; x++)
+				{
+					val = (float)*pb++ ;
+					if (val < fmin)
+						fmin = val ;
+					if (val > fmax)
+						fmax = val ;
 				}
 			}
 		}
@@ -8232,8 +8325,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
   {
 
     /* ----- build a histogram ----- */
-    printf("MRIchangeType: Building histogram \n");
-
+		printf("MRIchangeType: Building histogram \n");
     bin_size = (src_max - src_min) / (float)N_HIST_BINS;
 
     for(i = 0;i < N_HIST_BINS;i++)

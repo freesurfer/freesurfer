@@ -152,7 +152,6 @@ MRI  *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 /* I/O functions */
 /* ch ov */ /*
 int    MRIwrite(MRI *mri, char *fpref) ;
-int    MRIwriteFrame(MRI *mri, char *fname, int frame) ;
 */
 int    MRIappend(MRI *mri, char *fpref) ;
 int    MRIwriteInfo(MRI *mri, char *fpref) ;
@@ -441,6 +440,7 @@ int   MRIsampleSeqVolume(MRI *mri, Real x, Real y, Real z, float *valvect,
 int   MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type) ;
 int   MRIsampleLabeledVolume(MRI *mri, Real x, Real y, Real z, Real *pval, unsigned char ucharLabel);
 int   MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval);
+int   MRIsampleVolumeFrameType(MRI *mri,Real x,Real y,Real z,int frame, int interp_type,Real *pval);
 int   MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z, 
                               Real *pdx, Real *pdy, Real *pdz) ;
 int   MRIsampleVolumeGradientFrame(MRI *mri, Real x, Real y, Real z, 
@@ -537,6 +537,7 @@ extern float ic_z_vertices[]  ;
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
+int        MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame) ;
 MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
 HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
 HISTOGRAM  *MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins);
@@ -786,6 +787,7 @@ MRI *MRIreadType(char *fname, int type);
 MRI *MRIreadInfo(char *fname);
 MRI *MRIreadHeader(char *fname, int type);
 int MRIwrite(MRI *mri, char *fname);
+int MRIwriteFrame(MRI *mri, char *fname, int frame) ;
 int MRIwriteType(MRI *mri, char *fname, int type);
 int MRIwriteAnyFormat(MRI *mri, char *fileid, char *fmt, 
 		      int mriframe, MRIS *surf);

@@ -480,6 +480,45 @@ MatrixPrint(FILE *fp, MATRIX *mat)
   return(NO_ERROR) ;
 }
 int
+MatrixPrintOneLine(FILE *fp, MATRIX *mat)
+{
+  int  row, col, rows, cols ;
+
+  rows = mat->rows ;
+  cols = mat->cols ;
+
+  for (row = 1 ; row <= rows ; row++)
+  {
+    for (col = 1 ; col <= cols ; col++)
+    {
+      switch (mat->type)
+      {
+        case MATRIX_REAL:
+          fprintf(fp, "% 2.3f", mat->rptr[row][col]) ;
+          break ;
+        case MATRIX_COMPLEX:
+          fprintf(fp, "% 2.3f + % 2.3f i", 
+            MATRIX_CELT_REAL(mat,row,col), 
+            MATRIX_CELT_IMAG(mat, row, col)) ;
+          break ;
+        default:
+          ErrorReturn(ERROR_BADPARM,
+                      (ERROR_BADPARM, 
+                       "MatrixPrint: unknown type %d\n",mat->type)) ;
+      }
+#if 0
+      if (col < cols)
+        fprintf(fp, " | ") ;
+#else
+      if (col < cols)
+        fprintf(fp, "  ") ;
+#endif
+    }
+    fprintf(fp, ";   ") ;
+  }
+  return(NO_ERROR) ;
+}
+int
 MatrixPrintTranspose(FILE *fp, MATRIX *mat)
 {
   int  row, col, rows, cols ;
