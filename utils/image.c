@@ -4735,7 +4735,7 @@ ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
 #else
   float  *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, slope, dx,dy, f,
          xf, yf, *wdx, *wdy, *wphase, *wmag, dist, mag  ;
-  int    x0, y0, rows, cols, x, y, delta, i, whalf, *wx, *wy ;
+  int    x0, y0, rows, cols, x = 0, y, delta, i, whalf, *wx, *wy ;
 
   wsize = 5 ;
   if (!Idst)
