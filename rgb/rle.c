@@ -1,3 +1,4 @@
+#define OPEN_GL_CODE  1
 /*
  *  img_getrowsize, img_setrowsize, img_rle_compact, img_rle_expand -
  *
@@ -21,7 +22,7 @@ long img_getrowsize(IMAGE *image)
 
 void img_setrowsize(IMAGE *image, long cnt, long y, long z)
 {
-    long *sizeptr;
+    int *sizeptr;
 
     if(img_badrow(image,y,z)) 
   return;
