@@ -128,6 +128,7 @@ MRI   *MRIrotateZ(MRI *mri_src, MRI *mri_dst, float z_angle) ;
 MRI   *MRIrotate(MRI *mri_src, MRI *mri_dst, MATRIX *mR, MATRIX *mO) ;
 MRI   *MRIscale(MRI *mri_src, MRI *mri_dst, float sx, float sy, float sz) ;
 MRI   *MRIaffine(MRI *mri_src, MRI *mri_dst, MATRIX *mA, MATRIX *mB) ;
+MRI   *MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
 MRI   *MRIinterpolate(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIconfThresh(MRI *mri_src, MRI *mri_probs, MRI *mri_classes, 
                      MRI *mri_dst,float thresh, int min_target,int max_target);
@@ -178,11 +179,14 @@ MRI   *MRIySobelRegion(MRI *mri_src, MRI *mri_y, int frame,MRI_REGION *region);
 MRI   *MRIzSobelRegion(MRI *mri_src, MRI *mri_z, int frame,MRI_REGION *region);
 
 MRI   *MRIreduce(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIreduceByte(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, 
                          int axis) ;
 MRI   *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *kernel, 
                      int len, int axis) ;
 MRI   *MRIreduce1d(MRI *mri_src, MRI *mri_dst,float *kernel,int len,int axis);
+MRI   *MRIreduce1dByte(MRI *mri_src, MRI *mri_dst,float *kernel,int len,
+                       int axis);
 MRI   *MRIdiffuse(MRI *mri_src, MRI *mri_dst, double k, 
                     int niter, int which, double slope) ;
 MRI   *MRIdiffuseCurvature(MRI *mri_src, MRI *mri_dst, 
@@ -224,8 +228,8 @@ MRI   *MRIextractIntoRegion(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
                             MRI_REGION *region) ;
 
 MRI   *MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region) ;
-MRI   *MRIextractPlane(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
-                        int x, int y, int z);
+MRI   *MRIextractPolvPlane(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, 
+                           int wsize, int x, int y, int z);
 MRI   *MRIextractCpolv(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, 
                            int wsize, int x, int y, int z);
 MRI   *MRIextractCpolvCoords(MRI *mri_src, int *px, int *py, int *pz, 
@@ -303,7 +307,13 @@ MRI   *MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation,
 int   MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask, int orientation, 
                              int x, int y, int z,int size,int fill_val);
 
+MRI   *MRIextractPlane(MRI *mri_src, MRI *mri_dst, int orientation, int where);
+int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
+                    float dx, float dy, float dz, int fill_val);
+
 int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
+int   MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z, 
+                              Real *pdx, Real *pdy, Real *pdz) ;
 
 /* resampling routines */
 MRI   *MRIupsample2(MRI *mri_src, MRI *mri_dst) ;
