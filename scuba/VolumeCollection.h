@@ -5,7 +5,11 @@
 #include "DataCollection.h"
 #include "ScubaROIVolume.h"
 extern "C" {
+#ifdef Status
+#undef Status
+#endif
 #include "mri.h"
+
 #ifdef X
   #undef X 
 #endif
