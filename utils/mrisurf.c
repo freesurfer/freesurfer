@@ -6286,7 +6286,7 @@ mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     done = delta_t < min_dt ;
   }
 
-  if (Gdiag & DIAG_WRITE)
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON && fp)
     fclose(fp) ;
 
   return(total_delta) ;
