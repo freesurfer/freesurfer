@@ -29,7 +29,7 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.13 1998/05/20 19:37:53 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.14 1998/05/22 15:42:37 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -88,7 +88,11 @@ static long frame_ydim = 600;
 
 static int talairach_flag = 0 ;
 static int medial_flag = 0 ;
-static int lateral_flag = 1 ;
+static int lateral_flag = 0 ;
+static int posterior_flag = 0 ;
+static int basal_flag = 0 ;
+static int frontal_flag = 0 ;
+static int dorsal_flag = 0 ;
 
 static int normalize_flag = 0 ;
 static float angle_offset = 0.0f ;
@@ -134,6 +138,8 @@ static int tiff_flag = 0;
 static int param_no = -1 ;
 static int normalize_param = 0 ;
 
+static char *output_name = NULL ;
+
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
@@ -141,7 +147,7 @@ main(int argc, char *argv[])
 {
   char            **av, *in_fname, *out_prefix, out_fname[100], name[100],
     path[100], *cp, hemi[100], fname[100], *surf_fname ;
-  int             ac, nargs, size, ino, old_status, i ;
+  int             ac, nargs, size, ino, old_status, i, drawn ;
   float           angle = 0.0f ;
   unsigned short  *red=NULL, *green=NULL, *blue=NULL;
   unsigned char   *rgb=NULL;
@@ -176,23 +182,29 @@ main(int argc, char *argv[])
                                   sizeof(unsigned char));
   
   xinit() ;             /* open connection with x server */
+
+
+  if (!medial_flag && !posterior_flag && !basal_flag && !frontal_flag &&
+      !dorsal_flag)
+    lateral_flag = 1 ;   /* default view if no other specified */
   
   for (ino = 1 ; ino < argc-1 ; ino++)
   {
+    drawn = 0 ;
     surf_fname = in_fname = argv[ino] ;
     FileNameOnly(surf_fname, name) ;
+    cp = strchr(name, '.') ;
+    if (cp)
+    {
+      strncpy(hemi, cp-2, 2) ;
+      hemi[2] = 0 ;
+    }
+    else
+      strcpy(hemi, "lh") ;
+
     if (patch_flag)  /* read the orig surface, then the patch file */
     {
       FileNamePath(in_fname, path) ;
-      cp = strchr(name, '.') ;
-      if (cp)
-      {
-        strncpy(hemi, cp-2, 2) ;
-        hemi[2] = 0 ;
-      }
-      else
-        strcpy(hemi, "lh") ;
-
       sprintf(fname, "%s/%s.orig", path, hemi) ;
       mris = MRISfastRead(fname) ;
       if (!mris)
@@ -214,6 +226,9 @@ main(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, in_fname) ;
     }
+
+    if (output_name)     /* user specified stem for .rgb file name */
+      sprintf(name, "%s.%s", hemi, output_name) ;
 
     if (coord_fname)
     {
@@ -332,6 +347,7 @@ main(int argc, char *argv[])
     {
       if (lateral_flag)
       {
+        drawn = 1 ;
         if (mris->hemisphere == RIGHT_HEMISPHERE)
           angle = RIGHT_HEMISPHERE_ANGLE ;
         else
@@ -363,16 +379,88 @@ main(int argc, char *argv[])
         }
       }
       
+      if (dorsal_flag)
+      {
+        if (drawn)  /* clear old display */
+          clear_pixmaps(mris) ;
+
+        drawn = 1 ;
+        if (mris->hemisphere == RIGHT_HEMISPHERE)
+          angle = RIGHT_HEMISPHERE_ANGLE ;
+        else
+          angle = LEFT_HEMISPHERE_ANGLE ;
+        angle += angle_offset ;
+        glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+
+        z_angle = 90.0f ;
+        glRotatef(x_angle, 1.0f, 0.0f, 0.0f) ;
+        glRotatef(y_angle, 0.0f, 1.0f, 0.0f) ;
+        glRotatef(z_angle, 0.0f, 0.0f, 1.0f) ;
+        
+        glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+        OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
+        glEndList() ;
+        glCallList(current_list) ;      /* render sphere display list */
+        if (!tiff_flag)
+        {
+          grabPixels(frame_xdim, frame_ydim, red, green, blue) ;
+          sprintf(out_fname, "%s/%s.%s.rgb", out_prefix, "dorsal", name) ;
+          fprintf(stderr, "writing rgb file %s\n", out_fname) ;
+          save_rgb(out_fname, frame_xdim, frame_ydim, red, green, blue) ;
+        }
+        else
+        {
+          grabPixelsTIFF(frame_xdim, frame_ydim, rgb) ;
+          sprintf(out_fname, "%s/%s.%s.tiff", out_prefix, "dorsal", name) ;
+          fprintf(stderr, "writing TIFF file %s\n", out_fname) ;
+          save_TIFF(out_fname, frame_xdim, frame_ydim, rgb) ;
+        }
+      }
+      
+      if (basal_flag)
+      {
+        if (drawn)  /* clear old display */
+          clear_pixmaps(mris) ;
+
+        drawn = 1 ;
+        if (mris->hemisphere == RIGHT_HEMISPHERE)
+          angle = RIGHT_HEMISPHERE_ANGLE ;
+        else
+          angle = LEFT_HEMISPHERE_ANGLE ;
+        angle += angle_offset ;
+        glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+        z_angle = -90.0f ;
+
+        glRotatef(x_angle, 1.0f, 0.0f, 0.0f) ;
+        glRotatef(y_angle, 0.0f, 1.0f, 0.0f) ;
+        glRotatef(z_angle, 0.0f, 0.0f, 1.0f) ;
+        
+        glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+        OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
+        glEndList() ;
+        glCallList(current_list) ;      /* render sphere display list */
+        if (!tiff_flag)
+        {
+          grabPixels(frame_xdim, frame_ydim, red, green, blue) ;
+          sprintf(out_fname, "%s/%s.%s.rgb", out_prefix, "basal", name) ;
+          fprintf(stderr, "writing rgb file %s\n", out_fname) ;
+          save_rgb(out_fname, frame_xdim, frame_ydim, red, green, blue) ;
+        }
+        else
+        {
+          grabPixelsTIFF(frame_xdim, frame_ydim, rgb) ;
+          sprintf(out_fname, "%s/%s.%s.tiff", out_prefix, "basal", name) ;
+          fprintf(stderr, "writing TIFF file %s\n", out_fname) ;
+          save_TIFF(out_fname, frame_xdim, frame_ydim, rgb) ;
+        }
+      }
+      
       if (medial_flag)
       {
-        if (lateral_flag)  /* clear old display */
-        {
+        if (drawn)  /* clear old display */
           clear_pixmaps(mris) ;
-#ifdef IRIX
-          /*          glRotatef(-angle, 0.0f, 1.0f, 0.0f) ;*/
-#endif
-        }
 
+        drawn = 1 ;
         if (mris->hemisphere == LEFT_HEMISPHERE)
           angle = RIGHT_HEMISPHERE_ANGLE ;
         else
@@ -400,6 +488,74 @@ main(int argc, char *argv[])
         {
           grabPixelsTIFF(frame_xdim, frame_ydim, rgb) ;
           sprintf(out_fname, "%s/%s.%s.tiff", out_prefix, "medial", name) ;
+          fprintf(stderr, "writing TIFF file %s\n", out_fname) ;
+          save_TIFF(out_fname, frame_xdim, frame_ydim, rgb) ;
+        }
+      }
+      if (posterior_flag)
+      {
+        if (drawn)  /* clear old display */
+          clear_pixmaps(mris) ;
+
+        drawn = 1 ;
+        angle = 180.0f ;
+        angle += angle_offset ;
+        glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+
+        
+        glRotatef(x_angle, 1.0f, 0.0f, 0.0f) ;
+        glRotatef(y_angle, 0.0f, 1.0f, 0.0f) ;
+        glRotatef(z_angle, 0.0f, 0.0f, 1.0f) ;
+        
+        glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+        OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
+        glEndList() ;
+        glCallList(current_list) ;      /* render sphere display list */
+        if (!tiff_flag) 
+        {
+          grabPixels(frame_xdim, frame_ydim, red, green, blue) ;
+          sprintf(out_fname, "%s/%s.%s.rgb", out_prefix, "posterior", name) ;
+          fprintf(stderr, "writing rgb file %s\n", out_fname) ;
+          save_rgb(out_fname, frame_xdim, frame_ydim, red, green, blue) ;
+        }
+        else
+        {
+          grabPixelsTIFF(frame_xdim, frame_ydim, rgb) ;
+          sprintf(out_fname, "%s/%s.%s.tiff", out_prefix, "posterior", name) ;
+          fprintf(stderr, "writing TIFF file %s\n", out_fname) ;
+          save_TIFF(out_fname, frame_xdim, frame_ydim, rgb) ;
+        }
+      }
+      if (frontal_flag)
+      {
+        if (drawn)  /* clear old display */
+          clear_pixmaps(mris) ;
+
+        drawn = 1 ;
+        angle = 0.0 ;
+        angle += angle_offset ;
+        glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+
+        
+        glRotatef(x_angle, 1.0f, 0.0f, 0.0f) ;
+        glRotatef(y_angle, 0.0f, 1.0f, 0.0f) ;
+        glRotatef(z_angle, 0.0f, 0.0f, 1.0f) ;
+        
+        glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+        OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
+        glEndList() ;
+        glCallList(current_list) ;      /* render sphere display list */
+        if (!tiff_flag) 
+        {
+          grabPixels(frame_xdim, frame_ydim, red, green, blue) ;
+          sprintf(out_fname, "%s/%s.%s.rgb", out_prefix, "frontal", name) ;
+          fprintf(stderr, "writing rgb file %s\n", out_fname) ;
+          save_rgb(out_fname, frame_xdim, frame_ydim, red, green, blue) ;
+        }
+        else
+        {
+          grabPixelsTIFF(frame_xdim, frame_ydim, rgb) ;
+          sprintf(out_fname, "%s/%s.%s.tiff", out_prefix, "frontal", name) ;
           fprintf(stderr, "writing TIFF file %s\n", out_fname) ;
           save_TIFF(out_fname, frame_xdim, frame_ydim, rgb) ;
         }
@@ -526,6 +682,36 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "reading coordinate locations from %s.\n", coord_fname);
     nargs = 1 ;
   }
+  else if (!stricmp(option, "lateral"))
+  {
+    fprintf(stderr, "generating lateral views.\n");
+    lateral_flag = 1 ;
+  }
+  else if (!stricmp(option, "posterior"))
+  {
+    fprintf(stderr, "generating posterior views.\n");
+    posterior_flag = 1 ;
+  }
+  else if (!stricmp(option, "medial"))
+  {
+    fprintf(stderr, "generating medial views.\n");
+    medial_flag = 1 ;
+  }
+  else if (!stricmp(option, "basal") || !stricmp(option, "ventral"))
+  {
+    fprintf(stderr, "generating basal views.\n");
+    basal_flag = 1 ;
+  }
+  else if (!stricmp(option, "frontal") || !stricmp(option, "anterior"))
+  {
+    fprintf(stderr, "generating frontal views.\n");
+    frontal_flag = 1 ;
+  }
+  else if (!stricmp(option, "dorsal"))
+  {
+    fprintf(stderr, "generating dorsal views.\n");
+    dorsal_flag = 1 ;
+  }
   else if (!stricmp(option, "mesh"))
     compile_flags |= MESH_FLAG ;
   else if (!stricmp(option, "tiff"))
@@ -545,7 +731,13 @@ get_option(int argc, char *argv[])
     for (i = 0 ; i < area->n_points ; i++)
       marked_vertices[nmarked++] = area->lv[i].vno ;
     LabelFree(&area) ;
+    break ;
   }
+  case 'O':
+    output_name = argv[2] ;
+    fprintf(stderr, "using %s as output stem\n", output_name) ;
+    nargs = 1 ;
+    break ;
   case 'N':
     normalize_flag = 1 ;
     break ;
@@ -576,7 +768,6 @@ get_option(int argc, char *argv[])
     break ;
   case 'M':
     medial_flag = 1 ;
-    lateral_flag = 0 ;
     break ;
   case 'T':
     talairach_flag = 1 ;
