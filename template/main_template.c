@@ -13,6 +13,7 @@
 #include "utils.h"
 #include "const.h"
 #include "timer.h"
+#include "version.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -31,6 +32,12 @@ main(int argc, char *argv[])
   char   *in_fname, *out_fname ;
   int          msec, minutes, seconds ;
   struct timeb start ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: main_template.c,v 1.2 2003/04/15 16:42:56 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

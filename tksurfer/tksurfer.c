@@ -14,6 +14,7 @@
 #include "diag.h"
 #include "rgb_image.h"
 #include "const.h"
+#include "version.h"
 
 static void resize_brain(float surface_area) ;
 static void set_value_label_name(char *label_name, int field) ;
@@ -18158,8 +18159,15 @@ int main(int argc, char *argv[])   /* new main */
   char tcl_cmd[1024];
   int found_script = FALSE;
   char* tksurfer_scripts_dir = NULL;
+  int nargs;
   /* end rkt */
   
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.39 2003/04/15 16:48:54 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
+
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;

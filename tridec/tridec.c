@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "const.h"
-
+#include "version.h"
 
 int
 main(int argc,char *argv[])
@@ -14,8 +14,13 @@ main(int argc,char *argv[])
   char line[STRLEN]; 
   char *data_dir,*mri_dir;
   int i;
+  int nargs;
 
-
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: tridec.c,v 1.2 2003/04/15 16:49:32 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   if (argc!=5) {
     printf("Usage: %s subject_name fine_file ico_file out_file\n",argv[0]);
