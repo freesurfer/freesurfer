@@ -1,0 +1,36 @@
+#!/bin/csh -f
+
+if($#argv < 2) then
+  echo "parse-measasc meas.asc varname1 <varname2 ...>"
+  exit 1;
+endif
+
+set measasc = $argv[1];
+set varname = ($argv[2-$#argv]);
+
+if(! -e $measasc) then
+  echo "ERROR: cannot find $measasc"
+  exit 1;
+endif
+
+set tmpfile = meas.asc.$$
+cp $measasc /tmp/$tmpfile
+cd /tmp
+dos2unix $tmpfile >& /dev/null
+
+set vallist = ();
+foreach v ($varname)
+  set val = `cat $tmpfile |  awk -v v="$v" '{if($1 == v) print $3}'`;
+  if($#val == 0) then
+    echo "ERROR: cannot find $v in $measasc"
+    exit 1;
+  endif
+  set val = `echo "$val" | sed 's/\[//g' | sed 's/\]//g'`;
+  set vallist = ($vallist $val);
+end
+
+rm $tmpfile
+
+echo $vallist
+
+exit 0
