@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.29 1999/08/05 23:44:09 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.30 1999/08/06 00:51:31 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -146,8 +146,10 @@ static MRI *find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,
                                int seed_set) ;
 static int find_slice_center(MRI *mri,  int *pxo, int *pyo) ;
 static int find_corpus_callosum(MRI *mri, Real *ccx, Real *ccy, Real *ccz) ;
-static int find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz) ;
-static int find_cc_slice(MRI *mri, Real *pccx, Real *pccy, Real *pccz) ;
+static int find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
+                     int mid_x) ;
+static int find_cc_slice(MRI *mri,Real *pccx,Real *pccy,Real *pccz);
+
 static int neighbors_on(MRI *mri, int x0, int y0, int z0) ;
 static int MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed, 
                          int z_seed, int fill_val) ;
@@ -291,7 +293,7 @@ main(int argc, char *argv[])
     }
     else
       mri_tmp = mri_im ;
-    find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z) ;
+    find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z, x_cc) ;
     if (mri_tmp != mri_im)
     {
       MRIfree(&mri_tmp) ;
@@ -1231,11 +1233,11 @@ find_corpus_callosum(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
 
 #define MIN_BRAINSTEM_THICKNESS    15
 #define MAX_BRAINSTEM_THICKNESS    35
-#define MIN_DELTA_THICKNESS         3
+#define MIN_DELTA_THICKNESS         6
 #define MIN_BRAINSTEM_HEIGHT       25
 
 static int
-find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
+find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz, int x_cc)
 {
   MRI   *mri_slice, *mri_filled ;
   Real  xr, yr, zr ;
@@ -1255,6 +1257,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
   yr = (Real)(region.y+region.dy/2) ;
   zr = (Real)(region.z+region.dz/2) ;
   xv = (int)xr ; yv = (int)yr ; zv = (int)zr ;
+  xv = x_cc ;   /* use corpus callosum!! */
   MRIvoxelToTalairach(mri, xr, yr, zr, &xr, &yr, &zr);
 
 #if 0
