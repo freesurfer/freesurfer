@@ -50,6 +50,7 @@ MATRIX  *MatrixScalarMul(MATRIX *mIn, float val, MATRIX *mOut) ;
 MATRIX  *MatrixClear(MATRIX *mat) ;
 MATRIX  *MatrixSquareElts(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixDiag(MATRIX *mDiag, MATRIX *mOut) ;
+MATRIX  *MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst) ;
 MATRIX  *MatrixCopyRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, 
                                  int start_col, int rows, int cols, 
                                  int dest_row, int dest_col) ;
