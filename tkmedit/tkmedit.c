@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/29 15:33:28 $
-// Revision       : $Revision: 1.181 $
-char *VERSION = "$Revision: 1.181 $";
+// Revision Date  : $Date: 2003/09/29 16:06:14 $
+// Revision       : $Revision: 1.182 $
+char *VERSION = "$Revision: 1.182 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1034,7 +1034,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.181 2003/09/29 15:33:28 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.182 2003/09/29 16:06:14 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -7710,7 +7710,8 @@ void CloneAnatomicalVolumeInRangeArray ( tkm_tVolumeType iDestVolume,
   float        sourceValue    = 0;
   float        value    = 0;
 
-  if( NULL == gAnatomicalVolume[iDestVolume] ) {
+  if( NULL == gAnatomicalVolume[iDestVolume] ||
+      NULL == gAnatomicalVolume[iSourceVolume] ) {
     return;
   }
 
@@ -7828,7 +7829,8 @@ int EditAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue ) {
   
   tkm_tErr    eResult = tkm_tErr_NoErr;
   Volm_tErr   eVolume = Volm_tErr_NoErr;
-  float        value   = 0;
+  float       value   = 0;
+  char        sTclArguments[tkm_knTclCmdLen] = "";
   
   DebugEnterFunction( ("EditAnatomicalVolume( iMRIIdx=%p, inValue=%d)",
 		       iMRIIdx, inValue) );
@@ -7843,6 +7845,23 @@ int EditAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue ) {
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
   
+  /* resend the min/max values if necessary. */
+  if( inValue < gfaAnaColorMin[tkm_tVolumeType_Main] || 
+      inValue > gfaAnaColorMax[tkm_tVolumeType_Main] ) {
+
+    Volm_GetValueMinMax( gAnatomicalVolume[tkm_tVolumeType_Main], 
+			 &gfaAnaColorMin[tkm_tVolumeType_Main], 
+			 &gfaAnaColorMax[tkm_tVolumeType_Main] );
+
+    sprintf( sTclArguments, "%d %.2f %.2f", (int)tkm_tVolumeType_Main, 
+	     gfaAnaColorMin[tkm_tVolumeType_Main], 
+	     gfaAnaColorMax[tkm_tVolumeType_Main] );
+
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeValueMinMax, 
+			sTclArguments );
+  }
+
+
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
@@ -7856,7 +7875,8 @@ int EditAuxAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue ) {
   
   tkm_tErr    eResult = tkm_tErr_NoErr;
   Volm_tErr   eVolume = Volm_tErr_NoErr;
-  float        value   = 0;
+  float       value   = 0;
+  char        sTclArguments[tkm_knTclCmdLen] = "";
   
   DebugEnterFunction(("EditAuxAnatomicalVolume( iMRIIdx=%p, inValue=%d)",
 		       iMRIIdx, inValue) );
@@ -7871,6 +7891,22 @@ int EditAuxAnatomicalVolume ( xVoxelRef iMRIIdx, int inValue ) {
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingVolume );
   
+  /* resend the min/max values if necessary. */
+  if( inValue < gfaAnaColorMin[tkm_tVolumeType_Aux] || 
+      inValue > gfaAnaColorMax[tkm_tVolumeType_Aux] ) {
+
+    Volm_GetValueMinMax( gAnatomicalVolume[tkm_tVolumeType_Aux], 
+			 &gfaAnaColorMin[tkm_tVolumeType_Aux], 
+			 &gfaAnaColorMax[tkm_tVolumeType_Aux] );
+
+    sprintf( sTclArguments, "%d %.2f %.2f", (int)tkm_tVolumeType_Aux, 
+	     gfaAnaColorMin[tkm_tVolumeType_Aux], 
+	     gfaAnaColorMax[tkm_tVolumeType_Aux] );
+
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeValueMinMax, 
+			sTclArguments );
+  }
+
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
