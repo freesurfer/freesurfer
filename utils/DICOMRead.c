@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.11 2001/09/19 18:19:59 greve Exp $
+   $Id: DICOMRead.c,v 1.12 2001/09/20 18:02:36 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -66,6 +66,8 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   int row, col, slice, frame;
   unsigned short *pixeldata;
   MRI *vol;
+
+  slice = 0; frame = 0; /* to avoid compiler warnings */
 
   /* Get the directory of the DICOM data from dcmfile */
   dcmpath = fio_dirname(dcmfile);  
