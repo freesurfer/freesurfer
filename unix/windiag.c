@@ -14,11 +14,7 @@
 ------------------------------------------------------------------------*/
 
 #include <stdio.h>
-#ifdef SunOS
-#include <sys/varargs.h>
-#else
 #include <stdarg.h>
-#endif
 #include <math.h>
 
 #include <xview/notify.h>
@@ -32,9 +28,6 @@
 #include "thread.h"
 
 
-#ifdef SunOS
-#include <X11/Xlib.h>
-#endif
 /*------------------------------------------------------------------------
                             CONSTANTS
 ------------------------------------------------------------------------*/
