@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/09 15:07:57 $
-// Revision       : $Revision: 1.87 $
+// Revision Date  : $Date: 2004/03/26 17:45:09 $
+// Revision       : $Revision: 1.88 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.87 2004/03/09 15:07:57 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.88 2004/03/26 17:45:09 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2104,6 +2104,7 @@ float findMinSize(MRI *mri, int *conform_width)
 }
 /* EOF */
 
+// this function is called when conform is done
 int findRightSize(MRI *mri, float conform_size)
 {
   // user gave the conform_size
@@ -2127,9 +2128,24 @@ int findRightSize(MRI *mri, float conform_size)
     fmax = (fdepth > fheight) ? fdepth : fheight;
   // get the width with conform_size
   conform_width = (int) ceil(fmax/conform_size);
+
   // just to make sure that if smaller than 256, use 256 anyway
   if (conform_width < 256)
     conform_width = 256;
+  // conform_width >= 256.   allow 10% leeway
+  else if ((conform_width -256.)/256. < 0.1)
+    conform_width = 256;
 
+  // if more than 256, warn users
+  if (conform_width > 256)
+  {
+    fprintf(stderr, "WARNING ==================++++++++++++++++++++++++=======================================\n");
+    fprintf(stderr, "The physical sizes are (%.2f mm, %.2f mm, %.2f mm), which cannot fit in 256^3 mm^3 volume.\n",
+	    fwidth, fheight, fdepth);
+    fprintf(stderr, "The resulting volume will have %d slices.\n", conform_width);
+    fprintf(stderr, "The freesurfer tools should be able to handle more than 256 slices.\n");
+    fprintf(stderr, "If you find problems, please let us know (freesurfer@nmr.mgh.harvard.edu).\n");
+    fprintf(stderr, "==================================================++++++++++++++++++++++++===============\n\n");
+  }
   return conform_width;
 }
