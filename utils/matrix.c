@@ -4,6 +4,10 @@
 #include <string.h>
 #include <memory.h>
 #include <math.h>
+#include <unistd.h>
+#ifdef _POSIX_MAPPED_FILES
+#include <sys/mman.h>
+#endif
 
 #include "nr.h"
 #include "matrix.h"
@@ -180,7 +184,8 @@ MATRIX *
 MatrixAlloc(int rows, int cols, int type)
 {
   MATRIX *mat ;
-  int    row, nelts ;
+  int    row, nelts, i;
+  float  f;
 
   mat = (MATRIX *)calloc(1, sizeof(MATRIX)) ;
   if (!mat)
@@ -208,7 +213,42 @@ MatrixAlloc(int rows, int cols, int type)
   be used.
 */
   mat->data = (float *)calloc(nelts+2, sizeof(float)) ;
-  if (!mat->data)
+
+
+  mat->mmapfile = NULL;
+  
+#ifdef _POSIX_MAPPED_FILES
+  if (!mat->data) /* First try to allocate a mmap'd tmpfile */
+  {
+    printf("MatrixAlloc(%d, %d): Using mmap'd tmpfile\n",
+           rows, cols) ;
+    if((mat->mmapfile = tmpfile()))
+    {
+      /* This maintains identical behavior with calloc */
+      f = 0;
+      for(i = 0; i < nelts+2; ++i) {
+        if(!(fwrite(&f, sizeof(float), 1, mat->mmapfile))) {
+          printf("MatrixAlloc(%d, %d): fwrite failed", rows, cols) ;
+          exit(1) ;
+        }
+      }
+      /* This seems to matter with some implementations of mmap */
+      fseek(mat->mmapfile, 0, 0) ;
+      /* lseek(fileno(mat->mapfile), (nelts+2) * sizeof(float), 0) ;*/
+      fflush(mat->mmapfile) ;
+      
+      mat->data = (float *)mmap(0, (nelts+2) * sizeof(float),
+                                PROT_READ | PROT_WRITE, MAP_SHARED,
+                                fileno(mat->mmapfile), 0) ;
+
+      if(mat->data == MAP_FAILED) {
+        mat->data = 0 ;
+      }
+    }
+  }
+#endif
+  
+  if (!mat->data) /* we _still_ couldn't get it! */
   {
     fprintf(stderr, "MatrixAlloc(%d, %d): allocation failed\n",
       rows, cols) ;
@@ -262,7 +302,21 @@ MatrixFree(MATRIX **pmat)
 
   /* silly numerical recipes in C requires 1-based stuff */
   mat->data -= 2 ;
-  free(mat->data) ;
+  if (mat->mmapfile)
+  {
+    int nelts ;
+
+    nelts = mat->rows*mat->cols ;
+    if (mat->type == MATRIX_COMPLEX)
+      nelts *= 2 ;
+
+    munmap(mat->data, (nelts+2) * sizeof(float)) ;
+    fclose(mat->mmapfile) ;
+  }
+  else{
+    free(mat->data) ;
+  }
+
   free(mat->rptr) ;
   free(mat) ;
 

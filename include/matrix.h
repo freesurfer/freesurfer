@@ -18,6 +18,7 @@ typedef struct
   int     cols ;
   float **rptr;    /* pointer to an array of rows */
   float *data;     /* pointer to base of data */
+  FILE *mmapfile;
 } MATRIX, VECTOR ;
 
 typedef struct
