@@ -202,7 +202,12 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
+  if (!stricmp(option, "single"))
+  {
+    use_filled = use_wm = make_edit_volume = 0 ;
+    fprintf(stderr, "making single mean/variance image\n") ;
+  }
+  else switch (toupper(*option))
   {
   case 'E':
     use_filled = use_wm = make_edit_volume = 1 ;
