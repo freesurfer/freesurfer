@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.4 2004/11/11 00:12:49 greve Exp $
+# $Id: flacproc-sess,v 1.5 2004/11/13 16:42:20 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.4 2004/11/11 00:12:49 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.5 2004/11/13 16:42:20 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -88,16 +88,14 @@ if(isempty(flac)) return; end
 
 nruns = size(flac.runlist,1);
 
-mstem = sprintf('%s/%s/masks/%s%s',flac.sess,flac.fsd,...
-                flac.mask,flac.formatext);
-%mask = fast_ldbslice(mstem);
+%mstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,...
+%                flac.mask,flac.formatext);
+mstem = sprintf('%s/%s/masks/%s%s',flac.sess,flac.fsd,flac.mask);
 mask = MRIread(mstem);
 indmask = find(mask.vol);
 indnotmask = find(~mask.vol);
 
-acfsegstem = sprintf('%s/%s/masks/%s%s',flac.sess,flac.fsd,...
-                acfsegstem,flac.formatext);
-%acfseg = fast_ldbslice(acfsegstem);
+acfsegstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,acfsegstem);
 acfseg = MRIread(acfsegstem);
 if(isempty(acfseg)) return; end
 acfseglist = unique(acfseg.vol(:));
@@ -126,9 +124,10 @@ for nthrun = 1:nruns
   end
 
   fprintf('Loading functional data (%6.1f)\n',toc);
-  ystem = sprintf('%s/%s/%s/%s%s',flac.sess,flac.fsd,...
-            flac.runlist(flac.nthrun,:),flac.funcstem,flac.formatext);
-  %[y mri] = fast_ldbslice(ystem);
+  ystem = sprintf('%s/%s/%s/%s',flac.sess,flac.fsd,...
+            flac.runlist(flac.nthrun,:),flac.funcstem);
+  %fprintf('ystem = %s\n',ystem);
+  %fprintf('yspec = %s\n',yspec);
   y = MRIread(ystem);
   if(isempty(y)) return; end
   szvol = size(y.vol);
@@ -188,21 +187,17 @@ for nthrun = 1:nruns
   tmp = y;
   tmp.vol = fast_mat2vol(beta,szvol);
   MRIwrite(tmp,stem);
-  %fast_svbslice(tmp,stem,[],[],mri);
 
   stem = sprintf('%s/rvar%s',outdir,flac.formatext);
   tmp = y;
   tmp.vol = fast_mat2vol(rvar,szvol);
   MRIwrite(tmp,stem);
-  %fast_svbslice(tmp,stem,[],[],mri);
 
   if(svres)
     stem = sprintf('%s/res%s',outdir,flac.formatext);
     tmp = y;
     tmp.vol = fast_mat2vol(r,szvol);
     MRIwrite(tmp,stem);
-    %tmp = fast_mat2vol(r,szvol);
-    %fast_svbslice(tmp,stem,[],[],mri);
   end
 
   fprintf('Computing contrasts   (%6.1f)\n',toc);
@@ -234,15 +229,11 @@ for nthrun = 1:nruns
     tmp = y;
     tmp.vol = fast_mat2vol(F,szvol);
     MRIwrite(tmp,stem);
-    %tmp = fast_mat2vol(F,szvol);
-    %fast_svbslice(tmp,stem,[],[],mri);
 
     stem = sprintf('%s/fsig%s',condir,flac.formatext);
     tmp = y;
     tmp.vol = fast_mat2vol(sig,szvol);
     MRIwrite(tmp,stem);
-    %tmp = fast_mat2vol(sig,szvol);
-    %fast_svbslice(tmp,stem,[],[],mri);
 
   end % contrasts
 
