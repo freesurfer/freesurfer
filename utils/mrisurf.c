@@ -2715,6 +2715,8 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
         Description
 
 ------------------------------------------------------*/
+static float neg_area_ratios[] = { 0.01f, 0.001f, 0.0001f } ;
+#define MAX_PASSES 4
 static int
 mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
                        int base_averages, float min_area_pct, int max_passes)
@@ -2726,19 +2728,21 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   if (pct_neg <= min_area_pct)
     return(0) ;   /* no steps */
 
-  parms->l_dist = 0.1f ; parms->l_area = 1.0f ;
-  if (Gdiag & DIAG_SHOW)
-  {
-    float ratio = (float)parms->l_area / (float)parms->l_dist ;
-    
-    fprintf(stderr, "area/dist = %2.3f - removing negative area\n", ratio) ;
-    if (Gdiag & DIAG_WRITE)
-      fprintf(parms->fp, "area/dist = %2.3f\n", ratio) ;
-  }
   old_averages = parms->n_averages ;
   npasses = 0 ;
   for (done=total_steps=0, n_averages = base_averages; !done ; n_averages /= 2)
   {
+    parms->l_dist = npasses >= MAX_PASSES ? 
+      neg_area_ratios[MAX_PASSES-1] : neg_area_ratios[npasses] ; 
+    parms->l_area = 1.0f ;
+    if (Gdiag & DIAG_SHOW && (n_averages == base_averages))
+    {
+      float ratio = (float)parms->l_area / (float)parms->l_dist ;
+      
+      fprintf(stderr, "area/dist = %2.3f - removing negative area\n", ratio) ;
+      if (Gdiag & DIAG_WRITE)
+        fprintf(parms->fp, "area/dist = %2.3f\n", ratio) ;
+    }
     parms->n_averages = n_averages ;
     steps = mrisIntegrate(mris, parms, n_averages) ;
     parms->start_t += steps ;
