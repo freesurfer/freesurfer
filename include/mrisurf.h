@@ -6,6 +6,7 @@
 #include "volume_io.h"
 #include "image.h"
 #include "matrix.h"
+#include "transform.h"
 
 #define TALAIRACH_COORDS     0
 #define SPHERICAL_COORDS     1
@@ -47,7 +48,7 @@ typedef struct face_type_
   float  angle[ANGLES_PER_TRIANGLE] ;
   float  orig_angle[ANGLES_PER_TRIANGLE]  ;
   int    ripflag;                        /* ripped face */
-#if 1
+#if 0
   float logshear,shearx,sheary;  /* compute_shear */
 #endif
 } face_type, FACE ;
@@ -56,9 +57,9 @@ typedef struct vertex_type_
 {
   float x,y,z;            /* curr position */
   float nx,ny,nz;         /* curr normal */
-  double dx, dy, dz ;     /* current change in position */
-  double odx, ody, odz ;  /* last change of position (for momentum) */
-  double tdx, tdy, tdz ;  /* temporary storage for averaging gradient */
+  float dx, dy, dz ;     /* current change in position */
+  float odx, ody, odz ;  /* last change of position (for momentum) */
+  float tdx, tdy, tdz ;  /* temporary storage for averaging gradient */
   float  curv;            /* curr curvature */
   float  curvbak ;
   float  val;             /* scalar data value (file: rh.val, sig2-rh.w) */
@@ -69,28 +70,20 @@ typedef struct vertex_type_
          origz ;          /* original coordinates */
   float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
   float e2x, e2y, e2z ;  /* 2nd basis vector for the local tangent plane */
-#if 1
-  float  ox,oy,oz;        /* last position (for undoing time steps) */
-  float mx,my,mz;         /* last movement */
+#if 0
   float dipx,dipy,dipz;  /* dipole position */
   float dipnx,dipny,dipnz; /* dipole orientation */
+#endif
   float nc;              /* curr length normal comp */
-  float onc;             /* last length normal comp */
   float val2;            /* complex comp data value (file: sig3-rh.w) */
   float valbak;          /* scalar data stack */
   float val2bak;         /* complex comp data stack */
-  float oval;            /* last scalar data (for smooth_val) */
   float stat;            /* statistic */
   int undefval;          /* [previously dist=0] */
   int old_undefval;      /* for smooth_val_sparse */
   int fixedval;          /* [previously val=0] */
-#if 0
-  float dist;            /* dist from sampled point [defunct: or 1-cos(a)] */
-  /* now used d field */
-#endif
   float fieldsign;       /* fieldsign--final: -1,0,1 (file: rh.fs) */
   float fsmask;          /* significance mask (file: rh.fm) */
-#endif
   int num;               /* number neighboring faces */
   int *f;                /* array neighboring face numbers */
   int *n;                /* [0-3, num long] */
@@ -101,30 +94,29 @@ typedef struct vertex_type_
   int vtotal ;        /* total # of neighbors, will be same as one of above*/
   float d ;              /* for distance calculations */
   int nsize ;            /* size of neighborhood (e.g. 1, 2, 3) */
-  float bnx,bny,obnx,obny;                       /* boundary normal */
 #if 0
+  float *tri_area ;      /* array of triangle areas - num long */
+  float *orig_tri_area ; /* array of original triangle areas - num long */
+  float dist;            /* dist from sampled point [defunct: or 1-cos(a)] */
+  float  ox,oy,oz;        /* last position (for undoing time steps) */
+  float mx,my,mz;         /* last movement */
+  float onc;             /* last length normal comp */
+  float oval;            /* last scalar data (for smooth_val) */
   float *fnx ;           /* face normal - x component */
   float *fny ;           /* face normal - y component */
   float *fnz ;           /* face normal - z component */
-#endif
-  float *tri_area ;      /* array of triangle areas - num long */
-  float *orig_tri_area ; /* array of original triangle areas - num long */
-#if 0
+  float bnx,bny,obnx,obny;                       /* boundary normal */
   float *tri_angle ;     /* angles of each triangle this vertex belongs to */
   float *orig_tri_angle ;/* original values of above */
+  float stress;          /* explosion */
+  float logshear,shearx,sheary,oshearx,osheary;  /* for shear term */
+  float ftmp ;          /* temporary floating pt. storage */
+  float logarat,ologarat,sqrtarat; /* for area term */
+  float smx,smy,smz,osmx,osmy,osmz;            /* smoothed curr,last move */
 #endif
   int   annotation;     /* area label (defunct--now from label file name!) */
-#if 0
-  float stress;          /* explosion */
-#endif
-  float logarat,ologarat,sqrtarat; /* for area term */
-  float logshear,shearx,sheary,oshearx,osheary;  /* for shear term */
-  float smx,smy,smz,osmx,osmy,osmz;            /* smoothed curr,last move */
   int   oripflag,origripflag;  /* cuts flags */
   float coords[3];
-#if 0
-  float ftmp ;          /* temporary floating pt. storage */
-#endif
   float theta, phi ;     /* parameterization */
   int   marked;          /* for a variety of uses */
   int   ripflag ;
@@ -650,6 +642,7 @@ int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;
 int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
+int  MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta) ;
 
 #if 1
 #include "mrishash.h"
