@@ -615,7 +615,8 @@ ScubaFrame::DoDraw() {
       }
 
       // If this is our selected view, draw a green box around it.
-      if( nRow == mnSelectedViewRow && 
+      if( mcRows > 1 && cCols > 1 &&
+	  nRow == mnSelectedViewRow && 
 	  nCol == mnSelectedViewCol ) {
 
 	glMatrixMode( GL_PROJECTION );
