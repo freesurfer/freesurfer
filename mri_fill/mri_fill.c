@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.43 2000/08/04 16:18:04 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.44 2000/08/21 21:36:08 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -24,7 +24,7 @@ static char vcid[] = "$Id: mri_fill.c,v 1.43 2000/08/04 16:18:04 fischl Exp $";
 #define CC_LOG_FILE                     "cc.log"
 
 /* min # of neighbors which must be on to retain a point */
-#define DEFAULT_NEIGHBOR_THRESHOLD      8
+#define DEFAULT_NEIGHBOR_THRESHOLD      1
 
 
 /* distance to search in each direction for a valid wm seed point */
