@@ -69,7 +69,7 @@ StcRead(char *fstem)
   stc->epoch_begin_lat = freadFloat(fp);
   stc->sample_period = freadFloat(fp);
   stc->nvertices = freadInt(fp);
-  printf("epoch_begin_lat=%f, sample_period=%f, nvertices=%d\n",
+  printf("StcRead: epoch_begin_lat=%f, sample_period=%f, nvertices=%d\n",
           stc->epoch_begin_lat,stc->sample_period,stc->nvertices);
   stc->vertices = (int *)calloc(stc->nvertices, sizeof(int)) ;
   if (!stc->vertices)
@@ -79,13 +79,6 @@ StcRead(char *fstem)
   for (vno=0;vno<stc->nvertices;vno++)
   {
     stc->vertices[vno] = freadInt(fp);
-#if 0
-    if (stc->vertices[vno]>=vertex_index)
-    {
-      printf("### stc->vertices[%d] = %d out of bounds\n",vno,stc->vertices[vno]);
-      exit(1);
-    }
-#endif
   }
   stc->ntimepts = freadInt(fp);
   printf("ntime=%d\n",stc->ntimepts);
@@ -94,13 +87,13 @@ StcRead(char *fstem)
   there = ftell(fp) ;
   fseek(fp, here, SEEK_SET) ;
 
-  ndipoles = nint((there-here) / (sizeof(float)) / stc->ntimepts) ;
-  dipoles_per_location = nint(ndipoles / (float)stc->nvertices) ;
+  stc->ndipoles = nint((there-here) / (sizeof(float)) / stc->ntimepts) ;
+  stc->nperdip = nint(stc->ndipoles / (float)stc->nvertices) ;
   fprintf(stderr, "%d dipoles detected - %d per location\n",
-          ndipoles, dipoles_per_location) ;
+    stc->ndipoles, stc->nperdip);
 
   stc->m_vals = 
-    MatrixAlloc(dipoles_per_location*stc->nvertices,stc->ntimepts,MATRIX_REAL);
+    MatrixAlloc(stc->nperdip*stc->nvertices,stc->ntimepts,MATRIX_REAL);
   if (!stc->m_vals)
     ErrorExit(ERROR_NOMEMORY, "StcRead(%s) could not allocate %dx%d matrix",
               fname, stc->nvertices, stc->ntimepts) ;
@@ -113,6 +106,16 @@ StcRead(char *fstem)
     }
   }
   fclose(fp);
-  printf("soltimecourse file %s read\n",fname);
+  /* printf("soltimecourse file %s read\n",fname); */
   return(stc) ;
+}
+
+void StcFree(STC* stc)
+{
+  if(stc->vertices)
+    free(stc->vertices);
+  if(stc->m_vals)
+    MatrixFree(&stc->m_vals);
+  
+  free(stc);
 }
