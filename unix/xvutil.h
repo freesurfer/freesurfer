@@ -60,8 +60,9 @@ typedef struct
   int         rescale_range ;
   int         frame ;
   int         used ;
-  int         entered ;   /* to prevent re-entrancy in repaint proc. */
+  int         entered ;     /* to prevent re-entrancy in repaint proc. */
   int         which ;
+  int         x, y ;        /* position on canvas */
 } DISPLAY_IMAGE, DIMAGE ;
 
 typedef struct
@@ -107,12 +108,13 @@ void XVdrawArrow(XV_FRAME *xvf, int which, int x, int y, float dx, float dy,
 void XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color) ;
 void XVsetParms(void (*event_handler)(Event *event, DIMAGE *dimage)) ;
 void XVsetKBhandler(void (*kb_handler)(Event *event, DIMAGE *dimage)) ;
-void XVsetRepaintHandler(void (*repaint_handler)(XV_FRAME *xvf,DIMAGE *dimage));
+void XVsetRepaintHandler(void(*repaint_handler)(XV_FRAME *xvf,DIMAGE *dimage));
 void XVshowVectorImage(XV_FRAME *xvf, int which, int x0, int y0, 
                   int width, int height, int color, IMAGE *image) ;
 void XVsetQuitFunc(void (*quit_func)(void)) ;
 void XVrepaintImage(XV_FRAME *xvf, int which) ;
 int XVsetMessagePosition(XV_FRAME *xvf, int which, int col, int row) ;
+int XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols) ;
 
 #define WINDOW_PAD          3
 
