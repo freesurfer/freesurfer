@@ -9,7 +9,7 @@
 #include <sys/timeb.h>
 
 /*----------- SunOS -----------------------*/
-#ifdef SunOS
+#ifdef SunOSX
 
 /* should be in stdlib.h */
 #ifndef EXIT_FAILURE
@@ -70,6 +70,11 @@ int putw(int w, FILE *stream);
 void swab(const void *from, void *to, size_t n);
 
 #endif   /* Linux */
+
+#ifdef SunOS
+#define nint(f)   ((int)(rint((double)f)))
+int stricmp(char *str1, char *str2) ;
+#endif
 
 /*----------- IRIX (SGI) -------------------*/
 #ifdef IRIX

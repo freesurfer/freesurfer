@@ -62,14 +62,9 @@
 #define ISSMALL(f)   (fabs(f) < 0.000001f)
 #define ISTINY(f)    (fabs(f) < 0.00000001f)
 
-#ifndef SunOS
 #define FZERO(f)     (fabs(f) < 0.0000001F)
 #define iszero(f)   (FZERO(f))
 #define DZERO(d)     (fabs(d) < 1e-15)
-#else
-#define FZERO(f)     (iszero(f))
-#define DZERO(d)     (iszero(d))
-#endif
 
 #define ISINT(f)      ((float)((int)f) == f)
 #define FEQUAL(f1,f2) (FZERO(f1-f2))
@@ -99,6 +94,10 @@
 #define log2(f)     (log(f) / log(2.0))
 #endif
 
+#ifdef SunOS
+#define exp2(f)     pow(2.0,(f))
+#define log2(f)     (log(f) / log(2.0))
+#endif
 
 #define ISPOW2(n)   (exp2((float)nint(log2((float)n))) == (float)n)
 
