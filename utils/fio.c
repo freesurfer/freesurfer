@@ -2,6 +2,7 @@
 #include <math.h>
 #include "fio.h"
 #include "machine.h"
+#include "proto.h"
 
 FILE *MGHopen_file(char *fname, char *rwmode)
 {
