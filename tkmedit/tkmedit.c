@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/14 20:26:40 $
-// Revision       : $Revision: 1.133 $
-char *VERSION = "$Revision: 1.133 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/03/17 22:52:11 $
+// Revision       : $Revision: 1.134 $
+char *VERSION = "$Revision: 1.134 $";
 
 #define TCL
 #define TKMEDIT 
@@ -2602,7 +2602,7 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   char      sError[tkm_knErrStringLen] = "";
   MATRIX*   conformMatrix = NULL;
   mriTransformRef surfaceTransform = NULL;
-
+  MATRIX *tmp1, *tmp2;
   
   DebugEnterFunction( ("LoadSurface( iType=%d, isName=%s )", 
            (int)iType, isName) );
@@ -2637,16 +2637,44 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
 		     eResult, tkm_tErr_CouldntAllocate );
 
-  DebugNote( ("Copying conformMatrix to BtoRAS in surfaceTransform") );
-  eTrns = Trns_CopyBtoRAS( surfaceTransform, conformMatrix );
-  DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
-		     eResult, tkm_tErr_CouldntAllocate );
+  // modify surfaceTransform->mBtoRAS
+  *MATRIX_RELT(surfaceTransform->mBtoRAS, 1, 4) = 128;
+  *MATRIX_RELT(surfaceTransform->mBtoRAS, 2, 4) = -128;
+  *MATRIX_RELT(surfaceTransform->mBtoRAS, 3, 4) = 128;
+  // modify surfaceTransform->mARAStoBRAS
+  tmp1 = MatrixInverse(surfaceTransform->mAtoRAS, NULL);
+  tmp2 = MatrixMultiply(surfaceTransform->mAtoB, tmp1, NULL);
+  surfaceTransform->mARAStoBRAS = MatrixMultiply(surfaceTransform->mBtoRAS, tmp2, 
+						 surfaceTransform->mARAStoBRAS);
+  MatrixFree(&tmp1);
+  MatrixFree(&tmp2);
+
+  // DebugNote( ("Copying conformMatrix to BtoRAS in surfaceTransform") );
+  // eTrns = Trns_CopyBtoRAS( surfaceTransform, conformMatrix );
+  // DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),eResult, tkm_tErr_CouldntAllocate );
 
   /* create the surface */
   DebugNote( ("Creating surface") );
   eSurface = Surf_New( &gSurface[iType], sName, surfaceTransform);
   DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
          eResult, tkm_tErr_CouldntLoadSurface );
+  printf("Surf_New gIdxToRASTransform================================\n");
+  printf("AtoRAS\n");
+  MatrixPrint(stdout, gIdxToRASTransform->mAtoRAS);
+  printf("BToRAS\n");
+  MatrixPrint(stdout, gIdxToRASTransform->mBtoRAS);
+  printf("ARASToBRAS\n");
+  MatrixPrint(stdout, gIdxToRASTransform->mARAStoBRAS);
+  printf("RASToA\n");
+  MatrixPrint(stdout, gIdxToRASTransform->mRAStoA);
+  printf("RASToB\n");
+  MatrixPrint(stdout, gIdxToRASTransform->mRAStoB);
+  printf("BRASToARAS\n");
+  MatrixPrint(stdout, gIdxToRASTransform->mBRAStoARAS);
+  printf("AToB\n");
+  MatrixPrint(stdout, gIdxToRASTransform->mAtoB);
+  printf("BToA\n");
+  MatrixPrint(stdout, gIdxToRASTransform->mBtoA);
   
   /* see if it was loaded */
   DebugNote( ("Loading main vertex set") );

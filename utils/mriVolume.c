@@ -404,7 +404,8 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   MATRIX*   scannerTransform  = NULL;
   MATRIX*   idxToRASTransform = NULL;
   MATRIX    *m_resample ;
-  
+  MATRIX *BtoRAS;
+
   DebugEnterFunction( ("Volm_SetFromMRI_( this=%p, iMRI=%p )", this, iMRI ) );
   
   DebugNote( ("Verifying volume") );
@@ -503,6 +504,9 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
       DebugNote( ("Creating idx to ras transform") );
       Trns_New( &this->mIdxToRASTransform );
       DebugNote( ("Getting idx to ras matrix") );
+      // we set four matrices
+      // AtoRAS, AtoB, BtoRAS, ARStoBRAS
+      // this is AtoRAS ////////////////////////////////
       idxToRASTransform = MRIgetVoxelToRasXform( iMRI );
       // that includes voxelsize
       DebugAssertThrowX( (NULL != idxToRASTransform),
@@ -510,8 +514,16 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
       DebugNote( ("Copying idx to ras transform matrix into transform") );
       Trns_CopyAtoRAS( this->mIdxToRASTransform, idxToRASTransform );
       DebugNote( ("Copying identity matrix into idx to ras transform") );
+      // ARSToBRAS should be identity
       Trns_CopyARAStoBRAS( this->mIdxToRASTransform, identity ); /* no display xform */
-      Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
+      // AtoB is resample_inv
+      Trns_CopyAtoB(this->mIdxToRASTransform, this->m_resample_inv);
+      // BtoRAS is calculated
+      // BtoRAS = AtoRAS*(inv AtoB) = AtoRAS*(this->m_resampe)
+      BtoRAS = MatrixMultiply(idxToRASTransform, this->m_resample, NULL);
+      Trns_CopyBtoRAS(this->mIdxToRASTransform, BtoRAS);
+      MatrixFree(&BtoRAS);
+      // Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
 
 #ifndef FORCE_USE_EMBEDDED_CRAS
     }
