@@ -15,7 +15,7 @@
 
 /*---------------------------- STRUCTURES -----------------------------*/
 
-#define MAX_VOXELS  1000  
+#define MAX_VOXELS  10000  
 typedef struct
 {
   int nused ;
@@ -1157,6 +1157,13 @@ mhtAddVoxel(VOXEL_LIST *vl, int xv, int yv, int zv)
   for (i = 0 ; i < vl->nused ; i++)
     if (vl->v[i][0] == xv && vl->v[i][1] == yv && vl->v[i][2] == zv)
       return(NO_ERROR) ;
+  if (vl->nused >= MAX_VOXELS)
+  {
+    fprintf(stderr, "mhtAddVoxels(%d, %d, %d): complete list too big!\n",xv,yv,zv) ;
+    ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, 
+                                 "mhtAddVoxels(%d, %d, %d): complete list too big!",
+                                 xv,yv,zv)) ;
+  }
   vl->v[vl->nused][0] = xv ;
   vl->v[vl->nused][1] = yv ;
   vl->v[vl->nused][2] = zv ; vl->nused++ ;
