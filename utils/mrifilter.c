@@ -3370,7 +3370,73 @@ MRIremoveBrightStuff(MRI *mri_src, MRI *mri_dst, int threshold)
   }
   return(mri_dst) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIwindow(MRI *mri_src, MRI *mri_dst, int which, float x0, float y0, float z0,
+          float parm)
+{
+  int     x, y, z, height, depth, width, val ;
+  double  w, dist, dx, dy, dz ;
+
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        dx = (double)x - x0 ; dy = (double)y - y0 ; dz = (double)z - z0 ;
+        dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+        switch (which)
+        {
+        default:
+        case WINDOW_GAUSSIAN:
+          ErrorReturn(NULL, 
+                      (ERROR_UNSUPPORTED, 
+                       "MRIwindow: unsupported window type %d", which)) ;
+          break ;
+        case WINDOW_HANNING:
+#if 0
+          w = .5*(1 - cos(2*M_PI*dist/parm)); /* symmetric */
+#else 
+          w = 0.5*cos(M_PI*dist/parm)+0.5 ;   /* one-sided */
+#endif
+          if (dist > parm)
+            w = 0.0 ;
+          break ;
+        case WINDOW_HAMMING:
+#if 0
+          w = .54 - .46*cos(2*M_PI*dist/parm);  /* symmetric */
+#else
+          w = .54 + .46*cos(M_PI*dist/parm);    /* one-sided */
+#endif
+          if (dist > parm)
+            w = 0.0 ;
+          break ;
+        }
+        val = nint(w*MRIvox(mri_dst, x, y, z)) ;
+        MRIvox(mri_dst, x, y, z) = val ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 int
 MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
                           float gray_hi,
