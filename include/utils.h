@@ -46,6 +46,9 @@ int  FileType(char *fname) ;
 int  FileNumber(char *fname) ;
 int  FileNumberOfEntries(char *fname) ;
 char *FileFullName(char *full_name) ;
+char *FileTmpName(char *base) ;
+char *FileTmpName(char *basename) ;
+void FileRename(char *inName, char *outName) ;
 
 
 #endif
