@@ -1157,13 +1157,12 @@ proc tkm_BrowseFile { iVariable {iDefaultFunc ""} {ilDirectories ""} } {
     
     # set the default location 
     if { $iDefaultFunc != "" } {
-  puts "default func is $iDefaultFunc, [eval $iDefaultFunc]"
-  [$wwDirDlog subwidget fsbox] configure -directory [eval $iDefaultFunc]
+	[$wwDirDlog subwidget fsbox] configure -directory [eval $iDefaultFunc]
     }
     
     foreach sDirectory $ilDirectories {
-  [[$wwDirDlog subwidget fsbox] subwidget filter] \
-      appendhistory $sDirectory
+	[[$wwDirDlog subwidget fsbox] subwidget filter] \
+	    appendhistory $sDirectory
     }
     
     # when they click ok, call the tkm_HandleSelectDirectory function,
