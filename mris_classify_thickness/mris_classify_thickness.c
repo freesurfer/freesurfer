@@ -9,6 +9,7 @@
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
+#include "const.h"
 #include "proto.h"
 #include "mrisurf.h"
 #include "macros.h"
@@ -16,7 +17,7 @@
 #include "mrishash.h"
 #include "sig.h"
 
-static char vcid[] = "$Id: mris_classify_thickness.c,v 1.2 2000/05/09 14:45:13 fischl Exp $";
+static char vcid[] = "$Id: mris_classify_thickness.c,v 1.3 2000/05/26 12:26:27 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -68,6 +69,7 @@ static double cvector_compute_snr(float *c1_mean, float *c2_mean,
                                   float *verror, float *snr, int num, int *pi,
                                   float bonferroni);
 
+
 #if 0
 static int   cvector_subtract(float *v1, float *v2, float *vdst, int num) ;
 static int   cvector_mark_low_prob_vertices(float *pvals, float pthresh, 
@@ -79,6 +81,9 @@ static int   cvector_clear(float *v, int num) ;
 static int   cvector_add_variances(float *c1_var, float *c2_var, 
                                    int num_class1, int num_class2,
                                    float *total_var, int nvertices) ;
+static int   cvector_multiply_variances(float *c1_var, float *c2_var, 
+                                   int num_class1, int num_class2,
+                                   float *total_var, int nvertices) ;
 static int   cvector_track_best_snr(float *vsnr, float *vbest_snr,
                                     float *vbest_avgs, int avgs, int num) ;
 
@@ -88,9 +93,11 @@ static int   cvector_track_best_snr(float *vsnr, float *vbest_snr,
 
 char *Progname ;
 
+static int use_buggy_snr = 0 ;
+static char *write_dir = NULL ;
+static char *read_dir = NULL ;
 static int compute_stats = 0 ;
 
-static float min_label_area = 30.0f ;
 static int write_flag = 0 ;
 static char *output_subject = NULL ;
 static char *test_subject = NULL ;
@@ -98,8 +105,11 @@ static char *label_name = NULL ;
 static char *prefix = "" ;
 
 static int max_avgs = 500 ;
-static float fthresh = 10.0 ;
 static int use_no_distribution = 0 ;
+
+/* these do 77.8% on schizophrenic left hemispheres */
+static float min_label_area = 25.0f ;
+static float fthresh = 5.0 ;
 
 #define MIN_LABELS   5
 
@@ -275,48 +285,83 @@ main(int argc, char *argv[])
   else
     area = NULL ;
 
-  /* real all the curvatures in for group1 */
-  for (n = 0 ; n < num_class1+num_class2 ; n++)
+  if (read_dir)
   {
-    /* transform each subject's curvature into the output subject's space */
-    subject_name = n < num_class1 ? c1_subjects[n] : c2_subjects[n-num_class1];
-    fprintf(stderr, "reading subject %d of %d: %s\n",
-            n+1, num_class1+num_class2, subject_name) ;
-    sprintf(fname, "%s/%s/surf/%s.%s", 
-            subjects_dir,subject_name,hemi,surf_name);
-    mris = MRISread(fname) ;
-    if (!mris)
-      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-                Progname, fname) ;
-    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-    if (strchr(curv_name, '/') != NULL)
-      strcpy(fname, curv_name) ;  /* full path specified */
-    else
-      sprintf(fname,"%s/%s/surf/%s.%s",
-              subjects_dir,subject_name,hemi,curv_name);
-    if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
-      ErrorExit(Gerror, "%s: could no read curvature file %s",Progname,fname) ;
-    mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
-    MRISfree(&mris) ;
-    
     sprintf(fname, "%s/%s/surf/%s.%s", 
             subjects_dir,output_subject,hemi,surf_name);
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, fname) ;
-    MRISfromParameterization(mrisp, mris, 0) ;
-    if (area)
-      MRISmaskNotLabel(mris, area) ;
-    curvs = (n < num_class1) ? c1_curvs[n] : c2_curvs[n-num_class1] ;
-    class_mean = (n < num_class1) ? c1_mean : c2_mean ;
-    class_var = (n < num_class1) ? c1_var : c2_var ;
-    MRISextractCurvatureVector(mris, curvs) ;
-    cvector_accumulate(curvs, total_mean, nvertices) ;
-    cvector_accumulate(curvs, class_mean, nvertices) ;
-    cvector_accumulate_square(curvs, class_var, nvertices) ;
-    MRISPfree(&mrisp) ;
-    MRISfree(&mris) ;
+    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+
+    /* real all the curvatures in for group1 */
+    for (n = 0 ; n < num_class1+num_class2 ; n++)
+    {
+      /* transform each subject's curvature into the output subject's space */
+      subject_name = n < num_class1 ? c1_subjects[n]:c2_subjects[n-num_class1];
+      fprintf(stderr, "reading subject %d of %d: %s\n",
+              n+1, num_class1+num_class2, subject_name) ;
+      sprintf(fname, "%s/%s.%s", read_dir,hemi,subject_name);
+      if (MRISreadValues(mris, fname) != NO_ERROR)
+        ErrorExit(Gerror,"%s: could no read curvature file %s",Progname,fname);
+      if (area)
+        MRISmaskNotLabel(mris, area) ;
+      curvs = (n < num_class1) ? c1_curvs[n] : c2_curvs[n-num_class1] ;
+      class_mean = (n < num_class1) ? c1_mean : c2_mean ;
+      class_var = (n < num_class1) ? c1_var : c2_var ;
+      MRISexportValVector(mris, curvs) ;
+      cvector_accumulate(curvs, total_mean, nvertices) ;
+      cvector_accumulate(curvs, class_mean, nvertices) ;
+      cvector_accumulate_square(curvs, class_var, nvertices) ;
+    }
+  }
+  else
+  {
+    
+    /* real all the curvatures in for group1 */
+    for (n = 0 ; n < num_class1+num_class2 ; n++)
+    {
+      /* transform each subject's curvature into the output subject's space */
+      subject_name = n < num_class1 ? c1_subjects[n]:c2_subjects[n-num_class1];
+      fprintf(stderr, "reading subject %d of %d: %s\n",
+              n+1, num_class1+num_class2, subject_name) ;
+      sprintf(fname, "%s/%s/surf/%s.%s", 
+              subjects_dir,subject_name,hemi,surf_name);
+      mris = MRISread(fname) ;
+      if (!mris)
+        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                  Progname, fname) ;
+      MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+      if (strchr(curv_name, '/') != NULL)
+        strcpy(fname, curv_name) ;  /* full path specified */
+      else
+        sprintf(fname,"%s/%s/surf/%s.%s",
+                subjects_dir,subject_name,hemi,curv_name);
+      if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
+        ErrorExit(Gerror,"%s: could no read curvature file %s",Progname,fname);
+      mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
+      MRISfree(&mris) ;
+      
+      sprintf(fname, "%s/%s/surf/%s.%s", 
+              subjects_dir,output_subject,hemi,surf_name);
+      mris = MRISread(fname) ;
+      if (!mris)
+        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                  Progname, fname) ;
+      MRISfromParameterization(mrisp, mris, 0) ;
+      if (area)
+        MRISmaskNotLabel(mris, area) ;
+      curvs = (n < num_class1) ? c1_curvs[n] : c2_curvs[n-num_class1] ;
+      class_mean = (n < num_class1) ? c1_mean : c2_mean ;
+      class_var = (n < num_class1) ? c1_var : c2_var ;
+      MRISextractCurvatureVector(mris, curvs) ;
+      cvector_accumulate(curvs, total_mean, nvertices) ;
+      cvector_accumulate(curvs, class_mean, nvertices) ;
+      cvector_accumulate_square(curvs, class_var, nvertices) ;
+      MRISPfree(&mrisp) ;
+      MRISfree(&mris) ;
+    }
   }
 
   /* compute within-group means, and total mean */
@@ -343,118 +388,154 @@ main(int argc, char *argv[])
   vbest_avgs = cvector_alloc(nvertices) ;
   vtotal_var = cvector_alloc(nvertices) ;
   vsnr = cvector_alloc(nvertices) ;
-  
-  cvector_add_variances(c1_var, c2_var, num_class1, num_class2,
-                        vtotal_var, nvertices) ;
-  if (use_no_distribution)
-    snr = cvector_compute_dist_free_snr(c1_curvs, num_class1, c2_curvs, 
-                                        num_class2, c1_mean, c2_mean,
-                                        vsnr, nvertices, &i);
-  else 
-    snr = cvector_compute_snr(c1_mean, c2_mean, vtotal_var, vsnr, nvertices, 
-                              &i, 0.0f);
-  fprintf(stderr, 
-          "raw SNR %2.2f, n=%2.4f, d=%2.4f, vno=%d\n",
-          sqrt(snr), c1_mean[i]-c2_mean[i], sqrt(vtotal_var[i]), i) ;
-  max_snr = snr ;
-  max_snr_avgs = 0 ;
-  cvector_track_best_snr(vsnr, vbest_snr, vbest_avgs, 0, nvertices) ;
-  
-  for (n = 0 ; n < num_class1 ; n++)
-    cvector_copy(c1_curvs[n], c1_avg_curvs[n], nvertices) ;
-  for (n = 0 ; n < num_class2 ; n++)
-    cvector_copy(c2_curvs[n], c2_avg_curvs[n], nvertices) ;
-  for (avgs = 1 ; avgs <= max_avgs ; avgs++)
+
+  if (read_dir == NULL)
   {
-    if (!(avgs % 50))
-      fprintf(stderr, "testing %d averages...\n", avgs) ;
-    cvector_clear(c1_mean, nvertices) ; cvector_clear(c2_mean, nvertices) ;
-    cvector_clear(c1_var, nvertices) ; cvector_clear(c1_var, nvertices) ;
-    cvector_clear(total_mean, nvertices) ;
-    for (n = 0 ; n < num_class1 ; n++)
-    {
-#if 0
-      fprintf(stderr, "processing subject %d of %d: %s\r",
-              n+1, num_class1+num_class2, c1_subjects[n]) ;
-#endif
-      MRISimportCurvatureVector(mris, c1_avg_curvs[n]) ;
-      MRISaverageCurvatures(mris, 1) ;
-      MRISextractCurvatureVector(mris, c1_avg_curvs[n]) ;
-      cvector_accumulate(c1_avg_curvs[n], total_mean, nvertices) ;
-      cvector_accumulate(c1_avg_curvs[n], c1_mean, nvertices) ;
-      cvector_accumulate_square(c1_avg_curvs[n], c1_var, nvertices) ;
-    }
-    for (n = 0 ; n < num_class2 ; n++)
-    {
-#if 0
-      fprintf(stderr, "processing subject %d of %d: %s\r",
-              n+1+num_class1, num_class1+num_class2, c2_subjects[n]) ;
-#endif
-      MRISimportCurvatureVector(mris, c2_avg_curvs[n]) ;
-      MRISaverageCurvatures(mris, 1) ;
-      MRISextractCurvatureVector(mris, c2_avg_curvs[n]) ;
-      cvector_accumulate(c2_avg_curvs[n], total_mean, nvertices) ;
-      cvector_accumulate(c2_avg_curvs[n], c2_mean, nvertices) ;
-      cvector_accumulate_square(c2_avg_curvs[n], c2_var, nvertices) ;
-    }
-    cvector_normalize(total_mean, num_class1+num_class2, nvertices) ;
-    cvector_normalize(c1_mean, num_class1, nvertices) ;
-    cvector_normalize(c2_mean, num_class2, nvertices) ;
-    cvector_compute_variance(c1_var, c1_mean, num_class1, nvertices) ;
-    cvector_compute_variance(c2_var, c2_mean, num_class2, nvertices) ;
-    cvector_add_variances(c1_var, c2_var, num_class1, num_class2,
-                          vtotal_var, nvertices) ;
+    if (use_buggy_snr)
+      cvector_multiply_variances(c1_var, c2_var, num_class1, num_class2,
+                            vtotal_var, nvertices) ;
+    else
+      cvector_add_variances(c1_var, c2_var, num_class1, num_class2,
+                            vtotal_var, nvertices) ;
     if (use_no_distribution)
-      snr = cvector_compute_dist_free_snr(c1_avg_curvs,num_class1,c2_avg_curvs,
+      snr = cvector_compute_dist_free_snr(c1_curvs, num_class1, c2_curvs, 
                                           num_class2, c1_mean, c2_mean,
                                           vsnr, nvertices, &i);
-    else
-      snr = 
-        cvector_compute_snr(c1_mean, c2_mean, vtotal_var, vsnr, nvertices,&i,
-                            bonferroni ? log((double)avgs) : 0.0f);
-    if (write_flag && DIAG_VERBOSE_ON)
+    else 
+      snr = cvector_compute_snr(c1_mean, c2_mean, vtotal_var, vsnr, nvertices, 
+                                &i, 0.0f);
+    fprintf(stderr, 
+            "raw SNR %2.2f, n=%2.4f, d=%2.4f, vno=%d\n",
+            sqrt(snr), c1_mean[i]-c2_mean[i], sqrt(vtotal_var[i]), i) ;
+    max_snr = snr ;
+    max_snr_avgs = 0 ;
+    cvector_track_best_snr(vsnr, vbest_snr, vbest_avgs, 0, nvertices) ;
+    
+    for (n = 0 ; n < num_class1 ; n++)
+      cvector_copy(c1_curvs[n], c1_avg_curvs[n], nvertices) ;
+    for (n = 0 ; n < num_class2 ; n++)
+      cvector_copy(c2_curvs[n], c2_avg_curvs[n], nvertices) ;
+    for (avgs = 1 ; avgs <= max_avgs ; avgs++)
     {
-      fprintf(fp, "%d %2.1f  %2.2f %2.2f %2.2f ",
-              avgs, sqrt((float)avgs), sqrt(snr), c1_mean[i]-c2_mean[i],
-              sqrt(vtotal_var[i])) ;
-      fflush(fp) ;
+      if (!(avgs % 50))
+        fprintf(stderr, "testing %d averages...\n", avgs) ;
+      cvector_clear(c1_mean, nvertices) ; cvector_clear(c2_mean, nvertices) ;
+      cvector_clear(c1_var, nvertices) ; cvector_clear(c2_var, nvertices) ;
+      cvector_clear(total_mean, nvertices) ;
       for (n = 0 ; n < num_class1 ; n++)
-        fprintf(fp, "%2.2f ", c1_avg_curvs[n][i]) ;
+      {
+#if 0
+        fprintf(stderr, "processing subject %d of %d: %s\r",
+                n+1, num_class1+num_class2, c1_subjects[n]) ;
+#endif
+        MRISimportCurvatureVector(mris, c1_avg_curvs[n]) ;
+        MRISaverageCurvatures(mris, 1) ;
+        MRISextractCurvatureVector(mris, c1_avg_curvs[n]) ;
+        cvector_accumulate(c1_avg_curvs[n], total_mean, nvertices) ;
+        cvector_accumulate(c1_avg_curvs[n], c1_mean, nvertices) ;
+        cvector_accumulate_square(c1_avg_curvs[n], c1_var, nvertices) ;
+      }
       for (n = 0 ; n < num_class2 ; n++)
-        fprintf(fp, "%2.2f ", c2_avg_curvs[n][i]) ;
-      fprintf(fp, "\n") ;
+      {
+#if 0
+        fprintf(stderr, "processing subject %d of %d: %s\r",
+                n+1+num_class1, num_class1+num_class2, c2_subjects[n]) ;
+#endif
+        MRISimportCurvatureVector(mris, c2_avg_curvs[n]) ;
+        MRISaverageCurvatures(mris, 1) ;
+        MRISextractCurvatureVector(mris, c2_avg_curvs[n]) ;
+        cvector_accumulate(c2_avg_curvs[n], total_mean, nvertices) ;
+        cvector_accumulate(c2_avg_curvs[n], c2_mean, nvertices) ;
+        cvector_accumulate_square(c2_avg_curvs[n], c2_var, nvertices) ;
+      }
+      cvector_normalize(total_mean, num_class1+num_class2, nvertices) ;
+      cvector_normalize(c1_mean, num_class1, nvertices) ;
+      cvector_normalize(c2_mean, num_class2, nvertices) ;
+      cvector_compute_variance(c1_var, c1_mean, num_class1, nvertices) ;
+      cvector_compute_variance(c2_var, c2_mean, num_class2, nvertices) ;
+      if (use_buggy_snr)
+        cvector_multiply_variances(c1_var, c2_var, num_class1, num_class2,
+                              vtotal_var, nvertices) ;
+      else
+        cvector_add_variances(c1_var, c2_var, num_class1, num_class2,
+                              vtotal_var, nvertices) ;
+      if (use_no_distribution)
+        snr = cvector_compute_dist_free_snr(c1_avg_curvs,num_class1,
+                                            c2_avg_curvs, num_class2, c1_mean,
+                                            c2_mean, vsnr, nvertices, &i);
+      else
+        snr = 
+          cvector_compute_snr(c1_mean, c2_mean, vtotal_var, vsnr, nvertices,&i,
+                              bonferroni ? log((double)avgs) : 0.0f);
+      if (write_flag && DIAG_VERBOSE_ON)
+      {
+        fprintf(fp, "%d %2.1f  %2.2f %2.2f %2.2f ",
+                avgs, sqrt((float)avgs), sqrt(snr), c1_mean[i]-c2_mean[i],
+                sqrt(vtotal_var[i])) ;
+        fflush(fp) ;
+        for (n = 0 ; n < num_class1 ; n++)
+          fprintf(fp, "%2.2f ", c1_avg_curvs[n][i]) ;
+        for (n = 0 ; n < num_class2 ; n++)
+          fprintf(fp, "%2.2f ", c2_avg_curvs[n][i]) ;
+        fprintf(fp, "\n") ;
+        fclose(fp) ;
+      }
+      if (snr > max_snr)
+      {
+        fprintf(stderr, 
+                "new max SNR found at avgs=%d (%2.1f mm)=%2.1f, n=%2.4f, "
+                "d=%2.4f, vno=%d\n",
+                avgs, sqrt((float)avgs), sqrt(snr), c1_mean[i]-c2_mean[i],
+                sqrt(vtotal_var[i]), i) ;
+        max_snr = snr ;
+        max_snr_avgs = avgs ;
+      }
+      cvector_track_best_snr(vsnr, vbest_snr, vbest_avgs, avgs, nvertices) ;
     }
-    if (snr > max_snr)
-    {
-      fprintf(stderr, 
-              "new max SNR found at avgs=%d (%2.1f mm)=%2.1f, n=%2.4f, "
-              "d=%2.4f, vno=%d\n",
-              avgs, sqrt((float)avgs), sqrt(snr), c1_mean[i]-c2_mean[i],
-              sqrt(vtotal_var[i]), i) ;
-      max_snr = snr ;
-      max_snr_avgs = avgs ;
-    }
-    cvector_track_best_snr(vsnr, vbest_snr, vbest_avgs, avgs, nvertices) ;
-  }
-  if (compute_stats)
-    cvector_compute_t(vbest_snr, vbest_pvalues,num_class1+num_class2, 
-                      nvertices) ;
-  printf("max snr=%2.2f at %d averages\n", max_snr, max_snr_avgs) ;
-  if (write_flag)
-  {
-    MRISimportValVector(mris, vbest_snr) ;
-    sprintf(fname, "./%s.%s_best_snr", hemi,prefix) ; 
-    MRISwriteValues(mris, fname) ;
-    MRISimportValVector(mris, vbest_avgs) ;
-    sprintf(fname, "./%s.%s_best_avgs", hemi, prefix) ; 
-    MRISwriteValues(mris, fname) ;
-    fclose(fp) ;
     if (compute_stats)
+      cvector_compute_t(vbest_snr, vbest_pvalues,num_class1+num_class2, 
+                      nvertices) ;
+    printf("max snr=%2.2f at %d averages\n", max_snr, max_snr_avgs) ;
+    if (write_flag)
     {
-      MRISimportValVector(mris, vbest_pvalues) ;
-      sprintf(fname, "./%s.%s_best_pval", hemi,prefix) ; 
+      MRISimportValVector(mris, vbest_snr) ;
+      sprintf(fname, "./%s.%s_best_snr", hemi,prefix) ; 
       MRISwriteValues(mris, fname) ;
+      MRISimportValVector(mris, vbest_avgs) ;
+      sprintf(fname, "./%s.%s_best_avgs", hemi, prefix) ; 
+      MRISwriteValues(mris, fname) ;
+      if (compute_stats)
+      {
+        MRISimportValVector(mris, vbest_pvalues) ;
+        sprintf(fname, "./%s.%s_best_pval", hemi,prefix) ; 
+        MRISwriteValues(mris, fname) ;
+      }
     }
+  }
+  else  /* read from directory containing precomputed optimal values */
+  {
+    sprintf(fname, "%s/%s.%s_best_snr", read_dir, hemi, prefix) ; 
+    if (MRISreadValues(mris, fname) != NO_ERROR)
+      ErrorExit(Gerror, "%s: MRISreadValues(%s) failed",Progname,fname) ;
+    MRISexportValVector(mris, vbest_snr) ;
+
+    sprintf(fname, "%s/%s.%s_best_avgs", read_dir, hemi, prefix) ; 
+    if (MRISreadValues(mris, fname) != NO_ERROR)
+      ErrorExit(Gerror, "%s: MRISreadValues(%s) failed",Progname,fname) ;
+    MRISexportValVector(mris, vbest_avgs) ;
+  }
+
+  if (write_dir)
+  {
+    sprintf(fname, "%s/%s.%s_best_snr", write_dir, hemi,prefix) ; 
+    MRISimportValVector(mris, vbest_snr) ;
+    if (MRISwriteValues(mris, fname) != NO_ERROR)
+      ErrorExit(Gerror, "%s: MRISwriteValues(%s) failed",Progname,fname) ;
+
+    sprintf(fname, "%s/%s.%s_best_avgs", write_dir, hemi, prefix) ; 
+    MRISimportValVector(mris, vbest_avgs) ;
+    if (MRISwriteValues(mris, fname) != NO_ERROR)
+      ErrorExit(Gerror, "%s: MRISwriteValues(%s) failed",Progname,fname) ;
   }
 
   do
@@ -497,15 +578,65 @@ main(int argc, char *argv[])
     }
   } while (nlabels < MIN_LABELS) ;
 
-  fprintf(stderr, "%d labels found - extracting thickness at optimal "
-          "scale...\n", nlabels) ;
+  if (!read_dir)
+  {
+    fprintf(stderr, "%d labels found - extracting thickness at optimal "
+            "scale...\n", nlabels) ;
 
-  /* now build feature vectors for each subject */
-  extract_thickness_at_best_scale(mris, c1_avg_curvs, vbest_avgs, c1_curvs, 
-                                  nvertices, num_class1);
-  fprintf(stderr, "extracting thickness for class 2...\n") ;
-  extract_thickness_at_best_scale(mris, c2_avg_curvs, vbest_avgs, c2_curvs, 
-                                  nvertices, num_class2);
+    /* now build feature vectors for each subject */
+    extract_thickness_at_best_scale(mris, c1_avg_curvs, vbest_avgs, c1_curvs, 
+                                    nvertices, num_class1);
+    fprintf(stderr, "extracting thickness for class 2...\n") ;
+    extract_thickness_at_best_scale(mris, c2_avg_curvs, vbest_avgs, c2_curvs, 
+                                    nvertices, num_class2);
+  }
+  else  /* read in precomputed optimal thicknesses */
+  {
+    char fname[STRLEN] ;
+    
+    fprintf(stderr,"%d labels found - reading precomputed thickness vectors\n",
+            nlabels) ;
+    for (n = 0 ; n < num_class1 ; n++)
+    {
+      sprintf(fname, "%s/%s.%s", read_dir, hemi, argv[ARGV_OFFSET+n]) ;
+      fprintf(stderr, "reading thickness vector from %s...\n", fname) ;
+      if (MRISreadValues(mris, fname) != NO_ERROR)
+        ErrorExit(Gerror, "%s: could not read thickness file %s",
+                  Progname,fname) ;
+      MRISexportValVector(mris, c1_avg_curvs[n]) ;
+    }
+    for (n = 0 ; n < num_class2 ; n++)
+    {
+      sprintf(fname, "%s/%s.%s", read_dir, hemi, 
+              argv[n+num_class1+1+ARGV_OFFSET]) ;
+      fprintf(stderr, "reading curvature vector from %s...\n", fname) ;
+      if (MRISreadValues(mris, fname) != NO_ERROR)
+        ErrorExit(Gerror, "%s: could not read thickness file %s",
+                  Progname,fname) ;
+      MRISexportValVector(mris, c2_avg_curvs[n]) ;
+    }
+  }
+
+  if (write_dir)   /* write out optimal thicknesses */
+  {
+    char fname[STRLEN] ;
+    
+    for (n = 0 ; n < num_class1 ; n++)
+    {
+      sprintf(fname, "%s/%s.%s", write_dir, hemi, argv[ARGV_OFFSET+n]) ;
+      fprintf(stderr, "writing curvature vector to %s...\n", fname) ;
+      MRISimportValVector(mris, c1_avg_curvs[n]) ;
+      MRISwriteValues(mris, fname) ;
+    }
+    for (n = 0 ; n < num_class2 ; n++)
+    {
+      sprintf(fname, "%s/%s.%s", write_dir, hemi, 
+              argv[n+num_class1+1+ARGV_OFFSET]) ;
+      fprintf(stderr, "writing curvature vector to %s...\n", fname) ;
+      MRISimportValVector(mris, c2_avg_curvs[n]) ;
+      MRISwriteValues(mris, fname) ;
+    }
+  }
 
 
   /* We have the thickness values at the most powerful scale stored for
@@ -533,7 +664,7 @@ main(int argc, char *argv[])
       for (i = 0 ; i < nlabels ; i++)
         c2_thickness[n][i] = 
           cvector_average_in_label(c2_avg_curvs[n], labels[i], nvertices) ;
-    sprintf(fname, "%s_class1.dat", prefix) ;
+    sprintf(fname, "%s_%s_class1.dat", hemi,prefix) ;
     fprintf(stderr, "writing class 1 info to %s...\n", fname) ;
     fp = fopen(fname, "w") ;
     for (i = 0 ; i < nlabels ; i++)  /* for each row */
@@ -544,7 +675,7 @@ main(int argc, char *argv[])
     }
     fclose(fp) ;
 
-    sprintf(fname, "%s_class2.dat", prefix) ;
+    sprintf(fname, "%s_%s_class2.dat", hemi,prefix) ;
     fprintf(stderr, "writing class 2 info to %s...\n", fname) ;
     fp = fopen(fname, "w") ;
     for (i = 0 ; i < nlabels ; i++)
@@ -555,7 +686,7 @@ main(int argc, char *argv[])
     }
     fclose(fp) ;
 
-    free(total_mean); free(c1_mean) ; free(c2_mean) ;free(c1_var) ;free(c2_var);
+    free(total_mean); free(c1_mean) ; free(c2_mean) ;free(c1_var);free(c2_var);
     if (test_subject)
     {
       float *test_thickness, *test_avg_thickness ;
@@ -594,14 +725,14 @@ main(int argc, char *argv[])
       MRISextractCurvatureVector(mris, test_thickness) ;
       for (avgs = 0 ; avgs <= max_avgs ; avgs++)
       {
-        cvector_extract_best_avg(vbest_avgs, test_thickness, test_avg_thickness,
+        cvector_extract_best_avg(vbest_avgs, test_thickness,test_avg_thickness,
                                  avgs-1, nvertices) ;
         MRISimportCurvatureVector(mris, test_thickness) ;
         MRISaverageCurvatures(mris, 1) ;
         MRISextractCurvatureVector(mris, test_thickness) ;
       }
 
-      sprintf(fname, "%s.dat", test_subject) ;
+      sprintf(fname, "%s_%s.dat", hemi,test_subject) ;
       fprintf(stderr, "writing test subject feature vector to %s...\n",
               fname) ;
       fp = fopen(fname, "w") ;
@@ -654,10 +785,29 @@ get_option(int argc, char *argv[])
             max_avgs, sqrt((double)max_avgs)) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "wt") || !stricmp(option, "write"))
+  {
+    write_dir = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr,"writing out optimal thickness vectors into directory %s\n",
+           write_dir) ;
+  }
+  else if (!stricmp(option, "rt") || !stricmp(option, "read"))
+  {
+    read_dir = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr,"reading optimal thickness vectors from directory %s\n",
+           read_dir) ;
+  }
   else if (!stricmp(option, "stats"))
   {
     compute_stats = 1 ;
     fprintf(stderr, "computing multi-scale p values...\n") ;
+  }
+  else if (!stricmp(option, "bug"))
+  {
+    use_buggy_snr = 1 ;
+    fprintf(stderr, "using multiplicative variance in snr calculations...\n") ;
   }
   else switch (toupper(*option))
   {
@@ -887,7 +1037,7 @@ cvector_compute_dist_free_snr(float **c1_curvs, int num_class1,
     vsnr[i] = snr ;
     if (snr > max_snr)
     {
-      *pi = i ;
+      max_i = i ;
       max_snr = snr ;
     }
   }
@@ -964,6 +1114,19 @@ cvector_add_variances(float *c1_var, float *c2_var, int num_class1,
   total_dof = num_class1 + num_class2 ;
   for (i = 0 ; i < nvertices ; i++)
     vtotal_var[i] = (c1_var[i]*num_class1 + c2_var[i]*num_class2) / total_dof ;
+
+  return(NO_ERROR) ;
+}
+
+static int
+cvector_multiply_variances(float *c1_var, float *c2_var, int num_class1, 
+                      int num_class2, float *vtotal_var, int nvertices)
+{
+  int     i, total_dof ;
+
+  total_dof = num_class1 + num_class2 ;
+  for (i = 0 ; i < nvertices ; i++)
+    vtotal_var[i] = (c1_var[i]*num_class1 * c2_var[i]*num_class2) / total_dof ;
 
   return(NO_ERROR) ;
 }
