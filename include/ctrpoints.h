@@ -1,8 +1,10 @@
 //
-// mrictrpoint.h
+// ctrpoints.h
 //
 // purpose: read and write control points
 //
+#ifndef ctrpoints_h
+#define ctrpoints_h
 
 typedef struct { Real x; Real y; Real z ;} MPoint;
 
@@ -18,3 +20,4 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS);
 // Note that use must tell which coordinate system it is.
 int MRIwriteControlPoints(MPoint *pointArray, int count, int useRealRAS, char *fname);
 
+#endif // inclusion guard
