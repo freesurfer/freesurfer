@@ -107,7 +107,7 @@ static void xvFreeDimage(DIMAGE *dimage) ;
 
 static XV_FRAME *xvf ;
 static IMAGE *GtmpFloatImage = NULL, *GtmpByteImage = NULL,
-  *GtmpByteImage2 = NULL ;
+  *GtmpByteImage2 = NULL, *GtmpScaledFloatImage = NULL ;
 
 static Frame           hips_cmd_frame ;
 static Display        *hips_cmd_display;
@@ -445,7 +445,7 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   DIMAGE        *dimage ;
   unsigned long *substtable ;
   byte          bytelut[MAX_COLORS] ;
-  int           i ;
+  int           i, rows, cols, srows, scols ;
 
   dimage = xvGetDimage(which, 1) ;
   if (!dimage)
@@ -454,8 +454,10 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   dimage->frame = frame ;
   dimage->sourceImage = image ;
 
-  xscale = (float)dimage->dispImage->cols / (float)image->cols ;
-  yscale = (float)dimage->dispImage->rows / (float)image->rows ;
+  scols = dimage->dispImage->cols ;
+  srows = dimage->dispImage->rows ;
+  xscale = (float)scols / (float)image->cols ;
+  yscale = (float)srows / (float)image->rows ;
   dimage->xscale = xscale ;
   dimage->yscale = yscale ;
 
@@ -463,19 +465,28 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   {
     if (GtmpFloatImage)
       ImageFree(&GtmpFloatImage) ;
+    GtmpFloatImage = ImageAlloc(image->rows,image->cols, PFFLOAT,1);
+  }
+  else
+    ImageSetSize(GtmpFloatImage, image->rows, image->cols) ;
+
+  if (!ImageCheckSize(dimage->dispImage, GtmpByteImage, scols, srows, 1))
+  {
     if (GtmpByteImage)
       ImageFree(&GtmpByteImage) ;
     if (GtmpByteImage2)
+      ImageFree(&GtmpScaledFloatImage) ;
+    if (GtmpScaledFloatImage)
       ImageFree(&GtmpByteImage2) ;
-    GtmpFloatImage = ImageAlloc(image->rows,image->cols, PFFLOAT,1);
-    GtmpByteImage = ImageAlloc(image->rows, image->cols, PFBYTE, 1) ;
-    GtmpByteImage2 = ImageAlloc(image->rows, image->cols, PFBYTE, 1) ;
+    GtmpScaledFloatImage = ImageAlloc(srows, scols, PFFLOAT, 1) ;
+    GtmpByteImage = ImageAlloc(srows, scols, PFBYTE, 1) ;
+    GtmpByteImage2 = ImageAlloc(srows, scols, PFBYTE, 1) ;
   }
   else
   {
-    ImageSetSize(GtmpFloatImage, image->rows, image->cols) ;
-    ImageSetSize(GtmpByteImage, image->rows, image->cols) ;
-    ImageSetSize(GtmpByteImage2, image->rows, image->cols) ;
+    ImageSetSize(GtmpScaledFloatImage, srows, scols) ;
+    ImageSetSize(GtmpByteImage, srows, scols) ;
+    ImageSetSize(GtmpByteImage2, srows, scols) ;
   }
 
   if (image->pixel_format == PFDOUBLE)
@@ -490,6 +501,7 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   else
     ImageCopyFrames(image, GtmpFloatImage, frame, 1, 0) ;
 
+  /* scale range of values to be in byte display range (about 0-240) */
   if (dimage->rescale_range || image->num_frame == 1)
     ImageScale(GtmpFloatImage, GtmpFloatImage, 0, MAX_DISP_VAL) ;
   else   /* use entire sequence to compute display range */
@@ -498,17 +510,20 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
     ImageScaleRange(GtmpFloatImage, fmin, fmax, 0, MAX_DISP_VAL) ;
   }
 
-  ImageCopy(GtmpFloatImage, GtmpByteImage) ;
-  h_invert(GtmpByteImage, GtmpByteImage2) ;
-
-#if 0
-  ImageResize(GtmpByteImage2, dimage->dispImage, 
-              dimage->dispImage->rows, dimage->dispImage->cols) ;
-#else
+  /* resize image to display area */
   scale = (xscale + yscale)/2.0f ;
-  ImageRescale(GtmpByteImage2, dimage->dispImage, xscale) ;
-#endif
+  rows = nint((float)GtmpFloatImage->rows*scale) ;
+  cols = nint((float)GtmpFloatImage->cols*scale) ;
 
+  if ((rows != dimage->dispImage->rows) || (cols != dimage->dispImage->cols))
+    ImageResize(GtmpFloatImage, GtmpScaledFloatImage, srows, scols) ;
+  else
+    ImageRescale(GtmpFloatImage, GtmpScaledFloatImage, scale) ;
+
+  ImageCopy(GtmpScaledFloatImage, GtmpByteImage) ; /* convert to bytes */
+  h_invert(GtmpByteImage, dimage->dispImage) ;
+
+  /* use current colormap */
   substtable = (unsigned long *) xv_get(xvf->cms,CMS_INDEX_TABLE);
   for (i=0;i<MAX_COLORS;i++)
     bytelut[i] = (byte)substtable[i];
