@@ -60,7 +60,7 @@ typedef struct
 
 #define FEATURE_CPOLV          (FEATURE_CPOLV_MEAN3 | FEATURE_CPOLV_MEAN5 | \
                                 FEATURE_CPOLV_MEDIAN3 | FEATURE_CPOLV_MEDIAN5)
-#define MAX_FEATURE            FEATURE_MIN7
+#define MAX_FEATURE            0x80000000
 
 #define MAX_ROUNDS             5
 
