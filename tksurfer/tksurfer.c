@@ -54,7 +54,7 @@ int mask_label(char *label_name) ;
 
 MRI_SURFACE *mris = NULL, *mris2 = NULL ;
 static char *sdir = NULL ;
-static char sphere_reg[STRLEN] = "sphere.reg" ;
+static char *sphere_reg;
 
 #define QUAD_FILE_MAGIC_NUMBER      (-1 & 0x00ffffff)
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
@@ -16083,6 +16083,7 @@ make_filenames(char *lsubjectsdir,char *lsrname,char *lpname,char *lstem,
   lfname = (char *)malloc(NAME_LENGTH*sizeof(char));
   vrfname = (char *)malloc(NAME_LENGTH*sizeof(char));
   xffname = (char *)malloc(NAME_LENGTH*sizeof(char));
+  sphere_reg = (char *)malloc(STRLEN*sizeof(char));
   /* following not set below */
   nfname = (char *)malloc(NAME_LENGTH*sizeof(char));
   rfname = (char *)malloc(NAME_LENGTH*sizeof(char));
@@ -16122,7 +16123,8 @@ sprintf(xffname,"%s/%s/%s/%s",subjectsdir,pname,TRANSFORM_DIR,TALAIRACH_FNAME);
 /* ~/morph/curv.rh.1000a2adj: curv (or fill), need hemi */
 sprintf(fifname,"%s/%s/%s.%s.%s/COR-",subjectsdir,pname,FILLDIR_STEM,stem,ext);
 sprintf(cif2name,"%s/%s/%s.%s.%s/COR-",subjectsdir,pname,CURVDIR_STEM,stem,ext);
-
+ sprintf(sphere_reg, "sphere_reg"); 
+ 
  if (getenv("USE_WHITE") == NULL) 
    sprintf(orfname,"%s.%s",fpref, orig_suffix);
  else
