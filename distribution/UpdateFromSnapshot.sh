@@ -1,6 +1,22 @@
 #! /bin/sh
+#
+# UpdateFromSnapshot.sh
+# $Id: UpdateFromSnapshot.sh,v 1.3 2003/08/04 16:22:51 kteich Exp $
+#
 
-ECHO=
+# Purpose: Compares current directory recursively against a target
+# directory and copies newer files into the target. Will also copy new
+# files that exist in the current directory but not in the
+# target. Will back up any files that are replaced in the target. Will
+# not recurse through directories in the current that are not in the
+# target.
+
+# Usage:
+# UpdateFromSnapshot.sh <target_Freesurfer_directory>
+# i.e. UpdateFromSnapshot.sh /home/freesurfer
+#
+
+ECHO=echo
 DATE=`(set \`date +%y%m%d\`; echo $1)`
 
 if [ "${1}" = "" ] ; then
@@ -18,12 +34,12 @@ backup_and_update_file () {
     fi
 
     # If the dest file is the same as the source file, do nothing.
-    if [ -e ${DEST_FILE} ] ; then
-	diff ${SRC_FILE} ${DEST_FILE} > /dev/null
-	if [ "${?}" = "0" ] ; then
-	    return
-	fi
-    fi
+#    if [ -e ${DEST_FILE} ] ; then
+#	diff ${SRC_FILE} ${DEST_FILE} > /dev/null
+#	if [ "${?}" = "0" ] ; then
+#	    return
+#	fi
+#    fi
 
     # If the dest file exists, back it up.
     if [ -e ${DEST_FILE} ] ; then  
@@ -56,10 +72,14 @@ process_dir () {
 	fi
     done
 
-    # For each directory, process it as well.
+    # For each directory, if it exists in the dest, process it as well.
     for dir in $CONTENTS; do
 	if [ -d ${CUR}/${dir} ] ; then
-	    process_dir ${CUR}/${dir}
+	    if [ -d ${DESTDIR}/${dir} ] ; then
+		process_dir ${CUR}/${dir}
+	    else
+		echo "Skipping ${CUR}/${dir}"
+	    fi
 	fi
     done
 }
