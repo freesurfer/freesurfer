@@ -1505,7 +1505,7 @@ MRISPread(char *fname)
   if (!mrisp)
     ErrorExit(ERROR_NOMEMORY, "MRISPread(%s): allocation failed",fname) ;
   mrisp->Ip = ImageRead(fname) ;
-  if (!mrisp)
+  if (!mrisp->Ip)
     ErrorReturn(NULL, (ERROR_NOFILE,
                        "MRISPread(%s): could not open file",fname)) ;
   
