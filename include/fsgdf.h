@@ -11,7 +11,7 @@
 
 #define FSGDF_NCLASSES_MAX 100
 #define FSGDF_NVARS_MAX    100
-#define FSGDF_NINPUTS_MAX 1000
+#define FSGDF_NINPUTS_MAX  100
 
 typedef struct {
   int version;
