@@ -7,7 +7,7 @@
 
 #include "imautils.h"
 
-IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
+IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY]={};
 int nImaDictionary = 0, ImaDictionaryGood = 0;
 char *imaTypeString[6] = {"short","int","long","float","double","string"};
 int imaTypeSize[6] = {sizeof(short),sizeof(int),sizeof(long),

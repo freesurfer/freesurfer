@@ -81,8 +81,8 @@ char* xUtil_GetErrorString ( xUtil_tErr ieCode ) {
   return xUtil_ksaErrorString [eCode];
 }
 
-struct timeval sStartTime;
-struct timeval sEndTime;
+struct timeval sStartTime={};
+struct timeval sEndTime={};
 
 void xUtil_StartTimer () {
 

@@ -14,10 +14,10 @@ char     xDbg_sCurNoteDesc[xDbg_knMaxDescLength] = "";
 int      xDbg_gLineNumberOfError = 0;
 
 
-char masStackTitle[xDbg_knMaxStackDepth][xDbg_knMaxDescLength];
-char masStackNote[xDbg_knMaxStackDepth][xDbg_knMaxDescLength];
+char masStackTitle[xDbg_knMaxStackDepth][xDbg_knMaxDescLength]={};
+char masStackNote[xDbg_knMaxStackDepth][xDbg_knMaxDescLength]={};
 int  mCurrentStackDepth = 0;
-void (*mSegfaultFunction)(int);
+void (*mSegfaultFunction)(int) = NULL;
 
 void xDbg_Init ( char* isFileName ) {
 
