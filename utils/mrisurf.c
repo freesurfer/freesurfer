@@ -12420,7 +12420,7 @@ mrisTrackTotalDistance(MRI_SURFACE *mris)
   VERTEX *v ;
   float  nc ;
 
-  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -12443,7 +12443,7 @@ MRISclearCurvature(MRI_SURFACE *mris)
   int    vno ;
   VERTEX *v ;
 
-  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -13982,7 +13982,7 @@ MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked)
   VERTEX *v ;
   float  r ;
 
-  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -14006,7 +14006,7 @@ MRISclearMarks(MRI_SURFACE *mris)
   int    vno ;
   VERTEX *v ;
 
-  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -14028,7 +14028,7 @@ MRISclearAnnotations(MRI_SURFACE *mris)
   int    vno ;
   VERTEX *v ;
 
-  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -14050,7 +14050,7 @@ MRISsetMarks(MRI_SURFACE *mris, int mark)
   int    vno ;
   VERTEX *v ;
 
-  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -17207,7 +17207,7 @@ MRISsetVals(MRI_SURFACE *mris, float val)
   int    vno ;
   VERTEX *v ;
 
-  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -17272,7 +17272,7 @@ MRISexpandSurface(MRI_SURFACE *mris, float distance)
   int    vno ;
   VERTEX *v ;
 
-  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -17290,7 +17290,7 @@ MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz)
   int    vno ;
   VERTEX *v ;
 
-  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -17299,6 +17299,42 @@ MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz)
     v->y += dy ;
     v->z += dz ;
   }
+  mrisComputeSurfaceDimensions(mris) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta)
+{
+  int    vno ;
+  VERTEX *v ;
+  Real   xv, yv, zv, xw, yw, zw ;
+  VECTOR *v_X, *v_Y ;
+
+  v_X  = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
+  v_Y  = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
+
+  v_X->rptr[4][1] = 1.0f / mri->thick ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    MRISvertexToVoxel(v, mri, &xv, &yv, &zv) ;
+    V3_X(v_X) = xv ; V3_Y(v_X) = yv ; V3_Z(v_X) = zv ;
+    LTAtransformPoint(lta, v_X, v_Y) ;
+    xv = V3_X(v_Y) ; yv = V3_Y(v_Y) ; zv = V3_Z(v_Y) ;
+    MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw) ;
+    v->x = xw ; v->y = yw ; v->z = zw ;
+  }
+  VectorFree(&v_X) ; VectorFree(&v_Y) ; 
+  mrisComputeSurfaceDimensions(mris) ;
   return(NO_ERROR) ;
 }
 
