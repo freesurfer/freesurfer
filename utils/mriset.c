@@ -1367,10 +1367,10 @@ MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize)
         Description
 ------------------------------------------------------*/
 MRI *
-MRIreplaceValues(MRI *mri_src, MRI *mri_dst, BUFTYPE in_val, BUFTYPE out_val)
+MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
 {
   int     width, height, depth, x, y, z;
-  BUFTYPE *pdst, *psrc, val ;
+	float   val ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -1383,14 +1383,12 @@ MRIreplaceValues(MRI *mri_src, MRI *mri_dst, BUFTYPE in_val, BUFTYPE out_val)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      psrc = &MRIvox(mri_src, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        val = *psrc++ ;
-        if (val == in_val)
+        val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+        if (FEQUAL(val, in_val))
           val = out_val ;
-        *pdst++ = val ;
+				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
       }
     }
   }

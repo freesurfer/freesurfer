@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/06/24 16:23:42 $
-// Revision       : $Revision: 1.276 $
-char *MRI_C_VERSION = "$Revision: 1.276 $";
+// Revision Date  : $Date: 2004/06/28 20:44:37 $
+// Revision       : $Revision: 1.277 $
+char *MRI_C_VERSION = "$Revision: 1.277 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -9398,7 +9398,13 @@ MATRIX *MRIgetResampleMatrix(MRI *src, MRI *template_vol)
 
 } /* end MRIreslice() */
 
-MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
+MRI *
+MRIresample(MRI *src, MRI *template_vol, int resample_type)
+{
+	return(MRIresampleFill(src, template_vol, resample_type, 0)) ;
+} /* end MRIresample() */
+
+MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_val)
 {
 
   MRI *dest = NULL;
@@ -9434,7 +9440,7 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
   /* ----- fake the ras values if ras_good_flag is not set ----- */
   if(!src->ras_good_flag)
     printf("MRIresample(): WARNING: ras_good_flag is not set, changing orientation\n"
-	   "to default.\n");
+					 "to default.\n");
 
   // get dst voxel -> src voxel transform
   m = MRIgetResampleMatrix(src, template_vol);
@@ -9450,6 +9456,7 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
   dest = MRIalloc(template_vol->width, template_vol->height, template_vol->depth, src->type);
   if(dest == NULL)
     return(NULL);
+	MRIreplaceValues(dest, dest, 0.0f, fill_val) ;
 
   MRIcopyHeader(template_vol, dest);
   MRIcopyPulseParameters(src, dest) ;
@@ -9492,9 +9499,9 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
         if(di % 20 == 0 && dj == di && dk == dj)
         {
           printf("MRIresample() sample point: %3d %3d %3d: %f (%3d + %f) %f (%3d + %f) %f (%3d + %f)\n", di, dj, dk, 
-		 si_ff, si, si_f, 
-		 sj_ff, sj, sj_f, 
-		 sk_ff, sk, sk_f);
+								 si_ff, si, si_f, 
+								 sj_ff, sj, sj_f, 
+								 sk_ff, sk, sk_f);
         }
 #endif
 
@@ -9584,13 +9591,13 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
           if(resample_type == SAMPLE_TRILINEAR)
           {
             val = (1.0-si_f) * (1.0-sj_f) * (1.0-sk_f) * val000 + 
-	      (1.0-si_f) * (1.0-sj_f) * (    sk_f) * val001 + 
-	      (1.0-si_f) * (    sj_f) * (1.0-sk_f) * val010 + 
-	      (1.0-si_f) * (    sj_f) * (    sk_f) * val011 + 
-	      (    si_f) * (1.0-sj_f) * (1.0-sk_f) * val100 + 
-	      (    si_f) * (1.0-sj_f) * (    sk_f) * val101 + 
-	      (    si_f) * (    sj_f) * (1.0-sk_f) * val110 + 
-	      (    si_f) * (    sj_f) * (    sk_f) * val111;
+							(1.0-si_f) * (1.0-sj_f) * (    sk_f) * val001 + 
+							(1.0-si_f) * (    sj_f) * (1.0-sk_f) * val010 + 
+							(1.0-si_f) * (    sj_f) * (    sk_f) * val011 + 
+							(    si_f) * (1.0-sj_f) * (1.0-sk_f) * val100 + 
+							(    si_f) * (1.0-sj_f) * (    sk_f) * val101 + 
+							(    si_f) * (    sj_f) * (1.0-sk_f) * val110 + 
+							(    si_f) * (    sj_f) * (    sk_f) * val111;
           }
 
           if(resample_type == SAMPLE_NEAREST)
@@ -9633,7 +9640,7 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
 
           if(resample_type == SAMPLE_WEIGHTED)
           {
-	    /* unfinished */
+						/* unfinished */
             si_f2 = si_f * si_f;
             sj_f2 = sj_f * sj_f;
             sk_f2 = sk_f * sk_f;
@@ -9857,7 +9864,7 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
 
   return(dest);
 
-} /* end MRIreslice() */
+} /* end MRIresample() */
 
 int MRIlimits(MRI *mri, float *min, float *max)
 {

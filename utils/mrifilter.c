@@ -2318,6 +2318,34 @@ MRIreduce(MRI *mri_src, MRI *mri_dst)
   MRIfree(&mtmp2) ;
   return(mri_dst) ;
 }
+MRI *
+MRIreduce2D(MRI *mri_src, MRI *mri_dst)
+{
+  int  width, height, depth ;
+  MRI  *mtmp1 ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (width <= 1 || height <= 1)
+    ErrorExit(ERROR_BADPARM, "MRIreduce2D: insufficient dimension (%d, %d)",width, height) ;
+
+  mtmp1 = MRIconvolve1d(mri_src, NULL, kernel, KERNEL_SIZE, MRI_WIDTH, 0,0) ;
+  mri_dst = MRIreduceSlice(mtmp1, mri_dst, kernel, KERNEL_SIZE, MRI_HEIGHT) ;
+  MRIfree(&mtmp1) ;
+
+  MRIcopyHeader(mri_src, mri_dst) ;
+  
+  mri_dst->thick = mri_src->thick * 2.0f ;
+  mri_dst->ps = mri_src->ps * 2.0f ;
+  mri_dst->scale = mri_src->scale * 2 ;
+  mri_dst->xsize = mri_src->xsize * 2.0f ;
+  mri_dst->ysize = mri_src->ysize * 2.0f ;
+  mri_dst->zsize = mri_src->zsize * 2.0f ;
+
+  return(mri_dst) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -3019,6 +3047,107 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       }
     }
     break ;
+  }
+
+/*  mri_dst = MRIcopy(mri_src, mri_dst) ;*/
+
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+MRI *
+MRIreduceSlice(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
+{
+  int    x, y, z, i, dheight, dwidth, ddepth, xi,yi, zi, halflen  ;
+  int    sheight, swidth, sdepth ;
+  float  total ;
+
+  swidth = mri_src->width ;
+  sheight = mri_src->height ;
+  sdepth = mri_src->depth ;
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIalloc(swidth/2, sheight/2, sdepth, MRI_UCHAR) ;
+    mri_dst->imnr1 = mri_dst->imnr0 + mri_dst->depth - 1 ;
+    MRIsetResolution(mri_dst, mri_src->xsize*2, mri_src->ysize*2, mri_src->zsize) ;
+  }
+
+  if (((mri_dst->type != MRI_UCHAR) && (mri_dst->type != MRI_FLOAT)) || (mri_src->type != MRI_FLOAT))
+    ErrorReturn(NULL,
+                (ERROR_UNSUPPORTED, 
+                 "MRIreduce1d: src %d or dst %d format unsupported",
+                 mri_src->type, mri_dst->type)) ;
+
+  dwidth = mri_dst->width ;
+  dheight = mri_dst->height ;
+  ddepth = mri_dst->depth ;
+
+
+  halflen = (len-1)/2 ;
+  switch (axis)
+  {
+  case MRI_WIDTH:
+    for (z = 0 ; z < ddepth ; z++)
+    {
+      zi = z ;
+      for (y = 0 ; y < dheight ; y++)
+      {
+        yi = 2*y ;
+        for (x = 0 ; x < dwidth ; x++)
+        {
+          total = 0.0f ;
+          
+          for (i = 0 ; i < len ; i++)
+          {
+            /* Neumann boundary conditions */
+            xi = 2*x + i - halflen ;
+            if (xi < 0)
+              xi = 0 ;
+            else if (xi >= swidth)
+              xi = swidth - 1 ;
+            
+            total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
+          }
+					MRIsetVoxVal(mri_dst, x, y, z, 0, total);
+        }
+      }
+    }
+    break ;
+  case MRI_HEIGHT:
+    for (z = 0 ; z < ddepth ; z++)
+    {
+      zi = z ;
+      for (y = 0 ; y < dheight ; y++)
+      {
+        for (x = 0 ; x < dwidth ; x++)
+        {
+          total = 0.0f ;
+          xi = 2*x ;
+          
+          for (i = 0 ; i < len ; i++)
+          {
+            /* Neumann boundary conditions */
+            yi = 2*y + i - halflen ;
+            if (yi < 0)
+              yi = 0 ;
+            else if (yi >= sheight)
+              yi = sheight - 1 ;
+            
+            total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
+          }
+					MRIsetVoxVal(mri_dst, x, y, z, 0, total);
+        }
+      }
+    }
+    break ;
+  case MRI_DEPTH:
   }
 
 /*  mri_dst = MRIcopy(mri_src, mri_dst) ;*/

@@ -516,7 +516,6 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
   char*        pCurChar         = NULL;
   char*        pBaseEnd         = NULL;
   fMRI_REG*    theRegInfo       = NULL;
-  MRI*         pAnatomicalVolume = NULL;
   MATRIX*      mTmp             = NULL;
   MATRIX*      rasTotkregRAS    = NULL;
   MATRIX*      rasTofRAS        = NULL;
