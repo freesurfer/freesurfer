@@ -808,32 +808,32 @@ TiffReadImage(char *fname)
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
 
   switch (bits_per_sample)  /* not valid - I don't know why */
-    {
-    default:
-    case 8:
-      type = PFBYTE;
-      break;
-    case 32:
-      type = PFFLOAT;
-      break;
-    case 64:
-      type = PFDOUBLE;
-      break;
-    }
+  {
+  default:
+  case 8:
+    type = PFBYTE;
+    break;
+  case 32:
+    type = PFFLOAT;
+    break;
+  case 64:
+    type = PFDOUBLE;
+    break;
+  }
   I = ImageAlloc(height, width, type, nframe) ;
-
+  
   iptr = I->image;
   for(frame=0;frame<nframe;frame++)
-    {
-      TIFFSetDirectory(tif,frame);
-
-      ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGEWIDTH, &width);
-      ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGELENGTH, &height);
-      ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
-      ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
-      for(row=0;row<height;row++)
   {
-    switch (bits_per_sample)
+    TIFFSetDirectory(tif,frame);
+    
+    ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGEWIDTH, &width);
+    ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGELENGTH, &height);
+    ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
+    ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
+    for(row=0;row<height;row++)
+    {
+      switch (bits_per_sample)
       {
       default:
       case 8:
@@ -846,15 +846,15 @@ TiffReadImage(char *fname)
         buf = (tdata_t *)IMAGEDpix(I,0,row);
         break;
       }
-    if (TIFFReadScanline(tif, buf, row, 0) < 0)
-      ErrorReturn(ERROR_BADFILE,
-      (ERROR_BADFILE,
-       "TiffReadImage:  TIFFReadScanline returned error"));
-  }
-      I->image += I->sizeimage;
+      if (TIFFReadScanline(tif, buf, row, 0) < 0)
+        ErrorReturn(NULL,
+                    (ERROR_BADFILE,
+                     "TiffReadImage:  TIFFReadScanline returned error"));
     }
+    I->image += I->sizeimage;
+  }
   I->image = iptr;
-
+  
   TIFFClose(tif);
 
   return(I) ;
@@ -974,11 +974,15 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
       case PFDOUBLE:
         buf = (tdata_t *)IMAGEDpix(I,0,row);
         break;
+      default:
+        ErrorReturn(ERROR_UNSUPPORTED, 
+                  (ERROR_BADFILE,
+                   "TiffWrite: unsupported pixel format %d",I->pixel_format));
       }
     if (TIFFWriteScanline(out, buf, row, 0) < 0)
       ErrorReturn(ERROR_BADFILE, 
-      (ERROR_BADFILE,
-       "TiffWrite: TIFFWriteScanline returned error"));
+                  (ERROR_BADFILE,
+                   "TiffWrite: TIFFWriteScanline returned error"));
   }
       TIFFWriteDirectory(out);
       I->image += I->sizeimage;
