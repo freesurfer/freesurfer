@@ -102,6 +102,6 @@
                         ((l) == Left_Inf_Lat_Vent))
 
 
-#define MAX_CMA_LABEL Corpus_Callosum
+#define MAX_CMA_LABEL (Corpus_Callosum+1)
 
 #endif
