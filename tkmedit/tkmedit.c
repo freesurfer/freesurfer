@@ -3331,6 +3331,8 @@ dump_vertex(int vno)
   fprintf(stderr, 
           "v %d: x = (%2.2f, %2.2f, %2.2f), n = (%2.2f, %2.2f, %2.2f)\n",
           vno, v->x, v->y, v->z, v->nx, v->ny, v->nz) ;
+  if (curvloaded)
+    fprintf(stderr, "curv=%2.2f\n", v->curv) ;
   fprintf(stderr, "nbrs:\n") ;
   for (n = 0 ; n < v->vnum ; n++)
   {
@@ -4152,7 +4154,7 @@ draw_surface(void)
             if (v->curv>0.0)  color(NUMVALS+MAPOFFSET+4); /* TODO:colormap */
             else              color(NUMVALS+MAPOFFSET+5);
 #else
-            /* should do interpolation here from red to green! */
+            /* should do red-green interpolation here! */
             if (v->curv>0.0)  
               glColor3f(1.0, 0.0, 0.0);
             else              
