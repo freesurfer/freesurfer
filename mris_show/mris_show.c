@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.24 1998/02/24 17:46:50 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.25 1998/03/05 22:24:37 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -25,12 +25,14 @@ static char vcid[] = "$Id: mris_show.c,v 1.24 1998/02/24 17:46:50 fischl Exp $";
 
 #define FRAME_SIZE         600
 
-#define DELTA_ANGLE  18.0f
+#define DELTA_ANGLE  16.0f
 #define RIGHT_HEMISPHERE_ANGLE   90.0
 #define LEFT_HEMISPHERE_ANGLE   -90.0
 
 #define ORIG_SURFACE_LIST   1
 #define ELLIPSOID_LIST      1
+#define MRISP_LIST          2
+#define NLISTS              2+1  /* 1 based */
 
 #ifndef GLUT_ESCAPE_KEY
 #define GLUT_ESCAPE_KEY  27
@@ -64,7 +66,7 @@ static void home(MRI_SURFACE *mris) ;
 
 char *Progname ;
 static char *surf_fname ;
-static MRI_SURFACE  *mris, *mris_ellipsoid = NULL ;
+static MRI_SURFACE  *mris ;
 static int nmarked = 0 ;
 static int marked_vertices[MAX_MARKED+1] = { -1 } ;
 static long frame_xdim = FRAME_SIZE;
@@ -88,6 +90,7 @@ static INTEGRATION_PARMS  parms ;
 static void findAreaExtremes(MRI_SURFACE *mris) ;
 static char curvature_fname[100] = "" ;
 
+static int compiled[NLISTS] ;
 
 static float cslope = 1.75f ;
 static int patch_flag = 0 ;
@@ -106,16 +109,26 @@ static int param_no = -1 ;
 static int normalize_param = 0 ;
 
 
+static float total_alpha = 0.0f ;
+static float total_beta = 0.0f ;
+static float total_gamma = 0.0f ;
+
+static char wname[200] ;
+static char title[200] ;
+
+static double starting_mse = 0.0f ;
+
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname, *out_fname, wname[200], fname[100], hemi[10],
+  char         **av, *in_fname, *out_fname, fname[100], hemi[10],
                *cp, path[100], name[100] ;
   int          ac, nargs ;
   float        angle ;
 
+  memset(compiled, 0, sizeof(compiled)) ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -192,17 +205,22 @@ main(int argc, char *argv[])
     if (gaussian_curvature_flag)
       MRISuseGaussianCurvature(mris) ;
   }
+  if (curvature_fname[0])
+    MRISreadCurvatureFile(mris, curvature_fname) ;
   if (mrisp)
   {
+    MRISnormalizeCurvature(mris) ;
+    MRISstoreMeanCurvature(mris) ;
+    starting_mse = MRIScomputeCorrelationError(mris, mrisp, param_no) ;
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
     if (normalize_param)
       MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
     else
-      MRISfromParameterization(mrisp, mris, 0) ;
+      MRISfromParameterization(mrisp, mris, param_no) ;
+    MRISnormalizeCurvature(mris) ;
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    current_list = MRISP_LIST ;
   }
-  if (curvature_fname[0])
-    MRISreadCurvatureFile(mris, curvature_fname) ;
   if (ellipsoid_flag)
   {
     MRISupdateEllipsoidSurface(mris) ;
@@ -254,7 +272,8 @@ main(int argc, char *argv[])
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH) ;
   sprintf(wname, "%scortical surface reconstruction '%s'", 
           talairach_flag ? "talairached " : "", in_fname) ;
-  glutCreateWindow(wname) ;          /* open the window */
+  strcpy(title, wname) ;
+  glutCreateWindow(title) ;          /* open the window */
   glutHideWindow() ;
   glutDisplayFunc(display_handler) ; /* specify a drawing callback function */
   OGLUinit(mris, frame_xdim, frame_ydim) ; /* specify lighting and such */
@@ -262,7 +281,8 @@ main(int argc, char *argv[])
     oglu_fov = 0.0 ;
 
   /* now compile the surface tessellation */
-  glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+  glNewList(current_list, GL_COMPILE) ;
+  compiled[current_list] = 1 ;
   OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
   glEndList() ;
 
@@ -350,6 +370,15 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "param"))
   {
+    char *cp ;
+    cp = strchr(argv[2], '#') ;
+    if (cp)   /* # explicitly given */
+    {
+      param_no = atoi(cp+1) ;
+      *cp = 0 ;
+    }
+    else
+      param_no = 0 ;
     mrisp = MRISPread(argv[2]) ;
     if (!mrisp)
       ErrorExit(ERROR_NOFILE, "%s: could not read parameterization file %s",
@@ -458,7 +487,6 @@ get_option(int argc, char *argv[])
     z_angle = RADIANS(z_angle) ;
     nargs = 1 ;
     break ;
-  case 'E':
   case 'S':
     ellipsoid_flag = 1 ;
     break ;
@@ -539,11 +567,27 @@ keyboard_handler(unsigned char key, int x, int y)
 {
   int   redraw = 1 ;
   char  wname[100] ;
-  float angle ;
 
   glMatrixMode(GL_MODELVIEW);
   switch (key)
   {
+  case 'E':
+  case 'e':
+    if (mrisp)
+    {
+      double mse ;
+      fprintf(stderr, "computing correlation error...") ;
+      MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+      MRISrotate(mris, mris, RADIANS(total_alpha), 
+                 RADIANS(total_beta), RADIANS(total_gamma)) ;
+      mse = MRIScomputeCorrelationError(mris, mrisp, param_no) ;
+      MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+      fprintf(stderr, "done.\n") ;
+      sprintf(title, "(%2.2f, %2.2f, %2.2f), mse: %2.3f (%2.3f)",
+              total_alpha, total_beta, total_gamma, mse, starting_mse) ;
+      glutSetWindowTitle(title) ;
+    }
+    break ;
   case 'W':  /* write it out */
     if (mris->hemisphere == RIGHT_HEMISPHERE)
       sprintf(wname, "rh.surf") ;
@@ -586,6 +630,7 @@ keyboard_handler(unsigned char key, int x, int y)
     break ;
   case '+':
     delta_angle *= 2.0f ;
+    fprintf(stderr, "delta angle = %2.2f\n", delta_angle) ;
     redraw = 0 ;
     break ;
   case '/':
@@ -604,6 +649,7 @@ keyboard_handler(unsigned char key, int x, int y)
     break ;
   case '-':
     delta_angle *= 0.5f ;
+    fprintf(stderr, "delta angle = %2.2f\n", delta_angle) ;
     redraw = 0 ;
     break ;
   case GLUT_ESCAPE_KEY:
@@ -640,6 +686,18 @@ keyboard_handler(unsigned char key, int x, int y)
     break ;
   case 'T':
   case 't':
+#if 1
+    current_list = ORIG_SURFACE_LIST ;
+    fprintf(stderr, "rotating brain by (%2.2f, %2.2f, %2.2f)\n",
+            total_alpha, total_beta, total_gamma) ;
+    MRISrotate(mris, mris, RADIANS(total_alpha), 
+               RADIANS(total_beta), RADIANS(total_gamma)) ;
+    home(mris) ;   /* reset the view to original state */
+    glNewList(current_list, GL_COMPILE) ;
+    OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
+    glEndList() ;
+    compiled[current_list] = 1 ;
+#else
     sprintf(wname, "talairached cortical surface reconstruction '%s'", 
             surf_fname);
     MRIStalairachTransform(mris, mris) ;
@@ -650,26 +708,46 @@ keyboard_handler(unsigned char key, int x, int y)
     glEndList() ;
 #endif
     glutSetWindowTitle(wname) ;
-    break ;
-  case 'P':
-  case 'p':
-    mris_ellipsoid = MRISprojectOntoEllipsoid(mris, NULL, 0.0f, 0.0f, 0.0f);
-    MRISfree(&mris) ;
-    mris = mris_ellipsoid ;
-#if COMPILE_SURFACE
-    glDeleteLists(ORIG_SURFACE_LIST, 1) ;
-    glNewList(ELLIPSOID_LIST, GL_COMPILE) ;
-    OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
-    glEndList() ;
 #endif
-    current_list = ELLIPSOID_LIST ;
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    if (mris_ellipsoid->hemisphere == RIGHT_HEMISPHERE)
-      angle = RIGHT_HEMISPHERE_ANGLE ;
-    else
-      angle = LEFT_HEMISPHERE_ANGLE ;
-    glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+    break ;
+  case 'O':
+  case 'o':
+    if (!mrisp)
+      break ;
+    switch (current_list)
+    {
+    default:
+    case ORIG_SURFACE_LIST: current_list = MRISP_LIST ; break ;
+    case MRISP_LIST:        current_list = ORIG_SURFACE_LIST ; break ;
+    }
+    switch (current_list)
+    {
+    default:
+    case ORIG_SURFACE_LIST:
+      if (!compiled[current_list])
+      {
+        MRISuseMeanCurvature(mris) ;
+        glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+        OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
+        glEndList() ;
+      }
+      break ;
+    case MRISP_LIST:
+      if (!compiled[current_list])
+      {
+        MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+        if (normalize_param)
+          MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
+        else
+          MRISfromParameterization(mrisp, mris, 0) ;
+        MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+        glNewList(current_list, GL_COMPILE) ;
+        OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
+        glEndList() ;
+      }
+      break ;
+    }
+    compiled[current_list] = 1 ;
     break ;
   default:
     fprintf(stderr, "unknown normal key=%d\n", key) ;
@@ -797,23 +875,29 @@ special_key_handler(int key, int x, int y)
     break ;
   case GLUT_KEY_LEFT:
     glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+    total_alpha = total_alpha - angle ;
     break ;
   case GLUT_KEY_RIGHT:
     glRotatef(-angle, 0.0f, 1.0f, 0.0f) ;
+    total_alpha = total_alpha + angle ;
     break ;
   case GLUT_KEY_DOWN:
     glRotatef(-angle, 1.0f, 0.0f, 0.0f) ;
+    total_gamma = total_gamma + angle ;
     break ;
   case GLUT_KEY_UP:
     glRotatef(angle, 1.0f, 0.0f, 0.0f) ;
+    total_gamma = total_gamma - angle ;
     break ;
 #define GLUT_KEY_DELETE (GLUT_KEY_INSERT+1)
   case GLUT_KEY_DELETE:
   case GLUT_KEY_PAGE_UP:
     glRotatef(angle, 0.0f, 0.0f, 1.0f) ;
+    total_beta = total_beta - angle ;
     break ;
   case GLUT_KEY_PAGE_DOWN:
     glRotatef(-angle, 0.0f, 0.0f, 1.0f) ;
+    total_beta = total_beta + angle ;
     break ;
   case GLUT_KEY_INSERT:
     break ;
@@ -831,6 +915,18 @@ special_key_handler(int key, int x, int y)
   }
   if (redraw)
     glutPostRedisplay() ;
+  if (!mrisp)
+  {
+    sprintf(title, "%s (%2.2f, %2.2f, %2.2f)",
+            wname, total_alpha, total_beta, total_gamma) ;
+    glutSetWindowTitle(title) ;
+  }
+  else
+  {
+    sprintf(title, "%s (%2.2f, %2.2f, %2.2f)",
+            wname, total_alpha, total_beta, total_gamma) ;
+    glutSetWindowTitle(title) ;
+  }
 }
 
 
@@ -882,6 +978,7 @@ home(MRI_SURFACE *mris)
 {
   float angle ;
 
+  total_alpha = total_beta = total_gamma = 0.0f ;
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   if (mris->patch)
