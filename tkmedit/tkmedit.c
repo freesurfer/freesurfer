@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/09 22:34:20 $
-// Revision       : $Revision: 1.190 $
-char *VERSION = "$Revision: 1.190 $";
+// Revision Date  : $Date: 2004/01/14 22:32:32 $
+// Revision       : $Revision: 1.191 $
+char *VERSION = "$Revision: 1.191 $";
 
 #define TCL
 #define TKMEDIT 
@@ -268,7 +268,8 @@ void FindNearestSurfaceVertex             ( Surf_tVertexSet iSet );
 void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet );
 void AverageSurfaceVertexPositions        ( int             inNumAverages );
 
-void SetUseRealRAS ( tBoolean ibUseRealRAS );
+void SetUseRealRAS ( tkm_tSurfaceType iType, 
+		     tBoolean ibUseRealRAS );
 
 /* Calculates a surface client transformation based on the
    gbUseRealRAS and sets it in the surface. */
@@ -1033,7 +1034,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.190 2004/01/09 22:34:20 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.191 2004/01/14 22:32:32 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2572,7 +2573,8 @@ void AverageSurfaceVertexPositions ( int inNumAverages ) {
   return;
 }
 
-void SetUseRealRAS ( tBoolean ibUseRealRAS ) {
+void SetUseRealRAS ( tkm_tSurfaceType iType, 
+		     tBoolean ibUseRealRAS ) {
 
 
   gbUseRealRAS = ibUseRealRAS;
@@ -2580,11 +2582,10 @@ void SetUseRealRAS ( tBoolean ibUseRealRAS ) {
 		      gbUseRealRAS ? "1" : "0" );
   
   /* Recalc the surface transform. */
-  CalcAndSetSurfaceClientTransformation( tkm_tSurfaceType_Main );
+  CalcAndSetSurfaceClientTransformation( iType );
   
   /* Mark the surface dirty. */
-  MWin_SetSurface( gMeditWindow, -1, tkm_tSurfaceType_Main, 
-		   gSurface[tkm_tSurfaceType_Main] );
+  MWin_SetSurface( gMeditWindow, -1, iType, gSurface[iType] );
   
   /* redraw the window. */
   MWin_RedrawAll( gMeditWindow );
@@ -2663,6 +2664,7 @@ tkm_tErr CalcAndSetSurfaceClientTransformation ( tkm_tSurfaceType iType ) {
   Surf_SetTransform( gSurface[iType], surfaceTransform );
 
 #if 0
+  DebugPrint(("Set transform for surface %d\n", iType));
   DebugPrint(("AtoRAS-1\n"));
   MatrixPrint(stderr,tmp1);
   DebugPrint(("AtoB\n"));
@@ -2972,7 +2974,7 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   Surf_UsesRealRAS( gSurface[iType], &bUseRealRAS );
   if( gbUseRealRAS == bUseRealRAS || 
       gbSetFirstUseRealRAS ) {
-    SetUseRealRAS( bUseRealRAS );
+    SetUseRealRAS( iType, bUseRealRAS );
     gbSetFirstUseRealRAS = TRUE;
   } else if( bUseRealRAS != gbUseRealRAS ) {
     tkm_SendTclCommand( tkm_tTclCommand_DoResolveUseRealRASDlog, "" );
@@ -4394,7 +4396,7 @@ int TclSetUseRealRAS ( ClientData inClientData,
   }
   
   if( gbAcceptingTclCommands ) {
-    SetUseRealRAS( atoi(argv[1]) );
+    SetUseRealRAS( tkm_tSurfaceType_Main, atoi(argv[1]) );
   }  
   
   return TCL_OK;
@@ -4979,7 +4981,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.190 2004/01/09 22:34:20 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.191 2004/01/14 22:32:32 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
