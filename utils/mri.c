@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2003/01/23 19:43:33 $
-// Revision       : $Revision: 1.209 $
-char *MRI_C_VERSION = "$Revision: 1.209 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/01/24 15:25:57 $
+// Revision       : $Revision: 1.210 $
+char *MRI_C_VERSION = "$Revision: 1.210 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -6457,6 +6457,9 @@ MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval)
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
   Real val, xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
 
+	if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
+		return(MRIsampleVolumeFrameType(mri, x, y, z, frame, SAMPLE_NEAREST, pval)) ;
+
   if (frame >= mri->nframes)
   {
     *pval = 1.0 ;
@@ -6680,8 +6683,6 @@ MRIsampleLabeledVolume(MRI *mri, Real x, Real y, Real z, Real *pval, unsigned ch
   }
   return(NO_ERROR) ;
 }
-
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -6749,6 +6750,78 @@ MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIsampleVolumeFrameType(MRI *mri, Real x, Real y, Real z, int frame, int type, Real *pval)
+{
+  int   xv, yv, zv ;
+  int OutOfBounds;
+
+	if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
+		type = SAMPLE_NEAREST ;
+  switch (type)
+  {
+  case SAMPLE_NEAREST:
+    break ;
+  case SAMPLE_TRILINEAR:
+    return(MRIsampleVolumeFrame(mri, x, y, z, frame, pval)) ;
+  default:
+  case SAMPLE_SINC:
+		ErrorReturn(ERROR_UNSUPPORTED,
+								(ERROR_UNSUPPORTED, "MRIsampleVolumeFrameType(%d): unsupported interpolation type",
+								 type));
+		/*    return(MRIsincSampleVolume(mri, x, y, z, 5, pval)) ;*/
+  }
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if(OutOfBounds == 1){
+    /* unambiguoulsy out of bounds */
+    *pval = 0.0;
+    return(NO_ERROR) ;
+  }
+
+  xv = nint(x) ; yv = nint(y) ; zv = nint(z) ; 
+  if (xv < 0)
+    xv = 0 ;
+  if (xv >= mri->width)
+    xv = mri->width-1 ;
+  if (yv < 0)
+    yv = 0 ;
+  if (yv >= mri->height)
+    yv = mri->height-1 ;
+  if (zv < 0)
+    zv = 0 ;
+  if (zv >= mri->depth)
+    zv = mri->depth-1 ;
+
+  switch (mri->type)
+  {
+  case MRI_UCHAR:
+    *pval = (float)MRIseq_vox(mri, xv, yv, zv, frame) ;
+    break ;
+  case MRI_SHORT:
+    *pval = (float)MRISseq_vox(mri, xv, yv, zv, frame) ;
+    break ;
+  case MRI_INT:
+    *pval = (float)MRIIseq_vox(mri, xv, yv, zv, frame) ;
+    break ;
+  case MRI_FLOAT:
+    *pval = MRIFseq_vox(mri, xv, yv, zv, frame) ;
+    break ;
+  default:
+    *pval = 0 ;
+    ErrorReturn(ERROR_UNSUPPORTED,
+                (ERROR_UNSUPPORTED, "MRIsampleVolumeFrameType: unsupported volume type %d",
+                 mri->type)) ;
+  }
+  return(NO_ERROR) ;
+}
 /*-------------------------------------------------------------------
   MRIsampleVolume() - performs trilinear interpolation on a
   single-frame volume. See MRIsampleSeqVolume() for sampling
@@ -6760,6 +6833,9 @@ MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
   int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
   Real val, xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
+
+	if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
+		return(MRIsampleVolumeType(mri, x, y, z, pval, SAMPLE_NEAREST)) ;
 
   OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
   if(OutOfBounds == 1){
@@ -8154,6 +8230,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
   }
   else
   {
+
     /* ----- build a histogram ----- */
     printf("MRIchangeType: Building histogram \n");
 
