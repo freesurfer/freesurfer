@@ -5407,6 +5407,10 @@ static int analyzeWrite4D(MRI *mri, char *fname)
   hdr.dime.dim[1] = mri->width;    /* ncols */
   hdr.dime.dim[2] = mri->height;   /* nrows */
   hdr.dime.dim[3] = mri->depth;    /* nslices */
+  hdr.dime.dim[4] = mri->nframes;
+  hdr.dime.dim[0] = 4;              /* flirt expects to be always 4 */
+
+#if 0
   if(mri->nframes > 1){
     hdr.dime.dim[0] = 4; /* number of dimensions (??) */
     hdr.dime.dim[4] = mri->nframes;  /* nframes */
@@ -5415,7 +5419,7 @@ static int analyzeWrite4D(MRI *mri, char *fname)
     hdr.dime.dim[4] = 0;  /* nframes */
     hdr.dime.dim[0] = 3; /* number of dimensions (??) */
   }
-
+#endif
   hdr.dime.pixdim[1] = mri->xsize; /* col res */
   hdr.dime.pixdim[2] = mri->ysize; /* row res */
   hdr.dime.pixdim[3] = mri->zsize; /* slice res */
