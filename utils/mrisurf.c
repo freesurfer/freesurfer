@@ -7474,14 +7474,13 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
     if (!cp)
       strcat(fname_no_path, ".annot") ;
 
-    need_hemi = 
-      !stricmp(fname, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
+    need_hemi = stricmp(fname_no_path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
 
     FileNamePath(mris->fname, path) ;
     if (!need_hemi)
       sprintf(fname, "%s/../label/%s", path, fname_no_path) ;
     else   /* no hemisphere specified */
-      sprintf(fname, "%s/../label/%s_%s", path, 
+      sprintf(fname, "%s/../label/%s.%s", path, 
               mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",fname_no_path);
   }
   else

@@ -133,12 +133,12 @@ CTABcolorToIndex(COLOR_TABLE *pct, int r, int g, int b, int*index)
     {
       bin = &(pct->bins[nbin]);
       if (bin->r == r &&
-	  bin->g == g &&
-	  bin->b == b)
-	{
-	  *index = nbin;
-	  return(NO_ERROR);
-	}
+					bin->g == g &&
+					bin->b == b)
+			{
+				*index = nbin;
+				return(NO_ERROR);
+			}
 
       nbin++;
     }
@@ -183,3 +183,14 @@ CTABcopyName(COLOR_TABLE *pct, int index, char *name)
   return(NO_ERROR);
 }
 
+int
+CTABannotationToIndex(COLOR_TABLE *ctab, int annotation)
+{
+  int   r, g, b, index ;
+
+	r = annotation & 0x0000ff ;
+	g = (annotation >> 8) & 0x0000ff ;
+	b = (annotation >> 16) & 0x0000ff ;
+	CTABcolorToIndex(ctab, r, g, b, &index) ;
+	return(index) ;
+}
