@@ -2476,6 +2476,12 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
   int       nWidth             = 0;
   int       nHeight            = 0;
 
+#if 0
+  static struct timeval curTime1;
+  static struct timeval curTime2;
+  static unsigned long int msec1, msec2;
+#endif
+
   /* verify us. */
   eResult = MWin_Verify ( this );
   if ( MWin_tErr_NoErr != eResult )
@@ -2498,22 +2504,22 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
     /* hack! if this is a key-down and it's the home key, move the 
        tool window to right under us. */
     if( xGWin_tEventType_KeyDown == ipEvent->mType 
-  && xGWin_tKey_Home == ipEvent->mKey ) {
+	&& xGWin_tKey_Home == ipEvent->mKey ) {
       MWin_PlaceToolWindow_( this );
       goto cleanup;
     }
-
+    
     /* look for tab. if so, change focus. */
     if( xGWin_tEventType_KeyDown == ipEvent->mType
-  && xGWin_tKey_Tab == ipEvent->mKey ) {
+	&& xGWin_tKey_Tab == ipEvent->mKey ) {
       if( ipEvent->mbShiftKey ) {
-  MWin_ChangeFocusedDisplayAreaBy_( this, -1 );
+	MWin_ChangeFocusedDisplayAreaBy_( this, -1 );
       } else {
-  MWin_ChangeFocusedDisplayAreaBy_( this, 1 );
+	MWin_ChangeFocusedDisplayAreaBy_( this, 1 );
       }
       goto cleanup;
     }
-
+    
     /* flip the y. i hate this. */
     nFlippedY = this->mnHeight - ipEvent->mWhere.mnY;
     
@@ -2526,85 +2532,85 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
       
       /* assume not hit */
       bWasHit = FALSE;
-
+      
       /* if this was a mouse event... */
       if( xGWin_tEventType_MouseMoved == ipEvent->mType
-    || xGWin_tEventType_MouseDown == ipEvent->mType
-    || xGWin_tEventType_MouseUp == ipEvent->mType ) {
-
-  /* get the size and location */
-  eDispResult = DspA_GetPosition ( this->mapDisplays[nDispIndex],
-           &location, &nWidth, &nHeight );
-  if ( DspA_tErr_NoErr != eDispResult ) {
-    eResult = MWin_tErr_ErrorAccessingDisplay;
-    goto error;
-  }
-      
-  /* find if it was hit. note we're using the flipped y here. */
-  if ( ( ipEvent->mWhere.mnX    >= location.mnX 
-         && ipEvent->mWhere.mnX <= location.mnX + nWidth ) &&
-       ( nFlippedY              >= location.mnY
-         && nFlippedY           <= location.mnY + nHeight ) ) {
-
-    /* pass event to this pane. */
-    bWasHit = TRUE;
-  }
-
-  /* else if it was a key event.. */
+	  || xGWin_tEventType_MouseDown == ipEvent->mType
+	  || xGWin_tEventType_MouseUp == ipEvent->mType ) {
+	
+	/* get the size and location */
+	eDispResult = DspA_GetPosition ( this->mapDisplays[nDispIndex],
+					 &location, &nWidth, &nHeight );
+	if ( DspA_tErr_NoErr != eDispResult ) {
+	  eResult = MWin_tErr_ErrorAccessingDisplay;
+	  goto error;
+	}
+	
+	/* find if it was hit. note we're using the flipped y here. */
+	if ( ( ipEvent->mWhere.mnX    >= location.mnX 
+	       && ipEvent->mWhere.mnX <= location.mnX + nWidth ) &&
+	     ( nFlippedY              >= location.mnY
+	       && nFlippedY           <= location.mnY + nHeight ) ) {
+	  
+	  /* pass event to this pane. */
+	  bWasHit = TRUE;
+	}
+	
+	/* else if it was a key event.. */
       } else if( xGWin_tEventType_KeyDown == ipEvent->mType ) {
-
-  /* was hit if this is the focused pane */
-  if( nDispIndex == this->mnLastClickedArea ) {
-    bWasHit = TRUE;
-  }
+	
+	/* was hit if this is the focused pane */
+	if( nDispIndex == this->mnLastClickedArea ) {
+	  bWasHit = TRUE;
+	}
       }
-
+      
       /* if this was hit... */
       if( bWasHit ) {
-  
-  /* if this was not the last clicked area and this was not
-      a moved event... */
-  if( nDispIndex != this->mnLastClickedArea &&
-      ipEvent->mType != xGWin_tEventType_MouseMoved ) {
-
-    /* save new focused display. HACK: we need to do this first, because
-       calling DspA_Focus makes the display panel send all its view
-       state information to tcl (DspA_SendViewStateToTcl_) which
-       calls stuff like UpdateOrientation. tcl updates its orientation
-       variable which triggers some of its update methods
-       (UpdateOrientationWrapper), which calls SetOrientation, which
-       sets the orientation of the pane[this->mnLastClickedArea]. arg */
-    this->mnLastClickedArea = nDispIndex;
-    
-    /* focus on this display. */
-    eDispResult = DspA_Focus( this->mapDisplays[nDispIndex] );
-    if ( DspA_tErr_NoErr != eDispResult ) {
-      eResult = MWin_tErr_ErrorAccessingDisplay;
-      goto error;
-    }
-
-  }
-
-  /* pass the event along. if it's a mouse moved event, only pass it
-   if this is the focused pane. */
-  if( (ipEvent->mType != xGWin_tEventType_MouseMoved) ||
-      (nDispIndex == this->mnLastClickedArea &&
-       ipEvent->mType == xGWin_tEventType_MouseMoved) ) {
-    
-    eDispResult = DspA_HandleEvent ( this->mapDisplays[nDispIndex],
-             ipEvent );
-    if ( DspA_tErr_NoErr != eDispResult ) {
-      eResult = MWin_tErr_ErrorAccessingDisplay;
-      goto error;
-    }
-  }
+	
+	/* if this was not the last clicked area and this was not
+	   a moved event... */
+	if( nDispIndex != this->mnLastClickedArea &&
+	    ipEvent->mType != xGWin_tEventType_MouseMoved ) {
+	  
+	  /* save new focused display. HACK: we need to do this first, because
+	     calling DspA_Focus makes the display panel send all its view
+	     state information to tcl (DspA_SendViewStateToTcl_) which
+	     calls stuff like UpdateOrientation. tcl updates its orientation
+	     variable which triggers some of its update methods
+	     (UpdateOrientationWrapper), which calls SetOrientation, which
+	     sets the orientation of the pane[this->mnLastClickedArea]. arg */
+	  this->mnLastClickedArea = nDispIndex;
+	  
+	  /* focus on this display. */
+	  eDispResult = DspA_Focus( this->mapDisplays[nDispIndex] );
+	  if ( DspA_tErr_NoErr != eDispResult ) {
+	    eResult = MWin_tErr_ErrorAccessingDisplay;
+	    goto error;
+	  }
+	  
+	}
+	
+	/* pass the event along. if it's a mouse moved event, only pass it
+	   if this is the focused pane. */
+	if( (ipEvent->mType != xGWin_tEventType_MouseMoved) ||
+	    (nDispIndex == this->mnLastClickedArea &&
+	     ipEvent->mType == xGWin_tEventType_MouseMoved) ) {
+	  
+	  eDispResult = DspA_HandleEvent ( this->mapDisplays[nDispIndex],
+					   ipEvent );
+	  if ( DspA_tErr_NoErr != eDispResult ) {
+	    eResult = MWin_tErr_ErrorAccessingDisplay;
+	    goto error;
+	  }
+	}
       }
     }
     
     break;
-
+    
   case xGWin_tEventType_Resize:
-
+    
     /* set our width and height */
     this->mnWidth  = ipEvent->mWhere.mnX;
     this->mnHeight = ipEvent->mWhere.mnY;
@@ -2624,31 +2630,57 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
 
   case xGWin_tEventType_Draw:
 
+#if 0
+    gettimeofday( &curTime1, NULL );
+    msec1 = curTime1.tv_sec * 1000  +  (curTime1.tv_usec/1000);
+    fprintf( stderr, "waited %lu\n", (msec1 - msec2) );
+    fprintf( stderr, "draw at %lu ", msec1 );
+#endif
+
     /* all display areas get and draw events. */
     for ( nDispIndex = 0; 
-    nDispIndex < MWin_knMaxNumAreas; 
-    nDispIndex++ ) {
-
+	  nDispIndex < MWin_knMaxNumAreas; 
+	  nDispIndex++ ) {
+      
       eDispResult = DspA_HandleEvent ( this->mapDisplays[nDispIndex],
-               ipEvent );
+				       ipEvent );
       if ( DspA_tErr_NoErr != eDispResult ) {
-  eResult = MWin_tErr_ErrorAccessingDisplay;
-  goto error;
+	eResult = MWin_tErr_ErrorAccessingDisplay;
+	goto error;
       }
     }
-
+    
     /* call our draw handler. */
     MWin_HandleDraw_( this );
+
+#if 0
+    gettimeofday( &curTime2, NULL );
+    msec2 = curTime2.tv_sec * 1000  +  (curTime2.tv_usec/1000);
+    fprintf( stderr, " done at %lu (%lu)\n", msec2, msec2 - msec1 );
+#endif
+
 
     break;
 
   case xGWin_tEventType_Idle:
     
     /* if idle, call tkmedit idle event handler. */
-    if ( xGWin_tEventType_Idle == ipEvent->mType ) {
-      tkm_HandleIdle();
-    }
+    tkm_HandleIdle();
     
+    /* just call the tk event handling function */
+    while (Tcl_DoOneEvent( TCL_ALL_EVENTS | TCL_DONT_WAIT )) {}
+    
+    /* Sleep for a bit to ease off on the CPU. */
+#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
+  struct timeval tv;
+  
+  tv.tv_sec = 0;
+  tv.tv_usec = 10000;
+  select(0, NULL, NULL, NULL, &tv);
+#else
+  sginap((long)1);
+#endif
+
     break;
 
   default:
@@ -2677,7 +2709,7 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
 
 MWin_tErr MWin_Redraw ( tkmMeditWindowRef this ) {
 
-  MWin_tErr eResult     = MWin_tErr_NoErr;
+  MWin_tErr eResult = MWin_tErr_NoErr;
 
   /* post a redisplay. */
   glutPostRedisplay();

@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/10/15 18:31:59 $
-// Revision       : $Revision: 1.225 $
-char *VERSION = "$Revision: 1.225 $";
+// Revision Date  : $Date: 2004/10/22 21:15:25 $
+// Revision       : $Revision: 1.226 $
+char *VERSION = "$Revision: 1.226 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1065,7 +1065,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.225 2004/10/15 18:31:59 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.226 2004/10/22 21:15:25 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2901,21 +2901,6 @@ void UpdateAndRedraw () {
 
 void tkm_HandleIdle () {
   
-#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
-  struct timeval tv;
-#endif
-
-  /* just call the tk event handling function */
-  while (Tk_DoOneEvent( TK_ALL_EVENTS | TK_DONT_WAIT )) {
-  }
-
-#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
-    tv.tv_sec = 0;
-    tv.tv_usec = 10000;
-    select(0, NULL, NULL, NULL, &tv);
-#else
-    sginap((long)1);   /* block for 10 msec */
-#endif
 }
 
 // ================================================================== SURFACES
@@ -5036,7 +5021,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.225 2004/10/15 18:31:59 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.226 2004/10/22 21:15:25 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
