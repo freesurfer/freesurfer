@@ -13,7 +13,7 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_extract_label.c,v 1.5 2003/09/05 04:45:33 kteich Exp $";
+static char vcid[] = "$Id: mri_extract_label.c,v 1.6 2004/06/30 14:59:27 vicka Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -40,7 +40,7 @@ main(int argc, char *argv[])
   MATRIX      *m ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_label.c,v 1.5 2003/09/05 04:45:33 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract_label.c,v 1.6 2004/06/30 14:59:27 vicka Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -126,7 +126,10 @@ main(int argc, char *argv[])
       mri_smoothed = MRIconvolveGaussian(mri_out, NULL, mri_kernel) ;
       MRIfree(&mri_out) ; mri_out = mri_smoothed ;
     }
-    vsprintf(out_fname, out_vol, (va_list) &label) ;
+    /* removed for gcc3.3
+     * vsprintf(out_fname, out_vol, (va_list) &label) ;
+    */
+    sprintf(out_fname, out_vol, label) ;
     printf("writing output to %s.\n", out_fname) ;
     MRIwrite(mri_out, out_fname) ;
   }
