@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.40 2003/08/25 19:56:35 tosa Exp $
+   $Id: DICOMRead.c,v 1.41 2003/08/26 18:19:18 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -519,6 +519,139 @@ int IsSiemensDICOM(char *dcmfile)
   return(1);
 }
 
+
+
+/* The original SiemensQsciiTag() is too slow         */
+/* make sure that returned value be freed if non-null */
+char *SiemensAsciiTagEx(char *dcmfile, char *TagString, int cleanup)
+{
+  static char filename[1024] = "";
+  static char **lists = 0;
+  static int count = 0;
+  static int startOfAscii = 0;
+  static int MAX_ASCIILIST = 512;
+  static int INCREMENT = 64;
+
+  int i;
+  FILE *fp;
+  char buf[1024];
+  char command[1024+32];
+  char *plist = 0;
+  char VariableName[512];
+  char *VariableValue = 0;
+  char tmpstr2[512];
+  int newSize;
+
+  // cleanup section.  Make sure to set cleanup =1 at the final call
+  // don't rely on TagString but the last flag only
+  if (cleanup == 1)
+  {
+    for (i = 0; i < count; ++i)
+    { 
+      if (lists[i])
+      {
+	free(lists[i]); lists[i] = 0;
+      }
+    }
+    free(lists); lists = 0;
+    count = 0;
+    startOfAscii = 0;
+    strcpy(filename, "");
+    return ((char *) 0);
+  }
+
+  // if the filename changed, then cache the ascii strings
+  if (strcmp(dcmfile, filename) !=0 )
+  {
+    if (lists == 0)
+      lists = (char **) calloc(sizeof(char*), MAX_ASCIILIST); // initialized to be zero
+
+    strcpy(filename, dcmfile);
+    // free allocated list of strings
+    for (i=0; i < count; ++i)
+    {
+      if (lists[i])
+      {
+	free(lists[i]); lists[i] =0;
+      }
+    }
+    // now build up string lists ///////////////////////////////////
+    startOfAscii = 0;
+    strcpy(command, "strings ");
+    strcat(command, filename);
+    if ((fp = popen(command, "r")) == NULL)
+    {
+      fprintf(stderr, "could not open pipe for %s\n", filename);
+      return 0;
+    }
+    count = 0;
+    while (fgets(buf, 1024, fp))
+    {
+      // replace CR with null
+      char *p = strrchr(buf, '\n');
+      if (p)
+	*p = '\0';
+      
+      // check the region
+      if (strncmp(buf, "### ASCCONV BEGIN ###", 21)==0)
+	startOfAscii = 1;
+      else if (strncmp(buf, "### ASCCONV END ###", 19)==0)
+	startOfAscii = 0;
+      
+      if (startOfAscii == 1)
+      {
+	// printf("%d:%d, %s\n", count, strlen(buf), buf);
+	plist = (char *) malloc(strlen(buf)+1);
+	strcpy(plist, buf);
+	lists[count] = plist;
+	++count;
+	// if we exhaused the list pointer
+	// we have to realloc
+	if (count == MAX_ASCIILIST)
+	{
+	  newSize = MAX_ASCIILIST + INCREMENT;
+	  char **newlists = (char **) realloc(lists, newSize*sizeof(char *));
+	  if (newlists != 0)  // if not failed
+	  {
+	    lists = newlists; // update the pointer
+	    // initialize uninitialized list
+	    for (i=0; i < INCREMENT; ++i)
+	      lists[MAX_ASCIILIST+i] = (char *) 0;
+	    MAX_ASCIILIST = newSize;
+	  }
+	  else
+	  {
+	    // this should not happen, but hey just in case.
+	    // Ascii tag is not essential and thus allow it to pass.
+	    fprintf(stderr, "cannot store any more ASCII tags. Tagname is %s\n", TagString);
+	  }
+	}
+      }
+    }
+    pclose(fp);
+  }
+  // build up string lists available
+  // search the tag
+  for (i=0; i < count; ++i)
+  {
+    // get the variable name (the first string)
+    sscanf(lists[i],"%s %*s %*s",VariableName);
+    if( strcmp(VariableName,TagString)==0 ) 
+    { 
+      /* match found. get the value (the third string) */
+      sscanf(lists[i], "%*s %*s %s",tmpstr2);
+      VariableValue = (char *) calloc(strlen(tmpstr2)+1,sizeof(char));
+      memcpy(VariableValue, tmpstr2, strlen(tmpstr2));
+    }
+    else
+      continue;
+  }
+  // show any errors present
+  fflush(stdout);fflush(stderr);
+
+  return VariableValue;
+}
+
 /*-----------------------------------------------------------------
   SiemensAsciiTag() - siemens dicom files have some data stored as a
   block of ASCII text. Each line in the block has the form:
@@ -882,19 +1015,19 @@ int sdcmSliceDirCos(char *dcmfile, float *Vsx, float *Vsy, float *Vsz)
 
   if(! IsSiemensDICOM(dcmfile) ) return(1);
 
-  tmpstr = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sNormal.dSag");
+  tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].sNormal.dSag", 0);
   if(tmpstr != NULL){
     sscanf(tmpstr,"%f",Vsx);
     free(tmpstr);
   }
 
-  tmpstr = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sNormal.dCor");
+  tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].sNormal.dCor", 0);
   if(tmpstr != NULL){
     sscanf(tmpstr,"%f",Vsy);
     free(tmpstr);
   }
 
-  tmpstr = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].sNormal.dTra");
+  tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].sNormal.dTra", 0);
   if(tmpstr != NULL){
     sscanf(tmpstr,"%f",Vsz);
     free(tmpstr);
@@ -957,12 +1090,12 @@ int sdcmIsMosaic(char *dcmfile, int *pNcols, int *pNrows, int *pNslices, int *pN
   Ncols = dcmGetNCols(dcmfile);
   if(Ncols == -1) return(0);
 
-  tmpstr = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].dPhaseFOV");
+  tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].dPhaseFOV", 0);
   if(tmpstr == NULL) return(0);
   sscanf(tmpstr,"%f",&PhEncFOV);
   free(tmpstr);
 
-  tmpstr = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].dReadoutFOV");
+  tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].dReadoutFOV", 0);
   if(tmpstr == NULL) return(0);
   sscanf(tmpstr,"%f",&ReadOutFOV);
   free(tmpstr);
@@ -986,13 +1119,13 @@ int sdcmIsMosaic(char *dcmfile, int *pNcols, int *pNrows, int *pNslices, int *pN
     if(pNrows != NULL) *pNrows = NrowsExp;
     if(pNcols != NULL) *pNcols = NcolsExp;
     if(pNslices != NULL){
-      tmpstr = SiemensAsciiTag(dcmfile, "sSliceArray.lSize");
+      tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.lSize", 0);
       if(tmpstr == NULL) return(0);
       sscanf(tmpstr,"%d",pNslices);
       free(tmpstr);
     }
     if(pNframes != NULL){
-      tmpstr = SiemensAsciiTag(dcmfile, "lRepetitions");
+      tmpstr = SiemensAsciiTagEx(dcmfile, "lRepetitions", 0);
       if(tmpstr == NULL) return(0);
       sscanf(tmpstr,"%d",pNframes);
       (*pNframes)++;
@@ -1104,7 +1237,7 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   cond=GetString(&object, tag, &sdcmfi->PhEncDir);
   if(cond != DCM_NORMAL){ sdcmfi->ErrorFlag = 1; }
 
-  strtmp = SiemensAsciiTag(dcmfile, "lRepetitions");
+  strtmp = SiemensAsciiTagEx(dcmfile, "lRepetitions", 0);
   if(strtmp != NULL){
     sscanf(strtmp,"%d",&(sdcmfi->lRepetitions));
     free(strtmp);
@@ -1113,21 +1246,21 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   sdcmfi->NFrames = sdcmfi->lRepetitions + 1;
   /* This is not the last word on NFrames. See sdfiAssignRunNo().*/
 
-  strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.lSize");
+  strtmp = SiemensAsciiTagEx(dcmfile, "sSliceArray.lSize", 0);
   if(strtmp != NULL){
     sscanf(strtmp,"%d",&(sdcmfi->SliceArraylSize));
     free(strtmp);
   }
   else sdcmfi->SliceArraylSize = 0;
 
-  strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].dPhaseFOV");
+  strtmp = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].dPhaseFOV", 0);
   if(strtmp != NULL){
     sscanf(strtmp,"%f",&(sdcmfi->PhEncFOV));
     free(strtmp);
   }
   else sdcmfi->PhEncFOV = 0;
 
-  strtmp = SiemensAsciiTag(dcmfile, "sSliceArray.asSlice[0].dReadoutFOV");
+  strtmp = SiemensAsciiTagEx(dcmfile, "sSliceArray.asSlice[0].dReadoutFOV", 0);
   if(strtmp != NULL){
     sscanf(strtmp,"%f",&(sdcmfi->ReadoutFOV));
     free(strtmp);
@@ -1183,6 +1316,9 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
     sdcmfi->VolDim[1] = sdcmfi->NImageRows;
   }
 
+  // cleanup Ascii storage
+  SiemensAsciiTagEx(dcmfile, (char *) 0, 1);
+  
   cond=DCM_CloseObject(&object);
 
   /* Clear the condition stack to prevent overflow */
