@@ -266,6 +266,10 @@ Volm_tErr Volm_SetValueAtMRIIdx       ( mriVolumeRef this,
 					xVoxelRef    iMRIIdx,
 					float        iValue );
 
+/* Returns whether or not we have a talairach transform. */
+Volm_tErr Volm_HasTalTransform ( mriVolumeRef this,
+				 tBoolean*    obHasTransform );
+
 /* coordinate conversion. idx stands for index and is the 0->dimension-1
    index of the volume. RAS space, aka world space, is centered on the
    center of the volume and is in mm. mni tal is mni's version of 

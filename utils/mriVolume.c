@@ -1438,6 +1438,39 @@ Volm_tErr Volm_SetValueAtMRIIdx ( mriVolumeRef this,
   
   return eResult;
 }
+
+Volm_tErr Volm_HasTalTransform ( mriVolumeRef this,
+				 tBoolean*    obHasTransform ) {
+
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_HasTalTransform( this=%p, obHasTransform=%p)",
+		       this, obHasTransform) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (obHasTransform != NULL), 
+		     eResult, Volm_tErr_InvalidParamater );
+  
+  /* Return true if we have a tal transform, false if not. */
+  if( NULL != this->mpMriValues->linear_transform ) {
+    *obHasTransform = TRUE;
+  } else {
+    *obHasTransform = FALSE;
+  }
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 Volm_tErr Volm_ConvertIdxToRAS ( mriVolumeRef this,
 				 xVoxelRef    iIdx,
 				 xVoxelRef    oRAS ) {
