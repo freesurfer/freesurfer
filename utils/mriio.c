@@ -404,7 +404,9 @@ MRIwriteInfo(MRI *mri, char *fpref)
 
   fprintf(fp, "%s %d\n", "imnr0", mri->imnr0);
   fprintf(fp, "%s %d\n", "imnr1", mri->imnr1);
-  fprintf(fp, "%s %d\n", "ptype", mri->ptype);
+  fprintf(fp, "%s %d\n", "ptype", 
+          mri->slice_direction == MRI_CORONAL ? 2 :
+          mri->slice_direction == MRI_HORIZONTAL ? 0 : 1) ;
   fprintf(fp, "%s %d\n", "x", mri->width);
   fprintf(fp, "%s %d\n", "y", mri->height);
   fprintf(fp, "%s %f\n", "fov", mri->fov/MM_PER_METER);
