@@ -20739,9 +20739,8 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
     if (i == 47)
       DiagBreak() ;
     if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "\rdefect %d (area %2.3f): marking %s.      ", 
-              i, defect->area,
-              defect->area > AREA_THRESHOLD ? "outside" : "inside") ;
+      fprintf(stderr, "\rdefect %d (area %2.3f)      ", 
+              i, defect->area) ;
     mrisMarkRetainedPartOfDefect(mris, defect, fdl, AREA_THRESHOLD,
                                  MARK_RETAIN, MARK_DISCARD, mht) ;
     mrisFindDefectConvexHull(mris, defect) ;
@@ -22187,9 +22186,18 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
         DiagBreak() ;
       v2 = &mris->vertices[vlist[j]] ;
       et[n].vno1 = vertex_trans[vlist[i]]; et[n].vno2 = vertex_trans[vlist[j]];
+#if 0
       dx = v->origx - v2->origx ;
       dy = v->origy - v2->origy ;
       dz = v->origz - v2->origz ;
+#else
+      /* use inflated surface for distances as it more closely approximates
+         distances along the surface (more interesting than 3d distances).
+      */
+      dx = v->tx - v2->tx ;
+      dy = v->ty - v2->ty ;
+      dz = v->tz - v2->tz ;
+#endif
       et[n].len = sqrt(dx*dx + dy*dy + dz*dz) ;
       if (et[n].vno1 == 53150 && et[n].vno2 == 53151)
         DiagBreak() ;
