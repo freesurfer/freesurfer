@@ -1,0 +1,407 @@
+/*----------------------------------------------------------------------
+           File Name:
+
+           Author:
+
+           Description:
+
+           Conventions:
+
+----------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------
+                           INCLUDE FILES
+----------------------------------------------------------------------*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <ctype.h>
+
+#include "proto.h"
+#include "diag.h"
+#include "macros.h"
+#include "mri.h"
+
+
+#ifndef SQR
+#define SQR(x)  ((x)*(x))
+#endif
+
+/*----------------------------------------------------------------------
+                              FUNCTIONS
+----------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+#define DT           0.5
+#define E_DIFFUSION  0.001 /* increasing this gives a smoother solution */
+#define E_CURV       0.05  /* increasing this gives less curvature to front */
+#define MAG_SCALE    50.0  /* increasing this increases the effect of grad */
+#define WRITE_ITER   50
+#define MIN_DIST     2.0
+
+/* solve ut + f |grad(u)| = e uxx */
+
+MRI *
+MRIfill(MRI *mri_src, MRI *mri_distance, int x0, int y0, int z0, int niter)
+{
+  int     width, height, depth, t, x, y, z, xp1, xm1, yp1, ym1, zp1, zm1,
+          write_iter;
+  double  dx, dy, dz, dxx, dyy, dzz, dxy, dxz, dyz, dist_xp1, dist_xm1, 
+          dist_yp1, dist_ym1, dist_zp1, dist_zm1, dist, km, denom, mag,
+          dist_xp1yp1, dist_xp1zp1, dist_yp1zp1, grad, F, laplacian,
+          dx_f, dx_b, dy_f, dy_b, dz_f, dz_b, sdx, sdy, sdz ;
+  float   mag_scale, dt, e_diffusion, e_curv ;
+  BUFTYPE src, src_xp1, src_xm1, src_yp1, src_ym1, src_zp1, src_zm1 ;
+
+{
+  char *cp ;
+  cp = getenv("WRITE_ITER") ;
+  write_iter = WRITE_ITER ;
+  if (cp)
+    sscanf(cp, "%d", &write_iter) ;
+  cp = getenv("MAG_SCALE") ;
+  mag_scale = MAG_SCALE ;
+  if (cp)
+    sscanf(cp, "%f", &mag_scale) ;
+  cp = getenv("E_DIFFUSION") ;
+  e_diffusion = E_DIFFUSION ;
+  if (cp)
+    sscanf(cp, "%f", &e_diffusion) ;
+  cp = getenv("E_CURV") ;
+  e_curv = E_CURV ;
+  if (cp)
+    sscanf(cp, "%f", &e_curv) ;
+  cp = getenv("DT") ;
+  dt = DT ;
+  if (cp)
+    sscanf(cp, "%f", &dt) ;
+}
+
+fprintf(stderr, "mag_scale = %2.1f, e_curv = %2.4f, e_diffusion = %2.4f, "
+        "dt=%2.2f\n", mag_scale, e_curv, e_diffusion, dt) ;
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (x0 < 0)
+    x0 = (width-1)/2 ;
+  if (y0 < 0)
+    y0 = (height-1)/2 ;
+  if (z0 < 0)
+    z0 = (depth-1)/2 ;
+
+  if (!mri_distance)
+    mri_distance = MRIbuildDistanceMap(mri_src, NULL, x0, y0, z0) ;
+  
+  for (t = 0 ; t < niter ; t++)
+  {
+    fprintf(stderr, "\r%4.4d     ", t) ;
+    if (!(t % write_iter))
+    {
+      char fname[100] ;
+      MRI  *mri_interior ;
+
+#if 0     
+      sprintf(fname, "dist%d.mnc", t/write_iter) ;
+      MRIwrite(mri_distance, fname) ;
+#endif
+      sprintf(fname, "front%d.mnc", t/write_iter) ;
+      mri_interior = MRIextractInterior(mri_src, mri_distance, NULL) ;
+      MRIwrite(mri_interior, fname) ;
+      MRIfree(&mri_interior) ;
+    }
+    for (z = 0 ; z < depth ; z++)
+    {
+      zp1 = mri_src->zi[z+1] ;
+      zm1 = mri_src->zi[z-1] ;
+      for (y = 0 ; y < height ; y++)
+      {
+        yp1 = mri_src->yi[y+1] ;
+        ym1 = mri_src->yi[y-1] ;
+#if 0
+        pmag = &MRIFvox(mri_mag, 0, y, z) ;
+#endif
+        for (x = 0 ; x < width ; x++)
+        {
+          dist = (double)MRIFvox(mri_distance, x, y, z) ;
+#if 0
+          mag = (double)*pmag++ ;
+#endif
+          if (dist > MIN_DIST)
+            continue ;
+
+          if (x == 20 && y == 13 && z == 22)
+            DiagBreak() ;
+          xp1 = mri_src->xi[x+1] ;
+          xm1 = mri_src->xi[x-1] ;
+          dist_xp1 = MRIFvox(mri_distance, xp1, y, z) ;
+          dist_xm1 = MRIFvox(mri_distance, xm1, y, z) ;
+          dist_yp1 = MRIFvox(mri_distance, x, yp1, z) ;
+          dist_ym1 = MRIFvox(mri_distance, x, ym1, z) ;
+          dist_zp1 = MRIFvox(mri_distance, x, y, zp1) ;
+          dist_zm1 = MRIFvox(mri_distance, x, y, zm1) ;
+
+          dist_xp1yp1 = MRIFvox(mri_distance, xp1, yp1, z) ;
+          dist_xp1zp1 = MRIFvox(mri_distance, xp1, y, zp1) ;
+          dist_yp1zp1 = MRIFvox(mri_distance, x, yp1, zp1) ;
+
+          /* forward difference */
+          dx_f = (dist_xp1 - dist) ;
+          dy_f = (dist_yp1 - dist) ;
+          dz_f = (dist_zp1 - dist) ;
+
+          /* backward difference */
+          dx_b = (dist - dist_xm1) ;
+          dy_b = (dist - dist_ym1) ;
+          dz_b = (dist - dist_zm1) ;
+
+/* 
+   use 'upwind' approximation of the derivatives. That is, calculate
+   the derivatives using information from the direction of the front,
+   not away from it.
+*/
+          dx = MAX(dx_b,0) + MIN(dx_f,0) ;
+          dy = MAX(dy_b,0) + MIN(dy_f,0) ;
+          dz = MAX(dz_b,0) + MIN(dz_f,0) ;
+
+          /* mixed partials */
+          dxy = (dist_xp1yp1 + dist - dist_xp1 - dist_yp1) / 2.0f ;
+          dxz = (dist_xp1zp1 + dist - dist_xp1 - dist_zp1) / 2.0f ;
+          dyz = (dist_yp1zp1 + dist - dist_yp1 - dist_zp1) / 2.0f ;
+
+          /* second order derivatives */
+          dxx = dist_xp1 + dist_xm1 - 2.0f * dist ;
+          dyy = dist_yp1 + dist_ym1 - 2.0f * dist ;
+          dzz = dist_zp1 + dist_zm1 - 2.0f * dist ;
+          laplacian = dxx + dyy + dzz ;
+          
+          denom = dx*dx + dy*dy + dz*dz ;
+          grad = sqrt(denom) ;
+          denom = pow(denom, 3.0f/2.0f) ;
+          if (denom==0.0f)
+            km = 0.0f ;
+          else
+            km = 
+              ((dyy+dzz)*SQR(dx) +
+               (dxx+dzz)*SQR(dy) +
+               (dxx+dyy)*SQR(dz) -
+               2.0f * (dx*dy*dxy + dx*dz*dxz + dy*dz*dyz)) / denom ;
+          if (!finite(km))
+            km = 0.0f ;
+
+          /* speed function F based on normal and curvature */
+          F = 1.0f - km*(double)e_curv ;   
+
+          /* modify it by gradient magnitude in source image */
+          src = MRIvox(mri_src, x, y, z) ;
+          src_xp1 = MRIvox(mri_src, xp1, y, z) ;
+          src_xm1 = MRIvox(mri_src, xm1, y, z) ;
+          src_yp1 = MRIvox(mri_src, x, yp1, z) ;
+          src_ym1 = MRIvox(mri_src, x, ym1, z) ;
+          src_zp1 = MRIvox(mri_src, x, y, zp1) ;
+          src_zm1 = MRIvox(mri_src, x, y, zm1) ;
+
+          /* forward difference */
+          dx_f = (double)(src_xp1 - src) ;
+          dy_f = (double)(src_yp1 - src) ;
+          dz_f = (double)(src_zp1 - src) ;
+
+          /* backward difference */
+          dx_b = (double)(src - src_xm1) ;
+          dy_b = (double)(src - src_ym1) ;
+          dz_b = (double)(src - src_zm1) ;
+
+/* 
+   use 'upwind' approximation of the derivatives. That is, calculate
+   the derivatives using information from the direction of the front,
+   not away from it.
+*/
+          if (dx > 0.0f)
+            sdx = dx_b ;
+          else
+            sdx = dx_f ;
+          if (dy > 0.0f)
+            sdy = dy_b ;
+          else
+            sdy = dy_f ;
+          if (dz > 0.0f)   /* information coming from behind us */
+            sdz = dz_b ;
+          else             /* information coming from in front of us */
+            sdz = dz_f ;
+          mag = sqrt(sdx*sdx+sdy*sdy+sdz*sdz) ;
+          F *= 1.0f / (1.0f + (double)mag_scale*mag) ; 
+          dist += (double)dt * ((double)e_diffusion*laplacian-F*grad) ;
+          MRIFvox(mri_distance, x, y, z) = dist ;
+        }
+      }
+    }
+    MRIupdateDistanceMap(mri_distance) ;
+  }
+
+  fprintf(stderr, "\n") ;
+  return(mri_distance) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+MRI *
+MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance, int x0, int y0, int z0)
+{
+  int   width, height, depth, x, y, z ;
+  float dist, xdist, ydist, zdist ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  if (!mri_distance)
+    mri_distance = MRIalloc(width, height, depth, MRI_FLOAT) ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x < x0)
+          xdist = (float)(x-(x0-1)) ;
+        else
+          xdist = (float)(x-(x0+1)) ;
+        if (y < y0)
+          ydist = (float)(y-(y0-1)) ;
+        else
+          ydist = (float)(y-(y0+1)) ;
+        if (z < z0)
+          zdist = (float)(z-(z0-1)) ;
+        else
+          zdist = (float)(z-(z0+1)) ;
+/*
+        xdist = (float)(x-x0) ; ydist = (float)(y-y0) ; zdist = (float)(z-z0) ;
+*/
+        dist = sqrt(xdist*xdist + ydist*ydist + zdist*zdist) ;
+        MRIFvox(mri_distance, x, y, z) = dist ;
+      }
+    }
+  }
+
+  MRIFvox(mri_distance, x0, y0, z0) = -1.0f ;
+  for (z = -1 ; z <= 1 ; z++)
+  {
+    for (y = -1 ; y <= 1 ; y++)
+    {
+      for (x = -1 ; x <= 1 ; x++)
+      {
+        if (x || y || z)
+          MRIFvox(mri_distance, x0+x, y0+y, z0+z) = 0.0f ;
+      }
+    }
+  }
+  return(mri_distance) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+MRI *
+MRIextractInterior(MRI *mri_src, MRI *mri_distance,  MRI *mri_dst)
+{
+  int      width, height, depth, x, y, z ;
+  float    *pdist, dist ;
+  BUFTYPE  *pdst, *psrc ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pdist = &MRIFvox(mri_distance, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      for (x = 0 ; x < width ; x++, psrc++)
+      {
+        dist = *pdist++ ;
+        if (dist <= 0.0f)
+          *pdst++ = 255 ;
+        else
+        {
+          *pdst++ = MIN(*psrc,128) ;
+        }
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+MRI *
+MRIupdateDistanceMap(MRI *mri_distance)
+{
+  int      width, height, depth, x, y, z, xk, yk, zk, x0, y0, z0,
+           xmin, ymin, zmin ;
+  float    dist, min_dist, xdist, ydist, zdist ;
+
+  width = mri_distance->width ;
+  height = mri_distance->height ;
+  depth = mri_distance->depth ;
+
+  xmin = ymin = zmin = 1000 ;  /* to supress compiler warning */
+  for (z0 = 0 ; z0 < depth ; z0++)
+  {
+    for (y0 = 0 ; y0 < height ; y0++)
+    {
+      for (x0 = 0 ; x0 < width ; x0++)
+      {
+        dist = MRIFvox(mri_distance, x0, y0, z0) ;
+        if (dist >= MIN_DIST)
+        {
+          min_dist = 1000.0f ;
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            z = mri_distance->zi[z0+zk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              y = mri_distance->yi[y0+yk] ;
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
+                x = mri_distance->xi[x0+xk] ;
+                dist = MRIFvox(mri_distance, x, y, z) ;
+                if (dist < min_dist)
+                {
+                  xmin = x0+xk ; ymin = y0+yk ; zmin = z0+zk ;
+                  min_dist = dist ;
+                }
+              }
+            }
+          }
+          if (min_dist <= MIN_DIST)
+          {
+if (!x0 && !y0&& !z0)
+  DiagBreak() ;
+            xdist = x0-xmin ; ydist = y0-ymin ; zdist = z0-zmin ;
+            dist = min_dist + sqrt(xdist*xdist+ydist*ydist+zdist*zdist) ;
+            MRIFvox(mri_distance, x0, y0, z0) = dist ;
+          }
+        }
+      }
+    }
+  }
+
+  return(mri_distance) ;
+}
+
