@@ -15,6 +15,7 @@
 #include "rgb_image.h"
 #include "const.h"
 
+static void resize_brain(float surface_area) ;
 static void set_value_label_name(char *label_name, int field) ;
 static void drawcb(void) ;
 static void read_imag_vals(char *fname) ;
@@ -16251,6 +16252,7 @@ print_help_surfer(void)
   printf("  mark_face <fno>                       [script]\n");
   printf("  dump_vertex <vno>                     [script]\n");
   printf("  show_flat_regions surf thresh         [script]\n");
+  printf("  resize_brain <surface area>           [script]\n");
   printf("  val_to_mark                           [script]\n");
   printf("  transform_brain                       [script]\n");
   printf("  val_to_curv                           [script]\n");
@@ -16607,6 +16609,7 @@ int W_redraw  PARM;
 int W_dump_vertex  PARM; 
 int W_show_flat_regions  PARM; 
 int W_transform_brain  PARM; 
+int W_resize_brain  PARM; 
 int W_val_to_mark  PARM; 
 int W_val_to_curv  PARM; 
 int W_val_to_stat  PARM; 
@@ -17262,9 +17265,9 @@ ERR(1,"Wrong # args: swap_buffers")
      ERR(2,"Wrong # args: translate_brain_z <mm>")
      translate_brain(0.0,0.0,atof(argv[1]));  WEND
      
-     int                  W_scale_brain  WBEGIN
-     ERR(2,"Wrong # args: scale_brain <mm>")
-     scale_brain(atof(argv[1]));  WEND
+     int                  W_resize_brain  WBEGIN
+     ERR(2,"Wrong # args: resize_brain <mm>")
+     resize_brain(atof(argv[1]));  WEND
      
      int                  W_resize_window  WBEGIN 
      ERR(2,"Wrong # args: resize_window <pix>")
@@ -17493,6 +17496,10 @@ ERR(1,"Wrong # args: swap_buffers")
      int                  W_val_to_mark  WBEGIN
      ERR(1,"Wrong # args: val_to_mark ")
      val_to_mark();  WEND
+     
+     int                  W_scale_brain  WBEGIN
+     ERR(2,"Wrong # args: scale_brain ")
+     scale_brain(atof(argv[1]));  WEND
      
      int                  W_transform_brain  WBEGIN
      ERR(1,"Wrong # args: transform_brain ")
@@ -18399,6 +18406,8 @@ int main(int argc, char *argv[])   /* new main */
 		    W_dump_vertex,         REND);
   Tcl_CreateCommand(interp, "val_to_mark",
 		    W_val_to_mark,         REND);
+  Tcl_CreateCommand(interp, "resize_brain",
+		    W_resize_brain,         REND);
   Tcl_CreateCommand(interp, "transform_brain",
 		    W_transform_brain,         REND);
   Tcl_CreateCommand(interp, "show_flat_regions",
@@ -19278,6 +19287,20 @@ show_flat_regions(char *surf_name, double thresh)
   MRIScomputeMetricProperties(mris) ;
   printf("%d vertices marked...\n", nfound) ;
   enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
+}
+
+static void
+resize_brain(float surface_area)
+{
+	float scale ;
+
+	MRIScomputeMetricProperties(mris) ;
+	scale = sqrt(surface_area / mris->total_area) ;
+	MRISscaleBrain(mris, mris, scale) ;
+	MRIScomputeMetricProperties(mris) ;
+	vset_save_surface_vertices(VSET_MAIN) ;
+  vset_set_current_set(vset_current_set) ;
+	redraw() ;
 }
 
 void
