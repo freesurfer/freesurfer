@@ -1752,8 +1752,13 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
   {
+    cp = strchr(sname, '.') ;
     FileNamePath(mris->fname, path) ;
-    sprintf(fname, "%s/%s", path, sname) ;
+    if (cp)
+      sprintf(fname, "%s/%s", path, sname) ;
+    else   /* no hemisphere specified */
+      sprintf(fname, "%s/%s.%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
   }
   else   
     strcpy(fname, sname) ;  /* path specified explcitly */
@@ -5639,6 +5644,54 @@ MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time_point,
         Description
 ------------------------------------------------------*/
 int
+MRISwriteCurvatureToWFile(MRI_SURFACE *mris, char *fname)
+{
+  int k,num;                   /* loop counters */
+  float f;
+  FILE *fp;
+  double sum=0,sum2=0,max= -1000,min=1000;
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "writing out surface values to %s.\n", fname) ;
+
+  fp = fopen(fname,"wb");
+  if (fp==NULL) 
+    ErrorExit(ERROR_NOFILE, "Can't create file %s\n",fname) ;
+
+  num = mris->nvertices ;
+  fwrite2(0,fp);
+  fwrite3(num,fp);
+  for (k=0;k<mris->nvertices;k++)
+  {
+    fwrite3(k,fp);
+    f = mris->vertices[k].curv;
+    if (!finite(f))
+      ErrorPrintf(ERROR_BADPARM, 
+                  "MRISwriteValues(%s): val at vertex %d is not finite",
+                  fname, k) ;
+    
+    fwriteFloat(f, fp) ;
+    sum += f;
+    sum2 += f*f;
+    if (f>max) max=f;
+    if (f<min) min=f;
+  }
+  fclose(fp);
+  sum /= num;
+  sum2 = sqrt(sum2/num-sum*sum);
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "avg = %2.3f, stdev = %2.3f, min = %2.3f, max = %2.3f\n",
+            sum,sum2,min,max);
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRISwriteValues(MRI_SURFACE *mris, char *fname)
 {
   int k,num;                   /* loop counters */
@@ -5685,7 +5738,7 @@ MRISwriteValues(MRI_SURFACE *mris, char *fname)
   sum /= num;
   sum2 = sqrt(sum2/num-sum*sum);
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "avg = %f, stdev = %f, min = %f, max = %f\n",
+    fprintf(stderr, "avg = %2.3f, stdev = %2.3f, min = %2.3f, max = %2.3f\n",
             sum,sum2,min,max);
   return(NO_ERROR) ;
 }
@@ -14433,3 +14486,26 @@ mrisClipMomentumGradient(MRI_SURFACE *mris, float max_len)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIScopyCurvatureToValues(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->val = v->curv ;
+  }
+  return(NO_ERROR) ;
+}
+
