@@ -19,10 +19,6 @@ int Ggca_x = -1 ;
 int Ggca_y = -1 ;
 int Ggca_z = -1 ;
 
-static int Gx = -1 ;
-static int Gy = -1 ;
-static int Gz = -1 ;
-
 /* this is the hack section */
 double PRIOR_FACTOR = 0.1 ;
 #define LABEL_UNDETERMINED   255
@@ -540,6 +536,12 @@ GCAupdateNode(GCA *gca, MRI *mri, int xn, int yn, int zn, float val, int label,
   GCA_NODE *gcan ;
   GC1D     *gc ;
 
+
+  if (label >= MAX_CMA_LABEL)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, 
+                 "GCAupdateNode(%d, %d, %d, %2.1f, %d): label out of range",
+                 xn, yn, zn, val, label)) ;
 
   if (xn == 23 && yn == 30 && zn == 32)
     DiagBreak() ;
