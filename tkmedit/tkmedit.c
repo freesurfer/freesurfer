@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/06/30 16:52:11 $
-// Revision       : $Revision: 1.210 $
-char *VERSION = "$Revision: 1.210 $";
+// Revision Date  : $Date: 2004/07/02 20:18:07 $
+// Revision       : $Revision: 1.211 $
+char *VERSION = "$Revision: 1.211 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1051,7 +1051,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.210 2004/06/30 16:52:11 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.211 2004/07/02 20:18:07 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5009,7 +5009,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.210 2004/06/30 16:52:11 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.211 2004/07/02 20:18:07 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -5374,337 +5374,337 @@ int main ( int argc, char** argv ) {
   DebugNote( ("Registering tkmedit tcl commands") );
   
   Tcl_CreateCommand ( interp, "SetGCADisplayStatus", TclSetGCADisplayStatus,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( interp, "RecomputeSegmentation", TclRecomputeSegmentation,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( interp, "RestorePreviousSegmentation", 
           TclRestorePreviousSegmentation,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "CrashHard", TclCrashHard,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ReadVoxelLabels", TclReadVoxelLabels,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "DebugPrint", TclDebugPrint,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "RotateOverlayRegistration",
           TclRotateOverlayRegistration,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "TranslateOverlayRegistration",
           TclTranslateOverlayRegistration,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ScaleOverlayRegistration",
           TclScaleOverlayRegistration,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadHeadPts",
           TclLoadHeadPts,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "RotateHeadPts",
           TclRotateHeadPts,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "TranslateHeadPts",
           TclTranslateHeadPts,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "RestoreHeadPts",
           TclRestoreHeadPts,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "WriteHeadPointsTransform",
           TclWriteHeadPointsTransform,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "WriteHeadPointsFile",
           TclWriteHeadPointsFile,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SetSelectedHeadPointLabel",
           TclSetSelectedHeadPointLabel,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "AlignSelectedHeadPointToMRIIdx",
           TclAlignSelectedHeadPointToMRIIdx,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadGCA",
           TclLoadGCA,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadGCARenorm",
           TclLoadGCARenormalization,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SaveGCA",
           TclSaveGCA,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SaveRGB",
           TclSaveRGB,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ThresholdVolume",
           TclThresholdVolume,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "FlipVolume",
           TclFlipVolume,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "RotateVolume",
           TclRotateVolume,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadVolume",
           TclLoadVolume,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadAuxVolume",
           TclLoadAuxVolume,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "UnloadVolume",
 		      TclUnloadVolume,
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SaveVolume",
           TclSaveVolume,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SaveVolumeAs",
           TclSaveVolumeAs,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadVolumeDisplayTransform",
           TclLoadVolumeDisplayTransform,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "UnloadVolumeDisplayTransform",
           TclUnloadVolumeDisplayTransform,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "UnloadGCA",
           TclUnloadGCA,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SnapshotVolume",
           TclSnapshotVolume,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "RestoreVolumeFromSnapshot",
           TclRestoreVolumeFromSnapshot,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ClearUndoVolume",
           TclClearUndoVolume,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SetVolumeColorScale",
 		      TclSetVolumeColorScale,
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SetVolumeBrightnessContrast",
 		      TclSetVolumeBrightnessContrast,
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
 
   Tcl_CreateCommand ( interp, "SetVolumeMinMax",
 		      TclSetVolumeMinMax,
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SetVolumeSampleType",
 		      TclSetVolumeSampleType,
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SetVolumeResampleMethod",
 		      TclSetVolumeResampleMethod,
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SaveLabel",
           TclSaveLabel,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadLabel",
           TclLoadLabel,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "GraphSelectedRegion",
           TclGraphSelectedRegion,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SelectVoxelsByFuncValue",
           TclSelectVoxelsByFuncValue,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ClearSelection",
           TclClearSelection,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "UndoLastEdit",
           TclUndoLastEdit,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SendCursor",
           TclSendCursor,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ReadCursor",
           TclReadCursor,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "NewControlPoint",
           TclNewControlPoint,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "WriteControlPointFile",
           TclWriteControlPointFile,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadMainSurface",
           TclLoadMainSurface,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadPialSurface",
           TclLoadPialSurface,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadOriginalSurface",
           TclLoadOriginalSurface,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "UnloadSurface",
           TclUnloadSurface,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadSurfaceAnnotation",
 		      TclLoadSurfaceAnnotation,
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "UnloadAllSurfaces",
           TclUnloadAllSurfaces,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "WriteSurfaceValues",
           TclWriteSurfaceValues,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "GotoMainVertex",
           TclGotoMainVertex,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "GotoPialVertex",
           TclGotoPialVertex,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "GotoOriginalVertex",
           TclGotoOriginalVertex,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ShowNearestMainVertex",
           TclShowNearestMainVertex,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ShowNearestOriginalVertex",
           TclShowNearestOriginalVertex,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ShowNearestPialVertex",
           TclShowNearestPialVertex,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ShowNearestInterpolatedMainVertex",
 		      TclShowNearestInterpolatedMainVertex,
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ShowNearestInterpolatedOriginalVertex",
 		      TclShowNearestInterpolatedOriginalVertex,
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ShowNearestInterpolatedPialVertex",
 		      TclShowNearestInterpolatedPialVertex,
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "AverageSurfaceVertexPositions",
 		      TclAverageSurfaceVertexPositions,
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SetUseRealRAS",
 		      TclSetUseRealRAS, 
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
 
   Tcl_CreateCommand ( interp, "NewSegmentationVolume",
 		      TclNewSegmentationVolume,
-		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( interp, "LoadSegmentationVolume",
           TclLoadSegmentationVolume,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SaveSegmentationVolume",
           TclSaveSegmentationVolume,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ExportChangedSegmentationVolume",
           TclExportChangedSegmentationVolume,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ImportSurfaceAnnotationToSegmentation",
           TclImportSurfaceAnnotationToSegmentation,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SetSegmentationAlpha",
           TclSetSegmentationAlpha,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadFunctionalOverlay",
           TclLoadFunctionalOverlay,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadFunctionalTimeCourse",
           TclLoadFunctionalTimeCourse,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadDTIVolumes",
           TclLoadDTIVolumes,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SetDTIAlpha",
           TclSetDTIAlpha,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SmoothFunctionalOverlay",
           TclSmoothFunctionalOverlay,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SetTimerStatus",
           TclSetTimerStatus,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "QuitMedit",
           TclQuitMedit,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "RedrawScreen",
           TclRedrawScreen,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+          (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand( interp, "StartTimer", TclStartTimer,
-         (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+         (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand( interp, "StopTimer", TclStopTimer,
-         (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+         (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand( interp, "ExecuteQueuedScripts", TclExecuteQueuedScripts,
-         (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+         (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand( interp, "GetSubjectName", TclGetSubjectName,
-         (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+         (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand( interp, "GetSubjectDir", TclGetSubjectDir,
-         (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+         (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   /* parse the interface file */
   DebugNote( ("Parsing %s", sInterfaceFileName) );
