@@ -801,7 +801,7 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
   if (features & FEATURE_CPOLV_MEAN5)
     *in++ = (float)MRIvox(mri_cpolv_mean5, x0, y0, z0) ;
   if (features & FEATURE_CPOLV_MEDIAN3)
-    *in++ = (float)MRIvox(mri_cpolv_mean3, x0, y0, z0) ;
+    *in++ = (float)MRIvox(mri_cpolv_median3, x0, y0, z0) ;
   if (features & FEATURE_CPOLV_MEDIAN5)
     *in++ = (float)MRIvox(mri_cpolv_median5, x0, y0, z0) ;
   
