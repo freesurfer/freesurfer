@@ -28,6 +28,7 @@ typedef struct
 
 #include "mrisurf.h"
 
+int     LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area);
 int     LabelFree(LABEL **parea) ;
 int     LabelDump(FILE *fp, LABEL *area) ;
 LABEL   *LabelRead(char *subject_name, char *label_name) ;
