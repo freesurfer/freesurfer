@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.12 2002/11/15 23:02:19 greve Exp $
+  $Id: fsgdf.c,v 1.13 2002/11/15 23:43:14 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -74,7 +74,7 @@ static int gdfCheckSubjRep(FSGD *gd);
 static int gdfGetDefVarLabelNo(FSGD *gd);
 
 
-char *Progname = "fsgdf";
+//char *Progname = "fsgdf";
 
 /*--------------------------------------------------*/
 FSGD *gdfAlloc(int version)
@@ -210,6 +210,8 @@ FSGD *gdfRead(char *gdfname, int LoadData)
     printf("ERROR: FSGDF version %d unsupported (%s) \n",version,gdfname);
     return(NULL);
   }
+  if(gd == NULL) return(NULL);
+
 
   /* Extract the path from the gdf file. */
   dirname = (char*)fio_dirname(gdfname);
@@ -386,6 +388,11 @@ static FSGD *gdfReadV1(char *gdfname)
     }
 
     if(!strcasecmp(tag,"Input")){
+      if(gd->ninputs > FSGDF_NINPUTS_MAX){
+	printf("ERROR: the number of inputs in FSGD file exceeds the maximum allowed %d\n",
+	       FSGDF_NINPUTS_MAX);
+	return(NULL);
+      }
       if(gd->nclasses == 0){
 	printf("FSGDF Format Error: no classes defined before the first input line.\n");
 	return(NULL);
