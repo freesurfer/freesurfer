@@ -14,7 +14,7 @@
 #include "timer.h"
 #include "const.h"
 #include "mrishash.h"
-#include "icosohedron.h"
+#include "icosahedron.h"
 
 /*---------------------------- STRUCTURES -------------------------*/
 
@@ -130,6 +130,7 @@ static int   mrisRemoveFace(MRI_SURFACE *mris, int fno) ;
 static int   mrisCountTotalNeighbors(MRI_SURFACE *mris) ;
 static int   mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2) ;
 static int   mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring);
+static int   mrisComputeSpringNormTerm(MRI_SURFACE *mris, double l_spring);
 static int   mrisComputeIntensityTerm(MRI_SURFACE*mris,double l_intensity,
                                       MRI *mri_brain, MRI *mri_smooth);
 static int   mrisComputeIntensityGradientTerm(MRI_SURFACE*mris,
@@ -301,14 +302,14 @@ MRISread(char *fname)
     if (!mris)
       return(NULL) ;
     return(mris) ;
-    version = -1 ;
+    version = -2 ;
   }
   else if (type == MRIS_GEO_TRIANGLE_FILE)
   {
     mris = mrisReadGeoFile(fname) ;
     if (!mris)
       return(NULL) ;
-    version = -1 ;
+    version = -4;
   }
   else
   {
@@ -555,7 +556,7 @@ MRISfastRead(char *fname)
     if (!mris)
       return(NULL) ;
     return(mris) ;
-    version = -1 ;
+    version = -2 ;
   }
   else if (type == MRIS_GEO_TRIANGLE_FILE)
   {
@@ -7418,7 +7419,10 @@ mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
   int      vno, n ;
   VERTEX   *v, *vn ;
   float    ui, vi, rsq, a, b ;
-  
+
+  if (FZERO(l_curv))
+    return(NO_ERROR) ;
+
   mrisComputeTangentPlanes(mris) ;
   v_n = VectorAlloc(3, MATRIX_REAL) ;
   v_A = VectorAlloc(2, MATRIX_REAL) ;
@@ -9722,11 +9726,31 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
     MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
     MRIsampleVolume(mri_smooth, xw, yw, zw, &val_inside) ;
 
+#if 1
+    /* if everthing is 0 force vertex to move inwards */
+    if (val0 < 25 && v->marked)  /* vertex has never been higher than 25 */
+    {
+      /* just noise - set everything to 0 */
+      val0 = val_inside = val_outside = 0 ;
+    }
+    if (val0 > 25)
+    {
+      if (vno == 0)
+        DiagBreak() ;
+      v->marked = 0 ;
+    }
+    if (val_inside == 0 && val_outside == 0 && val0 == 0)
+    {
+      val_outside = val0-5 ; val_inside = val0+5 ;
+    }
+#endif
     delV = v->val - val0 ;
     delI = (val_outside - val_inside) / 2.0 ;
-#if 1
     if (!FZERO(delI))
       delI /= fabs(delI) ;
+#if 1
+    else
+      delI = -1 ;   /* intensities tend to increase inwards */
 #endif
     del = l_intensity * delV * delI ;
     dx = nx * del ; dy = ny * del ; dz = nz * del ;
@@ -9978,6 +10002,117 @@ mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring)
         Returns value:
 
         Description
+        File Format is:
+
+        name x y z
+------------------------------------------------------*/
+static int
+mrisComputeSpringNormTerm(MRI_SURFACE *mris, double l_spring)
+{
+  int     vno, n, m ;
+  VERTEX  *v, *vn ;
+  float   sx, sy, sz, x, y, z, dist_scale, nx, ny, nz ;
+  double  dot_total ;
+
+  if (FZERO(l_spring))
+    return(NO_ERROR) ;
+
+#if METRIC_SCALE
+  if (mris->patch)
+    dist_scale = 1.0 ;
+  else
+    dist_scale = sqrt(mris->orig_area / mris->total_area) ;
+#else
+  dist_scale = 1.0 ;
+#endif
+
+  dot_total = 0.0 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    if (v->border && !v->neg)
+      continue ;
+
+    x = v->x ;      y = v->y ;     z = v->z ;
+    nx = v->nx ;    ny = v->ny ;   nz = v->nz ;
+
+    sx = sy = sz = 0.0 ;
+    n=0;
+    for (m = 0 ; m < v->vnum ; m++)
+    {
+      vn = &mris->vertices[v->v[m]] ;
+      if (!vn->ripflag)
+      {
+        sx += vn->x - x;
+        sy += vn->y - y;
+        sz += vn->z - z;
+        n++;
+      }
+    }
+    if (n>0)
+    {
+      sx = dist_scale*sx/n;
+      sy = dist_scale*sy/n;
+      sz = dist_scale*sz/n;
+    }
+
+    dot_total += l_spring*(nx*sx + ny*sy + nz*sz) ;
+    v->dx += l_spring * sx ;
+    v->dy += l_spring * sy ;
+    v->dz += l_spring * sz ;
+    if (vno == Gdiag_no)
+      fprintf(stderr, "v %d spring norm term: (%2.3f, %2.3f, %2.3f)\n",
+              vno, v->dx, v->dy, v->dz) ;
+  }
+  dot_total /= (double)mrisValidVertices(mris) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    x = v->x ;      y = v->y ;     z = v->z ;
+    nx = v->nx ;    ny = v->ny ;   nz = v->nz ;
+
+    sx = sy = sz = 0.0 ;
+    n=0;
+    for (m = 0 ; m < v->vnum ; m++)
+    {
+      vn = &mris->vertices[v->v[m]] ;
+      if (!vn->ripflag)
+      {
+        sx += vn->x - x;
+        sy += vn->y - y;
+        sz += vn->z - z;
+        n++;
+      }
+    }
+    if (n>0)
+    {
+      sx = dist_scale*sx/n;
+      sy = dist_scale*sy/n;
+      sz = dist_scale*sz/n;
+    }
+    v->dx -= dot_total * nx ;
+    v->dy -= dot_total * ny ;
+    v->dz -= dot_total * nz ;
+  }
+  
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
           Compute the folding of the surface.
 ------------------------------------------------------*/
 double
@@ -10203,12 +10338,19 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
 static int
 mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
 {
-  char fname[200], path[200], base_name[200] ;
+  char fname[200], path[200], base_name[200], *cp ;
 
   FileNamePath(mris->fname, path) ;
   sprintf(base_name, "%s/%s.%s", path, 
           mris->hemisphere == LEFT_HEMISPHERE ? "lh":"rh", parms->base_name);
-  sprintf(fname, "%s%4.4d", base_name, t) ;
+  if ((cp = strstr(base_name, ".geo")) != NULL)
+  {
+    *cp = 0;
+    sprintf(fname, "%s%4.4d.geo", base_name, t) ;
+    *cp = '.' ;
+  }
+  else
+    sprintf(fname, "%s%4.4d", base_name, t) ;
 #if 1
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing %s...", fname) ;
@@ -11274,7 +11416,7 @@ MRISwriteAscii(MRI_SURFACE *mris, char *fname)
 int
 MRISwriteGeo(MRI_SURFACE *mris, char *fname)
 {
-  int     vno, fno, n, actual_vno, toggle, nfaces, nvertices ;
+  int     vno, fno, n, actual_vno, toggle, nfaces, nvertices, vnos[300000] ;
   VERTEX  *v ;
   FACE    *face ;
   FILE    *fp ;
@@ -11294,7 +11436,7 @@ MRISwriteGeo(MRI_SURFACE *mris, char *fname)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    v->marked = actual_vno++ ;
+    vnos[vno] = actual_vno++ ;
   }
 
   for (toggle = vno = 0 ; vno < mris->nvertices ; vno++)
@@ -11323,14 +11465,13 @@ MRISwriteGeo(MRI_SURFACE *mris, char *fname)
     if (face->ripflag)
       continue ;
     for (n = 0 ; n < VERTICES_PER_FACE-2 ; n++)
-      fprintf(fp, "%d ", mris->vertices[face->v[n]].marked+1) ; /* 1-based */
+      fprintf(fp, "%d ", vnos[face->v[n]]+1); /* 1-based */
 
     /* swap order on output to conform to movie.byu convention */
-    fprintf(fp, "%d ",mris->vertices[face->v[VERTICES_PER_FACE-1]].marked+1);
-    fprintf(fp, "-%d\n",mris->vertices[face->v[VERTICES_PER_FACE-2]].marked+1);
+    fprintf(fp, "%d ",vnos[face->v[VERTICES_PER_FACE-1]]+1) ;
+    fprintf(fp, "-%d\n",vnos[face->v[VERTICES_PER_FACE-2]]+1);
   }
 
-  MRISclearMarks(mris) ;
   fclose(fp) ;
   return(NO_ERROR) ;
 }
@@ -13089,6 +13230,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     mrisComputeIntensityGradientTerm(mris, parms->l_grad,mri_brain,mri_smooth);
     mrisAverageGradients(mris, avgs) ;
     mrisComputeSpringTerm(mris, parms->l_spring) ;
+    mrisComputeSpringNormTerm(mris, parms->l_spring_norm) ;
 
     /* smoothness terms */
     mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
@@ -13792,6 +13934,50 @@ MRISclearMarks(MRI_SURFACE *mris)
     if (v->ripflag)
       continue ;
     v->marked = 0 ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISclearAnnotations(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->annotation = 0 ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISsetMarks(MRI_SURFACE *mris, int mark)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->marked = mark ;
   }
   return(NO_ERROR) ;
 }
@@ -15592,7 +15778,7 @@ mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     del0 = v->val - val0 ;
     sse += (del0 * del0) ;
     if (vno == Gdiag_no)
-      fprintf(stderr, "v %d spring term: (%2.3f, %2.3f, %2.3f)\n",
+      fprintf(stderr, "v %d intensity term: (%2.3f, %2.3f, %2.3f)\n",
               vno, v->dx, v->dy, v->dz) ;
   }
   
@@ -15796,7 +15982,7 @@ mrisComputeSphereError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     del = r0 - r ;
     sse += (del * del) ;
     if (vno == Gdiag_no)
-      fprintf(stderr, "v %d spring term: (%2.3f, %2.3f, %2.3f)\n",
+      fprintf(stderr, "v %d sphere term: (%2.3f, %2.3f, %2.3f)\n",
               vno, v->dx, v->dy, v->dz) ;
   }
   
