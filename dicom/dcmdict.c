@@ -44,15 +44,13 @@
 **			static objects are maintained which define how
 **			elements in the DICOM V3.0 standard are to be
 **			interpreted.
-** Last Update:		$Author: brucefis $, $Date: 2002/11/12 19:50:57 $
+** Last Update:		$Author: kteich $, $Date: 2003/02/10 23:34:21 $
 ** Source File:		$RCSfile: dcmdict.c,v $
-** Revision:		$Revision: 1.3 $
+** Revision:		$Revision: 1.4 $
 ** Status:		$State: Exp $
 */
 
-#if 0
-static char rcsid[] = "$Revision: 1.3 $ $RCSfile: dcmdict.c,v $";
-#endif
+static char rcsid[] = "$Revision: 1.4 $ $RCSfile: dcmdict.c,v $";
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -91,7 +89,7 @@ typedef struct {
 
 /*  Define the entries for the COMMAND group
 */
-static DCMDICT *CMD_dictionary = {
+static DCMDICT CMD_dictionary[] = {
     {DCM_CMDGROUPLENGTH, DCM_UL, "CMD Group Length"},
     {DCM_CMDAFFECTEDCLASSUID, DCM_UI, "CMD Affected SOP Class UID"},
     {DCM_CMDREQUESTEDCLASSUID, DCM_UI, "CMD Requested SOP Class UID"},
@@ -122,7 +120,7 @@ static DCMDICT *CMD_dictionary = {
 /* Define the entries for the file Meta Header group
 */
 
-static DCMDICT *META_dictionary = {
+static DCMDICT META_dictionary[] = {
     {DCM_METAGROUPLENGTH, DCM_UL, "META Group Length"},
     {DCM_METAINFORMATIONVERSION, DCM_OB, "META File Meta Information Version"},
     {DCM_METAMEDIASTORAGESOPCLASS, DCM_UI, "META Media Stored SOP Class UID"},
@@ -137,7 +135,7 @@ static DCMDICT *META_dictionary = {
 
 /* Define the elements in the Basic Directory Information Group, 0x0004 */
 
-static DCMDICT *BASICDIR_dictionary = {
+static DCMDICT BASICDIR_dictionary[] = {
     {DCM_DIRFILESETID, DCM_CS, "DIR File-set ID"},
     {DCM_DIRFILESETDESCRFILEID, DCM_CS, "DIR File-set descriptor ID"},
     {DCM_DIRSPECIFICCHARACTER, DCM_CS, "DIR Specific character set"},
@@ -160,7 +158,7 @@ static DCMDICT *BASICDIR_dictionary = {
 
 /* Define the entries for the IDENTIFYING group
 */
-static DCMDICT *ID_dictionary = {
+static DCMDICT ID_dictionary[] = {
     {DCM_IDGROUPLENGTH, DCM_UL, "ID Group Length"},
 /*    {DCM_IDLENGTHTOEND, DCM_RET, "ID Length to End (RET)"}, */
     {DCM_IDLENGTHTOEND, DCM_UL, "ID Length to End (RET)"},
@@ -286,7 +284,7 @@ static DCMDICT *ID_dictionary = {
 
 /* Define the entries for the PATIENT INFORMATION group
 */
-static DCMDICT *PAT_dictionary = {
+static DCMDICT PAT_dictionary[] = {
     {DCM_PATGROUPLENGTH, DCM_UL, "PAT Group Length"},
     {DCM_PATNAME, DCM_PN, "PAT Patient Name"},
     {DCM_PATID, DCM_LO, "PAT Patient ID"},
@@ -325,7 +323,7 @@ static DCMDICT *PAT_dictionary = {
 /* Define the entries for the ACQUISITION group, 0018
 */
 
-static DCMDICT *ACQ_dictionary = {
+static DCMDICT ACQ_dictionary[] = {
     {DCM_ACQGROUPLENGTH, DCM_UL, "ACQ Group Length"},
     {DCM_ACQCONTRASTBOLUSAGENT, DCM_LO, "ACQ Contrast/Bolus Agent"},
     {DCM_ACQCONTRASTBOLUSAGENTSEQ, DCM_SQ, "ACQ Contrast/Bolus Agent Sequence"},
@@ -527,6 +525,7 @@ static DCMDICT *ACQ_dictionary = {
     {DCM_ACQCENTEROFCIRCULARSHUTTER, DCM_IS, "ACQ Center of Circular Shutter"},
     {DCM_ACQRADIUSOFCIRCULARSHUTTER, DCM_IS, "ACQ Radius of Circular Shutter"},
     {DCM_ACQVERTICESOFPOLYGONALSHUTTER, DCM_IS, "ACQ Vertices of the Polygonal Shutter"},
+    {DCM_ACQSHUTTERPRESENTATIONVALUE, DCM_US, "ACQ Shutter Presentation Value"},
     {DCM_ACQCOLLIMATORSHAPE, DCM_CS, "ACQ Collimator Shape"},
     {DCM_ACQCOLLIMATORLEFTVERTICALEDGE, DCM_IS, "ACQ Collimator Left Vertical Edge"},
     {DCM_ACQCOLLIMATORRIGHTVERTICALEDGE, DCM_IS, "ACQ Collimator Right Vertical Edge"},
@@ -619,7 +618,7 @@ static DCMDICT *ACQ_dictionary = {
 
 /* Define the entries for the RELATIONSHIP group (0020)
 */
-static DCMDICT *REL_dictionary = {
+static DCMDICT REL_dictionary[] = {
     {DCM_RELGROUPLENGTH, DCM_UL, "REL Group Length"},
     {DCM_RELSTUDYINSTANCEUID, DCM_UI, "REL Study Instance UID"},
     {DCM_RELSERIESINSTANCEUID, DCM_UI, "REL Series Instance UID"},
@@ -682,7 +681,7 @@ static DCMDICT *REL_dictionary = {
 
 /* Define the entries for the IMAGE group (0028)
 */
-static DCMDICT *IMG_dictionary = {
+static DCMDICT IMG_dictionary[] = {
     {DCM_IMGGROUPLENGTH, DCM_UL, "IMG Group Length"},
     {DCM_IMGSAMPLESPERPIXEL, DCM_US, "IMG Samples Per Pixel"},
     {DCM_IMGPHOTOMETRICINTERP, DCM_CS, "IMG Photometric Interpretation"},
@@ -758,6 +757,7 @@ static DCMDICT *IMG_dictionary = {
     {DCM_IMGMODALITYLUTTYPE, DCM_LO, "IMG Modality LUT Type"},
     {DCM_IMGLUTDATA, DCM_CTX, "IMG LUT Data"},
     {DCM_IMGVOILUTSEQUENCE, DCM_SQ, "IMG VOI LUT Sequence"},
+    {DCM_IMGSOFTCOPYVOILUTSEQUENCE, DCM_SQ, "IMG Softcopy VOI LUT Sequence"},
     {DCM_IMGCOMMENTS, DCM_RET, "IMG Comments (RET)"},
     {DCM_IMGBIPLANEACQSEQUENCE, DCM_SQ, "IMG Bi-Plane Acquisition Sequence"},
     {DCM_IMGREPRESENTATIVEFRAMENUMBER, DCM_US, "IMG Representative Frame Number"},
@@ -777,7 +777,7 @@ static DCMDICT *IMG_dictionary = {
 
 /* Define the entries for the STUDY group (0032)
 */
-static DCMDICT *SDY_dictionary = {
+static DCMDICT SDY_dictionary[] = {
     {DCM_SDYGROUPLENGTH, DCM_UL, "SDY Study Group length"},
     {DCM_SDYSTATUSID, DCM_CS, "SDY Study Status ID"},
     {DCM_SDYPRIORITYID, DCM_CS, "SDY Study Priority ID"},
@@ -809,7 +809,7 @@ static DCMDICT *SDY_dictionary = {
 
 /* Define the entries for the VISIT group, 0038
 */
-static DCMDICT *VIS_dictionary = {
+static DCMDICT VIS_dictionary[] = {
     {DCM_VISGROUPLENGTH, DCM_UL, "VIS Group Length"},
     {DCM_VISREFERENCEDPATALIASSEQ, DCM_SQ, "VIS Referenced Patient Alias Sequence"},
     {DCM_VISSTATUSID, DCM_CS, "VIS Visit Status ID"},
@@ -836,7 +836,7 @@ static DCMDICT *VIS_dictionary = {
 
 /* Define the entries for the Waveform group, 003a
 */
-static DCMDICT *WAV_dictionary = {
+static DCMDICT WAV_dictionary[] = {
     {DCM_MAKETAG(0x003a, 0x0000), DCM_UL, "WAV Group Length"},
     {DCM_MAKETAG(0x003a, 0x0002), DCM_SQ, "WAV Waveform Sequence"},	/* Sup 30 0.6 */
     {DCM_MAKETAG(0x003a, 0x0005), DCM_US, "WAV Number of Channels"},	/* Sup 30 0.6 */
@@ -872,7 +872,7 @@ static DCMDICT *WAV_dictionary = {
 /* Define the entries for the Procedure Step group, 0040
 */
 
-static DCMDICT *PRC_dictionary = {
+static DCMDICT PRC_dictionary[] = {
     {DCM_PRCGROUPLENGTH, DCM_UL, "PRC Group Length"},
     {DCM_PRCSCHEDULEDSTATIONAETITLE, DCM_AE, "PRC Scheduled Station AE Title"},
     {DCM_PRCSCHEDULEDPROCSTEPSTARTDATE, DCM_DA, "PRC Scheduled Procedure Step Start Date"},
@@ -896,13 +896,14 @@ static DCMDICT *PRC_dictionary = {
     {DCM_PRCPPSENDDATE, DCM_DA, "PRC PPS End Date"},
     {DCM_PRCPPSENDTIME, DCM_TM, "PRC PPS End Time"},
     {DCM_PRCPPSSTATUS, DCM_CS, "PRC PPS Status"},
-    {DCM_PRCPPSID, DCM_CS, "PRC PPS ID"},
+    {DCM_PRCPPSID, DCM_SH, "PRC PPS ID"},
     {DCM_PRCPPSDESCRIPTION, DCM_LO, "PRC PPS Description"},
     {DCM_PRCPPTYPEDESCRIPTION, DCM_LO, "PRC Perf Procedure Type Description"},
     {DCM_PRCPERFORMEDAISEQUENCE, DCM_SQ, "PRC Perf AI Sequence"},
     {DCM_PRCSCHEDSTEPATTRSEQ, DCM_SQ, "PRC Scheduled Step Attr Seq"},
     {DCM_PRCREQUESTATTRIBUTESSEQ, DCM_SQ, "PRC Request Attributes Seq"},
     {DCM_PRCCOMMENTSPPS, DCM_ST, "PRC Comments on PPS"},
+    {DCM_MAKETAG(0x0040, 0x0281), DCM_SQ, "PRC PPS Discontinuation Reason"},
     {DCM_PRCQUANTITYSEQ, DCM_SQ, "PRC Quantity Sequence"},
     {DCM_PRCQUANTITY, DCM_DS, "PRC Quantity"},
     {DCM_PRCMEASURINGUNITSSEQ, DCM_SQ, "PRC Measuring Units Sequence"},
@@ -996,6 +997,7 @@ static DCMDICT *PRC_dictionary = {
     {DCM_PRCNONDICOMOUTPUTCODESEQ, DCM_SQ, "PRC Non-DICOM Output Code Sequence"},
     {DCM_PRCOUTPUTINFOSEQ, DCM_SQ, "PRC Output Information Sequence"},
     {DCM_PRCSCHEDHUMANPERFORMERSSEQ, DCM_SQ, "PRC Scheduled Human Performers Sequence"},
+    {DCM_PRCACTUALHUMANPERFORMERSSEQ, DCM_SQ, "PRC Actual Human Performers Sequence"},
     {DCM_PRCHUMANPERFORMERSORG, DCM_LO, "PRC Human Performer's Organization"},
     {DCM_PRCHUMANPERFORMERSNAME, DCM_PN, "PRC Human Performer's Name"},
 
@@ -1056,7 +1058,7 @@ static DCMDICT *PRC_dictionary = {
 
 /* Define the entries for the DEVICE group, 0050
 */
-static DCMDICT *DEV_dictionary = {
+static DCMDICT DEV_dictionary[] = {
     {DCM_DEVCALIBRATIONOBJECT, DCM_CS, "DEV Calibration Object"},
     {DCM_DEVDEVICESEQUENCE, DCM_SQ, "DEV Device Sequence"},
     {DCM_DEVDEVICELENGTH, DCM_DS, "DEV Device Length"},
@@ -1069,7 +1071,7 @@ static DCMDICT *DEV_dictionary = {
 
 /* Define the entries for the RESULTS group, 4008
 */
-static DCMDICT *RES_dictionary = {
+static DCMDICT RES_dictionary[] = {
     {DCM_RESGROUPLENGTH, DCM_UL, "RES Group Length"},
     {DCM_RESID, DCM_SH, "RES Results ID"},
     {DCM_RESIDISSUER, DCM_LO, "RES Results ID Issuer"},
@@ -1101,7 +1103,7 @@ static DCMDICT *RES_dictionary = {
 };
 
 /* Define entries for the CURVE group */
-static DCMDICT *CRV_dictionary = {
+static DCMDICT CRV_dictionary[] = {
     {DCM_CURVEGROUPLENGTH, DCM_UL, "CRV Group Length"},
     {DCM_CURVEDIMENSIONS, DCM_US, "CRV Curve Dimensions"},
     {DCM_CURVENUMBEROFPOINTS, DCM_US, "CRV Number of points"},
@@ -1131,7 +1133,7 @@ static DCMDICT *CRV_dictionary = {
 };
 
 /* Define the entries for the NMI (nuclear medicine image) group, 0054 */
-static DCMDICT *NMI_dictionary = {
+static DCMDICT NMI_dictionary[] = {
     {DCM_NMIGROUPLENGTH, DCM_UL, "NMI Group Length"},
     {DCM_NMIENERGYWINDOWVECTOR, DCM_US, "NMI Energy Window Vector"},
     {DCM_NMINUMBEROFENERGYWINDOWS, DCM_US, "NMI Number of Energy Windows"},
@@ -1219,8 +1221,23 @@ static DCMDICT *NMI_dictionary = {
 };
 
 /* Define the entries for the Graphics group, 0070 */
-static DCMDICT *GRP_dictionary = {
+static DCMDICT GRP_dictionary[] = {
     {DCM_MAKETAG(0x0070, 0x0000), DCM_UL, "GRP Group Length"},
+    {DCM_MAKETAG(0x0070, 0x0001), DCM_SQ, "GRP Graphic Annotation Sequence"},
+    {DCM_MAKETAG(0x0070, 0x0002), DCM_CS, "GRP Graphic Layer"},
+    {DCM_MAKETAG(0x0070, 0x0003), DCM_CS, "GRP Bounding Box Annotation Units"},
+    {DCM_MAKETAG(0x0070, 0x0004), DCM_CS, "GRP Anchor Point Annotation Units"},
+    {DCM_MAKETAG(0x0070, 0x0005), DCM_CS, "GRP Graphic Annotation Units"},
+    {DCM_MAKETAG(0x0070, 0x0006), DCM_ST, "GRP Unformatted Text Value"},
+    {DCM_MAKETAG(0x0070, 0x0008), DCM_SQ, "GRP Text Object Sequence"},
+    {DCM_MAKETAG(0x0070, 0x0009), DCM_SQ, "GRP Graphic Object Sequence"},
+    {DCM_MAKETAG(0x0070, 0x0010), DCM_FL, "GRP Bounding Box Top LH Corner"},
+    {DCM_MAKETAG(0x0070, 0x0011), DCM_FL, "GRP Bounding Box Bottom RH Corner"},
+    {DCM_MAKETAG(0x0070, 0x0012), DCM_CS, "GRP Bounding Box Text Horiz Justification"},
+    {DCM_MAKETAG(0x0070, 0x0014), DCM_FL, "GRP Anchor Point"},
+    {DCM_MAKETAG(0x0070, 0x0015), DCM_CS, "GRP Anchor Point Visibility"},
+    {DCM_MAKETAG(0x0070, 0x0020), DCM_US, "GRP Graphic Dimensions"},
+    {DCM_MAKETAG(0x0070, 0x0021), DCM_US, "GRP Number of Graphic Points"},
     {DCM_MAKETAG(0x0070, 0x0022), DCM_FL, "GRP Graphic Data"}, /* Sup 33 */
     {DCM_MAKETAG(0x0070, 0x0023), DCM_CS, "GRP Graphic Type"}, /* Sup 33 */
     {DCM_MAKETAG(0x0070, 0x0024), DCM_CS, "GRP Graphic Filled"}, /* Sup 33 */
@@ -1247,7 +1264,7 @@ static DCMDICT *GRP_dictionary = {
 };
 
 /* Define the entries for the OLY (Overlay) group */
-static DCMDICT *OLY_dictionary = {
+static DCMDICT OLY_dictionary[] = {
     {DCM_OLYGROUPLENGTH, DCM_UL, "OLY Group Length"},
     {DCM_OLYROWS, DCM_US, "OLY Rows"},
     {DCM_OLYCOLUMNS, DCM_US, "OLY Columns"},
@@ -1282,13 +1299,13 @@ static DCMDICT *OLY_dictionary = {
 
 /* Define the entries for the PIXEL group (7FE0)
 */
-static DCMDICT *PXL_dictionary = {
+static DCMDICT PXL_dictionary[] = {
     {DCM_PXLGROUPLENGTH, DCM_UL, "PXL Group Length"},
     {DCM_PXLPIXELDATA, DCM_OT, "PXL Pixel Data"}
 };
 
 /* Define the elements for the MEDIA group (0088) */
-static DCMDICT *MED_dictionary = {
+static DCMDICT MED_dictionary[] = {
     {DCM_MEDIAGROUPLENGTH, DCM_UL, "MED Media Group Length "},
     {DCM_MEDIASTORAGEFILESETID, DCM_SH, "MED Storage Media File-set ID"},
     {DCM_MEDIASTORAGEFILESETUID, DCM_UI, "MED Storage Media File-setUID"},
@@ -1301,7 +1318,7 @@ static DCMDICT *MED_dictionary = {
 
 /* Define the entries in the BASICFILMSESSION group (2000)
 */
-static DCMDICT *BFS_dictionary = {
+static DCMDICT BFS_dictionary[] = {
     {DCM_BFSGROUPLENGTH, DCM_UL, "BFS Group Length"},
     {DCM_BFSCOPIES, DCM_IS, "BFS Number of copies printed for each film"},
     {DCM_BFSPRINTPRIORITY, DCM_CS, "BFS Specifies priority of print job"},
@@ -1314,7 +1331,7 @@ static DCMDICT *BFS_dictionary = {
 
 /* Define the entries in the BASICFILMBOX group (2010)
 */
-static DCMDICT *BFB_dictionary = {
+static DCMDICT BFB_dictionary[] = {
     {DCM_BFBGROUPLENGTH, DCM_UL, "BFB Group Length"},
     {DCM_BFBIMAGEDISPLAYFORMAT, DCM_ST, "BFB Type of image display format"},
     {DCM_BFBANNOTATIONDISPLAYFORMAT, DCM_CS, "BFB Id of annotation display format"},
@@ -1335,7 +1352,7 @@ static DCMDICT *BFB_dictionary = {
 
 /* Defines the entries in the BASICIMAGEBOX (2020)
 */
-static DCMDICT *BIB_dictionary = {
+static DCMDICT BIB_dictionary[] = {
     {DCM_BIBGROUPLENGTH, DCM_UL, "BIB Group Length"},
     {DCM_BIBIMAGEPOSITION, DCM_US, "BIB Specifies position of the image in the film"},
     {DCM_BIBPOLARITY, DCM_CS, "BIB Specifies image polarity"},
@@ -1348,7 +1365,7 @@ static DCMDICT *BIB_dictionary = {
 
 /* Defines the entries in the BASICANNOTATIONBOX group (2030)
 */
-static DCMDICT *BAB_dictionary = {
+static DCMDICT BAB_dictionary[] = {
     {DCM_BABGROUPLENGTH, DCM_UL, "BAB Group Length"},
     {DCM_BABANNOTATIONPOSITION, DCM_US, "BAB posn of the annot. box in parent film box"},
     {DCM_BABTEXTSTRING, DCM_LO, "BAB text string"}
@@ -1356,7 +1373,7 @@ static DCMDICT *BAB_dictionary = {
 
 /* Defines entries for BASICIMAGEOVERLAYBOX group (2040)
 */
-static DCMDICT *IOB_dictionary = {
+static DCMDICT IOB_dictionary[] = {
     {DCM_IOBGROUPLENGTH, DCM_UL, "IOB Group Length"},
     {DCM_IOBREFOVERLAYPLANESEQ, DCM_SQ, "IOB Ref Overlay Plane Sequence"},
     {DCM_IOBREFOVERLAYPLANEGROUPS, DCM_US, "IOB Ref Overlay Plane Groups"},
@@ -1370,7 +1387,7 @@ static DCMDICT *IOB_dictionary = {
 
 /* Defines entries for Presentation LUT Group (2050)
 */
-static DCMDICT *PLUT_dictionary = {
+static DCMDICT PLUT_dictionary[] = {
     {DCM_MAKETAG(0x2050, 0x0000), DCM_UL, "PLUT Group Length"},
     {DCM_MAKETAG(0x2050, 0x0010), DCM_SQ, "PLUT Presentation LUT Sequence"},
     {DCM_MAKETAG(0x2050, 0x0020), DCM_CS, "PLUT Presentation LUT Shape"},
@@ -1379,19 +1396,22 @@ static DCMDICT *PLUT_dictionary = {
 
 /* Defines the entries in the PRINTJOB group (2100)
 */
-static DCMDICT *PJ_dictionary = {
+static DCMDICT PJ_dictionary[] = {
     {DCM_PJGROUPLENGTH, DCM_UL, "PJ Group Length"},
     {DCM_PJEXECUTIONSTATUS, DCM_CS, "PJ execution status of print job"},
     {DCM_PJEXECUTIONSTATUSINFO, DCM_CS, "PJ additional information"},
     {DCM_PJCREATIONDATE, DCM_DA, "PJ date of print job creation"},
     {DCM_PJCREATIONTIME, DCM_TM, "PJ time of print job creation"},
     {DCM_PJORIGINATOR, DCM_AE, "PJ Appln entity title that issued the print opn"},
+    {DCM_MAKETAG(0x2100, 0x0140), DCM_AE, "PJ Destination AE"},		/* 2002.06.30 */
+    {DCM_MAKETAG(0x2100, 0x0160), DCM_SH, "PJ Owner ID"},		/* 2002.06.30 */
+    {DCM_MAKETAG(0x2100, 0x0170), DCM_IS, "PJ Number of Films"},	/* 2002.06.30 */
     {DCM_PJREFPRINTJOBSEQ, DCM_SQ, "PJ Referenced print job seq."}
 };
 
 /* Defines the entries in the PRINTER group (2110)
 */
-static DCMDICT *PRN_dictionary = {
+static DCMDICT PRN_dictionary[] = {
     {DCM_PRINTERGROUPLENGTH, DCM_UL, "PRINTER Group Length"},
     {DCM_PRINTERSTATUS, DCM_CS, "PRINTER printer device status"},
     {DCM_PRINTERSTATUSINFO, DCM_CS, "PRINTER additional information"},
@@ -1401,7 +1421,7 @@ static DCMDICT *PRN_dictionary = {
 
 /* Define the entries in the 0x3002 group, used for RT planning
 */
-static DCMDICT *G3002_dictionary = {
+static DCMDICT G3002_dictionary[] = {
     {DCM_MAKETAG(0x3002, 0x0000), DCM_UL, "RT Group Length"},
     {DCM_MAKETAG(0x3002, 0x0002), DCM_SH, "RT Image Label"},
     {DCM_MAKETAG(0x3002, 0x0003), DCM_LO, "RT Image Name"},
@@ -1425,7 +1445,7 @@ static DCMDICT *G3002_dictionary = {
 /* Define the entries in the 0x3004 group, Dose Volume Histogram (DVH),
 ** used in RT planning.
 */
-static DCMDICT *DVH_dictionary = {
+static DCMDICT DVH_dictionary[] = {
     {DCM_MAKETAG(0x3004, 0x0000), DCM_UL, "DVH Group Length"},
     {DCM_MAKETAG(0x3004, 0x0001), DCM_CS, "DVH Type"},
     {DCM_MAKETAG(0x3004, 0x0002), DCM_CS, "DVH Dose Units"},
@@ -1454,7 +1474,7 @@ static DCMDICT *DVH_dictionary = {
 /* Define the entries in the 0x3006 group, Structure Set,
 ** used in RT planning.
 */
-static DCMDICT *SSET_dictionary = {
+static DCMDICT SSET_dictionary[] = {
     {DCM_MAKETAG(0x3006, 0x0000), DCM_UL, "SSET Group Length"},
     {DCM_MAKETAG(0x3006, 0x0002), DCM_SH, "SSET Structure Set Label"},
     {DCM_MAKETAG(0x3006, 0x0004), DCM_LO, "SSET Structure Set Name"},
@@ -1504,7 +1524,7 @@ static DCMDICT *SSET_dictionary = {
 
 /* Define the entries in the 0x300A group, used in RT planning.
 */
-static DCMDICT *G300A_dictionary = {
+static DCMDICT G300A_dictionary[] = {
     {DCM_MAKETAG(0x300a, 0x0000), DCM_UL, "     Group Length"},
     {DCM_MAKETAG(0x300a, 0x0002), DCM_SH, "     RT Plan Label"},
     {DCM_MAKETAG(0x300a, 0x0003), DCM_LO, "     RT Plan Name"},
@@ -1734,7 +1754,7 @@ static DCMDICT *G300A_dictionary = {
 
 /* Define the entries in the 0x300C group, used in RT planning.
 */
-static DCMDICT *G300C_dictionary = {
+static DCMDICT G300C_dictionary[] = {
     {DCM_MAKETAG(0x300c, 0x0000), DCM_UL, "     Group Length"},
     {DCM_MAKETAG(0x300c, 0x0002), DCM_SQ, "     Referenced RT Plan Sequence"},
     {DCM_MAKETAG(0x300c, 0x0004), DCM_SQ, "     Referenced Beam Sequence"},
@@ -1766,7 +1786,7 @@ static DCMDICT *G300C_dictionary = {
 
 /* Define the entries in the 0x300E group, used in RT planning.
 */
-static DCMDICT *G300E_dictionary = {
+static DCMDICT G300E_dictionary[] = {
     {DCM_MAKETAG(0x300e, 0x0000), DCM_UL, "     Group Length"},
     {DCM_MAKETAG(0x300e, 0x0002), DCM_CS, "     Approval Status"},
     {DCM_MAKETAG(0x300e, 0x0004), DCM_DA, "     Review Date"},
@@ -1777,21 +1797,21 @@ static DCMDICT *G300E_dictionary = {
 /* Defines the entries in the Text group (4000)
 */
 #if 0
-static DCMDICT *TXT_dictionary = {
+static DCMDICT TXT_dictionary[] = {
 };
 #endif
 
 /* Define the entries in the PAD group, 0xfffc
 */
 
-static DCMDICT *PAD_dictionary = {
+static DCMDICT PAD_dictionary[] = {
     {DCM_PADITEM, DCM_OB, "Pad item"}
 };
 
 /* Define the entries in the DELIMITER group, 0xfffe
 */
 
-static DCMDICT *DLM_dictionary = {
+static DCMDICT DLM_dictionary[] = {
     {DCM_DLMITEM, DCM_DLM, "DELIMITER Item"},
     {DCM_DLMITEMDELIMITATIONITEM, DCM_DLM, "DELIMITER Item Delimitation Item"},
     {DCM_DLMSEQUENCEDELIMITATIONITEM, DCM_DLM, "DELIMITER Sequence Delimitation Item"}
@@ -1801,7 +1821,7 @@ static DCMDICT *DLM_dictionary = {
 ** pointers to each of the individual group lists.
 */
 
-static GROUPPTR *group_dictionary = {
+static GROUPPTR group_dictionary[] = {
     {DCM_GROUPCOMMAND, sizeof(CMD_dictionary) / sizeof(DCMDICT), CMD_dictionary},
     {DCM_GROUPFILEMETA, sizeof(META_dictionary) / sizeof(DCMDICT), META_dictionary},
     {DCM_GROUPBASICDIRINFO, sizeof(BASICDIR_dictionary) / sizeof(DCMDICT), BASICDIR_dictionary},
@@ -1978,7 +1998,7 @@ typedef struct {
     char *description;
 }   GROUP_DESCRIPTION;
 
-static GROUP_DESCRIPTION *groupTable = {
+static GROUP_DESCRIPTION groupTable[] = {
     {0x0000, "Command"},
     {0x0002, "File Meta"},
     {0x0004, "Basic Directory Information"},
