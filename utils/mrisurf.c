@@ -20906,7 +20906,7 @@ MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
           continue ;
         histo[index]++ ;
       }
-      max_histo = 0 ; max_index = 0 ;
+      max_histo = histo[0] ; max_index = 0 ;
       for (i = 1 ; i < 256 ; i++)
       {
         if (histo[i] > max_histo)
