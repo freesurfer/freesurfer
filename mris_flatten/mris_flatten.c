@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.15 1998/05/20 15:15:17 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.16 1998/08/24 19:27:01 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -159,6 +159,7 @@ main(int argc, char *argv[])
     MRIScomputeMetricProperties(mris) ;
     MRISunfold(mris, &parms, max_passes) ;
     fprintf(stderr, "writing flattened patch to %s\n", out_patch_fname) ;
+    MRIScenter(mris, mris) ;
     MRISwritePatch(mris, out_patch_fname) ;
   }
 
