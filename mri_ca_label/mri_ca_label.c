@@ -70,7 +70,7 @@ static float pthresh = .7 ;
 #if 0
 static float thresh = 0.5 ;
 #endif
-static int read_flag = 0 ;
+static char *reg_fname = NULL ;
 static char *read_fname =  NULL ;
 
 static char *wm_fname = NULL ;
@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.46 2004/04/05 14:58:02 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.47 2004/05/20 15:55:40 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -433,69 +433,105 @@ main(int argc, char *argv[])
   }
 
   GCAfixSingularCovarianceMatrices(gca) ;
-  if (read_flag)
+  if (read_fname != NULL && reg_fname == NULL)  /* not longitudinal */
   {
     mri_labeled = MRIread(read_fname) ;
     if (!mri_labeled)
-      ErrorExit(ERROR_NOFILE, "%s: could not read parcellation from %s",
+      ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
                 Progname, out_fname) ;
   }
   else
   {
-    printf("labeling volume...\n") ;
-    // create labeled volume
-    mri_labeled = GCAlabel(mri_inputs, gca, NULL, transform) ;
-    // -wm fname option
-    if (wm_fname)
-    {
-      MRI *mri_wm ;
-      
-      mri_wm = MRIread(wm_fname) ;
-      if (!mri_wm)
-        ErrorExit(ERROR_NOFILE, "%s: could not read wm segmentation from %s",
-                  Progname, wm_fname) ;
-      // put wm into fixed
-      mri_fixed = insert_wm_segmentation(mri_labeled,mri_wm,parcellation_type,
-                                         fixed_flag, gca, transform);
-      if (DIAG_VERBOSE_ON)
-      {
-        fprintf(stderr, "writing patched labeling to %s...\n", out_fname) ;
-        MRIwrite(mri_labeled, out_fname) ;
-      }
-      MRIfree(&mri_wm) ;
-    }
-    else
-      // just clone the labeled one
-      mri_fixed = MRIclone(mri_labeled, NULL) ;
+		if (reg_fname == NULL)
+		{
+			printf("labeling volume...\n") ;
+			// create labeled volume
+			mri_labeled = GCAlabel(mri_inputs, gca, NULL, transform) ;
+			// -wm fname option
+			if (wm_fname)
+			{
+				MRI *mri_wm ;
+				
+				mri_wm = MRIread(wm_fname) ;
+				if (!mri_wm)
+					ErrorExit(ERROR_NOFILE, "%s: could not read wm segmentation from %s",
+										Progname, wm_fname) ;
+				// put wm into fixed
+				mri_fixed = insert_wm_segmentation(mri_labeled,mri_wm,parcellation_type,
+																					 fixed_flag, gca, transform);
+				if (DIAG_VERBOSE_ON)
+				{
+					fprintf(stderr, "writing patched labeling to %s...\n", out_fname) ;
+					MRIwrite(mri_labeled, out_fname) ;
+				}
+				MRIfree(&mri_wm) ;
+			}
+			else
+				// just clone the labeled one
+				mri_fixed = MRIclone(mri_labeled, NULL) ;
 
-    if (gca_write_iterations != 0)
-    {
-      char fname[STRLEN] ;
-      sprintf(fname, "%s_pre.mgh", gca_write_fname) ;
-      printf("writing snapshot to %s...\n", fname) ;
-      MRIwrite(mri_labeled, fname) ;
-    }
+			if (gca_write_iterations != 0)
+			{
+				char fname[STRLEN] ;
+				sprintf(fname, "%s_pre.mgh", gca_write_fname) ;
+				printf("writing snapshot to %s...\n", fname) ;
+				MRIwrite(mri_labeled, fname) ;
+			}
 #if 0
-    while (renormalize_iter--)  /* update gca values  and relabel */
-    {
-      preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
-      printf("renormalizing GCA to initial labeling...\n") ;
-      GCArenormalizeAdaptive(mri_inputs, mri_labeled, gca, transform, renormalize_wsize,
-                             pthresh) ;
-      GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
-    }
+			while (renormalize_iter--)  /* update gca values  and relabel */
+			{
+				preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
+				printf("renormalizing GCA to initial labeling...\n") ;
+				GCArenormalizeAdaptive(mri_inputs, mri_labeled, gca, transform, renormalize_wsize,
+															 pthresh) ;
+				GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
+			}
 #else
-    // renormalize iteration 
-    if (renormalize_iter > 0)
-    {
-      GCAmapRenormalize(gca, mri_inputs, transform) ;
-      printf("relabeling volume...\n") ;
-      GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
-    }
+			// renormalize iteration 
+			if (renormalize_iter > 0)
+			{
+				GCAmapRenormalize(gca, mri_inputs, transform) ;
+				printf("relabeling volume...\n") ;
+				GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
+			}
 #endif
-    preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
-    if (fixed_flag == 0)
-      MRIfree(&mri_fixed) ;
+			preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
+			if (fixed_flag == 0)
+				MRIfree(&mri_fixed) ;
+		}
+		else  /* processing longitudinal data */
+		{
+			TRANSFORM *transform ;
+			MRI       *mri_tmp ;
+
+			mri_labeled = MRIread(read_fname) ;
+			if (!mri_labeled)
+				ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
+									Progname, out_fname) ;
+			printf("applying transform %s to previously computed segmentation %s\n",
+						 reg_fname, read_fname) ;
+			transform = TransformRead(reg_fname) ;
+			if (transform == NULL)
+				ErrorExit(ERROR_NOFILE, "%s: could not open registration file %s",
+									Progname, reg_fname) ;
+
+			if (transform->type != LINEAR_VOX_TO_VOX)
+				ErrorExit(ERROR_BADPARM, "%s: transform type (%d) must be LINEAR_VOX_TO_VOX",
+									Progname, transform->type) ;
+			mri_tmp = MRIlinearTransformInterp(mri_labeled, NULL, ((LTA *)(transform->xform))->xforms[0].m_L, SAMPLE_NEAREST) ;
+			MRIfree(&mri_labeled) ;
+			mri_labeled = mri_tmp ;
+
+			TransformFree(&transform) ;
+			if (gca_write_iterations != 0)
+			{
+				char fname[STRLEN] ;
+				sprintf(fname, "%s_pre.mgh", gca_write_fname) ;
+				printf("writing snapshot to %s...\n", fname) ;
+				MRIwrite(mri_labeled, fname) ;
+			}
+		}
+
     if (!no_gibbs)
     {
       if (anneal)
@@ -749,8 +785,12 @@ get_option(int argc, char *argv[])
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
     break ;
+	case 'L':
+    read_fname = argv[2] ;
+		reg_fname = argv[3] ;
+		nargs = 2;
+		break ;
   case 'R':
-    read_flag = 1 ;
     read_fname = argv[2] ;
     nargs = 1 ;
     break ;
