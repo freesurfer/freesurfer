@@ -336,7 +336,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.4 2002/03/14 23:42:40 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.5 2002/08/01 21:50:56 greve Exp $}
 
 exit 1;
 
@@ -718,7 +718,7 @@ proc GetVolRes { dcmfile  } {
   set RowRes   [lindex $PixSpace 1];
 
   # Slice Spacing: get 18,88 first, then get 18,50 #
-  set err [catch {exec mri_probedicom --i $dcmfile --t 18 28} SliceRes];
+  set err [catch {exec mri_probedicom --i $dcmfile --t 18 88} SliceRes];
   if { $err } {
     set err [catch {exec mri_probedicom --i $dcmfile --t 18 50} SliceRes];
     if { $err } {
@@ -803,7 +803,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.4 2002/03/14 23:42:40 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.5 2002/08/01 21:50:56 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
