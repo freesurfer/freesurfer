@@ -1965,7 +1965,9 @@ write_analyze_header(char *fname, MRI *mri)
   int   nwritten, i ;
   dsr   hdr ;
   float fmin, fmax ;
+#ifdef Linux
   char  c;
+#endif
 
   memset(&hdr, 0, sizeof(hdr)) ;
   hdr.hk.sizeof_hdr = sizeof(hdr) ;
@@ -3071,7 +3073,7 @@ siemensRead(char *fname, int read_volume, int frame)
     ErrorReturn(NULL,
                 (ERROR_BADPARM, "siemensRead(%s): bad file name", fname));
 
-  for(dot--;isdigit(*dot) && dot > fname;dot--);
+  for(dot--;isdigit((int)*dot) && dot > fname;dot--);
 
   if(dot != fname)
     {
@@ -3082,7 +3084,7 @@ siemensRead(char *fname, int read_volume, int frame)
     }
   else
     {
-    if(!isdigit(*dot))
+    if(!isdigit((int)*dot))
       dot++;
     strncpy(fname_format, fname, dot - fname);
     fname_format[dot-fname] = '\0';
@@ -3933,7 +3935,7 @@ bshortRead(char *fname, int read_volume, int frame)
       for(i = 0;i < frames;i++)
       {
         fread(buf, height * width, 2, fin);
-          swab(buf, buf, height * width * 2);
+#ifdef Linux
         if(!swap)
           swab(buf, buf, height * width * 2);
 #else
@@ -3963,7 +3965,7 @@ bshortRead(char *fname, int read_volume, int frame)
           ErrorReturn(NULL, (ERROR_BADPARM, "bshortRead: can't open file %s", fname2));
 
         fread(buf, height * width, 2, fin);
-          swab(buf, buf, height * width * 2);
+#ifdef Linux
         if(!swap)
           swab(buf, buf, height * width * 2);
 #else
@@ -4119,7 +4121,7 @@ static MRI *sdtRead(char *fname, int read_volume, int frame)
           {
             fclose(fp);
             ErrorReturn(NULL, (ERROR_UNSUPPORTED, "sdtRead(%s): nframes != 1 unsupported for sdt (dim(4) = %d)\n", fname, dim[3]));
-        while(isspace(*colon))
+          }
         }
       }
       else if(strcmp(line, "dataType") == 0)
@@ -4152,7 +4154,7 @@ static MRI *sdtRead(char *fname, int read_volume, int frame)
         else
           sscanf(colon, "%f %f %f %f", &xsize, &ysize, &zsize, &dummy_size);
         xsize *= 10.0;
-        while(isspace(*colon))
+        ysize *= 10.0;
         zsize *= 10.0;
       }
       else if(strcmp(line, "sdtOrient") == 0)
