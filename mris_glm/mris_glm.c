@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.9 2002/10/31 21:09:22 greve Exp $
+  $Id: mris_glm.c,v 1.10 2002/11/08 22:41:48 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -32,6 +32,7 @@ Things to do:
 #include "mri_identify.h"
 #include "sig.h"
 #include "fmriutils.h"
+#include "fsgdf.h"
 
 #ifdef X
 #undef X
@@ -59,14 +60,16 @@ int ReadAsciiMatrixNRows(char *desmtxfname);
 int ReadAsciiMatrixSize(char *desmtxfname, int *pnrows, int *pncols);
 int ReadDesignMatrix(char *desmtxfname);
 MATRIX *ReadAsciiMatrix(char *asciimtxfname);
+int CheckDesignMatrix(MATRIX *X);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.9 2002/10/31 21:09:22 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.10 2002/11/08 22:41:48 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
 char *desmtxfname = NULL;
+char *fsgdfile = NULL;
 char *xmatfile = NULL;
 int  nsmooth   = 0;
 int  frame     = 0;    
@@ -83,6 +86,7 @@ int  nsubjects = 0;
 char *subjectlist[1000];
 int  nregressors = 0;
 MATRIX *X; /* design matrix */
+FSGD *fsgd=NULL;
 
 char   *conmtxfname;
 MATRIX *C; /* contrast vector */
@@ -146,6 +150,7 @@ char *SUBJECTS_DIR;
 
 int Force=0;
 int ParseOnly=0;
+char tmpstr[1000];
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -153,8 +158,10 @@ int main(int argc, char **argv)
   int vtx,nthsubj;
   char *subject;
   char *inputfname;
+  FILE *fp;
 
-  Progname = argv[0] ;
+  Progname = argv[0];
+
   argc --;
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
@@ -177,6 +184,10 @@ int main(int argc, char **argv)
   Xt = MatrixTranspose(X,NULL);
   XtX = MatrixMultiply(Xt,X,NULL);
   iXtX = MatrixInverse(XtX,NULL);
+  if(iXtX==NULL){
+    printf("ERROR: could not compute psuedo inverse of X\n");
+    exit(1);
+  }
 
   /* Q is the matrix that when multiplied by y gives beta */
   Q = MatrixMultiply(iXtX,Xt,NULL);
@@ -246,6 +257,8 @@ int main(int argc, char **argv)
 	  printf("ERROR: could not load registration surface\n");
 	  exit(1);
 	}
+        strcpy(SurfReg->subject_name,subject);
+        //SurfReg->hemi = hemi;
 	
 	if(surfmeasure != NULL) inputfname = surfmeasure;
 	else                    inputfname = inputlist[nthsubj];
@@ -257,7 +270,8 @@ int main(int argc, char **argv)
 
 	printf("  INFO: loading input %s \n",inputfname);fflush(stdout);
 	if(stringmatch(inputfmt,"curv"))
-	  tmpmri = MRISloadSurfVals(inputfname,"curv",NULL,subject,hemi,NULL);
+	  tmpmri = MRISloadSurfVals(inputfname,"curv",SurfReg,
+				    subject,hemi,SUBJECTS_DIR);
 	else if(stringmatch(inputfmt,"paint") || stringmatch(inputfmt,"w") ||
 		stringmatch(inputfmt,"wfile")){
 	  MRISreadValues(SurfReg,inputfname);
@@ -326,8 +340,21 @@ int main(int argc, char **argv)
       if(nsmooth > 0) MRISsmoothMRI(IcoSurf, SrcVals, nsmooth, SrcVals);
     }
 
-    if(yid != NULL)
+    if(yid != NULL){
       if(MRIwriteAnyFormat(SrcVals,yid,yfmt,-1,NULL)) exit(1);
+      if(fsgd != NULL){
+	sprintf(tmpstr,"%s.fsgd",yid);
+	strcpy(fsgd->measname,surfmeasure);
+	sprintf(fsgd->datafile,"%s_000.bfloat",yid);
+      }
+      fp = fopen(tmpstr,"w");
+      gdfPrint(fp,fsgd);
+      fprintf(fp,"Creator     %s\n",Progname);
+      fprintf(fp,"SmoothSteps %d\n",nsmooth);
+      fprintf(fp,"SUBECTS_DIR %s\n",SUBJECTS_DIR);
+      fprintf(fp,"SynthSeed   %d\n",synthseed);
+      fclose(fp);
+    }
 
     /* Future: run permutation loop here to get null dist of t */
     /* Must be done in one shot with estimation */
@@ -372,8 +399,13 @@ int main(int argc, char **argv)
     }
 
     printf("INFO: loading var_in %s\n",eresvar_in_id);
-    if(eresvar_in_fmt != NULL) eresvar = MRIreadType(eresvar_in_id,eresvar_in_fmtid);
-    else                       eresvar = MRIread(eresvar_in_id);
+    if(eresvar_in_fmt != NULL) {
+      eresvar = MRISloadSurfVals(eresvar_in_id,eresvar_in_fmt,
+				 IcoSurf,trgsubject,hemi,SUBJECTS_DIR);
+      //eresvar = MRIreadType(eresvar_in_id,eresvar_in_fmtid);
+    }
+    else                       
+      eresvar = MRIread(eresvar_in_id);
     if(eresvar == NULL){
       printf("ERROR: loading %s\n",eresvar_in_id);
       exit(1);
@@ -434,8 +466,6 @@ static int parse_commandline(int argc, char **argv)
   char **pargv, *option ;
   int m;
   float fvtmp[1000];
-  float Xcondition;
-  MATRIX *Xnorm;
 
   if(argc < 1) usage_exit();
 
@@ -504,29 +534,24 @@ static int parse_commandline(int argc, char **argv)
       inputfmtid = checkfmt(inputfmt);
       nargsused = 1;
     }
+    else if ( !strcmp(option, "--fsgd") ){
+      if(nargc < 1) argnerr(option,1);
+      fsgdfile = pargv[0];
+      fsgd = gdfRead(fsgdfile);
+      if(fsgd==NULL) exit(1);
+      X = gdfMatrixDOSS(fsgd,NULL);
+      CheckDesignMatrix(X);
+      nsubjects = X->rows;
+      nregressors = X->cols;
+      for(m=0; m<nsubjects; m++) subjectlist[m] = fsgd->subjid[m];
+      nargsused = 1;
+    }
     else if ( !strcmp(option, "--design") ){
       if(nargc < 1) argnerr(option,1);
       desmtxfname = pargv[0];
       nargsused = 1;
       ReadDesignMatrix(desmtxfname);
-      Xnorm = MatrixNormalizeCol(X,NULL);
-      Xcondition = sqrt(MatrixNSConditionNumber(Xnorm));
-      MatrixFree(&Xnorm);
-      printf("INFO: Normalized Design Matrix Condition Number is %g\n",
-	     Xcondition);
-      if(xmatfile != NULL && debug) {
-	printf("INFO: Writing mat file to %s\n",xmatfile);
-	if(MatlabWrite(X,xmatfile,"X")){
-	  printf("ERROR: Writing mat file to %s\n",xmatfile);
-	  exit(1);
-	}
-      }
-      if(Xcondition > 100000 && !Force){
-	printf("ERROR: Design matrix is badly conditioned, check for linear\n"
-	       "dependency  between columns (ie, two or more columns \n"
-	       "that add up to another column).\n\n");
-	exit(1);
-      }
+      CheckDesignMatrix(X);
     }
     else if ( !strcmp(option, "--xmat") ){
       if(nargc < 1) argnerr(option,1);
@@ -701,7 +726,8 @@ static void print_usage(void)
   printf("USAGE: mris_glm (formerly mri_surfglm)\n") ;
   printf("\n");
   printf("Raw Data Input Options\n");
-  printf("   --design     fname : name of design matrix (ascii)\n");
+  printf("   --fsdg    fname : FreeSurfer Group Descriptor File\n");
+  printf("   --design  fname : name of design matrix (ascii)\n");
   printf("   --surfmeas name  : input file or name of surface measure\n");
   printf("   --i input1 input2 ...> : input file list\n");
   printf("   --frame      M     : use 0-based Mth frame (default is 0)\n");
@@ -1082,8 +1108,14 @@ static void argnerr(char *option, int n)
 /* --------------------------------------------- */
 static void check_options(void)
 {
-  if(desmtxfname == NULL){
-    printf("ERROR: must specify a design matrix\n");
+  if(desmtxfname == NULL && fsgdfile == NULL){
+    printf("ERROR: must specify a design \n");
+    exit(1);
+  }
+
+  if(desmtxfname != NULL && fsgdfile != NULL){
+    /* dont need to be so strict */
+    printf("ERROR: cannot specify a design matrix and fsgd\n");
     exit(1);
   }
 
@@ -1441,4 +1473,33 @@ MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
   printf("nvertices = %d\n",Surf->nvertices);fflush(stdout);
 
   return(Surf);
+}
+/*-----------------------------------------------*/
+int CheckDesignMatrix(MATRIX *X)
+{
+  extern char *xmatfile;
+  extern int Force;
+  float Xcondition;
+  MATRIX *Xnorm;
+
+  Xnorm = MatrixNormalizeCol(X,NULL);
+  Xcondition = sqrt(MatrixNSConditionNumber(Xnorm));
+  MatrixFree(&Xnorm);
+  printf("INFO: Normalized Design Matrix Condition Number is %g\n",
+	 Xcondition);
+  if(xmatfile != NULL && debug) {
+    printf("INFO: Writing mat file to %s\n",xmatfile);
+    if(MatlabWrite(X,xmatfile,"X")){
+      printf("ERROR: Writing mat file to %s\n",xmatfile);
+      exit(1);
+    }
+  }
+  if(Xcondition > 100000 && !Force){
+    printf("ERROR: Design matrix is badly conditioned, check for linear\n"
+	   "dependency  between columns (ie, two or more columns \n"
+	   "that add up to another column).\n\n");
+    exit(1);
+  }
+  
+  return(0);
 }
