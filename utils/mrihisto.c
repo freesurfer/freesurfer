@@ -301,6 +301,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   float      fmin, fmax, bin_size ;
   BUFTYPE    val, *psrc, bmin, bmax ;
   short      *spsrc ;
+  float      *fpsrc ;
 
 #if 0
   if (mri->type != MRI_UCHAR)
@@ -378,6 +379,24 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
         for (x = x0 ; x < width ; x++)
         {
           bin_no = (int)((float)(*spsrc++ - fmin) / (float)bin_size) ;
+					if (bin_no < 0)
+						bin_no = 0 ;
+					if (bin_no >= histo->nbins)
+						bin_no = histo->nbins-1 ;
+          histo->counts[bin_no]++ ;
+        }
+      }
+    }
+    break ;
+  case MRI_FLOAT:
+    for (z = z0 ; z < depth ; z++)
+    {
+      for (y = y0 ; y < height ; y++)
+      {
+        fpsrc = &MRIFvox(mri, x0, y, z) ;
+        for (x = x0 ; x < width ; x++)
+        {
+          bin_no = (int)((float)(*fpsrc++ - fmin) / (float)bin_size) ;
 					if (bin_no < 0)
 						bin_no = 0 ;
 					if (bin_no >= histo->nbins)

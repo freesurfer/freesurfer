@@ -3927,31 +3927,19 @@ GCAmri(GCA *gca, MRI *mri)
     {
       for (y = 0 ; y < height ; y++)
       {
-	for (z = 0 ; z < depth ; z++)
-	{
-	  GCAvoxelToPrior(gca, mri, x, y, z, &xp, &yp, &zp) ;
-	  GCAvoxelToNode(gca, mri, x, y, z, &xn, &yn, &zn) ;
-	  gcap = &gca->priors[xp][yp][zp] ;
-	  for (val = 0.0, n = 0 ; n < gcap->nlabels ; n++)
-	  {
-	    gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
-	    if (gc)
-	      val += gc->means[frame] * gcap->priors[n] ;
-	  }
-	  switch (mri->type)
-	  {
-	  default:
-	    ErrorReturn(NULL,
-			(ERROR_UNSUPPORTED, 
-			 "GCAmri: unsupported image type %d", mri->type)) ;
-	  case MRI_UCHAR:
-	    MRIseq_vox(mri, x, y, z, frame) = (unsigned char)val ;
-	    break ;
-	  case MRI_SHORT:
-	    MRISseq_vox(mri, x, y, z, frame) = (short)val ;
-	    break ;
-	  }
-	}
+				for (z = 0 ; z < depth ; z++)
+				{
+					GCAvoxelToPrior(gca, mri, x, y, z, &xp, &yp, &zp) ;
+					GCAvoxelToNode(gca, mri, x, y, z, &xn, &yn, &zn) ;
+					gcap = &gca->priors[xp][yp][zp] ;
+					for (val = 0.0, n = 0 ; n < gcap->nlabels ; n++)
+					{
+						gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
+						if (gc)
+							val += gc->means[frame] * gcap->priors[n] ;
+					}
+					MRIsetVoxVal(mri, x, y, z, frame, val) ;
+				}
       }
     }
   }
