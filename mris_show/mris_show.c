@@ -14,7 +14,7 @@
 #include "mrisurf.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.8 1997/09/15 17:11:16 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.9 1997/09/25 22:33:12 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -74,6 +74,12 @@ static INTEGRATION_PARMS  parms ;
 #define GLUT_ESCAPE_KEY  27
 #endif
 
+static void findAreaExtremes(MRI_SURFACE *mris) ;
+static char curvature_fname[100] = "" ;
+
+
+static float cslope = 5.0f ;
+
 int
 main(int argc, char *argv[])
 {
@@ -112,8 +118,13 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
+  if (curvature_fname[0])
+    MRISreadCurvatureFile(mris, curvature_fname) ;
   if (ellipsoid_flag)
+  {
     MRISupdateEllipsoidSurface(mris) ;
+    findAreaExtremes(mris) ;
+  }
   if (talairach_flag)
     MRIStalairachTransform(mris_orig, mris_orig) ;
   MRIScenter(mris_orig, mris_orig) ;
@@ -192,8 +203,18 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "cslope"))
+  {
+    sscanf(argv[2], "%f", &cslope) ;
+    nargs = 1 ;
+    fprintf(stderr, "using color slope compression = %2.4f\n", cslope) ;
+  }
   else switch (toupper(*option))
   {
+  case 'C':
+    strcpy(curvature_fname, argv[2]) ;
+    nargs = 1 ;
+    break ;
   case 'V':
     sscanf(argv[2], "%d", &marked_vertex) ;
     nargs = 1 ;
@@ -286,16 +307,18 @@ MRISGLcompile(MRI_SURFACE *mris)
   face_type    *f;
   vertex_type  *v ;
   float        v1[3], xf, yf, zf, xt, yt, zt, xo, yo, zo, xd, yd, zd,td,fd,od,
-               min_curv, max_curv ;
+               min_curv, max_curv, offset ;
   Real         x, y, z, xtal,ytal,ztal ;
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "compiling surface tesselation...") ;
 
-  xf = mris->v_frontal_pole->x ;
-  yf = mris->v_frontal_pole->y ;
-  zf = mris->v_frontal_pole->z ;
-  mris->v_temporal_pole = &mris->vertices[79891] ;
+  if (mris->v_frontal_pole)
+  {
+    xf = mris->v_frontal_pole->x ;
+    yf = mris->v_frontal_pole->y ;
+    zf = mris->v_frontal_pole->z ;
+  }
   if (mris->v_temporal_pole)
   {
     xt = mris->v_temporal_pole->x ;
@@ -305,11 +328,17 @@ MRISGLcompile(MRI_SURFACE *mris)
   else
     xt = yt = zt = 0.0f ;
 
-  xo = mris->v_occipital_pole->x ;
-  yo = mris->v_occipital_pole->y ;
-  zo = mris->v_occipital_pole->z ;
+  if (mris->v_occipital_pole)
+  {
+    xo = mris->v_occipital_pole->x ;
+    yo = mris->v_occipital_pole->y ;
+    zo = mris->v_occipital_pole->z ;
+  }
   min_curv = mris->min_curv ;
   max_curv = mris->max_curv ;
+  if (-min_curv > max_curv)
+    max_curv = -min_curv ;
+
   ytal = 10000.0f ;  /* disable temporal region stuff */
   for (k=0;k<mris->nfaces;k++) if (!mris->faces[k].ripflag)
   {
@@ -319,6 +348,7 @@ MRISGLcompile(MRI_SURFACE *mris)
     {
       v = &mris->vertices[f->v[n]];
 
+#if 0
       xd = v->x - xf ; yd = v->y - yf ; zd = v->z - zf ;
       fd = xd*xd + yd*yd + zd*zd ;  /* distance to frontal pole */
       if (mris->v_temporal_pole)
@@ -336,6 +366,7 @@ MRISGLcompile(MRI_SURFACE *mris)
         x = (Real)v->x ; y = (Real)v->y ; z = (Real)v->z ;
         transform_point(mris->linear_transform, -x, z, y, &xtal, &ytal,&ztal);
       }
+#endif
       if (k == marked_vertex)
         glColor3ub(0,0,240) ;      /* paint the marked vertex blue */
 #if 0
@@ -350,24 +381,25 @@ MRISGLcompile(MRI_SURFACE *mris)
 #endif
       else   /* color it depending on curvature */
       {
-#define MIN_GRAY  25
-#define MAX_COLOR (150 - MIN_GRAY)
+#define MIN_GRAY  50
+#define MAX_COLOR ((float)(255 - MIN_GRAY))
 
         red = green = blue = MIN_GRAY ;
-        if (FZERO(max_curv) || FZERO(min_curv))
-          glColor3ub(meshr,meshg,meshb);    /* paint it gray */
+        if (FZERO(max_curv))  /* no curvature info */
+          red = green = blue = meshr ;    /* paint it gray */
 
 /* curvatures seem to be sign-inverted??? */
         if (v->curv > 0)  /* color it red */
         {
-          red = MIN_GRAY + nint((MAX_COLOR*((v->curv-min_curv)/(-min_curv))));
-          glColor3ub(red,green,blue);  /* specify the RGB color */
+          offset = MAX_COLOR*tanh(cslope * (v->curv/max_curv)) ;
+          red = MIN_GRAY + nint(offset);
         }
         else              /* color it green */
         {
-          green = MIN_GRAY + nint((MAX_COLOR*((max_curv-v->curv)/(max_curv))));
-          glColor3ub(red,green,blue);  /* specify the RGB color */
+          offset = MAX_COLOR*tanh(cslope*(-v->curv/max_curv)) ;
+          green = MIN_GRAY + nint(offset);
         }
+        glColor3ub(red,green,blue);  /* specify the RGB color */
       }
       load_brain_coords(v->nx,v->ny,v->nz,v1);
       glNormal3fv(v1);                /* specify the normal for lighting */
@@ -516,6 +548,20 @@ keyboard_handler(unsigned char key, int x, int y)
   case '+':
     delta_angle *= 2.0f ;
     redraw = 0 ;
+    break ;
+  case '/':
+    cslope /= 1.5f ;
+    fprintf(stderr, "cslope = %2.3f\n", cslope) ;
+    glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+    MRISGLcompile(mris) ;
+    glEndList() ;
+    break ;
+  case '*':
+    cslope *= 1.5f ;
+    fprintf(stderr, "cslope = %2.3f\n", cslope) ;
+    glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+    MRISGLcompile(mris) ;
+    glEndList() ;
     break ;
   case '-':
     delta_angle *= 0.5f ;
@@ -923,3 +969,154 @@ home(MRI_SURFACE *mris)
   glLoadIdentity();
   glOrtho(-FOV, FOV, -FOV, FOV, -10.0f*FOV, 10.0f*FOV);
 }
+static void
+findAreaExtremes(MRI_SURFACE *mris)
+{
+  int     fno, tno, fmax, tmax, fmin, tmin ;
+  FACE    *face ;
+  float   min_area, max_area;
+
+  min_area = 10000.0f ; max_area = -10000.0f ;
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
+    {
+      if (face->area[tno] > max_area)
+      {
+        max_area = face->area[tno] ;
+        fmax = fno ;
+        tmax = tno ;
+      }
+      if (face->area[tno] < min_area)
+      {
+        min_area = face->area[tno] ;
+        fmin = fno ;
+        tmin = tno ;
+      }
+    }
+  }
+  fprintf(stderr, "min_area = %2.3f at f %d, t %d\n", min_area, fmin, tmin) ;
+  fprintf(stderr, "max_area = %2.3f at f %d, t %d\n", max_area, fmax, tmax) ;
+}
+
+#if 0
+static void
+set_color(float val, float curv, int mode)
+{
+  short r,g,b;
+  float f,fr,fg,fb,tmpoffset;
+
+  if (curv<0)  tmpoffset = cvfact*offset;
+  else         tmpoffset = offset;
+
+  if (mode==GREEN_RED_CURV)
+  {
+    f = tanh(cslope*(curv-cmid));
+    if (f>0) {
+      r = 255 * (offset/blufact + 0.95*(1-offset/blufact)*fabs(f));
+      g = 255 * (offset/blufact*(1 - fabs(f)));
+    }
+    else {
+      r = 255 * (offset/blufact*(1 - fabs(f)));
+      g = 255 * (offset/blufact + 0.95*(1-offset/blufact)*fabs(f));
+    }
+    b = 255 * (offset*blufact*(1 - fabs(f)));
+  }
+
+  if (mode==GREEN_RED_VAL)   /* single val positive or signed */
+  {
+    if (colscale==HEAT_SCALE)
+    {
+      set_stat_color(val,&fr,&fg,&fb,tmpoffset);
+      r=fr; g=fg; b=fb;
+    }
+    else
+    if (colscale==CYAN_TO_RED || colscale==BLU_GRE_RED || colscale==JUST_GRAY)
+    {
+      if (val<fthresh) 
+      {
+        r = g = 255 * (tmpoffset/blufact);
+        b =     255 * (tmpoffset*blufact);
+      }
+      else 
+      {
+        if (fslope!=0)
+          f = (tanh(fslope*fmid)+tanh(fslope*(val-fmid)))/(2-tanh(fslope*fmid));
+        else
+          f = (val<0)?0:((val>1)?1:val);
+        set_positive_color(f,&fr,&fg,&fb,tmpoffset);
+        r=fr; g=fg; b=fb;
+      }
+    }
+    else
+    {
+      if (fabs(val)<fthresh) 
+      {
+        r = g = 255 * (tmpoffset/blufact);
+        b =     255 * (tmpoffset*blufact);
+      }
+      else 
+      {
+        if (fslope!=0)
+        {
+          if (fmid==0)
+            f = tanh(fslope*(val));
+          else
+          {
+            if (val<0)
+              f = -(tanh(fslope*fmid) + tanh(fslope*(-val-fmid)))/
+                   (2-tanh(fslope*fmid));
+            else
+              f = (tanh(fslope*fmid) + tanh(fslope*( val-fmid)))/
+                  (2-tanh(fslope*fmid));
+          }
+        }
+        else
+          f = (val<-1)?-1:((val>1)?1:val);
+        if (revphaseflag)
+          f = -f;
+        set_signed_color(f,&fr,&fg,&fb,tmpoffset);
+        r=fr; g=fg; b=fb;
+      }
+    }
+  }
+
+  if (mode==FIELDSIGN_POS || mode==FIELDSIGN_NEG) {
+    if (val<fthresh) {
+      r = g = 255 * (tmpoffset/blufact);
+      b =     255 * (tmpoffset*blufact);
+    }
+    else {
+      f = (1.0 + tanh(fslope*(val-fmid)))/2.0;
+      if (mode==FIELDSIGN_POS) {
+        b = 255 * (tmpoffset + 0.95*(1-tmpoffset)*fabs(f));
+        r = g = 255* (tmpoffset*(1 - fabs(f)));
+      }
+      else {
+        b = 255 * (tmpoffset*(1 - fabs(f)));
+        r = g = 255 * (tmpoffset + 0.95*(1-tmpoffset)*fabs(f));
+      }
+    }
+  }
+
+  if (mode==BORDER)  /* AMD 5/27/95 */
+  {
+    r = 255;
+    g = 255;
+    b = 0;
+  }
+
+  if (mode==MARKED)
+  {
+    r = 255;
+    g = 255;
+    b = 255;
+  }
+
+  r = (r<0)?0:(r>255)?255:r;
+  g = (g<0)?0:(g>255)?255:g;
+  b = (b<0)?0:(b>255)?255:b;
+  glColor3ub(r,g,b);
+}
+#endif
