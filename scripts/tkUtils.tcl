@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.12 2004/10/20 21:07:16 kteich Exp $
+# $Id: tkUtils.tcl,v 1.13 2005/04/07 16:40:08 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -11,6 +11,7 @@
 
 set kLabelFont -*-lucida-bold-r-normal-*-14-*-*-*-*-*-*-*
 set kNormalFont -*-lucida-medium-r-normal-*-12-*-*-*-*-*-*-*
+set kSmallFont -*-lucida-medium-r-normal-*-9-*-*-*-*-*-*-*
 
 proc tkuLabelFont {} {
     global kLabelFont
@@ -20,6 +21,11 @@ proc tkuLabelFont {} {
 proc tkuNormalFont {} {
     global kNormalFont
     return $kNormalFont
+}
+
+proc tkuSmallFont {} {
+    global kSmallFont
+    return $kSmallFont
 }
 
 proc tkuBalloonWait {} {

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/12/30 19:58:07 $
-// Revision       : $Revision: 1.111 $
+// Revision Date  : $Date: 2005/04/07 16:39:34 $
+// Revision       : $Revision: 1.112 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -7370,8 +7370,8 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   float                 fVolumeValue       = 0;
   HPtL_tHeadPointRef    pHeadPoint         = NULL;
   FunV_tErr             eFunctional        = FunV_tErr_NoError;
-  xVoxel                funcIdx;
-  xVoxel                funcRAS;
+  xVoxel                funcIdx            = { 0, 0, 0 };
+  xVoxel                funcRAS            = { 0, 0, 0 };
   FunV_tFunctionalValue funcValue          = 0;
   tBoolean              bFuncSelection     = FALSE;
   int                   nSegLabelIndex     = 0;
