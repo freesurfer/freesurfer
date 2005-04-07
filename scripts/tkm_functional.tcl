@@ -1,6 +1,6 @@
-#! /usr/bin/tixwish
+#! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.24 2004/12/19 02:21:05 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.25 2005/04/07 16:47:28 kteich Exp $
 
 package require BLT;
 
@@ -406,17 +406,33 @@ proc Overlay_DoConfigDlog {} {
 	    -options { label.padX 5 }
 	
 	set fwLocationSub    [$lfwLocation subwidget frame]
-	set fwTimePoint      $fwLocationSub.fwTimePoint
+	set fwTimePointTop   $fwLocationSub.fwTimePointTop
+	set fwTimePoint      $fwTimePointTop.fwTimePoint
+	set fwLoopTimePoint  $fwTimePointTop.fwLoopTimePoint
+	set fwStopTimePoint  $fwTimePointTop.fwStopTimePoint
 	set fwCondition      $fwLocationSub.fwCondition
 	
 	set nMaxCondition [expr $gnOverlayNumConditions - 1]
 	set nMaxTimePoint [expr $gnOverlayNumTimePoints - 1]
 	
+	frame $fwTimePointTop
+
 	tkm_MakeEntryWithIncDecButtons \
 	    $fwTimePoint "Time Point (0-$nMaxTimePoint)" \
 	    gnTimePoint \
 	    {} 1
 	
+	button $fwLoopTimePoint \
+	    -text "|>" \
+	    -command PlayTimePoint
+
+	button $fwStopTimePoint \
+	    -text "\[\]" \
+	    -command StopTimePoint
+
+	pack $fwTimePoint $fwLoopTimePoint $fwStopTimePoint \
+	    -side left
+
 	tkm_MakeEntryWithIncDecButtons \
 	    $fwCondition "Condition (0-$nMaxCondition)" \
 	    gnCondition \
@@ -522,7 +538,7 @@ proc Overlay_DoConfigDlog {} {
 	    { Overlay_RestoreConfiguration; }
 	
 	
-	pack $lfwLocation $fwTimePoint $fwCondition \
+	pack $lfwLocation $fwTimePointTop $fwCondition \
 	    $lfwDisplay $fwOptions $fwSampleType \
 	    $lfwThreshold $lfwAlpha $fwIgnoreThresh \
 	    $fwThresholdSliders $fwThresholdSlope $fwFDR $fwAlpha \
@@ -820,6 +836,37 @@ proc TimeCourse_SetConfiguration {} {
     TimeCourse_SetDisplayFlag $FunV_tDisplayFlag_TC_OffsetValues $gbTimeCourseOffset
 #    TimeCourse_SetDisplayFlag $FunV_tDisplayFlag_TC_PreStimOffset $gbPreStimOffset
 }
+
+set gTimePointPlaying 0
+proc PlayTimePoint {} {
+    global gTimePointPlaying
+    set gTimePointPlaying 1
+
+    LoopTimePoint
+}
+
+proc LoopTimePoint {} {
+    global gTimePointPlaying
+    global gnTimePoint gnOverlayNumTimePoints
+
+    if { $gTimePointPlaying } {
+
+	incr gnTimePoint
+	if { $gnTimePoint >= $gnOverlayNumTimePoints } {
+	    set gnTimePoint 0
+	}
+	Overlay_SetConfiguration
+	
+	after 1000 { LoopTimePoint }
+    }
+}
+
+proc StopTimePoint {} {
+    global gTimePointPlaying
+    set gTimePointPlaying 0
+}
+
+
 # =======================================================================
 
 

@@ -1,6 +1,6 @@
-#! /usr/bin/tixwish
+#! /usr/pubsw/bin/tixwish
 
-# $Id: fsgdfPlot.tcl,v 1.11 2004/10/04 01:51:35 kteich Exp $
+# $Id: fsgdfPlot.tcl,v 1.12 2005/04/07 16:47:27 kteich Exp $
 
 package require Tix;
 package require BLT;

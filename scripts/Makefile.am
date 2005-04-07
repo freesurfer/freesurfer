@@ -174,30 +174,19 @@ csurf: csurf.in
 	sed < $< $(SEDFLAGS) > $@ 
 	chmod +x $@
 
-
-SEDFLAGS2 = -e 's,xFREESURFER_HOMEx,$(prefix),g' \
-	    -e 's,xMNI_BINDIRx,$(mni_bindir),g' \
-	    -e 's,xTCL_LIBDIRx,$(tcl_libdir),g'
-
-freesurferenv.csh: freesurferenv.xxx
-	sed < $< $(SEDFLAGS2) > $@
-	chmod +x $@
-
-foodir=$(prefix)
-foo_SCRIPTS=freesurferenv.csh
-
 # work on tixwish files
-fsgdfPlot.tcl : fsgdfPlot.xxx
-	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
+# Why was he doing this???
+#fsgdfPlot.tcl : fsgdfPlot.xxx
+#	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
 
-tkmedit.tcl : tkmedit.xxx
-	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
+#tkmedit.tcl : tkmedit.xxx
+#	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
 
-tkm_functional.tcl: tkm_functional.xxx
-	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
+#tkm_functional.tcl: tkm_functional.xxx
+#	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
 
-tkm_wrappers.tcl: tkm_wrappers.xxx
-	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
+#tkm_wrappers.tcl: tkm_wrappers.xxx
+#	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
 
-tksurfer.tcl: tksurfer.xxx
-	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
+#tksurfer.tcl: tksurfer.xxx
+#	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
