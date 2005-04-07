@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.15 2005/03/04 22:06:45 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.16 2005/04/07 18:53:19 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -64,7 +64,7 @@ int MDHloadEchoChan(char *measout, int ChanId, int EchoId, int nReps,
 		    int nSlices, int nEchoes, int nRows, int nChans,
 		    int nCols, int nPCNs, int FasterDim, 
 		    MRI *mriReal, MRI *mriImag);
-int MDHdumpADC(char *measoutpath, char *outfile);
+int MDHdumpADC(char *measoutpath, char *outfile, int binary);
 
 /*--------------------------------------------------------------------*/
 char *Progname = NULL;
@@ -88,6 +88,7 @@ float Thickness, DistFact=0.0, dcSag, dcCor, dcTra, TR=0.0, TE[500];
 float PhaseEncodeFOV, ReadoutFOV, FlipAngle;
 int Strict = 1;
 int nthpcn;
+int BinaryADCDump=0;
 
 /*------------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -111,7 +112,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.15 2005/03/04 22:06:45 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.16 2005/04/07 18:53:19 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -152,7 +153,7 @@ int main(int argc, char **argv)
   }
 
   if(adcfile){
-    MDHdumpADC(measoutpath,adcfile);
+    MDHdumpADC(measoutpath,adcfile,BinaryADCDump);
     exit(0);
   }
 
@@ -476,6 +477,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--info"))    infoonly = 1;
     else if (!strcasecmp(option, "--dump"))    dumpmdh = 1;
+    else if (!strcasecmp(option, "--binary"))  BinaryADCDump = 1;
     else if (!strcasecmp(option, "--adcstats")) adcstats = 1;
     //else if (!strcasecmp(option, "--rev"))     rev = 1;
 
@@ -563,6 +565,7 @@ static void print_usage(void)
   printf("\n");
   printf("   --dump : dump info about each adc (but not adc) \n");
   printf("   --dumpadc file : dump adc into text file\n");
+  printf("   --binary : dump adc into binary file\n");
   printf("   --adcstats : dump min, max, and avg over all adcs \n");
   printf("\n");
   printf("   --help : a short story about a Spanish boy named Manual\n");
@@ -1597,7 +1600,7 @@ int MDHdump(char *measoutpath)
 /*--------------------------------------------------------------
   MDHdumpADC - dump the ADC contents of the given meas.out to outfile
   ---------------------------------------------------------------*/
-int MDHdumpADC(char *measoutpath, char *outfile)
+int MDHdumpADC(char *measoutpath, char *outfile, int binary)
 {
   FILE *fp, *outfp;
   unsigned long offset;
@@ -1618,7 +1621,10 @@ int MDHdumpADC(char *measoutpath, char *outfile)
     if(feof(fp)) break;
     fread(adc,sizeof(float), 2*mdh->Ncols, fp);
     for(m=0; m < 2*mdh->Ncols; m++){
-      fprintf(outfp,"%20.40f\n",adc[m]);
+      if(! binary)
+	fprintf(outfp,"%20.40f\n",adc[m]);
+      else
+	fwrite(&adc[m],sizeof(float),1,outfp);
     }
   }
   fclose(fp);
