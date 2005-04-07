@@ -795,6 +795,8 @@ MRIcompactSegments(MRI_SEGMENTATION *mriseg)
   MRI_SEGMENT *newseg;
   int         s, s2 ;
 
+	if (mriseg->nsegments == 0)
+		return(NO_ERROR) ;
   if (DIAG_VERBOSE_ON)
     fprintf(stderr, "compacting segments...\n") ;
 
@@ -814,11 +816,11 @@ MRIcompactSegments(MRI_SEGMENTATION *mriseg)
       // if within the boundary
       if (s2 < mriseg->max_segments)
       {
-	// assin src
+				// assin src
         src_segment = &mriseg->segments[s2] ;
         if (dst_segment->voxels)
           free(dst_segment->voxels) ;
-	// copy src to dst
+				// copy src to dst
         dst_segment->area = src_segment->area ;
         dst_segment->nvoxels = src_segment->nvoxels ;
         dst_segment->voxels = src_segment->voxels ;
@@ -826,7 +828,7 @@ MRIcompactSegments(MRI_SEGMENTATION *mriseg)
         // make the src to have nvoxels = 0
         src_segment->nvoxels = src_segment->max_voxels = 0 ;
         src_segment->area = 0.0 ; src_segment->voxels = NULL ;
-	// now we moved the non-zero segment to the front 
+				// now we moved the non-zero segment to the front 
       }
     }
   }
