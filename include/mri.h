@@ -377,6 +377,7 @@ MRI   *MRIintersect(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIcomplement(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 MRI   *MRIand(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh) ;
+MRI   *MRInot(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 
 /* filtering operations */
