@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/03/24 20:28:57 $
-// Revision       : $Revision: 1.239 $
-char *VERSION = "$Revision: 1.239 $";
+// Revision Date  : $Date: 2005/04/07 19:30:38 $
+// Revision       : $Revision: 1.240 $
+char *VERSION = "$Revision: 1.240 $";
 
 #define TCL
 #define TKMEDIT 
@@ -876,9 +876,7 @@ Tcl_Interp * GetTclInterp ();
 void SendTCLCommand ( char * inCommand );
 
 
-#define tkm_knMaxNumCachedCommands 500
-char gCachedTclCommands[tkm_knMaxNumCachedCommands][tkm_knPathLen];
-int gNumCachedCommands = 0;
+xGrowableArrayRef gCachedTclCommands = NULL;
 void SendCachedTclCommands ();
 void PrintCachedTclErrorDlogsToShell ();
 /* the tcl interpreter */
@@ -1076,7 +1074,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.239 2005/03/24 20:28:57 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.240 2005/04/07 19:30:38 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5206,7 +5204,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.239 2005/03/24 20:28:57 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.240 2005/04/07 19:30:38 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7386,6 +7384,8 @@ void SendTCLCommand ( char * inCommand ) {
   
   int theErr;
   Tcl_Interp * theInterp;
+  char sTclCmd[tkm_knTclCmdLen];
+  xGArr_tErr eList = xGArr_tErr_NoErr;
   
   // get the interp and send the command.
   theInterp = GetTclInterp ();
@@ -7402,11 +7402,20 @@ void SendTCLCommand ( char * inCommand ) {
     }
     
   } else {
+
+    if( NULL == gCachedTclCommands ) {
+      eList = xGArr_New( &gCachedTclCommands, sizeof( sTclCmd ), 20 );
+      if( xGArr_tErr_NoErr != eList ) {
+	DebugPrint( ( "Couldn't allocate list: couldn't cache %s\n", 
+		      inCommand ) );
+	return;
+      }
+    }
     
     /* cache the command so we can send it later */
-    if( gNumCachedCommands < tkm_knMaxNumCachedCommands ) {
-      strcpy( gCachedTclCommands[gNumCachedCommands++], inCommand );
-    } else {
+    strcpy( sTclCmd, inCommand );
+    eList = xGArr_Add( gCachedTclCommands, sTclCmd );
+    if( xGArr_tErr_NoErr != eList ) {
       DebugPrint( ( "Couldn't cache %s\n", inCommand ) );
     }
   }
@@ -7414,12 +7423,33 @@ void SendTCLCommand ( char * inCommand ) {
 
 void SendCachedTclCommands () {
   
-  int nCommand = 0;
-  
+  char sTclCmd[tkm_knTclCmdLen];
+  xGArr_tErr eList = xGArr_tErr_NoErr;
+
+  if( NULL == gCachedTclCommands )
+    return;
+
   /* send all our cached commands */
-  for( nCommand = 0; nCommand < gNumCachedCommands; nCommand++ ) {
-    SendTCLCommand( gCachedTclCommands[nCommand] );
+  eList = xGArr_ResetIterator( gCachedTclCommands );
+  if( xGArr_tErr_NoErr != eList )
+    goto error;
+  while( (eList = xGArr_NextItem( gCachedTclCommands, (void*)&sTclCmd ))
+	 == xGArr_tErr_NoErr ) {
+
+    SendTCLCommand( sTclCmd );
   }
+    
+  goto cleanup;
+ error:
+  
+  /* print error message */
+  if ( xGArr_tErr_NoErr != eList ) {
+    DebugPrint( ("Error %d in SendTCLCommand: %s\n",
+		 eList, xGArr_GetErrorString(eList) ) );
+  }
+ cleanup:
+
+  xGArr_Delete( &gCachedTclCommands );
 }
 
 
@@ -9059,7 +9089,7 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
   mriVolumeRef newChangedVolume             = NULL;
   char         sError[tkm_knErrStringLen]   = "";
 
-  DebugEnterFunction( ("LoadSegmentationVolume( iVolume=%d, iFromVolume=%d, "
+  DebugEnterFunction( ("NewSegmentationVolume( iVolume=%d, iFromVolume=%d, "
 		       "isColorFileName=%s )", (int)iVolume,
 		       (int)iFromVolume, isColorFileName) );
   
@@ -12186,25 +12216,31 @@ void PrintCachedTclErrorDlogsToShell () {
   
 #ifndef Solaris
 #ifndef IRIX
-  int nCommand = 0;
   char sCommand[tkm_knTclCmdLen] = "";
   char* pTitle = NULL;
   char* pWhile = NULL;
   char* pMessage = NULL;
   char* pTmp = NULL;
-  
+  char sTclCmd[tkm_knTclCmdLen];
+  xGArr_tErr eList = xGArr_tErr_NoErr;
+
   
   /* send all our cached commands */
-  for( nCommand = 0; nCommand < gNumCachedCommands; nCommand++ ) {
+  /* send all our cached commands */
+  eList = xGArr_ResetIterator( gCachedTclCommands );
+  if( xGArr_tErr_NoErr != eList )
+    goto error;
+  while( (eList = xGArr_NextItem( gCachedTclCommands, (void*)&sTclCmd ))
+	 == xGArr_tErr_NoErr ) {
     
     /* if this is an error command */
-    if( strstr( gCachedTclCommands[nCommand], 
-    kTclCommands[tkm_tTclCommand_ErrorDlog] ) != NULL ) {
+    if( strstr( sTclCmd, 
+		kTclCommands[tkm_tTclCommand_ErrorDlog] ) != NULL ) {
       
       /* get the command, go to the first space, copy that into a
 	 string, and print it to the shell. we parse out the parts of
 	 the error message command string to make it look pretty. */
-      strcpy( sCommand, gCachedTclCommands[nCommand] );
+      strcpy( sCommand, sTclCmd );
 
       pTitle = strchr( sCommand, (int)'\"' );
       if( NULL != pTitle ) {
@@ -12253,6 +12289,16 @@ void PrintCachedTclErrorDlogsToShell () {
 
     }
   }
+
+  goto cleanup;
+ error:
+  
+  /* print error message */
+  if ( xGArr_tErr_NoErr != eList ) {
+    DebugPrint( ("Error %d in PrintCachedTclErrorDlogsToShell: %s\n",
+		 eList, xGArr_GetErrorString(eList) ) );
+  }
+ cleanup:
 #endif
 #endif
 }
