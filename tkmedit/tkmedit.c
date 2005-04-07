@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/04/07 19:30:38 $
-// Revision       : $Revision: 1.240 $
-char *VERSION = "$Revision: 1.240 $";
+// Revision Date  : $Date: 2005/04/07 19:35:52 $
+// Revision       : $Revision: 1.241 $
+char *VERSION = "$Revision: 1.241 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1074,7 +1074,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.240 2005/04/07 19:30:38 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.241 2005/04/07 19:35:52 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5204,7 +5204,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.240 2005/04/07 19:30:38 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.241 2005/04/07 19:35:52 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6133,8 +6133,8 @@ static void Prompt(interp, partial)
   char *promptCmd;
   int code;
   
-  promptCmd = Tcl_GetVar(interp,
-       partial ? "tcl_prompt2" : "tcl_prompt1", TCL_GLOBAL_ONLY);
+  promptCmd = (char*) Tcl_GetVar(interp,
+		  partial ? "tcl_prompt2" : "tcl_prompt1", TCL_GLOBAL_ONLY);
   if (promptCmd == NULL) {
   defaultPrompt:
     if (!partial)
@@ -12299,6 +12299,8 @@ void PrintCachedTclErrorDlogsToShell () {
 		 eList, xGArr_GetErrorString(eList) ) );
   }
  cleanup:
+
+  return;
 #endif
 #endif
 }
