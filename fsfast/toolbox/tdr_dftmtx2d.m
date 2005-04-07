@@ -1,4 +1,4 @@
-function F = tdr_dftmtx2d(Nrr,Nrc,Nkr,Nkc)
+function [F, rx1d, ry1d, kx1d, ky1d] = tdr_dftmtx2d(Nrr,Nrc,Nkr,Nkc)
 % F = tdr_dftmtx2d(Nrr,Nrc,<Nkr>,<Nkc>)
 % 
 % F is Nv-by-Nv matrix
