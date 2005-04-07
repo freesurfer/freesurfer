@@ -93,7 +93,7 @@ case "${target}" in
  OS=Linux
  OS_CPPFLAGS="-Wall -fwritable-strings -m64"
  OS_LDFLAGS="-all-static"
- LDFLAGS="-L/usr/lib64 $LDFLAGSA"
+ LDFLAGS="-L/usr/X11R6/lib64 -L/usr/lib64 $LDFLAGSA"
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
@@ -103,7 +103,7 @@ case "${target}" in
  OS=Linux
  OS_CPPFLAGS="-Wall -fwritable-strings"
  OS_LDFLAGS="-all-static"
- LDFLAGS="-L/usr/lib64 $LDFLAGSA"
+ LDFLAGS="-L/usr/X11R6/lib64 -L/usr/lib64 $LDFLAGSA"
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
