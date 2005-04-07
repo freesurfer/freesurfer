@@ -1,0 +1,16 @@
+#!/bin/sh
+# NEEDED TO OVERRIDE THE FSL gnuplot
+if [ -x /usr/local/bin/gnuplot ] ; then
+   exec /usr/local/bin/gnuplot "$@"
+elif [ -x /usr/bin/gnuplot ] ; then
+   exec /usr/bin/gnuplot "$@"
+elif [ -x /bin/gnuplot ] ; then
+   exec /bin/gnuplot "$@"
+elif [ -x /usr/bin/X11/gnuplot ] ; then
+   exec /usr/bin/X11/gnuplot "$@"
+else
+   exec gnuplot "$@"
+fi
+
+exit 0
+
