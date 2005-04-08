@@ -3,7 +3,7 @@
 # to the icosahedron.
 #
 
-set VERSION = '$Id: sphsmooth-sess,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set VERSION = '$Id: sphsmooth-sess,v 1.2 2005/04/08 20:54:26 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -13,6 +13,7 @@ set insphdir  = sph;
 set outsphdir = ();
 set smoothsteps = ();
 set PrintHelp = 0;
+set nolog = 0;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -32,11 +33,24 @@ if($n != 0) then
   exit 0;
 endif
 
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  echo "ERROR: finding sessions" 
+  echo "       $SessList" 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
 ##### Create a log file ######
 set logdir = `pwd`/log;
 mkdir -p $logdir
-if(! -e $logdir | ! -w $logdir) then
-  echo "WARNING: could not create $logdir"
+if(! -e $logdir | ! -w $logdir | $nolog) then
+  if(! $nolog) echo "WARNING: could not create $logdir"
   set LF = /dev/null
 else
   set LF = $logdir/sphsmooth-sess.log
@@ -55,19 +69,6 @@ echo $inputargs  >> $LF
 uname -a      >> $LF
 date          >> $LF
 which isxavg-fe >> $LF
-
-set SessList = `getsesspath $inputargs`;
-if($status || $#SessList == 0) then
-  echo "ERROR: finding sessions" |& tee -a $LF
-  echo "       $SessList" |& tee -a $LF
-  exit 1;
-endif
-
-goto parse_args;
-parse_args_return:
-
-goto check_params;
-check_params_return:
 
 ## Get functional subdirectory from the info file ##
 set infofile = $analysis/analysis.info
@@ -219,6 +220,10 @@ while( $#argv != 0 )
       umask $argv[1]; shift;
       breaksw
 
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
     case "-verbose":
       set verbose = 1;
       breaksw
@@ -262,32 +267,32 @@ check_params:
   set errs = 0;
 
   if($#SessList == 0) then
-     echo "ERROR: no sessions specified"|& tee -a $LF 
+     echo "ERROR: no sessions specified"
      set errs = 1;
   endif
 
   if ($#analysis == 0) then
-     echo "ERROR: no analysis specified"|& tee -a $LF 
+     echo "ERROR: no analysis specified"
      set errs = 1;
   endif
 
   if ($#insphdir == 0) then
-     echo "ERROR: must specify an input sph directory name "|& tee -a $LF 
+     echo "ERROR: must specify an input sph directory name "
      set errs = 1;
   endif
 
   if ($#outsphdir == 0) then
-     echo "ERROR: must specify an output sph directory name "|& tee -a $LF 
+     echo "ERROR: must specify an output sph directory name "
      set errs = 1;
   endif
 
   if($#smoothsteps == 0) then
-     echo "ERROR: must specify the amount of smoothing"|& tee -a $LF 
+     echo "ERROR: must specify the amount of smoothing"
      set errs = 1;
   endif
 
   if($smoothsteps < 1) then
-    echo "ERROR: must smoothing steps = $smoothsteps, must be >= 1"|& tee -a $LF 
+    echo "ERROR: must smoothing steps = $smoothsteps, must be >= 1"
     set errs = 1;
   endif
 
@@ -324,6 +329,7 @@ usage_exit:
   echo "   -df srchdirfile ..."
   echo "   -s  sessid      ..."
   echo "   -d  srchdir     ..."
+  echo "   -nolog         : do not create a log file"
   echo "   -umask umask   : set unix file permission mask"
   echo "   -scriptonly    : don't run, just generate a script"
   echo "   -version       : print version and exit"
