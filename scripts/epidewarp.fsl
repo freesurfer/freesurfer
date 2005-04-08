@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.13 2005/03/30 22:42:02 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.14 2005/04/08 22:25:54 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -552,7 +552,7 @@ FreeSurfer not needed).
 
 For the stock Siemens field map, two field maps are required, one to
 get the phase and another to get the magnitude (this will change with
-new version so the Siemens scanner software). The volume that is
+new version of the Siemens scanner software). The volume that is
 stored as the phase is actually the phase difference and is scaled
 between 0 to 4095 for -pi to pi. The magnitude volumes for both TEs
 are saved, but only one is needed.
@@ -672,12 +672,12 @@ Prints copious amounts to the screen.
 
 SUGGESTED FIELD MAP PARAMETERS
 
-These field map parameters are begin used by the Biomedical
+These field map parameters are being used by the Biomedical
 Informatics Research Network (www.nbirn.net). For Siemens, we
 recommend using the stock sequence called gre_field_mapping.  The
 DeltaTE might differ slightly on individual systems from the values
-listed below depending upon the exact strength (eg, 2.89T instead of
-exactly 3T).
+listed below depending upon the exact field strength (eg, 2.89T
+instead of exactly 3T).
 
 TR = 500ms (1000ms with phased-array)
 TE1: Minimum possible
