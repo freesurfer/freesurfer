@@ -4,13 +4,13 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-std-env
 #
-# $Id: nmr-std-env,v 1.5 2005/03/28 21:57:44 kteich Exp $
+# $Id: nmr-std-env,v 1.6 2005/04/08 21:58:15 kteich Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
 #############################################################################
 
-set NSE_VERSION = '$Id: nmr-std-env,v 1.5 2005/03/28 21:57:44 kteich Exp $';
+set NSE_VERSION = '$Id: nmr-std-env,v 1.6 2005/04/08 21:58:15 kteich Exp $';
 echo $NSE_VERSION
 
 ## Turn on verboseness if desired ##
@@ -19,7 +19,7 @@ if($?NMR_STD_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-std-env,v 1.5 2005/03/28 21:57:44 kteich Exp $';
+set VERSION = '$Id: nmr-std-env,v 1.6 2005/04/08 21:58:15 kteich Exp $';
 
 
 
@@ -81,8 +81,8 @@ if ( "${path}" !~ */usr/pubsw/bin* ) then
      set path = ( /usr/pubsw/bin $path )
 endif
 
-if ( "${path}" !~ */usr/pubsw/packages/afni/current/bin* ) then
-     set path = ( /usr/pubsw/packages/afni/current/bin $path )
+if ( "${path}" !~ */usr/pubsw/packages/AFNI/current/bin* ) then
+     set path = ( /usr/pubsw/packages/AFNI/current/bin $path )
 endif
 
 
