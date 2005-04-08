@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.84 2005/04/07 16:47:28 kteich Exp $
+# $Id: tkmedit.tcl,v 1.85 2005/04/08 18:27:47 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -75,7 +75,9 @@ set glDisplayFlag { \
   flag_UndoVolume \
   flag_Axes \
   flag_MaxIntProj \
-  flag_HeadPoints }
+  flag_HeadPoints \ 
+  flag_VerboseGCADump
+}
 set nFlagIndex 1
 foreach flag $glDisplayFlag {
     set gnFlagIndex($flag) $nFlagIndex
@@ -4153,12 +4155,17 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { command
 		"Save Time Course Graph to Postscript File.."
 		{ DoFileDlog SaveTimeCourseToPS }
-		tMenuGroup_TimeCourseOptions } 
+		tMenuGroup_TimeCourseOptions }
 	}}
 	{ cascade "Segmentation" {
 	    { command
 		"Recompute Segmentation"
 		DoRecomputeSegmentation
+		tMenuGroup_GCAOptions }
+	    { check
+		"Verbose GCA Display"
+		"SendDisplayFlagValue flag_VerboseGCADump"
+		gbDisplayFlag(flag_VerboseGCADump)
 		tMenuGroup_GCAOptions }
 	}}
 	{ cascade "Head Points" {
@@ -4173,7 +4180,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { command
 		"Register Head Points..."
 		DoRegisterHeadPtsDlog
-		tMenuGroup_HeadPoints } 
+		tMenuGroup_HeadPoints }
 	}}
 	{ command
 	    "Save RGB..."

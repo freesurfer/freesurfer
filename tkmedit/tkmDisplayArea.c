@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/04/07 16:39:34 $
-// Revision       : $Revision: 1.112 $
+// Revision Date  : $Date: 2005/04/08 18:27:34 $
+// Revision       : $Revision: 1.113 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -1833,6 +1833,11 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
     if( this->mabDisplayFlags[iWhichFlag] != bNewValue )
       this->mbSliceChanged = TRUE;
     
+    break;
+
+  case DspA_tDisplayFlag_VerboseGCADump:
+    /* Just set it, don't need to redraw as it only affects text
+       output. */
     break;
     
   default:
@@ -7714,7 +7719,8 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       DspA_tDisplaySet_Cursor == iSet ) {
     GCAdump( this->mGCAVolume, 
 	     this->mpVolume[tkm_tVolumeType_Main]->mpMriValues,
-	     xVoxl_ExpandInt( iAnaIdx ), this->mGCATransform, stdout, 0 );
+	     xVoxl_ExpandInt( iAnaIdx ), this->mGCATransform, stdout, 
+	     this->mabDisplayFlags[DspA_tDisplayFlag_VerboseGCADump] );
   }
   
   if( NULL != this->mVLI1 &&

@@ -72,6 +72,7 @@ typedef enum {
   DspA_tDisplayFlag_Axes,
   DspA_tDisplayFlag_MaxIntProj,
   DspA_tDisplayFlag_HeadPoints,
+  DspA_tDisplayFlag_VerboseGCADump,
   DspA_knNumDisplayFlags
 } DspA_tDisplayFlag;
 
