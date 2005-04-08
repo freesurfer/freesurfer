@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/04/04 00:45:41 $
-// Revision       : $Revision: 1.341 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2005/04/08 20:39:34 $
+// Revision       : $Revision: 1.342 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -33105,8 +33105,6 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 			MRISwriteCurvature(mris_corrected,fname);
 		}
 	}
-  fprintf(stdout, "final surface representation: %d vertices, %d triangles\n",
-          mris->nvertices, mris->nfaces) ;
   free(face_trans) ; 
 	free(vertex_trans) ;
 
@@ -34175,6 +34173,245 @@ triangleNeighbors(MRI_SURFACE *mris, int fno1, int fno2)
   return(num) ;
 }
 #endif
+
+
+#define NOT_PROCESSED_YET 1000
+#define NPY NOT_PROCESSED_YET
+
+//////////////////////////////////////////////////////////////
+// Find inside and outside voxels of a surface mris
+//////////////////////////////////////////////////////////////
+MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution, float distance_from_surface)
+{
+  int k,i,j,p,width,height,depth;
+  float x0,x1,x2,y0,y1,y2,z0,z1,z2;
+  float x,y,z;
+  
+	int fno,fn1;
+	int delta;
+	FACE *face;
+	int imin,imax,jmin,jmax,kmin,kmax;
+	float distance,sign;
+	float n_f[3],n_e0[3],n_e1[3],n_e2[3],n_v0[3],n_v1[3],n_v2[3];
+	float vec[3],vec0[3],vec1[3],vec2[3],e0[3],e1[3],e2[3],n0[3],n1[3],n2[3];
+	float val,valu,val0,val1,val2;
+	MRI *mri_distance;
+
+	/* resolution*/
+	if( resolution < 1.0f ) resolution=1.0f;
+	/* distance */
+	if( distance_from_surface < 2.0f ) distance_from_surface=2.0f;
+	/* look at approximately +/- dist mm */
+	delta=(int)(distance_from_surface/resolution); 
+	if(delta < 2 ) delta=2;
+
+
+	//find the region of interest in this coordinate system
+	
+
+  /* allocate the volume */
+  width  = ceil(resolution*(region->dx)) ; 
+  height = ceil(resolution*(region->dy)) ;
+  depth  = ceil(resolution*(region->dz)) ;
+  mri_distance=MRIalloc(width,height,depth,MRI_FLOAT);
+
+	fprintf(stdout,"mri volume size : %d by %d by %d (resolution = %d)\n",width,height,depth,(int)resolution);
+
+  mri_distance->xstart=region->x; 
+  mri_distance->xsize=resolution;
+
+  mri_distance->ystart=region->y; 
+  mri_distance->ysize=resolution;
+
+  mri_distance->zstart=region->z; 
+  mri_distance->zsize=resolution;
+
+	/* optimize by listing the concerned faces */
+
+	for(k=0;k<mri_distance->depth;k++)
+		for(j=0;j<mri_distance->height;j++)
+			for(i=0;i<mri_distance->width;i++){
+				MRIFvox(mri_distance,i,j,k)=NPY;
+			}
+
+	for ( p = 0 ; p < mris->nfaces ; p++)
+		computeDefectFaceNormal(mris,&mris->faces[p]);
+	
+	/* find the distance to each surface voxels */
+	for ( p = 0 ; p < mris->nfaces ; p++){
+		fno=p;//tp->faces[p];
+		face=&mris->faces[fno];
+
+		// calculate three vertices
+    x0 =mris->vertices[face->v[0]].x;    
+    y0 =mris->vertices[face->v[0]].y;    
+    z0 =mris->vertices[face->v[0]].z;    
+    x1 =mris->vertices[face->v[1]].x;    
+    y1 =mris->vertices[face->v[1]].y;    
+    z1 =mris->vertices[face->v[1]].z;    
+    x2 =mris->vertices[face->v[2]].x;    
+    y2 =mris->vertices[face->v[2]].y;    
+    z2 =mris->vertices[face->v[2]].z;
+
+		/* find the bounding box */
+		imin=iVOL(mri_distance,MIN3(x0,x1,x2))-delta;
+		imax=iVOL(mri_distance,MAX3(x0,x1,x2))+delta;
+		
+		jmin=jVOL(mri_distance,MIN3(y0,y1,y2))-delta;
+		jmax=jVOL(mri_distance,MAX3(y0,y1,y2))+delta;
+		
+		kmin=kVOL(mri_distance,MIN3(z0,z1,z2))-delta;
+		kmax=kVOL(mri_distance,MAX3(z0,z1,z2))+delta;
+
+#if 0
+		/* we don't count faces that are outside the volume - should not change the sign */ //TO BE CHECKED it some defects are close from each other!		
+		if(imin > mri_distance->width-1 || jmin > mri_distance->height-1 || kmin > mri_distance->depth-1 || imax < 0 || jmax < 0 || kmax < 0) continue;
+#endif
+
+		imin=MAX(imin,0);
+		imax=MIN(imax,mri_distance->width-1);
+
+		jmin=MAX(jmin,0);
+		jmax=MIN(jmax,mri_distance->height-1);
+		
+		kmin=MAX(kmin,0);
+		kmax=MIN(kmax,mri_distance->depth-1);
+
+		/* generating the pseudo-normals for edges and vertices */
+		n_f[0]=face->nx;n_f[1]=face->ny;n_f[2]=face->nz;
+		
+		/* edge0: x0 <--> x1 */
+		e0[0]=x1-x0;e0[1]=y1-y0;e0[2]=z1-z0;
+		F_CROSS(n_f,e0,n0);
+		fn1=findOtherEdgeFace(mris,fno,face->v[0],face->v[1]);
+		n_e0[0]=face->nx+mris->faces[fn1].nx;
+		n_e0[1]=face->ny+mris->faces[fn1].ny;
+		n_e0[2]=face->nz+mris->faces[fn1].nz;
+
+		/* edge1: x1 <--> x2 */
+		e1[0]=x2-x1;e1[1]=y2-y1;e1[2]=z2-z1;
+		F_CROSS(n_f,e1,n1);
+		fn1=findOtherEdgeFace(mris,fno,face->v[1],face->v[2]);
+		n_e1[0]=face->nx+mris->faces[fn1].nx;
+		n_e1[1]=face->ny+mris->faces[fn1].ny;
+		n_e1[2]=face->nz+mris->faces[fn1].nz;
+
+		/* edge2: x2 <--> x0 */
+		e2[0]=x0-x2;e2[1]=y0-y2;e2[2]=z0-z2;
+		F_CROSS(n_f,e2,n2);
+		fn1=findOtherEdgeFace(mris,fno,face->v[2],face->v[0]);
+		n_e2[0]=face->nx+mris->faces[fn1].nx;
+		n_e2[1]=face->ny+mris->faces[fn1].ny;
+		n_e2[2]=face->nz+mris->faces[fn1].nz;
+		
+		/* vertex pseudo-normals */
+		computeVertexPseudoNormal(mris,face->v[0],n_v0);
+		computeVertexPseudoNormal(mris,face->v[1],n_v1);
+		computeVertexPseudoNormal(mris,face->v[2],n_v2);
+		
+		/* finding distance to surface */
+#if 1
+		for( k = kmin ; k <= kmax ;  k++ )
+			for ( j = jmin ; j <= jmax ; j++ )
+				for ( i = imin ; i <= imax ; i++ )
+#else
+		for( k = 0 ; k <= mri_distance->depth-1 ;  k++ )
+			for ( j = 0 ; j <=  mri_distance->height-1; j++ )
+				for ( i = 0 ; i <=  mri_distance->width-1; i++ )		
+#endif
+				{
+					x=xSURF(mri_distance,i);
+					y=ySURF(mri_distance,j);
+					z=zSURF(mri_distance,k);
+				 
+					vec0[0]=x-x0;vec0[1]=y-y0;vec0[2]=z-z0;
+					vec1[0]=x-x1;vec1[1]=y-y1;vec1[2]=z-z1;
+					vec2[0]=x-x2;vec2[1]=y-y2;vec2[2]=z-z2;
+					vec[0]=(vec0[0]+vec1[0]+vec2[0])/3.0;
+					vec[1]=(vec0[1]+vec1[1]+vec2[1])/3.0;
+					vec[2]=(vec0[2]+vec1[2]+vec2[2])/3.0;
+				 
+					/* compute distance to face */
+					/* where is the point */
+					val0=F_DOT(vec0,n0);
+					val1=F_DOT(vec1,n1);
+					val2=F_DOT(vec2,n2);
+				 
+					if((val0>=0) && (val1>=0) && (val2>=0)){ /* the projection of the vertex is inside */
+						val=F_DOT(n_f,vec);
+						valu=1;
+						sign=val;
+						distance=val; /* n_f is already normalized */
+					}else{
+						distance=NPY;
+						sign=0;
+						valu=0;
+
+						if(val0<=0){ /* compute distance to edge0 */
+							val=F_DOT(vec0,e0);
+							if(val<0){ /* closer to x0 */
+								sign=F_DOT(n_v0,vec0);valu=2;
+								distance=SIGN(sign)*MIN(fabs(distance),NORM3(vec0));
+							}else if(val<SQR3(e0)){ /* closer to edge0 */
+								sign=F_DOT(n_e0,vec0);valu=3;
+								distance=SIGN(sign)*MIN(fabs(distance),sqrt(MAX(0,SQR3(vec0)-SQR(val)/SQR3(e0))));
+							}else{ /* closer to x1 */
+								sign=F_DOT(n_v1,vec1);valu=2;
+								distance=SIGN(sign)*MIN(fabs(distance),NORM3(vec1));
+							}
+						};
+						if(val1<=0){
+							val=F_DOT(vec1,e1);
+							if(val<0){ /* closer to x1 */
+								sign=F_DOT(n_v1,vec1);valu=2;
+								distance=SIGN(sign)*MIN(fabs(distance),NORM3(vec1));
+							}else if(val<SQR3(e1)){ /* closer to edge1 */
+								sign=F_DOT(n_e1,vec1);valu=3;
+								distance=SIGN(sign)*MIN(fabs(distance),sqrt(MAX(0,SQR3(vec1)-SQR(val)/SQR3(e1))));
+							}else{ /* closer to x2 */
+								sign=F_DOT(n_v2,vec2);valu=2;
+								distance=SIGN(sign)*MIN(fabs(distance),NORM3(vec2));
+							}
+						};
+						if(val2<=0){
+							val=F_DOT(vec2,e2);
+							if(val<0){ /* closer to x2 */
+								sign=F_DOT(n_v2,vec2);valu=2;
+								distance=SIGN(sign)*MIN(fabs(distance),NORM3(vec2));
+							}else if(val<SQR3(e2)){ /* closer to edge2 */
+								sign=F_DOT(n_e2,vec2);valu=3;
+								distance=SIGN(sign)*MIN(fabs(distance),sqrt(MAX(0,SQR3(vec2)-SQR(val)/SQR3(e2))));
+							}else{ /* closer to x0 */
+								sign=F_DOT(n_v0,vec0);valu=2;
+								distance=SIGN(sign)*MIN(fabs(distance),NORM3(vec0));
+							}
+						};
+					}
+								
+					/* update distance map */ 
+					if(fabs(distance)<fabs(MRIFvox(mri_distance,i,j,k))){
+						MRIFvox(mri_distance,i,j,k)=distance;
+					 
+					}
+				}
+	}
+
+#if 0 //debugging 
+	for ( p = 0 ; p < mris->nvertices ; p++){
+		VERTEX *v;
+		v=&mris->vertices[p];
+		
+		v->x=iVOL(mri_distance,v->x);
+		v->y=jVOL(mri_distance,v->y);
+		v->z=kVOL(mri_distance,v->z);		
+	}
+#endif
+
+	return mri_distance;
+}
+
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -34619,8 +34856,6 @@ static void computeVertexPseudoNormal(MRIS *mris,int vno,float norm[3]){
 }
 
 #define DEBUG_UL 0
-#define NOT_PROCESSED_YET 1000
-#define NPY NOT_PROCESSED_YET
 
 //TO BE CHECKED
 
@@ -37509,15 +37744,25 @@ static int tessellatePatch(MRI *mri,MRI_SURFACE *mris, MRI_SURFACE *mris_correct
 	return NO_ERROR;
 }
 
+#define USE_SCALING 0
+
 static int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces){
-	int n,m,i,count,intersect;
+	int n,m,i,count,intersect,j;
+	int vn[3];
+	int un[3];
+	int vertex_in_common;
 	double v0[3], v1[3], v2[3], u0[3], u1[3], u2[3] ;
-	double d0,d1,d2,d,scale;
+	double d0,d1,d2,d,scale,SCALE_FACTOR;
 	FACE   *f1, *f2 ;
+
+	SCALE_FACTOR=100.0f;
 
 	for(count=n=0; n < nfaces ; n++){
 		f1 = &mris->faces[flist[n]];
 		/* fill vertices of 1st triangle */
+		vn[0]=f1->v[0];
+		vn[1]=f1->v[1];
+		vn[2]=f1->v[2];
 		v0[0] = (double)mris->vertices[f1->v[0]].origx ;
 		v0[1] = (double)mris->vertices[f1->v[0]].origy ;
 		v0[2] = (double)mris->vertices[f1->v[0]].origz ;
@@ -37533,15 +37778,33 @@ static int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces){
 		d=sqrt(MIN(d0,MIN(d1,d2)));
 		/* scaling */
 		if(FZERO(d)) continue;
-		scale = 100.0/d;
+		scale = SCALE_FACTOR/d;
+#if USE_SCALING
 		for(i=0;i<3;i++){
 			v0[i] *= scale;
 			v1[i] *= scale;
 			v2[i] *= scale;
 		}
-
+#endif
 		for( m = n+1; m < nfaces ; m++ ){
 			f2 = &mris->faces[flist[m]];
+			un[0]=f2->v[0];
+			un[1]=f2->v[1];
+			un[2]=f2->v[2];
+			/* count the number of common vertices */
+			vertex_in_common=0;
+			for(i=0;i<3;i++){
+				for(j=0;j<3;j++)
+					if(vn[i]==un[j]){
+						vertex_in_common++;
+						break;
+					}
+			}
+			
+			if(vertex_in_common>0) continue;
+			
+			//			fprintf(stderr,"vertex in common = %d \n",vertex_in_common);
+
 			/* fill vertices of 2nd triangle */
       u0[0] = (double)mris->vertices[f2->v[0]].origx ;
       u0[1] = (double)mris->vertices[f2->v[0]].origy ;
@@ -37559,19 +37822,49 @@ static int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces){
 			d=sqrt(MIN(d0,MIN(d1,d2)));
 			if(FZERO(d)) continue;
 			/* scaling */
+#if USE_SCALING
 			for(i=0;i<3;i++){
 				u0[i] *= scale;
 				u1[i] *= scale;
 				u2[i] *= scale;
 			}
+#endif
 			intersect = tri_tri_intersect(v0,v1,v2,u0,u1,u2) ;
 
 			if(intersect) { 
+				fprintf(stderr,"face %d intersect face %d\n",flist[n],flist[m]);
+				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[n],f1->v[0],v0[0],v0[1],v0[2]);
+				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[n],f1->v[1],v1[0],v1[1],v1[2]);
+				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[n],f1->v[2],v2[0],v2[1],v2[2]);
+				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[m],f2->v[0],u0[0],u0[1],u0[2]);
+				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[m],f2->v[1],u1[0],u1[1],u1[2]);
+				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[m],f2->v[2],u2[0],u2[1],u2[2]);
+				fprintf(stderr,"\nXXXXXXXXXX\n");
 				count++;
 				break;
 			}
 		}
 	}
+#if 0 
+	fprintf(stderr,"\n\nYYYYYYYYYYYYYYYYYYYYY LIST FACES \n");
+	for(n=0; n < nfaces ; n++){
+		f1 = &mris->faces[flist[n]];
+		/* fill vertices of 1st triangle */
+		v0[0] = (double)mris->vertices[f1->v[0]].origx ;
+		v0[1] = (double)mris->vertices[f1->v[0]].origy ;
+		v0[2] = (double)mris->vertices[f1->v[0]].origz ;
+		v1[0] = (double)mris->vertices[f1->v[1]].origx ;
+		v1[1] = (double)mris->vertices[f1->v[1]].origy ;
+		v1[2] = (double)mris->vertices[f1->v[1]].origz ;
+		v2[0] = (double)mris->vertices[f1->v[2]].origx ;
+		v2[1] = (double)mris->vertices[f1->v[2]].origy ;
+		v2[2] = (double)mris->vertices[f1->v[2]].origz ;
+
+		fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[n],f1->v[0],v0[0],v0[1],v0[2]);
+		fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[n],f1->v[1],v1[0],v1[1],v1[2]);
+		fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[n],f1->v[2],v2[0],v2[1],v2[2]);
+	}
+#endif	
 
 	return count;
 }
