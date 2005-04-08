@@ -710,6 +710,7 @@ MRI *MRImeanLabel(MRI *mri_src, MRI *mri_label, MRI*mri_dst, int wsize) ;
 int MRIvoxelsInLabel(MRI *mri, int label) ;
 int MRItotalVoxelsOn(MRI *mri, int thresh) ;
 int MRIcopyLabel(MRI *mri_src, MRI *mri_dst, int val) ;
+int MRIcopyLabeledVoxels(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int label) ;
 MRI *MRIcpolvVote(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int wsize, 
                   int niter, int use_all) ;
 MRI *MRIcpolvThreshold(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
