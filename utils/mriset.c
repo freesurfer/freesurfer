@@ -2250,7 +2250,7 @@ MRIvoxelsInLabel(MRI *mri, int label)
 MRI *
 MRInot(MRI *mri_src, MRI *mri_dst)
 {
-	int   x, y, z ;
+	int   x, y, z, out ;
 	float val ;
 
 	if (mri_dst == NULL)
@@ -2262,10 +2262,42 @@ MRInot(MRI *mri_src, MRI *mri_dst)
 		{
 			for (z = 0 ; z < mri_src->depth ; z++)
 			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
 				val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-				MRIsetVoxVal(mri_dst, x, y, z, 0, !nint(val)) ;
+				out = !nint(val) ;
+				MRIsetVoxVal(mri_dst, x, y, z, 0, out) ;
 			}
 		}
 	}
 	return(mri_dst) ;
+}
+int
+MRIcopyLabeledVoxels(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int label)
+{
+  int     width, height, depth, x, y, z, nvox ;
+	float   val ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+	for (nvox = z = 0 ; z < depth ; z++)
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			for (x = 0 ; x < width ; x++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				if (MRIgetVoxVal(mri_labeled, x, y, z, 0) == label)
+				{
+					val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+					MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+					nvox++ ;
+				}
+			}
+		}
+	}
+  return(nvox) ;
 }
