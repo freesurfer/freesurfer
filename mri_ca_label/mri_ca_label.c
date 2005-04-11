@@ -86,7 +86,7 @@ static int hippocampus_flag = 1 ;
 #define CMA_PARCELLATION  0
 static int parcellation_type = CMA_PARCELLATION ;
 static MRI *insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm, 
-                                  int parcellation_type, int fixed_flag,
+				   int parcellation_type, int fixed_flag,
                                    GCA *gca, TRANSFORM *transform) ;
 
 extern char *gca_write_fname ;
@@ -106,20 +106,20 @@ main(int argc, char *argv[])
   struct timeb start ;
   GCA          *gca ;
   TRANSFORM     *transform ;
-
+  
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.50 2005/03/31 21:56:53 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.51 2005/04/11 18:17:05 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
-
+  
   setRandomSeed(-1L) ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-
+  
   TimerStart(&start) ;
-
+  
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
@@ -137,15 +137,15 @@ main(int argc, char *argv[])
     gca = GCAread(argv[1]) ;
     if (!gca)
       ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
-								Progname, argv[1]) ;
+		Progname, argv[1]) ;
 
-
+    
     if (gca->flags & GCA_NO_MRF)
       ErrorExit(ERROR_BADPARM, "%s: gca %s built without markov priors",
                 Progname, argv[1]) ;
-
+    
     GCAhisto(gca, 100, &counts) ;
-
+    
     max_i = 0 ;
     for (i = 1 ; i < 100 ; i++)
       if (counts[i] > 0)
@@ -155,25 +155,25 @@ main(int argc, char *argv[])
       printf("%d %d\n", i, counts[i]) ;
     exit(1) ;
   }
-
+  
   if (argc < 5)
     usage_exit(1) ;
-
+  
   in_fname = argv[1] ;
   xform_fname = argv[argc-3];
   gca_fname = argv[argc-2] ;
   out_fname = argv[argc-1] ;
   ninputs = argc-4 ;
-
+  
   printf("reading %d input volumes...\n", ninputs) ;
-
+  
   /*  fprintf(stderr, "mri_inputs read: xform %s\n", mri_inputs->transform_fname) ;*/
   printf("reading classifier array from %s...\n", gca_fname) ;
   gca = GCAread(gca_fname) ;
   if (!gca)
     ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
               Progname, gca_fname) ;
-
+  
   extra = 0 ;
   if (gca->flags & GCA_XGRAD)
     extra += ninputs ;
@@ -184,7 +184,7 @@ main(int argc, char *argv[])
   
   if (gca->ninputs != (ninputs+extra) && !map_to_flash && gca->type != GCA_FLASH && gca->type != GCA_PARAM)
     ErrorExit(ERROR_BADPARM, "%s: gca requires %d inputs, %d specified on command line",
-							Progname, gca->ninputs, ninputs) ;
+	      Progname, gca->ninputs, ninputs) ;
   
   if (avgs)
     GCAmeanFilterConditionalDensities(gca, avgs) ;
@@ -197,7 +197,7 @@ main(int argc, char *argv[])
     mri_tmp = MRIread(in_fname) ;
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
-								Progname, in_fname) ;
+		Progname, in_fname) ;
     
     if (alpha > 0)
       mri_tmp->flip_angle = alpha ;
@@ -220,12 +220,12 @@ main(int argc, char *argv[])
     if (input == 0)
     {
       mri_inputs = 
-				MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-												 mri_tmp->type, ninputs+extra) ;
+	MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+			 mri_tmp->type, ninputs+extra) ;
       if (!mri_inputs)
-				ErrorExit(ERROR_NOMEMORY, 
-									"%s: could not allocate input volume %dx%dx%dx%d",
-									mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
+	ErrorExit(ERROR_NOMEMORY, 
+		  "%s: could not allocate input volume %dx%dx%dx%d",
+		  mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
       MRIcopyHeader(mri_tmp, mri_inputs) ;
     }
     
@@ -257,7 +257,7 @@ main(int argc, char *argv[])
   if (example_T1)
   {
     MRI *mri_T1, *mri_seg ;
-
+    
     mri_seg = MRIread(example_segmentation) ;
     if (!mri_seg)
       ErrorExit(ERROR_NOFILE,"%s: could not read example segmentation from %s",
@@ -288,12 +288,12 @@ main(int argc, char *argv[])
     int    *labels, nlines, i ;
     float  *intensities, f1, f2 ;
     char   *cp, line[STRLEN] ;
-
+    
     fp = fopen(renormalization_fname, "r") ;
     if (!fp)
       ErrorExit(ERROR_NOFILE, "%s: could not read %s",
                 Progname, renormalization_fname) ;
-
+    
     cp = fgetl(line, 199, fp) ;
     nlines = 0 ;
     while (cp)
@@ -342,7 +342,8 @@ main(int argc, char *argv[])
     }
     
     if (novar)
-      GCAunifyVariance(gca) ;
+      GCAregularizeCovariance(gca,1.0);
+    //      GCAunifyVariance(gca) ;
     
     GCAhistoScaleImageIntensities(gca, mri_inputs) ;
   }
@@ -352,7 +353,8 @@ main(int argc, char *argv[])
     GCA *gca_tmp ;
     
     if (novar)
-      GCAunifyVariance(gca) ;
+      GCAregularizeCovariance(gca,1.0);
+    //      GCAunifyVariance(gca) ;
     
     gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
     GCAfree(&gca) ;
@@ -377,13 +379,12 @@ main(int argc, char *argv[])
       MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
     }
     start = ninputs ;
-    if (gca->flags & GCA_XGRAD)
-    {
+    if (gca->flags & GCA_XGRAD){
       for (i = 0 ; i < ninputs ; i++)
       {
-				mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
-				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-				MRIfree(&mri_grad) ;
+	mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
+	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+	MRIfree(&mri_grad) ;
       }
       start += ninputs ;
     }
@@ -391,9 +392,9 @@ main(int argc, char *argv[])
     {
       for (i = 0 ; i < ninputs ; i++)
       {
-				mri_grad = MRIySobel(mri_smooth, NULL, i) ;
-				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-				MRIfree(&mri_grad) ;
+	mri_grad = MRIySobel(mri_smooth, NULL, i) ;
+	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+	MRIfree(&mri_grad) ;
       }
       start += ninputs ;
     }
@@ -401,9 +402,9 @@ main(int argc, char *argv[])
     {
       for (i = 0 ; i < ninputs ; i++)
       {
-				mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
-				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-				MRIfree(&mri_grad) ;
+	mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
+	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+	MRIfree(&mri_grad) ;
       }
       start += ninputs ;
     }
@@ -412,10 +413,11 @@ main(int argc, char *argv[])
   }
   
   if (novar)
-    GCAunifyVariance(gca) ;
+    GCAregularizeCovariance(gca,1.0);
+  //    GCAunifyVariance(gca) ;
   if (regularize > 0)
     GCAregularizeCovariance(gca, regularize) ;
-
+  
   if (stricmp(xform_fname, "none"))
   {
     printf("reading transform from %s...\n", xform_fname) ;
@@ -426,14 +428,14 @@ main(int argc, char *argv[])
   }
   else
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
-
+  
   if (norm_PD)
     GCAnormalizePD(gca, mri_inputs, transform) ;
   
   if (heq_fname)
   {
     MRI *mri_eq ;
-
+    
     mri_eq = MRIread(heq_fname) ;
     if (!mri_eq)
       ErrorExit(ERROR_NOFILE, 
@@ -451,121 +453,117 @@ main(int argc, char *argv[])
   GCAfixSingularCovarianceMatrices(gca) ;
   if (read_fname != NULL && reg_fname == NULL)  /* not longitudinal */
   {
+    //read in initial segmentation from file read_fname
     mri_labeled = MRIread(read_fname) ;
     if (!mri_labeled)
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
                 Progname, read_fname) ;
-		if (Ggca_x >= 0)
-			printf("label(%d, %d, %d) = %s (%d)\n",
-						 Ggca_x, Ggca_y, Ggca_z, cma_label_to_name(MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
-						 MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)) ;
+    if (Ggca_x >= 0)
+      printf("label(%d, %d, %d) = %s (%d)\n",
+	     Ggca_x, Ggca_y, Ggca_z, cma_label_to_name(MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
+	     MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)) ;
   }
-  else
-  {
-		if (reg_fname == NULL)
-		{
-			printf("labeling volume...\n") ;
-			// create labeled volume
-			mri_labeled = GCAlabel(mri_inputs, gca, NULL, transform) ;
-			// -wm fname option
-			if (wm_fname)
-			{
-				MRI *mri_wm ;
-				
-				mri_wm = MRIread(wm_fname) ;
-				if (!mri_wm)
-					ErrorExit(ERROR_NOFILE, "%s: could not read wm segmentation from %s",
-										Progname, wm_fname) ;
-				// put wm into fixed
-				mri_fixed = insert_wm_segmentation(mri_labeled,mri_wm,parcellation_type,
-																					 fixed_flag, gca, transform);
-				if (DIAG_VERBOSE_ON)
-				{
-					fprintf(stderr, "writing patched labeling to %s...\n", out_fname) ;
-					MRIwrite(mri_labeled, out_fname) ;
-				}
-				MRIfree(&mri_wm) ;
-			}
-			else
-				// just clone the labeled one
-				mri_fixed = MRIclone(mri_labeled, NULL) ;
-
-			if (gca_write_iterations != 0)
-			{
-				char fname[STRLEN] ;
-				sprintf(fname, "%s_pre.mgz", gca_write_fname) ;
-				printf("writing snapshot to %s...\n", fname) ;
-				MRIwrite(mri_labeled, fname) ;
-			}
+  else{
+    if (reg_fname == NULL){ //so read_fname must be NULL too
+      printf("labeling volume...\n") ;
+      // create labeled volume by MAP rule
+      mri_labeled = GCAlabel(mri_inputs, gca, NULL, transform) ;
+      // -wm fname option
+      if (wm_fname){
+	MRI *mri_wm ;
+	
+	mri_wm = MRIread(wm_fname) ;
+	if (!mri_wm)
+	  ErrorExit(ERROR_NOFILE, "%s: could not read wm segmentation from %s",
+		    Progname, wm_fname) ;
+	// put wm into fixed
+	mri_fixed = insert_wm_segmentation(mri_labeled,mri_wm,parcellation_type,
+					   fixed_flag, gca, transform);
+	if (DIAG_VERBOSE_ON){
+	  fprintf(stderr, "writing patched labeling to %s...\n", out_fname) ;
+	  MRIwrite(mri_labeled, out_fname) ;
+	}
+	MRIfree(&mri_wm) ;
+      } //if (wm_fname)
+      else
+	// just clone the labeled one
+	mri_fixed = MRIclone(mri_labeled, NULL) ;
+      
+      if (gca_write_iterations != 0){
+	char fname[STRLEN] ;
+	sprintf(fname, "%s_pre.mgz", gca_write_fname) ;
+	printf("writing snapshot to %s...\n", fname) ;
+	MRIwrite(mri_labeled, fname) ;
+      }
 #if 0
-			while (renormalize_iter--)  /* update gca values  and relabel */
-			{
-				preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
-				printf("renormalizing GCA to initial labeling...\n") ;
-				GCArenormalizeAdaptive(mri_inputs, mri_labeled, gca, transform, renormalize_wsize,
-															 pthresh) ;
-				GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
-			}
+      while (renormalize_iter--)  /* update gca values  and relabel */
+	{
+	  preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
+	  printf("renormalizing GCA to initial labeling...\n") ;
+	  GCArenormalizeAdaptive(mri_inputs, mri_labeled, gca, transform, renormalize_wsize,
+				 pthresh) ;
+	  GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
+	}
 #else
-			// renormalize iteration 
-			if (renormalize_iter > 0)
-			{
-				GCAmapRenormalize(gca, mri_inputs, transform) ;
-				printf("relabeling volume...\n") ;
-				GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
-			}
+      // renormalize iteration 
+      if (renormalize_iter > 0){
+	GCAmapRenormalize(gca, mri_inputs, transform) ;
+	printf("relabeling volume...\n") ;
+	GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
+      }
 #endif
-			preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
-			if (fixed_flag == 0)
-				MRIfree(&mri_fixed) ;
-		}
-		else  /* processing longitudinal data */
-		{
-			TRANSFORM *transform ;
-			MRI       *mri_tmp ;
-
-			mri_labeled = MRIread(read_fname) ;
-			if (!mri_labeled)
-				ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
-									Progname, read_fname) ;
-			printf("applying transform %s to previously computed segmentation %s\n",
-						 reg_fname, read_fname) ;
-			transform = TransformRead(reg_fname) ;
-			if (transform == NULL)
-				ErrorExit(ERROR_NOFILE, "%s: could not open registration file %s",
-									Progname, reg_fname) ;
-
-			{
-				LTA *lta = (LTA *)transform->xform ;
-				getVolGeom(mri_labeled, &lta->xforms[0].src) ;
-				getVolGeom(mri_inputs, &lta->xforms[0].dst) ;
-				LTAchangeType(lta, LINEAR_VOX_TO_VOX) ;
-				transform->type = LINEAR_VOX_TO_VOX ;
-			}
-			if (transform->type != LINEAR_VOX_TO_VOX)
-				ErrorExit(ERROR_BADPARM, "%s: transform type (%d) must be LINEAR_VOX_TO_VOX",
-									Progname, transform->type) ;
-			mri_tmp = MRIlinearTransformInterp(mri_labeled, NULL, ((LTA *)(transform->xform))->xforms[0].m_L, SAMPLE_NEAREST) ;
-			MRIfree(&mri_labeled) ;
-			mri_labeled = mri_tmp ;
-
-			if (Ggca_x >= 0)
-				printf("label(%d, %d, %d) = %s (%d)\n",
-							 Ggca_x, Ggca_y, Ggca_z,  
-							 cma_label_to_name(MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
-							 MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)) ;
-			TransformFree(&transform) ;
-			if (gca_write_iterations != 0)
-			{
-				char fname[STRLEN] ;
-				sprintf(fname, "%s_pre.mgz", gca_write_fname) ;
-				printf("writing snapshot to %s...\n", fname) ;
-				MRIwrite(mri_labeled, fname) ;
-			}
-		}
-
-    if (!no_gibbs)
-    {
+      preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
+      if (fixed_flag == 0)
+	MRIfree(&mri_fixed) ;
+    } //if(reg_fname == NULL)
+    else  /* processing longitudinal data */{
+      // Now, both an intial seg and a transformation are given
+      // suppose the seg is from tp1 and transform is to align tp1 to current tp
+      TRANSFORM *transform_long ;
+      MRI       *mri_tmp ;
+      
+      mri_labeled = MRIread(read_fname) ;
+      if (!mri_labeled)
+	ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
+		  Progname, read_fname) ;
+      printf("applying transform %s to previously computed segmentation %s\n",
+	     reg_fname, read_fname) ;
+      transform_long = TransformRead(reg_fname) ;
+      if (transform_long == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not open registration file %s",
+		  Progname, reg_fname) ;
+      
+      {
+	LTA *lta = (LTA *)transform_long->xform ;
+	// copy Geom from mri_labeled to lta->xforms[0].src
+	getVolGeom(mri_labeled, &lta->xforms[0].src) ;
+	// copy Geom from mri_inputs to lta->xforms[0].dst
+	getVolGeom(mri_inputs, &lta->xforms[0].dst) ;
+	LTAchangeType(lta, LINEAR_VOX_TO_VOX) ;
+	transform_long->type = LINEAR_VOX_TO_VOX ;
+      }
+      if (transform_long->type != LINEAR_VOX_TO_VOX)
+	ErrorExit(ERROR_BADPARM, "%s: transform type (%d) must be LINEAR_VOX_TO_VOX",
+		  Progname, transform_long->type) ;
+      mri_tmp = MRIlinearTransformInterp(mri_labeled, NULL, ((LTA *)(transform_long->xform))->xforms[0].m_L, SAMPLE_NEAREST) ;
+      MRIfree(&mri_labeled) ;
+      mri_labeled = mri_tmp ;
+      
+      if (Ggca_x >= 0)
+	printf("label(%d, %d, %d) = %s (%d)\n",
+	       Ggca_x, Ggca_y, Ggca_z,  
+	       cma_label_to_name(MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
+	       MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)) ;
+      TransformFree(&transform_long) ;
+      if (gca_write_iterations != 0){
+	char fname[STRLEN] ;
+	sprintf(fname, "%s_pre.mgz", gca_write_fname) ;
+	printf("writing snapshot to %s...\n", fname) ;
+	MRIwrite(mri_labeled, fname) ;
+      }
+    } //else /* processing long data */
+    
+    if (!no_gibbs){
       if (anneal)
         GCAanneal(mri_inputs, gca, mri_labeled, transform, max_iter) ;
       else
@@ -573,10 +571,10 @@ main(int argc, char *argv[])
                                       mri_fixed, 0, NULL);
     }
   }
+
   GCAmaxLikelihoodBorders(gca, mri_inputs, mri_labeled, mri_labeled,transform,mle_niter,
                           5.0);
-  if (expand_flag)
-  {
+  if (expand_flag){
     GCAexpandVentricle(gca, mri_inputs, mri_labeled, mri_labeled, transform,   
                        Left_Lateral_Ventricle) ;
     GCAexpandVentricle(gca, mri_inputs, mri_labeled, mri_labeled, transform,   
@@ -618,7 +616,7 @@ main(int argc, char *argv[])
   if (filter)
   {
     MRI *mri_tmp ;
-
+    
     printf("filtering labeled volume...\n") ;
     mri_tmp = MRIthreshModeFilter(mri_labeled, NULL, filter, thresh) ;
     MRIfree(&mri_labeled) ;
@@ -629,14 +627,13 @@ main(int argc, char *argv[])
   printf("writing labeled volume to %s...\n", out_fname) ;
   if (MRIwrite(mri_labeled, out_fname) != NO_ERROR)
     ErrorExit(Gerror, "%s: MRIwrite(%s) failed", Progname, out_fname) ;
-
+  
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   printf("auto-labeling took %d minutes and %d seconds.\n", 
-				 minutes, seconds) ;
-  exit(0) ;
+	 minutes, seconds) ;
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -817,11 +814,14 @@ get_option(int argc, char *argv[])
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
     break ;
-	case 'L':
+  case 'L': //longitudinal option
+    //option for longitudinal processing
+    //read_fname is the label for tp1
+    //reg_fname is the linear transform from tp1 to current study
     read_fname = argv[2] ;
-		reg_fname = argv[3] ;
-		nargs = 2;
-		break ;
+    reg_fname = argv[3] ;
+    nargs = 2;
+    break ;
   case 'R':
     read_fname = argv[2] ;
     nargs = 1 ;
@@ -922,6 +922,7 @@ usage_exit(int code)
   printf("\t-e <int n>                   expand\n");
   printf("\t-n <int n>                   set max iterations to n (default=200)\n");
   printf("\t-f <int f> <float t>         filter labeled volume with threshold t (default=.5) mode filter f (default=0)times\n");  
+  printf("\t-L <mri_vol> <LTA>           longitudinal processing: mri_vol is label from tp1, LTA is registration from tp1 to current data\n");
   exit(code) ;
 }
 
