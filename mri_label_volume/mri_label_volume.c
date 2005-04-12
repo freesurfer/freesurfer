@@ -51,7 +51,7 @@ main(int argc, char *argv[])
 	double  vox_volume, brain_volume ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.19 2005/04/06 17:40:20 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.20 2005/04/12 20:17:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -141,7 +141,7 @@ main(int argc, char *argv[])
 			log_fname = "area_volumes.log" ;
 		log_fp = fopen(log_fname, "a+") ;
 		fprintf(log_fp, "%s  ", subject_name) ;
-		if  (icv_fname || compute_pct)
+		if  (icv_fname || compute_pct || atlas_icv > 0)
 			fprintf(log_fp, "%f ", brain_volume)  ;
 
 		for (i = 0 ;i < ncols ; i++)
@@ -189,10 +189,12 @@ main(int argc, char *argv[])
     else
       log_fp = NULL ;
 
-    if (compute_pct || icv_fname)
+    if (compute_pct || icv_fname || atlas_icv > 0)
     {
-      printf("%d voxels (%2.1f mm^3) in label %d, %%%2.6f of brain volume (%2.0f)\n", 
-             volume, volume*vox_volume,label, 100.0*(float)volume/(float)brain_volume,
+      printf("%d voxels (%2.1f mm^3) in label %d, %%%2.6f of %s volume (%2.0f)\n", 
+             volume, volume*vox_volume,label, 
+						 100.0*(float)volume/(float)brain_volume,
+						 atlas_icv > 0 ? "eTIV" : "brain",
              brain_volume) ;
       if (log_fp)
       {
@@ -282,7 +284,11 @@ get_option(int argc, char *argv[])
 			ErrorExit(ERROR_NOFILE, "%s: could not open atlas transform file %s", Progname, argv[2]) ;
 		atlas_det = MatrixDeterminant(atlas_lta->xforms[0].m_L) ;
 		LTAfree(&atlas_lta) ;
-		atlas_icv = 1755*(10*10*10) / atlas_det ;
+#if 0
+		atlas_icv = 1755*(10*10*10) / atlas_det ;  // Buckner version
+#else
+		atlas_icv = 2889.2*(10*10*10) / atlas_det ;  // our version with talairach_with_skull.lta
+#endif
 		printf("using eTIV from atlas transform of %2.0f cm^3\n", atlas_icv/(10*10*10)) ;
 		nargs = 1 ;
 	}
