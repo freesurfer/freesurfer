@@ -1661,7 +1661,7 @@ TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv, float *px, 
     if (yn >= gcam->height)
       yn = gcam->height-1 ;
     if (zn >= gcam->depth)
-      yn = gcam->depth-1 ;
+      zn = gcam->depth-1 ;
 
     gcamn = &gcam->nodes[xn][yn][zn] ;
     xt = gcamn->x ; yt = gcamn->y ; zt = gcamn->z ;
