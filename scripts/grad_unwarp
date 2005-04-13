@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # grad_unwarp - convert, unwarp, and resample dicom files
 #
-# $Id: grad_unwarp,v 1.9 2004/11/04 18:10:44 greve Exp $
-set VERSION = '$Id: grad_unwarp,v 1.9 2004/11/04 18:10:44 greve Exp $';
+# $Id: grad_unwarp,v 1.10 2005/04/13 21:33:56 greve Exp $
+set VERSION = '$Id: grad_unwarp,v 1.10 2005/04/13 21:33:56 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -106,7 +106,9 @@ corfovflag = [$corfovflag];
 interp_method = '$interp_method';
 unwarptype = '$unwarptype';
 
-convert_unwarp_resample(infile,seriesno,outfile,corfovflag,unwarpflag,jacflag,interp_method,unwarptype,1); % 1 = run from script, for qoe
+QuitOnError = [~$monly];
+
+convert_unwarp_resample(infile,seriesno,outfile,corfovflag,unwarpflag,jacflag,interp_method,unwarptype,QuitOnError); % 1 = run from script, for qoe
 
 EOF
 #-----------------------------------------------------------#
@@ -274,11 +276,11 @@ check_params:
     exit 1;
   endif
 
-#   if($#seriesno == 0) then
-#     echo "ERROR: must specify a series number"
-#     exit 1;
-#   endif
- 
+  if(! -e $infile) then
+    echo "ERROR: cannot find $infile"
+    exit 1;
+  endif
+
   if($#outfile == 0) then
     echo "ERROR: must specify an output "
     exit 1;
