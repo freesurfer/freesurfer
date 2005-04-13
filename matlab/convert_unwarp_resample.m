@@ -1,4 +1,4 @@
-% $Id: convert_unwarp_resample.m,v 1.9 2004/08/18 17:38:25 greve Exp $
+% $Id: convert_unwarp_resample.m,v 1.10 2005/04/13 21:33:30 greve Exp $
 %
 %% convert_unwarp_resample.m contains: 
 % convert_unwarp_resample()
@@ -77,7 +77,8 @@ end
 %%% end check arguments %%%
 
 %% load file, dicom or mgh %% 
-if((exist(infile,'file')) & (strcmp(infile(end-3:end),'.mgh')))
+if((exist(infile,'file')) & ...
+   ((strcmp(infile(end-3:end),'.mgh')) | (strcmp(infile(end-3:end),'.mgz'))))
   % Mildly cheesy test for mgh file, good enough.
   fprintf('INFO: loading mgh-format infile %s\n',infile);
   % So now we know it's an mgh file - dewarping an mgh file requires
@@ -88,7 +89,7 @@ if((exist(infile,'file')) & (strcmp(infile(end-3:end),'.mgh')))
     error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile,called_by_script) - for unwarping an mgh file, user must supply gradwarpfilename or type');
   end
   fprintf('INFO: loading mgh volume %s\n',infile);
-  [vol, M0, mr_parms] = load_mgh2(infile);
+  [vol, M0, mr_parms] = load_mgh(infile);
   if(isempty(vol))
     qoe('error loading mgh file.');
     error('error loading mgh file.');
