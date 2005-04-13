@@ -287,6 +287,10 @@ struct tkmDisplayArea {
   float                  mfDTIAlpha;
   float                  mfFuncOverlayAlpha;
 
+  /* For brightness contrast interactive setting */
+  float                  mfOriginalBrightness;
+  float                  mfOriginalContrast;
+
   /* for navigation tool */
   xVoxelRef              mpOriginalZoomCenter;
   int                    mnOriginalSlice;

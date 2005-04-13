@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/04/08 18:27:34 $
-// Revision       : $Revision: 1.113 $
+// Revision Date  : $Date: 2005/04/13 16:21:54 $
+// Revision       : $Revision: 1.114 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -2969,7 +2969,8 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
     
     /* If select tool and shift key, do a flood select. If button 2,
        select, and if button 3, unselect. */
-    if( ipEvent->mbShiftKey ) {
+    if( ipEvent->mbShiftKey &&
+	(2 == ipEvent->mButton || 3 == ipEvent->mButton) ) {
       if( 2 == ipEvent->mButton ) {
 	bSelect = TRUE;
       } else if ( 3 == ipEvent->mButton ) {
@@ -3290,6 +3291,30 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
 #endif
   
 
+  /* If shift button-1 was down, we're going to do an interactive
+     brightness/contrast modification. */
+  if( 1 == ipEvent->mButton &&
+      ipEvent->mbShiftKey &&
+      !ipEvent->mbCtrlKey &&
+      !ipEvent->mbAltKey ) {
+
+    /* Record the location of the click down. */
+    this->mLastClick = ipEvent->mWhere;
+    this->mTotalDelta.mfX = 0;
+    this->mTotalDelta.mfY = 0;
+
+    /* Get the original brightness and contrast. */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
+      Volm_GetBrightnessAndContrast( this->mpVolume[tkm_tVolumeType_Aux],
+				     &this->mfOriginalBrightness,
+				     &this->mfOriginalContrast );
+    } else {
+      Volm_GetBrightnessAndContrast( this->mpVolume[tkm_tVolumeType_Main],
+				     &this->mfOriginalBrightness,
+				     &this->mfOriginalContrast );
+    }
+  }
+
   switch( sTool ) {
 
   case DspA_tTool_Navigate:
@@ -3420,7 +3445,9 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
   int                nNewSlice    = 0;
   int                nNewZoomLevel= 0;
   tkm_tSegType       segType      = tkm_tSegType_Main;
-  
+  float              newBrightness= 0;
+  float              newContrast  = 0;
+
   DebugEnterFunction( ("DspA_HandleMouseMoved_( this=%p, ipEvent=%p )",
 		       this, ipEvent) );
 
@@ -3463,6 +3490,50 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
   /* if a button isn't down, skip this */
   if( ipEvent->mButton == 0 )
     goto cleanup;
+
+  /* If shift button-1 was down, we're going to do an interactive
+     brightness/contrast modification. */
+  if( 1 == ipEvent->mButton &&
+      ipEvent->mbShiftKey &&
+      !ipEvent->mbCtrlKey &&
+      !ipEvent->mbAltKey ) {
+
+    /* Get the delta. */
+    delta.mfX = (float)(this->mLastClick.mnX - ipEvent->mWhere.mnX) / (float)this->mnZoomLevel / 2.0;
+    delta.mfY = (float)(this->mLastClick.mnY - ipEvent->mWhere.mnY) / (float)this->mnZoomLevel / 2.0;
+    
+    /* flip y if horizontal cuz our freaking screen is upside down */
+    if( this->mOrientation == mri_tOrientation_Horizontal )
+      delta.mfY = -delta.mfY;
+    
+    /* add to the total delta */
+    this->mTotalDelta.mfX += delta.mfX;
+    this->mTotalDelta.mfY += delta.mfY;
+    
+    /* save this mouse position */
+    this->mLastClick = ipEvent->mWhere;
+    
+    /* Delta brightness and contrast is a factor of the delta x and y,
+       respectively. */
+    newBrightness = this->mfOriginalBrightness + 
+      (-this->mTotalDelta.mfX / 512.0);
+    newContrast = this->mfOriginalContrast +
+      (this->mTotalDelta.mfY / 512.0 * 30.0);
+    
+
+    /* Apply the changes and redraw. */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
+      Volm_SetBrightnessAndContrast( this->mpVolume[tkm_tVolumeType_Aux],
+				     newBrightness, newContrast );
+    } else {
+      Volm_SetBrightnessAndContrast( this->mpVolume[tkm_tVolumeType_Main],
+				     newBrightness, newContrast );
+    }
+ 
+    /* Redraw the buffer. */
+    this->mbSliceChanged = TRUE;
+    DspA_Redraw_( this );
+  }
   
   switch( sTool ) {
   
