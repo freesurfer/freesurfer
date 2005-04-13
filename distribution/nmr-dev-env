@@ -4,13 +4,13 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-dev-env
 #
-# $Id: nmr-dev-env,v 1.4 2005/04/08 21:58:15 kteich Exp $
+# $Id: nmr-dev-env,v 1.5 2005/04/13 22:01:19 kteich Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
 #############################################################################
 
-set NSE_VERSION = '$Id: nmr-dev-env,v 1.4 2005/04/08 21:58:15 kteich Exp $';
+set NSE_VERSION = '$Id: nmr-dev-env,v 1.5 2005/04/13 22:01:19 kteich Exp $';
 echo $NSE_VERSION
 
 ## Turn on verboseness if desired ##
@@ -19,7 +19,7 @@ if($?NMR_DEV_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-dev-env,v 1.4 2005/04/08 21:58:15 kteich Exp $';
+set VERSION = '$Id: nmr-dev-env,v 1.5 2005/04/13 22:01:19 kteich Exp $';
 
 
 
@@ -94,11 +94,6 @@ rehash;
 
 unset echo ;
 unset verbose;
-
-echo ""
-echo "NOTE: This version is built nightly. If you leave jobs"
-echo "      running over night, you may have unpredictable results."
-echo ""
 
 exit 0;
 ####################################################################
