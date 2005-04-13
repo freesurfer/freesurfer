@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/04/06 15:17:19 $                                             */
-/* Revision       : $Revision: 1.41 $                                         */
+/* Revision Date  : $Date: 2005/04/13 14:23:17 $                                             */
+/* Revision       : $Revision: 1.42 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   parms.prior_spacing = 2.0f ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.41 2005/04/06 15:17:19 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.42 2005/04/13 14:23:17 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -734,7 +734,8 @@ main(int argc, char *argv[])
       MRIfree(&mri_seg) ; MRIfree(&mri_inputs) ; TransformFree(&transform) ;
 
       // compactify gca
-      printf("compactify gca\n");
+			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+				printf("compactify gca\n");
       gca = GCAcompactify(gca);
       if (gca_prune)
 				gca_prune = GCAcompactify(gca_prune);
