@@ -30,10 +30,10 @@
 #   script.
 #
 #
-# $Id: FreeSurferEnv.csh,v 1.7 2005/03/29 17:26:39 kteich Exp $
+# $Id: FreeSurferEnv.csh,v 1.8 2005/04/14 15:54:29 kteich Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.7 2005/03/29 17:26:39 kteich Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.8 2005/04/14 15:54:29 kteich Exp $'
 
 ## Get the name of the operating system
 set os = `uname -s`
@@ -45,6 +45,9 @@ if( $?FS_FREESURFERENV_NO_OUTPUT ) then
     set output = 0
 else
     set output = 1
+endif
+if($?USER == 0 || $?prompt == 0) then
+    set output = 0
 endif
 
 
