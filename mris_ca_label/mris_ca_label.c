@@ -41,6 +41,7 @@ extern char *gcsa_write_fname ;
 extern int gcsa_write_iterations ;
 
 static int novar = 0 ;
+static int refine = 0;
 
 int
 main(int argc, char *argv[])
@@ -54,7 +55,7 @@ main(int argc, char *argv[])
   GCSA         *gcsa ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ca_label.c,v 1.9 2005/01/05 17:28:45 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ca_label.c,v 1.10 2005/04/18 17:34:48 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -196,18 +197,36 @@ main(int argc, char *argv[])
       MRISwriteAnnotation(mris, fname) ;
     }
   }
-  else
-    MRISreadAnnotation(mris, read_fname) ;
-
-  MRISmodeFilterAnnotations(mris, filter) ;
-	if (Gdiag_no >= 0)
-		printf("vertex %d: label %s\n", Gdiag_no, annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
+  else{
     
+    MRISreadAnnotation(mris, read_fname) ;
+    if(refine != 0){
+      GCSAreclassifyUsingGibbsPriors(gcsa, mris) ;
+      if (Gdiag_no >= 0)
+	printf("vertex %d: label %s\n", Gdiag_no, annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
+      postprocess(gcsa, mris) ;
+      if (Gdiag_no >= 0)
+	printf("vertex %d: label %s\n", Gdiag_no, annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
+      if (gcsa_write_iterations != 0)
+	{
+	  char fname[STRLEN] ;
+	  sprintf(fname, "%s_post.annot", gcsa_write_fname) ;
+	  printf("writing snapshot to %s...\n", fname) ;
+	  MRISwriteAnnotation(mris, fname) ;
+	}
+      
+    }
+  }
+  
+  MRISmodeFilterAnnotations(mris, filter) ;
+  if (Gdiag_no >= 0)
+    printf("vertex %d: label %s\n", Gdiag_no, annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
+  
   printf("writing output to %s...\n", out_fname) ;
   if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not write annot file %s for %s",
-                  Progname, out_fname, subject_name) ;
-
+	      Progname, out_fname, subject_name) ;
+  
   MRISfree(&mris) ;
   GCSAfree(&gcsa) ;
   msec = TimerStop(&start) ;
@@ -241,6 +260,11 @@ get_option(int argc, char *argv[])
     orig_name = argv[2] ;
     nargs = 1 ;
     printf("using %s as original surface\n", orig_name) ;
+  }
+  else if (!stricmp(option, "LONG"))
+  {
+    refine = 1 ;
+    printf("will refine the initial labeling read-in from -R \n") ;
   }
   else if (!stricmp(option, "NOVAR"))
   {
