@@ -93,6 +93,7 @@ ToglManager::MouseMotionCallback ( struct Togl* iTogl,
   int windowCoords[2];
   windowCoords[0] = atoi(iArgv[2]);
   windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
+  //  cerr << "Togl window: " << windowCoords[0] << " " << windowCoords[1] << endl;
   try {
     frame->MouseMoved( windowCoords, mState );
   }

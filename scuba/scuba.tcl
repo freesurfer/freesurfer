@@ -1,16 +1,6 @@
-
 package require Tix
 
-
-# This will probably be phased out, but for now. Check to see if the
-# PrintAllCommands command works. If so, we are running from a binary
-# and don't need to load the scuba shared lib. If not, load it.
-set err [catch { PrintAllCommands } sResult]
-if { $err } {
-    load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
-}
-
-DebugOutput "\$Id: scuba.tcl,v 1.97 2005/04/06 22:06:06 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.98 2005/04/19 21:22:36 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -79,6 +69,7 @@ DebugOutput "\$Id: scuba.tcl,v 1.97 2005/04/06 22:06:06 kteich Exp $"
 # gaTool
 #   n - id of tool
 #     mode
+
 
 set gbDebugOutput false
 proc dputs { isMsg } {
@@ -1848,13 +1839,19 @@ proc MakeToolsPanel { ifwTop } {
 	configure -selectmode single
     set gaWidget(toolProperties,voxelStructureListBox) \
 	$fwPropsVoxelEditingSub.lbStructure
+
+    button $fwPropsVoxelEditingSub.bwClear \
+	-command { ClearUserStructureList } \
+	-text "Clear User List" \
+	-font [tkuSmallFont]
     
     grid $fwPropsVoxelEditingSub.ewNewValue    -column 0 -row 0 -sticky ew
     grid $fwPropsVoxelEditingSub.mwLUT         -column 0 -row 1 -sticky ew
     grid $fwPropsVoxelEditingSub.fwStructureListOrder \
 	-column 0 -row 2 -sticky ew
     grid $fwPropsVoxelEditingSub.lbStructure   -column 0 -row 3 -sticky ew
-    grid $fwPropsVoxelEditingSub.ewEraseValue  -column 0 -row 4 -sticky ew
+    grid $fwPropsVoxelEditingSub.bwClear       -column 0 -row 4 -sticky ew
+    grid $fwPropsVoxelEditingSub.ewEraseValue  -column 0 -row 5 -sticky ew
 
     set gaWidget(toolProperties,voxelEditing) $fwPropsVoxelEditing
 
@@ -2141,7 +2138,6 @@ proc MakeViewPropertiesPanel { ifwTop } {
 
 	checkbutton $fw4.cbwLocked$nLevel \
 	    -variable gaView(current,lockedShuffle$nLevel)
-
 	tixOptionMenu $fw4.mwDraw$nLevel \
 	    -label "" \
 	    -variable gaView(current,draw$nLevel) \
@@ -3392,6 +3388,16 @@ proc ToolSettingsChanged { iToolID } {
     }
 }
 
+proc ClearUserStructureList {} {
+    global gaTool
+
+    set cStructures [GetColorLUTNumberOfEntries $gaTool(current,voxelLutID)]
+    for { set nStructure 0 } { $nStructure < $cStructures } { incr nStructure } {
+	set gaTool(structureListOrder,count,$nStructure) 0
+    }
+
+    SortVoxelEditingStructureListBox
+}
 
 # SUBJECTS LOADER FUNCTIONS =============================================
 
@@ -4215,7 +4221,6 @@ proc SetStatusBarText { isText } {
 proc SetLayerInAllViewsInFrame { iFrameID iLayerID } {
     dputs "SetLayerInAllViewsInFrame  $iFrameID $iLayerID  "
 
-
     # For each view...
     set err [catch { set cRows [GetNumberOfRowsInFrame $iFrameID] } sResult]
     if { 0 != $err } { tkuErrorDlog "$sResult"; return }
@@ -4390,13 +4395,16 @@ proc MakeSurfaceCollection { ifnSurface } {
 
 proc Make2DMRILayer { isLabel } {
     dputs "Make2DMRILayer  $isLabel  "
-
+    global gaTool
 
     set err [catch { set layerID [MakeLayer 2DMRI] } sResult]
     if { 0 != $err } { error "$sResult" }
 
     set err [catch { SetLayerLabel $layerID $isLabel } sResult]
     if { 0 != $err } { error "$sResult" }
+
+    # Make this new layer the target layer.
+    SetToolTargetLayer $gaTool(current,id) $layerID
 
     UpdateLayerList
 
@@ -4965,7 +4973,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.97 2005/04/06 22:06:06 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.98 2005/04/19 21:22:36 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5512,23 +5520,28 @@ SelectTransformInTransformProperties 0
 SelectLUTInLUTProperties 0
 SelectToolInToolProperties [GetPreferencesValue SelectedTool]
 
-
 ShowHideConsole $gaView(tkcon,visible)
 
 GetPreferences
 
 MakeScubaFrameBindings [GetMainFrameID]
 
-
 # Now execute all the commands we cached before.
 foreach command $lCommands {
     eval $command
 }
 
-# Reselect the current layer to show any changes to settings.
-SelectLayerInLayerProperties $gaLayer(current,id)
+# Refresh settings
+SelectViewInViewProperties 0
+SelectTransformInTransformProperties 0
+SelectLUTInLUTProperties 0
+SelectToolInToolProperties [GetPreferencesValue SelectedTool]
+if { $gaLayer(current,id) >= 0 } {
+    SelectLayerInLayerProperties $gaLayer(current,id)
+}
 
-
+# Updates the target layer menu.
+SelectToolInToolProperties [GetPreferencesValue SelectedTool]
 
 
 bind $gaWidget(window) <Destroy> "Quit"

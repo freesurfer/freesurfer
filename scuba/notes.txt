@@ -404,7 +404,13 @@ x button for zoom in and out
   x click and drag handles
   x on release, emit a signal
 
+- save LUT color hotlist in prefs?
+
+- clear LUT hotlist
+
 BRUCE'S LIST:::
+
+- mri_info window
 
 x rework value display so it's in a table, with vols on y axis and index/value/etc on x
 
@@ -463,6 +469,8 @@ BUGS:::
   - fill not in view plane
 - new value stuff doesn't show up unless you click Tools panel first, then click voxelEditing button
 - sometimes readius jumps to 0
+
+- set inplane inc to something, hit alt-c, hit alt-c back, inplane is different
 
 
 FUTURE IDEAS:::
@@ -548,4 +556,3 @@ scubaFrame
 UpdateLabelArea          -> mainWindow.UpdateLabelArea
 
 roiSettingsDlog
-

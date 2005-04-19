@@ -232,7 +232,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS );
 
   for( window[1] = windowUpdateBounds[1];
-       window[1] < windowUpdateBounds[3]; window[1]++ ) {
+       window[1] <= windowUpdateBounds[3]; window[1]++ ) {
  
     // Grab the RAS beginning for this row and column.
     RAS[0] = mRowStartRAS[window[1]][0] + 
@@ -247,7 +247,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       (((iWidth * window[1]) + windowUpdateBounds[0]) * mBytesPerPixel);
 
     for( window[0] = windowUpdateBounds[0]; 
-	 window[0] < windowUpdateBounds[2]; window[0]++ ) {
+	 window[0] <= windowUpdateBounds[2]; window[0]++ ) {
 
       // Set the location from this RAS.
       loc.SetFromRAS( RAS );
@@ -1221,7 +1221,15 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	// that. These are the corners of our plane.
 	Point2<int> window;
 	Point3<float> sq[4];
-	float rad = iTool.GetBrushRadius();
+	float rad;
+	ScubaToolState::Shape shape = iTool.GetBrushShape();
+	if( ScubaToolState::voxel == shape ) {
+	  rad = MAX( MAX( mVolume->GetVoxelXSize(), mVolume->GetVoxelYSize() ),
+		     mVolume->GetVoxelZSize() );
+	} else {
+	  rad = iTool.GetBrushRadius();
+	}
+
 	int windowBrushRad = (int)( iViewState.mZoomLevel * rad );
 
 	// Get our four plane points.
@@ -1271,11 +1279,9 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  window[1] + windowBrushRad + voxelSizeWindow[1];
 
 	iViewState.AddUpdateRect( updateRectWindow[0][0], updateRectWindow[0][1], updateRectWindow[1][0], updateRectWindow[1][1] );
-				  
 
 	// Now get the RAS points in this square or circle.
 	list<Point3<float> > points;
-	ScubaToolState::Shape shape = iTool.GetBrushShape();
 	switch( shape ) {
 	case ScubaToolState::voxel:
 	  points.push_back( Point3<float>(iRAS) );
@@ -1355,6 +1361,11 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	}
 	RequestRedisplay();
       }
+    }
+
+    // Also request a redisplay if this is a mouse up.
+    if( iInput.IsButtonUpEvent() ) {
+      RequestRedisplay();
     }
 
     if( ScubaToolState::voxelEditing == iTool.GetMode() ) {

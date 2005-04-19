@@ -602,7 +602,7 @@ ScubaFrame::DoDraw() {
 
       // Use glViewport to change the origin of the gl context so our
       // views can start drawing at 0,0.
-      glViewport( x, y, mWidth/cCols, mHeight/mcRows );
+      glViewport( x, y, mWidth/cCols-1, mHeight/mcRows-1 );
       glRasterPos2i( 0, 0 );
 
       // Tell the view to draw.
@@ -621,15 +621,15 @@ ScubaFrame::DoDraw() {
 
 	glMatrixMode( GL_PROJECTION );
 	glLoadIdentity();
-	glOrtho( 0, mWidth, 0, mHeight, -1.0, 1.0 );
+	glOrtho( 0, mWidth-1, 0, mHeight-1, -1.0, 1.0 );
 	glMatrixMode( GL_MODELVIEW );
 	glColor3f ( 0.0, 1.0, 0.0 );
-	glViewport( 0, 0, mWidth, mHeight );
+	glViewport( 0, 0, mWidth-1, mHeight-1 );
 	glBegin( GL_LINE_STRIP );
 	glVertex2d( x, y );
-	glVertex2d( x + (mWidth/cCols)-1, y );
-	glVertex2d( x + (mWidth/cCols)-1, y + (mHeight/mcRows)-1 );
-	glVertex2d( x, y + (mHeight/mcRows)-1 );
+	glVertex2d( x + (mWidth/cCols)-2, y );
+	glVertex2d( x + (mWidth/cCols)-2, y + (mHeight/mcRows)-2 );
+	glVertex2d( x, y + (mHeight/mcRows)-2 );
 	glVertex2d( x, y );
 	glEnd ();
       }
@@ -643,7 +643,7 @@ ScubaFrame::DoReshape() {
   glViewport( 0, 0, mWidth, mHeight );
   glMatrixMode( GL_PROJECTION );
   glLoadIdentity();
-  glOrtho( 0, mWidth, 0, mHeight, -1.0, 1.0 );
+  glOrtho( 0, mWidth-1, 0, mHeight-1, -1.0, 1.0 );
   glMatrixMode( GL_MODELVIEW );
 
   SizeViewsToConfiguration();
@@ -682,6 +682,8 @@ ScubaFrame::DoMouseMoved( int iWindow[2], InputState& iInput ) {
 
   int nRow, nCol;
   
+  //  cerr << "ScubaFrame window: " << iWindow[0] << " " << iWindow[1] << endl;
+
   View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
   if( NULL != view ) {
     int viewCoords[2];

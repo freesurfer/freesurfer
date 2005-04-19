@@ -43,8 +43,8 @@ WindowFrame::Timer() {
 void
 WindowFrame::MouseMoved( int iWindow[2], InputState& iInput ) {
 
-  if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
-      iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
+  if( iWindow[0] >= 0 && iWindow[0] <= mWidth-1 &&
+      iWindow[1] >= 0 && iWindow[1] <= mHeight-1 ) {
     
     if( iInput.IsButtonDragEvent() ) {
     

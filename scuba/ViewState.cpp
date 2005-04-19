@@ -3,6 +3,7 @@
 #include "ViewState.h"
 #include "macros.h"
 
+using namespace std;
 
 ViewState::ViewState () {
   mCenterRAS[0] = mCenterRAS[1] = mCenterRAS[2] = 0;
@@ -72,16 +73,16 @@ ViewState::AddUpdateRect ( int iWindowLeft,  int iWindowTop,
 
   if( iWindowRight != -1 ) {
     if( mUpdateRect[2] == -1 ) 
-      mUpdateRect[2] = MIN( mBufferHeight, iWindowRight );
+      mUpdateRect[2] = MIN( mBufferWidth-1, iWindowRight );
     else
-      mUpdateRect[2] = MIN( mBufferWidth, MAX( mUpdateRect[2], iWindowRight ));
+      mUpdateRect[2] = MIN( mBufferWidth-1, MAX( mUpdateRect[2], iWindowRight ));
   }
 
   if( iWindowBottom != -1 ) {
     if( mUpdateRect[3] == -1 ) 
-      mUpdateRect[3] = MIN( mBufferHeight, iWindowBottom );
+      mUpdateRect[3] = MIN( mBufferHeight-1, iWindowBottom );
     else
-      mUpdateRect[3] = MIN( mBufferHeight, MAX( mUpdateRect[3],iWindowBottom));
+      mUpdateRect[3] = MIN( mBufferHeight-1, MAX( mUpdateRect[3],iWindowBottom));
   }
 }
 
@@ -89,8 +90,8 @@ void
 ViewState::UpdateEntireRect () {
   mUpdateRect[0] = 0;
   mUpdateRect[1] = 0;
-  mUpdateRect[2] = mBufferWidth;
-  mUpdateRect[3] = mBufferHeight;
+  mUpdateRect[2] = mBufferWidth-1;
+  mUpdateRect[3] = mBufferHeight-1;
 }
 
 void
@@ -108,12 +109,12 @@ ViewState::CopyUpdateRect ( int& oWindowLeft,  int& oWindowTop,
     oWindowTop = mUpdateRect[1];
   
   if( mUpdateRect[2] == -1 ) 
-    oWindowRight = mBufferWidth;
+    oWindowRight = mBufferWidth-1;
   else
     oWindowRight = mUpdateRect[2];
   
   if( mUpdateRect[3] == -1 ) 
-    oWindowBottom = mBufferHeight;
+    oWindowBottom = mBufferHeight-1;
   else
     oWindowBottom = mUpdateRect[3];
 }

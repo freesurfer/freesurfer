@@ -48,9 +48,6 @@ ScubaView::ScubaView() {
   mViewIDLinkedList[GetID()] = false;
   mbFlipLeftRightInYZ = true;
   mbLockOnCursor = false;
-  mInPlaneMovementIncrements[0] = 1.0;
-  mInPlaneMovementIncrements[1] = 1.0;
-  mInPlaneMovementIncrements[2] = 1.0;
   int nMarkerColor = GetID() % kcInPlaneMarkerColors;
   mInPlaneMarkerColor[0] = kInPlaneMarkerColors[nMarkerColor][0];
   mInPlaneMarkerColor[1] = kInPlaneMarkerColors[nMarkerColor][1];
@@ -283,7 +280,7 @@ ScubaView::Set2DInPlane ( ViewState::Plane iPlane ) {
   // change our plane to the cursor.
   if( mbLockOnCursor && 
       !mViewState.IsRASVisibleInPlane( mCursor.xyz(), 
-		       mInPlaneMovementIncrements[mViewState.mInPlane] )) {
+				       GetInPlaneIncrement(mViewState.mInPlane))) {
 
     float newCenter[3];
     newCenter[0] = mViewState.mCenterRAS[0];
@@ -451,9 +448,19 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       // Set pixel size.
       layer.SetBytesPerPixel( kBytesPerPixel );
 
-      // If this is level 0, get our in plane increments from it.
+      // If this is level 0, get our in plane increments from it. If
+      // we don't have them for layer already.
       if( 0 == iLevel ) {
-	layer.GetPreferredInPlaneIncrements( mInPlaneMovementIncrements );
+
+	map<int,map<int,float> >::iterator tLayerIDInPlaneInc;
+	tLayerIDInPlaneInc = mLayerIDInPlaneIncrements.find( iLayerID );
+	if( tLayerIDInPlaneInc == mLayerIDInPlaneIncrements.end() ) {
+	  float incs[3];
+	  layer.GetPreferredInPlaneIncrements( incs );
+	  mLayerIDInPlaneIncrements[iLayerID][0] = incs[0];
+	  mLayerIDInPlaneIncrements[iLayerID][1] = incs[1];
+	  mLayerIDInPlaneIncrements[iLayerID][2] = incs[2];
+	}
       }
 
       // Start out visible.
@@ -569,12 +576,23 @@ ScubaView::GetWorldToViewTransform () {
 
 void
 ScubaView::SetInPlaneIncrement ( ViewState::Plane iInPlane, float iIncrement ){
-  mInPlaneMovementIncrements[iInPlane] = iIncrement;
+  int layerID = GetLayerAtLevel( 0 );
+  if( layerID != -1 ) {
+    mLayerIDInPlaneIncrements[layerID][iInPlane] = iIncrement;
+  } 
 }
 
 float
 ScubaView::GetInPlaneIncrement ( ViewState::Plane iInPlane ) {
-  return mInPlaneMovementIncrements[iInPlane];
+  int layerID = GetLayerAtLevel( 0 );
+  float increment;
+  if( layerID != -1 ) {
+    increment = mLayerIDInPlaneIncrements[layerID][iInPlane];
+  } else {
+    increment = -1;
+  }
+
+  return increment;
 }
 
 map<string,string>&
@@ -1113,17 +1131,17 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       if( 0 == strcmp( iasArgv[2], "x" ) ||
 	  0 == strcmp( iasArgv[2], "X" ) ) {
 
-	mInPlaneMovementIncrements[0] = increment;
+	SetInPlaneIncrement( ViewState::X, increment );
 
       } else if( 0 == strcmp( iasArgv[2], "y" ) ||
 		 0 == strcmp( iasArgv[2], "Y" ) ) {
 
-	mInPlaneMovementIncrements[1] = increment;
+	SetInPlaneIncrement( ViewState::Y, increment );
 
       } else if( 0 == strcmp( iasArgv[2], "z" ) ||
 		 0 == strcmp( iasArgv[2], "Z" ) ) {
 
-	mInPlaneMovementIncrements[2] = increment;
+	SetInPlaneIncrement( ViewState::Z, increment );
 
       } else {
 	stringstream ssResult;
@@ -1149,17 +1167,17 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       if( 0 == strcmp( iasArgv[2], "x" ) ||
 	  0 == strcmp( iasArgv[2], "X" ) ) {
 
-	increment = mInPlaneMovementIncrements[0];
+	increment = GetInPlaneIncrement( ViewState::X );
 
       } else if( 0 == strcmp( iasArgv[2], "y" ) ||
 		 0 == strcmp( iasArgv[2], "Y" ) ) {
 
-	increment = mInPlaneMovementIncrements[1];
+	increment = GetInPlaneIncrement( ViewState::Y );
 
       } else if( 0 == strcmp( iasArgv[2], "z" ) ||
 		 0 == strcmp( iasArgv[2], "Z" ) ) {
 
-	increment = mInPlaneMovementIncrements[2];
+	increment = GetInPlaneIncrement( ViewState::Z );
 
       } else {
 	stringstream ssResult;
@@ -1476,7 +1494,7 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
     // cursor's new plane to minimize the view jumping around.
     if( mbLockOnCursor && 
 	!mViewState.IsRASVisibleInPlane( mCursor.xyz(), 
-		     mInPlaneMovementIncrements[mViewState.mInPlane] )) {
+				GetInPlaneIncrement( mViewState.mInPlane ))) {
 
       float newCenter[3];
       newCenter[0] = mViewState.mCenterRAS[0];
@@ -2066,14 +2084,7 @@ ScubaView::DoKeyDown( int iWindow[2],
   // multiplay that value by 10.
   float moveDistance = 1.0;
   if( key == msMoveViewIn || key == msMoveViewOut ) {
-    switch( mViewState.mInPlane ) {
-    case ViewState::X: 
-      moveDistance = mInPlaneMovementIncrements[0]; break;
-    case ViewState::Y: 
-      moveDistance = mInPlaneMovementIncrements[1]; break;
-    case ViewState::Z: 
-      moveDistance = mInPlaneMovementIncrements[2]; break;
-    }
+    moveDistance = GetInPlaneIncrement( mViewState.mInPlane );
   }
   if( iInput.IsControlKeyDown() ) {
     moveDistance = 10.0;
@@ -2802,7 +2813,10 @@ ScubaView::DrawFrameBuffer () {
 #if 0
   cerr << "Rect : (" 
        << windowUpdateBounds[0] << ", " << windowUpdateBounds[1] << ") (" 
-       << windowUpdateBounds[2] << ", " << windowUpdateBounds[3] << ")" <<endl;
+       << windowUpdateBounds[2] << ", " << windowUpdateBounds[3] << ") " 
+       << "width " << windowUpdateBounds[2] - windowUpdateBounds[0] 
+       << ", height " << windowUpdateBounds[3] - windowUpdateBounds[1]
+       << endl;
 
   glColor3f( 0, 1, 0 );
   glBegin( GL_LINE_STRIP );
@@ -3000,18 +3014,7 @@ ScubaView::BuildOverlay () {
   if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawMarkers )) {
     
     // Draw our markers.
-    float range = 1.0;
-    switch( mViewState.mInPlane ) {
-    case ViewState::X:
-      range = mInPlaneMovementIncrements[0] / 2.0;
-      break;
-    case ViewState::Y:
-      range = mInPlaneMovementIncrements[1] / 2.0;
-      break;
-    case ViewState::Z:
-      range = mInPlaneMovementIncrements[2] / 2.0;
-      break;
-    }
+    float range = GetInPlaneIncrement( mViewState.mInPlane ) / 2.0;
     
     if( mViewState.IsRASVisibleInPlane( mCursor.xyz(), range ) ) {
       
@@ -3047,7 +3050,7 @@ ScubaView::BuildOverlay () {
 
   
   // Line range.
-  float range = mInPlaneMovementIncrements[mViewState.mInPlane] / 2.0;
+  float range = GetInPlaneIncrement( mViewState.mInPlane ) / 2.0;
 
   // Drawing paths.
   if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawPaths )) {
@@ -3111,6 +3114,12 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
   sprintf( sDigit, "%.2f", iRAS[1] );  ssRASCoords << sDigit << " ";
   sprintf( sDigit, "%.2f", iRAS[2] );  ssRASCoords << sDigit;
   labelValueMap["RAS"] = ssRASCoords.str();
+
+  int window[2];
+  TranslateRASToWindow( iRAS, window );
+  stringstream ssWindowCoords;
+  ssWindowCoords << window[0] << " " << window[1];
+  labelValueMap["Window"] = ssWindowCoords.str();
 
   // Go through our draw levels. For each one, get the Layer.
   map<int,int>::iterator tLevelLayerID;
