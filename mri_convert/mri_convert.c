@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: ch $
-// Revision Date  : $Date: 2005/01/06 01:39:03 $
-// Revision       : $Revision: 1.100 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/04/19 22:19:10 $
+// Revision       : $Revision: 1.101 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.100 2005/01/06 01:39:03 ch Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.101 2005/04/19 22:19:10 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1516,6 +1516,8 @@ int main(int argc, char *argv[])
     else if(transform_type == MORPH_3D_TYPE)
       // this is a non-linear vox-to-vox transform
     {
+      //note that in this case trilinear interpolation is always used, and -rt
+      // option has no effect! -xh
       TRANSFORM *tran = TransformRead(transform_fname);
       if (invert_transform_flag == 0)
 	mri_transformed = GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0) ;
