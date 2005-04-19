@@ -12,8 +12,8 @@
 // C. Archambeau et al Flexible and Robust Bayesian Classification by Finite Mixture Models, ESANN'2004
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/03/21 18:04:01 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2005/04/19 22:37:01 $
+// Revision       : $Revision: 1.5 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -185,7 +185,7 @@ main(int argc, char *argv[])
   int indexmap[MAX_CLASSES + 1];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.4 2005/03/21 18:04:01 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.5 2005/04/19 22:37:01 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -407,7 +407,21 @@ main(int argc, char *argv[])
   }    
 
   /* Initialize by performing EM on first volume */
+#if 0 
   MRIvalRange(mri_flash[0], &min_val, &max_val);
+#else
+  min_val = 1e10; max_val = -1e10;
+  for(z=0; z < depth; z++)
+    for(y=0; y< height; y++)
+      for(x=0; x < width; x++)
+	{
+	  if(MRIvox(mri_mask, x, y, z) <= 0) continue;
+	  value = MRIFvox(mri_flash[0],x,y,z);
+	  if(min_val > value) min_val = value;
+	  if(max_val < value) max_val = value;
+	}
+#endif
+  
   for(i=0; i < num_classes; i++){
     centroids1D[i] = min_val + (i+1.0)*(max_val - min_val)/(1.0 + num_classes);
   }

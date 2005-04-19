@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/04/19 22:37:01 $
-// Revision       : $Revision: 1.68 $
+// Revision Date  : $Date: 2005/04/19 22:37:32 $
+// Revision       : $Revision: 1.69 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -2440,7 +2440,7 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
   }
   
   if(mri_morphed){ 
-    MRIfree(mri_morphed);
+    MRIfree(&mri_morphed);
     mri_morphed = NULL;
   }
 

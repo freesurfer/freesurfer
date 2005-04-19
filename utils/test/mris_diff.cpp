@@ -50,7 +50,7 @@ void jacobi(float **a, int n, float *d, float** v,int * nrot);
 void ludcmp(double** a,int n,int* indx,double* d);
 void lubksb(double** a,int n,int* indx,double* b);
 
-static char vcid[] = "$Id: mris_diff.cpp,v 1.2 2005/03/21 18:04:01 xhan Exp $";
+static char vcid[] = "$Id: mris_diff.cpp,v 1.3 2005/04/19 22:37:01 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -96,6 +96,12 @@ void FindClosest(MRI_SURFACE *TrueMesh, ANNkd_tree *annkdTree, MRI_SURFACE *EstM
 
 void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2);
 
+/* the following two are used when applying a lta transform to the surface */
+MRI          *mri = 0;
+MRI          *mri_dst = 0;
+static int invert = 0 ;
+static char *xform_fname = NULL;
+
 using namespace std;
 
 
@@ -122,8 +128,11 @@ int main(int argc, char *argv[])
   MRI *mri_label = NULL;
   MRI *mri_map = NULL;
 
+  LTA          *lta = 0;
+  int          transform_type;
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.2 2005/03/21 18:04:01 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.3 2005/04/19 22:37:01 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -231,12 +240,101 @@ int main(int argc, char *argv[])
     printf("Data%d at vertex %d has value %g\n",1, debugvtx, 	MRIFseq_vox(SrcVal1, debugvtx, 0, 0, 0));
   }
 
+  if(register_flag && (xform_fname != NULL)){
+    printf("A LTA is specified, so only apply the LTA, and no ICP will be computed\n");
+    register_flag = 0;
+  }
+
   if(register_flag){
     printf("Register surface 2 to surface 1 (rigid mapping using ICP)\n");
     register2to1(Surf1, Surf2);
   }
 
 
+  if(xform_fname != NULL){
+    printf("Apply the given LTA xfrom to align input surface 1 to surface 2 \n ...");
+    // read transform
+    transform_type =  TransformFileNameType(xform_fname);
+    
+    if(transform_type == MNI_TRANSFORM_TYPE || 
+       transform_type == TRANSFORM_ARRAY_TYPE ||
+       transform_type == REGISTER_DAT ||
+       transform_type == FSLREG_TYPE
+       ){
+      printf("Reading transform ...\n");
+      lta = LTAreadEx(xform_fname) ;
+      if (!lta)
+	ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
+		  Progname, xform_fname) ;
+      
+      if (transform_type == FSLREG_TYPE){
+	if(mri == 0 || mri_dst == 0){
+	  fprintf(stderr, "ERROR: fslmat does not have information on the src and dst volumes\n");
+	  fprintf(stderr, "ERROR: you must give options '-src' and '-dst' to specify the src and dst volume infos\n");
+	}
+	
+	
+	LTAmodifySrcDstGeom(lta, mri, mri_dst); // add src and dst information
+	LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+      }
+      
+      if (lta->xforms[0].src.valid == 0){
+	if(mri == 0){
+	  fprintf(stderr, "The transform does not have the valid src volume info.\n");
+	  fprintf(stderr, "Either you give src volume info by option --src or\n");
+	  fprintf(stderr, "make the transform to have the valid src info.\n");
+	  ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
+	}else{
+	  LTAmodifySrcDstGeom(lta, mri, NULL); // add src information
+	  //	  getVolGeom(mri, &lt->src);
+	}
+      }
+      if (lta->xforms[0].dst.valid == 0){
+	if(mri_dst == 0){
+	  fprintf(stderr, "The transform does not have the valid dst volume info.\n");
+	  fprintf(stderr, "Either you give src volume info by option --dst or\n");
+	  fprintf(stderr, "make the transform to have the valid dst info.\n");
+	  fprintf(stderr, "If the dst was average_305, then you can set\n");
+	  fprintf(stderr, "environmental variable USE_AVERAGE305 true\n");
+	  fprintf(stderr, "without giving the dst volume for RAS-to-RAS transform.\n");
+	  ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
+	}else{
+	  LTAmodifySrcDstGeom(lta, NULL, mri_dst); // add  dst information
+	}
+      }
+    }
+    else{
+      ErrorExit(ERROR_BADPARM, "transform is not of MNI, nor Register.dat, nor FSLMAT type");
+    }
+    
+    if (invert){
+      VOL_GEOM vgtmp;
+      LT *lt;
+      MATRIX *m_tmp = lta->xforms[0].m_L ;
+      lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
+      MatrixFree(&m_tmp) ;
+      lt = &lta->xforms[0];
+      if (lt->dst.valid == 0 || lt->src.valid == 0){
+	fprintf(stderr, "WARNING:***************************************************************\n");
+	fprintf(stderr, "WARNING:dst volume infor is invalid.  Most likely produce wrong inverse.\n");
+	fprintf(stderr, "WARNING:***************************************************************\n");
+      }
+      copyVolGeom(&lt->dst, &vgtmp);
+      copyVolGeom(&lt->src, &lt->dst);
+      copyVolGeom(&vgtmp, &lt->src);
+    }
+    
+    MRIStransform(Surf1, mri, lta, mri_dst) ;
+    
+    if (mri)
+      MRIfree(&mri);
+    if (mri_dst)
+      MRIfree(&mri_dst);
+    
+    if(lta)
+      LTAfree(&lta);
+  }   /* if (xform_fname != NULL) */
+  
   if(label_fname != NULL){
     mri_label = MRIread(label_fname);
     
@@ -459,6 +557,10 @@ static void print_usage(void)
   fprintf(stdout, "   -out  %%s output file name\n");
   fprintf(stdout, "   -nsmooth %%d number of smoothing steps\n");
   fprintf(stdout, "   -register  Force a rigid registration of surface2 to surface1\n");
+  fprintf(stdout, "   -xform %%s apply LTA transform to align input surface1 to  surface2\n");
+  fprintf(stdout, "   -invert  reversely apply -xform \n");
+  fprintf(stdout, "   -src %%s  source volume for -xform \n");
+  fprintf(stdout, "   -dst %%s  target volume for -xform \n");
   fprintf(stdout, "\n");
   printf("%s\n", vcid) ;
   printf("\n");
@@ -476,13 +578,13 @@ static void print_help(void)
 "OPTIONS\n"
 "\n"
 "  -src_type typestring\n"
-"\n"
 "    Format type string. Can be either curv (for FreeSurfer curvature file), \n"
-"    paint or w (for FreeSurfer paint files)."
+"    paint or w (for FreeSurfer paint files).\n"
 "\n"
 "  -trg_type typestring\n"
 "\n"
-"    Format type string. Can be paint or w (for FreeSurfer paint files)."
+"    Format type string. Can be paint or w (for FreeSurfer paint files).\n"
+"\n"
 "  -out filename\n"
 "\n"
 "  Output the difference to the paint file, note the # of entries is same as VN of surface1."
@@ -492,8 +594,13 @@ static void print_help(void)
 "  perform # of iterations (smoothing) before computing the difference."
 "\n"
 "  -register\n"
-"\n"
+"\n" 
 "  Perform ICP rigid registration before computing closet-vertex difference."
+"\n"
+"  -xform %%s apply LTA transform to align surface1 to surface2\n"
+"   -invert  reversely apply -xform \n"
+"   -src %%s  source volume for -xform \n"
+"   -dst %%s  target volume for -xform \n"
 "\n");
 
 
@@ -535,6 +642,33 @@ get_option(int argc, char *argv[])
       register_flag = 1;
       printf("Do a rigid alignment of two surfaces before mapping to each other\n");
     }
+ else if (!stricmp(option, "xform")){
+    xform_fname = argv[2];
+    nargs = 1;
+    fprintf(stderr, "transform file name is %s\n", xform_fname);
+  }
+  else if (!stricmp(option, "invert")){
+    invert = 1;
+    fprintf(stderr, "Inversely apply the given LTA transform\n");
+  }
+  else if (!stricmp(option, "src")){
+      fprintf(stderr, "src volume for the given transform (given by -xform) is %s\n",argv[2]); 
+    fprintf(stderr, "Reading the src volume...\n");
+    mri = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
+    if (!mri){
+      ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
+    }
+    nargs = 1;
+    }
+  else if (!stricmp(option, "dst")){
+      fprintf(stderr, "dst volume for the transform (given by -xform) is %s\n",argv[2]); 
+      fprintf(stderr, "Reading the dst volume...\n");
+      mri_dst = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
+      if (!mri_dst){
+	ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
+      }
+      nargs = 1;
+  }
   else if (!stricmp(option, "out") || 
 	   !stricmp(option, "out_file") ||
 	   !stricmp(option, "out_name"))
