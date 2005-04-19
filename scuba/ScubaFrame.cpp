@@ -682,8 +682,6 @@ ScubaFrame::DoMouseMoved( int iWindow[2], InputState& iInput ) {
 
   int nRow, nCol;
   
-  //  cerr << "ScubaFrame window: " << iWindow[0] << " " << iWindow[1] << endl;
-
   View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
   if( NULL != view ) {
     int viewCoords[2];

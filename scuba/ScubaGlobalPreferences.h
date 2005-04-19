@@ -24,7 +24,7 @@ class ScubaGlobalPreferences : public TclCommandListener, public Broadcaster {
 		 KeyMouseButtonOne, KeyMouseButtonTwo, KeyMouseButtonThree,
 		 DrawCoordinateOverlay, DrawPlaneIntersections, DrawMarkers,
 		 DrawPaths, SelectedTool, LockOnCursor,
-		 ShowFPS };
+		 ShowFPS, UserStructureList };
 
   // Gets the static reference to this class.
   static ScubaGlobalPreferences& GetPreferences();

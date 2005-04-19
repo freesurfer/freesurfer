@@ -73,7 +73,8 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( KeyZoomViewOut ) ||
 	sKey == GetStringForKey( ShowFPS ) ||
 	sKey == GetStringForKey( SelectedTool ) ||
-	sKey == GetStringForKey( LockOnCursor )
+	sKey == GetStringForKey( LockOnCursor ) ||
+	sKey == GetStringForKey( UserStructureList )
 	) {
       
       PreferencesManager& prefsMgr = PreferencesManager::GetManager();
@@ -130,7 +131,8 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	       sKey == GetStringForKey( KeyMouseButtonOne ) ||
 	       sKey == GetStringForKey( KeyMouseButtonTwo ) ||
 	       sKey == GetStringForKey( KeyMouseButtonThree ) ||
-	       sKey == GetStringForKey( SelectedTool ) ) {
+	       sKey == GetStringForKey( SelectedTool ) ||
+	       sKey == GetStringForKey( UserStructureList ) ) {
 
       string sValue = iasArgv[2];
 
@@ -197,7 +199,8 @@ ScubaGlobalPreferences::SetPreferencesValue ( PrefKey iKey, string isValue ) {
       iKey == KeyMoveViewOut ||
       iKey == KeyZoomViewIn ||
       iKey == KeyZoomViewOut ||
-      iKey == SelectedTool ) {
+      iKey == SelectedTool ||
+      iKey == UserStructureList ) {
   
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     PreferencesManager::StringPrefValue value( isValue );
@@ -257,7 +260,8 @@ ScubaGlobalPreferences::GetPrefAsString ( PrefKey iKey ) {
       iKey == KeyMoveViewOut ||
       iKey == KeyZoomViewIn ||
       iKey == KeyZoomViewOut ||
-      iKey == SelectedTool ) {
+      iKey == SelectedTool ||
+      iKey == UserStructureList ) {
   
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     string sValue = prefsMgr.GetValue( GetStringForKey( iKey ) );
@@ -299,6 +303,7 @@ ScubaGlobalPreferences::GetStringForKey ( PrefKey iKey ) {
   case KeyZoomViewIn:              return "KeyZoomViewIn";               break;
   case KeyZoomViewOut:             return "KeyZoomViewOut";              break;
   case SelectedTool:               return "SelectedTool";                break;
+  case UserStructureList:          return "UserStructureList";           break;
   case LockOnCursor:               return "LockOnCursor";                break;
   case ShowFPS:                    return "ShowFPS";                     break;
   default:
@@ -436,6 +441,11 @@ ScubaGlobalPreferences::ReadPreferences () {
   prefsMgr.RegisterValue( "SelectedTool", 
 			  "The selected tool.",
 			  selectedTool );
+
+  PreferencesManager::StringPrefValue userStructureList( "{}" );
+  prefsMgr.RegisterValue( "UserStructureList", 
+			  "The user's preferred structure list for editing.",
+			  userStructureList );
 
   PreferencesManager::IntPrefValue lockOnCursor( false );
   prefsMgr.RegisterValue( "LockOnCursor", 

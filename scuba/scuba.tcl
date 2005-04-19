@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.98 2005/04/19 21:22:36 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.99 2005/04/19 22:24:37 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1117,6 +1117,7 @@ proc GotoCoordsInputCallback {} {
 
 proc GetPreferences {} {
     global gaPrefs
+    global gaTool
 
     foreach sKey {
 	KeyInPlaneX
@@ -1140,10 +1141,17 @@ proc GetPreferences {} {
     } {
 	set gaPrefs($sKey) [GetPreferencesValue $sKey]
     }
+
+    # Ready the user structure list.
+    set lUserStructureList [GetPreferencesValue UserStructureList]
+    foreach {nStructure count} $lUserStructureList {
+	set gaTool(structureListOrder,count,$nStructure) $count
+    }
 }
 
 proc SetPreferences {} {
     global gaPrefs
+    global gaTool
 
     foreach sKey {
 	KeyInPlaneX
@@ -1166,6 +1174,18 @@ proc SetPreferences {} {
     } {
 	SetPreferencesValue $sKey $gaPrefs($sKey)
     }
+
+    # Write the user structure list.
+    set lUserStructureList {}
+    set cStructures [GetColorLUTNumberOfEntries $gaTool(current,voxelLutID)]
+    for { set nStructure 0 } { $nStructure < $cStructures } { incr nStructure } {
+	if { [info exists gaTool(structureListOrder,count,$nStructure)] } {
+	    set lUserStructureList \
+		[lappend lUserStructureList $nStructure $gaTool(structureListOrder,count,$nStructure)]
+	}
+    }
+    SetPreferencesValue UserStructureList \"$lUserStructureList\"
+
 }
 
 proc Quit {} {
@@ -4973,7 +4993,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.98 2005/04/19 21:22:36 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.99 2005/04/19 22:24:37 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
