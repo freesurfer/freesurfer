@@ -155,7 +155,7 @@
 209  CA4				 196	160	128	0
 210 GC-DG			 255	128	255	0
 211 HATA				 128	255	128	0
-212 molecular_layer_subiculum	 0	0	0	0
+212 fimbria   	 128 128 128	0
 213 lateral_ventricle		 255	0	255	0
 214 molecular_layer_HP            128    0       0       0
 215 hippocampal_fissure           64	255	196	0
