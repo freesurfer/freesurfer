@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/04/03 02:26:50 $
-// Revision       : $Revision: 1.67 $
+// Revision Date  : $Date: 2005/04/19 22:37:01 $
+// Revision       : $Revision: 1.68 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -2438,56 +2438,74 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
   {
     start_frame = 0 ; end_frame = mri_src->nframes-1 ;
   }
+  
+  if(mri_morphed){ 
+    MRIfree(mri_morphed);
+    mri_morphed = NULL;
+  }
 
-  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  //the following has bug! Since in the end, will copy atlas geometry to mri_morphed!!
+  // so mri_morphed should always be NULL!!
+  // width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
 
   // GCAM is a non-linear voxel-to-voxel transform
   // it also assumes that the uniform voxel size
-  if (mri_morphed)
-  {
-    if ( (mri_src->xsize != mri_src->ysize)
-         || (mri_src->xsize != mri_src->zsize)
-         || (mri_src->ysize != mri_src->zsize))
+  //  if (mri_morphed) //why only check this if mri_morphed != NULL??? -xh
+  //{
+#if 0
+  if ( (!FZERO(mri_src->xsize - mri_src->ysize))
+       || (!FZERO(mri_src->xsize - mri_src->zsize))
+       || (!FZERO(mri_src->ysize - mri_src->zsize)))
     {
       ErrorExit(ERROR_BADPARM, "non-uniform volumes cannot be used for GCAMmorphToAtlas()\n");
     }
-  }
+  // }
+#endif
+  
+  width = gcam->atlas.width;
+  height = gcam->atlas.height;
+  depth = gcam->atlas.depth;
   if (!mri_morphed)
   {
     mri_morphed = MRIallocSequence(width, height, depth, mri_src->type, frame < 0 ? mri_src->nframes : 1) ;
-    MRIcopyHeader(mri_src, mri_morphed) ;
+    //MRIcopyHeader(mri_src, mri_morphed) ;
+    useVolGeomToMRI(&gcam->atlas, mri_morphed);
   }
-
+  
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
     {
       for (z = 0 ; z < depth ; z++)
       {
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
-
-				if (!GCAMsampleMorph(gcam, (float)x*mri_src->thick, 
-														 (float)y*mri_src->thick, (float)z*mri_src->thick, 
-														 &xd, &yd, &zd))
-				{
-					xd /= mri_src->thick ; yd /= mri_src->thick ; zd /= mri_src->thick ; 
-					for (frame = start_frame ; frame <= end_frame ; frame++)
-					{
-						if (xd > -1 && yd > -1 && zd > 0 &&
-								xd < width && yd < height && zd < depth)
-							MRIsampleVolumeFrameType(mri_src, xd, yd, zd, frame, SAMPLE_TRILINEAR, &val) ;
-						else
-							val = 0.0 ;
-						MRIsetVoxVal(mri_morphed, x, y, z, frame-start_frame, val) ;
-					}
-				}
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	//not sure whether the following scaling should be done or not!
+	// but most likely the atlas has unit sized voxel
+	if (!GCAMsampleMorph(gcam, (float)x*mri_morphed->xsize, 
+	      (float)y*mri_morphed->ysize, (float)z*mri_morphed->zsize, 
+	      &xd, &yd, &zd))
+	  {
+	    //not sure whether the following scaling should be done or not!
+	    //seems should!
+	    xd /= mri_src->thick ; yd /= mri_src->thick ; zd /= mri_src->thick ; 
+	    for (frame = start_frame ; frame <= end_frame ; frame++)
+	    {
+		if (xd > -1 && yd > -1 && zd > 0 &&
+		    xd < mri_src->width && yd < mri_src->height && zd < mri_src->depth)
+		  MRIsampleVolumeFrameType(mri_src, xd, yd, zd, frame, SAMPLE_TRILINEAR, &val) ;
+		else
+		  val = 0.0 ;
+		MRIsetVoxVal(mri_morphed, x, y, z, frame-start_frame, val) ;
+	      }
+	  }
       }
     }
   }
 
   // copy the gcam dst information to the morphed volume
-  useVolGeomToMRI(&gcam->atlas, mri_morphed);
+  //This should be done earlier -xh otherwise it will creat bugs!
+  //  useVolGeomToMRI(&gcam->atlas, mri_morphed);
 
   return(mri_morphed) ;
 }
