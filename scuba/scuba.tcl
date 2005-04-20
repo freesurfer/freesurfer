@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.99 2005/04/19 22:24:37 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.100 2005/04/20 23:22:39 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -510,6 +510,7 @@ proc MakeMenuBar { ifwTop } {
 
     tkuMakeMenu -menu $gaMenu(tools) -label "Tools" -items {
 	{command "Histogram Fill..." { MakeHistogramFillWindow } }
+	{command "Volume Info..." { DoVolumeInfoWindow } }
     }
 
     pack $gaMenu(tools) -side left
@@ -4993,7 +4994,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.99 2005/04/19 22:24:37 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.100 2005/04/20 23:22:39 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5324,6 +5325,78 @@ proc DoHistogramLabel { iSourceVol iROIID iDestVol iValueRanges } {
     
     # Finish it up. (This actually performs the fill in c code.)
     EndValueRangeFillInView $gaView(current,id)
+}
+
+proc DoVolumeInfoWindow {} {
+    global gaDialog
+    global gaCollection
+    global gaWidget
+
+    set wwDialog .volumeInfo
+    if { [tkuCreateDialog $wwDialog "Volume Info" {-borderwidth 10}] } {
+
+	set fwVolume  $wwDialog.fwVolume
+	set fwInfo    $wwDialog.fwInfo
+	set fwButtons $wwDialog.fwButtons
+
+	frame $fwVolume
+	set owVolume $fwVolume.owVolume
+
+	tixOptionMenu $owVolume \
+	    -label "Data Collection:" \
+	    -variable blah \
+	    -command { VolumeInfoMenuCallback }
+	FillMenuFromList $owVolume \
+	    $gaCollection(idList) "GetCollectionLabel %s" {} false
+
+	pack $owVolume -fill x -expand 1
+
+
+	frame $fwInfo
+	set ewInfo $fwInfo.ewInfo
+
+	tixScrolledText $ewInfo -scrollbar y
+	set gaWidget(volumeInfoText) $ewInfo
+
+	pack $ewInfo -fill both -expand 1
+
+
+	tkuMakeCloseButton $fwButtons $wwDialog
+	
+	pack $fwVolume $fwInfo $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+
+	VolumeInfoMenuCallback 0
+    }
+}
+
+proc VolumeInfoMenuCallback { iColID } {
+    global gaWidget
+
+    [$gaWidget(volumeInfoText) subwidget text] \
+	config -wrap word -relief ridge -bd 1
+
+    [$gaWidget(volumeInfoText) subwidget text] \
+	delete 1.0 end
+
+    set fnVolume [GetVolumeCollectionFileName $iColID]
+    set sText ""
+    set err [catch {
+
+	set sText [exec mri_info $fnVolume]
+
+    } sResult]
+    if { 0 != $err } {
+	set sText $sResult
+    }
+
+    [$gaWidget(volumeInfoText) subwidget text] \
+	insert end $sText
+
 }
 
 # MAIN =============================================================
