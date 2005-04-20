@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/04/19 22:37:32 $
-// Revision       : $Revision: 1.69 $
+// Revision Date  : $Date: 2005/04/20 18:35:15 $
+// Revision       : $Revision: 1.70 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -2480,15 +2480,13 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
       {
 	if (x == Gx && y == Gy && z == Gz)
 	  DiagBreak() ;
-	//not sure whether the following scaling should be done or not!
-	// but most likely the atlas has unit sized voxel
 	if (!GCAMsampleMorph(gcam, (float)x*mri_morphed->xsize, 
 	      (float)y*mri_morphed->ysize, (float)z*mri_morphed->zsize, 
 	      &xd, &yd, &zd))
 	  {
 	    //not sure whether the following scaling should be done or not!
 	    //seems should!
-	    xd /= mri_src->thick ; yd /= mri_src->thick ; zd /= mri_src->thick ; 
+	    xd /= mri_src->xsize ; yd /= mri_src->ysize ; zd /= mri_src->zsize; 
 	    for (frame = start_frame ; frame <= end_frame ; frame++)
 	    {
 		if (xd > -1 && yd > -1 && zd > 0 &&

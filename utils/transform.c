@@ -1599,9 +1599,11 @@ TransformSample(TRANSFORM *transform, float xv, float yv, float zv, float *px, f
       zv = gcam->mri_zind->depth-1 ;
 
     xi = nint(xv) ; yi = nint(yv) ; zi = nint(zv) ;
+
     xt = nint(MRIgetVoxVal(gcam->mri_xind, xi, yi, zi, 0))*gcam->spacing ;
     yt = nint(MRIgetVoxVal(gcam->mri_yind, xi, yi, zi, 0))*gcam->spacing ;
     zt = nint(MRIgetVoxVal(gcam->mri_zind, xi, yi, zi, 0))*gcam->spacing ;
+
   }
   else
   {
