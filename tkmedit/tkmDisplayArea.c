@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/04/13 16:21:54 $
-// Revision       : $Revision: 1.114 $
+// Revision Date  : $Date: 2005/04/20 20:24:20 $
+// Revision       : $Revision: 1.115 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -7490,7 +7490,6 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 	   DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateRASCursor, sTclArguments );
 
-  
   /* also convert to mni and send those coords along. */
   if (NULL != this->mpVolume[tkm_tVolumeType_Main]->mpMriValues->linear_transform) {
     Volm_ConvertIdxToMNITal( this->mpVolume[tkm_tVolumeType_Main],
@@ -7560,12 +7559,12 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeValue, sTclArguments );
 
-  
   /* send aux volume value if it's loaded. */
   if( NULL != this->mpVolume[tkm_tVolumeType_Aux] ) 
     {
       Volm_GetValueAtMRIIdx_( this->mpVolume[tkm_tVolumeType_Aux],
 			      &MRIIdx, &fVolumeValue );
+
       switch (this->mpVolume[tkm_tVolumeType_Aux]->mpMriValues->type)
 	{
 	default:
@@ -7602,7 +7601,6 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 	}
       tkm_SendTclCommand( tkm_tTclCommand_UpdateAuxVolumeValue, sTclArguments );
     }
-  
   
   /* also see if we have functional data and can send a value for that
      as well. */     

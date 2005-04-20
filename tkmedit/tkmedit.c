@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/04/07 19:35:52 $
-// Revision       : $Revision: 1.241 $
-char *VERSION = "$Revision: 1.241 $";
+// Revision Date  : $Date: 2005/04/20 20:24:20 $
+// Revision       : $Revision: 1.242 $
+char *VERSION = "$Revision: 1.242 $";
 
 #define TCL
 #define TKMEDIT 
@@ -134,7 +134,9 @@ char *tkm_ksaErrorStrings [tkm_knNumErrorCodes] = {
   "GCA volume is not loaded.",
   "Segmentation data is not loaded.",
   "The FA and EV volumes are different sizes.",
+  "The aux volume must be the same size as the main volume.",
   "Couldn't cache the script name.",
+  "Invalid script name.",
   "gettimeofday failed.",
   "Unrecoverable error from an inner function."
 };
@@ -1074,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.241 2005/04/07 19:35:52 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.242 2005/04/20 20:24:20 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5204,7 +5206,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.241 2005/04/07 19:35:52 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.242 2005/04/20 20:24:20 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7471,6 +7473,8 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   Volm_tResampleMethod resampleMethod       = Volm_tResampleMethod_RAS;
   float                fBrightness          = Volm_kfDefaultBrightness;
   float                fContrast            = Volm_kfDefaultContrast;
+  int                  mainDimensions[3]    = {0, 0, 0};
+  int                  auxDimensions[3]     = {0, 0, 0};
 
   DebugEnterFunction( ("LoadVolume( iType=%d,  isName=%s )", 
            (int)iType, isName) );
@@ -7498,6 +7502,21 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_CouldntReadVolume );
   
+  /* If this is the aux volume, make sure it is the same size as the
+     main volume. */
+  if( tkm_tVolumeType_Aux == iType ) {
+    Volm_GetDimensions( gAnatomicalVolume[tkm_tVolumeType_Main],
+			&mainDimensions[0], &mainDimensions[1], 
+			&mainDimensions[2] );
+    Volm_GetDimensions( gAnatomicalVolume[tkm_tVolumeType_Aux],
+			&auxDimensions[0], &auxDimensions[1], 
+			&auxDimensions[2] );
+    DebugAssertThrowX( (mainDimensions[0] == auxDimensions[0] &&
+			mainDimensions[1] == auxDimensions[1] &&
+			mainDimensions[2] == auxDimensions[2]),
+		       eResult, tkm_tErr_MainAuxVolumesDifferentSize );
+  }
+
   if( gbScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( newVolume );
     Volm_GetIdxToRASTransform( newVolume,
@@ -7645,7 +7664,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
         "Tkmedit couldn't read the volume you specified. "
         "This could be because the image format wasn't "
         "recognized, or it couldn't find the proper header, "
-        "or the file(s) were unreadable." );
+        "or the file(s) were unreadable, or it was the wrong size." );
   
   EndDebugCatch;
   
