@@ -3,7 +3,6 @@
 
 set ECHO=
 
-
 # Set up directories.
 ######################################################################
 if(! $?BUILD_DIR) then
@@ -27,8 +26,9 @@ echo "`hostname -s` build" >& $OUTPUTF
 set BEGIN_TIME=`date`
 echo $BEGIN_TIME >>& $OUTPUTF
 
-set TIME_STAMP=${BEGIN_TIME[6]}_${BEGIN_TIME[2]}${BEGIN_TIME[3]}
-
+set TIME_STAMP=`date +%Y%m%d`
+set PLATFORM=`cat /usr/local/freesurfer/PLATFORM`
+set OS=`uname -s`
 
 # Sanity checks
 ######################################################################
@@ -80,14 +80,30 @@ echo "" >>& $OUTPUTF
 # Do the build.
 ######################################################################
 
-# Go to dev directory, update code, and build.
+# Go to dev directory, update code, and check the result. If there are lines
+# starting with "U " or "P " then we had some changes, so go through
+# with the build. If not, quit now.
 echo "##########################################################" >>& $OUTPUTF
 echo "Updating dev" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 $ECHO echo "CMD: cd $DEV_DIR" >>& $OUTPUTF
 $ECHO cd $DEV_DIR >>& $OUTPUTF
-$ECHO echo "CMD: cvs update -d" >>& $OUTPUTF
-$ECHO cvs update -d >>& $OUTPUTF
+$ECHO echo "CMD: cvs update -d \>\& /tmp/update-output" >>& $OUTPUTF
+$ECHO cvs update -d >& /tmp/update-output
+
+$ECHO echo "CMD: grep -e ^\[UP\]\  /tmp/update-output" >>& $OUTPUTF
+$ECHO grep -e ^\[UP\]\  /tmp/update-output >& /dev/null
+if ($status != 0) then
+  echo "Nothing changed in repository, SKIPPED building" >>& $OUTPUTF
+  goto done
+endif
+
+$ECHO echo "CMD: cat /tmp/update-output \>\>\& $OUTPUTF" >>& $OUTPUTF
+$ECHO cat /tmp/update-output >>& $OUTPUTF
+$ECHO echo "CMD: rm -f /tmp/update-output" >>& $OUTPUTF
+$ECHO rm -f /tmp/update-output
+
+
 
 echo "##########################################################" >>& $OUTPUTF
 echo "Freshening Makefiles" >>& $OUTPUTF
@@ -123,6 +139,9 @@ if ($status != 0) then
   exit 1  
 endif
 
+
+done:
+
 echo "##########################################################" >>& $OUTPUTF
 echo "Done." >>& $OUTPUTF
 set END_TIME=`date`
@@ -133,7 +152,7 @@ echo $END_TIME >>& $OUTPUTF
 
 # Move log file to stamped version.
 $ECHO mv $OUTPUTF ${LOG_DIR}/build_log-dev-`hostname -s`-$TIME_STAMP.txt
-$ECHO gzip ${LOG_DIR}/build_log-dev-`hostname -s`-$TIME_STAMP.txt
+$ECHO gzip -f ${LOG_DIR}/build_log-dev-`hostname -s`-$TIME_STAMP.txt
 
 # Send email.
 echo "Begin ${BEGIN_TIME}, end ${END_TIME}" >& /tmp/message.txt
