@@ -4,14 +4,16 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-dev-env
 #
-# $Id: nmr-dev-env,v 1.5 2005/04/13 22:01:19 kteich Exp $
+# $Id: nmr-dev-env,v 1.6 2005/04/22 21:37:15 kteich Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
 #############################################################################
 
-set NSE_VERSION = '$Id: nmr-dev-env,v 1.5 2005/04/13 22:01:19 kteich Exp $';
-echo $NSE_VERSION
+set NSE_VERSION = '$Id: nmr-dev-env,v 1.6 2005/04/22 21:37:15 kteich Exp $';
+if( $?FS_FREESURFERENV_NO_OUTPUT ) then
+  echo $NSE_VERSION
+endif
 
 ## Turn on verboseness if desired ##
 if($?NMR_DEV_VERBOSE) then
@@ -19,7 +21,7 @@ if($?NMR_DEV_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-dev-env,v 1.5 2005/04/13 22:01:19 kteich Exp $';
+set VERSION = '$Id: nmr-dev-env,v 1.6 2005/04/22 21:37:15 kteich Exp $';
 
 
 
