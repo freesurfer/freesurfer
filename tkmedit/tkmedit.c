@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/04/20 20:24:20 $
-// Revision       : $Revision: 1.242 $
-char *VERSION = "$Revision: 1.242 $";
+// Revision Date  : $Date: 2005/04/22 19:21:06 $
+// Revision       : $Revision: 1.243 $
+char *VERSION = "$Revision: 1.243 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1076,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.242 2005/04/20 20:24:20 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.243 2005/04/22 19:21:06 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5206,7 +5206,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.242 2005/04/20 20:24:20 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.243 2005/04/22 19:21:06 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7508,7 +7508,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
     Volm_GetDimensions( gAnatomicalVolume[tkm_tVolumeType_Main],
 			&mainDimensions[0], &mainDimensions[1], 
 			&mainDimensions[2] );
-    Volm_GetDimensions( gAnatomicalVolume[tkm_tVolumeType_Aux],
+    Volm_GetDimensions( newVolume,
 			&auxDimensions[0], &auxDimensions[1], 
 			&auxDimensions[2] );
     DebugAssertThrowX( (mainDimensions[0] == auxDimensions[0] &&
