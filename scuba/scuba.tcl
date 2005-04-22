@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.100 2005/04/20 23:22:39 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.101 2005/04/22 15:37:07 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -885,14 +885,9 @@ proc ScubaMouseMotionCallback { inX inY iState iButton } {
 	}
     }
 
+    # Update the mouse area.
     set err [catch { 
 	set viewID [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
-    } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
-
-    set err [catch { 
-	set labelValues [GetLabelValuesSet $viewID cursor]
-	UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
@@ -941,7 +936,21 @@ proc ScubaMouseDownCallback { inX inY iState iButton } {
 proc ScubaMouseUpCallback { inX inY iState iButton } {
     dputs "ScubaMouseUpCallback  $inX $inY $iState $iButton  "
 
+    global gaWidget
+
     UpdateUndoMenuItem
+
+    # Update the cursor area.
+    set err [catch { 
+	set viewID [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+    set err [catch { 
+	set labelValues [GetLabelValuesSet $viewID cursor] 
+	UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
 }
 
 proc ScubaKeyUpCallback { inX inY iState iKey } {
@@ -4994,7 +5003,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.100 2005/04/20 23:22:39 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.101 2005/04/22 15:37:07 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
