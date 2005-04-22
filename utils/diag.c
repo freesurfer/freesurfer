@@ -30,6 +30,7 @@
                     GLOBAL VARIABLES
 -------------------------------------------------------*/
 
+int Gprofile = 0 ;
 int Gvx = -1 ;
 int Gvy = -1 ;
 int Gvz = -1 ;
@@ -111,6 +112,12 @@ DiagInit(char *fname,
   if (cp)
     Gvz = atoi(cp) ;
   
+  cp = getenv("PROFILE") ;
+  if (cp)
+	{
+    Gprofile = atof(cp) ;
+		printf("turning profiling diagnostics on (%d)...\n", Gprofile) ;
+	}
   cp = getenv("diag") ;
   if (!cp) cp = getenv("DIAG") ;
   if (cp)
