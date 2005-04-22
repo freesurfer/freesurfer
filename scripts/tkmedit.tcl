@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.85 2005/04/08 18:27:47 kteich Exp $
+# $Id: tkmedit.tcl,v 1.86 2005/04/22 19:57:33 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -75,7 +75,7 @@ set glDisplayFlag { \
   flag_UndoVolume \
   flag_Axes \
   flag_MaxIntProj \
-  flag_HeadPoints \ 
+  flag_HeadPoints \
   flag_VerboseGCADump
 }
 set nFlagIndex 1
@@ -2270,56 +2270,6 @@ proc DoVolumeColorScaleInfoDlog { } {
 }
 
 
-proc OLDDoVolumeColorScaleInfoDlogOLD { } {
-
-    global gDialog
-    global gVolume
-
-    set wwDialog .wwVolumeColorScaleInfoDlog
-
-    # try to create the dlog...
-    if { [Dialog_Create $wwDialog \
-	      "Brightness / Contrast" {-borderwidth 10}] } {
-
-	set fwSliders    $wwDialog.fwSliders
-	set fwButtons    $wwDialog.fwButtons
-	
-	# brightness and contrast for main and aux sliders
-	tkm_MakeSliders $fwSliders [list \
-		[list {"Brightness"} gVolume(0,colorScale,brightness) \
-		     1 0 100 "SendVolumeColorScale" 1 0.01] \
-		[list {"Contrast"} gVolume(0,colorScale,contrast) \
-		     0 30 100 "SendVolumeColorScale" 1] \
-		[list {"Min"} gVolume(0,colorScale,min) \
-		     $gVolume(0,minValue) $gVolume(0,maxValue) \
-		     100 "SendVolumeColorScale" 1] \
-		[list {"Max"} gVolume(0,colorScale,max) \
-		     $gVolume(0,minValue) $gVolume(0,maxValue) \
-		     100 "SendVolumeColorScale" 1] \
-					\
-	        [list {"Aux Brightness"} gVolume(1,colorScale,brightness) \
-		     1 0 100 "SendVolumeColorScale" 1 0.01] \
-		[list {"Aux Contrast"} gVolume(1,colorScale,contrast)  \
-		     0 30 100 "SendVolumeColorScale" 1] \
-	        [list {"Aux Min"} gVolume(1,colorScale,min)  \
-		     $gVolume(1,minValue) $gVolume(1,maxValue) \
-		     100 "SendVolumeColorScale" 1] \
-		[list {"Aux Max"} gVolume(1,colorScale,max) \
-		     $gVolume(1,minValue) $gVolume(1,maxValue) \
-		     100 "SendVolumeColorScale" 1 ] ]
-	
-	# buttons
-	tkm_MakeCloseButton $fwButtons $wwDialog
-	
-	pack $fwSliders $fwButtons  \
-	    -side top    \
-	    -expand yes     \
-	    -fill x         \
-	    -padx 5         \
-	    -pady 5
-    }
-}
-
 proc DoThresholdDlog {} {
 
     global gDialog
@@ -4165,7 +4115,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { check
 		"Verbose GCA Display"
 		"SendDisplayFlagValue flag_VerboseGCADump"
-		gbDisplayFlag(flag_VerboseGCADump)
+		gbDisplayFlag(flag_VerboseGCADump) 
 		tMenuGroup_GCAOptions }
 	}}
 	{ cascade "Head Points" {
