@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/01/19 14:59:47 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2005/04/22 20:45:51 $
+// Revision       : $Revision: 1.2 $
 //
 
 #include <stdio.h>
@@ -32,6 +32,9 @@ static int get_option(int argc, char *argv[]) ;
 static int MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label) ;
 static int neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label);
 static int edit_segmentation(MRI *mri_im, MRI *mri_seg) ;
+static int distance_to_label(MRI *mri_labeled, int label, int x,  
+														 int y, int z, int dx, int dy, 
+                             int dz, int max_dist) ;
 
 
 char *Progname ;
@@ -106,6 +109,14 @@ get_option(int argc, char *argv[])
 		printf("%sfilling ventricles\n", fillven ? "not " : "") ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "debug_voxel"))
+  {
+		Gx = atoi(argv[2]) ;
+		Gy = atoi(argv[3]) ;
+		Gz = atoi(argv[4]) ;
+		printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+    nargs = 3 ;
+  }
   else switch (toupper(*option))
   {
   case '?':
@@ -128,15 +139,14 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s <input wm volume> <aseg volume> <output wm volume> "
-         "<output volume>\n", 
+  printf("usage: %s <input wm volume> <aseg volume> <output wm volume>\n", 
          Progname) ;
   exit(code) ;
 }
 static int
 edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 {
-  int   width, height, depth, x, y, z, label, non, noff, xi, yi, zi,  xk, yk, zk, nchanged, wsize ;
+  int   width, height, depth, x, y, z, label, non, noff, xi, yi, zi,  xk, yk, zk, nchanged, wsize, hlabel ;
   MRI   *mri_filled ;
 
   mri_filled =  MRIclone(mri_wm,  NULL);
@@ -203,6 +213,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
               (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0) &&
               (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
           {
+						if (x == Gx && y == Gy && z == Gz)  
+							DiagBreak() ;
             MRIvox(mri_wm, x, y, z) = 255 ;
             MRIvox(mri_filled, x, y, z) = 255 ;
             non++ ;  
@@ -214,10 +226,15 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 						break ;
         case Left_Inf_Lat_Vent:
         case Right_Inf_Lat_Vent:
+					hlabel = ((label == Left_Lateral_Ventricle) || (label == Left_Inf_Lat_Vent)) ? Left_Hippocampus : Right_Hippocampus ;
+					if (distance_to_label(mri_seg, hlabel, x, y, z, 0, 1, 0, 10) < 10)
+						continue ;  // don't fill ventricular voxels superior to hippo
           if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
               (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0) &&
               (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
           {
+						if (x == Gx && y == Gy && z == Gz)  
+							DiagBreak() ;
             MRIvox(mri_wm, x, y, z) = 255 ;
             MRIvox(mri_filled, x, y, z) = 255 ;
             non++ ;  
@@ -229,6 +246,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 							 (label == Unknown))
               && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
           {
+						if (x == Gx && yi == Gy && z == Gz)  
+							DiagBreak() ;
             MRIvox(mri_wm, x, yi, z) = 255 ;
             MRIvox(mri_filled, x, yi, z) = 255 ;
             non++ ;
@@ -239,8 +258,12 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 	    
 						xi = label ==  Left_Inf_Lat_Vent ?  mri_wm->xi[x-1] :  mri_wm->xi[x+1] ;
 						olabel = MRIvox(mri_seg, xi, y, z) ;
-						if (olabel != label)  /* voxel lateral to this one is not hippocampus   */
+						/* voxel lateral to this one is not hippocampus   */
+						if (olabel != label && MRIvox(mri_wm, xi, y, z) < WM_MIN_VAL)
+								
 						{
+							if (xi == Gx && y == Gy && z == Gz)  
+								DiagBreak() ;
 							MRIvox(mri_wm, xi, y, z) = 255 ;
 							MRIvox(mri_filled, xi, y, z) = 255 ;
 							non++ ;
@@ -252,12 +275,20 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 								 (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
 								&& (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
 						{
+							if (x == Gx && yi == Gy && z == Gz)  
+								DiagBreak() ;
 							MRIvox(mri_wm, x, yi, z) = 255 ;
 							MRIvox(mri_filled, x, yi, z) = 255 ;
+							non++ ;
 							yi = mri_wm->yi[y+2] ;
-							MRIvox(mri_wm, x, yi, z) = 255 ;
-							MRIvox(mri_filled, x, yi, z) = 255 ;
-							non += 2 ;
+							if (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL)
+							{
+								if (x == Gx && yi == Gy && z == Gz)  
+									DiagBreak() ;
+								MRIvox(mri_wm, x, yi, z) = 255 ;
+								MRIvox(mri_filled, x, yi, z) = 255 ;
+								non++ ;
+							}
 						}
 					}
           break ;
@@ -267,9 +298,15 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 						int xi,  olabel ;
 	    
 						xi = label == Right_Hippocampus ?  mri_wm->xi[x-1] :  mri_wm->xi[x+1] ;
+						yi = mri_wm->yi[y+1] ;
 						olabel = MRIvox(mri_seg, xi, y, z) ;
-						if (olabel != label)  /* voxel lateral to this one is not hippocampus   */
+						/* voxel lateral to this one is not hippocampus, and not
+						 superior to hippocampus */
+						if (olabel != label && (MRIvox(mri_wm, xi, y, z) < MIN_WM_VAL) &&
+								distance_to_label(mri_seg, label, xi, y, z, 0, 1, 0, 10) >= 10)
 						{
+							if (xi == Gx && y == Gy && z == Gz)  
+								DiagBreak() ;
 							MRIvox(mri_wm, xi, y, z) = 255 ;
 							MRIvox(mri_filled, xi, y, z) = 255 ;
 							non++ ;
@@ -281,12 +318,21 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 								 (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
 								&& (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
 						{
+							if (x == Gx && yi == Gy && z == Gz)  
+								DiagBreak() ;
 							MRIvox(mri_wm, x, yi, z) = 255 ;
 							MRIvox(mri_filled, x, yi, z) = 255 ;
 							yi = mri_wm->yi[y+2] ;
-							MRIvox(mri_wm, x, yi, z) = 255 ;
-							MRIvox(mri_filled, x, yi, z) = 255 ;
-							non += 2 ;
+							non++ ;
+							if (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL)
+							{
+								if (x == Gx && yi == Gy && z == Gz)  
+									DiagBreak() ;
+								MRIvox(mri_wm, x, yi, z) = 255 ;
+								MRIvox(mri_filled, x, yi, z) = 255 ;
+
+								non++ ;
+							}
 						}
 						break ;
 					}
@@ -434,4 +480,22 @@ MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
     }
   }
   return(count) ;
+}
+static int
+distance_to_label(MRI *mri_labeled, int label, int x, int y, int z, int dx, 
+                  int dy, int dz, int max_dist)
+{
+  int   xi, yi, zi, d ;
+
+  for (d = 1 ; d <= max_dist ; d++)
+  {
+    xi = x + d * dx ; yi = y + d * dy ; zi = z + d * dz ;
+    xi = mri_labeled->xi[xi] ; 
+    yi = mri_labeled->yi[yi] ; 
+    zi = mri_labeled->zi[zi];
+    if (MRIvox(mri_labeled, xi, yi, zi) == label)
+      break ;
+  }
+
+  return(d) ;
 }
