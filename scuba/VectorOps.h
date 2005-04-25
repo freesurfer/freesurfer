@@ -31,6 +31,8 @@ class VectorOps {
 
   enum  IntersectionResult { segmentInPlane, dontIntersect,
 			     segmentParallelToPlane, intersect } ;
+  static std::string IntersectionResultToString ( IntersectionResult iR );
+
   // Tests a point and a collinear segment and returns if point is in
   // the segment. Note that the point must already be collinear with
   // the segment.

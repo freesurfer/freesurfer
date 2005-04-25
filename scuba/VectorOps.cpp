@@ -99,6 +99,7 @@ VectorOps::RadsBetweenVectors ( Point3<float>& u, Point3<float>& v ) {
 Point3<float> 
 VectorOps::Normalize ( Point3<float>& u ) {
   float length = Length(u);
+  if( 0 == length ) return u;
   return Point3<float>( u[0]/length, u[1]/length, u[2]/length );
 }
 
@@ -255,4 +256,15 @@ VectorOps::SegmentIntersectsSegment ( Point3<float>& p1, Point3<float>& p2,
   
   oIntersection = p1 + (pI * u);
   return intersect;
+}
+
+std::string 
+VectorOps::IntersectionResultToString ( IntersectionResult iR ) {
+  switch( iR ) {
+  case segmentInPlane:           return "segmentInPlane"; break;
+  case dontIntersect:            return "dontIntersect"; break;
+  case segmentParallelToPlane:   return "segmentParallelToPlane"; break;
+  case intersect:                return "intersect"; break;
+  }
+  return "unknown";
 }
