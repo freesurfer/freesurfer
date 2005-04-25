@@ -2228,63 +2228,6 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     bVisited->Set_Unsafe( index.x(), index.y(), index.z(), true );
 
 
-    // Check if this is an path or an ROI. If so, and our params say
-    // not go to here, continue.
-    if( iParams.mbStopAtPaths ) {
-      
-      // Create a line from our current point to this check
-      // point. Then see if the segment intersects the path. If so,
-      // don't proceed.
-      bool bCross = false;
-      Point3<float> x;
-      list<Path<float>*>::iterator tPath;
-      PathManager& pathMgr = PathManager::GetManager();
-      list<Path<float>*>& pathList = pathMgr.GetPathList();
-      for( tPath = pathList.begin(); tPath != pathList.end() && !bCross; ++tPath ) {
-	Path<float>* path = *tPath;
-	if( path->GetNumVertices() > 0 ) {
-
-	  int cVertices = path->GetNumVertices();
-	  for( int nCurVertex = 1; nCurVertex < cVertices && !bCross; nCurVertex++ ) {
-	    
-	    int nBackVertex = nCurVertex - 1;
-	    
-	    Point3<float>& curVertex  = path->GetVertexAtIndex( nCurVertex );
-	    Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
-
-	    Point3<float> segVector = curVertex - backVertex;
-	    Point3<float> viewNormal( iParams.mViewNormal );
-
-	    Point3<float> normal = VectorOps::Cross( segVector, viewNormal );
-
-	    VectorOps::IntersectionResult rInt =
-	      VectorOps::SegmentIntersectsPlane( sourceRAS, ras,
-						 curVertex, normal,
-						 x );
-	    if( VectorOps::intersect == rInt ) {
-
-	      // Make sure x is in the cuboid formed by curVertex and
-	      // backVertex.
-	      if( !(x[0] < MIN(curVertex[0],backVertex[0]) ||
-		    x[0] > MAX(curVertex[0],backVertex[0]) ||
-		    x[1] < MIN(curVertex[1],backVertex[1]) ||
-		    x[1] > MAX(curVertex[1],backVertex[1]) ||
-		    x[2] < MIN(curVertex[2],backVertex[2]) ||
-		    x[2] > MAX(curVertex[2],backVertex[2])) ) {
-		bCross = true;
-	      }
-	    }
-	  }
-	}
-      }
-
-      // If we crossed a path, continue.
-      if( bCross ) {
-	delete &loc;
-	delete &sourceLoc;
-	continue;
-      }
-    }
     if( iParams.mbStopAtROIs ) {
       if( iVolume.IsOtherRASSelected( ras.xyz(), iVolume.GetSelectedROI() ) ) {
 	delete &loc;
@@ -2336,6 +2279,99 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 	  continue;
 	}
       } break;
+      }
+    }
+
+    // Check if this is an path or an ROI. If so, and our params say
+    // not go to here, continue.
+    if( iParams.mbStopAtPaths ) {
+      
+      // Create a line from our current point to this check
+      // point. Then see if the segment intersects the path. If so,
+      // don't proceed.
+      bool bCross = false;
+      Point3<float> x;
+      list<Path<float>*>::iterator tPath;
+      PathManager& pathMgr = PathManager::GetManager();
+      list<Path<float>*>& pathList = pathMgr.GetPathList();
+      for( tPath = pathList.begin(); tPath != pathList.end() && !bCross; ++tPath ) {
+	Path<float>* path = *tPath;
+	if( path->GetNumVertices() > 0 ) {
+
+	  int cVertices = path->GetNumVertices();
+	  for( int nCurVertex = 1; nCurVertex < cVertices && !bCross; nCurVertex++ ) {
+	    
+	    int nBackVertex = nCurVertex - 1;
+	    
+	    // Get the two vertices.
+	    Point3<float>& curVertex  = path->GetVertexAtIndex( nCurVertex );
+	    Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
+
+	    Point3<float> viewNormal( iParams.mViewNormal );
+
+	    // Now convert everything to index coords.
+	    Point3<int> curVertexIdx, backVertexIdx, viewIdx,
+	      sourceIdx, curIdx;
+	    iVolume.RASToMRIIndex( curVertex.xyz(), curVertexIdx.xyz() );
+	    iVolume.RASToMRIIndex( backVertex.xyz(), backVertexIdx.xyz() );
+	    iVolume.RASToMRIIndex( viewNormal.xyz(), viewIdx.xyz() );
+	    iVolume.RASToMRIIndex( sourceRAS.xyz(), sourceIdx.xyz() );
+	    iVolume.RASToMRIIndex( ras.xyz(), curIdx.xyz() );
+
+	    // And then get float versions of those index coords
+	    // because that's what we do the math in.
+	    Point3<float> curVertexIdxf, backVertexIdxf, segVertexIdxf,
+	      viewIdxf, normalIdxf, sourceIdxf, curIdxf;
+	    curVertexIdxf.Set(curVertexIdx[0],curVertexIdx[1],curVertexIdx[2]);
+	    backVertexIdxf.Set(backVertexIdx[0],backVertexIdx[1],backVertexIdx[2]);
+	    sourceIdxf.Set( sourceIdx[0], sourceIdx[1], sourceIdx[2] );
+	    curIdxf.Set( curIdx[0], curIdx[1], curIdx[2] );
+	    viewIdxf.Set( viewIdx[0], viewIdx[1], viewIdx[2]);
+
+	    // Calculate a vector between the two verts. Calc a plane
+	    // normal by cross that vector and the view normal.
+	    segVertexIdxf = curVertexIdxf - backVertexIdxf;
+	    normalIdxf = VectorOps::Cross( segVertexIdxf, viewIdxf );
+	    normalIdxf = VectorOps::Normalize( normalIdxf );
+
+	    VectorOps::IntersectionResult rInt =
+	      VectorOps::SegmentIntersectsPlane( sourceIdxf, curIdxf,
+						 curVertexIdxf, normalIdxf,
+						 x );
+
+#if 0
+	    cerr << "SegmentIntersectsPlane results: "  << endl
+		 << "  source\t" <<sourceRAS << "\t" << sourceIdx << endl
+		 << "  current\t" << ras << "\t" << curIdx << endl
+		 << "  curVertex " << nCurVertex << "\t" << curVertex << "\t" << curVertexIdx << endl
+		 << "  backVertex " << nBackVertex << "\t" << backVertex << "\t" << backVertexIdx << endl
+		 << "  normal\t" << normal << "\t" << normalIdxf << endl
+		 << "  int\t" 
+		 << VectorOps::IntersectionResultToString(rInt) << "\t" 
+		 << VectorOps::IntersectionResultToString(rInt2) << endl;
+#endif	    
+	    if( VectorOps::intersect == rInt ) {
+
+	      // Make sure x is in the cuboid formed by curVertex and
+	      // backVertex.
+	      if( !(x[0] < MIN(curVertexIdx[0],backVertexIdx[0]) ||
+		    x[0] > MAX(curVertexIdx[0],backVertexIdx[0]) ||
+		    x[1] < MIN(curVertexIdx[1],backVertexIdx[1]) ||
+		    x[1] > MAX(curVertexIdx[1],backVertexIdx[1]) ||
+		    x[2] < MIN(curVertexIdx[2],backVertexIdx[2]) ||
+		    x[2] > MAX(curVertexIdx[2],backVertexIdx[2])) ) {
+		bCross = true;
+	      }
+	    }
+	  }
+	}
+      }
+
+      // If we crossed a path, continue.
+      if( bCross ) {
+	delete &loc;
+	delete &sourceLoc;
+	continue;
       }
     }
 
