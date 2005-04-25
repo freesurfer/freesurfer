@@ -410,7 +410,7 @@ x clear LUT hotlist
 
 BRUCE'S LIST:::
 
-- mri_info window
+x mri_info window
 
 x rework value display so it's in a table, with vols on y axis and index/value/etc on x
 
