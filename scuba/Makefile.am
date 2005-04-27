@@ -324,6 +324,7 @@ testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 		images/icon_view_mosaic.png \
 		images/icon_view_multiple.png \
 		images/icon_view_single.png \
+		images/icon_zoom_out.png \
 		images/icon_zoom_in.png \
 		images/icon_draw_edge_path.png \
 		images/view_inplane.png \
