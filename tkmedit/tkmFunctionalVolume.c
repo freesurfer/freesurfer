@@ -2426,7 +2426,7 @@ FunV_tErr FunV_InitGraphWindow ( tkmFunctionalVolumeRef this,
   /* attempt to source the file. */
   eTcl = Tcl_EvalFile( pInterp, sFileName );
   if( TCL_OK != eTcl ) {
-    DebugPrint( ("FunV_InitGraphWindow: error parsing %s file, result was:\n%s\n", sFileName, pInterp->result ) );
+    DebugPrint( ("FunV_InitGraphWindow: error parsing %s file at line %d, result was:\n%s\n", sFileName, pInterp->errorLine, pInterp->result ) );
     eResult = FunV_tErr_ErrorParsingScriptTclFile;
     goto error;
   }
