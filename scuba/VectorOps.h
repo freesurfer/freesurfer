@@ -1,6 +1,7 @@
 #ifndef VectorOps_h
 #define VectorOps_h
 
+#include <string>
 #include "Point3.h"
 
 Point3<float> operator*( float s, Point3<float>& v );
