@@ -793,7 +793,7 @@ mris_w_to_curv/Makefile fsgdf/Makefile fslutils/Makefile optseq2/Makefile spm2bf
 stat_normalize/Makefile regdat2xfm/Makefile scuba/Makefile test_window_env/Makefile \
 brik2bfloat/Makefile minc_to_bshort/Makefile paint/Makefile \
 histo_compute_joint_density/Makefile histo_register_block/Makefile scripts/Makefile images/Makefile \
-distribution/Makefile distribution/lib/Makefile distribution/lib/bem/Makefile distribution/average/Makefile \
+distribution/Makefile distribution/lib/Makefile distribution/lib/bem/Makefile distribution/average/Makefile distribution/average/surf/Makefile \
 distribution/docs/Makefile \
 distribution/grad_unwarp_tables/Makefile \
 mri_modify/Makefile \
