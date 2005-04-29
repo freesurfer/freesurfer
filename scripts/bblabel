@@ -1,0 +1,260 @@
+#!/bin/csh -f
+# bblabel - applies a bounding box to a label
+#
+# $Id: bblabel,v 1.1 2005/04/29 14:22:42 greve Exp $
+
+set VERSION = '$Id: bblabel,v 1.1 2005/04/29 14:22:42 greve Exp $';
+
+set cmdargs = ($argv);
+set PrintHelp = 0;
+
+set labelfile = ();
+set xmin = ();
+set xmax = ();
+set ymin = ();
+set ymax = ();
+set zmin = ();
+set zmax = ();
+set rev = 0;
+set outlabelfile = ();
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if(-e $outlabelfile) mv $outlabelfile $outlabelfile.bak.
+
+set firstline = `head -n 1 $labelfile`;
+set lno = `tail +3 $labelfile | awk '{print $1}'`;
+set x = `tail +3 $labelfile | awk '{print $2}'`;
+set y = `tail +3 $labelfile | awk '{print $3}'`;
+set z = `tail +3 $labelfile | awk '{print $4}'`;
+set s = `tail +3 $labelfile | awk '{print $5}'`;
+
+echo "Determining new points"
+set lnonew = ();
+set xnew = ();
+set ynew = ();
+set znew = ();
+set snew = ();
+@ nth = 0;
+foreach p ($lno)
+  @ nth = $nth + 1;
+
+  if($#xmin) then
+    set t = `echo $x[$nth] \> $xmin | bc -l `;
+    if(! $t) continue;
+  endif
+
+  if($#xmax) then
+    set t = `echo $x[$nth] \< $xmax | bc -l `;
+    if(! $t) continue;
+  endif
+
+  if($#ymin) then
+    set t = `echo $y[$nth] \> $ymin | bc -l `;
+    if(! $t) continue;
+  endif
+
+  if($#ymax) then
+    set t = `echo $y[$nth] \< $ymax | bc -l `;
+    if(! $t) continue;
+  endif
+
+  if($#zmin) then
+    set t = `echo $z[$nth] \> $zmin | bc -l `;
+    if(! $t) continue;
+  endif
+
+  if($#zmax) then
+    set t = `echo $z[$nth] \< $zmax | bc -l `;
+    if(! $t) continue;
+  endif
+
+  set lnonew = ($lnonew $lno[$nth]);
+  set xnew = ($xnew $x[$nth]);
+  set ynew = ($ynew $y[$nth]);
+  set znew = ($znew $z[$nth]);
+  set snew = ($snew $s[$nth]);
+
+end
+
+echo "Creating new label file"
+echo $firstline >> $outlabelfile
+echo $#lnonew >> $outlabelfile
+@ nth = 0;
+foreach p ($lnonew)
+  @ nth = $nth + 1;
+  echo $p $xnew[$nth] $ynew[$nth] $znew[$nth] $snew[$nth] >> $outlabelfile
+end
+
+
+echo "bblabel Done"
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--l":
+      if ( $#argv == 0) goto arg1err;
+      set labelfile = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv == 0) goto arg1err;
+      set outlabelfile = $argv[1]; shift;
+      breaksw
+
+    case "--xmin":
+      if ( $#argv == 0) goto arg1err;
+      set xmin = $argv[1]; shift;
+      breaksw
+
+    case "--xmax":
+      if ( $#argv == 0) goto arg1err;
+      set xmax = $argv[1]; shift;
+      breaksw
+
+    case "--ymin":
+      if ( $#argv == 0) goto arg1err;
+      set ymin = $argv[1]; shift;
+      breaksw
+
+    case "--ymax":
+      if ( $#argv == 0) goto arg1err;
+      set ymax = $argv[1]; shift;
+      breaksw
+
+    case "--zmin":
+      if ( $#argv == 0) goto arg1err;
+      set zmin = $argv[1]; shift;
+      breaksw
+
+    case "--zmax":
+      if ( $#argv == 0) goto arg1err;
+      set zmax = $argv[1]; shift;
+      breaksw
+
+    case "--rev":
+      set rev = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "--umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#labelfile == 0) then
+  echo "ERROR: no label file specified"
+  exit 1;
+endif
+
+if(! -e $labelfile) then
+  echo "ERROR: cannot find label file $labelfile"
+  exit 1;
+endif
+
+if($#outlabelfile == 0) then
+  echo "ERROR: no output label file specified"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: bblabel"
+  echo ""
+  echo "   --l labelfile "
+  echo "   --xmin xmin"
+  echo "   --xmax xmax"
+  echo "   --ymin ymin"
+  echo "   --ymax ymax"
+  echo "   --zmin zmin"
+  echo "   --zmax zmax"
+#  echo "   --rev"
+  echo "   --o outlabelfile "
+  echo ""
+  echo "   --debug"
+  echo "   --umask umask    : set unix file permission mask"
+  echo "   --version        : print version and exit"
+  echo "   --help           : print help and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+bblabel
+
+Applies a bounding box to a label. The bounding box is specified by
+the triplet: (xmin,xmax,ymin,ymax,zmin,zmax). Only those label points
+within this box are copied to the output. If a min is not specified,
+then -infinity is used. If a max is not specified, then +infinity is
+used.
+
+Example:
+
+bblabel --l lh.G_cuneus.label --o lh.out.label \
+  --xmin 0 --ymax -90 --zmin 10 --zmax 20
+
+Keeps label points from lh.G_cuneus.label that have x > 0, y > -90,
+and z between 10 and 20. The result is stored in lh.out.label.
+
