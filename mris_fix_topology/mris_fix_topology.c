@@ -16,7 +16,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.25 2005/03/16 01:05:35 segonne Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.26 2005/04/30 23:13:35 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.25 2005/03/16 01:05:35 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.26 2005/04/30 23:13:35 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -347,7 +347,7 @@ get_option(int argc, char *argv[])
 	else if (!stricmp(option, "optimize"))
   {
 		parms.search_mode=GENETIC_SEARCH;
-		parms.keep=1;
+		parms.keep=0; /* to be discussed */
 		parms.vertex_eliminate=1;
 		parms.retessellation_mode=0;
 		parms.initial_selection=1;
@@ -361,6 +361,25 @@ get_option(int argc, char *argv[])
 		nsmooth=0;
 		add=0;
     fprintf(stderr,"using optimized parameters\n");
+    nargs = 0 ;
+  }
+	else if (!stricmp(option, "ga"))
+  {
+		parms.search_mode=GENETIC_SEARCH;
+		parms.keep=0;
+		parms.vertex_eliminate=1;
+		parms.retessellation_mode=0;
+		parms.initial_selection=1;
+		parms.smooth=2;
+		parms.match=1;
+		parms.volume_resolution=2;
+		parms.l_mri = 1.0f ;
+		parms.l_curv = 1.0f ;
+		parms.l_qcurv = 1.0f;
+		parms.l_unmri = 10.0f ;
+		nsmooth=0;
+		add=0;
+    fprintf(stderr,"using genetic algorithm with optimized parameters\n");
     nargs = 0 ;
   }
 	else if (!stricmp(option, "match"))
@@ -440,7 +459,7 @@ get_option(int argc, char *argv[])
 		if(parms.keep)
 			fprintf(stderr,"keep every vertex in the defect before search\n");
 		else
-			fprintf(stderr,"select defectuous vertices in each defect before search\n");
+			fprintf(stderr,"select defective vertices in each defect before search\n");
     nargs = 1 ;
   }
 	else if (!stricmp(option, "edge_table"))

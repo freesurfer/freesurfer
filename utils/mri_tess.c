@@ -10,7 +10,7 @@
 #include "proto.h"
 #include "macros.h"
 #include "error.h"
-#include "MRIio_old.h"
+#include "MRIio_old.h" /*.H*/
 #include "mri.h"
 #include "mrisurf.h"
 #include "gca.h"
