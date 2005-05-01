@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/04/08 20:39:34 $
-// Revision       : $Revision: 1.342 $
+// Revision Date  : $Date: 2005/05/01 14:09:30 $
+// Revision       : $Revision: 1.343 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -28992,7 +28992,7 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
 	int i,j,p,numu,numv,u,w;
   float px0,px1,py0,py1,pz0,pz1,px,py,pz,d0,d1,d2,dmax,x0,y0,z0;
 #endif
-  int k,vno1,vno2;
+  int k,vno1,vno2,l,p,q;
   int width,height,depth;
   float len,dx,dy,dz,x,y,z,x1,y1,z1,x2,y2,z2,xmin,xmax,ymin,ymax,zmin,zmax,scale;
   
@@ -29071,15 +29071,35 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
 		/* length */
 		len=scale*sqrt(SQR(x2-x1)+SQR(y2-y1)+SQR(z2-z1));
     
-    dx = (x2-x1)/(2*len);
-    dy = (y2-y1)/(2*len);
-    dz = (z2-z1)/(2*len);
-    
-    for( x = x1 , y = y1, z = z1 ; x < x2 ; x += dx, y += dy, z += dz)
-      MRIvox(mri,iVOL(mri,x),jVOL(mri,y),kVOL(mri,z))=1;
+		if(!FZERO(len)){
+			dx = (x2-x1)/(2*len);
+			dy = (y2-y1)/(2*len);
+			dz = (z2-z1)/(2*len);
+			for( x = x1 , y = y1, z = z1 ; x < x2 ; x += dx, y += dy, z += dz){
+				l=iVOL(mri,x);
+				p=jVOL(mri,y);
+				q=kVOL(mri,z);
+				if((l<0)||(l>=mri->width)||(p<0)||(p>=mri->height)||(q<0)||(q>=mri->depth))
+					continue;
+				MRIvox(mri,l,p,q)=1;
+			}
+		}else{
+			dx=dy=dz=0.0f;
+			l=iVOL(mri,x1);
+			p=jVOL(mri,y1);
+			q=kVOL(mri,z1);
+			if((l<0)||(l>=mri->width)||(p<0)||(p>=mri->height)||(q<0)||(q>=mri->depth))
+				continue;
+			MRIvox(mri,l,p,q)=1;
+		}
     
     /* last point */
-    MRIvox(mri,iVOL(mri,x2),jVOL(mri,y2),kVOL(mri,z2))=1;    
+		l=iVOL(mri,x2);
+		p=jVOL(mri,y2);
+		q=kVOL(mri,z2);
+		if((l<0)||(l>=mri->width)||(p<0)||(p>=mri->height)||(q<0)||(q>=mri->depth))
+			continue;
+		MRIvox(mri,l,p,q)=1;
   }
 
 #if 0
@@ -34208,7 +34228,6 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution,
 
 	//find the region of interest in this coordinate system
 	
-
   /* allocate the volume */
   width  = ceil(resolution*(region->dx)) ; 
   height = ceil(resolution*(region->dy)) ;
@@ -35314,13 +35333,16 @@ mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGR
 			j=jVOL(mri_defect,vertex->fy);
 			k=kVOL(mri_defect,vertex->fz);
 
+			if((i<0)||(i>=mri_defect->width)||(j<0)||(j>=mri_defect->height)||(k<0)||(k>=mri_defect->depth))
+				continue;
+
 			//fprintf(stdout,"*%d-%d-%d");
 			val=MRIFvox(mri_distance,i,j,k);
 			
 			//FLO : max_distance=MIN(2.0f, max_distance) ?
 			if(val==NPY) val=1.0f;
 			else val=fabs(val)/max_distance;
-			
+			 
 			val=MIN(1.0f,val);
 
 			vertex->curvbak *= val;
@@ -37746,7 +37768,7 @@ static int tessellatePatch(MRI *mri,MRI_SURFACE *mris, MRI_SURFACE *mris_correct
 
 #define USE_SCALING 0
 
-static int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces){
+int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces){
 	int n,m,i,count,intersect,j;
 	int vn[3];
 	int un[3];
@@ -37832,14 +37854,16 @@ static int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces){
 			intersect = tri_tri_intersect(v0,v1,v2,u0,u1,u2) ;
 
 			if(intersect) { 
+#if 0
 				fprintf(stderr,"face %d intersect face %d\n",flist[n],flist[m]);
 				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[n],f1->v[0],v0[0],v0[1],v0[2]);
 				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[n],f1->v[1],v1[0],v1[1],v1[2]);
-				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[n],f1->v[2],v2[0],v2[1],v2[2]);
+				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[n],f1->v[2],v2[0],v2[1],v2[2]); 
 				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[m],f2->v[0],u0[0],u0[1],u0[2]);
 				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[m],f2->v[1],u1[0],u1[1],u1[2]);
 				fprintf(stderr,"face %d : vertex %d [ %f , %f , %f ]\n",flist[m],f2->v[2],u2[0],u2[1],u2[2]);
 				fprintf(stderr,"\nXXXXXXXXXX\n");
+#endif
 				count++;
 				break;
 			}
