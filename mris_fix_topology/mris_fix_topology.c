@@ -16,7 +16,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.26 2005/04/30 23:13:35 segonne Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.27 2005/05/01 22:21:13 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.26 2005/04/30 23:13:35 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.27 2005/05/01 22:21:13 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -145,6 +145,10 @@ main(int argc, char *argv[])
   eno = MRIScomputeEulerNumber(mris, &nvert, &nfaces, &nedges) ;
   fprintf(stderr, "before topology correction, eno=%d (nv=%d, nf=%d, ne=%d,"
           " g=%d)\n", eno, nvert, nfaces, nedges, (2-eno)/2) ;
+	if(eno == 2 ) {
+		fprintf(stderr,"The Euler Number of this surface is 2\nNothing to do\nProgram exiting\n");
+		exit(0);
+	}
   MRISprojectOntoSphere(mris, mris, 100.0f) ;
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
