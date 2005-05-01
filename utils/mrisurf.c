@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/05/01 14:09:30 $
-// Revision       : $Revision: 1.343 $
+// Revision Date  : $Date: 2005/05/01 22:26:43 $
+// Revision       : $Revision: 1.344 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -27500,8 +27500,8 @@ typedef struct
 	int defect_number;
 
   /* intensity information */
-  float white_mean,white_sigma;
-  float gray_mean,gray_sigma;
+  float white_mean,white_sigma,white_mean_ll;
+  float gray_mean,gray_sigma,gray_mean_ll;
 
   float k1_mean,k1_var;
   float k2_mean,k2_var;
@@ -29372,7 +29372,10 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   defect->white_mean=mw;
   defect->gray_mean=mg;
 
-  fprintf(stdout,"      -intensity (%f - %f )\n",mg,mw);
+	defect->white_mean_ll = log(h_white->counts[MAX(0,MIN(h_white->nbins-1,nint(mw)))]);
+	defect->gray_mean_ll = log(h_gray->counts[MAX(0,MIN(h_gray->nbins-1,nint(mg)))]);
+
+  fprintf(stdout,"      -intensity (%f [log = %f ]- %f [log = %f ])\n",mg,defect->gray_mean_ll,mw,defect->white_mean_ll);
 
   /* computing curvature statistics */
   
@@ -35287,8 +35290,10 @@ mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGR
 	
  					
 	/* compute the volumeLikelihood */
-	white_ll=0.0;gray_ll=0.0;
-	nwhite=0;ngray=0;
+	/* init log values */
+	white_ll=dp->defect->white_mean_ll;
+	gray_ll=dp->defect->gray_mean_ll;
+	nwhite=1;ngray=1;
 	max_distance=0.0;
 	for( k = 3 ; k < mri_distance->depth-3 ;  k++ )
 			for ( j = 3 ; j <  mri_distance->height-3; j++ )
@@ -37097,6 +37102,8 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
   /* first build table of all possible edges among vertices in the defect
      and on its border.
   */
+	fprintf(stderr,"\nCORRECTING DEFECT %d\n",defect->defect_number);
+
 	if(parms->search_mode!=GREEDY_SEARCH)
 		computeDefectStatistics(mri,mris,defect, h_white,h_gray,mri_gray_white,h_k1,h_k2,mri_k1_k2);
 
@@ -37893,7 +37900,7 @@ int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces){
 	return count;
 }
 
-#define SAVE_FIT_VALS 1
+#define SAVE_FIT_VALS 0
 #if SAVE_FIT_VALS
 static float fitness_values[11000];
 static float best_values[11000];
