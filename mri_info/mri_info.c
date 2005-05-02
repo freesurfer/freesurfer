@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2004/10/06 16:16:02 $
-// Revision       : $Revision: 1.33 $
+// Revision Date  : $Date: 2005/05/02 22:23:31 $
+// Revision       : $Revision: 1.34 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.33 $";
+char *MRI_INFO_VERSION = "$Revision: 1.34 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -36,7 +36,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.33 2004/10/06 16:16:02 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.34 2005/05/02 22:23:31 greve Exp $";
 
 char *Progname ;
 
@@ -57,6 +57,7 @@ int PrintFormat = 0;
 int PrintColDC   = 0;
 int PrintRowDC   = 0;
 int PrintSliceDC = 0;
+int PrintDet = 0;
 
 int debug = 0;
 
@@ -136,6 +137,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--rdc"))       PrintRowDC = 1;
     else if (!strcasecmp(option, "--sdc"))     PrintSliceDC = 1;
 
+    else if (!strcasecmp(option, "--det"))     PrintDet = 1;
 
     else if (!strcasecmp(option, "--nframes"))   PrintNFrames = 1;
     else if (!strcasecmp(option, "--format")) PrintFormat = 1;
@@ -167,6 +169,7 @@ static void print_usage(void)
   printf("   --cdc : print column direction cosine (x_{r,a,s})\n");
   printf("   --rdc : print row    direction cosine (y_{r,a,s})\n");
   printf("   --sdc : print slice  direction cosine (z_{r,a,s})\n");
+  printf("   --det : print the determinant of the vox2ras matrix\n");
   printf("   --nframes : print number of frames to stdout\n");
   printf("   --format : file format\n");
   printf("\n");
@@ -301,7 +304,12 @@ static void do_file(char *fname)
     printf("%g %g %g\n",mri->z_r,mri->z_a,mri->z_s);
     return;
   }
-
+  if(PrintDet){
+    m = MRIgetVoxelToRasXform(mri) ;
+    printf("%g\n",MatrixDeterminant(m));
+    MatrixFree(&m) ;
+    return;
+  }
 
   printf("Volume information for %s\n", fname);
   // mri_identify has been called but the result is not stored and thus I have to call it again
@@ -349,6 +357,7 @@ static void do_file(char *fname)
   }
   m = MRIgetVoxelToRasXform(mri) ; // extract_i_to_r(mri) (just macto)
   printf("\nvoxel to ras transform:\n") ; PrettyMatrixPrint(m) ;
+  printf("\nvoxel-to-ras determinant %g\n",MatrixDeterminant(m));
   MatrixFree(&m) ;
   m = extract_r_to_i(mri);
   printf("\nras to voxel transform:\n"); PrettyMatrixPrint(m);
