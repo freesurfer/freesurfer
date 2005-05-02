@@ -2,9 +2,9 @@
 // mri_tessellate.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/30 14:43:34 $
-// Revision       : $Revision: 1.21 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/05/02 20:00:49 $
+// Revision       : $Revision: 1.22 $
 //
 //
 // How it works.
@@ -39,7 +39,7 @@
 //
 //          MRIvoxelToSurfaceRAS()
 //
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.21 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.22 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -95,10 +95,6 @@ int *face_index_table1;
 tvertex_type *vertex;
 int *vertex_index_table;
 
-unsigned long bufsize;
-
-unsigned char *buf;  /* scratch memory  */
-
 static int value;
 
 int main(int argc, char *argv[]) ;
@@ -123,7 +119,7 @@ main(int argc, char *argv[])
   int xnum, ynum, numimg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.21 2004/07/30 14:43:34 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.22 2005/05/02 20:00:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -157,15 +153,13 @@ main(int argc, char *argv[])
   ynum = mri->height;
   numimg = mri->depth;
 
-  bufsize = ((unsigned long)xnum)*ynum;
-  buf = (unsigned char *)lcalloc(bufsize,sizeof(char));
   face = (tface_type *)lcalloc(MAXFACES,sizeof(tface_type));
 
-  face_index_table0 = (int *)lcalloc(6*ynum*xnum,sizeof(int));
-  face_index_table1 = (int *)lcalloc(6*ynum*xnum,sizeof(int));
+  face_index_table0 = (int *)lcalloc(600*ynum*xnum,sizeof(int));
+  face_index_table1 = (int *)lcalloc(600*ynum*xnum,sizeof(int));
   
   vertex = (tvertex_type *)lcalloc(MAXVERTICES,sizeof(tvertex_type));
-  vertex_index_table = (int *)lcalloc(8*ynum*xnum,sizeof(int));
+  vertex_index_table = (int *)lcalloc(800*ynum*xnum,sizeof(int));
   
   make_surface(mri);
 
@@ -190,7 +184,7 @@ static MRI *read_images(char *fpref)
     
     type_changed = 1;
     printf("changing type of input volume to 8 bits/voxel...\n") ;
-    mri_tmp = MRIchangeType(mri, MRI_UCHAR, 0.0, 0.999, FALSE) ;
+    mri_tmp = MRIchangeType(mri, MRI_UCHAR, 0.0, 0.999, TRUE) ;
     MRIfree(&mri) ; 
     mri = mri_tmp ;
   }
@@ -291,6 +285,8 @@ check_face(MRI *mri, int im0, int i0, int j0, int im1, int i1,int j1,
         f_ind = face_index_table0[f_pack];
       else
         f_ind = face_index_table1[f_pack];
+			if (f_ind == Gdiag_no || f_ind == 311366)
+				DiagBreak() ;
       face[f_ind].v[n] = v_ind;
       if (vertex[v_ind].num<9)
         vertex[v_ind].f[vertex[v_ind].num++] = f_ind;
@@ -360,13 +356,13 @@ static void make_surface(MRI *mri)
 	  check_face(mri, imnr  ,i-1,j-1,imnr  ,i-1,j  ,5,3,v_ind,0);
 	}
       }
-    for (i=0;i<xnum;i++)
-      for (j=0;j<ynum;j++)
-	for (f=0;f<6;f++)
-	{
-	  f_pack = f*ynum*xnum+i*xnum+j;
-	  face_index_table0[f_pack] = face_index_table1[f_pack];
-	}
+    for (i=0;i<ynum;i++)
+      for (j=0;j<xnum;j++)
+				for (f=0;f<6;f++)
+				{
+					f_pack = f*ynum*xnum+i*xnum+j;
+					face_index_table0[f_pack] = face_index_table1[f_pack];
+				}
   }
 }
 
