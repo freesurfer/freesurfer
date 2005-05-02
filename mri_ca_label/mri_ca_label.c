@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.51 2005/04/11 18:17:05 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.52 2005/05/02 19:15:50 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -668,6 +668,12 @@ get_option(int argc, char *argv[])
   {
     norm_PD = TRUE ;
     printf("normalizing PD image (2nd input) to GCA means[1]\n") ;
+  }
+  else if (!stricmp(option, "write_probs"))
+  {
+		G_write_probs = argv[2] ;
+    nargs = 1 ;
+    printf("writing label probabilities to %s...\n", G_write_probs) ;
   }
   else if (!stricmp(option, "TL"))
   {
@@ -1756,7 +1762,7 @@ edit_amygdala(MRI *mri_inputs, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
           }
 	  label = left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
 	  
-          if (found_wm && found_amygdala && GCAisPossible(gca, mri_tmp, label, transform, x, y, z)) 
+          if (found_wm && found_amygdala && GCAisPossible(gca, mri_tmp, label, transform, x, y, z,0)) 
           {
             nchanged++ ;
             MRIvox(mri_tmp, x, y, z) = label ;
