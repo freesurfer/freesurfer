@@ -4,6 +4,8 @@
 # This is a sample SetUpFreeSurfer.csh file. You should be able to use
 # it with just a few modiciations.
 
+# Create a trivial alias to prevent user-specified aliases of these
+# commands from causing trouble.
 alias realpopd popd
 alias realpushd pushd
 
