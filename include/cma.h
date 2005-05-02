@@ -166,6 +166,7 @@
                         ((l) == Left_Inf_Lat_Vent))
 #define IS_CSF(l) (IS_LAT_VENT(l) || ((l) == CSF) || ((l) == CSF_SA) || ((l) == Third_Ventricle) || ((l) == Fourth_Ventricle))
 
+#define IS_INF_LAT_VENT(l)  (((l) == Left_Inf_Lat_Vent) || ((l) == Right_Inf_Lat_Vent))
 
 #define MAX_CMA_LABEL (Corpus_Callosum+1)
 #define MAX_CMA_LABELS (MAX_CMA_LABEL+1)
