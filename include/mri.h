@@ -779,6 +779,7 @@ MRI *MRIdilateInvThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label
 														 int niter, int thresh) ;
 MRI *MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label,
                         int niter);
+MRI    *MRIsetLabelValues(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label, float val);
 int    MRIwriteImageViews(MRI *mri, char *base_name, int target_size) ;
 int MRIsetValues(MRI *mri, float val) ;
 MRI    *MRIwindow(MRI *mri_src, MRI *mri_dst, int which, float x0, float y0, 

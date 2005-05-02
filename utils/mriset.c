@@ -2301,3 +2301,25 @@ MRIcopyLabeledVoxels(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int label)
 	}
   return(nvox) ;
 }
+MRI *
+MRIsetLabelValues(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label, float val)
+{
+	int     x, y, z, l ;
+
+	mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+	for (x = 0 ; x < mri_dst->width; x++)
+	{
+		for (y = 0 ; y < mri_dst->height; y++)
+		{
+			for (z = 0 ; z < mri_dst->depth; z++)
+			{
+				l = MRIgetVoxVal(mri_label, x, y, z, 0) ;
+				if (l == label)
+					MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+			}
+		}
+	}
+	return(mri_dst) ;
+}
+
