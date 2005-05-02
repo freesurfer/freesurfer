@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/05/02 03:05:25 $
-// Revision       : $Revision: 1.345 $
+// Revision Date  : $Date: 2005/05/02 23:05:55 $
+// Revision       : $Revision: 1.346 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -30042,7 +30042,7 @@ static void computeDefectFaceNormal(MRIS *mris,FACE *face){
   len = sqrt(nx*nx + ny*ny + nz*nz) ;
   if (FZERO(len)) {
 		//TO BE CHECKED
-		fprintf(stdout,"face with a null normal (%f,%f,%f) - (%f,%f,%f) - (%f,%f,%f)",v1->origx,v1->origy,v1->origz,v2->origx,v2->origy,v2->origz,v3->origx,v3->origy,v3->origz);
+		//		fprintf(stdout,"face with a null normal (%f,%f,%f) - (%f,%f,%f) - (%f,%f,%f)",v1->origx,v1->origy,v1->origz,v2->origx,v2->origy,v2->origz,v3->origx,v3->origy,v3->origz);
 		/* try another dot product */
 		a[0]=100.0*(v3->origx-v2->origx);
 		b[0]=100.0*(v1->origx-v2->origx);
@@ -30057,7 +30057,7 @@ static void computeDefectFaceNormal(MRIS *mris,FACE *face){
 		/* normalize */
 		len = sqrt(nx*nx + ny*ny + nz*nz) ;
 		if (FZERO(len)) {
-			fprintf(stdout,".");
+			//fprintf(stdout,".");
 			len = 1.0;
 		}
 		fprintf(stdout,"\n");
