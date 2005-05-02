@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/05/01 22:26:43 $
-// Revision       : $Revision: 1.344 $
+// Revision Date  : $Date: 2005/05/02 03:05:25 $
+// Revision       : $Revision: 1.345 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -28992,7 +28992,7 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
 	int i,j,p,numu,numv,u,w;
   float px0,px1,py0,py1,pz0,pz1,px,py,pz,d0,d1,d2,dmax,x0,y0,z0;
 #endif
-  int k,vno1,vno2,l,p,q;
+  int k,vno1,vno2,l,p,q,n,nmax;
   int width,height,depth;
   float len,dx,dy,dz,x,y,z,x1,y1,z1,x2,y2,z2,xmin,xmax,ymin,ymax,zmin,zmax,scale;
   
@@ -29075,7 +29075,10 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
 			dx = (x2-x1)/(2*len);
 			dy = (y2-y1)/(2*len);
 			dz = (z2-z1)/(2*len);
-			for( x = x1 , y = y1, z = z1 ; x < x2 ; x += dx, y += dy, z += dz){
+			nmax= ceil(2*len+5); /* max number of points */
+			for( x = x1 , y = y1, z = z1 , n = 0  
+						 ; (x < x2) && (n < nmax)
+						 ; x += dx, y += dy, z += dz , n++){
 				l=iVOL(mri,x);
 				p=jVOL(mri,y);
 				q=kVOL(mri,z);
