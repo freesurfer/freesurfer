@@ -4,15 +4,18 @@
 # This is a sample SetUpFreeSurfer.csh file. You should be able to use
 # it with just a few modiciations.
 
+alias realpopd popd
+alias realpushd pushd
+
 # Set this to the location of freesrfer/.
 if (! $?FREESURFER_HOME) then 
     setenv FREESURFER_HOME REPLACE_WITH_PREFIX
 endif    
  
 # Call configuration script.
-pushd $FREESURFER_HOME >& /dev/null
+realpushd $FREESURFER_HOME >& /dev/null
 source FreeSurferEnv.csh
-popd >& /dev/null
+realpopd >& /dev/null
 
 # Set this to your subjects/ dir, usually freesurfer/subjects/
 if (! $?SUBJECTS_DIR) then
