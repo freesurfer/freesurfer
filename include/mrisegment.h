@@ -50,5 +50,6 @@ int              MRIremoveSmallSegments(MRI_SEGMENTATION *mriseg,
 int              MRIsegmentMax(MRI_SEGMENTATION *mriseg) ;
 int              MRIsegmentClearIgnoreFlags(MRI_SEGMENTATION *mriseg) ;
 int              MRIfindMaxSegmentNumber(MRI_SEGMENTATION *mriseg) ;
+int              MRIsetSegmentValue(MRI *mri, MRI_SEGMENTATION *mriseg, int s, float val) ;
 
 #endif

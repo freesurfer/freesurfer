@@ -748,6 +748,22 @@ MRIsegmentToImage(MRI *mri_src, MRI *mri_dst, MRI_SEGMENTATION *mriseg, int s)
 
   return(mri_dst) ;
 }
+int
+MRIsetSegmentValue(MRI *mri, MRI_SEGMENTATION *mriseg, int s, float val)
+{
+  int          v, x, y, z ;
+  MRI_SEGMENT  *mseg ;
+
+  mseg = &mriseg->segments[s] ;
+
+  for (v = 0 ; v < mseg->nvoxels ; v++)
+  {
+    x = mseg->voxels[v].x ; y = mseg->voxels[v].y ; z = mseg->voxels[v].z ; 
+    MRIsetVoxVal(mri, x, y, z,0, val) ;
+  }
+
+	return(NO_ERROR) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
