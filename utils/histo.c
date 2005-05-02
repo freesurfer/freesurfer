@@ -1162,6 +1162,9 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct)
   min_count = min_pct * max_count ;
 
   whalf = (wsize-1)/2 ;
+#if 0
+	/* add up bins in forward and backwards dirs to see which direction
+		 to search in */
   for (next_count = prev_count = 0, bw = b0-whalf ; bw <= b0+whalf ; bw++)
   {
     if (bw < 0)
@@ -1173,10 +1176,25 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct)
     else if (bw > b0)
       next_count += histo->counts[bw] ;
   }
+#else
+	/* find max valu in forwards and backwards dirs to find which direction 
+		 to search in */
+  for (next_count = prev_count = 0, bw = b0-whalf ; bw <= b0+whalf ; bw++)
+  {
+    if (bw < 0)
+      continue ;
+    if (bw >= nbins)
+      continue ;
+    if ((bw < b0) && (histo->counts[bw] > prev_count))
+      prev_count = histo->counts[bw] ;
+    else if ((bw > b0) && (histo->counts[bw] > next_count))
+      next_count = histo->counts[bw] ;
+  }
+#endif
 
   if (next_count > prev_count)  /* search forwards */
   {
-    for (b = b0-whalf ; b < histo->nbins ; b++)
+    for (b = b0 ; b < histo->nbins ; b++)
     {
       if (b < 0)
         continue ;
@@ -1210,7 +1228,7 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct)
   }
   else   /* search backwards */
   {
-    for (b = b0+(whalf-1) ; b >= 0 ; b--)
+    for (b = b0 ; b >= 0 ; b--)
     {
       if (b >= histo->nbins)
         continue ;
