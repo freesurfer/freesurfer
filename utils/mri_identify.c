@@ -118,8 +118,6 @@ int string_to_type(char *string)
     type = BRUKER_FILE;
   if(strcmp(ls, "ximg") == 0)
     type = XIMG_FILE;
-  if(strcmp(ls, "raw") == 0)
-    type = RAW_FILE;
   if(strcmp(ls, "nifti1") == 0)
     type = NIFTI1_FILE;
   if(strcmp(ls, "nii") == 0)
@@ -161,120 +159,122 @@ int mri_identify(char *fname_passed)
 
       if (type == MRI_GZIPPED)
       {
-				if (strstr(fname, ".mgh.gz"))
-				{
-					type = MRI_MGH_FILE;
-				}
-				else
-				{
-					type = MRI_VOLUME_TYPE_UNKNOWN;
-					fprintf(stderr, "INFO: Currently supports gzipped mgh file (.mgz or .mgh.gz) only\n");
-					return type;
-				}
+	if (strstr(fname, ".mgh.gz"))
+	{
+	  type = MRI_MGH_FILE;
+	}
+	else
+	{
+	  type = MRI_VOLUME_TYPE_UNKNOWN;
+	  fprintf(stderr, "INFO: Currently supports gzipped mgh file (.mgz or .mgh.gz) only\n");
+	  return type;
+	}
       }
       ///////////////////////////////////////////////
       // if type is found then verify
       // IMAGE file uses only extension
-      if (type == IMAGE_FILE || type == RAW_FILE)
-				return type;
+      if (type == IMAGE_FILE)
+	return type;
 			
       if (type != MRI_VOLUME_TYPE_UNKNOWN)
       {
-				switch(type)
-				{
-				case MRI_GCA_FILE:
-					return(type) ;
-					break ;
-				case BRUKER_FILE:          // this cannot be identified by extension
-					if (is_bruker(fname))
-						return type;
-					break;
-				case MRI_CORONAL_SLICE_DIRECTORY:
-					if (is_cor(fname))
-						return type;
-					break;
-				case BHDR:
-					return type;
-					break;
-				case BSHORT_FILE:
-					if (is_bshort(fname))
-						return type;
-					break;
-				case BFLOAT_FILE:
-					if (is_bfloat(fname))
-						return type;
-					break;
-				case SIEMENS_DICOM_FILE:
-					if (IsSiemensDICOM(fname))
-						return type;
-					break;
-				case DICOM_FILE:
-					if (IsDICOM(fname))
-						return type;
-					break;
-				case GENESIS_FILE:
-					if (is_genesis(fname))
-						return type;
-					break;
-				case SIGNA_FILE:
-					if (is_signa(fname))
-						return type;
-					break;
-				case GE_LX_FILE:
-					if (is_ge_lx(fname))
-						return type;
-					break;
-				case SDT_FILE:
-					if (is_sdt(fname))
-						return type;
-					break;
-				case MRI_MGH_FILE:
-					if (is_mgh(fname))
-						return type;
-					break;
-				case MRI_MINC_FILE:
-					if (is_mnc(fname))
-						return type;
-					break;
-				case MRI_ANALYZE_FILE:
-					if (is_analyze(fname))
-						return type;
-					break;
-				case MRI_ANALYZE4D_FILE:
-					// must add is_analyze4d().  I have no idea what to do thus return
-					return type;
-					break;
-				case SIEMENS_FILE:
-					if (is_siemens(fname))
-						return type;
-					break;
-				case BRIK_FILE:
-					if (is_brik(fname))
-						return type;
-					break;
-				case OTL_FILE:
-					if (is_otl(fname))
-						return type;
-					break;
-				case GDF_FILE:
-					if (is_gdf(fname))
-						return type;
-					break;
-				case XIMG_FILE:
-					if (is_ximg(fname))
-						return type;
-					break;
-				case NIFTI1_FILE:
-					if (is_nifti1(fname))
-						return type;
-					break;
-				case NII_FILE:
-					if (is_nii(fname))
-						return type;
-					break;
-				default:
-					break;
-				}
+	switch(type)
+	{
+	case MRI_GCA_FILE:
+	  return(type) ;
+	  break ;
+	case BRUKER_FILE:          // this cannot be identified by extension
+	  if (is_bruker(fname))
+	    return type;
+	  break;
+	case MRI_CORONAL_SLICE_DIRECTORY:
+	  if (is_cor(fname))
+	    return type;
+	  break;
+	case BHDR:
+	  return type;
+	  break;
+	case BSHORT_FILE:
+	  if (is_bshort(fname))
+	    return type;
+	  break;
+	case BFLOAT_FILE:
+	  if (is_bfloat(fname))
+	    return type;
+	  break;
+	case SIEMENS_DICOM_FILE:
+	  if (IsSiemensDICOM(fname))
+	    return type;
+	  break;
+	case DICOM_FILE:
+	  if (IsDICOM(fname))
+	    return type;
+	  break;
+	case GENESIS_FILE:
+	  if (is_genesis(fname))
+	    return type;
+	  break;
+	case SIGNA_FILE:
+	  if (is_signa(fname))
+	    return type;
+	  break;
+	case GE_LX_FILE:
+	  if (is_ge_lx(fname))
+	    return type;
+	  break;
+	case SDT_FILE:
+	  if (is_sdt(fname))
+	    return type;
+	  break;
+	case MRI_MGH_FILE:
+	  if (is_mgh(fname))
+	    return type;
+	  break;
+	case MRI_MINC_FILE:
+	  if (is_mnc(fname))
+	    return type;
+	  break;
+	case NII_FILE:
+	  if (is_nii(fname))
+	    return type;
+	  break;
+	case NIFTI1_FILE:
+	  if (is_nifti1(fname))
+	    return type;
+	  break;
+	case MRI_ANALYZE_FILE:
+	  // Need to check nifti1 here because it has .img/.hdr
+	  // like analyze but has a different header
+	  if(is_nifti1(fname))   return NIFTI1_FILE;
+	  if(is_analyze(fname))  return type;
+	  break;
+	case MRI_ANALYZE4D_FILE:
+	  // must add is_analyze4d().  I have no idea what to do thus return
+	  return type;
+	  break;
+	case SIEMENS_FILE:
+	  if (is_siemens(fname))
+	    return type;
+	  break;
+	case BRIK_FILE:
+	  if (is_brik(fname))
+	    return type;
+	  break;
+	case OTL_FILE:
+	  if (is_otl(fname))
+	    return type;
+	  break;
+	case GDF_FILE:
+	  if (is_gdf(fname))
+	    return type;
+	  break;
+	case XIMG_FILE:
+	  if (is_ximg(fname))
+	    return type;
+	  break;
+	default:
+	  break;
+	}
       }
     }
   }
@@ -306,6 +306,10 @@ int mri_identify(char *fname_passed)
     return(MRI_MGH_FILE);
   else if(is_mnc(fname))
     return(MRI_MINC_FILE);
+  else if(is_nifti1(fname)) // must appear before ANALYZE
+    return(NIFTI1_FILE);
+  else if(is_nii(fname))
+    return(NII_FILE);
   else if(is_analyze(fname))
     return(MRI_ANALYZE_FILE);
   else if(is_siemens(fname))
@@ -318,10 +322,6 @@ int mri_identify(char *fname_passed)
     return(GDF_FILE);
   else if(is_ximg(fname))
     return(XIMG_FILE);
-  else if(is_nifti1(fname))
-    return(NIFTI1_FILE);
-  else if(is_nii(fname))
-    return(NII_FILE);
   else
     return(MRI_VOLUME_TYPE_UNKNOWN);
 
@@ -869,6 +869,8 @@ int is_nifti1(char *fname)
   FILE *fp;
   char magic[4];
 
+  //printf("Checking NIFTI1\n");
+
   strcpy(fname_stem, fname);
   dot = strrchr(fname_stem, '.');
   if(dot != NULL)
@@ -898,6 +900,8 @@ int is_nifti1(char *fname)
   }
 
   fclose(fp);
+
+  //printf("Checking magic number %s %s\n",magic,NIFTI1_MAGIC);
 
   if(memcmp(magic, NIFTI1_MAGIC, 4) != 0)
     return(FALSE);
