@@ -402,6 +402,7 @@ typedef struct
   MRI_SP  *mrisp ;            /* parameterization  of this surface */
   int     frame_no ;          /* current frame in template parameterization */
   MRI_SP  *mrisp_template ;   /* parameterization of canonical surface */
+  MRI_SP  *mrisp_blurred_template ;   /* parameterization of canonical surface convolve with Gaussian */
   float   sigma ;             /* blurring scale */
 
 /* VECTORIAL_REGISTRATION
