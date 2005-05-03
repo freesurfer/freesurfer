@@ -23,7 +23,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.83 2005/01/21 15:57:43 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.84 2005/05/03 21:16:18 fischl Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -79,6 +79,7 @@ static char vcid[] = "$Id: mri_fill.c,v 1.83 2005/01/21 15:57:43 fischl Exp $";
                                 GLOBAL DATA
 -------------------------------------------------------------------*/
 
+static int fillonly = 0 ;
 static int fillven = 0 ;
 static FILE *log_fp = NULL ;
 static int lh_fill_val = MRI_LEFT_HEMISPHERE ;
@@ -123,6 +124,10 @@ static Real lh_tal_z ;
 static Real rh_tal_x ;
 static Real rh_tal_y ;
 static Real rh_tal_z ;
+
+static int rh_vol_x ;
+static int rh_vol_y ;
+static int rh_vol_z ;
 
 char *Progname ;
 
@@ -310,7 +315,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.83 2005/01/21 15:57:43 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.84 2005/05/03 21:16:18 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -340,6 +345,23 @@ main(int argc, char *argv[])
   mri_im = MRIread(input_fname) ;
   if (!mri_im)
     ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, input_fname) ;
+	if (mri_im->type != MRI_UCHAR)
+	{
+		MRI *mri_tmp ;
+
+    mri_tmp = MRIchangeType(mri_im, MRI_UCHAR, 0.0, 0.999, TRUE) ;
+    MRIfree(&mri_im) ; 
+    mri_im = mri_tmp ;
+	}
+
+	if (fillonly)
+	{
+		mri_rh_fill = MRIclone(mri_im, NULL) ;
+		mri_rh_im = MRIcopy(mri_im, NULL) ;
+		MRIfillVolume(mri_rh_fill, mri_rh_im, rh_vol_x, rh_vol_y, rh_vol_z,rh_fill_val);
+		MRIwrite(mri_rh_fill, out_fname) ;
+		exit(0) ;
+	}
 
   /* store all the things that are labeled other than white matter,
      and erase them so they don't confuse the issue of finding the cc
@@ -737,24 +759,36 @@ main(int argc, char *argv[])
       find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
                          MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
                          pons_seed_set, lta);
-    if (!mri_pons)
+    if (!mri_pons && !mri_seg)
       ErrorExit(ERROR_BADPARM, "%s: could not find pons", Progname);
   }
 
-  if (log_fp)
-  {
-    fprintf(log_fp, "PONS: %d, %d, %d (TAL: %2.1f, %2.1f, %2.1f)\n",
-            x_pons, y_pons, z_pons, pons_tal_x, pons_tal_y, pons_tal_z) ;
-    fclose(log_fp) ;
-  }
-  mri_tmp2 = MRIcopy(mri_im, NULL); // cutting plane
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    // talairached volume pons cutting plane
+	if (mri_pons)
+	{
+		if (log_fp)
+		{
+			fprintf(log_fp, "PONS: %d, %d, %d (TAL: %2.1f, %2.1f, %2.1f)\n",
+							x_pons, y_pons, z_pons, pons_tal_x, pons_tal_y, pons_tal_z) ;
+			fclose(log_fp) ;
+		}
+		mri_tmp2 = MRIcopy(mri_im, NULL); // cutting plane
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+			// talairached volume pons cutting plane
     MRIwrite(mri_pons, "./ponstal.mgh");
-  MRIfromTalairachEx(mri_pons, mri_tmp2, lta) ;
-  MRIbinarize(mri_tmp2, mri_tmp2, 1, 0, 1) ;
-  MRIfree(&mri_pons) ; mri_pons = mri_tmp2 ;
-  MRIdilate(mri_pons, mri_pons) ;
+		MRIfromTalairachEx(mri_pons, mri_tmp2, lta) ;
+		MRIbinarize(mri_tmp2, mri_tmp2, 1, 0, 1) ;
+		MRIfree(&mri_pons) ; mri_pons = mri_tmp2 ;
+		MRIdilate(mri_pons, mri_pons) ;
+	}
+	/*	else*/   // erase brain stem in any case
+	{
+		printf("ERASING BRAINSTEM") ;
+		MRIsetLabelValues(mri_im, mri_seg, mri_im, Brain_Stem, 0) ;
+#if 0
+		MRIsetLabelValues(mri_im, mri_seg, mri_im, Left_VentralDC, 0) ;
+		MRIsetLabelValues(mri_im, mri_seg, mri_im, Right_VentralDC, 0) ;
+#endif
+	}
 
   MRIfree(&mri_tal) ;
 
@@ -762,11 +796,13 @@ main(int argc, char *argv[])
      with one of the labels
 	*/
   MRImask(mri_im, mri_cc, mri_im, 1, fill_val) ;
-  MRImask(mri_im, mri_pons, mri_im, 1, fill_val) ;
+	if (mri_pons)
+		MRImask(mri_im, mri_pons, mri_im, 1, fill_val) ;
   if (mri_saved_labels)
   {
     MRImask(mri_saved_labels, mri_cc, mri_saved_labels, 1, 0) ;
-    MRImask(mri_saved_labels, mri_pons, mri_saved_labels, 1, 0) ;
+		if (mri_pons)
+			MRImask(mri_saved_labels, mri_pons, mri_saved_labels, 1, 0) ;
   }
   if (fill_val)
   {
@@ -782,7 +818,9 @@ main(int argc, char *argv[])
       MRIcopyLabel(mri_saved_labels, mri_im, labels[i]) ;
     MRIfree(&mri_saved_labels) ;
   }
-  MRIfree(&mri_labels) ; MRIfree(&mri_pons) ; 
+  MRIfree(&mri_labels) ; 
+	if (mri_pons)
+		MRIfree(&mri_pons) ; 
   if (!Gdiag)
     fprintf(stderr, "done.\n") ;
 
@@ -921,7 +959,7 @@ main(int argc, char *argv[])
   {
     MRIeraseTalairachPlaneNewEx(mri_seg, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
 																mri_seg->width, fill_val, lta);
-    edit_segmentation(mri_im, mri_seg) ;
+		//    edit_segmentation(mri_im, mri_seg) ;
     MRIeraseTalairachPlaneNewEx(mri_im, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
 																mri_seg->width, fill_val, lta);
   }
@@ -1270,6 +1308,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "using segmentation %s...\n", segmentation_fname) ;
     nargs = 1 ;
   }
+	else if (!stricmp(option, "fillonly"))
+	{
+		fillonly = 1 ;
+		printf("only filling volume...\n") ;
+	}
   else if (!strcmp(option, "rh"))
   {
     rh_seed_set = 1 ;
@@ -1278,6 +1321,16 @@ get_option(int argc, char *argv[])
     rh_tal_z = atof(argv[4]) ;
     fprintf(stderr, "using Talairach position (%2.1f, %2.1f, %2.1f) as rh seed\n",
             rh_tal_x, rh_tal_y, rh_tal_z) ;
+    nargs = 3 ;
+  }
+  else if (!strcmp(option, "rhv"))
+  {
+    rh_seed_set = 1 ;
+    rh_vol_x = atoi(argv[2]) ;
+    rh_vol_y = atoi(argv[3]) ;
+    rh_vol_z = atoi(argv[4]) ;
+    fprintf(stderr, "using Volume position (%d, %d, %d) as rh seed\n",
+            rh_vol_x, rh_vol_y, rh_vol_z) ;
     nargs = 3 ;
   }
   else if (!strcmp(option, "ccmask"))
@@ -3634,69 +3687,61 @@ extend_to_lateral_borders(MRI *mri_src, MRI *mri_dst, int mask)
 static int
 find_cc_seed_with_segmentation(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pcc_tal_y, Real *pcc_tal_z)
 {
-  int  x,  y, z, label, npoints, olabel ;
+  int  x,  y, z, label, yi, zi, yk, zk, xl, xr, rlabel, llabel, num, max_num ;
   Real xcc, ycc,  zcc ;
-  float  dist,min_dist, min_x, min_y,min_z;
   
-  xcc = ycc = zcc = 0.0  ; npoints = 0 ;
+  xcc = ycc = zcc = 0.0  ; 
+	max_num = 0 ;
   for (x = 0 ; x  < mri->width ; x++)
   {
     for (y = 0 ; y  < mri->height ; y++)
     {
       for (z = 0 ; z  < mri->width ; z++)
       {
-	label = MRIvox(mri_seg, x,  y, z) ;
-	if (!IS_WM(label))
-	  continue  ;
-	if (label == Left_Cerebral_White_Matter)
-	  olabel =  Right_Cerebral_White_Matter ;
-	else
-	  olabel =  Left_Cerebral_White_Matter ;
-	
-	if (neighborLabel(mri_seg, x, y, z,  1, olabel) > 0)
-	{
-	  xcc +=  x ; ycc += y ; zcc += z ; npoints++ ;
-	}
+				label = MRIvox(mri_seg, x,  y, z) ;
+				if (!IS_WM(label))
+					continue  ;
+				xr = mri_seg->xi[x+1] ;
+				xl = mri_seg->xi[x-1] ;
+				rlabel = MRIvox(mri_seg, xr, y, z) ;
+				llabel = MRIvox(mri_seg, xl, y, z) ;
+				if ((!IS_WM(rlabel) && !IS_WM(llabel)) ||
+						((rlabel == label) && (llabel == label)))
+					continue ;   /* find places where left/right wm has different label */
+
+				/* look in sagittal plane and count how many midline voxels there are */
+				for (num = 0, yk = -1 ; yk <= 1 ; yk++)
+				{
+					yi = mri_seg->yi[y+yk] ;
+					for (zk = -1 ; zk <= 1 ; zk++)
+					{
+						zi = mri_seg->zi[z+zk] ;
+						rlabel = MRIvox(mri_seg, xr, yi, zi) ;
+						llabel = MRIvox(mri_seg, xl, yi, zi) ;
+						label = MRIvox(mri_seg, x, yi, zi) ;
+						if (MRIvox(mri, x, yi, zi) < MIN_WM_VAL)
+							continue ;   // must be labeled in wm volume
+
+						if ((IS_WM(rlabel) && IS_WM(llabel)) && IS_WM(label) &&
+								((rlabel != label) || (llabel != label)))
+							num++ ;
+					}
+				}
+				if (num > max_num)
+				{
+					xcc = x ; ycc = y ; zcc = z ;
+					max_num = num ;
+				}
       }
     }
   }
-  if (npoints <= 0)
+  if (max_num <= 0)
     ErrorExit(ERROR_BADFILE, "%s: could not find any points where lh and rh wm  are nbrs", Progname) ;
   
-  xcc /= (Real)npoints  ; ycc /= (Real)npoints ; zcc /= (Real)npoints ;
   
-  /* now search for the point closest to the centroid that is a  wm point and satisfies the lh/rh constraint */
-  min_dist  = 1000000 ; min_x = xcc ; min_y = ycc ;  min_z = zcc  ;
-  for (x = 0 ; x  < mri->width ; x++)
-  {
-    for (y = 0 ; y  < mri->height ; y++)
-    {
-      for (z = 0 ; z  < mri->width ; z++)
-      {
-	label = MRIvox(mri_seg, x,  y, z) ;
-	if (!IS_WM(label) || (MRIvox(mri, x, y, z)  < WM_MIN_VAL))
-	  continue  ;
-	if (label == Left_Cerebral_White_Matter)
-	  olabel =  Right_Cerebral_White_Matter ;
-	else
-	  olabel =  Left_Cerebral_White_Matter ;
-	
-	if (neighborLabel(mri_seg, x, y, z,  1, olabel) > 0)
-	{
-	  dist = SQR(x-xcc) + SQR(y-ycc) + SQR(z-zcc)  ;
-	  if (dist <  min_dist)
-	  {
-	    min_dist  = dist ;
-	    min_x = x ; min_y = y ; min_z = z ;
-	  }
-	}
-      }
-    }
-  }
-  
-  MRIvoxelToWorld(mri, min_x, min_y, min_z, pcc_tal_x, pcc_tal_y, pcc_tal_z) ;
+  MRIvoxelToWorld(mri, xcc, ycc, zcc, pcc_tal_x, pcc_tal_y, pcc_tal_z) ;
   printf("segmentation indicates cc at (%d,  %d,  %d) --> (%2.1f, %2.1f, %2.1f)\n",
-	 nint(xcc), nint(ycc), nint(zcc), *pcc_tal_x, *pcc_tal_y, *pcc_tal_z) ;
+				 nint(xcc), nint(ycc), nint(zcc), *pcc_tal_x, *pcc_tal_y, *pcc_tal_z) ;
   
   return(NO_ERROR) ;
 }
