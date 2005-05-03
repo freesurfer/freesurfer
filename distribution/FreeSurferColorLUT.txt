@@ -161,7 +161,7 @@
 215 hippocampal_fissure           64	255	196	0
 216 entorhinal_cortex             255	204	102	0
 217 molecular_layer_subiculum       128 128 128 0 
-218 Amygdala                          103  255  255    0    
-219 Cerebral_White_Matter               0  225    0     0   
-220 Cerebral_Cortex               	 205   62   78     0 
-221 Inf_Lat_Vent                      196   58  250     0 
+218 Amygdala                          104  255  255    0    
+219 Cerebral_White_Matter               0  226    0     0   
+220 Cerebral_Cortex               	 205   63   78     0 
+221 Inf_Lat_Vent                      197   58  250     0 
