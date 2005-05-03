@@ -2585,7 +2585,8 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
       w.w = current.xconfigure.width;
       w.h = current.xconfigure.height;
       resize_window(0);
-      tclvar = Tcl_GetVar(interp,"tksurferinterface",TCL_GLOBAL_ONLY);
+      tclvar = 
+	(char*)Tcl_GetVar(interp,(char*)"tksurferinterface",TCL_GLOBAL_ONLY);
       /* begin rkt */
 #if 0
       if (followglwinflag && tclvar!=NULL &&
@@ -18342,7 +18343,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.96 2005/03/17 17:56:07 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.97 2005/05/03 20:01:42 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19472,8 +19473,10 @@ static void Prompt(interp, partial)
   char *promptCmd;
   int code;
   
-  promptCmd = Tcl_GetVar(interp,
-			 partial ? "tcl_prompt2" : "tcl_prompt1", TCL_GLOBAL_ONLY);
+  promptCmd = 
+    (char*)Tcl_GetVar(interp,
+		      partial ? (char*)"tcl_prompt2" : (char*)"tcl_prompt1",
+		      TCL_GLOBAL_ONLY);
   if (promptCmd == NULL) {
   defaultPrompt:
     if (!partial)
