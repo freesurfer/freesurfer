@@ -168,7 +168,7 @@ CTABindexToColor(COLOR_TABLE *pct, int index, int*r, int*g, int*b)
 }
 
 int
-CTABindexToAnnotation(COLOR_TABLE *ct, int index)
+CTABindexToAnnotation(COLOR_TABLE *ct, int index, int *pannot)
 {
   CTE *bin;
 	int  annotation, i ;
@@ -186,8 +186,9 @@ CTABindexToAnnotation(COLOR_TABLE *ct, int index)
 
   bin = &(ct->bins[i]);
 	annotation = (bin->b << 16) + (bin->g << 8) + bin->r ;
+	*pannot = annotation ;
 
-  return(annotation);
+  return(NO_ERROR);
 }
 
 int
