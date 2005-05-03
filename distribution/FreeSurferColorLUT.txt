@@ -123,7 +123,7 @@
 131  Orbital-Fat                                   238  59  59    0
 132  Tongue                                        221  39 200    0
 133  Nasal-Structures                              238 174 238    0
-134  Globe                                         255   0   0    0
+134  Globe                                         255   1   1    0
 135  Teeth                                          72  61 139    0
 136  Left-Caudate/Putamen                           21  39 132    0
 137  Right-Caudate/Putamen                          21  39 132    0
