@@ -138,7 +138,7 @@
 147  Inner-Table                                    70 130 181    0
 148  Periosteum                                    139 121  94    0
 149  Endosteum                                     224 224 224    0
-150  R/C/S                                         255   1   1    0
+150  R/C/S                                         255   2   2    0
 151  Iris                                          205 205   0    0
 152  SC-Adipose/Muscle                             238 238 209    0
 153  SC-Tissue                                     139 121  94    0
