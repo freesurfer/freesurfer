@@ -18343,7 +18343,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.97 2005/05/03 20:01:42 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.98 2005/05/03 20:32:33 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23212,6 +23212,10 @@ int labl_import_annotation (char *fname)
   }
   num_labels = 0;
 
+  /* Read original surface if we can. */
+  if (!origsurfloaded)
+    read_orig_vertex_coordinates(orfname);
+
   /* read the annotation. */
   for (vno = 0; vno < mris->nvertices; vno++)
     mris->vertices[vno].annotation = 0;
@@ -23262,8 +23266,6 @@ int labl_import_annotation (char *fname)
 		      }
 		  
 		  /* convert to original positions. */
-		  if (!origsurfloaded)
-		    read_orig_vertex_coordinates(orfname);
 		  LabelToOriginal (label, mris);
 		  
 		  /* add the label to our list. */
