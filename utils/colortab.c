@@ -168,6 +168,29 @@ CTABindexToColor(COLOR_TABLE *pct, int index, int*r, int*g, int*b)
 }
 
 int
+CTABindexToAnnotation(COLOR_TABLE *ct, int index)
+{
+  CTE *bin;
+	int  annotation, i ;
+
+  if (NULL == ct)
+    return(ERROR_BAD_PARM);
+
+	for (i = 0 ; i < ct->nbins ; i++)
+	{
+		if (ct->bins[i].index == index)
+			break ;
+	}
+	if (i >= ct->nbins)
+		ErrorReturn(ERROR_BAD_PARM, (ERROR_BAD_PARM, "CTABindexToAnnotation(%s, %d): could not find index in table", ct->fname, index)) ;
+
+  bin = &(ct->bins[i]);
+	annotation = (bin->b << 16) + (bin->g << 8) + bin->r ;
+
+  return(annotation);
+}
+
+int
 CTABcopyName(COLOR_TABLE *pct, int index, char *name)
 {
   CTE *bin;
