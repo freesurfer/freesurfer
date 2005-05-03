@@ -4,13 +4,13 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-dev-env
 #
-# $Id: nmr-dev-env,v 1.6 2005/04/22 21:37:15 kteich Exp $
+# $Id: nmr-dev-env,v 1.7 2005/05/03 18:03:09 kteich Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
 #############################################################################
 
-set NSE_VERSION = '$Id: nmr-dev-env,v 1.6 2005/04/22 21:37:15 kteich Exp $';
+set NSE_VERSION = '$Id: nmr-dev-env,v 1.7 2005/05/03 18:03:09 kteich Exp $';
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
   echo $NSE_VERSION
 endif
@@ -21,7 +21,7 @@ if($?NMR_DEV_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-dev-env,v 1.6 2005/04/22 21:37:15 kteich Exp $';
+set VERSION = '$Id: nmr-dev-env,v 1.7 2005/05/03 18:03:09 kteich Exp $';
 
 
 
@@ -66,12 +66,14 @@ set this_hostname = `hostname`
 set this_host     = `basename $this_hostname .nmr.mgh.harvard.edu`
 
 ### Create a prompt to indicate the standard environment ###
+if(! $?FSENV_KEEP_PROMPT ) then
 if($this_shell == csh) then
   unalias cd
   alias cd  'set old=$cwd; chdir \!*; set tmpcwd = `basename $cwd`; set prompt = "$this_host"":$tmpcwd (nmr-dev-env) % "'
   cd $cwd;
 else
   set prompt = "[%m:%c] (nmr-dev-env) "
+endif
 endif
 
 ### Dont leave huge cores around ###
