@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/05/02 23:05:55 $
-// Revision       : $Revision: 1.346 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/05/03 20:20:09 $
+// Revision       : $Revision: 1.347 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -8422,13 +8422,13 @@ MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
       strcat(fname_no_path, ".annot") ;
 
     need_hemi = 
-      !stricmp(fname, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
+      strncmp(fname_no_path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",2) ;
 
     FileNamePath(mris->fname, path) ;
     if (!need_hemi)
       sprintf(fname, "%s/../label/%s", path, fname_no_path) ;
     else   /* no hemisphere specified */
-      sprintf(fname, "%s/../label/%s_%s", path, 
+      sprintf(fname, "%s/../label/%s.%s", path, 
               mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",fname_no_path);
   }
   else
@@ -42765,7 +42765,7 @@ int
 MRISsegmentAnnotated(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels,
 		     float min_label_area)
 {
-  int     vno, nfound, n, nlabels ;
+  int     vno, nfound, n, nlabels, last_vno ;
   VERTEX  *v ;
   LABEL   *area = NULL, **tmp, **label_array ;
 
@@ -42777,7 +42777,7 @@ MRISsegmentAnnotated(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels,
 
   MRISclearMarks(mris) ;
 
-  nlabels = 0 ;
+  nlabels = 0 ; last_vno = -1 ;
   do
   {
     nfound = 0 ;
@@ -42785,7 +42785,7 @@ MRISsegmentAnnotated(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels,
     v = &mris->vertices[0] ;
 
     /* find an un-marked vertex */
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    for (vno = last_vno+1 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag || v->annotation == 0 || v->marked)
@@ -42806,6 +42806,7 @@ MRISsegmentAnnotated(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels,
       LabelMarkSurface(area, mris) ;
       LabelFree(&area) ;
       nfound = 1 ;
+			last_vno = vno ;
     }
     else
       nfound = 0 ;
