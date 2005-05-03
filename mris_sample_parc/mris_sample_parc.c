@@ -15,7 +15,7 @@
 #include "annotation.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.11 2004/03/16 20:57:39 fischl Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.12 2005/05/03 20:24:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -28,6 +28,7 @@ static int  translate_indices_to_annotations(MRI_SURFACE *mris, char *translatio
 
 
 char *Progname ;
+static char *color_table_fname = NULL ;
 static int mode_filter = 0 ;
 static char *surf_name = WHITE_MATTER_NAME ;
 static char *thickness_name = "thickness" ;
@@ -38,6 +39,7 @@ static int unknown_label = -1 ;
 static int fix_topology = 1 ;
 static int fix_label_topology(MRI_SURFACE *mris) ;
 static int resegment_label(MRI_SURFACE *mris, LABEL *segment) ;
+static float proj_mm = 0.0 ;
 
 #define MAX_LABEL 1000
 
@@ -53,7 +55,7 @@ main(int argc, char *argv[])
   Real          x, y, z, xw, yw, zw ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.11 2004/03/16 20:57:39 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.12 2005/05/03 20:24:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -103,9 +105,16 @@ main(int argc, char *argv[])
               Progname, fname) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
-  if (MRISreadCurvatureFile(mris, thickness_name) != NO_ERROR)
-    ErrorExit(ERROR_NOFILE, "%s: could not read thickness file %s",
-              Progname, thickness_name) ;
+
+	if (FZERO(proj_mm))
+	{
+		if (MRISreadCurvatureFile(mris, thickness_name) != NO_ERROR)
+			ErrorExit(ERROR_NOFILE, "%s: could not read thickness file %s",
+								Progname, thickness_name) ;
+	}
+
+	if (color_table_fname)
+		mris->ct = CTABread(color_table_fname) ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -115,15 +124,15 @@ main(int argc, char *argv[])
     if (vno == Gdiag_no)
       DiagBreak() ;
 
-    d = v->curv*.5 ;  /* halfway out */
+		if (!FZERO(proj_mm))
+			d = proj_mm ;
+		else
+			d = v->curv*.5 ;  /* halfway out */
     x = v->x+d*v->nx ; y = v->y+d*v->ny ; z = v->z+d*v->nz ;
-    // MRIworldToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
+		MRIworldToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
     MRIsurfaceRASToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
-    v->annotation = v->val = 
-      MRIfindNearestNonzero(mri_parc, wsize, xw, yw, zw) ;
-#if 0
-    v->val = v->annotation = MRIvox(mri_parc, nint(xw), nint(yw), nint(zw)) ;
-#endif
+		v->annotation = v->val = 
+			MRIfindNearestNonzero(mri_parc, wsize, xw, yw, zw) ;
   }
   if (unknown_label >= 0)
   {
@@ -204,9 +213,8 @@ main(int argc, char *argv[])
   /* this will fill in the v->annotation field from the v->val ones */
   translate_indices_to_annotations(mris, translation_fname) ;
 
-  sprintf(fname, "%s.%s.annot", hemi, annot_name) ;
-  printf("writing annotation to %s...\n", fname) ;
-  MRISwriteAnnotation(mris, fname) ; 
+  printf("writing annotation to %s...\n", annot_name) ;
+  MRISwriteAnnotation(mris, annot_name) ; 
 	/*  MRISreadAnnotation(mris, fname) ;*/
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -234,11 +242,30 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using %s as SUBJECTS_DIR\n", sdir) ;
   }
+  else if (!stricmp(option, "surf"))
+  {
+		surf_name = argv[2] ;
+    nargs = 1 ;
+    printf("using %s as surface name\n", surf_name) ;
+  }
+  else if (!stricmp(option, "proj"))
+  {
+		proj_mm = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("projecting %2.2f mm along surface normal\n", proj_mm) ;
+  }
   else if (!stricmp(option, "file"))
   {
     translation_fname = argv[2] ;
     nargs = 1 ;
     printf("using %s as translation fname\n", sdir) ;
+  }
+  else if (!stricmp(option, "ct"))
+  {
+		color_table_fname = argv[2] ;
+    nargs = 1 ;
+    printf("embedding color table %s into output annot file\n", color_table_fname) ;
+		translation_fname = color_table_fname ;
   }
   else switch (toupper(*option))
   {
