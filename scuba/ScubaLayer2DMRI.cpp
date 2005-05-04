@@ -1108,6 +1108,17 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
   if( iTool.GetTargetLayer() != GetID() )
     return;
 
+#if 0
+  if( iInput.IsButtonUpEvent() ) {
+    VolumeLocation& loc =
+      (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+    cerr << "Clicked " << Point3<float>(iRAS) << " -> "
+	 << Point3<int>(loc.Index()) << endl;
+    Point3<int> MRIIdx( loc.Index() );
+    mVolume->PrintVoxelCornerCoords( cerr, MRIIdx );
+  }
+#endif
+
   switch( iTool.GetMode() ) {
   case ScubaToolState::voxelEditing:
   case ScubaToolState::roiEditing:
@@ -1287,7 +1298,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  points.push_back( Point3<float>(iRAS) );
 	  break;
 	case ScubaToolState::square: {
-	  mVolume->FindRASPointsInSquare( sq[0].xyz(), sq[1].xyz(),
+	  mVolume->FindRASPointsInSquare( iRAS, 
+					  sq[0].xyz(), sq[1].xyz(),
 					  sq[2].xyz(), sq[3].xyz(),
 					  0,
 					  points );

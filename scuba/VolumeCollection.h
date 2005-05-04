@@ -159,7 +159,8 @@ class VolumeCollection : public DataCollection {
   // Finds and returns RAS points in a square area. Each RAS will
   // translate to a unique voxel. INPUT POINTS MUST BE IN CLOCKWISE OR
   // COUNTERCLOCKWISE ORDER.
-  void FindRASPointsInSquare ( float iPointA[3], float iPointB[3],
+  void FindRASPointsInSquare ( float iCenter[3],
+			       float iPointA[3], float iPointB[3],
 			       float iPointC[3], float iPointD[3],
 			       float iMaxDistance, // optional
 			       std::list<Point3<float> >& oPoints );
@@ -204,6 +205,9 @@ class VolumeCollection : public DataCollection {
     ( Point3<int>& iMRIIndex, int iIncrement,
       Point3<float>& iPlaneRAS, Point3<float>& iPlaneRASNormal,
       Point3<float>& oIntersectionRAS ); 
+
+  void PrintVoxelCornerCoords ( std::ostream& iStream,
+				Point3<int>& iMRIIdx );
 
 protected:
 

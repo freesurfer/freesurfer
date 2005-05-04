@@ -125,65 +125,116 @@ TESTS=$(check_PROGRAMS)
 ## Test programs.
 testIDTracker_SOURCES=test_IDTracker.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testIDTracker_LDADD=
+
 testBroadcaster_SOURCES=test_Broadcaster.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testBroadcaster_LDADD=
+
 testUtilities_SOURCES=test_Utilities.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testUtilities_LDADD=
+
 testMatrix44_SOURCES=test_Matrix44.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testMatrix44_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
 testTransform44_SOURCES=test_Transform44.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testTransform44_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
 testVolume3_SOURCES=test_Volume3.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testVolume3_LDADD=
+
 testPath_SOURCES=test_Path.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testPath_LDADD=
+
 testShortestPathFinder_SOURCES=test_ShortestPathFinder.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testShortestPathFinder_LDADD=
+
 testVectorOps_SOURCES=test_VectorOps.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testVectorOps_LDADD=
+
 testRASToVoxel_SOURCES= test_RASToVoxel.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
+testRASToVoxel_LDADD=
 
 testToglManager_SOURCES=test_ToglManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS)
+testToglManager_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
 testDataManager_SOURCES=test_DataManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
+testDataManager_LDADD=
+
 testTclCommandManager_SOURCES=test_TclCommandManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) 
+testTclCommandManager_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
 testPreferencesManager_SOURCES=test_PreferencesManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) 
+testPreferencesManager_LDADD=
+
 testUndoManager_SOURCES=test_UndoManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testUndoManager_LDADD=
+
 testCoordTimer_SOURCES= test_CoordTimer.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
+testCoordTimer_LDADD=
 testCoordTimer_LDFLAGS=-L/opt/intel/mkl70/lib/32 -lmkl -lm
 
 testDataCollection_SOURCES=test_DataCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
+testDataCollection_LDADD=
+
 testScubaDataCollections_SOURCES=test_ScubaDataCollections.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
+testScubaDataCollections_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
 testVolumeCollection_SOURCES=test_VolumeCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
+testVolumeCollection_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
 testSurfaceCollection_SOURCES= test_SurfaceCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
+testSurfaceCollection_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testScubaLayers_SOURCES=test_ScubaLayers.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS)
+testScubaLayers_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
 testScubaLayer2DMRI_SOURCES=test_ScubaLayer2DMRI.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) 
+testScubaLayer2DMRI_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testScubaView_SOURCES=test_ScubaView.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS)
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS) $(SCUBA1_SRCS)
+testScubaView_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
 testScubaFrame_SOURCES=test_ScubaFrame.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) 
+testScubaFrame_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
 testScubaTransform_SOURCES=test_ScubaTransform.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
+testScubaTransform_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
 testScubaColorLUT_SOURCES=test_ScubaColorLUT.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
+testScubaColorLUT_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
 testScubaROI_SOURCES=test_ScubaROI.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
+testScubaROI_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
 testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
+testScubaROIVolume_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 # All the scuba2 stuff.
 .ui/mainwindow.h: ui_dir mainwindow.ui
@@ -348,8 +399,6 @@ scuba_bundle: scuba2
 	@cp scuba2 scuba2.app/Contents/MacOS/
 	@cp -r scuba2.app $(DESTDIR)$(bindir)
 
-.PHONY: scuba_bundle
-
 obj_dir:
 	@test -d .obj || mkdir -p .obj
 
@@ -358,3 +407,6 @@ moc_dir:
 
 ui_dir:
 	@test -d .ui || mkdir -p .ui
+
+.PHONY: scuba_bundle ui_dir obj_dir moc_dir
+

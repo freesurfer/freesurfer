@@ -238,7 +238,8 @@ protected:
 
   // A map of increments that override the layer preferred ones, for
   // each layer.
-  std::map<int,std::map<int,float> > mLayerIDInPlaneIncrements;
+  typedef std::map<ViewState::Plane,float> InPlaneIncrements;
+  std::map<int,InPlaneIncrements > mLayerIDInPlaneIncrements;
 
   // The buffer for this view.
   GLubyte* mBuffer;
@@ -302,8 +303,6 @@ protected:
   static std::map<int,bool> mMarkerVisible;
 
   static ScubaViewStaticTclListener mStaticListener;
-
-  Matrix44 mTmpRotation;
 
   class ValueRangeFillElement {
   public:

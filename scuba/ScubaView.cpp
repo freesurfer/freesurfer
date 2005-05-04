@@ -248,7 +248,7 @@ ScubaView::Set2DZoomLevel ( float iZoomLevel ) {
 
 void
 ScubaView::Set2DInPlane ( ViewState::Plane iPlane ) {
-
+  
   // If we are going to a new plane, reset our plane normal. 
   if( mViewState.mInPlane != iPlane ) {
     switch( iPlane ) {
@@ -269,7 +269,6 @@ ScubaView::Set2DInPlane ( ViewState::Plane iPlane ) {
       break;
     }
   }
-
   mViewState.mInPlane = iPlane;
 
   // Broadcast this change.
@@ -452,14 +451,14 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       // we don't have them for layer already.
       if( 0 == iLevel ) {
 
-	map<int,map<int,float> >::iterator tLayerIDInPlaneInc;
+	map<int,InPlaneIncrements>::iterator tLayerIDInPlaneInc;
 	tLayerIDInPlaneInc = mLayerIDInPlaneIncrements.find( iLayerID );
 	if( tLayerIDInPlaneInc == mLayerIDInPlaneIncrements.end() ) {
 	  float incs[3];
 	  layer.GetPreferredInPlaneIncrements( incs );
-	  mLayerIDInPlaneIncrements[iLayerID][0] = incs[0];
-	  mLayerIDInPlaneIncrements[iLayerID][1] = incs[1];
-	  mLayerIDInPlaneIncrements[iLayerID][2] = incs[2];
+	  mLayerIDInPlaneIncrements[iLayerID][ViewState::X] = incs[0];
+	  mLayerIDInPlaneIncrements[iLayerID][ViewState::Y] = incs[1];
+	  mLayerIDInPlaneIncrements[iLayerID][ViewState::Z] = incs[2];
 	}
       }
 
@@ -1628,7 +1627,7 @@ ScubaView::DoReshape( int iWidth, int iHeight ) {
     stringstream sError;
     sError << "Invalid width " << mWidth << " or height " << mHeight;
     DebugOutput( << sError.str() );
-    throw new runtime_error( sError.str() );
+    throw runtime_error( sError.str() );
   }
 
   // Set the view state buffer height and width.
@@ -1642,7 +1641,7 @@ ScubaView::DoReshape( int iWidth, int iHeight ) {
     sError << "Couldn't allocate buffer for width " << mWidth 
 	   << " height " << mHeight;
     DebugOutput( << sError.str() );
-    throw new runtime_error( sError.str() );
+    throw runtime_error( sError.str() );
   }
 
   // Get rid of the old one.
