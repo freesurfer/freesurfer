@@ -16,7 +16,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.27 2005/05/01 22:21:13 segonne Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.28 2005/05/04 03:34:01 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.27 2005/05/01 22:21:13 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.28 2005/05/04 03:34:01 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -171,6 +171,7 @@ main(int argc, char *argv[])
   if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read original surface %s",
               Progname, orig_name) ;
+
 
   if (MRISreadVertexPositions(mris, inflated_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read inflated surface %s",
