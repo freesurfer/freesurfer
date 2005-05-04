@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/05/04 18:23:09 $
-// Revision       : $Revision: 1.71 $
+// Revision Date  : $Date: 2005/05/04 18:24:14 $
+// Revision       : $Revision: 1.72 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -63,11 +63,13 @@ static double gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, M
 static int  gcamAreaTermAtNode(GCA_MORPH *gcam, MRI *mri, double l_area, 
 			       int i, int j, int k, double *pdx, double *pdy, 
 			       double *pdz) ;
+#if 0
 static int  gcamAreaIntensityTermAtNode(GCA_MORPH *gcam, MRI *mri, 
 																				double l_area_intensity, 
 																				int i, int j, int k, 
 																				double *pdx, double *pdy, 
 																				double *pdz, GCA_MORPH_NODE **gcamn_nbrs, int nbrs) ;
+#endif
 static int  gcamJacobianTermAtNode(GCA_MORPH *gcam, MRI *mri, double l_jacobian, 
                                    int i, int j, int k, double *pdx, double *pdy, 
                                    double *pdz) ;
@@ -1691,6 +1693,7 @@ gcamJacobianTermAtNode(GCA_MORPH *gcam, MRI *mri, double l_jacobian,
   }
   return(NO_ERROR) ;
 }
+#if 0
 static int  
 gcamAreaIntensityTermAtNode(GCA_MORPH *gcam, MRI *mri, double l_area_intensity,
 														int i, int j, int k, double *pdx, double *pdy, 
@@ -1893,6 +1896,7 @@ gcamAreaIntensityTermAtNode(GCA_MORPH *gcam, MRI *mri, double l_area_intensity,
   }
   return(NO_ERROR) ;
 }
+#endif
 static int
 gcamAreaTermAtNode(GCA_MORPH *gcam, MRI *mri, double l_area, 
 		   int i, int j, int k, double *pdx, double *pdy, double *pdz)
