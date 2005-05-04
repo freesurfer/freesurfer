@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.101 2005/04/22 15:37:07 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.102 2005/05/04 20:12:21 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3913,6 +3913,14 @@ proc DrawLabelArea {} {
 		pack $fw -side top -expand yes -fill x
 	    }
 
+	    # Cap the label to 14 chars if necessary.
+	    set zLabel [string length $label]
+	    if { $zLabel > 14 } {
+		set sFirst [string range $label 0 6]
+		set sLast [string range $label [expr $zLabel-6] end]
+		set label "${sFirst}...${sLast}"
+	    }
+
 	    # If we haven't made a label yet, make one, otherwise just
 	    # configure it with this labels contents.
 	    if { [catch {$ewLabel config}] } {
@@ -3952,6 +3960,14 @@ proc DrawLabelArea {} {
 	# These are row headers.
 	set nCol 1
 	foreach sX $tableX {
+
+	    # Cap the label to 14 chars if necessary.
+	    set zLabel [string length $sX]
+	    if { $zLabel > 14 } {
+		set sFirst [string range $sX 0 6]
+		set sLast [string range $sX [expr $zLabel-6] end]
+		set sX "${sFirst}...${sLast}"
+	    }
 
 	    # If we haven't made the header label, do so, otherwise
 	    # just configure it with our contents.
@@ -5003,7 +5019,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.101 2005/04/22 15:37:07 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.102 2005/05/04 20:12:21 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
