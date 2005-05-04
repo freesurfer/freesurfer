@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/04/01 21:00:33 $
-// Revision       : $Revision: 1.6 $
+// Revision Date  : $Date: 2005/05/04 19:33:12 $
+// Revision       : $Revision: 1.7 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -44,6 +44,15 @@ typedef struct
 
 #define HIRES_PAD       10
 #define LOWRES_PAD      20
+
+
+static int find_gcam_node(GCA_MORPH *gcam, int label, 
+													float x_vox, float y_vox, float z_vox) ;
+
+static int find_label = -1 ;
+static float x_vox = 0.0 ;
+static float y_vox = 0.0 ;
+static float z_vox = 0.0 ;
 
 static int fix_intensity = 0 ;
 static MRI *estimate_densities(GCA_MORPH *gcam, MRI *mri_lowres, MRI *mri_intensity) ;
@@ -244,6 +253,7 @@ main(int argc, char *argv[])
 	mp.integration_type = GCAM_INTEGRATE_BOTH ;
 	mp.nsmall = 1 ;
 	mp.reset_avgs = -1 ;
+	mp.regrid = regrid? True : False ;
 	mp.tol = 0.1 ;
 	mp.niterations = 1000 ;
 	
@@ -262,7 +272,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 4)
+  if (argc < 5)
 		usage_exit(1) ;
 
 	hires_fname = argv[1] ;
@@ -452,6 +462,7 @@ main(int argc, char *argv[])
 				GCAMrasToVox(gcam, mri_lowres) ;
 			else
 				GCAMrasToVox(gcam, mri_intensity) ;
+			/*			GCAMremoveCompressedRegions(gcam, 0.1) ;*/
 		}
 		if (gcam->width != mri_hires->width ||
 				gcam->height != mri_hires->height ||
@@ -459,7 +470,7 @@ main(int argc, char *argv[])
 			ErrorExit(ERROR_BADPARM, "%s: warning gcam (%d, %d, %d), doesn't match hires vol (%d, %d, %d)",
 								Progname, gcam->width, gcam->height, gcam->depth,
 								mri_hires->width, mri_hires->height, mri_hires->depth) ;
-		if (regrid)
+		if (regrid && 0)
 		{
 			double pct_change ;
 			int    niter = 0, nlevels = mp.levels, level, npasses, navgs = mp.navgs,
@@ -541,6 +552,11 @@ main(int argc, char *argv[])
 				GCAMsetLabelStatus(gcam, label, GCAM_BINARY_ZERO) ;
 			}
 			GCAMsetLabelStatus(gcam, 0, GCAM_NEVER_USE_LIKELIHOOD) ;
+			mp.mri = mri_target ;
+			if (mp.regrid == True)
+				GCAMregrid(gcam, mri_target, HIRES_PAD, &mp, &mri_hires) ;
+			if (find_label >= 0)
+				find_gcam_node(gcam, find_label, x_vox, y_vox, z_vox) ;
 			GCAMregister(gcam, mri_target, &mp) ;
 			GCAMvoxToRas(gcam) ;
 			GCAMwrite(gcam, out_fname) ;
@@ -584,6 +600,16 @@ get_option(int argc, char *argv[])
     mp.integration_type = GCAM_INTEGRATE_OPTIMAL ;
     printf("using optimal time-step integration\n") ;
   }
+  else if (!stricmp(option, "find_label"))
+  {
+		find_label = atoi(argv[2]) ;
+		x_vox = atof(argv[3]) ;
+		y_vox = atof(argv[4]) ;
+		z_vox = atof(argv[5]) ;
+		nargs = 4 ;
+    printf("finding label %s (%d) at (%2.1f, %2.1f, %2.1f)\n",
+					 cma_label_to_name(find_label), find_label, x_vox, y_vox,z_vox) ;
+  }
   else if (!stricmp(option, "MOMENTUM") || !stricmp(option, "FIXED"))
   {
     mp.integration_type = GCAM_INTEGRATE_FIXED ;
@@ -604,11 +630,13 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "noregrid"))
   {
 		regrid = 0 ;
+		mp.regrid = False ;
     printf("disabling regridding...\n") ;
   }
   else if (!stricmp(option, "regrid"))
   {
 		regrid = 1 ;
+		mp.regrid = True ;
     printf("enabling regridding...\n") ;
   }
   else if (!stricmp(option, "view"))
@@ -1610,6 +1638,8 @@ estimate_densities(GCA_MORPH *gcam, MRI *mri_lowres, MRI *mri_intensities)
 
 	gcam_ltt.nlabels = 0 ;
 
+	memset(gcam_ltt.means, 0, sizeof(gcam_ltt.means)) ;
+
 	/* don't use inf_lat_vent label as it may be too small to
 		 give reliable estimate of density */
   gcam_ltt.input_labels[gcam_ltt.nlabels] = alveus ;
@@ -1720,3 +1750,44 @@ estimate_densities(GCA_MORPH *gcam, MRI *mri_lowres, MRI *mri_intensities)
 
 	return(GCAMinitDensities(gcam, mri_lowres, mri_intensities, &gcam_ltt)) ;
 }
+static int
+find_gcam_node(GCA_MORPH *gcam, int label, float x0, float y0, float z0)
+{
+	int   x, y, z, nx, ny, nz ;
+	double dist, min_dist, dx, dy, dz ;
+	GCA_MORPH_NODE *gcamn ;
+
+	min_dist = 1e10 ;
+
+	nx = ny = nz = -1 ;
+	for (x = 0 ; x < gcam->width ; x++)
+	{
+		for (y = 0 ; y < gcam->height ; y++)
+		{
+			for (z = 0 ; z < gcam->depth ; z++)
+			{
+				gcamn = &gcam->nodes[x][y][z] ;
+				if (gcamn->label != label)
+					continue ;
+				dx = gcamn->x - x0 ;
+				dy = gcamn->y - y0 ;
+				dz = gcamn->z - z0 ;
+				dist = sqrt(dx*dx + dy*dy + dz*dz);
+				if (dist < min_dist)
+				{
+					min_dist = dist ;
+					nx = x ; ny = y ; nz = z ; 
+				}
+			}
+		}
+	}
+
+	if (nx >= 0)
+	{
+		printf("node found at (%d, %d, %d), setting G[xyz]\n", nx, ny, nz);
+		Gx = nx ; Gy = ny ; Gz = nz ;
+	}
+	return(NO_ERROR) ;
+}
+
+
