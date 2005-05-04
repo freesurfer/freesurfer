@@ -120,6 +120,7 @@ typedef struct
 	double start_rms ;
 	double end_rms ;
 	NODE_LOOKUP_TABLE *nlt ;
+	int    regrid  ;
 } GCA_MORPH_PARMS, GMP ;
 
 
@@ -129,6 +130,7 @@ int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
 int       GCAMwrite(GCA_MORPH *gcam, char *fname) ;
 GCA_MORPH *GCAMread(char *fname) ;
 int       GCAMfree(GCA_MORPH **pgcam) ;
+int       GCAMfreeContents(GCA_MORPH *gcam) ;
 MRI       *GCAMmorphFromAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst) ;
 MRI       *GCAMmorphToAtlasWithDensityCorrection(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame) ;
 MRI       *GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst, int frame) ;
@@ -165,7 +167,7 @@ int GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status) ;
 int GCAMsetStatus(GCA_MORPH *gcam, int status) ;
 int GCAMapplyTransform(GCA_MORPH *gcam, TRANSFORM *transform) ;
 int GCAMinitVolGeom(GCAM *gcam, MRI *mri_src, MRI *mri_atlas) ;
-MRI *GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int fno, int which, int save_inversion) ;
+MRI *GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion, int filter) ;
 double GCAMcomputeRMS(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 int GCAMexpand(GCA_MORPH *gcam, float distance) ;
 GCA_MORPH *GCAMregrid(GCA_MORPH *gcam, MRI *mri_dst, int pad, 
@@ -174,6 +176,8 @@ int GCAMvoxToRas(GCA_MORPH *gcam) ;
 int GCAMrasToVox(GCA_MORPH *gcam, MRI *mri) ;
 int GCAMaddStatus(GCA_MORPH *gcam, int status_bit) ;
 int GCAMremoveStatus(GCA_MORPH *gcam, int status_bit) ;
+int GCAMremoveCompressedRegions(GCA_MORPH *gcam, float min_ratio) ;
+int GCAMcountCompressedNodes(GCA_MORPH *gcam, float min_ratio) ;
 
 typedef struct
 {
@@ -208,5 +212,7 @@ MRI  *GCAMinitDensities(GCA_MORPH *gcam, MRI *mri_lowres_seg, MRI *mri_intensiti
 #define GCAM_NODEX  7
 #define GCAM_NODEY  8
 #define GCAM_NODEZ  9
+#define GCAM_MEANS  10
+#define GCAM_COVARS 11
 
 #endif
