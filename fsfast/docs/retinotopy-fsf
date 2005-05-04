@@ -1,0 +1,79 @@
+Retinotopy analysis in FS-FAST
+
+
+For each session, create retinotopy paradigm files in each of the run
+directories.  These paradigm files are different than an event-related
+or block paradigm (which list which stimulus was presented when).  A
+retinotopy paradigm file has information about whether the run was an
+eccentricity or polar stimulus and in what direction the stimulus was
+presented.
+
+For polar, the direction is indicates whether the spoke was traveling
+clockwise or counter-clockwise.  For eccen, the direction is indicates
+whether the ring was expanding or contracting.  The definition of
+what's positive and what's negative is arbitrary, though it must be
+consistent.  If you don't have both directions, just use positive.
+
+For example, if there were four runs (001, 002, 003, 004), two eccen
+and two polar, both in the positive and negative directions.  Create a
+file (eg, rtopy.par) in each run.  Assuming run 001 was eccen in the
+negative direction, then the rtopy.par for run 001 would look like:
+
+--------cut here --------
+stimtype  eccen
+direction neg
+--------cut here --------
+
+If needed, create a run-list file with the all retinotopy runs
+(regardless of whether it was eccen or polar).
+
+Create the analysis:
+
+mkanalysis-sess.new \
+ -a rtopy   \
+ -TR 2   \
+ -designtype retinotopy  \
+ -paradigm rtopy.par  \
+ -funcstem fmcsm5  \
+ -ncycles 8
+
+
+Run the analysis:
+  sfa-sess -s avdk -a rtopy
+
+This will create avdk/bold/rtopy in which will be:
+  1. volume h-offset (the mean function intensity)
+  2. eccen - eccentricity folder (with h volume)
+  3. polar - polar folder (with h volume)
+
+The task-related activation can be viewed as with any other contrast
+in a non-retinotopy application.  Just use eccen or polar as the
+contrast and specify h as the map.
+
+The task-related activation for eccen can be viewed with:
+  sliceview-sess -s avdk -a rtopy -c eccen -map h -slice mos
+The task-related activation for polar can be viewed with:
+  sliceview-sess -s avdk -a rtopy -c polar -map h -slice mos
+
+Run paint:
+
+  paint-sess -a rtopy -s avdk
+
+This will create map-imag-lh.w (the imaginary or sine part multiplied
+by the log10(sig)), map-real-lh.w (the real or cosine part multiplied
+by the log10(sig)), and sig-0-lh.w (the task related activation) for
+both the polar and eccen.  It will also create a directory called
+fieldsign in bold/rtopy in which fieldsign-lh (or -rh) along with
+fieldsignmask-lh will be found.
+
+To view the field-sign on the flattened patch (occip.patch.flat):
+  surf-sess -s avdk  -a rtopy -retinotopy fieldsign -flat
+
+To view the eccen on the flattened patch (occip.patch.flat):
+  surf-sess -s avdk  -a rtopy -retinotopy eccen -flat
+
+To view the polar on the flattened patch (occip.patch.flat):
+  surf-sess -s avdk  -a rtopy -retinotopy polar -flat
+
+To view the task-related polar activation on the flattened patch
+  surf-sess -s avdk  -a rtopy -c polar -flat

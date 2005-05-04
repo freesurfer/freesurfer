@@ -1,0 +1,371 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+%\usepackage{draftcopy}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf stxgrinder} \\
+\end{Large}
+
+\noindent 
+\begin{verbatim}
+Comments or questions: analysis-bugs@nmr.mgh.harvard.edu\\
+$Id: stxgrinder.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\end{verbatim}
+
+\section{Introduction}
+{\bf stxgrinder} is a program for generating significance maps for
+fMRI experiments processed with the {\bf selxavg} selective averaging
+program.  Requires matlab 5.2 or higher.\\
+
+Note: in previous versions (prior to 3/1/2000), stxgrinder would, by
+default, report the natural log of the significance values.  It now
+defaults to log10 of the significance values.
+
+\section{Usage}
+Typing {\em stxgrinder} at the command-line without any options will give the
+following message:\\ 
+
+\begin{small}
+\begin{verbatim}
+USAGE: stxgrinder [-options] -i instem -o outstem
+   instem   - prefix of .bfloat selxavg files
+   outstem  - prefix of .bfloat output files
+Options:
+   -cmtx cmtxfile        : contrast matrix file (see mkcontrast)
+   -a a1 [-a a2 ...]     : active condition(s)
+   -c c1 [-c c2 ...]     : control condition(s)
+   -delrange dmin dmax   : delay range to test <prestim,timewindow> (sec)
+   -ircorr               : correlate with ideal HDIR
+   -delta                : delta of ideal HDIR
+   -tau                  : tau of ideal HDIR
+   -testtype             : stat test type (t,<tm>,Fd,Fc,Fcd)
+   -pmin                 : get min p value from tm test over delrange
+   -format string        : lnp, <log10p>, p, tF
+   -monly mfile          : do not run, just create matlab file
+   -firstslice <int>     : first slice to process <auto>
+   -nslices <int>        : number of slices to process <auto>
+   -version              : print version and exit
+\end{verbatim}
+\end{small}
+
+\section{Command-line Arguments}
+
+\noindent
+{\bf -i instem}: stem of the volume of hemodynamic averages (in {\em
+bfile format}). This is the output of {\bf selxavg} .\\
+
+\noindent
+{\bf -o outstem}: this is the stem of the output significance volume.\\
+
+\noindent
+{\bf -cmtx cmtxfile}: specify a contrast matrix file as created by
+{\bf mkcontrast}.  A cmtxfile is specified in place of the following 
+options: -a, -c, -delrange, -ircorr, -delta, and -tau.\\
+
+\noindent
+{\bf -a a1 [-a -a2 ...]}: the active condition(s) (or positive
+contrast condition) for the statistical test where {\em a1} is an
+integer that uniquely identifies the the first condition (as specified
+in the paradigm file).  There must be at least one active condition
+specified.  All the active conditions are summed together, and the sum
+of the control conditions is subtracted from the sum of the active
+conditions.  Eg, {\em -a 1 -a 4}.\\
+
+\noindent
+{\bf -c c1 [-c -c2 ...]}: the control condition(s) (or negative
+contrast condition) for the statistical test where {\em c1} is an
+integer that uniquely identifies the the first condition.  There must
+be at least one control condition specified.  All the control
+conditions are summed together and subtracted from the sum of the
+active conditions. Eg, {\em -c 0 -c 3}.\\
+
+\noindent
+{\bf -delrange dmin dmax}: set the range of hemodyanmic delays over
+which to perform the statistical test.  {\em dmin} is the minimum
+delay, and {\em dmax} is the maximum delay; both are specified in
+seconds.  If {\em -delrange} is not specified, then all time points in
+the hemodynamic response are considered. This option cannot be used
+when the {\em -gammafit} option was used during selective averaging.\\
+
+\noindent
+{\bf -ircorr}: instruct {\em stxgrinder} to correlate the hemodynamic
+averages with an ``ideal'' hemodynamic impulse response.  The ideal
+is a gamma function which has two parameters: $\Delta$ and $\tau$,
+which are specified with their own flags.
+The gamma function has the form:
+\begin{equation}
+h(t) = 
+\begin{cases}
+0 & t < \Delta \\
+(\frac{\tau e^2}{4})
+( \frac{t-\Delta}{\tau} )^2 e^{{-(\frac{t-\Delta}{\tau}})} & t > \Delta \\
+\end{cases}
+\label{hideal.eqn}
+\end{equation}
+$\Delta$ is the time (in seconds) between stimulus onset and the start
+of the time at which blood flow starts to increase.  $\tau$ controls
+how fast the HDR rises and falls.  The factor $\frac{\tau e^2}{4}$
+forces the peak of the response to be 1.0.  This option cannot be
+used when the {\em -gammafit} option was used during selective averaging.\\
+
+\noindent
+{\bf -delta double}: This specifies the delay of the ``ideal''
+hemodynamic impulse response in seconds (see {\bf -ircorr}).
+A typical value is 2.25 sec. Eg: {\em -delta 2.25}.\\
+
+\noindent
+{\bf -tau double}: This specifies the time constant of the ``ideal''
+hemodynamic impulse response in seconds (see {\bf -ircorr}).
+A typical value is 1.25 sec. Eg: {\em -tau 1.25}.\\
+
+\noindent
+{\bf -testtype string}: this flag indicates the type of statistical
+test to perform.  Valid strings are: {\em t, tm, Fd, Fc, Fcd}. Tests
+that begin with a {\em t} us a (univariate) t test. Tests that begin
+with an {\em F} us a (multivariate) F test. Modifiers {\em m, d, c,}
+and {\em cd} determine how time-points and conditions are collapsed
+together (see below).\\
+
+\noindent
+{\bf -pmin }: this flag, used with testtype {\em tm} which perform a
+different test on each time point, so there are multiple significance
+values for each voxel.  This flag instructs {\em stxgrinder} to search
+each voxel over time points for its minimum p-value.  This value is
+then multiplied by the number of time points searched (ie, a Bonferoni
+correction), and this one significance value is reported. This is a
+way to do a multivariate test from a series of univariate tests.\\
+
+\noindent
+{\bf -format string}: specifies the format of the output.  Allowable
+choices are {\em lnp, log10, p, tF}.  {\em lnp} specifies that the
+natural log significance values be stored.  {\em log10} instructs
+{\em stxgrinder} to store the base-10 log of the significance to
+be stored.  Using {\em p} forces the raw p-values to be stored.
+{\em tF} specifies that the statistic value (either from the t or
+F test) be stored instead of computing a significance value from
+the statistic. Eg: {\em -format log10p}.\\
+
+\noindent
+{\bf -monly}: only generate the matlab file which would accomplish the
+analysis but do not actually execute it.  This is mainly good for
+debugging purposes.\\
+
+\noindent
+{\bf -firstslice int}: first {\em anatomical} slice to process
+(usually 0). Autodetcted is left unspecified.\\
+
+\noindent
+{\bf -nslices int}: total number of anatomical slices to process.
+Autodetcted is left unspecified.\\
+
+\section{Output}
+
+{\em stxgrinder} will create a statistical map for each anatomical
+slice in the volume specified.  The file name will be
+``outstem\_sss.bfloat'' where ``sss'' is the anatomical slice number.
+This map will either have one plane or will have the same number of
+planes as the number of delays specified in the {\em -delrange}
+option, depending upon which {\em testtype} is specified.  The {\em
+tm} and {\em Fm} types can generate multiple planes; the rest can only
+generate a single plane.  If the {\em pmin} flag is set with the {\em
+tm} or {\em Fm} options, only one plane is reported.  The significance
+value can either be the raw p value, the natural log of the p value,
+or the base 10 log of the p value, depending upon the choice of the
+{\em format} flag.  The t or F statistic itself can also be reported
+instead of the p value.  For t test, the significance will have the
+same sign as the underlying t value.
+
+\section{Specifying Hypotheses}
+
+{\em stxgrinder} allows the user to test a multitude of hypotheses.
+This section describes how to determine the command-line arguments
+that will realize a given hypothesis.  This will be done in two
+parts: specifying a restriction table and specifying a test type.
+
+\subsection{Specifying the Restriction Table}
+
+Regardless of the hypothesis, a {\em single} number (the statistic) is
+computed and tested for significance.  The statistic is computed from
+the hemodynamic averages and variances.  Each point within the
+hemodynamic time window (specified when {\em selxavg} is run) has its
+own average and variance.  Each condition has its own set hemodynamic
+averages and variances.  If there are $N_c$ conditions with $N_h$
+hemodynamic points per condition, then there will be $N_{ch} = N_h *
+N_c$ averages and variances that can be combined in any way to create
+a statistical test.  The number of combinations and permutations is
+potentially enormous, and {\em stxgrinder} restricts the user to a
+subset of tests that are most useful for the task at hand.  To see how
+this works, it is helpful to represent all the hemodynamic points
+within a table or matrix with the columns representing the range of
+post-stimulus delays and the rows representing the different
+conditions as shown below for an experiment with three conditions and
+a time window of 7 TRs.\\
+
+\begin{tabular}{|r||r|r|r|r|r|r|r|r|}\hline
+& 0 TR & 1  TR & 2  TR & 3  TR & 4  TR & 5  TR & 6  TR & 7  TR\\ \hline \hline
+Condition 0 &   &    &    &    &    &    &    &   \\ \hline
+Condition 1 &   &    &    &    &    &    &    &   \\ \hline
+Condition 2 &   &    &    &    &    &    &    &   \\ \hline
+\end{tabular}\\
+
+To specify the components to test, one fills the slots of the table
+with zeros and $\pm 1$'s.  One first decides on the conditions to be
+tested and over which delays they will be tested.  Conditions not to
+be tested should have zeros in their rows.  Delays not to be tested
+should have zeros in their columns.  A remaining slot should be
+filled with $+1$'s if its condition is active or $-1$'s if its
+condition is control.  
+
+\subsubsection{-a, -c, and -delrange}
+
+The active conditions are specified using {\em
+-a} flags. The control conditions are specified using {\em -c} flags.
+Slots for unspecified conditions are set to zero (all delay ranges).
+The delay points to test are specified by the {\em -delrange} option
+(if this option is omitted, then all delays are considered).  Columns
+corresponding to delays outside of the range are set to zero
+(for all conditions).
+
+\subsubsection{-ircorr}
+
+So far, we have only considered cases in which the slots of the
+restriction table are either 0, +1, or -1.  One can view this
+as a binary weighting in which a component is either completely
+included or completely excluded.  The {\em -ircorr} flag allows
+components to be weighted continuously.  This means that fractional
+weights can be allowed in the restriction table.  These fractions are
+determined by the ideal hemodynamic impulse response of equation
+\ref{hideal.eqn}.  The weight at a particular column will be equal
+to equation \ref{hideal.eqn} evaluated at the delay corresponding
+to that column and using the $\Delta$ and $\tau$ specified by the
+{\em -delta} and {\em -tau} flags.  This weighting is applied to
+all specified conditions (ie, there is not a different $\Delta$ and
+$\tau$ for different conditions).  Slots that are zero stay at zero,
+and signs are preserved.
+
+\subsection{Specifying a Test Type}
+
+The restriction table determines which components of the hemodyanmic
+responses will be included in the statistical test and how each will
+be weighted. The table is completely specified by the the {\em -a, -c,
+-delrange} and {\em -ircorr} options.  The {\em -testtype} and {\em
+-pmin} options specify how these components will be combined.  In a t
+test, all the non-zero components are summed (with appropriate weight
+and sign).  In an F test, subsets of the non-zero slots may be summed
+together (with appropriate weight and sign) followed by summing the
+squares of the subtotals.  Subsets can be chosen across conditions
+for the same delay (ie, collapse across conditions) or across delays
+for the same condition (ie, collapse across delays) or both.  In some
+cases the squaring of an element will make the distinction between
+``active'' and ``control'' conditions irrelevant.
+
+\subsubsection{ -testtype t}
+
+All the elements specified by the non-zero slots are summed together
+(with their appropriate sign).  The averages and variances are
+combined resulting in a t statistic whose significance is then computed
+with the t Test.
+
+\subsubsection{ -testtype tm}
+
+The conditions for each delay are summed together to create a separate
+t value for each delay.  Significances are computed for each of these
+values resulting in multiple p values for each voxel.  While the {\em
+tm} test can report a significance for each delay at each voxel, the
+addition of the {\em -pmin} flag will force only one significance per
+voxel to be reported.
+
+\subsubsection{ -testtype Fd}
+
+Conditions for each delay are summed together (taking sign into
+account).  These sums are squared and then added together to
+create an F statistic.  This collapses across condition {\em before}
+squaring and collapsing across delay, thus the ``active'' and 
+``control'' labels are meaningful.  The difference between the {\em
+Fd} option and the {\em Fm} option is that {\em Fd} collapses 
+across delays after squaring resulting in a single F value (and
+so single significance) per voxel.  The {\em Fm} option computes
+an F value for each delay.
+
+\subsubsection{ -testtype Fc}
+
+Delays for each condition are summed together These sums are squared
+and then added together to create an F statistic.  This collapses
+across delays {\em before} squaring and collapsing across condition.
+However, since all the delays within a condition will have the same
+sign, the ``active'' and ``control'' labels are not meaningful.
+
+\subsubsection{ -testtype Fcd}
+
+Each non-zero component of the restriction table are squared {\em
+before} adding them together to generate an F statistic. Note that
+since the first step is a squaring operation, the sign is lost,
+and the ``active'' and ``control'' labels become meaningless.
+
+\subsection{Examples}
+
+Most users think of hypotheses to be tested rather than restriction
+tables to be derived.  This section describes how to go from one to
+the other.  For example, consider the experiment in which there are
+two non-null stimulus types (conditions 1 and 2) plus a fixation
+(null) stimulus (condition 0) for a total of three conditions (ie,
+$N_c=3$).  Assume that the the time window over which the hemodynamic
+responses were averaged is 16 seconds for a TR of 2 seconds (ie, there
+are 8 delay points per condition).  
+
+We wish to evaluate the following hypotheses:
+\begin{enumerate}
+\item Condition 1 + Condition 2 are not significantly different than
+Condition 0.
+\item Condition 1 is not significantly different than Condition 1.
+\end{enumerate}
+
+Hypothesis 1 is a test of the ``main effect'' in which we want to
+establish that the stimuli are indeed creating a measurable effect.
+Here, we set the the active flags to {\em -a 1 -a 2} and a control
+flag to {\em -c 0}.  In order to fill in the restriction table, we
+need to specify a delay range.  Since we do not expect the hemodynamic
+response to begin until about 2 seconds nor extend beyond 10 seconds,
+we can restrict the test to these ranges: {\em -delrange 2 10}.  These
+flags result in the following restriction table:\\
+
+\begin{tabular}{|r||r|r|r|r|r|r|r|r|}\hline
+& 0 TR & 1  TR & 2  TR & 3  TR & 4  TR & 5  TR & 6  TR & 7  TR\\ \hline \hline
+Condition 0 & 0 &-1 &-1 &-1 &-1 &-1  & 0  & 0    \\ \hline
+Condition 1 & 0 &+1 &+1 &+1 &+1 &+1  & 0  & 0    \\ \hline
+Condition 2 & 0 &+1 &+1 &+1 &+1 &+1  & 0  & 0    \\ \hline
+\end{tabular}\\
+
+Hypothesis 2 is a tests one experimental conditions against the other.
+For example, Condition 1 could be the visual presentation of a word
+and Condition 2 could be the auditory presentation of a word.
+Here, we set the the active flag to {\em -a 1} and the control
+flag to {\em -c 2} and use the same delay range as above.  Note
+that we could have chosen {\em -a 2} and {\em -c 1}.  This would not
+make a difference in terms of the significance values but will make
+a difference in terms of the resulting sign from a t test.  This
+is meaningful in that it uncovers which voxels have relative increases in
+blood flow and which have relative decreases.  The restriction table
+for this test would be:\\
+
+\begin{tabular}{|r||r|r|r|r|r|r|r|r|}\hline
+& 0 TR & 1  TR & 2  TR & 3  TR & 4  TR & 5  TR & 6  TR & 7  TR\\ \hline \hline
+Condition 0 & 0 &0 &0 &0 &0 &0  & 0  & 0    \\ \hline
+Condition 1 & 0 &+1 &+1 &+1 &+1 &+1  & 0  & 0    \\ \hline
+Condition 2 & 0 &-1 &-1 &-1 &-1 &-1  & 0  & 0    \\ \hline
+\end{tabular}
+
+
+
+\end{document}

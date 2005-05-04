@@ -1,0 +1,78 @@
+% $Id: mkmosaic16.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf mkmosaic16} \\
+\end{Large}
+
+\noindent 
+\begin{verbatim}
+Comments or questions: analysis-bugs@nmr.mgh.harvard.edu
+$Id: mkmosaic16.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\end{verbatim}
+
+\section{Introduction}
+{\bf mkmosiac16} converts 16 slices (stored in bfile format) into a $4
+\times 4$ mosaic stored in a single bfile.  If each slice has multiple
+planes, then each plane is also mosaiced and stored as a sepearate
+plane in the mosaic file.  There is also an option to equalize the
+distribution of voxel intensities so as to improve the contrast (good
+for structurals). Requires matlab 5.2 or higher.\\
+
+\section{Usage}
+Typing mkmosaic16 at the command-line without any options will give the
+following message:\\ 
+
+\begin{small}
+\begin{verbatim}
+USAGE: <csh> mkmosaic16 instem <-o outstem> <-firstslice n> <-heq>
+   instem - stem of the 16 input slices
+   <-o outstem> - stem of mosaic (default is instem)
+   <-firstslice int> - first slice number of the 16 slices 
+              (default is 0)
+   <-heq> - implement histogram equalization on each mosaic
+            (default is no equalization)
+\end{verbatim}
+\end{small}
+
+\section{Command-line Arguments}
+
+\noindent
+{\bf -i instem}: stem of the 16 input slices in {\em bfile format}. \\ 
+
+\noindent
+{\bf -o outstem}: optional stem of the output mosaic file.  If not
+specified, the outstem is set to the intsem.\\
+
+\noindent
+{\bf -firstslice slicenumber}: the slice number of the first slice to
+include in the mosaic. \\
+
+\noindent
+{\bf -h heq}: implement histogram equalization.  This can greatly
+improve the image contrast for structural images.  Note that this
+alters the intensity values of the image, and so it should only be
+used for images in which the actual intensity values are of no
+importance (eg, in structural images).\\
+
+
+\section{Output}
+
+The mosaic file will be called $outstem\_mos.bxxxxx$ where xxxxx is
+either ``float'' or ``short'' depending upon the extension of the
+input slices. If outstem is not specified, it is set to instem.
+
+
+\end{document}

@@ -1,0 +1,183 @@
+Instructions for registering a t1-epi structural with t1-spgr structural.
+Douglas N. Greve
+August 13, 1999
+$Id: register.info,v 1.1 2005/05/04 17:00:49 greve Exp $
+
+--------------------------------------------------------------------------
+Background: Each voxel in the t1-epi must be mapped to a voxel in the
+high-resolution structural t1-spgr.  Typically, the t1-epi has 16
+slices, each 128x128 whereas the hi-res structs are 256x256x256.  The
+t1-epi usually encompasses a smaller portion of the brain.  There are
+8 parameters that need to be specified to realize the transformation:
+translation of x, y, z (3), rotation about x, y, z (3), and stretching
+in the t1-epi xz plane and y plane (2).  The rotation and translation
+are part of a rigid-body transformation. The register program is used
+to assist in visually aligning these two brain images.
+
+NOTE: You should have the following lines in your .cshrc file
+setenv SUBJECTS_DIR  /homes/nmrnew/home/inverse/subjects
+setenv TKSURFER_TCL /homes/nmrnew/home/inverse/mri/lib/tcl
+
+You should also have the following in your path:
+/homes/nmrnew/home/inverse/mri/bin
+
+--------------------------------------------------------------------------
+To run the register program:
+
+1. cd to the t1-epi directory.
+2. Create a default register.dat file (see below)
+3. Create a default analyse.dat file (see below)
+4. Run register (from an SGI only).
+5. After 1-2 minutes, a window will appear.
+6. Use keypress commands to visually align the structural and 
+   t1-epi brains (see  below for a list of keypress commands).
+6. Save the results back to register.dat using the "T" keypress
+   command.
+
+------------------------------------
+register.dat has the following form:
+------------------------------------
+SubjectName
+xzscale
+yscale
+intensity
+tm11 tm12 tm13 tm14
+tm12 tm22 tm23 tm24
+tm13 tm32 tm33 tm34
+tm14 tm42 tm43 tm44
+
+- - - - - - - - - - -- - -- - - - - - - --- - - - - -   -- - - 
+SubjectName - the name of the subject in the functional experiment
+as found in the $SUBJECTS_DIR structural directory.  This tells
+register where the structural images are.
+
+xzscale - scaling factor applied to the distance between in-plane 
+pixels of the t1-epi.  Default: distance between pixels, typically
+3.125 for t1-epi.
+
+yscale - scaling factor applied to the distance between planes
+of the t1-epi. Default: distance between planes, typically 7 for
+t1-epi.
+
+intensity - brightness of the t1-epi in the register display window.
+This only affects how the t1-epi appears on the screen.  It does not
+affect the registration itself.
+
+tmij - i,jth component of the transformation matrix used to map
+t1-epi voxel indices into structural indices.  Includes
+translation and rotation.  The initial assignment of this matrix
+is very important to make registration easier.  For slices whose
+primary orientation is in the axial plane, starting at the bottom of
+the brain and going to the top, the following matrix is a good place 
+to start:
+
+1 0 0 0
+0 0 1 0
+0 1 0 0
+0 0 0 1
+
+--------------------------------------------------------------------
+
+--------------------------------------------------------------------
+analyse.dat has the following form:
+------------------------------------
+placeholder
+t1filenametemplate
+nt1slices nperslice
+xdim_2 ydim_2
+------------------------------------
+
+placeholder - ignored.  A single string must be here.
+
+t1filenametemplate - path,  stem, and format string of t1-epi
+images.  Eg, 990109NH/image/3/990109NH_02361_00003_00003_00001_001_%03d.bshort
+
+nt1slices - number of t1-epi slices (usually 16)
+
+nperslice - number of slices for each nt1slice (usually 1)
+
+xdim_2 - number of in-plane rows and columns for the t1-epi (usually 128).
+
+ydim_2 - xdim_2
+
+---------------------------------------------------------------------
+register key-press commands:
+
+x - view sagittal plane
+y - view axial
+z - view coronal
+
+1 - view structural
+2 - view t1-epi (positive contrast)
+3 - view t1-epi (negative contrast)
+0 - swap between last two views
+
+Up/Down Arrow - increase/decrease intensity
+
+Left/Right Arrow - view next image in current plane
+
+Left-Mouse - change center-view location of non-current planes
+
+p or . - translate current t1-epi up or down (shift for larger)
+
+l or ; - translate current t1-epi left or right (shift for larger)
+
+[ or ] - rotate current t1-epi  (shift for larger)
+
+Insert or Delete - Expand or Contract Sagittal plane (scale)
+
+Home or End - Expand or Contract Axial plane (scale)
+
+PageUp or PageDown - Expand/Contract Coronal plane (scale)
+
+T - save current parameters (overwrite initial register.dat file)
+
+ESC - exit
+
+M - mirror, ie, flip image about the vertical axis.
+
+--------------------------------------------------------------
+Example register.dat
+
+arthur
+3.125
+7.000000
+0.300000
+ 9.885139e-01 -6.000434e-02  2.464942e-03 -5.320819e+00 
+ 3.956854e-03  9.884023e-02  9.411382e-01 -2.619893e+01 
+ 6.230916e-02  9.904882e-01 -8.358467e-02  1.985855e+01 
+ 0.000000e+00  0.000000e+00  0.000000e+00  1.000000e+00 
+
+--------------------------------------------------------------
+Example analyse.dat
+
+placeholder
+../1/970421AL_00210_00004_00003_00001_001_%03d.bshort
+16 1
+128 128
+
+--------------------------------------------------------------
+Tips for Registering:
+
+1.  Registering is not a particularly easy procedure; unfortunately,
+the register program is a bit quirky and does not make the task that
+much easier.  It is also a little bit slow. The t1-epi will be highly
+pixelated, making registration that much more difficult.  There are
+plans to make a less burdensome registration routine, but as of the
+writing of this document, the software is not in place yet.
+
+2.  Starting with a "good" registration matrix can save a tremendous
+amount of time and aggravation.
+
+3.  The basic technique is to use the "0" keypress command to quickly 
+flip between the t1-epi and the structural and then to look for
+apparent motion between the two images.
+
+4.  The "0" keypress command will flip between the last two
+viewed images.  It does not necessarily flip between the t1-epi and 
+the structural, which is what you will want.  To force this, hit "1"
+to display the structural, then hit "2" to display the t1-epi. Now
+hitting "0" will flip between the t1-epi and the structural.
+
+5.  Many people find that it is easier to use a smaller display window
+as this reduces the effect of pixelation.

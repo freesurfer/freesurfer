@@ -1,0 +1,452 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+%\usepackage[bottom,none]{draftcopy}
+%\usepackage[light]{draftcopy}
+%locate draftcopy
+%\draftcopySetGray 0-1
+%\draftcopyName name
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{center}
+\begin{Large}
+Signal Processing and Statistical Analysis for Event-Related fMRI
+\end{Large}
+\begin{large}
+Prepared by: Douglas N. Greve\\
+February 22, 1999
+\end{large}
+\end{center}
+
+\section{Introduction}
+
+In an fMRI experiment, one or more different types of stimuli are
+presented to the subject and the hemodynamic response (HDR), is
+measured for a given time after presentation.  In a {\em block}
+experimental design, the time between the offset of one stimulus and
+the onset of the next is longer than it takes for the hemodynamic
+response to regain equilibrium.  In an {\em event-related} design, one
+stimulus can appear before the hemodynamic response from the previous
+stimulus has decayed away.  This allows for more interesting
+psychological experiments but creates overlap in the responses.  This
+overlap can confound the results.  This document describes the signal
+processing and statistical analysis of the fMRI signal for
+event-related designs. This processing stream accounts for the overlap
+in the hemodynamic response as well as compensates for the temporal
+correlation in the fMRI noise.
+
+\section{Model of the Hemodynamic Response}
+
+The hemodynamic response {\bf at a single voxel} to the same stimulus
+(or same type of stimulus) presented several times over an experiment
+is assumed to be governed by following linear time-invariant system:
+\begin{equation}
+y(t) = x(t)*h(t) + n(t)
+\label{fmrictmodel1.eqn}
+\end{equation}
+where $y(t)$ is the fMRI signal (ie, the observable), $x(t)$ is a
+pulse train which has a value of 1 at the onset time of each
+presentation and zero everywhere else\footnote{The list of the type of
+stimulus presented at a certain time is the content of the
+``parfile''.}, $h(t)$ is the (unknown) hemodynamic response to a
+single presentation of the stimulus, $n(t)$ is additive noise
+distributed $N(0,\Sigma_n)$, and $*$ is the convolution operator.
+Furthermore, we assume the noise covariance matrix $\Sigma_n$ can been
+factored into two components:
+\begin{equation}
+\Sigma_n = \sigma_n^2 C_n,
+\end{equation}
+where $\sigma_n^2$ is the (scalar) variance of the noise at the voxel
+and $C_n$ is a symmetric, positive-definite matrix with ones on the
+diagonal (the ``normalized'' covariance matrix).  It is further
+assumed that, while each voxel will have its own $\sigma_n$, $C_n$
+will be the same across all voxels (or at least all voxels within the
+skull).  If the noise is white, then $\Sigma_n = \sigma_n^2 I$, where
+$I$ is the identity matrix. When the stimulus is brief, $h(t)$ becomes
+the hemodynamic impulse response.
+
+If the stimulus sequence has different types of stimuli (or
+conditions) that generate a different HDR, it is assumed that
+the HDRs combine linearly according to the extension of equation
+\ref{fmrictmodel1.eqn}:
+\begin{equation}
+y(t) = x_1(t)*h_1(t) + x_2(t)*h_2(t) + \ldots + x_{N_c}(t)*h_{N_c}(t)
++ n(t)
+\label{fmrictmodel.eqn}
+\end{equation}
+where $N_c$ is the number of different types of stimuli,
+$x_i(t)$ is the presentation sequence for stimulus type $i$, and
+$h_i(t)$ is the hemodynamic response to a stimulus type $i$.
+
+The continuous-time equation above can be converted into 
+the following discrete-time, matrix model of the fMRI signal:
+\begin{equation}
+y(k) = X_1 h_1(k) + X_2 h_2(k) + \ldots + X_{N_c} h_{N_c}(k) + n(k),
+\label{fMRIModel.eqn}
+\end{equation}
+where $k$ ranges from 0 to $N_{tp}$ (the number of time-points or
+observations), $X_i$ is the stimulus convolution matrix (SCM) for
+stimulus type $i$, and $h_i(k)$ is the continuous-time HDR sampled at
+a delay $TR*k$ after the onset of a stimulus of type $i$, where $TR$
+is the time-between observations.  The HDR is sampled over a time window
+of $T_{HDR}$ resulting in $N_h = T_{HDR}/ TR$ samples.  This is a
+moving-average (MA) or finite-impulse response (FIR) model.
+
+$X_i$, the SCM, is an asymmetric toeplitz matrix of ones and zeros. It
+has dimension $N_{tp} \times N_h$ (the number of time-points by the
+number of delays) and is constructed from the stimulus sequence
+$x_i(t)$.  Let $s_i(k)$ be the stimulus sequence sampled at the TR.
+$s_i(k)$ is then a vector of ones and zeros.  The columns of $X_i$ are
+shifted version so of $s_i(k)$. Thus, the first column of $x_i$ is
+identical to $s_i(k)$, where $k$ becomes the row number.  The second
+column has zero on the first row; the remainder of the rows are
+assigned the values $s_i(k), 1 \le k \le N_t-1$.  The third column has
+zeros on the first two rows, etc.  
+
+Equation \ref{fMRIModel.eqn} can be further consolidated in matrix
+notation:
+\begin{equation}
+y = X h + n,
+\label{fmrix.eqn}
+\end{equation}
+where $X = [X_1 X_2 \ldots X_{N_c}]$, ie a horizontal concatenation
+of the SCMs of the individual conditions, and $h$ is the vertical
+concatenation of the individual HDRs.  $X$ has dimension $N_{tp}
+\times  N_{ch}$ where $N_{ch} = N_c N_h$ is the total number of 
+hemodynamic coefficients (ie, across all conditions and delays).
+
+\section{HDR Estimation}
+
+In Equation \ref{fmrix.eqn}, we know $X$ and $y$ and seek to estimate
+$h$.  The hemodynamic response is obtained by solving
+\begin{equation}
+\text{min} \parallel B^{-1}_n (X h - y) \parallel_2
+\end{equation}
+where $B_n = C_n^\frac{1}{2}$ is the Cholesky factorization of $C_n$.
+This is the {\em generalized} least squares problem, which has the
+solution
+\begin{equation}
+h^* = (X^T C_n^{-1} X)^{-1} X^T C_n^{-1} y.
+\label{hstar.eqn}
+\end{equation}
+
+The {\em estimation error} is the difference between the estimated HDR
+and the actual HDR:
+\begin{equation}
+e_{h^*} = h - h^* = (X^T C_n^{-1} X)^{-1} X^T C_n^{-1} n
+\label{esterr.eqn}
+\end{equation}
+This should not be confused with the {\em residual error} which is
+\begin{equation}
+e_{y^*} = y - y^* = y - X h^*
+\label{resstar.eqn}
+\end{equation}
+The generalized least squares solution minimizes the estimation error
+whereas the classical least squares solution minimizes the residual
+error.  In the special case where the noise is white (ie, $C_n = I$),
+the same $h^*$ minimizes both.
+
+$h^*$ is a random variable and will have a covariance matrix:
+\begin{equation}
+\Sigma_{h^*} = E(e_{h^*} e^T_{h^*}) = \sigma_n^2 (X^T C^{-1}_n X)^{-1}
+\end{equation}
+Note that the RMS estimation error is equal to $trace(\Sigma_{h^*})$
+which is independent of the actual value of $h$.
+
+\section{Noise Covariance Matrix Estimation}
+
+Estimation of the noise covariance matrix $\Sigma_n$ requires two
+levels of processing.  First we assume that the noise is white,
+$\Sigma_n = \sigma_n^2 I$, in which case our estimate from equation
+\ref{hstar.eqn} becomes:
+\begin{equation}
+\bar{h} = (X^T X)^{-1} X^T y,
+\label{hbar.eqn}
+\end{equation}
+and the residuals are
+\begin{equation}
+e_{\bar{y}} = y - \bar{y} = y - X \bar{h} = (I - X (X^T X)^{-1} X) n.
+\label{resbar.eqn}
+\end{equation}
+
+For well counter-balanced sequences and $N_{tp}>>N_{ch}$, the elements
+of the matrix $X (X^T X)^{-1} X$ are small, and so, to a first
+approximation, the the residuals are a good estimate of the noise and
+so we will use the residuals to estimate $C_n$.  Since $C_n$ is the
+normalized covariance matrix for all voxels within the skull, we will
+compute it in the following way.  First, the within skull voxels are
+identified as all the voxels greater than mean voxel value computed
+over space and time for a given slice over a given run.  For each
+within-skull voxel, the normalized, unbiased autocorrelation of the
+residuals is computed.  Normalizing forces the zero-delay coefficient
+to be unity.  The global correlation function is computed by averaging
+each delay coefficient across all within-skull voxels.  This global
+autocorrelation function is then used to fit the parameters in the
+following model:
+\begin{equation}
+\bar{R}_e(k) = 
+\begin{cases} 
+1 & k = 0 \\
+(1-\alpha) \rho^k & 0 < |k| \le k_{max}\\
+0 & |k| > k_{max}\\
+\end{cases} 
+\label{acormod.eqn}
+\end{equation}
+where $k_{max}$ is used to limit the delay range over which the data are
+fit.  For TR of 2 seconds, $k_{max}$ is typically set to 10.  Once
+$\alpha$ and $\rho$ have been computed, a ``synthetic'' autocorrelation
+function is computed from equation \ref{acormod.eqn}.  $\bar{C}_n$ is
+then generated as a Toeplitz matrix using the synthetic function as a
+seed vector.
+
+This is somewhat of a convoluted process, however, it is motivated
+by several factors: 
+\begin{itemize}
+\item Noise from biological material has different spectral properties
+than that from air.
+\item We assume that $C_n$ is {\em not} a random variable and so it
+should not depend upon how it is measured.  We approximate this by
+fitting only two parameters to an average computed over a large number
+of voxels so that measurement artifacts will have little effect at any
+particular voxel.
+\end{itemize}
+
+We substitute this estimate of the noise covariance matrix into
+the formulas for the average and covariance of the HDR:
+\begin{equation}
+\hat{h} = (X^T \bar{C}_{n}^{-1} X)^{-1} X^T \bar{C}^{-1}_n y.
+\label{hhat.eqn}
+\end{equation}
+The estimation error is 
+\begin{equation}
+e_{\hat{h}} = h - \hat{h} = (X^T \bar{C}_{n}^{-1} X)^{-1} X^T 
+   \bar{C}^{-1}_n n
+\label{hhaterr.eqn}
+\end{equation}
+
+\begin{equation}
+\Sigma_{\hat{h}} = \hat{\sigma}_n^2 (X^T \bar{C}_{n}^{-1} X)^{-1},
+\end{equation}
+where $\hat{\sigma}_n^2$ is the variance of $e_{\hat{h}}$.
+Note that $\Sigma_{\hat{h}}$ can be factored into a voxel-dependent
+scalar and a voxel-independent matrix.  This is important for 
+practical reasons has a matrix does not need to be stored
+for every voxel. 
+
+\section{Detrending}
+
+It is common for the fMRI signal offset to drift linearly and/or
+quadratically with time for non-physiological reasons.  As this drift
+can skew the results, we need a way to remove both the offset and the
+offset drift.  We refer to the remove of the offset and drift as {\em
+detrending}.  To implement the detrending process, we first modify the
+model of the hemodynamics (equation \ref{fmrictmodel.eqn}) to include
+offset and drift:
+\begin{equation}
+y(t) = x(t)*h_(t) + n(t) + a_0 + a_1 t + a_2 t^2 + \ldots +
+a_{N_{dt}-1} t^{N_{d}t-1} +n(t),
+\label{fmrictdrift.eqn}
+\end{equation}
+where the value $a_i$ is the scalar coefficient of the $i^{th}$ trend.
+In the above equation, trends up to order $N_{dt}$ are represented,
+where the first trend is a simple offset.  
+
+In matrix notation, equation \ref{fmrictdrift.eqn} can be represented
+by:
+\begin{equation}
+y_{pre} = X_{dt} h_{dt} + n,
+\end{equation}
+where $y_{pre}$ is used to indicate the fMRI signal prior to
+detrending, 
+\begin{equation}
+X_{dt} =  
+\begin{bmatrix} X & t_s^0 & t^1 & \ldots & t_s^{N_{dt}} \end{bmatrix} 
+= [X D]
+\end{equation}
+and
+\begin{equation}
+h_{dt} = \begin{bmatrix} h & a_0 & a_1 & \ldots &  a_{N_{dt}}
+\end{bmatrix} = 
+\begin{bmatrix}
+h & a
+\end{bmatrix}
+\end{equation}
+and $t_s$ is a column vector of sample times ,ie, 
+$t_s = \begin{bmatrix}
+  0 & TR & 2TR & \ldots & (N_{tp}-1)TR
+\end{bmatrix}$.
+The hemodynamic responses are fit
+simultaneously with the trends (assuming white noise).
+\begin{equation}
+\Tilde{h}_{dt} = (X_{dt}^T X_{dt})^{-1} X_{dt}^T y_{pre} 
+\end{equation}
+The trend can now be removed by:
+\begin{equation}
+y = y_{pre} - D \Tilde{h}_{dt}
+\label{detrend.eqn}
+\end{equation}
+$y$ is now the de-trended fMRI signal, and processing can proceed as
+indicated above with the one caveat that the degrees of freedom must
+be reduced by $N_{dt}$.
+
+\section{Processing Stream Summary}
+
+For multiple runs within a single session, the analysis proceeds 
+according to the following steps.  Each slice is processed separately
+and independently.
+\begin{enumerate}
+\item Compute stimulus convolution matrix for each run, $X_r$.
+\item Detrend each run (equation \ref{detrend.eqn}).
+\item Estimate the hemodynamic response assuming white noise
+over the entire session according to the formula: 
+\begin{equation}
+\bar{h}_S = \left(\sum_{r=1}^{N_r} {X_r^T X_r}\right)^{-1} 
+\left(\sum_{r=1}^{N_r} {X_r^T y_r}\right)
+\label{hsbar.eqn}
+\end{equation}
+\item Compute the residual errors for each run
+\begin{equation}
+e_{\bar{y},r} = y_r - X_r \bar{h}_S
+\label{resbarrun.eqn}
+\end{equation}
+\item Compute the estimated noise covariance matricies, 
+$\bar{C_{n,r}}$, for each run.
+
+\item Recompute the session hemodynamic response estimate 
+\begin{equation}
+\hat{h}_s = \left(\sum_{r=1}^{N_r} {X_r^T \bar{C}_{n,r}^{-1} X_r}\right)^{-1} 
+       \left(\sum_{r=1}^{N_r} {X_r^T \bar{C}_{n,r}^{-1} y_r} \right),
+\label{hshat.eqn}
+\end{equation}
+
+\item Recompute the residual error at each voxel:
+\begin{equation}
+e_{\hat{h}_r} = y_r - X_r \hat{h}_s
+\end{equation}
+
+\item Compute the variance of the residual over the entire session for
+each voxel:
+\begin{equation}
+\hat{\sigma}_{n,s}^2 = \frac{\sum_{r=1}^{N_r} 
+    e_{\hat{h}_r}^T \bar{C}_{n,r}^{-1} e_{\hat{h}_r}}{N_{dof}},
+\end{equation}
+where the degrees of freedom, $N_{dof} = N_r * N_{tp} - N_{ch}$.
+
+\item Compute the session hemodynamic covariance matrix:
+\begin{equation}
+\Sigma_{\hat{h}_s} = \hat{\sigma}_{n,s}^2 
+  \left(\sum_{r=1}^{N_r} {X_r^T  \bar{C}_{n,r}^{-1} X_r}\right)^{-1} =
+ \sigma^2_{\hat{h}_s} C_{\hat{h}_s} 
+\end{equation}
+where $\Sigma_{\hat{h}_s}$ can be factored into a voxel-dependent
+scalar and a voxel-independent matrix.
+
+\end{enumerate}
+
+\section{Statistical Inference}
+
+The goal of the fMRI experiment is to determine whether a location in
+the brain is becoming active in response to a particular stimulus type
+or whether one type activates a particular region more than another.
+Tests can also be restricted by range of post-stimulus delay.  For
+example, the null hypothesis could be that none of the conditions at
+any delay generate a hemodynamic response that is significantly
+different than zero:
+\begin{equation}
+H_0: \| \hat{h} \| = 0
+\label{hoall.eqn}
+\end{equation}
+This can be tested using an F-test:
+\begin{equation}
+F(N_{ch}, N_{dof}) = \frac{\hat{h}^T C_{\hat{h}}^{-1}\hat{h}}
+                          { N_{ch} \sigma^2_{\hat{h}}}
+\label{ftestall.eqn}
+\end{equation}
+In general, one may want to restrict the test to a subset of delays
+and conditions or combinations of conditions.  For example,
+$H_0: \| \hat{h}_1 - \hat{h}_2 \| = 0$ or 
+$H_0: \| \hat{h}_3(3:6) \| = 0$.  Mathematically, this is equivalent
+to multiplying $\hat{h}$ by a matrix $R$ and testing the norm of the
+result.  
+\begin{equation}
+q = R \hat{h}, H_0: \| q \| = 0
+\end{equation}
+with the corresponding F test
+\begin{equation}
+F_q(N_{q}, N_{dof}) = \frac{q^T (R C_{\hat{h}} R^T)^{-1} q}
+{N_{q} \sigma^2_{\hat{h}}},
+\label{ftestrm.eqn}
+\end{equation} 
+where $N_q$ is the number of rows in $R$. The restriction matrix, $R$,
+is typically a matrix of $\pm 1$'s and 0's.  The number of columns of
+$R$ must be equal to $N_{ch}$.  In the example given in equations
+\ref{hoall.eqn} and \ref{ftestall.eqn}, $R$ would simply be an
+identity matrix of dimension $N_{ch}$.  When $R$ is a vector, then the
+F test of equation \ref{ftestrm.eqn} reduces to a t test.  Note that
+equation \ref{ftestrm.eqn} can again be factored into a
+voxel-dependent scalar and a voxel-independent matrix.
+
+
+\section{Table of Variable Names}
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|}\hline
+$y$   & fMRI signal for a single voxel \\ \hline 
+$y_{pre}$   & fMRI signal for a single voxel before detrending\\ \hline 
+$X$   & Stimulus convolution matrix (SCM)\\ \hline 
+$D$   & Trend Matrix\\ \hline 
+$X_{dt}$   & Stimulus convolution matrix with trend matrix included\\ \hline 
+$h$   & ``True'' HDR. \\ \hline 
+$h_{dt}$   & ``True'' HDR with trend coefficients \\ \hline 
+$n$ & Zero-mean gaussian noise  \\ \hline 
+$\Sigma_n$  & Noise covariance matrix \\ \hline
+$C_n$  & Normalized noise covariance matrix (voxel-independent) \\ \hline
+$\sigma_n$  & Noise variance (voxel-dependent) \\ \hline
+$h^*$ & best fit HDR when $C_n$  is known \\ \hline
+$\bar{h}$ & best fit HDR when the noise is white \\ \hline
+$\hat{h}$  & best fit HDR when $C_n$  is estimated from residuals.\\ \hline
+$\Tilde{h}_{dt}$   & best fit HDR with trend coefficients \\ \hline 
+$e_{h^*}$, $e_{\bar{h}}$, $e_{\hat{h}}$ & estimation errors. \\ \hline 
+$\Sigma_{\hat{h}}$  &  Covariance matrix of  $\hat{h}$\\ \hline
+$C_{\hat{h}}$  &  Normalized covariance matrix of  $\hat{h}$
+           (voxel-independent) \\ \hline
+$\sigma_{\hat{h}}$  & Variance of  $\hat{h}$ (voxel-dependent) \\ \hline
+$R_e$ & Autocorrelation of residual errors \\ \hline
+$\alpha$,$\rho$ & parameters used to fit $R_e$. \\ \hline
+$k_{max}$ & maximum number of coefficients of $R_e$ to fit. \\ \hline
+$R$ & Restriction Matrix \\ \hline
+$q$ & Statistical test vector (equals $R h$) \\ \hline
+$N_{tp}$ & Number of time points (ie, scans) per run.\\ \hline
+$N_h$ & Number of parameters (per stimulus) estimated in HDR.\\ \hline
+$N_c$ & Number of stimulus conditions.\\ \hline
+$N_{ch}$ & Total number of parameters estimated ($N_c * N_h$)\\ \hline 
+$N_{dt}$ & Detrending order.\\ \hline 
+$N_{r}$ & Number of runs.\\ \hline 
+$N_q$ & Number of rows in the restriction matrix.\\ \hline
+$TR$ & Time between observations.\\ \hline 
+$T_{HDR}$ & Time window over which to estimate the HDR ($N_h * TR$).\\ \hline
+$N_S$ & Number of sessions (or subjects)\\ \hline
+$N_R$ & Number of runs per session    \\ \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+
+\end{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% end document %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+

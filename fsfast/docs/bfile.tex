@@ -1,0 +1,64 @@
+% $Id: bfile.tex,v 1.1 2005/05/04 17:00:48 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf bvolume format} \\
+\end{Large}
+
+\noindent 
+\begin{verbatim}
+Comments or questions: analysis-bugs@nmr.mgh.harvard.edu
+$Id: bfile.tex,v 1.1 2005/05/04 17:00:48 greve Exp $
+\end{verbatim}
+
+The {\bf bvolume format} is a format for saving and naming volumes of
+MRI data in which each anatomical slice is stored in its own binary
+file.  If there are multiple planes or time-points associated with the
+anatomical slice (eg, as in an fMRI slice), then they are stored in
+the binary file as well.  The files in the volume are specified by
+three parameters: a stem, the number of slices, and type of bvolume.
+The name of the file for a slice is constructed from these parameters
+in the following way: {\em stem\_XXX.btype}, $stem$ is the stem, $XXX$
+is the three digit slice number, and $btype$ is the type of bvolume.
+If the slice number does not have three digits then zeros are used to
+pad the slice number to three digits.  The type can either be $bshort$
+or $bfloat$.  The data are stored in 16 bit signed integer format in
+bshort files, whereas the data are stored in 32 bit floating point
+format in bfloat files.
+
+A text header file is associated with every binary slice file; its
+name takes the form {\em stem\_XXX.hdr}.  The header file is a text
+file with four numbers which designate how the data in the binary
+bvolume are stored: (1) $N_{rows}$, number of rows, (2) $N_{cols}$,
+number of columns, (3) $N_{tp}$, number of time-points (or planes or
+frames or TRs), and (4) endianness.  The endianness is either 0
+(big-endian) or 1 (little-endian).  The first $N_{cols}$ elements make
+the first row.  The next $N_{cols}$ elements make the second row, etc,
+until the entire slice is accounted for after which the next time
+point starts.
+
+The total number of values in a binary slice is equal to $N_v = N_{cols} *
+N_{rows} * N_{tp}$.  The number of bytes in a bshort file equals
+$2*N_v$ and $4*N_v$ for a bfloat file.  The number of elements in a
+plane or time-point is $N_p = N_{cols} * N_{rows}$.  
+
+There's also another header filed called the bhdr file that
+accompanies a bvolume. Its name is stem.bhdr. Geometry information is
+stored in this file.
+
+
+\end{document}
+
+

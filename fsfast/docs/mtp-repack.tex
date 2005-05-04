@@ -1,0 +1,154 @@
+% $Id: mtp-repack.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+%\usepackage{draftcopy}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf mtp-repack} \\
+\end{Large}
+
+\section{Introduction}
+{\bf mtp-repack} is a program for filling in ``missing'' time points
+in a functional volume.  This has been a problem with the GE LX system
+which could not reconstruct images fast enough and so would drop them.
+This program fills in the missing time points by interpolating between
+the two adjacent time points. Missing time points may be obtained by
+running {\bf aws\_plot\_times} (only on SunOS). {\bf mtp-repack} will
+run on any unix platform with matlab 5.2 or higher installed. Note
+that the missing time points must be accounted for in any statistical
+analysis (even with interpolation).\\
+
+\section{Questions, Comments, and Bug Reports}
+Send questions, comments, and bug reports to
+analysis-bugs@nmr.mgh.harvard.edu.  Make sure to include sufficient
+information so that the question can be answered or the problem can be
+solved. If possible, include the log file that is created by {\bf
+mtp-repack}.\\
+
+\section{Usage}
+Typing mtp-repack at the command-line without any options will give the
+following message:\\ 
+
+\begin{small}
+\begin{verbatim}
+USAGE: mtp-repack  repack data with missing timepoints
+Options:
+   -i instem      : stem of input volume
+   -o outstem     : stem of output volume
+   -mtp filename  : name of file with missing timepoints
+   -TR  TR        : TR in seconds
+   -tpx filename  : name of tp exclude file (outstem.tpexclude)
+   -umask umask   : set unix file permission mask
+   -monly  mfile  : do not run, just create a matlab file
+   -version       : print version and exit
+\end{verbatim}
+\end{small}
+
+\section{Command-line Arguments}
+
+\noindent
+{\bf -i instem}: stem of the input functional volume for a single run.
+This is the data with missing time points.\\
+
+\noindent
+{\bf -o outstem}: stem of the output functional volume with the
+missing time points inserted.\\
+
+\noindent
+{\bf -mtp filename}: name of file in which information about the
+missing time points is stored. See Section \ref{mtp.sec}.\\
+
+\noindent
+{\bf -TR TR}: the TR in seconds.\\
+
+\noindent
+{\bf -tpx filename}: time point exclusion file in a format usable by
+{\bf selxavg}. The default is {\em outstem.tpexclude}\\
+
+\noindent
+{\bf -monly}: only generate the matlab file which would accomplish the
+analysis but do not actually execute it.  This is mainly good for
+debugging purposes.\\
+
+\section{The Missing Time Point (MTP) File}
+\label{mtp.sec}
+
+The information about which time points are missing is stored in the
+{\em MTP File} which is passed to {\bf mtp-repack} using the -mtp
+flag.  The MTP file is a text file with a list of indices. The indices
+can have spaces, tabs, or new lines between them. Each index indicates
+the time point in the input data set before which a missing image
+should be inserted (where the first time point is 1, not 0).  For
+example, if the MTP file stored the number ``20'', this would indicate
+that the an image should be inserted between the 19th and 20th images.
+The inserted image would become the 20th image in the new volume.  The
+20th image in the old volume would become the 21st image in the new
+volume, etc.  \\
+
+This way of coding the missing time points is consistent with the
+program {\bf aws\_plot\_times}.  This program will produce a plot in
+which spikes indicate missing time points.  If this program is used,
+then one simply needs to create an MTP file and enter the indices
+corresponding to these spikes.  A sample of the output from {\bf
+aws\_plot\_times} is given below.  One can see that the value in the
+second column is usually around 2400.  How ever, at indices 20 and
+38, the value spikes up to 4864 indicating that an image was dropped.
+One would then create an MTP file with the values ``20'' and ``38'' in
+them.  
+
+\begin{verbatim}
+    2 2432.000000 007/I.041
+    3 2432.000000 007/I.061
+    4 2432.000000 007/I.081
+    5 2432.000000 007/I.101
+    6 2432.000000 007/I.121
+    7 2432.000000 007/I.141
+    8 2432.000000 007/I.161
+    9 2432.000000 007/I.181
+   10 2432.000000 007/I.201
+   11 2432.000000 007/I.221
+   12 2432.000000 007/I.241
+   13 2432.000000 007/I.261
+   14 2560.000000 007/I.281
+   15 2304.000000 007/I.301
+   16 2560.000000 007/I.321
+   17 2432.000000 007/I.341
+   18 2432.000000 007/I.361
+   19 2432.000000 007/I.381
+   20 4864.000000 007/I.401
+   21 2432.000000 007/I.421
+   22 2432.000000 007/I.441
+   23 2432.000000 007/I.461
+   24 2432.000000 007/I.481
+   25 2432.000000 007/I.501
+   26 2432.000000 007/I.521
+   27 2432.000000 007/I.541
+   28 2432.000000 007/I.561
+   29 2432.000000 007/I.581
+   30 2432.000000 007/I.601
+   31 2432.000000 007/I.621
+   32 2432.000000 007/I.641
+   33 2432.000000 007/I.661
+   34 2432.000000 007/I.681
+   35 2432.000000 007/I.701
+   36 2432.000000 007/I.721
+   37 2432.000000 007/I.741
+   38 4864.000000 007/I.761
+   39 2432.000000 007/I.781
+   40 2432.000000 007/I.801
+\end{verbatim}
+
+
+
+\end{document}

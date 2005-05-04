@@ -1,0 +1,193 @@
+% $Id: mkcontrast.tex,v 1.1 2005/05/04 17:00:48 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+%\usepackage{draftcopy}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf mkcontrast} \\
+\end{Large}
+
+\noindent 
+\begin{verbatim}
+Comments or questions: analysis-bugs@nmr.mgh.harvard.edu\\
+$Id: mkcontrast.tex,v 1.1 2005/05/04 17:00:48 greve Exp $
+\end{verbatim}
+
+\section{Introduction}
+
+{\bf mkcontrast} is a program for creating a contrast matrix. The
+output of mkcontast can be used to specify contrasts for {\em
+stxgrinder} and for {\em isxavg-re}. The contrast matrix $R$ is used
+to test the hypothesis
+\begin{equation}
+H_0: R \hat{\beta} = 0
+\end{equation}
+where $\hat{\beta}$ is the vector of input variables.  For example, if
+the variables come as the output of {\em selxavg}, then $\hat{\beta}$
+is the set of hemodynamic averages for all conditions.  The number of
+columns in $R$ must be equal to the number of elements in
+$\hat{\beta}$. The number of rows in $R$ will be determined by the
+type of statistic to be computed.  If $R$ has only one row, the the
+resulting test must be a t-test.  One can think of the rows of $R$ as
+vectors used to correlate with the input variables.\\
+
+While the contrast matrix created by {\em mkcontrast} can be used with
+arbitrary data sets, it is geared toward being applied to the output
+of {\em selxavg} which produces a hemodynamic average for each
+non-null condition, with $N_h$ post-stimulus averages per condition,
+where $N_h = \frac{TimeWindow}{TER}$ (TimeWindow and TER are input
+variables to selxavg).  If the number of non-null conditions is $N_c$,
+then the vector $\hat{\beta}$ can then be conceptually divided into a
+string of $N_c$ subvectors each with $N_h$ components.  When invoking
+{\em mkcontrast}, the {\em -nconds} options should be set to $N_c$,
+the {\em -ndelays} options should be set to $N_h$. {\em mkcontrast}
+provides the ability to set up contrasts both between conditions and
+between time points within a condition, or a combination of both.\\
+
+\section{Usage}
+Typing mkcontrast at the command-line without any options will give the
+following message:\\ 
+
+\begin{small}
+\begin{verbatim}
+USAGE: mkcontrast [-options] -o cmtxmatfile 
+
+Option Set 1:
+   -nconds  nconds       : number of conditions (excl fix)
+   -wcond  cw1 cw2 ...   : weight of each condition
+   -sumconds             : sum conditions
+   -ndelays ndelays      : number of delays points in HDR
+   -wdelay dw1 dw2 ...   : weight of each delay
+   -sumdelays            : sum delays
+   -showcmtx             : display contrast matrix
+   -sxadat file          : dat file from selxavg
+
+Option Set 2:
+   -TER TER              : Estimation resolution (sec)
+   -prestim TPreStim     : Estimation prestimulus period (0) (sec)
+   -nconds  nconds       : number of conditions (excl fix)
+   -wcond  cw1 cw2 ...   : weight of each condition
+   -sumconds             : sum conditions
+   -ndelays ndelays      : number of delays points in HDR
+   -sumdelays            : sum delays
+   -ircorr nircorr       : correlate with nircorr ideal HDIRs
+   -deltarange dmin dmax ...  : delta range of ideal HDIR
+   -taurange   tmin tmax ...  : tau range of ideal HDIR
+   -sxadat file          : dat file from selxavg
+
+\end{verbatim}
+\end{small}
+
+The two option sets differ in the ways that the weights for
+correlating with the average hemodynamic response are set.
+Most of the options are common between the two.\\
+
+\section{Command-line Arguments -- Option Sets 1 and 2}
+
+\noindent
+{\bf -nconds}: number of conditions (as found in the paradigm file),
+excluding the null or fixation condition. See also -sxadat.\\
+
+\noindent
+{\bf -wcond}: list of weightings for each condition.  The number in
+the list must be equal to {\em nconds}. For example, if there are 3
+non-null conditions, then setting {\em -wcond 0 -1 1} would subtract
+condition 2 from condition 3 and ignore condition 1.  If one wanted to
+subtract the average of conditions 1 and 3 from condition 2, then set 
+{\em -wcond -.5 1 -.5}.  The weight can be any real number, positive
+or negative.\\
+
+\noindent
+{\bf -sumconds}: sum the (weighted) averages of each condition
+together {\em before} computing the F-statistic.\\
+
+\noindent
+{\bf -ndelays}: number of averages per condition.  This is the same as
+the number of components in the time window as set during invocation
+of {\em selxavg}.  For a time window of 20 seconds and TR of 2
+seconds, there would be $\frac{20}{2} = 10$ averages per condition.
+See also -sxadat.\\
+
+\noindent
+{\bf -sumdelays}: sum the (weighted) averages of each delay
+together {\em before} computing the F-statistic.\\
+
+\noindent
+{\bf -showmtx}: display an image of the contrast matrix.\\
+
+\noindent
+{\bf -sxadat}: specfy a dat file as created by selxavg.  The dat file
+has information about the number of conditions (-nconds), the number
+of delays (-ndelays), the TER (-TER), and the prestimulus baseline
+duration (-prestim) so that those parameters do not have to be placed
+on the command-line.\\
+
+\noindent
+{\bf -monly}: only generate the matlab file which would accomplish the
+analysis but do not actually execute it.  This is mainly good for
+debugging purposes.\\
+
+\section{Command-line Arguments -- Option Set 1}
+
+\noindent
+{\bf -wdelay}: list of weights for each average.  The number in the
+list must be equal to {\em ndelays}. The weight can be any real
+number, positive or negative.  For example, let the number of delays
+equal 10. If one wanted to compute the average of the first three
+delay averages against the average of the last four delay averages,
+then set {\em -wdelay -0.3 -0.3 -0.3 0 0 0 0.25 0.25 0.25 .25}.\\
+
+\section{Command-line Arguments -- Option Set 2}
+
+\noindent
+{\bf -TER}: temporal estimation resolution in seconds.  This is the
+same as the value supplied to {\em selxavg}.  If a {\em -TER} flag was
+not passed to {\em selxavg}, then use the TR. See also -sxadat.\\
+
+\noindent
+{\bf -prestim}: prestimulus baseline in seconds.  This is the
+same as the value supplied to {\em selxavg}.  If a {\em -prestim} flag was
+not passed to {\em selxavg}, then use 0.\\
+
+\noindent
+{\bf -ircorr}: specify the number of ideal HemoDynamic Response
+Impulse Functions (HDRIF) with which to correlate the average
+hemodynamic response.  The ideal response is modeled as a gamma
+function of the form
+\begin{equation}
+h(t) = 
+\begin{cases}
+0 & t < \Delta \\
+(\frac{\tau e^2}{4})
+( \frac{t-\Delta}{\tau} )^2 e^{{-(\frac{t-\Delta}{\tau}})} & t > \Delta \\
+\end{cases}
+\label{hideal.eqn}
+\end{equation}
+Note that there are two parameters, $Delta$ and $tau$.  Each of the
+$nircorr$ functions is given a unique parameter set through the {\em
+-deltarange} and {\em -taurange} options.\\
+
+\noindent
+{\bf -deltarange}: minimum and maximum ranges of $Delta$.  The values
+that $Delta$ assumes will be $nircorr$ values evenly spread through
+the minimum and maximum.  Each $Delta$ will be paired with the
+corresponding $tau$.\\
+
+\noindent
+{\bf -taurange}: minimum and maximum ranges of $tau$.  The values
+that $tau$ assumes will be $nircorr$ values evenly spread through
+the minimum and maximum. Each $\tau$ will be paired with the
+corresponding $\Delta$.\\
+
+\end{document}

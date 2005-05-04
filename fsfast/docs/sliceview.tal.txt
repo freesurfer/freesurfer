@@ -1,0 +1,35 @@
+
+Use this command to view the talairach structurals as the base for sliceview.
+
+
+sliceview-sess \
+   -space tal \
+   -subject talairach \
+   -base bshortAB \
+   -contrast CNAME -analysis ANAME \
+   -map MAPNAME \
+   -isxavg ISXAVGMETHOD \
+   -df sessdirfile -sf sessid \
+   -slice SLICESPEC
+
+There are 3 critical options:
+  -space tal -- must be in talairach space
+  -subject talairach -- can only be used with talairach as subject
+  -base bshortAB - A is the resampling resolution (ie, the value
+                   passed to func2tal-sess with the -res flag).
+                   B is the in-plane display resolution, which must 
+                   be less than or equal to A.
+
+In $SUBJECTS_DIR/talairach/mri/T1, there are the following 8
+directories:
+
+bshort21
+bshort22
+bshort41
+bshort42
+bshort44
+bshort82
+bshort84
+bshort88
+
+These were resampled from the T1 volume.

@@ -1,0 +1,143 @@
+% $Id: intergroup-sess.tex,v 1.1 2005/05/04 17:00:48 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+%\usepackage{draftcopy}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf intergroupavg-sess} \\
+\end{Large}
+
+\noindent 
+\begin{verbatim}
+Comments or questions: analysis-bugs@nmr.mgh.harvard.edu\\
+$Id: intergroup-sess.tex,v 1.1 2005/05/04 17:00:48 greve Exp $
+\end{verbatim}
+
+\section{Introduction}
+
+{\bf intergroupavg-sess} is a program for intergroup averaging. The
+individual groups are assumed to have been averaged using a random
+effects model (see {\bf isxavg-re-sess}).  Inter-group statistics are
+computed based on the t-statistic:
+\begin{equation}
+t = \frac{a_1 - a_2} { \sqrt{\frac{s_1^2}{n_1} + \frac{s_2^2}{n_2} }}
+\label{igt.eqn}
+\end{equation}
+where $a_i$ is the average from Group $i$, $s_i^2$ is the variance
+measured from Group $i$, and $n_i$ is the number of subjects in Group
+$i$. The degrees-of-freedom is $DOF = n_1+n_2-2$.  This formula is
+used to asses the significance of the difference between the averages
+of two groups with different and unknown variances.  The average and
+variance for each group are computed according to a random effects
+model.  To run the random effects averaging, the user chooses a
+contrast which is used to collapse the hemodynamic responses across
+time and condition to yield a single number for each subject.  The
+group average will be the average of this number over all the
+subjects. The group variance will be the variance of this number
+across all the subjects in the group.
+
+\section{Usage}
+Typing intergroupavg-sess at the command-line without any options will
+give the following message:\\
+
+\begin{small}
+\begin{verbatim}
+USAGE: intergroupavg-sess
+Options:
+   -analysis analysisname : session-level functional analysis name
+   -contrast contrastname : contrast used in the random effects avg
+   -group1    groupname    : name of group1 (positive)
+   -group2    groupname    : name of group2 (negative)
+   -intergroup intergroupname : name of intergroup average
+   -space    spacename    : space in which to average (native, tal, sph)
+   -hemi     hemisphere   : with sph space <lh rh>
+   -umask umask   : set unix file permission mask
+   -version       : print version and exit
+\end{verbatim}
+\end{small}
+
+\section{Command-line Arguments}
+
+\noindent
+{\bf -o analysis}: analysis created by {\em mkanalysis-sess} and used
+with {\em selxavg-sess} on each individual session.\\
+
+\noindent
+{\bf -i contrast}: contrast created by {\em mkcontrast-sess} and used
+when running {\em isxavg-re-sess}. If the contrast is multivariate,
+then sig and minsig maps will be produced.\\
+
+\noindent
+{\bf -group1 groupname}: group name given when calling {\em
+isxavg-re-sess}. This refers to the group that will be ``positive''
+(ie, $a_1$ in Equation \ref{igt.eqn}).\\
+
+\noindent
+{\bf -group2 groupname}: group name given when calling {\em
+isxavg-re-sess}. This refers to the group that will be ``negative''
+(ie, $a_2$ in Equation \ref{igt.eqn}).\\
+
+\noindent
+{\bf -intergroup name}: Name given to the intergroup average. This
+name is used in subsequent commands just as one would use the session
+id or the group name (eg, to view results).\\
+
+\noindent
+{\bf -space spacename}: Space in which {\em isxavg-re-sess} was
+run. This is the space that each individual was transformed to so that
+all individuals across all groups are registered. Options are: tal (for
+talairach), sph (for spherical surface-based), or the name of a
+region-of-interest (created with func2roi-sess).\\
+
+\noindent
+{\bf -hemi hemisphere}: Specify a given hemisphere when using
+spherical-based averaging (ie, {\em -space sph}). Options are lh and
+rh.\\ 
+
+\noindent
+{\bf -umask mask}: unix file permission mask. Set to 0 to share files
+with everyone.\\
+
+\section{Example}
+
+Say you have 10 subjects in 2 groups (A and B) with sessids:
+subject1a, ..., subject5a, subject1b, ..., subject5b. Create sessid
+files called a.sid and b.sid and sessdir file sess.dir. Let the
+analysis name be ``main''. The contrast you are interested in is
+``up-vs-down''. \\
+
+\begin{enumerate}
+\item Run selxavg-sess on all subjects: \\
+selxavg-sess -sf a.sid -sf b.sid -df sess.dir -analysis main
+\item Resample them into talairach space:\\
+func2tal-sess -res 4 -sf a.sid -sf b.sid -df sess.dir -analysis main
+\item Run random effects group averaging for each group:\\
+isxavg-re-sess -group GroupA -sf a.sid -df sess.dir -analysis main
+-contrast up-vs-down -space tal\\
+isxavg-re-sess -group GroupB -sf b.sid -df sess.dir -analysis main
+-contrast up-vs-down -space tal\\
+\item Run intergroup averaging:\\
+intergroupavg-sess -analysis main -contrast up-vs-down -group1 GroupA
+-group2 GroupB -intergroup AMinusB -space tal\\
+\item View the results on the talairach volume:\\
+tkmedit-sess -analysis main -s AMinusB -isxavg random -contrast
+up-vs-down  -space tal -d .\\
+\end{enumerate}
+
+
+
+\end{document}
+
+
+

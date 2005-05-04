@@ -1,0 +1,115 @@
+% $Id: isxavg-fe.tex,v 1.1 2005/05/04 17:00:48 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+%\usepackage{draftcopy}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf isxavg-fe} \\
+\end{Large}
+
+\noindent 
+\begin{verbatim}
+Comments or questions: analysis-bugs@nmr.mgh.harvard.edu\\
+$Id: isxavg-fe.tex,v 1.1 2005/05/04 17:00:48 greve Exp $
+\end{verbatim}
+
+\section{Introduction}
+{\bf isxavg-fe} is a program for intersubject averaging using a {\em
+fixed-effects model} in which all the data from all subjects are
+treated as if they came from a single subject (see isxavg-re for
+random effects model).  It operates on the output of {\em selxavg},
+and produces the same set of files.  Requires matlab 5.2 or higher.\\
+
+In the within-subject analysis (selxavg), the parameters for each
+subject $i$ are estimated (assuming white noise) by
+\begin{equation}
+\beta = (X'X)^{-1}X'y,
+\end{equation}
+where $y$ is the input data, and $X$ is the design matrix which codes
+when each stimulus was presented as well as any assumption about the
+event response. The covariance of $\beta$ (for noise of variance 1) is 
+\begin{equation}
+CoVar(\beta) = \Sigma_{\beta} = (X'X)^{-1}
+\end{equation}
+The variance of the residual error is estimated from
+\begin{equation}
+Var(e_r) = \hat{\sigma_{n}^2} = Var(y-X\beta) = Var(y - (X'X)^{-1}X'y)
+\end{equation}
+
+In the fixed-effects model, these three quantities are computed for a
+group of subjects/sessions from those of the individuals:
+\begin{equation}
+\beta_{ffx} = \frac{1}{N_s} \sum \beta_{i}
+\end{equation}
+\begin{equation}
+CoVar(\beta_{ffx}) = \Sigma_{\beta_{ffx}} = (\sum \Sigma_{\beta_i}^{-1})^{-1}
+\end{equation}
+\begin{equation}
+\hat{\sigma_{n}^2} = \frac{\sum{\sigma_{n_i}^2 DOF_i}} 
+                          {\sum{DOF_i}}
+\end{equation}
+
+
+
+\section{Usage}
+Typing isxavg-fe at the command-line without any options will give the
+following message:\\ 
+
+\begin{small}
+\begin{verbatim}
+USAGE: isxavg-fe [-options] -i instem1 -i instem2 <...> -o outstem
+   instem1   - prefix of first  .bfloat selxavg input files
+   instem2   - prefix of second .bfloat selxavg input files
+   ... 
+   outstem   - prefix of .bfloat isxavg-fe output files
+Options:
+   -firstslice <int>  : first slice to process <0>
+   -nslices <int>     : number of slices to process <auto>
+   -umask <mask>      : set umask before running
+   -monly mfile       : dont run, just create a matlab script file
+\end{verbatim}
+\end{small}
+
+\section{Command-line Arguments}
+
+\noindent
+{\bf -i instem1}: stem of the volume in which the results of the
+selective averaging for the first subject have been stored (see
+selxavg).  There must be at least two input volumes, each preceded by
+a {\em -i} flag.\\
+
+\noindent
+{\bf -o outstem}: stem of the output volume.  The format will be the
+same as the input volumes, and isxavg-fe will also produce appropriate
+dof, dat, and hdr files.\\
+
+\noindent
+{\bf -firstslice int}: first {\em anatomical} slice to process (usually 0).
+This should not be confused with the first {\em functional} slice.\\
+
+\noindent
+{\bf -nslices int}: total number of {\em anatomical} slices to process.\\
+
+\noindent
+{\bf -umask}: specify the unix file access permissions with which the
+output files and directories will be created.  Using {\em -umask 0}
+will instruct isavg-fe to create files that are world-writable.  This
+can be convenient when collaborating with other users.\\
+
+\noindent
+{\bf -monly}: only generate the matlab file which would accomplish the
+analysis but do not actually execute it.  This is mainly good for
+debugging purposes.\\
+
+\end{document}

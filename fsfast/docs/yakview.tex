@@ -1,0 +1,189 @@
+% $Id: yakview.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf yakview} \\
+\end{Large}
+
+\noindent 
+\begin{verbatim}
+Comments or questions: analysis-bugs@nmr.mgh.harvard.edu
+$Id: yakview.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\end{verbatim}
+
+\section{Introduction}
+{\bf yakview} is a program for displaying the results of selective
+averaging and statistical analysis of fMRI data on a slice-by-slice
+basis. Specifically, it can be used to view images with multiple
+planes, overlays, and time-courses of hemodynamic estimates for
+multiple conditions in a point-and-click environment. Requires matlab
+5.2 or higher.\\
+
+Note: in previous versions (prior to 3/1/2000), yakview would, by
+default, assume that significances were stored as the natural log of
+the significance values.  It now defaults to log10 of the significance
+values.
+
+\section{Usage}
+Typing yakview at the command-line without any options will give the
+following message:\\ 
+
+\begin{small}
+\begin{verbatim}
+USAGE: -i imgstem -sn slicenum -p sigstem -th threshold -f pformat -h hdrstem
+    -i imgstem: stem of image to view
+    -sn slice number
+  Options:
+    -p sigstem:       stem of stat map to overlay
+    -thmin threshold: min threshold for stat overlay (2)
+    -thmax threshold: max threshold for stat overlay (7)
+    -h hdrstem: stem of hemodynamic averages
+    -r rawstem: stem of raw data to plot
+    -nskip n  : skip when displaying raw timecourses
+    -off offsetstem: stem of offset volume (default is hdrstem-offset)
+\end{verbatim}
+\end{small}
+
+\section{Command-line Arguments}
+
+Note: there are two basic ways to invoke yakview.  The first is to
+specify the entire name of a slice (including slice number and
+extension). The second is to provide the stem and the slice number as
+separate arguments.\\
+
+\noindent
+{\bf -i instem}: stem of the input volume for a single in {\em bfile format}. 
+This can actually be either a stem or a full file name.  If it is a
+stem, then it must be accompanied by the {\em -sn } flag to indicate
+the slice number to use.\\
+
+\noindent
+{\bf -sn slicenumber}: the slice number of the stem(s) to view.  This
+must be omitted if full file names are specified in the {\em -i}, {\em
+-h}, and {\em -p} flags.  All the flags must specify either a full
+file name or a stem; no mixing is allowed.\\
+
+\noindent
+{\bf -h hdrstem}: name of file in which the selective averages (ie,
+hemodynamic responses) are stored.  This can actually be either a stem
+or a full file name.  If it is a stem, then it must be accompanied by
+the {\em -sn } flag to indicate the slice number to use. It is
+expected that there will also be a data file called
+``hdrstem.dat''. \\
+
+\noindent
+{\bf -r rawstem}: name of raw data file.  Hitting ``r'' inside the
+yakview window will bring up a plot of the raw data at the active
+voxel. \\
+
+\noindent
+{\bf -p sigstem}: name of the file in which the overlay data are
+stored (in bfile format). This can actually be either a stem or a full
+file name.  If it is a stem, then it must be accompanied by the {\em
+-sn } flag to indicate the slice number to use.  The actual values in
+the volume have no inherent meaning to yakview.  The color given to
+overlay voxels is dependent upon the values of the minium and maximum
+threshold (see -thmin and -thmax).  \\
+
+\noindent
+{\bf -f format}: obsolete.\\
+
+\noindent
+{\bf -thmin threshold}: specifies the minimum value that an overlay
+voxel must achieve in order to be displayed as a color. This
+is currently the only way to set the display threshold.\\
+
+\noindent
+{\bf -thmax threshold}: specifies the maximum value to map in the
+color scale.  Voxels beyond this maximum will be displayed in the
+color of maximum threshold.\\
+
+\noindent
+{\bf -nskip n}: specifies the number of initial data points to skip
+when displaying raw time courses.\\
+
+\noindent
+{\bf -off offsetstem}: specifies the stem of an offset (or baseline)
+file.  This volume indicates the factor (at each voxel) to use when
+computing percent signal change (and so it is only relevant with the
+-h option).  If {\em offsetstem} is unspecified, yakview will look for
+a volume with stem {\em instem-offset} (which is automatically
+produced with selxavg).\\
+
+\section{General Usage}
+
+In its most sophisticated invocation, yakview can be used to overlay a
+significance map onto a co-planar structural image and to view the
+hemodynamic responses at a voxel in a separate window by clicking on
+the voxel in the image.  Manipulation of the data in both the image
+window and the HDR window relies heavily on keypress commands.  A help
+menu can be displayed for either window by clicking in the window and
+then pressing the ``h'' key.
+
+\subsection{The Image Window}
+
+Upon invocation, only the image window is displayed. It will show the
+underlying structural in gray scale and super-threshold statistics in
+color.  Initially, only the voxels with statistics with a positive sign
+are displayed.  Hitting the ``t'' key once will cause only those with
+negative sign to be displayed. Hitting the ``t'' key again will
+display the absolute value. Hitting the ``t'' key again will bring the
+sign back to positive only.  Yakview keypress commands are:
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|l|l|}\hline
++ & step to the next image plane \\ \hline
+- & step to the previous image plane \\ \hline
+b & bone scale  (instead of grey) \\ \hline
+c & toggle crosshair \\ \hline
+h & display help menu \\ \hline
+i & invert underlay image\\ \hline
+g & view hemodynamic averages \\ \hline
+m & toggle marker \\ \hline
+p & pink scale  (instead of grey) \\ \hline
+q & exit yakview \\ \hline
+r & view raw time courses \\ \hline
+t & change overlay sign to view (+,-,+/-) \\ \hline
+z & toggle zoom state \\ \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{The Hemodynamic Response Window}
+
+To bring up the hemodyanmic response window (aka $HDRView$), click in
+the image window and then press the ``g'' key.  Note that the
+hemodynamic response {\em cannot} be viewed if the raw data was fit to
+an ideal response. HDRView keypress commands are:
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{|l|l|}\hline
+d & toggle subtraction of condition 0 \\ \hline
+e & toggle display standard error bars \\ \hline
+h & display help menu \\ \hline
+n & toggle display of condition n (n=0,1,\ldots) \\ \hline
+p & toggle dipslay of percent signal change \\ \hline
+q & close HDRView \\ \hline
+s & toggle display standard deviation bars \\ \hline
+v & save graph as ascii file \\ \hline
+z & subtract prestim avg for all conditions\\ \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+
+\end{document}

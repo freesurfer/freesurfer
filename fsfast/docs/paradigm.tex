@@ -1,0 +1,138 @@
+% $Id: paradigm.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf paradigm file format} \\
+\end{Large}
+
+\noindent 
+\begin{verbatim}
+Comments or questions: analysis-bugs@nmr.mgh.harvard.edu\\
+$Id: paradigm.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\end{verbatim}
+
+The {\bf paradigm file format} is a method of representing the
+sequence of stimulus presentations.  Paradigm files are a text files
+with at least two columns.  The first column indicates the time (in
+seconds) at which a stimulus is/was to be presented, where time zero
+is implicitly assumed to be the time of the first data acquisition of
+the run. The second column indicates the identification number of the
+type of stimulus presented.  Each type has its own unique number, with
+identification number 0 being reserved for the null condition.  
+
+An example paradigm file is shown below.  There are four stimulus
+types (Ids: 0, 1, 2, and 3).  Stimulus type 1 is presented
+simultaneously with the acquisition of the first slice of the run.
+Stimulus type 2 is presented 4 seconds later and again 2 seconds after
+that. Stimulus type 3 is presented 8 seconds after the first
+acquisition, etc.
+
+\begin{verbatim}
+  0.00  1
+  4.00  2
+  6.00  2
+  8.00  3
+ 10.00  1
+ 14.00  2
+ 16.00  3
+ 18.00  1
+ 22.00  3
+ 24.00  1
+ 28.00  2
+ 30.00  3
+ 32.00  0
+ 40.00  1
+ 44.00  3
+ 46.00  1
+ 50.00  3
+ 52.00  1
+ 56.00  3
+ 58.00  0
+ 66.00  0
+ 74.00  1
+ 78.00  3
+ 80.00  1
+ 84.00  2
+ 86.00  2
+ 88.00  3
+ 90.00  1
+ 94.00  3
+ 96.00  1
+100.00  2
+102.00  3
+104.00  1
+108.00  2
+110.00  3
+112.00  0
+120.00  1
+124.00  2
+126.00  2
+128.00  3
+130.00  1
+134.00  2
+136.00  2
+138.00  3
+140.00  0
+148.00  1
+152.00  2
+154.00  2
+156.00  3
+158.00  1
+162.00  2
+164.00  2
+166.00  3
+168.00  1
+172.00  3
+174.00  0
+182.00  1
+186.00  2
+188.00  3
+190.00  1
+194.00  3
+196.00  1
+200.00  2
+202.00  3
+204.00  1
+208.00  2
+210.00  3
+212.00  0
+220.00  1
+224.00  3
+226.00  1
+230.00  2
+232.00  3
+234.00  0
+242.00  1
+246.00  2
+248.00  2
+250.00  3
+252.00  1
+256.00  2
+258.00  3
+260.00  1
+264.00  2
+266.00  2
+268.00  3
+270.00  0
+278.00  1
+282.00  2
+284.00  2
+286.00  3
+
+\end{verbatim}
+
+
+
+\end{document}

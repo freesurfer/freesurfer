@@ -1,0 +1,8 @@
+Usage: avgavg [-options] -i <instem1> -i <instem2> -o <outstem>
+    <instem1>           : prefix of first .bfloat input file
+    <instem2>           : prefix of second .bfloat input file
+    <outstem>           : prefix of .bfloat output file
+  options:
+    -firstslice <int>   : first slice number to process
+    -nslices <int>      : number of slices to process
+    -nbins <int>        : total number of bins or conditions

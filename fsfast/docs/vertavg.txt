@@ -1,0 +1,136 @@
+
+Vertical averaging is the process by which multiple functional runs
+are averaged together voxel-by-voxel. The final average is the size 
+of an individual functional run. Vertical averaging can be applied
+both within and across subjects/sessions. If across subjects, then
+the functional data must be resampled into a common space. Vertical
+averaging requires that the paradigm file be the same for all runs
+and all subjects.
+
+This document describes how to vertically average functional data in
+FS-FAST. It describes how this is done both within and outside the 
+FreeSurfer directory structure. When outside, the -sessanat or
+-samesess flags are usually included on the command line.
+
+
+#----------------- Functional Processing ------------------#
+
+1. mktalxfm-sess, creates talaiarch.xfm in 3danat/XXX which
+   is the talairach matrix for the same-session anatomical.
+   Not needed when using FreeSurfer.
+
+2. Run motion correction (mc-sess) on raw data
+
+3. autoreg-sess    -sessanat
+4. tkregister-sess -sessanat
+
+-sessanat to use the same session anatomical.
+
+--- A: individual: resample then vertically average --
+(B requires much less disk space than A but is probably 
+not as good).
+
+5. Resample the raw (MCed) functionals to MNI305-tal
+   (Add parfiles, if desired, with -p )
+
+  rawfunc2tal-sess -funcstem fmc -talsd bold-tal 
+   -samesess  -voxsize 4 4 4 -fov 256 256 256 
+
+  For each raw run, this will create a run under bold-tal.
+  It will also create a register.dat for the taliarach.
+
+6. Within-session vertical averaging
+   (Add parfiles, if desired, with -p )
+
+   vertavg-sess -fstem fmc -fsd bold-tal -outfsd bold-tal-va
+
+   This will create bold-tal-va/001 with one functional
+   volume (fmc) the same size as the talaiarach volume.
+
+--- B: individual: vertically average then resample --
+(B requires much less disk space than A but is probably 
+not as good).
+
+5. Within-session vertical averaging of the raw (MCed) data.
+   This will create bold-va/001 with one functional
+   volume (fmc) the same size as the original functional 
+   volume.	  
+
+   vertavg-sess -fstem fmc -outfsd bold-va
+
+6. Resample the vertically averaged functionals to MNI305-tal Add
+   parfiles, if desired, with -p.  This will create bold-va-tal/001 
+   with one functional volume (fmc).
+
+  rawfunc2tal-sess -funcstem fmc -fsd bold-va -talsd bold-va-tal
+   -samesess  -voxsize 4 4 4 -fov 256 256 256 
+
+
+7. Cross-session vertical average. This can be done in two ways:
+
+   a. Preferred method: If the within-sessions vertical 
+      average has been done for each session, then just run:
+
+      vertavg-group -group grpavg -fstem fmc -fsd bold-tal-va
+
+   b. Alternatively, running the following will average all
+      the individual runs together. If one subject has more runs
+      than another, this will weight that subject more.
+
+      vertavg-group -group grpavg -fstem fmc -fsd bold-tal
+
+
+   In either case, this will create a directory called grpavg
+   in the study directory. This will look like any other
+   session (you may have to put the study directory into
+   the session dir file). In either case, paradigm files can
+   be added for copy to the new directory.
+
+8. Processing. The data can be analyzed the same as any other data.
+   When making the analysis, make sure to specify that the 
+   functional subdirectory is bold-tal-va and that the funcstem
+   is fmc. The indivduals and the group can be processed with
+   the same analysis. (Don't add "-space tal" to the command lines).
+
+9. Viewing. The results can be viewed in the same way as any other
+   data. Note that all viewing is done in the native space (ie, don't
+   add "-space tal" to the command lines. Also note that when using
+   tkmedit, you will view the results on the MNI talairach brain
+   (except see below). To see the raw time course when using
+   sliceview-sess, add "-run 001 -motioncor" to the command line. When
+   sliceview comes up, click in the window and hit "r". This will
+   bring up the raw time course for the current voxel.
+
+#-----------------  Anatomical Processing --------------------#
+
+1. Convert each anatomical to talairach space (after mktalxfm-sess)
+   XXX is the first anatomical run. For each session
+
+   cd session
+   mkdir -p 3danat-tal/001
+   mri_convert -T 3danat/XXX/talairach.xfm 3danat/XXX 3danat-tal/001
+
+2. Average the anatomicals from different sessions together
+
+   vertavg-group -group grpavg -fsd 3danat-tal -anat 
+
+   Because of the -anat flag, the fsd is interprested as the asd
+   (asd = anatomical subdirectory)
+
+3. Viewing results on the average talairach brain with tkmedit. This
+   works for individual sessions as well as for the group.
+
+   tkmedit-sess -s grpavg -sessanat -asd 3danat-tal
+
+   In theory, it is possible to view the raw time course from tkmedit
+   by running the commands below. Currently (1/31/02), tkmedit does
+   not display the raw time course properly.
+
+   cd grpavg
+   tkmedit 
+      -f 3danat-tal/001 
+      -timecourse ./bold-tal-va/001/fmc 
+      -timecourse-reg ./bold-tal-va/register.dat 
+      -overlay ./bold-tal-va/main-tal-va/omnibus/fsig 
+      -overlay-reg ./bold-tal-va/register.dat
+      -fthresh 2 -fmid 5 -fslope 1

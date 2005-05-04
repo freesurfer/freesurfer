@@ -1,0 +1,9 @@
+ sequencename     ep2d_fid_ts_20b2604
+ nrows            64
+ ncols            64
+ nslcs            16
+ rowpixelsize     3.125
+ colpixelsize     3.125
+ slcpixelsize     5.000
+ ntrs             100
+ TR               2.0

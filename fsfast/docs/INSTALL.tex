@@ -1,0 +1,119 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+%\usepackage{draftcopy}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{center}
+\begin{LARGE}
+\noindent {\bf FreeSurfer Functional Analysis STream (FS-FAST)\\
+Download and  Installation} \\
+\end{LARGE}
+\end{center}
+
+\noindent 
+\begin{verbatim}
+
+This gives instructions on how to download, install, and configure the
+environment for running FS-FAST, the fMRI analysis stream used by many
+of the researchers in the MGH-NMR Center.  While designed to integrate
+with the FreeSurfer anatomical analysis package, FS-FAST can also be
+used without FreeSurfer.  The FS-FAST package does not include the
+FreeSurfer software which can be downloaded from
+www.nmr.mgh.harvard.edu/freesurfer.  For those in the Center, you do
+not need to Download or Install, just follow the instructions under
+Environment.
+
+------------ Download --------------------
+Download the most recent version
+from ftp://ftp.nmr.mgh.harvard.edu/pub/flat/fmri-analysis
+
+  % ftp ftp.nmr.mgh.harvard.edu
+  user: anonymous
+  passwd: your email
+
+  ftp> cd pub/flat/fmri-analysis
+
+  ftp> binary
+  ftp> get fmri-YYMMDD.tar.gz
+
+Where YYMMDD corresponds to the most recent date.
+
+--------------- Install -------------------------
+Move fmri-YYMMDD.tar.gz to the directory under which you want
+the package to be installed.
+
+Uncompress the tar file:
+  % gunzip fmri-YYMMDD.tar.gz
+
+This creates fmri-YYMMDD.tar which can be detarred:
+  % tar xvf fmri-YYMMDD.tar
+
+This will create a directory called fmri-YYMMDD under which there
+are 4 subdirectories: bin  docs  src  toolbox.  You may want to
+create a symbolic link to fmri-YYMMDD from fmri:
+% ln -s fmri-YYMMDD fmri
+
+---------------- Environment ----------------------------------------
+In your .cshrc file (or equivalent), create a new environment variable:
+  setenv FMRI_ANALYSIS_DIR name-of-install-directory
+
+For those in the MGH-NMR center, you can set
+  setenv FMRI_ANALYSIS_DIR /homes/nmrnew/home/inverse/fmri
+
+Add $FMRI_ANALYSIS_DIR/bin and $FMRI_ANALYSIS_DIR/bin/`uname -s` 
+directories to your path.
+
+Add the toolbox directory to your matlab path.  This is done
+by adding following lines to the startup.m file in your 
+matlab directory (ie, ~/matlab/startup.m):
+
+  fmri_analysis_dir = getenv('FMRI_ANALYSIS_DIR');
+  fmritoolbox = sprintf('%s/toolbox',fmri_analysis_dir);
+  path(path,fmritoolbox);
+
+Note that you must have matlab 5.2 or higher to run the software.
+The software has been tested under Linux, IRIX, and Sun.  The scripts
+first look for a command called "matlab5" then for "matlab".  If
+it does not find either of those, it will exit.
+
+To use the motion correction, you must have AFNI installed and its
+binaries in your path.  For those in the MGH-NMR Center, you can
+add the following to your path:
+
+/homes/nmrnew/home/inverse/afni/`uname -s`
+
+---------------- Getting Started ---------------------------------- 
+The file called overview.ps (or overview.tex) in the docs directory
+has information about what can be done with the software.  There's
+also a lot more documentation in the docs as to how each program
+works.
+
+---------------- Bugs, Comments, Questions ----------------------------- 
+Send comments or questions to anlysis-bugs@nmr.mgh.harvard.edu.
+When making bug reports, please follow these steps:
+1.  Specify what type of machine you were on when the problem occured.
+2.  Specify what program (along with command-line options) you were
+running when the  problem occured.  NOTE: "program" means a program from the
+FAST package, not one that you have created that calls FAST programs.
+3.  Specify the directory you were in when you ran the program. 
+4.  Include any text that the program printed out. 
+5.  Include the log file (if it exists).
+
+---------------- Dislaimer ------------------------
+See docs/DISCLAIMER
+
+---------------- Copywrite ------------------------
+See docs/COPYWRITE
+\end{verbatim}
+
+\end{document}

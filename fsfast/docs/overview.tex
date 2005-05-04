@@ -1,0 +1,173 @@
+% $Id: overview.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+%\usepackage{draftcopy}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{center}
+{\LARGE The NMR-MGH fMRI Processing Stream}
+\end{center}
+
+This document gives a short overview of the functional MRI processing
+used at the NMR Center at Massachusettes General Hospital.  Pointers
+to other documents are indicated in {\em italics}.  Please send
+questions or comments to {\bf analysis-bugs@nmr.mgh.harvar.edu}.  The
+package is available via ftp from {\bf
+ftp://ftp.nmr.mgh.harvard.edu/pub/flat/fmri-analysis}.
+
+\section{Summary}
+
+The NMR-MGH fMRI processing stream is based on selective averaging
+(Dale and Buckner, 1997) and deconvolution (Buroc, et al, 1998).  The
+method models the BOLD signal as a linear combination of
+time-invariant hemodynamic responses imbedded in Gaussian noise.  For
+event-related designs, the hemodynamic responses to different event
+types are modeled as a sum of delayed delta functions (regressors)
+with unknown weights (regression coefficients). No assumptions about
+the form of the hemodynamic shape (delay or dispersion) are made.  For
+block designs, the shape of the hemodynamic response (ie, the
+regressor) is assumed but its weight is unknown.  In both cases, the
+regressors are estimated using a least-squares method (Hamilton,
+1994).  For event-related deisgns, this method results the optimal
+{\em unbiased} estimator of the hemodynamic response.  The covariance
+matrix of the regression coefficients is maintained and used to
+compute multivariate statistics.  Individual subjects can be combined
+using either a random-effects or fixed-effects model (after
+appropriate spatial normalization).  The package includes a tool for
+aiding in the design of rapid-presentation event related designs. The
+package also includes visualization tools for overlaying functional
+activation on structural images as well as to view the hemodynamic
+responses for different conditions in a ``point-and-click''
+environment.\\
+
+\section{Computational Requirements}
+
+The software will run under Linux, Sun, and SGI operating systems.
+$Matlab^{TM}$ 5.2 or higher is required to run the software.  Note,
+however, knowledge of matlab is not required as all of the programs
+run directly from the unix command-line.  Note: the motion correction
+program is a front-end for running the AFNI motion correction
+(see http://varda.biophysics.mcw.edu/~cox/ for more information about
+AFNI). You must have the AFNI software package installed on your
+computer and the binaries in your path.  \\
+
+\section{File Formats}
+
+Input images are assumed to be stored in {\em bfile} format.  The
+{\em bfile} format divides each volume into a number of files, one for
+each anatomical slice.  Each slice may contain multiple planes
+corresponding to the slice image at different times.  Each slice file
+has a name conforming to the format stem\_XXX.btype, where ``XXX'' is
+the three-digit, zero padded slice number, and ``btype'' is either
+``bshort'' or ``bfloat''.  Bshorts store signed 16 bit integers.
+Bfloats store 32 bit floating point numbers.  Each slice has a
+cooresponding header file with a name conforming to the format
+``stem\_XXX.hdr''.  This header has four numbers: number of columns,
+number of rows, number of planes, and endianness. The endianness is
+either 0 (big-endian) or 1 (little-endian).
+
+The scheduling of stimuli is indicated in the {\em paradigm} file.
+This is a file with (at least) two columns of numbers.  The first
+column indicates the time at which a stimulus was presented, and the
+second indicates the type of stimulus that was presented at that
+time. The stimulus types are defined by this file.
+
+\section{Rapid-Presenation Event-Related Experimental Design}
+
+Rapid-Presenation Event-Related (RPER) is a type of fMRI experimental
+design where the stimuli are presented closely enough in time that
+their hemodynamic responses can overlap.  In contrast, fixed-interval
+event-related (FIER) designs require that stimulus presentations be
+separted enough in time that the hemodynamic responses do not overlap.
+RPER can result in experiments with signficantly more statistical
+power then FIER (Dale, et al, 1999).  RPER allows for better
+randomization of events.  Analysis of RPER does make the assumption
+that the overlap is linear.  The validity of linear overlap has been
+explored in several experiments (eg, Dale and Buckner, 1997; Miezin,
+et al, 1999).
+
+The scheduling of events in RPER is a non-trivial task because events
+can occur at any time during the run.  However, different schedules
+may result in different statistical power.  Accordingly, we have
+devised a technique to search for sequences that will offer the most
+power.  See {\em optseq}.
+
+
+\section{Processing Stream}
+
+Individual Subject Processing Stream Summary:\\
+\begin{enumerate}
+\item Motion Correction (mc-afni)
+\item Intesity Normalization (inorm)
+\item Selective Averaging (selxavg)
+\item Statistical Analysis (stxgrinder)
+\item Visualization (yakview)
+\end{enumerate}
+
+Group Processing Stream Summary:\\
+\begin{enumerate}
+\item Motion Correction (mc-afni)
+\item Intesity Normalization (inorm)
+\item Selective Averaging (selxavg)
+\item Spatial Normalization, eg Talairach
+\item Inter-Subject Averaging, Fixed (isxavg-fe) and Random
+(isxavg-fe) Effects.
+\item Visualization (yakview)
+\end{enumerate}
+
+\section{The Sessions Environment}
+
+All of the functional processing can be performed on data arbitrary
+file names in arbitrary directories.  However, it can be a tedious
+process to specify all of these command-line parameters.  To
+allieviate this problem, we have developed a file and directory naming
+structure that we call the {\em Sessions Environment}.  Commands that
+exploit this enviroment typically end with {\em -sess} suffix.
+
+
+\noindent
+{\bf References:}\\
+
+\indent Burock, M. A. (1998). Design and statistical analysis of fMRI
+experiments to assess human brain hemodynamic responses. Unpublished
+Master's Thesis, M.I.T.\\
+
+\indent Burock, M. A., Buckner, R. L., Woldorff, M. G., Rosen, B. R.,
+\& Dale, A. M. (1998). Randomized event-related experimental designs
+allow for extremely rapid presentation rates using functional MRI.
+Neuroreport, 9, 37 35-3739.\\
+
+\indent Buroc, M.A. and Dale, A.M. (2000) Estimation and Detection of
+Event-Related fMRI Signals with Temporally Correlated Noise: A
+Statistically Efficient and Unbiased Approach. Human Brain Mapping
+11:249-260.\\
+
+\indent Dale, A.M., Greve, D.N., and Burock, M.A. (1999) Optimal Stimulus
+Sequences for Event-Related fMRI.  5th International Conference on
+Functional Mapping of the Human Brain. Duesseldorf, Germany. June
+11-16. \\
+
+\indent Dale AM, and Buckner RL (1997). Selective averaging of rapidly
+presented individual trials using fMRI. Hum Brain Mapping 5:329-340.\\
+
+\indent Hamilton, James D. (1994).  Time Series Analysis. Princeton
+University Press. Princeton, NJ.\\
+
+\indent Miezin, F.M., Maccotta, L., Ollinger, J.M., Petersen, S.E.,
+and Buckner, R.L., 1999. Characterizing the hemodynamic response:
+Effects of presentation rate, sampling procedure, and the possibility
+of ordering brain activity based on relative timing. Submitted to
+NeuroImage.\\
+
+
+\end{document}

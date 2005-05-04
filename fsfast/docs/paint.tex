@@ -1,0 +1,93 @@
+% $Id: paint.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+%\usepackage{draftcopy}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf paint} \\
+\end{Large}
+
+\noindent 
+\begin{verbatim}
+Comments or questions: analysis-bugs@nmr.mgh.harvard.edu\\
+$Id: paint.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\end{verbatim}
+
+\section{Introduction}
+{\bf paint} is a program for mapping voxel intensities from a
+functional volume onto a surface.
+
+\section{Usage}
+Typing paint at the command line without any options will give the
+following message:\\ 
+
+\begin{small}
+\begin{verbatim}
+Usage: paint input\_file hemi surf output\_file -options
+  input\_file - eg, stem\_\%03d.bfloat
+  surf - surface name (eg, orig, smoothwm, etc)
+  hemi - lh or rh
+  output\_file - eg, stem-lh.w 
+  options:
+    -imageoffset n - zero-based frame number to paint <0>
+    -nslices  n - number of input slices
+    -regdat   fname - name of register file <register.dat>
+    -dmax  dist - distance (mm) to project along normal <0>
+    -dstep stepsize - size (mm) of projection step <0.25>
+\end{verbatim}
+\end{small}
+
+\section{Command-line Arguments}
+
+\noindent
+{\bf input\_file}: this is the input stem of the functional input 
+volume in bfile format.  It will take the form {\em
+stem\_\%03d.bfloat}. \\
+
+\noindent
+{\bf surf}: name of the surface upon which to paint (eg, orig,
+smoothwm, etc).\\
+
+\noindent
+{\bf hemi}: hemisphere string (lh or rh).\\
+
+\noindent
+{\bf output\_file}: name of the file where the results will be stored.
+This file must have a ``w'' extension.\\
+
+\noindent
+{\bf -imageoffset }: the functional data may have many different
+time-points (also known as planes or frames) for each voxel, however,
+the point output can only represent one of these frames.  The number
+of frames in a functional volume is indicated by the third item in the
+functional volume's header file.  The image offset allows the user to
+choose which frame to paint.\\
+
+\noindent
+{\bf -nslices}:  number of slice files in the input functional volume.\\
+
+\noindent
+{\bf -regdat}: this allows the user to specify a registration file.
+The default is to use the one in the current directory.\\
+
+\section{Example}
+
+Consider the case where there is a functional volume with stem {\em
+pavf} with 32 slice files.  Running the unix {\em ls} in the directory
+will show bfiles of the form {\em pavf\_000.bfloat, pavf\_001.bfloat,
+\ldots, pavf\_031.bfloat} and their corresponding header files (with
+{\em .hdr} extension.
+
+
+\end{document}

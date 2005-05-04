@@ -1,0 +1,79 @@
+% $Id: seqefficiency.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf seqefficiency} \\
+\end{Large}
+
+\noindent 
+\begin{verbatim}
+Comments or questions: analysis-bugs@nmr.mgh.harvard.edu\\
+$Id: seqefficiency.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\end{verbatim}
+
+\section{Introduction}
+{\bf seqefficiency} is a program measuring the efficiency of an
+event-related stimulus sequence. Requires matlab 5.2 or higher.\\
+
+\section{Usage}
+Typing seqefficiency at the command line without any options will give the
+following message:\\ 
+
+\begin{small}
+\begin{verbatim}
+USAGE: seqefficiency -p parfile -Ntp ntp [options] 
+   -p parfile  : name of the paradigm file
+   -Ntp ntp    : Number of timepoints collected
+Options:
+   -TR    <float> : TR to use (2 sec)
+   -TER   <float> : Temporal resolution of the estimate (TR)
+   -timewindow <float> : Time Window to use (20 sec)
+   -monly         : generate matlab file only
+\end{verbatim}
+\end{small}
+
+\section{Command-line Arguments}
+
+\noindent
+{\bf -p parfile }: name of the paradigm file in which the sequence is
+located. \\
+
+\noindent
+{\bf -Ntp ntp}: number of scans or time-points to be collected for
+each run.\\
+
+\noindent
+{\bf -TR TR}: temporal resolution of the fMRI scans (ie, the time
+between scans) in seconds.\\
+
+\noindent
+{\bf -TER TER}: temporal resolution of the estimate of the hemodynamic
+response in seconds. The stimuli will be presented at increments of
+the TER.  Default is to set the TER to the TR.\\
+
+\noindent
+{\bf -timewindow <float>}:  time window in seconds over which the
+hemodynamic response will be estimated.  Default is 20 sec.\\
+
+\noindent
+{\bf -monly}: only generate the matlab file which would accomplish the
+analysis but do not actually execute it.  This is mainly good for
+debugging purposes.\\
+
+\section{Output}
+
+{\bf seqefficiency} prints the efficiency measure to the standard output.\\
+
+\end{document}

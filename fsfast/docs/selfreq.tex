@@ -1,0 +1,274 @@
+% $Id: selfreq.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+%\usepackage{draftcopy}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf selfreqavg, selfreqcomb} \\
+\end{Large}
+
+\section{Introduction}
+{\bf selfreqavg} and {\bf selfreqcomb} are programs for computing the
+amplitude and phase of the hemodynamic response at a certain
+frequency.  This is typically done in retinotopic (or phase encoding)
+studies.  These programs are meant to replace {\bf analyse} and {\bf
+combine} for phase encoding studies.  The paradigm consists of a
+periodically varying stimulus (eg, a rotating spoke or
+expanding/contracting ring).  The stimulus is characterized by its
+fundamental frequency, direction, and type.  The the amplitude and
+phase of hemodynamic response at the stimulation frequency are measured
+by computing the FFT of the bold signal.  The significance of the
+effect is assesed with an F-test in the following way. An F-ratio is
+computed as the ratio of the signal power to the noise power. The
+signal power is the power at the fundamental. The noise power is sum
+of the remaining spectrum excluding the following components:
+harmonics of the stimulus, components within one frequency bin of the
+fundamental and harmonics, and the first three bins.
+
+{\bf selfreqavg} computes the amplitude, phase, and noise directly
+from the raw MR signal.  {\bf selfreqcomb} combines the results from
+several invokations of {\bf selfreqavg} into a single average. This is
+done by separately averaging the real and imaginary components of the
+fundamental as well as averaging the noise power. The average real and
+imaginary components are used to recompute the power at the
+fundamental which is then used to perform the F-test as described
+above. The software appropriately handles the case where the inputs
+may have different degrees-of-freedom (eg, different number of time
+points).\\
+
+
+\section{Questions, Comments, and Bug Reports}
+The software authors are interested in your questions, comments, and
+bug reports.  However, since the software is free, our responsiveness
+to your needs may be limitted.  To get the most out of an interaction
+with us, please follow these suggestions: (1) read the documentation
+thoroughly to make sure you are not asking about something for which
+there is already an answer, (2) ask someone else in your
+lab, (3) send COMPLETE information about the problem (ie, operating
+system, machine type, user name, version number, log files, etc).
+Send questions, comments, and bug reports to analysis-bugs\@nmr.mgh.harvard.edu.\\
+
+\section{Usage}
+
+Typing {\bf selfreqavg} at the command-line without any options will
+give the following message:\\
+
+\begin{small}
+\begin{verbatim}
+USAGE: selfreqavg
+   -i instem  ...    : input stem(s)
+   -TR TR            : temporal resolution (sec)
+   -o outstem        : output stem
+   -parname name     : parfile, same in each instem directory
+   -stimtype  type   : eccen or polar (see also parname)
+   -ncycles ncycles  : number of stimulation cycles (see also parname)
+   -direction string : pos or neg (see also parname)
+   -delay   delay    : global delay (in seconds)
+   -sdf     file     : slice delay file
+   -nskip nskip      : skip the first nskip TRs
+   -rescale target   : rescale so global mean equals target
+   -firstslice fs    : first anatomical slice
+   -nslices    ns    : number of anatomical slices
+   -monly mfile      : just create a matlab file
+   -umask umask      : set unix file permission mask
+   -version          : print version and exit
+\end{verbatim}
+\end{small}
+
+Typing {\bf selfreqcomb} at the command-line without any options will give the
+following message:\\ 
+
+\begin{small}
+\begin{verbatim}
+USAGE: selfreqcomb
+   -i instem  ...    : input stem(s)
+   -o outstem        : output stem
+   -firstslice fs    : first anatomical slice
+   -nslices    ns    : number of anatomical slices
+   -monly mfile      : just create a matlab file
+   -umask umask      : set unix file permission mask
+   -version          : print version and exit
+\end{verbatim}
+\end{small}
+
+\section{Command-line Arguments}
+
+Note that command-line arguments can also be specified inside of a
+configuration file (see the -cfg argument).
+
+\noindent
+{\bf -i instem}: stem of the input volume for a single run.
+It is assumed that the data are stored in {\em bfile format}.  If
+multiple runs are to be analyzed, each input stem must be preceded by
+a {\em -i} flag.\\
+
+\noindent
+{\bf -parname parname}: name of file in which the stimulus characteristics
+are stored. The format is
+\begin{verbatim}
+stimtype  eccen
+direction pos
+ncycles   8
+\end{verbatim}
+where {\em stimtype} is the type of stimulus, {\em direction} is the
+direction of the stimulus (either {\em pos} or {\em neg}), and {\em
+ncycles} is the number of cycles in the run.  These are redundant with
+other command-line arguments to {\bf selfreqavg}.  If both are
+specified, presidence will be given to the command-line arguments.  If
+the parname option is specified, there must be a file with the
+specified name in each of the input directories (ie, parname is only
+specified once).\\
+
+\noindent
+{\bf -o outstem}: this is the stem of the output volume (in bfile format)
+to be generated.  This will have 12 planes:
+\begin{enumerate}
+\item $\pm ||log10(sig)||$ - sign based on the sign of the imaginary component
+\item $||log10(sig)|| sin(\phi)$ 
+\item $||log10(sig)|| cos(\phi)$ 
+\item $F$
+\item $\sqrt(F) sin(\phi)$ 
+\item $\sqrt(F) cos(\phi)$ 
+\item Standard deviation of the noise.
+\item Real part of the signal at the fundamental.
+\item Imaginary part of the signal at the fundamental.
+\item Phase ($\phi$) in radians.
+\item Mean Image.
+\item Trend Image.
+\item Magnitude (sum of squares of real and imag parts).
+\end{enumerate}
+Note: when using the {\em paint} command to render the results on the
+cortical surface, make sure to set the {\em -offset} option to one
+less than the plane number.
+
+\noindent
+{\bf -TR float}: temporal sampling resolution (ie, time between scans
+in seconds). \\
+
+\noindent
+{\bf -delay float}: specify the hemodynamic delay (in seconds) to
+apply to all voxels.\\
+
+\noindent
+{\bf -sdf filename}: specify a slice delay file (SDF).  The SDF has
+two columns.  The first is the slice number, and the second is
+acquisition delay (in seconds) of the slice with respect to the start
+of the TR.\\
+
+\noindent
+{\bf -detrend}: instruct selfreqavg to fit and remove any trend
+from the raw fMRI data that is linearly related to time.
+This is done on a run-by-run basis.\\
+
+\noindent
+{\bf -rescale target}: used in conjunction with {\bf inorm}.  {\bf inorm},
+the global intensity normalization program, will produce a file called
+{\em instem.meanval} in which the global mean value (after
+segmentation) is stored.  When the -rescale option is specified,
+selfreqavg will read the meanval file and the target value and rescale
+the entire input volume so that it's new global mean is target.\\
+
+\noindent
+{\bf -nskip nSkip}: specify the number of {\em functional} slices to
+skip at the beginning of each run.  This applies to all runs and
+all anatomical slices.  Note: this can severely affect the FFT
+computations. \\
+
+\noindent
+{\bf -firstslice int}: first {\em anatomical} slice to process (usually 0).
+If unspecified, the first slice will be autodetected.  It is
+highly recommended that the first slice number be 0.\\
+
+\noindent
+{\bf -nslices int}: total number of {\em anatomical} slices to
+process.  If unspecified, the number of slices will be autodetected.\\
+
+\noindent
+{\bf -monly}: only generate the matlab file which would accomplish the
+analysis but do not actually execute it.  This is mainly good for
+debugging purposes.\\
+
+\section{Interfacing with FreeSurfer and Paint}
+
+For phase encoding studies, FreeSurfer expects the surface data to
+conform to a certain naming convention.  Specifically, FreeSurfer
+expects three surface files for each hemisphere.  For example, for the
+left hemisphere these files are: sigf-lh.w, sig2-lh.w, and
+sig3-lh.w. These correspond to the first three planes in the output of
+{\bf selfreqavg}.  These .w files are created by paint.  For an output
+stem of {\em sfaout}, paint would be invoked in the following way:
+\begin{verbatim}
+  paint sfaout_%03d.bfloat lh orig sigf-lh.w -nslices 16 -imageoffset 0 
+  paint sfaout_%03d.bfloat lh orig sig2-lh.w -nslices 16 -imageoffset 1 
+  paint sfaout_%03d.bfloat lh orig sig3-lh.w -nslices 16 -imageoffset 2 
+\end{verbatim}
+Note that before paint can be invoked, the subject must have been
+anatomically reconstructed using the FreeSurfer tools, and the
+functional run must have been registered with the anatomical run.
+
+\section{Example}
+
+Consider a set of raw data consisting of 6 runs. Runs 1, 3, and 5 use
+a polar stimulus, where as runs 2, 4, and 6 use an eccentricity
+stimulus. All have 8 cycles per run in the same (positive) direction.
+The TR is 2 seconds, and 16 slices were collected.  The data are in
+bshort format with stem {\em f} in the following directories: 001,
+002, 003, 004, 005, 006.  To process the data, cd to the directory
+just above the run directories, and run:
+\begin{verbatim}
+  selfreqavg -i 001/f -i 003/f -i 005/f -o polar/sfaout \
+     -TR 2 -ncycles 8 -stimtype polar -direction pos 
+
+  selfreqavg -i 002/f -i 004/f -i 006/f -o eccen/sfaout \
+     -TR 2 -ncycles 8 -stimtype eccen -direction pos 
+\end{verbatim}
+These will create two new directories: {\em polar} and {\em eccen}
+with bfloat volumes with stem {\em sfaout}.
+
+To paint this data, again cd to the directory just above the run
+directories, and type 
+\begin{verbatim}
+  paint polar/sfaout_%03d.bfloat lh orig polar/sigf-lh.w -nslices 16 -imageoffset 0 
+  paint polar/sfaout_%03d.bfloat lh orig polar/sig2-lh.w -nslices 16 -imageoffset 1 
+  paint polar/sfaout_%03d.bfloat lh orig polar/sig3-lh.w -nslices 16 -imageoffset 2 
+
+  paint eccen/sfaout_%03d.bfloat lh orig eccen/sigf-lh.w -nslices 16 -imageoffset 0 
+  paint eccen/sfaout_%03d.bfloat lh orig eccen/sig2-lh.w -nslices 16 -imageoffset 1 
+  paint eccen/sfaout_%03d.bfloat lh orig eccen/sig3-lh.w -nslices 16 -imageoffset 2 
+\end{verbatim}
+Note that before paint can be invoked, the subject must have been
+anatomically reconstructed using the FreeSurfer tools, and the
+functional run must have been registered with the anatomical run.
+
+To view the results on the surface, create and executre a surfing script with the
+following content:
+\begin{verbatim}
+  #!/bin/csh -f
+  set name = subject  # put the subject's name here
+  set hemi = lh
+  setenv eccendir eccen
+  setenv polardir polar
+  #setenv patch occip.patch.flat
+  setenv revpolarflag 1
+  setenv rgbname eccenthinmot
+  setenv fthresh 0.4
+  setenv fslope 1.3
+  setenv fmid 0.8
+  setenv angle_offset 0.77
+  setenv noexit
+  tksurfer -$name $hemi 1000a -tcl eccen-flat.tcl
+\end{verbatim}
+
+
+\end{document}

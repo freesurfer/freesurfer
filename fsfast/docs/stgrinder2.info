@@ -1,0 +1,28 @@
+Usage: stgrinder2 [-options] -i <instem> -o <outstem>
+    <instem>            : prefix of .bfloat input file
+    <outstem>           : prefix of .bfloat output file
+  options:
+    -firstslice <int>   : first slice number to process
+    -nslices <int>      : number of slices to process
+    -a <int>            : active condition
+    -c <int>            : control condition
+    -delsign s1 s2 s3 ...: sign to apply to each delay point (-1,0,+1)
+    -diff               : unpaired t-test (image-by-image)
+    -mdiff <int> <int>  : maximum unpaired t-test (within range of delays)
+    -corr               : correlate time courses
+    -ircorr             : correlate with impulse response
+    -delta <float>      : impulse response delta
+    -tau <float>        : impulse response tau
+    -ndelta <int>       : number of impulse response delays
+    -ntau <int>         : number of impulse response delays
+    -drange <float> <float> : impulse response delay range
+    -trange <float> <float> : impulse response tau range
+    -noversample <int>  : number of samples per TR
+    -nopval             : don't save p values
+    -log10              : use log10 for p values
+    -whitenoise         : assume white noise
+    -pscale <float>     : multiply pvalues by scale
+
+    $Id: stgrinder2.info,v 1.1 2005/05/04 17:00:49 greve Exp $
+    MAXT = 30, MAXDOF = 200
+

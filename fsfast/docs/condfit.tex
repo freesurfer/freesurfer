@@ -1,0 +1,68 @@
+% $Id: condfit.tex,v 1.1 2005/05/04 17:00:48 greve Exp $
+\documentclass[10pt]{article}
+\usepackage{amsmath}
+%\usepackage{draftcopy}
+
+%%%%%%%%%% set margins %%%%%%%%%%%%%
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\textheight}{.75in}
+\addtolength{\topmargin}{-.50in}
+
+\pagestyle{myheadings}
+\markright{\hfill MGH-NMR fMRI Analysis: {\bf condfit} \hspace{.5in}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% begin document %%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{Large}
+\noindent {\bf condfit} \\
+\end{Large}
+
+\noindent 
+\begin{verbatim}
+Comments or questions: analysis-bugs@nmr.mgh.harvard.edu\\
+$Id: condfit.tex,v 1.1 2005/05/04 17:00:48 greve Exp $
+\end{verbatim}
+
+\section{Introduction}
+{\bf condfit} is a program for performing 
+
+
+\section{Usage}
+Typing condfit at the command line without any options will give the
+following message:\\ 
+
+\begin{small}
+\begin{verbatim}
+USAGE:
+  condfit
+   -i instem1   - prefix of .bfloat selxavg volume 1
+   -i instem2   - prefix of .bfloat selxavg volume 2 ...
+   -wcond    weightlist  : list of weights for conditions
+   -exclcond list        : list of conditions toexclude
+   -t       tstem        : prefix of significance output volume
+   -sig     sigstem      : prefix of significance output volume
+   -minsig  minsigstem   : prefix of minimum significance output volume
+   -iminsig iminsigstem  : prefix of minimum index  output volume
+   -avg     avgstem      : prefix of avg/std  output volume
+   -firstslice <int>     : first slice to process <0>
+   -nslices <int>        : number of slices to process <auto>
+   -monly  mfile         : dont run, just create a matlab file
+   -version              : print version and exit
+\end{verbatim}
+\end{small}
+
+\section{Command-line Arguments}
+
+\noindent
+{\bf -i instem}: this is the input stem .\\
+
+\noindent
+{\bf -sig sigstem}: 
+
+
+
+\end{document}
