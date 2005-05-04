@@ -92,7 +92,8 @@ static MRI *insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm,
 extern char *gca_write_fname ;
 extern int gca_write_iterations ;
 
-static int expand_flag = TRUE ;
+//static int expand_flag = TRUE ;
+static int expand_flag = FALSE ;
 static int conform_flag = FALSE ;
 
 int
@@ -108,7 +109,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.52 2005/05/02 19:15:50 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.53 2005/05/04 21:13:18 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -560,6 +561,12 @@ main(int argc, char *argv[])
 	sprintf(fname, "%s_pre.mgz", gca_write_fname) ;
 	printf("writing snapshot to %s...\n", fname) ;
 	MRIwrite(mri_labeled, fname) ;
+      }
+
+      if(ninputs == 1)
+	GCArenormalizeToExample(gca, mri_labeled, mri_inputs);
+      else{
+	printf("Warning: should renormalize GCA, but current code only support this for single-channel atlas\n");
       }
     } //else /* processing long data */
     
