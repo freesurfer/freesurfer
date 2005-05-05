@@ -222,7 +222,7 @@ int Tix_SafeInit ( Tcl_Interp* interp );
 #define IMGSIZE      256
 #define NUMVALS      256
 #define MAXIM        256
-#define MAXMARKED    200000
+#define MAXMARKED    500000
 #define NLABELS      256
 #define CMFBINS       30
 #define GRAYBINS      15 
@@ -827,6 +827,7 @@ void set_vertex_color(float r, float th, int option) ;
 void set_color_wheel(float a, float a_offset, float a_cycles, int mode, 
                      int logmode, float fscale) ;
 void restore_ripflags(int mode) ;
+void dilate_ripped(void) ;
 void floodfill_marked_patch(int filltype) ;
 void clear_ripflags(void) ;
 void cut_marked_vertices(int closedcurveflag) ;
@@ -14628,6 +14629,49 @@ restore_ripflags(int mode)
 }
 
 void
+dilate_ripped(void)
+{
+  int    vno, n, nripped ;
+  VERTEX *v, *vn ;
+  
+  MRISclearDistances(mris) ;
+  nripped = 0 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag == 0)
+	continue ;
+      for (n = 0 ; n < v->vnum ; n++)
+	{
+	  vn = &mris->vertices[v->v[n]] ;
+	  if (vn->ripflag == 0)
+	    vn->d = 1.0 ;
+	}
+      if (v->border && v->d < 0.5)
+	{
+	  v->d = 1 ;
+	}
+    }
+  undo_begin_action (UNDO_CUT);
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->d > 0.5)
+	{
+	  v->d = 0 ; 
+	  set_vertex_rip(vno, TRUE, TRUE) ;
+	  nripped++ ;
+	}
+    }
+  rip_faces() ;
+  vertex_array_dirty = 1;
+  undo_finish_action ();
+  /* might need to reuild vertex positions */
+  vset_set_current_set(vset_current_set) ;
+  printf("%d vertices ripped\n", nripped) ;
+}
+
+void
 floodfill_marked_patch(int filltype)
 {
   VERTEX *v, *vn;
@@ -16416,6 +16460,7 @@ print_help_surfer(void)
   printf("  [#cut_marked_vertices(closedcurve)]     p\n");
   printf("  [#cut_marked_vertices(opencurve)]       P\n");
   printf("  [#enter second surface]                 E\n");
+  printf("  [dilate_patch]                         \n");
   printf("  [#floodfill_marked_patch]               i\n");
   printf("  [#fill_surface,write_images]            I\n");
   printf("\n");
@@ -16890,6 +16935,7 @@ int W_clear_curvature  PARM;
 int W_clear_ripflags  PARM;
 int W_restore_ripflags  PARM;
 int W_floodfill_marked_patch  PARM;
+int W_dilate_ripped  PARM;
 int W_twocond  PARM;
 int W_cut_line  PARM;
 int W_plot_curv  PARM;
@@ -17321,6 +17367,10 @@ ERR(1,"Wrong # args: swap_buffers")
      int                  W_floodfill_marked_patch  WBEGIN
      ERR(2,"Wrong # args: floodfill_marked_patch <0=cutborder,1=fthreshborder,2=curvfill>")
      floodfill_marked_patch(atoi(argv[1]));  WEND
+     
+     int                  W_dilate_ripped  WBEGIN
+     ERR(1,"Wrong # args: dilate_ripped")
+     dilate_ripped();  WEND
      
      int                  W_draw_curvature_line  WBEGIN
      ERR(1,"Wrong # args: draw_curvature_line")
@@ -18285,7 +18335,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.100 2005/05/05 20:11:37 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.101 2005/05/05 21:31:54 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18653,6 +18703,8 @@ int main(int argc, char *argv[])   /* new main */
 		    (Tcl_CmdProc*) W_restore_ripflags,   REND);
   Tcl_CreateCommand(interp, "floodfill_marked_patch",
 		    (Tcl_CmdProc*) W_floodfill_marked_patch,    REND);
+  Tcl_CreateCommand(interp, "dilate_ripped",
+		    (Tcl_CmdProc*) W_dilate_ripped,    REND);
   Tcl_CreateCommand(interp, "twocond",
 		    (Tcl_CmdProc*) W_twocond,                    REND);
   Tcl_CreateCommand(interp, "cut_line",           
