@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/05/02 22:23:31 $
-// Revision       : $Revision: 1.34 $
+// Revision Date  : $Date: 2005/05/05 18:52:37 $
+// Revision       : $Revision: 1.35 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.34 $";
+char *MRI_INFO_VERSION = "$Revision: 1.35 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -36,7 +36,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.34 2005/05/02 22:23:31 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.35 2005/05/05 18:52:37 greve Exp $";
 
 char *Progname ;
 
@@ -57,6 +57,8 @@ int PrintFormat = 0;
 int PrintColDC   = 0;
 int PrintRowDC   = 0;
 int PrintSliceDC = 0;
+int PrintVox2RAS = 0;
+int PrintRAS2Vox = 0;
 int PrintDet = 0;
 
 int debug = 0;
@@ -135,7 +137,9 @@ static int parse_commandline(int argc, char **argv)
 
     else if (!strcasecmp(option, "--cdc"))       PrintColDC = 1;
     else if (!strcasecmp(option, "--rdc"))       PrintRowDC = 1;
-    else if (!strcasecmp(option, "--sdc"))     PrintSliceDC = 1;
+    else if (!strcasecmp(option, "--sdc"))       PrintSliceDC = 1;
+    else if (!strcasecmp(option, "--vox2ras"))   PrintVox2RAS = 1;
+    else if (!strcasecmp(option, "--ras2vox"))   PrintRAS2Vox = 1;
 
     else if (!strcasecmp(option, "--det"))     PrintDet = 1;
 
@@ -169,6 +173,8 @@ static void print_usage(void)
   printf("   --cdc : print column direction cosine (x_{r,a,s})\n");
   printf("   --rdc : print row    direction cosine (y_{r,a,s})\n");
   printf("   --sdc : print slice  direction cosine (z_{r,a,s})\n");
+  printf("   --vox2ras : print the the vox2ras matrix\n");
+  printf("   --ras2vox : print the the ras2vox matrix\n");
   printf("   --det : print the determinant of the vox2ras matrix\n");
   printf("   --nframes : print number of frames to stdout\n");
   printf("   --format : file format\n");
@@ -239,7 +245,8 @@ int PrettyMatrixPrint(MATRIX *mat)
 static void do_file(char *fname)
 {
   MRI *mri ;
-  MATRIX *m ;
+  MATRIX *m, *minv ;
+  int r,c;
 
   if(PrintFormat){
     printf("%s\n", type_to_string(mri_identify(fname)));
@@ -308,6 +315,30 @@ static void do_file(char *fname)
     m = MRIgetVoxelToRasXform(mri) ;
     printf("%g\n",MatrixDeterminant(m));
     MatrixFree(&m) ;
+    return;
+  }
+  if(PrintVox2RAS){
+    m = MRIgetVoxelToRasXform(mri) ;
+    for(r=1; r<=4; r++){
+      for(c=1; c<=4; c++){
+	printf("%10.5f ",m->rptr[r][c]);
+      }
+      printf("\n");
+    }
+    MatrixFree(&m) ;
+    return;
+  }
+  if(PrintRAS2Vox){
+    m = MRIgetVoxelToRasXform(mri) ;
+    minv = MatrixInverse(m,NULL);
+    for(r=1; r<=4; r++){
+      for(c=1; c<=4; c++){
+	printf("%10.5f ",minv->rptr[r][c]);
+      }
+      printf("\n");
+    }
+    MatrixFree(&m) ;
+    MatrixFree(&minv) ;
     return;
   }
 
