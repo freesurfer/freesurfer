@@ -11,8 +11,12 @@ function err = MRIwrite(mri,fstring)
 % from mri.vox2ras0. So, if in the course of analysis, you changed
 % mri.x_r, this change will not be reflected in the output volume.
 % 
-%
-% $Id: MRIwrite.m,v 1.2 2004/11/18 00:47:26 greve Exp $
+% When writing in bhdr format, the default will be bfloat. If you
+% want bshort, then set:
+%    mri.outprecision = 'short';
+% This only applies to bhdr format.
+% 
+% $Id: MRIwrite.m,v 1.3 2005/05/05 17:26:55 greve Exp $
 
 err = 1;
 
@@ -47,7 +51,11 @@ switch(fmt)
   ysize = sqrt(sum(mri.vox2ras0(:,2).^2));
   zsize = sqrt(sum(mri.vox2ras0(:,3).^2));
   bmri.volres = [mri.xsize mri.ysize mri.zsize];
-  err = fast_svbslice(mri.vol,fstem,[],'',bmri);
+  outprecision = 'bfloat';
+  if(isfield(mri,'outprecision'))
+    if(strcmp(mri.outprecision,'short')) outprecision = 'bshort'; end
+  end
+  err = fast_svbslice(mri.vol,fstem,[],outprecision,bmri);
  otherwise
   fprintf('ERROR: format %s not supported\n',fmt);
   return;
