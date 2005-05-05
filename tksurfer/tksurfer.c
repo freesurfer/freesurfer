@@ -1775,6 +1775,17 @@ int fill_flood_from_seed (int vno, FILL_PARAMETERS* params);
 
 /* ---------------------------------------------------------------------- */
 
+/* --------------------------------------------------------- path finding */
+
+/* Takes a list of vnos and a message to display to the shell, then
+   finds a list of vnos that form a connected path between the input
+   vnos. Returns them in path. Will not return more than
+   max_path. Returns the length of the path in path_length. */
+int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
+		int* path, int* path_length );
+
+/* ---------------------------------------------------------------------- */
+
 int save_tiff (char* fname);
 
 /* end rkt */
@@ -14921,102 +14932,33 @@ cut_vertex(void)
 void
 cut_line(int closedcurveflag)
 {
-  int i,j,k,m;
-  float dx0,dy0,dz0,dx1,dy1,dz1,nx,ny,nz,x1,y1,z1,x2,y2,z2;
-  float f1,f2,d,d0,d1,a,x,y,z,xi,yi,zi,xj,yj,zj,s1,s2;
-  VERTEX *v1,*v2,*vi,*vj;
-  
-  /* begin rkt */
-  undo_begin_action (UNDO_CUT);
-  /* finish rkt  */
-  
+  int vno;
+  int* path;
+  int path_length;
+
   if (nmarked<2) {
     printf("surfer: needs at least 2 marked vertices\n");PR return;}
-  /* begin rkt */
-#if 0
-  for (k=0;k<mris->nvertices;k++)
-    mris->vertices[k].oripflag = mris->vertices[k].ripflag;
-#endif
-  /* end rkt */
+
   if (closedcurveflag)
-    {
-      marked[nmarked] = marked[0];
-      nmarked++;
-    }
-  for (i=0;i<nmarked-1;i++)
-    {
-      printf("surfer: i=%d\n",i);
-      j = i+1;
-      vi = &mris->vertices[marked[i]];
-      vj = &mris->vertices[marked[j]];
-      xi = vi->x;
-      yi = vi->y;
-      zi = vi->z;
-      xj = vj->x;
-      yj = vj->y;
-      zj = vj->z;
-      dx0 = vj->x-vi->x;
-      dy0 = vj->y-vi->y;
-      dz0 = vj->z-vi->z;
-      dx1 = vi->nx+vj->nx;
-      dy1 = vi->ny+vj->ny;
-      dz1 = vi->nz+vj->nz;
-      nx = -dy1*dz0 + dy0*dz1;
-      ny = dx1*dz0 - dx0*dz1;
-      nz = -dx1*dy0 + dx0*dy1;
-      d = sqrt(nx*nx+ny*ny+nz*nz);
-      nx /= d; ny /= d; nz /= d;
-      d0 = sqrt(dx0*dx0+dy0*dy0+dz0*dz0);
-      dx0 /= d0; dy0 /= d0; dz0 /= d0;
-      d1 = sqrt(dx1*dx1+dy1*dy1+dz1*dz1);
-      dx1 /= d1; dy1 /= d1; dz1 /= d1;
-      for (k=0;k<mris->nvertices;k++)
-	if (!mris->vertices[k].ripflag) 
-	  {
-	    v1 = &mris->vertices[k];
-	    x1 = v1->x - xi;
-	    y1 = v1->y - yi;
-	    z1 = v1->z - zi;
-	    s1 = nx*x1+ny*y1+nz*z1;
-	    for (m=0;m<v1->vnum;m++)
-	      if (!mris->vertices[v1->v[m]].ripflag)
-		{
-		  v2 = &mris->vertices[v1->v[m]];
-		  x2 = v2->x - xi;
-		  y2 = v2->y - yi;
-		  z2 = v2->z - zi;
-		  s2 = nx*x2+ny*y2+nz*z2;
-		  if (s1*s2<=0)
-		    {
-		      a = s2/(s2-s1);
-		      x = a*x1+(1-a)*x2;
-		      y = a*y1+(1-a)*y2;
-		      z = a*z1+(1-a)*z2;
-		      f1 = x*dx0+y*dy0+z*dz0;
-		      f2 = x*dx1+y*dy1+z*dz1;
-		      if (f1>=-1&&f1<=d0+1&&f2>=-5.0&&f2<=5.0)
-			{
-			  printf("surfer: delete connection (%d to %d)\n",k,v1->v[m]);
-			  printf("surfer: {%f,%f,%f} - {%f,%f,%f}\nf1=%f, f2=%f\n",
-				 x1,y1,z1,x2,y2,z2,f1,f2);
-			  /* begin rkt */
-			  /*v1->ripflag = TRUE;*/
-			  set_vertex_rip (k, TRUE, TRUE);
-			  /* end rkt */
-			}
-		    }
-		}
-	  }
-    }
-  PR
-    rip_faces();
+    close_marked_vertices();
+
+  path = (int*) calloc (mris->nvertices, sizeof(int));
   
+  find_path (marked, nmarked, "making cut", mris->nvertices,
+	     path, &path_length);
+
+  undo_begin_action (UNDO_CUT);
+
+  for (vno = 0; vno < path_length; vno++)
+    {
+      set_vertex_rip (path[vno], TRUE, TRUE);
+    }
+  
+  rip_faces();
   clear_vertex_marks();
   vertex_array_dirty = 1;
-  
-  /* begin rkt */
+
   undo_finish_action();
-  /* finish rkt  */
 }
 
 /* begin rkt */
@@ -18343,7 +18285,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.99 2005/05/04 16:05:22 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.100 2005/05/05 20:11:37 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24282,160 +24224,16 @@ int fbnd_initialize ()
 
 int fbnd_new_line_from_marked_vertices ()
 {
-  int marked_index;
-  int src_vno, dest_vno;
-  int vno;
-  char* check;
-  float* dist;
-  int* pred;
-  char done;
-  VERTEX* v;
-  VERTEX* u;
-  float closest_dist;
-  int closest_vno;
-  int neighbor;
-  int neighbor_vno;
-  float dist_uv;
   int* path;
-  int path_vno;
-  int num_path = 0;
-  int num_checked;
-  float vu_x, vu_y, vu_z;
-  float srcdst_x, srcdst_y, srcdst_z;
-  
-  dist = (float*) calloc (mris->nvertices, sizeof(float));
-  pred = (int*) calloc (mris->nvertices, sizeof(int));
-  check = (char*) calloc (mris->nvertices, sizeof(char));
+  int path_length;
+
   path = (int*) calloc (mris->nvertices, sizeof(int));
-  num_path = 0;
-  num_checked = 0;
   
-  printf ("surfer: making line (ctrl-c to cancel)");
-  cncl_start_listening ();
-  for (marked_index = 0; marked_index < nmarked-1; marked_index++)
-    {
-      if (cncl_user_canceled()) {
-	goto cancel;
-      }
-      
-      src_vno = marked[marked_index];
-      dest_vno = marked[marked_index+1];
-      
-      /* clear everything */
-      for (vno = 0; vno < mris->nvertices; vno++)
-	{
-	  dist[vno] = 999999;
-	  pred[vno] = -1;
-	  check[vno] = FALSE;
-	}
-      
-      /* calc the vector from src to dst. */
-      srcdst_x = mris->vertices[dest_vno].x - mris->vertices[src_vno].x;
-      srcdst_y = mris->vertices[dest_vno].y - mris->vertices[src_vno].y;
-      srcdst_z = mris->vertices[dest_vno].z - mris->vertices[src_vno].z;
-      
-      /* pull the src vertex in. */
-      dist[src_vno] = 0;
-      pred[src_vno] = vno;
-      check[src_vno] = TRUE;
-      
-      done = FALSE;
-      while (!done)
-	{
-	  if (cncl_user_canceled()) {
-	    goto cancel;
-	  }
+  find_path (marked, nmarked, "making line", mris->nvertices,
+	     path, &path_length);
 
-	  /* find the vertex with the shortest edge. */
-	  closest_dist = 999999;
-	  closest_vno = -1;
-	  for (vno = 0; vno < mris->nvertices; vno++)
-	    if (check[vno])
-	      if (dist[vno] < closest_dist) 
-		{
-		  closest_dist = dist[vno];
-		  closest_vno = vno;
-		}
-	  v = &(mris->vertices[closest_vno]);
-	  check[closest_vno] = FALSE;
-	  
-	  /* if this is the dest node, we're done. */
-	  if (closest_vno == dest_vno)
-	    {
-	      done = TRUE;
-	    } 
-	  else
-	    {
-	      /* relax its neighbors. */
-	      for (neighbor = 0; neighbor < v->vnum; neighbor++)
-		{
-		  neighbor_vno = v->v[neighbor];
-		  u = &(mris->vertices[neighbor_vno]);
-		  
-		  /* calc the vector from u to v. */
-		  vu_x = u->x - v->x;
-		  vu_y = u->y - v->y;
-		  vu_z = u->z - v->z;
-		  
-		  /* calc the dot product between srcdest vector and
-                     uv vector. if it's < 0, this neighbor is in the
-                     opposite direction of dest, and we can skip it. */
-		  if ( (vu_x * srcdst_x) + 
-		       (vu_y * srcdst_y) +
-		       (vu_z * srcdst_z)  < 0 )
-		    {
-		      continue;
-		    }
-		  
-		  /* recalc the weight. */
-		  dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
-		    ((v->y - u->y) * (v->y - u->y)) +
-		    ((v->z - u->z) * (v->z - u->z)));
-		  
-		  /* if this is a new shortest path, update the predecessor,
-		     weight, and add it to the list of ones to check next. */
-		  if (dist_uv + dist[closest_vno] < dist[neighbor_vno])
-		    {
-		      pred[neighbor_vno] = closest_vno;
-		      dist[neighbor_vno] = dist_uv + dist[closest_vno];
-		      check[neighbor_vno] = TRUE;
-		    }
-		}
-	    }
-	  num_checked++;
-	  if ((num_checked % 100) == 0)
-	    {
-	      printf (".");
-	      fflush (stdout);
-	    }
-	}
-      
-      /* add the predecessors from the dest to the src to the path. */
-      path_vno = dest_vno;
-      path[num_path++] = dest_vno;
-      while (pred[path_vno] != src_vno)
-	{
-	  path[num_path++] = pred[path_vno];
-	  path_vno = pred[path_vno];
-	}
-    }
-  printf (" done\n");
-  fflush (stdout);
-  
-  goto done;
+  fbnd_add (path_length, path, NULL);
 
- cancel:
-  printf (" canceled\n");
-  fflush (stdout);
-  
- done:
-  cncl_stop_listening ();
-  
-  fbnd_add (num_path, path, NULL);
-  
-  free (dist);
-  free (pred);
-  free (check);
   free (path);
   
   return (ERROR_NONE);
@@ -24483,7 +24281,7 @@ int fbnd_add (int num_vertices, int* vertices, int* new_index)
   memcpy (fbnd_boundaries[index].vertices, vertices, 
 	  num_vertices * sizeof(int));
   
-  /* go through the label and find the bounds. */
+  /* go through the list and find the bounds. */
   min_x = min_y = min_z = 500;
   max_x = max_y = max_z = -500;
   for (boundary = 0; 
@@ -24915,6 +24713,173 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
     default:
       break;
     }
+  
+  return (ERROR_NONE);
+}
+/* ---------------------------------------------------------------------- */
+
+int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
+		int* path, int* path_length ) {
+
+
+  int cur_vert_vno;
+  int src_vno;
+  int dest_vno;
+  int vno;
+  char* check;
+  float* dist;
+  int* pred;
+  char done;
+  VERTEX* v;
+  VERTEX* u;
+  float closest_dist;
+  int closest_vno;
+  int neighbor;
+  int neighbor_vno;
+  float dist_uv;
+  int path_vno;
+  int num_path = 0;
+  int num_checked;
+  float vu_x, vu_y, vu_z;
+  float srcdst_x, srcdst_y, srcdst_z;
+  
+  dist = (float*) calloc (mris->nvertices, sizeof(float));
+  pred = (int*) calloc (mris->nvertices, sizeof(int));
+  check = (char*) calloc (mris->nvertices, sizeof(char));
+  num_path = 0;
+  num_checked = 0;
+  (*path_length) = 0;
+  
+  if (NULL != message) 
+    {
+      fprintf (stdout, "surfer: %s (ctrl-c to cancel)", message);
+    } 
+  cncl_start_listening ();
+  for (cur_vert_vno = 0; cur_vert_vno < num_vno-1; cur_vert_vno++)
+    {
+      if (cncl_user_canceled()) {
+	goto cancel;
+      }
+      
+      /* clear everything */
+      for (vno = 0; vno < mris->nvertices; vno++)
+	{
+	  dist[vno] = 999999;
+	  pred[vno] = -1;
+	  check[vno] = FALSE;
+	}
+
+      /* Set src and dest */
+      src_vno = vert_vno[cur_vert_vno];
+      dest_vno = vert_vno[cur_vert_vno+1];
+
+      /* calc the vector from src to dst. */
+      srcdst_x = mris->vertices[dest_vno].x - mris->vertices[src_vno].x;
+      srcdst_y = mris->vertices[dest_vno].y - mris->vertices[src_vno].y;
+      srcdst_z = mris->vertices[dest_vno].z - mris->vertices[src_vno].z;
+      
+      /* pull the src vertex in. */
+      dist[src_vno] = 0;
+      pred[src_vno] = vno;
+      check[src_vno] = TRUE;
+      
+      done = FALSE;
+      while (!done)
+	{
+	  if (cncl_user_canceled()) {
+	    goto cancel;
+	  }
+
+	  /* find the vertex with the shortest edge. */
+	  closest_dist = 999999;
+	  closest_vno = -1;
+	  for (vno = 0; vno < mris->nvertices; vno++)
+	    if (check[vno])
+	      if (dist[vno] < closest_dist) 
+		{
+		  closest_dist = dist[vno];
+		  closest_vno = vno;
+		}
+	  v = &(mris->vertices[closest_vno]);
+	  check[closest_vno] = FALSE;
+	  
+	  /* if this is the dest node, we're done. */
+	  if (closest_vno == dest_vno)
+	    {
+	      done = TRUE;
+	    } 
+	  else
+	    {
+	      /* relax its neighbors. */
+	      for (neighbor = 0; neighbor < v->vnum; neighbor++)
+		{
+		  neighbor_vno = v->v[neighbor];
+		  u = &(mris->vertices[neighbor_vno]);
+		  
+		  /* calc the vector from u to v. */
+		  vu_x = u->x - v->x;
+		  vu_y = u->y - v->y;
+		  vu_z = u->z - v->z;
+		  
+		  /* calc the dot product between srcdest vector and
+                     uv vector. if it's < 0, this neighbor is in the
+                     opposite direction of dest, and we can skip it. */
+		  if ( (vu_x * srcdst_x) + 
+		       (vu_y * srcdst_y) +
+		       (vu_z * srcdst_z)  < 0 )
+		    {
+		      continue;
+		    }
+		  
+		  /* recalc the weight. */
+		  dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
+		    ((v->y - u->y) * (v->y - u->y)) +
+		    ((v->z - u->z) * (v->z - u->z)));
+		  
+		  /* if this is a new shortest path, update the predecessor,
+		     weight, and add it to the list of ones to check next. */
+		  if (dist_uv + dist[closest_vno] < dist[neighbor_vno])
+		    {
+		      pred[neighbor_vno] = closest_vno;
+		      dist[neighbor_vno] = dist_uv + dist[closest_vno];
+		      check[neighbor_vno] = TRUE;
+		    }
+		}
+	    }
+	  num_checked++;
+	  if ((num_checked % 100) == 0)
+	    {
+	      printf (".");
+	      fflush (stdout);
+	    }
+	}
+      
+      /* add the predecessors from the dest to the src to the path. */
+      path_vno = dest_vno;
+      path[(*path_length)++] = dest_vno;
+      while (pred[path_vno] != src_vno &&
+	     (*path_length) < max_path_length )
+	{
+	  path[(*path_length)++] = pred[path_vno];
+	  path_vno = pred[path_vno];
+	}
+    }
+  printf (" done\n");
+  fflush (stdout);
+  
+  goto done;
+
+ cancel:
+  printf (" canceled\n");
+  fflush (stdout);
+  *path_length = 0;
+  
+ done:
+  cncl_stop_listening ();
+  
+  free (dist);
+  free (pred);
+  free (check);
   
   return (ERROR_NONE);
 }
