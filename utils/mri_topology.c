@@ -2520,6 +2520,12 @@ static void initImages(TC_PARMS* parms)
   parms->height=height;
   parms->depth=depth;
 
+	 if(parms->verbose_mode)
+    {
+      fprintf(stderr,"\n   %d voxels - image size %d * %d * %d",count,width,height,depth); 
+		}
+
+
   parms->mri_bin=MRIalloc(width, height, depth, MRI_UCHAR);
   mri_bin=parms->mri_bin;
   
@@ -3861,8 +3867,8 @@ static int initSegmentation(TC_PARMS *parms)
     {
       fprintf(stderr,"\n***********************************************");
       fprintf(stderr,"\nINITIALIZATION OF THE SEGMENTATION");
-  //FOREGROUND SEGMENTATION
-  //BODY
+			//FOREGROUND SEGMENTATION
+			//BODY
       fprintf(stderr,"\n   FOREGROUND SEGMENTATION:      BODY\n");
     }
   parms->c_c=parms->f_c;
