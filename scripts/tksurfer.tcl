@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.67 2005/04/07 16:47:28 kteich Exp $
+# $Id: tksurfer.tcl,v 1.68 2005/05/05 21:32:42 kteich Exp $
 
 package require BLT;
 
@@ -2626,6 +2626,9 @@ proc CreateMenuBar { ifwMenuBar } {
 		    UpdateAndRedraw } }
 	    { command "Clear Cuts"
 		{ restore_ripflags 2
+		    UpdateAndRedraw } }
+	    { command "Dilate Cuts"
+		{ dilate_ripped
 		    UpdateAndRedraw } }
 	}}
 	{ cascade "Time Course" {
