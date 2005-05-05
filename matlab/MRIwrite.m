@@ -11,12 +11,13 @@ function err = MRIwrite(mri,fstring)
 % from mri.vox2ras0. So, if in the course of analysis, you changed
 % mri.x_r, this change will not be reflected in the output volume.
 % 
-% When writing in bhdr format, the default will be bfloat. If you
-% want bshort, then set:
-%    mri.outprecision = 'short';
-% This only applies to bhdr format.
+% When writing in bhdr format, the default will be bfloat. If you want
+% bshort, then set mri.outbext = 'bshort'. When a bhdr file is read in
+% with MRIread(), mri.srcbext is set to either bshort or bfloat, so to
+% keep the same precision set mri.outbext = mri.srcbext.  This only
+% applies to bhdr format.
 % 
-% $Id: MRIwrite.m,v 1.3 2005/05/05 17:26:55 greve Exp $
+% $Id: MRIwrite.m,v 1.4 2005/05/05 17:47:54 greve Exp $
 
 err = 1;
 
@@ -51,11 +52,11 @@ switch(fmt)
   ysize = sqrt(sum(mri.vox2ras0(:,2).^2));
   zsize = sqrt(sum(mri.vox2ras0(:,3).^2));
   bmri.volres = [mri.xsize mri.ysize mri.zsize];
-  outprecision = 'bfloat';
-  if(isfield(mri,'outprecision'))
-    if(strcmp(mri.outprecision,'short')) outprecision = 'bshort'; end
+  outbext = 'bfloat';
+  if(isfield(mri,'outbext'))
+    if(strcmp(mri.outbext,'bshort')) outbext = 'bshort'; end
   end
-  err = fast_svbslice(mri.vol,fstem,[],outprecision,bmri);
+  err = fast_svbslice(mri.vol,fstem,[],outbext,bmri);
  otherwise
   fprintf('ERROR: format %s not supported\n',fmt);
   return;
