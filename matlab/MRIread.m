@@ -17,7 +17,12 @@ function mri = MRIread(fstring,headeronly)
 %
 % If headeronly=1, then the pixel data are not read in.
 %
-% $Id: MRIread.m,v 1.5 2004/11/18 00:47:55 greve Exp $
+% If the input is a bhdr, then mri.srcbext is set to either bshort
+% or bfloat, depending upon the precision of the input. If the
+% input is not bhdr, then mri.srcbext will exist but be empty.
+% See also MRIwrite() and mri.outbext.
+%
+% $Id: MRIread.m,v 1.6 2005/05/05 17:47:28 greve Exp $
 
 mri = [];
 
@@ -32,6 +37,8 @@ if(isempty(fspec))
   fprintf('ERROR: cannot determine format of %s\n',fstring);
   return;
 end
+
+mri.srcbext = ''; % empty be default
 
 %-------------- MGH ------------------------%
 switch(fmt)
@@ -74,6 +81,8 @@ switch(fmt)
     [nslices nrows ncols ntp] = fmri_bvoldim(fstem);
     volsz = [nrows ncols nslices ntp];
   end
+  [nrows ncols ntp fs ns endian bext] = fmri_bfiledim(fstem);
+  mri.srcbext = bext;
   M = bmri.T;
   tr = bmri.tr;
   flip_angle = bmri.flip_angle;
