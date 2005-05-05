@@ -26,7 +26,7 @@
 #define SAMPLE_BSPLINE 5
 #define DBL_EPSILON 1e-10
 
-static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.1 2005/02/08 16:26:18 xhan Exp $";
+static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.2 2005/05/05 18:08:20 xhan Exp $";
 
 LTA *ltaReadFileEx(const char *fname);
 int MYvg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2);
@@ -88,10 +88,10 @@ main(int argc, char *argv[])
   MATRIX *r_to_i_out = 0; /* r_to_i of the final output volume */
   VOL_GEOM vgm_in;
   int x, y, z;
-  double maxV, minV;
+  double maxV, minV, value;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.1 2005/02/08 16:26:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.2 2005/05/05 18:08:20 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     usage_exit (0);
   argc -= nargs;
@@ -366,6 +366,7 @@ main(int argc, char *argv[])
        BYTE
     */
     mri_tmp = MRIchangeType(mri_out, out_type, thred_low, thred_high, noscale);
+   
     MRIfree(&mri_out);
     mri_out = mri_tmp; //swap
   }
@@ -586,6 +587,7 @@ usage_exit(int exit_val)
   printf("\t -like fname to force the output be shaped like this volume \n");
   printf("\t -interp: resample type:<trilinear,nearest,sinc,cubic,bspline> \n");
   printf("\t -scaling #: scale the input values by the number \n");
+  printf("\t -noscale: donot scale output during type-conversion\n");
   printf("\t -out_type #: specify output volume type to be the number\n");
   printf("\t -high #: value near 1 to specify higher-end percentage for histogram guided float-to-byte conversion \n");
   printf("\t -low #: value near 0 for lower-end of histogram scaling \n");

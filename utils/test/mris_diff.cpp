@@ -50,7 +50,10 @@ void jacobi(float **a, int n, float *d, float** v,int * nrot);
 void ludcmp(double** a,int n,int* indx,double* d);
 void lubksb(double** a,int n,int* indx,double* b);
 
-static char vcid[] = "$Id: mris_diff.cpp,v 1.3 2005/04/19 22:37:01 xhan Exp $";
+static char *log_fname = NULL ;
+static  char  *subject_name = NULL ;
+
+static char vcid[] = "$Id: mris_diff.cpp,v 1.4 2005/05/05 18:08:20 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -118,6 +121,7 @@ int main(int argc, char *argv[])
   MRI *SrcVal1, *SrcVal2, *resVal;
 
   MRI_SURFACE *Surf1, *Surf2;
+  FILE *log_fp;
 
   VERTEX *vertex, *vertex2;
   double cx, cy, cz;
@@ -132,7 +136,7 @@ int main(int argc, char *argv[])
   int          transform_type;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.3 2005/04/19 22:37:01 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.4 2005/05/05 18:08:20 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -504,6 +508,26 @@ int main(int argc, char *argv[])
 
   printf("difference stats: max = %g, min = %g, mean = %g, abs_mean = %g, std = %g\n", maxV, minV, meanV, absMean, std);
 
+  if (log_fname)
+    {
+      char fname[STRLEN] ;
+      
+      sprintf(fname, log_fname, label) ;
+      printf("logging to %s...\n", fname) ;
+      log_fp = fopen(fname, "a+") ;
+      if (!log_fp)
+        ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
+                  Progname, fname) ;
+    }
+  else
+      log_fp = NULL ;
+  
+  if(log_fp){
+    fprintf(log_fp, "%s  ", subject_name) ;
+    fprintf(log_fp, "%d %8.4f %8.4f %8.4f\n", total, meanV, absMean, std);
+    fclose(log_fp) ;
+  }
+
   if(maplike_fname && mapout_fname){
     MRIwrite(mri_map, mapout_fname);
     MRIfree(&mri_map);
@@ -561,6 +585,9 @@ static void print_usage(void)
   fprintf(stdout, "   -invert  reversely apply -xform \n");
   fprintf(stdout, "   -src %%s  source volume for -xform \n");
   fprintf(stdout, "   -dst %%s  target volume for -xform \n");
+  fprintf(stdout, "   -abs  compute the std of abs-thickness-diff \n");
+  fprintf(stdout, "   -L %%s  log_file name \n");
+  fprintf(stdout, "   -S %%s  subject name \n");
   fprintf(stdout, "\n");
   printf("%s\n", vcid) ;
   printf("\n");
@@ -696,6 +723,21 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "abs"))
   {
       abs_flag = 1;
+  }  
+ else if (!stricmp(option, "L") ||
+	  !stricmp(option, "Log")
+	  )
+  {
+      log_fname = argv[2];
+      nargs = 1;
+      fprintf(stderr, "logging results to %s\n", log_fname) ;
+  }  
+ else if (!stricmp(option, "S") ||
+	  !stricmp(option, "subj")
+	  )
+  {
+      subject_name = argv[2];
+      nargs = 1;
   }  
   else if(!stricmp(option, "debug"))
     {
