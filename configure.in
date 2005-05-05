@@ -810,6 +810,7 @@ fsfast/Makefile fsfast/bin/Makefile fsfast/docs/Makefile fsfast/toolbox/Makefile
 matlab/Makefile \
 hiam_make_surfaces/Makefile \
 mri_morphology/Makefile \
+mri_topologycorrection/Makefile \
 mris_volume/Makefile \
  ) 
 
