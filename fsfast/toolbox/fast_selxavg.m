@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.18 2004/12/14 22:04:23 greve Exp $'
-
-version = '$Id: fast_selxavg.m,v 1.18 2004/12/14 22:04:23 greve Exp $';
+% '$Id: fast_selxavg.m,v 1.19 2005/05/06 17:13:20 greve Exp $'
+%
+version = '$Id: fast_selxavg.m,v 1.19 2005/05/06 17:13:20 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
