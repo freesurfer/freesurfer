@@ -540,7 +540,7 @@ float dipscale = 1.0;
 
 static int selection = -1;
 int nmarked = 0;
-int marked[MAXMARKED];
+int *marked;
 
 LABEL *area = NULL ;
 
@@ -6661,6 +6661,11 @@ read_binary_surface(char *fname)
   mris = MRISread(ifname) ;
   if (!mris)
     return(Gerror) ;
+	marked = (int *)calloc(mris->nvertices, sizeof(int)) ;
+	if (!marked)
+		ErrorExit(ERROR_BADPARM, "%s: could not allocate %d vertex list array",
+							Progname, mris->nvertices) ;
+
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   flag2d = FALSE ;
   if (!mris)
@@ -14687,10 +14692,10 @@ floodfill_marked_patch(int filltype)
   
   if (filltype == CURVFILL)
     {
-      area = LabelAlloc(MAXMARKED, pname, lfname) ;
+      area = LabelAlloc(mris->nvertices, pname, lfname) ;
       strncpy( area->subject_name, pname, 100 );
       fprintf(stderr, "subject_name=%s, lfname=%s\n", pname,lfname) ;
-      LabelCurvFill(area, marked, nmarked, MAXMARKED, mris) ;
+      LabelCurvFill(area, marked, nmarked, mris->nvertices, mris) ;
 #if 0
       LabelWrite(area, lfname) ;
       LabelFree(&area) ;
@@ -14701,10 +14706,10 @@ floodfill_marked_patch(int filltype)
     }
   else if (filltype == RIPFILL)
     {
-      area = LabelAlloc(MAXMARKED, pname, lfname) ;
+      area = LabelAlloc(mris->nvertices, pname, lfname) ;
       strncpy( area->subject_name, pname, 100 );
       fprintf(stderr, "subject_name=%s, lfname=%s\n", pname,lfname) ;
-      LabelFillAll(area, marked, nmarked, MAXMARKED, mris) ;
+      LabelFillAll(area, marked, nmarked, mris->nvertices, mris) ;
 #if 0
       LabelWrite(area, lfname) ;
       LabelFree(&area) ;
@@ -15660,7 +15665,7 @@ mark_vertex(int vindex, int onoroff)
     }
   if ((onoroff==TRUE)&&(i==nmarked))
     {
-      if (nmarked==MAXMARKED-1)
+      if (nmarked==mris->nvertices-1)
 	printf("surfer: too many marked vertices\n");
       else
 	{
@@ -18141,7 +18146,7 @@ int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
   FILL_PARAMETERS params;
   char first_fill;
   int seed;
-  int seeds[MAXMARKED];
+  int seeds[mris->nvertices];
   int nseeds;
   int n;
   
@@ -18335,7 +18340,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.101 2005/05/05 21:31:54 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.102 2005/05/06 13:33:05 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
