@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.102 2005/05/04 20:12:21 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.103 2005/05/06 16:48:49 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5019,7 +5019,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.102 2005/05/04 20:12:21 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.103 2005/05/06 16:48:49 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5542,7 +5542,7 @@ while { $nArg < $argc } {
 }
 
 
-# Do some startup stuff.
+# Do some startup stuff!
 BuildShortcutDirsList
 LoadImages
 
