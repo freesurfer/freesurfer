@@ -16,6 +16,7 @@ setenv DYLD_LIBRARY_PATH ${QTDIR}/lib
 set SCRIPT_DIR=/space/birn/50/freesurfer/build/scripts
 set LOG_DIR=/space/birn/50/freesurfer/build/logs
 set DEV_DIR=${BUILD_DIR}/trunk/dev
+set DEV_DEST_DIR=/usr/local/freesurfer/dev
 
 
 # Output file
@@ -118,8 +119,8 @@ $ECHO echo "CMD: autoconf" >>& $OUTPUTF
 $ECHO autoconf >>& $OUTPUTF
 $ECHO echo "CMD: automake" >>& $OUTPUTF
 $ECHO automake >>& $OUTPUTF
-$ECHO echo "CMD: ./configure `cat ${BUILD_DIR}/configure_options.txt` --prefix=/usr/local/freesurfer/dev" >>& $OUTPUTF
-$ECHO ./configure `cat ${BUILD_DIR}/configure_options.txt` --prefix=/usr/local/freesurfer/dev >>& $OUTPUTF
+$ECHO echo "CMD: ./configure `cat ${BUILD_DIR}/configure_options.txt` --prefix=${DEV_DEST_DIR}" >>& $OUTPUTF
+$ECHO ./configure `cat ${BUILD_DIR}/configure_options.txt` --prefix=${DEV_DEST_DIR} >>& $OUTPUTF
 if ($status != 0) then
   echo "########################################################" >>& $OUTPUTF
   echo "config.log" >>& $OUTPUTF
@@ -132,6 +133,10 @@ endif
 echo "##########################################################" >>& $OUTPUTF
 echo "Building dev" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
+$ECHO echo "CMD: rm -rf ${DEV_DEST_DIR}/bin-old" >>& $OUTPUTF
+$ECHO rm -rf ${DEV_DEST_DIR}/bin-old >>& $OUTPUTF
+$ECHO echo "CMD: cp -r ${DEV_DEST_DIR}/bin ${DEV_DEST_DIR}/bin-old" >>& $OUTPUTF
+$ECHO cp -r ${DEV_DEST_DIR}/bin ${DEV_DEST_DIR}/bin-old >>& $OUTPUTF
 $ECHO echo "CMD: make install" >>& $OUTPUTF
 $ECHO make install >>& $OUTPUTF
 if ($status != 0) then
