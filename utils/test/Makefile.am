@@ -5,10 +5,11 @@ AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=-L$(top_srcdir)/lib
 
-check_PROGRAMS=mnitest i2rtest icotest surftest extest mghxform inftest difftool  mri_ms_fcm mri_compute_stats mri_ms_LDA mri_fslmat_to_lta mri_concatenate_lta checkWfile mri_transform_to_COR  mri_compute_all_CNR mri_ms_compute_CNR  mris_diff mris_compute_thickness mri_apply_INU mri_ms_EM mri_edit_wm mri_apply_EM_mask mri_extract mri_ms_gca_EM mris_indirect_morph mris_average mri_ms_compute_T2star mri_ms_optimize_seq refine_aseg seg_pallidum mri_compute_seg_overlap aseg_for_one mri_count_seg_vols mri_unmask mris_measure_volume mri_ms_EM_INU mri_ms_computeB1map mri_diff mris_map_annot aseg_new mri_combine_xforms
+check_PROGRAMS=mnitest i2rtest icotest surftest extest mghxform inftest difftool  mri_ms_fcm mri_compute_stats mri_ms_LDA mri_fslmat_to_lta mri_concatenate_lta checkWfile mri_transform_to_COR  mri_compute_all_CNR mri_ms_compute_CNR  mris_diff mris_compute_thickness mri_apply_INU mri_ms_EM mri_edit_wm mri_apply_EM_mask mri_extract mri_ms_gca_EM mris_indirect_morph mris_average mri_ms_compute_T2star mri_ms_optimize_seq refine_aseg seg_pallidum mri_compute_seg_overlap aseg_for_one mri_count_seg_vols mri_unmask mris_measure_volume mri_ms_EM_INU mri_ms_computeB1map mri_diff mris_map_annot aseg_new mri_combine_xforms CtrlVol2CtrlPts
 
 TESTS=mnitest i2rtest icotest extest mghxform inftest checkanalyze
 
+CtrlVol2CtrlPts_SOURCE=CtrlVol2CtrlPts.c
 mri_combine_xforms_SOURCE=mri_combine_xforms.c
 aseg_new_SOUCRES=aseg_new.c
 mri_diff_SOURCES=mri_diff.c

@@ -3519,7 +3519,7 @@ MRI3dUseFileControlPoints(MRI *mri, char *fname)
 
     }
     xctrl[i] = (int) xr ; yctrl[i] = (int) yr ; zctrl[i] = (int) zr ;
-    // if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "( %5d, %5d, %5d )\n", xctrl[i], yctrl[i], zctrl[i]);
   }
   free(pArray);
