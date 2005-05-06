@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkregister-sess
 #
-set VERSION = '$Id: tkregister-sess,v 1.13 2005/03/17 18:31:23 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.14 2005/05/06 20:27:09 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -25,6 +25,7 @@ set funcstem     = f;
 set FOV          = ();
 set movscale     = ();
 set ForceRegHeader = 0;
+set fmt = bhdr;
 
 ## If there are no options, just print the usage ##
 if($#argv == 0) then
@@ -177,16 +178,19 @@ foreach sess ($SessList)
     else
       set mkregopt = ();
     endif
-    set movstem = ./$funcstem;
-    if(! -e $movstem"_000.hdr") then
-      echo "ERROR: cannot find $movstem'_000.hdr'" |& tee -a $LF
-      pwd |& tee -a $LF
+
+    if($fmt != COR) then
+      set movfile = $funcstem.$fmt
+    else
+      set movfile = .
+    endif
+    if(! -e $movfile) then
+      echo "ERROR: cannot find $movfile" |& tee -a $LF
       exit 1;
     endif
-    set movext = `getbext $movstem`;
-    #set TKR2 = ~/sg1/build/tkregister2/tkregister2
+
     set TKR2 = tkregister2
-    set cmd = ($TKR2 --targ $anatdir --mov $movstem $movext)
+    set cmd = ($TKR2 --targ $anatdir --mov $movfile)
     set cmd = ($cmd $mkregopt --reg $regfile --plane $Plane)
     set cmd = ($cmd --title $subject--$sessid--$RunUse)
     set cmd = ($cmd --volview $VolView)
@@ -361,6 +365,11 @@ while( $#argv != 0 )
       set movscale = $argv[1]; shift;
       breaksw
 
+    case "-fmt":
+      if ( $#argv == 0) goto arg1err;
+      set fmt = $argv[1]; shift;
+      breaksw
+
     case "-volview":
       if ( $#argv == 0) goto arg1err;
       set VolView = $argv[1]; shift;
@@ -514,6 +523,7 @@ usage_exit:
   echo "   -umask umask   : set unix file permission mask"
   echo "   -version       : print version and exit"
   echo "   -useold        : use tkregister instead of tkregister2"
+  echo "   -fmt format    : format of functional: <bhdr>, mgh, COR"
 
   echo "Also see tkregister2 --help"
 
