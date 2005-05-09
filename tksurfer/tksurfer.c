@@ -5030,7 +5030,7 @@ redraw(void)
   
   if (!openglwindowflag) {
     printf("surfer: ### redraw failed: no gl window open\n");PR
-							       return; }
+																															 return; }
   
   if (overlayflag) { redraw_overlay(); return ; }
   
@@ -5041,19 +5041,19 @@ redraw(void)
   navg = 0;
   for (i=0;i<mris->nvertices;i++)
     if (!mris->vertices[i].ripflag)
-      {
-	if (fabs(mris->vertices[i].curv)>dipscale)
-	  dipscale=fabs(mris->vertices[i].curv);
-	dipavg += mris->vertices[i].curv;
-	dipvar += SQR(mris->vertices[i].curv);
+		{
+			if (fabs(mris->vertices[i].curv)>dipscale)
+				dipscale=fabs(mris->vertices[i].curv);
+			dipavg += mris->vertices[i].curv;
+			dipvar += SQR(mris->vertices[i].curv);
 #if 0
-	logaratavg += mris->vertices[i].logarat;
-	logaratvar += SQR(mris->vertices[i].logarat);
-	logshearavg += mris->vertices[i].logshear;
-	logshearvar += SQR(mris->vertices[i].logshear);
+			logaratavg += mris->vertices[i].logarat;
+			logaratvar += SQR(mris->vertices[i].logarat);
+			logshearavg += mris->vertices[i].logshear;
+			logshearvar += SQR(mris->vertices[i].logshear);
 #endif
-	navg++;
-      }
+			navg++;
+		}
   dipavg /= navg;
   dipvar = sqrt(dipvar/navg - dipavg*dipavg);
   logaratavg /= navg;
@@ -5073,14 +5073,16 @@ redraw(void)
   
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("surfer: dipscale=%f, dipavg=%f, dipvar=%f\n",
-	   dipscale,dipavg,dipvar);
+					 dipscale,dipavg,dipvar);
   dipscale = (dipscale!=0)?1/dipscale:1.0;
+#if 0
   if (areaflag) {
     printf("surfer: logaratavg=%f, logaratvar=%f\n",logaratavg,logaratvar);PR
-									     }
+																																						 }
   if (flag2d) {
     printf("surfer: logshearavg=%f, logshearvar=%f\n",logshearavg,logshearvar);PR
-										 }
+																																								 }
+#endif
 }
 
 void
@@ -18436,7 +18438,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.103 2005/05/09 15:06:51 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.104 2005/05/09 17:35:09 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23316,17 +23318,17 @@ int labl_import_annotation (char *fname)
   
   /* check all annotations... */
   for (annotation_vno = 0; annotation_vno < mris->nvertices; annotation_vno++)
-    {
-      /* get the annotation. if there is one... */
-      annotation = mris->vertices[annotation_vno].annotation;
-
-      if (annotation) 
 	{
-	  /* get the rgb colors. */
-	  MRISAnnotToRGB( annotation, r, g, b );
+		/* get the annotation. if there is one... */
+		annotation = mris->vertices[annotation_vno].annotation;
+
+		if (annotation) 
+		{
+			/* get the rgb colors. */
+			MRISAnnotToRGB( annotation, r, g, b );
 	  
-	  /* if we haven't imported this label yet... */
-	  if( !done[annotation] ) 
+			/* if we haven't imported this label yet... */
+			if( !done[annotation] ) 
 	    {
 	      
 	      /* mark it imported. */
@@ -23336,122 +23338,122 @@ int labl_import_annotation (char *fname)
 	      /* find out how many verts have this annotation value. */
 	      num_verts_in_annotation = 0;
 	      for (vno = 0; vno < mris->nvertices; vno++)
-		if (mris->vertices[vno].annotation == annotation)
-		  num_verts_in_annotation++;
+					if (mris->vertices[vno].annotation == annotation)
+						num_verts_in_annotation++;
 	      
 	      /* make a new label, and go through again, setting the label
-		 values. */
+					 values. */
 	      label = LabelAlloc(num_verts_in_annotation, NULL, NULL);
 	      if (NULL != label)
-		{
-		  strncpy( label->subject_name, pname, 100 );
-		  label->n_points = num_verts_in_annotation;
-		  label_vno = 0;
-		  for (vno = 0; vno < mris->nvertices; vno++)
-		    if (mris->vertices[vno].annotation == annotation)
-		      {
-			v = &mris->vertices[vno];
-			label->lv[label_vno].x = v->x;
-			label->lv[label_vno].y = v->y;
-			label->lv[label_vno].z = v->z;
-			label->lv[label_vno].vno = vno;
-			label_vno++;
-		      }
+				{
+					strncpy( label->subject_name, pname, 100 );
+					label->n_points = num_verts_in_annotation;
+					label_vno = 0;
+					for (vno = 0; vno < mris->nvertices; vno++)
+						if (mris->vertices[vno].annotation == annotation)
+						{
+							v = &mris->vertices[vno];
+							label->lv[label_vno].x = v->x;
+							label->lv[label_vno].y = v->y;
+							label->lv[label_vno].z = v->z;
+							label->lv[label_vno].vno = vno;
+							label_vno++;
+						}
 		  
-		  /* add the label to our list. */
-		  labl_add (label, &new_index);
+					/* add the label to our list. */
+					labl_add (label, &new_index);
 		  
-		  /* now we need to set the information about the
-		     label from a color table. older parcellation
-		     files use the external color table, but newer
-		     ones have their own. so we'll check the ct
-		     member; if it's null, use the external, otherwise
-		     use the color info specified in the mris. */
-		  if (NULL == mris->ct) 
-		    {
+					/* now we need to set the information about the
+						 label from a color table. older parcellation
+						 files use the external color table, but newer
+						 ones have their own. so we'll check the ct
+						 member; if it's null, use the external, otherwise
+						 use the color info specified in the mris. */
+					if (NULL == mris->ct) 
+					{
 		      
-		      /* older file, so use the external color
-			 table. look for a structure index based on
-			 this color. if we don't find one, give it
-			 index -1, making it a free label. */
-		      color.mnRed = r;
-		      color.mnGreen = g;
-		      color.mnBlue = b;
-		      if (NULL != labl_table)
-			{
-			  clut_err = CLUT_GetIndex (labl_table, 
-						    &color, &structure);
-			  if (CLUT_tErr_NoErr != clut_err)
-			    structure = -1;
-			}
-		      else
-			{
-			  structure = -1;
-			}
+						/* older file, so use the external color
+							 table. look for a structure index based on
+							 this color. if we don't find one, give it
+							 index -1, making it a free label. */
+						color.mnRed = r;
+						color.mnGreen = g;
+						color.mnBlue = b;
+						if (NULL != labl_table)
+						{
+							clut_err = CLUT_GetIndex (labl_table, 
+																				&color, &structure);
+							if (CLUT_tErr_NoErr != clut_err)
+								structure = -1;
+						}
+						else
+						{
+							structure = -1;
+						}
 		      
-		      /* make a name for it. if we got a color from the
-			 color table, get the label, else use the color. */
-		      if (structure != -1)
-			{
-			  clut_err = CLUT_GetLabel (labl_table, structure, name);
-			  if (CLUT_tErr_NoErr != clut_err)
-			    sprintf (name, "Parcellation %d, %d, %d", r, g, b);
-			}
-		      else
-			{
-			  sprintf (name, "Parcellation %d, %d, %d", r, g, b);
-			}
-		    } 
-		  else
-		    {
-		      /* find the index of the color. */
-		      ctab_err = 
-			CTABcolorToIndex (mris->ct, r, g, b, &structure);
-		      if (NO_ERROR != ctab_err)
-			  structure = -1;
+						/* make a name for it. if we got a color from the
+							 color table, get the label, else use the color. */
+						if (structure != -1)
+						{
+							clut_err = CLUT_GetLabel (labl_table, structure, name);
+							if (CLUT_tErr_NoErr != clut_err)
+								sprintf (name, "Parcellation %d, %d, %d", r, g, b);
+						}
+						else
+						{
+							sprintf (name, "Parcellation %d, %d, %d", r, g, b);
+						}
+					} 
+					else
+					{
+						/* find the index of the color. */
+						ctab_err = 
+							CTABcolorToIndex (mris->ct, r, g, b, &structure);
+						if (NO_ERROR != ctab_err)
+							structure = -1;
 		      
-		      /* get the name. */
-		      ctab_err = CTABcopyName (mris->ct, structure, name);
-		      if (NO_ERROR != ctab_err)
-			  sprintf (name, "Parcellation %d, %d, %d", r, g, b);
+						/* get the name. */
+						ctab_err = CTABcopyName (mris->ct, structure, name);
+						if (NO_ERROR != ctab_err)
+							sprintf (name, "Parcellation %d, %d, %d", r, g, b);
 
-		    }
+					}
 		  
-		  /* set its other data. set the color; if we found a
-		     structure index from the LUT, it will use that,
-		     otherwise it will color it as a free label with
-		     the given colors (which really has the same
-		     effect, just doesn't give it a valid structure
-		     index. */
-		  labl_set_info (new_index, name, structure, 1, r, g, b);
-		}
+					/* set its other data. set the color; if we found a
+						 structure index from the LUT, it will use that,
+						 otherwise it will color it as a free label with
+						 the given colors (which really has the same
+						 effect, just doesn't give it a valid structure
+						 index. */
+					labl_set_info (new_index, name, structure, 1, r, g, b);
+				}
 	    }
+		}
 	}
-    }
 
   /* any labels imported? */
   if (num_labels > 0)
-    {
+	{
       
-      /* if we have our own color table, now is the time to send it to the
-	 tcl side of things. */
-      if (mris->ct) 
-	labl_send_color_table_info ();
+		/* if we have our own color table, now is the time to send it to the
+			 tcl side of things. */
+		if (mris->ct) 
+			labl_send_color_table_info ();
       
-      free (done);
+		free (done);
       
-      /* show the label label in the interface. */
-      if (g_interp)
-	Tcl_Eval (g_interp, "ShowLabel kLabel_Label 1");
-      labl_draw_flag = 1;
-      if (g_interp)
-	Tcl_Eval (g_interp, "UpdateLinkedVarGroup label");
+		/* show the label label in the interface. */
+		if (g_interp)
+			Tcl_Eval (g_interp, "ShowLabel kLabel_Label 1");
+		labl_draw_flag = 1;
+		if (g_interp)
+			Tcl_Eval (g_interp, "UpdateLinkedVarGroup label");
   
-    } 
+	} 
   else 
-    {
-      printf ("surfer: WARNING: no labels imported; annotation was empty\n" );
-    }
+	{
+		printf ("surfer: WARNING: no labels imported; annotation was empty\n" );
+	}
 
   return (ERROR_NONE);
 }
