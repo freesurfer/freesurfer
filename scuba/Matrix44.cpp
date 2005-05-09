@@ -15,8 +15,6 @@ extern "C" {
 
 using namespace std;
 
-static int numInited = 0;
-
 Matrix44::Matrix44() {
   m = MatrixIdentity( 4, NULL );
   mTmp = MatrixIdentity( 4, NULL );
