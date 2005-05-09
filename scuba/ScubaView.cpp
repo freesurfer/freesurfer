@@ -912,7 +912,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
 	return error;
       }
 
-      map<string,string> labelValueMap = mLabelValueMaps[sSetName];
+      map<string,string> labelValueMap = GetLabelValueMap(sSetName);
       map<string,string>::iterator tLabelValue;
 
       stringstream ssFormat;
@@ -2143,7 +2143,7 @@ ScubaView::DoKeyDown( int iWindow[2],
     Set2DRASCenter( newCenterRAS );
 
     // Rebuild our label value info because the view has moved.
-    RebuildLabelValueInfo( ras, "mouse" );
+    RebuildLabelValueInfo( newCenterRAS, "mouse" );
 
   } else if( key == msZoomViewIn || key == msZoomViewOut ) {
 

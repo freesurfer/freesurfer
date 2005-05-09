@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.103 2005/05/06 16:48:49 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.104 2005/05/09 20:50:12 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1020,13 +1020,7 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	SelectLayerInLayerProperties \
 	    [GetLayerInViewAtLevel $viewID $nHighestLevel]
     }
-}
 
-proc ScubaKeyDownCallback { inX inY iState iKey } {
-    
-    global gaPrefs
-    global gaWidget
-    
     # This is kind of arbitrary, but since some keypresses can change
     # the information that should be displayed in the label area,
     # update here.
@@ -1037,7 +1031,13 @@ proc ScubaKeyDownCallback { inX inY iState iKey } {
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
     UpdateLabelArea $gaWidget(labelArea,nMouseArea) $labelValues
+}
 
+proc ScubaKeyDownCallback { inX inY iState iKey } {
+    
+    global gaPrefs
+    global gaWidget
+    
     # Check for the mouse key equivs.
     foreach {sKey nButton} {
 	KeyMouseButtonOne   1
@@ -5019,7 +5019,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.103 2005/05/06 16:48:49 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.104 2005/05/09 20:50:12 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
