@@ -1291,6 +1291,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
 	iViewState.AddUpdateRect( updateRectWindow[0][0], updateRectWindow[0][1], updateRectWindow[1][0], updateRectWindow[1][1] );
 
+
 	// Now get the RAS points in this square or circle.
 	list<Point3<float> > points;
 	switch( shape ) {

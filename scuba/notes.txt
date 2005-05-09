@@ -596,3 +596,10 @@ Clicked (25.5133,-15.6934,-2.75999) -> (406,430,118)
   
   - Comment out all but first line in each switch case, and you get a
     Matrix error. WWWTTTFFF
+
+- Intersection code is working properly in that the voxels that aren't
+  being hit by a circle brush are really not intersecting with the
+  plane.
+
+  - But why is drawing code drawing voxels that don't intersect this
+    plane?
