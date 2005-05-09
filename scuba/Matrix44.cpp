@@ -11,7 +11,7 @@ extern "C" {
   #include "macros.h"
 }
 
-#define USEFLOORTOROUND 1
+#define USEFLOORTOROUND 0
 
 using namespace std;
 
