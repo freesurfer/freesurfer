@@ -5609,9 +5609,9 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 		      dz = p1[2] - vs[2];
 		      d = sqrt (dx*dx + dy*dy + dz*dz);
 		  
-		      /* If this is the closest vertex, remembert
-			 it. */
-		      if (d < dmin)
+		      /* If this is the closest vertex, remember
+			 it. But not if it's ripped. */
+		      if (d < dmin && !v->ripflag)
 			{
 			  dmin = d;
 			  imin = f->v[vno];
@@ -18438,7 +18438,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.104 2005/05/09 17:35:09 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.105 2005/05/09 19:12:15 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
