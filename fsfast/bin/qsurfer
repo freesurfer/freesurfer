@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # qsurfer - quick surfer
 #
-set VERSION = '$Id: qsurfer,v 1.3 2005/03/19 00:33:44 greve Exp $'
+set VERSION = '$Id: qsurfer,v 1.4 2005/05/09 18:04:47 greve Exp $'
 set cmdargs = ($argv);
 
 set usenew = ".new";
@@ -55,7 +55,7 @@ echo $wfile
     ##############################################################
 #setenv TK_LIBRARY ~inverse/freesurfer_alpha/local/lib/tk8.3
 #setenv TCL_LIBRARY ~inverse/freesurfer_alpha/local/lib/tcl8.3
-set SURFER = tksurfer$usenew
+set SURFER = tksurfer
 
 setenv hemi $hemi
 setenv noexit
