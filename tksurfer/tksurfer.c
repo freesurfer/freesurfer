@@ -5457,73 +5457,169 @@ select_vertex_by_vno (int vno)
 }
 
 void
-find_vertex_at_screen_point(short sx,short sy,int* ovno, float* od) {
-  
-  int   i,j,imin = -1;
-  float dx,dy,d,dmax,dmin,zmin=1000,zwin,cx,cy,cz;
-  float nz,nzs,f;
-  long ox,oy,lx,ly;
-  float m[4][4]; /* Matrix m; */
-  float wx,wy; /* Coord wx,wy; */
-  VERTEX *v;
-  
-  nzs = 0.0f ;
-  dmax = 2;
-  dmin = 10;
-  zwin = 5*zf;
-  
+find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) 
+{
+  float m[4][4];		/* Surface -> screen matrix */
+  int i, j;			/* Matrix index counters */
+  float mf;			/* Temp matrix value */
+  long ox, oy;			/* Origin of window in global coords */
+  long lx, ly;			/* Size Of/ window */
+  float wx, wy;			/* x/y of click point in screen space */
+  float p1[3], p2[3];		/* Segment from screen to back of screen */
+  float dmin;			/* Distance of closest vertex found */
+  int imin;			/* vno of closest vertex found */
+  int fno;			/* Face counter */
+  FACE *f;			/* Current face */
+  VERTEX *v0;			/* First vertex on face, vert on face plane */
+  float plane[3];		/* Point on face plane */
+  float n[3];			/* Normal of face plane */
+  float uu[3], ww[3];		/* Vectors of segment and seg->plane */
+  float D, N;			/* Dot values */
+  float sI;			/* Intersection factor */
+  float x[3];			/* Intersection point */
+  int vno;			/* Vertex counter */
+  float vs[3];			/* Vertex to test, in screen space */
+  float min[3], max[3];		/* Bounding rect of the face */
+  VERTEX *v;			/* Current vertex when testng int with plane */
+  float dx, dy, dz, d;		/* Distance of currect vert to intersection */
+
+  /* Get the view transformation matrix */
   getmatrix(m);
 #ifdef OPENGL
   for (i=0;i<4;i++)
     for (j=0;j<4;j++) {
-      f = m[i][j];
+      mf = m[i][j];
       m[i][j] = m[j][i];
-      m[j][i] = f;
+      m[j][i] = mf;
     }
 #endif
 
+  /* This normalizes our screen point to -137->137 in both directions
+     (legacy code, blah) */
   getorigin(&ox,&oy);
   getsize(&lx,&ly);
   wx = (sx-ox-lx/2.0)*2*fov*sf/lx;
   wy = (sy-oy-ly/2.0)*2*fov*sf/ly;
-  /*
-    printf("sx=%d, sy=%d, ox=%d, oy=%d, lx=%d, ly=%d\n",
-    sx,sy,ox,oy,lx,ly);
-    printf("wx=%f, wy=%f\n",wx,wy);
-    for (i=0;i<4;i++)
-    for (j=0;j<4;j++)
+
+  /* From this, make endpoints of a segment going through the view
+     plane. */
+  p1[0] = wx; p1[1] = wy; p1[2] = -1000;
+  p2[0] = wx; p2[1] = wy; p2[2] = 1000;
+
+  /* For each face... */
+  dmin = 10000;
+  imin = -1;
+  for (fno = 0; fno < mris->nfaces; fno++)
     {
-    printf("%f ",m[i][j]);
-    if (j==3) printf("\n");
-    }
-  */
-  for (i=0;i<mris->nvertices;i++)
-    if (!mris->vertices[i].ripflag)
-      {
-	v = &mris->vertices[i];
-	cx = -m[0][0]*v->x+m[1][0]*v->z+m[2][0]*v->y+m[3][0];
-	cy = -m[0][1]*v->x+m[1][1]*v->z+m[2][1]*v->y+m[3][1];
-	cz = -(-m[0][2]*v->x+m[1][2]*v->z+m[2][2]*v->y+m[3][2]);
-	nz = -(-m[0][2]*v->nx+m[1][2]*v->nz+m[2][2]*v->ny);
-	dx = cx-wx;
-	dy = cy-wy;
-	d = sqrt(dx*dx+dy*dy);
-	d /= zf;
-#if 0
-	if (nz<0&&d<dmax/*&&v->d==0*/)   /* why was v->d==0 here????? (BRF) */
-#else
-	  if (nz<0&&d<dmax&&v->d==0) 
-#endif
+      f = &mris->faces[fno];
+      v0 = &mris->vertices[f->v[0]];
+      
+      /* We want to get a plane representing this face. Take the first
+	 vertex in the face as the point on the plane and the plane
+	 nomral. Multiply by the view transformation matrix. For the
+	 normal, don't use the translation element of the matrix. */
+      plane[0] =   -m[0][0]*v0->x + m[1][0]*v0->z + m[2][0]*v0->y + m[3][0];
+      plane[1] =   -m[0][1]*v0->x + m[1][1]*v0->z + m[2][1]*v0->y + m[3][1];
+      plane[2] = -(-m[0][2]*v0->x + m[1][2]*v0->z + m[2][2]*v0->y + m[3][2]);
+
+      n[0] =   -m[0][0]*f->nx + m[1][0]*f->nz + m[2][0]*f->ny;
+      n[1] =   -m[0][1]*f->nx + m[1][1]*f->nz + m[2][1]*f->ny;
+      n[2] = -(-m[0][2]*f->nx + m[1][2]*f->nz + m[2][2]*f->ny);
+
+      /* Do an initial distance test in the xy to weed out unnecessary
+	 intersection tests. */
+      dx = plane[0] - wx;
+      dy = plane[1] - wy;
+      d = sqrt (dx*dx + dy*dy);
+      if (d > 10.0)
+	continue;
+
+      /* Intersect our segment with our plane. */
+      /* uu = p2 - p1 */
+      uu[0] = p2[0] - p1[0]; 
+      uu[1] = p2[1] - p1[1];
+      uu[2] = p2[2] - p1[2];
+
+      /* ww = p1 - plane */
+      ww[0] = p1[0] - plane[0];
+      ww[1] = p1[1] - plane[1];
+      ww[2] = p1[2] - plane[2];
+
+      /* D = n dot uu */
+      D = n[0]*uu[0] + n[1]*uu[1] + n[2]*uu[2];
+      
+      /* N = - (n dot ww) */
+      N = - (n[0]*ww[0] + n[1]*ww[1] + n[2]*ww[2]);
+
+      /* If intersection... */
+      if (!(fabs(D) < 0.00001 || fabs(N) < 0.00001))
+	{
+	  /* If the intersection is on the segment... */
+	  sI = N / D;
+	  if (sI >= 0.0 && sI <= 1.0)
 	    {
-	      if (cz<zmin-zwin||(cz<zmin+zwin&&d<dmin))
+	      /* Get the intersection point */
+	      /* x = p1 + sI*uu */
+	      x[0] = p1[0] + sI*uu[0];
+	      x[1] = p1[1] + sI*uu[1];
+	      x[2] = p1[2] + sI*uu[2];
+
+	      /* Get the bounds of the face. */
+	      min[0] = min[1] = min[2] = 9999;
+	      max[0] = max[1] = max[2] = -9999;
+	      for (vno = 0; vno < VERTICES_PER_FACE; vno++)
 		{
-		  dmin = d;
-		  zmin = cz;
-		  imin = i;
-		  nzs = nz;
+		  v = &mris->vertices[f->v[vno]];
+		  
+      vs[0] =   -m[0][0]*v->x + m[1][0]*v->z + m[2][0]*v->y + m[3][0];
+      vs[1] =   -m[0][1]*v->x + m[1][1]*v->z + m[2][1]*v->y + m[3][1];
+      vs[2] = -(-m[0][2]*v->x + m[1][2]*v->z + m[2][2]*v->y + m[3][2]);
+
+      min[0] = MIN(vs[0],min[0]);
+      min[1] = MIN(vs[1],min[1]);
+      min[2] = MIN(vs[2],min[2]);
+      
+      max[0] = MAX(vs[0],max[0]);
+      max[1] = MAX(vs[1],max[1]);
+      max[2] = MAX(vs[2],max[2]);
+		}
+
+	      /* If the intersection is within the bounds, it's a
+		 hit. NOTE This is a rough estimate, but good enough
+		 in most cases. */
+	      if (x[0] >= min[0] && x[0] <= max[0] &&
+		  x[1] >= min[1] && x[1] <= max[1] &&
+		  x[2] >= min[2] && x[2] <= max[2]) 
+		{
+		  /* Find the vertex closest to the intersection
+		     point, because we're hitting vertices, not
+		     arbitrary points. */
+		  for (vno = 0; vno < VERTICES_PER_FACE; vno++)
+		    {
+		      v = &mris->vertices[f->v[vno]];
+
+      vs[0] =   -m[0][0]*v->x + m[1][0]*v->z + m[2][0]*v->y + m[3][0];
+      vs[1] =   -m[0][1]*v->x + m[1][1]*v->z + m[2][1]*v->y + m[3][1];
+      vs[2] = -(-m[0][2]*v->x + m[1][2]*v->z + m[2][2]*v->y + m[3][2]);
+
+		      dx = p1[0] - vs[0];
+		      dy = p1[1] - vs[1];
+		      dz = p1[2] - vs[2];
+		      d = sqrt (dx*dx + dy*dy + dz*dz);
+		  
+		      /* If this is the closest vertex, remembert
+			 it. */
+		      if (d < dmin)
+			{
+			  dmin = d;
+			  imin = f->v[vno];
+			}
+		    }
 		}
 	    }
-      }
+	}
+    }
+
   *ovno = imin;
   *od = dmin;
 }
@@ -18340,7 +18436,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.102 2005/05/06 13:33:05 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.103 2005/05/09 15:06:51 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22361,6 +22457,8 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked)
      got before, only_marked for masked (we set undefval before), and
      get the threshold back. */
   err = MRISfdr2vwth(mris, rate, sign, 1, only_marked, &threshold);
+  fprintf (stderr, "MRISfdr2vwth(rate=%f, sign=%d, 1, only_marked=%d) = %f\n",
+	   rate, sign, only_marked, threshold);
   if( err ){
     printf ("surfer: Error calculating threshold with FDR.\n");
     if (only_marked) free (saved_undefval);
