@@ -1073,30 +1073,32 @@ VolumeCollection::FindRASPointsInSquare ( float iCenter[3],
     ( centerRAS, oneUpRAS, planeRAS, n, intersectionRAS );
   if( VectorOps::intersect == rInt ) {
     inc = +1;
-#if PRINTOUT
-    cerr << "Increment is " << inc << endl
-	 << "\tPlane " << planeRAS << endl
-	 << "\tOne up " << oneUp << ", " << oneUpRAS << endl;
-#endif
   } else {
     rInt = VectorOps::SegmentIntersectsPlane
       ( centerRAS, oneDownRAS, planeRAS, n, intersectionRAS );
     if( VectorOps::intersect == rInt ) {
       inc = -1;
-#if PRINTOUT
-      cerr << "Increment is " << inc << endl
-	   << "\tPlane " << planeRAS << endl
-	   << "\tOne down " << oneDown << ", " << oneDownRAS << endl;
-#endif
     } else {
+      cerr << "Couldn't find a good brushing plane, "
+	   << "please try again on a nearby voxel." << endl;
+#if PRINTOUT
       cerr << "No intersection with plane! " << endl 
 	   << "\tPlane " << planeRAS << endl
 	   << "\tOne up " << oneUp << ", " << oneUpRAS << endl
 	   << "\tOne down " << oneDown << ", " << oneDownRAS << endl;
+#endif
       return;
     }
   }
   
+#if PRINTOUT
+      cerr << "++Increment is " << inc << endl
+	   << "\tPlane " << planeRAS << endl;
+      if( inc > 0 ) 
+	cerr << "\tOne down " << oneDown << ", " << oneDownRAS << endl;
+      else
+	cerr << "\tOne up " << oneUp << ", " << oneUpRAS << endl;
+#endif
   
   // For each voxel in the cuboid...
   for( int nZ = volumeBoundIdx[0].z(); nZ <= volumeBoundIdx[1].z(); nZ++ ) {
@@ -1107,13 +1109,6 @@ VolumeCollection::FindRASPointsInSquare ( float iCenter[3],
 	VectorOps::IntersectionResult rInt =
 	  VoxelIntersectsPlane( curMRIIndex, inc, 
 				planeRAS, n, intersectionRAS );
-	
-#if 0
-	if( VectorOps::intersect != rInt ) {
-	  rInt = VoxelIntersectsPlane( curMRIIndex, -inc, 
-				       planeRAS, n, intersectionRAS );
-	}
-#endif
 
 	if( VectorOps::intersect == rInt ) {
 	  
@@ -2184,37 +2179,58 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     } else if( seedVoxel.z() == adjacentVoxel.z() ) {
       oneUp.SetZ( seedVoxel.z() + 1 ); oneDown.SetZ( seedVoxel.z() - 1 );
     } else {
-      cerr << "Nothing was on the same plane! "
-	   << seedVoxel << ", " << adjacentVoxel << endl;
-      throw runtime_error("Error on flood");
+      // This is an oblique cut, so we'll just increase everything.
+      oneUp.SetX( seedVoxel.x() + 1 );
+      oneDown.SetX( seedVoxel.x() - 1 );
+      oneUp.SetY( seedVoxel.y() + 1 );
+      oneDown.SetY( seedVoxel.y() - 1 );
+      oneUp.SetZ( seedVoxel.z() + 1 );
+      oneDown.SetZ( seedVoxel.z() - 1 );
     }
 
-    Point3<float> onPlaneRAS, oneUpRAS, oneDownRAS;
-    iVolume.MRIIndexToRAS( seedVoxel.xyz(), onPlaneRAS.xyz() );
+    Point3<float> centerRAS, oneUpRAS, oneDownRAS;
+    iVolume.MRIIndexToRAS( seedVoxel.xyz(), centerRAS.xyz() );
     iVolume.MRIIndexToRAS( oneUp.xyz(), oneUpRAS.xyz() );
     iVolume.MRIIndexToRAS( oneDown.xyz(), oneDownRAS.xyz() );
+#if PRINTOUT
+  cerr << "--seed " << seedVoxel << ", " << centerRAS << endl
+       << "--One up " << oneUp << ", " << oneUpRAS << endl
+       << "--One down " << oneDown << ", " << oneDownRAS << endl;
+#endif
 
     // Transform the voxels to RAS points and segments made of the
     // seed point and each of these points with the plane. Find which
     // one intersects, and save that as the increment.
     VectorOps::IntersectionResult rInt;
     rInt = VectorOps::SegmentIntersectsPlane
-      ( onPlaneRAS, oneUpRAS, planeRAS, planeN, intersectionRAS );
+      ( centerRAS, oneUpRAS, planeRAS, planeN, intersectionRAS );
     if( VectorOps::intersect == rInt ) {
       increment = +1;
     } else {
       rInt = VectorOps::SegmentIntersectsPlane
-	( onPlaneRAS, oneDownRAS, planeRAS, planeN, intersectionRAS );
+	( centerRAS, oneDownRAS, planeRAS, planeN, intersectionRAS );
       if( VectorOps::intersect == rInt ) {
 	increment = -1;
       } else {
+#if PRINTOUT
 	cerr << "No intersection with plane! " << endl 
-	     << "\tPlane " << seedVoxel << ", " << onPlaneRAS << endl
+	     << "\tPlane " << seedVoxel << ", " << centerRAS << endl
 	     << "\tOne up " << oneUp << ", " << oneUpRAS << endl
 	     << "\tOne down " << oneDown << ", " << oneDownRAS << endl;
-	throw runtime_error("Error on flood");
+#endif
+	throw runtime_error("Couldn't find a good fill plane. Please try again on a nearby voxel.");
       }
     }
+
+#if PRINTOUT
+    cerr << "--Increment is " << increment << endl
+	 << "\tPlane " << planeRAS << endl;
+    if( increment > 0 ) 
+      cerr << "\tOne down " << oneDown << ", " << oneDownRAS << endl;
+    else
+      cerr << "\tOne up " << oneUp << ", " << oneUpRAS << endl;
+#endif
+
   }
 
   // Start it up.
@@ -2243,12 +2259,6 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     iVolume.MRIIndexToRAS( index.xyz(), ras.xyz() );
     Point3<float> sourceRAS;
     iVolume.MRIIndexToRAS( sourceIndex.xyz(), sourceRAS.xyz() );
-
-#if PRINTOUT
-    cerr << "Checking " << Point3<int>(loc.Index()) << ", " << ras
-	 << " from " << Point3<int>(sourceLoc.Index()) << ", " << sourceRAS
-	 << "... ";
-#endif
 
     // Check the bound of this volume and the source one.
     if( !iVolume.IsInBounds( loc ) ) { 
@@ -2456,7 +2466,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 		iVolume.VoxelIntersectsPlane( newIndex, increment, 
 					      planeRAS, planeN, 
 					      intersectionRAS );
-	      if( VectorOps::dontIntersect == rInt ) {
+	      if( VectorOps::intersect != rInt ) {
 		continue;
 	      }
 	    }
