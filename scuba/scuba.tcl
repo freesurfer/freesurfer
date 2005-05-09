@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.104 2005/05/09 20:50:12 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.105 2005/05/09 21:10:28 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -448,9 +448,9 @@ proc MakeMenuBar { ifwTop } {
     tkuMakeMenu -menu $gaMenu(file) -label "File" -items {
 	{command "New Volume..." { DoNewVolumeDlog } }
 	{command "Load Volume..." { DoLoadVolumeDlog } }
-	{command "Save Volume..." { DoSaveVolume } }
-	{command "Save Volume As..." { DoSaveVolumeAsDlog } }
-	{command "Save Copy of Volume As..." { DoSaveCopyOfVolumeAsDlog } }
+	{command "Save..." { DoSave } }
+	{command "Save As..." { DoSaveAsDlog } }
+	{command "Save Copy As..." { DoSaveCopyAsDlog } }
 	{separator}
 	{command "Load Label..." { DoLoadLabelDlog } }
 	{command "Save Label..." { DoSaveLabelDlog } }
@@ -472,6 +472,11 @@ proc MakeMenuBar { ifwTop } {
 	{separator}
 	{command "Quit:Alt Q" { Quit } }
     }
+
+    set gaWidget(Menu,fileMenu) $gaMenu(file).mw
+    set gaWidget(Menu,fileMenuSaveIndex) 3
+    set gaWidget(Menu,fileMenuSaveAsIndex) 4
+    set gaWidget(Menu,fileMenuSaveCopyAsIndex) 5
 
     pack $gaMenu(file) -side left
 
@@ -2445,6 +2450,20 @@ proc UpdateCurrentCollectionInCollectionProperites {} {
 		[GetUseVolumeDataToIndexTransform $colID]
 	    set gaCollection(current,autosave) \
 		[GetVolumeAutosaveOn $colID]
+
+	    # Set the save menu items.
+	    $gaWidget(Menu,fileMenu) entryconfigure \
+		$gaWidget(Menu,fileMenuSaveIndex) \
+		-state normal \
+		-label "Save $gaCollection(current,label)..."
+	    $gaWidget(Menu,fileMenu) entryconfigure \
+		$gaWidget(Menu,fileMenuSaveAsIndex) \
+		-state normal \
+		-label "Save $gaCollection(current,label) As..."
+	    $gaWidget(Menu,fileMenu) entryconfigure \
+		$gaWidget(Menu,fileMenuSaveCopyAsIndex) \
+		-state normal \
+		-label "Save Copy of $gaCollection(current,label) As..."
 	}
 	Surface {
 	    # Pack the type panel.
@@ -2466,6 +2485,20 @@ proc UpdateCurrentCollectionInCollectionProperites {} {
 		-value $gaCollection(current,surfaceTransformVolume)
 	    $gaWidget(collectionProperties,surfaceTransformMenu) config \
 		-disablecallback 0    
+
+	    # Set the save menu items.
+	    $gaWidget(Menu,fileMenu) entryconfigure \
+		$gaWidget(Menu,fileMenuSaveIndex) \
+		-state disabled \
+		-label "Cannot save surfaces"
+	    $gaWidget(Menu,fileMenu) entryconfigure \
+		$gaWidget(Menu,fileMenuSaveAsIndex) \
+		-state disabled \
+		-label "Cannot save surfaces"
+	    $gaWidget(Menu,fileMenu) entryconfigure \
+		$gaWidget(Menu,fileMenuSaveCopyAsIndex) \
+		-state disabled \
+		-label "Cannot save surfaces"
 	}
     }
 
@@ -4620,8 +4653,8 @@ proc LoadTransform { ifnLTA } {
     return $transformID
 }
 
-proc DoSaveVolume {} {
-    dputs "DoSaveVolume "
+proc DoSave {} {
+    dputs "DoSave "
 
     global gaCollection
 
@@ -4692,8 +4725,8 @@ proc DoLoadVolumeDlog {} {
 }
 
 
-proc DoSaveVolumeAsDlog {} {
-    dputs "DoSaveVolumeAsDlog  "
+proc DoSaveAsDlog {} {
+    dputs "DoSaveAsDlog  "
 
     global glShortcutDirs
     global gaCollection
@@ -4725,8 +4758,8 @@ proc DoSaveVolumeAsDlog {} {
 }
 
 
-proc DoSaveCopyOfVolumeAsDlog {} {
-    dputs "DoSaveCopyOfVolumeAsDlog  "
+proc DoSaveCopyAsDlog {} {
+    dputs "DoSaveCopyAsDlog  "
 
     global glShortcutDirs
     global gaCollection
@@ -5019,7 +5052,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.104 2005/05/09 20:50:12 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.105 2005/05/09 21:10:28 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
