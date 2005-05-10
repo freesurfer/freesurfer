@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.20 2004/06/10 17:16:06 greve Exp $
+  $Id: mri_vol2roi.c,v 1.21 2005/05/10 16:13:32 greve Exp $
 */
 
 #include <stdio.h>
@@ -54,7 +54,7 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.20 2004/06/10 17:16:06 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.21 2005/05/10 16:13:32 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -83,6 +83,7 @@ char  *msktail = "abs";
 int    mskinvert = 0;
 int    mskframe = 0;
 
+char  *srcmskvolid = NULL;
 char  *finalmskvolid = NULL;
 char  *finalmskcrs = NULL;
 
@@ -101,7 +102,7 @@ char *SUBJECTS_DIR = NULL;
 char *FS_TALAIRACH_SUBJECT = NULL;
 char *srcsubject, *msksubject;
 char *regfile = "register.dat";
-MRI *mSrcVol, *mROI, *mMskVol, *mSrcMskVol, *mFinalMskVol;
+MRI *mSrcVol, *mROI, *mMskVol, *mSrcMskVol, *mFinalMskVol, *mSrcMskVol;
 FILE *fp;
 int nmskhits, nlabelhits, nfinalhits;
 
@@ -129,7 +130,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.20 2004/06/10 17:16:06 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.21 2005/05/10 16:13:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -427,6 +428,22 @@ int main(int argc, char **argv)
     fclose(fp);
   }
 
+  /* ------- Mask the source and save it  ------------------ */
+  if(srcmskvolid != 0){
+    for(r=0;r<mFinalMskVol->height;r++){
+      for(c=0;c<mFinalMskVol->width;c++){
+	for(s=0;s<mFinalMskVol->depth;s++){
+	  val = MRIFseq_vox(mFinalMskVol,c,r,s,0); 
+          if(val < 0.5){
+	    for(f=0; f < mROI->nframes; f++) 
+	      MRIFseq_vox(mSrcVol,c,r,s,f) = 0.0;
+	  }
+	}
+      }
+    }    
+    MRIwrite(mSrcVol,srcmskvolid);
+  }
+
   return(0);
 }
 /*--------------------------------------------------------------------*/
@@ -583,6 +600,12 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
 
+    else if (!strcmp(option, "--srcmskvol")){
+      if(nargc < 1) argnerr(option,1);
+      srcmskvolid = pargv[0];
+      nargsused = 1;
+    }
+
     else if (!strcmp(option, "--finalmskcrs")){
       if(nargc < 1) argnerr(option,1);
       finalmskcrs = pargv[0];
@@ -640,6 +663,7 @@ static void print_usage(void)
   printf("   --roiavg    stem : output bfloat stem for ROI average\n");
   printf("   --finalmskvol path in which to save final mask\n");
   printf("   --finalmskcrs fname: save col,row,slice in text fname\n");
+  printf("   --srcmskvol path in which to save masked source\n");
   printf("\n");
 }
 /* --------------------------------------------- */
