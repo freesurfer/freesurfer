@@ -23,7 +23,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.84 2005/05/03 21:16:18 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.85 2005/05/10 15:56:51 fischl Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -243,13 +243,13 @@ int verifyLRSplit(MRI *mri_fill, LTA *lta, Real cc_tal_x, int *pbadRH, int *pbad
                              STATIC PROTOTYPES
 -------------------------------------------------------------------*/
 
-static int MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label) ;
 #if 0
+static int MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label) ;
 static int neighbors(MRI *mri, int x, int y,int z,int whalf,int label);
+static int edit_segmentation(MRI *mri_im, MRI *mri_seg) ;
+static int neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label);
 #endif
 static MRI *extend_to_lateral_borders(MRI *mri_src, MRI *mri_dst, int mask) ;
-static int neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label);
-static int edit_segmentation(MRI *mri_im, MRI *mri_seg) ;
 static int get_option(int argc, char *argv[]) ;
 static void print_version(void) ;
 static void print_help(void) ;
@@ -315,7 +315,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.84 2005/05/03 21:16:18 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.85 2005/05/10 15:56:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -525,11 +525,13 @@ main(int argc, char *argv[])
     if (!mri_seg)
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
                 Progname, segmentation_fname) ;
+#if 0
     if  (mri_im->linear_transform == 0)
     {
       if (find_cc_seed_with_segmentation(mri_tal, mri_seg, &cc_tal_x, &cc_tal_y, &cc_tal_z) == NO_ERROR)
 				cc_seed_set = 1;
     }
+#endif
   }
   else
     mri_seg = NULL;
@@ -576,13 +578,26 @@ main(int argc, char *argv[])
   }
   else // seed is not set
   {
-    if (find_corpus_callosum(mri_tal,&cc_tal_x,&cc_tal_y,&cc_tal_z, lta) 
-        != NO_ERROR)
-      mri_cc = NULL ; // could not find corpus_callosum
-    else
-      mri_cc =
-        find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z,
-                           MRI_SAGITTAL, &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
+		if (mri_seg)
+		{
+			if (find_cc_seed_with_segmentation(mri_tal, mri_seg, &cc_tal_x, &cc_tal_y, &cc_tal_z) == NO_ERROR)
+			{
+				cc_seed_set = 1;
+				mri_cc = 
+					find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
+														 &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
+			}
+		}
+		if (mri_cc == NULL)
+		{
+			if (find_corpus_callosum(mri_tal,&cc_tal_x,&cc_tal_y,&cc_tal_z, lta) 
+					!= NO_ERROR)
+				mri_cc = NULL ; // could not find corpus_callosum
+			else
+				mri_cc =
+					find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z,
+														 MRI_SAGITTAL, &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
+		}
   }
 
   if (!mri_cc)  /* heuristic failed - use Talairach coordinates */
@@ -781,6 +796,7 @@ main(int argc, char *argv[])
 		MRIdilate(mri_pons, mri_pons) ;
 	}
 	/*	else*/   // erase brain stem in any case
+	if (mri_seg)
 	{
 		printf("ERASING BRAINSTEM") ;
 		MRIsetLabelValues(mri_im, mri_seg, mri_im, Brain_Stem, 0) ;
@@ -1123,9 +1139,6 @@ main(int argc, char *argv[])
     {
       if (lta)
 				LTAfree(&lta);
-      MRIfree(&mri_fill);
-      MRIfree(&mri_talheader);
-
       fprintf(stderr, "badRH = %d/%d, badLH=%d/%d\n", badRH, totRH, badLH, totLH);
       errno = 0; // otherwise it will print standard error
       ErrorPrintf(ERROR_BADPARM, "Please check filled volume.  Cerebellum may be included.\n");
@@ -1289,7 +1302,7 @@ get_option(int argc, char *argv[])
   else if (!strcmp(option, "fillven"))
   {
 		fillven = atoi(argv[2]) ;
-		printf("%sfilling ventricles\n", fillven ? "not " : "") ;
+		printf("%sfilling ventricles\n", fillven == 0 ? "not " : "") ;
     nargs = 1 ;
   }
   else if (!strcmp(option, "lh"))
@@ -3350,6 +3363,7 @@ count_diagonals(MRI *mri, int x0, int y0, int z0)
 
   return(diagonals) ;
 }
+#if 0
 static int
 edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 {
@@ -3426,6 +3440,9 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
         case Right_Lateral_Ventricle:
 					if (fillven == 0)
 						break ;
+					MRIvox(mri_wm, x, y, z) = 255 ;
+					MRIvox(mri_filled, x, y, z) = 255 ;
+					non++ ;  
         case Left_Inf_Lat_Vent:
         case Right_Inf_Lat_Vent:
           if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
@@ -3577,7 +3594,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 	MRIfree(&mri_filled) ;
   return(NO_ERROR) ;
 }
-
+#endif
 #if 0
 static int
 neighbors(MRI *mri, int x, int y,int z,int whalf,int label)
@@ -3602,7 +3619,6 @@ neighbors(MRI *mri, int x, int y,int z,int whalf,int label)
   }
   return(nbrs) ;
 }
-#endif
 
 static int
 neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label)
@@ -3649,6 +3665,7 @@ MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
   }
   return(count) ;
 }
+#endif
 
 static MRI *
 extend_to_lateral_borders(MRI *mri_src, MRI *mri_dst, int mask)
@@ -3684,10 +3701,11 @@ extend_to_lateral_borders(MRI *mri_src, MRI *mri_dst, int mask)
   return(mri_dst) ;
 }
 
+#define WHALF ((11-1)/2)
 static int
 find_cc_seed_with_segmentation(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pcc_tal_y, Real *pcc_tal_z)
 {
-  int  x,  y, z, label, yi, zi, yk, zk, xl, xr, rlabel, llabel, num, max_num ;
+  int  x,  y, z, label, yi, zi, yk, zk, xl, xr, rlabel, llabel, num, max_num;
   Real xcc, ycc,  zcc ;
   
   xcc = ycc = zcc = 0.0  ; 
@@ -3710,10 +3728,10 @@ find_cc_seed_with_segmentation(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pc
 					continue ;   /* find places where left/right wm has different label */
 
 				/* look in sagittal plane and count how many midline voxels there are */
-				for (num = 0, yk = -1 ; yk <= 1 ; yk++)
+				for (num = 0, yk = -WHALF ; yk <= WHALF ; yk++)
 				{
 					yi = mri_seg->yi[y+yk] ;
-					for (zk = -1 ; zk <= 1 ; zk++)
+					for (zk = -WHALF ; zk <= WHALF ; zk++)
 					{
 						zi = mri_seg->zi[z+zk] ;
 						rlabel = MRIvox(mri_seg, xr, yi, zi) ;
