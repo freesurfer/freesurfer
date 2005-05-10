@@ -28,6 +28,13 @@ class ScubaLayer2DMRIS : public Layer {
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription () { return "2DMRIS"; }
 
+  // Handle tools.
+  virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
+			    ScubaWindowToRASTranslator& iTranslator,
+			    ScubaToolState& iTool, InputState& iInput );
+
+  void FindRASLocationOfVertex ( int inVertex, float oRAS[3] );
+
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 

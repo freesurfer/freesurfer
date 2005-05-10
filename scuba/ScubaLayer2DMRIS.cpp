@@ -34,7 +34,9 @@ ScubaLayer2DMRIS::ScubaLayer2DMRIS () {
   commandMgr.AddCommand( *this, "Get2DMRISLayerVertexColor", 1, "layerID",
 			 "Returns the vertex color for this layer as a list "
 			 " of red, green, and blue integers from 0-255." );
-
+  commandMgr.AddCommand( *this, "Get2DMRISRASCoordsFromVertexIndex", 2,
+			 "layerID vertexIndex", "Returns as a list of RAS "
+			 "coords the location of the vertex." );
 
 }
 
@@ -87,17 +89,17 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       // at the inplane coordinates in each vertex.
       float vertexCoord, nextVertexCoord, planeCoord;
       switch( iViewState.mInPlane ) {
-      case 0: // X
+      case ViewState::X:
 	vertexCoord     = vRAS.x();
 	nextVertexCoord = vnRAS.x();
 	planeCoord      = iViewState.mCenterRAS[0];
 	break;
-      case 1: // Y
+      case ViewState::Y:
 	vertexCoord     = vRAS.y();
 	nextVertexCoord = vnRAS.y();;
 	planeCoord      = iViewState.mCenterRAS[1];
 	break;
-      case 2: // Z
+      case ViewState::Z:
       default:
 	vertexCoord     = vRAS.z();
 	nextVertexCoord = vnRAS.z();
@@ -114,17 +116,17 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 
 	float world[3];
 	switch( iViewState.mInPlane ) {
-	case 0: // X
+	case ViewState::X:
 	  world[0] = iViewState.mCenterRAS[0];
 	  world[1] = vRAS.y() + f * (vnRAS.y() - vRAS.y());
 	  world[2] = vRAS.z() + f * (vnRAS.z() - vRAS.z());
 	  break;
-	case 1: // Y
+	case ViewState::Y:
 	  world[0] = vRAS.x() + f * (vnRAS.x() - vRAS.x());
 	  world[1] = iViewState.mCenterRAS[1];
 	  world[2] = vRAS.z() + f * (vnRAS.z() - vRAS.z());
 	  break;
-	case 2: // Z
+	case ViewState::Z:
 	  world[0] = vRAS.x() + f * (vnRAS.x() - vRAS.x());
 	  world[1] = vRAS.y() + f * (vnRAS.y() - vRAS.y());
 	  world[2] = iViewState.mCenterRAS[2];
@@ -199,6 +201,23 @@ void
 ScubaLayer2DMRIS::GetInfoAtRAS ( float[3],
 				 std::map<std::string,std::string>& ) {
 
+}
+
+void
+ScubaLayer2DMRIS::HandleTool ( float iRAS[3], ViewState& iViewState,
+			       ScubaWindowToRASTranslator& iTranslator,
+			       ScubaToolState& iTool, InputState& iInput ) {
+
+}
+
+void
+ScubaLayer2DMRIS::FindRASLocationOfVertex ( int inVertex, float oRAS[3] ) {
+
+  if( inVertex < mSurface->GetNumVertices() ) {
+    mSurface->GetNthVertex_Unsafe( inVertex, oRAS );
+  } else {
+    throw runtime_error( "Vertex index is out of bounds." );
+  }
 }
 
 TclCommandManager::TclCommandResult 
@@ -359,6 +378,34 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
 		     << maVertexColor[2];
       sReturnValues = ssReturnValues.str();
     }
+  }
+
+  // Get2DMRISRASCoordsFromVertexIndex <layerID> <vertexIndex>
+  if( 0 == strcmp( isCommand, "Get2DMRISRASCoordsFromVertexIndex" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      int nVertex;
+      nVertex = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+
+      float ras[3];
+      FindRASLocationOfVertex( nVertex, ras );
+      
+      stringstream ssReturnValues;
+      ssReturnValues << ras[0] << " " << ras[1] << " " << ras[2];
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "Lfffl";
+
+      return ok;
+    }  
   }
 
   return Layer::DoListenToTclCommand( isCommand, iArgc, iasArgv );

@@ -5,6 +5,15 @@
 #include "DataCollection.h"
 extern "C" {
 #include "mrisurf.h"
+#ifdef X
+  #undef X 
+#endif
+#ifdef Y
+  #undef Y
+#endif
+#ifdef Z
+  #undef Z
+#endif
 }
 
 class SurfaceCollection : public DataCollection {
@@ -41,6 +50,9 @@ class SurfaceCollection : public DataCollection {
   int GetNumFaces ();
   int GetNumVerticesPerFace_Unsafe ( int inFace );
   void GetNthVertexInFace_Unsafe ( int inFace, int inVertex, float oRAS[3] );
+
+  int GetNumVertices ();
+  void GetNthVertex_Unsafe ( int inVertex, float oRAS[3] );
 
  protected:
   std::string mfnMRIS;

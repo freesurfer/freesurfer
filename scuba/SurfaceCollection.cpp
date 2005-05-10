@@ -342,6 +342,28 @@ SurfaceCollection::GetNthVertexInFace_Unsafe ( int inFace, int inVertex,
   SurfaceToRAS( dataRAS, oRAS );
 }
 
+int
+SurfaceCollection::GetNumVertices () {
+
+  if( NULL != mMRIS ) {
+    return mMRIS->nvertices;
+  }
+
+  return 0;
+}
+
+void
+SurfaceCollection::GetNthVertex_Unsafe ( int inVertex, float oRAS[3] ) {
+
+  VERTEX* vertex = &(mMRIS->vertices[inVertex]);
+  float dataRAS[3];
+  dataRAS[0] = vertex->x;
+  dataRAS[1] = vertex->y;
+  dataRAS[2] = vertex->z;
+
+  SurfaceToRAS( dataRAS, oRAS );
+}
+
 void
 SurfaceCollection::CalcWorldToSurfaceTransform () {
   
