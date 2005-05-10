@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.13 2005/04/07 16:40:08 kteich Exp $
+# $Id: tkUtils.tcl,v 1.14 2005/05/10 19:01:27 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -929,7 +929,7 @@ proc tkuDoFileDlog { args } {
 			-label "$aArgs(-prompt$nField)"
 
 		    menubutton $mbw \
-			-text "Chose" \
+			-text "Choose" \
 			-menu $mw \
 			-indicatoron 1
 
@@ -1319,6 +1319,42 @@ proc tkuMakeCloseButton { ifwTop iwwTop args } {
       "$ifwTop.bwClose flash; $ifwTop.bwClose invoke"
 
     pack $ifwTop.bwClose \
+      -side right \
+      -padx 5 \
+      -pady 5
+}
+
+# tkuMakeApplyCloseButtons
+# -applyCmd : command to execute when Apply button si pressed
+# -applyLabel : option label for Apply button
+# -closeCmd : command to execute when Close button is pressed
+proc tkuMakeApplyCloseButtons { ifwTop iwwTop args } {
+
+    global kLabelFont
+
+    # Set menu items and make sure we have the ones we require,
+    array set aArgs $args
+
+    set closeCmd ""
+    if {[info exists aArgs(-closeCmd)]} { set closeCmd $aArgs(-closeCmd) }
+    set applyCmd ""
+    if {[info exists aArgs(-applyCmd)]} { set applyCmd $aArgs(-applyCmd) }
+    set sApplyLabel "Apply"
+    if {[info exists aArgs(-applyLabel)]} { set sApplyLabel $aArgs(-applyLabel) }
+
+    frame $ifwTop
+    
+    button $ifwTop.bwApply \
+      -text $sApplyLabel \
+      -command "$applyCmd"
+    button $ifwTop.bwClose \
+      -text "Close" \
+      -command "$closeCmd; tkuCloseDialog $iwwTop"
+
+    bind $iwwTop <Escape> \
+      "$ifwTop.bwClose flash; $ifwTop.bwClose invoke"
+
+    pack $ifwTop.bwClose $ifwTop.bwApply \
       -side right \
       -padx 5 \
       -pady 5
