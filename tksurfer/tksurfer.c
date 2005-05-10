@@ -841,6 +841,11 @@ void put_retinotopy_stats_in_vals(void) ;
 void draw_vector(char *fname) ;
 void clear_vertex_marks(void) ;
 void clear_all_vertex_marks(void) ;
+/* begin rkt */
+void find_closest_marked_vertex (int screen_x, int screen_y, 
+				 int* closest_index, int* closest_vno );
+
+/* end rkt */
 void mark_vertex(int vindex, int onoroff) ;
 void mark_face(int fno) ;
 void mark_annotation(int selection) ;
@@ -2167,379 +2172,34 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   
   /* end rkt */
   
-  if (tclscriptflag) {  /* tksurfer tcl script */
-    /* called from tksurfer.c; do nothing (don't even open gl window) */
-    /* wait for tcl interp to start; tksurfer calls tcl script */
-  }
-  else {   /* open window for surfer or non-script tksurfer (a few envs) */
-#ifndef Linux
-    if ((envptr=getenv("doublebufferflag"))!=NULL) { /*tmp:TODO OGL toggle*/
-      if (MATCH("1",envptr))     doublebufferflag = TRUE;
-      if (MATCH("TRUE",envptr))  doublebufferflag = TRUE;
-    }
-    if ((envptr=getenv("renderoffscreen"))!=NULL) {
-      if (MATCH("1",envptr))     renderoffscreen = TRUE;
-      if (MATCH("TRUE",envptr))  renderoffscreen = TRUE;
-    }
-#endif
-    open_window(pname);
-    if (stem[0]=='r'&&stem[1]=='h')
-      rotate_brain(-90.0,'y');
-    else
-      rotate_brain(90.0,'y');
-    redraw();
-  }
-  
-#ifndef TCL  /* tcl: omit event loop */
-  if (tclscriptflag) {
-    printf("surfer: can't read tcl script  ...ignored (use tksurfer)\n");
-  }
-#ifdef OPENGL
-  printf("surfer: ### non-tk surfer event loop not converted for OpenGL\n");
-  exit(1); 
-#else
-  while(1)  /* event loop */
+  if (tclscriptflag)
     {
-      {
-	dev = qread(&val);  /* waits here for next event */
-	switch(dev)  {
-	case ESCKEY:       /* kill on escape */
-	  fflush(fplog);
-	  fclose(fplog);
-	  if (openvalfileflag) fclose(fpvalfile);
-	  system("rm -f /tmp/SurferTmp");
-	  system("rm -f /tmp/SurferLoop");
-	  exit(0);
-	  break;
-	case LEFTMOUSE:
-	  if (val == 0)  break;
-	  sx = getvaluator(MOUSEX);
-	  sy = getvaluator(MOUSEY);
-	  if (ctrlkeypressed) { /* scale around click */
-	    getorigin(&ox,&oy);
-	    getsize(&lx,&ly);
-	    wx = sf*(sx-ox-lx/2.0)*2.0*fov/lx;
-	    wy = sf*(sy-oy-ly/2.0)*2.0*fov/ly;
-	    translate_brain(-wx,-wy,0.0);
-	    fprintf(fplog,"translate_brain_x %f\n",wx);
-	    fprintf(fplog,"translate_brain_y %f\n",wy);
-	    if (shiftkeypressed)
-	      scale_brain(3*SCALE_UP_MOUSE);
-	    else
-	      scale_brain(SCALE_UP_MOUSE);
-	    fprintf(fplog,"scale_brain %2.3f\n",SCALE_UP_MOUSE);
-	    redraw();
-	  }
-	  else {
-	    if (selection>=0)
-	      draw_cursor(selection,FALSE);
-	    select_vertex(sx,sy);
-	    if (selection>=0)
-	      mark_vertex(selection,TRUE);
-	    if (selection>=0)
-	      draw_cursor(selection,TRUE);
-	    fprintf(fplog,"#mark_vertex xpix=%d ypix=%d\n",sx,sy);
-	  }
-	  break;
-	case MIDDLEMOUSE:
-	  if (val == 0)  break;
-	  sx = getvaluator(MOUSEX);
-	  sy = getvaluator(MOUSEY);
-	  select_vertex(sx,sy);
-	  if (selection>=0)
-	    mark_vertex(selection,FALSE);
-	  fprintf(fplog,"#unmark_vertex xpix=%d ypix=%d\n",sx,sy);
-	  break;
-	case RIGHTMOUSE:
-	  if (val == 0)  break;
-	  sx = getvaluator(MOUSEX);
-	  sy = getvaluator(MOUSEY);
-	  if (ctrlkeypressed) {
-	    getorigin(&ox,&oy);
-	    getsize(&lx,&ly);
-	    wx = sf*(sx-ox-lx/2.0)*2.0*fov/lx;
-	    wy = sf*(sy-oy-ly/2.0)*2.0*fov/ly;
-	    translate_brain(-wx,-wy,0.0);
-	    fprintf(fplog,"translate_brain_x %f\n",wx);
-	    fprintf(fplog,"translate_brain_y %f\n",wy);
-	    scale_brain(1.0/SCALE_UP_MOUSE);
-	    fprintf(fplog,"scale_brain %2.3f\n",1.0/SCALE_UP_MOUSE);
-	    redraw();
-	  }
-	  else {
-	    clear_all_vertex_marks();
-	    fprintf(fplog,"#clear_vertex_marks\n");
-	  }
-	  break;
-	case REDRAW:         /* make the window re-sizable */
-	  reshapeviewport();
-	  last_frame_xdim = frame_xdim;
-	  getsize(&frame_xdim,&frame_ydim);
-	  /*if(last_frame_xdim != frame_xdim) redraw();*//* only if resize */
-	  fprintf(fplog,"resize_window %d\n",frame_xdim);break;
-	  break;
-	case UPARROWKEY:
-	  if (val == 0)  break;
-	  rotate_brain(18.0,'x');
-	  fprintf(fplog,"rotate_brain_x 18\n");break;
-	case DOWNARROWKEY:
-	  if (val == 0)  break;
-	  rotate_brain(-18.0,'x');
-	  fprintf(fplog,"rotate_brain_x -18\n");break;
-	case LEFTARROWKEY:
-	  if (val == 0)  break;
-	  rotate_brain(18.0,'y');
-	  fprintf(fplog,"rotate_brain_y 18\n");break;
-	case RIGHTARROWKEY:
-	  if (val == 0)  break;
-	  rotate_brain(-18.0,'y');
-	  fprintf(fplog,"rotate_brain_y -18\n");break;
-	case PAD2:
-	  if (val == 0)  break;
-	  translate_brain(0.0,-10.0,0.0);
-	  fprintf(fplog,"translate_brain_y %f\n",-10.0);break;
-	case PAD8:
-	  if (val == 0)  break;
-	  translate_brain(0.0,10.0,0.0);
-	  fprintf(fplog,"translate_brain_y %f\n",10.0);break;
-	case PAD4:
-	  if (val == 0)  break;
-	  translate_brain(-10.0,0.0,0.0);
-	  fprintf(fplog,"translate_brain_x %f\n",-10.0);break;
-	case PAD6:
-	  if (val == 0)  break;
-	  translate_brain(10.0,0.0,0.0);
-	  fprintf(fplog,"translate_brain_x %f\n",10.0);break;
-	case DELKEY:
-	  if (val == 0)  break;
-	  rotate_brain(18.0,'z');
-	  fprintf(fplog,"rotate_brain_z 18\n");break;
-	case PAGEDOWNKEY:
-	  if (val == 0)  break;
-	  rotate_brain(-18.0,'z');
-	  fprintf(fplog,"rotate_brain_z -18\n");break;
-	case LEFTCTRLKEY:
-	  if (val)  ctrlkeypressed = TRUE;
-	  else      ctrlkeypressed = FALSE;
-	  break;
-	case KEYBD:    /* marty: free: x y z H O Z @ # & * , . < > 3-9 - */
-	  switch((char)val)
-            {
-	    case 'a': ncthreshflag = !ncthreshflag;
-	      fprintf(fplog,"set ncthreshflag %d\n",ncthreshflag);
-	      printf("surfer: ncthreshflag = %d\n",ncthreshflag);
-	      break;
-	    case 'A': areaflag = !areaflag;
-	      fprintf(fplog,"set areaflag %d\n",areaflag);
-	      printf("surfer: areaflag = %d\n",areaflag);break;
-	    case 'b': read_binary_patch(pfname);
-	      flag2d=TRUE;
-	      fprintf(fplog,"read_binary_patch\n");break;
-	    case 'B': write_binary_patch(pfname);
-	      fprintf(fplog,"write_binary_patch\n");break;
-	    case 'c': compute_curvature();
-	      fprintf(fplog,"compute_curvature\n");break;
-	    case 'C': clear_curvature();
-	      fprintf(fplog,"clear_curvature\n");break;
-	    case 'd': shrink(100);
-	      fprintf(fplog,"shrink 100\n");break;
-	    case 'D': shrink(1000);
-	      fprintf(fplog,"shrink 1000\n");break;
-	    case 'e': expandflag = !expandflag;
-	      fprintf(fplog,"set expandflag %d\n",expandflag);
-	      printf("surfer: expandflag = %d\n",expandflag);break;
-	    case 'E': printf("surfer: enter (pname stem ext) : ");
-	      scanf("%s %s %s",pname2,stem2,ext2);
-	      sprintf(tf2name,"%s/%s/%s%s.%s/COR-",
-		      subjectsdir,pname2,FILLDIR_STEM,
-		      stem2,ext2);
-	      read_image_info(tf2name);
-	      read_images(tf2name);
-	      shrinkfillflag = TRUE;
-	      MRIflag = TRUE;
-	      normalize_surface();
-	      fprintf(fplog,"#enter second surface\n");
-	      break;
-	    case 'f': find_orig_vertex_coordinates(selection);
-	      fprintf(fplog,"#find_orig_vertex_coordinates\n");break;
-	    case 'g': read_binary_areas(afname);
-	      fprintf(fplog,"read_binary_areas\n");break;
-	    case 'G': write_binary_areas(afname);
-	      fprintf(fplog,"write_binary_areas\n");break;
-	    case 'h': print_help_surfer();
-	      fprintf(fplog,"#print_help\n");break;
-	      break;
-	    case 'H': if (selection>=0)
-	      draw_cursor(selection,FALSE);
-	      printf("enter vertex index (%d): ",selection);
-	      scanf("%d",&selection);
-	      if (selection>=0)
-		draw_cursor(selection,TRUE);
-	      PR
-		break;
-	    case 'i': floodfill_marked_patch(RIPFILL);
-	      fprintf(fplog,"#floodfill_marked_patch\n");break;
-	    case 'I': floodfill_marked_patch(STATFILL);
-	      /*
-		fill_surface();
-		write_images(fill,fifname);
-		fprintf(fplog,"#fill_surface\n");
-		fprintf(fplog,"#write_images\n");
-	      */
-	      break;
-	    case 'j': cut_line(FALSE);
-	      fprintf(fplog,"#cut_line\n");break;
-	    case 'J': cut_plane();
-	      fprintf(fplog,"#cut_plane\n");break;
-	    case 'k': avgflag = !avgflag;
-	      fprintf(fplog,"set avgflag %d\n",avgflag);
-	      printf("surfer: set avgflag = %d\n",avgflag);break;
-	    case 'K': read_binary_curvature(kfname);
-	      fprintf(fplog,"read_binary_sulc\n");break;
-	    case 'l': smooth_curv(5);
-	      fprintf(fplog,"smooth_curv 5\n");break;
-	    case 'L': flatten(tfname);flag2d=TRUE;
-	      fprintf(fplog,"#flatten\n");break;
-	    case 'm': smooth_val_sparse(5);
-	      fprintf(fplog,"smooth_val_sparse 5\n");break;
-	    case 'M': MRIflag = !MRIflag;
-	      fprintf(fplog,"set MRIflag %d\n",MRIflag);
-	      printf("surfer: set MRIflag %d\n",MRIflag);break;
-	      /*case 'n': subsample_orient(0.03);break; */
-	    case 'n': 
-	      printf("enter dipole spacing (in mm): ");
-	      scanf("%lf",&dip_spacing);
-	      subsample_dist((int)dip_spacing);
-	      break;
-	    case 'N': 
-	      write_binary_dipoles(dfname);
-	      fprintf(fplog,"write_binary_dipoles\n");
-	      sprintf(sfname,"%s/%s/%s/%s-%d.dec",
-		      subjectsdir,pname,BEM_DIR,
-		      stem,(int)dip_spacing);
-	      write_binary_decimation(sfname);
-	      fprintf(fplog,"write_binary_decimation\n");
-	      break;
-	    case 'o': overlayflag = !overlayflag;
-	      fprintf(fplog,"set overlayflag %d\n",overlayflag);
-	      printf("surfer: set overlayflag = %d\n",overlayflag);
-	      break;
-	    case 'O': /*** free ***/;
-	      fprintf(fplog,"\n");
-	      printf("surfer:\n");break;
-	    case 'p': cut_vertex();
-	      break;
-	    case 'P': cut_line(TRUE);break;
-	    case 'q': read_binary_values(vfname);break;
-	    case 'Q': write_binary_values(vfname);break;
-	    case 'r': redraw();fflush(fplog);
-	      fprintf(fplog,"redraw\n");break;
-	    case 'R': read_binary_curvature(cfname);
-	      fprintf(fplog,"read_binary_curv\n");break;
-	    case 's': shrink(1);
-	      fprintf(fplog,"shrink 1\n");break;
-	    case 'S': shrink(10);
-	      fprintf(fplog,"shrink 10\n");break;
-	    case 't': prompt_for_drawmask();
-	      fprintf(fplog,"set surfcolor %d\n",surfcolor);
-	      fprintf(fplog,"set shearvecflag %d\n",shearvecflag);
-	      fprintf(fplog,"set normvecflag %d\n",normvecflag);
-	      fprintf(fplog,"set movevecflag %d\n",movevecflag);
-	      redraw();break;
-	    case 'T': save_rgb_num(gfname);
-	      fprintf(fplog,"save_rgb_num\n");break;
-	    case 'u': prompt_for_parameters();
-	      fprintf(fplog,"set wt %2.3f\n",wt);
-	      fprintf(fplog,"set wa %2.3f\n",wa);
-	      fprintf(fplog,"set ws %2.3f\n",ws);
-	      fprintf(fplog,"set wn %2.3f\n",wn);
-	      fprintf(fplog,"set wc %2.3f\n",wc);
-	      fprintf(fplog,"set wsh %2.3f\n",wsh);
-	      fprintf(fplog,"set wbn %2.3f\n",wbn);
-	      break;
-	    case 'U': normalize_area();
-	      fprintf(fplog,"normalize_area\n");break;
-	    case 'v': verticesflag = !verticesflag;
-	      fprintf(fplog,"set verticesflag %d\n",verticesflag);
-	      printf("surfer: set verticesflag = %d\n",verticesflag);
-	      break;
-	    case 'V': if (surfcolor==NONE)
-	      surfcolor = CURVATURE_OR_SULCUS;
-	    else if (surfcolor==CURVATURE_OR_SULCUS)
-	      surfcolor = NONE;
-	    else ;
-	    fprintf(fplog,"set surfcolor %d\n",surfcolor);
-	      printf("surfer: set surfcolor = %d\n",surfcolor);break;
-	    case 'w': write_binary_surface(ofname);break;
-	    case 'W': write_binary_curvature(cfname);break;
-	    case 'x': /*** free ***/;
-	      printf("\n");
-	      fprintf(fplog,"\n");break;
-	    case 'X': draw_spokes(RADIUS);
-	      fprintf(fplog,"draw_radius\n");break;
-	    case 'y': /*** free ***/;
-	      printf("\n");
-	      fprintf(fplog,"\n");break;
-	    case 'Y': draw_spokes(THETA);
-	      fprintf(fplog,"draw_theta\n");break;
-	    case 'z': /*** free ***/;
-	      printf("\n");
-	      fprintf(fplog,"\n");break;
-	    case 'Z': /*** free ***/;
-	      printf("\n");
-	      fprintf(fplog,"\n");break;
-	    case '*': fslope *= 1.5; cslope *= 1.5;
-	      printf("surfer: fslope = %f, cslope = %f\n",
-		     fslope,cslope);
-	      fprintf(fplog,"set fslope %2.2f\n",fslope);
-	      fprintf(fplog,"set cslope %2.2f\n",cslope);
-	      break;
-	    case '/': fslope /= 1.5; cslope /= 1.5;
-	      printf("surfer: fslope = %f, cslope = %f\n",
-		     fslope,cslope);
-	      fprintf(fplog,"set fslope %2.2f\n",fslope);
-	      fprintf(fplog,"set cslope %2.2f\n",cslope);
-	      break;
-	    case '!': fslope = cslope = 1.0; mslope = 0.05; break;
-	    case '+': cmid *= 1.1;
-	      mmid *= 1.1;
-	      fprintf(fplog,"#sigmoid mid up\n");
-	      break;
-	    case '-': cmid /= 1.1;
-	      mmid /= 1.1;
-	      fprintf(fplog,"#sigmoid mid down\n");
-	      break;
-	    case '0': restore_zero_position();
-	      fprintf(fplog,"restore_zero_position\n");break;
-	    case '1': restore_initial_position();
-	      fprintf(fplog,"restore_initial_position\n");break;
-	    case '2': make_lateral_view(stem);
-	      fprintf(fplog,"make_lateral_view\n");break;
-	    case '(': cthk -= 0.1;
-	      printf("surfer: cthk = %f\n",cthk);
-	      fprintf(fplog,"set cthk %1.1f\n",cthk);break;
-	    case ')': cthk += 0.1;
-	      printf("surfer: cthk = %f\n",cthk);
-	      fprintf(fplog,"set cthk %1.1f\n",cthk);break;
-	    case '{': scale_brain(1/SCALE_UP_LG);
-	      fprintf(fplog,"scaledown_lg\n");break;
-	    case '}': scale_brain(SCALE_UP_LG);
-	      fprintf(fplog,"scaleup_lg\n");break;
-	    case '[': scale_brain(1/SCALE_UP_SM);
-	      fprintf(fplog,"scaledown_sm\n");break;
-	    case ']': scale_brain(SCALE_UP_SM);
-	      fprintf(fplog,"scaleup_sm\n");break;
-	    case '?': print_help_surfer();
-	      fprintf(fplog,"#print_help\n");break;
-            }
-	  break;
-	}  /* dev switch */
-      }    /* was qtest (omitted) */
-      if (autoflag) redraw();
-      
-    }  /* while events */
+      /* tksurfer tcl script */
+      /* called from tksurfer.c; do nothing (don't even open gl window) */
+      /* wait for tcl interp to start; tksurfer calls tcl script */
+    }
+  else
+    { 
+
+      /* open window for surfer or non-script tksurfer (a few envs) */
+#ifndef Linux
+      if ((envptr=getenv("doublebufferflag"))!=NULL) { /*tmp:TODO OGL toggle*/
+	if (MATCH("1",envptr))     doublebufferflag = TRUE;
+	if (MATCH("TRUE",envptr))  doublebufferflag = TRUE;
+      }
+      if ((envptr=getenv("renderoffscreen"))!=NULL) {
+	if (MATCH("1",envptr))     renderoffscreen = TRUE;
+	if (MATCH("TRUE",envptr))  renderoffscreen = TRUE;
+      }
 #endif
-#endif  /* tcl: omit event loop */
+      open_window(pname);
+      if (stem[0]=='r'&&stem[1]=='h')
+	rotate_brain(-90.0,'y');
+      else
+	rotate_brain(90.0,'y');
+      redraw();
+    }
+  
   if (patch_name)
     {
       strcpy(pfname, patch_name) ;
@@ -2577,6 +2237,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
   /* begin rkt */
   int mvno;
   float md;
+  int vno;
   /* end rkt */
   
   if (!openglwindowflag) return(0);
@@ -2735,9 +2396,22 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
       }
       if (current.xbutton.button == 2) {  /** middle **/
 	button2pressed = TRUE;
+
+	/* begin rkt */
+	find_closest_marked_vertex (sx, sy, NULL, &vno);
+	if (vno>=0)
+	  {
+	    fprintf (stderr, "Unmarking %d\n", vno);
+	    mark_vertex (vno, FALSE);
+	    draw_cursor (vno, FALSE);
+	  }
+	/* end rkt */
+#if 0
 	select_vertex(sx,sy);
 	if (selection>=0)
 	  mark_vertex(selection,FALSE);
+#endif
+
       }
       if (current.xbutton.button == 3) {  /** right **/
 	button3pressed = TRUE;
@@ -5186,7 +4860,7 @@ draw_cursor(int vindex,int onoroff)
       else
 	{
 	  set_color (0, 0, GREEN_RED_CURV);
-      draw_vertex_hilite (vindex);
+	  draw_vertex_hilite (vindex);
 	}
     }
   
@@ -15745,6 +15419,55 @@ clear_all_vertex_marks(void)
     }
 }
 
+/* begin rkt */
+void
+find_closest_marked_vertex (int screen_x, int screen_y, 
+			    int* closest_index, int* closest_vno )
+{
+  int vno;
+  float d;
+  VERTEX* v;
+  float ras[3];
+  int test_marked;
+  int test_vno;
+  VERTEX* test_v;
+  float dx, dy, dz;
+  float dmin;
+  int closest_marked;
+
+  find_vertex_at_screen_point (screen_x, screen_y, &vno, &d);
+  if (vno < 0)
+    {
+      if (closest_index) *closest_index = -1;
+      if (closest_vno) *closest_vno = -1;
+      return;
+    }
+
+  v = &(mris->vertices[vno]);
+  ras[0] = v->x; ras[1] = v->y; ras[2] = v->z;
+
+  dmin = 1000;
+  closest_marked = -1;
+  for (test_marked = 0; test_marked < nmarked; test_marked++)
+    {
+      test_vno = marked[test_marked];
+      test_v = &(mris->vertices[test_vno]);
+      dx = test_v->x - ras[0];
+      dy = test_v->y - ras[1];
+      dz = test_v->z - ras[2];
+      d = sqrt (dx*dx + dy*dy + dz*dz);
+      if (d < dmin)
+	{
+	  dmin = d;
+	  closest_marked = test_marked;
+	}
+    }
+
+  if (closest_index) *closest_index = closest_marked;
+  if (closest_vno) *closest_vno = marked[closest_marked];
+}
+/* end rkt */
+
 void
 mark_vertex(int vindex, int onoroff)
 {
@@ -15752,7 +15475,7 @@ mark_vertex(int vindex, int onoroff)
   VERTEX *v ;
   
   mris->vertices[vindex].marked = onoroff;
-  for (i=0;i<nmarked&&marked[i]!=vindex;i++);
+  for (i=0; i < nmarked && marked[i] != vindex; i++);
   v = &mris->vertices[vindex] ;
   if ((onoroff==FALSE)&&(i<nmarked))
     {
@@ -18438,7 +18161,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.105 2005/05/09 19:12:15 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.106 2005/05/10 23:08:58 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20596,6 +20319,8 @@ void wndw_handle_event (void* data, xGWin_tEventRef event)
   float translate_y;
   int mvno;
   float md;
+  int vno;
+  int d;
 #if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
   struct timeval tv;
 #endif
@@ -20715,11 +20440,12 @@ void wndw_handle_event (void* data, xGWin_tEventRef event)
       /* Button 2, just select and mark this vertex. */
       else if (2 == event->mButton) 
 	{
-	  select_vertex (screen_x, screen_y);
-	  if (selection>=0)
+	  find_closest_marked_vertex (sx, sy, NULL, &vno);
+	  if (vno>=0)
 	    {
-	      mark_vertex (selection, TRUE);
-	      draw_cursor (selection, TRUE);
+	      fprintf (stderr, "Unmarking %d\n", vno);
+	      mark_vertex (vno, FALSE);
+	      draw_cursor (vno, FALSE);
 	    }
 	}
       
