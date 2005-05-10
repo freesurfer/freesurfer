@@ -15,7 +15,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.21 2005/04/26 16:52:42 xhan Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.22 2005/05/10 21:00:00 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -59,6 +59,8 @@ static char *log_file_name = NULL ;
 static int tabular_output_flag = 0;
 static char sdir[STRLEN] = "" ;
 static int MGZ = 0; // for use with MGZ format
+static char *tablefile=NULL;
+static FILE *fp=NULL;
 
 int
 main(int argc, char *argv[])
@@ -77,7 +79,7 @@ main(int argc, char *argv[])
   int           n_vertices = -1;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.21 2005/04/26 16:52:42 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.22 2005/05/10 21:00:00 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -230,6 +232,30 @@ main(int argc, char *argv[])
       fprintf(stdout, "\n");
     }
 
+    if(annotation_name && tablefile != NULL)
+    {
+      fp = fopen(tablefile,"w");
+      fprintf(fp,"# Table of cortical parcellation anatomical statistics \n");
+      fprintf(fp,"# subjectname %s\n",sname);
+      fprintf(fp,"# hemi %s\n",hemi);
+      fprintf(fp,"# SUBJECTS_DIR %s\n",sdir);
+      fprintf(fp,"# annotation file %s\n",annotation_name);
+      fprintf(fp,"# total white matter volume  %2.0f mm^3\n",wm_volume) ;
+      fprintf(fp,"# total number of vertices  %d\n",mris->nvertices);
+      fprintf(fp,"# table columns are:\n");
+      fprintf(fp,"# 1. structure name\n");
+      fprintf(fp,"# 2. number of vertices\n");
+      fprintf(fp,"# 3. total surface area (mm^2)\n");
+      fprintf(fp,"# 4. total gray matter volume (mm^3)\n");
+      fprintf(fp,"# 5. average cortical thickness +- standard error (mm)\n");
+      fprintf(fp,"# 6. integrated rectified mean curvature\n");
+      fprintf(fp,"# 7. integrated rectified Gaussian curvature\n");
+      fprintf(fp,"# 8. folding index\n");
+      fprintf(fp,"# 9. intrinsic curvature index\n");
+      fclose(fp);
+    }
+
+
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     if (!histo_flag && annotation_name == NULL)
@@ -256,13 +282,12 @@ main(int argc, char *argv[])
     {
 
       annotation = v->annotation ;
-			if (mris->ct && Gdiag_no >= 0)
-			{
-				ct_index = CTABannotationToIndex(mris->ct, annotation);
-				if (ct_index == Gdiag_no) /* 6 is ectorhinal */
-					DiagBreak() ;
-			}
-
+      if (mris->ct && Gdiag_no >= 0){
+	ct_index = CTABannotationToIndex(mris->ct, annotation);
+	if (ct_index == Gdiag_no) /* 6 is ectorhinal */
+	  DiagBreak() ;
+      }
+      
       MRISripVerticesWithoutAnnotation(mris, annotation) ;
 
       n_vertices = MRIScountVertices(mris);
@@ -284,6 +309,25 @@ main(int argc, char *argv[])
       MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
 
       /* output */
+
+      if(annotation_name && tablefile != NULL){
+	fp = fopen(tablefile,"a");
+        ct_index = CTABannotationToIndex(mris->ct, annotation);
+        if(ct_index < 0)
+          fprintf(fp, "  ** annotation %08x", annotation);
+        else
+          fprintf(fp, "%-40s", mris->ct->bins[ct_index].name);
+        fprintf(fp, "%5d", n_vertices);
+        fprintf(fp, "  %5.0f", mris->total_area) ;
+        fprintf(fp, "  %5.0f", gray_volume) ;
+        fprintf(fp, "  %5.3f %5.3f", thickness_mean, sqrt(thickness_var)) ;
+        fprintf(fp, "  %8.3f", mean_abs_mean_curvature) ;
+        fprintf(fp, "  %8.3f", mean_abs_gaussian_curvature) ;
+        fprintf(fp, "  %7.3f", fi);
+        fprintf(fp, "  %6.3f",ici);
+        fprintf(fp, "\n");
+	fclose(fp);
+      }
 
       if(tabular_output_flag)
       {
@@ -309,10 +353,10 @@ main(int argc, char *argv[])
       else
       {
 
-				if (mris->ct == NULL)
-					ErrorExit(ERROR_BADFILE, "%s: no color table loaded - cannot translate annot  file",Progname);
+	if (mris->ct == NULL)
+	  ErrorExit(ERROR_BADFILE, "%s: no color table loaded - cannot translate annot  file",Progname);
         ct_index = CTABannotationToIndex(mris->ct, annotation);
-
+	
         if(ct_index < 0)
           fprintf(stdout, "statistics for unknown label: annotation %d (%08x) (%d %d %d)\n", 
                   annotation,
@@ -489,6 +533,10 @@ get_option(int argc, char *argv[])
     tabular_output_flag = 1;
     nargs = 0;
     break;
+  case 'F':
+    tablefile = argv[2] ;
+    nargs = 1 ;
+    break ;
   case '?':
   case 'U':
     print_usage() ;
@@ -540,6 +588,8 @@ print_help(void)
           "\n") ;
   fprintf(stderr,
           "-b                           - tabular output\n");
+  fprintf(stderr,
+          "-f tablefile  - table output to a file (different format than -b) \n");
   exit(1) ;
 }
 
