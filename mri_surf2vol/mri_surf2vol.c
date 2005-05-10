@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.9 2004/07/06 19:03:46 fischl Exp $
+  $Id: mri_surf2vol.c,v 1.10 2005/05/10 18:53:38 greve Exp $
 */
 
 #include <stdio.h>
@@ -42,7 +42,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2vol.c,v 1.9 2004/07/06 19:03:46 fischl Exp $";
+static char vcid[] = "$Id: mri_surf2vol.c,v 1.10 2005/05/10 18:53:38 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -88,6 +88,7 @@ MATRIX *Qa2v;
 
 float reshapefactor;
 int mksurfmask = 0;
+int UseVolRegIdentity = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -98,7 +99,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2vol.c,v 1.9 2004/07/06 19:03:46 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2vol.c,v 1.10 2005/05/10 18:53:38 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -117,10 +118,16 @@ int main(int argc, char **argv)
 
   check_options();
 
-  /* Read in the tkregister registration */
-  err = regio_read_register(volregfile, &srcsubject, &ipr, &bpr, 
-														&intensity, &Ma2vTKR, &float2int);
-  if(err) exit(1);
+  if(UseVolRegIdentity){
+    printf("Using identity matrix for registration\n");
+    Ma2vTKR = MatrixIdentity(4,NULL);
+  }
+  else{
+    /* Read in the tkregister registration */
+    err = regio_read_register(volregfile, &srcsubject, &ipr, &bpr, 
+			      &intensity, &Ma2vTKR, &float2int);
+    if(err) exit(1);
+  }
 
   /* Read in the template volume header */
   TempVol = MRIreadHeader(tempvolpath,tempvolfmtid);
@@ -352,6 +359,11 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 0;
 			fillribbon = 1 ;
     }
+    else if (istringnmatch(option, "--volregidentity",16)){
+      if(nargc < 1) argnerr(option,1);
+      srcsubject = pargv[0]; nargsused = 1;
+      UseVolRegIdentity = 1;
+    }
     else if (istringnmatch(option, "--volreg",8)){
       if(nargc < 1) argnerr(option,1);
       volregfile = pargv[0]; nargsused = 1;
@@ -444,6 +456,7 @@ static void print_usage(void)
   printf("  --projfrac thickness fraction \n");
   printf("  --fillribbon\n");
   printf("  --volreg   volume registration file\n");
+  printf("  --volregidentity subjid : use identity (must supply subject name)\n");
   printf("  --template <fmt> output like this volume <fmt>\n");
   printf("  \n");
   printf("  --outvol <fmt>  output volume path id\n");
@@ -507,7 +520,14 @@ static void print_help(void)
 "in the functional volume. The format of this file is that as output by\n"
 "tkregister2 and includes the name of the subject. It will be assumed\n"
 "that the input surface values are sampled on the surface of this\n"
-"subject.\n"
+"subject. Cannot be used with --volregidentity.\n"
+"\n"
+"--volregidentity subjid\n"
+"\n"
+"Use identity matrix for the registration between the surface and the\n"
+"template volume (ie, template volume is the anatomical ref). Must supply\n"
+"subjid (which is usually obtained from the volreg). Cannot be used with\n"
+"--volreg.\n"
 "\n"
 "--template template volume <fmt>\n"
 "\n"
@@ -598,18 +618,18 @@ static void check_options(void)
     if(surfvalfmt == NULL){
       surfvalfmtid = mri_identify(surfvalpath);
       if(surfvalfmtid == MRI_VOLUME_TYPE_UNKNOWN){
-  printf("ERROR: cannot recognize the type of %s\n",surfvalpath);
-  exit(1);
+	printf("ERROR: cannot recognize the type of %s\n",surfvalpath);
+	exit(1);
       }
       surfvalfmt = type_to_string(surfvalfmtid);
     }
     else{
       if(! istringnmatch(surfvalfmt,"paint",0)){
-  surfvalfmtid = string_to_type(surfvalfmt);
-  if(surfvalfmtid == MRI_VOLUME_TYPE_UNKNOWN){
-    printf("ERROR: cannot recognize format %s\n",surfvalfmt);
-    exit(1);
-  }
+	surfvalfmtid = string_to_type(surfvalfmt);
+	if(surfvalfmtid == MRI_VOLUME_TYPE_UNKNOWN){
+	  printf("ERROR: cannot recognize format %s\n",surfvalfmt);
+	  exit(1);
+	}
       }
     }
   }
@@ -622,7 +642,11 @@ static void check_options(void)
     printf("A hemisphere must be supplied\n");
     exit(1);
   }
-  if(volregfile == NULL){
+  if(volregfile != NULL && UseVolRegIdentity){
+    printf("ERROR: cannot spec both --volreg file --volregidentity. \n");
+    exit(1);
+  }
+  if(volregfile == NULL && !UseVolRegIdentity){
     printf("A volume registration file must be supplied\n");
     exit(1);
   }
@@ -663,16 +687,16 @@ static void check_options(void)
     if(vtxvolfmt == NULL){
       vtxvolfmtid = mri_identify(vtxvolpath);
       if(vtxvolfmtid == MRI_VOLUME_TYPE_UNKNOWN){
-  printf("ERROR: cannot recognize the type of %s\n",vtxvolpath);
-  exit(1);
+	printf("ERROR: cannot recognize the type of %s\n",vtxvolpath);
+	exit(1);
       }
       vtxvolfmt = type_to_string(vtxvolfmtid);
     }
     else{
       vtxvolfmtid = string_to_type(vtxvolfmt);
       if(vtxvolfmtid == MRI_VOLUME_TYPE_UNKNOWN){
-  printf("ERROR: cannot recognize format %s\n",vtxvolfmt);
-  exit(1);
+	printf("ERROR: cannot recognize format %s\n",vtxvolfmt);
+	exit(1);
       }
     }
   }
