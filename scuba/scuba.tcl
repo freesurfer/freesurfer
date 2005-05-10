@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.105 2005/05/09 21:10:28 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.106 2005/05/10 19:01:09 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -515,7 +515,8 @@ proc MakeMenuBar { ifwTop } {
 
     tkuMakeMenu -menu $gaMenu(tools) -label "Tools" -items {
 	{command "Histogram Fill..." { MakeHistogramFillWindow } }
-	{command "Volume Info..." { DoVolumeInfoWindow } }
+	{command "Data Collection Info..." { DoDataInfoWindow } }
+	{command "Find Surface Vertex..." { DoFindSurfaceVertex } }
     }
 
     pack $gaMenu(tools) -side left
@@ -1195,8 +1196,7 @@ proc SetPreferences {} {
     set cStructures [GetColorLUTNumberOfEntries $gaTool(current,voxelLutID)]
     for { set nStructure 0 } { $nStructure < $cStructures } { incr nStructure } {
 	if { [info exists gaTool(structureListOrder,count,$nStructure)] } {
-	    set lUserStructureList \
-		[lappend lUserStructureList $nStructure $gaTool(structureListOrder,count,$nStructure)]
+	    lappend lUserStructureList $nStructure $gaTool(structureListOrder,count,$nStructure)
 	}
     }
     SetPreferencesValue UserStructureList \"$lUserStructureList\"
@@ -3339,8 +3339,7 @@ proc SortVoxelEditingStructureListBox {} {
 		# unsorted list.
 		set count $gaTool(structureListOrder,count,$nStructure)
 		if { $count > 0 } {
-		    set lEntries \
-			[lappend lEntries [list $sLabel $nStructure $count]]
+		    lappend lEntries [list $sLabel $nStructure $count]
 		}
 	    }
 	}
@@ -5052,7 +5051,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.105 2005/05/09 21:10:28 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.106 2005/05/10 19:01:09 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5385,13 +5384,13 @@ proc DoHistogramLabel { iSourceVol iROIID iDestVol iValueRanges } {
     EndValueRangeFillInView $gaView(current,id)
 }
 
-proc DoVolumeInfoWindow {} {
+proc DoDataInfoWindow {} {
     global gaDialog
     global gaCollection
     global gaWidget
 
-    set wwDialog .volumeInfo
-    if { [tkuCreateDialog $wwDialog "Volume Info" {-borderwidth 10}] } {
+    set wwDialog .dataInfo
+    if { [tkuCreateDialog $wwDialog "Data Info" {-borderwidth 10}] } {
 
 	set fwVolume  $wwDialog.fwVolume
 	set fwInfo    $wwDialog.fwInfo
@@ -5403,7 +5402,7 @@ proc DoVolumeInfoWindow {} {
 	tixOptionMenu $owVolume \
 	    -label "Data Collection:" \
 	    -variable blah \
-	    -command { VolumeInfoMenuCallback }
+	    -command { DataInfoMenuCallback }
 	FillMenuFromList $owVolume \
 	    $gaCollection(idList) "GetCollectionLabel %s" {} false
 
@@ -5414,7 +5413,7 @@ proc DoVolumeInfoWindow {} {
 	set ewInfo $fwInfo.ewInfo
 
 	tixScrolledText $ewInfo -scrollbar y
-	set gaWidget(volumeInfoText) $ewInfo
+	set gaWidget(dataInfoText) $ewInfo
 
 	pack $ewInfo -fill both -expand 1
 
@@ -5428,33 +5427,112 @@ proc DoVolumeInfoWindow {} {
 	    -padx 5         \
 	    -pady 5
 
-	VolumeInfoMenuCallback 0
+	DataInfoMenuCallback 0
     }
 }
 
-proc VolumeInfoMenuCallback { iColID } {
+proc DataInfoMenuCallback { iColID } {
     global gaWidget
+    global gaCollection
 
-    [$gaWidget(volumeInfoText) subwidget text] \
+    [$gaWidget(dataInfoText) subwidget text] \
 	config -wrap word -relief ridge -bd 1
 
-    [$gaWidget(volumeInfoText) subwidget text] \
+    [$gaWidget(dataInfoText) subwidget text] \
 	delete 1.0 end
 
-    set fnVolume [GetVolumeCollectionFileName $iColID]
     set sText ""
     set err [catch {
 
-	set sText [exec mri_info $fnVolume]
-
+	set sType [GetCollectionType $iColID]
+	if { [string match $sType Volume] } {
+	    set fnVolume [GetVolumeCollectionFileName $iColID]
+	    set sText [exec mri_info $fnVolume]
+	} elseif { [string match $sType Surface] } {
+	    set fnSurface [GetSurfaceCollectionFileName $iColID]
+	    set sText [exec mris_info $fnSurface]
+	}
+	
     } sResult]
     if { 0 != $err } {
 	set sText $sResult
     }
-
-    [$gaWidget(volumeInfoText) subwidget text] \
+    
+    [$gaWidget(dataInfoText) subwidget text] \
 	insert end $sText
 
+}
+
+proc DoFindSurfaceVertex {} {
+    global gaDialog
+    global gaLayer
+    global gFindSurfaceInfo
+
+    set wwDialog .findSurfaceVertex
+    if { [tkuCreateDialog $wwDialog "Find Vertex" {-borderwidth 10}] } {
+
+	set fwSurface  $wwDialog.fwSurface
+	set fwVertex   $wwDialog.fwVertex
+	set fwButtons  $wwDialog.fwButtons
+
+	frame $fwSurface
+	set owSurface $fwSurface.owSurface
+
+	# Make list of layers with surfaces.
+	set lLayers {}
+	foreach layerID $gaLayer(idList) {
+	    if { [string match [GetLayerType $layerID] 2DMRIS] } {
+		lappend lLayers $layerID
+	    }
+	}
+
+	tixOptionMenu $owSurface \
+	    -label "Surface:" \
+	    -variable gFindSurfaceInfo(layerID) \
+	    -command { VolumeInfoMenuCallback }
+	FillMenuFromList $owSurface \
+	    $lLayers "GetCollectionLabel %s" {} false
+
+	pack $owSurface -fill x -expand 1
+
+
+	frame $fwVertex
+	tkuMakeEntry $fwVertex.ewVertex \
+	    -variable gFindSurfaceInfo(vertex) \
+	    -command { FindSurfaceVertexCallback } \
+	    -width 10
+
+	pack $fwVertex.ewVertex \
+	    -expand yes -fill x
+
+
+	tkuMakeApplyCloseButtons $fwButtons $wwDialog \
+	    -applyLabel "Find" \
+	    -applyCmd FindSurfaceVertexCallback
+	
+	pack $fwSurface $fwVertex $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+    }
+}
+
+proc FindSurfaceVertexCallback {} {
+    global gFindSurfaceInfo
+    
+    set err [catch {
+	set lRAS \
+	    [Get2DMRISRASCoordsFromVertexIndex $gFindSurfaceInfo(layerID) \
+		 $gFindSurfaceInfo(vertex)]
+	
+	SetViewRASCursor \
+	    [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
+	RedrawFrame [GetMainFrameID]
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+   
 }
 
 # MAIN =============================================================
