@@ -31,6 +31,8 @@ class SurfaceCollection : public DataCollection {
 
   MRIS* GetMRIS();
 
+  void LoadPatch ( std::string& ifnPatch );
+
   // For getting the surface to data transform from a volume.
   void SetDataToSurfaceTransformFromVolume ( VolumeCollection& iVolume );
   void SetDataToSurfaceTransformToDefault ();
@@ -49,10 +51,12 @@ class SurfaceCollection : public DataCollection {
   // Surface access functions.
   int GetNumFaces ();
   int GetNumVerticesPerFace_Unsafe ( int inFace );
-  void GetNthVertexInFace_Unsafe ( int inFace, int inVertex, float oRAS[3] );
+  void GetNthVertexInFace_Unsafe ( int inFace, int inVertex, 
+				   float oRAS[3], bool* oRipped );
 
   int GetNumVertices ();
-  void GetNthVertex_Unsafe ( int inVertex, float oRAS[3] );
+  void GetNthVertex_Unsafe ( int inVertex, 
+			     float oRAS[3], bool* oRipped );
 
  protected:
   std::string mfnMRIS;

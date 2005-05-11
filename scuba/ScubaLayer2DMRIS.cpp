@@ -82,8 +82,15 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 
       // Get the vertices.
       Point3<float> vRAS, vnRAS;
-      mSurface->GetNthVertexInFace_Unsafe( nFace, nVertex, vRAS.xyz() );
-      mSurface->GetNthVertexInFace_Unsafe( nFace, nNextVertex, vnRAS.xyz() );
+      bool bRipped, bNextRipped;
+      mSurface->GetNthVertexInFace_Unsafe( nFace, nVertex, 
+					   vRAS.xyz(), &bRipped );
+      mSurface->GetNthVertexInFace_Unsafe( nFace, nNextVertex, 
+					   vnRAS.xyz(), &bNextRipped );
+
+      if( bRipped || bNextRipped ) {
+	continue;
+      }
 
       // Get the coordinate we need to compare for this plane. We look
       // at the inplane coordinates in each vertex.
@@ -214,7 +221,7 @@ void
 ScubaLayer2DMRIS::FindRASLocationOfVertex ( int inVertex, float oRAS[3] ) {
 
   if( inVertex < mSurface->GetNumVertices() ) {
-    mSurface->GetNthVertex_Unsafe( inVertex, oRAS );
+    mSurface->GetNthVertex_Unsafe( inVertex, oRAS, NULL );
   } else {
     throw runtime_error( "Vertex index is out of bounds." );
   }

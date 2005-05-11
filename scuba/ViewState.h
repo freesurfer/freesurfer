@@ -1,7 +1,6 @@
 #ifndef ViewState_h
 #define ViewState_h
 
-
 // View orientation information for ScubaViews.
 
 class ViewState {

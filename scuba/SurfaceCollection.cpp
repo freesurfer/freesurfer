@@ -43,6 +43,8 @@ SurfaceCollection::SurfaceCollection () :
 			 "If a surface collection is using a volume "
 			 "to get its data to surface transform, returns "
 			 "the volume's collection ID." );
+  commandMgr.AddCommand( *this, "LoadSurfacePatch", 2, "collectionID fileName",
+			 "Loads a patch into a surface." );
 }
 
 SurfaceCollection::~SurfaceCollection() {
@@ -139,6 +141,19 @@ SurfaceCollection::GetMRIS () {
   }
 
   return mMRIS;
+}
+
+void
+SurfaceCollection::LoadPatch ( string& ifnPatch ) {
+
+  char* cfnPath;
+  cfnPath = strdup( ifnPatch.c_str() );
+  int rMRIS = MRISreadPatchNoRemove( mMRIS, cfnPath );
+  if( rMRIS != NO_ERROR ) {
+    throw runtime_error( "Error loading " + ifnPatch );
+  }
+  DataChanged();
+  free( cfnPath );
 }
 
 TclCommandListener::TclCommandResult 
@@ -257,7 +272,7 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
     }
   }
 
-  // GetSurfaceDataToSurfaceTransformVolume <transformID>
+  // GetSurfaceDataToSurfaceTransformVolume <collectionID>
   if( 0 == strcmp( isCommand, "GetSurfaceDataToSurfaceTransformVolume" ) ) {
 
     int collectionID;
@@ -281,6 +296,26 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
       sReturnFormat = "i";
     }
   }
+
+  // LoadSurfacePatch <collectionID> <fileName>
+  if( 0 == strcmp( isCommand, "LoadSurfacePatch" ) ) {
+
+    int collectionID;
+    try { 
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error e ) {
+      sResult = string("bad collection ID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      string fnPatch = iasArgv[2];
+      LoadPatch( fnPatch );
+    }
+  }
+
 
   return DataCollection::DoListenToTclCommand( isCommand, iArgc, iasArgv );
 }
@@ -331,7 +366,7 @@ SurfaceCollection::GetNumVerticesPerFace_Unsafe ( int ) {
 
 void
 SurfaceCollection::GetNthVertexInFace_Unsafe ( int inFace, int inVertex, 
-					       float oRAS[3] ) {
+					       float oRAS[3], bool* oRipped ) {
 
   VERTEX* vertex = &(mMRIS->vertices[mMRIS->faces[inFace].v[inVertex]]);
   float dataRAS[3];
@@ -340,6 +375,10 @@ SurfaceCollection::GetNthVertexInFace_Unsafe ( int inFace, int inVertex,
   dataRAS[2] = vertex->z;
 
   SurfaceToRAS( dataRAS, oRAS );
+
+  if( NULL != oRAS ) {
+    *oRipped = vertex->ripflag;
+  }
 }
 
 int
@@ -353,7 +392,8 @@ SurfaceCollection::GetNumVertices () {
 }
 
 void
-SurfaceCollection::GetNthVertex_Unsafe ( int inVertex, float oRAS[3] ) {
+SurfaceCollection::GetNthVertex_Unsafe ( int inVertex, 
+					 float oRAS[3], bool* oRipped ) {
 
   VERTEX* vertex = &(mMRIS->vertices[inVertex]);
   float dataRAS[3];
@@ -362,6 +402,10 @@ SurfaceCollection::GetNthVertex_Unsafe ( int inVertex, float oRAS[3] ) {
   dataRAS[2] = vertex->z;
 
   SurfaceToRAS( dataRAS, oRAS );
+
+  if( NULL != oRAS ) {
+    *oRipped = vertex->ripflag;
+  }
 }
 
 void

@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.106 2005/05/10 19:01:09 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.107 2005/05/11 00:04:18 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -136,6 +136,17 @@ proc GetDefaultFileLocation { iType } {
 		if { [info exists env(SUBJECTS_DIR)] } {
 		    if { [info exists gSubject(homeDir)] } {
 			set gsaDefaultLocation($iType) $gSubject(homeDir)/mri
+		    } else {
+			set gsaDefaultLocation($iType) $env(SUBJECTS_DIR)
+		    }
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}	       
+	    }
+	    LoadSurface - LoadPatch {
+		if { [info exists env(SUBJECTS_DIR)] } {
+		    if { [info exists gSubject(homeDir)] } {
+			set gsaDefaultLocation($iType) $gSubject(homeDir)/surf
 		    } else {
 			set gsaDefaultLocation($iType) $env(SUBJECTS_DIR)
 		    }
@@ -448,6 +459,8 @@ proc MakeMenuBar { ifwTop } {
     tkuMakeMenu -menu $gaMenu(file) -label "File" -items {
 	{command "New Volume..." { DoNewVolumeDlog } }
 	{command "Load Volume..." { DoLoadVolumeDlog } }
+	{command "Load Surface..." { DoLoadSurfaceDlog } }
+	{command "Load Patch Into Surface..." { DoLoadPatchDlog } }
 	{command "Save..." { DoSave } }
 	{command "Save As..." { DoSaveAsDlog } }
 	{command "Save Copy As..." { DoSaveCopyAsDlog } }
@@ -474,9 +487,10 @@ proc MakeMenuBar { ifwTop } {
     }
 
     set gaWidget(Menu,fileMenu) $gaMenu(file).mw
-    set gaWidget(Menu,fileMenuSaveIndex) 3
-    set gaWidget(Menu,fileMenuSaveAsIndex) 4
-    set gaWidget(Menu,fileMenuSaveCopyAsIndex) 5
+    set gaWidget(Menu,fileMenuLoadPatchIndex) 4
+    set gaWidget(Menu,fileMenuSaveIndex) 5
+    set gaWidget(Menu,fileMenuSaveAsIndex) 6
+    set gaWidget(Menu,fileMenuSaveCopyAsIndex) 7
 
     pack $gaMenu(file) -side left
 
@@ -2453,6 +2467,9 @@ proc UpdateCurrentCollectionInCollectionProperites {} {
 
 	    # Set the save menu items.
 	    $gaWidget(Menu,fileMenu) entryconfigure \
+		$gaWidget(Menu,fileMenuLoadPatchIndex) \
+		-state disabled
+	    $gaWidget(Menu,fileMenu) entryconfigure \
 		$gaWidget(Menu,fileMenuSaveIndex) \
 		-state normal \
 		-label "Save $gaCollection(current,label)..."
@@ -2487,6 +2504,9 @@ proc UpdateCurrentCollectionInCollectionProperites {} {
 		-disablecallback 0    
 
 	    # Set the save menu items.
+	    $gaWidget(Menu,fileMenu) entryconfigure \
+		$gaWidget(Menu,fileMenuLoadPatchIndex) \
+		-state normal
 	    $gaWidget(Menu,fileMenu) entryconfigure \
 		$gaWidget(Menu,fileMenuSaveIndex) \
 		-state disabled \
@@ -4723,6 +4743,52 @@ proc DoLoadVolumeDlog {} {
 	}
 }
 
+proc DoLoadSurfaceDlog {} {
+    dputs "DoLoadSurfaceDlog  "
+
+    global glShortcutDirs
+
+    tkuDoFileDlog -title "Load Surface" \
+	-prompt1 "Load Surface: " \
+	-defaultdir1 [GetDefaultFileLocation LoadSurface] \
+	-type2 checkbox \
+	-prompt2 "Automatically add new layer to all views" \
+	-defaultvalue2 1 \
+	-shortcutdirs [list $glShortcutDirs] \
+	-okCmd { 
+	    set frameID -1
+	    if { %s2 } {
+		set frameID $gFrameWidgetToID($gaWidget(scubaFrame))
+	    }
+	    LoadSurface %s1 1 $frameID
+	}
+}
+
+proc DoLoadPatchDlog {} {
+    dputs "DoLoadPatchDlog  "
+
+    global gaCollection
+
+    if { [info exists gaCollection(current,id)] &&
+	 $gaCollection(current,id) >= -1 &&
+	 "$gaCollection(current,type)" == "Surface" } {
+
+	tkuDoFileDlog -title "Load Patch Into Surface" \
+	    -prompt1 "Will load a patch into surface \"$gaCollection(current,label)\"." \
+	    -type1 note \
+	    -prompt2 "Load Patch: " \
+	    -defaultdir2 [GetDefaultFileLocation LoadPatch] \
+	    -okCmd {
+		set err [catch { set fnPatch [FindFile %s2] } sResult]
+		if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
+		LoadSurfacePatch $gaCollection(current,id) $fnPatch
+		RedrawFrame [GetMainFrameID]
+	    }
+	
+    } else {
+	tkuErrorDlog "You must first select a surface into which to load the patch. Please select one in the data collections panel."
+    }
+}
 
 proc DoSaveAsDlog {} {
     dputs "DoSaveAsDlog  "
@@ -5051,7 +5117,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.106 2005/05/10 19:01:09 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.107 2005/05/11 00:04:18 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
