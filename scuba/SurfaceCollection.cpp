@@ -426,7 +426,7 @@ SurfaceCollection::GetNthVertex_Unsafe ( int inVertex,
 
   SurfaceToRAS( dataRAS, oRAS );
 
-  if( NULL != oRAS ) {
+  if( NULL != oRipped ) {
     *oRipped = vertex->ripflag;
   }
 }
