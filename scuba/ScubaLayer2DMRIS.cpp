@@ -1,5 +1,6 @@
 #include <list>
 #include "ScubaLayer2DMRIS.h"
+#include "VectorOps.h"
 
 using namespace std;
 
@@ -61,6 +62,10 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     DebugOutput( << "No surface to draw" );
     return;
   }
+
+  // Get a point and a normal for our view plane.
+  Point3<float> planeRAS( iViewState.mCenterRAS );
+  Point3<float> planeN( iViewState.mPlaneNormal );
   
   list<int> drawList;
   int cIntersectionsInFace = 0;
@@ -88,61 +93,22 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       mSurface->GetNthVertexInFace_Unsafe( nFace, nNextVertex, 
 					   vnRAS.xyz(), &bNextRipped );
 
+      // Don't draw ripped verts.
       if( bRipped || bNextRipped ) {
 	continue;
       }
 
-      // Get the coordinate we need to compare for this plane. We look
-      // at the inplane coordinates in each vertex.
-      float vertexCoord, nextVertexCoord, planeCoord;
-      switch( iViewState.mInPlane ) {
-      case ViewState::X:
-	vertexCoord     = vRAS.x();
-	nextVertexCoord = vnRAS.x();
-	planeCoord      = iViewState.mCenterRAS[0];
-	break;
-      case ViewState::Y:
-	vertexCoord     = vRAS.y();
-	nextVertexCoord = vnRAS.y();;
-	planeCoord      = iViewState.mCenterRAS[1];
-	break;
-      case ViewState::Z:
-      default:
-	vertexCoord     = vRAS.z();
-	nextVertexCoord = vnRAS.z();
-	planeCoord      = iViewState.mCenterRAS[2];
-	break;
-      }
-
       // If they cross the view's in plane coordinate...
-      if( (vertexCoord - planeCoord) * (nextVertexCoord - planeCoord) <= 0.0 ) {
+      VectorOps::IntersectionResult rInt;
+      Point3<float> intersectionRAS;
+      rInt = VectorOps::SegmentIntersectsPlane
+	( vRAS, vnRAS, planeRAS, planeN, intersectionRAS );
+      if( VectorOps::intersect == rInt ) {
 
-	// Calculate the intersection point of the edge with this
-	// plane.
-	float f = (planeCoord - vertexCoord) / (nextVertexCoord - vertexCoord);
-
-	float world[3];
-	switch( iViewState.mInPlane ) {
-	case ViewState::X:
-	  world[0] = iViewState.mCenterRAS[0];
-	  world[1] = vRAS.y() + f * (vnRAS.y() - vRAS.y());
-	  world[2] = vRAS.z() + f * (vnRAS.z() - vRAS.z());
-	  break;
-	case ViewState::Y:
-	  world[0] = vRAS.x() + f * (vnRAS.x() - vRAS.x());
-	  world[1] = iViewState.mCenterRAS[1];
-	  world[2] = vRAS.z() + f * (vnRAS.z() - vRAS.z());
-	  break;
-	case ViewState::Z:
-	  world[0] = vRAS.x() + f * (vnRAS.x() - vRAS.x());
-	  world[1] = vRAS.y() + f * (vnRAS.y() - vRAS.y());
-	  world[2] = iViewState.mCenterRAS[2];
-	  break;
-	}
-
-	// Translate it to a window coord. If it's in the view...
+	// Translate intersection point to a window coord. If it's in
+	// the view...
 	int window[2];
-	iTranslator.TranslateRASToWindow( world, window );
+	iTranslator.TranslateRASToWindow( intersectionRAS.xyz(), window );
 
 	if( window[0] >= 0 && window[0] < iWidth && 
 	    window[1] >= 0 && window[1] < iHeight ) { 
