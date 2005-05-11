@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # qsurfer - quick surfer
 #
-set VERSION = '$Id: qsurfer,v 1.4 2005/05/09 18:04:47 greve Exp $'
+set VERSION = '$Id: qsurfer,v 1.5 2005/05/11 21:53:54 greve Exp $'
 set cmdargs = ($argv);
 
 set usenew = ".new";
@@ -88,11 +88,7 @@ set rmtclcmd = 0;
 if(! $flat ) then
   if(! $rtopy) then
     if($#usenew == 1) then
-      if(-e `pwd`) then
-        set tclcmd = `pwd`/qsurfer-$$.tcl
-      else
-        set tclcmd = /tmp/qsurfer-$$.tcl
-      endif
+      set tclcmd = /tmp/qsurfer-$$.tcl
       rm -f $tclcmd
       echo "set val $wfile" >> $tclcmd
       echo "sclv_read_binary_values 0" >> $tclcmd
@@ -140,7 +136,7 @@ echo $cmd
 echo "----------------------------------------------------------" 
 $cmd 
 
-if($rmtclcmd) rm -f $tclcmd;
+if($rmtclcmd) rm -f $tclcmd
 
 ##############################################################
 
