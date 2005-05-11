@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.108 2005/05/11 18:51:27 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.109 2005/05/11 22:44:40 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3904,6 +3904,7 @@ proc DrawLabelArea {} {
 
     global gaWidget
     global glLabelValues
+    global tk_version
 
     foreach nArea {1 2} {
 
@@ -3997,11 +3998,17 @@ proc DrawLabelArea {} {
 	    if { [catch {$ewValue config}] } {
 		set bgColor gray
 		catch { set bgColor [tix option get disabled_bg] }
+
+		set sState disabled
+		if { $tk_version >= 8.4 } {
+		    set sState readonly
+		}
+
 		entry $ewValue \
 		    -textvariable glLabelValues($nArea,"$label",value) \
 		    -font [tkuNormalFont] \
 		    -width 18 \
-		    -state disabled \
+		    -state $sState \
 		    -relief flat \
 		    -background $bgColor
 	    } else {
@@ -5127,7 +5134,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.108 2005/05/11 18:51:27 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.109 2005/05/11 22:44:40 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
