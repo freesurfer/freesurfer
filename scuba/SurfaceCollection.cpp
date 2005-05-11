@@ -45,6 +45,9 @@ SurfaceCollection::SurfaceCollection () :
 			 "the volume's collection ID." );
   commandMgr.AddCommand( *this, "LoadSurfacePatch", 2, "collectionID fileName",
 			 "Loads a patch into a surface." );
+  commandMgr.AddCommand( *this, "GetSurfaceUseRealRAS", 1, "collectionID",
+			 "Returns whether or not a surface has its useRealRAS "
+			 "flag on." );
 }
 
 SurfaceCollection::~SurfaceCollection() {
@@ -316,6 +319,26 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
     }
   }
 
+  // GetSurfaceUseRealRAS <collectionID>
+  if( 0 == strcmp( isCommand, "GetSurfaceUseRealRAS" ) ) {
+
+    int collectionID;
+    try { 
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+    catch( runtime_error e ) {
+      sResult = string("bad collection ID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+      
+      stringstream ssReturnValues;
+      ssReturnValues << GetUseRealRAS();
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
+    }
+  }
 
   return DataCollection::DoListenToTclCommand( isCommand, iArgc, iasArgv );
 }
@@ -406,6 +429,16 @@ SurfaceCollection::GetNthVertex_Unsafe ( int inVertex,
   if( NULL != oRAS ) {
     *oRipped = vertex->ripflag;
   }
+}
+
+bool
+SurfaceCollection::GetUseRealRAS () {
+
+  if( NULL != mMRIS ) {
+    return mMRIS->useRealRAS;
+  }
+
+  return false;
 }
 
 void

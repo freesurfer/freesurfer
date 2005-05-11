@@ -58,6 +58,8 @@ class SurfaceCollection : public DataCollection {
   void GetNthVertex_Unsafe ( int inVertex, 
 			     float oRAS[3], bool* oRipped );
 
+  bool GetUseRealRAS ();
+
  protected:
   std::string mfnMRIS;
   MRIS* mMRIS;
