@@ -72,6 +72,12 @@ VolumeCollection::VolumeCollection () :
   commandMgr.AddCommand( *this, "GetVolumeAutosaveOn", 1, "collectionID",
 			 "Returns whether or not autosave is on for this "
 			 "volume." );
+  commandMgr.AddCommand( *this, "GetRASCoordsFromVolumeSurfaceRAS", 4, 
+			 "collectionID x y z", "Returns a list of RAS coords "
+			 "converted from the input surface RAS coords. This "
+			 "is for converting RAS points acquired from a "
+			 "surface that is associated with a volume and "
+			 "didn't generate coordinates with CRAS info." );
 }
 
 VolumeCollection::~VolumeCollection() {
@@ -382,6 +388,26 @@ void
 VolumeCollection::RASToDataRAS ( float const iRAS[3], float oDataRAS[3] ) {
   
   mDataToWorldTransform->InvMultiplyVector3( iRAS, oDataRAS );
+}
+
+void
+VolumeCollection::SurfaceRASToRAS ( float const iSurfaceRAS[3],
+				    float oRAS[3] ) {
+
+  if( NULL != mMRI ) {
+    Real surfaceRAS[3], RAS[3];
+    surfaceRAS[0] = iSurfaceRAS[0];
+    surfaceRAS[1] = iSurfaceRAS[1];
+    surfaceRAS[2] = iSurfaceRAS[2];
+    MRIsurfaceRASToRAS( mMRI, surfaceRAS[0], surfaceRAS[1], surfaceRAS[2],
+			&RAS[0], &RAS[1], &RAS[2] );
+    oRAS[0] = RAS[0];
+    oRAS[1] = RAS[1];
+    oRAS[2] = RAS[2];
+  } else {
+    throw runtime_error( "Cannot transform from surface RAS because no "
+			 "MRI is loaded." );
+  }
 }
 
 float 
@@ -764,7 +790,6 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     }
   }
   
-
   // GetVolumeAutosaveOn <collectionID>
   if( 0 == strcmp( isCommand, "GetVolumeAutosaveOn" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
@@ -778,6 +803,36 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
       sReturnValues =
 	TclCommandManager::ConvertBooleanToReturnValue( mbAutosave );
       sReturnFormat = "i";
+    }
+  }
+
+  // GetRASCoordsFromVolumeSurfaceRAS <colllectionID> <x> <y> <z>
+  if( 0 == strcmp( isCommand, "GetRASCoordsFromVolumeSurfaceRAS" ) ) {
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad collectionID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      float surfaceRAS[3];
+      surfaceRAS[0] = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
+      surfaceRAS[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
+      surfaceRAS[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
+
+      float ras[3];
+      SurfaceRASToRAS( surfaceRAS, ras );
+
+      stringstream ssReturnValues;
+      ssReturnValues << ras[0] << " " << ras[1] << " " << ras[2];
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "Lfffl";
+
+      return ok;
     }
   }
 

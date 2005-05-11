@@ -100,6 +100,10 @@ class VolumeCollection : public DataCollection {
   void MRIIndexToRAS ( float const iIndex[3], float oRAS[3] );
   void RASToDataRAS  ( float const iRAS[3], float oDataRAS[3] );
 
+  // Special conversion for compatibility with old edit.dat formats.
+  // Calls MRIRASToSurfaceRAS.
+  void SurfaceRASToRAS ( float const iRAS[3], float oIndex[3] );
+
   // Bounds testing.
   bool IsInBounds ( VolumeLocation& iLoc );
 
