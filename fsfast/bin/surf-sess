@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # surf-sess
 #
-set VERSION = '$Id: surf-sess,v 1.8 2005/03/28 21:17:19 greve Exp $'
+set VERSION = '$Id: surf-sess,v 1.9 2005/05/11 19:50:08 greve Exp $'
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 set inputargs = ($argv);
 
@@ -271,7 +271,7 @@ setenv colscale 1
 setenv colscalebarflag 1
 setenv invphaseflag 0
 setenv truncphaseflag 0
-set curv = $hemi.$thiscurv
+setenv curv $hemi.$thiscurv
 if($UseAvgCurv) then
   setenv curv $hemi.avg_curv
   set fname = $SUBJECTS_DIR/$subject/surf/$curv
@@ -279,6 +279,7 @@ if($UseAvgCurv) then
     echo "ERROR: cannot find average curvature file $curv for $subject"
     exit 1;
   endif
+  echo Using average curvature $curv
   setenv curvsteps 10
 else
   setenv curv $hemi.curv
