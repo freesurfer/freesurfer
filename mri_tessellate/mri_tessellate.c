@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/05/02 20:00:49 $
-// Revision       : $Revision: 1.22 $
+// Revision Date  : $Date: 2005/05/11 20:12:58 $
+// Revision       : $Revision: 1.23 $
 //
 //
 // How it works.
@@ -39,7 +39,7 @@
 //
 //          MRIvoxelToSurfaceRAS()
 //
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.22 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.23 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -119,7 +119,7 @@ main(int argc, char *argv[])
   int xnum, ynum, numimg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.22 2005/05/02 20:00:49 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.23 2005/05/11 20:12:58 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -391,7 +391,7 @@ static void write_binary_surface(char *fname, MRI *mri)
   else
     fprintf(stdout, "writing %s\n", fname);
 
-  fwrite3(-1,fp);
+  fwrite3(-3,fp);
   fwrite3(vertex_index,fp);
   fwrite3(face_index,fp);
 
@@ -400,6 +400,8 @@ static void write_binary_surface(char *fname, MRI *mri)
     m = extract_i_to_r(mri);
   else
     m = surfaceRASFromVoxel_(mri);
+	printf("using ras2vox matrix:\n") ;
+	MatrixPrint(stdout, m) ;
 
   vv = VectorAlloc(4, MATRIX_REAL);
   vw = VectorAlloc(4, MATRIX_REAL);
@@ -418,9 +420,9 @@ static void write_binary_surface(char *fname, MRI *mri)
     y = V3_Y(vw);
     z = V3_Z(vw);
 
-    fwrite2((int)(x*100),fp);
-    fwrite2((int)(y*100),fp);
-    fwrite2((int)(z*100),fp);
+    fwriteFloat(x,fp);
+    fwriteFloat(y,fp);
+    fwriteFloat(z,fp);
   }
   MatrixFree(&m);
   VectorFree(&vv);
