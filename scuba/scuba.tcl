@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.107 2005/05/11 00:04:18 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.108 2005/05/11 18:51:27 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -387,6 +387,15 @@ proc ExtractLabelFromFileName { ifnData } {
 	incr nBegin 5
 	set sData [string range $ifnData $nBegin end]
 	set bFoundDataName 1
+    } else {
+	
+	# Could still be a surface if it has lh. or rh. in the file
+	# name. Matches lh.blah or rh.blah.
+	set sTest [regexp -inline -all -- {[lr]h\.\w*} $ifnData]
+	if { [llength $sTest] > 0 } {
+	    set sData $sTest
+	    set bFoundDataName 1
+	}
     }
 
     if { ! $bFoundDataName } {
@@ -531,6 +540,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "Histogram Fill..." { MakeHistogramFillWindow } }
 	{command "Data Collection Info..." { DoDataInfoWindow } }
 	{command "Find Surface Vertex..." { DoFindSurfaceVertex } }
+	{command "Set Cursor from edit.dat File..." { DoSetCursorFromEditDatFileDlog } }
     }
 
     pack $gaMenu(tools) -side left
@@ -5117,7 +5127,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.107 2005/05/11 00:04:18 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.108 2005/05/11 18:51:27 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5557,7 +5567,7 @@ proc DoFindSurfaceVertex {} {
 	    -variable gFindSurfaceInfo(layerID) \
 	    -command { VolumeInfoMenuCallback }
 	FillMenuFromList $owSurface \
-	    $lLayers "GetCollectionLabel %s" {} false
+	    $lLayers "GetLayerLabel %s" {} false
 
 	pack $owSurface -fill x -expand 1
 
@@ -5599,6 +5609,151 @@ proc FindSurfaceVertexCallback {} {
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
    
+}
+
+proc DoSetCursorFromEditDatFileDlog {} {
+    global gEditDatInfo
+    global gaCollection
+    global gaDialog
+
+    # Make list of volume and surface collections.
+    set lSurfaces {}
+    set lVolumes {}
+    foreach colID $gaCollection(idList) {
+	if { [string match [GetCollectionType $colID] Surface] } {
+	    lappend lSurfaces $colID
+	}
+	if { [string match [GetCollectionType $colID] Volume] } {
+	    lappend lVolumes $colID
+	}
+    }
+    
+    # If not surfaces, just do the setcursor.
+    if { [llength $lSurfaces] == 0 } {
+	set gEditDatInfo(useRealRAS) 1
+	SetCursorFromEditDatFile
+    }
+
+    set wwDialog .setCursorFromEditDatFile
+    if { [tkuCreateDialog $wwDialog "Find Vertex" {-borderwidth 10}] } {
+
+	set fwSurface     $wwDialog.fwSurface
+	set fwVolume      $wwDialog.fwVolume
+	set fwUseRealRAS  $wwDialog.fwUseRealRAS
+	set fwButtons     $wwDialog.fwButtons
+	
+	frame $fwSurface
+	set owSurface $fwSurface.owSurface
+
+	tixOptionMenu $owSurface \
+	    -label "Surface:" \
+	    -variable gEditDatInfo(surfaceID) \
+	    -command { EditDataSurfaceMenuCallback }
+	FillMenuFromList $owSurface \
+	    $lSurfaces "GetCollectionLabel %s" {} false
+
+	pack $owSurface -fill x -expand 1
+
+	frame $fwVolume
+	set owVolume $fwVolume.owVolume
+
+	tixOptionMenu $owVolume \
+	    -label "Volume:" \
+	    -variable gEditDatInfo(volumeID)
+	FillMenuFromList $owVolume \
+	    $lVolumes "GetCollectionLabel %s" {} false
+
+	pack $owVolume -fill x -expand 1
+
+	set gEditDatInfo(useRealRAS) 0
+	frame $fwUseRealRAS
+	tkuMakeCheckboxes $fwUseRealRAS.cbUseRealRAS \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Use Real RAS" 
+		-variable gEditDatInfo(useRealRAS) }}
+
+	pack $fwUseRealRAS.cbUseRealRAS
+
+
+	tkuMakeApplyCloseButtons $fwButtons $wwDialog \
+	    -applyLabel "Read" \
+	    -applyCmd SetCursorFromEditDatFile
+	
+	pack $fwSurface $fwVolume $fwUseRealRAS $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+
+	# Set it up with the first surface and volume.
+	EditDataSurfaceMenuCallback [lindex $lSurfaces 0]
+	set gEditDatInfo(volumeID) [lindex $lVolumes 0]
+    }
+}
+
+proc EditDataSurfaceMenuCallback { iColID } {
+    global gEditDatInfo
+
+    # Get the useRealRAS value from this surface and preset the checkbox.
+    set gEditDatInfo(useRealRAS) [GetSurfaceUseRealRAS $iColID]
+}
+
+proc SetCursorFromEditDatFile {} {
+    global gSubject
+    global gaView
+    global gaWidget
+    global gEditDatInfo
+
+    if { ![info exists gSubject(homeDir)] } {
+	tkuErrorDlog "Can't read edit.dat file: No subject is set."
+	return
+    }
+
+    set fnCursor $gSubject(homeDir)/tmp/edit.dat
+
+    set err [catch {
+	set fCursor [open $fnCursor r]
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog "Couldn't open $fnCursor\n$err"; return }
+
+    set err [catch {
+	set lRAS [gets $fCursor]
+    } sResult]
+    if { 0 != $err } { 
+	tkuErrorDlog "Couldn't read from $fnCursor\n$err"
+	close $fCursor
+	return 
+    }
+
+    close $fCursor
+
+    if { [llength $lRAS] != 3 } {
+	tkuErrorDlog "Invalid format for $fnCursor: $lRAS"
+	return
+    }
+
+    # If not useRealRAS, let the volume transform our point here. 
+    if { !$gEditDatInfo(useRealRAS) } {
+
+	set lConvertedRAS \
+	    [GetRASCoordsFromVolumeSurfaceRAS $gEditDatInfo(volumeID) \
+		 [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]]
+
+	set lRAS $lConvertedRAS
+    }
+
+    SetViewRASCursor \
+	[lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
+    RedrawFrame [GetMainFrameID]
+
+    # Update cursor.
+    set err [catch { 
+	set labelValues [GetLabelValuesSet $gaView(current,id) cursor]
+	UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
 }
 
 # MAIN =============================================================
