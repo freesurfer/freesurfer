@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/05/06 05:41:15 $
-// Revision       : $Revision: 1.348 $
+// Revision Date  : $Date: 2005/05/11 19:36:26 $
+// Revision       : $Revision: 1.349 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -32738,7 +32738,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 	/* mark the defect with the value 1 (only inside vertices not border !) */
   for (i = 0 ; i < dl->ndefects ; i++)
     mrisMarkDefect(mris, &dl->defects[i], 1) ;
-	if(parms->search_mode!=GREEDY_SEARCH) { /* don't keep all vertices */
+	if(parms->search_mode==GREEDY_SEARCH) { /* don't keep all vertices */
 		for (n = 0 ; n < dl->defects[i].nvertices ; n++)
 				if (dl->defects[i].status[n] == DISCARD_VERTEX)
 					kept_vertices-- ;
