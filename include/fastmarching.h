@@ -5,9 +5,9 @@
 //
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/02/11 21:25:08 $
-// Revision       : $Revision: 1.1 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2005/05/12 16:14:16 $
+// Revision       : $Revision: 1.2 $
 
 // include guard
 #ifndef fastmarching_h
@@ -19,7 +19,9 @@ extern "C" {
 #endif
 
 #include "mri.h"
-MRI *MRIextractDistanceMap(MRI *mri_src, MRI *mri_dst,int label, float max_distance, int mode);
+	
+	MRI *MRIextractDistanceMap(MRI *mri_src, MRI *mri_dst,int label, float max_distance, int mode);
+	void MRISextractOutsideDistanceMap(MRIS *mris, MRI *mri_src, int label , int offset, float resolution, float max_distance);
 
 #ifdef __cplusplus
 }
@@ -41,6 +43,7 @@ extern "C" {
 #define mapMRI_XYZ(mri,x,y,z) for(int z =0 ; z < mri->depth ; z++) \
                  for(int y = 0 ; y < mri->height ; y++) \
                  for(int x = 0 ; x < mri->width ; x++)
+
 const float DELTA = 1.0f;
 const float EPS = 1e-6f;
 const float BIG = 1e6f;
@@ -73,6 +76,7 @@ template <int sign = +1>
   typedef std::priority_queue<stCoord,std::vector<stCoord>,HeapCompare> CoordHeap;
   protected:
   //members
+	public:
   MRI *mri;
   CoordHeap trial_heap;
   CoordList alive_list;
@@ -235,21 +239,21 @@ template <int sign = +1>
 	
     if(sign>0){
       mapMRI_XYZ(_mri,x,y,z){
-	int val=MRIvox(_mri,x,y,z);
-	if(val!=label) {
-	  MRIFvox(mri,x,y,z)=limit;
-	  continue;
-	}
-	MRIvox(status,x,y,z)=eForbidden;
+				int val=MRIvox(_mri,x,y,z);
+				if(val!=label) {
+					MRIFvox(mri,x,y,z)=limit;
+					continue;
+				}
+				MRIvox(status,x,y,z)=eForbidden;
       }
     }else{
       mapMRI_XYZ(_mri,x,y,z){
-	int val=MRIvox(_mri,x,y,z);
-	if(val==label) {
-	  MRIFvox(mri,x,y,z)=limit;
-	  continue;
-	}
-	MRIvox(status,x,y,z)=eForbidden;
+				int val=MRIvox(_mri,x,y,z);
+				if(val==label) {
+					MRIFvox(mri,x,y,z)=limit;
+					continue;
+				}
+				MRIvox(status,x,y,z)=eForbidden;
       }
     }
 
@@ -270,8 +274,65 @@ template <int sign = +1>
     }
 		
     InitTrialFromAlive();
- 
+		
   } 
+
+/* volume floats */
+#define xVOL(mri,x) (mri->xsize*(x-mri->xstart))
+#define yVOL(mri,y) (mri->ysize*(y-mri->ystart))
+#define zVOL(mri,z) (mri->zsize*(z-mri->zstart))
+/* volume integers */
+#define iVOL(mri,x) ((int)(xVOL(mri,x)+0.5))
+#define jVOL(mri,y) ((int)(yVOL(mri,y)+0.5))
+#define kVOL(mri,z) ((int)(zVOL(mri,z)+0.5))
+
+#define xSURF(mri,x) (mri->xstart+(float)x/mri->xsize)
+#define ySURF(mri,y) (mri->ystart+(float)y/mri->ysize)
+#define zSURF(mri,z) (mri->zstart+(float)z/mri->zsize)
+
+	void InitForOutsideMatch(MRI *mri_distance, MRI* _mri,int label){
+		Real xv,yv,zv;
+		MRI *mri_seg=MRIalloc(width,height,depth,MRI_UCHAR);
+		mapMRI_XYZ(mri,x,y,z){
+			//find coordinates for _mri: mri->surf->_mri
+			MRIsurfaceRASToVoxel(_mri,xSURF(mri_distance,x),ySURF(mri_distance,y),zSURF(mri_distance,z),&xv,&yv,&zv);
+			//find value
+			int val=MRIvox(_mri,(int)xv,(int)yv,(int)zv);
+			if(val!=label) {
+				MRIvox(mri_seg,x,y,z)=0;
+				MRIFvox(mri,x,y,z)=limit;
+				continue;
+			}
+			MRIvox(mri_seg,x,y,z)=1;
+			MRIvox(status,x,y,z)=eForbidden;
+		}
+
+		mapMRI_XYZ(mri,x,y,z){
+			if(MRIFvox(mri_distance,x,y,z)<=0.0f){
+				MRIFvox(mri,x,y,z)=limit;
+				MRIvox(status,x,y,z)=eForbidden;
+			}
+		}
+		
+		mapMRI_XYZ(mri,x,y,z){
+      int val1=MRIvox(mri_seg,x,y,z),val2;
+      int px,py,pz;
+      px = (x < width-1) ? x+1:x;
+      py = (y < height-1) ? y+1:y;
+      pz = (z < depth-1) ? z+1:z;
+      bool add = false;
+      val2=MRIvox(mri_seg,px,y,z);
+      if(val1!=val2 ) { add = true; _AddAlivePoint(px,y,z); }
+      val2=MRIvox(mri_seg,x,py,z);
+      if (val1!=val2 ) { add = true; _AddAlivePoint(x,py,z); }
+      val2=MRIvox(mri_seg,x,y,pz);
+      if (val1!=val2 ) { add = true; _AddAlivePoint(x,y,pz); }
+      if (add) _AddAlivePoint(x,y,z);
+    }
+		MRIfree(&mri_seg);
+    InitTrialFromAlive();
+		
+	}
 
   void _AddAlivePoint(int x, int y, int z) {
     const eState st = (eState)MRIvox(status,x,y,z);
