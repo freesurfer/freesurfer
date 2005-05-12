@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.35 2004/12/31 23:49:14 greve Exp $
+  $Id: mris_glm.c,v 1.36 2005/05/12 15:30:27 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -41,6 +41,7 @@ MC Sim:
 #include "version.h"
 #include "pdf.h"
 #include "fsgdf.h"
+#include "fio.h"
 
 #ifdef X
 #undef X
@@ -73,7 +74,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.35 2004/12/31 23:49:14 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.36 2005/05/12 15:30:27 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -117,7 +118,7 @@ char *eresid  = NULL;
 char *eresfmt = NULL;
 int   eresfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 
-char *yid  = NULL;
+char *yid  = NULL, *yidbase, *yidstem, *yidbasestem, xmatpath[1000];
 char *yfmt = NULL;
 int   yfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 
@@ -196,7 +197,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.35 2004/12/31 23:49:14 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.36 2005/05/12 15:30:27 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -468,9 +469,15 @@ int main(int argc, char **argv)
 	if(surfmeasure != NULL) strcpy(fsgd->measname,surfmeasure);
 	else	                strcpy(fsgd->measname,"external");
 
-	sprintf(fsgd->datafile,"%s_000.bfloat",getstem(yid));
-	sprintf(fsgd->DesignMatFile,"%s.X.mat",getstem(yid));
-	MatlabWrite(X,fsgd->DesignMatFile,"X");
+	yidbase     = fio_basename(yid,NULL);
+	yidstem     = getstem(yid);
+	yidbasestem = getstem(yidbase);
+	sprintf(fsgd->datafile,"%s",yidbase);
+
+	sprintf(fsgd->DesignMatFile,"%s.X.mat",yidbasestem);
+	sprintf(xmatpath,"%s.X.mat",yidstem);
+	MatlabWrite(X,xmatpath,"X");
+
 	fp = fopen(tmpstr,"w");
 	gdfPrintHeader(fp,fsgd);
 	fprintf(fp,"Creator          %s\n",Progname);
@@ -841,6 +848,7 @@ static int parse_commandline(int argc, char **argv)
 	yfmtid = checkfmt(yfmt);
       }
       else yfmtid = getfmtid(yid);
+      printf("y stem %s\n",getstem(yid));
     }
     else if (!strcmp(option, "--yhat")){
       if(nargc < 1) argnerr(option,1);
@@ -1756,23 +1764,37 @@ int CheckDesignMatrix(MATRIX *X)
   return(0);
 }
 /*---------------------------------------------------*/
-static char *getstem(char *bfilename)
+static char *getstem(char *filename)
 {
+  int filetype;
   char *stem;
   int len;
 
-  /* eg, f_000.bfloat, stem = f*/
+  filetype = mri_identify(filename);
+  if(filetype == MRI_VOLUME_TYPE_UNKNOWN){
+    printf("ERROR: cannot determine type of %s\n",filename);
+    exit(1);
+  }
 
-  len = strlen(bfilename);
+  len = strlen(filename);
   stem = (char *) calloc(sizeof(char),len+1);
   
-  if(len < 12)
-    memcpy(stem,bfilename,len);
-  else
-    memcpy(stem,bfilename,len-11);
-
-  //printf("bfilename: %s\n",bfilename);
-  //printf("stem:      %s\n",stem);
+  switch(filetype){
+  case BFLOAT_FILE:
+    memcpy(stem,filename,len-11);
+    break;
+  case MRI_MGH_FILE:
+  case MRI_ANALYZE_FILE:
+  case MRI_ANALYZE4D_FILE:
+  case NIFTI1_FILE:
+  case NII_FILE:
+    memcpy(stem,filename,len-4);
+    break;
+  default:
+    printf("ERROR: cannot determine stem for %s\n",filename);
+    exit(1);
+    break;
+  }
 
   return(stem);
 }
