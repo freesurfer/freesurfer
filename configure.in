@@ -770,7 +770,7 @@ mri_reduce/Makefile mri_register/Makefile mri_relabel_hypointensities/Makefile \
 mri_remove_neck/Makefile mri_ribbon/Makefile mri_rigid_register/Makefile \
 mri_segment/Makefile mri_seghead/Makefile mri_surfcluster/Makefile mri_surfacemask/Makefile mri_strip_skull/Makefile \
 mri_strip_subject_info/Makefile mri_strip_nonwhite/Makefile mri_surf2surf/Makefile \
-mri_surf2vol/Makefile mri_synthesize/Makefile mri_tessellate/Makefile mri_transform/Makefile \
+mri_surf2vol/Makefile mri_synthesize/Makefile mri_tessellate/Makefile mri_distance_transform/Makefile mri_transform/Makefile \
 mri_train/Makefile mri_twoclass/Makefile mri_volcluster/Makefile mri_volsynth/Makefile \
 mri_vol2roi/Makefile mri_vol2surf/Makefile mri_watershed/Makefile mri_wmfilter/Makefile \
 mri_xvolavg/Makefile stim/Makefile stim_polar/Makefile tridec/Makefile \

@@ -18,7 +18,7 @@ mri_nlfilter mri_normalize mri_partial_ribbon mri_paint mri_parselabel mri_parse
 mri_reduce mri_register mri_relabel_hypointensities mri_remove_neck mri_ribbon mri_rigid_register \
 mri_segment mri_seghead mri_surfacemask mri_strip_skull mri_strip_subject_info mri_strip_nonwhite mri_surf2surf \
 mri_surf2vol mri_surfcluster mri_synthesize \
-mri_tessellate mri_transform mri_train mri_twoclass \
+mri_tessellate mri_distance_transform mri_transform mri_train mri_twoclass \
 mri_volcluster mri_volsynth mri_vol2roi mri_vol2surf mri_watershed mri_wmfilter \
 mri_xvolavg mri_threshold mri_edit_wm_with_aseg mri_bc_sc_bias_correct \
 mri_morphology mri_topologycorrection 
