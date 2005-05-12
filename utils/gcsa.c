@@ -847,8 +847,11 @@ GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
     cp = &cpn->cps[n] ;
     gcs = getGC(gcsan, cpn->labels[n], NULL) ;
     if (!gcs)
-      ErrorExit(ERROR_BADPARM, "GCSANclassify: could not find GCS for node %d!",
-                n) ;
+		{
+      ErrorPrintf(ERROR_BADPARM, 
+									"GCSANclassify: could not find GCS for node %d!",n) ;
+			continue ;
+		}
     v_x = VectorCopy(gcs->v_means, v_x) ;
     for (i = 0 ; i < ninputs ; i++)
       VECTOR_ELT(v_x, i+1) -= v_inputs[i] ;
