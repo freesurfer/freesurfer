@@ -7,7 +7,7 @@
 #include "dicom/dicom_objects.h"
 #include "dicom/condition.h"
 
-#define NUMBEROFTAGS 22
+#define NUMBEROFTAGS 24
 #define SHORTSIZE 16
 #ifndef INTSIZE
 #define INTSIZE 16
@@ -26,25 +26,49 @@ typedef unsigned short int BOOL;
 
 #ifdef _DICOMRead_SRC
   char *SDCMStatusFile = 0;
-  char  *SDCMListFile = 0;
+  char *SDCMListFile = 0;
 #else
   extern char *SDCMStatusFile;
-  extern char  *SDCMListFile;
+  extern char *SDCMListFile;
 #endif
 
-typedef enum {
-  // general infos
-  DCM_StudyDate, DCM_PatientName, DCM_Manufacturer, DCM_StudyTime, DCM_SeriesTime, DCM_AcquisitionTime,
+typedef enum { 
+  // note: increment the #DEFINE NUMBEROFTAGS at the top of this file
+  // if adding elements to this DCM_TagList
   
+  // general infos
+  DCM_StudyDate, 
+  DCM_PatientName, 
+  DCM_Manufacturer, 
+  DCM_StudyTime, 
+  DCM_SeriesTime, 
+  DCM_AcquisitionTime,
+  
+  // image data format identifier (raw, or JPEG compressed)
+  DCM_TransferSyntaxUID,
+
   // image dimensions
-  DCM_SliceThickness, DCM_xsize, DCM_ysize, DCM_ImageNumber, DCM_Rows, DCM_Columns, DCM_BitsAllocated, 
-  DCM_NumberOfFrames, DCM_FieldOfView,
+  DCM_SliceThickness, 
+  DCM_xsize, 
+  DCM_ysize, 
+  DCM_ImageNumber, 
+  DCM_Rows, 
+  DCM_Columns, 
+  DCM_BitsAllocated, 
+  DCM_NumberOfFrames, 
+  DCM_FieldOfView,
 
   // image position and orientation
-  DCM_ImagePosition,  DCM_ImageOrientation,
+  DCM_ImagePosition,  
+  DCM_ImageOrientation,
 
   // acquisition parameters
-  DCM_EchoTime, DCM_RepetitionTime, DCM_InversionTime, DCM_FlipAngle, DCM_EchoNumber
+  DCM_EchoTime, 
+  DCM_RepetitionTime, 
+  DCM_InversionTime, 
+  DCM_FlipAngle, 
+  DCM_EchoNumber
+
 } DCM_TagList;
 
 typedef struct
@@ -60,6 +84,9 @@ typedef struct
     *SeriesTime, 
     *AcquisitionTime;
   
+  // image data format identifier (raw, or JPEG compressed)
+  char *TransferSyntaxUID;
+
   // image dimensions
   double SliceThickness,
     xsize,
@@ -106,6 +133,12 @@ typedef struct {
   char *PhEncDir;
   char *NumarisVer;
   char *ScannerModel;
+
+  // This stores the 'Transfer Syntax Unique Identification',
+  // which reports the structure of the image data, revealing 
+  // whether the data has been compressed. See:
+  // http://www.psychology.nottingham.ac.uk/staff/cr1/dicom.html
+  char *TransferSyntaxUID;
 
   int   EchoNo;
   float FlipAngle;

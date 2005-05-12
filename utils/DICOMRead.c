@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.72 2004/12/03 00:30:28 greve Exp $
+   $Id: DICOMRead.c,v 1.73 2005/05/12 17:10:22 nicks Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -339,17 +339,18 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   while (nlist--)
   {
     // free strings
-    free(sdfi_list[nlist]->FileName);
-    free(sdfi_list[nlist]->StudyDate);
-    free(sdfi_list[nlist]->StudyTime);
-    free(sdfi_list[nlist]->PatientName);
-    free(sdfi_list[nlist]->SeriesTime);
-    free(sdfi_list[nlist]->AcquisitionTime);
-    free(sdfi_list[nlist]->ScannerModel);
-    free(sdfi_list[nlist]->NumarisVer);
-    free(sdfi_list[nlist]->PulseSequence);
-    free(sdfi_list[nlist]->ProtocolName);
-    free(sdfi_list[nlist]->PhEncDir);
+    if (sdfi_list[nlist]->FileName != NULL) free(sdfi_list[nlist]->FileName);
+    if (sdfi_list[nlist]->StudyDate != NULL) free(sdfi_list[nlist]->StudyDate);
+    if (sdfi_list[nlist]->StudyTime != NULL) free(sdfi_list[nlist]->StudyTime);
+    if (sdfi_list[nlist]->PatientName != NULL) free(sdfi_list[nlist]->PatientName);
+    if (sdfi_list[nlist]->SeriesTime != NULL) free(sdfi_list[nlist]->SeriesTime);
+    if (sdfi_list[nlist]->AcquisitionTime != NULL) free(sdfi_list[nlist]->AcquisitionTime);
+    if (sdfi_list[nlist]->ScannerModel != NULL) free(sdfi_list[nlist]->ScannerModel);
+    if (sdfi_list[nlist]->NumarisVer != NULL) free(sdfi_list[nlist]->NumarisVer);
+    if (sdfi_list[nlist]->PulseSequence != NULL) free(sdfi_list[nlist]->PulseSequence);
+    if (sdfi_list[nlist]->ProtocolName != NULL) free(sdfi_list[nlist]->ProtocolName);
+    if (sdfi_list[nlist]->PhEncDir != NULL) free(sdfi_list[nlist]->PhEncDir);
+    if (sdfi_list[nlist]->TransferSyntaxUID != NULL) free(sdfi_list[nlist]->TransferSyntaxUID);
     // free struct
     free(sdfi_list[nlist]);
   }
@@ -1292,6 +1293,13 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   sdcmfi->FileName = (char *) calloc(l+1,sizeof(char));
   memcpy(sdcmfi->FileName,dcmfile,l);
 
+  // This stores the 'Transfer Syntax Unique Identification',
+  // which reports the structure of the image data, revealing 
+  // whether the data has been compressed. See:
+  // http://www.psychology.nottingham.ac.uk/staff/cr1/dicom.html
+  tag=DCM_MAKETAG(0x2, 0x10);
+  cond=GetString(&object, tag, &sdcmfi->TransferSyntaxUID);
+
   tag=DCM_MAKETAG(0x10, 0x10);
   cond=GetString(&object, tag, &sdcmfi->PatientName);
 
@@ -1499,6 +1507,9 @@ int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi)
   fprintf(fp,"\tVolCenter         %8.4f %8.4f %8.4f \n",
     sdcmfi->VolCenter[0],sdcmfi->VolCenter[1],sdcmfi->VolCenter[2]);
 
+  if (sdcmfi->TransferSyntaxUID != NULL)
+    fprintf(fp,"\tTransferSyntaxUID %s\n",sdcmfi->TransferSyntaxUID);
+
   return(0);
 }
 
@@ -1510,6 +1521,7 @@ int FreeSDCMFileInfo(SDCMFILEINFO **ppsdcmfi)
   p = *ppsdcmfi;
 
   if(p->FileName != NULL)        free(p->FileName);
+  if(p->TransferSyntaxUID != NULL) free(p->TransferSyntaxUID);
   if(p->PatientName != NULL)     free(p->PatientName);
   if(p->StudyDate != NULL)       free(p->StudyDate);
   if(p->StudyTime != NULL)       free(p->StudyTime);
@@ -2862,6 +2874,9 @@ void PrintDICOMInfo(DICOMInfo *dcminfo)
     strcpy(str, "not found");
   printf("\timage number\t\t%s (might be not reliable)\n", str);
 
+  if (IsTagPresent[DCM_TransferSyntaxUID])
+    printf("\ttransfer syntax UID\t%s\n",dcminfo->TransferSyntaxUID);
+
   printf("Acquisition parameters\n");
   if (IsTagPresent[DCM_EchoTime])
     sprintf(str, "%g", dcminfo->EchoTime);
@@ -2899,7 +2914,7 @@ void PrintDICOMInfo(DICOMInfo *dcminfo)
     strcpy(str, "not found");
   printf("\tbits allocated\t\t%s\n", str);
 
-  printf("Spatial informations\n");
+  printf("Spatial information\n");
   
   printf("\tfirst image position\t");
   if (IsTagPresent[DCM_ImagePosition])
@@ -3061,12 +3076,22 @@ CONDITION GetPixelData(DCM_OBJECT** object, DCM_TAG tag, void **ad)
   DCM_ELEMENT attribute;
   CONDITION cond;
   void *ctx, *ot;
+  unsigned int pixelDataLength;
 
   attribute.tag=tag;
   cond=DCM_GetElement(object, tag, &attribute);
   if (cond != DCM_NORMAL)
     return cond;
-  ot=(void*)malloc(attribute.length+1);
+
+  pixelDataLength = attribute.length;
+  if (pixelDataLength == 0xFFFFFFFF)
+  {
+     printf("ERROR: Invalid DICOM pixel data length = %8.8Xh\n",pixelDataLength);     
+     printf("       DICOM group:element 7FE0:0010\n");
+     exit(1);
+  }
+
+  ot=(void*)malloc(pixelDataLength+1);
   attribute.d.ot=ot;
   ctx=NULL;
   cond=DCM_GetElementValue(object, &attribute, &attribute.length, &ctx);
@@ -3178,8 +3203,14 @@ CONDITION GetDICOMInfo(char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int Imag
   CONDITION cond, cond2=DCM_NORMAL;
   double *tmp=(double*)calloc(10, sizeof(double));
   short *itmp=(short*)calloc(3, sizeof(short));
-
   int i;
+
+  // Transfer Syntax UIDs
+  // see http://www.psychology.nottingham.ac.uk/staff/cr1/dicom.html
+  // for a discussion on this element
+  char uid_buf[64];
+  const char *jpegCompressed_UID = "1.2.840.10008.1.2.4";
+  const char *rllEncoded_UID     = "1.2.840.10008.1.2.5";
 
   cond=DCM_OpenFile(fname, DCM_PART10FILE|DCM_ACCEPTVRMISMATCH, object);
   if (cond != DCM_NORMAL)
@@ -3198,6 +3229,39 @@ CONDITION GetDICOMInfo(char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int Imag
   strcpy(dcminfo->FileName, fname);
   dcminfo->FileName[strlen(fname)]='\0';
 
+  // transfer syntax UID (data format identifier, ie, raw or JPEG compressed)
+  // see http://www.psychology.nottingham.ac.uk/staff/cr1/dicom.html
+  // for a nice discussion on this element.
+  tag=DCM_MAKETAG(0x2, 0x10);
+  cond=GetString(object, tag, &dcminfo->TransferSyntaxUID);
+  if (cond != DCM_NORMAL) {
+    dcminfo->TransferSyntaxUID=(char *)calloc(256, sizeof(char));
+    strcpy(dcminfo->TransferSyntaxUID, "UNKNOWN");
+    cond2=cond;
+#ifdef _DEBUG
+    printf("WARNING: tag TransferSystaxUID not found\n"); 
+#endif  
+  }
+  else
+    IsTagPresent[DCM_TransferSyntaxUID]=true;
+
+  // JPEG compressed data is *not* supported by freesurfer.
+  strncpy(uid_buf,dcminfo->TransferSyntaxUID,sizeof(uid_buf));
+  uid_buf[strlen(jpegCompressed_UID)]=0; 
+  if (strcmp(uid_buf,jpegCompressed_UID)==0) {
+    printf("ERROR: JPEG compressed image data not supported!\n");
+    printf("       (Transfer Syntax UID: %s)\n",dcminfo->TransferSyntaxUID);
+    exit(1);
+  }
+  // RLL encoded data is *not* supported by freesurfer
+  strncpy(uid_buf,dcminfo->TransferSyntaxUID,sizeof(uid_buf));
+  uid_buf[strlen(rllEncoded_UID)]=0; 
+  if (strcmp(uid_buf,rllEncoded_UID)==0) {
+    printf("ERROR: RLL-encoded image data not supported!\n");
+    printf("       (Transfer Syntax UID: %s)\n",dcminfo->TransferSyntaxUID);
+    exit(1);
+  }
+
   // manufacturer
   tag=DCM_MAKETAG(0x8, 0x70);
   cond=GetString(object, tag, &dcminfo->Manufacturer);
@@ -3211,7 +3275,6 @@ CONDITION GetDICOMInfo(char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int Imag
   }
   else
     IsTagPresent[DCM_Manufacturer]=true;
-
 
   // patient name
   tag=DCM_MAKETAG(0x10, 0x10);
@@ -3489,16 +3552,14 @@ CONDITION GetDICOMInfo(char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int Imag
       dcminfo->ImageOrientation[i]=tmp[i];
   }
 
-
-
   // pixel data
   if (ReadImage) {
     tag=DCM_MAKETAG(0x7FE0, 0x10);
     cond=GetPixelData(object, tag, &dcminfo->PixelData);
     if (cond != DCM_NORMAL)
       {
-  dcminfo->PixelData=NULL;
-  cond2=cond;
+	dcminfo->PixelData=NULL;
+	cond2=cond;
 #ifdef _DEBUG
   printf("WARNING: tag pixel data not found\n"); 
 #endif  
@@ -3706,7 +3767,7 @@ void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex)
       PixelData16=(unsigned short*)dcminfo.PixelData;
       for (j=0; j<npix; j++)
       {
-        v16[offset+j]=PixelData16[j];
+	v16[offset+j]=PixelData16[j];
         if (PixelData16[j]>max16)
 	  max16=PixelData16[j];
         else if (PixelData16[j]<min16)
