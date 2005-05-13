@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.109 2005/05/11 22:44:40 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.110 2005/05/13 21:35:26 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5134,7 +5134,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.109 2005/05/11 22:44:40 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.110 2005/05/13 21:35:26 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5604,7 +5604,9 @@ proc DoFindSurfaceVertex {} {
 
 proc FindSurfaceVertexCallback {} {
     global gFindSurfaceInfo
-    
+    global gaView
+    global gaWidget
+
     set err [catch {
 	set lRAS \
 	    [Get2DMRISRASCoordsFromVertexIndex $gFindSurfaceInfo(layerID) \
@@ -5612,6 +5614,14 @@ proc FindSurfaceVertexCallback {} {
 	
 	SetViewRASCursor \
 	    [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
+
+	# Update cursor.
+	set err [catch { 
+	    set labelValues [GetLabelValuesSet $gaView(current,id) cursor]
+	    UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
+	    } sResult]
+	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	
 	RedrawFrame [GetMainFrameID]
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
