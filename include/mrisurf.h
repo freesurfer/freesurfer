@@ -906,6 +906,7 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
+MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION* region, float resolution, float distance_from_surface);
 
 #define GREEDY_SEARCH 0
 #define GENETIC_SEARCH 1
