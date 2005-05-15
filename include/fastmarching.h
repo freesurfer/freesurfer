@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/05/12 16:14:16 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2005/05/15 16:20:30 $
+// Revision       : $Revision: 1.3 $
 
 // include guard
 #ifndef fastmarching_h
@@ -19,6 +19,7 @@ extern "C" {
 #endif
 
 #include "mri.h"
+#include "mrisurf.h"
 	
 	MRI *MRIextractDistanceMap(MRI *mri_src, MRI *mri_dst,int label, float max_distance, int mode);
 	void MRISextractOutsideDistanceMap(MRIS *mris, MRI *mri_src, int label , int offset, float resolution, float max_distance);
