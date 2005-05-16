@@ -2,7 +2,7 @@
 ##############################################################################
 # surfer script: mk-fieldsign    [calc,write fieldsign using patch--optional disp]
 # This is a slight modification of fs-make.tcl
-# $Id: mk-fieldsign.tcl,v 1.2 2004/11/19 15:15:32 tosa Exp $
+# $Id: mk-fieldsign.tcl,v 1.3 2005/05/16 15:22:50 kteich Exp $
 ##############################################################################
 
 #### session dir autoset to $cwd/.. when cwd=scripts
@@ -25,7 +25,7 @@ set complexname 3               ;# analyse infix
 set smoothsteps 50
 
 #### read non-cap setenv vars (or ext w/correct rgbname) to override defaults
-source $env(MRI_DIR)/lib/tcl/readenv.tcl
+source $env(FREESURFER_HOME)/lib/tcl/readenv.tcl
 
 #### read curvature (or sulc)
 puts "tksurfer: [file tail $script]: read curvature"

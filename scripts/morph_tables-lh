@@ -19,7 +19,7 @@ endif
 set SLF = $SVIT_DIR/$hemi.sphere.reg.svit.log
 mri-structvits -subject $1 -umask 0 \
 		-hemi $hemi -outdir $SVIT_DIR -can sphere.reg | tee -a $SLF
-#mris_register -w 0 ../surf/$hemi.sphere $MRI_DIR/average/$hemi.average.tif ../surf/$hemi.sphere.dist_new
+#mris_register -w 0 ../surf/$hemi.sphere $FREESURFER_HOME/average/$hemi.average.tif ../surf/$hemi.sphere.dist_new
 
 popd
 

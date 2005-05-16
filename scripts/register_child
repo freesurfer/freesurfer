@@ -1,6 +1,6 @@
 #!/bin/tcsh -ef
 
-setenv GCA $MRI_DIR/average/talairach_children_b.gca
+setenv GCA $FREESURFER_HOME/average/talairach_children_b.gca
 setenv LTA talairach.lta
 
 setenv s $1
