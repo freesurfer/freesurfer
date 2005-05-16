@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkregister-sess
 #
-set VERSION = '$Id: tkregister-sess,v 1.14 2005/05/06 20:27:09 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.15 2005/05/16 16:41:06 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -147,6 +147,10 @@ foreach sess ($SessList)
   endif
   if($#Run == 0) then
     set funcdir = `getfirstrundir-sess $rsd`;
+    if($status) then
+      echo $funcdir
+      exit 1;
+    endif
     set RunUse = `basename $funcdir`;
   else
     set funcdir = $rsd/$Run
