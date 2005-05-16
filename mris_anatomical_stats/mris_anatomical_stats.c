@@ -15,7 +15,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.23 2005/05/10 21:34:00 greve Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.24 2005/05/16 16:05:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -79,7 +79,7 @@ main(int argc, char *argv[])
   int           n_vertices = -1;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.23 2005/05/10 21:34:00 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.24 2005/05/16 16:05:04 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -179,8 +179,11 @@ main(int argc, char *argv[])
   if (label_name)
   {
     LABEL  *area ;
+		char   fname[STRLEN] ;
 
-    area = LabelRead(sname, label_name) ;
+		sprintf(fname, "%s/%s/label/%s", sdir, sname, label_name) ;
+
+    area = LabelRead(NULL, fname) ;
     if (!area)
       ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", sname) ;
     LabelRipRestOfSurface(area, mris) ;
@@ -478,9 +481,12 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "sdir"))
   {
+		char str[STRLEN] ;
 		strcpy(sdir, argv[2]) ;
     printf("using  %s as  SUBJECTS_DIR...\n", sdir)  ;
 		nargs = 1 ;
+		sprintf(str, "SUBJECTS_DIR=%s", sdir) ;
+		putenv(str) ;
   }
   else if (!stricmp(option, "mgz"))
   {
@@ -591,6 +597,8 @@ print_help(void)
           "-b                           - tabular output\n");
   fprintf(stderr,
           "-f tablefile  - table output to a file (different format than -b) \n");
+  fprintf(stderr,
+          "-log <log>    - will write the stats into a file named <log>\n");
   exit(1) ;
 }
 
