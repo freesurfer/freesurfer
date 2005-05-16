@@ -6,6 +6,7 @@
 #include <ctype.h>
 
 #include "macros.h"
+#include "cma.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
@@ -14,10 +15,12 @@
 #include "macros.h"
 #include "utils.h"
 #include "version.h"
+#include "fastmarching.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.25 2003/09/05 04:45:42 kteich Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.26 2005/05/16 16:05:27 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
+
 
 static int  get_option(int argc, char *argv[]) ;
 static void print_usage(void) ;
@@ -45,6 +48,7 @@ static int plane_flag = 0 ;
 
 static int one_surf_flag = 0 ;
 static char *original_surf_name = SMOOTH_NAME ;
+static char *original_unfold_surf_name = ORIG_NAME ;
 static float rescale = 1.0f ;
 
 
@@ -57,7 +61,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_flatten.c,v 1.25 2003/09/05 04:45:42 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_flatten.c,v 1.26 2005/05/16 16:05:27 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -159,19 +163,48 @@ main(int argc, char *argv[])
                 Progname, in_patch_fname) ;
   }
 
+	if (Gdiag_no >= 0)
+		printf("vno %d is %sin patch\n", Gdiag_no,
+					 mris->vertices[Gdiag_no].ripflag ? "NOT " : "") ;
+
   fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
     mrisDisturbVertices(mris, disturb) ;
   if (parms.niterations > 0)
   {
+    MRISsetNeighborhoodSize(mris, nbrs) ;
+
+		if (!FZERO(parms.l_unfold))
+		{
+			static INTEGRATION_PARMS p2 ;
+			sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name) ;
+			if (!sphere_flag && !one_surf_flag)
+				MRISreadOriginalProperties(mris, original_unfold_surf_name) ;
+			*(&p2) = *(&parms) ;
+			p2.l_dist = 0 ; p2.niterations = 1000 ;
+			p2.nbhd_size = p2.max_nbrs = 1 ;
+			p2.n_averages = 0 ;
+			p2.tol = -1 ;
+			p2.dt = 0.1 ;
+			p2.l_area = 0.0 ;
+			p2.l_spring = 0.9 ;
+			p2.l_convex = 0.1 ;
+			p2.momentum = 0 ;
+			p2.integration_type = INTEGRATE_MOMENTUM ;
+			MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+			MRISunfold(mris, &p2, 1) ;
+			parms.start_t = p2.start_t ;
+			parms.l_unfold = parms.l_boundary = 0 ;
+			MRIfree(&parms.mri_dist) ;
+		}
+
+    sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name) ;
+    if (!sphere_flag && !one_surf_flag)
+      MRISreadOriginalProperties(mris, original_surf_name) ;
     if (randomly_flatten)
       MRISflattenPatchRandomly(mris) ;
     else
       MRISflattenPatch(mris) ;
-
-    if (!sphere_flag && !one_surf_flag)
-      MRISreadOriginalProperties(mris, original_surf_name) ;
-    MRISsetNeighborhoodSize(mris, nbrs) ;
 
     /* optimize metric properties of flat map */
     fprintf(stderr,"minimizing metric distortion induced by projection...\n");
@@ -250,6 +283,22 @@ get_option(int argc, char *argv[])
     sscanf(argv[2], "%f", &parms.l_dist) ;
     nargs = 1 ;
     fprintf(stderr, "l_dist = %2.3f\n", parms.l_dist) ;
+  }
+  else if (!stricmp(option, "unfold"))
+  {
+    sscanf(argv[2], "%f", &parms.l_unfold) ;
+		parms.mri_dist = MRIread(argv[3]) ;
+		if (!parms.mri_dist)
+			ErrorExit(ERROR_NOFILE, "%s: could not read distance map %s...\n",
+								argv[3]) ;
+    nargs = 2 ;
+    fprintf(stderr, "l_unfold = %2.3f\n", parms.l_unfold) ;
+  }
+  else if (!stricmp(option, "boundary"))
+  {
+    sscanf(argv[2], "%f", &parms.l_boundary) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_boundary = %2.3f\n", parms.l_boundary) ;
   }
   else if (!stricmp(option, "lm"))
   {
@@ -353,6 +402,12 @@ get_option(int argc, char *argv[])
     parms.dt_decrease = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
+  }
+  else if (!stricmp(option, "ou"))
+  {
+    original_unfold_surf_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr,"reading original unfolding surface from %s...\n",original_unfold_surf_name);
   }
   else switch (toupper(*option))
   {
