@@ -1,0 +1,279 @@
+#!/bin/csh -f
+# fixseqinfo-sess - fixes the seq.info file
+#
+# $Id: fixseqinfo-sess,v 1.1 2005/05/16 15:45:58 greve Exp $
+
+set VERSION    = '$Id: fixseqinfo-sess,v 1.1 2005/05/16 15:45:58 greve Exp $'
+set fsd        = "bold";
+set nolog      = 0;
+
+set pixelsize  = ();
+set slicethick = ();
+set TR = ();
+set ntrs = ();
+set nrows = ();
+set ncols = ();
+set nslices = ();
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set PWDCMD = `getpwdcmd`;
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set nolog = `echo $argv | grep nolog | wc -l` 
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+########### Create a log file ###########
+mkdir -p log >& /dev/null
+if($status || $nolog != 0) then
+  set LF = /dev/null
+else
+  set LF = `$PWDCMD`/log/fixseqinfo-sess.log
+  rm -f $LF
+  touch $LF
+endif
+
+echo "---------------------------------------------------"
+echo Logfile is $LF
+echo "---------------------------------------------------"
+
+echo "fixeseqinfo-sess" >> $LF
+echo $VERSION  >> $LF
+echo $LF       >> $LF
+uname -a          >> $LF
+date              >> $LF
+echo "$argv"      >> $LF
+
+## go through each session ##
+foreach sess ($SessList)
+
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  set sid = `basename $sess`;
+
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+
+  set runlist = `getrunlist $sess/$fsd`;
+  if($status) then
+    echo "$runlist"
+    exit 1;
+  endif
+  set runid = $runlist[1];
+
+  set fstem = $sess/$fsd/$runid/f;
+
+  set nslices = `getnslices $fstem`;
+  if($status) then
+    echo "$nslices"
+    exit 1;
+  endif
+
+  set nrows = `getnrows   $fstem`;
+  set ncols = `getncols   $fstem`;
+  set ntrs  = `getnframes $fstem`;
+
+  if($#TR == 0 && $ntrs != 1) then
+    echo "ERROR ($sid): this appears to be a functional run."
+    echo "  Re-run fixseqinfo-sess with -TR option"
+    exit 1;
+  endif
+
+  cd $sess/$fsd
+  set sif = seq.info
+  if(-e $sif) mv $sif $sif.old
+
+  echo "sequencename unknown"     >> $sif
+  echo "nrows $nrows"             >> $sif
+  echo "ncols $ncols"             >> $sif
+  echo "nslcs $nslices"           >> $sif
+  echo "rowpixelsize $pixelsize"  >> $sif
+  echo "colpixelsize $pixelsize"  >> $sif
+  echo "slcpixelsize $slicethick" >> $sif
+  if($#TR != 0) then
+    echo "ntrs $ntrs"  >> $sif
+    echo "TR   $TR"    >> $sif
+  endif
+
+end
+
+date | tee -a $LF
+echo "fixseqinfo-sess completed SUCCESSFULLY" | tee -a $LF
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-inplaneres":
+    case "-ipr":
+    case "-ps":
+    case "-pixelsize":
+      if ( $#argv == 0) goto arg1err;
+      set pixelsize = $argv[1]; shift;
+      breaksw
+
+    case "-betplaneres":
+    case "-bpr":
+    case "-st":
+    case "-slicethick":
+    case "-slicethickness":
+      if ( $#argv == 0) goto arg1err;
+      set slicethick = $argv[1]; shift;
+      breaksw
+
+    case "-TR":
+      if ( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      breaksw
+
+    case "-nrows":
+      if ( $#argv == 0) goto arg1err;
+      set nrows = $argv[1]; shift;
+      breaksw
+
+    case "-ncols":
+      if ( $#argv == 0) goto arg1err;
+      set ncols = $argv[1]; shift;
+      breaksw
+
+    case "-nslices":
+      if ( $#argv == 0) goto arg1err;
+      set nslices = $argv[1]; shift;
+      breaksw
+
+    case "-ntrs":
+      if ( $#argv == 0) goto arg1err;
+      set ntrs = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+    case "-g":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  set errs = 0;
+
+  if ($#SessList == 0) then
+     echo "ERROR: no sessions specified"
+     exit 1
+  endif
+
+  if($#pixelsize == 0) then
+    echo "ERROR: no pixel size specified"
+    set errs = 1;
+  endif
+
+  if($#slicethick == 0) then
+    echo "ERROR: no slice thickness specified"
+    set errs = 1;
+  endif
+
+  if($#TR == 0) then
+    echo "INFO: no TR specified"
+  endif
+
+  if($errs) exit 1;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: fixseqinfo-sess"
+  echo "   [session id options -s/-sf/-d/-df]"
+  echo "   -fsd dir        : functional subdirectory ($fsd)"
+  echo "   -inplaneres  mm : in-plane resolution"
+  echo "   -betplaneres mm : between-plane resolution"
+  echo "   -TR         sec : (for functional scans)"
+  echo "   -umask umask    : set unix file permission mask"
+  echo "   -version        : print version and exit"
+#  echo "   -nrows      n  "
+#  echo "   -ncols      n  "
+#  echo "   -nslices    n  "
+#  echo "   -ntrs       n  "
+exit 1;
