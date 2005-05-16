@@ -14,8 +14,9 @@
 #include "macros.h"
 #include "annotation.h"
 #include "version.h"
+#include "cma.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.12 2005/05/03 20:24:49 fischl Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.13 2005/05/16 16:05:55 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -41,13 +42,18 @@ static int fix_label_topology(MRI_SURFACE *mris) ;
 static int resegment_label(MRI_SURFACE *mris, LABEL *segment) ;
 static float proj_mm = 0.0 ;
 
+#define MAX_TRANS 100
+static int ntrans = 0 ;
+static int trans_in[MAX_TRANS] ;
+static int trans_out[MAX_TRANS] ;
+
 #define MAX_LABEL 1000
 
 int
 main(int argc, char *argv[])
 {
   char          **av, *hemi, *subject_name, *cp, fname[STRLEN], *parc_name, *annot_name ;
-  int           ac, nargs, vno ;
+  int           ac, nargs, vno, i ;
   MRI_SURFACE   *mris ;
   MRI           *mri_parc ;
   VERTEX        *v ;
@@ -55,7 +61,7 @@ main(int argc, char *argv[])
   Real          x, y, z, xw, yw, zw ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.12 2005/05/03 20:24:49 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.13 2005/05/16 16:05:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -97,6 +103,10 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
 
+	for (i = 0 ; i < ntrans ; i++)
+	{
+		MRIreplaceValues(mri_parc, mri_parc, trans_in[i], trans_out[i]) ;
+	}
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject_name, hemi, surf_name) ;
   printf("reading input surface %s...\n", fname) ;
   mris = MRISread(fname) ;
@@ -247,6 +257,18 @@ get_option(int argc, char *argv[])
 		surf_name = argv[2] ;
     nargs = 1 ;
     printf("using %s as surface name\n", surf_name) ;
+  }
+  else if (!stricmp(option, "trans"))
+  {
+		if (ntrans >= MAX_TRANS)
+			ErrorExit(ERROR_NOMEMORY, "%s: too many translations (%d)\n",Progname,ntrans);
+		trans_in[ntrans] = atof(argv[2]) ;
+		trans_out[ntrans] = atof(argv[3]) ;
+    nargs = 2 ;
+    printf("translating %s (%d) to %s (%d)\n",
+					 cma_label_to_name(trans_in[ntrans]), trans_in[ntrans],
+					 cma_label_to_name(trans_out[ntrans]), trans_out[ntrans]) ;
+		ntrans++ ;
   }
   else if (!stricmp(option, "proj"))
   {
