@@ -5168,8 +5168,9 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
   long lx, ly;			/* Size Of/ window */
   float wx, wy;			/* x/y of click point in screen space */
   float p1[3], p2[3];		/* Segment from screen to back of screen */
-  float dmin;			/* Distance of closest vertex found */
-  int imin;			/* vno of closest vertex found */
+  float sImin;			/* Distance of plane found at closest vert. */
+  int fmin;			/* Closest face. */
+  float xmin[3];		/* Closest face intersection point. */
   int fno;			/* Face counter */
   FACE *f;			/* Current face */
   VERTEX *v0;			/* First vertex on face, vert on face plane */
@@ -5182,6 +5183,8 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
   int vno;			/* Vertex counter */
   float vs[3];			/* Vertex to test, in screen space */
   float min[3], max[3];		/* Bounding rect of the face */
+  int imin;			/* vno of closest vertex found */
+  float dmin;			/* Distance of closest vertex found */
   VERTEX *v;			/* Current vertex when testng int with plane */
   float dx, dy, dz, d;		/* Distance of currect vert to intersection */
 
@@ -5212,8 +5215,8 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
   p2[0] = wx; p2[1] = wy; p2[2] = 1000;
 
   /* For each face... */
-  dmin = 10000;
-  imin = -1;
+  sImin = 1000;
+  fmin = -1;
   for (fno = 0; fno < mris->nfaces; fno++)
     {
       f = &mris->faces[fno];
@@ -5269,41 +5272,38 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 	  sI = N / D;
 	  if (sI >= 0.0 && sI <= 1.0)
 	    {
-
+	      
 	      /* Get the intersection point */
 	      /* x = p1 + sI*uu */
 	      x[0] = p1[0] + sI*uu[0];
 	      x[1] = p1[1] + sI*uu[1];
 	      x[2] = p1[2] + sI*uu[2];
-
+	      
 	      /* Get the bounds of the face. */
 	      min[0] = min[1] = min[2] = 9999;
 	      max[0] = max[1] = max[2] = -9999;
 	      for (vno = 0; vno < VERTICES_PER_FACE; vno++)
 		{
 		  v = &mris->vertices[f->v[vno]];
-
+		  
 		  if (v->ripflag)
 		    continue;
 		  
-      vs[0] =   -m[0][0]*v->x + m[1][0]*v->z + m[2][0]*v->y + m[3][0];
-      vs[1] =   -m[0][1]*v->x + m[1][1]*v->z + m[2][1]*v->y + m[3][1];
-      vs[2] = -(-m[0][2]*v->x + m[1][2]*v->z + m[2][2]*v->y + m[3][2]);
-
-
-      min[0] = MIN(vs[0],min[0]);
-      min[1] = MIN(vs[1],min[1]);
-      min[2] = MIN(vs[2],min[2]);
-      
-      max[0] = MAX(vs[0],max[0]);
-      max[1] = MAX(vs[1],max[1]);
-      max[2] = MAX(vs[2],max[2]);
+		  vs[0] =
+		    -m[0][0]*v->x + m[1][0]*v->z + m[2][0]*v->y + m[3][0];
+		  vs[1] =  
+		    -m[0][1]*v->x + m[1][1]*v->z + m[2][1]*v->y + m[3][1];
+		  vs[2] =
+		    -(-m[0][2]*v->x + m[1][2]*v->z + m[2][2]*v->y + m[3][2]);
+		  
+		  min[0] = MIN(vs[0],min[0]);
+		  min[1] = MIN(vs[1],min[1]);
+		  min[2] = MIN(vs[2],min[2]);
+		  
+		  max[0] = MAX(vs[0],max[0]);
+		  max[1] = MAX(vs[1],max[1]);
+		  max[2] = MAX(vs[2],max[2]);
 		}
-
-#if 0
-	      min[0] -= zf; min[1] -= zf; min[2] -= zf;
-	      max[0] += zf; max[1] += zf; max[2] += zf;
-#endif
 
 	      /* If the intersection is within the bounds, it's a
 		 hit. NOTE This is a rough estimate, but good enough
@@ -5316,57 +5316,81 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 		  if (Gdiag)
 		    {
 		      ddt_hilite_face (fno, 1);
-		      fprintf (stderr,"Hit fno %d\n"
+		      fprintf (stderr,"Hit fno %d sI %f\n"
 			       "\tbounds %f %f, %f %f, %f %f\n"
 			       "\tint %f %f %f\n",
-			       fno,
+			       fno, sI,
 			       min[0], max[0], min[1], max[1],
 			       min[2], max[2],
 			       x[0], x[1], x[2]);
 		    }
 
-		  /* Find the vertex closest to the intersection
-		     point, because we're hitting vertices, not
-		     arbitrary points. */
-		  for (vno = 0; vno < VERTICES_PER_FACE; vno++)
+		  /* Save the closest face. */
+		  if (sI < sImin &&
+		      !f->ripflag)
 		    {
-		      v = &mris->vertices[f->v[vno]];
-
-      vs[0] =   -m[0][0]*v->x + m[1][0]*v->z + m[2][0]*v->y + m[3][0];
-      vs[1] =   -m[0][1]*v->x + m[1][1]*v->z + m[2][1]*v->y + m[3][1];
-      vs[2] = -(-m[0][2]*v->x + m[1][2]*v->z + m[2][2]*v->y + m[3][2]);
-
-		      dx = x[0] - vs[0];
-		      dy = x[1] - vs[1];
-		      dz = x[2] - vs[2];
-		      d = sqrt (dx*dx + dy*dy + dz*dz);
-		  
-		      ddt_hilite_vertex (f->v[vno], 1);
-
-		      /* If this is the closest vertex, remember
-			 it. But not if it's ripped. */
-		      if (d < dmin && !v->ripflag)
-			{
-			  dmin = d;
-			  imin = f->v[vno];
-
-			  if (Gdiag)
-			    {
-			      fprintf (stderr,"\t** Found close vno %d d %f\n"
-				       "\t   p1 %f %f %f\n"
-				       "\t   vs %f %f %f\n"
-				       "\t   dx %f dy %f dz %f\n",
-				       f->v[vno], d,
-				       p1[0], p1[1], p1[2],
-				       vs[0], vs[1], vs[2],
-				       dx, dy, dz );
-			      ddt_hilite_vertex (f->v[vno], 2);
-			    }
-
-			}
+		      sImin = sI;
+		      fmin = fno;
+		      xmin[0] = x[0];
+		      xmin[1] = x[1];
+		      xmin[2] = x[2];
 		    }
 		}
 	    }
+	}
+    }
+
+  /* If we couldn't find a face here, bail. */
+  if (-1 ==fmin)
+    {
+      *ovno = -1;
+      *od = -1;
+
+      if (Gdiag)
+	fprintf (stderr,"No face found\n");
+      return;
+    }
+
+  /* Get the closest face and find the vertex closest to the
+     intersection point, because we're hitting vertices, not arbitrary
+     points. */
+  dmin = 1000;
+  imin = -1;
+  f = &mris->faces[fmin];
+  for (vno = 0; vno < VERTICES_PER_FACE; vno++)
+    {
+      v = &mris->vertices[f->v[vno]];
+      
+      vs[0] =   -m[0][0]*v->x + m[1][0]*v->z + m[2][0]*v->y + m[3][0];
+      vs[1] =   -m[0][1]*v->x + m[1][1]*v->z + m[2][1]*v->y + m[3][1];
+      vs[2] = -(-m[0][2]*v->x + m[1][2]*v->z + m[2][2]*v->y + m[3][2]);
+      
+      dx = xmin[0] - vs[0];
+      dy = xmin[1] - vs[1];
+      dz = xmin[2] - vs[2];
+      d = sqrt (dx*dx + dy*dy + dz*dz);
+      
+      ddt_hilite_vertex (f->v[vno], 1);
+      
+      /* If this is the closest vertex, remember
+	 it. But not if it's ripped. */
+      if (d < dmin &&
+	  !v->ripflag)
+	{
+	  dmin = d;
+	  imin = f->v[vno];
+	  
+	  if (Gdiag)
+	    {
+	      fprintf (stderr,"\t** Found close vno %d d %f\n"
+		       "\t   vs %f %f %f\n"
+		       "\t   dx %f dy %f dz %f\n",
+		       f->v[vno], d,
+		       vs[0], vs[1], vs[2],
+		       dx, dy, dz );
+	      ddt_hilite_vertex (f->v[vno], 2);
+	    }
+	  
 	}
     }
 
@@ -12559,7 +12583,13 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
   GLubyte r_overlay, b_overlay, g_overlay;
   float val, val2;
   int mode;
+  float m[4][4];
+  float nz;
   /* end rkt */
+
+  /* So we can get vertex normals in camera space and color backfaces
+     red. */
+  getmatrix(m);
   
   for (n=0;n<mris->nvertices;n++)
     {
@@ -12669,6 +12699,15 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
 	  
 	  /* Apply debug hilite color */
 	  ddt_get_hilite_vertex_color (n, &r, &g, &b);
+
+	  /* Transform the normal by the viewing transform and see if
+	     our normal is pointing away from is in camera space. If
+	     so, color this poly red. */
+	  nz = -(-m[0][2]*v->nx + m[1][2]*v->nz + m[2][2]*v->ny);
+	  if( nz > 0 )
+	    {
+	      r = 255;
+	    }
 
 	} else {
 	  /* end rkt */
@@ -18247,7 +18286,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.109 2005/05/17 16:30:17 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.110 2005/05/17 19:57:42 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
