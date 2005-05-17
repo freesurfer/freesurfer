@@ -144,7 +144,7 @@
 153  SC-Tissue                                     139 121  94    0
 154  Orbital-Adipose                               238  59  59    0
 
-201  alveus                        254	254	254	0
+201  alveus                        255 204 153	0
 202  perforant_pathway		 255	128	128	0
 203  parasubiculum		 255	255	0	0
 204  presubiculum			 64	0	64	0
@@ -155,7 +155,7 @@
 209  CA4				 196	160	128	0
 210 GC-DG			 255	128	255	0
 211 HATA				 128	255	128	0
-212 fimbria   	 128 128 128	0
+212 fimbria   	204 153 204	0
 213 lateral_ventricle		 255	0	255	0
 214 molecular_layer_HP            128    0       0       0
 215 hippocampal_fissure           64	255	196	0
