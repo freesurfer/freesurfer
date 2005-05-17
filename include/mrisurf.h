@@ -73,6 +73,7 @@ typedef struct face_type_
 #ifndef uchar
 #define uchar  unsigned char
 #endif
+
 typedef struct vertex_type_
 {
   float x,y,z;            /* curr position */
@@ -87,8 +88,7 @@ typedef struct vertex_type_
   float  cx, cy, cz ;     /* coordinates in canonical coordinate system */
   float  tx, ty, tz ;     /* tmp coordinate storage */
   float  tx2, ty2, tz2 ;     /* tmp coordinate storage */
-  float  origx, origy,
-         origz ;          /* original coordinates */
+  float  origx, origy, origz ;          /* original coordinates */
   float  pialx, pialy, pialz ;  /* pial surface coordinates */
   float  whitex, whitey, whitez ;  /* white surface coordinates */
   float  infx, infy, infz; /* inflated coordinates */
@@ -469,6 +469,8 @@ void MRISsetCurvaturesToValues(MRIS *mris,int fno);
 void MRISsetCurvaturesToOrigValues(MRIS *mris,int fno);
 void MRISsetOrigValuesToCurvatures(MRIS *mris,int fno);
 void MRISsetOrigValuesToValues(MRIS *mris,int fno);
+
+MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution, float distance_from_surface);
 
 /* can't include this before structure, as stats.h includes this file. */
 /*#include "stats.h"*/
@@ -939,6 +941,7 @@ typedef struct
 	int movie; /* save interesting files for movie purpose */
 	int correct_defect; /* correct only one single defect */
 	int check_surface_intersection; /* check if self-intersection happens */
+	int optimal_mapping; /* find optimal mapping by generating several mappings */
 } TOPOLOGY_PARMS ;
 
 int MRIScenterSphere(MRI_SURFACE *mris);
@@ -948,6 +951,7 @@ MRIS* MRISremoveRippedSurfaceElements(MRIS *mris);
 MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, 
                                  MRI_SURFACE *mris_corrected, MRI *mri, MRI *mri_wm,
                                  int nsmooth,TOPOLOGY_PARMS *parms) ;
+int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces);
 int MRISripDefectiveFaces(MRI_SURFACE *mris) ;
 int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;

@@ -16,7 +16,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.28 2005/05/04 03:34:01 segonne Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.29 2005/05/17 20:17:27 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.28 2005/05/04 03:34:01 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.29 2005/05/17 20:17:27 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -101,6 +101,9 @@ main(int argc, char *argv[])
 	parms.correct_defect=-1;
 	// self-intersection
 	parms.check_surface_intersection=0;
+	// use initial mapping only
+	parms.optimal_mapping=0;
+
 
   Gdiag |= DIAG_WRITE ;
   Progname = argv[0] ;
@@ -150,6 +153,7 @@ main(int argc, char *argv[])
 		exit(0);
 	}
   MRISprojectOntoSphere(mris, mris, 100.0f) ;
+	/* at this point : canonical vertices */
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, T1_name) ;
@@ -168,23 +172,29 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE,
               "%s: could not read T1 volume from %s", Progname, fname) ;
 
+	
   if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read original surface %s",
               Progname, orig_name) ;
 
-
+	/* at this point : canonical vertices but orig are in orignal vertices */
   if (MRISreadVertexPositions(mris, inflated_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read inflated surface %s",
               Progname, inflated_name) ;
+
+	/* at this point : inflated vertices */
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
 
   MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+	/* at this point : canonical vertices */
   MRIScomputeMetricProperties(mris) ;
 
   fprintf(stderr, "using quasi-homeomorphic spherical map to tessellate "
           "cortical surface...\n") ;
 
   mris_corrected = MRIScorrectTopology(mris, NULL, mri, mri_wm, nsmooth, &parms) ;
+	/* at this point : original vertices 
+	   real solution in original vertices = corrected smoothed orig vertices */
   MRISfree(&mris) ;
   eno = MRIScomputeEulerNumber(mris_corrected, &nvert, &nfaces, &nedges) ;
   fprintf(stderr, "after topology correction, eno=%d (nv=%d, nf=%d, ne=%d,"
@@ -194,6 +204,7 @@ main(int argc, char *argv[])
     exit(0) ;
 
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
+	/* at this point : smoothed corrected orig vertices = solution */
   if (add)
     for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
       while (MRISdivideLongEdges(mris_corrected, max_len) > 0)
@@ -208,30 +219,15 @@ main(int argc, char *argv[])
   }
 
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
+	/* at this point : smoothed corrected orig vertices = solution */
   sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name,suffix);
   fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
   MRISwrite(mris_corrected, fname) ;
+	
 
   /* compute the orientation changes */
   MRISmarkOrientationChanges(mris_corrected);
   
-
-#if 0
-  MRISrestoreVertexPositions(mris_corrected, CANONICAL_VERTICES) ;
-  sprintf(fname, "%s/%s/surf/%s.sphere%s", sdir, sname, hemi, suffix);
-  fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
-  MRISwrite(mris_corrected, fname) ;
-#endif
-
-#if 0
-  fprintf(stderr, "computing curvature of regenerated surface...\n") ;
-  MRISsetNeighborhoodSize(mris_corrected, 2) ;
-  MRIScomputeSecondFundamentalForm(mris_corrected) ;
-  MRISuseMeanCurvature(mris_corrected) ;
-  MRISaverageCurvatures(mris_corrected, 10) ;
-  MRISwriteCurvature(mris_corrected, "curv_corrected") ;
-#endif
-
 /*
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "ico_geo") ;
   fprintf(stderr, "writing output surface to %s...\n", fname) ;
@@ -286,9 +282,17 @@ get_option(int argc, char *argv[])
   }
 	else if (!stricmp(option, "intersect"))
   {
-    parms.check_surface_intersection=1;
-    fprintf(stderr,"check if the final surface self-intersects\n");
-    nargs = 0 ;
+    parms.check_surface_intersection=atoi(argv[2]);
+		if(parms.check_surface_intersection)
+			fprintf(stderr,"check if the final surface self-intersects\n");
+    nargs = 1 ;
+  }
+	else if (!stricmp(option, "mappings"))
+  {
+    parms.optimal_mapping=atoi(argv[2]);
+		if(parms.optimal_mapping)
+			fprintf(stderr,"generate several different mappings\n");
+    nargs = 1 ;
   }
 	else if (!stricmp(option, "correct_defect"))
   {
