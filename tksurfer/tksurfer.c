@@ -5313,7 +5313,7 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 		  x[2] >= min[2] && x[2] <= max[2]) 
 		{
 		  
-		  if (Gdiag)
+		  if (Gdiag && DIAG_VERBOSE_ON)
 		    {
 		      ddt_hilite_face (fno, 1);
 		      fprintf (stderr,"Hit fno %d sI %f\n"
@@ -5346,7 +5346,7 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
       *ovno = -1;
       *od = -1;
 
-      if (Gdiag)
+      if (Gdiag & DIAG_VERBOSE_ON)
 	fprintf (stderr,"No face found\n");
       return;
     }
@@ -5380,7 +5380,7 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 	  dmin = d;
 	  imin = f->v[vno];
 	  
-	  if (Gdiag)
+	  if (Gdiag && DIAG_VERBOSE_ON)
 	    {
 	      fprintf (stderr,"\t** Found close vno %d d %f\n"
 		       "\t   vs %f %f %f\n"
@@ -5397,7 +5397,7 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
   *ovno = imin;
   *od = dmin;
 
-  if (Gdiag)
+  if (Gdiag && DIAG_VERBOSE_ON)
     fprintf (stderr,"Got vno %d d %f\n", imin, dmin);
 }
 /* end rkt */
@@ -7357,7 +7357,23 @@ read_binary_patch(char *fname)
 #endif
     }
   MRISreadPatchNoRemove(mris, fname) ;
-  flag2d = TRUE;
+	{
+		int vno ;
+		VERTEX *v ;
+		flag2d = TRUE;
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag)
+				continue ;
+			if (!FZERO(v->z))
+			{
+				printf("surface not flattened - disabling 2d code...\n");
+				flag2d = FALSE ;
+				break ;
+			}
+		}
+	}
   surface_compiled = 0 ;
   vertex_array_dirty = 1 ;
 }
@@ -18286,7 +18302,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.110 2005/05/17 19:57:42 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.111 2005/05/17 20:27:21 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
