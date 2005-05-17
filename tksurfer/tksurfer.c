@@ -5202,13 +5202,19 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
       n[1] =   -m[0][1]*f->nx + m[1][1]*f->nz + m[2][1]*f->ny;
       n[2] = -(-m[0][2]*f->nx + m[1][2]*f->nz + m[2][2]*f->ny);
 
+      /* Make sure the normal's z < 0, so the face is facing us. */
+      if (n[2] > 0)
+	continue;
+
       /* Do an initial distance test in the xy to weed out unnecessary
 	 intersection tests. */
       dx = plane[0] - wx;
       dy = plane[1] - wy;
       d = sqrt (dx*dx + dy*dy);
-      if (d > 10.0)
+#if 0
+      if (d > zf*5.0)
 	continue;
+#endif
 
       /* Intersect our segment with our plane. */
       /* uu = p2 - p1 */
@@ -5234,6 +5240,7 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 	  sI = N / D;
 	  if (sI >= 0.0 && sI <= 1.0)
 	    {
+
 	      /* Get the intersection point */
 	      /* x = p1 + sI*uu */
 	      x[0] = p1[0] + sI*uu[0];
@@ -5260,6 +5267,11 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
       max[2] = MAX(vs[2],max[2]);
 		}
 
+#if 0
+	      min[0] -= zf; min[1] -= zf; min[2] -= zf;
+	      max[0] += zf; max[1] += zf; max[2] += zf;
+#endif
+
 	      /* If the intersection is within the bounds, it's a
 		 hit. NOTE This is a rough estimate, but good enough
 		 in most cases. */
@@ -5267,6 +5279,7 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 		  x[1] >= min[1] && x[1] <= max[1] &&
 		  x[2] >= min[2] && x[2] <= max[2]) 
 		{
+		  
 		  /* Find the vertex closest to the intersection
 		     point, because we're hitting vertices, not
 		     arbitrary points. */
@@ -5289,6 +5302,11 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 			{
 			  dmin = d;
 			  imin = f->v[vno];
+
+			  if (Gdiag)
+			    fprintf (stderr,"Hit fno %d vno %d d %f\n",
+				     fno, imin, d);
+
 			}
 		    }
 		}
@@ -5298,6 +5316,9 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 
   *ovno = imin;
   *od = dmin;
+
+  if (Gdiag)
+    fprintf (stderr,"Got vno %d d %f\n", imin, dmin);
 }
 /* end rkt */
 
@@ -18161,7 +18182,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.107 2005/05/13 16:04:52 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.108 2005/05/17 14:18:27 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22871,7 +22892,7 @@ int labl_find_and_set_all_borders ()
 
 int labl_find_and_set_border (int index)
 {
-  int label_vno, label_vno_check;
+  int label_vno;
   LABEL* label;
   VERTEX* v;
   int neighbor_vno;
