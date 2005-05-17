@@ -5223,23 +5223,23 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
       v0 = &mris->vertices[f->v[0]];
       
       /* We want to get a plane representing this face. Take the first
-	 vertex in the face as the point on the plane and the plane
-	 nomral. Multiply by the view transformation matrix. For the
-	 normal, don't use the translation element of the matrix. */
+				 vertex in the face as the point on the plane and the plane
+				 nomral. Multiply by the view transformation matrix. For the
+				 normal, don't use the translation element of the matrix. */
       plane[0] =   -m[0][0]*v0->x + m[1][0]*v0->z + m[2][0]*v0->y + m[3][0];
       plane[1] =   -m[0][1]*v0->x + m[1][1]*v0->z + m[2][1]*v0->y + m[3][1];
       plane[2] = -(-m[0][2]*v0->x + m[1][2]*v0->z + m[2][2]*v0->y + m[3][2]);
-
+			
       n[0] =   -m[0][0]*f->nx + m[1][0]*f->nz + m[2][0]*f->ny;
       n[1] =   -m[0][1]*f->nx + m[1][1]*f->nz + m[2][1]*f->ny;
       n[2] = -(-m[0][2]*f->nx + m[1][2]*f->nz + m[2][2]*f->ny);
-
+			
       /* Make sure the normal's z < 0, so the face is facing us. */
       if (n[2] > 0)
-	continue;
-
+				continue;
+			
       /* Do an initial distance test in the xy to weed out unnecessary
-	 intersection tests. */
+				 intersection tests. */
       dx = plane[0] - wx;
       dy = plane[1] - wy;
       d = sqrt (dx*dx + dy*dy);
@@ -5264,80 +5264,73 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
       
       /* N = - (n dot ww) */
       N = - (n[0]*ww[0] + n[1]*ww[1] + n[2]*ww[2]);
-
+			
       /* If intersection... */
-      if (!(fabs(D) < 0.00001 || fabs(N) < 0.00001))
-	{
-	  /* If the intersection is on the segment... */
-	  sI = N / D;
-	  if (sI >= 0.0 && sI <= 1.0)
-	    {
-	      
-	      /* Get the intersection point */
-	      /* x = p1 + sI*uu */
-	      x[0] = p1[0] + sI*uu[0];
-	      x[1] = p1[1] + sI*uu[1];
-	      x[2] = p1[2] + sI*uu[2];
-	      
-	      /* Get the bounds of the face. */
-	      min[0] = min[1] = min[2] = 9999;
-	      max[0] = max[1] = max[2] = -9999;
-	      for (vno = 0; vno < VERTICES_PER_FACE; vno++)
-		{
-		  v = &mris->vertices[f->v[vno]];
-		  
-		  if (v->ripflag)
-		    continue;
-		  
-		  vs[0] =
-		    -m[0][0]*v->x + m[1][0]*v->z + m[2][0]*v->y + m[3][0];
-		  vs[1] =  
-		    -m[0][1]*v->x + m[1][1]*v->z + m[2][1]*v->y + m[3][1];
-		  vs[2] =
-		    -(-m[0][2]*v->x + m[1][2]*v->z + m[2][2]*v->y + m[3][2]);
-		  
-		  min[0] = MIN(vs[0],min[0]);
-		  min[1] = MIN(vs[1],min[1]);
-		  min[2] = MIN(vs[2],min[2]);
-		  
-		  max[0] = MAX(vs[0],max[0]);
-		  max[1] = MAX(vs[1],max[1]);
-		  max[2] = MAX(vs[2],max[2]);
-		}
-
-	      /* If the intersection is within the bounds, it's a
-		 hit. NOTE This is a rough estimate, but good enough
-		 in most cases. */
-	      if (x[0] >= min[0] && x[0] <= max[0] &&
-		  x[1] >= min[1] && x[1] <= max[1] &&
-		  x[2] >= min[2] && x[2] <= max[2]) 
-		{
-		  
-		  if (Gdiag && DIAG_VERBOSE_ON)
-		    {
-		      ddt_hilite_face (fno, 1);
-		      fprintf (stderr,"Hit fno %d sI %f\n"
-			       "\tbounds %f %f, %f %f, %f %f\n"
-			       "\tint %f %f %f\n",
-			       fno, sI,
-			       min[0], max[0], min[1], max[1],
-			       min[2], max[2],
-			       x[0], x[1], x[2]);
-		    }
-
-		  /* Save the closest face. */
-		  if (sI < sImin &&
-		      !f->ripflag)
-		    {
-		      sImin = sI;
-		      fmin = fno;
-		      xmin[0] = x[0];
-		      xmin[1] = x[1];
-		      xmin[2] = x[2];
-		    }
-		}
-	    }
-	}
+      if (!(fabs(D) < 0.0001 || fabs(N) < 0.0001))
+			{
+				/* If the intersection is on the segment... */
+				sI = N / D;
+				if (sI >= 0.0 && sI <= 1.0)
+				{
+					
+					/* Get the intersection point */
+					/* x = p1 + sI*uu */
+					x[0] = p1[0] + sI*uu[0];
+					x[1] = p1[1] + sI*uu[1];
+					x[2] = p1[2] + sI*uu[2];
+					
+					/* Get the bounds of the face. */
+					min[0] = min[1] = min[2] = 9999;
+					max[0] = max[1] = max[2] = -9999;
+					for (vno = 0; vno < VERTICES_PER_FACE; vno++)
+					{
+						v = &mris->vertices[f->v[vno]];
+						
+						if (v->ripflag)
+							continue;
+						
+						vs[0] =
+							-m[0][0]*v->x + m[1][0]*v->z + m[2][0]*v->y + m[3][0];
+						vs[1] =  
+							-m[0][1]*v->x + m[1][1]*v->z + m[2][1]*v->y + m[3][1];
+						
+						min[0] = MIN(vs[0],min[0]);
+						min[1] = MIN(vs[1],min[1]);
+						
+						max[0] = MAX(vs[0],max[0]);
+						max[1] = MAX(vs[1],max[1]);
+					}
+					
+					/* If the intersection is within the bounds, it's a
+						 hit. NOTE This is a rough estimate, but good enough
+						 in most cases. */
+					if (x[0] >= min[0] && x[0] <= max[0] &&
+							x[1] >= min[1] && x[1] <= max[1]) 
+					{
+						if (Gdiag && DIAG_VERBOSE_ON)
+						{
+							ddt_hilite_face (fno, 1);
+							fprintf (stderr,"Hit fno %d sI %f\n"
+											 "\tbounds %f %f, %f %f\n"
+											 "\tint %f %f %f\n",
+											 fno, sI,
+											 min[0], max[0], min[1], max[1],
+											 x[0], x[1], x[2]);
+						}
+						
+						/* Save the closest face. */
+						if (sI < sImin &&
+								!f->ripflag)
+						{
+							sImin = sI;
+							fmin = fno;
+							xmin[0] = x[0];
+							xmin[1] = x[1];
+							xmin[2] = x[2];
+						}
+					}
+				}
+			}
     }
 
   /* If we couldn't find a face here, bail. */
@@ -5347,7 +5340,7 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
       *od = -1;
 
       if (Gdiag & DIAG_VERBOSE_ON)
-	fprintf (stderr,"No face found\n");
+				fprintf (stderr,"No face found\n");
       return;
     }
 
@@ -18302,7 +18295,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.111 2005/05/17 20:27:21 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.112 2005/05/17 21:19:31 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
