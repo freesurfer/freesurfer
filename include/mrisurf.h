@@ -371,6 +371,7 @@ typedef struct
   float   l_surf_repulse ;    /* repulsive orig surface (for white->pial) */
   float   l_external ;        /* external (user-defined) coefficient */
   float   l_shrinkwrap ;      /* move in if MRI=0 and out otherwise */
+	float   l_unfold ;          /* move inwards along normal */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
@@ -429,6 +430,7 @@ typedef struct
   MRI     *mri_brain ;        /* for settling surfaace to e.g. g/w border */
   MRI     *mri_smooth ;       /* smoothed version of mri_brain */
   void    *user_parms ;       /* arbitrary spot for user to put stuff */
+	MRI     *mri_dist ;         /* distance map for repulsion term */
 } INTEGRATION_PARMS ;
 
 extern double (*gMRISexternalGradient)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
