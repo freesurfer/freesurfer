@@ -1792,6 +1792,31 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
 
 /* ---------------------------------------------------------------------- */
 
+/* ---------------------------------------------------------------- debug */
+
+/* Some drawing tools for drawing certain faces and verts. */
+#define DEBUG_DRAWING_TOOLS 0
+#if DEBUG_DRAWING_TOOLS
+int* ddt_hilited_vnos = NULL;
+int* ddt_hilited_fnos = NULL;
+int ddt_initialize();
+int ddt_clear();
+int ddt_hilite_vertex (int vno, int type);
+int ddt_get_hilite_vertex_color (int vno, GLubyte* r, GLubyte* g, GLubyte* b);
+/* Note that we get color by vertex index, but set it by face index. */
+int ddt_hilite_face (int fno, int type);
+int ddt_get_hilite_face_color (int vno, GLubyte* r, GLubyte* g, GLubyte* b);
+#else
+#define ddt_initialize()
+#define ddt_clear()
+#define ddt_hilite_vertex(vno,type)
+#define ddt_get_hilite_vertex_color(vno,r,g,b)
+#define ddt_hilite_face(fno,type)
+#define ddt_get_hilite_face_color(vno,r,g,b)
+#endif
+
+/* ---------------------------------------------------------------------- */
+
 int save_tiff (char* fname);
 
 /* end rkt */
@@ -2380,6 +2405,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	    {
 	      draw_vertex_hilite(selection);
 	      draw_cursor(selection,FALSE);
+
 	    }
 	  select_vertex(sx,sy);
 	  if (selection>=0)
@@ -5159,6 +5185,9 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
   VERTEX *v;			/* Current vertex when testng int with plane */
   float dx, dy, dz, d;		/* Distance of currect vert to intersection */
 
+  if (Gdiag)
+    ddt_clear();
+
   /* Get the view transformation matrix */
   getmatrix(m);
 #ifdef OPENGL
@@ -5253,10 +5282,14 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 	      for (vno = 0; vno < VERTICES_PER_FACE; vno++)
 		{
 		  v = &mris->vertices[f->v[vno]];
+
+		  if (v->ripflag)
+		    continue;
 		  
       vs[0] =   -m[0][0]*v->x + m[1][0]*v->z + m[2][0]*v->y + m[3][0];
       vs[1] =   -m[0][1]*v->x + m[1][1]*v->z + m[2][1]*v->y + m[3][1];
       vs[2] = -(-m[0][2]*v->x + m[1][2]*v->z + m[2][2]*v->y + m[3][2]);
+
 
       min[0] = MIN(vs[0],min[0]);
       min[1] = MIN(vs[1],min[1]);
@@ -5280,6 +5313,18 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 		  x[2] >= min[2] && x[2] <= max[2]) 
 		{
 		  
+		  if (Gdiag)
+		    {
+		      ddt_hilite_face (fno, 1);
+		      fprintf (stderr,"Hit fno %d\n"
+			       "\tbounds %f %f, %f %f, %f %f\n"
+			       "\tint %f %f %f\n",
+			       fno,
+			       min[0], max[0], min[1], max[1],
+			       min[2], max[2],
+			       x[0], x[1], x[2]);
+		    }
+
 		  /* Find the vertex closest to the intersection
 		     point, because we're hitting vertices, not
 		     arbitrary points. */
@@ -5291,11 +5336,13 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
       vs[1] =   -m[0][1]*v->x + m[1][1]*v->z + m[2][1]*v->y + m[3][1];
       vs[2] = -(-m[0][2]*v->x + m[1][2]*v->z + m[2][2]*v->y + m[3][2]);
 
-		      dx = p1[0] - vs[0];
-		      dy = p1[1] - vs[1];
-		      dz = p1[2] - vs[2];
+		      dx = x[0] - vs[0];
+		      dy = x[1] - vs[1];
+		      dz = x[2] - vs[2];
 		      d = sqrt (dx*dx + dy*dy + dz*dz);
 		  
+		      ddt_hilite_vertex (f->v[vno], 1);
+
 		      /* If this is the closest vertex, remember
 			 it. But not if it's ripped. */
 		      if (d < dmin && !v->ripflag)
@@ -5304,8 +5351,17 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
 			  imin = f->v[vno];
 
 			  if (Gdiag)
-			    fprintf (stderr,"Hit fno %d vno %d d %f\n",
-				     fno, imin, d);
+			    {
+			      fprintf (stderr,"\t** Found close vno %d d %f\n"
+				       "\t   p1 %f %f %f\n"
+				       "\t   vs %f %f %f\n"
+				       "\t   dx %f dy %f dz %f\n",
+				       f->v[vno], d,
+				       p1[0], p1[1], p1[2],
+				       vs[0], vs[1], vs[2],
+				       dx, dy, dz );
+			      ddt_hilite_vertex (f->v[vno], 2);
+			    }
 
 			}
 		    }
@@ -6480,6 +6536,7 @@ read_binary_surface(char *fname)
   conv_initialize();
   labl_initialize();
   fbnd_initialize();
+  ddt_initialize();
   /* end rkt */
 
   return(NO_ERROR) ;
@@ -12087,10 +12144,15 @@ static int init_mesh_colors(MRI_SURFACE *mris)
 static int fill_mesh_colors()
 {
   int i;
+  GLubyte r, g, b;
   for(i=0; i<mris->nvertices; i++) {
-    mesh_colors[3*i] = (float)meshr/255.0;
-    mesh_colors[3*i+1] = (float)meshg/255.0;
-    mesh_colors[3*i+2] = (float)meshb/255.0;
+    r = meshr;
+    g = meshg;
+    b = meshb;
+    ddt_get_hilite_face_color (i, &r, &g, &b);
+    mesh_colors[3*i] = (float)r/255.0;
+    mesh_colors[3*i+1] = (float)g/255.0;
+    mesh_colors[3*i+2] = (float)b/255.0;
   }
   return(NO_ERROR) ;
 }
@@ -12596,7 +12658,7 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
 		      b = b + (sclv_overlay_alpha * (b_overlay - b));
 		    }
 		}
-	    } 
+	    }
 	  
 	  /* get any label color for this vertex. this will not apply
 	     any color if there is no label. */
@@ -12605,6 +12667,9 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
 	  /* let the boundary code color this vertex, if it wants to. */
 	  fbnd_apply_color_to_vertex (n, &r, &g, &b);
 	  
+	  /* Apply debug hilite color */
+	  ddt_get_hilite_vertex_color (n, &r, &g, &b);
+
 	} else {
 	  /* end rkt */
 	  
@@ -18182,7 +18247,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.108 2005/05/17 14:18:27 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.109 2005/05/17 16:30:17 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24788,6 +24853,120 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
   
   return (ERROR_NONE);
 }
+
+/* ---------------------------------------------------------------------- */
+
+/* This code only exists if DEBUG_DRAWING_TOOLS is set. */
+#if DEBUG_DRAWING_TOOLS
+
+int
+ddt_initialize ()
+{
+  if (NULL != mris)
+    {
+      if (NULL != ddt_hilited_vnos)
+	free (ddt_hilited_vnos);
+      if (NULL != ddt_hilited_fnos)
+	free (ddt_hilited_fnos);
+
+      ddt_hilited_vnos = (int*)calloc (mris->nvertices, sizeof(int));
+      ddt_hilited_fnos = (int*)calloc (mris->nvertices, sizeof(int));
+
+      if (NULL == ddt_hilited_vnos || NULL == ddt_hilited_fnos)
+	ErrorExit(ERROR_NOMEMORY,"Couldn't allocate ddt storage for verts or fnos");
+    }
+  else
+    {
+      ErrorReturn(ERROR_NOT_INITED,(ERROR_NOT_INITED,"ddt_initialize called without mris.\n"));
+    }
+
+  return (ERROR_NONE);
+}
+
+int
+ddt_clear ()
+{
+  if (NULL != ddt_hilited_vnos)
+    bzero (ddt_hilited_vnos, sizeof(int) * mris->nvertices);
+  if (NULL != ddt_hilited_fnos)
+    bzero (ddt_hilited_fnos, sizeof(int) * mris->nvertices);
+
+  return (ERROR_NONE);
+}
+
+int ddt_hilite_vertex (int vno, int type)
+{
+  if (vno < 0 || vno >= mris->nvertices)
+      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"ddt_hilite_vertex: bad vno.\n"));
+    
+  /* Mark it, but only with a higher type value. */
+  if (NULL != ddt_hilited_vnos &&
+      ddt_hilited_vnos[vno] < type)
+    ddt_hilited_vnos[vno] = type;
+  
+  return (ERROR_NONE);
+}
+
+int ddt_get_hilite_vertex_color (int vno, GLubyte* r, GLubyte* g, GLubyte* b)
+{
+  if (ddt_hilited_vnos[vno])
+    {
+      switch (ddt_hilited_vnos[vno])
+	{
+	case 1:
+	  *r = 200; *g = 0; *b = 0;
+	  break;
+	case 2:
+	  *r = 0; *g = 255; *b = 0;
+	  break;
+	}
+    }
+  return (ERROR_NONE);
+}
+
+int ddt_hilite_face (int fno, int type)
+{ 
+  FACE* f;
+  int fvno, vno;
+
+  if (fno < 0 || fno >= mris->nfaces)
+      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"ddt_hilite_face: bad fno.\n"));
+    
+  if (NULL != ddt_hilited_fnos)
+    {
+      f = &mris->faces[fno];
+      for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++)
+	{
+	  vno = f->v[fvno];
+	  /* Mark it, but only with a higher type value. */
+	  if (ddt_hilited_fnos[vno] < type)
+	    ddt_hilited_fnos[vno] = type;
+	}
+    }
+
+  return (ERROR_NONE);
+}
+
+
+int ddt_get_hilite_face_color (int vno, GLubyte* r, GLubyte* g, GLubyte* b)
+{
+
+  if (ddt_hilited_fnos[vno])
+    {
+      switch (ddt_hilited_fnos[vno])
+	{
+	case 1:
+	  *r = 100; *g = 0; *b = 0;
+	  break;
+	case 2:
+	  *r = 0; *g = 100; *b = 0;
+	  break;
+	}
+    }
+  return (ERROR_NONE);
+}
+
+#endif
 
 /* ---------------------------------------------------------------------- */
 
