@@ -928,5 +928,6 @@ MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri);
   extern int N_Zero_Pad_Output;
 #endif
 
+float MRIfovCol(MRI *mri);
 
 #endif
