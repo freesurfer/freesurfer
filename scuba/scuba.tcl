@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.110 2005/05/13 21:35:26 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.111 2005/05/18 21:48:59 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -539,7 +539,8 @@ proc MakeMenuBar { ifwTop } {
     tkuMakeMenu -menu $gaMenu(tools) -label "Tools" -items {
 	{command "Histogram Fill..." { MakeHistogramFillWindow } }
 	{command "Data Collection Info..." { DoDataInfoWindow } }
-	{command "Find Surface Vertex..." { DoFindSurfaceVertex } }
+	{command "Show Surface Vertex..." { DoShowSurfaceVertex } }
+	{command "Find Nearest Surface Vertex..." { DoFindNearestSurfaceVertex } }
 	{command "Set Cursor from edit.dat File..." { DoSetCursorFromEditDatFileDlog } }
     }
 
@@ -5134,7 +5135,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.110 2005/05/13 21:35:26 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.111 2005/05/18 21:48:59 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5546,13 +5547,13 @@ proc DataInfoMenuCallback { iColID } {
 
 }
 
-proc DoFindSurfaceVertex {} {
+proc DoShowSurfaceVertex {} {
     global gaDialog
     global gaLayer
-    global gFindSurfaceInfo
+    global gShowSurfaceVertexInfo
 
-    set wwDialog .findSurfaceVertex
-    if { [tkuCreateDialog $wwDialog "Find Vertex" {-borderwidth 10}] } {
+    set wwDialog .showSurfaceVertex
+    if { [tkuCreateDialog $wwDialog "Show Vertex" {-borderwidth 10}] } {
 
 	set fwSurface  $wwDialog.fwSurface
 	set fwVertex   $wwDialog.fwVertex
@@ -5571,8 +5572,7 @@ proc DoFindSurfaceVertex {} {
 
 	tixOptionMenu $owSurface \
 	    -label "Surface:" \
-	    -variable gFindSurfaceInfo(layerID) \
-	    -command { VolumeInfoMenuCallback }
+	    -variable gShowSurfaceVertexInfo(layerID)
 	FillMenuFromList $owSurface \
 	    $lLayers "GetLayerLabel %s" {} false
 
@@ -5581,7 +5581,7 @@ proc DoFindSurfaceVertex {} {
 
 	frame $fwVertex
 	tkuMakeEntry $fwVertex.ewVertex \
-	    -variable gFindSurfaceInfo(vertex) \
+	    -variable gShowSurfaceVertexInfo(vertex) \
 	    -command { FindSurfaceVertexCallback } \
 	    -width 10
 
@@ -5590,8 +5590,8 @@ proc DoFindSurfaceVertex {} {
 
 
 	tkuMakeApplyCloseButtons $fwButtons $wwDialog \
-	    -applyLabel "Find" \
-	    -applyCmd FindSurfaceVertexCallback
+	    -applyLabel "Show" \
+	    -applyCmd ShowSurfaceVertexCallback
 	
 	pack $fwSurface $fwVertex $fwButtons \
 	    -side top       \
@@ -5602,16 +5602,97 @@ proc DoFindSurfaceVertex {} {
     }
 }
 
-proc FindSurfaceVertexCallback {} {
-    global gFindSurfaceInfo
+proc ShowSurfaceVertexCallback {} {
+    global gShowSurfaceVertexInfo
     global gaView
     global gaWidget
 
     set err [catch {
 	set lRAS \
-	    [Get2DMRISRASCoordsFromVertexIndex $gFindSurfaceInfo(layerID) \
-		 $gFindSurfaceInfo(vertex)]
+	    [Get2DMRISRASCoordsFromVertexIndex \
+		 $gShowSurfaceVertexInfo(layerID) \
+		 $gShowSurfaceVertexInfo(vertex)]
 	
+	SetViewRASCursor \
+	    [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
+
+	# Update cursor.
+	set err [catch { 
+	    set labelValues [GetLabelValuesSet $gaView(current,id) cursor]
+	    UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
+	    } sResult]
+	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	
+	RedrawFrame [GetMainFrameID]
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+   
+}
+
+proc DoFindNearestSurfaceVertex {} {
+    global gaDialog
+    global gaLayer
+    global gFindNearestSurfaceVertexInfo
+
+    set wwDialog .findNearestSurfaceVertex
+    if { [tkuCreateDialog $wwDialog "Find Nearest Vertex" {-borderwidth 10}] } {
+
+	set fwSurface  $wwDialog.fwSurface
+	set fwButtons  $wwDialog.fwButtons
+
+	frame $fwSurface
+	set owSurface $fwSurface.owSurface
+
+	# Make list of layers with surfaces.
+	set lLayers {}
+	foreach layerID $gaLayer(idList) {
+	    if { [string match [GetLayerType $layerID] 2DMRIS] } {
+		lappend lLayers $layerID
+	    }
+	}
+
+	tixOptionMenu $owSurface \
+	    -label "Surface:" \
+	    -variable gFindNearestSurfaceVertexInfo(layerID)
+	FillMenuFromList $owSurface \
+	    $lLayers "GetLayerLabel %s" {} false
+
+	pack $owSurface -fill x -expand 1
+
+
+	tkuMakeApplyCloseButtons $fwButtons $wwDialog \
+	    -applyLabel "Find" \
+	    -applyCmd FindNearestSurfaceVertexCallback
+	
+	pack $fwSurface $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+    }
+}
+
+proc FindNearestSurfaceVertexCallback {} {
+    global gFindNearestSurfaceVertexInfo
+    global gaView
+    global gaWidget
+
+    set err [catch {
+
+	set lCursorRAS [GetViewRASCursor]
+
+	set nClosestVertex \
+	    [Get2DMRISNearestVertexIndex \
+		 $gFindNearestSurfaceVertexInfo(layerID) \
+		 [lindex $lCursorRAS 0] [lindex $lCursorRAS 1] \
+		 [lindex $lCursorRAS 2]]
+	
+	set lRAS \
+	    [Get2DMRISRASCoordsFromVertexIndex \
+		 $gFindNearestSurfaceVertexInfo(layerID) \
+		 $nClosestVertex]
+
 	SetViewRASCursor \
 	    [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
 
@@ -5652,7 +5733,7 @@ proc DoSetCursorFromEditDatFileDlog {} {
     }
 
     set wwDialog .setCursorFromEditDatFile
-    if { [tkuCreateDialog $wwDialog "Find Vertex" {-borderwidth 10}] } {
+    if { [tkuCreateDialog $wwDialog "Set Cursor from edit.dat" {-borderwidth 10}] } {
 
 	set fwSurface     $wwDialog.fwSurface
 	set fwVolume      $wwDialog.fwVolume

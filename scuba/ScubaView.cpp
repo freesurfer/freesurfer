@@ -2441,6 +2441,15 @@ ScubaView::SetCursor ( float iRAS[3] ) {
 }
 
 void
+ScubaView::GetCursor ( float oRAS[3] ) {
+  
+  // Return the cursor;
+  oRAS[0] = mCursor[0];
+  oRAS[1] = mCursor[1];
+  oRAS[2] = mCursor[2];
+}
+
+void
 ScubaView::SetNextMarker ( float iRAS[3] ) {
 
   if( mcMarkers > 0 ) {
@@ -3231,6 +3240,9 @@ ScubaViewStaticTclListener::ScubaViewStaticTclListener () {
 			 "a volume collection to transform them.." );
   commandMgr.AddCommand( *this, "SetViewRASCursor", 3, "x y z", 
 			 "Sets the cursor in RAS coords." );
+  commandMgr.AddCommand( *this, "GetViewRASCursor", 0, "", 
+			 "Returns the cursor in RAS coords in a list of "
+			 "x y z coords." );
 }
 
 ScubaViewStaticTclListener::~ScubaViewStaticTclListener () {
@@ -3335,6 +3347,19 @@ ScubaViewStaticTclListener::DoListenToTclCommand ( char* isCommand,
 
   }
 
+  // GetViewRASCenter <viewID> <X> <Y> <Z>
+  if( 0 == strcmp( isCommand, "GetViewRASCenter" ) ) {
+      
+    float cursor[3];
+    ScubaView::GetCursor( cursor );
+    
+    stringstream ssReturn;
+    sReturnFormat = "Lfffl";
+    ssReturn << cursor[0] << " " << cursor[1] << " " << cursor[2];
+    sReturnValues = ssReturn.str();
+    return ok;
+  }
+  
   return ok;
 }
 

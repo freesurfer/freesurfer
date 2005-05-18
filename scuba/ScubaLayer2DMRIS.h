@@ -35,6 +35,8 @@ class ScubaLayer2DMRIS : public Layer {
 
   void FindRASLocationOfVertex ( int inVertex, float oRAS[3] );
 
+  int FindNearestVertexToRAS ( float iRAS[3], float *oMinDistance );
+
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 

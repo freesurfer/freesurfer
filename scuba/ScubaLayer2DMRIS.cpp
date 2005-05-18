@@ -38,6 +38,10 @@ ScubaLayer2DMRIS::ScubaLayer2DMRIS () {
   commandMgr.AddCommand( *this, "Get2DMRISRASCoordsFromVertexIndex", 2,
 			 "layerID vertexIndex", "Returns as a list of RAS "
 			 "coords the location of the vertex." );
+  commandMgr.AddCommand( *this, "Get2DMRISNearestVertexIndex", 4,
+			 "layerID x y z", "Returns the index of the vertex "
+			 "closest to the input RAS coords and the distance "
+			 "to that vertex." );
 
 }
 
@@ -171,9 +175,22 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 }
   
 void
-ScubaLayer2DMRIS::GetInfoAtRAS ( float[3],
-				 std::map<std::string,std::string>& ) {
-
+ScubaLayer2DMRIS::GetInfoAtRAS ( float iRAS[3],
+				 map<string,string>& iLabelValues) {
+  
+  if( NULL != mSurface ) {
+    
+    float distance;
+    int nVertex = FindNearestVertexToRAS( iRAS, &distance );
+    
+    stringstream ssVertex;
+    ssVertex << nVertex;
+    iLabelValues[mSurface->GetLabel() + ",vertex"] = ssVertex.str();
+    
+    stringstream ssDistance;
+    ssDistance << distance;
+    iLabelValues[mSurface->GetLabel() + ",distance"] = ssDistance.str();
+  }
 }
 
 void
@@ -186,11 +203,53 @@ ScubaLayer2DMRIS::HandleTool ( float iRAS[3], ViewState& iViewState,
 void
 ScubaLayer2DMRIS::FindRASLocationOfVertex ( int inVertex, float oRAS[3] ) {
 
+  if( NULL == mSurface ) {
+    throw runtime_error( "No surface loaded." );
+  }
+
   if( inVertex < mSurface->GetNumVertices() ) {
     mSurface->GetNthVertex_Unsafe( inVertex, oRAS, NULL );
   } else {
     throw runtime_error( "Vertex index is out of bounds." );
   }
+}
+
+int
+ScubaLayer2DMRIS::FindNearestVertexToRAS ( float iRAS[3], float* oDistance ) {
+
+  if( NULL == mSurface ) {
+    throw runtime_error( "No surface loaded." );
+  }
+
+  float minDistance = 1000;
+  int nClosestVertex = -1;
+  for( int nVertex = 0; nVertex < mSurface->GetNumVertices(); nVertex++ ) {
+
+    float ras[3];
+    bool bRipped;
+    mSurface->GetNthVertex_Unsafe( nVertex, ras, &bRipped );
+    
+    if( !bRipped ) {
+
+      float dx = iRAS[0] - ras[0];
+      float dy = iRAS[1] - ras[1];
+      float dz = iRAS[2] - ras[2];
+      float distance = sqrt( dx*dx + dy*dy + dz*dz );
+      if( distance < minDistance ) {
+	minDistance = distance;
+	nClosestVertex = nVertex;
+      }
+    }
+  }
+
+  if( -1 == nClosestVertex ) {
+    throw runtime_error( "No vertices found.");
+  }
+
+  if( NULL != oDistance ) {
+    *oDistance = minDistance;
+  }
+  return nClosestVertex;
 }
 
 TclCommandManager::TclCommandResult 
@@ -376,6 +435,49 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
       ssReturnValues << ras[0] << " " << ras[1] << " " << ras[2];
       sReturnValues = ssReturnValues.str();
       sReturnFormat = "Lfffl";
+
+      return ok;
+    }  
+  }
+
+  // Get2DMRISNearestVertexIndex <layerID> <x> <y> <z>
+  if( 0 == strcmp( isCommand, "Get2DMRISNearestVertexIndex" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      float ras[3];
+      try { 
+	ras[0] = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
+	ras[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
+	ras[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad RAS coord: ") + e.what();
+	return error;
+      }
+
+      try {
+	int nVertex;
+	float distance;
+	nVertex = FindNearestVertexToRAS( ras, &distance );
+	
+	stringstream ssReturnValues;
+	ssReturnValues << nVertex << " " << distance;
+	sReturnValues = ssReturnValues.str();
+	sReturnFormat = "Lifl";
+      }
+      catch(runtime_error e) {
+	sResult = string("Couldn't find vertex: ") + e.what();
+	return error;
+      }
 
       return ok;
     }  

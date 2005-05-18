@@ -197,8 +197,9 @@ protected:
 				    
   // Markers are shared between views so these are static functions.
 
-  // Sets the cursor, a single special marker.
+  // Sets/gets the cursor, a single special marker.
   static void SetCursor ( float iRAS[3] );
+  static void GetCursor ( float oRAS[3] );
 
   // The different steps in building our display. BuildFrameBuffer()
   // tells all the layers to copy their data to the frame
