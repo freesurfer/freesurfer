@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.30 2004/12/14 19:58:00 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.31 2005/05/18 23:39:16 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.30 2004/12/14 19:58:00 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.31 2005/05/18 23:39:16 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -160,6 +160,7 @@ static int  stringmatch(char *str1, char *str2);
 static int nth_is_arg(int nargc, char **argv, int nth);
 static int checkfmt(char *fmt);
 static int MRIisConformant(MRI *vol);
+static int MRItagVol(MRI *mri, float val);
 
 #ifndef TRUE
 #  define TRUE 1
@@ -305,6 +306,7 @@ char targ_vol_path[1000];
 int  fstarg = 0;
 int mkheaderreg = 0, noedit = 0, fixtkreg = 1, fixonly = 0;
 int LoadVol = 1;
+int tagmov = 0;
 
 MRI *mov_vol, *targ_vol, *mritmp, *mrisurf;
 MRI_SURFACE *surf;
@@ -528,6 +530,10 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     }
     MRIfree(&mov_vol);
     mov_vol = mritmp;
+    if(tagmov){
+      printf("Tagging mov volume\n");
+      MRItagVol(mov_vol, 10000);
+    }
   }
   if(!fstal || !fixxfm) Tmov = MRIxfmCRS2XYZtkreg(mov_vol);
   else                  Tmov = MRIxfmCRS2XYZ(mov_vol,0);
@@ -803,6 +809,8 @@ static int parse_commandline(int argc, char **argv)
       fstal = 1; LoadSurf = 0; UseSurf = 0; fscale_2 = 1;}
     else if (!strcasecmp(option, "--fixxfm"))    fixxfm = 1;
     else if (!strcasecmp(option, "--nofixxfm"))  fixxfm = 0;
+    else if (!strcasecmp(option, "--tag"))    tagmov = 1;
+    else if (!strcasecmp(option, "--notag"))  tagmov = 0;
 
     else if (stringmatch(option, "--targ")){
       if(nargc < 1) argnerr(option,1);
@@ -983,6 +991,7 @@ static void print_usage(void)
   printf("   --nofix : don't fix old tkregister matrices\n");
   printf("   --float2int code : spec old tkregister float2int\n");
   printf("   --title title : set window title\n");
+  printf("   --tag : tag mov vol near the col/row origin\n");
   printf("   --gdiagno n : set debug level\n");
   printf("\n");
   printf("   --help : WARNING: contains material that could be harmful "
@@ -1136,6 +1145,13 @@ static void print_help(void)
 "  --title title\n"
 "  \n"
 "  Set the window titles to title. Default is subjectname.\n"
+"  \n"
+"  --tag\n"
+"  \n"
+"  Creates a hatched pattern in the mov volume prior to resampling.\n"
+"  This pattern is in all slices near the col/row origin (ie, near\n"
+"  col=0,row=0). This can help to determine if there is a left-right\n"
+"  reversal. Think of this as a synthetic fiducial.\n"
 "  \n"
 "  --gdiagno N\n"
 "\n"
@@ -3623,7 +3639,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.30 2004/12/14 19:58:00 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.31 2005/05/18 23:39:16 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3914,4 +3930,18 @@ static int MRIisConformant(MRI *vol)
   if(vol->height != 256) return(0);
 
   return(1);
+}
+/*----------------------------------------------*/
+static int MRItagVol(MRI *mri, float val)
+{
+  int r,c,s;
+  float min, max;
+
+  MRIlimits(mri,&min,&max);
+
+  for(c=0; c < 10; c+=2)
+    for(r=0; r < 10; r+=2)
+      for(s=0; s < mri->depth; s++)
+	MRIsetVoxVal(mri,c,r,s,0,.9*max);
+  return(0);
 }
