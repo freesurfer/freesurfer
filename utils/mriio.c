@@ -551,8 +551,7 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
            "(file type recognized but not caught)"));
   }
 
-  if (mri == NULL)
-    return(NULL) ;
+  if (mri == NULL)  return(NULL) ;
 
   // update/cache the transform
   if (mri->i_to_r__)
@@ -563,8 +562,10 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
     MatrixFree(&(mri->r_to_i__));
   mri->r_to_i__ = extract_r_to_i(mri);
 
-  if(start_frame == -1)
-    return(mri);
+  /* Compute the FOV from the vox2ras matrix (don't rely on what 
+     may or may not be in the file).*/
+
+  if(start_frame == -1) return(mri);
 
   /* --- select frames --- */
 
@@ -3653,18 +3654,14 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
   case MRI_FLOAT: ext = "bfloat"; size = sizeof(float); break;
   default:
     fprintf(stderr,"ERROR: bvolumeRead: type (%d) is not "
-      "short or float\n", type);
+	    "short or float\n", type);
     return(NULL);
   }
-
+  
   /* Get the header info (also allocs if needed) */
   mri = get_b_info(fname_passed, read_volume, directory, stem, type);
   if(mri == NULL) return(NULL);
-
-  //printf("%s  %d %d %d %d  type=%d, mritype=%d\n",
-  //   fname_passed,mri->width,mri->height,mri->depth,mri->nframes,
-  //   type, mri->type);
-
+  
   /* If not reading the volume, return now */
   if(! read_volume) return(mri);
 
@@ -3672,7 +3669,7 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
   sprintf(fname, "%s/%s_%03d.hdr", directory, stem, 0);
   if((fp = fopen(fname, "r")) == NULL){
     fprintf(stderr, "ERROR: can't open file %s; assuming big-endian bvolume\n",
-      fname);
+	    fname);
     swap_bytes_flag = 0;
   }
   else{
@@ -3692,60 +3689,38 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
       MRIfree(&mri);
       errno = 0;
       ErrorReturn(NULL, (ERROR_BADFILE, 
-       "bvolumeRead(): error opening file %s", fname));
+			 "bvolumeRead(): error opening file %s", fname));
     }
-    fprintf(stderr, "Reading %s ... \n", fname);
+    //fprintf(stderr, "Reading %s ... \n", fname);
     /* Loop through the frames */
     for(frame = 0; frame < mri->nframes; frame ++){
       k = slice + mri->depth*frame; 
       
       /* Loop through the rows */
       for(row = 0;row < mri->height; row++){
-  
-  /* read in all the columns for a row */
-  nread = fread(mri->slices[k][row], size, mri->width, fp);
-  if( nread != mri->width){
-    fclose(fp);
-    MRIfree(&mri);
-    errno = 0;
-    ErrorReturn(NULL, (ERROR_BADFILE, "bvolumeRead(): "
-           "error reading from file %s", fname));
-  }
-  
-  if(swap_bytes_flag){
-    if(type == MRI_SHORT)
-      swab(mri->slices[k][row], mri->slices[k][row], mri->width * size);
-    else {
-      byteswapbuffloat((void*)mri->slices[k][row],size*mri->width);
-      //for(col=0; col < mri->width; col++) {
-      //MRIFseq_vox(mri,col,row,slice,frame) = 
-      //swapFloat(MRIFseq_vox(mri,col,row,slice,frame));
-    }
-  }
-  
+	
+	/* read in all the columns for a row */
+	nread = fread(mri->slices[k][row], size, mri->width, fp);
+	if( nread != mri->width){
+	  fclose(fp);
+	  MRIfree(&mri);
+	  errno = 0;
+	  ErrorReturn(NULL, (ERROR_BADFILE, "bvolumeRead(): "
+			     "error reading from file %s", fname));
+	}
+	
+	if(swap_bytes_flag){
+	  if(type == MRI_SHORT)
+	    swab(mri->slices[k][row], mri->slices[k][row], mri->width * size);
+	  else 
+	    byteswapbuffloat((void*)mri->slices[k][row],size*mri->width);
+	}
       } /* row loop */
     } /* frame loop */
     
     fclose(fp);
   } /* slice loop */
   
-  //printf("--------------------------------\n");
-  //MRIdump(mri,stdout);
-  //MRIdumpBuffer(mri,stdout);
-  //printf("--------------------------------\n");
-
-#if 0
-  for(col = 0; col < mri->width; col ++){
-    for(row = 0; row < mri->height; row ++){
-      for(slice = 0; slice < mri->depth; slice ++){
-  for(frame = 0; frame < mri->nframes; frame ++){
-    printf("%2d %2d %2d %2d  %f  \n",col,row,slice,frame,
-     (float)(MRIFseq_vox(mri,col,row,slice,frame)));
-  }
-      }
-    }
-  }
-#endif 
   MRIlimits(mri,&min,&max);
   printf("INFO: bvolumeRead: min = %g, max = %g\n",min,max);
 
@@ -5024,7 +4999,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
     printf("ERROR: analyzeRead(): cannot find any files for %s\n",fname);
     return(NULL);
   }
-  printf("INFO: analyzeRead(): found %d files for %s\n",nfiles,fname);
+  //printf("INFO: analyzeRead(): found %d files for %s\n",nfiles,fname);
 
   /* Create file names of header and mat files */
   if(N_Zero_Pad_Input > -1){
@@ -5049,6 +5024,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
     if(nframes==0) nframes = 1;
   }
   else  nframes = nfiles;
+
   ncols = hdr->dime.dim[1];
   nrows = hdr->dime.dim[2];
   nslcs = hdr->dime.dim[3];
@@ -5066,7 +5042,10 @@ static MRI *analyzeRead(char *fname, int read_volume)
 
   /* Alloc the Header and/or Volume */
   if(read_volume) mri = MRIallocSequence(ncols, nrows, nslcs, mritype, nframes);
-  else            mri = MRIallocHeader(ncols, nrows, nslcs, mritype);
+  else {
+    mri = MRIallocHeader(ncols, nrows, nslcs, mritype);
+    mri->nframes = nframes;
+  }
 
   /* Load Variables into header */
   mri->xsize = fabs(hdr->dime.pixdim[1]);  /* col res */
@@ -5089,9 +5068,9 @@ static MRI *analyzeRead(char *fname, int read_volume)
     /* Convert from 1-based to 0-based */
     Q = MtxCRS1toCRS0(Q);
     T = MatrixMultiply(T1,Q,T);
-    printf("------- Analyze Input Matrix (zero-based) --------\n");
-    MatrixPrint(stdout,T);
-    printf("-------------------------------------\n");
+    //printf("------- Analyze Input Matrix (zero-based) --------\n");
+    //MatrixPrint(stdout,T);
+    //printf("-------------------------------------\n");
     mri->ras_good_flag = 1;
     MatrixFree(&Q);
     MatrixFree(&T1);
