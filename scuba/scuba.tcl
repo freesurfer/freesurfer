@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.111 2005/05/18 21:48:59 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.112 2005/05/18 22:26:15 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5135,7 +5135,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.111 2005/05/18 21:48:59 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.112 2005/05/18 22:26:15 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5582,7 +5582,7 @@ proc DoShowSurfaceVertex {} {
 	frame $fwVertex
 	tkuMakeEntry $fwVertex.ewVertex \
 	    -variable gShowSurfaceVertexInfo(vertex) \
-	    -command { FindSurfaceVertexCallback } \
+	    -command { ShowSurfaceVertexCallback } \
 	    -width 10
 
 	pack $fwVertex.ewVertex \
@@ -5687,7 +5687,7 @@ proc FindNearestSurfaceVertexCallback {} {
 		 $gFindNearestSurfaceVertexInfo(layerID) \
 		 [lindex $lCursorRAS 0] [lindex $lCursorRAS 1] \
 		 [lindex $lCursorRAS 2]]
-	
+
 	set lRAS \
 	    [Get2DMRISRASCoordsFromVertexIndex \
 		 $gFindNearestSurfaceVertexInfo(layerID) \

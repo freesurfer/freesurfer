@@ -1490,26 +1490,43 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
 
     // If we're locked on the cursor, and the cursor is no longer in
     // our view plane, set our view now. But only focus on the
-    // cursor's new plane to minimize the view jumping around.
-    if( mbLockOnCursor && 
-	!mViewState.IsRASVisibleInPlane( mCursor.xyz(), 
-				GetInPlaneIncrement( mViewState.mInPlane ))) {
+    // cursor's new plane to minimize the view jumping around. Unless
+    // the cursor is no longer visible in the view, then recenter.
+    if( mbLockOnCursor ) {
 
       float newCenter[3];
       newCenter[0] = mViewState.mCenterRAS[0];
       newCenter[1] = mViewState.mCenterRAS[1];
       newCenter[2] = mViewState.mCenterRAS[2];
 
-      switch( mViewState.mInPlane ) {
-      case ViewState::X:
+      // Make sure we stay in plane.
+      if ( !mViewState.IsRASVisibleInPlane( mCursor.xyz(), 
+		 GetInPlaneIncrement( mViewState.mInPlane ))) {
+
+	switch( mViewState.mInPlane ) {
+	case ViewState::X:
+	  newCenter[0] = mCursor[0];
+	  break;
+	case ViewState::Y:
+	  newCenter[1] = mCursor[1];
+	  break;
+	case ViewState::Z:
+	  newCenter[2] = mCursor[2];
+	  break;
+	}
+      }
+
+      // Make sure this is in the window view. Convert to window
+      // coords and if any are outside of the view...
+      int window[2];
+      TranslateRASToWindow( mCursor.xyz(), window );
+      if( window[0] < 0 || window[0] > mWidth ||
+	  window[1] < 0 || window[1] > mHeight ) {
+
+	// Just center around cursor.
 	newCenter[0] = mCursor[0];
-	break;
-      case ViewState::Y:
 	newCenter[1] = mCursor[1];
-	break;
-      case ViewState::Z:
 	newCenter[2] = mCursor[2];
-	break;
       }
 
       Set2DRASCenter( newCenter );
@@ -1517,7 +1534,7 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
 
     mbRebuildOverlayDrawList = true;
     RequestRedisplay();
-  }
+    }
 
   if( isMessage == "markerChanged" ) {
     mbRebuildOverlayDrawList = true;
@@ -3347,8 +3364,8 @@ ScubaViewStaticTclListener::DoListenToTclCommand ( char* isCommand,
 
   }
 
-  // GetViewRASCenter <viewID> <X> <Y> <Z>
-  if( 0 == strcmp( isCommand, "GetViewRASCenter" ) ) {
+  // GetViewRASCursor <viewID> <X> <Y> <Z>
+  if( 0 == strcmp( isCommand, "GetViewRASCursor" ) ) {
       
     float cursor[3];
     ScubaView::GetCursor( cursor );
