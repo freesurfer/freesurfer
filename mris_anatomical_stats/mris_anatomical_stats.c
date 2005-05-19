@@ -15,7 +15,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.24 2005/05/16 16:05:04 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.25 2005/05/19 14:05:59 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -62,6 +62,8 @@ static int MGZ = 0; // for use with MGZ format
 static char *tablefile=NULL;
 static FILE *fp=NULL;
 
+static int nsmooth = 0;
+
 int
 main(int argc, char *argv[])
 {
@@ -77,9 +79,10 @@ main(int argc, char *argv[])
   HISTOGRAM     *histo_gray ;
   int           ct_index;
   int           n_vertices = -1;
+  MRI           *ThicknessMap = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.24 2005/05/16 16:05:04 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.25 2005/05/19 14:05:59 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -156,7 +159,19 @@ main(int argc, char *argv[])
   MRISreadVertexPositions(mris, fname) ;
 #else
   MRISreadCurvatureFile(mris, thickness_name) ;
-  
+
+  if(nsmooth > 0){
+    printf("Smooth thickness map with %d iterations on surface\n", nsmooth);
+    ThicknessMap = MRIcopyMRIS(NULL, mris, 0, "curv");
+    if(ThicknessMap == NULL){
+      printf("Unable to copy thickness data to a MRI volume \n");
+    }else{
+      MRISsmoothMRI(mris, ThicknessMap, nsmooth, ThicknessMap);
+      MRIScopyMRI(mris, ThicknessMap, 0, "curv");
+      MRIfree(&ThicknessMap);
+    }
+  }
+
 #endif
 
 #if 0
@@ -474,6 +489,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "outputting results to %s...\n", log_file_name) ;
   }
+  else if (!stricmp(option, "nsmooth"))
+  {
+    nsmooth = atoi(argv[2]);
+    nargs = 1;
+    printf("Smooth thickness by %d steps before using it \n", nsmooth);
+  }
   else if (!stricmp(option, "noheader"))
   {
 		noheader = 1 ;
@@ -599,6 +620,8 @@ print_help(void)
           "-f tablefile  - table output to a file (different format than -b) \n");
   fprintf(stderr,
           "-log <log>    - will write the stats into a file named <log>\n");
+  fprintf(stderr,
+          "-nsmooth <#>    - will smooth the thicknessmap # of iterations before using it \n");
   exit(1) ;
 }
 
