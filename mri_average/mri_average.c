@@ -109,7 +109,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.26 2005/03/29 02:58:12 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.27 2005/05/19 20:37:24 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -144,7 +144,7 @@ main(int argc, char *argv[])
   for (num = 0, i = 1 ; i < argc-1 ; i++)
   {
     in_fname = argv[i] ;
-    fprintf(stderr, "%d of %d: reading %s...\n", num, argc-2, in_fname) ;
+    fprintf(stderr, "%d of %d: reading %s...\n", num+1, argc-2, in_fname) ;
 
     mri_src = MRIread(in_fname) ;
     if (!mri_src)
