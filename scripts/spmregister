@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # 
-# $Id: spmregister,v 1.8 2005/01/21 22:52:55 greve Exp $
-set VERSION = '$Id: spmregister,v 1.8 2005/01/21 22:52:55 greve Exp $';
+# $Id: spmregister,v 1.9 2005/05/20 21:31:31 greve Exp $
+set VERSION = '$Id: spmregister,v 1.9 2005/05/20 21:31:31 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -208,8 +208,14 @@ echo " " |& tee -a $LF
 echo "spmregister Done" |& tee -a $LF
 echo " "
 
+if(-e $SUBJECTS_DIR/$subjid/surf/lh.orig) then
+  set tmp = "--surf orig"
+else
+  set tmp = ""
+endif
+  
 echo "To check results, run:"
-echo "tkregister2 --mov $movvol --reg $regfile"
+echo "tkregister2 --mov $movvol --reg $regfile $tmp"
 echo " "
 
 
@@ -377,12 +383,23 @@ converted to analyze using mri_convert.
 
 Volume identifier of the movable volume. This must be specified in
 a way suitable for mri_convert. Uses first frame unless --frame
-is specified.
+is specified. For this to work correctly, the movable volume must
+have correct geometry information (eg, a valid SPM-style .mat file)
+otherwise the results may be unpredictable.
 
 --reg regfile
 
 Output registration file. This will map RAS in the reference to
-RAS in the movable.
+RAS in the movable. This file/matrix is in a format understood
+by freesurfer (see tkregister2 --help for docs). It will contain
+the subjectname.
+
+--frame frameno
+
+Use something other than the first frame. Eg, with FSL may want
+to use the middle frame. For SPM analyze, you should specify the
+file that corresonds to the frame you want because each file only
+has one frame.
 
 NOTES:
 
@@ -394,7 +411,12 @@ There may be a series of warnings of the form:
 "Warning: Assuming a scalefactor of 1 for refvol.spm_rigid_register.img". 
 This can be ignored.
 
-SEE ALSO: tkregister2, mri_convert, mri_rigid_register, 
+The movable volume needs to have "valid" geometry (eg, SPM-style .mat
+file). "Valid" means that the direction cosines roughly identify
+Right, Anterior, and Superior (though they do not need to be perfectly
+correct).
+
+SEE ALSO: tkregister2, mri_vol2surf, mri_convert, mri_rigid_register, 
 fsl_rigid_register, spm_coreg.m.
 
 
