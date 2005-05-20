@@ -23,7 +23,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.86 2005/05/11 17:00:26 greve Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.87 2005/05/20 21:17:18 fischl Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -197,36 +197,36 @@ int verifyLRSplit(MRI *mri_fill, LTA *lta, Real cc_tal_x, int *pbadRH, int *pbad
     for (y=0; y < mri_fill->height; ++y)
       for (x=0; x < mri_fill->width; ++x)
       {
-	val = MRIvox(mri_fill, x, y, z);
-	if (val != 0)
-	{
-	  if (val == rh_fill_val)
-	    RH++;
-	  else if (val==lh_fill_val)
-	    LH++;
-	  // get the talairach coordinate position
-	  MRIvoxelToTalairachEx(mri_fill, x, y, z, &tal_x, &tal_y, &tal_z, lta);
-	  if (tal_x < cc_tal_x) // talairach coordinates less means left
-	  {  
-	    // val must be lh_fill_val, except the case when the brain bends
-	    if (val == rh_fill_val)
-	    {
-	      badRH++;
-	      // if (badRH < 10)
-	      //   fprintf(stderr, "badRH: (%d, %d, %d)\n", x, y, z);
-	    }
-	  }
-	  else if (tal_x > cc_tal_x) // talairach coordinate greater means right
-	  {
-	    // val must be rh_fill_val, except the case when the brain bends
-	    if (val == lh_fill_val)
-	    {
-	      badLH++;
-	      // if (badLH < 10)
-	      //   fprintf(stderr, "badLH: (%d, %d, %d)\n", x, y, z);
-	    }
-	  }
-	}
+				val = MRIvox(mri_fill, x, y, z);
+				if (val != 0)
+				{
+					if (val == rh_fill_val)
+						RH++;
+					else if (val==lh_fill_val)
+						LH++;
+					// get the talairach coordinate position
+					MRIvoxelToTalairachEx(mri_fill, x, y, z, &tal_x, &tal_y, &tal_z, lta);
+					if (tal_x < cc_tal_x) // talairach coordinates less means left
+					{  
+						// val must be lh_fill_val, except the case when the brain bends
+						if (val == rh_fill_val)
+						{
+							badRH++;
+							// if (badRH < 10)
+							//   fprintf(stderr, "badRH: (%d, %d, %d)\n", x, y, z);
+						}
+					}
+					else if (tal_x > cc_tal_x) // talairach coordinate greater means right
+					{
+						// val must be rh_fill_val, except the case when the brain bends
+						if (val == lh_fill_val)
+						{
+							badLH++;
+							// if (badLH < 10)
+							//   fprintf(stderr, "badLH: (%d, %d, %d)\n", x, y, z);
+						}
+					}
+				}
       }
 
   // if (badRH > 10 || badLH > 10)
@@ -316,7 +316,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.86 2005/05/11 17:00:26 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.87 2005/05/20 21:17:18 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -443,6 +443,8 @@ main(int argc, char *argv[])
   // if lta is loaded
   if (lta)
   {
+		if (lta->type != LINEAR_RAS_TO_RAS)
+			LTAvoxelTransformToCoronalRasTransform(lta);
     ModifyTalairachCRAS(mri_talheader, lta);
   }
   else // lta is not loaded and thus we create 
@@ -581,13 +583,17 @@ main(int argc, char *argv[])
   {
 		if (mri_seg)
 		{
-			if (find_cc_seed_with_segmentation(mri_tal, mri_seg, &cc_tal_x, &cc_tal_y, &cc_tal_z) == NO_ERROR)
+			MRI *mri_seg_tal = MRIclone(mri_seg, NULL) ;
+
+			MRItoTalairachExInterp(mri_seg, mri_seg_tal, lta, SAMPLE_NEAREST);
+			if (find_cc_seed_with_segmentation(mri_tal, mri_seg_tal, &cc_tal_x, &cc_tal_y, &cc_tal_z) == NO_ERROR)
 			{
 				cc_seed_set = 1;
 				mri_cc = 
 					find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
 														 &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
 			}
+			MRIfree(&mri_seg_tal) ;
 		}
 		if (mri_cc == NULL)
 		{
@@ -609,10 +615,14 @@ main(int argc, char *argv[])
     mri_cc = 
       find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
                          &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
-    if (!mri_cc && mri_seg)
+    if (!mri_cc && mri_seg)  // don't think this is ever used (done above)
     {
-      if (find_cc_seed_with_segmentation(mri_tal, mri_seg, &cc_tal_x, &cc_tal_y, &cc_tal_z) == NO_ERROR)
+			MRI *mri_seg_tal = MRIclone(mri_seg, NULL) ;
+
+			MRItoTalairachExInterp(mri_seg, mri_seg_tal, lta, SAMPLE_NEAREST);
+      if (find_cc_seed_with_segmentation(mri_tal, mri_seg_tal, &cc_tal_x, &cc_tal_y, &cc_tal_z) == NO_ERROR)
 				cc_seed_set = 1;
+			MRIfree(&mri_seg_tal) ;
       mri_cc = 
 				find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
 													 &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
@@ -675,7 +685,7 @@ main(int argc, char *argv[])
     {
       fprintf(stderr, "The seed point (%.2f, %.2f, %.2f) is mapped to a voxel (%.2f, %.2f. %.2f).\n",
 							pons_tal_x, pons_tal_y, pons_tal_z, xv, yv, zv);
-      fprintf(stderr, "Make sure that the seed point is given in talaraich position or use -CV option\n");
+      fprintf(stderr, "Make sure that the seed point is given in talaraich position or use -PV option\n");
       return -1;
     }
   }
@@ -1285,24 +1295,24 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  if (!strcmp(option, "-help"))
+  if (!stricmp(option, "-help"))
     print_help() ;
-  else if (!strcmp(option, "-version"))
+  else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!strcmp(option, "rval"))
+  else if (!stricmp(option, "rval"))
   {
     rh_fill_val = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr,"using %d as fill val for right hemisphere.\n",
             rh_fill_val);
   }
-  else if (!strcmp(option, "lval"))
+  else if (!stricmp(option, "lval"))
   {
     lh_fill_val = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr,"using %d as fill val for left hemisphere.\n",lh_fill_val);
   }
-  else if (!strcmp(option, "debug_voxel"))
+  else if (!stricmp(option, "debug_voxel"))
   {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
@@ -1310,13 +1320,13 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     printf("debugging voxel (%d,  %d,  %d)\n", Gx, Gy, Gz)  ;
   }
-  else if (!strcmp(option, "fillven"))
+  else if (!stricmp(option, "fillven"))
   {
 		fillven = atoi(argv[2]) ;
 		printf("%sfilling ventricles\n", fillven == 0 ? "not " : "") ;
     nargs = 1 ;
   }
-  else if (!strcmp(option, "lh"))
+  else if (!stricmp(option, "lh"))
   {
     lh_seed_set = 1 ;
     lh_tal_x = atof(argv[2]) ;
@@ -1326,7 +1336,7 @@ get_option(int argc, char *argv[])
             lh_tal_x, lh_tal_y, lh_tal_z) ;
     nargs = 3 ;
   }
-  else if (!strcmp(option, "segmentation"))
+  else if (!stricmp(option, "segmentation"))
   {
     segmentation_fname = argv[2] ;
     fprintf(stderr, "using segmentation %s...\n", segmentation_fname) ;
@@ -1337,7 +1347,7 @@ get_option(int argc, char *argv[])
 		fillonly = 1 ;
 		printf("only filling volume...\n") ;
 	}
-  else if (!strcmp(option, "rh"))
+  else if (!stricmp(option, "rh"))
   {
     rh_seed_set = 1 ;
     rh_tal_x = atof(argv[2]) ;
@@ -1347,7 +1357,7 @@ get_option(int argc, char *argv[])
             rh_tal_x, rh_tal_y, rh_tal_z) ;
     nargs = 3 ;
   }
-  else if (!strcmp(option, "rhv"))
+  else if (!stricmp(option, "rhv"))
   {
     rh_seed_set = 1 ;
     rh_vol_x = atoi(argv[2]) ;
@@ -1357,19 +1367,19 @@ get_option(int argc, char *argv[])
             rh_vol_x, rh_vol_y, rh_vol_z) ;
     nargs = 3 ;
   }
-  else if (!strcmp(option, "ccmask"))
+  else if (!stricmp(option, "ccmask"))
   {
     cc_mask = !cc_mask ;
     fprintf(stderr,"%susing corpus callosum to mask possible location of "
             "pons.\n", cc_mask ? "" : "not ");
   }
-  else if (!strcmp(option, "atlas"))
+  else if (!stricmp(option, "atlas"))
   {
     atlas_name = argv[2] ; sname = argv[3] ;
     nargs = 2 ;
     fprintf(stderr, "using atlas %s for auto filling...\n", atlas_name) ;
   }
-  else if (!strcmp(option,"xform"))
+  else if (!stricmp(option,"xform"))
   {
     struct stat stat_buf;
     if (stat(argv[2], &stat_buf) < 0)
@@ -1380,7 +1390,7 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "INFO: Using %s and its offset for Talairach volume ...\n", argv[2]);
     nargs = 1; // consumed 1 args
   }
-  else if (!strcmp(option, "PV"))
+  else if (!stricmp(option, "PV"))
   {
     pons_vol_x = atof(argv[2]) ;
     pons_vol_y = atof(argv[3]) ;
@@ -1390,7 +1400,7 @@ get_option(int argc, char *argv[])
             pons_vol_x, pons_vol_y, pons_vol_z) ;
     pons_seed_vol_set = 1 ;
   }
-  else if (!strcmp(option, "CV"))
+  else if (!stricmp(option, "CV"))
   {
     cc_vol_x = atof(argv[2]) ;
     cc_vol_y = atof(argv[3]) ;
