@@ -15,7 +15,7 @@
 #     If dir does not exist or all the runs do not exist,
 #     exits with status 1.
 # 
-# $Id: getrunlist,v 1.2 2003/03/20 22:33:48 greve Exp $
+# $Id: getrunlist,v 1.3 2005/05/20 21:27:33 greve Exp $
 
 if($#argv != 1 && $#argv != 2) then
   echo "USAGE: getrunlist dir <runlistfile>"
@@ -32,7 +32,7 @@ if($#argv != 2) then
   set RunList = ();
   set run = 1;
   @ nohit = 0;
-  while($nohit < 100)
+  while($nohit < 300)
     set runid = `printf %03d $run`;
     if( -d $dir/$runid ) then
       set RunList = ($RunList $runid);
