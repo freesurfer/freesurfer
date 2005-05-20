@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # qsurfer - quick surfer
 #
-set VERSION = '$Id: qsurfer,v 1.6 2005/05/11 21:58:00 greve Exp $'
+set VERSION = '$Id: qsurfer,v 1.7 2005/05/20 21:26:26 greve Exp $'
 set cmdargs = ($argv);
 
 set usenew = ".new";
@@ -299,11 +299,16 @@ usage_exit:
   echo "   -fthresh  threshold    : <$fthresh>" 
   echo "   -fslope   slope        : <$fslope>" 
   echo "   -fmid     mid          : <$fmid>" 
+  echo "      For info on setting the thresholds see"
+  echo "      http://surfer.nmr.mgh.harvard.edu/faqomatic/cache/56.html"
   echo "   -smoothsteps  nsteps   : <$smoothsteps>"
   echo "   -avgcurv               : use average curvature"
   echo "   -subjects_dir dir      : set subject's dir"
   echo "   -umask umask   : set unix file permission mask"
   echo "   -scriptonly    : don't run, just generate a script"
   echo "   -version       : print version and exit"
+
+
+
 exit 1;
 

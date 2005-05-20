@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # qmedit - quick tkmedit
 #
-set VERSION = '$Id: qmedit,v 1.1 2005/03/19 00:37:40 greve Exp $';
+set VERSION = '$Id: qmedit,v 1.2 2005/05/20 21:26:26 greve Exp $';
 set cmdargs = ($argv);
 
 set anatvol    = orig;
@@ -58,12 +58,23 @@ else
   set segpath = ();
 endif
 
+which tkmedit
+
 set cmd = (tkmedit $subject $anatvol $surf)
 if($#auxvol) set cmd = ($cmd -aux $auxvol)
 if($#segvol) set cmd = ($cmd -segmentation $segpath $segcolor)
 set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope)
 if($#tcvol) set cmd = ($cmd -timecourse $tcvol -timecourse-reg $regfile)
-if($#overlayvol)set cmd = ($cmd -overlay $overlayvol -overlay-reg $regfile)
+
+if($#overlayvol) then
+  set overlaybase = `basename $overlayvol`;
+  set overlaydir  = `dirname $overlayvol`;
+  pushd $overlaydir > /dev/null
+  set overlaydir = `pwd`;
+  set overlayvol = $overlaydir/$overlaybase
+  set cmd = ($cmd -overlay $overlayvol -overlay-reg $regfile)
+  popd > /dev/null
+endif
 
 echo ""
 echo ""
@@ -222,6 +233,8 @@ usage_exit:
   echo "   -fthresh fthresh : default is 2"
   echo "   -fmid    fmid    : default is 5"
   echo "   -fslope  fslope  : default is .33"
+  echo "      For info on setting the thresholds see"
+  echo "      http://surfer.nmr.mgh.harvard.edu/faqomatic/cache/56.html"
   echo "   -fmask  : fthresh=0.5, fmid=1, fslope=1"
   echo "   -anat    anatvol : default is orig"
   echo "   -aux     auxvol : default is brain"
@@ -231,4 +244,5 @@ usage_exit:
   #echo "   -tkargs  tkmeditargs"
   echo "   -version       : print version and exit"
 exit 1;
+
 
