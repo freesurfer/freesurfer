@@ -1,0 +1,373 @@
+#!/bin/csh -f
+# bgmask-sess
+#
+set VERSION = '$Id: bgmask-sess,v 1.1 2005/05/21 05:31:31 greve Exp $';
+
+set cmdargs = ($argv);
+
+set omask     = bgmask;
+set fmt       = bhdr;
+set ofmt      = bhdr;
+set fsd       = bold;
+set funcstem  = f;
+set epi       = 1;
+set RunListFile = ();
+set PerRun    = 0;
+set PolyFitOrder = 2;
+set ExtReg    = ();
+set nolog     = 0;
+set PrintHelp = 0;
+set monly     = 0;
+set sumfile   = ();
+set MLF       = ();
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if(! $nolog) then
+  set LF = log/bgmask-sess.log
+  if(-e $LF) mv $LF $LF.bak
+else
+  set LF = /dev/null
+endif
+
+date | tee -a $LF
+pwd  | tee -a $LF
+echo $0  | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+hostname  | tee -a $LF
+uname -a  | tee -a $LF
+
+if(! $monly) set MLF = /tmp/bgmask-sess.$$.m
+rm -f $MLF
+
+if($#sumfile) rm -f $sumfile
+
+#------------------------------------------------------------------#
+set StartTime = `date`;
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  set RunList = `getrunlist $sess/$fsd $RunListFile`;
+  if($status) then
+    echo $RunList
+    exit 1;
+  endif
+
+  if(! $PerRun) set RunList = $RunList[1];
+
+  foreach Run ($RunList)
+    set func = $sess/$fsd/$Run/$funcstem.$fmt
+    if(! -e $func) then
+      echo "ERROR: cannot find $func"
+      exit 1;
+    endif
+
+    if(! $PerRun) then
+      set maskdir = $sess/$fsd/masks
+    else
+      set maskdir = $sess/$fsd/$Run/masks
+    endif
+    mkdir -p $maskdir
+    set outvol = $maskdir/$omask.$ofmt
+  
+    set extregstem = ();
+    if($#ExtReg) then
+      set extregstem = $sess/$fsd/$Run/$ExtReg
+      if(! -e $extregstem"_000.hdr") then
+        echo ERROR: cannot find $extregstem"_000.hdr";
+        exit 1;
+      endif
+    endif
+
+#--------------------------#
+tee -a $MLF > /dev/null <<EOF
+clear all;
+tic;
+
+QuitOnError = ~[$monly];
+fspec = '$func';
+extregstem = '$extregstem';
+polyfitorder = [$PolyFitOrder];
+bgmaskspec = '$outvol';
+sessid = '$sessid';
+runid  = '$Run';
+sumfile = '$sumfile';
+
+fprintf('%s Loading functional %s\n',sessid,runid);
+f = MRIread(fspec);
+if(isempty(f))
+  fprintf('ERROR: loading %s\n',fspec);
+  if(QuitOnError) quit; end
+  return;
+end
+f.volmat = fast_vol2mat(f.vol);
+
+X = [];
+Xpoly = fast_polytrendmtx(1,f.nframes,1,polyfitorder);
+X = [X Xpoly];
+
+if(~isempty(extregstem))
+  extreg = fmri_ldbvolume(extregstem);
+  if(isempty(extreg))
+    fprintf('ERROR: could not load %s\n',extregstem);
+    if(QuitOnError) quit; end
+    return;
+  end
+  if(size(extreg,3)~=1) extreg = squeeze(extreg)'; %'
+  else                  extreg = squeeze(extreg);
+  end
+  % Remove mean of External Regressor %
+  extreg = extreg(:,1:3);
+  extreg = extreg - repmat(mean(extreg), [f.nframes 1]);
+  extreg = extreg./repmat(std(extreg), [f.nframes 1]);
+  X = [X extreg];
+end
+
+fprintf('  Detrending \n');
+[beta, rvar] = fast_glmfitw(f.volmat,X);
+fstd = sqrt(rvar);
+
+fmn = fast_mat2vol(beta(1,:),f.volsize);
+fstd = fast_mat2vol(fstd,f.volsize);
+
+fprintf('  Computing background mask \n');
+bgmask = f;
+[bgmask.vol bgstd fstdfg fstdfgexp bgthresh]= fast_bgmask(fmn,fstd);
+indbg = find(bgmask.vol);
+nbgmask = length(indbg);
+bgmn = mean(fmn(indbg));
+bgstdexp = sqrt((4/pi-1)*bgmn.^2); % Expected based on the mean
+
+fprintf('%10s %s  n=%5d  bgmn = %8.3f, bgstdexp = %8.3f  bgstd = %8.3f  fgstdexp = %8.3f  fgstd = %8.3f\n',...
+        sessid,runid,nbgmask,bgmn, bgstdexp, bgstd, fstdfgexp, fstdfg);
+
+% percentage of variance due to non-white noise
+pctnw = 100*(fstdfg.^2 - fstdfgexp.^2)/(fstdfg.^2);
+
+if(~isempty(sumfile))
+  fp = fopen(sumfile,'a');
+  fprintf(fp,'%15s %s  %5d  %8.3f %8.3f  %8.3f  %8.3f  %8.3f  %8.3f\n',...
+          sessid,runid,nbgmask,bgmn,bgstdexp,bgstd, ...
+          fstdfgexp, fstdfg, pctnw);
+  fclose(fp);
+end
+
+if(0)
+  fbg = f.volmat(:,indbg);
+  x = [0:35];
+  [h x] = hist(fbg(:),x);
+  pdfest = h/trapz(x,h);
+  fbgmn  = mean(fbg(:));
+  fbgstd = std(fbg(:));
+  rpdf = pdf_rayleigh(x,fbgmn);
+  plot(x,pdfest,x,rpdf);
+end
+
+fprintf('  Saving \n');
+MRIwrite(bgmask,bgmaskspec);
+
+fprintf('  Done %g \n',toc);
+
+EOF
+#--------------------------#
+
+  end # Runs
+
+end # Session
+
+set okfile = /tmp/bgmask-sess.$$.ok
+rm -f $okfile
+echo "fmri_touch('$okfile');" >> $MLF
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic
+  rm -f $MLF
+  if(! -e $okfile) then
+    echo "ERROR: in matlab execution"
+    exit 1;
+  endif
+  rm -f $okfile
+endif
+
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "bgmask-sess Done"    | tee -a $LF
+
+exit 0;
+###############################################
+###############################################
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set osegvol = $argv[1]; shift;
+      breaksw
+
+    case "-func":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set RunListFile = $argv[1]; shift;
+      breaksw
+
+    case "-extreg":
+      if ( $#argv == 0) goto arg1err;
+      set ExtReg = $argv[1]; shift;
+      breaksw
+
+    case "-fmt":
+      if ( $#argv == 0) goto arg1err;
+      set fmt = $argv[1]; shift;
+      breaksw
+
+    case "-ofmt":
+      if ( $#argv == 0) goto arg1err;
+      set ofmt = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set omask = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-sum":
+      if ( $#argv == 0) goto arg1err;
+      set sumfile = $argv[1]; shift;
+      breaksw
+
+    case "-perrun":
+      set PerRun = 1;
+      breaksw
+
+    case "-epi":
+      set epi = 1;
+      breaksw
+
+    case "-noepi":
+      set epi = 0;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: bgmask-sess"
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -o    outmask : use outmask instead of bgmask"
+  echo "   -func funcstem : default is f"
+  echo "   -fsd  fsd : use fsd instead of bold"
+  echo "   -fmt  fmt : <bhdr> or mgh"
+  echo "   -ofmt fmt : <bhdr> or mgh"
+  echo "   -noepi    : do not assume EPI"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Session Arguments (Optional)"
+  echo "   -version       : print version and exit"
+  echo "   -debug"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+
+
