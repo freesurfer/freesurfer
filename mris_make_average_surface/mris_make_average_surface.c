@@ -3,9 +3,9 @@
 //
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/02/28 21:58:23 $
-// Revision       : $Revision: 1.13 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/05/21 01:55:42 $
+// Revision       : $Revision: 1.14 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -25,7 +25,7 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.13 2005/02/28 21:58:23 tosa Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.14 2005/05/21 01:55:42 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -57,7 +57,7 @@ main(int argc, char *argv[])
   VOL_GEOM      vg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.13 2005/02/28 21:58:23 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.14 2005/05/21 01:55:42 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -279,7 +279,7 @@ print_usage(void)
 {
   printf(
          "usage: %s [options] <hemi> <output surf name> <canon surface>\n\t<output subject name> <subject> ... "
-          " <output subject name >\n", Progname) ;
+          "\n", Progname) ;
 	printf("this program will generate an average of the orig surfaces of all the subjects\n"
 				 "specified (unless the -s <surface name> flag is used)\n") ;
 	printf("\tthe transform defaults to %s in the subject's mri/transforms directory, but can\n",
