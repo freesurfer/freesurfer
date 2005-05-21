@@ -1,0 +1,454 @@
+#!/bin/csh -f
+# 
+set VERSION = '$Id: fslregister,v 1.1 2005/05/21 00:47:24 greve Exp $';
+set inputargs = ($argv);
+
+set subjid = ();
+set fsvol  = brain;
+set refvol = ();
+set movvol = ();
+set outvol = ();
+set dof = 6;
+set bins = 256;
+set maxangle = 180;
+set cost = corratio;
+set fslmat = ();
+set betmov = 1;
+set betref = 0;
+set initxfm = 0;
+set debug = 0;
+set tmpdir = ();
+set cleanup = 1;
+set PrintHelp = 0;
+set frame = 0;
+set FlipRows = 0; # Never do this! For testing only!
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+setenv FSLOUTPUTTYPE ANALYZE
+
+set movvoldir = `dirname $movvol`;
+if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.$$
+mkdir -p $tmpdir
+
+set LF = $regfile.fslregister.log
+if(-e $LF) mv $LF $LF.old
+echo ""
+echo "Log file is $LF"
+echo ""
+
+echo "Logfile for fslregister" >> $LF
+date |& tee -a $LF
+echo $inputargs |& tee -a $LF
+echo $VERSION |& tee -a $LF
+hostname |& tee -a $LF
+uname -a |& tee -a $LF
+
+set StartTime = `date`;
+set DateString = "`date '+%y%m%d%H%M'`"
+
+# Convert reference to analyze
+set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol
+if(! -e $refvol) then
+  echo "ERROR: $refvol not found"
+  exit 1;
+endif
+set refvolbase = $tmpdir/refvol.fslregister
+set refvolimg  = $refvolbase.img
+set cmd = (mri_convert $refvol $refvolimg)
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+
+# Convert input to analyze #
+set movvolbase = $tmpdir/movvol.fslregister
+set movvolimg  = $movvolbase.img
+set cmd = (mri_convert $movvol $movvolimg)
+if($frame)  set cmd = ($cmd --nskip $frame)
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+
+$cmd       |& tee -a $LF
+if($status) exit 2;
+
+# Perform brain extration on the movable
+if($betmov) then
+  set cmd = (bet $movvolimg $movvolimg -f .1);
+  date | tee -a $LF 
+  pwd | tee -a $LF 
+  echo $cmd | tee -a $LF 
+  $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: bet mov" | tee -a $LF 
+    exit 1;
+  endif
+endif
+
+# Perform brain extration on the reference. Usually don't
+# have to do this because using FreeSurfer brain volume,
+# which has already been skull stripped.
+if($betref) then
+  set cmd = (bet $refvolimg $refvolimg -f .1);
+  date | tee -a $LF 
+  pwd | tee -a $LF 
+  echo $cmd | tee -a $LF 
+  $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: bet ref" | tee -a $LF 
+    exit 1;
+  endif
+endif
+
+if($FlipRows) then
+  # Never do this! For testing only!
+  set cmd = (avwswapdim $movvolimg x -y z $movvolimg)
+  pwd | tee -a $LF 
+  echo $cmd | tee -a $LF 
+  $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: avwswapdim"
+    exit 1;
+  endif
+endif
+
+if(-e $regfile) mv $regfile $regfile.$DateString
+if($#fslmat == 0) set fslmat = $regfile.fsl.mat
+
+# Compute the intial matrix based on the geometry in the header
+if($initxfm) then
+  set fslmat0 = $fslmat"0";
+  set reg0 = $tmpdir/reg0.$$.dat
+  set cmd = (tkregister2 --mov $movvolimg --reg $reg0 \
+     --regheader --fslregout $fslmat0 --s $subjid --noedit);
+  pwd | tee -a $LF 
+  echo $cmd | tee -a $LF 
+  $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: tkregister2"
+    exit 1;
+  endif
+endif
+
+# Set up and run the Flirt command-line
+set cmd = (flirt -ref $refvolimg -in $movvolimg)
+#set cmd = ($cmd  -out $outvol -interp trilinear)
+set cmd = ($cmd  -omat $fslmat -cost $cost -dof $dof)
+set cmd = ($cmd  -searchrx -$maxangle $maxangle);
+set cmd = ($cmd  -searchry -$maxangle $maxangle);
+set cmd = ($cmd  -searchrz -$maxangle $maxangle);
+if($initxfm) set cmd = ($cmd -init $fslmat0)
+if($#outvol) then
+  set outvolbase = $tmpdir/outvol.fslregister
+  set outvolimg  = $outvolbase.img
+  set cmd = ($cmd -o $outvolimg);
+endif
+date | tee -a $LF 
+pwd | tee -a $LF 
+echo $cmd | tee -a $LF 
+$cmd |& tee -a $LF 
+if($status) then
+  echo "ERROR: flirt" | tee -a $LF 
+  exit 1;
+endif
+
+# Convert the output to volume to output format
+if($#outvol) then
+  cp $refvolbase.mat $outvolbase.mat
+  set cmd = (mri_convert $outvolimg $outvol)
+  date | tee -a $LF 
+  pwd | tee -a $LF 
+  echo $cmd | tee -a $LF 
+  $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: mri_convert of output volume" | tee -a $LF 
+    exit 1;
+  endif
+endif
+
+# Now create the freesurfer registration matrix
+set cmd = (tkregister2 --s $subjid --mov $movvol)
+set cmd = ($cmd --reg $regfile)
+set cmd = ($cmd --fslreg $fslmat)
+set tkregcheckcmd = ($cmd --surf orig);  # for visual inspection
+set cmd = ($cmd --noedit)
+echo $cmd | tee -a $LF 
+$cmd |& tee -a $LF 
+if($status) then
+  echo "ERROR: tkregister2" | tee -a $LF 
+  exit 1;
+endif
+
+# Check for possible LR flip
+set tmp = (`cat $fslmat`);
+set isflipped = `echo $tmp[1] \< 0 | bc -l`;
+if($isflipped) then
+  echo ""
+  echo ""
+  echo "WARNING: possible left-right reversal" | tee -a $LF 
+  echo ""
+  echo ""
+endif
+
+# Cleanup
+if($cleanup) then
+  echo "Cleaning up" |& tee -a $LF
+  rm -r $tmpdir
+endif
+
+echo " " |& tee -a $LF
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "fslregister Done" |& tee -a $LF
+echo " "
+
+if(-e $SUBJECTS_DIR/$subjid/surf/lh.orig) then
+  set tmp = "--surf orig"
+else
+  set tmp = ""
+endif
+  
+echo "To check results, run:"
+echo "tkregister2 --mov $movvol --reg $regfile $tmp"
+echo " "
+
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if ( $#argv < 1) goto arg1err;
+      set subjid = $argv[1]; shift;
+      breaksw
+
+    case "--fsvol":
+      if ( $#argv < 1) goto arg1err;
+      set fsvol = $argv[1]; shift;
+      breaksw
+
+    case "--mov":
+      if ( $#argv < 1) goto arg1err;
+      set movvol = $argv[1]; shift;
+      breaksw
+
+    case "--out":
+      if ( $#argv < 1) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "--dof":
+      if ( $#argv == 0) goto arg1err;
+      set dof = $argv[1]; shift;
+      breaksw
+
+    case "--bins":
+      if ( $#argv == 0) goto arg1err;
+      set bins = $argv[1]; shift;
+      breaksw
+
+    case "--cost":
+      if ( $#argv == 0) goto arg1err;
+      set cost = $argv[1]; shift;
+      breaksw
+
+    case "--maxangle":
+      if ( $#argv == 0) goto arg1err;
+      set maxangle = $argv[1]; shift;
+      breaksw
+
+    case "--nobetmov":
+      set betmov = 0;
+      breaksw
+
+    case "--betref":
+      set betref = 1;
+      breaksw
+
+    case "--initxfm":
+      set initxfm = 1;
+      breaksw
+
+    case "--fliprows":
+      # Never do this! For testing only!
+      set FlipRows = 1;
+      breaksw
+
+    case "--frame":
+      if ( $#argv < 1) goto arg1err;
+      set frame = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if ( $#argv < 1) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "--tmp":
+      if ( $#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#subjid == 0) then
+    echo "ERROR: must spec a subject id"
+    exit 1;
+  endif
+
+  if($#movvol == 0) then
+    echo "ERROR: must spec an movput vol"
+    exit 1;
+  endif
+
+  if($#regfile == 0) then
+    echo "ERROR: must spec an output reg file"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: fslregister"
+  echo ""
+  echo "Required Arguments:";
+  echo "   --s subjid"
+  echo "   --mov volid  : input/movable volume"
+  echo "   --reg register.dat"
+  echo ""
+  echo "Optional Arguments"
+  echo ""
+  echo "   --dof  dof       : FLIRT DOF (default is $dof)"
+  echo "   --bins bins      : FLIRT bins (default is $bins)"
+  echo "   --cost cost      : FLIRT cost (default is $cost)"
+  echo "   --maxangle angle : FLIRT max search angle (default is $maxangle)"
+  echo " "
+  echo "   --nobetmov       : do not perform brain extration on mov"
+  echo "   --betref         : brain extration on ref (usually not needed)"
+  echo "   --initxfm        : initialize based on header goemetry"
+  echo " "
+  echo "   --frame frameno : reg to frameno (default 0=1st)"
+  echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
+  echo " "
+  echo "   --tmp tmpdir : use tmpdir (and do not clean up)"
+  echo "   --nocleanup  : do not delete temporary files"
+  echo "   --version    : print version and exit"
+  echo "   --help       : print help and exit"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+DONT USE THIS YET! NOT TESTED!
+
+Registers a volume to its FreeSurfer anatomical using FSLs Flirt and
+creates a FreeSurfer register.dat file. Does not resample.  The
+registration is rigid (ie, 6 DOF) unless changed with --dof.
+
+--s subjid
+
+Id of the subject as found in SUBJECTS_DIR. The reference volume is
+the mri/brain volume (this can be changed with --fsvol). This is
+converted to analyze using mri_convert.
+
+--mov volid
+
+Volume identifier of the movable volume. This must be specified in
+a way suitable for mri_convert. Uses first frame unless --frame
+is specified. For this to work correctly, the movable volume must
+have correct geometry information (eg, a valid SPM-style .mat file)
+otherwise the results may be unpredictable.
+
+--reg regfile
+
+Output registration file. This will map RAS in the reference to
+RAS in the movable. This file/matrix is in a format understood
+by freesurfer (see tkregister2 --help for docs). It will contain
+the subjectname.
+
+--frame frameno
+
+Use something other than the first frame. Eg, with FSL may want
+to use the middle frame. For SPM analyze, you should specify the
+file that corresonds to the frame you want because each file only
+has one frame.
+
+NOTES:
+
+Uses corratio cost function.
+
+BUGS
+
+SEE ALSO: tkregister2, mri_vol2surf, mri_convert, mri_rigid_register, 
+fsl_rigid_register, Flirt.
+
+
