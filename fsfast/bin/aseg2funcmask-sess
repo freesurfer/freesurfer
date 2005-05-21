@@ -1,0 +1,316 @@
+#!/bin/csh -f
+# aseg2funcmask-sess
+#
+set VERSION = '$Id: aseg2funcmask-sess,v 1.1 2005/05/21 03:13:04 greve Exp $';
+
+set cmdargs = ($argv);
+
+set segvol    = aseg;
+set osegvol   = aseg;
+set fmt       = bhdr;
+set ofmt      = bhdr;
+set fsd       = bold;
+set funcstem  = f;
+set DoASeg    = 1;
+set DoAParc   = 1;
+set nolog     = 0;
+set PerRun    = 0;
+set RunListFile = ();
+set RegFile   = register.dat
+set PrintHelp = 0;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if(! $nolog) then
+  set LF = log/aseg2funcmask-sess.log
+  if(-e $LF) mv $LF $LF.bak
+else
+  set LF = /dev/null
+endif
+
+date | tee -a $LF
+pwd  | tee -a $LF
+echo $0  | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+hostname  | tee -a $LF
+uname -a  | tee -a $LF
+
+#------------------------------------------------------------------#
+set StartTime = `date`;
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  set subject = `cat $sess/subjectname`;
+  set sd = $SUBJECTS_DIR/$subject
+  if(! -e $sd) then
+    echo "ERROR: cannot find $subject in $SUBJECTS_DIR" | tee -a $LF
+    exit 1;
+  endif
+
+  set segpath = $sd/mri/$segvol
+  if(! -e $segpath) then
+    echo "ERROR: cannot find $subject in $segpath" | tee -a $LF
+    exit 1;
+  endif
+
+  set RunList = `getrunlist $sess/$fsd $RunListFile`;
+  if($status) then
+    echo $RunList
+    exit 1;
+  endif
+  if(! $PerRun) set RunList = $RunList[1];
+
+  foreach Run ($RunList)
+    set functemplate = $sess/$fsd/$Run/$funcstem.$fmt
+    if(! -e $functemplate) then
+      echo "ERROR: cannot find $functemplate"
+      exit 1;
+    endif
+
+    if(! $PerRun) then
+      set regfile = $sess/$fsd/register.dat
+      set maskdir = $sess/$fsd/masks
+    else
+      set regfile = $sess/$fsd/$Run/fs.register.dat
+      set maskdir = $sess/$fsd/$Run/masks
+    endif
+    if(! -e $regfile) then
+      echo "ERROR: cannot find $regfile"
+      exit 1;
+    endif
+    mkdir -p $maskdir
+
+    if($DoASeg) then
+      set outvol = $maskdir/$osegvol.$ofmt
+
+      set cmd = (mri_label2vol --seg $segpath \
+        --reg $regfile  --temp $functemplate \
+        --o $outvol)
+      pwd | tee -a $LF
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+    endif
+
+    if($DoAParc) then
+      foreach hemi (lh rh)
+        set annot = $sd/label/$hemi.aparc.annot
+        if(! -e $annot) then
+          echo "ERROR: cannot find $annot"
+          exit 1;
+        endif
+        set outvol = $maskdir/$hemi.aparc.$ofmt
+        set cmd = (mri_label2vol --annot $annot \
+           --reg $regfile  --temp $functemplate \
+           --o $outvol --proj frac 0 1 .1 \
+           --subject $subject --hemi $hemi)
+        pwd | tee -a $LF
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+      end    
+    endif
+  end # Loop over runs
+
+end
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "aseg2funcmask-sess Done"    | tee -a $LF
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-seg":
+      if ( $#argv == 0) goto arg1err;
+      set segvol = $argv[1]; shift;
+      breaksw
+
+    case "-oseg":
+      if ( $#argv == 0) goto arg1err;
+      set osegvol = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set osegvol = $argv[1]; shift;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set RunListFile = $argv[1]; shift;
+      breaksw
+
+    case "-func":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-fmt":
+      if ( $#argv == 0) goto arg1err;
+      set fmt = $argv[1]; shift;
+      breaksw
+
+    case "-ofmt":
+      if ( $#argv == 0) goto arg1err;
+      set ofmt = $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-perrun":
+      set PerRun = 1;
+      breaksw
+
+    case "-noaseg":
+      set DoASeg = 0;
+      breaksw
+
+    case "-noaparc":
+      set DoAParc = 0;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: aseg2funcmask-sess"
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -seg segvol : use mri/segvol instead of mri/aseg"
+  echo "   -oseg osegvol : use fsd/masks/osegvol instead of fsd/masks/aseg"
+  echo "   -fsd fsd : use fsd instead of bold"
+  echo "   -rlf runlistfile "
+  echo "   -func funcstem : only used for template, default f "
+  echo "   -fmt  fmt : input format <bhdr> or mgh"
+  echo "   -ofmt fmt : output format <bhdr> or mgh"
+  echo "   -noaseg   : do not map volume-based subcort segmentation"
+  echo "   -noaparc  : do not map surfaced-based cort segmentation"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Session Arguments (Optional)"
+  echo "   -version       : print version and exit"
+  echo "   -debug"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Resamples a FreeSurfer volume segmentation into a segmentation in
+functional space. This segmentation will be a volume the same size as
+the functional. The voxel values will be indicies indicating how that
+voxel is classified. The segmentation may be volume-based (aseg) or
+cortical surface-based (aparc).
+
+For the volume-based segmentation, the FreeSurfer automatic
+segmentation (aseg) will be used by default, but this can be changed
+with --seg. If the aseg is used, then the index map is given in
+$FREESURFER_HOME/tkmeditColorsCMA, eg:
+
+    2  Left-Cerebral-White-Matter
+   41  Right-Cerebral-White-Matter
+    3  Left-Cerebral-Cortex
+   42  Right-Cerebral-Cortex 
+
+By default, the output will be put in fsd/masks/aseg. This can be
+changed with -oseg.
+
+For the surface-based segmentation (aka "parcellation"), the
+hemi.aparc.annot will be used. The index map for the surface-based 
+segmentation is given in $FREESURFER_HOME/tkmeditParcColorsCMA.
+The cortical segmentation in functional space is stored in 
+fsd/masks/?h.aparc (one for each hemisphere).
+
+
+
+
+
+
+
