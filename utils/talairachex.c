@@ -5,9 +5,9 @@
 // date       12/17/2003
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/13 19:28:56 $
-// Revision       : $Revision: 1.5 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/05/22 13:17:17 $
+// Revision       : $Revision: 1.6 $
 
 
 #include "talairachex.h"
@@ -284,6 +284,22 @@ MRItalairachVoxelToVoxelEx(MRI *mri_dst, Real xtv, Real ytv, Real ztv,
 ////////////////////////////////////////////////////////////////////////////////
 // volume to volume routines
 ////////////////////////////////////////////////////////////////////////////////
+MRI *
+MRItoTalairachExInterp(MRI *mri_src, MRI *mri_tal, const LTA *lta, int interp)
+{
+  MATRIX *voxToTalvoxel = MtalVoxelFromVoxel(mri_src, lta);
+  fprintf(stderr, "voxel to talairach voxel transform\n");
+  MatrixPrint(stderr, voxToTalvoxel);
+  if (!mri_tal)
+  {
+    mri_tal = MRIclone(mri_src, NULL) ; // data is not copied
+    ModifyTalairachCRAS(mri_tal, lta);
+  }
+  MRIlinearTransformInterp(mri_src, mri_tal, voxToTalvoxel, interp);
+  MatrixFree(&voxToTalvoxel);
+
+  return(mri_tal) ;
+}
 // volume -> Talairach volume
 MRI *
 MRItoTalairachEx(MRI *mri_src, MRI *mri_tal, const LTA *lta)
