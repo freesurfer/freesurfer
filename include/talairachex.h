@@ -2,9 +2,9 @@
 // talairachex.h
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/12/17 18:28:53 $
-// Revision       : $Revision: 1.1 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/05/22 13:16:52 $
+// Revision       : $Revision: 1.2 $
 /////////////////////////////////////////////////////////////////////////////
 // new talairach related routines with Ex
 //  takes lta as the talairach transform (use LTAreadEx routine)
@@ -43,6 +43,8 @@ MRItalairachVoxelToVoxelEx(MRI *mri_dst, Real xv, Real yv, Real zv,
 			   Real *pxnv, Real *pynv, Real *pznv, const LTA *lta) ;
 MRI *
 MRItoTalairachEx(MRI *mri_src, MRI *mri_tal, const LTA *lta);
+MRI *
+MRItoTalairachExInterp(MRI *mri_src, MRI *mri_tal, const LTA *lta, int interp);
 MRI *
 MRIfromTalairachEx(MRI *mri_tal, MRI *mri_dst, const LTA *lta);
 int
