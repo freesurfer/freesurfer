@@ -54,6 +54,8 @@ ScubaView::ScubaView() {
   mInPlaneMarkerColor[2] = kInPlaneMarkerColors[nMarkerColor][2];
   mbVisibleInFrame = false;
   mCurrentMovingViewIntersection = -1;
+  mThroughPlaneIncrements[0] = 
+    mThroughPlaneIncrements[1] = mThroughPlaneIncrements[2] = 1.0;
 
   ScubaGlobalPreferences& globalPrefs =
     ScubaGlobalPreferences::GetPreferences();
@@ -145,15 +147,16 @@ ScubaView::ScubaView() {
 			 "Set the left-right flip flag for a view." );
   commandMgr.AddCommand( *this, "GetViewFlipLeftRightYZ", 1, "viewID",
 			 "Returns the left-right flip flag for a view." );
-  commandMgr.AddCommand( *this, "SetViewInPlaneMovementIncrement", 3,
-			 "viewID inPlane increment",
-			 "Set the amount that using the in plane movement "
-			 "keys will increment or decrement the in plane "
-			 "RAS value. inPlane should be x, y, or z." );
-  commandMgr.AddCommand( *this, "GetViewInPlaneMovementIncrement", 2,
-			 "viewID inPlane",
-			 "Returns the amount the in plane movement "
-			 "increment for inPlane. inPlane should be x, "
+  commandMgr.AddCommand( *this, "SetViewThroughPlaneIncrement", 3,
+			 "viewID throughPlane increments",
+			 "Set the amount that using the through plane "
+			 "movement keys will increment or decrement the "
+			 "through plane RAS value. throughPlane should be "
+			 "x, y, or z." );
+  commandMgr.AddCommand( *this, "GetViewThroughPlaneIncrement", 2,
+			 "viewID throughPlane",
+			 "Returns the through plane movement increment "
+			 "for throughPlane. throughPlane should be x, "
 			 "y, or z." );
   commandMgr.AddCommand( *this, "GetVolumeHistogramInView", 4, 
 			 "viewID volID roiID numBins",
@@ -279,7 +282,7 @@ ScubaView::Set2DInPlane ( ViewState::Plane iPlane ) {
   // change our plane to the cursor.
   if( mbLockOnCursor && 
       !mViewState.IsRASVisibleInPlane( mCursor.xyz(), 
-				       GetInPlaneIncrement(mViewState.mInPlane))) {
+		  GetThroughPlaneIncrement(mViewState.mInPlane))) {
 
     float newCenter[3];
     newCenter[0] = mViewState.mCenterRAS[0];
@@ -447,19 +450,23 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       // Set pixel size.
       layer.SetBytesPerPixel( kBytesPerPixel );
 
-      // If this is level 0, get our in plane increments from it. If
-      // we don't have them for layer already.
-      if( 0 == iLevel ) {
-
-	map<int,InPlaneIncrements>::iterator tLayerIDInPlaneInc;
-	tLayerIDInPlaneInc = mLayerIDInPlaneIncrements.find( iLayerID );
-	if( tLayerIDInPlaneInc == mLayerIDInPlaneIncrements.end() ) {
-	  float incs[3];
-	  layer.GetPreferredInPlaneIncrements( incs );
-	  mLayerIDInPlaneIncrements[iLayerID][ViewState::X] = incs[0];
-	  mLayerIDInPlaneIncrements[iLayerID][ViewState::Y] = incs[1];
-	  mLayerIDInPlaneIncrements[iLayerID][ViewState::Z] = incs[2];
-	}
+      // Try to see if we alreayd looked at the preferred through
+      // plane increments for this layer. If not, check them out, and
+      // if they are < what we already have, set to the lower value.
+      map<int,bool>::iterator tLayerIDGotThroughPlaneIncrements;
+      tLayerIDGotThroughPlaneIncrements = 
+	mLayerIDGotThroughPlaneIncrements.find( iLayerID );
+      if( tLayerIDGotThroughPlaneIncrements == 
+	  mLayerIDGotThroughPlaneIncrements.end() ) {
+	float incs[3];
+	layer.GetPreferredThroughPlaneIncrements( incs );
+	if( incs[0] < mThroughPlaneIncrements[0] )
+	  mThroughPlaneIncrements[0] = incs[0];
+	if( incs[1] < mThroughPlaneIncrements[1] )
+	  mThroughPlaneIncrements[1] = incs[1];
+	if( incs[2] < mThroughPlaneIncrements[2] )
+	  mThroughPlaneIncrements[2] = incs[2];
+	mLayerIDGotThroughPlaneIncrements[iLayerID] = true;
       }
 
       // Start out visible.
@@ -574,24 +581,15 @@ ScubaView::GetWorldToViewTransform () {
 }
 
 void
-ScubaView::SetInPlaneIncrement ( ViewState::Plane iInPlane, float iIncrement ){
-  int layerID = GetLayerAtLevel( 0 );
-  if( layerID != -1 ) {
-    mLayerIDInPlaneIncrements[layerID][iInPlane] = iIncrement;
-  } 
+ScubaView::SetThroughPlaneIncrement ( ViewState::Plane iInPlane,
+				      float iIncrement ){
+  mThroughPlaneIncrements[iInPlane] = iIncrement;
 }
 
 float
-ScubaView::GetInPlaneIncrement ( ViewState::Plane iInPlane ) {
-  int layerID = GetLayerAtLevel( 0 );
-  float increment;
-  if( layerID != -1 ) {
-    increment = mLayerIDInPlaneIncrements[layerID][iInPlane];
-  } else {
-    increment = -1;
-  }
+ScubaView::GetThroughPlaneIncrement ( ViewState::Plane iInPlane ) {
 
-  return increment;
+  return mThroughPlaneIncrements[iInPlane];
 }
 
 map<string,string>&
@@ -1111,8 +1109,8 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     }
   }
 
-  // SetViewInPlaneMovementIncrement <viewID> <inPlane> <increment>
-  if( 0 == strcmp( isCommand, "SetViewInPlaneMovementIncrement" ) ) {
+  // SetViewThroughPlaneIncrement <viewID> <inPlane> <increment>
+  if( 0 == strcmp( isCommand, "SetViewThroughPlaneIncrement" ) ) {
     int viewID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad view ID";
@@ -1130,21 +1128,21 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       if( 0 == strcmp( iasArgv[2], "x" ) ||
 	  0 == strcmp( iasArgv[2], "X" ) ) {
 
-	SetInPlaneIncrement( ViewState::X, increment );
+	SetThroughPlaneIncrement( ViewState::X, increment );
 
       } else if( 0 == strcmp( iasArgv[2], "y" ) ||
 		 0 == strcmp( iasArgv[2], "Y" ) ) {
 
-	SetInPlaneIncrement( ViewState::Y, increment );
+	SetThroughPlaneIncrement( ViewState::Y, increment );
 
       } else if( 0 == strcmp( iasArgv[2], "z" ) ||
 		 0 == strcmp( iasArgv[2], "Z" ) ) {
 
-	SetInPlaneIncrement( ViewState::Z, increment );
+	SetThroughPlaneIncrement( ViewState::Z, increment );
 
       } else {
 	stringstream ssResult;
-	ssResult << "bad inPlane \"" << iasArgv[1] << "\", should be "
+	ssResult << "bad throughPlane \"" << iasArgv[1] << "\", should be "
 		 << "x, y, or z.";
 	sResult = ssResult.str();
 	return error;
@@ -1152,8 +1150,8 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     }
   }
 
-  // GetViewInPlaneMovementIncrement <viewID> <inPlane>
-  if( 0 == strcmp( isCommand, "GetViewInPlaneMovementIncrement" ) ) {
+  // GetViewThroughPlaneIncrement <viewID> <inPlane>
+  if( 0 == strcmp( isCommand, "GetViewThroughPlaneIncrement" ) ) {
     int viewID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad view ID";
@@ -1166,21 +1164,21 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       if( 0 == strcmp( iasArgv[2], "x" ) ||
 	  0 == strcmp( iasArgv[2], "X" ) ) {
 
-	increment = GetInPlaneIncrement( ViewState::X );
+	increment = GetThroughPlaneIncrement( ViewState::X );
 
       } else if( 0 == strcmp( iasArgv[2], "y" ) ||
 		 0 == strcmp( iasArgv[2], "Y" ) ) {
 
-	increment = GetInPlaneIncrement( ViewState::Y );
+	increment = GetThroughPlaneIncrement( ViewState::Y );
 
       } else if( 0 == strcmp( iasArgv[2], "z" ) ||
 		 0 == strcmp( iasArgv[2], "Z" ) ) {
 
-	increment = GetInPlaneIncrement( ViewState::Z );
+	increment = GetThroughPlaneIncrement( ViewState::Z );
 
       } else {
 	stringstream ssResult;
-	ssResult << "bad inPlane \"" << iasArgv[2] << "\", should be "
+	ssResult << "bad throughPlane \"" << iasArgv[2] << "\", should be "
 		 << "x, y, or z.";
 	sResult = ssResult.str();
 	return error;
@@ -1501,7 +1499,7 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
 
       // Make sure we stay in plane.
       if ( !mViewState.IsRASVisibleInPlane( mCursor.xyz(), 
-		 GetInPlaneIncrement( mViewState.mInPlane ))) {
+		 GetThroughPlaneIncrement( mViewState.mInPlane ))) {
 
 	switch( mViewState.mInPlane ) {
 	case ViewState::X:
@@ -2100,7 +2098,7 @@ ScubaView::DoKeyDown( int iWindow[2],
   // multiplay that value by 10.
   float moveDistance = 1.0;
   if( key == msMoveViewIn || key == msMoveViewOut ) {
-    moveDistance = GetInPlaneIncrement( mViewState.mInPlane );
+    moveDistance = GetThroughPlaneIncrement( mViewState.mInPlane );
   }
   if( iInput.IsControlKeyDown() ) {
     moveDistance = 10.0;
@@ -3039,7 +3037,7 @@ ScubaView::BuildOverlay () {
   if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawMarkers )) {
     
     // Draw our markers.
-    float range = GetInPlaneIncrement( mViewState.mInPlane ) / 2.0;
+    float range = GetThroughPlaneIncrement( mViewState.mInPlane ) / 2.0;
     
     if( mViewState.IsRASVisibleInPlane( mCursor.xyz(), range ) ) {
       
@@ -3075,7 +3073,7 @@ ScubaView::BuildOverlay () {
 
   
   // Line range.
-  float range = GetInPlaneIncrement( mViewState.mInPlane ) / 2.0;
+  float range = GetThroughPlaneIncrement( mViewState.mInPlane ) / 2.0;
 
   // Drawing paths.
   if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawPaths )) {

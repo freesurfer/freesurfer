@@ -104,7 +104,7 @@ class Layer : public DebugReporter,
 			    int iFromWindow[2], int iToWindow[2],
 			    int iColor[3], int iThickness, float iOpacity );
 
-  virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
+  virtual void GetPreferredThroughPlaneIncrements ( float oIncrements[3] );
 
   virtual float GetPreferredBrushRadiusIncrement ();
 

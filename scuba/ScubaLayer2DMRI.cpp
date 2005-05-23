@@ -1960,7 +1960,7 @@ ScubaLayer2DMRI::DrawRASPathIntoBuffer ( GLubyte* iBuffer,
 
 
 void
-ScubaLayer2DMRI::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
+ScubaLayer2DMRI::GetPreferredThroughPlaneIncrements ( float oIncrements[3] ) {
   
   oIncrements[0] = mVolume->GetVoxelXSize();
   oIncrements[1] = mVolume->GetVoxelYSize();

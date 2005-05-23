@@ -121,7 +121,7 @@ class ScubaLayer2DMRI : public Layer {
 			       ScubaWindowToRASTranslator& iTranslator,
 			       Path<float>& iRASPath );
 				 
-  virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
+  virtual void GetPreferredThroughPlaneIncrements ( float oIncrements[3] );
 
   virtual float GetPreferredBrushRadiusIncrement ();
 

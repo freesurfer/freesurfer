@@ -557,74 +557,7 @@ roiSettingsDlog
 
 
 
-problems:
-
-- brush with square/circle doesn't fill problem on oblique volumes (bug 259)
-
-- turns out that the voxel bounds reported when clicking on a voxel
-  (debugging output) don't match with the plane on the screen in RAS
-  coords. For example, on ~/bug-data/259/goscuba.tcl, zoom in and
-  click a voxel. Plane is y=-15.69. Voxel coords are:
-
-Clicked (26.6227,-15.6934,-1.76781) -> (410,428,114)
-0: (26.6095,-15.7079,-1.75859)
-1: (26.8383,-15.8142,-1.76926)
-2: (26.5033,-15.9369,-1.75504)
-3: (26.7321,-16.0432,-1.76571)
-4: (26.5985,-15.7067,-2.00838)
-5: (26.8272,-15.8129,-2.01905)
-6: (26.4923,-15.9357,-2.00483)
-7: (26.721,-16.0419,-2.0155)
-
-Which doesn't intersect y=-15.69 at all.
-
-Clicked (25.5133,-15.6934,-2.75999) -> (406,430,118)
-0: (25.4379,-15.7359,-2.70798)
-1: (25.6667,-15.8421,-2.71864)
-2: (25.3317,-15.9648,-2.70443)
-3: (25.5605,-16.0711,-2.7151)
-4: (25.4269,-15.7346,-2.95776)
-5: (25.6556,-15.8408,-2.96843)
-6: (25.3207,-15.9636,-2.95422)
-7: (25.5494,-16.0698,-2.96489)
-
-- Started fixing testScubaView up for testing Window->RAS->Window
-  transforms, and getting segfaults after 4th ScubaView dtor.
-
-- If you comment out the first switch stuff in ScubaView::Set2DInPlane
-  it is fine. WTF
-  
-  - Comment out all but first line in each switch case, and you get a
-    Matrix error. WWWTTTFFF
-
-- Intersection code is working properly in that the voxels that aren't
-  being hit by a circle brush are really not intersecting with the
-  plane.
-
-  - But why is drawing code drawing voxels that don't intersect this
-    plane?
-
-
-- Problem: Brushing paints some voxels but not others that are visible
-  in the view, and paints some that are one slice above or below. You
-  can move to brush on the parts that aren't brushed, and those are
-  painted, but still more voxels in an adjacent slice are painted.
-
-  - Possibility: RAS -> index is incorrect, and
-    ScubaLayer2DMRI::DrawIntoBuffer is not drawing the right voxels on
-    screen. This is evidenced that when you click on a voxel, the
-    bounds reported don't appear to intersect the plane. But this
-    might be explained by the fact that the brushing code selects an
-    inc to use, and the printing code just uses inc = 1.
-
-  - Possibility: RAS -> index -> RAS is incrroct, or more that RAS ->
-    floor(index+0.5) -> RAS. HandleTool gets an RAS and converts
-    to an index, then calls PrintVoxelCornerCoords(index), which then
-    converts the index corners to RAS points again. This may mean the
-    voxel is reporting incorrect bounds. This is supported by looking
-    at the bounds reported by RAS -> (int)index_float -> RAS.
-
-  Ignore the bounds printing problem and focus on why voxels that are
-  visible on screen aren't being painted. Need better way to determine
-  which voxels are visible, as the increment thing doesn't appear to
-  be correct.
+in plane increment
+ - view saves its own settings
+ - when new layer added, get preffereed. if any are < than view, set
+ - allow set manually

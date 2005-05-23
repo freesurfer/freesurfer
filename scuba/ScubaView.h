@@ -78,8 +78,9 @@ public:
   void SetWorldToViewTransform ( int iTransformID );
   int GetWorldToViewTransform ();
 
-  void SetInPlaneIncrement ( ViewState::Plane iInPlane, float iIncrement );
-  float GetInPlaneIncrement ( ViewState::Plane iInPlane );
+  void SetThroughPlaneIncrement ( ViewState::Plane iInPlane,
+				  float iIncrement );
+  float GetThroughPlaneIncrement ( ViewState::Plane iInPlane );
 
   void SetLinkedStatus ( bool ibLinked ) {mViewIDLinkedList[GetID()]=ibLinked;}
   bool GetLinkedStatus () { return mViewIDLinkedList[GetID()]; }
@@ -239,8 +240,8 @@ protected:
 
   // A map of increments that override the layer preferred ones, for
   // each layer.
-  typedef std::map<ViewState::Plane,float> InPlaneIncrements;
-  std::map<int,InPlaneIncrements > mLayerIDInPlaneIncrements;
+  std::map<int,bool> mLayerIDGotThroughPlaneIncrements;
+  float mThroughPlaneIncrements[3];
 
   // The buffer for this view.
   GLubyte* mBuffer;

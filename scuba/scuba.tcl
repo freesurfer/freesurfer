@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.112 2005/05/18 22:26:15 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.113 2005/05/23 21:26:19 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -717,8 +717,8 @@ proc ToolBarWrapper { isName iValue } {
 	    }
 	    x - y - z {
 		SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $isName
-		set gaView(current,inPlaneInc) \
-   	          [GetViewInPlaneMovementIncrement $gaView(current,id) $isName]
+		set gaView(current,throughPlaneInc) \
+   	 [GetViewThroughPlaneIncrement $gaView(current,id) $isName]
 		RedrawFrame [GetMainFrameID]
 	    }
 	    grayscale - heatScale - lut {
@@ -1017,6 +1017,8 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	RedrawFrame [GetMainFrameID]
     }
 
+    # This is the view shuffle code. It should probaby be put into its
+    # own little funtion, eh.
     if { "$iKey" == "$gaPrefs(KeyShuffleLayers)" } {
 	set viewID [GetSelectedViewID [GetMainFrameID]]
 	set nHighestLevel 0
@@ -2248,12 +2250,12 @@ proc MakeViewPropertiesPanel { ifwTop } {
     # Row 7: The in plane inc field.
     frame $fw7
     tkuMakeEntry $fw7.ewInPlaneInc \
-	-label "In-plane key increment" \
+	-label "Through plane key increment" \
 	-font [tkuNormalFont] \
-	-variable gaView(current,inPlaneInc) \
-	-command {SetViewInPlaneMovementIncrement $gaView(current,id) $gaView(current,inPlane) $gaView(current,inPlaneInc) } \
+	-variable gaView(current,throughPlaneInc) \
+	-command {SetViewThroughPlaneIncrement $gaView(current,id) $gaView(current,inPlane) $gaView(current,throughPlaneInc) } \
 	-notify 1
-    set gaWidget(viewProperties,inPlaneInc) $fw7.ewInPlaneInc
+    set gaWidget(viewProperties,throughPlaneInc) $fw7.ewInPlaneInc
     
     pack $fw7.ewInPlaneInc -fill x
 
@@ -2973,8 +2975,8 @@ proc ViewPropertiesDrawLevelMenuCallback { iLevel iLayerID } {
     RedrawFrame [GetMainFrameID]
 
     # Get the new inplane inc value if necessary.
-    set gaView(current,inPlaneInc) \
-	[GetViewInPlaneMovementIncrement $gaView(current,id) $gaView(current,inPlane)]
+    set gaView(current,throughPlaneInc) \
+	[GetViewThroughPlaneIncrement $gaView(current,id) $gaView(current,inPlane)]
 }
 
 proc ViewPropertiesTransformMenuCallback { iTransformID } {
@@ -3009,9 +3011,9 @@ proc SelectViewInViewProperties { iViewID } {
     set gaView(current,lockedCursor) [GetViewLockOnCursor $iViewID]
     set gaView(current,transformID) [GetViewTransform $iViewID]
     set gaView(current,inPlane) [GetViewInPlane $iViewID]
-    set gaView(current,inPlaneInc) \
-	[GetViewInPlaneMovementIncrement $iViewID $gaView(current,inPlane)]
-    tkuRefreshEntryNotify $gaWidget(viewProperties,inPlaneInc)
+    set gaView(current,throughPlaneInc) \
+      [GetViewThroughPlaneIncrement $iViewID $gaView(current,inPlane)]
+    tkuRefreshEntryNotify $gaWidget(viewProperties,throughPlaneInc)
 
     # This is kind of hacky. We have a preference for the Lock on
     # Cursor setting. What we want to do is see if we've gotten the
@@ -4337,6 +4339,8 @@ proc SetStatusBarText { isText } {
 proc SetLayerInAllViewsInFrame { iFrameID iLayerID } {
     dputs "SetLayerInAllViewsInFrame  $iFrameID $iLayerID  "
 
+    global gaView
+
     # For each view...
     set err [catch { set cRows [GetNumberOfRowsInFrame $iFrameID] } sResult]
     if { 0 != $err } { tkuErrorDlog "$sResult"; return }
@@ -4363,6 +4367,12 @@ proc SetLayerInAllViewsInFrame { iFrameID iLayerID } {
 	    set err [catch {
 		SetLayerInViewAtLevel $viewID $iLayerID $level } sResult]
 	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+	    # That might have changed view properties, so let's
+	    # update.
+	    if { $gaView(current,id) >= 0 } {
+		SelectViewInViewProperties $viewID
+	    }
        }
     }
     
@@ -5135,7 +5145,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.112 2005/05/18 22:26:15 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.113 2005/05/23 21:26:19 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5212,18 +5222,18 @@ proc SaveSceneScript { ifnScene } {
 	set lockedCursor [GetViewLockOnCursor $viewID]
 	set transformID [GetViewTransform $viewID]
 	set inPlane [GetViewInPlane $viewID]
-	set inPlaneIncX [GetViewInPlaneMovementIncrement $viewID x]
-	set inPlaneIncY [GetViewInPlaneMovementIncrement $viewID y]
-	set inPlaneIncZ [GetViewInPlaneMovementIncrement $viewID z]
+	set thPlaneIncX [GetViewThroughPlaneIncrement $viewID x]
+	set thPlaneIncY [GetViewThroughPlaneIncrement $viewID y]
+	set thPlaneIncZ [GetViewThroughPlaneIncrement $viewID z]
 	set rasCenter [GetViewRASCenter $viewID]
 	set zoomLevel [GetViewZoomLevel	$viewID]
 	puts $f "SetViewLinkedStatus $viewID $linked"
 	puts $f "SetViewLockOnCursor $viewID $lockedCursor"
 	puts $f "SetViewTransform $viewID $transformID"
 	puts $f "SetViewInPlane $viewID $inPlane"
-	puts $f "SetViewInPlaneMovementIncrement $viewID x $inPlaneIncX"
-	puts $f "SetViewInPlaneMovementIncrement $viewID y $inPlaneIncY"
-	puts $f "SetViewInPlaneMovementIncrement $viewID z $inPlaneIncZ"
+	puts $f "SetViewThroughPlaneIncrement $viewID x $thPlaneIncX"
+	puts $f "SetViewThroughPlaneIncrement $viewID y $thPlaneIncY"
+	puts $f "SetViewThroughPlaneIncrement $viewID z $thPlaneIncZ"
 	puts $f "SetViewRASCenter $viewID $rasCenter"
 	puts $f "SetViewZoomLevel $viewID $zoomLevel"
 	for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
