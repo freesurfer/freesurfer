@@ -18295,7 +18295,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.112 2005/05/17 21:19:31 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.113 2005/05/23 20:21:39 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23804,7 +23804,9 @@ int labl_add (LABEL* label, int* new_index)
   labl_labels[index].g = LABL_DEFAULT_COLOR_G;
   labl_labels[index].b = LABL_DEFAULT_COLOR_B;
   labl_labels[index].visible = 1;
-  
+  labl_labels[index].border_vno = NULL;
+  labl_labels[index].num_border_vnos = 0;
+
   /* set the name using a global counter and increment the counter. */
   labl_num_labels_created++;
   sprintf (labl_labels[index].name, "Label %d", labl_num_labels_created);
@@ -23898,6 +23900,9 @@ int labl_remove (int index)
   
   /* free the label here. */
   LabelFree (&labl_labels[index].label);
+
+  /* Free the border storage. */
+  free (labl_labels[index].border_vno);
   
   /* for every label above it, copy it one slot down. */
   next = index + 1;
