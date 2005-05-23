@@ -268,3 +268,25 @@ CTABnameToAnnotation(COLOR_TABLE *ctab, char *name)
   return(-1);
 }
 
+/*--------------------------------------------------------
+  CTABindexToItemNo() - returns the 0-based item number in the list
+  corresponding to the index. Unforutnately, the term "index" would be
+  a better name for the item number and "id" would be a better name
+  for index, but I thought it would be best to stick with the notation
+  used throught out the file. 
+  --------------------------------------------------------*/
+int CTABindexToItemNo(COLOR_TABLE *ctab, int index)
+{
+  int n;
+  
+  for(n=0; n < ctab->nbins; n++)
+    if(ctab->bins[n].index == index) return(n);
+
+  return(-1);
+}
+
+
+
+
+
+
