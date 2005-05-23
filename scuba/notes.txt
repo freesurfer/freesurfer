@@ -603,3 +603,28 @@ Clicked (25.5133,-15.6934,-2.75999) -> (406,430,118)
 
   - But why is drawing code drawing voxels that don't intersect this
     plane?
+
+
+- Problem: Brushing paints some voxels but not others that are visible
+  in the view, and paints some that are one slice above or below. You
+  can move to brush on the parts that aren't brushed, and those are
+  painted, but still more voxels in an adjacent slice are painted.
+
+  - Possibility: RAS -> index is incorrect, and
+    ScubaLayer2DMRI::DrawIntoBuffer is not drawing the right voxels on
+    screen. This is evidenced that when you click on a voxel, the
+    bounds reported don't appear to intersect the plane. But this
+    might be explained by the fact that the brushing code selects an
+    inc to use, and the printing code just uses inc = 1.
+
+  - Possibility: RAS -> index -> RAS is incrroct, or more that RAS ->
+    floor(index+0.5) -> RAS. HandleTool gets an RAS and converts
+    to an index, then calls PrintVoxelCornerCoords(index), which then
+    converts the index corners to RAS points again. This may mean the
+    voxel is reporting incorrect bounds. This is supported by looking
+    at the bounds reported by RAS -> (int)index_float -> RAS.
+
+  Ignore the bounds printing problem and focus on why voxels that are
+  visible on screen aren't being painted. Need better way to determine
+  which voxels are visible, as the increment thing doesn't appear to
+  be correct.

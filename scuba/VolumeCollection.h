@@ -205,10 +205,18 @@ class VolumeCollection : public DataCollection {
   // direction to extend the voxel, returns whether or not the voxel
   // intersects the plane. Tests each of the voxel's edges against the
   // plane.
-  VectorOps::IntersectionResult VoxelIntersectsPlane
+  VectorOps::IntersectionResult VoxelIntersectsPlaneRAS
     ( Point3<int>& iMRIIndex, int iIncrement,
       Point3<float>& iPlaneRAS, Point3<float>& iPlaneRASNormal,
       Point3<float>& oIntersectionRAS ); 
+
+  VectorOps::IntersectionResult VoxelIntersectsPlaneIdx
+    ( Point3<int>& iMRIIndex,
+      Point3<float>& iPlaneIdx, Point3<float>& iPlaneIdxNormal,
+      Point3<float>& oIntersectionIdx ); 
+
+  bool IsRASInsideVoxel ( Point3<int>& iMRIIndex, 
+			  Point3<float>& iRAS );
 
   void PrintVoxelCornerCoords ( std::ostream& iStream,
 				Point3<int>& iMRIIdx );

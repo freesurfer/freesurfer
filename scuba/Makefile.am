@@ -161,7 +161,7 @@ testVectorOps_LDADD=
 
 testRASToVoxel_SOURCES= test_RASToVoxel.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
-testRASToVoxel_LDADD=
+testRASToVoxel_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testToglManager_SOURCES=test_ToglManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS)

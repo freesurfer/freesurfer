@@ -1113,9 +1113,15 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     VolumeLocation& loc =
       (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
     cerr << "Clicked " << Point3<float>(iRAS) << " -> "
-	 << Point3<int>(loc.Index()) << endl;
+	 << Point3<int>(loc.Index()) << ", " 
+	 << Point3<float>(loc.IndexF()) << endl;
     Point3<int> MRIIdx( loc.Index() );
     mVolume->PrintVoxelCornerCoords( cerr, MRIIdx );
+    Point3<int> MRIIdx2( (int)loc.IndexF()[0], (int)loc.IndexF()[1], 
+			 (int)loc.IndexF()[2] );
+    cerr << "And " << MRIIdx2 << endl;
+    mVolume->PrintVoxelCornerCoords( cerr, MRIIdx2 );
+      
   }
 #endif
 

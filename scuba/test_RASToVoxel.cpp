@@ -20,6 +20,7 @@ using namespace std;
 
 char* Progname = "test_RASToVoxel";
 
+#define FLOAT_EQUAL(x,y) (fabs((x)-(y))<0.0001)
 
 #define USEFLOORTOROUND 1
 
@@ -47,9 +48,9 @@ void TestCoord ( Transform44& rasToVoxel, Point3<float>& ras, bool ibPrint ) {
 	idxi.y() != (int) floor( idxf.y() + 0.5 ) ||
 	idxi.z() != (int) floor( idxf.z() + 0.5 ) ) {
 #else
-    if( idxi.x() != (int) idxf.x() ||
-	idxi.y() != (int) idxf.y() ||
-	idxi.z() != (int) idxf.z() ) {
+    if( idxi.x() != (int) floor( idxf.x() ) ||
+	idxi.y() != (int) floor( idxf.y() ) ||
+	idxi.z() != (int) floor( idxf.z() ) ) {
 #endif
       
       stringstream ssError;
@@ -60,9 +61,9 @@ void TestCoord ( Transform44& rasToVoxel, Point3<float>& ras, bool ibPrint ) {
 
     rasToVoxel.InvMultiplyVector3( idxf.xyz(), rasFromIdxFCheck.xyz() );
     
-    if( fabs (rasFromIdxFCheck.x() - ras.x()) > 0.00001 ||
-	fabs (rasFromIdxFCheck.y() - ras.y()) > 0.00001 ||
-	fabs (rasFromIdxFCheck.z() - ras.z()) > 0.00001 ) {
+    if( !FLOAT_EQUAL(rasFromIdxFCheck.x(),ras.x()) ||
+	!FLOAT_EQUAL(rasFromIdxFCheck.y(),ras.y()) ||
+	!FLOAT_EQUAL(rasFromIdxFCheck.z(),ras.z()) ) {
       
       stringstream ssError;
       ssError << "RAS -> index float -> RAS didn't match orig RAS: "
@@ -86,11 +87,11 @@ void TestCoord ( Transform44& rasToVoxel, Point3<float>& ras, bool ibPrint ) {
 	(int) floor( idxfFromRASFromIdxICheck.z() + 0.5 ) ) {
 #else
     if( idxiFromRASFromIdxICheck.x() != 
-	(int) idxfFromRASFromIdxICheck.x() ||
+	(int) floor( idxfFromRASFromIdxICheck.x() ) ||
 	idxiFromRASFromIdxICheck.y() != 
-	(int) idxfFromRASFromIdxICheck.y() ||
+	(int) floor( idxfFromRASFromIdxICheck.y() ) ||
 	idxiFromRASFromIdxICheck.z() != 
-	(int) idxfFromRASFromIdxICheck.z() ) {
+	(int) floor( idxfFromRASFromIdxICheck.z() ) ) {
 #endif
       
       stringstream ssError;
@@ -99,6 +100,26 @@ void TestCoord ( Transform44& rasToVoxel, Point3<float>& ras, bool ibPrint ) {
 	      << ras << " -> " << idxf << " -> " << rasFromIdxICheck
 	      << " -> " << idxiFromRASFromIdxICheck << ", " 
 	      << idxfFromRASFromIdxICheck;
+      throw runtime_error( ssError.str() );
+    }
+
+    if( idxiFromRASFromIdxICheck.x() != idxi.x() ||
+	idxiFromRASFromIdxICheck.y() != idxi.y() ||
+	idxiFromRASFromIdxICheck.z() != idxi.z() ) {
+
+      Point3<float> idxf2, ras2, idxf3;
+      idxf2[0] = idxi[0];
+      idxf2[1] = idxi[1];
+      idxf2[2] = idxi[2];
+      rasToVoxel.InvMultiplyVector3( idxf2.xyz(), ras2.xyz() );
+      rasToVoxel.MultiplyVector3( ras2.xyz(), idxf3.xyz() );
+      stringstream ssError;
+      ssError << "index int -> RAS -> index, "
+	      << "index ints didn't match:\n"
+	      << setprecision(20)
+	      << "\t" << idxi << " -> " << rasFromIdxICheck
+	      << " -> " << idxiFromRASFromIdxICheck << "\n" 
+	      << "\t" << idxf2 << " -> " << ras2 << " -> " << idxf3 << endl;
       throw runtime_error( ssError.str() );
     }
 
