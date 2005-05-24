@@ -418,7 +418,7 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
     try {
       layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad layerID: ") + e.what();
       return error;
     }
@@ -446,7 +446,7 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
     try {
       layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad layerID: ") + e.what();
       return error;
     }
@@ -459,7 +459,7 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
 	ras[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
 	ras[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad RAS coord: ") + e.what();
 	return error;
       }
@@ -474,7 +474,7 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
 	sReturnValues = ssReturnValues.str();
 	sReturnFormat = "Lifl";
       }
-      catch(runtime_error e) {
+      catch( runtime_error& e) {
 	sResult = string("Couldn't find vertex: ") + e.what();
 	return error;
       }

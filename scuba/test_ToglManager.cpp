@@ -158,7 +158,7 @@ InputStateTester::Test() {
     }
 
   }
-  catch( exception e ) {
+  catch( exception& e ) {
     cerr << "InputStateTester failed with exception: " << e.what() << endl;
     exit( 1 );
   }
@@ -184,7 +184,7 @@ int main( int argc, char** argv ) {
 
     }
   }
-  catch( exception e ) {
+  catch( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

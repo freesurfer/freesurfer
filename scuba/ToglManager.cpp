@@ -96,7 +96,7 @@ ToglManager::MouseMotionCallback ( struct Togl* iTogl,
   try {
     frame->MouseMoved( windowCoords, mState );
   }
-  catch(runtime_error e) {
+  catch( runtime_error& e) {
     char sError[1024];
     strcpy( sError, e.what() );
     Tcl_SetResult( Togl_Interp(iTogl), sError, TCL_VOLATILE );
@@ -139,7 +139,7 @@ ToglManager::MouseDownCallback ( struct Togl* iTogl,
   try {
     frame->MouseDown( windowCoords, mState );
   }
-  catch(runtime_error e) {
+  catch( runtime_error& e) {
     char sError[1024];
     strcpy( sError, e.what() );
     Tcl_SetResult( Togl_Interp(iTogl), sError, TCL_VOLATILE );
@@ -181,7 +181,7 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   try {
     frame->MouseUp( windowCoords, mState );
   }
-  catch(runtime_error e) {
+  catch( runtime_error& e) {
     char sError[1024];
     strcpy( sError, e.what() );
     Tcl_SetResult( Togl_Interp(iTogl), sError, TCL_VOLATILE );
@@ -246,7 +246,7 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     try {
       frame->KeyDown( windowCoords, mState );
     }
-    catch(runtime_error e) {
+    catch( runtime_error& e) {
       char sError[1024];
       strcpy( sError, e.what() );
       Tcl_SetResult( Togl_Interp(iTogl), sError, TCL_VOLATILE );
@@ -304,7 +304,7 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     try {
       frame->KeyUp( windowCoords, mState );
     }
-    catch(runtime_error e) {
+    catch( runtime_error& e) {
       char sError[1024];
       strcpy( sError, e.what() );
       Tcl_SetResult( Togl_Interp(iTogl), sError, TCL_VOLATILE );

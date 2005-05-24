@@ -154,7 +154,7 @@ ScubaROITester::Test ( Tcl_Interp* iInterp ) {
     Assert( ("10 11 12" == sColor), "Tcl GetROIColor failed" );
 
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }
@@ -187,7 +187,7 @@ int main ( int argc, char** argv ) {
 
  
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

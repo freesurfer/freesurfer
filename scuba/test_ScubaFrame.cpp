@@ -244,7 +244,7 @@ int main( int argc, char** argv ) {
       tester2.Test( interp );
     }
   }
-  catch( exception e ) {
+  catch( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

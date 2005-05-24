@@ -180,7 +180,7 @@ TclCommandManager::HandleCommand ( ClientData, Tcl_Interp* iInterp,
 	      finalResult = result;
 	    }
 	  }
-	  catch( runtime_error e ) {
+	  catch( runtime_error& e ) {
 	    finalResult = error;
 	    char* sError = strdup( e.what() );
 	    Tcl_SetResult( iInterp, sError, TCL_VOLATILE );

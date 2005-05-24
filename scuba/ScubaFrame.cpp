@@ -1057,7 +1057,7 @@ ScubaFrame::CaptureToFile ( string ifn ) {
     _TIFFfree( lineBuffer );
   }
 
-  catch(runtime_error e) {
+  catch( runtime_error& e) {
     throw runtime_error( string("Error saving TIFF: ") + e.what() );
   }
   catch(...) {

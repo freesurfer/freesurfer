@@ -324,7 +324,7 @@ int main ( int iArgc, char** iArgv ) {
     cerr << msg << " failed" << endl;
     exit( 1 );
   }
-  catch( logic_error e ) {
+  catch( logic_error& e ) {
     cerr << "failed: " << e.what() << endl;
     exit( 1 );
   }

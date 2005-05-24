@@ -85,7 +85,7 @@ SurfaceCollection::LoadSurface () {
     try { 
       newMRIS = mrisLoader.GetData( mfnMRIS );
     }
-    catch( exception e ) {
+    catch( exception& e ) {
       throw logic_error( "Couldn't load MRIS" );
     }
 
@@ -113,7 +113,7 @@ SurfaceCollection::LoadSurface () {
     try { 
       mMRIS = mrisLoader.GetData( mfnMRIS );
     }
-    catch( exception e ) {
+    catch( exception& e ) {
       throw logic_error( "Couldn't load MRIS" );
     }
 
@@ -213,7 +213,7 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
     try { 
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad collection ID: ") + e.what();
       return error;
     }
@@ -230,7 +230,7 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
 	
 	SetDataToSurfaceTransformFromVolume( vol );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = e.what();
 	return error;
       }
@@ -244,7 +244,7 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
     try { 
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad collection ID: ") + e.what();
       return error;
     }
@@ -262,7 +262,7 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
     try { 
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad collection ID: ") + e.what();
       return error;
     }
@@ -282,7 +282,7 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
     try { 
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad collection ID: ") + e.what();
       return error;
     }
@@ -307,7 +307,7 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
     try { 
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad collection ID: ") + e.what();
       return error;
     }
@@ -326,7 +326,7 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
     try { 
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad collection ID: ") + e.what();
       return error;
     }

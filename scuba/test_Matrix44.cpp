@@ -265,7 +265,7 @@ Matrix44Tester::Test () {
     }
 
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }
@@ -285,7 +285,7 @@ int main ( int argc, char** argv ) {
     Matrix44Tester tester0;
     tester0.Test();
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

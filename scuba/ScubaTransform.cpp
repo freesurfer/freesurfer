@@ -173,7 +173,7 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
     try { 
       transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad transform ID: ") + e.what();
       return error;
     }
@@ -199,7 +199,7 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
 	
 	TreatAsRegistration( sourceVolume, destVolume );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = e.what();
 	return error;
       }
@@ -213,7 +213,7 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
     try { 
       transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad transform ID: ") + e.what();
       return error;
     }
@@ -223,7 +223,7 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
       try { 
 	TreatAsNative();
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = e.what();
 	return error;
       }
@@ -237,7 +237,7 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
     try { 
       transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad transform ID: ") + e.what();
       return error;
     }
@@ -257,7 +257,7 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
     try { 
       transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad transform ID: ") + e.what();
       return error;
     }
@@ -282,7 +282,7 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
     try { 
       transformID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
       }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad transform ID: ") + e.what();
       return error;
     }

@@ -916,7 +916,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     try {
       layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad layerID: ") + e.what();
       return error;
     }
@@ -927,7 +927,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	mbEditableROI =
 	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = "bad editable \"" + string(iasArgv[2]) + "\"," + e.what();
 	return error;	
       }
@@ -940,7 +940,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     try {
       layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad layerID: ") + e.what();
       return error;
     }
@@ -959,7 +959,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     try {
       layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad layerID: ") + e.what();
       return error;
     }
@@ -989,7 +989,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     try {
       layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad layerID: ") + e.what();
       return error;
     }
@@ -1002,7 +1002,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	ras[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
 	ras[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad RAS coord: ") + e.what();
 	return error;
       }
@@ -1012,7 +1012,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	toolID = TclCommandManager::ConvertArgumentToInt( iasArgv[5] );
 	ScubaToolState::FindByID( toolID );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad toolID: ") + e.what();
 	return error;
       }
@@ -1022,7 +1022,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[6] );
 	View::FindByID( viewID );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad viewID: ") + e.what();
 	return error;
       }

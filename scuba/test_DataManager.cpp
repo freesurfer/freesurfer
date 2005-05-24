@@ -132,7 +132,7 @@ int main ( int argc, char** argv ) {
     TestLoader<MRISLoader,MRIS*>( fnMRIS, dataMgr.GetMRISLoader() );
 
   }
-  catch( exception e ) {
+  catch( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

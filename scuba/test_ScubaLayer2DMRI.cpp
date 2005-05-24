@@ -66,7 +66,7 @@ ScubaLayer2DMRITester::Test ( Tcl_Interp* iInterp ) {
 
     
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }
@@ -97,7 +97,7 @@ int main ( int argc, char** argv ) {
     ScubaLayer2DMRITester tester;
     tester.Test( interp );
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

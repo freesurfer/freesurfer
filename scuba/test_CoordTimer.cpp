@@ -73,7 +73,7 @@ int main ( int argc, char** argv ) {
     cerr << "avg fps: " << totalfps/10.0 << endl;
 
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

@@ -170,7 +170,7 @@ Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
     try {
       layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad layerID: ") + e.what();
       return error;
     }
@@ -180,7 +180,7 @@ Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
       try {
 	ProcessOptionsList( string(iasArgv[2]) );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = "bad options \"" + string(iasArgv[2]) + "\", \n" + e.what();
 	return error;	
       }
@@ -217,7 +217,7 @@ Layer::ProcessOptionsList ( string isOptionList ) {
       try {
 	this->ProcessOption( sOptionValue, "" );
       }
-      catch(runtime_error e) {
+      catch( runtime_error& e) {
 	ssErrors << e.what() << ". ";
 	bError = true;
       }
@@ -229,7 +229,7 @@ Layer::ProcessOptionsList ( string isOptionList ) {
 	this->ProcessOption( sOptionValue.substr( 0, nEquals ),
 			     sOptionValue.substr( nEquals+1, z-nEquals+1 ) );
       }
-      catch(runtime_error e) {
+      catch( runtime_error& e) {
 	ssErrors << e.what() << ". ";
  	bError = true;
      }

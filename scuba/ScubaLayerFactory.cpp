@@ -40,7 +40,7 @@ ScubaLayerFactory::DoListenToTclCommand( char* isCommand,
       sReturnFormat = "i";
       sReturnValues = ssResult.str();
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       DebugOutput( << "Bad layer type name" );
       sResult = "bad layer type";
       return error;

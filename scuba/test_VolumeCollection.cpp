@@ -94,6 +94,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       int roiID = vol.NewROI();
       ScubaROIVolume* roi = 
 	dynamic_cast<ScubaROIVolume*>(&ScubaROI::FindByID( roiID ));
+      roi = NULL;
     }
     catch(...) {
       throw( runtime_error("typecast failed for NewROI") );
@@ -106,7 +107,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     Point3<int> index;
     world.Set( -50, 0, -80 );
     vol.RASToMRIIndex( world.xyz(), index.xyz() );
-    if( index.x() != 178 || index.y() != 208 || index.z() != 128 ) {
+    if( index.x() != 183 || index.y() != 208 || index.z() != 110 ) {
       cerr << "RASToMRIIndex failed. world " 
 	   << world << " index " << index << endl;
       throw( runtime_error( "failed" ) );
@@ -132,7 +133,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     
     vol.RASToMRIIndex( world.xyz(), index.xyz() );
 
-    if( index.x() != 153 || index.y() != 168 || index.z() != 128 ) {
+    if( index.x() != 158 || index.y() != 168 || index.z() != 110 ) {
       cerr << "RASToMRIIndex with data transform failed. world " 
 	   << world << " index " << index << endl;
       throw( runtime_error( "failed" ) );
@@ -146,7 +147,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       cerr << "IsInBounds failed. world " << world << endl;
       throw( runtime_error( "failed" ) );
     }
-    world.Set( -257, 0, 0 );
+    world.Set( -1000, 0, 0 );
     VolumeLocation& loc2 =
       (VolumeLocation&) vol.MakeLocationFromRAS( world.xyz() );
     if( vol.IsInBounds( loc2 ) ) {
@@ -160,7 +161,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 				    0, 0, 2, 0,
 				    0, 0, 0, 1 );
     vol.SetDataToWorldTransform( dataTransform.GetID() );
-    world.Set( 0, -258, -254 );
+    world.Set( 0, -1000, -254 );
     VolumeLocation& loc3 =
       (VolumeLocation&) vol.MakeLocationFromRAS( world.xyz() );
     if( vol.IsInBounds( loc3 ) ) {
@@ -187,32 +188,42 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 				    0, 0, 0, 1 );
     vol.SetDataToWorldTransform( dataTransform.GetID() );
 
-    Point3<float> p[4];
-    Volume3<bool> v( 5, 5, 5, false );
-    p[0].Set( 1, 1, 1 );   p[1].Set( 4, 1, 1 );
-    p[2].Set( 4, 4, 1 );   p[3].Set( 1, 4, 1 );
-    list<Point3<float> > points;
-    vol.FindRASPointsInSquare( p[0].xyz(), p[1].xyz(), p[2].xyz(), p[3].xyz(),
-			       0, points );
-    list<Point3<float> >::iterator tPoint;
-    for( tPoint = points.begin(); tPoint != points.end(); ++tPoint ) {
-      Point3<float> p = *tPoint;
-      v.Set( (int)p[0], (int)p[1], (int)p[2], true );
-    }
-    for( int nZ = 0; nZ < 5; nZ++ ) {
-      for( int nY = 0; nY < 5; nY++ ) {
-	for( int nX = 0; nX < 5; nX++ ) {
-	  bool filled = v.Get( nX, nY, nZ );
-	  if( nX >= 1 && nX <= 4 &&
-	      nY >= 1 && nY <= 4 &&
-	      nZ == 1 ) {
-	    stringstream ssMsg;
-	    ssMsg << "Failed: " << Point3<int>(nX,nY,nZ) << "was not filled";
-	    Assert( filled == true, ssMsg.str() );
-	  } else {
-	    stringstream ssMsg;
-	    ssMsg << "Failed: " << Point3<int>(nX,nY,nZ) << "was filled";
+    {
+      Point3<float> sqIdx[4], sqRAS[4], cIdx, cRAS;
+      Volume3<bool> testVol( 5, 5, 5, false );
+      cIdx.Set( 2.5, 2.5, 1 );
+      sqIdx[0].Set( 1, 1, 1 );   sqIdx[1].Set( 4, 1, 1 );
+      sqIdx[2].Set( 4, 4, 1 );   sqIdx[3].Set( 1, 4, 1 );
+      vol.MRIIndexToRAS( sqIdx[0].xyz(), sqRAS[0].xyz() );
+      vol.MRIIndexToRAS( sqIdx[1].xyz(), sqRAS[1].xyz() );
+      vol.MRIIndexToRAS( sqIdx[2].xyz(), sqRAS[2].xyz() );
+      vol.MRIIndexToRAS( sqIdx[3].xyz(), sqRAS[3].xyz() );
+      vol.MRIIndexToRAS( cIdx.xyz(), cRAS.xyz() );
+      list<Point3<float> > points;
+      vol.FindRASPointsInSquare( cRAS.xyz(),
+				 sqRAS[0].xyz(), sqRAS[1].xyz(), 
+				 sqRAS[2].xyz(), sqRAS[3].xyz(),
+				 0, points );
+      list<Point3<float> >::iterator tPoint;
+      for( tPoint = points.begin(); tPoint != points.end(); ++tPoint ) {
+	Point3<float> p = *tPoint;
+	testVol.Set( (int)p[0], (int)p[1], (int)p[2], true );
+      }
+      for( int nZ = 0; nZ < 5; nZ++ ) {
+	for( int nY = 0; nY < 5; nY++ ) {
+	  for( int nX = 0; nX < 5; nX++ ) {
+	    bool filled = testVol.Get( nX, nY, nZ );
+	    if( nX >= 1 && nX <= 4 &&
+		nY >= 1 && nY <= 4 &&
+		nZ == 1 ) {
+	      stringstream ssMsg;
+	      ssMsg << "Failed: " << Point3<int>(nX,nY,nZ) << "was not filled";
+	      Assert( filled == true, ssMsg.str() );
+	    } else {
+	      stringstream ssMsg;
+	      ssMsg << "Failed: " << Point3<int>(nX,nY,nZ) << "was filled";
 	    Assert( filled == false, ssMsg.str() );
+	    }
 	  }
 	}
       }
@@ -233,7 +244,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	    "Setting file name via tcl didn't work" );
 
   }
-  catch( logic_error e ) {
+  catch( logic_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }
@@ -267,7 +278,7 @@ int main ( int argc, char** argv ) {
 
  
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

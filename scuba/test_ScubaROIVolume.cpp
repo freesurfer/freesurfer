@@ -92,7 +92,7 @@ ScubaROIVolumeTester::Test ( Tcl_Interp* iInterp ) {
     catch(...) {}
     
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }
@@ -122,7 +122,7 @@ int main ( int argc, char** argv ) {
     ScubaROIVolumeTester tester0;
     tester0.Test( interp );
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

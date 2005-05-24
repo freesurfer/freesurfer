@@ -285,7 +285,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
 	SetOnlyBrushZero( bOnlyZero );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = "bad onlyZero \"" + string(iasArgv[2]) + "\"," + e.what();
 	return error;	
       }
@@ -762,7 +762,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
 	SetOnlyFloodZero( bOnlyZero );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = "bad onlyZero \"" + string(iasArgv[2]) + "\"," + e.what();
 	return error;	
       }

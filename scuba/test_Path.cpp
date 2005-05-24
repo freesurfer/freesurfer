@@ -234,7 +234,7 @@ PathTester::Test () {
     sr.close();
     
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }
@@ -257,7 +257,7 @@ int main ( int argc, char** argv ) {
     }
  
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

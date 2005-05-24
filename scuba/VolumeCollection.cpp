@@ -88,6 +88,9 @@ VolumeCollection::~VolumeCollection() {
     mriLoader.ReleaseData( &mMRI );
     SendBroadcast( "DataDeleted", NULL );
   } 
+  catch( runtime_error& e ) {
+    cerr << "Error releasing data: " << e.what() << endl;
+  }
   catch(...) {
     cerr << "Couldn't release data"  << endl;
   }
@@ -167,7 +170,7 @@ VolumeCollection::LoadVolume () {
     // we already have, we're fine. If not, keep this one and release
     // the one we have.
     MRI* newMRI = NULL; try { newMRI = mriLoader.GetData( mfnMRI ); }
-    catch( exception e ) { throw logic_error( "Couldn't load MRI" );
+    catch( exception& e ) { throw logic_error( "Couldn't load MRI" );
     }
 
     if( newMRI == mMRI ) {
@@ -192,7 +195,7 @@ VolumeCollection::LoadVolume () {
     try { 
       mMRI = mriLoader.GetData( mfnMRI );
     }
-    catch( exception e ) {
+    catch( exception& e ) {
       throw logic_error( "Couldn't load MRI" );
     }
 
@@ -747,7 +750,7 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
 	SetUseWorldToIndexTransform( bUse );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = "bad use \"" + string(iasArgv[2]) + "\"," + e.what();
 	return error;	
       }
@@ -786,7 +789,7 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
 	mbAutosave = bOn;
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = "bad on \"" + string(iasArgv[2]) + "\"," + e.what();
 	return error;	
       }
@@ -815,7 +818,7 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     try {
       collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad collectionID: ") + e.what();
       return error;
     }
@@ -977,7 +980,7 @@ VolumeCollection::IsSelected ( VolumeLocation& iLoc, int oColor[3] ) {
     
     return bSelected;
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "Error in IsSelected(): " << e.what() << endl;
     return false;
   }

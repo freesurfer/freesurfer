@@ -525,7 +525,7 @@ int main( int argc, char** argv ) {
 
     Tcl_DeleteInterp( interp );
   }
-  catch( exception e ) {
+  catch( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

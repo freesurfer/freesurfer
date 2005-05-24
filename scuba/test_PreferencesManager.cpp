@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/10/11 02:08:59 $
-// Revision       : $Revision: 1.5 $
+// Revision Date  : $Date: 2005/05/24 21:28:13 $
+// Revision       : $Revision: 1.6 $
 
 #include <stdlib.h>
 #include "string_fixed.h"
@@ -202,7 +202,7 @@ int main ( int argc, char** argv ) {
     cerr << "failed: " << iMsg << endl;
     exit( 1 );
   }
-  catch( logic_error e ) {
+  catch( logic_error& e ) {
     cerr << "failed: " << e.what() << endl;
     exit( 1 );
   }

@@ -836,7 +836,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     try {
       viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad viewID: ") + e.what();
       return error;
     }
@@ -847,7 +847,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       try {
 	nLevel = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad level: ") + e.what();
 	return error;
       }
@@ -856,7 +856,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       try {
 	bVisible = TclCommandManager::ConvertArgumentToBoolean( iasArgv[3] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad visibility: ") + e.what();
 	return error;
       }
@@ -879,7 +879,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       try {
 	nLevel = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad level: ") + e.what();
 	return error;
       }
@@ -1198,7 +1198,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     try {
       viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad viewID: ") + e.what();
       return error;
     }
@@ -1209,7 +1209,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       try {
 	collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad collectionID: ") + e.what();
 	return error;
       }
@@ -1231,7 +1231,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       try {
 	roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[3] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad roiID: ") + e.what();
 	return error;
       }
@@ -1252,7 +1252,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       try {
 	cBins = TclCommandManager::ConvertArgumentToInt( iasArgv[4] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad numBins: ") + e.what();
 	return error;
       }
@@ -1290,7 +1290,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     try {
       viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad viewID: ") + e.what();
       return error;
     }
@@ -1301,7 +1301,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       try {
 	sourceVolID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad sourceVolID: ") + e.what();
 	return error;
       }
@@ -1323,7 +1323,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       try {
 	roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[3] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad roiID: ") + e.what();
 	return error;
       }
@@ -1344,7 +1344,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       try {
 	destVolID = TclCommandManager::ConvertArgumentToInt( iasArgv[4] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad destVolID: ") + e.what();
 	return error;
       }
@@ -1373,7 +1373,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     try {
       viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad viewID: ") + e.what();
       return error;
     }
@@ -1384,7 +1384,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       try {
 	begin = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad beginValueRange: ") + e.what();
 	return error;
       }
@@ -1393,7 +1393,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       try {
 	end = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad endValueRange: ") + e.what();
 	return error;
       }
@@ -1402,7 +1402,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       try {
 	value = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad valueValueRange: ") + e.what();
 	return error;
       }
@@ -1418,7 +1418,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     try {
       viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad viewID: ") + e.what();
       return error;
     }
@@ -1436,7 +1436,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     try {
       viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       sResult = string("bad viewID: ") + e.what();
       return error;
     }
@@ -1449,7 +1449,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
 	window[0] = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
 	window[1] = TclCommandManager::ConvertArgumentToInt( iasArgv[3] );
       }
-      catch( runtime_error e ) {
+      catch( runtime_error& e ) {
 	sResult = string("bad window coordinate: ") + e.what();
 	return error;
       }
@@ -1886,7 +1886,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
 	  layer.RedisplayPosted();
 	}
       }
-      catch(runtime_error e) {
+      catch( runtime_error& e) {
 	throw( e );
       }
       catch(...) {
@@ -1986,7 +1986,7 @@ ScubaView::DoMouseUp( int iWindow[2],
 	  layer.RedisplayPosted();
 	}
       }
-      catch(runtime_error e) {
+      catch( runtime_error& e) {
 	throw( e );
       }
       catch(...) {
@@ -2075,7 +2075,7 @@ ScubaView::DoMouseDown( int iWindow[2],
 	  layer.RedisplayPosted();
 	}
       }
-      catch(runtime_error e) {
+      catch( runtime_error& e) {
 	throw( e );
       }
       catch(...) {
@@ -2192,7 +2192,7 @@ ScubaView::DoKeyDown( int iWindow[2],
 	layer.RedisplayPosted();
       }
     }
-    catch(runtime_error e) {
+    catch( runtime_error& e) {
       throw( e );
     }
     catch(...) {

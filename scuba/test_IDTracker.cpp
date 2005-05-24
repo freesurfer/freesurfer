@@ -55,7 +55,7 @@ int main ( int argc, char** argv ) {
 	A findNonExistent = A::FindByID( 10 );
 	bGood = false;
       }
-      catch(exception e) {
+      catch( exception& e) {
 	bGood = true;
       }
       if( !bGood ) throw logic_error( "found a nonexistant object" );
@@ -86,13 +86,13 @@ int main ( int argc, char** argv ) {
       A findNonExistent = A::FindByID( 0 );
       bGood = false;
     }
-    catch(exception e) {
+    catch( exception& e) {
       bGood = true;
     }
     if( !bGood ) throw logic_error( "found object after its deletion" );
 
   }
-  catch(exception e) {
+  catch( exception& e) {
     cerr << "failed: " << e.what() << endl;
     exit( 1 );
   }

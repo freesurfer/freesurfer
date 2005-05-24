@@ -74,7 +74,7 @@ Transform44Tester::Test () {
 	   "LTA didn't load properly.");
 
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }
@@ -95,7 +95,7 @@ int main ( int argc, char** argv ) {
     tester0.Test();
  
   }
-  catch( runtime_error e ) {
+  catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

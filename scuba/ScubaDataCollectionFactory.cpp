@@ -64,7 +64,7 @@ ScubaDataCollectionFactory::DoListenToTclCommand( char* isCommand,
       sReturnFormat = "i";
       sReturnValues = ssResult.str();
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       DebugOutput( << "Bad collection type name" );
       sResult = "bad collection type";
       return error;
@@ -85,7 +85,7 @@ ScubaDataCollectionFactory::DoListenToTclCommand( char* isCommand,
       delete &collection;
       
     }
-    catch( runtime_error e ) {
+    catch( runtime_error& e ) {
       DebugOutput( << "Bad collection type name" );
       sResult = "bad collection type";
       return error;

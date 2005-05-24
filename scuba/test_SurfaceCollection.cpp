@@ -55,7 +55,7 @@ int main ( int argc, char** argv ) {
     MRISfree( &mrisComp );
 
   }
-  catch( logic_error e ) {
+  catch( logic_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }
