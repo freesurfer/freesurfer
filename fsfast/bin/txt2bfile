@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: txt2bfile,v 1.1 2004/01/30 23:13:13 greve Exp $';
+set VERSION = '$Id: txt2bfile,v 1.2 2005/05/24 17:51:07 greve Exp $';
 set cmdargs = ($argv);
 
 set txtfile   = ();
@@ -10,6 +10,7 @@ set mergevol  = ();
 set nmerge    = 0;
 set mfile   = ();
 set monly   = 0;
+set NormReg = 1;
 set PrintHelp = 0;
 
 if($#argv == 0)  goto usage_exit;
@@ -52,6 +53,7 @@ outvol   = '$outvol';
 mergevol = '$mergevol';
 nmerge   = $nmerge';
 orthogpct = $orthogpct;
+normreg  = $NormReg;
 
 txt = load(txtfile);
 if(isempty(txt))
@@ -90,6 +92,11 @@ if(~isempty(mergevol))
   end
   txt = [txt mv];
   [nf nv] = size(txt);
+end
+
+if(normreg)
+  txtsum2 = sum(txt.^2);
+  txt = txt ./ repmat(sqrt(txtsum2),[nf 1]);
 end
 
 if(orthogpct < 100)
@@ -169,6 +176,14 @@ while( $#argv != 0 )
       umask $argv[1]; shift;
       breaksw
 
+    case "-norm":
+      set NormReg = 1;
+      breaksw
+
+    case "-nonorm":
+      set NormReg = 0;
+      breaksw
+
     case "-verbose":
       set verbose = 1;
       breaksw
@@ -230,6 +245,7 @@ usage_exit:
   echo "   -merge volume    : merge with already existing 'volume'"
   echo "   -nmerge n        : only use the first n from merge volume"
   echo "   -orthogpct pct   : orthoganalize, keeping pct percent"
+  echo "   -nonorm    : do not normalize regressors to unit vectors"
   echo " "
   echo "   -help "
   echo "   -debug "
@@ -288,6 +304,9 @@ regressors only keep those components that explain PCT percent of the
 variance across the regressors. The closer PCT is to 100, the less
 changed the external regressors will be. I recommend about 90. NOTE:
 this will reduce the number of regressors.
+
+NOTE: the regressors will be normalized to 1 (ie, each vector will be
+scaled so that its length is one) unless the -nonorm is specified.
 
 MERGING WITHOTHER EXTERNAL REGRESSORS
 
