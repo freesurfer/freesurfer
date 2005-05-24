@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.9 2005/03/01 19:24:15 greve Exp $
+  $Id: mri_label2vol.c,v 1.10 2005/05/24 22:43:23 greve Exp $
 */
 
 
@@ -54,7 +54,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.9 2005/03/01 19:24:15 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.10 2005/05/24 22:43:23 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_label2vol.c,v 1.9 2005/03/01 19:24:15 greve Exp $", "$Name:  $");
+      "$Id: mri_label2vol.c,v 1.10 2005/05/24 22:43:23 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
   // Go through each label
   printf("nlabels = %d\n",nlabels);
   for(nthlabel = 0; nthlabel < nlabels; nthlabel++){
-    printf("nthlabel = %d/%d\n",nthlabel,nlabels);
+    if(debug) printf("nthlabel = %d/%d\n",nthlabel,nlabels);
 
     if(AnnotFile == NULL && ASegFSpec == NULL){
       printf("Loading %s\n",LabelList[nthlabel]);
@@ -302,10 +302,14 @@ int main(int argc, char **argv)
 	    nhitsmax_label = nthlabel;
 	  }
 	}
-	if(ASegFSpec == NULL || nhitsmax_label == -1)
-	  LabelCode = nhitsmax_label + 1;
-	else
+	if(nhitsmax_label == -1) 
+	  LabelCode = 0; // No hits -- Unknown
+	else if(ASegFSpec != NULL)
 	  LabelCode = ASegLabelList[nhitsmax_label];
+	else if(AnnotFile != NULL)
+	  LabelCode = nhitsmax_label;//dont +1, keeps consist with ctab
+	else
+	  LabelCode = nhitsmax_label + 1;
 	MRIIseq_vox(OutVol,c,r,s,0) = LabelCode;
 
       }
@@ -520,9 +524,7 @@ static void print_help(void)
 "input to mri_label2vol using --label. Or, the annotation file can be\n"
 "read in directly using --annot. The map of annotation numbers to \n"
 "annotation names can be found at Simple_surface_labels2002.txt \n"
-"in $FREESURFER_HOME. Note that you have to add 1 to the number in \n"
-"this file to get the number stored in the output volume. Not with\n"
-"--label or --seg\n"
+"in $FREESURFER_HOME. Not with --label or --seg.\n"
 "\n"
 "--seg segpath\n"
 "\n"
