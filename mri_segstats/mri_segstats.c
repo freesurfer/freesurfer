@@ -40,7 +40,7 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segstats.c,v 1.2 2005/05/24 20:39:02 greve Exp $";
+static char vcid[] = "$Id: mri_segstats.c,v 1.3 2005/05/24 21:53:05 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -771,7 +771,7 @@ static void print_help(void)
 "segmentation to the functional space. For more information\n"
 "see mri_label2vol --help.\n"
 "\n"
-"5. mri_label2vol --seg $SUBJECTS_DIR/bert/label/lh.aparc.annot \n"
+"5. mri_label2vol --annot $SUBJECTS_DIR/bert/label/lh.aparc.annot \n"
 "     --temp func.img --reg register.dat --fillthresh 0.5 \n"
 "     --hemi lh --subject bert --proj frac 0 .1 1 \n"
 "     --o lh.aparc-in-func.img\n"
