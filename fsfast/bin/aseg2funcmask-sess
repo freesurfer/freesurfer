@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # aseg2funcmask-sess
 #
-set VERSION = '$Id: aseg2funcmask-sess,v 1.2 2005/05/24 22:41:05 greve Exp $';
+set VERSION = '$Id: aseg2funcmask-sess,v 1.3 2005/05/24 22:44:51 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -312,7 +312,7 @@ changed with -oseg.
 
 For the surface-based segmentation (aka "parcellation"), the
 hemi.aparc.annot will be used. The index map for the surface-based 
-segmentation is given in $FREESURFER_HOME/tkmeditParcColorsCMA.
+segmentation is given in $FREESURFER_HOME/Simple_surface_labels2002.txt.
 The cortical segmentation in functional space is stored in 
 fsd/masks/?h.aparc (one for each hemisphere).
 
