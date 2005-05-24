@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/04/20 20:24:20 $
-// Revision       : $Revision: 1.115 $
+// Revision Date  : $Date: 2005/05/24 17:41:11 $
+// Revision       : $Revision: 1.116 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -1868,8 +1868,9 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
   
   /* print error message */
   if( DspA_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in DspA_: %s\n",
-		 eResult, DspA_GetErrorString(eResult) ) );
+    DebugPrint( ("Error %d in DspA_SetDisplayFlag %d %d: %s\n",
+		 eResult, iWhichFlag, ibNewValue, 
+		 DspA_GetErrorString(eResult) ) );
   }
   
  cleanup:

@@ -174,6 +174,11 @@ class VolumeCollection : public DataCollection {
 			       float iCenter[3], float iRadius,
 			       std::list<Point3<float> >& oPoints );
 
+  // Finds and returns RAS points on a segment.
+  void FindRASPointsOnSegment ( float iPointA[3], float iPointB[3],
+			       std::list<Point3<float> >& oPoints );
+				
+
   // Import and export points to a control point file.
   void ImportControlPoints ( std::string ifnControlPoints,
 			     std::list<Point3<float> >& oControlPoints);
@@ -201,22 +206,21 @@ class VolumeCollection : public DataCollection {
   bool IsAutosaveDirty () { return mbAutosaveDirty; }
   void AutosaveIfDirty ();
 
-  // Given an MRI voxel index and a plane in RAS coords and the
-  // direction to extend the voxel, returns whether or not the voxel
-  // intersects the plane. Tests each of the voxel's edges against the
-  // plane.
-  VectorOps::IntersectionResult VoxelIntersectsPlaneRAS
-    ( Point3<int>& iMRIIndex, int iIncrement,
-      Point3<float>& iPlaneRAS, Point3<float>& iPlaneRASNormal,
-      Point3<float>& oIntersectionRAS ); 
-
-  VectorOps::IntersectionResult VoxelIntersectsPlaneIdx
+  // Given an MRI voxel index and a plane in idx coords, returns
+  // whether or not the voxel intersects the plane. Tests each of the
+  // voxel's edges against the plane.
+  VectorOps::IntersectionResult VoxelIntersectsPlane
     ( Point3<int>& iMRIIndex,
       Point3<float>& iPlaneIdx, Point3<float>& iPlaneIdxNormal,
       Point3<float>& oIntersectionIdx ); 
 
-  bool IsRASInsideVoxel ( Point3<int>& iMRIIndex, 
-			  Point3<float>& iRAS );
+  // Does something similar but tests if a segment goes through a
+  // voxel. Does this by testing the segment against each face as a
+  // plane.
+  VectorOps::IntersectionResult VoxelIntersectsSegment
+    ( Point3<int>& iMRIIndex, 
+      Point3<float>& iSegIdxA, Point3<float>& iSegIdxB, 
+      Point3<float>& oIntersectionIdx );
 
   void PrintVoxelCornerCoords ( std::ostream& iStream,
 				Point3<int>& iMRIIdx );
