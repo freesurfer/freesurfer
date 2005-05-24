@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.10 2005/05/24 22:43:23 greve Exp $
+  $Id: mri_label2vol.c,v 1.11 2005/05/24 23:00:23 greve Exp $
 */
 
 
@@ -54,7 +54,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.10 2005/05/24 22:43:23 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.11 2005/05/24 23:00:23 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_label2vol.c,v 1.10 2005/05/24 22:43:23 greve Exp $", "$Name:  $");
+      "$Id: mri_label2vol.c,v 1.11 2005/05/24 23:00:23 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -193,6 +193,8 @@ int main(int argc, char **argv)
   }
 
   // Create hit volume based on template, one frame for each label
+  printf("Allocating Hit Volume (%d) voxels\n",TempVol->width*TempVol->height*
+	 TempVol->depth*nlabels ); 
   HitVol = MRIallocSequence(TempVol->width, TempVol->height, 
           TempVol->depth, MRI_INT, nlabels );
   if(HitVol == NULL){
