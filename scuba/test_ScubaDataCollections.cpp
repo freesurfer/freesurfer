@@ -69,7 +69,7 @@ ScubaDataCollectionFactoryTester::Test ( Tcl_Interp* iInterp ) {
     catch(...) {
       ssError <<  "Couldn't find collection with return ID from "
 	      << "MakeDataCollection, id = " << colID;
-      throw new runtime_error( ssError.str() );
+      throw runtime_error( ssError.str() );
     }
     
   }

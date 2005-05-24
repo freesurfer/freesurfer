@@ -136,25 +136,25 @@ InputStateTester::Test() {
     InputState m;
     if( m.IsShiftKeyDown() || m.IsAltKeyDown() || m.IsControlKeyDown() ) {
       cerr << "InputState not init'd properly" << endl;
-      throw new logic_error( "InputState not init'd properly" );
+      throw logic_error( "InputState not init'd properly" );
     }
     
     m.mbShiftKey = true;
     if( !m.IsShiftKeyDown() || m.IsAltKeyDown() || m.IsControlKeyDown() ) {
       cerr << "InputState shift not set properly" << endl;
-      throw new logic_error( "InputState shift not set properly" );
+      throw logic_error( "InputState shift not set properly" );
     }
 
     m.mbAltKey = true;
     if( !m.IsShiftKeyDown() || !m.IsAltKeyDown() || m.IsControlKeyDown() ) {
       cerr << "InputState alt not set properly" << endl;
-      throw new logic_error( "InputState alt not set properly" );
+      throw logic_error( "InputState alt not set properly" );
     }
 
     m.mbControlKey = true;
     if( !m.IsShiftKeyDown() || !m.IsAltKeyDown() || !m.IsControlKeyDown() ) {
       cerr << "InputState control not set properly" << endl;
-      throw new logic_error( "InputState control not set properly" );
+      throw logic_error( "InputState control not set properly" );
     }
 
   }

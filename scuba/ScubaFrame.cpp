@@ -897,7 +897,7 @@ ScubaFrame::GetViewAtColRow ( int iCol, int iRow ) {
     stringstream sError;
     sError << "Requested view that doesn't exist at " 
 	   << iCol << ", " << iRow;
-    throw new out_of_range( sError.str() );;
+    throw out_of_range( sError.str() );;
   }
 }
 

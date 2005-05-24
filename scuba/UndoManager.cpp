@@ -38,7 +38,7 @@ void
 UndoManager::AddAction ( UndoAction* iAction ) {
 
   if( NULL == mCurrentAction ) {
-    throw new runtime_error( "Tried to add undo action without beginning an action first." );
+    throw runtime_error( "Tried to add undo action without beginning an action first." );
   }
 
   mCurrentAction->mActions.push_back( iAction );

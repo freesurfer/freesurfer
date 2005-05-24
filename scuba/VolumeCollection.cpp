@@ -88,7 +88,7 @@ VolumeCollection::~VolumeCollection() {
     mriLoader.ReleaseData( &mMRI );
     SendBroadcast( "DataDeleted", NULL );
   } 
-  catch( runtime_error& e ) {
+  catch( exception& e ) {
     cerr << "Error releasing data: " << e.what() << endl;
   }
   catch(...) {

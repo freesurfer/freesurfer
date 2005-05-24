@@ -103,7 +103,7 @@ ScubaLayerFactoryTester::Test ( Tcl_Interp* iInterp ) {
     catch(...) {
       ssError <<  "Couldn't find layer with return ID from MakeLayer, id ="
 	      << layerID;
-      throw new runtime_error( ssError.str() );
+      throw runtime_error( ssError.str() );
     }
     
   }
