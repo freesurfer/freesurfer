@@ -117,7 +117,8 @@ unpack_mnc.tcl \
 unpacksdcmdir \
 wfilemask \
 xsanatreg \
-epidewarp.fsl
+epidewarp.fsl\
+setlabelstat
 
 tcldir = $(prefix)/lib/tcl
 tcl_SCRIPTS= \
