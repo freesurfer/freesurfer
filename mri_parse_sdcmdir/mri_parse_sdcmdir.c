@@ -17,12 +17,15 @@
 #include "version.h"
 
 
-// This should be defined in ctype.h but is not (at least on centos)
-int isblank(int c);
+// This should be defined in ctype.h but is not (at least on centos,
+// but it is defined on Apple)
+#ifndef __APPLE__
+extern int isblank(int c);
+#endif
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.11 2005/05/25 20:20:35 greve Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.12 2005/05/25 22:44:01 nicks Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -174,7 +177,7 @@ static int parse_commandline(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.11 2005/05/25 20:20:35 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.12 2005/05/25 22:44:01 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
