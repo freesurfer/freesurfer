@@ -16,9 +16,13 @@
 #include "fio.h"
 #include "version.h"
 
+
+// This should be defined in ctype.h but is not (at least on centos)
+int isblank(int c);
+
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.10 2004/11/02 18:03:30 greve Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.11 2005/05/25 20:20:35 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -170,7 +174,7 @@ static int parse_commandline(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.10 2004/11/02 18:03:30 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.11 2005/05/25 20:20:35 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -213,9 +217,9 @@ static int parse_commandline(int argc, char **argv)
       memcpy(SDCMStatusFile,pargv[0],strlen(pargv[0]));
       fptmp = fopen(SDCMStatusFile,"w");
       if(fptmp == NULL){
-  fprintf(stderr,"ERROR: could not open %s for writing\n",
-    SDCMStatusFile);
-  exit(1);
+	fprintf(stderr,"ERROR: could not open %s for writing\n",
+		SDCMStatusFile);
+	exit(1);
       }
       fprintf(fptmp,"0\n");
       fclose(fptmp);
@@ -287,7 +291,7 @@ static void print_help(void)
   printf(" 10. Number of Frames in the Series\n");
   printf(" 11. Repetition Time (sec)\n");
   printf(" 12. Echo Time (ms)\n");
-  printf(" 13. Protocol Name  - white space stripped \n");
+  printf(" 13. Protocol Name  - white space stripped (but see BUGS)\n");
 
   printf("\n");
   printf("Arguments:\n");
@@ -312,7 +316,13 @@ static void print_help(void)
   printf("  applies to mosaics.\n");
   printf("\n");
 
+  printf(
+	 "BUGS:\n"
+	 "Prior to 5/25/05, the protocol name was stripped of anything that\n"
+	 "was not a number or letter. After 5/25/05 it is only stripped of\n"
+	 "white space.\n");
 
+  printf("\n");
   printf("\n");
 
   exit(1);
@@ -371,7 +381,8 @@ static int strip_leading_slashes(char *s)
   when Siemens converts the protocol and pulse sequence names
   to DICOM, there's a lot of garbage that gets appended to the
   end. It looks like they forget to add a null terminator to
-  the string.
+  the string. Prior to 5/25/05, it would strip out anything
+  that was not a number or letter (eg, dashes and underscores).
 ---------------------------------------------------------------*/
 static char * strip_white_space(char *s)
 {
@@ -385,11 +396,16 @@ static char * strip_white_space(char *s)
   
   m = 0;
   for(n=0; n<l; n++){
-    /*if(s[n] != ' '){*/
-    if( isalnum(s[n]) && s[n] != ' ' && s[n] != '\t' ){
+    if(isascii(s[n]) && !isblank(s[n])){
       s2[m] = s[n];
       m++;
     }
   }
+
+  /* Here's the "old" way to strip (ie, pre 5/25/05):
+       if( isalnum(s[n]) && s[n] != ' ' && s[n] != '\t' ){
+     The problem here is that it strips out too much, eg,
+     dashes and underscores are stripped.
+  */
   return(s2);
 }
