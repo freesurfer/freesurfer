@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/05/26 18:06:44 $
-// Revision       : $Revision: 1.41 $
+// Revision Date  : $Date: 2005/05/26 21:06:54 $
+// Revision       : $Revision: 1.42 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -112,8 +112,8 @@ static int average_volumes_with_different_echo_times(MRI **mri_flash, MRI **mri_
 static int
 average_volumes_with_different_echo_times_and_set_Mreg(MRI **mri_flash, MRI **mri_all_flash, int nvolumes_total, MATRIX **M_reg_orig, MATRIX **M_reg);
 
-static MRI *estimate_T2star(MRI **mri_all_flash, int nvolumes, MRI *mri_PD, LTA *lta) ;
-static MRI *compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types, LTA *lta) ;
+static MRI *estimate_T2star(MRI **mri_all_flash, int nvolumes, MRI *mri_PD, MATRIX **Mreg, LTA *lta) ;
+static MRI *compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types, MATRIX **Mreg, LTA *lta) ;
 
 static int findUniqueTETRFA(MRI *mri_flash[], int numvolumes, float *ptr, float *pte, double *pfa);
 static int resetTRTEFA(MRI *mri, float tr, float te, double fa);
@@ -144,7 +144,7 @@ main(int argc, char *argv[])
   int b, segno;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.41 2005/05/26 18:06:44 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.42 2005/05/26 21:06:54 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -562,7 +562,7 @@ main(int argc, char *argv[])
       }
     }
   }
-  mri_T2star = estimate_T2star(mri_all_flash, nvolumes_total, mri_PD, Glta) ;
+  mri_T2star = estimate_T2star(mri_all_flash, nvolumes_total, mri_PD, M_reg, Glta) ;
   if (mri_T2star)
   {
     resetTRTEFA(mri_T2star, TR, TE, FA);
@@ -978,106 +978,106 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mr
     for (y = 0 ; y < height ; y++)
       for (x = 0 ; x < width ; x++)
       {
-				ss = 0;
-				for (j = 0 ; j < nvolumes ; j++)
-				{
-					if (x == Gx && y == Gy && z == Gz)
-						DiagBreak() ;
-					mri = mri_flash[j] ;
-					voxvec1->data[0]=x; voxvec1->data[1]=y; voxvec1->data[2]=z;
-					if (m_xform)
-					{
-						MatrixMultiply(m_xform, voxvec1, voxvec2) ;
-						MatrixCopy(voxvec2, voxvec1) ;
-					}
-
-					MatrixMultiply(vox2ras[j],voxvec1,rasvec1);
-					MatrixMultiply(M_reg[j],rasvec1,rasvec2);
-					MatrixMultiply(ras2vox[j],rasvec2,voxvec2);
-					xf=voxvec2->data[0]; yf=voxvec2->data[1]; zf=voxvec2->data[2];
-					if(InterpMethod==SAMPLE_SINC)
-						MRIsincSampleVolume(mri, xf, yf, zf, sinchalfwindow, &val) ;
-					else
-						MRIsampleVolumeType(mri, xf, yf, zf, &val, InterpMethod) ;
-					ImageValues[j] = val;
-					ss += val*val;
-				}
-				norm = sqrt(ss);
-				if (norm>0) 
-					for (j = 0 ; j < nvolumes ; j++) 
-						ImageValues[j] /= norm;
-   
-				min_indx = best_indx = 0;
-				max_indx = nvalues-1; 
-				best_indx = -1;
-				center_indx = -1;
-				best_se = 10000000;
-				nevals = 0;
-				for (stepindx=0; stepindx<nstep; stepindx++) 
-				{
-					for (indx=min_indx; indx<=max_indx; indx+=step[stepindx])
-						if (indx!=center_indx)
-						{
-							se = 0;
-							for (j = 0 ; j < nvolumes ; j++)
-							{
-								err = ImageValues[j]-SignalTableValues[indx][j];
-								se += err*err; 
-							}
-							if (se<best_se)
-							{
-								best_se = se;
-								best_indx = indx;
-							}
-							nevals++;
-						}
-					min_indx = MAX(best_indx-step[stepindx]/2,1);
-					max_indx = MIN(best_indx+step[stepindx]/2,nvalues-1);
-					center_indx = best_indx;
-				}
-
-				T1 = SignalTableT1[best_indx];
-				MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
-
-				PD = norm/SignalTableNorm[best_indx];
-				if ((short)PD < 0)
-					PD = (double)(0x7fff-1) ;
-				MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
-				if (mri_flash_synth)
-				{
-					for (j = 0 ; j < nvolumes ; j++)
-					{
-						mri = mri_flash_synth[j] ;
-						MRIsetVoxVal(mri, x, y, z, 0, PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j]);
-					}
-					sse = 0;
-					for (j = 0 ; j < nvolumes ; j++)
-					{
-						err = MRIgetVoxVal(mri_flash_synth[j], x, y, z, 0)-ImageValues[j]*norm;
-						sse += err*err; 
-					}
-				}
-				else
-				{
-					sse = 0;
-					for (j = 0 ; j < nvolumes ; j++)
-					{
-						float pred_val ;
-
-						pred_val = PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j] ;
-						err = pred_val-ImageValues[j]*norm;
-						sse += err*err; 
-					}
-				}
-
-				total_sse += sse ;
-				MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse));
-				if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
-					DiagBreak() ;
+	ss = 0;
+	for (j = 0 ; j < nvolumes ; j++)
+	{
+	  if (x == Gx && y == Gy && z == Gz)
+	    DiagBreak() ;
+	  mri = mri_flash[j] ;
+	  voxvec1->data[0]=x; voxvec1->data[1]=y; voxvec1->data[2]=z;
+	  if (m_xform)
+	  {
+	    MatrixMultiply(m_xform, voxvec1, voxvec2) ;
+	    MatrixCopy(voxvec2, voxvec1) ;
+	  }
+	  
+	  MatrixMultiply(vox2ras[j],voxvec1,rasvec1);
+	  MatrixMultiply(M_reg[j],rasvec1,rasvec2);
+	  MatrixMultiply(ras2vox[j],rasvec2,voxvec2);
+	  xf=voxvec2->data[0]; yf=voxvec2->data[1]; zf=voxvec2->data[2];
+	  if(InterpMethod==SAMPLE_SINC)
+	    MRIsincSampleVolume(mri, xf, yf, zf, sinchalfwindow, &val) ;
+	  else
+	    MRIsampleVolumeType(mri, xf, yf, zf, &val, InterpMethod) ;
+	  ImageValues[j] = val;
+	  ss += val*val;
+	}
+	norm = sqrt(ss);
+	if (norm>0) 
+	  for (j = 0 ; j < nvolumes ; j++) 
+	    ImageValues[j] /= norm;
+	
+	min_indx = best_indx = 0;
+	max_indx = nvalues-1; 
+	best_indx = -1;
+	center_indx = -1;
+	best_se = 10000000;
+	nevals = 0;
+	for (stepindx=0; stepindx<nstep; stepindx++) 
+	{
+	  for (indx=min_indx; indx<=max_indx; indx+=step[stepindx])
+	    if (indx!=center_indx)
+	    {
+	      se = 0;
+	      for (j = 0 ; j < nvolumes ; j++)
+	      {
+		err = ImageValues[j]-SignalTableValues[indx][j];
+		se += err*err; 
+	      }
+	      if (se<best_se)
+	      {
+		best_se = se;
+		best_indx = indx;
+	      }
+	      nevals++;
+	    }
+	  min_indx = MAX(best_indx-step[stepindx]/2,1);
+	  max_indx = MIN(best_indx+step[stepindx]/2,nvalues-1);
+	  center_indx = best_indx;
+	}
+	
+	T1 = SignalTableT1[best_indx];
+	MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
+	
+	PD = norm/SignalTableNorm[best_indx];
+	if ((short)PD < 0)
+	  PD = (double)(0x7fff-1) ;
+	MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
+	if (mri_flash_synth)
+	{
+	  for (j = 0 ; j < nvolumes ; j++)
+	  {
+	    mri = mri_flash_synth[j] ;
+	    MRIsetVoxVal(mri, x, y, z, 0, PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j]);
+	  }
+	  sse = 0;
+	  for (j = 0 ; j < nvolumes ; j++)
+	  {
+	    err = MRIgetVoxVal(mri_flash_synth[j], x, y, z, 0)-ImageValues[j]*norm;
+	    sse += err*err; 
+	  }
+	}
+	else
+	{
+	  sse = 0;
+	  for (j = 0 ; j < nvolumes ; j++)
+	  {
+	    float pred_val ;
+	    
+	    pred_val = PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j] ;
+	    err = pred_val-ImageValues[j]*norm;
+	    sse += err*err; 
+	  }
+	}
+	
+	total_sse += sse ;
+	MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse));
+	if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
+	  DiagBreak() ;
       }
-	if (m_xform)
-		MatrixFree(&m_xform) ;
-	MatrixFree(&voxvec1) ; MatrixFree(&voxvec2) ; MatrixFree(&rasvec1) ; MatrixFree(&rasvec2) ;
+  if (m_xform)
+    MatrixFree(&m_xform) ;
+  MatrixFree(&voxvec1) ; MatrixFree(&voxvec2) ; MatrixFree(&rasvec1) ; MatrixFree(&rasvec2) ;
   for (j = 0 ; j < nvolumes ; j++)
   {
     MatrixFree(&vox2ras[j]) ;
@@ -1117,98 +1117,98 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes
     for (y = 0 ; y < height ; y++)
       for (x = 0 ; x < width ; x++)
       {
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
-				ss = 0;
-				for (j = 0 ; j < nvolumes ; j++)
-				{
-					mri = mri_flash[j] ;
-					voxvec1->data[0]=x; voxvec1->data[1]=y; voxvec1->data[2]=z;
-					MatrixMultiply(vox2ras[j],voxvec1,rasvec1);
-					MatrixMultiply(M_reg[j],rasvec1,rasvec2);
-					MatrixMultiply(ras2vox[j],rasvec2,voxvec2);
-					xf=voxvec2->data[0]; yf=voxvec2->data[1]; zf=voxvec2->data[2];
-					if(InterpMethod==SAMPLE_SINC)
-						MRIsincSampleVolume(mri, xf, yf, zf, sinchalfwindow, &val) ;
-					else
-						MRIsampleVolumeType(mri, xf, yf, zf, &val, InterpMethod) ;
-					ImageValues[j] = val;
-					ss += val*val;
-				}
-				inorm = sqrt(ss);
-				if (inorm>0) 
-					for (j = 0 ; j < nvolumes ; j++) 
-						ImageValues[j] /= inorm;
-				
-				min_indx = best_indx = 0;
-				max_indx = nvalues-1; 
-				best_indx = -1;
-				center_indx = -1;
-				best_se = 10000000;
-				nevals = 0;
-				faf_scale = MRIgetVoxVal(mri_faf,  x, y, z, 0) ;  /*faf_scale = 1 ;*/ 
-				for (stepindx=0; stepindx<nstep; stepindx++) 
-				{
-					for (indx=min_indx; indx<=max_indx; indx+=step[stepindx])
-						if (indx!=center_indx)
-						{
-							se = 0;
-							
-							/* build signal table at  this T1 */
-							PD = 1;
-							T1 = SignalTableT1[indx] = T1_MIN+indx*(T1_MAX-T1_MIN)/(nvalues-1);  
-							ss = 0;
-							for (j = 0 ; j < nvolumes ; j++)
-							{
-								mri = mri_flash[j] ;
-								val = SignalTableValues[indx][j] = FLASHforwardModel(faf_scale*mri->flip_angle, mri->tr, PD, T1) ;
-								ss += val*val;
-							}
-							norm = SignalTableNorm[indx] = sqrt(ss);
-							if (norm>0) 
-								for (j = 0 ; j < nvolumes ; j++) 
-									SignalTableValues[indx][j] /= norm;
-							
-							for (j = 0 ; j < nvolumes ; j++)
-							{
-								err = ImageValues[j]-SignalTableValues[indx][j];
-								se += err*err; 
-							}
-							if (se<best_se)
-							{
-								best_se = se;
-								best_indx = indx;
-							}
-							nevals++;
-						}
-					min_indx = MAX(best_indx-step[stepindx]/2,1);
-					max_indx = MIN(best_indx+step[stepindx]/2,nvalues-1);
-					center_indx = best_indx;
-				}
-				
-				T1 = SignalTableT1[best_indx];
-				MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
-				
-				PD = (inorm/SignalTableNorm[best_indx])/faf_scale;
-				if ((mri_PD->type == MRI_SHORT) && ((short)PD < 0))
-					PD = (double)(0x7fff-1) ;
-				MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
-				for (j = 0 ; j < nvolumes ; j++)
-				{
-					mri = mri_flash_synth[j] ;
-					MRIsetVoxVal(mri, x, y, z, 0, FLASHforwardModel(mri->flip_angle, mri->tr, PD, T1)) ;
-				}
-				sse = 0;
-				for (j = 0 ; j < nvolumes ; j++)
-				{
-					mri = mri_flash_synth[j] ;
-					err = FLASHforwardModel(faf_scale*mri->flip_angle, mri->tr, PD, T1)-ImageValues[j]*inorm;
-					sse += err*err; 
-				}
-				total_sse += sse ;
-				MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse/(double)nvolumes));
-				if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
-					DiagBreak() ;
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	ss = 0;
+	for (j = 0 ; j < nvolumes ; j++)
+	{
+	  mri = mri_flash[j] ;
+	  voxvec1->data[0]=x; voxvec1->data[1]=y; voxvec1->data[2]=z;
+	  MatrixMultiply(vox2ras[j],voxvec1,rasvec1);
+	  MatrixMultiply(M_reg[j],rasvec1,rasvec2);
+	  MatrixMultiply(ras2vox[j],rasvec2,voxvec2);
+	  xf=voxvec2->data[0]; yf=voxvec2->data[1]; zf=voxvec2->data[2];
+	  if(InterpMethod==SAMPLE_SINC)
+	    MRIsincSampleVolume(mri, xf, yf, zf, sinchalfwindow, &val) ;
+	  else
+	    MRIsampleVolumeType(mri, xf, yf, zf, &val, InterpMethod) ;
+	  ImageValues[j] = val;
+	  ss += val*val;
+	}
+	inorm = sqrt(ss);
+	if (inorm>0) 
+	  for (j = 0 ; j < nvolumes ; j++) 
+	    ImageValues[j] /= inorm;
+	
+	min_indx = best_indx = 0;
+	max_indx = nvalues-1; 
+	best_indx = -1;
+	center_indx = -1;
+	best_se = 10000000;
+	nevals = 0;
+	faf_scale = MRIgetVoxVal(mri_faf,  x, y, z, 0) ;  /*faf_scale = 1 ;*/ 
+	for (stepindx=0; stepindx<nstep; stepindx++) 
+	{
+	  for (indx=min_indx; indx<=max_indx; indx+=step[stepindx])
+	    if (indx!=center_indx)
+	    {
+	      se = 0;
+	      
+	      /* build signal table at  this T1 */
+	      PD = 1;
+	      T1 = SignalTableT1[indx] = T1_MIN+indx*(T1_MAX-T1_MIN)/(nvalues-1);  
+	      ss = 0;
+	      for (j = 0 ; j < nvolumes ; j++)
+	      {
+		mri = mri_flash[j] ;
+		val = SignalTableValues[indx][j] = FLASHforwardModel(faf_scale*mri->flip_angle, mri->tr, PD, T1) ;
+		ss += val*val;
+	      }
+	      norm = SignalTableNorm[indx] = sqrt(ss);
+	      if (norm>0) 
+		for (j = 0 ; j < nvolumes ; j++) 
+		  SignalTableValues[indx][j] /= norm;
+	      
+	      for (j = 0 ; j < nvolumes ; j++)
+	      {
+		err = ImageValues[j]-SignalTableValues[indx][j];
+		se += err*err; 
+	      }
+	      if (se<best_se)
+	      {
+		best_se = se;
+		best_indx = indx;
+	      }
+	      nevals++;
+	    }
+	  min_indx = MAX(best_indx-step[stepindx]/2,1);
+	  max_indx = MIN(best_indx+step[stepindx]/2,nvalues-1);
+	  center_indx = best_indx;
+	}
+	
+	T1 = SignalTableT1[best_indx];
+	MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
+	
+	PD = (inorm/SignalTableNorm[best_indx])/faf_scale;
+	if ((mri_PD->type == MRI_SHORT) && ((short)PD < 0))
+	  PD = (double)(0x7fff-1) ;
+	MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
+	for (j = 0 ; j < nvolumes ; j++)
+	{
+	  mri = mri_flash_synth[j] ;
+	  MRIsetVoxVal(mri, x, y, z, 0, FLASHforwardModel(mri->flip_angle, mri->tr, PD, T1)) ;
+	}
+	sse = 0;
+	for (j = 0 ; j < nvolumes ; j++)
+	{
+	  mri = mri_flash_synth[j] ;
+	  err = FLASHforwardModel(faf_scale*mri->flip_angle, mri->tr, PD, T1)-ImageValues[j]*inorm;
+	  sse += err*err; 
+	}
+	total_sse += sse ;
+	MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse/(double)nvolumes));
+	if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
+	  DiagBreak() ;
       }
   }
   total_sse = sqrt(total_sse / (double)(width*height*depth*nvolumes)) ;
@@ -1267,23 +1267,23 @@ estimate_ms_params_in_label(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes
       PD = 1;
       for (i=0; i<nvalues; i++)
       {
-				T1 = SignalTableT1[i] = T1_MIN+i*(T1_MAX-T1_MIN)/(nvalues-1);  
-				ss = 0;
-				for (j = 0 ; j < nvolumes ; j++)
-				{
-					mri = mri_flash[j] ;
-					val = SignalTableValues[i][j] = FLASHforwardModel(faf_scale*mri->flip_angle, mri->tr, PD, T1) ;
-					ss += val*val;
-				}
-				norm = SignalTableNorm[i] = sqrt(ss);
-				if (norm>0) 
-					for (j = 0 ; j < nvolumes ; j++) 
-						SignalTableValues[i][j] /= norm;
+	T1 = SignalTableT1[i] = T1_MIN+i*(T1_MAX-T1_MIN)/(nvalues-1);  
+	ss = 0;
+	for (j = 0 ; j < nvolumes ; j++)
+	{
+	  mri = mri_flash[j] ;
+	  val = SignalTableValues[i][j] = FLASHforwardModel(faf_scale*mri->flip_angle, mri->tr, PD, T1) ;
+	  ss += val*val;
+	}
+	norm = SignalTableNorm[i] = sqrt(ss);
+	if (norm>0) 
+	  for (j = 0 ; j < nvolumes ; j++) 
+	    SignalTableValues[i][j] /= norm;
       }
     }
     else
       faf_scale  = 1 ;
-		
+    
     ss = 0;
     for (j = 0 ; j < nvolumes ; j++)
     {
@@ -2071,7 +2071,7 @@ average_volumes_with_different_echo_times_and_set_Mreg(MRI **mri_flash, MRI **mr
 }
 
 static MRI *
-estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD, LTA *lta)
+estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD, MATRIX **Mreg, LTA *lta)
 {
   int    i, j, nechoes, processed[MAX_IMAGES], nprocessed, x, y, z, different_te, width, depth, height ;
   MRI    *mri_T2star = NULL ;
@@ -2112,7 +2112,7 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD, LTA *lta)
   }
   printf("estimating T2* with %d different acquisitions, each with %d echoes...\n",
 				 nprocessed, nvolumes/nprocessed) ;
-  mri_T2star = compute_T2star_map(mri_flash, nvolumes, processed, lta) ;
+  mri_T2star = compute_T2star_map(mri_flash, nvolumes, processed, Mreg, lta) ;
 
   /* now update PD map to take out T2* component */
   if (correct_PD)
@@ -2122,60 +2122,74 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD, LTA *lta)
     {
       for (y = 0 ; y < height ; y++)
       {
-				for (z = 0 ; z < depth ; z++)
-				{
-					if (mri_PD)
-					{
-						PD = MRIgetVoxVal(mri_PD, x, y, z, 0);
-						if (PD < 100)
-							MRIsetVoxVal(mri_T2star, x, y, z, 0, 0) ;
-					}
-					if (x == Gx && y == Gy && z == Gz)
-						DiagBreak() ;
-					T2star = MRIgetVoxVal(mri_T2star, x, y, z, 0) ;
-					if (FZERO(T2star))
-						continue ;
-					for (i = 0, decay = 0.0 ; i < nvolumes ; i++)
-						decay += exp(-mri_flash[i]->te / T2star) ;
-					decay /= (float)nvolumes ;
-					if (mri_PD)
-					{
-						PD /= decay ;
-						MRIsetVoxVal(mri_PD, x, y, z, 0, PD) ;
-					}
-				}
+	for (z = 0 ; z < depth ; z++)
+	{
+	  if (mri_PD)
+	  {
+	    PD = MRIgetVoxVal(mri_PD, x, y, z, 0);
+	    if (PD < 100)
+	      MRIsetVoxVal(mri_T2star, x, y, z, 0, 0) ;
+	  }
+	  if (x == Gx && y == Gy && z == Gz)
+	    DiagBreak() ;
+	  T2star = MRIgetVoxVal(mri_T2star, x, y, z, 0) ;
+	  if (FZERO(T2star))
+	    continue ;
+	  for (i = 0, decay = 0.0 ; i < nvolumes ; i++)
+	    decay += exp(-mri_flash[i]->te / T2star) ;
+	  decay /= (float)nvolumes ;
+	  if (mri_PD)
+	  {
+	    PD /= decay ;
+	    MRIsetVoxVal(mri_PD, x, y, z, 0, PD) ;
+	  }
+	}
       }
     }
   }
-
+  
   return(mri_T2star) ;
 }
 
 static MRI *
-compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types, LTA *lta)
+compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types, MATRIX **Mreg, LTA *lta)
 {
   MATRIX *mX, *mXpinv = NULL, *m_xform ;
-  VECTOR *vY, *vParms = NULL, *v_src, *v_dst ;
+  VECTOR *vY, *vParms = NULL, *v_src, *v_dst, *rasvec1, *rasvec2;
+  
   int    x, y, z, e, width, height, depth, nscans, i ;
   MRI    *mri_T2star ;
   float  T2star, cond ;
   Real   val, xf, yf, zf ;
+  MATRIX   *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS];
 
-	if (lta)
-	{
-		m_xform = MatrixInverse(lta->xforms[0].m_L, NULL) ;
-		v_src = VectorAlloc(4, MATRIX_REAL) ;
-		v_dst = VectorAlloc(4, MATRIX_REAL) ;
-		v_src->rptr[4][1] = 1.0 ;
-		v_dst->rptr[4][1] = 1.0 ;
-	}
-	else
-		m_xform = NULL ;
+  if (lta)
+    {
+      m_xform = MatrixInverse(lta->xforms[0].m_L, NULL) ;
+    }
+  else
+    m_xform = NULL ;
 
+  v_src = VectorAlloc(4, MATRIX_REAL) ;
+  v_dst = VectorAlloc(4, MATRIX_REAL) ;
+  v_src->rptr[4][1] = 1.0 ;
+  v_dst->rptr[4][1] = 1.0 ;
+  
+  rasvec1 =  MatrixCopy(v_src, NULL);
+  rasvec2 =  MatrixCopy(v_src, NULL);
+
+  
   for (i = nscans = 0 ; i < nvolumes ; i++)
   {
     if (scan_types[i] > nscans)
       nscans = scan_types[i] ;
+
+    vox2ras[i] = MatrixCopy(mri_flash[i]->register_mat, NULL);
+    ras2vox[i] = MatrixInverse(vox2ras[i], NULL);
+    
+    //    printf("volume %d belongs to volume %d\n", i, scan_types[i]-1);
+    //    printf("registration matrix for it is:\n");
+    //    MatrixPrint(stdout, Mreg[scan_types[i]-1]);
   }
 
   width = mri_flash[0]->width ;
@@ -2195,9 +2209,9 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types, LTA *lta)
     for (i = 1 ; i <= nscans ; i++)  /* which multi-echo set does this volume belong to */
     {
       if (scan_types[e] == i)
-				*MATRIX_RELT(mX, e+1, i+1) = 1 ;
+	*MATRIX_RELT(mX, e+1, i+1) = 1 ;
       else
-				*MATRIX_RELT(mX, e+1, i+1) = 0 ;
+	*MATRIX_RELT(mX, e+1, i+1) = 0 ;
     }
   }
   mXpinv = MatrixPseudoInverse(mX, mXpinv) ;
@@ -2211,46 +2225,60 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types, LTA *lta)
     {
       for (z = 0 ; z < depth ; z++)
       {
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
-				for (e = 0 ; e < nvolumes ; e++)
-				{
-					if (m_xform)
-					{
-						V3_X(v_src) = x ; V3_Y(v_src) = y ; V3_Z(v_src) = z ;
-						MatrixMultiply(m_xform, v_src, v_dst) ;
-						xf = V3_X(v_dst) ; yf = V3_Y(v_dst) ; zf = V3_Z(v_dst) ; 
-						MRIsampleVolumeType(mri_flash[e], xf, yf, zf, &val, InterpMethod) ;
-					}
-					else
-						MRIsampleVolumeType(mri_flash[e], x, y, z, &val, SAMPLE_NEAREST) ;
-					VECTOR_ELT(vY, e+1) = log(val) ;
-				}
-				vParms = MatrixMultiply(mXpinv, vY, vParms) ;
-				if (*MATRIX_RELT(vParms, 1, 1) > 0)
-					T2star = 1 / *MATRIX_RELT(vParms, 1, 1) ;
-				else
-					T2star = 0 ;
-				
-				if (T2star > 10000 || T2star < -1000)
-					DiagBreak() ;
-				if (!finite(T2star))
-					T2star = 0 ;
-				if (T2star > max_T2star)
-					T2star = max_T2star ;
-				MRIsetVoxVal(mri_T2star, x, y, z, 0, T2star) ;
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	for (e = 0 ; e < nvolumes ; e++)
+	{
+	  V3_X(v_src) = x ; V3_Y(v_src) = y ; V3_Z(v_src) = z ;
+	  if (m_xform)
+	  {
+	    /* map from output voxel-space to voxel-space of synth (T1, PD) */ 
+	    MatrixMultiply(m_xform, v_src, v_dst) ;
+	    MatrixCopy(v_dst, v_src);
+	  }
+	  
+	  MatrixMultiply(vox2ras[i],v_src,rasvec1);
+	  MatrixMultiply(Mreg[scan_types[e]-1],rasvec1,rasvec2);
+	  MatrixMultiply(ras2vox[i],rasvec2,v_dst);
+
+	  xf = V3_X(v_dst) ; yf = V3_Y(v_dst) ; zf = V3_Z(v_dst) ; 
+	  
+	  if(InterpMethod==SAMPLE_SINC)
+	    MRIsincSampleVolume(mri_flash[e], xf, yf, zf, sinchalfwindow, &val) ;
+	  else
+	    MRIsampleVolumeType(mri_flash[e], xf, yf, zf, &val, InterpMethod) ;
+
+	  VECTOR_ELT(vY, e+1) = log(val) ;
+	}
+	vParms = MatrixMultiply(mXpinv, vY, vParms) ;
+	if (*MATRIX_RELT(vParms, 1, 1) > 0)
+	  T2star = 1 / *MATRIX_RELT(vParms, 1, 1) ;
+	else
+	  T2star = 0 ;
+	
+	if (T2star > 10000 || T2star < -1000)
+	  DiagBreak() ;
+	if (!finite(T2star))
+	  T2star = 0 ;
+	if (T2star > max_T2star)
+	  T2star = max_T2star ;
+	MRIsetVoxVal(mri_T2star, x, y, z, 0, T2star) ;
       }
     }
   }
 
   MatrixFree(&mX) ; VectorFree(&vY) ; MatrixFree(&mXpinv) ;
   VectorFree(&vParms) ;
-	if (m_xform)
-	{
-		MatrixFree(&m_xform) ;
-		VectorFree(&v_src) ;
-		VectorFree(&v_dst) ;
-	}
+  if (m_xform)
+    {
+      MatrixFree(&m_xform) ;
+      
+    }
+  VectorFree(&v_src) ;
+  VectorFree(&v_dst) ;
+  VectorFree(&rasvec1) ;
+  VectorFree(&rasvec2) ;
+
   return(mri_T2star) ;
 }
 
