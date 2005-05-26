@@ -1,6 +1,6 @@
 #!/bin/csh -f
 # 
-set VERSION = '$Id: fslregister,v 1.1 2005/05/21 00:47:24 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.2 2005/05/26 16:32:21 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -133,6 +133,7 @@ if(-e $regfile) mv $regfile $regfile.$DateString
 if($#fslmat == 0) set fslmat = $regfile.fsl.mat
 
 # Compute the intial matrix based on the geometry in the header
+set fslmat0 = ();
 if($initxfm) then
   set fslmat0 = $fslmat"0";
   set reg0 = $tmpdir/reg0.$$.dat
