@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.68 2005/05/05 21:32:42 kteich Exp $
+# $Id: tksurfer.tcl,v 1.69 2005/05/26 21:24:03 kteich Exp $
 
 package require BLT;
 
@@ -152,6 +152,7 @@ set gaLinkedVars(invphaseflag) 0
 set gaLinkedVars(revphaseflag) 0
 set gaLinkedVars(complexvalflag) 0
 set gaLinkedVars(ignorezeroesinhistogramflag) 1
+set gaLinkedVars(labels_before_overlay_flag) 0
 set gaLinkedVars(currentvaluefield) 0
 set gaLinkedVars(falpha) 1.0
 set gaLinkedVars(fthresh) 0
@@ -199,7 +200,7 @@ array set gaLinkedVarGroups {
     overlay { falpha colscale truncphaseflag invphaseflag revphaseflag 
 	complexvalflag foffset fthresh fmid foffset fslope fmin fmax 
 	fnumtimepoints fnumconditions ftimepoint fcondition 
-	ignorezeroesinhistogramflag}
+	ignorezeroesinhistogramflag labels_before_overlay_flag}
     curvature { cslope cmid cmin cmax forcegraycurvatureflag }
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
@@ -210,7 +211,7 @@ array set gaLinkedVarGroups {
     all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints }
-    label { colortablename drawlabelflag labelstyle }
+    label { colortablename drawlabelflag labelstyle labels_before_overlay_flag }
 }
 
 proc SendLinkedVarGroup { iGroup } {
@@ -2546,6 +2547,12 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { SendLinkedVarGroup label
 		UpdateAndRedraw }
 	    gaLinkedVars(drawlabelflag) 
+	    mg_LabelLoaded }
+	{ check
+	    "Labels under Overlay"
+	    { SendLinkedVarGroup label
+		UpdateAndRedraw }
+	    gaLinkedVars(labels_before_overlay_flag)
 	    mg_LabelLoaded }
 	{ check 
 	    "Scale Bar"
