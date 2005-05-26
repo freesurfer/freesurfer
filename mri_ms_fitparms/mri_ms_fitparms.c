@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/05/03 13:55:05 $
-// Revision       : $Revision: 1.40 $
+// Revision Date  : $Date: 2005/05/26 18:06:44 $
+// Revision       : $Revision: 1.41 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -102,9 +102,15 @@ static void estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_traget, MATRIX *M
 
 static float        tr = 0, te = 0, fa = 0 ;
 
+static int use_outside_reg = 0;
+static char *outside_xfm_fname = NULL; //asume all echos need same xform
+static int invert_outside_xfm = 0;
+
 static int write_iterations=0;
 
 static int average_volumes_with_different_echo_times(MRI **mri_flash, MRI **mri_all_flash, int nvolumes_total) ;
+static int
+average_volumes_with_different_echo_times_and_set_Mreg(MRI **mri_flash, MRI **mri_all_flash, int nvolumes_total, MATRIX **M_reg_orig, MATRIX **M_reg);
 
 static MRI *estimate_T2star(MRI **mri_all_flash, int nvolumes, MRI *mri_PD, LTA *lta) ;
 static MRI *compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types, LTA *lta) ;
@@ -123,6 +129,7 @@ main(int argc, char *argv[])
   int    msec, minutes, seconds, nvolumes, nvolumes_total ;
   struct timeb start ;
   MATRIX *M_reg[MAX_IMAGES];
+  MATRIX *M_reg_orig[MAX_IMAGES];
   double rms ;
   float TR, TE;
   double FA;
@@ -137,7 +144,7 @@ main(int argc, char *argv[])
   int b, segno;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.40 2005/05/03 13:55:05 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.41 2005/05/26 18:06:44 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -162,6 +169,11 @@ main(int argc, char *argv[])
 
   out_dir = argv[argc-1] ;
 
+  for (i = 0 ; i < MAX_IMAGES ; i++){
+    M_reg[i] = NULL;
+    M_reg_orig[i] = NULL;
+  }
+
   //////////////////////////////////////////////////////////////////////////////////
   nvolumes = 0 ;
   for (i = 1 ; i < argc-1 ; i++)
@@ -174,6 +186,15 @@ main(int argc, char *argv[])
         tr = atof(argv[i+1]) ;
       else if (!stricmp(argv[i]+1, "fa"))
         fa = RADIANS(atof(argv[i+1])) ;
+      else if(!stricmp(argv[i]+1, "at")){
+	use_outside_reg = 1;
+        outside_xfm_fname = argv[i+1];
+      }
+      else if(!stricmp(argv[i]+1, "ait")){
+	use_outside_reg = 1;
+        outside_xfm_fname = argv[i+1]; 
+	invert_outside_xfm = 1;
+      }
       else
         ErrorExit(ERROR_BADPARM, "%s: unsupported MR parameter %s",
                   Progname, argv[i]+1) ;
@@ -196,17 +217,74 @@ main(int argc, char *argv[])
     if (tr > 0)
     {
       mri_flash[nvolumes]->tr = tr ;
+      //      tr = 0; //reset! without it, the tr will be applied to all subsequent volumes! Well, maybe this is desired, so doesn't need to specify te,tr,fa for each individual echo
     }
     if (te > 0)
     {
       mri_flash[nvolumes]->te = te ;
+      //  te = 0;
     }
     if (fa > 0)
     {
       mri_flash[nvolumes]->flip_angle = fa ;
+      // fa = 0;
     }
     printf("TE = %2.2f, TR = %2.2f, flip angle = %2.2f\n", mri_flash[nvolumes]->te, 
            mri_flash[nvolumes]->tr, DEGREES(mri_flash[nvolumes]->flip_angle)) ;
+
+    if(outside_xfm_fname != NULL){
+      //read in xform and store it in M_reg_orig[i]
+      
+      int transform_type =  TransformFileNameType(outside_xfm_fname);
+      LTA *lta = 0;
+      
+      if(transform_type == MNI_TRANSFORM_TYPE || 
+	 transform_type == TRANSFORM_ARRAY_TYPE ||
+	 transform_type == REGISTER_DAT ||
+	 transform_type == FSLREG_TYPE
+	 ){
+	printf("Reading transform ...\n");
+	lta = LTAreadEx(outside_xfm_fname) ;
+	if (!lta)
+	  ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
+		    Progname, outside_xfm_fname) ;
+	
+	if (transform_type == FSLREG_TYPE){
+	  //currently unsupported, otherwise the usage would be a mess 
+	  // if(mri == 0 || mri_dst == 0){
+	  //  fprintf(stderr, "ERROR: fslmat does not have information on the src and dst volumes\n");
+	  //  fprintf(stderr, "ERROR: you must give options '-src' and '-dst' to specify the src and dst volume infos\n");
+	  // }
+	  // LTAmodifySrcDstGeom(lta, mri, mri_dst); // add src and dst information
+	  // LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+	}
+
+      
+	if (lta->xforms[0].src.valid == 0 || lta->xforms[0].dst.valid == 0){
+	  ErrorExit(ERROR_BADPARM, "transform doesn't have valid source or destination volume info!");
+	}
+      }
+      else{
+	ErrorExit(ERROR_BADPARM, "transform is not of MNI, nor Register.dat, nor FSLMAT type");
+      }
+     
+      //change LTA to LINEAR_RAS_TO_RAS type
+      if(lta->type != LINEAR_RAS_TO_RAS){
+	LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      }
+      
+      if(invert_outside_xfm == 0){
+	//note need a registration matrix from parameter map to input image
+	//thus need to apply inverse when using -at
+	M_reg_orig[nvolumes] = MatrixInverse(lta->xforms[0].m_L, NULL) ;	
+      }else{
+	M_reg_orig[nvolumes] = MatrixCopy(lta->xforms[0].m_L, NULL);
+	invert_outside_xfm = 0; //reset
+      }
+      if(lta) LTAfree(&lta);
+      outside_xfm_fname = NULL; //clear it
+    }
+
     if (conform)
     {
       MRI *mri_tmp ;
@@ -227,7 +305,13 @@ main(int argc, char *argv[])
   ///////////////////////////////////////////////////////////////////////////
   nvolumes_total = nvolumes ;   /* all volumes read in */
 
-  nvolumes = average_volumes_with_different_echo_times(mri_flash, mri_all_flash, nvolumes_total) ;
+  if(use_outside_reg == 0){  
+    nvolumes = average_volumes_with_different_echo_times(mri_flash, mri_all_flash, nvolumes_total) ;
+  }else{
+    nvolumes = average_volumes_with_different_echo_times_and_set_Mreg(mri_flash, mri_all_flash, nvolumes_total,M_reg_orig,M_reg) ;
+    niter = 0;
+  }
+
   if (nvolumes <= 2)
     niter = 0 ;  /* don't bother motion-correcting when we only have 2 volumes */
   if (synth_flag > 0)
@@ -287,9 +371,11 @@ main(int argc, char *argv[])
     mri_T1 = MRIclone(mri_flash[0], NULL) ;
     mri_PD = MRIclone(mri_flash[0], NULL) ;
     mri_sse = MRIclone(mri_flash[0], NULL) ;
-    
-    for (j=0;j<nvolumes;j++) 
-      M_reg[j] = MatrixIdentity(4,(MATRIX *)NULL);
+
+    if(use_outside_reg == 0){
+      for (j=0;j<nvolumes;j++) 
+	M_reg[j] = MatrixIdentity(4,(MATRIX *)NULL);
+    }
 
     if (niter == 0)
     {
@@ -494,6 +580,12 @@ main(int argc, char *argv[])
       useVolGeomToMRI(&Glta->xforms[0].dst, mri_T2star) ;
     MRIwrite(mri_T2star, fname) ;
   }
+
+  for (i = 0 ; i < MAX_IMAGES ; i++){
+    if(M_reg[i] != NULL) MatrixFree(&M_reg[i]);
+    if(M_reg_orig[i] != NULL) MatrixFree(&M_reg_orig[i]);
+  }
+
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -654,6 +746,17 @@ get_option(int argc, char *argv[])
     fa = RADIANS(atof(argv[2])) ;
     nargs = 1;
   }
+  else if(!stricmp(option, "at")){
+    use_outside_reg = 1;
+    outside_xfm_fname = argv[2];
+    nargs = 1;
+  }
+  else if(!stricmp(option, "ait")){
+    use_outside_reg = 1;
+    outside_xfm_fname = argv[2]; 
+    invert_outside_xfm = 1;
+    nargs = 1;
+  }
   else if (!stricmp(option, "use_brain_mask"))
   {
     use_brain_mask = 1 ;
@@ -798,6 +901,8 @@ usage_exit(int code)
   printf("Note that TR, TE and the flip angle are read directly from the image header.\n"
 	 "If this information is not available, it can be specified on the command line using\n"
 	 "-tr <TR in msec> -te <TE in msec> -fa <flip angle in degrees> before each volume.\n");
+  printf("use -at <xform file name> or -ait <xform file name> to sepecify transformation for each\n"
+	 "individual volume. Note only one for each flip-angle is enough.\n");
   exit(code) ;
 }
 
@@ -1894,6 +1999,66 @@ average_volumes_with_different_echo_times(MRI **mri_flash, MRI **mri_all_flash, 
       if (PARAMETERS_MATCH(mri_all_flash[j], mri_avg) == 0)
 				continue ;
       MRIaverage(mri_all_flash[j], navgs, mri_avg) ;
+      averaged[j] = 1 ;
+      navgs++ ;
+    }
+    mri_flash[nvolumes] = mri_avg ;
+    nvolumes++ ;
+  }
+
+
+  return(nvolumes) ;
+}
+
+static int
+average_volumes_with_different_echo_times_and_set_Mreg(MRI **mri_flash, MRI **mri_all_flash, int nvolumes_total, MATRIX **M_reg_orig, MATRIX **M_reg)
+{
+  int i, j, nvolumes, averaged[MAX_IMAGES], navgs, all_tes_equal ;
+  MRI    *mri_avg ;
+
+  memset(averaged, 0, sizeof(averaged)) ;
+
+  for (all_tes_equal = 1, i = 1 ; i < nvolumes_total ; i++)
+	{
+		if (mri_all_flash[i]->te != mri_all_flash[0]->te)
+		{
+			all_tes_equal = 0 ;
+			break ;
+		}
+	}
+	if (all_tes_equal)
+	{
+		for (i = 0 ; i < nvolumes_total ; i++)
+			mri_flash[i] = mri_all_flash[i] ;
+		return(nvolumes_total) ;
+	}
+
+  for (nvolumes = i = 0 ; i < nvolumes_total ; i++)
+  {
+    if (averaged[i])
+      continue ;
+    averaged[i] = 1 ;
+    mri_avg = MRIcopy(mri_all_flash[i], NULL) ;
+    if(M_reg_orig[i] == NULL)
+      M_reg[nvolumes] = MatrixIdentity(4, (MATRIX *)NULL);
+    else{
+      M_reg[nvolumes] = MatrixCopy(M_reg_orig[i], (MATRIX *)NULL);
+    }
+
+    mri_avg->register_mat = MRIgetVoxelToRasXform(mri_all_flash[nvolumes]);
+    navgs = 1 ;
+    for (j = i+1 ; j < nvolumes_total ; j++)
+    {
+      if (averaged[j])
+				continue ;
+      if (PARAMETERS_MATCH(mri_all_flash[j], mri_avg) == 0)
+				continue ;
+      MRIaverage(mri_all_flash[j], navgs, mri_avg) ;
+    
+      //the following shouldn't happen, user should assign xform to the first echo
+      if(M_reg_orig[j] != NULL)
+	M_reg[nvolumes] = MatrixCopy(M_reg_orig[j], M_reg[nvolumes]);
+    
       averaged[j] = 1 ;
       navgs++ ;
     }
