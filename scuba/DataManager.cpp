@@ -45,18 +45,23 @@ DataLoader<T>::ReleaseData( T* ioData ) {
 
     if( data == *ioData ) {
 
-      if( 1 == mRefs[data] ) {
+      mRefs[data]--;
+
+      if( 0 == mRefs[data] ) {
 	mlData.remove( data );
 	this->FreeData( &data );
       }
 
-      mRefs[data]--;
       *ioData = NULL;
       return;
     }
   }
 
-  throw logic_error("Couldn't find data");
+  // If we got here, we didn't provide this data to the client;
+  // probably, they didn't load anything, but generated it
+  // themselves. But don't throw an error because that's OK.
+
+  //  throw logic_error("Couldn't find data");
 }
 
 
