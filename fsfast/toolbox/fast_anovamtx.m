@@ -8,10 +8,12 @@ function M = fast_anovamtx(nlevels,factorlist)
 % across. To test the main effect of a factor, list
 % only that factor in the factorlist.
 %
+% NOTE: I don't think the main effect is working properly.
+%
 % The order of estimates must be last factor fastest.
 % See fast_glm2anova_mtx.
 %
-% $Id: fast_anovamtx.m,v 1.1 2003/05/03 01:08:08 greve Exp $
+% $Id: fast_anovamtx.m,v 1.2 2005/05/26 17:24:21 greve Exp $
 
 M = [];
 
