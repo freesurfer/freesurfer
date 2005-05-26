@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.113 2005/05/23 21:26:19 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.114 2005/05/26 19:26:54 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -585,19 +585,19 @@ proc MakeToolBar { ifwTop } {
 	-command {ToolBarWrapper} \
 	-buttons {
 	    { -type image -name navigation -image icon_navigate 
-		-balloon "Navigation (n)" } 
+		-balloon "Navigation (n)\nLeft: Pan\nMiddle: Slice\nRight: Zoom\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	    { -type image -name plane -image icon_rotate_plane 
-		-balloon "Plane (p)" } 
+		-balloon "Plane (p)\nLeft: Move center\nMiddle: Rotate plane\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	    { -type image -name marker -image icon_marker_crosshair 
-		-balloon "Marker (m)" } 
+		-balloon "Marker (m)\nLeft: Set cursor\nMiddle: Set marker\nRight: Remove marker\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	    { -type image -name voxelEditing -image icon_edit_volume 
-		-balloon "Voxel Editing (e)" } 
+		-balloon "Voxel Editing (e)\nMiddle: Brush with new value\nRight: Erase\nShift-middle: Fill with new value\nShift-right: Fill erase\nShift-ctrl-middle: Get new color\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	    { -type image -name roiEditing -image icon_edit_label 
-		-balloon "ROI Editing (r)" } 
+		-balloon "ROI Editing (r)\nMiddle: Select\nRight: Unselect\nShift-middle: Select file\nShift-right: Unselect fill\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	    { -type image -name straightPath -image icon_line_tool 
-		-balloon "Straight Path (s)" } 
+		-balloon "Straight Path (s)\n:Left: Start a new path or add a new vertex\nMiddle: Stop making path\nRight: Stop making path and close it\nShift-middle: Select voxels on path\nShift-right: Unselect voxels on path\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	    { -type image -name edgePath -image icon_draw_line 
-		-balloon "Edge Path (g)" } 
+		-balloon "Edge Path (g)\n:Left: Start a new path or add a new vertex\nMiddle: Stop making path\nRight: Stop making path and close it\nShift-middle: Select voxels on path\nShift-right: Unselect voxels on path\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	}
 
     set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation
@@ -5145,7 +5145,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.113 2005/05/23 21:26:19 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.114 2005/05/26 19:26:54 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
