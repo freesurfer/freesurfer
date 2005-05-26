@@ -188,17 +188,14 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 				    0, 0, 0, 1 );
     vol.SetDataToWorldTransform( dataTransform.GetID() );
 
+    // FindRASPointsInSquare
     {
-      Point3<float> sqIdx[4], sqRAS[4], cIdx, cRAS;
-      Volume3<bool> testVol( 5, 5, 5, false );
-      cIdx.Set( 2.5, 2.5, 1 );
-      sqIdx[0].Set( 1, 1, 1 );   sqIdx[1].Set( 4, 1, 1 );
-      sqIdx[2].Set( 4, 4, 1 );   sqIdx[3].Set( 1, 4, 1 );
-      vol.MRIIndexToRAS( sqIdx[0].xyz(), sqRAS[0].xyz() );
-      vol.MRIIndexToRAS( sqIdx[1].xyz(), sqRAS[1].xyz() );
-      vol.MRIIndexToRAS( sqIdx[2].xyz(), sqRAS[2].xyz() );
-      vol.MRIIndexToRAS( sqIdx[3].xyz(), sqRAS[3].xyz() );
-      vol.MRIIndexToRAS( cIdx.xyz(), cRAS.xyz() );
+      Point3<float> sqRAS[4], cRAS;
+      sqRAS[0].Set( 0, -3, 71 );
+      sqRAS[1].Set( 0, 1, 71 );
+      sqRAS[2].Set( 0, 1, 67 );
+      sqRAS[3].Set( 0, -3, 67 );
+      cRAS.Set( 0, -1, 69 );
       list<Point3<float> > points;
       vol.FindRASPointsInSquare( cRAS.xyz(),
 				 sqRAS[0].xyz(), sqRAS[1].xyz(), 
@@ -206,27 +203,62 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 				 0, points );
       list<Point3<float> >::iterator tPoint;
       for( tPoint = points.begin(); tPoint != points.end(); ++tPoint ) {
-	Point3<float> p = *tPoint;
-	testVol.Set( (int)p[0], (int)p[1], (int)p[2], true );
+	Point3<float> pRAS = *tPoint;
+
+	stringstream ssMsg;
+	ssMsg << "Failed: " << pRAS << " outside of square";
+	
+	Assert( ( pRAS[0] != 0 || 
+		  pRAS[1] < -3 || pRAS[1] > 1 ||
+		  pRAS[2] < 67 || pRAS[2] > 71 ),
+		ssMsg.str() );
       }
-      for( int nZ = 0; nZ < 5; nZ++ ) {
-	for( int nY = 0; nY < 5; nY++ ) {
-	  for( int nX = 0; nX < 5; nX++ ) {
-	    bool filled = testVol.Get( nX, nY, nZ );
-	    if( nX >= 1 && nX <= 4 &&
-		nY >= 1 && nY <= 4 &&
-		nZ == 1 ) {
-	      stringstream ssMsg;
-	      ssMsg << "Failed: " << Point3<int>(nX,nY,nZ) << "was not filled";
-	      Assert( filled == true, ssMsg.str() );
-	    } else {
-	      stringstream ssMsg;
-	      ssMsg << "Failed: " << Point3<int>(nX,nY,nZ) << "was filled";
-	    Assert( filled == false, ssMsg.str() );
-	    }
-	  }
+    }
+
+
+    // VoxelIntersectsSegment
+    {
+      Point3<int> idx;
+      Point3<float> segIdxA, segIdxB;
+      Point3<float> intIdx;
+      
+      idx.Set( 5, 5, 5 );
+
+      float aSegments[6][3] = { {3, 5.5, 5.5}, {6, 5.5, 5.5},
+				{5.5, 3, 5.5}, {5.5, 6, 5.5},
+				{5.5, 5.5, 3}, {5.5, 5.5, 6} };
+      for( int nSegment = 0; nSegment < 6; nSegment += 2 ) {
+	
+	segIdxA.Set( aSegments[nSegment] );
+	segIdxB.Set( aSegments[nSegment+1] );
+	
+	VectorOps::IntersectionResult rInt =
+	  vol.VoxelIntersectsSegment( idx, segIdxA, segIdxB, intIdx );
+	
+	if( VectorOps::intersect != rInt ) {
+	  cerr << "Failed VoxelIntersectsSegment test: idx " << idx 
+	       << ", seg " << segIdxA << ", " << segIdxB << endl
+	       << "\tDidn't intersect" << endl;
+	  throw runtime_error("failed");
 	}
       }
+
+      segIdxA.Set( 0, 5.5, 5.5 );
+      segIdxB.Set( 4, 5.5, 5.5 );
+      VectorOps::IntersectionResult rInt = 
+	vol.VoxelIntersectsSegment( idx, segIdxA, segIdxB, intIdx );
+      
+      if( VectorOps::dontIntersect != rInt ) {
+	cerr << "Failed VoxelIntersectsSegment test: idx " << idx 
+	     << ", seg " << segIdxA << ", " << segIdxB << endl
+	     << "\tIntersected" << endl;
+	throw runtime_error("failed");
+      }
+    }
+
+    // FindRASPointsOnSegment
+    {
+
     }
 
 
@@ -244,7 +276,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	    "Setting file name via tcl didn't work" );
 
   }
-  catch( logic_error& e ) {
+  catch( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
     exit( 1 );
   }

@@ -111,6 +111,10 @@ class ScubaLayer2DMRI : public Layer {
 			      ScubaWindowToRASTranslator& iTranslator,
 			      float iStraightBias, float iEdgeBias );
 
+
+  // Select or deselect voxels along a path.
+  void SelectVoxelsOnPath ( Path<float>& iPath, bool ibSelect );
+
   // Finds the closest path in a plane.
   Path<float>* FindClosestPathInPlane ( float iRAS[3],
 					ViewState& iViewState );

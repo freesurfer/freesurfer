@@ -143,7 +143,7 @@ VectorOps::SegmentIntersectsPlane ( Point3<float>& p1, Point3<float>& p2,
   float sI = N / D;
   if (sI < 0 || sI > 1)
     return dontIntersect;               // no intersection
-  
+
   oIntersection = p1 + sI * u;    // compute segment intersect point
 
   return intersect;

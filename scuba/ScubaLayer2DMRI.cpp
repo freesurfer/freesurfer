@@ -1412,10 +1412,10 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
       Point3<float> ras( iRAS );
 	  
-      /* Button down, no current path. If button 1, create a new path
-	 and set the first vertex at that point. If 2 or 3, find a
-	 path near the click and make it the current path. Select the
-	 path we made or found. */
+      // Button down, no current path. If button 1, create a new path
+      // and set the first vertex at that point. If 2 or 3, find a
+      // path near the click and make it the current path. Select the
+      // path we made or found.
       if( NULL == mCurrentPath ) {
 
 	switch( iInput.Button() ) {
@@ -1435,18 +1435,41 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  break;
 	case 2:
 	case 3:
-	  mCurrentPath = FindClosestPathInPlane( iRAS, iViewState );
-	  if( mCurrentPath ) {
-	    mCurrentPath->SetSelected( true );
-	    mLastPathMoveRAS.Set( iRAS );
+	  if( !iInput.IsShiftKeyDown() ) {
+	    
+	    mCurrentPath = FindClosestPathInPlane( iRAS, iViewState );
+	    if( mCurrentPath ) {
+	      mCurrentPath->SetSelected( true );
+	      mLastPathMoveRAS.Set( iRAS );
+	    }
+
+	    // If shift is down, we're going to just select this path
+	    // in the ROI and then clear the current path. If button
+	    // 2, select, if button 3, unselect.
+	  } else {
+
+	    Path<float>* path = FindClosestPathInPlane( iRAS, iViewState );
+
+	    if( path ) {
+	      
+	      bool bSelect;
+	      if( iInput.Button() == 2 )
+		bSelect = true;
+	      else
+		bSelect = false;
+
+	      SelectVoxelsOnPath( *path, bSelect );
+	      RequestRedisplay();
+	    }
 	  }
-	  break;
+	  
+ 	  break;
 	}
 
-	/* Button down, current path. If 1, add a new vertex at this
-	   click. If 2, end the path at the click. If button 3,
-	   stretch the path back to the first point and end it
-	   there. In these cases, unselect the path. */
+	// Button down, current path. If 1, add a new vertex at this
+	// click. If 2, end the path at the click. If button 3,
+	// stretch the path back to the first point and end it
+	// there. In these cases, unselect the path.
       } else {
 
 	switch( iInput.Button() ) {
@@ -1475,38 +1498,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 			       mFirstPathRAS.xyz(), iViewState, iTranslator,
 			       iTool.GetEdgePathStraightBias(),
 			       iTool.GetEdgePathEdgeBias() );
-	  }
-
-	  // TEST CODE: If Shift is down, fill this path.
-	  if( iInput.IsShiftKeyDown() ) {
-	    Point3<float> seed;
-	    float offsets[6][3];
-	    bzero( offsets, sizeof(float) * 6 * 3 );
-	    offsets[0][0] = GetPreferredBrushRadiusIncrement();
-	    offsets[1][1] = GetPreferredBrushRadiusIncrement();
-	    offsets[2][2] = GetPreferredBrushRadiusIncrement();
-	    offsets[3][0] = -GetPreferredBrushRadiusIncrement();
-	    offsets[4][1] = -GetPreferredBrushRadiusIncrement();
-	    offsets[5][2] = -GetPreferredBrushRadiusIncrement();
-	    for( int nOffset = 0; nOffset < 6; nOffset++ ) {
-	      try {
-		seed.Set( ras[0] + offsets[nOffset][0], 
-			  ras[1] + offsets[nOffset][1], 
-			  ras[2] + offsets[nOffset][2] );
-		if( mCurrentPath->PointInPath( seed ) ) {
-		  cerr << "filling at " << seed << endl;
-		  VolumeCollectionFlooder::Params params;
-		  SetFloodParams( iTool, iViewState, params );
-		  params.mMaxDistance = 10;
-		  params.mb3D = false;
-		  params.mbStopAtPaths = true;
-		  ScubaLayer2DMRIFloodVoxelEdit flooder( iTool.GetNewValue() );
-		  flooder.Flood( *mVolume, seed.xyz(), params );
-		  break;
-		}
-	      }
-	      catch(...) {}
-	    }
 	  }
 
 	  mCurrentPath->SetSelected( false );
@@ -1875,6 +1866,54 @@ ScubaLayer2DMRI::StretchPathAsEdge ( Path<float>& iPath,
     iPath.AddVertex( currentRAS );
   }
 }
+
+void
+ScubaLayer2DMRI::SelectVoxelsOnPath( Path<float>& iPath, bool ibSelect ) {
+  
+  UndoManager& undoList = UndoManager::GetManager();
+  if( ibSelect )
+    undoList.BeginAction( "Select Path" );
+  else
+    undoList.BeginAction( "Unselect Path" );
+
+  int cVertices = iPath.GetNumVertices();
+  for( int nCurVertex = 1; nCurVertex < cVertices; nCurVertex++ ) {
+    
+    int nBackVertex = nCurVertex - 1;
+    
+    Point3<float>& curVertex  = 
+      iPath.GetVertexAtIndex( nCurVertex );
+    Point3<float>& backVertex =
+      iPath.GetVertexAtIndex( nBackVertex );
+    
+    list<Point3<float> > rasPoints;
+    mVolume->FindRASPointsOnSegment( backVertex.xyz(), 
+				     curVertex.xyz(),
+						 rasPoints );
+    
+    list<Point3<float> >::iterator tRASPoint;
+    for( tRASPoint = rasPoints.begin();
+	 tRASPoint != rasPoints.end(); ++tRASPoint ) {
+      Point3<float> rasPoint = *tRASPoint;
+      VolumeLocation& loc =
+	(VolumeLocation&) mVolume->MakeLocationFromRAS( rasPoint.xyz() );
+
+      if( ibSelect ) 
+	mVolume->Select( loc );
+      else
+	mVolume->Unselect( loc );
+
+      UndoAction* action = 
+	new UndoSelectionAction( mVolume, ibSelect, rasPoint.xyz() );
+      undoList.AddAction( action );
+
+      delete &loc;
+    }
+  }	    
+
+  undoList.EndAction();
+}
+
 
 
 Path<float>*

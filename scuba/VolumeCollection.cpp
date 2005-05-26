@@ -1763,6 +1763,11 @@ VolumeCollection::VoxelIntersectsSegment( Point3<int>& iMRIIndex,
 					  Point3<float>& iSegIdxA, 
 					  Point3<float>& iSegIdxB, 
 					  Point3<float>& oIntersectionIdx ) {
+
+#if PRINTOUT
+  cerr << "VoxelIntersectsSegment idx " << iMRIIndex
+       << " seg " << iSegIdxA << ", " << iSegIdxB << endl;
+#endif
   
   // Create float idx versions of our corners.
   Point3<float> voxelIdx[8];
@@ -1789,11 +1794,16 @@ VolumeCollection::VoxelIntersectsSegment( Point3<int>& iMRIIndex,
   }
 
   Point3<float> planeNIdx[6];
-  planeNIdx[0].Set( 1, 0, 0 ); planeNIdx[3].Set( 1, 0, 0 );
-  planeNIdx[0].Set( 0, 1, 0 ); planeNIdx[3].Set( 0, 1, 0 );
   planeNIdx[0].Set( 0, 0, 1 ); planeNIdx[3].Set( 0, 0, 1 );
+  planeNIdx[1].Set( 1, 0, 0 ); planeNIdx[4].Set( 1, 0, 0 );
+  planeNIdx[2].Set( 0, 1, 0 ); planeNIdx[5].Set( 0, 1, 0 );
 
   for( int nFace = 0; nFace < 6; nFace++ ) {
+
+#if PRINTOUT
+    cerr << "\tTesting face p " << planeIdx[nFace][0] 
+	 << " N " << planeNIdx[nFace] << "... ";
+#endif
 
     Point3<float> intersectionIdx;
     VectorOps::IntersectionResult rInt =
@@ -1803,6 +1813,11 @@ VolumeCollection::VoxelIntersectsSegment( Point3<int>& iMRIIndex,
  
     if( VectorOps::intersect == rInt ) {
 
+#if PRINTOUT
+      cerr << " hit " << endl
+	   << "\t\tIntersection " << intersectionIdx << endl;
+#endif
+      
       // Calculate the anglesum of the intersection point with the
       // four plane corner points. If it is 2pi, this point is
       // inside the poly.
@@ -1810,6 +1825,9 @@ VolumeCollection::VoxelIntersectsSegment( Point3<int>& iMRIIndex,
       for( int nCorner = 0; nCorner < 4; nCorner++ ) {
 	Point3<float> v1 = planeIdx[nFace][nCorner]       - intersectionIdx;
 	Point3<float> v2 = planeIdx[nFace][(nCorner+1)%4] - intersectionIdx;
+#if PRINTOUT
+	cerr << "\t\tCorner " << planeIdx[nFace][nCorner] << endl;
+#endif
 	
 	float v1Length = VectorOps::Length(v1);
 	float v2Length = VectorOps::Length(v2);
@@ -1824,11 +1842,27 @@ VolumeCollection::VoxelIntersectsSegment( Point3<int>& iMRIIndex,
       }
       
       if( fabs(angleSum - 2.0*M_PI) <= (float)0.0001 ) {
+#if PRINTOUT
+	cerr << "\t\tIn face" << endl;
+#endif
 	oIntersectionIdx = intersectionIdx;
 	return VectorOps::intersect;
       }
+#if PRINTOUT
+      else {
+	cerr << "\t\tNot in face" << endl;
+      }
+#endif
+    } 
+#if PRINTOUT
+    else {
+      cerr << " miss " << endl;
     }
+#endif
   }
+#if PRINTOUT
+  cerr << "\tDidn't hit. " << endl;
+#endif
   
   return VectorOps::dontIntersect;
 }
