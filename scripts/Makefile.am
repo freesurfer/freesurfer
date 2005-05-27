@@ -118,7 +118,8 @@ unpacksdcmdir \
 wfilemask \
 xsanatreg \
 epidewarp.fsl\
-setlabelstat
+setlabelstat\
+fslregister
 
 tcldir = $(prefix)/lib/tcl
 tcl_SCRIPTS= \
