@@ -5167,15 +5167,34 @@ static MRI *analyzeRead(char *fname, int read_volume)
       T->rptr[3][4] =  mri->ysize*(mri->height/2.0);
       T->rptr[4][4] = 1.;
     }
-    mri->ras_good_flag = 1;
-    fprintf(stderr,
-            "-----------------------------------------------------------------\n"
-	    "INFO: could not find %s file for direction cosine info.\n"
-            "INFO: use Analyze 7.5 hdr->hist.orient value: %d, %s.\n"
-            "INFO: if not valid, please provide the information in %s file\n"
-            "-----------------------------------------------------------------\n",
-	    matfile, hdr->hist.orient, direction, matfile
-	    );
+    if (hdr->hist.orient == -1){
+      /* Unknown, so assume: x = -r, y = -a, z = s */
+      strcpy(direction, "transverse flipped");
+      T = MatrixAlloc(4, 4, MATRIX_REAL);
+      T->rptr[1][1] = -mri->xsize;
+      T->rptr[2][2] = -mri->ysize;
+      T->rptr[3][3] =  mri->zsize;
+      T->rptr[1][4] =  mri->xsize*(mri->width/2.0);
+      T->rptr[2][4] =  mri->ysize*(mri->height/2.0);
+      T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
+      T->rptr[4][4] = 1.;
+      mri->ras_good_flag = 0;
+      fprintf(stderr,
+	      "WARNING: could not find %s file for direction cosine info.\n"
+	      "WARNING: Analyze 7.5 hdr->hist.orient value = -1, not valid.\n"
+	      "WARNING: assuming %s\n",matfile, direction);
+    }
+    else{
+      mri->ras_good_flag = 1;
+      fprintf(stderr,
+	      "-----------------------------------------------------------------\n"
+	      "INFO: could not find %s file for direction cosine info.\n"
+	      "INFO: use Analyze 7.5 hdr->hist.orient value: %d, %s.\n"
+	      "INFO: if not valid, please provide the information in %s file\n"
+	      "-----------------------------------------------------------------\n",
+	      matfile, hdr->hist.orient, direction, matfile
+	      );
+    }
   }
 
   /* ---- Assign the Geometric Paramaters -----*/
@@ -10416,6 +10435,8 @@ mghWrite(MRI *mri, char *fname, int frame)
             if (z == 74 && y == 16 && x == 53)
               DiagBreak() ;
             fval = MRIFseq_vox(mri,x,y,z,frame) ;
+	    //if(x==10 && y == 0 && z == 0 && frame == 67)
+	    // printf("MRIIO: %g\n",fval);
             fwriteFloat(fval, fp) ;
           }
           break ;
