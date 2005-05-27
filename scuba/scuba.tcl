@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.114 2005/05/26 19:26:54 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.115 2005/05/27 21:46:11 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -971,17 +971,7 @@ proc ScubaMouseUpCallback { inX inY iState iButton } {
 
     UpdateUndoMenuItem
 
-    # Update the cursor area.
-    set err [catch { 
-	set viewID [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
-    } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
-
-    set err [catch { 
-	set labelValues [GetLabelValuesSet $viewID cursor] 
-	UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
-    } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    UpdateCursorLabelArea
 }
 
 proc ScubaKeyUpCallback { inX inY iState iKey } {
@@ -1111,12 +1101,7 @@ proc GotoCoordsInputCallback {} {
 		[lindex $sFiltered 2]
 	    RedrawFrame [GetMainFrameID]
 	    
-	    # Update cursor.
-	    set err [catch { 
-		set labelValues [GetLabelValuesSet $gaView(current,id) cursor]
-		UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
-	    } sResult]
-	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+	    UpdateCursorLabelArea
 
 	    set gCoordsInput(entry) "Enter RAS Coords"
 	    $gaWidget(coordsEntry) selection range 0 end
@@ -1143,12 +1128,7 @@ proc GotoCoordsInputCallback {} {
 		[lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
 	    RedrawFrame [GetMainFrameID]
  
-	    # Update cursor.
-	    set err [catch { 
-		set labelValues [GetLabelValuesSet $gaView(current,id) cursor]
-		UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
-	    } sResult]
-	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+	    UpdateCursorLabelArea
 
 	    set gCoordsInput(entry) "Enter Index Coords"
 	    $gaWidget(coordsEntry) selection range 0 end
@@ -3100,6 +3080,7 @@ proc ViewPropertiesLevelVisibleCallback { inLevel } {
     global gaView
 
     SetLevelVisibilityInView $gaView(current,id) $inLevel $gaView(current,visible$inLevel)
+    UpdateCursorLabelArea
     RedrawFrame [GetMainFrameID]
 }
 
@@ -4056,16 +4037,21 @@ proc DrawLabelArea {} {
 	grid columnconfigure $fwTable 0 -weight 1
 
 	# For each row...
+	set maxCol 0
+	set maxRow 0
 	set nRow 1
 	foreach sY $tableY {
 
 	    # This is the row header. If we haven't made the label, do
 	    # so, otherwise just configure it.
 	    set cell $fwTable.lw0-$nRow
-	    if { [catch {$cell config}] } {
+	    catch {
 		tkuMakeNormalLabel $cell -label $sY
+	    }
+	    catch {
 		grid $cell -column 0 -row $nRow -sticky ew
-	    } else {
+	    }
+	    catch {
 		$cell.lw config -text $sY
 	    }
 
@@ -4076,7 +4062,7 @@ proc DrawLabelArea {} {
 	    foreach sX $tableX {
 		if { [info exists tableEntries($sX,$sY)] } {
 		    set cell $fwTable.lw$nCol-$nRow
-		    if { [catch {$cell config}] } {
+		    catch {
 			set bgColor gray
 			catch { set bgColor [tix option get disabled_bg] }
 			entry $cell \
@@ -4086,16 +4072,34 @@ proc DrawLabelArea {} {
 			    -width 15 \
 			    -relief flat \
 			    -background $bgColor
+		    }
+		    catch {
 			grid  $cell -column $nCol -row $nRow -sticky ew
-		    } else {
+		    }
+		    catch {
 			$cell config \
 			    -textvariable glLabelValues($nArea,"$sX,$sY",value)
 		    }
+
+		    if { $nCol > $maxCol } { set maxCol $nCol }
+		    if { $nRow > $maxRow } { set maxRow $nRow }
 		}
 		incr nCol
 	    }
 	    incr nRow
 	}
+
+	for { set nCol [expr $maxCol + 1] } { $nCol < 10 } { incr nCol } {
+	    for { set nRow 0 } { $nRow < 10 } { incr nRow } {
+		catch { grid remove $fwTable.lw$nCol-$nRow }
+	    }
+	}
+	for { set nRow [expr $maxRow + 1] } { $nRow < 10 } { incr nRow } {
+	    for { set nCol 0 } { $nCol < 10 } { incr nCol } {
+		catch { grid remove $fwTable.lw$nCol-$nRow }
+	    }
+	}
+
 
 	# Delete lists and arrays.
 	unset tableX
@@ -4105,81 +4109,16 @@ proc DrawLabelArea {} {
     }
 }
 
-proc DrawLabelArea2 {} {
-    dputs "DrawLabelArea  "
-
+proc UpdateCursorLabelArea {} {
+    global gaView
     global gaWidget
-    global glLabelValues
 
-    foreach nArea {1 2} {
-	
-	if { ![info exists glLabelValues($nArea)] } {
-	    continue
-	}
-
-	set nLabel 0
-	foreach lLabelValue $glLabelValues($nArea) {
-	    
-	    set label [lindex $lLabelValue 0]
-	    set glLabelValues($nArea,$nLabel,value) [lindex $lLabelValue 1]
-
-	    set fw $gaWidget(labelArea,$nArea).fw$nLabel
-	    set ewLabel $fw.ewLabel
-	    set ewValue $fw.ewValue
-	    
-	    if { $nLabel >= $gaWidget(labelArea,$nArea,numberOfLabels) } {
-		
-		frame $fw
-
-		set bgColor gray
-		catch { set bgColor [tix option get disabled_bg] }
-		
-		tkuMakeNormalLabel $ewLabel -label $label -width 14
-		entry $ewValue \
-		    -textvariable glLabelValues($nArea,$nLabel,value) \
-		    -font [tkuNormalFont] \
-		    -width 18 \
-		    -state disabled \
-		    -relief flat \
-		    -background $bgColor
-		
-		pack $ewLabel $ewValue -side left -anchor w
-		pack $fw
-		
-	    } else {
-		
-		$ewLabel.lw config -text $label
-		$ewValue config -textvariable glLabelValues($nArea,$nLabel,value)
-	    }
-	    
-	    incr nLabel
-	}
-	
-	grid columnconfigure $gaWidget(labelArea,$nArea) 0 -weight 1
-	grid columnconfigure $gaWidget(labelArea,$nArea) 1 -weight 1
-	
-	# Save the new number of labels. The way nLabel is incremented
-	# here, it's equal to the number of labels we're displaying. If
-	# it's less than the last total..
-	if { $nLabel > $gaWidget(labelArea,$nArea,numberOfLabels) } {
-	    set gaWidget(labelArea,$nArea,numberOfLabels) $nLabel
-	    
-	} elseif { $nLabel < $gaWidget(labelArea,$nArea,numberOfLabels) } {
-	    
-	    # Start with the nLabel before this one and go to our total,
-	    # setting the labels blank. Don't save the new total because
-	    # that's really the number of labels we have _created_, and we
-	    # don't want to recreate them.
-	    for { set nDelLabel $nLabel }  \
-		{ $nDelLabel < $gaWidget(labelArea,$nArea,numberOfLabels) } \
-		{ incr nDelLabel } {
-		    
-		    set fw $gaWidget(labelArea,$nArea).fw$nDelLabel
-		    $fw.ewLabel.lw config -text ""
-		    $fw.ewValue config -textvariable ""
-		}
-	}
-    }
+    # Update cursor.
+    set err [catch { 
+	set labelValues [GetLabelValuesSet $gaView(current,id) cursor]
+	UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
 }
 
 # PREFS DIALOG =========================================================
@@ -5145,7 +5084,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.114 2005/05/26 19:26:54 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.115 2005/05/27 21:46:11 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5626,13 +5565,8 @@ proc ShowSurfaceVertexCallback {} {
 	SetViewRASCursor \
 	    [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
 
-	# Update cursor.
-	set err [catch { 
-	    set labelValues [GetLabelValuesSet $gaView(current,id) cursor]
-	    UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
-	    } sResult]
-	if { 0 != $err } { tkuErrorDlog $sResult; return }
-	
+	UpdateCursorLabelArea
+
 	RedrawFrame [GetMainFrameID]
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
@@ -5706,12 +5640,7 @@ proc FindNearestSurfaceVertexCallback {} {
 	SetViewRASCursor \
 	    [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
 
-	# Update cursor.
-	set err [catch { 
-	    set labelValues [GetLabelValuesSet $gaView(current,id) cursor]
-	    UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
-	    } sResult]
-	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	UpdateCursorLabelArea
 	
 	RedrawFrame [GetMainFrameID]
     } sResult]
@@ -5856,12 +5785,7 @@ proc SetCursorFromEditDatFile {} {
 	[lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
     RedrawFrame [GetMainFrameID]
 
-    # Update cursor.
-    set err [catch { 
-	set labelValues [GetLabelValuesSet $gaView(current,id) cursor]
-	UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
-    } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    UpdateCursorLabelArea
 }
 
 # MAIN =============================================================

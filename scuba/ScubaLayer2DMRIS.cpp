@@ -178,6 +178,9 @@ void
 ScubaLayer2DMRIS::GetInfoAtRAS ( float iRAS[3],
 				 map<string,string>& iLabelValues) {
   
+  if( !mbReportInfoAtRAS )
+    return;
+
   if( NULL != mSurface ) {
     
     float distance;

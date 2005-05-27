@@ -16,6 +16,7 @@ Layer::Layer() {
   msLabel = "";
   mbPostRedisplay = false;
   mBytesPerPixel = 4;
+  mbReportInfoAtRAS = true;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetLayerLabel", 2, "layerID label",
@@ -36,6 +37,11 @@ Layer::Layer() {
 			 "layerID layerOptionList", "Process a string of "
 			 "options in the format "
 			 "option[=value][:option[=value]]..." );
+  commandMgr.AddCommand( *this, "GetLayerReportInfo", 1, "layerID",
+			 "Return whether or not a layer is reporting info." );
+  commandMgr.AddCommand( *this, "SetLayerReportInfo", 2, "layerID report",
+			 "Set whether or not a layer should report info." );
+  
 }
 
 Layer::~Layer() {
@@ -51,6 +57,9 @@ Layer::DrawIntoBuffer( GLubyte*, int, int,
 void 
 Layer::GetInfoAtRAS ( float[3],
 		      std::map<std::string,std::string>& iLabelValues ) {
+
+  if( !mbReportInfoAtRAS )
+    return;
 
   string sLabel;
   if( msLabel != "" ) {
@@ -187,6 +196,50 @@ Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
     }
   }
 
+  // GetLayerReportInfo <layerID>
+  if( 0 == strcmp( isCommand, "GetLayerReportInfo" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      sReturnValues =
+	TclCommandManager::ConvertBooleanToReturnValue( GetReportInfo() );
+      sReturnFormat = "i";
+    }
+  }
+
+  // SetLayerReportInfo <layerID> <report>
+  if( 0 == strcmp( isCommand, "SetLayerReportInfo" ) ) {
+     int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+   
+    if( mID == layerID ) {
+      
+      try {
+	bool bReport =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+	SetReportInfo( bReport );
+      }
+      catch( runtime_error& e ) {
+	sResult = "bad report \"" + string(iasArgv[2]) + "\"," + e.what();
+	return error;	
+      }
+    }
+  }
+  
   return ok;
 }
 

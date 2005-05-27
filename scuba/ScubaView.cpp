@@ -3149,7 +3149,13 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
   for( tLevelLayerID = mLevelLayerIDMap.begin(); 
        tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
 
+    int nLevel = (*tLevelLayerID).first;
     int layerID = (*tLevelLayerID).second;
+
+    // If this level is not visible, skip it.
+    if( !GetDrawLevelVisibility(nLevel) )
+      continue;
+
     try {
       Layer& layer = Layer::FindByID( layerID );
       

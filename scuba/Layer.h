@@ -78,6 +78,9 @@ class Layer : public DebugReporter,
   void SetWidth( int iWidth );
   void SetHeight( int iHeight );
 
+  void SetReportInfo( bool ibReport ) { mbReportInfoAtRAS = ibReport; }
+  bool GetReportInfo() { return mbReportInfoAtRAS; }
+
   virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
 			    ScubaWindowToRASTranslator& iTranslator,
 			    ScubaToolState& iTool, InputState& iInput );
@@ -135,6 +138,9 @@ class Layer : public DebugReporter,
 
   // Redisplay requested flag.
   bool mbPostRedisplay;
+
+  // Whether to return info in GetInfoAtRAS.
+  bool mbReportInfoAtRAS;
 
   int mBytesPerPixel;
 };

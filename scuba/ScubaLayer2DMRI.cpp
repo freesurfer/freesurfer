@@ -409,6 +409,9 @@ void
 ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3], 
 				map<string,string>& iLabelValues ) {
 
+  if( !mbReportInfoAtRAS )
+    return;
+
   if( NULL == mVolume ) {
     return;
   }
@@ -437,6 +440,13 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
     stringstream ssIndex;
     ssIndex << index[0] << " " << index[1] << " " << index[2];
     iLabelValues[mVolume->GetLabel() + ",index"] = ssIndex.str();
+
+  } else {
+
+    // Even if we're out of bounds, report it.
+    iLabelValues[mVolume->GetLabel() + ",index"] = "OOB";
+    iLabelValues[mVolume->GetLabel() + ",value"] = "";
+
   }
 
   delete &loc;
