@@ -929,5 +929,10 @@ MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri);
 #endif
 
 float MRIfovCol(MRI *mri);
+int MRIdircosToOrientationString(MRI *mri, char *ostr);
+int MRIorientationStringToDircos(MRI *mri, char *ostr);
+char *MRIcheckOrientationString(char *ostr);
+char *MRIsliceDirectionName(MRI *mri);
+
 
 #endif
