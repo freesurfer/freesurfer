@@ -23,7 +23,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.88 2005/05/27 17:52:45 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.89 2005/05/27 19:30:30 xhan Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -316,7 +316,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.88 2005/05/27 17:52:45 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.89 2005/05/27 19:30:30 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -443,8 +443,14 @@ main(int argc, char *argv[])
   // if lta is loaded
   if (lta)
   {
-		if (lta->type != LINEAR_RAS_TO_RAS)
-			LTAvoxelTransformToCoronalRasTransform(lta);
+    if (lta->type != LINEAR_RAS_TO_RAS){
+      if(lta->xforms[0].src.valid && lta->xforms[0].dst.valid)
+	{
+	  LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+	}
+      else
+	LTAvoxelTransformToCoronalRasTransform(lta);
+    }
     ModifyTalairachCRAS(mri_talheader, lta);
   }
   else // lta is not loaded and thus we create 
@@ -733,9 +739,9 @@ main(int argc, char *argv[])
 			/////////////////////////////////////////////    // up to here OK    
 			if (mri_tmp != mri_im)
 			{
-				MRIfree(&mri_tmp) ;
-				if (mri_mask)
-					MRIfree(&mri_mask) ;
+			  MRIfree(&mri_tmp) ;
+			  if (mri_mask)
+			    MRIfree(&mri_mask) ;
 			}
 		}
 		// now use pons_tal_? location 
@@ -753,31 +759,37 @@ main(int argc, char *argv[])
 							"plan A....\n") ;
 			if (cc_mask)
 			{
-				mri_tmp = MRIcopy(mri_tal, NULL) ;
-				mri_mask = MRIcopy(mri_cc, NULL) ;
-				MRIdilate(mri_mask, mri_mask) ; MRIdilate(mri_mask, mri_mask) ;
-				MRIreplaceValues(mri_mask, mri_mask, 0, 255) ; // 0-> 255
-				MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;   // 1-> 0
-				extend_to_lateral_borders(mri_mask, mri_mask, 0) ;
-				MRImask(mri_tmp, mri_mask, mri_tmp, 255, 0) ;
-				MRImask(mri_labels, mri_mask, mri_labels, 255, 0) ;
-				if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-				{
-					MRIwrite(mri_tmp, "./planA-erased.mgh") ;
-					MRIwrite(mri_mask, "./planA-mask.mgh") ;
-				}
+			  mri_tmp = MRIcopy(mri_im, NULL) ; // src volume
+			  mri_mask = MRIcopy(mri_cc, NULL) ; // in src volume space
+			  MRIdilate(mri_mask, mri_mask) ; MRIdilate(mri_mask, mri_mask) ;
+			  // change the mask values
+			  MRIreplaceValues(mri_mask, mri_mask, 0, 255) ; // 0 -> 255
+			  MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;   // 1 -> 0
+			  extend_to_lateral_borders(mri_mask, mri_mask, 0) ;
+			  MRImask(mri_tmp, mri_mask, mri_tmp, 255, 0) ;
+			  MRImask(mri_labels, mri_mask, mri_labels, 255, 0) ;
+			  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+			    {
+			      MRIwrite(mri_tmp, "./planA-erased.mgh") ;
+			      MRIwrite(mri_mask, "./planA-mask.mgh") ;
+			    }
 			}
 			else
-				mri_tmp = MRIcopy(mri_tal, NULL);
-			MRIfree(&mri_tal) ; // mri_tal = MRItoTalairach(mri_tmp, NULL) ;
-			mri_tal = MRIcopy(mri_tmp, NULL);
+			  mri_tmp = mri_im;
+
+			MRIfree(&mri_tal) ; // mri_tal = MRItoTalairach(mri_tmp, NULL) ; 
+			// go to talairach space
+			mri_tal = MRIalloc(mri_tmp->width, mri_tmp->height, mri_tmp->depth, mri_tmp->type);
+			MRIcopyHeader(mri_talheader, mri_tal);
+			MRItoTalairachEx(mri_tmp, mri_tal, lta) ;  // erased volume to tal space
+
 			MRIbinarize(mri_tal, mri_tal, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
 			find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z,x_cc,y_cc,z_cc,1);
-			if (mri_tmp != mri_tal)
+			if (mri_tmp != mri_im)
 			{
-				MRIfree(&mri_tmp) ;
-				if (mri_mask)
-					MRIfree(&mri_mask) ;
+			  MRIfree(&mri_tmp) ;
+			  if (mri_mask)
+			    MRIfree(&mri_mask) ;
 			}
 			mri_pons = 
 				find_cutting_plane(mri_tal, pons_tal_x,pons_tal_y, pons_tal_z,
