@@ -1,6 +1,6 @@
 #!/bin/csh -f
 # 
-set VERSION = '$Id: fslregister,v 1.2 2005/05/26 16:32:21 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.3 2005/05/27 23:58:37 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -10,18 +10,18 @@ set movvol = ();
 set outvol = ();
 set dof = 6;
 set bins = 256;
-set maxangle = 180;
+set maxangle = 70;
 set cost = corratio;
 set fslmat = ();
 set betmov = 1;
 set betref = 0;
 set initxfm = 0;
+set InitFSLMat = ();
 set debug = 0;
 set tmpdir = ();
 set cleanup = 1;
 set PrintHelp = 0;
 set frame = 0;
-set FlipRows = 0; # Never do this! For testing only!
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep version | wc -l` 
@@ -117,18 +117,6 @@ if($betref) then
   endif
 endif
 
-if($FlipRows) then
-  # Never do this! For testing only!
-  set cmd = (avwswapdim $movvolimg x -y z $movvolimg)
-  pwd | tee -a $LF 
-  echo $cmd | tee -a $LF 
-  $cmd |& tee -a $LF 
-  if($status) then
-    echo "ERROR: avwswapdim"
-    exit 1;
-  endif
-endif
-
 if(-e $regfile) mv $regfile $regfile.$DateString
 if($#fslmat == 0) set fslmat = $regfile.fsl.mat
 
@@ -147,6 +135,8 @@ if($initxfm) then
     exit 1;
   endif
 endif
+# Use supplied initial matrix
+if($#InitFSLMat)  set fslmat0 = $InitFSLMat;
 
 # Set up and run the Flirt command-line
 set cmd = (flirt -ref $refvolimg -in $movvolimg)
@@ -155,7 +145,7 @@ set cmd = ($cmd  -omat $fslmat -cost $cost -dof $dof)
 set cmd = ($cmd  -searchrx -$maxangle $maxangle);
 set cmd = ($cmd  -searchry -$maxangle $maxangle);
 set cmd = ($cmd  -searchrz -$maxangle $maxangle);
-if($initxfm) set cmd = ($cmd -init $fslmat0)
+if($#fslmat0) set cmd = ($cmd -init $fslmat0)
 if($#outvol) then
   set outvolbase = $tmpdir/outvol.fslregister
   set outvolimg  = $outvolbase.img
@@ -296,9 +286,13 @@ while( $#argv != 0 )
       set initxfm = 1;
       breaksw
 
-    case "--fliprows":
-      # Never do this! For testing only!
-      set FlipRows = 1;
+    case "--initfslmat":
+      if ( $#argv < 1) goto arg1err;
+      set InitFSLMat = $argv[1]; shift;
+      if(! -e $InitFSLMat) then
+        echo "ERROR: cannot find $InitFSLMat"
+        exit 1;
+      endif
       breaksw
 
     case "--frame":
@@ -356,6 +350,11 @@ check_params:
     exit 1;
   endif
 
+  if($initxfm && $#InitFSLMat) then
+    echo "ERROR: cannot specify both --initxfm and --initfslmat"
+    exit 1;
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -373,8 +372,10 @@ arg2err:
 
 ############--------------##################
 usage_exit:
-  echo ""
   echo "USAGE: fslregister"
+  echo ""
+echo "DONT USE THIS YET! NOT TESTED!"
+  echo ""
   echo ""
   echo "Required Arguments:";
   echo "   --s subjid"
@@ -383,6 +384,9 @@ usage_exit:
   echo ""
   echo "Optional Arguments"
   echo ""
+  echo "   --initfslmat matfile : supply initial fsl matrix file (not with --initxfm)"
+  echo "   --initxfm        : initialize based on header goemetry (not with --initfslmat)"
+  echo " "
   echo "   --dof  dof       : FLIRT DOF (default is $dof)"
   echo "   --bins bins      : FLIRT bins (default is $bins)"
   echo "   --cost cost      : FLIRT cost (default is $cost)"
@@ -390,12 +394,11 @@ usage_exit:
   echo " "
   echo "   --nobetmov       : do not perform brain extration on mov"
   echo "   --betref         : brain extration on ref (usually not needed)"
-  echo "   --initxfm        : initialize based on header goemetry"
   echo " "
   echo "   --frame frameno : reg to frameno (default 0=1st)"
   echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
   echo " "
-  echo "   --tmp tmpdir : use tmpdir (and do not clean up)"
+  echo "   --tmp tmpdir : use tmpdir (implies --nocleanup)"
   echo "   --nocleanup  : do not delete temporary files"
   echo "   --version    : print version and exit"
   echo "   --help       : print help and exit"
@@ -409,11 +412,10 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-DONT USE THIS YET! NOT TESTED!
-
-Registers a volume to its FreeSurfer anatomical using FSLs Flirt and
-creates a FreeSurfer register.dat file. Does not resample.  The
-registration is rigid (ie, 6 DOF) unless changed with --dof.
+Registers a volume to its FreeSurfer anatomical using FSLs FLIRT and
+creates a FreeSurfer register.dat file. The registration is rigid (ie,
+6 DOF) unless changed with --dof. It is a good idea to initialize
+FLIRT with either --initxfm or --initfslmat.
 
 --s subjid
 
@@ -436,6 +438,58 @@ RAS in the movable. This file/matrix is in a format understood
 by freesurfer (see tkregister2 --help for docs). It will contain
 the subjectname.
 
+--initfslmat matfile
+
+Initialize FLIRT with the given matrix in the FSL/FLIRT-formated file.
+It is strongly suggested that you use this (or --initxfm), otherwise
+you may have to flip your volumes around to get things more-or-less
+lined up. All this matrix needs to do is to get the functional and
+the anatomical in the same orientation. To see whether your initial
+matrix gets you in the right orientation, run something like:
+
+  tkregister2  --mov func.img --s subjid --surf brain \
+       --fslreg fsl.init.mat --tag --reg /tmp/reg.blah.234 
+
+Flipping back and forth between the anatomical and the functional
+should show that the volumes are oriented more-or-less in the same way
+(eg, nose pointing in the same direction). You may or may not be able
+to tell whether the volumes are oriented the same left-right.  The
+registration does not need to be close at this point.
+
+--initxfm
+
+Initialize FLIRT based on the geometry information in the header of the
+reference and movable volumes. Note that the geometry information must
+be correct in these volumes. 
+
+--dof dof
+
+Degrees of freedom in the FLIRT registration. Default is 6, which is
+appropriate for registering two volumes from the same subject.
+
+--bins bins      : FLIRT bins (default is 256)
+--cost cost      : FLIRT cost (default is corratio)
+--maxangle angle : FLIRT max search angle (default is 70)
+
+These are just inputs for FLIRT. 
+
+--nobetmov
+
+By default, the FSL Brain Extaction Tool (BET) is applied to the movable
+prior to registration. This turns it off.
+
+--betref
+
+By default, the brain of the reference is NOT extracted because by
+default the FreeSurfer "brain" volume is used, which has already been
+skull stripped. The refernce can be changed with --fsvol.
+
+--fsvol volid
+
+Use the FreeSurfer volid as the reference volume. Uses "brain" by default.
+If you use something that has not been skull stripped, then consider using
+--betref.
+
 --frame frameno
 
 Use something other than the first frame. Eg, with FSL may want
@@ -443,13 +497,16 @@ to use the middle frame. For SPM analyze, you should specify the
 file that corresonds to the frame you want because each file only
 has one frame.
 
-NOTES:
+--out outvol
 
-Uses corratio cost function.
+Use FLIRT to resample the movable/functional volume to the reference space.
+
 
 BUGS
 
-SEE ALSO: tkregister2, mri_vol2surf, mri_convert, mri_rigid_register, 
+SEE ALSO: 
+
+tkregister2, mri_vol2surf, mri_convert, mri_rigid_register,
 fsl_rigid_register, Flirt.
 
 
