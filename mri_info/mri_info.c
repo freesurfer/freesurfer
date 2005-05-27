@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/05/05 18:52:37 $
-// Revision       : $Revision: 1.35 $
+// Revision Date  : $Date: 2005/05/27 19:33:14 $
+// Revision       : $Revision: 1.36 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.35 $";
+char *MRI_INFO_VERSION = "$Revision: 1.36 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -28,6 +28,7 @@ char *MRI_INFO_VERSION = "$Revision: 1.35 $";
 #include "mghendian.h"
 #include "fio.h"
 
+
 static void do_file(char *fname);
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -36,7 +37,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.35 2005/05/05 18:52:37 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.36 2005/05/27 19:33:14 greve Exp $";
 
 char *Progname ;
 
@@ -60,6 +61,8 @@ int PrintSliceDC = 0;
 int PrintVox2RAS = 0;
 int PrintRAS2Vox = 0;
 int PrintDet = 0;
+int PrintOrientation = 0;
+int PrintSliceDirection = 0;
 
 int debug = 0;
 
@@ -145,6 +148,8 @@ static int parse_commandline(int argc, char **argv)
 
     else if (!strcasecmp(option, "--nframes"))   PrintNFrames = 1;
     else if (!strcasecmp(option, "--format")) PrintFormat = 1;
+    else if (!strcasecmp(option, "--orientation")) PrintOrientation = 1;
+    else if (!strcasecmp(option, "--slicedirection")) PrintSliceDirection = 1;
 
     else{
       inputlist[nthinput] = option;
@@ -178,6 +183,8 @@ static void print_usage(void)
   printf("   --det : print the determinant of the vox2ras matrix\n");
   printf("   --nframes : print number of frames to stdout\n");
   printf("   --format : file format\n");
+  printf("   --orientation : orientation string (eg, LPS, RAS, RPI)\n");
+  printf("   --slicedirection : primary slice direction (eg, axial)\n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
 }
@@ -247,6 +254,8 @@ static void do_file(char *fname)
   MRI *mri ;
   MATRIX *m, *minv ;
   int r,c;
+  char ostr[4];
+  ostr[4] = '\0';
 
   if(PrintFormat){
     printf("%s\n", type_to_string(mri_identify(fname)));
@@ -341,6 +350,15 @@ static void do_file(char *fname)
     MatrixFree(&minv) ;
     return;
   }
+  if(PrintOrientation){
+    MRIdircosToOrientationString(mri,ostr);
+    printf("%s\n",ostr);
+    return;
+  }
+  if(PrintSliceDirection){
+    printf("%s\n",MRIsliceDirectionName(mri));
+    return;
+  }
 
   printf("Volume information for %s\n", fname);
   // mri_identify has been called but the result is not stored and thus I have to call it again
@@ -386,6 +404,9 @@ static void do_file(char *fname)
       free(ext);
     }
   }
+  MRIdircosToOrientationString(mri,ostr);
+  printf("Orientation %s\n",ostr);
+  printf("Primary Slice Direction %s\n",MRIsliceDirectionName(mri));
   m = MRIgetVoxelToRasXform(mri) ; // extract_i_to_r(mri) (just macto)
   printf("\nvoxel to ras transform:\n") ; PrettyMatrixPrint(m) ;
   printf("\nvoxel-to-ras determinant %g\n",MatrixDeterminant(m));
