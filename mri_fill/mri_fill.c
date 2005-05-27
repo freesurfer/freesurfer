@@ -23,7 +23,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.87 2005/05/20 21:17:18 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.88 2005/05/27 17:52:45 fischl Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -316,7 +316,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.87 2005/05/20 21:17:18 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.88 2005/05/27 17:52:45 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -660,164 +660,166 @@ main(int argc, char *argv[])
   }
 
 
-  ////////////////////////////////////////////////////////////////////////////
-  // finding pons location
-  ////////////////////////////////////////////////////////////////////////////
-  if (pons_seed_vol_set)
-  {
-    // compute the tal position using lta
-    MRIvoxelToTalairachEx(mri_im, pons_vol_x, pons_vol_y, pons_vol_z,
-													&pons_tal_x, &pons_tal_y, &pons_tal_z, lta);
-    printf("Using voxel pons seed point, calculated talairach pons position (%.2f, %.2f, %.2f)\n",
-					 pons_tal_x, pons_tal_y, pons_tal_z);
-
-    // mark as cc_seed_set by the tal
-    pons_seed_set = 1;
-  }
-  else if (pons_seed_set)
-  {
-    Real xv, yv, zv;
-    printf("Verify whether the seed point is inside the volume first\n");
-    MRItalairachToVoxelEx(mri_im, pons_tal_x, pons_tal_y, pons_tal_z, &xv, &yv, &zv, lta);
-    if (xv > (mri_im->width-1) || xv < 0 
-				|| yv > (mri_im->height-1) || yv < 0
-				|| zv > (mri_im->depth-1) || zv < 0)
-    {
-      fprintf(stderr, "The seed point (%.2f, %.2f, %.2f) is mapped to a voxel (%.2f, %.2f. %.2f).\n",
-							pons_tal_x, pons_tal_y, pons_tal_z, xv, yv, zv);
-      fprintf(stderr, "Make sure that the seed point is given in talaraich position or use -PV option\n");
-      return -1;
-    }
-  }
-  else // automatic find pons
-  {
-    MRI  *mri_mask=NULL ;
-
-    if (cc_mask)   /* limit pons to be directly below corpus callosum */
-    {
-      fprintf(stderr, 
-              "masking possible pons locations using cc cutting plane\n") ;
-      mri_tmp = MRIcopy(mri_im, NULL) ; // src volume
-      mri_mask = MRIcopy(mri_cc, NULL) ; // in src volume space
-      MRIdilate(mri_mask, mri_mask) ; MRIdilate(mri_mask, mri_mask) ;
-      // change the mask values
-      MRIreplaceValues(mri_mask, mri_mask, 0, 255) ; // 0 -> 255
-      MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;   // 1 -> 0
-      extend_to_lateral_borders(mri_mask, mri_mask, 0) ;
-      MRImask(mri_tmp, mri_mask, mri_tmp, 255, 0) ;       // in src volume space
-      MRImask(mri_labels, mri_mask, mri_labels, 255, 0); 
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-      {
-        MRIwrite(mri_tmp, "./erased.mgh") ;  // src volume space
-        MRIwrite(mri_mask, "./mask.mgh") ;   // src volume space
-      }
-    }
-    else
-      mri_tmp = mri_im ;
-    
-    MRIfree(&mri_tal) ; 
-
-    // go to talairach space
-    mri_tal = MRIalloc(mri_tmp->width, mri_tmp->height, mri_tmp->depth, mri_tmp->type);
-    MRIcopyHeader(mri_talheader, mri_tal);
-    MRItoTalairachEx(mri_tmp, mri_tal, lta) ;  // erased volume to tal space
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-      MRIwrite(mri_tal, "./talponsearch.mgh");
-
-    // binarize
-    MRIbinarize(mri_tal, mri_tal, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
-    // the last arg is method = 0 (default)
-    find_pons(mri_tal, &pons_tal_x, &pons_tal_y, &pons_tal_z,x_cc,y_cc,z_cc,0);
-    /////////////////////////////////////////////    // up to here OK    
-    if (mri_tmp != mri_im)
-    {
-      MRIfree(&mri_tmp) ;
-      if (mri_mask)
-        MRIfree(&mri_mask) ;
-    }
-  }
-  // now use pons_tal_? location 
-  mri_pons = 
-    find_cutting_plane(mri_tal, pons_tal_x,pons_tal_y, pons_tal_z,
-                       MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
-                       pons_seed_set, lta);
-
-  if (!pons_seed_set && !mri_pons)  /* first attempt failed - try different */
-  {
-    MRI  *mri_mask=NULL ;
-
-    fprintf(stderr, 
-            "initial attempt at finding brainstem failed - initiating backup "
-            "plan A....\n") ;
-    if (cc_mask)
-    {
-      mri_tmp = MRIcopy(mri_tal, NULL) ;
-      mri_mask = MRIcopy(mri_cc, NULL) ;
-      MRIdilate(mri_mask, mri_mask) ; MRIdilate(mri_mask, mri_mask) ;
-      MRIreplaceValues(mri_mask, mri_mask, 0, 255) ; // 0-> 255
-      MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;   // 1-> 0
-      extend_to_lateral_borders(mri_mask, mri_mask, 0) ;
-      MRImask(mri_tmp, mri_mask, mri_tmp, 255, 0) ;
-      MRImask(mri_labels, mri_mask, mri_labels, 255, 0) ;
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-      {
-        MRIwrite(mri_tmp, "./planA-erased.mgh") ;
-        MRIwrite(mri_mask, "./planA-mask.mgh") ;
-      }
-    }
-    else
-      mri_tmp = MRIcopy(mri_tal, NULL);
-    MRIfree(&mri_tal) ; // mri_tal = MRItoTalairach(mri_tmp, NULL) ;
-    mri_tal = MRIcopy(mri_tmp, NULL);
-    MRIbinarize(mri_tal, mri_tal, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
-    find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z,x_cc,y_cc,z_cc,1);
-    if (mri_tmp != mri_tal)
-    {
-      MRIfree(&mri_tmp) ;
-      if (mri_mask)
-        MRIfree(&mri_mask) ;
-    }
-    mri_pons = 
-      find_cutting_plane(mri_tal, pons_tal_x,pons_tal_y, pons_tal_z,
-                         MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
-                         pons_seed_set, lta);
-  }
-
-  if (!mri_pons) /* heuristic failed to find the pons - try Talairach coords */
-  {
-    pons_tal_x = PONS_TAL_X ; pons_tal_y = PONS_TAL_Y; pons_tal_z = PONS_TAL_Z;
-    mri_pons = 
-      find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
-                         MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
-                         pons_seed_set, lta);
-    if (!mri_pons && !mri_seg)
-      ErrorExit(ERROR_BADPARM, "%s: could not find pons", Progname);
-  }
-  
-  if (mri_pons){
-
-    if (log_fp){
-      fprintf(log_fp, "PONS: %d, %d, %d (TAL: %2.1f, %2.1f, %2.1f)\n",
-	      x_pons, y_pons, z_pons, pons_tal_x, pons_tal_y, pons_tal_z) ;
-      fclose(log_fp) ;
-    }
-    if(alog_fp){
-      fprintf(alog_fp, "PONS-CRS %d %d %d\n",x_pons, y_pons, z_pons);
-      fprintf(alog_fp, "PONS-TAL %5.1f %5.1f %5.1f\n",pons_tal_x, pons_tal_y, pons_tal_z) ;
-      fclose(alog_fp) ;
-    }
-
-		mri_tmp2 = MRIcopy(mri_im, NULL); // cutting plane
-		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-			// talairached volume pons cutting plane
-    MRIwrite(mri_pons, "./ponstal.mgh");
-		MRIfromTalairachEx(mri_pons, mri_tmp2, lta) ;
-		MRIbinarize(mri_tmp2, mri_tmp2, 1, 0, 1) ;
-		MRIfree(&mri_pons) ; mri_pons = mri_tmp2 ;
-		MRIdilate(mri_pons, mri_pons) ;
+	if (mri_seg == NULL)
+	{
+		////////////////////////////////////////////////////////////////////////////
+		// finding pons location
+		////////////////////////////////////////////////////////////////////////////
+		if (pons_seed_vol_set)
+		{
+			// compute the tal position using lta
+			MRIvoxelToTalairachEx(mri_im, pons_vol_x, pons_vol_y, pons_vol_z,
+														&pons_tal_x, &pons_tal_y, &pons_tal_z, lta);
+			printf("Using voxel pons seed point, calculated talairach pons position (%.2f, %.2f, %.2f)\n",
+						 pons_tal_x, pons_tal_y, pons_tal_z);
+			
+			// mark as cc_seed_set by the tal
+			pons_seed_set = 1;
+		}
+		else if (pons_seed_set)
+		{
+			Real xv, yv, zv;
+			printf("Verify whether the seed point is inside the volume first\n");
+			MRItalairachToVoxelEx(mri_im, pons_tal_x, pons_tal_y, pons_tal_z, &xv, &yv, &zv, lta);
+			if (xv > (mri_im->width-1) || xv < 0 
+					|| yv > (mri_im->height-1) || yv < 0
+					|| zv > (mri_im->depth-1) || zv < 0)
+			{
+				fprintf(stderr, "The seed point (%.2f, %.2f, %.2f) is mapped to a voxel (%.2f, %.2f. %.2f).\n",
+								pons_tal_x, pons_tal_y, pons_tal_z, xv, yv, zv);
+				fprintf(stderr, "Make sure that the seed point is given in talaraich position or use -PV option\n");
+				return -1;
+			}
+		}
+		else // automatic find pons
+		{
+			MRI  *mri_mask=NULL ;
+			
+			if (cc_mask)   /* limit pons to be directly below corpus callosum */
+			{
+				fprintf(stderr, 
+								"masking possible pons locations using cc cutting plane\n") ;
+				mri_tmp = MRIcopy(mri_im, NULL) ; // src volume
+				mri_mask = MRIcopy(mri_cc, NULL) ; // in src volume space
+				MRIdilate(mri_mask, mri_mask) ; MRIdilate(mri_mask, mri_mask) ;
+				// change the mask values
+				MRIreplaceValues(mri_mask, mri_mask, 0, 255) ; // 0 -> 255
+				MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;   // 1 -> 0
+				extend_to_lateral_borders(mri_mask, mri_mask, 0) ;
+				MRImask(mri_tmp, mri_mask, mri_tmp, 255, 0) ;       // in src volume space
+				MRImask(mri_labels, mri_mask, mri_labels, 255, 0); 
+				if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+				{
+					MRIwrite(mri_tmp, "./erased.mgh") ;  // src volume space
+					MRIwrite(mri_mask, "./mask.mgh") ;   // src volume space
+				}
+			}
+			else
+				mri_tmp = mri_im ;
+		
+			MRIfree(&mri_tal) ; 
+			
+			// go to talairach space
+			mri_tal = MRIalloc(mri_tmp->width, mri_tmp->height, mri_tmp->depth, mri_tmp->type);
+			MRIcopyHeader(mri_talheader, mri_tal);
+			MRItoTalairachEx(mri_tmp, mri_tal, lta) ;  // erased volume to tal space
+			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+				MRIwrite(mri_tal, "./talponsearch.mgh");
+			
+			// binarize
+			MRIbinarize(mri_tal, mri_tal, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
+			// the last arg is method = 0 (default)
+			find_pons(mri_tal, &pons_tal_x, &pons_tal_y, &pons_tal_z,x_cc,y_cc,z_cc,0);
+			/////////////////////////////////////////////    // up to here OK    
+			if (mri_tmp != mri_im)
+			{
+				MRIfree(&mri_tmp) ;
+				if (mri_mask)
+					MRIfree(&mri_mask) ;
+			}
+		}
+		// now use pons_tal_? location 
+		mri_pons = 
+			find_cutting_plane(mri_tal, pons_tal_x,pons_tal_y, pons_tal_z,
+												 MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
+												 pons_seed_set, lta);
+		
+		if (!pons_seed_set && !mri_pons)  /* first attempt failed - try different */
+		{
+			MRI  *mri_mask=NULL ;
+			
+			fprintf(stderr, 
+							"initial attempt at finding brainstem failed - initiating backup "
+							"plan A....\n") ;
+			if (cc_mask)
+			{
+				mri_tmp = MRIcopy(mri_tal, NULL) ;
+				mri_mask = MRIcopy(mri_cc, NULL) ;
+				MRIdilate(mri_mask, mri_mask) ; MRIdilate(mri_mask, mri_mask) ;
+				MRIreplaceValues(mri_mask, mri_mask, 0, 255) ; // 0-> 255
+				MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;   // 1-> 0
+				extend_to_lateral_borders(mri_mask, mri_mask, 0) ;
+				MRImask(mri_tmp, mri_mask, mri_tmp, 255, 0) ;
+				MRImask(mri_labels, mri_mask, mri_labels, 255, 0) ;
+				if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+				{
+					MRIwrite(mri_tmp, "./planA-erased.mgh") ;
+					MRIwrite(mri_mask, "./planA-mask.mgh") ;
+				}
+			}
+			else
+				mri_tmp = MRIcopy(mri_tal, NULL);
+			MRIfree(&mri_tal) ; // mri_tal = MRItoTalairach(mri_tmp, NULL) ;
+			mri_tal = MRIcopy(mri_tmp, NULL);
+			MRIbinarize(mri_tal, mri_tal, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
+			find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z,x_cc,y_cc,z_cc,1);
+			if (mri_tmp != mri_tal)
+			{
+				MRIfree(&mri_tmp) ;
+				if (mri_mask)
+					MRIfree(&mri_mask) ;
+			}
+			mri_pons = 
+				find_cutting_plane(mri_tal, pons_tal_x,pons_tal_y, pons_tal_z,
+													 MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
+													 pons_seed_set, lta);
+		}
+		
+		if (!mri_pons) /* heuristic failed to find the pons - try Talairach coords */
+		{
+			pons_tal_x = PONS_TAL_X ; pons_tal_y = PONS_TAL_Y; pons_tal_z = PONS_TAL_Z;
+			mri_pons = 
+				find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
+													 MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
+													 pons_seed_set, lta);
+			if (!mri_pons && !mri_seg)
+				ErrorExit(ERROR_BADPARM, "%s: could not find pons", Progname);
+		}
+		
+		if (mri_pons){
+			
+			if (log_fp){
+				fprintf(log_fp, "PONS: %d, %d, %d (TAL: %2.1f, %2.1f, %2.1f)\n",
+								x_pons, y_pons, z_pons, pons_tal_x, pons_tal_y, pons_tal_z) ;
+				fclose(log_fp) ;
+			}
+			if(alog_fp){
+				fprintf(alog_fp, "PONS-CRS %d %d %d\n",x_pons, y_pons, z_pons);
+				fprintf(alog_fp, "PONS-TAL %5.1f %5.1f %5.1f\n",pons_tal_x, pons_tal_y, pons_tal_z) ;
+				fclose(alog_fp) ;
+			}
+			
+			mri_tmp2 = MRIcopy(mri_im, NULL); // cutting plane
+			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+				// talairached volume pons cutting plane
+				MRIwrite(mri_pons, "./ponstal.mgh");
+			MRIfromTalairachEx(mri_pons, mri_tmp2, lta) ;
+			MRIbinarize(mri_tmp2, mri_tmp2, 1, 0, 1) ;
+			MRIfree(&mri_pons) ; mri_pons = mri_tmp2 ;
+			MRIdilate(mri_pons, mri_pons) ;
+		}
 	}
-	/*	else*/   // erase brain stem in any case
-	if (mri_seg)
+	else  // erase brain stem in any case
 	{
 		printf("ERASING BRAINSTEM") ;
 		MRIsetLabelValues(mri_im, mri_seg, mri_im, Brain_Stem, 0) ;
@@ -825,6 +827,7 @@ main(int argc, char *argv[])
 		MRIsetLabelValues(mri_im, mri_seg, mri_im, Left_VentralDC, 0) ;
 		MRIsetLabelValues(mri_im, mri_seg, mri_im, Right_VentralDC, 0) ;
 #endif
+		mri_pons = NULL ;
 	}
 
   MRIfree(&mri_tal) ;
