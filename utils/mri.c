@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/05/27 19:32:50 $
-// Revision       : $Revision: 1.300 $
-char *MRI_C_VERSION = "$Revision: 1.300 $";
+// Revision Date  : $Date: 2005/05/27 22:04:51 $
+// Revision       : $Revision: 1.301 $
+char *MRI_C_VERSION = "$Revision: 1.301 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12100,12 +12100,20 @@ char *MRIcheckOrientationString(char *ostr)
   creates an Orientation String. The Orientation String is a three
   character string indicating the primary direction of each axis
   in the 3d matrix. The characters can be L,R,A,P,I,S. Case is not
-  important, but upper case is used here.
+  important, but upper case is used here. If ras_good_flag == 0,
+  then ostr = ??? and 1 is returned.
   ------------------------------------------------------------------*/
 int MRIdircosToOrientationString(MRI *mri, char *ostr)
 {
   int c;
   float Mdc[3][3], sag, cor, ax;
+
+  if(! mri->ras_good_flag){
+    ostr[0] = '?';
+    ostr[1] = '?';
+    ostr[2] = '?';
+    return(1);
+  }
 
   Mdc[0][0] = mri->x_r;
   Mdc[1][0] = mri->x_a;
@@ -12144,7 +12152,8 @@ int MRIdircosToOrientationString(MRI *mri, char *ostr)
 }
 /*-------------------------------------------------------------------
   MRIsliceDirectionName() - returns the name of the primary slice
-  orientation base on the direction cosine.
+  orientation base on the direction cosine. If mri->ras_good_flag=0,
+  then "unknown" is returned.
   -------------------------------------------------------------------*/
 char *MRIsliceDirectionName(MRI *mri)
 {
@@ -12162,6 +12171,7 @@ char *MRIsliceDirectionName(MRI *mri)
     slicedir = "coronal";
   if(toupper(ostr[2]) == 'I'|| toupper(ostr[2]) == 'S')
     slicedir = "axial";
+  if(! mri->ras_good_flag) slicedir = "unknown";
 
   len = strlen(slicedir);
   rtstr = (char *) calloc(sizeof(char),len+1);
