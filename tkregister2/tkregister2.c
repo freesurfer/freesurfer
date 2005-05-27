@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.31 2005/05/18 23:39:16 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.32 2005/05/27 22:19:34 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.31 2005/05/18 23:39:16 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.32 2005/05/27 22:19:34 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -332,6 +332,9 @@ int fstal=0, fixxfm=1;
 char *talsubject = "talairach";
 char talxfmfile[2000],talxfmdir[2000];
 
+char *mov_ostr = NULL; // orientation string for mov
+char *targ_ostr = NULL; // orientation string for targ
+
 /**** ------------------ main ------------------------------- ****/
 int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
 {
@@ -442,6 +445,10 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     printf("ERROR: could not read %s\n",targ_vol_path);
     exit(1);
   }
+  if(targ_ostr){
+    printf("Setting targ orientation to %s\n",targ_ostr);
+    MRIorientationStringToDircos(targ_vol, targ_ostr);
+  }
   if(targ_vol->type != MRI_FLOAT && LoadVol){
     printf("INFO: changing target type to float\n");
     mritmp = MRIchangeType(targ_vol,MRI_FLOAT,0,0,0);
@@ -520,6 +527,10 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   if(mov_vol == NULL){
     printf("ERROR: could not read %s\n",mov_vol_id);
     exit(1);
+  }
+  if(mov_ostr){
+    printf("Setting mov orientation to %s\n",mov_ostr);
+    MRIorientationStringToDircos(mov_vol, mov_ostr);
   }
   if(mov_vol->type != MRI_FLOAT  && LoadVol){
     printf("INFO: changing move type to float\n");
@@ -779,6 +790,7 @@ static int parse_commandline(int argc, char **argv)
   int  nargc , nargsused;
   char **pargv, *option ;
   char *fmt;
+  char *errstr;
 
   isflag(" "); /* shuts up compiler */
 
@@ -821,6 +833,17 @@ static int parse_commandline(int argc, char **argv)
 	targ_vol_fmt = checkfmt(fmt);
       }
     }
+    else if (!strcmp(option, "--targ-orientation")){
+      if(nargc < 1) argnerr(option,1);
+      targ_ostr = pargv[0];
+      errstr = MRIcheckOrientationString(targ_ostr);
+      if(errstr){
+	printf("ERROR: with target orientation string %s\n",targ_ostr);
+	printf("%s\n",errstr);
+	exit(1);
+      }
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--mov")){
       if(nargc < 1) argnerr(option,1);
       mov_vol_id = pargv[0];
@@ -829,6 +852,17 @@ static int parse_commandline(int argc, char **argv)
 	fmt = pargv[1]; nargsused ++;
 	mov_vol_fmt = checkfmt(fmt);
       }
+    }
+    else if (!strcmp(option, "--mov-orientation")){
+      if(nargc < 1) argnerr(option,1);
+      mov_ostr = pargv[0];
+      errstr = MRIcheckOrientationString(mov_ostr);
+      if(errstr){
+	printf("ERROR: with mov orientation string %s\n",mov_ostr);
+	printf("%s\n",errstr);
+	exit(1);
+      }
+      nargsused = 1;
     }
     else if (!strcmp(option, "--movbright")){
       if(nargc < 1) argnerr(option,1);
@@ -992,10 +1026,11 @@ static void print_usage(void)
   printf("   --float2int code : spec old tkregister float2int\n");
   printf("   --title title : set window title\n");
   printf("   --tag : tag mov vol near the col/row origin\n");
+  printf("   --mov-orientation ostring : supply orientation string for mov\n");
+  printf("   --targ-orientation ostring : supply orientation string for targ\n");
   printf("   --gdiagno n : set debug level\n");
   printf("\n");
-  printf("   --help : WARNING: contains material that could be harmful "
-	 "to your ignorance.\n");
+  printf("   --help : Oops, I accidentally documented this program!.\n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
 }
@@ -1151,7 +1186,30 @@ static void print_help(void)
 "  Creates a hatched pattern in the mov volume prior to resampling.\n"
 "  This pattern is in all slices near the col/row origin (ie, near\n"
 "  col=0,row=0). This can help to determine if there is a left-right\n"
-"  reversal. Think of this as a synthetic fiducial.\n"
+"  reversal. Think of this as a synthetic fiducial. Can be good in \n"
+"  combination with --mov-orientation.\n"
+"  \n"
+"  --mov-orientation ostring\n"
+"  --targ-orientation ostring\n"
+"  \n"
+"  Supply the orientation information in the form of an orientation string \n"
+"  (ostring). The ostring is three letters that roughly describe how the volume\n"
+"  is oriented. This is usually described by the direction cosine information\n"
+"  as originally derived from the dicom but might not be available in all data\n"
+"  sets. --mov-orientation will have no effect unless --regheader is specified.\n"
+"  The first  character of ostring determines the direction of increasing column.\n"
+"  The second character of ostring determines the direction of increasing row.\n"
+"  The third  character of ostring determines the direction of increasing slice.\n"
+"  Eg, if the volume is axial starting inferior and going superior the slice \n"
+"  is oriented such that nose is pointing up and the right side of the subject\n"
+"  is on the left side of the image, then this would correspond to LPS, ie,\n"
+"  as the column increases, you move to the patients left; as the row increases,\n"
+"  you move posteriorly, and as the slice increases, you move superiorly. Valid\n"
+"  letters are L, R, P, A, I, and S. There are 48 valid combinations (eg, RAS\n"
+"  LPI, SRI). Some invalid ones are DPS (D is not a valid letter), RRS (can't\n"
+"  specify R twice), RAP (A and P refer to the same axis). Invalid combinations\n"
+"  are detected immediately, an error printed, and the program exits. Case-insensitive.\n"
+"  \n"
 "  \n"
 "  --gdiagno N\n"
 "\n"
@@ -3639,7 +3697,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.31 2005/05/18 23:39:16 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.32 2005/05/27 22:19:34 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

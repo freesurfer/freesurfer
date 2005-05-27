@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/04/19 22:19:10 $
-// Revision       : $Revision: 1.101 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/05/27 22:19:03 $
+// Revision       : $Revision: 1.102 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,6 +72,11 @@ int main(int argc, char *argv[])
   float out_i_directions[3], out_j_directions[3], out_k_directions[3];
   int in_i_direction_flag, in_j_direction_flag, in_k_direction_flag;
   int out_i_direction_flag, out_j_direction_flag, out_k_direction_flag;
+  int  in_orientation_flag = FALSE;
+  char in_orientation_string[STRLEN];
+  int  out_orientation_flag = FALSE;
+  char out_orientation_string[STRLEN];
+  char *errmsg = NULL;
   int in_tr_flag = 0;
   float in_tr = 0;
   int in_ti_flag = 0;
@@ -226,7 +231,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.101 2005/04/19 22:19:10 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.102 2005/05/27 22:19:03 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -400,6 +405,31 @@ int main(int argc, char *argv[])
       }
       in_k_direction_flag = TRUE;
     }
+
+    else if(strcmp(argv[i], "--in_orientation") == 0)
+    {
+      get_string(argc, argv, &i, in_orientation_string);
+      errmsg = MRIcheckOrientationString(in_orientation_string);
+      if(errmsg){
+	printf("ERROR: with in orientation string %s\n",in_orientation_string);
+	printf("%s\n",errmsg);
+	exit(1);
+      }
+      in_orientation_flag = TRUE;
+    }
+
+    else if(strcmp(argv[i], "--out_orientation") == 0)
+    {
+      get_string(argc, argv, &i, out_orientation_string);
+      errmsg = MRIcheckOrientationString(out_orientation_string);
+      if(errmsg){
+	printf("ERROR: with out orientation string %s\n",out_orientation_string);
+	printf("%s\n",errmsg);
+	exit(1);
+      }
+      out_orientation_flag = TRUE;
+    }
+
     else if(strcmp(argv[i], "-oid") == 0 || strcmp(argv[i], "--out_i_direction") == 0)
     {
       get_floats(argc, argv, &i, out_i_directions, 3);
@@ -1293,6 +1323,11 @@ int main(int argc, char *argv[])
     mri->z_s = in_k_directions[2];
     mri->ras_good_flag = 1;
   }
+  if(in_orientation_flag){
+    printf("Setting input orientation to %s\n",in_orientation_string);
+    MRIorientationStringToDircos(mri, in_orientation_string);
+    mri->ras_good_flag = 1;
+  }
   if(in_center_flag)
   {
     mri->c_r = in_center[0];
@@ -1665,6 +1700,10 @@ int main(int argc, char *argv[])
     template->z_a = out_k_directions[1];
     template->z_s = out_k_directions[2];
   }
+  if(out_orientation_flag){
+    printf("Setting output orientation to %s\n",out_orientation_string);
+    MRIorientationStringToDircos(template, out_orientation_string);
+  }
   if(out_center_flag)
   {
     template->c_r = out_center[0];
@@ -1981,6 +2020,7 @@ void usage(FILE *stream)
   fprintf(stream, "  -iid, --in_i_direction <R direction> <A direction> <S direction>\n");
   fprintf(stream, "  -ijd, --in_j_direction <R direction> <A direction> <S direction>\n");
   fprintf(stream, "  -ikd, --in_k_direction <R direction> <A direction> <S direction>\n");
+  fprintf(stream, "  --in_orientation orientation-string : see SETTING ORIENTATION\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -ic, --in_center <R coordinate> <A coordinate> <S coordinate>\n");
   fprintf(stream, "\n");
@@ -1996,6 +2036,7 @@ void usage(FILE *stream)
   fprintf(stream, "  -oid, --out_i_direction <R direction> <A direction> <S direction>\n");
   fprintf(stream, "  -ojd, --out_j_direction <R direction> <A direction> <S direction>\n");
   fprintf(stream, "  -okd, --out_k_direction <R direction> <A direction> <S direction>\n");
+  fprintf(stream, "  --out_orientation orientation-string : see SETTING ORIENTATION\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -oc, --out_center <R coordinate> <A coordinate> <S coordinate>\n");
   fprintf(stream, "\n");
@@ -2151,9 +2192,54 @@ void usage(FILE *stream)
   //E/  printf("  -nozgez, --no_zero_ge_z_offset\n");
   //E/  printf("            don't set c_s=0, even if a GE volume\n");
   printf("\n");
+  printf(
+"SPECIFYING THE ORIENTATION\n"
+"\n"
+"Ideally, the orientation information is derived from a DICOM file so that\n"
+"you have some confidence that it is correct. It is generally pretty easy\n"
+"to determine which direction Anterior/Posterior or Inferior/Superior are.\n"
+"Left/Right is very difficult. However, if you have some way of knowing which\n"
+"direction is which, you can use these options to incorporate this information \n"
+"into the header of the output format. For analyze files, it will be stored in\n"
+"the output.mat file. For NIFTI, it is stored as the qform matrix. For bshort/ \n"
+"bfloat, it is stored in the .bhdr file. For mgh/mgz it is internal.\n"
+"\n"
+"First of all, determining and setting the orientation is hard. Don't fool yourself\n"
+"into thinking otherwise. Second, don't think you are going to learn all you need\n"
+"to know from this documentation. Finally, you risk incorporating a left-right\n"
+"flip in your data if you do it incorrectly. OK, there are two ways to specify this \n"
+"information on the command-line. (1) explicitly specify the direction cosines\n"
+"with -iid, -ijd, -ikd. If you don't know what a direction cosine is, don't use\n"
+"this method. Instead, (2) specify an orientation string. \n"
+"\n"
+"--in-orientation  ostring\n"
+"--out-orientation ostring\n"
+"  \n"
+"  Supply the orientation information in the form of an orientation string \n"
+"  (ostring). The ostring is three letters that roughly describe how the volume\n"
+"  is oriented. This is usually described by the direction cosine information\n"
+"  as originally derived from the dicom but might not be available in all data\n"
+"  sets. You'll have to determine the correct ostring for your data.\n"
+"  The first  character of ostring determines the direction of increasing column.\n"
+"  The second character of ostring determines the direction of increasing row.\n"
+"  The third  character of ostring determines the direction of increasing slice.\n"
+"  Eg, if the volume is axial starting inferior and going superior the slice \n"
+"  is oriented such that nose is pointing up and the right side of the subject\n"
+"  is on the left side of the image, then this would correspond to LPS, ie,\n"
+"  as the column increases, you move to the patients left; as the row increases,\n"
+"  you move posteriorly, and as the slice increases, you move superiorly. Valid\n"
+"  letters are L, R, P, A, I, and S. There are 48 valid combinations (eg, RAS\n"
+"  LPI, SRI). Some invalid ones are DPS (D is not a valid letter), RRS (can't\n"
+"  specify R twice), RAP (A and P refer to the same axis). Invalid combinations\n"
+"  are detected immediately, an error printed, and the program exits. Case-insensitive.\n"
+"  Note: you can use tkregister2 to help determine the correct orientation string.\n"
+);
+
+  printf("\n");
   printf("Notes: \n");
   printf("\n");
-  printf("If the user specifies any of the direction cosines, the ras_good_flag is set.\n");
+  printf("If the user specifies any of the direction cosines or orientation string,\n");
+  printf("the ras_good_flag is set.\n");
   printf("\n");
 
 } /* end usage() */
