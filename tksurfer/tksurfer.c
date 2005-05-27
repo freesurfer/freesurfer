@@ -5749,74 +5749,50 @@ rotate_brain(float a, char c)
 void
 read_image_info(char *fpref)
 {
-  FILE *fptr;
-  char fname[NAME_LENGTH], char_buf[100];
+  char fname[NAME_LENGTH];
   MRI* mri_header;
-  
-  sprintf(fname,"%s.info",fpref);
-  printf("surfer: %s\n",fname);
-  fptr = fopen(fname,"r");
-  if (fptr != NULL) 
-    {
-      fscanf(fptr,"%*s %d",&imnr0);
-      fscanf(fptr,"%*s %d",&imnr1);
-      fscanf(fptr,"%*s %*d");
-      fscanf(fptr,"%*s %d",&xnum);
-      fscanf(fptr,"%*s %d",&ynum);
-      fscanf(fptr,"%*s %f",&fov);
-      fscanf(fptr,"%*s %f",&ps);
-      fscanf(fptr,"%*s %f",&st);
-      fscanf(fptr,"%*s %*f"); /* locatn */
-      fscanf(fptr,"%*s %f",&xx0); /* strtx */
-      fscanf(fptr,"%*s %f",&xx1); /* endx */
-      fscanf(fptr,"%*s %f",&yy0); /* strty */
-      fscanf(fptr,"%*s %f",&yy1); /* endy */
-      fscanf(fptr,"%*s %f",&zz0); /* strtz */
-      fscanf(fptr,"%*s %f",&zz1); /* endz */
-      fscanf(fptr, "%*s %*f") ;   /* tr */
-      fscanf(fptr, "%*s %*f") ;   /* te */
-      fscanf(fptr, "%*s %*f") ;   /* ti */
-      fscanf(fptr, "%*s %s",char_buf);
-      fclose(fptr);
 
-      fov *= 1000;
-      ps *= 1000;
-      st *= 1000;
-      xx0 *= 1000;
-      xx1 *= 1000;
-      yy0 *= 1000;
-      yy1 *= 1000;
-      zz0 *= 1000;
-      zz1 *= 1000;
-    }
-  else 
+  mri_header = NULL;
+  sprintf (fname, "%s.info", fpref);
+  mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+
+  if (NULL == mri_header) 
     {
-      /* Look for a mgz version of the T1 and get the info from there. */
-      sprintf(fname,"%s/%s/mri/T1.mgz",subjectsdir,pname);
+      sprintf (fname, "%s/%s/mri/T1.mgh", subjectsdir, pname);
       mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
-      if (mri_header != NULL)
-	{
-	  imnr0 = mri_header->imnr0;
-	  imnr1 = mri_header->imnr1;
-	  xnum = mri_header->width;
-	  ynum = mri_header->height;
-	  fov = mri_header->fov;
-	  ps = mri_header->xsize;
-	  st = mri_header->ysize;
-	  xx0 = mri_header->xstart;
-	  xx1 = mri_header->xend;
-	  yy0 = mri_header->ystart;
-	  yy1 = mri_header->yend;
-	  zz0 = mri_header->zstart;
-	  zz1 = mri_header->zend;
+    }
 
-	  MRIfree (&mri_header);
-	}
-      else
-	{
-	  printf("surfer: ### Could not find anatomical header information.\n");
-	  exit(1);
-	}
+  if (NULL == mri_header) 
+    {
+      sprintf (fname, "%s/%s/mri/T1.mgz", subjectsdir, pname);
+      mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+    }
+
+  if (mri_header)
+    {
+      printf ("surfer: Reading header info from %s\n", fname);
+
+      imnr0 = mri_header->imnr0;
+      imnr1 = mri_header->imnr1;
+      xnum = mri_header->width;
+      ynum = mri_header->height;
+      ps = mri_header->xsize;
+      st = mri_header->ysize;
+      xx0 = mri_header->xstart;
+      xx1 = mri_header->xend;
+      yy0 = mri_header->ystart;
+      yy1 = mri_header->yend;
+      zz0 = mri_header->zstart;
+      zz1 = mri_header->zend;
+      
+      fov = MRIfovCol( mri_header );
+      
+      MRIfree (&mri_header);
+    }
+  else
+    {
+      printf("surfer: ### Could not find anatomical header information.\n");
+      exit(1);
     }
 
   /* RKT: Check for fov == 0, which is incorrect. If it is, set it to
@@ -18302,7 +18278,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.114 2005/05/26 21:24:03 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.115 2005/05/27 15:03:28 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
