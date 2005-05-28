@@ -21,7 +21,7 @@ mri_surf2vol mri_surfcluster mri_synthesize \
 mri_tessellate mri_distance_transform mri_transform mri_train mri_twoclass \
 mri_volcluster mri_volsynth mri_vol2roi mri_vol2surf mri_watershed mri_wmfilter \
 mri_xvolavg mri_threshold mri_edit_wm_with_aseg mri_bc_sc_bias_correct \
-mri_morphology mri_topologycorrection 
+mri_morphology mri_topologycorrection mri_make_density_map
 MRISSUBDIRS=stim stim_polar tridec \
 mris_add_template mris_anatomical_stats mris_annot_to_segmentation mris_average_curvature \
 mris_ca_label mris_ca_train mris_classify_thickness mris_compute_acorr mris_compute_overlap mris_convert \
