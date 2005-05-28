@@ -17,7 +17,7 @@
 
 #define UNIT_VOLUME 128
 
-static char vcid[] = "$Id: mri_make_density_map.c,v 1.1 2005/01/28 20:12:21 fischl Exp $";
+static char vcid[] = "$Id: mri_make_density_map.c,v 1.2 2005/05/28 18:52:48 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -30,6 +30,7 @@ static void print_version(void) ;
 char *Progname ;
 static char *out_like_fname = NULL ;
 
+static int nreductions = 0 ;
 static char *xform_fname = NULL ;
 static LTA  *lta = NULL;
 static TRANSFORM *transform = NULL ;
@@ -45,7 +46,7 @@ main(int argc, char *argv[])
 	
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_density_map.c,v 1.1 2005/01/28 20:12:21 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_density_map.c,v 1.2 2005/05/28 18:52:48 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -104,6 +105,13 @@ main(int argc, char *argv[])
 	/* removed for gcc3.3
 	 * vsprintf(out_fname, out_fname, (va_list) &label) ;
 	 */
+	while (nreductions-- > 0)
+	{
+		MRI *mri_tmp ;
+
+		mri_tmp = MRIreduce(mri_out, NULL) ;
+		MRIfree(&mri_out) ; mri_out = mri_tmp ;
+	}
 	printf("writing output to %s\n", out_fname) ;
 	MRIwrite(mri_out, out_fname) ;
   
@@ -144,6 +152,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+	case 'R':
+		nreductions = atoi(argv[2]) ;
+		printf("reducing density maps %d times...\n", nreductions);
+		nargs = 1 ;
+		break ;
   case 'S':
     sigma = atof(argv[2]) ;
     printf("applying sigma=%2.1f smoothing kernel after extraction...\n",sigma) ;
@@ -196,6 +209,7 @@ print_usage(void)
   fprintf(stderr, "where options are:\n") ;
   fprintf(stderr, 
           "\t-s <sigma>\tapply a Gaussian smoothing kernel\n"
+          "\t-r <n>\tapply a Gaussian reduction n times\n"
           "\t-t <xform file>\tapply the transform in <xform file> to extracted volume\n");
 }
 
