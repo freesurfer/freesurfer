@@ -1,12 +1,30 @@
 #!/bin/tcsh -ef
 
-setenv LTA   talairach.lta
-setenv ASEG  aseg
-setenv GCA $FREESURFER_HOME/average/young_new_b.gca
-setenv GCA_TL $FREESURFER_HOME/average/young_tl_b.gca
+set s=$1
 
-setenv s $1
+set M3D=talairach.m3z
+set LTA=talairach.lta
 
+set label=mri_ca_label
+set emreg=mri_em_register
+set careg=mri_ca_register
+set canorm=mri_ca_normalize
 set sdir = $SUBJECTS_DIR/$s/mri
-mkdir -p $sdir/$ASEG
-mri_ca_label -tl $GCA_TL -mask $sdir/brain  $sdir/norm $sdir/transforms/$LTA $GCA $sdir/$ASEG
+foreach d (fsamples norm transforms)
+	if (-e $sdir/$d == 0)\
+			mkdir $sdir/$d ;\
+	endif
+end
+
+if (-e $sdir/brain.mgz == 0) then
+		set BRAIN=brain
+else
+		set BRAIN=brain.mgz
+endif
+
+set echo=1		
+#nu_correct_one.csh $s
+$emreg  -mask $sdir/$BRAIN $sdir/nu $GCA $sdir/transforms/$LTA  
+$canorm -mask $sdir/$BRAIN $sdir/nu $GCA $sdir/transforms/$LTA $sdir/norm.mgz
+$careg -cross-sequence  -mask $sdir/$BRAIN -T $sdir/transforms/$LTA $sdir/norm.mgz $GCA $sdir/transforms/$M3D
+$label -cross-sequence $sdir/norm.mgz $sdir/transforms/$M3D $GCA $sdir/aseg.mgz
