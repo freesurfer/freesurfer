@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/05/11 20:43:20 $
-// Revision       : $Revision: 1.350 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2005/05/30 19:33:49 $
+// Revision       : $Revision: 1.351 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -32972,7 +32972,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
   mri_gray_white = MRIalloc(256, 256, 1, MRI_FLOAT) ;
   
 	mrisMarkAllDefects(mris, dl, 1) ;
-  //TO BE CHECKED IF MGH PROCESSED BRAIN
+  //TO BE CHECKED IF MGH PROCESSED BRAIN (T1==110)
 	mrisComputeJointGrayWhiteBorderDistributions(mris, mri, mri_gray_white, mri_wm) ;
 	
 	/* compute statistics on original */
@@ -43693,6 +43693,7 @@ mrisComputeGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri, DEFECT *def
   HISTOfree(&h_gray_raw) ; HISTOfree(&h_white_raw) ; HISTOfree(&h_border_raw) ; HISTOfree(&h_grad_raw) ;
   return(NO_ERROR) ;
 }
+
 static int
 mrisComputeJointGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri, 
 					     MRI *mri_gray_white, MRI *mri_wm)
@@ -43712,20 +43713,20 @@ mrisComputeJointGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri,
     nx = v->nx ; ny = v->ny ; nz = v->nz ; 
     xw = v->x ; yw = v->y ; zw = v->z ; 
     
-    // MRIworldToVoxel(mri_wm, xw+.5*nx, yw+.5*ny, zw+.5*nz, &xv, &yv, &zv) ;
+    // MRIworldToVoxel(mri, xw+.5*nx, yw+.5*ny, zw+.5*nz, &xv, &yv, &zv) ;
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(xw+.5*nx, yw+.5*ny, zw+.5*nz,&xv, &yv, &zv) ;
 #else   
-    MRIsurfaceRASToVoxel(mri_wm, xw+.5*nx, yw+.5*ny, zw+.5*nz, &xv, &yv, &zv) ;
+    MRIsurfaceRASToVoxel(mri, xw+.5*nx, yw+.5*ny, zw+.5*nz, &xv, &yv, &zv) ;
 #endif
-    MRIsampleVolumeType(mri_wm, xv, yv, zv, &gray_val, SAMPLE_NEAREST) ;
-    // MRIworldToVoxel(mri_wm, xw-.5*nx, yw-.5*ny, zw-.5*nz, &xv, &yv, &zv) ;
+    MRIsampleVolumeType(mri, xv, yv, zv, &gray_val, SAMPLE_NEAREST) ;
+    // MRIworldToVoxel(mri, xw-.5*nx, yw-.5*ny, zw-.5*nz, &xv, &yv, &zv) ;
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(xw-.5*nx, yw-.5*ny, zw-.5*nz,&xv, &yv, &zv) ;
 #else    
-    MRIsurfaceRASToVoxel(mri_wm, xw-.5*nx, yw-.5*ny, zw-.5*nz, &xv, &yv, &zv) ;
+    MRIsurfaceRASToVoxel(mri, xw-.5*nx, yw-.5*ny, zw-.5*nz, &xv, &yv, &zv) ;
 #endif   
-    MRIsampleVolumeType(mri_wm, xv, yv, zv, &white_val, SAMPLE_NEAREST) ;
+    MRIsampleVolumeType(mri, xv, yv, zv, &white_val, SAMPLE_NEAREST) ;
     
 
 

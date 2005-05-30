@@ -16,7 +16,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.29 2005/05/17 20:17:27 segonne Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.30 2005/05/30 19:36:11 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -31,7 +31,7 @@ char *Progname ;
 
 static int exit_after_diag = 0 ;
 
-static char *T1_name = "T1" ;
+static char *brain_name = "brain" ;
 static char *wm_name = "wm" ;
 static char *sphere_name = "qsphere" ;
 static char *inflated_name = "inflated" ;
@@ -45,6 +45,7 @@ static char sdir[STRLEN] = "" ;
 static TOPOLOGY_PARMS parms ;
 static int MGZ = 0; // set to 1 for MGZ
 
+static double pct_over = 1.1;
 
 int
 main(int argc, char *argv[])
@@ -58,7 +59,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.29 2005/05/17 20:17:27 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.30 2005/05/30 19:36:11 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -140,7 +141,7 @@ main(int argc, char *argv[])
 
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, sphere_name) ;
   fprintf(stderr, "reading input surface %s...\n", fname) ;
-  mris = MRISread(fname) ;
+  mris = MRISreadOverAlloc(fname,pct_over) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read input surface %s",
               Progname, fname) ;
@@ -156,13 +157,13 @@ main(int argc, char *argv[])
 	/* at this point : canonical vertices */
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, sname, T1_name) ;
+  sprintf(fname, "%s/%s/mri/%s", sdir, sname, brain_name) ;
   if(MGZ) sprintf(fname, "%s.mgz", fname);
-  printf("reading T1 volume from %s...\n", T1_name) ;
+  printf("reading brain volume from %s...\n", brain_name) ;
   mri = MRIread(fname) ;
   if (!mri)
     ErrorExit(ERROR_NOFILE,
-              "%s: could not read T1 volume from %s", Progname, fname) ;
+              "%s: could not read brain volume from %s", Progname, fname) ;
 
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, wm_name) ;
   if(MGZ) sprintf(fname, "%s.mgz", fname);
@@ -170,7 +171,7 @@ main(int argc, char *argv[])
   mri_wm = MRIread(fname) ;
   if (!mri_wm)
     ErrorExit(ERROR_NOFILE,
-              "%s: could not read T1 volume from %s", Progname, fname) ;
+              "%s: could not read wm volume from %s", Progname, fname) ;
 
 	
   if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
