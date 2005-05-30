@@ -248,6 +248,9 @@ MRI   *GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                        MRI *mri_dst, TRANSFORM *transform) ;
 MRI   *GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, 
                            int nsamples, TRANSFORM *transform, char *ctl_point_fname) ;
+MRI *
+GCAnormalizeSamplesAllChannels(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples, 
+			       TRANSFORM *transform, char *ctl_point_fname);
 float GCAlabelProbability(MRI *mri_src, GCA *gca, TRANSFORM *transform,
                           int x, int y, int z, int label) ;
 MRI   *GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
