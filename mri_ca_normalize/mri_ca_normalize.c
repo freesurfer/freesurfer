@@ -4,8 +4,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/03/31 21:51:43 $
-// Revision       : $Revision: 1.27 $
+// Revision Date  : $Date: 2005/05/30 20:38:38 $
+// Revision       : $Revision: 1.28 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -30,6 +30,8 @@
 
 char         *Progname ;
 
+MRI *
+normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas, int input_index);
 MRI *normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas) ;
 static MRI *normalize_from_segmentation_volume(MRI *mri_src, MRI *mri_dst, MRI *mri_seg, int *structs, int nstructs) ;
 static double TRs[MAX_GCA_INPUTS] ;
@@ -107,7 +109,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.27 2005/03/31 21:51:43 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.28 2005/05/30 20:38:38 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -370,11 +372,11 @@ main(int argc, char *argv[])
 			
       printf("using %d total control points for intensity normalization...\n", norm_samples) ;
       if (normalized_transformed_sample_fname)
-				GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples, 
-																		normalized_transformed_sample_fname, 
-																		transform) ;
-      mri_norm = GCAnormalizeSamples(mri_in, gca, gcas_norm, file_only ? 0 :norm_samples,
-																		 transform, ctl_point_fname) ;
+	GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples, 
+				    normalized_transformed_sample_fname, 
+				    transform) ;
+      mri_norm = GCAnormalizeSamplesAllChannels(mri_in, gca, gcas_norm, file_only ? 0 :norm_samples,
+				     transform, ctl_point_fname) ;
     }
     if (Gdiag & DIAG_WRITE)
     {
@@ -1072,7 +1074,13 @@ normalize_from_segmentation_volume(MRI *mri_src, MRI *mri_dst, MRI *mri_seg, int
     MRIadd(mri_tmp, mri_bin, mri_bin) ;
   }
 
-  mri_dst = normalizeFromLabel(mri_src, mri_dst, mri_bin, fas) ;
+  //  mri_dst = normalizeFromLabel(mri_src, mri_dst, mri_bin, fas) ;  
+  //normalize each channel separately
+
+  for(i=0; i < mri_src->nframes; i++){
+    mri_dst = normalizeChannelFromLabel(mri_src, mri_dst, mri_bin, fas, i);
+  }
+
 
   MRIfree(&mri_bin) ; MRIfree(&mri_tmp) ;
   return(mri_dst) ;
@@ -1237,6 +1245,173 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas)
 	    break ;
 	  case MRI_FLOAT: 
 	    MRIFseq_vox(mri_dst, x, y, z, input) = val ; 
+	    break ;
+	  default:
+	    ErrorReturn(NULL,
+			(ERROR_UNSUPPORTED, 
+			 "GCAnormalizeSamples: unsupported input type %d",mri_in->type));
+	    break ;
+	  }
+	}
+      }
+    }
+  }
+
+  MRIfree(&mri_bias) ; MRIfree(&mri_ctrl) ;
+  return(mri_dst) ;
+}
+
+
+MRI *
+normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas, int input_index)
+{
+  MRI    *mri_ctrl, *mri_bias ;
+  int    x, y, z, width, height, depth, num, total;
+  float   bias ;
+  double  mean, sigma;
+  Real    val ;
+
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_in, NULL) ;
+  mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
+  MRIcopyHeader(mri_in, mri_ctrl);
+  mri_bias = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_SHORT);
+  if (!mri_bias)    
+    ErrorExit(ERROR_NOMEMORY, 
+	      "GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
+	      mri_in->width,mri_in->height,mri_in->depth) ;
+  MRIcopyHeader(mri_in, mri_bias);
+
+#define MAX_BIAS 1250
+#define NO_BIAS  1000
+#define MIN_BIAS  750
+
+  /* use all non-zero locations in mri_seg as control points */
+  MRIbinarize(mri_seg, mri_ctrl, 1, 0, CONTROL_MARKED) ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        MRISvox(mri_bias, x,y,z) = NO_BIAS ;  /* by default */
+        if (MRIvox(mri_ctrl, x, y, z) != CONTROL_MARKED)  /* not read from file */
+	  continue ;
+	
+	MRIsampleVolumeFrame(mri_in, x, y, z, input_index, &val) ;
+	bias = NO_BIAS*DEFAULT_DESIRED_WHITE_MATTER_VALUE / val ;          
+	MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
+      }
+    }
+  }
+
+  /* now check for and remove outliers */
+  mean = sigma = 0.0 ;
+  for (num = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED)  
+        {
+          num++ ;
+          bias = (double)MRISvox(mri_bias, x, y, z) ;
+          mean += bias ; sigma += (bias*bias) ;
+        }
+      }
+    }
+  }
+
+  if (num > 0)
+  {
+    mean /= (double)num ;
+    sigma  = sqrt(sigma / (double)num - mean*mean) ;
+    printf("bias field = %2.3f +- %2.3f\n", mean/NO_BIAS, sigma/NO_BIAS) ;
+  }
+
+  /* now check for and remove outliers */
+  for (total = num = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED)  
+        {
+          bias = (double)MRISvox(mri_bias, x, y, z) ;
+          total++ ;
+          if (fabs(bias-mean) > 4*sigma)
+          {
+            MRIvox(mri_ctrl, x, y, z) = CONTROL_NONE ;  
+            num++ ;
+            MRISvox(mri_bias, x, y, z) = NO_BIAS ;
+          }
+        }
+      }
+    }
+  }
+
+  printf("%d of %d control points discarded\n", num, total) ;
+
+  MRIbuildVoronoiDiagram(mri_bias, mri_ctrl, mri_bias) ;
+  /*  MRIwrite(mri_bias, "bias.mgh") ;*/
+#if 1
+  {
+    MRI *mri_kernel, *mri_smooth, *mri_down ;
+    float sigma = 16.0f ;
+
+    mri_down = MRIdownsample2(mri_bias, NULL) ;
+    mri_kernel = MRIgaussian1d(sigma, 100) ;
+    mri_smooth = MRIconvolveGaussian(mri_down, NULL, mri_kernel) ;
+    MRIfree(&mri_bias) ; MRIfree(&mri_kernel) ;
+    mri_bias = MRIupsample2(mri_smooth, NULL) ;
+    sigma = 2.0f ; MRIfree(&mri_down) ; MRIfree(&mri_smooth) ;
+    mri_kernel = MRIgaussian1d(sigma, 100) ;
+    mri_smooth = MRIconvolveGaussian(mri_bias, NULL, mri_kernel) ;
+    MRIfree(&mri_bias) ; mri_bias = mri_smooth ; MRIfree(&mri_kernel) ;
+  }
+#else
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
+#endif
+  /*  MRIwrite(mri_bias, "smooth_bias.mgh") ;*/
+
+
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
+        if (bias < 0)
+          DiagBreak() ;
+	{
+	  MRIsampleVolumeFrame(mri_in, x, y, z, input_index, &val) ;
+	  val *= bias ;   /* corrected value */
+	  switch (mri_in->type)
+	  {
+	  case MRI_UCHAR: 
+	    if (val < 0)
+	      val = 0 ;
+	    else if (val > 255)
+	      val = 255 ;
+	    MRIseq_vox(mri_dst, x, y, z, input_index) = (BUFTYPE)nint(val) ; 
+	    break ;
+	  case MRI_SHORT: 
+	    MRISseq_vox(mri_dst, x, y, z, input_index) = (short)nint(val) ; 
+	    break ;
+	  case MRI_FLOAT: 
+	    MRIFseq_vox(mri_dst, x, y, z, input_index) = val ; 
 	    break ;
 	  default:
 	    ErrorReturn(NULL,
