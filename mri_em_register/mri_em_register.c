@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/03/31 21:50:53 $
-// Revision       : $Revision: 1.49 $
+// Revision Date  : $Date: 2005/05/30 20:36:05 $
+// Revision       : $Revision: 1.50 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -150,7 +150,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.49 2005/03/31 21:50:53 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.50 2005/05/30 20:36:05 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -211,7 +211,8 @@ main(int argc, char *argv[])
 
   ///////////////////  -novar option //////////////////////////////////////////////
   if (novar)
-    GCAunifyVariance(gca) ;
+    GCAregularizeCovariance(gca,1.0); 
+  //    GCAunifyVariance(gca) ;
 	
   GCAfixSingularCovarianceMatrices(gca) ;
 
@@ -317,7 +318,8 @@ main(int argc, char *argv[])
 								Progname, gca->ninputs, ninputs) ;
     /*		GCAhistoScaleImageIntensities(gca, mri_in) ;*/
     if (novar)
-      GCAunifyVariance(gca) ;
+      GCAregularizeCovariance(gca,1.0); 
+      //      GCAunifyVariance(gca) ;
   }
   ///////////////////////////////////////////////////////////////
   else if (gca->type == GCA_FLASH)
@@ -352,7 +354,8 @@ main(int argc, char *argv[])
 #endif
       GCAhistoScaleImageIntensities(gca, mri_in) ;
     if (novar)
-      GCAunifyVariance(gca) ;
+      GCAregularizeCovariance(gca,1.0); 
+    //      GCAunifyVariance(gca) ;
   }
   if (ninputs != gca->ninputs)
     ErrorExit(ERROR_BADPARM, "%s: must specify %d input volumes, not %d for this atlas\n",
