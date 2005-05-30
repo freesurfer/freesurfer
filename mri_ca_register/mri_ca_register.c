@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/03/31 21:54:12 $
-// Revision       : $Revision: 1.29 $
+// Revision Date  : $Date: 2005/05/30 20:47:56 $
+// Revision       : $Revision: 1.30 $
 
 
 #include <math.h>
@@ -47,6 +47,7 @@ static char *norm_fname = NULL ;
 static int renormalize = 0 ;
 
 static char *long_reg_fname = NULL ;
+static int inverted_xform = 0 ;
 
 static float regularize = 0 ;
 static char *example_T1 = NULL ;
@@ -140,7 +141,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.29 2005/03/31 21:54:12 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.30 2005/05/30 20:47:56 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -465,14 +466,20 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname, xform_name) ;
     if (long_reg_fname)
     {
-      TRANSFORM *transform ;
+      TRANSFORM *transform_long ;
 
-      transform = TransformRead(long_reg_fname) ;
-      if (transform == NULL)
+      transform_long = TransformRead(long_reg_fname) ;
+      if (transform_long == NULL)
 	ErrorExit(ERROR_NOFILE, "%s: could not read longitudinal registration file %s", Progname, long_reg_fname) ;
-			
-      GCAMapplyTransform(gcam, transform) ;
-      TransformFree(&transform) ;
+
+      //      if (inverted_xform)
+      //	{
+      //	  TransformInvert(transform_long, mri_inputs) ;
+      //	  TransformSwapInverse(transform_long) ;
+      //	}			
+      GCAMapplyTransform(gcam, transform_long) ;
+      TransformFree(&transform_long) ;
+      //      GCAMwrite(gcam, "combined_gcam.m3z");
     }
   }
   else  // default is to create one
@@ -521,7 +528,63 @@ main(int argc, char *argv[])
     GCAMinit(gcam, mri_inputs, gca, transform, parms.relabel_avgs >= parms.navgs) ;
   else
   {
-    gcam->gca = gca ;
+    // added by xhan
+    int x, y, z, n, label, max_n, max_label;
+    float max_p;
+    GC1D *gc;
+    GCA_MORPH_NODE  *gcamn ;
+    GCA_PRIOR *gcap;
+
+    gcam->ninputs = mri_inputs->nframes ;
+    getVolGeom(mri_inputs, &gcam->src);
+    GCAsetVolGeom(gca, &gcam->atlas);
+    gcam->gca = gca ; gcam->spacing = gca->prior_spacing;
+
+    // use gca information 
+    for (x = 0 ; x < gcam->width ; x++)
+      {
+	for (y = 0 ; y < gcam->height ; y++)
+	  {
+	    for (z = 0 ; z < gcam->depth ; z++)
+	      {
+		gcamn = &gcam->nodes[x][y][z] ;
+		gcap = &gca->priors[x][y][z] ;
+		max_p = 0 ;  max_n = -1 ; max_label = 0 ;
+		
+		// find the label which has the max p
+		for (n = 0 ; n < gcap->nlabels ; n++)
+		  {
+		    label = gcap->labels[n] ;   // get prior label
+		    if (label == Gdiag_no)
+		      DiagBreak() ;
+		    if (label >= MAX_CMA_LABEL)
+		      {
+			printf("invalid label %d at (%d, %d, %d) in prior volume\n",
+			       label, x, y, z);
+		      }
+		    if (gcap->priors[n] >= max_p) // update the max_p and max_label
+		      {
+			max_n = n ;
+			max_p = gcap->priors[n] ;
+			max_label = gcap->labels[n] ;
+		      }
+		  }
+
+		gcamn->label = max_label ;
+		gcamn->n = max_n ;
+		gcamn->prior = max_p ;
+		gc = GCAfindPriorGC(gca, x, y, z, max_label) ;
+		// gc can be NULL
+		gcamn->gc = gc ;
+		gcamn->log_p = 0 ;
+		
+	      }
+	    
+	  }
+      }
+    
+    
+    
     GCAMcomputeOriginalProperties(gcam) ;
     if (parms.relabel_avgs >= parms.navgs)
       GCAMcomputeLabels(mri_inputs, gcam) ;
@@ -557,8 +620,22 @@ main(int argc, char *argv[])
     GCAMsetStatus(gcam, GCAM_USE_LIKELIHOOD) ; /* disable everything */
     printf("initial white matter registration complete - full registration...\n") ;
   }
-  if (renormalize)
-    GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
+
+  //note that transform is meaningless when -L option is used! A bug! -xh
+  //  if (renormalize)
+  //  GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
+  if (renormalize){
+    if(!xform_name)
+      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
+    else{
+      TRANSFORM *trans ;
+      trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
+      trans->type = TransformFileNameType(xform_name);
+      trans->xform = (void *)gcam;
+      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
+      free(trans);
+    }
+  }
 
   if (parms.write_iterations != 0)
   {
@@ -991,12 +1068,14 @@ get_option(int argc, char *argv[])
   else switch (toupper(*option))
   {
 	case 'L':   /* for longitudinal analysis */
-		xform_name = argv[2] ;
-		long_reg_fname = argv[3] ;
-		nargs = 2 ;
-		printf("reading previously computed atlas xform %s and applying registration %s\n",
-					 xform_name, long_reg_fname) ;
-		break ;
+	  xform_name = argv[2] ;
+	  //invert is not needed if REG is from tp1 to current subject! -xh
+	  //	  inverted_xform = 1 ;
+	  long_reg_fname = argv[3] ;
+	  nargs = 2 ;
+	  printf("reading previously computed atlas xform %s and applying inverse registration %s\n",
+		 xform_name, long_reg_fname) ;
+	  break ;
   case 'J':
     parms.l_jacobian = atof(argv[2]) ;
     nargs = 1 ;
