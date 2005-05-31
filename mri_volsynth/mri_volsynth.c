@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.6 2004/02/23 04:09:30 greve Exp $
+  $Id: mri_volsynth.c,v 1.7 2005/05/31 18:06:20 greve Exp $
 */
 
 #include <stdio.h>
@@ -40,7 +40,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.6 2004/02/23 04:09:30 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.7 2005/05/31 18:06:20 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -315,6 +315,9 @@ static void print_usage(void)
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
   printf("   --pdf pdfname : <gaussian>, uniform, const, delta\n");
+  printf("\n");
+  printf(" Other arguments\n");
+  printf("   --fwhm fwhmmm : smooth by FWHM mm\n");
   printf("\n");
 }
 /* --------------------------------------------- */
