@@ -5101,7 +5101,8 @@ select_vertex(short sx,short sy)
     }
   
   /* select the label at this vertex, if there is one. */
-  labl_select_label_by_vno (vno);
+  if (labl_draw_flag)
+    labl_select_label_by_vno (vno);
   
   /* select the boundary at this vertex, if there is one. */
   fbnd_select_boundary_by_vno (vno);
@@ -18278,7 +18279,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.115 2005/05/27 15:03:28 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.116 2005/05/31 21:11:50 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
