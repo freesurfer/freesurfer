@@ -16,7 +16,7 @@
 #include "timer.h"
 #include "version.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.29 2005/02/08 17:55:37 xhan Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.30 2005/05/31 20:53:59 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -46,6 +46,10 @@ static float inflate_area  = 0.0f ;
 static float inflate_tol  = 1.0f ;
 static float inflate_nlarea  = 0.0f ;
 
+static float ralpha = 0.0 ;
+static float rbeta = 0.0 ;
+static float rgamma = 0.0 ;
+
 #if 0
 static int   inflate_avgs = 64 ;
 static int   inflate_iterations = 50 ;
@@ -63,6 +67,8 @@ static float l_sphere = 0.025 ;
 static char *orig_name = "smoothwm" ;
 static int smooth_avgs = 0 ;
 
+static char *xform_fname = NULL ;
+static char *vol_fname = NULL ;
 int
 main(int argc, char *argv[])
 {
@@ -74,7 +80,7 @@ main(int argc, char *argv[])
   float         max_dim ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.29 2005/02/08 17:55:37 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.30 2005/05/31 20:53:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -160,10 +166,34 @@ main(int argc, char *argv[])
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   }
   
+	if (!FZERO(ralpha) || !FZERO(rbeta) || !FZERO(rgamma))
+	{
+    MRISrotate(mris, mris, RADIANS(ralpha), RADIANS(rbeta), RADIANS(rgamma)) ;
+		//		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+			MRISwrite(mris, "rot") ;
+	}		
   fprintf(stderr, "unfolding cortex into spherical form...\n");
   if (talairach)
+	{
     MRIStalairachTransform(mris, mris) ;
+		MRISwrite(mris, "tal") ;
+	}
 
+	if (xform_fname)
+	{
+		LTA *lta ;
+		MRI *mri ;
+
+		lta = LTAread(xform_fname) ;
+		if (lta == NULL)
+			ErrorExit(ERROR_NOFILE, "%s: could not load %s", xform_fname) ;
+		mri = MRIread(vol_fname) ;
+		if (mri == NULL)
+			ErrorExit(ERROR_NOFILE, "%s: could not load %s", vol_fname) ;
+		MRIStransform(mris, mri, lta, mri) ;
+		MRIfree(&mri) ; LTAfree(&lta) ;
+		MRISwrite(mris, "xfm") ;
+	}
   max_dim = MAX(abs(mris->xlo), abs(mris->xhi)) ;
   max_dim = MAX(abs(max_dim), abs(mris->ylo)) ;
   max_dim = MAX(abs(max_dim), abs(mris->yhi)) ;
@@ -272,6 +302,15 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "smoothing original positions %d times before computing metrics\n",
             smooth_avgs) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "rotate"))
+  {
+		ralpha = atof(argv[2]) ;
+		rbeta = atof(argv[3]) ;
+		rgamma = atof(argv[4]) ;
+		nargs = 3 ;
+    fprintf(stderr, "rotating brain by (%2.1f, %2.1f, %2.1f)\n",
+						ralpha, rbeta, rgamma) ;
   }
   else if (!stricmp(option, "talairach"))
   {
@@ -441,6 +480,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+	case 'T':
+		xform_fname = argv[2] ;
+		vol_fname = argv[3] ;
+		nargs = 2 ;
+		break ;
   case 'O':
     orig_name = argv[2] ;
     fprintf(stderr, "using %s as original surface...\n", orig_name) ;
