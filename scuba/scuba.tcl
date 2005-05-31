@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.115 2005/05/27 21:46:11 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.116 2005/05/31 21:05:21 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2012,10 +2012,10 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	}
     tkuMakeSliders $fwProps2DMRI.swBC -sliders {
 	{-label "Brightness" -variable gaLayer(current,brightness) 
-	    -min 1 -max 0 -resolution 0.01 
+	    -min 1 -max 0 -resolution 0.01 -entry 1
 	    -command {Set2DMRILayerBrightness $gaLayer(current,id) $gaLayer(current,brightness); RedrawFrame [GetMainFrameID]}}
 	{-label "Contrast" -variable gaLayer(current,contrast) 
-	    -min 0 -max 30 -resolution 1
+	    -min 0 -max 30 -resolution 1 -entry 1
 	    -command {Set2DMRILayerContrast $gaLayer(current,id) $gaLayer(current,contrast); RedrawFrame [GetMainFrameID]}}
     }
     tkuMakeSliders $fwProps2DMRI.swMinMax -sliders {
@@ -5084,7 +5084,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.115 2005/05/27 21:46:11 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.116 2005/05/31 21:05:21 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5786,6 +5786,105 @@ proc SetCursorFromEditDatFile {} {
     RedrawFrame [GetMainFrameID]
 
     UpdateCursorLabelArea
+}
+
+proc DoGenerateReportDlog {} {
+    global gaReportInfo
+    global gaCollection
+    global gaDialog
+
+    # Make list of volume and surface collections.
+    set lSurfaces {}
+    set lVolumes {}
+    foreach colID $gaCollection(idList) {
+	if { [string match [GetCollectionType $colID] Surface] } {
+	    lappend lSurfaces $colID
+	}
+	if { [string match [GetCollectionType $colID] Volume] } {
+	    lappend lVolumes $colID
+	}
+    }
+    
+    # If no volumes, return.
+    if { [llength $lVolumes] == 0 } {
+	tkuErrorDlog "Must have volumes loaded before generating reports."
+	return
+    }
+
+    set wwDialog .setCursorFromEditDatFile
+    if { [tkuCreateDialog $wwDialog "Generate Report" {-borderwidth 10}] } {
+
+	set fwVolumes $wwDialog.fwVolumes
+	set fwData    $wwDialog.fwData
+	set fwButtons $wwDialog.fwButtons
+
+	# Make a list of checkboxes of volumes to include in the report.
+	tixLabelFrame $fwVolumes \
+	    -label "Volumes" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+
+	set fwVolumesSub [$fwVolumes subwidget frame]
+
+	set gaReport(volumes,list) $lVolumes
+	set lCheckboxes {}
+	foreach volID $lVolumes {
+	    set gaReportInfo(volumes,$volID) 0
+	    lappend lCheckboxes \
+		[list -type text -label "GetCollectionLabel $volID" \
+		 -variable gaReportInfo(volumes,$volID)]
+	    lappend gaReportInfo(volumes,list) $volID
+	}
+
+	tkuMakeCheckboxes $fwVolumesSub.cbVolumes \
+	    -font [tkuNormalFont] \
+	    -checkboxes $lCheckboxes
+
+	pack $fwVolumesSub.cbVolumes \
+	    -fill both -expand y
+
+	# Make a list of checkboxes for types of information.
+	tixLabelFrame $fwData \
+	    -label "Data" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+
+	set fwDataSub [$fwData subwidget frame]
+
+	tkuMakeCheckboxes $fwDataSub.cbData \
+	    -font [tkuNormalFont] \
+	    -checkboxes {
+		{-type test -label "Segmentation Volumes"
+		    -variable gaReportInfo(data,segVolumes) }
+	    }
+
+	pack $fwDataSub.cbData \
+	    -fill both -expand y
+
+
+	tkuMakeCancelOKButtons $fwButtons $wwDialog \
+	    -okCmd GenerateReport
+	
+	pack $fwVolumes $fwData $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+    }
+}
+
+proc GenerateReport {} {
+    global gaReportInfo
+
+    if { $gaReportInfo(data,segVolumes) } {
+	
+	foreach volID $gaReportInfo(volumes,list) {
+
+	    # Get a list of segmentation volumes
+
+	}
+    }
 }
 
 # MAIN =============================================================
