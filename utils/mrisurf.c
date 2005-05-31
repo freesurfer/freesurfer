@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/05/30 19:33:49 $
-// Revision       : $Revision: 1.351 $
+// Revision Date  : $Date: 2005/05/31 15:48:02 $
+// Revision       : $Revision: 1.352 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -108,7 +108,13 @@ typedef struct
 #define SPHERE_INTERSECTION 1
 /* speeds things up */
 #define MATRIX_ALLOCATION 1
-/* solve the neighboring defect problem */
+/* add extra vertices to avoid topological inconsistencies */
+#define ADD_EXTRA_VERTICES 0
+/* defect becomes a enclosed patch 
+	 requires ADD_VERTEX_VERTICES to avoid top. inconsistencies */
+#define FIND_ENCLOSING_LOOP 0
+/* solve the neighboring defect problem 
+	 becomes obsolet because of ADD_EXTRA_VERTICES */
 #define MERGE_NEIGHBORING_DEFECTS 1
 /* limit the convex hull to the strict minimum set of first neighbors*/
 #define SMALL_CONVEX_HULL 1
@@ -195,7 +201,9 @@ static int mrisDilateAmbiguousVertices(MRI_SURFACE *mris, int mark,int ndil) ;
 static int triangleNeighbors(MRI_SURFACE *mris, int fno1, int fno2) ;
 #endif
 static int triangleMarked(MRI_SURFACE *mris, int fno) ;
+#if 0
 static int mrisScaleMaxDimension(MRI_SURFACE *mris, float maxr) ;
+#endif
 static int mrisCalculateOriginalFaceCentroid(MRI_SURFACE *mris, int fno, 
 					     float *px, float *py, float *pz) ;
 static int mrisCalculateFaceCentroid(MRI_SURFACE *mris, int fno, 
@@ -27552,6 +27560,9 @@ typedef struct
   int    *chull ;        /* vertices in the convex hull */
   int    nchull ;        /* # of vertices in the convex hull */
 
+	EDGE *edges;    /* the set of edges constituting the border of the defect */
+	int nedges;     /* inside is left of vn1->vn2 - outside is right */
+
 	int    *vertex_trans;
 	int defect_number;
 
@@ -27802,6 +27813,11 @@ DEFECT_LIST      *MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous,
                                      int mark_segmented) ;
 static int       mrisSegmentDefect(MRI_SURFACE *mris,int vno,DEFECT *defect,
                                    int mark_ambiguous, int mark_segmented);
+#if FIND_ENCLOSING_LOOP
+static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, 
+																		 int mark_ambiguous, int mark_segmented);
+static int mrisSegmentConnectedComponents(MRIS *mris);
+#endif
 static int       mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris, 
                                               DEFECT *defect, 
                                               FACE_DEFECT_LIST *fdl,
@@ -32451,9 +32467,56 @@ MRIS* MRISremoveRippedSurfaceElements(MRIS *mris){
 }
 
 
+/* verify if some defects are not overlapping : to be implemented */
+static DEFECT_LIST *mrisDefectAnalysis(MRIS *mris,DEFECT_LIST *dl ){
+	int i,n;
+	DEFECT *defect;
+
+	fprintf(stderr,"analyzing defects...\n");
+	/* initiliaze flags */
+	for(n=0;n<mris->nvertices;n++){
+		mris->vertices[n].ripflag=0;
+		mris->vertices[n].marked=0;
+		mris->vertices[n].fixedval=0;
+		mris->vertices[n].undefval=0;
+		mris->vertices[n].old_undefval=0;
+	}
+
+	for (i = 0 ; i < dl->ndefects ; i++)
+  {
+    defect = &dl->defects[i] ;
+		//fprintf(stderr,"\n%d  : ",i);
+		for(n = 0 ; n < defect->nvertices ; n++)
+    {
+			//fprintf(stderr,"%d ",defect->vertices[n]);
+			if(mris->vertices[defect->vertices[n]].marked){
+				ErrorExit(ERROR_BADPARM,"mrisDefectAnalysis : defect %d overlap defect %d",i,mris->vertices[defect->vertices[n]].marked-1);
+			}
+			mris->vertices[defect->vertices[n]].marked=i+1;
+		}
+	}
+	for (i = 0 ; i < dl->ndefects ; i++)
+  {
+    defect = &dl->defects[i] ;
+		for(n = 0 ; n < defect->nborder ; n++)
+    {
+			if(mris->vertices[defect->border[n]].marked){
+				ErrorExit(ERROR_BADPARM,"mrisDefectAnalysis : defect border %d overlap defect %d",i,mris->vertices[defect->border[n]].marked-1);
+			}
+		}
+	}
+	//fprintf(stderr,"\nend analysis\n");
+	return dl;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 //
+//
 //    This program will generate a topologically correct surface mris_corrected from mris
+//
+//    canonical vertices = spherical vertices  
+//    original vertices = original vertices
+//    tmp vertices = inflated vertices
 //    
 //    CAREFUL: the fiedls v->curvbak, v->val, v->val2, v->valbak are used by some functions
 //
@@ -32481,6 +32544,11 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 
 	fprintf(WHICH_OUTPUT,"\nCorrection of the Topology\n");
 
+	//	canonical = spherical vertices  
+	//  original  = original vertices
+	//  tmp       = inflated vertices
+	//  current   = canonical vertices 
+
 #if MATRIX_ALLOCATION
   /* allocation of the transform matrix */
   VoxelFromSRASmatrix=GetSurfaceRASToVoxelMatrix(mri);
@@ -32488,20 +32556,30 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 
   /* centering the surface using CANONICAL_VERTICES */ 
   MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+	//	canonical = spherical vertices  
+	//  original  = original vertices
+	//  tmp       = inflated vertices
+	//  current   = spherical vertices
   MRIScenterSphere(mris);
-  /* saving into CANONICAL_VERTICES */
+  
+	/* saving into CANONICAL_VERTICES */
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+	/* at this point : current = canonical vertices */
+
   /* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 		 for now on, should avoid reprojecting vertices onto the sphere 
 		 and even more recentering the canonical sphere
 		 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 	*/
 
-  /*  mrisCheckSurface(mris) ;*/
+	/* marking intersecting edges */
   fdl = MRISmarkAmbiguousVertices(mris, MARK_AMBIGUOUS) ;
   //if (Gdiag & DIAG_SHOW) 
 	fprintf(WHICH_OUTPUT, "segmenting defects...\n") ;
   dl = MRISsegmentDefects(mris, MARK_AMBIGUOUS, MARK_SEGMENTED) ;
+
+	/* analyze if the segmentation into connected defects is correct */
+	dl = mrisDefectAnalysis(mris,dl);
 
   MRISsetVals(mris, 0.0f) ;
   for (i = 0 ; i < dl->ndefects ; i++)
@@ -32519,22 +32597,19 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 	fprintf(WHICH_OUTPUT, "%d defects found, arbitrating ambiguous regions...\n",
 					dl->ndefects) ;
 
-#if 0
-  MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-  MRISreadVertexPositions(mris, "inflated") ;
-  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-#endif
-
-#if 0
-  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-#endif
-
+	/* at this point : canonical vertices */
   MRIScomputeMetricProperties(mris) ;
-  mrisScaleMaxDimension(mris, FIELD_OF_VIEW*.9f) ; //TO BE CHECKED
+#if 0
+	/* should not modify anything about canonical vertices */
+  mrisScaleMaxDimension(mris, FIELD_OF_VIEW*.9f) ; 
+#endif
   MRISclearMarks(mris) ; 
 	MRISclearCurvature(mris) ;
 
-#if MERGE_NEIGHBORING_DEFECTS /* to avoid subtle topological errors*/
+	/* at this point : canonical vertices */	
+#if MERGE_NEIGHBORING_DEFECTS 
+	/* to avoid subtle topological errors 
+		 became obsolet with ADD_EXTRA_VERTICES */
 	dl = mrisMergeNeighboringDefects(mris,dl);
 	MRISclearMarks(mris) ;
 #endif
@@ -32546,68 +32621,15 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
     defect = &dl->defects[i] ;
 		defect->defect_number=i;
 
-#if 0
-    if (Gdiag & DIAG_SHOW)
-      fprintf(WHICH_OUTPUT, "\rdefect %d (area %2.3f)      ", 
-              i, defect->area) ;
-#endif
-
-		/* Remove close vertices only - keep negative area */
+		/* Identify some defective vertices */
     mrisMarkRetainedPartOfDefect(mris, defect, fdl, AREA_THRESHOLD,
                                  MARK_RETAIN, MARK_DISCARD, mht , parms->keep) ;
 		/* The convex hull is now constituted of the first neighbors only */
     mrisFindDefectConvexHull(mris, defect) ;
+
 	}
-
-#if 0
-	for (i = 0 ; i < dl->ndefects ; i++)
-  {
-    defect = &dl->defects[i] ;
-		{
-			int m,p,q,vn1;
-			EDGE e1,e2;
-			VERTEX *vm,*vp,*vq;
-			
-			mrisMarkDefectBorder(mris,defect,1);
-			/* check intersecting edges */
-			for ( n = 0 ; n < defect->nborder ; n++){
-				vno=defect->border[n];
-				v=&mris->vertices[vno];
-
-				e1.vno1=vno;
-
-				for(m=0 ; m < v->vnum ; m++){
-					vm=&mris->vertices[v->v[m]];
-					if(vm->marked==0) continue;
-					
-					e1.vno2=v->v[m];
-					
-					for (p = 0 ; p < defect->nvertices ; p++){
-						vn1=defect->vertices[p];
-						vp=&mris->vertices[vn1];
-						e2.vno1=vn1;
-						
-						for(q=0 ; q < vp->vnum ; q++){
-							
-							vq=&mris->vertices[vp->v[q]];
-							if(vq->marked) continue;
-							e2.vno2=vp->v[q];
-
-							if(edgesIntersect(mris,&e1,&e2)){
-								fprintf(stderr,"defect %d : edge (%d,%d) intersect edge (%d,%d)\n",
-												defect->defect_number,e1.vno1,e1.vno2,e2.vno1,e2.vno2);
-								
-							}
-						}
-					}
-				}
-			}
-			mrisMarkDefectBorder(mris,defect,0);
-		}
-	}
-#endif
   
-	
+	/* for diagnostic purposes */
   for (i = 0 ; i < dl->ndefects ; i++)
   {
     int    vno2, n2 ;
@@ -32656,7 +32678,8 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 
 
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-	
+	/* at this point : current = original vertices */
+
   /* v->val = border, v->val2 = white, v->val2bak = gray */
   mrisRipAllDefects(mris, dl, 1) ;
   mrisFindGrayWhiteBorderMean(mris, mri) ;
@@ -32664,11 +32687,22 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 
 #if 1
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+	/* at this point : tmp becomes original vertices */
+	MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRISaverageVertexPositions(mris, 2) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+	/* at this point : original vertices become smoothed original vertices */
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+	/* at this point : back to original vertices */
 #endif
+
+	/* vertex information : 
+		 canonical - canonical 
+		 tmp - original
+		 original = smoothed
+		 current = original (non smoothed)
+	*/
+
   MRISsetNeighborhoodSize(mris, 2) ;
   h_k1 = HISTOalloc(100) ; 
 	h_k2 = HISTOalloc(100) ;
@@ -32682,12 +32716,8 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
      and the original space for geometry (i.e. edge length).
   */
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ; 
+	/* at this point : 'non-smoothed' original vertices */
 
-#if 0
-  MRIScopyValuesToCurvature(mris) ; 
-	MRISwriteCurvature(mris, "defect_types");
-  MRIScopyImagValuesToCurvature(mris) ; 
-#endif
   for (i = 0 ; i < dl->ndefects ; i++)
   {
     defect = &dl->defects[i] ;
@@ -32787,6 +32817,24 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
     }
     if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
       MRISwriteCurvature(mris, "defect_borders") ;
+		for (i = 0 ; i < dl->ndefects ; i++)
+    {
+      defect = &dl->defects[i] ;
+      for (n = 0 ; n < defect->nchull ; n++)
+      {
+        mris->vertices[defect->chull[n]].curv = 2;
+      }
+			for (n = 0 ; n < defect->nborder ; n++)
+      {
+        mris->vertices[defect->border[n]].curv = -1;
+      }
+			for (n = 0 ; n < defect->nvertices ; n++)
+      {
+        mris->vertices[defect->vertices[n]].curv = i+1 ;
+      }
+    }
+		if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
+      MRISwriteCurvature(mris, "defect_chull") ;
   }
 
   /* now start building the target surface */
@@ -32825,17 +32873,19 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
     if (vno == Gdiag_no)
       DiagBreak() ;
 		/* ignore the inside defect vertices but not the bordering ones */
-		if (v->marked)
-      continue ;
+		if (v->marked) continue ;
     vdst = &mris_corrected->vertices[mris_corrected->nvertices] ;
     if (mris_corrected->nvertices == Gdiag_no)
       DiagBreak() ;
     
     vdst->nsize = v->nsize ;
+		/* original vertices */
     vdst->x = v->x ; vdst->y = v->y ; vdst->z = v->z ; 
+		/* smoothed vertices */
     vdst->origx = v->origx ; vdst->origy = v->origy ; vdst->origz = v->origz ; 
     vdst->tx = v->tx ; vdst->ty = v->ty ; vdst->tz = v->tz ; 
     vdst->nx = v->nx ; vdst->ny = v->ny ; vdst->nz = v->nz ; 
+		/* canonical vertices */
     vdst->cx = v->cx ; vdst->cy = v->cy ; vdst->cz = v->cz ; 
     vdst->num = v->num ; 
     vdst->val = v->val ;  vdst->val2 = v->val2 ; 
@@ -32855,7 +32905,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
     {
       if (defect->vertices[n] == Gdiag_no)
         DiagBreak() ;
-			/* only add the kept vertices */
+			/* only add the kept vertices in greedy_search mode */
       if (parms->search_mode!=GREEDY_SEARCH || defect->status[n] == KEEP_VERTEX)
       {
         vno = defect->vertices[n] ; v = &mris->vertices[vno] ;
@@ -32881,7 +32931,6 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
         vdst->num = vdst->vnum = 0 ; 
 				if(parms->search_mode!=GREEDY_SEARCH && defect->status[n] == DISCARD_VERTEX)
 					vdst->ripflag=1;
-
         vertex_trans[vno] = mris_corrected->nvertices++ ;
 				
       }
@@ -32961,7 +33010,9 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 
   MRISclearMarks(mris) ;
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-  MRIScomputeMetricProperties(mris) ;
+	/* at this point : back to smoothed original vertices for mris */
+	/*                 but still original (non smoothed) vertices for mris_corrected */
+	MRIScomputeMetricProperties(mris) ;
   MRISsmoothSurfaceNormals(mris, 10) ;
 
   ////////////////////////// watch out ///////////////////////////////////////////
@@ -33121,22 +33172,15 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
     mris_corrected->vertices[vno].vtotal = mris_corrected->vertices[vno].vnum ;
 
 
-#if 0  
-  fprintf(WHICH_OUTPUT, "tessellation finished, orienting corrected surface...\n") ;
-  /*  MRISprojectOntoSphere(mris, mris, MRISaverageRadius(mris)) ;*/
-  mrisOrientRetessellatedSurface(mris_corrected, dl, vertex_trans) ;
-#endif
-
   fprintf(WHICH_OUTPUT, "computing original vertex metric properties...\n") ;
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
+	/* at this point : smoothed corrected orig vertices */
   MRIScomputeMetricProperties(mris_corrected) ;
   fprintf(WHICH_OUTPUT, "storing new metric properties...\n") ;
   /*  MRISstoreMetricProperties(mris_corrected) ;*/
   fprintf(WHICH_OUTPUT, "computing tessellation statistics...\n") ;
   MRISprintTessellationStats(mris_corrected, stderr) ;
-  MRISrestoreVertexPositions(mris_corrected, CANONICAL_VERTICES) ;
-
-  MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
+  
   MRISsetMarks(mris_corrected, 1) ;
   for (i = 0 ; i < dl->ndefects ; i++)
   {
@@ -33161,15 +33205,17 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
   fprintf(WHICH_OUTPUT, 
 	  "performing soap bubble on retessellated vertices for %d "
 	  "iterations...\n", nsmooth) ;
+	/* at this point : smoothed corrected orig vertices */
   MRISsoapBubbleVertexPositions(mris_corrected, nsmooth) ;
   MRISsaveVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
   MRISclearMarks(mris_corrected) ;
 
   MRISprintTessellationStats(mris_corrected, stderr) ;
   MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES) ;
+	/* at this point : back to original vertices */
   fprintf(WHICH_OUTPUT, "tessellation finished, orienting corrected surface...\n") ;
 
-  /*  MRISprojectOntoSphere(mris, mris, MRISaverageRadius(mris)) ;*/
+
 	if(parms->search_mode==GREEDY_SEARCH)
 		mrisOrientRetessellatedSurface(mris_corrected, dl, vertex_trans) ;
 
@@ -33227,6 +33273,8 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 			free(dl->defects[i].status) ;
     if(dl->defects[i].border)
 			free(dl->defects[i].border) ;
+		if(dl->defects[i].edges)
+			free(dl->defects[i].edges);
   }
   free(dl) ;
 
@@ -33242,6 +33290,11 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 
 	mris_corrected_final=MRISremoveRippedSurfaceElements(mris_corrected);	
 	MRISfree(&mris_corrected);
+	/* current = orig vertices 
+	   tmp = originial vertices 
+	   orig = smoothed correct vertices = true solution 
+	   canonical = canonical vertices 
+	*/
   return(mris_corrected_final) ;
 }
 static int
@@ -33313,11 +33366,12 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
   MRISclearCurvature(mris) ;
   mrisMarkBadEdgeVertices(mris, mark) ;
 
-  /* 
+
+#if 0  
+	  /* 
 		 should not reproject vertices on to sphere 
 		 should not recenter the canonical sphere !
 	*/
-#if 0  
   r = MRISaverageRadius(mris) ;
   MRISscaleBrain(mris, mris, 100.0/r) ;
 #endif
@@ -33339,7 +33393,7 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
     if (f->ripflag)
       continue ;
 
-		/* to be updated : only edge intersection so far !! */
+		/* only edge-intersection to identify overlapping faces */
     nfaces = mrisFindAllOverlappingFaces(mris, mht, fno, flist) ;
 
     /* make sure fno is in list, and add it if it isn't (it should be) */
@@ -33354,7 +33408,7 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
     }
 #if 1
 		if(nfaces>1) 
-#else   //FLO
+#else   
     if ((nfaces > 1 || area_scale*f->area < 0.001) || ((fno <= 5) && Gdiag & DIAG_SAVE_DIAGS))  /* part of a defect */
 #endif
     {
@@ -33410,7 +33464,7 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
       }
     }
   }
-  //TO BE CHECKED : FLO FLO ... pbm when "#if 1...
+  //TO BE CHECKED : ... pbm when "#if 1...
 #if 0
   /* expand defective vertices outwards by one */
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -33435,9 +33489,10 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON && fp)
     fclose(fp) ;
 
-  /* should not reproject vertices on to sphere */
+  
 #if 0 
-  MRISscaleBrain(mris, mris, r/100.0) ;
+  /* should not reproject vertices on to sphere */
+	MRISscaleBrain(mris, mris, r/100.0) ;
 #endif
 
   fprintf(WHICH_OUTPUT, "%d ambiguous faces found in tessellation\n", nmarked) ;
@@ -33451,6 +33506,11 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
 
   Description
   Find all connected components of a defect.
+	use undefval,old_undefval, curv and fixedval during segmentation 
+	into connected components:
+	  - fixedval is used to mark border vertices 
+    - curv is used to save the marked flags during divideedge.
+		- undefval and old_undefval are used to find the enclosing loop 
   ------------------------------------------------------*/
 DEFECT_LIST *
 MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
@@ -33459,6 +33519,7 @@ MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
   int          vno ;
   VERTEX       *v ;
   FILE         *fp = NULL ;
+	DEFECT *defect;
 
   dl = (DEFECT_LIST *)calloc(1, sizeof(DEFECT_LIST)) ;
   if (!dl)
@@ -33474,6 +33535,12 @@ MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
     fp = fopen(fname, "a") ;
   }
 
+
+#if ADD_EXTRA_VERTICES /* uses fixedval to mark border vertices */
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+		mris->vertices[vno].fixedval=0;
+#endif
+
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -33481,25 +33548,19 @@ MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
       continue ;
     if (dl->ndefects == Gdiag_no)
       DiagBreak() ;
+		
+		defect=&dl->defects[dl->ndefects];
+		defect->defect_number=dl->ndefects++;
+		//		fprintf(stderr,"DEFECT %d\n",defect->defect_number);
 
-    mrisSegmentDefect(mris, vno, &dl->defects[dl->ndefects++], 
-                      mark_ambiguous, mark_segmented) ;
-#if 0
-    if (Gdiag & DIAG_SHOW)
-    {
-      DEFECT *defect = &dl->defects[dl->ndefects-1] ;
-#if 0
-      fprintf(WHICH_OUTPUT, "\rdefect %3d: %4d vertices, area %2.2f c (%2.1f,%2.1f,%2.1f), n (%2.1f,%2.1f,%2.1f)  ",
-              dl->ndefects, defect->nvertices, defect->area, 
-              defect->cx, defect->cy, defect->cz,
-              defect->nx, defect->ny, defect->nz) ;
-#else
-      fprintf(WHICH_OUTPUT, "\rdefect %3d: %4d vertices, area %2.2f, "
-              "c (%2.1f,%2.1f,%2.1f)  ", dl->ndefects, defect->nvertices, 
-              defect->area, defect->cx, defect->cy, defect->cz) ;
+		/* segment defect #defect->defect_number */
+    mrisSegmentDefect(mris, vno, defect, mark_ambiguous, mark_segmented) ;
+
+#if FIND_ENCLOSING_LOOP
+		/* update the defect so it becomes simply connected */
+		mrisSimplyConnectedDefect(mris,defect,mark_ambiguous, mark_segmented);
 #endif
-    }
-#endif
+
     if (Gdiag & DIAG_WRITE && fp)
     {
       int n ;
@@ -33531,9 +33592,12 @@ static int
 mrisSegmentDefect(MRI_SURFACE *mris, int vno, DEFECT *defect,
                   int mark_ambiguous, int mark_segmented)
 {
-  int    vlist[200000], i, n, nfilled ;
-  VERTEX *v, *vn ;
+  int    vlist[200000], i, j,n, nfilled ,nadded,vno1,m;
+  VERTEX *v, *vn,*vadded ;
   float  len, nx, ny, nz ;
+
+	vno1=nadded=m=j=0; /* to avoid compilator warnings */
+	vadded=NULL;
 
   vlist[defect->nvertices++] = vno ;  /* start the list */
 
@@ -33578,6 +33642,57 @@ mrisSegmentDefect(MRI_SURFACE *mris, int vno, DEFECT *defect,
     ErrorExit(ERROR_NO_MEMORY, 
               "mrisSegmentDefect: could allocate defect status list") ;
   memcpy(defect->vertices, vlist, defect->nvertices*sizeof(int)) ;
+
+
+		/* analyze if some extra vertices should be added to the surface */
+#if ADD_EXTRA_VERTICES
+	for (nadded = i = 0 ; i < defect->nvertices ; i++){
+		v = &mris->vertices[defect->vertices[i]] ;
+		for (n = 0 ; n < v->vnum ; n++)
+    {
+			vno1=v->v[n];
+			vn=&mris->vertices[vno1];
+			if(vn->marked==0){ /* border vertex */
+				/* check if this border vertex is already part of one defect */
+				if(vn->fixedval) { /* needs to add one extra vertex */
+					if(mris->nvertices==mris->max_vertices){
+						ErrorExit(ERROR_BADPARM,"ADD_EXTRA_VERTICES : could not allocate extra vertex\n");
+					}
+					/* hack to avoid errors : using curv to save marked vertices */
+					for(j=0 ; j < mris->nvertices ; j++){
+						VERTEX *vj;
+						vj = &mris->vertices[j] ;
+						vj->curv=vj->marked;
+						vj->marked=0;
+					}
+					mrisDivideEdge(mris,defect->vertices[i], vno1);
+					for(j=0 ; j < mris->nvertices-1 ; j++){ /* reset marks */
+						VERTEX *vj;
+						vj = &mris->vertices[j] ;
+						vj->marked=(int)vj->curv;
+					}
+					
+				  vadded=&mris->vertices[mris->nvertices-1];
+					//fprintf(stderr,"adding vertex %d(%d)\n",mris->nvertices-1,vn->fixedval);
+					vadded->marked=0; /* border vertex  */
+					vadded->fixedval=0;
+					
+					/* spherical projection */
+					sphericalProjection(vadded->cx,vadded->cy,vadded->cz,&vadded->cx,&vadded->cy,&vadded->cz);
+					vadded->x=vadded->cx;
+					vadded->y=vadded->cy;
+					vadded->z=vadded->cz;
+					nadded++;
+				}
+				
+			}
+		}
+	} 
+	if(nadded)
+		fprintf(stderr,"defect %d : %d vertices have been added to the surface\n",defect->defect_number,nadded);
+
+#endif	
+
   for (nfilled = i = 0 ; i < defect->nvertices ; i++)
   {
     v = &mris->vertices[defect->vertices[i]] ;
@@ -33614,6 +33729,427 @@ mrisSegmentDefect(MRI_SURFACE *mris, int vno, DEFECT *defect,
   defect->nx = nx/len ; defect->ny = ny/len ; defect->nz = nz/len ;
   return(NO_ERROR) ;
 }
+#if FIND_ENCLOSING_LOOP
+/* segment a surface into connected components using undefval to mark
+	 the different components and avoiding old_undefval */
+static int mrisSegmentConnectedComponents(MRIS *mris){
+	int n,p,vno=0,seed,found;
+	int *vlist,nvertices;
+	int *next_vlist,next_nvertices,total_vertices,maxn,maxv;
+	VERTEX *v,*vp;
+
+	vlist=(int*)malloc(mris->nvertices*sizeof(int));
+	next_vlist=(int*)malloc(mris->nvertices*sizeof(int));
+
+	for(n=0;n<mris->nvertices;n++)
+		mris->vertices[n].undefval=0;
+
+	seed=1; /* first seed */
+	maxv=0;maxn=0;
+	while(1){
+		found=0;
+		for(n=0;n<mris->nvertices;n++){
+			v=&mris->vertices[n];
+			if(v->old_undefval) continue;
+			if(v->undefval==0){
+				v->undefval=seed;
+				vno=n;
+				found=1;
+				break;
+			}			
+		}
+		if(found==0) break;
+			
+		/* grow seed point */
+		vlist[0]=vno;
+		nvertices=1;
+		total_vertices=1;
+
+		while(nvertices){
+			for (next_nvertices = n = 0 ; n < nvertices ; n++){
+				v = &mris->vertices[vlist[n]] ;
+				
+				for (p = 0 ; p < v->vnum ; p++){
+					vp = &mris->vertices[v->v[p]] ;
+					if(vp->old_undefval) continue;
+					if(vp->undefval) continue;
+					
+					/* new point to be added */
+					next_vlist[next_nvertices++]=v->v[p];
+					vp->undefval=seed;
+				}
+      }
+			nvertices=next_nvertices;
+			memcpy(vlist,next_vlist,mris->nvertices*sizeof(int));
+			total_vertices += nvertices;
+    }
+		if(maxv < total_vertices){
+			maxn=seed;
+			maxv=total_vertices;
+		}
+		//		fprintf(stderr,"seed %d has %d vertices \n",seed,total_vertices);
+
+		seed++;
+	}
+	free(vlist);
+	free(next_vlist);
+
+	if(maxn==0){
+		ErrorExit(ERROR_BADPARM,"0 labels found in mrisSegmentConnectedComponents\n");
+	}
+	return maxn;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  Making sure the defect is simply connected 
+	region growing method (the largest component is the good one)
+	use undefval,old_undefval during the segmentation process
+   - old_undefval are forbidden points (borders, inside)
+	 - undefval are flags for the segmentation into connected components 
+  ------------------------------------------------------*/
+static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect,
+													int mark_ambiguous, int mark_segmented){
+	int n,p,l,label,j,w;
+	int nvertices,nedges,inside_face,outside_face;
+	int add_vertex,add_edges;
+	VERTEX *v,*v1,*v2,*vin,*vout;
+	FACE *f;
+	EDGE *edges,*edge,*new_edges;
+	int added_edges,vno1,vno2,vno_in,vno_out,isedge;
+	int *varray,*barray,vnb,bnb;
+	float len,dot,cx,cy,cz;
+	VECTOR  *v_a, *v_b, *v_n ;
+
+	//fprintf(stderr,"\nDEFECT %d\n",defect->defect_number);
+	//fprintf(stderr,"before analysis: %d inside vertices, %d border vertices (total=%d)\n",defect->nvertices,defect->nborder,defect->nvertices+defect->nborder);
+
+	v_a = VectorAlloc(3, MATRIX_REAL) ;
+  v_b = VectorAlloc(3, MATRIX_REAL) ;
+  v_n = VectorAlloc(3, MATRIX_REAL) ;
+
+	/* setting flags to zero */
+	for( n = 0 ; n < mris->nvertices ; n++){
+		mris->vertices[n].undefval=0;				
+		mris->vertices[n].old_undefval=0;
+	}
+	
+	for(n=0;n<defect->nborder;n++){
+		v=&mris->vertices[defect->border[n]];
+		v->old_undefval=1; /* forbidden border point */
+	}
+	for(n=0;n<defect->nvertices;n++){
+		v=&mris->vertices[defect->vertices[n]];
+		v->old_undefval=1; /* forbidden inside point */
+	}	
+
+	/* segment the surface into connected components 
+		 label is the largest component */
+	label=mrisSegmentConnectedComponents(mris);
+	
+	/* everything not label becomes defective (old_undefval=1)*/
+	/* first count them */
+	vnb=0;
+	for(n=0;n<mris->nvertices;n++){ /* these first vertices are new ones */
+		v=&mris->vertices[n];
+		if(v->old_undefval) continue;
+		if(v->undefval!=label) vnb++; /* only counting for now */
+	}
+	/* allocate the new list of defective vertices 
+	 max size is vnb+defect->nvertices+defect->nborder */
+	varray=(int*)malloc((vnb+defect->nvertices+defect->nborder)*sizeof(int));
+	/* then add them */
+	vnb=0;
+	for(n=0;n<mris->nvertices;n++){ /* this first vertices are new ones */
+		v=&mris->vertices[n];
+		if(v->old_undefval) continue;
+		if(v->undefval!=label) {
+			varray[vnb++]=n;
+			v->undefval=1;
+		}
+		else v->undefval=0;
+	}
+
+	for(n=0;n<defect->nvertices;n++){
+		v=&mris->vertices[defect->vertices[n]];
+		v->old_undefval=0;
+		v->undefval=1;
+	}
+				
+	for(n=0;n<defect->nborder;n++){ /* border vertices become 2 */
+		v=&mris->vertices[defect->border[n]];
+		v->old_undefval=0;
+		v->undefval=2;
+	}
+
+	/* max number of edges */
+	nedges = defect->nborder*(defect->nborder-1)/2; 
+	edges=(EDGE*)malloc(nedges*sizeof(EDGE));
+	added_edges=0;
+
+	/* now need to find the right border vertices to keep (border = 2) 
+		 right vertices = forms good edge in between inside (1 or 2) and outside 0 
+		 this subtlety is important : the closed loop must be "convexified" 
+		 the right border vertices are marked as 3 */
+	
+	for (nvertices = nedges = n = 0 ; n < defect->nborder ; n++){
+		v=&mris->vertices[defect->border[n]];
+		add_vertex=add_edges=0;
+		/* count # of neighbors */
+		for( p = 0 ; p < v->vnum ; p++){
+			if(mris->vertices[v->v[p]].undefval==2 || 
+				 mris->vertices[v->v[p]].undefval==3){ /* potential edge */
+				/* is there an inside and outside triangle in common with this vertex */
+				inside_face=0;outside_face=0;
+				vno_in=vno_out=-1;
+				for(l = 0 ; l < v->num ; l++){
+					f=&mris->faces[v->f[l]];
+					/* check if this face has v->v[p] */
+					for(j=0;j<3;j++){
+						if(f->v[j]==v->v[p]){
+							/* check if the last vertex is outside */
+							for(w=0;w<3;w++){
+								if(mris->vertices[f->v[w]].undefval==0){ /* outside */
+									outside_face=1;
+									vno_out=f->v[w];
+									break;
+								}
+							}
+							for(w=0;w<3;w++){
+								if(mris->vertices[f->v[w]].undefval==1 /* inside vertex */
+									 || ((mris->vertices[f->v[w]].undefval==2 || mris->vertices[f->v[w]].undefval==3) && f->v[w]!=defect->border[n] && f->v[w]!=v->v[p])){ /* border vertex */
+									inside_face=1;
+									vno_in=f->v[w];
+									break;
+								}
+							}
+						}
+					}
+				}
+				if(inside_face && outside_face) { /* good edge -> good vertex */
+					add_edges++;
+					add_vertex=1;
+					v->undefval=3;
+					
+					/* vertices constituting the edge to be potentially added */
+					vno1=defect->border[n];
+					vno2=v->v[p];
+			 
+					/* check is edge already exists */
+					for(isedge=w=0;w<added_edges;w++){
+						edge=&edges[w];
+						if((edge->vno1==vno1 && edge->vno2==vno2) ||
+							 (edge->vno1==vno2 && edge->vno2==vno1)){
+							isedge=1;
+							break;
+						}
+					}
+					if(isedge==0){ /* add edge to list */
+						/* orient edge first */
+						v1=&mris->vertices[vno1];
+						v2=&mris->vertices[vno2];
+						vout=&mris->vertices[vno_out];
+						vin=&mris->vertices[vno_in];
+						VECTOR_LOAD(v_a,v2->cx-v1->cx,v2->cy-v1->cy,v2->cz-v1->cz);
+						VECTOR_LOAD(v_b,vin->cx-vout->cx,vin->cy-vout->cy,vin->cz-vout->cz);
+						V3_CROSS_PRODUCT(v_a, v_b, v_n) ;
+						cx=v1->cx+v2->cx;	cy=v1->cy+v2->cy;	cz=v1->cz+v2->cz;
+						dot = cx * V3_X(v_n) + cy * V3_Y(v_n) + cz * V3_Z(v_n);
+
+						if (dot < 0.0f) {  /* not in same direction, reverse vno1, vno2 */
+							w=vno1;
+							vno1=vno2;
+							vno2=w;
+						}
+						
+						/* add edge */
+						edge=&edges[added_edges++];
+						edge->vno1=vno1;
+						edge->vno2=vno2;
+					}
+				}
+			}
+		}
+		nedges += add_edges;
+		if(add_vertex) 
+			nvertices++;
+	}
+	nedges /= 2;
+
+	VectorFree(&v_a);
+	VectorFree(&v_b);
+	VectorFree(&v_n);
+	
+	//	fprintf(stderr,"Defect %d : Euler Number = %d [ %d , %d  ] \n",defect->defect_number,nvertices-nedges,nvertices,nedges);
+
+	if(nvertices-nedges) {
+		ErrorExit(ERROR_BADPARM,"mrisSimplyConnectedDefect : euler number of loop is not 0!\n");
+	}
+
+
+	/* now update defect */
+	/* first list good enclosing edges */
+	defect->edges=(EDGE*)malloc(added_edges*sizeof(EDGE));
+	defect->nedges=added_edges;
+	memcpy(defect->edges,edges,added_edges*sizeof(EDGE));
+	free(edges);
+
+	/* then keep updating inside and border vertices */
+	bnb=0;
+	barray=(int*)malloc((defect->nvertices+defect->nborder)*sizeof(int));
+	for(n=0;n<defect->nvertices;n++)
+		varray[vnb++]=defect->vertices[n];
+	for(n=0;n<defect->nborder;n++){
+		v=&mris->vertices[defect->border[n]];
+		if(v->undefval==3) /* good border vertex */
+			barray[bnb++]=defect->border[n];
+		else /* becomes inside vertex */
+			varray[vnb++]=defect->border[n];
+	}
+	free(defect->vertices);
+	free(defect->status);
+	free(defect->border);
+	defect->nvertices=vnb;
+	defect->vertices=(int*)malloc(vnb*sizeof(int));
+	defect->status=(char*)calloc(vnb,sizeof(char));
+	memcpy(defect->vertices,varray,vnb*sizeof(int));
+	defect->nborder=bnb;
+	defect->border=(int*)malloc(bnb*sizeof(int));
+	memcpy(defect->border,barray,bnb*sizeof(int));
+	free(varray);
+	free(barray);
+
+	/* analyze the closed loop and correctly order the edges */
+	{
+		int init,final,cur,next;
+		int *tab,nb=0;
+		tab=(int*)malloc(defect->nedges*sizeof(int));
+
+		new_edges=(EDGE*)malloc(defect->nedges*sizeof(EDGE));
+
+		//fprintf(stderr,"analyze closed loop\n");
+
+		init=defect->edges[0].vno2;
+		final=defect->edges[0].vno1;
+		/* find other vertex */
+		cur=-1;
+		for(n=1;n<defect->nedges;n++){
+			edge=&defect->edges[n];
+			if(edge->vno1==init){
+				//fprintf(stderr,"*");
+				cur=edge->vno2;
+				break;
+			}
+			if(edge->vno2==init) {
+				cur=edge->vno1;
+				//fprintf(stderr,"!");
+				break;
+			}
+		}
+		//		fprintf(stderr,"%d->%d->%d",final,init,cur);
+		if(cur<0) {
+			ErrorExit(ERROR_BADPARM,"mrisSimplyConnectedDefect : initialization of the closed loop\n");
+		}
+		tab[nb++]=init;
+		tab[nb++]=cur;
+		add_edges=0;
+		new_edges[add_edges].vno1=final;
+		new_edges[add_edges++].vno2=init;
+		new_edges[add_edges].vno1=init;
+		new_edges[add_edges++].vno2=cur;
+		while(cur!=final){
+			/*find next vertex */
+			next=-1;
+			for(n=0;n<defect->nedges;n++){
+				edge=&defect->edges[n];
+				if(edge->vno1==cur && edge->vno2!=init) {
+					//fprintf(stderr,"*");
+					next=edge->vno2;
+					break;
+				}
+				if(edge->vno2==cur && edge->vno1!=init) {
+					//fprintf(stderr,".");
+					next=edge->vno1;
+					break;
+				}
+			}
+			//			fprintf(stderr,"->%d",next);
+			if(next<0){
+				ErrorExit(ERROR_BADPARM,"mrisSimplyConnectedDefect : propagation of the closed loop\n");
+			}
+			/* make sure next is not in the loop already */
+			for(n=0;n<nb;n++){
+				if(tab[n]==next) {
+					ErrorExit(ERROR_BADPARM,"mrisSimplyConnectedDefect : loop self-intersecting\n");
+				}
+			}
+			tab[nb++]=next;
+
+			init=cur;
+			cur=next;
+			new_edges[add_edges].vno1=init;
+			new_edges[add_edges++].vno2=cur;
+		}
+		free(tab);
+		
+		free(defect->edges);
+		defect->edges=new_edges;
+		
+		for(n=0;n<defect->nedges;n++){
+			edge=&defect->edges[n];
+			//fprintf(stderr,"%d->%d:",edge->vno1,edge->vno2);
+		}
+
+		//		fprintf(stderr,"loop of %d=%d vertices\n",nb,defect->nborder);
+		if(nb!=defect->nborder){
+			ErrorExit(ERROR_BADPARM,"mrisSimplyConnectedDefect : loop smaller than border\n");
+		}
+	}
+	//fprintf(stderr,"\n");
+
+	/* now update defect statistics */
+	defect->cx=0;defect->cy=0;defect->cz=0;
+	defect->area=0;
+	for(n=0;n<defect->nvertices;n++){
+		v=&mris->vertices[defect->vertices[n]];
+		defect->status[n]=KEEP_VERTEX;
+		v->marked=mark_segmented;
+		defect->cx += v->x ;  defect->cy += v->y ;  defect->cz += v->z ; 
+		defect->area += v->origarea ;
+	}
+  defect->cx /= (float)defect->nvertices ;
+  defect->cy /= (float)defect->nvertices ;
+  defect->cz /= (float)defect->nvertices ;
+  
+  defect->nx = defect->ny = defect->nz = 0.0f ;
+  for (n = 0 ; n < defect->nborder ; n++)
+  {
+    v = &mris->vertices[defect->border[n]] ;
+		v->marked=0;
+    defect->nx += v->nx ; defect->ny += v->ny ; defect->nz += v->nz ;
+  }
+  len = sqrt(defect->nx*defect->nx + defect->ny*defect->ny + defect->nz*defect->nz) ;
+  if (FZERO(len))
+    len = 1.0f ;
+  defect->nx /= len ; defect->ny /= len ; defect->nz /= len ;
+
+	//fprintf(stderr,"after analysis: %d inside vertices, %d border vertices (total=%d)\n",defect->nvertices,defect->nborder,defect->nvertices+defect->nborder);
+
+#if ADD_EXTRA_VERTICES
+	/* mark the border vertices */
+	for (n = 0 ; n < defect->nborder ; n++)
+  {
+    v = &mris->vertices[defect->border[n]] ;
+		v->fixedval = defect->defect_number+1;
+	}
+#endif
+	
+	return NO_ERROR;
+}
+#endif
 /*-----------------------------------------------------
   Parameters:
 
@@ -33629,7 +34165,7 @@ mrisSegmentDefect(MRI_SURFACE *mris, int vno, DEFECT *defect,
   decision will be made by using the dot product of the average
   inflated surface normal with the inflated face centroid.
 
-	By default, MRIScorrectTopology will now keep all vertices
+	By default (genetic search), MRIScorrectTopology will now keep most vertices
   ------------------------------------------------------*/
 #define MIN_SPHERE_DIST   .01
 #define MIN_ORIG_DIST     .75
@@ -34201,6 +34737,7 @@ mrisMarkDefectBorder(MRI_SURFACE *mris, DEFECT *defect,int mark)
 
   return(NO_ERROR) ;
 }
+#if 0
 /*-----------------------------------------------------
   Parameters:
 
@@ -34228,6 +34765,7 @@ mrisScaleMaxDimension(MRI_SURFACE *mris, float maxr)
     MRISscaleBrain(mris, mris, maxr / fabs(mris->zlo)) ;
   return(NO_ERROR) ;
 }
+#endif
 /*-----------------------------------------------------
   Parameters:
 
@@ -43731,7 +44269,7 @@ mrisComputeJointGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri,
 
 
 #if 0
-		//FLO : to be checked
+		//to be checked
 #if 0
     if (gray_val >= MIN_WM_VAL && white_val >= MIN_WM_VAL)  /* white on both sides */
       continue ;
