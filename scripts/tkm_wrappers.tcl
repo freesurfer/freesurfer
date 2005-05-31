@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.28 2005/04/25 16:55:15 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.29 2005/05/31 20:51:41 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -695,31 +695,40 @@ proc tkm_AddMenuItemsToMenu { isMenu ilMenuItems } {
 
 proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep {iRange {}} } {
     
-    global kLabelFont kNormalFont
+    global kLabelFont kNormalFont kSmallFont
     global $iVariable
     global glDisabledWidgets
     
     frame $isFrame
     
-    tixControl $isFrame.control \
-	-command $iSetFunc \
-	-label $isText \
-	-variable $iVariable \
-	-step $ifStep \
-	-disablecallback true \
-	-selectmode immediate
+#    tixControl $isFrame.control \
+#	-command $iSetFunc \
+#	-label $isText \
+#	-variable $iVariable \
+#	-step $ifStep \
+#	-disablecallback true \
+#	-selectmode immediate
+
+    tkm_MakeEntry $isFrame.ew \
+	$isText $iVariable 4 $iSetFunc
+
+    button $isFrame.bwDec -text "-" -command "incr $iVariable -$ifStep" \
+	-padx 1 -pady 0
     
-    if {[llength $iRange] == 2} {
-	$isFrame.control config -min [lindex $iRange 0]
-	$isFrame.control config -max [lindex $iRange 1]
-    }
+    button $isFrame.bwInc -text "+" -command "incr $iVariable $ifStep" \
+	-padx 0 -pady 0
+
+#    if {[llength $iRange] == 2} {
+#	$isFrame.control config -min [lindex $iRange 0]
+#	$isFrame.control config -max [lindex $iRange 1]
+#    }
     
-    tkm_EnableLater $isFrame.control
+#    tkm_EnableLater $isFrame.control
     
-    $isFrame.control subwidget label configure -font $kNormalFont
+#    $isFrame.control subwidget label configure -font $kNormalFont
     
-    pack $isFrame.control \
-	-anchor w
+    pack $isFrame.ew $isFrame.bwDec $isFrame.bwInc \
+	-anchor w -side left
     
 }
 
