@@ -2,9 +2,9 @@
 // fio.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/08 17:17:52 $
-// Revision       : $Revision: 1.23 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/05/31 18:38:44 $
+// Revision       : $Revision: 1.24 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "bfileio.h"
 #include "fio.h"
 #include "machine.h"
 #include "proto.h"
@@ -160,20 +161,6 @@ fwriteShort(short s, FILE *fp)
 #endif
   return(fwrite(&s, sizeof(short), 1, fp)) ;
 }
-float
-freadFloat(FILE *fp)
-{
-  float f;
-  int   ret ;
-
-  ret = fread(&f,4,1,fp);
-#if (BYTE_ORDER == LITTLE_ENDIAN)
-  f = swapFloat(f) ;
-#endif
-  if (ret != 1)
-    ErrorPrintf(ERROR_BADFILE, "freadFloat: fread failed") ;
-  return(f) ;
-}
 double
 freadDouble(FILE *fp)
 {
@@ -274,15 +261,38 @@ fwriteInt(int v, FILE *fp)
   return(fwrite(&v,sizeof(int),1,fp));
 }
 
-int
-fwriteFloat(float f, FILE *fp)
+/*----------------------------------------*/
+float freadFloat(FILE *fp)
 {
-#if (BYTE_ORDER == LITTLE_ENDIAN)
-  f = swapFloat(f) ;
-#endif
-  return(fwrite(&f,sizeof(float),1,fp));
-}
+  char  buf[4];
+  float f;
+  int   ret ;
 
+  ret = fread(buf,4,1,fp);
+  //ret = fread(&f,4,1,fp); // old way
+  if (ret != 1) ErrorPrintf(ERROR_BADFILE, "freadFloat: fread failed") ;
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  byteswapbuffloat(buf,1);
+  //f = swapFloat(f);  // old way
+#endif
+  f = *((float*)buf);
+  return(f) ;
+}
+/*----------------------------------------*/
+int fwriteFloat(float f, FILE *fp)
+{
+  int ret;
+  char  buf[4];
+  memcpy(buf,&f,4);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  byteswapbuffloat(buf,1);
+  //f = swapFloat(f);  // old way
+#endif
+  ret = fwrite(buf,sizeof(float),1,fp);
+  //ret = fwrite(&f,sizeof(float),1,fp);  // old way
+  return(ret);
+}
+/*----------------------------------------*/
 int
 fwriteDouble(double d, FILE *fp)
 {
