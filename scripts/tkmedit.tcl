@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.86 2005/04/22 19:57:33 kteich Exp $
+# $Id: tkmedit.tcl,v 1.87 2005/05/31 21:41:36 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -807,6 +807,14 @@ proc GetDefaultLocation { iType } {
 		    set gsaDefaultLocation($iType) [exec pwd]
 		}
 		 }
+	    SaveTIFF {
+		if { $gsSubjectDirectory != "/" &&
+		     [file isdirectory $gsSubjectDirectory/tiff] } {
+		    set gsaDefaultLocation($iType) $gsSubjectDirectory/tiff
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}
+	    }
 	    default { 
 		if { $gsSubjectDirectory != "/" } {
 		    set gsaDefaultLocation($iType) $gsSubjectDirectory 
