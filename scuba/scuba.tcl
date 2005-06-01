@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.116 2005/05/31 21:05:21 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.117 2005/06/01 20:16:03 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1328,7 +1328,7 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 	-command { SubjectsLoaderSubjectMenuCallback }
     set gaWidget(subjectsLoader,subjectsMenu) $fwData.fwMenu
 
-    grid $fwData.fwMenu  -column 0 -row 0 -columnspan 2 -sticky ew
+    grid $fwData.fwMenu  -column 0 -row 0 -columnspan 2 -sticky new
 
     tixOptionMenu $fwData.volumesMenu \
 	-label "Volumes:"
@@ -1338,8 +1338,8 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 	-text "Load" \
 	-command {LoadVolumeFromSubjectsLoader [$gaWidget(subjectsLoader,volumeMenu) cget -value]}
 
-    grid $fwData.volumesMenu   -column 0 -row 1 -sticky ew
-    grid $fwData.volumesButton -column 1 -row 1 -sticky e
+    grid $fwData.volumesMenu   -column 0 -row 1 -sticky new
+    grid $fwData.volumesButton -column 1 -row 1 -sticky ne
 
 
     tixOptionMenu $fwData.surfacesMenu \
@@ -1350,8 +1350,8 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 	-text "Load" \
 	-command {LoadSurfaceFromSubjectsLoader [$gaWidget(subjectsLoader,surfaceMenu) cget -value]}
     
-    grid $fwData.surfacesMenu   -column 0 -row 2 -sticky ew
-    grid $fwData.surfacesButton -column 1 -row 2 -sticky e
+    grid $fwData.surfacesMenu   -column 0 -row 2 -sticky new
+    grid $fwData.surfacesButton -column 1 -row 2 -sticky ne
 
 
     tixOptionMenu $fwData.transformsMenu \
@@ -1362,16 +1362,19 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 	-text "Load" \
 	-command {LoadTransform [$gaWidget(subjectsLoader,transformMenu) cget -value]}
     
-    grid $fwData.transformsMenu     -column 0 -row 3 -sticky ew
-    grid $fwData.transformsButton   -column 1 -row 3 -sticky e
+    grid $fwData.transformsMenu     -column 0 -row 3 -sticky new
+    grid $fwData.transformsButton   -column 1 -row 3 -sticky ne
 
 
     grid columnconfigure $fwData 0 -weight 1
     grid columnconfigure $fwData 1 -weight 0
     
-    pack $fwData -side top -expand yes -fill x
+    grid $fwData -column 0 -row 0 -sticky news
 
-    return $fwTop
+    grid columnconfigure $fwTop 0 -weight 1
+    grid rowconfigure $fwTop 0 -weight 1
+
+   return $fwTop
 }
 
 proc MakePropertiesPanel { ifwTop } {
@@ -1409,11 +1412,14 @@ proc MakePropertiesPanel { ifwTop } {
 	}
     
     pack $fwButtons.tbwPanelsTop $fwButtons.tbwPanelsBottom -side top \
-	-fill x -expand yes
+	-fill x -expand yes -anchor n
     
-    frame $fwPanels
+    frame $fwPanels 
 
-    pack [frame $fwPanels.fwPanel]
+    grid [frame $fwPanels.fwPanel] -column 0 -row 0 -sticky news
+    
+    grid columnconfigure $fwPanels 0 -weight 1
+    grid rowconfigure $fwPanels 0 -weight 1
 
     set gaWidget(collectionProperties) \
 	[MakeDataCollectionsPropertiesPanel $fwPanels.fwPanel]
@@ -1433,8 +1439,12 @@ proc MakePropertiesPanel { ifwTop } {
     set gaPanel(currentTop) subjectsLoader
     PanelBarWrapper subjectsLoader 1
 
-    pack $fwButtons $fwPanels -side top -fill x -expand yes
+    grid $fwButtons -column 0 -row 0 -sticky new
+    grid $fwPanels -column 0 -row 1 -sticky news
     
+    grid rowconfigure $fwTop 0 -weight 0
+    grid rowconfigure $fwTop 1 -weight 1
+
     return $fwTop
 }
 
@@ -1448,7 +1458,7 @@ proc PanelBarWrapper { isName iValue } {
 	pack forget $gaWidget($isName)
     }
     if { $iValue == 1 } {
-	pack $gaWidget($isName)
+	pack $gaWidget($isName) -fill both -expand yes -anchor n
 	switch $isName {
 	    subjectsLoader - viewProperties - 
 	    layerProperties - toolProperties {
@@ -1626,12 +1636,16 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     grid $fwROIs.ewLabel     -column 1 -row 1   -sticky new
     grid $fwROIs.tbwType     -column 0 -columnspan 2 -row 2   -sticky new
     grid $fwROIs.mwLUT       -column 0 -columnspan 2 -row 3   -sticky new
-    grid $fwROIs.lbStructure -column 0 -columnspan 2 -row 4   -sticky new
+    grid $fwROIs.lbStructure -column 0 -columnspan 2 -row 4   -sticky news
     grid $fwROIs.ewStructure -column 0 -columnspan 2 -row 5   -sticky new
     grid $fwROIs.cpFree      -column 0 -columnspan 2 -row 6   -sticky new
 
     grid columnconfigure $fwROIs 0 -weight 0
     grid columnconfigure $fwROIs 1 -weight 1
+
+    # To make sure the structure list resizes with the window.
+    grid rowconfigure $fwROIs 4 -weight 1
+
 
     frame $fwCommands
     button $fwCommands.bwMakeROI -text "Make New ROI" \
@@ -1645,6 +1659,9 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     grid $fwProps    -column 0 -row 1 -sticky news
     grid $fwROIs     -column 0 -row 3 -sticky news
     grid $fwCommands -column 0 -row 4 -sticky news
+
+    # To make sure the structure list resizes with the window.
+    grid rowconfigure $fwTop 3 -weight 1
 
     return $fwTop
 }
@@ -1891,9 +1908,14 @@ proc MakeToolsPanel { ifwTop } {
     grid $fwPropsVoxelEditingSub.mwLUT         -column 0 -row 1 -sticky ew
     grid $fwPropsVoxelEditingSub.fwStructureListOrder \
 	-column 0 -row 2 -sticky ew
-    grid $fwPropsVoxelEditingSub.lbStructure   -column 0 -row 3 -sticky ew
+    grid $fwPropsVoxelEditingSub.lbStructure   -column 0 -row 3 -sticky news
     grid $fwPropsVoxelEditingSub.bwClear       -column 0 -row 4 -sticky ew
     grid $fwPropsVoxelEditingSub.ewEraseValue  -column 0 -row 5 -sticky ew
+
+    # These are to make sure the structure list resizes with the
+    # window.
+    grid rowconfigure $fwPropsVoxelEditingSub 3 -weight 1
+    grid rowconfigure $fwProps 4 -weight 1
 
     set gaWidget(toolProperties,voxelEditing) $fwPropsVoxelEditing
 
@@ -1924,6 +1946,9 @@ proc MakeToolsPanel { ifwTop } {
     grid $fwPropsCommon -column 0 -row 1 -sticky news
 
     grid $fwProps    -column 0 -row 0 -sticky news
+
+    grid columnconfigure $fwTop 0 -weight 1
+    grid rowconfigure $fwTop 0 -weight 1
 
     return $fwTop
 }
@@ -2091,10 +2116,12 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwMenu        -column 0 -row 0 -sticky news
     grid $fwPropsCommon -column 0 -row 1 -sticky news
 
-    grid $fwMenu -column 0 -row 0 -sticky new
-    grid $fwProps -column 0 -row 1 -sticky news
+    grid $fwProps -column 0 -row 0 -sticky news
 
-    return $fwTop
+    grid columnconfigure $fwTop 0 -weight 1
+    grid rowconfigure $fwTop 0 -weight 1
+
+   return $fwTop
 }
 
 proc MakeViewPropertiesPanel { ifwTop } {
@@ -2249,6 +2276,9 @@ proc MakeViewPropertiesPanel { ifwTop } {
 
     grid $fwProps -column 0 -row 0 -sticky news
 
+    grid columnconfigure $fwTop 0 -weight 1
+    grid rowconfigure $fwTop 0 -weight 1
+
     return $fwTop
 }
 
@@ -2340,9 +2370,13 @@ proc MakeTransformsPanel { ifwTop } {
     button $fwCommands.bwMakeTransform -text "Make New Transform" \
 	-command { set transformID [MakeNewTransform]; SetTransformLabel $transformID "New Transform"; UpdateTransformList; SelectTransformInTransformProperties $transformID }
 
-    pack $fwCommands.bwMakeTransform -expand yes -fill x
+    pack $fwCommands.bwMakeTransform -expand yes -side top -fill x
 
-    pack $fwProps $fwCommands -side top -expand yes -fill x
+    grid $fwProps    -column 0 -row 0 -sticky news
+    grid $fwCommands -column 0 -row 1 -sticky news
+
+    grid columnconfigure $fwTop 0 -weight 1
+    grid rowconfigure $fwTop 0 -weight 1
 
     return $fwTop
 }
@@ -2390,7 +2424,11 @@ proc MakeLUTsPanel { ifwTop } {
 
     pack $fwCommands.bwMakeLUT -expand yes -fill x
 
-    pack $fwProps $fwCommands -side top -expand yes -fill x
+    grid $fwProps    -column 0 -row 0 -sticky news
+    grid $fwCommands -column 0 -row 1 -sticky news
+
+    grid columnconfigure $fwTop 0 -weight 1
+    grid rowconfigure $fwTop 0 -weight 1
 
     return $fwTop
 }
@@ -3203,7 +3241,7 @@ proc SelectToolInToolProperties { iTool } {
 	         "$gaTool(current,type)" == "roiEditing" } {
 
 		grid $gaWidget(toolProperties,voxelEditing) \
-		    -column 0 -row 4 -sticky ew
+		    -column 0 -row 4 -sticky news
 
 		set gaTool(current,newVoxelValue) \
 		    [GetToolNewVoxelValue $gaTool(current,id)]
@@ -5084,7 +5122,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.116 2005/05/31 21:05:21 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.117 2005/06/01 20:16:03 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6034,8 +6072,8 @@ set gaWidget(task) [MakeTaskArea $gaWidget(window)]
 set gaWidget(menuBar,column)    0; set gaWidget(menuBar,row)    0
 set gaWidget(toolBar,column)    0; set gaWidget(toolBar,row)    1
 set gaWidget(scubaFrame,column) 0; set gaWidget(scubaFrame,row) 2
-set gaWidget(labelArea,column)  0; set gaWidget(labelArea,row)  3
 set gaWidget(properties,column) 1; set gaWidget(properties,row) 2
+set gaWidget(labelArea,column)  0; set gaWidget(labelArea,row)  3
 set gaWidget(task,column)       0; set gaWidget(task,row)       4
 set gaWidget(tkcon,column)      0; set gaWidget(tkcon,row)      5
 
@@ -6046,12 +6084,12 @@ grid $gaWidget(toolBar) -sticky ew -columnspan 2 \
 grid $gaWidget(scubaFrame) \
     -column $gaWidget(scubaFrame,column) -row $gaWidget(scubaFrame,row) \
     -sticky news
+grid $gaWidget(properties) -sticky ns \
+    -column $gaWidget(properties,column) -row $gaWidget(properties,row) \
+    -rowspan 2
 grid $gaWidget(labelArea) \
     -column $gaWidget(labelArea,column) -row $gaWidget(labelArea,row) \
     -sticky ew
-grid $gaWidget(properties) -sticky n \
-    -column $gaWidget(properties,column) -row $gaWidget(properties,row) \
-    -rowspan 2
 grid $gaWidget(task) -sticky ews \
     -column $gaWidget(task,column) -row $gaWidget(task,row) \
     -columnspan 2
