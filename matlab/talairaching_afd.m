@@ -5,6 +5,8 @@ function [proba, pinf]=talmat(filename, th_pval)
 %  Uses the mean vector and covariance matrix obtained from 
 %     the training set: /space/neo/2/recon/buckner
 %  Uses th_pval as a threshold for the p-values to detect the unlikely transform matrices
+%
+% $Id: talairaching_afd.m,v 1.2 2005/06/01 14:08:43 wastiaux Exp $
 
 
 if (nargin<2 | nargin>2)

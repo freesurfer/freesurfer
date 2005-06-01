@@ -5,6 +5,8 @@ function [probas, Isubj,nf]=taldir(dirname, th_pval)
 %  Uses the mean vector and covariance matrix obtained from 
 %       the training set: /space/neo/2/recon/buckner
 %  Uses th_pval as a threshold for the p-values to detect unlikely transform  matrices
+%
+% $Id: talairaching_dir_afd.m,v 1.2 2005/06/01 14:09:45 wastiaux Exp $
 
 
 if (nargin<2 | nargin>2)
