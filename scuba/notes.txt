@@ -561,3 +561,36 @@ in plane increment
  - view saves its own settings
  - when new layer added, get preffereed. if any are < than view, set
  - allow set manually
+
+
+
+report generator
+
+
+
+choose volumes
+  for segs, will compute volume
+  for anatomicals, will compute average intensity
+choose segementation values
+option to only lookup on current ROI
+
+option for secondary intensity report
+
+for each seg...
+  for each voxel...
+    (if !in_ROI) continue
+    volume += voxel_size
+    intsenity_sum += value(T1)
+
+SUBJ   SEG-$SEGNAME-VOL  SEG-$VOLNAME-INT  ...
+subj1  100		 123
+
+
+if second report,
+for each seg...
+  for each voxel...
+     print value in T1
+
+SEG_NAME   SEG_NAME   SEG_NAME
+int@vox1   int@vox3   int@vox5
+int@vox2   int@vox4
