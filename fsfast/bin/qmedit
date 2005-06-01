@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # qmedit - quick tkmedit
 #
-set VERSION = '$Id: qmedit,v 1.2 2005/05/20 21:26:26 greve Exp $';
+set VERSION = '$Id: qmedit,v 1.3 2005/06/01 22:01:24 greve Exp $';
 set cmdargs = ($argv);
 
 set anatvol    = orig;
@@ -39,6 +39,12 @@ goto check_params;
 check_params_return:
 
 if($#regfile) then
+  set regfilebase = `basename $regfile`;
+  set regfiledir  = `dirname $regfile`;
+  pushd $regfiledir > /dev/null
+  set regfiledir = `pwd`;
+  popd > /dev/null
+  set regfile = $regfiledir/$regfilebase
   set subject = `cat $regfile | head -1`;
   echo "Subject is $subject"
   if(! -e $SUBJECTS_DIR/$subject) then
