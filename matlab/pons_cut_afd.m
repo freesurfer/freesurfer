@@ -5,7 +5,7 @@ function [D]=pons_cut_adf(subject, th_pval)
 %     Nb is the volume "filled" obtained from the surface-based stream
 %              Nab is the volume of the overlap
 %
-% $Id: pons_cut_afd.m,v 1.2 2005/06/01 17:42:41 wastiaux Exp $
+% $Id: pons_cut_afd.m,v 1.1 2005/06/01 17:40:03 wastiaux Exp $
 
 
 if (nargin<2 | nargin>2)
@@ -18,6 +18,14 @@ CorDir1=strcat(subject,'/mri/aseg/');
 CorDir2=strcat(subject,'/mri/filled/');
 d1=dir(CorDir1);
 d2=dir(CorDir2);
+
+%%% Get the table's directory %%%
+if(getenv('FREESURFER_HOME'))
+    fsh=getenv('FREESURFER_HOME');
+    fsafdDir=strcat(fsh, '/fsafd');
+else
+    error(sprintf('Impossible to find FREESURFER_HOME\n'));
+end
 
 if (length(d1)<3)
     mess1=sprintf('Cannot find the coronals of the volume aseg for the subject %s',subject);
@@ -81,13 +89,6 @@ function [p_sup]=compute_pval(val)
 %load('/space/okapi/3/data/laurence/ADF/cutting_planes/Dice_pons.mat'); %loads Dpons
 %Load Buckner stats %
 %stat_file='/space/okapi/3/data/laurence/ADF/cutting_planes/PonsCutDice.adf';
-%%% Get the table's directory %%%
-if(getenv('FREESURFER_HOME'))
-    fsh=getenv('FREESURFER_HOME');
-    fsafdDir=strcat(fsh, '/fsafd');
-else
-    error(sprintf('Impossible to find FREESURFER_HOME\n'));
-end
 stat_file=strcat(fsafdDir, '/PonsCutDice.adf');
 fid=fopen(stat_file);
 if(fid==-1)

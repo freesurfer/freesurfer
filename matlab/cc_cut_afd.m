@@ -7,13 +7,21 @@ function [dr,dl]=cc_cut_adf(subject, name,th_pval)
 %
 % Uses .lta transform and p values
 %
-% $Id: cc_cut_afd.m,v 1.2 2005/06/01 17:42:56 wastiaux Exp $
+% $Id: cc_cut_afd.m,v 1.1 2005/06/01 17:39:14 wastiaux Exp $
 
 
 
 if (nargin<1 | nargin>3)
     msg=sprintf('USAGE: [Dr,Dl]=cc_cut_adf(Subject)');
     disp(msg)
+end
+
+%%% Get the table's directory %%%
+if(getenv('FREESURFER_HOME'))
+    fsh=getenv('FREESURFER_HOME');
+    fsafdDir=strcat(fsh, '/fsafd');
+else
+    error(sprintf('Impossible to find FREESURFER_HOME\n'));
 end
 
 %%  Load the .lta Talairach transform matrix  %%
@@ -169,13 +177,6 @@ function [rpinf,lpinf]=compute_pval(rval, lval)
 %load('/space/okapi/3/data/laurence/ADF/cutting_planes/Dice_cc_lrh_lta.mat'); %loads Dr Dl
 %rh_stat_file='/space/okapi/3/data/laurence/ADF/cutting_planes/rh.CorpusCallosumCutDice.adf';
 %lh_stat_file='/space/okapi/3/data/laurence/ADF/cutting_planes/lh.CorpusCallosumCutDice.adf';
-%%% Get the table's directory %%%
-if(getenv('FREESURFER_HOME'))
-    fsh=getenv('FREESURFER_HOME');
-    fsafdDir=strcat(fsh, '/fsafd');
-else
-    error(sprintf('Impossible to find FREESURFER_HOME\n'));
-end
 rh_stat_file=strcat(fsafdDir, '/rh.CorpusCallosumCutDice.adf');
 lh_stat_file=strcat(fsafdDir, '/lh.CorpusCallosumCutDice.adf');
 fidrh=fopen(rh_stat_file);
