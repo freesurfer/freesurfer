@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.15 2005/06/01 17:16:28 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.16 2005/06/01 22:15:28 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -22,8 +22,10 @@ set npart = ();
 # Outputs
 set epidw = ();
 set vsm = ();
+set vsmmag = ();
 set exfdw = ();
 set exf = ();
+set DoMagExfReg = 1;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -167,7 +169,7 @@ if($status) exit 1;
 # input to assure that VSM is same dimension as mag. The input only affects
 # the output dimension. The content of the input has no effect
 # on the VSM. The dewarped mag volume is meaningless and will be thrown away. 
-set vsmmag = $tmpdir/vsmmag.img
+if(! $#vsmmag) set vsmmag = $tmpdir/vsmmag.img
 set magdw = $tmpdir/magdw.img # To be thrown away
 set cmd = (fugue -i $mag -u $magdw -p $ph2 \
     --dwell=$esp --asym=$tediff --mask=$brain --saveshift=$vsmmag);
@@ -199,18 +201,26 @@ if($#epimat) cp $epimat `dirname $magfw`/`basename $magfw .img`.mat
 
 # Register magfw to example func. There are some parameters here
 # that may need to be tweeked. Should probably strip the mag.
-set cmd = (flirt -in $magfw -ref $exf \
-  -out $tmpdir/magfw-in-exf.img \
-  -omat $tmpdir/magfw-in-exf.fsl.mat \
-  -bins 256 -cost corratio \
-  -searchrx -10 10 \
-  -searchry -10 10 \
-  -searchrz -10 10 \
-  -dof 6  -interp trilinear)
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
-if($#epimat) cp $epimat $tmpdir/magfw-in-exf.mat # Copy matfile
+if($DoMagExfReg) then 
+  set cmd = (flirt -in $magfw -ref $exf \
+    -out $tmpdir/magfw-in-exf.img \
+    -omat $tmpdir/magfw-in-exf.fsl.mat \
+    -bins 256 -cost corratio \
+    -searchrx -10 10 \
+    -searchry -10 10 \
+    -searchrz -10 10 \
+    -dof 6  -interp trilinear)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  if($#epimat) cp $epimat $tmpdir/magfw-in-exf.mat # Copy matfile
+else
+  echo "Not performing mag-exf registration "|& tee -a $LF
+  echo "1 0 0 0" >  $tmpdir/magfw-in-exf.img
+  echo "0 1 0 0" >> $tmpdir/magfw-in-exf.img
+  echo "0 0 1 0" >> $tmpdir/magfw-in-exf.img
+  echo "0 0 0 1" >> $tmpdir/magfw-in-exf.img
+endif
 
 
 # Now resample VSM into epi space. This will take care of any 
@@ -376,6 +386,15 @@ while( $#argv != 0 )
       set vsm = $argv[1]; shift;
       breaksw
 
+    case "--vsmmag":
+      if ( $#argv == 0) goto arg1err;
+      set vsmmag = $argv[1]; shift;
+      breaksw
+
+    case "--nomagexfreg":
+      set DoMagExfReg = 0;
+      breaksw
+
     case "--sigma":
       if ( $#argv == 0) goto arg1err;
       set sigmamm = $argv[1]; shift;
@@ -508,9 +527,11 @@ usage_exit:
   echo "  "
   echo "Outputs"
   echo "  --vsm volid   : voxel shift map (required)"
+  echo "  --vsmmag volid: voxel shift map in mag space"
   echo "  --exfdw volid : dewarped example func volume"
   echo "  --epidw volid : dewarped epi volume"
   echo "  "
+  echo "  --nomagexfreg : assume mag and exf are in register"
   echo "  --tmpdir dir  : save intermediate results here"
   echo "  --nocleanup   : do not delete tmpdir"
   echo "  --cleanup     : force deletion of tmpdir"
