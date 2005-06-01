@@ -1,3 +1,4 @@
+% $Id: cortical_labeling_table.m,v 1.3 2005/06/01 17:37:25 wastiaux Exp $
 [Dl, Dr,I]=cortical_labeling_dir_afd('/space/neo/2/recon/buckner', 0.01)
 % load('/space/okapi/3/data/laurence/ADF/cortical_labeling/PercentArea_labels_parctxt.mat') %loads D2_rh D2_lh
 % Dl=D2_lh;
@@ -8,7 +9,7 @@ labmapfile=('/space/lyon/1/fsdev/freesurfer_dev/Simple_surface_labels2002.txt');
 [label name val1 val2 val3 val4]=textread(labmapfile,'%d %s %d %d %d %d',85);
 fp=fopen('~/cortlab_table_lh.txt', 'w');
 sz=size(Dl);
-fprintf(fp,'# FSAFD CorticalLabelingCheck 1\n# date 20050516\n# $Id: cortical_labeling_table.m,v 1.2 2005/06/01 17:36:21 wastiaux Exp $\n# Buckner data set\n# info_file /label/lh.parc.txt\n# hemi lh\n# ncols 84\n# nrows %d\n', sz(1));
+fprintf(fp,'# FSAFD CorticalLabelingCheck 1\n# date 20050516\n# $Id: cortical_labeling_table.m,v 1.3 2005/06/01 17:37:25 wastiaux Exp $\n# Buckner data set\n# info_file /label/lh.parc.txt\n# hemi lh\n# ncols 84\n# nrows %d\n', sz(1));
 for u=1:(length(label)-1)
     fprintf(fp, '# label_col %d %s\n', u, char(name(u+1)));
 end
@@ -25,7 +26,7 @@ end
 fclose(fp)
 fp=fopen('cortlab_table_rh.txt', 'w');
 sz=size(Dr);
-fprintf(fp2,'# FSAFD CorticalLabelingCheck 1\n# date 20050516\n# $Id: cortical_labeling_table.m,v 1.2 2005/06/01 17:36:21 wastiaux Exp $\n# Buckner data set\n# info_file /label/rh.parc.txt\n# hemi rh\n# ncols 84\n# nrows %d\n', sz(1));
+fprintf(fp2,'# FSAFD CorticalLabelingCheck 1\n# date 20050516\n# $Id: cortical_labeling_table.m,v 1.3 2005/06/01 17:37:25 wastiaux Exp $\n# Buckner data set\n# info_file /label/rh.parc.txt\n# hemi rh\n# ncols 84\n# nrows %d\n', sz(1));
 for u=1:(length(label)-1)
     fprintf(fp, '# label_col %d %s\n', u, char(name(u+1)));
 end
