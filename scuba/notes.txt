@@ -557,16 +557,17 @@ roiSettingsDlog
 
 
 
-in plane increment
- - view saves its own settings
- - when new layer added, get preffereed. if any are < than view, set
- - allow set manually
+draw line tool
+ - add mCurrentDrawPath
+ - on mouseMoved, if editVoxels
+   - if shift, stretch a path between last lastMouseUpLoc and current loc
+ - on mouseUp
+   - if shift, paint on path from lastMouseUpLoc to current loc
+   - set last lastMouseUpLoc
 
 
 
 report generator
-
-
 
 choose volumes
   for segs, will compute volume
