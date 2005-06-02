@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.7 2004/11/01 18:53:27 greve Exp $
+  $Id: mri_vol2vol.c,v 1.8 2005/06/02 20:38:55 greve Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -56,7 +56,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.7 2004/11/01 18:53:27 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.8 2005/06/02 20:38:55 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -704,90 +704,88 @@ static void print_help(void)
 "\n"
 "Prints out all this information.\n"
 "\n"
-"ALGORITH/TKREGISTER MATRIX CONENTION 
-
-To convert a volume from one space/FOV to another, one needs to know
-how to convert CRS (ie, col, row, slice) in the target FOV to that
-in the source. This is referred to as the voxel-to-voxel transform,
-and its matrix is called V.
-
-CRSin = V * CRSout
-V = inv(Tin*X)*Tout
-
-where T is a matrix that converts CRS to XYZ. X is the matrix
-specified with -xfm and maps from XYZin to XYZout. The X matrix is
-only meaningful in terms of what Tin and Tout are.  The TkRegister
-Convention defines T to be:
-
-T = [-dc  0   0  Nc/2
-      0   0  ds -Ns/2
-      0 -dr   0  Nr/2
-      0   0   0  1];
-
-where dc, dr, and ds are the resolutions of the columns, rows, and 
-slices, respectively, and Nc, Nr, and Ns are the number of columns,
-rows, and slices, respectively. Column is the fastest dimension,
-Row is the next fastest, and Slice is the slowest.
-
-EXAMPLES:
-
-1. Resample a functional volume to talairach space at 1.5 mm res
-
-   mri_vol2vol --in f_000.bfloat --out ftal_000.bfloat
-     --xfm register.dat --fstal --fstalres 1.5
-
-   register.dat registers the subject anatomical and functional. Note
-   that a template is not needed (it is generated internally). The
-   registration of the ftal volume with the talairach subject can then
-   be checked with: tkregister2 --mov ftal_000.bfloat --reg ftal.reg
-
-2. Resample a structural volume to talairach space.
-
-   cd  $SUBJECTS_DIR/subjid/mri/
-   mkdir -p orig-tal
-   mri_vol2vol --in orig --out orig-tal
-               --temp $SUBJECTS_DIR/talairach/mri/orig
-               --xfm transforms/talairach.xfm 
-
-   NOTE: this should give the same result as:
-   mri_convert orig orig-tal --apply_transform transforms/talairach.xfm 
-
-3. Resample a subcortical segmentation to functional space. It uses
-   nearest-neighbor interp because the segmentation values are
-   categorical, not continuous (for this see also mri_label2vol). 
-
-   mri_vol2vol --in   $SUBJECTS_DIR/subjid/mri/aseg 
-               --out  aseg_000.bshort
-               --temp func_000.bshort
-               --xfm  register.dat
-               --interp nearest
-
-4. Resample an anatomical volume into the functional space with a
-   1 mm in-plane resolution:
-
-  mri_vol2vol --in $SUBJECTS_DIR/mysubj/mri/orig \
-    --temp mysubjsess/bold/001/f_000.bshort --s mysubj \
-    --xfm  mysubjsess/bold/register.dat \
-    --out  mysubjsess/anatfunc/999/f_000.bshort \
-    --voxres-in-plane 1 1
-
-
-MORE NOTES
-
-mri_vol2vol --in vol.mgh --out vol2.mgh --temp temp.mgh --xfm register.dat
-
-where vol.mgh is the targ and temp.mgh is the mov (in tkregister-speak). 
-If you want to go the other way, add --invxfm.
-
-On the input side, vol.mgh  and temp.mgh should be in register when you run:
-
-tkregister2 --targ vol.mgh --mov temp.mgh --reg register.dat
-
-On the output side, this should also be in register:
-
-tkregister2 --targ temp.mgh --mov vol2.mgh --reg vol2.mgh.reg
-
-"
+"ALGORITH/TKREGISTER MATRIX CONENTION \n"
+"\n"
+"To convert a volume from one space/FOV to another, one needs to know\n"
+"how to convert CRS (ie, col, row, slice) in the target FOV to that\n"
+"in the source. This is referred to as the voxel-to-voxel transform,\n"
+"and its matrix is called V.\n"
+"\n"
+"CRSin = V * CRSout\n"
+"V = inv(Tin*X)*Tout\n"
+"\n"
+"where T is a matrix that converts CRS to XYZ. X is the matrix\n"
+"specified with -xfm and maps from XYZin to XYZout. The X matrix is\n"
+"only meaningful in terms of what Tin and Tout are.  The TkRegister\n"
+"Convention defines T to be:\n"
+"\n"
+"T = [-dc  0   0  Nc/2\n"
+"      0   0  ds -Ns/2\n"
+"      0 -dr   0  Nr/2\n"
+"      0   0   0  1];\n"
+"\n"
+"where dc, dr, and ds are the resolutions of the columns, rows, and \n"
+"slices, respectively, and Nc, Nr, and Ns are the number of columns,\n"
+"rows, and slices, respectively. Column is the fastest dimension,\n"
+"Row is the next fastest, and Slice is the slowest.\n"
+"\n"
+"EXAMPLES:\n"
+"\n"
+"1. Resample a functional volume to talairach space at 1.5 mm res\n"
+"\n"
+"   mri_vol2vol --in f_000.bfloat --out ftal_000.bfloat\n"
+"     --xfm register.dat --fstal --fstalres 1.5\n"
+"\n"
+"   register.dat registers the subject anatomical and functional. Note\n"
+"   that a template is not needed (it is generated internally). The\n"
+"   registration of the ftal volume with the talairach subject can then\n"
+"   be checked with: tkregister2 --mov ftal_000.bfloat --reg ftal.reg\n"
+"\n"
+"2. Resample a structural volume to talairach space.\n"
+"\n"
+"   cd  $SUBJECTS_DIR/subjid/mri/\n"
+"   mkdir -p orig-tal\n"
+"   mri_vol2vol --in orig --out orig-tal\n"
+"               --temp $SUBJECTS_DIR/talairach/mri/orig\n"
+"               --xfm transforms/talairach.xfm \n"
+"\n"
+"   NOTE: this should give the same result as:\n"
+"   mri_convert orig orig-tal --apply_transform transforms/talairach.xfm \n"
+"\n"
+"3. Resample a subcortical segmentation to functional space. It uses\n"
+"   nearest-neighbor interp because the segmentation values are\n"
+"   categorical, not continuous (for this see also mri_label2vol). \n"
+"\n"
+"   mri_vol2vol --in   $SUBJECTS_DIR/subjid/mri/aseg \n"
+"               --out  aseg_000.bshort\n"
+"               --temp func_000.bshort\n"
+"               --xfm  register.dat\n"
+"               --interp nearest\n"
+"\n"
+"4. Resample an anatomical volume into the functional space with a\n"
+"   1 mm in-plane resolution:\n"
+"\n"
+"  mri_vol2vol --in $SUBJECTS_DIR/mysubj/mri/orig \n"
+"    --temp mysubjsess/bold/001/f_000.bshort --s mysubj \n"
+"    --xfm  mysubjsess/bold/register.dat \n"
+"    --out  mysubjsess/anatfunc/999/f_000.bshort \n"
+"    --voxres-in-plane 1 1\n"
+"\n"
+"\n"
+"MORE NOTES\n"
+"\n"
+"mri_vol2vol --in vol.mgh --out vol2.mgh --temp temp.mgh --xfm register.dat\n"
+"\n"
+"where vol.mgh is the targ and temp.mgh is the mov (in tkregister-speak). \n"
+"If you want to go the other way, add --invxfm.\n"
+"\n"
+"On the input side, vol.mgh  and temp.mgh should be in register when you run:\n"
+"\n"
+"tkregister2 --targ vol.mgh --mov temp.mgh --reg register.dat\n"
+"\n"
+"On the output side, this should also be in register:\n"
+"\n"
+"tkregister2 --targ temp.mgh --mov vol2.mgh --reg vol2.mgh.reg\n"
 "\n"
 "FORMATS\n"
 "\n"
