@@ -46,6 +46,8 @@ icon_erase_label.gif  \
 icon_erase_line.gif  \
 icon_fill.gif \
 icon_fill_label.gif \
+icon_fill_volume.gif \
+icon_fill_roi.gif \
 icon_folder.gif \
 icon_home.gif \
 icon_label_to_marked.gif \
