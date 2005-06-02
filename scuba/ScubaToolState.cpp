@@ -146,8 +146,12 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 	newMode = marker;
       } else if ( 0 == strcmp( iasArgv[2], "voxelEditing" )) {
 	newMode = voxelEditing;
+      } else if ( 0 == strcmp( iasArgv[2], "voxelFilling" )) {
+	newMode = voxelFilling;
       } else if ( 0 == strcmp( iasArgv[2], "roiEditing" )) {
 	newMode = roiEditing;
+      } else if ( 0 == strcmp( iasArgv[2], "roiFilling" )) {
+	newMode = roiFilling;
       } else if ( 0 == strcmp( iasArgv[2], "straightPath" )) {
 	newMode = straightPath;
       } else if ( 0 == strcmp( iasArgv[2], "edgePath" )) {
@@ -155,7 +159,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
       } else {
 	sResult = "bad mode \"" + string(iasArgv[2]) + 
 	  "\", should be navigation, plane, marker, voxelEditing, "
-	  "roiEditing, straightPath, edgePath.";
+	  "voxelFilling, roiEditing, roiFilling, straightPath, edgePath.";
 	return error;
       }
       SetMode( newMode );
@@ -185,8 +189,14 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
       case voxelEditing:
 	sReturnValues = "voxelEditing";
 	break;
+      case voxelFilling:
+	sReturnValues = "voxelFilling";
+	break;
       case roiEditing:
 	sReturnValues = "roiEditing";
+	break;
+      case roiFilling:
+	sReturnValues = "roiFilling";
 	break;
       case straightPath:
 	sReturnValues = "straightPath";

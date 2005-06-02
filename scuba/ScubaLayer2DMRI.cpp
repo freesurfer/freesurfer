@@ -1144,52 +1144,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	!mbEditableROI ) 
       return;
 
-    // If shift key is down, we're filling. Make a flood params object
-    // and fill it out, then make a flood select object, specifying
-    // select or unselect in the ctor. Then run the flood object with
-    // the params.  Hack: Added a 'f' key shortcut for
-    // Jean. Definitely a better way of doing this but don't want to
-    // do it now.
-    if( iInput.IsShiftKeyDown() && !iInput.IsControlKeyDown() &&
-	(( iInput.IsButtonDownEvent() && 
-	   (2 == iInput.Button() || 3 == iInput.Button()) )      ||
-	 ( iInput.Key()[0] == 'f' )) ) {
-
-      VolumeLocation& loc =
-	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
-      if( mVolume->IsInBounds( loc ) ) {
-
-	VolumeCollectionFlooder::Params params;
-	SetFloodParams( iTool, iViewState, params );
-
-	// Create and run the flood object.
-	if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
-	  if( iInput.Button() == 2 || 
-	      (iInput.Key()[0] == 'f' && !iInput.IsControlKeyDown()) ) {
-	    ScubaLayer2DMRIFloodVoxelEdit flooder( iTool.GetNewValue() );
-	    flooder.Flood( *mVolume, iRAS, params );
-	  } else if( iInput.Button() == 3|| 
-	      (iInput.Key()[0] == 'f' && iInput.IsControlKeyDown()) ) {
-	    ScubaLayer2DMRIFloodVoxelEdit flooder(iTool.GetEraseValue());
-	    flooder.Flood( *mVolume, iRAS, params );
-	  }
-	} else if( ScubaToolState::roiEditing == iTool.GetMode() ) {
-	  if( iInput.Button() == 2|| 
-	      (iInput.Key()[0] == 'f' && !iInput.IsControlKeyDown()) ) {
-	    ScubaLayer2DMRIFloodSelect flooder( true );
-	    flooder.Flood( *mVolume, iRAS, params );
-	  } else if( iInput.Button() == 3|| 
-	      (iInput.Key()[0] == 'f' && iInput.IsControlKeyDown()) ) {
-	    ScubaLayer2DMRIFloodSelect flooder( false );
-	    flooder.Flood( *mVolume, iRAS, params );
-	  }
-	}
-	  
-	RequestRedisplay();
-      }      
-      delete &loc;
-    }
-
     // Eyedropper the color and set the tool.
     if( iInput.IsShiftKeyDown() && iInput.IsControlKeyDown() &&
 	iInput.IsButtonDownEvent() && 2 == iInput.Button() ) {
@@ -1213,11 +1167,10 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	!iInput.IsShiftKeyDown() && !iInput.IsControlKeyDown() &&
 	(2 == iInput.Button() || 3 == iInput.Button()) ) {
 
-      // Otherwise we're just brushing. If this is a mouse down event,
-      // open up an undo action, and if it's a mouse up event, close
-      // it. Then if the mouse is down switch on the brush shape and
-      // call a GetRASPointsIn{Shape} function to get the points we
-      // need to brush.
+      // If this is a mouse down event, open up an undo action, and if
+      // it's a mouse up event, close it. Then if the mouse is down
+      // switch on the brush shape and call a GetRASPointsIn{Shape}
+      // function to get the points we need to brush.
 
       UndoManager& undoList = UndoManager::GetManager();
       if( iInput.IsButtonDownEvent() ) {
@@ -1409,6 +1362,81 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  mMaxVisibleValue = newValue;
       }
     }
+
+    break;
+
+  case ScubaToolState::voxelFilling:
+  case ScubaToolState::roiFilling:
+
+    // If roiFilling, check editable ROI flag.
+    if( ScubaToolState::roiFilling == iTool.GetMode() &&
+	!mbEditableROI ) 
+      return;
+
+    // Eyedropper the color and set the tool.
+    if( iInput.IsShiftKeyDown() && iInput.IsControlKeyDown() &&
+	iInput.IsButtonDownEvent() && 2 == iInput.Button() ) {
+
+      VolumeLocation& loc =
+	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+      if( mVolume->IsInBounds( loc ) ) {
+
+	float value = mVolume->GetMRINearestValue( loc );
+	iTool.SetNewValue( value );
+
+	stringstream ssCommand;
+	ssCommand << "ToolSettingsChanged " << iTool.GetID();
+	TclCommandManager& mgr = TclCommandManager::GetManager();
+	mgr.SendCommand( ssCommand.str() );
+      }
+    }
+
+    // Make a flood params object and fill it out, then make a flood
+    // select object, specifying select or unselect in the ctor. Then
+    // run the flood object with the params.  Hack: Added a 'f' key
+    // shortcut for Jean. Definitely a better way of doing this but
+    // don't want to do it now.
+    if( !iInput.IsShiftKeyDown() && !iInput.IsControlKeyDown() &&
+	(( iInput.IsButtonDownEvent() && 
+	   (2 == iInput.Button() || 3 == iInput.Button()) )      ||
+	 ( iInput.Key()[0] == 'f' )) ) {
+      
+      VolumeLocation& loc =
+	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+      if( mVolume->IsInBounds( loc ) ) {
+
+	VolumeCollectionFlooder::Params params;
+	SetFloodParams( iTool, iViewState, params );
+
+	// Create and run the flood object.
+	if( ScubaToolState::voxelFilling == iTool.GetMode() ) {
+	  if( iInput.Button() == 2 || 
+	      (iInput.Key()[0] == 'f' && !iInput.IsControlKeyDown()) ) {
+	    ScubaLayer2DMRIFloodVoxelEdit flooder( iTool.GetNewValue() );
+	    flooder.Flood( *mVolume, iRAS, params );
+	  } else if( iInput.Button() == 3|| 
+	      (iInput.Key()[0] == 'f' && iInput.IsControlKeyDown()) ) {
+	    ScubaLayer2DMRIFloodVoxelEdit flooder(iTool.GetEraseValue());
+	    flooder.Flood( *mVolume, iRAS, params );
+	  }
+	} else if( ScubaToolState::roiFilling == iTool.GetMode() ) {
+	  if( iInput.Button() == 2|| 
+	      (iInput.Key()[0] == 'f' && !iInput.IsControlKeyDown()) ) {
+	    ScubaLayer2DMRIFloodSelect flooder( true );
+	    flooder.Flood( *mVolume, iRAS, params );
+	  } else if( iInput.Button() == 3|| 
+	      (iInput.Key()[0] == 'f' && iInput.IsControlKeyDown()) ) {
+	    ScubaLayer2DMRIFloodSelect flooder( false );
+	    flooder.Flood( *mVolume, iRAS, params );
+	  }
+	}
+	  
+	RequestRedisplay();
+      }      
+      delete &loc;
+    }
+
+
 
     break;
 

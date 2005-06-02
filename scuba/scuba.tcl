@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.117 2005/06/01 20:16:03 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.118 2005/06/02 20:22:13 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -416,7 +416,8 @@ proc LoadImages {} {
     global ksImageDir
     
     set sFileErrors ""
-    foreach sImageName { icon_edit_label icon_edit_volume icon_draw_line
+    foreach sImageName { icon_edit_label icon_edit_volume icon_fill_volume
+	icon_draw_line icon_fill_roi
 	icon_navigate icon_rotate_plane icon_edit_ctrlpts 
 	icon_edit_parc icon_line_tool
 	icon_view_single icon_view_multiple icon_view_31 
@@ -591,9 +592,13 @@ proc MakeToolBar { ifwTop } {
 	    { -type image -name marker -image icon_marker_crosshair 
 		-balloon "Marker (m)\nLeft: Set cursor\nMiddle: Set marker\nRight: Remove marker\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	    { -type image -name voxelEditing -image icon_edit_volume 
-		-balloon "Voxel Editing (e)\nMiddle: Brush with new value\nRight: Erase\nShift-middle: Fill with new value\nShift-right: Fill erase\nShift-ctrl-middle: Get new color\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
+		-balloon "Voxel Editing (e)\nMiddle: Brush with new value\nRight: Erase\nShift-ctrl-middle: Get new color\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
+	    { -type image -name voxelFilling -image icon_fill_volume 
+		-balloon "Voxel Filling\nMiddle: Fill with new value\nRight: Fill erase\nShift-ctrl-middle: Get new color\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	    { -type image -name roiEditing -image icon_edit_label 
-		-balloon "ROI Editing (r)\nMiddle: Select\nRight: Unselect\nShift-middle: Select file\nShift-right: Unselect fill\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
+		-balloon "ROI Editing (r)\nMiddle: Select\nRight: Unselect\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
+	    { -type image -name roiFilling -image icon_fill_roi 
+		-balloon "ROI Filling\nMiddle: Select fill\nRight: Unselect fill\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	    { -type image -name straightPath -image icon_line_tool 
 		-balloon "Straight Path (s)\n:Left: Start a new path or add a new vertex\nMiddle: Stop making path\nRight: Stop making path and close it\nShift-middle: Select voxels on path\nShift-right: Unselect voxels on path\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	    { -type image -name edgePath -image icon_draw_line 
@@ -688,8 +693,8 @@ proc ToolBarWrapper { isName iValue } {
 
     if { $iValue == 1 } {
 	switch $isName {
-	    navigation - marker - plane - voxelEditing - roiEditing - \
-		straightPath - edgePath {
+	    navigation - marker - plane - voxelEditing - voxelFilling - \
+		roiEditing - roiFilling - straightPath - edgePath {
 		SetToolMode $gaFrame([GetMainFrameID],toolID) $isName
 		SelectToolInToolProperties $isName
 		set gaPrefs(SelectedTool) $isName
@@ -1696,8 +1701,10 @@ proc MakeToolsPanel { ifwTop } {
     set gaWidget(toolProperties,menu) $fwMenu
 
     FillMenuFromList $fwMenu \
-	{ navigation plane marker voxelEditing roiEditing straightPath edgePath }  "" \
-	{ "Navigation" "Plane" "Marker" "Voxel Editing" "ROI Editing" "Straight Path" "Edge Path"} false
+	{ navigation plane marker voxelEditing voxelFilling
+	    roiEditing roiFilling straightPath edgePath }  "" \
+	{ "Navigation" "Plane" "Marker" "Voxel Editing" "Voxel Filling" 
+	    "ROI Editing" "ROI Filling" "Straight Path" "Edge Path"} false
 
 
     frame $fwPropsCommon
@@ -1915,7 +1922,7 @@ proc MakeToolsPanel { ifwTop } {
     # These are to make sure the structure list resizes with the
     # window.
     grid rowconfigure $fwPropsVoxelEditingSub 3 -weight 1
-    grid rowconfigure $fwProps 4 -weight 1
+    grid rowconfigure $fwProps 3 -weight 1
 
     set gaWidget(toolProperties,voxelEditing) $fwPropsVoxelEditing
 
@@ -3205,8 +3212,9 @@ proc SelectToolInToolProperties { iTool } {
 
     # Do the type specific stuff. Pack the relevant tool panels.
     switch $gaTool(current,type) {
-	roiEditing - voxelEditing { 
-	    # ROI and voxel editing get brush and fill stuff.
+	voxelEditing - roiEditing { 
+
+	    # ROI and voxel editing get brush stuff.
 	    grid $gaWidget(toolProperties,brush) -column 0 -row 2 -sticky ew
 
 	    set gaTool(current,brushShape) \
@@ -3218,7 +3226,25 @@ proc SelectToolInToolProperties { iTool } {
 	    set gaTool(current,onlyBrushZero) \
 		[GetToolOnlyBrushZero $gaTool(current,id)]
 
-	    grid $gaWidget(toolProperties,fill)  -column 0 -row 3 -sticky ew
+	    if { "$gaTool(current,type)" == "voxelEditing" } {
+
+		grid $gaWidget(toolProperties,voxelEditing) \
+		    -column 0 -row 3 -sticky news
+
+		set gaTool(current,newVoxelValue) \
+		    [GetToolNewVoxelValue $gaTool(current,id)]
+		tkuRefreshEntryNotify \
+		    $gaWidget(toolProperties,newVoxelValueEntry)
+
+		set gaTool(current,eraseVoxelValue) \
+		    [GetToolEraseVoxelValue $gaTool(current,id)]
+		tkuRefreshEntryNotify \
+		    $gaWidget(toolProperties,eraseVoxelValueEntry)
+	    }
+	}
+	voxelFilling - roiFilling  { 
+
+	    grid $gaWidget(toolProperties,fill)  -column 0 -row 2 -sticky ew
 
 	    set gaTool(current,floodSourceCollection) \
 		[GetToolFloodSourceCollection $gaTool(current,id)]
@@ -3237,11 +3263,10 @@ proc SelectToolInToolProperties { iTool } {
 	    set gaTool(current,onlyFloodZero) \
 		[GetToolOnlyFloodZero $gaTool(current,id)]
 
-	    if { "$gaTool(current,type)" == "voxelEditing" ||
-	         "$gaTool(current,type)" == "roiEditing" } {
+	    if { "$gaTool(current,type)" == "voxelFilling" } {
 
 		grid $gaWidget(toolProperties,voxelEditing) \
-		    -column 0 -row 4 -sticky news
+		    -column 0 -row 3 -sticky news
 
 		set gaTool(current,newVoxelValue) \
 		    [GetToolNewVoxelValue $gaTool(current,id)]
@@ -5122,7 +5147,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.117 2005/06/01 20:16:03 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.118 2005/06/02 20:22:13 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
