@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/05/27 19:33:14 $
-// Revision       : $Revision: 1.36 $
+// Revision Date  : $Date: 2005/06/03 16:01:52 $
+// Revision       : $Revision: 1.37 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.36 $";
+char *MRI_INFO_VERSION = "$Revision: 1.37 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -37,7 +37,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.36 2005/05/27 19:33:14 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.37 2005/06/03 16:01:52 greve Exp $";
 
 char *Progname ;
 
@@ -60,6 +60,7 @@ int PrintRowDC   = 0;
 int PrintSliceDC = 0;
 int PrintVox2RAS = 0;
 int PrintRAS2Vox = 0;
+int PrintVox2RAStkr = 0;
 int PrintDet = 0;
 int PrintOrientation = 0;
 int PrintSliceDirection = 0;
@@ -143,6 +144,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--sdc"))       PrintSliceDC = 1;
     else if (!strcasecmp(option, "--vox2ras"))   PrintVox2RAS = 1;
     else if (!strcasecmp(option, "--ras2vox"))   PrintRAS2Vox = 1;
+    else if (!strcasecmp(option, "--vox2ras-tkr")) PrintVox2RAStkr = 1;
 
     else if (!strcasecmp(option, "--det"))     PrintDet = 1;
 
@@ -178,8 +180,9 @@ static void print_usage(void)
   printf("   --cdc : print column direction cosine (x_{r,a,s})\n");
   printf("   --rdc : print row    direction cosine (y_{r,a,s})\n");
   printf("   --sdc : print slice  direction cosine (z_{r,a,s})\n");
-  printf("   --vox2ras : print the the vox2ras matrix\n");
-  printf("   --ras2vox : print the the ras2vox matrix\n");
+  printf("   --vox2ras : print the the native/qform vox2ras matrix\n");
+  printf("   --ras2vox : print the the native/qform ras2vox matrix\n");
+  printf("   --vox2ras-tkr : print the the tkregister vox2ras matrix\n");
   printf("   --det : print the determinant of the vox2ras matrix\n");
   printf("   --nframes : print number of frames to stdout\n");
   printf("   --format : file format\n");
@@ -348,6 +351,17 @@ static void do_file(char *fname)
     }
     MatrixFree(&m) ;
     MatrixFree(&minv) ;
+    return;
+  }
+  if(PrintVox2RAStkr){
+    m = MRIxfmCRS2XYZtkreg(mri);
+    for(r=1; r<=4; r++){
+      for(c=1; c<=4; c++){
+	printf("%10.5f ",m->rptr[r][c]);
+      }
+      printf("\n");
+    }
+    MatrixFree(&m) ;
     return;
   }
   if(PrintOrientation){
