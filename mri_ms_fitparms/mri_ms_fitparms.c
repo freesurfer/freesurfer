@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/05/26 21:06:54 $
-// Revision       : $Revision: 1.42 $
+// Revision Date  : $Date: 2005/06/03 19:35:37 $
+// Revision       : $Revision: 1.43 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -144,7 +144,7 @@ main(int argc, char *argv[])
   int b, segno;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.42 2005/05/26 21:06:54 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.43 2005/06/03 19:35:37 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2019,20 +2019,25 @@ average_volumes_with_different_echo_times_and_set_Mreg(MRI **mri_flash, MRI **mr
   memset(averaged, 0, sizeof(averaged)) ;
 
   for (all_tes_equal = 1, i = 1 ; i < nvolumes_total ; i++)
+    {
+      if (mri_all_flash[i]->te != mri_all_flash[0]->te)
 	{
-		if (mri_all_flash[i]->te != mri_all_flash[0]->te)
-		{
-			all_tes_equal = 0 ;
-			break ;
-		}
+	  all_tes_equal = 0 ;
+	  break ;
 	}
-	if (all_tes_equal)
-	{
-		for (i = 0 ; i < nvolumes_total ; i++)
-			mri_flash[i] = mri_all_flash[i] ;
-		return(nvolumes_total) ;
-	}
-
+    }
+  if (all_tes_equal)
+    {
+      for (i = 0 ; i < nvolumes_total ; i++){
+	mri_flash[i] = mri_all_flash[i] ;
+	if(M_reg_orig[i] == NULL)
+	  M_reg[i] = MatrixIdentity(4, (MATRIX *)NULL);
+	else
+	  M_reg[i] = MatrixCopy(M_reg_orig[i], (MATRIX *)NULL);
+      }
+      return(nvolumes_total) ;
+    }
+  
   for (nvolumes = i = 0 ; i < nvolumes_total ; i++)
   {
     if (averaged[i])
