@@ -4,7 +4,7 @@ function [D,mu,sigma]=talairach_stats_correct(dirname, outdir)
 % 
 % By default, the 3 translation parameters are not considered 
 %     -> mu is a 1x9 vector and sigma a 9x9 matrix
-% $Id: talairaching_stats.m,v 1.2 2005/06/03 17:05:30 wastiaux Exp $
+%
 
 
 
