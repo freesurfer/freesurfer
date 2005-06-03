@@ -18,6 +18,7 @@ set LOG_DIR=/space/birn/50/freesurfer/build/logs
 set DEV_DIR=${BUILD_DIR}/trunk/dev
 set DEV_DEST_DIR=/usr/local/freesurfer/dev
 
+set FAILED_FILE=${BUILD_DIR}/dev-FAILED
 
 # Output file
 ######################################################################
@@ -81,9 +82,10 @@ echo "" >>& $OUTPUTF
 # Do the build.
 ######################################################################
 
-# Go to dev directory, update code, and check the result. If there are lines
-# starting with "U " or "P " then we had some changes, so go through
-# with the build. If not, quit now.
+# Go to dev directory, update code, and check the result. If there are
+# lines starting with "U " or "P " then we had some changes, so go
+# through with the build. If not, quit now. But don't quit if the file
+# FAILED exists, because that means that the last build failed.
 echo "##########################################################" >>& $OUTPUTF
 echo "Updating dev" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
@@ -94,7 +96,7 @@ $ECHO cvs update -d >& /tmp/update-output
 
 $ECHO echo "CMD: grep -e ^\[UP\]\  /tmp/update-output" >>& $OUTPUTF
 $ECHO grep -e ^\[UP\]\  /tmp/update-output >& /dev/null
-if ($status != 0) then
+if ($status != 0 && ! -e ${FAILED_FILE} ) then
   echo "Nothing changed in repository, SKIPPED building" >>& $OUTPUTF
   goto done
 endif
@@ -127,6 +129,7 @@ if ($status != 0) then
   echo "" >>& $OUTPUTF
   $ECHO cat ${DEV_DIR}/config.log >>& $OUTPUTF
   $ECHO mail -s "`hostname -s` dev build FAILED after dev configure" $MAIL_LIST < $OUTPUTF
+  $ECHO touch ${FAILED_FILE}
   exit 1  
 endif
 
@@ -141,9 +144,11 @@ $ECHO echo "CMD: make install" >>& $OUTPUTF
 $ECHO make install >>& $OUTPUTF
 if ($status != 0) then
   $ECHO mail -s "`hostname -s` dev build FAILED after building dev" $MAIL_LIST < $OUTPUTF
+  $ECHO touch ${FAILED_FILE}
   exit 1  
 endif
 
+$ECHO rm -rf ${FAILED_FILE}
 
 done:
 
