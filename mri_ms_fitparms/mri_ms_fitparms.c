@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/06/03 19:35:37 $
-// Revision       : $Revision: 1.43 $
+// Revision Date  : $Date: 2005/06/03 19:41:00 $
+// Revision       : $Revision: 1.44 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -144,7 +144,7 @@ main(int argc, char *argv[])
   int b, segno;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.43 2005/06/03 19:35:37 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.44 2005/06/03 19:41:00 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -901,8 +901,8 @@ usage_exit(int code)
   printf("Note that TR, TE and the flip angle are read directly from the image header.\n"
 	 "If this information is not available, it can be specified on the command line using\n"
 	 "-tr <TR in msec> -te <TE in msec> -fa <flip angle in degrees> before each volume.\n");
-  printf("use -at <xform file name> or -ait <xform file name> to sepecify transformation for each\n"
-	 "individual volume. Note only one for each flip-angle is enough.\n");
+  printf("use -at <xform file name> or -ait <xform file name> to specify transformation for each\n"
+	 "individual volume. Note only one for each flip-angle is enough. -at will apply the transform to the following volume to align with others. \n");
   exit(code) ;
 }
 
