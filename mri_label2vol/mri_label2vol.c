@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.13 2005/06/03 15:35:20 greve Exp $
+  $Id: mri_label2vol.c,v 1.14 2005/06/03 16:12:32 greve Exp $
 */
 
 
@@ -54,7 +54,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.13 2005/06/03 15:35:20 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.14 2005/06/03 16:12:32 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -62,6 +62,7 @@ int nlabels = 0;
 
 char *TempVolId = NULL;
 char *RegMatFile = NULL;
+int InvertMtx = 0;
 double FillThresh = 0.0;
 double ProjDelta = .1;
 double ProjStart = 0;
@@ -109,7 +110,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_label2vol.c,v 1.13 2005/06/03 15:35:20 greve Exp $", "$Name:  $");
+      "$Id: mri_label2vol.c,v 1.14 2005/06/03 16:12:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -155,6 +156,12 @@ int main(int argc, char **argv)
     if(err) exit(1);
     printf("RegMat: --------\n");
     MatrixPrint(stdout,R);
+    if(InvertMtx){
+      printf("Inverting matrix\n");
+      MatrixInverse(R,R);
+      printf("RegMat: --------\n");
+      MatrixPrint(stdout,R);
+    }
     MatrixMultiply(Tras2vox,R,Tras2vox);
   }
   printf("Label RAS-to-Vox: --------\n");
@@ -358,6 +365,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--native-vox2ras"))  UseNativeVox2RAS = 1;
+    else if (!strcasecmp(option, "--invertmtx"))  InvertMtx = 1;
 
     else if (!strcmp(option, "--label")){
       if(nargc < 1) argnerr(option,1);
@@ -469,6 +477,7 @@ static void print_usage(void)
   printf("\n");
   printf("   --temp tempvolid : template volume\n");
   printf("   --reg regmat : VolXYZ = R*LabelXYZ\n");
+  printf("   --invertmtx : Invert the registration matrix\n");
   printf("\n");
   printf("   --fillthresh thresh : between 0 and 1 (def 0)\n");
   printf("   --labvoxvol voxvol : volume of each label point (def 1mm3)\n");
