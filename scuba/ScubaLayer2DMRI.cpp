@@ -34,6 +34,8 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   mMaxVisibleValue = 0;
   mBufferIncSize[0] = mBufferIncSize[1] = -1;
   mRowStartRAS = mColIncrementRAS = NULL;
+  mLastMouseUpRAS.Set( 0, 0, 0 );
+  mbDrawEditingLine = false;
 
   // Try setting our initial color LUT to the default LUT with
   // id 0. If it's not there, create it.
@@ -298,6 +300,17 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   }
 
   delete &loc;
+
+
+  if( mbDrawEditingLine ) {
+
+    Point2<int> windowA, windowB;
+    int color[3] = { 255, 0, 255 };
+    iTranslator.TranslateRASToWindow( mLastMouseUpRAS.xyz(), windowA.xy() );
+    iTranslator.TranslateRASToWindow( mCurrentMouseRAS.xyz(), windowB.xy() );
+    DrawLineIntoBuffer( iBuffer, iWidth, iHeight,
+			windowA.xy(), windowB.xy(), color, 2, 0.5 );
+  }
 
 }
 
@@ -1134,19 +1147,45 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       
   }
 #endif
-
+  
   switch( iTool.GetMode() ) {
   case ScubaToolState::voxelEditing:
-  case ScubaToolState::roiEditing:
+  case ScubaToolState::roiEditing: {
 
     // If roiEditing, check editable ROI flag.
     if( ScubaToolState::roiEditing == iTool.GetMode() &&
 	!mbEditableROI ) 
       return;
 
+    // These tools have basically three sets of bahavior. First is
+    // straight up painting. In this case, on a mouse down, we do undo
+    // begin stuff. On a mouse drag, we get points in the brush shape
+    // and paint/select them. On mouse up, we do end undo stuff.
+    bool bBrush = false, bLine = false, bEyedropper = false;
+    if( !iInput.IsShiftKeyDown() && 
+	!iInput.IsControlKeyDown() &&
+	(2 == iInput.Button() || 3 == iInput.Button()) ) 
+      bBrush = true;
+
+    // Second is the shift-line. In this case, on a mouse move with
+    // the shift key down, we draw we set flags to draw a line from
+    // the last mouse down to the current lock. On a mouse down, we do
+    // undo begin stuff, and on mouse up, paint/select the line and
+    // end undo stuff.
+    if( iInput.IsShiftKeyDown() && 
+	!iInput.IsControlKeyDown() )
+      bLine = true;
+
+    // Finally there is just a straight eyedropper tool for shift+ctrl
+    // mouse up.
+    if( iInput.IsShiftKeyDown() && 
+	iInput.IsControlKeyDown() &&
+	2 == iInput.Button() ) 
+      bEyedropper = true;
+
+
     // Eyedropper the color and set the tool.
-    if( iInput.IsShiftKeyDown() && iInput.IsControlKeyDown() &&
-	iInput.IsButtonDownEvent() && 2 == iInput.Button() ) {
+    if( bEyedropper && iInput.IsButtonUpEvent() ) {
 
       VolumeLocation& loc =
 	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
@@ -1162,17 +1201,32 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       }
     }
 
-    if( (iInput.IsButtonDownEvent() || iInput.IsButtonUpEvent() ||
-	 iInput.IsButtonDragEvent()) &&
-	!iInput.IsShiftKeyDown() && !iInput.IsControlKeyDown() &&
+    // Line tool. This will tell the DrawIntoBuffer to draw line from
+    // last point to here.
+    if( bLine ) {
+
+      mCurrentMouseRAS.Set( iRAS );
+      mbDrawEditingLine = true;
+      RequestRedisplay();
+
+    } else {
+
+      if( mbDrawEditingLine ) {
+	mbDrawEditingLine = false;
+	RequestRedisplay();
+      }
+    }
+
+
+    // Handle the brushing/selecting stuff here. The only difference
+    // is that they find their points differently, and work on
+    // different events.
+    if( (bBrush || bLine) &&
 	(2 == iInput.Button() || 3 == iInput.Button()) ) {
 
-      // If this is a mouse down event, open up an undo action, and if
-      // it's a mouse up event, close it. Then if the mouse is down
-      // switch on the brush shape and call a GetRASPointsIn{Shape}
-      // function to get the points we need to brush.
-
+      // If this is a mouse down event, open up an undo action.
       UndoManager& undoList = UndoManager::GetManager();
+
       if( iInput.IsButtonDownEvent() ) {
 	if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
 	  if( iInput.Button() == 2 ) {
@@ -1189,167 +1243,142 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	}
       }
 
-      if( iInput.IsButtonUpEvent() ) {
-	undoList.EndAction();
-      }
+    
+      // We'll find voxels. In brush mode, it's only for button
+      // drag and up. For line, it's only on mouse up.
+      if( (bBrush && 
+	   (iInput.IsButtonDragEvent() || iInput.IsButtonUpEvent()))  ||
+	  (bLine && iInput.IsButtonUpEvent()) ) {
 
-      if( iInput.IsButtonDown() ) {
-
-	// Find a square centered on the point we clicked with the
-	// radius of the brush radius. We get the window point, offset
-	// by the radius (* zoom level), and get an RAS point from
-	// that. These are the corners of our plane.
-	Point2<int> window;
-	Point3<float> sq[4];
-	float rad;
-	ScubaToolState::Shape shape = iTool.GetBrushShape();
-	if( ScubaToolState::voxel == shape ) {
-	  rad = MAX( MAX( mVolume->GetVoxelXSize(), mVolume->GetVoxelYSize() ),
-		     mVolume->GetVoxelZSize() );
-	} else {
-	  rad = iTool.GetBrushRadius();
-	}
-
-	int windowBrushRad = (int)( iViewState.mZoomLevel * rad );
-
-	// Get our four plane points.
-	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
-	window[0] -= windowBrushRad;
-	window[1] -= windowBrushRad;
-	iTranslator.TranslateWindowToRAS( window.xy(), sq[0].xyz() );
-	window[0] += 2 * windowBrushRad;
-	iTranslator.TranslateWindowToRAS( window.xy(), sq[1].xyz() );
-	window[1] += 2 * windowBrushRad;
-	iTranslator.TranslateWindowToRAS( window.xy(), sq[2].xyz() );
-	window[0] -= 2* windowBrushRad;
-	iTranslator.TranslateWindowToRAS( window.xy(), sq[3].xyz() );
-
-	// Now we need to calculate an update rect in window
-	// coordinates. When we brush, this will be the area that is
-	// updated on the screen. But we want to make this at least as
-	// big enough to cover whole voxels. So we'll increase the
-	// rect by the size of the voxel in window coords.
-	Point2<int> updateRectWindow[2];
-
-	// Get a 0,0,0 voxel and a voxel-size voxel, convert both to
-	// window, and get the difference. This is the voxel size in
-	// the window.
-	Point3<float> voxelRAS;
-	Point3<float> originRAS;
-	voxelRAS[0] = mVolume->GetVoxelXSize();
-	voxelRAS[1] = mVolume->GetVoxelYSize();
-	voxelRAS[2] = mVolume->GetVoxelZSize();
-	originRAS.Set( 0, 0, 0 );
-	Point2<int> voxelWindow;
-	Point2<int> originWindow;
-	iTranslator.TranslateRASToWindow( voxelRAS.xyz(), voxelWindow.xy() );
-	iTranslator.TranslateRASToWindow( originRAS.xyz(), originWindow.xy() );
-	Point2<int> voxelSizeWindow;
-	voxelSizeWindow.Set( abs( voxelWindow[0] - originWindow[0] ),
-			     abs( voxelWindow[1] - originWindow[1] ) );
-					  
-	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
-	updateRectWindow[0][0] = 
-	  window[0] - windowBrushRad - voxelSizeWindow[0];
-	updateRectWindow[0][1] = 
-	  window[1] - windowBrushRad - voxelSizeWindow[1];
-	updateRectWindow[1][0] = 
-	  window[0] + windowBrushRad + voxelSizeWindow[0];
-	updateRectWindow[1][1] =
-	  window[1] + windowBrushRad + voxelSizeWindow[1];
-
-	iViewState.AddUpdateRect( updateRectWindow[0][0], updateRectWindow[0][1], updateRectWindow[1][0], updateRectWindow[1][1] );
-
-
-	// Now get the RAS points in this square or circle.
 	list<Point3<float> > points;
-	switch( shape ) {
-	case ScubaToolState::voxel:
-	  points.push_back( Point3<float>(iRAS) );
-	  break;
-	case ScubaToolState::square: {
-	  mVolume->FindRASPointsInSquare( iRAS, 
-					  sq[0].xyz(), sq[1].xyz(),
-					  sq[2].xyz(), sq[3].xyz(),
-					  0,
-					  points );
+
+	if( bBrush ) {
+	  
+	  // Brush. Find the radius according to the brush shape. Calc
+	  // a rect for with that radius around the clicked point.
+	  float radiusRAS;
+	  ScubaToolState::Shape shape = iTool.GetBrushShape();
+	  if( ScubaToolState::voxel == shape ) {
+	    radiusRAS = MAX( MAX( mVolume->GetVoxelXSize(), 
+				  mVolume->GetVoxelYSize() ),
+			     mVolume->GetVoxelZSize() );
+	  } else {
+	    radiusRAS = iTool.GetBrushRadius();
+	  }
+	  
+	  // Calc a square in the view plane.
+	  float squareRAS[4][3];
+	  CalcRASSquareInViewPlane( iRAS, radiusRAS, iTranslator, iViewState,
+				    squareRAS );
+	  
+	  // Now get the RAS points in this square or circle.
+	  switch( shape ) {
+	  case ScubaToolState::voxel:
+	    points.push_back( Point3<float>(iRAS) );
+	    break;
+	  case ScubaToolState::square: {
+	    mVolume->FindRASPointsInSquare( iRAS, 
+					    squareRAS[0], squareRAS[1],
+					    squareRAS[2], squareRAS[3],
+					    0,
+					    points );
 	  } break;
-	case ScubaToolState::circle:
-	  mVolume->FindRASPointsInCircle( sq[0].xyz(), sq[1].xyz(),
-					  sq[2].xyz(), sq[3].xyz(),
-					  0, iRAS, rad,
-					  points );
-	  break;
+	  case ScubaToolState::circle:
+	    mVolume->FindRASPointsInCircle( squareRAS[0], squareRAS[1],
+					    squareRAS[2], squareRAS[3],
+					    0, iRAS, radiusRAS,
+					    points );
+	    break;
+	  }
+
+	  // Go ahead and add our update square now while we have the info.
+	  CalcAndAddUpdateSquare( iRAS, radiusRAS, iTranslator, iViewState );
+	  
+	  
+	} else {
+	  
+	  // Line. Just find the points on the segment between last
+	  // mouse up and where we clicked here.
+	  mVolume->FindRASPointsOnSegment( mLastMouseUpRAS.xyz(), iRAS,
+					   points );
 	}
+	
 	
 	// For each point we got...
 	list<Point3<float> >::iterator tPoints;
 	for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
-
+	  
 	  // If the point is in bounds...
 	  Point3<float> point = *tPoints;
 	  VolumeLocation& loc =
 	    (VolumeLocation&) mVolume->MakeLocationFromRAS( point.xyz() );
 	  
 	  if( mVolume->IsInBounds( loc ) ) {
-
+	    
 	    // Depending on whether we're editing or selecting, and
 	    // whether we're actioning or unactioning, perform the
 	    // proper action. Also create the proper undo item.
 	    UndoAction* action = NULL;
 	    if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
-
+	      
 	      // Editing. Get the original value for the undo item.
 	      float origValue = mVolume->GetMRINearestValue( loc );
-
+	      
 	      // If only brushing zero and are brushing, skip if not
 	      // zero.
 	      if( iTool.GetOnlyBrushZero() && 
 		  iInput.Button() == 2 &&
 		  origValue != 0 )
 		continue; 
-
+	      
 	      // New value depends on voxel button.
 	      float newValue = iInput.Button() == 2 ? 
 		iTool.GetNewValue() : iTool.GetEraseValue();
-
+	      
 	      // Set value and make undo item.
 	      mVolume->SetMRIValue( loc, newValue );
 	      action = new UndoVoxelEditAction( mVolume, newValue,
 						origValue, point.xyz() );
-
-
+	      
+	      
 	      // Selecting. 
 	    } else if( ScubaToolState::roiEditing == iTool.GetMode() ) {
-
+	      
 	      // New value depends on voxel button.
 	      bool bSelect = iInput.Button() == 2 ? true : false;
-
+	      
 	      // Select or unselect.
 	      if( iInput.Button() == 2 ) {
 		mVolume->Select( loc );
 	      } else if( iInput.Button() == 3 ) {
 		mVolume->Unselect( loc );
 	      }
-
+	      
 	      action = new UndoSelectionAction( mVolume, bSelect, point.xyz());
 	    }
 	    
 	    // Add the undo item.
 	    undoList.AddAction( action );
 	  }
-
+	  
 	  delete &loc;
 	}
+
 	RequestRedisplay();
       }
-    }
 
+      // If this is a mouse up event, close the undo stuff.
+      if( iInput.IsButtonUpEvent() ) {
+	undoList.EndAction();
+      }
+      
+    }  
+    
     // Also request a redisplay if this is a mouse up.
     if( iInput.IsButtonUpEvent() ) {
       RequestRedisplay();
     }
-
+    
     if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
       
       // Adjust the min/max visible value.
@@ -1363,7 +1392,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       }
     }
 
-    break;
+  } break;
 
   case ScubaToolState::voxelFilling:
   case ScubaToolState::roiFilling:
@@ -1621,6 +1650,86 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
   default:
     break;
   }
+
+  // Save the mouse up location.
+  if( iInput.IsButtonUpEvent() ) {
+    mLastMouseUpRAS.Set( iRAS );
+  }
+
+}
+
+void
+ScubaLayer2DMRI::CalcRASSquareInViewPlane ( float iRAS[3], float iRadiusRAS,
+			       ScubaWindowToRASTranslator& iTranslator,
+					  ViewState& iViewState, 
+					  float oSquare[4][3] ) {
+
+  // Find a square centered on the point we clicked with the
+  // radius of the brush radius. We get the window point, offset
+  // by the radius (* zoom level), and get an RAS point from
+  // that. These are the corners of our square.
+  Point2<int> window;
+  
+  // Calc radius in window terms.
+  int windowBrushRad = (int)( iViewState.mZoomLevel * iRadiusRAS );
+  
+  // Get our four plane points.
+  iTranslator.TranslateRASToWindow( iRAS, window.xy() );
+  window[0] -= windowBrushRad;
+  window[1] -= windowBrushRad;
+  iTranslator.TranslateWindowToRAS( window.xy(), oSquare[0] );
+  window[0] += 2 * windowBrushRad;
+  iTranslator.TranslateWindowToRAS( window.xy(), oSquare[1] );
+  window[1] += 2 * windowBrushRad;
+  iTranslator.TranslateWindowToRAS( window.xy(), oSquare[2] );
+  window[0] -= 2* windowBrushRad;
+  iTranslator.TranslateWindowToRAS( window.xy(), oSquare[3] );
+}
+
+void
+ScubaLayer2DMRI::CalcAndAddUpdateSquare ( float iRAS[3], float iRadiusRAS,
+				      ScubaWindowToRASTranslator& iTranslator,
+					ViewState& iViewState ) {
+
+  // Calc radius in window terms.
+  int windowBrushRad = (int)( iViewState.mZoomLevel * iRadiusRAS );
+  
+  // Now we need to calculate an update square in window
+  // coordinates. When we brush, this will be the area that is
+  // updated on the screen. But we want to make this at least as
+  // big enough to cover whole voxels. So we'll increase the
+  // square by the size of the voxel in window coords.
+  Point2<int> updateSquareWindow[2];
+  
+  // Get a 0,0,0 voxel and a voxel-size voxel, convert both to
+  // window, and get the difference. This is the voxel size in
+  // the window.
+  Point3<float> voxelRAS;
+  Point3<float> curRAS;
+  voxelRAS[0] = iRAS[0] + mVolume->GetVoxelXSize();
+  voxelRAS[1] = iRAS[1] + mVolume->GetVoxelYSize();
+  voxelRAS[2] = iRAS[2] + mVolume->GetVoxelZSize();
+  curRAS.Set( iRAS );
+  Point2<int> voxelWindow;
+  Point2<int> curWindow;
+  iTranslator.TranslateRASToWindow( voxelRAS.xyz(), voxelWindow.xy() );
+  iTranslator.TranslateRASToWindow( curRAS.xyz(), curWindow.xy() );
+  Point2<int> voxelSizeWindow;
+  voxelSizeWindow.Set( abs( voxelWindow[0] - curWindow[0] ),
+		       abs( voxelWindow[1] - curWindow[1] ) );
+
+  Point2<int> window;
+  iTranslator.TranslateRASToWindow( iRAS, window.xy() );
+  updateSquareWindow[0][0] = 
+    window[0] - windowBrushRad - voxelSizeWindow[0];
+  updateSquareWindow[0][1] = 
+    window[1] - windowBrushRad - voxelSizeWindow[1];
+  updateSquareWindow[1][0] = 
+    window[0] + windowBrushRad + voxelSizeWindow[0];
+  updateSquareWindow[1][1] =
+    window[1] + windowBrushRad + voxelSizeWindow[1];
+  
+  iViewState.AddUpdateRect( updateSquareWindow[0][0], updateSquareWindow[0][1], updateSquareWindow[1][0], updateSquareWindow[1][1] );
 }
 
 void

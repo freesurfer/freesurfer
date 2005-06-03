@@ -135,6 +135,20 @@ class ScubaLayer2DMRI : public Layer {
  
  protected:
 
+  // Given an RAS point and a radius, calculates the corners of a
+  // square on the view plane.
+  void CalcRASSquareInViewPlane ( float iRAS[3], float iRadiusRAS,
+				  ScubaWindowToRASTranslator& iTranslator,
+				  ViewState& iViewState,
+				  float oSquareRAS[4][3] );
+
+  // Given an RAS point and a radius, calculates the minimum update
+  // rect needed to display changes done to voxels in that
+  // rectangle. Adds the rect to the update list.
+  void CalcAndAddUpdateSquare ( float iRAS[3], float iRadiusRAS,
+				ScubaWindowToRASTranslator& iTranslator,
+				ViewState& iViewState );
+
   virtual void DoTimer ();
   int mTimersSinceLastAutosave;
   static int const kcTimersBetweenAutosaves;
@@ -162,6 +176,11 @@ class ScubaLayer2DMRI : public Layer {
   // ROI settings.
   float mROIOpacity;
   bool mbEditableROI;
+
+  // For editing lines.
+  Point3<float> mLastMouseUpRAS, mCurrentMouseRAS;
+  bool mbDrawEditingLine;
+
   
   // For paths.
   Path<float>*   mCurrentPath;
