@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.12 2005/05/24 23:14:38 greve Exp $
+  $Id: mri_label2vol.c,v 1.13 2005/06/03 15:35:20 greve Exp $
 */
 
 
@@ -54,7 +54,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.12 2005/05/24 23:14:38 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.13 2005/06/03 15:35:20 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -95,6 +95,7 @@ double LabelVoxVol = 1;
 double nHitsThresh;
 int *ASegLabelList;
 int LabelCode;
+int UseNativeVox2RAS=0;
 
 
 /*---------------------------------------------------------------*/
@@ -108,7 +109,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_label2vol.c,v 1.12 2005/05/24 23:14:38 greve Exp $", "$Name:  $");
+      "$Id: mri_label2vol.c,v 1.13 2005/06/03 15:35:20 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -133,7 +134,11 @@ int main(int argc, char **argv)
     printf("ERROR: reading %s header\n",TempVolId);
     exit(1);
   }
-  Tvox2ras = MRIxfmCRS2XYZtkreg(TempVol); 
+  if(!UseNativeVox2RAS)
+    Tvox2ras = MRIxfmCRS2XYZtkreg(TempVol); 
+  else
+    Tvox2ras = MRIgetVoxelToRasXform(TempVol); 
+
   Tras2vox = MatrixInverse(Tvox2ras,NULL);
   printf("Template RAS-to-Vox: --------\n");
   MatrixPrint(stdout,Tras2vox);
@@ -352,6 +357,7 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--native-vox2ras"))  UseNativeVox2RAS = 1;
 
     else if (!strcmp(option, "--label")){
       if(nargc < 1) argnerr(option,1);
@@ -474,6 +480,7 @@ static void print_usage(void)
   printf("   --o volid : output volume\n");
   printf("   --hits hitvolid : each frame is nhits for a label\n");
   printf("\n");
+  printf("   --native-vox2ras : use native vox2ras xform instead of tkregister-style\n");
   printf("   --version : print version and exit\n");
   printf("   --help \n");
   printf("\n");
@@ -612,6 +619,12 @@ static void print_help(void)
 "arbitration routine. Or you could binarize to have each label\n"
 "represented separately. Takes any format accepted by mri_convert (eg,\n"
 "spm, analyze, bshort, mgh).\n"
+"\n"
+"--native-vox2ras\n"
+"\n"
+"Use the 'native' voxel-to-RAS transform instead of the tkregister-style.\n"
+"The 'native' vox2ras is what is stored with the volume (usually scanner)\n"
+"This may be needed depending upon how the label was created (eg, with scuba).\n"
 "\n"
 "RESOLVING MULTI-LABEL AMBIGUITIES\n"
 "\n"
