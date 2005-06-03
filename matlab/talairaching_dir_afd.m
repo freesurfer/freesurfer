@@ -1,16 +1,16 @@
-function [probas, Isubj,nf]=taldir(dirname, th_pval)
+function [probas, Isubj,nf]=taldir(dirname, th_pval, DirTable)
 %
 % Computes the probability of the Talairach transform matrices
 %    of all the subjects found in the directory "dirname".  
-%  Uses the mean vector and covariance matrix obtained from 
-%       the training set: /space/neo/2/recon/buckner
+%  Uses the mean vector and covariance matrix obtained with talairachin_table.m from 
+%     the data set (default data set: /space/neo/2/recon/buckner)
 %  Uses th_pval as a threshold for the p-values to detect unlikely transform  matrices
 %
-% $Id: talairaching_dir_afd.m,v 1.2 2005/06/01 14:09:45 wastiaux Exp $
+% $Id: talairaching_dir_afd.m,v 1.3 2005/06/03 17:03:57 wastiaux Exp $
 
 
-if (nargin<2 | nargin>2)
-    msg=sprintf('USAGE: [probas, Isubj , nf]=taldir(SubjectDir, th_pval)');
+if (nargin<2 | nargin>3)
+    msg=sprintf('USAGE: [probas, Isubj , nf]=taldir(SubjectDir, th_pval, <DirTable>)');
     disp(msg)
 end
 
@@ -20,13 +20,18 @@ probas=[];
 Isubj=[];
 Pval=[];
 count=0;
+probas_flag=1;
 
-%%% Get the tables'directory %%%
-if(getenv('FREESURFER_HOME'))
-    fsh=getenv('FREESURFER_HOME');
-    fsafdDir=strcat(fsh, '/fsafd');
+if(nargin==3)
+    fsafdDir=DirTable;
 else
-    error(sprintf('Impossible to find FREESURFER_HOME\n'));
+    %%% Get the default tables'directory %%%
+    if(getenv('FREESURFER_HOME'))
+        fsh=getenv('FREESURFER_HOME');
+        fsafdDir=strcat(fsh, '/fsafd');
+    else
+        error(sprintf('Impossible to find FREESURFER_HOME\n'));
+    end
 end
 
 %%% 1x9 mean vector obtained from the training set %%%
@@ -34,48 +39,55 @@ end
 %file_mu='/space/okapi/3/data/laurence/ADF/talairaching/TalairachingMean.adf'; %Loads mu
 file_mu=strcat(fsafdDir, '/TalairachingMean.adf');
 fi=fopen(file_mu);
+pos=0;
 if(fi==-1)
     mess=sprintf('Could not find %s', file_mu);
     error(mess)
+else
+    while(strfind(fgetl(fi), '#'))  % skip the header
+        pos=ftell(fi);
+    end
+    fseek(fi, pos, 'bof');
+    mu=(fscanf(fi, '%g'))';
+    fclose(fi);
 end
-while(strfind(fgetl(fi), '#'))  % skip the header
-    pos=ftell(fi);
-end
-fseek(fi, pos, 'bof');
-mu=(fscanf(fi, '%g'))';
-fclose(fi);
 
 %%% 9x9 covariance matrix obtained from the training set %%%
 %load('/space/okapi/3/data/laurence/ADF/talairaching/transfo_param_regularizedCov2.mat'); %loads sigma
 %sigma_file='/space/okapi/3/data/laurence/ADF/talairaching/TalairachingCovariance.adf'; 
 sigma_file=strcat(fsafdDir, '/TalairachingCovariance.adf');
 fis=fopen(sigma_file);
+pos=0;
 if(fis==-1)
     mess=sprintf('Could not find %s', sigma_file);
     error(mess)
+else
+    while(strfind(fgetl(fis), '#'))  % skip the header
+        pos=ftell(fis);
+    end
+    fseek(fis, pos, 'bof');
+    sig=fscanf(fis, '%g');
+    sigma=reshape(sig, [9,9]);
+    fclose(fis);
 end
-while(strfind(fgetl(fis), '#'))  % skip the header
-    pos=ftell(fis);
-end
-fseek(fis, pos, 'bof');
-sig=fscanf(fis, '%g');
-sigma=reshape(sig, [9,9]);
-fclose(fis);
 
 %%% Probabilities of the transform matrices  %%%
 %stat_file='/space/okapi/3/data/laurence/ADF/talairaching/TalairachingProbas.adf';
 stat_file=strcat(fsafdDir, '/TalairachingProbas.adf');
 fid=fopen(stat_file);
+pos=0;
 if(fid==-1)
-    mess=sprintf('Could not find %s', stat_file);
-    error(mess)
+    mess=sprintf('Could not find %s... compute probas for the first time', stat_file);
+    disp(mess)
+    probas_flag=0;
+else
+    while(strfind(fgetl(fid), '#'))  % skip the header
+        pos=ftell(fid);
+    end
+    fseek(fid, pos, 'bof');
+    yy=fscanf(fid, '%g');
+    fclose(fid);
 end
-while(strfind(fgetl(fid), '#'))  % skip the header
-    pos=ftell(fid);
-end
-fseek(fid, pos, 'bof');
-yy=fscanf(fid, '%g');
-fclose(fid);
 
 for i=1:(length(files))
     s=strcat(dirname,'/',files(i).name);
@@ -97,16 +109,18 @@ for i=1:(length(files))
         probas=[probas p];
         Isubj=[Isubj i];
         nf(length(probas)).name=files(i).name;
-        [pinf]=compute_pval(p, yy);
-        Pval=[Pval pinf];
-        if (pinf < th_pval)
-            %mess=sprintf('Talairach Transform: %s failed (%g)', files(i).name, p);
-            mess=sprintf('Talairach Transform: %s failed, (p=%g pval=%g)', files(i).name, p, pinf);
-            disp(mess)
-            count=count+1;
-        else
-            mess2=sprintf('Talairach Transform: %s OK, (p=%g pval=%g)', files(i).name, p, pinf);
-            %disp(mess2)
+        if(probas_flag)
+            [pinf]=compute_pval(p, yy);
+            Pval=[Pval pinf];
+            if (pinf < th_pval)
+                %mess=sprintf('Talairach Transform: %s failed (%g)', files(i).name, p);
+                mess=sprintf('Talairach Transform: %s failed, (p=%g pval=%g)', files(i).name, p, pinf);
+                disp(mess)
+                count=count+1;
+            else
+                mess2=sprintf('Talairach Transform: %s OK, (p=%g pval=%g)', files(i).name, p, pinf);
+                disp(mess2)
+            end
         end
     else 
         i=i+1;
@@ -122,6 +136,10 @@ if (length(probas) == 0)
 end
 messcount=sprintf('Number of unlikely Talairach transforms : %d', count);
 disp(messcount)
+% if(~probas_flag)
+%     outprobas=strcat(DirTable, '/TalairachingProbas.adf');
+%     save(outprobas, 'probas', '-ASCII');
+% end
 %y=probas;
 %save('/space/okapi/3/data/laurence/talairaching/transfo_param_probas.mat', 'y');
 
