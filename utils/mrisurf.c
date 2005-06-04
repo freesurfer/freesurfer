@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/06/03 14:30:25 $
-// Revision       : $Revision: 1.353 $
+// Revision Date  : $Date: 2005/06/04 20:07:16 $
+// Revision       : $Revision: 1.354 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -32576,7 +32576,7 @@ static int defectIdentifyDefectiveVertices(MRI_SURFACE *mris, DEFECT *defect,
 
 	return counting;
 }
-
+#if ADD_EXTRA_VERTICES
 /* verify if some defects are not overlapping : to be implemented */
 static DEFECT_LIST *mrisDefectAnalysis(MRIS *mris,DEFECT_LIST *dl ){
 	int i,n;
@@ -32630,6 +32630,7 @@ static DEFECT_LIST *mrisDefectAnalysis(MRIS *mris,DEFECT_LIST *dl ){
 	//fprintf(stderr,"\nend analysis\n");
 	return dl;
 }
+#endif
 
 #if ADD_EXTRA_VERTICES
 static int pushApartDefects(MRIS *mris,DEFECT_LIST *dl){
@@ -32757,9 +32758,9 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 	fprintf(WHICH_OUTPUT, "segmenting defects...\n") ;
   dl = MRISsegmentDefects(mris, MARK_AMBIGUOUS, MARK_SEGMENTED) ;
 
+#if ADD_EXTRA_VERTICES
 	/* analyze if the segmentation into connected defects is correct */
 	dl = mrisDefectAnalysis(mris,dl);
-#if ADD_EXTRA_VERTICES
 	pushApartDefects(mris,dl);
 #endif
 
