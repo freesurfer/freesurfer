@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/06/03 17:01:11 $
-// Revision       : $Revision: 1.302 $
-char *MRI_C_VERSION = "$Revision: 1.302 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2005/06/06 16:10:55 $
+// Revision       : $Revision: 1.303 $
+char *MRI_C_VERSION = "$Revision: 1.303 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -24,6 +24,7 @@ char *MRI_C_VERSION = "$Revision: 1.302 $";
 #include <string.h>
 #include <memory.h>
 #include <errno.h>
+#include <ctype.h>
 #include "error.h"
 #include "proto.h"
 #include "mri.h"
@@ -11943,4 +11944,240 @@ MRIgetVoxelToVoxelXform(MRI *mri_src, MRI *mri_dst)
 	m_vox2vox = MatrixMultiply(m_ras2vox_dst, m_vox2ras_src, NULL) ;
 	MatrixFree(&m_vox2ras_src) ; MatrixFree(&m_ras2vox_dst) ;
 	return(m_vox2vox) ;
+}
+
+/*--------------------------------------------------------------
+  MRIfovCol(mri) - computes the edge-to-edge FOV in the column
+  direction. fov is in mm.
+  -------------------------------------------------------------*/
+float MRIfovCol(MRI *mri)
+{
+  MATRIX *M,*v,*a,*b,*d;
+  float fov;
+
+  M = MRIgetVoxelToRasXform(mri) ;
+  v = MatrixAlloc(4,1,MATRIX_REAL);
+  v->rptr[1][4] = 1;
+  v->rptr[1][1] = mri->width-1+0.5; // edge of last column
+  a = MatrixMultiply(M,v,NULL);     // xyz of last column
+  v->rptr[1][1] = -0.5;             // edge of first column
+  b = MatrixMultiply(M,v,NULL);     // xyz of first column
+  d = MatrixSubtract(a,b,NULL); // xyz difference
+  fov = VectorLen(d);           // fov is in mm
+  MatrixFree(&M);
+  MatrixFree(&v);
+  MatrixFree(&a);
+  MatrixFree(&b);
+  MatrixFree(&d);
+
+  //printf("MRIfovCol() %g\n",fov);
+  return(fov);
+}
+/* ---------------------------------------------------------------------
+   MRIorientationStringToDircos() - sets the direction cosines of to
+   be that dictated by the Orientation String. This is helpful for
+   setting the direction cosines when the information is not present
+   in a header (eg, with FSL analyze format).  The Orientation String
+   is a three character string indicating the primary direction of
+   each axis in the 3d matrix. The characters can be L,R,A,P,I,S.  The
+   string must be valid (see MRIcheckOrientationString). If the string
+   is not valid, the errors are printed and a 1 is returned. Eg, of
+   valid strings are RAS, LPS, LAI. Invalid are ABC (B and C are not
+   valid), RAP (the AP axis is represented twice, IS axis not at all).
+   There are 48 possible valid strings. This should only be used to
+   get the direction cosines "about right".
+   ---------------------------------------------------------------------------*/
+
+int MRIorientationStringToDircos(MRI *mri, char *ostr)
+{
+  int c,r=0;
+  double Mdc[3][3], v=0;
+  char *errstr;
+
+  errstr = MRIcheckOrientationString(ostr);
+  if(errstr != NULL){
+    printf("ERROR: in orientation string %s\n",ostr);
+    printf("%s",errstr);
+    free(errstr);
+    return(1);
+  }
+
+  // Initialize the matrix of direction cosines (Mdc)
+  for(c=0; c<3; c++) for(r=0; r<3; r++) Mdc[r][c] = 0;
+
+  // Each column of Mdc corresponds to a different axis which corresonds to
+  // a different letter in the orientation string. The value of the letter
+  // determine which row of the Mdc will be affected.
+  for(c=0; c<3; c++){
+    switch(toupper(ostr[c])){
+    case 'L': r=0; v=-1; break;
+    case 'R': r=0; v=+1; break;
+    case 'P': r=1; v=-1; break;
+    case 'A': r=1; v=+1; break;
+    case 'I': r=2; v=-1; break;
+    case 'S': r=2; v=+1; break;
+    }
+    Mdc[r][c] = v;
+  }
+  mri->x_r = Mdc[0][0];
+  mri->x_a = Mdc[1][0];
+  mri->x_s = Mdc[2][0];
+
+  mri->y_r = Mdc[0][1];
+  mri->y_a = Mdc[1][1];
+  mri->y_s = Mdc[2][1];
+
+  mri->z_r = Mdc[0][2];
+  mri->z_a = Mdc[1][2];
+  mri->z_s = Mdc[2][2];
+
+  return(0);
+}
+/* ---------------------------------------------------------------
+   MRIcheckOrientationString() - this checks the orientation string
+   to make sure that it is valid. "Valid" means that all axes are
+   represented exactly once and no invalid characters are present
+   in the string. Case-insensitive. Returns NULL if everything is
+   ok, otherwise is returns a string that lists all the errors
+   it encountered.
+   ---------------------------------------------------------------*/
+char *MRIcheckOrientationString(char *ostr)
+{
+  int c, nsag=0, ncor=0, nax=0, err;
+  char errstr[1000], *errstrret=NULL;
+
+  errstr[0] = '\0';
+  err = 0;
+
+  for(c=0; c<3; c++){
+    switch(toupper(ostr[c])){
+    case 'L': nsag++; break;
+    case 'R': nsag++; break;
+    case 'P': ncor++; break;
+    case 'A': ncor++; break;
+    case 'I': nax++;  break;
+    case 'S': nax++;  break;
+    default:
+      sprintf(errstr,"%s  Character %c in position %d is invalid.\n",
+            errstr,ostr[c],c+1);
+      err = 1;
+      break;
+    }
+  }
+
+  if(nsag > 1){
+      sprintf(errstr,"%s  LR axis represented multiple times.\n",errstr);
+      err = 1;
+  }
+  if(ncor > 1){
+      sprintf(errstr,"%s  PA axis represented multiple times.\n",errstr);
+      err = 1;
+  }
+  if(nax > 1){
+      sprintf(errstr,"%s  IS axis represented multiple times.\n",errstr);
+      err = 1;
+  }
+  if(nsag == 0){
+      sprintf(errstr,"%s  LR axis not represented.\n",errstr);
+      err = 1;
+  }
+  if(ncor == 0){
+      sprintf(errstr,"%s  PA axis not represented.\n",errstr);
+      err = 1;
+  }
+  if(nax == 0){
+      sprintf(errstr,"%s  IS axis not represented.\n",errstr);
+      err = 1;
+  }
+
+  if(err){
+    errstrret = (char *) calloc(sizeof(char),strlen(errstr)+1);
+    memcpy(errstrret,errstr,strlen(errstr));
+  }
+
+  return(errstrret);
+}
+/*------------------------------------------------------------------
+  MRIdircosToOrientationString() - examines the direction cosines and
+  creates an Orientation String. The Orientation String is a three
+  character string indicating the primary direction of each axis
+  in the 3d matrix. The characters can be L,R,A,P,I,S. Case is not
+  important, but upper case is used here. If ras_good_flag == 0,
+  then ostr = ??? and 1 is returned.
+  ------------------------------------------------------------------*/
+int MRIdircosToOrientationString(MRI *mri, char *ostr)
+{
+  int c;
+  float Mdc[3][3], sag, cor, ax;
+
+  if(! mri->ras_good_flag){
+    ostr[0] = '?';
+    ostr[1] = '?';
+    ostr[2] = '?';
+    return(1);
+  }
+
+  Mdc[0][0] = mri->x_r;
+  Mdc[1][0] = mri->x_a;
+  Mdc[2][0] = mri->x_s;
+
+  Mdc[0][1] = mri->y_r;
+  Mdc[1][1] = mri->y_a;
+  Mdc[2][1] = mri->y_s;
+
+  Mdc[0][2] = mri->z_r;
+  Mdc[1][2] = mri->z_a;
+  Mdc[2][2] = mri->z_s;
+
+  for(c=0; c<3; c++) ostr[c] = '\0';
+
+  for(c=0; c<3; c++){
+    sag = Mdc[0][c]; // LR axis
+    cor = Mdc[1][c]; // PA axis
+    ax  = Mdc[2][c]; // IS axis
+    //printf("c = %d, sag = %g, cor = %g, ax = %g\n",c,sag,cor,ax);
+    if(fabs(sag) > fabs(cor) && fabs(sag) > fabs(ax)){
+      if(sag > 0) ostr[c] = 'R';
+      else        ostr[c] = 'L';
+      continue;
+    }
+    if(fabs(cor) > fabs(ax)){
+      if(cor > 0) ostr[c] = 'A';
+      else        ostr[c] = 'P';
+      continue;
+    }
+    if(ax > 0) ostr[c] = 'S';
+    else       ostr[c] = 'I';
+  }
+  return(0);
+
+}
+/*-------------------------------------------------------------------
+  MRIsliceDirectionName() - returns the name of the primary slice
+  orientation base on the direction cosine. If mri->ras_good_flag=0,
+  then "unknown" is returned.
+  -------------------------------------------------------------------*/
+char *MRIsliceDirectionName(MRI *mri)
+{
+  char ostr[4];
+  char *slicedir = NULL;
+  char *rtstr;
+  int len;
+
+  ostr[3] = '\0';
+
+  MRIdircosToOrientationString(mri, ostr);
+  if(toupper(ostr[2]) == 'L'|| toupper(ostr[2]) == 'R')
+    slicedir = "sagittal";
+  if(toupper(ostr[2]) == 'P'|| toupper(ostr[2]) == 'A')
+    slicedir = "coronal";
+  if(toupper(ostr[2]) == 'I'|| toupper(ostr[2]) == 'S')
+    slicedir = "axial";
+  if(! mri->ras_good_flag) slicedir = "unknown";
+
+  len = strlen(slicedir);
+  rtstr = (char *) calloc(sizeof(char),len+1);
+  memcpy(rtstr,slicedir,len);
+
+  return(rtstr);
 }
