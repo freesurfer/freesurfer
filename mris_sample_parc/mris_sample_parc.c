@@ -16,10 +16,11 @@
 #include "version.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.13 2005/05/16 16:05:55 fischl Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.14 2005/06/06 21:28:37 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
+static int  replace_vertices_with_label(MRI_SURFACE *mris, MRI *mri, int label, double proj_mm);
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
@@ -29,6 +30,7 @@ static int  translate_indices_to_annotations(MRI_SURFACE *mris, char *translatio
 
 
 char *Progname ;
+static int avgs = 0 ;
 static char *color_table_fname = NULL ;
 static int mode_filter = 0 ;
 static char *surf_name = WHITE_MATTER_NAME ;
@@ -37,10 +39,12 @@ static char sdir[STRLEN] ;
 static char *translation_fname = "cma_parcellation_colors.txt" ;
 static int wsize = 7 ;
 static int unknown_label = -1 ;
-static int fix_topology = 1 ;
-static int fix_label_topology(MRI_SURFACE *mris) ;
+static int fix_topology = -1 ;  // < 0 means do all
+static int fix_label_topology(MRI_SURFACE *mris, int nvertices) ;
 static int resegment_label(MRI_SURFACE *mris, LABEL *segment) ;
 static float proj_mm = 0.0 ;
+
+static int replace_label;
 
 #define MAX_TRANS 100
 static int ntrans = 0 ;
@@ -61,7 +65,7 @@ main(int argc, char *argv[])
   Real          x, y, z, xw, yw, zw ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.13 2005/05/16 16:05:55 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.14 2005/06/06 21:28:37 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -115,6 +119,8 @@ main(int argc, char *argv[])
               Progname, fname) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
+	if (avgs > 0)
+		MRISaverageVertexPositions(mris, avgs) ;
 
 	if (FZERO(proj_mm))
 	{
@@ -139,11 +145,12 @@ main(int argc, char *argv[])
 		else
 			d = v->curv*.5 ;  /* halfway out */
     x = v->x+d*v->nx ; y = v->y+d*v->ny ; z = v->z+d*v->nz ;
-		MRIworldToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
     MRIsurfaceRASToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
 		v->annotation = v->val = 
 			MRIfindNearestNonzero(mri_parc, wsize, xw, yw, zw) ;
   }
+	if (replace_label)
+		replace_vertices_with_label(mris, mri_parc, replace_label, proj_mm);
   if (unknown_label >= 0)
   {
     LABEL **labels, *label ;
@@ -200,8 +207,8 @@ main(int argc, char *argv[])
     free(labels) ;
   }
 
-  if (fix_topology)
-    fix_label_topology(mris) ;
+  if (fix_topology != 0)
+    fix_label_topology(mris, fix_topology) ;
 
   if (mode_filter)
   {
@@ -258,6 +265,19 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using %s as surface name\n", surf_name) ;
   }
+  else if (!stricmp(option, "fix"))
+  {
+		fix_topology = atoi(argv[2]) ;
+		printf("fixing topology of all labels smaller than %d vertices\n",fix_topology);
+		nargs = 1 ;
+  }
+  else if (!stricmp(option, "replace"))
+  {
+		replace_label = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("replacing label %s (%d) with deeper ones\n",
+					 cma_label_to_name(replace_label), replace_label) ;
+  }
   else if (!stricmp(option, "trans"))
   {
 		if (ntrans >= MAX_TRANS)
@@ -299,6 +319,11 @@ get_option(int argc, char *argv[])
     mode_filter = atoi(argv[2]) ;
     nargs = 1 ;
     printf("applying mode filter %d times to parcellation\n", mode_filter) ; 
+    break ;
+	case 'A':
+		avgs = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("smoothing surface %d times\n", avgs) ;
     break ;
   case 'W':
     wsize = atoi(argv[2]) ;
@@ -438,13 +463,15 @@ translate_indices_to_annotations(MRI_SURFACE *mris, char *translation_fname)
 }
 #endif
 static int
-fix_label_topology(MRI_SURFACE *mris)
+fix_label_topology(MRI_SURFACE *mris, int nvertices)
 {
   int    i, vno, nsegments, most_vertices, max_label, label, j, iter, nchanged=0,
          max_index ;
   LABEL **segments ;
   VERTEX *v ;
 
+	if (nvertices < 0)
+		nvertices = mris->nvertices+1 ;
   for (max_label = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -482,7 +509,8 @@ fix_label_topology(MRI_SURFACE *mris)
       /* resegment all others connected-components with this label */
       for (j = 0 ; j < nsegments ; j++)
       {
-        if (j == max_index || segments[j] == NULL)
+        if (j == max_index || segments[j] == NULL || 
+						(segments[j]->n_points > nvertices))
           continue ;
         if (mris->vertices[segments[j]->lv[0].vno].annotation != label)
           continue ;
@@ -563,3 +591,56 @@ resegment_label(MRI_SURFACE *mris, LABEL *segment)
   }
   return(NO_ERROR) ;
 }
+static int
+replace_vertices_with_label(MRI_SURFACE *mris, MRI *mri, int label, double proj_mm)
+{
+	int      vno, new_label, num=0 ;
+	VERTEX   *v ;
+	double   d, x, y, z, xw, yw, zw ;
+
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag || v->annotation != label)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+
+#define MAX_SEARCH_LEN 6 // mm
+
+		if (proj_mm > 0)
+		{
+			for (d = proj_mm ; d <= MAX_SEARCH_LEN ; d += proj_mm)
+			{
+				x = v->x+d*v->nx ; y = v->y+d*v->ny ; z = v->z+d*v->nz ;
+				MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+				new_label = (int)MRIfindNearestNonzero(mri, wsize, xw, yw, zw) ;
+				if (new_label != label)
+				{
+					v->annotation = v->val = new_label ;
+					num++ ;
+					break ;
+				}
+			}
+		}
+		else
+		{
+			for (d = proj_mm ; d >= -MAX_SEARCH_LEN ; d += proj_mm)
+			{
+				x = v->x+d*v->nx ; y = v->y+d*v->ny ; z = v->z+d*v->nz ;
+				MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+				new_label = (int)MRIfindNearestNonzero(mri, wsize, xw, yw, zw) ;
+				if (new_label != label && new_label > 0)
+				{
+					v->annotation = v->val = new_label ;
+					num++ ;
+					break ;
+				}
+			}
+		}
+	}
+
+	printf("%d vertex labels replaced\n", num) ;
+	return(NO_ERROR) ;
+}
+

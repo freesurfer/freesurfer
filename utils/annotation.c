@@ -7,6 +7,7 @@
 #include "error.h"
 #include "mrisurf.h"
 #include "label.h"
+#include "colortab.h"
 
 #define ANNOTATION_SRC
 #include "annotation.h"
@@ -226,7 +227,10 @@ LABEL *annotation2label(int annotid, MRIS *Surf)
   for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
     vtx = &(Surf->vertices[vtxno]);
     annot = Surf->vertices[vtxno].annotation;
-    vtxannotid = annotation_to_index(annot);
+		if (Surf->ct)
+			vtxannotid = CTABannotationToIndex(Surf->ct, annot);
+		else
+			vtxannotid = annotation_to_index(annot);
     if(vtxannotid == annotid) npoints++;
   }
   if(npoints==0) return(NULL);
@@ -240,7 +244,10 @@ LABEL *annotation2label(int annotid, MRIS *Surf)
   for(vtxno = 0; vtxno < Surf->nvertices; vtxno++){
     vtx = &(Surf->vertices[vtxno]);
     annot = Surf->vertices[vtxno].annotation;
-    vtxannotid = annotation_to_index(annot);
+		if (Surf->ct)
+			vtxannotid = CTABannotationToIndex(Surf->ct, annot);
+		else
+			vtxannotid = annotation_to_index(annot);
     if(vtxannotid == annotid){
       label->lv[npoints].vno = vtxno;
       label->lv[npoints].x = vtx->x;
