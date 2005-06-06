@@ -17,7 +17,7 @@
 #include "version.h"
 #include "fastmarching.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.26 2005/05/16 16:05:27 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.27 2005/06/06 14:41:33 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_flatten.c,v 1.26 2005/05/16 16:05:27 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_flatten.c,v 1.27 2005/06/06 14:41:33 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -79,6 +79,7 @@ main(int argc, char *argv[])
   parms.l_dist = 1.0 ;
   parms.l_area = 1.0 ;
   parms.niterations = 40 ;
+	parms.area_coef_scale = 1.0 ;
   parms.dt_increase = 1.01 /* DT_INCREASE */;
   parms.dt_decrease = 0.98 /* DT_DECREASE*/ ;
   parms.error_ratio = 1.03 /*ERROR_RATIO */;
@@ -174,27 +175,50 @@ main(int argc, char *argv[])
   {
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
-		if (!FZERO(parms.l_unfold))
+		if (!FZERO(parms.l_unfold) || !FZERO(parms.l_expand))
 		{
 			static INTEGRATION_PARMS p2 ;
 			sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name) ;
-			if (!sphere_flag && !one_surf_flag)
+			if (stricmp(original_unfold_surf_name,"none") == 0)
+			{
+				printf("using current position of patch as initial position\n") ;
+				MRISstoreMetricProperties(mris) ;  /* use current positions */
+			}
+			else if (!sphere_flag && !one_surf_flag)
 				MRISreadOriginalProperties(mris, original_unfold_surf_name) ;
 			*(&p2) = *(&parms) ;
-			p2.l_dist = 0 ; p2.niterations = 1000 ;
+			p2.l_dist = 0 ; p2.niterations = 100 ;
 			p2.nbhd_size = p2.max_nbrs = 1 ;
 			p2.n_averages = 0 ;
+			p2.write_iterations = parms.write_iterations > 0 ? 25 : 0 ;
 			p2.tol = -1 ;
-			p2.dt = 0.1 ;
+			p2.dt = 0.5 ;
 			p2.l_area = 0.0 ;
 			p2.l_spring = 0.9 ;
-			p2.l_convex = 0.1 ;
+			p2.l_convex = 0.9 ;
 			p2.momentum = 0 ;
 			p2.integration_type = INTEGRATE_MOMENTUM ;
 			MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+#if 0
+			p2.flags |= IPFLAG_NO_SELF_INT_TEST ;
+			printf("expanding surface....\n") ;
+			MRISexpandSurface(mris, 4.0, &p2) ;  // push it away from fissure
+#endif
+			p2.niterations = 100 ;
 			MRISunfold(mris, &p2, 1) ;
+			p2.niterations = 300 ;
+			p2.l_unfold *= 0.25 ;
+			MRISunfold(mris, &p2, 1) ;
+			p2.l_unfold *= 0.25 ;
+			MRISunfold(mris, &p2, 1) ;
+#if 0
+			printf("smoothing unfolded surface..\n");
+			p2.niterations = 200 ;
+			p2.l_unfold = 0 ;  // just smooth it
+			MRISunfold(mris, &p2, max_passes) ;
+#endif
 			parms.start_t = p2.start_t ;
-			parms.l_unfold = parms.l_boundary = 0 ;
+			parms.l_unfold = parms.l_convex = parms.l_boundary = parms.l_expand=0 ;
 			MRIfree(&parms.mri_dist) ;
 		}
 
@@ -284,13 +308,25 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "l_dist = %2.3f\n", parms.l_dist) ;
   }
+  else if (!stricmp(option, "expand"))
+	{
+    sscanf(argv[2], "%f", &parms.l_expand) ;
+		nargs = 1 ;
+		printf("setting l_expand = %2.3f\n", parms.l_expand) ;
+	}
   else if (!stricmp(option, "unfold"))
   {
+		MRI *mri_kernel, *mri_tmp ;
+
     sscanf(argv[2], "%f", &parms.l_unfold) ;
-		parms.mri_dist = MRIread(argv[3]) ;
-		if (!parms.mri_dist)
+		mri_tmp = MRIread(argv[3]) ;
+		if (!mri_tmp)
 			ErrorExit(ERROR_NOFILE, "%s: could not read distance map %s...\n",
 								argv[3]) ;
+		
+		mri_kernel = MRIgaussian1d(1.0, -1) ;
+		parms.mri_dist = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
+		MRIfree(&mri_kernel) ; MRIfree(&mri_tmp) ;
     nargs = 2 ;
     fprintf(stderr, "l_unfold = %2.3f\n", parms.l_unfold) ;
   }
@@ -408,6 +444,13 @@ get_option(int argc, char *argv[])
     original_unfold_surf_name = argv[2] ;
     nargs = 1 ;
     fprintf(stderr,"reading original unfolding surface from %s...\n",original_unfold_surf_name);
+  }
+  else if (!stricmp(option, "as"))
+  {
+		parms.area_coef_scale = atof(argv[2]) ;
+		printf("setting area coef scale to %2.3f\n",
+					 parms.area_coef_scale) ;
+    nargs = 1 ;
   }
   else switch (toupper(*option))
   {
