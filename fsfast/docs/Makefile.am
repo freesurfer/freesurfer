@@ -3,8 +3,19 @@
 #
 foodir=$(prefix)/fsfast/docs
 # I cannot specify *, since Makefile etc will be copied
-foo_DATA = $(wildcard *.tex)
+TEXFILES=$(wildcard *.tex)
+foo_DATA = $(TEXFILES:%.tex=%.ps)
 
+# latex FILE.tex
+# dvips FILE.dvi -o FILE.ps
+# rm FILE.dvi
+
+.dvi.ps:
+	@dvips $< -o $@ >& /dev/null
+	@rm -f $<
+
+.tex.dvi:
+	@latex $< >& /dev/null
 
 release:
 	$(MAKE) install
