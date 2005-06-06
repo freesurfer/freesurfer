@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/06/04 20:07:16 $
-// Revision       : $Revision: 1.354 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/06/06 14:39:51 $
+// Revision       : $Revision: 1.355 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -1927,7 +1927,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       continue ;
     for (n = 0 ; n < v->vtotal ; n++)
     {
-      if (FZERO(v->dist_orig[n]))
+      if (DZERO(v->dist_orig[n]))
         fprintf(stderr, "zero distance at v %d, n %d (vn = %d)\n",
                 vno, n, v->v[n]) ;
     }
