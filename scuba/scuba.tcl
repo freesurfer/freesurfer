@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.118 2005/06/02 20:22:13 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.119 2005/06/06 22:53:58 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1614,8 +1614,8 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     tixScrolledListBox $fwROIs.lbStructure \
 	-scrollbar auto \
 	-browsecmd ROIPropertiesStructureListBoxCallback
-   $fwROIs.lbStructure subwidget listbox configure -selectmode single
-   set gaWidget(roiProperties,structureListBox) $fwROIs.lbStructure
+    $fwROIs.lbStructure subwidget listbox configure -selectmode single
+    set gaWidget(roiProperties,structureListBox) $fwROIs.lbStructure
 
     tkuMakeActiveLabel $fwROIs.ewStructure \
 	-variable gaROI(current,structureLabel)
@@ -5147,7 +5147,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.118 2005/06/02 20:22:13 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.119 2005/06/06 22:53:58 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5854,34 +5854,41 @@ proc SetCursorFromEditDatFile {} {
 proc DoGenerateReportDlog {} {
     global gaReportInfo
     global gaCollection
+    global gaLayer
     global gaDialog
+    global glShortcutDirs
 
-    # Make list of volume and surface collections.
-    set lSurfaces {}
-    set lVolumes {}
-    foreach colID $gaCollection(idList) {
-	if { [string match [GetCollectionType $colID] Surface] } {
-	    lappend lSurfaces $colID
+    set gaReportInfo(lutVolumes) {}
+    set gaReportInfo(grayscaleVolumes) {}
+    foreach layerID $gaLayer(idList) {
+	if { [string match [Get2DMRILayerColorMapMethod $layerID] grayscale]} {
+	    set volID [Get2DMRILayerVolumeCollection $layerID]
+	    lappend gaReportInfo(grayscaleVolumes) $layerID
 	}
-	if { [string match [GetCollectionType $colID] Volume] } {
-	    lappend lVolumes $colID
+	if { [string match [Get2DMRILayerColorMapMethod $layerID] lut]} {
+	    set volID [Get2DMRILayerVolumeCollection $layerID]
+	    lappend gaReportInfo(lutVolumes) $layerID
 	}
     }
     
-    # If no volumes, return.
-    if { [llength $lVolumes] == 0 } {
-	tkuErrorDlog "Must have volumes loaded before generating reports."
+    # If no segs, return.
+    if { [llength $gaReportInfo(lutVolumes)] == 0 } {
+	tkuErrorDlog "Must have segmentations loaded before generating reports."
 	return
     }
 
-    set wwDialog .setCursorFromEditDatFile
+    set wwDialog .wwGenerateReport
     if { [tkuCreateDialog $wwDialog "Generate Report" {-borderwidth 10}] } {
 
-	set fwVolumes $wwDialog.fwVolumes
-	set fwData    $wwDialog.fwData
-	set fwButtons $wwDialog.fwButtons
+	set fwVolumes         $wwDialog.fwVolumes
+	set fwLUT             $wwDialog.fwLUT
+	set fwROI             $wwDialog.fwROI
+	set fwIntensityReport $wwDialog.fwIntensityReport
+	set fwFilenames       $wwDialog.fwFilenames
+	set fwButtons         $wwDialog.fwButtons
 
-	# Make a list of checkboxes of volumes to include in the report.
+	# Make a list of checkboxes of volumes to include in the
+	# report. Do LUT volumes first and then grayscale volumes.
 	tixLabelFrame $fwVolumes \
 	    -label "Volumes" \
 	    -labelside acrosstop \
@@ -5889,52 +5896,188 @@ proc DoGenerateReportDlog {} {
 
 	set fwVolumesSub [$fwVolumes subwidget frame]
 
-	set gaReport(volumes,list) $lVolumes
-	set lCheckboxes {}
-	foreach volID $lVolumes {
-	    set gaReportInfo(volumes,$volID) 0
-	    lappend lCheckboxes \
-		[list -type text -label "GetCollectionLabel $volID" \
-		 -variable gaReportInfo(volumes,$volID)]
-	    lappend gaReportInfo(volumes,list) $volID
-	}
+	tixOptionMenu $fwVolumesSub.mwSeg \
+	    -label "Segmentation:" \
+	    -command UpdateGenerateReportDlog \
+	    -variable gaReportInfo(mainSegVolID)
+	FillMenuFromList $fwVolumesSub.mwSeg \
+	    $gaReportInfo(lutVolumes) "GetCollectionLabel %s" {} false
 
+	set lCheckboxes {}
+	if { [llength $gaReportInfo(grayscaleVolumes)] > 0 } {
+
+	    foreach volID $gaReportInfo(grayscaleVolumes) {
+		set gaReportInfo(volumes,$volID) 0
+		set sLabel [GetCollectionLabel $volID]
+		lappend lCheckboxes \
+		    [list -type text -label $sLabel \
+			 -variable gaReportInfo(volumes,$volID)]
+	    }
+	}
+	
 	tkuMakeCheckboxes $fwVolumesSub.cbVolumes \
 	    -font [tkuNormalFont] \
 	    -checkboxes $lCheckboxes
-
-	pack $fwVolumesSub.cbVolumes \
+	
+	pack $fwVolumesSub.mwSeg $fwVolumesSub.cbVolumes \
 	    -fill both -expand y
 
-	# Make a list of checkboxes for types of information.
-	tixLabelFrame $fwData \
-	    -label "Data" \
+
+
+	# Make a list of checkboxes of volumes to include in the report.
+	tixLabelFrame $fwLUT \
+	    -label "LUT" \
 	    -labelside acrosstop \
 	    -options { label.padX 5 }
 
-	set fwDataSub [$fwData subwidget frame]
+	set fwLUTSub [$fwLUT subwidget frame]
 
-	tkuMakeCheckboxes $fwDataSub.cbData \
+	# Choose an LUT to use.
+	tixOptionMenu $fwLUTSub.mwLUT \
+	    -label "LUT:" \
+	    -command UpdateGenerateReportDlog \
+	    -variable gaReportInfo(lutID)
+	
+	# A list of LUT values from the LUT and a list of selected LUT
+	# values. Buttons to add and remove them.
+	tixScrolledListBox $fwLUTSub.lbStructures \
+	    -scrollbar auto 
+	$fwLUTSub.lbStructures subwidget listbox configure -selectmode single
+	set gaReportInfo(widget,structureListBox) $fwLUTSub.lbStructures
+
+	tixScrolledListBox $fwLUTSub.lbSelected \
+	    -scrollbar auto 
+	$fwLUTSub.lbSelected subwidget listbox configure -selectmode single
+	set gaReportInfo(widget,selectedListBox) $fwLUTSub.lbSelected
+
+	button $fwLUTSub.bwAdd \
+	    -text "Add structure" \
+	    -command AddStructureToSelectedInGenerateReportDlog
+
+	button $fwLUTSub.bwRemove \
+	    -text "Remove structure" \
+	    -command RemoveStructureFromSelectedInGenerateReportDlog
+
+	grid $fwLUTSub.mwLUT        -column 0 -row 0 -columnspan 3 -sticky new
+	grid $fwLUTSub.lbStructures -column 0 -row 1 -rowspan 3    -sticky news
+	grid $fwLUTSub.lbSelected   -column 2 -row 1 -rowspan 3    -sticky news
+	grid $fwLUTSub.bwAdd        -column 1 -row 1               -sticky new
+	grid $fwLUTSub.bwRemove     -column 1 -row 2               -sticky new
+
+	grid columnconfigure $fwLUTSub 0 -weight 1
+	grid columnconfigure $fwLUTSub 1 -weight 0
+	grid columnconfigure $fwLUTSub 2 -weight 1
+	grid rowconfigure $fwLUTSub 0 -weight 0
+	grid rowconfigure $fwLUTSub 1 -weight 1
+	grid rowconfigure $fwLUTSub 2 -weight 1
+	grid rowconfigure $fwLUTSub 3 -weight 1
+
+
+
+	# ROIs.
+	tixLabelFrame $fwROI \
+	    -label "ROI" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+
+	set fwROISub [$fwROI subwidget frame]
+
+	# CB for only looking at an ROI. 
+	tkuMakeCheckboxes $fwROISub.cbROI \
 	    -font [tkuNormalFont] \
-	    -checkboxes {
-		{-type test -label "Segmentation Volumes"
-		    -variable gaReportInfo(data,segVolumes) }
-	    }
+	    -checkboxes { 
+		{-type text -label "Only report for ROI" 
+		    -variable something } }
 
-	pack $fwDataSub.cbData \
-	    -fill both -expand y
+	# Collection for the ROI.
+	tixOptionMenu $fwROISub.mwCol \
+	    -label "Collection for ROI:" \
+	    -command ""
+	FillMenuFromList $fwROISub.mwCol \
+	    $gaReportInfo(grayscaleVolumes) \
+	    "GetCollectionLabel %s" {} false
+	
+	# ROI.
+	tixOptionMenu $fwROISub.mwROI \
+	    -label "ROI:" \
+	    -command ""
+
+	pack $fwROISub.cbROI $fwROISub.mwCol $fwROISub.mwROI \
+	    -side top -fill x -expand yes
+
+
+	# CB for secondary intensity report
+	tkuMakeCheckboxes $fwIntensityReport \
+	    -font [tkuNormalFont] \
+	    -checkboxes { 
+		{-type text -label "Report intensities for individual voxels" 
+		    -variable something } }
+
+
+	# Dir for reports
+	tixLabelFrame $fwFilenames \
+	    -label "File Names" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+
+	set fwFilenamesSub [$fwFilenames subwidget frame]
+
+	# Filenames.
+	tkuMakeFileSelector $fwFilenamesSub.fwMain \
+	    -variable something2 \
+	    -text "Main report:" \
+	    -shortcutdirs [list $glShortcutDirs]
+
+	tkuMakeFileSelector $fwFilenamesSub.fwIntensity \
+	    -variable something2 \
+	    -text "Intensity report:" \
+	    -shortcutdirs [list $glShortcutDirs]
+
+	pack $fwFilenamesSub.fwMain $fwFilenamesSub.fwIntensity \
+	    -side top -expand yes -fill x
 
 
 	tkuMakeCancelOKButtons $fwButtons $wwDialog \
 	    -okCmd GenerateReport
 	
-	pack $fwVolumes $fwData $fwButtons \
-	    -side top       \
-	    -expand yes     \
-	    -fill x         \
-	    -padx 5         \
-	    -pady 5
+
+	grid $fwVolumes         -column 0 -row 0 -sticky new
+	grid $fwLUT             -column 0 -row 1 -sticky news
+	grid $fwROI             -column 0 -row 2 -sticky new
+	grid $fwIntensityReport -column 0 -row 3 -sticky new
+	grid $fwFilenames       -column 0 -row 4 -sticky new
+	grid $fwButtons         -column 0 -row 5 -sticky new
+
+	grid columnconfigure $wwDialog 0 -weight 1
+	grid rowconfigure $wwDialog 0 -weight 0
+	grid rowconfigure $wwDialog 1 -weight 1
+	grid rowconfigure $wwDialog 2 -weight 0
+	grid rowconfigure $wwDialog 3 -weight 0
+	grid rowconfigure $wwDialog 4 -weight 0
+	grid rowconfigure $wwDialog 5 -weight 0
     }
+}
+
+proc AddStructureToSelectedInGenerateReportDlog {} {
+
+}
+
+proc RemoveStructureFromSelectedInGenerateReportDlog {} {
+    
+}
+
+proc UpdateGenerateReportDlog {} {
+    global gaReportInfo
+
+    set lutVolID
+    if { [llength $gaReportInfo(lutVolumes)] > 1 } {
+	foreach volID $gaReportInfo(volumes,list) {
+	    if { $gaReportInfo(volumes,$volID) } {
+		
+	    }
+	}
+    }
+
 }
 
 proc GenerateReport {} {
@@ -6199,4 +6342,6 @@ bind $gaWidget(window) <Alt-Key-n> {
     ShowHideConsole $gaView(tkcon,visible)
 }
 
+
+# DoGenerateReportDlog
 
