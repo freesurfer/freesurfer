@@ -18279,7 +18279,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.116 2005/05/31 21:11:50 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.117 2005/06/06 15:15:56 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23136,7 +23136,7 @@ int labl_import_annotation (char *fname)
   int ctab_err;
   int annotation_vno;
   int vno;
-  int annotation;
+  unsigned int annotation, max_annot;
   int num_verts_in_annotation;
   LABEL* label = NULL;
   int label_vno;
@@ -23146,15 +23146,15 @@ int labl_import_annotation (char *fname)
   int r, g, b;
   xColor3n color;
   int structure;
-  int* done;
+  unsigned int* done;
   int num_labels;
   
   /* init our done array. */
   r = g = b = 255;
-  MRISRGBToAnnot(r,g,b,annotation);
-  done = (int*) calloc( annotation, sizeof(int) );
+  MRISRGBToAnnot(r,g,b,max_annot);
+  done = (int*) calloc( max_annot, sizeof(int) );
   if ( NULL == done ) {
-    printf( "calloc of size %d failed\n", annotation );
+    printf( "calloc of size %d failed\n", max_annot );
     return (ERROR_NO_MEMORY);
   }
   num_labels = 0;
@@ -23173,6 +23173,12 @@ int labl_import_annotation (char *fname)
 		if (annotation) 
 		{
 			/* get the rgb colors. */
+			if (annotation > max_annot)
+			{
+				printf("Warning: vertex %d with annotation %x - out of range!\n",
+							 annotation_vno, annotation) ;
+				annotation &= max_annot ;
+			}
 			MRISAnnotToRGB( annotation, r, g, b );
 	  
 			/* if we haven't imported this label yet... */
