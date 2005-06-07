@@ -15,8 +15,9 @@
 #include "annotation.h"
 #include "version.h"
 #include "cma.h"
+#include "gca.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.14 2005/06/06 21:28:37 fischl Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.15 2005/06/07 21:40:45 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -65,7 +66,7 @@ main(int argc, char *argv[])
   Real          x, y, z, xw, yw, zw ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.14 2005/06/06 21:28:37 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.15 2005/06/07 21:40:45 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
