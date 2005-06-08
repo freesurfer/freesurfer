@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/04/22 19:21:06 $
-// Revision       : $Revision: 1.243 $
-char *VERSION = "$Revision: 1.243 $";
+// Revision Date  : $Date: 2005/06/08 15:52:07 $
+// Revision       : $Revision: 1.244 $
+char *VERSION = "$Revision: 1.244 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1076,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.243 2005/04/22 19:21:06 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.244 2005/06/08 15:52:07 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1101,6 +1101,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("\n");
     printf("-aux <volume>  : load volume as auxilliary anatomical volume. relative to\n");
     printf("               : in $SUBJECTS_DIR/subject/mri or specify absolute path\n");
+    printf("\n");
+    printf("-main-trainsform <transform> : loads a display transform for the main volume\n");
+    printf("-aux-trainsform <transform>  : loads a display transform for the aux volume\n");
     printf("\n");
     printf("-bc-main <brightness> <contrast> : brightness and contrast for main volume\n");
     printf("-mm-main <min> <max>             : color scale min and max for main volume\n");
@@ -5206,7 +5209,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.243 2005/04/22 19:21:06 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.244 2005/06/08 15:52:07 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
