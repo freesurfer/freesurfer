@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.120 2005/06/08 21:10:54 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.121 2005/06/08 21:30:30 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5156,7 +5156,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.120 2005/06/08 21:10:54 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.121 2005/06/08 21:30:30 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5988,7 +5988,6 @@ proc DoGenerateReportDlog {} {
 	grid rowconfigure $fwLUTSub 3 -weight 1
 
 
-
 	# ROIs.
 	tixLabelFrame $fwROI \
 	    -label "ROI" \
@@ -6018,6 +6017,7 @@ proc DoGenerateReportDlog {} {
 	    -label "ROI:" \
 	    -command "" \
 	    -variable gaReportInfo(roiID)
+	set gaReportInfo(widget,ROImenu) $fwROISub.mwROI
 
 	pack $fwROISub.cbROI $fwROISub.mwCol $fwROISub.mwROI \
 	    -side top -fill x -expand yes
@@ -6192,7 +6192,10 @@ proc UpdateGenerateReportDlog {} {
 
 	# Fill the list box from the ROI list for the collectoin.
 	set volID $gaReportInfo(roiVolID)
-
+	set idList [GetROIIDListForCollection $volID]
+	FillMenuFromList $gaReportInfo(widget,ROImen) \
+	    $idList "GetROILabel %s" {} false
+	
 	set gaReportInfo(updateROIListbox) 0
     }
 }
@@ -6220,6 +6223,13 @@ proc GenerateReport {} {
 	}
     }
     puts ""
+
+
+    if { $gaReportInfo(useROI) } {
+	
+	set roiID $gaReportInfo(roiID)
+
+    }
 }
 
 # MAIN =============================================================
@@ -6472,5 +6482,5 @@ bind $gaWidget(window) <Alt-Key-n> {
 }
 
 
-# DoGenerateReportDlog
+DoGenerateReportDlog
 
