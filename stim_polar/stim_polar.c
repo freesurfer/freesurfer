@@ -1,4 +1,8 @@
-#include <GL/glut.h>
+#ifdef HAVE_APPLE_GLUT_FRAMEWORK
+#  include <GLUT/glut.h>
+#else
+#  include <GL/glut.h>
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -492,7 +496,7 @@ int main(int argc, char** argv)
   }
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: stim_polar.c,v 1.6 2003/09/05 04:45:47 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: stim_polar.c,v 1.7 2005/06/08 19:45:05 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -1,7 +1,11 @@
 #ifndef xGLutWindow_h
 #define xGLutWindow_h
 
-#include <GL/glut.h>
+#ifdef HAVE_APPLE_OPENGL_FRAMEWORK
+#  include <GLUT/glut.h>
+#else
+#  include <GL/glut.h>
+#endif
 #include "xTypes.h"
 
 typedef enum {

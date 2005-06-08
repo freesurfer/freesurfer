@@ -2,7 +2,11 @@
 #include <math.h>
 #include "PreferencesManager.h"
 extern "C" {
-#include "GL/glut.h"
+#ifdef HAVE_APPLE_OPENGL_FRAMEWORK
+#  include "GLUT/glut.h"
+#else
+#  include "GL/glut.h"
+#endif
 #include "rgb_image.h"
 #include "tiffio.h"
 }

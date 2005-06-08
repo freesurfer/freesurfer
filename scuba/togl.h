@@ -1,4 +1,4 @@
-/* $Id: togl.h,v 1.2 2004/09/08 16:42:02 kteich Exp $ */
+/* $Id: togl.h,v 1.3 2005/06/08 19:45:22 nicks Exp $ */
 
 /*
  * Togl - a Tk OpenGL widget
@@ -10,6 +10,9 @@
 
 /*
  * $Log: togl.h,v $
+ * Revision 1.3  2005/06/08 19:45:22  nicks
+ * Mods supporting Mac Tiger build
+ *
  * Revision 1.2  2004/09/08 16:42:02  kteich
  * wrapped include tcl.h with a USE_NON_CONST define
  *
@@ -112,7 +115,11 @@
 #include <tcl.h>
 #undef USE_NON_CONST
 #include <tk.h>
-#include <GL/gl.h>
+#ifdef HAVE_APPLE_OPENGL_FRAMEWORK
+#  include "OpenGL/gl.h"
+#else
+#  include "GL/gl.h"
+#endif
 #ifdef TOGL_X11
 #include <X11/Xlib.h>
 #endif

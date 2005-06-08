@@ -2,7 +2,11 @@
 #define Layer_h
 
 #include "string_fixed.h"
-#include <GL/gl.h>
+#ifdef HAVE_APPLE_OPENGL_FRAMEWORK
+#  include "OpenGL/gl.h"
+#else
+#  include "GL/gl.h"
+#endif
 #include <map>
 #include "ViewState.h"
 #include "IDTracker.h"

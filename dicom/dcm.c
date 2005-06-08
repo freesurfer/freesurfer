@@ -86,9 +86,9 @@
 **	and convert the object to and from its "stream" representation.
 **	In addition, the package can parse a file which contains a stream
 **	and create its internal object.
-** Last Update:		$Author: tosa $, $Date: 2004/12/16 21:35:26 $
+** Last Update:		$Author: nicks $, $Date: 2005/06/08 19:44:47 $
 ** Source File:		$RCSfile: dcm.c,v $
-** Revision:		$Revision: 1.17 $
+** Revision:		$Revision: 1.18 $
 ** Status:		$State: Exp $
 */
 
@@ -121,7 +121,9 @@
 static CTNBOOLEAN debug = FALSE;/* Flag for debugging messages to stdout */
 
 // undeclared ones 
+#ifndef Darwin
 extern void swab(const void *from, void *to, size_t n);
+#endif
 
 /* Prototypes for internal functions
 */

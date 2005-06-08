@@ -3,8 +3,13 @@
 
 /*###########################################################################*/
 /* tk.h: marty: tk=>tko, TK_=>TKO_; add bstring.h (ffs) */
-#include <GL/gl.h>
-#include <GL/glu.h>
+#ifdef HAVE_APPLE_OPENGL_FRAMEWORK
+#  include <OpenGL/gl.h>
+#  include <OpenGL/glu.h>
+#else
+#  include <GL/gl.h>
+#  include <GL/glu.h>
+#endif
 
 /*
 ** Nano Window Toolkit.

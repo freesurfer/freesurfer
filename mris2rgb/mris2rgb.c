@@ -10,7 +10,11 @@
 #include <X11/keysymdef.h>
 
 #define OPENGL_CODE  1
-#include <GL/glut.h>
+#ifdef HAVE_APPLE_GLUT_FRAMEWORK
+#  include <GLUT/glut.h>
+#else
+#  include <GL/glut.h>
+#endif
 #include <GL/glx.h>
 
 /*#if defined(Linux)|| defined(__sun__)*/
@@ -38,7 +42,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.32 2003/09/05 04:45:39 kteich Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.33 2005/06/08 19:45:07 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -186,7 +190,7 @@ main(int argc, char *argv[])
   unsigned char   *rgb=NULL;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.32 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.33 2005/06/08 19:45:07 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

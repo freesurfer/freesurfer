@@ -2,7 +2,13 @@
 #define ScubaView_h
 
 #include "string_fixed.h"
-#include <GL/gl.h>
+#ifdef HAVE_APPLE_OPENGL_FRAMEWORK
+#  include "OpenGL/gl.h"
+#  include "GLUT/glut.h"
+#else
+#  include "GL/gl.h"
+#  include "GL/glut.h"
+#endif
 #include "View.h"
 #include "DataCollection.h"
 #include "InputState.h"

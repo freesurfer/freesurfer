@@ -1,3 +1,4 @@
+#
 # configure.in
 # by y.tosa
 # June 17, 2004
@@ -5,10 +6,10 @@
 # Process this file with autoconf to produce a configure script.
 #
 AC_PREREQ(2.57)
-AC_INIT(Freesurfer, 0.1, tosa@nmr.mgh.harvard.edu)
+AC_INIT(Freesurfer, 0.1, fsdev@nmr.mgh.harvard.edu)
 AC_CONFIG_AUX_DIR([config])
 # create specifal dir for intermediate files
-AC_MSG_NOTICE(Setting System ...)
+AC_MSG_NOTICE(Setting System...)
 # set target, build, host etc. 
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE
@@ -40,7 +41,7 @@ fi
 ##################################################################
 # allow user to specify tixwish
 AC_ARG_WITH(tixwish,
-  [  --with-tixwish=TIXWISH  where you specify the file for tixwish],
+[  --with-tixwish=TIXWISH  where you specify the file for tixwish],
   [TIXWISH=$withval],[])
 # if TIXWISH has been set, then it does not do anything
 AC_PATH_PROG([TIXWISH],[tixwish],[])
@@ -52,7 +53,7 @@ if test "x$TIXWISH" = "x"; then
 fi
 # well check
 if test "x$TIXWISH" = "x"; then
-  AC_MSG_ERROR("FATAL: tixwish needed for csurf not found.  Use --with-tixwish=... to specify")
+  AC_MSG_ERROR("FATAL: tixwish needed for csurf not found. Use --with-tixwish=... to specify")
 fi
 	
 AC_SUBST(TIXWISH)
@@ -78,7 +79,7 @@ AC_C_BIGENDIAN_CROSS
 echo "byte order is " $BYTEORDER
 AC_SUBST(BYTEORDER)
 
-AC_MSG_NOTICE(Setting OS from target ...)
+AC_MSG_NOTICE(Setting OS from target...)
 case "${target}" in
  i*86-*-linux-gnu*)
  OS=Linux
@@ -93,7 +94,7 @@ case "${target}" in
  OS=Linux
  OS_CPPFLAGS="-Wall -fwritable-strings -m64"
  OS_LDFLAGS="-all-static"
- LDFLAGS="-L/usr/X11R6/lib64 -L/usr/lib64 $LDFLAGSA"
+ LDFLAGS="-L/usr/X11R6/lib64 -L/usr/lib64 $LDFLAGS"
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
@@ -103,11 +104,19 @@ case "${target}" in
  OS=Linux
  OS_CPPFLAGS="-Wall -fwritable-strings"
  OS_LDFLAGS="-all-static"
- LDFLAGS="-L/usr/X11R6/lib64 -L/usr/lib64 $LDFLAGSA"
+ LDFLAGS="-L/usr/X11R6/lib64 -L/usr/lib64 $LDFLAGS"
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
  ;; 
+ *-apple-darwin8.1.0)
+ OS=Darwin
+ OS_CPPFLAGS="-mpowerpc64"
+ OS_LDFLAGS=
+ DYNAMIC_LIB_EXT=".dylib"
+ SHARED_CFLAGS="-fno-common"
+ SHARED_LDFLAGS="-dynamiclib"
+ ;;
  *-apple-darwin*)
  OS=Darwin
  OS_CPPFLAGS=
@@ -132,7 +141,7 @@ AC_MSG_NOTICE(OS is $OS)
 # cpu optimization
 ##############################################################
 if test "${CC}" = "gcc"; then
-AC_MSG_NOTICE(Setting CPU optimization ...)
+AC_MSG_NOTICE(Setting CPU optimization...)
 CPUFLAGS=""
 CPUTYPE="NO"
 #### 
@@ -141,7 +150,7 @@ CPUTYPE="NO"
 ####     athlon-xp, opteron, athlon64, athlon-fx
 ####      
 AC_ARG_WITH(cpu,
-  [  --with-cpu=CPUTYPE      where CPUTYPE is pentium3, pentium4, athlon-xp, G4, G5,  ....],
+[  --with-cpu=CPUTYPE      where CPUTYPE is pentium4, athlon-xp, G4, G5...],
   [CPUTYPE=$withval],[])
 # --with-cpu not used  automatically figure out
 if test "$CPUTYPE" = "NO"; then
@@ -203,7 +212,7 @@ if test "$CPUTYPE" = "NO"; then
 fi
 
 AC_MSG_NOTICE(CPUTYPE is $CPUTYPE)
-AC_MSG_CHECKING(CPU optimization ...)
+AC_MSG_CHECKING(CPU optimization...)
 
 # now set the flag
 case "$CPUTYPE" in 
@@ -319,69 +328,91 @@ else
 
 # if gcc
 fi
+
 ##############################################################
-# mgh put packages and create softlinks
-# default path for mni tools
+# This macro figures out how to build C programs using 
+# POSIX threads.
+##############################################################
+ACX_PTHREAD
+
 ##############################################################
 # get the path for X includes and X libraries
+##############################################################
 AC_PATH_X
 ##### Apple is really tricky
 ##### compiles <X11/Intrinsic.h> without the need for X_CFLAGS
-##### However, GL/gl.h in /usr/X11R6/include/GL/gl.h is not automaticlaly found
+##### However, GL/gl.h in /usr/X11R6/include/GL/gl.h is not 
+##### automaticaly found
 if test -z "$x_includes"; then
   x_includes=/usr/X11R6/include
-  AC_MSG_NOTICE(x_includes set to /usr/X11R6/include.  If not correct, specify using --x-includes=)
+  AC_MSG_NOTICE(x_includes set to /usr/X11R6/include. If not correct specify using --x-includes=)
+fi
+X_LIBS="$X_LIBS -lX11 -lXmu"
+AC_SUBST(X_LIBS)
+
+##############################################################
+# allow user to specify root of multi-package directory,
+# such as one containing all freesurfer dependencies: 
+# jpeg, tiff, gsl, tcl, tk, tix, blt, MNI (netcdf, minc, 
+# mni-perlib, EBTKS, N3)... 
+##############################################################
+ac_pkgs_includes="NO"
+ac_pkgs_libraries="NO"
+pkgs_includes=""
+pkgs_libraries=""
+
+AC_ARG_WITH(pkgs-dir,
+[  --with-pkgs-dir=DIR     where the root of multiple pkgs are installed.],
+  [  ac_pkgs_includes="$withval"/include
+     ac_pkgs_libraries="$withval"/lib
+  ])
+
+# modify CPPFLAGS and LDFLAGS
+if test ! "$ac_pkgs_includes" = "NO"; then
+  AC_MSG_RESULT([Packages directory is $withval])
+  pkgs_includes=-I$ac_pkgs_includes
+  CPPFLAGS="$CPPFLAGS $pkgs_includes"
+fi
+if test ! "$ac_pkgs_libraries" = "NO"; then 
+  pkgs_libraries=-L$ac_pkgs_libraries 
+  LDFLAGS="$LDFLAGS $pkgs_libraries"
 fi
 
-ACX_PTHREAD
+AC_SUBST(pkgs_includes)
+AC_SUBST(pkgs_libraries)
 
-AC_MSG_NOTICE(Checking directory for MNI, BLT, Tiff and Jpeg)
-#mghdir=/usr/pubsw/packages
+
+AC_MSG_NOTICE(Checking directories for MNI, BLT, Tiff, Jpeg, Qt, and GSL)
+
 #############################################################
 # MNI
 #############################################################
 ac_mni_includes=NO 
 ac_mni_libraries=NO 
 ac_mni_bindir=NO
-mni_libraries=""
-mni_includes=""
-AC_MSG_CHECKING(cheking MNI directory)
-# default is to use MGH installation
-#if test -d $mghdir/mni/current ; then
-#  ac_mni_includes=$mghdir/mni/current/include
-#  ac_mni_libraries=$mghdir/mni/current/lib
-#  ac_mni_bin=$mghdir/mni/current/bin
-#fi
-# modify when --with-mni-dir option given
-################################################################
+MNI_CFLAGS=""
+MNI_LIBS=""
+AC_MSG_CHECKING(MNI directory)
+
 AC_ARG_WITH(mni-dir,
-  [  --with-mni-dir=DIR      where the root of MNI is installed.],
+[  --with-mni-dir=DIR      where the root of MNI is installed.],
   [  ac_mni_includes="$withval"/include
      ac_mni_libraries="$withval"/lib
      ac_mni_bindir="$withval"/bin
-
   ])
 
-# modify CXXFLAGS and LDFLAGS
 if test ! "$ac_mni_includes" = "NO"; then
   AC_MSG_RESULT(MNI directory is $withval)	
-  mni_includes=-I$ac_mni_includes
-  CPPFLAGS="$CPPFLAGS $mni_includes"
+  MNI_CFLAGS=-I$ac_mni_includes
 else
   AC_MSG_RESULT(MNI directory is not supplied)
 fi
 if test ! "$ac_mni_libraries" = "NO"; then 
-  mni_libraries=-L$ac_mni_libraries 
-  LDFLAGS="$LDFLAGS $mni_libraries"
+  MNI_LIBS=-L$ac_mni_libraries 
 fi
 
-if test ! "$ac_mni_bindir" = "NO"; then 
-  mni_bindir=$ac_mni_bindir 
-fi
-
-AC_SUBST(mni_bindir)
-AC_SUBST(mni_includes)
-AC_SUBST(mni_libraries)
+AC_SUBST(MNI_CFLAGS)
+AC_SUBST(MNI_LIBS)
 
 ################################################################
 # BLT
@@ -389,91 +420,69 @@ AC_SUBST(mni_libraries)
 ac_blt_includes="NO"
 ac_blt_libraries="NO"
 ac_blt_bindir="NO"
-blt_includes=""
-blt_libraries=""
-AC_MSG_CHECKING(cheking BLT directory)
-# default is to use MGH installation
-# MGH installs BLT in tcl directory
-#if test -d $mghdir/tcl/current ; then
-#  ac_blt_includes=$mghdir/tcl/current/include
-#  ac_blt_libraries=$mghdir/tcl/current/lib
-#  ac_blt_bindir=$mghdir/tcl/current/bin
-#fi
+BLT_CFLAGS=""
+BLT_LIBS=""
+AC_MSG_CHECKING(BLT directory)
 
 AC_ARG_WITH(BLT-dir,
-  [  --with-BLT-dir=DIR      where the root of Blt/Tk is installed.],
+[  --with-BLT-dir=DIR      where the root of Blt/Tk is installed.],
   [  ac_blt_includes="$withval"/include
      ac_blt_libraries="$withval"/lib
      ac_blt_bindir="$withval"/bin
   ])
 
-# modify CXXFLAGS and LDFLAGS
 if test ! "$ac_blt_includes" = "NO"; then
   AC_MSG_RESULT(BLT directory is $withval)
-  blt_includes=-I$ac_blt_includes
-  CPPFLAGS="$CPPFLAGS $blt_includes"
+  BLT_CFLAGS=-I$ac_blt_includes
 else
-  AC_MSG_RESULT(BLT dirctory is not supplied)
+  AC_MSG_RESULT(BLT directory is not supplied)
 fi
 if test ! "$ac_blt_libraries" = "NO"; then
-  blt_libraries=-L$ac_blt_libraries 
-  LDFLAGS="$LDFLAGS $blt_libraries"
+  BLT_LIBS=-L$ac_blt_libraries 
 fi
 
-AC_SUBST(blt_includes)
-AC_SUBST(blt_libraries)
+AC_SUBST(BLT_CFLAGS)
+AC_SUBST(BLT_LIBS)
 
 ################################################################
-# tiff   Mac does not have this
+# tiff   
 ################################################################
 ac_tiff_includes="NO"
 ac_tiff_libraries="NO"
 ac_tiff_bindir="NO"
-tiff_includes=""
-tiff_libraries=""
-AC_MSG_CHECKING(cheking Tiff directory)
-# default is to use MGH installation
-#if test -d $mghdir/tiff/current ; then
-#  ac_tiff_includes=$mghdir/tiff/current/include
-#  ac_tiff_libraries=$mghdir/tiff/current/lib
-#  ac_tiff_bindir=$mghdir/tiff/current/bin
-#fi
+TIFF_CFLAGS=""
+TIFF_LIBS=""
+AC_MSG_CHECKING(Tiff directory)
 
 AC_ARG_WITH(tiff-dir,
-  [  --with-tiff-dir=DIR     where the root of Tiff is installed.],
+[  --with-tiff-dir=DIR     where the root of Tiff is installed.],
   [  ac_tiff_includes="$withval"/include
      ac_tiff_libraries="$withval"/lib
      ac_tiff_bindir="$withval"/bin
   ])
 
-# modify CXXFLAGS and LDFLAGS
 if test ! "$ac_tiff_includes" = "NO"; then
   AC_MSG_RESULT(Tiff directory is $withval)
-  tiff_includes=-I$ac_tiff_includes
-  CPPFLAGS="$CPPFLAGS $tiff_includes"
+  TIFF_CFLAGS=-I$ac_tiff_includes
 else
   AC_MSG_RESULT(Tiff directory is not supplied)
 fi
 if test ! "$ac_tiff_libraries" = "NO"; then 
-  tiff_libraries=-L$ac_tiff_libraries 
-  LDFLAGS="$LDFLAGS $tiff_libraries"
+  TIFF_LIBS=-L$ac_tiff_libraries 
 fi
 
+AC_SUBST(TIFF_CFLAGS)
+AC_SUBST(TIFF_LIBS)
+
 ################################################################
-# jpeg   Mac does not have this
+# jpeg   
 ################################################################
 ac_jpeg_includes="NO"
 ac_jpeg_libraries="NO"
 ac_jpeg_bindir="NO"
-jpeg_includes=""
-jpeg_libraries=""
-AC_MSG_CHECKING(cheking Jpeg directory)
-# default is to use MGH installation
-#if test -d $mghdir/jpeg/current ; then
-#  ac_jpeg_includes=$mghdir/jpeg/current/include
-#  ac_jpeg_libraries=$mghdir/jpeg/current/lib
-#  ac_jpeg_bindir=$mghdir/jpeg/current/bin
-#fi
+JPEG_CFLAGS=""
+JPEG_LIBS=""
+AC_MSG_CHECKING(Jpeg directory)
 
 AC_ARG_WITH(jpeg-dir,
   [  --with-jpeg-dir=DIR     where the root of Jpeg is installed.],
@@ -482,47 +491,230 @@ AC_ARG_WITH(jpeg-dir,
      ac_jpeg_bindir="$withval"/bin
   ])
 
-# modify CXXFLAGS and LDFLAGS
 if test ! "$ac_jpeg_includes" = "NO"; then
   AC_MSG_RESULT(Jpeg directory is $withval)
-  jpeg_includes=-I$ac_jpeg_includes
-  CPPFLAGS="$CPPFLAGS $jpeg_includes"
+  JPEG_CFLAGS=-I$ac_jpeg_includes
 else
   AC_MSG_RESULT(Jpeg directory is not supplied)
 fi
 if test ! "$ac_jpeg_libraries" = "NO"; then 
-  jpeg_libraries=-L$ac_jpeg_libraries 
-  LDFLAGS="$LDFLAGS $jpeg_libraries"
+  JPEG_LIBS=-L$ac_jpeg_libraries 
 fi
 
-# generic mods
-CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
+AC_SUBST(JPEG_CFLAGS)
+AC_SUBST(JPEG_LIBS)
 
-AC_MSG_NOTICE(Get OpenGL info ...)
+################################################################
+# GSL
+################################################################
+ac_gsl_includes="NO"
+ac_gsl_libraries="NO"
+ac_gsl_bindir="NO"
+GSL_CFLAGS=""
+GSL_LIBS=""
+AC_MSG_CHECKING(GSL directory)
+
+AC_ARG_WITH(gsl-dir,
+  [  --with-gsl-dir=DIR      where the root of GSL is installed.],
+  [  ac_gsl_includes="$withval"/include
+     ac_gsl_libraries="$withval"/lib
+     ac_gsl_bindir="$withval"/bin
+  ])
+
+if test ! "$ac_gsl_includes" = "NO"; then
+  AC_MSG_RESULT(GSL directory is $withval)
+  GSL_CFLAGS=-I$ac_gsl_includes
+else
+  AC_MSG_RESULT(GSL directory is not supplied)
+fi
+if test ! "$ac_gsl_libraries" = "NO"; then 
+  GSL_LIBS=-L$ac_gsl_libraries 
+fi
+
+AC_SUBST(GSL_CFLAGS)
+AC_SUBST(GSL_LIBS)
+
+################################################################
+# Qt
+################################################################
+ac_qt_includes="NO"
+ac_qt_libraries="NO"
+ac_qt_bindir="NO"
+ac_qt_dir="NO"
+QT_CFLAGS=""
+QT_LIBS=""
+AC_MSG_CHECKING(Qt directory)
+
+AC_ARG_WITH(qt-dir,
+  [  --with-qt-dir=DIR       where the root of Qt is installed.],
+  [  ac_qt_includes="$withval"/include
+     ac_qt_libraries="$withval"/lib
+     ac_qt_bindir="$withval"/bin
+     ac_qt_dir="$withval"
+  ])
+
+if test ! "$ac_qt_includes" = "NO"; then
+  AC_MSG_RESULT(Qt directory is $withval)
+  QT_CFLAGS=-I$ac_qt_includes
+  QTDIR=$ac_qt_dir
+  AC_SUBST(QTDIR)
+else
+  AC_MSG_RESULT(Qt directory is not supplied)
+fi
+if test ! "$ac_qt_libraries" = "NO"; then 
+  QT_LIBS=-L$ac_qt_libraries 
+fi
+
+AC_SUBST(QT_CFLAGS)
+AC_SUBST(QT_LIBS)
+
 #####################################################
 # OpenGL
 #####################################################
-AX_CHECK_GLUT
+AC_MSG_NOTICE(Getting OpenGL info...)
+
+if test "X$with_apple_opengl_framework" = "Xyes"; then
+  AC_MSG_RESULT([Using the Apple OpenGL and GLUT Frameworks])
+  AC_DEFINE([HAVE_APPLE_OPENGL_FRAMEWORK], [1],
+           [Use the Apple OpenGL framework.])
+  AC_DEFINE([HAVE_APPLE_GLUT_FRAMEWORK], [1],
+            [Use the Apple GLUT framework.])
+  CPPFLAGS="$CPPFLAGS -DHAVE_APPLE_OPENGL_FRAMEWORK"
+  CPPFLAGS="$CPPFLAGS -DHAVE_APPLE_GLUT_FRAMEWORK"
+  GL_CFLAGS="-I/System/Libraries/Frameworks"
+  GL_LIBS="-framework OpenGL"
+  GLU_CFLAGS="-I/System/Libraries/Frameworks"
+  GLU_LIBS="-framework OpenGL"
+  glut_cflags="-I/System/Libraries/Frameworks"
+  glut_libs="-framework GLUT"
+  with_apple_opengl_framework="yes"
+  AC_SUBST([GL_CFLAGS])
+  AC_SUBST([GL_LIBS])
+  AC_SUBST([GLU_CFLAGS])
+  AC_SUBST([GLU_LIBS])
+  AC_SUBST([glut_cflags])
+  AC_SUBST([glut_libs])
+  AC_SUBST(with_apple_opengl_framework)
+else
+  #####
+  # GL
+  #####
+  ac_gl_includes="NO"
+  ac_gl_libraries="NO"
+  ac_gl_bindir="NO"
+  GL_CFLAGS=""
+  GL_LIBS=""
+  AC_MSG_CHECKING(GL directory)
+
+  AC_ARG_WITH(gl-dir,
+    [  --with-gl-dir=DIR       where the root of OpenGL is installed.],
+    [  ac_gl_includes="$withval"/include
+       ac_gl_libraries="$withval"/lib
+       ac_gl_bindir="$withval"/bin
+    ])
+
+  if test ! "$ac_gl_includes" = "NO"; then
+    AC_MSG_RESULT(gl directory is $withval)
+    GL_CFLAGS=-I$ac_gl_includes
+  else
+    AC_MSG_RESULT(OpenGL directory is not supplied)
+  fi
+  if test ! "$ac_gl_libraries" = "NO"; then 
+    GL_LIBS=-L$ac_gl_libraries 
+  fi
+
+  AC_SUBST(GL_CFLAGS)
+  AC_SUBST(GL_LIBS)
+
+  #######
+  # GLUT
+  #######
+  ac_glut_includes="NO"
+  ac_glut_libraries="NO"
+  ac_glut_bindir="NO"
+  # these are lower-case because later AX_CHECK_GLUT trounces 
+  # GLUT_CLFLAGS and GLUT_LIBS:
+  glut_cflags=""
+  glut_libs=""
+  AC_MSG_CHECKING(GLUT directory)
+
+  AC_ARG_WITH(glut-dir,
+    [  --with-glut-dir=DIR     where the root of GLUT is installed.],
+    [  ac_glut_includes="$withval"/include
+       ac_glut_libraries="$withval"/lib
+       ac_glut_bindir="$withval"/bin
+    ])
+
+  if test ! "$ac_glut_includes" = "NO"; then
+    AC_MSG_RESULT(GLUT directory is $withval)
+    glut_cflags=-I$ac_glut_includes
+  else
+    AC_MSG_RESULT(GLUT directory is not supplied)
+  fi
+  if test ! "$ac_glut_libraries" = "NO"; then 
+    glut_libs="-L$ac_glut_libraries -lglut" 
+  fi
+
+  AC_SUBST(glut_cflags)
+  AC_SUBST(glut_libs)
+fi
+
 #####################################################
-# produces GLUT_CFLAGS GLUT_LIBS
-LIBS_OPENGL="$GLUT_LIBS"
+# AX_CHECK_GL produces GL_CFLAGS GL_LIBS
+AX_CHECK_GL
+if test "X$no_gl" = "Xyes"; then
+  AC_MSG_RESULT([GL not found])
+else
+  AC_MSG_RESULT([GL found. Setting GL_CFLAGS='$GL_CFLAGS' and GL_LIBS='$GL_LIBS'])
+  LIBS_OPENGL="$LIBS_OPENGL $GL_LIBS"
+fi
+#####################################################
+# AX_CHECK_GLU produces GLU_CFLAGS GLU_LIBS
+AX_CHECK_GLU
+if test "X$no_glu" = "Xyes"; then
+  AC_MSG_RESULT([GLu not found])
+else
+  AC_MSG_RESULT([GLu found. Setting GLU_CFLAGS='$GLU_CFLAGS' and GLU_LIBS='$GLU_LIBS'])
+  #redundant: LIBS_OPENGL="$LIBS_OPENGL $GLU_LIBS"
+fi
+#####################################################
+# AX_CHECK_GLUT produces GLUT_CFLAGS GLUT_LIBS
+CFLAGS="$glut_cflags $CFLAGS"
+LDFLAGS="$glut_libs $LDFLAGS"
+AX_CHECK_GLUT
+if test "X$no_glut" = "Xyes"; then
+  AC_MSG_RESULT([GLut not found])
+else
+  if test "$OS" = "Darwin"; then
+    #AX_CHECK_GLUT really fudges these, so use proper settings (from above)
+    GLUT_CFLAGS="$glut_cflags"
+    GLUT_LIBS="$glut_libs"
+    #Also, we use these as catch-all, for GL and GLU:
+    GLUT_CFLAGS="$GLU_CFLAGS $GLUT_CFLAGS"
+    GLUT_LIBS="$GLUT_LIBS $GLU_LIBS"
+    AC_SUBST([GLUT_CFLAGS])
+    AC_SUBST([GLUT_LIBS])
+  fi
+  AC_MSG_RESULT([GLut found. Setting GLUT_CFLAGS='$GLUT_CFLAGS' and GLUT_LIBS='$GLUT_LIBS'])
+  LIBS_OPENGL="$LIBS_OPENGL $GLUT_LIBS"
+fi
+
 
 #####################################################
 # Tcl/Tk
 ####################################################
-AC_MSG_NOTICE(checking Tcl/Tk directory)
+AC_MSG_NOTICE(Tcl/Tk directory)
 ################# apple
 AC_ARG_WITH([apple-tcl-framework],
 	    [AC_HELP_STRING([--with-apple-tcl-framework])])
 if test "X$with_apple_tcl_framework" = "Xyes"; then
-  AC_MSG_ERROR("FATAL:tkmedit/tksurfer needs BLT.  No Aqua verson of BLT exists yet.")
-#  AC_MSG_NOTICE([Apple framework way ...])
+  AC_MSG_ERROR("FATAL: tkmedit/tksurfer needs BLT.  No Aqua version of BLT exists yet.")
+#  AC_MSG_NOTICE([Apple framework way...])
 #  AC_DEFINE([HAVE_APPLE_TCL_FRAMEWORK],[1],
 #            [Use the Apple Tcl framework,])
 #  TCL_CFLAGS="-framework Tcl -framework Tk"
-#  TCL_LIBS="-lTix8.4"
-#  tcl_libraries="-L/Library/Tcl/Tix8.4"
-#  tcl_includes=""
+#  TCL_LIBS="-L/Library/Tcl/Tix8.4"
+#  LIBS_TCL="-lTix8.4"
 else
 ################## other cases
 # here are uni*es
@@ -530,93 +722,95 @@ else
   ac_tcl_includes="NO"
   ac_tcl_libraries="NO"
   ac_tcl_bindir="NO"
-  tcl_includes=""
-  tcl_libraries=""
-
-# check for MGH style
-# default is to use MGH installation
-#  if test -d $mghdir/tcl/current ; then
-#    ac_tcl_includes=$mghdir/tcl/current/include
-#    ac_tcl_libraries=$mghdir/tcl/current/lib
-#    ac_tcl_bindir=$mghdir/tcl/current/bin
-#  fi
+  TCL_CFLAGS=""
+  TCL_LIBS=""
 
   AC_ARG_WITH(tcl-dir,
-    [  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
+[  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
     [  ac_tcl_includes="$withval"/include
        ac_tcl_libraries="$withval"/lib
        ac_tcl_bindir="$withval"/bin
     ])
 
-# modify CXXFLAGS and LDFLAGS
   if test ! "$ac_tcl_includes" = "NO"; then
     AC_MSG_RESULT([Tcl directory is $withval])
-    tcl_includes=-I$ac_tcl_includes
-    CPPFLAGS="$CPPFLAGS $tcl_includes"
+    TCL_CFLAGS=-I$ac_tcl_includes
   else
     AC_MSG_RESULT([Tcl directory is not supplied])
   fi
 
   if test ! "$ac_tcl_libraries" = "NO"; then 
-    tcl_libraries=-L$ac_tcl_libraries 
+    TCL_LIBS=-L$ac_tcl_libraries 
   fi
 
-  TCL_CFLAGS="$blt_includes $tcl_includes"
+  TCL_CFLAGS="$BLT_CFLAGS $TCL_CFLAGS"
 fi
 ###### end of uni*es
 
-# set tcl_libdir
-if test ! tcl_libraries =="NO"; then
-   tcl_libdir=`echo $tcl_libraries | sed "s/-L//g"`
-else
-   tcl_libdir=/usr/lib
-fi
+AC_SUBST(TCL_CFLAGS)
+AC_SUBST(TCL_LIBS)
+AC_SUBST(LIBS_TCL)
 
-AC_SUBST(tcl_libdir)
-AC_SUBST(tcl_includes)
-AC_SUBST(tcl_libraries)
 
 ################################################
 LIBDIRS_MGH="utils rgb unix dicom hipsstubs"
 AC_SUBST(LIBDIRS_MGH)
 
 # stupid circular dependency on iopen swapInt etc.
-LIBS_MGH="utils/libutils.a rgb/librgb.a unix/libunix.a dicom/libdicom.a hipsstubs/libhipsstubs.a log/liblog.a"
+LIBS_MGH="\
+	utils/libutils.a \
+	rgb/librgb.a \
+	unix/libunix.a \
+	dicom/libdicom.a \
+	hipsstubs/libhipsstubs.a \
+	log/liblog.a"
 AC_SUBST(LIBS_MGH)
+
+
+#####################################################
+# generic mods
+#####################################################
+CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
+
 
 #####################################################
 # Checks for libraries.
 # the order is important
 #####################################################
-AC_MSG_NOTICE(Making sure that all libraries can be compilable ...)
-AC_CHECK_LIB([m], [floor])
-AC_CHECK_LIB([z], [gzopen])
-AC_CHECK_LIB([crypt], [crypt],[],[echo "MacOSX won't need this"])
-AC_CHECK_LIB([tiff], [TIFFGetVersion],[],
-  [AC_MSG_ERROR("FATAL:tiff lib not found. Please install tiff header files and libs.")] )
-AC_CHECK_LIB([jpeg], [jpeg_start_compress],[],
-  [AC_MSG_ERROR("FATAL:jpeg lib not found. Please install jpeg lib.")] )
-# three mni libs
-AC_CHECK_LIB([netcdf], [nccreate],[],
-  [AC_MSG_ERROR("FATAL:netcdf lib not found.  Set LDFLAGS or --with-mni-dir.")] )
-AC_CHECK_LIB([minc], [miopen], [],
-  [AC_MSG_ERROR("FATAL:minc lib not found.  Set LDFLAGS or --with-mni-dir.")] )
-AC_CHECK_LIB([volume_io], [transform_point],[],
-  [AC_MSG_ERROR("FATAL:volume_io lib not found.  Set LDFLAGS or --with-mni-dir.")] )
 # the entire libs here is passed as LIBS
-# thus save the current one
+# thus save the current one, along with flags, which
+# are restored upon completion of these checks
 ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
-
-# just checking gsl but not set LIBS. wanted to check libgsl which contains the undefed cblas routines
+CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS $MNI_CFLAGS $GSL_CFLAGS $TCL_CFLAGS"
+LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $GSL_LIBS $TCL_LIBS"
+AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
+#AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
+#AC_MSG_NOTICE(LDFLAGS: $LDFLAGS)
+AC_CHECK_LIB([m], [floor])
+AC_CHECK_LIB([z], [gzopen])
+AC_CHECK_LIB([crypt], [crypt],[],[echo "(Note: Mac OS X doesn't use crypt)"])
+LIB_CRYPT="-lcrypt"
+if test "$OS" = "Darwin"; then
+  LIB_CRYPT=""  
+fi
+AC_SUBST(LIB_CRYPT)
+AC_CHECK_LIB([tiff], [TIFFGetVersion],[],
+  [AC_MSG_ERROR("FATAL: tiff lib not found. Please install tiff header files and libs.")] )
+AC_CHECK_LIB([jpeg], [jpeg_start_compress],[],
+  [AC_MSG_ERROR("FATAL: jpeg lib not found. Please install jpeg lib.")] )
+# three mni libs
+AC_CHECK_LIB([netcdf], [nccreate],[],
+  [AC_MSG_ERROR("FATAL: netcdf lib not found.  Set LDFLAGS or --with-mni-dir.")] )
+AC_CHECK_LIB([minc], [miopen], [],
+  [AC_MSG_ERROR("FATAL: minc lib not found.  Set LDFLAGS or --with-mni-dir.")] )
+AC_CHECK_LIB([volume_io], [transform_point],[],
+  [AC_MSG_ERROR("FATAL: volume_io lib not found.  Set LDFLAGS or --with-mni-dir.")] )
+# GNU scientific library
 AC_CHECK_LIB([gslcblas], [cblas_dsdot], [],
-  [AC_MSG_ERROR("FATAL:gsl lib not found. Please install gsl header files and libs.")] )
-LIBS=$ac_save_libs
+  [AC_MSG_ERROR("FATAL: gsl lib not found. Please install gsl header files and libs.")] )
 
-## check Tcl/Tk/BLT
-CPPFLAGS="$CPPFLAGS $TCL_CFLAGS"
-LDFLAGS="$LDFLAGS $tcl_libraries"	
 ################## Tcl
 AC_CHECK_LIB([tcl],[Tcl_Init],
   [LIB_TCL=-ltcl],
@@ -627,12 +821,16 @@ AC_CHECK_LIB([tcl],[Tcl_Init],
 # check tcl8.3
     [ AC_CHECK_LIB([tcl8.3],[Tcl_Init],
       [LIB_TCL=-ltcl8.3],
-      [AC_MSG_ERROR("FATAL: libtcl not found. check config.log. set LDFLAGS or --with-tcl-dir.")        ] )
-    ])	
+# check tclstub
+      [ AC_CHECK_LIB([tclstub],[Tcl_Init],
+        [LIB_TCL=-ltclstub],
+        [AC_MSG_ERROR("FATAL: libtcl not found. check config.log. set LDFLAGS or --with-tcl-dir.")        ] )
+      ])
+    ])
   ])
-#################### Tk  needs X11 (or Aqua)
+#################### Tk needs X11 (or Aqua)
 LIBS="-lX11 $LIBS"
-CPPFLAGS="$GLUT_CFLAGS $CPPFLAGS"
+CPPFLAGS="$GLUT_CFLAGS $GL_CFLAGS $CPPFLAGS"
 LDFLAGS="$X_LIBS $LDFLAGS"
 AC_CHECK_LIB([tk],[Tk_Init],
   [LIB_TK=-ltk],
@@ -668,8 +866,7 @@ AC_CHECK_LIB([tix],[Tix_Init],
 #   AC_CHECK_LIB([Tix8.4],[Tix_Init],[],
 #              [AC_MSG_ERROR("FATAL: libTix8.4 not found.")])
 
-##################### BLT (we cannot build BLT in Aqua)   must use X11
-LDFLAGS="$LDFLAGS $blt_libraries"
+##################### BLT (we cannot build BLT in Aqua) must use X11
 LIBS="$LIB_TK $LIB_TCL $LIBS"
 AC_CHECK_LIB([BLT],[Blt_Init],
   [LIB_BLT=-lBLT],
@@ -686,31 +883,84 @@ AC_CHECK_LIB([BLT],[Blt_Init],
     ])
   ])
 
-# recover previous one without X and Tcl
+#
+# recover previous settings, from prior to checks.
+# let each Makefile.am set as appropriate, choose from:
+# MNI_CFLAGS, MNI_LIBS
+# JPEG_CFLAGS, JPEG_LIBS
+# TIFF_CFLAGS, TIFF_LIBS
+# GSL_CFLAGS, GSL_LIBS
+# TCL_CFLAGS, TCL_LIBS, LIB_TCL
+# TK_CFLAGS, TK_LIBS, LIB_TK, LIB_TIX
+# BLT_CFLAGS, BLT_LIBS, LIB_BLT
+# GL_CFLAGS, GL_LIBS
+# GLU_CFLAGS, GLU_LIBS
+# GLUT_CFLAGS, GLUT_LIBS
+# QT_CFLAGS, QT_LIBS, QTDIR
+# 
 LIBS=$ac_save_libs
 CPPFLAGS=$ac_save_cppflags
 LDFLAGS=$ac_save_ldflags
 
-LDFLAGS_TCL="$blt_libraries $tcl_libraries"
+# ...or use combined flags
+LDFLAGS_TCL="$BLT_LIBS $TCL_LIBS"
+if test "$OS" = "Darwin"; then
+  LDFLAGS_TCL="-bind_at_load $LDFLAGS_TCL"
+fi
 LIBS_TCL="$LIB_BLT $LIB_TIX $LIB_TK $LIB_TCL"
 LIBS_TCL_OPENGL="$LIBS_TCL $LIBS_OPENGL"
-
 AC_SUBST(LDFLAGS_TCL)
 AC_SUBST(LIBS_TCL)
 AC_SUBST(LIBS_TCL_OPENGL)
-AC_SUBST(TCL_CFLAGS)
+
+###########################################################
+# some common flags and libs
+###########################################################
+CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS"
+LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS"
+LIBS="-lnetcdf -lvolume_io -lminc -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
+AC_SUBST(CPPFLAGS)
+AC_SUBST(LDFLAGS)
+AC_SUBST(LIBS)
 
 # check whether needs Itcl_Init() and Itk_Init()
-AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
+# except on the Mac, because the latest Tcl/Tk/Tix package
+# from Fink doesn't contain Itcl_Init or Itk_Init
+if ! test "$OS" = "Darwin"; then 
+  AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
+fi
 
-###########################################################################################
+
+##############################################################################
 # Checks for header files.
-############################################################################################
+##############################################################################
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h limits.h locale.h malloc.h memory.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/file.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h sys/timeb.h unistd.h values.h wctype.h])
-# the following is needed on darwin
+AC_CHECK_HEADERS([\
+	arpa/inet.h \
+	fcntl.h \
+	float.h \
+	limits.h \
+	locale.h \
+	malloc.h \
+	memory.h \
+	netdb.h \
+	netinet/in.h \
+	stddef.h \
+	stdlib.h \
+	string.h \
+	strings.h \
+	sys/file.h \
+	sys/ioctl.h \
+	sys/param.h \
+	sys/socket.h \
+	sys/time.h \
+	sys/timeb.h \
+	unistd.h \
+	values.h \
+	wctype.h])
+# the following is needed on Mac OS Darwin
 AC_CHECK_HEADERS(sys/types.h stdint.h)
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -728,7 +978,11 @@ AC_FUNC_CLOSEDIR_VOID
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_LSTAT
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
-AC_FUNC_MALLOC
+if ! test "$OS" = "Darwin"; then
+# On the Mac, AC_FUNC_MALLOC redefines malloc to rpl_malloc,
+# so skip over this if building on Mac (Darwin)
+  AC_FUNC_MALLOC
+fi
 AC_FUNC_MMAP
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
@@ -736,7 +990,35 @@ AC_FUNC_STAT
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 # freesurfer uses calloc, getenv often so added
-AC_CHECK_FUNCS([bzero calloc floor ftime getenv getcwd getpagesize gettimeofday memmove memset mkdir munmap pow putenv rint select setenv sqrt strcasecmp strchr strdup strerror strncasecmp strrchr strspn strstr strtol uname])
+AC_CHECK_FUNCS([\
+	bzero \
+	calloc \
+	floor \
+	ftime \
+	getenv \
+	getcwd \
+	getpagesize \
+	gettimeofday \
+	memmove \
+	memset \
+	mkdir \
+	munmap \
+	pow \
+	putenv \
+	rint \
+	select \
+	setenv \
+	sqrt \
+	strcasecmp \
+	strchr \
+	strdup \
+	strerror \
+	strncasecmp \
+	strrchr \
+	strspn \
+	strstr \
+	strtol \
+	uname])
 
 ###############################################################################
 # output
@@ -747,72 +1029,216 @@ export DEV
 
 AC_OUTPUT(\
 Makefile \
-unix/Makefile dicom/Makefile rgb/Makefile utils/Makefile hipsstubs/Makefile log/Makefile utilscpp/Makefile \
-mris2rgb/Makefile nmovie/Makefile mris_show/Makefile tkmedit/Makefile tkregister/Makefile \
-tkregister2/Makefile tksurfer/Makefile mri_hires_register/Makefile \
-check_siemens_dir/Makefile repair_siemens_file/Makefile mkxsubjreg/Makefile \
+unix/Makefile \
+dicom/Makefile \
+rgb/Makefile \
+utils/Makefile \
+hipsstubs/Makefile \
+log/Makefile \
+utilscpp/Makefile \
+mris2rgb/Makefile \
+nmovie/Makefile \
+mris_show/Makefile \
+tkmedit/Makefile \
+tkregister/Makefile \
+tkregister2/Makefile \
+tksurfer/Makefile \
+check_siemens_dir/Makefile \
+repair_siemens_file/Makefile \
+mkxsubjreg/Makefile \
 rbftest/Makefile rawtocor/Makefile \
-mri_add_xform_to_header/Makefile mri_annotation2label/Makefile mri_auto_fill/Makefile mri_edit_wm_with_aseg/Makefile \
-mri_average/Makefile mri_build_priors/Makefile mri_ca_label/Makefile mri_ca_normalize/Makefile \
-mri_ca_tissue_parms/Makefile mri_ca_register/Makefile mri_ca_train/Makefile mri_cc/Makefile mri_cor2label/Makefile \
-mri_cnr/Makefile mri_compute_overlap/Makefile mri_convert/Makefile mri_convert_mdh/Makefile \
-mri_copy_values/Makefile mri_deface/Makefile mri_edit_segmentation/Makefile mri_make_density_map/Makefile \
-mri_edit_segmentation_with_surfaces/Makefile mri_em_register/Makefile mri_estimate_tissue_parms/Makefile \
-mri_evaluate_morph/Makefile mri_extract/Makefile mri_extract_conditions/Makefile \
-mri_extract_label/Makefile mri_fill/Makefile mri_gca_ambiguous/Makefile mri_gdfglm/Makefile \
-mri_head/Makefile mri_histo_eq/Makefile mri_info/Makefile mri_joint_density/Makefile \
-mri_label_histo/Makefile mri_label_vals/Makefile mri_label_volume/Makefile mri_label2label/Makefile mri_label2vol/Makefile \
-mri_linear_register/Makefile mri_make_bem_surfaces/Makefile mri_make_template/Makefile mri_make_register/Makefile \
-mri_mark_temporal_lobe/Makefile mri_mask/Makefile mri_matrix_multiply/Makefile mri_ms_fitparms/Makefile \
-mri_nlfilter/Makefile mri_normalize/Makefile mri_partial_ribbon/Makefile mri_paint/Makefile \
-mri_parselabel/Makefile mri_parse_sdcmdir/Makefile mri_polv/Makefile mri_probedicom/Makefile mri_probe_ima/Makefile \
-mri_reduce/Makefile mri_register/Makefile mri_relabel_hypointensities/Makefile \
-mri_remove_neck/Makefile mri_ribbon/Makefile mri_rigid_register/Makefile \
-mri_segment/Makefile mri_seghead/Makefile mri_surfcluster/Makefile mri_surfacemask/Makefile mri_strip_skull/Makefile \
-mri_strip_subject_info/Makefile mri_strip_nonwhite/Makefile mri_surf2surf/Makefile \
-mri_surf2vol/Makefile mri_synthesize/Makefile mri_tessellate/Makefile mri_distance_transform/Makefile mri_transform/Makefile \
-mri_train/Makefile mri_twoclass/Makefile mri_volcluster/Makefile mri_volsynth/Makefile \
-mri_vol2roi/Makefile mri_vol2surf/Makefile mri_watershed/Makefile mri_wmfilter/Makefile \
-mri_xvolavg/Makefile stim/Makefile stim_polar/Makefile tridec/Makefile \
-mris_add_template/Makefile mris_anatomical_stats/Makefile mris_annot_to_segmentation/Makefile mris_average_curvature/Makefile \
-mris_ca_label/Makefile mris_ca_train/Makefile mris_classify_thickness/Makefile mris_compute_acorr/Makefile \
-mris_compute_overlap/Makefile mris_convert/Makefile mris_curvature/Makefile \
-mris_curvature_stats/Makefile mris_entropy/Makefile mris_errors/Makefile \
-mris_euler_number/Makefile mris_expand/Makefile mris_find_flat_regions/Makefile mris_fix_topology/Makefile \
-mris_flatten/Makefile mris_glm/Makefile mris_inflate/Makefile mris_info/Makefile mris_jacobian/Makefile \
-mris_label_area/Makefile mris_label_mode/Makefile mris_make_average_surface/Makefile \
-mris_make_surfaces/Makefile mris_make_template/Makefile \
-mris_morph_stats/Makefile mris_multiscale_stats/Makefile \
-mris_remove_variance/Makefile mris_rescale/Makefile mris_reverse/Makefile mris_rotate/Makefile \
-mris_ms_refine/Makefile mris_distance_to_label/Makefile mris_register/Makefile mris_sample_label/Makefile \
-mris_sample_parc/Makefile mris_segment_vals/Makefile mris_smooth/Makefile mris_sphere/Makefile \
-mris_spherical_average/Makefile mris_surface_to_vol_distances/Makefile mrisp_paint/Makefile \
-mris_talairach/Makefile mris_thickness/Makefile mris_thickness_comparison/Makefile \
-mris_transform/Makefile mris_translate_annotation/Makefile mris_twoclass/Makefile \
-mris_w_to_curv/Makefile fsgdf/Makefile fslutils/Makefile optseq2/Makefile spm2bfloat/Makefile statcombine/Makefile \
-stat_normalize/Makefile regdat2xfm/Makefile scuba/Makefile test_window_env/Makefile \
-brik2bfloat/Makefile minc_to_bshort/Makefile paint/Makefile \
-histo_compute_joint_density/Makefile histo_register_block/Makefile scripts/Makefile images/Makefile \
-distribution/Makefile distribution/lib/Makefile distribution/lib/bem/Makefile distribution/average/Makefile distribution/average/surf/Makefile \
+mri_add_xform_to_header/Makefile \
+mri_annotation2label/Makefile \
+mri_auto_fill/Makefile \
+mri_edit_wm_with_aseg/Makefile \
+mri_average/Makefile \
+mri_bc_sc_bias_correct/Makefile \
+mri_build_priors/Makefile \
+mri_ca_label/Makefile \
+mri_ca_normalize/Makefile \
+mri_ca_tissue_parms/Makefile \
+mri_ca_register/Makefile \
+mri_ca_train/Makefile \
+mri_cc/Makefile \
+mri_cht2p/Makefile \
+mri_cor2label/Makefile \
+mri_cnr/Makefile \
+mri_compute_overlap/Makefile \
+mri_convert/Makefile \
+mri_convert_mdh/Makefile \
+mri_copy_values/Makefile \
+mri_deface/Makefile \
+mri_distance_transform/Makefile \
+mri_edit_segmentation/Makefile \
+mri_edit_segmentation_with_surfaces/Makefile \
+mri_em_register/Makefile \
+mri_estimate_tissue_parms/Makefile \
+mri_evaluate_morph/Makefile \
+mri_extract/Makefile \
+mri_extract_conditions/Makefile \
+mri_extract_label/Makefile \
+mri_fill/Makefile \
+mri_gca_ambiguous/Makefile \
+mri_gdfglm/Makefile \
+mri_head/Makefile \
+mri_hires_register/Makefile \
+mri_histo_eq/Makefile \
+mri_info/Makefile \
+mri_joint_density/Makefile \
+mri_label_histo/Makefile \
+mri_label_vals/Makefile \
+mri_label_volume/Makefile \
+mri_label2label/Makefile \
+mri_label2vol/Makefile \
+mri_linear_register/Makefile \
+mri_make_bem_surfaces/Makefile \
+mri_make_density_map/Makefile \
+mri_make_template/Makefile \
+mri_make_register/Makefile \
+mri_mark_temporal_lobe/Makefile \
+mri_mask/Makefile \
+mri_matrix_multiply/Makefile \
+mri_ms_fitparms/Makefile \
+mri_modify/Makefile \
+mri_morphology/Makefile \
+mri_nlfilter/Makefile \
+mri_normalize/Makefile \
+mri_partial_ribbon/Makefile \
+mri_paint/Makefile \
+mri_parselabel/Makefile \
+mri_parse_sdcmdir/Makefile \
+mri_polv/Makefile \
+mri_probedicom/Makefile \
+mri_probe_ima/Makefile \
+mri_reduce/Makefile \
+mri_register/Makefile \
+mri_relabel_hypointensities/Makefile \
+mri_remove_neck/Makefile \
+mri_ribbon/Makefile \
+mri_rigid_register/Makefile \
+mri_segment/Makefile \
+mri_seghead/Makefile \
+mri_surfcluster/Makefile \
+mri_surfacemask/Makefile \
+mri_strip_skull/Makefile \
+mri_strip_subject_info/Makefile \
+mri_strip_nonwhite/Makefile \
+mri_surf2surf/Makefile \
+mri_surf2vol/Makefile \
+mri_synthesize/Makefile \
+mri_tessellate/Makefile \
+mri_threshold/Makefile \
+mri_topologycorrection/Makefile \
+mri_transform/Makefile \
+mri_train/Makefile \
+mri_twoclass/Makefile \
+mri_volcluster/Makefile \
+mri_volsynth/Makefile \
+mri_vol2roi/Makefile \
+mri_vol2surf/Makefile \
+mri_vol2vol/Makefile \
+mri_watershed/Makefile \
+mri_watershed/brain_volume/Makefile \
+mri_wmfilter/Makefile \
+mri_xvolavg/Makefile \
+mris_add_template/Makefile \
+mris_anatomical_stats/Makefile \
+mris_annot_to_segmentation/Makefile \
+mris_average_curvature/Makefile \
+mris_ca_label/Makefile \
+mris_ca_train/Makefile \
+mris_classify_thickness/Makefile \
+mris_compute_acorr/Makefile \
+mris_compute_overlap/Makefile \
+mris_convert/Makefile mris_curvature/Makefile \
+mris_curvature_stats/Makefile \
+mris_entropy/Makefile mris_errors/Makefile \
+mris_euler_number/Makefile \
+mris_expand/Makefile \
+mris_find_flat_regions/Makefile \
+mris_fix_topology/Makefile \
+mris_flatten/Makefile \
+mris_glm/Makefile mris_inflate/Makefile \
+mris_info/Makefile mris_jacobian/Makefile \
+mris_label_area/Makefile \
+mris_label_mode/Makefile \
+mris_make_average_surface/Makefile \
+mris_make_surfaces/Makefile \
+mris_make_template/Makefile \
+mris_morph_stats/Makefile \
+mris_multiscale_stats/Makefile \
+mris_remove_variance/Makefile \
+mris_rescale/Makefile \
+mris_reverse/Makefile \
+mris_rotate/Makefile \
+mris_ms_refine/Makefile \
+mris_distance_to_label/Makefile \
+mris_register/Makefile \
+mris_sample_label/Makefile \
+mris_sample_parc/Makefile \
+mris_segment_vals/Makefile \
+mris_smooth/Makefile \
+mris_sphere/Makefile \
+mris_spherical_average/Makefile \
+mris_surface_to_vol_distances/Makefile \
+mrisp_paint/Makefile \
+mris_talairach/Makefile \
+mris_thickness/Makefile \
+mris_thickness_comparison/Makefile \
+mris_transform/Makefile \
+mris_translate_annotation/Makefile \
+mris_twoclass/Makefile \
+mris_volume/Makefile \
+mris_w_to_curv/Makefile \
+stim/Makefile \
+stim_polar/Makefile \
+tridec/Makefile \
+fsgdf/Makefile \
+fslutils/Makefile \
+optseq2/Makefile \
+spm2bfloat/Makefile \
+statcombine/Makefile \
+stat_normalize/Makefile \
+regdat2xfm/Makefile \
+scuba/Makefile \
+test_window_env/Makefile \
+brik2bfloat/Makefile \
+minc_to_bshort/Makefile \
+paint/Makefile \
+histo_compute_joint_density/Makefile \
+histo_register_block/Makefile \
+scripts/Makefile \
+images/Makefile \
+utils/test/Makefile \
+utilscpp/test/Makefile \
+dngtester/Makefile \
+dummy/Makefile \
+hiam_make_surfaces/Makefile \
+spherical_stats/Makefile \
+fsfast/Makefile \
+fsfast/bin/Makefile \
+fsfast/docs/Makefile \
+fsfast/toolbox/Makefile \
+matlab/Makefile \
+distribution/Makefile \
+distribution/lib/Makefile \
+distribution/lib/bem/Makefile \
+distribution/average/Makefile \
+distribution/average/surf/Makefile \
 distribution/docs/Makefile \
 distribution/grad_unwarp_tables/Makefile \
 distribution/fsafd/Makefile \
-mri_modify/Makefile \
-utils/test/Makefile utilscpp/test/Makefile \
-mri_watershed/brain_volume/Makefile \
-mri_cht2p/Makefile \
-mri_vol2vol/Makefile \
-dngtester/Makefile \
-mri_threshold/Makefile \
-dummy/Makefile \
-spherical_stats/Makefile \
-mri_bc_sc_bias_correct/Makefile \
-fsfast/Makefile fsfast/bin/Makefile fsfast/docs/Makefile fsfast/toolbox/Makefile \
-matlab/Makefile \
-hiam_make_surfaces/Makefile \
-mri_morphology/Makefile \
-mri_topologycorrection/Makefile \
-mris_volume/Makefile \
- ) 
+)
 
+AC_MSG_RESULT(
+[
+FreeSurfer is now configured for ${host}
 
+  Source directory:  ${srcdir}
+  Install directory: ${prefix}
+
+  C compiler:        ${CC} ${CPPFLAGS} ${CFLAGS}
+  C++ compiler:      ${CXX} ${CPPFLAGS} ${CXXFLAGS}
+  Linker:            ${LD} ${LDFLAGS}
+  Libs:              ${LIBS}
+])

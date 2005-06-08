@@ -2,7 +2,11 @@
 #define tkmDisplayArea_h
 
 #include "xTypes.h"
-#include <GL/glut.h>
+#ifdef HAVE_APPLE_GLUT_FRAMEWORK
+#  include <GLUT/glut.h>
+#else
+#  include <GL/glut.h>
+#endif
 #include "xVoxel.h"
 #include "tkmedit.h"
 #include "xGLutWindow.h"

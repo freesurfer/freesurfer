@@ -3,7 +3,6 @@
 #include <math.h>
 #include <stdexcept>
 #include <iomanip>
-#include "GL/glut.h"
 #include "ScubaView.h"
 #include "PreferencesManager.h"
 #include "ScubaGlobalPreferences.h"

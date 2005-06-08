@@ -2,9 +2,17 @@
 # Makefile.am for scuba
 #
 
-AM_CPPFLAGS=-I/usr/include/GL $(GLUT_CFLAGS) $(TCL_CFLAGS) $(tcl_includes) -I$(top_srcdir)/include -I$(top_srcdir)/dicom -I/opt/intel/mkl70/include
+AM_CPPFLAGS=$(GLUT_CFLAGS) \
+	$(GL_FLAGS) \
+	$(X_CFLAGS) \
+	$(TCL_CFLAGS) \
+	$(tcl_includes) \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/dicom \
+	-I/opt/intel/mkl70/include
 
-AM_LDFLAGS=-L$(top_srcdir)/lib $(LDFLAGS_TCL)
+AM_LDFLAGS=-L$(top_srcdir)/lib \
+	$(LDFLAGS_TCL) $(GLUT_LIBS)
 
 UTILITIES_SRCS=Volume3.cpp \
 	Point2.cpp \
@@ -97,14 +105,40 @@ UIC      = $(QTDIR)/bin/uic
 
 bin_PROGRAMS=scuba scuba2 ${SCUBA_BUNDLE_TARGET}
 EXTRA_PROGRAMS=
-scuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(SCUBA1_SRCS) scuba.cpp 
-scuba_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL) 
-scuba_LDFLAGS=-L/usr/lib
+scuba_SOURCES=$(UTILITIES_SRCS) \
+	$(BASIC_SRCS) \
+	$(FSDATA_SRCS) \
+	$(GUI_SRCS) \
+	$(LAYER_SRCS) \
+	$(SCUBA1_SRCS) \
+	scuba.cpp 
+scuba_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
+	$(LIBS_TCL_OPENGL) $(X_LIBS) -lX11 -lXmu -lGL
+scuba_LDFLAGS=
 
-scuba2_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(MOC_SRCS) $(SCUBA2_SRCS) $(FORMS) $(UICDECLS) $(UICIMPLS) $(SRCMOC) $(OBJMOC) .ui/image_collection.cpp main.cpp
-scuba2_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL) -L$(QTDIR)/lib -lqt-mt
+scuba2_SOURCES=$(UTILITIES_SRCS) \
+	$(BASIC_SRCS) \
+	$(FSDATA_SRCS) \
+	$(GUI_SRCS) \
+	$(LAYER_SRCS) \
+	$(MOC_SRCS) \
+	$(SCUBA2_SRCS) \
+	$(FORMS) \
+	$(UICDECLS) \
+	$(UICIMPLS) \
+	$(SRCMOC) \
+	$(OBJMOC) \
+	.ui/image_collection.cpp \
+	main.cpp
+scuba2_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
+	$(LIBS_TCL_OPENGL) \
+	-L$(QTDIR)/lib -lqt-mt
 scuba2_LDFLAGS=
-scuba2_CXXFLAGS=-DQT_SHARED -DQT_NO_DEBUG -DQT_THREAD_SUPPORT -I$(QTDIR)/include -I.ui/ 
+scuba2_CXXFLAGS=-DQT_SHARED \
+	-DQT_NO_DEBUG \
+	-DQT_THREAD_SUPPORT \
+	-I$(QTDIR)/include \
+	-I.ui/ 
 
 
 foodir=$(prefix)/lib/tcl
@@ -137,11 +171,13 @@ testUtilities_LDADD=
 
 testMatrix44_SOURCES=test_Matrix44.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
-testMatrix44_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testMatrix44_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testTransform44_SOURCES=test_Transform44.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
-testTransform44_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testTransform44_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testVolume3_SOURCES=test_Volume3.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
@@ -161,11 +197,13 @@ testVectorOps_LDADD=
 
 testRASToVoxel_SOURCES= test_RASToVoxel.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
-testRASToVoxel_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testRASToVoxel_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testToglManager_SOURCES=test_ToglManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS)
-testToglManager_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testToglManager_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testDataManager_SOURCES=test_DataManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
@@ -173,7 +211,8 @@ testDataManager_LDADD=
 
 testTclCommandManager_SOURCES=test_TclCommandManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) 
-testTclCommandManager_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testTclCommandManager_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testPreferencesManager_SOURCES=test_PreferencesManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) 
@@ -194,75 +233,115 @@ testDataCollection_LDADD=
 
 testScubaDataCollections_SOURCES=test_ScubaDataCollections.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
-testScubaDataCollections_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testScubaDataCollections_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testVolumeCollection_SOURCES=test_VolumeCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
-testVolumeCollection_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testVolumeCollection_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testSurfaceCollection_SOURCES= test_SurfaceCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
-testSurfaceCollection_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testSurfaceCollection_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testScubaLayers_SOURCES=test_ScubaLayers.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS)
-testScubaLayers_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testScubaLayers_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testScubaLayer2DMRI_SOURCES=test_ScubaLayer2DMRI.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) 
-testScubaLayer2DMRI_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testScubaLayer2DMRI_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testScubaView_SOURCES=test_ScubaView.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS) $(SCUBA1_SRCS)
-testScubaView_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testScubaView_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testScubaFrame_SOURCES=test_ScubaFrame.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) 
-testScubaFrame_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testScubaFrame_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testScubaTransform_SOURCES=test_ScubaTransform.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
-testScubaTransform_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testScubaTransform_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testScubaColorLUT_SOURCES=test_ScubaColorLUT.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
-testScubaColorLUT_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testScubaColorLUT_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testScubaROI_SOURCES=test_ScubaROI.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
-testScubaROI_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testScubaROI_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
-testScubaROIVolume_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MGH))
+testScubaROIVolume_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 # All the scuba2 stuff.
 .ui/mainwindow.h: ui_dir mainwindow.ui
 	$(UIC) mainwindow.ui -o .ui/mainwindow.h
-.ui/mainwindow.cpp: ui_dir .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h mainwindow.ui
+.ui/mainwindow.cpp: ui_dir \
+	.ui/mainwindow.h \
+	.ui/toolsettingsdlog.h \
+	.ui/viewlayersdlog.h \
+	.ui/roisettingsdlog.h \
+	mainwindow.ui
 	$(UIC) mainwindow.ui -i mainwindow.h -o .ui/mainwindow.cpp
 .obj/mainwindow.$(OBJEXT): obj_dir .ui/mainwindow.cpp mainwindow.ui.h .ui/mainwindow.h
 	$(CXX) $(CXXFLAGS) -o .obj/mainwindow.$(OBJEXT) .ui/mainwindow.cpp
 
 .ui/toolsettingsdlog.h: ui_dir toolsettingsdlog.ui
 	$(UIC) toolsettingsdlog.ui -o .ui/toolsettingsdlog.h
-.ui/toolsettingsdlog.cpp: ui_dir .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h  toolsettingsdlog.ui
+.ui/toolsettingsdlog.cpp: ui_dir \
+	.ui/mainwindow.h \
+	.ui/toolsettingsdlog.h \
+	.ui/viewlayersdlog.h \
+	.ui/roisettingsdlog.h  \
+	toolsettingsdlog.ui
 	$(UIC) toolsettingsdlog.ui -i toolsettingsdlog.h -o .ui/toolsettingsdlog.cpp
-.obj/toolsettingsdlog.$(OBJEXT): obj_dir .ui/toolsettingsdlog.cpp toolsettingsdlog.ui.h .ui/toolsettingsdlog.h
+.obj/toolsettingsdlog.$(OBJEXT): obj_dir \
+	.ui/toolsettingsdlog.cpp \
+	toolsettingsdlog.ui.h \
+	.ui/toolsettingsdlog.h
 	$(CXX) $(CXXFLAGS) -o .obj/toolsettingsdlog.$(OBJEXT) .ui/toolsettingsdlog.cpp
 
 .ui/viewlayersdlog.h: ui_dir viewlayersdlog.ui
 	$(UIC) viewlayersdlog.ui -o .ui/viewlayersdlog.h
-.ui/viewlayersdlog.cpp: ui_dir .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h viewlayersdlog.ui
+.ui/viewlayersdlog.cpp: ui_dir \
+	.ui/mainwindow.h \
+	.ui/toolsettingsdlog.h \
+	.ui/viewlayersdlog.h \
+	.ui/roisettingsdlog.h \
+	viewlayersdlog.ui
 	$(UIC) viewlayersdlog.ui -i viewlayersdlog.h -o .ui/viewlayersdlog.cpp
-.obj/viewlayersdlog.$(OBJEXT): obj_dir .ui/viewlayersdlog.cpp viewlayersdlog.ui.h .ui/viewlayersdlog.h
+.obj/viewlayersdlog.$(OBJEXT): obj_dir \
+	.ui/viewlayersdlog.cpp \
+	viewlayersdlog.ui.h \
+	.ui/viewlayersdlog.h
 	$(CXX) $(CXXFLAGS) -o .obj/viewlayersdlog.$(OBJEXT) .ui/viewlayersdlog.cpp
 
 .ui/roisettingsdlog.h: ui_dir roisettingsdlog.ui
 	$(UIC) roisettingsdlog.ui -o .ui/roisettingsdlog.h
-.ui/roisettingsdlog.cpp: ui_dir .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h roisettingsdlog.ui
+.ui/roisettingsdlog.cpp: ui_dir \
+	.ui/mainwindow.h \
+	.ui/toolsettingsdlog.h \
+	.ui/viewlayersdlog.h \
+	.ui/roisettingsdlog.h \
+	roisettingsdlog.ui
 	$(UIC) roisettingsdlog.ui -i roisettingsdlog.h -o .ui/roisettingsdlog.cpp
-.obj/roisettingsdlog.$(OBJEXT): obj_dir .ui/roisettingsdlog.cpp roisettingsdlog.ui.h .ui/roisettingsdlog.h
+.obj/roisettingsdlog.$(OBJEXT): obj_dir \
+	.ui/roisettingsdlog.cpp \
+	roisettingsdlog.ui.h \
+	.ui/roisettingsdlog.h
 	$(CXX) $(CXXFLAGS) -o .obj/roisettingsdlog.$(OBJEXT) .ui/roisettingsdlog.cpp
 
 .obj/moc_QtVolumeHistogram.$(OBJEXT): obj_dir .moc/moc_QtVolumeHistogram.cpp
@@ -296,7 +375,8 @@ testScubaROIVolume_LDADD=$(LIBS_TCL_OPENGL) $(addprefix $(top_srcdir)/,$(LIBS_MG
 	$(MOC) .ui/roisettingsdlog.h -o .moc/moc_roisettingsdlog.cpp
 
 .obj/image_collection.$(OBJEXT): obj_dir .ui/image_collection.cpp
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .obj/image_collection.$(OBJEXT) .ui/image_collection.cpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .obj/image_collection.$(OBJEXT) \
+	.ui/image_collection.cpp
 
 .ui/image_collection.cpp: ui_dir images/filenew \
 		images/fileopen \

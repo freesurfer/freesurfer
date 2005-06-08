@@ -19,7 +19,9 @@ struct file {
 
 char *Progname;
 
+#ifndef Darwin
 extern void swab(const void *from, void *to, size_t n);
+#endif
 
 void check_directory(DIR *dp, char *dir_name);
 
@@ -40,7 +42,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: check_siemens_dir.c,v 1.5 2004/07/07 20:45:50 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: check_siemens_dir.c,v 1.6 2005/06/08 19:44:48 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

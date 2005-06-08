@@ -1,7 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
+#ifdef HAVE_APPLE_OPENGL_FRAMEWORK
+#  include <GLUT/glut.h>
+#  include <OpenGL/glu.h>
+#else
+#  include <GL/gl.h>
+#  include <GL/glu.h>
+#endif
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <GL/glx.h>
@@ -21,7 +26,7 @@ int main ( int argc, char** argv ) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: test_window_env.c,v 1.4 2003/09/05 04:45:48 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: test_window_env.c,v 1.5 2005/06/08 19:45:20 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

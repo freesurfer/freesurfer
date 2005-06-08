@@ -4,8 +4,13 @@
 #include <math.h>
 #include <ctype.h>
 
-#include <GL/glut.h>
-#include <GL/gl.h>
+#ifdef HAVE_APPLE_OPENGL_FRAMEWORK
+#  include <GLUT/glut.h>
+#  include <OpenGL/gl.h>
+#else
+#  include <GL/glut.h>
+#  include <GL/gl.h>
+#endif
 
 #include "macros.h"
 #include "error.h"
@@ -17,7 +22,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.35 2003/09/16 18:51:11 tosa Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.36 2005/06/08 19:45:10 nicks Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -140,7 +145,7 @@ main(int argc, char *argv[])
   float        angle ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.35 2003/09/16 18:51:11 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.36 2005/06/08 19:45:10 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

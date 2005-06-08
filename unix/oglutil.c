@@ -3,10 +3,13 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
-
-#include <GL/glu.h>
-#include <GL/gl.h>
-
+#ifdef HAVE_APPLE_OPENGL_FRAMEWORK
+#  include <OpenGL/glu.h>
+#  include <OpenGL/gl.h>
+#else
+#  include <GL/glu.h>
+#  include <GL/gl.h>
+#endif
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
@@ -17,7 +20,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.24 1999/05/21 19:15:17 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.25 2005/06/08 19:44:54 nicks Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/

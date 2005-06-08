@@ -1085,7 +1085,8 @@ void bpfilter(FLOATTYPE **data, int nchan, int nsamp,float lo,float hi);
 /* -------------------------------------------------- the window and events */
 
 #ifdef Darwin
-  #define USE_XGLUT_WINDOW
+// NJS: event loop redrawing does not work on Tiger build w/glut
+//  #define USE_XGLUT_WINDOW
 #endif
 
 #ifdef USE_XGLUT_WINDOW
@@ -18279,7 +18280,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.117 2005/06/06 15:15:56 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.118 2005/06/08 19:45:17 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18287,6 +18288,13 @@ int main(int argc, char *argv[])   /* new main */
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+  
+#ifdef USE_XGLUT_WINDOW
+  /* init glut */
+  DebugNote( ("Initializing glut") );
+  glutInit( &argc, argv );
+  glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE );
+#endif
   
   /* begin rkt */
   undo_initialize();

@@ -1,7 +1,6 @@
 #
-# Makefile for fsgdf
+# Makefile for fsgdf - specify in addition to the standard
 #
-# Makefile.am specify i addtion to the standard
 AM_CPPFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
