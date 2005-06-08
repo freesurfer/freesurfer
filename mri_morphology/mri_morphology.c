@@ -13,6 +13,7 @@
 #include "utils.h"
 #include "timer.h"
 #include "version.h"
+#include "cma.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -34,13 +35,13 @@ int
 main(int argc, char *argv[])
 {
   char   *out_fname, **av ;
-  int    ac, nargs, niter, operation ;
+  int    ac, nargs, niter, operation, i ;
   MRI    *mri_src, *mri_dst ;
   int          msec, minutes, seconds ;
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.1 2005/05/04 19:28:42 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.2 2005/06/08 14:53:18 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -77,6 +78,8 @@ main(int argc, char *argv[])
 		operation = OPEN ;
 	else 	if (!stricmp(argv[2], "close"))
 		operation = CLOSE ;
+	else 	if (!stricmp(argv[2], "erode"))
+		operation = ERODE ;
 	else 	if (!stricmp(argv[2], "open"))
 		operation = OPEN ;
 	else
@@ -98,6 +101,38 @@ main(int argc, char *argv[])
 			mri_dst = MRIdilateLabel(mri_src, NULL, label, niter) ;
 			break ;
 		}
+	case DILATE:
+		mri_dst = NULL ;
+		for (i = 0 ; i < niter ; i++)
+		{
+			mri_dst = MRIdilate(mri_src, mri_dst) ;
+			MRIcopy(mri_dst, mri_src) ;
+		}
+		break ;
+	case CLOSE:
+		mri_dst = NULL ;
+		for (i = 0 ; i < niter ; i++)
+		{
+			mri_dst = MRIclose(mri_src, mri_dst) ;
+			MRIcopy(mri_dst, mri_src) ;
+		}
+		break ;
+	case OPEN:
+		mri_dst = NULL ;
+		for (i = 0 ; i < niter ; i++)
+		{
+			mri_dst = MRIopen(mri_src, mri_dst) ;
+			MRIcopy(mri_dst, mri_src) ;
+		}
+		break ;
+	case ERODE:
+		mri_dst = NULL ;
+		for (i = 0 ; i < niter ; i++)
+		{
+			mri_dst = MRIerode(mri_src, mri_dst) ;
+			MRIcopy(mri_dst, mri_src) ;
+		}
+		break ;
 	default:
 		break ;
 	}
