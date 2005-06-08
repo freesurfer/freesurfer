@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.119 2005/06/06 22:53:58 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.120 2005/06/08 21:10:54 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -731,7 +731,7 @@ proc ToolBarWrapper { isName iValue } {
 		    $gaLayer(current,id) $gaLayer(current,colorMapMethod)
 
 		# Preset the Draw 0 Clear cb.
-		if { "$isName" == "lut" } {
+		if { "$isName" == "lut" || "$isName" == "heatScale" } {
 		    set gaLayer(current,clearZero) 1
 		    Set2DMRILayerDrawZeroClear $gaLayer(current,id) 1
 		} else {
@@ -2018,6 +2018,8 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    {-type text -name heatScale -label "Heat scale"}
 	    {-type text -name lut -label "LUT"}
 	}
+    set gaWidget(layerProperties,colorMapToolbar) \
+	$fwProps2DMRI.tbwColorMapMethod
 
     tixOptionMenu $fwProps2DMRI.mwLUT \
 	-label "LUT:" \
@@ -2869,8 +2871,15 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		$gaLayer(current,minValue) $gaLayer(current,maxValue)
 
 	    # Get the type specific properties.
+
+	    # Disable callback around this so it doesn't hit the
+	    # toolbar callback.
+	    set toolbar $gaWidget(layerProperties,colorMapToolbar).tbw
+	    $toolbar config -disablecallback 1
 	    set gaLayer(current,colorMapMethod) \
 		[Get2DMRILayerColorMapMethod $iLayerID]
+	    $toolbar config -disablecallback 0
+
 	    set gaLayer(current,clearZero) \
 		[Get2DMRILayerDrawZeroClear $iLayerID]
 	    set gaLayer(current,sampleMethod) \
@@ -5147,7 +5156,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.119 2005/06/06 22:53:58 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.120 2005/06/08 21:10:54 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5857,17 +5866,19 @@ proc DoGenerateReportDlog {} {
     global gaLayer
     global gaDialog
     global glShortcutDirs
+    global gaLUT
 
     set gaReportInfo(lutVolumes) {}
     set gaReportInfo(grayscaleVolumes) {}
     foreach layerID $gaLayer(idList) {
 	if { [string match [Get2DMRILayerColorMapMethod $layerID] grayscale]} {
 	    set volID [Get2DMRILayerVolumeCollection $layerID]
-	    lappend gaReportInfo(grayscaleVolumes) $layerID
+	    lappend gaReportInfo(grayscaleVolumes) $volID
 	}
 	if { [string match [Get2DMRILayerColorMapMethod $layerID] lut]} {
 	    set volID [Get2DMRILayerVolumeCollection $layerID]
-	    lappend gaReportInfo(lutVolumes) $layerID
+	    lappend gaReportInfo(lutVolumes) $volID
+	    set gaReportInfo(lutVolumeIDToLayerID,$volID) $layerID
 	}
     }
     
@@ -5898,7 +5909,7 @@ proc DoGenerateReportDlog {} {
 
 	tixOptionMenu $fwVolumesSub.mwSeg \
 	    -label "Segmentation:" \
-	    -command UpdateGenerateReportDlog \
+	    -command GenerateReportDlogSegVolCallback \
 	    -variable gaReportInfo(mainSegVolID)
 	FillMenuFromList $fwVolumesSub.mwSeg \
 	    $gaReportInfo(lutVolumes) "GetCollectionLabel %s" {} false
@@ -5935,18 +5946,22 @@ proc DoGenerateReportDlog {} {
 	# Choose an LUT to use.
 	tixOptionMenu $fwLUTSub.mwLUT \
 	    -label "LUT:" \
-	    -command UpdateGenerateReportDlog \
+	    -command GenerateReportDlogLUTCallback \
 	    -variable gaReportInfo(lutID)
-	
+	FillMenuFromList $fwLUTSub.mwLUT $gaLUT(idList) \
+	    "GetColorLUTLabel %s" {} false
+
 	# A list of LUT values from the LUT and a list of selected LUT
 	# values. Buttons to add and remove them.
 	tixScrolledListBox $fwLUTSub.lbStructures \
-	    -scrollbar auto 
+	    -scrollbar auto \
+	    -command AddStructureToSelectedInGenerateReportDlog
 	$fwLUTSub.lbStructures subwidget listbox configure -selectmode single
 	set gaReportInfo(widget,structureListBox) $fwLUTSub.lbStructures
 
 	tixScrolledListBox $fwLUTSub.lbSelected \
-	    -scrollbar auto 
+	    -scrollbar auto \
+	    -command RemoveStructureFromSelectedInGenerateReportDlog
 	$fwLUTSub.lbSelected subwidget listbox configure -selectmode single
 	set gaReportInfo(widget,selectedListBox) $fwLUTSub.lbSelected
 
@@ -5987,12 +6002,13 @@ proc DoGenerateReportDlog {} {
 	    -font [tkuNormalFont] \
 	    -checkboxes { 
 		{-type text -label "Only report for ROI" 
-		    -variable something } }
+		    -variable gaReportInfo(useROI) } }
 
 	# Collection for the ROI.
 	tixOptionMenu $fwROISub.mwCol \
 	    -label "Collection for ROI:" \
-	    -command ""
+	    -command "set gaReportInfo(updateROIListbox) 1; UpdateGenerateReportDlog" \
+	    -variable gaReportInfo(roiVolID)
 	FillMenuFromList $fwROISub.mwCol \
 	    $gaReportInfo(grayscaleVolumes) \
 	    "GetCollectionLabel %s" {} false
@@ -6000,7 +6016,8 @@ proc DoGenerateReportDlog {} {
 	# ROI.
 	tixOptionMenu $fwROISub.mwROI \
 	    -label "ROI:" \
-	    -command ""
+	    -command "" \
+	    -variable gaReportInfo(roiID)
 
 	pack $fwROISub.cbROI $fwROISub.mwCol $fwROISub.mwROI \
 	    -side top -fill x -expand yes
@@ -6055,42 +6072,154 @@ proc DoGenerateReportDlog {} {
 	grid rowconfigure $wwDialog 3 -weight 0
 	grid rowconfigure $wwDialog 4 -weight 0
 	grid rowconfigure $wwDialog 5 -weight 0
+
+	set gaReportInfo(updateLUTListbox) 1
+	UpdateGenerateReportDlog
     }
 }
 
 proc AddStructureToSelectedInGenerateReportDlog {} {
+    global gaReportInfo
 
+    # Get selected structure from listbox.
+    set nListbox [$gaReportInfo(widget,structureListBox) \
+			subwidget listbox curselection]
+    set nStructure $nListbox
+
+    # If not already in selected list...
+    if { ![info exists gaReportInfo(selectedStructures)] ||
+	 [lsearch $gaReportInfo(selectedStructures) $nStructure] == -1 } {
+
+	# Add it.
+	lappend gaReportInfo(selectedStructures) $nStructure
+
+	set lutID $gaReportInfo(lutID)
+	set sLabel "$nStructure: [GetColorLUTEntryLabel $lutID $nStructure]"
+	$gaReportInfo(widget,selectedListBox) subwidget \
+	    listbox insert end $sLabel
+   }
 }
 
 proc RemoveStructureFromSelectedInGenerateReportDlog {} {
+    global gaReportInfo
+
+    # Get selected structure from seleceted listbox.
+    set nListbox [$gaReportInfo(widget,selectedListBox) \
+		      subwidget listbox curselection]
     
+    set sStructure [$gaReportInfo(widget,selectedListBox) \
+			subwidget listbox get $nListbox]
+    set nStructure [regexp -inline -all -- {^\d+} $sStructure]
+
+    # Remove from selected list.
+    set nList [lsearch $gaReportInfo(selectedStructures) $nStructure]
+    if { $nList != -1 } {
+	set gaReportInfo(selectedStructures) \
+	 [lreplace $gaReportInfo(selectedStructures) $nList [expr $nList + 1]]
+    }
+
+    # Remove from listbox.
+    $gaReportInfo(widget,selectedListBox) subwidget listbox delete $nListbox
 }
 
+proc GenerateReportDlogSegVolCallback { iVolID } {
+    global gaReportInfo
+    set gaReportInfo(updateLUTFromSegVol) 1
+    UpdateGenerateReportDlog
+}
+
+proc GenerateReportDlogLUTCallback { iVolID } {
+    global gaReportInfo
+    set gaReportInfo(updateLUTListbox) 1
+    UpdateGenerateReportDlog
+}
 proc UpdateGenerateReportDlog {} {
     global gaReportInfo
 
-    set lutVolID
-    if { [llength $gaReportInfo(lutVolumes)] > 1 } {
-	foreach volID $gaReportInfo(volumes,list) {
-	    if { $gaReportInfo(volumes,$volID) } {
-		
-	    }
-	}
+    # If we need to update the LUT value because it just changed...
+    if { [info exists gaReportInfo(updateLUTFromSegVol)] &&
+	 $gaReportInfo(updateLUTFromSegVol) } {
+
+	# Get the default LUT from the seg vol.
+	set segID $gaReportInfo(mainSegVolID)
+	set layerID $gaReportInfo(lutVolumeIDToLayerID,$segID)
+	set lutID [Get2DMRILayerColorLUT $layerID]
+
+	# Set the LUT in the menu.
+	set gaReportInfo(lutID) $lutID
+
+	# Set the flag to repop the LUT listbox.
+	set gaReportInfo(updateLUTListbox) 1
+
+	# Clear this flag.
+	set gaReportInfo(updateLUTFromSegVol) 0
     }
 
+    # If we need to update the LUT listbox because the LUT just changed...
+    if { [info exists gaReportInfo(updateLUTListbox)] &&
+	 $gaReportInfo(updateLUTListbox) } {
+	
+	# Populate the listbox with seg values from this LUT.
+	set lutID $gaReportInfo(lutID)
+	$gaReportInfo(widget,structureListBox) subwidget \
+	    listbox delete 0 end
+	set cStructures [GetColorLUTNumberOfEntries $lutID]
+	set nEntry 0
+	for { set nStructure 0 } { $nStructure < $cStructures } { incr nStructure } {
+	    catch {
+		# Get a label.
+		set sLabel "$nStructure: [GetColorLUTEntryLabel $lutID $nStructure]"
+
+		# Insert the item.
+		$gaReportInfo(widget,structureListBox) subwidget \
+		    listbox insert end $sLabel
+		
+		incr nEntry
+	    }
+	}
+	
+
+	# Empty the selected listbox and readd the values with the new
+	# names.
+
+	set gaReportInfo(updateLUTListbox) 0
+    }
+
+
+    # If we need to update the ROI list..
+    if { [info exists gaReportInfo(updateROIListbox)] &&
+	 $gaReportInfo(updateROIListbox) } {
+
+	# Fill the list box from the ROI list for the collectoin.
+	set volID $gaReportInfo(roiVolID)
+
+	set gaReportInfo(updateROIListbox) 0
+    }
 }
 
 proc GenerateReport {} {
     global gaReportInfo
 
-    if { $gaReportInfo(data,segVolumes) } {
-	
-	foreach volID $gaReportInfo(volumes,list) {
+    puts "Seg vol: $gaReportInfo(mainSegVolID) [GetCollectionLabel $gaReportInfo(mainSegVolID)]"
 
-	    # Get a list of segmentation volumes
-
+    puts "Volumes: "
+    foreach volID $gaReportInfo(grayscaleVolumes) {
+	if { [info exists gaReportInfo(volumes,$volID)] &&
+	     $gaReportInfo(volumes,$volID) } {
+	    puts "\t$volID [GetCollectionLabel $gaReportInfo(mainSegVolID)]"
 	}
     }
+
+    set lutID $gaReportInfo(lutID)
+    puts "LUT: $lutID [GetColorLUTLabel $lutID]"
+
+    puts "Structures: "
+    if { [info exists gaReportInfo(selectedStructures)] } {
+	foreach nStructure $gaReportInfo(selectedStructures) {
+	    puts "\t$nStructure [GetColorLUTEntryLabel $lutID $nStructure]"
+	}
+    }
+    puts ""
 }
 
 # MAIN =============================================================
