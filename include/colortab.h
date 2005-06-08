@@ -2,6 +2,7 @@
 #define COLORTAB_H
 
 #include "const.h"
+#include "stdio.h"
 
 typedef struct
 {
