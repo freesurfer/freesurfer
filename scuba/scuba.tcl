@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.121 2005/06/08 21:30:30 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.122 2005/06/08 21:30:54 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5156,7 +5156,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.121 2005/06/08 21:30:30 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.122 2005/06/08 21:30:54 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6482,5 +6482,5 @@ bind $gaWidget(window) <Alt-Key-n> {
 }
 
 
-DoGenerateReportDlog
+# DoGenerateReportDlog
 
