@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.16 2005/06/01 22:15:28 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.17 2005/06/08 00:55:43 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -216,10 +216,10 @@ if($DoMagExfReg) then
   if($#epimat) cp $epimat $tmpdir/magfw-in-exf.mat # Copy matfile
 else
   echo "Not performing mag-exf registration "|& tee -a $LF
-  echo "1 0 0 0" >  $tmpdir/magfw-in-exf.img
-  echo "0 1 0 0" >> $tmpdir/magfw-in-exf.img
-  echo "0 0 1 0" >> $tmpdir/magfw-in-exf.img
-  echo "0 0 0 1" >> $tmpdir/magfw-in-exf.img
+  echo "1 0 0 0" >  $tmpdir/magfw-in-exf.fsl.mat
+  echo "0 1 0 0" >> $tmpdir/magfw-in-exf.fsl.mat
+  echo "0 0 1 0" >> $tmpdir/magfw-in-exf.fsl.mat
+  echo "0 0 0 1" >> $tmpdir/magfw-in-exf.fsl.mat
 endif
 
 
