@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.123 2005/06/09 18:10:12 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.124 2005/06/09 18:27:12 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5155,7 +5155,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.123 2005/06/09 18:10:12 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.124 2005/06/09 18:27:12 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5521,15 +5521,16 @@ proc DoDataInfoWindow {} {
 
 	pack $ewInfo -fill both -expand 1
 
-
 	tkuMakeCloseButton $fwButtons $wwDialog
 	
-	pack $fwVolume $fwInfo $fwButtons \
-	    -side top       \
-	    -expand yes     \
-	    -fill x         \
-	    -padx 5         \
-	    -pady 5
+	grid $fwVolume  -row 0 -column 0 -sticky new
+	grid $fwInfo    -row 1 -column 0 -sticky news
+	grid $fwButtons -row 2 -column 0 -sticky sew
+	
+	grid columnconfigure $wwDialog 0 -weight 1
+	grid rowconfigure $wwDialog 0 -weight 0
+	grid rowconfigure $wwDialog 1 -weight 1
+	grid rowconfigure $wwDialog 2 -weight 0
 
 	DataInfoMenuCallback 0
     }
