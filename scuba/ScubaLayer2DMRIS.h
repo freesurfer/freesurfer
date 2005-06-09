@@ -69,9 +69,7 @@ class ScubaLayer2DMRIS : public Layer {
   int maVertexColor[3];
 
   std::list<int> mCachedDrawList;
-  Point3<float> mPlaneRASOfCachedList;
-  Point3<float> mPlaneNRASOfCachedList;
-  float mZoomLevelOfCachedList;
+  ViewState mCachedViewState;
 
   void ClearCache();
 };

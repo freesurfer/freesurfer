@@ -219,9 +219,7 @@ ScubaView::~ScubaView() {
 void
 ScubaView::Set2DRASCenter ( float iRASCenter[3] ) {
 
-  mViewState.mCenterRAS[0] = iRASCenter[0];
-  mViewState.mCenterRAS[1] = iRASCenter[1];
-  mViewState.mCenterRAS[2] = iRASCenter[2];
+  mViewState.SetCenterRAS( iRASCenter );
 
   // Broadcast this change.
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
@@ -237,7 +235,7 @@ ScubaView::Set2DRASCenter ( float iRASCenter[3] ) {
 void
 ScubaView::Set2DZoomLevel ( float iZoomLevel ) {
 
-  mViewState.mZoomLevel = iZoomLevel;
+  mViewState.SetZoomLevel( iZoomLevel );
 
   // Broadcast this change.
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
@@ -252,26 +250,20 @@ void
 ScubaView::Set2DInPlane ( ViewState::Plane iPlane ) {
   
   // If we are going to a new plane, reset our plane normal. 
-  if( mViewState.mInPlane != iPlane ) {
+  if( mViewState.GetInPlane() != iPlane ) {
     switch( iPlane ) {
     case ViewState::X:
-      mViewState.mPlaneNormal[0] = 1; 
-      mViewState.mPlaneNormal[1] = 0;
-      mViewState.mPlaneNormal[2] = 0;
+      mViewState.SetPlaneNormal( 1, 0, 0 );
       break;
     case ViewState::Y:
-      mViewState.mPlaneNormal[0] = 0;
-      mViewState.mPlaneNormal[1] = 1;
-      mViewState.mPlaneNormal[2] = 0;
+      mViewState.SetPlaneNormal( 0, 1, 0 );
       break;
     case ViewState::Z:
-      mViewState.mPlaneNormal[0] = 0; 
-      mViewState.mPlaneNormal[1] = 0;
-      mViewState.mPlaneNormal[2] = 1;
+      mViewState.SetPlaneNormal( 0, 0, 1 );
       break;
     }
   }
-  mViewState.mInPlane = iPlane;
+  mViewState.SetInPlane( iPlane );
 
   // Broadcast this change.
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
@@ -281,14 +273,12 @@ ScubaView::Set2DInPlane ( ViewState::Plane iPlane ) {
   // change our plane to the cursor.
   if( mbLockOnCursor && 
       !mViewState.IsRASVisibleInPlane( mCursor.xyz(), 
-		  GetThroughPlaneIncrement(mViewState.mInPlane))) {
+		  GetThroughPlaneIncrement(mViewState.GetInPlane()))) {
 
     float newCenter[3];
-    newCenter[0] = mViewState.mCenterRAS[0];
-    newCenter[1] = mViewState.mCenterRAS[1];
-    newCenter[2] = mViewState.mCenterRAS[2];
+    mViewState.GetCenterRAS( newCenter );
     
-    switch( mViewState.mInPlane ) {
+    switch( mViewState.GetInPlane() ) {
     case ViewState::X:
       newCenter[0] = mCursor[0];
       break;
@@ -318,7 +308,7 @@ ScubaView::Set2DPlaneNormalOrthogonalToInPlane () {
 
   // Reset our plane normal. 
   float plane[3];
-  switch( mViewState.mInPlane ) {
+  switch( mViewState.GetInPlane() ) {
   case ViewState::X:
     plane[0] = 1; 
     plane[1] = 0;
@@ -342,26 +332,20 @@ ScubaView::Set2DPlaneNormalOrthogonalToInPlane () {
 void
 ScubaView::Set2DPlaneNormal ( float iNormal[3] ) {
 
-  switch( mViewState.mInPlane ) {
+  switch( mViewState.GetInPlane() ) {
   case ViewState::X:
     if( fabs(iNormal[0]) >= 0.5 ) {
-      mViewState.mPlaneNormal[0] = iNormal[0];
-      mViewState.mPlaneNormal[1] = iNormal[1];
-      mViewState.mPlaneNormal[2] = iNormal[2];
+      mViewState.SetPlaneNormal( iNormal );
     }
     break;
   case ViewState::Y:
     if( fabs(iNormal[1]) >= 0.5 ) {
-      mViewState.mPlaneNormal[0] = iNormal[0];
-      mViewState.mPlaneNormal[1] = iNormal[1];
-      mViewState.mPlaneNormal[2] = iNormal[2];
+      mViewState.SetPlaneNormal( iNormal );
     }
     break;
   case ViewState::Z:
     if( fabs(iNormal[2]) >= 0.5 ) {
-      mViewState.mPlaneNormal[0] = iNormal[0];
-      mViewState.mPlaneNormal[1] = iNormal[1];
-      mViewState.mPlaneNormal[2] = iNormal[2];
+      mViewState.SetPlaneNormal( iNormal );
     }
     break;
   }
@@ -384,26 +368,24 @@ ScubaView::Set2DPlaneNormal ( float iNormal[3] ) {
 void
 ScubaView::Get2DRASCenter ( float oRASCenter[3] ) {
 
-  oRASCenter[0] = mViewState.mCenterRAS[0];
-  oRASCenter[1] = mViewState.mCenterRAS[1];
-  oRASCenter[2] = mViewState.mCenterRAS[2];
+  mViewState.GetCenterRAS( oRASCenter );
 }
 
 float
 ScubaView::Get2DZoomLevel () {
   
-  return mViewState.mZoomLevel;
+  return mViewState.GetZoomLevel();
 }
 
 ViewState::Plane
 ScubaView::Get2DInPlane () {
 
-  return mViewState.mInPlane;
+  return mViewState.GetInPlane();
 }
 
 string
 ScubaView::Get2DInPlaneAsString () {
-  switch( mViewState.mInPlane ) {
+  switch( mViewState.GetInPlane() ) {
   case ViewState::X:
     return "x";
     break;
@@ -420,9 +402,7 @@ ScubaView::Get2DInPlaneAsString () {
 void
 ScubaView::Get2DPlaneNormal ( float oNormal[3] ) {
 
-  oNormal[0] = mViewState.mPlaneNormal[0];
-  oNormal[1] = mViewState.mPlaneNormal[1];
-  oNormal[2] = mViewState.mPlaneNormal[2];
+  mViewState.GetPlaneNormal( oNormal );
 }
 
 
@@ -654,7 +634,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     if( mID == viewID ) {
       
       sReturnFormat = "s";
-      switch( mViewState.mInPlane ) {
+      switch( mViewState.GetInPlane() ) {
       case ViewState::X:
 	sReturnValues = "x";
 	break;
@@ -1492,15 +1472,13 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
     if( mbLockOnCursor ) {
 
       float newCenter[3];
-      newCenter[0] = mViewState.mCenterRAS[0];
-      newCenter[1] = mViewState.mCenterRAS[1];
-      newCenter[2] = mViewState.mCenterRAS[2];
+      mViewState.GetCenterRAS( newCenter );
 
       // Make sure we stay in plane.
       if ( !mViewState.IsRASVisibleInPlane( mCursor.xyz(), 
-		 GetThroughPlaneIncrement( mViewState.mInPlane ))) {
+		 GetThroughPlaneIncrement( mViewState.GetInPlane() ))) {
 
-	switch( mViewState.mInPlane ) {
+	switch( mViewState.GetInPlane() ) {
 	case ViewState::X:
 	  newCenter[0] = mCursor[0];
 	  break;
@@ -1645,8 +1623,8 @@ ScubaView::DoReshape( int iWidth, int iHeight ) {
   }
 
   // Set the view state buffer height and width.
-  mViewState.mBufferWidth  = iWidth;
-  mViewState.mBufferHeight = iHeight;
+  mViewState.SetBufferWidth( iWidth );
+  mViewState.SetBufferHeight( iHeight );
 
   // Allocate a new buffer.
   GLubyte* newBuffer = (GLubyte*) malloc( mWidth * mHeight * kBytesPerPixel );
@@ -1727,9 +1705,9 @@ ScubaView::DoMouseMoved( int iWindow[2],
 
       float delta[2];
       delta[0] = (float)(mLastMouseMoved[0] - iWindow[0]) / 
-	mViewState.mZoomLevel;
+	mViewState.GetZoomLevel();
       delta[1] = (float)(mLastMouseMoved[1] - iWindow[1]) /
-	mViewState.mZoomLevel;
+	mViewState.GetZoomLevel();
       
       /* add to the total delta */
       mMouseMoveDelta[0] += delta[0];
@@ -1754,8 +1732,8 @@ ScubaView::DoMouseMoved( int iWindow[2],
       }
 
       if( mbFlipLeftRightInYZ && 
-	  (mViewState.mInPlane == ViewState::Y ||
-	   mViewState.mInPlane == ViewState::Z) ) {
+	  (mViewState.GetInPlane() == ViewState::Y ||
+	   mViewState.GetInPlane() == ViewState::Z) ) {
 	moveLeftRight = -moveLeftRight;
       }
       
@@ -1765,7 +1743,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
 
 	  // Put the window relative translations into window relative.
 	  Point3<float> move;
-	  switch( mViewState.mInPlane ) {
+	  switch( mViewState.GetInPlane() ) {
 	  case ViewState::X:
 	    move.Set( moveInOut, moveLeftRight, moveUpDown );
 	    break;
@@ -1803,7 +1781,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
 	      // Put the window relative translations into window
 	      // relative. Note we don't move in or out in this tool.
 	      Point3<float> move;
-	      switch( mViewState.mInPlane ) {
+	      switch( mViewState.GetInPlane() ) {
 	      case ViewState::X:
 		move.Set( 0, -moveLeftRight, -moveUpDown );
 		break;
@@ -1840,7 +1818,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
 	      
 	      // We're going to rotate around our plane normal. With
 	      // an origin of 0.
-	      Point3<float> axis( mViewState.mPlaneNormal );
+	      Point3<float> axis( mViewState.GetPlaneNormal() );
 	      Point3<float> origin( 0,0,0 );
 	      Matrix44 rotate;
 	      rotate.MakeRotation( origin.xyz(), axis.xyz(), rads );
@@ -1912,12 +1890,12 @@ ScubaView::DoMouseUp( int iWindow[2],
 
     switch( iInput.Button() ) {
     case 1:
-      mViewState.mZoomLevel *= 2.0;
+      mViewState.SetZoomLevel( mViewState.GetZoomLevel() * 2.0 );
       break;
     case 3:
-      mViewState.mZoomLevel /= 2.0;
-      if( mViewState.mZoomLevel < 0.25 ) {
-	mViewState.mZoomLevel = 0.25;
+      mViewState.SetZoomLevel( mViewState.GetZoomLevel() / 2.0 );
+      if( mViewState.GetZoomLevel() < 0.25 ) {
+	mViewState.SetZoomLevel( 0.25 );
       }
       break;
     }
@@ -2001,15 +1979,13 @@ ScubaView::DoMouseDown( int iWindow[2],
 
   Point3<float> ras;
   TranslateWindowToRAS( iWindow, ras.xyz() );
-
+  
   mLastMouseDown[0] = mLastMouseMoved[0] = iWindow[0];
   mLastMouseDown[1] = mLastMouseMoved[1] = iWindow[1];
   mMouseMoveDelta[0] = 0.0;
   mMouseMoveDelta[1] = 0.0;
-  mOriginalCenterRAS[0] = mViewState.mCenterRAS[0];
-  mOriginalCenterRAS[1] = mViewState.mCenterRAS[1];
-  mOriginalCenterRAS[2] = mViewState.mCenterRAS[2];
-  mOriginalZoom = mViewState.mZoomLevel;
+  mViewState.GetCenterRAS( mOriginalCenterRAS );
+  mOriginalZoom = mViewState.GetZoomLevel();
 
   // If this is the plane tool, find the nearest plane line.
   if( iTool.GetMode() == ScubaToolState::plane ) {
@@ -2097,7 +2073,7 @@ ScubaView::DoKeyDown( int iWindow[2],
   // multiplay that value by 10.
   float moveDistance = 1.0;
   if( key == msMoveViewIn || key == msMoveViewOut ) {
-    moveDistance = GetThroughPlaneIncrement( mViewState.mInPlane );
+    moveDistance = GetThroughPlaneIncrement( mViewState.GetInPlane() );
   }
   if( iInput.IsControlKeyDown() ) {
     moveDistance = 10.0;
@@ -2111,37 +2087,37 @@ ScubaView::DoKeyDown( int iWindow[2],
     float move[3] = {0, 0, 0};
 
     if( key == msMoveViewLeft ) {
-      switch( mViewState.mInPlane ) {
+      switch( mViewState.GetInPlane() ) {
       case ViewState::X: move[1] = -moveDistance; break;
       case ViewState::Y: move[0] = moveDistance; break;
       case ViewState::Z: move[0] = moveDistance; break;
       }
     } else if( key == msMoveViewRight ) {
-      switch( mViewState.mInPlane ) {
+      switch( mViewState.GetInPlane() ) {
       case ViewState::X: move[1] = moveDistance; break;
       case ViewState::Y: move[0] = -moveDistance; break;
       case ViewState::Z: move[0] = -moveDistance; break;
       }
     } else if( key == msMoveViewDown ) {
-      switch( mViewState.mInPlane ) {
+      switch( mViewState.GetInPlane() ) {
       case ViewState::X: move[2] = -moveDistance; break;
       case ViewState::Y: move[2] = -moveDistance; break;
       case ViewState::Z: move[1] = -moveDistance; break;
       }
     } else if( key == msMoveViewUp ) {
-      switch( mViewState.mInPlane ) {
+      switch( mViewState.GetInPlane() ) {
       case ViewState::X: move[2] = moveDistance; break;
       case ViewState::Y: move[2] = moveDistance; break;
       case ViewState::Z: move[1] = moveDistance; break;
       }
     } else if( key == msMoveViewIn ) {
-      switch( mViewState.mInPlane ) {
+      switch( mViewState.GetInPlane() ) {
       case ViewState::X: move[0] = moveDistance; break;
       case ViewState::Y: move[1] = moveDistance; break;
       case ViewState::Z: move[2] = moveDistance; break;
       }
     } else if( key == msMoveViewOut ) {
-      switch( mViewState.mInPlane ) {
+      switch( mViewState.GetInPlane() ) {
       case ViewState::X: move[0] = -moveDistance; break;
       case ViewState::Y: move[1] = -moveDistance; break;
       case ViewState::Z: move[2] = -moveDistance; break;
@@ -2161,11 +2137,11 @@ ScubaView::DoKeyDown( int iWindow[2],
 
   } else if( key == msZoomViewIn || key == msZoomViewOut ) {
 
-    float newZoom = mViewState.mZoomLevel;
+    float newZoom = mViewState.GetZoomLevel();
     if( key == msZoomViewIn ) {
-      newZoom = mViewState.mZoomLevel * 2.0;
+      newZoom = mViewState.GetZoomLevel() * 2.0;
     } else if( key == msZoomViewOut ) {
-      newZoom = mViewState.mZoomLevel / 2.0;
+      newZoom = mViewState.GetZoomLevel() / 2.0;
       if( newZoom < 0.25 ) {
 	newZoom = 0.25;
       }
@@ -2211,11 +2187,11 @@ ScubaView::DoKeyUp( int[2],
 void 
 ScubaView::CalcViewToWindowTransform () {
 
-  Point3<float> N( mViewState.mPlaneNormal );
+  Point3<float> N( mViewState.GetPlaneNormal() );
   N = VectorOps::Normalize( N );
 
   Point3<float> D;
-  switch( mViewState.mInPlane ) {
+  switch( mViewState.GetInPlane() ) {
   case ViewState::X: D.Set( 1, 0, 0 ); break;
   case ViewState::Y: D.Set( 0, 1, 0 ); break;
   case ViewState::Z: D.Set( 0, 0, 1 ); break;
@@ -2223,12 +2199,12 @@ ScubaView::CalcViewToWindowTransform () {
   D = VectorOps::Normalize( D );
 
   double rads = VectorOps::RadsBetweenVectors( N, D );
-  if( mViewState.mInPlane == ViewState::X ) {
+  if( mViewState.GetInPlane() == ViewState::X ) {
     rads = -rads;
   }
 
   Point3<float> axis = VectorOps::Cross( N, D );
-  mViewToWindow.MakeRotation( mViewState.mCenterRAS,
+  mViewToWindow.MakeRotation( mViewState.GetCenterRAS(),
   			      axis.xyz(), rads );
 
   CalcWorldToWindowTransform();
@@ -2251,33 +2227,33 @@ ScubaView::TranslateWindowToRAS ( int const iWindow[2], float oRAS[3] ) {
 
   int xWindow = iWindow[0];
   float windowRAS[3];
-  switch( mViewState.mInPlane ) {
+  switch( mViewState.GetInPlane() ) {
   case ViewState::X:
-    windowRAS[0] = mViewState.mCenterRAS[0];
+    windowRAS[0] = mViewState.GetCenterRAS()[0];
     windowRAS[1] = ConvertWindowToRAS( xWindow,
-				       mViewState.mCenterRAS[1], mWidth );
+				       mViewState.GetCenterRAS()[1], mWidth );
     windowRAS[2] = ConvertWindowToRAS(iWindow[1],
-				      mViewState.mCenterRAS[2], mHeight );
+				      mViewState.GetCenterRAS()[2], mHeight );
     break;
   case ViewState::Y:
     if( mbFlipLeftRightInYZ ) {
       xWindow = mWidth - xWindow;
     }
     windowRAS[0] = ConvertWindowToRAS( xWindow,
-				       mViewState.mCenterRAS[0], mWidth );
-    windowRAS[1] = mViewState.mCenterRAS[1];
+				       mViewState.GetCenterRAS()[0], mWidth );
+    windowRAS[1] = mViewState.GetCenterRAS()[1];
     windowRAS[2] = ConvertWindowToRAS( iWindow[1],
-				       mViewState.mCenterRAS[2], mHeight );
+				       mViewState.GetCenterRAS()[2], mHeight );
     break;
   case ViewState::Z:
     if( mbFlipLeftRightInYZ ) {
       xWindow = mWidth - xWindow;
     }
     windowRAS[0] = ConvertWindowToRAS( xWindow,
-				       mViewState.mCenterRAS[0], mWidth );
+				       mViewState.GetCenterRAS()[0], mWidth );
     windowRAS[1] = ConvertWindowToRAS( iWindow[1],
-				       mViewState.mCenterRAS[1], mHeight );
-    windowRAS[2] = mViewState.mCenterRAS[2];
+				       mViewState.GetCenterRAS()[1], mHeight );
+    windowRAS[2] = mViewState.GetCenterRAS()[2];
     break;
   }
 
@@ -2288,7 +2264,7 @@ float
 ScubaView::ConvertWindowToRAS ( float iWindow, float iRASCenter, 
 				float iWindowDimension ) {
 
-  return ((iWindow - iWindowDimension / 2.0) / mViewState.mZoomLevel) + 
+  return ((iWindow - iWindowDimension / 2.0) / mViewState.GetZoomLevel()) + 
     iRASCenter;
 }
 
@@ -2299,27 +2275,27 @@ ScubaView::TranslateRASToWindow ( float const iRAS[3], int oWindow[2] ) {
   mWorldToWindow.MultiplyVector3( iRAS, windowRAS );
 
   float xWindow = 0, yWindow = 0;
-  switch( mViewState.mInPlane ) {
+  switch( mViewState.GetInPlane() ) {
   case ViewState::X:
     xWindow = ConvertRASToWindow( windowRAS[1],
-				  mViewState.mCenterRAS[1], mWidth );
+				  mViewState.GetCenterRAS()[1], mWidth );
     yWindow = ConvertRASToWindow( windowRAS[2],
-				  mViewState.mCenterRAS[2], mHeight );
+				  mViewState.GetCenterRAS()[2], mHeight );
     break;
   case ViewState::Y:
     xWindow = ConvertRASToWindow( windowRAS[0],
-				  mViewState.mCenterRAS[0], mWidth );
+				  mViewState.GetCenterRAS()[0], mWidth );
     yWindow = ConvertRASToWindow( windowRAS[2],
-				  mViewState.mCenterRAS[2], mHeight );
+				  mViewState.GetCenterRAS()[2], mHeight );
     if( mbFlipLeftRightInYZ ) {
       xWindow = mWidth - xWindow;
     }
     break;
   case ViewState::Z:
     xWindow = ConvertRASToWindow( windowRAS[0],
-				  mViewState.mCenterRAS[0], mWidth );
+				  mViewState.GetCenterRAS()[0], mWidth );
     yWindow = ConvertRASToWindow( windowRAS[1],
-				  mViewState.mCenterRAS[1], mHeight );
+				  mViewState.GetCenterRAS()[1], mHeight );
     if( mbFlipLeftRightInYZ ) {
       xWindow = mWidth - xWindow;
     }
@@ -2334,7 +2310,7 @@ float
 ScubaView::ConvertRASToWindow ( float iRAS, float iRASCenter, 
 				float iWindowDimension ) {
 
-  return ((iRAS - iRASCenter) * mViewState.mZoomLevel) +
+  return ((iRAS - iRASCenter) * mViewState.GetZoomLevel()) +
     (iWindowDimension / 2.0);
 }
 
@@ -2378,14 +2354,14 @@ ScubaView::CalcViewIntersectionPoints ( int iViewID ) {
 
   // Get the dot of our plane normal and its plane normal. If not
   // zero...
-  Point3<float> n1( mViewState.mPlaneNormal );
+  Point3<float> n1( mViewState.GetPlaneNormal() );
   Point3<float> n2;
   scubaView.Get2DPlaneNormal( n2.xyz() );
   if( !VectorOps::AreVectorsParallel( n1, n2 ) ) {
     
     // Get p1 and p2, the center RAS points for our plane
     // and their plane.
-    Point3<float> p1( mViewState.mCenterRAS );
+    Point3<float> p1( mViewState.GetCenterRAS() );
     Point3<float> p2;
     scubaView.Get2DRASCenter( p2.xyz() );
     
@@ -2876,7 +2852,7 @@ ScubaView::BuildOverlay () {
     float ras[3];
     char sXLabel, sYLabel, sZLabel;
     float left, right, top, bottom, plane;
-    switch( mViewState.mInPlane ) {
+    switch( mViewState.GetInPlane() ) {
     case ViewState::X: 
       sXLabel = 'a';
       sYLabel = 's';
@@ -2939,8 +2915,8 @@ ScubaView::BuildOverlay () {
     for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
       glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
     }
-    if( mViewState.mZoomLevel != 1 ) {
-      sprintf( sLabel, "%.2fx", mViewState.mZoomLevel );
+    if( mViewState.GetZoomLevel() != 1 ) {
+      sprintf( sLabel, "%.2fx", mViewState.GetZoomLevel() );
       glRasterPos2i( 0, mHeight-1-13 );
       for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
 	glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
@@ -3036,7 +3012,7 @@ ScubaView::BuildOverlay () {
   if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawMarkers )) {
     
     // Draw our markers.
-    float range = GetThroughPlaneIncrement( mViewState.mInPlane ) / 2.0;
+    float range = GetThroughPlaneIncrement( mViewState.GetInPlane() ) / 2.0;
     
     if( mViewState.IsRASVisibleInPlane( mCursor.xyz(), range ) ) {
       
@@ -3072,7 +3048,7 @@ ScubaView::BuildOverlay () {
 
   
   // Line range.
-  float range = GetThroughPlaneIncrement( mViewState.mInPlane ) / 2.0;
+  float range = GetThroughPlaneIncrement( mViewState.GetInPlane() ) / 2.0;
 
   // Drawing paths.
   if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawPaths )) {

@@ -1671,7 +1671,7 @@ ScubaLayer2DMRI::CalcRASSquareInViewPlane ( float iRAS[3], float iRadiusRAS,
   Point2<int> window;
   
   // Calc radius in window terms.
-  int windowBrushRad = (int)( iViewState.mZoomLevel * iRadiusRAS );
+  int windowBrushRad = (int)( iViewState.GetZoomLevel() * iRadiusRAS );
   
   // Get our four plane points.
   iTranslator.TranslateRASToWindow( iRAS, window.xy() );
@@ -1692,7 +1692,7 @@ ScubaLayer2DMRI::CalcAndAddUpdateSquare ( float iRAS[3], float iRadiusRAS,
 					ViewState& iViewState ) {
 
   // Calc radius in window terms.
-  int windowBrushRad = (int)( iViewState.mZoomLevel * iRadiusRAS );
+  int windowBrushRad = (int)( iViewState.GetZoomLevel() * iRadiusRAS );
   
   // Now we need to calculate an update square in window
   // coordinates. When we brush, this will be the area that is
@@ -1981,7 +1981,8 @@ ScubaLayer2DMRI::StretchPathAsEdge ( Path<float>& iPath,
 				     float iStraightBias, float iEdgeBias ){
 
   // Make an edge path finder.
-  EdgePathFinder finder( iViewState.mBufferWidth, iViewState.mBufferHeight,
+  EdgePathFinder finder( iViewState.GetBufferWidth(), 
+			 iViewState.GetBufferHeight(),
 			 (int)mVolume->GetMRIMagnitudeMaxValue(),
 			 &iTranslator, mVolume );
   finder.DisableOutput();
@@ -2072,7 +2073,7 @@ ScubaLayer2DMRI::FindClosestPathInPlane ( float iRAS[3],
   Point3<float> whereRAS( iRAS );
 
   float range = 0;
-  switch( iViewState.mInPlane ) {
+  switch( iViewState.GetInPlane() ) {
   case 0: range = mVolume->GetVoxelXSize() / 2.0; break;
   case 1: range = mVolume->GetVoxelYSize() / 2.0; break;
   case 2: range = mVolume->GetVoxelZSize() / 2.0; break;
@@ -2172,16 +2173,14 @@ ScubaLayer2DMRI::SetFloodParams ( ScubaToolState& iTool, ViewState& iViewState,
   ioParams.mb3D               = iTool.GetFlood3D();
   ioParams.mFuzziness         = iTool.GetFloodFuzziness();
   ioParams.mMaxDistance       = iTool.GetFloodMaxDistance();
-  ioParams.mViewNormal[0]     = iViewState.mPlaneNormal[0];
-  ioParams.mViewNormal[1]     = iViewState.mPlaneNormal[1];
-  ioParams.mViewNormal[2]     = iViewState.mPlaneNormal[2];
+  iViewState.GetPlaneNormal( ioParams.mViewNormal );
   ioParams.mbOnlyZero         = iTool.GetOnlyFloodZero();
   ioParams.mFuzzinessType     = 
     (VolumeCollectionFlooder::Params::FuzzinessType) iTool.GetFuzzinessType();
   if( !iTool.GetFlood3D() ) {
-    ioParams.mbWorkPlaneX     = (iViewState.mInPlane == 0);
-    ioParams.mbWorkPlaneY     = (iViewState.mInPlane == 1);
-    ioParams.mbWorkPlaneZ     = (iViewState.mInPlane == 2);
+    ioParams.mbWorkPlaneX     = (iViewState.GetInPlane() == ViewState::X);
+    ioParams.mbWorkPlaneY     = (iViewState.GetInPlane() == ViewState::Y);
+    ioParams.mbWorkPlaneZ     = (iViewState.GetInPlane() == ViewState::Z);
   }
 }
 

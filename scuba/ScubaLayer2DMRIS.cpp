@@ -13,9 +13,6 @@ ScubaLayer2DMRIS::ScubaLayer2DMRIS () {
   maVertexColor[0] = 255;
   maVertexColor[1] = 0;
   maVertexColor[2] = 255;
-  mPlaneRASOfCachedList.Set( -1, -1, -1 );
-  mPlaneNRASOfCachedList.Set( -1, -1, -1 );
-  mZoomLevelOfCachedList = -1;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "Set2DMRISLayerSurfaceCollection", 2, 
@@ -73,22 +70,18 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   }
 
   // Get a point and a normal for our view plane.
-  Point3<float> planeRAS( iViewState.mCenterRAS );
-  Point3<float> planeN( iViewState.mPlaneNormal );
+  Point3<float> planeRAS( iViewState.GetCenterRAS() );
+  Point3<float> planeN( iViewState.GetPlaneNormal() );
 
   // If we don't already have a cache of the draw list for this view
   // state...
-  if( planeRAS != mPlaneRASOfCachedList ||
-      planeN != mPlaneNRASOfCachedList ||
-      iViewState.mZoomLevel != mZoomLevelOfCachedList ) {
-    
+  if( !mCachedViewState.IsSameAs( iViewState ) ) {
+
     // Clear the cache.
     mCachedDrawList.clear();
 
     // Save info about the current view state.
-    mPlaneRASOfCachedList.Set( planeRAS );
-    mPlaneNRASOfCachedList.Set( planeN );
-    mZoomLevelOfCachedList = iViewState.mZoomLevel;
+    mCachedViewState.Copy( iViewState );
 
     int cIntersectionsInFace = 0;
     int intersectionPair[2][2];
@@ -491,7 +484,7 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
 void
 ScubaLayer2DMRIS::ClearCache () {
 
-  mPlaneRASOfCachedList.Set( -1, -1, -1 );
-  mPlaneNRASOfCachedList.Set( -1, -1, -1 );
-  mZoomLevelOfCachedList = -1;
+  // Just set one bogus value so it won't compare as the same next
+  // time through.
+  mCachedViewState.SetZoomLevel( -1 );
 }

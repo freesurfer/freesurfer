@@ -13,12 +13,86 @@ ViewState::ViewState () {
 }
 
 std::ostream& operator << ( std::ostream& os, ViewState& iInput ) { 
-  os << "ViewState CenterRAS: " << iInput.mCenterRAS[0] << ", "
-     << iInput.mCenterRAS[1] << ", " << iInput.mCenterRAS[2] 
-     << " ZoomLevel: " << iInput.mZoomLevel << " InPlane: " 
-     << iInput.mInPlane;
+  os << "ViewState CenterRAS: " << iInput.GetCenterRAS()[0] << ", "
+     << iInput.GetCenterRAS()[1] << ", " << iInput.GetCenterRAS()[2] 
+     << " ZoomLevel: " << iInput.GetZoomLevel() << " InPlane: " 
+     << iInput.GetInPlane();
   return os;
 }
+
+void
+ViewState::GetCenterRAS ( float oCenterRAS[3] ) {
+
+  oCenterRAS[0] = mCenterRAS[0];
+  oCenterRAS[1] = mCenterRAS[1];
+  oCenterRAS[2] = mCenterRAS[2];
+}
+
+void
+ViewState::GetPlaneNormal ( float oPlaneNormal[3] ) {
+
+  oPlaneNormal[0] = mPlaneNormal[0];
+  oPlaneNormal[1] = mPlaneNormal[1];
+  oPlaneNormal[2] = mPlaneNormal[2];
+}
+
+void 
+ViewState::SetCenterRAS ( float iCenterRASX, 
+			  float iCenterRASY, float iCenterRASZ ) {
+
+  mCenterRAS[0] = iCenterRASX;
+  mCenterRAS[1] = iCenterRASY;
+  mCenterRAS[2] = iCenterRASZ;
+}
+
+void 
+ViewState::SetCenterRAS ( float iCenterRAS[3] ) {
+
+  mCenterRAS[0] = iCenterRAS[0];
+  mCenterRAS[1] = iCenterRAS[1];
+  mCenterRAS[2] = iCenterRAS[2];
+}
+
+void 
+ViewState::SetZoomLevel ( float iZoomLevel ) {
+
+  mZoomLevel = iZoomLevel;
+}
+
+void 
+ViewState::SetPlaneNormal ( float iPlaneX, float iPlaneY, float iPlaneZ ) {
+
+  mPlaneNormal[0] = iPlaneX;
+  mPlaneNormal[1] = iPlaneY;
+  mPlaneNormal[2] = iPlaneZ;
+}
+
+void 
+ViewState::SetPlaneNormal ( float iPlaneNormal[3] ) {
+
+  mPlaneNormal[0] = iPlaneNormal[0];
+  mPlaneNormal[1] = iPlaneNormal[1];
+  mPlaneNormal[2] = iPlaneNormal[2];
+}
+
+void 
+ViewState::SetInPlane ( Plane iInPlane ) {
+
+  mInPlane = iInPlane;
+}
+
+void 
+ViewState::SetBufferWidth ( int iWidth ) {
+
+  mBufferWidth = iWidth;
+}
+
+void 
+ViewState::SetBufferHeight ( int iHeight ) {
+
+  mBufferHeight = iHeight;
+}
+
 
 bool
 ViewState::IsRASVisibleInPlane ( float iRAS[3], float iRange ) {
@@ -43,6 +117,44 @@ ViewState::IsRASVisibleInPlane ( float iRAS[3], float iRange ) {
   }
 
   return( fabs(viewCoord - rasCoord) <= iRange );
+}
+
+void
+ViewState::Copy ( ViewState& ioViewState ) {
+  
+  SetCenterRAS( ioViewState.GetCenterRAS() );
+  SetZoomLevel( ioViewState.GetZoomLevel() );
+  SetPlaneNormal( ioViewState.GetPlaneNormal() );
+  SetInPlane( ioViewState.GetInPlane() );
+  SetBufferWidth( ioViewState.GetBufferWidth() );
+  SetBufferHeight( ioViewState.GetBufferHeight() );
+}
+
+bool 
+ViewState::IsSameAs ( ViewState& iViewState ) {
+
+  if( iViewState.GetCenterRAS()[0] == GetCenterRAS()[0] &&
+      iViewState.GetCenterRAS()[1] == GetCenterRAS()[1] &&
+      iViewState.GetCenterRAS()[2] == GetCenterRAS()[2] &&
+
+      iViewState.GetZoomLevel() == GetZoomLevel() &&
+
+      iViewState.GetPlaneNormal()[0] == GetPlaneNormal()[0] &&
+      iViewState.GetPlaneNormal()[1] == GetPlaneNormal()[1] &&
+      iViewState.GetPlaneNormal()[2] == GetPlaneNormal()[2] &&
+
+      iViewState.GetInPlane() == GetInPlane() &&
+
+      iViewState.GetBufferWidth() == GetBufferWidth() &&
+
+      iViewState.GetBufferHeight() == GetBufferHeight() ) {
+
+    return true;
+
+  } else {
+
+    return false;
+  }
 }
 
 void
