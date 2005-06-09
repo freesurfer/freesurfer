@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.124 2005/06/09 18:27:12 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.125 2005/06/09 19:00:53 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2621,6 +2621,8 @@ proc SetSurfaceTransformVolume {} {
 
 	SetSurfaceDataToSurfaceTransformToDefault $gaCollection(current,id)
     }
+
+    RedrawFrame [GetMainFrameID]
 }
 
 
@@ -5155,7 +5157,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.124 2005/06/09 18:27:12 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.125 2005/06/09 19:00:53 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

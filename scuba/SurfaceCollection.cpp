@@ -541,7 +541,12 @@ SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
     throw runtime_error( "Couldn't get MRI from volume" );
   }
 
-  
+  // Enh... OK, this is what Tosa told me to change it to a while ago,
+  // but it apparently stopped working after he left. So I changed it
+  // back to what I originally had, which is just getting the matrix
+  // with surfaceRASFromRAS_ and setting our dataToSurface transform
+  // to it. So we'll see how that goes for now.
+#if 0  
   VOL_GEOM  surfaceGeometry;
   VOL_GEOM  volumeGeometry;
 
@@ -566,7 +571,7 @@ SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
     }
   }
 
-#if 0  
+#else  
   MATRIX* RASToSurfaceRASMatrix = surfaceRASFromRAS_( mri );
   if( NULL == RASToSurfaceRASMatrix ) {
     throw runtime_error( "Couldn't get SurfaceRASFromRAS_ from MRI" );
@@ -577,6 +582,8 @@ SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
 #endif
 
   CalcWorldToSurfaceTransform();
+
+  DataChanged();
   
   mbIsUsingVolumeForTransform = true;
   mTransformVolume = &iVolume;
@@ -603,6 +610,8 @@ SurfaceCollection::SetDataToSurfaceTransformToDefault () {
   }
   
   CalcWorldToSurfaceTransform();
+
+  DataChanged();
 
   mbIsUsingVolumeForTransform = false;
   mTransformVolume = NULL;

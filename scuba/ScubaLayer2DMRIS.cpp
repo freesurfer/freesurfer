@@ -15,6 +15,7 @@ ScubaLayer2DMRIS::ScubaLayer2DMRIS () {
   maVertexColor[2] = 255;
   mPlaneRASOfCachedList.Set( -1, -1, -1 );
   mPlaneNRASOfCachedList.Set( -1, -1, -1 );
+  mZoomLevelOfCachedList = -1;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "Set2DMRISLayerSurfaceCollection", 2, 
@@ -55,6 +56,8 @@ void
 ScubaLayer2DMRIS::SetSurfaceCollection ( SurfaceCollection& iSurface ) {
 
   mSurface = &iSurface;
+  
+  mSurface->AddListener( this );
 
   mSurface->GetMRIS();
 }
@@ -220,6 +223,14 @@ ScubaLayer2DMRIS::GetInfoAtRAS ( float iRAS[3],
       iLabelValues[mSurface->GetLabel() + ",distance"] = "None";
     }
   }
+}
+
+void
+ScubaLayer2DMRIS::DataChanged () {
+
+  ClearCache();
+
+  RequestRedisplay();
 }
 
 void
@@ -477,3 +488,10 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
   return Layer::DoListenToTclCommand( isCommand, iArgc, iasArgv );
 }
 
+void
+ScubaLayer2DMRIS::ClearCache () {
+
+  mPlaneRASOfCachedList.Set( -1, -1, -1 );
+  mPlaneNRASOfCachedList.Set( -1, -1, -1 );
+  mZoomLevelOfCachedList = -1;
+}

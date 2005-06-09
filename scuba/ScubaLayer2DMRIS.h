@@ -28,6 +28,8 @@ class ScubaLayer2DMRIS : public Layer {
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription () { return "2DMRIS"; }
 
+  virtual void DataChanged();
+
   // Handle tools.
   virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
 			    ScubaWindowToRASTranslator& iTranslator,
@@ -70,6 +72,8 @@ class ScubaLayer2DMRIS : public Layer {
   Point3<float> mPlaneRASOfCachedList;
   Point3<float> mPlaneNRASOfCachedList;
   float mZoomLevelOfCachedList;
+
+  void ClearCache();
 };
 
 
