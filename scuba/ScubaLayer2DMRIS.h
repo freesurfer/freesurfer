@@ -35,8 +35,6 @@ class ScubaLayer2DMRIS : public Layer {
 
   void FindRASLocationOfVertex ( int inVertex, float oRAS[3] );
 
-  int FindNearestVertexToRAS ( float iRAS[3], float *oMinDistance );
-
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 
@@ -67,6 +65,11 @@ class ScubaLayer2DMRIS : public Layer {
 
   int maLineColor[3];
   int maVertexColor[3];
+
+  std::list<int> mCachedDrawList;
+  Point3<float> mPlaneRASOfCachedList;
+  Point3<float> mPlaneNRASOfCachedList;
+  float mZoomLevelOfCachedList;
 };
 
 

@@ -13,6 +13,7 @@ SurfaceCollection::SurfaceCollection () :
   DataCollection() {
 
   mMRIS = NULL;
+  mHashTable = NULL;
   mbIsUsingVolumeForTransform = false;
   mTransformVolume = NULL;
 
@@ -103,6 +104,9 @@ SurfaceCollection::LoadSurface () {
 
     /* Save new data. */
     mMRIS = newMRIS;
+    
+    // Generate hash table.
+    mHashTable = MHTfillVertexTableRes( mMRIS, NULL, CURRENT_VERTICES, 2.0 );
 
   } else {
 
@@ -129,6 +133,10 @@ SurfaceCollection::LoadSurface () {
     }
 
     CalcWorldToSurfaceTransform();
+
+    // Generate hash table.
+    mHashTable = MHTfillVertexTableRes( mMRIS, NULL, CURRENT_VERTICES, 2.0 );
+
   }
 
   if( msLabel == "" ) {
@@ -369,6 +377,70 @@ void
 SurfaceCollection::SurfaceToRAS  ( float iSurface[3], float oRAS[3] ) {
 
   mWorldToSurfaceTransform.InvMultiplyVector3( iSurface, oRAS );
+}
+
+int
+SurfaceCollection::FindNearestVertexToRAS ( float iRAS[3], float* oDistance ) {
+
+  float dataRAS[3];
+  RASToSurface( iRAS, dataRAS );
+
+  float minDistance = 1000;
+  int nClosestVertex = -1;
+  for( int nVertex = 0; nVertex < GetNumVertices(); nVertex++ ) {
+
+    VERTEX* vertex = &(mMRIS->vertices[nVertex]);
+    float curDataRAS[3];
+    curDataRAS[0] = vertex->x;
+    curDataRAS[1] = vertex->y;
+    curDataRAS[2] = vertex->z;
+
+    if( !vertex->ripflag ) {
+
+      float dx = dataRAS[0] - curDataRAS[0];
+      float dy = dataRAS[1] - curDataRAS[1];
+      float dz = dataRAS[2] - curDataRAS[2];
+      float distance = sqrt( dx*dx + dy*dy + dz*dz );
+      if( distance < minDistance ) {
+	minDistance = distance;
+	nClosestVertex = nVertex;
+      }
+    }
+  }
+
+  if( -1 == nClosestVertex ) {
+    throw runtime_error( "No vertices found.");
+  }
+
+  if( NULL != oDistance ) {
+    *oDistance = minDistance;
+  }
+  return nClosestVertex;
+}
+
+int
+SurfaceCollection::FindVertexAtRAS ( float iRAS[3], float* oDistance ) {
+
+  float dataRAS[3];
+  RASToSurface( iRAS, dataRAS );
+
+  VERTEX v;
+  v.x = dataRAS[0];
+  v.y = dataRAS[1];
+  v.z = dataRAS[2];
+  float distance;
+  int nClosestVertex =
+    MHTfindClosestVertexNo( mHashTable, mMRIS, &v, &distance );
+
+  if( -1 == nClosestVertex ) {
+    throw runtime_error( "No vertices found.");
+  }
+
+  if( NULL != oDistance ) {
+    *oDistance = distance;
+  }
+
+  return nClosestVertex;
 }
 
 int

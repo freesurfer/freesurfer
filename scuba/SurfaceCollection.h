@@ -5,6 +5,7 @@
 #include "DataCollection.h"
 extern "C" {
 #include "mrisurf.h"
+#include "mrishash.h"
 #ifdef X
   #undef X 
 #endif
@@ -48,6 +49,10 @@ class SurfaceCollection : public DataCollection {
   void RASToSurface  ( float iRAS[3], float oSurface[3] );
   void SurfaceToRAS  ( float iSurface[3], float oRAS[3] );
 
+  int FindNearestVertexToRAS ( float iRAS[3], float *oMinDistance );
+
+  int FindVertexAtRAS ( float iRAS[3], float *oMinDistance );
+
   // Surface access functions.
   int GetNumFaces ();
   int GetNumVerticesPerFace_Unsafe ( int inFace );
@@ -75,6 +80,9 @@ class SurfaceCollection : public DataCollection {
   VolumeCollection* mTransformVolume;
 
   void CalcWorldToSurfaceTransform ();
+
+  // Hash table for finding vertices.
+  MRIS_HASH_TABLE* mHashTable;
 };
 
 

@@ -13,6 +13,8 @@ ScubaLayer2DMRIS::ScubaLayer2DMRIS () {
   maVertexColor[0] = 255;
   maVertexColor[1] = 0;
   maVertexColor[2] = 255;
+  mPlaneRASOfCachedList.Set( -1, -1, -1 );
+  mPlaneNRASOfCachedList.Set( -1, -1, -1 );
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "Set2DMRISLayerSurfaceCollection", 2, 
@@ -70,70 +72,84 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   // Get a point and a normal for our view plane.
   Point3<float> planeRAS( iViewState.mCenterRAS );
   Point3<float> planeN( iViewState.mPlaneNormal );
-  
-  list<int> drawList;
-  int cIntersectionsInFace = 0;
-  int intersectionPair[2][2];
 
-  // We need to look for intersections of edges in a face and the
-  // current plane.
-  int cFaces = mSurface->GetNumFaces();
-  for( int nFace = 0; nFace < cFaces; nFace++ ) {
+  // If we don't already have a cache of the draw list for this view
+  // state...
+  if( planeRAS != mPlaneRASOfCachedList ||
+      planeN != mPlaneNRASOfCachedList ||
+      iViewState.mZoomLevel != mZoomLevelOfCachedList ) {
+    
+    // Clear the cache.
+    mCachedDrawList.clear();
 
-    cIntersectionsInFace = 0;
+    // Save info about the current view state.
+    mPlaneRASOfCachedList.Set( planeRAS );
+    mPlaneNRASOfCachedList.Set( planeN );
+    mZoomLevelOfCachedList = iViewState.mZoomLevel;
 
-    // Look at each edge in this face...
-    int cVerticesPerFace = mSurface->GetNumVerticesPerFace_Unsafe( nFace );
-    for( int nVertex = 0; nVertex < cVerticesPerFace; nVertex++ ) {
-
-      int nNextVertex = nVertex + 1;
-      if( nNextVertex >= cVerticesPerFace ) nNextVertex = 0;
-
-      // Get the vertices.
-      Point3<float> vRAS, vnRAS;
-      bool bRipped, bNextRipped;
-      mSurface->GetNthVertexInFace_Unsafe( nFace, nVertex, 
-					   vRAS.xyz(), &bRipped );
-      mSurface->GetNthVertexInFace_Unsafe( nFace, nNextVertex, 
-					   vnRAS.xyz(), &bNextRipped );
-
-      // Don't draw ripped verts.
-      if( bRipped || bNextRipped ) {
-	continue;
-      }
-
-      // If they cross the view's in plane coordinate...
-      VectorOps::IntersectionResult rInt;
-      Point3<float> intersectionRAS;
-      rInt = VectorOps::SegmentIntersectsPlane
-	( vRAS, vnRAS, planeRAS, planeN, intersectionRAS );
-      if( VectorOps::intersect == rInt ) {
-
-	// Translate intersection point to a window coord. If it's in
-	// the view...
-	int window[2];
-	iTranslator.TranslateRASToWindow( intersectionRAS.xyz(), window );
-
-	if( window[0] >= 0 && window[0] < iWidth && 
-	    window[1] >= 0 && window[1] < iHeight ) { 
-
-	  // Add this intersection window point to our pair. If we
-	  // have two intersections, they make a line of the
-	  // intersection of this face and the in plane, so add them
-	  // to the list of points to draw.
-	  intersectionPair[cIntersectionsInFace][0] = window[0];
-	  intersectionPair[cIntersectionsInFace][1] = window[1];
+    int cIntersectionsInFace = 0;
+    int intersectionPair[2][2];
+    
+    // We need to look for intersections of edges in a face and the
+    // current plane.
+    int cFaces = mSurface->GetNumFaces();
+    for( int nFace = 0; nFace < cFaces; nFace++ ) {
+      
+      cIntersectionsInFace = 0;
+      
+      // Look at each edge in this face...
+      int cVerticesPerFace = mSurface->GetNumVerticesPerFace_Unsafe( nFace );
+      for( int nVertex = 0; nVertex < cVerticesPerFace; nVertex++ ) {
+	
+	int nNextVertex = nVertex + 1;
+	if( nNextVertex >= cVerticesPerFace ) nNextVertex = 0;
+	
+	// Get the vertices.
+	Point3<float> vRAS, vnRAS;
+	bool bRipped, bNextRipped;
+	mSurface->GetNthVertexInFace_Unsafe( nFace, nVertex, 
+					     vRAS.xyz(), &bRipped );
+	mSurface->GetNthVertexInFace_Unsafe( nFace, nNextVertex, 
+					     vnRAS.xyz(), &bNextRipped );
+	
+	// Don't draw ripped verts.
+	if( bRipped || bNextRipped ) {
+	  continue;
+	}
+	
+	// If they cross the view's in plane coordinate...
+	VectorOps::IntersectionResult rInt;
+	Point3<float> intersectionRAS;
+	rInt = VectorOps::SegmentIntersectsPlane
+	  ( vRAS, vnRAS, planeRAS, planeN, intersectionRAS );
+	if( VectorOps::intersect == rInt ) {
 	  
-	  cIntersectionsInFace++;
+	  // Translate intersection point to a window coord. If it's in
+	  // the view...
+	  int window[2];
+	  iTranslator.TranslateRASToWindow( intersectionRAS.xyz(), window );
+	  
+	  if( window[0] >= 0 && window[0] < iWidth && 
+	      window[1] >= 0 && window[1] < iHeight ) { 
+	    
+	    // Add this intersection window point to our pair. If we
+	    // have two intersections, they make a line of the
+	    // intersection of this face and the in plane, so add them
+	    // to the list of points to draw.
+	    intersectionPair[cIntersectionsInFace][0] = window[0];
+	    intersectionPair[cIntersectionsInFace][1] = window[1];
+	    
+	    cIntersectionsInFace++;
+	    
+	    if( cIntersectionsInFace == 2 ) {
+	      cIntersectionsInFace = 0;
+	      mCachedDrawList.push_back( intersectionPair[0][0] );
+	      mCachedDrawList.push_back( intersectionPair[0][1] );
+	      mCachedDrawList.push_back( intersectionPair[1][0] );
+	      mCachedDrawList.push_back( intersectionPair[1][1] );
+	    }
 
-	  if( cIntersectionsInFace == 2 ) {
-	    cIntersectionsInFace = 0;
-	    drawList.push_back( intersectionPair[0][0] );
-	    drawList.push_back( intersectionPair[0][1] );
-	    drawList.push_back( intersectionPair[1][0] );
-	    drawList.push_back( intersectionPair[1][1] );
 	  }
-
 	}
       }
     }
@@ -142,25 +158,29 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 
   // Draw all the intersection points we just calced.
   bool bDraw = false;
+  int window[2];
   int window1[2];
   int window2[2];
   list<int>::iterator tDrawList;
-  for( tDrawList = drawList.begin(); 
-       tDrawList != drawList.end(); ++tDrawList ) {
+  for( tDrawList = mCachedDrawList.begin(); 
+       tDrawList != mCachedDrawList.end(); ++tDrawList ) {
     
+    window[0] = *tDrawList;
+    window[1] = *(++tDrawList);
+
     // First time around, just save a point, next time around, draw
     // the line they make. Also draw pixels for the intersection
     // points themselves.
     if( !bDraw ) {
 
-      window1[0] = *tDrawList;
-      window1[1] = *(++tDrawList);
+      window1[0] = window[0];
+      window1[1] = window[1];
       bDraw = true;
 
     } else {
 
-      window2[0] = *tDrawList;
-      window2[1] = *(++tDrawList);
+      window2[0] = window[0];
+      window2[1] = window[1];
       bDraw = false;
 
       DrawPixelIntoBuffer( iBuffer, iWidth, iHeight, window1, 
@@ -183,16 +203,22 @@ ScubaLayer2DMRIS::GetInfoAtRAS ( float iRAS[3],
 
   if( NULL != mSurface ) {
     
-    float distance;
-    int nVertex = FindNearestVertexToRAS( iRAS, &distance );
-    
-    stringstream ssVertex;
-    ssVertex << nVertex;
-    iLabelValues[mSurface->GetLabel() + ",vertex"] = ssVertex.str();
-    
-    stringstream ssDistance;
-    ssDistance << distance;
-    iLabelValues[mSurface->GetLabel() + ",distance"] = ssDistance.str();
+    try { 
+      float distance;
+      int nVertex = mSurface->FindVertexAtRAS( iRAS, &distance );
+      
+      stringstream ssVertex;
+      ssVertex << nVertex;
+      iLabelValues[mSurface->GetLabel() + ",vertex"] = ssVertex.str();
+      
+      stringstream ssDistance;
+      ssDistance << distance;
+      iLabelValues[mSurface->GetLabel() + ",distance"] = ssDistance.str();
+    }
+    catch(...) {
+      iLabelValues[mSurface->GetLabel() + ",vertex"] = "None";
+      iLabelValues[mSurface->GetLabel() + ",distance"] = "None";
+    }
   }
 }
 
@@ -215,44 +241,6 @@ ScubaLayer2DMRIS::FindRASLocationOfVertex ( int inVertex, float oRAS[3] ) {
   } else {
     throw runtime_error( "Vertex index is out of bounds." );
   }
-}
-
-int
-ScubaLayer2DMRIS::FindNearestVertexToRAS ( float iRAS[3], float* oDistance ) {
-
-  if( NULL == mSurface ) {
-    throw runtime_error( "No surface loaded." );
-  }
-
-  float minDistance = 1000;
-  int nClosestVertex = -1;
-  for( int nVertex = 0; nVertex < mSurface->GetNumVertices(); nVertex++ ) {
-
-    float ras[3];
-    bool bRipped;
-    mSurface->GetNthVertex_Unsafe( nVertex, ras, &bRipped );
-    
-    if( !bRipped ) {
-
-      float dx = iRAS[0] - ras[0];
-      float dy = iRAS[1] - ras[1];
-      float dz = iRAS[2] - ras[2];
-      float distance = sqrt( dx*dx + dy*dy + dz*dz );
-      if( distance < minDistance ) {
-	minDistance = distance;
-	nClosestVertex = nVertex;
-      }
-    }
-  }
-
-  if( -1 == nClosestVertex ) {
-    throw runtime_error( "No vertices found.");
-  }
-
-  if( NULL != oDistance ) {
-    *oDistance = minDistance;
-  }
-  return nClosestVertex;
 }
 
 TclCommandManager::TclCommandResult 
@@ -470,7 +458,7 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
       try {
 	int nVertex;
 	float distance;
-	nVertex = FindNearestVertexToRAS( ras, &distance );
+	nVertex = mSurface->FindNearestVertexToRAS( ras, &distance );
 	
 	stringstream ssReturnValues;
 	ssReturnValues << nVertex << " " << distance;

@@ -567,7 +567,17 @@ draw line tool
 
 
 
-report generator
+report generator dlog
+ - Choose volumes from loaded
+ - Choose LUT (defualts to seg's LUT)
+ - Choose list of segmentation values in LUT
+ - CB for only looking at ROI from a volume (default to seg)
+ - Choose ROI
+ - CB for secondary intensity report
+ - Dir for reports
+ - Filenames: one for main report, one for intensity report
+
+
 
 choose volumes
   for segs, will compute volume
@@ -577,14 +587,87 @@ option to only lookup on current ROI
 
 option for secondary intensity report
 
+
+Main report:
+
+SegmentationReport report
+report.SetSegmentation( segID )
+report.AddIntensityVolume( volID )...
+report.UseROI( roiID )
+report.AddSegmentationStructure( nStructure )
+report.MakeVolumeReport( fnReport )
+report.MakeIntensityReport( fnReport )
+MakeVolumeReport() {
+  for each structure...
+
+    lVoxels = seg.GetVoxelsInStructure( nStructure )
+
+    if using ROI...
+      for each voxel in lVoxels...
+        if not in ROI, remove from list
+
+    structureVolume(structure) = seg.GetRASVolumeOfNVoxels( lVoxels.size() )
+
+    for each intensity volume...
+      structureIntensity(structure,volume) = vol.GetAverageIntensity( lVoxels )
+
+  report:
+    print SUBJ
+    foreach structure...
+      print \t$structure_name-volume
+      foreach intensity volume..
+        print \t$structure_name-$volume_name-intensity
+    print \n
+
+    print $subject_name
+    foreach structure...
+      print \t$structureVolume(structure)
+      foreach intensity volume..
+        print \t$structureIntensity(structure,volume)
+    print \n
+}
+
+MakeIntensityReport( fnReport ) {
+
+  for each structure...
+
+    lVoxels = seg.GetVoxelsInStructure( nStructure )
+
+    if using ROI...
+      for each voxel in lVoxels...
+        if not in ROI, remove from list
+
+    for each volume...
+      for each voxel...
+        structureIntensities(structure,volume) <- vol.IntensityAtVoxel(voxel)
+
+  report:
+    foreach volume...
+      foreach structure...
+        print $structure_name-$volume_name\t
+    print \n
+    
+
+    foreach volume...
+      foreach structure...
+        get max of length of structureIntensities(structure,volume)
+
+    foreach volume...
+      foreach structure...
+        for n = 0 to max_length
+          if nth structureIntensities(structure,volume)
+            print value\t
+          print \n
+}
+
 for each seg...
   for each voxel...
     (if !in_ROI) continue
     volume += voxel_size
     intsenity_sum += value(T1)
 
-SUBJ   SEG-$SEGNAME-VOL  SEG-$VOLNAME-INT  ...
-subj1  100		 123
+SUBJ   $STRUCTURE-$SEGNAME-VOL  $STRUTURE-$VOLNAME-INT  ...
+subj1  100		        123
 
 
 if second report,

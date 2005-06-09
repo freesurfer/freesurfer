@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.122 2005/06/08 21:30:54 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.123 2005/06/09 18:10:12 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -411,7 +411,6 @@ proc ExtractLabelFromFileName { ifnData } {
 set ksImageDir   "$env(FREESURFER_HOME)/lib/images/"
 proc LoadImages {} {
     dputs "LoadImages  "
-
 
     global ksImageDir
     
@@ -5156,7 +5155,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.122 2005/06/08 21:30:54 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.123 2005/06/09 18:10:12 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5870,15 +5869,19 @@ proc DoGenerateReportDlog {} {
 
     set gaReportInfo(lutVolumes) {}
     set gaReportInfo(grayscaleVolumes) {}
+    set gaReportInfo(allVolumes) {}
     foreach layerID $gaLayer(idList) {
-	if { [string match [Get2DMRILayerColorMapMethod $layerID] grayscale]} {
+	if { [string match [GetLayerType $layerID] 2DMRI] } {	
 	    set volID [Get2DMRILayerVolumeCollection $layerID]
-	    lappend gaReportInfo(grayscaleVolumes) $volID
-	}
-	if { [string match [Get2DMRILayerColorMapMethod $layerID] lut]} {
-	    set volID [Get2DMRILayerVolumeCollection $layerID]
-	    lappend gaReportInfo(lutVolumes) $volID
-	    set gaReportInfo(lutVolumeIDToLayerID,$volID) $layerID
+	    lappend gaReportInfo(allVolumes) $volID
+	    
+       if { [string match [Get2DMRILayerColorMapMethod $layerID] grayscale]} {
+	   lappend gaReportInfo(grayscaleVolumes) $volID
+       }
+	    if { [string match [Get2DMRILayerColorMapMethod $layerID] lut]} {
+		lappend gaReportInfo(lutVolumes) $volID
+		set gaReportInfo(lutVolumeIDToLayerID,$volID) $layerID
+	    }
 	}
     }
     
@@ -6006,16 +6009,15 @@ proc DoGenerateReportDlog {} {
 	# Collection for the ROI.
 	tixOptionMenu $fwROISub.mwCol \
 	    -label "Collection for ROI:" \
-	    -command "set gaReportInfo(updateROIListbox) 1; UpdateGenerateReportDlog" \
+	    -command GenerateReportDlogROIVolumeCallback \
 	    -variable gaReportInfo(roiVolID)
 	FillMenuFromList $fwROISub.mwCol \
-	    $gaReportInfo(grayscaleVolumes) \
+	    $gaReportInfo(allVolumes) \
 	    "GetCollectionLabel %s" {} false
 	
 	# ROI.
 	tixOptionMenu $fwROISub.mwROI \
 	    -label "ROI:" \
-	    -command "" \
 	    -variable gaReportInfo(roiID)
 	set gaReportInfo(widget,ROImenu) $fwROISub.mwROI
 
@@ -6024,11 +6026,14 @@ proc DoGenerateReportDlog {} {
 
 
 	# CB for secondary intensity report
+	set gaReportInfo(generateIntensityReport) 0
 	tkuMakeCheckboxes $fwIntensityReport \
 	    -font [tkuNormalFont] \
 	    -checkboxes { 
-		{-type text -label "Report intensities for individual voxels" 
-		    -variable something } }
+		{-type text 
+		    -label "Additional intensity report for individual voxels" 
+		    -variable gaReportInfo(generateIntensityReport)
+		    -command UpdateGenerateReportDlog } }
 
 
 	# Dir for reports
@@ -6041,21 +6046,23 @@ proc DoGenerateReportDlog {} {
 
 	# Filenames.
 	tkuMakeFileSelector $fwFilenamesSub.fwMain \
-	    -variable something2 \
+	    -variable gaReportInfo(mainFileName) \
 	    -text "Main report:" \
 	    -shortcutdirs [list $glShortcutDirs]
 
 	tkuMakeFileSelector $fwFilenamesSub.fwIntensity \
-	    -variable something2 \
+	    -variable gaReportInfo(intensityFileName) \
 	    -text "Intensity report:" \
 	    -shortcutdirs [list $glShortcutDirs]
+	set gaReportInfo(widget,intensityFileName) $fwFilenamesSub.fwIntensity
 
 	pack $fwFilenamesSub.fwMain $fwFilenamesSub.fwIntensity \
 	    -side top -expand yes -fill x
 
 
-	tkuMakeCancelOKButtons $fwButtons $wwDialog \
-	    -okCmd GenerateReport
+	tkuMakeApplyCloseButtons $fwButtons $wwDialog \
+	    -okCmd GenerateReport \
+	    -applyCmd GenerateReport
 	
 
 	grid $fwVolumes         -column 0 -row 0 -sticky new
@@ -6074,6 +6081,7 @@ proc DoGenerateReportDlog {} {
 	grid rowconfigure $wwDialog 5 -weight 0
 
 	set gaReportInfo(updateLUTListbox) 1
+	set gaReportInfo(updateROIMenu) 1
 	UpdateGenerateReportDlog
     }
 }
@@ -6133,6 +6141,13 @@ proc GenerateReportDlogLUTCallback { iVolID } {
     set gaReportInfo(updateLUTListbox) 1
     UpdateGenerateReportDlog
 }
+
+proc GenerateReportDlogROIVolumeCallback  { iVolID } {
+    global gaReportInfo
+    set gaReportInfo(updateROIMenu) 1
+    UpdateGenerateReportDlog
+}
+
 proc UpdateGenerateReportDlog {} {
     global gaReportInfo
 
@@ -6178,26 +6193,46 @@ proc UpdateGenerateReportDlog {} {
 	    }
 	}
 	
-
 	# Empty the selected listbox and readd the values with the new
 	# names.
-
+	if { [info exists gaReportInfo(selectedStructures)] } { 
+	    $gaReportInfo(widget,selectedListBox) subwidget \
+		listbox delete 0 end
+	    foreach nStructure  $gaReportInfo(selectedStructures) {
+		catch {
+		    set sLabel \
+			"$nStructure: [GetColorLUTEntryLabel $lutID $nStructure]"
+		    $gaReportInfo(widget,selectedListBox) subwidget \
+			listbox insert end $sLabel
+		}
+	    }
+	}
+	     
 	set gaReportInfo(updateLUTListbox) 0
     }
 
 
     # If we need to update the ROI list..
-    if { [info exists gaReportInfo(updateROIListbox)] &&
-	 $gaReportInfo(updateROIListbox) } {
+    if { [info exists gaReportInfo(updateROIMenu)] &&
+	 $gaReportInfo(updateROIMenu) } {
 
 	# Fill the list box from the ROI list for the collectoin.
 	set volID $gaReportInfo(roiVolID)
 	set idList [GetROIIDListForCollection $volID]
-	FillMenuFromList $gaReportInfo(widget,ROImen) \
+	FillMenuFromList $gaReportInfo(widget,ROImenu) \
 	    $idList "GetROILabel %s" {} false
 	
-	set gaReportInfo(updateROIListbox) 0
+	set gaReportInfo(updateROIMenu) 0
     }
+
+    # Enable/disable the intensity report filename.
+    set fnw $gaReportInfo(widget,intensityFileName)
+    set sState normal
+    if { !$gaReportInfo(generateIntensityReport) } {
+	set sState disabled
+    }
+    $fnw.ew config -state $sState
+    $fnw.bw config -state $sState
 }
 
 proc GenerateReport {} {
@@ -6222,13 +6257,19 @@ proc GenerateReport {} {
 	    puts "\t$nStructure [GetColorLUTEntryLabel $lutID $nStructure]"
 	}
     }
-    puts ""
-
 
     if { $gaReportInfo(useROI) } {
 	
 	set roiID $gaReportInfo(roiID)
+	puts "ROI: $roiID [GetROILabel $roiID]"
+    }
 
+    puts "File name: $gaReportInfo(mainFileName)"
+    
+    if { $gaReportInfo(generateIntensityReport) } {
+	
+	puts "Also generating intensity report"
+	puts "File name: $gaReportInfo(intensityFileName)"
     }
 }
 
@@ -6482,5 +6523,18 @@ bind $gaWidget(window) <Alt-Key-n> {
 }
 
 
-# DoGenerateReportDlog
+if { 0 } {
 
+set roiID [NewCollectionROI 0]
+SetROILabel $roiID "oblique1 roi1"
+set roiID [NewCollectionROI 0]
+SetROILabel $roiID "oblique1 roi2"
+set roiID [NewCollectionROI 1]
+setROILabel $roiID "oblique2 roi1"
+set roiID [NewCollectionROI 1]
+SetROILabel $roiID "oblique2 roi2"
+UpdateROIList
+
+DoGenerateReportDlog
+
+}
