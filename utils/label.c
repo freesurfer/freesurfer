@@ -80,6 +80,7 @@ LabelRead(char *subject_name, char *label_name)
   strcpy(area->name, label_name) ;
 
   /* read in the file */
+	errno = 0 ;
   fp = fopen(fname, "r") ;
   if(errno) perror(NULL);
   if (!fp)
