@@ -918,7 +918,7 @@ AC_SUBST(LIBS_TCL_OPENGL)
 ###########################################################
 CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS"
 LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS"
-LIBS="-lnetcdf -lvolume_io -lminc -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
+LIBS="-lvolume_io -lminc -lnetcdf -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(LIBS)
