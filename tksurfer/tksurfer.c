@@ -622,6 +622,9 @@ Tcl_Interp *g_interp = NULL;
 int curwindowleft = 0; /* keep track of window position, updated on move */
 int curwindowbottom = 0;
 int dontloadspherereg = FALSE; /* if true, don't try loading sphere.reg */
+int scriptok=FALSE; /* global flag for signifying to parse a script */
+char script_tcl[NAME_LENGTH]; /* name of the script to run */
+
 /* end rkt */
 
 int blinkdelay = BLINK_DELAY;
@@ -1943,7 +1946,7 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
       /* begin rkt */
       else if (!stricmp(argv[i], "-timecourse"))
 	{
-	  nargs = 1;
+	  nargs = 2;
 	  strncpy (timecourse_fname, argv[i+1], sizeof(timecourse_fname));
 	  load_timecourse = TRUE;
 	}
@@ -1955,10 +1958,16 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 	}
       else if (!stricmp(argv[i], "-timecourse-offset"))
 	{
-	  nargs = 1;
+	  nargs = 2;
 	  strncpy (timecourse_offset_fname, argv[i+1], 
 		   sizeof(timecourse_offset_fname));
 	  load_timecourse_offset = TRUE;
+	}
+      else if (!stricmp(argv[i], "-tcl"))
+	{
+	  nargs = 2;
+	  strncpy (script_tcl, argv[i+1], sizeof(script_tcl));
+	  scriptok = TRUE;
 	}
       /* end rkt */
       else
@@ -2169,9 +2178,7 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
     }
   if (functional_fname)  /* -o specified on command line */
     {
-      char fname[STRLEN] ;
-      
-      read_binary_values(fname) ;
+      read_binary_values(functional_fname) ;
       read_binary_curvature(cfname) ; val_to_stat() ;
       overlayflag = TRUE ;
       colscale = HEAT_SCALE ;
@@ -18256,14 +18263,12 @@ static int tty;
 int main(int argc, char *argv[])   /* new main */
 {
   int code;
-  int scriptok=FALSE;
   int aliasflag=FALSE;
 #ifndef TCL8
   static char *display = NULL;
 #endif
   char tksurfer_tcl[NAME_LENGTH];
   char str[NAME_LENGTH];
-  char script_tcl[NAME_LENGTH];
   char alias_tcl[NAME_LENGTH];
   char *envptr;
   FILE *fp;
@@ -18280,7 +18285,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.118 2005/06/08 19:45:17 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.119 2005/06/10 22:44:42 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
