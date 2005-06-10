@@ -848,6 +848,7 @@ AC_CHECK_LIB([tk],[Tk_Init],
   ])
 
 ##################### Tix 
+LIBS="$LIB_TK $LIB_TCL $LIBS"
 AC_CHECK_LIB([tix],[Tix_Init],
   [LIB_TIX=-ltix],
   [
@@ -867,7 +868,6 @@ AC_CHECK_LIB([tix],[Tix_Init],
 #              [AC_MSG_ERROR("FATAL: libTix8.4 not found.")])
 
 ##################### BLT (we cannot build BLT in Aqua) must use X11
-LIBS="$LIB_TK $LIB_TCL $LIBS"
 AC_CHECK_LIB([BLT],[Blt_Init],
   [LIB_BLT=-lBLT],
 # check BLT.2 (MacOSX)
