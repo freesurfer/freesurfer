@@ -512,6 +512,11 @@ ScubaView::SetDrawLevelVisibility ( int inLevel, bool ibVisible ) {
   if( mLevelVisibilityMap[inLevel] != ibVisible ) {
 
     mLevelVisibilityMap[inLevel] = ibVisible;
+    
+    // This affects what label information we display, so rebuild the
+    // label value info.
+    RebuildLabelValueInfo( mCursor.xyz(), "cursor" );
+
     RequestRedisplay();
   }
 }

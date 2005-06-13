@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.125 2005/06/09 19:00:53 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.126 2005/06/13 18:35:37 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -420,7 +420,8 @@ proc LoadImages {} {
 	icon_navigate icon_rotate_plane icon_edit_ctrlpts 
 	icon_edit_parc icon_line_tool
 	icon_view_single icon_view_multiple icon_view_31 
-	icon_cursor_goto icon_cursor_save 
+	icon_cursor_goto icon_cursor_save
+	icon_label_table icon_label_list
 	icon_main_volume icon_aux_volume icon_linked_cursors 
 	icon_arrow_up icon_arrow_down icon_arrow_left icon_arrow_right 
 	icon_arrow_cw icon_arrow_ccw 
@@ -573,6 +574,7 @@ proc MakeToolBar { ifwTop } {
     global gaView
     global gaWidget
     global gCoordsInput
+    global gaLabelArea
 
     set fwToolBar     $ifwTop.fwToolBar
 
@@ -638,6 +640,22 @@ proc MakeToolBar { ifwTop } {
 
     set gaView(current,inPlane) x
 
+
+    tkuMakeToolbar $fwToolBar.fwLabelAreaMode \
+	-allowzero false \
+	-radio true \
+	-variable gaLabelArea(mode) \
+	-command {ToolBarWrapper} \
+	-buttons {
+	    { -type image -name labelAreaList -image icon_label_list
+ 		-balloon "Display the label/value area is a list.\nThe width of the area will be fixed." }
+	    { -type image -name labelAreaTable -image icon_label_table
+		-balloon "Display the label/value area is a table.\nThe width of the area may expand as more\ncolumns are added, unless you resize the\nwindow manually by making the label area\nthinner than the width of the table, making\nthe scroll bar appear." }
+	}
+
+    set gaLabelArea(mode) labelAreaTable
+
+
     button $fwToolBar.bwZoomOut  -image icon_zoom_out \
 	-command { ZoomViewOut; RedrawFrame [GetMainFrameID] }
     button $fwToolBar.bwZoomIn   -image icon_zoom_in \
@@ -674,7 +692,8 @@ proc MakeToolBar { ifwTop } {
 
 
     pack $fwToolBar.fwTool $fwToolBar.fwView $fwToolBar.fwInPlane \
-	$fwToolBar.bwZoomOut $fwToolBar.bwZoomIn $fwToolBar.fwCoordsInput \
+	$fwToolBar.bwZoomOut $fwToolBar.bwZoomIn $fwToolBar.fwLabelAreaMode \
+	$fwToolBar.fwCoordsInput \
 	-side left
 
     return $fwToolBar
@@ -759,6 +778,9 @@ proc ToolBarWrapper { isName iValue } {
 	    }
 	    table - user {
 		SortVoxelEditingStructureListBox
+	    }
+	    labelAreaList - labelAreaTable {
+		DrawLabelArea
 	    }
 	}
     }
@@ -926,11 +948,7 @@ proc ScubaMouseMotionCallback { inX inY iState iButton } {
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
-    set err [catch { 
-	set labelValues [GetLabelValuesSet $viewID mouse] 
-	UpdateLabelArea $gaWidget(labelArea,nMouseArea) $labelValues
-    } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
+    UpdateMouseLabelArea $viewID
 }
 
 proc ScubaMouseDownCallback { inX inY iState iButton } {
@@ -1051,13 +1069,7 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
     # This is kind of arbitrary, but since some keypresses can change
     # the information that should be displayed in the label area,
     # update here.
-    set viewID [GetSelectedViewID [GetMainFrameID]]
-
-    set err [catch { 
-	set labelValues [GetLabelValuesSet $viewID mouse] } sResult]
-    if { 0 != $err } { tkuErrorDlog $sResult; return }
-
-    UpdateLabelArea $gaWidget(labelArea,nMouseArea) $labelValues
+    UpdateMouseLabelArea
 }
 
 proc ScubaKeyDownCallback { inX inY iState iKey } {
@@ -1246,7 +1258,7 @@ proc MakeLabelArea { ifwTop } {
 
     global gaWidget
 
-    set fwLabelArea    $ifwTop.fwLabelArea1
+    set fwLabelArea    $ifwTop.fwLabelArea
 
     frame $fwLabelArea
 
@@ -3136,6 +3148,7 @@ proc ViewPropertiesLevelVisibleCallback { inLevel } {
 
     SetLevelVisibilityInView $gaView(current,id) $inLevel $gaView(current,visible$inLevel)
     UpdateCursorLabelArea
+    UpdateMouseLabelArea
     RedrawFrame [GetMainFrameID]
 }
 
@@ -3957,11 +3970,235 @@ proc UpdateLabelArea { inArea ilLabelValues } {
     DrawLabelArea
 }
 
+proc LabelAreaFormatCallback {w area x1 y1 x2 y2} {
+    global gaLabelArea
+
+    for { set nRow $y1 } { $nRow <= $y2 } { incr nRow } {
+	for { set nCol $x1 } { $nCol <= $x2 } { incr nCol } {
+
+	    if { [info exists gaLabelArea(itemType,$nCol,$nRow)] } {
+		case $gaLabelArea(itemType,$nCol,$nRow) {
+		    label {
+			$w format border $nCol $nRow $nCol $nRow \
+			    -fill 1 -relief raised -bd 1 \
+			    -bg gray65 \
+			    -selectbackground gray80
+		    }
+		    value {
+			$w format grid $nCol $nRow $nCol $nRow \
+			    -relief raised -bd 1 \
+			    -bordercolor gray20 \
+			    -filled 0 -bg red \
+			    -xon 1 -yon 1 -xoff 0 -yoff 0 -anchor se
+		    }
+		    default {
+			$w format grid $nCol $nRow $nCol $nRow \
+			    -borderwidth 0 -filled 0
+			
+		    }
+		}
+	    }
+	}
+    }
+}
+
+proc LabelAreaEditDoneCallback {w inCol inRow} {
+					
+    set value [$w entrycget $inCol $inRow -text]
+}
+
+proc LabelAreaEditNotifyCallback {w inCol inRow} {
+    global gaLabelArea
+    if { [info exists gaLabelArea(itemType,$inCol,$inRow)] } {
+	if { [string match $gaLabelArea(itemType,$inCol,$inRow) value] } {
+	    return true
+	}
+    }
+    return false
+}
+
+
 proc DrawLabelArea {} {
 
     global gaWidget
     global glLabelValues
     global tk_version
+    global gaLabelArea
+
+    foreach nArea {1 2} {
+
+	if { ![info exists glLabelValues($nArea)] } {
+	    continue
+	}
+
+	# If we haven't made the frame for this area, make it.
+	set fwTop $gaWidget(labelArea,$nArea).fwTop
+	if { [catch {$fwTop config}] } {
+	    frame $fwTop
+	    pack $fwTop -fill both -expand yes
+	}
+
+	# Similarly make the grid.
+	set fwTop $gaWidget(labelArea,$nArea).fwTop
+	catch {
+	    tixScrolledWindow $fwTop.swGrid
+	    pack $fwTop.swGrid -expand yes -fill both
+	    
+	    set f [$fwTop.swGrid subwidget window]
+	    tixGrid $f.gwGrid -bd 0 \
+		-formatcmd "LabelAreaFormatCallback $f.gwGrid" \
+		-editdonecmd "LabelAreaEditDoneCallback $f.gwGrid" \
+		-editnotify "LabelAreaEditNotifyCallback $f.gwGrid" \
+		-selectmode single
+
+	    $f.gwGrid size col default -size 20char
+	    $f.gwGrid size row default -size 1.1char -pad0 3
+
+	    pack $f.gwGrid -expand yes -fill both -padx 3 -pady 3
+	}
+
+	# Get pointer to the grid.
+	set grid [$fwTop.swGrid subwidget window].gwGrid
+	
+	# Delete all our rows and cols to start fresh.
+	$grid delete row 0 100
+	$grid delete column 0 100
+
+	# Set all itemType values to none.
+	for { set x 0 } { $x < 10 } { incr x } {
+	    for { set y 0 } { $y < 10 } { incr y } {
+		set gaLabelArea(itemType,$x,$y) none
+	    }	    
+	}
+
+	# Start with empty lists and arrays.
+	set tableX {}
+	set tableY {}
+	array set normalEntries {}
+	array set tableEntries {}
+
+	# For each label-value pair we have...
+	foreach lLabelValue $glLabelValues($nArea) {
+	    
+	    # Get the label and value. Set the value in a global
+	    # variable with the label as the index name.
+	    set label [lindex $lLabelValue 0]
+	    set value [lindex $lLabelValue 1]
+	    set glLabelValues($nArea,"$label",value) $value
+
+	    # Has comma and in table mode? If so, add it to the list
+	    # of table entries. Otherwise add it to the list of normal
+	    # entries.
+	    if { [string first , $label] != -1 &&
+		 [string match $gaLabelArea(mode) labelAreaTable] } {
+		
+		# Parse out the x and y labels, split by the
+		# comma. Add each to the list of x and y table labels.
+		set nComma [string first , $label]
+		set sX [string range $label 0 [expr $nComma - 1]]
+		set sY [string range $label [expr $nComma + 1] end]
+
+		set tableEntries($sX,$sY) $value
+		if { [lsearch $tableX $sX] == -1 } {
+		    lappend tableX $sX
+		}
+		if { [lsearch $tableY $sY] == -1 } {
+		    lappend tableY $sY
+		}
+
+	    } else {
+
+		set normalEntries($label) $value
+	    }
+	}
+
+	# First pack our normal entries.
+	set maxRow -1
+	set maxCol 1
+	set nRow 0
+	foreach label [array names normalEntries] {
+
+	    if { $nRow > $maxRow } { set maxRow $nRow }
+
+	    # Cap the label to 14 chars if necessary.
+	    set zLabel [string length $label]
+	    set sShortLabel $label
+	    if { $zLabel > 14 } {
+		set sFirst [string range $label 0 6]
+		set sLast [string range $label [expr $zLabel-6] end]
+		set sShortLabel "${sFirst}...${sLast}"
+	    }
+
+	    $grid set 0 $nRow -itemtype text -text $sShortLabel
+	    set gaLabelArea(itemType,0,$nRow) label
+
+	    $grid set 1 $nRow -itemtype text \
+		-text $glLabelValues($nArea,"$label",value)
+	    set gaLabelArea(itemType,1,$nRow) value
+
+	    set maxCol 1
+
+	    incr nRow
+	}
+
+	# These are row headers.
+	set nCol 1
+	foreach sX $tableX {
+
+	    if { $nRow > $maxRow } { set maxRow $nRow }
+	    if { $nCol > $maxCol } { set maxCol $nCol }
+
+	    # Cap the label to 14 chars if necessary.
+	    set zLabel [string length $sX]
+	    set sShortLabel $label
+	    if { $zLabel > 14 } {
+		set sFirst [string range $sX 0 6]
+		set sLast [string range $sX [expr $zLabel-6] end]
+		set sShortLabel "${sFirst}...${sLast}"
+	    }
+
+	    # Set this item in the grid, and mark it as a label.
+	    $grid set $nCol $nRow -itemtype text -text $sShortLabel
+	    set gaLabelArea(itemType,$nCol,$nRow) label
+
+	    incr nCol
+	}
+	incr nRow
+	
+	foreach sY $tableY {
+
+	    # This is the row header. Set this item in the grid, and
+	    # mark it as a label.
+	    $grid set 0 $nRow -itemtype text -text $sY
+	    set gaLabelArea(itemType,0,$nRow) label
+
+	    set nCol 1
+	    foreach sX $tableX {
+		
+		if { $nRow > $maxRow } { set maxRow $nRow }
+		if { $nCol > $maxCol } { set maxCol $nCol }
+
+		# Set the value in the grid, and mark it as a value.
+		$grid set $nCol $nRow -itemtype text \
+		    -text $glLabelValues($nArea,"$sX,$sY",value)
+		set gaLabelArea(itemType,$nCol,$nRow) value
+
+		incr nCol
+	    }
+	    incr nRow
+	}
+
+	# Size grid appropriately.
+	$grid config -width [expr $maxCol + 1] -height [expr $maxRow + 1]
+    }
+}
+
+proc DrawLabelArea2 {} {
+
+    global gaWidget
+    global glLabelValues
+    global tk_version
+    global gaLabelArea
 
     foreach nArea {1 2} {
 
@@ -3991,9 +4228,11 @@ proc DrawLabelArea {} {
 	    set value [lindex $lLabelValue 1]
 	    set glLabelValues($nArea,"$label",value) $value
 
-	    # Has comma? If so, add it to the list of table
-	    # entries. Otherwise add it to the list of normal entries.
-	    if { [string first , $label] != -1 } {
+	    # Has comma and in table mode? If so, add it to the list
+	    # of table entries. Otherwise add it to the list of normal
+	    # entries.
+	    if { [string first , $label] != -1 &&
+		 [string match $gaLabelArea(mode) labelAreaTable] } {
 		
 		# Parse out the x and y labels, split by the
 		# comma. Add each to the list of x and y table labels.
@@ -4021,17 +4260,12 @@ proc DrawLabelArea {} {
 	    frame $fwNormal
 	    pack $fwNormal -side top -expand yes -fill x
 	}
-	# First pack our normal entries.
-	foreach label [array names normalEntries] {
-	    set fw $fwNormal.fw"$label"
-	    set ewLabel $fw.ewLabel
-	    set ewValue $fw.ewValue
 
-	    # If we haven't made this frame, make it and pack it.
-	    if { [catch {$fw config}] } {
-		frame $fw
-		pack $fw -side top -expand yes -fill x
-	    }
+	# First pack our normal entries.
+	set nRow 0
+	foreach label [array names normalEntries] {
+	    set ewLabel $fwNormal.ewLabel-$nRow
+	    set ewValue $fwNormal.ewValue-$nRow
 
 	    # Cap the label to 14 chars if necessary.
 	    set zLabel [string length $label]
@@ -4043,16 +4277,16 @@ proc DrawLabelArea {} {
 
 	    # If we haven't made a label yet, make one, otherwise just
 	    # configure it with this labels contents.
-	    if { [catch {$ewLabel config}] } {
+	    catch {
 		tkuMakeNormalLabel $ewLabel -label $label -width 14
-		pack $ewLabel -side left -anchor w
-	    } else {
-		$ewLabel.lw config -text $label
+	    }
+	    catch {
+		grid $ewLabel -column 0 -row $nRow
 	    }
 		
 	    # If we haven't made an entry yet, make one, otherwise
 	    # just configure the existing one.
-	    if { [catch {$ewValue config}] } {
+	    catch {
 		set bgColor gray
 		catch { set bgColor [tix option get disabled_bg] }
 
@@ -4068,11 +4302,19 @@ proc DrawLabelArea {} {
 		    -state $sState \
 		    -relief flat \
 		    -background $bgColor
-	    } else {
+	    }
+	    catch {
+		grid $ewValue -column 1 -row $nRow
+	    }
+	    catch {
 		$ewValue config \
 		    -textvariable glLabelValues($nArea,"$label",value)
-		pack $ewValue -side left -anchor w
 	    }
+	    incr nRow
+	}
+	for {} { $nRow < 10 } { incr nRow } {
+	    catch { grid remove $fwNormal.ewLabel-$nRow }
+	    catch { grid remove $fwNormal.ewValue-$nRow }
 	}
 
 	    
@@ -4110,8 +4352,8 @@ proc DrawLabelArea {} {
 	grid columnconfigure $fwTable 0 -weight 1
 
 	# For each row...
-	set maxCol 0
-	set maxRow 0
+	set maxCol -1
+	set maxRow -1
 	set nRow 1
 	foreach sY $tableY {
 
@@ -4190,6 +4432,23 @@ proc UpdateCursorLabelArea {} {
     set err [catch { 
 	set labelValues [GetLabelValuesSet $gaView(current,id) cursor]
 	UpdateLabelArea $gaWidget(labelArea,nCursorArea) $labelValues
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+}
+
+proc UpdateMouseLabelArea { {iViewID -1} } {
+    global gaView
+    global gaWidget
+
+    # Update mouseover info.
+    set viewID $iViewID
+    if { $viewID == -1 } {
+	set viewID $gaView(current,id)
+    }
+
+    set err [catch { 
+	set labelValues [GetLabelValuesSet $viewID mouse]
+	UpdateLabelArea $gaWidget(labelArea,nMouseArea) $labelValues
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 }
@@ -5157,7 +5416,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.125 2005/06/09 19:00:53 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.126 2005/06/13 18:35:37 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

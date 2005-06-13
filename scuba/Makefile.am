@@ -44,7 +44,8 @@ FSDATA_SRCS= \
 	ScubaTransform.cpp \
 	ScubaColorLUT.cpp \
 	ScubaROI.cpp \
-	ScubaROIVolume.cpp
+	ScubaROIVolume.cpp \
+	SegmentationVolumeReport.cpp
 
 LAYER_SRCS=ScubaLayerFactory.cpp \
 	ScubaLayer2DMRI.cpp \
@@ -152,7 +153,8 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testSurfaceCollection testScubaLayers testScubaLayer2DMRI \
 	testScubaView testScubaFrame \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
-	testVectorOps testRASToVoxel testCoordTimer
+	testVectorOps testRASToVoxel testCoordTimer \
+	testSegmentationVolumeReport
 
 TESTS=$(check_PROGRAMS) 
 
@@ -284,6 +286,11 @@ testScubaROI_LDADD=$(LIBS_TCL_OPENGL) \
 testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
 testScubaROIVolume_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
+testSegmentationVolumeReport_SOURCES=test_SegmentationVolumeReport.cpp \
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
+testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 # All the scuba2 stuff.
