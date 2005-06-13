@@ -2,16 +2,13 @@
 #
 
 # This is a sample SetUpFreeSurfer.csh file. You should be able to use
-# it with just a few modiciations.
+# it with just a few modifications.
 
 # Set this to the location of freesrfer/.
 if (! $?FREESURFER_HOME) then 
     setenv FREESURFER_HOME REPLACE_WITH_PREFIX
 endif    
  
-# Call configuration script.
-source $FREESURFER_HOME/FreeSurferEnv.csh
-
 # Set this to your subjects/ dir, usually freesurfer/subjects/
 if (! $?SUBJECTS_DIR) then
     setenv SUBJECTS_DIR $FREESURFER_HOME/subjects
@@ -25,3 +22,7 @@ setenv NO_MINC
 
 # Enable or disable fsfast.
 setenv NO_FSFAST
+
+# Call configuration script.
+source $FREESURFER_HOME/FreeSurferEnv.csh
+
