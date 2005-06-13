@@ -51,6 +51,8 @@ icon_fill_roi.gif \
 icon_folder.gif \
 icon_home.gif \
 icon_label_to_marked.gif \
+icon_label_list.gif \
+icon_label_table.gif \
 icon_line_tool.gif \
 icon_linked_cursors.gif \
 icon_main_volume.gif  \
