@@ -5,13 +5,14 @@
 #   1. Create an environment variable called FREESURFER_HOME and set it
 #      to the directory in which FreeSurfer is installed.
 #   2. From a csh or tcsh shell or (.login): 
-#      source FreeSurfeEnv.csh
+#        source FreeSurferEnv.csh
 #   3. There are environment variables that should point to locations
 #      of software or data used by FreeSurfer. If set prior
 #      to sourcing, they will not be changed, but will otherwise be
 #      set to default locations:
 #        FSFAST_HOME
 #        SUBJECTS_DIR
+#        FUNCTIONALS_DIR
 #        MINC_BIN_DIR  
 #        MINC_LIB_DIR  
 #        FSL_DIR
@@ -30,10 +31,10 @@
 #   script.
 #
 #
-# $Id: FreeSurferEnv.csh,v 1.9 2005/05/05 18:03:36 kteich Exp $
+# $Id: FreeSurferEnv.csh,v 1.10 2005/06/13 21:45:03 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.9 2005/05/05 18:03:36 kteich Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.10 2005/06/13 21:45:03 nicks Exp $'
 
 ## Get the name of the operating system
 set os = `uname -s`
@@ -61,9 +62,9 @@ endif
 ## directory exists.
 if(! $?FREESURFER_HOME) then
   echo "ERROR: environment variable FREESURFER_HOME is not defined"
-  echo "       Run the command 'setenv FREESURFER_HOME  FreeSurferHome'"
-  echo "       where FreeSurferHome is the directory where FreeSurfer is"
-  echo "       installed."
+  echo "       Run the command 'setenv FREESURFER_HOME <FreeSurferHome>'"
+  echo "       where <FreeSurferHome> is the directory where FreeSurfer"
+  echo "       is installed."
   exit 1;
 endif
 
@@ -92,22 +93,16 @@ if(! $?SUBJECTS_DIR  || $FS_OVERRIDE) then
   setenv SUBJECTS_DIR $FREESURFER_HOME/subjects
 endif
 
-if(! $?NO_MINC && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
-  setenv MINC_BIN_DIR $FREESURFER_HOME/minc/bin
-endif
-
-if(! $?NO_MINC && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
-  setenv MINC_LIB_DIR $FREESURFER_HOME/minc/lib
+if(! $?FUNCTIONALS_DIR  || $FS_OVERRIDE) then
+  setenv FUNCTIONALS_DIR $FREESURFER_HOME/sessions
 endif
 
 if(! $?FSL_DIR  || $FS_OVERRIDE) then
   setenv FSL_DIR $FREESURFER_HOME/fsl
 endif
 
-setenv FREESURFER_HOME          $FREESURFER_HOME 
-setenv FREESURFER_HOME        $FREESURFER_HOME
+setenv FREESURFER_HOME  $FREESURFER_HOME
 setenv LOCAL_DIR        $FREESURFER_HOME/local
-setenv FUNCTIONALS_DIR  $FREESURFER_HOME/sessions
 
 ## Make sure these directories exist.
 foreach d ($FSFAST_HOME $SUBJECTS_DIR)
@@ -121,8 +116,19 @@ end
 if( $output ) then
     echo "FREESURFER_HOME $FREESURFER_HOME"
     echo "FSFAST_HOME     $FSFAST_HOME"
-    echo "FSL_DIR         $FSL_DIR"
     echo "SUBJECTS_DIR    $SUBJECTS_DIR"
+endif
+if( $output && $?FUNCTIONALS_DIR ) then
+    echo "FUNCTIONALS_DIR $FUNCTIONALS_DIR"
+endif
+if( $output && $?MINC_BIN_DIR ) then
+    echo "MINC_BIN_DIR    $MINC_BIN_DIR"
+endif
+if( $output && $?MINC_LIB_DIR ) then
+    echo "MINC_LIB_DIR    $MINC_LIB_DIR"
+endif
+if( $output && $?FSL_DIR ) then
+    echo "FSL_DIR         $FSL_DIR"
 endif
 
 ## Talairach subject in anatomical database.
@@ -188,13 +194,14 @@ if(! $?NO_MINC) then
 endif
 
 ### ----------- FSL ------------ ####
-setenv FSL_BIN $FSL_DIR/bin
-if(! -d $FSL_BIN) then
-    if( $output ) then
-	echo "WARNING: $FSL_BIN does not exist.";
+if ( $?FSL_DIR ) then
+    setenv FSL_BIN $FSL_DIR/bin
+    if(! -d $FSL_BIN) then
+	if( $output ) then
+	    echo "WARNING: $FSL_BIN does not exist.";
+	endif
     endif
 endif
-
 
 ## Set up the path. They should probably already have one, but set a
 ## basic one just in case they don't. Then add one with all the
@@ -203,18 +210,18 @@ if(! $?path ) then
   set path = ( ~/bin /bin /usr/bin /usr/local/bin )
 endif
 
+if ( $?FSL_BIN ) then
+    set path = ( $FSL_BIN $path )
+endif
 set path = ( $FSFAST_HOME/bin     \
              $FREESURFER_HOME/bin/noarch      \
              $FREESURFER_HOME/bin/         \
-             $FSL_BIN                   \
 	     $path \
             )
-
 if(! $?NO_MINC) then
   set path = ( $MINC_BIN_DIR $path )
 endif
 rehash;
-
 
 ## Add path to OS-specific dynamic libraries.
 if(! $?LD_LIBRARY_PATH ) then
