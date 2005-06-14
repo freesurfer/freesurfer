@@ -133,6 +133,7 @@ class VolumeCollection : public DataCollection {
   // Return whether or not an ROI is at this point, and if so, returns
   // the color. If multiple ROIs are present, blends the color.
   bool IsSelected ( VolumeLocation& iLoc, int oColor[3] );
+  bool IsSelected ( VolumeLocation& iLoc );
 
   // Return whether or not an ROI is present other than the one passed
   // in.
@@ -224,6 +225,13 @@ class VolumeCollection : public DataCollection {
 
   void PrintVoxelCornerCoords ( std::ostream& iStream,
 				Point3<int>& iMRIIdx );
+
+  void GetVoxelsInStructure ( int nStructure,
+			      std::list<VolumeLocation>& olLocations);
+
+  float GetRASVolumeOfNVoxels ( int icVoxels );
+
+  float GetAverageIntensity ( std::list<VolumeLocation>& ilLocations );
 
 protected:
 

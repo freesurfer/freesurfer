@@ -1,5 +1,7 @@
 #include "SegmentationVolumeReport.h"
 
+using namespace std;
+
 SegmentationVolumeReport& 
 SegmentationVolumeReport::GetReport () {
 
@@ -83,6 +85,7 @@ SegmentationVolumeReport::MakeIntensityReport ( std::string ifnReport ) {
 TclCommandManager::TclCommandResult
 SegmentationVolumeReport::DoListenToTclCommand ( char* isCommand, int, 
 						 char** iasArgv ) {
+  return ok;
 }
 
 void
@@ -90,29 +93,30 @@ SegmentationVolumeReport::MakeVolumeReport () {
 
   // For each structure...
   list<int>::iterator tStructure;
-  for( tStructure = mlStructures.first(); tStructure != mlStructures.end();
+  for( tStructure = mlStructures.begin(); tStructure != mlStructures.end();
        ++tStructure ) {
 
     int nStructure = *tStructure;
 
     // Get a list of voxels with this structure value from our
     // segmentation volume.
-    list<VolumeLocation> lVoxels;
-    list<VolumeLocation>::iterator tVoxel;
-    lVoxels = mSegVol.GetVoxelsInStructure( nStructure );
+    list<VolumeLocation> lLocations;
+    list<VolumeLocation>::iterator tLoc;
+    mSegVol->GetVoxelsInStructure( nStructure, lLocations );
 
     // If we're using an ROI, go through all the voxels and if they
     // are not in the ROI, remove them from our list.
     if( mbUseROI && NULL != mROIVol && NULL != mROI ) {
-      for( tVoxel = lVoxels.first(); tVoxel != lVoxels.end(); ++tVoxel ) {
+      for( tLoc = lLocations.begin(); tLoc != lLocations.end(); ++tLoc ) {
 
 	// We have a location from the seg vol, which may not be the
 	// same volume as the ROI volume. So make a location for the
 	// ROI volume from the RAS of the seg volume location.
 	VolumeLocation& loc = *tLoc;
-	VolumeLocation roiLoc = mROIVol->MakeLocationFromRAS( loc.RAS() );
+	VolumeLocation& roiLoc = 
+	  (VolumeLocation&) mROIVol->MakeLocationFromRAS( loc.RAS() );
 	if( !mROIVol->IsSelected( roiLoc ) ) {
-	  lVoxels.erase( tVoxel );
+	  lLocations.erase( tLoc );
 	}
       }
     }
@@ -120,17 +124,17 @@ SegmentationVolumeReport::MakeVolumeReport () {
     // Get the RAS volume of this many voxels from our segmentation
     // volume.
     mStructureToVolumeMap[nStructure] = 
-      mSegVol.GetRASVolumeOfNVoxels( lVoxels.size() );
+      mSegVol->GetRASVolumeOfNVoxels( lLocations.size() );
 
     // For each intensity volume...
     list<VolumeCollection*>::iterator tVol;
     for( tVol = mlIntVols.begin(); tVol != mlIntVols.end(); ++tVol ) {
 
-      VolumeCollection& vol = *(*tVol);
+      VolumeCollection* vol = (*tVol);
 
       // Get the average intensity for this list of voxels.
       mVolumeToIntensityAverageMap[vol][nStructure] = 
-	vol.GetAverageIntensity( lVoxels );
+	vol->GetAverageIntensity( lLocations );
     }
   }
 }

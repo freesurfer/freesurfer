@@ -991,6 +991,14 @@ VolumeCollection::IsSelected ( VolumeLocation& iLoc, int oColor[3] ) {
 }
 
 bool 
+VolumeCollection::IsSelected ( VolumeLocation& iLoc ) {
+
+  // Check the selection volume cache.
+  return 
+    mSelectedVoxels->Get_Unsafe( iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] );
+}
+
+bool 
 VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
 
   // Check the selectin volume cache first.
@@ -1702,6 +1710,24 @@ VolumeCollection::PrintVoxelCornerCoords ( ostream& iStream,
     MRIIndexToRAS( voxelIdx[nCorner].xyz(), voxelRAS[nCorner].xyz() );
     iStream << nCorner << ": " << voxelRAS[nCorner] << endl;
   }
+}
+
+void
+VolumeCollection::GetVoxelsInStructure ( int nStructure,
+					 list<VolumeLocation>& olLocations ) {
+
+}
+
+float 
+VolumeCollection::GetRASVolumeOfNVoxels ( int icVoxels ) {
+
+  return 0;
+}
+
+float 
+VolumeCollection::GetAverageIntensity ( list<VolumeLocation>& ilLocations ) {
+
+  return 0;
 }
 
 VectorOps::IntersectionResult 

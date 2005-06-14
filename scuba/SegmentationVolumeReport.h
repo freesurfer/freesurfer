@@ -1,6 +1,8 @@
 #ifndef SegmentationVolumeReport_H
 #define SegmentationVolumeReport_H
 
+#include <list>
+#include <map>
 #include "TclCommandManager.h"
 #include "VolumeCollection.h"
 #include "ScubaROIVolume.h"
@@ -62,7 +64,7 @@ class SegmentationVolumeReport : public TclCommandListener {
   std::map<int,float> mStructureToVolumeMap;
   
   typedef std::map<int,float> tStructureToIntensityAverageMap;
-  std::map<VolumeCollection&,tStructureToIntensityAverageMap> 
+  std::map<VolumeCollection*,tStructureToIntensityAverageMap> 
     mVolumeToIntensityAverageMap;
 };
 
