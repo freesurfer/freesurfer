@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_average_curvature.c,v 1.9 2005/06/14 23:13:37 nicks Exp $";
+static char vcid[] = "$Id: mris_average_curvature.c,v 1.10 2005/06/14 23:17:38 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -43,7 +43,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp, *mrisp_total ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.9 2005/06/14 23:13:37 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.10 2005/06/14 23:17:38 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -124,10 +124,10 @@ main(int argc, char *argv[])
     }
 
   if (mris==NULL)
-		{
-			printf("No surface files found!\n");
-			exit(1);
-		}
+    {
+      printf("No surface files found!\n");
+      exit(1);
+    }
 
   if (output_surf_name)
     {
