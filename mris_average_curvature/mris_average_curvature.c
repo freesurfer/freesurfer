@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_average_curvature.c,v 1.8 2004/03/16 20:57:30 fischl Exp $";
+static char vcid[] = "$Id: mris_average_curvature.c,v 1.9 2005/06/14 23:13:37 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -37,14 +37,13 @@ static char *osurf = NULL ;
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname, *out_fname, *surf_name, fname[200], *sdir, 
-               *hemi ;
+  char         **av, *in_fname, *out_fname, *surf_name, fname[200], *sdir, *hemi ;
   int          ac, nargs, i, skipped ;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp, *mrisp_total ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.8 2004/03/16 20:57:30 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.9 2005/06/14 23:13:37 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -59,11 +58,11 @@ main(int argc, char *argv[])
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
-    nargs = get_option(argc, argv) ;
-    argc -= nargs ;
-    argv += nargs ;
-  }
+    {
+      nargs = get_option(argc, argv) ;
+      argc -= nargs ;
+      argv += nargs ;
+    }
 
   if (argc < 6)
     usage_exit() ;
@@ -78,109 +77,115 @@ main(int argc, char *argv[])
   out_fname = argv[argc-1] ;
 
   mrisp_total = MRISPalloc(1, 3) ;
-	skipped = 0 ;
+  skipped = 0 ;
   for (i = 4 ; i < argc-1 ; i++)
-  {
-    fprintf(stderr, "processing subject %s...\n", argv[i]) ;
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i], hemi, surf_name) ;
-    mris = MRISread(fname) ;
-    if (!mris)
-		{
-      ErrorPrintf(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, fname) ;
-			skipped++ ;
-			continue ;
-		}
-    if (MRISreadCurvatureFile(mris, in_fname) != NO_ERROR)
-		{
-			skipped++ ;
-      ErrorPrintf(ERROR_BADFILE,"%s: could not read curvature file %s.\n",
-                Progname, in_fname);
-			continue ;
-		}
-#if 0
-    if (normalize_flag)
-      MRISnormalizeCurvature(mris) ;
-#endif
-    MRISaverageCurvatures(mris, navgs) ;
-    mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
-#if 0
-    if (!FZERO(sigma))
     {
-      MRI_SP  *mrisp_blur ;
+      fprintf(stderr, "processing subject %s...\n", argv[i]) ;
+      sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i], hemi, surf_name) ;
+      mris = MRISread(fname) ;
+      if (!mris)
+        {
+          ErrorPrintf(ERROR_NOFILE, "%s: could not read surface file %s",
+                      Progname, fname) ;
+          skipped++ ;
+          continue ;
+        }
+      if (MRISreadCurvatureFile(mris, in_fname) != NO_ERROR)
+        {
+          skipped++ ;
+          ErrorPrintf(ERROR_BADFILE,"%s: could not read curvature file %s.\n",
+                      Progname, in_fname);
+          continue ;
+        }
+#if 0
+      if (normalize_flag)
+        MRISnormalizeCurvature(mris) ;
+#endif
+      MRISaverageCurvatures(mris, navgs) ;
+      mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
+#if 0
+      if (!FZERO(sigma))
+        {
+          MRI_SP  *mrisp_blur ;
 
 #if 0
-      mrisp_blur = MRISPblur(mrisp, NULL, sigma, 0) ;
+          mrisp_blur = MRISPblur(mrisp, NULL, sigma, 0) ;
 #else
-      mrisp_blur = MRISPconvolveGaussian(mrisp, NULL, sigma,mris->radius,0);
+          mrisp_blur = MRISPconvolveGaussian(mrisp, NULL, sigma,mris->radius,0);
 #endif
+          MRISPfree(&mrisp) ;
+          mrisp = mrisp_blur ;
+        }
+#endif
+      MRISPcombine(mrisp, mrisp_total, 0) ;
       MRISPfree(&mrisp) ;
-      mrisp = mrisp_blur ;
+      if (i < argc-2)
+        MRISfree(&mris) ;
     }
-#endif
-    MRISPcombine(mrisp, mrisp_total, 0) ;
-    MRISPfree(&mrisp) ;
-    if (i < argc-2)
-      MRISfree(&mris) ;
-  }
+
+  if (mris==NULL)
+		{
+			printf("No surface files found!\n");
+			exit(1);
+		}
 
   if (output_surf_name)
-  {
-    sprintf(fname, "%s/%s/surf/%s.%s", sdir,output_surf_name,ohemi,osurf);
-    fprintf(stderr, "reading output surface %s...\n", fname) ;
-    MRISfree(&mris) ;
-    mris = MRISread(fname) ;
-    if (!mris)
-      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, fname) ;
-  }
+    {
+      sprintf(fname, "%s/%s/surf/%s.%s", sdir,output_surf_name,ohemi,osurf);
+      fprintf(stderr, "reading output surface %s...\n", fname) ;
+      MRISfree(&mris) ;
+      mris = MRISread(fname) ;
+      if (!mris)
+        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                  Progname, fname) ;
+    }
   MRISfromParameterization(mrisp_total, mris, 0) ;
   if (stat_flag)    /* write out summary statistics files */
-  {
-    int    vno ;
-    VERTEX *v ;
-    float  dof ;
-    FILE   *fp ;
+    {
+      int    vno ;
+      VERTEX *v ;
+      float  dof ;
+      FILE   *fp ;
 
-    sprintf(fname, "%s/sigavg%d-%s.w", out_fname, condition_no, ohemi);
-    fprintf(stderr, "writing output means to %s\n", fname) ;
-    MRISwriteCurvatureToWFile(mris, fname) ;
+      sprintf(fname, "%s/sigavg%d-%s.w", out_fname, condition_no, ohemi);
+      fprintf(stderr, "writing output means to %s\n", fname) ;
+      MRISwriteCurvatureToWFile(mris, fname) ;
 
-    MRISfromParameterization(mrisp_total, mris, 1) ;
+      MRISfromParameterization(mrisp_total, mris, 1) ;
     
-    /* change variances to squared standard errors */
-    dof = *IMAGEFseq_pix(mrisp_total->Ip, 0, 0, 2) ;
-    if (!FZERO(dof)) for (vno = 0 ; vno < mris->nvertices ; vno++)
-      {
-        v = &mris->vertices[vno] ;
-        if (v->ripflag)
-          continue ;
-        v->curv /= dof ;   /* turn it into a standard error */
-      }
+      /* change variances to squared standard errors */
+      dof = *IMAGEFseq_pix(mrisp_total->Ip, 0, 0, 2) ;
+      if (!FZERO(dof)) for (vno = 0 ; vno < mris->nvertices ; vno++)
+        {
+          v = &mris->vertices[vno] ;
+          if (v->ripflag)
+            continue ;
+          v->curv /= dof ;   /* turn it into a standard error */
+        }
 
-    sprintf(fname, "%s/sigvar%d-%s.w", out_fname, condition_no, ohemi);
-    fprintf(stderr, "writing output variances to %s\n", fname) ;
-    MRISwriteCurvatureToWFile(mris, fname) ;
+      sprintf(fname, "%s/sigvar%d-%s.w", out_fname, condition_no, ohemi);
+      fprintf(stderr, "writing output variances to %s\n", fname) ;
+      MRISwriteCurvatureToWFile(mris, fname) ;
 
-    /* write out dof file */
-    sprintf(fname, "%s/sigavg%d.dof", out_fname, condition_no) ;
-    fp = fopen(fname, "w") ;
-    if (!fp)
-      ErrorExit(ERROR_NOFILE, "%s: could not open dof file %s\n",
-                Progname,fname);
-    fprintf(stderr, "writing dof file %s\n", fname) ;
-    fprintf(fp, "%d\n", (int)dof) ;
-    fclose(fp) ;
-  }
+      /* write out dof file */
+      sprintf(fname, "%s/sigavg%d.dof", out_fname, condition_no) ;
+      fp = fopen(fname, "w") ;
+      if (!fp)
+        ErrorExit(ERROR_NOFILE, "%s: could not open dof file %s\n",
+                  Progname,fname);
+      fprintf(stderr, "writing dof file %s\n", fname) ;
+      fprintf(fp, "%d\n", (int)dof) ;
+      fclose(fp) ;
+    }
   else
-  {
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr,"writing blurred pattern to surface to %s\n",out_fname);
-    MRISwriteCurvature(mris, out_fname) ;
-  }
+    {
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr,"writing blurred pattern to surface to %s\n",out_fname);
+      MRISwriteCurvature(mris, out_fname) ;
+    }
 
-	if (skipped > 0)
-		printf("%d subjects skipped...\n", skipped) ;
+  if (skipped > 0)
+    printf("%d subjects skipped...\n", skipped) ;
 
   MRISfree(&mris) ;
   MRISPfree(&mrisp_total) ;
@@ -189,10 +194,10 @@ main(int argc, char *argv[])
 }
 
 /*----------------------------------------------------------------------
-            Parameters:
+  Parameters:
 
-           Description:
-----------------------------------------------------------------------*/
+  Description:
+  ----------------------------------------------------------------------*/
 static int
 get_option(int argc, char *argv[])
 {
@@ -205,49 +210,49 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "-version"))
     print_version() ;
   else if (!stricmp(option, "ohemi"))
-  {
-    ohemi = argv[2] ;
-    fprintf(stderr, "output hemisphere = %s\n", ohemi) ;
-    nargs = 1 ;
-  }
+    {
+      ohemi = argv[2] ;
+      fprintf(stderr, "output hemisphere = %s\n", ohemi) ;
+      nargs = 1 ;
+    }
   else if (!stricmp(option, "osurf"))
-  {
-    osurf = argv[2] ;
-    fprintf(stderr, "output surface = %s\n", osurf) ;
-    nargs = 1 ;
-  }
+    {
+      osurf = argv[2] ;
+      fprintf(stderr, "output surface = %s\n", osurf) ;
+      nargs = 1 ;
+    }
   else switch (toupper(*option))
-  {
-  case 'A':
-    navgs = atoi(argv[2]) ;
-    fprintf(stderr, "blurring thickness for %d iterations\n",navgs);
-    nargs = 1 ;
-    break ;
-  case 'O':
-    output_surf_name = argv[2] ;
-    nargs = 1 ;
-    fprintf(stderr, "painting output onto subject %s.\n", output_surf_name);
-    break ;
-  case '?':
-  case 'U':
-    print_usage() ;
-    exit(1) ;
-    break ;
-  case 'S':   /* write out stats */
-    stat_flag = 1 ;
-    condition_no = atoi(argv[2]) ;
-    nargs = 1 ;
-    fprintf(stderr, "writing out summary statistics as condition %d\n",
-            condition_no) ;
-    break ;
-  case 'N':
-    normalize_flag = 1 ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+    {
+    case 'A':
+      navgs = atoi(argv[2]) ;
+      fprintf(stderr, "blurring thickness for %d iterations\n",navgs);
+      nargs = 1 ;
+      break ;
+    case 'O':
+      output_surf_name = argv[2] ;
+      nargs = 1 ;
+      fprintf(stderr, "painting output onto subject %s.\n", output_surf_name);
+      break ;
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    case 'S':   /* write out stats */
+      stat_flag = 1 ;
+      condition_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      fprintf(stderr, "writing out summary statistics as condition %d\n",
+              condition_no) ;
+      break ;
+    case 'N':
+      normalize_flag = 1 ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
@@ -278,11 +283,11 @@ print_help(void)
 {
   print_usage() ;
   fprintf(stderr, 
-       "\nThis program will add a template into an average surface.\n");
+          "\nThis program will add a template into an average surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr, "-s <cond #>     generate summary statistics and write\n"
-                  "                them into sigavg<cond #>-<hemi>.w and\n"
-                  "                sigvar<cond #>-<hemi>.w.\n") ;
+          "                them into sigavg<cond #>-<hemi>.w and\n"
+          "                sigvar<cond #>-<hemi>.w.\n") ;
   exit(1) ;
 }
 
