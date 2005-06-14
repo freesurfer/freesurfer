@@ -755,13 +755,28 @@ GCSAread(char *fname)
 	while (!feof(fp))
 	{
 		int tag ;
+		COLOR_TABLE *tmp_ct;
 
 		tag = freadInt(fp) ;
 		switch (tag)
 		{
 		case TAG_COLORTABLE:
 			printf("reading color table from GCSA file....\n") ;
-			gcsa->ct = CTABreadFrom(fp) ;
+			tmp_ct = CTABreadFrom(fp) ;
+			//printf("gcsa ct:%8.8X, bins:%8.8X, nbins: %d, fname: %s\n",
+			//       tmp_ct, tmp_ct->bins, tmp_ct->nbins, tmp_ct->fname);
+			// NJS: for some reason, on Mac OS X Tiger, the feof(fp)
+			// while loop loops twice instead of once, and on the second
+			// time, overwrites gcsa->ct with a valid pointer, but an
+			// nbins=0 and null fname, even though in the prior loop,
+			// the proper data was found, so this is a hacky fix that
+			// retains compatibility across platforms (hopefully!).
+			// The symptom of this bug was that mris_anatomical_stats
+			// would display '** annotate' instead of the proper name.
+			if ((tmp_ct->nbins > 0) && (tmp_ct->fname != NULL))
+			{
+			  gcsa->ct = tmp_ct;
+			}
 			break ;
 		default:
 			break ;
