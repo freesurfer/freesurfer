@@ -1,0 +1,295 @@
+#!/bin/tcsh -ef
+#
+# make_average_surface
+#
+# Creates average surfaces and curvatures from a set of subjects.
+#
+
+set VERSION = '$Id: make_average_surface,v 1.1 2005/06/14 22:37:26 nicks Exp $';
+
+set PrintHelp = 0;
+
+if ( $?SUBJECTS) then
+    set SUBJECTS=($SUBJECTS)
+endif
+if ( $?SUBJECTS_DIR) then
+    set SUBJECTS_DIR=($SUBJECTS_DIR)
+endif
+
+set average_subject=average
+set ddir = ${SUBJECTS_DIR}/${average_subject}
+
+# note: SUBJECTS can be set by --subjects
+# SUBJECTS_DIR can be set by --sdir
+# and average_subject can be set by --out
+
+if($#argv == 0) then
+    # zero args is allowed only if SUBJECTS env var is declared
+    if ( ! $?SUBJECTS) then
+	goto usage_exit;
+    endif
+endif
+
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+set n = `echo $argv | grep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set PWD = `getpwdcmd`;
+if($status) exit 1;
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+#
+# Begin script guts...
+#
+echo ====================
+echo make_average_surface
+echo ====================
+echo input subjects: ${SUBJECTS}
+echo output subject: ${average_subject}
+
+mkdir -p ${ddir} \
+	${ddir}/surf \
+	${ddir}/mri \
+	${ddir}/mri/transforms \
+	${ddir}/mri/T1 \
+	${ddir}/mri/orig \
+	${ddir}/mri/label
+
+if (-e ${SUBJECTS_DIR}/${average_subject} == 0) then
+	mksubjdirs ${SUBJECTS_DIR}/${average_subject}
+else
+	mkdir -p ${SUBJECTS_DIR}/${average_subject}/surf
+endif
+
+set primer_subject=$SUBJECTS[1];
+cp ${SUBJECTS_DIR}/${primer_subject}/mri/T1/COR-.info \
+    ${SUBJECTS_DIR}/${average_subject}/mri/T1
+cp ${SUBJECTS_DIR}/${primer_subject}/mri/orig/COR-.info \
+    ${SUBJECTS_DIR}/${average_subject}/mri/orig
+
+foreach hemi (lh rh)
+	foreach c (sulc curv)
+	    echo mris_average_curvature...
+	    mris_average_curvature \
+		sulc \
+		${hemi} \
+		sphere.reg \
+		$SUBJECTS \
+		../${average_subject}/surf/${hemi}.avg_${c}
+	end
+	foreach s (orig white pial inflated)
+	    echo mris_make_average_surface...
+	    mris_make_average_surface \
+		-i 7 \
+		-o $s \
+		${hemi} \
+		${s}_avg sphere.reg \
+		${average_subject} \
+		$SUBJECTS
+	end
+	cd ${SUBJECTS_DIR}/${average_subject}/surf	
+	pwd	
+	mris_smooth -n 5 ./${hemi}.white_avg ./${hemi}.smoothwm
+	mris_inflate  ./${hemi}.smoothwm ./${hemi}.inflated
+	mris_curvature -a 10 -w ./${hemi}.white_avg
+	cp ${hemi}.white_avg.H  ${hemi}.curv
+	cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg .
+	ln -s -f ${hemi}.sphere.reg ${hemi}.sphere
+	set echo=1
+	mris_average_curvature \
+	    -o ${average_subject} \
+	    curv \
+	    ${hemi} \
+	    sphere.reg \
+	    $SUBJECTS \
+	    ./${hemi}.curv
+	mris_average_curvature \
+	    -o ${average_subject} \
+	    sulc \
+	    ${hemi} sphere.reg \
+	    $SUBJECTS \
+	    ./${hemi}.sulc
+	mris_average_curvature \
+	    -o ${average_subject} \
+	    thickness \
+	    ${hemi} \
+	    sphere.reg \
+	    $SUBJECTS \
+	    ./${hemi}.thickness
+end
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+set getting_subjects = 0;
+while( $#argv != 0 )
+
+  set flag = $argv[1]; 
+  if (! $getting_subjects) then
+    shift;
+  endif
+
+  switch($flag)
+
+    case "--subjects":
+      if ( $#argv == 0) goto arg1moreerr;
+      set SUBJECTS = $argv[1]; shift;
+      # loop on getting variable number of subject names
+      set getting_subjects = 1; # see 'default:' case 
+      breaksw
+
+    case "--out":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+	shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set average_subject = $argv[1]; shift;
+      set ddir = ${SUBJECTS_DIR}/${average_subject}
+      breaksw
+
+    case "--sd":
+    case "--sdir":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+	shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set SUBJECTS_DIR = $argv[1]; shift;
+      set SUBJECTS_DIR = `basename ${SUBJECTS_DIR}`; # remove trailing /
+      set ddir = ${SUBJECTS_DIR}/${average_subject}
+      breaksw
+
+    case "--debug":
+    case "--echo":
+      set echo = 1;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
+    default:
+      if ( $getting_subjects ) then
+        # loop on getting variable number of subjects,
+        # until a new flag is found, or no more args
+        set SUBJECTS = "$SUBJECTS $argv[1]"; shift;
+        set getting_subjects = 1;
+      else
+        echo ERROR: Flag $flag unrecognized. 
+        echo $cmdline
+        exit 1
+      endif
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if (! $?SUBJECTS) then
+    echo "ERROR: no subjects declared!"
+    echo "Either declare subjects in SUBJECTS variable,"
+    echo "or declare using --subjects argument."
+    exit 1
+  endif
+  if (! $?SUBJECTS_DIR) then
+    echo "ERROR: SUBJECTS_DIR is not declared!"
+    echo "Either set the SUBJECTS_DIR environment variable,"
+    echo "or declare using --sdir argument, the root directory"
+    echo "for subject data files."
+    exit 1
+  endif
+  if(! -e $SUBJECTS_DIR ) then
+    echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
+    exit 1;
+  endif
+  if(! $?FREESURFER_HOME ) then
+    echo "ERROR: environment variable FREESURFER_HOME not set."
+    exit 1;
+  endif
+  if(! -e $FREESURFER_HOME ) then
+    echo "ERROR: FREESURFER_HOME $FREESURFER_HOME does not exist."
+    exit 1;
+  endif
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg1moreerr:
+  echo "ERROR: flag $flag requires one or more arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: make_average_surface"
+  echo ""
+  echo "Required Arguments"
+  echo "   --subjects <subj1> <subj2> ... <subjN>" 
+  echo "             : or declare subjects in SUBJECTS env var"
+  echo ""
+  echo "Optional Arguments"
+  echo "   --out <average subject name>    : default name is 'average'"
+  echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
+  echo "   --sd      : same as --sdir"
+  echo ""
+  echo "   --help    : short descriptive help"
+  echo "   --version : script version info"
+  echo "   --echo    : enable command echo, for debug"
+  echo ""
+  echo "See also: recon-all, make_final_surfaces, morph_subject"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo Version: $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Creates average surfaces and curvatures from a set of subjects.
+
+Calls mris_average_curvature, mris_make_average_surface, mris_smooth,
+mris_inflate, and mris_curvature.
+
+GETTING HELP
+
+Run recon-all --help for extensive text on the reconstruction process. 
+Or, send email to freesurfer@nmr.mgh.harvard.edu. 
+Also see http://surfer.nmr.mgh.harvard.edu.
+
