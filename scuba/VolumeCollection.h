@@ -223,15 +223,19 @@ class VolumeCollection : public DataCollection {
       Point3<float>& iSegIdxA, Point3<float>& iSegIdxB, 
       Point3<float>& oIntersectionIdx );
 
-  void PrintVoxelCornerCoords ( std::ostream& iStream,
-				Point3<int>& iMRIIdx );
+  // Returns a list of volume locations whose voxels have the given value.
+  void GetVoxelsWithValue ( float iValue,
+			    std::list<VolumeLocation>& olLocations);
 
-  void GetVoxelsInStructure ( int nStructure,
-			      std::list<VolumeLocation>& olLocations);
-
+  // Returns the volume of N voxels.
   float GetRASVolumeOfNVoxels ( int icVoxels );
 
-  float GetAverageIntensity ( std::list<VolumeLocation>& ilLocations );
+  // Returne the average value of the input locations.
+  float GetAverageValue ( std::list<VolumeLocation>& ilLocations );
+
+  // Print out the corner RAS coordinates of a voxel.
+  void PrintVoxelCornerCoords ( std::ostream& iStream,
+				Point3<int>& iMRIIdx );
 
 protected:
 

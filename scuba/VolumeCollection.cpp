@@ -1713,21 +1713,65 @@ VolumeCollection::PrintVoxelCornerCoords ( ostream& iStream,
 }
 
 void
-VolumeCollection::GetVoxelsInStructure ( int nStructure,
-					 list<VolumeLocation>& olLocations ) {
+VolumeCollection::GetVoxelsWithValue ( float iValue,
+				       list<VolumeLocation>& olLocations ) {
 
+  for( int nZ = 0; nZ < mMRI->depth; nZ++ ) {
+    for( int nY = 0; nY < mMRI->height; nY++ ) {
+      for( int nX = 0; nX < mMRI->width; nX++ ) {
+	
+	float value;
+	switch( mMRI->type ) {
+	case MRI_UCHAR:
+	  value = (float)MRIvox(mMRI, nX, nY, nZ );
+	  break;
+	case MRI_SHORT:
+	  value = (float)MRISvox( mMRI, nX, nY, nZ );
+	  break;
+	case MRI_INT:
+	  value = (float)MRIIvox( mMRI, nX, nY, nZ );
+	  break;
+	case MRI_FLOAT:
+	  value = MRIFvox( mMRI, nX, nY, nZ );
+	  break;
+	default:
+	  value = 0;
+	}
+	
+	if( fabs( value - iValue ) < EPSILON ) {
+	  int index[3] = { nX, nY, nZ };
+	  VolumeLocation& loc = 
+	    (VolumeLocation&) MakeLocationFromIndex( index );
+	  olLocations.push_back( loc );
+	}
+      }
+    }
+  }
 }
 
 float 
 VolumeCollection::GetRASVolumeOfNVoxels ( int icVoxels ) {
 
-  return 0;
+  return GetVoxelXSize() * GetVoxelYSize() * GetVoxelZSize() * (float)icVoxels;
 }
 
 float 
-VolumeCollection::GetAverageIntensity ( list<VolumeLocation>& ilLocations ) {
+VolumeCollection::GetAverageValue ( list<VolumeLocation>& ilLocations ) {
 
-  return 0;
+  if( ilLocations.size() < 1 ) {
+    throw runtime_error( "Empty list" );
+  }
+
+  float sumValue = 0;
+  list<VolumeLocation>::iterator tLocation;
+  for( tLocation = ilLocations.begin(); tLocation != ilLocations.end();
+       ++tLocation ) {
+
+    VolumeLocation loc = *tLocation;
+    sumValue += GetMRINearestValue( loc );
+  }
+
+  return sumValue / (float)ilLocations.size();
 }
 
 VectorOps::IntersectionResult 
