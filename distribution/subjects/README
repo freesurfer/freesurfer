@@ -1,0 +1,9 @@
+This directory is the default location for subject data files.
+
+A different directory can be specified by setting the env var
+SUBJECTS_DIR prior to the 'source $FREESURFER_HOME/FreeSurferEnv.csh'
+statement in your .cshrc or .login file.
+
+Use the mksubjdirs command to create the subject directory 
+structure for a new subject.
+
