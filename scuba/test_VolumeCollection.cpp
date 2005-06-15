@@ -47,6 +47,13 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
   
   try {
   
+    char* testDataPath = getenv("FSDEV_TEST_DATA");
+    if( NULL == testDataPath ) {
+      throw
+	runtime_error("Couldn't load test data: FSDEV_TEST_DATA not defined" );
+    }
+    string fnTestDataPath( testDataPath );
+
     string fnMRI = "/Users/kteich/work/subjects/bert/mri/T1";
     
     char* sSubjectsDir = getenv("SUBJECTS_DIR");
@@ -259,6 +266,57 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     // FindRASPointsOnSegment
     {
 
+    }
+
+
+    // GetVoxelsInStructure
+    {
+      // This is a 5cubed volume whose values are set to the x
+      // coordinate. So for x=3,y=0..4,z=0..4, value = 3. 
+      string fnVol = testDataPath +
+	string("/anatomical/testVolumeCollection-GetVoxelsInStructure.mgh");
+      VolumeCollection vol;
+      vol.SetFileName( fnVol );
+      vol.LoadVolume();
+
+      // Get the values 0-4 and make sure we got the right voxels.
+      for( int nStructure = 0; nStructure < 5; nStructure++ ) {
+
+	list<VolumeLocation> lLocations;
+	vol.GetVoxelsInStructure( nStructure, lLocations );
+
+	Volume3<bool> bGot( 5, 5, 5, false );
+	list<VolumeLocation>::iterator tLocation;
+	for( tLocation = lLocations.begin(); tLocation != lLocations.end();
+	     ++tLocation ) {
+	  
+	  VolumeLocation loc = *(tLocation);
+	  bGot.Set( loc.Index()[0], loc.Index()[1], loc.Index()[2], true );
+	}
+	
+	for( int nZ = 0; nZ < 5; nZ++ ) {
+	  for( int nY = 0; nY < 5; nY++ ) {
+	    for( int nX = 0; nX < 5; nX++ ) {
+	      if( nX == nStructure && !bGot.Get( nX, nY, nZ ) ) {
+		stringstream ssErr;
+		ssErr << "Failed GetVoxelsInStructure test: "
+		      << " nStructure = " << nStructure 
+		      << " index " << Point3<int>(nX,nY,nZ) 
+		      << " - was supposed to get voxel but didn't";
+		throw runtime_error(ssErr.str());
+	      }
+	      if( nX != nStructure && bGot.Get( nX, nY, nZ ) ) {
+		stringstream ssErr;
+		ssErr << "Failed GetVoxelsInStructure test: "
+		      << " nStructure = " << nStructure 
+		      << " index " << Point3<int>(nX,nY,nZ) 
+		      << " - wasn't supposed to get voxel but did";
+		throw runtime_error(ssErr.str());
+	      }
+	    }
+	  }
+	}
+      }
     }
 
 
