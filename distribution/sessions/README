@@ -1,0 +1,6 @@
+This directory is the default location for functional session data files.
+
+A different directory can be specified by setting the env var
+FUNCTIONALS_DIR prior to the 'source $FREESURFER_HOME/FreeSurferEnv.csh'
+statement in your .cshrc or .login file.
+
