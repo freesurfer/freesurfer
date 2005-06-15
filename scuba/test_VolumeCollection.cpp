@@ -269,12 +269,12 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     }
 
 
-    // GetVoxelsInStructure
+    // GetVoxelsWithValue
     {
       // This is a 5cubed volume whose values are set to the x
       // coordinate. So for x=3,y=0..4,z=0..4, value = 3. 
       string fnVol = testDataPath +
-	string("/anatomical/testVolumeCollection-GetVoxelsInStructure.mgh");
+	string("/anatomical/testVolumeCollection-GetVoxelsWithValue.mgh");
       VolumeCollection vol;
       vol.SetFileName( fnVol );
       vol.LoadVolume();
@@ -283,7 +283,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       for( int nStructure = 0; nStructure < 5; nStructure++ ) {
 
 	list<VolumeLocation> lLocations;
-	vol.GetVoxelsInStructure( nStructure, lLocations );
+	vol.GetVoxelsWithValue( nStructure, lLocations );
 
 	Volume3<bool> bGot( 5, 5, 5, false );
 	list<VolumeLocation>::iterator tLocation;
@@ -299,7 +299,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	    for( int nX = 0; nX < 5; nX++ ) {
 	      if( nX == nStructure && !bGot.Get( nX, nY, nZ ) ) {
 		stringstream ssErr;
-		ssErr << "Failed GetVoxelsInStructure test: "
+		ssErr << "Failed GetVoxelsWithValue test: "
 		      << " nStructure = " << nStructure 
 		      << " index " << Point3<int>(nX,nY,nZ) 
 		      << " - was supposed to get voxel but didn't";
@@ -307,7 +307,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	      }
 	      if( nX != nStructure && bGot.Get( nX, nY, nZ ) ) {
 		stringstream ssErr;
-		ssErr << "Failed GetVoxelsInStructure test: "
+		ssErr << "Failed GetVoxelsWithValue test: "
 		      << " nStructure = " << nStructure 
 		      << " index " << Point3<int>(nX,nY,nZ) 
 		      << " - wasn't supposed to get voxel but did";
@@ -316,6 +316,66 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	    }
 	  }
 	}
+      }
+    }
+
+    // GetAverageValue
+    {
+      // We'll use the same volume as with GetVoxelsWithValue.
+      string fnVol = testDataPath +
+	string("/anatomical/testVolumeCollection-GetVoxelsWithValue.mgh");
+      VolumeCollection vol;
+      vol.SetFileName( fnVol );
+      vol.LoadVolume();
+      
+      // Get values of all voxels in plane x=3 and make sure it's 3.
+      list<VolumeLocation> lVoxels;
+      for( int nZ = 0; nZ < 5; nZ++ ) {
+	for( int nY = 0; nY < 5; nY++ ) {
+	  int index[3] = { 3, nY, nZ };
+	  VolumeLocation& loc = 
+	    (VolumeLocation&) vol.MakeLocationFromIndex( index );
+	  lVoxels.push_back( loc );
+	}
+      }
+      float average = vol.GetAverageValue( lVoxels );
+      if( average != 3.0 ) {
+	stringstream ssErr;
+	ssErr << "Failed GetAverageValue: Getting all voxels in x=3, "
+	      << "average should have been 3, but was " << average;
+	throw runtime_error( ssErr.str() );
+      }
+
+      // Get values of 5 voxels, one from each x plane
+      // (val=0,1,2,3,4), and make sure it's 2.
+      lVoxels.clear();
+      for( int nX = 0; nX < 5; nX++ ) {
+	int index[3] = { nX, 3, 3 };
+	VolumeLocation& loc = 
+	    (VolumeLocation&) vol.MakeLocationFromIndex( index );
+	lVoxels.push_back( loc );
+      }
+      average = vol.GetAverageValue( lVoxels );
+      if( average != 2.0 ) {
+	stringstream ssErr;
+	ssErr << "Failed GetAverageValue: Getting voxels in different planes, "
+	      << "average should have been 2, but was " << average;
+	throw runtime_error( ssErr.str() );
+      }
+      
+      // Make sure we get an error for no voxels.
+      lVoxels.clear();
+      bool bDidntThrow = false;
+      try {
+	average = vol.GetAverageValue( lVoxels );
+	bDidntThrow = true;
+      }
+      catch( exception& e ) {
+      }
+      if( bDidntThrow ) {
+	stringstream ssErr;
+	ssErr << "Failed GetAverageValue: Didn't throw with empty list";
+	throw runtime_error( ssErr.str() );
       }
     }
 
