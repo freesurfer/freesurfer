@@ -3,8 +3,10 @@
 #
 # licence files should be copied over to the install directory
 foodir=$(prefix)/docs
-foo_DATA=citation.minc license.freesurfer  license.mesa  copywrite.minc license.fsl license.minc \
-  registration.notes license.gnu license.tcltk license.html_lib license.tix license.afni
+foo_DATA=citation.minc license.freesurfer  license.mesa  \
+	copywrite.minc license.fsl license.minc \
+  registration.notes license.gnu license.tcltk \
+	license.html_lib license.tix license.afni
 
 # big pdf and .ps files are only installed when release is specified
 .PHONY: release
