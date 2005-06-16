@@ -31,10 +31,10 @@
 #   script.
 #
 #
-# $Id: FreeSurferEnv.csh,v 1.10 2005/06/13 21:45:03 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.11 2005/06/16 21:55:40 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.10 2005/06/13 21:45:03 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.11 2005/06/16 21:55:40 nicks Exp $'
 
 ## Get the name of the operating system
 set os = `uname -s`
@@ -97,8 +97,10 @@ if(! $?FUNCTIONALS_DIR  || $FS_OVERRIDE) then
   setenv FUNCTIONALS_DIR $FREESURFER_HOME/sessions
 endif
 
-if(! $?FSL_DIR  || $FS_OVERRIDE) then
-  setenv FSL_DIR $FREESURFER_HOME/fsl
+if(! $?FSL_DIR || $FS_OVERRIDE ) then
+  if ( -e $FREESURFER_HOME/fsl) then
+    setenv FSL_DIR $FREESURFER_HOME/fsl
+  endif
 endif
 
 setenv FREESURFER_HOME  $FREESURFER_HOME
