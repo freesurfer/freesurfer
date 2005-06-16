@@ -4,7 +4,7 @@
 # This is a sample SetUpFreeSurfer.csh file. You should be able to use
 # it with just a few modifications.
 
-# Set this to the location of freesrfer/.
+# Set this to the location of freesurfer/.
 if (! $?FREESURFER_HOME) then 
     setenv FREESURFER_HOME REPLACE_WITH_PREFIX
 endif    
@@ -30,4 +30,3 @@ setenv NO_FSFAST
 
 # Call configuration script.
 source $FREESURFER_HOME/FreeSurferEnv.csh
-
