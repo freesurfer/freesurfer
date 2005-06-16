@@ -33,7 +33,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.10 2005/06/08 19:45:18 nicks Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.11 2005/06/16 19:40:45 nicks Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -102,13 +102,12 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.10 2005/06/08 19:45:18 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.11 2005/06/16 19:40:45 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
   tmpstr[0] = 'a'; /* to stop compiler warning */
-
 
   Progname = argv[0] ;
   argc --;
@@ -594,7 +593,7 @@ char *RepString(int RepCode)
   ---------------------------------------------------------------*/
 char *ElementValueString(DCM_ELEMENT *e)
 {
-  extern char tmpstr[TMPSTRLEN];
+	// declared at top of file:  extern char tmpstr[TMPSTRLEN];
   char* evstring;
   int len;
 
@@ -919,7 +918,7 @@ int DumpSiemensASCII(char *dicomfile, FILE *fpout)
 
   DCM_ELEMENT *e;
   FILE *fp;
-  extern char tmpstr[TMPSTRLEN]; 
+  // declared at top of file: char tmpstr[TMPSTRLEN]; 
   int dumpline, nthchar;
   char *rt;
   char *BeginStr;
