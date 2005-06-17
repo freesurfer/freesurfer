@@ -31,10 +31,10 @@
 #   script.
 #
 #
-# $Id: FreeSurferEnv.csh,v 1.11 2005/06/16 21:55:40 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.12 2005/06/17 14:55:15 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.11 2005/06/16 21:55:40 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.12 2005/06/17 14:55:15 nicks Exp $'
 
 ## Get the name of the operating system
 set os = `uname -s`
@@ -51,27 +51,25 @@ if($?USER == 0 || $?prompt == 0) then
     set output = 0
 endif
 
-
 if( $output ) then
     echo "Setting up enviroment for FreeSurfer/FS-FAST"
     echo $VERSION
 endif
 
-
 ## Check if FREESURFER_HOME variable exists, then check if the actual
 ## directory exists.
 if(! $?FREESURFER_HOME) then
-  echo "ERROR: environment variable FREESURFER_HOME is not defined"
-  echo "       Run the command 'setenv FREESURFER_HOME <FreeSurferHome>'"
-  echo "       where <FreeSurferHome> is the directory where FreeSurfer"
-  echo "       is installed."
-  exit 1;
+    echo "ERROR: environment variable FREESURFER_HOME is not defined"
+    echo "       Run the command 'setenv FREESURFER_HOME <FreeSurferHome>'"
+    echo "       where <FreeSurferHome> is the directory where FreeSurfer"
+    echo "       is installed."
+    exit 1;
 endif
 
 if(! -e $FREESURFER_HOME) then
-  echo "ERROR: $FREESURFER_HOME "
-  echo "       does not exist. Check that this value is correct.";
-  exit 1;
+    echo "ERROR: $FREESURFER_HOME "
+    echo "       does not exist. Check that this value is correct.";
+    exit 1;
 endif
 
 ## Now we'll set directory locations based on FREESURFER_HOME for use
@@ -84,23 +82,30 @@ if(! $?FS_OVERRIDE) then
     setenv FS_OVERRIDE 0
 endif
 
-
 if(! $?FSFAST_HOME || $FS_OVERRIDE) then
-  setenv FSFAST_HOME $FREESURFER_HOME/fsfast
+    setenv FSFAST_HOME $FREESURFER_HOME/fsfast
 endif
 
 if(! $?SUBJECTS_DIR  || $FS_OVERRIDE) then
-  setenv SUBJECTS_DIR $FREESURFER_HOME/subjects
+    setenv SUBJECTS_DIR $FREESURFER_HOME/subjects
 endif
 
 if(! $?FUNCTIONALS_DIR  || $FS_OVERRIDE) then
-  setenv FUNCTIONALS_DIR $FREESURFER_HOME/sessions
+    setenv FUNCTIONALS_DIR $FREESURFER_HOME/sessions
 endif
 
-if(! $?FSL_DIR || $FS_OVERRIDE ) then
-  if ( -e $FREESURFER_HOME/fsl) then
-    setenv FSL_DIR $FREESURFER_HOME/fsl
-  endif
+if(! $?NO_MINC && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
+    setenv MINC_BIN_DIR $FREESURFER_HOME/minc/bin
+endif
+
+if(! $?NO_MINC && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
+    setenv MINC_LIB_DIR $FREESURFER_HOME/minc/lib
+endif
+
+if(! $?FSL_DIR  || $FS_OVERRIDE) then
+    if ( -e $FREESURFER_HOME/fsl) then
+        setenv FSL_DIR $FREESURFER_HOME/fsl
+    endif
 endif
 
 setenv FREESURFER_HOME  $FREESURFER_HOME
@@ -108,11 +113,11 @@ setenv LOCAL_DIR        $FREESURFER_HOME/local
 
 ## Make sure these directories exist.
 foreach d ($FSFAST_HOME $SUBJECTS_DIR)
-  if(! -e $d ) then
-      if( $output ) then
-	  echo "WARNING: $d does not exist"
-      endif
-  endif
+    if(! -e $d ) then
+        if( $output ) then
+            echo "WARNING: $d does not exist"
+        endif
+    endif
 end
 
 if( $output ) then
@@ -139,69 +144,69 @@ setenv FS_TALAIRACH_SUBJECT talairach
 
 ######## --------- Functional Analysis Stuff ----------- #######
 if( ! $?NO_FSFAST) then
-  setenv FMRI_ANALYSIS_DIR $FSFAST_HOME # backwards compatability
-  set SUF = ~/matlab/startup.m
-  if(! -e $SUF) then
-    echo "INFO: $SUF does not exist ... creating"
-    mkdir -p ~/matlab
-    touch $SUF
+    setenv FMRI_ANALYSIS_DIR $FSFAST_HOME # backwards compatability
+    set SUF = ~/matlab/startup.m
+    if(! -e $SUF) then
+        echo "INFO: $SUF does not exist ... creating"
+        mkdir -p ~/matlab
+        touch $SUF
+        
+        echo "%------------ FreeSurfer FAST ------------------------%" >> $SUF
+        echo "fsfasthome = getenv('FSFAST_HOME');"                     >> $SUF
+        echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"       >> $SUF
+        echo "path(path,fsfasttoolbox);"                               >> $SUF
+        echo "clear fsfasthome fsfasttoolbox;"                         >> $SUF
+        echo "%-----------------------------------------------------%" >> $SUF
+    endif
 
-    echo "%------------ FreeSurfer FAST ------------------------%" >> $SUF
-    echo "fsfasthome = getenv('FSFAST_HOME');"                     >> $SUF
-    echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"       >> $SUF
-    echo "path(path,fsfasttoolbox);"                               >> $SUF
-    echo "clear fsfasthome fsfasttoolbox;"                         >> $SUF
-    echo "%-----------------------------------------------------%" >> $SUF
-  endif
-
-  set tmp1 = `grep FSFAST_HOME $SUF       | wc -l`;
-  set tmp2 = `grep FMRI_ANALYSIS_DIR $SUF | wc -l`;
+    set tmp1 = `grep FSFAST_HOME $SUF       | wc -l`;
+    set tmp2 = `grep FMRI_ANALYSIS_DIR $SUF | wc -l`;
   
-  if($tmp1 == 0 && $tmp2 == 0) then
-      if( $output ) then
-	  echo ""
-	  echo "WARNING: The $SUF file does not appear to be";
-	  echo "         configured correctly. You may not be able"
-	  echo "         to run the FS-FAST programs";
-	  echo "Try adding the following three lines to $SUF"
-	  echo "----------------cut-----------------------"
-	  echo "fsfasthome = getenv('FSFAST_HOME');"         
-	  echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"
-	  echo "path(path,fsfasttoolbox);"                        
-	  echo "clear fsfasthome fsfasttoolbox;"
-	  echo "----------------cut-----------------------"
-	  echo ""
-       endif
-  endif
+    if($tmp1 == 0 && $tmp2 == 0) then
+            if( $output ) then
+            echo ""
+            echo "WARNING: The $SUF file does not appear to be";
+            echo "         configured correctly. You may not be able"
+            echo "         to run the FS-FAST programs";
+            echo "Try adding the following three lines to $SUF"
+            echo "----------------cut-----------------------"
+            echo "fsfasthome = getenv('FSFAST_HOME');"         
+            echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"
+            echo "path(path,fsfasttoolbox);"                        
+            echo "clear fsfasthome fsfasttoolbox;"
+            echo "----------------cut-----------------------"
+            echo ""
+            endif
+    endif
 endif
 
 ### ----------- MINC Stuff -------------- ####
 if(! $?NO_MINC) then
-  if(! -d $MINC_BIN_DIR) then
-      if( $output ) then
-	  echo "WARNING: $MINC_BIN_DIR does not exist.";
-      endif
-  endif
-  if(! -d $MINC_LIB_DIR) then
-      if( $output ) then
-	  echo "WARNING: $MINC_LIB_DIR does not exist.";
-      endif
-  endif
-  ## Set Load library path ##
-  if(! $?LD_LIBRARY_PATH ) then
-    setenv LD_LIBRARY_PATH  $MINC_LIB_DIR
-  else
-    setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$MINC_LIB_DIR"
-  endif
+    if(! -d $MINC_BIN_DIR) then
+        if( $output ) then
+            echo "WARNING: $MINC_BIN_DIR does not exist.";
+        endif
+    endif
+    if(! -d $MINC_LIB_DIR) then
+        if( $output ) then
+            echo "WARNING: $MINC_LIB_DIR does not exist.";
+        endif
+    endif
+    ## Set Load library path ##
+    if(! $?LD_LIBRARY_PATH ) then
+        setenv LD_LIBRARY_PATH  $MINC_LIB_DIR
+    else
+        setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$MINC_LIB_DIR"
+    endif
 endif
 
 ### ----------- FSL ------------ ####
 if ( $?FSL_DIR ) then
     setenv FSL_BIN $FSL_DIR/bin
     if(! -d $FSL_BIN) then
-	if( $output ) then
-	    echo "WARNING: $FSL_BIN does not exist.";
-	endif
+        if( $output ) then
+            echo "WARNING: $FSL_BIN does not exist.";
+        endif
     endif
 endif
 
@@ -209,7 +214,7 @@ endif
 ## basic one just in case they don't. Then add one with all the
 ## directories we just set.
 if(! $?path ) then
-  set path = ( ~/bin /bin /usr/bin /usr/local/bin )
+    set path = ( ~/bin /bin /usr/bin /usr/local/bin )
 endif
 
 if ( $?FSL_BIN ) then
@@ -218,11 +223,12 @@ endif
 set path = ( $FSFAST_HOME/bin     \
              $FREESURFER_HOME/bin/noarch      \
              $FREESURFER_HOME/bin/         \
-	     $path \
+             $path \
             )
 if(! $?NO_MINC) then
-  set path = ( $MINC_BIN_DIR $path )
+    set path = ( $MINC_BIN_DIR $path )
 endif
+
 rehash;
 
 ## Add path to OS-specific dynamic libraries.
@@ -231,7 +237,6 @@ if(! $?LD_LIBRARY_PATH ) then
 else
     setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
 endif
-
 
 exit 0;
 ####################################################################
