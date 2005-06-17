@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/06/14 21:37:56 $
-// Revision       : $Revision: 1.356 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/06/17 04:15:01 $
+// Revision       : $Revision: 1.357 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -165,6 +165,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
 static MATRIX *VoxelFromSRASmatrix=NULL;
 static int mriSurfaceRASToVoxel(Real xr, Real yr, Real zr, Real *xv, Real *yv, Real *zv);
 #endif
+
+static int mris_readval_frame = -1;
 
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
@@ -8487,6 +8489,39 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
   float lat, *cvec;
   FILE  *fp;
   char  *cp, fname[STRLEN] ;
+  int   type, frame, nv, c,r,s;
+  MRI *TempMRI;
+
+  // First try to load it as a volume
+  type = mri_identify(sname);
+  if(type != MRI_VOLUME_TYPE_UNKNOWN){
+    frame = MRISgetReadFrame();
+    TempMRI = MRIreadHeader(sname,type);
+    if(TempMRI==NULL) return(1);
+    if(TempMRI->nframes <= frame){
+      printf("ERROR: cannot read frame %d from %s\n",frame,sname);
+      return(1);
+    }
+    nv = TempMRI->width * TempMRI->height * TempMRI->depth;
+    if(nv != mris->nvertices){
+      printf("ERROR: number of vertices in %s does not match surface (%d,%d)",
+	     sname,nv,mris->nvertices);
+      return(1);
+    }
+    MRIfree(&TempMRI);
+    TempMRI = MRIread(sname);
+    if(TempMRI==NULL) return(1);
+    vno = 0;
+    for(c=0; c < TempMRI->width; c++){
+      for(r=0; r < TempMRI->height; r++){
+	for(s=0; s < TempMRI->depth; s++){
+	  mris->vertices[vno].val = MRIgetVoxVal(TempMRI,c,r,s,frame);
+	}
+      }
+    }
+    MRIfree(&TempMRI);
+    return(0);
+  } 
 
   cvec = MRISreadCurvatureVector(mris, sname) ;
   if (cvec)
@@ -47040,3 +47075,28 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 
 	  return 0;
 	}
+
+
+	
+/*--------------------------------------------------------
+  MRISsetReadFrame() - sets frame to read when loading a "volume"
+  with MRISreadValues().
+  --------------------------------------------------------*/
+void MRISsetReadFrame(int frame)
+{
+  mris_readval_frame = frame;
+}
+/*--------------------------------------------------------
+  MRISgetReadFrame() - gets frame to read when loading a "volume"
+  with MRISreadValues().
+  --------------------------------------------------------*/
+int MRISgetReadFrame(void)
+{
+  int frame=0;
+  char *envframe;
+  if(mris_readval_frame >=0) return(mris_readval_frame);
+  envframe = getenv("MRIS_READVAL_FRAME");
+  if(envframe == NULL) return(0);
+  sscanf(envframe,"%d",&frame);
+  return(frame);
+}

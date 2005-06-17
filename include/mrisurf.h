@@ -1121,5 +1121,7 @@ MRI *MRISspatialFilter(MRI *Src, MRI *wdist, MRI *Targ);
 MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta);
 
 int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta);
+void MRISsetReadFrame(int frame);
+int MRISgetReadFrame(void);
 
 #endif
