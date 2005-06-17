@@ -16,6 +16,18 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([config.h.in])
 AM_CONFIG_HEADER([config.h])
 
+# if CFLAGS and CXXFLAGS are not already set, then set to empty, 
+# otherwise, AC_PROG_CPP and AC_PROG_CXX will automatically append 
+# "-g -O2", flags over which we'd rather have explicit control per OS
+if test "x$CFLAGS" = "x"; then
+  CFLAGS=""
+  AC_SUBST(CFLAGS)
+fi
+if test "x$CXXFLAGS" = "x"; then
+  CXXFLAGS=""
+  AC_SUBST(CXXFLAGS)
+fi
+
 # Checks for programs.
 AC_PROG_AWK
 AC_PROG_CXX
@@ -27,16 +39,19 @@ AC_PROG_CPP
 AC_PROG_LIBTOOL 
 
 # two programs used for compress/decompress files
-# cannot make AC_MSG_ERROR work inside the AC_CHECK_PROG so that I took it out.
+# cannot make AC_MSG_ERROR work inside the AC_CHECK_PROG so 
+# that I took it out.
 AC_CHECK_PROG([HAS_ZCAT],[zcat],[1],[])
 if test ! "$HAS_ZCAT" = "1"; then
-  AC_MSG_ERROR("FATAL: zcat is required in handling mgz etc. Put it in the path.")
+  AC_MSG_ERROR([FATAL: zcat is required in handling mgz etc. \
+Put it in the path.])
 fi
 
 AC_CHECK_PROG([HAS_GZIP],[gzip],[1],[])
 if test ! "$HAS_GZIP" = "1"; then
-  AC_MSG_ERROR("FATAL: gzip is required in creating mgz etc. Put it in the path.")
-fi	
+  AC_MSG_ERROR([FATAL: gzip is required in creating mgz etc. \
+Put it in the path.])
+fi  
 
 ##################################################################
 # allow user to specify tixwish
@@ -53,16 +68,17 @@ if test "x$TIXWISH" = "x"; then
 fi
 # well check
 if test "x$TIXWISH" = "x"; then
-  AC_MSG_ERROR("FATAL: tixwish needed for csurf not found. Use --with-tixwish=... to specify")
+  AC_MSG_ERROR([FATAL: tixwish needed for csurf not found. \
+Use --with-tixwish=... to specify])
 fi
-	
+  
 AC_SUBST(TIXWISH)
 
 #################################################################
 # If on a Mac, make a scuba bundle.
 SCUBA_BUNDLE_TARGET=""
 if test "x$target_vendor" = "xapple" ; then
-	SCUBA_BUNDLE_TARGET="scuba_bundle"
+  SCUBA_BUNDLE_TARGET="scuba_bundle"
 fi
 AC_SUBST(SCUBA_BUNDLE_TARGET)
 
@@ -83,47 +99,36 @@ AC_MSG_NOTICE(Setting OS from target...)
 case "${target}" in
  i*86-*-linux-gnu*)
  OS=Linux
- OS_CPPFLAGS="-Wall -fwritable-strings"
-## choose static version if shared and static present
+ OS_CPPFLAGS=
+ # select static if both static and dynamic are present
  OS_LDFLAGS="-all-static"
  DYNAMIC_LIB_EXT=".so"
- SHARED_CFLAGS="-fPIC"
- SHARED_LDFLAGS="-shared"
+ SHARED_CFLAGS="-fPIC "
+ SHARED_LDFLAGS="-shared "
+ CFLAGS="$CFLAGS -g -O2 -Wall -fwritable-strings"
+ CXXFLAGS="$CXXFLAGS -g -O2 -Wall"
  ;;
  x86_64-*)
  OS=Linux
- OS_CPPFLAGS="-Wall -fwritable-strings -m64"
- OS_LDFLAGS="-all-static"
- LDFLAGS="-L/usr/X11R6/lib64 -L/usr/lib64 $LDFLAGS"
- DYNAMIC_LIB_EXT=".so"
- SHARED_CFLAGS="-fPIC"
- SHARED_LDFLAGS="-shared"
- ;; 
- powerpc64-*)
- # not to define Linux
- OS=Linux
- OS_CPPFLAGS="-Wall -fwritable-strings"
- OS_LDFLAGS="-all-static"
- LDFLAGS="-L/usr/X11R6/lib64 -L/usr/lib64 $LDFLAGS"
- DYNAMIC_LIB_EXT=".so"
- SHARED_CFLAGS="-fPIC"
- SHARED_LDFLAGS="-shared"
- ;; 
- *-apple-darwin8.1.0)
- OS=Darwin
- OS_CPPFLAGS="-mpowerpc64"
+ OS_CPPFLAGS=
  OS_LDFLAGS=
- DYNAMIC_LIB_EXT=".dylib"
- SHARED_CFLAGS="-fno-common"
- SHARED_LDFLAGS="-dynamiclib"
- ;;
- *-apple-darwin*)
+ LDFLAGS="-L/usr/X11R6/lib64 -L/usr/lib64 $LDFLAGS"
+ DYNAMIC_LIB_EXT=".so"
+ SHARED_CFLAGS="-fPIC"
+ SHARED_LDFLAGS="-shared"
+ CFLAGS="$CFLAGS -g -O2 -Wall -fwritable-strings"
+ CXXFLAGS="$CXXFLAGS -g -O2 -Wall"
+ ;; 
+*-apple-darwin*)
+ # Mac OS X 
  OS=Darwin
  OS_CPPFLAGS=
  OS_LDFLAGS=
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
+ CFLAGS="$CFLAGS -g -O2 -Wall"
+ CXXFLAGS="$CXXFLAGS -g -O2 -Wall"
  ;;
 esac
 AC_SUBST(OS)
@@ -175,7 +180,7 @@ if test "$CPUTYPE" = "NO"; then
     ;;
   Linux)
     case "${target}" in
-    i*86-*-linux-gnu*)	
+    i*86-*-linux-gnu*)  
       cpu386=`./x86cpucaps/cpucaps -m | sed 's/ //g'`
       case "$cpu386" in
         PentiumIII*)
@@ -184,9 +189,9 @@ if test "$CPUTYPE" = "NO"; then
         Pentium4)
         CPUTYPE=pentium4
         ;;
-	PentiumM*)
-	CPUTYPE=pentium4
-	;;
+  PentiumM*)
+  CPUTYPE=pentium4
+  ;;
         AMDAthlonXP*)
         CPUTYPE=athlonxp
         ;;
@@ -214,7 +219,7 @@ fi
 AC_MSG_NOTICE(CPUTYPE is $CPUTYPE)
 AC_MSG_CHECKING(CPU optimization...)
 
-# now set the flag
+# now set the flags
 case "$CPUTYPE" in 
   pentium3) 
 #     CPUFLAGS="-march=pentium3"
@@ -227,7 +232,7 @@ case "$CPUTYPE" in
   athlonxp)
 #     CPUFLAGS="-march=pentium3"
      CPUFLAGS=""
-     ;;	
+     ;; 
   opteron)
 #     CPUFLAGS="-march=x86-64"
      CPUFLAGS=""
@@ -244,7 +249,8 @@ case "$CPUTYPE" in
      CPUFLAGS="-mtune=G4 -mcpu=G4 -faltivec"
      ;;
   G5)
-     CPUFLAGS="-mtune=G5 -mcpu=G5 -faltivec"
+     # maintain G4 backwards compatibility
+     CPUFLAGS="-mtune=G4 -mcpu=G4 -faltivec"
      ;;
   power4)
      CPUFLAGS="-mtune=power4 -mcpu=power4"
@@ -312,15 +318,15 @@ echo "$as_me:$LINENO: result: $ac_cv_prog_cc_cpuflags" >&5
 echo "${ECHO_T}$ac_cv_prog_cc_cpuflags" >&6
 
 if test $ac_cv_prog_cc_cpuflags = no; then
- AC_MSG_NOTICE("gcc on this PC cannot accept $CPUFLAGS.  gcc may be too old?")
+ AC_MSG_NOTICE([gcc on this PC cannot accept $CPUFLAGS. gcc may be too old?])
  CPUFLAGS=""
 fi 
 # write the flag file
 echo "CPUFLAGS=$CPUFLAGS" > cpuflags.mak
 
 CFLAGS=$ac_save_CFLAGS
-CFLAGS="-Wall $CPUFLAGS $CFLAGS"
-CXXFLAGS="-Wall $CPUFLAGS $CXXFLAGS"
+CFLAGS="$CPUFLAGS $CFLAGS"
+CXXFLAGS="$CPUFLAGS $CXXFLAGS"
 
 #####
 else
@@ -345,7 +351,8 @@ AC_PATH_X
 ##### automaticaly found
 if test -z "$x_includes"; then
   x_includes=/usr/X11R6/include
-  AC_MSG_NOTICE(x_includes set to /usr/X11R6/include. If not correct specify using --x-includes=)
+  AC_MSG_NOTICE([x_includes set to /usr/X11R6/include \
+If not correct specify using --x-includes=])
 fi
 X_LIBS="$X_LIBS -lX11 -lXmu"
 AC_SUBST(X_LIBS)
@@ -382,7 +389,8 @@ AC_SUBST(pkgs_includes)
 AC_SUBST(pkgs_libraries)
 
 
-AC_MSG_NOTICE(Checking directories for MNI, BLT, Tiff, Jpeg, Qt, and GSL)
+AC_MSG_NOTICE([Checking directories for MNI, BLT, Tiff, \
+Jpeg, Qt, and GSL])
 
 #############################################################
 # MNI
@@ -402,7 +410,7 @@ AC_ARG_WITH(mni-dir,
   ])
 
 if test ! "$ac_mni_includes" = "NO"; then
-  AC_MSG_RESULT(MNI directory is $withval)	
+  AC_MSG_RESULT(MNI directory is $withval)  
   MNI_CFLAGS=-I$ac_mni_includes
 else
   AC_MSG_RESULT(MNI directory is not supplied)
@@ -665,7 +673,9 @@ AX_CHECK_GL
 if test "X$no_gl" = "Xyes"; then
   AC_MSG_RESULT([GL not found])
 else
-  AC_MSG_RESULT([GL found. Setting GL_CFLAGS='$GL_CFLAGS' and GL_LIBS='$GL_LIBS'])
+  AC_MSG_RESULT([GL found:
+Setting GL_CFLAGS='$GL_CFLAGS' 
+and GL_LIBS='$GL_LIBS'])
   LIBS_OPENGL="$LIBS_OPENGL $GL_LIBS"
 fi
 #####################################################
@@ -674,7 +684,9 @@ AX_CHECK_GLU
 if test "X$no_glu" = "Xyes"; then
   AC_MSG_RESULT([GLu not found])
 else
-  AC_MSG_RESULT([GLu found. Setting GLU_CFLAGS='$GLU_CFLAGS' and GLU_LIBS='$GLU_LIBS'])
+  AC_MSG_RESULT([GLu found:
+Setting GLU_CFLAGS='$GLU_CFLAGS' 
+and GLU_LIBS='$GLU_LIBS'])
   #redundant: LIBS_OPENGL="$LIBS_OPENGL $GLU_LIBS"
 fi
 #####################################################
@@ -686,7 +698,8 @@ if test "X$no_glut" = "Xyes"; then
   AC_MSG_RESULT([GLut not found])
 else
   if test "$OS" = "Darwin"; then
-    #AX_CHECK_GLUT really fudges these, so use proper settings (from above)
+    #AX_CHECK_GLUT really fudges these, 
+    #so use proper settings (from above)
     GLUT_CFLAGS="$glut_cflags"
     GLUT_LIBS="$glut_libs"
     #Also, we use these as catch-all, for GL and GLU:
@@ -695,7 +708,9 @@ else
     AC_SUBST([GLUT_CFLAGS])
     AC_SUBST([GLUT_LIBS])
   fi
-  AC_MSG_RESULT([GLut found. Setting GLUT_CFLAGS='$GLUT_CFLAGS' and GLUT_LIBS='$GLUT_LIBS'])
+  AC_MSG_RESULT([GLut found:
+Setting GLUT_CFLAGS='$GLUT_CFLAGS' 
+and GLUT_LIBS='$GLUT_LIBS'])
   LIBS_OPENGL="$LIBS_OPENGL $GLUT_LIBS"
 fi
 
@@ -706,9 +721,10 @@ fi
 AC_MSG_NOTICE(Tcl/Tk directory)
 ################# apple
 AC_ARG_WITH([apple-tcl-framework],
-	    [AC_HELP_STRING([--with-apple-tcl-framework])])
+      [AC_HELP_STRING([--with-apple-tcl-framework])])
 if test "X$with_apple_tcl_framework" = "Xyes"; then
-  AC_MSG_ERROR("FATAL: tkmedit/tksurfer needs BLT.  No Aqua version of BLT exists yet.")
+  AC_MSG_ERROR([FATAL: tkmedit/tksurfer needs BLT. \
+No Aqua version of BLT exists yet.])
 #  AC_MSG_NOTICE([Apple framework way...])
 #  AC_DEFINE([HAVE_APPLE_TCL_FRAMEWORK],[1],
 #            [Use the Apple Tcl framework,])
@@ -758,12 +774,12 @@ AC_SUBST(LIBDIRS_MGH)
 
 # stupid circular dependency on iopen swapInt etc.
 LIBS_MGH="\
-	utils/libutils.a \
-	rgb/librgb.a \
-	unix/libunix.a \
-	dicom/libdicom.a \
-	hipsstubs/libhipsstubs.a \
-	log/liblog.a"
+  utils/libutils.a \
+  rgb/librgb.a \
+  unix/libunix.a \
+  dicom/libdicom.a \
+  hipsstubs/libhipsstubs.a \
+  log/liblog.a"
 AC_SUBST(LIBS_MGH)
 
 
@@ -771,7 +787,7 @@ AC_SUBST(LIBS_MGH)
 # generic mods
 #####################################################
 CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
-
+LDFLAGS="$LDFLAGS $OS_LDFLAGS"
 
 #####################################################
 # Checks for libraries.
@@ -783,7 +799,8 @@ CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
 ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
-CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS $MNI_CFLAGS $GSL_CFLAGS $TCL_CFLAGS"
+CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS \
+$MNI_CFLAGS $GSL_CFLAGS $TCL_CFLAGS"
 LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $GSL_LIBS $TCL_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 #AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
@@ -797,19 +814,24 @@ if test "$OS" = "Darwin"; then
 fi
 AC_SUBST(LIB_CRYPT)
 AC_CHECK_LIB([tiff], [TIFFGetVersion],[],
-  [AC_MSG_ERROR("FATAL: tiff lib not found. Please install tiff header files and libs.")] )
+  [AC_MSG_ERROR([FATAL: tiff lib not found. \
+Please install tiff header files and libs.])] )
 AC_CHECK_LIB([jpeg], [jpeg_start_compress],[],
-  [AC_MSG_ERROR("FATAL: jpeg lib not found. Please install jpeg lib.")] )
+  [AC_MSG_ERROR([FATAL: jpeg lib not found. Please install jpeg lib.])] )
 # three mni libs
 AC_CHECK_LIB([netcdf], [nccreate],[],
-  [AC_MSG_ERROR("FATAL: netcdf lib not found.  Set LDFLAGS or --with-mni-dir.")] )
+  [AC_MSG_ERROR([FATAL: netcdf lib not found. \
+Set LDFLAGS or --with-mni-dir.])] )
 AC_CHECK_LIB([minc], [miopen], [],
-  [AC_MSG_ERROR("FATAL: minc lib not found.  Set LDFLAGS or --with-mni-dir.")] )
+  [AC_MSG_ERROR([FATAL: minc lib not found. \
+Set LDFLAGS or --with-mni-dir.])] )
 AC_CHECK_LIB([volume_io], [transform_point],[],
-  [AC_MSG_ERROR("FATAL: volume_io lib not found.  Set LDFLAGS or --with-mni-dir.")] )
+  [AC_MSG_ERROR([FATAL: volume_io lib not found. \
+Set LDFLAGS or --with-mni-dir.])] )
 # GNU scientific library
 AC_CHECK_LIB([gslcblas], [cblas_dsdot], [],
-  [AC_MSG_ERROR("FATAL: gsl lib not found. Please install gsl header files and libs.")] )
+  [AC_MSG_ERROR([FATAL: gsl lib not found. \
+Please install gsl header files and libs.])] )
 
 ################## Tcl
 AC_CHECK_LIB([tcl],[Tcl_Init],
@@ -824,7 +846,8 @@ AC_CHECK_LIB([tcl],[Tcl_Init],
 # check tclstub
       [ AC_CHECK_LIB([tclstub],[Tcl_Init],
         [LIB_TCL=-ltclstub],
-        [AC_MSG_ERROR("FATAL: libtcl not found. check config.log. set LDFLAGS or --with-tcl-dir.")        ] )
+        [AC_MSG_ERROR([FATAL: libtcl not found. \
+Check config.log. Set LDFLAGS or --with-tcl-dir.])        ] )
       ])
     ])
   ])
@@ -842,7 +865,8 @@ AC_CHECK_LIB([tk],[Tk_Init],
     [ 
       AC_CHECK_LIB([tk8.3],[Tk_Init],
       [LIB_TK=-ltk8.3],
-      [AC_MSG_ERROR("FATAL: libtk not found. check config.log. set LDFLAGS or --with-tcl-dir.")
+      [AC_MSG_ERROR([FATAL: libtk not found. \
+Check config.log. Set LDFLAGS or --with-tcl-dir.])
       ])
     ])  
   ])
@@ -859,7 +883,8 @@ AC_CHECK_LIB([tix],[Tix_Init],
 # check tix8.1.8.3
       AC_CHECK_LIB([tix8.1.8.3], [Tix_Init],
       [LIB_TIX=-ltix8.1.8.3],
-      [AC_MSG_ERROR("FATAL: libtix not found. check config.log. set LDFLAGS or --with-tcl-dir.")
+      [AC_MSG_ERROR([FATAL: libtix not found. \
+Check config.log. Set LDFLAGS or --with-tcl-dir.])
       ])
     ])
   ])
@@ -878,7 +903,8 @@ AC_CHECK_LIB([BLT],[Blt_Init],
 # check BLT24 (Fedora)
       AC_CHECK_LIB([BLT24],[Blt_Init],
       [LIB_BLT=-lBLT24], 
-          [AC_MSG_ERROR("FATAL: libBLT not found. check config.log.  Set LDFLAGS or --with-BLT-dir.")
+          [AC_MSG_ERROR([FATAL: libBLT not found. \
+Check config.log. Set LDFLAGS or --with-BLT-dir.])
       ])
     ])
   ])
@@ -938,28 +964,28 @@ AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([\
-	arpa/inet.h \
-	fcntl.h \
-	float.h \
-	limits.h \
-	locale.h \
-	malloc.h \
-	memory.h \
-	netdb.h \
-	netinet/in.h \
-	stddef.h \
-	stdlib.h \
-	string.h \
-	strings.h \
-	sys/file.h \
-	sys/ioctl.h \
-	sys/param.h \
-	sys/socket.h \
-	sys/time.h \
-	sys/timeb.h \
-	unistd.h \
-	values.h \
-	wctype.h])
+  arpa/inet.h \
+  fcntl.h \
+  float.h \
+  limits.h \
+  locale.h \
+  malloc.h \
+  memory.h \
+  netdb.h \
+  netinet/in.h \
+  stddef.h \
+  stdlib.h \
+  string.h \
+  strings.h \
+  sys/file.h \
+  sys/ioctl.h \
+  sys/param.h \
+  sys/socket.h \
+  sys/time.h \
+  sys/timeb.h \
+  unistd.h \
+  values.h \
+  wctype.h])
 # the following is needed on Mac OS Darwin
 AC_CHECK_HEADERS(sys/types.h stdint.h)
 
@@ -991,38 +1017,38 @@ AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 # freesurfer uses calloc, getenv often so added
 AC_CHECK_FUNCS([\
-	bzero \
-	calloc \
-	floor \
-	ftime \
-	getenv \
-	getcwd \
-	getpagesize \
-	gettimeofday \
-	memmove \
-	memset \
-	mkdir \
-	munmap \
-	pow \
-	putenv \
-	rint \
-	select \
-	setenv \
-	sqrt \
-	strcasecmp \
-	strchr \
-	strdup \
-	strerror \
-	strncasecmp \
-	strrchr \
-	strspn \
-	strstr \
-	strtol \
-	uname])
+  bzero \
+  calloc \
+  floor \
+  ftime \
+  getenv \
+  getcwd \
+  getpagesize \
+  gettimeofday \
+  memmove \
+  memset \
+  mkdir \
+  munmap \
+  pow \
+  putenv \
+  rint \
+  select \
+  setenv \
+  sqrt \
+  strcasecmp \
+  strchr \
+  strdup \
+  strerror \
+  strncasecmp \
+  strrchr \
+  strspn \
+  strstr \
+  strtol \
+  uname])
 
-###############################################################################
+#########################################################################
 # output
-###############################################################################
+#########################################################################
 DEV=`pwd`
 export DEV
 ./config/removemakefile.sh
