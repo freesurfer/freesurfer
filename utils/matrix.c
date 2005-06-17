@@ -1,3 +1,4 @@
+// $Id: matrix.c,v 1.70 2005/06/17 23:29:22 greve Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -955,10 +956,8 @@ MatrixDiag(MATRIX *mDiag, MATRIX *mOut)
   }
   else {
     // row vector
-    for (col = 1 ; col <= cols ; col++){
+    for (col = 1 ; col <= cols ; col++)
       mOut->rptr[col][col] = mDiag->rptr[1][col] ;
-      printf("%d %g\n",col,mDiag->rptr[1][col]);
-    }
   }
     
   return(mOut) ;
