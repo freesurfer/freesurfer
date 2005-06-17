@@ -32,6 +32,7 @@ label_elderly_subject \
 label_subject \
 label_subject_flash \
 label_subject_mixed \
+make_average_surface \
 make_final_surfaces_corrected_subject \
 make_final_surfaces_subject \
 make_final_surfaces_subject-lh \
@@ -162,7 +163,6 @@ twocond-masked-views.tcl \
 twocond-views.tcl \
 wrappers.tcl \
 fsgdfPlot.tcl
-
 
 recon-all: recon-all-nmr
 	cat ./recon-all-nmr | grep -v dASEGd > ./recon-all
