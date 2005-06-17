@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/06/17 04:15:01 $
-// Revision       : $Revision: 1.357 $
+// Revision Date  : $Date: 2005/06/17 22:02:03 $
+// Revision       : $Revision: 1.358 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -8497,10 +8497,11 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
   if(type != MRI_VOLUME_TYPE_UNKNOWN){
     frame = MRISgetReadFrame();
     TempMRI = MRIreadHeader(sname,type);
-    if(TempMRI==NULL) return(1);
+    if(TempMRI==NULL) return(ERROR_BADFILE);
     if(TempMRI->nframes <= frame){
-      printf("ERROR: cannot read frame %d from %s\n",frame,sname);
-      return(1);
+      printf("ERROR: attempted to read frame %d from %s\n",frame,sname);
+      printf("  but this file only has %d frames.\n",TempMRI->nframes);
+      return(ERROR_BADFILE);
     }
     nv = TempMRI->width * TempMRI->height * TempMRI->depth;
     if(nv != mris->nvertices){
@@ -8510,17 +8511,18 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
     }
     MRIfree(&TempMRI);
     TempMRI = MRIread(sname);
-    if(TempMRI==NULL) return(1);
+    if(TempMRI==NULL) return(ERROR_BADFILE);
     vno = 0;
     for(c=0; c < TempMRI->width; c++){
       for(r=0; r < TempMRI->height; r++){
 	for(s=0; s < TempMRI->depth; s++){
 	  mris->vertices[vno].val = MRIgetVoxVal(TempMRI,c,r,s,frame);
+	  vno++;
 	}
       }
     }
     MRIfree(&TempMRI);
-    return(0);
+    return(NO_ERROR);
   } 
 
   cvec = MRISreadCurvatureVector(mris, sname) ;
