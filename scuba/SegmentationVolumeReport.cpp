@@ -102,7 +102,7 @@ SegmentationVolumeReport::MakeVolumeReport () {
     // segmentation volume.
     list<VolumeLocation> lLocations;
     list<VolumeLocation>::iterator tLoc;
-    mSegVol->GetVoxelsInStructure( nStructure, lLocations );
+    mSegVol->GetVoxelsWithValue( nStructure, lLocations );
 
     // If we're using an ROI, go through all the voxels and if they
     // are not in the ROI, remove them from our list.
@@ -132,9 +132,19 @@ SegmentationVolumeReport::MakeVolumeReport () {
 
       VolumeCollection* vol = (*tVol);
 
+      // Have to make a list of locations for this volume from the
+      // other one.
+      list<VolumeLocation> lLocationsForIntVol;
+      for( tLoc = lLocations.begin(); tLoc != lLocations.end(); ++tLoc ) {
+	VolumeLocation& loc = *tLoc;
+	VolumeLocation& intLoc = 
+	  (VolumeLocation&) vol->MakeLocationFromRAS( loc.RAS() );
+	lLocations.push_back( intLoc );
+      }
+
       // Get the average intensity for this list of voxels.
       mVolumeToIntensityAverageMap[vol][nStructure] = 
-	vol->GetAverageIntensity( lLocations );
+	vol->GetAverageValue( lLocationsForIntVol );
     }
   }
 }

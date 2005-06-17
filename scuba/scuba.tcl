@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.126 2005/06/13 18:35:37 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.127 2005/06/17 15:06:12 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5416,7 +5416,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.126 2005/06/13 18:35:37 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.127 2005/06/17 15:06:12 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6631,21 +6631,23 @@ while { $nArg < $argc } {
 	}
 	
 	help - default {
-	    if {$sOption != "help"} {puts "Option $sOption not recognized."}
-	    puts ""
-	    puts "Usage: scuba \[OPTION\]..."
-	    puts "Data viewer for the FreeSurfer package."
-	    puts ""
-	    puts "Options:"
-	    puts "-s, --subject SUBJECT Set the subject for this session. Environment variable "
-	    puts "                      SUBJECTS_DIR should be set."
-	    puts "-v, --volume FILE     Load a volume file. Can be a file name or a subdir in"
-	    puts "                      the subject's directory specified with -s."
-	    puts "-f, --surface FILE    Load a surface file Can be a file name or a subdir in"
-	    puts "                      the subject's directory specified with -s."
-	    puts "-t, --transform FILE  Load a transform file Can be a file name or a file in"
-	    puts "                      the subject's mri/transforms directory specified with -s."
-	    puts "-c, --script FILE     Run the tcl script FILE after loading."
+	    if {$sOption != "help"} {
+		::tkcon_tcl_puts "Option $sOption not recognized."
+	    }
+	    ::tkcon_tcl_puts ""
+	    ::tkcon_tcl_puts "Usage: scuba \[OPTION\]..."
+	    ::tkcon_tcl_puts "Data viewer for the FreeSurfer package."
+	    ::tkcon_tcl_puts ""
+	    ::tkcon_tcl_puts "Options:"
+	    ::tkcon_tcl_puts "-s, --subject SUBJECT Set the subject for this session. Environment variable "
+	    ::tkcon_tcl_puts "                      SUBJECTS_DIR should be set."
+	    ::tkcon_tcl_puts "-v, --volume FILE     Load a volume file. Can be a file name or a subdir in"
+	    ::tkcon_tcl_puts "                      the subject's directory specified with -s."
+	    ::tkcon_tcl_puts "-f, --surface FILE    Load a surface file Can be a file name or a subdir in"
+	    ::tkcon_tcl_puts "                      the subject's directory specified with -s."
+	    ::tkcon_tcl_puts "-t, --transform FILE  Load a transform file Can be a file name or a file in"
+	    ::tkcon_tcl_puts "                      the subject's mri/transforms directory specified with -s."
+	    ::tkcon_tcl_puts "-c, --script FILE     Run the tcl script FILE after loading."
 	    exit
 	}
     }

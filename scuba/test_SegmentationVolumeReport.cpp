@@ -10,6 +10,13 @@ extern "C" {
 }
 #include "Scuba-impl.h"
 
+// Uses test files
+//
+// test_data/anatomica/testSEgmentationVolumeReportData-Seg.mgz
+//   This is a 25 cubed volume with 1s mm voxels. On slice s=-11, all
+//   values are on. On s=-10, all are 2, etc, up to s=13 with all
+//   values 25.
+
 #define Assert(x,s)   \
   if(!(x)) { \
   stringstream ss; \
@@ -52,36 +59,54 @@ SegmentationVolumeReportTester::Test ( Tcl_Interp* iInterp ) {
     }
     string fnTestDataPath( testDataPath );
 
+
+    // Load our seg volumes.
     string fnSegVolume = fnTestDataPath + "/anatomical/" + 
       "testSegmentationVolumeReportData-Seg.mgz";
-
     VolumeCollection seg;
     seg.SetFileName( fnSegVolume );
     seg.LoadVolume();
 
-    string fnLUT = fnTestDataPath + "/lut/TestLUT.txt";
 
+    // Load our LUT.
+    string fnLUT = fnTestDataPath + "/lut/TestLUT.txt";
     ScubaColorLUT lut;
     lut.UseFile( fnLUT );
 
+
+    // Set up the report.
     SegmentationVolumeReport& report = 
       SegmentationVolumeReport::GetReport();
     
     report.SetSegmentation( seg );
     report.DontUseROI();
-    
+
+    // Add 1-5 but not 3.
     report.SetColorLUT( lut );
     report.AddSegmentationStructure( 1 );
+    report.AddSegmentationStructure( 2 );
+    report.AddSegmentationStructure( 4 );
+    report.AddSegmentationStructure( 5 );
 
     report.MakeVolumeReport();
 
-    float expectedSize = 25 * 25;
-    if( report.mStructureToVolumeMap[1] != expectedSize ) {
-      stringstream ssError;
-      ssError << "Error on report for seg 1: expectedSize was " 
-	      << expectedSize << ", but got " 
-	      << report.mStructureToVolumeMap[1];
-      throw runtime_error( ssError.str() );
+
+    // Check the number of voxels we got.
+    for( int nStructure = 1; nStructure <= 5; nStructure++ ) {
+
+      float expectedSize;
+      if( nStructure == 3 ) {
+	expectedSize = 0;
+      } else {
+	expectedSize = 25 * 25;
+      }
+      if( report.mStructureToVolumeMap[nStructure] != expectedSize ) {
+	stringstream ssError;
+	ssError << "Error on report for seg " << nStructure
+		<< ": expectedSize was " << expectedSize << ", but got " 
+		<< report.mStructureToVolumeMap[nStructure];
+	throw runtime_error( ssError.str() );
+      }
     }
 
   }
