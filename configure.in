@@ -100,8 +100,7 @@ case "${target}" in
  i*86-*-linux-gnu*)
  OS=Linux
  OS_CPPFLAGS=
- # select static if both static and dynamic are present
- OS_LDFLAGS="-all-static"
+ OS_LDFLAGS=
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
