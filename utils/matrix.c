@@ -929,34 +929,38 @@ MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst)
 MATRIX  *
 MatrixDiag(MATRIX *mDiag, MATRIX *mOut)
 {
-  int  row, rows ;
-
-  if (!mOut)
-  {
-    mOut = MatrixAlloc(mDiag->rows, mDiag->rows, mDiag->type) ;
-    if (!mOut)
-      return(NULL) ;
-  }
-  else
-    MatrixClear(mOut) ;
+  int  row, rows, col, cols, nout ;
 
   rows = mDiag->rows ;
+  cols = mDiag->cols ;
+  nout = MAX(rows,cols);
 
-  if (mDiag->cols != 1)
-    ErrorReturn(NULL,
-                (ERROR_BADPARM, 
-                 "MatrixDiag: input matrix must be a column vector.\n")) ;
+  if (!mOut){
+    mOut = MatrixAlloc(nout, nout, mDiag->type) ;
+    if (!mOut) return(NULL) ;
+  }
+  else  MatrixClear(mOut) ;
 
-  if ((rows != mOut->rows) || (rows != mOut->cols))
+  if ((nout != mOut->rows) || (nout != mOut->cols))
     ErrorReturn(NULL,
                 (ERROR_BADPARM,
                  "MatrixDiag: incompatable matrices %d x %d != %d x %d\n",
-                 rows, rows, mOut->rows, mOut->cols)) ;
+                 nout, nout, mOut->rows, mOut->cols)) ;
 
 
-  for (row = 1 ; row <= rows ; row++)
-    mOut->rptr[row][row] = mDiag->rptr[row][1] ;
-
+  if(rows != 1){
+    // column vector
+    for (row = 1 ; row <= rows ; row++)
+      mOut->rptr[row][row] = mDiag->rptr[row][1] ;
+  }
+  else {
+    // row vector
+    for (col = 1 ; col <= cols ; col++){
+      mOut->rptr[col][col] = mDiag->rptr[1][col] ;
+      printf("%d %g\n",col,mDiag->rptr[1][col]);
+    }
+  }
+    
   return(mOut) ;
 }
 MATRIX *
