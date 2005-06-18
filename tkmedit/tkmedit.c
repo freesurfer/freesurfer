@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/06/08 15:52:07 $
-// Revision       : $Revision: 1.244 $
-char *VERSION = "$Revision: 1.244 $";
+// Revision Date  : $Date: 2005/06/18 00:04:22 $
+// Revision       : $Revision: 1.245 $
+char *VERSION = "$Revision: 1.245 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1076,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.244 2005/06/08 15:52:07 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.245 2005/06/18 00:04:22 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5209,7 +5209,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.244 2005/06/08 15:52:07 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.245 2005/06/18 00:04:22 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6212,7 +6212,8 @@ void ProcessControlPointFile ( ) {
 				 &ras, &MRIIdx );
     } else {
       eVolume = 
-	Volm_ConvertSurfaceRASToMRIIdx( gSelectionVolume, &ras, &MRIIdx );
+	Volm_ConvertSurfaceRASToMRIIdx(gAnatomicalVolume[tkm_tVolumeType_Main],
+				       &ras, &MRIIdx );
     }
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 		       eResult, tkm_tErr_ErrorAccessingVolume );
@@ -6388,6 +6389,8 @@ tkm_tErr InitControlPointList () {
   e3DList = x3Lst_New( &gControlPointList, largestDimension );
   DebugAssertThrow( (x3Lst_tErr_NoErr == e3DList) );
   x3Lst_SetComparator( gControlPointList, CompareVoxels );
+
+  gbParsedControlPointFile = FALSE;
 
   DebugCatch;
   DebugCatchError( e3DList, x3Lst_tErr_NoErr, x3Lst_GetErrorString );
@@ -7595,6 +7598,9 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
     DebugNote( ("Initializing control point list") );
     eResult = InitControlPointList();
     DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
+
+    /* Reread the control points. */
+    ProcessControlPointFile ();
 
     DebugNote( ("Setting control points space in window") );
     eWindow = 
