@@ -17,6 +17,10 @@ extern "C" {
 //   values are on. On s=-10, all are 2, etc, up to s=13 with all
 //   values 25.
 
+// test_data/anatomica/testSEgmentationVolumeReportData-Int.mgz
+//   Same size as the seg volume, except the intensity for each
+//   corresponding segmentation area is 2x the segmentation value.
+
 #define Assert(x,s)   \
   if(!(x)) { \
   stringstream ss; \
@@ -60,12 +64,19 @@ SegmentationVolumeReportTester::Test ( Tcl_Interp* iInterp ) {
     string fnTestDataPath( testDataPath );
 
 
-    // Load our seg volumes.
+    // Load our seg volume.
     string fnSegVolume = fnTestDataPath + "/anatomical/" + 
       "testSegmentationVolumeReportData-Seg.mgz";
     VolumeCollection seg;
     seg.SetFileName( fnSegVolume );
     seg.LoadVolume();
+
+    // Load our intensity volume.
+    string fnIntVolume = fnTestDataPath + "/anatomical/" + 
+      "testSegmentationVolumeReportData-Int.mgz";
+    VolumeCollection vol;
+    vol.SetFileName( fnIntVolume );
+    vol.LoadVolume();
 
 
     // Load our LUT.
@@ -88,12 +99,17 @@ SegmentationVolumeReportTester::Test ( Tcl_Interp* iInterp ) {
     report.AddSegmentationStructure( 4 );
     report.AddSegmentationStructure( 5 );
 
+    // Add the intensity volume. Also add the seg vol as an additional
+    // intensity volume.
+    report.AddIntensityVolume( vol );
+    report.AddIntensityVolume( seg );
+
     report.MakeVolumeReport();
 
 
-    // Check the number of voxels we got.
     for( int nStructure = 1; nStructure <= 5; nStructure++ ) {
 
+      // Check the number of voxels we got.      
       float expectedSize;
       if( nStructure == 3 ) {
 	expectedSize = 0;
@@ -107,7 +123,42 @@ SegmentationVolumeReportTester::Test ( Tcl_Interp* iInterp ) {
 		<< report.mStructureToVolumeMap[nStructure];
 	throw runtime_error( ssError.str() );
       }
+
+      // Check the intensity values (for the vol, should be 2x the
+      // segmentation index, and for the seg, should be ==).
+      float expectedIntensityAverage;
+      if( nStructure == 3 ) {
+	expectedIntensityAverage = 0;
+      } else {
+	expectedIntensityAverage = nStructure * 2.0;
+      }
+      if( report.mVolumeToIntensityAverageMap[&vol][nStructure] !=
+	  expectedIntensityAverage ) {
+	stringstream ssError;
+	ssError << "Error on report for seg " << nStructure
+		<< ": expectedIntensityAverage for intensity vol " << &vol
+		<< " was " << expectedIntensityAverage << ", but got " 
+		<< report.mVolumeToIntensityAverageMap[&vol][nStructure];
+	throw runtime_error( ssError.str() );
+      }
+
+      if( nStructure == 3 ) {
+	expectedIntensityAverage = 0;
+      } else {
+	expectedIntensityAverage = nStructure;
+      }
+      if( report.mVolumeToIntensityAverageMap[&seg][nStructure] !=
+	  expectedIntensityAverage ) {
+	stringstream ssError;
+	ssError << "Error on report for seg " << nStructure
+		<< ": expectedIntensityAverage for seg vol " << &seg 
+		<< " was " << expectedIntensityAverage << ", but got " 
+		<< report.mVolumeToIntensityAverageMap[&seg][nStructure];
+	throw runtime_error( ssError.str() );
+      }
     }
+
+
 
   }
   catch( exception& e ) {

@@ -139,12 +139,15 @@ SegmentationVolumeReport::MakeVolumeReport () {
 	VolumeLocation& loc = *tLoc;
 	VolumeLocation& intLoc = 
 	  (VolumeLocation&) vol->MakeLocationFromRAS( loc.RAS() );
-	lLocations.push_back( intLoc );
+	lLocationsForIntVol.push_back( intLoc );
       }
 
       // Get the average intensity for this list of voxels.
       mVolumeToIntensityAverageMap[vol][nStructure] = 
 	vol->GetAverageValue( lLocationsForIntVol );
+      cerr << "Set intensity average for vol " << vol 
+	   << " seg " << nStructure << " to " 
+	   << mVolumeToIntensityAverageMap[vol][nStructure] << endl;
     }
   }
 }
