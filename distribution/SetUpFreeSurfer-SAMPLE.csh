@@ -23,10 +23,10 @@ endif
 #setenv MINC_BIN_DIR /usr/pubsw/packages/mni/current/bin
 #setenv MINC_LIB_DIR /usr/pubsw/packages/mni/current/lib
 # ... or disable them.
-setenv NO_MINC
+#setenv NO_MINC
 
 # Enable or disable fsfast.
-setenv NO_FSFAST
+#setenv NO_FSFAST
 
 # Call configuration script.
 source $FREESURFER_HOME/FreeSurferEnv.csh
