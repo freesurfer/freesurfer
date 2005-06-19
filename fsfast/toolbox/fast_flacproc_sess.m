@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.1 2005/06/08 15:41:30 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.2 2005/06/19 05:23:26 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -58,7 +58,7 @@ indacfmask = find(acfmask);
 for nthrun = 1:nruns
   fprintf('Analyzing nthrun %d/%d (%s) %6.1f ------------\n',...
           nthrun,nruns,flac.runlist(nthrun,:),toc);
-  fprintf('FLAC: %s\n',flac.name);
+  fprintf('FLAC: %s, %s\n',flac.name,flac.sess);
 
   flac.nthrun = nthrun;
   flac = flac_customize(flac);
@@ -68,10 +68,11 @@ for nthrun = 1:nruns
   end
 
   % Check condition of design matrix after normalizing columns
+  % Should check each contrast
   Xtmp = flac.X./repmat(sqrt(sum(flac.X.^2)),[flac.ntp 1]);
   c = cond(Xtmp'*Xtmp);
   fprintf('Design matrix condition: %g\n',c);
-  if(c > 10000)
+  if(c > 1000000)
     fprintf('ERROR: design matrix ill-conditioned\n');
     return;
   end
@@ -204,7 +205,7 @@ for nthrun = 1:nruns
     end
 
     C = flac.con(nthcon).C;
-    [F dof1 dof2 ces] = fast_fratiow(beta,flac.X,rvartmp,C,nacfseg,acfseg.vol);
+    [F dof1 dof2 ces cescvm] = fast_fratiow(beta,flac.X,rvartmp,C,nacfseg,acfseg.vol);
     p = FTest(dof1, dof2, F);
     sig = -log10(p);
 
@@ -219,6 +220,16 @@ for nthrun = 1:nruns
     stem = sprintf('%s/fsig%s',condir,flac.formatext);
     tmp = y;
     tmp.vol = fast_mat2vol(sig,szvol);
+    MRIwrite(tmp,stem);
+
+    stem = sprintf('%s/gam%s',condir,flac.formatext);
+    tmp = y;
+    tmp.vol = fast_mat2vol(ces,szvol);
+    MRIwrite(tmp,stem);
+
+    stem = sprintf('%s/gamcvm%s',condir,flac.formatext);
+    tmp = y;
+    tmp.vol = fast_mat2vol(cescvm,szvol);
     MRIwrite(tmp,stem);
 
   end % contrasts
