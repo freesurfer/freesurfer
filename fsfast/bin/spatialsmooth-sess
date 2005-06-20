@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # spatialsmooth-sess
 #
-# $Id: spatialsmooth-sess,v 1.7 2005/03/28 20:59:14 greve Exp $
+# $Id: spatialsmooth-sess,v 1.8 2005/06/20 15:57:04 greve Exp $
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.7 2005/03/28 20:59:14 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.8 2005/06/20 15:57:04 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -143,6 +143,10 @@ foreach sess ($SessList)
       echo "ERROR: ipfsl failed"
       exit 1
     endif
+    if(! -e $run/$outstem.bhdr) then
+      echo "ERROR: ipfsl failed to create output"
+      exit 1
+    endif
 
   if($inorm) then
     echo "INFO: intensity normalizing smoothed volume"
@@ -153,7 +157,7 @@ foreach sess ($SessList)
     echo ---------------------------------------------- |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) then
-      echo "ERROR: ipfsl failed"
+      echo "ERROR: inorm failed"
       exit 1
     endif
   endif
