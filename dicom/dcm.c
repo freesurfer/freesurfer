@@ -86,9 +86,9 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: nicks $, $Date: 2005/06/20 22:55:32 $
+** Last Update:   $Author: nicks $, $Date: 2005/06/20 23:49:44 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.19 $
+** Revision:    $Revision: 1.20 $
 ** Status:    $State: Exp $
 */
 
@@ -998,12 +998,12 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
                                   element->tag, "DCM_GetElementValue");
 
       p = *ctx;
-      if ((U32) p > elementItem->element.length)
+      if ((long) p > elementItem->element.length)
         return COND_PushCondition(DCM_ILLEGALCONTEXT,
                                   DCM_Message(DCM_ILLEGALCONTEXT),
                                   "DCM_GetElementValue");
 
-      l = MIN(element->length, (elementItem->element.length - (U32) p));
+      l = MIN(element->length, (elementItem->element.length - (long) p));
 
       *rtnLength = l;
       {
@@ -1044,7 +1044,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
         } else {
           unsigned char *q;
           q = (unsigned char *) elementItem->element.d.ot +
-            (U32) p;
+            (long) p;
           (void) memcpy(element->d.ot, q, l);
           if (elementItem->byteOrder == BYTEORDER_REVERSE) {
             DCM_ELEMENT e;
@@ -1056,7 +1056,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
         }
         p += l;
         *ctx = (void *) p;
-        if ((U32) p == elementItem->element.length)
+        if ((long) p == elementItem->element.length)
           return DCM_NORMAL;
         else
           return DCM_GETINCOMPLETE;
@@ -1189,7 +1189,7 @@ DCM_GetElementValueOffset(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
                                 element->tag, "DCM_GetElementValueOffset");
 
     p = (unsigned char *) offset;;
-    if ((U32) p > elementItem->element.length)
+    if ((long) p > elementItem->element.length)
       return COND_PushCondition(DCM_BADOFFSET,
                                 DCM_Message(DCM_BADOFFSET),
                                 (int) offset,
@@ -1241,7 +1241,7 @@ DCM_GetElementValueOffset(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
       } else {
         unsigned char *q;
         q = (unsigned char *) elementItem->element.d.ot +
-          (U32) p;
+          (long) p;
         (void) memcpy(element->d.ot, q, l);
         if (elementItem->byteOrder == BYTEORDER_REVERSE) {
           DCM_ELEMENT e;
@@ -2863,8 +2863,7 @@ static CONDITION
 newElementItem(DCM_ELEMENT * src, CTNBOOLEAN allocateData,
                PRV_ELEMENT_ITEM ** dst)
 {
-  U32
-    l;
+  long l;
 
   if (allocateData && (src->representation != DCM_SQ)) {
     l = src->length;
@@ -2873,10 +2872,10 @@ newElementItem(DCM_ELEMENT * src, CTNBOOLEAN allocateData,
   } else
     l = 0;
 
-  if (debug)
-    fprintf(stderr, "newElementItem: CTN_MALLOC %8d %8d ", l,
-            sizeof(PRV_ELEMENT_ITEM) + l);
-
+  if (debug){
+    fprintf(stderr, "newElementItem: CTN_MALLOC %8d %8d ", (int)l,
+            (int)(sizeof(PRV_ELEMENT_ITEM) + l));
+	}
   *dst = (PRV_ELEMENT_ITEM *) CTN_MALLOC(sizeof(PRV_ELEMENT_ITEM) + l);
   if (debug)
     fprintf(stderr, "%8lx\n", (unsigned long) *dst);
@@ -6844,11 +6843,11 @@ copyData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * from,
   } else {
     unsigned char *q;
     q = (unsigned char *) from->element.d.ot +
-      (U32) p;
+      (long) p;
     (void) memcpy(to->d.ot, q, l);
   }
   p += l;
-  if ((U32) p == from->element.length)
+  if ((long) p == from->element.length)
     return DCM_NORMAL;
   else
     return DCM_GETINCOMPLETE;
