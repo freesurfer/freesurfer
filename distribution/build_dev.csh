@@ -148,6 +148,12 @@ if ($status != 0) then
   exit 1  
 endif
 
+echo "##########################################################" >>& $OUTPUTF
+echo "Setting permissions" >>& $OUTPUTF
+echo "" >>& $OUTPUTF
+$ECHO echo "CMD: chmod -R g+rw ${DEV_DEST_DIR}" >>& $OUTPUTF
+$ECHO chmod -R g+rw ${DEV_DEST_DIR} >>& $OUTPUTF
+
 $ECHO rm -rf ${FAILED_FILE}
 
 done:
