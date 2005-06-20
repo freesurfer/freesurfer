@@ -23,7 +23,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.90 2005/06/20 16:04:43 nicks Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.91 2005/06/20 16:16:44 fischl Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -79,6 +79,9 @@ static char vcid[] = "$Id: mri_fill.c,v 1.90 2005/06/20 16:04:43 nicks Exp $";
                                 GLOBAL DATA
 -------------------------------------------------------------------*/
 
+static int find_rh_seed_point(MRI *mri, int *prh_vol_x, int *prh_vol_y, int *prh_vol_z) ;
+
+static int find_rh_voxel = 0 ;
 static int fillonly = 0 ;
 static int fillven = 0 ;
 static FILE *log_fp = NULL ;
@@ -130,6 +133,12 @@ static int rh_vol_x ;
 static int rh_vol_y ;
 static int rh_vol_z ;
 
+static int lh_vol_x ;
+static int lh_vol_y ;
+static int lh_vol_z ;
+
+static int lhv = 0 ; 
+static int rhv = 0 ; 
 char *Progname ;
 
 static int min_filled = 0 ;
@@ -295,7 +304,7 @@ main(int argc, char *argv[])
   int     nargs, wm_rh_x, wm_rh_y, wm_rh_z, wm_lh_x, wm_lh_y, wm_lh_z ;
   char    input_fname[STRLEN],out_fname[STRLEN], fname[STRLEN] ;
   Real    xr, yr, zr, dist, min_dist ;
-  MRI     *mri_cc = NULL, *mri_pons, *mri_lh_fill, *mri_rh_fill, *mri_lh_im, 
+  MRI     *mri_cc = NULL, *mri_pons = NULL, *mri_lh_fill, *mri_rh_fill, *mri_lh_im, 
 		*mri_rh_im /*, *mri_blur*/, *mri_labels, *mri_tal, *mri_tmp, *mri_tmp2,
 		*mri_saved_labels, *mri_seg ;
   int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc, xi, yi, zi ;
@@ -316,7 +325,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.90 2005/06/20 16:04:43 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.91 2005/06/20 16:16:44 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -355,6 +364,10 @@ main(int argc, char *argv[])
     mri_im = mri_tmp ;
 	}
 
+	if (find_rh_voxel)
+	{
+		find_rh_seed_point(mri_im, &rh_vol_x, &rh_vol_y, &rh_vol_z) ;
+	}
 	if (fillonly)
 	{
 		mri_rh_fill = MRIclone(mri_im, NULL) ;
@@ -883,8 +896,17 @@ main(int argc, char *argv[])
   // rh side wm
   if (rh_seed_set)
   {
-    MRItalairachToVoxelEx(mri_im, rh_tal_x, rh_tal_y,rh_tal_z,&xr,&yr,&zr, lta);
-    wm_rh_x = nint(xr) ; wm_rh_y = nint(yr) ; wm_rh_z = nint(zr) ;
+		if (rhv)
+		{
+			MRIvoxelToTalairachEx(mri_im, rh_vol_x, rh_vol_y,rh_vol_z,&xr,&yr,&zr, lta);
+			rh_tal_x = xr ; rh_tal_y = yr ; rh_tal_z = zr ; 
+			wm_rh_x = rh_vol_x ; wm_rh_y = rh_vol_y ; wm_rh_z = rh_vol_z ;
+		}
+		else
+		{
+			MRItalairachToVoxelEx(mri_im,rh_tal_x,rh_tal_y,rh_tal_z,&xr,&yr,&zr,lta);
+			wm_rh_x = nint(xr) ; wm_rh_y = nint(yr) ; wm_rh_z = nint(zr) ;
+		}
   }
   else
   {
@@ -949,8 +971,17 @@ main(int argc, char *argv[])
   // lh side wm
   if (lh_seed_set)
   {
-    MRItalairachToVoxelEx(mri_im, lh_tal_x, lh_tal_y,lh_tal_z,&xr,&yr,&zr, lta);
-    wm_lh_x = nint(xr) ; wm_lh_y = nint(yr) ; wm_lh_z = nint(zr) ;
+		if (lhv)
+		{
+			MRIvoxelToTalairachEx(mri_im, lh_vol_x, lh_vol_y,lh_vol_z,&xr,&yr,&zr, lta);
+			lh_tal_x = xr ; lh_tal_y = yr ; lh_tal_z = zr ; 
+			wm_lh_x = lh_vol_x ; wm_lh_y = lh_vol_y ; wm_lh_z = lh_vol_z ;
+		}
+		else
+		{
+			MRItalairachToVoxelEx(mri_im, lh_tal_x, lh_tal_y,lh_tal_z,&xr,&yr,&zr, lta);
+			wm_lh_x = nint(xr) ; wm_lh_y = nint(yr) ; wm_lh_z = nint(zr) ;
+		}
   }
   else
   {
@@ -1321,6 +1352,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr,"using %d as fill val for right hemisphere.\n",
             rh_fill_val);
   }
+  else if (!stricmp(option, "findrhv"))
+  {
+		find_rh_voxel = 1 ;
+    fprintf(stderr,"finding any rh seed point that has all 27 nbrs on\n") ;
+  }
   else if (!stricmp(option, "lval"))
   {
     lh_fill_val = atoi(argv[2]) ;
@@ -1375,11 +1411,23 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "rhv"))
   {
     rh_seed_set = 1 ;
+		rhv = 1 ;
     rh_vol_x = atoi(argv[2]) ;
     rh_vol_y = atoi(argv[3]) ;
     rh_vol_z = atoi(argv[4]) ;
     fprintf(stderr, "using Volume position (%d, %d, %d) as rh seed\n",
             rh_vol_x, rh_vol_y, rh_vol_z) ;
+    nargs = 3 ;
+  }
+  else if (!stricmp(option, "lhv"))
+  {
+    lh_seed_set = 1 ;
+		lhv = 1 ;
+    lh_vol_x = atoi(argv[2]) ;
+    lh_vol_y = atoi(argv[3]) ;
+    lh_vol_z = atoi(argv[4]) ;
+    fprintf(stderr, "using Volume position (%d, %d, %d) as lh seed\n",
+            lh_vol_x, lh_vol_y, lh_vol_z) ;
     nargs = 3 ;
   }
   else if (!stricmp(option, "ccmask"))
@@ -3809,5 +3857,32 @@ find_cc_seed_with_segmentation(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pc
 				 nint(xcc), nint(ycc), nint(zcc), *pcc_tal_x, *pcc_tal_y, *pcc_tal_z) ;
   
   return(NO_ERROR) ;
+}
+
+static int
+find_rh_seed_point(MRI *mri, int *prh_vol_x, int *prh_vol_y, int *prh_vol_z)
+{
+	int   x, y, z ;
+
+	for (x = 0 ; x < mri->width ; x++)
+	{
+		for (y = 0 ; y < mri->height ; y++)
+		{
+			for (z = 0 ; z< mri->depth ; z++)
+			{
+				if (MRIneighborsOn3x3(mri, x, y, z, WM_MIN_VAL) >= 26)
+				{
+					*prh_vol_x = x ;
+					*prh_vol_y = y ;
+					*prh_vol_z = z ;
+					printf("rh seed point found at (%d, %d, %d)\n", x, y, z) ;
+					return(NO_ERROR) ;
+				}
+			}
+		}
+	}
+
+	ErrorExit(ERROR_BADPARM,"could not find rh seed point");
+	return(NO_ERROR) ;
 }
 
