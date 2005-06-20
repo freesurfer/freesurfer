@@ -23,7 +23,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.89 2005/05/27 19:30:30 xhan Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.90 2005/06/20 16:04:43 nicks Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -295,7 +295,7 @@ main(int argc, char *argv[])
   int     nargs, wm_rh_x, wm_rh_y, wm_rh_z, wm_lh_x, wm_lh_y, wm_lh_z ;
   char    input_fname[STRLEN],out_fname[STRLEN], fname[STRLEN] ;
   Real    xr, yr, zr, dist, min_dist ;
-  MRI     *mri_cc, *mri_pons, *mri_lh_fill, *mri_rh_fill, *mri_lh_im, 
+  MRI     *mri_cc = NULL, *mri_pons, *mri_lh_fill, *mri_rh_fill, *mri_lh_im, 
 		*mri_rh_im /*, *mri_blur*/, *mri_labels, *mri_tal, *mri_tmp, *mri_tmp2,
 		*mri_saved_labels, *mri_seg ;
   int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc, xi, yi, zi ;
@@ -316,7 +316,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.89 2005/05/27 19:30:30 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.90 2005/06/20 16:04:43 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
