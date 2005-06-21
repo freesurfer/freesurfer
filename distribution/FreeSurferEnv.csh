@@ -1,45 +1,54 @@
 #############################################################################
 # Name:    FreeSurferEnv.csh
 # Purpose: sets up the environment to run FreeSurfer and FS-FAST 
-# Usage:   
-#   1. Create an environment variable called FREESURFER_HOME and set it
-#      to the directory in which FreeSurfer is installed.
-#   2. From a csh or tcsh shell or (.login): 
-#        source FreeSurferEnv.csh
-#   3. There are environment variables that should point to locations
-#      of software or data used by FreeSurfer. If set prior
-#      to sourcing, they will not be changed, but will otherwise be
-#      set to default locations:
-#        FSFAST_HOME
-#        SUBJECTS_DIR
-#        FUNCTIONALS_DIR
-#        MINC_BIN_DIR  
-#        MINC_LIB_DIR  
-#        FSL_DIR
-#   4. If NO_MINC is set (to anything), then all the MINC stuff is ignored.
-#   5. If NO_FSFAST is set (to anything), then the startup.m stuff is
-#      ignored
-#   6. The script will print the final settings for the above variables
-#      as well as any warnings about missing directories. If 
-#      FS_FREESURFERENV_NO_OUTPUT is set, then no normal output will
-#      be made (only error messages).
+# Usage:   see help section below  
 #
-#   The most convenient way to use this script is to write another
-#   script that sets FREESURFER_HOME and possibly SUBJECTS_DIR for
-#   your set-up, as well as NO_MINC, NO_FSFAST, or
-#   FS_FREESURFERENV_NO_OUTPUT as appropriate, and then source this
-#   script.
-#
-#
-# $Id: FreeSurferEnv.csh,v 1.12 2005/06/17 14:55:15 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.13 2005/06/21 22:28:26 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.12 2005/06/17 14:55:15 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.13 2005/06/21 22:28:26 nicks Exp $'
+
+## Print help if --help or -help is specified
+if (("$1" == "--help") || ("$1" == "-help")) then
+    echo "FreeSurferEnv.csh"
+    echo ""
+    echo "Purpose: Sets up the environment to run FreeSurfer and FS-FAST"
+    echo ""
+    echo "Usage:"
+    echo ""
+    echo "1. Create an environment variable called FREESURFER_HOME and"
+    echo "   set it to the directory in which FreeSurfer is installed."
+    echo "2. From a csh or tcsh shell or (.login): "
+    echo '       source $FREESURFER_HOME/FreeSurferEnv.csh'
+    echo "3. There are environment variables that should point to locations"
+    echo "   of software or data used by FreeSurfer. If set prior to"
+    echo "   sourcing, they will not be changed, but will otherwise be"
+    echo "   set to default locations:"
+    echo "       FSFAST_HOME"
+    echo "       SUBJECTS_DIR"
+    echo "       FUNCTIONALS_DIR"
+    echo "       MINC_BIN_DIR"
+    echo "       MINC_LIB_DIR"
+    echo "4. If NO_MINC is set (to anything), "
+    echo "   then all the MINC stuff is ignored."
+    echo "5. If NO_FSFAST is set (to anything), "
+    echo "   then the startup.m stuff is ignored."
+    echo "6. The script will print the final settings for the above "
+    echo "   variables as well as any warnings about missing directories."
+    echo "   If FS_FREESURFERENV_NO_OUTPUT is set, then no normal output"
+    echo "   will be made (only error messages)."
+    echo ""
+    echo "The most convenient way to use this script is to write another"
+    echo "script that sets FREESURFER_HOME and possibly SUBJECTS_DIR for"
+    echo "your set-up, as well as NO_MINC, NO_FSFAST, or"
+    echo "FS_FREESURFERENV_NO_OUTPUT as appropriate, and then source this"
+    echo "script.  See SetUpFreeSurfer.csh for an example."
+    exit 0;
+endif
 
 ## Get the name of the operating system
 set os = `uname -s`
 setenv OS $os
-
 
 ## Set this environment variable to suppress the output.
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
@@ -52,8 +61,13 @@ if($?USER == 0 || $?prompt == 0) then
 endif
 
 if( $output ) then
-    echo "Setting up enviroment for FreeSurfer/FS-FAST"
-    echo $VERSION
+    echo "Setting up environment for FreeSurfer/FS-FAST"
+    if (("$1" == "--version") || \
+        ("$1" == "--V") || \
+        ("$1" == "-V") || \
+        ("$1" == "-v")) then
+        echo $VERSION
+    endif
 endif
 
 ## Check if FREESURFER_HOME variable exists, then check if the actual
@@ -94,12 +108,26 @@ if(! $?FUNCTIONALS_DIR  || $FS_OVERRIDE) then
     setenv FUNCTIONALS_DIR $FREESURFER_HOME/sessions
 endif
 
-if(! $?NO_MINC && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
-    setenv MINC_BIN_DIR $FREESURFER_HOME/minc/bin
+if((! $?NO_MINC) && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
+    # try to find a minc toolkit
+    if ( -e /usr/pubsw/packages/mni/current/bin) then
+        setenv MINC_BIN_DIR /usr/pubsw/packages/mni/current/bin
+    else if ( -e /usr/local/mni/bin) then
+        setenv MINC_BIN_DIR /usr/local/mni/bin
+    else if ( -e $FREESURFER_HOME/minc/bin) then
+        setenv MINC_BIN_DIR $FREESURFER_HOME/minc/bin
+    endif
 endif
 
-if(! $?NO_MINC && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
-    setenv MINC_LIB_DIR $FREESURFER_HOME/minc/lib
+if((! $?NO_MINC) && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
+    # try to find a minc toolkit
+    if ( -e /usr/pubsw/packages/mni/current/lib) then
+        setenv MINC_LIB_DIR /usr/pubsw/packages/mni/current/lib
+    else if ( -e /usr/local/mni/lib) then
+        setenv MINC_LIB_DIR /usr/local/mni/lib
+    else if ( -e $FREESURFER_HOME/minc/lib) then
+        setenv MINC_LIB_DIR $FREESURFER_HOME/minc/lib
+    endif
 endif
 
 if(! $?FSL_DIR  || $FS_OVERRIDE) then
@@ -182,21 +210,43 @@ endif
 
 ### ----------- MINC Stuff -------------- ####
 if(! $?NO_MINC) then
-    if(! -d $MINC_BIN_DIR) then
+    if( $?MINC_BIN_DIR) then
+        if (! -d $MINC_BIN_DIR) then
+            if( $output ) then
+                echo "WARNING: MINC_BIN_DIR '$MINC_BIN_DIR' does not exist.";
+            endif
+        endif
+    else
         if( $output ) then
-            echo "WARNING: $MINC_BIN_DIR does not exist.";
+            echo "WARNING: MINC_BIN_DIR not defined."
+            echo "         'nu_correct' and other MINC tools"
+            echo "         are used by some Freesurfer utilities."
+            echo "         Set NO_MINC to suppress this warning."
         endif
     endif
-    if(! -d $MINC_LIB_DIR) then
+    if( $?MINC_LIB_DIR) then
+        if (! -d $MINC_LIB_DIR) then
+            if( $output ) then
+                echo "WARNING: MINC_LIB_DIR '$MINC_LIB_DIR' does not exist.";
+            endif
+        endif
+    else
         if( $output ) then
-            echo "WARNING: $MINC_LIB_DIR does not exist.";
+            echo "WARNING: MINC_LIB_DIR not defined."
+            echo "         Some Freesurfer utilities rely on the"
+            echo "         MINC toolkit libraries."
+            echo "         Set NO_MINC to suppress this warning."
         endif
     endif
     ## Set Load library path ##
     if(! $?LD_LIBRARY_PATH ) then
-        setenv LD_LIBRARY_PATH  $MINC_LIB_DIR
+        if ( $?MINC_LIB_DIR) then
+            setenv LD_LIBRARY_PATH  $MINC_LIB_DIR
+        endif
     else
-        setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$MINC_LIB_DIR"
+        if ( $?MINC_LIB_DIR) then        
+            setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$MINC_LIB_DIR"
+        endif
     endif
 endif
 
@@ -226,7 +276,9 @@ set path = ( $FSFAST_HOME/bin     \
              $path \
             )
 if(! $?NO_MINC) then
-    set path = ( $MINC_BIN_DIR $path )
+    if ( $?MINC_BIN_DIR) then
+        set path = ( $MINC_BIN_DIR $path )
+    endif
 endif
 
 rehash;
