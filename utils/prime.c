@@ -80,9 +80,9 @@ int *GetPrimeFactors(int N, int *Nfactors)
     changed = 0;
     for(n=0; n < nallprimes; n++){
       if( (NN % allprimes[n]) == 0 ){
-  (*Nfactors)++;
-  NN /= allprimes[n];
-  changed = 1;
+	(*Nfactors)++;
+	NN /= allprimes[n];
+	changed = 1;
       }
     }
   }
@@ -94,20 +94,20 @@ int *GetPrimeFactors(int N, int *Nfactors)
   m = 0;
   changed = 1;
   NN = N;
-  free(allprimes);
   while(changed){
     changed = 0;
     for(n=0; n < nallprimes; n++){
       if( (NN % allprimes[n]) == 0 ){
-  pfactors[m] = allprimes[n];
-  NN /= allprimes[n];
-  m++;
-  changed = 1;
+	pfactors[m] = allprimes[n];
+	NN /= allprimes[n];
+	m++;
+	changed = 1;
       }
     }
   }
   if(NN != 1) pfactors[m] = NN;
 
+  free(allprimes);
 
   qsort(pfactors,*Nfactors,sizeof(int),CompareFactors);
 
