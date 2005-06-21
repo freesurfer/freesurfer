@@ -3329,7 +3329,11 @@ tBoolean FunV_CompareMRIAndFuncValues ( xVoxelRef  iMRIIdx,
     ebGood = (funcValue == callbackData->mStartValue);
     break;
   case FunV_tFindStatsComp_GTEThresholdMin:
-    ebGood = (funcValue >= this->mThresholdMin);
+    if( this->mThresholdSlope > 0 ) {
+      ebGood = (funcValue >= this->mThresholdMin);
+    } else {
+      ebGood = (funcValue <= this->mThresholdMin);
+    }
     break;
   default:
     ebGood = FALSE;
