@@ -16,6 +16,7 @@ extern "C" {
 #include "ScubaLayer2DMRI.h"
 #include "ScubaDataCollectionFactory.h"
 #include "Scuba-impl.h"
+#include "SegmentationVolumeReport.h"
 
 char* Progname = "scuba";
 
@@ -115,6 +116,7 @@ int main ( int argc, char** argv ) {
     ScubaGlobalPreferences preferences =
       ScubaGlobalPreferences::GetPreferences();
 
+    SegmentationVolumeReport::GetReport();
 
     // Look for the script, first in the local dir, then in
     // ../scripts, then in $FREESURFER_HOME/lib/tcl.

@@ -18,6 +18,9 @@ class SegmentationVolumeReport : public TclCommandListener {
 
   static SegmentationVolumeReport& GetReport ();
 
+  // Clear all info about the report.
+  void Clear ();
+
   // Declare the volume to use as the main segmentation. This will be
   // the volume whose segmentation structures are counted.
   void SetSegmentation ( VolumeCollection& iSeg );
@@ -38,7 +41,8 @@ class SegmentationVolumeReport : public TclCommandListener {
   // just defines the labels in the report.
   void SetColorLUT ( ScubaColorLUT& iLUT );
   void AddSegmentationStructure ( int inStructure );
-  
+
+  // Generate the tab-delimited reports.
   void MakeVolumeReport ( std::string ifnReport );
 
   void MakeIntensityReport ( std::string ifnReport );
@@ -58,6 +62,7 @@ class SegmentationVolumeReport : public TclCommandListener {
   ScubaColorLUT* mLUT;
   std::list<int> mlStructures;
 
+  bool mbReportDirty;
   void MakeVolumeReport();
 
   // Generated after report is ready.
@@ -66,6 +71,11 @@ class SegmentationVolumeReport : public TclCommandListener {
   typedef std::map<int,float> tStructureToIntensityAverageMap;
   std::map<VolumeCollection*,tStructureToIntensityAverageMap> 
     mVolumeToIntensityAverageMap;
+
+  // List of voxels in each structure.
+  typedef std::map<VolumeCollection*,std::list<VolumeLocation> >
+    tVolumeToVoxelListMap;
+  std::map<int,tVolumeToVoxelListMap> mStructureToVolumeVoxelListMap;
 };
 
 #endif

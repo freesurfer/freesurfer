@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.128 2005/06/21 17:40:39 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.129 2005/06/22 14:57:45 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -543,6 +543,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "Show Surface Vertex..." { DoShowSurfaceVertex } }
 	{command "Find Nearest Surface Vertex..." { DoFindNearestSurfaceVertex } }
 	{command "Set Cursor from edit.dat File..." { DoSetCursorFromEditDatFileDlog } }
+	{command "Generate Segmentation Volume Report..." { DoGenerateReportDlog } }
     }
 
     pack $gaMenu(tools) -side left
@@ -947,7 +948,7 @@ proc ScubaMouseMotionCallback { inX inY iState iButton } {
 	set viewID [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
-
+    
     UpdateMouseLabelArea $viewID
 }
 
@@ -4195,237 +4196,6 @@ proc DrawLabelArea {} {
     }
 }
 
-proc DrawLabelArea2 {} {
-
-    global gaWidget
-    global glLabelValues
-    global tk_version
-    global gaLabelArea
-
-    foreach nArea {1 2} {
-
-	if { ![info exists glLabelValues($nArea)] } {
-	    continue
-	}
-
-	# Start with empty lists and arrays.
-	set tableX {}
-	set tableY {}
-	array set normalEntries {}
-	array set tableEntries {}
-
-	# If we haven't made the frame for this area, make it.
-	set fwTop $gaWidget(labelArea,$nArea).fwTop
-	if { [catch {$fwTop config}] } {
-	    frame $fwTop
-	    pack $fwTop -fill both -expand yes
-	}
-
-	# For each label-value pair we have...
-	foreach lLabelValue $glLabelValues($nArea) {
-	    
-	    # Get the label and value. Set the value in a global
-	    # variable with the label as the index name.
-	    set label [lindex $lLabelValue 0]
-	    set value [lindex $lLabelValue 1]
-	    set glLabelValues($nArea,"$label",value) $value
-
-	    # Has comma and in table mode? If so, add it to the list
-	    # of table entries. Otherwise add it to the list of normal
-	    # entries.
-	    if { [string first , $label] != -1 &&
-		 [string match $gaLabelArea(mode) labelAreaTable] } {
-		
-		# Parse out the x and y labels, split by the
-		# comma. Add each to the list of x and y table labels.
-		set nComma [string first , $label]
-		set sX [string range $label 0 [expr $nComma - 1]]
-		set sY [string range $label [expr $nComma + 1] end]
-
-		set tableEntries($sX,$sY) $value
-		if { [lsearch $tableX $sX] == -1 } {
-		    lappend tableX $sX
-		}
-		if { [lsearch $tableY $sY] == -1 } {
-		    lappend tableY $sY
-		}
-
-	    } else {
-
-		set normalEntries($label) $value
-	    }
-	}
-
-	# If we haven't made the normal label frame, make it.
-	set fwNormal $fwTop.fwNormal
-	if { [catch {$fwNormal config}] } {
-	    frame $fwNormal
-	    pack $fwNormal -side top -expand yes -fill x
-	}
-
-	# First pack our normal entries.
-	set nRow 0
-	foreach label [array names normalEntries] {
-	    set ewLabel $fwNormal.ewLabel-$nRow
-	    set ewValue $fwNormal.ewValue-$nRow
-
-	    # Cap the label to 14 chars if necessary.
-	    set zLabel [string length $label]
-	    if { $zLabel > 14 } {
-		set sFirst [string range $label 0 6]
-		set sLast [string range $label [expr $zLabel-6] end]
-		set label "${sFirst}...${sLast}"
-	    }
-
-	    # If we haven't made a label yet, make one, otherwise just
-	    # configure it with this labels contents.
-	    catch {
-		tkuMakeNormalLabel $ewLabel -label $label -width 14
-	    }
-	    catch {
-		grid $ewLabel -column 0 -row $nRow
-	    }
-		
-	    # If we haven't made an entry yet, make one, otherwise
-	    # just configure the existing one.
-	    catch {
-		set bgColor gray
-		catch { set bgColor [tix option get disabled_bg] }
-
-		set sState disabled
-		if { $tk_version >= 8.4 } {
-		    set sState readonly
-		}
-
-		entry $ewValue \
-		    -textvariable glLabelValues($nArea,"$label",value) \
-		    -font [tkuNormalFont] \
-		    -width 18 \
-		    -state $sState \
-		    -relief flat \
-		    -background $bgColor
-	    }
-	    catch {
-		grid $ewValue -column 1 -row $nRow
-	    }
-	    catch {
-		$ewValue config \
-		    -textvariable glLabelValues($nArea,"$label",value)
-	    }
-	    incr nRow
-	}
-	for {} { $nRow < 10 } { incr nRow } {
-	    catch { grid remove $fwNormal.ewLabel-$nRow }
-	    catch { grid remove $fwNormal.ewValue-$nRow }
-	}
-
-	    
-	# If we haven't made the table frame, make it.
-	set fwTable $fwTop.fwTable
-	if { [catch {$fwTable config}] } {
-	    frame $fwTable -relief sunken -border 2
-	    pack $fwTable -expand yes -fill x
-	}
-
-	# These are row headers.
-	set nCol 1
-	foreach sX $tableX {
-
-	    # Cap the label to 14 chars if necessary.
-	    set zLabel [string length $sX]
-	    if { $zLabel > 14 } {
-		set sFirst [string range $sX 0 6]
-		set sLast [string range $sX [expr $zLabel-6] end]
-		set sX "${sFirst}...${sLast}"
-	    }
-
-	    # If we haven't made the header label, do so, otherwise
-	    # just configure it with our contents.
-	    set cell $fwTable.lw$nCol-0
-	    if { [catch {$cell config}] } {
-		tkuMakeNormalLabel $cell -label $sX -justify center
-		grid $cell -column $nCol -row 0 -sticky ew
-	    } else {
-		$cell.lw config -text $sX
-	    }
-	    grid columnconfigure $fwTable $nCol -weight 1
-	    incr nCol
-	}
-	grid columnconfigure $fwTable 0 -weight 1
-
-	# For each row...
-	set maxCol -1
-	set maxRow -1
-	set nRow 1
-	foreach sY $tableY {
-
-	    # This is the row header. If we haven't made the label, do
-	    # so, otherwise just configure it.
-	    set cell $fwTable.lw0-$nRow
-	    catch {
-		tkuMakeNormalLabel $cell -label $sY
-	    }
-	    catch {
-		grid $cell -column 0 -row $nRow -sticky ew
-	    }
-	    catch {
-		$cell.lw config -text $sY
-	    }
-
-	    # These are all the values in this row. For each, if we
-	    # haven't made an entry, do so, otherwise just configure
-	    # it.
-	    set nCol 1
-	    foreach sX $tableX {
-		if { [info exists tableEntries($sX,$sY)] } {
-		    set cell $fwTable.lw$nCol-$nRow
-		    catch {
-			set bgColor gray
-			catch { set bgColor [tix option get disabled_bg] }
-			entry $cell \
-			 -textvariable glLabelValues($nArea,"$sX,$sY",value) \
-			    -font [tkuNormalFont] \
-			    -state disabled \
-			    -width 15 \
-			    -relief flat \
-			    -background $bgColor
-		    }
-		    catch {
-			grid  $cell -column $nCol -row $nRow -sticky ew
-		    }
-		    catch {
-			$cell config \
-			    -textvariable glLabelValues($nArea,"$sX,$sY",value)
-		    }
-
-		    if { $nCol > $maxCol } { set maxCol $nCol }
-		    if { $nRow > $maxRow } { set maxRow $nRow }
-		}
-		incr nCol
-	    }
-	    incr nRow
-	}
-
-	for { set nCol [expr $maxCol + 1] } { $nCol < 10 } { incr nCol } {
-	    for { set nRow 0 } { $nRow < 10 } { incr nRow } {
-		catch { grid remove $fwTable.lw$nCol-$nRow }
-	    }
-	}
-	for { set nRow [expr $maxRow + 1] } { $nRow < 10 } { incr nRow } {
-	    for { set nCol 0 } { $nCol < 10 } { incr nCol } {
-		catch { grid remove $fwTable.lw$nCol-$nRow }
-	    }
-	}
-
-
-	# Delete lists and arrays.
-	unset tableX
-	unset tableY
-	array unset normalEntries
-	array unset tableEntries
-    }
-}
-
 proc UpdateCursorLabelArea {} {
     global gaView
     global gaWidget
@@ -5418,7 +5188,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.128 2005/06/21 17:40:39 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.129 2005/06/22 14:57:45 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6324,9 +6094,8 @@ proc DoGenerateReportDlog {} {
 	    -side top -expand yes -fill x
 
 
-	tkuMakeApplyCloseButtons $fwButtons $wwDialog \
-	    -okCmd GenerateReport \
-	    -applyCmd GenerateReport
+	tkuMakeCancelOKButtons $fwButtons $wwDialog \
+	    -okCmd GenerateReport
 	
 
 	grid $fwVolumes         -column 0 -row 0 -sticky new
@@ -6501,40 +6270,42 @@ proc UpdateGenerateReportDlog {} {
 
 proc GenerateReport {} {
     global gaReportInfo
-
-    puts "Seg vol: $gaReportInfo(mainSegVolID) [GetCollectionLabel $gaReportInfo(mainSegVolID)]"
-
-    puts "Volumes: "
-    foreach volID $gaReportInfo(grayscaleVolumes) {
-	if { [info exists gaReportInfo(volumes,$volID)] &&
-	     $gaReportInfo(volumes,$volID) } {
-	    puts "\t$volID [GetCollectionLabel $gaReportInfo(mainSegVolID)]"
-	}
-    }
-
-    set lutID $gaReportInfo(lutID)
-    puts "LUT: $lutID [GetColorLUTLabel $lutID]"
-
-    puts "Structures: "
-    if { [info exists gaReportInfo(selectedStructures)] } {
-	foreach nStructure $gaReportInfo(selectedStructures) {
-	    puts "\t$nStructure [GetColorLUTEntryLabel $lutID $nStructure]"
-	}
-    }
-
-    if { $gaReportInfo(useROI) } {
-	
-	set roiID $gaReportInfo(roiID)
-	puts "ROI: $roiID [GetROILabel $roiID]"
-    }
-
-    puts "File name: $gaReportInfo(mainFileName)"
     
-    if { $gaReportInfo(generateIntensityReport) } {
+    set err [catch { 
+
+	ClearSegVolReport
+
+	SetSegVolReportSegmentation $gaReportInfo(mainSegVolID)
 	
-	puts "Also generating intensity report"
-	puts "File name: $gaReportInfo(intensityFileName)"
-    }
+	foreach volID $gaReportInfo(grayscaleVolumes) {
+	    if { [info exists gaReportInfo(volumes,$volID)] &&
+		 $gaReportInfo(volumes,$volID) } {
+		AddSegVolReportIntensityVolume $volID
+	    }
+	}
+	
+	SetSegVolReportLUT $gaReportInfo(lutID)
+	
+	if { [info exists gaReportInfo(selectedStructures)] } {
+	    foreach nStructure $gaReportInfo(selectedStructures) {
+		AddSegmentationToSegVolReport $nStructure
+	    }
+	}
+	
+	if { $gaReportInfo(useROI) } {
+	    SetROIForSegVolReport $gaReportInfo(roiVolID) $gaReportInfo(roiID)
+	} else {
+	    DontUseROIInSegVolReport
+	}
+	
+	MakeSegVolReport $gaReportInfo(mainFileName)
+	
+	if { $gaReportInfo(generateIntensityReport) } {
+	    MakeSegVolIntensityReport $gaReportInfo(intensityFileName)
+	}
+
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
 }
 
 # MAIN =============================================================
@@ -6786,21 +6557,4 @@ bind $gaWidget(window) <Alt-Key-n> {
 	set gaView(tkcon,visible) 1
     }
     ShowHideConsole $gaView(tkcon,visible)
-}
-
-
-if { 0 } {
-
-set roiID [NewCollectionROI 0]
-SetROILabel $roiID "oblique1 roi1"
-set roiID [NewCollectionROI 0]
-SetROILabel $roiID "oblique1 roi2"
-set roiID [NewCollectionROI 1]
-setROILabel $roiID "oblique2 roi1"
-set roiID [NewCollectionROI 1]
-SetROILabel $roiID "oblique2 roi2"
-UpdateROIList
-
-DoGenerateReportDlog
-
 }

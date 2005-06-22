@@ -33,12 +33,16 @@ class VolumeLocation : public DataLocation {
  public:
   VolumeLocation ( VolumeCollection& iVolume, float const iRAS[3] );
   VolumeLocation ( VolumeCollection& iVolume, int const iIndex[3] );
+  VolumeLocation ( const VolumeLocation& iLoc );
   ~VolumeLocation () {}
-  int* Index() { return mIdxi; }
-  float* IndexF() { return mIdxf; }
-  void SetFromRAS( float const iRAS[3] );
+  int*   Index      ()               { return mIdxi; }
+  int    Index      ( int in ) const { return mIdxi[in]; }
+  float* IndexF     ()               { return mIdxf; }
+  float  IndexF     ( int in ) const { return mIdxf[in]; }
+  void SetFromRAS ( float const iRAS[3] );
+  VolumeCollection* GetVolume () const { return mVolume; }
  protected:
-  VolumeCollection& mVolume;
+  VolumeCollection* mVolume;
   int mIdxi[3];
   float mIdxf[3];
 };

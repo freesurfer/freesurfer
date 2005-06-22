@@ -2313,10 +2313,10 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 
 VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
 				 float const iRAS[3] )
-  : DataLocation( iRAS ), mVolume( iVolume ) {
+  : DataLocation( iRAS ), mVolume( &iVolume ) {
 
-  mVolume.RASToMRIIndex( iRAS, mIdxf );
-  mVolume.RASToMRIIndex( iRAS, mIdxi );
+  mVolume->RASToMRIIndex( iRAS, mIdxf );
+  mVolume->RASToMRIIndex( iRAS, mIdxi );
 #if 0
   mIdxi[0] = (int) mIdxf[0];
   mIdxi[1] = (int) mIdxf[1];
@@ -2326,9 +2326,9 @@ VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
 
 VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
 				 int const iIndex[3] )
-  : DataLocation(), mVolume( iVolume ) {
+  : DataLocation(), mVolume( &iVolume ) {
 
-  mVolume.MRIIndexToRAS( iIndex, mRAS );
+  mVolume->MRIIndexToRAS( iIndex, mRAS );
   mIdxi[0] = iIndex[0];
   mIdxi[1] = iIndex[1];
   mIdxi[2] = iIndex[2];
@@ -2337,14 +2337,25 @@ VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
   mIdxf[2] = iIndex[2];
 }
 
+VolumeLocation::VolumeLocation ( const VolumeLocation& iLoc )
+  : DataLocation(iLoc), mVolume(iLoc.GetVolume()) {
+  
+  mIdxi[0] = iLoc.Index(0);
+  mIdxi[1] = iLoc.Index(1);
+  mIdxi[2] = iLoc.Index(2);
+  mIdxf[0] = iLoc.IndexF(0);
+  mIdxf[1] = iLoc.IndexF(1);
+  mIdxf[2] = iLoc.IndexF(2);
+}
+
 void
 VolumeLocation::SetFromRAS ( float const iRAS[3] ) {
 
   mRAS[0] = iRAS[0];
   mRAS[1] = iRAS[1];
   mRAS[2] = iRAS[2];
-  mVolume.RASToMRIIndex( iRAS, mIdxf );
-  mVolume.RASToMRIIndex( iRAS, mIdxi );
+  mVolume->RASToMRIIndex( iRAS, mIdxf );
+  mVolume->RASToMRIIndex( iRAS, mIdxi );
 #if 0
   mIdxi[0] = (int) mIdxf[0];
   mIdxi[1] = (int) mIdxf[1];

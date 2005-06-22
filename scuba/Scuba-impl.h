@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/02/23 22:41:49 $
-// Revision       : $Revision: 1.7 $
+// Revision Date  : $Date: 2005/06/22 14:57:45 $
+// Revision       : $Revision: 1.8 $
 
 // This file is necessary for creating the instantiations for template
 // classes. Note that we actually include the .cpp files here.  Then
@@ -42,3 +42,4 @@ DeclareIDTracker(Path<float>); //ugh
 template class Volume3<Point3<int> >;
 template class Array2<Point3<float> >;
 template class Array2<VolumeLocation*>;
+template class Volume3<VolumeLocation*>;

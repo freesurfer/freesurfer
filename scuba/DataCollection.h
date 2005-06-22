@@ -30,8 +30,14 @@ class DataLocation {
     mRAS[1] = iRAS[1]; 
     mRAS[2] = iRAS[2]; 
   }
+  DataLocation ( const DataLocation& iLoc ) {
+    mRAS[0] = iLoc.RAS(0);
+    mRAS[1] = iLoc.RAS(1);
+    mRAS[2] = iLoc.RAS(2);
+  }
   ~DataLocation () {}
   float* RAS() { return mRAS; }
+  float RAS ( int in ) const { return mRAS[in]; }
  protected:
   float mRAS[3];
 };
