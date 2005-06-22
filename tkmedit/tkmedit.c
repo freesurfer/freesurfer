@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/06/18 00:04:22 $
-// Revision       : $Revision: 1.245 $
-char *VERSION = "$Revision: 1.245 $";
+// Revision Date  : $Date: 2005/06/22 17:43:32 $
+// Revision       : $Revision: 1.246 $
+char *VERSION = "$Revision: 1.246 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1076,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.245 2005/06/18 00:04:22 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.246 2005/06/22 17:43:32 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5209,7 +5209,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.245 2005/06/18 00:04:22 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.246 2005/06/22 17:43:32 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7649,6 +7649,23 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   
   gm_screen2ras = extract_i_to_r( gAnatomicalVolume[iType]->mpMriValues );
   gm_ras2screen = extract_r_to_i( gAnatomicalVolume[iType]->mpMriValues );
+
+  /* If this is the main volume and it's a COR, turn on the
+     axes. Otherwise turn them off. */
+  if( iType == tkm_tVolumeType_Main &&
+      gAnatomicalVolume[iType]->mpMriValues->x_r == -1.0 &&
+      gAnatomicalVolume[iType]->mpMriValues->x_a ==  0.0 &&
+      gAnatomicalVolume[iType]->mpMriValues->x_s ==  0.0 &&
+      gAnatomicalVolume[iType]->mpMriValues->y_r ==  0.0 &&
+      gAnatomicalVolume[iType]->mpMriValues->y_a ==  0.0 &&
+      gAnatomicalVolume[iType]->mpMriValues->y_s == -1.0 &&
+      gAnatomicalVolume[iType]->mpMriValues->z_r ==  0.0 &&
+      gAnatomicalVolume[iType]->mpMriValues->z_a ==  1.0 &&
+      gAnatomicalVolume[iType]->mpMriValues->z_s ==  0.0 ) {
+    MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_Axes, TRUE );
+  } else {
+    MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_Axes, FALSE );
+  }
 
   /* Send info to the tcl window. */
   Volm_GetResampleMethod( gAnatomicalVolume[iType], &resampleMethod );
