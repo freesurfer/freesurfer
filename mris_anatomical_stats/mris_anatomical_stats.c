@@ -15,7 +15,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.25 2005/05/19 14:05:59 xhan Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.26 2005/06/22 22:42:38 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -82,7 +82,7 @@ main(int argc, char *argv[])
   MRI           *ThicknessMap = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.25 2005/05/19 14:05:59 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.26 2005/06/22 22:42:38 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -241,7 +241,7 @@ main(int argc, char *argv[])
       fprintf(stdout, "    number of vertices\n");
       fprintf(stdout, "    total surface area (mm^2)\n");
       fprintf(stdout, "    total gray matter volume (mm^3)\n");
-      fprintf(stdout, "    average cortical thickness +- standard error (mm)\n");
+      fprintf(stdout, "    average cortical thickness +- standard deviation (mm)\n");
       fprintf(stdout, "    integrated rectified mean curvature\n");
       fprintf(stdout, "    integrated rectified Gaussian curvature\n");
       fprintf(stdout, "    folding index\n");
@@ -266,7 +266,7 @@ main(int argc, char *argv[])
       fprintf(fp,"# 3. total surface area (mm^2)\n");
       fprintf(fp,"# 4. total gray matter volume (mm^3)\n");
       fprintf(fp,"# 5. average cortical thickness (mm)\n");
-      fprintf(fp,"# 6. standard error of cortical thicknessr (mm)\n");
+      fprintf(fp,"# 6. standard deviation of cortical thickness (mm)\n");
       fprintf(fp,"# 7. integrated rectified mean curvature\n");
       fprintf(fp,"# 8. integrated rectified Gaussian curvature\n");
       fprintf(fp,"# 9. folding index\n");
