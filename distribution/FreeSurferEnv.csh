@@ -1,18 +1,18 @@
 #############################################################################
 # Name:    FreeSurferEnv.csh
-# Purpose: sets up the environment to run FreeSurfer and FS-FAST 
-# Usage:   see help section below  
+# Purpose: Setup the environment to run FreeSurfer and FS-FAST 
+# Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.13 2005/06/21 22:28:26 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.14 2005/06/23 19:45:07 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.13 2005/06/21 22:28:26 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.14 2005/06/23 19:45:07 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
     echo "FreeSurferEnv.csh"
     echo ""
-    echo "Purpose: Sets up the environment to run FreeSurfer and FS-FAST"
+    echo "Purpose: Setup the environment to run FreeSurfer and FS-FAST"
     echo ""
     echo "Usage:"
     echo ""
@@ -116,6 +116,8 @@ if((! $?NO_MINC) && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
         setenv MINC_BIN_DIR /usr/local/mni/bin
     else if ( -e $FREESURFER_HOME/minc/bin) then
         setenv MINC_BIN_DIR $FREESURFER_HOME/minc/bin
+    else if ( -e $FREESURFER_HOME/lib/mni/bin) then
+        setenv MINC_BIN_DIR $FREESURFER_HOME/lib/mni/bin
     endif
 endif
 
@@ -127,6 +129,8 @@ if((! $?NO_MINC) && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
         setenv MINC_LIB_DIR /usr/local/mni/lib
     else if ( -e $FREESURFER_HOME/minc/lib) then
         setenv MINC_LIB_DIR $FREESURFER_HOME/minc/lib
+    else if ( -e $FREESURFER_HOME/lib/mni/lib) then
+        setenv MINC_LIB_DIR $FREESURFER_HOME/lib/mni/lib
     endif
 endif
 
@@ -258,6 +262,11 @@ if ( $?FSL_DIR ) then
             echo "WARNING: $FSL_BIN does not exist.";
         endif
     endif
+endif
+
+### ----------- Freesurfer Support Libraries  ------------ ####
+if ( -e $FREESURFER_HOME/lib/misc ) then
+    source $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh
 endif
 
 ## Set up the path. They should probably already have one, but set a
