@@ -26,6 +26,8 @@ char *Progname ;
 #define CLOSE          3
 #define OPEN           4
 #define DILATE_LABEL   5
+#define MODE_FILTER    6
+
 
 static void usage_exit(int code) ;
 
@@ -41,7 +43,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.2 2005/06/08 14:53:18 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.3 2005/06/23 16:00:56 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -82,6 +84,8 @@ main(int argc, char *argv[])
 		operation = ERODE ;
 	else 	if (!stricmp(argv[2], "open"))
 		operation = OPEN ;
+	else 	if (!stricmp(argv[2], "mode"))
+		operation = OPEN ;
 	else
 	{
 		operation = 0 ;
@@ -91,6 +95,19 @@ main(int argc, char *argv[])
 	niter = atoi(argv[3]) ;
 	switch (operation)
 	{
+	case MODE_FILTER:
+		{
+			MRI *mri_tmp ;
+			if (mri_src->type != MRI_UCHAR)
+			{
+				mri_tmp = MRIchangeType(mri_src, MRI_UCHAR, 0, 1, 1) ;
+				MRIfree(&mri_src) ;
+				mri_src = mri_tmp ;
+			}
+			printf("applying mode filter %d times\n", niter) ;
+			mri_dst = MRImodeFilter(mri_src, NULL, niter) ;
+			break ;
+		}
 	case DILATE_LABEL:
 		{
 			int label ;
