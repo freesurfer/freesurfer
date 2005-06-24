@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer and FS-FAST 
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.16 2005/06/24 14:57:16 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.17 2005/06/24 20:48:29 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.16 2005/06/24 14:57:16 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.17 2005/06/24 20:48:29 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -117,28 +117,31 @@ if(! $?FUNCTIONALS_DIR  || $FS_OVERRIDE) then
 endif
 
 if((! $?NO_MINC) && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
-    # try to find a minc toolkit
-    if ( -e /usr/pubsw/packages/mni/current/bin) then
+    # try to find minc toolkit binaries
+    if ( $?MNI_INSTALL_DIR) then
+        setenv MINC_BIN_DIR $MNI_INSTALL_DIR/bin
+    else if ( -e $FREESURFER_HOME/lib/mni/bin) then
+        setenv MINC_BIN_DIR $FREESURFER_HOME/lib/mni/bin
+    else if ( -e /usr/pubsw/packages/mni/current/bin) then
         setenv MINC_BIN_DIR /usr/pubsw/packages/mni/current/bin
     else if ( -e /usr/local/mni/bin) then
         setenv MINC_BIN_DIR /usr/local/mni/bin
     else if ( -e $FREESURFER_HOME/minc/bin) then
         setenv MINC_BIN_DIR $FREESURFER_HOME/minc/bin
-    else if ( -e $FREESURFER_HOME/lib/mni/bin) then
-        setenv MINC_BIN_DIR $FREESURFER_HOME/lib/mni/bin
     endif
 endif
-
 if((! $?NO_MINC) && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
-    # try to find a minc toolkit
-    if ( -e /usr/pubsw/packages/mni/current/lib) then
+    # try to find minc toolkit libraries
+    if ( $?MNI_INSTALL_DIR) then
+        setenv MINC_LIB_DIR $MNI_INSTALL_DIR/lib
+    else if ( -e $FREESURFER_HOME/lib/mni/lib) then
+        setenv MINC_LIB_DIR $FREESURFER_HOME/lib/mni/lib
+    else if ( -e /usr/pubsw/packages/mni/current/lib) then
         setenv MINC_LIB_DIR /usr/pubsw/packages/mni/current/lib
     else if ( -e /usr/local/mni/lib) then
         setenv MINC_LIB_DIR /usr/local/mni/lib
     else if ( -e $FREESURFER_HOME/minc/lib) then
         setenv MINC_LIB_DIR $FREESURFER_HOME/minc/lib
-    else if ( -e $FREESURFER_HOME/lib/mni/lib) then
-        setenv MINC_LIB_DIR $FREESURFER_HOME/lib/mni/lib
     endif
 endif
 
@@ -167,15 +170,6 @@ if( $output ) then
 endif
 if( $output && $?FUNCTIONALS_DIR ) then
     echo "FUNCTIONALS_DIR $FUNCTIONALS_DIR"
-endif
-if( $output && $?MINC_BIN_DIR ) then
-    echo "MINC_BIN_DIR    $MINC_BIN_DIR"
-endif
-if( $output && $?MINC_LIB_DIR ) then
-    echo "MINC_LIB_DIR    $MINC_LIB_DIR"
-endif
-if( $output && $?FSL_DIR ) then
-    echo "FSL_DIR         $FSL_DIR"
 endif
 
 ## Talairach subject in anatomical database.
@@ -221,6 +215,12 @@ if( ! $?NO_FSFAST) then
 endif
 
 ### ----------- MINC Stuff -------------- ####
+if( $output && $?MINC_BIN_DIR ) then
+    echo "MINC_BIN_DIR    $MINC_BIN_DIR"
+endif
+if( $output && $?MINC_LIB_DIR ) then
+    echo "MINC_LIB_DIR    $MINC_LIB_DIR"
+endif
 if(! $?NO_MINC) then
     if( $?MINC_BIN_DIR) then
         if (! -d $MINC_BIN_DIR) then
@@ -262,14 +262,22 @@ if(! $?NO_MINC) then
     endif
     ## nu_correct and other MINC tools require a path to perl
     if (! $?PERL5LIB) then
-        if ( "`uname`" == "Darwin" ) then
-            # Max OS X default:
+        if ( -e $MINC_LIB_DIR/../System/Library/Perl/5.8.6 ) then
+            # Max OS X Tiger default:
             setenv PERL5LIB       "$MINC_LIB_DIR/../System/Library/Perl/5.8.6"
-        else
+        else if ( -e $MINC_LIB_DIR/../System/Library/Perl/5.8.1 ) then
+            # Max OS X Panther default:
+            setenv PERL5LIB       "$MINC_LIB_DIR/../System/Library/Perl/5.8.1"
+        else if ( -e $MINC_LIB_DIR/perl5/5.8.5) then
             # Linux default:
-            # (need to figure-out platform dependent way of determining this
-            #setenv PERL5LIB       "$MINC_LIB__DIR/perl5/5.8.5"
+            setenv PERL5LIB       "$MINC_LIB_DIR/perl5/5.8.5"
+        else if ( -e $MINC_LIB_DIR/perl5/site_perl/5.8.3) then
+            # Linux default:
+            setenv PERL5LIB       "$MINC_LIB_DIR/perl5/site_perl/5.8.3"
         endif
+    endif
+    if( $output && $?PERL5LIB ) then
+        echo "PERL5LIB        $PERL5LIB"
     endif
 endif
 if(! $?NO_MINC) then
@@ -291,30 +299,36 @@ endif
 if ( $?FSL_BIN ) then
     set path = ( $FSL_BIN $path )
 endif
+if( $output && $?FSL_DIR ) then
+    echo "FSL_DIR         $FSL_DIR"
+endif
 
 
 ### ----------- Qt (scuba2 support libraries)  ------------ ####
 if ( ! $?QTDIR ) then
-    if ( `uname -s` == "Darwin") then
+    # look for Qt in common NMR locations
+    if ( -e $FREESURFER_HOME/lib/qt) then
         setenv QTDIR    $FREESURFER_HOME/lib/qt
+    else if ( -e /usr/pubsw/packages/qt/current) then
+        setenv QTDIR    /usr/pubsw/packages/qt/current
     endif
 endif
 if ( $?QTDIR ) then
     setenv PATH     $QTDIR/bin:$PATH
     if (! $?MANPATH) then
-	setenv MANPATH    $QTDIR/doc/man
+        setenv MANPATH    $QTDIR/doc/man
     else
-	setenv MANPATH    $QTDIR/doc/man:$MANPATH
+        setenv MANPATH    $QTDIR/doc/man:$MANPATH
     endif
     if (! $?LD_LIBRARY_PATH) then
-	setenv LD_LIBRARY_PATH  $QTDIR/lib
+        setenv LD_LIBRARY_PATH  $QTDIR/lib
     else
-	setenv LD_LIBRARY_PATH  $QTDIR/lib:$LD_LIBRARY_PATH
+        setenv LD_LIBRARY_PATH  $QTDIR/lib:$LD_LIBRARY_PATH
     endif
     if (! $?DYLD_LIBRARY_PATH) then
-	setenv DYLD_LIBRARY_PATH  $QTDIR/lib
+        setenv DYLD_LIBRARY_PATH  $QTDIR/lib
     else
-	setenv DYLD_LIBRARY_PATH  $QTDIR/lib:$DYLD_LIBRARY_PATH
+        setenv DYLD_LIBRARY_PATH  $QTDIR/lib:$DYLD_LIBRARY_PATH
     endif
 endif
 if( $output && $?QTDIR ) then
