@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer and FS-FAST 
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.15 2005/06/24 14:10:25 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.16 2005/06/24 14:57:16 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.15 2005/06/24 14:10:25 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.16 2005/06/24 14:57:16 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -88,6 +88,14 @@ endif
 
 ## Now we'll set directory locations based on FREESURFER_HOME for use
 ## by other programs and scripts.
+
+## Set up the path. They should probably already have one, but set a
+## basic one just in case they don't. Then add one with all the
+## directories we just set.  Additions are made along the way in this
+## script.
+if(! $?path ) then
+    set path = ( ~/bin /bin /usr/bin /usr/local/bin )
+endif
 
 ## If FS_OVERRIDE is set, this script will automatically assign
 ## defaults to all locations. Otherwise, it will only do so if the
@@ -264,6 +272,12 @@ if(! $?NO_MINC) then
         endif
     endif
 endif
+if(! $?NO_MINC) then
+    if ( $?MINC_BIN_DIR) then
+        set path = ( $MINC_BIN_DIR $path )
+    endif
+endif
+
 
 ### ----------- FSL ------------ ####
 if ( $?FSL_DIR ) then
@@ -274,41 +288,63 @@ if ( $?FSL_DIR ) then
         endif
     endif
 endif
+if ( $?FSL_BIN ) then
+    set path = ( $FSL_BIN $path )
+endif
+
+
+### ----------- Qt (scuba2 support libraries)  ------------ ####
+if ( ! $?QTDIR ) then
+    if ( `uname -s` == "Darwin") then
+        setenv QTDIR    $FREESURFER_HOME/lib/qt
+    endif
+endif
+if ( $?QTDIR ) then
+    setenv PATH     $QTDIR/bin:$PATH
+    if (! $?MANPATH) then
+	setenv MANPATH    $QTDIR/doc/man
+    else
+	setenv MANPATH    $QTDIR/doc/man:$MANPATH
+    endif
+    if (! $?LD_LIBRARY_PATH) then
+	setenv LD_LIBRARY_PATH  $QTDIR/lib
+    else
+	setenv LD_LIBRARY_PATH  $QTDIR/lib:$LD_LIBRARY_PATH
+    endif
+    if (! $?DYLD_LIBRARY_PATH) then
+	setenv DYLD_LIBRARY_PATH  $QTDIR/lib
+    else
+	setenv DYLD_LIBRARY_PATH  $QTDIR/lib:$DYLD_LIBRARY_PATH
+    endif
+endif
+if( $output && $?QTDIR ) then
+    echo "QTDIR           $QTDIR"
+endif
 
 ### ----------- Freesurfer Support Libraries  ------------ ####
 if ( -e $FREESURFER_HOME/lib/misc ) then
     source $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh
 endif
 
-## Set up the path. They should probably already have one, but set a
-## basic one just in case they don't. Then add one with all the
-## directories we just set.
-if(! $?path ) then
-    set path = ( ~/bin /bin /usr/bin /usr/local/bin )
-endif
-
-if ( $?FSL_BIN ) then
-    set path = ( $FSL_BIN $path )
-endif
+### ----------- Freesurfer Bin and  Lib Paths  ------------ ####
 set path = ( $FSFAST_HOME/bin     \
              $FREESURFER_HOME/bin/noarch      \
              $FREESURFER_HOME/bin/         \
              $path \
             )
-if(! $?NO_MINC) then
-    if ( $?MINC_BIN_DIR) then
-        set path = ( $MINC_BIN_DIR $path )
-    endif
-endif
-
-rehash;
-
-## Add path to OS-specific dynamic libraries.
+## Add path to OS-specific static and dynamic libraries.
 if(! $?LD_LIBRARY_PATH ) then
     setenv LD_LIBRARY_PATH  $FREESURFER_HOME/lib/
 else
     setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
 endif
+if(! $?DYLD_LIBRARY_PATH ) then
+    setenv DYLD_LIBRARY_PATH  $FREESURFER_HOME/lib/
+else
+    setenv DYLD_LIBRARY_PATH  "$DYLD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
+endif
+
+rehash;
 
 exit 0;
 ####################################################################
