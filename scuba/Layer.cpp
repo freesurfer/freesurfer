@@ -55,8 +55,7 @@ Layer::DrawIntoBuffer( GLubyte*, int, int,
 }
 
 void 
-Layer::GetInfoAtRAS ( float[3],
-		      std::map<std::string,std::string>& iLabelValues ) {
+Layer::GetInfoAtRAS ( float[3], list<InfoAtRAS>& ioInfo ) {
 
   if( !mbReportInfoAtRAS )
     return;
@@ -70,7 +69,10 @@ Layer::GetInfoAtRAS ( float[3],
     sLabel = ssLabel.str();
   }
 
-  iLabelValues[sLabel] = "Hello world";
+  InfoAtRAS info;
+  info.SetLabel( sLabel );
+  info.SetValue( "Hello world" );
+  ioInfo.push_back( info );
 }
  
 TclCommandListener::TclCommandResult
@@ -586,3 +588,13 @@ LayerStaticTclListener::DoListenToTclCommand ( char* isCommand,
 
 
 
+Layer::InfoAtRAS::InfoAtRAS() 
+  : mID(-1), msLabel(""), msValue(""), msTclCallback(""), msInputFilter("") {
+
+}
+
+void
+Layer::InfoAtRAS::Clear () {
+  mID = -1;
+  msLabel = msValue = msTclCallback = msInputFilter = "";
+}

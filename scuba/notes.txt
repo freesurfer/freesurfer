@@ -556,125 +556,53 @@ UpdateLabelArea          -> mainWindow.UpdateLabelArea
 roiSettingsDlog
 
 
-
-draw line tool
- - add mCurrentDrawPath
- - on mouseMoved, if editVoxels
-   - if shift, stretch a path between last lastMouseUpLoc and current loc
- - on mouseUp
-   - if shift, paint on path from lastMouseUpLoc to current loc
-   - set last lastMouseUpLoc
+tcl code will be able to get table of label/values:
+  Tpppt
+   T = create hash object
+   p = two items, create key object, set value
+   
 
 
+View::GetInfoAtRAS
+  info = new Info; info.ID = -1; info.label="RAS"; info.value = "(%f, %f, %f)"
+               info.callback="SetViewRASCursor" info.filter="3sf"
+Layer::GetInfoAtRAS
+  info.ID = GetID(); info.label="index"; info.value = "(%d, %d, %d)"
+               info.callback="SetCursorToLayerIndex GetID()" info.filter="3ui"
+  info.ID = GetID(); info.label="value"; info.value = "%f"
 
-report generator dlog
- - Choose volumes from loaded
- - Choose LUT (defualts to seg's LUT)
- - Choose list of segmentation values in LUT
- - CB for only looking at ROI from a volume (default to seg)
- - Choose ROI
- - CB for secondary intensity report
- - Dir for reports
- - Filenames: one for main report, one for intensity report
+Put into reponse like:
+  ssReturnFormat << "L"
+  for info in lInfo
+    ssReturnFormat << "ss";
+    ssReturnValues << info.ID << ",label " << info.label << " "
+    ssReturnFormat << "ss";
+    ssReturnValues << info.ID << ",value " << info.value << " "
+    ssReturnFormat << "ss";
+    ssReturnValues << info.ID << ",label " << info.label << " "
+  ssReturnValues << "l"
 
+tcl code gets an array:
+  info(-1,label) RAS
+  info(-1,value) (4, 5, 2)
+  info(-1,label) Window
+  info(-1,value) (40, 30)
+  info(0,label) bert T1,value
+  info(0,value) 128
+  info(0,label) bert T1,index
+  info(0,vale (128, 128, 128)
 
+ { "-1,label" "RAS" "-1,value" "(4, 5, 2)" "-1,label" "Window" 
 
-choose volumes
-  for segs, will compute volume
-  for anatomicals, will compute average intensity
-choose segementation values
-option to only lookup on current ROI
+NO
 
-option for secondary intensity report
+we want:
 
+ { { "id" "-1" "label" "RAS" "value" "(4, 5, 6)" }
+   { "id" "-1" "label" "Window" "value" "(100, 100)" }
+   { "id" "0"  "label" "bert T1,index" "value" "(128, 128, 128)" }
+   { "id" "0"  "label" "bert T1,value" "value" "100" } }
 
-Main report:
-
-SegmentationReport report
-report.SetSegmentation( segID )
-report.AddIntensityVolume( volID )...
-report.UseROI( roiID )
-report.AddSegmentationStructure( nStructure )
-report.MakeVolumeReport( fnReport )
-report.MakeIntensityReport( fnReport )
-MakeVolumeReport() {
-  for each structure...
-
-    lVoxels = seg.GetVoxelsInStructure( nStructure )
-
-    if using ROI...
-      for each voxel in lVoxels...
-        if not in ROI, remove from list
-
-    structureVolume(structure) = seg.GetRASVolumeOfNVoxels( lVoxels.size() )
-
-    for each intensity volume...
-      structureIntensity(structure,volume) = vol.GetAverageIntensity( lVoxels )
-
-  report:
-    print SUBJ
-    foreach structure...
-      print \t$structure_name-volume
-      foreach intensity volume..
-        print \t$structure_name-$volume_name-intensity
-    print \n
-
-    print $subject_name
-    foreach structure...
-      print \t$structureVolume(structure)
-      foreach intensity volume..
-        print \t$structureIntensity(structure,volume)
-    print \n
-}
-
-MakeIntensityReport( fnReport ) {
-
-  for each structure...
-
-    lVoxels = seg.GetVoxelsInStructure( nStructure )
-
-    if using ROI...
-      for each voxel in lVoxels...
-        if not in ROI, remove from list
-
-    for each volume...
-      for each voxel...
-        structureIntensities(structure,volume) <- vol.IntensityAtVoxel(voxel)
-
-  report:
-    foreach volume...
-      foreach structure...
-        print $structure_name-$volume_name\t
-    print \n
-    
-
-    foreach volume...
-      foreach structure...
-        get max of length of structureIntensities(structure,volume)
-
-    foreach volume...
-      foreach structure...
-        for n = 0 to max_length
-          if nth structureIntensities(structure,volume)
-            print value\t
-          print \n
-}
-
-for each seg...
-  for each voxel...
-    (if !in_ROI) continue
-    volume += voxel_size
-    intsenity_sum += value(T1)
-
-SUBJ   $STRUCTURE-$SEGNAME-VOL  $STRUTURE-$VOLNAME-INT  ...
-subj1  100		        123
-
-
-if second report,
-for each seg...
-  for each voxel...
-     print value in T1
-
-SEG_NAME   SEG_NAME   SEG_NAME
-int@vox1   int@vox3   int@vox5
-int@vox2   int@vox4
+then foreach info in lInfoAtRAS
+  array set aInfo $info
+  label = $aInfo(label)

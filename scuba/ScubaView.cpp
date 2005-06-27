@@ -124,8 +124,8 @@ ScubaView::ScubaView() {
   commandMgr.AddCommand( *this, "GetLevelVisibilityInView", 2, 
 			 "viewID level",
 			 "Returns the visibility for a level in a view." );
-  commandMgr.AddCommand( *this, "GetLabelValuesSet", 2, "viewID setName",
-			 "Get a set of label value pairs." );
+  commandMgr.AddCommand( *this, "GetInfoAtRAS", 2, "viewID setName",
+			 "Get an array list of info at an RAS point." );
   commandMgr.AddCommand( *this, "GetFirstUnusedDrawLevelInView", 1, "viewID",
 			 "Returns the first unused draw level." );
   commandMgr.AddCommand( *this, "SetViewLinkedStatus", 2, "viewID linked",
@@ -203,9 +203,9 @@ ScubaView::ScubaView() {
   mbFlipLeftRightInYZ = 
     prefs.GetPrefAsBool( ScubaGlobalPreferences::ViewFlipLeftRight );
 
-  map<string,string> labelValueMap;
-  mLabelValueMaps["mouse"] = labelValueMap;
-  mLabelValueMaps["cursor"] = labelValueMap;
+  list<Layer::InfoAtRAS> lInfo;
+  mInfoAtRASMap["mouse"] = lInfo;
+  mInfoAtRASMap["cursor"] = lInfo;
 
   mViewState.ResetUpdateRect();
 }
@@ -576,14 +576,14 @@ ScubaView::GetThroughPlaneIncrement ( ViewState::Plane iInPlane ) {
   return mThroughPlaneIncrements[iInPlane];
 }
 
-map<string,string>&
-ScubaView::GetLabelValueMap ( string isSet ) {
-  
-  map<string,map<string,string> >::iterator tMap = 
-    mLabelValueMaps.find( isSet );
+list<Layer::InfoAtRAS>& 
+ScubaView::GetInfoAtRASList ( string isSet ) {
 
-  if( tMap != mLabelValueMaps.end() ) {
-    return mLabelValueMaps[isSet];
+  map<string,list<Layer::InfoAtRAS> >::iterator tMap = 
+    mInfoAtRASMap.find( isSet );
+
+  if( tMap != mInfoAtRASMap.end() ) {
+    return mInfoAtRASMap[isSet];
   } else {
     throw runtime_error( "Couldn't find that set." );
   }
@@ -873,8 +873,8 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     }
   }
 
-  // GetLabelValuesSet <viewID> <setName>
-  if( 0 == strcmp( isCommand, "GetLabelValuesSet" ) ) {
+  // GetInPlane <viewID> <setName>
+  if( 0 == strcmp( isCommand, "GetInfoAtRAS" ) ) {
     int viewID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad view ID";
@@ -885,33 +885,30 @@ ScubaView::DoListenToTclCommand( char* isCommand,
 
       string sSetName = iasArgv[2];
 
-      map<string,map<string,string> >::iterator tMap = 
-	mLabelValueMaps.find( sSetName );
-      if( tMap == mLabelValueMaps.end() ) {
+      try {
+	list<Layer::InfoAtRAS> lInfo = GetInfoAtRASList( sSetName );
+	list<Layer::InfoAtRAS>::iterator tInfo;
+	
+	stringstream ssFormat;
 	stringstream ssResult;
-	ssResult << "Set name " << sSetName << " doesn't exist.";
-	sResult = ssResult.str();
+	ssFormat << "L";
+	
+	for( tInfo = lInfo.begin(); tInfo != lInfo.end(); ++tInfo ) {
+	  
+	  ssFormat << "Lssssl";
+	  ssResult << "\"label\" \"" << (*tInfo).GetLabel() << "\" "
+		   << "\"value\" \"" << (*tInfo).GetValue() << "\" ";
+	}
+	ssFormat << "l";
+	
+	sReturnFormat = ssFormat.str();
+	sReturnValues = ssResult.str();
+      }
+      catch ( exception& e ) {
+	sResult = e.what();
 	return error;
       }
 
-      map<string,string> labelValueMap = GetLabelValueMap(sSetName);
-      map<string,string>::iterator tLabelValue;
-
-      stringstream ssFormat;
-      stringstream ssResult;
-      ssFormat << "L";
-
-      for( tLabelValue = labelValueMap.begin(); 
-	   tLabelValue != labelValueMap.end(); ++tLabelValue ) {
-	
-	ssFormat << "Lssl";
-	ssResult << "\"" << (*tLabelValue).first << "\" \"" 
-		 << (*tLabelValue).second << "\" ";
-      }
-      ssFormat << "l";
-      
-      sReturnFormat = ssFormat.str();
-      sReturnValues = ssResult.str();
     }
   }
 
@@ -3104,7 +3101,7 @@ void
 ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
 				   string isLabel) {
 
-  map<string,string> labelValueMap;
+  list<Layer::InfoAtRAS> lInfo;
 
   stringstream sID;
   //  sID << GetLabel() << " (" << GetID() << ")";
@@ -3116,13 +3113,23 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
   sprintf( sDigit, "%.2f", iRAS[0] );  ssRASCoords << sDigit << " ";
   sprintf( sDigit, "%.2f", iRAS[1] );  ssRASCoords << sDigit << " ";
   sprintf( sDigit, "%.2f", iRAS[2] );  ssRASCoords << sDigit;
-  labelValueMap["RAS"] = ssRASCoords.str();
+
+  Layer::InfoAtRAS info;
+  info.SetID( -1 );
+  info.SetLabel( "RAS" );
+  info.SetValue( ssRASCoords.str() );
+  lInfo.push_back( info );
+  info.Clear();
 
   int window[2];
   TranslateRASToWindow( iRAS, window );
   stringstream ssWindowCoords;
   ssWindowCoords << window[0] << " " << window[1];
-  labelValueMap["Window"] = ssWindowCoords.str();
+  info.SetID( -1 );
+  info.SetLabel( "Window" );
+  info.SetValue( ssWindowCoords.str() );
+  lInfo.push_back( info );
+  info.Clear();
 
   // Go through our draw levels. For each one, get the Layer.
   map<int,int>::iterator tLevelLayerID;
@@ -3140,7 +3147,7 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
       Layer& layer = Layer::FindByID( layerID );
       
       // Ask the layer for info strings at this point.
-      layer.GetInfoAtRAS( iRAS, labelValueMap );
+      layer.GetInfoAtRAS( iRAS, lInfo );
     }
     catch(...) {
       DebugOutput( << "Couldn't find layer " << layerID );
@@ -3148,7 +3155,7 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
   }
 
   // Set this labelValueMap in the array of label values.
-  mLabelValueMaps[isLabel] = labelValueMap;
+  mInfoAtRASMap[isLabel] = lInfo;
 
 }
 

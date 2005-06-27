@@ -420,7 +420,7 @@ ScubaLayer2DMRI::GetColorLUTColorForValue ( float iValue, GLubyte* const iBase,
   
 void 
 ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3], 
-				map<string,string>& iLabelValues ) {
+				std::list<InfoAtRAS>& ioInfo ) {
 
   if( !mbReportInfoAtRAS )
     return;
@@ -430,6 +430,7 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
   }
 
   // Look up the value of the volume at this point.
+  InfoAtRAS info;
   VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
   if ( mVolume->IsInBounds( loc ) ) {
     
@@ -445,21 +446,34 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
       ssValue << value;
     }
 
-    iLabelValues[mVolume->GetLabel() + ",value"] = ssValue.str();
+    info.SetLabel( mVolume->GetLabel() + ",value" );
+    info.SetValue( ssValue.str() );
+    ioInfo.push_back( info );
+    info.Clear(); 
 
     int index[3];
     mVolume->RASToMRIIndex( iRAS, index );
 
     stringstream ssIndex;
     ssIndex << index[0] << " " << index[1] << " " << index[2];
-    iLabelValues[mVolume->GetLabel() + ",index"] = ssIndex.str();
+
+    info.SetLabel( mVolume->GetLabel() + ",index" );
+    info.SetValue( ssIndex.str() );
+    ioInfo.push_back( info );
+    info.Clear(); 
 
   } else {
 
     // Even if we're out of bounds, report it.
-    iLabelValues[mVolume->GetLabel() + ",index"] = "OOB";
-    iLabelValues[mVolume->GetLabel() + ",value"] = "";
+    info.SetLabel( mVolume->GetLabel() + ",value" );
+    info.SetValue( "OOB" );
+    ioInfo.push_back( info );
+    info.Clear(); 
 
+    info.SetLabel( mVolume->GetLabel() + ",index" );
+    info.SetValue( "OOB" );
+    ioInfo.push_back( info );
+    info.Clear(); 
   }
 
   delete &loc;

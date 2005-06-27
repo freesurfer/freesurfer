@@ -192,28 +192,44 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   
 void
 ScubaLayer2DMRIS::GetInfoAtRAS ( float iRAS[3],
-				 map<string,string>& iLabelValues) {
+				std::list<InfoAtRAS>& ioInfo ) {
   
   if( !mbReportInfoAtRAS )
     return;
 
   if( NULL != mSurface ) {
     
+    InfoAtRAS info;
     try { 
       float distance;
       int nVertex = mSurface->FindVertexAtRAS( iRAS, &distance );
       
       stringstream ssVertex;
       ssVertex << nVertex;
-      iLabelValues[mSurface->GetLabel() + ",vertex"] = ssVertex.str();
-      
+
+      info.SetLabel( mSurface->GetLabel() + ",value" );
+      info.SetValue( ssVertex.str() );
+      ioInfo.push_back( info );
+      info.Clear();
+
       stringstream ssDistance;
       ssDistance << distance;
-      iLabelValues[mSurface->GetLabel() + ",distance"] = ssDistance.str();
+
+      info.SetLabel( mSurface->GetLabel() + ",distance" );
+      info.SetValue( ssDistance.str() );
+      ioInfo.push_back( info );
+      info.Clear();
     }
     catch(...) {
-      iLabelValues[mSurface->GetLabel() + ",vertex"] = "None";
-      iLabelValues[mSurface->GetLabel() + ",distance"] = "None";
+      info.SetLabel( mSurface->GetLabel() + ",vertex" );
+      info.SetValue( "None" );
+      ioInfo.push_back( info );
+      info.Clear();
+
+      info.SetLabel( mSurface->GetLabel() + ",distance" );
+      info.SetValue( "None" );
+      ioInfo.push_back( info );
+      info.Clear();
     }
   }
 }

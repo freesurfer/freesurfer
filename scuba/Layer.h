@@ -51,10 +51,33 @@ class Layer : public DebugReporter,
 			       ViewState& iViewState,
 			       ScubaWindowToRASTranslator& iTranslator );
   
-  // Asks the layer to describe a point of data by adding pairs of
-  // labels and values.
+  // This is what layers will fill out when GetInfoAtRAS is called.
+  class InfoAtRAS {
+  public:
+    InfoAtRAS ();
+    void SetID ( int iID ) { mID = iID; }
+    void SetLabel ( std::string is ) { msLabel = is; }
+    void SetValue ( std::string is ) { msValue = is; }
+    void SetTclCallback ( std::string is ) { msTclCallback = is; }
+    void SetInputFilter ( std::string is ) { msInputFilter = is; }
+    void Clear();
+    int GetID () { return mID; }
+    std::string GetLabel () { return msLabel; }
+    std::string GetValue () { return msValue; }
+    std::string GetTclCallback () { return msTclCallback; }
+    std::string GetInputFilter () { return msInputFilter; }
+  protected:
+    int mID;                       // -1 if view, else layerID
+    std::string msLabel, msValue;  // label/value to display
+    std::string msTclCallback;     // Function to call on input ("" if none)
+    // The callback call will be $msTclCallback $mID $input
+    std::string msInputFilter;     // Filter to use when calling callback
+  };
+
+  // Asks the layer to describe a point of data by making InfoAtRAS
+  // structs.
   virtual void GetInfoAtRAS ( float iRAS[3],
-			   std::map<std::string,std::string>& iLabelValues );
+			      std::list<InfoAtRAS>& ioInfo );
   
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription() { return "BaseLayer"; }

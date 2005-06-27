@@ -98,7 +98,7 @@ public:
   ViewState& GetViewState () { return mViewState; }
 
   // Get the map of label values.
-  std::map<std::string,std::string>& GetLabelValueMap ( std::string isSet );
+  std::list<Layer::InfoAtRAS>& GetInfoAtRASList ( std::string isSet );
 
   // Handle Tcl commands.
   virtual TclCommandResult
@@ -227,7 +227,7 @@ protected:
   #define kOverlayDrawListID 1
   bool mbRebuildOverlayDrawList;
 
-  std::map<std::string,std::map<std::string,std::string> > mLabelValueMaps;
+  std::map<std::string,std::list<Layer::InfoAtRAS> > mInfoAtRASMap;
 
   // List of layers and their levels (level, layerID).
   std::map<int,int> mLevelLayerIDMap;

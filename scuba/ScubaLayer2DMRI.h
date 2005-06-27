@@ -34,10 +34,10 @@ class ScubaLayer2DMRI : public Layer {
   void GetColorLUTColorForValue  ( float iValue, 
 				   GLubyte* const iBase, int* oColor );
   
-  // Asks the layer to describe a point of data by adding pairs of
-  // labels and values.
+  // Asks the layer to describe a point of data by making InfoAtRAS
+  // structs.
   virtual void GetInfoAtRAS ( float iRAS[3],
-			   std::map<std::string,std::string>& iLabelValues );
+			      std::list<InfoAtRAS>& ioInfo );
   
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription () { return "2DMRI"; }
