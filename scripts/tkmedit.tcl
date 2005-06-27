@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.87 2005/05/31 21:41:36 kteich Exp $
+# $Id: tkmedit.tcl,v 1.88 2005/06/27 18:54:59 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -2314,7 +2314,7 @@ proc DoThresholdDlog {} {
 
   # buttons.
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-    { Threshold $nThreshold $bAbove $nNewValue }
+    { ThresholdVolume $nThreshold $bAbove $nNewValue }
 
   pack  $fwButtons \
     -side top       \
