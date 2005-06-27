@@ -375,7 +375,7 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
   for (n = 0 ; n < area->n_points ; n++)
   {
     vno = area->lv[n].vno ;
-    if (vno >= 0)   /* already have associated vertex */
+    if (vno >= 0 && vno < mris->nvertices)   /* already have associated vertex */
     {
       v = &mris->vertices[vno] ;
       area->lv[n].x = v->x ;
