@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.130 2005/06/27 14:00:33 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.131 2005/06/27 16:46:18 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4005,7 +4005,30 @@ proc LabelAreaFormatCallback {w area x1 y1 x2 y2} {
 
 proc LabelAreaEditDoneCallback {w inCol inRow} {
 					
-    set value [$w entrycget $inCol $inRow -text]
+    # Get the input string.
+    set sCoords [$w entrycget $inCol $inRow -text]
+    
+    # [-+]? matches the leading - or +
+    # \d+ matches a series of digits like 12
+    # \d+\.\d+ matches floating point numbers like 12.34
+    set sFiltered [regexp -inline -all -- {[-+]?\d+|[-+]?\d+\.\d+} $sCoords]
+
+    # Make sure we have three elements.
+    if { [llength $sFiltered] != 3 } {
+	tkuErrorDlog "Invalid coordinate string. Make sure there are three numbers."
+
+    } else {
+
+	# Transform coords and set cursor.
+	set lRAS [Get2DMRIRASCoordsFromIndex $gaTool(current,targetLayer) \
+		      [lindex $sFiltered 0] [lindex $sFiltered 1] \
+		      [lindex $sFiltered 2]]
+	SetViewRASCursor \
+	    [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
+	RedrawFrame [GetMainFrameID]
+	
+	UpdateCursorLabelArea
+    }
 }
 
 proc LabelAreaEditNotifyCallback {w inCol inRow} {
@@ -4088,7 +4111,7 @@ proc DrawLabelArea {} {
 	    set label $aInfo(label)
 	    set value $aInfo(value)
 	    set glLabelValues($nArea,"$label",value) $value
-
+	    
 
 	    # Has comma and in table mode? If so, add it to the list
 	    # of table entries. Otherwise add it to the list of normal
@@ -4154,7 +4177,7 @@ proc DrawLabelArea {} {
 
 	    # Cap the label to 14 chars if necessary.
 	    set zLabel [string length $sX]
-	    set sShortLabel $label
+	    set sShortLabel $sX
 	    if { $zLabel > 14 } {
 		set sFirst [string range $sX 0 6]
 		set sLast [string range $sX [expr $zLabel-6] end]
@@ -4205,8 +4228,8 @@ proc UpdateCursorLabelArea {} {
 
     # Update cursor.
     set err [catch { 
-	array set aInfo [GetInfoAtRAS $gaView(current,id) cursor]
-	UpdateLabelArea $gaWidget(labelArea,nCursorArea) $aInfo
+	set lInfo [GetInfoAtRAS $gaView(current,id) cursor]
+	UpdateLabelArea $gaWidget(labelArea,nCursorArea) $lInfo
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 }
@@ -4222,8 +4245,8 @@ proc UpdateMouseLabelArea { {iViewID -1} } {
     }
 
     set err [catch { 
-	set aInfo [GetInfoAtRAS $viewID mouse]
-	UpdateLabelArea $gaWidget(labelArea,nMouseArea) $aInfo
+	set lInfo [GetInfoAtRAS $viewID mouse]
+	UpdateLabelArea $gaWidget(labelArea,nMouseArea) $lInfo
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 }
@@ -5191,7 +5214,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.130 2005/06/27 14:00:33 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.131 2005/06/27 16:46:18 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
