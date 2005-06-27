@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/05/24 17:41:11 $
-// Revision       : $Revision: 1.116 $
+// Revision Date  : $Date: 2005/06/27 17:36:29 $
+// Revision       : $Revision: 1.117 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -3208,8 +3208,9 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 
   /* If this isn't the nav tool, or is, but the cntrl key is down, set
      the cursor. */
-  if( !(DspA_tTool_Navigate == sTool) ||
-      (DspA_tTool_Navigate == sTool && ipEvent->mbCtrlKey) ) {
+  if( !ipEvent->mbShiftKey && 
+      (!(DspA_tTool_Navigate == sTool) ||
+       (DspA_tTool_Navigate == sTool && ipEvent->mbCtrlKey)) ) {
 
     /* set the cursor. */
     eResult = DspA_SetCursor( this, pVolumeVox );
@@ -3314,6 +3315,8 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
 				     &this->mfOriginalBrightness,
 				     &this->mfOriginalContrast );
     }
+
+    goto cleanup;
   }
 
   switch( sTool ) {
