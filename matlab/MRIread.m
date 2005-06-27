@@ -7,6 +7,7 @@ function mri = MRIread(fstring,headeronly)
 %     either mgh, mgz, or bhdr
 %  2. MGH file. Eg, f.mgh or f.mgz
 %  3. BVolume HDR file. Eg, f.bhdr 
+%  4. Analyze, eg, f.img or f.hdr
 %
 % Creates a structure similar to the FreeSurfer MRI struct
 % defined in mri.h. Times are in ms and angles are in radians.
@@ -22,7 +23,7 @@ function mri = MRIread(fstring,headeronly)
 % input is not bhdr, then mri.srcbext will exist but be empty.
 % See also MRIwrite() and mri.outbext.
 %
-% $Id: MRIread.m,v 1.6 2005/05/05 17:47:28 greve Exp $
+% $Id: MRIread.m,v 1.7 2005/06/27 14:32:11 greve Exp $
 
 mri = [];
 
@@ -38,7 +39,8 @@ if(isempty(fspec))
   return;
 end
 
-mri.srcbext = ''; % empty be default
+mri.srcbext = '';    % empty be default
+mri.analyzehdr = []; % empty be default
 
 %-------------- MGH ------------------------%
 switch(fmt)
@@ -88,6 +90,30 @@ switch(fmt)
   flip_angle = bmri.flip_angle;
   te = bmri.te;
   ti = bmri.ti;
+%------- analyze -------------------------------------   
+ case {'img'}
+  hdr = load_analyze(fspec,headeronly);
+  if(isempty(hdr))
+    fprintf('ERROR: loading %s as analyze\n',fspec);
+    mri = [];
+    return;
+  end
+  volsz = hdr.dime.dim(2:end);
+  indnz = find(volsz~=0);
+  volsz = volsz(indnz);
+  if(~headeronly)
+    mri.vol = permute(hdr.vol,[2 1 3 4]);
+  else
+    mri.vol = [];
+  end
+  tr = 1000*hdr.dime.pixdim(5);
+  flip_angle = 0;
+  te = 0;
+  ti = 0;
+  hdr.vol = []; % already have it above, so clear it 
+  M = hdr.vox2ras;
+  mri.analyzehdr = hdr;
+%--------------------------------------------------- 
  otherwise
   fprintf('ERROR: format %s not supported\n',fmt);
   mri = [];
@@ -126,6 +152,7 @@ mri.nframes = volsz(4);
 % resolution, and P0 from vox2ras0. If you change other geometry
 % elements below, it will not be reflected in the output volume.
 
+mri.nvoxels = mri.height * mri.width * mri.depth; % number of spatial voxles
 mri.xsize = sqrt(sum(M(:,1).^2));
 mri.ysize = sqrt(sum(M(:,2).^2));
 mri.zsize = sqrt(sum(M(:,3).^2));

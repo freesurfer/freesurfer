@@ -18,7 +18,7 @@ function [fspec, fstem, fmt] = MRIfspec(fstring,checkdisk)
 % files that would have met the criteria, then only the first one is
 % chosen. If no such file is found, then empty strings are returned.
 %
-% $Id: MRIfspec.m,v 1.2 2004/11/18 00:46:14 greve Exp $
+% $Id: MRIfspec.m,v 1.3 2005/06/27 14:32:11 greve Exp $
 
 fspec = [];
 fstem = [];
@@ -32,37 +32,40 @@ end
 % If checkdisk is not passed, then do a check disk
 if(~exist('checkdisk','var')) checkdisk = 1; end
 
-% First, examin fstring to see if it has an extension fspec must have
-% at least 4 characters (5 for bhdr). Order is not important here.
-if(length(fstring) > 4) 
-  ext = fstring(end-2:end);
-  switch(ext)
-   case 'mgh',
-    fspec = fstring;
-    fmt = 'mgh';
-    fstem = fstring(1:end-4);
-    return;
-   case 'mgz',
-    fspec = fstring;
-    fmt = 'mgz';
-    fstem = fstring(1:end-4);
-    return;
-   case 'img',
-    fspec = fstring;
-    fmt = 'img';
-    fstem = fstring(1:end-4);
-    return;
-  end
-  if(length(fstring) > 5) 
-    ext = fstring(end-3:end);
-    switch(ext)
-     case 'bhdr',
-      fspec = fstring;
-      fmt = 'bhdr';
-      fstem = fstring(1:end-5);
-      return;
-    end
-  end
+
+inddot = max(findstr(fstring,'.'));
+if(isempty(inddot))
+  ext = ' ';
+else
+  ext = fstring(inddot+1:end);
+end
+    
+switch(ext)
+ case 'mgh',
+  fspec = fstring;
+  fmt = 'mgh';
+  fstem = fstring(1:end-4);
+  return;
+ case 'mgz',
+  fspec = fstring;
+  fmt = 'mgz';
+  fstem = fstring(1:end-4);
+  return;
+ case 'img',
+  fspec = fstring;
+  fmt = 'img';
+  fstem = fstring(1:end-4);
+  return;
+ case 'hdr',
+  fspec = fstring;
+  fmt = 'img';
+  fstem = fstring(1:end-4);
+  return;
+ case 'bhdr',
+  fspec = fstring;
+  fmt = 'bhdr';
+  fstem = fstring(1:end-5);
+  return;
 end
 
 % If it gets here, then it cannot determine the format from an
@@ -88,6 +91,10 @@ if(fast_fileexists(fspec)) return; end
 
 fmt = 'img';
 fspec = sprintf('%s.%s',fstring,fmt);
+if(fast_fileexists(fspec)) return; end
+
+fmt = 'img';
+fspec = sprintf('%s.img',fstring);
 if(fast_fileexists(fspec)) return; end
 
 % If it gets here, then could not determine format
