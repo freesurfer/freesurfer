@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/06/27 17:36:29 $
-// Revision       : $Revision: 1.117 $
+// Revision Date  : $Date: 2005/06/27 18:22:23 $
+// Revision       : $Revision: 1.118 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -3527,11 +3527,11 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
 
     /* Apply the changes and redraw. */
     if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
-      Volm_SetBrightnessAndContrast( this->mpVolume[tkm_tVolumeType_Aux],
-				     newBrightness, newContrast );
+      tkm_SetVolumeBrightnessContrast( tkm_tVolumeType_Aux,
+				       newBrightness, newContrast );
     } else {
-      Volm_SetBrightnessAndContrast( this->mpVolume[tkm_tVolumeType_Main],
-				     newBrightness, newContrast );
+      tkm_SetVolumeBrightnessContrast( tkm_tVolumeType_Main,
+				       newBrightness, newContrast );
     }
  
     /* Redraw the buffer. */

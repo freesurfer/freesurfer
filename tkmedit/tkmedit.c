@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/06/22 17:43:32 $
-// Revision       : $Revision: 1.246 $
-char *VERSION = "$Revision: 1.246 $";
+// Revision Date  : $Date: 2005/06/27 18:22:23 $
+// Revision       : $Revision: 1.247 $
+char *VERSION = "$Revision: 1.247 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1076,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.246 2005/06/22 17:43:32 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.247 2005/06/27 18:22:23 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5209,7 +5209,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.246 2005/06/22 17:43:32 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.247 2005/06/27 18:22:23 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -11872,6 +11872,12 @@ void tkm_FloodFillAnatomicalVolume ( tkm_tSegType    iVolume,
  
   FloodFillAnatomicalVolume( iVolume, iAnaIdx, inIndex, ib3D, 
 			     iFuzzy, iDistance );
+}
+
+void tkm_SetVolumeBrightnessContrast ( tkm_tVolumeType iVolume,
+				       float ifBrightness, float ifContrast ) {
+
+  SetVolumeBrightnessAndContrast( iVolume, ifBrightness, ifContrast );
 }
 
 void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,

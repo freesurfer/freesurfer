@@ -286,6 +286,10 @@ void tkm_FloodFillSegmentation ( tkm_tSegType      iVolume,
 				 float             iFuzzy,
 				 float             iDistance );
 
+/* Update with new color scale. */
+void tkm_SetVolumeBrightnessContrast ( tkm_tVolumeType iVolume,
+				       float ifBrightness, float ifContrast );
+
 
 /* dealing with control points */
 void tkm_MakeControlPoint             ( xVoxelRef        iMRIIdx );
