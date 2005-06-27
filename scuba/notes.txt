@@ -556,19 +556,12 @@ UpdateLabelArea          -> mainWindow.UpdateLabelArea
 roiSettingsDlog
 
 
-tcl code will be able to get table of label/values:
-  Tpppt
-   T = create hash object
-   p = two items, create key object, set value
-   
 
-
-View::GetInfoAtRAS
-  info = new Info; info.ID = -1; info.label="RAS"; info.value = "(%f, %f, %f)"
-               info.callback="SetViewRASCursor" info.filter="3sf"
-Layer::GetInfoAtRAS
-  info.ID = GetID(); info.label="index"; info.value = "(%d, %d, %d)"
-               info.callback="SetCursorToLayerIndex GetID()" info.filter="3ui"
+View::GetInfoAtRAS info = new Info; info.ID = -1; info.label="RAS";
+  info.value = "(%f, %f, %f)" info.callback="SetViewRASCursor"
+  info.filter="3sf" Layer::GetInfoAtRAS info.ID = GetID();
+  info.label="index"; info.value = "(%d, %d, %d)"
+  info.callback="SetCursorToLayerIndex GetID()" info.filter="3ui"
   info.ID = GetID(); info.label="value"; info.value = "%f"
 
 Put into reponse like:
@@ -606,3 +599,4 @@ we want:
 then foreach info in lInfoAtRAS
   array set aInfo $info
   label = $aInfo(label)
+

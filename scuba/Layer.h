@@ -55,19 +55,16 @@ class Layer : public DebugReporter,
   class InfoAtRAS {
   public:
     InfoAtRAS ();
-    void SetID ( int iID ) { mID = iID; }
     void SetLabel ( std::string is ) { msLabel = is; }
     void SetValue ( std::string is ) { msValue = is; }
     void SetTclCallback ( std::string is ) { msTclCallback = is; }
     void SetInputFilter ( std::string is ) { msInputFilter = is; }
     void Clear();
-    int GetID () { return mID; }
     std::string GetLabel () { return msLabel; }
     std::string GetValue () { return msValue; }
     std::string GetTclCallback () { return msTclCallback; }
     std::string GetInputFilter () { return msInputFilter; }
   protected:
-    int mID;                       // -1 if view, else layerID
     std::string msLabel, msValue;  // label/value to display
     std::string msTclCallback;     // Function to call on input ("" if none)
     // The callback call will be $msTclCallback $mID $input

@@ -873,7 +873,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
     }
   }
 
-  // GetInPlane <viewID> <setName>
+  // GetInfoAtRAS <viewID> <setName>
   if( 0 == strcmp( isCommand, "GetInfoAtRAS" ) ) {
     int viewID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
@@ -895,9 +895,11 @@ ScubaView::DoListenToTclCommand( char* isCommand,
 	
 	for( tInfo = lInfo.begin(); tInfo != lInfo.end(); ++tInfo ) {
 	  
-	  ssFormat << "Lssssl";
+	  ssFormat << "Lssssssssl";
 	  ssResult << "\"label\" \"" << (*tInfo).GetLabel() << "\" "
-		   << "\"value\" \"" << (*tInfo).GetValue() << "\" ";
+		   << "\"value\" \"" << (*tInfo).GetValue() << "\" "
+		   << "\"callback\" \"" << (*tInfo).GetTclCallback() << "\" "
+		   << "\"filter\" \"" << (*tInfo).GetInputFilter() << "\" ";
 	}
 	ssFormat << "l";
 	
@@ -3115,9 +3117,10 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
   sprintf( sDigit, "%.2f", iRAS[2] );  ssRASCoords << sDigit;
 
   Layer::InfoAtRAS info;
-  info.SetID( -1 );
   info.SetLabel( "RAS" );
   info.SetValue( ssRASCoords.str() );
+  info.SetTclCallback( "SetViewRASCursor" );
+  info.SetInputFilter( "3sf" );
   lInfo.push_back( info );
   info.Clear();
 
@@ -3125,7 +3128,6 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
   TranslateRASToWindow( iRAS, window );
   stringstream ssWindowCoords;
   ssWindowCoords << window[0] << " " << window[1];
-  info.SetID( -1 );
   info.SetLabel( "Window" );
   info.SetValue( ssWindowCoords.str() );
   lInfo.push_back( info );

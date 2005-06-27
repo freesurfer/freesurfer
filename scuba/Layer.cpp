@@ -589,12 +589,11 @@ LayerStaticTclListener::DoListenToTclCommand ( char* isCommand,
 
 
 Layer::InfoAtRAS::InfoAtRAS() 
-  : mID(-1), msLabel(""), msValue(""), msTclCallback(""), msInputFilter("") {
+  : msLabel(""), msValue(""), msTclCallback(""), msInputFilter("") {
 
 }
 
 void
 Layer::InfoAtRAS::Clear () {
-  mID = -1;
   msLabel = msValue = msTclCallback = msInputFilter = "";
 }

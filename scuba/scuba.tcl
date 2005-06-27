@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.131 2005/06/27 16:46:18 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.132 2005/06/27 22:15:17 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1137,16 +1137,13 @@ proc GotoCoordsInputCallback {} {
 		return;
 	    }
 
-	    # Transform coords and set cursor.
-	    set lRAS [Get2DMRIRASCoordsFromIndex $gaTool(current,targetLayer) \
-			  [lindex $sFiltered 0] [lindex $sFiltered 1] \
-			  [lindex $sFiltered 2]]
-	    SetViewRASCursor \
-		[lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
+	    SetCursorFromVolumeIndexCoords $gaTool(current,targetLayer) \
+		[lindex $sFiltered 0] [lindex $sFiltered 1] \
+		[lindex $sFiltered 2]
 	    RedrawFrame [GetMainFrameID]
- 
+	    
 	    UpdateCursorLabelArea
-
+	
 	    set gCoordsInput(entry) "Enter Index Coords"
 	    $gaWidget(coordsEntry) selection range 0 end
 	} else {
@@ -4004,37 +4001,48 @@ proc LabelAreaFormatCallback {w area x1 y1 x2 y2} {
 }
 
 proc LabelAreaEditDoneCallback {w inCol inRow} {
-					
+    global gaLabelArea
+	
     # Get the input string.
     set sCoords [$w entrycget $inCol $inRow -text]
-    
-    # [-+]? matches the leading - or +
-    # \d+ matches a series of digits like 12
-    # \d+\.\d+ matches floating point numbers like 12.34
-    set sFiltered [regexp -inline -all -- {[-+]?\d+|[-+]?\d+\.\d+} $sCoords]
+    set sFiltered $sCoords
 
-    # Make sure we have three elements.
-    if { [llength $sFiltered] != 3 } {
-	tkuErrorDlog "Invalid coordinate string. Make sure there are three numbers."
+    # Filter?
+    if { [info exists gaLabelArea(filter,$inCol,$inRow)] } {
+	if { [string match $gaLabelArea(filter,$inCol,$inRow) 3ui] } {
+	    # \d+ matches a series of digits like 12
+	    set sFiltered [regexp -inline -all -- {\d+} $sCoords]
 
-    } else {
+	    # Make sure we have three elements.
+	    if { [llength $sFiltered] != 3 } {
+		tkuErrorDlog "Invalid coordinate string. Make sure there are three numbers."
+	    }
+	    
+	} elseif { [string match $gaLabelArea(filter,$inCol,$inRow) 3sf] } {
+	    # [-+]? matches the leading - or +
+	    # \d+ matches a series of digits like 12
+	    # \d+\.\d+ matches floating point numbers like 12.34
+	    set sFiltered [regexp -inline -all -- {[-+]?\d+|[-+]?\d+\.\d+} $sCoords]
 
-	# Transform coords and set cursor.
-	set lRAS [Get2DMRIRASCoordsFromIndex $gaTool(current,targetLayer) \
-		      [lindex $sFiltered 0] [lindex $sFiltered 1] \
-		      [lindex $sFiltered 2]]
-	SetViewRASCursor \
-	    [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
-	RedrawFrame [GetMainFrameID]
-	
-	UpdateCursorLabelArea
+	    # Make sure we have three elements.
+	    if { [llength $sFiltered] != 3 } {
+		tkuErrorDlog "Invalid coordinate string. Make sure there are three numbers."
+	    }
+
+	}
     }
+
+    eval $gaLabelArea(callback,$inCol,$inRow) [lindex $sFiltered 0] [lindex $sFiltered 1] [lindex $sFiltered 1]
+
+    UpdateCursorLabelArea
+    UpdateMouseLabelArea
+    RedrawFrame [GetMainFrameID]
 }
 
 proc LabelAreaEditNotifyCallback {w inCol inRow} {
     global gaLabelArea
-    if { [info exists gaLabelArea(itemType,$inCol,$inRow)] } {
-	if { [string match $gaLabelArea(itemType,$inCol,$inRow) value] } {
+    if { [info exists gaLabelArea(callback,$inCol,$inRow)] } {
+	if { [string length $gaLabelArea(callback,$inCol,$inRow)] > 0 } {
 	    return true
 	}
     }
@@ -4047,7 +4055,6 @@ proc DrawLabelArea {} {
     global gaWidget
     global glInfoAtRAS
     global glLabelValues
-    global tk_version
     global gaLabelArea
 
     foreach nArea {1 2} {
@@ -4108,10 +4115,13 @@ proc DrawLabelArea {} {
 	    array set aInfo $info
 	    
 	    # Get the label and value.
-	    set label $aInfo(label)
-	    set value $aInfo(value)
+	    set label    $aInfo(label)
+	    set value    $aInfo(value)
 	    set glLabelValues($nArea,"$label",value) $value
-	    
+
+	    # Callback info.
+	    set glLabelValues($nArea,"$label",callback) $aInfo(callback)
+	    set glLabelValues($nArea,"$label",filter) $aInfo(filter)
 
 	    # Has comma and in table mode? If so, add it to the list
 	    # of table entries. Otherwise add it to the list of normal
@@ -4162,6 +4172,10 @@ proc DrawLabelArea {} {
 	    $grid set 1 $nRow -itemtype text \
 		-text $glLabelValues($nArea,"$label",value)
 	    set gaLabelArea(itemType,1,$nRow) value
+	    set gaLabelArea(callback,1,$nRow) \
+		$glLabelValues($nArea,"$label",callback)
+	    set gaLabelArea(filter,1,$nRow) \
+		$glLabelValues($nArea,"$label",filter)
 
 	    set maxCol 1
 
@@ -4210,6 +4224,11 @@ proc DrawLabelArea {} {
 		    $grid set $nCol $nRow -itemtype text \
 			-text $glLabelValues($nArea,"$sX,$sY",value)
 		    set gaLabelArea(itemType,$nCol,$nRow) value
+		    set gaLabelArea(callback,$nCol,$nRow) \
+			$glLabelValues($nArea,"$sX,$sY",callback)
+		    set gaLabelArea(filter,$nCol,$nRow) \
+			$glLabelValues($nArea,"$sX,$sY",filter)
+
 		}
 
 		incr nCol
@@ -5214,7 +5233,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.131 2005/06/27 16:46:18 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.132 2005/06/27 22:15:17 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6334,6 +6353,24 @@ proc GenerateReport {} {
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 }
 
+proc SetCursorFromVolumeIndexCoords { iVolumeID iIdxX iIdxY iIdxZ } {
+
+    if { $iVolumeID < 0 } {
+	tkuErrorDlog "Invalid volume ID."
+	return;
+    }
+    
+    if { [GetLayerType $iVolumeID] != "2DMRI" } {
+	tkuErrorDlog "Data collection ID is not a volume."
+	return;
+    }
+    
+    # Transform coords and set cursor.
+    set lRAS [Get2DMRIRASCoordsFromIndex $iVolumeID $iIdxX $iIdxY $iIdxZ]
+
+    SetViewRASCursor [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
+}
+    
 # MAIN =============================================================
 
 set argc [GetArgc]

@@ -4,6 +4,9 @@
 // View orientation information for ScubaViews.
 
 class ViewState {
+
+  friend class ScubaViewTester;
+
   public:
   enum Plane { X, Y, Z };
 

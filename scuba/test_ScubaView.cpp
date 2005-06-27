@@ -1,7 +1,7 @@
 #include <stdexcept>
 #include <sstream>
 extern "C" {
-#include "glut.h"
+#include "GL/glut.h"
 #define USE_NON_CONST
 #include "tcl.h"
 #undef USE_NON_CONST
@@ -481,10 +481,11 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     string sLabel( sTclResult );
     Assert( (sLabel == layer.GetLabel()), "GetLayerLabel didn't work" );
 
-
     // Check removing all the layers. 
     view.RemoveAllLayers();
     Assert( (view.mLevelLayerIDMap.size() == 0 ), "RemoveAllLayers failed" );
+
+    cerr << "Done" << endl;
 
   }
   catch(...) {
@@ -519,6 +520,7 @@ int main( int argc, char** argv ) {
     }
 
     for( int nTrial = 0; nTrial < 50; nTrial++ ) {
+      cerr << "Trial " << nTrial << endl;
       ScubaViewTester tester0;
       tester0.Test( interp );
     }
