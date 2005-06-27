@@ -22,7 +22,7 @@ ScubaToolState::ScubaToolState() {
   mEdgePathEdgeBias = 0.9;
   mTargetLayer = -1;
   mFloodSourceCollection = -1;
-  mNewValue = 0;
+  mNewValue = 1;
   mEraseValue = 0;
   mbOnlyFillZero = false;
   mbOnlyFloodZero = false;
