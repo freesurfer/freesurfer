@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.132 2005/06/27 22:15:17 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.133 2005/06/27 23:01:54 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -602,9 +602,9 @@ proc MakeToolBar { ifwTop } {
 	    { -type image -name roiFilling -image icon_fill_roi 
 		-balloon "ROI Filling\nMiddle: Select fill\nRight: Unselect fill\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	    { -type image -name straightPath -image icon_line_tool 
-		-balloon "Straight Path (s)\n:Left: Start a new path or add a new vertex\nMiddle: Stop making path\nRight: Stop making path and close it\nShift-middle: Select voxels on path\nShift-right: Unselect voxels on path\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
+		-balloon "Straight Path (s)\nLeft: Start a new path or add a new vertex\nMiddle: Stop making path\nRight: Stop making path and close it\nShift-middle: Select voxels on path\nShift-right: Unselect voxels on path\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	    { -type image -name edgePath -image icon_draw_line 
-		-balloon "Edge Path (g)\n:Left: Start a new path or add a new vertex\nMiddle: Stop making path\nRight: Stop making path and close it\nShift-middle: Select voxels on path\nShift-right: Unselect voxels on path\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
+		-balloon "Edge Path (g)\nLeft: Start a new path or add a new vertex\nMiddle: Stop making path\nRight: Stop making path and close it\nShift-middle: Select voxels on path\nShift-right: Unselect voxels on path\nCtrl-left: Zoom in and recenter\nCtrl-middle: Recenter\nCtrl-right: Zoom out and recenter\nShift-left: Change brightness/contrast" } 
 	}
 
     set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation
@@ -2011,10 +2011,19 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    -command {SetLayerOpacity $gaLayer(current,id) $gaLayer(current,opacity); RedrawFrame [GetMainFrameID]}}
     }
 
+    tkuMakeCheckboxes $fwPropsCommon.cbwReportInfo \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Report Info" 
+		-variable gaLayer(current,reportInfo) 
+		-command {SetLayerReportInfo $gaLayer(current,id) $gaLayer(current,reportInfo); UpdateMouseLabelArea; UpdateCursorLabelArea} }
+	}
+
     grid $fwPropsCommon.ewID      -column 0 -row 0               -sticky nw
     grid $fwPropsCommon.ewType    -column 1 -row 0               -sticky new
     grid $fwPropsCommon.ewLabel   -column 0 -row 1 -columnspan 2 -sticky we
     grid $fwPropsCommon.swOpacity -column 0 -row 2 -columnspan 2 -sticky we
+    grid $fwPropsCommon.cbwReportInfo -column 0 -row 3 -columnspan 2 -sticky we
 
 
     frame $fwProps2DMRI
@@ -2860,6 +2869,7 @@ proc SelectLayerInLayerProperties { iLayerID } {
     set gaLayer(current,type) [GetLayerType $iLayerID]
     set gaLayer(current,label) [GetLayerLabel $iLayerID]
     set gaLayer(current,opacity) [GetLayerOpacity $iLayerID]
+    set gaLayer(current,reportInfo) [GetLayerReportInfo $iLayerID]
     tkuRefreshEntryNotify $gaWidget(layerProperties,labelEntry)
 
     # Make sure that this is the item selected in the menu. Disale the
@@ -5233,7 +5243,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.132 2005/06/27 22:15:17 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.133 2005/06/27 23:01:54 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

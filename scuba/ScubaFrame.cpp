@@ -375,10 +375,13 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
 	return error;
       }
       
+      // This actually happens quite a lot but it's ok, so just return
+      // nothing.
       if( windowX < 0 || windowX >= GetWidth() ||
 	  windowY < 0 || windowY >= GetHeight() ) {
-	sResult = "location is out of bounds";
-	return error;
+	sReturnFormat = "i";
+	sReturnValues = "-1";
+	return ok;
       }
 	
       try { 
