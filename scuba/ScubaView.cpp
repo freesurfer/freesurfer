@@ -1908,6 +1908,18 @@ ScubaView::DoMouseUp( int iWindow[2],
     RequestRedisplay();
   }
 
+  // Always set cursor on mouse up button except for nav tool.
+  if( iTool.GetMode() != ScubaToolState::navigation &&
+      !iInput.IsShiftKeyDown() &&
+      !iInput.IsControlKeyDown() &&
+      iInput.Button() == 1 ) {
+
+    float world[3];
+    TranslateWindowToRAS( iWindow, world );
+    SetCursor( world );
+    RebuildLabelValueInfo( mCursor.xyz(), "cursor" );
+  }
+
   // Handle marker tool.
   if( iTool.GetMode() == ScubaToolState::marker && 
       !iInput.IsControlKeyDown() ) {
@@ -1916,10 +1928,6 @@ ScubaView::DoMouseUp( int iWindow[2],
     TranslateWindowToRAS( iWindow, world );
 
     switch( iInput.Button() ) {
-    case 1:
-      SetCursor( world );
-      RebuildLabelValueInfo( mCursor.xyz(), "cursor" );
-      break;
     case 2:
       SetNextMarker( world );
       break;
