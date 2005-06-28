@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.69 2005/05/26 21:24:03 kteich Exp $
+# $Id: tksurfer.tcl,v 1.70 2005/06/28 19:01:20 kteich Exp $
 
 package require BLT;
 
@@ -1432,7 +1432,7 @@ proc DoLoadOverlayDlog {} {
 	
 	[$fwFile.ew subwidget entry] icursor end
 
-	tkm_MakeSmallLabel $fwFileNote "Values file (.w), binary volume file (.bfloat/.bshort/.hdr), COR-.info file, or other" 400
+	tkm_MakeSmallLabel $fwFileNote "Values file (.w), binary volume file (.bfloat/.bshort/.hdr), COR-.info file, .mgh, or other" 400
 	
 	set sRegistrationFileName [GetDefaultLocation LoadOverlayRegistration]
 	tkm_MakeFileSelector $fwRegistration "Use Registration:" \
@@ -1552,11 +1552,11 @@ proc DoLoadFunctionalFile { inField isFileName isRegistrationFileName } {
     if { $inField == -1 } {
 	func_load_timecourse $isFileName $isRegistrationFileName
     } else {
-	if { $sExtension == ".bfloat" || $sExtension == "bshort" } {
-	    sclv_read_bfile_values $inField $isFileName $isRegistrationFileName
-	} else {
+	if { $sExtension == ".w" } {
 	    set val $isFileName
-	    sclv_read_binary_values $inField
+	    sclv_read_from_dotw $inField
+	} else {
+	    sclv_read_from_volume $inField $isFileName $isRegistrationFileName
 	}
 	sclv_copy_view_settings_from_field $inField 0
 	OverlayLayerChanged
@@ -1608,7 +1608,7 @@ proc DoSaveValuesAsDlog {} {
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
 	    {set val [ExpandFileName $sFileName kFileName_Surface]; 
 		SetDefaultLocation SaveValuesAs $val;
-		sclv_write_binary_values $nFieldIndex}
+		sclv_write_dotw $nFieldIndex}
 	
 	pack $fwFile $fwFileNote $fwField $fwFieldNote $fwButtons \
 	    -side top       \
