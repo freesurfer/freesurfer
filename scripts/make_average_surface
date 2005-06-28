@@ -1,11 +1,14 @@
 #!/bin/tcsh -ef
+
 #
 # make_average_surface
 #
 # Creates average surfaces and curvatures from a set of subjects.
 #
+# --help option will show usage
+#
 
-set VERSION = '$Id: make_average_surface,v 1.1 2005/06/14 22:37:26 nicks Exp $';
+set VERSION = '$Id: make_average_surface,v 1.2 2005/06/28 20:14:55 nicks Exp $';
 
 set PrintHelp = 0;
 
@@ -74,10 +77,10 @@ else
 	mkdir -p ${SUBJECTS_DIR}/${average_subject}/surf
 endif
 
-set primer_subject=$SUBJECTS[1];
-cp ${SUBJECTS_DIR}/${primer_subject}/mri/T1/COR-.info \
+set tmp_subjects = ( $SUBJECTS )
+cp ${SUBJECTS_DIR}/$tmp_subjects[1]/mri/T1/COR-.info \
     ${SUBJECTS_DIR}/${average_subject}/mri/T1
-cp ${SUBJECTS_DIR}/${primer_subject}/mri/orig/COR-.info \
+cp ${SUBJECTS_DIR}/$tmp_subjects[1]/mri/orig/COR-.info \
     ${SUBJECTS_DIR}/${average_subject}/mri/orig
 
 foreach hemi (lh rh)
