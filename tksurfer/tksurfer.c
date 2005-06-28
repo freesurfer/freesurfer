@@ -1455,13 +1455,13 @@ int sclv_initialize ();
 
 int sclv_unload_field (int field);
 
-int sclv_read_binary_values (char* fname, int field);
-int sclv_read_binary_values_frame (char* fname, int field);
+int sclv_read_from_dotw (char* fname, int field);
+int sclv_read_from_dotw_frame (char* fname, int field);
 
-int sclv_read_bfile_values (char* fname, char* registration, int field);
+int sclv_read_from_volume (char* fname, char* registration, int field);
 
 /* writes .w files only */
-int sclv_write_binary_values (char* fname, int field);
+int sclv_write_dotw (char* fname, int field);
 
 /* make a pass through all the conditions and timepoints and calculate
    frequencies for everything. */
@@ -2178,8 +2178,17 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
     }
   if (functional_fname)  /* -o specified on command line */
     {
-      read_binary_values(functional_fname) ;
-      read_binary_curvature(cfname) ; val_to_stat() ;
+      if (strlen(functional_fname) > 2 &&
+	  strcmp (&functional_fname[strlen(functional_fname)-2], ".w") == 0)
+	{
+	  read_binary_values(functional_fname) ;
+	} 
+      else
+	{
+	  sclv_read_from_volume(functional_fname, NULL, SCLV_VAL);
+	}
+      read_binary_curvature(cfname) ; 
+      val_to_stat() ;
       overlayflag = TRUE ;
       colscale = HEAT_SCALE ;
     }
@@ -7688,11 +7697,11 @@ read_stds(int cond_no)
 void
 read_binary_values(char *fname)
 {
-  sclv_read_binary_values (fname, SCLV_VAL);
+  sclv_read_from_dotw (fname, SCLV_VAL);
 }
 
 int
-sclv_read_binary_values(char *fname, int field)  /* marty: openclose */
+sclv_read_from_dotw(char *fname, int field)  /* marty: openclose */
 {
   int                   vno ;
   int                   error_code;
@@ -7710,7 +7719,7 @@ sclv_read_binary_values(char *fname, int field)  /* marty: openclose */
     {
       saved_vals = (float*) calloc (mris->nvertices, sizeof(float));
       if (saved_vals==NULL)
-	ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"sclv_read_binary_values: calloc with %d elmnts failed\n", mris->nvertices));
+	ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"sclv_read_from_dotw: calloc with %d elmnts failed\n", mris->nvertices));
       
       for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
@@ -7808,7 +7817,7 @@ sclv_read_binary_values(char *fname, int field)  /* marty: openclose */
 }
 
 int
-sclv_read_bfile_values (char* fname, char* registration, int field)
+sclv_read_from_volume (char* fname, char* registration, int field)
 {
   FunD_tErr volume_error;
   mriFunctionalDataRef volume;
@@ -7826,7 +7835,7 @@ sclv_read_bfile_values (char* fname, char* registration, int field)
       printf("surfer: couldn't load %s\n",fname);
       ErrorReturn(func_convert_error(volume_error),
 		  (func_convert_error(volume_error),
-		   "sclv_read_bfloat_values: error in FunD_New\n"));
+		   "sclv_read_from_volume: error in FunD_New\n"));
     }
   
   /* save the volume and mark this field as binary */
@@ -7876,11 +7885,11 @@ sclv_read_bfile_values (char* fname, char* registration, int field)
 void
 read_binary_values_frame(char *fname)
 {
-  sclv_read_binary_values_frame (fname, SCLV_VAL);
+  sclv_read_from_dotw_frame (fname, SCLV_VAL);
 }
 
 int
-sclv_read_binary_values_frame(char *fname, 
+sclv_read_from_dotw_frame(char *fname, 
 			      int field)  /* marty: open/leave open */
 {
   int i,k,num;
@@ -7941,7 +7950,7 @@ sclv_read_binary_values_frame(char *fname,
 }
 
 int
-sclv_write_binary_values(char *fname, int field)
+sclv_write_dotw(char *fname, int field)
 {
   float *saved_vals = NULL;
   VERTEX* v = NULL;
@@ -7952,7 +7961,7 @@ sclv_write_binary_values(char *fname, int field)
     {
       saved_vals = (float*) calloc (mris->nvertices, sizeof(float));
       if (saved_vals==NULL)
-	ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"sclv_write_binary_values: calloc with %d elmnts failed\n", mris->nvertices));
+	ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"sclv_write_dotw: calloc with %d elmnts failed\n", mris->nvertices));
       
       for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
@@ -16985,10 +16994,10 @@ int W_draw_all_vertex_cursor  PARM;
 int W_clear_all_vertex_cursor  PARM;
 /* begin rkt */
 int W_select_vertex_by_vno PARM;
-int W_sclv_read_binary_values  PARM; 
-int W_sclv_read_binary_values_frame  PARM; 
-int W_sclv_read_bfile_values  PARM; 
-int W_sclv_write_binary_values PARM;
+int W_sclv_read_from_dotw  PARM; 
+int W_sclv_read_from_dotw_frame  PARM; 
+int W_sclv_read_from_volume  PARM; 
+int W_sclv_write_dotw PARM;
 int W_sclv_smooth  PARM; 
 int W_sclv_set_overlay_alpha  PARM; 
 int W_sclv_set_current_field  PARM; 
@@ -17850,17 +17859,17 @@ ERR(1,"Wrong # args: swap_buffers")
      ERR(1,"Wrong # args: undo_last_action")
      undo_do_first_action(); WEND
      
-     int                  W_sclv_read_binary_values  WBEGIN 
-     ERR(2,"Wrong # args: sclv_read_binary_values field")
-     sclv_read_binary_values(vfname,atoi(argv[1]));  WEND
+     int                  W_sclv_read_from_dotw  WBEGIN 
+     ERR(2,"Wrong # args: sclv_read_from_dotw field")
+     sclv_read_from_dotw(vfname,atoi(argv[1]));  WEND
      
-     int                  W_sclv_read_binary_values_frame  WBEGIN 
-     ERR(2,"Wrong # args: sclv_read_binary_values_frame field")
-     sclv_read_binary_values_frame(vfname,atoi(argv[1]));  WEND
+     int                  W_sclv_read_from_dotw_frame  WBEGIN 
+     ERR(2,"Wrong # args: sclv_read_from_dotw_frame field")
+     sclv_read_from_dotw_frame(vfname,atoi(argv[1]));  WEND
      
-     int                  W_sclv_write_binary_values  WBEGIN 
-     ERR(2,"Wrong # args: sclv_write_binary_values field")
-     sclv_write_binary_values(vfname,atoi(argv[1]));  WEND
+     int                  W_sclv_write_dotw  WBEGIN 
+     ERR(2,"Wrong # args: sclv_write_dotw field")
+     sclv_write_dotw(vfname,atoi(argv[1]));  WEND
      
      int                  W_read_surface_vertex_set  WBEGIN
      ERR(3,"Wrong # args: read_surface_vertex_set field file")
@@ -17917,27 +17926,27 @@ int W_func_load_timecourse_offset (ClientData clientData,Tcl_Interp *interp,
   return TCL_OK;
 }
 
-int W_sclv_read_bfile_values (ClientData clientData,Tcl_Interp *interp,
-			      int argc,char *argv[])
+int W_sclv_read_from_volume (ClientData clientData,Tcl_Interp *interp,
+			     int argc,char *argv[])
 {
   if(argc!=3&&argc!=4)
     {
-      Tcl_SetResult(interp,"Wrong # args: read_bfile_values field fname "
+      Tcl_SetResult(interp,"Wrong # args: sclv_read_from_volume field fname "
 		    " [registration]",TCL_VOLATILE);
       return TCL_ERROR;
     }
   
   if (argc==3)
-    sclv_read_bfile_values (argv[2],NULL,atoi(argv[1]));
+    sclv_read_from_volume (argv[2],NULL,atoi(argv[1]));
   /* even if we have 4 args, tcl could have passed us a blank string
      for the 4th. if it's blank, call the read function with a null
      registration, otherwise it will think it's a valid file name. */
   if (argc==4)
     {
       if (strcmp(argv[3],"")==0)
-	sclv_read_bfile_values (argv[2],NULL,atoi(argv[1]));
+	sclv_read_from_volume (argv[2],NULL,atoi(argv[1]));
       else
-	sclv_read_bfile_values (argv[2],argv[3],atoi(argv[1]));
+	sclv_read_from_volume (argv[2],argv[3],atoi(argv[1]));
     }
   return TCL_OK;
 }
@@ -18285,7 +18294,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.119 2005/06/10 22:44:42 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.120 2005/06/28 19:01:02 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18926,14 +18935,20 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_CreateCommand(interp, "undo_last_action",
 		    (Tcl_CmdProc*) W_undo_last_action, REND);
   
+  Tcl_CreateCommand(interp, "sclv_read_from_dotw", 
+		    (Tcl_CmdProc*) W_sclv_read_from_dotw, REND);
   Tcl_CreateCommand(interp, "sclv_read_binary_values", 
-		    (Tcl_CmdProc*) W_sclv_read_binary_values, REND);
+		    (Tcl_CmdProc*) W_sclv_read_from_dotw, REND);
+  Tcl_CreateCommand(interp, "sclv_read_from_dotw_frame", 
+		    (Tcl_CmdProc*) W_sclv_read_from_dotw_frame, REND);
   Tcl_CreateCommand(interp, "sclv_read_binary_values_frame", 
-		    (Tcl_CmdProc*) W_sclv_read_binary_values_frame, REND);
+		    (Tcl_CmdProc*) W_sclv_read_from_dotw_frame, REND);
+  Tcl_CreateCommand(interp, "sclv_read_from_volume", 
+		    (Tcl_CmdProc*) W_sclv_read_from_volume, REND);
   Tcl_CreateCommand(interp, "sclv_read_bfile_values", 
-		    (Tcl_CmdProc*) W_sclv_read_bfile_values, REND);
-  Tcl_CreateCommand(interp, "sclv_write_binary_values", 
-		    (Tcl_CmdProc*) W_sclv_write_binary_values, REND);
+		    (Tcl_CmdProc*) W_sclv_read_from_volume, REND);
+  Tcl_CreateCommand(interp, "sclv_write_dotw", 
+		    (Tcl_CmdProc*) W_sclv_write_dotw, REND);
   Tcl_CreateCommand(interp, "sclv_load_label_value_file", 
 		    (Tcl_CmdProc*) W_sclv_load_label_value_file, REND);
   Tcl_CreateCommand(interp, "sclv_smooth", 
