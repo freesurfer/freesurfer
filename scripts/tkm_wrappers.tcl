@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.30 2005/06/01 21:57:13 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.31 2005/06/28 18:43:29 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -709,6 +709,10 @@ proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep {
 #	-disablecallback true \
 #	-selectmode immediate
 
+    if { [string length $iSetFunc] == 0 } {
+	set iSetFunc "set IGNORE_ME"
+    }
+    
     tkm_MakeEntry $isFrame.ew \
 	$isText $iVariable 4 $iSetFunc
 
