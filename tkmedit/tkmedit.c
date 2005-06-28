@@ -8,10 +8,10 @@
 #undef VERSION
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/06/27 18:22:23 $
-// Revision       : $Revision: 1.247 $
-char *VERSION = "$Revision: 1.247 $";
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/06/28 23:30:49 $
+// Revision       : $Revision: 1.248 $
+char *VERSION = "$Revision: 1.248 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1076,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.247 2005/06/27 18:22:23 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.248 2005/06/28 23:30:49 nicks Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1102,8 +1102,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-aux <volume>  : load volume as auxilliary anatomical volume. relative to\n");
     printf("               : in $SUBJECTS_DIR/subject/mri or specify absolute path\n");
     printf("\n");
-    printf("-main-trainsform <transform> : loads a display transform for the main volume\n");
-    printf("-aux-trainsform <transform>  : loads a display transform for the aux volume\n");
+    printf("-main-transform <transform> : loads a display transform for the main volume\n");
+    printf("-aux-transform <transform>  : loads a display transform for the aux volume\n");
     printf("\n");
     printf("-bc-main <brightness> <contrast> : brightness and contrast for main volume\n");
     printf("-mm-main <min> <max>             : color scale min and max for main volume\n");
@@ -5209,7 +5209,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.247 2005/06/27 18:22:23 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.248 2005/06/28 23:30:49 nicks Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
