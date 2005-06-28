@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.32 2005/05/27 22:19:34 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.33 2005/06/28 17:47:43 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.32 2005/05/27 22:19:34 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.33 2005/06/28 17:47:43 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -329,11 +329,13 @@ MATRIX *Dtargcor, *invDtargcor, *Dtarg, *invDtarg;
 int LoadSurf = 0, UseSurf=0;
 char *surfname = "white", surf_path[2000];
 int fstal=0, fixxfm=1; 
+char *fstalfmt = ""; // Format extention for fstal (default is COR)
 char *talsubject = "talairach";
 char talxfmfile[2000],talxfmdir[2000];
 
 char *mov_ostr = NULL; // orientation string for mov
 char *targ_ostr = NULL; // orientation string for targ
+
 
 /**** ------------------ main ------------------------------- ****/
 int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
@@ -402,7 +404,8 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       printf("ERROR: SUBJECTS_DIR undefined. Use setenv or -sd\n");
       exit(1);
     }
-    sprintf(targ_vol_path,"%s/%s/mri/%s",subjectsdir,subjectid,targ_vol_id);
+    sprintf(targ_vol_path,"%s/%s/mri/%s%s",
+	    subjectsdir,subjectid,targ_vol_id,fstalfmt);
   }
   else
     memcpy(targ_vol_path,targ_vol_id,strlen(targ_vol_id));
@@ -823,6 +826,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nofixxfm"))  fixxfm = 0;
     else if (!strcasecmp(option, "--tag"))    tagmov = 1;
     else if (!strcasecmp(option, "--notag"))  tagmov = 0;
+    else if (!strcasecmp(option, "--mgh"))  fstalfmt = ".mgh";
+    else if (!strcasecmp(option, "--mgz"))  fstalfmt = ".mgz";
 
     else if (stringmatch(option, "--targ")){
       if(nargc < 1) argnerr(option,1);
@@ -1088,7 +1093,15 @@ static void print_help(void)
 "  $SUJBECTS_DIR/talairach/mri/orig and  sets the registration file to be \n"
 "  $SUBJECTS_DIR/subjectid/transforms/talairach.xfm. User must have\n"
 "  write permission to this file. Do not specify --reg with this\n"
-"  flag. It is ok to specify --regheader with this flag.\n"
+"  flag. It is ok to specify --regheader with this flag. The format\n"
+"  of the anatomical can be changed with --mgh or --mghz\n"
+"\n"
+"  --mgh\n"
+"  --mgz\n"
+"\n"
+"  Assume mgh or mgz format when loading the anatoical for --fstal.\n"
+"  With --mgh, looks for mri/orig.mgh. With --mgz, looks for mri/orig.mgz.\n"
+"  This applies only when using --fstal.\n"
 "\n"
 "  --plane <orientation>\n"
 "\n"
@@ -3697,7 +3710,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.32 2005/05/27 22:19:34 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.33 2005/06/28 17:47:43 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
