@@ -21,6 +21,7 @@ int write_mat(int argc, char *argv[], int i, MATRIX *in_mat);
 char subject_name[STR_LEN];
 float ipr, st, brightness;
 int register_stuff_defined = 0;
+int fsl_flag = 0;
 
 static void usage(int exit_val)
 {
@@ -28,6 +29,7 @@ static void usage(int exit_val)
   fprintf(stderr, "usage: %s [options]\n", Progname);
   fprintf(stderr, "options are:\n");
   fprintf(stderr, "  -v verbose\n");
+  fprintf(stderr, "  -fsl : assume input/output are FSL-style matrix files\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "'-im file' specifies input matrix files\n");
   fprintf(stderr, "'-iim file' specifies input matrix files to be inverted before multiplication\n");
@@ -48,7 +50,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.5 2004/06/01 13:51:03 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.6 2005/06/29 03:09:06 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -88,20 +90,21 @@ int main(int argc, char *argv[])
     {
       verbose_flag = 1;
     }
-    else
+    else if(strcmp(argv[i], "-fsl") == 0)
     {
+      fsl_flag = 1;
+    }
+    else{
       fprintf(stderr, "%s: unknown option %s\n", Progname, argv[i]);
     }
   }
 
-  if(n_in == 0)
-  {
+  if(n_in == 0){
     fprintf(stderr, "%s: no input files specified\n", Progname);
     usage(1);
   }
 
-  if(n_out == 0)
-  {
+  if(n_out == 0) {
     fprintf(stderr, "%s: no output files specified\n", Progname);
     usage(1);
   }
@@ -144,6 +147,7 @@ int main(int argc, char *argv[])
 
 } /* end main() */
 
+/*---------------------------------------------------------------*/
 int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
 {
 
@@ -153,16 +157,15 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
 
   line[0] = '\0';
 
-  if(i > argc)
-  {
+  if(i > argc){
     fprintf(stderr, "%s: missing input matrix\n", Progname);
     return(-1);
   }
 
-  if(strcmp(&argv[i][strlen(argv[i])-4], ".dat") == 0)
-  {
-    if((fin = fopen(argv[i], "r")) == NULL)
-    {
+  if((strcmp(&argv[i][strlen(argv[i])-4], ".dat") == 0) && !fsl_flag){
+    // tkregister-style
+
+    if((fin = fopen(argv[i], "r")) == NULL){
       fprintf(stderr, "%s: error opening file %s\n", Progname, argv[i]);
       return(-1);
     }
@@ -174,17 +177,20 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
     fscanf(fin, "%f", &ipr);
     fscanf(fin, "%f", &st);
     fscanf(fin, "%f", &brightness);
-    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 1, 1), MATRIX_RELT(in_mat, 1, 2), MATRIX_RELT(in_mat, 1, 3), MATRIX_RELT(in_mat, 1, 4));
-    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 2, 1), MATRIX_RELT(in_mat, 2, 2), MATRIX_RELT(in_mat, 2, 3), MATRIX_RELT(in_mat, 2, 4));
-    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 3, 1), MATRIX_RELT(in_mat, 3, 2), MATRIX_RELT(in_mat, 3, 3), MATRIX_RELT(in_mat, 3, 4));
-    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 4, 1), MATRIX_RELT(in_mat, 4, 2), MATRIX_RELT(in_mat, 4, 3), MATRIX_RELT(in_mat, 4, 4));
+    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 1, 1), 
+	   MATRIX_RELT(in_mat, 1, 2), MATRIX_RELT(in_mat, 1, 3), MATRIX_RELT(in_mat, 1, 4));
+    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 2, 1), 
+	   MATRIX_RELT(in_mat, 2, 2), MATRIX_RELT(in_mat, 2, 3), MATRIX_RELT(in_mat, 2, 4));
+    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 3, 1), MATRIX_RELT(in_mat, 3, 2), 
+	   MATRIX_RELT(in_mat, 3, 3), MATRIX_RELT(in_mat, 3, 4));
+    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 4, 1), MATRIX_RELT(in_mat, 4, 2), 
+	   MATRIX_RELT(in_mat, 4, 3), MATRIX_RELT(in_mat, 4, 4));
     fclose(fin);
     register_stuff_defined = 1;
   }
-  else if(strcmp(&argv[i][strlen(argv[i])-4], ".xfm") == 0)
-  {
-    if((fin = fopen(argv[i], "r")) == NULL)
-    {
+  else if((strcmp(&argv[i][strlen(argv[i])-4], ".xfm") == 0)  && !fsl_flag ){
+    // MINC-style XFM file
+    if((fin = fopen(argv[i], "r")) == NULL){
       fprintf(stderr, "%s: error opening file %s\n", Progname, argv[i]);
       return(-1);
     }
@@ -192,8 +198,7 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
     if(verbose_flag)
       printf("reading transform from .xfm file %s\n", argv[i]);
 
-    while(strncmp(line, "Linear_Transform", 16) != 0)
-    {
+    while(strncmp(line, "Linear_Transform", 16) != 0){
       if(fgets(line, STR_LEN, fin) == NULL)
       {
       fclose(fin);
@@ -201,9 +206,31 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
       return(-1);
       }
     }
-    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 1, 1), MATRIX_RELT(in_mat, 1, 2), MATRIX_RELT(in_mat, 1, 3), MATRIX_RELT(in_mat, 1, 4));
-    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 2, 1), MATRIX_RELT(in_mat, 2, 2), MATRIX_RELT(in_mat, 2, 3), MATRIX_RELT(in_mat, 2, 4));
-    fscanf(fin, "%f %f %f %f;", MATRIX_RELT(in_mat, 3, 1), MATRIX_RELT(in_mat, 3, 2), MATRIX_RELT(in_mat, 3, 3), MATRIX_RELT(in_mat, 3, 4));
+    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 1, 1), MATRIX_RELT(in_mat, 1, 2), 
+	   MATRIX_RELT(in_mat, 1, 3), MATRIX_RELT(in_mat, 1, 4));
+    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 2, 1), MATRIX_RELT(in_mat, 2, 2), 
+	   MATRIX_RELT(in_mat, 2, 3), MATRIX_RELT(in_mat, 2, 4));
+    fscanf(fin, "%f %f %f %f;", MATRIX_RELT(in_mat, 3, 1), MATRIX_RELT(in_mat, 3, 2), 
+	   MATRIX_RELT(in_mat, 3, 3), MATRIX_RELT(in_mat, 3, 4));
+    fclose(fin);
+  }
+
+  else if(fsl_flag){
+    if((fin = fopen(argv[i], "r")) == NULL){
+      fprintf(stderr, "%s: error opening file %s\n", Progname, argv[i]);
+      return(-1);
+    }
+
+    if(verbose_flag)
+      printf("reading matrix from fsl file %s\n", argv[i]);
+    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 1, 1), MATRIX_RELT(in_mat, 1, 2), 
+	   MATRIX_RELT(in_mat, 1, 3), MATRIX_RELT(in_mat, 1, 4));
+    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 2, 1), MATRIX_RELT(in_mat, 2, 2), 
+	   MATRIX_RELT(in_mat, 2, 3), MATRIX_RELT(in_mat, 2, 4));
+    fscanf(fin, "%f %f %f %f;", MATRIX_RELT(in_mat, 3, 1), MATRIX_RELT(in_mat, 3, 2), 
+	   MATRIX_RELT(in_mat, 3, 3), MATRIX_RELT(in_mat, 3, 4));
+    fscanf(fin, "%f %f %f %f", MATRIX_RELT(in_mat, 4, 1), MATRIX_RELT(in_mat, 4, 2), 
+	   MATRIX_RELT(in_mat, 4, 3), MATRIX_RELT(in_mat, 4, 4));
     fclose(fin);
   }
   else
@@ -227,6 +254,7 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
 
 } /* end read_mat() */
 
+/*-----------------------------------------------------------------*/
 int write_mat(int argc, char *argv[], int i, MATRIX *out_mat)
 {
 
@@ -238,7 +266,7 @@ int write_mat(int argc, char *argv[], int i, MATRIX *out_mat)
     return(-1);
   }
 
-  if(strcmp(&argv[i][strlen(argv[i])-4], ".dat") == 0)
+  if((strcmp(&argv[i][strlen(argv[i])-4], ".dat") == 0) && !fsl_flag)
   {
 
     if(verbose_flag)
@@ -270,7 +298,7 @@ int write_mat(int argc, char *argv[], int i, MATRIX *out_mat)
     fclose(fout);
 
   }
-  else if(strcmp(&argv[i][strlen(argv[i])-4], ".xfm") == 0)
+  else if((strcmp(&argv[i][strlen(argv[i])-4], ".xfm") == 0) && !fsl_flag)
   {
 
     if((fout = fopen(argv[i], "w")) == NULL)
@@ -292,6 +320,30 @@ int write_mat(int argc, char *argv[], int i, MATRIX *out_mat)
     fprintf(fout, "   %e %e %e %e;\n", *MATRIX_RELT(out_mat, 3, 1), *MATRIX_RELT(out_mat, 3, 2), *MATRIX_RELT(out_mat, 3, 3), *MATRIX_RELT(out_mat, 3, 4));
 
     fclose(fout);
+
+  }
+  else if(fsl_flag){
+
+    if((fout = fopen(argv[i], "w")) == NULL){
+      fprintf(stderr, "%s: error opening file %s\n", Progname, argv[i]);
+      return(-1);
+    }
+
+    if(verbose_flag)
+      printf("writing transform to fsl file %s\n", argv[i]);
+
+    fprintf(fout, "%f %f %f %f\n", *MATRIX_RELT(out_mat, 1, 1), *MATRIX_RELT(out_mat, 1, 2), 
+	    *MATRIX_RELT(out_mat, 1, 3), *MATRIX_RELT(out_mat, 1, 4));
+    fprintf(fout, "%f %f %f %f\n", *MATRIX_RELT(out_mat, 2, 1), *MATRIX_RELT(out_mat, 2, 2), 
+	    *MATRIX_RELT(out_mat, 2, 3), *MATRIX_RELT(out_mat, 2, 4));
+    fprintf(fout, "%f %f %f %f\n", *MATRIX_RELT(out_mat, 3, 1), *MATRIX_RELT(out_mat, 3, 2), 
+	    *MATRIX_RELT(out_mat, 3, 3), *MATRIX_RELT(out_mat, 3, 4));
+    fprintf(fout, "%f %f %f %f\n", *MATRIX_RELT(out_mat, 4, 1), *MATRIX_RELT(out_mat, 4, 2), 
+	    *MATRIX_RELT(out_mat, 4, 3), *MATRIX_RELT(out_mat, 4, 4));
+
+    fclose(fout);
+
+
 
   }
   else
