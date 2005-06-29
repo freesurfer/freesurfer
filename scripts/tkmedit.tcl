@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.88 2005/06/27 18:54:59 kteich Exp $
+# $Id: tkmedit.tcl,v 1.89 2005/06/29 17:41:25 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -1583,7 +1583,7 @@ proc DoBrushInfoDlog {} {
 
 	# radius
 	tkm_MakeSliders $fwRadiusScale { \
-	       { {"Radius"} gBrushInfo(radius) 1 20 100 "" 1 } }
+	       { {"Radius"} gBrushInfo(radius) 1 20 100 "SetBrushConfiguration" 1 } }
 	
  	# shape radio buttons
 	tkm_MakeNormalLabel $fwShapeLabel "Shape"
