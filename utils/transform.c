@@ -1457,10 +1457,21 @@ MATRIX *DevolveXFM(char *subjid, MATRIX *XFM, char *xfmname)
 
   /* Load the orig header for the subject */
   sprintf(dirname,"%s/%s/mri/orig",sd,subjid);
+  printf("Trying %s\n",dirname);
   mriorig = MRIreadHeader(dirname,MRI_CORONAL_SLICE_DIRECTORY);
   if(mriorig == NULL){
-    printf("ERROR: could not read header for %s\n",dirname);
-    return(NULL);
+    sprintf(dirname,"%s/%s/mri/orig.mgz",sd,subjid);
+    printf("Trying %s\n",dirname);
+    mriorig = MRIreadHeader(dirname,MRI_MGH_FILE);
+    if(mriorig == NULL){
+      sprintf(dirname,"%s/%s/mri/orig.mgh",sd,subjid);
+      printf("Trying %s\n",dirname);
+      mriorig = MRIreadHeader(dirname,MRI_MGH_FILE);
+      if(mriorig == NULL){
+	printf("ERROR: could not read header for %s\n",dirname);
+	return(NULL);
+      }
+    }
   }
 
   if(XFM==NULL){
