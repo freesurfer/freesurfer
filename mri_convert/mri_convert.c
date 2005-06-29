@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/05/27 22:19:03 $
-// Revision       : $Revision: 1.102 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/06/29 18:11:17 $
+// Revision       : $Revision: 1.103 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.102 2005/05/27 22:19:03 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.103 2005/06/29 18:11:17 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2108,7 +2108,9 @@ void usage(FILE *stream)
   "\n"
   "Legal values for --in_type (-it) and --out_type (-ot) are:\n"
   "\n"
-  "  cor           - MGH-NMR COR format\n"
+  "  cor           - MGH-NMR COR format (deprecated)\n"
+  "  mgh           - MGH-NMR format\n"
+  "  mgz           - MGH-NMR gzipped (compressed) mgh format\n"
   "  minc          - MNI's Medical Imaging NetCDF format (output may not work)\n"
   "  analyze       - 3D analyze (same as spm)\n"
   "  analyze4d     - 4D analyze \n"
