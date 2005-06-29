@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.70 2005/06/28 19:01:20 kteich Exp $
+# $Id: tksurfer.tcl,v 1.71 2005/06/29 16:53:49 kteich Exp $
 
 package require BLT;
 
@@ -2018,7 +2018,10 @@ proc DoCustomFillDlog {} {
 	radiobutton $fwAction.rbwRemove \
 	    -font [tkm_GetNormalFont] -relief flat\
 	    -variable gFillParms(action) -value 2
-	tixOptionMenu $fwAction.owTarget -variable gFillParms(argument)
+	menubutton $fwAction.owTarget \
+	    -menu $fwAction.owTarget.mw \
+	    -indicatoron 1
+	menu $fwAction.owTarget.mw
 	LblLst_FillListMenu $fwAction.owTarget 1
 	grid $fwAction.rbwNew         -column 0 -row 0 -sticky w
 	grid $fwAction.lwNew          -column 1 -row 0 -sticky w
@@ -4216,25 +4219,54 @@ proc LblLst_SetStructures { ilStructures } {
 proc LblLst_FillListMenu { iowList {ibSelectCurrentLabel 0} } {
     global glLabelNames
     global gnSelectedLabel
+    global gFillParms
 
-    $iowList config -disablecallback 1
+    # Get the menu.
+    set mw $iowList.mw
 
-    set lEntries [$iowList entries]
-    foreach entry $lEntries { 
-	$iowList delete $entry
+    # Delete all entries
+    $mw delete 0 end
+
+    # If we have more than 30 entries, we're going to create some
+    # submenus. For every 30 entries, get item 0 and 29, make a string
+    # consisting of their names, and add a submenu with those labels.
+    if { [llength $glLabelNames] > 30 } {
+	set nEntry 0
+	set nSubMenu 0
+	while { $nEntry < [llength $glLabelNames] } {
+	    set nTopEntry [expr $nEntry + 20]
+	    if { $nTopEntry >= [llength $glLabelNames] } {
+		set nTopEntry [expr [llength $glLabelNames] - 1]
+	    }
+	    menu $mw.mw$nSubMenu
+	    $mw add cascade -menu $mw.mw$nSubMenu \
+		-label "[lindex $glLabelNames $nEntry] -> [lindex $glLabelNames $nTopEntry]"
+	    incr nEntry 30
+	    incr nSubMenu
+	}
     }
-    
+
+
+    # For each value...
     set nValueIndex 0
     foreach label $glLabelNames {
-	$iowList add command $nValueIndex -label $label
+
+	# If we have more than 30, calc a submenu and add it to
+	# that. Otherwise just add it to the main menu.
+	set curMenu $mw
+	if { [llength $glLabelNames] > 30 } {
+	    set curMenu $mw.mw[expr $nValueIndex / 30]
+	}
+
+	$curMenu add command \
+	    -command "set gFillParms(argument) $nValueIndex; $iowList config -text \"$label\"" \
+	    -label $label
 	incr nValueIndex
     }
     
-    $iowList config -disablecallback 0
-
-    if { $ibSelectCurrentLabel && $nValueIndex > 0 } {
-	$iowList config -value $gnSelectedLabel
-    }
+    # Set up with initial label.
+    set gFillParms(argument) $gnSelectedLabel
+    $iowList config -text [lindex $glLabelNames $gnSelectedLabel]
 }
 
 # ================================================================= FSGDF PLOT
