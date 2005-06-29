@@ -36,6 +36,9 @@ static void usage(int exit_val)
   fprintf(stderr, "'-om file' specifies output matrix files\n");
   fprintf(stderr, "input and output files may be .dat or .xfm files\n");
   fprintf(stderr, "\n");
+  fprintf(stderr, " mri_matrix_multiply -im M1.dat -im M2.dat -iim M3.dat -om M4.dat \n");
+  fprintf(stderr, "    will compute M4 = M1*M2*inv(M3)\n");
+  fprintf(stderr, "\n");
   exit(exit_val);
 
 } /* end usage() */
@@ -50,7 +53,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.6 2005/06/29 03:09:06 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.7 2005/06/29 20:49:38 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
