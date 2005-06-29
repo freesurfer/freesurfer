@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.33 2005/06/28 17:47:43 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.34 2005/06/29 06:25:13 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.33 2005/06/28 17:47:43 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.34 2005/06/29 06:25:13 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -308,7 +308,7 @@ int mkheaderreg = 0, noedit = 0, fixtkreg = 1, fixonly = 0;
 int LoadVol = 1;
 int tagmov = 0;
 
-MRI *mov_vol, *targ_vol, *mritmp, *mrisurf;
+MRI *mov_vol, *targ_vol,*targ_vol0, *mritmp, *mrisurf;
 MRI_SURFACE *surf;
 
 float movimg[WINDOW_ROWS][WINDOW_COLS];
@@ -503,6 +503,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       MRIfree(&targ_vol);
     }
     targ_vol = mritmp;
+    targ_vol0 = MRIreadHeader(targ_vol_path,targ_vol_fmt);
 
     MatrixFree(&Ttargcor);
     MatrixFree(&invTtargcor);
@@ -514,7 +515,10 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     MatrixFree(&Vt2s);
     //MRIwrite(targ_vol,"cor.mgh");
   }
-  else Mtc = MatrixIdentity(4,NULL);
+  else{
+    Mtc = MatrixIdentity(4,NULL);
+    targ_vol0 = targ_vol;
+  }
   invMtc = MatrixInverse(Mtc,NULL);
 
   if(!fstal || !fixxfm) Ttarg = MRIxfmCRS2XYZtkreg(targ_vol);
@@ -564,7 +568,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   }
   else if(fslregfname != NULL){
     /* Compute Reg from FSLReg */
-    RegMat = MRIfsl2TkReg(targ_vol, mov_vol, FSLRegMat);
+    RegMat = MRIfsl2TkReg(targ_vol0, mov_vol, FSLRegMat);
     MatrixMultiply(RegMat,invMtc,RegMat);
   }
   else{
@@ -1154,7 +1158,8 @@ static void print_help(void)
 "  --fslreg FSL-registration-file\n"
 "  \n"
 "  Use the matrix produced by the FSL routines as the initial registration.\n"
-"  It should be an ascii file with a 4x4 matrix.\n"
+"  It should be an ascii file with a 4x4 matrix. Note: the matrix should\n"
+"  map from the mov to the target.\n"
 "  \n"
 "  --s subjectid\n"
 "  \n"
@@ -3710,7 +3715,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.33 2005/06/28 17:47:43 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.34 2005/06/29 06:25:13 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
