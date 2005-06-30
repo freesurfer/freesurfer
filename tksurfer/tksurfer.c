@@ -18294,7 +18294,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.120 2005/06/28 19:01:02 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.121 2005/06/30 16:46:03 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24614,13 +24614,21 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
   if (params->dont_cross_fthresh)
     sclv_get_value (&mris->vertices[seed_vno], 
 		    sclv_current_field, &seed_fvalue);
-  
+ 
+  /* Start listing for cancel */
+  printf ("surfer: filling (ctrl-c to cancel)");
+  cncl_start_listening ();
+
   /* while we're still filling stuff in a pass... */
   num_filled_this_iter = 1;
   num_filled = 0;
   iter = 0;
   while (num_filled_this_iter > 0)
     {
+      if (cncl_user_canceled()) {
+	goto cancel;
+      }
+      
       num_filled_this_iter = 0;
       
       /* switch between iterating forward and backwards. */
@@ -24730,14 +24738,18 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
 	}
       
       iter++;
+
+      if ((iter % 2) == 0)
+	{
+	  printf (".");
+	  fflush (stdout);
+	}
     }
   
   /* mark all filled vertices. */
   for (vno = 0; vno < mris->nvertices; vno++ )
     if (filled[vno])
       mris->vertices[vno].marked = TRUE;
-  
-  free (filled);
   
   switch (params->action) 
     {
@@ -24757,7 +24769,21 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
     default:
       break;
     }
+
+  printf (" done\n");
+  fflush (stdout);
+
+  goto done;
   
+ cancel:
+  printf (" cancelled\n");
+  fflush (stdout);
+
+ done:
+  cncl_stop_listening ();
+
+  free (filled);
+
   return (ERROR_NONE);
 }
 /* ---------------------------------------------------------------------- */
@@ -24914,7 +24940,7 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
   goto done;
 
  cancel:
-  printf (" canceled\n");
+  printf (" cancelled\n");
   fflush (stdout);
   *path_length = 0;
   
