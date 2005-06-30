@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.71 2005/06/29 16:53:49 kteich Exp $
+# $Id: tksurfer.tcl,v 1.72 2005/06/30 21:03:50 kteich Exp $
 
 package require BLT;
 
@@ -1552,7 +1552,7 @@ proc DoLoadFunctionalFile { inField isFileName isRegistrationFileName } {
     if { $inField == -1 } {
 	func_load_timecourse $isFileName $isRegistrationFileName
     } else {
-	if { $sExtension == ".w" } {
+	if { $sExtension == ".w" || $sExtension == ".curv" || $sExtension == ".sulc"  } {
 	    set val $isFileName
 	    sclv_read_from_dotw $inField
 	} else {
