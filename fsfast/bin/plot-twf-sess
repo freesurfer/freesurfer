@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # plotmc-sess
 #
-# $Id: plot-twf-sess,v 1.3 2005/04/07 22:10:42 greve Exp $
-set VERSION = '$Id: plot-twf-sess,v 1.3 2005/04/07 22:10:42 greve Exp $';
+# $Id: plot-twf-sess,v 1.4 2005/06/30 23:27:11 greve Exp $
+set VERSION = '$Id: plot-twf-sess,v 1.4 2005/06/30 23:27:11 greve Exp $';
 set FASTVER = `cat $FSFAST_HOME/docs/version`;
 
 set inputargs = ($argv);
@@ -43,7 +43,7 @@ endif
 set PWD = `getpwdcmd`;
 if($status) exit 1;
 
-set GNUPLOT = gnuplot.freesurfer
+set GNUPLOT = gnuplot
 #echo $GNUPLOT
 
 which $GNUPLOT > /dev/null
@@ -125,15 +125,16 @@ foreach sess ($SessList)
   echo "INFO ($sessbase): RunList = $RunListUse"
 
   if(-w .) then
-    set imgfile = $datfile.jpg;
+    set imgfile = $datfile.png;
   else
-    set imgfile = /tmp/$datfile.jpg;
+    set imgfile = /tmp/$datfile.gif;
   endif
   rm -f $imgfile;
   set gnpcmd = ();
   set gnpcmd = ($gnpcmd set output "'"$imgfile"'" ;)
   set gnpcmd = ($gnpcmd set key $keycorner;)
-  set gnpcmd = ($gnpcmd set term jpeg transparent large size 640,480; )
+  #set gnpcmd = ($gnpcmd set term jpeg transparent large size 640,480; )
+  set gnpcmd = ($gnpcmd set term png;  )
   set gnpcmd = ($gnpcmd set title '"'$sessbase $title '"';)
   set gnpcmd = ($gnpcmd set xlabel '"'$xlabel'"' ; )
   set gnpcmd = ($gnpcmd plot [$xmin : $xmax] [$ymin : $ymax] )
@@ -161,8 +162,10 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  echo "INFO: launching xv"
-  xv $imgfile &
+  #echo "INFO: launching xv"
+  #xv $imgfile &
+  echo "INFO: launching display"
+  display $imgfile &
 
 
 end # End loop over sessions
