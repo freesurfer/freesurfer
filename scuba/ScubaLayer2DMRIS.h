@@ -40,6 +40,9 @@ class ScubaLayer2DMRIS : public Layer {
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 
+  // Return the surface collection.
+  virtual DataCollection* GetMainDataCollection() { return mSurface; }
+
   void SetLineColor3d ( int iaLineColor[3] ) {
     maLineColor[0] = iaLineColor[0];
     maLineColor[1] = iaLineColor[1];

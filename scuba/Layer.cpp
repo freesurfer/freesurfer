@@ -335,6 +335,23 @@ Layer::DoListenToMessage ( string isMessage, void* ) {
   }
 }
 
+DataCollection*
+Layer::GetMainDataCollection() { 
+  return NULL;
+}
+
+
+int
+Layer::GetSelectedROI () {
+  
+  DataCollection* col = this->GetMainDataCollection();
+  if( NULL != col ) {
+    return col->GetSelectedROI();
+  } else {
+    return -1;
+  }
+}
+
 void
 Layer::DataChanged () {
   // Default behavior of data changing is to request a redisplay.

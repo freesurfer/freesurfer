@@ -17,6 +17,7 @@
 #include "InputState.h"
 #include "Listener.h"
 #include "Broadcaster.h"
+#include "DataCollection.h"
 
 class LayerStaticTclListener : public DebugReporter, 
 			       public TclCommandListener {
@@ -85,6 +86,15 @@ class Layer : public DebugReporter,
   // Handle broadcast messages.
   virtual void
     DoListenToMessage ( std::string isMessage, void* iData );
+
+  // Get the primary data collection type for this layer. Can be null.
+  virtual DataCollection* GetMainDataCollection();
+
+  // Get the selected ROI for this layer. Can be -1. By default, this
+  // tries to get the MainDataCollection, and calls GetSelectedROI on
+  // that. It returns -1 if there is no MainDataCollection.
+  virtual int GetSelectedROI ();
+
 
   // Called when the layer's data is changed. Default behavior is to
   // request a redisplay.

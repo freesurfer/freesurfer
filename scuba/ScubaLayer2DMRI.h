@@ -48,6 +48,9 @@ class ScubaLayer2DMRI : public Layer {
   virtual void
     DoListenToMessage ( std::string isMessage, void* iData );
 
+  // Return the volume collection.
+  virtual DataCollection* GetMainDataCollection() { return mVolume; }
+
   // Override to change min/max range on new value.
   virtual void DataChanged();
 

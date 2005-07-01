@@ -538,26 +538,3 @@ Find Nearest Surface Vertex
 Set Cursor from edit.dat
 Generate Segementation Volume Report
 
-
-
-Signals
-
-mainWindow
-CurrentViewLayersChanged -> viewLayersDlog.UpdateLayersList
-TransformsListChanged    -> viewLayersDlog.UpdateTransformMenu
-LUTListChanged           -> viewLayersDlog.UpdateLUTMenu
-ToolChanged              -> toolSettingsDlog.UpdateToolSettings
-LayerTargetChanged       -> roiSettingsDlog.UpdateTargetLayer
-
-toolSettingsDlog
-
-viewLayersDlog
-ScubaFrameChanged        -> mainWindow.UpdateScubaFrame
-CurrentViewChanged       -> mainWindow.UpdateCurrentView
-TargetLayerChanged       -> toolSettingsDlog.UpdateTargetLayer
-TargetLayerChanged       -> roiSettingsDlog.UpdateLayerTarget
-
-scubaFrame
-UpdateLabelArea          -> mainWindow.UpdateLabelArea
-
-roiSettingsDlog
