@@ -2978,7 +2978,11 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
 
   if (!mri_dst)
   {
+#if 0
     mri_dst = MRIalloc(swidth/2, sheight/2, sdepth/2, MRI_UCHAR) ;
+#else
+    mri_dst = MRIalloc(swidth/2, sheight/2, sdepth/2, mri_src->type) ;
+#endif
     mri_dst->imnr1 = mri_dst->imnr0 + mri_dst->depth - 1 ;
     MRIsetResolution(mri_dst, 
                      mri_src->xsize*2, mri_src->ysize*2, mri_src->zsize*2) ;
