@@ -153,27 +153,47 @@ proc hl_DrawHistogram {} {
 proc hl_FillValueMenu { iow iID } {
     global gaHisto
     $iow.mw delete 0 end
+
+    # If we have more than 30 entries...
     if { [llength $gaHisto(CLUT,valueList)] > 30 } {
+
+	# For each entry...
 	set nEntry 0
 	set nSubMenu 0
 	while { $nEntry < [llength $gaHisto(CLUT,valueList)] } {
+
+	    # Get an entry 29 items down (or < 29 if we don't have
+	    # that many items.
 	    set nTopEntry [expr $nEntry + 29]
 	    if { $nTopEntry >= [llength $gaHisto(CLUT,valueList)] } {
 		set nTopEntry [expr [llength $gaHisto(CLUT,valueList)] - 1]
 	    }
+
+	    # Create a submenu. Add the submenu to the main menu,
+	    # giving it a label consisting of the entry and the entry
+	    # 29 items down.
 	    menu $iow.mw.mw$nSubMenu
 	    $iow.mw add cascade -menu $iow.mw.mw$nSubMenu \
 		-label "$gaHisto(CLUT,$nEntry,name) -> $gaHisto(CLUT,$nTopEntry,name)"
+
+	    # Look at the entry 30 items from now.
 	    incr nEntry 30
 	    incr nSubMenu
 	}
     }
+
+    # For each value...
     foreach value $gaHisto(CLUT,valueList) {
+
+	# If we have more than 30, we're adding it to one of our
+	# submenus. Otherwise, we're adding to the main menu.
 	if { [llength $gaHisto(CLUT,valueList)] > 30 } {
 	    set curMenu $iow.mw.mw[expr $value / 30]
 	} else {
 	    set curMenu $iow.mw
 	}
+
+	# Add the item.
 	$curMenu add command \
 	    -command "hl_ValueManuCallback $iID $value" \
 	    -label $gaHisto(CLUT,$value,name)

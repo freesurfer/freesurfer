@@ -421,11 +421,11 @@ x Goto Coords sets cursor
 
 - save layer setup to script
 
-- goto/send pt
+x goto/send pt
 
 x alt-c behavior but lock in a layer
 
-- goto vertex
+x goto vertex
 
 x writeable coords for goto
 
@@ -520,17 +520,24 @@ x ROI dlog
     - transform to volume
 
 
-Undo
-Redo
 Preferences
-SetCurrentViewMode
-SetCurrentInPlane
-SetFlipView
-setAutoConfigure
-SetShowCoordinates
-SetShowFPS
-SetShowMarkers
-SetShowPlaneIntersections
+
+
+additional tools
+label table mode
+enter coords with callbacks
+
+Layers
+ - Report Info
+ - numerical fields for b/c
+ - automatically configure Draw Zero Clear with seg and heatscale
+
+Data Collection Info window
+Show Surface Vertex
+Find Nearest Surface Vertex
+Set Cursor from edit.dat
+Generate Segementation Volume Report
+
 
 
 Signals
@@ -554,49 +561,3 @@ scubaFrame
 UpdateLabelArea          -> mainWindow.UpdateLabelArea
 
 roiSettingsDlog
-
-
-
-View::GetInfoAtRAS info = new Info; info.ID = -1; info.label="RAS";
-  info.value = "(%f, %f, %f)" info.callback="SetViewRASCursor"
-  info.filter="3sf" Layer::GetInfoAtRAS info.ID = GetID();
-  info.label="index"; info.value = "(%d, %d, %d)"
-  info.callback="SetCursorToLayerIndex GetID()" info.filter="3ui"
-  info.ID = GetID(); info.label="value"; info.value = "%f"
-
-Put into reponse like:
-  ssReturnFormat << "L"
-  for info in lInfo
-    ssReturnFormat << "ss";
-    ssReturnValues << info.ID << ",label " << info.label << " "
-    ssReturnFormat << "ss";
-    ssReturnValues << info.ID << ",value " << info.value << " "
-    ssReturnFormat << "ss";
-    ssReturnValues << info.ID << ",label " << info.label << " "
-  ssReturnValues << "l"
-
-tcl code gets an array:
-  info(-1,label) RAS
-  info(-1,value) (4, 5, 2)
-  info(-1,label) Window
-  info(-1,value) (40, 30)
-  info(0,label) bert T1,value
-  info(0,value) 128
-  info(0,label) bert T1,index
-  info(0,vale (128, 128, 128)
-
- { "-1,label" "RAS" "-1,value" "(4, 5, 2)" "-1,label" "Window" 
-
-NO
-
-we want:
-
- { { "id" "-1" "label" "RAS" "value" "(4, 5, 6)" }
-   { "id" "-1" "label" "Window" "value" "(100, 100)" }
-   { "id" "0"  "label" "bert T1,index" "value" "(128, 128, 128)" }
-   { "id" "0"  "label" "bert T1,value" "value" "100" } }
-
-then foreach info in lInfoAtRAS
-  array set aInfo $info
-  label = $aInfo(label)
-
