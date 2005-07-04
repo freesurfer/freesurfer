@@ -5379,18 +5379,26 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
   }
 
   shortmax = (int)(pow(2.0,15.0));
-  if(mri->width > shortmax)
-    printf("ANALYZE FORMAT WARNING: ncols %d in volume exceeds %d\n",
+  if(mri->width > shortmax){
+    printf("ANALYZE FORMAT ERROR: ncols %d in volume exceeds %d\n",
      mri->width,shortmax);
-  if(mri->height > shortmax)
-    printf("ANALYZE FORMAT WARNING: nrows %d in volume exceeds %d\n",
+    exit(1);
+  }
+  if(mri->height > shortmax){
+    printf("ANALYZE FORMAT ERROR: nrows %d in volume exceeds %d\n",
      mri->height,shortmax);
-  if(mri->depth > shortmax)
-    printf("ANALYZE FORMAT WARNING: nslices %d in volume exceeds %d\n",
+    exit(1);
+  }
+  if(mri->depth > shortmax){
+    printf("ANALYZE FORMAT ERROR: nslices %d in volume exceeds %d\n",
      mri->depth,shortmax);
-  if(mri->nframes > shortmax)
-    printf("ANALYZE FORMAT WARNING:  nframes %d in volume exceeds %d\n",
+    exit(1);
+  }
+  if(mri->nframes > shortmax){
+    printf("ANALYZE FORMAT ERROR:  nframes %d in volume exceeds %d\n",
      mri->nframes,shortmax);
+    exit(1);
+  }
 
   c = strrchr(fname, '.');
   if(c == NULL)
