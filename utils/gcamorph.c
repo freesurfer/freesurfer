@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/06/15 13:30:14 $
-// Revision       : $Revision: 1.74 $
+// Revision Date  : $Date: 2005/07/05 17:31:33 $
+// Revision       : $Revision: 1.75 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -2827,6 +2827,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, \
 
   for (n = parms->start_t ; n < parms->start_t+parms->niterations ; n++)
     {
+#if 0
       printf("Loop %d of %d...\n", n,parms->start_t+parms->niterations); 
       // check for early termination, rather than looping needlessly
       if ( (n>200) \
@@ -2837,6 +2838,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, \
           printf("GCAMRegisterLevel appears complete.");
           break;
         }
+#endif
       
       /*              parms->l_jacobian = 1 ;*/
       GCAMremoveStatus(gcam, GCAM_LABEL_NODE) ;
