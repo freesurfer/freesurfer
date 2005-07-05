@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: feat2surf,v 1.1 2005/07/05 05:08:38 greve Exp $'
+set VERSION = '$Id: feat2surf,v 1.2 2005/07/05 21:34:35 greve Exp $'
 set FeatDirList = ();
 set ProjFrac = ();
 set HemiList = (lh rh);
@@ -56,7 +56,9 @@ set reg_anat2exf = $FeatDir/reg/freesurfer/anat2exf.register.dat
 set subject = `cat $reg_anat2exf| head -n 1`;
 
 set imglist = ($statsdir/*.img $statsdir/*.nii)
-#set imglist = ($statsdir/cope1.img)
+set imglist = ($imglist $FeatDir/cluster*.img $FeatDir/cluster*.nii)
+set imglist = ($imglist $FeatDir/rendered_thresh*.img $FeatDir/rendered_thresh*.nii)
+#set imglist = ($statsdir/zstat1.img)
 
 set nimg = $#imglist
 if($nimg == 0) then
@@ -83,16 +85,18 @@ foreach img ($imglist)
    #if($baseimg == threshac1) continue;
 
    foreach targ ($subject $TargetSubj)
-   #foreach targ ($subject)
+   #foreach targ ( $TargetSubj)
      foreach hemi ($HemiList)
        if($targ != $subject) then
          set outstatsdir = $FeatDir/reg_surf-$hemi-$targ/stats
-         set outext = .nii;
-         set reshape = (--noreshape)
+         #if($FSLOUTPUTTYPE == ANALYZE)  set outext = .img;
+         #if($FSLOUTPUTTYPE == NIFTI)    set outext = .nii;
+         set outext = .img;
+         set outtype = analyze4d;
        else
          set outstatsdir = $FeatDir/reg_surf-$hemi/stats
          set outext = .mgh;
-         set reshape = ()
+         set outtype = mgh;
        endif
        mkdir -p $outstatsdir
        set outimg = $outstatsdir/$baseimg$outext
@@ -100,7 +104,7 @@ foreach img ($imglist)
        set V2S = $DEV/mri_vol2surf/mri_vol2surf
        set cmd = ($V2S --src $img --srcreg $reg_anat2exf \
                   --trgsubject $targ --hemi $hemi --out $outimg\
-                  --surf $Surf $reshape)
+                  --surf $Surf --out_type $outtype)
        if($#ProjFrac) set cmd = ($cmd --projfrac $ProjFrac) 
 
        echo " " | tee -a $LF
@@ -244,6 +248,13 @@ foreach FeatDir ($FeatDirList)
   end
 end # FeatDirList
 
+#if($?FSLOUTPUTTYPE == 0) set FSLOUTPUTTYPE = ANALYZE
+#if($FSLOUTPUTTYPE != ANALYZE && $FSLOUTPUTTYPE != NIFTI) then
+#  echo "ERROR: FSLOUTPUTTYPE = $FSLOUTPUTTYPE, must be ANALYZE or NIFTI"
+#  exit 1;
+#endif
+
+
 endif
 
 goto check_params_return;
@@ -286,14 +297,16 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Resamples Feat statistics onto the subjects surface and onto a
-sterio-taxis surface atlas. Statistics are obtained from FeatDir/stats
-and stored in FeatDir/reg_surf-lh/stats and
-FeatDir/reg_surf-rh/stats for the individual. For the common space, they
-are stored in  FeatDir/reg_surf-lh-targid/stats and
-FeatDir/reg_surf-rh-targid/stats, where targid is the subject that defines the 
-common surface space (default is average7). qAll of the .img or .nii files are
-resampled. Does not work on compressed NIFIT.
+Resamples Feat statistics onto the surface of the subject and onto a
+stereo-taxis surface atlas. Statistics are obtained from FeatDir/stats
+as well as those volumes in FeatDir beginning with "cluster" and
+"rendered". The results are stored in FeatDir/reg_surf-lh/stats and
+FeatDir/reg_surf-rh/stats for the individual (in MGH format). For the
+common space, they are stored in FeatDir/reg_surf-lh-targid/stats and
+FeatDir/reg_surf-rh-targid/stats (in ANALYZE format), where targid is
+the subject that defines the common surface space (default is
+average7). All of the .img or .nii files are resampled. Does not work
+on compressed NIFTI.
 
 REQUIRED ARGUMENTS
 
@@ -310,9 +323,10 @@ OPTIONAL ARGUMENTS
 
 --projfrac fraction 
 
-Sample functional a fraction of the cortical thickness normal to the surface. Eg,  
---projfrac 0.5 will sample in the middle of the cortical ribbon. Default is 0.
-The subject must have thickness files in the surf directory.
+Sample functional a fraction of the cortical thickness normal to the
+surface. Eg, --projfrac 0.5 will sample in the middle of the cortical
+ribbon. Default is 0.  The subject must have thickness files in the
+surf directory.
 
 --hemi hemi 
 
@@ -326,7 +340,34 @@ Subject used to define common surface space (default is average7).
 
 Surface to resample to (default is white).
 
+EXAMPLE
 
+# Assume a data set exists called fbert.img
+# Analyze fbert.img with Feat to generate directory fbert.feat
+
+# Register fbert.feat to subject bert:
+reg-feat2anat --feat fbert.feat --subject bert
+
+# Resample fbert.feat onto the surface
+feat2surf --feat fbert.feat 
+
+
+
+BUGS
+
+The surface-based data are stored in "volume" formats (ie, ANALYZE or
+MGH).  In this case, the spatial dimensions do not correspond to
+volume dimensions but rather the number of vertices on the
+surface. This is typically on the order of 150,000. Ideally, we would
+simply store the surface data as a "volume" with 150,000 columns, 1
+row, and 1 slice.  However, ANALYZE cannot represent dimensions over
+2^15, or 32768.  Same problem with NIFTI. To get around this, we
+factor the number of vertices into dimensions smaller than 32768. Eg,
+the average7 surface has 163842 vertices which we factor into
+1974x83. However, for individuals there is no guarantee that the 
+number of vertices will have a factor less than 32768. For this
+reason the data resampled on the individual surfaces is stored in 
+MGH format (which does not have these restrictions).
 
 
 
