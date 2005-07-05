@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.37 2005/07/05 05:03:19 greve Exp $
+  $Id: mris_glm.c,v 1.38 2005/07/05 18:13:18 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -74,7 +74,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.37 2005/07/05 05:03:19 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.38 2005/07/05 18:13:18 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.37 2005/07/05 05:03:19 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.38 2005/07/05 18:13:18 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1012,7 +1012,7 @@ static void print_usage(void)
   printf("   --sd    subjectsdir : default is env SUBJECTS_DIR\n");
   printf("\n");
   printf("   --version : print version and exit\n");
-  printf("   --help : be VERY careful with this, you MIGHT learn something.\n");
+  printf("   --help : a short story.\n");
   printf("\n");
   printf("%s\n",vcid);
   printf("\n");
