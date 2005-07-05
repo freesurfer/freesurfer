@@ -1,0 +1,378 @@
+#!/bin/tcsh -f
+# reg-feat2anat
+# Registers example func to freesurfer using fsl
+
+set VERSION = '$Id: reg-feat2anat,v 1.1 2005/07/05 05:08:11 greve Exp $'
+set FeatDir = ();
+set subject = ();
+set anatvol = brain;
+set dof = 6;
+set bins = 256;
+set maxangle = 90;
+set cost = corratio;
+set debug = 0;
+set cleanup = 1;
+
+set PrintHelp = 0;
+
+set cmdargs = ($argv);
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 1;
+endif
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+# Parse the command-line arguments
+goto parse_args;
+parse_args_return:
+
+# Check the command-line arguments
+goto check_params;
+check_params_return:
+
+echo FeatDir is $FeatDir
+mkdir -p $FeatDir/reg/freesurfer/tmp
+
+set exf2std_fslmat = $FeatDir/reg/example_func2standard.mat
+if(! -e $exf2std_fslmat) then
+  echo "ERROR: cannot find $exf2std_fslmat. You must register to standard space first."
+  exit 1;
+endif
+
+set tempvol = $FeatDir/example_func.img
+if(! -e $tempvol) then
+  set tempvol0 = $tempvol;
+  set tempvol = $FeatDir/example_func.nii
+  if(! -e $tempvol) then
+    echo "ERROR: cannot find $tempvol0 or $tempvol"
+    exit 1;
+  endif
+endif
+
+# Set up a log file
+set LF = $FeatDir/reg/freesurfer/reg-feat2anat.log
+if(-e $LF) mv $LF $LF.bak
+echo log file is $LF
+date | tee -a $LF 
+pwd | tee -a $LF 
+echo $0 | tee -a $LF 
+echo $cmdargs | tee -a $LF 
+uname -a | tee -a $LF 
+
+# Convert the reference volume to analyze
+set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol
+set refvol =  $FeatDir/reg/freesurfer/tmp/anat.img
+set cmd = (mri_convert $refvolcor $refvol)
+echo $cmd | tee -a $LF 
+$cmd |& tee -a $LF 
+if($status) then
+  echo "ERROR: mri_convert" | tee -a $LF 
+  exit 1;
+endif
+
+set anat2std_regdat = $FeatDir/reg/freesurfer/anat2std.register.dat
+set std2anat_fslmat = $FeatDir/reg/freesurfer/std2anat.fsl.mat
+set exf2anat_init_fslmat = $FeatDir/reg/freesurfer/exf2anat.init.fsl.mat
+set exf2anat_fslmat = $FeatDir/reg/freesurfer/exf2anat.fsl.mat
+set anat2exf_regdat = $FeatDir/reg/freesurfer/anat2exf.register.dat
+
+#set TKR = $DEV/tkregister2/tkregister2
+set TKR = tkregister2
+# Create the init matrix
+set cmd = ($TKR \
+            --targ $refvolcor \
+            --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
+            --reg $anat2std_regdat \
+            --fslregout $std2anat_fslmat \
+            --regheader --noedit)
+echo $cmd | tee -a $LF 
+$cmd | tee -a $LF 
+set cmd = (mri_matrix_multiply -fsl \
+            -im $std2anat_fslmat -im $exf2std_fslmat \
+            -om $exf2anat_init_fslmat)
+echo $cmd | tee -a $LF 
+$cmd | tee -a $LF 
+
+# Now run flirt
+set outvol = $FeatDir/reg/freesurfer/tmp/exf-in-anat
+
+set cmd = (flirt -ref $refvol -in $tempvol)
+set cmd = ($cmd  -init $exf2anat_init_fslmat)
+set cmd = ($cmd  -out $outvol -interp trilinear)
+set cmd = ($cmd  -omat $exf2anat_fslmat -cost $cost -dof $dof)
+set cmd = ($cmd  -searchrx -$maxangle $maxangle);
+set cmd = ($cmd  -searchry -$maxangle $maxangle);
+set cmd = ($cmd  -searchrz -$maxangle $maxangle);
+date | tee -a $LF 
+echo $cmd | tee -a $LF 
+$cmd |& tee -a $LF 
+if($status) then
+  echo "ERROR: flirt" | tee -a $LF 
+  exit 1;
+endif
+
+# Check for possible LR flip
+set tmp = (`cat $exf2anat_fslmat`);
+set isflipped = `echo $tmp[1] < 0 | bc -l`;
+if($isflipped) then
+  echo "WARNING: possible left-right reversal" | tee -a $LF 
+  exit 1;
+endif
+
+# Now create the freesurfer registration matrix
+set cmd = ($TKR --s $subject --mov $tempvol)
+set cmd = ($cmd --reg $anat2exf_regdat)
+set cmd = ($cmd --fslreg $exf2anat_fslmat)
+set tkregcheckcmd = ($cmd --surf orig);  # for visual inspection
+set cmd = ($cmd --noedit)
+echo $cmd | tee -a $LF 
+$cmd |& tee -a $LF 
+if($status) then
+  echo "ERROR: tkregister2" | tee -a $LF 
+  exit 1;
+endif
+
+# Create an identity matrix for the output
+set outvolreg = $outvol.fsreg.dat
+rm -f $outvolreg
+echo $subject >> $outvolreg
+echo 0  >> $outvolreg
+echo 0  >> $outvolreg
+echo .1 >> $outvolreg
+echo "1 0 0 0" >> $outvolreg
+echo "0 1 0 0" >> $outvolreg
+echo "0 0 1 0" >> $outvolreg
+echo "0 0 0 1" >> $outvolreg
+
+echo ""
+echo "To visually check your results, run:" | tee -a $LF 
+echo $tkregcheckcmd --tag | tee -a $LF 
+echo ""
+echo ""
+
+if($cleanup == 0) then
+  echo "Or you can run:" | tee -a $LF 
+  set tkregcheckcmd2 = (tkregister2 --s $subject --mov $outvol)
+  set tkregcheckcmd2 = ($tkregcheckcmd2 --reg $outvolreg --surf orig);
+  echo $tkregcheckcmd2 | tee -a $LF 
+  echo ""
+else
+  rm -r $FeatDir/reg/freesurfer/tmp
+endif
+
+if($isflipped) then
+  echo "WARNING: possible left-right reversal" | tee -a $LF 
+  exit 1;
+endif
+
+date | tee -a $LF 
+echo "reg-feat2anat done" | tee -a $LF 
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--feat":
+      if ( $#argv == 0) goto arg1err;
+      set FeatDir = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+    case "--subject":
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--dof":
+      if ( $#argv == 0) goto arg1err;
+      set dof = $argv[1]; shift;
+      breaksw
+
+    case "--bins":
+      if ( $#argv == 0) goto arg1err;
+      set bins = $argv[1]; shift;
+      breaksw
+
+    case "--cost":
+      if ( $#argv == 0) goto arg1err;
+      set cost = $argv[1]; shift;
+      breaksw
+
+    case "--maxangle":
+      if ( $#argv == 0) goto arg1err;
+      set maxangle = $argv[1]; shift;
+      breaksw
+
+    case "--fslmat":
+      if ( $#argv == 0) goto arg1err;
+      set fslmat = $argv[1]; shift;
+      breaksw
+
+    case "--fsreg":
+      if ( $#argv == 0) goto arg1err;
+      set fsreg = $argv[1]; shift;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      set debug = 1;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag not recognized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#FeatDir == 0) then
+  echo "ERROR: must specify feat dir"
+  exit 1;
+endif
+if(! -e $FeatDir) then
+  echo "ERROR: cannot find feat dir $FeatDir"
+  exit 1;
+endif
+if($#subject == 0) then
+  echo "ERROR: must specify a FreeSurfer subject"
+  exit 1;
+endif
+if($?SUBJECTS_DIR == 0) then
+  echo "ERROR: FreeSurfer environment variable SUBJECTS_DIR not defined"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR) then
+  echo "ERROR: FreeSurfer SUBJECTS_DIR $SUBJECTS_DIR not found"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find FreeSurfer subject $subject in $SUBJECTS_DIR"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject/mri/$anatvol) then
+  echo "ERROR: cannot find anatomical volume $anatvol in FreeSurfer $SUBJECTS_DIR/$subject/mri"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: reg-feat2anat"
+  echo ""
+  echo " --feat dir       : directory in which to find example_func"
+  echo " --subject  id    : FreeSurfer subjectid"
+  echo ""
+  echo "Optional flags and arguments:"
+  echo ""
+  echo " --dof  dof       : FLIRT DOF (default is $dof)"
+  echo " --bins bins      : FLIRT bins (default is $bins)"
+  echo " --cost cost      : FLIRT cost (default is $cost)"
+  echo " --maxangle angle : FLIRT max search angle (default is $maxangle)"
+  echo " "
+  echo " --version            : print version and exit"
+  echo " --help               : print help and exit"
+  echo " --debug              : turn on debugging"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Registers FSL-Feat example_func to FreeSurfer anatomical (FS-anat). It
+is required that the registration between the example_func and
+standard space been performed. This registration is used to generate
+an approximate initial registration between the example_func and the
+FS-anat -- this just assures that the two are more-or-less aligned.
+The registration matrices for FSL and FS have different interpretations 
+and formats. 
+
+Creates featdir/reg/freesurfer with the following files:
+  anat2std.register.dat - init FS reg from FS-anat to FSL-std.
+  std2anat.fsl.mat - init FSL reg from FSL-std to FS-anat.
+  exf2anat.init.fsl.mat - init FSL reg from example_func to FS-anat.
+  exf2anat.fsl.mat - final FSL reg from example_func to FS-anat.
+  anat2exf.register.dat - final FS reg from example_func to FS-anat.
+
+anat2exf.register.dat is the final product of this script and is what is
+used by other FreeSurfer programs.
+
+To check your result (and you should ALWAYS check your result):
+
+tkregister2 --reg featdir/reg/freesurfer/anat2exf.register.dat \
+            --mov featdir/example_func.{img,nii} --surf orig
+
+
+REQUIRED ARGUMENTS
+
+--feat dir
+
+Path to Feat directory.
+
+--subject id
+
+FreeSurfer subject identifier as found in SUBJECTS_DIR.
+
+OPTIONAL FLIRT ARGUMENTS
+
+These arguments are passed to flirt
+
+--dof  dof  
+--bins bins 
+--cost cost
+--maxangle angle : passed as max_angle for -searchrx, -searchry, and -searchrz
+ 
+OTHER ARGUMENTS
+
+--version            : print version and exit
+--help               : print help and exit
+--debug              : turn on debugging
+
+SEE ALSO
+
+tkregister2
+
+
