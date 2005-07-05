@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: feat2surf,v 1.3 2005/07/05 21:35:29 greve Exp $'
+set VERSION = '$Id: feat2surf,v 1.4 2005/07/05 22:28:06 greve Exp $'
 set FeatDirList = ();
 set ProjFrac = ();
 set HemiList = (lh rh);
@@ -10,6 +10,7 @@ set Surf = white;
 set TargetSubj = average7;
 set debug = 0;
 set DontRun = 0;
+set usedev = 0;
 
 set PrintHelp = 0;
 
@@ -101,9 +102,10 @@ foreach img ($imglist)
        mkdir -p $outstatsdir
        set outimg = $outstatsdir/$baseimg$outext
 
-       #set V2S = $DEV/mri_vol2surf/mri_vol2surf
        set V2S = mri_vol2surf
-       set cmd = ($V2S --src $img --srcreg $reg_anat2exf \
+       if($usedev) set V2S = $DEV/$V2S/$V2S
+       
+      set cmd = ($V2S --src $img --srcreg $reg_anat2exf \
                   --trgsubject $targ --hemi $hemi --out $outimg\
                   --surf $Surf --out_type $outtype)
        if($#ProjFrac) set cmd = ($cmd --projfrac $ProjFrac) 
@@ -191,6 +193,10 @@ while( $#argv != 0 )
 
     case "--dontrun":
       set DontRun = 1;
+      breaksw
+
+    case "--usedev":
+      set usedev = 1;
       breaksw
 
     default:
@@ -299,7 +305,7 @@ exit 1;
 BEGINHELP
 
 Resamples Feat statistics onto the surface of the subject and onto a
-stereo-taxis surface atlas. Statistics are obtained from FeatDir/stats
+stereo-taxic surface atlas. Statistics are obtained from FeatDir/stats
 as well as those volumes in FeatDir beginning with "cluster" and
 "rendered". The results are stored in FeatDir/reg_surf-lh/stats and
 FeatDir/reg_surf-rh/stats for the individual (in MGH format). For the
@@ -308,6 +314,8 @@ FeatDir/reg_surf-rh-targid/stats (in ANALYZE format), where targid is
 the subject that defines the common surface space (default is
 average7). All of the .img or .nii files are resampled. Does not work
 on compressed NIFTI.
+
+Creates log file featdir/reg/freesurfer/feat2surf.log
 
 REQUIRED ARGUMENTS
 
@@ -351,8 +359,6 @@ reg-feat2anat --feat fbert.feat --subject bert
 
 # Resample fbert.feat onto the surface
 feat2surf --feat fbert.feat 
-
-
 
 BUGS
 

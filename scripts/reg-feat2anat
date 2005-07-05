@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.2 2005/07/05 21:34:35 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.3 2005/07/05 22:28:06 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -12,6 +12,7 @@ set maxangle = 90;
 set cost = corratio;
 set debug = 0;
 set cleanup = 1;
+set usedev = 0;
 
 set PrintHelp = 0;
 
@@ -82,9 +83,11 @@ set std2anat_fslmat = $FeatDir/reg/freesurfer/std2anat.fsl.mat
 set exf2anat_init_fslmat = $FeatDir/reg/freesurfer/exf2anat.init.fsl.mat
 set exf2anat_fslmat = $FeatDir/reg/freesurfer/exf2anat.fsl.mat
 set anat2exf_regdat = $FeatDir/reg/freesurfer/anat2exf.register.dat
+set std2exf_regdat  = $FeatDir/reg/freesurfer/std2exf.register.dat
 
-#set TKR = $DEV/tkregister2/tkregister2
 set TKR = tkregister2
+if($usedev) set TKR = $DEV/$TKR/$TKR
+
 # Create the init matrix
 set cmd = ($TKR \
             --targ $refvolcor \
@@ -96,23 +99,15 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF 
 if($status) exit 1;
 
-#set MM = $DEV/mri_matrix_multiply/mri_matrix_multiply
 set MM = mri_matrix_multiply
+if($usedev) set MM = $DEV/$MM/$MM
+
 set cmd = ($MM -fsl -bin \
             -im $std2anat_fslmat -im $exf2std_fslmat \
             -om $exf2anat_init_fslmat)
 echo $cmd | tee -a $LF 
 $cmd | tee -a $LF 
 if($status) exit 1;
-
-# Binarize the matrix
-# set MLF = /tmp/reg-feat2anat.m
-# rm -f $MLF
-# echo "d = load('$exf2anat_init_fslmat','-ascii');" >> $MLF
-# echo "m = (d > .5) - (d < -.5);" >> $MLF
-# echo "m(:,4) = d(:,4);" >> $MLF
-# echo "save('$exf2anat_init_fslmat','m','-ascii');" >> $MLF
-# cat $MLF | matlab -display iconic | tee -a $LF
 
 # Brain extraction on the example func
 set cmd = (betfunc $FeatDir/example_func $FeatDir/reg/freesurfer/tmp/exfbet)
@@ -172,6 +167,18 @@ echo "1 0 0 0" >> $outvolreg
 echo "0 1 0 0" >> $outvolreg
 echo "0 0 1 0" >> $outvolreg
 echo "0 0 0 1" >> $outvolreg
+
+# Just for fun, create a matrix to map exf to talairach:
+set cmd = ($TKR --targ $FSLDIR/etc/standard/avg152T1_brain.img \
+            --mov $FeatDir/example_func.img \
+            --fslreg $FeatDir/reg/example_func2standard.mat \
+            --reg $std2exf_regdat --noedit)
+echo $cmd | tee -a $LF 
+$cmd |& tee -a $LF 
+if($status) then
+  echo "ERROR: tkregister2" | tee -a $LF 
+  exit 1;
+endif
 
 echo ""
 echo "To visually check your results, run:" | tee -a $LF 
@@ -259,6 +266,10 @@ while( $#argv != 0 )
 
     case "--nocleanup":
       set cleanup = 0;
+      breaksw
+
+    case "--usedev":
+      set usedev = 1;
       breaksw
 
     default:
@@ -362,10 +373,7 @@ Creates featdir/reg/freesurfer with the following files:
 anat2exf.register.dat is the final product of this script and is what is
 used by other FreeSurfer programs.
 
-To check your result (and you should ALWAYS check your result):
-
-tkregister2 --reg featdir/reg/freesurfer/anat2exf.register.dat \
-            --mov featdir/example_func.{img,nii} --surf orig
+Creates log file: reg/freesurfer/reg-feat2anat.log
 
 REQUIRED ARGUMENTS
 
@@ -404,12 +412,28 @@ reg-feat2anat --feat fbert.feat --subject bert
 tkregister2 --reg fbert.feat/reg/freesurfer/anat2exf.register.dat \
             --mov fbert.feat/example_func.img --surf orig
 
-# Overlay data onto the bert's orig volume
+# If the registration has catastropically failed, then check that
+# the registration to standard space did not fail:
+tkregister2 --targ $FSLDIR/etc/standard/avg152T1_brain.img \
+            --mov fbert.feat/example_func.img \
+            --fslreg fbert.feat/reg/example_func2standard.mat \
+            --reg /tmp/tmp.reg.dat
+
+# Overlay zmap onto the bert's orig volume. Set the threshold at z=1.3
 tkmedit bert orig -overlay ./fbert.feat/stats/zstat1.img \
-     -overlay-reg fbert.feat/reg/freesurfer/anat2exf.register.dat
+     -overlay-reg ./fbert.feat/reg/freesurfer/anat2exf.register.dat \
+     -fthresh 1.3 -fmid 2.3 -fslope 1
+
+# Overlay zmap onto the standard volume. Set the threshold at z=1.3
+tkmedit -f $FSLDIR/etc/standard/avg152T1_brain.img \
+     -overlay ./fbert.feat/stats/zstat1.img \
+     -overlay-reg ./fbert.feat/reg/freesurfer/std2exf.register.dat \
+     -fthresh 1.3 -fmid 2.3 -fslope 1
 
 # Resample fbert.feat onto the surface
 feat2surf --feat fbert.feat 
+
+
 
 
 SEE ALSO
