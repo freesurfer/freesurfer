@@ -22,6 +22,7 @@ char subject_name[STR_LEN];
 float ipr, st, brightness;
 int register_stuff_defined = 0;
 int fsl_flag = 0;
+int binarize = 0;
 
 static void usage(int exit_val)
 {
@@ -30,6 +31,7 @@ static void usage(int exit_val)
   fprintf(stderr, "options are:\n");
   fprintf(stderr, "  -v verbose\n");
   fprintf(stderr, "  -fsl : assume input/output are FSL-style matrix files\n");
+  fprintf(stderr, "  -bin : 'binarize' output matrix.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "'-im file' specifies input matrix files\n");
   fprintf(stderr, "'-iim file' specifies input matrix files to be inverted before multiplication\n");
@@ -43,17 +45,19 @@ static void usage(int exit_val)
 
 } /* end usage() */
 
+/*----------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
 
-  int i;
+  int i, r, c;
   int in_names[IN_OUT_NAMES], n_in = 0;
   int out_names[IN_OUT_NAMES], n_out = 0;
   MATRIX *in_mat, *result;
   int nargs;
+  double v;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.7 2005/06/29 20:49:38 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.8 2005/07/05 20:38:20 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -97,6 +101,10 @@ int main(int argc, char *argv[])
     {
       fsl_flag = 1;
     }
+    else if(strcmp(argv[i], "-bin") == 0)
+    {
+      binarize = 1;
+    }
     else{
       fprintf(stderr, "%s: unknown option %s\n", Progname, argv[i]);
     }
@@ -136,6 +144,20 @@ int main(int argc, char *argv[])
       }
     }
     MatrixMultiply(result, in_mat, result);
+  }
+
+  if(binarize){
+    /* "binarization" sets the rotational elements of the martrix to
+       either +1, -1, or 0. +1 if the element is > 0.5. -1 if the element
+       is < -0.5. 0 otherwise. */
+    for(r=1;r<4;r++){
+      for(c=1;c<4;c++){
+	v = result->rptr[r][c];
+	if(v > +0.5) result->rptr[r][c] = +1;
+	else if(v < -0.5) result->rptr[r][c] = -1;
+	else result->rptr[r][c] = 0.0;
+      }
+    }
   }
 
   /* ----- write output files ----- */
