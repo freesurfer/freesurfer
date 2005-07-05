@@ -192,6 +192,32 @@ int GetClosestPrimeFactor(int N, int P)
 
   return(fclosest);
 }
+/* --------------------------------------------------------------
+   GetClosestPrimeFactorLess() - returns the prime factor of N 
+   closest to and less than P.
+   ------------------------------------------------------------- */
+int GetClosestPrimeFactorLess(int N, int P)
+{
+  int *pfactors,nfactors;
+  int n,d,dmin,nmin, fclosest;
+
+  pfactors = GetPrimeFactors(N, &nfactors);
+
+  nmin = 0;
+  dmin = abs(pfactors[nmin]-P);
+  for(n=0; n<nfactors; n++){
+    d = abs(pfactors[n]-P);
+    if(dmin > d && pfactors[n] < P){
+      dmin = d;
+      nmin = n;
+    }
+  }
+  fclosest = pfactors[nmin];
+
+  free(pfactors);
+
+  return(fclosest);
+}
 #if 0
 /* --------------------------------------------------------------
    GetClosestFactor() - returns the factor of N closest to, and
