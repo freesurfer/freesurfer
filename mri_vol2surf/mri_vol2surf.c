@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.20 2004/04/21 18:19:46 greve Exp $
+  $Id: mri_vol2surf.c,v 1.21 2005/07/05 05:05:32 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.20 2004/04/21 18:19:46 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.21 2005/07/05 05:05:32 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -106,6 +106,7 @@ char *mapmethod = "nnfr";
 int debug = 0;
 int reshape = 1;
 int reshapefactor = 0;
+int reshapetarget = 20;
 
 MATRIX *Dsrc, *Dsrctmp, *Wsrc, *Fsrc, *Qsrc;
 SXADAT *sxa;
@@ -154,7 +155,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.20 2004/04/21 18:19:46 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.21 2005/07/05 05:05:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -488,8 +489,12 @@ int main(int argc, char **argv)
   }
   else{
     if(reshape){
-      if(reshapefactor == 0) 
-	reshapefactor = GetClosestPrimeFactor(SurfVals2->width,6);
+      if(reshapefactor == 0){ 
+	if(outtype == MRI_ANALYZE4D_FILE || outtype == MRI_ANALYZE_FILE)
+	  reshapefactor = GetClosestPrimeFactorLess(SurfVals2->width,32768);
+	else
+	  reshapefactor = GetClosestPrimeFactor(SurfVals2->width,reshapetarget);
+      }
       if(reshapefactor != SurfVals2->width){
 	printf("Reshaping %d (nvertices = %d)\n",
 	       reshapefactor,SurfVals2->width);
@@ -506,7 +511,8 @@ int main(int argc, char **argv)
 	printf("INFO: nvertices is prime, cannot reshape\n");
       }
     }
-    printf("Writing\n");
+    printf("Writing to %s\n",outfile);
+    printf("Dim: %d %d %d\n",SurfVals2->width,SurfVals2->height,SurfVals2->depth);
     MRIwriteType(SurfVals2,outfile,outtype);
   }
 
@@ -691,6 +697,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--rf")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&reshapefactor);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--rft")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&reshapetarget);
       nargsused = 1;
     }
     else if (!strcmp(option, "--srchits")){
