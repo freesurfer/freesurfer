@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.36 2005/05/12 15:30:27 greve Exp $
+  $Id: mris_glm.c,v 1.37 2005/07/05 05:03:19 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -74,7 +74,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.36 2005/05/12 15:30:27 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.37 2005/07/05 05:03:19 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -185,6 +185,9 @@ int n_ithr, n_sthr;
 double ithr_lo, ithr_hi, sthr_lo, sthr_hi;
 char *ithr_sign;
 
+int nvoxels;
+FILE *fp;
+
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -192,12 +195,11 @@ int main(int argc, char **argv)
   int vtx,nthsubj;
   char *subject;
   char *inputfname;
-  FILE *fp;
   int  nargs,n;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.36 2005/05/12 15:30:27 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.37 2005/07/05 05:03:19 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -379,6 +381,18 @@ int main(int argc, char **argv)
       else{
 	if(inputfmt != NULL) tmpmri = MRIreadType(inputfname,inputfmtid);
 	else                 tmpmri = MRIread(inputfname);
+	nvoxels = tmpmri->width * tmpmri->height * tmpmri->depth;
+	if(nvoxels != SurfReg->nvertices){
+	  printf("ERROR: number of vertices in input file (%d) != number of vertices on surface (%d)\n",
+		 nvoxels,SurfReg->nvertices);
+	  exit(1);
+	}
+	if(tmpmri->height > 1 || tmpmri->depth > 1){
+	  printf("Reshaping\n");
+	  tmpmri2 = mri_reshape(tmpmri, SurfReg->nvertices, 1, 1,tmpmri->nframes);
+	  MRIfree(&tmpmri);
+	  tmpmri = tmpmri2;
+	}
       }
       if(tmpmri == NULL){
 	printf("ERROR: could not load %s\n",inputfname);
@@ -391,7 +405,8 @@ int main(int argc, char **argv)
 	       tmpmri->nframes,frame);
 	exit(1);
       }
-      if(tmpmri->nframes > 0){
+
+      if(frame > 0){
 	/* extract frame */
 	tmpmri2 = MRIallocSequence(SurfReg->nvertices,1,1,MRI_FLOAT,1);
 	for(vtx=0; vtx < SurfReg->nvertices; vtx++)
@@ -399,7 +414,7 @@ int main(int argc, char **argv)
 	MRIfree(&tmpmri);
 	tmpmri = tmpmri2;
       }
-      
+
       /* Smooth on the native surface */
       if(nsmooth > 0)
 	MRISsmoothMRI(SurfReg, tmpmri, nsmooth, tmpmri);
@@ -702,6 +717,22 @@ static int parse_commandline(int argc, char **argv)
 	ninputs++;
       }
       printf("INFO: found %d input files on cmdline \n",ninputs);
+    }
+    else if (!strcmp(option, "--ifile")){
+      if(nargc < 2) argnerr(option,2);
+      nargsused = 1;
+      fp = fopen(pargv[0],"r");
+      if(fp==NULL){
+	printf("ERROR: could not open %s\n",pargv[0]);
+	exit(1);
+      }
+      while(fscanf(fp,"%s",tmpstr) != EOF){
+	inputlist[ninputs] = (char *) calloc(strlen(tmpstr)+1,sizeof(char));
+	memcpy(inputlist[ninputs],tmpstr,strlen(tmpstr));
+	ninputs++;
+      }
+      fclose(fp);
+      printf("INFO: found %d input files in %s\n",ninputs,pargv[0]);
     }
     else if (!strcmp(option, "--ifmt")){
       if(nargc < 1) argnerr(option,1);
