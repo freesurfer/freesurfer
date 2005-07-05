@@ -1,0 +1,339 @@
+#!/bin/tcsh -f
+# reg-feat2anat
+# Registers example func to freesurfer using fsl
+
+set VERSION = '$Id: feat2surf,v 1.1 2005/07/05 05:08:38 greve Exp $'
+set FeatDirList = ();
+set ProjFrac = ();
+set HemiList = (lh rh);
+set Surf = white;
+set TargetSubj = average7;
+set debug = 0;
+set DontRun = 0;
+
+set PrintHelp = 0;
+
+set cmdargs = ($argv);
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 1;
+endif
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+# Parse the command-line arguments
+goto parse_args;
+parse_args_return:
+
+# Check the command-line arguments
+goto check_params;
+check_params_return:
+
+
+foreach FeatDir ($FeatDirList)
+
+# Set up a log file
+set LF = $FeatDir/reg/freesurfer/feat2surf.log
+echo log file is $LF
+if(-e $LF) mv $LF $LF.bak
+echo FeatDir is $FeatDir | tee -a $LF 
+date | tee -a $LF 
+pwd | tee -a $LF 
+echo $0 | tee -a $LF 
+echo $cmdargs | tee -a $LF 
+uname -a | tee -a $LF 
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF 
+echo "subject is $subject" | tee -a $LF 
+
+set statsdir = $FeatDir/stats
+set reg_anat2exf = $FeatDir/reg/freesurfer/anat2exf.register.dat
+set subject = `cat $reg_anat2exf| head -n 1`;
+
+set imglist = ($statsdir/*.img $statsdir/*.nii)
+#set imglist = ($statsdir/cope1.img)
+
+set nimg = $#imglist
+if($nimg == 0) then
+  echo "ERROR: cannot find any .img or .nii files in $statsdir"| tee -a $LF 
+  exit 1;
+endif
+echo "Found $nimg images in $statsdir" | tee -a $LF 
+
+@ nthimg = 0
+foreach img ($imglist)
+   @ nthimg = $nthimg + 1;
+
+   # Get the extension
+   set ext = .img;     
+   set tmp = `basename $img $ext`;
+   if($tmp == $img) then
+      set ext = .nii;     
+      set tmp = `basename $img $ext`;
+   endif
+   set baseimg = `basename $img $ext`;
+
+   # Dont know whether these should be conv too
+   #if($baseimg == corrections) continue;
+   #if($baseimg == threshac1) continue;
+
+   foreach targ ($subject $TargetSubj)
+   #foreach targ ($subject)
+     foreach hemi ($HemiList)
+       if($targ != $subject) then
+         set outstatsdir = $FeatDir/reg_surf-$hemi-$targ/stats
+         set outext = .nii;
+         set reshape = (--noreshape)
+       else
+         set outstatsdir = $FeatDir/reg_surf-$hemi/stats
+         set outext = .mgh;
+         set reshape = ()
+       endif
+       mkdir -p $outstatsdir
+       set outimg = $outstatsdir/$baseimg$outext
+
+       set V2S = $DEV/mri_vol2surf/mri_vol2surf
+       set cmd = ($V2S --src $img --srcreg $reg_anat2exf \
+                  --trgsubject $targ --hemi $hemi --out $outimg\
+                  --surf $Surf $reshape)
+       if($#ProjFrac) set cmd = ($cmd --projfrac $ProjFrac) 
+
+       echo " " | tee -a $LF
+       echo "#@# $baseimg $targ $hemi $nthimg/$nimg ----======----=======-----=======----" | tee -a $LF
+       date      | tee -a $LF
+       pwd       | tee -a $LF
+       echo $cmd | tee -a $LF
+       if(! $DontRun) $cmd  | tee -a $LF
+       if($status) then
+         echo "ERROR: with $cmd" | tee -a $LF
+         pwd
+         exit 1;
+       endif
+       echo " " | tee -a $LF
+     end # hemi list
+  end # target subject
+
+  @ nthimg = $nthimg + 1;
+end # img list
+
+end # FeatDir List
+
+date | tee -a $LF 
+echo "feat2surf done" | tee -a $LF 
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--feat":
+      if ( $#argv == 0) goto arg1err;
+      set FeatDirList = ($FeatDirList $argv[1]); shift;
+      breaksw
+
+    case "--featdirfile":
+      if ( $#argv == 0) goto arg1err;
+      set FeatFile = $argv[1];
+      if(! -e $FeatFile) then
+        echo "ERROR: cannot find $FeatFile"
+        exit 1;
+      endif
+      set FeatDirList = ($FeatDirList `cat $FeatFile`); shift;
+      breaksw
+
+    case "--projfrac":
+      if ( $#argv == 0) goto arg1err;
+      set ProjFrac = $argv[1]; shift;
+      breaksw
+
+    case "--surf":
+      if ( $#argv == 0) goto arg1err;
+      set Surf = $argv[1]; shift;
+      breaksw
+
+    case "--target":
+      if ( $#argv == 0) goto arg1err;
+      set TargetSubject = $argv[1]; shift;
+      breaksw
+
+    case "--hemi":
+      if ( $#argv == 0) goto arg1err;
+      set HemiList = $argv[1]; shift;
+      if($HemiList != lh && $HemiList != rh) then
+        echo "--hemi = $HemiList, must be either lh or rh"
+        exit 1;
+      endif
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      set debug = 1;
+      breaksw
+
+    case "--dontrun":
+      set DontRun = 1;
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag not recognized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#FeatDirList == 0) then
+  echo "ERROR: must specify at least one feat dir"
+  exit 1;
+endif
+
+foreach FeatDir ($FeatDirList)
+  set reg_anat2exf = $FeatDir/reg/freesurfer/anat2exf.register.dat
+  if(! -e $reg_anat2exf) then
+    echo "ERROR: cannot find $reg_anat2exf. You must run reg-feat2anat first."
+    exit 1;
+  endif
+  if($?SUBJECTS_DIR == 0) then
+    echo "ERROR: FreeSurfer environment variable SUBJECTS_DIR not defined"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR) then
+    echo "ERROR: FreeSurfer SUBJECTS_DIR $SUBJECTS_DIR not found"
+    exit 1;
+  endif
+
+  set subject = `cat $reg_anat2exf| head -n 1`;
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find FreeSurfer subject $subject in $SUBJECTS_DIR"
+    exit 1;
+  endif
+
+  foreach hemi ($HemiList)
+    set surf = $SUBJECTS_DIR/$subject/surf/$hemi.$Surf
+    if(! -e $surf) then
+      echo "ERROR: cannot find surface $hemi.$Surf in FreeSurfer $SUBJECTS_DIR/$subject/surf"
+      exit 1;
+    endif
+    if($#ProjFrac) then
+      set thickness = $SUBJECTS_DIR/$subject/surf/$hemi.thickness
+      if(! -e $thickness) then
+        echo "ERROR: cannot find surface $thickness in FreeSurfer $SUBJECTS_DIR/$subject/surf"
+        exit 1;
+      endif
+    endif
+  end
+end # FeatDirList
+
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: feat2surf"
+  echo ""
+  echo " --feat dir  <--feat dir>  : Feat output directory"
+  echo " --featdirfile file : file with a list of feat directories"
+  echo ""
+  echo "Optional flags and arguments:"
+  echo ""
+  echo " --projfrac fraction : project fraction into cortical surface (default is 0)"
+  echo " --hemi hemi : run on hemi (lh or rh) only. Default is lh and rh. "
+  echo " --target subject : subject used to define common surface space (default is average7)"
+  echo " --surf surface : surface to resample to (default is white)"
+  echo " "
+  echo " --version            : print version and exit"
+  echo " --help               : print help and exit"
+  echo " --debug              : turn on debugging"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Resamples Feat statistics onto the subjects surface and onto a
+sterio-taxis surface atlas. Statistics are obtained from FeatDir/stats
+and stored in FeatDir/reg_surf-lh/stats and
+FeatDir/reg_surf-rh/stats for the individual. For the common space, they
+are stored in  FeatDir/reg_surf-lh-targid/stats and
+FeatDir/reg_surf-rh-targid/stats, where targid is the subject that defines the 
+common surface space (default is average7). qAll of the .img or .nii files are
+resampled. Does not work on compressed NIFIT.
+
+REQUIRED ARGUMENTS
+
+--feat featdir <--feat featdir ...>
+
+Directory where Feat results are stored. Can specify multiple --feat.
+
+--featdirfile file <--featdirfile file>
+
+File with a list of Feat directories. Both --feat and --featdirfile
+can be specified (multiple times).
+
+OPTIONAL ARGUMENTS
+
+--projfrac fraction 
+
+Sample functional a fraction of the cortical thickness normal to the surface. Eg,  
+--projfrac 0.5 will sample in the middle of the cortical ribbon. Default is 0.
+The subject must have thickness files in the surf directory.
+
+--hemi hemi 
+
+Run on hemi (lh or rh) only. Default is to do both.
+
+--target subject 
+
+Subject used to define common surface space (default is average7).
+
+--surf surface 
+
+Surface to resample to (default is white).
+
+
+
+
+
+
+
+
+
+
+
+
