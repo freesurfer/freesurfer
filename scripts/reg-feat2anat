@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.3 2005/07/05 22:28:06 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.4 2005/07/06 00:39:14 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -68,7 +68,14 @@ echo $cmdargs | tee -a $LF
 uname -a | tee -a $LF 
 
 # Convert the reference volume to analyze
-set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol
+set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol.mgz
+if(! -e $refvolcor) then
+  set refvolcor =  $SUBJECTS_DIR/$subject/mri
+  if(! -e $refvolcor/COR-.info) then
+    echo "ERROR: cannot find $anatvol for $subject " 
+    exit 1;
+  endif
+endif
 set refvol =  $FeatDir/reg/freesurfer/tmp/anat.img
 set cmd = (mri_convert $refvolcor $refvol)
 echo $cmd | tee -a $LF 
