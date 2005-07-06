@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.4 2005/07/06 00:39:14 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.5 2005/07/06 16:45:06 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -70,7 +70,7 @@ uname -a | tee -a $LF
 # Convert the reference volume to analyze
 set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol.mgz
 if(! -e $refvolcor) then
-  set refvolcor =  $SUBJECTS_DIR/$subject/mri
+  set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol
   if(! -e $refvolcor/COR-.info) then
     echo "ERROR: cannot find $anatvol for $subject " 
     exit 1;
@@ -315,10 +315,6 @@ if(! -e $SUBJECTS_DIR) then
 endif
 if(! -e $SUBJECTS_DIR/$subject) then
   echo "ERROR: cannot find FreeSurfer subject $subject in $SUBJECTS_DIR"
-  exit 1;
-endif
-if(! -e $SUBJECTS_DIR/$subject/mri/$anatvol) then
-  echo "ERROR: cannot find anatomical volume $anatvol in FreeSurfer $SUBJECTS_DIR/$subject/mri"
   exit 1;
 endif
 
