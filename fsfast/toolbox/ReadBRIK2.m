@@ -46,10 +46,13 @@ zdim = header.zdim;
 tdim = header.nvols;
 
 % set permission string 
-permission = sprintf('r%s',header.byteorder);
+permission = 'r';
+machine_type = sprintf('%s', header.byteorder);
+%permission = sprintf('r%s',header.byteorder);
 
 disp('ReadBRIK2: reading raw data . . . .')
-fid = fopen(fname, permission);
+%fid = fopen(fname, permission);
+fid = fopen(fname, permission,machine_type); 
 if(fid == -1)
   fprintf('ERROR: cannot open %s\n',fname);
   return;
