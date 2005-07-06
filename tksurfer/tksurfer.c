@@ -25,6 +25,7 @@
 #include "fsgdf_wrap.h"
 #include "tiffio.h"
 #include "gcsa.h"
+#include "mri2.h"
 
 //////////////////////////////////////////////////////
 
@@ -1350,8 +1351,10 @@ static int func_num_conditions = 0;
 
 int func_initialize ();
 
-int func_load_timecourse (char* fname, char* registration);
-int func_load_timecourse_offset (char* fname, char* registration);
+int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
+			  char* registration);
+int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
+				 char* registration);
 
 int func_select_marked_vertices ();
 int func_select_label ();
@@ -1393,12 +1396,14 @@ static char *sclv_field_names [NUM_SCALAR_VALUES] = {
   "mean", "meanimag", "std_error"};
 
 typedef struct {
-  int is_binary_volume;
+  int is_functional_volume;
+  int is_mri_volume;
   int cur_timepoint;
   int cur_condition;
   int num_timepoints; /* always 1 for .w files */
   int num_conditions; /* always 1 for .w files */
-  mriFunctionalDataRef volume;
+  MRI* mri_volume;
+  mriFunctionalDataRef func_volume;
   float fthresh;
   float fmid;
   float fslope;
@@ -1458,7 +1463,10 @@ int sclv_unload_field (int field);
 int sclv_read_from_dotw (char* fname, int field);
 int sclv_read_from_dotw_frame (char* fname, int field);
 
-int sclv_read_from_volume (char* fname, char* registration, int field);
+int sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
+			   char* registration, int field);
+
+int sclv_read_from_volume_encoded_value_file (char* fname, int field);
 
 /* writes .w files only */
 int sclv_write_dotw (char* fname, int field);
@@ -1852,12 +1860,18 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   int  nargs ;
   char *functional_fname = NULL, *patch_name = NULL ;
   /* begin rkt */
-  char timecourse_fname[NAME_LENGTH];
+  FunD_tRegistrationType overlay_reg_type = FunD_tRegistration_None;
+  char overlay_reg[NAME_LENGTH];
+
   int load_timecourse = FALSE;
-  int use_timecourse_reg = FALSE;
-  char timecourse_offset_fname[NAME_LENGTH];
-  int load_timecourse_offset = FALSE;
+  FunD_tRegistrationType timecourse_reg_type = FunD_tRegistration_None;
+  char timecourse_fname[NAME_LENGTH];
   char timecourse_reg[NAME_LENGTH];
+
+  int load_timecourse_offset = FALSE;
+  FunD_tRegistrationType timecourse_offset_reg_type = FunD_tRegistration_None;
+  char timecourse_offset_fname[NAME_LENGTH];
+  char timecourse_offset_reg[NAME_LENGTH];
   /* end rkt */
   
   InitDebugging("tksurfer") ;
@@ -1870,6 +1884,22 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 	{
 	  nargs = 2 ;
 	  functional_fname = argv[i+1] ;
+	}
+      else if (!stricmp(argv[i], "-overlay-reg-file")) 
+	{
+	  nargs = 2 ;
+	  strncpy (overlay_reg, argv[i+1], sizeof(overlay_reg) );
+	  overlay_reg_type = FunD_tRegistration_File;
+	}
+      else if (!stricmp(argv[i], "-overlay-reg-find")) 
+	{
+	  nargs = 1 ;
+	  overlay_reg_type = FunD_tRegistration_Find;
+	}
+      else if (!stricmp(argv[i], "-overlay-reg-identity")) 
+	{
+	  nargs = 1 ;
+	  overlay_reg_type = FunD_tRegistration_Identity;
 	}
       else if (!stricmp(argv[i], "-fslope"))
 	{
@@ -1950,18 +1980,44 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 	  strncpy (timecourse_fname, argv[i+1], sizeof(timecourse_fname));
 	  load_timecourse = TRUE;
 	}
-      else if (!stricmp(argv[i], "-timecourse-reg"))
+      else if (!stricmp(argv[i], "-timecourse-reg-file"))
 	{
 	  nargs = 2;
 	  strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
-	  use_timecourse_reg = TRUE;
+	  timecourse_reg_type = FunD_tRegistration_File;
 	}
-      else if (!stricmp(argv[i], "-timecourse-offset"))
+      else if (!stricmp(argv[i], "-timecourse-reg-find")) 
+	{
+	  nargs = 1 ;
+	  timecourse_reg_type = FunD_tRegistration_Find;
+	}
+      else if (!stricmp(argv[i], "-timecourse-reg-identity")) 
+	{
+	  nargs = 1 ;
+	  timecourse_reg_type = FunD_tRegistration_Identity;
+	}
+     else if (!stricmp(argv[i], "-timecourse-offset"))
 	{
 	  nargs = 2;
 	  strncpy (timecourse_offset_fname, argv[i+1], 
 		   sizeof(timecourse_offset_fname));
 	  load_timecourse_offset = TRUE;
+	}
+     else if (!stricmp(argv[i], "-timecourse-offset-reg-file"))
+	{
+	  nargs = 2;
+	  strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
+	  timecourse_offset_reg_type = FunD_tRegistration_File;
+	}
+      else if (!stricmp(argv[i], "-timecourse-offset-reg-find")) 
+	{
+	  nargs = 1 ;
+	  timecourse_offset_reg_type = FunD_tRegistration_Find;
+	}
+      else if (!stricmp(argv[i], "-timecourse-offset-reg-identity")) 
+	{
+	  nargs = 1 ;
+	  timecourse_offset_reg_type = FunD_tRegistration_Identity;
 	}
       else if (!stricmp(argv[i], "-tcl"))
 	{
@@ -2182,15 +2238,29 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 	  strcmp (&functional_fname[strlen(functional_fname)-2], ".w") == 0)
 	{
 	  read_binary_values(functional_fname) ;
+
+	  read_binary_curvature(cfname) ; 
+	  val_to_stat() ;
+	  overlayflag = TRUE ;
+	  colscale = HEAT_SCALE ;
 	} 
       else
 	{
-	  sclv_read_from_volume(functional_fname, NULL, SCLV_VAL);
+	  if (FunD_tRegistration_None == overlay_reg_type)
+	    {
+	      printf ("surfer: ERROR: Must specify registration type for overlay. Use -overlay-reg <file>, -overlay-reg-find, or -overlay-reg-identity.\n");
+
+	    } else {
+
+	      sclv_read_from_volume(functional_fname, overlay_reg_type,
+				    overlay_reg, SCLV_VAL);
+
+	      read_binary_curvature(cfname) ; 
+	      val_to_stat() ;
+	      overlayflag = TRUE ;
+	      colscale = HEAT_SCALE ;
+	    }
 	}
-      read_binary_curvature(cfname) ; 
-      val_to_stat() ;
-      overlayflag = TRUE ;
-      colscale = HEAT_SCALE ;
     }
 #if 0
   read_binary_areas(afname);
@@ -2199,18 +2269,29 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   /* begin rkt */
   if (load_timecourse)
     {
-      if (use_timecourse_reg)
-	func_load_timecourse (timecourse_fname, timecourse_reg);
-      else
-	func_load_timecourse (timecourse_fname, NULL);
+      if (FunD_tRegistration_None == timecourse_reg_type)
+	{
+	  printf ("surfer: ERROR: Must specify registration type for timecourse. Use -timecourse-reg <file>, -timecourse-reg-find, or -timecourse-reg-identity.\n");
+
+	} else {
+
+	  func_load_timecourse (timecourse_fname, 
+				timecourse_reg_type, timecourse_reg);
+	}
     }
   
   if (load_timecourse_offset)
     {
-      if (use_timecourse_reg)
-	func_load_timecourse_offset (timecourse_offset_fname, timecourse_reg);
-      else
-	func_load_timecourse_offset (timecourse_offset_fname, NULL);
+      if (FunD_tRegistration_None == timecourse_offset_reg_type)
+	{
+	  printf ("surfer: ERROR: Must specify registration type for timecourse offset. Use -timecourse-offset-reg <file>, -timecourse-offset-reg-find, or -timecourse-offset-reg-identity.\n");
+
+	} else {
+	  
+	  func_load_timecourse_offset (timecourse_offset_fname, 
+				       timecourse_offset_reg_type, 
+				       timecourse_offset_reg);
+	}
     }
   
   /* end rkt */
@@ -7817,18 +7898,44 @@ sclv_read_from_dotw(char *fname, int field)  /* marty: openclose */
 }
 
 int
-sclv_read_from_volume (char* fname, char* registration, int field)
+sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
+		       char* registration, int field)
 {
   FunD_tErr volume_error;
+  MRI* mri_info = NULL;
   mriFunctionalDataRef volume;
   char cmd[STRLEN];
 
   /* unload this field if it already exists */
   sclv_unload_field (field);
   
+  /* There are two possibilites here. The volume can be an actual
+     functional volume that we have to map onto the surface, or it can
+     be a value-per-vertex mapping encoded as a volume. In the latter
+     case, the width * height * depth = num_vertices. We'll get info
+     on the volume and check for this case. */
+  mri_info = MRIreadInfo (fname);
+  if (NULL == mri_info)
+    {
+      printf("surfer: couldn't load %s\n",fname);
+      ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,
+		   "sclv_read_from_volume: error in FunD_New\n"));
+    }
+
+  if (mri_info->width * mri_info->height * mri_info->depth ==
+      mris->nvertices)
+    {
+      MRIfree (&mri_info);
+      return sclv_read_from_volume_encoded_value_file (fname, field);
+    }
+
+  MRIfree (&mri_info);
+
+  printf ("surfer: Interpreting overlay volume %s as functional volume.\n", fname);
+
   /* create volume. */
   volume_error = FunD_New (&volume, sclv_client_transform,
-			   fname, NULL, registration, 
+			   fname, NULL, reg_type, registration, 
 			   sclv_register_transform, NULL);
   if (volume_error!=FunD_tErr_NoError)
     {
@@ -7839,16 +7946,16 @@ sclv_read_from_volume (char* fname, char* registration, int field)
     }
   
   /* save the volume and mark this field as binary */
-  sclv_field_info[field].is_binary_volume = TRUE;
-  sclv_field_info[field].volume = volume;
+  sclv_field_info[field].is_functional_volume = TRUE;
+  sclv_field_info[field].func_volume = volume;
   
   /* get the range information */
-  FunD_GetValueRange    (sclv_field_info[field].volume,
+  FunD_GetValueRange    (sclv_field_info[field].func_volume,
 			 &sclv_field_info[field].min_value,
 			 &sclv_field_info[field].max_value);
-  FunD_GetNumConditions (sclv_field_info[field].volume, 
+  FunD_GetNumConditions (sclv_field_info[field].func_volume, 
 			 &sclv_field_info[field].num_conditions);
-  FunD_GetNumTimePoints (sclv_field_info[field].volume, 
+  FunD_GetNumTimePoints (sclv_field_info[field].func_volume, 
 			 &sclv_field_info[field].num_timepoints);
   
   /* paint the first condition/timepoint in this field */
@@ -7947,6 +8054,111 @@ sclv_read_from_dotw_frame(char *fname,
   PR
     
     return (ERROR_NONE);
+}
+
+int
+sclv_read_from_volume_encoded_value_file (char *fname, int field)
+{
+  int                   vno ;
+  MRI*                  mri;
+  MRI*                  mri_vertex;
+  int                   frame;
+  float                 value;
+  char                  val_name[STRLEN];
+  char                  cmd[STRLEN];
+  float                 min, max;
+  
+  /* In this case, the data is a volume, but width = num_vertices,
+     height = 1, and depth = frames. So we open it as a volume and
+     read it with MRI functions. */
+
+  /* unload this field if it already exists */
+  sclv_unload_field (field);
+  
+  /* Open the file with MRIread. */
+  mri = MRIread (fname);
+  if (NULL == mri)
+    {
+      printf ("surfer: ### File %s could not be opened.\n", fname);
+      return (ERROR_NOFILE);
+    }
+
+  printf ("surfer: Interpreting overlay volume %s as encoded value file.\n", fname);
+
+  /* Reshape it so that everything is in the x direction. */
+  mri_vertex = mri_reshape (mri, mris->nvertices, 1, 1, mri->nframes);
+  if (NULL == mri_vertex)
+    {
+      MRIfree (&mri);
+      printf ("surfer: ### File %s could not be reshaped.\n", fname);
+      return (ERROR_NOFILE);
+    }
+
+  /* Free the volumes. */
+  MRIfree (&mri);
+  
+  /* Save the reshaped volume and mark this field as having an mri
+     volume. */
+  sclv_field_info[field].mri_volume = mri_vertex;
+  sclv_field_info[field].is_mri_volume = TRUE;
+
+  /* look for the min and max values. */
+  min = 1000000;
+  max = -1000000;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    for (frame = 0 ; frame < mri_vertex->nframes ; frame++)
+      {
+	value = MRIgetVoxVal (mri_vertex, vno, 0, 0, frame);
+	
+	/* look for the min or max value */
+	if (value < min)
+	  min = value;
+	if (value > max)
+	  max = value;
+      }
+  
+  /* save the range */
+  sclv_field_info[field].min_value = min;
+  sclv_field_info[field].max_value = max;
+  
+  printf ("\tmin value=%f\n", min);
+  printf ("\tmax value=%f\n", max);
+
+  /* Save info about the frames. */
+  sclv_field_info[field].cur_timepoint = -1;
+  sclv_field_info[field].cur_condition = -1;
+  sclv_field_info[field].num_timepoints = mri_vertex->nframes;
+  sclv_field_info[field].num_conditions = 1;
+  
+  /* paint the first condition/timepoint in this field */
+  sclv_set_timepoint_of_field (field, 0, 0);
+  
+  /* calc the frquencies */
+  sclv_calc_frequencies (field);
+  
+  /* request a redraw. turn on the overlay flag and select this value set */
+  vertex_array_dirty = 1 ;
+  overlayflag = TRUE;
+  sclv_set_current_field (field);
+  
+  /* set the field name to the name of the file loaded */
+  if (NULL != g_interp)
+    {
+      FileNameOnly (fname, val_name);
+      sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, val_name);
+      Tcl_Eval (g_interp, cmd);
+      sprintf (cmd, "ShowValueLabel %d 1", field);
+      Tcl_Eval (g_interp, cmd);
+      sprintf (cmd, "UpdateLinkedVarGroup view");
+      Tcl_Eval (g_interp, cmd);
+      sprintf (cmd, "UpdateLinkedVarGroup overlay");
+      Tcl_Eval (g_interp, cmd);
+    }
+  
+  /* enable the menu items */
+  enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
+  
+  return (ERROR_NONE);
 }
 
 int
@@ -17886,24 +18098,28 @@ ERR(1,"Wrong # args: swap_buffers")
      int W_func_load_timecourse (ClientData clientData,Tcl_Interp *interp,
 				 int argc,char *argv[])
 {
-  if(argc!=2&&argc!=3)
+  FunD_tRegistrationType reg_type = FunD_tRegistration_None;
+
+  if(argc!=3 && argc!=4)
     {
       Tcl_SetResult(interp,"Wrong # args: func_load_timecourse volumeFileName"
-		    " [registrationFileName]",TCL_VOLATILE);
+		    "registrationType [registrationFileName]",TCL_VOLATILE);
       return TCL_ERROR;
     }
   
-  if (argc==2)
-    func_load_timecourse (argv[1],NULL);
+  reg_type = (FunD_tRegistrationType) atoi (argv[2]);
+  
+  if (argc==3)
+    func_load_timecourse (argv[1], reg_type, NULL);
   /* even if we have 3 args, tcl could have passed us a blank string
      for the 4th. if it's blank, call the load function with a null
      registration, otherwise it will think it's a valid file name. */
-  if (argc==3)
+  if (argc==4)
     {
-      if (strcmp(argv[2],"")==0)
-	func_load_timecourse (argv[1],NULL);
+      if (strcmp(argv[3],"")==0)
+	func_load_timecourse (argv[1], reg_type, NULL);
       else
-	func_load_timecourse (argv[1],argv[2]);
+	func_load_timecourse (argv[1], reg_type, argv[2]);
     }
   return TCL_OK;
 }
@@ -17911,17 +18127,29 @@ ERR(1,"Wrong # args: swap_buffers")
 int W_func_load_timecourse_offset (ClientData clientData,Tcl_Interp *interp,
 				   int argc,char *argv[])
 {
-  if(argc!=2&&argc!=3)
+  FunD_tRegistrationType reg_type = FunD_tRegistration_None;
+
+  if(argc!=3 && argc!=4)
     {
       Tcl_SetResult(interp,"Wrong # args: func_load_timecourse_offset fname"
-		    " [registration]",TCL_VOLATILE);
+		    "registrationType [registration]",TCL_VOLATILE);
       return TCL_ERROR;
     }
   
-  if (argc==2)
-    func_load_timecourse_offset (argv[1],NULL);
+  reg_type = (FunD_tRegistrationType) atoi (argv[2]);
+
   if (argc==3)
-    func_load_timecourse_offset (argv[1],argv[2]);
+    func_load_timecourse_offset (argv[1], reg_type, NULL);
+   /* even if we have 3 args, tcl could have passed us a blank string
+     for the 4th. if it's blank, call the load function with a null
+     registration, otherwise it will think it's a valid file name. */
+  if (argc==4)
+    {
+      if (strcmp(argv[3],"")==0)
+	func_load_timecourse_offset (argv[1], reg_type, NULL);
+      else
+	func_load_timecourse_offset (argv[1], reg_type, argv[2]);
+    }
   
   return TCL_OK;
 }
@@ -17929,24 +18157,28 @@ int W_func_load_timecourse_offset (ClientData clientData,Tcl_Interp *interp,
 int W_sclv_read_from_volume (ClientData clientData,Tcl_Interp *interp,
 			     int argc,char *argv[])
 {
-  if(argc!=3&&argc!=4)
+  FunD_tRegistrationType reg_type = FunD_tRegistration_None;
+
+  if(argc!=4&&argc!=5)
     {
       Tcl_SetResult(interp,"Wrong # args: sclv_read_from_volume field fname "
-		    " [registration]",TCL_VOLATILE);
+		    "registrationType [registration]",TCL_VOLATILE);
       return TCL_ERROR;
     }
   
-  if (argc==3)
-    sclv_read_from_volume (argv[2],NULL,atoi(argv[1]));
+  reg_type = (FunD_tRegistrationType) atoi (argv[3]);
+
+  if (argc==4)
+    sclv_read_from_volume (argv[2], reg_type, NULL, atoi(argv[1]));
   /* even if we have 4 args, tcl could have passed us a blank string
      for the 4th. if it's blank, call the read function with a null
      registration, otherwise it will think it's a valid file name. */
-  if (argc==4)
+  if (argc==5)
     {
-      if (strcmp(argv[3],"")==0)
-	sclv_read_from_volume (argv[2],NULL,atoi(argv[1]));
+      if (strcmp(argv[4],"")==0)
+	sclv_read_from_volume (argv[2], reg_type, NULL, atoi(argv[1]));
       else
-	sclv_read_from_volume (argv[2],argv[3],atoi(argv[1]));
+	sclv_read_from_volume (argv[2], reg_type, argv[4], atoi(argv[1]));
     }
   return TCL_OK;
 }
@@ -18294,7 +18526,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.121 2005/06/30 16:46:03 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.122 2005/07/06 22:14:39 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21402,7 +21634,8 @@ int func_initialize()
   return(ERROR_NONE);
 }
 
-int func_load_timecourse (char* fname, char* registration)
+int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
+			  char* registration)
 {
   FunD_tErr volume_error;
   char tcl_cmd[1024];
@@ -21421,7 +21654,7 @@ int func_load_timecourse (char* fname, char* registration)
   
   /* create new volume */
   volume_error = FunD_New (&func_timecourse, sclv_client_transform,
-			   fname, NULL, registration, 
+			   fname, NULL, reg_type, registration, 
 			   sclv_register_transform, NULL);
   if (volume_error!=FunD_tErr_NoError)
     {
@@ -21454,7 +21687,8 @@ int func_load_timecourse (char* fname, char* registration)
   return(ERROR_NONE);
 }
 
-int func_load_timecourse_offset (char* fname, char* registration)
+int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
+				 char* registration)
 {
   FunD_tErr volume_error;
 
@@ -21471,7 +21705,7 @@ int func_load_timecourse_offset (char* fname, char* registration)
   
   /* create new volume */
   volume_error = FunD_New (&func_timecourse_offset, sclv_client_transform,
-			   fname, NULL, registration, 
+			   fname, NULL, reg_type, registration, 
 			   sclv_register_transform, NULL);
   if (volume_error!=FunD_tErr_NoError)
     ErrorReturn(func_convert_error(volume_error),(func_convert_error(volume_error),"func_load_timecourse_offset: error in FunD_New\n"));
@@ -21909,10 +22143,12 @@ int sclv_initialize ()
   /* no layers loaded, clear all the stuff. */
   for (field = 0; field < NUM_SCALAR_VALUES; field++)
     {
-      sclv_field_info[field].is_binary_volume = FALSE;
+      sclv_field_info[field].is_functional_volume = FALSE;
+      sclv_field_info[field].is_mri_volume = FALSE;
       sclv_field_info[field].cur_timepoint = -1;
       sclv_field_info[field].cur_condition = -1;
-      sclv_field_info[field].volume = NULL;
+      sclv_field_info[field].func_volume = NULL;
+      sclv_field_info[field].mri_volume = NULL;
       sclv_field_info[field].fthresh = fthresh;
       sclv_field_info[field].fmid = fmid;
       sclv_field_info[field].foffset = foffset;
@@ -21943,14 +22179,29 @@ int sclv_unload_field (int field)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_unload_field: field was out of bounds: %d)",field));
   
   /* if we have a binary volume, delete it */
-  if (sclv_field_info[field].is_binary_volume && 
-      sclv_field_info[field].volume != NULL )
+  if (sclv_field_info[field].is_functional_volume && 
+      sclv_field_info[field].func_volume != NULL )
     {
-      volume_error = FunD_Delete (&(sclv_field_info[field].volume));
+      volume_error = FunD_Delete (&(sclv_field_info[field].func_volume));
       if (volume_error!=FunD_tErr_NoError)
 	ErrorReturn(func_convert_error(volume_error),(func_convert_error(volume_error),"sclv_unload_field: error in FunD_Delete\n"));
       
-      sclv_field_info[field].is_binary_volume = FALSE;
+      sclv_field_info[field].is_functional_volume = FALSE;
+      
+      /* force a repaint next load */
+      sclv_field_info[field].cur_timepoint = -1;
+      sclv_field_info[field].cur_condition = -1;
+    }
+  
+  /* if we have an mri volume, delete it */
+  if (sclv_field_info[field].is_mri_volume && 
+      sclv_field_info[field].mri_volume != NULL )
+    {
+      volume_error = MRIfree (&(sclv_field_info[field].mri_volume));
+      if (volume_error != NO_ERROR)
+	ErrorReturn(volume_error,(volume_error,"sclv_unload_field: error in FunD_Delete\n"));
+      
+      sclv_field_info[field].is_mri_volume = FALSE;
       
       /* force a repaint next load */
       sclv_field_info[field].cur_timepoint = -1;
@@ -22125,7 +22376,8 @@ int sclv_set_timepoint_of_field (int field,
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_set_timepoint_of_field: field was out of bounds: %d)",field));
   
   /* check if this field has a binary volume */
-  if (sclv_field_info[field].is_binary_volume == FALSE )
+  if (sclv_field_info[field].is_functional_volume == FALSE &&
+      sclv_field_info[field].is_mri_volume == FALSE)
     {
       /* commented out because tksurfer.tcl will call this function
          even when there is a .w file in this layer. */
@@ -22134,8 +22386,10 @@ int sclv_set_timepoint_of_field (int field,
     }
   
   /* make sure it actually has one */
-  if (sclv_field_info[field].is_binary_volume && 
-      sclv_field_info[field].volume == NULL )
+  if ((sclv_field_info[field].is_functional_volume && 
+       sclv_field_info[field].func_volume == NULL)  ||
+      (sclv_field_info[field].is_mri_volume && 
+       sclv_field_info[field].mri_volume == NULL))
     {
       ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_set_timepoint_of_field: field %d thinks it has a binary volume but doesn't really",field));
     }  
@@ -22147,7 +22401,7 @@ int sclv_set_timepoint_of_field (int field,
       condition != sclv_field_info[field].cur_condition )
     {
       
-      /* for each vertex, grab a value out of the blfoat volume and stick it
+      /* for each vertex, grab a value out of the volume and stick it
 	 in the field */
       for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
@@ -22157,16 +22411,26 @@ int sclv_set_timepoint_of_field (int field,
 	  if (v->ripflag)
 	    continue ;
 	  
-	  /* if the voxel is valid here, use the value, else set to 0. */
-	  xVoxl_SetFloat (&voxel, v->origx, v->origy, v->origz);
-	  volume_error = FunD_GetData(sclv_field_info[field].volume,
-				      &voxel, condition, timepoint,
-				      &func_value);
-	  if (volume_error == FunD_tErr_NoError)
+	  /* Get value from the right volume. */
+	  if (sclv_field_info[field].is_functional_volume)
 	    {
+	      /* if the voxel is valid here, use the value, else set to 0. */
+	      xVoxl_SetFloat (&voxel, v->origx, v->origy, v->origz);
+	      volume_error = FunD_GetData(sclv_field_info[field].func_volume,
+					  &voxel, condition, timepoint,
+					  &func_value);
+	      if (volume_error == FunD_tErr_NoError)
+		{
+		  sclv_set_value (v, field, func_value);
+		} else {
+		  sclv_set_value (v, field, 0.0);
+		}
+	    }
+	  else if (sclv_field_info[field].is_mri_volume)
+	    {
+	      func_value = MRIgetVoxVal (sclv_field_info[field].mri_volume,
+					 vno, 0, 0, timepoint);
 	      sclv_set_value (v, field, func_value);
-	    } else {
-	      sclv_set_value (v, field, 0.0);
 	    }
 	}
       
@@ -22623,7 +22887,8 @@ int sclv_load_label_value_file (char *fname, int field)
 
 
   /* mark this field as not binary */
-  sclv_field_info[field].is_binary_volume = FALSE;
+  sclv_field_info[field].is_functional_volume = FALSE;
+  sclv_field_info[field].is_mri_volume = FALSE;
   
   /* save the range */
   sclv_field_info[field].min_value = min;
