@@ -2,7 +2,7 @@
 # aseg2feat
 # 
 
-set VERSION = '$Id: aseg2feat,v 1.1 2005/07/06 00:25:41 greve Exp $';
+set VERSION = '$Id: aseg2feat,v 1.2 2005/07/06 16:31:59 greve Exp $';
 set FeatDirList = ();
 set debug = 0;
 set usedev = 0;
@@ -36,7 +36,7 @@ check_params_return:
 foreach FeatDir ($FeatDirList)
 
   # Set up a log file
-  set LF = $FeatDir/reg/freesurfer/$asegvol2feat.log
+  set LF = $FeatDir/reg/freesurfer/$asegvol"2feat.log"
   echo log file is $LF
   if(-e $LF) mv $LF $LF.bak
   echo FeatDir is $FeatDir | tee -a $LF 
