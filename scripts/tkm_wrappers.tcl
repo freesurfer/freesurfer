@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.31 2005/06/28 18:43:29 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.32 2005/07/06 22:15:33 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -196,7 +196,7 @@ proc tkm_MakeActiveLabel { isFrame isText isVariable {inWidth -1} } {
     frame $isFrame
     
     if { $isText != "" } {
-	tkm_MakeNormalLabel $isFrame.lw "WW $isText"
+	tkm_MakeNormalLabel $isFrame.lw "$isText"
 	
 	pack $isFrame.lw \
 	    -side left \
