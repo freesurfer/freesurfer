@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/07/05 17:31:33 $
-// Revision       : $Revision: 1.75 $
+// Revision Date  : $Date: 2005/07/06 19:18:06 $
+// Revision       : $Revision: 1.76 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -573,7 +573,11 @@ GCAMread(char *fname)
   if (strstr(fname, ".m3z"))
     {
       char command[STRLEN];
+#if 0
       strcpy(command, "zcat ");
+#else
+      strcpy(command, "gunzip -c ");
+#endif
       strcat(command, fname);
       myclose=pclose;
       errno = 0;

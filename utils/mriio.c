@@ -10011,7 +10011,11 @@ mghRead(char *fname, int read_volume, int frame)
     {
       gzipped = 1;
       myclose = pclose;  // assign function pointer for closing
+#if 0
       strcpy(command,"zcat ");
+#else
+      strcpy(command,"gunzip -c ");
+#endif
       strcat(command, fname);
 
       errno = 0; 
