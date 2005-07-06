@@ -1,0 +1,211 @@
+#!/bin/tcsh -f
+# aparc2feat
+# 
+
+set VERSION = '$Id: aparc2feat,v 1.1 2005/07/06 00:25:41 greve Exp $';
+set FeatDirList = ();
+set HemiList = (rh lh)
+set debug = 0;
+set usedev = 0;
+
+set PrintHelp = 0;
+
+set cmdargs = ($argv);
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 1;
+endif
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+# Parse the command-line arguments
+goto parse_args;
+parse_args_return:
+
+# Check the command-line arguments
+goto check_params;
+check_params_return:
+
+
+foreach FeatDir ($FeatDirList)
+
+  # Set up a log file
+  set LF = $FeatDir/reg/freesurfer/aparc2feat.log
+  echo log file is $LF
+  if(-e $LF) mv $LF $LF.bak
+  echo FeatDir is $FeatDir | tee -a $LF 
+  date | tee -a $LF 
+  pwd | tee -a $LF 
+  echo $0 | tee -a $LF 
+  echo $cmdargs | tee -a $LF 
+  uname -a | tee -a $LF 
+  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF 
+  echo "subject is $subject" | tee -a $LF 
+
+  set reg_anat2exf = $FeatDir/reg/freesurfer/anat2exf.register.dat
+  set subject = `cat $reg_anat2exf| head -n 1`;
+
+  foreach hemi ($HemiList)
+    set aparc = $SUBJECTS_DIR/$subject/label/$hemi.aparc.annot
+    set L2V = mri_label2vol
+    if($usedev) set L2V = $DEV/$L2V/$L2V
+    set cmd = ($L2V --annot $SUBJECTS_DIR/$subject/label/$hemi.aparc.annot \
+                 --temp $FeatDir/example_func.img  \
+                 --reg  $FeatDir/reg/freesurfer/anat2exf.register.dat \
+                 --o    $FeatDir/reg/freesurfer/$hemi.aparc.img \
+                 --hemi $hemi --subject $subject --proj frac 0 1 .1)
+    date      | tee -a $LF
+    pwd       | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd  | tee -a $LF
+    if($status) then
+       echo "ERROR: with $cmd" | tee -a $LF
+       pwd
+       exit 1;
+    endif
+    echo " " | tee -a $LF
+  end
+
+end # FeatDir List
+
+date | tee -a $LF 
+echo "aparc2feat done" | tee -a $LF 
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--feat":
+      if ( $#argv == 0) goto arg1err;
+      set FeatDirList = ($FeatDirList $argv[1]); shift;
+      breaksw
+
+    case "--featdirfile":
+      if ( $#argv == 0) goto arg1err;
+      set FeatFile = $argv[1];
+      if(! -e $FeatFile) then
+        echo "ERROR: cannot find $FeatFile"
+        exit 1;
+      endif
+      set FeatDirList = ($FeatDirList `cat $FeatFile`); shift;
+      breaksw
+
+    case "--hemi":
+      if ( $#argv == 0) goto arg1err;
+      set HemiList = $argv[1]; shift;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      set debug = 1;
+      breaksw
+
+    case "--usedev":
+      set usedev = 1;
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag not recognized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#FeatDirList == 0) then
+  echo "ERROR: must specify at least one feat dir"
+  exit 1;
+endif
+
+foreach FeatDir ($FeatDirList)
+  set reg_anat2exf = $FeatDir/reg/freesurfer/anat2exf.register.dat
+  if(! -e $reg_anat2exf) then
+    echo "ERROR: cannot find $reg_anat2exf. You must run reg-feat2anat first."
+    exit 1;
+  endif
+  if($?SUBJECTS_DIR == 0) then
+    echo "ERROR: FreeSurfer environment variable SUBJECTS_DIR not defined"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR) then
+    echo "ERROR: FreeSurfer SUBJECTS_DIR $SUBJECTS_DIR not found"
+    exit 1;
+  endif
+
+  set subject = `cat $reg_anat2exf| head -n 1`;
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find FreeSurfer subject $subject in $SUBJECTS_DIR"
+    exit 1;
+  endif
+
+  foreach hemi ($HemiList)
+    set aparc = $SUBJECTS_DIR/$subject/label/$hemi.aparc.annot
+    if(! -e $aparc) then
+      echo "ERROR: cannot find $aparc for subject $subject"
+      exit 1;
+    endif
+  end
+
+end # FeatDirList
+
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: aparc2feat"
+  echo ""
+  echo " --feat dir  <--feat dir>  : Feat output directory"
+  echo " --featdirfile file : file with a list of feat directories"
+  echo ""
+  echo "Optional flags and arguments:"
+  echo ""
+  echo " --hemi hemi  : resample hemi only (default is both rh and lh)"
+  echo " --version            : print version and exit"
+  echo " --help               : print help and exit"
+  echo " --debug              : turn on debugging"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+see $FREESURFER_HOME/Simple_surface_labels2002.txt
