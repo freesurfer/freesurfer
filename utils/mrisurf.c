@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/06/17 22:02:03 $
-// Revision       : $Revision: 1.358 $
+// Revision Date  : $Date: 2005/07/06 21:42:03 $
+// Revision       : $Revision: 1.359 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -8513,9 +8513,9 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
     TempMRI = MRIread(sname);
     if(TempMRI==NULL) return(ERROR_BADFILE);
     vno = 0;
-    for(c=0; c < TempMRI->width; c++){
+    for(s=0; s < TempMRI->depth; s++){
       for(r=0; r < TempMRI->height; r++){
-	for(s=0; s < TempMRI->depth; s++){
+	for(c=0; c < TempMRI->width; c++){
 	  mris->vertices[vno].val = MRIgetVoxVal(TempMRI,c,r,s,frame);
 	  vno++;
 	}
