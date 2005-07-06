@@ -3,12 +3,15 @@
 #
 dist_bin_SCRIPTS = \
 archive_pull \
+aparc2feat \
+aseg2feat \
 browse-minc-header.tcl \
 browse-sessions \
 check_subject \
 cor_to_minc \
 csurf \
 dcmdir-info-mgh \
+feat2surf \
 findsession \
 fix_subject \
 fix_subject_corrected \
@@ -76,6 +79,7 @@ printdat \
 progressbar.tcl \
 recon-all-nmr \
 recon-all \
+reg-feat2anat \
 register_child \
 register.csh \
 register_elderly_subject \
