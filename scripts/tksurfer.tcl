@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.72 2005/06/30 21:03:50 kteich Exp $
+# $Id: tksurfer.tcl,v 1.73 2005/07/06 22:15:42 kteich Exp $
 
 package require BLT;
 
@@ -131,6 +131,11 @@ set gCopyFieldTarget 0
 set kanDefaultTransform(rotate) 90
 set kanDefaultTransform(translate) 10
 set kanDefaultTransform(scale) 110
+
+# FunD_tRegistrationType
+set FunD_tRegistration(file) 0
+set FunD_tRegistration(find) 1
+set FunD_tRegistration(identity) 2
 
 # set some default histogram data
 set gaHistogramData(zoomed) 0
@@ -1409,6 +1414,8 @@ proc DoLoadOverlayDlog {} {
     global gaScalarValueID gsaLabelContents
     global glShortcutDirs
     global sFileName
+    global FunD_tRegistration
+    global gRegistrationType gfnFunctionalRegistration
 
     set wwDialog .wwLoadOverlayDlog
 
@@ -1419,8 +1426,10 @@ proc DoLoadOverlayDlog {} {
 	
 	set fwFile             $wwDialog.fwFile
 	set fwFileNote         $wwDialog.fwFileNote
-	set fwRegistration     $wwDialog.fwRegistration
-	set fwRegistrationNote $wwDialog.fwRegistrationNote
+	set fwRegFile          $wwDialog.fwRegFile
+	set fwRegFileName      $wwDialog.fwRegFileName
+	set fwRegFind          $wwDialog.fwRegFind
+	set fwRegIdentity      $wwDialog.fwRegIdentity
 	set fwField            $wwDialog.fwField
 	set fwFieldNote        $wwDialog.fwFieldNote
 	set fwButtons          $wwDialog.fwButtons
@@ -1434,16 +1443,23 @@ proc DoLoadOverlayDlog {} {
 
 	tkm_MakeSmallLabel $fwFileNote "Values file (.w), binary volume file (.bfloat/.bshort/.hdr), COR-.info file, .mgh, or other" 400
 	
-	set sRegistrationFileName [GetDefaultLocation LoadOverlayRegistration]
-	tkm_MakeFileSelector $fwRegistration "Use Registration:" \
-	    sRegistrationFileName \
-	    [list GetDefaultLocation LoadOverlayRegistration] \
+	# The bit of code in the radio buttons disables the file entry
+	# field when the file radio button is not clicked.
+	tkm_MakeRadioButton $fwRegFile "Specify registration file" \
+	    gRegistrationType $FunD_tRegistration(file) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file) } { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
+	set gfnFunctionalRegistration [GetDefaultLocation LoadOverlay]
+	tkm_MakeFileSelector $fwRegFileName "register.dat file:" \
+	    gfnFunctionalRegistration \
+	    [list GetDefaultLocation LoadOverlay] \
 	    $glShortcutDirs
-	
-	[$fwRegistration.ew subwidget entry] icursor end
+	[$fwRegFileName.ew subwidget entry] icursor end
+	tkm_MakeRadioButton $fwRegFind "Find registration in data directory" \
+	    gRegistrationType $FunD_tRegistration(find) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
+	tkm_MakeRadioButton $fwRegIdentity "Calculate identity matrix" \
+	    gRegistrationType $FunD_tRegistration(identity) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
+	set gRegistrationType $FunD_tRegistration(file)
 
-	tkm_MakeSmallLabel $fwRegistrationNote "Optional register.dat file. Leave blank for .v files or to use register.dat in same directory as volume" 400
-	
+
 	tixOptionMenu $fwField -label "Into Field:" \
 	    -variable nFieldIndex \
 	    -options {
@@ -1458,11 +1474,12 @@ proc DoLoadOverlayDlog {} {
 	# buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog { 
 	    SetDefaultLocation LoadOverlay $sFileName;
-	    SetDefaultLocation LoadOverlayRegistration $sRegistrationFileName;
-	    DoLoadFunctionalFile $nFieldIndex $sFileName $sRegistrationFileName
+	    SetDefaultLocation LoadOverlayRegistration $gfnFunctionalRegistration;
+	    DoLoadFunctionalFile $nFieldIndex $sFileName $gRegistrationType $gfnFunctionalRegistration
 	}
 	
-	pack $fwFile $fwFileNote $fwRegistration $fwRegistrationNote \
+	pack $fwFile $fwFileNote $fwRegFile $fwRegFileName \
+	    $fwRegFind $fwRegIdentity \
 	    $fwField $fwFieldNote $fwButtons \
 	    -side top       \
 	    -expand yes     \
@@ -1485,6 +1502,8 @@ proc DoLoadTimeCourseDlog {} {
     global gDialog gaLinkedVars
     global glShortcutDirs
     global sFileName
+    global FunD_tRegistration
+    global gRegistrationType gfnFunctionalRegistration
 
     set wwDialog .wwLoadTimeCourseDlog
 
@@ -1495,8 +1514,10 @@ proc DoLoadTimeCourseDlog {} {
 	
 	set fwFile             $wwDialog.fwFile
 	set fwFileNote         $wwDialog.fwFileNote
-	set fwRegistration     $wwDialog.fwRegistration
-	set fwRegistrationNote $wwDialog.fwRegistrationNote
+	set fwRegFile          $wwDialog.fwRegFile
+	set fwRegFileName      $wwDialog.fwRegFileName
+	set fwRegFind          $wwDialog.fwRegFind
+	set fwRegIdentity      $wwDialog.fwRegIdentity
 	set fwButtons          $wwDialog.fwButtons
 	
 	set sFileName [GetDefaultLocation LoadTimeCourse]
@@ -1506,27 +1527,36 @@ proc DoLoadTimeCourseDlog {} {
 	
 	[$fwFile.ew subwidget entry] icursor end
 
-	tkm_MakeSmallLabel $fwFileNote "One of the binary volume files (.bfloat/.bshort/.hdr)" 400
-	
-	set sRegistrationFileName [GetDefaultLocation LoadTimeCourseRegistration]
-	tkm_MakeFileSelector $fwRegistration "Use Registration:" \
-	    sRegistrationFileName \
-	    [list GetDefaultLocation LoadOverlayRegistration] \
-	    $glShortcutDirs
-	
-	[$fwRegistration.ew subwidget entry] icursor end
+	tkm_MakeSmallLabel $fwFileNote \
+	    "The volume file (or COR-.info for COR volumes)" 400
 
-	tkm_MakeSmallLabel $fwRegistrationNote "Optional register.dat file. Leave blank for .v files or to use register.dat in same directory as volume" 400
-	
+	# The bit of code in the radio buttons disables the file entry
+	# field when the file radio button is not clicked.
+	tkm_MakeRadioButton $fwRegFile "Specify registration file" \
+	    gRegistrationType $FunD_tRegistration(file) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file) } { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
+	set gfnFunctionalRegistration [GetDefaultLocation LoadTimeCourse]
+	tkm_MakeFileSelector $fwRegFileName "register.dat file:" \
+	    gfnFunctionalRegistration \
+	    [list GetDefaultLocation LoadTimeCourse] \
+	    $glShortcutDirs
+	[$fwRegFileName.ew subwidget entry] icursor end
+	tkm_MakeRadioButton $fwRegFind "Find registration in data directory" \
+	    gRegistrationType $FunD_tRegistration(find) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
+	tkm_MakeRadioButton $fwRegIdentity "Calculate identity matrix" \
+	    gRegistrationType $FunD_tRegistration(identity) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
+	set gRegistrationType $FunD_tRegistration(file)
+
+
 	# buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog {
 	    SetDefaultLocation LoadTimeCourse $sFileName;
 	    SetDefaultLocation LoadTimeCourseRegistration \
-		$sRegistrationFileName
-	    DoLoadFunctionalFile -1 $sFileName $sRegistrationFileName
+		$gfnFunctionalRegistration
+	    DoLoadFunctionalFile -1 $sFileName $gRegistrationType $gfnFunctionalRegistration
 	}
 	
-	pack $fwFile $fwFileNote $fwRegistration $fwRegistrationNote \
+	pack $fwFile $fwFileNote $fwRegFile $fwRegFileName \
+	    $fwRegFind $fwRegIdentity  \
 	    $fwButtons \
 	    -side top       \
 	    -expand yes     \
@@ -1544,19 +1574,19 @@ proc DoLoadTimeCourseDlog {} {
     }
 }
 
-proc DoLoadFunctionalFile { inField isFileName isRegistrationFileName } {
+proc DoLoadFunctionalFile { inField isFileName iRegistrationType isRegistrationFileName } {
 
     global val
 
     set sExtension [file extension $isFileName]
     if { $inField == -1 } {
-	func_load_timecourse $isFileName $isRegistrationFileName
+	func_load_timecourse $isFileName $iRegistrationType $isRegistrationFileName
     } else {
 	if { $sExtension == ".w" || $sExtension == ".curv" || $sExtension == ".sulc"  } {
 	    set val $isFileName
 	    sclv_read_from_dotw $inField
 	} else {
-	    sclv_read_from_volume $inField $isFileName $isRegistrationFileName
+	    sclv_read_from_volume $inField $isFileName $iRegistrationType $isRegistrationFileName
 	}
 	sclv_copy_view_settings_from_field $inField 0
 	OverlayLayerChanged
@@ -4399,7 +4429,7 @@ proc GetDefaultLocation { iType } {
 	    LoadOverlay - LoadTimeCourse - 
 	    LoadOverlayRegistration - LoadTimeCourseRegistration {
 		set gsaDefaultLocation($iType) \
-		    [ExpandFileName "" kFileName_FMRI]
+		    [exec pwd]
 	    }
 	    LoadColorTable {
 		set gsaDefaultLocation($iType) \
@@ -4770,32 +4800,6 @@ set tDlogSpecs(LoadOriginalSurface) \
 	     set_current_vertex_set $gaLinkedVars(vertexset);
 	     UpdateLinkedVarGroup view;
 	     UpdateAndRedraw} ]
-
-set tDlogSpecs(LoadTimeCourse) \
-    [list \
-	 -title "Load Time Course" \
-	 -prompt1 "Load Volume:" \
-	 -type1 dir \
-	 -presets1 $glShortcutDirs \
-	 -note1 "The directory containing the binary volume to load" \
-	 -default1 [list GetDefaultLocation LoadTimeCourse_Volume] \
-	 -entry1 [list GetDefaultLocation LoadTimeCourse_Volume] \
-	 -presets1 $glShortcutDirs \
-	 -prompt2 "Stem:" \
-	 -type2 text \
-	 -note2 "The stem of the binary volume" \
-	 -prompt3 "Registration File:" \
-	 -presets3 $glShortcutDirs \
-	 -note3 "The file name of the registration file to load. Leave blank to use register.dat in the same directory." \
-	 -default3 [list GetDefaultLocation LoadTimeCourse_Register] \
-	 -entry3 [list GetDefaultLocation LoadTimeCourse_Register] \
-	 -presets3 $glShortcutDirs \
-	 -okCmd {
-	     set fnVolume [ExpandFileName %s1 kFileName_FMRI];
-	     set fnRegister [ExpandFileName %s3 kFileName_FMRI];
-	     func_load_timecourse $fnVolume %s2 $fnRegister;
-	     SetDefaultLocation LoadTimeCourse_Volume %s1;
-	     SetDefaultLocation LoadTimeCourse_Register %s3}]
 
 set tDlogSpecs(LoadCurvature) \
     [list \

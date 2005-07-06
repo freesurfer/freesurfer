@@ -60,21 +60,23 @@ char *FunD_ksaErrorString [FunD_tErr_knNumErrorCodes] = {
 
 // ===================================================================== VOLUME
 
-FunD_tErr FunD_New ( mriFunctionalDataRef* opVolume,
-		     mriTransformRef       iTransform,
-		     char*                 isFileName, 
-		     char*                 isHeaderStem,
-		     char*                 isRegistrationFileName,
-		     MATRIX*               iTkregMat,
-		     mriVolumeRef          iAnatomicalVolume ) {
+FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
+		     mriTransformRef        iTransform,
+		     char*                  isFileName, 
+		     char*                  isHeaderStem,
+		     FunD_tRegistrationType iRegistrationType,
+		     char*                  isRegistrationFileName,
+		     MATRIX*                iTkregMat,
+		     mriVolumeRef           iAnatomicalVolume ) {
   
   mriFunctionalDataRef this    = NULL;
   FunD_tErr            eResult = FunD_tErr_NoError;
   
   DebugEnterFunction( ("FunD_New( opVolume=%p, iTransform=%p, isFileName=%s, "
-		       "isHeaderStem=%s, isRegistrationFileName=%s, "
-		       "iTkregMat=%p )", opVolume, iTransform, isFileName,
-		       isHeaderStem, isRegistrationFileName, iTkregMat) );
+		       "isHeaderStem=%s, iRegistrationType=%d, "
+		       "isRegistrationFileName=%s, iTkregMat=%p )", 
+		       opVolume, iTransform, isFileName, isHeaderStem, 
+		       iRegistrationType, isRegistrationFileName, iTkregMat) );
   
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (NULL != opVolume &&
@@ -156,7 +158,9 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* opVolume,
   
   /* parse the registration file */
   DebugNote( ("Parsing registration file") );
-  eResult = FunD_ParseRegistrationAndInitMatricies_( this, iAnatomicalVolume );
+  eResult = FunD_ParseRegistrationAndInitMatricies_( this, 
+						     iRegistrationType,
+						     iAnatomicalVolume );
   DebugAssertThrow( (FunD_tErr_NoError == eResult) );
   
 #if 0
@@ -510,7 +514,8 @@ FunD_tErr FunD_GuessMetaInformation_ ( mriFunctionalDataRef this ) {
 }
 
 FunD_tErr
-FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
+FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
+					  FunD_tRegistrationType iType,
 					  mriVolumeRef    iAnatomicalVolume ) {
   FunD_tErr    eResult          = FunD_tErr_NoError;
   char         sBasePath[1024]  = "";
@@ -539,50 +544,65 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
 
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (NULL != this), eResult, FunD_tErr_InvalidParameter );
+  DebugNote( ("Checking registration type") );
+  DebugAssertThrowX( (iType >= 0 &&
+		      iType < FunD_knNumRegistrationTypes), eResult,
+		     FunD_tErr_InvalidParameter );
   
-  /* If our registration file name is empty, try and make one by
-     combining the data file name base path and the registration file
-     name, otherwise use the one we have. */
-  if( 0 != strcmp( this->msRegistrationFileName, "" ))  {
+  /* Switch on the registration type. */
+  switch( iType ) {
 
-    DebugNote( ("Copying registration file name") );
-    strcpy( sFileName, this->msRegistrationFileName );
-
-  } else { 
+    /* These both try and load files, so we'll share some code. */
+  case FunD_tRegistration_File: 
+  case FunD_tRegistration_Find:
     
-    DebugNote( ("Looking for last slash") );
-    xUtil_strncpy( sBasePath, this->msFileName, sizeof(sBasePath));
-    pCurChar = sBasePath;
-    while( NULL != pCurChar && *pCurChar != '\0' ) {
-      if( '/' == *pCurChar ) {
-	pBaseEnd = pCurChar;
+    /* If file, try to load a file specified in
+       msRegistrationFileName. If none was specified or we can't load
+       the specified one, return an error. */
+    if( FunD_tRegistration_File == iType ) {
+
+      DebugNote( ("Copying registration file name") );
+      strcpy( sFileName, this->msRegistrationFileName );
+
+    } else {
+
+    /* Construct a registration name based on our data location and
+       try to open that. If we didn't find one, return an error.
+       Start by finding the last slash in the data file name. */
+      DebugNote( ("Looking for last slash") );
+      xUtil_strncpy( sBasePath, this->msFileName, sizeof(sBasePath));
+      pCurChar = sBasePath;
+      while( NULL != pCurChar && *pCurChar != '\0' ) {
+	if( '/' == *pCurChar ) {
+	  pBaseEnd = pCurChar;
+	}
+	pCurChar++;
       }
-      pCurChar++;
+      
+      /* Set this to null char, terminating the string. Then use this
+	 string and the header suffix to build the header file name. */
+      *pBaseEnd = '\0';
+      xUtil_snprintf( sFileName, sizeof(sFileName),
+		      "%s/%s", sBasePath, FunD_ksRegisterFileName );
     }
+
     
-    /* Set this to null char, terminating the string. Then use this
-       string and the header suffix to build the header file name. */
-    *pBaseEnd = '\0';
-    xUtil_snprintf( sFileName, sizeof(sFileName),
-		    "%s/%s", sBasePath, FunD_ksRegisterFileName );
-  }
-
-  /* See if the file exists. */
-  DebugNote( ("Checking if %s exists", sFileName) );
-  eStat = stat( sFileName, &fileInfo );
-  if( 0 == eStat ) {
-
+    /* See if the file exists and is a regular file. */
+    DebugNote( ("Checking if %s exists", sFileName) );
+    eStat = stat( sFileName, &fileInfo );
+    DebugAssertThrowX( (0 == eStat), 
+		       eResult, FunD_tErr_CouldntReadRegisterFile );
+    
     DebugNote( ("Checking S_ISREG") );
     DebugAssertThrowX( ( S_ISREG(fileInfo.st_mode) ), 
 		       eResult, FunD_tErr_CouldntReadRegisterFile );
-    
     
     /* read the registration info. */
     DebugNote( ("StatReadRegistration on %s\n", sFileName ) );
     theRegInfo = StatReadRegistration( sFileName );
     DebugAssertThrowX( (NULL != theRegInfo ), 
 		       eResult, FunD_tErr_CouldntReadRegisterFile );
-  
+    
     /* grab the info we need from it. */
     this->mBrightnessScale = theRegInfo->brightness_scale;
     strcpy ( this->msSubjectName, theRegInfo->name );
@@ -606,14 +626,14 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
 		   this->mpData->xsize, this->mpData->zsize,
 		   theRegInfo->in_plane_res, theRegInfo->slice_thickness) );
     }
-
+    
     // create RAS to fRAS transform
     rasTotkregRAS = MatrixMultiply( this->mTkregMatrix, 
 				    this->mClientTransform->mRAStoA, NULL);
     rasTofRAS     = MatrixMultiply( theRegInfo->mri2fmri, rasTotkregRAS, 
 				    NULL);
     MatrixFree(&rasTotkregRAS);
-
+    
     
     /* get rid of the registration info. */
     StatFreeRegistration ( &theRegInfo );
@@ -653,8 +673,12 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
     
     fclose( fRegister );
     
-  } else {
-
+    break;
+    
+    /* We use MRItkRegMtx to generate a matrix that will be an
+       "identity" matrix for the anatomical. It may coregister them. */
+  case FunD_tRegistration_Identity:
+    
     /* Make sure they gave us an anatomical volume from which to build
        a default transform */
     DebugAssertThrowX( (NULL != iAnatomicalVolume ), 
@@ -675,46 +699,55 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
     this->mBrightnessScale = 1.0;
     strcpy( this->msSubjectName, "" );
     convMethod = FunD_tConversionMethod_FCF;
+    
+    break;
+  default:
+    break;
   }
+
+
+  /* create transform for conformed volume vs. functional volume Note
+     that theRegInfo->mri2fmri is calculated using the tkregRAS, i.e.
+     the standard rotation matrix */
   
+  /*
+   *                     
+   *        conformed(B)  -----> RAS  (c_(r,a,s) != 0)
+   *           ^         fixed    |                      These four transfomrs
+   *           |                  |                makes this->mClientTransform
+   *           |                  |identity                        
+   *           |                  |
+   *        original (A)  -----> RAS  (c_(r,a,s) != 0)
+   *           |         given    |
+   *           | identity         | ? rasTotkregRAS
+   *           |                  V
+   *        original      ----> tkregRAS  (c_(r,a,s) == 0)
+   *           |       [tkregMat] |
+   *           | ? (2)            | mri2fmri
+   *           V                  V
+   *        functional    ---->  fRAS      (c_(r,a,s) == 0)
+   *                     fixed
+   * 
+   * Using this picture to create the following transform mIdxToIdxTransform 
+   *
+   *                             AtoRAS
+   *        A (conformed volume) ----> RAS
+   *        |                           | 
+   *        V                           V 
+   *        B (functional volume) ---> RAS
+   *                             BtoRAS 
+   */
 
-
-  // create transform for conformed volume vs. functional volume
-  // Note that theRegInfo->mri2fmri is calculated using the tkregRAS, i.e.
-  // the standard rotation matrix
-  //
-  //                      
-  //         conformed(B)  -----> RAS  (c_(r,a,s) != 0)
-  //            ^         fixed    |                          These four transfomrs makes
-  //            |                  |identity                        this->mClientTransform
-  //            |                  |
-  //         original (A)  -----> RAS  (c_(r,a,s) != 0)
-  //            |         given    |
-  //            | identity         | ? rasTotkregRAS
-  //            |                  V
-  //         original      ----> tkregRAS  (c_(r,a,s) == 0)
-  //            |       [tkregMat] |
-  //            | ? (2)            | mri2fmri
-  //            V                  V
-  //         functional    ---->  fRAS      (c_(r,a,s) == 0)
-  //                      fixed
-  // 
-  // Using this picture to create the following transform mIdxToIdxTransform 
-  //                              AtoRAS
-  //         A (conformed volume) ----> RAS
-  //         |                           | 
-  //         V                           V 
-  //         B (functional volume) ---> RAS
-  //                              BtoRAS 
-  ///////////////////////////////////////////////////////////////////////////////////
-  // Note that mClientTransform keeps track of src(A) and conformed volume(B).  Thus
+  /* Note that mClientTransform keeps track of src(A) and conformed
+     volume(B).  Thus */
   Trns_CopyAtoRAS(this->mIdxToIdxTransform, this->mClientTransform->mBtoRAS);
 
-  // set ARAStoBRAS ( conformed volume RAS = src RAS and thus you can use the same)
+  /* set ARAStoBRAS ( conformed volume RAS = src RAS and thus you can
+     use the same) */
   Trns_CopyARAStoBRAS( this->mIdxToIdxTransform, rasTofRAS );
   MatrixFree(&rasTofRAS);
 
-  // create the functional index to functional ras matrix
+  /* create the functional index to functional ras matrix */
   mTmp = MatrixAlloc( 4, 4, MATRIX_REAL );
   MatrixClear( mTmp );
   *MATRIX_RELT(mTmp,1,1) = -ps;
@@ -724,12 +757,11 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
   *MATRIX_RELT(mTmp,2,4) = -(st*slices) / 2.0;
   *MATRIX_RELT(mTmp,3,4) = (ps*rows) / 2.0;
   *MATRIX_RELT(mTmp,4,4) = 1.0;
-  // set BtoRAS
+  /* set BtoRAS */
   Trns_CopyBtoRAS( this->mIdxToIdxTransform, mTmp );
-  // by doing this->mIdxToIdxTransform->mRAStoB is calculated
+  /* by doing this->mIdxToIdxTransform->mRAStoB is calculated */
   MatrixFree( &mTmp );
-  // we finished constructing this->mIdxToIdxTransform
-  ////////////////////////////////////////////////////////////////////////////////////
+  /* we finished constructing this->mIdxToIdxTransform */
 
   /* Save the registration. */
   Trns_DeepClone( this->mIdxToIdxTransform,&this->mOriginalIdxToIdxTransform );

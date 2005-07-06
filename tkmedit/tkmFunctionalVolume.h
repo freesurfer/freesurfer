@@ -89,6 +89,15 @@ typedef enum {
   FunV_knNumTclCommands
 } FunV_tTclCommand;
 
+/* Methods of finding the registration. */
+typedef enum {
+  FunV_tRegistration_None = -1,
+  FunV_tRegistration_File = 0,
+  FunV_tRegistration_Find,
+  FunV_tRegistration_Identity,
+  FunV_knNumRegistrationTypes
+} FunV_tRegistrationType;
+
 typedef float FunV_tFunctionalValue;
 typedef float* FunV_tOverlayCache;
 
@@ -169,12 +178,14 @@ FunV_tErr FunV_LoadOverlay    ( tkmFunctionalVolumeRef this,
 				mriTransformRef        iTransform,
 				char*                  isPathAndStem,
 				char*                  isOffsetPath,
+				FunV_tRegistrationType iRegistrationType,
 				char*                  isRegistration,
 				mriVolumeRef           iAnatomicalVolume );
 FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
 				mriTransformRef        iTransform,
 				char*                  isPathAndStem,
 				char*                  isOffsetPath,
+				FunV_tRegistrationType iRegistrationType,
 				char*                  isRegistration,
 				mriVolumeRef           iAnatomicalVolume );
 
@@ -184,6 +195,7 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
 				       mriTransformRef        iTransform,
 				       char*                  isFileName,
 				       char*                  isHeaderStem,
+				      FunV_tRegistrationType iRegistrationType,
 				       char*                  isRegPath,
 				       mriVolumeRef          iAnatomicalVolume,
 				       tBoolean               ibPrintErrors );

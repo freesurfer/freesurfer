@@ -258,21 +258,23 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
 			     mriTransformRef        iTransform,
 			     char*                  isFileName,
 			     char*                  isOffsetFileName,
+			     FunV_tRegistrationType iRegistrationType,
 			     char*                  isRegistration,
 			     mriVolumeRef           iAnatomicalVolume ) {
   
-  FunV_tErr   eResult                           = FunV_tErr_NoError;
-  int         nNumConditions                    = 0;
+  FunV_tErr              eResult           = FunV_tErr_NoError;
+  int                    nNumConditions    = 0;
   
   /* verify us */
   eResult = FunV_Verify( this );
   if( FunV_tErr_NoError != eResult )
     goto error;
-  
+
   /* attempt to load the volume */
   eResult = FunV_LoadFunctionalVolume_( this, &(this->mpOverlayVolume), 
 					iTransform, isFileName,
-					NULL, isRegistration, 
+					NULL, 
+					iRegistrationType, isRegistration, 
 					iAnatomicalVolume, TRUE );
   if( FunV_tErr_NoError != eResult ) {
     goto error;
@@ -290,7 +292,8 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
     /* attempt to load offset volume, if there is one */
     eResult = FunV_LoadFunctionalVolume_( this, &(this->mpOverlayOffsetVolume),
 					  iTransform, isOffsetFileName,
-					  NULL, isRegistration,
+					  NULL, 
+					  iRegistrationType, isRegistration,
 					  iAnatomicalVolume, FALSE );
     if( FunV_tErr_NoError != eResult ) {
       /* no offset, that's fine. */
@@ -374,11 +377,12 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
 				mriTransformRef        iTransform,
 				char*                  isFileName,
 				char*                  isOffsetFileName,
+				FunV_tRegistrationType iRegistrationType,
 				char*                  isRegistration,
 				mriVolumeRef           iAnatomicalVolume ) {
   
-  FunV_tErr   eResult                           = FunV_tErr_NoError;
-  
+  FunV_tErr              eResult           = FunV_tErr_NoError;
+
   /* verify us */
   eResult = FunV_Verify( this );
   if( FunV_tErr_NoError != eResult )
@@ -388,7 +392,8 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
   eResult = FunV_LoadFunctionalVolume_( this, 
 					&(this->mpTimeCourseVolume), 
 					iTransform, isFileName,
-					NULL, isRegistration, 
+					NULL, 
+					iRegistrationType, isRegistration, 
 					iAnatomicalVolume, TRUE );
   if( FunV_tErr_NoError != eResult )
     goto error;
@@ -400,7 +405,8 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
     eResult = FunV_LoadFunctionalVolume_( this,
 					  &(this->mpTimeCourseOffsetVolume),
 					  iTransform, isOffsetFileName,
-					  NULL, isRegistration, 
+					  NULL, 
+					  iRegistrationType, isRegistration, 
 					  iAnatomicalVolume, FALSE );
     if( FunV_tErr_NoError != eResult ) {
       /* no offset, that's fine. */
@@ -453,11 +459,13 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
 				       mriTransformRef        iTransform,
 				       char*                  isFileName,
 				       char*                  isHeaderStem,
+				      FunV_tRegistrationType iRegistrationType,
 				       char*                  isRegistration,
 				       mriVolumeRef          iAnatomicalVolume,
 				       tBoolean              ibReportErrors ) {
   
   FunV_tErr            eResult            = FunV_tErr_NoError;
+  FunD_tRegistrationType regType           = FunD_tRegistration_None;
   FunD_tErr            eVolume            = FunD_tErr_NoError;
   mriFunctionalDataRef pVolume            = NULL;
   char                 sError[tkm_knErrStringLen] = "";
@@ -467,6 +475,19 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
   if( FunV_tErr_NoError != eResult )
     goto error;
   
+  /* Convert the registration type. */
+  switch( iRegistrationType ) {
+  case FunV_tRegistration_File: regType = FunD_tRegistration_File;
+    break;
+  case FunV_tRegistration_Find: regType = FunD_tRegistration_Find;
+    break;
+  case FunV_tRegistration_Identity: regType = FunD_tRegistration_Identity;
+    break;
+  default:
+    eResult = FunV_tErr_InvalidParameter;
+    goto error;
+  }
+
   /* delete volume if already allocated */
   if( NULL != *ioppVolume ) {
     eVolume = FunD_Delete( ioppVolume );
@@ -478,7 +499,8 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
   
   /* load the volume */
   eVolume = FunD_New( &pVolume, iTransform, isFileName, isHeaderStem, 
-		      isRegistration, this->tkregMat, iAnatomicalVolume );
+		      regType, isRegistration, 
+		      this->tkregMat, iAnatomicalVolume );
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorLoadingVolume;
     goto error;
@@ -514,7 +536,7 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
     xUtil_snprintf( sError, sizeof(sError),
 		    "Loading functional overlay %s.", isFileName );
     tkm_DisplayError( sError, FunD_GetErrorString( eVolume ),
-		      "Tkmedit couldn't read the functional overlay you "
+		      "Tkmedit couldn't read the functional volume you "
 		      "specified. This could be because the volume "
 		      "wasn't found or was unreadable, or because a "
 		      "valid header type couldn't be find, or a "

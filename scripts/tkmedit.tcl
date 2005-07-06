@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.89 2005/06/29 17:41:25 kteich Exp $
+# $Id: tkmedit.tcl,v 1.90 2005/07/06 22:15:42 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -176,6 +176,11 @@ set Volm_tSampleType(sinc)      2
 # Volm_tResampleMethod
 set Volm_tResampleMethod(RAS)   0
 set Volm_tResampleMethod(slice) 1
+
+# FunD_tRegistrationType
+set FunD_tRegistration(file) 0
+set FunD_tRegistration(find) 1
+set FunD_tRegistration(identity) 2
 
 set ksaLinkedCursorString(0) notlinked
 set ksaLinkedCursorString(1) linked
@@ -782,15 +787,9 @@ proc GetDefaultLocation { iType } {
 		    set gsaDefaultLocation($iType) $gsSubjectDirectory 
 		}
 	    }
-	    LoadFunctional-overlay - LoadFunctional-timecourse {
-		if { $gsSubjectDirectory != "/" } {
-		    set gsaDefaultLocation($iType) $gsSubjectDirectory/fmri
-		} else {
-		    set gsaDefaultLocation($iType) [exec pwd]
-		}
-	    }
+	    LoadFunctional-overlay - LoadFunctional-timecourse -
 	    SpecifyRegistration-overlay - SpecifyRegistration-timecourse {
-		set gsaDefaultLocation($iType) ""
+		set gsaDefaultLocation($iType) [exec pwd]
 	    }
 	    LoadGCA_Volume - SaveGCA {
 		if { [info exists env(FREESURFER_HOME)] } {
@@ -1025,36 +1024,6 @@ set tDlogSpecs(ImportSurfaceAnnotation) [list \
   -okCmd {ImportSurfaceAnnotationToSegmentation 0 %s1 %s2; \
   SetDefaultLocation ImportSegmentation_Volume %s1; \
   SetDefaultLocation Segmentation_ColorTable %s2} ]
-set tDlogSpecs(LoadFunctionalOverlay) [list \
-  -title "Load Functional Overlay" \
-  -prompt1 "Load Volume File:" \
-  -note1 "Binary volume file (.bfloat/.bshort/.hdr) or COR-.info or other" \
-  -entry1 [list GetDefaultLocation LoadFunctional-overlay] \
-  -default1 [list GetDefaultLocation LoadFunctional-overlay] \
-  -presets1 $glShortcutDirs \
-  -prompt2 "Load Registration File:" \
-  -note2 "The register.dat file, or leave blank to look in same directory" \
-  -entry2 [list GetDefaultLocation SpecifyRegistration-overlay] \
-  -default2 [list GetDefaultLocation SpecifyRegistration-overlay] \
-  -presets2 $glShortcutDirs \
-  -okCmd {LoadFunctionalOverlay %s1 %s2; \
-  SetDefaultLocation LoadFunctional-overlay %s1; \
-  SetDefaultLocation SpecifyRegistration-overlay %s2} ]
-set tDlogSpecs(LoadFunctionalTimeCourse) [list \
-  -title "Load Functional Time Course" \
-  -prompt1 "Load Volume File:" \
-  -note1 "Binary volume file (.bfloat/.bshort/.hdr) or COR-.info or other" \
-  -entry1 [list GetDefaultLocation LoadFunctional-timecourse] \
-  -default1 [list GetDefaultLocation LoadFunctional-timecourse] \
-  -presets1 $glShortcutDirs \
-  -prompt2 "Load Registration File:" \
-  -note2 "The register.dat file, or leave blank to look in same directory" \
-  -entry2 [list GetDefaultLocation SpecifyRegistration-timecourse] \
-  -default2 [list GetDefaultLocation SpecifyRegistration-timecourse] \
-  -presets2 $glShortcutDirs \
-  -okCmd {LoadFunctionalTimeCourse %s1 %s2; \
-  SetDefaultLocation LoadFunctional-timecourse %s1; \
-  SetDefaultLocation SpecifyRegistration-timecourse %s2} ]
 set tDlogSpecs(PrintTimeCourse) [list \
   -title "Print Time Course" \
   -prompt1 "Save Summary As:" \
@@ -1228,7 +1197,9 @@ proc DoLoadFunctionalDlog { isType } {
     global gDialog gaLinkedVars
     global gaScalarValueID gsaLabelContents
     global glShortcutDirs
-    global gfnFunctional gsFuncLoadType
+    global FunD_tRegistration
+    global gfnFunctional gsFuncLoadType 
+    global gRegistrationType gfnFunctionalRegistration
 
     set wwDialog .wwLoadFunctionalDlog
 
@@ -1251,6 +1222,10 @@ proc DoLoadFunctionalDlog { isType } {
 	
 	set fwFile             $wwDialog.fwFile
 	set fwFileNote         $wwDialog.fwFileNote
+	set fwRegFile          $wwDialog.fwRegFile
+	set fwRegFileName      $wwDialog.fwRegFileName
+	set fwRegFind          $wwDialog.fwRegFind
+	set fwRegIdentity      $wwDialog.fwRegIdentity
 	set fwButtons          $wwDialog.fwButtons
 	
 	set gfnFunctional [GetDefaultLocation LoadFunctional-$gsFuncLoadType]
@@ -1261,15 +1236,30 @@ proc DoLoadFunctionalDlog { isType } {
 	[$fwFile.ew subwidget entry] icursor end
 	
 	tkm_MakeSmallLabel $fwFileNote \
-	    "One of the binary volume files (.bfloat/.bshort/.hdr)" 400
-	
+	    "The volume file (or COR-.info for COR volumes)" 400
+
+	# The bit of code in the radio buttons disables the file entry
+	# field when the file radio button is not clicked.
+	tkm_MakeRadioButton $fwRegFile "Specify registration file" \
+	    gRegistrationType $FunD_tRegistration(file) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file) } { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
+	tkm_MakeFileSelector $fwRegFileName "register.dat file:" \
+	    gfnFunctionalRegistration \
+	    [list GetDefaultLocation LoadFunctional-$gsFuncLoadType] \
+	    $glShortcutDirs
+	tkm_MakeRadioButton $fwRegFind "Find registration in data directory" \
+	    gRegistrationType $FunD_tRegistration(find) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
+	tkm_MakeRadioButton $fwRegIdentity "Calculate identity matrix" \
+	    gRegistrationType $FunD_tRegistration(identity) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
+	set gRegistrationType $FunD_tRegistration(file)
+
 	# buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
 	    {set fnFunctional $gfnFunctional; 
 	      SetDefaultLocation LoadFunctional-$gsFuncLoadType $gfnFunctional;
-		DoLoadFunctional $gsFuncLoadType $gfnFunctional }
+		DoLoadFunctional $gsFuncLoadType $gfnFunctional $gRegistrationType $gfnFunctionalRegistration }
 	
-	pack $fwFile $fwFileNote $fwButtons \
+	pack $fwFile $fwFileNote $fwRegFile $fwRegFileName \
+	    $fwRegFind $fwRegIdentity $fwButtons \
 	    -side top       \
 	    -expand yes     \
 	    -fill x         \
@@ -1286,79 +1276,14 @@ proc DoLoadFunctionalDlog { isType } {
     }
 }
 
-proc DoLoadFunctional { isType ifnVolume } {
+proc DoLoadFunctional { isType ifnVolume iRegistrationType ifnRegister } {
 
-    # if ends in bfloat, pass to DoSpecifyStemAndRegistration
-    set sExtension [file extension $ifnVolume]
-    if { $sExtension == ".bfloat" || 
-	 $sExtension == ".bshort" ||
-	 $sExtension == ".hdr" } {
-	DoSpecifyStemAndRegistration $isType $ifnVolume
-    } 
-}
-
-proc DoSpecifyStemAndRegistration { isType ifnVolume } {
-
-    global gfnFuncPath gsFuncStem gfnFuncRegistration gsFuncLoadType
-    global gDialog gaLinkedVars
-    global glShortcutDirs
-    
-    set wwDialog .wwDoSpecifyStemAndRegistration
-
-    set knWidth 400
-    set gfnFuncPath [file dirname $ifnVolume]
-    set gsFuncStem [lindex [split [file rootname [file tail $ifnVolume]] _] 0]
-
-    # try to create the dlog...
-    if { [Dialog_Create $wwDialog "Specify Registration" {-borderwidth 10}] } {
-
-	set fwStem             $wwDialog.fwStem
-	set fwStemNote         $wwDialog.fwStemNote
-	set fwReg              $wwDialog.fwReg
-	set fwRegNote          $wwDialog.fwRegNote
-	set fwButtons          $wwDialog.fwButtons
-	
-	tkm_MakeEntry $fwStem "Stem:" gsFuncStem
-	
-	tkm_MakeSmallLabel $fwStemNote "The stem of the volume" 400
-	
-	set gfnFuncRegistration [file join $gfnFuncPath register.dat]
-	SetDefaultLocation SpecifyRegistration $gfnFuncRegistration
-	tkm_MakeFileSelector $fwReg "Registration file:" gfnFuncRegistration \
-	    [list GetDefaultLocation SpecifyRegistration] \
-	    $glShortcutDirs
-	
-	[$fwReg.ew subwidget entry] icursor end
-	
-	tkm_MakeSmallLabel $fwRegNote \
-	    "The file name of the registration file to load" 
-	
-	# buttons.
-        tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-	    { 
-		SetDefaultLocation SpecifyRegistration $gfnFuncRegistration;
-		if { $gsFuncLoadType == "overlay" } {
-		    LoadFunctionalOverlay \
-			$gfnFuncPath $gsFuncStem $gfnFuncRegistration
-		} elseif { $gsFuncLoadType == "timecourse" } {
-		    LoadFunctionalTimeCourse \
-			$gfnFuncPath $gsFuncStem $gfnFuncRegistration
-		}
-	    }
-	
-	pack $fwStem $fwStemNote $fwReg $fwRegNote $fwButtons \
-	    -side top       \
-	    -expand yes     \
-	    -fill x         \
-	    -padx 5         \
-	    -pady 5
-	
-	# after the next idle, the window will be mapped. set the min
-	# width to our width and the min height to the mapped height.
-	after idle [format {
-	    update idletasks
-	    wm minsize %s %d [winfo reqheight %s]
-	} $wwDialog $knWidth $wwDialog] 
+    if { [string match $isType overlay] } {
+	LoadFunctionalOverlay \
+	    $ifnVolume $iRegistrationType $ifnRegister
+    } elseif { [string match $isType timecourse] } {
+	LoadFunctionalTimeCourse \
+	    $ifnVolume $iRegistrationType $ifnRegister
     }
 }
 
@@ -3474,10 +3399,10 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ separator }
 	{ command
 	    "Load Overlay Data..."
-	    {DoFileDlog LoadFunctionalOverlay} }
+	    {DoLoadFunctionalDlog overlay} }
 	{ command
 	    "Load Time Course Data..."
-	    {DoFileDlog LoadFunctionalTimeCourse} }
+	    {DoLoadFunctionalDlog timecourse} }
 	{ command
 	    "Save Overlay Registration"
 	    Overlay_SaveRegistration

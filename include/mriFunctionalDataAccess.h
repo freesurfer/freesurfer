@@ -65,6 +65,15 @@ typedef enum {
   FunD_knNumConversionMethods
 } FunD_tConversionMethod;
 
+/* Methods of finding the registration. Specified in the New function. */
+typedef enum {
+  FunD_tRegistration_None = -1,
+  FunD_tRegistration_File = 0,
+  FunD_tRegistration_Find,
+  FunD_tRegistration_Identity,
+  FunD_knNumRegistrationTypes
+} FunD_tRegistrationType;
+
 #define FunD_ksConversionMethod_FFF   "floor"
 #define FunD_ksConversionMethod_Round "round"
 #define FunD_ksConversionMethod_FCF   "tkregister"
@@ -209,14 +218,15 @@ typedef struct {
    The transform should be a->b index->RAS (only a->RAS transform will
    be used). */
 
-FunD_tErr FunD_New    ( mriFunctionalDataRef* opVolume,
-			mriTransformRef       iTransform,
-			char*                 isFileName,
-			char*                 isHeaderStem,
-			char*                 isRegistrationFile,
-			MATRIX*               iTkregMat,
-			mriVolumeRef          iAnatomicalVolume );
-FunD_tErr FunD_Delete ( mriFunctionalDataRef* iopVolume );
+FunD_tErr FunD_New    ( mriFunctionalDataRef*  opVolume,
+			mriTransformRef        iTransform,
+			char*                  isFileName,
+			char*                  isHeaderStem,
+			FunD_tRegistrationType iRegistrationType,
+			char*                  isRegistrationFile,
+			MATRIX*                iTkregMat,
+			mriVolumeRef           iAnatomicalVolume );
+FunD_tErr FunD_Delete ( mriFunctionalDataRef*  iopVolume );
 
 
 /* Parse a stem header if available. */
@@ -228,6 +238,7 @@ FunD_tErr FunD_GuessMetaInformation_   ( mriFunctionalDataRef this );
 
 /* Reads the register.dat file, allocates and initializes matricies. */
 FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
+						 FunD_tRegistrationType iType,
 					      mriVolumeRef iAnatomicalVolume );
 
 /* Restores registration matrix to original copy. */

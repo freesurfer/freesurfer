@@ -8,10 +8,10 @@
 #undef VERSION
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/06/28 23:30:49 $
-// Revision       : $Revision: 1.248 $
-char *VERSION = "$Revision: 1.248 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2005/07/06 22:15:17 $
+// Revision       : $Revision: 1.249 $
+char *VERSION = "$Revision: 1.249 $";
 
 #define TCL
 #define TKMEDIT 
@@ -484,9 +484,11 @@ tkmFunctionalVolumeRef gFunctionalVolume = NULL;
 
 tkm_tErr LoadFunctionalOverlay    ( char* isFileName, 
 				    char* isOffsetFileName,
+				    FunD_tRegistrationType iRegType,
 				    char* isRegistrationFileName );
 tkm_tErr LoadFunctionalTimeCourse ( char* isFileName, 
 				    char* isOffsetFileName,
+				    FunD_tRegistrationType iRegType,
 				    char* isRegistrationFileName );
 
 tkm_tErr SmoothOverlayData ( float ifSigma );
@@ -977,95 +979,114 @@ void checkLicense(char* dirname)
 
 void ParseCmdLineArgs ( int argc, char *argv[] ) {
   
-  tkm_tErr      eResult          = tkm_tErr_NoErr;
-  FunV_tErr      eFunctional          = FunV_tErr_NoError;
-  int        nNumProcessedVersionArgs = 0;
-  int        nCurrentArg        = 0;
-  int        bFatalError        = FALSE;
-  char        sArg[tkm_knPathLen]      = "";
-  char        sError[tkm_knErrStringLen]    = "";
-  tBoolean      bSubjectDeclared      = FALSE;
-  tBoolean      bUsingMRIRead        = FALSE;
-  char        sSubject[tkm_knPathLen]    = "";
-  char        sImageDir[tkm_knPathLen]    = "";
-  tBoolean    bScaleUpVolume = FALSE;
-  tBoolean      bSurfaceDeclared      = FALSE;
-  char        sSurface[tkm_knPathLen]    = "";
-  tBoolean      bLocalImageDir      = FALSE;
-  tBoolean      bNoEdit        = FALSE;
-  tBoolean      bLoadingAuxVolume      = FALSE;
-  char        sAuxVolume[tkm_knPathLen]    = "";
-  tBoolean      bLoadingMainTransform      = FALSE;
-  char        sMainTransform[tkm_knPathLen]    = "";
-  tBoolean      bLoadingAuxTransform      = FALSE;
-  char        sAuxTransform[tkm_knPathLen]    = "";
-  tBoolean      bLoadingOverlay      = FALSE;
-  char        sOverlayFileName[tkm_knPathLen]  = "";
-  char        sOverlayOffsetFileName[tkm_knPathLen] = "";
-  char        sOverlayRegistration[tkm_knPathLen]  = "";
-  char*        psOverlayOffsetFileName    = NULL;
-  char*        psOverlayRegistration      = NULL;
-  tBoolean      bLoadingTimeCourse      = FALSE;
-  char        sTimeCourseFileName[tkm_knPathLen] = "";
-  char        sTimeCourseOffsetFileName[tkm_knPathLen]  = "";
-  char        sTimeCourseRegistration[tkm_knPathLen]= "";
-  char*        psTimeCourseOffsetFileName    = NULL;
-  char*        psTimeCourseRegistration    = NULL;
-  tBoolean      bEnablingRegistration      = FALSE;
-  tBoolean      bLoadingSegmentation      = FALSE;
-  char        sSegmentationPath[tkm_knPathLen]  = "";
-  char        sSegmentationColorFile[tkm_knPathLen] = "";
-  tBoolean      bLoadingAuxSegmentation      = FALSE;
-  char        sAuxSegmentationPath[tkm_knPathLen]  = "";
-  char        sAuxSegmentationColorFile[tkm_knPathLen] = "";
-  tBoolean      bLoadingVLI       = FALSE;
-  char          sVLIFile1[tkm_knPathLen] = "";
-  char          sVLIFile2[tkm_knPathLen] = "";
-  tBoolean      bThresh        = FALSE;
-  FunV_tFunctionalValue    min          = 0;
-  tBoolean      bMid          = FALSE;
-  FunV_tFunctionalValue    mid          = 0;
-  tBoolean      bSlope        = FALSE;
-  FunV_tFunctionalValue    slope          = 0;
-  tBoolean      bSmooth        = FALSE;
-  float        smoothSigma        = 0;
-  tBoolean      bRevPhaseFlag        = FALSE;
-  int        nRevPhaseFlag        = 0;
-  tBoolean      bTruncPhaseFlag      = FALSE;
-  int        nTruncPhaseFlag      = 0;
-  tBoolean      bUseOverlayCacheFlag      = FALSE;
-  int        nUseOverlayCacheFlag      = 0;
+  tkm_tErr     eResult                    = tkm_tErr_NoErr;
+  FunV_tErr    eFunctional                = FunV_tErr_NoError;
+  int          nNumProcessedVersionArgs   = 0;
+  int          nCurrentArg                = 0;
+  int          bFatalError                = FALSE;
+  char         sArg[tkm_knPathLen]        = "";
+  char         sError[tkm_knErrStringLen] = "";
+
+  tBoolean     bSubjectDeclared = FALSE;
+  tBoolean     bUsingMRIRead    = FALSE;
+
+  char         sSubject[tkm_knPathLen]  = "";
+  char         sImageDir[tkm_knPathLen] = "";
+  tBoolean     bScaleUpVolume           = FALSE;
+
+  tBoolean     bSurfaceDeclared        = FALSE;
+  char         sSurface[tkm_knPathLen] = "";
+
+  tBoolean     bLocalImageDir = FALSE;
+  tBoolean     bNoEdit        = FALSE;
+
+  tBoolean     bLoadingAuxVolume         = FALSE;
+  char         sAuxVolume[tkm_knPathLen] = "";
+
+  tBoolean     bLoadingMainTransform         = FALSE;
+  char         sMainTransform[tkm_knPathLen] = "";
+  tBoolean     bLoadingAuxTransform          = FALSE;
+  char         sAuxTransform[tkm_knPathLen]  = "";
+
+  tBoolean               bLoadingOverlay                      = FALSE;
+  char                   sOverlayFileName[tkm_knPathLen]      = "";
+  char                   sOverlayOffsetFileName[tkm_knPathLen]= "";
+  FunD_tRegistrationType overlayRegType             = FunD_tRegistration_None;
+  char                   sOverlayRegistration[tkm_knPathLen]  = "";
+  char*                  psOverlayOffsetFileName              = NULL;
+
+  tBoolean               bLoadingTimeCourse                       = FALSE;
+  char                   sTimeCourseFileName[tkm_knPathLen]       = "";
+  char*                  psTimeCourseOffsetFileName               = NULL;
+  char                   sTimeCourseOffsetFileName[tkm_knPathLen] = "";
+  FunD_tRegistrationType timecourseRegType          = FunD_tRegistration_None;
+  char                   sTimeCourseRegistration[tkm_knPathLen]   = "";
+
+  tBoolean     bEnablingRegistration      = FALSE;
+
+  tBoolean     bLoadingSegmentation                  = FALSE;
+  char         sSegmentationPath[tkm_knPathLen]      = "";
+  char         sSegmentationColorFile[tkm_knPathLen] = "";
+
+  tBoolean     bLoadingAuxSegmentation                  = FALSE;
+  char         sAuxSegmentationPath[tkm_knPathLen]      = "";
+  char         sAuxSegmentationColorFile[tkm_knPathLen] = "";
+
+  tBoolean     bLoadingVLI              = FALSE;
+  char         sVLIFile1[tkm_knPathLen] = "";
+  char         sVLIFile2[tkm_knPathLen] = "";
+
+  tBoolean              bThresh              = FALSE;
+  FunV_tFunctionalValue min                  = 0;
+  tBoolean              bMid                 = FALSE;
+  FunV_tFunctionalValue mid                  = 0;
+  tBoolean              bSlope               = FALSE;
+  FunV_tFunctionalValue slope                = 0;
+  tBoolean              bSmooth              = FALSE;
+  float                 smoothSigma          = 0;
+  tBoolean              bRevPhaseFlag        = FALSE;
+  int                   nRevPhaseFlag        = 0;
+  tBoolean              bTruncPhaseFlag      = FALSE;
+  int                   nTruncPhaseFlag      = 0;
+  tBoolean              bUseOverlayCacheFlag = FALSE;
+  int                   nUseOverlayCacheFlag = 0;
 #if 0
   tBoolean      bSetConversionMethod      = FALSE;
 #endif
 #if 0
   FunD_tConversionMethod  convMethod     = FunD_tConversionMethod_FFF;
 #endif
-  tBoolean      bLoadingHeadPts      = FALSE;
-  tBoolean      bHaveHeadPtsTransform      = FALSE;
-  char        sHeadPts[tkm_knPathLen]    = "";
-  char        sHeadPtsTransform[tkm_knPathLen]  = "";
-  char        sLabel[tkm_knPathLen]      = "";
-  tBoolean      bLoadingLabel        = FALSE;
-  char        sSubjectTest[tkm_knPathLen]    = "";
-  char        sScriptName[tkm_knPathLen]    = "";
-  float        fSegmentationAlpha      = 0;
+
+  tBoolean      bLoadingHeadPts                  = FALSE;
+  tBoolean      bHaveHeadPtsTransform            = FALSE;
+  char          sHeadPts[tkm_knPathLen]          = "";
+  char          sHeadPtsTransform[tkm_knPathLen] = "";
+
+  char          sLabel[tkm_knPathLen] = "";
+  tBoolean      bLoadingLabel         = FALSE;
+
+  char          sSubjectTest[tkm_knPathLen] = "";
+  char          sScriptName[tkm_knPathLen]  = "";
+
+  float         fSegmentationAlpha      = 0;
   tBoolean      bSegmentationAlpha      = FALSE;
-  float         fBrightnessMain        = 0;
-  float         fContrastMain          = 0;
-  tBoolean      bBrightContrastMain    = FALSE;
+
+  float         fBrightnessMain       = 0;
+  float         fContrastMain         = 0;
+  tBoolean      bBrightContrastMain   = FALSE;
   float         fBrightnessAux        = 0;
   float         fContrastAux          = 0;
   tBoolean      bBrightContrastAux    = FALSE;
-  float         fColorMinMain        = 0;
-  float         fColorMaxMain          = 0;
-  tBoolean      bColorMain    = FALSE;
-  float         fColorMinAux        = 0;
-  float         fColorMaxAux         = 0;
-  tBoolean      bColorAux    = FALSE;
+
+  float         fColorMinMain  = 0;
+  float         fColorMaxMain  = 0;
+  tBoolean      bColorMain     = FALSE;
+  float         fColorMinAux   = 0;
+  float         fColorMaxAux   = 0;
+  tBoolean      bColorAux      = FALSE;
 
   DebugEnterFunction( ("ParseCmdLineArgs( argc=%d, argv=%s )", 
-           argc, argv[0]) );
+		       argc, argv[0]) );
   
   /* first get the functional threshold so we don't overwrite the defaults */
   DebugNote( ("Getting default functional threshold") );
@@ -1076,7 +1097,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.248 2005/06/28 23:30:49 nicks Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.249 2005/07/06 22:15:17 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1109,7 +1130,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-mm-main <min> <max>             : color scale min and max for main volume\n");
     printf("-bc-aux <brightness> <contrast>  : brightness and contrast for aux volume\n");
     printf("-mm-aux <min> <max>              : color scale min and max for aux volume\n");
-    printf("-overlay <fie>             : load functional overlay volume\n");
+    printf("-overlay <file>            : load functional overlay volume\n");
+    printf("-overlay-reg-find          : find overlay registration volume in data dir\n");
+    printf("-overlay-reg-identity      : generate identity for overlay registration volume\n");
     printf("-overlay-reg <registration> : load registration file for overlay volume \n");
     printf("                            : (default is register.dat in same path as\n");
     printf("                            :  volume)\n");
@@ -1124,8 +1147,10 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-overlaycache <1|0>      : uses overlay cache (default off)\n");
     printf("\n");
     printf("-sdir <subjects dir>       : (default is getenv(SUBJECTS_DIR)\n");
-    printf("-timecourse <file          >    : load functional timecourse volume\n");
-    printf("-timecourse-reg <registration>  : load registration file for timecourse   \n");
+    printf("-timecourse <file>             : load functional timecourse volume\n");
+    printf("-timecourse-reg-find           : find timecourse registration volume in data dir\n");
+    printf("-timecourse-reg-identity       : generate identity for timecourse registration volume\n");
+    printf("-timecourse-reg <registration> : load registration file for timecourse   \n");
     printf("                                : volume (default is register.dat in\n");
     printf("                                : same path as volume)\n");
     printf("-timecourse-offset <path/stem>  : load timecourse offset volume\n");
@@ -1173,14 +1198,14 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  DebugNote( ("Parsing -tcl option") );
 	  xUtil_strncpy( sScriptName, argv[nCurrentArg+1], 
 			 sizeof(sScriptName) );
-    
+	  
 	  /* queue the script */
 	  EnqueueScript( sScriptName );
 	  
 	  nCurrentArg += 2;
 	  
 	} else {
-    
+	  
 	  /* misuse of that option */
 	  tkm_DisplayError( "Parsing -tcl option",
 			    "Expected an argument",
@@ -1188,9 +1213,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 			    "script to run." );
 	  nCurrentArg ++;
 	}
-  
+	
       } else if( MATCH( sArg, "-bc-main" ) ) {
-  
+	
 	/* check for the 2 values following the switch */
 	if( argc > nCurrentArg + 2
 	    && '-' != argv[nCurrentArg+1][0]
@@ -1214,43 +1239,43 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	}
 	
       } else if (MATCH(sArg, "-scaleup"  ) ) {
-
+	
 	/* set our flag */
 	DebugNote( ("Enabling scaleup.") );
 	gbScaleUpVolume = bScaleUpVolume = TRUE;
 	nCurrentArg ++;
-
+	
       } else if( MATCH( sArg, "-mm-main" ) ) {
+	
+	/* check for the 2 values following the switch */
+	if( argc > nCurrentArg + 2
+	    && '-' != argv[nCurrentArg+1][0]
+	    && '-' != argv[nCurrentArg+2][0] ) {
 	  
-	  /* check for the 2 values following the switch */
-	  if( argc > nCurrentArg + 2
-	      && '-' != argv[nCurrentArg+1][0]
-	      && '-' != argv[nCurrentArg+2][0] ) {
-	    
-	    /* get the values */
-	    DebugNote( ("Parsing -mm-main option") );
-	    fColorMinMain = atof( argv[nCurrentArg+1] );
-	    fColorMaxMain = atof( argv[nCurrentArg+2] );
-	    bColorMain = TRUE;
-	    nCurrentArg +=3 ;
-	    
-	  } else { 
-	    
-	    /* misuse of that switch */
-	    tkm_DisplayError( "Parsing -mm-main option",
-			      "Expected two arguments",
-			      "This option needs two arguments: the min"
-			      "and the max color values for the volume." );
-	    nCurrentArg += 1;
-	  }
+	  /* get the values */
+	  DebugNote( ("Parsing -mm-main option") );
+	  fColorMinMain = atof( argv[nCurrentArg+1] );
+	  fColorMaxMain = atof( argv[nCurrentArg+2] );
+	  bColorMain = TRUE;
+	  nCurrentArg +=3 ;
 	  
-	} else if( MATCH( sArg, "-bc-aux" ) ) {
+	} else { 
 	  
-	  /* check for the 2 values following the switch */
-	  if( argc > nCurrentArg + 2
-	      && '-' != argv[nCurrentArg+1][0]
-	      && '-' != argv[nCurrentArg+2][0] ) {
-	    
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -mm-main option",
+			    "Expected two arguments",
+			    "This option needs two arguments: the min"
+			    "and the max color values for the volume." );
+	  nCurrentArg += 1;
+	}
+	
+      } else if( MATCH( sArg, "-bc-aux" ) ) {
+	
+	/* check for the 2 values following the switch */
+	if( argc > nCurrentArg + 2
+	    && '-' != argv[nCurrentArg+1][0]
+	    && '-' != argv[nCurrentArg+2][0] ) {
+	  
 	  /* get the value */
 	  DebugNote( ("Parsing -bc-aux option") );
 	  fBrightnessAux = atof( argv[nCurrentArg+1] );
@@ -1361,9 +1386,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  
 	  /* copy arg  */
 	  DebugNote( ("Parsing -overlay-reg option") );
-	  psOverlayRegistration = sOverlayRegistration;
 	  xUtil_strncpy( sOverlayRegistration, argv[nCurrentArg+1],
 			 sizeof(sOverlayRegistration) );
+	  overlayRegType = FunD_tRegistration_File;
 	  nCurrentArg += 2;
 	  
 	} else {
@@ -1375,6 +1400,18 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 			    "of the registration data." );
 	  nCurrentArg ++;
 	}
+  
+      } else if( MATCH( sArg, "-overlay-reg-find" ) ) {
+  
+	/* set our reg type  */
+	overlayRegType = FunD_tRegistration_Find;
+	nCurrentArg += 1;
+  
+      } else if( MATCH( sArg, "-overlay-reg-identity" ) ) {
+  
+	/* set our reg type */
+	overlayRegType = FunD_tRegistration_Identity;
+	nCurrentArg += 1;
   
       } else if( MATCH( sArg, "-overlay-offset" ) ) {
   
@@ -1429,9 +1466,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  
 	  /* copy arg  */
 	  DebugNote( ("Parsing -timecourse-reg option") );
-	  psTimeCourseRegistration = sTimeCourseRegistration;
 	  xUtil_strncpy( sTimeCourseRegistration, argv[nCurrentArg+1],
 			 sizeof(sTimeCourseRegistration) );
+	  timecourseRegType = FunD_tRegistration_File;
 	  nCurrentArg += 2;
 	  
 	} else {
@@ -1443,6 +1480,18 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 			    "of the registration data." );
 	  nCurrentArg ++;
 	}
+  
+      } else if( MATCH( sArg, "-timecourse-reg-find" ) ) {
+  
+	/* set our reg type  */
+	timecourseRegType = FunD_tRegistration_Find;
+	nCurrentArg += 1;
+  
+      } else if( MATCH( sArg, "-timecourse-reg-identity" ) ) {
+  
+	/* set our reg type  */
+	timecourseRegType = FunD_tRegistration_Identity;
+	nCurrentArg += 1;
   
       } else if( MATCH( sArg, "-timecourse-offset" ) ) {
   
@@ -2042,7 +2091,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     } else {
       
       /* this is the name/imagedir part. only do it if we haven't
-   declared the sunject yet. */
+	 declared the subject yet. */
       if( !bSubjectDeclared ) {
   
 	/*make sure we have enough args and they arn't switches */
@@ -2069,7 +2118,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 			   sizeof(sImageDir) );
 	    bSubjectDeclared = TRUE;
 	    nCurrentArg += 2;
-	    
+	  	    
 	    /* save subject home */
 	    DebugNote( ("Setting subject home from env") );
 	    eResult = SetSubjectHomeDirFromEnv( sSubject );
@@ -2112,7 +2161,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
       }
     }
   }
-  
+
   /* check for fatal error. */
   if( bFatalError ) {
     /* probably have some error messages that didn't get printed cuz
@@ -2251,7 +2300,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   if( bLoadingLabel ) {
     eResult = LoadSelectionFromLabelFile( sLabel );
   }
-  
+
   /* load head pts */
   if( bLoadingHeadPts ) {
     if( bHaveHeadPtsTransform ) {
@@ -2263,20 +2312,49 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   
   /* load functional overlay data */
   if( bLoadingOverlay ) {
-    eResult = LoadFunctionalOverlay( sOverlayFileName,
-				     psOverlayOffsetFileName,
-				     psOverlayRegistration );
     
-    if( eResult == tkm_tErr_NoErr && bSmooth ) {
-      eResult = SmoothOverlayData( smoothSigma );
+    /* Check that they specified a reg type. */
+    if( FunD_tRegistration_None == overlayRegType ) {
+
+      tkm_DisplayError( "Loading Functional Overlay",
+			"No registration type specified",
+			"Must specify a registration type to use with "
+			"the functional overlay. Use -overlay-reg <file>, "
+			"-overlay-reg-find, or -overlay-reg-identity." );
+
+    } else {
+
+      eResult = LoadFunctionalOverlay( sOverlayFileName,
+				       psOverlayOffsetFileName,
+				       overlayRegType,
+				       sOverlayRegistration );
+      
+      if( eResult == tkm_tErr_NoErr && bSmooth ) {
+	eResult = SmoothOverlayData( smoothSigma );
+      }
     }
   }
   
   /* load functional time course data */
   if( bLoadingTimeCourse ) {
-    eResult = LoadFunctionalTimeCourse( sTimeCourseFileName, 
-          psTimeCourseOffsetFileName,
-          psTimeCourseRegistration );
+
+    /* Check that they specified a reg type. */
+    if( FunD_tRegistration_None == timecourseRegType ) {
+
+      tkm_DisplayError( "Loading Functional Time Course",
+			"No registration type specified",
+			"Must specify a registration type to use with "
+			"the functional time course. Use -timecourse-reg "
+			"<file>, -timecourse-reg-find, or "
+			"-timecourse-reg-identity." );
+
+    } else {
+
+      eResult = LoadFunctionalTimeCourse( sTimeCourseFileName, 
+					  psTimeCourseOffsetFileName,
+					  timecourseRegType,
+					  sTimeCourseRegistration );
+    }
   }
   
   /* set registration */
@@ -2286,7 +2364,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   /* if regisration is enabled, set conversion method to round. */
   if( bEnablingRegistration ) {
     FunV_SetConversionMethod( gFunctionalVolume, 
-            FunD_tConversionMethod_Round );
+			      FunD_tConversionMethod_Round );
   }
   
   
@@ -4831,22 +4909,24 @@ int TclLoadFunctionalOverlay ( ClientData inClientData,
   
   char sFileName[tkm_knPathLen] = "";
   char sRegistration[tkm_knPathLen] = "";
+  FunD_tRegistrationType regType = FunD_tRegistration_None;
   
-  if ( argc != 2 && argc != 3 ) {
+  if ( argc != 3 && argc != 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadFunctionalOverlay "
-		    "filename [registration]", TCL_VOLATILE );
+		    "filename registrationType [registration]", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
     
     xUtil_strncpy( sFileName, argv[1], sizeof(sFileName) );
+    regType = (FunD_tRegistrationType) atoi( argv[2] );
 
-    if( argc > 2 && argv[2][0] != '\0' ) {
-      xUtil_strncpy( sRegistration, argv[2], sizeof(sRegistration) );
-      LoadFunctionalOverlay( sFileName, NULL, sRegistration );
+    if( argc > 3 && argv[3][0] != '\0' ) {
+      xUtil_strncpy( sRegistration, argv[3], sizeof(sRegistration) );
+      LoadFunctionalOverlay( sFileName, NULL, regType, sRegistration );
     } else {
-      LoadFunctionalOverlay( sFileName, NULL, NULL );
+      LoadFunctionalOverlay( sFileName, NULL, regType, NULL );
     }
   }  
   
@@ -4859,22 +4939,24 @@ int TclLoadFunctionalTimeCourse ( ClientData inClientData,
   
   char sFileName[tkm_knPathLen] = "";
   char sRegistration[tkm_knPathLen] = "";
-  
-  if ( argc != 2 && argc != 3 ) {
+  FunD_tRegistrationType regType = FunD_tRegistration_None;
+    
+  if ( argc != 3 && argc != 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadFunctionalTimeCourse "
-		    "filename [registration]", TCL_VOLATILE );
+		    "filename registrationType [registration]", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
     
     xUtil_strncpy( sFileName, argv[1], sizeof(sFileName) );
+    regType = (FunD_tRegistrationType) atoi( argv[2] );
 
-    if( argc > 2 && argv[2][0] != '\0' ) {
-      xUtil_strncpy( sRegistration, argv[2], sizeof(sRegistration) );
-      LoadFunctionalTimeCourse( sFileName, NULL, sRegistration );
+    if( argc > 3 && argv[3][0] != '\0' ) {
+      xUtil_strncpy( sRegistration, argv[3], sizeof(sRegistration) );
+      LoadFunctionalTimeCourse( sFileName, NULL, regType, sRegistration );
     } else {
-      LoadFunctionalTimeCourse( sFileName, NULL, NULL );
+      LoadFunctionalTimeCourse( sFileName, NULL, regType, NULL );
     }
   }  
   
@@ -5209,7 +5291,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.248 2005/06/28 23:30:49 nicks Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.249 2005/07/06 22:15:17 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -8677,6 +8759,7 @@ void ConvertAnaIdxToRAS ( xVoxelRef iAnaIdx,
 
 tkm_tErr LoadFunctionalOverlay( char* isFileName, 
 				char* isOffsetFileName,
+				FunD_tRegistrationType iRegType,
 				char* isRegistrationFileName ) {
 
   MATRIX*   tkregMat                              = NULL;
@@ -8691,8 +8774,9 @@ tkm_tErr LoadFunctionalOverlay( char* isFileName,
   char      sError[tkm_knErrStringLen]            = "";
   
   DebugEnterFunction( ("LoadFunctionalOverlay( isFileName=%s, "
-		       "isOffsetFileName=%s, isRegistrationFileName=%s )", 
-		       isFileName, isOffsetFileName, isRegistrationFileName) );
+		       "isOffsetFileName=%s, iRegType=%d, "
+		       "isRegistrationFileName=%s )", isFileName,
+		       isOffsetFileName, isRegistrationFileName) );
   
   /* Make our filename. If we have an offset or registration file
      name, make that too. */
@@ -8740,7 +8824,7 @@ tkm_tErr LoadFunctionalOverlay( char* isFileName,
   DebugNote( ("Loading overlay") );
   eFunctional = FunV_LoadOverlay( gFunctionalVolume, gIdxToRASTransform,
 				  sFileName, psOffsetFileName,
-				  psRegistrationFileName,
+				  iRegType, psRegistrationFileName,
 				  gAnatomicalVolume[tkm_tVolumeType_Main]);
   DebugAssertThrowX( (FunV_tErr_NoError == eFunctional),
 		     eResult, tkm_tErr_CouldntLoadOverlay );
@@ -8774,6 +8858,7 @@ tkm_tErr LoadFunctionalOverlay( char* isFileName,
 
 tkm_tErr LoadFunctionalTimeCourse( char* isFileName, 
 				   char* isOffsetFileName,
+				   FunD_tRegistrationType iRegType,
 				   char* isRegistrationFileName ) {
 
   MATRIX*   tkregMat                              = NULL;
@@ -8788,8 +8873,9 @@ tkm_tErr LoadFunctionalTimeCourse( char* isFileName,
   char      sError[tkm_knErrStringLen]            = "";
   
   DebugEnterFunction( ("LoadFunctionalTimeCourse( isFileName=%s, "
-		       "isOffsetFileName=%s, isRegistrationFileName=%s )", 
-		       isFileName, isOffsetFileName, isRegistrationFileName) );
+		       "isOffsetFileName=%s, iRegType=%d, "
+		       "isRegistrationFileName=%s )", isFileName,
+		       isOffsetFileName, iRegType, isRegistrationFileName) );
   
   /* Make our filename. If we have an offset or registration file
      name, make that too. */
@@ -8837,7 +8923,7 @@ tkm_tErr LoadFunctionalTimeCourse( char* isFileName,
   DebugNote( ("Loading overlay") );
   eFunctional = FunV_LoadTimeCourse( gFunctionalVolume, gIdxToRASTransform,
 				     sFileName, psOffsetFileName,
-				     psRegistrationFileName,
+				     iRegType, psRegistrationFileName,
 				     gAnatomicalVolume[tkm_tVolumeType_Main] );
   DebugAssertThrowX( (FunV_tErr_NoError == eFunctional),
 		     eResult, tkm_tErr_CouldntLoadOverlay );
