@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/06/15 18:05:06 $
-// Revision       : $Revision: 1.166 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/07/06 18:37:45 $
+// Revision       : $Revision: 1.167 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13309,7 +13309,7 @@ int
 GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 {
   HISTOGRAM *h, *hsmooth ;
-  int       l, xp, yp, zp, x, y, z, nbins, i, 
+  int       l, xp, yp, zp, nbins, i, x, y, z, 
     xn, yn, zn, num, frame, bin ;
   float     fmin, fmax, prior, label_scales[MAX_GCA_LABELS], 
     label_means[MAX_GCA_LABELS], 
@@ -13384,6 +13384,8 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
                                                  &x, &y, &z))
                         {
                           MRIsampleVolumeFrame(mri, x, y, z, frame, &val) ;
+													if (FZERO(val))  // skull stripped 
+														continue ;
                           bin = nint((val - fmin)/h->bin_size) ;
                           if (bin >= h->nbins)
                             bin = h->nbins-1 ;
