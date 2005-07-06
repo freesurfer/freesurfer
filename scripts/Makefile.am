@@ -169,7 +169,8 @@ wrappers.tcl \
 fsgdfPlot.tcl
 
 recon-all: recon-all-nmr
-	cat ./recon-all-nmr | grep -v dASEGd > ./recon-all
+#	cat ./recon-all-nmr | grep -v dASEGd > ./recon-all
+	cp ./recon-all-nmr ./recon-all
 	chmod a+x ./recon-all
 
 # use , as the separator so that the directory path / can be passed
