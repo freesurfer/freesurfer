@@ -10,6 +10,7 @@ extern char *annotation_table_file;
 
 int   read_annotation_table(void) ;
 int   read_named_annotation_table(char *fname) ;
+char *index_to_name(int index);
 char  *annotation_to_name(int annotation, int *pindex) ;
 int   annotation_to_index(int annotation) ;
 int   print_annotation_table(FILE *fp);
