@@ -1805,6 +1805,16 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
 
 /* ---------------------------------------------------------------------- */
 
+/* ------------------------------------------------------------------ tcl */
+
+char** cached_tcl_commands = NULL;
+int num_cached_tcl_commands = 0;
+int max_num_cached_tcl_commands = 0;
+void send_tcl_command (char* cmd);
+void send_cached_tcl_commands ();
+
+/* ---------------------------------------------------------------------- */
+
 /* ---------------------------------------------------------------- debug */
 
 /* Some drawing tools for drawing certain faces and verts. */
@@ -1872,6 +1882,8 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   FunD_tRegistrationType timecourse_offset_reg_type = FunD_tRegistration_None;
   char timecourse_offset_fname[NAME_LENGTH];
   char timecourse_offset_reg[NAME_LENGTH];
+
+  char tcl_cmd[1024];
   /* end rkt */
   
   InitDebugging("tksurfer") ;
@@ -1880,7 +1892,7 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   for (i = 0 ; i < argc ; i++)
     {
       /*      fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);*/
-      if (!stricmp(argv[i], "-o")) 
+      if (!stricmp(argv[i], "-o") || !stricmp(argv[i], "-overlay")) 
 	{
 	  nargs = 2 ;
 	  functional_fname = argv[i+1] ;
@@ -2277,6 +2289,13 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 
 	  func_load_timecourse (timecourse_fname, 
 				timecourse_reg_type, timecourse_reg);
+
+	  /* send the number of conditions */
+	  sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
+	  send_tcl_command (tcl_cmd);
+	  
+	  /* show the graph window */
+	  send_tcl_command ("Graph_ShowWindow");
 	}
     }
   
@@ -2291,6 +2310,9 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 	  func_load_timecourse_offset (timecourse_offset_fname, 
 				       timecourse_offset_reg_type, 
 				       timecourse_offset_reg);
+
+	  /* turn on the offset options */
+	  send_tcl_command ("Graph_ShowOffsetOptions 1");
 	}
     }
   
@@ -2390,14 +2412,14 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	  (MATCH(tclvar,"micro") || MATCH(tclvar,"mini"))) {
 	sprintf(command,"wm geometry .w +%d+%d",
 		w.x, w.y + w.h + MOTIF_YFUDGE /*+MOTIF_XFUDGE*/);
-	Tcl_Eval(interp,command);
-	/*Tcl_Eval(interp,"raise .");*/
+	send_tcl_command (command);
+	/*send_tcl_command ("raise .");*/
       }        
 #else
       /* move the tool window under us */
       sprintf(command,"MoveToolWindow %d %d",
 	      w.x, w.y + w.h + MOTIF_YFUDGE /*+MOTIF_XFUDGE*/);
-      Tcl_Eval(interp,command);
+      send_tcl_command (command);
       
       /* update window position */
       curwindowleft = w.x;
@@ -2416,7 +2438,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	      if (ahead.type==Expose || ahead.type==ConfigureNotify) 
 		break;
 	    }
-	  Tcl_Eval(interp,"UpdateAndRedraw");
+	  send_tcl_command ("UpdateAndRedraw");
 	}
       /* end rkt */
       break;
@@ -2435,14 +2457,14 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	      if (ahead.type==Expose || ahead.type==ConfigureNotify) 
 		break;
 	    }
-	  Tcl_Eval(interp,"UpdateAndRedraw");
+	  send_tcl_command ("UpdateAndRedraw");
 	}
 #if 0
       if (XPending(xDisplay)) {
 	XPeekEvent(xDisplay, &ahead);
 	if (ahead.type==Expose || ahead.type==ConfigureNotify) break;
       }
-      /*Tcl_Eval(interp,"redrawbutton");*/ /* still multiple */
+      /*send_tcl_command ("redrawbutton");*/ /* still multiple */
 #endif
       /* end rkt */
       break;
@@ -2482,10 +2504,10 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	  /* begin rkt */
 #if 0
 	  sprintf(command,"set xtrans %d; set ytrans %d",(int)-wx,(int)-wy);
-	  Tcl_Eval(interp,command);
+	  send_tcl_command (command);
 	  sprintf(command,"set scalepercent %d",(int)SCALE_UP_MOUSE*100);
-	  Tcl_Eval(interp,command);
-	  Tcl_Eval(interp,"redrawbutton");
+	  send_tcl_command (command);
+	  send_tcl_command ("redrawbutton");
 #endif
 	  translate_brain (-wx, -wy, 0);
 	  scale_brain (SCALE_UP_MOUSE);
@@ -2548,10 +2570,10 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	  /* begin rkt */
 #if 0
 	  sprintf(command,"set xtrans %d; set ytrans %d",(int)-wx,(int)-wy);
-	  Tcl_Eval(interp,command);
+	  send_tcl_command (command);
 	  sprintf(command,"set scalepercent %d",(int)(1.0/SCALE_UP_MOUSE*100));
-	  Tcl_Eval(interp,command);
-	  Tcl_Eval(interp,"redrawbutton");
+	  send_tcl_command (command);
+	  send_tcl_command ("redrawbutton");
 #endif
 	  translate_brain (-wx, -wy, 0);
 	  scale_brain (1.0/SCALE_UP_MOUSE);
@@ -2590,11 +2612,11 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	/* lower case */
 	/* begin rkt */
 #if 0
-      case XK_r: if (altkeypressed) Tcl_Eval(interp,"redrawbutton"); break;
+      case XK_r: if (altkeypressed) send_tcl_command ("redrawbutton"); break;
 #endif
       case XK_r: 
 	if (altkeypressed) 
-	  Tcl_Eval(interp,"UpdateAndRedraw"); 
+	  send_tcl_command ("UpdateAndRedraw"); 
 	break;
 	/* end rkt */
 	
@@ -2602,42 +2624,42 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	/* begin rkt */
 #if 0
       case XK_Up:
-	if (altkeypressed) Tcl_Eval(interp,"set xrot [expr $xrot+18.0]");
+	if (altkeypressed) send_tcl_command ("set xrot [expr $xrot+18.0]");
 	break;
       case XK_Down:
-	if (altkeypressed) Tcl_Eval(interp,"set xrot [expr $xrot-18.0]");
+	if (altkeypressed) send_tcl_command ("set xrot [expr $xrot-18.0]");
 	break;
       case XK_Right:
-	if (altkeypressed) Tcl_Eval(interp,"set yrot [expr $yrot-18.0]");
+	if (altkeypressed) send_tcl_command ("set yrot [expr $yrot-18.0]");
 	break;
       case XK_Left:
-	if (altkeypressed) Tcl_Eval(interp,"set yrot [expr $yrot+18.0]");
+	if (altkeypressed) send_tcl_command ("set yrot [expr $yrot+18.0]");
 	break;
 #endif
       case XK_Up:
 	if (altkeypressed) 
-	  Tcl_Eval(interp,"set gNextTransform(rotate,x) "
-		   "[expr $gNextTransform(rotate,x)+18.0]");
+	  send_tcl_command ("set gNextTransform(rotate,x) "
+			    "[expr $gNextTransform(rotate,x)+18.0]");
 	break;
       case XK_Down:
 	if (altkeypressed) 
-	  Tcl_Eval(interp,"set gNextTransform(rotate,x) "
-		   "[expr $gNextTransform(rotate,x)-18.0]");
+	  send_tcl_command ("set gNextTransform(rotate,x) "
+			    "[expr $gNextTransform(rotate,x)-18.0]");
 	break;
       case XK_Right:
 	if (altkeypressed) 
-	  Tcl_Eval(interp,"set gNextTransform(rotate,y) "
-		   "[expr $gNextTransform(rotate,y)-18.0]");
+	  send_tcl_command ("set gNextTransform(rotate,y) "
+			    "[expr $gNextTransform(rotate,y)-18.0]");
 	break;
       case XK_Left:
 	if (altkeypressed) 
-	  Tcl_Eval(interp,"set gNextTransform(rotate,y) "
-		   "[expr $gNextTransform(rotate,y)+18.0]");
+	  send_tcl_command ("set gNextTransform(rotate,y) "
+			    "[expr $gNextTransform(rotate,y)+18.0]");
 	break;
       case XK_Home:
 	sprintf(command,"MoveToolWindow %d %d",
 		curwindowleft, curwindowbottom + MOTIF_YFUDGE);
-	Tcl_Eval(interp,command);
+	send_tcl_command (command);
 	break;
 	/* end rkt */
 	
@@ -5206,10 +5228,8 @@ select_vertex(short sx,short sy)
   fbnd_select_boundary_by_vno (vno);
   
   /* let the tcl side of things respond. */
-  if ( g_interp ) {
-    sprintf(command,"SelectVertex %d", vno);
-    Tcl_Eval(g_interp,command);
-  }
+  sprintf(command,"SelectVertex %d", vno);
+  send_tcl_command (command);
 
   /* finally, update the labels. */
   if (vno>=0)
@@ -7878,18 +7898,15 @@ sclv_read_from_dotw(char *fname, int field)  /* marty: openclose */
   sclv_set_current_field (field);
   
   /* set the field name to the name of the file loaded */
-  if (NULL != g_interp)
-    {
-      FileNameOnly (fname, val_name);
-      sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, val_name);
-      Tcl_Eval (g_interp, cmd);
-      sprintf (cmd, "ShowValueLabel %d 1", field);
-      Tcl_Eval (g_interp, cmd);
-      sprintf (cmd, "UpdateLinkedVarGroup view");
-      Tcl_Eval (g_interp, cmd);
-      sprintf (cmd, "UpdateLinkedVarGroup overlay");
-      Tcl_Eval (g_interp, cmd);
-    }
+  FileNameOnly (fname, val_name);
+  sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, val_name);
+  send_tcl_command (cmd);
+  sprintf (cmd, "ShowValueLabel %d 1", field);
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup view");
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup overlay");
+  send_tcl_command (cmd);
   
   /* enable the menu items */
   enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
@@ -7971,17 +7988,14 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   sclv_set_current_field (field);
   
   /* set the field name to the name of the stem loaded */
-  if (g_interp)
-    {
-      sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, stem);
-      Tcl_Eval (g_interp, cmd);
-      sprintf (cmd, "ShowValueLabel %d 1", field);
-      Tcl_Eval (g_interp, cmd);
-      sprintf (cmd, "UpdateLinkedVarGroup view");
-      Tcl_Eval (g_interp, cmd);
-      sprintf (cmd, "UpdateLinkedVarGroup overlay");
-      Tcl_Eval (g_interp, cmd);
-    }
+  sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, stem);
+  send_tcl_command (cmd);
+  sprintf (cmd, "ShowValueLabel %d 1", field);
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup view");
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup overlay");
+  send_tcl_command (cmd);
   
   /* enable the menu items */
   enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
@@ -8142,18 +8156,15 @@ sclv_read_from_volume_encoded_value_file (char *fname, int field)
   sclv_set_current_field (field);
   
   /* set the field name to the name of the file loaded */
-  if (NULL != g_interp)
-    {
-      FileNameOnly (fname, val_name);
-      sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, val_name);
-      Tcl_Eval (g_interp, cmd);
-      sprintf (cmd, "ShowValueLabel %d 1", field);
-      Tcl_Eval (g_interp, cmd);
-      sprintf (cmd, "UpdateLinkedVarGroup view");
-      Tcl_Eval (g_interp, cmd);
-      sprintf (cmd, "UpdateLinkedVarGroup overlay");
-      Tcl_Eval (g_interp, cmd);
-    }
+  FileNameOnly (fname, val_name);
+  sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, val_name);
+  send_tcl_command (cmd);
+  sprintf (cmd, "ShowValueLabel %d 1", field);
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup view");
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup overlay");
+  send_tcl_command (cmd);
   
   /* enable the menu items */
   enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
@@ -8229,7 +8240,7 @@ swap_stat_val(void)
   /* begin rkt */
   /* swap the names of the val and stat labels */
   sprintf (cmd, "SwapValueLabelNames %d %d", SCLV_VAL, SCLV_VALSTAT);
-  Tcl_Eval (g_interp, cmd);
+  send_tcl_command (cmd);
   /* end rkt */
 #endif
 }
@@ -8252,7 +8263,7 @@ swap_val_val2(void)
   {
     char cmd[STRLEN] ;
     sprintf (cmd, "SwapValueLabelNames %d %d", SCLV_VAL, SCLV_VAL2);
-    Tcl_Eval (g_interp, cmd);
+    send_tcl_command (cmd);
   }
 #endif
 }
@@ -8267,7 +8278,7 @@ shift_values(void)   /* push one: val -> val2 */
   {
     char cmd[STRLEN] ;
     sprintf (cmd, "SwapValueLabelNames %d %d", SCLV_VAL, SCLV_VAL2);
-    Tcl_Eval (g_interp, cmd);
+    send_tcl_command (cmd);
   }
 }
 
@@ -8293,9 +8304,9 @@ swap_values(void)   /* swap complex: val,valbak <-> val2,val2bak */
   {
     char cmd[STRLEN] ;
     sprintf (cmd, "SwapValueLabelNames %d %d", SCLV_VAL, SCLV_VALBAK);
-    Tcl_Eval (g_interp, cmd);
+    send_tcl_command (cmd);
     sprintf (cmd, "SwapValueLabelNames %d %d", SCLV_VAL2BAK, SCLV_VAL2);
-    Tcl_Eval (g_interp, cmd);
+    send_tcl_command (cmd);
   }
 #endif
 }
@@ -8586,8 +8597,7 @@ read_binary_curvature(char *fname)
   
   /* enable our menu options. */
   enable_menu_set (MENUSET_CURVATURE_LOADED, curvloaded);
-  if (g_interp)
-    Tcl_Eval (g_interp, "ShowLabel kLabel_Curvature 1");
+  send_tcl_command ("ShowLabel kLabel_Curvature 1");
   
   /* turn on the curvflag */
   curvflag = 1;
@@ -8693,8 +8703,7 @@ read_fieldsign(char *fname)
   fieldsignflag = TRUE;
 
   enable_menu_set (MENUSET_FIELDSIGN_LOADED, 1);
-  if (g_interp)
-    Tcl_Eval (g_interp, "ShowLabel kLabel_Fieldsign 1");
+    send_tcl_command ("ShowLabel kLabel_Fieldsign 1");
 }
 
 void
@@ -18519,14 +18528,13 @@ int main(int argc, char *argv[])   /* new main */
 #endif /* USE_XGLUT_WINDOW */
 #endif
   /* begin rkt */
-  char tcl_cmd[1024];
   int found_script = FALSE;
   char* tksurfer_scripts_dir = NULL;
   int nargs;
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.122 2005/07/06 22:14:39 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.123 2005/07/07 19:50:42 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18703,6 +18711,7 @@ int main(int argc, char *argv[])   /* new main */
   interp = Tcl_CreateInterp();
   /* begin rkt */
   g_interp = interp;
+
   /* end rkt */
   
   /* make main window (not displayed until event loop starts) */
@@ -19529,30 +19538,15 @@ int main(int argc, char *argv[])   /* new main */
   
   /* run tcl/tk startup script to set vars, make interface; no display yet */
   printf("surfer: using interface %s\n",tksurfer_tcl);
-  code = Tcl_EvalFile(interp,tksurfer_tcl);
-  if (*interp->result != 0 || code != TCL_OK)  
-    printf(interp->result);
+  code = Tcl_EvalFile(g_interp, tksurfer_tcl);
+  if (code != TCL_OK)  
+    printf(Tcl_GetStringResult(interp));
   
   /* begin rkt */
-  /* this is ugly, but i have to to do this here because tcl is not inited
-     when the func volume is first loaded. */
-  if (func_timecourse!=NULL)
-    {
-      /* send the number of conditions */
-      sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
-      Tcl_Eval(interp,tcl_cmd);
-      
-      /* show the graph window */
-      Tcl_Eval(interp,"Graph_ShowWindow");
-    }
-  if (func_timecourse_offset!=NULL)
-    {
-      /* turn on the offset options */
-      Tcl_Eval(g_interp, "Graph_ShowOffsetOptions 1");
-    }
-  /* end rkt */
-  
-  /* begin rkt */
+
+  /* Now that we've sourced the interface file, send our cached
+     commands. */
+  send_cached_tcl_commands ();
   
   /* disable certain menu sets */
   enable_menu_set (MENUSET_VSET_INFLATED_LOADED, 0);
@@ -19570,8 +19564,8 @@ int main(int argc, char *argv[])   /* new main */
   /* if command line script exists, now run as batch job (possibly exiting) */
   if (scriptok) {    /* script may or may not open gl window */
     printf("tksurfer: run tcl script: %s\n",script_tcl);
-    code = Tcl_EvalFile(interp,script_tcl);
-    if (*interp->result != 0)  printf(interp->result);
+    code = Tcl_EvalFile (g_interp, script_tcl);
+    if (code != TCL_OK)  printf(Tcl_GetStringResult(interp));
   } else {
     ; /* surfer has already opened gl window if no script */
   } 
@@ -19593,9 +19587,9 @@ int main(int argc, char *argv[])   /* new main */
       statflag = 0 ;  /* I'm really, really sorry */
       sclv_set_current_field(SCLV_VALSTAT) ;
       sprintf (cmd, "ShowValueLabel %d 1", SCLV_VALSTAT);
-      Tcl_Eval (g_interp, cmd);
+      send_tcl_command (cmd);
       sprintf (cmd, "UpdateLinkedVarGroup view");
-      Tcl_Eval (g_interp, cmd);
+      send_tcl_command (cmd);
     }
 
 #ifdef USE_XGLUT_WINDOW
@@ -19619,7 +19613,7 @@ int main(int argc, char *argv[])   /* new main */
   }                                           
 #endif  /* USE_XGLUT_WINDOW */
   
-  Tcl_Eval(interp, "exit");
+  send_tcl_command("exit");
   exit(0);
   return(0) ;   /* for ansi */
 }
@@ -19638,7 +19632,7 @@ static void StdinProc(clientData, mask)
   count = read(fileno(stdin), input, BUFFER_SIZE);
   if (count <= 0) {
     if (!gotPartial) {
-      if (tty) {Tcl_Eval(interp, "exit"); exit(1);}
+      if (tty) {send_tcl_command("exit"); exit(1);}
       else     {Tk_DeleteFileHandler(0);}
       return;
     }
@@ -19655,8 +19649,8 @@ static void StdinProc(clientData, mask)
   }
   gotPartial = 0;
   Tk_CreateFileHandler(0, 0, StdinProc, (ClientData) 0);
-  code = Tcl_RecordAndEval(interp, cmd, TCL_EVAL_GLOBAL);
-  Tk_CreateFileHandler(0, TK_READABLE, StdinProc, (ClientData) 0);
+  code = Tcl_RecordAndEval (interp, cmd, TCL_EVAL_GLOBAL);
+  Tk_CreateFileHandler (0, TK_READABLE, StdinProc, (ClientData) 0);
   Tcl_DStringFree(&command);
   if (*interp->result != 0)
     if ((code != TCL_OK) || (tty))
@@ -19684,11 +19678,11 @@ static void Prompt(interp, partial)
       fputs("% ", stdout);
   }
   else {
-    code = Tcl_Eval(interp, promptCmd);
+    code = Tcl_Eval (g_interp, promptCmd);
     if (code != TCL_OK) {
       Tcl_AddErrorInfo(interp,
 		       "\n    (script that generates prompt)");
-      fprintf(stderr, "%s\n", interp->result);
+      fprintf(stderr, "%s\n", Tcl_GetStringResult(interp));
       goto defaultPrompt;
     }
   }
@@ -20495,12 +20489,12 @@ update_labels(int label_set, int vno, float dmin)
   
   /* send each label value */
   sprintf(command, "UpdateLabel %d %d %d", label_set, LABEL_VERTEXINDEX, vno);
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_DISTANCE, dmin);
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   sprintf(command,"UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
 	  label_set, LABEL_COORDS_RAS, v->origx, v->origy, v->origz);
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   if (MRIflag && MRIloaded) 
     {
       imnr = (int)((v->y-yy0)/st+0.5);
@@ -20508,10 +20502,10 @@ update_labels(int label_set, int vno, float dmin)
       j = (int)((xx1-v->x)/ps+0.5);
       sprintf(command, "UpdateLabel %d %d \"(%d  %d  %d)\"",
 	      label_set, LABEL_COORDS_INDEX, imnr, i, j);
-      Tcl_Eval(g_interp, command);
+      send_tcl_command(command);
       sprintf(command, "UpdateLabel %d %d %d", 
 	      label_set, LABEL_MRIVALUE, im[imnr][i][j]);
-      Tcl_Eval(g_interp, command);
+      send_tcl_command(command);
     }
   /* if we have a tal transform, compute the tal. */
   if (transform_loaded)
@@ -20519,18 +20513,18 @@ update_labels(int label_set, int vno, float dmin)
       conv_ras_to_tal( v->origx, v->origy, v->origz, &x_tal, &y_tal, &z_tal );
       sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
 	      label_set, LABEL_COORDS_TAL, x_tal, y_tal, z_tal );
-      Tcl_Eval(g_interp, command);
+      send_tcl_command(command);
 
       conv_ras_to_mnital( v->origx, v->origy, v->origz, 
 			  &x_mni, &y_mni, &z_mni );
       sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
 	      label_set, LABEL_COORDS_MNITAL, x_mni, y_mni, z_mni );
-      Tcl_Eval(g_interp, command);
+      send_tcl_command(command);
     }
 
   sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
 	  label_set, LABEL_COORDS_NORMAL, v->nx, v->ny, v->nz);
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   
   /* if a canon surface isn't loaded, make a name and see if it exists. */
   if (canonsurfloaded == FALSE && canonsurffailed == FALSE)
@@ -20574,18 +20568,18 @@ update_labels(int label_set, int vno, float dmin)
       
       sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
 	      label_set, LABEL_COORDS_SPHERE_XYZ, sx, sy, sz );
-      Tcl_Eval(g_interp, command);
+      send_tcl_command(command);
       sprintf(command, "UpdateLabel %d %d \"(%2.1f  %2.1f)\"", 
 	      label_set, LABEL_COORDS_SPHERE_RT, DEGREES(phi), DEGREES(theta) );
-      Tcl_Eval(g_interp, command);
+      send_tcl_command(command);
     }
   
   sprintf(command, "UpdateLabel %d %d %f", 
 	  label_set, LABEL_CURVATURE, v->curv);
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   sprintf(command, "UpdateLabel %d %d %f", 
 	  label_set, LABEL_FIELDSIGN, v->fieldsign);
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   
   /* overlay labels. draw the current one in stars. */
   for (field = 0; field < NUM_SCALAR_VALUES; field++ ) 
@@ -20599,30 +20593,30 @@ update_labels(int label_set, int vno, float dmin)
 	  sprintf(command, "UpdateLabel %d %d %f", label_set, 
 		  LABEL_VAL + field, value);
 	}
-      Tcl_Eval(g_interp, command);
+      send_tcl_command(command);
     }
 #if 0
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_VAL, v->val);
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_VAL2, v->val2);
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_VALBAK, v->valbak);
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_VAL2BAK, v->val2bak);
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_VALSTAT, v->stat);
 #endif
   
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_AMPLITUDE, 
 	  hypot(v->val,v->val2));
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_ANGLE, 
 	  (float)(atan2(v->val2,v->val)*180.0/M_PI));
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_DEGREE, 
 	  (float)(atan2(v->val2,v->val)/(2*M_PI)));
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   
   /* send label update. */
   err = labl_find_label_by_vno( vno, 0, label_index_array, 
@@ -20641,12 +20635,12 @@ update_labels(int label_set, int vno, float dmin)
 	  sprintf(command, "UpdateLabel %d %d \"%s\"", label_set, LABEL_LABEL, 
 		  labl_labels[label_index_array[0]].name );
 	}
-      Tcl_Eval(g_interp, command);
+      send_tcl_command(command);
     }
   else
     {
       sprintf(command, "UpdateLabel %d %d \"None.\"", label_set, LABEL_LABEL );
-      Tcl_Eval(g_interp, command);
+      send_tcl_command(command);
     }
   
   //  if (annotationloaded)
@@ -20656,7 +20650,7 @@ update_labels(int label_set, int vno, float dmin)
   b = (v->annotation >> 16) & 0x00ff ;
   sprintf(command, "UpdateLabel %d %d \"%d (%d  %d  %d)\"", 
 	  label_set, LABEL_ANNOTATION, v->annotation, r, g, b);
-  Tcl_Eval(g_interp, command);
+  send_tcl_command(command);
   //    }
   
   if (parc_flag && v->val > 0 && parc_names[(int)nint(v->val)])
@@ -20664,7 +20658,7 @@ update_labels(int label_set, int vno, float dmin)
       sprintf(command, "UpdateLabel %d %d \"%s\"", 
 	      label_set, LABEL_PARCELLATION_NAME, 
 	      parc_names[(int)nint(v->val)]);
-      Tcl_Eval(g_interp, command);
+      send_tcl_command(command);
     }
 }
 
@@ -20714,49 +20708,46 @@ void wndw_handle_event (void* data, xGWin_tEventRef event)
 	case 'r':
 	  if (event->mbAltKey && g_interp) 
 	    {
-	      Tcl_Eval(interp,"UpdateAndRedraw"); 
+	      send_tcl_command("UpdateAndRedraw"); 
 	    }
 	  break;
 	case xGWin_tKey_UpArrow:
 	  if (event->mbAltKey && g_interp) 
 	    {
-	      Tcl_Eval(interp,"set gNextTransform(rotate,x) "
+	      send_tcl_command("set gNextTransform(rotate,x) "
 		       "[expr $gNextTransform(rotate,x)+18.0]");
-	      Tcl_Eval (interp, command);
+	      send_tcl_command (command);
 	    }
 	  break;
 	case xGWin_tKey_DownArrow:
 	  if (event->mbAltKey && g_interp) 
 	    {
-	      Tcl_Eval(interp,"set gNextTransform(rotate,x) "
-		       "[expr $gNextTransform(rotate,x)-18.0]");
-	      Tcl_Eval (interp, command);
+	      send_tcl_command("set gNextTransform(rotate,x) "
+			       "[expr $gNextTransform(rotate,x)-18.0]");
+	      send_tcl_command (command);
 	    }
 	  break;
 	case xGWin_tKey_RightArrow:
 	  if (event->mbAltKey && g_interp) 
 	    {
-	      Tcl_Eval(interp,"set gNextTransform(rotate,y) "
+	      send_tcl_command("set gNextTransform(rotate,y) "
 		       "[expr $gNextTransform(rotate,y)-18.0]");
-	      Tcl_Eval (interp, command);
+	      send_tcl_command (command);
 	    }
 	  break;
 	case xGWin_tKey_LeftArrow:
 	  if (event->mbAltKey && g_interp) 
 	    {
-	      Tcl_Eval(interp,"set gNextTransform(rotate,y) "
+	      send_tcl_command("set gNextTransform(rotate,y) "
 		       "[expr $gNextTransform(rotate,y)+18.0]");
-	      Tcl_Eval (interp, command);
+	      send_tcl_command (command);
 	    }
 	  break;
 	case xGWin_tKey_Home:
-	  if (g_interp) 
-	    {
-	      sprintf (command,"MoveToolWindow %d %d",
-		       glutGet (GLUT_WINDOW_X), 
-		       glutGet (GLUT_WINDOW_Y) + w.h + MOTIF_YFUDGE);
-	      Tcl_Eval (interp, command);
-	    }
+	  sprintf (command,"MoveToolWindow %d %d",
+		   glutGet (GLUT_WINDOW_X), 
+		   glutGet (GLUT_WINDOW_Y) + w.h + MOTIF_YFUDGE);
+	  send_tcl_command (command);
 	  break;
 	}
       break; /* case xGWin_tEventType_KeyDown */
@@ -20887,7 +20878,7 @@ void wndw_handle_event (void* data, xGWin_tEventRef event)
 
       /* Move the tool window under us. */
       sprintf (command,"MoveToolWindow %d %d", w.x, w.y + w.h + MOTIF_YFUDGE);
-      Tcl_Eval (interp,command);
+      send_tcl_command (ommand);
 
       break;
       
@@ -20970,53 +20961,45 @@ int
 enable_menu_set (int set, int enable) {
   char tcl_cmd[1024];
   
-  if (g_interp)
+  strncpy (tcl_cmd, "tkm_SetMenuItemGroupStatus", sizeof(tcl_cmd));
+  switch(set)
     {
-      strncpy (tcl_cmd, "tkm_SetMenuItemGroupStatus", sizeof(tcl_cmd));
-      switch(set)
-	{
-	case MENUSET_VSET_INFLATED_LOADED:
-	  sprintf (tcl_cmd, "%s mg_InflatedVSetLoaded", tcl_cmd);
-	  break;
-	case MENUSET_VSET_WHITE_LOADED:
-	  sprintf (tcl_cmd, "%s mg_WhiteVSetLoaded", tcl_cmd);
-	  break;
-	case MENUSET_VSET_PIAL_LOADED:
-	  sprintf (tcl_cmd, "%s mg_PialVSetLoaded", tcl_cmd);
-	  break;
-	case MENUSET_VSET_ORIGINAL_LOADED:
-	  sprintf (tcl_cmd, "%s mg_OriginalVSetLoaded", tcl_cmd);
-	  break;
-	case MENUSET_TIMECOURSE_LOADED:
-	  sprintf (tcl_cmd, "%s mg_TimeCourseLoaded", tcl_cmd);
-	  break;
-	case MENUSET_OVERLAY_LOADED:
-	  sprintf (tcl_cmd, "%s mg_OverlayLoaded", tcl_cmd);
-	  break;
-	case MENUSET_CURVATURE_LOADED:
-	  sprintf (tcl_cmd, "%s mg_CurvatureLoaded", tcl_cmd);
-	  break;
-	case MENUSET_LABEL_LOADED:
-	  sprintf (tcl_cmd, "%s mg_LabelLoaded", tcl_cmd);
-	  break;
-	case MENUSET_FIELDSIGN_LOADED:
-	  sprintf (tcl_cmd, "%s mg_FieldSignLoaded", tcl_cmd);
-	  break;
-	case MENUSET_FIELDMASK_LOADED:
-	  sprintf (tcl_cmd, "%s mg_FieldMaskLoaded", tcl_cmd);
-	  break;
-	default:
-	  ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-				     "enable_menu_set: bad set %d\n",set));
-	}
-      sprintf (tcl_cmd, "%s %d", tcl_cmd, enable);
-      Tcl_Eval(g_interp, tcl_cmd);
-      if (*g_interp->result != 0) 
-	{
-	  printf("surfer: couldn't dis/enable menu set %d: %s \n",
-		 set, g_interp->result);
-	}
+    case MENUSET_VSET_INFLATED_LOADED:
+      sprintf (tcl_cmd, "%s mg_InflatedVSetLoaded", tcl_cmd);
+      break;
+    case MENUSET_VSET_WHITE_LOADED:
+      sprintf (tcl_cmd, "%s mg_WhiteVSetLoaded", tcl_cmd);
+      break;
+    case MENUSET_VSET_PIAL_LOADED:
+      sprintf (tcl_cmd, "%s mg_PialVSetLoaded", tcl_cmd);
+      break;
+    case MENUSET_VSET_ORIGINAL_LOADED:
+      sprintf (tcl_cmd, "%s mg_OriginalVSetLoaded", tcl_cmd);
+      break;
+    case MENUSET_TIMECOURSE_LOADED:
+      sprintf (tcl_cmd, "%s mg_TimeCourseLoaded", tcl_cmd);
+      break;
+    case MENUSET_OVERLAY_LOADED:
+      sprintf (tcl_cmd, "%s mg_OverlayLoaded", tcl_cmd);
+      break;
+    case MENUSET_CURVATURE_LOADED:
+      sprintf (tcl_cmd, "%s mg_CurvatureLoaded", tcl_cmd);
+      break;
+    case MENUSET_LABEL_LOADED:
+      sprintf (tcl_cmd, "%s mg_LabelLoaded", tcl_cmd);
+      break;
+    case MENUSET_FIELDSIGN_LOADED:
+      sprintf (tcl_cmd, "%s mg_FieldSignLoaded", tcl_cmd);
+      break;
+    case MENUSET_FIELDMASK_LOADED:
+      sprintf (tcl_cmd, "%s mg_FieldMaskLoaded", tcl_cmd);
+      break;
+    default:
+      ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+				 "enable_menu_set: bad set %d\n",set));
     }
+  sprintf (tcl_cmd, "%s %d", tcl_cmd, enable);
+  send_tcl_command(tcl_cmd);
   return(ERROR_NONE);
 }
 
@@ -21469,9 +21452,6 @@ int undo_send_first_action_name()
   char* string = NULL;
   char command[1024] = "";
   
-  if (g_interp==NULL)
-    return(NO_ERROR);
-  
   /* get the undo action string and send it to the interface */
   if (undo_list[UNDO_LIST_POS_FIRST]!=NULL)
     {
@@ -21485,7 +21465,7 @@ int undo_send_first_action_name()
   
   /* build and send the command */
   sprintf (command, "UpdateUndoItemLabel \"%s\"", string);
-  Tcl_Eval (g_interp, command);
+  send_tcl_command (command);
   
   return(NO_ERROR);
 }
@@ -21670,20 +21650,16 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   FunD_GetNumConditions (func_timecourse, &func_num_conditions);
   func_time_resolution = (double)time_resolution;
   
-  /* if we have a tcl shell, send the tcl updates. */
-  if (g_interp!=NULL)
-    {
-      /* send the number of conditions */
-      sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
-      Tcl_Eval(g_interp,tcl_cmd);
+  /* send the number of conditions */
+  sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
+  send_tcl_command (tcl_cmd);
+  
+  /* show the graph window */
+  send_tcl_command ("Graph_ShowWindow");
       
-      /* show the graph window */
-      Tcl_Eval(g_interp,"Graph_ShowWindow");
+  /* enable the related menu items */
+  enable_menu_set (MENUSET_TIMECOURSE_LOADED, 1);
       
-      /* enable the related menu items */
-      enable_menu_set (MENUSET_TIMECOURSE_LOADED, 1);
-    }
-
   return(ERROR_NONE);
 }
 
@@ -21715,12 +21691,8 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
   
   printf("surfer: loaded timecourse offset %s\n",fname);
   
-  /* if we have a tcl shell, notify the graph we loaded an offset. */
-  if (g_interp!=NULL)
-    {
-      /* turn on the offset options */
-      Tcl_Eval(g_interp, "Graph_ShowOffsetOptions 1");
-    }
+  /* turn on the offset options */
+  send_tcl_command("Graph_ShowOffsetOptions 1");
 
   return(ERROR_NONE);
 }
@@ -21831,7 +21803,6 @@ int func_graph_timecourse_selection () {
   int tcl_cmd_size;
   FunD_tErr func_error = FunD_tErr_NoError;
   float second;
-  int tcl_error;
   
   /* make sure we have a volume */
   if (func_timecourse==NULL)
@@ -21841,7 +21812,7 @@ int func_graph_timecourse_selection () {
     }
   
   /* make sure the graph window is open. */
-  Tcl_Eval(g_interp,"Graph_ShowWindow");
+  send_tcl_command ("Graph_ShowWindow");
   
   /* get the number of values and allocate storage arrays. */
   FunD_GetNumTimePoints (func_timecourse,&num_timepoints);
@@ -21859,8 +21830,8 @@ int func_graph_timecourse_selection () {
     ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"func_graph_timecourse_selection: failed to alloc %d char string\n",tcl_cmd_size));
   
   /* clear the graph so if nothing draws, we won't have any old stuff there. */
-  Tcl_Eval(interp,"Graph_ClearGraph");
-  Tcl_Eval(interp,"Graph_BeginData");
+  send_tcl_command ("Graph_ClearGraph");
+  send_tcl_command ("Graph_BeginData");
   
   /* get the num of conditions. for each one... */
   FunD_GetNumConditions (func_timecourse,&num_conditions);
@@ -21895,7 +21866,7 @@ int func_graph_timecourse_selection () {
 	  
 	  /* write the last brace and send the cmd. */
 	  sprintf (tcl_cmd, "%s}", tcl_cmd);
-	  Tcl_Eval (interp,tcl_cmd);
+	  send_tcl_command (tcl_cmd);
 	  
 	  /* send the error bars. write the cmd name. */
 	  sprintf (tcl_cmd, "Graph_SetErrorData %d {", cond);
@@ -21906,13 +21877,11 @@ int func_graph_timecourse_selection () {
 	  
 	  /* write the last brace and send the cmd. */
 	  sprintf (tcl_cmd, "%s}", tcl_cmd);
-	  Tcl_Eval (interp,tcl_cmd);
+	  send_tcl_command (tcl_cmd);
 	}
     }
   
-  tcl_error = Tcl_Eval(interp,"Graph_EndData");
-  if (tcl_error != TCL_OK)
-    printf("func_graph_timecourse_selection: error in Graph_EndData: %s\n",interp->result);
+  send_tcl_command ("Graph_EndData");
   
   return(ERROR_NONE);
 }
@@ -22352,13 +22321,10 @@ int sclv_send_current_field_info ()
   /* Send the current histogram info here as well. */
   sclv_send_histogram (sclv_current_field);
   
-  if (g_interp)
-    {
-      sprintf (cmd, "UpdateLinkedVarGroup overlay");
-      Tcl_Eval (g_interp, cmd);
-      sprintf (cmd, "OverlayLayerChanged");
-      Tcl_Eval (g_interp, cmd);
-    }
+  sprintf (cmd, "UpdateLinkedVarGroup overlay");
+  send_tcl_command (cmd);
+  sprintf (cmd, "OverlayLayerChanged");
+  send_tcl_command (cmd);
   
   return (ERROR_NONE);
 }
@@ -22730,7 +22696,7 @@ int sclv_swap_fields ( int fielda, int fieldb ) {
   
   /* swap the field names in the interface */
   sprintf (cmd, "SwapValueLabelNames %d %d", fielda, fieldb);
-  Tcl_Eval (g_interp, cmd);
+  send_tcl_command (cmd);
   
   return (ERROR_NONE);
 }
@@ -22783,11 +22749,7 @@ int sclv_send_histogram ( int field ) {
   
   /* close up the command and send it off */
   sprintf (tcl_cmd, "%s}", tcl_cmd);
-  
-  if (g_interp)
-    {
-      Tcl_Eval (g_interp, tcl_cmd);
-    }
+  send_tcl_command (tcl_cmd);
   
   free (tcl_cmd);
   
@@ -22914,13 +22876,13 @@ int sclv_load_label_value_file (char *fname, int field)
     {
       FileNameOnly (fname, val_name);
       sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, val_name);
-      Tcl_Eval (g_interp, cmd);
+      send_tcl_command (cmd);
       sprintf (cmd, "ShowValueLabel %d 1", field);
-      Tcl_Eval (g_interp, cmd);
+      send_tcl_command (cmd);
       sprintf (cmd, "UpdateLinkedVarGroup view");
-      Tcl_Eval (g_interp, cmd);
+      send_tcl_command (cmd);
       sprintf (cmd, "UpdateLinkedVarGroup overlay");
-      Tcl_Eval (g_interp, cmd);
+      send_tcl_command (cmd);
     }
   
   /* enable the menu items */
@@ -23126,7 +23088,7 @@ labl_send_color_table_info ()
 			   structure_label_list, structure_label);
 		}
 	      sprintf (structure_label_list, "%s }", structure_label_list);
-	      Tcl_Eval (g_interp, structure_label_list);
+	      send_tcl_command (structure_label_list);
 	      
 	      free( structure_label_list );
 	    } 
@@ -23159,7 +23121,7 @@ labl_send_color_table_info ()
 		       structure_label_list, structure_label);
 		}
 	      sprintf (structure_label_list, "%s }", structure_label_list);
-	      Tcl_Eval (g_interp, structure_label_list);
+	      send_tcl_command (structure_label_list);
 	      
 	      free( structure_label_list );
 	      
@@ -23565,7 +23527,7 @@ int labl_import_annotation (char *fname)
 							sprintf (name, "Parcellation %d, %d, %d", r, g, b);
 
 					}
-		  
+					
 					/* set its other data. set the color; if we found a
 						 structure index from the LUT, it will use that,
 						 otherwise it will color it as a free label with
@@ -23590,11 +23552,9 @@ int labl_import_annotation (char *fname)
 		free (done);
       
 		/* show the label label in the interface. */
-		if (g_interp)
-			Tcl_Eval (g_interp, "ShowLabel kLabel_Label 1");
+		send_tcl_command ("ShowLabel kLabel_Label 1");
 		labl_draw_flag = 1;
-		if (g_interp)
-			Tcl_Eval (g_interp, "UpdateLinkedVarGroup label");
+		send_tcl_command ("UpdateLinkedVarGroup label");
   
 	} 
   else 
@@ -23923,7 +23883,7 @@ int labl_select (int index)
       if ((index >= 0 && index < labl_num_labels) && g_interp)
 	{
 	  sprintf (tcl_command, "LblLst_SelectLabel %d", index);
-	  Tcl_Eval (g_interp, tcl_command);
+	  send_tcl_command (tcl_command);
 	  
 	  labl_send_info (index);
 	}
@@ -24047,21 +24007,18 @@ int labl_send_info (int index)
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
   
-  if (g_interp)
-    {
-      /* send the update command to the tcl label list with this label's
-	 information. */
-      sprintf (tcl_command, "LblLst_UpdateInfo %d \"%s\" %d %d %d %d %d", 
-	       index, labl_labels[index].name, 
-	       labl_labels[index].structure, labl_labels[index].visible,
-	       labl_labels[index].r, labl_labels[index].g, 
+  /* send the update command to the tcl label list with this label's
+     information. */
+  sprintf (tcl_command, "LblLst_UpdateInfo %d \"%s\" %d %d %d %d %d", 
+	   index, labl_labels[index].name, 
+	   labl_labels[index].structure, labl_labels[index].visible,
+	   labl_labels[index].r, labl_labels[index].g, 
 	       labl_labels[index].b );
-      Tcl_Eval (g_interp, tcl_command);
-
-      /* if the fill dlog is open, this will update it. */
-      sprintf (tcl_command, "UpdateCustomFillDlog");
-      Tcl_Eval (g_interp, tcl_command);
-    }
+  send_tcl_command (tcl_command);
+  
+  /* if the fill dlog is open, this will update it. */
+  sprintf (tcl_command, "UpdateCustomFillDlog");
+  send_tcl_command (tcl_command);
   
   return (ERROR_NONE);
 }
@@ -24100,19 +24057,16 @@ int labl_add (LABEL* label, int* new_index)
   /* calc the extent and stuff. */
   labl_changed (index, FALSE);
 
-  if (g_interp)
-    {
-      /* notify tcl of the new label. */
-      sprintf (tcl_command, "LblLst_AddLabel \"%s\"", labl_labels[index].name);
-      Tcl_Eval (g_interp, tcl_command);
-      
-      /* if the fill dlog is open, this will update it. */
-      sprintf (tcl_command, "UpdateCustomFillDlog");
-      Tcl_Eval (g_interp, tcl_command);
-
-      /* enable our label menu items. */
-      enable_menu_set (MENUSET_LABEL_LOADED, 1);
-    }
+  /* notify tcl of the new label. */
+  sprintf (tcl_command, "LblLst_AddLabel \"%s\"", labl_labels[index].name);
+  send_tcl_command (tcl_command);
+  
+  /* if the fill dlog is open, this will update it. */
+  sprintf (tcl_command, "UpdateCustomFillDlog");
+  send_tcl_command (tcl_command);
+  
+  /* enable our label menu items. */
+  enable_menu_set (MENUSET_LABEL_LOADED, 1);
   
   /* if they want the new index, return it. */
   if (NULL != new_index)
@@ -24204,16 +24158,13 @@ int labl_remove (int index)
   /* rebuild the cache index. */
   labl_update_cache (TRUE);
 
-  if (g_interp)
-    {
-      /* notify tcl that this label is gone. */
-      sprintf (tcl_command, "LblLst_RemoveLabel %d", index );
-      Tcl_Eval (g_interp, tcl_command);
-
-      /* if the fill dlog is open, this will update it. */
-      sprintf (tcl_command, "UpdateCustomFillDlog");
-      Tcl_Eval (g_interp, tcl_command);
-    }
+  /* notify tcl that this label is gone. */
+  sprintf (tcl_command, "LblLst_RemoveLabel %d", index );
+  send_tcl_command (tcl_command);
+  
+  /* if the fill dlog is open, this will update it. */
+  sprintf (tcl_command, "UpdateCustomFillDlog");
+  send_tcl_command (tcl_command);
   
   /* if this was our selected label, select nothing. */
   if (labl_selected_label == index)
@@ -25221,6 +25172,82 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
 
 /* ---------------------------------------------------------------------- */
 
+#define TCL_CACHE_INC 10
+void send_tcl_command (char* cmd)
+{
+  char** new_cached_tcl_commands = NULL;
+  int n;
+  int tcl_err;
+
+  /* If g_interp is NULL we'll cache the command. */
+  if (NULL == g_interp) 
+    {
+
+      /* If we need more space... */
+      if (num_cached_tcl_commands >= max_num_cached_tcl_commands)
+	{
+	  /* Allocate a new batch of cached command space. */
+	  new_cached_tcl_commands = (char**)
+	    calloc (max_num_cached_tcl_commands + TCL_CACHE_INC,sizeof(char*));
+
+	  /* Copy in old commands if necessary. Note we just copy the
+	     pointers, we don't allocate new strings.*/
+	  if (NULL != cached_tcl_commands)
+	    for (n = 0; n < num_cached_tcl_commands; n++ )
+	      {
+		new_cached_tcl_commands[n] = cached_tcl_commands[n];
+	      }
+
+	  /* Free the old storage, we're still pointing to the strings
+	     in the new array. */
+	  free (cached_tcl_commands);
+
+	  /* Store new array. */
+	  cached_tcl_commands = new_cached_tcl_commands;
+
+	  max_num_cached_tcl_commands = 
+	    max_num_cached_tcl_commands + TCL_CACHE_INC;
+	}
+
+      /* Make a copy of the command. */
+      cached_tcl_commands[num_cached_tcl_commands] = strdup (cmd);
+      num_cached_tcl_commands++;
+    }
+  else
+    {
+      /* Send the command. */
+      tcl_err = Tcl_Eval (g_interp, cmd);
+
+      /* Print an error message if we got one. */
+      if (TCL_OK != tcl_err)
+	{
+	  printf ("surfer: Error sending tcl command %s:\n\t%s\n",
+		  cmd, Tcl_GetStringResult (g_interp));
+	}
+    }
+}
+
+void send_cached_tcl_commands ()
+{
+  int n;
+
+  if (NULL == g_interp)
+    {
+      printf ("surfer: Can't send cached commands, no interpreter present.\n");
+    }
+
+  /* For each command, send it. Then free the string. */
+  for (n = 0; n < num_cached_tcl_commands; n++ )
+    {
+      send_tcl_command (cached_tcl_commands[n]);
+      free (cached_tcl_commands[n]);
+    }
+
+  num_cached_tcl_commands = 0;
+}
+
+/* ---------------------------------------------------------------------- */
+
 /* This code only exists if DEBUG_DRAWING_TOOLS is set. */
 #if DEBUG_DRAWING_TOOLS
 
@@ -25586,13 +25613,13 @@ label_to_stat(int which_overlay)
   if (NULL != g_interp)
     {
       sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, labl_labels[labl_selected_label].name);
-      Tcl_Eval (g_interp, cmd);
+      send_tcl_command (cmd);
       sprintf (cmd, "ShowValueLabel %d 1", field);
-      Tcl_Eval (g_interp, cmd);
+      send_tcl_command (cmd);
       sprintf (cmd, "UpdateLinkedVarGroup view");
-      Tcl_Eval (g_interp, cmd);
+      send_tcl_command (cmd);
       sprintf (cmd, "UpdateLinkedVarGroup overlay");
-      Tcl_Eval (g_interp, cmd);
+      send_tcl_command (cmd);
     }
 }
 
@@ -25780,11 +25807,11 @@ set_value_label_name(char *label_name, int field)
   char cmd[STRLEN] ;
   
   sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, label_name);
-  Tcl_Eval (g_interp, cmd);
+  send_tcl_command (cmd);
   sprintf (cmd, "ShowValueLabel %d 1", field);
-  Tcl_Eval (g_interp, cmd);
+  send_tcl_command (cmd);
   sprintf (cmd, "UpdateLinkedVarGroup view");
-  Tcl_Eval (g_interp, cmd);
+  send_tcl_command (cmd);
 }
 static int
 draw_curvature_line(void)
