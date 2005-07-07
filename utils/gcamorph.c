@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/07/07 15:23:51 $
-// Revision       : $Revision: 1.77 $
+// Revision Date  : $Date: 2005/07/07 23:57:28 $
+// Revision       : $Revision: 1.78 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -573,10 +573,12 @@ GCAMread(char *fname)
   if (strstr(fname, ".m3z"))
     {
       char command[STRLEN];
-#if 0
-      strcpy(command, "zcat ");
-#else
+#ifdef Darwin
+      // zcat on Max OS always appends and assumes a .Z extention,
+      // whereas we want .m3z
       strcpy(command, "gunzip -c ");
+#else
+      strcpy(command, "zcat ");
 #endif
       strcat(command, fname);
       myclose=pclose;
@@ -586,8 +588,9 @@ GCAMread(char *fname)
         {
           pclose(fp);
           errno = 0;
-          ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): zcat encountered error.",
-                             fname)) ;
+          ErrorReturn(NULL, (ERROR_BADPARM, 
+                             "GCAMread: encountered error executing: '%s'",
+                             command)) ;
         }
     }
   else
@@ -2753,12 +2756,12 @@ static float maxGradient, gradientArea;
 
 int
 GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, \
-									GCA_MORPH_PARMS *parms)
+                                                                        GCA_MORPH_PARMS *parms)
 {
   int  n, nsmall, done = 0, which = GCAM_INTEGRATE_OPTIMAL, \
-		max_small, increasing, good_step,reduced ;
+                max_small, increasing, good_step,reduced ;
   double rms, last_rms, pct_change, orig_dt, min_dt, orig_j, \
-		tol, last_pct_change ;
+                tol, last_pct_change ;
   GCA_MORPH_PARMS jacobian_parms ;
 
   max_small = parms->nsmall ;
