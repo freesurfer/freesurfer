@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
   
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_stats.c,v 1.1 2005/02/08 16:26:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_stats.c,v 1.2 2005/07/07 16:22:11 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs ;
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
   if(cnrflag){
     printf("Region with label %d has size = %d, mean = %g, std = %g\n", label2, total2, meanV2, stdV2);
     
-    stdV1 = (meanV1 - meanV2)/sqrt(stdV1*stdV1 + stdV2*stdV2 + 0.0000000001);
+    stdV1 = (meanV1 - meanV2)/sqrt((stdV1*stdV1 + stdV2*stdV2)*0.5 + 0.0000000001);
     if(stdV1 < 0) stdV1 = -stdV1;
 
     printf("CNR of regions %d and %d is equal to %g\n", label1, label2, stdV1);
@@ -241,7 +241,7 @@ void usage(int exit_val)
 
   fprintf(fout, "usage: %s <in vol> <label vol> label [label2] \n", Progname);
   fprintf(fout, "this program computes the mean and std of a labeled region. \n") ;
-  fprintf(fout, "If label2 is also specified, the program computes the CNR of both regions. \n") ;
+  fprintf(fout, "If label2 is also specified, the program computes the CNR between the two labelled regions. \n") ;
 
   exit(exit_val);
 

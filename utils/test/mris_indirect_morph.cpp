@@ -50,7 +50,7 @@ void lubksb(double** a,int n,int* indx,double* b);
 
 void MRISsampleTemplateMappingToSource(MRI_SURFACE *mris, MRI_SURFACE *mris_template);
 
-static char vcid[] = "$Id: mris_indirect_morph.cpp,v 1.3 2005/03/21 18:04:01 xhan Exp $";
+static char vcid[] = "$Id: mris_indirect_morph.cpp,v 1.4 2005/07/07 16:22:12 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -100,14 +100,14 @@ int main(int argc, char *argv[])
   int nargs, ac, msec;
   struct timeb then;
 
-  MRI_SURFACE *mris, *mris_template;
+  MRI_SURFACE *mris, *mris_template, *mris_template_map;
   FACE *face;
 
   LTA          *lta = 0;
   int          transform_type;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_indirect_morph.cpp,v 1.3 2005/03/21 18:04:01 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_indirect_morph.cpp,v 1.4 2005/07/07 16:22:12 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -152,6 +152,14 @@ int main(int argc, char *argv[])
     printf("Reading template map file (default is sphere.reg)\n");
     /* Save the original true surface cooridnates */
     MRISsaveVertexPositions(mris_template, TMP_VERTICES) ;
+
+    //   if(keep_map_vol_geometry){
+      /* Need to keep the volume geometry of the original map, right ? */
+      /* Or not?? Maybe not needed if all surfaces share same RAS. Seems so */
+    // need full path in order for the following "read" to work
+    //  mris_template_map = MRISread(template_map_name);
+    // }
+
     if (MRISreadVertexPositions(mris_template, template_map_name) != NO_ERROR)
       return(Gerror) ;
     /* Store the coordinate-function (mapping) to ORIGINAL_VERTICES */

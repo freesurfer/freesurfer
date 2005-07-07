@@ -148,7 +148,7 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
   float s,t,w;		 /* Used in initialization */
   float result;          /* 1/s*s + 1/t*t + 1/w*w */		
 
-  float newvalue, oldvalue;
+  float value, newvalue, oldvalue;
   
   int LX,HX,LY,HY,LZ,HZ; /* Logical variables aid in dealing with boundary */ 
 
@@ -185,7 +185,8 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
   for(d=0; d<ZN;d++){
     for(i=0; i<YN; i++){
       for (j=0; j<XN;j++){
-	if(MRIgetVoxVal(Ori, j, i, d, 0) == 0)
+	value = MRIgetVoxVal(Ori, j, i, d, 0); 
+	if( value < 0.0000001 && value > -0.0000001)
 	  { /* This grid point lies exactly on the contour */
 	    MRIsetVoxVal(T, j,  i, d, 0, 0); /* Its distance value is exactly zero */
 	    MRIseq_vox(label, j, i, d, 0) =  (unsigned char)ALIVE;

@@ -37,9 +37,9 @@ typedef struct _double_3d
 } double3d ;
 
 
-static float max_thickness = 5.0 ;
+static float max_thickness = 10.0 ;
 
-static char vcid[] = "$Id: mris_compute_thickness.cpp,v 1.1 2005/02/08 16:26:18 xhan Exp $";
+static char vcid[] = "$Id: mris_compute_thickness.cpp,v 1.2 2005/07/07 16:22:11 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
   FACE *face;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_compute_thickness.cpp,v 1.1 2005/02/08 16:26:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_compute_thickness.cpp,v 1.2 2005/07/07 16:22:11 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -221,7 +221,11 @@ int main(int argc, char *argv[])
       MRIScopyMRI(Surf1, resVal, framesave, "curv");
       MRISwriteCurvatureToWFile(Surf1,out_name);
       
-    }else{
+    }else if(!strcmp(trgtypestring,"curv")){
+      MRIScopyMRI(Surf1, resVal, framesave, "curv");
+      MRISwriteCurvature(Surf1,out_name);
+    }
+    else{
       fprintf(stderr, "ERROR unknown output file format.\n");      
     }
   }
@@ -460,23 +464,16 @@ double v_to_f_distance(VERTEX *P0, MRI_SURFACE *mri_surf, int face_number, int d
   det = a*c - b*b; s = b*e - c*d; t = b*d - a*e;
 
   if(debug) printf("det = %g\n", det);
-  if(s + t <= det){
+    if(s + t <= det){
     if(s < 0){
       if(t<0){
 	/* Region 4 */
-	tmp0 = b + d; tmp1 = c + e;
-	if(tmp1 > tmp0){
-	  numer = tmp1 - tmp0;
-	  denom = a - b - b +c;
-	  s = (numer >= denom ? 1 : numer/denom);
-	  t = 1-s;
-
-	}else {
-	  s = 0;
-	  /* t = (e >= 0 ? 0 : (-e >= c ? 0 > = c + e = tmp1) */
-	  t = (tmp1 <= 0 ? 1 : (e >= 0 ? 0 : -e/c));
-	}
-	if(debug) printf("region 4, s =%g, t =%g\n", s, t);	
+	if( d < 0){ /* Minimum on edge t = 0 */
+	  s = (-d >= a ? 1 : -d/a); t = 0;
+	}else if (e < 0){ /* Minimum on edge s = 0 */
+	  t = (-e >= c ? 1 : -e/c); s = 0;
+	}else { s = 0; t = 0;}
+	if(debug) printf("region 4,  d= %g, e = %g, s =%g, t =%g\n", d, e, s, t);
       }else{
 	/* Region 3 */
 	s = 0;
@@ -499,11 +496,18 @@ double v_to_f_distance(VERTEX *P0, MRI_SURFACE *mri_surf, int face_number, int d
   }else{
     if( s < 0 ){
       /* Region 2 */
-      if( d < 0){ /* Minimum on edge t = 0 */
-	s = (-d >= a ? 1 : -d/a); t = 0;
-      }else if (e < 0){ /* Minimum on edge s = 0 */
-	t = (-e >= c ? 1 : -e/c); s = 0;
-      }else { s = 0; t = 0;}
+      tmp0 = b + d; tmp1 = c + e;
+      if(tmp1 > tmp0){
+	numer = tmp1 - tmp0;
+	denom = a - b - b +c;
+	s = (numer >= denom ? 1 : numer/denom);
+	t = 1-s;
+	
+      }else{
+	s = 0;
+	/* t = (e >= 0 ? 0 : (-e >= c ? 0 > = c + e = tmp1) */
+	t = (tmp1 <= 0 ? 1 : (e >= 0 ? 0 : -e/c));
+      }
       if(debug) printf("region 2, s =%g, t =%g\n", s, t);
     }else if( t < 0){
       /* Region 6 */
@@ -530,7 +534,7 @@ double v_to_f_distance(VERTEX *P0, MRI_SURFACE *mri_surf, int face_number, int d
       if(debug) printf("region 1, s =%g, t =%g\n", s, t);
     }
   }
-  
+
   if( s < 0  || s > 1 || t < 0 || t > 1){
     printf("Error in computing s and t \n");
   }

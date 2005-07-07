@@ -26,7 +26,7 @@
 #define SAMPLE_BSPLINE 5
 #define DBL_EPSILON 1e-10
 
-static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.2 2005/05/05 18:08:20 xhan Exp $";
+static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.3 2005/07/07 16:22:11 xhan Exp $";
 
 LTA *ltaReadFileEx(const char *fname);
 int MYvg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2);
@@ -53,6 +53,9 @@ static int noscale = 0;
 
 float thred_low = 0.0;
 float thred_high = 1.0;
+
+MRI *lta_src = NULL;
+MRI *lta_dst = NULL;
 
 double InterpolatedValue
 (
@@ -89,9 +92,10 @@ main(int argc, char *argv[])
   VOL_GEOM vgm_in;
   int x, y, z;
   double maxV, minV, value;
+  MATRIX *i_to_r, *r_to_i;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.2 2005/05/05 18:08:20 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.3 2005/07/07 16:22:11 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     usage_exit (0);
   argc -= nargs;
@@ -179,6 +183,22 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_BADFILE, "%s: can't read file %s",Progname, transform_fname);
     }
 
+    // The following procedure aims to apply an LTA computed from COR format to a volume in non-COR format, or vice versa, as long as they share the same RAS
+    // first change to LINEAR RAS_TO_RAS using old info
+    if(lta->type == LINEAR_VOX_TO_VOX){
+      LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+    }
+
+    // now possiblly reset the src and dst
+    if(lta_src != NULL){
+      //always trust the user
+      LTAmodifySrcDstGeom(lta, lta_src, NULL);
+    }
+    if(lta_dst != NULL){
+      //always trust the user
+      LTAmodifySrcDstGeom(lta, NULL, lta_dst);
+    }
+
     if(lta->type == LINEAR_RAS_TO_RAS){
       /* Convert it to VOX_TO_VOX */
       /* VOXELsrc_to_VOXELdst = R2Vdst*R2Rlta*V2Rsrc */
@@ -196,9 +216,8 @@ main(int argc, char *argv[])
       
       MatrixFree(&i_to_r_src);
       MatrixFree(&r_to_i_dst);
-    }else if(lta->type == LINEAR_VOX_TO_VOX){
-      V_to_V =  MatrixCopy(lta->xforms[0].m_L, NULL);
-    }else{
+    }
+    else{
       ErrorExit(ERROR_BADFILE, "%s: only LINEAR_RAS_TO_RAS and LINEAR_VOX_TO_VOX LTA types are supported",Progname);
     }
   
@@ -365,7 +384,21 @@ main(int argc, char *argv[])
        and small float numbers will become zero after convert to 
        BYTE
     */
-    mri_tmp = MRIchangeType(mri_out, out_type, thred_low, thred_high, noscale);
+    if(out_type == 0 && noscale == 1){
+      //convert data to UCHAR
+      mri_tmp = MRIalloc(mri_out->width, mri_out->height, mri_out->depth, out_type) ;
+      MRIcopyHeader(mri_out, mri_tmp);
+       for(z=0; z < mri_out->depth; z++)
+	 for(y=0; y< mri_out->height; y++)
+	   for(x=0; x < mri_out->width; x++){
+	     value = floor(MRIgetVoxVal(mri_out, x, y, z, 0) + 0.5);
+	     if(value < 0 ) value = 0;
+	     if(value > 255) value = 255;
+	     MRIvox(mri_tmp,x,y,z) = (unsigned char)value;
+	   }
+    }
+    else
+      mri_tmp = MRIchangeType(mri_out, out_type, thred_low, thred_high, noscale);
    
     MRIfree(&mri_out);
     mri_out = mri_tmp; //swap
@@ -375,6 +408,11 @@ main(int argc, char *argv[])
   
   MRIfree(&mri_in);
   MRIfree(&mri_out);
+
+  if(lta_src)
+    MRIfree(&lta_src);
+  if(lta_dst)
+    MRIfree(&lta_dst);
   
   MatrixFree(&V_to_V);
 
@@ -452,6 +490,30 @@ get_option(int argc, char *argv[])
       nargs = 1;
       printf("Apply transformation specified by file %s\n", transform_fname);
     }
+  else if (!stricmp(option, "lta_src") ||
+	   !stricmp(option, "src")
+	   ){
+    fprintf(stderr, "src volume for the given transform (given by -xform) is %s\n",argv[2]); 
+    fprintf(stderr, "Reading the src volume...\n");
+    lta_src = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
+    if (!lta_src){
+      ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
+    }
+    nargs = 1;
+  }
+  else if (!stricmp(option, "lta_dst") ||
+	   !stricmp(option, "dst")
+	   ){
+    fprintf(stderr, "dst volume for the transform (given by -xform) is %s\n",argv[2]); 
+    fprintf(stderr, "Reading the dst volume...\n");
+    
+    lta_dst = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
+    
+    if (!lta_dst){
+      ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
+    }
+    nargs = 1;
+  }
   else if (!stricmp(option, "invert_transform") ||
 	   !stricmp(option, "ait"))
     { 	   

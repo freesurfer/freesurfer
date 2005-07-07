@@ -48,15 +48,17 @@ read_named_annotation_table(char *name)
 
   cp = strchr(name, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
-	{
-		cp = getenv("FREESURFER_HOME") ;
-		if (!cp)
-			cp = "." ;
-	}
-	else
-		cp = "" ;  /* use path in name */
+    {
+      cp = getenv("FREESURFER_HOME") ;
+      if (!cp)
+	cp = "." ;
+      sprintf(fname, "%s/%s", cp, name) ;
+    }
+  else{
+    cp = "" ;  /* use path in name */
+    sprintf(fname, "%s", name) ;
+  }
 
-  sprintf(fname, "%s/%s", cp, name) ;
   fp = fopen(fname, "r") ;
   if (!fp)
   {
@@ -163,6 +165,34 @@ annotation_to_index(int annotation)
 
   return(-1) ;
 }
+
+char *
+index_to_name(int index)
+{
+  int   i ;
+
+  if (num_entries <= 0)
+    read_annotation_table() ;
+
+  if (num_entries < 0)
+  {
+    static char name[100] ;
+
+    sprintf(name, "%d", index) ;
+    return(name) ;
+  }
+
+  for (i = 0 ; i < num_entries ; i++)
+  {
+    if (atable[i].index == index)
+    {
+      return(atable[i].name) ;
+    }
+  }
+
+  return("NOT_FOUND") ;
+}
+
 int
 index_to_annotation(int index)
 {

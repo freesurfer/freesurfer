@@ -16,7 +16,7 @@ extern "C" {
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
-
+  //#include "mriColorLookupTable.h"
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
@@ -26,6 +26,7 @@ extern "C" {
 #include "macros.h"
 #include "mrishash.h"
 #include "mri_identify.h"
+#include "annotation.h"
 #include "icosahedron.h"
 #include "version.h"
 #include "fmarching3dnband.h"
@@ -53,7 +54,7 @@ void lubksb(double** a,int n,int* indx,double* b);
 static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
-static char vcid[] = "$Id: mris_diff.cpp,v 1.4 2005/05/05 18:08:20 xhan Exp $";
+static char vcid[] = "$Id: mris_diff.cpp,v 1.5 2005/07/07 16:22:11 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,6 +88,10 @@ int percentage = 0;
 
 int register_flag = 0;
 
+static int annotation_flag = 0;
+static char *annotation_fname = NULL;
+static char *annotation_name = NULL;
+
 int compute_distance = 0;
 
 static int nSmoothSteps = 0;
@@ -94,6 +99,7 @@ static int nSmoothSteps = 0;
 char *Progname ;
 
 MRI *ComputeDifference(MRI_SURFACE *Mesh1, MRI *mri_data1, MRI_SURFACE *Mesh2, MRI *mri_data2, MRI *mri_res);
+MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1, MRI *mri_data1, MRI_SURFACE *Mesh2, MRI *mri_data2, MRI *mri_res);
 double transformS(double3d *V1a, double3d *V2a, int N, double TR[3][3],double shift[3]);
 void FindClosest(MRI_SURFACE *TrueMesh, ANNkd_tree *annkdTree, MRI_SURFACE *EstMesh, double3d *closest);
 
@@ -104,6 +110,9 @@ MRI          *mri = 0;
 MRI          *mri_dst = 0;
 static int invert = 0 ;
 static char *xform_fname = NULL;
+
+static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno);
+double v_to_f_distance(VERTEX *P0, MRI_SURFACE *mri_surf, int face_number, int debug, double *sopt, double *topt);
 
 using namespace std;
 
@@ -117,12 +126,13 @@ int main(int argc, char *argv[])
   int total, index, label, x, y, z, width, height, depth;
 
   double scalar, std, maxV, minV, meanV, absMean, tmpval;
+  int annotation;
 
   MRI *SrcVal1, *SrcVal2, *resVal;
 
   MRI_SURFACE *Surf1, *Surf2;
   FILE *log_fp;
-
+  FACE *face;
   VERTEX *vertex, *vertex2;
   double cx, cy, cz;
   Real  vx, vy, vz;
@@ -131,12 +141,13 @@ int main(int argc, char *argv[])
   MRI *mri_tmp = NULL;
   MRI *mri_label = NULL;
   MRI *mri_map = NULL;
+  int fno, vno0, vno1, vno2; 
 
   LTA          *lta = 0;
   int          transform_type;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.4 2005/05/05 18:08:20 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.5 2005/07/07 16:22:11 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -240,6 +251,24 @@ int main(int argc, char *argv[])
     MRISsmoothMRI(Surf2, SrcVal2, nSmoothSteps, SrcVal2);
   }
 
+
+  /* added for allowing using faces; maybe unnecessary */
+  for (fno = 0 ; fno < Surf1->nfaces ; fno++){
+    face = &Surf1->faces[fno] ;
+    vno0 = face->v[0] ; vno1 = face->v[1] ; vno2 = face->v[2] ;
+    mrisSetVertexFaceIndex(Surf1, vno0, fno) ;
+    mrisSetVertexFaceIndex(Surf1, vno1, fno) ;
+    mrisSetVertexFaceIndex(Surf1, vno2, fno) ;
+  }
+  for (fno = 0 ; fno < Surf2->nfaces ; fno++){
+    face = &Surf2->faces[fno] ;
+    vno0 = face->v[0] ; vno1 = face->v[1] ; vno2 = face->v[2] ;
+    mrisSetVertexFaceIndex(Surf2, vno0, fno) ;
+    mrisSetVertexFaceIndex(Surf2, vno1, fno) ;
+    mrisSetVertexFaceIndex(Surf2, vno2, fno) ;
+  }
+  
+
   if(debugflag){
     printf("Data%d at vertex %d has value %g\n",1, debugvtx, 	MRIFseq_vox(SrcVal1, debugvtx, 0, 0, 0));
   }
@@ -328,6 +357,8 @@ int main(int argc, char *argv[])
       copyVolGeom(&vgtmp, &lt->src);
     }
     
+    /* save the original cooridnates into orig */
+    MRISsaveVertexPositions(Surf1, ORIGINAL_VERTICES);
     MRIStransform(Surf1, mri, lta, mri_dst) ;
     
     if (mri)
@@ -396,7 +427,20 @@ int main(int argc, char *argv[])
     MRIfree(&mri_label);
   }
 
-  resVal = ComputeDifference(Surf1, SrcVal1, Surf2, SrcVal2, NULL);  
+  if(annotation_flag){
+    printf("read annotation file for surface #1\n");
+    MRISreadAnnotation(Surf1, annotation_fname) ;
+    printf("mask out vertices not have annotation %d\n", annotation);
+    //CTABindexToAnnotation(Surf1->ct, annotation_index, &annotation); 
+    annotation = CTABnameToAnnotation(Surf1->ct, annotation_name);
+    for(index = 0; index < Surf1->nvertices; index++){
+      vertex = &Surf1->vertices[index];
+      if(vertex->annotation != annotation)
+	vertex->border = 1;
+    }
+  }
+
+  resVal = ComputeDifferenceNew(Surf1, SrcVal1, Surf2, SrcVal2, NULL);  
   
   if(0){
     maxV = 10000.0; total = 0; /* all borrowed here */
@@ -473,9 +517,9 @@ int main(int argc, char *argv[])
 
     if(maplike_fname && mapout_fname){
       vertex = &Surf1->vertices[index];
-      cx = vertex->x;
-      cy = vertex->y;
-      cz = vertex->z;
+      cx = vertex->origx;
+      cy = vertex->origy;
+      cz = vertex->origz;
       
       MRIsurfaceRASToVoxel(mri_map, cx, cy, cz, &vx, &vy, &vz);
       /* Nearest neighbor */
@@ -618,7 +662,12 @@ static void print_help(void)
 "\n"
 "  -nsmooth #\n"
 "\n"
-"  perform # of iterations (smoothing) before computing the difference."
+"  perform # of iterations (smoothing) before computing the difference.\n"
+"\n"
+"  -annot annotationfile annotation_name.\n"
+"     limit thickness comparison to region with annotation = annotation_name.\n"
+"\n" 
+"  -s subject_name (to be recorded in logfile).\n"
 "\n"
 "  -register\n"
 "\n" 
@@ -716,6 +765,15 @@ get_option(int argc, char *argv[])
     trgtype = string_to_type(trgtypestring);
     nargs = 1 ;
   }
+  else if (!stricmp(option, "annot") ||
+	   !stricmp(option, "annotation"))
+  {
+    annotation_fname = argv[2];
+    annotation_flag = 1;
+    annotation_name = argv[3];
+    nargs = 2;
+    printf("only compute thickness stats for region with label %s\n", annotation_name);
+  }
   else if (!stricmp(option, "distance"))
   {
       compute_distance = 1;
@@ -779,6 +837,233 @@ get_option(int argc, char *argv[])
   }
 
   return(nargs) ;
+}
+
+double v_to_f_distance(VERTEX *P0, MRI_SURFACE *mri_surf, int face_number, int debug, double *sopt, double *topt){
+/* Compute the distance from point P0 to a face of the surface mesh */
+/* (sopt, topt) determines the closest point inside the triangle from P0 */
+  
+  double a, b, c, d, e, f, det, s, t, invDet;
+  double numer, denom, tmp0, tmp1;
+  VERTEX *V1, *V2, *V3;
+  FACE *face;
+  
+  VERTEX E0, E1, D;
+  
+  face = &mri_surf->faces[face_number];
+  V1 = &mri_surf->vertices[face->v[0]];
+  V2 = &mri_surf->vertices[face->v[1]];
+  V3 = &mri_surf->vertices[face->v[2]];
+
+  E0.x = V2->x - V1->x; E0.y = V2->y - V1->y; E0.z = V2->z - V1->z; 
+  E1.x = V3->x - V1->x; E1.y = V3->y - V1->y; E1.z = V3->z - V1->z;
+  D.x = V1->x - P0->x;  D.y = V1->y - P0->y; D.z = V1->z - P0->z;
+  
+  a = E0.x *E0.x + E0.y * E0.y + E0.z *E0.z;
+  b = E0.x *E1.x + E0.y * E1.y + E0.z *E1.z;
+  c = E1.x *E1.x + E1.y * E1.y + E1.z *E1.z;
+  d = E0.x *D.x + E0.y * D.y + E0.z *D.z;
+  e = E1.x *D.x + E1.y * D.y + E1.z *D.z;
+  f = D.x *D.x + D.y * D.y + D.z *D.z;  
+  
+  det = a*c - b*b; s = b*e - c*d; t = b*d - a*e;
+
+  if(debug) printf("det = %g\n", det);
+  if(s + t <= det){
+    if(s < 0){
+      if(t<0){
+	/* Region 4 */
+	if( d < 0){ /* Minimum on edge t = 0 */
+	  s = (-d >= a ? 1 : -d/a); t = 0;
+	}else if (e < 0){ /* Minimum on edge s = 0 */
+	  t = (-e >= c ? 1 : -e/c); s = 0;
+	}else { s = 0; t = 0;}
+	if(debug) printf("region 4,  d= %g, e = %g, s =%g, t =%g\n", d, e, s, t);
+      }else{
+	/* Region 3 */
+	s = 0;
+	t = ( e >= 0 ? 0 : (-e >= c ? 1 : (-e/c)));
+	if(debug) printf("region 3, s =%g, t =%g\n", s, t);
+      }	
+    }
+    else if (t < 0){
+      /* Region 5 */
+      t = 0;
+      s = (d >= 0 ? 0 :(-d >= a ? 1 : (-d/a)));
+      if(debug) printf("region 5, s =%g, t =%g\n", s, t);
+    }else{
+      /* Region 0 */
+      invDet = 1/det;
+      s *= invDet; t *= invDet;	
+      if(debug) printf("region 0, s =%g, t =%g\n", s, t);
+    }
+    
+  }else{
+    if( s < 0 ){
+      /* Region 2 */
+      tmp0 = b + d; tmp1 = c + e;
+      if(tmp1 > tmp0){
+	numer = tmp1 - tmp0;
+	denom = a - b - b +c;
+	s = (numer >= denom ? 1 : numer/denom);
+	t = 1-s;
+	
+      }else{
+	s = 0;
+	/* t = (e >= 0 ? 0 : (-e >= c ? 0 > = c + e = tmp1) */
+	t = (tmp1 <= 0 ? 1 : (e >= 0 ? 0 : -e/c));
+      }
+      if(debug) printf("region 2, s =%g, t =%g\n", s, t);
+    }else if( t < 0){
+      /* Region 6 */
+      tmp0 = b + e; tmp1 = a + d;
+      if(tmp1 > tmp0){ /* Minimum at line s + t = 1 */
+	numer = tmp1 - tmp0; /* Positive */
+	denom = a + c - b -b;
+	t = (numer >= denom ? 1 : (numer/denom));
+	s = 1 - t;
+      }else{ /* Minimum at line t = 0 */
+	s = (tmp1 <= 0 ? 1 : (d >= 0 ? 0 : -d/a));
+	t = 0;
+      }
+      if(debug) printf("region 6, s =%g, t =%g\n", s, t);
+    }else{
+      /* Region 1 */
+      numer = c + e - b - d;
+      if(numer <= 0){ s = 0;}
+      else{
+	denom = a + c - b - b; /* denom is positive */
+	s = (numer >= denom ? 1 : (numer/denom));
+      }
+      t = 1-s;
+      if(debug) printf("region 1, s =%g, t =%g\n", s, t);
+    }
+  }
+  
+  if( s < 0  || s > 1 || t < 0 || t > 1){
+    printf("Error in computing s and t \n");
+  }
+  
+  *sopt = s; *topt = t;
+  /* return (sqrt(a*s*s + 2*b*s*t + c*t*t + 2*d*s + 2*e*t + f)); */
+  /* The square-root will be taken later to save time */
+  return (a*s*s + 2*b*s*t + c*t*t + 2*d*s + 2*e*t + f); 
+
+} 
+
+MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1, MRI *mri_data1, MRI_SURFACE *Mesh2, MRI *mri_data2, MRI *mri_res){
+  /* This one will do a more accurate interpolation */
+  int index, k, facenumber, closestface;
+  ANNpointArray QueryPt;
+  VERTEX *vertex;
+  double sumcurv, sumweight, weight;
+  VERTEX *V1, *V2, *V3;
+  FACE *face;
+  double value, distance, tmps, tmpt;
+  double total_distance, tmp_value, tmp_distance;
+
+  ANNpointArray pa = annAllocPts(Mesh2->nvertices, 3);
+
+  for(index = 0; index < Mesh2->nvertices; index++){
+    pa[index][0] = Mesh2->vertices[index].x;
+    pa[index][1] = Mesh2->vertices[index].y;
+    pa[index][2] = Mesh2->vertices[index].z;
+  }
+    
+  // construct and initialize the tree
+  ANNkd_tree *annkdTree = new ANNkd_tree(pa, Mesh2->nvertices, 3);
+  ANNidxArray annIndex = new ANNidx[1];
+  ANNdistArray annDist = new ANNdist[1];
+
+  if(mri_res == NULL)
+    mri_res = MRIclone(mri_data1, NULL);
+  
+  QueryPt = annAllocPts(1,3);
+
+  total_distance = 0.0;
+
+  for(index = 0; index < Mesh1->nvertices; index++){
+    if(Mesh1->vertices[index].border == 1) continue;
+    vertex = &Mesh1->vertices[index];
+    QueryPt[0][0] = vertex->x;
+    QueryPt[0][1] = vertex->y;
+    QueryPt[0][2] = vertex->z;
+
+    annkdTree->annkSearch(	// search
+			  QueryPt[0],	     	// query point
+			  1,			// number of near neighbors
+			  annIndex,		// nearest neighbors (returned)
+			  annDist,		// distance (returned)
+			  0);			// error bound
+  
+    /* annIndex gives the closest vertex on mris_template to the vertex #index of mris */
+    
+    /* Now need to find the closest face in order to perform linear interpolation */
+    distance = 1000.0; 
+    for(k=0; k < Mesh2->vertices[annIndex[0]].num; k++){
+      
+      facenumber =  Mesh2->vertices[annIndex[0]].f[k]; /* index of the k-th face */
+      if(facenumber < 0 || facenumber >= Mesh2->nfaces) continue;
+      value = v_to_f_distance(vertex, Mesh2, facenumber, 0, &tmps, &tmpt);
+            
+      if(distance > value){
+	distance = value;
+	closestface = facenumber;
+      }
+    }
+
+    face = &Mesh2->faces[closestface];
+    V1 = &Mesh2->vertices[face->v[0]];
+    V2 = &Mesh2->vertices[face->v[1]];
+    V3 = &Mesh2->vertices[face->v[2]];
+    sumcurv = 0.0;  sumweight = 0.0;
+    weight = 1.0/(1e-20 + (V1->x - vertex->x)*(V1->x - vertex->x) + (V1->y - vertex->y)*(V1->y - vertex->y) + (V1->z - vertex->z)*(V1->z - vertex->z));
+    sumcurv += weight*MRIgetVoxVal(mri_data2,face->v[0],0,0,0);
+    sumweight += weight;
+
+    weight = 1.0/(1e-20 + (V2->x - vertex->x)*(V2->x - vertex->x) + (V2->y - vertex->y)*(V2->y - vertex->y) + (V2->z - vertex->z)*(V2->z - vertex->z));
+    sumcurv += weight*MRIgetVoxVal(mri_data2,face->v[1],0,0,0);
+    sumweight += weight;
+
+    weight = 1.0/(1e-20 + (V3->x - vertex->x)*(V3->x - vertex->x) + (V3->y - vertex->y)*(V3->y - vertex->y) + (V3->z - vertex->z)*(V3->z - vertex->z));
+    sumcurv += weight*MRIgetVoxVal(mri_data2,face->v[2],0,0,0); 
+    sumweight += weight; 
+
+    sumcurv /= (sumweight + 1e-30);
+    value =  sumcurv - 
+      MRIgetVoxVal(mri_data1,index,0,0,0);
+
+    if(percentage){
+      value /= 0.5*(sumcurv + MRIgetVoxVal(mri_data1,index,0,0,0) + 1e-15);
+    }
+      
+    if(compute_distance){
+      tmp_value = QueryPt[0][0] - Mesh2->vertices[annIndex[0]].x;
+      tmp_distance = tmp_value*tmp_value;
+      tmp_value = QueryPt[0][1] - Mesh2->vertices[annIndex[0]].y;
+      tmp_distance += tmp_value*tmp_value;
+      tmp_value = QueryPt[0][2] - Mesh2->vertices[annIndex[0]].z;
+      tmp_distance += tmp_value*tmp_value;
+      /* if(index == 69894){
+	 printf("distance = %g\n", sqrt(tmp_distance));
+	 } */
+      total_distance += sqrt(tmp_distance);
+    }
+    MRIsetVoxVal(mri_res,index, 0, 0, 0, value);
+  }
+  
+  if(compute_distance){
+    total_distance /= (Mesh1->nvertices + 1e-10);
+    printf("Average vertex-to-vertex distance of the two surfaces are %g\n", total_distance);
+  }
+
+  if (annkdTree) delete annkdTree;
+  if (annIndex) delete annIndex;
+  if (annDist) delete annDist;
+  if (QueryPt) delete QueryPt;
+
+
+  return (mri_res);
 }
 
 MRI *ComputeDifference(MRI_SURFACE *Mesh1, MRI *mri_data1, MRI_SURFACE *Mesh2, MRI *mri_data2, MRI *mri_res)
@@ -861,7 +1146,7 @@ MRI *ComputeDifference(MRI_SURFACE *Mesh1, MRI *mri_data1, MRI_SURFACE *Mesh2, M
   if (annDist) delete annDist;
   if (QueryPt) delete QueryPt;
 
-  return (mri_res);
+  return (mri_res); 
 }
 
 void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2){
@@ -1336,5 +1621,39 @@ void jacobi(float **a, int n,float *d, float **v, int *nrot)
   }
   printf("Too many iterations in routine JACOBI\n");
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Search the face for vno and set the v->n[] field
+          appropriately.
+------------------------------------------------------*/
+static int
+mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno)
+{
+  VERTEX  *v ;
+  FACE    *f ;
+  int     n, i ;
+
+  v = &mris->vertices[vno] ;
+  f = &mris->faces[fno] ;
+
+  for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+  {
+    if (f->v[n] == vno)
+      break ;
+  }
+  if (n >= VERTICES_PER_FACE)
+    return(ERROR_BADPARM) ;
+
+  for (i = 0 ; i < v->num ; i++)
+    if (v->f[i] == fno)
+      v->n[i] = n ;
+
+  return(n) ;
+}
+
 
 #undef ROTATE

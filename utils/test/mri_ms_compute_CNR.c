@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/03/21 18:04:01 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2005/07/07 16:22:11 $
+// Revision       : $Revision: 1.3 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -113,7 +113,7 @@ main(int argc, char *argv[])
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_compute_CNR.c,v 1.2 2005/03/21 18:04:01 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_compute_CNR.c,v 1.3 2005/07/07 16:22:11 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -607,7 +607,7 @@ get_option(int argc, char *argv[])
       window_flag = 1 ;
       window_size = atoi(argv[2]) ;
       nargs = 1;
-      printf("interpolating volume to be isotropic 1mm^3\n") ;
+      printf("compute CNR withing a window\n") ;
     }
   else if (!stricmp(option, "lda"))
     {
@@ -721,6 +721,9 @@ usage_exit(int code)
   printf("\t -conform to conform input volumes (brain mask typically already conformed) \n");
   printf("\t -W to indicate weights are available from weight_fname\n");  
   printf("\t -f filename to output CNR values to the specified file\n");
+  printf("\t -window %%d, used together with -debug_voxel allows computing CNR and synth within a local window with size %%d in each direction\n");
+  printf("\t -debug_voxel (x,y,z) gives coordinates of a voxel\n");
+  printf("\t -whole_volume: apply weights computed locally to whole volume \n");
   exit(code) ;
   
 }
