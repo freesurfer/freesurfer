@@ -2258,20 +2258,18 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 	} 
       else
 	{
-	  if (FunD_tRegistration_None == overlay_reg_type)
-	    {
-	      printf ("surfer: ERROR: Must specify registration type for overlay. Use -overlay-reg <file>, -overlay-reg-find, or -overlay-reg-identity.\n");
 
-	    } else {
-
-	      sclv_read_from_volume(functional_fname, overlay_reg_type,
-				    overlay_reg, SCLV_VAL);
-
-	      read_binary_curvature(cfname) ; 
-	      val_to_stat() ;
-	      overlayflag = TRUE ;
-	      colscale = HEAT_SCALE ;
-	    }
+	  /* Note that we don't check for valid reg type here because
+	     the volume type could be an encoded value file, which
+	     doesn't need one. */
+	  
+	  sclv_read_from_volume(functional_fname, overlay_reg_type,
+				overlay_reg, SCLV_VAL);
+	  
+	  read_binary_curvature(cfname) ; 
+	  val_to_stat() ;
+	  overlayflag = TRUE ;
+	  colscale = HEAT_SCALE ;
 	}
     }
 #if 0
@@ -7949,6 +7947,12 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   MRIfree (&mri_info);
 
   printf ("surfer: Interpreting overlay volume %s as functional volume.\n", fname);
+
+  if (FunD_tRegistration_None == reg_type)
+    {
+      printf ("surfer: ERROR: Must specify registration type for overlay. Use -overlay-reg <file>, -overlay-reg-find, or -overlay-reg-identity.\n");
+      return ERROR_BADPARM;
+    }
 
   /* create volume. */
   volume_error = FunD_New (&volume, sclv_client_transform,
@@ -18534,7 +18538,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.123 2005/07/07 19:50:42 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.124 2005/07/07 20:15:56 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
