@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/07/06 19:18:06 $
-// Revision       : $Revision: 1.76 $
+// Revision Date  : $Date: 2005/07/07 15:23:51 $
+// Revision       : $Revision: 1.77 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -1397,7 +1397,7 @@ static float jac_scale = 10 ;
 static int
 gcamJacobianTerm(GCA_MORPH *gcam, MRI *mri, double l_jacobian, double ratio_thresh)
 {
-  int            i, j, k, num, xi, yi, zi, xk, yk, zk ;
+  int            i, j, k, num, xi, yi, zi, xk, yk, zk = 0 ;
   double         dx, dy, dz, norm, orig_area, ratio, max_norm ;
   GCA_MORPH_NODE *gcamn ;
 
@@ -2797,7 +2797,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, \
   last_rms = GCAMcomputeRMS(gcam, mri, parms) ;
   if (parms->log_fp)
     {
-      fprintf(parms->log_fp, "%03d: dt=%2.3f, rms=%2.3f, neg=%d, invalid=%d",
+      fprintf(parms->log_fp, "%04d: dt=%2.3f, rms=%2.3f, neg=%d, invalid=%d",
               0, 0.0f, last_rms, gcam->neg, Ginvalid) ;
       if (parms->l_binary > 0)
         fprintf(parms->log_fp, ", aligned = %d (%2.3f%%)\n",
@@ -2810,7 +2810,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, \
     }
   if (Gdiag & DIAG_SHOW)
     {
-      printf("%03d: dt=%2.3f, rms=%2.3f, neg=%d, invalid=%d",
+      printf("%04d: dt=%2.3f, rms=%2.3f, neg=%d, invalid=%d",
              0, 0.0f, last_rms, gcam->neg, Ginvalid) ;
       if (parms->l_binary > 0)
         printf(", aligned = %d (%2.3f%%)\n",
@@ -2964,7 +2964,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, \
     
       if (parms->log_fp)
         {
-          fprintf(parms->log_fp, "%03d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d",
+          fprintf(parms->log_fp, "%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d",
                   n+1, min_dt, rms, pct_change, gcam->neg, Ginvalid) ;
           if (parms->l_binary > 0)
             fprintf(parms->log_fp, ", aligned = %d (%2.3f%%)\n",
@@ -2977,7 +2977,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, \
 
       if (Gdiag & DIAG_SHOW)
         {
-          printf("%03d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d",
+          printf("%04d: dt=%2.6f, rms=%2.3f (%2.3f%%), neg=%d, invalid=%d",
                  n+1, min_dt, rms, pct_change, gcam->neg, Ginvalid) ;
           if (parms->l_binary > 0)
             printf(", aligned = %d (%2.3f%%)\n",
@@ -3102,7 +3102,7 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
     mri_morphed = GCAMmorphFieldFromAtlas(gcam, parms->mri, GCAM_LABEL,0, 1) ;
   else
     mri_morphed = GCAMmorphToAtlas(parms->mri, gcam, NULL, parms->mri->nframes-1) ;
-  sprintf(base_name, "%s_%3.3d", parms->base_name, iter) ;
+  sprintf(base_name, "%s_%4.4d", parms->base_name, iter) ;
   sprintf(fname, "%s.mgz", base_name) ;
   printf("writing snapshot to %s\n", fname) ;
   MRIwrite(mri_morphed, fname) ;
@@ -3131,7 +3131,7 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
   
   if (write_samples > 0)
     {
-      sprintf(fname, "%s_fsamples_%3.3d.mgz", parms->base_name, iter) ;
+      sprintf(fname, "%s_fsamples_%4.4d.mgz", parms->base_name, iter) ;
       printf("writing samples to %s....\n", fname) ;
       MRIwrite(mri_samples, fname) ;
     }
@@ -3157,7 +3157,7 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
               if (gcamn->status & (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD))
                 mriFillRegion(mri_samples, xv, yv, zv, gcamn->label, 1) ;
             }
-      sprintf(fname, "%s_labels_%3.3d.mgz", parms->base_name, iter) ;
+      sprintf(fname, "%s_labels_%4.4d.mgz", parms->base_name, iter) ;
       printf("writing label samples to %s....\n", fname) ;
       MRIwrite(mri_samples, fname) ;
     }
@@ -3361,7 +3361,7 @@ gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS 
       mri_tmp = gcamWriteMRI(gcam, NULL, GCAM_Y_GRAD) ;
       mri_grad = MRIupsample2(mri_tmp, NULL) ;
       MRIfree(&mri_tmp) ;
-      sprintf(fname, "%s_ygrad_before_%3.3d.mgz", parms->base_name, i) ;
+      sprintf(fname, "%s_ygrad_before_%4.4d.mgz", parms->base_name, i) ;
       printf("writing y gradient to %s...\n", fname) ;
       MRIwrite(mri_grad, fname) ;
       MRIfree(&mri_grad) ;
@@ -3377,7 +3377,7 @@ gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS 
       mri_tmp = gcamWriteMRI(gcam, NULL, GCAM_Y_GRAD) ;
       mri_grad = MRIupsample2(mri_tmp, NULL) ;
       MRIfree(&mri_tmp) ;
-      sprintf(fname, "%s_ygrad_after_%3.3d.mgz", parms->base_name, i) ;
+      sprintf(fname, "%s_ygrad_after_%4.4d.mgz", parms->base_name, i) ;
       printf("writing smoothed y gradient to %s...\n", fname) ;
       MRIwrite(mri_grad, fname) ;
       MRIfree(&mri_grad) ;
