@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.73 2005/07/06 22:15:42 kteich Exp $
+# $Id: tksurfer.tcl,v 1.74 2005/07/07 20:32:27 kteich Exp $
 
 package require BLT;
 
@@ -1426,10 +1426,7 @@ proc DoLoadOverlayDlog {} {
 	
 	set fwFile             $wwDialog.fwFile
 	set fwFileNote         $wwDialog.fwFileNote
-	set fwRegFile          $wwDialog.fwRegFile
-	set fwRegFileName      $wwDialog.fwRegFileName
-	set fwRegFind          $wwDialog.fwRegFind
-	set fwRegIdentity      $wwDialog.fwRegIdentity
+	set fwRegistration     $wwDialog.fwRegistration
 	set fwField            $wwDialog.fwField
 	set fwFieldNote        $wwDialog.fwFieldNote
 	set fwButtons          $wwDialog.fwButtons
@@ -1442,6 +1439,21 @@ proc DoLoadOverlayDlog {} {
 	[$fwFile.ew subwidget entry] icursor end
 
 	tkm_MakeSmallLabel $fwFileNote "Values file (.w), binary volume file (.bfloat/.bshort/.hdr), COR-.info file, .mgh, or other" 400
+	
+	tixLabelFrame $fwRegistration \
+	    -label "Registration" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+	
+	set fwRegSub           [$fwRegistration subwidget frame]
+
+	set fwRegNote          $fwRegSub.fwRegNote
+	set fwRegFile          $fwRegSub.fwRegFile
+	set fwRegFileName      $fwRegSub.fwRegFileName
+	set fwRegFind          $fwRegSub.fwRegFind
+	set fwRegIdentity      $fwRegSub.fwRegIdentity
+
+	tkm_MakeNormalLabel $fwRegNote "If you are loading a volume encoded value file, ignore the registration options." 400
 	
 	# The bit of code in the radio buttons disables the file entry
 	# field when the file radio button is not clicked.
@@ -1459,6 +1471,13 @@ proc DoLoadOverlayDlog {} {
 	    gRegistrationType $FunD_tRegistration(identity) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	set gRegistrationType $FunD_tRegistration(file)
 
+	pack $fwRegNote $fwRegFile $fwRegFileName \
+	    $fwRegFind $fwRegIdentity \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
 
 	tixOptionMenu $fwField -label "Into Field:" \
 	    -variable nFieldIndex \
@@ -1478,8 +1497,7 @@ proc DoLoadOverlayDlog {} {
 	    DoLoadFunctionalFile $nFieldIndex $sFileName $gRegistrationType $gfnFunctionalRegistration
 	}
 	
-	pack $fwFile $fwFileNote $fwRegFile $fwRegFileName \
-	    $fwRegFind $fwRegIdentity \
+	pack $fwFile $fwFileNote $fwRegistration \
 	    $fwField $fwFieldNote $fwButtons \
 	    -side top       \
 	    -expand yes     \
@@ -1514,10 +1532,7 @@ proc DoLoadTimeCourseDlog {} {
 	
 	set fwFile             $wwDialog.fwFile
 	set fwFileNote         $wwDialog.fwFileNote
-	set fwRegFile          $wwDialog.fwRegFile
-	set fwRegFileName      $wwDialog.fwRegFileName
-	set fwRegFind          $wwDialog.fwRegFind
-	set fwRegIdentity      $wwDialog.fwRegIdentity
+	set fwRegistration     $wwDialog.fwRegistration
 	set fwButtons          $wwDialog.fwButtons
 	
 	set sFileName [GetDefaultLocation LoadTimeCourse]
@@ -1529,6 +1544,18 @@ proc DoLoadTimeCourseDlog {} {
 
 	tkm_MakeSmallLabel $fwFileNote \
 	    "The volume file (or COR-.info for COR volumes)" 400
+
+	tixLabelFrame $fwRegistration \
+	    -label "Registration" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+	
+	set fwRegSub           [$fwRegistration subwidget frame]
+
+	set fwRegFile          $fwRegSub.fwRegFile
+	set fwRegFileName      $fwRegSub.fwRegFileName
+	set fwRegFind          $fwRegSub.fwRegFind
+	set fwRegIdentity      $fwRegSub.fwRegIdentity
 
 	# The bit of code in the radio buttons disables the file entry
 	# field when the file radio button is not clicked.
@@ -1546,6 +1573,12 @@ proc DoLoadTimeCourseDlog {} {
 	    gRegistrationType $FunD_tRegistration(identity) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	set gRegistrationType $FunD_tRegistration(file)
 
+	pack $fwRegFile $fwRegFileName $fwRegFind $fwRegIdentity \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
 
 	# buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog {
@@ -1555,9 +1588,7 @@ proc DoLoadTimeCourseDlog {} {
 	    DoLoadFunctionalFile -1 $sFileName $gRegistrationType $gfnFunctionalRegistration
 	}
 	
-	pack $fwFile $fwFileNote $fwRegFile $fwRegFileName \
-	    $fwRegFind $fwRegIdentity  \
-	    $fwButtons \
+	pack $fwFile $fwFileNote $fwRegistration $fwButtons \
 	    -side top       \
 	    -expand yes     \
 	    -fill x         \
