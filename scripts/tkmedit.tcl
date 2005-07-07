@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.90 2005/07/06 22:15:42 kteich Exp $
+# $Id: tkmedit.tcl,v 1.91 2005/07/07 20:34:10 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -1222,10 +1222,7 @@ proc DoLoadFunctionalDlog { isType } {
 	
 	set fwFile             $wwDialog.fwFile
 	set fwFileNote         $wwDialog.fwFileNote
-	set fwRegFile          $wwDialog.fwRegFile
-	set fwRegFileName      $wwDialog.fwRegFileName
-	set fwRegFind          $wwDialog.fwRegFind
-	set fwRegIdentity      $wwDialog.fwRegIdentity
+	set fwRegistration     $wwDialog.fwRegistration
 	set fwButtons          $wwDialog.fwButtons
 	
 	set gfnFunctional [GetDefaultLocation LoadFunctional-$gsFuncLoadType]
@@ -1237,6 +1234,18 @@ proc DoLoadFunctionalDlog { isType } {
 	
 	tkm_MakeSmallLabel $fwFileNote \
 	    "The volume file (or COR-.info for COR volumes)" 400
+
+	tixLabelFrame $fwRegistration \
+	    -label "Registration" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+	
+	set fwRegSub           [$fwRegistration subwidget frame]
+
+	set fwRegFile          $fwRegSub.fwRegFile
+	set fwRegFileName      $fwRegSub.fwRegFileName
+	set fwRegFind          $fwRegSub.fwRegFind
+	set fwRegIdentity      $fwRegSub.fwRegIdentity
 
 	# The bit of code in the radio buttons disables the file entry
 	# field when the file radio button is not clicked.
@@ -1252,14 +1261,20 @@ proc DoLoadFunctionalDlog { isType } {
 	    gRegistrationType $FunD_tRegistration(identity) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	set gRegistrationType $FunD_tRegistration(file)
 
+	pack $fwRegFile $fwRegFileName $fwRegFind $fwRegIdentity \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+
 	# buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
 	    {set fnFunctional $gfnFunctional; 
 	      SetDefaultLocation LoadFunctional-$gsFuncLoadType $gfnFunctional;
 		DoLoadFunctional $gsFuncLoadType $gfnFunctional $gRegistrationType $gfnFunctionalRegistration }
 	
-	pack $fwFile $fwFileNote $fwRegFile $fwRegFileName \
-	    $fwRegFind $fwRegIdentity $fwButtons \
+	pack $fwFile $fwFileNote $fwRegistration $fwButtons \
 	    -side top       \
 	    -expand yes     \
 	    -fill x         \
