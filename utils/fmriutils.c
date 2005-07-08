@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.6 2004/10/06 22:04:24 greve Exp $
+   $Id: fmriutils.c,v 1.7 2005/07/08 18:10:27 greve Exp $
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +10,7 @@
 #include "MRIio_old.h"
 #include "sig.h"
 #include "fmriutils.h"
+#include "gsl/gsl_cdf.h"
 
 #ifdef X
 #undef X
@@ -349,14 +350,14 @@ MRI *fMRIcomputeF(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *F)
 	  MRIFseq_vox(F,c,r,s,0) = 0;
 	else{
 	  for(f=0; f < ces->nframes; f++){
-	    cesval = MRIgetVoxVal(ces, c, r, s, 0);
+	    cesval = MRIgetVoxVal(ces, c, r, s, f);
 	    cesvect->rptr[f+1][1]  = cesval;
 	    cesvectt->rptr[1][f+1] = cesval;
 	  }
 	  M = MatrixMultiply(iCiXtXCt,cesvect,M);
 	  voxF = MatrixMultiply(cesvectt,M,voxF);
 
-	  MRIFseq_vox(F,c,r,s,0) = voxF->rptr[1][1];
+	  MRIFseq_vox(F,c,r,s,0) = (voxF->rptr[1][1])/(J*voxvar);
 	}
       }
     }
@@ -377,7 +378,6 @@ MRI *fMRIcomputeF(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *F)
 }
 
 /*--------------------------------------------------------*/
-// This does not work yet because we need an F test
 MRI *fMRIsigF(MRI *F, float DOF1, float DOF2, MRI *sig)
 {
   int c, r, s, f;
@@ -387,7 +387,7 @@ MRI *fMRIsigF(MRI *F, float DOF1, float DOF2, MRI *sig)
     sig = MRIallocSequence(F->width, F->height, F->depth, 
 			   MRI_FLOAT, F->nframes);
     if(sig==NULL){
-      printf("ERROR: fMRIsigT: could not alloc\n");
+      printf("ERROR: fMRIsigF: could not alloc\n");
       return(NULL);
     }
     MRIcopyHeader(F,sig);
@@ -397,11 +397,11 @@ MRI *fMRIsigF(MRI *F, float DOF1, float DOF2, MRI *sig)
        F->height  != sig->height || 
        F->depth   != sig->depth  ||
        F->nframes != sig->nframes){
-      printf("ERROR: fMRIsigT: output dimension mismatch\n");
+      printf("ERROR: fMRIsigF: output dimension mismatch\n");
       return(NULL);
     }
     if(sig->type != MRI_FLOAT){
-      printf("ERROR: fMRIsigT: structure passed is not MRI_FLOAT\n");
+      printf("ERROR: fMRIsigF: structure passed is not MRI_FLOAT\n");
       return(NULL);
     }
   }
@@ -411,8 +411,8 @@ MRI *fMRIsigF(MRI *F, float DOF1, float DOF2, MRI *sig)
       for(s=0; s < F->depth; s++){
 	for(f=0; f < F->nframes; f++){
 	  Fval = MRIFseq_vox(F,c,r,s,f);
-          //sigFval = sigF(Fval, rint(DOF1), rint(DOF2));
-          sigFval = sigt(Fval, rint(DOF1));
+          //sigFval = sigt(Fval, rint(DOF1));
+	  sigFval = gsl_cdf_fdist_Q(Fval,DOF1,DOF2);
 	  MRIFseq_vox(sig,c,r,s,f) = sigFval;
 	}
       }
