@@ -18538,7 +18538,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.124 2005/07/07 20:15:56 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.125 2005/07/08 20:48:28 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24996,7 +24996,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
   goto done;
   
  cancel:
-  printf (" cancelled\n");
+  printf (" canceled\n");
   fflush (stdout);
 
  done:
@@ -25160,7 +25160,7 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
   goto done;
 
  cancel:
-  printf (" cancelled\n");
+  printf (" canceled\n");
   fflush (stdout);
   *path_length = 0;
   
