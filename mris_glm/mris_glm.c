@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.38 2005/07/05 18:13:18 greve Exp $
+  $Id: mris_glm.c,v 1.39 2005/07/08 18:10:52 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -74,7 +74,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.38 2005/07/05 18:13:18 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.39 2005/07/08 18:10:52 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.38 2005/07/05 18:13:18 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.39 2005/07/08 18:10:52 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -539,10 +539,16 @@ int main(int argc, char **argv)
        tmaxfile != NULL || SynthPDF != 0){
       if(nthsim == 1) printf("INFO: computing contrast effect size \n");
       ces = fMRImatrixMultiply(beta,C,ces);
+      printf("ces nframes = %d\n",ces->nframes);
       if(cesid != NULL && MCSim == 0){
-	if(IsSurfFmt(cesfmt) && IcoSurf == NULL)
+	if(IsSurfFmt(cesfmt) && IcoSurf == NULL){
 	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
-	if(MRIwriteAnyFormat(ces,cesid,cesfmt,0,IcoSurf)) exit(1);
+	  MRIwriteAnyFormat(ces,cesid,cesfmt,0,IcoSurf);
+	}
+	else{
+	  MRIwriteAnyFormat(ces,cesid,cesfmt,-1,NULL);
+	}
+
       }
     }
     
@@ -576,10 +582,13 @@ int main(int argc, char **argv)
       if(nthsim == 1) printf("INFO: computing t significance \n");
       if(C->rows == 1)
 	sig = fMRIsigT(t, DOF, sig);
-      else
-	sig = fMRIsigF(t, DOF, C->rows, sig); // This does not work
+      else{
+	printf("Computing sigF\n");
+	sig = fMRIsigF(t, DOF, C->rows, sig);
+      }
       MRIlog10(sig,sig,1);
-      if(sigfmt != NULL && MCSim == 0){
+      //if(sigfmt != NULL && MCSim == 0){
+      if(sigfmt != NULL){
 	if(IsSurfFmt(sigfmt) && IcoSurf == NULL)
 	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
 	if(MRIwriteAnyFormat(sig,sigid,sigfmt,0,IcoSurf)) exit(1);
@@ -1464,9 +1473,10 @@ static void check_options(void)
 	printf("ERROR: dimension mismatch: ncols in contrast matrix\n");
 	printf("       is %d but the number of regressors is %d\n",
 	       C->cols,nregressors);
+	MatrixPrint(stdout,C);
 	exit(1);
       }      
-      if(C->rows != 1){
+      if(C->rows != 1 && 0){
 	printf("ERROR: the contrast matrix can only have one row.\n");
 	printf("Ask Doug to add F-test.\n");
 	exit(1);
