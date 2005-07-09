@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.5 2005/07/06 16:45:06 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.6 2005/07/09 02:34:57 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -13,6 +13,7 @@ set cost = corratio;
 set debug = 0;
 set cleanup = 1;
 set usedev = 0;
+set manual = 0;
 
 set PrintHelp = 0;
 
@@ -38,6 +39,9 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+set TKR = tkregister2
+if($usedev) set TKR = $DEV/$TKR/$TKR
+
 echo FeatDir is $FeatDir
 mkdir -p $FeatDir/reg/freesurfer/tmp
 
@@ -55,6 +59,21 @@ if(! -e $tempvol) then
     echo "ERROR: cannot find $tempvol0 or $tempvol"
     exit 1;
   endif
+endif
+
+set anat2exf_regdat = $FeatDir/reg/freesurfer/anat2exf.register.dat
+
+if($manual) then
+  if(! -e $anat2exf_regdat) then
+    echo "ERROR: you must run without --manual to create registration first"
+    exit 1;
+  endif
+  set cmd = ($TKR --s $subject --mov $tempvol \
+              --reg $anat2exf_regdat --surf orig);
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+  exit 0;
 endif
 
 # Set up a log file
@@ -89,11 +108,7 @@ set anat2std_regdat = $FeatDir/reg/freesurfer/anat2std.register.dat
 set std2anat_fslmat = $FeatDir/reg/freesurfer/std2anat.fsl.mat
 set exf2anat_init_fslmat = $FeatDir/reg/freesurfer/exf2anat.init.fsl.mat
 set exf2anat_fslmat = $FeatDir/reg/freesurfer/exf2anat.fsl.mat
-set anat2exf_regdat = $FeatDir/reg/freesurfer/anat2exf.register.dat
 set std2exf_regdat  = $FeatDir/reg/freesurfer/std2exf.register.dat
-
-set TKR = tkregister2
-if($usedev) set TKR = $DEV/$TKR/$TKR
 
 # Create the init matrix
 set cmd = ($TKR \
@@ -275,6 +290,10 @@ while( $#argv != 0 )
       set cleanup = 0;
       breaksw
 
+    case "--manual":
+      set manual = 1;
+      breaksw
+
     case "--usedev":
       set usedev = 1;
       breaksw
@@ -337,6 +356,7 @@ usage_exit:
   echo ""
   echo "Optional flags and arguments:"
   echo ""
+  echo " --manual         : interactively view/edit registration"
   echo " --dof  dof       : FLIRT DOF (default is $dof)"
   echo " --bins bins      : FLIRT bins (default is $bins)"
   echo " --cost cost      : FLIRT cost (default is $cost)"
@@ -399,6 +419,12 @@ These arguments are passed to flirt
  
 OTHER ARGUMENTS
 
+--manual
+
+Interactively view or edit registration with tkregister2. You must have
+already run reg-feat2anat without --manual to create the initial registration.
+
+
 --version            : print version and exit
 --help               : print help and exit
 --debug              : turn on debugging
@@ -412,8 +438,7 @@ EXAMPLE
 reg-feat2anat --feat fbert.feat --subject bert
 
 # View/check the registration
-tkregister2 --reg fbert.feat/reg/freesurfer/anat2exf.register.dat \
-            --mov fbert.feat/example_func.img --surf orig
+reg-feat2anat --feat fbert.feat --subject bert --manual
 
 # If the registration has catastropically failed, then check that
 # the registration to standard space did not fail:
