@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.91 2005/07/07 20:34:10 kteich Exp $
+# $Id: tkmedit.tcl,v 1.92 2005/07/11 18:31:42 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -133,6 +133,10 @@ set ksaViewPresetString(2) "mosaic"
 # tkm_tVolumeType
 set tkm_tVolumeType(main) 0
 set tkm_tVolumeType(aux)  1
+
+# tkm_tSegType
+set tkm_tSegType(main) 0
+set tkm_tSegType(aux)  1
 
 # tkm_tVolumeTarget
 set tkm_tVolumeTarget_MainAna 0
@@ -4060,6 +4064,14 @@ proc CreateMenuBar { ifwMenuBar } {
 		"Recompute Segmentation"
 		DoRecomputeSegmentation
 		tMenuGroup_GCAOptions }
+	    { command
+		"Select Main Segmentation Label At Cursor"
+		"SelectSegLabelAtCursor $tkm_tSegType(main)"
+		tMenuGroup_Segmentation }
+	    { command
+		"Select Aux Segmentation Label At Cursor"
+		"SelectSegLabelAtCursor $tkm_tSegType(aux)"
+		tMenuGroup_Segmentation }
 	    { check
 		"Verbose GCA Display"
 		"SendDisplayFlagValue flag_VerboseGCADump"
