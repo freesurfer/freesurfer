@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/07/06 22:15:17 $
-// Revision       : $Revision: 1.249 $
-char *VERSION = "$Revision: 1.249 $";
+// Revision Date  : $Date: 2005/07/11 18:31:21 $
+// Revision       : $Revision: 1.250 $
+char *VERSION = "$Revision: 1.250 $";
 
 #define TCL
 #define TKMEDIT 
@@ -572,6 +572,10 @@ void GetSegLabel  ( tkm_tSegType iVolume,
 		    int*         onIndex,
 		    char*        osLabel );
 
+/* Gets the segmentation value at the cursor and calls
+   SelectSegLabel. */
+tkm_tErr SelectSegLabelAtCursor ( tkm_tSegType iVolume );
+
 /* Adds all voxels in a label to the selection. */
 tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
 			  int          inIndex );
@@ -599,7 +603,7 @@ Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iMRIIdx,
 /* A call back for a visit function. If the two values are equal
    (there's a float in ipnTarget) then this voxel will be added to the
    functional selection so it can later be graphed. */
-Volm_tVisitCommand AddSimilarVoxelToGraohAvg  ( xVoxelRef iMRIIdx,
+Volm_tVisitCommand AddSimilarVoxelToGraphAvg  ( xVoxelRef iMRIIdx,
 						float     iValue,
 						void*     ipnTarget );
 
@@ -1097,7 +1101,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.249 2005/07/06 22:15:17 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.250 2005/07/11 18:31:21 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -4761,6 +4765,23 @@ int TclRecomputeSegmentation ( ClientData inClientData,
   return TCL_OK;
 }
 
+int TclSelectSegLabelAtCursor ( ClientData inClientData, 
+				Tcl_Interp* inInterp,
+				int argc, char* argv[] ) {
+  
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: SelectSegLabelAtCursor "
+		    "volume:0=main,1=aux", TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    SelectSegLabelAtCursor( atoi(argv[1]) );
+  }  
+
+  return TCL_OK;
+}
+
 int TclImportSurfaceAnnotationToSegmentation ( ClientData inClientData, 
 					       Tcl_Interp* inInterp,
 					       int argc, char* argv[] ) {
@@ -5291,7 +5312,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.249 2005/07/06 22:15:17 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.250 2005/07/11 18:31:21 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -5672,6 +5693,9 @@ int main ( int argc, char** argv ) {
 		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( interp, "RecomputeSegmentation", 
 		      (Tcl_CmdProc*) TclRecomputeSegmentation,
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( interp, "SelectSegLabelAtCursor", 
+		      (Tcl_CmdProc*) TclSelectSegLabelAtCursor,
 		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( interp, "RestorePreviousSegmentation", 
 		      (Tcl_CmdProc*) TclRestorePreviousSegmentation,
@@ -9955,7 +9979,7 @@ Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iMRIIdx,
   return Volm_tVisitComm_Continue;
 }
 
-Volm_tVisitCommand AddSimilarVoxelToGraohAvg ( xVoxelRef iMRIIdx,
+Volm_tVisitCommand AddSimilarVoxelToGraphAvg ( xVoxelRef iMRIIdx,
 					       float     iValue,
 					       void*     ipnTarget ) {
   int    nIndex       = 0;
@@ -9995,6 +10019,46 @@ Volm_tVisitCommand SetChangedSegmentationValue ( xVoxelRef iMRIIdx,
 }
 
 
+tkm_tErr SelectSegLabelAtCursor ( tkm_tSegType iVolume ) {
+
+  tkm_tErr  eResult     = tkm_tErr_NoErr;
+  Volm_tErr eVolume     = Volm_tErr_NoErr;
+  xVoxel    cursorIdx;
+  float     value       = 0;
+
+  DebugEnterFunction( ("SelectSegLabel ( iVolume=%d )", iVolume) );
+  
+  DebugAssertThrowX( (iVolume >= 0 && iVolume <= tkm_knNumSegTypes),
+		     eResult, tkm_tErr_InvalidParameter );
+
+  /* make sure we're loaded */
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (NULL != gSegmentationVolume[iVolume] || 
+		      NULL != gColorTable[iVolume]),
+		     eResult, tkm_tErr_SegmentationNotLoaded );
+  
+  /* Get the cursor */
+  MWin_GetCursor( gMeditWindow, &cursorIdx );
+  
+  /* Get the value at the cursor. */
+  eVolume = Volm_GetValueAtIdx( gSegmentationVolume[iVolume],
+				&cursorIdx, &value );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  
+  /* Select this value. */
+  SelectSegLabel( iVolume, value );
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+
+}
+
 tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
 			  int          inIndex ) {
   
@@ -10010,7 +10074,7 @@ tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
 
   /* make sure we're loaded */
   DebugNote( ("Checking parameters") );
-  DebugAssertThrowX( (NULL != gSegmentationVolume || 
+  DebugAssertThrowX( (NULL != gSegmentationVolume[iVolume] || 
 		      NULL != gColorTable[iVolume]),
 		     eResult, tkm_tErr_SegmentationNotLoaded );
   
@@ -10018,7 +10082,7 @@ tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
   DebugNote( ("Getting number of entries") );
   CLUT_GetNumEntries( gColorTable[iVolume], &nNumEntries );
   DebugAssertThrowX( (inIndex > 0 && inIndex <= nNumEntries),
-         eResult, tkm_tErr_InvalidParameter );
+		     eResult, tkm_tErr_InvalidParameter );
   
   /* do it */
   OutputPrint "Selecting... " EndOutputPrint;
@@ -10026,7 +10090,7 @@ tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
     Volm_VisitAllVoxels( gSegmentationVolume[iVolume], 
 			 &AddSimilarVoxelToSelection, (void*)&inIndex );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   OutputPrint "done.\n" EndOutputPrint;
   
   UpdateAndRedraw ();
@@ -10073,7 +10137,7 @@ tkm_tErr GraphSegLabel ( tkm_tSegType iVolume,
   OutputPrint "Finding voxels... " EndOutputPrint;
   eVolume = 
     Volm_VisitAllVoxels( gSegmentationVolume[iVolume], 
-			 &AddSimilarVoxelToGraohAvg, (void*)&inIndex );
+			 &AddSimilarVoxelToGraphAvg, (void*)&inIndex );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
          eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   OutputPrint "done.\n" EndOutputPrint;
