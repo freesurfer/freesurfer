@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/06/03 16:01:52 $
-// Revision       : $Revision: 1.37 $
+// Revision Date  : $Date: 2005/07/11 21:51:26 $
+// Revision       : $Revision: 1.38 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.37 $";
+char *MRI_INFO_VERSION = "$Revision: 1.38 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -37,7 +37,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.37 2005/06/03 16:01:52 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.38 2005/07/11 21:51:26 greve Exp $";
 
 char *Progname ;
 
@@ -64,6 +64,9 @@ int PrintVox2RAStkr = 0;
 int PrintDet = 0;
 int PrintOrientation = 0;
 int PrintSliceDirection = 0;
+FILE *fpout;
+int PrintToFile = 0;
+char *outfile = NULL;
 
 int debug = 0;
 
@@ -88,10 +91,20 @@ int main(int argc, char *argv[])
   parse_commandline(argc, argv);
   check_options();
 
+  if(PrintToFile){
+    fpout = fopen(outfile,"w");
+    if(fpout == NULL){
+      printf("ERROR: could not open %s\n",outfile);
+      exit(1);
+    }
+  }
+  else fpout = stdout;
+
   for(n=0;n<nthinput;n++) {
     if(debug) printf("%d %s ----- \n",n,inputlist[n]);
     do_file(inputlist[n]);
   }
+  if(PrintToFile) fclose(fpout);
 
   exit(0);
 
@@ -152,8 +165,14 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--format")) PrintFormat = 1;
     else if (!strcasecmp(option, "--orientation")) PrintOrientation = 1;
     else if (!strcasecmp(option, "--slicedirection")) PrintSliceDirection = 1;
-
+    else if (!strcasecmp(option, "--o")){
+      PrintToFile = 1;
+      outfile = pargv[0];
+      nargc --;
+      pargv ++;
+    }
     else{
+      // Must be an input volume
       inputlist[nthinput] = option;
       nthinput++;
     }
@@ -188,6 +207,7 @@ static void print_usage(void)
   printf("   --format : file format\n");
   printf("   --orientation : orientation string (eg, LPS, RAS, RPI)\n");
   printf("   --slicedirection : primary slice direction (eg, axial)\n");
+  printf("   --o file : print flagged results to file \n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
 }
@@ -261,71 +281,71 @@ static void do_file(char *fname)
   ostr[4] = '\0';
 
   if(PrintFormat){
-    printf("%s\n", type_to_string(mri_identify(fname)));
+    fprintf(fpout,"%s\n", type_to_string(mri_identify(fname)));
     return;
   }
   mri = MRIreadHeader(fname, MRI_VOLUME_TYPE_UNKNOWN) ;
   if(!mri) return;
 
   if(PrintTR){
-    printf("%g\n",mri->tr);
+    fprintf(fpout,"%g\n",mri->tr);
     return;
   }
   if(PrintTE){
-    printf("%g\n",mri->te);
+    fprintf(fpout,"%g\n",mri->te);
     return;
   }
   if(PrintTI){
-    printf("%g\n",mri->ti);
+    fprintf(fpout,"%g\n",mri->ti);
     return;
   }
   if(PrintFlipAngle){
-    printf("%g\n",mri->flip_angle);
+    fprintf(fpout,"%g\n",mri->flip_angle);
     return;
   }
   if(PrintCRes){
-    printf("%g\n",mri->xsize);
+    fprintf(fpout,"%g\n",mri->xsize);
     return;
   }
   if(PrintRRes){
-    printf("%g\n",mri->ysize);
+    fprintf(fpout,"%g\n",mri->ysize);
     return;
   }
   if(PrintSRes){
-    printf("%g\n",mri->zsize);
+    fprintf(fpout,"%g\n",mri->zsize);
     return;
   }
   if(PrintNCols){
-    printf("%d\n",mri->width);
+    fprintf(fpout,"%d\n",mri->width);
     return;
   }
   if(PrintNRows){
-    printf("%d\n",mri->height);
+    fprintf(fpout,"%d\n",mri->height);
     return;
   }
   if(PrintNSlices){
-    printf("%d\n",mri->depth);
+    fprintf(fpout,"%d\n",mri->depth);
     return;
   }
   if(PrintNFrames){
-    printf("%d\n",mri->nframes);
+    fprintf(fpout,"%d\n",mri->nframes);
     return;
   }
   if(PrintColDC){
-    printf("%g %g %g\n",mri->x_r,mri->x_a,mri->x_s);
+    fprintf(fpout,"%g %g %g\n",mri->x_r,mri->x_a,mri->x_s);
     return;
   }
   if(PrintRowDC){
-    printf("%g %g %g\n",mri->y_r,mri->y_a,mri->y_s);
+    fprintf(fpout,"%g %g %g\n",mri->y_r,mri->y_a,mri->y_s);
     return;
   }
   if(PrintSliceDC){
-    printf("%g %g %g\n",mri->z_r,mri->z_a,mri->z_s);
+    fprintf(fpout,"%g %g %g\n",mri->z_r,mri->z_a,mri->z_s);
     return;
   }
   if(PrintDet){
     m = MRIgetVoxelToRasXform(mri) ;
-    printf("%g\n",MatrixDeterminant(m));
+    fprintf(fpout,"%g\n",MatrixDeterminant(m));
     MatrixFree(&m) ;
     return;
   }
@@ -333,9 +353,9 @@ static void do_file(char *fname)
     m = MRIgetVoxelToRasXform(mri) ;
     for(r=1; r<=4; r++){
       for(c=1; c<=4; c++){
-	printf("%10.5f ",m->rptr[r][c]);
+	fprintf(fpout,"%10.5f ",m->rptr[r][c]);
       }
-      printf("\n");
+      fprintf(fpout,"\n");
     }
     MatrixFree(&m) ;
     return;
@@ -345,9 +365,9 @@ static void do_file(char *fname)
     minv = MatrixInverse(m,NULL);
     for(r=1; r<=4; r++){
       for(c=1; c<=4; c++){
-	printf("%10.5f ",minv->rptr[r][c]);
+	fprintf(fpout,"%10.5f ",minv->rptr[r][c]);
       }
-      printf("\n");
+      fprintf(fpout,"\n");
     }
     MatrixFree(&m) ;
     MatrixFree(&minv) ;
@@ -357,24 +377,24 @@ static void do_file(char *fname)
     m = MRIxfmCRS2XYZtkreg(mri);
     for(r=1; r<=4; r++){
       for(c=1; c<=4; c++){
-	printf("%10.5f ",m->rptr[r][c]);
+	fprintf(fpout,"%10.5f ",m->rptr[r][c]);
       }
-      printf("\n");
+      fprintf(fpout,"\n");
     }
     MatrixFree(&m) ;
     return;
   }
   if(PrintOrientation){
     MRIdircosToOrientationString(mri,ostr);
-    printf("%s\n",ostr);
+    fprintf(fpout,"%s\n",ostr);
     return;
   }
   if(PrintSliceDirection){
-    printf("%s\n",MRIsliceDirectionName(mri));
+    fprintf(fpout,"%s\n",MRIsliceDirectionName(mri));
     return;
   }
 
-  printf("Volume information for %s\n", fname);
+  fprintf(fpout,"Volume information for %s\n", fname);
   // mri_identify has been called but the result is not stored and thus I have to call it again
   printf("          type: %s\n", type_to_string(mri_identify(fname)));
   if (mri->nframes > 1)
