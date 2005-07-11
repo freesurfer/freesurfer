@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/06/27 18:22:23 $
-// Revision       : $Revision: 1.118 $
+// Revision Date  : $Date: 2005/07/11 20:47:05 $
+// Revision       : $Revision: 1.119 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -1181,7 +1181,6 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
     eFunctional = FunV_AnatomicalVoxelClicked( this->mpFunctionalVolume,
 					       ipCursor );
   }
-  
   
   /* get our current slice. */
   nSlice = DspA_GetCurrentSliceNumber_( this );
@@ -5959,9 +5958,9 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
   pFrame = this->mpFrameBuffer;
 
   if( mri_tOrientation_Horizontal == this->mOrientation ){
-    yMin = 0; yMax = this->mnVolumeSizeY-1; yInc = 1;
+    yMin = 0; yMax = this->mnVolumeSizeY; yInc = 1;
   } else {
-    yMin = this->mnVolumeSizeY-1; yMax = 0; yInc = -1;
+    yMin = this->mnVolumeSizeY; yMax = 0; yInc = -1;
   }
   
   /* Just loop through getting the selection value at this index. */
