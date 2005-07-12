@@ -1,12 +1,12 @@
 #############################################################################
 # Name:    FreeSurferEnv.csh
-# Purpose: Setup the environment to run FreeSurfer and FS-FAST 
+# Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.17 2005/06/24 20:48:29 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.18 2005/07/12 21:45:20 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.17 2005/06/24 20:48:29 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.18 2005/07/12 21:45:20 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -29,6 +29,7 @@ if (("$1" == "--help") || ("$1" == "-help")) then
     echo "       FUNCTIONALS_DIR"
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
+    echo "       FSL_DIR"
     echo "4. If NO_MINC is set (to anything), "
     echo "   then all the MINC stuff is ignored."
     echo "5. If NO_FSFAST is set (to anything), "
@@ -61,7 +62,7 @@ if($?USER == 0 || $?prompt == 0) then
 endif
 
 if( $output ) then
-    echo "Setting up environment for FreeSurfer/FS-FAST"
+    echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
     if (("$1" == "--version") || \
         ("$1" == "--V") || \
         ("$1" == "-V") || \
@@ -146,8 +147,16 @@ if((! $?NO_MINC) && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
 endif
 
 if(! $?FSL_DIR  || $FS_OVERRIDE) then
-    if ( -e $FREESURFER_HOME/fsl) then
+    if ( $?FSLDIR ) then
+	setenv FSL_DIR $FSL_DIR
+    else if ( -e $FREESURFER_HOME/fsl) then
         setenv FSL_DIR $FREESURFER_HOME/fsl
+    else if ( -e /usr/local/fsl) then
+        setenv FSL_DIR /usr/local/fsl
+    else if ( -e /Users/Shared/fsl) then
+        setenv FSL_DIR /Users/Shared/fsl
+    else if ( -e /usr/pubsw/packages/fsl/current) then
+	setenv FSL_DIR /usr/pubsw/packages/fsl/current
     endif
 endif
 
@@ -289,6 +298,7 @@ endif
 
 ### ----------- FSL ------------ ####
 if ( $?FSL_DIR ) then
+    setenv FSLDIR $FSL_DIR
     setenv FSL_BIN $FSL_DIR/bin
     if(! -d $FSL_BIN) then
         if( $output ) then
@@ -301,6 +311,9 @@ if ( $?FSL_BIN ) then
 endif
 if( $output && $?FSL_DIR ) then
     echo "FSL_DIR         $FSL_DIR"
+endif
+if ( -e ${FSLDIR}/etc/fslconf/fsl.csh ) then
+    source ${FSLDIR}/etc/fslconf/fsl.csh
 endif
 
 
