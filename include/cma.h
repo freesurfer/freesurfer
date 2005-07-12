@@ -141,6 +141,37 @@
 #define Inf_Lat_Vent              221 /*  196   58  250     0 */
 
 
+// vascular and lymph labels (from Alex G)
+#define Aorta 331 // 255 0 0 0
+#define Left_Common_IliacA 332 // 255 80 0 0
+#define Right_Common_IliacA 333 // 255 160 0 0
+#define Left_External_IliacA 334 // 255 255 0 0
+#define Right_External_IliacA 335 // 0 255 0 0
+#define Left_Internal_IliacA 336 // 255 0 160 0
+#define Right_Internal_IliacA 337 // 255 0 255 0
+#define Left_Lateral_SacralA 338 // 255 50 80 0
+#define Right_Lateral_SacralA 339 // 80 255 50 0
+#define Left_ObturatorA 340 // 160 255 50 0
+#define Right_ObturatorA 341 // 160 200 255 0
+#define Left_Internal_PudendalA 342 // 0 255 160 0
+#define Right_Internal_PudendalA 343 // 0 0 255 0
+#define Left_UmbilicalA 344 // 80 50 255 0
+#define Right_UmbilicalA 345 // 160 0 255 0
+#define Left_Inf_RectalA 346 // 255 210 0 0
+#define Right_Inf_RectalA 347 // 0 160 255 0
+#define Left_Common_IliacV 348 // 255 200 80 0
+#define Right_Common_IliacV 349 // 255 200 160 0
+#define Left_External_IliacV 350 // 255 80 200 0
+#define Right_External_IliacV 351 // 255 160 200 0
+#define Left_Internal_IliacV 352 // 30 255 80 0
+#define Right_Internal_IliacV 353 // 80 200 255 0
+#define Left_ObturatorV 354 // 80 255 200 0
+#define Right_ObturatorV 355 // 195 255 200 0
+#define Left_Internal_PudendalV 356 // 120 200 20 0
+#define Right_Internal_PudendalV 357 // 170 10 200 0
+#define Pos_Lymph 358 // 20 130 180 0
+#define Neg_Lymph 359 // 20 180 130 0
+
 #define   Not_Set         255
 
 
@@ -227,5 +258,6 @@ short CMAtotalClaims(CMAoutlineField *field, int x, int y);
 int CMAaddWeightedTotals(CMAoutlineClaim *claim, float weight, float *claim_totals);
 
 int CMAzeroOutlines(CMAoutlineField *field);
+char *cma_label_to_name(int label) ;
 
 #endif
