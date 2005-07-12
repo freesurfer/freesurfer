@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.34 2005/06/29 06:25:13 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.35 2005/07/12 19:50:28 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.34 2005/06/29 06:25:13 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.35 2005/07/12 19:50:28 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -335,7 +335,7 @@ char talxfmfile[2000],talxfmdir[2000];
 
 char *mov_ostr = NULL; // orientation string for mov
 char *targ_ostr = NULL; // orientation string for targ
-
+int mov_frame = 0;
 
 /**** ------------------ main ------------------------------- ****/
 int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
@@ -883,6 +883,11 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%f",&mov_scale);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--movframe")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&mov_frame);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--slice")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&slice_init);
@@ -1128,6 +1133,10 @@ static void print_help(void)
 "  the matrix as being edited, and so you will be asked to save it\n"
 "  even if you have not made any manual edits.\n"
 "\n"
+"  --movframe frame\n"
+"\n"
+"  Use frame from moveable volume.\n"
+"\n"
 "  --surf <surfacename>\n"
 "\n"
 "  Load the cortical surface (both hemispheres) and display as an\n"
@@ -1298,6 +1307,8 @@ static void print_help(void)
 "0 swap buffers (same as Compare)\n"
 "1 dispaly target\n"
 "2 dispaly moveable\n"
+"a increase moveable frame by 1"
+"b decrease moveable frame by 1"
 "i intensity normalize images\n"
 "n use nearest neighbor interpolation\n"
 "t use trilinear interpolation\n"
@@ -1685,7 +1696,7 @@ void draw_image2(int imc,int ic,int jc)
       case  SAMPLE_NEAREST:
 	switch(float2int_use){
 	case FLT2INT_ROUND:
-	  f = (float) MRIFseq_vox(mov_vol,icMov,irMov,isMov,0);
+	  f = (float) MRIFseq_vox(mov_vol,icMov,irMov,isMov,mov_frame);
 	  break;
 	case FLT2INT_TKREG:
 	  /* This is provided for testing only */
@@ -1697,14 +1708,14 @@ void draw_image2(int imc,int ic,int jc)
 	     isMov < 0 || isMov >= mov_vol->depth) 
 	    f = 0;
 	  else
-	    f = (float) MRIFseq_vox(mov_vol,icMov,irMov,isMov,0);
+	    f = (float) MRIFseq_vox(mov_vol,icMov,irMov,isMov,mov_frame);
 	  break;
 	}
 	//printf("Func crs: %d, %d, %d \n",cFunc,rFunc,sFunc);
 	//f = (float) fscale_2*fim_2[sFunc][rFunc][cFunc];
 	break;
       case  SAMPLE_TRILINEAR:
-	MRIsampleVolume(mov_vol,fcMov,frMov,fsMov,&rVoxVal);
+	MRIsampleVolumeFrame(mov_vol,fcMov,frMov,fsMov,mov_frame,&rVoxVal);
 	f = rVoxVal;
 	break;
       case  SAMPLE_SINC:
@@ -2385,6 +2396,20 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	  if(plane == HORIZONTAL) {c = 'y'; r = -10.0;}
 	  if(ks == 'r') rotate_brain(+r,c); /* in tenths of deg */
 	  if(ks == 'f') rotate_brain(-r,c); /* in tenths of deg */
+	  updateflag = TRUE; 
+	  break;
+
+	case 'a': /* advance frame */
+	  mov_frame ++;
+	  if(mov_frame >= mov_vol->nframes) mov_frame = 0;
+	  printf("mov_frame = %d\n",mov_frame);
+	  updateflag = TRUE; 
+	  break;
+
+	case 'b': /* recede frame */
+	  mov_frame --;
+	  if(mov_frame < 0) mov_frame = mov_vol->nframes-1;
+	  printf("mov_frame = %d\n",mov_frame);
 	  updateflag = TRUE; 
 	  break;
 
@@ -3715,7 +3740,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.34 2005/06/29 06:25:13 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.35 2005/07/12 19:50:28 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
