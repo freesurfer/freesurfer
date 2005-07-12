@@ -1004,11 +1004,6 @@ AC_FUNC_CLOSEDIR_VOID
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_LSTAT
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
-if ! test "$OS" = "Darwin"; then
-# On the Mac, AC_FUNC_MALLOC redefines malloc to rpl_malloc,
-# so skip over this if building on Mac (Darwin)
-  AC_FUNC_MALLOC
-fi
 AC_FUNC_MMAP
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
