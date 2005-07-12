@@ -165,3 +165,36 @@
 219 Cerebral_White_Matter               0  226    0     0   
 220 Cerebral_Cortex               	 205   63   78     0 
 221 Inf_Lat_Vent                      197   58  250     0 
+
+
+
+# lymph node and vascular labels
+331 Aorta 255 0 0 0
+332 Left-Common-IliacA 255 80 0 0
+333 Right-Common-IliacA 255 160 0 0
+334 Left-External-IliacA 255 255 0 0
+335 Right-External-IliacA 0 255 0 0
+336 Left-Internal-IliacA 255 0 160 0
+337 Right-Internal-IliacA 255 0 255 0
+338 Left-Lateral-SacralA 255 50 80 0
+339 Right-Lateral-SacralA 80 255 50 0
+340 Left-ObturatorA 160 255 50 0
+341 Right-ObturatorA 160 200 255 0
+342 Left-Internal-PudendalA 0 255 160 0
+343 Right-Internal-PudendalA 0 0 255 0
+344 Left-UmbilicalA 80 50 255 0
+345 Right-UmbilicalA 160 0 255 0
+346 Left-Inf-RectalA 255 210 0 0
+347 Right-Inf-RectalA 0 160 255 0
+348 Left-Common-IliacV 255 200 80 0
+349 Right-Common-IliacV 255 200 160 0
+350 Left-External-IliacV 255 80 200 0
+351 Right-External-IliacV 255 160 200 0
+352 Left-Internal-IliacV 30 255 80 0
+353 Right-Internal-IliacV 80 200 255 0
+354 Left-ObturatorV 80 255 200 0
+355 Right-ObturatorV 195 255 200 0
+356 Left-Internal-PudendalV 120 200 20 0
+357 Right-Internal-PudendalV 170 10 200 0
+358 Pos-Lymph 20 130 180 0
+359 Neg-Lymph 20 180 130 0
