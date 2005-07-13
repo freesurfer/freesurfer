@@ -17,7 +17,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.55 2005/01/05 14:51:35 tosa Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.56 2005/07/13 23:07:18 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -48,6 +48,8 @@ static char *orig_white = NULL ;
 static char *orig_pial = NULL ;
 
 char *Progname ;
+
+static double std_scale = 1.0;
 
 static int graymid = 0 ;
 static int curvature_avgs = 10 ;
@@ -150,7 +152,7 @@ main(int argc, char *argv[])
   M3D           *m3d ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.55 2005/01/05 14:51:35 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.56 2005/07/13 23:07:18 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -363,6 +365,9 @@ main(int argc, char *argv[])
                               &white_mean, &white_std, &gray_mean,
                               &gray_std) ;
 
+    white_std /= std_scale;
+    gray_std /= std_scale;
+    
     if (!min_gray_at_white_border_set)
       min_gray_at_white_border = gray_mean-gray_std ;
     if (!max_border_white_set)
@@ -873,6 +878,12 @@ get_option(int argc, char *argv[])
   {
     min_border_white_set = 1 ;
     min_border_white = atof(argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "scale_std"))
+  {
+    std_scale = atof(argv[2]);
+    printf("scale the estimated WM and GM std by %g \n", std_scale) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "min_gray_at_white_border"))
