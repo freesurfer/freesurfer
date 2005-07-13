@@ -1,0 +1,242 @@
+#!/bin/csh -f
+# stc-sess
+#
+set VERSION = '$Id: stc-sess,v 1.1 2005/07/13 21:36:04 greve Exp $';
+
+set cmdargs = ($argv);
+
+set instem = f;
+set outstem = ();
+set infmt  = bhdr;
+set outfmt = bhdr;
+set RunListFile = ();
+set fsd = bold;
+set SliceOrder = siemens
+set nolog     = 0;
+set PrintHelp = 0;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if(! $nolog) then
+  set LF = log/stc-sess.log
+  if(-e $LF) mv $LF $LF.bak
+else
+  set LF = /dev/null
+endif
+
+date | tee -a $LF
+pwd  | tee -a $LF
+echo $0  | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+hostname  | tee -a $LF
+
+set infmtext  = ".$infmt"
+set outfmtext = ".$outfmt"
+
+#------------------------------------------------------------------#
+set StartTime = `date`;
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+  echo "$sessid -----------------" | tee -a $LF
+  date | tee -a $LF
+
+  set RunPath = $sess/$fsd
+  set RunList = `getrunlist $RunPath $RunListFile`
+  if($#RunList == 0) then
+    echo "ERROR: cannot find any runs in $RunPath" | tee -a $LF
+    exit 1;
+  endif
+
+  foreach Run ($RunList)
+
+    set infunc = $RunPath/$Run/$instem$infmtext
+    if(! -e $infunc) then
+      echo "ERROR: cannot find $infunc" | tee -a $LF
+      exit 1;
+    endif
+
+    set outfunc = $RunPath/$Run/$outstem$outfmtext
+    
+    set cmd = (stc.fsl --i $infunc --o $outfunc --$SliceOrder)
+    echo "---------------------------------------------"| tee -a $LF
+    pwd | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+
+  endif
+
+
+
+end # Loop over sessions #
+
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "stc-sess Done"    | tee -a $LF
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-so":
+      if ( $#argv == 0) goto arg1err;
+      set SliceOrder = $argv[1]; shift;
+      breaksw
+
+    case "-infmt":
+      if ( $#argv == 0) goto arg1err;
+      set infmt = $argv[1]; shift;
+      breaksw
+
+    case "-outfmt":
+      if ( $#argv == 0) goto arg1err;
+      set infmt = $argv[1]; shift;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set RunListFile = $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "WARNING: experimental, not tested, use at your own risk!"
+  echo ""
+sleep 1
+  echo "USAGE: stc-sess"
+  echo ""
+  echo "   -i instem "
+  echo "   -o outstem "
+  echo "   -so sliceorder : <siemens>, up, down, odd, even"
+  echo "   -infmt  fmt : input  format ($infmt)"
+  echo "   -outfmt fmt : output format ($outfmt)"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo ""
+  echo "Other arguments"
+  echo "   -fsd fsdir"
+  echo "   -rlf runlistfile"
+  echo "   -debug"
+  echo "   -version        : print version and exit"
+  echo "   -help           : print help and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+
+  stc.fsl --help
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Performs functional slice timing correction using the FSL slicetimer program.
+This is actually a front-end for stc.fsl (which is a front-end for slicetimer).
+
+Example:
+
+stc-sess -i f -o fstc -so siemens -s tl20000621
+
+This can be preprocessed with something like:
+
+preproc-sess -s tl20000621 \
+  -mcin fstc   -mcout fstcmc \
+  -smin fstcmc -smout fstcmcsm5 -fwhm 5 
+  
+
