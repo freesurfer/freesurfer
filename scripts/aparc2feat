@@ -2,7 +2,7 @@
 # aparc2feat
 # 
 
-set VERSION = '$Id: aparc2feat,v 1.1 2005/07/06 00:25:41 greve Exp $';
+set VERSION = '$Id: aparc2feat,v 1.2 2005/07/13 17:52:42 greve Exp $';
 set FeatDirList = ();
 set HemiList = (rh lh)
 set debug = 0;
@@ -192,9 +192,9 @@ usage_exit:
   echo "Optional flags and arguments:"
   echo ""
   echo " --hemi hemi  : resample hemi only (default is both rh and lh)"
-  echo " --version            : print version and exit"
   echo " --help               : print help and exit"
   echo " --debug              : turn on debugging"
+  echo " --version            : print version and exit"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -208,4 +208,43 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-see $FREESURFER_HOME/Simple_surface_labels2002.txt
+SUMMARY
+
+Resamples the FreeSurfer automatic cortical segmentation
+(lh.aparc.annot and rh.aparc.annot) to the FEAT functional space. This
+is a front-end for the FreeSurfer mri_label2vol program (see
+mri_label2vol --help). See aseg2feat for resampling the subcortical
+parcellation (aseg).
+
+COMMAND-LINE ARGUMENTS
+
+--feat featdir
+
+featdir is the feat directory. reg-feat2anat must have already been run. Multiple
+--feat arguments can be supplied. Eg, --feat dir1 --feat dir2 ...
+
+--featdirfile file
+
+file is an ASCII file with a list of feat directories. This may be more convenient
+than specifying all of them with --feat on the command-line. Multiple
+--featdirfile flags are allowed. Can be used in conjunction with --feat.
+
+NOTES
+
+The result is stored in featdir/reg/freesurfer as lh.aparc.img and
+rh.aparc.img. The volumes will be the same size as the example_func
+and in voxel-for-voxel registration. The value of a voxel indicates
+which structure it belongs to. The correspondance between index number
+and structure can be found in $FREESURFER_HOME/Simple_surface_labels2002.txt
+Eg, the calcarine sulcus is 44.
+
+A binary mask of the left calcarine sulcus can be constructed with:
+
+avwmaths featdir/reg/freesurfer/lh.aparc.img \
+         -thr 44 -uthr 44 \
+         featdir/reg/freesurfer/lh.calc_sulc.img
+
+SEE ALSO
+
+reg-feat2anat, aseg2feat, mri_label2vol
+
