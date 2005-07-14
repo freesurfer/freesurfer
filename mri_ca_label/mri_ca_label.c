@@ -109,7 +109,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.53 2005/05/04 21:13:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.54 2005/07/14 16:21:15 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -522,7 +522,7 @@ main(int argc, char *argv[])
       // suppose the seg is from tp1 and transform is to align tp1 to current tp
       TRANSFORM *transform_long ;
       MRI       *mri_tmp ;
-      
+      VOL_GEOM vgm_in;
       mri_labeled = MRIread(read_fname) ;
       if (!mri_labeled)
 	ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
@@ -536,20 +536,46 @@ main(int argc, char *argv[])
       
       {
 	LTA *lta = (LTA *)transform_long->xform ;
-	// copy Geom from mri_labeled to lta->xforms[0].src
-	getVolGeom(mri_labeled, &lta->xforms[0].src) ;
-	// copy Geom from mri_inputs to lta->xforms[0].dst
-	getVolGeom(mri_inputs, &lta->xforms[0].dst) ;
+	if (lta->xforms[0].src.valid == 0){
+	  LTAmodifySrcDstGeom(lta, mri_labeled, NULL); //add src info
+	}
+	if (lta->xforms[0].dst.valid == 0){
+	  LTAmodifySrcDstGeom(lta, NULL, mri_inputs); //add dst information
+	}
 	LTAchangeType(lta, LINEAR_VOX_TO_VOX) ;
+
+	getVolGeom(mri_inputs, &vgm_in);
+	if(vg_isEqual(&lta->xforms[0].dst, &vgm_in) == 0){
+	  printf("%s: WARNING: dst volume of lta doesn't match that of input volume\n",Progname);
+	  printf("Volume geometry for lta-dst:\n");
+	  vg_print(&lta->xforms[0].dst);
+	  printf("Volume geometry for input volume is:\n");
+	  vg_print(&vgm_in);
+	}
+
+	getVolGeom(mri_labeled, &vgm_in);
+	if(vg_isEqual(&lta->xforms[0].src, &vgm_in) == 0){
+	  printf("%s: WARNING: src volume of lta doesn't match that of tp1 label volume\n",Progname);
+	  printf("Volume geometry for lta-src:\n");
+	  vg_print(&lta->xforms[0].src);
+	  printf("Volume geometry for tp1 label volume is:\n");
+	  vg_print(&vgm_in);
+	
+	}
+
 	transform_long->type = LINEAR_VOX_TO_VOX ;
       }
       if (transform_long->type != LINEAR_VOX_TO_VOX)
 	ErrorExit(ERROR_BADPARM, "%s: transform type (%d) must be LINEAR_VOX_TO_VOX",
 		  Progname, transform_long->type) ;
-      mri_tmp = MRIlinearTransformInterp(mri_labeled, NULL, ((LTA *)(transform_long->xform))->xforms[0].m_L, SAMPLE_NEAREST) ;
+      mri_tmp = MRIalloc(mri_inputs->width, mri_inputs->height, mri_inputs->depth, mri_labeled->type);
+      MRIcopyHeader(mri_inputs, mri_tmp);
+
+      mri_tmp = MRIlinearTransformInterp(mri_labeled, mri_tmp, ((LTA *)(transform_long->xform))->xforms[0].m_L, SAMPLE_NEAREST) ;
+
       MRIfree(&mri_labeled) ;
       mri_labeled = mri_tmp ;
-      
+    
       if (Ggca_x >= 0)
 	printf("label(%d, %d, %d) = %s (%d)\n",
 	       Ggca_x, Ggca_y, Ggca_z,  
