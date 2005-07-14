@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/06/29 18:11:17 $
-// Revision       : $Revision: 1.103 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/07/14 19:25:20 $
+// Revision       : $Revision: 1.104 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.103 2005/06/29 18:11:17 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.104 2005/07/14 19:25:20 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2082,7 +2082,7 @@ void usage(FILE *stream)
   "  cd subjectid/mri\n"
   "  mkdir talairach\n"
   "  mri_convert --apply_transform transforms/talariach.xfm \n"
-  "     --devolvexfm subjectid --ic 0 0 0 \n"
+  "     --devolvexfm subjectid -ic 0 0 0 \n"
   "     orig talairach\n"
   "\n"
   " This properly accounts for the case where the input volume does not \n"
