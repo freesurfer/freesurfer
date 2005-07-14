@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.18 2005/07/12 21:45:20 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.19 2005/07/14 18:34:19 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.18 2005/07/12 21:45:20 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.19 2005/07/14 18:34:19 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -312,8 +312,8 @@ endif
 if( $output && $?FSL_DIR ) then
     echo "FSL_DIR         $FSL_DIR"
 endif
-if ( -e ${FSLDIR}/etc/fslconf/fsl.csh ) then
-    source ${FSLDIR}/etc/fslconf/fsl.csh
+if ( -e ${FSL_DIR}/etc/fslconf/fsl.csh ) then
+    source ${FSL_DIR}/etc/fslconf/fsl.csh
 endif
 
 
