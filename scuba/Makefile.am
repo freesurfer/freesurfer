@@ -484,7 +484,7 @@ scuba_bundle: scuba2
 	@echo "APPL????" >scuba2.app/Contents/MacOS/../PkgInfo
 	@test -d scuba2.app/Contents/MacOS/ || mkdir -p scuba2.app/Contents/MacOS/
 	@rm -f scuba2.app/Contents/MacOS/../Info.plist
-	@sed -e "s,@ICON@,application.icns,g" -e "s,@EXECUTABLE@,scuba,g" "/space/birn/50/freesurfer/build/storm/qt/mkspecs/default/Info.plist.app" >"scuba2.app/Contents/MacOS/../Info.plist"
+	@sed -e "s,@ICON@,application.icns,g" -e "s,@EXECUTABLE@,scuba,g" "$(QTDIR)/mkspecs/default/Info.plist.app" >"scuba2.app/Contents/MacOS/../Info.plist"
 	@test -d scuba2.app/Contents/MacOS/ || mkdir -p scuba2.app/Contents/MacOS/
 	@rm -f scuba2.app/Contents/MacOS/scuba2
 	@cp scuba2 scuba2.app/Contents/MacOS/
