@@ -109,7 +109,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.54 2005/07/14 16:21:15 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.55 2005/07/15 22:51:51 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -589,11 +589,21 @@ main(int argc, char *argv[])
 	MRIwrite(mri_labeled, fname) ;
       }
 
+      //This normalization seems to bias WM to gets larger
+#if 0
       if(ninputs == 1)
 	GCArenormalizeToExample(gca, mri_labeled, mri_inputs);
       else{
 	printf("Warning: should renormalize GCA, but current code only support this for single-channel atlas\n");
       }
+#else
+      // renormalize iteration 
+      if (renormalize_iter > 0){
+	GCAmapRenormalize(gca, mri_inputs, transform) ;
+      }
+
+#endif
+
     } //else /* processing long data */
     
     if (!no_gibbs){
