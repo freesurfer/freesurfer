@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.4 2005/07/15 20:18:16 fischl Exp $';
+set VERSION = '$Id: make_average_surface,v 1.5 2005/07/15 20:39:36 fischl Exp $';
 
 set PrintHelp = 0;
 
@@ -112,7 +112,7 @@ foreach hemi (lh rh)
 	cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg .
 	ln -s -f ${hemi}.sphere.reg ${hemi}.sphere
 	set echo=1
-if 0
+if 0 then
 	mris_average_curvature \
 	    -o ${average_subject} \
 	    curv \
