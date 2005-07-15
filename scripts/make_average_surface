@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.5 2005/07/15 20:39:36 fischl Exp $';
+set VERSION = '$Id: make_average_surface,v 1.6 2005/07/15 20:54:51 fischl Exp $';
 
 set PrintHelp = 0;
 
@@ -83,7 +83,7 @@ cp ${SUBJECTS_DIR}/$tmp_subjects[1]/mri/T1/COR-.info \
 cp ${SUBJECTS_DIR}/$tmp_subjects[1]/mri/orig/COR-.info \
     ${SUBJECTS_DIR}/${average_subject}/mri/orig
 
-foreach hemi (lh rh)
+foreach hemi (rh lh)
 	foreach s (orig white pial inflated)
 	    echo mris_make_average_surface...
 	    mris_make_average_surface \
