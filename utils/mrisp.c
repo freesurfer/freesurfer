@@ -24,6 +24,8 @@
 #define DEBUG_VNO -1
 #define DEBUG_U  255
 #define DEBUG_V  410
+#define DEBUG_U  -1
+#define DEBUG_V  -1
 
 static int spherical_coordinate(double x, double y, double z,double *pphi,
                                 double *ptheta) ;
