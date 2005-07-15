@@ -1070,6 +1070,7 @@ mkxsubjreg/Makefile \
 rbftest/Makefile rawtocor/Makefile \
 mri_add_xform_to_header/Makefile \
 mri_annotation2label/Makefile \
+mri_aparc2aseg/Makefile \
 mri_auto_fill/Makefile \
 mri_edit_wm_with_aseg/Makefile \
 mri_average/Makefile \
