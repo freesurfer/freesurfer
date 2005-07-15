@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/07/06 21:42:03 $
-// Revision       : $Revision: 1.359 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/07/15 20:17:46 $
+// Revision       : $Revision: 1.360 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -10981,19 +10981,19 @@ MRIScomputeCurvatureIndices(MRI_SURFACE *mris, double *pici, double *pfi)
 
   ici = fi = 0.0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      vertex = &mris->vertices[vno] ;
-      if (vertex->ripflag)
-	continue ;
-      if (vno == Gdiag_no)
-	DiagBreak() ;
-      k1 = (double)vertex->k1 ; k2 = (double)vertex->k2 ;
-      area = (double)vertex->area ;
-      if (vertex->K > 0)
-	ici += area * (double)vertex->K ;
-      Kmax = (double)fabs(k1) ; Kmin = (double)fabs(k2) ;
-      fi += area * Kmax * (Kmax - Kmin) ;
-    }
+	{
+		vertex = &mris->vertices[vno] ;
+		if (vertex->ripflag)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		k1 = (double)vertex->k1 ; k2 = (double)vertex->k2 ;
+		area = (double)vertex->area ;
+		if (vertex->K > 0)
+			ici += area * (double)vertex->K ;
+		Kmax = (double)fabs(k1) ; Kmin = (double)fabs(k2) ;
+		fi += area * Kmax * (Kmax - Kmin) ;
+	}
 
   *pfi = fi / (4.0*M_PI) ; *pici = ici / (4.0 * M_PI) ;
   return(NO_ERROR) ;
@@ -25778,7 +25778,8 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
       // Note: if mri_dst is not given, override the one stored in the transform
       if (!mri_dst && lt->dst.valid == 1){
 	dstPresent = 0;
-	fprintf(stderr, "INFO: Get dst info from transform.\n");
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		fprintf(stderr, "INFO: Get dst info from transform.\n");
 	lt = &lta->xforms[0];
 	mri_dst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR);
 	mri_dst->x_r = lt->dst.x_r; mri_dst->y_r = lt->dst.y_r; mri_dst->z_r = lt->dst.z_r; 
