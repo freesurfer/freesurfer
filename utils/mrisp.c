@@ -22,8 +22,8 @@
 #define DEFAULT_UDIM   256
 
 #define DEBUG_VNO -1
-#define DEBUG_U  -1 /*163*/
-#define DEBUG_V  -1 /*408*/
+#define DEBUG_U  255
+#define DEBUG_V  410
 
 static int spherical_coordinate(double x, double y, double z,double *pphi,
                                 double *ptheta) ;
@@ -600,6 +600,9 @@ if ((total_d > 10000.0) || (vertex->curv > 1000.0))
   return(mrisp) ;
 }
 #endif
+
+static double UF = 254.8, VF = 409.5;
+
 MRI_SP *
 MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
 {
@@ -649,11 +652,15 @@ MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
     phi = atan2(sqrt(d), z) ;
     if (phi < RADIANS(1))
       DiagBreak() ;
+		if (phi > M_PI)
+			DiagBreak() ;
     if (vno == DEBUG_VNO)
       DiagBreak() ;
     vertex->phi = phi ; vertex->theta = theta ;
     uf = PHI_DIM(mrisp) * phi / PHI_MAX ;
     vf = THETA_DIM(mrisp) * theta / THETA_MAX ;
+		if (fabs(uf - UF) < 1 && fabs(vf-VF) < 1)
+			DiagBreak() ;
     u = nint(uf) ;
     v = nint(vf) ;
     if (u < 0)  /* enforce spherical topology  */
@@ -665,6 +672,8 @@ MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
     if (v >= V_DIM(mrisp))
       v -= V_DIM(mrisp) ;
 
+		if ((u == 254 || u == 255) &&  (v == 409 || v == 410))
+			DiagBreak() ;
     if (u == 0 && v == 56)
       DiagBreak() ;
     if ((u == DEBUG_U) && (v == DEBUG_V))
@@ -693,6 +702,8 @@ MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
       theta = 2 * M_PI + theta ;  /* make it 0 --> 2*PI */
     d = c*c-z*z ; if (d < 0.0) d = 0.0 ;
     phi = atan2(sqrt(d), z) ;
+		if (phi > M_PI)
+			DiagBreak() ;
     uf = PHI_DIM(mrisp) * phi / PHI_MAX ;
     vf = THETA_DIM(mrisp) * theta / THETA_MAX ;
     u = nint(uf) ;
@@ -759,7 +770,7 @@ if ((total_d > 10000.0) || (vertex->curv > 1000.0))
             if (u1 < 0)  /* enforce spherical topology  */
               u1 = -u1 ;
             else if (u1 >= U_DIM(mrisp))
-              u1 = (u1-U_DIM(mrisp)+1) ;
+              u1 = U_DIM(mrisp) - (u1-U_DIM(mrisp)+1) ;
             for (vk = -1 ; vk <= 1 ; vk++)
             {
               v1 = v + vk ;
@@ -770,11 +781,16 @@ if ((total_d > 10000.0) || (vertex->curv > 1000.0))
               
               if (filled[u1][v1] >= 0)
               {
-                if (u == 1 && v == 3)
+								float x, y, z ;
+
+                x = *IMAGEFseq_pix(Ip, u1, v1, 0) ;
+                y = *IMAGEFseq_pix(Ip, u1, v1, 1) ;
+                z = *IMAGEFseq_pix(Ip, u1, v1, 2) ;
+                if (u == 255 && v == 410)
                   DiagBreak() ;
-                totalx += *IMAGEFseq_pix(Ip, u1, v1, 0) ;
-                totaly += *IMAGEFseq_pix(Ip, u1, v1, 1) ;
-                totalz += *IMAGEFseq_pix(Ip, u1, v1, 2) ;
+                totalx += x ;
+                totaly += y ;
+								totalz += z ;
                 n++ ;
               }
             }
@@ -871,6 +887,8 @@ MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
     phi = atan2(sqrt(d), z) ;
     if (phi < RADIANS(1))
       DiagBreak() ;
+		if (phi > M_PI)
+			DiagBreak() ;
     if (vno == 60935)
       DiagBreak() ;
 
@@ -933,7 +951,7 @@ MRI_SURFACE *
 MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris)
 {
   float     a, b, c, phi, theta, x, y, z, uf, vf, du, dv, origx, origy, 
-            origz, d ;
+            origz, d, val1, val2, val3, val4 ;
   int       vno, u0, v0, u1, v1 ;
   VERTEX    *vertex ;
 
@@ -962,6 +980,10 @@ MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris)
     phi = atan2(sqrt(d), z) ;
     if (phi < RADIANS(1))
       DiagBreak() ;
+		if (phi > M_PI)
+		{
+			DiagBreak() ;
+		}
     if (vno == 60935)
       DiagBreak() ;
 
@@ -1002,16 +1024,30 @@ MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris)
         ((v0 == DEBUG_V) || (v1 == DEBUG_V)))
       DiagBreak() ;
     /* do bilinear interpolation */
+
+		val1 = *IMAGEFseq_pix(mrisp->Ip, u1, v1, 0) ;
+		val2 = *IMAGEFseq_pix(mrisp->Ip, u0, v1, 0) ;
+		val3 = *IMAGEFseq_pix(mrisp->Ip, u0, v0, 0) ;
+		val4 = *IMAGEFseq_pix(mrisp->Ip, u1, v0, 0) ;
+
     origx = 
       du        * dv        * *IMAGEFseq_pix(mrisp->Ip, u1, v1, 0) +
       (1.0f-du) * dv        * *IMAGEFseq_pix(mrisp->Ip, u0, v1, 0) +
       (1.0f-du) * (1.0f-dv) * *IMAGEFseq_pix(mrisp->Ip, u0, v0, 0) +
       du        * (1.0f-dv) * *IMAGEFseq_pix(mrisp->Ip, u1, v0, 0) ;
+		val1 = *IMAGEFseq_pix(mrisp->Ip, u1, v1, 1) ;
+		val2 = *IMAGEFseq_pix(mrisp->Ip, u0, v1, 1) ;
+		val3 = *IMAGEFseq_pix(mrisp->Ip, u0, v0, 1) ;
+		val4 = *IMAGEFseq_pix(mrisp->Ip, u1, v0, 1) ;
     origy = 
       du        * dv        * *IMAGEFseq_pix(mrisp->Ip, u1, v1, 1) +
       (1.0f-du) * dv        * *IMAGEFseq_pix(mrisp->Ip, u0, v1, 1) +
       (1.0f-du) * (1.0f-dv) * *IMAGEFseq_pix(mrisp->Ip, u0, v0, 1) +
       du        * (1.0f-dv) * *IMAGEFseq_pix(mrisp->Ip, u1, v0, 1) ;
+		val1 = *IMAGEFseq_pix(mrisp->Ip, u1, v1, 2) ;
+		val2 = *IMAGEFseq_pix(mrisp->Ip, u0, v1, 2) ;
+		val3 = *IMAGEFseq_pix(mrisp->Ip, u0, v0, 2) ;
+		val4 = *IMAGEFseq_pix(mrisp->Ip, u1, v0, 2) ;
     origz = 
       du        * dv        * *IMAGEFseq_pix(mrisp->Ip, u1, v1, 2) +
       (1.0f-du) * dv        * *IMAGEFseq_pix(mrisp->Ip, u0, v1, 2) +
