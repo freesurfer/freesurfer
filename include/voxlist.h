@@ -1,0 +1,26 @@
+#ifndef VOXLIST_H
+#define VOXLIST_H
+
+typedef struct
+{
+	int *xi ;
+	int *yi ;
+	int *zi ;
+	MRI *mri ;
+	MRI *mri2;
+	int nvox ;
+} VOXEL_LIST ;
+
+MRI         *VLSTtoMri(VOXEL_LIST *vl, MRI *mri) ;
+int         VLSTfree(VOXEL_LIST **pvoxel_list) ;
+VOXEL_LIST  *VLSTcreate(MRI *mri, float low_val, float hi_val , 
+															 VOXEL_LIST *vl, int skip, int border_only) ;
+
+MRI         *VLSTcreateMri(VOXEL_LIST *vl, int val) ;
+MRI         *VLSTaddToMri(VOXEL_LIST *vl, MRI *mri, int val) ;
+VOXEL_LIST  *VLSTdilate(VOXEL_LIST *vl, int mode, MRI *mri_exclude) ;
+
+#define VL_DILATE_ADD      0
+#define VL_DILATE_REPLACE  1
+
+#endif
