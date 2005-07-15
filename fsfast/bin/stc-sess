@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # stc-sess
 #
-set VERSION = '$Id: stc-sess,v 1.1 2005/07/13 21:36:04 greve Exp $';
+set VERSION = '$Id: stc-sess,v 1.2 2005/07/15 16:24:02 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -240,3 +240,10 @@ preproc-sess -s tl20000621 \
   -smin fstcmc -smout fstcmcsm5 -fwhm 5 
   
 
+BUGS:
+
+Currently stc.fsl will save the output as a short because the AFNI
+motion correction does funny things on the floats created (not sure if
+this is an AFNI problem or FSFAST problem). Because of this, the scale
+of the functional is changed by a factor of 4 (ie, grand-mean scaling
+by a factor of 4).
