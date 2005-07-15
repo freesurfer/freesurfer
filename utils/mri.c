@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/06/08 19:53:03 $
-// Revision       : $Revision: 1.304 $
-char *MRI_C_VERSION = "$Revision: 1.304 $";
+// Revision Date  : $Date: 2005/07/15 19:18:58 $
+// Revision       : $Revision: 1.305 $
+char *MRI_C_VERSION = "$Revision: 1.305 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -41,6 +41,7 @@ char *MRI_C_VERSION = "$Revision: 1.304 $";
 #include "pdf.h"
 #include "cma.h"
 #include "talairachex.h"
+#include "voxlist.h"
 
 extern int errno;
 
@@ -12196,3 +12197,112 @@ char *MRIsliceDirectionName(MRI *mri)
 
   return(rtstr);
 }
+MRI *
+MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int mode)
+{
+	int x, y, z, width, height, depth, xi, yi, zi, xk, yk, zk, changed, found, i ;
+	MRI *mri_processed ;
+	float dist, min_dist ;
+	VOXEL_LIST  *vl_current, *vl_new ;
+
+	width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+	if (max_dist < 0)
+		max_dist = 2*MAX(MAX(width,height),depth);
+	if (mri_dist == NULL)
+	{
+		mri_dist = MRIalloc(width, height, depth, MRI_FLOAT) ;
+		MRIcopyHeader(mri_src, mri_dist) ;
+	}
+	else
+		MRIclear(mri_dist) ;
+
+	if (mode == DTRANS_MODE_SIGNED)
+		vl_current = VLSTcreate(mri_src, label, label, NULL, 0, 1) ;
+	else
+		vl_current = VLSTcreate(mri_src, label, label, NULL, 0, 0) ;
+	vl_new = VLSTdilate(vl_current, VL_DILATE_REPLACE, NULL) ;
+	
+	mri_processed = VLSTcreateMri(vl_current, 128) ;
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_processed, "p.mgz") ;
+
+	do
+	{
+		for (i = 0 ; i < vl_new->nvox ; i++)
+		{
+			x = vl_new->xi[i] ;
+			y = vl_new->yi[i] ;
+			z = vl_new->zi[i] ;
+			found = 0 ; min_dist = 1e8 ;
+			for (xk = -1 ; xk <= 1 ; xk++)  // find min dist of nbrs
+			{
+				xi = mri_src->xi[x+xk] ;
+				for (yk = -1 ; yk <= 1 ; yk++)
+				{
+					yi = mri_src->yi[y+yk] ;
+					for (zk = -1 ; zk <= 1 ; zk++)
+					{
+						zi = mri_src->zi[z+zk] ;
+						if (MRIvox(mri_processed, xi, yi, zi) == 0)
+							continue ;
+						dist = MRIgetVoxVal(mri_dist, xi, yi, zi, 0) ;
+						dist += sqrt(xk*xk+yk*yk+zk*zk) ;
+						if (found == 0 || dist < min_dist)
+						{
+							found = 1 ;
+							min_dist = dist ;
+						}
+					}
+				}
+			}
+			
+			if (found > 0)
+			{
+				changed++ ;
+				MRIsetVoxVal(mri_dist, x, y, z, 0, min_dist) ;
+			}
+			else
+				DiagBreak() ;
+		}
+
+		VLSTfree(&vl_current) ;
+		VLSTaddToMri(vl_new, mri_processed, 128) ;
+		vl_current = vl_new ;
+		vl_new = VLSTdilate(vl_current, VL_DILATE_REPLACE, mri_processed) ;
+#if 0
+		if (vl_new == NULL)
+			printf("complete\n") ;
+		else
+			printf("examining %d voxels...\n", vl_new->nvox) ;
+#endif
+	} while (vl_new != NULL) ;
+
+	if (mode == DTRANS_MODE_SIGNED)  // set interior distances to negative vals
+	{
+		int x, y, z ;
+
+		for (x = 0 ; x < mri_src->width ; x++)
+		{
+			for (y = 0 ; y < mri_src->height ; y++)
+			{
+				for (z = 0 ; z < mri_src->depth ; z++)
+				{
+					if (FEQUAL(MRIgetVoxVal(mri_src, x, y, z, 0), label))
+					{
+						dist = MRIgetVoxVal(mri_dist, x, y, z, 0) ;
+						if (!FZERO(dist))
+							MRIsetVoxVal(mri_dist, x, y, z, 0, -dist) ;
+					}
+				}
+			}
+		}
+	}
+
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_dist, "dist.mgz") ;
+	VLSTfree(&vl_current)  ;
+	MRIfree(&mri_processed) ;
+
+	return(mri_dist) ;
+}
+
