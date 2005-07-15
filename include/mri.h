@@ -945,5 +945,12 @@ int MRIorientationStringToDircos(MRI *mri, char *ostr);
 char *MRIcheckOrientationString(char *ostr);
 char *MRIsliceDirectionName(MRI *mri);
 
+/* different modes for distance transform - signed (<0 in interior) unsigned from border, or 
+	 just outside (interior is 0) */
+#define DTRANS_MODE_SIGNED   1
+#define DTRANS_MODE_UNSIGNED 2
+#define DTRANS_MODE_OUTSIDE  3
+MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int mode);
+
 
 #endif
