@@ -22,8 +22,10 @@
 #define DEFAULT_UDIM   256
 
 #define DEBUG_VNO -1
+#if 0
 #define DEBUG_U  255
 #define DEBUG_V  410
+#endif
 #define DEBUG_U  -1
 #define DEBUG_V  -1
 
@@ -537,7 +539,7 @@ if ((total_d > 10000.0) || (vertex->curv > 1000.0))
             if (u1 < 0)  /* enforce spherical topology  */
               u1 = -u1 ;
             else if (u1 >= U_DIM(mrisp))
-              u1 = (u1-U_DIM(mrisp)+1) ;
+              u1 = U_DIM(mrisp)-(u1-U_DIM(mrisp)+1) ;
             for (vk = -1 ; vk <= 1 ; vk++)
             {
               v1 = v + vk ;
@@ -2629,7 +2631,7 @@ MRIStoParameterizations(MRI_SURFACE *mris, MRI_SP *mrisp, float scale,int *frame
             if (u1 < 0)  /* enforce spherical topology  */
               u1 = -u1 ;
             else if (u1 >= U_DIM(mrisp))
-              u1 = (u1-U_DIM(mrisp)+1) ;
+              u1 = U_DIM(mrisp)-(u1-U_DIM(mrisp)+1) ;
             for (vk = -1 ; vk <= 1 ; vk++)
             {
               v1 = v + vk ;
