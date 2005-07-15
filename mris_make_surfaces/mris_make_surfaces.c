@@ -17,7 +17,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.56 2005/07/13 23:07:18 xhan Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.57 2005/07/15 18:37:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -152,7 +152,7 @@ main(int argc, char *argv[])
   M3D           *m3d ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.56 2005/07/13 23:07:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.57 2005/07/15 18:37:36 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -293,7 +293,7 @@ main(int argc, char *argv[])
     if (!m3d)
       ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
                 Progname, fname) ;
-    sprintf(ventricle_fname, "%s/average/%s_ventricle.mgh#0@mgh", 
+    sprintf(ventricle_fname, "%s/average/%s_ventricle.mgz#0@mgh", 
             mdir, !stricmp(hemi, "lh") ? "left" : "right") ;
     fprintf(stderr,"reading ventricle representation %s...\n",ventricle_fname);
     mri_lv = MRIread(ventricle_fname) ;
@@ -329,6 +329,7 @@ main(int argc, char *argv[])
     MRImask(mri_T1_white, mri_filled, mri_T1_white, replace_val,0) ;
   MRImask(mri_T1, mri_filled, mri_T1, replace_val,0) ;
   MRIfree(&mri_filled) ;
+	MRIwrite(mri_T1, "r.mgz") ;
 
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
   if(MGZ) sprintf(fname, "%s.mgz",fname);
@@ -458,7 +459,7 @@ main(int argc, char *argv[])
       MRImask(mri_T1_white, mri_labeled, mri_T1_white, BRIGHT_BORDER_LABEL, 0) ;
     }
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-      MRIwrite(mri_T1, "white_masked.mgh") ;
+      MRIwrite(mri_T1, "white_masked.mgz") ;
   }
   if (mri_T1_white)
   {
@@ -487,7 +488,7 @@ main(int argc, char *argv[])
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       char fname[STRLEN] ;
-      sprintf(fname, "sigma%.0f.mgh", current_sigma) ;
+      sprintf(fname, "sigma%.0f.mgz", current_sigma) ;
       fprintf(stderr, "writing smoothed volume to %s...\n", fname) ; 
       MRIwrite(mri_smooth, fname) ;
     }
@@ -637,6 +638,7 @@ main(int argc, char *argv[])
   }
   /*    parms.l_convex = 1000 ;*/
   mri_T1 = mri_T1_pial ; 
+	MRIwrite(mri_T1, "p.mgz") ;
   for (j = 0 ; j <= 0 ; parms.l_intensity *= 2, j++)  /* only once for now */
   {
     current_sigma = pial_sigma ;
@@ -659,7 +661,7 @@ main(int argc, char *argv[])
       MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 255) ;
       MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_BORDER_LABEL, MID_GRAY) ;
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        MRIwrite(mri_T1, "pial_masked.mgh") ;
+        MRIwrite(mri_T1, "pial_masked.mgz") ;
       MRIScomputeBorderValues(mris, mri_T1, mri_smooth, max_gray, 
                               max_gray_at_csf_border, min_gray_at_csf_border,
                               min_csf,(max_csf+max_gray_at_csf_border)/2,
@@ -731,7 +733,7 @@ main(int argc, char *argv[])
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
         char fname[STRLEN] ;
-        sprintf(fname, "sigma%.0f.mgh", current_sigma) ;
+        sprintf(fname, "sigma%.0f.mgz", current_sigma) ;
         fprintf(stderr, "writing smoothed volume to %s...\n", fname) ; 
         MRIwrite(mri_smooth, fname) ;
       }
@@ -1584,8 +1586,8 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
   MRIsoapBubbleLabel(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 200) ;
 #endif
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_labeled, "label.mgh") ;
-  /*    MRIwrite(mri_tmp, "tmp.mgh") ;*/
+    MRIwrite(mri_labeled, "label.mgz") ;
+  /*    MRIwrite(mri_tmp, "tmp.mgz") ;*/
   nlabeled = MRIvoxelsInLabel(mri_labeled, BRIGHT_LABEL) ;
   fprintf(stderr, "%d bright non-wm voxels segmented.\n", nlabeled) ;
 
