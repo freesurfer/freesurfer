@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # stc.fsl - front-end for FSL's slicetimer slice timing correction
 
-set VERSION = '$Id: stc.fsl,v 1.2 2005/07/12 17:51:47 greve Exp $'
+set VERSION = '$Id: stc.fsl,v 1.3 2005/07/15 16:24:57 greve Exp $'
 set debug = 0;
 set cmdargs = ($argv);
 set PrintHelp = 0;
@@ -52,7 +52,7 @@ hostname  | tee -a $LF
 
 # Get number of input slices
 set tmpfile = $tmpdir/nslices.dat
-set cmd = ($DEV/mri_info/mri_info --nslices --o $tmpfile $infunc);
+set cmd = (mri_info --nslices --o $tmpfile $infunc);
 pwd |& tee -a $LF
 echo $cmd  |& tee -a $LF
 $cmd  |& tee -a $LF
@@ -148,7 +148,8 @@ set outtmpmat = $tmpdir/out.mat
 cp $intmpmat $outtmpmat 
 
 # Convert back to the output
-set cmd = (mri_convert -it analyze4d $outtmp $outfunc)
+# Have to use short or afni dies, so scale of 4 to help reduce the sting
+set cmd = (mri_convert -it analyze4d $outtmp $outfunc -odt short -scale 4)
 pwd |& tee -a $LF
 echo $cmd  |& tee -a $LF
 $cmd  |& tee -a $LF
@@ -317,7 +318,7 @@ Interleaved starting on second slice: 2 4 6 8 ... 1 3 5 7 ...
 If the number of slices is odd, then uses --odd. If the number of slices is even, 
 then uses --even.
 
-Notes:
+NOTES
 
 1. Slice order starts at 1.
 
@@ -325,3 +326,11 @@ Notes:
    0.5)/nslices. Eg, if nslices=20, then the relative center is .475
    through the TR (which corresponds to half way through the 9th
    acquired slice). If nslices=21, then delay=0 at the 10th slice.
+
+BUGS
+
+Currently stc.fsl will save the output as a short because the AFNI
+motion correction does funny things on the floats created (not sure if
+this is an AFNI problem or FSFAST problem). Because of this, the scale
+of the functional is changed by a factor of 4 (ie, grand-mean scaling
+by a factor of 4).
