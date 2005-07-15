@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # stc-sess
 #
-set VERSION = '$Id: stc-sess,v 1.2 2005/07/15 16:24:02 greve Exp $';
+set VERSION = '$Id: stc-sess,v 1.3 2005/07/15 16:59:46 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -36,6 +36,7 @@ goto check_params;
 check_params_return:
 
 if(! $nolog) then
+  mkdir -p log
   set LF = log/stc-sess.log
   if(-e $LF) mv $LF $LF.bak
 else
