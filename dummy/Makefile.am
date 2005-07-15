@@ -26,10 +26,10 @@
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
-bin_PROGRAMS = dummy
-dummy_SOURCES=dummy.c
-dummy_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
-dummy_LDFLAGS=$(OS_LDFLAGS)
+bin_PROGRAMS = mri_aparc2aseg
+mri_aparc2aseg_SOURCES=mri_aparc2aseg.c
+mri_aparc2aseg_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_aparc2aseg_LDFLAGS=$(OS_LDFLAGS)
 # to --------------------------------------------------
 #
 # where $(OS_LDFLAGS) is to compile program statically for Linux
