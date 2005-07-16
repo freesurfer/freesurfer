@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/07/14 19:25:20 $
-// Revision       : $Revision: 1.104 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/07/16 18:57:35 $
+// Revision       : $Revision: 1.105 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,11 +63,11 @@ int main(int argc, char *argv[])
   int in_volume_type, out_volume_type;
   char resample_type[STRLEN];
   int resample_type_val;
-  int in_i_size_flag, in_j_size_flag, in_k_size_flag;
+  int in_i_size_flag, in_j_size_flag, in_k_size_flag, crop_flag = FALSE;
   int out_i_size_flag, out_j_size_flag, out_k_size_flag;
   float in_i_size, in_j_size, in_k_size;
   float out_i_size, out_j_size, out_k_size;
-  int sizes_good_flag;
+  int crop_center[3], sizes_good_flag, crop_size[3] ;
   float in_i_directions[3], in_j_directions[3], in_k_directions[3];
   float out_i_directions[3], out_j_directions[3], out_k_directions[3];
   int in_i_direction_flag, in_j_direction_flag, in_k_direction_flag;
@@ -148,6 +148,8 @@ int main(int argc, char *argv[])
   printf("\n");
   fflush(stdout);
 
+	crop_size[0] = crop_size[1] = crop_size[2] = 256 ;
+	crop_center[0] = crop_center[1] = crop_center[2] = 128 ;
   for(i=0;i<argc;i++){
     if(strcmp(argv[i],"--debug")==0){
       fptmp = fopen("debug.gdb","w");
@@ -231,7 +233,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.104 2005/07/14 19:25:20 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.105 2005/07/16 18:57:35 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -301,6 +303,16 @@ int main(int argc, char *argv[])
     {
       get_string(argc, argv, &i, out_like_name);
       out_like_flag = TRUE;
+    }
+    else if (strcmp(argv[i], "--crop")==0)
+    {
+			crop_flag = TRUE ;
+      get_ints(argc, argv, &i, crop_center, 3);
+    }
+    else if (strcmp(argv[i], "--cropsize")==0)
+    {
+			crop_flag = TRUE ;
+      get_ints(argc, argv, &i, crop_size, 3);
     }
     else if(strcmp(argv[i], "--devolvexfm") == 0){
       /* devolve xfm to account for cras != 0 */
@@ -1868,6 +1880,19 @@ int main(int argc, char *argv[])
     mri = mri2;
   }
 
+	if (crop_flag == TRUE)
+	{
+		MRI *mri_tmp ;
+		int   x0, y0, z0 ;
+
+		x0 = crop_center[0] ; y0 = crop_center[1] ; z0 = crop_center[2] ; 
+
+		x0 -= crop_size[0]/2 ; y0 -= crop_size[1]/2 ; z0 -= crop_size[2]/2 ;
+		mri_tmp = MRIextract(mri, NULL, x0, y0, z0, crop_size[0], 
+												 crop_size[1], crop_size[2]) ;
+		MRIfree(&mri) ;
+		mri = mri_tmp ;
+	}
 
   /*------ Finally, write the output -----*/
   if(!no_write_flag)
@@ -2067,6 +2092,8 @@ void usage(FILE *stream)
   fprintf(stream, "  --apply_transform xfmfile (-T or -at)\n");
   fprintf(stream, "  --apply_inverse_transform xfmfile (-ait)\n");
   fprintf(stream, "  --devolvexfm subjectid : \n");
+  fprintf(stream, "  --crop <x> <y> <z> crop to 256 around center (x,y,z) \n");
+  fprintf(stream, "  --cropsize <dx> <dy> <dz> crop to size <dx, dy, dz> \n");
   fprintf(stream, "  --like vol: output is embedded in a volume like vol\n");
   fprintf(stream, "\n");
 
