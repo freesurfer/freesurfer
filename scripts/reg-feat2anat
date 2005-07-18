@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.6 2005/07/09 02:34:57 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.7 2005/07/18 15:59:56 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -38,6 +38,8 @@ parse_args_return:
 # Check the command-line arguments
 goto check_params;
 check_params_return:
+
+if($?DEV == 0) set DEV = "";
 
 set TKR = tkregister2
 if($usedev) set TKR = $DEV/$TKR/$TKR
