@@ -30,28 +30,6 @@ bin_PROGRAMS = mri_aparc2aseg
 mri_aparc2aseg_SOURCES=mri_aparc2aseg.c
 mri_aparc2aseg_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mri_aparc2aseg_LDFLAGS=$(OS_LDFLAGS)
-# to --------------------------------------------------
-#
-# where $(OS_LDFLAGS) is to compile program statically for Linux
-#
-# by the way, you can have as many bin_PROGRAMS in the same directory
-#
-########################################################################
-# when you want to create your program to test, use the following framework
-# you can have as many programs (separated by space) as check_PROGRAMS
-# your program can consist of many sources (you add to _SOURCES= line)
-# You can do "make myown" to compile. The default CFLAGS="-g -O2", but
-# you can do "make CFLAGS=-g myown" to create debugging version.
-#
-# the program listed as check_PROGRAMS are not compiled under standard "make".
-# only "make check" will compile them.
-# 
-# please don't remove myown.c
-########################################################################
-check_PROGRAMS= myown
-
-myown_SOURCES=myown.c
-myown_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
 
 
