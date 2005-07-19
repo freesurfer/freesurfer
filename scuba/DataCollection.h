@@ -56,6 +56,9 @@ class DataCollection : public DebugReporter,
   DataCollection();
   virtual ~DataCollection(); 
 
+  // If the normal DataLocation is not enough, should subclass to
+  // create specific DataLocation. Basically for caching RAS -> data
+  // index, be it MRI coords or vertex index or whatever.
   virtual DataLocation& MakeLocationFromRAS ( float const iRAS[3] );
 
   // used to poll for any displayable data at the given point.
@@ -75,15 +78,21 @@ class DataCollection : public DebugReporter,
   virtual void
     DoListenToMessage ( std::string isMessage, void* iData );
 
+  // Get a list of ROI IDs that belong to this data collection.
   std::vector<int> GetROIList ();
-
-  int NewROI ();
-  void SelectROI ( int iROIID );
-  virtual ScubaROI* DoNewROI ();
-
   int GetNumberOfROIs () { return mROIMap.size(); }
+
+  // Create a new ROI and assign it to this collection. Return its ID.
+  int NewROI ();
+
+  // Tell this collection to select this ROI.
+  void SelectROI ( int iROIID );
   int GetSelectedROI () { return mSelectedROIID; }
 
+  // Called by NewROI, should be subclassed to return specific ROI type.
+  virtual ScubaROI* DoNewROI ();
+
+  // The Data <-> World transform.
   virtual void SetDataToWorldTransform ( int iTransformID );
   int GetDataToWorldTransform ();
 

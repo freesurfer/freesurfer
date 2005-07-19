@@ -141,9 +141,16 @@ class Layer : public DebugReporter,
 			    int iFromWindow[2], int iToWindow[2],
 			    int iColor[3], int iThickness, float iOpacity );
 
+  // This is the distance to advance 'through' a projection, e.g. for
+  // going to the 'next' slice, in RAS coords.
   virtual void GetPreferredThroughPlaneIncrements ( float oIncrements[3] );
 
+  // This is the increment for a slider controlling the brush size.
   virtual float GetPreferredBrushRadiusIncrement ();
+
+  // This is the increment for a slider controlling an unbounded value
+  // amount.
+  virtual float GetPreferredValueIncrement ();
 
   // Process a list of options. Just parses them into individual
   // options and hands them to overrideable function.

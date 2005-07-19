@@ -619,7 +619,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
     
     if( GetID() == toolID ) {
 
-      int fuzziness = strtol(iasArgv[2], (char**)NULL, 10);
+      float fuzziness = strtod(iasArgv[2], (char**)NULL);
       if( ERANGE == errno ) {
 	sResult = "bad fuzziness";
 	return error;
@@ -655,7 +655,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
     
     if( GetID() == toolID ) {
 
-      int maxDistance = strtol(iasArgv[2], (char**)NULL, 10);
+      float maxDistance = strtod(iasArgv[2], (char**)NULL);
       if( ERANGE == errno ) {
 	sResult = "bad distance";
 	return error;

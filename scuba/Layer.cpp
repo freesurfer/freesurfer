@@ -561,6 +561,12 @@ Layer::GetPreferredBrushRadiusIncrement () {
   return 1.0;
 }
 
+float
+Layer::GetPreferredValueIncrement () {
+  
+  return 1.0;
+}
+
 void
 Layer::DoTimer () {
 

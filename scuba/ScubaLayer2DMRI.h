@@ -132,6 +132,8 @@ class ScubaLayer2DMRI : public Layer {
 
   virtual float GetPreferredBrushRadiusIncrement ();
 
+  virtual float GetPreferredValueIncrement ();
+
   // For filling.
   void SetFloodParams ( ScubaToolState& iTool, ViewState& iViewState,
 			VolumeCollectionFlooder::Params& ioParams );

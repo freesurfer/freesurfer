@@ -2187,6 +2187,14 @@ ScubaLayer2DMRI::GetPreferredBrushRadiusIncrement () {
   return (smallestVoxelSize / 2.0);
 }
 
+float
+ScubaLayer2DMRI::GetPreferredValueIncrement () {
+
+  // Get our range and divide it by 100.
+  float range = mMaxVisibleValue - mMinVisibleValue;
+  return (range / 100.0);
+}
+
 void
 ScubaLayer2DMRI::SetFloodParams ( ScubaToolState& iTool, ViewState& iViewState,
 				  VolumeCollectionFlooder::Params& ioParams ) {

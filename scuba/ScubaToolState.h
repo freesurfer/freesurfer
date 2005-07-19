@@ -51,11 +51,11 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetFloodStopAtROIs ( bool ibStop ) { mbFloodStopAtROIs = ibStop; }
   bool GetFloodStopAtROIs () { return mbFloodStopAtROIs; }
 
-  void SetFloodFuzziness ( int iFuzziness ) { mFloodFuzziness = iFuzziness; }
-  int GetFloodFuzziness () { return mFloodFuzziness; } 
+  void SetFloodFuzziness ( float iFuzziness ) { mFloodFuzziness = iFuzziness; }
+  float GetFloodFuzziness () { return mFloodFuzziness; } 
   
-  void SetFloodMaxDistance ( int iDistance ) { mFloodMaxDistance = iDistance; }
-  int GetFloodMaxDistance () { return mFloodMaxDistance; } 
+  void SetFloodMaxDistance ( float iDistance ) { mFloodMaxDistance =iDistance;}
+  float GetFloodMaxDistance () { return mFloodMaxDistance; } 
   
   void SetFlood3D ( bool ib3D ) { mbFlood3D = ib3D; }
   bool GetFlood3D () { return mbFlood3D; }
@@ -99,8 +99,8 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   // Flood settings.
   bool mbFloodStopAtPaths;
   bool mbFloodStopAtROIs;
-  int mFloodFuzziness;
-  int mFloodMaxDistance;
+  float mFloodFuzziness;
+  float mFloodMaxDistance;
   bool mbFlood3D;
   int mFloodSourceCollection;
   bool mbOnlyFloodZero;
