@@ -18538,7 +18538,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.125 2005/07/08 20:48:28 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.126 2005/07/20 15:50:22 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19558,7 +19558,8 @@ int main(int argc, char *argv[])   /* new main */
   enable_menu_set (MENUSET_VSET_PIAL_LOADED, 0);
   if (NULL == func_timecourse)
     enable_menu_set (MENUSET_TIMECOURSE_LOADED, 0);
-  enable_menu_set (MENUSET_OVERLAY_LOADED, 0);
+  if (!overlayflag)
+    enable_menu_set (MENUSET_OVERLAY_LOADED, 0);
   enable_menu_set (MENUSET_CURVATURE_LOADED, 0);
   enable_menu_set (MENUSET_LABEL_LOADED, 0);
   enable_menu_set (MENUSET_FIELDSIGN_LOADED, 0);
