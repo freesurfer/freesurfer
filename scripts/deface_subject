@@ -1,0 +1,12 @@
+#!/bin/tcsh -ef
+
+set s=$1
+set fdir=$FREESURFER_HOME
+set adir=$fdir/average
+set mdir=$SUBJECTS_DIR/$s/mri
+if (-e $mdir/orig/COR-001 == 0) then
+	 set ORIG=orig.mgz
+else
+	 set ORIG=orig
+endif
+mri_deface $mdir/$ORIG $fdir/average/talairach_mixed_with_skull.gca $adir/face.gca $mdir/orig_defaced.mgz
