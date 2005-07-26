@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # plotmc-sess
 #
-# $Id: plot-twf-sess,v 1.4 2005/06/30 23:27:11 greve Exp $
-set VERSION = '$Id: plot-twf-sess,v 1.4 2005/06/30 23:27:11 greve Exp $';
+# $Id: plot-twf-sess,v 1.5 2005/07/26 19:55:20 greve Exp $
+set VERSION = '$Id: plot-twf-sess,v 1.5 2005/07/26 19:55:20 greve Exp $';
 set FASTVER = `cat $FSFAST_HOME/docs/version`;
 
 set inputargs = ($argv);
@@ -52,9 +52,9 @@ if($status) then
   exit 1;
 endif
 
-which xv > /dev/null
+which display > /dev/null
 if($status) then
-  echo "ERROR: cannot find xv"
+  echo "ERROR: cannot find display"
   exit 1;
 endif
 
