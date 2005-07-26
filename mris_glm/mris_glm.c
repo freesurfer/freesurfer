@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.39 2005/07/08 18:10:52 greve Exp $
+  $Id: mris_glm.c,v 1.40 2005/07/26 20:45:56 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -70,17 +70,20 @@ int ReadAsciiMatrixSize(char *desmtxfname, int *pnrows, int *pncols);
 int ReadDesignMatrix(char *desmtxfname);
 MATRIX *ReadAsciiMatrix(char *asciimtxfname);
 int CheckDesignMatrix(MATRIX *X);
+static int MatrixWriteFmt(MATRIX *M, char *fname, char *fmt);
 static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.39 2005/07/08 18:10:52 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.40 2005/07/26 20:45:56 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
 char *desmtxfname = NULL;
 char *fsgdfile = NULL;
 char *xmatfile = NULL;
+int  xmatonly = 0;
+char *xmatfmt = "matlab4";
 int  nsmooth   = 0;
 int  frame     = 0;    
 
@@ -199,7 +202,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.39 2005/07/08 18:10:52 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.40 2005/07/26 20:45:56 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -225,7 +228,7 @@ int main(int argc, char **argv)
   for(n=1;n<argc;n++) printf("%s ",argv[n]);
   printf("\n");
 
-  if(xmatfile != NULL) MatlabWrite(X,xmatfile,"X");
+  if(xmatfile != NULL) MatrixWriteFmt(X,xmatfile,xmatfmt);
 
   /* X is the design matrix */
   Xt = MatrixTranspose(X,NULL);
@@ -669,6 +672,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--parseonly")) ParseOnly = 1;
     else if (!strcasecmp(option, "--allowsubjrep")) 
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
+    else if ( !strcmp(option, "--xmatonly") ) xmatonly = 1;
 
     else if (!strcmp(option, "--seed")){
       if(nargc < 1) argnerr(option,1);
@@ -781,6 +785,15 @@ static int parse_commandline(int argc, char **argv)
     else if ( !strcmp(option, "--xmat") ){
       if(nargc < 1) argnerr(option,1);
       xmatfile = pargv[0];
+      nargsused = 1;
+    }
+    else if ( !strcmp(option, "--xmatfmt") ){
+      if(nargc < 1) argnerr(option,1);
+      xmatfmt = pargv[0];
+      if(! (!strcmp(xmatfmt,"matlab4") || !strcmp(xmatfmt,"ascii")) ){
+	printf("ERROR: xmatfmt = %s, must be matlab4 or ascii\n",xmatfmt);
+	exit(1);
+      }
       nargsused = 1;
     }
     else if (!strcmp(option, "--nsmooth")){
@@ -1243,8 +1256,21 @@ static void print_help(void)
 "\n"
 "--xmat name \n"
 "\n"
-"Save the design matrix in matlab4 format. This is only good for \n"
-"debugging. fmt is the format (see OUTPUT FORMATS).\n"
+"Save the design matrix. By default, it is saved in matlab4 format. \n"
+"It can be saved in ASCII with --xmatfmt ascii.\n"
+"\n"
+"--xmatfmt format \n"
+"\n"
+"Save the design matrix in the specfied format. format can be \n"
+"matlab4 or ascii. Default is matlab4\n"
+"\n"
+"--xmatonly\n"
+"\n"
+"Save design matrix to output file indicated by --xmat and exit.\n"
+"This is a means of simply creating a design matrix that can \n"
+"be used for other purposes. Note that only --fsgd and --xmat are\n"
+"needed with --xmatonly (ie, you do not need to supply a full.\n"
+"mris_glm command-line).\n"
 "\n"
 "--contrast fname\n"
 "\n"
@@ -1416,6 +1442,21 @@ static void argnerr(char *option, int n)
 /* --------------------------------------------- */
 static void check_options(void)
 {
+
+  if(xmatonly){
+    if(fsgdfile == NULL){
+      printf("ERROR: need fsgd file with --matonly\n");
+      exit(1);
+    }
+    if(xmatfile == NULL){
+      printf("ERROR: need xmat file with --matonly\n");
+      exit(1);
+    }
+    X = gdfMatrix(fsgd,gd2mtx_method,NULL);
+    MatrixWriteFmt(X,xmatfile,xmatfmt);
+    exit(0);
+  }
+
   if(desmtxfname == NULL && fsgdfile == NULL){
     printf("ERROR: must specify a design \n");
     exit(1);
@@ -1838,4 +1879,29 @@ static char *getstem(char *filename)
   }
 
   return(stem);
+}
+/*-------------------------------------------------------------------*/
+static int MatrixWriteFmt(MATRIX *M, char *fname, char *fmt)
+{
+  int err = 0, r, c;
+  FILE *fp;
+
+  if(!strcmp(fmt,"matlab4")){
+    err = MatlabWrite(M,fname,"X");
+    return(err);
+  }
+  
+  fp = fopen(fname,"w");
+  if(fp == NULL){
+    printf("ERROR: could not open %s for writing\n",fname);
+    return(1);
+  }
+  
+  for(r=1; r <= M->rows; r++){
+    for(c=1; c <= M->cols; c++)
+      fprintf(fp,"%g ",M->rptr[r][c]);
+    fprintf(fp,"\n");
+  }
+  fclose(fp);
+  return(0);
 }
