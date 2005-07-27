@@ -18538,7 +18538,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.126 2005/07/20 15:50:22 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.127 2005/07/27 15:28:36 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25181,6 +25181,7 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
 void send_tcl_command (char* cmd)
 {
   char** new_cached_tcl_commands = NULL;
+  char* new_cmd = NULL;
   int n;
   int tcl_err;
 
@@ -25214,9 +25215,21 @@ void send_tcl_command (char* cmd)
 	    max_num_cached_tcl_commands + TCL_CACHE_INC;
 	}
 
-      /* Make a copy of the command. */
-      cached_tcl_commands[num_cached_tcl_commands] = strdup (cmd);
-      num_cached_tcl_commands++;
+      /* Make a copy of the command. Don't use strdup because that's
+	 been replaced by tixStrDup and we might not have called
+	 tixInit yet. */
+      new_cmd = (char*) calloc( strlen(cmd) + 1, sizeof(char) );
+      if (NULL != new_cmd)
+	{
+	  strcpy( new_cmd, cmd );
+	  cached_tcl_commands[num_cached_tcl_commands] = new_cmd;
+	  num_cached_tcl_commands++;
+	}
+      else 
+	{
+	  printf ("surfer: Error creating command storage of size %d\n",
+		  strlen(cmd));
+	}
     }
   else
     {
