@@ -1,10 +1,14 @@
+#!/bin/tcsh -ef
+
+#
 # SetUpFreeSurfer.csh
 #
 
-# This is a sample SetUpFreeSurfer.csh file. You should be able to use
-# it with just a few modifications.
+# This is a sample SetUpFreeSurfer.csh file. 
+# Edit as needed for your specific setup.  
+# The defaults should work with most installations.
 
-# Set this to the location of freesurfer/.
+# Set this to the location of the freesurfer installation.
 if (! $?FREESURFER_HOME) then 
     setenv FREESURFER_HOME REPLACE_WITH_PREFIX
 endif    
@@ -19,14 +23,19 @@ if (! $?FUNCTIONALS_DIR) then
     setenv FUNCTIONALS_DIR $FREESURFER_HOME/sessions
 endif
 
-# Specify the location of the MINC tools, such as...
+# Specify the location of the MINC tools.
+# Necessary only if the script $FREESURFER_HOME/FreeSurferEnv.csh
+# does not find the tools (and issues warnings pertaining to
+# the following two environment variables, which have example
+# locations that might need user-specific modification):
 #setenv MINC_BIN_DIR /usr/pubsw/packages/mni/current/bin
 #setenv MINC_LIB_DIR /usr/pubsw/packages/mni/current/lib
-# ... or disable them.
+# ... or just disable the MINC toolkit (although some Freesurfer
+# utilities will fail!) 
 #setenv NO_MINC
 
-# Enable or disable fsfast.
+# Enable or disable fsfast (enabled by default)
 #setenv NO_FSFAST
 
-# Call configuration script.
+# Call configuration script:
 source $FREESURFER_HOME/FreeSurferEnv.csh
