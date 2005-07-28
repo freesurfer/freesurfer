@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # surf-sess
 #
-set VERSION = '$Id: surf-sess,v 1.10 2005/06/10 22:52:53 greve Exp $'
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set VERSION = '$Id: surf-sess,v 1.11 2005/07/28 20:03:59 greve Exp $'
+
 set inputargs = ($argv);
 
 set analysis     = ();
@@ -289,7 +289,8 @@ endif
 setenv floatstem $Stat
 
 pushd $StatDir > /dev/null
-setenv dir .
+pwd
+setenv dir `pwd`
 
 if($norgb) then
   setenv nosave 1
@@ -361,7 +362,12 @@ if(! $flat ) then
       endif
     endif
   else
-    set tclcmd = $rtopymode-views.tcl
+    # Set to full path here so that it can find it:
+    set tclcmd = $FREESURFER_HOME/lib/tcl/$rtopymode-views.tcl
+    if(! -e $tclcmd) then
+      echo "ERROR: cannot find $tclcmd"
+      exit 1;
+    endif
   endif
 else
   if(! $rtopy) then
