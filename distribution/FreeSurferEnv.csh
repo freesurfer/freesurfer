@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.21 2005/07/27 17:30:41 kteich Exp $
+# $Id: FreeSurferEnv.csh,v 1.22 2005/07/28 15:47:48 kteich Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.21 2005/07/27 17:30:41 kteich Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.22 2005/07/28 15:47:48 kteich Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -331,7 +331,7 @@ if ( $?QTDIR ) then
     if (! $?MANPATH) then
         setenv MANPATH    $QTDIR/doc/man:
     else
-        setenv MANPATH    $QTDIR/doc/man:$MANPATH:
+        setenv MANPATH    $QTDIR/doc/man:$MANPATH   
     endif
     if (! $?LD_LIBRARY_PATH) then
         setenv LD_LIBRARY_PATH  $QTDIR/lib
