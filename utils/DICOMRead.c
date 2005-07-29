@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.74 2005/07/28 22:20:10 greve Exp $
+   $Id: DICOMRead.c,v 1.75 2005/07/29 18:49:19 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -78,7 +78,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   int err,OutOfBounds,IsMosaic;
   int row, col, slice, frame;
   unsigned short *pixeldata;
-  MRI *vol;
+  MRI *vol, *voltmp;
   char **SeriesList;
   char *tmpstring;
   int Maj, Min, MinMin;
@@ -336,13 +336,20 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
 
   }/* for nthfile */
 
-  if(0){
-    // To be implemented next
-    if(sdfiIsSliceOrderReversed(sdfi_list[0])){
-      printf("INFO: slice order reversed\n");
-    }else{
-      printf("INFO: NOT slice order reversed\n");
-    }
+  /* Determine whether Siemens has reversed the slice order prior to
+     packing into mosaic. This makes it inconsistent with the geometry
+     in the dicom. If so, reverse it back without changing the geometry.
+     Note that this does not have anything to do with the order in which
+     the slices were acquired. However, if you assume a certain acquistion
+     slice order model, it will be wrong unless this reversal is done.  */
+  if(sdfiIsSliceOrderReversed(sdfi_list[0])){
+    printf("INFO: detected a Siemens slice order reversal in mosaic, so\n");
+    printf("      I'm going to reverse them back to their 'original' order.\n");
+    voltmp = MRIreverseSliceOrder(vol,NULL);
+    MRIfree(&vol);
+    vol = voltmp;
+  }else{
+    printf("INFO: no Siemens slice order reversal detected (good!). \n");
   }
 
   while (nlist--)
@@ -2600,6 +2607,10 @@ int sdfiSameSlicePos(SDCMFILEINFO *sdfi1, SDCMFILEINFO *sdfi2)
   order (eg, head-to-foot) instead of how they were collected (eg,
   ascending or descending). This makes the slice normal direction
   cosine information inconsistent with the actual slice direction.
+  Note that this does not have anything to do with the order in which
+  the slices were acquired. However, if you assume a certain
+  acquistion slice order model, it will be wrong unless this reversal
+  is done.  
 
   Author: Douglas N. Greve, 7/28/05
   -----------------------------------------------------------------------*/
@@ -2642,15 +2653,19 @@ int sdfiIsSliceOrderReversed(SDCMFILEINFO *sdfi)
     free(strtmp);
   }
 
-  if((abs(sdfi->Vs[0]) > abs(sdfi->Vs[1])) &&
-     (abs(sdfi->Vs[0]) > abs(sdfi->Vs[2])) && sagrev) return(1);
+  //printf("Vs = %g %g %g\n",sdfi->Vs[0],sdfi->Vs[1],sdfi->Vs[2]);
+  //printf("%d %d %d\n",sagrev,correv,trarev);
 
-  if((abs(sdfi->Vs[1]) > abs(sdfi->Vs[0])) &&
-     (abs(sdfi->Vs[1]) > abs(sdfi->Vs[2])) && correv) return(1);
+  if((fabs(sdfi->Vs[0]) > fabs(sdfi->Vs[1])) &&
+     (fabs(sdfi->Vs[0]) > fabs(sdfi->Vs[2])) && sagrev) return(1);
 
-  if((abs(sdfi->Vs[2]) > abs(sdfi->Vs[0])) &&
-     (abs(sdfi->Vs[2]) > abs(sdfi->Vs[1])) && trarev) return(1);
+  if((fabs(sdfi->Vs[1]) > fabs(sdfi->Vs[0])) &&
+     (fabs(sdfi->Vs[1]) > fabs(sdfi->Vs[2])) && correv) return(1);
 
+  if((fabs(sdfi->Vs[2]) > fabs(sdfi->Vs[0])) &&
+     (fabs(sdfi->Vs[2]) > fabs(sdfi->Vs[1])) && trarev) return(1);
+
+  printf("should never get here\n");
   return(0); // should never get here
 }
 
