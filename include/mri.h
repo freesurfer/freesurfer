@@ -944,6 +944,7 @@ int MRIdircosToOrientationString(MRI *mri, char *ostr);
 int MRIorientationStringToDircos(MRI *mri, char *ostr);
 char *MRIcheckOrientationString(char *ostr);
 char *MRIsliceDirectionName(MRI *mri);
+MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol);
 
 /* different modes for distance transform - signed (<0 in interior) unsigned from border, or 
 	 just outside (interior is 0) */

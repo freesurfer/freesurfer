@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/07/15 19:18:58 $
-// Revision       : $Revision: 1.305 $
-char *MRI_C_VERSION = "$Revision: 1.305 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/07/29 18:48:39 $
+// Revision       : $Revision: 1.306 $
+char *MRI_C_VERSION = "$Revision: 1.306 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -4011,15 +4011,11 @@ MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
 	return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  Copy one MRI into another (including header info)
+  MRIclone() - create a copy of an mri struct. Copies
+  header info and allocs the pixel space (but does not
+  copy pixel data).
   ------------------------------------------------------*/
-MRI *
-MRIclone(MRI *mri_src, MRI *mri_dst)
+MRI *MRIclone(MRI *mri_src, MRI *mri_dst)
 {
   if (!mri_dst)
     mri_dst = 
@@ -12306,3 +12302,37 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
 	return(mri_dist) ;
 }
 
+/*-------------------------------------------------------------------
+  MRIreverseSliceOrder() - reverses the order of the slices WITHOUT
+  changing the gemoetry information. This is specially desgined to
+  undo the reversal that Siemens sometimes makes to volumes. If
+  using FreeSurfer unpacking (ie, DICOMRead.c), it should only need
+  to be done to mosaics. Note: cannot be done in-place!
+-------------------------------------------------------------------*/
+MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol)
+{
+  int c,r,s1,s2,f;
+  double val;
+
+  if(invol == outvol){
+    printf("ERROR: MRIreverseSliceOrder: cannot be done in-place\n");
+    return(NULL);
+  }
+
+  outvol = MRIclone(invol,outvol);
+
+  s2 = invol->depth;
+  for(s1=0; s1 < invol->depth; s1++){
+    s2--;
+    for(c=0; c < invol->width; c++){
+      for(r=0; r < invol->height; r++){
+	for(f=0; f < invol->nframes; f++){
+	  val = MRIgetVoxVal(invol,c,r,s1,f);
+	  MRIsetVoxVal(outvol,c,r,s2,f,val);
+	}
+      }
+    }
+  }
+
+  return(outvol);
+}
