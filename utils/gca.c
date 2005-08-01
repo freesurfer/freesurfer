@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/08/01 23:03:56 $
-// Revision       : $Revision: 1.169 $
+// Revision Date  : $Date: 2005/08/01 23:14:35 $
+// Revision       : $Revision: 1.170 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11181,7 +11181,9 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 	  gray_white_CNR = (wm_means[r] - gm_means[r]);
         }
     }
-  
+
+  printf("Note: program considers input volume #%d as the most T1-like\n", max_T1_weighted_image +1);
+
   max_wm = wm_means[max_T1_weighted_image];
   
 #endif

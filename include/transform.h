@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/02/28 17:55:43 $                                             */
-/* Revision       : $Revision: 1.40 $                                         */
+/* Revision Author: $Author: xhan $                                           */
+/* Revision Date  : $Date: 2005/08/01 23:14:49 $                                             */
+/* Revision       : $Revision: 1.41 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -62,6 +62,8 @@ typedef struct
   MRI        *mri_zn ;
   void       *xform ;
 } TRANSFORM ;
+
+void mincGetVolInfo(char *infoline, char *infoline2, VOL_GEOM *vgSrc, VOL_GEOM *vgDst);
 
 int      LTAfree(LTA **plta) ;
 LTA      *LTAreadInVoxelCoords(char *fname, MRI *mri) ;

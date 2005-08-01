@@ -700,7 +700,7 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
 	r2i = extract_r_to_i(mri_dst);
 	tmp = MatrixMultiply(i2r, lta->xforms[0].m_L, NULL);
 	v2v = MatrixMultiply(r2i, tmp, NULL);
-	resMRI = MRIlinearTransform(mri_src, mri_dst, v2v);
+	resMRI = MRIlinearTransformInterp(mri_src, mri_dst, v2v, interp);
 	MatrixFree(&v2v); v2v = 0;
 	MatrixFree(&i2r); i2r = 0;
 	MatrixFree(&r2i); r2i = 0;
