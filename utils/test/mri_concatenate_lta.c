@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_concatenate_lta.c,v 1.2 2005/04/19 22:37:01 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_concatenate_lta.c,v 1.3 2005/08/01 23:03:56 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs ;
@@ -95,14 +95,23 @@ int main(int argc, char *argv[])
 
   type = TransformFileNameType(ltafn2);
   if(type == MNI_TRANSFORM_TYPE){
-    if(tal_src_file == 0 || tal_dst_file == 0)
-      ErrorExit(ERROR_BADFILE, "%s: pls use -tal option to give talairach src and template filenames",Progname);
+
     if(invert2 != 0)
       ErrorExit(ERROR_BADFILE, "%s: LTA2 is talairach.xfm, and shouldn't be inverted ",Progname);
+
     lta2 = ltaMNIreadEx(ltafn2) ;
     //the talairach xform is supposed to be linear_RAS_TO_RAS, right? Yes
     lta2->type =  LINEAR_RAS_TO_RAS;
-    LTAmodifySrcDstGeom(lta2, tal_src, tal_dst); // add src and dst information
+
+    if(tal_src_file == 0 && lta2->xforms[0].src.valid == 0)
+      ErrorExit(ERROR_BADFILE, "%s: pls use -tal option to give talairach src and template filenames",Progname);
+    if(tal_dst_file == 0 && lta2->xforms[0].dst.valid == 0)
+      ErrorExit(ERROR_BADFILE, "%s: pls use -tal option to give talairach src and template filenames",Progname);
+    
+    if(tal_src_file != 0)
+      LTAmodifySrcDstGeom(lta2, tal_src, NULL); // add src and dst information
+    if(tal_dst_file != 0)
+      LTAmodifySrcDstGeom(lta2, NULL, tal_dst); // add src and dst information
   }else
     lta2 = ltaReadFileEx(ltafn2);
   

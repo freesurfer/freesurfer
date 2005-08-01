@@ -18,10 +18,14 @@ check_PROGRAMS=mnitest i2rtest icotest surftest extest \
 	seg_pallidum mri_compute_seg_overlap aseg_for_one \
 	mri_count_seg_vols mri_unmask mris_measure_volume \
 	mri_ms_EM_INU mri_ms_computeB1map mri_diff mris_map_annot \
-	aseg_new mri_combine_xforms CtrlVol2CtrlPts
+	aseg_new mri_combine_xforms CtrlVol2CtrlPts mri_check_region_histo \
+	mri_normalize_tp2 mri_invert_lta surface_morph_to_volume
 
 TESTS=mnitest i2rtest icotest extest mghxform inftest checkanalyze
 
+mri_invert_lta_SOURCE=mri_invert_lta
+mri_normalize_tp2_SOURCE=mri_normalize_tp2.c
+mri_check_region_histo_SOURCES=mri_check_region_histo.c myutil.c
 CtrlVol2CtrlPts_SOURCE=CtrlVol2CtrlPts.c
 mri_combine_xforms_SOURCE=mri_combine_xforms.c
 aseg_new_SOUCRES=aseg_new.c
@@ -52,6 +56,7 @@ mri_ms_compute_CNR_SOURCES=mri_ms_compute_CNR.c
 seg_pallidum_SOURCES=seg_pallidum.c
 mri_ms_compute_T2star_SOURCES=mri_ms_compute_T2star.c
 mris_compute_thickness_SOURCES=mris_compute_thickness.cpp
+surface_morph_to_volume_SOURCES=surface_morph_to_volume.cpp fmarching3dnband.c heap_vol.c mg_mri.c 
 mri_ms_optimize_seq_SOURCE=mri_ms_optimize_seq.c
 mri_extract_SOURCE=mri_extract.c
 mnitest_SOURCES=mnitest.cpp
@@ -84,3 +89,5 @@ mris_compute_thickness_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib \
 	-L$(top_srcdir)/lib
 mris_compute_thickness_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
+surface_morph_to_volume_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib -L$(top_srcdir)/lib
+surface_morph_to_volume_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))

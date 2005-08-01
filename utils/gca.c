@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/07/07 23:57:15 $
-// Revision       : $Revision: 1.168 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/08/01 23:03:56 $
+// Revision       : $Revision: 1.169 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11151,10 +11151,15 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
   MRI_REGION box ;
   MRI        *mri_frame ;
 
+  float      gm_means[MAX_GCA_INPUTS], gray_white_CNR;
+
   GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means) ;
   //GCAlabelMean(gca, Left_Cerebral_White_Matter, tmp) ;
   GCAlabelMean(gca, Right_Cerebral_White_Matter, tmp) ;
 
+  // the following rule some times fails for BIRN data, so changed it
+  // on 08-01-05 by xhan
+#if 0
   max_wm = 0 ;
   for (r = 0 ; r < gca->ninputs ; r++)
     {
@@ -11164,7 +11169,23 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
           max_T1_weighted_image = r ; max_wm = wm_means[r] ;
         }
     }
-
+#else
+  GCAlabelMean(gca, Left_Cerebral_Cortex, gm_means) ;
+  gray_white_CNR = wm_means[0] - gm_means[0];
+  for (r = 0 ; r < gca->ninputs ; r++)
+    {
+      wm_means[r] = (wm_means[r] + tmp[r]) / 2 ;
+      if ((wm_means[r] - gm_means[r]) > gray_white_CNR)
+        {
+          max_T1_weighted_image = r ; 
+	  gray_white_CNR = (wm_means[r] - gm_means[r]);
+        }
+    }
+  
+  max_wm = wm_means[max_T1_weighted_image];
+  
+#endif
+  
   mri_frame = MRIcopyFrame(mri, NULL, max_T1_weighted_image, 0) ;
   MRIvalRange(mri_frame, &fmin, &fmax) ; 
   h_mri = MRIhistogram(mri_frame, nint(fmax-fmin+1)) ; 
@@ -11183,6 +11204,8 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 
   MRIfindApproximateSkullBoundingBox(mri_frame, min_real_val, &box) ;
   MRIfree(&mri_frame) ; HISTOfree(&h_mri) ; HISTOfree(&h_smooth) ;
+
+  //why divided by 3 for x and y?? mistake or experience?? -xh
   x0 = box.x+box.dx/3 ; y0 = box.y+box.dy/3 ; z0 = box.z+box.dz/2 ;
   printf("using (%.0f, %.0f, %.0f) as brain centroid...\n",x0, y0, z0) ;
 #if 0

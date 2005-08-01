@@ -26,7 +26,7 @@
 #define SAMPLE_BSPLINE 5
 #define DBL_EPSILON 1e-10
 
-static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.3 2005/07/07 16:22:11 xhan Exp $";
+static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.4 2005/08/01 23:03:56 xhan Exp $";
 
 LTA *ltaReadFileEx(const char *fname);
 int MYvg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2);
@@ -50,6 +50,7 @@ static float scale = 1.0;
 //static int out_type = 3; /* MRI_FLOAT */
 static int out_type = 0; /* MRI_COR */
 static int noscale = 0;
+static int autoscale = 0; /* automatically scale histogram peak to 110 */
 
 float thred_low = 0.0;
 float thred_high = 1.0;
@@ -92,10 +93,10 @@ main(int argc, char *argv[])
   VOL_GEOM vgm_in;
   int x, y, z;
   double maxV, minV, value;
-  MATRIX *i_to_r, *r_to_i;
+  //  MATRIX *i_to_r, *r_to_i;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.3 2005/07/07 16:22:11 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.4 2005/08/01 23:03:56 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     usage_exit (0);
   argc -= nargs;
@@ -371,6 +372,72 @@ main(int argc, char *argv[])
 	  if(MRIFvox(mri_out, x, y, z) < minV )
 	    minV = MRIFvox(mri_out, x, y,z) ;
 	}
+
+  if(autoscale){
+    noscale = 1;
+    
+    /* compute histogram of output volume */
+    HISTOGRAM *h, *hsmooth ;
+    float fmin, fmax, val, peak, smooth_peak;
+    int i, nbins, bin;
+
+    fmin = minV; fmax = maxV;
+    if(fmin < 0) fmin = 0;
+    nbins = 256 ; h = HISTOalloc(nbins) ;
+    hsmooth = HISTOcopy(h, NULL) ;
+    HISTOclear(h, h) ; 
+    h->bin_size = (fmax-fmin)/255.0 ;
+    
+    for (i = 0 ; i < nbins ; i++)
+      h->bins[i] = (i+1)*h->bin_size ;
+    
+    for(z=0; z < mri_out->depth; z++)
+      for(y=0; y< mri_out->height; y++)
+	for(x=0; x < mri_out->width; x++)
+	  {
+	    val = MRIFvox(mri_out, x, y, z);
+	    if(val <= 0) continue;
+	    
+	    bin = nint((val - fmin)/h->bin_size);
+	    if(bin >= h->nbins)
+	      bin = h->nbins-1;
+	    else if (bin < 0)
+	      bin = 0;
+	    
+	    h->counts[bin] += 1.0;
+	  }
+    HISTOfillHoles(h) ;
+    HISTOsmooth(h, hsmooth, 5)  ;
+    peak = 
+      hsmooth->bins[HISTOfindHighestPeakInRegion(h, 1, h->nbins)] ;
+    //   smooth_peak = 
+    //  hsmooth->bins[HISTOfindHighestPeakInRegion(hsmooth, 1, hsmooth->nbins)] ;
+
+   smooth_peak = 
+     hsmooth->bins[HISTOfindLastPeak(hsmooth, 5, 0.8)] ;
+    
+   /*
+     bin = nint((smooth_peak - fmin)/hsmooth->bin_size) ;
+     
+     printf("Highest peak has count = %d\n", (int)hsmooth->counts[bin]);
+     
+     bin = nint((420 - fmin)/hsmooth->bin_size) ;
+     
+     printf("bin at 420 has count = %d\n", (int)hsmooth->counts[bin]);
+   */
+   
+   scale =  110.0/smooth_peak;
+   printf("peak of output volume is %g, smooth-peak is %g, multiply by %g to scale it to 110\n", peak, smooth_peak, scale);
+    for(z=0; z < mri_out->depth; z++)
+      for(y=0; y< mri_out->height; y++)
+	for(x=0; x < mri_out->width; x++)
+	  {
+	    val = MRIFvox(mri_out, x, y, z);
+	    MRIFvox(mri_out, x, y, z) = val*scale;
+	  }
+
+  }
+
   
   printf("Output volume (before type-conversion) has max = %g, min =%g\n", maxV, minV);
 
@@ -468,6 +535,11 @@ get_option(int argc, char *argv[])
     {
       noscale = 1;
       printf("do not do histogram scaling at output stage\n");
+    }
+  else if (!stricmp(option, "autoscale"))
+    {
+      autoscale = 1;
+      printf("automatically scale output volume histo peak to 110 \n");
     }
   else if (!stricmp(option, "out_type"))
     {
@@ -649,6 +721,7 @@ usage_exit(int exit_val)
   printf("\t -like fname to force the output be shaped like this volume \n");
   printf("\t -interp: resample type:<trilinear,nearest,sinc,cubic,bspline> \n");
   printf("\t -scaling #: scale the input values by the number \n");
+  printf("\t -autoscale #: automatically scale the output volume peak to 110 \n");
   printf("\t -noscale: donot scale output during type-conversion\n");
   printf("\t -out_type #: specify output volume type to be the number\n");
   printf("\t -high #: value near 1 to specify higher-end percentage for histogram guided float-to-byte conversion \n");

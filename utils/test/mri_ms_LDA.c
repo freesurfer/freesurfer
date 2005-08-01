@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/03/21 18:04:01 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2005/08/01 23:03:56 $
+// Revision       : $Revision: 1.5 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -63,6 +63,8 @@ static int debug_flag = 0;
 static int window_flag = 0;
 static int window_size = 30;
 
+static float shift_value = -1;
+
 static int ldaflag = 0;
 static int conform = 0 ;
 static int whole_volume = 0;
@@ -111,7 +113,7 @@ main(int argc, char *argv[])
   int count_white, count_gray;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.4 2005/03/21 18:04:01 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.5 2005/08/01 23:03:56 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -398,7 +400,13 @@ main(int argc, char *argv[])
 	      continue;
 	    }
 	    /* Borrow mri_flash[0] to store the float values first */
-	    MRIFvox(mri_flash[0], x, y, z) -= min_val;
+	    if(shift_value > 0){
+	      value = MRIFvox(mri_flash[0], x, y, z) + shift_value;
+	      if(value < 0) value = 0;
+	      MRIFvox(mri_flash[0], x, y, z) = value;
+	    }
+	    else if(mask_fname != NULL)
+	      MRIFvox(mri_flash[0], x, y, z) -= min_val;
 	  }
     
 
@@ -481,6 +489,12 @@ get_option(int argc, char *argv[])
       window_size = atoi(argv[2]) ;
       nargs = 1;
       printf("interpolating volume to be isotropic 1mm^3\n") ;
+    }
+  else if (!stricmp(option, "shift"))
+    {
+      shift_value  = atof(argv[2]) ;
+      nargs = 1;
+      printf("shift output by %g before truncating at zero \n", shift_value) ;
     }
   else if (!stricmp(option, "out_type"))
     {
@@ -597,6 +611,7 @@ usage_exit(int code)
   printf("\t -mask fname to set the brain mask volume\n");
   printf("\t -label fname to set the brain mask volume\n");
   printf("\t -weight fname for input LDA weights \n");
+  printf("\t -shift # shift all values equal to -# to zero \n");
   printf("\t -synth fname for output synthesized volume \n");
   printf("\t -conform to conform input volumes (brain mask typically already conformed) \n");
   printf("\t -W to indicate weights are available from weight_fname\n");  
