@@ -114,8 +114,8 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
   if (!nbins)
     nbins = nint(fmax - fmin + 1.0) ;
-	if (nbins <= 0)
-		nbins = 255 ;
+  if (nbins <= 0)
+    nbins = 255 ;
 
   if (!histo)
     histo = HISTOalloc(nbins) ;
@@ -325,13 +325,18 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
                 (ERROR_UNSUPPORTED,"mriHistogramRegion: must by type UCHAR"));
 #endif
 
-  if (mri->type == MRI_UCHAR)
-  {
-    fmin = 0 ; fmax = 255 ;
-  }
-  else
-    MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
+  //WHY DIFFER BY MRI->TYPE??
+  /*  if (mri->type == MRI_UCHAR)
+      {
+      fmin = 0 ; fmax = 255 ;
+      }
+      else
+  */
+  
+  MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
+
   bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
+
   if (!nbins)
     nbins = nint(fmax - fmin + 1.0) ;
 
@@ -371,7 +376,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
     z0 = 0 ;
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no)*bin_size+fmin ;
+    histo->bins[bin_no] = (bin_no)*histo->bin_size+fmin ;
 
   switch (mri->type)
   {
@@ -384,7 +389,8 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
         for (x = x0 ; x < width ; x++)
         {
           val = *psrc++ ;
-          bin_no = nint((float)(val - bmin) / (float)bin_size) ;
+          bin_no = nint((float)(val - fmin) / (float)histo->bin_size) ;
+	  if(bin_no >= nbins) bin_no = nbins - 1;
           histo->counts[bin_no]++ ;
         }
       }

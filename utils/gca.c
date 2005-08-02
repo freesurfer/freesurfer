@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/08/01 23:14:35 $
-// Revision       : $Revision: 1.170 $
+// Revision Date  : $Date: 2005/08/02 16:40:46 $
+// Revision       : $Revision: 1.171 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8038,7 +8038,8 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   float   bias ;
   double  mean, sigma ;
   Real    val ;
- 
+  float      gm_means[MAX_GCA_INPUTS], gray_white_CNR;
+
   if (nsamples == 0)   /* only using control points from file */
     {
       float      wm_means[MAX_GCA_INPUTS], tmp[MAX_GCA_INPUTS], max_wm ;
@@ -8047,6 +8048,8 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means) ;
       //    GCAlabelMean(gca, Left_Cerebral_White_Matter, tmp) ;
       GCAlabelMean(gca, Right_Cerebral_White_Matter, tmp) ;
+
+#if 0      
       max_wm = 0 ;
       for (r = 0 ; r < gca->ninputs ; r++)
         {
@@ -8056,6 +8059,20 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
               T1_index = r ; max_wm = wm_means[r] ;
             }
         }
+#else
+      GCAlabelMean(gca, Left_Cerebral_Cortex, gm_means) ;
+      gray_white_CNR = wm_means[0] - gm_means[0];
+      for (r = 0 ; r < gca->ninputs ; r++)
+	{
+	  wm_means[r] = (wm_means[r] + tmp[r]) / 2 ;
+	  if ((wm_means[r] - gm_means[r]) > gray_white_CNR)
+	    {
+	      T1_index = r ; 
+	      gray_white_CNR = (wm_means[r] - gm_means[r]);
+	    }
+	}
+      max_wm = wm_means[T1_index];
+#endif
       printf("using volume %d as most T1-weighted for normalization\n",
              T1_index) ;
     }
@@ -11181,12 +11198,12 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 	  gray_white_CNR = (wm_means[r] - gm_means[r]);
         }
     }
-
+#endif
   printf("Note: program considers input volume #%d as the most T1-like\n", max_T1_weighted_image +1);
 
   max_wm = wm_means[max_T1_weighted_image];
   
-#endif
+
   
   mri_frame = MRIcopyFrame(mri, NULL, max_T1_weighted_image, 0) ;
   MRIvalRange(mri_frame, &fmin, &fmax) ; 
@@ -11222,6 +11239,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
   for (r = 0 ; r < gca->ninputs ; r++)
     {
       mri_frame = MRIcopyFrame(mri, NULL, r, 0) ;
+      
       printf("mean wm in atlas = %2.0f, using box (%d,%d,%d) --> (%d, %d,%d) "
              "to find MRI wm\n", wm_means[r], box.x, box.y, box.z, 
              box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
@@ -11262,8 +11280,11 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
         ErrorExit(ERROR_BADPARM, 
                   "GCAhistoScaleImageIntensities: could not find wm peak") ;
       scales[r] = wm_means[r]/mri_peak ;
+      
       MRIfree(&mri_frame) ;
-      HISTOfree(&h_smooth) ; HISTOfree(&h_mri) ;
+      HISTOfree(&h_mri) ;
+      HISTOfree(&h_smooth) ; 
+
     }
 
 #if 0
