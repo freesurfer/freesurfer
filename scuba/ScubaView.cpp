@@ -207,6 +207,12 @@ ScubaView::ScubaView() {
   mInfoAtRASMap["mouse"] = lInfo;
   mInfoAtRASMap["cursor"] = lInfo;
 
+  // Inits label value lists to something decent, to create empty
+  // filler space for display.
+  float origin[3] = {0, 0, 0};
+  RebuildLabelValueInfo( origin, "cursor" );
+  RebuildLabelValueInfo( origin, "mouse" );
+
   mViewState.ResetUpdateRect();
 }
 
@@ -456,6 +462,10 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       // Listen to it.
       layer.AddListener( this );
 
+      // Rebuild our label value lists.
+      float origin[3] = {0, 0, 0};
+      RebuildLabelValueInfo( mCursor.xyz(), "cursor" );
+      RebuildLabelValueInfo( origin, "mouse" );
     }
     catch(...) {
       DebugOutput( << "Couldn't find layer " << iLayerID );

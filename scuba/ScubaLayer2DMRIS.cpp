@@ -243,9 +243,9 @@ ScubaLayer2DMRIS::DataChanged () {
 }
 
 void
-ScubaLayer2DMRIS::HandleTool ( float iRAS[3], ViewState& iViewState,
-			       ScubaWindowToRASTranslator& iTranslator,
-			       ScubaToolState& iTool, InputState& iInput ) {
+ScubaLayer2DMRIS::HandleTool ( float[3], ViewState& ,
+			       ScubaWindowToRASTranslator& ,
+			       ScubaToolState& , InputState&  ) {
 
 }
 
