@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.6 2005/07/15 20:54:51 fischl Exp $';
+set VERSION = '$Id: make_average_surface,v 1.7 2005/08/02 19:14:20 nicks Exp $';
 
 set PrintHelp = 0;
 
@@ -29,7 +29,7 @@ set ddir = ${SUBJECTS_DIR}/${average_subject}
 if($#argv == 0) then
     # zero args is allowed only if SUBJECTS env var is declared
     if ( ! $?SUBJECTS) then
-	goto usage_exit;
+        goto usage_exit;
     endif
 endif
 
@@ -64,17 +64,17 @@ echo input subjects: ${SUBJECTS}
 echo output subject: ${average_subject}
 
 mkdir -p ${ddir} \
-	${ddir}/surf \
-	${ddir}/mri \
-	${ddir}/mri/transforms \
-	${ddir}/mri/T1 \
-	${ddir}/mri/orig \
-	${ddir}/mri/label
+        ${ddir}/surf \
+        ${ddir}/mri \
+        ${ddir}/mri/transforms \
+        ${ddir}/mri/T1 \
+        ${ddir}/mri/orig \
+        ${ddir}/mri/label
 
 if (-e ${SUBJECTS_DIR}/${average_subject} == 0) then
-	mksubjdirs ${SUBJECTS_DIR}/${average_subject}
+        mksubjdirs ${SUBJECTS_DIR}/${average_subject}
 else
-	mkdir -p ${SUBJECTS_DIR}/${average_subject}/surf
+        mkdir -p ${SUBJECTS_DIR}/${average_subject}/surf
 endif
 
 set tmp_subjects = ( $SUBJECTS )
@@ -84,55 +84,56 @@ cp ${SUBJECTS_DIR}/$tmp_subjects[1]/mri/orig/COR-.info \
     ${SUBJECTS_DIR}/${average_subject}/mri/orig
 
 foreach hemi (rh lh)
-	foreach s (orig white pial inflated)
-	    echo mris_make_average_surface...
-	    mris_make_average_surface \
-		-i 7 \
-		-o $s \
-		${hemi} \
-		${s}_avg sphere.reg \
-		${average_subject} \
-		$SUBJECTS
-	end
-	foreach c (sulc curv thickness)
-	    echo mris_average_curvature...
-	    mris_average_curvature \
-		$c \
-		${hemi} \
-		sphere.reg \
-		$SUBJECTS \
-		$SUBJECTS_DIR/${average_subject}/surf/${hemi}.avg_${c}
-	end
-	cd ${SUBJECTS_DIR}/${average_subject}/surf	
-	pwd	
-	mris_smooth -n 5 ./${hemi}.white_avg ./${hemi}.smoothwm
-	mris_inflate  ./${hemi}.smoothwm ./${hemi}.inflated
-	mris_curvature -a 10 -w ./${hemi}.white_avg
-	cp ${hemi}.white_avg.H  ${hemi}.curv
-	cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg .
-	ln -s -f ${hemi}.sphere.reg ${hemi}.sphere
-	set echo=1
+        cd ${SUBJECTS_DIR}/${average_subject}
+        foreach s (orig white pial inflated)
+            echo mris_make_average_surface...
+            mris_make_average_surface \
+                -i 7 \
+                -o $s \
+                ${hemi} \
+                ${s}_avg sphere.reg \
+                ${average_subject} \
+                $SUBJECTS
+        end
+        foreach c (sulc curv thickness)
+            echo mris_average_curvature...
+            mris_average_curvature \
+                $c \
+                ${hemi} \
+                sphere.reg \
+                $SUBJECTS \
+                $SUBJECTS_DIR/${average_subject}/surf/${hemi}.avg_${c}
+        end
+        cd ${SUBJECTS_DIR}/${average_subject}/surf      
+        pwd     
+        mris_smooth -n 5 ./${hemi}.white_avg ./${hemi}.smoothwm
+        mris_inflate  ./${hemi}.smoothwm ./${hemi}.inflated
+        mris_curvature -a 10 -w ./${hemi}.white_avg
+        cp ${hemi}.white_avg.H  ${hemi}.curv
+        cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg .
+        ln -s -f ${hemi}.sphere.reg ${hemi}.sphere
+        set echo=1
 if 0 then
-	mris_average_curvature \
-	    -o ${average_subject} \
-	    curv \
-	    ${hemi} \
-	    sphere.reg \
-	    $SUBJECTS \
-	    ./${hemi}.curv
-	mris_average_curvature \
-	    -o ${average_subject} \
-	    sulc \
-	    ${hemi} sphere.reg \
-	    $SUBJECTS \
-	    ./${hemi}.sulc
-	mris_average_curvature \
-	    -o ${average_subject} \
-	    thickness \
-	    ${hemi} \
-	    sphere.reg \
-	    $SUBJECTS \
-	    ./${hemi}.thickness
+        mris_average_curvature \
+            -o ${average_subject} \
+            curv \
+            ${hemi} \
+            sphere.reg \
+            $SUBJECTS \
+            ./${hemi}.curv
+        mris_average_curvature \
+            -o ${average_subject} \
+            sulc \
+            ${hemi} sphere.reg \
+            $SUBJECTS \
+            ./${hemi}.sulc
+        mris_average_curvature \
+            -o ${average_subject} \
+            thickness \
+            ${hemi} \
+            sphere.reg \
+            $SUBJECTS \
+            ./${hemi}.thickness
 endif
 end
 
@@ -164,7 +165,7 @@ while( $#argv != 0 )
       if ( $getting_subjects ) then
         # got em all, from --subjects variable arg loop
         set getting_subjects = 0;
-	shift;
+        shift;
       endif
       if ( $#argv == 0) goto arg1err;
       set average_subject = $argv[1]; shift;
@@ -176,7 +177,7 @@ while( $#argv != 0 )
       if ( $getting_subjects ) then
         # got em all, from --subjects variable arg loop
         set getting_subjects = 0;
-	shift;
+        shift;
       endif
       if ( $#argv == 0) goto arg1err;
       set SUBJECTS_DIR = $argv[1]; shift;
