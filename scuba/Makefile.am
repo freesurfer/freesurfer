@@ -74,6 +74,8 @@ SCUBA2_SRCS= \
 	QtProgressDisplayManager.cpp \
 	QtScubaUtilities.cpp \
 	QtVolumeHistogram.cpp \
+	QtScubaLabelValueArea.cpp \
+	QtScubaLineEditWithTclCallback.cpp \
 	QtTclListener.cpp
 
 FORMS = mainwindow.ui \
@@ -90,12 +92,16 @@ UICIMPLS = .ui/mainwindow.cpp \
 		.ui/roisettingsdlog.cpp
 SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 		.moc/moc_QTScubaWidget.cpp \
+		.moc/moc_QtScubaLabelValueArea.cpp \
+		.moc/moc_QtScubaLineEditWithTclCallback.cpp \
 		.moc/moc_mainwindow.cpp \
 		.moc/moc_viewlayersdlog.cpp \
 		.moc/moc_toolsettingsdlog.cpp \
 		.moc/moc_roisettingsdlog.cpp
 OBJMOC = .obj/moc_QtVolumeHistogram.$(OBJEXT) \
 		.obj/moc_QTScubaWidget.$(OBJEXT) \
+		.obj/moc_QtScubaLabelValueArea.$(OBJEXT) \
+		.obj/moc_QtScubaLineEditWithTclCallback.$(OBJEXT) \
 		.obj/moc_mainwindow.$(OBJEXT) \
 		.obj/moc_viewlayersdlog.$(OBJEXT) \
 		.obj/moc_toolsettingsdlog.$(OBJEXT) \
@@ -360,6 +366,16 @@ testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
 	$(CXX) $(CXXFLAGS) -o .obj/moc_QTScubaWidget.$(OBJEXT)
 .moc/moc_QTScubaWidget.cpp: moc_dir QTScubaWidget.h
 	$(MOC) QTScubaWidget.h -o .moc/moc_QTScubaWidget.cpp
+
+.obj/moc_QtScubaLabelValueArea.$(OBJEXT): obj_dir .moc/moc_QtScubaLabelValueArea.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_QtScubaLabelValueArea.$(OBJEXT)
+.moc/moc_QtScubaLabelValueArea.cpp: moc_dir QtScubaLabelValueArea.h
+	$(MOC) QtScubaLabelValueArea.h -o .moc/moc_QtScubaLabelValueArea.cpp
+
+.obj/moc_QtScubaLineEditWithTclCallback.$(OBJEXT): obj_dir .moc/moc_QtScubaLineEditWithTclCallback.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_QtScubaLineEditWithTclCallback.$(OBJEXT)
+.moc/moc_QtScubaLineEditWithTclCallback.cpp: moc_dir QtScubaLineEditWithTclCallback.h
+	$(MOC) QtScubaLineEditWithTclCallback.h -o .moc/moc_QtScubaLineEditWithTclCallback.cpp
 
 .obj/moc_mainwindow.$(OBJEXT): obj_dir .moc/moc_mainwindow.cpp
 	$(CXX) $(CXXFLAGS) -o .obj/moc_mainwindow.$(OBJEXT)
