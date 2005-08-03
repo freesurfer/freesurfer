@@ -523,9 +523,9 @@ x ROI dlog
 Preferences
 
 
-additional tools
-label table mode
-enter coords with callbacks
+x additional tools
+x label table mode
+x enter coords with callbacks
 
 Layers
  - Report Info

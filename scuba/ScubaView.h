@@ -161,6 +161,11 @@ public:
 			     float iFillValue );
   void EndValueRangeFill   ();
 
+  // Markers are shared between views so these are static functions.
+  // Sets/gets the cursor, a single special marker.
+  static void SetCursor ( float iRAS[3] );
+  static void GetCursor ( float oRAS[3] );
+
 protected:
 
   // Tells all the layers to draw in the correct order to the frame
@@ -202,12 +207,6 @@ protected:
   void TranslateRASInWindowSpace ( float iRAS[3], float iMove[3],
 				   float oRAS[3] );
 				    
-  // Markers are shared between views so these are static functions.
-
-  // Sets/gets the cursor, a single special marker.
-  static void SetCursor ( float iRAS[3] );
-  static void GetCursor ( float oRAS[3] );
-
   // The different steps in building our display. BuildFrameBuffer()
   // tells all the layers to copy their data to the frame
   // buffer. DrawFrameBuffer() copies it to the screen. BuildOverlay()
