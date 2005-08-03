@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.7 2005/07/18 15:59:56 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.8 2005/08/03 15:40:57 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -72,6 +72,7 @@ if($manual) then
   endif
   set cmd = ($TKR --s $subject --mov $tempvol \
               --reg $anat2exf_regdat --surf orig);
+  if(! -e $SUBJECTS_DIR/$subject/mri/orig/COR-001) set cmd = ($cmd --mgz)
   echo $cmd
   $cmd
   if($status) exit 1;
@@ -119,6 +120,7 @@ set cmd = ($TKR \
             --reg $anat2std_regdat \
             --fslregout $std2anat_fslmat \
             --regheader --noedit)
+echo "-------------------------------------------------------" | tee -a $LF 
 echo $cmd | tee -a $LF 
 $cmd | tee -a $LF 
 if($status) exit 1;
@@ -173,6 +175,9 @@ set cmd = ($cmd --reg $anat2exf_regdat)
 set cmd = ($cmd --fslreg $exf2anat_fslmat)
 set tkregcheckcmd = ($cmd --surf orig);  # for visual inspection
 set cmd = ($cmd --noedit)
+if(! -e $SUBJECTS_DIR/$subject/mri/orig/COR-001) set cmd = ($cmd --mgz)
+
+echo "-------------------------------------------------------" | tee -a $LF 
 echo $cmd | tee -a $LF 
 $cmd |& tee -a $LF 
 if($status) then
