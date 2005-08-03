@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.7 2005/05/31 18:06:20 greve Exp $
+  $Id: mri_volsynth.c,v 1.8 2005/08/03 02:55:58 greve Exp $
 */
 
 #include <stdio.h>
@@ -40,7 +40,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.7 2005/05/31 18:06:20 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.8 2005/08/03 02:55:58 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -66,7 +66,8 @@ long seed = -1; /* < 0 for auto */
 char *seedfile = NULL;
 float fwhm = 0, gstd = 0;
 int nframes = -1;
-
+int delta_crsf[4];
+int delta_crsf_speced = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -126,8 +127,15 @@ int main(int argc, char **argv)
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 1, NULL);
   else if(strcmp(pdfname,"delta")==0){
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
-    printf("delta set at %d %d %d %d\n",dim[0]/2,dim[1]/2,dim[2]/2,dim[3]/2);
-    MRIFseq_vox(mri,dim[0]/2,dim[1]/2,dim[2]/2,dim[3]/2) = 1;
+    if(delta_crsf_speced == 0){
+      delta_crsf[0] = dim[0]/2;
+      delta_crsf[1] = dim[1]/2;
+      delta_crsf[2] = dim[2]/2;
+      delta_crsf[3] = dim[3]/2;
+    }
+    printf("delta set at %d %d %d %d\n",delta_crsf[0],delta_crsf[1],delta_crsf[2],
+	   delta_crsf[3]);
+    MRIFseq_vox(mri,delta_crsf[0],delta_crsf[1],delta_crsf[2],delta_crsf[3]) = 1;
   }
   else {
     printf("ERROR: pdf %s unrecognized, must be gaussian, uniform, const, or delta\n",
@@ -275,6 +283,15 @@ static int parse_commandline(int argc, char **argv)
       pdfname = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--delta-crsf")){
+      if(nargc < 4) argnerr(option,4);
+      sscanf(pargv[0],"%d",&delta_crsf[0]);
+      sscanf(pargv[1],"%d",&delta_crsf[1]);
+      sscanf(pargv[2],"%d",&delta_crsf[2]);
+      sscanf(pargv[3],"%d",&delta_crsf[3]);
+      delta_crsf_speced = 1;
+      nargsused = 4;
+    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
@@ -310,11 +327,13 @@ static void print_usage(void)
   printf("   --rdircos x y z\n");
   printf("   --sdircos x y z\n");
   printf("   --c_ras   c_r c_a c_s\n");
+  printf("   --precision precision : eg, float\n");
   printf("\n");
   printf(" Value distribution flags\n");
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
   printf("   --pdf pdfname : <gaussian>, uniform, const, delta\n");
+  printf("   --delta-crsf col row slice frame : 0-based\n");
   printf("\n");
   printf(" Other arguments\n");
   printf("   --fwhm fwhmmm : smooth by FWHM mm\n");
@@ -327,7 +346,8 @@ static void print_help(void)
   printf("Synthesizes a volume with the given geometry and pdf. Default pdf \n");
   printf("is gaussian (mean 0, std 1). If uniform is chosen, then the min\n");
   printf("is 0 and the max is 1. If const is chosen, then all voxels are set\n");
-  printf("to 1. If delta, the middle voxel is set to 1, the rest to 0.\n");
+  printf("to 1. If delta, the middle voxel is set to 1, the rest to 0 unless\n");
+  printf("the actual location is chosen with --delta-crsf.\n");
   printf("\n");
 
   exit(1) ;
