@@ -380,6 +380,14 @@ Layer::SetHeight( int iHeight ) {
 }
 
 void
+Layer::SetReportInfo( bool ibReport ) { 
+  mbReportInfoAtRAS = ibReport; 
+  SendBroadcast( "layerInfoSettingsChanged", NULL );
+
+}
+
+
+void
 Layer::HandleTool ( float[3], ViewState&,
 		    ScubaWindowToRASTranslator&,
 		    ScubaToolState&, InputState& ) {

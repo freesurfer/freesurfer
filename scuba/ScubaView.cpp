@@ -1471,7 +1471,13 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
 
   if( isMessage == "layerChanged" ) {
     RequestRedisplay();
+
     SendBroadcast( "viewChanged", NULL );
+  }
+
+  if( isMessage == "layerInfoSettingsChanged" ) {
+    RebuildLabelValueInfo( mCursor.xyz(), "cursor" );
+    RebuildLabelValueInfo( mLastMouseOver.xyz(), "mouse" );
   }
 
   if( isMessage == "cursorChanged" ) {
@@ -1709,6 +1715,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
 
   // Rebuild our label value info because the mouse has moved.
   RebuildLabelValueInfo( ras, "mouse" );
+  mLastMouseOver.Set( ras );
 
   // Handle the navigation tool and plane tool.
   if( iTool.GetMode() == ScubaToolState::navigation ||
@@ -3121,7 +3128,8 @@ void
 ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
 				   string isLabel) {
 
-  list<Layer::InfoAtRAS> lInfo;
+  // Clear existing list.
+  mInfoAtRASMap[isLabel].clear();
 
   stringstream sID;
   //  sID << GetLabel() << " (" << GetID() << ")";
@@ -3139,7 +3147,7 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
   info.SetValue( ssRASCoords.str() );
   info.SetTclCallback( "SetViewRASCursor" );
   info.SetInputFilter( "3sf" );
-  lInfo.push_back( info );
+  mInfoAtRASMap[isLabel].push_back( info );
   info.Clear();
 
   int window[2];
@@ -3148,7 +3156,7 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
   ssWindowCoords << window[0] << " " << window[1];
   info.SetLabel( "Window" );
   info.SetValue( ssWindowCoords.str() );
-  lInfo.push_back( info );
+  mInfoAtRASMap[isLabel].push_back( info );
   info.Clear();
 
   // Go through our draw levels. For each one, get the Layer.
@@ -3167,16 +3175,12 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
       Layer& layer = Layer::FindByID( layerID );
       
       // Ask the layer for info strings at this point.
-      layer.GetInfoAtRAS( iRAS, lInfo );
+      layer.GetInfoAtRAS( iRAS, mInfoAtRASMap[isLabel] );
     }
     catch(...) {
       DebugOutput( << "Couldn't find layer " << layerID );
     }
   }
-
-  // Set this labelValueMap in the array of label values.
-  mInfoAtRASMap[isLabel] = lInfo;
-
 }
 
 void

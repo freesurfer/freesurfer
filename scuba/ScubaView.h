@@ -302,6 +302,8 @@ protected:
   // The color to use when drawing this view's inplane on another view.
   float mInPlaneMarkerColor[3];
 
+  Point3<float> mLastMouseOver;
+
   // Markers.
   static Point3<float> mCursor;
   static int mcMarkers;

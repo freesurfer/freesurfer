@@ -35,7 +35,7 @@ class Layer : public DebugReporter,
 	      public IDTracker<Layer>,
 	      public TclCommandListener,
 	      public Listener,    // dataChanged
-	      public Broadcaster  // layerChanged
+	      public Broadcaster  // layerChanged, layerInfoSettingsChanged
 {
 
   friend class ScubaViewTester;
@@ -112,7 +112,7 @@ class Layer : public DebugReporter,
   void SetWidth( int iWidth );
   void SetHeight( int iHeight );
 
-  void SetReportInfo( bool ibReport ) { mbReportInfoAtRAS = ibReport; }
+  void SetReportInfo( bool ibReport );
   bool GetReportInfo() { return mbReportInfoAtRAS; }
 
   virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
