@@ -527,12 +527,8 @@ x additional tools
 x label table mode
 x enter coords with callbacks
 
-shuffle key not work?
-
-gray background for labels
-
 Layers
- - Report Info
+ x Report Info
  - numerical fields for b/c
  - automatically configure Draw Zero Clear with seg and heatscale
 

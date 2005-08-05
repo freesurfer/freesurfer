@@ -1925,8 +1925,9 @@ ScubaView::DoMouseUp( int iWindow[2],
     RequestRedisplay();
   }
 
-  // Always set cursor on mouse up button except for nav tool.
+  // Always set cursor on mouse up button except for nav tool and plane tool.
   if( iTool.GetMode() != ScubaToolState::navigation &&
+      iTool.GetMode() != ScubaToolState::plane &&
       !iInput.IsShiftKeyDown() &&
       !iInput.IsControlKeyDown() &&
       iInput.Button() == 1 ) {

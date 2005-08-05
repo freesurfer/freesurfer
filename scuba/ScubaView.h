@@ -287,8 +287,7 @@ protected:
   // inplane, our inplane, and our viewing box.
   void CalcAllViewIntersectionPoints ();
   void CalcViewIntersectionPoints ( int iViewID );
-  //  std::map<int,Point2<Point3<float> > > mViewIDViewIntersectionPointMap;
-  Point3<float> mViewIDViewIntersectionPointMap[10][2];
+  std::map<int,Point2<Point3<float> > > mViewIDViewIntersectionPointMap;
 
   // For moving view intersection markers.
   int mCurrentMovingViewIntersection;

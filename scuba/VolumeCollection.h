@@ -324,8 +324,8 @@ class VolumeCollectionFlooder {
     bool mbWorkPlaneY;
     bool mbWorkPlaneZ;
     float mViewNormal[3];
-    int mFuzziness;
-    int mMaxDistance;
+    float mFuzziness;
+    float mMaxDistance;
     bool mbDiagonal;
     bool mbOnlyZero;
     enum FuzzinessType { seed, gradient };
