@@ -14,7 +14,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.28 2005/02/14 04:39:15 segonne Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.29 2005/08/05 17:49:58 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -65,12 +65,12 @@ int
 main(int argc, char *argv[])
 {
   char         **av, *surf_fname, *template_fname, *out_fname, fname[STRLEN],*cp;
-  int          ac, nargs ;
+  int          ac, nargs,err ;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp_template ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.28 2005/02/14 04:39:15 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.29 2005/08/05 17:49:58 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -119,8 +119,9 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 4)
-    usage_exit() ;
+  if (argc < 4) usage_exit() ;
+
+  printf("%s\n", vcid) ;
 
   surf_fname = argv[1] ;
   template_fname = argv[2] ;
@@ -174,6 +175,7 @@ main(int argc, char *argv[])
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   if (reverse_flag) MRISreverse(mris, REVERSE_X) ; 
   mris->status = MRIS_PARAMETERIZED_SPHERE ;
+  printf("  MRIScomputeMetricProperties()\n");
   MRIScomputeMetricProperties(mris) ;
   if (!FZERO(parms.l_dist))
     MRISscaleDistances(mris, scale) ;
@@ -182,23 +184,30 @@ main(int argc, char *argv[])
   MRISzeroNegativeAreas(mris) ;
   MRISstoreMetricProperties(mris) ;
 #endif
+  printf("  MRISstoreMeanCurvature()\n");
   MRISstoreMeanCurvature(mris) ;  /* use curvature from file */
   /*  MRISsetOriginalFileName(mris, orig_name) ;*/
-  MRISreadOriginalProperties(mris, orig_name) ;
+  printf("  MRISreadOriginalProperties()\n");
+  err = MRISreadOriginalProperties(mris, orig_name) ;
+  if(err != 0){
+    printf("ERROR %d from MRISreadOriginalProperties().\n",err);
+    exit(1);
+  }
 
-	if(multiframes){
-		if(use_initial_registration)
-			MRISvectorRegister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
-	  parms.l_corr=parms.l_pcorr=0.0f;
+  if(multiframes){
+    if(use_initial_registration)
+      MRISvectorRegister(mris, mrisp_template, &parms, max_passes, 
+			 min_degrees, max_degrees, nangles) ;
+    parms.l_corr=parms.l_pcorr=0.0f;
 #if 0
-		parms.l_dist = 0.0 ; parms.l_corr = 0.0 ; parms.l_parea = 0.0 ;
-		parms.l_area = 0.0 ; parms.l_parea = 0.0f ; parms.l_dist = 0.0 ;
-		parms.l_corr = 0.0f ; parms.l_nlarea = 0.0f ; parms.l_pcorr = 0.0f ;
+    parms.l_dist = 0.0 ; parms.l_corr = 0.0 ; parms.l_parea = 0.0 ;
+    parms.l_area = 0.0 ; parms.l_parea = 0.0f ; parms.l_dist = 0.0 ;
+    parms.l_corr = 0.0f ; parms.l_nlarea = 0.0f ; parms.l_pcorr = 0.0f ;
 #endif
-		MRISvectorRegister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
-	}else
-		MRISregister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
-
+    MRISvectorRegister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
+  }else
+    MRISregister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
+  
   fprintf(stderr, "writing registered surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
   if (jacobian_fname)
