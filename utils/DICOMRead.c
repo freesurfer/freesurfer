@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.75 2005/07/29 18:49:19 greve Exp $
+   $Id: DICOMRead.c,v 1.76 2005/08/08 22:55:18 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1339,21 +1339,25 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   tag=DCM_MAKETAG(0x18, 0x24);
   cond=GetString(&object, tag, &sdcmfi->PulseSequence);
-  if(cond != DCM_NORMAL){ sdcmfi->ErrorFlag = 1; }
 
   tag=DCM_MAKETAG(0x18, 0x1030);
   cond=GetString(&object, tag, &sdcmfi->ProtocolName);
-  if(cond != DCM_NORMAL){ sdcmfi->ErrorFlag = 1; }
 
   tag=DCM_MAKETAG(0x20, 0x11);
   cond=GetUSFromString(&object, tag, &ustmp);
-  if(cond != DCM_NORMAL){ sdcmfi->ErrorFlag = 1; }
+  if(cond != DCM_NORMAL){ 
+    printf("WARNING: No Series Number (20,11) found in %s\n",sdcmfi->FileName);
+    sdcmfi->ErrorFlag = 1; 
+  }
   sdcmfi->SeriesNo = (int) ustmp;
   sdcmfi->RunNo = sdcmfi->SeriesNo - 1;
 
   tag=DCM_MAKETAG(0x20, 0x13);
   cond=GetUSFromString(&object, tag, &ustmp);
-  if(cond != DCM_NORMAL){ sdcmfi->ErrorFlag = 1; }
+  if(cond != DCM_NORMAL){ 
+    printf("WARNING: No Image Number (20,13) found in %s\n",sdcmfi->FileName);
+    sdcmfi->ErrorFlag = 1; 
+  }
   sdcmfi->ImageNo = (int) ustmp;
 
   tag=DCM_MAKETAG(0x18, 0x86);
@@ -1381,7 +1385,6 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   tag=DCM_MAKETAG(0x18, 0x1312);
   cond=GetString(&object, tag, &sdcmfi->PhEncDir);
-  if(cond != DCM_NORMAL){ sdcmfi->ErrorFlag = 1; }
 
   strtmp = SiemensAsciiTagEx(dcmfile, "lRepetitions", 0);
   if(strtmp != NULL){
@@ -1414,9 +1417,15 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   else sdcmfi->ReadoutFOV = 0;
 
   sdcmfi->NImageRows = dcmGetNRows(dcmfile);
-  if(sdcmfi->NImageRows < 0){ sdcmfi->ErrorFlag = 1; }
+  if(sdcmfi->NImageRows < 0){ 
+    printf("WARNING: Could not determine number of image rows in %s\n",sdcmfi->FileName);
+    sdcmfi->ErrorFlag = 1; 
+  }
   sdcmfi->NImageCols = dcmGetNCols(dcmfile);
-  if(sdcmfi->NImageCols < 0){ sdcmfi->ErrorFlag = 1; }
+  if(sdcmfi->NImageCols < 0){ 
+    printf("WARNING: Could not determine number of image cols in %s\n",sdcmfi->FileName);
+    sdcmfi->ErrorFlag = 1; 
+  }
 
   dcmImagePosition(dcmfile, &(sdcmfi->ImgPos[0]), &(sdcmfi->ImgPos[1]), 
        &(sdcmfi->ImgPos[2]) );
@@ -1931,6 +1940,8 @@ int SortSDCMFileInfo(SDCMFILEINFO **sdcmfi_list, int nlist)
   If CompareSDCMFileInfo() returns a -1, is means that the 
   first file will appear ahead of the second file in the list,
   and vice versa if a +1 is returned.
+
+  If ErrorFlag is set, then funny things will happen.
 
   Overall, files are sorted so that the run number always increases,
   regardless of whether a run is a mosaic or non-mosaic. The assignment
@@ -2861,8 +2872,11 @@ CONDITION GetString(DCM_OBJECT** object, DCM_TAG tag, char **st)
 
   attribute.tag=tag;
   cond=DCM_GetElement(object, tag, &attribute);
-  if (cond != DCM_NORMAL)
+  if (cond != DCM_NORMAL){
+    *st=(char*)calloc(10, sizeof(char));
+    memcpy(*st,"unknown",8);
     return cond;
+  }
   *st=(char*)calloc(attribute.length+1, sizeof(char));
   attribute.d.string=*st;
   ctx=NULL;
