@@ -2,14 +2,15 @@
 // tkmDisplayArea.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/07/11 20:47:05 $
-// Revision       : $Revision: 1.119 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/08/08 02:08:22 $
+// Revision       : $Revision: 1.120 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
 #include "tkmFunctionalVolume.h"
 #include "xUtilities.h"
+#include "cma.h"
 #include "utils.h"
 #include "error.h"
 

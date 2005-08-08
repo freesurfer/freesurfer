@@ -6,6 +6,7 @@
 
 #include "macros.h"
 #include "error.h"
+#include "cma.h"
 #include "diag.h"
 #include "mri.h"
 #include "proto.h"
@@ -15,7 +16,7 @@
 
 #define UNIT_VOLUME 128
 
-static char vcid[] = "$Id: mri_extract_label.c,v 1.7 2005/01/19 14:31:17 fischl Exp $";
+static char vcid[] = "$Id: mri_extract_label.c,v 1.8 2005/08/08 02:08:55 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -42,7 +43,7 @@ main(int argc, char *argv[])
   MRI         *mri_in, *mri_out, *mri_kernel, *mri_smoothed ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_label.c,v 1.7 2005/01/19 14:31:17 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract_label.c,v 1.8 2005/08/08 02:08:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
