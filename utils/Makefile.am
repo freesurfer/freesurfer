@@ -1,9 +1,13 @@
 #
 # Makefile.am for libutils.a
 #
-# Makefile.am specify i addtion to the standard
+
 AM_CPPFLAGS=$(X_CFLAGS) -I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=
+
+#lib_LTLIBRARIES = libutils.la
+#libutils_la_SOURCES = $(wildcard *.c)
+#libutils_la_LDFLAGS = version-info 0:0:0
 
 noinst_LIBRARIES= libutils.a
 libutils_a_SOURCES = $(wildcard *.c)
