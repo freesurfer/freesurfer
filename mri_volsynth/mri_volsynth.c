@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.8 2005/08/03 02:55:58 greve Exp $
+  $Id: mri_volsynth.c,v 1.9 2005/08/08 18:56:55 greve Exp $
 */
 
 #include <stdio.h>
@@ -40,7 +40,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.8 2005/08/03 02:55:58 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.9 2005/08/08 18:56:55 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -68,6 +68,7 @@ float fwhm = 0, gstd = 0;
 int nframes = -1;
 int delta_crsf[4];
 int delta_crsf_speced = 0;
+double delta_value = 1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -133,9 +134,9 @@ int main(int argc, char **argv)
       delta_crsf[2] = dim[2]/2;
       delta_crsf[3] = dim[3]/2;
     }
-    printf("delta set at %d %d %d %d\n",delta_crsf[0],delta_crsf[1],delta_crsf[2],
-	   delta_crsf[3]);
-    MRIFseq_vox(mri,delta_crsf[0],delta_crsf[1],delta_crsf[2],delta_crsf[3]) = 1;
+    printf("delta set to %g at %d %d %d %d\n",delta_value,delta_crsf[0],
+	   delta_crsf[1],delta_crsf[2],delta_crsf[3]);
+    MRIFseq_vox(mri,delta_crsf[0],delta_crsf[1],delta_crsf[2],delta_crsf[3]) = delta_value;
   }
   else {
     printf("ERROR: pdf %s unrecognized, must be gaussian, uniform, const, or delta\n",
@@ -292,6 +293,11 @@ static int parse_commandline(int argc, char **argv)
       delta_crsf_speced = 1;
       nargsused = 4;
     }
+    else if (!strcmp(option, "--delta-val")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&delta_value);
+      nargsused = 1;
+    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
@@ -334,6 +340,7 @@ static void print_usage(void)
   printf("   --seedfile fname : write seed value to this file\n");
   printf("   --pdf pdfname : <gaussian>, uniform, const, delta\n");
   printf("   --delta-crsf col row slice frame : 0-based\n");
+  printf("   --delta-val val : set delta value to val. Default is 1.\n");
   printf("\n");
   printf(" Other arguments\n");
   printf("   --fwhm fwhmmm : smooth by FWHM mm\n");
