@@ -1,5 +1,5 @@
 // mri_concat.c
-// $Id: mri_concat.c,v 1.1 2005/07/13 03:45:28 greve Exp $
+// $Id: mri_concat.c,v 1.2 2005/08/08 21:32:58 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +25,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.1 2005/07/13 03:45:28 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.2 2005/08/08 21:32:58 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[100];
@@ -85,6 +85,10 @@ int main(int argc, char **argv)
   fout = 0;
   for(nthin = 0; nthin < ninputs; nthin++){
     mritmp = MRIread(inlist[nthin]);
+    if(nthin == 0) {
+      MRIcopyHeader(mritmp, mriout);
+      //mriout->nframes = nframestot;
+    }
     for(f=0; f < mritmp->nframes; f++){
       for(c=0; c < nc; c++){
 	for(r=0; r < nr; r++){
