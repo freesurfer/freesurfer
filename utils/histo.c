@@ -1184,7 +1184,7 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct)
       if (center_val < min_count)
         continue ;
       peak = 1 ;
-      for (bw = b-(whalf-1) ; bw <= b+whalf ; bw++)
+      for (bw = b ; bw <= b+whalf ; bw++)
       {
         if (bw < 0 || bw >= nbins)
           continue ;
@@ -1210,7 +1210,7 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct)
   }
   else   /* search backwards */
   {
-    for (b = b0+(whalf-1) ; b >= 0 ; b--)
+    for (b = b0 ; b >= 0 ; b--)
     {
       if (b >= histo->nbins)
         continue ;
