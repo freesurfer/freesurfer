@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/08/02 16:40:46 $
-// Revision       : $Revision: 1.171 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/08/09 20:17:06 $
+// Revision       : $Revision: 1.172 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13984,242 +13984,259 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 #endif
   
   for (frame = 0 ; frame < mri->nframes ; frame++)
-    {
-      printf("renormalizing input #%d\n", frame) ;
-      MRIvalRangeFrame(mri, &fmin, &fmax, frame) ;
-      nbins = 256 ; h = HISTOalloc(nbins) ;
+	{
+		printf("renormalizing input #%d\n", frame) ;
+		MRIvalRangeFrame(mri, &fmin, &fmax, frame) ;
+		nbins = 256 ; h = HISTOalloc(nbins) ;
     
-      hsmooth = HISTOcopy(h, NULL) ;
-      for (l = 0 ; l <= MAX_GCA_LABELS ; l++)  /* don't do Unknown class */
-        {
-          label_scales[l] = 1 ;  /* mark it as unusable */
-          GCAlabelMean(gca, l, means) ;
-          m_cov = GCAlabelCovariance(gca, l, NULL) ;
-          if (m_cov == NULL)
-            continue ;
-          std = 4*sqrt(*MATRIX_RELT(m_cov, frame+1,frame+1)) ;
-          MatrixFree(&m_cov) ;
-          label_means[l] = means[frame] ;
-          if (IS_UNKNOWN(l))
-            continue ;
-          printf("%s (%d): mean = %2.3f +- %2.1f\n", 
-                 cma_label_to_name(l), l, label_means[l], std) ;
-          if (l == Gdiag_no)
-            DiagBreak() ;
-          if (FZERO(label_means[l]))
-            continue ;
-          HISTOclear(h, h) ;
-          h->bin_size = (fmax-fmin)/255.0 ;
-          if (h->bin_size < 1 && (mri->type == MRI_UCHAR 
-                                  || mri->type == MRI_SHORT))
-            h->bin_size = 1 ;
-          for (i = 0 ; i < nbins ; i++)
-            h->bins[i] = (i+1)*h->bin_size ;
+		hsmooth = HISTOcopy(h, NULL) ;
+		for (l = 0 ; l <= MAX_GCA_LABELS ; l++)  /* don't do Unknown class */
+		{
+			label_scales[l] = 1 ;  /* mark it as unusable */
+			GCAlabelMean(gca, l, means) ;
+			m_cov = GCAlabelCovariance(gca, l, NULL) ;
+			if (m_cov == NULL)
+				continue ;
+			std = 4*sqrt(*MATRIX_RELT(m_cov, frame+1,frame+1)) ;
+			MatrixFree(&m_cov) ;
+			label_means[l] = means[frame] ;
+      if (IS_UNKNOWN(l) || IS_INF_LAT_VENT(l))  
+				continue ;
+			printf("%s (%d): mean = %2.3f +- %2.1f\n", 
+						 cma_label_to_name(l), l, label_means[l], std) ;
+			if (l == Gdiag_no)
+				DiagBreak() ;
+			if (FZERO(label_means[l]))
+				continue ;
+			HISTOclear(h, h) ;
+			h->bin_size = (fmax-fmin)/255.0 ;
+			if (h->bin_size < 1 && (mri->type == MRI_UCHAR 
+															|| mri->type == MRI_SHORT))
+				h->bin_size = 1 ;
+			for (i = 0 ; i < nbins ; i++)
+				h->bins[i] = (i+1)*h->bin_size ;
       
-          for (num = xp = 0 ; xp < gca->prior_width ; xp++)
-            {
-              for (yp = 0 ; yp < gca->prior_height ; yp++)
-                {
-                  for (zp = 0 ; zp < gca->prior_depth ; zp++)
-                    {
-                      if (xp == Gx && yp == Gy && zp == Gz)
-                        DiagBreak() ;
-                      gcap = &gca->priors[xp][yp][zp] ;
-                      if (gcap==NULL)
-                        continue;
-                      prior = getPrior(gcap, l) ;
-                      if (prior < pthresh)
-                        continue ;
-                      if (!GCApriorToSourceVoxel(gca, mri, 
-                                                 transform,
-                                                 xp, yp, zp, 
-                                                 &x, &y, &z))
-                        {
-                          MRIsampleVolumeFrame(mri, x, y, z, frame, &val) ;
-                          if (FZERO(val))  // skull stripped 
-                            continue ;
-                          bin = nint((val - fmin)/h->bin_size) ;
-                          if (bin >= h->nbins)
-                            bin = h->nbins-1 ;
-                          else if (bin < 0)
-                            bin = 0 ;
+			for (num = xp = 0 ; xp < gca->prior_width ; xp++)
+			{
+				for (yp = 0 ; yp < gca->prior_height ; yp++)
+				{
+					for (zp = 0 ; zp < gca->prior_depth ; zp++)
+					{
+						if (xp == Gx && yp == Gy && zp == Gz)
+							DiagBreak() ;
+						gcap = &gca->priors[xp][yp][zp] ;
+						if (gcap==NULL)
+							continue;
+						prior = getPrior(gcap, l) ;
+						if (prior < pthresh)
+							continue ;
+						if (!GCApriorToSourceVoxel(gca, mri, 
+																			 transform,
+																			 xp, yp, zp, 
+																			 &x, &y, &z))
+						{
+							MRIsampleVolumeFrame(mri, x, y, z, frame, &val) ;
+							if (FZERO(val))  // skull stripped 
+								continue ;
+							bin = nint((val - fmin)/h->bin_size) ;
+							if (bin >= h->nbins)
+								bin = h->nbins-1 ;
+							else if (bin < 0)
+								bin = 0 ;
         
-                          h->counts[bin] += prior ; num++ ;
-                        }
-                    }
-                }
-            }
-          if (num <= 50)  /* not enough to reliably estimate density */
-            continue ;
-          HISTOfillHoles(h) ;
-          if (l == Gdiag_no)
-            {
-              HISTOplot(h, "h.plt") ;
-              DiagBreak() ;
-            }
-          HISTOsmooth(h, hsmooth, 1) ;
-          if (l == Gdiag_no)
-            {
-              HISTOplot(hsmooth, "hs.plt") ;
-            }
-          peak = h->bins[HISTOfindHighestPeakInRegion(h, 0, h->nbins)] ;
-          smooth_peak = 
-            hsmooth->bins[HISTOfindHighestPeakInRegion(hsmooth, 
-                                                       0, hsmooth->nbins)] ;
-          label_scales[l] = (float)smooth_peak / label_means[l] ;
-          printf("%s (%d): peak at %2.2f, smooth at %2.2f (%d voxels), "
-                 "scaling by %2.2f\n", 
-                 cma_label_to_name(l), l, peak, smooth_peak, num,
-                 label_scales[l]) ;
-          bin = nint((means[frame] - fmin)/hsmooth->bin_size) ;
+							h->counts[bin] += prior ; num++ ;
+						}
+					}
+				}
+			}
+			if (num <= 50)  /* not enough to reliably estimate density */
+				continue ;
+			HISTOfillHoles(h) ;
+			if (l == Gdiag_no)
+			{
+				HISTOplot(h, "h.plt") ;
+				DiagBreak() ;
+			}
+			HISTOsmooth(h, hsmooth, 1) ;
+			if (l == Gdiag_no)
+			{
+				HISTOplot(hsmooth, "hs.plt") ;
+			}
+			peak = h->bins[HISTOfindHighestPeakInRegion(h, 0, h->nbins)] ;
+			smooth_peak = 
+				hsmooth->bins[HISTOfindHighestPeakInRegion(hsmooth, 
+																									 0, hsmooth->nbins)] ;
+
+			label_scales[l] = (float)smooth_peak / label_means[l] ;
+			printf("%s (%d): peak at %2.2f, smooth at %2.2f (%d voxels), "
+						 "scaling by %2.2f\n", 
+						 cma_label_to_name(l), l, peak, smooth_peak, num,
+						 label_scales[l]) ;
+			bin = nint((means[frame] - fmin)/hsmooth->bin_size) ;
 #ifdef WSIZE
 #undef WSIZE
 #endif
 #define WSIZE 11
 #define WHALF ((WSIZE-1)/2)
-          bin = HISTOfindCurrentPeak(hsmooth, bin, WSIZE, .2) ;
-          smooth_peak = hsmooth->bins[bin] ;
-          if (bin < 0 || smooth_peak <= 0)
-            continue ;
-          if (num < 200 && hsmooth->counts[bin] < 5)   
-            /* not very much data - check more */
-            {
-              int other_bin ;
-              other_bin = HISTOfindPreviousPeak(hsmooth, bin, WHALF) ;
-              if (other_bin >= 0)
-                {
-                  if ((hsmooth->counts[other_bin] / hsmooth->counts[bin])
-                      > 0.9)
-                    {
-                      printf("!!!!!!!!!additional peak detected "
-                             "at %2.1f (was %2.1f) - unreliable estimate...\n",
-                             hsmooth->bins[other_bin], hsmooth->bins[bin]) ;
-                      label_scales[l] = 1.0 ;
-                      continue ;
-                    }
-                }
-              other_bin = HISTOfindNextPeak(hsmooth, bin, WHALF) ;
-              if (other_bin >= 0)
-                {
-                  if (hsmooth->counts[other_bin] / hsmooth->counts[bin] > 0.9)
-                    {
-                      printf("!!!!!!!!!additional peak detected "
-                             "at %2.1f (was %2.1f) - unreliable estimate...\n",
-                             hsmooth->bins[other_bin], hsmooth->bins[bin]) ;
-                      label_scales[l] = 1.0 ;
-                      continue ;
-                    }
-                }
-            }
-          label_scales[l] = (float)smooth_peak / label_means[l] ;
-          printf("%s (%d): AFTER PRIOR: peak at %2.2f, smooth "
-                 "at %2.2f (%d voxels), scaling by %2.2f\n", 
-                 cma_label_to_name(l), l, peak, smooth_peak, num,
-                 label_scales[l]) ;
+			bin = HISTOfindCurrentPeak(hsmooth, bin, WSIZE, .2) ;
+			smooth_peak = hsmooth->bins[bin] ;
+			if (bin < 0 || smooth_peak <= 0)
+				continue ;
+			if (num < 200 && hsmooth->counts[bin] < 5)   
+				/* not very much data - check more */
+			{
+				int other_bin ;
+				other_bin = HISTOfindPreviousPeak(hsmooth, bin, WHALF) ;
+				if (other_bin >= 0)
+				{
+					if ((hsmooth->counts[other_bin] / hsmooth->counts[bin])
+							> 0.9)
+					{
+						printf("!!!!!!!!!additional peak detected "
+									 "at %2.1f (was %2.1f) - unreliable estimate...\n",
+									 hsmooth->bins[other_bin], hsmooth->bins[bin]) ;
+						label_scales[l] = 1.0 ;
+						continue ;
+					}
+				}
+				other_bin = HISTOfindNextPeak(hsmooth, bin, WHALF) ;
+				if (other_bin >= 0)
+				{
+					if (hsmooth->counts[other_bin] / hsmooth->counts[bin] > 0.9)
+					{
+						printf("!!!!!!!!!additional peak detected "
+									 "at %2.1f (was %2.1f) - unreliable estimate...\n",
+									 hsmooth->bins[other_bin], hsmooth->bins[bin]) ;
+						label_scales[l] = 1.0 ;
+						continue ;
+					}
+				}
+			}
+			label_scales[l] = (float)smooth_peak / label_means[l] ;
+			printf("%s (%d): AFTER PRIOR: peak at %2.2f, smooth "
+						 "at %2.2f (%d voxels), scaling by %2.2f\n", 
+						 cma_label_to_name(l), l, peak, smooth_peak, num,
+						 label_scales[l]) ;
       
-          if (l == Gdiag_no)
-            DiagBreak() ;
-          if (l >100)
-            break ;
-        }
+			if (l == Gdiag_no)
+				DiagBreak() ;
+			if (l >100)
+				break ;
+		}
+
+    l = Left_Inf_Lat_Vent ;
+		label_scales[Left_Inf_Lat_Vent] = (.25+.75*label_scales[Left_Lateral_Ventricle]);
+		printf("%s (%d): scaling by %2.2f = %2.1f (based on %2.2f for lateral ventricle)\n", 
+					 cma_label_to_name(l), l, label_scales[Left_Inf_Lat_Vent], 
+					 label_means[Left_Inf_Lat_Vent]*label_scales[Left_Inf_Lat_Vent],
+					 label_scales[Left_Lateral_Ventricle]) ;
+		l = Right_Inf_Lat_Vent ;
+		label_scales[Right_Inf_Lat_Vent] = (.25+.75*label_scales[Right_Lateral_Ventricle]) ;
+		printf("%s (%d): scaling by %2.2f = %2.1f (based on %2.2f for lateral ventricle)\n",
+					 cma_label_to_name(l), l, label_scales[Right_Inf_Lat_Vent], 
+					 label_means[Right_Inf_Lat_Vent]*label_scales[Right_Inf_Lat_Vent],
+					 label_scales[Right_Lateral_Ventricle]) ;
+
     
-      for (xn = 0 ; xn < gca->node_width ; xn++)
-        {
-          double     means_before[100], means_after[100], scales[100] ;
-          int        labels[100], niter ;
-          LABEL_PROB ranks_before[100], ranks_after[100] ;
       
-          for (yn = 0 ; yn < gca->node_height ; yn++)
-            {
-              for (zn = 0 ; zn < gca->node_depth ; zn++)
-                {
-                  if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
-                    DiagBreak() ;
-                  gcan = &gca->nodes[xn][yn][zn] ;
-                  if (gcan->nlabels <= 0)
-                    continue ;
+
+		for (xn = 0 ; xn < gca->node_width ; xn++)
+		{
+			double     means_before[100], means_after[100], scales[100] ;
+			int        labels[100], niter ;
+			LABEL_PROB ranks_before[100], ranks_after[100] ;
+      
+			for (yn = 0 ; yn < gca->node_height ; yn++)
+			{
+				for (zn = 0 ; zn < gca->node_depth ; zn++)
+				{
+					if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+						DiagBreak() ;
+					gcan = &gca->nodes[xn][yn][zn] ;
+					if (gcan->nlabels <= 0)
+						continue ;
     
-                  for (i = 0 ; i < gcan->nlabels ; i++)
-                    {
-                      gc = &gcan->gcs[i] ;
-                      l = gcan->labels[i] ;
-                      labels[i] = l ;
-                      scales[i] = label_scales[l] ;
-                      means_before[i] = gc->means[frame] ;
-                      ranks_before[i].label = l ;
-                      ranks_before[i].prob = means_before[i] ;
-                      ranks_before[i].index = i ;
-                    }
-                  qsort(ranks_before, gcan->nlabels, 
-                        sizeof(LABEL_PROB), compare_sort_probabilities) ;
-                  niter = 0 ;
-                  for (i = 0 ; i < gcan->nlabels ; i++)
-                    {
-                      gc = &gcan->gcs[i] ;
-                      l = gcan->labels[i] ;
-                      means_after[i] = means_before[i]*scales[i] ;
-                      ranks_after[i].label = l ;
-                      ranks_after[i].prob = means_after[i] ;
-                      ranks_after[i].index = i ;
-                    }
-                  qsort(ranks_after, gcan->nlabels, 
-                        sizeof(LABEL_PROB), compare_sort_probabilities) ;
-                  for (i = 0 ; i < gcan->nlabels ; i++)
-                    {
-                      if (ranks_before[i].label != ranks_after[i].label)
-                        {
-                          double diff, avg ;
-                          int    j ;
+					for (i = 0 ; i < gcan->nlabels ; i++)
+					{
+						gc = &gcan->gcs[i] ;
+						l = gcan->labels[i] ;
+						labels[i] = l ;
+						scales[i] = label_scales[l] ;
+						means_before[i] = gc->means[frame] ;
+						ranks_before[i].label = l ;
+						ranks_before[i].prob = means_before[i] ;
+						ranks_before[i].index = i ;
+					}
+					qsort(ranks_before, gcan->nlabels, 
+								sizeof(LABEL_PROB), compare_sort_probabilities) ;
+					niter = 0 ;
+					for (i = 0 ; i < gcan->nlabels ; i++)
+					{
+						gc = &gcan->gcs[i] ;
+						l = gcan->labels[i] ;
+						means_after[i] = means_before[i]*scales[i] ;
+						ranks_after[i].label = l ;
+						ranks_after[i].prob = means_after[i] ;
+						ranks_after[i].index = i ;
+					}
+					qsort(ranks_after, gcan->nlabels, 
+								sizeof(LABEL_PROB), compare_sort_probabilities) ;
+					for (i = 0 ; i < gcan->nlabels ; i++)
+					{
+						if (ranks_before[i].label != ranks_after[i].label)
+						{
+							double diff, avg ;
+							int    j ;
         
-                          /* two have swapped position - put them */
-                          /* back in the right order */
-                          for (j = 0 ; j < gcan->nlabels ; j++)
-                            if (ranks_after[j].label == ranks_before[i].label)
-                              break ;
-                          diff = means_before[ranks_after[i].index] - 
-                            means_before[ranks_before[i].index];
-                          avg = (means_after[ranks_after[i].index] + 
-                                 means_after[ranks_before[i].index]) / 2 ;
-                          ranks_after[i].prob = 
-                            means_after[ranks_after[i].index] =
-                            avg+diff/4 ;
-                          ranks_after[j].prob = 
-                            means_after[ranks_after[j].index] = 
-                            avg-diff/4 ;
-                          qsort(ranks_after, gcan->nlabels, 
-                                sizeof(LABEL_PROB), 
-                                compare_sort_probabilities) ;
-                          i = -1 ;   /* start loop over */
-                          if (niter++ > 9)
-                            {
-                              DiagBreak() ;
-                              break ;
-                            }
-                          continue ;
-                        }
-                    }
+							/* two have swapped position - put them */
+							/* back in the right order */
+							for (j = 0 ; j < gcan->nlabels ; j++)
+								if (ranks_after[j].label == ranks_before[i].label)
+									break ;
+							diff = means_before[ranks_after[i].index] - 
+								means_before[ranks_before[i].index];
+							avg = (means_after[ranks_after[i].index] + 
+										 means_after[ranks_before[i].index]) / 2 ;
+							ranks_after[i].prob = 
+								means_after[ranks_after[i].index] =
+								avg+diff/4 ;
+							ranks_after[j].prob = 
+								means_after[ranks_after[j].index] = 
+								avg-diff/4 ;
+							qsort(ranks_after, gcan->nlabels, 
+										sizeof(LABEL_PROB), 
+										compare_sort_probabilities) ;
+							i = -1 ;   /* start loop over */
+							if (niter++ > 9)
+							{
+								DiagBreak() ;
+								break ;
+							}
+							continue ;
+						}
+					}
     
-                  for (i = 0 ; i < gcan->nlabels ; i++)
-                    {
-                      if (FZERO(label_scales[gcan->labels[i]]))
-                        continue ;
-                      gc = &gcan->gcs[i] ;
-                      if ((xn == Ggca_x && yn == Ggca_y && zn == Ggca_z) &&
-                          (Ggca_label == gcan->labels[i] || Ggca_label < 0))
-                        {
-                          printf("scaling gc for label %s at "
-                                 "(%d, %d, %d) from %2.1f to %2.1f\n",
-                                 cma_label_to_name(gcan->labels[i]),
-                                 xn, yn, zn,
-                                 means_before[i], means_after[i]) ;
-                          DiagBreak() ;
-                        }
-                      gc->means[frame] = means_after[i] ;
-                    }
-                }
-            }
-        }
-    }
+					for (i = 0 ; i < gcan->nlabels ; i++)
+					{
+						if (FZERO(label_scales[gcan->labels[i]]))
+							continue ;
+						gc = &gcan->gcs[i] ;
+						if ((xn == Ggca_x && yn == Ggca_y && zn == Ggca_z) &&
+								(Ggca_label == gcan->labels[i] || Ggca_label < 0))
+						{
+							printf("scaling gc for label %s at "
+										 "(%d, %d, %d) from %2.1f to %2.1f\n",
+										 cma_label_to_name(gcan->labels[i]),
+										 xn, yn, zn,
+										 means_before[i], means_after[i]) ;
+							DiagBreak() ;
+						}
+						gc->means[frame] = means_after[i] ;
+					}
+				}
+			}
+		}
+	}
   
   return(NO_ERROR) ;
 }
