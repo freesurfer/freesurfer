@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/05/30 20:47:56 $
-// Revision       : $Revision: 1.30 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/08/09 20:18:09 $
+// Revision       : $Revision: 1.31 $
 
 
 #include <math.h>
@@ -47,7 +47,7 @@ static char *norm_fname = NULL ;
 static int renormalize = 0 ;
 
 static char *long_reg_fname = NULL ;
-static int inverted_xform = 0 ;
+//static int inverted_xform = 0 ;
 
 static float regularize = 0 ;
 static char *example_T1 = NULL ;
@@ -141,7 +141,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.30 2005/05/30 20:47:56 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.31 2005/08/09 20:18:09 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -634,8 +634,10 @@ main(int argc, char *argv[])
       trans->xform = (void *)gcam;
       GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
       free(trans);
-    }
+		}
   }
+	if (avgs > 0)
+		GCAregularizeConditionalDensities(gca, avgs) ;
 
   if (parms.write_iterations != 0)
   {
