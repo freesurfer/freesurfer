@@ -9,22 +9,37 @@ set label=mri_ca_label
 set emreg=mri_em_register
 set careg=mri_ca_register
 set canorm=mri_ca_normalize
-set sdir = $SUBJECTS_DIR/$s/mri
-foreach d (fsamples norm transforms)
-	if (-e $sdir/$d == 0)\
-			mkdir $sdir/$d ;\
-	endif
-end
+set mdir = $SUBJECTS_DIR/$s/mri
 
-if (-e $sdir/brain.mgz == 0) then
+if (-e $mdir/brain.mgz == 0) then
 		set BRAIN=brain
 else
 		set BRAIN=brain.mgz
 endif
 
+if (-e $mdir/nu.mgz == 0) then
+		set NU=nu
+else
+		set NU=nu.mgz
+endif
+
 set echo=1		
-#nu_correct_one.csh $s
-$emreg  -mask $sdir/$BRAIN $sdir/nu $GCA $sdir/transforms/$LTA  
-$canorm -mask $sdir/$BRAIN $sdir/nu $GCA $sdir/transforms/$LTA $sdir/norm.mgz
-$careg -cross-sequence  -mask $sdir/$BRAIN -T $sdir/transforms/$LTA $sdir/norm.mgz $GCA $sdir/transforms/$M3D
-$label -cross-sequence $sdir/norm.mgz $sdir/transforms/$M3D $GCA $sdir/aseg.mgz
+
+# run nu_correct if needed
+if (-e $NU == 0) then
+		set NU=nu.mgz
+		if (-e $mdir/orig.mgz != 0) then
+				set ORIG = orig.mgz
+		else
+				set ORIG = orig
+		endif
+		mri_convert $mdir/$ORIG /tmp/nu$$0.mnc
+		nu_correct -stop .0001 -iterations 3 -normalize_field -clobber /tmp/nu$$0.mnc /tmp/nu$$1.mnc
+		mri_convert /tmp/nu$$1.mnc $mdir/$NU
+		rm /tmp/nu$$0.mnc /tmp/nu$$1.mnc
+		find  /tmp  -prune -name "*.imp" -user $LOGNAME -exec rm -f {} \;
+endif
+$emreg  -mask $mdir/$BRAIN $mdir/$NU $GCA $mdir/transforms/$LTA  
+$canorm -mask $mdir/$BRAIN $mdir/$NU $GCA $mdir/transforms/$LTA $mdir/norm.mgz
+$careg -cross-sequence  -mask $mdir/$BRAIN -T $mdir/transforms/$LTA $mdir/norm.mgz $GCA $mdir/transforms/$M3D
+$label -cross-sequence $mdir/norm.mgz $mdir/transforms/$M3D $GCA $mdir/aseg.mgz
