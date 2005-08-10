@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/09 20:17:06 $
-// Revision       : $Revision: 1.172 $
+// Revision Date  : $Date: 2005/08/10 19:42:02 $
+// Revision       : $Revision: 1.173 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2887,23 +2887,28 @@ GCAcompleteCovarianceTraining(GCA *gca)
 MRI  *
 GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform)
 {
-  int       x, y, z, width, height, depth, label, xn, yn, zn, n ;
+  int       x, y, z, width, height, depth, label, xn, yn, zn, n, num_pv,
+		use_partial_volume_stuff ;
   GCA_NODE  *gcan ;
   GCA_PRIOR *gcap ;
   GC1D      *gc ;
   float    /*dist,*/ max_p, p, vals[MAX_GCA_INPUTS] ;
 
+	use_partial_volume_stuff = (getenv("USE_PARTIAL_VOLUME_STUFF") != NULL);
+	if (use_partial_volume_stuff)
+		printf("using partial volume calculations in labeling...\n") ;
+
   // labeled volume has the same property of the inputs
   if (!mri_dst)
-    {
-      mri_dst = MRIalloc(mri_inputs->width, 
-                         mri_inputs->height, 
-                         mri_inputs->depth,
-                         MRI_UCHAR) ;
-      if (!mri_dst)
-        ErrorExit(ERROR_NOMEMORY, "GCAlabel: could not allocate dst") ;
-      MRIcopyHeader(mri_inputs, mri_dst) ;
-    }
+	{
+		mri_dst = MRIalloc(mri_inputs->width, 
+											 mri_inputs->height, 
+											 mri_inputs->depth,
+											 MRI_UCHAR) ;
+		if (!mri_dst)
+			ErrorExit(ERROR_NOMEMORY, "GCAlabel: could not allocate dst") ;
+		MRIcopyHeader(mri_inputs, mri_dst) ;
+	}
 
 
   /* go through each voxel in the input volume and find the canonical
@@ -2913,85 +2918,135 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform)
   width = mri_inputs->width ; height = mri_inputs->height; 
   depth = mri_inputs->depth ;
   for (x = 0 ; x < width ; x++)
-    {
-      for (y = 0 ; y < height ; y++)
-        {
-          for (z = 0 ; z < depth ; z++)
-            {
-              if (x == Ggca_x && y == Ggca_y && z == Ggca_z)  
-                DiagBreak() ; 
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			for (z = 0 ; z < depth ; z++)
+			{
+				if (x == Ggca_x && y == Ggca_y && z == Ggca_z)  
+					DiagBreak() ; 
         
-              if (x == width/2 && y == height/2 && z == depth/2)
-                DiagBreak() ;
+				if (x == width/2 && y == height/2 && z == depth/2)
+					DiagBreak() ;
         
-              if (!GCAsourceVoxelToNode(gca, mri_inputs, 
-                                        transform, x, y, z, &xn, &yn, &zn))
-                {
-                  load_vals(mri_inputs, x, y, z, vals, gca->ninputs);
+				if (!GCAsourceVoxelToNode(gca, mri_inputs, 
+																	transform, x, y, z, &xn, &yn, &zn))
+				{
+					load_vals(mri_inputs, x, y, z, vals, gca->ninputs);
 
 #if 0
-                  if (x == 153 && y == 119 && z == 117)  
-                    /* wm should be hippo (1484) */
-                    {
-                      Gx = xn ; Gy = yn ; Gz = zn ;
-                      DiagBreak() ;
-                    }
+					if (x == 153 && y == 119 && z == 117)  
+						/* wm should be hippo (1484) */
+					{
+						Gx = xn ; Gy = yn ; Gz = zn ;
+						DiagBreak() ;
+					}
 #endif
     
-                  gcan = &gca->nodes[xn][yn][zn] ;
-                  gcap = getGCAP(gca, mri_inputs, transform, x, y, z) ;
-                  if (gcap==NULL)
-                    continue;
-                  label = 0 ; max_p = 2*GIBBS_NEIGHBORS*BIG_AND_NEGATIVE ;
-                  // going through gcap labels
-                  for (n = 0 ; n < gcap->nlabels ; n++)
-                    {
+					gcan = &gca->nodes[xn][yn][zn] ;
+					gcap = getGCAP(gca, mri_inputs, transform, x, y, z) ;
+					if (gcap==NULL)
+						continue;
+					label = 0 ; max_p = 2*GIBBS_NEIGHBORS*BIG_AND_NEGATIVE ;
+					// going through gcap labels
+					for (n = 0 ; n < gcap->nlabels ; n++)
+					{
 #if 0
-                      p = GCAcomputePosteriorDensity(gcap, gcan, n, vals, 
-                                                     gca->ninputs) ;
+						p = GCAcomputePosteriorDensity(gcap, gcan, n, vals, 
+																					 gca->ninputs) ;
 #else
-                      gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
-                      if (gc == NULL)
-                        {
-                          MRIvox(mri_dst, x, y, z) = 0; // unknown
-                          continue ;
-                        }
-                      p = gcaComputeLogDensity(gc, vals, 
-                                               gca->ninputs, 
-                                               gcap->priors[n],
-                                               gcap->labels[n]) ;
+						gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
+						if (gc == NULL)
+						{
+							MRIvox(mri_dst, x, y, z) = 0; // unknown
+							continue ;
+						}
+						p = gcaComputeLogDensity(gc, vals, 
+																		 gca->ninputs, 
+																		 gcap->priors[n],
+																		 gcap->labels[n]) ;
 #endif
-                      // look for largest p
-                      if (p > max_p)
-                        {
-                          max_p = p ;
-                          label = gcap->labels[n] ;
-                        }
-                    }
-                  // found the label
-                  ///////////////////////// debug code /////////////////////
-                  if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-                    {
-                      int i ;
-                      printf("(%d, %d, %d): inputs=", x, y, z) ;
-                      for (i = 0 ; i < gca->ninputs ; i++)
-                        printf("%2.1f ", vals[i]) ;
+						// look for largest p
+						if (p > max_p)
+						{
+							max_p = p ;
+							label = gcap->labels[n] ;
+						}
+					}
+					if (use_partial_volume_stuff)
+					//////////// start of partial volume stuff
+					{
+						int n1, l1, l2, max_l1, max_l2, max_n1, max_n2 ;
+						double max_p_pv ;
+
+						max_p_pv = -10000  ;
+						if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+							DiagBreak() ;
+						max_l1 = label ; 
+						max_l2 = max_n1 = max_n2 = 0 ;
+						for (n = 0 ; n < gcap->nlabels ; n++)
+							for (n1 = n+1 ; n1 < gcap->nlabels ; n1++)
+							{
+								l1 = gcap->labels[n] ;
+								l2 = gcap->labels[n1] ;
+								p = compute_partial_volume_log_posterior(gca, gcan, gcap, vals, l1, l2) ;
+								if (p > max_p_pv)
+								{
+									max_l1 = l1 ; 
+									max_l2 = l2 ;
+									max_p_pv = p ;
+									max_n1 = n ; max_n2 = n1 ;
+								}
+								if (p > max_p && l1 != label && l2 != label)
+									DiagBreak() ;
+							}
+
+						/* not the label picked before - change it */
+						if (max_p_pv > max_p && max_l1 != label && max_l2 != label)
+						{
+							double p1, p2 ;
+
+							gc = GCAfindGC(gca, xn, yn, zn, max_l1) ;
+							p1 = gcaComputeLogDensity(gc, vals, gca->ninputs, 
+																				gcap->priors[max_n1],max_l1) ;
+							gc = GCAfindGC(gca, xn, yn, zn, max_l2) ;
+							p2 = gcaComputeLogDensity(gc, vals, gca->ninputs, 
+																				gcap->priors[max_n2],max_l2) ;
+							num_pv++ ;
+							if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+								printf("label @ %d, %d, %d: partial volume from %s to %s\n",
+											 x, y, z, cma_label_to_name(label),
+											 cma_label_to_name(p1 > p2 ? max_l1 : max_l2)) ;
+							label = p1 > p2 ? max_l1 : max_l2 ;
+							DiagBreak() ;
+						}
+					}
+					//////////// end of partial volume stuff
+
+					// found the label
+					///////////////////////// debug code /////////////////////
+					if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+					{
+						int i ;
+						printf("(%d, %d, %d): inputs=", x, y, z) ;
+						for (i = 0 ; i < gca->ninputs ; i++)
+							printf("%2.1f ", vals[i]) ;
       
-                      printf("\nprior label %s (%d), log(p)=%2.2e, "
-                             "node (%d, %d, %d)\n",
-                             cma_label_to_name(label), label, max_p, 
-                             xn, yn, zn) ;
-                      dump_gcan(gca, gcan, stdout, 1, gcap) ;
-                    }
-                  /////////////////////////////////////////////
-                  // set the value
-                  MRIvox(mri_dst, x, y, z) = label ;
-                }
-              else
-                MRIvox(mri_dst, x, y, z) = 0; // unknown
-            } // z loop
-        } // y loop
-    } // x loop
+						printf("\nprior label %s (%d), log(p)=%2.2e, "
+									 "node (%d, %d, %d)\n",
+									 cma_label_to_name(label), label, max_p, 
+									 xn, yn, zn) ;
+						dump_gcan(gca, gcan, stdout, 1, gcap) ;
+					}
+					/////////////////////////////////////////////
+					// set the value
+					MRIvox(mri_dst, x, y, z) = label ;
+				}
+				else
+					MRIvox(mri_dst, x, y, z) = 0; // unknown
+			} // z loop
+		} // y loop
+	} // x loop
 
   return(mri_dst) ;
 }
@@ -14872,6 +14927,46 @@ GCAreplaceImpossibleLabels(MRI *mri_inputs, GCA *gca,
 
   printf("%d impossible labels replaced...\n", nchanged) ;
   return(mri_out_labels) ;
+}
+
+double
+compute_partial_volume_log_posterior(GCA *gca, GCA_NODE *gcan, GCA_PRIOR *gcap, float *vals, int l1, int l2)
+{
+	GC1D *gc1, *gc2 ; 
+	int  i ;
+	double p1, p2, p, alpha, u, v, p_alpha, dist ;
+
+	gc1 = gc2 = NULL ;
+	for (i = 0 ; i < gcan->nlabels ; i++)
+	{
+		if (gcan->labels[i] == l1)
+			gc1 = &gcan->gcs[i] ;
+		else if (gcan->labels[i] == l2)
+			gc2 = &gcan->gcs[i] ;
+	}
+	if (gc1 == NULL || gc2 == NULL)
+		return(VERY_UNLIKELY) ;
+
+	p1 = p2 = 0 ;
+	for (i = 0 ; i < gcap->nlabels ; i++)
+	{
+		if (gcap->labels[i] == l1)
+			p1 = gcap->priors[i] ;
+		else if (gcap->labels[i] == l2)
+			p2 = gcap->priors[i] ;
+		
+	}
+
+#define D_ALPHA 0.01
+	for (p = alpha = 0.0 ; alpha <= 1.0 ; alpha += D_ALPHA)
+	{
+		u = alpha*gc1->means[0] + (1-alpha)*gc2->means[0] ;
+		v = alpha*gc1->covars[0] + (1-alpha)*gc2->covars[0] ;
+		dist = SQR(u-vals[0]) / v ;
+		p_alpha = 1.0 / sqrt(v) * exp(-0.5*dist) * pow(p1,alpha)*pow(p2,1-alpha) ;
+		p += (p_alpha*D_ALPHA) ;
+	}
+	return(log(p)) ;
 }
 static int
 gcaRelabelSegment(GCA *gca, TRANSFORM *transform, MRI *mri_inputs, 
