@@ -10,7 +10,7 @@
 #include "mrisegment.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mri_bc_sc_bias_correct.c,v 1.1 2005/02/17 19:47:59 fischl Exp $";
+static char vcid[] = "$Id: mri_bc_sc_bias_correct.c,v 1.2 2005/08/10 19:38:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -36,7 +36,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
 	Progname = argv[0] ;
-  nargs = handle_version_option (argc, argv, "$Id: mri_bc_sc_bias_correct.c,v 1.1 2005/02/17 19:47:59 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_bc_sc_bias_correct.c,v 1.2 2005/08/10 19:38:22 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -59,6 +59,8 @@ main(int argc, char *argv[])
   mri_in = MRIread(argv[1]) ;
 	if (mri_in == NULL)
 		ErrorExit(ERROR_NOFILE, "%s: could not read input image from %s", argv[1]) ;
+	mri_tmp = MRIchangeType(mri_in, MRI_FLOAT, 0, 1, 1); MRIfree(&mri_in); mri_in = mri_tmp;
+
   mri_bc = MRIread(argv[2]) ;
 	if (mri_bc == NULL)
 		ErrorExit(ERROR_NOFILE, "%s: could not read body coil PD map from %s", argv[2]) ;
@@ -137,6 +139,11 @@ get_option(int argc, char *argv[])
     print_version() ;
   else switch (toupper(*option))
   {
+	case 'S':
+		printf("using sigma = %2.2f (default=%2.2f)\n", atof(argv[2]), sigma) ;
+		sigma = atof(argv[2]) ;
+		nargs = 1 ;
+		break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
@@ -167,18 +174,15 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  printf("usage: %s [options] <TR> <alpha (deg)> <TE> <T1 volume> <PD volume> <output volume>\n",
+  printf("usage: %s [options] <input volume> <BC PD map> <SC PD map> <output volume>\n",
 				 Progname) ;
-	printf("The -w switch will use a fixed weighting in order to generate an output volume with\n"
-				 "optimal gray/white contrast\n") ;
-	
 }
 
 static void
 print_help(void)
 {
   fprintf(stderr, 
-          "\nThis program will synthesize a flash acquisition based on previously computed T1/PD maps\n");
+          "\nThis program will intensity correct a volume based on surface coil and body coil images\n");
   exit(1) ;
 }
 
