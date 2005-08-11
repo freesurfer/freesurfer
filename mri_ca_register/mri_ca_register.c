@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/09 20:18:09 $
-// Revision       : $Revision: 1.31 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/08/11 19:27:45 $
+// Revision       : $Revision: 1.32 $
 
 
 #include <math.h>
@@ -141,7 +141,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.31 2005/08/09 20:18:09 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.32 2005/08/11 19:27:45 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -702,6 +702,8 @@ main(int argc, char *argv[])
   GCAMregister(gcam, mri_inputs, &parms) ;
 #endif
 
+  //record GCA filename to gcam
+  strcpy(gcam->atlas.fname, gca_fname);
   printf("writing output transformation to %s...\n", out_fname) ;
   if (vf_fname)
     write_vector_field(mri_inputs, gcam, vf_fname) ;
