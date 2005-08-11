@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.40 2005/07/26 20:45:56 greve Exp $
+  $Id: mris_glm.c,v 1.41 2005/08/11 22:02:22 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -75,7 +75,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.40 2005/07/26 20:45:56 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.41 2005/08/11 22:02:22 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.40 2005/07/26 20:45:56 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.41 2005/08/11 22:02:22 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -544,8 +544,9 @@ int main(int argc, char **argv)
       ces = fMRImatrixMultiply(beta,C,ces);
       printf("ces nframes = %d\n",ces->nframes);
       if(cesid != NULL && MCSim == 0){
-	if(IsSurfFmt(cesfmt) && IcoSurf == NULL){
-	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
+	if(IsSurfFmt(cesfmt)){
+	  if(IcoSurf == NULL) 
+	    IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
 	  MRIwriteAnyFormat(ces,cesid,cesfmt,0,IcoSurf);
 	}
 	else{
@@ -558,10 +559,8 @@ int main(int argc, char **argv)
     /* Compute t-ratio  */
     if(tid != NULL || sigid != NULL || tmaxfile != NULL || SynthPDF != 0){
       if(nthsim == 1) printf("INFO: computing t \n");
-      if(C->rows == 1)
-	t = fMRIcomputeT(ces, X, C, eresvar, t);
-      else
-	t = fMRIcomputeF(ces, X, C, eresvar, t); // Note: sigF does not work
+      if(C->rows == 1)	t = fMRIcomputeT(ces, X, C, eresvar, t);
+      else        	t = fMRIcomputeF(ces, X, C, eresvar, t); 
       if(tid != NULL && MCSim == 0) {
 	if(IsSurfFmt(tfmt) && IcoSurf == NULL)
 	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
