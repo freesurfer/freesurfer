@@ -13,6 +13,7 @@
 #include "gca.h"
 #include "mri_conform.h"
 #include "transform.h"
+#include "gcamorph.h"
 #include "cma.h"
 #include "histo.h"
 #include "mrinorm.h"
@@ -109,7 +110,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.56 2005/08/09 20:17:48 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.57 2005/08/11 19:29:25 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -421,10 +422,17 @@ main(int argc, char *argv[])
   
   if (stricmp(xform_fname, "none"))
   {
+    GCA_MORPH *gcam;
     printf("reading transform from %s...\n", xform_fname) ;
     transform = TransformRead(xform_fname) ;
     if (!transform)
       ErrorExit(ERROR_NOFILE, "%s: could not open transform", xform_fname) ;
+
+    if(TransformFileNameType(xform_fname) == MORPH_3D_TYPE){
+      gcam = (GCA_MORPH *)(transform->xform);
+      printf("Atlas used for the 3D morph was %s\n", gcam->atlas.fname);
+    } 
+
     TransformInvert(transform, mri_inputs) ;
   }
   else
