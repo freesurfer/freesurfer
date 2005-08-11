@@ -23,7 +23,7 @@ function mri = MRIread(fstring,headeronly)
 % input is not bhdr, then mri.srcbext will exist but be empty.
 % See also MRIwrite() and mri.outbext.
 %
-% $Id: MRIread.m,v 1.7 2005/06/27 14:32:11 greve Exp $
+% $Id: MRIread.m,v 1.8 2005/08/11 17:28:43 greve Exp $
 
 mri = [];
 
@@ -45,7 +45,7 @@ mri.analyzehdr = []; % empty be default
 %-------------- MGH ------------------------%
 switch(fmt)
   case {'mgh','mgz'}
-  [mri.vol, M, mr_parms, volsz] = load_mgh(fspec,headeronly);
+  [mri.vol, M, mr_parms, volsz] = load_mgh(fspec,[],[],headeronly);
   if(isempty(M))
     fprintf('ERROR: loading %s as MGH\n',fspec);
     mri = [];
