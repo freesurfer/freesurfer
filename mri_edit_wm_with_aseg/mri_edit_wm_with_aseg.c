@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/06/30 01:03:44 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2005/08/12 17:13:05 $
+// Revision       : $Revision: 1.4 $
 //
 
 #include <stdio.h>
@@ -20,6 +20,7 @@
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
+#include "tags.h"
 #include "mrimorph.h"
 #include "const.h"
 #include "transform.h"
@@ -49,6 +50,9 @@ main(int argc, char *argv[])
 	MRI    *mri_wm, *mri_aseg ;
   struct timeb  then ;
 	int    msec, nargs ;
+	char cmdline[CMD_LINE_LEN] ;
+
+	TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   TimerStart(&then) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -56,6 +60,7 @@ main(int argc, char *argv[])
 
   Progname = argv[0] ;
 
+	
   for ( ; argc > 1 && (*argv[1] == '-') ; argc--, argv++)
   {
     nargs = get_option(argc, argv) ;
@@ -72,6 +77,7 @@ main(int argc, char *argv[])
 	if (!mri_wm)
 		ErrorExit(ERROR_NOFILE, "%s: could not read wm volume from %s",
 							Progname, argv[1]) ;
+	MRIaddCommandLine(mri_wm, cmdline) ;
 	mri_aseg = MRIread(argv[2]) ;
 	if (!mri_aseg)
 		ErrorExit(ERROR_NOFILE, "%s: could not read aseg volume from %s",
