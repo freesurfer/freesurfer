@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/03/23 02:19:29 $
-// Revision       : $Revision: 1.32 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/08/12 17:13:08 $
+// Revision       : $Revision: 1.33 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.32 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.33 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +27,7 @@ extern "C" {
 #include "mri.h"
 #include "macros.h"
 #include "error.h"
+#include "tags.h"
 #include "mrisurf.h"
 #include "matrix.h"
 #include "proto.h"
@@ -585,6 +586,9 @@ int main(int argc, char *argv[])
   MRI *mri_with_skull, *mri_without_skull=NULL, *mri_mask;
 
   STRIP_PARMS *parms;
+	char cmdline[CMD_LINE_LEN] ;
+	
+	TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   Progname=argv[0];
 
@@ -593,7 +597,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.32 2005/03/23 02:19:29 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.33 2005/08/12 17:13:08 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -629,6 +633,7 @@ int main(int argc, char *argv[])
   mri_with_skull = MRIread(in_fname) ;
   if (!mri_with_skull)
     Error("read failed\n");
+	MRIaddCommandLine(mri_with_skull, cmdline) ;
 
   if (mri_with_skull->type!=MRI_UCHAR)
   {
