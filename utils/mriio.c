@@ -10316,8 +10316,9 @@ mghRead(char *fname, int read_volume, int frame)
 			char buf[STRLEN] ;
 			switch (tag)
 			{
+			case TAG_OLD_MGH_XFORM:
 			case TAG_MGH_XFORM:
-        fgets(mri->transform_fname, len, fp);
+        fgets(mri->transform_fname, len+1, fp);
         // if this file exists then read the transform
         if (FileExists(mri->transform_fname))
         {
@@ -10355,8 +10356,11 @@ mghRead(char *fname, int read_volume, int frame)
 				mri->ncmds++ ;
 				break ;
 			default:
-				TAGskip(fp, tag, len) ;
+				{
+				int i = TAGskip(fp, tag, (long long)len) ;
+				printf("skipping tag %x (%ld,%d)\n", tag, len, i) ;
 				break ;
+				}
 			}
 		}
 	}
@@ -10551,9 +10555,13 @@ mghWrite(MRI *mri, char *fname, int frame)
   // I increase the tag_datasize with this amount
   if ((flen=strlen(mri->transform_fname))> 0)
   {
+#if 0
     fwriteInt(TAG_MGH_XFORM, fp);
     fwriteInt(flen+1, fp); // write the size + 1 (for null) of string
     fputs(mri->transform_fname, fp);
+#else
+		TAGwrite(fp, TAG_MGH_XFORM, mri->transform_fname, flen+1) ;
+#endif
   }
   // If we have any saved tag data, write it.
   if( NULL != mri->tag_data ) {
