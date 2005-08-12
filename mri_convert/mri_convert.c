@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/07/16 18:57:35 $
-// Revision       : $Revision: 1.105 $
+// Revision Date  : $Date: 2005/08/12 17:12:55 $
+// Revision       : $Revision: 1.106 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +20,7 @@
 #include "transform.h"
 #include "mrimorph.h"
 #include "gcamorph.h"
+#include "tags.h"
 #include "DICOMRead.h"
 #include "unwarpGradientNonlinearity.h"
 #include "version.h"
@@ -143,6 +144,9 @@ int main(int argc, char *argv[])
   MATRIX *T;
   float scale_factor ;
   int nthframe=-1; 
+	char cmdline[STRLEN] ;
+	
+	TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -233,7 +237,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.105 2005/07/16 18:57:35 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.106 2005/08/12 17:12:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1219,6 +1223,8 @@ int main(int argc, char *argv[])
     }
 
   }
+
+	MRIaddCommandLine(mri, cmdline) ;
 
   if(mri == NULL)
   {
