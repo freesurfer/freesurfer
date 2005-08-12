@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.8 2005/06/02 20:38:55 greve Exp $
+  $Id: mri_vol2vol.c,v 1.9 2005/08/12 17:19:16 fischl Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -52,11 +52,12 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 static int isflag(char *flag);
 static int nth_is_arg(int nargc, char **argv, int nth);
+#include "tags.h"
 static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.8 2005/06/02 20:38:55 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.9 2005/08/12 17:19:16 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -121,6 +122,9 @@ int main(int argc, char **argv)
   char *trgsubject;
   char regfile[1000];
 
+	char cmdline[CMD_LINE_LEN] ;
+
+	TAGmakeCommandLineString(argc, argv, cmdline) ;
   Progname = argv[0] ;
   argc --;
   argv++;
@@ -204,6 +208,7 @@ int main(int argc, char **argv)
     printf("ERROR: could not read %s as %s\n",involpath,involfmt);
     exit(1);
   }
+	MRIaddCommandLine(InVol, cmdline) ;
   printf("Done loading source volume \n");
 
   /* --------- read in transform ------------------*/
