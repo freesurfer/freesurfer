@@ -10356,11 +10356,8 @@ mghRead(char *fname, int read_volume, int frame)
 				mri->ncmds++ ;
 				break ;
 			default:
-				{
-				int i = TAGskip(fp, tag, (long long)len) ;
-				printf("skipping tag %x (%ld,%d)\n", tag, len, i) ;
+				TAGskip(fp, tag, (long long)len) ;
 				break ;
-				}
 			}
 		}
 	}
