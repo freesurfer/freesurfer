@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: mkfieldsign,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set VERSION = '$Id: mkfieldsign,v 1.2 2005/08/12 16:19:05 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -70,10 +70,10 @@ foreach hemisphere ($hemilist)
 
   setenv fs $fieldsignpath-$hemi
   setenv fm $fieldsignmaskpath-$hemi
-  set cmd = (tksurfer.new -$name $hemi inflated -tcl mk-fieldsign.tcl)
+  set cmd = (tksurfer -$name $hemi inflated -tcl mk-fieldsign.tcl)
   $cmd
   if(! -e $fs || ! -e $fm) then
-    echo "ERROR: tksurfer.new failed when creating fieldsign"
+    echo "ERROR: tksurfer failed when creating fieldsign"
     pwd
     echo $cmd
     echo ""
