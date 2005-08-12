@@ -4,9 +4,9 @@
 // original author: Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/06/03 19:41:00 $
-// Revision       : $Revision: 1.44 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/08/12 18:01:51 $
+// Revision       : $Revision: 1.45 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -24,6 +24,7 @@
 #include "mri_conform.h"
 #include "utils.h"
 #include "timer.h"
+#include "tags.h"
 #include "matrix.h"
 #include "transform.h"
 #include "version.h"
@@ -142,9 +143,12 @@ main(int argc, char *argv[])
   MRI *mri_tmp = NULL;
   float thresh;
   int b, segno;
+	char cmdline[CMD_LINE_LEN] ;
+
+	TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.44 2005/06/03 19:41:00 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.45 2005/08/12 18:01:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -432,16 +436,19 @@ main(int argc, char *argv[])
 	printf("writing T1 estimates to %s...\n", fname) ;
 	if (Glta)
 	  useVolGeomToMRI(&Glta->xforms[0].dst, mri_T1) ;
+	MRIaddCommandLine(mri_T1, cmdline) ;
 	MRIwrite(mri_T1, fname) ;
 	sprintf(fname,"%s/PD-%d.mgz",out_dir,iter);
 	printf("writing PD estimates to %s...\n", fname) ;
 	if (Glta)
 	  useVolGeomToMRI(&Glta->xforms[0].dst, mri_PD) ;
+	MRIaddCommandLine(mri_PD, cmdline) ;
 	MRIwrite(mri_PD, fname) ;
 	sprintf(fname,"%s/sse-%d.mgz",out_dir,iter);
 	printf("writing residual sse to %s...\n", fname) ;
 	if (Glta)
 	  useVolGeomToMRI(&Glta->xforms[0].dst, mri_sse) ;
+	MRIaddCommandLine(mri_sse, cmdline) ;
 	MRIwrite(mri_sse, fname) ;
 	
 	for (j=0;j<nvolumes;j++)
@@ -450,6 +457,7 @@ main(int argc, char *argv[])
 	  printf("writing synthetic images to %s...\n", fname);
 	  if (Glta)
 	    useVolGeomToMRI(&Glta->xforms[0].dst, mri_flash_synth[j]) ;
+		MRIaddCommandLine(mri_flash_synth[j], cmdline) ;
 	  MRIwrite(mri_flash_synth[j], fname) ;
 	  sprintf(fname,"%s/vol%d-%d.lta",out_dir,j,iter); 
 	  printf("writing regisration matrix to %s...\n", fname);
@@ -499,6 +507,7 @@ main(int argc, char *argv[])
       rms = estimate_ms_params_with_faf(mri_flash, mri_flash_synth, nvolumes, mri_T1, mri_PD, mri_sse, M_reg, mri_faf) ;
       sprintf(fname,  "%s/faf%d.mgz", out_dir, iter);
       printf("writing flip angle field estimates to %s...\n", fname) ;
+			MRIaddCommandLine(mri_faf, cmdline) ;
       MRIwrite(mri_faf, fname);
       MRIfree(&mri_faf);
 		}
@@ -517,12 +526,14 @@ main(int argc, char *argv[])
       printf("writing PD estimates to %s...\n", fname) ;
       if (Glta)
 	useVolGeomToMRI(&Glta->xforms[0].dst, mri_PD) ;
+			MRIaddCommandLine(mri_PD, cmdline) ;
       MRIwrite(mri_PD, fname) ;
       resetTRTEFA(mri_T1, TR, TE, FA);
       sprintf(fname,"%s/T1.mgz",out_dir);
       printf("writing T1 estimates to %s...\n", fname) ;
       if (Glta)
 	useVolGeomToMRI(&Glta->xforms[0].dst, mri_T1) ;
+			MRIaddCommandLine(mri_T1, cmdline) ;
       MRIwrite(mri_T1, fname) ;
       MRIfree(&mri_T1) ;
       
@@ -530,6 +541,7 @@ main(int argc, char *argv[])
       printf("writing residual sse to %s...\n", fname) ;
       if (Glta)
 	useVolGeomToMRI(&Glta->xforms[0].dst, mri_sse) ;
+			MRIaddCommandLine(mri_sse, cmdline) ;
       MRIwrite(mri_sse, fname) ;
       MRIfree(&mri_sse) ;
     }
@@ -539,6 +551,7 @@ main(int argc, char *argv[])
       resetTRTEFA(mri_faf, TR, TE, FA);
       sprintf(fname,"%s/faf.mgz",out_dir);
       printf("writing faf map to %s...\n", fname) ;
+			MRIaddCommandLine(mri_faf, cmdline) ;
       MRIwrite(mri_faf, fname) ;
     }
     if (synth_flag > 0 && nvolumes > 1)
@@ -549,6 +562,7 @@ main(int argc, char *argv[])
 	printf("writing synthetic images to %s...\n", fname);
 	if (Glta)
 	  useVolGeomToMRI(&Glta->xforms[0].dst, mri_flash_synth[j]) ;
+	MRIaddCommandLine(mri_flash_synth[j], cmdline) ;
 	MRIwrite(mri_flash_synth[j], fname) ;
 	sprintf(fname,"%s/vol%d.lta",out_dir,j);
 	printf("writing registration matrix to %s...\n", fname);
@@ -572,12 +586,14 @@ main(int argc, char *argv[])
 	printf("writing corrected PD estimates to %s...\n", fname) ;
 	if (Glta)
 	  useVolGeomToMRI(&Glta->xforms[0].dst, mri_PD) ;
+	MRIaddCommandLine(mri_PD, cmdline) ;
 	MRIwrite(mri_PD, fname) ;
       }
     sprintf(fname,"%s/T2star.mgz",out_dir);
     printf("writing T2star estimates to %s...\n", fname) ;
     if (Glta)
       useVolGeomToMRI(&Glta->xforms[0].dst, mri_T2star) ;
+		MRIaddCommandLine(mri_T2star, cmdline) ;
     MRIwrite(mri_T2star, fname) ;
   }
 
