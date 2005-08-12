@@ -2,12 +2,12 @@
 // mri_info.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/07/11 21:51:26 $
-// Revision       : $Revision: 1.38 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/08/12 14:31:58 $
+// Revision       : $Revision: 1.39 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.38 $";
+char *MRI_INFO_VERSION = "$Revision: 1.39 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -19,6 +19,7 @@ char *MRI_INFO_VERSION = "$Revision: 1.38 $";
 #include "fio.h"
 #include "utils.h"
 #include "mri.h"
+#include "gcamorph.h"
 #include "volume_io.h"
 #include "analyze.h"
 #include "mri_identify.h"
@@ -37,7 +38,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.38 2005/07/11 21:51:26 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.39 2005/08/12 14:31:58 xhan Exp $";
 
 char *Progname ;
 
@@ -73,7 +74,7 @@ int debug = 0;
 /***-------------------------------------------------------****/
 int main(int argc, char *argv[])
 {
-  int nargs, n;
+  int nargs, index;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -100,9 +101,9 @@ int main(int argc, char *argv[])
   }
   else fpout = stdout;
 
-  for(n=0;n<nthinput;n++) {
-    if(debug) printf("%d %s ----- \n",n,inputlist[n]);
-    do_file(inputlist[n]);
+  for(index=0;index<nthinput;index++) {
+    if(debug) printf("%d %s ----- \n",index,inputlist[index]);
+    do_file(inputlist[index]);
   }
   if(PrintToFile) fclose(fpout);
 
@@ -277,8 +278,24 @@ static void do_file(char *fname)
   MRI *mri ;
   MATRIX *m, *minv ;
   int r,c;
-  char ostr[4];
+  char ostr[5];
   ostr[4] = '\0';
+
+  if(!(strstr(fname, ".m3d") == 0 && strstr(fname, ".m3z") == 0
+     && strstr(fname, ".M3D") == 0 && strstr(fname, ".M3Z") == 0)     
+     ){
+    fprintf(fpout,"Input file is a 3D morph.\n");
+    
+    GCA_MORPH *gcam = NULL;
+    gcam = GCAMread(fname);
+    if(!gcam) return;
+    fprintf(fpout,"3D morph source geometry:\n");
+    vg_print(&gcam->src);
+    fprintf(fpout,"3D morph atlas geometry:\n");
+    vg_print(&gcam->atlas);
+    GCAMfree(&gcam);
+    return;
+  }
 
   if(PrintFormat){
     fprintf(fpout,"%s\n", type_to_string(mri_identify(fname)));
