@@ -11,6 +11,7 @@
 #include "proto.h"
 #include "mrinorm.h"
 #include "mri_conform.h"
+#include "tags.h"
 #include "version.h"
 
 int main(int argc, char *argv[]) ;
@@ -52,8 +53,12 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds ;
   struct timeb start ;
 
+	char cmdline[CMD_LINE_LEN] ;
+	
+	TAGmakeCommandLineString(argc, argv, cmdline) ;
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.34 2004/10/13 13:53:51 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.35 2005/08/12 17:13:10 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -89,6 +94,7 @@ main(int argc, char *argv[])
   if (!mri_src)
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
               Progname, in_fname) ;
+	MRIaddCommandLine(mri_src, cmdline) ;
 	if (mask_fname)
 	{
 		MRI *mri_mask ;
