@@ -10252,6 +10252,7 @@ mghRead(char *fname, int read_volume, int frame)
             ;
     }
 
+#if 0  
   // xform fname
   if (freadIntEx(&tag, fp))
   {
@@ -10270,8 +10271,8 @@ mghRead(char *fname, int read_volume, int frame)
             mri->linear_transform = get_linear_transform_ptr(&mri->transform);
             mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
             mri->free_transform = 1;
-                        if (DIAG_VERBOSE_ON)
-                                fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
+						if (DIAG_VERBOSE_ON)
+							fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
           }
           else
           {
@@ -10292,7 +10293,6 @@ mghRead(char *fname, int read_volume, int frame)
     }
   }
 
-#if 0  
 	// gets in the way of reading real tag data
   if (freadIntEx(&(tag_data_size), fp))
   {
@@ -10310,13 +10310,42 @@ mghRead(char *fname, int read_volume, int frame)
 	// tag reading 
 	{
 		long long len ;
-		int tag ;
 
 		while ((tag = TAGreadStart(fp, &len)) != 0)
 		{
 			char buf[STRLEN] ;
 			switch (tag)
 			{
+			case TAG_MGH_XFORM:
+        fgets(mri->transform_fname, len, fp);
+        // if this file exists then read the transform
+        if (FileExists(mri->transform_fname))
+        {
+          // copied from corRead()
+          if(input_transform_file(mri->transform_fname, &(mri->transform)) == NO_ERROR)
+          {
+            mri->linear_transform = get_linear_transform_ptr(&mri->transform);
+            mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
+            mri->free_transform = 1;
+						if (DIAG_VERBOSE_ON)
+							fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
+          }
+          else
+          {
+            errno = 0;
+            ErrorPrintf(ERROR_BAD_FILE, "error loading transform from %s",mri->transform_fname);
+            mri->linear_transform = NULL;
+            mri->inverse_linear_transform = NULL;
+            mri->free_transform = 1;
+            (mri->transform_fname)[0] = '\0';
+          }
+        }
+        else
+        {
+          fprintf(stderr, "WARNING: can't find the talairach xform '%s'\n", mri->transform_fname);
+          fprintf(stderr, "WARNING: transform is not loaded into mri\n");
+        }
+				break ;
 			case TAG_CMDLINE:
 				if (mri->ncmds > MAX_CMDS)
 					ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname,mri->ncmds);
