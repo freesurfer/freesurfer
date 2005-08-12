@@ -20,10 +20,11 @@
 #include "version.h"
 #include "error.h"
 #include "volume_io/geom_structs.h"
+#include "tags.h"
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.91 2005/06/20 16:16:44 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.92 2005/08/12 17:12:57 fischl Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -321,11 +322,14 @@ main(int argc, char *argv[])
   int row;
   VOL_GEOM *dst=0;
   VOL_GEOM *src=0;
+	char cmdline[CMD_LINE_LEN] ;
+
+	TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.91 2005/06/20 16:16:44 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.92 2005/08/12 17:12:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -355,6 +359,7 @@ main(int argc, char *argv[])
   mri_im = MRIread(input_fname) ;
   if (!mri_im)
     ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, input_fname) ;
+	MRIaddCommandLine(mri_im, cmdline) ;
 	if (mri_im->type != MRI_UCHAR)
 	{
 		MRI *mri_tmp ;
