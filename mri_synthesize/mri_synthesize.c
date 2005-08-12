@@ -13,9 +13,10 @@
 #include "transform.h"
 #include "mrinorm.h"
 #include "version.h"
+#include "tags.h"
 #include "flash.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.14 2005/03/11 17:28:16 xhan Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.15 2005/08/12 17:43:34 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -79,8 +80,12 @@ main(int argc, char *argv[])
   MRI         *mri_T1, *mri_PD, *mri_out, *mri_T2star = NULL ;
   float       TR, TE, alpha ;
 
+	char cmdline[CMD_LINE_LEN] ;
+
+	TAGmakeCommandLineString(argc, argv, cmdline) ;
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.14 2005/03/11 17:28:16 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.15 2005/08/12 17:43:34 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -98,7 +103,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 6)
+  if (argc < 7)
     usage_exit() ;
 
   TR = atof(argv[1]) ;
@@ -177,6 +182,7 @@ main(int argc, char *argv[])
 	if (nbias > 0)
 		apply_bias_field(mri_out, nbias, bias_coefs) ;
   printf("writing output to %s.\n", out_fname) ;
+	MRIaddCommandLine(mri_out, cmdline) ;
   MRIwrite(mri_out, out_fname) ;
 
   exit(0) ;
