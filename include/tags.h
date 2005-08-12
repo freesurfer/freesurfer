@@ -11,5 +11,9 @@
 #define TAG_SURF_GEOM          20
 
 #define TAG_MGH_XFORM          30
+
+int TAGreadStart(FILE *fp, double *plen) ;
+int TAGwriteStart(FILE *fp, int tag, long *phere) ;
+int TAGwriteEnd(FILE *fp, long there) ;
  
 #endif
