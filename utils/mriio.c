@@ -9995,7 +9995,7 @@ mghRead(char *fname, int read_volume, int frame)
   float  fval, xsize, ysize, zsize, x_r, x_a, x_s, y_r, y_a, y_s,
     z_r, z_a, z_s, c_r, c_a, c_s ;
   short  sval ;
-  int tag_data_size;
+	//  int tag_data_size;
   char *ext;
   int gzipped=0;
   char command[STRLEN];
@@ -10291,7 +10291,9 @@ mghRead(char *fname, int read_volume, int frame)
       }
     }
   }
-  
+
+#if 0  
+	// gets in the way of reading real tag data
   if (freadIntEx(&(tag_data_size), fp))
   {
     mri->tag_data_size = tag_data_size;
@@ -10302,6 +10304,35 @@ mghRead(char *fname, int read_volume, int frame)
         fread( mri->tag_data, tag_data_size, 1, fp );
     }
   }
+#endif
+
+
+	// tag reading 
+	{
+		long long len ;
+		int tag ;
+
+		while ((tag = TAGreadStart(fp, &len)) != 0)
+		{
+			char buf[STRLEN] ;
+			switch (tag)
+			{
+			case TAG_CMDLINE:
+				if (mri->ncmds > MAX_CMDS)
+					ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname,mri->ncmds);
+				fread(buf, sizeof(char), len, fp) ;
+				mri->cmdlines[mri->ncmds] = calloc(len, sizeof(char)) ;
+				strcpy(mri->cmdlines[mri->ncmds], buf) ;
+				mri->ncmds++ ;
+				break ;
+			default:
+				TAGskip(fp, tag, len) ;
+				break ;
+			}
+		}
+	}
+
+
   // fclose(fp) ;
   myclose(fp);
 
@@ -10341,7 +10372,7 @@ mghWrite(MRI *mri, char *fname, int frame)
     char command[STRLEN];
     ++ext;
     // if mgz, then it is compressed
-    if (!stricmp(ext, "mgz"))
+    if (!stricmp(ext, "mgz") || strstr(fname, "mgh.gz"))
     {
       // route stdout to a file
       gzipped = 1;
@@ -10501,6 +10532,17 @@ mghWrite(MRI *mri, char *fname, int frame)
     fwriteInt(mri->tag_data_size, fp);
     fwrite( mri->tag_data, mri->tag_data_size, 1, fp );
   }
+
+
+	// write other tags
+	{
+		int i ;
+
+		for (i = 0 ; i < mri->ncmds ; i++)
+			TAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i])+1) ;
+	}
+
+
   // fclose(fp) ;
   myclose(fp);
 
@@ -12214,3 +12256,15 @@ MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
         return(mri_dst) ;
 }
 
+int
+MRIaddCommandLine(MRI *mri, char *cmdline)
+{
+	int i ;
+	if (mri->ncmds >= MAX_CMDS)
+		ErrorExit(ERROR_NOMEMORY, "MRIaddCommandLine: can't add cmd %s (%d)", cmdline, mri->ncmds) ;
+
+	i = mri->ncmds++ ;
+	mri->cmdlines[i] = (char *)calloc(strlen(cmdline)+1, sizeof(char)) ;
+	strcpy(mri->cmdlines[i], cmdline) ;
+	return(NO_ERROR) ;
+}

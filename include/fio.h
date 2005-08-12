@@ -12,6 +12,7 @@ int   fread4(float *v, FILE *fp) ;
 double freadDouble(FILE *fp) ;
 float freadFloat(FILE *fp) ;
 int   freadInt(FILE *fp) ;
+long  long freadLong(FILE *fp) ;
 short freadShort(FILE *fp) ;
 
 /* return 1 if succeed, return 0 if fail */
@@ -24,6 +25,7 @@ int   fwriteDouble(double d, FILE *fp) ;
 int   fwriteFloat(float f, FILE *fp) ;
 int   fwriteShort(short s, FILE *fp) ;
 int   fwriteInt(int v, FILE *fp) ;
+int   fwriteLong(long long v, FILE *fp) ;
 int   fwrite1(int v,FILE *fp) ;
 int   fwrite2(int v, FILE *fp) ;
 int   fwrite3(int v, FILE *fp) ;
@@ -37,6 +39,6 @@ int fio_FileExistsReadable(char *fname);
 int fio_IsDirectory(char *fname);
 int fio_NLines(char *fname);
 
-#define fwriteLong(l, fp)   fwrite4((int)l, fp)
+//#define fwriteLong(l, fp)   fwrite4((int)l, fp)
 
 #endif

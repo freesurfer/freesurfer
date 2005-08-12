@@ -128,6 +128,8 @@ DiagInit(char *fname,
 
   if (getenv("DIAG_VERBOSE"))
     Gdiag |= DIAG_VERBOSE ;
+	if (Gdiag & DIAG_VERBOSE)
+		printf("verbose diagnostics enabled...\n") ;
 
 #if 0
   if (Gdiag)

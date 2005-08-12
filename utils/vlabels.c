@@ -118,7 +118,7 @@ VLwrite(VLI *vli, char *fname)
   {
     here = ftell(fp) ;
     fseek(fp, there, SEEK_SET) ;
-    fwriteLong(here, fp) ;
+    fwriteInt((int)here, fp) ;
     fseek(fp, here, SEEK_SET) ;
     for (y = 0 ; y < vli->height ; y++)
     {

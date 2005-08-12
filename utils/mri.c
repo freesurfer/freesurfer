@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/07/29 18:48:39 $
-// Revision       : $Revision: 1.306 $
-char *MRI_C_VERSION = "$Revision: 1.306 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/08/12 17:09:54 $
+// Revision       : $Revision: 1.307 $
+char *MRI_C_VERSION = "$Revision: 1.307 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -4591,7 +4591,7 @@ int
 MRIfree(MRI **pmri)
 {
   MRI *mri ;
-  int slice ;
+  int slice, i ;
 #if !USE_ELECTRIC_FENCE
   int  row ;
 #endif
@@ -4636,6 +4636,9 @@ MRIfree(MRI **pmri)
     MatrixFree(&mri->i_to_r__);
   if (mri->r_to_i__)
     MatrixFree(&mri->r_to_i__);
+
+	for (i = 0 ; i < mri->ncmds ; i++)
+		free(mri->cmdlines[i]) ;
 
   free(mri) ;
   *pmri = NULL ;
@@ -4863,6 +4866,8 @@ MRIpeak(MRI *mri, int *px, int *py, int *pz)
   ------------------------------------------------------*/
 int MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
 {
+	int i ;
+
   mri_dst->dof = mri_src->dof ;
   mri_dst->mean = mri_src->mean ;
   mri_dst->xsize = mri_src->xsize ;
@@ -4928,6 +4933,12 @@ int MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
   mri_dst->i_to_r__ = MatrixCopy(mri_src->i_to_r__, mri_dst->i_to_r__);
   mri_dst->r_to_i__ = MatrixCopy(mri_src->r_to_i__, mri_dst->r_to_i__);
 
+	for (i = 0 ; i < mri_src->ncmds ; i++)
+	{
+		mri_dst->cmdlines[i] = (char *)calloc(strlen(mri_src->cmdlines[i])+1, sizeof(char)) ;
+		strcpy(mri_dst->cmdlines[i], mri_src->cmdlines[i]) ;
+	}
+	mri_dst->ncmds = mri_src->ncmds ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------

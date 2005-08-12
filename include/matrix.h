@@ -155,7 +155,7 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm);
 #define V3_Y(v)      (VECTOR_ELT(v,2))
 #define V3_Z(v)      (VECTOR_ELT(v,3))
 #define V3_LEN(v)    (sqrt(V3_X(v)*V3_X(v)+V3_Y(v)*V3_Y(v)+V3_Z(v)*V3_Z(v)))
-#define V3_LEN_IS_ZERO(v)    (FZERO(V3_LEN_SQ(v)))
+#define V3_LEN_IS_ZERO(v)    (DZERO(V3_LEN_SQ(v)))
 #define V3_LEN_SQ(v) (V3_X(v)*V3_X(v)+V3_Y(v)*V3_Y(v)+V3_Z(v)*V3_Z(v))
 #define V3_CROSS_PRODUCT(va,vb,vc) \
                  V3_X(vc) = V3_Y(va)*V3_Z(vb)- V3_Z(va)*V3_Y(vb),  \

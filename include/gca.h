@@ -261,7 +261,6 @@ int   GCAaccumulateTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD,
 int   GCAhistogramTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD, 
                                    MRI *mri_parc, TRANSFORM *transform, char *fname) ;
 int   GCAnormalizeTissueStatistics(GCA *gca) ;
-char *cma_label_to_name(int label) ;
 int  GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
 int  GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 int  GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,

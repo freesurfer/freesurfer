@@ -37,6 +37,8 @@
 #define MRI_BITMAP  5
 #define MRI_TENSOR  6
 
+#define MAX_CMDS 1000
+
 typedef struct
 {
   int  x ;
@@ -117,6 +119,8 @@ typedef struct
   int           tag_data_size; /* size of saved tag data */
   MATRIX *i_to_r__; /* cache */
   MATRIX *r_to_i__;
+	char   *cmdlines[MAX_CMDS] ;
+	int    ncmds;
 } MRI_IMAGE, MRI ;
 
 MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
@@ -952,6 +956,7 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol);
 #define DTRANS_MODE_UNSIGNED 2
 #define DTRANS_MODE_OUTSIDE  3
 MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int mode);
+int MRIaddCommandLine(MRI *mri, char *cmdline) ;
 
 
 #endif

@@ -2,9 +2,9 @@
 // fio.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/05/31 18:38:44 $
-// Revision       : $Revision: 1.24 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/08/12 17:09:54 $
+// Revision       : $Revision: 1.25 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -187,6 +187,18 @@ freadInt(FILE *fp)
 #endif
   return(i) ;
 }
+long long
+freadLong(FILE *fp)
+{
+  int  nread ;
+	long long i ;
+
+  nread = fread(&i,sizeof(long long),1,fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  i = swapLong64(i) ;
+#endif
+  return(i) ;
+}
 
 
 short
@@ -259,6 +271,15 @@ fwriteInt(int v, FILE *fp)
   v = swapInt(v) ;
 #endif
   return(fwrite(&v,sizeof(int),1,fp));
+}
+
+int
+fwriteLong(long long v, FILE *fp)
+{
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  v = swapLong64(v) ;
+#endif
+  return(fwrite(&v,sizeof(long long),1,fp));
 }
 
 /*----------------------------------------*/

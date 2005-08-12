@@ -33,6 +33,7 @@
 
 #define STR_LEN         500   /* misc. string length */
 #define STRLEN          STR_LEN
+#define CMD_LINE_LEN     1024
 
 /* predefined file descriptors */
 #define FD_STDIN       0
