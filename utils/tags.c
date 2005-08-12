@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "fio.h"
@@ -8,7 +9,17 @@
 int
 TAGskip(FILE *fp, int tag, long long len)
 {
-	return(fseek(fp, len, SEEK_CUR)) ;
+#if 1
+	unsigned char *buf ;
+	int ret ;
+
+	buf = (unsigned char *)calloc(len, sizeof(unsigned char)) ;
+	ret = fread(buf, sizeof(unsigned char), len, fp) ;
+	free(buf) ;
+	return(ret) ;
+#else
+	return(fseek(fp, len, SEEK_CUR)) ;  // doesn't work for gzipped files
+#endif
 }
 int
 TAGreadStart(FILE *fp, long long *plen)
@@ -18,7 +29,13 @@ TAGreadStart(FILE *fp, long long *plen)
 	tag = freadInt(fp) ;
 	if (feof(fp))
 		return(0) ;
-	*plen = freadLong(fp) ;
+	if (tag == TAG_OLD_MGH_XFORM)
+	{
+		*plen = (long long)freadInt(fp) ;  // sorry - backwards compatibility with Tosa's stuff
+		*plen = *plen -1 ; // doesn't include null
+	}
+	else
+		*plen = freadLong(fp) ;
 	
 	return(tag) ;
 }
