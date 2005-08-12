@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.15 2005/06/06 21:28:59 fischl Exp $
+  $Id: mri_label2vol.c,v 1.16 2005/08/12 17:37:34 fischl Exp $
 */
 
 
@@ -23,6 +23,7 @@
 #include "MRIio_old.h"
 #include "mri_identify.h"
 #include "mri2.h"
+#include "tags.h"
 #include "matrix.h"
 #include "version.h"
 #include "registerio.h"
@@ -55,7 +56,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.15 2005/06/06 21:28:59 fischl Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.16 2005/08/12 17:37:34 fischl Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -109,9 +110,13 @@ int main(int argc, char **argv)
   float x,y,z;
   int c,r,s, oob, nhits, nhitsmax, nhitsmax_label;
 
+	char cmdline[CMD_LINE_LEN] ;
+
+	TAGmakeCommandLineString(argc, argv, cmdline) ;
+
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-																 "$Id: mri_label2vol.c,v 1.15 2005/06/06 21:28:59 fischl Exp $", "$Name:  $");
+																 "$Id: mri_label2vol.c,v 1.16 2005/08/12 17:37:34 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -131,6 +136,8 @@ int main(int argc, char **argv)
   printf("%s\n",vcid);
 
   // Load the template volume
+	if (TempVolId == NULL)
+		ErrorExit(ERROR_UNSUPPORTED, "%s: must specify template volume with --temp",Progname) ;
   TempVol = MRIreadHeader(TempVolId,MRI_VOLUME_TYPE_UNKNOWN);
   if(TempVol == NULL){
     printf("ERROR: reading %s header\n",TempVolId);
@@ -338,6 +345,7 @@ int main(int argc, char **argv)
   }
 
   // Save out volume
+	MRIaddCommandLine(OutVol, cmdline) ;
   MRIwrite(OutVol,OutVolId);
 
   printf("done \n");
