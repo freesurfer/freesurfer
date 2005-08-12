@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/05/30 20:38:38 $
-// Revision       : $Revision: 1.28 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/08/12 17:12:59 $
+// Revision       : $Revision: 1.29 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -24,6 +24,7 @@
 #include "mrimorph.h"
 #include "utils.h"
 #include "gca.h"
+#include "tags.h"
 #include "cma.h"
 #include "mrinorm.h"
 #include "version.h"
@@ -107,9 +108,12 @@ main(int argc, char *argv[])
   struct timeb start ;
   GCA_SAMPLE   *gcas, *gcas_norm = NULL, *gcas_struct ;
   TRANSFORM    *transform = NULL ;
+	char         cmdline[CMD_LINE_LEN] ;
+
+	TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.28 2005/05/30 20:38:38 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.29 2005/08/12 17:12:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -250,6 +254,7 @@ main(int argc, char *argv[])
     MRIcopyFrame(mri_tmp, mri_in, 0, input) ;
     MRIfree(&mri_tmp) ;
   }
+	MRIaddCommandLine(mri_in, cmdline) ;
 
   if (seg_fname == NULL)
   {
