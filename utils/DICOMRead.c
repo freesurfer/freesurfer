@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.77 2005/08/15 21:29:47 greve Exp $
+   $Id: DICOMRead.c,v 1.78 2005/08/15 21:30:38 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -229,7 +229,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
     }
     else vol->tr  = sdfi->RepetitionTime;
     /* Need to add any gap (eg, as in a hammer sequence */
-    printf("Repitition Time = %g, TR = %g ms\n",sdfi->RepetitionTime,vol->tr);      
+    printf("Repetition Time = %g, TR = %g ms\n",sdfi->RepetitionTime,vol->tr);      
   }
 
   /* Return now if we're not loading pixel data */
