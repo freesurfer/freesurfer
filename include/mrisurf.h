@@ -39,6 +39,7 @@
 #define GRAY_MATTER_NAME     "gray"
 #define LAYERIV_NAME         "graymid"
 #define GRAYMID_NAME         LAYERIV_NAME
+#define MAX_CMDS 1000
 
 typedef struct _area_label
 {
@@ -249,6 +250,8 @@ typedef struct
   VOL_GEOM     vg;                /* volume information from which 
                                      this surface is created. 
                                      check validity by vg.valid = 1 or not */
+	char   *cmdlines[MAX_CMDS] ;
+	int    ncmds;
 } MRI_SURFACE, MRIS ;
 
 
@@ -1220,6 +1223,7 @@ MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta);
 
 int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta);
 void MRISsetReadFrame(int frame);
+int MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline) ;
 int MRISgetReadFrame(void);
 
 #endif
