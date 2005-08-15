@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.9 2005/08/12 17:19:16 fischl Exp $
+  $Id: mri_vol2vol.c,v 1.10 2005/08/15 14:21:17 fischl Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -28,6 +28,7 @@
 
 #include "matrix.h"
 #include "mri.h"
+#include "version.h"
 #include "mri2.h"
 #include "mri_identify.h"
 #include "MRIio_old.h"
@@ -57,7 +58,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.9 2005/08/12 17:19:16 fischl Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.10 2005/08/15 14:21:17 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -118,13 +119,19 @@ char fname[1000], dname[1000];
 int main(int argc, char **argv)
 {
   float ipr, bpr, intensity, xfov, yfov, zfov;
-  int float2int,err;
+  int float2int,err, nargs;
   char *trgsubject;
   char regfile[1000];
 
 	char cmdline[CMD_LINE_LEN] ;
 
-	TAGmakeCommandLineString(argc, argv, cmdline) ;
+  make_cmd_version_string (argc, argv, "$Id: mri_vol2vol.c,v 1.10 2005/08/15 14:21:17 fischl Exp $", "$Name:  $", cmdline);
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2vol.c,v 1.10 2005/08/15 14:21:17 fischl Exp $", "$Name:  $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+
   Progname = argv[0] ;
   argc --;
   argv++;
