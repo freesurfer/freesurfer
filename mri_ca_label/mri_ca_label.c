@@ -112,12 +112,10 @@ main(int argc, char *argv[])
   
 	char cmdline[CMD_LINE_LEN] ;
 	
-	TAGmakeCommandLineString(argc, argv, cmdline) ;
-
-  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.59 2005/08/15 14:12:03 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.60 2005/08/15 14:30:01 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.59 2005/08/15 14:12:03 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.60 2005/08/15 14:30:01 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
