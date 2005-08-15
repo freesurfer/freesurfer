@@ -12,6 +12,7 @@ cor_to_minc \
 csurf \
 dcmdir-info-mgh \
 deface_subject \
+epidewarp.fsl\
 feat2surf \
 findsession \
 fix_subject \
@@ -21,7 +22,9 @@ fix_subject_corrected-rh \
 fix_subject-lh \
 fix_subject_on_seychelles \
 fix_subject-rh \
+freesurfer \
 fsl_rigid_register \
+fslregister \
 grad_unwarp \
 inflate_subject \
 inflate_subject3 \
@@ -103,6 +106,7 @@ segment_subject_notal2 \
 segment_subject_old_skull_strip \
 segment_subject_sc \
 segment_subject_talmgh \
+setlabelstat\
 show_tal \
 sphere_subject \
 sphere_subject-lh \
@@ -123,10 +127,7 @@ unpackmincdir \
 unpack_mnc.tcl \
 unpacksdcmdir \
 wfilemask \
-xsanatreg \
-epidewarp.fsl\
-setlabelstat\
-fslregister
+xsanatreg
 
 tcldir = $(prefix)/lib/tcl
 tcl_SCRIPTS= \
@@ -183,6 +184,11 @@ SEDFLAGS = -e 's,xEXEC_PREFIXx,$(exec_prefix),g' \
 csurf: csurf.in
 	sed < $< $(SEDFLAGS) > $@ 
 	chmod +x $@
+
+# can't checkin a file named freesurfer to cvs, so must use this round-about:
+freesurfer: freesurfer.csh
+	cp freesurfer.csh freesurfer
+	chmod +x freesurfer
 
 # work on tixwish files
 # Why was he doing this???
