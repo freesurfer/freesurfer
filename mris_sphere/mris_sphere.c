@@ -7,6 +7,7 @@
 
 #include "macros.h"
 #include "error.h"
+#include "tags.h"
 #include "diag.h"
 #include "proto.h"
 #include "mrisurf.h"
@@ -16,7 +17,7 @@
 #include "timer.h"
 #include "version.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.30 2005/05/31 20:53:59 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.31 2005/08/15 14:24:12 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -79,8 +80,12 @@ main(int argc, char *argv[])
   struct timeb  then ;
   float         max_dim ;
 
+	char cmdline[CMD_LINE_LEN] ;
+	
+  make_cmd_version_string (argc, argv, "$Id: mris_sphere.c,v 1.31 2005/08/15 14:24:12 fischl Exp $", "$Name:  $", cmdline);
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.30 2005/05/31 20:53:59 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.31 2005/08/15 14:24:12 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -152,6 +157,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_surf_fname) ;
 
+	MRISaddCommandLine(mris, cmdline) ;
 
   fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
