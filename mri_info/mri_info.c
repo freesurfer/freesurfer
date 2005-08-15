@@ -2,12 +2,12 @@
 // mri_info.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/08/12 14:31:58 $
-// Revision       : $Revision: 1.39 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2005/08/15 16:14:04 $
+// Revision       : $Revision: 1.40 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.39 $";
+char *MRI_INFO_VERSION = "$Revision: 1.40 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -38,7 +38,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.39 2005/08/12 14:31:58 xhan Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.40 2005/08/15 16:14:04 kteich Exp $";
 
 char *Progname ;
 
@@ -279,14 +279,15 @@ static void do_file(char *fname)
   MATRIX *m, *minv ;
   int r,c;
   char ostr[5];
+  GCA_MORPH *gcam;
   ostr[4] = '\0';
-
+  
   if(!(strstr(fname, ".m3d") == 0 && strstr(fname, ".m3z") == 0
      && strstr(fname, ".M3D") == 0 && strstr(fname, ".M3Z") == 0)     
      ){
     fprintf(fpout,"Input file is a 3D morph.\n");
     
-    GCA_MORPH *gcam = NULL;
+    gcam = NULL;
     gcam = GCAMread(fname);
     if(!gcam) return;
     fprintf(fpout,"3D morph source geometry:\n");
