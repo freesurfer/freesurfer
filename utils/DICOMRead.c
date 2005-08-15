@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.76 2005/08/08 22:55:18 greve Exp $
+   $Id: DICOMRead.c,v 1.77 2005/08/15 21:29:47 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -219,13 +219,17 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   else{
     /* The TR definition will depend upon the software version */
     tmpstring = sdcmExtractNumarisVer(sdfi->NumarisVer, &Maj, &Min, &MinMin);
+    printf("Numaris Version: %s Maj = %d, Min=%d, MinMin = %d \n",
+	   sdfi->NumarisVer, Maj, Min, MinMin);
     if(tmpstring == NULL) return(NULL);
     free(tmpstring);
-    if(Min == 1 && MinMin <= 6)
-      vol->tr = sdfi->RepetitionTime * (sdfi->VolDim[2]) / 1000.0; 
-    else
-      vol->tr  = sdfi->RepetitionTime / 1000.0; 
+    if(Min == 1 && MinMin <= 6){
+      printf("Computing TR with number of slices\n");
+      vol->tr = sdfi->RepetitionTime * (sdfi->VolDim[2]);
+    }
+    else vol->tr  = sdfi->RepetitionTime;
     /* Need to add any gap (eg, as in a hammer sequence */
+    printf("Repitition Time = %g, TR = %g ms\n",sdfi->RepetitionTime,vol->tr);      
   }
 
   /* Return now if we're not loading pixel data */
