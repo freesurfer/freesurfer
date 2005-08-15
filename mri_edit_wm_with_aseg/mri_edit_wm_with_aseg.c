@@ -1,12 +1,12 @@
 //
-// mri_auto_fill.c
+// mri_edith_wm_with_aseg.c
 //
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/12 17:13:05 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2005/08/15 14:03:37 $
+// Revision       : $Revision: 1.5 $
 //
 
 #include <stdio.h>
@@ -53,6 +53,11 @@ main(int argc, char *argv[])
 	char cmdline[CMD_LINE_LEN] ;
 
 	TAGmakeCommandLineString(argc, argv, cmdline) ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.5 2005/08/15 14:03:37 fischl Exp $", "$Name:  $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
 
   TimerStart(&then) ;
   DiagInit(NULL, NULL, NULL) ;
