@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.74 2005/07/07 20:32:27 kteich Exp $
+# $Id: tksurfer.tcl,v 1.75 2005/08/15 16:29:13 kteich Exp $
 
 package require BLT;
 
@@ -234,10 +234,10 @@ proc UpdateLinkedVarGroup { iGroup } {
     global gaLinkedVarGroups gaLinkedVars
     set lVars $gaLinkedVarGroups($iGroup)
     foreach var $lVars {
-  catch {
-    upvar #0 $var varToUpdate
-    set gaLinkedVars($var) $varToUpdate
-      }
+	catch {
+	    upvar #0 $var varToUpdate
+	    set gaLinkedVars($var) $varToUpdate
+	}
     }
 }
 
@@ -630,39 +630,42 @@ proc DoConfigLightingDlog {} {
     set wwDialog .wwConfigLightingDlog
 
     UpdateLinkedVarGroup scene
+    puts "offset is $gaLinkedVars(offset)"
 
     if { [Dialog_Create $wwDialog "Configure Lighting" {-borderwidth 10}] } {
 
-  set fwMain             $wwDialog.fwMain
-  set fwLights           $wwDialog.fwLights
-  set fwBrightness       $wwDialog.fwBrightness
-  set fwButtons          $wwDialog.fwButtons
-
-  frame $fwMain
-
-  # sliders for lights 0 - 3
-  tkm_MakeSliders $fwLights { \
-    { {"Light 0" ""} gaLinkedVars(light0) 0 1 200 {} 1 0.1} \
-    { {"Light 1" ""} gaLinkedVars(light1) 0 1 200 {} 1 0.1} \
-    { {"Light 2" ""} gaLinkedVars(light2) 0 1 200 {} 1 0.1} \
-    { {"Light 3" ""} gaLinkedVars(light3) 0 1 200 {} 1 0.1} }
-
-  # slider for brightness offset
-  tkm_MakeSliders $fwBrightness { \
-    { {"Brightness" ""} gaLinkedVars(offset) 0 1 100 {} 1 0.1} }
-
-  # buttons.
-  tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
-    { SendLinkedVarGroup scene; \
-    do_lighting_model $gaLinkedVars(light0) $gaLinkedVars(light1) $gaLinkedVars(light2) $gaLinkedVars(light3) $gaLinkedVars(offset); \
-    UpdateAndRedraw } {}
-
-  pack $fwMain $fwLights $fwBrightness $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x         \
-    -padx 5         \
-    -pady 5
+	set fwMain             $wwDialog.fwMain
+	set fwLights           $wwDialog.fwLights
+	set fwBrightness       $wwDialog.fwBrightness
+	set fwButtons          $wwDialog.fwButtons
+	
+	frame $fwMain
+	
+	# sliders for lights 0 - 3
+	tkm_MakeSliders $fwLights { 
+	    { {"Light 0" ""} gaLinkedVars(light0) 0 1 200 {} 1 0.1} 
+	    { {"Light 1" ""} gaLinkedVars(light1) 0 1 200 {} 1 0.1} 
+	    { {"Light 2" ""} gaLinkedVars(light2) 0 1 200 {} 1 0.1} 
+	    { {"Light 3" ""} gaLinkedVars(light3) 0 1 200 {} 1 0.1} }
+	
+	# slider for brightness offset
+	tkm_MakeSliders $fwBrightness { 
+	    { {"Brightness" ""} gaLinkedVars(offset) 0 1 100 {} 1 0.05} }
+	
+	# buttons.
+	tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
+	    { SendLinkedVarGroup scene; 
+		do_lighting_model $gaLinkedVars(light0) $gaLinkedVars(light1) \
+		  $gaLinkedVars(light2) $gaLinkedVars(light3) \
+		  $gaLinkedVars(offset); 
+		UpdateAndRedraw } {}
+	
+	pack $fwMain $fwLights $fwBrightness $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
     }
 }
 
