@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.134 2005/08/12 22:04:01 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.135 2005/08/15 18:55:59 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4042,7 +4042,7 @@ proc LabelAreaEditDoneCallback {w inCol inRow} {
 	}
     }
 
-    eval $gaLabelArea(callback,$inCol,$inRow) [lindex $sFiltered 0] [lindex $sFiltered 1] [lindex $sFiltered 1]
+    eval $gaLabelArea(callback,$inCol,$inRow) [lindex $sFiltered 0] [lindex $sFiltered 1] [lindex $sFiltered 2]
 
     UpdateCursorLabelArea
     UpdateMouseLabelArea
@@ -5243,7 +5243,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.134 2005/08/12 22:04:01 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.135 2005/08/15 18:55:59 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
