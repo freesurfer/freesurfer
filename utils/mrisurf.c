@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/07/15 20:17:46 $
-// Revision       : $Revision: 1.360 $
+// Revision Date  : $Date: 2005/08/15 18:32:42 $
+// Revision       : $Revision: 1.361 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -531,86 +531,86 @@ MRISreadOverAlloc(char *fname, double pct_over)
   VERTEX      *vertex ;
   FACE        *face ;
   int         tag;
-
+	
   chklc() ;    /* check to make sure license.dat is present */
   type = MRISfileNameType(fname) ; /* using extension to get type */
   if (type == MRIS_ASCII_TRIANGLE_FILE)  /* .ASC */
-    {
-      mris = mrisReadAsciiFile(fname) ;
-      if (!mris)
-	return(NULL) ;
-      version = -3 ;
-    }
+	{
+		mris = mrisReadAsciiFile(fname) ;
+		if (!mris)
+			return(NULL) ;
+		version = -3 ;
+	}
   else if (type == MRIS_ICO_FILE)        /* .TRI, .ICO */
-    {
-      mris = ICOreadOverAlloc(fname, pct_over) ;
-      if (!mris)
-	return(NULL) ;
-      return(mris) ;
-      version = -2 ;
-    }
+	{
+		mris = ICOreadOverAlloc(fname, pct_over) ;
+		if (!mris)
+			return(NULL) ;
+		return(mris) ;
+		version = -2 ;
+	}
   else if (type == MRIS_GEO_TRIANGLE_FILE) /* .GEO */ 
-    {
-      mris = mrisReadGeoFile(fname) ;
-      if (!mris)
-	return(NULL) ;
-      version = -4;
-    }
+	{
+		mris = mrisReadGeoFile(fname) ;
+		if (!mris)
+			return(NULL) ;
+		version = -4;
+	}
   else // default type MRIS_BINARY_QUADRANGLE_FILE ... use magic number
-    {
-      fp = fopen(fname, "rb") ;
-      if (!fp)
-	ErrorReturn(NULL,(ERROR_NOFILE,"MRISread(%s): could not open file",
-			  fname));
-
-      fread3(&magic, fp) ;
-      if (magic == QUAD_FILE_MAGIC_NUMBER) 
 	{
-	  version = -1;
-	  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-	    fprintf(stdout, "new surface file format\n");
+		fp = fopen(fname, "rb") ;
+		if (!fp)
+			ErrorReturn(NULL,(ERROR_NOFILE,"MRISread(%s): could not open file",
+												fname));
+		
+		fread3(&magic, fp) ;
+		if (magic == QUAD_FILE_MAGIC_NUMBER) 
+		{
+			version = -1;
+			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+				fprintf(stdout, "new surface file format\n");
+		}
+		else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) 
+		{
+			version = -2 ;
+		}
+		else if (magic == TRIANGLE_FILE_MAGIC_NUMBER)
+		{
+			fclose(fp) ;
+			mris = mrisReadTriangleFile(fname, pct_over) ;
+			if (!mris)
+				ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n")) ;
+			version = -3 ;
+		}
+		else /* no magic number assigned */
+		{
+			rewind(fp);
+			version = 0;
+			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+				printf("surfer: old surface file format\n");
+		}
 	}
-      else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) 
-	{
-	  version = -2 ;
-	}
-      else if (magic == TRIANGLE_FILE_MAGIC_NUMBER)
-	{
-	  fclose(fp) ;
-	  mris = mrisReadTriangleFile(fname, pct_over) ;
-	  if (!mris)
-	    ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n")) ;
-	  version = -3 ;
-	}
-      else /* no magic number assigned */
-	{
-	  rewind(fp);
-	  version = 0;
-	  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-	    printf("surfer: old surface file format\n");
-	}
-    }
   /* some type of quadrangle file processing */
   if (version >= -2) 
-    {
-      fread3(&nvertices, fp);
-      fread3(&nquads, fp);   /* # of qaudrangles - not triangles */
-    
-      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-	fprintf(stdout,"reading %d vertices and %d faces.\n",
-		nvertices,2*nquads);
-    
-      mris = MRISoverAlloc(pct_over*nvertices,pct_over*2*nquads,nvertices, 
-			   2*nquads);
-      mris->type = MRIS_BINARY_QUADRANGLE_FILE ;
-
-      imnr0 = 1000 ;
-      imnr1 = 0 ;
-      /* read vertices *************************************************/
-      for (vno = 0 ; vno < nvertices ; vno++)
 	{
-	  vertex = &mris->vertices[vno] ;
-	  if (version == -1)        /* QUAD_FILE_MAGIC_NUMBER */
+		fread3(&nvertices, fp);
+		fread3(&nquads, fp);   /* # of qaudrangles - not triangles */
+    
+		if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+			fprintf(stdout,"reading %d vertices and %d faces.\n",
+							nvertices,2*nquads);
+    
+		mris = MRISoverAlloc(pct_over*nvertices,pct_over*2*nquads,nvertices, 
+												 2*nquads);
+		mris->type = MRIS_BINARY_QUADRANGLE_FILE ;
+		
+		imnr0 = 1000 ;
+		imnr1 = 0 ;
+		/* read vertices *************************************************/
+		for (vno = 0 ; vno < nvertices ; vno++)
+		{
+			vertex = &mris->vertices[vno] ;
+			if (version == -1)        /* QUAD_FILE_MAGIC_NUMBER */
 	    {
 	      fread2(&ix,fp);
 	      fread2(&iy,fp);
@@ -619,64 +619,64 @@ MRISreadOverAlloc(char *fname, double pct_over)
 	      vertex->y = iy/100.0;
 	      vertex->z = iz/100.0;
 	    }
-	  else  /* version == -2 */ /* NEW_QUAD_FILE_MAGIC_NUMBER */
+			else  /* version == -2 */ /* NEW_QUAD_FILE_MAGIC_NUMBER */
 	    {
 	      vertex->x = freadFloat(fp) ;
 	      vertex->y = freadFloat(fp) ;
 	      vertex->z = freadFloat(fp) ;
 	    }
 #if 0
-	  vertex->label = NO_LABEL ;
+			vertex->label = NO_LABEL ;
 #endif
-	  /* brain-dead code and never used again either */
-	  imnr = (int)((vertex->y-START_Y)/SLICE_THICKNESS+0.5);
-	  if (imnr > imnr1)
-	    imnr1 = imnr ;
-	  if (imnr < imnr0)
-	    imnr0 = imnr ;
-	  if (version == 0)  /* old surface format */
+			/* brain-dead code and never used again either */
+			imnr = (int)((vertex->y-START_Y)/SLICE_THICKNESS+0.5);
+			if (imnr > imnr1)
+				imnr1 = imnr ;
+			if (imnr < imnr0)
+				imnr0 = imnr ;
+			if (version == 0)  /* old surface format */
 	    {
 	      fread1(&num,fp);   /* # of faces we are part of */
 	      vertex->num = num ;
 	      vertex->f = (int *)calloc(vertex->num,sizeof(int));
 	      if (!vertex->f)
-		ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d faces",
-			  vertex->num) ;
+					ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d faces",
+										vertex->num) ;
 	      vertex->n = (uchar *)calloc(vertex->num,sizeof(uchar));
 	      if (!vertex->n)
-		ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d nbrs",
-			  vertex->n) ;
+					ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d nbrs",
+										vertex->n) ;
 	      for (n=0;n<vertex->num;n++)
-		fread3(&vertex->f[n],fp);
+					fread3(&vertex->f[n],fp);
 	    } 
-	  else 
-	    vertex->num = 0;   /* will figure it out */
-	}
-      /* read face vertices *******************************************/
-      for (fno = 0 ; fno < mris->nfaces ; fno += 2)
-	{
-	  int which ;
-
-	  if (fno == 86)
-	    DiagBreak() ;
-	  for (n = 0 ; n < 4 ; n++)   /* read quandrangular face */
+			else 
+				vertex->num = 0;   /* will figure it out */
+		}
+		/* read face vertices *******************************************/
+		for (fno = 0 ; fno < mris->nfaces ; fno += 2)
+		{
+			int which ;
+			
+			if (fno == 86)
+				DiagBreak() ;
+			for (n = 0 ; n < 4 ; n++)   /* read quandrangular face */
 	    {
 	      fread3(&vertices[n],fp);
 	      if (vertices[n] == 22)
-		DiagBreak() ;
+					DiagBreak() ;
 	    }
-
-	  /* if we're going to be arbitrary, we might as well be really arbitrary */
+			
+			/* if we're going to be arbitrary, we might as well be really arbitrary */
 #define WHICH_FACE_SPLIT(vno0, vno1)			\
 	  (1*nint(sqrt(1.9*vno0) + sqrt(3.5*vno1)))
-	  /* 
-	     NOTE: for this to work properly in the write, the first two
-	     vertices in the first face (EVEN and ODD) must be 0 and 1.
-	  */
-	  which = WHICH_FACE_SPLIT(vertices[0], vertices[1]) ;
-
-	  /* 1st triangle */
-	  if (EVEN(which))
+			/* 
+				 NOTE: for this to work properly in the write, the first two
+				 vertices in the first face (EVEN and ODD) must be 0 and 1.
+			*/
+			which = WHICH_FACE_SPLIT(vertices[0], vertices[1]) ;
+			
+			/* 1st triangle */
+			if (EVEN(which))
 	    {
 	      mris->faces[fno].v[0] = vertices[0] ;
 	      mris->faces[fno].v[1] = vertices[1] ;
@@ -687,7 +687,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
 	      mris->faces[fno+1].v[1] = vertices[3] ;
 	      mris->faces[fno+1].v[2] = vertices[1] ;
 	    }
-	  else
+			else
 	    {
 	      mris->faces[fno].v[0] = vertices[0] ;
 	      mris->faces[fno].v[1] = vertices[1] ;
@@ -698,36 +698,54 @@ MRISreadOverAlloc(char *fname, double pct_over)
 	      mris->faces[fno+1].v[1] = vertices[2] ;
 	      mris->faces[fno+1].v[2] = vertices[3] ;
 	    }
-	  for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+			for (n = 0 ; n < VERTICES_PER_FACE ; n++)
 	    {
 	      mris->vertices[mris->faces[fno].v[n]].num++;
 	      mris->vertices[mris->faces[fno+1].v[n]].num++;
 	    }
+		}
+		mris->useRealRAS = 0;
+
+		// read tags
+		{
+			long long len ;
+			
+			while ((tag = TAGreadStart(fp, &len)) != 0)
+			{
+				char buf[STRLEN] ;
+				switch (tag)
+				{
+				case TAG_OLD_SURF_GEOM:
+					readVolGeom(fp, &mris->vg);
+					break ;
+				case TAG_OLD_USEREALRAS:
+					if (!freadIntEx(&mris->useRealRAS,fp)) // set useRealRAS
+						mris->useRealRAS = 0; // if error, set to default
+					break ;
+				case TAG_CMDLINE:
+					if (mris->ncmds > MAX_CMDS)
+						ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname,mris->ncmds);
+					fread(buf, sizeof(char), len, fp) ;
+					mris->cmdlines[mris->ncmds] = calloc(len, sizeof(char)) ;
+					strcpy(mris->cmdlines[mris->ncmds], buf) ;
+					mris->ncmds++ ;
+					break ;
+				default:
+					TAGskip(fp, tag, (long long)len) ;
+					break ;
+				}
+			}
+		}
+		fclose(fp);
 	}
-      mris->useRealRAS = 0;
-      // new addition
-      while (freadIntEx(&tag, fp))
-	{
-	  if (tag == TAG_USEREALRAS)
-	    {
-	      if (!freadIntEx(&mris->useRealRAS,fp)) // set useRealRAS
-		mris->useRealRAS = 0; // if error, set to default
-	    }
-	  else if (tag == TAG_SURF_GEOM)
-	    {
-	      readVolGeom(fp, &mris->vg);
-	    }
-	}
-      fclose(fp);
-    }
   /* end of quadrangle file processing */
   /* file is closed now for all types ***********************************/
-
+	
   /* find out if this surface is lh or rh from fname */
   strcpy(mris->fname, fname) ;
   {
     char *surf_name ;
-
+		
     surf_name = strrchr(fname, '/') ;
     if (surf_name == NULL)
       surf_name = fname ;
@@ -738,7 +756,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
     else
       mris->hemisphere = LEFT_HEMISPHERE ;
   }
-
+	
   /***********************************************************************/
   /* build members of mris structure                                     */
   /***********************************************************************/
@@ -1195,57 +1213,64 @@ MRISwrite(MRI_SURFACE *mris, char *name)
   fwrite3(mris->nvertices,fp);
   fwrite3(mris->nfaces/2,fp);   /* # of quadrangles */
   for (k = 0 ; k < mris->nvertices ; k++)
-    {
-      x = mris->vertices[k].x;
-      y = mris->vertices[k].y;
-      z = mris->vertices[k].z;
+	{
+		x = mris->vertices[k].x;
+		y = mris->vertices[k].y;
+		z = mris->vertices[k].z;
 #if 1
-      fwrite2((int)(x*100),fp);
-      fwrite2((int)(y*100),fp);
-      fwrite2((int)(z*100),fp);
+		fwrite2((int)(x*100),fp);
+		fwrite2((int)(y*100),fp);
+		fwrite2((int)(z*100),fp);
 #else
-      fwriteFloat(x, fp) ;
-      fwriteFloat(y, fp) ;
-      fwriteFloat(z, fp) ;
+		fwriteFloat(x, fp) ;
+		fwriteFloat(y, fp) ;
+		fwriteFloat(z, fp) ;
 #endif
-    }
+	}
   for (k = 0 ; k < mris->nfaces ; k+=2)
-    {
-      int which ;
-      FACE *f ;
+	{
+		int which ;
+		FACE *f ;
 
-      f = &mris->faces[k] ;
-      {
-	int n ;
-	for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-	  {
-	    if ((mris->faces[k].v[n] == 22) || (mris->faces[k+1].v[n] == 22))
-	      DiagBreak() ;
-	  }
-      }
-      which = WHICH_FACE_SPLIT(f->v[0], f->v[1]) ;
-      if (EVEN(which))
-	{
-	  fwrite3(mris->faces[k].v[0],fp);
-	  fwrite3(mris->faces[k].v[1],fp);
-	  fwrite3(mris->faces[k+1].v[0],fp);
-	  fwrite3(mris->faces[k].v[2],fp);
+		f = &mris->faces[k] ;
+		{
+			int n ;
+			for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+			{
+				if ((mris->faces[k].v[n] == 22) || (mris->faces[k+1].v[n] == 22))
+					DiagBreak() ;
+			}
+		}
+		which = WHICH_FACE_SPLIT(f->v[0], f->v[1]) ;
+		if (EVEN(which))
+		{
+			fwrite3(mris->faces[k].v[0],fp);
+			fwrite3(mris->faces[k].v[1],fp);
+			fwrite3(mris->faces[k+1].v[0],fp);
+			fwrite3(mris->faces[k].v[2],fp);
+		}
+		else
+		{
+			fwrite3(mris->faces[k].v[0],fp);
+			fwrite3(mris->faces[k].v[1],fp);
+			fwrite3(mris->faces[k].v[2],fp);
+			fwrite3(mris->faces[k+1].v[2],fp);
+		}
 	}
-      else
-	{
-	  fwrite3(mris->faces[k].v[0],fp);
-	  fwrite3(mris->faces[k].v[1],fp);
-	  fwrite3(mris->faces[k].v[2],fp);
-	  fwrite3(mris->faces[k+1].v[2],fp);
-	}
-    }
   /* write whether vertex data was using the real RAS rather than conformed RAS */
-  fwriteInt(TAG_USEREALRAS, fp);
+  fwriteInt(TAG_OLD_USEREALRAS, fp);
   fwriteInt(mris->useRealRAS, fp);
   // volume info
-  fwriteInt(TAG_SURF_GEOM, fp);
+  fwriteInt(TAG_OLD_SURF_GEOM, fp);
   writeVolGeom(fp, &mris->vg);
 
+	// write other tags
+	{
+		int i ;
+
+		for (i = 0 ; i < mris->ncmds ; i++)
+			TAGwrite(fp, TAG_CMDLINE, mris->cmdlines[i], strlen(mris->cmdlines[i])+1) ;
+	}
   fclose(fp);
   return(NO_ERROR) ;
 }
@@ -8342,7 +8367,7 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
     
       switch (tag)
 	{
-	case TAG_COLORTABLE:
+	case TAG_OLD_COLORTABLE:
 	  fprintf(stderr, "reading colortable from annotation file...\n") ;
 	  mris->ct = CTABreadFrom(fp) ;
 	  fprintf(stderr, "colortable with %d entries read (originally %s)\n", mris->ct->nbins, mris->ct->fname) ;
@@ -8466,7 +8491,7 @@ MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
   if (mris->ct)   /* also write annotation in */
     {
       printf("writing colortable into annotation file...\n") ;
-      fwriteInt(TAG_COLORTABLE, fp) ;
+      fwriteInt(TAG_OLD_COLORTABLE, fp) ;
       CTABwriteInto(fp, mris->ct);
     }
 
@@ -23995,23 +24020,30 @@ MRISwriteTriangularSurface(MRI_SURFACE *mris, char *fname)
   fwriteInt(mris->nvertices,fp);
   fwriteInt(mris->nfaces,fp);   /* # of triangles */
   for (k = 0 ; k < mris->nvertices ; k++)
-    {
-      fwriteFloat(mris->vertices[k].x, fp) ;
-      fwriteFloat(mris->vertices[k].y, fp) ;
-      fwriteFloat(mris->vertices[k].z, fp) ;
-    }
+	{
+		fwriteFloat(mris->vertices[k].x, fp) ;
+		fwriteFloat(mris->vertices[k].y, fp) ;
+		fwriteFloat(mris->vertices[k].z, fp) ;
+	}
   for (k = 0 ; k < mris->nfaces ; k++)
-    {
-      for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-	fwriteInt(mris->faces[k].v[n],fp);
-    }
+	{
+		for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+			fwriteInt(mris->faces[k].v[n],fp);
+	}
   /* write whether vertex data was using the real RAS rather than conformed RAS */
-  fwriteInt(TAG_USEREALRAS, fp);
+  fwriteInt(TAG_OLD_USEREALRAS, fp);
   fwriteInt(mris->useRealRAS, fp);
 
-  fwriteInt(TAG_SURF_GEOM, fp);
+  fwriteInt(TAG_OLD_SURF_GEOM, fp);
   writeVolGeom(fp, &mris->vg);
 
+	// write other tags
+	{
+		int i ;
+
+		for (i = 0 ; i < mris->ncmds ; i++)
+			TAGwrite(fp, TAG_CMDLINE, mris->cmdlines[i], strlen(mris->cmdlines[i])+1) ;
+	}
   fclose(fp);
   return(NO_ERROR) ;
 }
@@ -24171,56 +24203,76 @@ mrisReadTriangleFile(char *fname, double pct_over)
   mris->type = MRIS_TRIANGULAR_SURFACE ;
   
   for (vno = 0 ; vno < nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (vno == Gdiag_no)
-	DiagBreak() ;
-      v->x = freadFloat(fp);
-      v->y = freadFloat(fp);
-      v->z = freadFloat(fp);
+	{
+		v = &mris->vertices[vno] ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		v->x = freadFloat(fp);
+		v->y = freadFloat(fp);
+		v->z = freadFloat(fp);
 #if 0
-      v->label = NO_LABEL ;
+		v->label = NO_LABEL ;
 #endif
-      v->num = 0;   /* will figure it out */
-      if (fabs(v->x) > 10000 || !finite(v->x))
-	ErrorExit(ERROR_BADFILE, "%s: vertex %d x coordinate %f!",
-		  Progname, vno, v->x) ;
-      if (fabs(v->y) > 10000 || !finite(v->y))
-	ErrorExit(ERROR_BADFILE, "%s: vertex %d y coordinate %f!",
-		  Progname, vno, v->y) ;
-      if (fabs(v->z) > 10000 || !finite(v->z))
-	ErrorExit(ERROR_BADFILE, "%s: vertex %d z coordinate %f!",
-		  Progname, vno, v->z) ;
-    }
+		v->num = 0;   /* will figure it out */
+		if (fabs(v->x) > 10000 || !finite(v->x))
+			ErrorExit(ERROR_BADFILE, "%s: vertex %d x coordinate %f!",
+								Progname, vno, v->x) ;
+		if (fabs(v->y) > 10000 || !finite(v->y))
+			ErrorExit(ERROR_BADFILE, "%s: vertex %d y coordinate %f!",
+								Progname, vno, v->y) ;
+		if (fabs(v->z) > 10000 || !finite(v->z))
+			ErrorExit(ERROR_BADFILE, "%s: vertex %d z coordinate %f!",
+								Progname, vno, v->z) ;
+	}
   
   for (fno = 0 ; fno < mris->nfaces ; fno++)
-    {
-      f = &mris->faces[fno] ;
-      for (n = 0 ; n < VERTICES_PER_FACE ; n++)  
 	{
-	  f->v[n] = freadInt(fp);
-	  if (f->v[n] >= mris->nvertices || f->v[n] < 0)
-	    ErrorExit(ERROR_BADFILE, "f[%d]->v[%d] = %d - out of range!\n",
-		      fno, n, f->v[n]) ;
-	}
+		f = &mris->faces[fno] ;
+		for (n = 0 ; n < VERTICES_PER_FACE ; n++)  
+		{
+			f->v[n] = freadInt(fp);
+			if (f->v[n] >= mris->nvertices || f->v[n] < 0)
+				ErrorExit(ERROR_BADFILE, "f[%d]->v[%d] = %d - out of range!\n",
+									fno, n, f->v[n]) ;
+		}
     
-      for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-	mris->vertices[mris->faces[fno].v[n]].num++;
-    }
+		for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+			mris->vertices[mris->faces[fno].v[n]].num++;
+	}
   // new addition
   mris->useRealRAS = 0;
-  while (freadIntEx(&tag, fp))
-    {
-      if (tag == TAG_USEREALRAS)
+
+	// read tags
 	{
-	  if (!freadIntEx(&mris->useRealRAS,fp)) // set useRealRAS
-	    mris->useRealRAS = 0; // if error, set to default
+		long long len ;
+		
+		while ((tag = TAGreadStart(fp, &len)) != 0)
+		{
+			char buf[STRLEN] ;
+			switch (tag)
+			{
+			case TAG_OLD_SURF_GEOM:
+				readVolGeom(fp, &mris->vg);
+				break ;
+			case TAG_OLD_USEREALRAS:
+				if (!freadIntEx(&mris->useRealRAS,fp)) // set useRealRAS
+					mris->useRealRAS = 0; // if error, set to default
+				break ;
+			case TAG_CMDLINE:
+				if (mris->ncmds > MAX_CMDS)
+					ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname,mris->ncmds);
+				fread(buf, sizeof(char), len, fp) ;
+				mris->cmdlines[mris->ncmds] = calloc(len, sizeof(char)) ;
+				strcpy(mris->cmdlines[mris->ncmds], buf) ;
+				mris->ncmds++ ;
+				break ;
+			default:
+				TAGskip(fp, tag, (long long)len) ;
+				break ;
+			}
+		}
 	}
-      else if (tag == TAG_SURF_GEOM)
-	{
-	  readVolGeom(fp, &mris->vg);
-	}
-    }
+
   fclose(fp);
   return(mris) ;
 }
@@ -47102,4 +47154,16 @@ int MRISgetReadFrame(void)
   if(envframe == NULL) return(0);
   sscanf(envframe,"%d",&frame);
   return(frame);
+}
+int
+MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline)
+{
+	int i ;
+	if (mris->ncmds >= MAX_CMDS)
+		ErrorExit(ERROR_NOMEMORY, "MRISaddCommandLine: can't add cmd %s (%d)", cmdline, mris->ncmds) ;
+
+	i = mris->ncmds++ ;
+	mris->cmdlines[i] = (char *)calloc(strlen(cmdline)+1, sizeof(char)) ;
+	strcpy(mris->cmdlines[i], cmdline) ;
+	return(NO_ERROR) ;
 }
