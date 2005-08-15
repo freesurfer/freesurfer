@@ -1973,6 +1973,12 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 	  foffset = atof(argv[i+1]) ;
 	  fprintf(stderr, "setting foffset to %2.4f\n", foffset) ;
 	}
+      else if (!stricmp(argv[i], "-offset"))
+	{
+	  nargs = 2 ;
+	  offset = atof(argv[i+1]) ;
+	  fprintf(stderr, "setting offset to %2.4f\n", offset) ;
+	}
       else if (!stricmp(argv[i], "-sdir"))
 	{
 	  nargs = 2 ;
@@ -18538,7 +18544,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.127 2005/07/27 15:28:36 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.128 2005/08/15 16:29:01 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19447,7 +19453,7 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"update",(char *)&update, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"decay",(char *)&decay, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"cthk",(char *)&cthk, TCL_LINK_DOUBLE);
-  Tcl_LinkVar(interp,"light0",(char *)&light0_br, TCL_LINK_DOUBLE); /* suffix */
+  Tcl_LinkVar(interp,"light0",(char *)&light0_br, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"light1",(char *)&light1_br, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"light2",(char *)&light2_br, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"light3",(char *)&light3_br, TCL_LINK_DOUBLE);
