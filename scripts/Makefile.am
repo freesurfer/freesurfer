@@ -11,6 +11,7 @@ check_subject \
 cor_to_minc \
 csurf \
 dcmdir-info-mgh \
+deface_subject \
 feat2surf \
 findsession \
 fix_subject \
