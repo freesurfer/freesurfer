@@ -44,4 +44,6 @@
 
 int handle_version_option (int argc, char** argv, 
 			   char* id_string, char* version_string);
+int make_cmd_version_string (int argc, char** argv,  char* id_string, 
+														 char* version_string, char *return_string) ;
 #endif
