@@ -29,13 +29,20 @@ TAGreadStart(FILE *fp, long long *plen)
 	tag = freadInt(fp) ;
 	if (feof(fp))
 		return(0) ;
-	if (tag == TAG_OLD_MGH_XFORM)
+	switch (tag)
 	{
+	case TAG_OLD_MGH_XFORM:
 		*plen = (long long)freadInt(fp) ;  // sorry - backwards compatibility with Tosa's stuff
 		*plen = *plen -1 ; // doesn't include null
-	}
-	else
+		break ;
+	case TAG_OLD_SURF_GEOM:    // these don't take lengths at all
+	case TAG_OLD_USEREALRAS:
+	case TAG_OLD_COLORTABLE:
+		*plen = 0 ;
+		break ;
+	default:
 		*plen = freadLong(fp) ;
+	}
 	
 	return(tag) ;
 }
@@ -59,7 +66,7 @@ TAGwrite(FILE *fp, int tag, void *buf, long long len)
 {
 	long long here ;
 
-	TAGwriteStart(fp, TAG_CMDLINE, &here, len) ;
+	TAGwriteStart(fp, tag, &here, len) ;
 	fwrite(buf, sizeof(char), len, fp) ;
 	TAGwriteEnd(fp, here) ;
 	return(NO_ERROR) ;

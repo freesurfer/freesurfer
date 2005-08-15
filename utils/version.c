@@ -1,8 +1,8 @@
 /**
  * @file   version.c
- * @author $Author: tosa $
- * @date   $Date: 2004/11/05 15:49:56 $
- *         $Revision: 1.13 $
+ * @author $Author: fischl $
+ * @date   $Date: 2005/08/15 01:40:01 $
+ *         $Revision: 1.14 $
  * @brief  freesurfer version functions defined here
  * 
  * 
@@ -15,6 +15,7 @@
 #include <sys/utsname.h>
 #include <unistd.h>
 #include "version.h"
+#include "error.h"
 
 /* I have no idea what this is */
 // char version[] = "version 1.0, Wed Apr 26 11:11:26 EDT 2000" ;
@@ -86,6 +87,96 @@
       exit (0);
     argc -= nargs;
 */
+int
+make_cmd_version_string (int argc, char** argv,  char* id_string, 
+												 char* version_string, char *return_string) 
+{
+
+  int nnarg = 0;
+  char stripped_version_string[1024];
+  int length;
+  time_t seconds;
+  struct tm broken_time;
+  struct utsname kernel_info;
+  int result;
+  char *begin, *cp;
+  char program_name[1024];
+  char arguments[1024];
+  char time_stamp[1024];
+  char user[1024];
+  char machine[1024];
+  char platform_version[1024];
+
+	if (strlen(version_string) > 7)
+	{
+		strcpy (stripped_version_string, &(version_string[7]));
+		length = strlen (stripped_version_string);
+		if (length > 2)
+		{
+			stripped_version_string[length-2] = '\0';
+		}
+	}
+	else
+	{
+		strcpy (stripped_version_string, version_string);
+	}
+
+	begin = argv[0];
+	strcpy (program_name, begin);
+	
+	/* Copy the arguments to the arguments string. */
+	strcpy (arguments, "");
+	if (argc > 1)
+	{
+		strcpy (arguments, argv[1]);
+		for (nnarg = 2; nnarg < argc; nnarg++)
+			sprintf (arguments, "%s %s", arguments, argv[nnarg]);
+	}
+
+	/* Find the time string. */
+	seconds = time(NULL);
+	gmtime_r (&seconds, &broken_time);
+	sprintf (time_stamp, "%02d/%02d/%02d-%02d:%02d:%02d-GMT",
+					 broken_time.tm_year%100, /* mod here to change 103 to 03 */
+					 broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
+					 broken_time.tm_mday, broken_time.tm_hour,
+					 broken_time.tm_min, broken_time.tm_sec);
+	
+	/* Use getlogin() to get the user controlling this process. */
+	cp = getlogin() ;
+	if (cp != NULL)
+		strcpy (user, cp); 
+	else
+		strcpy(user, "UNKNOWN") ;
+	
+	/* Call uname to get the machine. */
+	result = uname (&kernel_info);
+	if (0 != result)
+	{
+		fprintf (stderr, "uname() returned %d\n", result);
+	}
+	strcpy (machine, kernel_info.nodename);
+	strcpy (platform_version, kernel_info.release);
+
+	/* Build the info string. */
+	sprintf (return_string, "%s %s "
+							 "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
+							 "Machine: %s Platform: %s PlatformVersion: %s "
+							 "CompilerName: %s CompilerVersion: %d\n",
+							 program_name,
+							 arguments,
+							 version_string,
+							 time_stamp,
+							 id_string,
+							 user,
+							 machine,
+							 PLATFORM,
+							 platform_version,
+							 COMPILER_NAME,
+							 COMPILER_VERSION);
+	  
+  return(NO_ERROR) ;
+}
 int
 handle_version_option (int argc, char** argv, 
 		       char* id_string, char* version_string) 
