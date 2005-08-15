@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/12 17:13:08 $
-// Revision       : $Revision: 1.33 $
+// Revision Date  : $Date: 2005/08/15 14:05:17 $
+// Revision       : $Revision: 1.34 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.33 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.34 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -588,7 +588,7 @@ int main(int argc, char *argv[])
   STRIP_PARMS *parms;
 	char cmdline[CMD_LINE_LEN] ;
 	
-	TAGmakeCommandLineString(argc, argv, cmdline) ;
+  make_cmd_version_string (argc, argv, "$Id: mri_watershed.cpp,v 1.34 2005/08/15 14:05:17 fischl Exp $", "$Name:  $", cmdline);
 
   Progname=argv[0];
 
@@ -597,7 +597,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.33 2005/08/12 17:13:08 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.34 2005/08/15 14:05:17 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
