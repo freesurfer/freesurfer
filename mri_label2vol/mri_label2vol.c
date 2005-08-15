@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.16 2005/08/12 17:37:34 fischl Exp $
+  $Id: mri_label2vol.c,v 1.17 2005/08/15 14:28:04 fischl Exp $
 */
 
 
@@ -56,7 +56,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.16 2005/08/12 17:37:34 fischl Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.17 2005/08/15 14:28:04 fischl Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -112,11 +112,12 @@ int main(int argc, char **argv)
 
 	char cmdline[CMD_LINE_LEN] ;
 
-	TAGmakeCommandLineString(argc, argv, cmdline) ;
+  make_cmd_version_string (argc, argv, 
+													 "$Id: mri_label2vol.c,v 1.17 2005/08/15 14:28:04 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-																 "$Id: mri_label2vol.c,v 1.16 2005/08/12 17:37:34 fischl Exp $", "$Name:  $");
+																 "$Id: mri_label2vol.c,v 1.17 2005/08/15 14:28:04 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
