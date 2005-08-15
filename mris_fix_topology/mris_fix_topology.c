@@ -6,6 +6,7 @@
 
 #include "macros.h"
 #include "error.h"
+#include "tags.h"
 #include "diag.h"
 #include "proto.h"
 #include "timer.h"
@@ -16,7 +17,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.30 2005/05/30 19:36:11 segonne Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.31 2005/08/15 14:28:43 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,8 +59,12 @@ main(int argc, char *argv[])
   float         max_len ;
   struct timeb  then ;
 
+	char cmdline[CMD_LINE_LEN] ;
+	
+  make_cmd_version_string (argc, argv, "$Id: mris_fix_topology.c,v 1.31 2005/08/15 14:28:43 fischl Exp $", "$Name:  $", cmdline);
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.30 2005/05/30 19:36:11 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.31 2005/08/15 14:28:43 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -145,6 +150,7 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read input surface %s",
               Progname, fname) ;
+	MRISaddCommandLine(mris, cmdline) ;
   strcpy(mris->subject_name, sname) ;
   eno = MRIScomputeEulerNumber(mris, &nvert, &nfaces, &nedges) ;
   fprintf(stderr, "before topology correction, eno=%d (nv=%d, nf=%d, ne=%d,"
