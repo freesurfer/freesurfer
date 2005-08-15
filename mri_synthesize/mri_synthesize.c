@@ -16,7 +16,7 @@
 #include "tags.h"
 #include "flash.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.15 2005/08/12 17:43:34 fischl Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.16 2005/08/15 14:31:12 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -82,10 +82,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 
-	TAGmakeCommandLineString(argc, argv, cmdline) ;
+  make_cmd_version_string (argc, argv, "$Id: mri_synthesize.c,v 1.16 2005/08/15 14:31:12 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.15 2005/08/12 17:43:34 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.16 2005/08/15 14:31:12 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

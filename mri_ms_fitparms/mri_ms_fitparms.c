@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/12 18:01:51 $
-// Revision       : $Revision: 1.45 $
+// Revision Date  : $Date: 2005/08/15 14:31:04 $
+// Revision       : $Revision: 1.46 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -145,10 +145,10 @@ main(int argc, char *argv[])
   int b, segno;
 	char cmdline[CMD_LINE_LEN] ;
 
-	TAGmakeCommandLineString(argc, argv, cmdline) ;
+  make_cmd_version_string (argc, argv, "$Id: mri_ms_fitparms.c,v 1.46 2005/08/15 14:31:04 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.45 2005/08/12 18:01:51 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.46 2005/08/15 14:31:04 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
