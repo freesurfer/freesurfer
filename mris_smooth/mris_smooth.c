@@ -7,6 +7,7 @@
 
 #include "macros.h"
 #include "error.h"
+#include "tags.h"
 #include "diag.h"
 #include "proto.h"
 #include "mrisurf.h"
@@ -14,7 +15,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_smooth.c,v 1.12 2003/09/05 04:45:44 kteich Exp $";
+static char vcid[] = "$Id: mris_smooth.c,v 1.13 2005/08/15 14:22:53 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -45,8 +46,12 @@ main(int argc, char *argv[])
   int                ac, nargs ;
   MRI_SURFACE        *mris ;
 
+	char cmdline[CMD_LINE_LEN] ;
+	
+  make_cmd_version_string (argc, argv, "$Id: mris_smooth.c,v 1.13 2005/08/15 14:22:53 fischl Exp $", "$Name:  $", cmdline);
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_smooth.c,v 1.12 2003/09/05 04:45:44 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_smooth.c,v 1.13 2005/08/15 14:22:53 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -76,6 +81,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
 
+	MRISaddCommandLine(mris, cmdline) ;
   MRISremoveTriangleLinks(mris) ;
   fprintf(stderr, "smoothing surface tessellation for %d iterations...\n",
           niterations);

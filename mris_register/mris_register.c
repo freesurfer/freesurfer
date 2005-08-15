@@ -7,6 +7,7 @@
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
+#include "tags.h"
 #include "proto.h"
 #include "mrisurf.h"
 #include "mri.h"
@@ -14,7 +15,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.29 2005/08/05 17:49:58 greve Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.30 2005/08/15 14:24:44 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -69,8 +70,12 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp_template ;
 
+	char cmdline[CMD_LINE_LEN] ;
+	
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.30 2005/08/15 14:24:44 fischl Exp $", "$Name:  $", cmdline);
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.29 2005/08/05 17:49:58 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.30 2005/08/15 14:24:44 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -143,6 +148,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
 
+	MRISaddCommandLine(mris, cmdline) ;
   if (!FZERO(dalpha) || !FZERO(dbeta) || !FZERO(dgamma))
     MRISrotate(mris, mris, RADIANS(dalpha), RADIANS(dbeta), 
                RADIANS(dgamma)) ;
@@ -175,7 +181,6 @@ main(int argc, char *argv[])
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   if (reverse_flag) MRISreverse(mris, REVERSE_X) ; 
   mris->status = MRIS_PARAMETERIZED_SPHERE ;
-  printf("  MRIScomputeMetricProperties()\n");
   MRIScomputeMetricProperties(mris) ;
   if (!FZERO(parms.l_dist))
     MRISscaleDistances(mris, scale) ;
@@ -184,10 +189,8 @@ main(int argc, char *argv[])
   MRISzeroNegativeAreas(mris) ;
   MRISstoreMetricProperties(mris) ;
 #endif
-  printf("  MRISstoreMeanCurvature()\n");
   MRISstoreMeanCurvature(mris) ;  /* use curvature from file */
   /*  MRISsetOriginalFileName(mris, orig_name) ;*/
-  printf("  MRISreadOriginalProperties()\n");
   err = MRISreadOriginalProperties(mris, orig_name) ;
   if(err != 0){
     printf("ERROR %d from MRISreadOriginalProperties().\n",err);
