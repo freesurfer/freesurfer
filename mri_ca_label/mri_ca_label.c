@@ -24,6 +24,7 @@ static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
 
 static float regularize = 0 ;
+static float regularize_mean = 0 ;
 static int avgs = 0 ;
 static int norm_PD = 0;
 static int map_to_flash = 0 ;
@@ -112,10 +113,10 @@ main(int argc, char *argv[])
   
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.60 2005/08/15 14:30:01 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.61 2005/08/15 16:12:04 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.60 2005/08/15 14:30:01 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.61 2005/08/15 16:12:04 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -525,12 +526,12 @@ main(int argc, char *argv[])
       if (renormalize_iter > 0){
 				GCAmapRenormalize(gca, mri_inputs, transform) ;
 				printf("relabeling volume...\n") ;
-				if (avgs > 0)
-					GCAregularizeConditionalDensities(gca, avgs) ;
+				if (regularize_mean > 0)
+					GCAregularizeConditionalDensities(gca, regularize_mean) ;
 				GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
       }
-			else if (avgs > 0)
-				GCAregularizeConditionalDensities(gca, avgs) ;
+			else if (regularize_mean > 0)
+				GCAregularizeConditionalDensities(gca, regularize_mean) ;
 #endif
       preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
       if (fixed_flag == 0)
@@ -812,6 +813,13 @@ get_option(int argc, char *argv[])
   {
     regularize = atof(argv[2]) ;
     printf("regularizing covariance to be %2.2f Cclass + %2.2f Cpooled\n",(1-regularize),regularize) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "REGULARIZE_MEAN"))
+  {
+    regularize_mean = atof(argv[2]) ;
+    printf("regularizing means to be %2.2f u(global) + %2.2f u(r)\n",
+					 regularize_mean, 1-regularize_mean) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "cross-sequence") || !stricmp(option, "cross_sequence"))
