@@ -24,7 +24,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.93 2005/08/15 14:10:24 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.94 2005/08/15 14:30:08 fischl Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -324,13 +324,12 @@ main(int argc, char *argv[])
   VOL_GEOM *src=0;
 	char cmdline[CMD_LINE_LEN] ;
 
-	TAGmakeCommandLineString(argc, argv, cmdline) ;
-  make_cmd_version_string (argc, argv, "$Id: mri_fill.c,v 1.93 2005/08/15 14:10:24 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_fill.c,v 1.94 2005/08/15 14:30:08 fischl Exp $", "$Name:  $", cmdline);
 
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.93 2005/08/15 14:10:24 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.94 2005/08/15 14:30:08 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
