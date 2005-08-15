@@ -9,13 +9,14 @@
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
+#include "tags.h"
 #include "timer.h"
 #include "mrisurf.h"
 #include "mri.h"
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.27 2003/09/05 04:45:42 kteich Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.28 2005/08/15 14:23:37 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -45,8 +46,12 @@ main(int argc, char *argv[])
   struct timeb  then ;
   float         radius ;
 
+	char cmdline[CMD_LINE_LEN] ;
+	
+  make_cmd_version_string (argc, argv, "$Id: mris_inflate.c,v 1.28 2005/08/15 14:23:37 fischl Exp $", "$Name:  $", cmdline);
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_inflate.c,v 1.27 2003/09/05 04:45:42 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_inflate.c,v 1.28 2005/08/15 14:23:37 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -112,6 +117,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
 
+	MRISaddCommandLine(mris, cmdline) ;
   MRISstoreMetricProperties(mris) ;  /* use current surface as reference */
 
   if (talairach_flag)
