@@ -22,7 +22,7 @@ fix_subject_corrected-rh \
 fix_subject-lh \
 fix_subject_on_seychelles \
 fix_subject-rh \
-freesurfer \
+freesurfer.csh \
 fsl_rigid_register \
 fslregister \
 grad_unwarp \
@@ -186,9 +186,9 @@ csurf: csurf.in
 	chmod +x $@
 
 # can't checkin a file named freesurfer to cvs, so must use this round-about:
-freesurfer: freesurfer.csh
-	cp freesurfer.csh freesurfer
-	chmod +x freesurfer
+#freesurfer: freesurfer.csh
+#	cp freesurfer.csh freesurfer
+#	chmod +x freesurfer
 
 # work on tixwish files
 # Why was he doing this???
