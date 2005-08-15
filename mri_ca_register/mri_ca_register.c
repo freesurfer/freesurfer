@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/08/11 19:27:45 $
-// Revision       : $Revision: 1.32 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/08/15 16:09:40 $
+// Revision       : $Revision: 1.33 $
 
 
 #include <math.h>
@@ -50,6 +50,7 @@ static char *long_reg_fname = NULL ;
 //static int inverted_xform = 0 ;
 
 static float regularize = 0 ;
+static float regularize_mean = 0 ;
 static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
 static int register_wm_flag = 0 ;
@@ -141,7 +142,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.32 2005/08/11 19:27:45 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.33 2005/08/15 16:09:40 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -636,8 +637,8 @@ main(int argc, char *argv[])
       free(trans);
 		}
   }
-	if (avgs > 0)
-		GCAregularizeConditionalDensities(gca, avgs) ;
+	if (regularize_mean > 0)
+ 		GCAregularizeConditionalDensities(gca, regularize_mean) ;
 
   if (parms.write_iterations != 0)
   {
@@ -755,6 +756,13 @@ get_option(int argc, char *argv[])
   {
     regularize = atof(argv[2]) ;
     printf("regularizing variance to be sigma+%2.1fC(noise)\n", regularize) ;
+		nargs = 1 ;
+  }
+  else if (!stricmp(option, "REGULARIZE_MEAN"))
+  {
+    regularize_mean = atof(argv[2]) ;
+    printf("regularizing means to be %2.2f u(global) + %2.2f u(r)\n",
+					 regularize_mean, 1-regularize_mean) ;
 		nargs = 1 ;
   }
   else if (!stricmp(option, "NOBRIGHT"))
