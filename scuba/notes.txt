@@ -519,6 +519,9 @@ x ROI dlog
     - use transform
     - transform to volume
 
+- save or load LUT user lists
+
+- be able to delete a single item from the user LUT list
 
 Preferences
 
