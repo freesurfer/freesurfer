@@ -1,8 +1,8 @@
 /**
  * @file   version.c
  * @author $Author: fischl $
- * @date   $Date: 2005/08/15 01:40:01 $
- *         $Revision: 1.14 $
+ * @date   $Date: 2005/08/15 14:09:51 $
+ *         $Revision: 1.15 $
  * @brief  freesurfer version functions defined here
  * 
  * 
@@ -162,7 +162,7 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
 	sprintf (return_string, "%s %s "
 							 "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
 							 "Machine: %s Platform: %s PlatformVersion: %s "
-							 "CompilerName: %s CompilerVersion: %d\n",
+							 "CompilerName: %s CompilerVersion: %d",
 							 program_name,
 							 arguments,
 							 version_string,
