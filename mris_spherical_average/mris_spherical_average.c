@@ -14,10 +14,11 @@
 #include "macros.h"
 #include "mrishash.h"
 #include "icosahedron.h"
+#include "tags.h"
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.13 2004/06/29 16:00:42 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.14 2005/08/15 14:26:41 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -52,8 +53,12 @@ main(int argc, char *argv[])
   MRIS_HASH_TABLE *mht = NULL ;
   LABEL           *area, *area_avg = NULL ;
 
+	char cmdline[CMD_LINE_LEN] ;
+	
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.14 2005/08/15 14:26:41 fischl Exp $", "$Name:  $", cmdline);
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.13 2004/06/29 16:00:42 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.14 2005/08/15 14:26:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -128,6 +133,7 @@ main(int argc, char *argv[])
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
+		MRISaddCommandLine(mris, cmdline) ;
 		if (which == VERTEX_COORDS)
 			MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
