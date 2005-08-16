@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.32 2005/07/06 22:15:33 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.33 2005/08/16 14:42:02 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -714,7 +714,7 @@ proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep {
     }
     
     tkm_MakeEntry $isFrame.ew \
-	$isText $iVariable 4 $iSetFunc
+	$isText $iVariable 4 "$iSetFunc \[set $iVariable\]"
 
     button $isFrame.bwDec -text "-" \
 	-command "incr $iVariable -$ifStep; $iSetFunc \[set $iVariable\]" \
