@@ -1760,6 +1760,51 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris)
   MRIfree(&mri) ;
   return(area_dst) ;
 }
+LABEL *
+LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris)
+{
+  MRI    *mri ;
+  int    i, dst_index, vno ;
+  Real   xw, yw, zw, xv, yv, zv ;
+  VERTEX *v ;
+  LABEL  *area_dst ;
+  
+  mri = MRIalloc(256,256,256,MRI_UCHAR) ;
+  area_dst = LabelAlloc(mris->nvertices, mris->subject_name, area_src->name) ;
+  LabelCopy(area_src, area_dst) ;
+  LabelFillUnassignedVertices(mris, area_dst) ;
+  LabelMarkSurface(area_dst, mris) ;
+
+  for (i = 0 ; i < area_src->n_points ; i++)
+  {
+    xw = area_src->lv[i].x  ;
+    yw = area_src->lv[i].y  ;
+    zw = area_src->lv[i].z  ;
+    // MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+    MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+    MRIvox(mri, nint(xv), nint(yv), nint(zv)) = 1 ;
+  }
+  
+  dst_index = area_dst->n_points ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag || v->marked)   /* already in label */
+      continue ;
+    MRISorigVertexToVoxel(v, mri, &xv, &yv, &zv) ;
+    if (MRIvox(mri, nint(xv), nint(yv), nint(zv)) == 1)
+    {
+      area_dst->lv[dst_index].vno = vno ;
+      area_dst->lv[dst_index].x = v->origx ;
+      area_dst->lv[dst_index].y = v->origy ;
+      area_dst->lv[dst_index].z = v->origz ;
+      dst_index++ ; area_dst->n_points++ ;
+    }
+  }
+  
+  MRIfree(&mri) ;
+  return(area_dst) ;
+}
 
 /*---------------------------------------------------------------
   LabelHasVertex() - returns -1 if the vertex is not in the label,
