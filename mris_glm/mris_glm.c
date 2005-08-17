@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.42 2005/08/17 22:00:47 greve Exp $
+  $Id: mris_glm.c,v 1.43 2005/08/17 22:19:35 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -75,7 +75,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.42 2005/08/17 22:00:47 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.43 2005/08/17 22:19:35 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -187,6 +187,7 @@ char *chtfile=NULL;
 int n_ithr, n_sthr;
 double ithr_lo, ithr_hi, sthr_lo, sthr_hi;
 char *ithr_sign;
+int abs_flag = 0;
 
 int nvoxels;
 FILE *fp;
@@ -202,7 +203,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.42 2005/08/17 22:00:47 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.43 2005/08/17 22:19:35 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -478,6 +479,8 @@ int main(int argc, char **argv)
       
       if(nsmooth > 0) MRISsmoothMRI(IcoSurf, SrcVals, nsmooth, SrcVals);
     } /*End syntheisze */
+
+    if(abs_flag) SrcVals = MRIabs(SrcVals,SrcVals);
     
     /* Save the input data */
     if(beta_in_id == NULL && yid != NULL && MCSim == 0){
@@ -674,6 +677,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--allowsubjrep")) 
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if ( !strcmp(option, "--xmatonly") ) xmatonly = 1;
+    else if ( !strcmp(option, "--abs") ) abs_flag = 1;
 
     else if (!strcmp(option, "--seed")){
       if(nargc < 1) argnerr(option,1);
@@ -1002,6 +1006,7 @@ static void print_usage(void)
   printf("   --trgsubj    subject : target subject \n");
   printf("   --icoorder   order : order of icosahedral tesselation (default 7)\n");
   printf("   --nsmooth    N     : number of smoothing iterations\n");
+  printf("   --abs   : use absolute value of input after smoothing\n");
   printf("\n");
   printf("Processed Data Input Options\n");
   printf("   --beta_in    name <fmt> : parameter estimates from previous \n");
