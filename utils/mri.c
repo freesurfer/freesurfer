@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/12 17:09:54 $
-// Revision       : $Revision: 1.307 $
-char *MRI_C_VERSION = "$Revision: 1.307 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/08/17 22:20:49 $
+// Revision       : $Revision: 1.308 $
+char *MRI_C_VERSION = "$Revision: 1.308 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -3639,32 +3639,28 @@ MRIabsdiff(MRI *mri1, MRI *mri2, MRI *mri_dst)
 }
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-MRI *
-MRIabs(MRI *mri_src, MRI *mri_dst)
+MRI *MRIabs(MRI *mri_src, MRI *mri_dst)
 {
-  int     width, height, depth, x, y, z ;
-  BUFTYPE *psrc, *pdst, b ;
+  int   width, height, depth, nframes, x, y, z,f ;
+  float val;
 
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
+  nframes = mri_src->nframes;
 
-  if (!mri_dst)
-  {
-    mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
+  if (!mri_dst){
+    mri_dst = MRIallocSequence(width, height, depth, mri_src->type, nframes) ;
     MRIcopyHeader(mri_src, mri_dst) ;
   }
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      psrc = mri_src->slices[z][y] ;
-      pdst = mri_dst->slices[z][y] ;
-      for (x = 0 ; x < width ; x++)
-      {
-        b = *psrc++ ;
-        *pdst++ = abs(b) ;
+  for (z = 0 ; z < depth ; z++){
+    for (y = 0 ; y < height ; y++){
+      for (x = 0 ; x < width ; x++){
+	for (f = 0 ; f < nframes ; f++){
+	  val = fabs(MRIgetVoxVal(mri_src,x,y,z,f));
+	  MRIsetVoxVal(mri_src,x,y,z,f,val);
+	}
       }
     }
   }
