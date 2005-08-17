@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.75 2005/08/15 16:29:13 kteich Exp $
+# $Id: tksurfer.tcl,v 1.76 2005/08/17 17:03:03 kteich Exp $
 
 package require BLT;
 
@@ -2747,7 +2747,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	}}
 	{ cascade "Surface" {
 	    { command "Smooth Curvature..."
-		{ DoSmoothvCurvatureDlog }
+		{ DoSmoothCurvatureDlog }
 		mg_CurvatureLoaded }
 	    { command "Clear Curvature"
 		{ clear_curvature }
