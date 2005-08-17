@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.41 2005/08/11 22:02:22 greve Exp $
+  $Id: mris_glm.c,v 1.42 2005/08/17 22:00:47 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -75,7 +75,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.41 2005/08/11 22:02:22 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.42 2005/08/17 22:00:47 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.41 2005/08/11 22:02:22 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.42 2005/08/17 22:00:47 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -590,10 +590,12 @@ int main(int argc, char **argv)
       }
       MRIlog10(sig,sig,1);
       //if(sigfmt != NULL && MCSim == 0){
-      if(sigfmt != NULL){
-	if(IsSurfFmt(sigfmt) && IcoSurf == NULL)
-	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
-	if(MRIwriteAnyFormat(sig,sigid,sigfmt,0,IcoSurf)) exit(1);
+      if(!MCSim){
+	if(sigid != NULL){
+	  if(IsSurfFmt(sigfmt) && IcoSurf == NULL)
+	    IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
+	  if(MRIwriteAnyFormat(sig,sigid,sigfmt,0,IcoSurf)) exit(1);
+	}
       }
     }
 
