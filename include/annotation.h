@@ -14,6 +14,7 @@ char *index_to_name(int index);
 char  *annotation_to_name(int annotation, int *pindex) ;
 int   annotation_to_index(int annotation) ;
 int   print_annotation_table(FILE *fp);
+int print_annotation_colortable(FILE *fp);
 int   index_to_annotation(int index) ;
 LABEL *annotation2label(int annotid, MRIS *Surf);
 

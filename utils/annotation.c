@@ -35,6 +35,18 @@ int print_annotation_table(FILE *fp)
   return(0);
 }
 
+/*-----------------------------------------------*/
+int print_annotation_colortable(FILE *fp)
+{
+  int n;
+  if (num_entries <= 0) read_annotation_table() ;
+
+  for(n = 0; n < num_entries; n++)
+    fprintf(fp,"%3d   %-40s  %3d %3d %3d  0\n",atable[n].index,atable[n].name,
+	    atable[n].r,atable[n].g,atable[n].b);
+  return(0);
+}
+
 int
 read_named_annotation_table(char *name)
 {

@@ -284,9 +284,32 @@ int CTABindexToItemNo(COLOR_TABLE *ctab, int index)
 
   return(-1);
 }
+/*----------------------------------------------------------
+  CTABprint() - print color table to the terminal
+  ----------------------------------------------------------*/
+int CTABprint(FILE *fp, COLOR_TABLE *ctab)
+{
+  int n;
+  
+  for(n=0; n < ctab->nbins; n++)
+    fprintf(fp,"%3d  %-30s  %3d %3d %3d   0\n",n,ctab->bins[n].name,
+	    ctab->bins[n].r,ctab->bins[n].g,ctab->bins[n].b);
+  return(0);
+}
 
-
-
+/*----------------------------------------------------------
+  CTABwriteTxt() - print color table to a file.
+  ----------------------------------------------------------*/
+int CTABwriteTxt(char *fname, COLOR_TABLE *ctab)
+{
+  FILE *fp;
+  fp = fopen(fname,"w");
+  if(fp == NULL){
+    printf("ERROR: could not open %s for writing\n",fname);
+    return(1);
+  }
+  return(CTABprint(fp, ctab));
+}
 
 
 
