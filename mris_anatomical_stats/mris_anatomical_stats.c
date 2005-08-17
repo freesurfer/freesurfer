@@ -14,8 +14,9 @@
 #include "macros.h"
 #include "fio.h"
 #include "version.h"
+#include "colortab.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.26 2005/06/22 22:42:38 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.27 2005/08/17 20:20:13 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -60,6 +61,7 @@ static int tabular_output_flag = 0;
 static char sdir[STRLEN] = "" ;
 static int MGZ = 0; // for use with MGZ format
 static char *tablefile=NULL;
+static char *annotctabfile=NULL; // for outputing the color table
 static FILE *fp=NULL;
 
 static int nsmooth = 0;
@@ -82,7 +84,7 @@ main(int argc, char *argv[])
   MRI           *ThicknessMap = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.26 2005/06/22 22:42:38 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.27 2005/08/17 20:20:13 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -183,13 +185,17 @@ main(int argc, char *argv[])
   fprintf(stderr, "done.\ncomputing second fundamental form...") ;
   MRISsetNeighborhoodSize(mris, 2) ;
   MRIScomputeSecondFundamentalForm(mris) ;
-  if (annotation_name)
-	{
-/*    MRISreadAnnotFile(mris, annotation_name) ;*/
-    if (MRISreadAnnotation(mris, annotation_name) != NO_ERROR)
-			ErrorExit(ERROR_NOFILE, "%s:  could  not read annotation file %s", Progname, annotation_name) ;
-	}
-  fprintf(stderr, "done.\n") ;
+
+  if(annotation_name){
+    if(MRISreadAnnotation(mris, annotation_name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s:  could  not read annotation file %s", 
+		Progname, annotation_name) ;
+    if(annotctabfile != NULL){
+      printf("Saving annotation colortable %s\n",annotctabfile);
+      CTABwriteTxt(annotctabfile,mris->ct);
+    }
+  }
+  printf(" ... done.\n") ;
 
   if (label_name)
   {
@@ -548,6 +554,10 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "computing statistics for each annotation in %s.\n", 
             annotation_name) ;
+    break ;
+  case 'C':
+    annotctabfile = argv[2] ;
+    nargs = 1 ;
     break ;
   case 'I':
     ignore_below = atof(argv[2]) ;
