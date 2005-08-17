@@ -18544,7 +18544,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.128 2005/08/15 16:29:01 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.129 2005/08/17 18:42:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23149,7 +23149,7 @@ labl_send_color_table_info ()
 
 int labl_load (char* fname) 
 {
-  LABEL* label = NULL;
+  LABEL* label = NULL, *lnew;
   int label_index;
   char name[NAME_LENGTH];
   
@@ -23171,6 +23171,8 @@ int labl_load (char* fname)
   /* assign mris vertex numbers to unnumbered vertices based on their
      locations. */
   LabelFillUnassignedVertices (mris, label);
+	lnew  = LabelFillHolesWithOrig(label, mris) ;
+	LabelFree(&label) ; label = lnew ;
   
   /* make a new entry in the label list. */
   labl_add (label, &label_index);
