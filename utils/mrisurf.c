@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/15 18:32:42 $
-// Revision       : $Revision: 1.361 $
+// Revision Date  : $Date: 2005/08/17 18:39:17 $
+// Revision       : $Revision: 1.362 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -8531,7 +8531,7 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
     nv = TempMRI->width * TempMRI->height * TempMRI->depth;
     if(nv != mris->nvertices){
       printf("ERROR: number of vertices in %s does not match surface (%d,%d)",
-	     sname,nv,mris->nvertices);
+						 sname,nv,mris->nvertices);
       return(1);
     }
     MRIfree(&TempMRI);
@@ -8540,10 +8540,10 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
     vno = 0;
     for(s=0; s < TempMRI->depth; s++){
       for(r=0; r < TempMRI->height; r++){
-	for(c=0; c < TempMRI->width; c++){
-	  mris->vertices[vno].val = MRIgetVoxVal(TempMRI,c,r,s,frame);
-	  vno++;
-	}
+				for(c=0; c < TempMRI->width; c++){
+					mris->vertices[vno].val = MRIgetVoxVal(TempMRI,c,r,s,frame);
+					vno++;
+				}
       }
     }
     MRIfree(&TempMRI);
@@ -8552,55 +8552,55 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
 
   cvec = MRISreadCurvatureVector(mris, sname) ;
   if (cvec)
-    {
-      printf("reading values from curvature-format file...\n") ;
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
-	  if (vno == Gdiag_no)
-	    DiagBreak() ;
-	  mris->vertices[vno].val = cvec[vno];
+		printf("reading values from curvature-format file...\n") ;
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			if (vno == Gdiag_no)
+				DiagBreak() ;
+			mris->vertices[vno].val = cvec[vno];
+		}
+		free(cvec) ;
 	}
-      free(cvec) ;
-    }
   else
-    {
-      strcpy(fname, sname) ;
-      cp = strrchr(fname, '.') ;
-      if (!cp || *(cp+1) != 'w')
-	strcat(fname, ".w") ;
-      fp = fopen(fname,"rb");
-      if (fp==NULL) 
-	ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE,
-				   "MRISreadValues: File %s not found\n",fname));
-      fread2(&ilat,fp);
-      lat = ilat/10.0;
-    
-      for (k=0;k<mris->nvertices;k++)
-	mris->vertices[k].val=0;
-      if (fread3(&num,fp) < 1)
-	ErrorReturn(ERROR_BADFILE,
-		    (ERROR_BADFILE, 
-		     "MRISreadValues(%s): could not read # of vertices",
-		     fname)) ;
-      for (i=0;i<num;i++)
 	{
-	  if (fread3(&k,fp) < 1)
-	    ErrorReturn(ERROR_BADFILE,
-			(ERROR_BADFILE, 
-			 "MRISreadValues(%s): could not read %dth vno",
-			 fname, i)) ;
-	  f = freadFloat(fp) ;
-	  if (k>=mris->nvertices||k<0)
-	    printf("MRISreadValues: vertex index out of range: %d f=%f\n",k,f);
-	  else
+		strcpy(fname, sname) ;
+		cp = strrchr(fname, '.') ;
+		if (!cp || *(cp+1) != 'w')
+			strcat(fname, ".w") ;
+		fp = fopen(fname,"rb");
+		if (fp==NULL) 
+			ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE,
+																 "MRISreadValues: File %s not found\n",fname));
+		fread2(&ilat,fp);
+		lat = ilat/10.0;
+    
+		for (k=0;k<mris->nvertices;k++)
+			mris->vertices[k].val=0;
+		if (fread3(&num,fp) < 1)
+			ErrorReturn(ERROR_BADFILE,
+									(ERROR_BADFILE, 
+									 "MRISreadValues(%s): could not read # of vertices",
+									 fname)) ;
+		for (i=0;i<num;i++)
+		{
+			if (fread3(&k,fp) < 1)
+				ErrorReturn(ERROR_BADFILE,
+										(ERROR_BADFILE, 
+										 "MRISreadValues(%s): could not read %dth vno",
+										 fname, i)) ;
+			f = freadFloat(fp) ;
+			if (k>=mris->nvertices||k<0)
+				printf("MRISreadValues: vertex index out of range: %d f=%f\n",k,f);
+			else
 	    {
 	      if (k == Gdiag_no)
-		DiagBreak() ;
+					DiagBreak() ;
 	      mris->vertices[k].val = f;
 	    }
+		}
+		fclose(fp);
 	}
-      fclose(fp);
-    }
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -47165,5 +47165,35 @@ MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline)
 	i = mris->ncmds++ ;
 	mris->cmdlines[i] = (char *)calloc(strlen(cmdline)+1, sizeof(char)) ;
 	strcpy(mris->cmdlines[i], cmdline) ;
+	return(NO_ERROR) ;
+}
+int
+MRISabsVals(MRI_SURFACE *mris)
+{
+	int    vno ;
+	VERTEX *v ;
+
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		v->val = fabs(v->val) ;
+	}
+	return(NO_ERROR) ;
+}
+int
+MRISabsCurvature(MRI_SURFACE *mris)
+{
+	int    vno ;
+	VERTEX *v ;
+
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		v->curv = fabs(v->curv) ;
+	}
 	return(NO_ERROR) ;
 }
