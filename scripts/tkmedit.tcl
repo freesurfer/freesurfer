@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.92 2005/07/11 18:31:42 kteich Exp $
+# $Id: tkmedit.tcl,v 1.93 2005/08/17 20:02:14 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -886,7 +886,7 @@ set tDlogSpecs(SaveVolumeAs) [list \
   -title "Save Main Volume As" \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
-  -note1 "The directory in which to write the COR volume files" \
+  -note1 "The file name to save, or the directory in which to write the COR volume files" \
   -entry1 [list GetDefaultLocation SaveVolumeAs] \
   -default1 [list GetDefaultLocation SaveVolumeAs] \
   -presets1 $glShortcutDirs \
@@ -895,7 +895,7 @@ set tDlogSpecs(SaveAuxVolumeAs) [list \
   -title "Save Aux Volume As" \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
-  -note1 "The directory in which to write the COR volume files" \
+  -note1 "The file name to save, or the directory in which to write the COR volume files" \
   -entry1 [list GetDefaultLocation SaveVolumeAs] \
   -default1 [list GetDefaultLocation SaveVolumeAs] \
   -presets1 $glShortcutDirs \
