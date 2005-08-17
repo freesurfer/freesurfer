@@ -213,6 +213,8 @@ CTABannotationToIndex(COLOR_TABLE *ctab, int annotation)
 {
   int   r, g, b, index ;
 
+	if (ctab == NULL)
+		return(-1) ;
 	r = annotation & 0x0000ff ;
 	g = (annotation >> 8) & 0x0000ff ;
 	b = (annotation >> 16) & 0x0000ff ;
