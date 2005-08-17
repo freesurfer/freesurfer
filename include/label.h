@@ -78,6 +78,7 @@ int     LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times);
 
 int   LabelSetStat(LABEL *area, float stat) ;
 LABEL *LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris) ;
+LABEL *LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris) ;
 LABEL *LabelfromASeg(MRI *aseg, int segcode);
 
 
