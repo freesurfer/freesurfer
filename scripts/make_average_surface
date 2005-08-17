@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.7 2005/08/02 19:14:20 nicks Exp $';
+set VERSION = '$Id: make_average_surface,v 1.8 2005/08/17 22:46:30 nicks Exp $';
 
 set PrintHelp = 0;
 
@@ -21,16 +21,20 @@ endif
 
 set average_subject=average
 set ddir = ${SUBJECTS_DIR}/${average_subject}
+set transform_fname=""
+set XFORM_FLAG=""
 
 # note: SUBJECTS can be set by --subjects
 # SUBJECTS_DIR can be set by --sdir
-# and average_subject can be set by --out
+# average_subject can be set by --out
+# transform_fname can be set by --xform (default is no file specified)
+# XFORM_FLAG appends -X to transform_fname if --xform is specified
 
 if($#argv == 0) then
-    # zero args is allowed only if SUBJECTS env var is declared
-    if ( ! $?SUBJECTS) then
-        goto usage_exit;
-    endif
+  # zero args is allowed only if SUBJECTS env var is declared
+  if ( ! $?SUBJECTS) then
+    goto usage_exit;
+  endif
 endif
 
 set n = `echo $argv | grep -e --help | wc -l` 
@@ -72,9 +76,9 @@ mkdir -p ${ddir} \
         ${ddir}/mri/label
 
 if (-e ${SUBJECTS_DIR}/${average_subject} == 0) then
-        mksubjdirs ${SUBJECTS_DIR}/${average_subject}
+  mksubjdirs ${SUBJECTS_DIR}/${average_subject}
 else
-        mkdir -p ${SUBJECTS_DIR}/${average_subject}/surf
+  mkdir -p ${SUBJECTS_DIR}/${average_subject}/surf
 endif
 
 set tmp_subjects = ( $SUBJECTS )
@@ -84,50 +88,50 @@ cp ${SUBJECTS_DIR}/$tmp_subjects[1]/mri/orig/COR-.info \
     ${SUBJECTS_DIR}/${average_subject}/mri/orig
 
 foreach hemi (rh lh)
-        cd ${SUBJECTS_DIR}/${average_subject}
-        foreach s (orig white pial inflated)
-            echo mris_make_average_surface...
-            mris_make_average_surface \
+  cd ${SUBJECTS_DIR}/${average_subject}
+  foreach s (orig white pial inflated)
+    echo mris_make_average_surface...
+    mris_make_average_surface $XFORM_FLAG \
                 -i 7 \
                 -o $s \
                 ${hemi} \
                 ${s}_avg sphere.reg \
                 ${average_subject} \
                 $SUBJECTS
-        end
-        foreach c (sulc curv thickness)
-            echo mris_average_curvature...
-            mris_average_curvature \
+  end
+  foreach c (sulc curv thickness)
+    echo mris_average_curvature...
+    mris_average_curvature \
                 $c \
                 ${hemi} \
                 sphere.reg \
                 $SUBJECTS \
                 $SUBJECTS_DIR/${average_subject}/surf/${hemi}.avg_${c}
-        end
-        cd ${SUBJECTS_DIR}/${average_subject}/surf      
-        pwd     
-        mris_smooth -n 5 ./${hemi}.white_avg ./${hemi}.smoothwm
-        mris_inflate  ./${hemi}.smoothwm ./${hemi}.inflated
-        mris_curvature -a 10 -w ./${hemi}.white_avg
-        cp ${hemi}.white_avg.H  ${hemi}.curv
-        cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg .
-        ln -s -f ${hemi}.sphere.reg ${hemi}.sphere
-        set echo=1
+  end
+  cd ${SUBJECTS_DIR}/${average_subject}/surf      
+  pwd     
+  mris_smooth -n 5 ./${hemi}.white_avg ./${hemi}.smoothwm
+  mris_inflate  ./${hemi}.smoothwm ./${hemi}.inflated
+  mris_curvature -a 10 -w ./${hemi}.white_avg
+  cp ${hemi}.white_avg.H  ${hemi}.curv
+  cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg .
+  ln -s -f ${hemi}.sphere.reg ${hemi}.sphere
+  set echo=1
 if 0 then
-        mris_average_curvature \
+  mris_average_curvature \
             -o ${average_subject} \
             curv \
             ${hemi} \
             sphere.reg \
             $SUBJECTS \
             ./${hemi}.curv
-        mris_average_curvature \
+  mris_average_curvature \
             -o ${average_subject} \
             sulc \
             ${hemi} sphere.reg \
             $SUBJECTS \
             ./${hemi}.sulc
-        mris_average_curvature \
+  mris_average_curvature \
             -o ${average_subject} \
             thickness \
             ${hemi} \
@@ -185,6 +189,17 @@ while( $#argv != 0 )
       set ddir = ${SUBJECTS_DIR}/${average_subject}
       breaksw
 
+    case "--xform":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set transform_fname = $argv[1]; shift;
+      set XFORM_FLAG = "-X $transform_fname";
+      breaksw
+
     case "--debug":
     case "--echo":
       set echo = 1;
@@ -240,6 +255,12 @@ check_params:
     echo "ERROR: FREESURFER_HOME $FREESURFER_HOME does not exist."
     exit 1;
   endif
+  if( x$transform_fname != x ) then
+    if(! -e $transform_fname ) then
+      echo "ERROR: --xform filename '$transform_fname' does not exist."
+      exit 1;
+    endif
+  endif
 goto check_params_return;
 ############--------------##################
 
@@ -268,6 +289,7 @@ usage_exit:
   echo "   --out <average subject name>    : default name is 'average'"
   echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
   echo "   --sd      : same as --sdir"
+  echo "   --xform <transform_fname>       : filename of transform file"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"
