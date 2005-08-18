@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.76 2005/08/17 17:03:03 kteich Exp $
+# $Id: tksurfer.tcl,v 1.77 2005/08/18 18:23:18 kteich Exp $
 
 package require BLT;
 
@@ -102,13 +102,6 @@ set xtrans 0
 set ytrans 0
 set scalepercent 100 
 
-### lights: can't be written back (floats in gl struct)
-set light0 0.4
-set light1 0.0
-set light2 0.6
-set light3 0.2
-set offset 0.25
-
 ### events
 set userok 0
 set blinkflag FALSE
@@ -203,7 +196,7 @@ set gaLinkedVars(colortablename) ""
 array set gaLinkedVarGroups {
     scene { light0 light1 light2 light3 offset }
     overlay { falpha colscale truncphaseflag invphaseflag revphaseflag 
-	complexvalflag foffset fthresh fmid foffset fslope fmin fmax 
+	complexvalflag foffset fthresh fmid fslope fmin fmax 
 	fnumtimepoints fnumconditions ftimepoint fcondition 
 	ignorezeroesinhistogramflag labels_before_overlay_flag}
     curvature { cslope cmid cmin cmax forcegraycurvatureflag }
@@ -245,7 +238,7 @@ proc PrintLinkedVarGroup { iGroup } {
     global gaLinkedVarGroups gaLinkedVars
     set lVars $gaLinkedVarGroups($iGroup)
     foreach var $lVars {
-  puts "$var=$gaLinkedVars($var)"
+	puts "$var=$gaLinkedVars($var)"
     }
 }
 
