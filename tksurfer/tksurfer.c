@@ -18541,10 +18541,11 @@ int main(int argc, char *argv[])   /* new main */
   int found_script = FALSE;
   char* tksurfer_scripts_dir = NULL;
   int nargs;
+  char tcl_cmd[STRLEN] = "";
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.129 2005/08/17 18:42:11 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.130 2005/08/18 18:23:05 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19571,6 +19572,11 @@ int main(int argc, char *argv[])   /* new main */
   enable_menu_set (MENUSET_FIELDSIGN_LOADED, 0);
   enable_menu_set (MENUSET_FIELDMASK_LOADED, 0);
   /* end rkt */
+
+  /* Update all the linked var sets with our values here in case they
+     are different from the defaults set in tksurfer.tcl */
+  sprintf (tcl_cmd, "UpdateLinkedVarGroup all");
+  send_tcl_command (tcl_cmd);
   
   /* if command line script exists, now run as batch job (possibly exiting) */
   if (scriptok) {    /* script may or may not open gl window */
