@@ -136,10 +136,14 @@ endif
 echo "##########################################################" >>& $OUTPUTF
 echo "Building dev" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
-$ECHO echo "CMD: rm -rf ${DEV_DEST_DIR}/bin-old" >>& $OUTPUTF
-$ECHO rm -rf ${DEV_DEST_DIR}/bin-old >>& $OUTPUTF
-$ECHO echo "CMD: cp -r ${DEV_DEST_DIR}/bin ${DEV_DEST_DIR}/bin-old" >>& $OUTPUTF
-$ECHO cp -r ${DEV_DEST_DIR}/bin ${DEV_DEST_DIR}/bin-old >>& $OUTPUTF
+# Shift bin to bin-old and bin-old to bin-old-old to keep around old versions.
+$ECHO echo "CMD: rm -rf ${DEV_DEST_DIR}/bin-old-old" >>& $OUTPUTF
+$ECHO rm -rf ${DEV_DEST_DIR}/bin-old-old >>& $OUTPUTF
+$ECHO echo "CMD: mv ${DEV_DEST_DIR}/bin-old ${DEV_DEST_DIR}/bin-old-old" >>& $OUTPUTF
+$ECHO mv ${DEV_DEST_DIR}/bin-old ${DEV_DEST_DIR}/bin-old-old >>& $OUTPUTF
+$ECHO echo "CMD: mv ${DEV_DEST_DIR}/bin ${DEV_DEST_DIR}/bin-old" >>& $OUTPUTF
+$ECHO mv ${DEV_DEST_DIR}/bin ${DEV_DEST_DIR}/bin-old >>& $OUTPUTF
+
 $ECHO echo "CMD: make install" >>& $OUTPUTF
 $ECHO make install >>& $OUTPUTF
 if ($status != 0) then
