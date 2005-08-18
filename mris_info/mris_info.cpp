@@ -14,6 +14,9 @@
 extern "C" {
 #include "fio.h"
 #include "mri.h"
+#include "utils.h"
+#include "gcsa.h"
+#include "colortab.h"
 #include "transform.h"
 #include "mrisurf.h"
 
@@ -29,6 +32,7 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
+	char ext[STRLEN] ;
   vector<string> type;
   type.push_back("MRIS_BINARY_QUADRANGLE_FILE");
   type.push_back("MRIS_ASCII_TRIANGLE_FILE");
@@ -42,6 +46,25 @@ int main(int argc, char *argv[])
     cout << "Usage: mris_info <surface>" << endl;
     return -1;
   }
+
+	if (!stricmp(FileNameExtension(argv[1], ext), "gcs"))
+	{
+		GCSA *gcsa = GCSAread(argv[1]) ;
+		if (!gcsa)
+		{
+			cerr << "could not open " << argv[1] << endl;
+			return -1;
+		}
+
+		printf("GCSA file %s opened\n", argv[1]) ;
+		if (gcsa->ct != NULL)
+		{
+			printf("color table:\n") ;
+			CTABprint(stdout, gcsa->ct) ;
+		}
+		return(0) ;
+	}
+
   MRIS *mris = MRISread(argv[1]);
   if (!mris)
   {
@@ -82,5 +105,10 @@ int main(int argc, char *argv[])
   }
   vg_print(&mris->vg); 
 
+	{
+		int i ;
+		for (i = 0 ; i < mris->ncmds ; i++)
+			printf("cmd[%d]: %s\n", i, mris->cmdlines[i]) ;
+	}
   MRISfree(&mris);
 }
