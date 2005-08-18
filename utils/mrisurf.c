@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/17 18:39:17 $
-// Revision       : $Revision: 1.362 $
+// Revision Date  : $Date: 2005/08/18 16:53:38 $
+// Revision       : $Revision: 1.363 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -719,6 +719,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
 					readVolGeom(fp, &mris->vg);
 					break ;
 				case TAG_OLD_USEREALRAS:
+				case TAG_USEREALRAS:
 					if (!freadIntEx(&mris->useRealRAS,fp)) // set useRealRAS
 						mris->useRealRAS = 0; // if error, set to default
 					break ;
