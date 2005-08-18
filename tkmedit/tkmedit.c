@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/07/17 23:32:06 $
-// Revision       : $Revision: 1.251 $
-char *VERSION = "$Revision: 1.251 $";
+// Revision Date  : $Date: 2005/08/18 15:39:15 $
+// Revision       : $Revision: 1.252 $
+char *VERSION = "$Revision: 1.252 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1101,7 +1101,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.251 2005/07/17 23:32:06 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.252 2005/08/18 15:39:15 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5312,7 +5312,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.251 2005/07/17 23:32:06 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.252 2005/08/18 15:39:15 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -9278,7 +9278,7 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
   eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+  DebugAssertThrowX( (tkm_tErr_NoErr == eResult),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
   
@@ -9339,6 +9339,13 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
 		      "Tkmedit couldn't create a segmentation." );
   }
 
+  if( NULL != newVolume ) {
+    Volm_Delete( &newVolume );
+  }
+  if( NULL != newChangedVolume ) {
+    Volm_Delete( &newChangedVolume );
+  }
+
   EndDebugCatch;
   
   DebugExitFunction;
@@ -9379,7 +9386,7 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
-  DebugNote( ("Importing segmentation into roi group") );
+  DebugNote( ("Importing segmentation") );
   eVolume = Volm_ImportData( newVolume, sSegmentationFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_CouldntLoadSegmentation );
@@ -9390,7 +9397,7 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
   eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+  DebugAssertThrowX( (Volm_tErr_NoErr == eResult),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
   /* allocate changed volume */
@@ -9451,6 +9458,13 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
 		      "Tkmedit couldn't read the segmentation you "
 		      "specified. This could be because the segmentation "
 		      "volume wasn't a valid COR volume directory." );
+  }
+
+  if( NULL != newVolume ) {
+    Volm_Delete( &newVolume );
+  }
+  if( NULL != newChangedVolume ) {
+    Volm_Delete( &newChangedVolume );
   }
 
   EndDebugCatch;
