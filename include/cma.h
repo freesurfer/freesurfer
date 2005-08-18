@@ -185,6 +185,7 @@
 #define IS_THALAMUS(label)  (((label) == Left_Thalamus) || ((label) == Left_Thalamus_Proper) || ((label) == Right_Thalamus) || ((label) == Right_Thalamus_Proper))
 #define IS_GM(label) (((label) == Left_Cerebral_Cortex) || ((label) == Right_Cerebral_Cortex))
 
+
 #define IS_CEREBELLAR_WM(label) (((label) == Left_Cerebellum_White_Matter) || ((label) == Right_Cerebellum_White_Matter))
 
 #define IS_HIPPO(l) (((l) == Left_Hippocampus) || ((l) == Right_Hippocampus))
@@ -260,4 +261,18 @@ int CMAaddWeightedTotals(CMAoutlineClaim *claim, float weight, float *claim_tota
 int CMAzeroOutlines(CMAoutlineField *field);
 char *cma_label_to_name(int label) ;
 
+#define CSF_CLASS        0
+#define GM_CLASS         1
+#define WM_CLASS         2
+#define NTISSUE_CLASSES  3
+
+
+// only structures that are 'pure' of one tissue type
+#define IS_GRAY_CLASS(l) (IS_GM(l) || ((l) == Left_Caudate) || ((l) == Right_Caudate))
+
+#define IS_WHITE_CLASS(l) (((l) == Left_Cerebral_White_Matter) || ((l) == Right_Cerebral_White_Matter))
+
+#define IS_CSF_CLASS(l) (((l) == Left_Lateral_Ventricle) || ((l) == Right_Lateral_Ventricle) || ((l) == CSF) || ((l) == CSF_SA) || ((l) == Third_Ventricle) || ((l) == Fourth_Ventricle) || ((l) == Fifth_Ventricle))
+
+#define IS_CLASS(l,c) (c == CSF_CLASS ? IS_CSF_CLASS(l) : c == GM_CLASS ? IS_GRAY_CLASS(l) : IS_WHITE_CLASS(l))
 #endif
