@@ -68,6 +68,7 @@ static int novar = 0 ;
 static char *renormalization_fname = NULL ;
 static int renormalize_wsize = 0 ;
 static int renormalize_iter = 0 ;
+static int renormalize_new ;
 static int filter = 0 ;
 static float pthresh = .7 ;
 #if 0
@@ -113,10 +114,10 @@ main(int argc, char *argv[])
   
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.61 2005/08/15 16:12:04 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.62 2005/08/18 13:29:41 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.61 2005/08/15 16:12:04 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.62 2005/08/18 13:29:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -480,13 +481,15 @@ main(int argc, char *argv[])
 						 Ggca_x, Ggca_y, Ggca_z, cma_label_to_name(MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
 						 MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)) ;
   }
-  else{
+  else
+	{
     if (reg_fname == NULL){ //so read_fname must be NULL too
       printf("labeling volume...\n") ;
       // create labeled volume by MAP rule
       mri_labeled = GCAlabel(mri_inputs, gca, NULL, transform) ;
       // -wm fname option
-      if (wm_fname){
+      if (wm_fname)
+			{
 				MRI *mri_wm ;
 	
 				mri_wm = MRIread(wm_fname) ;
@@ -523,8 +526,12 @@ main(int argc, char *argv[])
 			}
 #else
       // renormalize iteration 
-      if (renormalize_iter > 0){
-				GCAmapRenormalize(gca, mri_inputs, transform) ;
+      if (renormalize_iter > 0)
+			{
+				if (renormalize_new)
+					GCAmapRenormalizeByClass(gca, mri_inputs, transform) ;
+				else
+					GCAmapRenormalize(gca, mri_inputs, transform) ;
 				printf("relabeling volume...\n") ;
 				if (regularize_mean > 0)
 					GCAregularizeConditionalDensities(gca, regularize_mean) ;
@@ -618,8 +625,12 @@ main(int argc, char *argv[])
       }
 #else
       // renormalize iteration 
-      if (renormalize_iter > 0){
-				GCAmapRenormalize(gca, mri_inputs, transform) ;
+      if (renormalize_iter > 0)
+			{
+				if (renormalize_new)
+					GCAmapRenormalizeByClass(gca, mri_inputs, transform) ;
+				else
+					GCAmapRenormalize(gca, mri_inputs, transform) ;
       }
 
 #endif
@@ -822,8 +833,12 @@ get_option(int argc, char *argv[])
 					 regularize_mean, 1-regularize_mean) ;
     nargs = 1 ;
   }
-  else if (!stricmp(option, "cross-sequence") || !stricmp(option, "cross_sequence"))
+  else if (!stricmp(option, "cross-sequence") || !stricmp(option, "cross_sequence") ||
+					 !stricmp(option, "cross-sequence-new") || !stricmp(option, "cross_sequence-new"))
   {
+		if (!stricmp(option, "cross-sequence-new") || !stricmp(option, "cross_sequence-new"))
+			renormalize_new = 1 ;
+
     regularize = .5 ;
     renormalize_iter = 1 ;
     renormalize_wsize = 9 ;

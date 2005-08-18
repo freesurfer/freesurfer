@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/15 16:09:40 $
-// Revision       : $Revision: 1.33 $
+// Revision Date  : $Date: 2005/08/18 13:29:27 $
+// Revision       : $Revision: 1.34 $
 
 
 #include <math.h>
@@ -45,6 +45,7 @@ static int avgs = 0 ;  /* for smoothing conditional densities */
 static char *mask_fname = NULL ;
 static char *norm_fname = NULL ;
 static int renormalize = 0 ;
+static int renormalize_new = 0 ;
 
 static char *long_reg_fname = NULL ;
 //static int inverted_xform = 0 ;
@@ -142,7 +143,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.33 2005/08/15 16:09:40 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.34 2005/08/18 13:29:27 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -625,10 +626,12 @@ main(int argc, char *argv[])
   //note that transform is meaningless when -L option is used! A bug! -xh
   //  if (renormalize)
   //  GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
-  if (renormalize){
+  if (renormalize)
+	{
     if(!xform_name)
       GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
-    else{
+    else
+		{
       TRANSFORM *trans ;
       trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
       trans->type = TransformFileNameType(xform_name);
@@ -637,6 +640,21 @@ main(int argc, char *argv[])
       free(trans);
 		}
   }
+	else if (renormalize_new)
+	{
+    if(!xform_name)
+      GCAmapRenormalizeByClass(gcam->gca, mri_inputs, transform) ;
+    else
+		{
+      TRANSFORM *trans ;
+      trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
+      trans->type = TransformFileNameType(xform_name);
+      trans->xform = (void *)gcam;
+      GCAmapRenormalizeByClass(gcam->gca, mri_inputs, trans) ;
+      free(trans);
+		}
+	}
+
 	if (regularize_mean > 0)
  		GCAregularizeConditionalDensities(gca, regularize_mean) ;
 
@@ -1062,6 +1080,14 @@ get_option(int argc, char *argv[])
     regularize = .5 ;
 		avgs = 2 ;
 		renormalize = 1 ;
+    printf("registering sequences, equivalent to:\n") ;
+		printf("\t-renormalize\n\t-avgs %d\n\t-regularize %2.3f\n",avgs, regularize) ;
+  } 
+  else if (!stricmp(option, "cross-sequence-new") || !stricmp(option, "cross_sequence_new"))
+  {
+    regularize = .5 ;
+		avgs = 2 ;
+		renormalize_new = 1 ;
     printf("registering sequences, equivalent to:\n") ;
 		printf("\t-renormalize\n\t-avgs %d\n\t-regularize %2.3f\n",avgs, regularize) ;
   } 
