@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/05/11 20:12:58 $
-// Revision       : $Revision: 1.23 $
+// Revision Date  : $Date: 2005/08/18 16:19:10 $
+// Revision       : $Revision: 1.24 $
 //
 //
 // How it works.
@@ -39,7 +39,7 @@
 //
 //          MRIvoxelToSurfaceRAS()
 //
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.23 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.24 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +48,7 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.23 $";
 #include "mri.h"
 #include "fio.h"
 #include "const.h"
+#include "tags.h"
 #include "diag.h"
 #include "proto.h"
 #include "macros.h"
@@ -119,7 +120,7 @@ main(int argc, char *argv[])
   int xnum, ynum, numimg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.23 2005/05/11 20:12:58 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.24 2005/08/18 16:19:10 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -434,12 +435,19 @@ static void write_binary_surface(char *fname, MRI *mri)
       fwrite3(face[k].v[n],fp);
   }
   // record whether use the physical RAS or not
+#if 0
   fwriteInt(TAG_USEREALRAS, fp); // first tag
   fwriteInt(useRealRAS, fp);     // its value
   // save geometry
   fwriteInt(TAG_SURF_GEOM, fp);
   getVolGeom(mri, &vg);
   writeVolGeom(fp, &vg);
+#else
+	TAGwrite(fp, TAG_USEREALRAS, &useRealRAS, sizeof(useRealRAS)) ;
+  fwriteInt(TAG_OLD_SURF_GEOM, fp);
+  getVolGeom(mri, &vg);
+  writeVolGeom(fp, &vg);
+#endif
 
   fclose(fp);
 }
