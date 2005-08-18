@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/18 16:53:38 $
-// Revision       : $Revision: 1.363 $
+// Revision Date  : $Date: 2005/08/18 19:28:43 $
+// Revision       : $Revision: 1.364 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -24249,7 +24249,6 @@ mrisReadTriangleFile(char *fname, double pct_over)
 		
 		while ((tag = TAGreadStart(fp, &len)) != 0)
 		{
-			char buf[STRLEN] ;
 			switch (tag)
 			{
 			case TAG_OLD_SURF_GEOM:
@@ -24261,10 +24260,13 @@ mrisReadTriangleFile(char *fname, double pct_over)
 				break ;
 			case TAG_CMDLINE:
 				if (mris->ncmds > MAX_CMDS)
-					ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname,mris->ncmds);
-				fread(buf, sizeof(char), len, fp) ;
-				mris->cmdlines[mris->ncmds] = calloc(len, sizeof(char)) ;
-				strcpy(mris->cmdlines[mris->ncmds], buf) ;
+					ErrorExit(ERROR_NOMEMORY, "MRISread(%s): too many commands (%d) in file", fname,mris->ncmds);
+				mris->cmdlines[mris->ncmds] = calloc(len+1, sizeof(char)) ;
+				if (mris->cmdlines[mris->ncmds] == NULL)
+					ErrorExit(ERROR_NOMEMORY, "MRISread(%s): could not allocate %d byte cmdline",
+										fname, len) ;
+				mris->cmdlines[mris->ncmds][len] = 0 ;
+				fread(mris->cmdlines[mris->ncmds], sizeof(char), len, fp) ;
 				mris->ncmds++ ;
 				break ;
 			default:
