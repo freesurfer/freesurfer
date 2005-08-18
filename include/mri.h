@@ -837,6 +837,7 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
 #define VENTRICLE_FILL       220
 #define DIAGONAL_FILL        230
 #define DEGENERATE_FILL      240
+#define AUTO_FILL            250
 
 MRI *MRIchangeType(MRI *src, int dest_type, float f_low, 
        float f_high, int no_scale_option_flag);
