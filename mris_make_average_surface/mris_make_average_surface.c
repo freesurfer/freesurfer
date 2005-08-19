@@ -3,9 +3,9 @@
 //
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/05/21 01:55:42 $
-// Revision       : $Revision: 1.14 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/08/19 20:56:21 $
+// Revision       : $Revision: 1.15 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -24,8 +24,9 @@
 #include "icosahedron.h"
 #include "transform.h"
 #include "version.h"
+#include "fio.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.14 2005/05/21 01:55:42 fischl Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.15 2005/08/19 20:56:21 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -57,7 +58,7 @@ main(int argc, char *argv[])
   VOL_GEOM      vg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.14 2005/05/21 01:55:42 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.15 2005/08/19 20:56:21 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -111,9 +112,15 @@ main(int argc, char *argv[])
     lta = LTAreadEx(fname) ;
     if (!lta)
       ErrorExit(ERROR_BADPARM, "%s: could not read transform from %s", Progname, fname) ;
+
     // read T1 volume
-    sprintf(fname, "%s/%s/mri/T1", sdir, argv[i]) ;
-    mri = MRIreadHeader(fname, MRI_UCHAR); // MRI_CORONAL_SLICE_DIRECTORY) ;
+    sprintf(fname, "%s/%s/mri/T1.mgz", sdir, argv[i]) ;
+    if(fio_FileExistsReadable(fname)) mri = MRIreadHeader(fname,MRI_MGH_FILE);
+    else{
+      sprintf(fname, "%s/%s/mri/T1", sdir, argv[i]) ;
+      mri = MRIreadHeader(fname, MRI_UCHAR); // MRI_CORONAL_SLICE_DIRECTORY) ;
+    }
+
     if (!mri)
       ErrorExit(ERROR_BADPARM, "%s: could not read reference MRI volume from %s", Progname, fname) ;
 
@@ -122,8 +129,34 @@ main(int argc, char *argv[])
     // get the vertex position from ->origx, ... (get the "pial" vertex position)
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
     // this means that we transform "pial" surface
-#if 0
-    MRIStalairachTransform(mris, mris, lta) ;
+#if 1
+    //MRIStalairachTransform(mris, mris, lta) ;
+    {/*-----------------------------------------------------------------*/
+      MATRIX *XFM, *sras, *tras;
+
+      XFM = DevolveXFM(argv[i], NULL, "talairach.xfm");
+      if(XFM == NULL) exit(1);
+      
+      sras = MatrixAlloc(4,1,MATRIX_REAL);
+      sras->rptr[4][1] = 1;
+      tras = MatrixAlloc(4,1,MATRIX_REAL);
+      tras->rptr[4][1] = 1;
+      
+      printf("Applying transform.\n");  
+      for(vno=0; vno < mris->nvertices; vno++){
+	v = &mris->vertices[vno] ;
+	if (v->ripflag) continue ;
+	sras->rptr[1][1] = mris->vertices[vno].x;
+	sras->rptr[2][1] = mris->vertices[vno].y;
+	sras->rptr[3][1] = mris->vertices[vno].z;
+	tras = MatrixMultiply(XFM,sras,tras);
+	mris->vertices[vno].x = tras->rptr[1][1];
+	mris->vertices[vno].y = tras->rptr[2][1];
+	mris->vertices[vno].z = tras->rptr[3][1];
+      }
+      //mrisComputeSurfaceDimensions(mris) ;
+
+    }/*-----------------------------------------------------------------*/
 #else
     MRIStransform(mris, mri, lta, 0) ;
     // copy volume geometry of the transformed volume
@@ -190,8 +223,7 @@ main(int argc, char *argv[])
     v->z /= (float)n ;
   }
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, out_sname, hemi, avg_surf_name) ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr,"writing average %s surface to to %s\n", avg_surf_name, fname);
+  printf("writing average %s surface to to %s\n", avg_surf_name, fname);
   MRISwrite(mris_ico,  fname) ;
   {
     char path[STRLEN] ;
@@ -207,6 +239,9 @@ main(int argc, char *argv[])
 
   MRISfree(&mris_ico) ;
   MRISPfree(&mrisp_total) ;
+
+  printf("mris_make_average_surface done\n");
+
   exit(0) ;
   return(0) ;  /* for ansi */
 }
