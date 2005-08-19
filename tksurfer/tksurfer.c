@@ -1870,9 +1870,6 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   int  nargs ;
   char *functional_fname = NULL, *patch_name = NULL ;
   /* begin rkt */
-  int load_aux_surface = FALSE;
-  char aux_surface_fname[NAME_LENGTH];
-
   FunD_tRegistrationType overlay_reg_type = FunD_tRegistration_None;
   char overlay_reg[NAME_LENGTH];
 
@@ -1895,13 +1892,7 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   for (i = 0 ; i < argc ; i++)
     {
       /*      fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);*/
-      if (!stricmp(argv[i], "-aux"))) 
-	{
-	  nargs = 2 ;
-	  aux_surface_fname = argv[i+1] ;
-	  load_aux_surface = TRUE;
-	}
-      else if (!stricmp(argv[i], "-o") || !stricmp(argv[i], "-overlay")) 
+      if (!stricmp(argv[i], "-o") || !stricmp(argv[i], "-overlay")) 
 	{
 	  nargs = 2 ;
 	  functional_fname = argv[i+1] ;
@@ -18554,7 +18545,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.131 2005/08/19 21:32:48 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.132 2005/08/19 21:34:03 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
