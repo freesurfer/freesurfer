@@ -7,10 +7,11 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_volume,v 1.1 2005/08/11 22:43:29 greve Exp $';
+set VERSION = '$Id: make_average_volume,v 1.2 2005/08/19 21:27:19 greve Exp $';
 
 set PrintHelp = 0;
 set cleanup = 0;
+set transform_fname = talairach.xfm
 
 if ( $?SUBJECTS) then
     set SUBJECTS=($SUBJECTS)
@@ -82,7 +83,7 @@ foreach volid (orig T1 brain)
 
   foreach subject ($SUBJECTS)
 
-    set xfm   = $SUBJECTS_DIR/$subject/mri/transforms/talairach.xfm
+    set xfm   = $SUBJECTS_DIR/$subject/mri/transforms/$transform_fname
     if(! -e $xfm) then
       echo "ERROR: cannot find $xfm" | tee -a $LF
       exit 1;
@@ -99,8 +100,8 @@ foreach volid (orig T1 brain)
 
     set xfmvol = $tmpdir/$volid-$subject.mgz
     
-    set cmd = (mri_convert $invol $xfmvol  --apply_transform $xfm \
-                 --devolvexfm $subject -ic 0 0 0 );
+    set cmd = (mri_convert $invol $xfmvol  --apply_transform $xfm)
+    if($transform_fname == talarach.xfm) set cmd = ($cmd --devolvexfm $subject -ic 0 0 0 );
     echo $cmd | tee -a $LF
     $cmd  | tee -a $LF
     if($status) exit 1;
@@ -164,6 +165,16 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set average_subject = $argv[1]; shift;
       set outdir = ${SUBJECTS_DIR}/${average_subject}
+      breaksw
+
+    case "--xform":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set transform_fname = $argv[1]; shift;
       breaksw
 
     case "--sd":
@@ -261,6 +272,7 @@ usage_exit:
   echo ""
   echo "Optional Arguments"
   echo "   --out <average subject name>    : default name is 'average'"
+  echo "   --xform xformname : use mri/transforms/xformname (def is talairach.xfm)"
   echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
   echo "   --sd      : same as --sdir"
   echo ""
@@ -285,7 +297,14 @@ BEGINHELP
 
 Creates average volumes from a set of subjects.
 
+EXAMPLE
 
-GETTING HELP
+make_average_volume --out avgsubject --subjects subj1 subj2 subj3 subj4
 
+will create $SUBJECTS_DIR/avgsubject with orig.mgz, brain.mgz, and T1.mgz
+which will be averages of subjects 1-4.
+
+SEE ALSO
+
+make_average_surface
 
