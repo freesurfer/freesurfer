@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/12 17:12:55 $
-// Revision       : $Revision: 1.106 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/08/19 18:57:52 $
+// Revision       : $Revision: 1.107 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.106 2005/08/12 17:12:55 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.107 2005/08/19 18:57:52 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1906,13 +1906,14 @@ int main(int argc, char *argv[])
     printf("writing to %s...\n", out_name);
     if(force_out_type_flag){
       if(MRIwriteType(mri, out_name, out_volume_type) != NO_ERROR){
-        printf("ERROR: writing %s as %d\n",out_name,out_volume_type);
+        printf("ERROR: failure writing %s as volume type %d\n",
+	       out_name,out_volume_type);
         exit(1);
       }
     }
     else{
       if(MRIwrite(mri, out_name) != NO_ERROR){
-        printf("ERROR: writing %s\n",out_name);
+        printf("ERROR: failure writing %s\n",out_name);
         exit(1);
       }
     }
