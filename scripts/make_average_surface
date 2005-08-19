@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.9 2005/08/19 21:26:52 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.10 2005/08/19 21:36:46 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -88,6 +88,7 @@ set tmp_subjects = ( $SUBJECTS )
 #    ${SUBJECTS_DIR}/${average_subject}/mri/orig
 
 foreach hemi (rh lh)
+
   cd ${SUBJECTS_DIR}/${average_subject}
   foreach s (orig white pial inflated)
     echo mris_make_average_surface...
@@ -99,6 +100,7 @@ foreach hemi (rh lh)
                 ${average_subject} \
                 $SUBJECTS
   end
+
   foreach c (sulc curv thickness)
     echo mris_average_curvature...
     mris_average_curvature \
@@ -108,6 +110,7 @@ foreach hemi (rh lh)
                 $SUBJECTS \
                 $SUBJECTS_DIR/${average_subject}/surf/${hemi}.avg_${c}
   end
+
   cd ${SUBJECTS_DIR}/${average_subject}/surf      
   pwd     
   mris_smooth -n 5 ./${hemi}.white_avg ./${hemi}.smoothwm
@@ -117,28 +120,7 @@ foreach hemi (rh lh)
   cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg .
   ln -s -f ${hemi}.sphere.reg ${hemi}.sphere
   set echo=1
-if 0 then
-  mris_average_curvature \
-            -o ${average_subject} \
-            curv \
-            ${hemi} \
-            sphere.reg \
-            $SUBJECTS \
-            ./${hemi}.curv
-  mris_average_curvature \
-            -o ${average_subject} \
-            sulc \
-            ${hemi} sphere.reg \
-            $SUBJECTS \
-            ./${hemi}.sulc
-  mris_average_curvature \
-            -o ${average_subject} \
-            thickness \
-            ${hemi} \
-            sphere.reg \
-            $SUBJECTS \
-            ./${hemi}.thickness
-endif
+
 end
 
 exit 0
