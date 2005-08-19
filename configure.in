@@ -833,15 +833,16 @@ AC_CHECK_LIB([gslcblas], [cblas_dsdot], [],
 Please install gsl header files and libs.])] )
 
 ################## Tcl
-AC_CHECK_LIB([tcl],[Tcl_Init],
-  [LIB_TCL=-ltcl],
 # check tcl8.4
-  [
-    AC_CHECK_LIB([tcl8.4],[Tcl_Init],
-    [LIB_TCL=-ltcl8.4],
+AC_CHECK_LIB([tcl8.4],[Tcl_Init],
+  [LIB_TCL=-ltcl8.4],
 # check tcl8.3
-    [ AC_CHECK_LIB([tcl8.3],[Tcl_Init],
-      [LIB_TCL=-ltcl8.3],
+  [
+    AC_CHECK_LIB([tcl8.3],[Tcl_Init],
+    [LIB_TCL=-ltcl8.3],
+# check tcl
+    [ AC_CHECK_LIB([tcl],[Tcl_Init],
+      [LIB_TCL=-ltcl],
 # check tclstub
       [ AC_CHECK_LIB([tclstub],[Tcl_Init],
         [LIB_TCL=-ltclstub],
@@ -854,16 +855,17 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])        ] )
 LIBS="-lX11 $LIBS"
 CPPFLAGS="$GLUT_CFLAGS $GL_CFLAGS $CPPFLAGS"
 LDFLAGS="$X_LIBS $LDFLAGS"
-AC_CHECK_LIB([tk],[Tk_Init],
-  [LIB_TK=-ltk],
 # check tk8.4
-  [
-    AC_CHECK_LIB([tk8.4],[Tk_Init],
-    [LIB_TK=-ltk8.4],
+AC_CHECK_LIB([tk8.4],[Tk_Init],
+  [LIB_TK=-ltk8.4],
 # check tk8.3
+  [
+    AC_CHECK_LIB([tk8.3],[Tk_Init],
+    [LIB_TK=-ltk8.3],
+# check tk
     [ 
-      AC_CHECK_LIB([tk8.3],[Tk_Init],
-      [LIB_TK=-ltk8.3],
+      AC_CHECK_LIB([tk],[Tk_Init],
+      [LIB_TK=-ltk],
       [AC_MSG_ERROR([FATAL: libtk not found. \
 Check config.log. Set LDFLAGS or --with-tcl-dir.])
       ])
