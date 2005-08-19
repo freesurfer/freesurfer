@@ -42,6 +42,7 @@ label_subject_flash \
 label_subject_mixed \
 make_average_surface \
 make_average_volume \
+make_average_subject \
 make_final_surfaces_corrected_subject \
 make_final_surfaces_subject \
 make_final_surfaces_subject-lh \
