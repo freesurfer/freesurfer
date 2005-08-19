@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/08/18 15:39:15 $
-// Revision       : $Revision: 1.252 $
-char *VERSION = "$Revision: 1.252 $";
+// Revision Date  : $Date: 2005/08/19 19:09:25 $
+// Revision       : $Revision: 1.253 $
+char *VERSION = "$Revision: 1.253 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1001,6 +1001,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   tBoolean     bSurfaceDeclared        = FALSE;
   char         sSurface[tkm_knPathLen] = "";
 
+  tBoolean     bAuxSurfaceDeclared       = FALSE;
+  char         sAuxSurface[tkm_knPathLen] = "";
+
   tBoolean     bLocalImageDir = FALSE;
   tBoolean     bNoEdit        = FALSE;
 
@@ -1101,7 +1104,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.252 2005/08/18 15:39:15 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.253 2005/08/19 19:09:25 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1266,6 +1269,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	} else { 
 	  
 	  /* misuse of that switch */
+
 	  tkm_DisplayError( "Parsing -mm-main option",
 			    "Expected two arguments",
 			    "This option needs two arguments: the min"
@@ -1319,6 +1323,29 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 			    "This option needs two arguments: the min"
 			    "and the max color values for the volume." );
 	  nCurrentArg += 1;
+	}
+	
+      } else if( MATCH( sArg, "-aux-surface" ) ) {
+
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* copy arg into a destructible string */
+	  DebugNote( ("Parsing -aux-surface name") );
+	  xUtil_strncpy( sAuxSurface, argv[nCurrentArg+1], 
+			 sizeof(sAuxSurface) );
+	  bAuxSurfaceDeclared = TRUE;
+	  nCurrentArg += 2;
+	  
+	} else {
+	  
+	  /* misuse of that option */
+	  tkm_DisplayError( "Parsing -aux-surface option",
+			    "Expected an argument",
+			    "This option needs an argument, the file name "
+			    "of the surface to load." );
+	  nCurrentArg ++;
 	}
 	
       } else if( MATCH( sArg, "-o" ) ) {
@@ -2165,11 +2192,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
       }
     }
   }
-
+  
   /* check for fatal error. */
   if( bFatalError ) {
     /* probably have some error messages that didn't get printed cuz
-       tcl wasn't loaded yet, so flush them to shell now. */
+     tcl wasn't loaded yet, so flush them to shell now. */
     PrintCachedTclErrorDlogsToShell();
     DebugPrint( ( "Fatal error in parsing command line args.\n" ) );
     exit(1);
@@ -2278,7 +2305,13 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     DebugNote( ("Loading surface") );
     eResult = LoadSurface( tkm_tSurfaceType_Main, sSurface );
   }
-  
+
+  /* load aux surface. */
+  if ( bAuxSurfaceDeclared ) {
+    DebugNote( ("Loading aux surface") );
+    eResult = LoadSurface( tkm_tSurfaceType_Aux, sAuxSurface );
+  }
+
   /* load segmentation */
   if( bLoadingSegmentation ) {
     eResult = LoadSegmentationVolume( tkm_tSegType_Main, sSegmentationPath,
@@ -3171,7 +3204,6 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   /* set the medit window surface. */
   DebugNote( ("Setting surface in main window") );
   MWin_SetSurface( gMeditWindow, -1, iType, gSurface[iType] );
-  
 
   /* If the useRealRAS are the same or this is the first time we're
      setting it, call SetUseRealRAS automatically. If not, prompt the
@@ -5312,7 +5344,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.252 2005/08/18 15:39:15 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.253 2005/08/19 19:09:25 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
