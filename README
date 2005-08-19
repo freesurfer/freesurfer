@@ -1,9 +1,0 @@
--*- text -*-
-
-Freesurfer autoconfig method
-============================
-
-At this time, Tcl/Tk and GUI programs use dynamic link libraries.
-All other programs are compiled statically (except MacOSX).
-
-Please read INSTALL.
