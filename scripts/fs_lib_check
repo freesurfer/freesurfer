@@ -1,0 +1,190 @@
+#!/bin/bash
+G_ID="$Id: fs_lib_check,v 1.1 2005/08/19 16:16:45 nicks Exp $"
+G_SYNOPSIS="
+
+ NAME
+
+	fslibcheck.bash
+
+ SYNOPSIS
+
+	fslibcheck.bash [-l] [-r] [-h] [-v] 
+
+ DESCRIPTION
+
+	'fslibcheck.bash' merely checks if the operating system
+	has the necessary system libraries required to run
+	FreeSurfer.
+
+	On rpm-based systems, this script queries the rpm databse
+	for each of the FreeSurfer required libraries.
+
+	On non-rpm systems, this script uses 'ldconfig' to check
+	the dynamic library load map for instances of the required
+	libraries.
+
+ ARGUMENTS
+
+ 	-l
+	Force use of 'ldconfig' to check for instances of required
+	system libraries. This is useful on rpm systems if system
+	libraries were installed from source code, and are thus not
+	known to the sytem rpm database.
+
+	-r
+	Force use of 'rpm -qa' to check for installed library packages.
+	If -r and -l are both specified concurrently, then behaviour
+	is unspecified.
+
+	-h
+	Show this synopsis and exit.
+
+	-v
+	Show a version number and exit.
+	
+
+ PRECONDITIONS
+
+	o This script assumes that you are on a Linux system. 
+	o It will not currently work on Apple OS X.
+	o It should work on rpm and non-rpm systems.
+
+ POSTCONDITIONS
+
+	o Each test is echoed to the console as it runs.
+	o A zero (0) is returned if all checks passed ok.
+	o If a test fails, the script will exit with an error message.
+	  You will need to install the required library to run FreeSurfer.
+
+ HISTORY
+
+ 18 August 2005
+ o Initial design and coding.
+
+"
+SELF=$(basename $0)
+
+function synopsis_show
+{
+	echo "USAGE:"
+	echo "$G_SYNOPSIS"
+}
+
+function ret_check
+{
+	# ARGS
+	# $1 		in		return value to check
+	#
+	# DESC
+	# Checks for the passed return value, and echoes a
+	# conditional to stdout. Returns this value back to
+	# the caller.
+	#
+	
+	local ret=$1
+		
+	echo -en "\t\t\t"
+	if [[ $ret != "0" ]] ; then
+		echo -e "[ failure ]"
+	else
+		echo -e "[ ok ]"
+	fi
+	return $ret
+}
+
+function die
+{
+	#
+	# ARGS
+	# $1		in		action
+	# $2		in		msg
+	# $3 		in		exit code
+	#
+	# DESC
+	# Exit to system with descriptive text and error code.
+	#
+
+	local action="$1"
+	local msg="$2"
+	local exitCode="$3"
+
+	printf "\n\tWhile $action\n"
+	printf "\t$msg\n"
+	printf "\tExiting with code '$exitCode'.\n\n"
+	exit $exitCode
+}
+
+
+# Is this an rpm system?
+if [[ -d /etc/rpm ]] ; then
+	b_RPM=1
+else
+	b_RPM=0
+fi
+
+while getopts vhlr option ; do 
+	case "$option"
+	in
+		l) b_RPM=0 ;;
+		r) b_RPM=1 ;;
+		v) printf "$SELF, version = $G_ID\n"
+		    exit 0;;
+		h) synopsis_show
+		    exit 0;;
+		\?) synopsis_show 
+		    exit 0;;
+	esac
+done
+
+# Is this a Linux system?
+b_LINUX=$(uname -a | grep -i Linux | wc -l)
+
+# Is this a Darwin system?
+b_DARWIN=$(uname -a | grep -i Darwin | wc -l)
+
+if (( !b_LINUX )) ; then
+	die "checking system, a non-Linux OS was found."	\
+		 "This script will only work on Linux systems."	\
+		1
+fi
+
+if (( b_RPM )) ; then
+	# Check for 'rpm' executable
+	b_RPMexe=$(type -all rpm 2>/dev/null | awk '{print $3}' | wc -l)
+	if (( !b_RPMexe )) ; then
+		die "checking for rpm executable,"			\
+			"no file called 'rpm' was found on path." 3
+	fi
+fi
+
+# Now perform the lib check
+if (( b_LINUX && b_RPM )) ; then
+	CHKCMDPREFIX="rpm -qa | grep -i "
+	FSLIBLIST="gsl jpeg tiff tcl-8 tk-8 tix-8 blt glut qt-3"
+	TRIGGER="rpm package "
+fi
+
+if (( b_LINUX && !b_RPM )) ; then
+	CHKCMDPREFIX="ldconfig -p | grep lib"
+	FSLIBLIST="gsl jpeg tiff tcl8 tk8 tix8 BLT glut qt"
+	TRIGGER="lib"
+fi
+
+printf "\n%48s\n\n" "FreeSurfer library check"
+
+for LIB in $FSLIBLIST ; do
+	printf "%-40s" "checking for ${TRIGGER}$LIB..."
+	CHKCMD="${CHKCMDPREFIX}${LIB}"
+	eval $CHKCMD 2>/dev/null >/dev/null
+        ret_check $? || \
+		die "checking for ${TRIGGER}$LIB." \
+			"The library/package does not seem to exist on your system." \
+			2
+done 
+
+printf "\n\t%35s\n" "Congratulations!"
+printf "\tAll necessary libs for running FreeSurfer were found.\n\n"
+
+exit 0
+
+
