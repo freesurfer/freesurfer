@@ -1,0 +1,24 @@
+#!/bin/tcsh -ef
+
+set echo=1
+
+# For a new dev/ environment, before running configure, 
+# and anytime after a Makefile.am file has changed, 
+# the following commands must be executed within the 
+# dev/ directory:
+
+rm -rf autom4te.cache
+aclocal
+libtoolize --force
+autoreconf --force
+automake
+autoconf
+
+# The first three commands create the platform specific 
+# tools needed by configure (use glibtoolize on the Mac 
+# in place of libtoolize). These platform specific tools 
+# are placed in the dev/config directory. 
+# Autoreconf --force and automake create the Makefile.in 
+# files from the Makefile.am files in each directory. 
+# Following successful execution of these commands, the 
+# configure command can be executed. 
