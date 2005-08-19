@@ -23,6 +23,7 @@ fix_subject-lh \
 fix_subject_on_seychelles \
 fix_subject-rh \
 freesurfer.csh \
+fs_lib_check \
 fsl_rigid_register \
 fslregister \
 grad_unwarp \
@@ -107,7 +108,6 @@ segment_subject_old_skull_strip \
 segment_subject_sc \
 segment_subject_talmgh \
 setlabelstat\
-show_fs_libs \
 show_tal \
 sphere_subject \
 sphere_subject-lh \
