@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/08/19 18:57:52 $
-// Revision       : $Revision: 1.107 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/08/20 12:21:00 $
+// Revision       : $Revision: 1.108 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.107 2005/08/19 18:57:52 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.108 2005/08/20 12:21:00 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1224,7 +1224,6 @@ int main(int argc, char *argv[])
 
   }
 
-	MRIaddCommandLine(mri, cmdline) ;
 
   if(mri == NULL)
   {
@@ -1232,6 +1231,7 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+	MRIaddCommandLine(mri, cmdline) ;
 	if (!FEQUAL(scale_factor,1.0))
 	{
 		printf("scaling input volume by %2.3f\n", scale_factor) ;
