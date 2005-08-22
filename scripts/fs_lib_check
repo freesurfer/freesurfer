@@ -1,18 +1,18 @@
 #!/bin/bash
-G_ID="$Id: fs_lib_check,v 1.1 2005/08/19 16:16:45 nicks Exp $"
+G_ID="$Id: fs_lib_check,v 1.2 2005/08/22 15:18:12 rudolph Exp $"
 G_SYNOPSIS="
 
  NAME
 
-	fslibcheck.bash
+	fs_lib_check
 
  SYNOPSIS
 
-	fslibcheck.bash [-l] [-r] [-h] [-v] 
+	fs_lib_check [-l] [-r] [-h] [-v] 
 
  DESCRIPTION
 
-	'fslibcheck.bash' merely checks if the operating system
+	'fs_lib_check' merely checks if the operating system
 	has the necessary system libraries required to run
 	FreeSurfer.
 
