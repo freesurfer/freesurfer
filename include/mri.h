@@ -958,6 +958,7 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol);
 #define DTRANS_MODE_OUTSIDE  3
 MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int mode);
 int MRIaddCommandLine(MRI *mri, char *cmdline) ;
+int MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg) ;
 
 
 #endif

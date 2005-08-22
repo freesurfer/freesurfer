@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/08/17 22:20:49 $
-// Revision       : $Revision: 1.308 $
-char *MRI_C_VERSION = "$Revision: 1.308 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/08/22 20:35:39 $
+// Revision       : $Revision: 1.309 $
+char *MRI_C_VERSION = "$Revision: 1.309 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12343,3 +12343,19 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol)
 
   return(outvol);
 }
+/*-------------------------------------------------------------------
+MRIcopyVolGeomToMRI - copies the volume geometry passed in into the MRI
+structure.
+-------------------------------------------------------------------*/
+int
+MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg)
+{
+	mri->xsize = vg->xsize ;
+	mri->ysize = vg->ysize ;
+	mri->zsize = vg->zsize ;
+	mri->x_r = vg->x_r; mri->y_r = vg->y_r; mri->z_r = vg->z_r; mri->c_r = vg->c_r;
+	mri->x_a = vg->x_a; mri->y_a = vg->y_a; mri->z_a = vg->z_a; mri->c_a = vg->c_a;
+ 	mri->x_s = vg->x_s; mri->y_s = vg->y_s; mri->z_s = vg->z_s; mri->c_s = vg->c_s;
+	return(NO_ERROR) ;
+}
+
