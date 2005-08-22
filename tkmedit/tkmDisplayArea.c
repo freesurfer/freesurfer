@@ -2,9 +2,9 @@
 // tkmDisplayArea.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/08 02:08:22 $
-// Revision       : $Revision: 1.120 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2005/08/22 17:42:47 $
+// Revision       : $Revision: 1.121 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -5841,13 +5841,10 @@ DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
 				 MRIIdx, &anaIdx );
 
 	/* convert the control point to be in the middle of voxel */
-	if( xVoxl_GetX( &anaIdx ) == xVoxl_GetFloatX( &anaIdx ) )
-	  xVoxl_SetFloatX( &anaIdx, xVoxl_GetFloatX(&anaIdx) + 0.5);
-	if( xVoxl_GetY( &anaIdx ) == xVoxl_GetFloatY( &anaIdx ) )
-	  xVoxl_SetFloatY( &anaIdx, xVoxl_GetFloatY(&anaIdx) + 0.5);
-	if( xVoxl_GetZ( &anaIdx ) == xVoxl_GetFloatZ( &anaIdx ) )
-	  xVoxl_SetFloatZ( &anaIdx, xVoxl_GetFloatZ(&anaIdx) + 0.5);
-	
+	xVoxl_SetFloatX( &anaIdx, floor(xVoxl_GetFloatX(&anaIdx)+0.5) );
+	xVoxl_SetFloatY( &anaIdx, floor(xVoxl_GetFloatY(&anaIdx)+0.5) );
+	xVoxl_SetFloatZ( &anaIdx, floor(xVoxl_GetFloatZ(&anaIdx)+0.5) );
+
 	/* convert to buffer point. */
 	eResult = DspA_ConvertVolumeToBuffer_( this, &anaIdx, &bufferPt );
 	if ( DspA_tErr_NoErr != eResult )
