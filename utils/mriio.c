@@ -851,7 +851,7 @@ MRI *MRIreadHeader(char *fname, int type)
 int MRIwriteType(MRI *mri, char *fname, int type)
 {
   struct stat stat_buf;
-  int error;
+  int error=0;
   char *fstem;
   char tmpstr[STRLEN];
 
@@ -859,20 +859,22 @@ int MRIwriteType(MRI *mri, char *fname, int type)
     {
       error = corWrite(mri, fname);
     }
-
-  /* ----- all remaining types should write to a filename, not to within a directory,
-     so check that it isn't an existing directory name we've been passed.
-     failure to check will result in a segfault when attempting to write file data
-     to a 'file' that is actually an existing directory ----- */
-  if(stat(fname, &stat_buf) == 0){  // if can stat, then fname exists
-    if(S_ISDIR(stat_buf.st_mode)){ // if is directory...
-      errno = 0;
-      ErrorReturn(ERROR_BADFILE, 
-                  (ERROR_BADFILE, 
-                   "MRIwriteType(): %s is an existing directory.\n"
-                   "                A filename should be specified instead.", fname));
+  else
+    {
+    /* ----- all remaining types should write to a filename, not to within a directory,
+       so check that it isn't an existing directory name we've been passed.
+       failure to check will result in a segfault when attempting to write file data
+       to a 'file' that is actually an existing directory ----- */
+      if(stat(fname, &stat_buf) == 0){  // if can stat, then fname exists
+         if(S_ISDIR(stat_buf.st_mode)){ // if is directory...
+          errno = 0;
+          ErrorReturn(ERROR_BADFILE, 
+                      (ERROR_BADFILE, 
+                       "MRIwriteType(): %s is an existing directory. (type=%d)\n"
+                       "                A filename should be specified instead.", fname, type));
+        }
+      }
     }
-  }
 
   /* ----- continue file writing... ----- */
 
@@ -1005,6 +1007,10 @@ int MRIwriteType(MRI *mri, char *fname, int type)
       ErrorReturn(ERROR_BADPARM, 
                   (ERROR_BADPARM, 
                    "MRIwriteType(): writing of XIMG file type not supported"));
+    }
+  else if(type == MRI_CORONAL_SLICE_DIRECTORY)
+    {
+      // already processed above
     }
   else
     {
