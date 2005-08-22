@@ -18,7 +18,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.58 2005/08/15 14:25:24 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.59 2005/08/22 15:04:35 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -154,10 +154,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.58 2005/08/15 14:25:24 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.59 2005/08/22 15:04:35 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.58 2005/08/15 14:25:24 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.59 2005/08/22 15:04:35 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -334,7 +334,8 @@ main(int argc, char *argv[])
     MRImask(mri_T1_white, mri_filled, mri_T1_white, replace_val,0) ;
   MRImask(mri_T1, mri_filled, mri_T1, replace_val,0) ;
   MRIfree(&mri_filled) ;
-	MRIwrite(mri_T1, "r.mgz") ;
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_T1, "r.mgz") ;
 
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
   if(MGZ) sprintf(fname, "%s.mgz",fname);
