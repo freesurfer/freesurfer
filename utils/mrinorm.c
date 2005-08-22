@@ -4119,14 +4119,18 @@ find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, float *pgm, flo
 	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 		HISTOplot(h, "h0.plt") ;
 	if (mri_src->type == MRI_UCHAR)
+	{
 		HISTOclearBins(h, h, 0, 5) ;
+		hsmooth = HISTOsmooth(h, NULL, 2) ;
+	}
 	else
 	{
+		hsmooth = HISTOsmooth(h, NULL, 2) ;
 		HISTOclearBG(hsmooth, hsmooth, &bg_end) ;
 		HISTOclearBins(h, h, 0, bg_end) ;
+		HISTOsmooth(h, hsmooth, 2) ;
 	}
 
-	hsmooth = HISTOsmooth(h, NULL, 2) ;
 	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 	{
 		HISTOplot(h, "h.plt") ; HISTOplot(hsmooth, "hs.plt");
