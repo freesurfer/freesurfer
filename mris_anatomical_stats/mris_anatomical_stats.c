@@ -4,6 +4,7 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <sys/utsname.h>
 
 #include "macros.h"
 #include "error.h"
@@ -16,7 +17,7 @@
 #include "version.h"
 #include "colortab.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.27 2005/08/17 20:20:13 greve Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.28 2005/08/22 22:17:24 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -82,12 +83,17 @@ main(int argc, char *argv[])
   int           ct_index;
   int           n_vertices = -1;
   MRI           *ThicknessMap = NULL;
+  struct utsname uts;
+  char *cmdline;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.27 2005/08/17 20:20:13 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.28 2005/08/22 22:17:24 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
+
+  cmdline = argv2cmdline(argc,argv);
+  uname(&uts);
 
   mean_abs_mean_curvature = mean_abs_gaussian_curvature = gray_volume = 0.0 ;
   Progname = argv[0] ;
@@ -256,27 +262,37 @@ main(int argc, char *argv[])
       fprintf(stdout, "\n");
     }
 
-    if(annotation_name && tablefile != NULL)
-    {
+    if(annotation_name && tablefile != NULL){
       fp = fopen(tablefile,"w");
-      fprintf(fp,"# Table of cortical parcellation anatomical statistics \n");
+      fprintf(fp,"# Table of FreeSurfer cortical parcellation anatomical statistics \n");
+      fprintf(fp,"# \n");
+      fprintf(fp,"# generating_program %s\n",Progname);
+      fprintf(fp,"# cvs_version %s\n",vcid);
+      fprintf(fp,"# cmdline %s\n",cmdline);
+      fprintf(fp,"# sysname  %s\n",uts.sysname);
+      fprintf(fp,"# hostname %s\n",uts.nodename);
+      fprintf(fp,"# machine  %s\n",uts.machine);
+      fprintf(fp,"# \n");
+      fprintf(fp,"# SUBJECTS_DIR %s\n",sdir);
+      fprintf(fp,"# anatomy_type surface\n");
       fprintf(fp,"# subjectname %s\n",sname);
       fprintf(fp,"# hemi %s\n",hemi);
-      fprintf(fp,"# SUBJECTS_DIR %s\n",sdir);
       fprintf(fp,"# annotation file %s\n",annotation_name);
       fprintf(fp,"# total white matter volume  %2.0f mm^3\n",wm_volume) ;
-      fprintf(fp,"# total number of vertices  %d\n",mris->nvertices);
-      fprintf(fp,"# table columns are:\n");
-      fprintf(fp,"# 1. structure name\n");
-      fprintf(fp,"# 2. number of vertices\n");
-      fprintf(fp,"# 3. total surface area (mm^2)\n");
-      fprintf(fp,"# 4. total gray matter volume (mm^3)\n");
-      fprintf(fp,"# 5. average cortical thickness (mm)\n");
-      fprintf(fp,"# 6. standard deviation of cortical thickness (mm)\n");
-      fprintf(fp,"# 7. integrated rectified mean curvature\n");
-      fprintf(fp,"# 8. integrated rectified Gaussian curvature\n");
-      fprintf(fp,"# 9. folding index\n");
-      fprintf(fp,"# 10. intrinsic curvature index\n");
+      fprintf(fp,"# TotalNumVertices  %d\n",mris->nvertices);
+      fprintf(fp,"# TotalSurfaceArea  %g (units = mm^2)\n",mris->total_area);
+      fprintf(fp,"# NTableCols 10\n");
+      fprintf(fp,"# TableCol  1 Struct   Structure Name\n");
+      fprintf(fp,"# TableCol  2 NumVert  Number of Vertices\n");
+      fprintf(fp,"# TableCol  3 SurfArea Surface Area (units = mm^2)\n");
+      fprintf(fp,"# TableCol  4 GrayVol  Gray Matter Volume (units = mm^3)\n");
+      fprintf(fp,"# TableCol  5 ThickAvg Average Thickness (units = mm) \n");
+      fprintf(fp,"# TableCol  6 ThickStd StdDev  Thickness (units = mm) \n");
+      fprintf(fp,"# TableCol  7 MeanCurv Integrated Rectified Mean Curvature\n");
+      fprintf(fp,"# TableCol  8 GausCurv Integrated Rectified Gaussian Curvature\n");
+      fprintf(fp,"# TableCol  9 FoldInd  Folding Index \n");
+      fprintf(fp,"# TableCol 10 CurvInd  Intrinsic Curvature Index\n");
+      fprintf(fp,"# ColHeaders Struct NumVert SurfArea GrayVol ThickAvg ThickStd MeanCurv GausCurv FoldInd CurvInd\n");
       fclose(fp);
     }
 
