@@ -1,8 +1,8 @@
 /**
  * @file   version.c
- * @author $Author: fischl $
- * @date   $Date: 2005/08/15 14:09:51 $
- *         $Revision: 1.15 $
+ * @author $Author: greve $
+ * @date   $Date: 2005/08/22 22:16:56 $
+ *         $Revision: 1.16 $
  * @brief  freesurfer version functions defined here
  * 
  * 
@@ -329,3 +329,29 @@ handle_version_option (int argc, char** argv,
   /* Return the number of arguments processed. */
   return num_processed_args;
 }
+
+/*------------------------------------------------------------------------
+  argv2cmdline() - converts argv into a single string.
+  ------------------------------------------------------------------------*/
+char *argv2cmdline(int argc, char *argv[])
+{
+  int len, n;
+  char *cmdline;
+  
+  len = 0;
+  for(n=0; n<argc; n++) len += strlen(argv[n]);
+
+  cmdline = (char *) calloc(sizeof(char),len+n+1);
+  for(n=0; n<argc; n++){
+    strcat(cmdline,argv[n]);
+    strcat(cmdline," ");
+  }
+
+  return(cmdline);
+}
+
+
+
+
+
+
