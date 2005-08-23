@@ -17,7 +17,7 @@
 #include "version.h"
 #include "colortab.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.28 2005/08/22 22:17:24 greve Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.29 2005/08/23 15:19:40 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,7 +87,7 @@ main(int argc, char *argv[])
   char *cmdline;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.28 2005/08/22 22:17:24 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.29 2005/08/23 15:19:40 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -196,7 +196,7 @@ main(int argc, char *argv[])
     if(MRISreadAnnotation(mris, annotation_name) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s:  could  not read annotation file %s", 
 		Progname, annotation_name) ;
-    if(annotctabfile != NULL){
+    if(annotctabfile != NULL && mris->ct != NULL){
       printf("Saving annotation colortable %s\n",annotctabfile);
       CTABwriteTxt(annotctabfile,mris->ct);
     }
