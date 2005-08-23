@@ -10834,7 +10834,6 @@ mghRead(char *fname, int read_volume, int frame)
 
     while ((tag = TAGreadStart(fp, &len)) != 0)
       {
-        char buf[STRLEN] ;
         switch (tag)
           {
           case TAG_OLD_MGH_XFORM:
@@ -10877,9 +10876,9 @@ mghRead(char *fname, int read_volume, int frame)
               ErrorExit(ERROR_NOMEMORY, 
                         "mghRead(%s): too many commands (%d) in file",
                         fname,mri->ncmds);
-            fread(buf, sizeof(char), len, fp) ;
-            mri->cmdlines[mri->ncmds] = calloc(len, sizeof(char)) ;
-            strcpy(mri->cmdlines[mri->ncmds], buf) ;
+            mri->cmdlines[mri->ncmds] = calloc(len+1, sizeof(char)) ;
+            fread(mri->cmdlines[mri->ncmds], sizeof(char), len, fp) ;
+						mri->cmdlines[mri->ncmds][len] = 0 ;
             mri->ncmds++ ;
             break ;
           default:
