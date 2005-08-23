@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sys/utsname.h>
+
 #include "macros.h"
 #include "mrisurf.h"
 #include "mrisutils.h"
@@ -9,6 +11,7 @@
 #include "mri.h"
 #include "mri2.h"
 #include "version.h"
+#include "cma.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -40,11 +43,13 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segstats.c,v 1.3 2005/05/24 21:53:05 greve Exp $";
-char *Progname = NULL, *SUBJECTS_DIR = NULL;
+static char vcid[] = "$Id: mri_segstats.c,v 1.4 2005/08/23 22:16:03 greve Exp $";
+char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
 char *MaskVolFile = NULL;
+char *PVVolFile = NULL;
+char *BrainVolFile = NULL;
 char *subject = NULL;
 char *StatTableFile = NULL;
 char *FrameAvgFile = NULL;
@@ -54,7 +59,7 @@ int frame = 0;
 int synth = 0;
 int debug = 0;
 long seed = 0;
-MRI *seg, *invol, *famri, *maskvol;
+MRI *seg, *invol, *famri, *maskvol, *pvvol, *brainvol;
 int nsegid, *segidlist;
 int NonEmptyOnly = 0;
 int UserSegIdList[1000];
@@ -65,6 +70,9 @@ float maskthresh = 0.5;
 int   maskinvert = 0, maskframe = 0;
 char *masksign;
 int   nmaskhits;
+int   nbrainvoxels = 0;
+double brainvolumemm = 0;
+int   BrainVolFromSeg = 0;
 
 char *ctabfile = NULL;
 COLOR_TABLE *ctab = NULL;
@@ -80,11 +88,16 @@ int main(int argc, char **argv)
   float min, max, range, mean, std;
   FILE *fp;
   double  **favg;
+  struct utsname uts;
+  char *cmdline;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
+
+  cmdline = argv2cmdline(argc,argv);
+  uname(&uts);
 
   Progname = argv[0] ;
   argc --;
@@ -146,6 +159,44 @@ int main(int argc, char **argv)
       exit(1);
     }
     /* Should check that invol the same dim as seg, etc*/
+  }
+
+  /* Load the partial volume mri */
+  if(PVVolFile != NULL){
+    printf("Loading %s\n",PVVolFile);
+    pvvol = MRIread(PVVolFile);
+    if(pvvol == NULL){
+      printf("ERROR: loading %s\n",PVVolFile);
+      exit(1);
+    }
+    /* Should check that invol the same dim as seg, etc*/
+  }
+
+  /* Load the brain volume */
+  if(BrainVolFile != NULL){
+    printf("Loading %s\n",BrainVolFile);
+    brainvol = MRIread(BrainVolFile);
+    if(brainvol == NULL){
+      printf("ERROR: loading %s\n",BrainVolFile);
+      exit(1);
+    }
+    /* Should check that invol the same dim as seg, etc*/
+    nbrainvoxels = MRItotalVoxelsOn(brainvol, WM_MIN_VAL) ;
+    brainvolumemm = nbrainvoxels * brainvol->xsize * brainvol->ysize * brainvol->zsize;
+    MRIfree(&brainvol) ;
+    printf("# nbrainvoxels %d\n",nbrainvoxels);
+    printf("# brainvolumemm %10.1lf\n",brainvolumemm);
+  }
+
+  if(BrainVolFromSeg){
+    nbrainvoxels = 0;
+    for (n = 0 ; n <= MAX_CMA_LABEL ; n++){
+      if (!IS_BRAIN(n)) continue ;
+      nbrainvoxels += MRIvoxelsInLabel(seg, n) ;
+    }
+    brainvolumemm = nbrainvoxels * seg->xsize * seg->ysize * seg->zsize;
+    printf("# nbrainvoxels %d\n",nbrainvoxels);
+    printf("# brainvolumemm %10.1lf\n",brainvolumemm);
   }
 
   /* Load the mask volume */
@@ -247,10 +298,14 @@ int main(int argc, char **argv)
 
   printf("Computing statistics for each segmentation\n");
   for(n=0; n < nsegid; n++){
-    printf("%3d ",n);
+    printf("%3d   %3d  ",n,StatSumTable[n].id);
     if(n%20 == 19) printf("\n");
     fflush(stdout);
-    nhits = MRIsegCount(seg, StatSumTable[n].id, 0);
+    if(pvvol == NULL)
+      nhits = MRIsegCount(seg, StatSumTable[n].id, 0);
+    else
+      nhits = MRIvoxelsInLabelWithPartialVolumeEffects(seg, pvvol, StatSumTable[n].id);
+    printf("%4d\n",nhits);
     StatSumTable[n].nhits = nhits;
     if(InVolFile != NULL){
       if(nhits > 0){
@@ -317,12 +372,22 @@ int main(int argc, char **argv)
   if(StatTableFile != NULL){
     fp = fopen(StatTableFile,"w");
     fprintf(fp,"# Title Segmentation Statistics \n");
+    fprintf(fp,"# \n");
+    fprintf(fp,"# generating_program %s\n",Progname);
+    fprintf(fp,"# cvs_version %s\n",vcid);
+    fprintf(fp,"# cmdline %s\n",cmdline);
+    fprintf(fp,"# sysname  %s\n",uts.sysname);
+    fprintf(fp,"# hostname %s\n",uts.nodename);
+    fprintf(fp,"# machine  %s\n",uts.machine);
+    fprintf(fp,"# \n");
+    if(BrainVolFile) fprintf(fp,"# BrainVolFile  %s \n",BrainVolFile);
+    fprintf(fp,"# BrainVolFromSeg  %d \n",BrainVolFromSeg);
+    if(BrainVolFile || BrainVolFromSeg) {
+      fprintf(fp,"# nbrainvoxels %d\n",nbrainvoxels);
+      fprintf(fp,"# brainvolumemm %10.1lf\n",brainvolumemm);
+    }
     fprintf(fp,"# SegVolFile %s \n",SegVolFile);
     if(ctabfile)  fprintf(fp,"# ColorTable %s \n",ctabfile);
-    if(InVolFile) {
-      fprintf(fp,"# InVolFile  %s \n",InVolFile);
-      fprintf(fp,"#   InVolFrame %d \n",frame);
-    }
     if(MaskVolFile) {
       fprintf(fp,"# MaskVolFile  %s \n",MaskVolFile);
       fprintf(fp,"#   MaskThresh %f \n",maskthresh);
@@ -330,24 +395,35 @@ int main(int argc, char **argv)
       fprintf(fp,"#   MaskFrame  %d \n",maskframe);
       fprintf(fp,"#   MaskInvert %d \n",maskframe);
     }
+    if(InVolFile) {
+      fprintf(fp,"# InVolFile  %s \n",InVolFile);
+      fprintf(fp,"#   InVolFrame %d \n",frame);
+    }
+    if(PVVolFile) fprintf(fp,"# PVVolFile  %s \n",PVVolFile);
     if(DoExclSegId)  fprintf(fp,"# ExcludeSegId %d \n",ExclSegId);
     if(NonEmptyOnly) fprintf(fp,"# Only reporting non-empty segmentations\n");
     fprintf(fp,"# VoxelVolume_mm3 %g \n",voxelvolume);
-    fprintf(fp,"# Col 1 Index \n");
-    fprintf(fp,"# Col 2 SegId \n");
-    fprintf(fp,"# Col 3 NVoxels \n");
-    fprintf(fp,"# Col 4 Volume_mm3 \n");
+    fprintf(fp,"# TableCol 1 Index \n");
+    fprintf(fp,"# TableCol 2 SegId \n");
+    fprintf(fp,"# TableCol 3 NVoxels \n");
+    fprintf(fp,"# TableCol 4 Volume_mm3 \n");
     n = 5;
-    if(ctabfile) {fprintf(fp,"# Col %d SegName \n",n); n++;}
+    if(ctabfile) {fprintf(fp,"# TableCol %d SegName \n",n); n++;}
     if(InVolFile) {
-      fprintf(fp,"# Col %d Min \n",n);    n++;
-      fprintf(fp,"# Col %d Max \n",n);    n++;
-      fprintf(fp,"# Col %d Range \n",n);  n++;
-      fprintf(fp,"# Col %d Mean \n",n);   n++;
-      fprintf(fp,"# Col %d StdDev \n",n); n++;
+      fprintf(fp,"# TableCol %d Min \n",n);    n++;
+      fprintf(fp,"# TableCol %d Max \n",n);    n++;
+      fprintf(fp,"# TableCol %d Range \n",n);  n++;
+      fprintf(fp,"# TableCol %d Mean \n",n);   n++;
+      fprintf(fp,"# TableCol %d StdDev \n",n); n++;
     }
-    fprintf(fp,"# NCols %d \n",n-1); 
     fprintf(fp,"# NRows %d \n",nsegid);
+    fprintf(fp,"# NTableCols %d \n",n-1); 
+
+    fprintf(fp,"# ColHeaders  Index SegId NVoxels Volume_mm3 "); 
+    if(ctabfile) fprintf(fp,"SegName ");
+    if(InVolFile) fprintf(fp,"Min Max Range Mean StdDev ");
+    fprintf(fp,"\n");
+
     for(n=0; n < nsegid; n++){
       fprintf(fp,"%3d %3d  %8d %10.1f  ", n+1, StatSumTable[n].id,
 	      StatSumTable[n].nhits,
@@ -431,6 +507,13 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--nonempty")) NonEmptyOnly = 1;
+    else if ( !strcmp(option, "--brain-vol-from-seg") ) BrainVolFromSeg = 1;
+    else if ( !strcmp(option, "--ctab-default") ) {
+      FREESURFER_HOME = getenv("FREESURFER_HOME");
+      ctabfile = (char *) calloc(sizeof(char),1000);
+      sprintf(ctabfile,"%s/tkmeditColorsCMA",FREESURFER_HOME);
+      printf("Using defalt ctab %s\n",ctabfile);
+    }
     else if ( !strcmp(option, "--seg") ) {
       if(nargc < 1) argnerr(option,1);
       SegVolFile = pargv[0];
@@ -439,6 +522,11 @@ static int parse_commandline(int argc, char **argv)
     else if ( !strcmp(option, "--in") ) {
       if(nargc < 1) argnerr(option,1);
       InVolFile = pargv[0];
+      nargsused = 1;
+    }
+    else if ( !strcmp(option, "--brain") ) {
+      if(nargc < 1) argnerr(option,1);
+      BrainVolFile = pargv[0];
       nargsused = 1;
     }
     else if ( !strcmp(option, "--id") ) {
@@ -521,6 +609,11 @@ static int parse_commandline(int argc, char **argv)
       synth = 1;
       nargsused = 1;
     }
+    else if ( !strcmp(option, "--pv") ) {
+      if(nargc < 1) argnerr(option,1);
+      PVVolFile = pargv[0];
+      nargsused = 1;
+    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
@@ -547,10 +640,12 @@ static void print_usage(void)
   printf("   --sum file   : stats summary table file \n");
   printf("\n");
   printf(" Other Options\n");
+  printf("   --pv pvvol : use pvvol to compensate for partial voluming\n");
   printf("   --in invol : report more stats on the input volume\n");
   printf("   --frame frame : report stats on nth frame of input volume\n");
   printf("\n");
   printf("   --ctab ctabfile : color table file with seg id names\n");
+  printf("   --ctab-default: use $FREESURFER_HOME/tkmeditColorsCMA\n");
   printf("   --id segid <--id segid> : manually specify seg ids\n");
   printf("   --excludeid segid : exclude seg id from report\n");
   printf("   --nonempty : only report non-empty segmentations\n");
@@ -561,6 +656,10 @@ static void print_usage(void)
   printf("   --masksign sign : <abs>,pos,neg\n");
   printf("   --maskframe frame : 0-based frame number <0>\n");
   printf("   --maskinvert : invert mask \n");
+  printf("\n");
+  printf("Brain volume options\n");
+  printf("   --brain-vol-from-seg : get brain volume from brain segmentations");
+  printf("   --brain brainvol : get brain volume from non-zero vox in brain file\n");
   printf("\n");
   printf("Average waveform options\n");
   printf("   --avgwf textfile  : save into an ascii file\n");
@@ -611,6 +710,12 @@ static void print_help(void)
 "ASCII file in which summary statistics are saved. See SUMMARY FILE\n"
 "below for more information.\n"
 "\n"
+"--pv pvvol\n"
+"\n"
+"Use pvvol to compensate for partial voluming. This should result in\n"
+"more accurate volumes. Usually, this is only done when computing \n"
+"anatomical statistics. Usually, the mri/norm.mgz volume is used.\n"
+"\n"
 "--in invol\n"
 "\n"
 "Input volume from which to compute more statistics, including min,\n"
@@ -631,6 +736,10 @@ static void print_help(void)
 "The ctab can be used to specify the segmentations to report on or\n"
 "simply to supply human-readable names to segmentations chosen with\n"
 "--id. See SPECIFYING SEGMENTATION IDS below.\n"
+"\n"
+"--ctab-default\n"
+"\n"
+"Same as --ctab $FREESURFER_HOME/tkmeditColorsCMA\n"
 "\n"
 "--id segid1 <--id segid2>\n"
 "\n"
@@ -674,6 +783,19 @@ static void print_help(void)
 "--maskinvert\n"
 "\n"
 "After applying all the masking criteria, invert the mask.\n"
+"\n"
+"--brain-vol-from-seg\n"
+"\n"
+"Get volume of brain as the sum of the volumes of the segmentations that\n"
+"are in the brain. Based on CMA/tkmeditColorsCMA. The number of voxels\n"
+"and brain volume are stored as a tag in the summary file.\n"
+"\n"
+"\n"
+"--brain brainvol\n"
+"\n"
+"Load volume brainvol and compute the volume of the brain as the non-zero\n"
+"voxels in this volume. The number of voxels and brain volume are \n"
+"stored as a tag in the summary file.\n"
 "\n"
 "--avgwf textfile\n"
 "\n"
@@ -816,6 +938,10 @@ static void check_options(void)
   }
   if(DoFrameAvg && InVolFile == NULL){
     printf("ERROR: cannot do frame average without input volume\n");
+    exit(1);
+  }
+  if(BrainVolFile != NULL && BrainVolFromSeg != 0){
+    printf("ERROR: cannot specify both --brain and --brain-vol-from-seg\n");
     exit(1);
   }
 
