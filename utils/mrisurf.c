@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/18 19:28:43 $
-// Revision       : $Revision: 1.364 $
+// Revision Date  : $Date: 2005/08/23 16:44:29 $
+// Revision       : $Revision: 1.365 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -712,7 +712,6 @@ MRISreadOverAlloc(char *fname, double pct_over)
 			
 			while ((tag = TAGreadStart(fp, &len)) != 0)
 			{
-				char buf[STRLEN] ;
 				switch (tag)
 				{
 				case TAG_OLD_SURF_GEOM:
@@ -726,9 +725,9 @@ MRISreadOverAlloc(char *fname, double pct_over)
 				case TAG_CMDLINE:
 					if (mris->ncmds > MAX_CMDS)
 						ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname,mris->ncmds);
-					fread(buf, sizeof(char), len, fp) ;
-					mris->cmdlines[mris->ncmds] = calloc(len, sizeof(char)) ;
-					strcpy(mris->cmdlines[mris->ncmds], buf) ;
+					mris->cmdlines[mris->ncmds] = calloc(len+1, sizeof(char)) ;
+					fread(mris->cmdlines[mris->ncmds], sizeof(char), len, fp) ;
+					mris->cmdlines[mris->ncmds][len] = 0 ;
 					mris->ncmds++ ;
 					break ;
 				default:
