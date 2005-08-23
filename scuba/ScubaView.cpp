@@ -124,6 +124,14 @@ ScubaView::ScubaView() {
   commandMgr.AddCommand( *this, "GetLevelVisibilityInView", 2, 
 			 "viewID level",
 			 "Returns the visibility for a level in a view." );
+  commandMgr.AddCommand( *this, "SetLevelReportInfoInView", 3, 
+			 "viewID level reportInfo",
+			 "Sets the flag for reporting info for a level "
+			 "in a view." );
+  commandMgr.AddCommand( *this, "GetLevelReportInfoInView", 2, 
+			 "viewID level",
+			 "Returns whether a level in a view is reporting "
+			 "info." );
   commandMgr.AddCommand( *this, "GetInfoAtRAS", 2, "viewID setName",
 			 "Get an array list of info at an RAS point." );
   commandMgr.AddCommand( *this, "GetFirstUnusedDrawLevelInView", 1, "viewID",
@@ -459,6 +467,11 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
 	mLevelVisibilityMap[iLevel] = true;
       }
 
+      // Start out reporting info.
+      if( mLevelReportInfoMap.find( iLevel ) == mLevelReportInfoMap.end() ) {
+	mLevelReportInfoMap[iLevel] = true;
+      }
+
       // Listen to it.
       layer.AddListener( this );
 
@@ -526,6 +539,7 @@ ScubaView::SetDrawLevelVisibility ( int inLevel, bool ibVisible ) {
     // This affects what label information we display, so rebuild the
     // label value info.
     RebuildLabelValueInfo( mCursor.xyz(), "cursor" );
+    RebuildLabelValueInfo( mCursor.xyz(), "mouse" );
 
     RequestRedisplay();
   }
@@ -538,6 +552,31 @@ ScubaView::GetDrawLevelVisibility ( int inLevel ) {
     mLevelVisibilityMap[inLevel] = true;
 
   return mLevelVisibilityMap[inLevel];
+}
+
+void
+ScubaView::SetDrawLevelReportInfo ( int inLevel, bool ibReportInfo ) {
+
+  if( mLevelReportInfoMap[inLevel] != ibReportInfo ) {
+
+    mLevelReportInfoMap[inLevel] = ibReportInfo;
+    
+    // This affects what label information we display, so rebuild the
+    // label value info.
+    RebuildLabelValueInfo( mCursor.xyz(), "cursor" );
+    RebuildLabelValueInfo( mCursor.xyz(), "mouse" );
+
+    RequestRedisplay();
+  }
+}
+
+bool
+ScubaView::GetDrawLevelReportInfo ( int inLevel ) {
+
+  if( mLevelReportInfoMap.find( inLevel ) == mLevelReportInfoMap.end() ) 
+    mLevelReportInfoMap[inLevel] = true;
+
+  return mLevelReportInfoMap[inLevel];
 }
 
 void 
@@ -879,6 +918,67 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       }
 
       sReturnValues = TclCommandManager::ConvertBooleanToReturnValue( GetDrawLevelVisibility( nLevel ) );
+      sReturnFormat = "i";
+    }
+  }
+
+  // SetLevelReportInfoInView <viewID> <level> <reportInfo>
+  if( 0 == strcmp( isCommand, "SetLevelReportInfoInView" ) ) {
+
+    int viewID;
+    try {
+      viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad viewID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      int nLevel;
+      try {
+	nLevel = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      }
+      catch( runtime_error& e ) {
+	sResult = string("bad level: ") + e.what();
+	return error;
+      }
+
+      bool bReportInfo;
+      try {
+	bReportInfo =
+	  TclCommandManager::ConvertArgumentToBoolean( iasArgv[3] );
+      }
+      catch( runtime_error& e ) {
+	sResult = string("bad reportInfo: ") + e.what();
+	return error;
+      }
+
+      SetDrawLevelReportInfo( nLevel, bReportInfo );
+    }
+  }
+
+  // GetLevelReportInfoInView <viewID> <level>
+  if( 0 == strcmp( isCommand, "GetLevelReportInfoInView" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      int nLevel;
+      try {
+	nLevel = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      }
+      catch( runtime_error& e ) {
+	sResult = string("bad level: ") + e.what();
+	return error;
+      }
+
+      sReturnValues = TclCommandManager::ConvertBooleanToReturnValue( GetDrawLevelReportInfo( nLevel ) );
       sReturnFormat = "i";
     }
   }
@@ -3168,8 +3268,8 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
     int nLevel = (*tLevelLayerID).first;
     int layerID = (*tLevelLayerID).second;
 
-    // If this level is not visible, skip it.
-    if( !GetDrawLevelVisibility(nLevel) )
+    // If this level is not reporting info, skip it.
+    if( !GetDrawLevelReportInfo(nLevel) )
       continue;
 
     try {

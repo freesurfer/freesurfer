@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.135 2005/08/15 18:55:59 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.136 2005/08/23 18:10:12 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2221,6 +2221,7 @@ proc MakeViewPropertiesPanel { ifwTop } {
     tkuMakeNormalLabel $fw4.lwLevel -label "Lvl"
     tkuMakeNormalLabel $fw4.lwVisible -label "Vis"
     tkuMakeNormalLabel $fw4.lwLocked -label "Lckd"
+    tkuMakeNormalLabel $fw4.lwReportInfo -label "Inf"
     tkuMakeNormalLabel $fw4.lwLayer -label "Layer"
 
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
@@ -2234,6 +2235,11 @@ proc MakeViewPropertiesPanel { ifwTop } {
 
 	checkbutton $fw4.cbwLocked$nLevel \
 	    -variable gaView(current,lockedShuffle$nLevel)
+
+	checkbutton $fw4.cbwReportInfo$nLevel \
+	    -variable gaView(current,reportInfo$nLevel) \
+	    -command "ViewPropertiesLevelReportInfoCallback $nLevel"
+
 	tixOptionMenu $fw4.mwDraw$nLevel \
 	    -label "" \
 	    -variable gaView(current,draw$nLevel) \
@@ -2242,10 +2248,11 @@ proc MakeViewPropertiesPanel { ifwTop } {
 	    $fw4.mwDraw$nLevel
     }
 
-    grid $fw4.lwLevel   -column 0 -row 0
-    grid $fw4.lwVisible -column 1 -row 0
-    grid $fw4.lwLocked  -column 2 -row 0
-    grid $fw4.lwLayer   -column 3 -row 0
+    grid $fw4.lwLevel       -column 0 -row 0
+    grid $fw4.lwVisible     -column 1 -row 0
+    grid $fw4.lwLocked      -column 2 -row 0
+    grid $fw4.lwReportInfo  -column 3 -row 0
+    grid $fw4.lwLayer       -column 4 -row 0
 
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	grid $fw4.lw$nLevel \
@@ -2254,14 +2261,17 @@ proc MakeViewPropertiesPanel { ifwTop } {
 	    -column 1 -row [expr $nLevel + 1] -sticky w
 	grid $fw4.cbwLocked$nLevel  \
 	    -column 2 -row [expr $nLevel + 1] -sticky w
+	grid $fw4.cbwReportInfo$nLevel  \
+	    -column 3 -row [expr $nLevel + 1] -sticky w
 	grid $fw4.mwDraw$nLevel \
-	    -column 3 -row [expr $nLevel + 1] -sticky ew
+	    -column 4 -row [expr $nLevel + 1] -sticky ew
     }
 
     grid columnconfigure $fw4 0 -weight 0
     grid columnconfigure $fw4 1 -weight 0
     grid columnconfigure $fw4 2 -weight 0
-    grid columnconfigure $fw4 3 -weight 1
+    grid columnconfigure $fw4 3 -weight 0
+    grid columnconfigure $fw4 4 -weight 1
 
     # Row 5: The transform menu.
     frame $fw5
@@ -3088,6 +3098,8 @@ proc SelectViewInViewProperties { iViewID } {
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	set gaView(current,visible$nLevel) \
 	    [GetLevelVisibilityInView $iViewID $nLevel]
+	set gaView(current,reportInfo$nLevel) \
+	    [GetLevelReportInfoInView $iViewID $nLevel]
 
 	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
 	    config -disablecallback 1
@@ -3155,6 +3167,14 @@ proc ViewPropertiesLevelVisibleCallback { inLevel } {
     global gaView
 
     SetLevelVisibilityInView $gaView(current,id) $inLevel $gaView(current,visible$inLevel)
+    RedrawFrame [GetMainFrameID]
+}
+
+proc ViewPropertiesLevelReportInfoCallback { inLevel } {
+
+    global gaView
+
+    SetLevelReportInfoInView $gaView(current,id) $inLevel $gaView(current,reportInfo$inLevel)
     UpdateCursorLabelArea
     UpdateMouseLabelArea
     RedrawFrame [GetMainFrameID]
@@ -5243,7 +5263,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.135 2005/08/15 18:55:59 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.136 2005/08/23 18:10:12 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

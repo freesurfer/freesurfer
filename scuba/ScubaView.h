@@ -77,6 +77,11 @@ public:
   void SetDrawLevelVisibility ( int inLevel, bool ibVisible );
   bool GetDrawLevelVisibility ( int inLevel );
 
+  // If a level is not reporting info, it won't ask that layer for
+  // InfoAtRAS items.
+  void SetDrawLevelReportInfo ( int inLevel, bool ibReportInfo );
+  bool GetDrawLevelReportInfo ( int inLevel );
+
   // Sets the same layers in another view.
   void CopyLayerSettingsToView ( ScubaView& iView );
 
@@ -231,6 +236,7 @@ protected:
   // List of layers and their levels (level, layerID).
   std::map<int,int> mLevelLayerIDMap;
   std::map<int,bool> mLevelVisibilityMap;
+  std::map<int,bool> mLevelReportInfoMap;
   
   // Current view information for this view.
   ViewState mViewState;
