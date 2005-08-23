@@ -625,7 +625,7 @@ GCSAwrite(GCSA *gcsa, char *fname)
 		ct = CTABread(gcsa->ptable_fname) ;
 		if (ct)
 		{
-			fwriteInt(TAG_COLORTABLE, fp) ;
+			fwriteInt(TAG_OLD_COLORTABLE, fp) ;
 			CTABwriteInto(fp, ct) ;
 			CTABfree(&ct) ;
 		}
@@ -760,7 +760,7 @@ GCSAread(char *fname)
 		tag = freadInt(fp) ;
 		switch (tag)
 		{
-		case TAG_COLORTABLE:
+		case TAG_OLD_COLORTABLE:
 			printf("reading color table from GCSA file....\n") ;
 			tmp_ct = CTABreadFrom(fp) ;
 			//printf("gcsa ct:%8.8X, bins:%8.8X, nbins: %d, fname: %s\n",
