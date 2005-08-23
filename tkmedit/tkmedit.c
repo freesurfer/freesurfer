@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/08/19 19:09:25 $
-// Revision       : $Revision: 1.253 $
-char *VERSION = "$Revision: 1.253 $";
+// Revision Date  : $Date: 2005/08/23 21:49:35 $
+// Revision       : $Revision: 1.254 $
+char *VERSION = "$Revision: 1.254 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1104,7 +1104,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.253 2005/08/19 19:09:25 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.254 2005/08/23 21:49:35 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5344,7 +5344,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.253 2005/08/19 19:09:25 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.254 2005/08/23 21:49:35 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -9649,7 +9649,7 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
   xColor3n     color;
   int          nStructure              = 0;
   xVoxel       surfRAS;
-  xVoxel       anaIdx;
+  xVoxel       MRIIdx;
   float        dx                      = 0;
   float        dy                      = 0;
   float        dz                      = 0;
@@ -9753,8 +9753,14 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
 		      pVertex->x + (d * dx),
 		      pVertex->y + (d * dy),
 		      pVertex->z + (d * dz) );
-      Volm_ConvertRASToIdx( newVolume, &surfRAS, &anaIdx );
-      Volm_SetValueAtIdx( newVolume, &anaIdx, (float)nStructure );
+      if( gbUseRealRAS ) {
+	eVolume = 
+	  Volm_ConvertRASToMRIIdx( newVolume, &surfRAS, &MRIIdx );
+      } else {
+	eVolume = 
+	  Volm_ConvertSurfaceRASToMRIIdx( newVolume, &surfRAS, &MRIIdx );
+      }
+      eVolume = Volm_SetValueAtMRIIdx( newVolume, &MRIIdx, (float)nStructure );
     }
     if( !(nVertex % 1000) ) {
       fprintf( stdout, "\rConverting annotation... %.2f%% done",
