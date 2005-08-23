@@ -11,7 +11,7 @@ rm -rf autom4te.cache
 aclocal
 libtoolize --force
 autoreconf --force
-automake
+#automake Note: autoreconf --force runs automake
 autoconf
 
 # The first three commands create the platform specific 
