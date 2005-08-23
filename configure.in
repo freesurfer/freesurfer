@@ -952,9 +952,8 @@ AC_SUBST(LDFLAGS)
 AC_SUBST(LIBS)
 
 # check whether needs Itcl_Init() and Itk_Init()
-# except on the Mac, because the latest Tcl/Tk/Tix package
-# from Fink doesn't contain Itcl_Init or Itk_Init
-if ! test "$OS" = "Darwin"; then 
+# except when using Tcl8.4, which doesn't contain Itcl_Init or Itk_Init
+if ! test "$LIB_TCL" = "-ltcl8.4"; then 
   AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
 fi
 
