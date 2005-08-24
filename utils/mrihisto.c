@@ -1063,8 +1063,10 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
     fprintf(stderr, "              %8d voxels labeled (%2.2f%%)\n",
             nlabeled, 100.0f*(float)nlabeled / (float)(width*height*depth)) ;
   }
-  HISTOfree(&histo) ;
-  HISTOfree(&hsmooth) ;
+	if (histo)
+		HISTOfree(&histo) ;
+	if (hsmooth)
+		HISTOfree(&hsmooth) ;
   return(mri_labeled) ;
 }
 /*-----------------------------------------------------
