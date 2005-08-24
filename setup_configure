@@ -9,7 +9,11 @@ set echo=1
 
 rm -rf autom4te.cache
 aclocal
-libtoolize --force
+if ( "`uname -s`" == "Darwin" ) then 
+    glibtoolize --force
+else
+    libtoolize --force
+endif
 autoreconf --force
 #automake Note: autoreconf --force runs automake
 autoconf
