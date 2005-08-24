@@ -1072,13 +1072,13 @@ MRIxSobelForAllTypes(MRI *mri_src, MRI *mri_x, int frame)
       for (x = 1 ; x < width ; x++)
       {
 
-	tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
-	mr_pix_val = MRIgetVoxVal (mri_src, mr_pix[0], mr_pix[1], mr_pix[2],0);
-	br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
-	right =  (tr_pix_val + two * mr_pix_val + br_pix_val) ;
-	tr_pix[0]++;
-	mr_pix[0]++;
-	br_pix[0]++;
+				tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
+				mr_pix_val = MRIgetVoxVal (mri_src, mr_pix[0], mr_pix[1], mr_pix[2],0);
+				br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
+				right =  (tr_pix_val + two * mr_pix_val + br_pix_val) ;
+				tr_pix[0]++;
+				mr_pix[0]++;
+				br_pix[0]++;
 
         *outPtr++ = (right - left) / eight ;
         left = middle ;
@@ -4229,7 +4229,7 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
 
   mri_border = MRImarkBorderVoxels(mri_labeled, NULL) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    MRIwrite(mri_border, "border.mgh") ;
+    MRIwrite(mri_border, "border.mgz") ;
 
 
   width = mri_T1->width ; height = mri_T1->height ; depth = mri_T1->depth ; 
