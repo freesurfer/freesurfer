@@ -4,13 +4,13 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 //
-// ID             : $Id: mri_segment.c,v 1.26 2005/08/12 17:13:12 fischl Exp $
+// ID             : $Id: mri_segment.c,v 1.27 2005/08/24 19:48:08 fischl Exp $
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/12 17:13:12 $
-// Revision       : $Revision: 1.26 $
+// Revision Date  : $Date: 2005/08/24 19:48:08 $
+// Revision       : $Revision: 1.27 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_SEGMENT_VERSION = "$Revision: 1.26 $";
+char *MRI_SEGMENT_VERSION = "$Revision: 1.27 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,6 +42,8 @@ static float nslope = 1.0f ;
 static float wm_low = 90 ;
 static float wm_hi = 125 ;
 static float gray_hi = 100 ;
+static float gray_low = 30 ;
+static int gray_low_set = 0 ;
 static int niter = 1 ;
 static int gray_hi_set = 0 ;
 static int wm_hi_set = 0 ;
@@ -101,7 +103,7 @@ main(int argc, char *argv[])
 	TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.26 2005/08/12 17:13:12 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.27 2005/08/24 19:48:08 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -131,20 +133,40 @@ main(int argc, char *argv[])
               Progname, input_file_name) ;
 	MRIaddCommandLine(mri_src, cmdline) ;
 
+  if (thicken > 1)
+  {
+		mri_dst = MRIcopy(mri_src, NULL) ;
+   /*    MRIfilterMorphology(mri_dst, mri_dst) ;*/
+    fprintf(stderr, "removing 1-dimensional structures...\n") ;
+    MRIremove1dStructures(mri_dst, mri_dst, 10000, 2, NULL) ;
+#if 0
+    MRIcheckRemovals(mri_src, mri_dst, mri_labels, 5) ;
+    fprintf(stderr, "thickening thin strands....\n") ;
+    MRIthickenThinWMStrands(mri_src, mri_dst, mri_dst, thickness, nsegments, 
+                            wm_hi) ;
+#endif
+		MRIwrite(mri_dst, output_file_name) ;
+		exit(0) ;
+  }
+
   mri_labels = MRIclone(mri_src, NULL) ;
-  if (auto_detect_stats) /* widen range to allow for more variability */
+  if (auto_detect_stats && !wm_low_set) /* widen range to allow for more variability */
     wm_low -= 10 ;  
   fprintf(stderr, "doing initial intensity segmentation...\n") ;
   mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
 
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_tmp, "tmp1.mgz") ;
   fprintf(stderr, "using local statistics to label ambiguous voxels...\n") ;
   MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, wsize, 3.0f) ;
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_tmp, "tmp2.mgz") ;
 
   if (auto_detect_stats)
   {
 
     fprintf(stderr, "computing class statistics for intensity windows...\n") ;
-    MRIcomputeClassStatistics(mri_src, mri_tmp, 30, WHITE_MATTER_MEAN,
+    MRIcomputeClassStatistics(mri_src, mri_tmp, gray_low, WHITE_MATTER_MEAN,
                               &white_mean, &white_sigma, &gray_mean,
                               &gray_sigma) ;
 		if (!finite(white_mean) || !finite(white_sigma) ||
@@ -158,12 +180,13 @@ main(int argc, char *argv[])
       else
         wm_low = gray_mean + gray_sigma ;
     }
-    else
-      wm_low += 10 ;   /* set it back to it's original value */
+
     if (!gray_hi_set)
+		{
       gray_hi = gray_mean + 2*gray_sigma ;
-		if (gray_hi >= white_mean-white_sigma)
-			gray_hi = white_mean-white_sigma ;
+			if (gray_hi >= white_mean-white_sigma)
+				gray_hi = white_mean-white_sigma ;
+		}
     fprintf(stderr, "setting bottom of white matter range to %2.1f\n",wm_low);
     fprintf(stderr, "setting top of gray matter range to %2.1f\n", gray_hi) ;
 
@@ -353,6 +376,13 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using gray hilim = %2.1f\n", gray_hi) ;
   }
+  else if (!stricmp(option, "glo") || !stricmp(option, "gray_low"))
+  {
+    gray_low = atof(argv[2]) ;
+    gray_low_set = 1 ;
+    nargs = 1 ;
+    fprintf(stderr, "using gray low limit = %2.1f\n", gray_low) ;
+  }
   else if (!stricmp(option, "wlo") || !stricmp(option, "wm_low"))
   {
     wm_low = atof(argv[2]) ;
@@ -377,6 +407,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "thicken"))
   {
     thicken = !thicken ;
+    fprintf(stderr,"%sthickening thin strands\n", thicken ? "" : "not ") ;
+  }
+  else if (!stricmp(option, "thickenonly"))
+  {
+    thicken = 2 ;
     fprintf(stderr,"%sthickening thin strands\n", thicken ? "" : "not ") ;
   }
   else if (!stricmp(option, "fillbg") || !stricmp(option, "fill_bg"))
@@ -741,7 +776,7 @@ MRIremove1dStructures(MRI *mri_src, MRI *mri_dst, int max_iter, int thresh,
       {
         for (x = 0 ; x < width ; x++)
         {
-          val = MRIvox(mri_dst, x, y, z) ;
+          val = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
           nsix = 0 ;
           if (val < WM_MIN_VAL)
             continue ;
@@ -767,7 +802,7 @@ MRIremove1dStructures(MRI *mri_src, MRI *mri_dst, int max_iter, int thresh,
                 xi = x+xk ;
                 if (xi < 0 || xi >= width)
                   continue ;
-                if (MRIvox(mri_dst, xi, yi, zi) >= WM_MIN_VAL)
+                if (MRIgetVoxVal(mri_dst, xi, yi, zi,0) >= WM_MIN_VAL)
                   nsix++ ;
               }
             }
@@ -777,9 +812,9 @@ MRIremove1dStructures(MRI *mri_src, MRI *mri_dst, int max_iter, int thresh,
             if ((z == 124 || z == 125) && y == 162 && x == 158)
               DiagBreak() ;
             nvox++ ;
-            MRIvox(mri_dst, x, y, z) = 0 ;
+            MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
             if (mri_labels)
-              MRIvox(mri_labels,x,y,z) = 255 ;
+              MRIsetVoxVal(mri_labels,x,y,z,0,255) ;
           }
         }
       }
