@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.24 2005/08/25 02:31:06 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.25 2005/08/25 18:15:29 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.24 2005/08/25 02:31:06 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.25 2005/08/25 18:15:29 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -278,13 +278,16 @@ if(! $?NO_MINC) then
             # Max OS X Panther default:
             setenv PERL5LIB       "$MINC_LIB_DIR/../System/Library/Perl/5.8.1"
         else if ( -e $MINC_LIB_DIR/perl5/5.8.5) then
-            # Linux default:
+            # Linux CentOS4:
             setenv PERL5LIB       "$MINC_LIB_DIR/perl5/5.8.5"
+        else if ( -e $MINC_LIB_DIR/perl5/5.8.3) then
+            # Linux FC2:
+            setenv PERL5LIB       "$MINC_LIB_DIR/perl5/5.8.3"
         else if ( -e $MINC_LIB_DIR/perl5/site_perl/5.8.3) then
-            # Linux default:
+            # Linux:
             setenv PERL5LIB       "$MINC_LIB_DIR/perl5/site_perl/5.8.3"
         else if ( -e $MINC_LIB_DIR/5.6.0) then
-            # Linux default:
+            # Linux RH7 and RH9:
             setenv PERL5LIB       "$MINC_LIB_DIR/5.6.0"
         endif
     endif
