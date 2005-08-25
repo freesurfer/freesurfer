@@ -43,7 +43,7 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segstats.c,v 1.5 2005/08/25 21:58:10 greve Exp $";
+static char vcid[] = "$Id: mri_segstats.c,v 1.6 2005/08/25 23:10:51 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -60,6 +60,7 @@ int synth = 0;
 int debug = 0;
 long seed = 0;
 MRI *seg, *invol, *famri, *maskvol, *pvvol, *brainvol;
+int nsegid0, *segidlist0;
 int nsegid, *segidlist;
 int NonEmptyOnly = 0;
 int UserSegIdList[1000];
@@ -84,7 +85,7 @@ STATSUMENTRY *StatSumTable2 = NULL;
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int nargs, n, nhits, f, nsegidrep, ind, nthsegid;
+  int nargs, n, n0, skip, nhits, f, nsegidrep, ind, nthsegid;
   int c,r,s;
   float voxelvolume;
   float min, max, range, mean, std;
@@ -248,10 +249,13 @@ int main(int argc, char **argv)
      used to determine the name of the segmentation.
    */
 
+  printf("Generating list of segmentation ids\n");
+  segidlist0 = MRIsegIdList(seg, &nsegid0,0);
+
   if(ctabfile == NULL && nUserSegIdList == 0){
     /* Must get list of segmentation ids from segmentation itself*/
-    printf("Generating list of segmentation ids\n");
-    segidlist = MRIsegIdList(seg, &nsegid,0);
+    segidlist = segidlist0;
+    nsegid = nsegid0;
     StatSumTable = (STATSUMENTRY *) calloc(sizeof(STATSUMENTRY),nsegid);
     for(n=0; n < nsegid; n++){
       StatSumTable[n].id = segidlist[n];
@@ -301,9 +305,19 @@ int main(int argc, char **argv)
   printf("Computing statistics for each segmentation\n");
   for(n=0; n < nsegid; n++){
     if(DoExclSegId && StatSumTable[n].id == ExclSegId) continue; 
-    printf("%3d   %3d  ",n,StatSumTable[n].id);
-    if(n%20 == 19) printf("\n");
+
+    printf("%3d   %3d  %s ",n,StatSumTable[n].id,StatSumTable[n].name);
     fflush(stdout);
+
+    // Skip ones that are not represented
+    skip = 1;
+    for(n0=0; n0 < nsegid0; n0++) 
+      if(StatSumTable[n].id == segidlist0[n0]) skip = 0;
+    if(skip){
+      printf(" 0\n");
+      continue;
+    }
+
     if(pvvol == NULL)
       nhits = MRIsegCount(seg, StatSumTable[n].id, 0);
     else
