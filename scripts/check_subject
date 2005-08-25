@@ -48,18 +48,42 @@ foreach $hemi ('rh','lh') {
 
   $last = undef;
   $size = 0;
+  $nvertices0 = -1;
   foreach $ext ('smoothwm','inflated','white','sphere','pial',
 		'sphere.reg',$adds) {
+
     $file = "$hemi.$ext";
     next unless ( -f $file );
-    if ($size) {
-      if ($size != (-s $file)) {
-	warn "WARN: file $file is not equal in size to $last\n";  $status++;
-      }
-    } else {
-      $size = ( -s $file );
-      $last = $file;
+
+    # Get numer of vertices
+    $tmpfile = "/tmp/chsubj.$$.dat";
+    #printf "$tmpfile $file\n";
+    system("mris_info $file --o $tmpfile --nvertices > /dev/null 2>&1");
+    open(nvtxfp,"/tmp/chsubj.dat");
+    $line = <nvtxfp>;
+    close(nvtxfp);
+    system("rm $tmpfile");
+
+    @a = split(" ",$line);
+    $nvertices = @a[1];
+    if($nvertices0 < 0) {$nvertices0 = $nvertices;}
+
+    if( $nvertices0 != $nvertices ){
+	warn "WARN: inconsistent number of vertices between $hemi.smoothwm and $file\n";  
+        $status++;
     }
+
+    # File size is no longer a good determinant of status
+    #next unless ( -f $file );
+    #if($size) {
+    #  if ($size != (-s $file)) {
+    # warn "WARN: file $file is not equal in size to $last\n";  $status++;
+    #  }
+    #} else {
+    #  $size = ( -s $file );
+    #  $last = $file;
+    #}
+
   } 
     
   $last = undef;
@@ -80,6 +104,7 @@ foreach $hemi ('rh','lh') {
   if ((-s "$hemi.qsphere") == (-s "$hemi.orig")) {
     warn "WARN: $hemi.qsphere is same size as $hemi.orig\n"; $status++;
   }
+
 }
 
 exit $status;
