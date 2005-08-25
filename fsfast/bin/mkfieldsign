@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: mkfieldsign,v 1.2 2005/08/12 16:19:05 greve Exp $';
+set VERSION = '$Id: mkfieldsign,v 1.3 2005/08/25 15:15:17 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -68,10 +68,28 @@ foreach hemisphere ($hemilist)
     endif
   end
 
+  set patchpath = $SUBJECTS_DIR/surf/$hemi.$patch
+  if(! -e $patchpath ) then
+    echo "ERROR: cannot find $patchpath"
+    exit 1;
+  endif
+
+  set mkfstcl = $FREESURFER_HOME/lib/tcl/mk-fieldsign.tcl;
+  if(! -e $mkfstcl) then
+    echo "ERROR: cannot find $mkfstcl"
+    exit 1;
+  endif
+
   setenv fs $fieldsignpath-$hemi
   setenv fm $fieldsignmaskpath-$hemi
-  set cmd = (tksurfer -$name $hemi inflated -tcl mk-fieldsign.tcl)
+  set cmd = (tksurfer -$name $hemi inflated -tcl $mkfstcl)
+  pwd
+  echo $cmd
   $cmd
+  if($status) then
+    echo "ERROR: tksurfer failed"
+    exit 1;
+  endif
   if(! -e $fs || ! -e $fm) then
     echo "ERROR: tksurfer failed when creating fieldsign"
     pwd
