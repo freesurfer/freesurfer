@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.25 2005/08/25 18:15:29 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.26 2005/08/26 22:40:41 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.25 2005/08/25 18:15:29 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.26 2005/08/26 22:40:41 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -148,15 +148,15 @@ endif
 
 if(! $?FSL_DIR  || $FS_OVERRIDE) then
     if ( $?FSLDIR ) then
-	setenv FSL_DIR $FSL_DIR
-    else if ( -e $FREESURFER_HOME/fsl) then
-        setenv FSL_DIR $FREESURFER_HOME/fsl
+        setenv FSL_DIR $FSLDIR
+    else if ( -e /usr/pubsw/packages/fsl/current) then
+        setenv FSL_DIR /usr/pubsw/packages/fsl/current
     else if ( -e /usr/local/fsl) then
         setenv FSL_DIR /usr/local/fsl
+    else if ( -e $FREESURFER_HOME/fsl) then
+        setenv FSL_DIR $FREESURFER_HOME/fsl
     else if ( -e /Users/Shared/fsl) then
         setenv FSL_DIR /Users/Shared/fsl
-    else if ( -e /usr/pubsw/packages/fsl/current) then
-	setenv FSL_DIR /usr/pubsw/packages/fsl/current
     endif
 endif
 
