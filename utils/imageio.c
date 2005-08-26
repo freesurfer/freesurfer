@@ -635,9 +635,10 @@ ImageWriteFrames(IMAGE *image, char *fname, int start, int nframes)
 int
 ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
 {
-  char *number, *dot, buf[100] ;
+  char *number, *dot, buf[STRLEN] ;
 
-  strcpy(outFname, inFname) ;
+	if (inFname != outFname)
+		strcpy(outFname, inFname) ;
   number = strrchr(outFname, '#') ;
   dot = strrchr(outFname, '.') ;
 
