@@ -770,12 +770,18 @@ HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct)
   Description
   ------------------------------------------------------*/
 int
-HISTOfindValley(HISTOGRAM *h, int wsize, int b0, int b1)
+HISTOfindValley(HISTOGRAM *h, int wsize, int I0, int I1)
 {
-  int  valley, b, bw, nbins, whalf, center_val, max_count, other_val ;
+  int  valley, b, bw, nbins, whalf, center_val, max_count, other_val, b0, b1 ;
 
+	// find max, and find bins corresponding to I0 and I1
+	b0 = b1 = -1 ;
   for (max_count = b = 0 ; b < h->nbins ; b++)
   {
+		if (h->bins[b] >= I0 && b0 == -1)
+			b0 = b > 0 ? b-1 : b ;
+		if (h->bins[b] >= I1 && b1 == -1)
+			b1 = b < h->nbins-1 ? b+1 : b ;
     center_val = h->counts[b];
     if (center_val > max_count)
       max_count = center_val ;
@@ -828,18 +834,27 @@ HISTOfindValley(HISTOGRAM *h, int wsize, int b0, int b1)
 #define MIN_STD   1.9
 
 int
-HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int b0, 
-                          int b1)
+HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int I0, 
+                          int I1)
 {
-  int    peak, b, bw, nbins, whalf ;
+  int    peak, b, bw, nbins, whalf, b0, b1 ;
   float  mean_count, min_count, max_count, other_val, center_val, total ;
 
+
+	// find max, and find bins corresponding to I0 and I1
+	b0 = b1 = -1 ;
   for (max_count = b = 0 ; b < h->nbins ; b++)
   {
+		if (h->bins[b] >= I0 && b0 == -1)
+			b0 = b > 0 ? b-1 : b ;
+		if (h->bins[b] >= I1 && b1 == -1)
+			b1 = b < h->nbins-1 ? b+1 : b ;
     center_val = h->counts[b];
     if (center_val > max_count)
       max_count = center_val ;
   }
+	if (b1 == -1)
+		b1 = h->nbins-1 ;
 
   if (!max_count)
     return(-1) ;
@@ -850,7 +865,7 @@ HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int b0,
 
   /*
     check to see if the value at b is bigger than anything else within
-    a whalfxwhalf window on either side.
+    a whalf x whalf window on either side.
   */
   for (b = b1 ; b >= b0 ; b--)
   {

@@ -986,18 +986,27 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
           HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT, 
                                     wm_low/*GRAY_LOW*/, 
                                     wm_hi-PEAK_SEPARATION/2-2);
+				if (wm_peak >= 0)
+					wm_peak = hsmooth->bins[wm_peak] ;  // convert it to an image intensity
         gray_peak = 
           HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT, 
                                     GRAY_LOW+PEAK_SEPARATION/2+2,
                                     wm_peak-PEAK_SEPARATION+1) ;
-        while (gray_peak > gray_hi)  /* white matter is bimodal */
-        {
-          wm_peak = gray_peak ;
-          gray_peak = 
-            HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
-                                      GRAY_LOW+PEAK_SEPARATION/2+2,
-                                      wm_peak-PEAK_SEPARATION+1) ;
-        }
+				if (gray_peak >= 0)
+					gray_peak = hsmooth->bins[gray_peak] ;  // convert it to an image intensity
+				if (gray_peak >= 0 && wm_peak >= 0)
+				{
+					while (gray_peak > gray_hi)  /* white matter is bimodal */
+					{
+						wm_peak = gray_peak ;
+						gray_peak = 
+							HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
+																				GRAY_LOW+PEAK_SEPARATION/2+2,
+																				wm_peak-PEAK_SEPARATION+1) ;
+						if (gray_peak >= 0)
+							gray_peak = hsmooth->bins[gray_peak] ;  // convert it to an image intensity
+					}
+				}
 
         if ((wm_peak < 0) || (gray_peak < 0))  /* unimodal - take best guess */
           valley = -1 /*thresh*/ ;
@@ -1005,7 +1014,9 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
           valley = HISTOfindValley(hsmooth, VALLEY_WIDTH,
                                    gray_peak+VALLEY_WIDTH-1,
                                    wm_peak-VALLEY_WIDTH+1);
-        if (valley > gray_hi)  /* can't be proper descriminant */
+				if (valley >= 0)
+					valley = hsmooth->bins[valley] ;  // convert it to an image intensity
+        if (valley > gray_hi)  /* can't be proper discriminant */
           valley = -1 ;
 #if 0
         if (x == X_DB && y == Y_DB && z == Z_DB)
@@ -1129,10 +1140,14 @@ MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
   wm_peak = 
     HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT, 
                               GRAY_LOW, wm_hi-PEAK_SEPARATION/2-2);
+	if (wm_peak >= 0)
+		wm_peak = hsmooth->bins[wm_peak] ; // convert it to an intensity
   gray_peak = 
     HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT, 
                               GRAY_LOW+PEAK_SEPARATION/2+2,
                               wm_peak-PEAK_SEPARATION+1) ;
+	if (gray_peak >= 0)
+		gray_peak = hsmooth->bins[gray_peak] ; // convert it to an intensity
   while (gray_peak > gray_hi)  /* white matter is bimodal */
   {
     wm_peak = gray_peak ;
@@ -1140,12 +1155,16 @@ MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
       HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
                                 GRAY_LOW+PEAK_SEPARATION/2+2,
                                 wm_peak-PEAK_SEPARATION+1) ;
+		if (gray_peak >= 0)
+			gray_peak = hsmooth->bins[gray_peak] ; // convert it to an intensity
   }
   
   if ((wm_peak < 0) || (gray_peak < 0))  /* unimodal - take best guess */
     valley = -1 ; /* was thresh */
   else   /* bimodal, find min between peaks and use it as descriminant */
     valley = HISTOfindValley(hsmooth, VALLEY_WIDTH,gray_peak,wm_peak);
+	if (valley >= 0)
+		valley = hsmooth->bins[valley] ; // convert it to an intensity
 
   {
     FILE *fp = fopen("histo.dat", "w") ;
