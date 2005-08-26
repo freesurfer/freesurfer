@@ -216,7 +216,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.16 2005/03/25 15:14:57 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.17 2005/08/26 20:07:19 fischl Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     ErrorExit(ERROR_BADPARM, 
@@ -1461,6 +1461,7 @@ get_option(int argc, char *argv[])
 #endif
     break ;
   case '?':
+	case 'H':
   case 'U':
     printf("usage: %s <in volume> <brain template> <face template> <defaced output volume>\n", 
            argv[0]) ;
