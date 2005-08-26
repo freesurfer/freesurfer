@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.93 2005/08/17 20:02:14 kteich Exp $
+# $Id: tkmedit.tcl,v 1.94 2005/08/26 19:42:41 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -168,9 +168,10 @@ set tFunctionalVolume_Overlay    0
 set tFunctionalVolume_TimeCourse 1
 
 # mri_tCoordSpace
-set mri_tCoordSpace_VolumeIdx 0
-set mri_tCoordSpace_RAS       1
-set mri_tCoordSpace_Talairach 2
+set mri_tCoordSpace_VolumeIdx  0
+set mri_tCoordSpace_SurfaceRAS 1
+set mri_tCoordSpace_RAS        2
+set mri_tCoordSpace_Talairach  3
 
 # Volm_tSampleType
 set Volm_tSampleType(nearest)   0
@@ -262,7 +263,7 @@ foreach label $glLabel {
 
 set gsaLabelContents(kLabel_Coords_Vol,name) "Volume index"
 set gsaLabelContents(kLabel_Coords_Vol_RAS,name) "Volume RAS"
-set gsaLabelContents(kLabel_Coords_Vol_Scanner,name) "Volume Scanner"
+set gsaLabelContents(kLabel_Coords_Vol_Scanner,name) "Volume Scanner RAS"
 set gsaLabelContents(kLabel_Coords_Vol_MNI,name) "MNI Talairach"
 set gsaLabelContents(kLabel_Coords_Vol_Tal,name) "Talairach"
 set gsaLabelContents(kLabel_Coords_Func,name) "Functional index"
@@ -2851,7 +2852,7 @@ proc DoGotoPointDlog {} {
 
     global gDialog
     global mri_tCoordSpace_VolumeIdx mri_tCoordSpace_RAS 
-    global mri_tCoordSpace_Talairach
+    global mri_tCoordSpace_Talairach mri_tCoordSpace_SurfaceRAS
     global gnVolX gnVolY gnVolZ
     global gbTalTransformPresent
     
@@ -2863,7 +2864,8 @@ proc DoGotoPointDlog {} {
   set fwLabel       $wwDialog.fwLabel
   set fwCoordSpace  $wwDialog.fwCoordSpace
   set fwVolumeIdx   $fwCoordSpace.fwVolumeIdx
-  set fwRAS         $fwCoordSpace.fwRAS
+  set fwRAS         $fwCoordSpace.fwSurfaceRAS
+  set fwSurfaceRAS  $fwCoordSpace.fwRAS
   set fwTalCoords   $fwCoordSpace.fwTalCoords
   set fwWhere       $wwDialog.fwWhere
   set fwX           $fwWhere.fwX
@@ -2881,9 +2883,11 @@ proc DoGotoPointDlog {} {
   frame $fwCoordSpace
   tkm_MakeRadioButton $fwVolumeIdx "Volume Index" \
     coordSpace $mri_tCoordSpace_VolumeIdx
+  tkm_MakeRadioButton $fwSurfaceRAS "Surface RAS" \
+    coordSpace $mri_tCoordSpace_SurfaceRAS
   tkm_MakeRadioButton $fwRAS "RAS" \
     coordSpace $mri_tCoordSpace_RAS
-  pack $fwLabel $fwVolumeIdx $fwRAS \
+  pack $fwLabel $fwVolumeIdx $fwSurfaceRAS $fwRAS \
     -side left
 
   # pack tal coords if we got 'em
@@ -4156,6 +4160,7 @@ proc CreateLabelFrame { ifwTop iSet } {
 
     global glLabel gfwaLabel gsaLabelContents
     global mri_tCoordSpace_VolumeIdx
+    global mri_tCoordSpace_SurfaceRAS
     global mri_tCoordSpace_RAS
     global mri_tCoordSpace_Talairach
 
@@ -4178,6 +4183,9 @@ proc CreateLabelFrame { ifwTop iSet } {
 	    tkm_MakeEntry $fwValue "" gsaLabelContents($label,value,$iSet) 18 \
 		"SetCursorFromLabelContents $label $iSet $mri_tCoordSpace_VolumeIdx"
 	} elseif { $label == "kLabel_Coords_Vol_RAS" && $iSet == "cursor" } {
+	    tkm_MakeEntry $fwValue "" gsaLabelContents($label,value,$iSet) 18 \
+		"SetCursorFromLabelContents $label $iSet $mri_tCoordSpace_SurfaceRAS"
+	} elseif { $label == "kLabel_Coords_Vol_Scanner" && $iSet == "cursor" } {
 	    tkm_MakeEntry $fwValue "" gsaLabelContents($label,value,$iSet) 18 \
 		"SetCursorFromLabelContents $label $iSet $mri_tCoordSpace_RAS"
 	} elseif { $label == "kLabel_Coords_Vol_Tal" && $iSet == "cursor" } {

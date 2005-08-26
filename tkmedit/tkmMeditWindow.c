@@ -1224,9 +1224,9 @@ MWin_tErr MWin_SetCursor ( tkmMeditWindowRef this,
 }
 
 MWin_tErr MWin_ConvertAndSetCursor ( tkmMeditWindowRef this, 
-             int               inDispIndex,
-             mri_tCoordSpace   iFromSpace,
-             xVoxelRef         ipCursor ) {
+				     int               inDispIndex,
+				     mri_tCoordSpace   iFromSpace,
+				     xVoxelRef         ipCursor ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
   DspA_tErr eDispResult   = DspA_tErr_NoErr;
@@ -1249,11 +1249,11 @@ MWin_tErr MWin_ConvertAndSetCursor ( tkmMeditWindowRef this,
     nDispIndexMin = 0;
     nDispIndexMax = MWin_knMaxNumAreas;
   }
-
+  
   /* set the cursor */
   for ( nDispIndex = nDispIndexMin; 
-  nDispIndex < nDispIndexMax; 
-  nDispIndex++ ) {
+	nDispIndex < nDispIndexMax; 
+	nDispIndex++ ) {
 
     eDispResult = DspA_ConvertAndSetCursor ( this->mapDisplays[nDispIndex],
                iFromSpace, ipCursor );
