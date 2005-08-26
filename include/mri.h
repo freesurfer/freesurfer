@@ -959,6 +959,7 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol);
 MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int mode);
 int MRIaddCommandLine(MRI *mri, char *cmdline) ;
 int MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg) ;
+MRI *MRInonMaxSuppress(MRI *mri_src, MRI *mri_sup, float thresh, int thresh_dir) ;
 
 
 #endif

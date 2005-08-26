@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/22 20:35:39 $
-// Revision       : $Revision: 1.309 $
-char *MRI_C_VERSION = "$Revision: 1.309 $";
+// Revision Date  : $Date: 2005/08/26 18:26:36 $
+// Revision       : $Revision: 1.310 $
+char *MRI_C_VERSION = "$Revision: 1.310 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12359,3 +12359,85 @@ MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg)
 	return(NO_ERROR) ;
 }
 
+#define NDIRS 3
+static int dirs[NDIRS][3] =
+{
+	{ 0, 0, 1},
+	{ 0, 1, 0},
+	{ 1, 0, 0}
+} ;
+
+MRI *
+MRInonMaxSuppress(MRI *mri_src, MRI *mri_sup, float thresh, int thresh_dir)
+{
+	int  x, y, z, i, max_i ;
+	Real val, dx, dy, dz, Ix, Iy, Iz, dot, max_dot, p1_x, p1_y, p1_z, p2_x, p2_y, p2_z, 
+       p3_x, p3_y, p3_z, nx, ny, nz, u, xf, yf, zf, oval, numer, denom ;
+
+	mri_sup = MRIcopy(mri_src, mri_sup) ;
+
+	for (x = 0 ; x < mri_src->width ; x++)
+	{
+		for (y = 0 ; y < mri_src->height ; y++)
+		{
+			for (z = 0 ; z < mri_src->depth ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				val = MRIgetVoxVal(mri_src, x, y, z,0) ;
+				val = val*thresh_dir ;
+				if (val <= thresh)
+				{
+					MRIsetVoxVal(mri_sup, x, y, z, 0, 0.0) ;
+					continue ;
+				}
+				MRIsampleVolumeGradient(mri_src, x, y, z,  &Ix, &Iy, &Iz) ;
+				dx = dirs[0][0] ; dy = dirs[0][1] ; dz = dirs[0][2] ; 
+				max_i = 0 ;
+				max_dot = fabs(dx*Ix+dy*Iy+dz*Iz) ;
+				for (i = 1 ; i < NDIRS ; i++)
+				{
+					// compute intersection of gradient direction with coordinate planes
+					dx = dirs[i][0] ; dy = dirs[i][1] ; dz = dirs[i][2] ; 
+					dot = fabs(dx*Ix+dy*Iy+dz*Iz) ;
+					if (dot > max_dot)
+					{
+						max_i = i ;
+						max_dot = dot ;
+					}
+				}
+				// normal to coordinate plane - compute intersections of gradient dir with plane
+				nx = dirs[max_i][0] ; ny = dirs[max_i][1] ; nz = dirs[max_i][2] ; 
+				p1_x = x ;    p1_y = y ;    p1_z = z ;    // point on line
+				p2_x = x+Ix ; p2_y = y+Iy ; p2_z = z+Iz ; // 2nd point on gradient line
+				p3_x = x+nx ; p3_y = y+ny ; p3_z = z+nz ; // point on plane
+				numer = nx * (p3_x - p1_x) + ny * (p3_y - p1_y) + nz * (p3_z - p1_z) ; 
+				denom = nx * (p2_x - p1_x) + ny * (p2_y - p1_y) + nz * (p2_z - p1_z) ;
+				if (DZERO(denom))
+				{
+					DiagBreak() ;
+					continue ;
+				}
+				u = numer / denom ;
+				xf = p1_x + u * Ix ;  yf = p1_y + u * Iy ;  zf = p1_z + u * Iz ; 
+				MRIsampleVolume(mri_src, xf, yf, zf, &oval) ;
+				oval = oval*thresh_dir ;
+				if (oval > val)   // not at a maximum
+				{
+					MRIsetVoxVal(mri_sup, x, y, z, 0, 0) ;
+					continue ;
+				}
+				xf = p1_x - u * Ix ;  yf = p1_y - u * Iy ;  zf = p1_z - u * Iz ; 
+				MRIsampleVolume(mri_src, xf, yf, zf, &oval) ;
+				oval = oval*thresh_dir ;
+				if (oval > val)   // not at a maximum
+				{
+					MRIsetVoxVal(mri_sup, x, y, z, 0, 0) ;
+					continue ;
+				}
+			}
+		}
+	}
+
+	return(mri_sup) ;
+}
