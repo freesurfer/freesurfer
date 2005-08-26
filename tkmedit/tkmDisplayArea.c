@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/08/22 17:42:47 $
-// Revision       : $Revision: 1.121 $
+// Revision Date  : $Date: 2005/08/26 19:18:45 $
+// Revision       : $Revision: 1.122 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -1260,6 +1260,7 @@ DspA_tErr DspA_ConvertAndSetCursor ( tkmDisplayAreaRef this,
 				     xVoxelRef         ipCoord ) {
   
   DspA_tErr  eResult     = DspA_tErr_NoErr;
+  Volm_tErr  eVolume     = Volm_tErr_NoErr;
   xVoxel     anaIdx;
   
   /* verify us. */
@@ -1271,22 +1272,28 @@ DspA_tErr DspA_ConvertAndSetCursor ( tkmDisplayAreaRef this,
   switch( iFromSpace ) {
   case mri_tCoordSpace_VolumeIdx:
    // src may not be (256,256,256) so that we convert into "normalized" coords
-    Volm_ConvertMRIIdxToScreenIdx_(this->mpVolume[tkm_tVolumeType_Main],
-				   ipCoord, &anaIdx);
+    eVolume = 
+      Volm_ConvertMRIIdxToScreenIdx_(this->mpVolume[tkm_tVolumeType_Main],
+				     ipCoord, &anaIdx);
     break;
   case mri_tCoordSpace_RAS:
-    Volm_ConvertRASToIdx( this->mpVolume[tkm_tVolumeType_Main],
-			  ipCoord, &anaIdx );
+    eVolume = Volm_ConvertRASToIdx( this->mpVolume[tkm_tVolumeType_Main],
+				    ipCoord, &anaIdx );
     break;
   case mri_tCoordSpace_Talairach:
-    Volm_ConvertTalToIdx( this->mpVolume[tkm_tVolumeType_Main], 
-			  ipCoord, &anaIdx );
+    eVolume = Volm_ConvertTalToIdx( this->mpVolume[tkm_tVolumeType_Main], 
+				    ipCoord, &anaIdx );
     break;
   default:
     eResult = DspA_tErr_InvalidParameter;
     goto error;
   }
   
+  if ( Volm_tErr_NoErr != eVolume )
+    goto error;
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
   /* set the cursor */
   eResult = DspA_SetCursor( this, &anaIdx );
   if( DspA_tErr_NoErr != eResult )
@@ -1301,6 +1308,11 @@ DspA_tErr DspA_ConvertAndSetCursor ( tkmDisplayAreaRef this,
     DebugPrint( ("Error %d in DspA_ConvertAndSetCursor(%d, %d,%d,%d): %s\n",
 		 eResult, (int)iFromSpace, xVoxl_ExpandInt(ipCoord),
 		 DspA_GetErrorString(eResult) ) );
+  }
+  if( Volm_tErr_NoErr != eVolume ) {
+    DebugPrint( ("Error %d in DspA_ConvertAndSetCursor(%d, %d,%d,%d): %s\n",
+		 eVolume, (int)iFromSpace, xVoxl_ExpandInt(ipCoord),
+		 Volm_GetErrorString(eVolume) ) );
   }
   
  cleanup:
