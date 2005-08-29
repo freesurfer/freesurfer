@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.36 2005/08/05 18:15:32 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.37 2005/08/29 21:38:09 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.36 2005/08/05 18:15:32 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.37 2005/08/29 21:38:09 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -16,6 +16,7 @@ static char vcid[] = "$Id: tkregister2.c,v 1.36 2005/08/05 18:15:32 greve Exp $"
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -2712,13 +2713,14 @@ void  read_fslreg(char *fname)
 /*-----------------------------------------------------*/
 void write_reg(char *fname)
 {
-  extern char *fslregoutfname;
+  extern char *fslregoutfname, *subjectsdir, *pname;
   extern int fstal;
   extern char talxfmfile[2000];
   extern MATRIX *RegMat, *Mtc;
   static MATRIX *RegMatTmp=NULL;
   int i,j;
   FILE *fp;
+  char touchfile[1000];
 
   editedmatrix = FALSE;
 
@@ -2730,6 +2732,12 @@ void write_reg(char *fname)
   if(fstal){
     make_backup(talxfmfile);
     regio_write_mincxfm(talxfmfile,RegMatTmp);
+    sprintf(touchfile,"%s/%s/touch",subjectsdir,pname);
+    if(!fio_IsDirectory(touchfile)) mkdir(touchfile,(mode_t)-1);
+    sprintf(touchfile,"%s/%s/touch/talairach.tkregister2.touch",subjectsdir,pname);
+    fp = fopen(touchfile,"w");    
+    fprintf(fp,"talairach registration %s edited by tkregister2\n",talxfmfile);
+    fclose(fp);
     return;
   }
 
@@ -3742,7 +3750,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.36 2005/08/05 18:15:32 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.37 2005/08/29 21:38:09 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
