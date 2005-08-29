@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: feat2surf,v 1.5 2005/07/18 15:59:56 greve Exp $'
+set VERSION = '$Id: feat2surf,v 1.6 2005/08/29 15:55:04 greve Exp $'
 set FeatDirList = ();
 set ProjFrac = ();
 set HemiList = (lh rh);
@@ -11,6 +11,8 @@ set TargetSubj = average7;
 set debug = 0;
 set DontRun = 0;
 set usedev = 0;
+set myoutstatsdir = ();
+set NoLog = 0;
 
 set PrintHelp = 0;
 
@@ -41,9 +43,13 @@ if($?DEV == 0) set DEV = "";
 foreach FeatDir ($FeatDirList)
 
 # Set up a log file
-set LF = $FeatDir/reg/freesurfer/feat2surf.log
-echo log file is $LF
-if(-e $LF) mv $LF $LF.bak
+if(! $NoLog) then
+  set LF = $FeatDir/reg/freesurfer/feat2surf.log
+  echo log file is $LF
+  if(-e $LF) mv $LF $LF.bak
+else
+  set LF = /dev/null
+endif
 echo FeatDir is $FeatDir | tee -a $LF 
 date | tee -a $LF 
 pwd | tee -a $LF 
@@ -57,9 +63,11 @@ set statsdir = $FeatDir/stats
 set reg_anat2exf = $FeatDir/reg/freesurfer/anat2exf.register.dat
 set subject = `cat $reg_anat2exf| head -n 1`;
 
+set nonomatch # This prevents crashing due to file expansion errors
 set imglist = ($statsdir/*.img $statsdir/*.nii)
 set imglist = ($imglist $FeatDir/cluster*.img $FeatDir/cluster*.nii)
 set imglist = ($imglist $FeatDir/rendered_thresh*.img $FeatDir/rendered_thresh*.nii)
+
 #set imglist = ($statsdir/zstat1.img)
 
 set nimg = $#imglist
@@ -90,7 +98,6 @@ foreach img ($imglist)
    #foreach targ ( $TargetSubj)
      foreach hemi ($HemiList)
        if($targ != $subject) then
-         set outstatsdir = $FeatDir/reg_surf-$hemi-$targ/stats
          #if($FSLOUTPUTTYPE == ANALYZE)  set outext = .img;
          #if($FSLOUTPUTTYPE == NIFTI)    set outext = .nii;
          set outext = .img;
@@ -100,6 +107,14 @@ foreach img ($imglist)
          set outext = .mgh;
          set outtype = mgh;
        endif
+
+       # Only used for testing
+       if($#myoutstatsdir != 0) then
+         set outstatsdir = $FeatDir/reg_surf-$hemi-$targ/stats
+       else
+         set outstatsdir = $myoutstatsdir
+       endif
+
        mkdir -p $outstatsdir
        set outimg = $outstatsdir/$baseimg$outext
 
@@ -186,10 +201,19 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--out":
+      if ( $#argv == 0) goto arg1err;
+      set myoutstatsdir = $argv[1]; shift;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1; # turns on terminal echoing
       set debug = 1;
+      breaksw
+
+    case "--nolog":
+      set NoLog = 1;
       breaksw
 
     case "--dontrun":
@@ -289,9 +313,11 @@ usage_exit:
   echo " --target subject : subject used to define common surface space (default is average7)"
   echo " --surf surface : surface to resample to (default is white)"
   echo " "
-  echo " --version            : print version and exit"
-  echo " --help               : print help and exit"
-  echo " --debug              : turn on debugging"
+  echo " --version : print version and exit"
+  echo " --help    : print help and exit"
+  echo " --debug   : turn on debugging"
+  echo " --nolog   : do not create a log file"
+  echo " --out outdir : put output in outdir instead of feat/reg_surf-?h/stats (debugging)"
   echo ""
 
   if(! $PrintHelp) exit 1;
