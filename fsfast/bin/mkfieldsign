@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: mkfieldsign,v 1.4 2005/08/30 17:11:35 greve Exp $';
+set VERSION = '$Id: mkfieldsign,v 1.5 2005/08/30 18:00:56 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -67,7 +67,7 @@ foreach hemisphere ($hemilist)
     endif
   end
 
-  set patchpath = $SUBJECTS_DIR/surf/$hemi.$patch
+  set patchpath = $SUBJECTS_DIR/$subject/surf/$hemi.$patch
   if(! -e $patchpath ) then
     echo "ERROR: cannot find $patchpath"
     exit 1;
