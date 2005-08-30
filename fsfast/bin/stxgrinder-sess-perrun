@@ -2,7 +2,6 @@
 # stxgrinder-sess
 #
 set VERSION = '$Id'
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = "$argv";
 
@@ -76,7 +75,6 @@ echo "stxgrinder-sess-perrun Logfile is $LF"
 
 echo "stxgrinder-sess-perrun log file" >> $LF
 echo $VERSION >> $LF
-echo "FAST Version $FASTVER"  >> $LF
 id            >> $LF
 pwd           >> $LF
 echo "$0"     >> $LF

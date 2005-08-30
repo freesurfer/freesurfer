@@ -1,9 +1,8 @@
 #!/bin/csh -f
 # sfa-sess
 #
-# $Id: sfa-sess,v 1.2 2003/11/19 00:10:30 greve Exp $
-set VERSION = '$Id: sfa-sess,v 1.2 2003/11/19 00:10:30 greve Exp $'
-set FASTVER = `fsfast-version`;
+# $Id: sfa-sess,v 1.3 2005/08/30 17:16:59 greve Exp $
+set VERSION = '$Id: sfa-sess,v 1.3 2005/08/30 17:16:59 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -91,7 +90,6 @@ echo "--------------------------------------------------------------"
 
 echo "sfa-sess log file" >> $LF
 echo $VERSION >> $LF
-echo "FAST Version $FASTVER"  >> $LF
 id            >> $LF
 pwd           >> $LF
 echo $0     >> $LF

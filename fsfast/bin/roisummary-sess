@@ -1,8 +1,7 @@
 #!/bin/csh -f
 # func2roi-sess 
 
-set VERSION = '$Id: roisummary-sess,v 1.2 2003/03/20 23:11:34 greve Exp $';
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set VERSION = '$Id: roisummary-sess,v 1.3 2005/08/30 17:14:39 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -63,7 +62,6 @@ endif
 
 echo "roisummary-sess log file" >> $LF
 echo $VERSION >> $LF
-echo "FAST Version $FASTVER"  >> $LF
 pwd           >> $LF
 echo "$0"     >> $LF
 echo $inputargs  >> $LF

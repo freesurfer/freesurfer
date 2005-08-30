@@ -1,9 +1,8 @@
 #!/bin/csh -f
 # vertavg-group
 #
-# $Id: vertavg-group,v 1.1 2003/03/04 21:22:10 greve Exp $
-set VERSION = '$Id: vertavg-group,v 1.1 2003/03/04 21:22:10 greve Exp $'
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+# $Id: vertavg-group,v 1.2 2005/08/30 17:18:49 greve Exp $
+set VERSION = '$Id: vertavg-group,v 1.2 2005/08/30 17:18:49 greve Exp $'
 
 #------ Defaults --------#
 set group   = ();
@@ -58,7 +57,6 @@ echo "--------------------------------------------------------------"
 
 echo "vertavg-group log file" >> $LF
 echo $VERSION >> $LF
-echo "FAST Version $FASTVER"  >> $LF
 id            >> $LF
 pwd           >> $LF
 echo $0          >> $LF

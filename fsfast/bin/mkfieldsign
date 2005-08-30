@@ -1,7 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: mkfieldsign,v 1.3 2005/08/25 15:15:17 greve Exp $';
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set VERSION = '$Id: mkfieldsign,v 1.4 2005/08/30 17:11:35 greve Exp $';
 
 set inputargs = ($argv);
 

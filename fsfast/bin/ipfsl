@@ -1,11 +1,10 @@
 #!/bin/csh -f
 # ipfsl - front-end for FSL's IP program
 #
-# $Id: ipfsl,v 1.3 2005/05/20 23:49:43 greve Exp $
+# $Id: ipfsl,v 1.4 2005/08/30 17:05:56 greve Exp $
 #
 
-set VERSION = '$Id: ipfsl,v 1.3 2005/05/20 23:49:43 greve Exp $';
-set FASTVER = `cat $FSFAST_HOME/docs/version`;
+set VERSION = '$Id: ipfsl,v 1.4 2005/08/30 17:05:56 greve Exp $';
 
 set inputargs = ($argv);
 

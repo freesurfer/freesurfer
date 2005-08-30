@@ -1,9 +1,8 @@
 #!/bin/csh -f
 # synth-sess
 #
-# $Id: synth-sess,v 1.1 2003/03/04 21:22:10 greve Exp $
-set VERSION = '$Id: synth-sess,v 1.1 2003/03/04 21:22:10 greve Exp $'
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+# $Id: synth-sess,v 1.2 2005/08/30 17:21:23 greve Exp $
+set VERSION = '$Id: synth-sess,v 1.2 2005/08/30 17:21:23 greve Exp $'
 
 set inputargs = ($argv);
 

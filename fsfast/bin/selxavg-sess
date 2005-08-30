@@ -1,9 +1,8 @@
 #!/bin/csh -f
 # selxavg-sess
 #
-# $Id: selxavg-sess,v 1.13 2005/02/25 22:20:43 greve Exp $
-set VERSION = '$Id: selxavg-sess,v 1.13 2005/02/25 22:20:43 greve Exp $';
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+# $Id: selxavg-sess,v 1.14 2005/08/30 17:16:59 greve Exp $
+set VERSION = '$Id: selxavg-sess,v 1.14 2005/08/30 17:16:59 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -123,7 +122,6 @@ echo "--------------------------------------------------------------"
 
 echo "selxavg-sess log file" >> $LF
 echo $VERSION >> $LF
-echo "FAST Version $FASTVER"  >> $LF
 id            >> $LF
 pwd           >> $LF
 echo $0        >> $LF

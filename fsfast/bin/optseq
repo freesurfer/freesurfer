@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: optseq,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set VERSION = '$Id: optseq,v 1.2 2005/08/30 17:21:42 greve Exp $'
 
 set pforder = 0;
 
@@ -42,11 +42,9 @@ echo "--------------------------------------------------------------"
 echo "optseq logfile is $LF"
 echo "--------------------------------------------------------------"
 
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 echo "optseq log file" >> $LF
 echo $VERSION   >> $LF
-echo "FAST Version $FASTVER"  >> $LF
 echo "$0"     >> $LF
 echo "$argv"  >> $LF
 pwd           >> $LF

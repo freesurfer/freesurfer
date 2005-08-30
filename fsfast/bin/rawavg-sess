@@ -1,8 +1,7 @@
 #!/bin/csh -f
 # vertically averages data -- not finished yet
 
-set VERSION = '$Id: rawavg-sess,v 1.1 2003/03/04 21:22:09 greve Exp $'
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set VERSION = '$Id: rawavg-sess,v 1.2 2005/08/30 17:17:47 greve Exp $'
 
 set inputargs = "$argv";
 set DateStr = "`date '+%y%m%d%H%M'`"

@@ -1,8 +1,7 @@
 #!/bin/csh -f
 # paint-sess
 #
-set VERSION = '$Id: paint-sess,v 1.5 2005/07/01 00:19:27 greve Exp $';
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set VERSION = '$Id: paint-sess,v 1.6 2005/08/30 17:13:35 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -80,7 +79,6 @@ echo "-----------------------------------------------------------------"
 
 echo "paint-sess log file" >> $LF
 echo $VERSION >> $LF
-echo "FAST Version $FASTVER"  >> $LF
 id            >> $LF
 pwd           >> $LF
 echo "$0"     >> $LF

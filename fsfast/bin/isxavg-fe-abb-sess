@@ -1,8 +1,7 @@
 #!/bin/csh -f
 # isxavg-fe-abb-sess
 #
-set VERSION = '$Id: isxavg-fe-abb-sess,v 1.2 2004/03/22 20:27:09 greve Exp $';
-set FASTVER = `cat $FSFAST_HOME/docs/version`;
+set VERSION = '$Id: isxavg-fe-abb-sess,v 1.3 2005/08/30 17:06:03 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -50,7 +49,6 @@ echo "--------------------------------------------------------------"
 
 echo "isxavg-fe-abb-sess log file" >> $LF
 echo $VERSION >> $LF
-echo "FAST Version $FASTVER"  >> $LF
 id            >> $LF
 pwd           >> $LF
 echo "$0"     >> $LF

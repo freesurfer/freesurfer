@@ -1,8 +1,7 @@
 #!/bin/csh -f
 # Contructs a register file to go from tal space to subject #
 
-set VERSION = '$Id: mktalreg,v 1.1 2003/03/04 21:22:09 greve Exp $'
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set VERSION = '$Id: mktalreg,v 1.2 2005/08/30 17:12:47 greve Exp $'
 set inputargs = "$argv";
 
 set subject = ();

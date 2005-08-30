@@ -1,8 +1,7 @@
 #!/bin/csh -f
 # stxgrinder-sess
 #
-set VERSION = '$Id: stxgrinder0-sess,v 1.1 2003/08/04 17:45:14 greve Exp $';
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set VERSION = '$Id: stxgrinder0-sess,v 1.2 2005/08/30 17:20:28 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -84,7 +83,6 @@ echo "stxgrinder-sess Logfile is $LF"
 
 echo "stxgrinder-sess log file" >> $LF
 echo $VERSION >> $LF
-echo "FAST Version $FASTVER"  >> $LF
 id            >> $LF
 pwd           >> $LF
 echo $0     >> $LF

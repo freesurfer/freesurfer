@@ -1,8 +1,7 @@
 #!/bin/csh -f
 # cmpanalyses-sess - simple program to compare two analyses
 #
-set VERSION = '$Id: cmpanalyses-sess,v 1.1 2003/03/04 21:22:08 greve Exp $'
-set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
+set VERSION = '$Id: cmpanalyses-sess,v 1.2 2005/08/30 17:01:58 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -82,7 +81,6 @@ echo "cmpanalysis-sess Logfile is $LF"
 
 echo "cmpanalysis-sess log file" >> $LF
 echo $VERSION >> $LF
-echo "FAST Version $FASTVER"  >> $LF
 id            >> $LF
 pwd           >> $LF
 echo $0     >> $LF

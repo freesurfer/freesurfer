@@ -1,9 +1,8 @@
 #!/bin/csh -f
 # plotmc-sess
 #
-# $Id: plot-twf-sess,v 1.5 2005/07/26 19:55:20 greve Exp $
-set VERSION = '$Id: plot-twf-sess,v 1.5 2005/07/26 19:55:20 greve Exp $';
-set FASTVER = `cat $FSFAST_HOME/docs/version`;
+# $Id: plot-twf-sess,v 1.6 2005/08/30 17:14:21 greve Exp $
+set VERSION = '$Id: plot-twf-sess,v 1.6 2005/08/30 17:14:21 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -86,7 +85,6 @@ echo "--------------------------------------------------------------"
 
 echo "plot-twf-sess log file" >> $LF
 echo $VERSION >> $LF
-echo "FAST Version $FASTVER"  >> $LF
 id            >> $LF
 pwd           >> $LF
 echo $0         >> $LF
