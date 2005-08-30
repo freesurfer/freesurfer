@@ -1,8 +1,8 @@
 /**
  * @file   version.c
  * @author $Author: greve $
- * @date   $Date: 2005/08/22 22:16:56 $
- *         $Revision: 1.16 $
+ * @date   $Date: 2005/08/30 21:29:37 $
+ *         $Revision: 1.17 $
  * @brief  freesurfer version functions defined here
  * 
  * 
@@ -107,74 +107,74 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
   char machine[1024];
   char platform_version[1024];
 
-	if (strlen(version_string) > 7)
+  if (strlen(version_string) > 7)
+    {
+      strcpy (stripped_version_string, &(version_string[7]));
+      length = strlen (stripped_version_string);
+      if (length > 2)
 	{
-		strcpy (stripped_version_string, &(version_string[7]));
-		length = strlen (stripped_version_string);
-		if (length > 2)
-		{
-			stripped_version_string[length-2] = '\0';
-		}
+	  stripped_version_string[length-2] = '\0';
 	}
-	else
-	{
-		strcpy (stripped_version_string, version_string);
-	}
-
-	begin = argv[0];
-	strcpy (program_name, begin);
-	
-	/* Copy the arguments to the arguments string. */
-	strcpy (arguments, "");
-	if (argc > 1)
-	{
-		strcpy (arguments, argv[1]);
-		for (nnarg = 2; nnarg < argc; nnarg++)
-			sprintf (arguments, "%s %s", arguments, argv[nnarg]);
-	}
-
-	/* Find the time string. */
-	seconds = time(NULL);
-	gmtime_r (&seconds, &broken_time);
-	sprintf (time_stamp, "%02d/%02d/%02d-%02d:%02d:%02d-GMT",
-					 broken_time.tm_year%100, /* mod here to change 103 to 03 */
-					 broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
-					 broken_time.tm_mday, broken_time.tm_hour,
-					 broken_time.tm_min, broken_time.tm_sec);
-	
-	/* Use getlogin() to get the user controlling this process. */
-	cp = getlogin() ;
-	if (cp != NULL)
-		strcpy (user, cp); 
-	else
-		strcpy(user, "UNKNOWN") ;
-	
-	/* Call uname to get the machine. */
-	result = uname (&kernel_info);
-	if (0 != result)
-	{
-		fprintf (stderr, "uname() returned %d\n", result);
-	}
-	strcpy (machine, kernel_info.nodename);
-	strcpy (platform_version, kernel_info.release);
-
-	/* Build the info string. */
-	sprintf (return_string, "%s %s "
-							 "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
-							 "Machine: %s Platform: %s PlatformVersion: %s "
-							 "CompilerName: %s CompilerVersion: %d",
-							 program_name,
-							 arguments,
-							 version_string,
-							 time_stamp,
-							 id_string,
-							 user,
-							 machine,
-							 PLATFORM,
-							 platform_version,
-							 COMPILER_NAME,
-							 COMPILER_VERSION);
-	  
+    }
+  else
+    {
+      strcpy (stripped_version_string, version_string);
+    }
+  
+  begin = argv[0];
+  strcpy (program_name, begin);
+  
+  /* Copy the arguments to the arguments string. */
+  strcpy (arguments, "");
+  if (argc > 1)
+    {
+      strcpy (arguments, argv[1]);
+      for (nnarg = 2; nnarg < argc; nnarg++)
+	sprintf (arguments, "%s %s", arguments, argv[nnarg]);
+    }
+  
+  /* Find the time string. */
+  seconds = time(NULL);
+  gmtime_r (&seconds, &broken_time);
+  sprintf (time_stamp, "%02d/%02d/%02d-%02d:%02d:%02d-GMT",
+	   broken_time.tm_year%100, /* mod here to change 103 to 03 */
+	   broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
+	   broken_time.tm_mday, broken_time.tm_hour,
+	   broken_time.tm_min, broken_time.tm_sec);
+  
+  /* Use getlogin() to get the user controlling this process. */
+  cp = getlogin() ;
+  if (cp != NULL)
+    strcpy (user, cp); 
+  else
+    strcpy(user, "UNKNOWN") ;
+  
+  /* Call uname to get the machine. */
+  result = uname (&kernel_info);
+  if (0 != result)
+    {
+      fprintf (stderr, "uname() returned %d\n", result);
+    }
+  strcpy (machine, kernel_info.nodename);
+  strcpy (platform_version, kernel_info.release);
+  
+  /* Build the info string. */
+  sprintf (return_string, "%s %s "
+	   "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
+	   "Machine: %s Platform: %s PlatformVersion: %s "
+	   "CompilerName: %s CompilerVersion: %d",
+	   program_name,
+	   arguments,
+	   version_string,
+	   time_stamp,
+	   id_string,
+	   user,
+	   machine,
+	   PLATFORM,
+	   platform_version,
+	   COMPILER_NAME,
+	   COMPILER_VERSION);
+  
   return(NO_ERROR) ;
 }
 int
@@ -196,7 +196,7 @@ handle_version_option (int argc, char** argv,
   char program_name[1024];
   char arguments[1024];
   char time_stamp[1024];
-  char user[1024];
+  char user[1024], *cp = NULL;
   char machine[1024];
   char platform_version[1024];
 
@@ -209,7 +209,7 @@ handle_version_option (int argc, char** argv,
       if (!strncmp(option,"--version",9) ||
 	  !strncmp(option,"-version",8))
 	{
-
+	  
 #if 0
 	  /* Since BIRN is now using --all-info to get version stuff,
 	     I want to keep this as simple as possible. So I'm
@@ -256,7 +256,7 @@ handle_version_option (int argc, char** argv,
       if (!strncmp(option,"--all-info",11) ||
 	  !strncmp(option,"-all-info",10))
 	{
-
+	  
 	  /* Copy argv[0] without the path into program_name. */
 	  begin = strrchr (argv[0], (int)'/');
 	  if (NULL == begin)
@@ -288,8 +288,11 @@ handle_version_option (int argc, char** argv,
 		   broken_time.tm_min, broken_time.tm_sec);
 
 	  /* Use getlogin() to get the user controlling this process. */
-	  strcpy (user, getlogin()); 
-
+	  if (cp != NULL)
+	    strcpy (user, cp); 
+	  else
+	    strcpy(user, "UNKNOWN") ;
+	  
 	  /* Call uname to get the machine. */
 	  result = uname (&kernel_info);
 	  if (0 != result)
