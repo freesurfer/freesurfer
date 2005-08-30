@@ -113,6 +113,7 @@ void chklc(void)
   free(key);
   free(gkey);
   free(lfilename);
+	fclose(lfile) ;
   return;  
   /*#endif*/
 }
