@@ -55,7 +55,7 @@ main(int argc, char *argv[])
   GCSA         *gcsa ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ca_label.c,v 1.10 2005/04/18 17:34:48 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ca_label.c,v 1.11 2005/08/31 22:56:38 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -103,7 +103,12 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s for %s",
               Progname, fname, subject_name) ;
   MRISsetNeighborhoodSize(mris, nbrs) ;
-	mris->ct = gcsa->ct ; /* hack so that color table will get written into annot file */
+  mris->ct = gcsa->ct ; /* hack so that color table will get written into annot file */
+
+  // read colortable from the gcsa if not already done
+  if(gcsa->ct != NULL)
+    read_named_annotation_table(gcsa->ct->fname);
+
   MRIScomputeSecondFundamentalForm(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   if (MRISreadCanonicalCoordinates(mris, canon_surf_name) != NO_ERROR)
