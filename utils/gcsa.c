@@ -63,7 +63,7 @@ GCSAalloc(int ninputs, int icno_priors, int icno_classifiers)
   GCS         *gcs ;
   double      max_len ;
 
-  read_annotation_table() ;  /* for debugging */
+  //  read_annotation_table() ;  /* for debugging */
 
   gcsa = (GCSA *)calloc(1, sizeof(GCSA)) ;
   if (!gcsa)

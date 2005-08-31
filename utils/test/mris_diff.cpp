@@ -54,7 +54,7 @@ void lubksb(double** a,int n,int* indx,double* b);
 static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
-static char vcid[] = "$Id: mris_diff.cpp,v 1.6 2005/08/01 23:03:56 xhan Exp $";
+static char vcid[] = "$Id: mris_diff.cpp,v 1.7 2005/08/31 22:07:21 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
   int          transform_type;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.6 2005/08/01 23:03:56 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.7 2005/08/31 22:07:21 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -579,6 +579,7 @@ int main(int argc, char *argv[])
 
 
   if(out_name){
+    MRIScopyMRI(Surf1, resVal, framesave, "curv");
     if(!strcmp(trgtypestring,"paint") || !strcmp(trgtypestring,"w")){
       
       /* This function will remove a zero-valued vertices */
@@ -589,9 +590,9 @@ int main(int argc, char *argv[])
        */
       /* MRIScopyMRI(BaseSurf, AvgVals, framesave, "val");*/   
       /* MRISwriteValues(BaseSurf,fname); */
-      MRIScopyMRI(Surf1, resVal, framesave, "curv");
       MRISwriteCurvatureToWFile(Surf1,out_name);
-      
+    }else if(!strcmp(trgtypestring,"curv")){
+      MRISwriteCurvature(Surf1, out_name);
     }else{
       fprintf(stderr, "ERROR unknown output file format.\n");      
     }

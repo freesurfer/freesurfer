@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/08/01 23:03:56 $
-// Revision       : $Revision: 1.5 $
+// Revision Date  : $Date: 2005/08/31 22:07:21 $
+// Revision       : $Revision: 1.6 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -113,7 +113,7 @@ main(int argc, char *argv[])
   int count_white, count_gray;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.5 2005/08/01 23:03:56 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.6 2005/08/31 22:07:21 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -138,11 +138,12 @@ main(int argc, char *argv[])
 
   printf("command line parsing finished\n");
 
-  if(ldaflag == 0){
+  if(have_weight == 0 && ldaflag == 0){
     printf("Use -lda option to specify two class labels to optimize CNR on \n");
     usage_exit(0);
   }
-  if(label_fname == NULL){
+
+  if(have_weight == 0 && label_fname == NULL){
     printf("Use -label option to specify file for segmentation \n");
     usage_exit(0);
   }
@@ -240,6 +241,10 @@ main(int argc, char *argv[])
     if(mri_mask->type != MRI_UCHAR)
       ErrorExit(ERROR_BADPARM, "%s: mask volume is not UCHAR type \n", Progname);
   }else{
+
+    if(have_weight == 1) 
+      noise_threshold = - 1e20;
+ 
     printf("Threshold input vol1 at %g to create mask \n", noise_threshold);
     printf("this threshold is useful to process skull-stripped data \n");
 
@@ -420,27 +425,27 @@ main(int argc, char *argv[])
 	
     /* Scale output to [0, 255] */
     if(0){
-    for(z=0; z < depth; z++)
-      for(y=0; y< height; y++)
-	for(x=0; x < width; x++)
-	  {
-	    if(whole_volume == 0 && MRIvox(mri_mask, x, y, z) == 0) continue;
-	    
-	    value = (MRIFvox(mri_flash[0], x, y, z) - min_val)*255.0/(max_val - min_val) + 0.5; /* +0.5 for round-off */
-	    
-	    if(value > 255.0) value = 255.0;
-	    if(value < 0) value = 0;
-	    
-	    /* Borrow mri_flash[0] to store the float values first */
-	    MRIvox(mri_mask, x, y, z) = (BUFTYPE) value;
-	  }
+      for(z=0; z < depth; z++)
+	for(y=0; y< height; y++)
+	  for(x=0; x < width; x++)
+	    {
+	      if(whole_volume == 0 && MRIvox(mri_mask, x, y, z) == 0) continue;
+	      
+	      value = (MRIFvox(mri_flash[0], x, y, z) - min_val)*255.0/(max_val - min_val) + 0.5; /* +0.5 for round-off */
+	      
+	      if(value > 255.0) value = 255.0;
+	      if(value < 0) value = 0;
+	      
+	      /* Borrow mri_flash[0] to store the float values first */
+	      MRIvox(mri_mask, x, y, z) = (BUFTYPE) value;
+	    }
     }
-
+    
     /* Output synthesized volume */
     MRIwrite(mri_mask, synth_fname);
-
+    
   }
-
+  
   free(LDAmean1);
   free(LDAmean2);
   free(LDAweight);
@@ -453,7 +458,8 @@ main(int argc, char *argv[])
 
   MRIfree(&mri_mask);
 
-  MRIfree(&mri_label);
+  if(label_fname)
+    MRIfree(&mri_label);
   
  
   for(i=0; i < nvolumes_total; i++){

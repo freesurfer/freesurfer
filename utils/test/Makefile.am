@@ -19,10 +19,16 @@ check_PROGRAMS=mnitest i2rtest icotest surftest extest \
 	mri_count_seg_vols mri_unmask mris_measure_volume \
 	mri_ms_EM_INU mri_ms_computeB1map mri_diff mris_map_annot \
 	aseg_new mri_combine_xforms CtrlVol2CtrlPts mri_check_region_histo \
-	mri_normalize_tp2 mri_invert_lta surface_morph_to_volume
+	mri_normalize_tp2 mri_invert_lta surface_morph_to_volume \
+	mri_ms_FCM mris_surface_stats mris_global_stats \
+	mris_annot_to_mask
 
 TESTS=mnitest i2rtest icotest extest mghxform inftest checkanalyze
 
+mris_annot_to_mask_SOURCES = mris_annot_to_mask.c
+mris_global_stats_SOURCES = mris_global_stats.c		
+mris_surface_stats_SOURCES = mris_surface_stats.c	
+mri_ms_FCM_SOURCES=mri_ms_FCM.c mg_mri.c
 mri_invert_lta_SOURCE=mri_invert_lta
 mri_normalize_tp2_SOURCE=mri_normalize_tp2.c
 mri_check_region_histo_SOURCES=mri_check_region_histo.c myutil.c
