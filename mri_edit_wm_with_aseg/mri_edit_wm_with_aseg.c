@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/15 14:10:00 $
-// Revision       : $Revision: 1.6 $
+// Revision Date  : $Date: 2005/08/31 19:54:29 $
+// Revision       : $Revision: 1.7 $
 //
 
 #include <stdio.h>
@@ -52,10 +52,10 @@ main(int argc, char *argv[])
 	int    msec, nargs ;
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.6 2005/08/15 14:10:00 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.7 2005/08/31 19:54:29 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.6 2005/08/15 14:10:00 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.7 2005/08/31 19:54:29 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
@@ -226,8 +226,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
           {
 						if (x == Gx && y == Gy && z == Gz)  
 							DiagBreak() ;
-            MRIvox(mri_wm, x, y, z) = 255 ;
-            MRIvox(mri_filled, x, y, z) = 255 ;
+            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
             non++ ;  
           }
 					break ;
@@ -242,8 +242,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 							printf("filling ventricle adjacent to wm at (%d, %d, %d)\n", x,y,z) ;
 							DiagBreak() ;
 						}
-            MRIvox(mri_wm, x, y, z) = 255 ;
-            MRIvox(mri_filled, x, y, z) = 255 ;
+            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
             non++ ;
 						break ;
 					}
@@ -251,8 +251,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 						break ;
 					if (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)
 					{
-						MRIvox(mri_wm, x, y, z) = 255 ;
-						MRIvox(mri_filled, x, y, z) = 255 ;
+						MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+						MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
 						non++ ;
 					}
         case Left_Inf_Lat_Vent:
@@ -266,8 +266,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 					{
 						if (xi == Gx && y == Gy && z == Gz)
 							printf("changing label (%d, %d, %d) to wm (gm lateral to inf-lat-vent)\n", xi, y, z);
-            MRIvox(mri_wm, xi, y, z) = 255 ;
-            MRIvox(mri_filled, xi, y, z) = 255 ;
+            MRIvox(mri_wm, xi, y, z) = AUTO_FILL ;
+            MRIvox(mri_filled, xi, y, z) = AUTO_FILL ;
             non++ ;  
 					}
 
@@ -277,8 +277,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 					{
 						if (xi == Gx && yi == Gy && z == Gz)
 							printf("changing label (%d, %d, %d) to wm (gm lateral to inf-lat-vent)\n", xi, yi, z);
-            MRIvox(mri_wm, xi, yi, z) = 255 ;
-            MRIvox(mri_filled, xi, yi, z) = 255 ;
+            MRIvox(mri_wm, xi, yi, z) = AUTO_FILL ;
+            MRIvox(mri_filled, xi, yi, z) = AUTO_FILL ;
             non++ ;  
 					}
 
@@ -289,8 +289,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 					{
 						if (x == Gx && yi == Gy && zi == Gz)
 							printf("changing label (%d, %d, %d) to wm (gm lateral to inf-lat-vent)\n", x, yi, zi);
-            MRIvox(mri_wm, x, yi, zi) = 255 ;
-            MRIvox(mri_filled, x, yi, zi) = 255 ;
+            MRIvox(mri_wm, x, yi, zi) = AUTO_FILL ;
+            MRIvox(mri_filled, x, yi, zi) = AUTO_FILL ;
             non++ ;  
 					}
 					zi = mri_wm->zi[z+1] ; // anterior
@@ -299,8 +299,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 					{
 						if (x == Gx && yi == Gy && zi == Gz)
 							printf("changing label (%d, %d, %d) to wm (gm lateral to inf-lat-vent)\n", x, yi, zi);
-            MRIvox(mri_wm, x, yi, zi) = 255 ;
-            MRIvox(mri_filled, x, yi, zi) = 255 ;
+            MRIvox(mri_wm, x, yi, zi) = AUTO_FILL ;
+            MRIvox(mri_filled, x, yi, zi) = AUTO_FILL ;
             non++ ;  
 					}
 
@@ -313,8 +313,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
           {
 						if (x == Gx && y == Gy && z == Gz)  
 							DiagBreak() ;
-            MRIvox(mri_wm, x, y, z) = 255 ;
-            MRIvox(mri_filled, x, y, z) = 255 ;
+            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
             non++ ;  
           }
           yi = mri_wm->yi[y+1] ;
@@ -326,8 +326,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
           {
 						if (x == Gx && yi == Gy && z == Gz)  
 							DiagBreak() ;
-            MRIvox(mri_wm, x, yi, z) = 255 ;
-            MRIvox(mri_filled, x, yi, z) = 255 ;
+            MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
+            MRIvox(mri_filled, x, yi, z) = AUTO_FILL ;
             non++ ;
           }
 					if (label == Left_Inf_Lat_Vent || label ==  Right_Inf_Lat_Vent)  /* fill inferior wm */
@@ -347,8 +347,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 						{
 							if (xi == Gx && y == Gy && z == Gz)  
 								DiagBreak() ;
-							MRIvox(mri_wm, xi, y, z) = 255 ;
-							MRIvox(mri_filled, xi, y, z) = 255 ;
+							MRIvox(mri_wm, xi, y, z) = AUTO_FILL ;
+							MRIvox(mri_filled, xi, y, z) = AUTO_FILL ;
 							non++ ;
 						}
 	    
@@ -360,16 +360,16 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 						{
 							if (x == Gx && yi == Gy && z == Gz)  
 								DiagBreak() ;
-							MRIvox(mri_wm, x, yi, z) = 255 ;
-							MRIvox(mri_filled, x, yi, z) = 255 ;
+							MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
+							MRIvox(mri_filled, x, yi, z) = AUTO_FILL ;
 							non++ ;
 							yi = mri_wm->yi[y+2] ;
 							if (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL)
 							{
 								if (x == Gx && yi == Gy && z == Gz)  
 									DiagBreak() ;
-								MRIvox(mri_wm, x, yi, z) = 255 ;
-								MRIvox(mri_filled, x, yi, z) = 255 ;
+								MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
+								MRIvox(mri_filled, x, yi, z) = AUTO_FILL ;
 								non++ ;
 							}
 						}
@@ -394,8 +394,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 						{
 							if (xi == Gx && y == Gy && z == Gz)  
 								DiagBreak() ;
-							MRIvox(mri_wm, xi, y, z) = 255 ;
-							MRIvox(mri_filled, xi, y, z) = 255 ;
+							MRIvox(mri_wm, xi, y, z) = AUTO_FILL ;
+							MRIvox(mri_filled, xi, y, z) = AUTO_FILL ;
 							non++ ;
 						}
 	    
@@ -405,8 +405,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 						{
 							if (xi == Gx && yi == Gy && z == Gz)  
 								DiagBreak() ;
-							MRIvox(mri_wm, xi, yi, z) = 255 ;
-							MRIvox(mri_filled, xi, yi, z) = 255 ;
+							MRIvox(mri_wm, xi, yi, z) = AUTO_FILL ;
+							MRIvox(mri_filled, xi, yi, z) = AUTO_FILL ;
 							non++ ;
 						}
 
@@ -419,16 +419,16 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 						{
 							if (x == Gx && yi == Gy && z == Gz)  
 								DiagBreak() ;
-							MRIvox(mri_wm, x, yi, z) = 255 ;
-							MRIvox(mri_filled, x, yi, z) = 255 ;
+							MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
+							MRIvox(mri_filled, x, yi, z) = AUTO_FILL ;
 							yi = mri_wm->yi[y+2] ;
 							non++ ;
 							if (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL)
 							{
 								if (x == Gx && yi == Gy && z == Gz)  
 									DiagBreak() ;
-								MRIvox(mri_wm, x, yi, z) = 255 ;
-								MRIvox(mri_filled, x, yi, z) = 255 ;
+								MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
+								MRIvox(mri_filled, x, yi, z) = AUTO_FILL ;
 
 								non++ ;
 							}
@@ -451,8 +451,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 				case Right_VentralDC:
           if (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)
           {
-            MRIvox(mri_wm, x, y, z) = 255 ;
-            MRIvox(mri_filled, x, y, z) = 255 ;
+            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
             non++ ; 
           }
           break ;
@@ -465,8 +465,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 						if (x == Gx && y == Gy && z == Gz)
 							printf("changing voxel (%d, %d, %d) to WM, due to superior inf-lat-vent\n",
 										 x, y, z) ;
-            MRIvox(mri_wm, x, y, z) = 255 ;
-            MRIvox(mri_filled, x, y, z) = 255 ;
+            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
             non++ ; 
 					}						
 					break ;
@@ -501,8 +501,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 					{
 						if (x == Gx && y == Gy && z == Gz)
 							DiagBreak() ;
-            MRIvox(mri_wm, x, y, z) = 255 ;
-            MRIvox(mri_filled, x, y, z) = 255 ;
+            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
             non++ ; 
 					}
 					break ;
@@ -515,8 +515,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 					{
 						if (x == Gx && y == Gy && z == Gz)
 							DiagBreak() ;
-            MRIvox(mri_wm, x, y, z) = 255 ;
-            MRIvox(mri_filled, x, y, z) = 255 ;
+            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
             non++ ; 
 					}
 					break ;
@@ -559,9 +559,9 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 								if (IS_WM(label) &&  (MRIvox(mri_wm, xi, yi, zi) < WM_MIN_VAL))
 								{
 									nchanged++ ;
-									MRIvox(mri_wm, xi, yi, zi) = 255 ;
+									MRIvox(mri_wm, xi, yi, zi) = AUTO_FILL ;
 #if 0
-									MRIvox(mri_filled, xi, yi, zi) = 255 ;
+									MRIvox(mri_filled, xi, yi, zi) = AUTO_FILL ;
 #endif
 									non++ ;  
 								}
