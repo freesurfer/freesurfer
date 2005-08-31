@@ -1,22 +1,29 @@
-function [roivar, nroi, roivar0] = fast_weiskopf(fslice,radlist,porder,seed)
-% [roivar, nroi, roivar0] = fast_weiskopf(fslice,<radlist>,<porder>,<seed>)
+function [roivar, nroi, roivar0, radlist] = fast_weiskopf(fslice,radlist,porder,seed)
+% [roivar nroi roivar0 radlist] = fast_weiskopf(fslice,<radlist>,<porder>,<seed>)
 %
 % Computes the variance over an ROI of a given number of voxels.
 %
 % fslice - functional data [nr nc nf] = size(fslice);
 % radlist - list of "radii"
-% porder - detrend with polynomial of given order.
+% porder - detrend with polynomial of given order (def is no detrending)
 % seed - center radius as [r0 c0] = seed. Default center of slice.
 %
-% When fslice is white, then the following two curves should be the
-% same: loglog(nroi,roivar,nroi,1./nroi)
+% roivar - temporal variance average averaging all the time courses
+%   in the roi
+% nroi - number of voxels in the roi
+% roivar0 - average per-voxel variance within the maximum radius
 %
-% $Id: fast_weiskopf.m,v 1.2 2004/05/04 05:05:34 greve Exp $
+% When fslice is white, then the following two curves should be the
+% same: loglog(nroi,roivar,nroi,1./nroi), ie, in log-log space, the
+% slope should be -1.
+%
+% $Id: fast_weiskopf.m,v 1.3 2005/08/31 21:22:52 greve Exp $
 %
 % (c) Douglas N. Greve, 2004
 
 roivar = [];
 nroi = [];
+roivar0 = [];
 
 if(nargin < 1 | nargin > 4)
   fprintf('[roivar nroi roivar0] = fast_weiskopf(fslice,<radlist>,<porder>,<seed>)\n');

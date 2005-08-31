@@ -1,5 +1,5 @@
 function [r, mask, voxmain, voxghost] = fast_ghostdet(vol, mask)
-% [r, mask] = fast_ghostdet(vol, <mask>)
+% [r mask voxmain voxghost] = fast_ghostdet(vol, <mask>)
 %
 % vol is [nrows ncols nslices nframes]
 %   Each slice is an epi slice
@@ -9,13 +9,13 @@ function [r, mask, voxmain, voxghost] = fast_ghostdet(vol, mask)
 %   on the number of voxels above threshold.
 %
 % r is the ratio of the mean of the voxels in the main to the
-% voxels in the ghost (excluding voxels that are in both).
+% mean of the voxels in the ghost (excluding voxels that are in both).
 %
 % voxmain and voxghost are vectors of voxels in the main image
 % and their corresponding voxels in the ghost (again excluding
 % voxels that are in both).
 % 
-% $Id: fast_ghostdet.m,v 1.1 2004/04/06 04:15:37 greve Exp $
+% $Id: fast_ghostdet.m,v 1.2 2005/08/31 21:26:37 greve Exp $
 
 % To test: this should force r=1
 if(0)
