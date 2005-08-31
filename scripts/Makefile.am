@@ -175,6 +175,7 @@ fsgdfPlot.tcl
 
 recon-all: recon-all-nmr
 #	cat ./recon-all-nmr | grep -v dASEGd > ./recon-all
+	rm -f ./recon-all
 	cp ./recon-all-nmr ./recon-all
 	chmod a+x ./recon-all
 
@@ -184,6 +185,7 @@ SEDFLAGS = -e 's,xEXEC_PREFIXx,$(exec_prefix),g' \
 	   -e 's,xTIXWISHx,$(TIXWISH),g'
 
 csurf: csurf.in
+	rm -f $@
 	sed < $< $(SEDFLAGS) > $@ 
 	chmod +x $@
 
