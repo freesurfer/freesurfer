@@ -34,8 +34,8 @@ puts "DICOM files. Unpacking can entail copying DICOM files into directories"
 puts "sorted by series/run or converting them into a different format (also"
 puts "sorted by series/run). It is assumed that the source directory contains"
 puts "the files from one and only one scanning session. Supported formats are"
-puts "DICOM, COR, bshort, MINC, analyze, and SPM-analyze. Note: this program"
-puts "does not convert properly to MINC yet."
+puts "DICOM, COR, bshort, MINC, analyze, SPM-analyze, NIFTI, MGH, and MGZ"
+puts "Note: this program does not convert properly to MINC."
 puts ""
 puts "ARGUMENTS:"
 puts ""
@@ -148,7 +148,9 @@ puts "     MINC    - MNI Medical Imaging NetCDF format"
 puts "       NOTE: does not convert properly to MINC yet"
 puts "     SPM     - SPM (Analyze 3D) format"
 puts "     ANALYZE - Full Analyze 4D format"
+puts "     NII     - NIFTI1 (.nii)"
 puts "     MGH     - Local MGH format"
+puts "     MGZ     - Local MGH format (compressed)"
 puts ""
 puts "Case is ignored. For DICOM and COR formats,"
 puts "the Name is ignored (though there must be a placeholder there). For bshort, "
@@ -157,7 +159,8 @@ puts "that the Name for bshorts be set to 'f' (no quotes). When SPM format is "
 puts "chosen, the actual file name will be NameXXX.img, where XXX is the three-"
 puts "digit, zero-padded frame number (starting with 1). The width of the zero-"
 puts "padding can be set with -nspmzeropad option. For ANALYZE, Name.img and Name.hdr"
-puts "will be created."
+puts "will be created. MGH must have a .mgh extension, MGZ must have a .mgz extension,"
+puts "and NII must have a .nii extension."
 puts ""
 puts "The unpacking configuration can be specified either on the"
 puts "command-line (with the -run flag) or in a file (with the -cfg flag),"
@@ -289,6 +292,13 @@ puts "  This will create directory /space/mydata/bold/ in which there will be"
 puts "  eight files: MPRAGE1.img, MPRAGE1.hdr, MPRAGE1.mat, f-ep2d-07.img,"
 puts "  f-ep2d-07.hdr, and f-ep2d-07.mat."
 puts ""
+puts "7. Same as 6 but use MGZ and NIFTI formats:"
+puts ""
+puts "   Create a configuration file with the contents"
+puts ""
+puts "         2 Sag8Min MGZ    mpgrage1.mgz"
+puts "         7 bold    NII    f-ep2d-07.nii"
+puts ""
 puts "OTHER OUTPUT"
 puts ""
 puts "A file called unpack.log is created in the target directory. This is"
@@ -327,8 +337,8 @@ puts ""
 puts "BUG REPORTING"
 puts ""
 puts "Send bugs/suggestions to analysis-bugs@nmr.mgh.harvard.edu. For bug"
-puts "reports, include the command-line used, the unpack.log file, and "
-puts "the dicomdir.sumfile."
+puts "reports, include the command-line used, the unpack.log file, "
+puts "the dicomdir.sumfile, and the config file (if used)."
 puts ""
 puts "AUTHOR"
 puts ""
@@ -336,7 +346,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.10 2003/05/31 01:52:23 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.11 2005/08/31 04:10:02 greve Exp $}
 
 exit 1;
 
@@ -624,6 +634,8 @@ proc CheckUnpackCfgFormat { unpackcfg } {
          [string compare $Fmt analyze] != 0 && \
          [string compare $Fmt minc]    != 0 && \
          [string compare $Fmt dicom]   != 0 && \
+         [string compare $Fmt nii]     != 0 && \
+         [string compare $Fmt mgz]     != 0 && \
          [string compare $Fmt mgh]     != 0 } {
       puts "ERROR: Run $RunNo has an invalid format ($Fmt0)"
       puts $LF "ERROR: Run $RunNo has an invalid format ($Fmt0)"
@@ -803,7 +815,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.10 2003/05/31 01:52:23 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.11 2005/08/31 04:10:02 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -1072,6 +1084,10 @@ foreach runcfg $unpackcfg {
      set OutFile [format "%s/%s.img" $OutDir $Name];
      set Fmt analyze4d
   } elseif { ! [string compare $Fmt minc ] } {
+     set OutFile [format "%s/%s" $OutDir $Name];
+  } elseif { ! [string compare $Fmt nii ] } {
+     set OutFile [format "%s/%s" $OutDir $Name];
+  } elseif { ! [string compare $Fmt mgz ] } {
      set OutFile [format "%s/%s" $OutDir $Name];
   } elseif { ! [string compare $Fmt mgh ] } {
      set OutFile [format "%s/%s" $OutDir $Name];
