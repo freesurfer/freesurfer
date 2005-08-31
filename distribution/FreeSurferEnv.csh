@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.27 2005/08/31 00:03:23 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.28 2005/08/31 01:04:31 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.27 2005/08/31 00:03:23 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.28 2005/08/31 01:04:31 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -358,6 +358,11 @@ if ( -e $FREESURFER_HOME/lib/tcltktixblt/lib ) then
         setenv LD_LIBRARY_PATH  $FREESURFER_HOME/lib/tcltktixblt/lib
     else
         setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/tcltktixblt/lib"
+    endif
+    if(! $?DYLD_LIBRARY_PATH ) then
+        setenv DYLD_LIBRARY_PATH  $FREESURFER_HOME/lib/tcltktixblt/lib
+    else
+        setenv DYLD_LIBRARY_PATH  "$DYLD_LIBRARY_PATH":"$FREESURFER_HOME/lib/tcltktixblt/lib"
     endif
 endif
 if ( -e $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh ) then
