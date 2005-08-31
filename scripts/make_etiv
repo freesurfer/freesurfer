@@ -1,0 +1,18 @@
+#!/bin/tcsh -ef
+
+set s=$1
+set radius=25
+setenv GCA $FREESURFER_HOME/average/RB40_talairach_2005-07-20.gca
+setenv GCAS $FREESURFER_HOME/average/RB40_talairach_with_skull_2005-07-20.gca
+setenv invol  nu_noneck.mgz
+
+
+set mdir=$SUBJECTS_DIR/$s/mri
+set src=$mdir/nu.mgz
+if (-e $src == 0) then
+		set src=$mdir/nu
+endif
+mri_remove_neck  -radius $radius  $src $mdir/transforms/talairach.m3z $GCA nu_noneck.mgz
+mri_em_register -skull -t $mdir/transforms/talairach.lta $mdir/nu_noneck.mgz $GCAS $mdir/transforms/talairach_with_skull.lta
+
+
