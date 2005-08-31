@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.26 2005/08/26 22:40:41 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.27 2005/08/31 00:03:23 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.26 2005/08/26 22:40:41 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.27 2005/08/31 00:03:23 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -324,13 +324,11 @@ endif
 
 
 ### ----------- Qt (scuba2 support libraries)  ------------ ####
-if ( ! $?QTDIR ) then
-    # look for Qt in common NMR locations
-    if ( -e $FREESURFER_HOME/lib/qt) then
-        setenv QTDIR    $FREESURFER_HOME/lib/qt
-    else if ( -e /usr/pubsw/packages/qt/current) then
-        setenv QTDIR    /usr/pubsw/packages/qt/current
-    endif
+# look for Qt in common NMR locations, overriding any prior setting
+if ( -e /usr/pubsw/packages/qt/current) then
+    setenv QTDIR    /usr/pubsw/packages/qt/current
+else if ( -e $FREESURFER_HOME/lib/qt) then
+    setenv QTDIR    $FREESURFER_HOME/lib/qt
 endif
 if ( $?QTDIR ) then
     setenv PATH     $QTDIR/bin:$PATH
@@ -355,15 +353,15 @@ if( $output && $?QTDIR ) then
 endif
 
 ### ----------- Freesurfer Support Libraries  ------------ ####
-if ( -e $FREESURFER_HOME/lib/misc ) then
-    source $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh
-endif
 if ( -e $FREESURFER_HOME/lib/tcltktixblt/lib ) then
     if(! $?LD_LIBRARY_PATH ) then
         setenv LD_LIBRARY_PATH  $FREESURFER_HOME/lib/tcltktixblt/lib
     else
         setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/tcltktixblt/lib"
     endif
+endif
+if ( -e $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh ) then
+    source $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh
 endif
 
 ### ----------- Freesurfer Bin and  Lib Paths  ------------ ####
