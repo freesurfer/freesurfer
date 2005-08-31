@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/26 18:26:36 $
-// Revision       : $Revision: 1.310 $
-char *MRI_C_VERSION = "$Revision: 1.310 $";
+// Revision Date  : $Date: 2005/08/31 16:20:10 $
+// Revision       : $Revision: 1.311 $
+char *MRI_C_VERSION = "$Revision: 1.311 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -9389,6 +9389,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
   }
   else
   {
+		long nonzero = 0 ;
 
     /* ----- build a histogram ----- */
     printf("MRIchangeType: Building histogram \n");
@@ -9413,6 +9414,8 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
           if(src->type == MRI_FLOAT)
             val = (float)MRIFvox(src, i, j, k);
 
+					if (!DZERO(val))
+						nonzero++ ;
           bin = (int)((val - src_min) / bin_size);
 
           if(bin < 0)
@@ -9429,7 +9432,11 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
       n_passed += hist_bins[bin];
     src_min = (float)bin * bin_size + src_min;
 
+#if 1  // handle mostly empty volumes
+    nth = (int)((1.0-f_high) * nonzero);
+#else
     nth = (int)((1.0-f_high) * src->width * src->height * src->depth);
+#endif
     for(n_passed = 0,bin = N_HIST_BINS-1;n_passed < nth && bin > 0;bin--)
       n_passed += hist_bins[bin];    
     src_max = (float)bin * bin_size + src_min;
