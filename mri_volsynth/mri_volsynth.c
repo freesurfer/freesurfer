@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.9 2005/08/08 18:56:55 greve Exp $
+  $Id: mri_volsynth.c,v 1.10 2005/09/01 16:25:29 greve Exp $
 */
 
 #include <stdio.h>
@@ -40,7 +40,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.9 2005/08/08 18:56:55 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.10 2005/09/01 16:25:29 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -64,7 +64,7 @@ char *precision=NULL; /* not used yet */
 MRI *mri, *mrism, *mritemp;
 long seed = -1; /* < 0 for auto */
 char *seedfile = NULL;
-float fwhm = 0, gstd = 0;
+float fwhm = 0, gstd = 0, gmnnorm = 1;
 int nframes = -1;
 int delta_crsf[4];
 int delta_crsf_speced = 0;
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 
   if(gstd > 0){
     printf("Smoothing\n");
-    MRIgaussianSmooth(mri, gstd, 1, mri); /* 1 = normalize */
+    MRIgaussianSmooth(mri, gstd, gmnnorm, mri); /* 1 = normalize */
   }
 
   printf("Saving\n");
@@ -202,6 +202,7 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--nogmnnorm")) gmnnorm = 0;
 
     else if (!strcmp(option, "--vol")){
       if(nargc < 1) argnerr(option,1);
