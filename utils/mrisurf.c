@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/23 16:44:29 $
-// Revision       : $Revision: 1.365 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/09/01 20:40:48 $
+// Revision       : $Revision: 1.366 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -24560,12 +24560,17 @@ MRISmodeFilterZeroVals(MRI_SURFACE *mris)
   ------------------------------------------------------*/
 #define MAX_ANNOTATION 1000
 extern int annotation_to_index(int annotation) ;
+extern int set_atable_from_ctable(COLOR_TABLE *pct);
 int
 MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
 {
   int    histo[MAX_ANNOTATION], i, n, vno, ino, index, max_histo, 
     max_annotation, annotations[MAX_ANNOTATION], nchanged = 0 ;
   VERTEX *v, *vn ;
+
+  //reset the annotation table using the surface's own colortable when it's available
+  if(mris->ct != NULL)
+    set_atable_from_ctable(mris->ct);
 
   for (ino  = 0 ; ino < niter ; ino++)
     {
