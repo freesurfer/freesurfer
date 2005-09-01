@@ -55,7 +55,7 @@ main(int argc, char *argv[])
   GCSA         *gcsa ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ca_label.c,v 1.11 2005/08/31 22:56:38 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ca_label.c,v 1.12 2005/09/01 20:41:54 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -105,9 +105,12 @@ main(int argc, char *argv[])
   MRISsetNeighborhoodSize(mris, nbrs) ;
   mris->ct = gcsa->ct ; /* hack so that color table will get written into annot file */
 
+  //set annotation table from the colortable
+  set_atable_from_ctable(gcsa->ct);
+
   // read colortable from the gcsa if not already done
-  if(gcsa->ct != NULL)
-    read_named_annotation_table(gcsa->ct->fname);
+  //  if(gcsa->ct != NULL)
+  //  read_named_annotation_table(gcsa->ct->fname);
 
   MRIScomputeSecondFundamentalForm(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
