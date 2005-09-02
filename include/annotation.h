@@ -17,5 +17,6 @@ int   print_annotation_table(FILE *fp);
 int print_annotation_colortable(FILE *fp);
 int   index_to_annotation(int index) ;
 LABEL *annotation2label(int annotid, MRIS *Surf);
+int set_atable_from_ctable(COLOR_TABLE *pct);
 
 #endif
