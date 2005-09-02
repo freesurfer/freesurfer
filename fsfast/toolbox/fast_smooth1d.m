@@ -4,7 +4,7 @@ function [dsm, g] = fast_smooth1d(d,gsigma)
 % Gaussian smooths the columns of d. Pads with zeros so no
 % wrap-around. Uses fft. Should work on complex data. 
 %
-% $Id: fast_smooth1d.m,v 1.1 2005/08/02 00:13:05 greve Exp $
+% $Id: fast_smooth1d.m,v 1.2 2005/09/02 17:31:39 greve Exp $
 
 % Test 1
 % N = 50; gstd = 2;
@@ -49,8 +49,8 @@ dsm = fftshift(dsm,1); % so you can take 1:nrows
 dsm = dsm(1:nrows,:);
 
 if( max(abs(imag(d(:)))) == 0 )
-  % Only take the magnitude if input is totally real
-  dsm = abs(dsm);
+  % Only take the real if input is totally real
+  dsm = real(dsm);
 end
 
 
