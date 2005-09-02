@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.28 2005/08/31 01:04:31 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.29 2005/09/02 19:01:53 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.28 2005/08/31 01:04:31 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.29 2005/09/02 19:01:53 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -352,7 +352,30 @@ if( $output && $?QTDIR ) then
     echo "QTDIR           $QTDIR"
 endif
 
-### ----------- Freesurfer Support Libraries  ------------ ####
+
+### ----------- Freesurfer Bin and Lib Paths  ------------ ####
+set path = ( $FSFAST_HOME/bin     \
+             $FREESURFER_HOME/bin/noarch      \
+             $FREESURFER_HOME/bin/         \
+             $path \
+            )
+if ( -e $FREESURFER_HOME/lib/tcltktixblt/bin ) then
+    set path = ( $FREESURFER_HOME/lib/tcltktixblt/bin \
+                 $path \
+                )
+endif
+
+## Add path to OS-specific static and dynamic libraries.
+if(! $?LD_LIBRARY_PATH ) then
+    setenv LD_LIBRARY_PATH  $FREESURFER_HOME/lib/
+else
+    setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
+endif
+if(! $?DYLD_LIBRARY_PATH ) then
+    setenv DYLD_LIBRARY_PATH  $FREESURFER_HOME/lib/
+else
+    setenv DYLD_LIBRARY_PATH  "$DYLD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
+endif
 if ( -e $FREESURFER_HOME/lib/tcltktixblt/lib ) then
     if(! $?LD_LIBRARY_PATH ) then
         setenv LD_LIBRARY_PATH  $FREESURFER_HOME/lib/tcltktixblt/lib
@@ -369,24 +392,7 @@ if ( -e $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh ) then
     source $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh
 endif
 
-### ----------- Freesurfer Bin and  Lib Paths  ------------ ####
-set path = ( $FSFAST_HOME/bin     \
-             $FREESURFER_HOME/bin/noarch      \
-             $FREESURFER_HOME/bin/         \
-             $path \
-            )
-## Add path to OS-specific static and dynamic libraries.
-if(! $?LD_LIBRARY_PATH ) then
-    setenv LD_LIBRARY_PATH  $FREESURFER_HOME/lib/
-else
-    setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
-endif
-if(! $?DYLD_LIBRARY_PATH ) then
-    setenv DYLD_LIBRARY_PATH  $FREESURFER_HOME/lib/
-else
-    setenv DYLD_LIBRARY_PATH  "$DYLD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
-endif
-
+# cause OS to build new bin path cache:
 rehash;
 
 exit 0;
