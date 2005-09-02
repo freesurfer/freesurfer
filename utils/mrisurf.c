@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/09/01 20:40:48 $
-// Revision       : $Revision: 1.366 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/09/02 17:46:57 $
+// Revision       : $Revision: 1.367 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -42,6 +42,7 @@
 #include "tags.h"
 #include "transform.h"
 #include "talairachex.h"
+#include "annotation.h"
 
 #define DMALLOC 0
 
@@ -8316,66 +8317,66 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
 
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
-    {
-      FileNameOnly(sname, fname_no_path) ;
-      cp = strstr(fname_no_path, ".annot") ;
-      if (!cp)
-	strcat(fname_no_path, ".annot") ;
+	{
+		FileNameOnly(sname, fname_no_path) ;
+		cp = strstr(fname_no_path, ".annot") ;
+		if (!cp)
+			strcat(fname_no_path, ".annot") ;
 
-      need_hemi = stricmp(fname_no_path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
+		need_hemi = stricmp(fname_no_path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
 
-      FileNamePath(mris->fname, path) ;
-      if (!need_hemi)
-	sprintf(fname, "%s/../label/%s", path, fname_no_path) ;
-      else   /* no hemisphere specified */
-	sprintf(fname, "%s/../label/%s.%s", path, 
-		mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",fname_no_path);
-    }
+		FileNamePath(mris->fname, path) ;
+		if (!need_hemi)
+			sprintf(fname, "%s/../label/%s", path, fname_no_path) ;
+		else   /* no hemisphere specified */
+			sprintf(fname, "%s/../label/%s.%s", path, 
+							mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",fname_no_path);
+	}
   else
-    {
-      strcpy(fname, sname) ;  /* full path specified */
-      cp = strstr(fname, ".annot") ;
-      if (!cp)
-	strcat(fname, ".annot") ;
-    }
+	{
+		strcpy(fname, sname) ;  /* full path specified */
+		cp = strstr(fname, ".annot") ;
+		if (!cp)
+			strcat(fname, ".annot") ;
+	}
 
   fp = fopen(fname,"r");
   if (fp==NULL) 
     ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "could not read annot file %s",
-			       fname)) ;
+															 fname)) ;
   MRISclearAnnotations(mris) ;
   num = freadInt(fp) ;
   for (j=0;j<num;j++)
-    {
-      vno = freadInt(fp) ; i = freadInt(fp) ;
-      if (vno == Gdiag_no)
-	DiagBreak() ;
-      if (vno>=mris->nvertices||vno<0)
-	fprintf(stderr, "MRISreadAnnotation: vertex index out of range: %d i=%d\n",vno,i);
-      else {
-	mris->vertices[vno].annotation = i;
-      }
-    }
+	{
+		vno = freadInt(fp) ; i = freadInt(fp) ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		if (vno>=mris->nvertices||vno<0)
+			fprintf(stderr, "MRISreadAnnotation: vertex index out of range: %d i=%d\n",vno,i);
+		else {
+			mris->vertices[vno].annotation = i;
+		}
+	}
 
   while (1)
-    {
-      int tag ;
-
-      tag = freadInt(fp) ;
-      if (feof(fp))
-	break;
-    
-      switch (tag)
 	{
-	case TAG_OLD_COLORTABLE:
-	  fprintf(stderr, "reading colortable from annotation file...\n") ;
-	  mris->ct = CTABreadFrom(fp) ;
-	  fprintf(stderr, "colortable with %d entries read (originally %s)\n", mris->ct->nbins, mris->ct->fname) ;
-	  break ;
-	default:
-	  break ;
+		int tag ;
+
+		tag = freadInt(fp) ;
+		if (feof(fp))
+			break;
+    
+		switch (tag)
+		{
+		case TAG_OLD_COLORTABLE:
+			fprintf(stderr, "reading colortable from annotation file...\n") ;
+			mris->ct = CTABreadFrom(fp) ;
+			fprintf(stderr, "colortable with %d entries read (originally %s)\n", mris->ct->nbins, mris->ct->fname) ;
+			break ;
+		default:
+			break ;
+		}
 	}
-    }
   fclose(fp);
 
 #if 0
@@ -8385,52 +8386,52 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
   sprintf(freqfname,"%s.freq",fname);
   fp = fopen(freqfname,"r");
   if (fp!=NULL)
-    {
-      printf("file %s read\n",freqfname);
-      for (vno=0;vno<vertex_index;vno++)
-	vertex[vno].annotfreq=0;
-      fread(&num,1,sizeof(int),fp);
-      printf("surfer: num=%d\n",num);
-      for (j=0;j<num;j++)
 	{
-	  fread(&vno,1,sizeof(int),fp);
-	  fread(&f,1,sizeof(float),fp);
-	  if (vno>=vertex_index||vno<0)
-	    printf("surfer: vertex index out of range: %d f=%f\n",vno,f);
-	  else
-	    vertex[vno].annotfreq = f;
+		printf("file %s read\n",freqfname);
+		for (vno=0;vno<vertex_index;vno++)
+			vertex[vno].annotfreq=0;
+		fread(&num,1,sizeof(int),fp);
+		printf("surfer: num=%d\n",num);
+		for (j=0;j<num;j++)
+		{
+			fread(&vno,1,sizeof(int),fp);
+			fread(&f,1,sizeof(float),fp);
+			if (vno>=vertex_index||vno<0)
+				printf("surfer: vertex index out of range: %d f=%f\n",vno,f);
+			else
+				vertex[vno].annotfreq = f;
+		}
+		fclose(fp);
 	}
-      fclose(fp);
-    }
 
   sprintf(histfname,"%s.hist",fname);
   fp = fopen(histfname,"r");
   if (fp!=NULL)
-    {
-      printf("file %s read\n",histfname);
-      for (vno=0;vno<vertex_index;vno++)
-	vertex[vno].numannothist=0;
-      fread(&num,1,sizeof(int),fp);
-      printf("surfer: num=%d\n",num);
-      for (j=0;j<num;j++)
 	{
-	  fread(&vno,1,sizeof(int),fp);
-	  fread(&numannothist,1,sizeof(int),fp);
-	  if (vno>=vertex_index||vno<0)
-	    printf("surfer: vertex index out of range: %d f=%f\n",vno,f);
-	  else
+		printf("file %s read\n",histfname);
+		for (vno=0;vno<vertex_index;vno++)
+			vertex[vno].numannothist=0;
+		fread(&num,1,sizeof(int),fp);
+		printf("surfer: num=%d\n",num);
+		for (j=0;j<num;j++)
+		{
+			fread(&vno,1,sizeof(int),fp);
+			fread(&numannothist,1,sizeof(int),fp);
+			if (vno>=vertex_index||vno<0)
+				printf("surfer: vertex index out of range: %d f=%f\n",vno,f);
+			else
 	    {
 	      vertex[vno].numannothist = numannothist;
 	      vertex[vno].annothistlabel = calloc(numannothist,sizeof(int));
 	      vertex[vno].annothistcount = calloc(numannothist,sizeof(int));
 	      for (i=0;i<numannothist;i++)
-		fread(&vertex[vno].annothistlabel[i],1,sizeof(int),fp);
+					fread(&vertex[vno].annothistlabel[i],1,sizeof(int),fp);
 	      for (i=0;i<numannothist;i++)
-		fread(&vertex[vno].annothistcount[i],1,sizeof(int),fp);
+					fread(&vertex[vno].annothistcount[i],1,sizeof(int),fp);
 	    }
+		}
+		fclose(fp);
 	}
-      fclose(fp);
-    }
 #endif
 
   return(NO_ERROR) ;
@@ -24559,8 +24560,6 @@ MRISmodeFilterZeroVals(MRI_SURFACE *mris)
   Description
   ------------------------------------------------------*/
 #define MAX_ANNOTATION 1000
-extern int annotation_to_index(int annotation) ;
-extern int set_atable_from_ctable(COLOR_TABLE *pct);
 int
 MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
 {
