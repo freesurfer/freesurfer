@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.70 2005/06/17 23:29:22 greve Exp $
+// $Id: matrix.c,v 1.71 2005/09/02 17:28:45 greve Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -3137,18 +3137,30 @@ MATRIX *GaussianMatrix(int len, float std, int norm, MATRIX *G)
   }
 
   var = std*std;
-  f = 2*M_PI*std;
+  f = sqrt(2*M_PI)*std;
+
+  // Adjust scale so that sum at center line is 1
+  if(norm) {
+    sum = 0;
+    for(c=0; c < len; c++){
+      d = c-len/2;
+      v = exp( -(d*d)/(2*var) )/f;
+      sum += v;
+    }
+    f /= sum;
+  }
 
   for(r=0; r<len; r++){
-    sum = 0;
     for(c=0; c < len; c++){
       d = c-r;
       v = exp( -(d*d)/(2*var) )/f;
-      if(norm) sum += v;
       G->rptr[r+1][c+1] = v;
     }
-    if(norm) for(c=0; c < len; c++) G->rptr[r+1][c+1] /= sum;
   }
+
+  //printf("std = %g\n",std);
+  //MatrixWriteTxt("g.txt",G);
+  //exit(1);
 
   return(G);
 }
