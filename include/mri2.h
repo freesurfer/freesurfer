@@ -19,3 +19,4 @@ int MRIfdr2vwth(MRI *vol, int frame, double fdr, int signid,
 		int log10flag, MRI *mask, double *vwth, MRI *ovol);
 int MRIdimMismatch(MRI *v1, MRI *v2, int frameflag);
 MATRIX *MRIcovarianceMatrix(MRI *mri, MRI *mask);
+int MRIpca(MRI *D, MATRIX **pU, VECTOR **pS, MRI **pV, MRI *mask);

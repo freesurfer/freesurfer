@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.12 2005/09/02 21:48:01 greve Exp $
+  $Id: mri2.c,v 1.13 2005/09/02 22:21:32 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -908,4 +908,110 @@ MATRIX *MRIcovarianceMatrix(MRI *mri, MRI *mask)
 
   //MatrixPrint(stdout,M);
   return(M);
+}
+
+/*--------------------------------------------------------------------
+  MRIpca() - computes the SVD/PCA of the input volume D.  pU is the
+  matrix of temporal EVs, pS is the vector singular values, and pV arg
+  the spatial EVs (reshaped back into a volume).  Note: this uses the
+  SVD code from matrix.c, which is not very accurate. If mask is
+  non-null, uses only the voxels for which mask>0.5. When complete,
+  D = U*S*V';
+  -------------------------------------------------------------------*/
+int MRIpca(MRI *D, MATRIX **pU, VECTOR **pS, MRI **pV, MRI *mask)
+{
+  int dim, dim_real, nvoxels, c,r,s,f, UseMask, nmask=0;
+  MATRIX *M, *VV, *UinvS, *Fd, *Fv;
+  VECTOR *S2;
+  double *sum2, v;
+
+  nvoxels = D->width * D->height * D->depth;
+  dim = MIN(nvoxels,D->nframes);
+
+  // Count the number of voxels in the mask
+  if(mask != NULL){
+    UseMask = 1;
+    for(c=0;c<D->width;c++)
+      for(r=0;r<D->height;r++)
+	for(s=0;s<D->depth;s++)
+	  if(UseMask && MRIgetVoxVal(mask,c,r,s,0) > 0.5) nmask++;
+  }
+  else{
+    UseMask = 0;
+    nmask = nvoxels;
+  }
+
+  M = MRIcovarianceMatrix(D, mask);
+  if(M==NULL) return(1);
+  //MatrixWriteTxt("cvm.dat",M);
+
+  // Compute the SVD of the Temporal Cov Matrix
+  S2 = RVectorAlloc(D->nframes, MATRIX_REAL) ;
+  *pU = MatrixCopy(M,NULL); // It's done in-place so make a copy
+  VV = MatrixSVD(*pU, S2, NULL); // M = U*S2*VV, VV = U';
+  //MatrixWriteTxt("s2.dat",S2);
+
+  *pS = RVectorAlloc(D->nframes, MATRIX_REAL) ;
+  for(c=1; c <= dim; c++){
+    S2->rptr[1][c] *= nmask; // Needs this
+    (*pS)->rptr[1][c] = sqrt(S2->rptr[1][c]);
+    // Exclude dims for which the singular value is very small
+    if(S2->rptr[1][c] < EPSILON) break;
+  }
+  dim_real = c-1;
+
+  // Compute U*inv(S) (note square root to go from S2 to S)
+  UinvS = MatrixAlloc(D->nframes,dim_real,MATRIX_REAL);
+  for(c=1; c <= dim_real; c++) {
+    for(f=1; f <= D->nframes; f++)
+      UinvS->rptr[f][c] = (double)(*pU)->rptr[f][c]/sqrt(S2->rptr[1][c]);
+  }
+  //printf("UinvS %d -------------------------\n",dim_real);
+  //MatrixPrint(stdout,UinvS);
+
+  // Allocate the spatial EVs
+  *pV = MRIallocSequence(D->width, D->height,D->depth,MRI_FLOAT, dim_real);
+  MRIcopyHeader(D,*pV);
+  
+  // Compute V = D'*U*inv(S)
+  sum2 = (double *) calloc(dim_real,sizeof(double));
+  Fd = MatrixAlloc(1,D->nframes,MATRIX_REAL);
+  Fv = MatrixAlloc(1,dim_real,MATRIX_REAL);
+  for(c=0;c<D->width;c++){
+    for(r=0;r<D->height;r++){
+      for(s=0;s<D->depth;s++){
+	if(UseMask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	for(f=0; f < D->nframes; f++)
+	  Fd->rptr[1][f+1] = MRIgetVoxVal(D,c,r,s,f);
+	MatrixMultiply(Fd,UinvS,Fv);
+	for(f=0; f < dim_real; f++){
+	  MRIsetVoxVal(*pV,c,r,s,f,Fv->rptr[1][f+1]);
+	  sum2[f] += (Fv->rptr[1][f+1])*(Fv->rptr[1][f+1]);
+	}
+      }
+    }
+  }
+
+  /* Normalize to a unit vector */
+  for(c=0;c<D->width;c++){
+    for(r=0;r<D->height;r++){
+      for(s=0;s<D->depth;s++){
+	if(UseMask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	for(f=0; f < dim_real; f++){
+	  v = MRIgetVoxVal(*pV,c,r,s,f);
+	  MRIsetVoxVal(*pV,c,r,s,f,v/sqrt(sum2[f]));
+	}
+      }
+    }
+  }
+
+  free(sum2);
+  MatrixFree(&M);
+  MatrixFree(&VV);
+  MatrixFree(&UinvS);
+  MatrixFree(&Fd);
+  MatrixFree(&Fv);
+  MatrixFree(&S2);
+
+  return(0);
 }
