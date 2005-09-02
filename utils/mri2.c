@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.11 2004/12/20 02:02:40 kteich Exp $
+  $Id: mri2.c,v 1.12 2005/09/02 21:48:01 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -842,3 +842,70 @@ int MRIfdr2vwth(MRI *vol, int frame, double fdr, int signid,
 }
 
 
+/*-------------------------------------------------------------------
+  MRIcovarianceMatrix() - computes the cross-frame (temporal)
+  covariance matrix. Returns M=D*D/Nv' where D is an Nt-by-Nv data
+  set, where Nt is the number of frames/timepoints and Nv is the
+  number of voxels/vertices which equals ncols*nrows*nslices in the
+  mri strucutre. If mask is non-null, then voxels/vertices whose value
+  in the mask are less than 0.5 are excluded from the computation of
+  the covariance matrix, and Nv becomes the number points in the mask.
+  ------------------------------------------------------------------*/
+MATRIX *MRIcovarianceMatrix(MRI *mri, MRI *mask)
+{
+  int UseMask = 0, nmask,f1,f2;
+  int r,c,s;
+  double sum,v1,v2;
+  MATRIX *M;
+
+  // Handle masking
+  if(mask != NULL){
+    // count number of points in the mask
+    nmask = 0;
+    for(c=0;c<mri->width;c++){
+      for(r=0;r<mri->height;r++){
+	for(s=0;s<mri->depth;s++){
+	  if(MRIgetVoxVal(mask,c,r,s,0) > 0.5) nmask++;
+	}
+      }
+    }
+    //printf("Number of voxels in the mask %d\n",nmask);
+    if(nmask == 0){
+      printf("ERROR: no voxels in mask\n");
+      return(NULL);
+    }
+    UseMask = 1;
+  }
+  else{
+    // Otherwise use all voxels/vertices
+    nmask = mri->width * mri->height * mri->depth;
+    UseMask = 0;
+  }
+
+  // Allocate the covariance matrix
+  M = MatrixAlloc(mri->nframes,mri->nframes,MATRIX_REAL);
+
+  // Compute the covariance matrix
+  for(f1=0;f1<mri->nframes;f1++){
+    //printf("f1 = %d\n",f1);
+    for(f2=f1;f2<mri->nframes;f2++){
+      sum = 0;
+      for(c=0;c<mri->width;c++){
+	for(r=0;r<mri->height;r++){
+	  for(s=0;s<mri->depth;s++){
+	    if(UseMask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	    v1 = MRIgetVoxVal(mri,c,r,s,f1);
+	    v2 = MRIgetVoxVal(mri,c,r,s,f2);
+	    sum += (v1*v2);
+	    //printf("%g %g %g\n",v1,v2,sum);
+	  } //s 
+	} //r
+      } //s 
+      M->rptr[f1+1][f2+1] = sum/nmask;
+      M->rptr[f2+1][f1+1] = sum/nmask;
+    } // f1
+  } // f2
+
+  //MatrixPrint(stdout,M);
+  return(M);
+}
