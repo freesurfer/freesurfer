@@ -24,7 +24,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.94 2005/08/15 14:30:08 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.95 2005/09/05 20:49:50 fischl Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -81,6 +81,7 @@ static char vcid[] = "$Id: mri_fill.c,v 1.94 2005/08/15 14:30:08 fischl Exp $";
 -------------------------------------------------------------------*/
 
 static int find_rh_seed_point(MRI *mri, int *prh_vol_x, int *prh_vol_y, int *prh_vol_z) ;
+static int mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg_tal) ;
 
 static int find_rh_voxel = 0 ;
 static int fillonly = 0 ;
@@ -324,12 +325,12 @@ main(int argc, char *argv[])
   VOL_GEOM *src=0;
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_fill.c,v 1.94 2005/08/15 14:30:08 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_fill.c,v 1.95 2005/09/05 20:49:50 fischl Exp $", "$Name:  $", cmdline);
 
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.94 2005/08/15 14:30:08 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.95 2005/09/05 20:49:50 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -616,6 +617,9 @@ main(int argc, char *argv[])
 				mri_cc = 
 					find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
 														 &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
+				mri_erase_nonmidline_voxels(mri_cc, mri_seg_tal) ;
+				if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+					MRIwrite(mri_cc, "cc.mgz") ;
 			}
 			MRIfree(&mri_seg_tal) ;
 		}
@@ -658,11 +662,16 @@ main(int argc, char *argv[])
   // get the src volume version
   // we need the target volume c_(ras) to set the volume correct
   mri_tmp = MRIcopy(mri_im, NULL);   // src volume space
-  MRIfromTalairachEx(mri_cc, mri_tmp, lta) ;
-  // only 1 or 0 values 
-  MRIbinarize(mri_tmp, mri_tmp, 1, 0, 1) ;
-  MRIfree(&mri_cc) ; 
-  mri_cc = mri_tmp ;  // mri_cc is in the src volume space!
+	if (mri_seg == NULL)    // if mri_seg, then cutting plane already in image space
+	{
+		MRIfromTalairachEx(mri_cc, mri_tmp, lta) ;
+		// only 1 or 0 values 
+		MRIbinarize(mri_tmp, mri_tmp, 1, 0, 1) ;
+		MRIfree(&mri_cc) ; 
+		mri_cc = mri_tmp ;  // mri_cc is in the src volume space!
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+			MRIwrite(mri_cc, "cc.mgz") ;
+	}
 
   /* update tal coords of CC based on data (BUG FIX - BRF) */
   // the following is wrong:
@@ -3823,7 +3832,7 @@ find_cc_seed_with_segmentation(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pc
 				xl = mri_seg->xi[x-1] ;
 				rlabel = MRIvox(mri_seg, xr, y, z) ;
 				llabel = MRIvox(mri_seg, xl, y, z) ;
-				if ((!IS_WM(rlabel) && !IS_WM(llabel)) ||
+				if ((!IS_WM(rlabel) || !IS_WM(llabel)) ||
 						((rlabel == label) && (llabel == label)))
 					continue ;   /* find places where left/right wm has different label */
 
@@ -3890,4 +3899,189 @@ find_rh_seed_point(MRI *mri, int *prh_vol_x, int *prh_vol_y, int *prh_vol_z)
 	ErrorExit(ERROR_BADPARM,"could not find rh seed point");
 	return(NO_ERROR) ;
 }
+
+static int
+mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg)
+{
+	int  x, y, z, label, xl, xr, rlabel, llabel ;
+	MRI *mri_mid ;
+
+	mri_mid = MRIcopy(mri_cc, NULL) ;
+
+	for (x = 0 ; x < mri_cc->width ; x++)
+	{
+		for (y = 0 ; y < mri_cc->height ; y++)
+		{
+			for (z = 0 ; z < mri_cc->depth ; z++)
+			{
+				xr = mri_seg->xi[x+1] ;
+				xl = mri_seg->xi[x-1] ;
+				label = MRIvox(mri_seg, x, y, z) ;
+				rlabel = MRIvox(mri_seg, xr, y, z) ;
+				llabel = MRIvox(mri_seg, xl, y, z) ;
+				if ((IS_WM(rlabel) && !IS_WM(llabel)) &&
+						((rlabel != label) || (llabel != label)))
+					MRIvox(mri_mid, x, y, z) = 128 ;
+					
+				if (MRIvox(mri_cc, x, y, z) == 0)
+					continue ;
+				xr = mri_seg->xi[x+1] ;
+				xl = mri_seg->xi[x-1] ;
+				label = MRIvox(mri_seg, x, y, z) ;
+				rlabel = MRIvox(mri_seg, xr, y, z) ;
+				llabel = MRIvox(mri_seg, xl, y, z) ;
+				if ((!IS_WM(rlabel) || !IS_WM(llabel)) ||
+						((rlabel == label) && (llabel == label)))
+				{ /* not a  place where left/right wm has different label */
+					MRIvox(mri_cc, x, y, z) = 0 ;
+				}
+			}
+		}
+	}
+
+	MRIwrite(mri_mid, "mid.mgz") ;
+	MRIfree(&mri_mid) ;
+	return(NO_ERROR) ;
+}
+#if 0
+
+// stuff for finding the cutting plane that maximally separates lh and rh - not done
+static int
+find_cc_seed_with_segmentation(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pcc_tal_y, Real *pcc_tal_z)
+{
+  int  x,  y, z, label, yi, zi, yk, zk, xl, xr, rlabel, llabel, num, max_num;
+  Real xcc, ycc,  zcc, xn, yn, zn, theta, phi, xncc, yncc, zncc ;
+
+  xn = -1 ;
+	yn = zn = 0.0 ;
+
+
+#define MAX_ANGLE  RADIANS(3.0)
+#define DELTA_ANGLE RADIANS(0.5)
+
+  xncc = yncc = zncc = xcc = ycc = zcc = 0.0  ; 
+	max_num = 0 ;
+
+  for (x = 0 ; x  < mri->width ; x++)
+  {
+    for (y = 0 ; y  < mri->height ; y++)
+    {
+      for (z = 0 ; z  < mri->width ; z++)
+      {
+				label = MRIvox(mri_seg, x,  y, z) ;
+				if (!IS_WM(label))
+					continue  ;
+				xr = mri_seg->xi[x+1] ;
+				xl = mri_seg->xi[x-1] ;
+				rlabel = MRIvox(mri_seg, xr, y, z) ;
+				llabel = MRIvox(mri_seg, xl, y, z) ;
+				if ((!IS_WM(rlabel) || !IS_WM(llabel)) ||
+						((rlabel == label) && (llabel == label)))
+					continue ;   /* find places where left/right wm has different label */
+
+				// look for optimal separating plane
+				for (phi = RADIANS(90)-MAX_ANGLE ; phi <= RADIANS(90)+MAX_ANGLE ; phi += DELTA_ANGLE)
+				{
+#if 0
+					for (theta = -MAX_ANGLE ; theta <= MAX_ANGLE ; theta += DELTA_ANGLE)
+#else
+						theta = 0.0 ;
+#endif
+					{
+						xn = cos(theta)*sin(phi) ;
+						yn = sin(theta)*sin(phi) ;
+						zn = cos(phi) ;
+						num = count_hemisphere_separation(mri_seg, xn, yn, zn, x, y, z) ;
+						if (num > max_num)
+						{
+							xcc = x ; ycc = y ; zcc = z ;
+							xncc = xn ; yncc = yn ; zncc = zn ;
+							max_num = num ;
+						}
+					}
+				}
+
+
+#if 0
+				/* look in sagittal plane and count how many midline voxels there are */
+				for (num = 0, yk = -WHALF ; yk <= WHALF ; yk++)
+				{
+					yi = mri_seg->yi[y+yk] ;
+					for (zk = -WHALF ; zk <= WHALF ; zk++)
+					{
+						zi = mri_seg->zi[z+zk] ;
+						rlabel = MRIvox(mri_seg, xr, yi, zi) ;
+						llabel = MRIvox(mri_seg, xl, yi, zi) ;
+						label = MRIvox(mri_seg, x, yi, zi) ;
+						if (MRIvox(mri, x, yi, zi) < MIN_WM_VAL)
+							continue ;   // must be labeled in wm volume
+
+						if ((IS_WM(rlabel) && IS_WM(llabel)) && IS_WM(label) &&
+								((rlabel != label) || (llabel != label)))
+							num++ ;
+					}
+				}
+				if (num > max_num)
+				{
+					xcc = x ; ycc = y ; zcc = z ;
+					max_num = num ;
+				}
+#endif
+      }
+    }
+  }
+  if (max_num <= 0)
+    ErrorExit(ERROR_BADFILE, "%s: could not find any points where lh and rh wm  are nbrs", Progname) ;
+  
+  
+  MRIvoxelToWorld(mri, xcc, ycc, zcc, pcc_tal_x, pcc_tal_y, pcc_tal_z) ;
+  printf("segmentation indicates cc at (%d,  %d,  %d) --> (%2.1f, %2.1f, %2.1f)\n",
+				 nint(xcc), nint(ycc), nint(zcc), *pcc_tal_x, *pcc_tal_y, *pcc_tal_z) ;
+  
+  return(NO_ERROR) ;
+}
+
+
+static int count_hemisphere_separation(MRI *mri, double xn, double yn, double zn, 
+																			 int x, int y, int z);
+static int
+count_hemisphere_separation(MRI *mri, double xn, double yn, double zn, int x0, int y0, int z0)
+{
+	int num, x, y, z, label, lh_neg, lh_pos, rh_neg, rh_pos ;
+	double  dot ;
+
+	lh_neg = lh_pos = rh_neg = rh_pos = 0 ;
+	for (x = 0 ; x < mri->width ; x++)
+	{
+		for (y = 0 ; y < mri->width ; y++)
+		{
+			for (z = 0 ; z < mri->depth ; z++)
+			{
+				label = MRIvox(mri, x, y, z) ;
+				if (!IS_WHITE_CLASS(label) && !IS_GM(label))
+					continue ;
+				dot = (x-x0)*xn + (y-y0)*yn + (z-z0)*zn ;
+				if (label == Left_Cerebral_Cortex || label == Left_Cerebral_White_Matter)
+				{
+					if (dot < 0)
+						lh_neg++ ;
+					else
+						lh_pos++ ;
+				}
+				else   // right hemisphere
+				{
+					if (dot < 0)
+						rh_neg++ ;
+					else
+						rh_pos++ ;
+				}
+			}
+		}
+	}
+
+	num = abs(rh_neg-lh_neg) + abs(lh_pos-rh_pos);
+	return(num) ;
+}
+
+#endif
 
