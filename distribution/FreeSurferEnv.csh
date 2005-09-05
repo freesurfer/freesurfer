@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.29 2005/09/02 19:01:53 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.30 2005/09/05 04:59:22 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.29 2005/09/02 19:01:53 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.30 2005/09/05 04:59:22 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -29,6 +29,7 @@ if (("$1" == "--help") || ("$1" == "-help")) then
     echo "       FUNCTIONALS_DIR"
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
+    echo "       GSL__DIR"
     echo "       FSL_DIR"
     echo "4. If NO_MINC is set (to anything), "
     echo "   then all the MINC stuff is ignored."
@@ -147,6 +148,8 @@ if((! $?NO_MINC) && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
 endif
 
 if(! $?FSL_DIR  || $FS_OVERRIDE) then
+    # FSLDIR is the FSL declared location, use that.
+    # else try find an installation.
     if ( $?FSLDIR ) then
         setenv FSL_DIR $FSLDIR
     else if ( -e /usr/pubsw/packages/fsl/current) then
@@ -325,31 +328,76 @@ endif
 
 ### ----------- Qt (scuba2 support libraries)  ------------ ####
 # look for Qt in common NMR locations, overriding any prior setting
-if ( -e /usr/pubsw/packages/qt/current) then
-    setenv QTDIR    /usr/pubsw/packages/qt/current
-else if ( -e $FREESURFER_HOME/lib/qt) then
+if ( -e $FREESURFER_HOME/lib/qt) then
     setenv QTDIR    $FREESURFER_HOME/lib/qt
+else if ( -e /usr/pubsw/packages/qt/current) then
+    setenv QTDIR    /usr/pubsw/packages/qt/current
 endif
 if ( $?QTDIR ) then
     setenv PATH     $QTDIR/bin:$PATH
-    if (! $?MANPATH) then
-        setenv MANPATH    $QTDIR/doc/man:
-    else
-        setenv MANPATH    $QTDIR/doc/man:$MANPATH   
-    endif
     if (! $?LD_LIBRARY_PATH) then
         setenv LD_LIBRARY_PATH  $QTDIR/lib
     else
         setenv LD_LIBRARY_PATH  $QTDIR/lib:$LD_LIBRARY_PATH
     endif
-    if (! $?DYLD_LIBRARY_PATH) then
-        setenv DYLD_LIBRARY_PATH  $QTDIR/lib
+endif
+if( $output && $QTDIR ) then
+    echo "QTDIR         $QTDIR"
+endif
+
+
+### ----------- GSL (Gnu Scientific Library)  ------------ ####
+if ( -e $FREESURFER_HOME/lib/gsl) then
+    setenv GSL_DIR    $FREESURFER_HOME/lib/gsl
+else if ( -e /usr/pubsw/packages/gsl/current) then
+    setenv GSL_DIR    /usr/pubsw/packages/gsl/current
+endif
+if ( $?GSL_DIR ) then
+    setenv PATH     $GSL_DIR/bin:$PATH
+    if (! $?LD_LIBRARY_PATH) then
+        setenv LD_LIBRARY_PATH  $GSL_DIR/lib
     else
-        setenv DYLD_LIBRARY_PATH  $QTDIR/lib:$DYLD_LIBRARY_PATH
+        setenv LD_LIBRARY_PATH  $GSL_DIR/lib:$LD_LIBRARY_PATH
+    endif
+    if (! $?DYLD_LIBRARY_PATH) then
+        setenv DYLD_LIBRARY_PATH  $GSL_DIR/lib
+    else
+        setenv DYLD_LIBRARY_PATH  $GSL_DIR/lib:$DYLD_LIBRARY_PATH
     endif
 endif
-if( $output && $?QTDIR ) then
-    echo "QTDIR           $QTDIR"
+if( $output && $?GSL_DIR ) then
+    echo "GSL_DIR         $GSL_DIR"
+endif
+
+
+### ----------- Tcl/Tk/Tix/BLT  ------------ ####
+if ( -e $FREESURFER_HOME/lib/tcltktixblt/bin ) then
+    set path = ( $FREESURFER_HOME/lib/tcltktixblt/bin \
+                 $path \
+                )
+endif
+if ( -e $FREESURFER_HOME/lib/tcltktixblt/lib ) then
+    setenv TCLLIBPATH  $FREESURFER_HOME/lib/tcltktixblt/lib
+    setenv TCL_LIBRARY $TCLLIBPATH/tcl8.4
+    setenv TK_LIBRARY  $TCLLIBPATH/tk8.4
+    setenv TIX_LIBRARY $TCLLIBPATH/tix8.1
+    setenv BLT_LIBRARY $TCLLIBPATH/blt2.4
+    if(! $?LD_LIBRARY_PATH ) then
+        setenv LD_LIBRARY_PATH $TCLLIBPATH
+    else
+        setenv LD_LIBRARY_PATH $TCLLIBPATH:$LD_LIBRARY_PATH
+    endif
+    if(! $?DYLD_LIBRARY_PATH ) then
+        setenv DYLD_LIBRARY_PATH $TCLLIBPATH
+    else
+        setenv DYLD_LIBRARY_PATH $TCLLIBPATH:$DYLD_LIBRARY_PATH
+    endif
+endif
+
+
+### ----------- Miscellaneous support libraries  ------------ ####
+if ( -e $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh ) then
+    source $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh
 endif
 
 
@@ -359,11 +407,6 @@ set path = ( $FSFAST_HOME/bin     \
              $FREESURFER_HOME/bin/         \
              $path \
             )
-if ( -e $FREESURFER_HOME/lib/tcltktixblt/bin ) then
-    set path = ( $FREESURFER_HOME/lib/tcltktixblt/bin \
-                 $path \
-                )
-endif
 
 ## Add path to OS-specific static and dynamic libraries.
 if(! $?LD_LIBRARY_PATH ) then
@@ -375,21 +418,6 @@ if(! $?DYLD_LIBRARY_PATH ) then
     setenv DYLD_LIBRARY_PATH  $FREESURFER_HOME/lib/
 else
     setenv DYLD_LIBRARY_PATH  "$DYLD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
-endif
-if ( -e $FREESURFER_HOME/lib/tcltktixblt/lib ) then
-    if(! $?LD_LIBRARY_PATH ) then
-        setenv LD_LIBRARY_PATH  $FREESURFER_HOME/lib/tcltktixblt/lib
-    else
-        setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/tcltktixblt/lib"
-    endif
-    if(! $?DYLD_LIBRARY_PATH ) then
-        setenv DYLD_LIBRARY_PATH  $FREESURFER_HOME/lib/tcltktixblt/lib
-    else
-        setenv DYLD_LIBRARY_PATH  "$DYLD_LIBRARY_PATH":"$FREESURFER_HOME/lib/tcltktixblt/lib"
-    endif
-endif
-if ( -e $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh ) then
-    source $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh
 endif
 
 # cause OS to build new bin path cache:
