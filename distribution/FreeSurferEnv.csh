@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.30 2005/09/05 04:59:22 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.31 2005/09/05 15:58:41 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.30 2005/09/05 04:59:22 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.31 2005/09/05 15:58:41 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -338,11 +338,11 @@ if ( $?QTDIR ) then
     if (! $?LD_LIBRARY_PATH) then
         setenv LD_LIBRARY_PATH  $QTDIR/lib
     else
-        setenv LD_LIBRARY_PATH  $QTDIR/lib:$LD_LIBRARY_PATH
+        setenv LD_LIBRARY_PATH  "$QTDIR/lib":"$LD_LIBRARY_PATH"
     endif
 endif
-if( $output && $QTDIR ) then
-    echo "QTDIR         $QTDIR"
+if( $output && $?QTDIR ) then
+    echo "QTDIR           $QTDIR"
 endif
 
 
@@ -357,12 +357,12 @@ if ( $?GSL_DIR ) then
     if (! $?LD_LIBRARY_PATH) then
         setenv LD_LIBRARY_PATH  $GSL_DIR/lib
     else
-        setenv LD_LIBRARY_PATH  $GSL_DIR/lib:$LD_LIBRARY_PATH
+        setenv LD_LIBRARY_PATH  "$GSL_DIR/lib":"$LD_LIBRARY_PATH"
     endif
     if (! $?DYLD_LIBRARY_PATH) then
         setenv DYLD_LIBRARY_PATH  $GSL_DIR/lib
     else
-        setenv DYLD_LIBRARY_PATH  $GSL_DIR/lib:$DYLD_LIBRARY_PATH
+        setenv DYLD_LIBRARY_PATH  "$GSL_DIR/lib":"$DYLD_LIBRARY_PATH"
     endif
 endif
 if( $output && $?GSL_DIR ) then
@@ -385,12 +385,12 @@ if ( -e $FREESURFER_HOME/lib/tcltktixblt/lib ) then
     if(! $?LD_LIBRARY_PATH ) then
         setenv LD_LIBRARY_PATH $TCLLIBPATH
     else
-        setenv LD_LIBRARY_PATH $TCLLIBPATH:$LD_LIBRARY_PATH
+        setenv LD_LIBRARY_PATH "$TCLLIBPATH":"$LD_LIBRARY_PATH"
     endif
     if(! $?DYLD_LIBRARY_PATH ) then
         setenv DYLD_LIBRARY_PATH $TCLLIBPATH
     else
-        setenv DYLD_LIBRARY_PATH $TCLLIBPATH:$DYLD_LIBRARY_PATH
+        setenv DYLD_LIBRARY_PATH "$TCLLIBPATH":"$DYLD_LIBRARY_PATH"
     endif
 endif
 
