@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.31 2005/09/05 15:58:41 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.32 2005/09/05 17:30:25 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.31 2005/09/05 15:58:41 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.32 2005/09/05 17:30:25 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -305,47 +305,6 @@ if(! $?NO_MINC) then
 endif
 
 
-### ----------- FSL ------------ ####
-if ( $?FSL_DIR ) then
-    setenv FSLDIR $FSL_DIR
-    setenv FSL_BIN $FSL_DIR/bin
-    if(! -d $FSL_BIN) then
-        if( $output ) then
-            echo "WARNING: $FSL_BIN does not exist.";
-        endif
-    endif
-    if ( -e ${FSL_DIR}/etc/fslconf/fsl.csh ) then
-        source ${FSL_DIR}/etc/fslconf/fsl.csh
-    endif
-endif
-if ( $?FSL_BIN ) then
-    set path = ( $FSL_BIN $path )
-endif
-if( $output && $?FSL_DIR ) then
-    echo "FSL_DIR         $FSL_DIR"
-endif
-
-
-### ----------- Qt (scuba2 support libraries)  ------------ ####
-# look for Qt in common NMR locations, overriding any prior setting
-if ( -e $FREESURFER_HOME/lib/qt) then
-    setenv QTDIR    $FREESURFER_HOME/lib/qt
-else if ( -e /usr/pubsw/packages/qt/current) then
-    setenv QTDIR    /usr/pubsw/packages/qt/current
-endif
-if ( $?QTDIR ) then
-    setenv PATH     $QTDIR/bin:$PATH
-    if (! $?LD_LIBRARY_PATH) then
-        setenv LD_LIBRARY_PATH  $QTDIR/lib
-    else
-        setenv LD_LIBRARY_PATH  "$QTDIR/lib":"$LD_LIBRARY_PATH"
-    endif
-endif
-if( $output && $?QTDIR ) then
-    echo "QTDIR           $QTDIR"
-endif
-
-
 ### ----------- GSL (Gnu Scientific Library)  ------------ ####
 if ( -e $FREESURFER_HOME/lib/gsl) then
     setenv GSL_DIR    $FREESURFER_HOME/lib/gsl
@@ -367,6 +326,26 @@ if ( $?GSL_DIR ) then
 endif
 if( $output && $?GSL_DIR ) then
     echo "GSL_DIR         $GSL_DIR"
+endif
+
+
+### ----------- Qt (scuba2 support libraries)  ------------ ####
+# look for Qt in common NMR locations, overriding any prior setting
+if ( -e $FREESURFER_HOME/lib/qt) then
+    setenv QTDIR    $FREESURFER_HOME/lib/qt
+else if ( -e /usr/pubsw/packages/qt/current) then
+    setenv QTDIR    /usr/pubsw/packages/qt/current
+endif
+if ( $?QTDIR ) then
+    setenv PATH     $QTDIR/bin:$PATH
+    if (! $?LD_LIBRARY_PATH) then
+        setenv LD_LIBRARY_PATH  $QTDIR/lib
+    else
+        setenv LD_LIBRARY_PATH  "$QTDIR/lib":"$LD_LIBRARY_PATH"
+    endif
+endif
+if( $output && $?QTDIR ) then
+    echo "QTDIR           $QTDIR"
 endif
 
 
@@ -393,11 +372,35 @@ if ( -e $FREESURFER_HOME/lib/tcltktixblt/lib ) then
         setenv DYLD_LIBRARY_PATH "$TCLLIBPATH":"$DYLD_LIBRARY_PATH"
     endif
 endif
+if( $output && $?TCLLIBPATH ) then
+    echo "TCLLIBPATH      $TCLLIBPATH"
+endif
 
 
 ### ----------- Miscellaneous support libraries  ------------ ####
 if ( -e $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh ) then
     source $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh
+endif
+
+
+### ----------- FSL ------------ ####
+if ( $?FSL_DIR ) then
+    setenv FSLDIR $FSL_DIR
+    setenv FSL_BIN $FSL_DIR/bin
+    if(! -d $FSL_BIN) then
+        if( $output ) then
+            echo "WARNING: $FSL_BIN does not exist.";
+        endif
+    endif
+    if ( -e ${FSL_DIR}/etc/fslconf/fsl.csh ) then
+        source ${FSL_DIR}/etc/fslconf/fsl.csh
+    endif
+endif
+if ( $?FSL_BIN ) then
+    set path = ( $FSL_BIN $path )
+endif
+if( $output && $?FSL_DIR ) then
+    echo "FSL_DIR         $FSL_DIR"
 endif
 
 
