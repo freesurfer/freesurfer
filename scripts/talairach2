@@ -12,7 +12,7 @@
 # The algorithm of mritotal is correlation based and thus
 # it is better to use the intensity normalized volume, nu.
 #########################################################
-set VERSION = '$Id: talairach2,v 1.7 2004/08/31 18:07:37 tosa Exp $';
+set VERSION = '$Id: talairach2,v 1.8 2005/09/06 13:54:17 nicks Exp $';
 
 set MGZ = ();
 
@@ -69,8 +69,10 @@ if(! -e nu.mnc) then
 endif
 
 echo "--------------------------------------------"
-set cmd = (mritotal -verbose -debug -clobber -protocol icbm \
-           nu.mnc transforms/talairach.xfm)
+set cmd = (mritotal -verbose -debug -clobber \
+	    -modeldir ${MINC_BIN_DIR}/../share/mni_autoreg \
+	    -protocol icbm \
+	    nu.mnc transforms/talairach.xfm)
 echo $cmd
 $cmd > ../scripts/mritotal.log
 set st = $status
