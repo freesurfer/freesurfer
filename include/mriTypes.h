@@ -15,6 +15,7 @@ typedef enum {
 typedef enum {
   mri_tCoordSpace_None = -1,
   mri_tCoordSpace_VolumeIdx = 0,
+  mri_tCoordSpace_SurfaceRAS,
   mri_tCoordSpace_RAS,
   mri_tCoordSpace_Talairach,
   mri_knNumCoordSpaces,
