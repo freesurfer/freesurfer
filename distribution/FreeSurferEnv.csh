@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.34 2005/09/06 01:36:56 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.35 2005/09/06 13:16:07 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.34 2005/09/06 01:36:56 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.35 2005/09/06 13:16:07 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -144,6 +144,20 @@ if((! $?NO_MINC) && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
         setenv MINC_LIB_DIR /usr/local/mni/lib
     else if ( -e $FREESURFER_HOME/minc/lib) then
         setenv MINC_LIB_DIR $FREESURFER_HOME/minc/lib
+    endif
+endif
+if((! $?NO_MINC) && (! $?MNI_DATAPATH  || $FS_OVERRIDE)) then
+    # try to find minc toolkit data (MNI::DataDir)
+    if ( $?MNI_INSTALL_DIR) then
+        setenv MNI_DATAPATH $MNI_INSTALL_DIR/data
+    else if ( -e $FREESURFER_HOME/lib/mni/data) then
+        setenv MNI_DATAPATH $FREESURFER_HOME/lib/mni/data
+    else if ( -e /usr/pubsw/packages/mni/current/data) then
+        setenv MNI_DATAPATH /usr/pubsw/packages/mni/current/data
+    else if ( -e /usr/local/mni/data) then
+        setenv MNI_DATAPATH /usr/local/mni/data
+    else if ( -e $FREESURFER_HOME/minc/data) then
+        setenv MNI_DATAPATH $FREESURFER_HOME/minc/data
     endif
 endif
 
