@@ -7,6 +7,8 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #define TCL
 #define TKSURFER 
 #define TCL8
@@ -5874,21 +5876,35 @@ read_image_info(char *fpref)
 {
   char fname[NAME_LENGTH];
   MRI* mri_header;
+  struct stat info;
+  int rStat;
 
   mri_header = NULL;
   sprintf (fname, "%s.info", fpref);
-  mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
-
-  if (NULL == mri_header) 
+  rStat = stat (fname, &info);
+  if (S_ISREG(info.st_mode))
     {
-      sprintf (fname, "%s/%s/mri/T1.mgh", subjectsdir, pname);
       mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
     }
 
   if (NULL == mri_header) 
     {
+      sprintf (fname, "%s/%s/mri/T1.mgh", subjectsdir, pname);
+      rStat = stat (fname, &info);
+      if (S_ISREG(info.st_mode))
+	{
+	  mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+	}
+    }
+
+  if (NULL == mri_header) 
+    {
       sprintf (fname, "%s/%s/mri/T1.mgz", subjectsdir, pname);
-      mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+      rStat = stat (fname, &info);
+      if (S_ISREG(info.st_mode))
+	{
+	  mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+	}
     }
 
   if (mri_header)
@@ -18545,7 +18561,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.133 2005/09/06 19:48:27 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.134 2005/09/06 21:17:35 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21168,7 +21184,9 @@ int conv_initialize()
 {
   char fname[STRLEN] = "";
   char path[STRLEN] = "";
-  
+  struct stat info;
+  int rStat;
+
 
   /* allocate our conversion matrices. */
   if (NULL != conv_mnital_to_tal_m_ltz)
@@ -21212,11 +21230,19 @@ int conv_initialize()
       FileNamePath (mris->fname, path);
       sprintf (fname, "%s/../mri/orig", path);
       
-      origMRI = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+      rStat = stat (fname, &info);
+      if (S_ISREG(info.st_mode))
+	{
+	  origMRI = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+	}
       if( NULL == origMRI ) 
 	{
 	  strcat (fname, ".mgz");
-	  origMRI = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+	  rStat = stat (fname, &info);
+	  if (S_ISREG(info.st_mode))
+	    {
+	      origMRI = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+	    }
 	  if( NULL == origMRI ) 
 	    {
 	      printf ("WARNING: Couldn't not load orig volume from %s\n"

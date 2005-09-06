@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/09/02 17:46:57 $
-// Revision       : $Revision: 1.367 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2005/09/06 21:18:00 $
+// Revision       : $Revision: 1.368 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -13,6 +13,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
  
@@ -2870,6 +2871,8 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
   char transform_fname[STRLEN], fpref[300] ;
   LT *lt = 0;
   MRI *orig = 0;
+  struct stat info;
+  int rStat;
 
   // here it is assumed that subjects is set
   FileNamePath(mris_fname, fpref) ;
@@ -2908,7 +2911,11 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
 	{
 	  // first try to get it from mri/orig
 	  sprintf(transform_fname, "%s/../mri/orig", fpref) ; // reuse of the buffer
-	  orig = MRIreadHeader(transform_fname, -1);
+	  rStat = stat (transform_fname, &info);
+	  if (S_ISREG(info.st_mode))
+	    {
+	      orig = MRIreadHeader(transform_fname, -1);
+	    }
 	  if (orig)
 	    {
 	      getVolGeom(orig, &lt->src);
