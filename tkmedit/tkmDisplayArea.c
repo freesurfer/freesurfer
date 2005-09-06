@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/08/26 19:46:22 $
-// Revision       : $Revision: 1.124 $
+// Revision Date  : $Date: 2005/09/06 17:51:48 $
+// Revision       : $Revision: 1.125 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -1274,8 +1274,8 @@ DspA_tErr DspA_ConvertAndSetCursor ( tkmDisplayAreaRef this,
   case mri_tCoordSpace_VolumeIdx:
    // src may not be (256,256,256) so that we convert into "normalized" coords
     eVolume = 
-      Volm_ConvertMRIIdxToScreenIdx_(this->mpVolume[tkm_tVolumeType_Main],
-				     ipCoord, &anaIdx);
+      Volm_ConvertMRIIdxToIdx(this->mpVolume[tkm_tVolumeType_Main],
+			      ipCoord, &anaIdx);
     break;
   case mri_tCoordSpace_SurfaceRAS:
     if( tkm_UseRealRAS() ) {
