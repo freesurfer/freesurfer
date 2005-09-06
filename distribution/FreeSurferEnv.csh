@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.33 2005/09/05 18:59:39 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.34 2005/09/06 01:36:56 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.33 2005/09/05 18:59:39 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.34 2005/09/06 01:36:56 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -269,33 +269,40 @@ if(! $?NO_MINC) then
         endif
     else
         if ( $?MINC_LIB_DIR) then        
-            setenv LD_LIBRARY_PATH  "$LD_LIBRARY_PATH":"$MINC_LIB_DIR"
+            setenv LD_LIBRARY_PATH "$MINC_LIB_DIR":"$LD_LIBRARY_PATH"
         endif
     endif
-    ## nu_correct and other MINC tools require a path to perl
-    if (! $?PERL5LIB) then
-        if ( -e $MINC_LIB_DIR/../System/Library/Perl/5.8.6 ) then
-            # Max OS X Tiger default:
-            setenv PERL5LIB       "$MINC_LIB_DIR/../System/Library/Perl/5.8.6"
-        else if ( -e $MINC_LIB_DIR/../System/Library/Perl/5.8.1 ) then
-            # Max OS X Panther default:
-            setenv PERL5LIB       "$MINC_LIB_DIR/../System/Library/Perl/5.8.1"
-        else if ( -e $MINC_LIB_DIR/perl5/5.8.5) then
+    ## nu_correct and other MINC tools require a path to mni perl scripts
+    if (! $?MNI_PERL5LIB) then
+        if ( -e $MINC_LIB_DIR/perl5/5.8.5) then
             # Linux CentOS4:
-            setenv PERL5LIB       "$MINC_LIB_DIR/perl5/5.8.5"
+            setenv MNI_PERL5LIB       "$MINC_LIB_DIR/perl5/5.8.5"
         else if ( -e $MINC_LIB_DIR/perl5/5.8.3) then
             # Linux FC2:
-            setenv PERL5LIB       "$MINC_LIB_DIR/perl5/5.8.3"
+            setenv MNI_PERL5LIB       "$MINC_LIB_DIR/perl5/5.8.3"
         else if ( -e $MINC_LIB_DIR/perl5/site_perl/5.8.3) then
             # Linux:
-            setenv PERL5LIB       "$MINC_LIB_DIR/perl5/site_perl/5.8.3"
+            setenv MNI_PERL5LIB       "$MINC_LIB_DIR/perl5/site_perl/5.8.3"
         else if ( -e $MINC_LIB_DIR/perl5/5.8.0) then
             # Linux RH9:
-            setenv PERL5LIB       "$MINC_LIB_DIR/perl5/5.8.0"
+            setenv MNI_PERL5LIB       "$MINC_LIB_DIR/perl5/5.8.0"
         else if ( -e $MINC_LIB_DIR/5.6.0) then
             # Linux RH7 and RH9:
-            setenv PERL5LIB       "$MINC_LIB_DIR/5.6.0"
+            setenv MNI_PERL5LIB       "$MINC_LIB_DIR/5.6.0"
+        else if ( -e $MINC_LIB_DIR/../System/Library/Perl/5.8.6 ) then
+            # Max OS X Tiger default:
+            setenv MNI_PERL5LIB       "$MINC_LIB_DIR/../System/Library/Perl/5.8.6"
+        else if ( -e $MINC_LIB_DIR/../System/Library/Perl/5.8.1 ) then
+            # Max OS X Panther default:
+            setenv MNI_PERL5LIB       "$MINC_LIB_DIR/../System/Library/Perl/5.8.1"
+        else
+            setenv MNI_PERL5LIB       ""
         endif
+    endif
+    if (! $?PERL5LIB) then
+        setenv PERL5LIB       $MNI_PERL5LIB
+    else
+        setenv PERL5LIB      "$MNI_PERL5LIB":"$PERL5LIB"
     endif
     if( $output && $?PERL5LIB ) then
         echo "PERL5LIB        $PERL5LIB"
