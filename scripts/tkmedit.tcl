@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.94 2005/08/26 19:42:41 kteich Exp $
+# $Id: tkmedit.tcl,v 1.95 2005/09/06 17:52:18 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -4623,6 +4623,39 @@ proc SaveRGBSeries { isPrefix inBegin inEnd } {
 	SetCursor $mri_tCoordSpace_VolumeIdx $nX $nY $nZ
 	RedrawScreen
 	SaveRGB $isPrefix[format "%03d" $nSlice].rgb
+    }
+}
+
+proc SaveTIFFSeries { isPrefix inBegin inEnd } {
+
+    global gnVolX gnVolY gnVolZ gOrientation
+    global mri_tOrientation_Sagittal mri_tOrientation_Horizontal 
+    global mri_tOrientation_Coronal
+    global mri_tCoordSpace_VolumeIdx
+
+    dputs "SaveTIFFSeries $isPrefix $inBegin $inEnd"
+
+    # determine which way we're going
+    if { $inBegin < $inEnd } {
+	set nIncr 1 
+    } else {
+	set nIncr -1
+    }
+    
+    set nX $gnVolX(cursor)
+    set nY $gnVolY(cursor)
+    set nZ $gnVolZ(cursor)
+    for { set nSlice $inBegin } { $nSlice <= $inEnd } { incr nSlice $nIncr } {
+	
+	switch $gOrientation {
+	    2 { set nX $nSlice }
+	    1 { set nY $nSlice }
+	    0 { set nZ $nSlice }
+	}
+	
+	SetCursor $mri_tCoordSpace_VolumeIdx $nX $nY $nZ
+	RedrawScreen
+	SaveTIFF $isPrefix[format "%03d" $nSlice].tif
     }
 }
 
