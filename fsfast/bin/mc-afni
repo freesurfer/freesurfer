@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: mc-afni,v 1.4 2005/02/07 19:10:14 greve Exp $';
+set VERSION = '$Id: mc-afni,v 1.5 2005/09/07 22:00:26 greve Exp $';
 
 unset verbose ;
 
@@ -353,6 +353,18 @@ check_params:
   if ($#outstem == 0) then
      echo "ERROR: no output stem specified"|& tee -a $LF 
      exit 1
+  endif
+
+  if($#inplaneres == 0) then
+    # Automatically determine resolutions if not specified
+    mri_info --cres $instem.bhdr --o /tmp/tmp.$$.dat
+    set inplaneres = `cat /tmp/tmp.$$.dat`;
+    mri_info --sres $instem.bhdr --o /tmp/tmp.$$.dat
+    set betplaneres = `cat /tmp/tmp.$$.dat`;
+    mri_info --tr $instem.bhdr --o /tmp/tmp.$$.dat
+    set TR = `cat /tmp/tmp.$$.dat`;
+    set TR = `echo $TR/1000 | bc -l`;
+    rm /tmp/tmp.$$.dat
   endif
 
   if($#inplaneres == 0) then
