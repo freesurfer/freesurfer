@@ -18,8 +18,7 @@ typedef enum {
   mri_tCoordSpace_SurfaceRAS,
   mri_tCoordSpace_RAS,
   mri_tCoordSpace_Talairach,
-  mri_knNumCoordSpaces,
-	mri_tCoordSpace_SurfaceRAS
+  mri_knNumCoordSpaces
 } mri_tCoordSpace;
 
 #endif
