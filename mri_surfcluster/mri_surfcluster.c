@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.13 2004/10/19 23:32:42 greve Exp $
+  $Id: mri_surfcluster.c,v 1.14 2005/09/07 17:35:08 greve Exp $
 */
 
 #include <stdio.h>
@@ -12,6 +12,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/utsname.h>
 
 #include "error.h"
 #include "diag.h"
@@ -44,7 +45,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.13 2004/10/19 23:32:42 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.14 2005/09/07 17:35:08 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -125,12 +126,17 @@ int main(int argc, char **argv)
   FILE *fp;
   float totarea;
   int nargs;
+  struct utsname uts;
+  char *cmdline, cwd[2000];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.13 2004/10/19 23:32:42 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.14 2005/09/07 17:35:08 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
+  cmdline = argv2cmdline(argc,argv);
+  uname(&uts);
+  getcwd(cwd,2000);
 
   Progname = argv[0] ;
   argc --;
@@ -318,27 +324,38 @@ int main(int argc, char **argv)
       printf("ERROR: could not open %s for writing\n",sumfile);
       exit(1);
     }
-    fprintf(fp,"Cluster Growing Summary (mri_surfcluster)\n");
-    fprintf(fp,"%s\n",vcid);
-    fprintf(fp,"Input :      %s\n",srcid);  
-    fprintf(fp,"Frame Number:      %d\n",srcframe);  
-    fprintf(fp,"Minimum Threshold: %g\n",thmin);  
-    if(thmax < 0) 
-      fprintf(fp,"Maximum Threshold: infinity\n");
-    else
-      fprintf(fp,"Maximum Threshold: %g\n",thmax);
-    fprintf(fp,"Threshold Sign:    %s\n",thsign);  
+    fprintf(fp,"# Cluster Growing Summary (mri_surfcluster)\n");
+    fprintf(fp,"# %s\n",vcid);
+    fprintf(fp,"# cmdline %s\n",cmdline);
+    fprintf(fp,"# cwd %s\n",cwd);
+    fprintf(fp,"# sysname  %s\n",uts.sysname);
+    fprintf(fp,"# hostname %s\n",uts.nodename);
+    fprintf(fp,"# machine  %s\n",uts.machine);
+    fprintf(fp,"# \n");
+    fprintf(fp,"# Input      %s\n",srcid);  
+    fprintf(fp,"# Frame Number      %d\n",srcframe);  
+    fprintf(fp,"# srcsubj %s\n",srcsubjid);
+    fprintf(fp,"# hemi %s\n",hemi);
+    fprintf(fp,"# surface %s\n",srcsurfid);
+    fprintf(fp,"# SUBJECTS_DIR %s\n",subjectsdir);
 
-    fprintf(fp,"Area Threshold:    %g mm^2\n",minarea);  
+    fprintf(fp,"# Minimum Threshold %g\n",thmin);  
+    if(thmax < 0) 
+      fprintf(fp,"# Maximum Threshold infinity\n");
+    else
+      fprintf(fp,"# Maximum Threshold %g\n",thmax);
+    fprintf(fp,"# Threshold Sign    %s\n",thsign);  
+
+    fprintf(fp,"# Area Threshold    %g mm^2\n",minarea);  
     if(synthfunc != NULL)
-      fprintf(fp,"Synthesize:        %s\n",synthfunc);  
-    fprintf(fp,"Overall max %g at vertex %d\n",overallmax,overallmaxvtx);
-    fprintf(fp,"Overall min %g at vertex %d\n",overallmin,overallminvtx);
-    fprintf(fp,"NClusters          %d\n",NClusters);  
-    fprintf(fp,"Total Cortical Surface Area %g (mm^2)\n",totarea);
-    fprintf(fp,"FixMNI = %d\n",FixMNI);  
-    fprintf(fp,"\n");  
-    fprintf(fp,"ClusterNo    Max   VtxMax  Size(mm^2)   TalX   TalY   TalZ\n");
+      fprintf(fp,"# Synthesize        %s\n",synthfunc);  
+    fprintf(fp,"# Overall max %g at vertex %d\n",overallmax,overallmaxvtx);
+    fprintf(fp,"# Overall min %g at vertex %d\n",overallmin,overallminvtx);
+    fprintf(fp,"# NClusters          %d\n",NClusters);  
+    fprintf(fp,"# Total Cortical Surface Area %g (mm^2)\n",totarea);
+    fprintf(fp,"# FixMNI = %d\n",FixMNI);  
+    fprintf(fp,"# \n");  
+    fprintf(fp,"# ClusterNo    Max   VtxMax  Size(mm^2)   TalX   TalY   TalZ\n");
     for(n=0; n < NClusters; n++){
       fprintf(fp,"%4d     %8.3f  %6d  %8.2f   %6.1f %6.1f %6.1f\n",
        n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
@@ -826,7 +843,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.13 2004/10/19 23:32:42 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.14 2005/09/07 17:35:08 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
