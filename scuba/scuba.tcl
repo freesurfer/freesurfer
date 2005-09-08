@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.138 2005/09/08 19:54:45 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.139 2005/09/08 22:52:39 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -749,14 +749,11 @@ proc ToolBarWrapper { isName iValue } {
 		Set2DMRILayerColorMapMethod \
 		    $gaLayer(current,id) $gaLayer(current,colorMapMethod)
 
-		# Preset the Draw 0 Clear cb.
-		if { "$isName" == "lut" || "$isName" == "heatScale" } {
-		    set gaLayer(current,clearZero) 1
-		    Set2DMRILayerDrawZeroClear $gaLayer(current,id) 1
-		} else {
-		    set gaLayer(current,clearZero) 0
-		    Set2DMRILayerDrawZeroClear $gaLayer(current,id) 0
-		}
+		# Hack - we know that changing the method to LUT will
+		# autoset the drawZero flag to 1, or to 0 if
+		# otherwise, so check that here.
+		set gaLayer(current,clearZero) \
+		    [Get2DMRILayerDrawZeroClear $gaLayer(current,id)]
 
 		RedrawFrame [GetMainFrameID]
 	    }
@@ -5281,7 +5278,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.138 2005/09/08 19:54:45 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.139 2005/09/08 22:52:39 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

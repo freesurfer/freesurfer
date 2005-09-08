@@ -80,8 +80,7 @@ class ScubaLayer2DMRI : public Layer {
   virtual void ProcessOption ( std::string isOption, std::string isValue );
 
   enum ColorMapMethod { grayscale, heatScale, LUT };
-  void SetColorMapMethod ( ColorMapMethod iMethod ) { 
-    mColorMapMethod = iMethod; }
+  void SetColorMapMethod ( ColorMapMethod iMethod );
   ColorMapMethod GetColorMapMethod () { return mColorMapMethod; }
   std::string GetColorMapMethodAsString ();
 

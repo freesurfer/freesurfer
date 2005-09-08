@@ -2132,6 +2132,17 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
   }
 }
 
+void
+ScubaLayer2DMRI::SetColorMapMethod ( ColorMapMethod iMethod ) { 
+  mColorMapMethod = iMethod; 
+
+  if( mColorMapMethod == LUT ) {
+    SetDrawZeroClear( true );
+  } else {
+    SetDrawZeroClear( false );
+  }
+}
+
 string
 ScubaLayer2DMRI::GetColorMapMethodAsString () {
 
