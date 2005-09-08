@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/09/06 21:18:00 $
-// Revision       : $Revision: 1.368 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/09/08 17:51:53 $
+// Revision       : $Revision: 1.369 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -3030,7 +3030,43 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
   float  curv, curvmin, curvmax;
   FILE   *fp;
   char   *cp, path[STRLEN], fname[STRLEN], type ;
+  int   mritype, frame, nv, c,r,s,vno;
+  MRI *TempMRI;
   
+  mritype = mri_identify(sname);
+  if(mritype != MRI_VOLUME_TYPE_UNKNOWN){
+    frame = MRISgetReadFrame();
+    TempMRI = MRIreadHeader(sname,mritype);
+    if(TempMRI==NULL) return(ERROR_BADFILE);
+    if(TempMRI->nframes <= frame){
+      printf("ERROR: attempted to read frame %d from %s\n",frame,sname);
+      printf("  but this file only has %d frames.\n",TempMRI->nframes);
+      return(ERROR_BADFILE);
+    }
+    nv = TempMRI->width * TempMRI->height * TempMRI->depth;
+    if(nv != mris->nvertices){
+      printf("ERROR: number of vertices in %s does not match surface (%d,%d)",
+						 sname,nv,mris->nvertices);
+      return(1);
+    }
+    MRIfree(&TempMRI);
+    TempMRI = MRIread(sname);
+    if(TempMRI==NULL) return(ERROR_BADFILE);
+    vno = 0;
+    for(s=0; s < TempMRI->depth; s++){
+      for(r=0; r < TempMRI->height; r++){
+	for(c=0; c < TempMRI->width; c++){
+	  mris->vertices[vno].curv = MRIgetVoxVal(TempMRI,c,r,s,frame);
+	  vno++;
+	}
+      }
+    }
+    MRIfree(&TempMRI);
+    return(NO_ERROR);
+  } 
+  
+
+
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
     {
