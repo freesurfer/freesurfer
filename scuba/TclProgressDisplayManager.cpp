@@ -61,6 +61,8 @@ TclProgressDisplayManager::UpdateTask( string isText,
 
   TclCommandManager& manager = TclCommandManager::GetManager();
   manager.SendCommand( ssCommand.str() );
+
+  manager.DoTclEvent();
 }
   
 int 

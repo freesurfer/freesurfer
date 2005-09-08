@@ -194,7 +194,10 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     InitBufferCoordCache( iWidth, iHeight );
   }
 
-  // Find the increments.
+  // Find the increments. To do this, take two window coords on this
+  // row, one at col 0 and one at col 1. Then we convert both to RAS
+  // and find the difference. We use that difference to increment RAS
+  // coords across this row for all columns.
   for( int nRow = 0; nRow < iHeight; nRow++ ) {
 
     window[0] = 0; window[1] = nRow;
@@ -339,19 +342,19 @@ ScubaLayer2DMRI::DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   float minZ = 0, maxZ = 0, incZ = 0;
   switch ( iViewState.GetInPlane() ) {
   case ViewState::X:
-    minZ = volumeRASRange[0];
-    maxZ = volumeRASRange[1];
-    incZ = increments[0];
+    minZ = min( volumeRASRange[0], volumeRASRange[1] );
+    maxZ = max( volumeRASRange[0], volumeRASRange[1] );
+    incZ = fabs(increments[0]);
     break;
   case ViewState::Y:
-    minZ = volumeRASRange[2];
-    maxZ = volumeRASRange[3];
-    incZ = increments[1];
+    minZ = min( volumeRASRange[2], volumeRASRange[3] );
+    maxZ = max( volumeRASRange[2], volumeRASRange[3] );
+    incZ = fabs(increments[1]);
     break;
   case ViewState::Z:
-    minZ = volumeRASRange[4];
-    maxZ = volumeRASRange[5];
-    incZ = increments[2];
+    minZ = min( volumeRASRange[4], volumeRASRange[5] );
+    maxZ = max( volumeRASRange[4], volumeRASRange[5] );
+    incZ = fabs(increments[2]);
     break;
   }
 
@@ -361,41 +364,56 @@ ScubaLayer2DMRI::DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   VolumeLocation& loc =
     (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS );
   
+  ProgressDisplayManager& progMgr = ProgressDisplayManager::GetManager();
+  list<string> lButtons;
+  lButtons.push_back( "Stop" );
+  progMgr.NewTask( "Building MIP", 
+		   "Building the maximum intensity projection",
+		   true, lButtons );
+
   // For each of the z values in our range...
-  for( float z = minZ; z < maxZ; z += incZ ) {
+  for( float z = minZ; z <= maxZ; z += incZ ) {
     
-    // Find the increments.
+    progMgr.UpdateTask( "Building the maximum intensity projection",
+			((z - minZ) / (maxZ - minZ)) * 100.0 );
+    int nButton = progMgr.CheckTaskForButton();
+    if( nButton == 0 ) {
+      break;
+    }
+
+    // Calculate the vector adjustment for the point for this
+    // iteration by scaling our plane normal.
+    Point3<float> adjust;
+    iViewState.GetPlaneNormal( adjust.xyz() );
+    adjust = adjust * z;
+
+    // Find the increments. To do this, take two window coords on this
+    // row, one at col 0 and one at col 1. Then we convert both to RAS
+    // and find the difference. We use that difference to increment
+    // RAS coords across this row for all columns.
     for( int nRow = 0; nRow < iHeight; nRow++ ) {
       
-      // Adjust our inplane coordinate by the z in the current
-      // iteration.
       window[0] = 0; window[1] = nRow;
       iTranslator.TranslateWindowToRAS( window, mRowStartRAS[nRow] );
-      switch ( iViewState.GetInPlane() ) {
-      case ViewState::X:
-	mRowStartRAS[nRow][0] += z;
-	break;
-      case ViewState::Y:
-	mRowStartRAS[nRow][1] += z;
-	break;
-      case ViewState::Z:
-	mRowStartRAS[nRow][2] += z;
-	break;
-      }
-      
+
+      // Adjust the coord by the vector we calced earlier.
+      Point3<float> coord;
+      coord.Set( mRowStartRAS[nRow] );
+      coord = coord + Point3<float>(adjust);
+      mRowStartRAS[nRow][0] = coord[0];
+      mRowStartRAS[nRow][1] = coord[1];
+      mRowStartRAS[nRow][2] = coord[2];
+
       window2[0] = 1; window2[1] = nRow;
       iTranslator.TranslateWindowToRAS( window2, RAS2 );
-      switch ( iViewState.GetInPlane() ) {
-      case ViewState::X:
-	RAS2[0] += z;
-	break;
-      case ViewState::Y:
-	RAS2[1] += z;
-	break;
-      case ViewState::Z:
-	RAS2[2] += z;
-	break;
-      }
+
+      // Adjust the coord by the vector we calced earlier.
+      coord.Set( RAS2 );
+      coord = coord + Point3<float>(adjust);
+      RAS2[0] = coord[0];
+      RAS2[1] = coord[1];
+      RAS2[2] = coord[2];
+
       mColIncrementRAS[nRow][0] = RAS2[0] - mRowStartRAS[nRow][0];
       mColIncrementRAS[nRow][1] = RAS2[1] - mRowStartRAS[nRow][1];
       mColIncrementRAS[nRow][2] = RAS2[2] - mRowStartRAS[nRow][2];
@@ -483,6 +501,8 @@ ScubaLayer2DMRI::DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       }
     }
   }
+
+  progMgr.EndTask();
 
   delete &loc;
 

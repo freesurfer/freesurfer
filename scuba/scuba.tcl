@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.137 2005/09/08 17:25:04 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.138 2005/09/08 19:54:45 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -806,7 +806,7 @@ proc MakeTaskArea { ifwTop } {
 	-variable gaTask(label) -width 50
     tkuMakeActiveLabel $ewProgress \
 	-font [tkuNormalFont] \
-	-variable gaTask(progress) -width 10
+	-variable gaTask(progress) -width 15
     frame $fwButtons
 
     set gaTask(buttonFrame) $fwButtons
@@ -4407,6 +4407,8 @@ proc NewTask { args } {
     set gaTask(percent) 0
 
     set gaTask(going) 1
+
+    flush stdout
 }
 
 proc TaskCallback { isButton } {
@@ -4419,18 +4421,24 @@ proc UpdateTask { args } {
     global gaTask
 
     # set default arguments for all fields
-    set aArgs(-text) $gaDialog(current,text)
-    set aArgs(-percent) $gaDialog(current,percent)
+    set aArgs(-text) ""
+    set aArgs(-percent) ""
 
     # Set arg items.
     array set aArgs $args
 
-    set gaTask(label) $aArgs(-text)
-    set gaTask(percent) $aArgs(-percent)
-
-    if { $gaTask(useMeter) } {
-	set gaDialog(progress) "Progress: $gaTask(percent)"
+    if { [string length $aArgs(-text)] > 0 } {
+	set gaTask(label) $aArgs(-text)
     }
+    if { [string length $aArgs(-percent)] > 0 } {
+	set percent [format "%.0f" $aArgs(-percent)]
+	set gaTask(percent) $percent
+	if { $gaTask(useMeter) } {
+	    set gaTask(progress) "Progress: $percent%"
+	}
+    }
+
+    flush stdout
 }
 
 proc CheckTaskForButtons {} {
@@ -5273,7 +5281,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.137 2005/09/08 17:25:04 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.138 2005/09/08 19:54:45 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
