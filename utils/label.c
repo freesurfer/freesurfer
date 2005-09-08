@@ -1901,3 +1901,101 @@ LABEL *LabelfromASeg(MRI *aseg, int segcode)
   return(lb);
 }
 
+/*---------------------------------------------------------------
+  VertexIsInLabel() - returns a 1 if the given vertex number is
+  in the label. Label must be surface-based.
+  ---------------------------------------------------------------*/
+int VertexIsInLabel(int vtxno, LABEL *label)
+{
+  int n;
+
+  for(n=0; n<label->n_points; n++)
+    if(label->lv[n].vno == vtxno) return(1);
+
+  return(0);
+} 
+/*---------------------------------------------------------------
+  LabelBoundary() - returns a label of all the points in the input
+  label on the edge/boundary. Label must be surface-based.
+  ---------------------------------------------------------------*/
+LABEL *LabelBoundary(LABEL *label, MRIS *surf)
+{
+  int n,nnbrs,nthnbr,vtxno,nbrvtxno;
+  LABEL *boundary;
+
+  boundary = LabelAlloc(label->n_points,"","");
+  boundary->n_points=0;
+
+  for(n=0; n<label->n_points; n++){
+    vtxno = label->lv[n].vno;
+    nnbrs = surf->vertices[vtxno].vnum;
+    for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+      nbrvtxno = surf->vertices[vtxno].v[nthnbr];
+      if(! VertexIsInLabel(nbrvtxno, label)){
+	boundary->lv[boundary->n_points].vno = vtxno;
+	boundary->lv[boundary->n_points].x = label->lv[n].x;
+	boundary->lv[boundary->n_points].y = label->lv[n].y;
+	boundary->lv[boundary->n_points].z = label->lv[n].z;
+	boundary->lv[boundary->n_points].stat = label->lv[n].stat;
+	boundary->n_points ++;
+	break;
+      }
+    }
+  }
+
+  return(boundary);
+}
+
+/*---------------------------------------------------------------
+  LabelFitXYZ() - fits a plane to the xyz of the label. If order=1,
+  then the shape is a plane. If order=2, then it is a quad, 3 for
+  cubic. Returns the regression coefficients.
+  ---------------------------------------------------------------*/
+MATRIX *LabelFitXYZ(LABEL *label, int order)
+{
+  int n;
+  MATRIX *X, *Xt, *XtX, *iXtX, *iXtXXt, *y, *beta;
+
+  if(order > 3){
+    printf("ERROR: LabelFitXYZ(): order = %d, must be <= 3\n",order);
+    return(NULL);
+  }
+
+  X = MatrixAlloc(label->n_points,1+2*order,MATRIX_REAL);
+  y = MatrixAlloc(label->n_points,1,MATRIX_REAL);
+
+  // Load the design matrix
+  for(n=0; n<label->n_points; n++){
+    X->rptr[n+1][1] = 1; // Intercept
+    X->rptr[n+1][2] = label->lv[n].x; // Slope with x
+    X->rptr[n+1][3] = label->lv[n].y; // Slope with y
+    if(order > 1){
+      X->rptr[n+1][4] = pow(label->lv[n].x,2); // Slope with x^2
+      X->rptr[n+1][5] = pow(label->lv[n].y,2); // Slope with y^2
+    }
+    if(order > 2){
+      X->rptr[n+1][6] = pow(label->lv[n].x,3); // Slope with x^3
+      X->rptr[n+1][7] = pow(label->lv[n].y,3); // Slope with y^3
+    }
+    y->rptr[n+1][1] = label->lv[n].z; // Fit z
+  }
+
+  Xt     = MatrixTranspose(X,NULL);
+  XtX    = MatrixMultiply(Xt,X,NULL);
+  iXtX   = MatrixInverse(XtX,NULL);
+  iXtXXt = MatrixMultiply(iXtX,Xt,NULL);
+  beta   = MatrixMultiply(iXtXXt,y,NULL);
+
+  MatrixFree(&X);
+  MatrixFree(&Xt);
+  MatrixFree(&XtX);
+  MatrixFree(&iXtX);
+  MatrixFree(&iXtXXt);
+  MatrixFree(&y);
+
+  //printf("beta -----------------\n");
+  //MatrixPrint(stdout,beta);
+  //printf("----------------------\n");
+
+  return(beta);
+}

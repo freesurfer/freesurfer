@@ -5,6 +5,7 @@
 #ifndef LABEL_H
 #define LABEL_H
 
+#include "matrix.h"
 #include "volume_io.h"
 
 typedef struct
@@ -80,6 +81,10 @@ int   LabelSetStat(LABEL *area, float stat) ;
 LABEL *LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris) ;
 LABEL *LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris) ;
 LABEL *LabelfromASeg(MRI *aseg, int segcode);
+
+MATRIX *LabelFitXYZ(LABEL *label, int order);
+LABEL *LabelBoundary(LABEL *label, MRIS *surf);
+int VertexIsInLabel(int vtxno, LABEL *label);
 
 
 #include "mrishash.h"
