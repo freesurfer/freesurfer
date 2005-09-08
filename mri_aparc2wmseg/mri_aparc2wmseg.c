@@ -34,7 +34,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2wmseg.c,v 1.2 2005/09/08 23:09:06 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2wmseg.c,v 1.3 2005/09/08 23:17:32 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -99,6 +99,7 @@ int main(int argc, char **argv)
   printf("SUBJECTS_DIR %s\n",SUBJECTS_DIR);
   printf("subject %s\n",subject);
   printf("\n");
+  fflush(stdout);
 
   /* ------ Load subject's lh white surface ------ */
   sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
