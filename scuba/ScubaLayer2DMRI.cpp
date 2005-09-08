@@ -363,7 +363,8 @@ ScubaLayer2DMRI::DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   RAS[0] = RAS[1] = RAS[2] = 0;
   VolumeLocation& loc =
     (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS );
-  
+
+  // Start a progress bar for the MIP since it takes a while.
   ProgressDisplayManager& progMgr = ProgressDisplayManager::GetManager();
   list<string> lButtons;
   lButtons.push_back( "Stop" );
@@ -372,14 +373,12 @@ ScubaLayer2DMRI::DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 		   true, lButtons );
 
   // For each of the z values in our range...
-  for( float z = minZ; z <= maxZ; z += incZ ) {
+  bool bCancel = false;
+  for( float z = minZ; z <= maxZ && !bCancel; z += incZ ) {
     
+    // Update the progress bar.
     progMgr.UpdateTask( "Building the maximum intensity projection",
 			((z - minZ) / (maxZ - minZ)) * 100.0 );
-    int nButton = progMgr.CheckTaskForButton();
-    if( nButton == 0 ) {
-      break;
-    }
 
     // Calculate the vector adjustment for the point for this
     // iteration by scaling our plane normal.
@@ -426,6 +425,13 @@ ScubaLayer2DMRI::DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     for( window[1] = windowUpdateBounds[1];
 	 window[1] <= windowUpdateBounds[3]; window[1]++ ) {
       
+      // Check for cancel.
+      int nButton = progMgr.CheckTaskForButton();
+      if( nButton == 0 ) {
+	bCancel = true;
+	break;
+      }
+
       // Grab the RAS beginning for this row and column.
       RAS[0] = mRowStartRAS[window[1]][0] + 
 	windowUpdateBounds[0]*mColIncrementRAS[window[1]][0];
