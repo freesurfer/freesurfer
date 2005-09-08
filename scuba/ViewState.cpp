@@ -120,7 +120,7 @@ ViewState::IsRASVisibleInPlane ( float iRAS[3], float iRange ) {
 }
 
 void
-ViewState::Copy ( ViewState& ioViewState ) {
+ViewState::SetFrom ( ViewState& ioViewState ) {
   
   SetCenterRAS( ioViewState.GetCenterRAS() );
   SetZoomLevel( ioViewState.GetZoomLevel() );
@@ -128,6 +128,12 @@ ViewState::Copy ( ViewState& ioViewState ) {
   SetInPlane( ioViewState.GetInPlane() );
   SetBufferWidth( ioViewState.GetBufferWidth() );
   SetBufferHeight( ioViewState.GetBufferHeight() );
+  int windowUpdateBounds[4];
+  ioViewState.CopyUpdateRect( windowUpdateBounds );
+  mUpdateRect[0] = windowUpdateBounds[0];
+  mUpdateRect[1] = windowUpdateBounds[1];
+  mUpdateRect[2] = windowUpdateBounds[2];
+  mUpdateRect[3] = windowUpdateBounds[3];
 }
 
 bool 

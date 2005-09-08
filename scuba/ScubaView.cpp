@@ -2860,15 +2860,15 @@ ScubaView::BuildFrameBuffer () {
   map<int,int>::iterator tLevelLayerID;
   for( tLevelLayerID = mLevelLayerIDMap.begin(); 
        tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
-
+    
     int nLevel = (*tLevelLayerID).first;
     if( !mLevelVisibilityMap[nLevel] ) 
       continue;
-
+    
     int layerID = (*tLevelLayerID).second;
     try { 
       Layer& layer = Layer::FindByID( layerID );
-
+      
       // tell it to draw into our buffer with our view state information.
       layer.DrawIntoBuffer( mBuffer, mWidth, mHeight, mViewState, *this );
     }

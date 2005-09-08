@@ -103,7 +103,7 @@ class Layer : public DebugReporter,
   void SetLabel( std::string isLabel );
   std::string GetLabel();
 
-  void SetOpacity( float iOpacity ) { mOpacity = iOpacity; }
+  virtual void SetOpacity( float iOpacity ) { mOpacity = iOpacity; }
   float GetOpacity() { return mOpacity; }
 
   void SetVisible( bool ibVisible ) { mbVisible = ibVisible; }

@@ -81,7 +81,7 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     mCachedDrawList.clear();
 
     // Save info about the current view state.
-    mCachedViewState.Copy( iViewState );
+    mCachedViewState.SetFrom( iViewState );
 
     int cIntersectionsInFace = 0;
     int intersectionPair[2][2];

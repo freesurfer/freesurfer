@@ -36,6 +36,7 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   mRowStartRAS = mColIncrementRAS = NULL;
   mLastMouseUpRAS.Set( 0, 0, 0 );
   mbDrawEditingLine = false;
+  mbDrawMIP = false;
 
   // Try setting our initial color LUT to the default LUT with
   // id 0. If it's not there, create it.
@@ -92,6 +93,12 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   commandMgr.AddCommand( *this, "Get2DMRILayerDrawZeroClear", 1, "layerID",
 			 "Returns the value of the property for drawing"
 			 "values of zero clear." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerDrawMIP", 2, 
+			 "layerID drawMIP", "Sets property for drawing"
+			 "the maximum intensity projection." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerDrawMIP", 1, "layerID",
+			 "Returns the value of the property for drawing"
+			 "the maximum intensity projection." );
   commandMgr.AddCommand( *this, "Set2DMRILayerMinVisibleValue", 2, 
 			 "layerID value", "Sets the minimum value to be drawn."
 			 "values of zero clear." );
@@ -126,6 +133,9 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
 			 "for settings. Floods are of the following types: "
 			 "voxelEditingNew, voxelEditingErase, "
 			 "roiEditingSelect, roiEditingUnselect." );
+
+  // Init our color opacity cache for our initial value.
+  InitColorOpacityCache();
 }
 
 ScubaLayer2DMRI::~ScubaLayer2DMRI () {
@@ -168,12 +178,9 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     return;
   }
 
-  // Precalc our color * opacity.
-  GLubyte aColorTimesOpacity[256];
-  GLubyte aColorTimesOneMinusOpacity[256];
-  for( int i = 0; i < 256; i++ ) {
-    aColorTimesOpacity[i] = (GLubyte)( (float)i * mOpacity );
-    aColorTimesOneMinusOpacity[i] = (GLubyte)( (float)i * (1.0 - mOpacity) );
+  if( mbDrawMIP ) {
+    DrawMIPIntoBuffer( iBuffer, iWidth, iHeight, iViewState, iTranslator );
+    return;
   }
 
   GLubyte* dest = iBuffer;
@@ -184,31 +191,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 
   // Init our buffers if necessary.
   if( iWidth != mBufferIncSize[0] || iHeight != mBufferIncSize[1] ) {
-
-    // Delete existing buffer if necessary.
-    if( mRowStartRAS != NULL ) {
-      for( int nRow = 0; nRow < mBufferIncSize[1]; nRow++ )
-	free( mRowStartRAS[nRow] );
-      free( mRowStartRAS );
-    }
-
-    if( mColIncrementRAS != NULL ) {
-      for( int nRow = 0; nRow < mBufferIncSize[1]; nRow++ )
-	free( mColIncrementRAS[nRow] );
-      free( mColIncrementRAS );
-    }
-
-    // Init new buffer arrays.
-    mRowStartRAS =     (float**) calloc(iHeight, sizeof(float*));
-    mColIncrementRAS = (float**) calloc(iHeight, sizeof(float*));
-    for( int nRow = 0; nRow < iHeight; nRow++ ) {
-      mRowStartRAS[nRow] =     (float*) calloc( 3, sizeof(float) );
-      mColIncrementRAS[nRow] = (float*) calloc( 3, sizeof(float) );
-    }
-
-    // Save the size of our new buffer.
-    mBufferIncSize[0] = iWidth;
-    mBufferIncSize[1] = iHeight;
+    InitBufferCoordCache( iWidth, iHeight );
   }
 
   // Find the increments.
@@ -270,12 +253,12 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	case LUT:       GetColorLUTColorForValue( value, dest, color ); break;
 	}
 	
-	dest[0] = aColorTimesOneMinusOpacity[dest[0]] + 
-	  aColorTimesOpacity[color[0]];
-	dest[1] = aColorTimesOneMinusOpacity[dest[1]] + 
-	  aColorTimesOpacity[color[1]];
-	dest[2] = aColorTimesOneMinusOpacity[dest[2]] + 
-	  aColorTimesOpacity[color[2]];
+	dest[0] = mColorTimesOneMinusOpacity[dest[0]] + 
+	  mColorTimesOpacity[color[0]];
+	dest[1] = mColorTimesOneMinusOpacity[dest[1]] + 
+	  mColorTimesOpacity[color[1]];
+	dest[2] = mColorTimesOneMinusOpacity[dest[2]] + 
+	  mColorTimesOpacity[color[2]];
 	
 	if( mVolume->IsSelected( loc, selectColor ) ) {
 	  // Write the RGB value to the buffer. Write a 255 in the
@@ -312,6 +295,260 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 			windowA.xy(), windowB.xy(), color, 2, 0.5 );
   }
 
+}
+
+void 
+ScubaLayer2DMRI::DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+				     ViewState& iViewState,
+				    ScubaWindowToRASTranslator& iTranslator ) {
+
+  // This functino is similar to DrawIntoBuffer except we iterate over
+  // a series of coordinates, drawing all 'planes' of the volume, and
+  // only draw pixel values that are lighter than what is already
+  // there.
+
+  if( NULL == mVolume ) {
+    DebugOutput( << "No volume to draw" );
+    return;
+  }
+
+  if( !mbVisible ) {
+    return;
+  }
+
+  GLubyte* dest = iBuffer;
+  int window[2], window2[2];
+  float RAS[3], RAS2[3];
+  float value = 0;
+  int color[3];
+
+  // Init our buffers if necessary.
+  if( iWidth != mBufferIncSize[0] || iHeight != mBufferIncSize[1] ) {
+    InitBufferCoordCache( iWidth, iHeight );
+  }
+
+  // We need to iterate over all the planes in our current view
+  // state. To do this, we switch on the current in plane and iterate
+  // over the bounds of the volume in that plane, moving by our in
+  // plane increment. First select the in plane and get the proper
+  // bounds.
+  float volumeRASRange[6];
+  mVolume->GetRASRange( volumeRASRange );
+  float increments[3];
+  GetPreferredThroughPlaneIncrements( increments );
+  float minZ = 0, maxZ = 0, incZ = 0;
+  switch ( iViewState.GetInPlane() ) {
+  case ViewState::X:
+    minZ = volumeRASRange[0];
+    maxZ = volumeRASRange[1];
+    incZ = increments[0];
+    break;
+  case ViewState::Y:
+    minZ = volumeRASRange[2];
+    maxZ = volumeRASRange[3];
+    incZ = increments[1];
+    break;
+  case ViewState::Z:
+    minZ = volumeRASRange[4];
+    maxZ = volumeRASRange[5];
+    incZ = increments[2];
+    break;
+  }
+
+  // Create a dummy location, we'll change it soon. Note to self:
+  // learn how to use C++ references properly.
+  RAS[0] = RAS[1] = RAS[2] = 0;
+  VolumeLocation& loc =
+    (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS );
+  
+  // For each of the z values in our range...
+  for( float z = minZ; z < maxZ; z += incZ ) {
+    
+    // Find the increments.
+    for( int nRow = 0; nRow < iHeight; nRow++ ) {
+      
+      // Adjust our inplane coordinate by the z in the current
+      // iteration.
+      window[0] = 0; window[1] = nRow;
+      iTranslator.TranslateWindowToRAS( window, mRowStartRAS[nRow] );
+      switch ( iViewState.GetInPlane() ) {
+      case ViewState::X:
+	mRowStartRAS[nRow][0] += z;
+	break;
+      case ViewState::Y:
+	mRowStartRAS[nRow][1] += z;
+	break;
+      case ViewState::Z:
+	mRowStartRAS[nRow][2] += z;
+	break;
+      }
+      
+      window2[0] = 1; window2[1] = nRow;
+      iTranslator.TranslateWindowToRAS( window2, RAS2 );
+      switch ( iViewState.GetInPlane() ) {
+      case ViewState::X:
+	RAS2[0] += z;
+	break;
+      case ViewState::Y:
+	RAS2[1] += z;
+	break;
+      case ViewState::Z:
+	RAS2[2] += z;
+	break;
+      }
+      mColIncrementRAS[nRow][0] = RAS2[0] - mRowStartRAS[nRow][0];
+      mColIncrementRAS[nRow][1] = RAS2[1] - mRowStartRAS[nRow][1];
+      mColIncrementRAS[nRow][2] = RAS2[2] - mRowStartRAS[nRow][2];
+    }
+    
+    // Get the update bounds. We'll only iterate over those.
+    int windowUpdateBounds[4];
+    iViewState.CopyUpdateRect( windowUpdateBounds );
+    
+    for( window[1] = windowUpdateBounds[1];
+	 window[1] <= windowUpdateBounds[3]; window[1]++ ) {
+      
+      // Grab the RAS beginning for this row and column.
+      RAS[0] = mRowStartRAS[window[1]][0] + 
+	windowUpdateBounds[0]*mColIncrementRAS[window[1]][0];
+      RAS[1] = mRowStartRAS[window[1]][1] + 
+	windowUpdateBounds[0]*mColIncrementRAS[window[1]][1];
+      RAS[2] = mRowStartRAS[window[1]][2] + 
+	windowUpdateBounds[0]*mColIncrementRAS[window[1]][2];
+      
+      // Find this row start.
+      dest = iBuffer +
+	(((iWidth * window[1]) + windowUpdateBounds[0]) * mBytesPerPixel);
+      
+      for( window[0] = windowUpdateBounds[0]; 
+	   window[0] <= windowUpdateBounds[2]; window[0]++ ) {
+	
+	// Set the location from this RAS.
+	loc.SetFromRAS( RAS );
+	
+	int selectColor[3];
+	if( mVolume->IsInBounds( loc ) ) {
+	  
+	  switch( mSampleMethod ) {
+	  case nearest:  value = mVolume->GetMRINearestValue( loc );   break;
+	  case trilinear:value = mVolume->GetMRITrilinearValue( loc ); break;
+	  case sinc:     value = mVolume->GetMRISincValue( loc );      break;
+	  case magnitude:value = mVolume->GetMRIMagnitudeValue( loc ); break;
+	  }
+	  
+	  switch( mColorMapMethod ) { 
+	  case grayscale: 
+	    GetGrayscaleColorForValue( value, dest, color );break;
+	  case heatScale:
+	    GetHeatscaleColorForValue( value, dest, color );break;
+	  case LUT:
+	    GetColorLUTColorForValue( value, dest, color ); break;
+	  }
+
+	  int newColor = mColorTimesOneMinusOpacity[dest[0]] + 
+	    mColorTimesOpacity[color[0]];
+	  if( newColor > dest[0] ) {
+	    dest[0] = newColor;
+	  }
+	  newColor = mColorTimesOneMinusOpacity[dest[1]] + 
+	    mColorTimesOpacity[color[1]];
+	  if( newColor > dest[1] ) {
+	    dest[1] = newColor;
+	  }
+	  newColor = mColorTimesOneMinusOpacity[dest[2]] + 
+	    mColorTimesOpacity[color[2]];
+	  if( newColor > dest[2] ) {
+	    dest[2] = newColor;
+	  }
+
+	  if( mVolume->IsSelected( loc, selectColor ) ) {
+	    // Write the RGB value to the buffer.
+	    dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mROIOpacity)) +
+				 ((float)selectColor[0] * mROIOpacity));
+	    dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mROIOpacity)) +
+				 ((float)selectColor[1] * mROIOpacity));
+	    dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mROIOpacity)) +
+				 ((float)selectColor[2] * mROIOpacity));
+	  }
+
+	}
+	
+	// Increment the dest buffer pointer.
+	dest += mBytesPerPixel;
+	
+	// Increment the RAS point.
+	RAS[0] += mColIncrementRAS[window[1]][0];
+	RAS[1] += mColIncrementRAS[window[1]][1];
+	RAS[2] += mColIncrementRAS[window[1]][2];
+      }
+    }
+  }
+
+  delete &loc;
+
+
+  if( mbDrawEditingLine ) {
+
+    Point2<int> windowA, windowB;
+    int color[3] = { 255, 0, 255 };
+    iTranslator.TranslateRASToWindow( mLastMouseUpRAS.xyz(), windowA.xy() );
+    iTranslator.TranslateRASToWindow( mCurrentMouseRAS.xyz(), windowB.xy() );
+    DrawLineIntoBuffer( iBuffer, iWidth, iHeight,
+			windowA.xy(), windowB.xy(), color, 2, 0.5 );
+  }
+
+}
+
+void
+ScubaLayer2DMRI::InitBufferCoordCache ( int iWidth, int iHeight ) {
+  
+  // Delete existing buffer if necessary.
+  if( mRowStartRAS != NULL ) {
+    for( int nRow = 0; nRow < mBufferIncSize[1]; nRow++ )
+      free( mRowStartRAS[nRow] );
+    free( mRowStartRAS );
+  }
+  
+  if( mColIncrementRAS != NULL ) {
+    for( int nRow = 0; nRow < mBufferIncSize[1]; nRow++ )
+      free( mColIncrementRAS[nRow] );
+    free( mColIncrementRAS );
+  }
+  
+  // Init new buffer arrays.
+  mRowStartRAS =     (float**) calloc(iHeight, sizeof(float*));
+  mColIncrementRAS = (float**) calloc(iHeight, sizeof(float*));
+  for( int nRow = 0; nRow < iHeight; nRow++ ) {
+    mRowStartRAS[nRow] =     (float*) calloc( 3, sizeof(float) );
+    mColIncrementRAS[nRow] = (float*) calloc( 3, sizeof(float) );
+  }
+  
+  // Save the size of our new buffer.
+  mBufferIncSize[0] = iWidth;
+  mBufferIncSize[1] = iHeight;
+  
+}
+
+
+void
+ScubaLayer2DMRI::SetOpacity ( float iOpacity ) {
+
+  // Call superclass first.
+  Layer::SetOpacity( iOpacity );
+
+  InitColorOpacityCache();
+}
+
+void
+ScubaLayer2DMRI::InitColorOpacityCache () {
+
+  // We calculate values from 0 to 255 for drawing into the
+  // buffer. Here is our cache of the values affected by
+  // opacity. We'll use them in the DrawIntoBuffer functions.
+  for( int i = 0; i < 256; i++ ) {
+    mColorTimesOpacity[i] = (GLubyte)( (float)i * mOpacity );
+    mColorTimesOneMinusOpacity[i] = (GLubyte)( (float)i * (1.0 - mOpacity) );
+  }
 }
 
 void
@@ -810,6 +1047,47 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
       
       stringstream ssReturnValues;
       ssReturnValues << (int)mbClearZero;
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
+    }
+  }
+
+  // Set2DMRIDrawMIP <layerID> <drawMIP>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerDrawMIP" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      if( 0 == strcmp( iasArgv[2], "true" ) || 
+	  0 == strcmp( iasArgv[2], "1" )) {
+	SetDrawMIP( true );
+      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
+		 0 == strcmp( iasArgv[2], "0" ) ) {
+	SetDrawMIP( false );
+      } else {
+	sResult = "bad drawMIP \"" + string(iasArgv[2]) +
+	  "\", should be true, 1, false, or 0";
+	return error;	
+      }
+    }
+  }
+
+  // Get2DMRIDrawMIP <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerDrawMIP" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      stringstream ssReturnValues;
+      ssReturnValues << (int)GetDrawMIP();
       sReturnValues = ssReturnValues.str();
       sReturnFormat = "i";
     }

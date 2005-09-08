@@ -27,13 +27,32 @@ class ScubaLayer2DMRI : public Layer {
 				ViewState& iViewState,
 				ScubaWindowToRASTranslator& iTranslator );
 
+  // Draws the MIP into the buffer.
+  virtual void DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+				   ViewState& iViewState,
+				   ScubaWindowToRASTranslator& iTranslator );
+
+  // These take a volume value and a base color and outputs a final
+  // color. The base is used for blending or for translucency if there
+  // is no color for the value.
   void GetGrayscaleColorForValue ( float iValue, 
 				   GLubyte* const iBase, int* oColor );
   void GetHeatscaleColorForValue ( float iValue, 
 				   GLubyte* const iBase, int* oColor );
   void GetColorLUTColorForValue  ( float iValue, 
 				   GLubyte* const iBase, int* oColor );
-  
+
+  // We save a cache of RAS coords for the start of each row, and
+  // increments as we progress across the row. This cache is the side
+  // of the buffer we get. This simply initializes the buffer
+  // allocation. The values are filled in in the draw functions
+  // depending on view state we get.
+  void InitBufferCoordCache ( int iWidth, int iHeight );
+
+  // We override this so we can set our cache of color values.
+  virtual void SetOpacity ( float iOpacity );
+  void InitColorOpacityCache ();
+
   // Asks the layer to describe a point of data by making InfoAtRAS
   // structs.
   virtual void GetInfoAtRAS ( float iRAS[3],
@@ -104,6 +123,9 @@ class ScubaLayer2DMRI : public Layer {
 
   float GetROIOpacity () { return mROIOpacity; }
   void SetROIOpacity ( float iOpacity ) { mROIOpacity = iOpacity; }
+
+  void SetDrawMIP ( bool ibDrawMIP ) { mbDrawMIP = ibDrawMIP; }
+  bool GetDrawMIP () { return mbDrawMIP; }
 
   // Stretch a path from its beginning to the end RAS point.
   void StretchPathStraight  ( Path<float>& iPath,
@@ -182,6 +204,9 @@ class ScubaLayer2DMRI : public Layer {
   float mROIOpacity;
   bool mbEditableROI;
 
+  // Whether we are drawing MIP.
+  bool mbDrawMIP;
+
   // For editing lines.
   Point3<float> mLastMouseUpRAS, mCurrentMouseRAS;
   bool mbDrawEditingLine;
@@ -196,6 +221,10 @@ class ScubaLayer2DMRI : public Layer {
   int mBufferIncSize[2];
   float** mRowStartRAS;
   float** mColIncrementRAS;
+
+  // Cache of color values for an opacity.
+  GLubyte mColorTimesOpacity[256];
+  GLubyte mColorTimesOneMinusOpacity[256];
 };
 
 // Flooders ============================================================

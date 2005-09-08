@@ -38,7 +38,7 @@ class ViewState {
   // For saving a view state and comparing it later, e.g. for seeing
   // if a cache associated with a particular view is still valid for
   // the current view.
-  void Copy ( ViewState& ioViewState );
+  void SetFrom ( ViewState& ioViewState );
   bool IsSameAs ( ViewState& iViewState );
 
   // Update rectangle management. You can add indiviudal rects to the

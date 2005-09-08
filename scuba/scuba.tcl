@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.136 2005/08/23 18:10:12 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.137 2005/09/08 17:25:04 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2062,6 +2062,13 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 		-variable gaLayer(current,clearZero) 
 		-command {Set2DMRILayerDrawZeroClear $gaLayer(current,id) $gaLayer(current,clearZero); RedrawFrame [GetMainFrameID]} }
 	}
+    tkuMakeCheckboxes $fwProps2DMRI.cbwMIP \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Draw maximum intensity projection" 
+		-variable gaLayer(current,MIP) 
+		-command {Set2DMRILayerDrawMIP $gaLayer(current,id) $gaLayer(current,MIP); RedrawFrame [GetMainFrameID]} }
+	}
     tkuMakeSliders $fwProps2DMRI.swBC -sliders {
 	{-label "Brightness" -variable gaLayer(current,brightness) 
 	    -min 1 -max 0 -resolution 0.01 -entry 1
@@ -2098,11 +2105,12 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwProps2DMRI.tbwColorMapMethod -column 0 -row 0 -sticky ew
     grid $fwProps2DMRI.mwLUT             -column 0 -row 1 -sticky ew
     grid $fwProps2DMRI.cbwClearZero      -column 0 -row 2 -sticky ew
-    grid $fwProps2DMRI.tbwSampleMethod   -column 0 -row 3 -sticky ew
-    grid $fwProps2DMRI.swBC              -column 0 -row 4 -sticky ew
-    grid $fwProps2DMRI.swMinMax          -column 0 -row 5 -sticky ew
-    grid $fwProps2DMRI.cbwEditableROI    -column 0 -row 6 -sticky ew
-    grid $fwProps2DMRI.swROIOpacity      -column 0 -row 7 -sticky ew
+    grid $fwProps2DMRI.cbwMIP            -column 0 -row 3 -sticky ew
+    grid $fwProps2DMRI.tbwSampleMethod   -column 0 -row 4 -sticky ew
+    grid $fwProps2DMRI.swBC              -column 0 -row 5 -sticky ew
+    grid $fwProps2DMRI.swMinMax          -column 0 -row 6 -sticky ew
+    grid $fwProps2DMRI.cbwEditableROI    -column 0 -row 7 -sticky ew
+    grid $fwProps2DMRI.swROIOpacity      -column 0 -row 8 -sticky ew
     set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
 
     # hack, necessary to init color pickers first time
@@ -2913,6 +2921,8 @@ proc SelectLayerInLayerProperties { iLayerID } {
 
 	    set gaLayer(current,clearZero) \
 		[Get2DMRILayerDrawZeroClear $iLayerID]
+	    set gaLayer(current,MIP) \
+		[Get2DMRILayerDrawMIP $iLayerID]
 	    set gaLayer(current,sampleMethod) \
 		[Get2DMRILayerSampleMethod $iLayerID]
 	    set gaLayer(current,brightness) [Get2DMRILayerBrightness $iLayerID]
@@ -5263,7 +5273,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.136 2005/08/23 18:10:12 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.137 2005/09/08 17:25:04 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5303,6 +5313,7 @@ proc SaveSceneScript { ifnScene } {
 	    2DMRI {
 		set colorMapMethod [Get2DMRILayerColorMapMethod $layerID]
 		set clearZero [Get2DMRILayerDrawZeroClear $layerID]
+		set MIP [Get2DMRILayerDrawMIP $layerID]
 		set sampleMethod [Get2DMRILayerSampleMethod $layerID]
 		set brightness [Get2DMRILayerBrightness $layerID]
 		set contrast [Get2DMRILayerContrast $layerID]
@@ -5313,6 +5324,7 @@ proc SaveSceneScript { ifnScene } {
 		set roiOpacity [Get2DMRILayerROIOpacity $layerID]
 		puts $f "Set2DMRILayerColorMapMethod $layerID $colorMapMethod"
 		puts $f "Set2DMRILayerDrawZeroClear $layerID $clearZero"
+		puts $f "Set2DMRILayerDrawMIP $layerID $MIP"
 		puts $f "Set2DMRILayerSampleMethod $layerID $sampleMethod"
 		puts $f "Set2DMRILayerBrightness $layerID $brightness"
 		puts $f "Set2DMRILayerContrast $layerID $contrast"
