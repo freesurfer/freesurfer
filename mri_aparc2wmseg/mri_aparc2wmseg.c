@@ -34,7 +34,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2wmseg.c,v 1.1 2005/09/08 21:58:22 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2wmseg.c,v 1.2 2005/09/08 23:09:06 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -83,28 +83,38 @@ int main(int argc, char **argv)
   check_options();
   dump_options(stdout);
 
+  printf("\n");
+  printf("%s\n",vcid);
+  printf("cwd %s\n",cwd);
+  printf("cmdline %s\n",cmdline);
+  printf("sysname  %s\n",uts.sysname);
+  printf("hostname %s\n",uts.nodename);
+  printf("machine  %s\n",uts.machine);
+
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if(SUBJECTS_DIR==NULL){
     printf("ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
   }
+  printf("SUBJECTS_DIR %s\n",SUBJECTS_DIR);
+  printf("subject %s\n",subject);
+  printf("\n");
 
   /* ------ Load subject's lh white surface ------ */
   sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
-  printf("\nReading lh white surface \n %s\n",tmpstr);
+  printf("Reading lh white surface \n %s\n",tmpstr);
   lhwhite = MRISread(tmpstr);
   if(lhwhite == NULL){
     fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
     exit(1);
   }
 
-  printf("\n");
   printf("Building hash of lh white\n");
   lhwhite_hash = MHTfillVertexTableRes(lhwhite, NULL,CURRENT_VERTICES,16);
 
   /* ------ Load lh annotation ------ */
   sprintf(annotfile,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
-  printf("\nLoading lh annotations from %s\n",annotfile);
+  printf("Loading lh annotations from %s\n",annotfile);
   err = MRISreadAnnotation(lhwhite, annotfile);
   if(err){
     printf("ERROR: MRISreadAnnotation() failed %s\n",annotfile);
@@ -113,27 +123,26 @@ int main(int argc, char **argv)
 
   /* ------ Load subject's rh surface ------ */
   sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
-  printf("\nReading rh white surface \n %s\n",tmpstr);
+  printf("Reading rh white surface \n %s\n",tmpstr);
   rhwhite = MRISread(tmpstr);
   if(rhwhite == NULL){
     fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
     exit(1);
   }
-  printf("\n");
-  printf("Building hash of rh white\n");
+  if(debug) printf("Building hash of rh white\n");
   rhwhite_hash = MHTfillVertexTableRes(rhwhite, NULL,CURRENT_VERTICES,16);
 
   /* ------ Load rh annotation ------ */
   sprintf(annotfile,"%s/%s/label/rh.aparc.annot",SUBJECTS_DIR,subject);
-  printf("\nLoading rh annotations from %s\n",annotfile);
+  printf("Loading rh annotations from %s\n",annotfile);
   err = MRISreadAnnotation(rhwhite, annotfile);
   if(err){
     printf("ERROR: MRISreadAnnotation() failed %s\n",annotfile);
     exit(1);
   }
 
-  if(lhwhite->ct) printf("Have color table for annotation\n");
-  print_annotation_table(stdout);
+  if(debug && lhwhite->ct) printf("Have color table for annotation\n");
+  if(debug) print_annotation_table(stdout);
 
   /* ------ Load ASeg ------ */
   sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
@@ -150,7 +159,7 @@ int main(int argc, char **argv)
     }
   }
 
-  printf("\nLoading aseg from %s\n",tmpstr);
+  printf("Loading aseg from %s\n",tmpstr);
   ASeg = MRIread(tmpstr);
   if(ASeg == NULL){
     printf("ERROR: loading aseg %s\n",tmpstr);
@@ -162,24 +171,32 @@ int main(int argc, char **argv)
   WMSeg = MRIclone(ASeg,NULL);
 
   Vox2RAS = MRIxfmCRS2XYZtkreg(ASeg);
-  printf("ASeg Vox2RAS: -----------\n");  
-  MatrixPrint(stdout,Vox2RAS);
-  printf("-------------------------\n");  
+  if(debug){
+    printf("ASeg Vox2RAS: -----------\n");  
+    MatrixPrint(stdout,Vox2RAS);
+    printf("-------------------------\n");  
+  }
   CRS = MatrixAlloc(4,1,MATRIX_REAL);
   CRS->rptr[4][1] = 1;
   RAS = MatrixAlloc(4,1,MATRIX_REAL);
   RAS->rptr[4][1] = 1;
 
   // Go through each voxel in the aseg
+  printf("\n");
+  printf("Labeling WM\n");  
   for(c=0; c < ASeg->width; c++){
-    printf("%3d ",c);
-    if(c%20 ==19) printf("\n");
+    if(debug) printf("%3d ",c);
+    if(debug && c%20 ==19) printf("\n");
     for(r=0; r < ASeg->height; r++){
       for(s=0; s < ASeg->depth; s++){
 
-	// If it's not labeled as white matter in the aseg, skip
+	// If it's not labeled as white matter in the aseg, set
+	// seg value to that from the aseg and skip the rest
 	asegid = MRIgetVoxVal(ASeg,c,r,s,0);
-	if(asegid != 2 && asegid != 41) continue;
+	if(asegid != 2 && asegid != 41){
+	  MRIsetVoxVal(WMSeg,c,r,s,0,asegid);
+	  continue;
+	}
 
 	// Convert the CRS to RAS
 	CRS->rptr[1][1] = c;
@@ -229,10 +246,10 @@ int main(int argc, char **argv)
     }
   }
 
-  printf("Writing output aseg to %s\n",WMSegFile);
+  printf("\nWriting output wmseg to %s\n",WMSegFile);
   MRIwrite(WMSeg,WMSegFile);
 
-
+  printf("mri_aparc2wmseg done\n");
   return(0);
 }
 /*-----------------------------------------------------------------*/
@@ -306,6 +323,7 @@ static void print_usage(void)
 static void print_help(void)
 {
   print_usage() ;
+  printf("WARNING: this program is not yet tested!\n");
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -328,6 +346,10 @@ static void check_options(void)
 {
   if(subject == NULL){
     printf("ERROR: must specify a subject\n");
+    exit(1);
+  }
+  if(WMSegFile == NULL){
+    printf("ERROR: must specify a wm seg file\n");
     exit(1);
   }
   return;
