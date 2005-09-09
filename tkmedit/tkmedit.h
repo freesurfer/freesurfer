@@ -226,6 +226,7 @@ typedef enum {
   tkm_tFileName_ControlPoints,
   tkm_tFileName_Edit,
   tkm_tFileName_TclScript,
+  tkm_tFileName_Touch,
   tkm_knNumFileNameTypes
 } tkm_tFileName;
 
