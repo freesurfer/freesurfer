@@ -4,13 +4,13 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-std-env
 #
-# $Id: nmr-std-env,v 1.9 2005/05/03 18:03:09 kteich Exp $
+# $Id: nmr-std-env,v 1.10 2005/09/09 21:28:53 nicks Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
 #############################################################################
 
-set NSE_VERSION = '$Id: nmr-std-env,v 1.9 2005/05/03 18:03:09 kteich Exp $';
+set NSE_VERSION = '$Id: nmr-std-env,v 1.10 2005/09/09 21:28:53 nicks Exp $';
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
   echo $NSE_VERSION
 endif
@@ -21,13 +21,11 @@ if($?NMR_STD_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-std-env,v 1.9 2005/05/03 18:03:09 kteich Exp $';
-
-
+set VERSION = '$Id: nmr-std-env,v 1.10 2005/09/09 21:28:53 nicks Exp $';
 
 setenv FREESURFER_HOME /usr/local/freesurfer/beta
 if(! $?SUBJECTS_DIR) then
-	setenv SUBJECTS_DIR    /space/sake/3/users/inverse/subjects
+  setenv SUBJECTS_DIR    /space/sake/3/users/inverse/subjects
 endif
 unsetenv NO_FSFAST
 setenv FSFAST_HOME     $FREESURFER_HOME/fsfast
@@ -35,6 +33,7 @@ unsetenv NO_MINC
 
 setenv MINC_BIN_DIR /usr/pubsw/packages/mni/current/bin
 setenv MINC_LIB_DIR /usr/pubsw/packages/mni/current/lib
+setenv QTDIR        /usr/pubsw/packages/qt/3.3.4
 
 # Set up FSL.
 setenv FSLDIR  /usr/pubsw/packages/fsl/current
@@ -49,8 +48,9 @@ if(! -e $FS_ENV_FILE) then
   echo "ERROR: cannot find $FS_ENV_FILE"
   exit 1;
 endif
-
 source $FS_ENV_FILE
+
+setenv FSLOUTPUTTYPE ANALYZE
 
 # Source the FreeDiffusion Environment File
 set FD_ENV_FILE =  $FREESURFER_HOME/SetUpFreeDiffusion.csh
@@ -58,18 +58,19 @@ if(! -e $FD_ENV_FILE) then
   echo "ERROR: cannot find $FD_ENV_FILE"
   exit 1;
 endif
-
 source $FD_ENV_FILE
 
+### Create a prompt to indicate the standard environment ###
 set this_shell    = `basename $SHELL`;
 set this_hostname = `hostname` 
 set this_host     = `basename $this_hostname .nmr.mgh.harvard.edu`
-
-### Create a prompt to indicate the standard environment ###
 if(! $?FSENV_KEEP_PROMPT ) then
 if($this_shell == csh) then
   unalias cd
-  alias cd  'set old=$cwd; chdir \!*; set tmpcwd = `basename $cwd`; set prompt = "$this_host"":$tmpcwd (nmr-std-env) % "'
+  alias cd  'set old=$cwd; 
+  chdir \!*; 
+  set tmpcwd = `basename $cwd`; 
+  set prompt = "$this_host"":$tmpcwd (nmr-std-env) % "'
   cd $cwd;
 else
   set prompt = "[%m:%c] (nmr-std-env) "
@@ -79,7 +80,6 @@ endif
 ### Dont leave huge cores around ###
 limit coredumpsize 0
 
-
 # Add pubsw and AFNI to the path if it isn't there.
 if ( "${path}" !~ */usr/pubsw/bin* ) then
      set path = ( /usr/pubsw/bin $path )
@@ -88,7 +88,6 @@ endif
 if ( "${path}" !~ */usr/pubsw/packages/AFNI/current/bin* ) then
      set path = ( /usr/pubsw/packages/AFNI/current/bin $path )
 endif
-
 
 if(! $?MRI_UMASK) then
   setenv MRI_UMASK 2
