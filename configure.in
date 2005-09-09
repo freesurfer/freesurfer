@@ -1105,6 +1105,7 @@ mri_extract_label/Makefile \
 mri_fill/Makefile \
 mri_gca_ambiguous/Makefile \
 mri_gdfglm/Makefile \
+mri_glmfit/Makefile \
 mri_head/Makefile \
 mri_hires_register/Makefile \
 mri_histo_eq/Makefile \

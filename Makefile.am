@@ -11,7 +11,7 @@ mri_cnr mri_compute_overlap mri_concat mri_convert mri_convert_mdh mri_copy_valu
 mri_deface mri_hires_register \
 mri_edit_segmentation mri_edit_segmentation_with_surfaces mri_em_register mri_estimate_tissue_parms \
 mri_evaluate_morph mri_extract mri_extract_conditions mri_extract_label \
-mri_fill mri_gca_ambiguous mri_head mri_histo_eq mri_info mri_joint_density \
+mri_fill mri_gca_ambiguous mri_glmfit mri_head mri_histo_eq mri_info mri_joint_density \
 mri_label_histo mri_label_vals mri_label_volume mri_label2label mri_label2vol mri_linear_register \
 mri_make_bem_surfaces mri_make_register mri_make_template mri_mark_temporal_lobe mri_mask mri_ms_fitparms \
 mri_matrix_multiply mri_modify \
