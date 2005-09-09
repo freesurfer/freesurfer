@@ -37,7 +37,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.1 2005/09/09 22:37:15 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.2 2005/09/09 23:12:41 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -47,19 +47,24 @@ int synth = 0;
 int yhatSave=0;
 
 MRI *y, *beta, *rvar, *yhat, *eres, *mritmp;
+MRI *gam, *rstat, *sig;
 
 int debug = 0, checkoptsonly = 0;
 char tmpstr[2000];
 
 MATRIX *X; /* design matrix */
 MATRIX *H=NULL, *Xt=NULL, *XtX=NULL, *iXtX=NULL, *Q=NULL, *R=NULL;
+MATRIX *C;
+int nContrasts=0;
+char *CFile[100];
+char *ContrastName;
 float DOF;
 int err;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int nargs;
+  int nargs,n;
   struct utsname uts;
   char *cmdline, cwd[2000];
 
@@ -111,6 +116,23 @@ int main(int argc, char **argv)
   if(X==NULL){
     printf("ERROR: loading X %s\n",XFile);
     exit(1);
+  }
+
+  //-----------------------------------------------------
+  if(nContrasts > 0){
+    for(n=0; n < nContrasts; n++){
+      C = MatrixReadTxt(CFile[n], NULL);
+      if(C==NULL){
+	printf("ERROR: loading C %s\n",CFile[n]);
+	exit(1);
+      }
+      if(C->cols != X->cols){
+	printf("ERROR: dimension mismatch between X and contrast %s",CFile[n]);
+	printf("       X has %d cols, C has %d cols\n",X->cols,C->cols);
+	exit(1);
+      }
+      MatrixFree(&C);
+    }
   }
 
   //-----------------------------------------------------
@@ -179,6 +201,48 @@ int main(int argc, char **argv)
     printf("Computing signal estimate\n");
     yhat = fMRImatrixMultiply(y, H, NULL);
     MRIwrite(yhat,yhatFile);
+  }
+
+  if(nContrasts == 0){
+    printf("mri_glmfit done\n");
+    return(0);
+  }
+
+  //---------------------------------------------------
+  for(n=0; n < nContrasts; n++){
+    C = MatrixReadTxt(CFile[n], NULL);
+    if(C==NULL){
+      printf("ERROR: loading C %s\n",CFile[n]);
+      exit(1);
+      }
+    ContrastName = fio_basename(CFile[n], ".mat");
+    sprintf(tmpstr,"%s/%s",OutDir,ContrastName);
+    mkdir(tmpstr,(mode_t)-1);
+    
+    printf("%s\n",ContrastName);
+
+    gam = fMRImatrixMultiply(beta,C,NULL);
+    sprintf(tmpstr,"%s/%s/gamma.mgh",OutDir,ContrastName);
+    MRIwrite(gam,tmpstr);
+
+    if(C->rows == 1) rstat = fMRIcomputeT(gam, X, C, rvar, NULL);
+    else             rstat = fMRIcomputeF(gam, X, C, rvar, NULL);
+    sprintf(tmpstr,"%s/%s/stat.mgh",OutDir,ContrastName);
+    MRIwrite(rstat,tmpstr);
+
+    if(C->rows == 1) sig = fMRIsigT(rstat, DOF, NULL);
+    else             sig = fMRIsigF(rstat, DOF, C->rows, NULL);
+    MRIlog10(sig,sig,1);
+    sprintf(tmpstr,"%s/%s/sig.mgh",OutDir,ContrastName);
+    MRIwrite(sig,tmpstr);
+
+    //-- Should do a PMF
+    
+    MatrixFree(&C);
+    MRIfree(&gam);
+    MRIfree(&rstat);
+    MRIfree(&sig);
+
   }
 
   printf("mri_glmfit done\n");
@@ -250,6 +314,12 @@ static int parse_commandline(int argc, char **argv)
       eresFile = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--C")){
+      if(nargc < 1) argnerr(option,1);
+      CFile[nContrasts] = pargv[0];
+      nContrasts++;
+      nargsused = 1;
+    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
@@ -275,6 +345,7 @@ static void print_usage(void)
   printf("   --y input volume \n");
   printf("   --X design matrix file\n");
   printf("   --outdir dir : save outputs to dir\n");
+  printf("   --C contrast1.mat <--C contrast2.mat ...>\n");
   printf("\n");
   printf("   --beta regression coeffient volume\n");
   printf("   --rvar residual variance\n");
