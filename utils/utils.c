@@ -12,9 +12,9 @@
     Description: miscellaneous utility functions
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/09/02 19:08:39 $
-// Revision       : $Revision: 1.45 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/09/09 22:30:07 $
+// Revision       : $Revision: 1.46 $
 
 ------------------------------------------------------------------------*/
 
@@ -1095,4 +1095,13 @@ int getMemoryUsed()
 void printMemoryUsed()
 {
   printf("heap used: %d Kbytes.\n", getMemoryUsed()); 
+}
+
+// String copy will allocation.
+char *strcpyalloc(char *str)
+{
+  char *cpstr;
+  cpstr = (char *) calloc(strlen(str)+1,sizeof(char));
+  strcpy(cpstr,str);
+  return(cpstr);
 }

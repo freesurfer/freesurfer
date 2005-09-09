@@ -70,4 +70,6 @@ int devFinite(float value);
 
 int getMemoryUsed(); // return total virtual memory used by Progname in Kbytes. works only under Linux /proc system
 void printMemoryUsed(); // print function of the above.   
+char *strcpyalloc(char *str);
+
 #endif
