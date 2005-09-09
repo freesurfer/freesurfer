@@ -7,7 +7,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_subject,v 1.1 2005/08/19 21:32:07 greve Exp $'
+set VERSION = '$Id: make_average_subject,v 1.2 2005/09/09 14:37:17 nicks Exp $'
 
 set PrintHelp = 0;
 
@@ -89,39 +89,38 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Creates average subject by averaging surfaces, curvatures, and volume
+Creates average subject by averaging surfaces, curvatures, and volumes
 from a set of subjects. The surface is a 7th order icosahedron
 tesselation.  For surfaces, the XYZ coordinate of a vertex is computed
 as the average talairach coordinate of that vertex in each subject. The 
 talairach coordinate is based on talairach.xfm (unless changed with
 --xform), so the individual talairachs must be accurate for the final 
-coorindate to be meaningful. Note that eventhough talairach coordinates
+coordinate to be meaningful. Note that even though talairach coordinates
 are used for surfaces, all surface-based averaging is done using the
 surface atlas (NOT talairach averaging!).
 
-Calls make_average_surface and make_average_subject. See these programs
+Calls make_average_surface and make_average_volume. See these programs
 for specific help.
 
 The subject list can be specified in one of two ways: 
   (1) on the command-line with --subjects
   (2) through the SUBJECTS environment variable
 
-
-
 EXAMPLES
 
 Example 1:
 
-  make_average_surface --out avgsubject --subjects subj1 subj2 subj3 subj4
+  make_average_subject --out avgsubject --subjects subj1 subj2 subj3 subj4
 
 will create $SUBJECTS_DIR/avgsubject with average surfaces for orig,
 white, pial, inflated for each hemi. It will also create average volumes
-for orig, brain, and T1.
+for orig, brain, and T1.  Notice that the '--out avgsubject' is merely
+overriding the default output name 'average'.
 
 Example 2:
 
   setenv SUBJECTS = (subj1 subj2 subj3 subj4)
-  make_average_surface --out avgsubject 
+  make_average_subject --out avgsubject 
 
 will do the same as Example 1.
 
@@ -136,7 +135,7 @@ volume:
   tkmedit avgsubject orig.mgz lh.white
 
 You should see that the surfaces more-or-less align with the folds.
-Remember this it talairach, so the volume will be blurry.
+Remember this is talairach, so the volume will be blurry.
 
 SEE ALSO
 
@@ -146,6 +145,5 @@ morph_subject
 GETTING HELP
 
 Run recon-all --help for extensive text on the reconstruction process. 
-Or, send email to freesurfer@nmr.mgh.harvard.edu. 
-Also see http://surfer.nmr.mgh.harvard.edu.
-
+Or, send email to freesurfer@nmr.mgh.harvard.edu 
+See also https://surfer.nmr.mgh.harvard.edu
