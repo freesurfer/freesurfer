@@ -4,9 +4,9 @@
 // original author: Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/09/05 20:18:39 $
-// Revision       : $Revision: 1.47 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/09/10 19:45:52 $
+// Revision       : $Revision: 1.48 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -145,10 +145,10 @@ main(int argc, char *argv[])
   int b, segno;
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_ms_fitparms.c,v 1.47 2005/09/05 20:18:39 xhan Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_ms_fitparms.c,v 1.48 2005/09/10 19:45:52 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.47 2005/09/05 20:18:39 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.48 2005/09/10 19:45:52 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2267,10 +2267,15 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types, MATRIX **Mreg
 	    MatrixMultiply(m_xform, v_src, v_dst) ;
 	    MatrixCopy(v_dst, v_src);
 	  }
-	  
-	  MatrixMultiply(vox2ras[i],v_src,rasvec1);
-	  MatrixMultiply(Mreg[scan_types[e]-1],rasvec1,rasvec2);
-	  MatrixMultiply(ras2vox[i],rasvec2,v_dst);
+
+	  if (Mreg[scan_types[e]-1])
+		{
+			MatrixMultiply(vox2ras[i],v_src,rasvec1);
+			MatrixMultiply(Mreg[scan_types[e]-1],rasvec1,rasvec2);
+			MatrixMultiply(ras2vox[i],rasvec2,v_dst);
+		}
+		else
+			MatrixCopy(v_src, v_dst) ;
 
 	  xf = V3_X(v_dst) ; yf = V3_Y(v_dst) ; zf = V3_Z(v_dst) ; 
 	  
