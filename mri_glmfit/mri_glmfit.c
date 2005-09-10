@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+double round(double x);
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
@@ -25,6 +26,33 @@
 
 #undef X
 
+typedef struct{
+  MRI *y;            // Input data
+  MATRIX *X;         // Global regressors
+  int npvr;          // Number of per-voxel regressors
+  MRI *pvr[50];      // Per-voxel regressors (local)
+  float DOF;         // DOF
+
+  MRI *iXtX;         // inv(X'X), where X is global and pv
+  MRI *beta;         // beta = inv(X'X)*X'*y
+  MRI *yhat;         // yhat = X*beta
+  MRI *eres;         // eres = y - yhat
+  MRI *rvar;         // rvar = sum(eres.^2)/DOF;
+
+  int ncontrasts;    // Number of contrasts
+  char *cname[100];  // Contrast names
+  MATRIX *C[100];    // Contrast matrices
+  MRI *gamma[100];   // gamma = C*beta
+  MRI *F[100];       // F = gamma'*iXtX*gamma/(rvar*J)
+  MRI *sig[100];     // sig = significance of the F
+} GLMPV;
+
+MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s, 
+		    int Mrows, int Mcols, MATRIX *M);
+MATRIX *MRItoSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
+int MRIfromMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
+int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
+
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -37,7 +65,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.2 2005/09/09 23:12:41 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.3 2005/09/10 18:23:45 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -444,4 +472,104 @@ static int singledash(char *flag)
   return(0);
 }
 
+/*---------------------------------------------------------------*/
+MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s, 
+		    int Mrows, int Mcols, MATRIX *M)
+{
+  int mr, mc, f;
 
+  if(M==NULL) M = MatrixAlloc(Mrows,Mcols,MATRIX_REAL);
+  else{
+    if(M->rows != Mrows || M->cols != Mcols){
+      printf("ERROR: Matrix dim mismatch\n");
+    }
+  }
+
+  if(mri->nframes != Mrows*Mcols){
+    printf("ERROR: MRItoMatrix: MRI frames = %d, does not equal\n",
+	   mri->nframes);
+    printf("       matrix dim = %dx%d = %d",Mrows,Mcols,Mrows*Mcols);
+    return(NULL);
+  }
+
+  f = 0;
+  for(mr=1; mr <= Mrows; mr++){
+    for(mc=1; mc <= Mcols; mc++){
+      M->rptr[mr][mc] = MRIgetVoxVal(mri,c,r,s,f);
+      f++;
+    }
+  }
+  return(M);
+}
+
+/*---------------------------------------------------------------*/
+MATRIX *MRItoSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
+{
+  int mr, mc, f, Msize;
+
+  if(M==NULL){
+    Msize = (int)(round( (sqrt(8.0*mri->nframes + 1.0) + 1.0 )/2.0 ));
+    M = MatrixAlloc(Msize,Msize,MATRIX_REAL);
+  }
+
+  if(mri->nframes != M->rows*M->cols){
+    printf("ERROR: MRItoSymMatrix: MRI frames = %d, does not support sym\n",
+	   mri->nframes);
+    return(NULL);
+  }
+
+  f = 0;
+  for(mr=1; mr <= M->rows; mr++){
+    for(mc=mr; mc <= M->cols; mc++){
+      M->rptr[mr][mc] = MRIgetVoxVal(mri,c,r,s,f);
+      M->rptr[mc][mr] = MRIgetVoxVal(mri,c,r,s,f);
+      f++;
+    }
+  }
+  return(M);
+}
+
+/*---------------------------------------------------------------*/
+int MRIfromMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
+{
+  int mr,mc,f;
+
+  if(mri->nframes != M->rows*M->cols){
+    printf("ERROR: MRIfromMatrix: MRI frames = %d, does not equal\n",
+	   mri->nframes);
+    printf("       matrix dim = %dx%d = %d",M->rows,M->cols,M->rows*M->cols);
+    return(1);
+  }
+
+  f = 0;
+  for(mr=1; mr <= M->rows; mr++){
+    for(mc=1; mc <= M->cols; mc++){
+      MRIsetVoxVal(mri,c,r,s,f,M->rptr[mr][mc]);
+      f++;
+    }
+  }
+  return(0);
+}
+
+/*---------------------------------------------------------------*/
+int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
+{
+  int mr,mc,f, nframesexp;
+
+  nframesexp = M->rows*(M->rows-1)/2;
+  if(mri->nframes != nframesexp){
+    printf("ERROR: MRIfromSumMatrix: MRI frames = %d, does not equal\n",
+	   mri->nframes);
+    printf("       matrix dim = %dx%d = %d",M->rows,M->cols,M->rows*M->cols);
+    return(1);
+  }
+
+  f = 0;
+  for(mr=1; mr <= M->rows; mr++){
+    for(mc=mr; mc <= M->cols; mc++){
+      MRIsetVoxVal(mri,c,r,s,f,M->rptr[mr][mc]);
+      f++;
+    }
+  }
+  return(0);
+}
