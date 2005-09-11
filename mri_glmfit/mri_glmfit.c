@@ -65,7 +65,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.3 2005/09/10 18:23:45 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.4 2005/09/11 18:15:38 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -82,12 +82,12 @@ char tmpstr[2000];
 
 MATRIX *X; /* design matrix */
 MATRIX *H=NULL, *Xt=NULL, *XtX=NULL, *iXtX=NULL, *Q=NULL, *R=NULL;
-MATRIX *C;
+MATRIX *C, *M;
 int nContrasts=0;
 char *CFile[100];
 char *ContrastName;
 float DOF;
-int err;
+int err,c,r,s;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -505,14 +505,16 @@ MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s,
 /*---------------------------------------------------------------*/
 MATRIX *MRItoSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
 {
-  int mr, mc, f, Msize;
+  int mr, mc, f, Msize, nframesexp;
 
   if(M==NULL){
-    Msize = (int)(round( (sqrt(8.0*mri->nframes + 1.0) + 1.0 )/2.0 ));
+    Msize = (int)(round( (sqrt(8.0*mri->nframes + 1.0) - 1.0 )/2.0 ));
+    printf("Msize = %d\n",Msize);
     M = MatrixAlloc(Msize,Msize,MATRIX_REAL);
   }
 
-  if(mri->nframes != M->rows*M->cols){
+  nframesexp = M->rows*(M->rows+1)/2;
+  if(mri->nframes != nframesexp){
     printf("ERROR: MRItoSymMatrix: MRI frames = %d, does not support sym\n",
 	   mri->nframes);
     return(NULL);
@@ -556,7 +558,7 @@ int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
 {
   int mr,mc,f, nframesexp;
 
-  nframesexp = M->rows*(M->rows-1)/2;
+  nframesexp = M->rows*(M->rows+1)/2;
   if(mri->nframes != nframesexp){
     printf("ERROR: MRIfromSumMatrix: MRI frames = %d, does not equal\n",
 	   mri->nframes);
@@ -573,3 +575,17 @@ int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
   }
   return(0);
 }
+
+#if 0
+  printf("Packing and unpacking\n");
+  for(c=0; c<y->width; c++){
+    for(r=0; r<y->height; r++){
+      for(s=0; s<y->depth; s++){
+	M = MRItoSymMatrix(y,c,r,s,M);
+	MRIfromSymMatrix(y,c,r,s,M);
+      }
+    }
+  }
+  printf("Done Packing and unpacking\n");    
+  MRIwrite(y,"y2.mgh");
+#endif
