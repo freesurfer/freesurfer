@@ -66,7 +66,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.5 2005/09/12 23:05:56 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.6 2005/09/12 23:10:59 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -599,7 +599,7 @@ int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
 /*---------------------------------------------------------------*/
 int MRIglmpvFit(GLMPV *glmpv)
 {
-  int c,r,s; //n,f;
+  int c,r,s,n,f;
   MATRIX *X, *Xt, *XtX, *iXtX;
 
   glmpv->DOF = glmpv->X->rows - (glmpv->X->cols + glmpv->npvr);
@@ -610,11 +610,22 @@ int MRIglmpvFit(GLMPV *glmpv)
   iXtX = MatrixAlloc(X->cols, X->cols, MATRIX_REAL);
 
   // pre-load X
-
+  for(f = 1; f <= X->rows; f++){
+    for(n = 1; n <= glmpv->X->cols; n++){
+      X->rptr[f][n] = glmpv->X->rptr[f][n];
+    }
+  }
 
   for(c=0; c< glmpv->y->width; c++){
     for(r=0; r< glmpv->y->height; r++){
       for(s=0; s< glmpv->y->depth; s++){
+
+	for(f = 1; f <= X->rows; f++){
+	  for(n = glmpv->X->cols+1; n <= X->cols; n++){
+	    X->rptr[f][n] = MRIgetVoxVal(glmpv->pvr[n],c,r,s,f);
+	  }
+	}
+
 
       }
     }
