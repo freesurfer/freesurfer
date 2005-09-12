@@ -987,6 +987,12 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris,
 #define GENETIC_SEARCH 1
 #define RANDOM_SEARCH 2
 
+/* Different verbose mode for mris_fix_topology */
+#define VERBOSE_MODE_DEFAULT 1
+#define VERBOSE_MODE_LOW 2 
+#define VERBOSE_MODE_MEDIUM 3
+#define VERBOSE_MODE_HIGH 4
+
 typedef struct
 {
   int     max_patches ;

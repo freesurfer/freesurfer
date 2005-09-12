@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/09/08 17:51:53 $
-// Revision       : $Revision: 1.369 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2005/09/12 18:08:06 $
+// Revision       : $Revision: 1.370 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -122,12 +122,12 @@ typedef struct
 /* limit the convex hull to the strict minimum set of first neighbors*/
 #define SMALL_CONVEX_HULL 1
 /* */
+#define MRIS_FIX_TOPOLOGY_ERROR_MODE 1
 #define DEBUG_HOMEOMORPHISM 0
 
 #define WHICH_OUTPUT stderr
 
 int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_gradient);
-
 
 
 #ifndef SQR
@@ -27270,10 +27270,10 @@ MRISripDefectiveFaces(MRI_SURFACE *mris)
   Description
   ------------------------------------------------------*/
 static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) ;
+static int edgesIntersectStable(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) ;
 
 #if SPHERE_INTERSECTION
 
-#if 1
 /* check for intersection on the sphere */
 static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2){
   VERTEX *v1, *v2 ;
@@ -27298,15 +27298,22 @@ static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2){
   u3[0]=v2->cx;u3[1]=v2->cy;u3[2]=v2->cz;
   F_CROSS(u2,u3,n1);
 
-
   a0=F_DOT(u0,n1);
   a1=F_DOT(u1,n1);
   a2=F_DOT(u2,n0);
   a3=F_DOT(u3,n0);
   
+
+	//if a0,a1, a2, or a3 are very small, 
+	//should definitely use edgesIntersectStable instead
+#define SMALL_VALUES 0.0000001
+	if(fabs(a0)<SMALL_VALUES||fabs(a1)<SMALL_VALUES||fabs(a2)<SMALL_VALUES||fabs(a3)<SMALL_VALUES){
+		return edgesIntersectStable(mris,edge1,edge2);	
+	}
+
   a=a0*a1;
   b=a2*a3;
-  
+
   if(a>0) return(0);
   else if(a<0) {
     //      fprintf(stderr,"-");
@@ -27323,15 +27330,15 @@ static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2){
       fprintf(stderr,"^");
       { 
 
-	int r1,r2;
-	r1=sphereEdgesIntersect(mris,edge1,edge2);
-	r2=newEdgesIntersect3(mris,edge1,edge2);
-
-	fprintf(stderr,"%d-%d",r1,r2);
-
-	if(r1!=r2)
-	  debugEdgesIntersect(mris,edge1,edge2);
-
+				int r1,r2;
+				r1=sphereEdgesIntersect(mris,edge1,edge2);
+				r2=newEdgesIntersect3(mris,edge1,edge2);
+				
+				fprintf(stderr,"%d-%d",r1,r2);
+				
+				if(r1!=r2)
+					debugEdgesIntersect(mris,edge1,edge2);
+				
       }
 #endif
 
@@ -27355,9 +27362,8 @@ static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2){
   return(0) ;
 }
 
-#else
 /* it should be a more stable implementation but a bit slower than the previous one */
-static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2){
+static int edgesIntersectStable(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2){
   VERTEX *v1, *v2 ;
   double n0[3],n1[3],n2[3],u0[3],u1[3],u2[3],u3[3],u[3];
   double og0[3],og1[3],v_0[3],v_1[3];
@@ -27423,7 +27429,7 @@ static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2){
     else{  //special case again! The points are exactly aligned...
       double c0,c1,c2,c3,x1_min,x1_max,x2_min,x2_max;
       
-      fprintf(stderr,"-");
+      //fprintf(stderr,"-");
       
       u[0]=(u0[0]+u1[0]+u2[0]+u3[0]);
       u[1]=(u0[1]+u1[1]+u2[1]+u3[1]);
@@ -27444,7 +27450,6 @@ static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2){
   }
   return(0) ;
 }
-#endif
 
 #else
 /* original version */
@@ -27782,6 +27787,8 @@ typedef struct
   MRI           *mri_defect_white;
   MRI           *mri_defect_gray;
   MRI           *mri_defect_sign;
+
+	int verbose_mode; /* verbose mode for debugging */
  
 } DEFECT_PATCH, DP ;
 
@@ -28079,7 +28086,7 @@ static float mrisDefectVertexMRILogLikelihood(MRI_SURFACE *mris, MRI *mri, TP *t
 static double mrisComputeDefectMRILogLikelihood(MRI_SURFACE *mris, MRI *mri,TP *tp,HISTOGRAM *h_white, 
 						HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white) ;
 static int findOtherEdgeFace( MRIS *mris , int fno , int vno , int vn1);
-static void computeVertexPseudoNormal(MRIS *mris,int vno,float norm[3]);
+static void computeVertexPseudoNormal(MRIS *mris,int vno,float norm[3],int verbose);
 static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DP *dp,HISTOGRAM *h_border);
 static double mrisComputeDefectCurvatureLogLikelihood(MRI_SURFACE *mris, TP *tp, HISTOGRAM *h_k1, HISTOGRAM *h_k2,MRI *mri_k1_k2) ;
 static double mrisComputeDefectNormalDotLogLikelihood(MRI_SURFACE *mris, TP *tp, HISTOGRAM *h_dot);
@@ -28977,7 +28984,7 @@ static void savePatch(MRI *mri, MRIS *mris,MRIS *mris_corrected,DVS *dvs,DP *dp,
   /* orient the patch faces */
   orientDefectFaces(mris_corrected,dp);
 	
-  if(parms->verbose)
+  if(parms->verbose==VERBOSE_MODE_LOW)
     fprintf(WHICH_OUTPUT,"(%d , %d , %d ) - %d vertices were discarded \n",dp->tp.ninside,dp->tp.nedges,
 	    dp->tp.nfaces,dp->tp.ndiscarded);
 	
@@ -30316,7 +30323,7 @@ static void computeDefectFaceNormal(MRIS *mris,FACE *face){
       //fprintf(WHICH_OUTPUT,".");
       len = 1.0;
     }
-    fprintf(WHICH_OUTPUT,"\n");
+    //fprintf(WHICH_OUTPUT,"\n");
   }
   face->nx = nx / len ; 
   face->ny = ny / len ; 
@@ -30702,11 +30709,17 @@ static void removeVertex(MRIS *mris,int vno){
  
   v=&mris->vertices[vno];
 
-  //FLO TO BE CHECKED : COULD BE A GOOD OUTSIDE VERTEX 
+  //to be checked when the ADD_SOME_VERTICES mode is on
+	//could be a good "outside" vertex
+
   if(v->marked==0){
-    ErrorExit(ERROR_BADPARM, "removeVertex: the vertex %d was not marked - SHOULD NOT HAPPEN\n",vno); // XXX
+
+		/*		if(parms->verbose>=VERBOSE_MODE_MEDIUM)
+			fprintf(stderr,"removeVertex: the vertex %d was not marked - SHOULD NOT HAPPEN\n",vno);
+			if(parms->verbose==VERBOSE_MODE_HIGH)*/
+		ErrorExit(ERROR_BADPARM, "removeVertex: the vertex %d was not marked - SHOULD NOT HAPPEN\n",vno); 
     return;
-  }
+	}
 
 
   for(n = 0 ; n < v->vnum ; n++){
@@ -31179,6 +31192,7 @@ mrisDefectPatchFitness(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri,
   DEFECT *defect=dp->defect;
   
   defect->vertex_trans=vertex_trans;
+	dp->verbose_mode=parms->verbose;
 
   while(1){
 
@@ -31306,8 +31320,17 @@ mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *defect, int *vertex_trans)
   
   dvs->defect = defect ;
   dvs->vertex_trans = vertex_trans ;
+
+	/* in theory, the convex hull vertices should not be changed */
+	/* however, numerical errors might generate some unexpected 'bugs' */
+	/* including the convex hull vertices in DVS  limits these errors */
+#if MRIS_FIX_TOPOLOGY_ERROR_MODE
+	dvs->nvertices = defect->nvertices+defect->nchull ;
+  dvs->vs = (VS *)calloc(dvs->nvertices, sizeof(VS)) ;
+#else
   dvs->nvertices = defect->nvertices+defect->nborder ;
   dvs->vs = (VS *)calloc(dvs->nvertices, sizeof(VS)) ;
+#endif
   if (!dvs->vs)
     ErrorExit(ERROR_NOMEMORY, "mrisRecordVertexState: could not allocate %d dvs->vs",
 	      dvs->nvertices) ;
@@ -31317,8 +31340,13 @@ mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *defect, int *vertex_trans)
 
   for (n = 0 ; n < defect->nvertices ; n++)
     dvs->vs[n].vno = vertex_trans[defect->vertices[n]] ;
+#if MRIS_FIX_TOPOLOGY_ERROR_MODE
+	for (n = 0 ; n < defect->nchull ; n++)
+    dvs->vs[defect->nvertices+n].vno = vertex_trans[defect->chull[n]] ;
+#else
   for (n = 0 ; n < defect->nborder ; n++)
     dvs->vs[defect->nvertices+n].vno = vertex_trans[defect->border[n]] ;
+#endif
 
   for (i = 0 ; i < dvs->nvertices ; i++)
     {
@@ -32065,7 +32093,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt,int which_g
 	  sphericalProjection(x,y,z,&v->x,&v->y,&v->z);
 	  v->cx=v->x; v->cy=v->y;v->cz=v->z;
 	  orig_area = computeArea(mris,v->f[n],(int)v->n[n]);
-	  if(orig_area <= 0) {
+	  if((orig_area <= 0)){//&&(parms->verbose>=VERBOSE_MODE_MEDIUM)) {
+			
 	    fprintf(stderr,"negative area : this should never happen!\n");
 	    fprintf(stderr,"face %d (%d,%d,%d) at vertex %d\n",v->f[n],mris->faces[v->f[n]].v[0],mris->faces[v->f[n]].v[1],mris->faces[v->f[n]].v[2],vno);
 	    v1=mris->faces[v->f[n]].v[0];
@@ -32080,7 +32109,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt,int which_g
 	    fprintf(stderr,"cur: vertex %d (%f,%f,%f)\n",
 		    v3,mris->vertices[v3].x,mris->vertices[v3].y
 		    ,mris->vertices[v3].z);
-	    ErrorExit(ERROR_BADPARM, "mrisApplyTopologyPreservingGradient:SHOULD NOT HAPPEN\n");
+			//if(parms->verbose==VERBOSE_MODE_HIGH)
+				ErrorExit(ERROR_BADPARM, "mrisApplyTopologyPreservingGradient:SHOULD NOT HAPPEN\n");
 	  }
 	  while(step<last_step){
 	    sphericalProjection(x+epsilon[step]*dx,y+epsilon[step]*dy,z+epsilon[step]*dz,&v->x,&v->y,&v->z);
@@ -32115,7 +32145,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt,int which_g
 	  sphericalProjection(x,y,z,&v->x,&v->y,&v->z);
 	  v->cx=v->x; v->cy=v->y;v->cz=v->z;
 	  orig_area = computeArea(mris,v->f[n],(int)v->n[n]);
-	  if(orig_area <= 0) {
+	  if((orig_area <= 0)){//&&(parms->verbose>=VERBOSE_MODE_MEDIUM)) {
 	    fprintf(stderr,"negative area : should not happen!\n");
 	    fprintf(stderr,"face %d (%d,%d,%d) at vertex %d\n",v->f[n],mris->faces[v->f[n]].v[0],mris->faces[v->f[n]].v[1],mris->faces[v->f[n]].v[2],vno);
 	    v1=mris->faces[v->f[n]].v[0];
@@ -32130,7 +32160,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt,int which_g
 	    fprintf(stderr,"cur: vertex %d (%f,%f,%f)\n",
 		    v3,mris->vertices[v3].x,mris->vertices[v3].y
 		    ,mris->vertices[v3].z);
-	    ErrorExit(ERROR_BADPARM, "mrisApplyTopologyPreservingGradient:SHOULD NOT HAPPEN\n");
+			//if(parms->verbose==VERBOSE_MODE_HIGH)
+				ErrorExit(ERROR_BADPARM, "mrisApplyTopologyPreservingGradient:SHOULD NOT HAPPEN\n");
 	  }
 	  /* end of test */
 	  while(step<last_step){
@@ -32161,22 +32192,23 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt,int which_g
 	    e2=&inside[m];
 	    /* intersection */
 	    if(edgesIntersect(mris, &e1, e2)){
-	      {
-		fprintf(stderr,"edge intersection : should not happen\n");
-		fprintf(stderr,"edge %d-%d with edge %d %d \n",e1.vno1,e1.vno2,e2->vno1,e2->vno2);
-		vno=e1.vno1;
-		v=&mris->vertices[vno];
-		fprintf(stderr,"%d : %f %f %f  - %f %f %f \n",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
-		vno=e1.vno2;
-		v=&mris->vertices[vno];
-		fprintf(stderr,"%d : %f %f %f - %f %f %f \n",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
-		vno=e2->vno1;
-		v=&mris->vertices[vno];
-		fprintf(stderr,"%d : %f %f %f - %f %f %f \n",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
-		vno=e2->vno2;
-		v=&mris->vertices[vno];
-		fprintf(stderr,"%d : %f %f %f - %f %f %f \n",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
-		ErrorExit(ERROR_BADPARM, "mrisApplyTopologyPreservingGradient:SHOULD NOT HAPPEN\n");
+				{//if(parms->verbose>=VERBOSE_MODE_MEDIUM){
+					fprintf(stderr,"edge intersection : should not happen\n");
+					fprintf(stderr,"edge %d-%d with edge %d %d \n",e1.vno1,e1.vno2,e2->vno1,e2->vno2);
+					vno=e1.vno1;
+					v=&mris->vertices[vno];
+					fprintf(stderr,"%d : %f %f %f  - %f %f %f \n",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
+					vno=e1.vno2;
+					v=&mris->vertices[vno];
+					fprintf(stderr,"%d : %f %f %f - %f %f %f \n",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
+					vno=e2->vno1;
+					v=&mris->vertices[vno];
+					fprintf(stderr,"%d : %f %f %f - %f %f %f \n",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
+					vno=e2->vno2;
+					v=&mris->vertices[vno];
+					fprintf(stderr,"%d : %f %f %f - %f %f %f \n",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
+					//					if(parms->verbose==VERBOSE_MODE_HIGH)
+						ErrorExit(ERROR_BADPARM, "mrisApplyTopologyPreservingGradient:SHOULD NOT HAPPEN\n");
 	      }
 	      break;
 	    }
@@ -32239,10 +32271,11 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt,int which_g
 	    e2=&border[m];
 	    /* intersection */
 	    if(edgesIntersect(mris, &e1, e2)){
-	      {
-		fprintf(stderr,"Error; edge intersection : should not happen\n");
-		fprintf(stderr,"edge %d-%d with edge %d %d \n",e1.vno1,e1.vno2,e2->vno1,e2->vno2);
-		ErrorExit(ERROR_BADPARM, "mrisApplyTopologyPreservingGradient:SHOULD NOT HAPPEN\n");
+				{//if(parms->verbose>=VERBOSE_MODE_MEDIUM){
+					fprintf(stderr,"Error; edge intersection : should not happen\n");
+					fprintf(stderr,"edge %d-%d with edge %d %d \n",e1.vno1,e1.vno2,e2->vno1,e2->vno2);
+					//if(parms->verbose==VERBOSE_MODE_HIGH)
+						ErrorExit(ERROR_BADPARM, "mrisApplyTopologyPreservingGradient:SHOULD NOT HAPPEN\n");
 	      }
 	      break;
 	    }
@@ -35436,9 +35469,9 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 	n_e2[2]=face->nz+mris->faces[fn1].nz;
 		
 	/* vertex pseudo-normals */
-	computeVertexPseudoNormal(mris,face->v[0],n_v0);
-	computeVertexPseudoNormal(mris,face->v[1],n_v1);
-	computeVertexPseudoNormal(mris,face->v[2],n_v2);
+	computeVertexPseudoNormal(mris,face->v[0],n_v0,0);
+	computeVertexPseudoNormal(mris,face->v[1],n_v1,0);
+	computeVertexPseudoNormal(mris,face->v[2],n_v2,0);
 		
 	/* finding distance to surface */
 #if 1
@@ -35937,7 +35970,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
     return fno;
   }
 
-  static void computeVertexPseudoNormal(MRIS *mris,int vno,float norm[3]){
+  static void computeVertexPseudoNormal(MRIS *mris,int vno,float norm[3],int verbose){
     int n,n0,n1,n2;
     float v1[3],v2[3],alpha;
     VERTEX *v;
@@ -35954,18 +35987,23 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
       n2=(n0==0)?2:n0-1;
 		
       if((face->v[n0]!=vno) || (face->v[n1]==vno) || (face->v[n2]==vno) || (face->v[n2]==face->v[n1])){
-	if(face->v[n0]!=vno) fprintf(WHICH_OUTPUT,"error for vno in face %d",v->f[n]);
-	if(face->v[n1]==vno) fprintf(WHICH_OUTPUT,"error for vn1 in face %d",v->f[n]);
-	if(face->v[n2]==vno) fprintf(WHICH_OUTPUT,"error for vn2 in face %d",v->f[n]);
-	if(face->v[n2]==face->v[n1]) fprintf(WHICH_OUTPUT,"error for vn in face %d",v->f[n]);
-			
-	fprintf(WHICH_OUTPUT,"face %d (%d,%d,%d) != (%d)\n",v->f[n],face->v[n0],face->v[n1],face->v[n2],vno);
-
-	//			MRISwrite(mris,"rh.testdebug1");
-	//MRISrestoreVertexPositions(mris,CANONICAL_VERTICES);
-	//MRISwrite(mris,"rh.testdebug2");
-
-	ErrorExit(ERROR_BADPARM, "computeVertexPseudoNormal: SHOULD NOT HAPPEN\n");
+				if(verbose>=VERBOSE_MODE_MEDIUM){
+					if(face->v[n0]!=vno) fprintf(WHICH_OUTPUT,"error for vno in face %d",v->f[n]);
+					if(face->v[n1]==vno) fprintf(WHICH_OUTPUT,"error for vn1 in face %d",v->f[n]);
+					if(face->v[n2]==vno) fprintf(WHICH_OUTPUT,"error for vn2 in face %d",v->f[n]);
+					if(face->v[n2]==face->v[n1]) fprintf(WHICH_OUTPUT,"error for vn in face %d",v->f[n]);
+					
+					fprintf(WHICH_OUTPUT,"face %d (%d,%d,%d) != (%d)\n",v->f[n],face->v[n0],face->v[n1],face->v[n2],vno);
+				
+					if(verbose==VERBOSE_MODE_MEDIUM)
+						fprintf(stderr,"computeVertexPseudoNormal: SHOULD NOT HAPPEN\n");
+	
+					//			MRISwrite(mris,"rh.testdebug1");
+					//MRISrestoreVertexPositions(mris,CANONICAL_VERTICES);
+					//MRISwrite(mris,"rh.testdebug2");
+					if(verbose==VERBOSE_MODE_HIGH)
+						ErrorExit(ERROR_BADPARM, "computeVertexPseudoNormal: SHOULD NOT HAPPEN\n");
+				}
       }
 
       v1[0]=mris->vertices[face->v[n1]].origx-v->origx;
@@ -35988,10 +36026,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 
 #define DEBUG_UL 0
 
-  //TO BE CHECKED
-
-  static double 
-    mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border)
+static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border)
     {
 #if 0
       int u,v,numu,numv;
@@ -36139,9 +36174,9 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 	n_e2[2]=face->nz+mris->faces[fn1].nz;
 		
 	/* vertex pseudo-normals */
-	computeVertexPseudoNormal(mris,face->v[0],n_v0);
-	computeVertexPseudoNormal(mris,face->v[1],n_v1);
-	computeVertexPseudoNormal(mris,face->v[2],n_v2);
+	computeVertexPseudoNormal(mris,face->v[0],n_v0,dp->verbose_mode);
+	computeVertexPseudoNormal(mris,face->v[1],n_v1,dp->verbose_mode);
+	computeVertexPseudoNormal(mris,face->v[2],n_v2,dp->verbose_mode);
 		
 	/* finding distance to surface */
 #if 1
@@ -37424,13 +37459,13 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
     
 	      first_time = 0 ;
 	      if (!FZERO(l_mri))
-		fprintf(WHICH_OUTPUT,"l_mri = %2.2f ", l_mri) ;
+					fprintf(WHICH_OUTPUT,"l_mri = %2.2f ", l_mri) ;
 	      if (!FZERO(l_unmri))
-		fprintf(WHICH_OUTPUT,"l_unmri = %2.2f ", l_unmri) ;
+					fprintf(WHICH_OUTPUT,"l_unmri = %2.2f ", l_unmri) ;
 	      if (!FZERO(l_curv))
-		fprintf(WHICH_OUTPUT,"l_curv = %2.2f ", l_curv) ;
+					fprintf(WHICH_OUTPUT,"l_curv = %2.2f ", l_curv) ;
 	      if (!FZERO(l_qcurv))
-		fprintf(WHICH_OUTPUT,"l_qcurv = %2.2f ", l_qcurv) ;
+					fprintf(WHICH_OUTPUT,"l_qcurv = %2.2f ", l_qcurv) ;
 	      fprintf(WHICH_OUTPUT,"\n") ;
 	    }
 
@@ -39160,8 +39195,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 #endif
 
 
-      static int
-	mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
+static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
 					 MRI *mri, DEFECT *defect, int *vertex_trans,
 					 EDGE *et, int nedges, ES *es, int nes, HISTOGRAM *h_k1, HISTOGRAM *h_k2,MRI* mri_k1_k2,
 					 HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_border, 
@@ -39458,7 +39492,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 #endif
 		number_of_patches++;
 
-		if(parms->verbose)
+		if(parms->verbose==VERBOSE_MODE_LOW)
 		  fprintf(WHICH_OUTPUT,"for the patch #%d, we have fitness = %f \n",i,fitness);
 			
 			
@@ -39485,7 +39519,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 		    dp->defect->initial_mri_ll=dp->tp.mri_ll;
 		    dp->defect->initial_unmri_ll=dp->tp.unmri_ll;
 				
-		    if(parms->verbose){
+		    if(parms->verbose==VERBOSE_MODE_LOW){
 		      fprintf(WHICH_OUTPUT,"initial defect\n");
 		      printDefectStatistics(dp);
 		    }
@@ -39503,7 +39537,8 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 		if (fitness > best_fitness)
 		  {
 		    best_fitness = fitness ; best_i = i ;
-		    fprintf(WHICH_OUTPUT,"new optimal fitness found at %d: %2.4f\n", i, fitness) ;
+				if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+					fprintf(WHICH_OUTPUT,"new optimal fitness found at %d: %2.4f\n", i, fitness) ;
 
 		    nfinalvertices=nremovedvertices;
 		    nbestpatch=number_of_patches;
@@ -39514,7 +39549,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 		    /* save current status of vertices */
 		    memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
 
-		    if(parms->verbose)
+		    if(parms->verbose==VERBOSE_MODE_LOW)
 		      printDefectStatistics(dp);
 		    if(parms->save_fname && (parms->defect_number<0 || (parms->defect_number==defect->defect_number))){
 		      sprintf(fname,"%s/rh.defect_%d_best_%d_%d",parms->save_fname,defect->defect_number,ngenerations,i);
@@ -39637,7 +39672,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 		    dp->defect->initial_qcurv_ll=dp->tp.qcurv_ll;
 		    dp->defect->initial_mri_ll=dp->tp.mri_ll;
 		    dp->defect->initial_unmri_ll=dp->tp.unmri_ll;
-		    if(parms->verbose){
+		    if(parms->verbose==VERBOSE_MODE_LOW){
 		      fprintf(WHICH_OUTPUT,"defect %d: initial fitness = %2.4e, nvertices=%d, nedges=%d, max patches=%d\n", dno-1, fitness,
 			      defect->nvertices, nedges, max_patches) ;
 		      printDefectStatistics(dp);
@@ -39656,7 +39691,8 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 		if (fitness > best_fitness)
 		  {
 		    best_fitness = fitness ; best_i = i ;
-		    fprintf(WHICH_OUTPUT,"new optimal fitness found at %d: %2.4f\n", i, fitness) ;
+				if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+					fprintf(WHICH_OUTPUT,"new optimal fitness found at %d: %2.4f\n", i, fitness) ;
 
 		    nfinalvertices=nremovedvertices;
 		    nbestpatch=number_of_patches;
@@ -39667,7 +39703,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 		    /* save current status of vertices */
 		    memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
 				
-		    if(parms->verbose)
+		    if(parms->verbose==VERBOSE_MODE_LOW)
 		      printDefectStatistics(dp);
 		    if(parms->save_fname && (parms->defect_number<0 || (parms->defect_number==defect->defect_number))){
 		      sprintf(fname,"%s/rh.defect_%d_best_%d_%d",parms->save_fname,defect->defect_number,ngenerations,i);
@@ -39695,8 +39731,10 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 	  else
 	    fitness_sigma = sqrt(fitness_sigma) ;
 	
-	  fprintf(WHICH_OUTPUT,"Initial population for defect %d:\nbest fitness at %d: %2.4f (%2.4f +- %2.4f)\n"
-		  ,defect->defect_number,best_i,best_fitness,fitness_mean,fitness_sigma);
+		
+		if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+			fprintf(WHICH_OUTPUT,"Initial population for defect %d:\nbest fitness at %d: %2.4f (%2.4f +- %2.4f)\n"
+							,defect->defect_number,best_i,best_fitness,fitness_mean,fitness_sigma);
 	
 	  nelite = nint(ELITISM_PCT*max_patches) ;  /* # to keep in next generation */
 	  if (nelite < 1)
@@ -39768,10 +39806,10 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 		      /* save current status of vertices */
 		      memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
 
-		      //				if  (Gdiag & DIAG_SHOW) //FLO
-		      fprintf(WHICH_OUTPUT,"replacement %d MUTATION: new optimal fitness found at %d: %2.4e\n", 
+		      if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+						fprintf(WHICH_OUTPUT,"replacement %d MUTATION: new optimal fitness found at %d: %2.4e\n", 
 			      i, best_i, fitness) ;
-		      if(parms->verbose)
+		      if(parms->verbose==VERBOSE_MODE_LOW)
 			printDefectStatistics(dp);
 		      if(parms->save_fname && (parms->defect_number<0 || (parms->defect_number==defect->defect_number))){
 			sprintf(fname,"%s/rh.defect_%d_surf_%d_%d",parms->save_fname,defect->defect_number,ngenerations-1,ranks[i]);
@@ -39905,10 +39943,11 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 		      /* save current status of vertices */
 		      memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
 
-		      //if  (Gdiag & DIAG_SHOW)
-		      fprintf(WHICH_OUTPUT,"CROSSOVER (%d x %d): new optimal fitness found at %d: %2.4e\n", 
+		      
+					if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+						fprintf(WHICH_OUTPUT,"CROSSOVER (%d x %d): new optimal fitness found at %d: %2.4e\n", 
 			      dps[p1].rank, dps[p2].rank, best_i, fitness) ;
-		      if(parms->verbose)
+		      if(parms->verbose==VERBOSE_MODE_LOW)
 			printDefectStatistics(dp);
 		      if(parms->save_fname && (parms->defect_number<0 || (parms->defect_number==defect->defect_number))){
 			sprintf(fname,"%s/rh.defect_%d_surf_%d_%d",parms->save_fname,defect->defect_number,ngenerations-1,dps[p1].rank);
@@ -39962,9 +40001,9 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 			  /* save current status of vertices */
 			  memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
 
-			  //if (Gdiag & DIAG_SHOW) //FLO
-			  fprintf(WHICH_OUTPUT,"CROSSOVER (%d x %d) & MUTATION: new optimal fitness found at %d: %2.4e\n", dps[p1].rank , dps[p2].rank , best_i, fitness) ;
-			  if(parms->verbose)
+			  if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+					fprintf(WHICH_OUTPUT,"CROSSOVER (%d x %d) & MUTATION: new optimal fitness found at %d: %2.4e\n", dps[p1].rank , dps[p2].rank , best_i, fitness) ;
+			  if(parms->verbose==VERBOSE_MODE_LOW)
 			    printDefectStatistics(dp);
 			  if(parms->save_fname && (parms->defect_number<0 || (parms->defect_number==defect->defect_number))){
 			    sprintf(fname,"%s/rh.defect_%d_surf_%d_%d",parms->save_fname,defect->defect_number,ngenerations-1,dps[p1].rank);
@@ -40020,7 +40059,8 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
     
 	      fitness_mean /= (float)max_patches ;
 	      fitness_sigma = sqrt(fitness_sigma/max_patches - (fitness_mean*fitness_mean)) ;
-	      fprintf(WHICH_OUTPUT,"generation %d complete, optimal fitness = %2.4e (%2.4e +- %2.4e)\n", ++g,best_fitness,
+				if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+					fprintf(WHICH_OUTPUT,"generation %d complete, optimal fitness = %2.4e (%2.4e +- %2.4e)\n", ++g,best_fitness,
 		      fitness_mean, fitness_sigma);
 	      if (FEQUAL(last_best, best_fitness))
 		nunchanged++ ;
@@ -40050,18 +40090,18 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 		  if(nunchanged >= max_unchanged)
 		    nunchanged -= NEXT;
 
-		  if(parms->verbose)
+		  if(parms->verbose==VERBOSE_MODE_LOW)
 		    fprintf(WHICH_OUTPUT,"Deleting worst vertices : ");
 		  ndeleted=deleteWorstVertices(mris_corrected,&rp,defect,vertex_trans,0.2,count);
 		  nremovedvertices+=ndeleted;
-		  if(parms->verbose)
+		  if(parms->verbose==VERBOSE_MODE_LOW)
 		    fprintf(WHICH_OUTPUT,"%d vertices have been deleted\n",ndeleted);
 		  if(ndeleted==0) break;
 		  count++;
 		}else if(ngenerations>=10 && (ngenerations%3 == 0)){
 		  ndeleted=deleteWorstVertices(mris_corrected,&rp,defect,vertex_trans,0.1,count);
 		  nremovedvertices+=ndeleted;
-		  if(parms->verbose){
+		  if(parms->verbose==VERBOSE_MODE_LOW){
 		    if(ndeleted==1)
 		      fprintf(WHICH_OUTPUT,"Worst vertex has been deleted\n");
 		    else if(ndeleted)
@@ -40125,7 +40165,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 	  if (fitness != best_fitness)
 	    fprintf(WHICH_OUTPUT, "Warning - incorrect dp selected!!!!(%f >= %f ) \n",fitness,best_fitness) ;
 	
-	  if(parms->verbose)
+	  if(parms->verbose==VERBOSE_MODE_LOW)
 	    printDefectStatistics(dp);
 
 	  /* compute the final tessellation */
@@ -40439,7 +40479,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 	      /* save current status of vertices */
 	      memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
 			
-	      if(parms->verbose)
+	      if(parms->verbose==VERBOSE_MODE_LOW)
 		printDefectStatistics(&dp);
 	      if(parms->save_fname && (parms->defect_number<0 || (parms->defect_number==defect->defect_number))){
 		sprintf(fname,"%s/rh.defect_%d_best_%d_%d",parms->save_fname,defect->defect_number,ngenerations,niters);
@@ -40502,7 +40542,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 	  if (fitness != best_fitness)
 	    fprintf(WHICH_OUTPUT, "Warning - incorrect dp selected!!!!(%f >= %f ) \n",fitness,best_fitness) ;
 	
-	  if(parms->verbose)
+	  if(parms->verbose==VERBOSE_MODE_LOW)
 	    printDefectStatistics(&dp);
 
 	  /* compute the final tessellation */

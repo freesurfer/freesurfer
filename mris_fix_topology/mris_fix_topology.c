@@ -17,7 +17,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.31 2005/08/15 14:28:43 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.32 2005/09/12 18:07:35 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -61,10 +61,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_fix_topology.c,v 1.31 2005/08/15 14:28:43 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_fix_topology.c,v 1.32 2005/09/12 18:07:35 segonne Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.31 2005/08/15 14:28:43 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.32 2005/09/12 18:07:35 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -111,6 +111,7 @@ main(int argc, char *argv[])
 	parms.optimal_mapping=0;
 
 
+
   Gdiag |= DIAG_WRITE ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -126,7 +127,7 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
-	
+
   if (argc < 2)
     usage_exit() ;
  
@@ -277,8 +278,26 @@ get_option(int argc, char *argv[])
   }
 	else if (!stricmp(option, "verbose"))
   {
-    parms.verbose=1;
-    fprintf(stderr,"verbose mode on\n");
+    parms.verbose=VERBOSE_MODE_DEFAULT;
+    fprintf(stderr,"verbose mode on (default mode)\n");
+    nargs = 0 ;
+  }
+	else if (!stricmp(option, "verbose_low"))
+  {
+    parms.verbose=VERBOSE_MODE_LOW;
+    fprintf(stderr,"verbose mode on (default+low mode)\n");
+    nargs = 0 ;
+  }
+	else if (!stricmp(option, "warnings"))
+  {
+    parms.verbose=VERBOSE_MODE_MEDIUM;
+    fprintf(stderr,"verbose mode on (medium mode): printing warnings\n");
+    nargs = 0 ;
+  }
+	else if (!stricmp(option, "errors"))
+  {
+    parms.verbose=VERBOSE_MODE_HIGH;
+    fprintf(stderr,"verbose mode on (high mode): exiting when warnings appear\n");
     nargs = 0 ;
   }
 	else if (!stricmp(option, "movie"))
