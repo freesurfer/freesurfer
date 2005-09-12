@@ -26,15 +26,17 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.1 2005/07/18 15:44:48 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.2 2005/09/12 22:35:32 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
 char *OutASegFile = NULL;
 char *OutAParcFile = NULL;
+char *OutDistFile = NULL;
 int debug = 0;
 MRI *ASeg, *mritmp;
 MRI *AParc;
+MRI *Dist;
 MRIS *lhwhite, *rhwhite;
 MRIS *lhpial, *rhpial;
 MHT *lhwhite_hash, *rhwhite_hash;
@@ -43,6 +45,7 @@ VERTEX vtx;
 int  lhwvtx, lhpvtx, rhwvtx, rhpvtx;
 MATRIX *Vox2RAS, *CRS, *RAS;
 float dlhw, dlhp, drhw, drhp;
+float dminctx = 6.0;
 
 
 char tmpstr[2000];
@@ -51,8 +54,9 @@ char annotfile[1000];
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int nargs, err, asegid, c, r, s, nctx, annot, hemioffset;
-  int annotid;
+  int nargs, err, asegid, c, r, s, nctx, annot;
+  int annotid, IsCortex=0, hemi=0, segval=0;
+  float dmin=0.0;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -102,6 +106,12 @@ int main(int argc, char **argv)
   printf("Building hash of lh pial\n");
   lhpial_hash = MHTfillVertexTableRes(lhpial, NULL,CURRENT_VERTICES,16);
 
+  if(lhwhite->nvertices != lhpial->nvertices){
+    printf("ERROR: lh white and pial have a different number of vertices (%d,%d)\n",
+	   lhwhite->nvertices,lhpial->nvertices);
+    exit(1);
+  }
+
   /* ------ Load lh annotation ------ */
   sprintf(annotfile,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
   printf("\nLoading lh annotations from %s\n",annotfile);
@@ -135,6 +145,12 @@ int main(int argc, char **argv)
   printf("Building hash of rh pial\n");
   rhpial_hash = MHTfillVertexTableRes(rhpial, NULL,CURRENT_VERTICES,16);
 
+  if(rhwhite->nvertices != rhpial->nvertices){
+    printf("ERROR: rh white and pial have a different number of vertices (%d,%d)\n",
+	   rhwhite->nvertices,rhpial->nvertices);
+    exit(1);
+  }
+
   /* ------ Load rh annotation ------ */
   sprintf(annotfile,"%s/%s/label/rh.aparc.annot",SUBJECTS_DIR,subject);
   printf("\nLoading rh annotations from %s\n",annotfile);
@@ -145,7 +161,7 @@ int main(int argc, char **argv)
   }
 
   if(lhwhite->ct) printf("Have color table for annotation\n");
-  print_annotation_table(stdout);
+  //print_annotation_table(stdout);
 
   /* ------ Load ASeg ------ */
   sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
@@ -173,6 +189,16 @@ int main(int argc, char **argv)
   ASeg = mritmp;
 
   AParc = MRIclone(ASeg,NULL);
+  if(OutDistFile != NULL){
+    Dist = MRIclone(ASeg,NULL);
+    mritmp = MRIchangeType(Dist,MRI_FLOAT,0,0,0);
+    if(mritmp == NULL){
+      printf("ERROR: could change type\n");
+      exit(1);
+    }
+    MRIfree(&Dist);
+    Dist = mritmp;
+  }
 
   Vox2RAS = MRIxfmCRS2XYZtkreg(ASeg);
   printf("ASeg Vox2RAS: -----------\n");  
@@ -187,7 +213,6 @@ int main(int argc, char **argv)
   nctx = 0;
   annot = 0;
   annotid = 0;
-  hemioffset = 0;
 
   // Go through each voxel in the aseg
   for(c=0; c < ASeg->width; c++){
@@ -196,9 +221,11 @@ int main(int argc, char **argv)
     for(r=0; r < ASeg->height; r++){
       for(s=0; s < ASeg->depth; s++){
 
-	// If it's not labeled as cortex in the aseg, skip
+	// If it's not labeled as cortex or wm in the aseg, skip
 	asegid = MRIgetVoxVal(ASeg,c,r,s,0);
-	if(asegid != 3 && asegid != 42) continue;
+	if(asegid != 3 && asegid != 42 && asegid != 2 && asegid != 41) continue;
+	if(asegid == 3 || asegid == 42) IsCortex = 1;
+	else                            IsCortex = 0;
 
 	// Convert the CRS to RAS
 	CRS->rptr[1][1] = c;
@@ -230,36 +257,53 @@ int main(int argc, char **argv)
 
 	if(dlhw < dlhp && dlhw < drhw && dlhw < drhp){
 	  annot = lhwhite->vertices[lhwvtx].annotation;
-	  hemioffset = 1000;
-	}
-	if(dlhp < dlhw && dlhp < drhw && dlhp < drhp){
-	  annot = lhwhite->vertices[lhpvtx].annotation;
-	  hemioffset = 1000;
+	  hemi = 1;
 	  if(lhwhite->ct)
 	    annotid = CTABannotationToIndex(lhwhite->ct, annot);
 	  else
 	    annotid = annotation_to_index(annot);
+	  dmin = dlhw;
+	}
+	if(dlhp < dlhw && dlhp < drhw && dlhp < drhp){
+	  annot = lhwhite->vertices[lhpvtx].annotation;
+	  hemi = 1;
+	  if(lhwhite->ct)
+	    annotid = CTABannotationToIndex(lhwhite->ct, annot);
+	  else
+	    annotid = annotation_to_index(annot);
+	  dmin = dlhp;
 	}
 
 	if(drhw < dlhp && drhw < dlhw && drhw < drhp){
 	  annot = rhwhite->vertices[rhwvtx].annotation;
-	  hemioffset = 2000;
+	  hemi = 2;
 	  if(rhwhite->ct)
 	    annotid = CTABannotationToIndex(rhwhite->ct, annot);
 	  else
 	    annotid = annotation_to_index(annot);
+	  dmin = drhw;
 	}
 	if(drhp < dlhp && drhp < drhw && drhp < dlhw){
 	  annot = rhwhite->vertices[rhpvtx].annotation;
-	  hemioffset = 2000;
+	  hemi = 2;
 	  if(rhwhite->ct)
 	    annotid = CTABannotationToIndex(rhwhite->ct, annot);
 	  else
 	    annotid = annotation_to_index(annot);
+	  dmin = drhp;
 	}
 
-	MRIsetVoxVal(ASeg,c,r,s,0,annotid+hemioffset);
+	if( IsCortex && hemi == 1) segval = annotid+1000;
+	if( IsCortex && hemi == 2) segval = annotid+2000;
+	if(!IsCortex && hemi == 1) segval = annotid+3000;
+	if(!IsCortex && hemi == 2) segval = annotid+4000;
+
+	if(!IsCortex && dmin > dminctx && hemi == 1) segval = 5001;
+	if(!IsCortex && dmin > dminctx && hemi == 2) segval = 5002;
+
+	MRIsetVoxVal(ASeg,c,r,s,0,segval);
 	MRIsetVoxVal(AParc,c,r,s,0,annot);
+	if(OutDistFile != NULL) MRIsetVoxVal(Dist,c,r,s,0,dmin);
 
 	if(debug || annotid == -1){
 	  printf("\n");
@@ -299,8 +343,14 @@ int main(int argc, char **argv)
   printf("Writing output aseg to %s\n",OutASegFile);
   MRIwrite(ASeg,OutASegFile);
 
-  printf("Writing output aparc to %s\n",OutAParcFile);
-  MRIwrite(AParc,OutAParcFile);
+  if(OutAParcFile != NULL){
+    printf("Writing output aparc to %s\n",OutAParcFile);
+    MRIwrite(AParc,OutAParcFile);
+  }
+  if(OutDistFile != NULL){
+    printf("Writing output dist file to %s\n",OutDistFile);
+    MRIwrite(Dist,OutDistFile);
+  }
 
 
   return(0);
@@ -344,6 +394,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--oaparc")){
       if(nargc < 1) argnerr(option,1);
       OutAParcFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--dist")){
+      if(nargc < 1) argnerr(option,1);
+      OutDistFile = pargv[0];
       nargsused = 1;
     }
     else{
