@@ -47,6 +47,7 @@ typedef struct{
   MRI *sig[100];     // sig = significance of the F
 } GLMPV;
 
+int MRIglmpvFit(GLMPV *glmpv);
 MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s, 
 		    int Mrows, int Mcols, MATRIX *M);
 MATRIX *MRItoSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
@@ -65,12 +66,13 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.4 2005/09/11 18:15:38 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.5 2005/09/12 23:05:56 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
 char *yhatFile=NULL, *eresFile=NULL;
-char *OutDir=NULL;
+char *GLMDir=NULL;
+char *pvrFiles[50];
 int synth = 0;
 int yhatSave=0;
 
@@ -88,6 +90,9 @@ char *CFile[100];
 char *ContrastName;
 float DOF;
 int err,c,r,s;
+
+int npvr=0;
+GLMPV *glmpv;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -128,11 +133,11 @@ int main(int argc, char **argv)
   printf("machine  %s\n",uts.machine);
   dump_options(stdout);
 
-  if(OutDir != NULL){
-    printf("Creating output directory %s\n",OutDir);
-    err = mkdir(OutDir,(mode_t)-1);
+  if(GLMDir != NULL){
+    printf("Creating output directory %s\n",GLMDir);
+    err = mkdir(GLMDir,(mode_t)-1);
     if(err != 0 && errno != EEXIST){
-      printf("ERROR: creating directory %s\n",OutDir);
+      printf("ERROR: creating directory %s\n",GLMDir);
       perror(NULL);    
       return(1);
     }
@@ -196,6 +201,15 @@ int main(int argc, char **argv)
     exit(1);
   }
 
+  glmpv = (GLMPV *) calloc(sizeof(GLMPV),1);
+  glmpv->y = y;
+  glmpv->X = X;
+  for(n=0; n < npvr; n++){
+    glmpv->pvr[n] = MRIread(pvrFiles[n]);
+    if(glmpv->pvr[n] == NULL) exit(1);
+  }
+
+
   Xt = MatrixTranspose(X,NULL);
   XtX = MatrixMultiply(Xt,X,NULL);
   iXtX = MatrixInverse(XtX,NULL);
@@ -244,24 +258,24 @@ int main(int argc, char **argv)
       exit(1);
       }
     ContrastName = fio_basename(CFile[n], ".mat");
-    sprintf(tmpstr,"%s/%s",OutDir,ContrastName);
+    sprintf(tmpstr,"%s/%s",GLMDir,ContrastName);
     mkdir(tmpstr,(mode_t)-1);
     
     printf("%s\n",ContrastName);
 
     gam = fMRImatrixMultiply(beta,C,NULL);
-    sprintf(tmpstr,"%s/%s/gamma.mgh",OutDir,ContrastName);
+    sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,ContrastName);
     MRIwrite(gam,tmpstr);
 
     if(C->rows == 1) rstat = fMRIcomputeT(gam, X, C, rvar, NULL);
     else             rstat = fMRIcomputeF(gam, X, C, rvar, NULL);
-    sprintf(tmpstr,"%s/%s/stat.mgh",OutDir,ContrastName);
+    sprintf(tmpstr,"%s/%s/stat.mgh",GLMDir,ContrastName);
     MRIwrite(rstat,tmpstr);
 
     if(C->rows == 1) sig = fMRIsigT(rstat, DOF, NULL);
     else             sig = fMRIsigF(rstat, DOF, C->rows, NULL);
     MRIlog10(sig,sig,1);
-    sprintf(tmpstr,"%s/%s/sig.mgh",OutDir,ContrastName);
+    sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,ContrastName);
     MRIwrite(sig,tmpstr);
 
     //-- Should do a PMF
@@ -317,9 +331,15 @@ static int parse_commandline(int argc, char **argv)
       XFile = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--outdir")){
+    else if (!strcmp(option, "--pvr")){
       if(nargc < 1) argnerr(option,1);
-      OutDir = pargv[0];
+      pvrFiles[npvr] = pargv[0];
+      npvr++;
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--glmdir")){
+      if(nargc < 1) argnerr(option,1);
+      GLMDir = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--beta")){
@@ -372,7 +392,7 @@ static void print_usage(void)
   printf("\n");
   printf("   --y input volume \n");
   printf("   --X design matrix file\n");
-  printf("   --outdir dir : save outputs to dir\n");
+  printf("   --glmdir dir : save outputs to dir\n");
   printf("   --C contrast1.mat <--C contrast2.mat ...>\n");
   printf("\n");
   printf("   --beta regression coeffient volume\n");
@@ -423,15 +443,15 @@ static void check_options(void)
     printf("ERROR: must specify an input X file\n");
     exit(1);
   }
-  if(OutDir != NULL){
-    sprintf(tmpstr,"%s/beta.mgh",OutDir);
+  if(GLMDir != NULL){
+    sprintf(tmpstr,"%s/beta.mgh",GLMDir);
     betaFile = strcpyalloc(tmpstr);
-    sprintf(tmpstr,"%s/rvar.mgh",OutDir);
+    sprintf(tmpstr,"%s/rvar.mgh",GLMDir);
     rvarFile = strcpyalloc(tmpstr);
-    sprintf(tmpstr,"%s/eres.mgh",OutDir);
+    sprintf(tmpstr,"%s/eres.mgh",GLMDir);
     eresFile = strcpyalloc(tmpstr);
     if(yhatSave){
-      sprintf(tmpstr,"%s/yhat.mgh",OutDir);
+      sprintf(tmpstr,"%s/yhat.mgh",GLMDir);
       yhatFile = strcpyalloc(tmpstr);
     }
   }
@@ -575,6 +595,36 @@ int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
   }
   return(0);
 }
+
+/*---------------------------------------------------------------*/
+int MRIglmpvFit(GLMPV *glmpv)
+{
+  int c,r,s; //n,f;
+  MATRIX *X, *Xt, *XtX, *iXtX;
+
+  glmpv->DOF = glmpv->X->rows - (glmpv->X->cols + glmpv->npvr);
+
+  X    = MatrixAlloc(glmpv->X->rows, glmpv->X->cols + glmpv->npvr, MATRIX_REAL);
+  Xt   = MatrixAlloc(X->cols, X->rows, MATRIX_REAL);
+  XtX  = MatrixAlloc(X->cols, X->cols, MATRIX_REAL);
+  iXtX = MatrixAlloc(X->cols, X->cols, MATRIX_REAL);
+
+  // pre-load X
+
+
+  for(c=0; c< glmpv->y->width; c++){
+    for(r=0; r< glmpv->y->height; r++){
+      for(s=0; s< glmpv->y->depth; s++){
+
+      }
+    }
+  }
+
+  return(0);
+}
+
+
+
 
 #if 0
   printf("Packing and unpacking\n");
