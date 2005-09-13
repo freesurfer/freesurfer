@@ -42,6 +42,7 @@ typedef struct{
   int ncontrasts;    // Number of contrasts
   char *cname[100];  // Contrast names
   MATRIX *C[100];    // Contrast matrices
+  MATRIX *Ct[100];   // transposes Contrast matrices
   MRI *gamma[100];   // gamma = C*beta
   MRI *F[100];       // F = gamma'*iXtX*gamma/(rvar*J)
   MRI *sig[100];     // sig = significance of the F
@@ -66,7 +67,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.6 2005/09/12 23:10:59 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.7 2005/09/13 04:09:52 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -159,7 +160,7 @@ int main(int argc, char **argv)
 	printf("ERROR: loading C %s\n",CFile[n]);
 	exit(1);
       }
-      if(C->cols != X->cols){
+      if(C->cols != X->cols + npvr){
 	printf("ERROR: dimension mismatch between X and contrast %s",CFile[n]);
 	printf("       X has %d cols, C has %d cols\n",X->cols,C->cols);
 	exit(1);
@@ -201,15 +202,56 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  glmpv = (GLMPV *) calloc(sizeof(GLMPV),1);
-  glmpv->y = y;
-  glmpv->X = X;
-  for(n=0; n < npvr; n++){
-    glmpv->pvr[n] = MRIread(pvrFiles[n]);
-    if(glmpv->pvr[n] == NULL) exit(1);
+  if(npvr){
+    glmpv = (GLMPV *) calloc(sizeof(GLMPV),1);
+    glmpv->npvr = npvr;
+    glmpv->ncontrasts = nContrasts;
+    glmpv->y = y;
+    glmpv->X = X;
+    for(n=0; n < npvr; n++){
+      glmpv->pvr[n] = MRIread(pvrFiles[n]);
+      if(glmpv->pvr[n] == NULL) exit(1);
+    }
+    for(n=0; n < nContrasts; n++){
+      glmpv->C[n] = MatrixReadTxt(CFile[n], NULL);
+      if(glmpv->C[n]==NULL){
+	printf("ERROR: loading C %s\n",CFile[n]);
+	exit(1);
+      }
+    }
+    printf("Starting Fit\n");
+    MRIglmpvFit(glmpv);
+    MRIwrite(glmpv->beta,betaFile);
+    MRIwrite(glmpv->rvar,rvarFile);
+    if(yhatFile) MRIwrite(glmpv->yhat,yhatFile);
+    if(eresFile) MRIwrite(glmpv->eres,eresFile);    
+
+    for(n=0; n < nContrasts; n++){
+      ContrastName = fio_basename(CFile[n],".mat");
+      sprintf(tmpstr,"%s/%s",GLMDir,ContrastName);
+      mkdir(tmpstr,(mode_t)-1);
+      printf("%s\n",ContrastName);
+
+      sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,ContrastName);
+      MRIwrite(glmpv->gamma[n],tmpstr);
+
+      sprintf(tmpstr,"%s/%s/stat.mgh",GLMDir,ContrastName);
+      MRIwrite(glmpv->F[n],tmpstr);
+
+      sig = fMRIsigF(glmpv->F[n], glmpv->DOF, glmpv->C[n]->rows, NULL);
+      MRIlog10(sig,sig,1);
+      sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,ContrastName);
+      MRIwrite(sig,tmpstr);
+
+      MRIfree(&sig);
+    }
+
+    printf("mri_glmfit done\n");
+    return(0); exit(0);
+
   }
 
-
+  //------------------------------------------------------
   Xt = MatrixTranspose(X,NULL);
   XtX = MatrixMultiply(Xt,X,NULL);
   iXtX = MatrixInverse(XtX,NULL);
@@ -599,15 +641,33 @@ int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
 /*---------------------------------------------------------------*/
 int MRIglmpvFit(GLMPV *glmpv)
 {
-  int c,r,s,n,f;
-  MATRIX *X, *Xt, *XtX, *iXtX;
+  int c,r,s,n,f,nc,nr,ns,n_ill_cond;
+  MATRIX *X, *Xt=NULL, *XtX=NULL, *iXtX=NULL, *y, *Xty=NULL;
+  MATRIX *beta=NULL,*yhat=NULL,*eres=NULL, *Mtmp;
+  MATRIX *C[50],*Ct[50];
+  MATRIX *gam=NULL, *gamt=NULL, *CiXtX=NULL,*CiXtXCt=NULL;
+  MATRIX *gtCiXtXCt=NULL, *gtCiXtXCtg=NULL;
+  double rvar,F;
 
   glmpv->DOF = glmpv->X->rows - (glmpv->X->cols + glmpv->npvr);
 
-  X    = MatrixAlloc(glmpv->X->rows, glmpv->X->cols + glmpv->npvr, MATRIX_REAL);
-  Xt   = MatrixAlloc(X->cols, X->rows, MATRIX_REAL);
-  XtX  = MatrixAlloc(X->cols, X->cols, MATRIX_REAL);
-  iXtX = MatrixAlloc(X->cols, X->cols, MATRIX_REAL);
+  X = MatrixAlloc(glmpv->X->rows, glmpv->X->cols + glmpv->npvr, MATRIX_REAL);
+  y = MatrixAlloc(glmpv->X->rows, 1, MATRIX_REAL);
+
+  nc = glmpv->y->width;
+  nr = glmpv->y->height;
+  ns = glmpv->y->depth;
+  glmpv->beta = MRIallocSequence(nc, nr, ns, MRI_FLOAT, X->cols) ;
+  glmpv->yhat = MRIallocSequence(nc, nr, ns, MRI_FLOAT, glmpv->y->nframes) ;
+  glmpv->eres = MRIallocSequence(nc, nr, ns, MRI_FLOAT, glmpv->y->nframes) ;
+  glmpv->rvar = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
+
+  for(n = 0; n < glmpv->ncontrasts; n++){
+    glmpv->gamma[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT, glmpv->C[n]->rows);
+    glmpv->F[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
+    C[n] = glmpv->C[n];
+    Ct[n] = MatrixTranspose(C[n],NULL);
+  }
 
   // pre-load X
   for(f = 1; f <= X->rows; f++){
@@ -616,21 +676,65 @@ int MRIglmpvFit(GLMPV *glmpv)
     }
   }
 
-  for(c=0; c< glmpv->y->width; c++){
-    for(r=0; r< glmpv->y->height; r++){
-      for(s=0; s< glmpv->y->depth; s++){
+  //--------------------------------------------
+  n_ill_cond = 0;
+  for(c=0; c < nc; c++){
+    printf("%d \n",c);
+    for(r=0; r < nr; r++){
+      for(s=0; s< ns; s++){
 
+	// Load y and the per-vox reg --------------------------
 	for(f = 1; f <= X->rows; f++){
-	  for(n = glmpv->X->cols+1; n <= X->cols; n++){
-	    X->rptr[f][n] = MRIgetVoxVal(glmpv->pvr[n],c,r,s,f);
+	  y->rptr[f][1] = MRIgetVoxVal(glmpv->y,c,r,s,f-1);
+	  for(n = 1; n <= glmpv->npvr; n++){
+	    X->rptr[f][n+glmpv->X->cols] = 
+	      MRIgetVoxVal(glmpv->pvr[n-1],c,r,s,f-1);
 	  }
 	}
 
+	Xt   = MatrixTranspose(X,Xt);
+	XtX  = MatrixMultiply(Xt,X,XtX);
+	Mtmp = MatrixInverse(XtX,iXtX);
+	if(Mtmp == NULL){
+	  MatrixPrint(stdout,X);
+	  exit(1);
+	  n_ill_cond++;
+	  continue;
+	}
+	iXtX = Mtmp;
+
+	Xty  = MatrixMultiply(Xt,y,Xty);
+	beta = MatrixMultiply(iXtX,Xty,beta);
+	yhat = MatrixMultiply(X,beta,yhat);
+	eres = MatrixSubtract(y, yhat, eres);
+	
+	rvar = 0;
+	for(f = 1; f <= eres->rows; f++)
+	  rvar += (eres->rptr[f][1] * eres->rptr[f][1]);
+	rvar /= glmpv->DOF;
+	MRIsetVoxVal(glmpv->rvar,c,r,s,0,rvar);
+
+	MRIfromMatrix(glmpv->beta, c, r, s, beta);
+	MRIfromMatrix(glmpv->yhat, c, r, s, yhat);
+	MRIfromMatrix(glmpv->eres, c, r, s, eres);
+
+	for(n = 0; n < glmpv->ncontrasts; n++){
+	  gam        = MatrixMultiply(C[n],beta,gam);
+	  gamt       = MatrixTranspose(gam,gamt);
+	  CiXtX      = MatrixMultiply(C[n],iXtX,CiXtX);
+	  CiXtXCt    = MatrixMultiply(CiXtX,Ct[n],CiXtXCt);
+	  gtCiXtXCt  = MatrixMultiply(gamt,CiXtXCt,gtCiXtXCt);
+	  gtCiXtXCtg = MatrixMultiply(gtCiXtXCt,gam,gtCiXtXCtg);
+	  F          = gtCiXtXCtg->rptr[1][1]/(rvar/C[n]->rows);
+	  MRIfromMatrix(glmpv->gamma[n], c, r, s, gam);
+	  MRIsetVoxVal(glmpv->F[n],c,r,s,0,F);
+	}
 
       }
     }
   }
 
+  printf("n_ill_cond = %d\n",n_ill_cond);
   return(0);
 }
 
