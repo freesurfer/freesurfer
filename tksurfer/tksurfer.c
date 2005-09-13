@@ -15657,7 +15657,7 @@ find_best_path(MRI_SURFACE *mris, int start_vno, int end_vno,
 
 
 void
-plot_curv(int closedcurveflag)
+plot_curv2(int closedcurveflag)
 {
   int         i,j,k,m;
   float       dx0,dy0,dz0,dx1,dy1,dz1,nx,ny,nz,x1,y1,z1,x2,y2,z2;
@@ -15770,6 +15770,66 @@ plot_curv(int closedcurveflag)
   PR
     clear_vertex_marks();
   fclose(fp) ;
+}
+
+void
+plot_curv(int closedcurveflag)
+{
+  float x0, y0, z0, dx, dy, dz, dist;
+  VERTEX *v;
+  FILE *fp;
+  int vno;
+  int* path;
+  int path_length;
+  
+  
+#define LINE_FNAME "surfer_curv.dat"
+  
+  if (closedcurveflag)
+    close_marked_vertices();
+
+  path = (int*) calloc (mris->nvertices, sizeof(int));
+  
+  find_path (marked, nmarked, "Plotting curv...", mris->nvertices,
+	     path, &path_length);
+
+  if (path_length < 2) 
+    {
+      printf ("surfer: needs at least 2 marked vertices\n");
+      return;
+    }
+    
+  fprintf(stderr, "generating data file %s with entries:\n", LINE_FNAME) ;
+  fprintf(stderr, "vno x y z distance curv val val2 stat amp "
+          "deg normalized_deg radians\n") ;
+  if (nmarked<2) {
+    printf("surfer: needs at least 2 marked vertices\n");PR return;}
+  fp = fopen(LINE_FNAME, "w") ;
+
+  x0 = mris->vertices[path[0]].x ;
+  y0 = mris->vertices[path[0]].y ;
+  z0 = mris->vertices[path[0]].z ;
+  
+  for (vno = 0; vno < path_length; vno++)
+    {
+      v = &mris->vertices[path[vno]];
+      dx = v->x - x0;
+	  dy = v->y - y0;
+	  dz = v->z - z0;
+	  dist = sqrt(dx*dx + dy*dy + dz*dz);
+	  
+	  fprintf(fp, "%d %f %f %f %f %f %f %f %f %f %f %f %f\n",
+		  vno, v->x, v->y, v->z,
+		  dist, v->curv, v->val, v->val2, v->stat,
+		  hypot(v->val,v->val2),
+		  (float)(atan2(v->val2,v->val)*180/M_PI),
+		  (float)(atan2(v->val2,v->val)/(2*M_PI)), 
+		  (float)(atan2(v->val2,v->val))) ;
+	  
+    }
+
+  clear_vertex_marks();
+  fclose (fp);
 }
 
 void
@@ -18561,7 +18621,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.134 2005/09/06 21:17:35 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.135 2005/09/13 18:32:29 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
