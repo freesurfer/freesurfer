@@ -15655,123 +15655,6 @@ find_best_path(MRI_SURFACE *mris, int start_vno, int end_vno,
   return(num_nbrs) ;
 }
 
-
-void
-plot_curv2(int closedcurveflag)
-{
-  int         i,j,k,m;
-  float       dx0,dy0,dz0,dx1,dy1,dz1,nx,ny,nz,x1,y1,z1,x2,y2,z2;
-  float       f1,f2,d,d0,d1,a,x,y,z,xi,yi,zi,xj,yj,zj,s1,s2, x0, y0, z0,
-    dx, dy, dz, dist ;
-  VERTEX *v1,*v2,*vi,*vj;
-  FILE        *fp ;
-  
-  
-#define LINE_FNAME "surfer_curv.dat"
-  
-  fprintf(stderr, "generating data file %s with entries:\n", LINE_FNAME) ;
-  fprintf(stderr, "vno x y z distance curv val val2 stat amp "
-          "deg normalized_deg radians\n") ;
-  if (nmarked<2) {
-    printf("surfer: needs at least 2 marked vertices\n");PR return;}
-  fp = fopen(LINE_FNAME, "w") ;
-#if 0
-  for (k=0;k<mris->nvertices;k++)
-    mris->vertices[k].oripflag = mris->vertices[k].ripflag;
-#endif
-  if (closedcurveflag)
-    {
-      marked[nmarked] = marked[0];
-      nmarked++;
-    }
-  x0 = mris->vertices[marked[0]].x ;
-  y0 = mris->vertices[marked[0]].y ;
-  z0 = mris->vertices[marked[0]].z ;
-  for (i=0;i<nmarked-1;i++)
-    {
-      printf("surfer: i=%d\n",i);
-      j = i+1;
-      vi = &mris->vertices[marked[i]];
-      vj = &mris->vertices[marked[j]];
-      xi = vi->x;
-      yi = vi->y;
-      zi = vi->z;
-      xj = vj->x;
-      yj = vj->y;
-      zj = vj->z;
-      dx0 = vj->x-vi->x;
-      dy0 = vj->y-vi->y;
-      dz0 = vj->z-vi->z;
-      dx1 = vi->nx+vj->nx;
-      dy1 = vi->ny+vj->ny;
-      dz1 = vi->nz+vj->nz;
-      nx = -dy1*dz0 + dy0*dz1;
-      ny = dx1*dz0 - dx0*dz1;
-      nz = -dx1*dy0 + dx0*dy1;
-      d = sqrt(nx*nx+ny*ny+nz*nz);
-      nx /= d; ny /= d; nz /= d;
-      d0 = sqrt(dx0*dx0+dy0*dy0+dz0*dz0);
-      dx0 /= d0; dy0 /= d0; dz0 /= d0;
-      d1 = sqrt(dx1*dx1+dy1*dy1+dz1*dz1);
-      dx1 /= d1; dy1 /= d1; dz1 /= d1;
-      for (k=0;k<mris->nvertices;k++)
-	if (!mris->vertices[k].ripflag) 
-	  {
-	    v1 = &mris->vertices[k];
-	    x1 = v1->x - xi;
-	    y1 = v1->y - yi;
-	    z1 = v1->z - zi;
-	    s1 = nx*x1+ny*y1+nz*z1;
-	    for (m=0;m<v1->vnum;m++)
-	      if (!mris->vertices[v1->v[m]].ripflag)
-		{
-		  v2 = &mris->vertices[v1->v[m]];
-		  x2 = v2->x - xi;   /* vector from point to a nbr */
-		  y2 = v2->y - yi;
-		  z2 = v2->z - zi;
-		  s2 = nx*x2+ny*y2+nz*z2;  
-		  if (s1*s2<=0)
-		    {
-		      a = s2/(s2-s1);
-		      x = a*x1+(1-a)*x2;
-		      y = a*y1+(1-a)*y2;
-		      z = a*z1+(1-a)*z2;
-		      f1 = x*dx0+y*dy0+z*dz0;
-		      f2 = x*dx1+y*dy1+z*dz1;
-		      if (f1>=-1&&f1<=d0+1&&f2>=-5.0&&f2<=5.0 && v1->marked < 2)
-			{
-			  
-			  if (k == 26708)
-			    DiagBreak() ;
-			  
-			  v1->marked = 2 ;
-			  dx = v1->x - x0 ; dy = v1->y - y0 ; dz = v1->z - z0 ; 
-			  dist = sqrt(dx*dx + dy*dy + dz*dz) ;
-#if 0
-			  printf("surfer: delete connection (%d to %d)\n",k,v1->v[m]);
-			  printf("surfer: {%f,%f,%f} - {%f,%f,%f}\nf1=%f, f2=%f\n",
-				 x1,y1,z1,x2,y2,z2,f1,f2);
-			  v1->ripflag = TRUE;
-#else
-			  fprintf(fp, "%d %f %f %f %f %f %f %f %f %f %f %f %f\n",
-				  k, v1->x, v1->y, v1->z,
-				  dist, v1->curv, v1->val, v1->val2, v1->stat,
-				  hypot(v1->val,v1->val2),
-				  (float)(atan2(v1->val2,v1->val)*180/M_PI),
-				  (float)(atan2(v1->val2,v1->val)/(2*M_PI)), 
-				  (float)(atan2(v1->val2,v1->val))) ;
-			  
-#endif            
-			}
-		    }
-		}
-	  }
-    }
-  PR
-    clear_vertex_marks();
-  fclose(fp) ;
-}
-
 void
 plot_curv(int closedcurveflag)
 {
@@ -15790,12 +15673,13 @@ plot_curv(int closedcurveflag)
 
   path = (int*) calloc (mris->nvertices, sizeof(int));
   
-  find_path (marked, nmarked, "Plotting curv...", mris->nvertices,
+  find_path (marked, nmarked, "plotting curv", mris->nvertices,
 	     path, &path_length);
 
   if (path_length < 2) 
     {
       printf ("surfer: needs at least 2 marked vertices\n");
+      free (path);
       return;
     }
     
@@ -15814,22 +15698,23 @@ plot_curv(int closedcurveflag)
     {
       v = &mris->vertices[path[vno]];
       dx = v->x - x0;
-	  dy = v->y - y0;
-	  dz = v->z - z0;
-	  dist = sqrt(dx*dx + dy*dy + dz*dz);
-	  
-	  fprintf(fp, "%d %f %f %f %f %f %f %f %f %f %f %f %f\n",
-		  vno, v->x, v->y, v->z,
-		  dist, v->curv, v->val, v->val2, v->stat,
-		  hypot(v->val,v->val2),
-		  (float)(atan2(v->val2,v->val)*180/M_PI),
-		  (float)(atan2(v->val2,v->val)/(2*M_PI)), 
-		  (float)(atan2(v->val2,v->val))) ;
+      dy = v->y - y0;
+      dz = v->z - z0;
+      dist = sqrt(dx*dx + dy*dy + dz*dz);
+      
+      fprintf(fp, "%d %f %f %f %f %f %f %f %f %f %f %f %f\n",
+	      path[vno], v->x, v->y, v->z,
+	      dist, v->curv, v->val, v->val2, v->stat,
+	      hypot(v->val,v->val2),
+	      (float)(atan2(v->val2,v->val)*180/M_PI),
+	      (float)(atan2(v->val2,v->val)/(2*M_PI)), 
+	      (float)(atan2(v->val2,v->val))) ;
 	  
     }
 
   clear_vertex_marks();
   fclose (fp);
+  free (path);
 }
 
 void
@@ -18621,7 +18506,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.135 2005/09/13 18:32:29 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.136 2005/09/13 19:03:05 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25161,8 +25046,8 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
 	}
 
       /* Set src and dest */
-      src_vno = vert_vno[cur_vert_vno];
-      dest_vno = vert_vno[cur_vert_vno+1];
+      src_vno = vert_vno[cur_vert_vno+1];
+      dest_vno = vert_vno[cur_vert_vno];
 
       /* calc the vector from src to dst. */
       srcdst_x = mris->vertices[dest_vno].x - mris->vertices[src_vno].x;
