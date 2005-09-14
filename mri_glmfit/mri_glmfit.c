@@ -1,12 +1,14 @@
 // mri_glmfit.c
 
-// 6. Weighting
-// 3. Save config in output dir
-// 4. Links to source data
-// 7. p-to-z
-// 1. Rewrite MatrixReadTxt to ignore # and % and empty lines
-// 2. Auto-det/read matlab4 matrices
-// 5. Profiling
+// Cleanup
+// Weighting
+// Save config in output dir
+// Links to source data
+
+// p-to-z
+// Rewrite MatrixReadTxt to ignore # and % and empty lines
+// Auto-det/read matlab4 matrices
+// Profiling
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +33,7 @@ double round(double x);
 #include "matrix.h"
 #include "annotation.h"
 #include "fmriutils.h"
+#include "cmdargs.h"
 
 #undef X
 
@@ -69,13 +72,11 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
-static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
-static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.8 2005/09/14 03:22:52 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.9 2005/09/14 18:25:08 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -128,10 +129,7 @@ int main(int argc, char **argv)
 
   parse_commandline(argc, argv);
   check_options();
-  if(checkoptsonly){
-    return(0);
-    exit(0);
-  }
+  if(checkoptsonly) return(0);
 
   printf("\n");
   printf("%s\n",vcid);
@@ -384,55 +382,55 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--yhatsave")) yhatSave = 1;
 
     else if (!strcmp(option, "--y")){
-      if(nargc < 1) argnerr(option,1);
+      if(nargc < 1) CMDargNErr(option,1);
       yFile = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--X")){
-      if(nargc < 1) argnerr(option,1);
+      if(nargc < 1) CMDargNErr(option,1);
       XFile = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--pvr")){
-      if(nargc < 1) argnerr(option,1);
+      if(nargc < 1) CMDargNErr(option,1);
       pvrFiles[npvr] = pargv[0];
       npvr++;
       nargsused = 1;
     }
     else if (!strcmp(option, "--glmdir")){
-      if(nargc < 1) argnerr(option,1);
+      if(nargc < 1) CMDargNErr(option,1);
       GLMDir = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--beta")){
-      if(nargc < 1) argnerr(option,1);
+      if(nargc < 1) CMDargNErr(option,1);
       betaFile = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--rvar")){
-      if(nargc < 1) argnerr(option,1);
+      if(nargc < 1) CMDargNErr(option,1);
       rvarFile = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--yhat")){
-      if(nargc < 1) argnerr(option,1);
+      if(nargc < 1) CMDargNErr(option,1);
       yhatFile = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--eres")){
-      if(nargc < 1) argnerr(option,1);
+      if(nargc < 1) CMDargNErr(option,1);
       eresFile = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--C")){
-      if(nargc < 1) argnerr(option,1);
+      if(nargc < 1) CMDargNErr(option,1);
       CFile[nContrasts] = pargv[0];
       nContrasts++;
       nargsused = 1;
     }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
-      if(singledash(option))
+      if(CMDsingleDash(option))
 	fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
@@ -486,15 +484,6 @@ static void print_version(void)
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void argnerr(char *option, int n)
-{
-  if(n==1)
-    fprintf(stderr,"ERROR: %s flag needs %d argument\n",option,n);
-  else
-    fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
-  exit(-1);
-}
-/* --------------------------------------------- */
 static void check_options(void)
 {
   if(yFile == NULL){
@@ -543,17 +532,6 @@ static void dump_options(FILE *fp)
 
   return;
 }
-/*---------------------------------------------------------------*/
-static int singledash(char *flag)
-{
-  int len;
-  len = strlen(flag);
-  if(len < 2) return(0);
-
-  if(flag[0] == '-' && flag[1] != '-') return(1);
-  return(0);
-}
-
 /*---------------------------------------------------------------*/
 MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s, 
 		    int Mrows, int Mcols, MATRIX *M)
