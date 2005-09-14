@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.7 2005/07/08 18:10:27 greve Exp $
+   $Id: fmriutils.c,v 1.8 2005/09/14 03:22:13 greve Exp $
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -378,7 +378,10 @@ MRI *fMRIcomputeF(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *F)
 }
 
 /*--------------------------------------------------------*/
-MRI *fMRIsigF(MRI *F, float DOF1, float DOF2, MRI *sig)
+// DOF1 = dof of den (same as t DOF)
+// DOF2 = dof of num (number of rows in C)
+// Note: order is rev relative to fsfast's FTest.m
+MRI *fMRIsigF(MRI *F, float DOFDen, float DOFNum, MRI *sig)
 {
   int c, r, s, f;
   float Fval, sigFval;
@@ -411,8 +414,7 @@ MRI *fMRIsigF(MRI *F, float DOF1, float DOF2, MRI *sig)
       for(s=0; s < F->depth; s++){
 	for(f=0; f < F->nframes; f++){
 	  Fval = MRIFseq_vox(F,c,r,s,f);
-          //sigFval = sigt(Fval, rint(DOF1));
-	  sigFval = gsl_cdf_fdist_Q(Fval,DOF1,DOF2);
+	  sigFval = gsl_cdf_fdist_Q(Fval,DOFNum,DOFDen);
 	  MRIFseq_vox(sig,c,r,s,f) = sigFval;
 	}
       }
