@@ -1,5 +1,13 @@
 // mri_glmfit.c
 
+// 6. Weighting
+// 3. Save config in output dir
+// 4. Links to source data
+// 7. p-to-z
+// 1. Rewrite MatrixReadTxt to ignore # and % and empty lines
+// 2. Auto-det/read matlab4 matrices
+// 5. Profiling
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -67,7 +75,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.7 2005/09/13 04:09:52 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.8 2005/09/14 03:22:52 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -238,7 +246,19 @@ int main(int argc, char **argv)
       sprintf(tmpstr,"%s/%s/stat.mgh",GLMDir,ContrastName);
       MRIwrite(glmpv->F[n],tmpstr);
 
+      //sig = fMRIsigT(rstat, DOF, NULL);
+
+      //sig = fMRIsigF(glmpv->F[n], glmpv->DOF, glmpv->C[n]->rows, NULL);
       sig = fMRIsigF(glmpv->F[n], glmpv->DOF, glmpv->C[n]->rows, NULL);
+      printf("DOF = %g, J = %d, F = %g, p = %g\n",
+	     glmpv->DOF, glmpv->C[n]->rows,
+	     MRIgetVoxVal(glmpv->F[n],0,0,0,0),
+	     MRIgetVoxVal(sig,0,0,0,0));
+
+
+      sprintf(tmpstr,"%s/%s/p.mgh",GLMDir,ContrastName);
+      MRIwrite(sig,tmpstr);
+
       MRIlog10(sig,sig,1);
       sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,ContrastName);
       MRIwrite(sig,tmpstr);
@@ -298,7 +318,7 @@ int main(int argc, char **argv)
     if(C==NULL){
       printf("ERROR: loading C %s\n",CFile[n]);
       exit(1);
-      }
+    }
     ContrastName = fio_basename(CFile[n], ".mat");
     sprintf(tmpstr,"%s/%s",GLMDir,ContrastName);
     mkdir(tmpstr,(mode_t)-1);
@@ -646,7 +666,7 @@ int MRIglmpvFit(GLMPV *glmpv)
   MATRIX *beta=NULL,*yhat=NULL,*eres=NULL, *Mtmp;
   MATRIX *C[50],*Ct[50];
   MATRIX *gam=NULL, *gamt=NULL, *CiXtX=NULL,*CiXtXCt=NULL;
-  MATRIX *gtCiXtXCt=NULL, *gtCiXtXCtg=NULL;
+  MATRIX *iCiXtXCt=NULL,*gtiCiXtXCt=NULL, *gtiCiXtXCtg=NULL;
   double rvar,F;
 
   glmpv->DOF = glmpv->X->rows - (glmpv->X->cols + glmpv->npvr);
@@ -719,13 +739,14 @@ int MRIglmpvFit(GLMPV *glmpv)
 	MRIfromMatrix(glmpv->eres, c, r, s, eres);
 
 	for(n = 0; n < glmpv->ncontrasts; n++){
-	  gam        = MatrixMultiply(C[n],beta,gam);
-	  gamt       = MatrixTranspose(gam,gamt);
-	  CiXtX      = MatrixMultiply(C[n],iXtX,CiXtX);
-	  CiXtXCt    = MatrixMultiply(CiXtX,Ct[n],CiXtXCt);
-	  gtCiXtXCt  = MatrixMultiply(gamt,CiXtXCt,gtCiXtXCt);
-	  gtCiXtXCtg = MatrixMultiply(gtCiXtXCt,gam,gtCiXtXCtg);
-	  F          = gtCiXtXCtg->rptr[1][1]/(rvar/C[n]->rows);
+	  gam         = MatrixMultiply(C[n],beta,gam);
+	  gamt        = MatrixTranspose(gam,gamt);
+	  CiXtX       = MatrixMultiply(C[n],iXtX,CiXtX);
+	  CiXtXCt     = MatrixMultiply(CiXtX,Ct[n],CiXtXCt);
+	  iCiXtXCt    = MatrixInverse(CiXtXCt,iCiXtXCt);
+	  gtiCiXtXCt  = MatrixMultiply(gamt,iCiXtXCt,gtiCiXtXCt);
+	  gtiCiXtXCtg = MatrixMultiply(gtiCiXtXCt,gam,gtiCiXtXCtg);
+	  F           = gtiCiXtXCtg->rptr[1][1]/(rvar/C[n]->rows);
 	  MRIfromMatrix(glmpv->gamma[n], c, r, s, gam);
 	  MRIsetVoxVal(glmpv->F[n],c,r,s,0,F);
 	}
