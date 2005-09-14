@@ -17,7 +17,7 @@
 #include "version.h"
 #include "colortab.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.29 2005/08/23 15:19:40 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.30 2005/09/14 19:29:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,7 +87,7 @@ main(int argc, char *argv[])
   char *cmdline;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.29 2005/08/23 15:19:40 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.30 2005/09/14 19:29:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -158,6 +158,22 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+	// read in white and pial surfaces
+	MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "pial") ;
+  fprintf(stderr, "reading input surface %s...\n", fname) ;
+  if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+              Progname, fname) ;
+  MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "white") ;
+  fprintf(stderr, "reading input surface %s...\n", fname) ;
+  if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+              Progname, fname) ;
+  MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+	MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+
   MRIScomputeMetricProperties(mris) ;
   wm_volume = MRISmeasureTotalWhiteMatterVolume(mri_wm) ;
 #if 0
@@ -724,6 +740,9 @@ MRISmeasureCorticalGrayMatterVolume(MRI_SURFACE *mris)
   int       fno, m, vno ;
   double    mean, total, volume, n, avg_thick ;
 
+	MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+	MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+	MRIScomputeMetricProperties(mris) ;
   for (n = total = 0.0, fno = 0 ; fno < mris->nfaces ; fno++)
   {
     f = &mris->faces[fno] ;
@@ -741,13 +760,33 @@ MRISmeasureCorticalGrayMatterVolume(MRI_SURFACE *mris)
     n += 1.0 ;
   }
 
+	MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
+	MRIScomputeMetricProperties(mris) ;
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    if (f->ripflag)
+      continue ;
+		for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++)
+		{
+			vno = f->v[m] ;
+			v = &mris->vertices[vno] ;
+			avg_thick += v->curv ;
+		}
+		avg_thick /= VERTICES_PER_FACE ;
+    volume = (avg_thick * f->area) ;
+    total += volume ;
+    n += 1.0 ;
+  }
+	
+	total /= 2 ;  // average of white and pial surface areas
 	if (n > 0)
 		mean = total / n ;
 	else
 		mean = 0 ;
+	MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   return(total) ;
 }
-
 
 
 double
