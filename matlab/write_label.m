@@ -17,7 +17,7 @@ end
 
 if(~isempty(lindex) & ~isempty(lxyz))
   npoints1 = length(lindex); 
-  npoints2 = length(lxyz); 
+  npoints2 = size(lxyz,1); 
   if(npoints1 ~= npoints2)
     fprintf('ERROR: lindex and lxyz have different lengths.\n');
     return;
