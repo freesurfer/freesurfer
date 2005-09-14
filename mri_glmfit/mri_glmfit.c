@@ -1,9 +1,8 @@
 // mri_glmfit.c
 
-// Cleanup
-// Weighting
 // Save config in output dir
 // Links to source data
+// Cleanup
 
 // p-to-z
 // Rewrite MatrixReadTxt to ignore # and % and empty lines
@@ -37,16 +36,22 @@ double round(double x);
 
 #undef X
 
+/*---------------------------------------------------------*/
 typedef struct{
   MRI *y;            // Input data
-  MATRIX *X;         // Global regressors
+  MATRIX *Xg;        // Global regressor matrix
   int npvr;          // Number of per-voxel regressors
   MRI *pvr[50];      // Per-voxel regressors (local)
   float DOF;         // DOF
+  int Xcols;         // X->cols + npvr
+  MRI *w;            // Per-voxel, per-input weight
+  MRI *mask;         // Only proc within mask
+  int n_ill_cond;    // Number of ill-conditioned voxels
 
-  MRI *iXtX;         // inv(X'X), where X is global and pv
+  MRI *iXtX;         // inv(X'X), where X is global and pv (needed?)
   MRI *beta;         // beta = inv(X'X)*X'*y
   MRI *yhat;         // yhat = X*beta
+  int yhatsave;      // Flag to save yhat
   MRI *eres;         // eres = y - yhat
   MRI *rvar;         // rvar = sum(eres.^2)/DOF;
 
@@ -58,6 +63,7 @@ typedef struct{
   MRI *F[100];       // F = gamma'*iXtX*gamma/(rvar*J)
   MRI *sig[100];     // sig = significance of the F
 } GLMPV;
+/*---------------------------------------------------------*/
 
 int MRIglmpvFit(GLMPV *glmpv);
 MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s, 
@@ -65,6 +71,7 @@ MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s,
 MATRIX *MRItoSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
 int MRIfromMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
 int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
+MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -76,29 +83,25 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.9 2005/09/14 18:25:08 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.10 2005/09/14 23:25:20 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
-char *yhatFile=NULL, *eresFile=NULL;
+char *yhatFile=NULL, *eresFile=NULL, *wFile=NULL, *maskFile;
 char *GLMDir=NULL;
 char *pvrFiles[50];
 int synth = 0;
 int yhatSave=0;
 
-MRI *y, *beta, *rvar, *yhat, *eres, *mritmp;
-MRI *gam, *rstat, *sig;
+MRI *mritmp=NULL, *sig=NULL;
 
 int debug = 0, checkoptsonly = 0;
 char tmpstr[2000];
 
-MATRIX *X; /* design matrix */
 MATRIX *H=NULL, *Xt=NULL, *XtX=NULL, *iXtX=NULL, *Q=NULL, *R=NULL;
-MATRIX *C, *M;
+MATRIX *M;
 int nContrasts=0;
 char *CFile[100];
-char *ContrastName;
-float DOF;
 int err,c,r,s;
 
 int npvr=0;
@@ -150,36 +153,52 @@ int main(int argc, char **argv)
     }
   }
 
+  glmpv = (GLMPV *) calloc(sizeof(GLMPV),1);
+  glmpv->npvr = npvr;
+  glmpv->ncontrasts = nContrasts;
+  if(yhatFile != NULL) glmpv->yhatsave = 1;
+  else                 glmpv->yhatsave = 0;
+
   //-----------------------------------------------------
-  printf("Loading design matrix from %s\n",XFile);
-  X = MatrixReadTxt(XFile, NULL);
-  if(X==NULL){
+  glmpv->Xg = MatrixReadTxt(XFile, NULL);
+  if(glmpv->Xg==NULL){
     printf("ERROR: loading X %s\n",XFile);
     exit(1);
   }
 
-  //-----------------------------------------------------
+  // Total number of columns in X, including PVRs
+  glmpv->Xcols = glmpv->Xg->cols + npvr;
+
+  // Compute and check DOF -------------------------------------
+  glmpv->DOF = glmpv->Xg->rows - glmpv->Xcols;
+  if(glmpv->DOF < 1){
+    printf("ERROR: DOF = %g\n",glmpv->DOF);
+    exit(1);
+  }
+
+  // Load the contrasts -----------------------------------------------
   if(nContrasts > 0){
     for(n=0; n < nContrasts; n++){
-      C = MatrixReadTxt(CFile[n], NULL);
-      if(C==NULL){
+      glmpv->C[n] = MatrixReadTxt(CFile[n], NULL);
+      if(glmpv->C[n] == NULL){
 	printf("ERROR: loading C %s\n",CFile[n]);
 	exit(1);
       }
-      if(C->cols != X->cols + npvr){
+      if(glmpv->C[n]->cols != glmpv->Xcols){
 	printf("ERROR: dimension mismatch between X and contrast %s",CFile[n]);
-	printf("       X has %d cols, C has %d cols\n",X->cols,C->cols);
+	printf("       X has %d cols, C has %d cols\n",
+	       glmpv->Xcols,glmpv->C[n]->cols);
 	exit(1);
       }
-      MatrixFree(&C);
+      glmpv->cname[n] = fio_basename(CFile[n],".mat");
     }
   }
 
-  //-----------------------------------------------------
+  // Load/synth input  -----------------------------------------------
   if(synth == 0){
     printf("Loading y from %s\n",yFile);
-    y = MRIread(yFile);
-    if(y == NULL){
+    glmpv->y = MRIread(yFile);
+    if(glmpv->y == NULL){
       printf("ERROR: loading y %s\n",yFile);
       exit(1);
     }
@@ -191,74 +210,79 @@ int main(int argc, char **argv)
       exit(1);
     }
     printf("Synthesizing y with white noise\n");
-    y =  MRIrandn(mritmp->width, mritmp->depth, mritmp->height, 
-		  mritmp->nframes,0,1,NULL);
+    glmpv->y =  MRIrandn(mritmp->width, mritmp->depth, mritmp->height, 
+			 mritmp->nframes,0,1,NULL);
     MRIfree(&mritmp);
   }
 
-  //-----------------------------------------------------
-  if(y->nframes != X->rows){
+  // Check some dimensions -----------------------------------
+  if(glmpv->y->nframes != glmpv->Xg->rows){
     printf("ERROR: dimension mismatch between y and X.\n");
-    printf("  y has %d inputs, X has %d rows.\n",y->nframes,X->rows);
+    printf("  y has %d inputs, X has %d rows.\n",
+	   glmpv->y->nframes,glmpv->Xg->rows);
     exit(1);
   }
 
-  if(y->nframes <= X->cols){
-    printf("ERROR: number of columns in X exceeds number of inputs\n");
-    exit(1);
+  // Load the mask file ----------------------------------
+  if(maskFile != NULL){
+    glmpv->mask = MRIread(maskFile);
+    if(glmpv->mask  == NULL){
+      printf("ERROR: reading mask file %s\n",maskFile);
+      exit(1);
+    }
   }
+  else glmpv->mask = NULL;
 
-  if(npvr){
-    glmpv = (GLMPV *) calloc(sizeof(GLMPV),1);
-    glmpv->npvr = npvr;
-    glmpv->ncontrasts = nContrasts;
-    glmpv->y = y;
-    glmpv->X = X;
-    for(n=0; n < npvr; n++){
+  // Load the weight file ----------------------------------
+  if(wFile != NULL){
+    glmpv->w = MRIread(wFile);
+    if(glmpv->w  == NULL){
+      printf("ERROR: reading weight file %s\n",wFile);
+      exit(1);
+    }
+    MRInormWeights(glmpv->w, 1, 1, glmpv->mask, glmpv->w);
+    MRIwrite(glmpv->w,"wn.mgh");
+  }
+  else glmpv->w = NULL;
+
+  // Load PVRs -----------------------------------
+  if(glmpv->npvr > 0){
+    for(n=0; n < glmpv->npvr; n++){
       glmpv->pvr[n] = MRIread(pvrFiles[n]);
       if(glmpv->pvr[n] == NULL) exit(1);
     }
-    for(n=0; n < nContrasts; n++){
-      glmpv->C[n] = MatrixReadTxt(CFile[n], NULL);
-      if(glmpv->C[n]==NULL){
-	printf("ERROR: loading C %s\n",CFile[n]);
-	exit(1);
-      }
-    }
-    printf("Starting Fit\n");
+  }
+
+  // PVR Analysis  -----------------------------------
+  if(glmpv->npvr > 0 || wFile != NULL){
+    printf("Starting PVR Fit\n");
     MRIglmpvFit(glmpv);
     MRIwrite(glmpv->beta,betaFile);
     MRIwrite(glmpv->rvar,rvarFile);
-    if(yhatFile) MRIwrite(glmpv->yhat,yhatFile);
+    if(glmpv->yhatsave) MRIwrite(glmpv->yhat,yhatFile);
     if(eresFile) MRIwrite(glmpv->eres,eresFile);    
 
-    for(n=0; n < nContrasts; n++){
-      ContrastName = fio_basename(CFile[n],".mat");
-      sprintf(tmpstr,"%s/%s",GLMDir,ContrastName);
+    for(n=0; n < glmpv->ncontrasts; n++){
+
+      // Create output directory for contrast
+      sprintf(tmpstr,"%s/%s",GLMDir,glmpv->cname[n]);
       mkdir(tmpstr,(mode_t)-1);
-      printf("%s\n",ContrastName);
+      printf("%s\n",glmpv->cname[n]);
 
-      sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,ContrastName);
+      // Save gamma and F
+      sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,glmpv->cname[n]);
       MRIwrite(glmpv->gamma[n],tmpstr);
-
-      sprintf(tmpstr,"%s/%s/stat.mgh",GLMDir,ContrastName);
+      sprintf(tmpstr,"%s/%s/F.mgh",GLMDir,glmpv->cname[n]);
       MRIwrite(glmpv->F[n],tmpstr);
 
-      //sig = fMRIsigT(rstat, DOF, NULL);
-
-      //sig = fMRIsigF(glmpv->F[n], glmpv->DOF, glmpv->C[n]->rows, NULL);
+      // Compute and Save p-values
       sig = fMRIsigF(glmpv->F[n], glmpv->DOF, glmpv->C[n]->rows, NULL);
-      printf("DOF = %g, J = %d, F = %g, p = %g\n",
-	     glmpv->DOF, glmpv->C[n]->rows,
-	     MRIgetVoxVal(glmpv->F[n],0,0,0,0),
-	     MRIgetVoxVal(sig,0,0,0,0));
-
-
-      sprintf(tmpstr,"%s/%s/p.mgh",GLMDir,ContrastName);
+      sprintf(tmpstr,"%s/%s/p.mgh",GLMDir,glmpv->cname[n]);
       MRIwrite(sig,tmpstr);
 
+      // Compute and Save -log10 p-values
       MRIlog10(sig,sig,1);
-      sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,ContrastName);
+      sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,glmpv->cname[n]);
       MRIwrite(sig,tmpstr);
 
       MRIfree(&sig);
@@ -269,9 +293,9 @@ int main(int argc, char **argv)
 
   }
 
-  //------------------------------------------------------
-  Xt = MatrixTranspose(X,NULL);
-  XtX = MatrixMultiply(Xt,X,NULL);
+  // Only gets here if there are no PVRs -----------------------------------
+  Xt = MatrixTranspose(glmpv->Xg,NULL);
+  XtX = MatrixMultiply(Xt,glmpv->Xg,NULL);
   iXtX = MatrixInverse(XtX,NULL);
   if(iXtX==NULL){
     printf("ERROR: could not compute psuedo inverse of X\n");
@@ -280,29 +304,27 @@ int main(int argc, char **argv)
   /* Q is the matrix that when multiplied by y gives beta */
   Q = MatrixMultiply(iXtX,Xt,NULL);
   /* H is the matrix that when multiplied by y gives the signal estimate */
-  H = MatrixMultiply(X,Q,NULL);
+  H = MatrixMultiply(glmpv->Xg,Q,NULL);
   /* R is the matrix that when multiplied by y gives the residual error */
-  R = MatrixSubtract(MatrixIdentity(y->nframes,NULL),H,NULL);
-  DOF = MatrixTrace(R);
-  printf("DOF = %f\n",DOF);
+  R = MatrixSubtract(MatrixIdentity(glmpv->y->nframes,NULL),H,NULL);
 
   //-----------------------------------------------------
   printf("Computing beta\n");
-  beta = fMRImatrixMultiply(y, Q, NULL);
-  MRIwrite(beta,betaFile);
+  glmpv->beta = fMRImatrixMultiply(glmpv->y, Q, NULL);
+  MRIwrite(glmpv->beta,betaFile);
 
   printf("Computing residuals\n");
-  eres = fMRImatrixMultiply(y, R, NULL);
-  if(eresFile) MRIwrite(eres,eresFile);
+  glmpv->eres = fMRImatrixMultiply(glmpv->y, R, NULL);
+  if(eresFile) MRIwrite(glmpv->eres,eresFile);
 
   printf("Computing residual variance\n");
-  rvar = fMRIvariance(eres,DOF,0,NULL);
-  MRIwrite(rvar,rvarFile);
+  glmpv->rvar = fMRIvariance(glmpv->eres,glmpv->DOF,0,NULL);
+  MRIwrite(glmpv->rvar,rvarFile);
 
-  if(yhatFile){ 
+  if(glmpv->yhatsave){ 
     printf("Computing signal estimate\n");
-    yhat = fMRImatrixMultiply(y, H, NULL);
-    MRIwrite(yhat,yhatFile);
+    glmpv->yhat = fMRImatrixMultiply(glmpv->y, H, NULL);
+    MRIwrite(glmpv->yhat,yhatFile);
   }
 
   if(nContrasts == 0){
@@ -312,39 +334,26 @@ int main(int argc, char **argv)
 
   //---------------------------------------------------
   for(n=0; n < nContrasts; n++){
-    C = MatrixReadTxt(CFile[n], NULL);
-    if(C==NULL){
-      printf("ERROR: loading C %s\n",CFile[n]);
-      exit(1);
-    }
-    ContrastName = fio_basename(CFile[n], ".mat");
-    sprintf(tmpstr,"%s/%s",GLMDir,ContrastName);
+
+    printf("%s\n",glmpv->cname[n]);
+    sprintf(tmpstr,"%s/%s",GLMDir,glmpv->cname[n]);
     mkdir(tmpstr,(mode_t)-1);
-    
-    printf("%s\n",ContrastName);
 
-    gam = fMRImatrixMultiply(beta,C,NULL);
-    sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,ContrastName);
-    MRIwrite(gam,tmpstr);
+    glmpv->gamma[n] = fMRImatrixMultiply(glmpv->beta,glmpv->C[n],NULL);
+    sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,glmpv->cname[n]);
+    MRIwrite(glmpv->gamma[n],tmpstr);
 
-    if(C->rows == 1) rstat = fMRIcomputeT(gam, X, C, rvar, NULL);
-    else             rstat = fMRIcomputeF(gam, X, C, rvar, NULL);
-    sprintf(tmpstr,"%s/%s/stat.mgh",GLMDir,ContrastName);
-    MRIwrite(rstat,tmpstr);
+    glmpv->F[n] = fMRIcomputeF(glmpv->gamma[n], glmpv->Xg, glmpv->C[n], 
+			       glmpv->rvar, NULL);
+    sprintf(tmpstr,"%s/%s/F.mgh",GLMDir,glmpv->cname[n]);
+    MRIwrite(glmpv->F[n],tmpstr);
 
-    if(C->rows == 1) sig = fMRIsigT(rstat, DOF, NULL);
-    else             sig = fMRIsigF(rstat, DOF, C->rows, NULL);
+    sig = fMRIsigF(glmpv->F[n], glmpv->DOF, glmpv->C[n]->rows, NULL);
     MRIlog10(sig,sig,1);
-    sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,ContrastName);
+    sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,glmpv->cname[n]);
     MRIwrite(sig,tmpstr);
 
-    //-- Should do a PMF
-    
-    MatrixFree(&C);
-    MRIfree(&gam);
-    MRIfree(&rstat);
     MRIfree(&sig);
-
   }
 
   printf("mri_glmfit done\n");
@@ -384,6 +393,16 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--y")){
       if(nargc < 1) CMDargNErr(option,1);
       yFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--mask")){
+      if(nargc < 1) CMDargNErr(option,1);
+      maskFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--w")){
+      if(nargc < 1) CMDargNErr(option,1);
+      wFile = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--X")){
@@ -639,26 +658,28 @@ int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
 /*---------------------------------------------------------------*/
 int MRIglmpvFit(GLMPV *glmpv)
 {
-  int c,r,s,n,f,nc,nr,ns,n_ill_cond;
-  MATRIX *X, *Xt=NULL, *XtX=NULL, *iXtX=NULL, *y, *Xty=NULL;
+  int c,r,s,n,f,nc,nr,ns;
+  MATRIX *X0, *X=NULL, *Xt=NULL, *XtX=NULL, *iXtX=NULL, *y, *Xty=NULL;
   MATRIX *beta=NULL,*yhat=NULL,*eres=NULL, *Mtmp;
   MATRIX *C[50],*Ct[50];
   MATRIX *gam=NULL, *gamt=NULL, *CiXtX=NULL,*CiXtXCt=NULL;
   MATRIX *iCiXtXCt=NULL,*gtiCiXtXCt=NULL, *gtiCiXtXCtg=NULL;
-  double rvar,F;
+  double rvar,F,m,v;
 
-  glmpv->DOF = glmpv->X->rows - (glmpv->X->cols + glmpv->npvr);
+  glmpv->DOF = glmpv->Xg->rows - (glmpv->Xg->cols + glmpv->npvr);
 
-  X = MatrixAlloc(glmpv->X->rows, glmpv->X->cols + glmpv->npvr, MATRIX_REAL);
-  y = MatrixAlloc(glmpv->X->rows, 1, MATRIX_REAL);
+  X0 = MatrixAlloc(glmpv->Xg->rows, glmpv->Xg->cols + glmpv->npvr, MATRIX_REAL);
+  y = MatrixAlloc(glmpv->Xg->rows, 1, MATRIX_REAL);
 
   nc = glmpv->y->width;
   nr = glmpv->y->height;
   ns = glmpv->y->depth;
-  glmpv->beta = MRIallocSequence(nc, nr, ns, MRI_FLOAT, X->cols) ;
-  glmpv->yhat = MRIallocSequence(nc, nr, ns, MRI_FLOAT, glmpv->y->nframes) ;
+  glmpv->beta = MRIallocSequence(nc, nr, ns, MRI_FLOAT, X0->cols) ;
   glmpv->eres = MRIallocSequence(nc, nr, ns, MRI_FLOAT, glmpv->y->nframes) ;
   glmpv->rvar = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
+
+  if(glmpv->yhatsave)
+    glmpv->yhat = MRIallocSequence(nc, nr, ns, MRI_FLOAT, glmpv->y->nframes) ;
 
   for(n = 0; n < glmpv->ncontrasts; n++){
     glmpv->gamma[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT, glmpv->C[n]->rows);
@@ -667,55 +688,79 @@ int MRIglmpvFit(GLMPV *glmpv)
     Ct[n] = MatrixTranspose(C[n],NULL);
   }
 
-  // pre-load X
-  for(f = 1; f <= X->rows; f++){
-    for(n = 1; n <= glmpv->X->cols; n++){
-      X->rptr[f][n] = glmpv->X->rptr[f][n];
+  // pre-load X0
+  for(f = 1; f <= X0->rows; f++){
+    for(n = 1; n <= glmpv->Xg->cols; n++){
+      X0->rptr[f][n] = glmpv->Xg->rptr[f][n];
     }
   }
 
   //--------------------------------------------
-  n_ill_cond = 0;
+  glmpv->n_ill_cond = 0;
   for(c=0; c < nc; c++){
     printf("%d \n",c);
     for(r=0; r < nr; r++){
       for(s=0; s< ns; s++){
 
+	// Check the mask -----------
+	if(glmpv->mask != NULL){
+	  m = MRIgetVoxVal(glmpv->mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+
 	// Load y and the per-vox reg --------------------------
-	for(f = 1; f <= X->rows; f++){
+	for(f = 1; f <= X0->rows; f++){
 	  y->rptr[f][1] = MRIgetVoxVal(glmpv->y,c,r,s,f-1);
 	  for(n = 1; n <= glmpv->npvr; n++){
-	    X->rptr[f][n+glmpv->X->cols] = 
+	    X0->rptr[f][n+glmpv->Xg->cols] = 
 	      MRIgetVoxVal(glmpv->pvr[n-1],c,r,s,f-1);
 	  }
 	}
 
+	// Weight X and y
+	if(glmpv->w != NULL){
+	  X = MatrixCopy(X0,X);
+	  for(f = 1; f <= X->rows; f++){
+	    v = MRIgetVoxVal(glmpv->w,c,r,s,f-1);	    
+	    y->rptr[f][1] *= v;
+	    for(n = 1; n <= X->cols; n++) X->rptr[f][n] *= v;
+	  }
+	}
+	else X = X0;
+
+	// Compute intermediate matrices
 	Xt   = MatrixTranspose(X,Xt);
 	XtX  = MatrixMultiply(Xt,X,XtX);
 	Mtmp = MatrixInverse(XtX,iXtX);
 	if(Mtmp == NULL){
 	  MatrixPrint(stdout,X);
 	  exit(1);
-	  n_ill_cond++;
+	  glmpv->n_ill_cond++;
 	  continue;
 	}
 	iXtX = Mtmp;
 
 	Xty  = MatrixMultiply(Xt,y,Xty);
+
+	// Now do the actual parameter estmation
 	beta = MatrixMultiply(iXtX,Xty,beta);
+
+	// Compute residual variance
 	yhat = MatrixMultiply(X,beta,yhat);
 	eres = MatrixSubtract(y, yhat, eres);
-	
 	rvar = 0;
 	for(f = 1; f <= eres->rows; f++)
 	  rvar += (eres->rptr[f][1] * eres->rptr[f][1]);
 	rvar /= glmpv->DOF;
+
+	// Pack data back into MRI
 	MRIsetVoxVal(glmpv->rvar,c,r,s,0,rvar);
-
 	MRIfromMatrix(glmpv->beta, c, r, s, beta);
-	MRIfromMatrix(glmpv->yhat, c, r, s, yhat);
 	MRIfromMatrix(glmpv->eres, c, r, s, eres);
+	if(glmpv->yhatsave)
+	  MRIfromMatrix(glmpv->yhat, c, r, s, yhat);
 
+	// Now do contrasts
 	for(n = 0; n < glmpv->ncontrasts; n++){
 	  gam         = MatrixMultiply(C[n],beta,gam);
 	  gamt        = MatrixTranspose(gam,gamt);
@@ -733,23 +778,85 @@ int MRIglmpvFit(GLMPV *glmpv)
     }
   }
 
-  printf("n_ill_cond = %d\n",n_ill_cond);
+  MatrixFree(&X0);    MatrixFree(&Xt);   MatrixFree(&XtX);
+  MatrixFree(&iXtX);  MatrixFree(&y);    MatrixFree(&Xty); 
+  MatrixFree(&beta);  MatrixFree(&yhat); MatrixFree(&eres); 
+  MatrixFree(&gam);   MatrixFree(&gamt); MatrixFree(&CiXtX); 
+  MatrixFree(&CiXtXCt);    MatrixFree(&iCiXtXCt); 
+  MatrixFree(&gtiCiXtXCt); MatrixFree(&gtiCiXtXCtg); 
+  for(n = 0; n < glmpv->ncontrasts; n++) MatrixFree(&Ct[n]); 
+  if(glmpv->w != NULL) MatrixFree(&X); 
+
+  printf("n_ill_cond = %d\n",glmpv->n_ill_cond);
   return(0);
+}
+
+/*------------------------------------------------------------------------
+  MRInormWeights() - rescales each voxel so that the sum across all
+  frames equals nframes. If sqrtFlag=1, then computes the sqrt(w)
+  before normalzing.  If invFlag=1, then computes the 1/w before
+  normalzing.  The sqrt and inv can be used if the weights are
+  variances for WLMS. Can be done in-place. If mask, then ignores
+  voxels where mask<0.5. Weights must be >  0.
+  *------------------------------------------------------*/
+MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn)
+{
+  int c,r,s,f;
+  double v, vsum, m;
+
+  //-------------------------------------------
+  if(wn == NULL){
+    wn = MRIallocSequence(w->width,w->height,w->depth,
+			  MRI_FLOAT,w->nframes);
+    if(wn == NULL){
+      printf("ERROR: MRInormWeights(): could not alloc weights\n");
+      return(NULL);
+    }
+    MRIcopyHeader(wn,w);
+  }
+
+  //-------------------------------------------
+  for(c=0; c < w->width; c++){
+    for(r=0; r < w->height; r++){
+      for(s=0; s < w->depth; s++){
+
+	if(mask != NULL){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+
+	// First go through and compute the sum
+	vsum = 0;
+	for(f = 0; f < w->nframes; f++){
+	  v = MRIgetVoxVal(w,c,r,s,f);
+	  if(v <= 0){
+	    printf("ERROR: MRInormWeights: value less than or eq to 0.\n");
+	    printf("  c=%d, r=%d, s=%d, v=%g\n",c,r,s,v);
+	    // Should do a free here, I guess
+	    return(NULL);
+	  }
+	  if(sqrtFlag) v = sqrt(v);
+	  if(invFlag)  v = 1/v;
+	  vsum += v;
+	}
+
+	// So that the sum = nframes
+	vsum /= w->nframes; 
+
+	// Now rescale
+	for(f = 0; f < w->nframes; f++){
+	  v = MRIgetVoxVal(w,c,r,s,f);
+	  if(sqrtFlag) v = sqrt(v);
+	  if(invFlag)  v = 1/v;
+	  v = v/vsum;
+	  MRIsetVoxVal(wn,c,r,s,f,v);
+	}
+      }
+    }
+  }
+
+  return(wn);
 }
 
 
 
-
-#if 0
-  printf("Packing and unpacking\n");
-  for(c=0; c<y->width; c++){
-    for(r=0; r<y->height; r++){
-      for(s=0; s<y->depth; s++){
-	M = MRItoSymMatrix(y,c,r,s,M);
-	MRIfromSymMatrix(y,c,r,s,M);
-      }
-    }
-  }
-  printf("Done Packing and unpacking\n");    
-  MRIwrite(y,"y2.mgh");
-#endif
