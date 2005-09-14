@@ -1,5 +1,6 @@
 // cmdargs.h - include file for cmdargs.c (used for 
 //   handling command-line arguments)
+// $Id: cmdargs.h,v 1.2 2005/09/14 18:20:51 greve Exp $
 
 
 #ifndef CMDARGS_H
