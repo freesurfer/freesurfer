@@ -15671,11 +15671,13 @@ plot_curv(int closedcurveflag)
   if (closedcurveflag)
     close_marked_vertices();
 
+  /* Find the path between the marked verts. */
   path = (int*) calloc (mris->nvertices, sizeof(int));
   
   find_path (marked, nmarked, "plotting curv", mris->nvertices,
 	     path, &path_length);
 
+  /* Make sure we got a path. */
   if (path_length < 2) 
     {
       printf ("surfer: needs at least 2 marked vertices\n");
@@ -15683,6 +15685,7 @@ plot_curv(int closedcurveflag)
       return;
     }
     
+  /* Open the dest file. */
   fprintf(stderr, "generating data file %s with entries:\n", LINE_FNAME) ;
   fprintf(stderr, "vno x y z distance curv val val2 stat amp "
           "deg normalized_deg radians\n") ;
@@ -15690,18 +15693,26 @@ plot_curv(int closedcurveflag)
     printf("surfer: needs at least 2 marked vertices\n");PR return;}
   fp = fopen(LINE_FNAME, "w") ;
 
+  /* Get the first location */
   x0 = mris->vertices[path[0]].x ;
   y0 = mris->vertices[path[0]].y ;
   z0 = mris->vertices[path[0]].z ;
   
+  /* For each vert in the path, write some info about it. */
   for (vno = 0; vno < path_length; vno++)
     {
       v = &mris->vertices[path[vno]];
+
+      /* Get the info from the first point. */
       dx = v->x - x0;
       dy = v->y - y0;
       dz = v->z - z0;
       dist = sqrt(dx*dx + dy*dy + dz*dz);
       
+      /* Draw the vertices in blue. */
+      v->marked = 2;
+
+      /* Print info about this vertex to the file. */
       fprintf(fp, "%d %f %f %f %f %f %f %f %f %f %f %f %f\n",
 	      path[vno], v->x, v->y, v->z,
 	      dist, v->curv, v->val, v->val2, v->stat,
@@ -15712,8 +15723,15 @@ plot_curv(int closedcurveflag)
 	  
     }
 
-  clear_vertex_marks();
+  /* Close data file. */
   fclose (fp);
+
+  /* Clear the marked verts. */
+  clear_vertex_marks();
+
+  /* redraw screen with blue path. */
+  redraw ();
+
   free (path);
 }
 
@@ -18506,7 +18524,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.136 2005/09/13 19:03:05 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.137 2005/09/14 19:48:24 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
