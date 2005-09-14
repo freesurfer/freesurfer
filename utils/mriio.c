@@ -8243,7 +8243,7 @@ static MRI *nifti1Read(char *fname, int read_volume)
   float time_units_factor, space_units_factor;
   int swapped_flag;
   int n_read, i, j, k, t;
-  int bytes_per_voxel;
+  int bytes_per_voxel, time_units, space_units;
 
   strcpy(fname_stem, fname);
   dot = strrchr(fname_stem, '.');
@@ -8271,58 +8271,49 @@ static MRI *nifti1Read(char *fname, int read_volume)
   fclose(fp);
 
   swapped_flag = FALSE;
-  if(hdr.dim[0] < 1 || hdr.dim[0] > 7)
-    {
-      swapped_flag = TRUE;
-      swap_nifti_1_header(&hdr);
-      if(hdr.dim[0] < 1 || hdr.dim[0] > 7)
-        {
-          ErrorReturn(NULL, (ERROR_BADFILE,
-                             "nifti1Read(): bad number of dimensions (%hd) in %s", 
-                             hdr.dim[0], hdr_fname));
-        }
+  if(hdr.dim[0] < 1 || hdr.dim[0] > 7){
+    swapped_flag = TRUE;
+    swap_nifti_1_header(&hdr);
+    if(hdr.dim[0] < 1 || hdr.dim[0] > 7){
+      ErrorReturn(NULL, (ERROR_BADFILE,
+			 "nifti1Read(): bad number of dimensions (%hd) in %s", 
+			 hdr.dim[0], hdr_fname));
     }
+  }
 
   if(memcmp(hdr.magic, NIFTI1_MAGIC, 4) != 0)
-    {
-      ErrorReturn(NULL, (ERROR_BADFILE, "nifti1Read(): bad magic number in %s", hdr_fname));
-    }
+    ErrorReturn(NULL, (ERROR_BADFILE, "nifti1Read(): bad magic number in %s", hdr_fname));
 
   if(hdr.dim[0] != 3 && hdr.dim[0] != 4)
-    {
       ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
                          "nifti1Read(): %hd dimensions in %s; unsupported",
                          hdr.dim[0], hdr_fname));
-    }
 
   if(hdr.datatype == DT_NONE || hdr.datatype == DT_UNKNOWN)
-    {
       ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
                          "nifti1Read(): unknown or no data type in %s; bailing out", 
                          hdr_fname));
-    }
 
-  if(hdr.xyzt_units & NIFTI_UNITS_METER)
-    space_units_factor = 1000.0;
-  else if(hdr.xyzt_units & NIFTI_UNITS_MM)
-    space_units_factor = 1.0;
-  else if(hdr.xyzt_units & NIFTI_UNITS_MICRON)
-    space_units_factor = 0.001;
-  else
-    {
-      ErrorReturn(NULL, (ERROR_BADFILE, "nifti1Read(): unknown space units in %s", hdr_fname));
-    }
+  space_units  = XYZT_TO_SPACE(hdr.xyzt_units) ;
+  if(space_units ==NIFTI_UNITS_METER)       space_units_factor = 1000.0;
+  else if(space_units ==NIFTI_UNITS_MM)     space_units_factor = 1.0;
+  else if(space_units ==NIFTI_UNITS_MICRON) space_units_factor = 0.001;
+  else{
+      ErrorReturn(NULL, (ERROR_BADFILE, "nifti1Read(): unknown space units %d in %s", 
+			 space_units,hdr_fname));
+  }
 
-  if(hdr.xyzt_units & NIFTI_UNITS_SEC)
-    time_units_factor = 1000.0;
-  else if(hdr.xyzt_units & NIFTI_UNITS_MSEC)
-    time_units_factor = 1.0;
-  else if(hdr.xyzt_units & NIFTI_UNITS_USEC)
-    time_units_factor = 0.001;
-  else
-    {
-      ErrorReturn(NULL, (ERROR_BADFILE, "nifti1Read(): unknown time units in %s", hdr_fname));
+  time_units = XYZT_TO_TIME (hdr.xyzt_units) ;
+  if(time_units == NIFTI_UNITS_SEC)       time_units_factor = 1000.0;
+  else if(time_units == NIFTI_UNITS_MSEC) time_units_factor = 1.0;
+  else if(time_units == NIFTI_UNITS_USEC) time_units_factor = 0.001;
+  else {
+    if(hdr.dim[4] > 1){
+      ErrorReturn(NULL, (ERROR_BADFILE, "nifti1Read(): unknown time units %d in %s", 
+			 time_units,hdr_fname));
     }
+    else time_units_factor = 0;
+  }
 
   /*
     nifti1.h says: slice_code = If this is nonzero, AND if slice_dim is nonzero, AND
@@ -8332,16 +8323,12 @@ static MRI *nifti1Read(char *fname, int read_volume)
   */
 
   if(hdr.slice_code != 0 && DIM_INFO_TO_SLICE_DIM(hdr.dim_info) != 0 && hdr.slice_duration > 0.0)
-    {
       ErrorReturn(NULL, 
                   (ERROR_UNSUPPORTED, 
                    "nifti1Read(): unsupported timing pattern in %s", hdr_fname));
-    }
 
-  if(hdr.dim[0] == 3)
-    nslices = 1;
-  else
-    nslices = hdr.dim[4];
+  if(hdr.dim[0] == 3) nslices = 1;
+  else                nslices = hdr.dim[4];
 
   if(hdr.scl_slope == 0) // voxel values are unscaled -- we use the file's data type
     {
@@ -8409,33 +8396,28 @@ static MRI *nifti1Read(char *fname, int read_volume)
   // Keep in msec as NIFTI_UNITS_MSEC is specified
   if(hdr.dim[0] == 4) mri->tr = hdr.pixdim[4];
 
-  if(hdr.qform_code == 0)
-    {
-      printf("WARNING: missing NIfTI-1 orientation (qform_code = 0)\n");
-      printf("WARNING: your volume will probably be incorrectly oriented\n");
-      mri->x_r = 1.0;  mri->x_a = 0.0;  mri->x_s = 0.0;
-      mri->y_r = 0.0;  mri->y_a = 1.0;  mri->y_s = 0.0;
-      mri->z_r = 0.0;  mri->z_a = 0.0;  mri->z_s = 1.0;
-      mri->c_r = mri->xsize * mri->width / 2.0;
-      mri->c_a = mri->ysize * mri->height / 2.0;
-      mri->c_s = mri->zsize * mri->depth / 2.0;
+  if(hdr.qform_code == 0){
+    printf("WARNING: missing NIfTI-1 orientation (qform_code = 0)\n");
+    printf("WARNING: your volume will probably be incorrectly oriented\n");
+    mri->x_r = 1.0;  mri->x_a = 0.0;  mri->x_s = 0.0;
+    mri->y_r = 0.0;  mri->y_a = 1.0;  mri->y_s = 0.0;
+    mri->z_r = 0.0;  mri->z_a = 0.0;  mri->z_s = 1.0;
+    mri->c_r = mri->xsize * mri->width / 2.0;
+    mri->c_a = mri->ysize * mri->height / 2.0;
+    mri->c_s = mri->zsize * mri->depth / 2.0;
+  }
+  else if(hdr.sform_code <= 0){
+    if(niftiQformToMri(mri, &hdr) != NO_ERROR){
+      MRIfree(&mri);
+      return(NULL);
     }
-  else if(hdr.sform_code <= 0)
-    {
-      if(niftiQformToMri(mri, &hdr) != NO_ERROR)
-        {
-          MRIfree(&mri);
-          return(NULL);
-        }
+  }
+  else{
+    if(niftiSformToMri(mri, &hdr) != NO_ERROR){
+      MRIfree(&mri);
+      return(NULL);
     }
-  else
-    {
-      if(niftiSformToMri(mri, &hdr) != NO_ERROR)
-        {
-          MRIfree(&mri);
-          return(NULL);
-        }
-    }
+  }
 
   mri->xsize = mri->xsize * space_units_factor;
   mri->ysize = mri->ysize * space_units_factor;
@@ -8450,12 +8432,11 @@ static MRI *nifti1Read(char *fname, int read_volume)
     return(mri);
 
   fp = fopen(img_fname, "r");
-  if(fp == NULL)
-    {
-      MRIfree(&mri);
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADFILE, "nifti1Read(): error opening file %s", img_fname));
-    }
+  if(fp == NULL){
+    MRIfree(&mri);
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, "nifti1Read(): error opening file %s", img_fname));
+  }
 
   if(hdr.scl_slope == 0) // no voxel value scaling needed
     {
@@ -8764,34 +8745,31 @@ static int nifti1Write(MRI *mri, char *fname)
   hdr.sizeof_hdr = 348;
   hdr.dim_info = 0;
 
-  if(mri->nframes == 1)
-    {
-      hdr.dim[0] = 3;
-      hdr.dim[1] = mri->width;
-      hdr.dim[2] = mri->height;
-      hdr.dim[3] = mri->depth;
-      hdr.pixdim[1] = mri->xsize;
-      hdr.pixdim[2] = mri->ysize;
-      hdr.pixdim[3] = mri->zsize;
-    }
-  else
-    {
-      hdr.dim[0] = 4;
-      hdr.dim[1] = mri->width;
-      hdr.dim[2] = mri->height;
-      hdr.dim[3] = mri->depth;
-      hdr.dim[4] = mri->nframes;
-      hdr.pixdim[1] = mri->xsize;
-      hdr.pixdim[2] = mri->ysize;
-      hdr.pixdim[3] = mri->zsize;
-      hdr.pixdim[4] = mri->tr/1000.0; // sec, see also xyzt_units
-    }
+  if(mri->nframes == 1){
+    hdr.dim[0] = 3;
+    hdr.dim[1] = mri->width;
+    hdr.dim[2] = mri->height;
+    hdr.dim[3] = mri->depth;
+    hdr.pixdim[1] = mri->xsize;
+    hdr.pixdim[2] = mri->ysize;
+    hdr.pixdim[3] = mri->zsize;
+  }
+  else{
+    hdr.dim[0] = 4;
+    hdr.dim[1] = mri->width;
+    hdr.dim[2] = mri->height;
+    hdr.dim[3] = mri->depth;
+    hdr.dim[4] = mri->nframes;
+    hdr.pixdim[1] = mri->xsize;
+    hdr.pixdim[2] = mri->ysize;
+    hdr.pixdim[3] = mri->zsize;
+    hdr.pixdim[4] = mri->tr/1000.0; // sec, see also xyzt_units
+  }
 
-  if(mri->type == MRI_UCHAR)
-    {
-      hdr.datatype = DT_UNSIGNED_CHAR;
-      hdr.bitpix = 8;
-    }
+  if(mri->type == MRI_UCHAR){
+    hdr.datatype = DT_UNSIGNED_CHAR;
+    hdr.bitpix = 8;
+  }
   else if(mri->type == MRI_INT)
     {
       hdr.datatype = DT_SIGNED_INT;
@@ -8836,15 +8814,14 @@ static int nifti1Write(MRI *mri, char *fname)
   hdr.vox_offset = 0;
   hdr.scl_slope = 0.0;
   hdr.slice_code = 0;
-  hdr.xyzt_units = NIFTI_UNITS_MM | NIFTI_UNITS_SEC;
+  hdr.xyzt_units = NIFTI_UNITS_MM | NIFTI_UNITS_SEC; // This may be wrong
   hdr.cal_max = 0.0;
   hdr.cal_min = 0.0;
   hdr.toffset = 0;
 
   /* set the nifti header qform values */
   error = mriToNiftiQform(mri, &hdr);
-  if(error != NO_ERROR)
-    return(error);
+  if(error != NO_ERROR) return(error);
 
   memcpy(hdr.magic, NIFTI1_MAGIC, 4);
 
@@ -8922,7 +8899,7 @@ static MRI *niiRead(char *fname, int read_volume)
   float time_units_factor, space_units_factor;
   int swapped_flag;
   int n_read, i, j, k, t;
-  int bytes_per_voxel;
+  int bytes_per_voxel,time_units,space_units ;
 
   fp = fopen(fname, "r");
   if(fp == NULL)
@@ -8974,27 +8951,27 @@ static MRI *niiRead(char *fname, int read_volume)
                    fname));
     }
 
-  if(hdr.xyzt_units & NIFTI_UNITS_METER)
-    space_units_factor = 1000.0;
-  else if(hdr.xyzt_units & NIFTI_UNITS_MM)
-    space_units_factor = 1.0;
-  else if(hdr.xyzt_units & NIFTI_UNITS_MICRON)
-    space_units_factor = 0.001;
+  space_units  = XYZT_TO_SPACE(hdr.xyzt_units) ;
+  if(space_units == NIFTI_UNITS_METER)       space_units_factor = 1000.0;
+  else if(space_units == NIFTI_UNITS_MM)     space_units_factor = 1.0;
+  else if(space_units == NIFTI_UNITS_MICRON) space_units_factor = 0.001;
   else
-    {
-      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): unknown space units in %s", fname));
-    }
+      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): unknown space units %d in %s", space_units,
+			 fname));
 
-  if(hdr.xyzt_units & NIFTI_UNITS_SEC)
-    time_units_factor = 1000.0;
-  else if(hdr.xyzt_units & NIFTI_UNITS_MSEC)
-    time_units_factor = 1.0;
-  else if(hdr.xyzt_units & NIFTI_UNITS_USEC)
-    time_units_factor = 0.001;
-  else
-    {
-      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): unknown time units in %s", fname));
+  time_units = XYZT_TO_TIME (hdr.xyzt_units) ;
+  if(time_units == NIFTI_UNITS_SEC)       time_units_factor = 1000.0;
+  else if(time_units == NIFTI_UNITS_MSEC) time_units_factor = 1.0;
+  else if(time_units == NIFTI_UNITS_USEC) time_units_factor = 0.001;
+  else{
+    if(hdr.dim[4] > 1){
+      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): unknown time units %d in %s", 
+			 time_units,fname));
     }
+    else time_units_factor = 0;
+  }
+  //printf("hdr.xyzt_units = %d, time_units = %d, %g, %g\n",
+  // hdr.xyzt_units,time_units,hdr.pixdim[4],time_units_factor);
 
   /*
     nifti1.h says: slice_code = If this is nonzero, AND if slice_dim is nonzero, AND
@@ -9433,28 +9410,26 @@ static int niiWrite(MRI *mri, char *fname)
   hdr.sizeof_hdr = 348;
   hdr.dim_info = 0;
 
-  if(mri->nframes == 1)
-    {
-      hdr.dim[0] = 3;
-      hdr.dim[1] = mri->width;
-      hdr.dim[2] = mri->height;
-      hdr.dim[3] = mri->depth;
-      hdr.pixdim[1] = mri->xsize;
-      hdr.pixdim[2] = mri->ysize;
-      hdr.pixdim[3] = mri->zsize;
-    }
-  else
-    {
-      hdr.dim[0] = 4;
-      hdr.dim[1] = mri->width;
-      hdr.dim[2] = mri->height;
-      hdr.dim[3] = mri->depth;
-      hdr.dim[4] = mri->nframes;
-      hdr.pixdim[1] = mri->xsize;
-      hdr.pixdim[2] = mri->ysize;
-      hdr.pixdim[3] = mri->zsize;
-      hdr.pixdim[4] = mri->tr/1000.0; // see also xyzt_units
-    }
+  if(mri->nframes == 1){
+    hdr.dim[0] = 3;
+    hdr.dim[1] = mri->width;
+    hdr.dim[2] = mri->height;
+    hdr.dim[3] = mri->depth;
+    hdr.pixdim[1] = mri->xsize;
+    hdr.pixdim[2] = mri->ysize;
+    hdr.pixdim[3] = mri->zsize;
+  }
+  else{
+    hdr.dim[0] = 4;
+    hdr.dim[1] = mri->width;
+    hdr.dim[2] = mri->height;
+    hdr.dim[3] = mri->depth;
+    hdr.dim[4] = mri->nframes;
+    hdr.pixdim[1] = mri->xsize;
+    hdr.pixdim[2] = mri->ysize;
+    hdr.pixdim[3] = mri->zsize;
+    hdr.pixdim[4] = mri->tr/1000.0; // see also xyzt_units
+  }
 
   if(mri->type == MRI_UCHAR)
     {
