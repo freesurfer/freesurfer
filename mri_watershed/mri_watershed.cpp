@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/15 14:05:17 $
-// Revision       : $Revision: 1.34 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2005/09/14 15:41:47 $
+// Revision       : $Revision: 1.35 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.34 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.35 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -588,7 +588,7 @@ int main(int argc, char *argv[])
   STRIP_PARMS *parms;
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_watershed.cpp,v 1.34 2005/08/15 14:05:17 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_watershed.cpp,v 1.35 2005/09/14 15:41:47 segonne Exp $", "$Name:  $", cmdline);
 
   Progname=argv[0];
 
@@ -597,7 +597,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.34 2005/08/15 14:05:17 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.35 2005/09/14 15:41:47 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1442,8 +1442,10 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
 
 
   mint=MIN(MRI_var->width,MIN(MRI_var->height,MRI_var->width));
-  if(20*r>=mint*9)
-    Error("\n main radius too high");
+  if(20*r>=mint*9){
+		fprintf(stderr,"\n main radius too high");
+		//    Error("\n main radius too high");
+	}
 
   /*allocate the Cube memory: mean intensity, variance, mean variance */
 
