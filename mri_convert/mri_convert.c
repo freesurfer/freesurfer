@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/20 12:21:00 $
-// Revision       : $Revision: 1.108 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/09/15 22:10:06 $
+// Revision       : $Revision: 1.109 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -136,7 +136,8 @@ int main(int argc, char *argv[])
   int in_matrix_flag, out_matrix_flag;
   float conform_size;
   int zero_ge_z_offset_flag = FALSE; //E/
-  int nskip = 0; // number of frames to skip 
+  int nskip = 0; // number of frames to skip from start
+  int ndrop = 0; // number of frames to skip from end
   VOL_GEOM vgtmp;
   LT *lt = 0;
   int DevXFM = 0;
@@ -235,9 +236,10 @@ int main(int argc, char *argv[])
   conform_min = FALSE;
   conform_size = 1.0;
   nskip = 0;
+  ndrop = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.108 2005/08/20 12:21:00 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.109 2005/09/15 22:10:06 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -863,7 +865,14 @@ int main(int argc, char *argv[])
 	exit(1);
       }
     }
-
+    else if(strcmp(argv[i], "--ndrop") == 0 ){
+      get_ints(argc, argv, &i, &ndrop, 1);
+      printf("ndrop = %d\n",ndrop);
+      if(ndrop < 0){
+	printf("ERROR: ndrop cannot be negative\n");
+	exit(1);
+      }
+    }
     /*-------------------------------------------------------------*/
     else
     {
@@ -1873,6 +1882,19 @@ int main(int argc, char *argv[])
   /* ----- catch the out stats flag ----- */
   if(out_stats_flag) MRIprintStats(mri, stdout);
 
+  /* ----- drop the last ndrop frames (drop before skip) ------ */
+  if(ndrop > 0){
+    printf("Dropping last %d frames\n",ndrop);
+    if(mri->nframes <= ndrop){
+      printf("   ERROR: can't drop, volume only has %d frames\n",mri->nframes);
+      exit(1);
+    }
+    mri2 = fMRIndrop(mri, ndrop, NULL);
+    if(mri2 == NULL) exit(1);
+    MRIfree(&mri);
+    mri = mri2;
+  }
+
   /* ----- skip the first nskip frames ------ */
   if(nskip > 0){
     printf("Skipping %d frames\n",nskip);
@@ -1886,19 +1908,19 @@ int main(int argc, char *argv[])
     mri = mri2;
   }
 
-	if (crop_flag == TRUE)
-	{
-		MRI *mri_tmp ;
-		int   x0, y0, z0 ;
-
-		x0 = crop_center[0] ; y0 = crop_center[1] ; z0 = crop_center[2] ; 
-
-		x0 -= crop_size[0]/2 ; y0 -= crop_size[1]/2 ; z0 -= crop_size[2]/2 ;
-		mri_tmp = MRIextract(mri, NULL, x0, y0, z0, crop_size[0], 
-												 crop_size[1], crop_size[2]) ;
-		MRIfree(&mri) ;
-		mri = mri_tmp ;
-	}
+  /* ----- crops ---------*/
+  if (crop_flag == TRUE){
+    MRI *mri_tmp ;
+    int   x0, y0, z0 ;
+    
+    x0 = crop_center[0] ; y0 = crop_center[1] ; z0 = crop_center[2] ; 
+    
+    x0 -= crop_size[0]/2 ; y0 -= crop_size[1]/2 ; z0 -= crop_size[2]/2 ;
+    mri_tmp = MRIextract(mri, NULL, x0, y0, z0, crop_size[0], 
+			 crop_size[1], crop_size[2]) ;
+    MRIfree(&mri) ;
+    mri = mri_tmp ;
+  }
 
   /*------ Finally, write the output -----*/
   if(!no_write_flag)
@@ -2064,6 +2086,7 @@ void usage(FILE *stream)
   fprintf(stream, "  -ojs, --out_j_size <size>\n");
   fprintf(stream, "  -oks, --out_k_size <size>\n");
   fprintf(stream, " --nskip n : skip the first n frames\n");
+  fprintf(stream, " --ndrop n : drop the last n frames\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -oid, --out_i_direction <R direction> <A direction> <S direction>\n");
   fprintf(stream, "  -ojd, --out_j_direction <R direction> <A direction> <S direction>\n");
