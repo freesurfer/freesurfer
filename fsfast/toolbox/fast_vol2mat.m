@@ -2,7 +2,8 @@ function mat = fast_vol2mat(vol,sliceflag)
 % mat = fast_vol2mat(vol,<sliceflag>)
 %
 % Reshapes a volume (size [nr nc ns nf]) into a matrix
-% of size nf by (nr*nc*ns).
+% of size nf by (nr*nc*ns). vol can also be an mri struct.
+% See MRIread.m.
 %
 % [nr nc ns nf] = size(vol).
 %
@@ -12,7 +13,7 @@ function mat = fast_vol2mat(vol,sliceflag)
 %
 % See also: fast_mat2vol.
 %
-% $Id: fast_vol2mat.m,v 1.1 2004/04/28 18:41:56 greve Exp $
+% $Id: fast_vol2mat.m,v 1.2 2005/09/15 15:53:45 greve Exp $
 
 mat = [];
 if(nargin < 1 | nargin > 2)
@@ -22,6 +23,8 @@ end
 
 if(~exist('sliceflag','var')) sliceflag = []; end
 if(isempty(sliceflag)) sliceflag = 0; end
+
+if(isfield(vol,'vol'))  vol = vol.vol; end
 
 if(length(size(vol)) > 3 & sliceflag) 
   fprintf('ERROR: sliceflag set but volume is 4D\n');

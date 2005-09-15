@@ -2,8 +2,13 @@ function vol = fast_mat2vol(mat,szvol,sliceflag)
 %
 % vol = fast_mat2vol(mat,szvol,<sliceflag>)
 % 
-% Reshapes a 2d matrix of size nframes X nvoxels
+% Reshapes a 2d matrix mat of size nframes X nvoxels
 % to a volume of size [szvol nframes].
+%
+% If mat is an mri struct (see MRIread.m) with field volmat, 
+% then only one arg is needed, and uses:
+%      szvol = mat.volsize
+%      mat = mat.volmat
 %
 % szvol = [nrows ncols nslices]. If szvol only has two elements,
 % then nslices=1. If sliceflag is set, then nslices=1, and the
@@ -11,13 +16,23 @@ function vol = fast_mat2vol(mat,szvol,sliceflag)
 %
 % See also fast_vol2mat.
 %
-% $Id: fast_mat2vol.m,v 1.1 2004/04/28 18:41:39 greve Exp $
+% $Id: fast_mat2vol.m,v 1.2 2005/09/15 15:53:45 greve Exp $
 
 vol = [];
 
-if(nargin < 2 | nargin > 3)
-  fprintf('vol = fast_mat2vol(mat,szvol,<sliceflag>)\n');
+if(nargin < 1 | nargin > 3)
+  fprintf('vol = fast_mat2vol(mat,<szvol>,<sliceflag>)\n');
   return;
+end
+
+if(isfield(mat,'volmat'))
+  szvol = mat.volsize;
+  mat   = mat.volmat;
+else
+  if(nargin ~= 2)  
+    printf('ERROR: need szvol if mat is not an mri struct\n');
+    return;
+  end
 end
 
 if(length(szvol) < 2)
