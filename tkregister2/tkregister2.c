@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.37 2005/08/29 21:38:09 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.38 2005/09/15 17:43:48 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.37 2005/08/29 21:38:09 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.38 2005/09/15 17:43:48 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -394,7 +394,10 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       }
     }
     mov_vol_id = (char *) calloc(sizeof(char),2000);
-    sprintf(mov_vol_id,"%s/%s/mri/orig",subjectsdir,talsubject);
+    sprintf(mov_vol_id,"%s/%s/mri/orig.mgz",subjectsdir,talsubject);
+    if(! fio_FileExistsReadable(mov_vol_id))
+      sprintf(mov_vol_id,"%s/%s/mri/orig",subjectsdir,talsubject);
+
     ps_2 = 1.0;
     st_2 = 1.0;
   }
@@ -3750,7 +3753,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.37 2005/08/29 21:38:09 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.38 2005/09/15 17:43:48 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
