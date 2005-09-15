@@ -14,6 +14,7 @@
 #include "mri.h"
 #include "mrisurf.h"
 #include "gca.h"
+#include "cma.h" /* using cma_label_to_name() */
 
 #define SQR(x) ((x)*(x))
 
