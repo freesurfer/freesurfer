@@ -5049,6 +5049,23 @@ static MRI *gelxRead(char *fname, int read_volume)
   return(mri);
 
 } /* end gelxRead() */
+
+/*----------------------------------------------------------------------
+  GetSPMStartFrame() - gets an environment variable called
+  SPM_START_FRAME and uses its value as the number of the first frame
+  for an SPM series.  If this variable does not exist, then uses  1.
+  ----------------------------------------------------------------------*/
+int GetSPMStartFrame(void)
+{
+  char *s;
+  int startframe;
+  s = getenv("SPM_START_FRAME");
+  if(s == NULL) return(1);
+  sscanf(s,"%d",&startframe);
+  return(startframe);
+}
+
+
 /*-------------------------------------------------------------------------
   CountAnalyzeFiles() - counts the number analyze files associated with 
   the given analyze file name.  The name can take several forms:
@@ -5064,7 +5081,7 @@ int CountAnalyzeFiles(char *analyzefname, int nzpad, char **ppstem)
 {
   int len, ncopy;
   char *stem, fmt[1000], fname[1000];
-  int nfiles, keepcounting;
+  int nfiles, keepcounting, startframe;
   FILE *fp;
   nfiles = 0;
 
@@ -5104,9 +5121,10 @@ int CountAnalyzeFiles(char *analyzefname, int nzpad, char **ppstem)
   /* If there are multiple files, count them, starting at 1 */
   sprintf(fmt,"%s%%0%dd.img",stem,nzpad);
   keepcounting = 1;
+  startframe = GetSPMStartFrame();
   nfiles = 0;
   while(keepcounting){
-    sprintf(fname,fmt,nfiles+1);
+    sprintf(fname,fmt,nfiles+startframe);
     fp = fopen(fname,"r");
     if(fp == NULL) keepcounting = 0;
     else {
@@ -5225,7 +5243,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   FILE *fp;
   dsr *hdr;
   int swap, mritype, bytes_per_voxel, cantreadmatfile=0;
-  int ncols, nrows, nslcs, nframes, row, slice, frame;
+  int ncols, nrows, nslcs, nframes, row, slice, frame, startframe;
   MATRIX *T=NULL, *PcrsCenter, *PxyzCenter, *T1=NULL, *Q=NULL;
   MRI *mri;
   float min, max;
@@ -5235,6 +5253,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   int signX, signY, signZ;
 
   fp = NULL;
+  startframe = GetSPMStartFrame();
 
   /* Count the number of files associated with this file name,
      and get the stem. */
@@ -5251,8 +5270,8 @@ static MRI *analyzeRead(char *fname, int read_volume)
   /* Create file names of header and mat files */
   if(N_Zero_Pad_Input > -1){
     sprintf(fmt,"%s%%0%dd.%%s",stem,N_Zero_Pad_Input);
-    sprintf(hdrfile,fmt,1,"hdr");
-    sprintf(matfile,fmt,1,"mat");
+    sprintf(hdrfile,fmt,startframe,"hdr");
+    sprintf(matfile,fmt,startframe,"mat");
   }
   else{
     sprintf(hdrfile,"%s.hdr",stem);
@@ -5499,7 +5518,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
 
     /* Open the frame file if there is more than one file */
     if(N_Zero_Pad_Input > -1){
-      sprintf(imgfile,fmt,frame+1,"img");
+      sprintf(imgfile,fmt,frame+startframe,"img");
       fp = fopen(imgfile,"r");
       if(fp == NULL){
         printf("ERROR: analyzeRead(): could not open %s\n",imgfile);

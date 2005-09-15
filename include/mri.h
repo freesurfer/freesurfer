@@ -861,6 +861,7 @@ MRI *MRIreadEx(char *fname, int nthframe);
 MRI *MRIreadType(char *fname, int type);
 MRI *MRIreadInfo(char *fname);
 MRI *MRIreadHeader(char *fname, int type);
+int GetSPMStartFrame(void);
 int MRIwrite(MRI *mri, char *fname);
 int MRIwriteFrame(MRI *mri, char *fname, int frame) ;
 int MRIwriteType(MRI *mri, char *fname, int type);
