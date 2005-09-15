@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.20 2004/06/11 21:04:32 kteich Exp $
+  $Id: fsgdf.c,v 1.21 2005/09/15 21:10:39 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -569,6 +569,8 @@ static int gdfCheckSubjRep(FSGD *gd)
   extern int fsgdf_AllowSubjRep;
 
   if(fsgdf_AllowSubjRep) return(-1);
+
+  if(getenv("FSGDF_ALLOW_SUBJ_REP") != NULL) return(-1);
 
   for(n=0; n < gd->ninputs; n++)
     for(m=n+1; m < gd->ninputs; m++)
