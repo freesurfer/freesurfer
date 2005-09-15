@@ -17,5 +17,6 @@ MRI *fMRIsigT(MRI *t, float DOF, MRI *p);
 MRI *fMRIsigF(MRI *F, float DOF1, float DOF2, MRI *sig);
 MRI *fMRIsumSquare(MRI *fmri, int Update, MRI *sumsqr);
 MRI *fMRInskip(MRI *inmri, int nskip, MRI *outmri);
+MRI *fMRIndrop(MRI *inmri, int ndrop, MRI *outmri);
 
 #endif

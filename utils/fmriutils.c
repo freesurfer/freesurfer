@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.8 2005/09/14 03:22:13 greve Exp $
+   $Id: fmriutils.c,v 1.9 2005/09/15 22:09:40 greve Exp $
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -424,7 +424,9 @@ MRI *fMRIsigF(MRI *F, float DOFDen, float DOFNum, MRI *sig)
   return(sig);
 }
 
-/*--------------------------------------------------------*/
+/*--------------------------------------------------------
+  fMRInskip() - skip the first nskip frames
+  --------------------------------------------------------*/
 MRI *fMRInskip(MRI *inmri, int nskip, MRI *outmri)
 {
   int c, r, s, fin, fout;
@@ -463,6 +465,60 @@ MRI *fMRInskip(MRI *inmri, int nskip, MRI *outmri)
   MRIclear(outmri);
   for(fout=0; fout < outmri->nframes; fout++){
     fin = fout + nskip;
+    for(s=0; s < outmri->depth; s++){
+      for(r=0; r < outmri->height; r++){
+	for(c=0; c < outmri->width; c++){
+	  val = MRIgetVoxVal(inmri, c, r, s, fin);
+	  MRIsetVoxVal(outmri,c, r, s, fout, val);
+	}
+      }
+    }
+  }
+
+  return(outmri);
+}
+
+/*--------------------------------------------------------
+  fMRIndrop() - drop the last ndrop frames
+  --------------------------------------------------------*/
+MRI *fMRIndrop(MRI *inmri, int ndrop, MRI *outmri)
+{
+  int c, r, s, fin, fout;
+  int nframesout;
+  float val;
+
+  if(inmri->nframes <= ndrop){
+    printf("ERROR: fMRIndrop: ndrop >= nframes\n");
+    return(NULL);
+  }
+
+  nframesout = inmri->nframes - ndrop;
+  if(outmri==NULL){
+    outmri = MRIallocSequence(inmri->width, inmri->height, inmri->depth, 
+			      inmri->type, nframesout);
+    if(outmri==NULL){
+      printf("ERROR: fMRIndrop: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(inmri,outmri);
+  }
+  else{
+    if(outmri->width  != inmri->width || 
+       outmri->height != inmri->height || 
+       outmri->depth  != inmri->depth || 
+       outmri->nframes != nframesout){
+      printf("ERROR: fMRIndrop: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(outmri->type != inmri->type){
+      printf("ERROR: fMRIndrop: structure type mismatch\n");
+      return(NULL);
+    }
+  }
+
+  MRIclear(outmri);
+  for(fout=0; fout < outmri->nframes; fout++){
+    fin = fout;
     for(s=0; s < outmri->depth; s++){
       for(r=0; r < outmri->height; r++){
 	for(c=0; c < outmri->width; c++){
