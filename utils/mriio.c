@@ -5062,6 +5062,8 @@ int GetSPMStartFrame(void)
   s = getenv("SPM_START_FRAME");
   if(s == NULL) return(1);
   sscanf(s,"%d",&startframe);
+  printf("Using env var SPM_START_FRAME = %d\n",startframe);
+  
   return(startframe);
 }
 
@@ -5329,7 +5331,8 @@ static MRI *analyzeRead(char *fname, int read_volume)
     if(T1 == NULL){
       printf("WARNING: analyzeRead(): matfile %s exists but could not read ... \n",
 	     matfile);
-      printf("  may not be matlab4 mat file ... proceeding without it.");
+      printf("  may not be matlab4 mat file ... proceeding without it.\n");
+      fflush(stdout);
       cantreadmatfile=1;
     }
     else{
