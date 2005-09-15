@@ -5224,7 +5224,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   char *buf;
   FILE *fp;
   dsr *hdr;
-  int swap, mritype, bytes_per_voxel;
+  int swap, mritype, bytes_per_voxel, cantreadmatfile=0;
   int ncols, nrows, nslcs, nframes, row, slice, frame;
   MATRIX *T=NULL, *PcrsCenter, *PxyzCenter, *T1=NULL, *Q=NULL;
   MRI *mri;
@@ -5308,22 +5308,24 @@ static MRI *analyzeRead(char *fname, int read_volume)
   if(FileExists(matfile)){
     T1 = MatlabRead(matfile); // orientation info
     if(T1 == NULL){
-      printf("ERROR: analyzeRead(): matfile %s exists but could "
-             "       not read\n",matfile);
-      return(NULL);
+      printf("WARNING: analyzeRead(): matfile %s exists but could not read ... \n",
+	     matfile);
+      printf("  may not be matlab4 mat file ... proceeding without it.");
+      cantreadmatfile=1;
     }
-    /* Convert from 1-based to 0-based */
-    Q = MtxCRS1toCRS0(Q);
-    T = MatrixMultiply(T1,Q,T);
-    //printf("------- Analyze Input Matrix (zero-based) --------\n");
-    //MatrixPrint(stdout,T);
-    //printf("-------------------------------------\n");
-    mri->ras_good_flag = 1;
-    MatrixFree(&Q);
-    MatrixFree(&T1);
+    else{
+      /* Convert from 1-based to 0-based */
+      Q = MtxCRS1toCRS0(Q);
+      T = MatrixMultiply(T1,Q,T);
+      //printf("------- Analyze Input Matrix (zero-based) --------\n");
+      //MatrixPrint(stdout,T);
+      //printf("-------------------------------------\n");
+      mri->ras_good_flag = 1;
+      MatrixFree(&Q);
+      MatrixFree(&T1);
+    }
   }
-  else 
-    {
+  if(! FileExists(matfile) || cantreadmatfile){
       /* when not found, it is a fun exercise.                      */ 
       /* see http://wideman-one.com/gw/brain/analyze/formatdoc.htm  */
       /* for amgibuities.                                           */
