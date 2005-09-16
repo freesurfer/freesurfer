@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/09/12 18:08:06 $
-// Revision       : $Revision: 1.370 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/09/16 16:04:16 $
+// Revision       : $Revision: 1.371 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -37631,7 +37631,7 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
 	      if (!finite(b))
 		DiagBreak() ;
 	      sse += b*b ;
-	      if (vno == Gdiag_no)
+	      if (vno == Gdiag_no && Gdiag > 0)
 		printf("v %d: curvature sse %2.2f\n", vno, b*b) ;
 	      MatrixFree(&m_R) ; VectorFree(&v_Y) ; MatrixFree(&m_R_inv) ;
 	    }

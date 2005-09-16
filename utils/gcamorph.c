@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/08/12 17:09:54 $
-// Revision       : $Revision: 1.79 $
+// Revision Date  : $Date: 2005/09/16 16:04:18 $
+// Revision       : $Revision: 1.80 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -3495,20 +3495,24 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
     load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs) ;
     maxGradient=max_norm;
     gradientArea=gcam->nodes[xmax][ymax][zmax].area;
-    printf("\tmax gradient %2.3f mm @ (%d, %d, %d), Area=%2.4f, Ratio of new/orig=%2.3f, ", 
-           max_norm, xmax, ymax, zmax,
-           gcam->nodes[xmax][ymax][zmax].area,
-           gcam->nodes[xmax][ymax][zmax].area/gcam->nodes[xmax][ymax][zmax].orig_area) ;
-    fflush(stdout);
-    printf("vals(means) = ") ;
-    for (r = 0 ; r < gcam->ninputs ; r++)
-      printf("%2.1f (%2.1f)  ", vals[r], gcamn->gc ? gcamn->gc->means[r] :-0.0);
-    fflush(stdout);
+
+    if(Gdiag > 0){
+      printf("\tmax gradient %2.3f mm @ (%d, %d, %d), Area=%2.4f, Ratio of new/orig=%2.3f, ", 
+	     max_norm, xmax, ymax, zmax,
+	     gcam->nodes[xmax][ymax][zmax].area,
+	     gcam->nodes[xmax][ymax][zmax].area/gcam->nodes[xmax][ymax][zmax].orig_area) ;
+      fflush(stdout);
+      printf("vals(means) = ") ;
+      for (r = 0 ; r < gcam->ninputs ; r++)
+	printf("%2.1f (%2.1f)  ", vals[r], gcamn->gc ? gcamn->gc->means[r] :-0.0);
+      fflush(stdout);
 #if 0
-    if (memoryUsed=getMemoryUsed() != -1)
-      printf("memory used: %d Kbytes\n", getMemoryUsed());
+      if (memoryUsed=getMemoryUsed() != -1)
+	printf("memory used: %d Kbytes\n", getMemoryUsed());
 #endif 
-    printf("\n") ;
+      printf("\n") ;
+    }
+
   }
 
 #if 0
@@ -3516,7 +3520,7 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
     {
       scale = parms->max_grad / max_norm ;
 
-      printf("scaling by %2.3f based on max gradient %2.3f mm @ (%d, %d, %d)\n",
+      if(Gdiag > 0) printf("scaling by %2.3f based on max gradient %2.3f mm @ (%d, %d, %d)\n",
              scale, max_norm, xmax, ymax, zmax) ;
       for (x = 0 ; x < gcam->width ; x++)
         for (y = 0 ; y < gcam->height ; y++)
@@ -4983,7 +4987,7 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_dist_after, "dist_after.mgz") ;
 
-  printf("%d inconsistent label nodes removed...\n", nremoved) ;
+  if(Gdiag > 0) printf("%d inconsistent label nodes removed...\n", nremoved) ;
   inconsistentLabelNodes=nremoved;
 
   /* do posterior/anterior consistency check */
