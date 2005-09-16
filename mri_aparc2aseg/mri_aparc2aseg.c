@@ -26,7 +26,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.2 2005/09/12 22:35:32 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.3 2005/09/16 22:30:48 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -34,9 +34,11 @@ char *OutASegFile = NULL;
 char *OutAParcFile = NULL;
 char *OutDistFile = NULL;
 int debug = 0;
+int UseRibbon = 0;
 MRI *ASeg, *mritmp;
 MRI *AParc;
 MRI *Dist;
+MRI *Ribbon;
 MRIS *lhwhite, *rhwhite;
 MRIS *lhpial, *rhpial;
 MHT *lhwhite_hash, *rhwhite_hash;
@@ -45,7 +47,7 @@ VERTEX vtx;
 int  lhwvtx, lhpvtx, rhwvtx, rhpvtx;
 MATRIX *Vox2RAS, *CRS, *RAS;
 float dlhw, dlhp, drhw, drhp;
-float dminctx = 6.0;
+float dminctx = 5.0;
 
 
 char tmpstr[2000];
@@ -56,7 +58,7 @@ int main(int argc, char **argv)
 {
   int nargs, err, asegid, c, r, s, nctx, annot;
   int annotid, IsCortex=0, hemi=0, segval=0;
-  float dmin=0.0;
+  float dmin=0.0, RibbonVal=0;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -160,8 +162,19 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  if(lhwhite->ct) printf("Have color table for annotation\n");
+  if(lhwhite->ct) printf("Have color table for lh white annotation\n");
+  if(rhwhite->ct) printf("Have color table for rh white annotation\n");
   //print_annotation_table(stdout);
+
+  if(UseRibbon){
+    sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
+    printf("Loading ribbon mask from %s\n",tmpstr);
+    Ribbon = MRIread(tmpstr);
+    if(Ribbon == NULL){
+      printf("ERROR: loading aseg %s\n",tmpstr);
+      exit(1);
+    }
+  }
 
   /* ------ Load ASeg ------ */
   sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
@@ -226,6 +239,17 @@ int main(int argc, char **argv)
 	if(asegid != 3 && asegid != 42 && asegid != 2 && asegid != 41) continue;
 	if(asegid == 3 || asegid == 42) IsCortex = 1;
 	else                            IsCortex = 0;
+
+	// Check whether this point is in the ribbon
+	if(UseRibbon){
+	  RibbonVal = MRIgetVoxVal(Ribbon,c,r,s,0);
+	  if(IsCortex && RibbonVal < 0.5){
+	    // ASeg says it's in cortex, but it is not part of the ribbon,
+	    // so set it to unknown (0) and go to the next voxel.
+	    MRIsetVoxVal(ASeg,c,r,s,0,0);
+	    continue;
+	  }
+	}
 
 	// Convert the CRS to RAS
 	CRS->rptr[1][1] = c;
@@ -331,6 +355,7 @@ int main(int argc, char **argv)
 		 rhpial->vertices[rhpvtx].y,
 		 rhpial->vertices[rhpvtx].z);
 	  printf("annot = %d, annotid = %d\n",annot,annotid);
+	  CTABprint(stdout,lhwhite->ct);
 	  exit(1);
 	}
 
@@ -381,6 +406,7 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--ribbon"))  UseRibbon = 1;
     else if (!strcmp(option, "--s")){
       if(nargc < 1) argnerr(option,1);
       subject = pargv[0];
@@ -426,6 +452,7 @@ static void print_usage(void)
   printf("   --s subject \n");
   printf("   --oaseg  file : output aseg+aparc volume file\n");
   printf("   --oaparc file : output aparc-only volume file\n");
+  //printf("   --ribbon : use mri/ribbon.mgz as a mask for ctx.\n");
   printf("\n");
   printf("\n");
   printf("   --help      print out information on how to use this program\n");
