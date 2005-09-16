@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.139 2005/09/08 22:52:39 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.140 2005/09/16 17:06:50 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5278,7 +5278,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.139 2005/09/08 22:52:39 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.140 2005/09/16 17:06:50 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6657,7 +6657,12 @@ if { $gaLayer(current,id) >= 0 } {
 # Updates the target layer menu.
 SelectToolInToolProperties [GetPreferencesValue SelectedTool]
 
+# Initialize the label areas so the window doesn't pop wider when they
+# come in the first time.
+UpdateMouseLabelArea
+UpdateCursorLabelArea
 
+# Global bindings.
 bind $gaWidget(window) <Destroy> "Quit"
 bind $gaWidget(window) <Alt-Key-q> "Quit"
 bind $gaWidget(window) <Alt-Key-n> {
