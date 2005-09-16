@@ -1,18 +1,19 @@
 #!/bin/csh -f
 # dcmdir-info-mgh
-# '$Id: dcmdir-info-mgh,v 1.3 2005/05/27 23:59:13 greve Exp $'
+# '$Id: dcmdir-info-mgh,v 1.4 2005/09/16 21:36:00 greve Exp $'
 
-set VERSION = '$Id: dcmdir-info-mgh,v 1.3 2005/05/27 23:59:13 greve Exp $';
+set VERSION = '$Id: dcmdir-info-mgh,v 1.4 2005/09/16 21:36:00 greve Exp $';
 
-if($#argv != 1) then
+if($#argv != 1 && $#argv != 2) then
   echo "dcmdir-info-mgh dicomdir"
+  echo "dcmdir-info-mgh dicomdir unpackdir"
   echo "dcmdir-info-mgh -help"
   exit 1;
 endif
 
 if("$argv[1]" == "-help") then
   echo ""
-  echo "dcmdir-info-mgh dicomdir"
+  echo "dcmdir-info-mgh dicomdir <unpackdir>"
   echo ""
   echo $VERSION
   echo ""
@@ -36,20 +37,33 @@ if("$argv[1]" == "-help") then
   echo "protocol, and file name from the series. The Patient Name, Study Date,"
   echo "and Study Time are echo also printed out."
   echo ""
+  echo "If an unpackdir is given, the the dicom files are converted to mgz "
+  echo "format with the following name: sequencename_runR.mgz, where R is the " 
+  echo "run number. "
+  echo "" 
   exit 1;
 endif
 
 
 set dcmdir = $argv[1];
-
-
 if(! -e $dcmdir) then
   echo "ERROR: cannot find $dcmdir"
   exit 1;
 endif
 
+if($#argv == 2) then
+  set unpackdir = $argv[2];
+  mkdir -p $unpackdir
+  set LF = $unpackdir/dcmdir-info-mgh.log
+  if(-e $LF) mv $LF $LF.bak
+  pwd  | tee -a $LF
+  echo $argv | tee -a $LF
+  date | tee -a $LF
+else
+  set unpackdir = ();
+endif
 
-set serlist = `ls $dcmdir | sed 's/-/ /g' | awk '{print $2}' | sort -n | uniq`;
+set serlist = `ls $dcmdir/*.dcm | sed 's/-/ /g' | awk '{print $2}' | sort -n | uniq`;
 
 set series = $serlist[1];
 set flist = `ls $dcmdir/*-$series-*.dcm`
@@ -66,10 +80,19 @@ foreach series ($serlist)
   set dcm = $flist[1];
   #echo $dcm0
 
-  set PulSeq   = `mri_probedicom --i $dcm | grep PulseSequence | awk '{print $2}'`;
+  set PulSeq   = `mri_probedicom --i $dcm | grep PulseSequence | awk '{print $2}' | sed 's/ //g'| sed 's/*//g'`;
   #set Protocol = `mri_probedicom --i $dcm | grep ProtocolName | awk '{print $3}'`;
   set Protocol = `mri_probedicom --i $dcm --t 18 1030| sed 's/ //g'`;
   echo "$series $PulSeq $Protocol `basename $dcm`"
+
+  if($#unpackdir != 0) then
+    set outfile = $unpackdir/$PulSeq"_run"$series.mgz
+    set cmd = (mri_convert $dcm $outfile)
+    echo "#@#-------------------------------------------- " |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
 
 end
 
