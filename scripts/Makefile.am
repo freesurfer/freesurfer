@@ -15,6 +15,7 @@ deface_subject \
 epidewarp.fsl\
 feat2surf \
 findsession \
+fixup_mni_perl_path \
 fix_subject \
 fix_subject_corrected \
 fix_subject_corrected-lh \
@@ -188,11 +189,6 @@ csurf: csurf.in
 	rm -f $@
 	sed < $< $(SEDFLAGS) > $@ 
 	chmod +x $@
-
-# can't checkin a file named freesurfer to cvs, so must use this round-about:
-#freesurfer: freesurfer.csh
-#	cp freesurfer.csh freesurfer
-#	chmod +x freesurfer
 
 # work on tixwish files
 # Why was he doing this???
