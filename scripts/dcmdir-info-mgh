@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # dcmdir-info-mgh
-# '$Id: dcmdir-info-mgh,v 1.4 2005/09/16 21:36:00 greve Exp $'
+# '$Id: dcmdir-info-mgh,v 1.5 2005/09/17 01:05:32 greve Exp $'
 
-set VERSION = '$Id: dcmdir-info-mgh,v 1.4 2005/09/16 21:36:00 greve Exp $';
+set VERSION = '$Id: dcmdir-info-mgh,v 1.5 2005/09/17 01:05:32 greve Exp $';
 
 if($#argv != 1 && $#argv != 2) then
   echo "dcmdir-info-mgh dicomdir"
@@ -86,7 +86,7 @@ foreach series ($serlist)
   echo "$series $PulSeq $Protocol `basename $dcm`"
 
   if($#unpackdir != 0) then
-    set outfile = $unpackdir/$PulSeq"_run"$series.mgz
+    set outfile = $unpackdir/$Protocol"_run"$series.mgz
     set cmd = (mri_convert $dcm $outfile)
     echo "#@#-------------------------------------------- " |& tee -a $LF
     echo $cmd |& tee -a $LF
