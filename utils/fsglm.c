@@ -1,5 +1,5 @@
-// fsglm.c
-// $Id: fsglm.c,v 1.1 2005/09/17 23:10:27 greve Exp $
+// fsglm.c - routines to perform GLM analysis.
+// $Id: fsglm.c,v 1.2 2005/09/18 04:54:35 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,7 +15,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.1 2005/09/17 23:10:27 greve Exp $"); 
+  return("$Id: fsglm.c,v 1.2 2005/09/18 04:54:35 greve Exp $"); 
 }
 
 /*-------------------------------------------------------
@@ -64,7 +64,10 @@ GLMMAT *GLMalloc(void)
   return(glm);
 }
 
-/*------------------------------------------------*/
+/*---------------------------------------------------------------------
+  GLMfree() - frees all the matrices associcated with the GLM struct,
+  and the GLM struct itself.
+  ------------------------------------------------------------------*/
 int GLMfree(GLMMAT **pglm)
 {
   int n;
@@ -86,7 +89,7 @@ int GLMfree(GLMMAT **pglm)
     if(glm->C[n])           MatrixFree(&glm->C[n]);
     if(glm->Ct[n])          MatrixFree(&glm->Ct[n]);
     if(glm->CiXtX[n])       MatrixFree(&glm->CiXtX[n]);
-    if(glm->CiXtX[n])       MatrixFree(&glm->CiXtXCt[n]);
+    if(glm->CiXtXCt[n])     MatrixFree(&glm->CiXtXCt[n]);
     if(glm->gCVM[n])    MatrixFree(&glm->gCVM[n]);
     if(glm->igCVM[n])   MatrixFree(&glm->igCVM[n]);
     if(glm->gamma[n])       MatrixFree(&glm->gamma[n]);
@@ -102,7 +105,7 @@ int GLMfree(GLMMAT **pglm)
   GLMcontrastTranspose() - given all the C's computes all the Ct's.
   This includes the allocation of Ct[n]. It would be possible
   to do this within GLMtest(), but GLMtest() may be run many times
-  where as Ct only needs to be computed once.
+  whereas Ct only needs to be computed once.
   ----------------------------------------------------------------*/
 int GLMtransposeC(GLMMAT *glm)
 {
@@ -112,10 +115,10 @@ int GLMtransposeC(GLMMAT *glm)
   return(0);
 }
 
-
 /*---------------------------------------------------------------
   GLMfit() - fit linear parameters (betas). Also computes yhat,
-  eres, and rvar.
+  eres, and rvar. May want to defer rvar at some point (eg, to
+  do spatial filtering on the eres).
   ---------------------------------------------------------------*/
 int GLMfit(GLMMAT *glm)
 {
@@ -138,10 +141,10 @@ int GLMfit(GLMMAT *glm)
   glm->iXtX = Mtmp;
   glm->Xty  = MatrixMultiply(glm->Xt,glm->y,glm->Xty);
 
-  // Now do the actual parameter estmation
+  // Now do the actual parameter (beta) estmation
   glm->beta = MatrixMultiply(glm->iXtX,glm->Xty,glm->beta);
 
-  // Compute residual variance
+  // Compute yhat, eres, and residual variance
   glm->yhat = MatrixMultiply(glm->X,glm->beta,glm->yhat);
   glm->eres = MatrixSubtract(glm->y, glm->yhat, glm->eres);
   glm->rvar = 0;
@@ -152,7 +155,6 @@ int GLMfit(GLMMAT *glm)
 
   return(0);
 }
-
 /*------------------------------------------------------------------------
   GLMtest() - tests all the contrasts for the given GLM. Must have already
   run GLMfit() and GLMcontrastTranspose().
@@ -164,6 +166,7 @@ int GLMtest(GLMMAT *glm)
   static MATRIX *F=NULL;
 
   if(glm->ill_cond_flag){
+    // If it's ill cond, just return F=0
     for(n = 0; n < glm->ncontrasts; n++){
       glm->F[n] = 0;
       glm->p[n] = 1;
@@ -187,7 +190,6 @@ int GLMtest(GLMMAT *glm)
     glm->F[n]        = F->rptr[1][1];
     glm->p[n]        = gsl_cdf_fdist_Q(glm->F[n],glm->C[n]->rows,glm->DOF);
   }
-
   return(0);
 }
 
@@ -195,7 +197,8 @@ int GLMtest(GLMMAT *glm)
   GLMprofile() - this can be used as both a profile and
   a memory leak tester. Design matrix is nrows-by-ncols
   (which forces y to be nrows-by-1). ncon contrasts are
-  tested, where each contrast matrix is 2-by-ncols.
+  tested, where each contrast matrix is 2-by-ncols. Returns
+  the number of msec used.
   -----------------------------------------------------------*/
 int GLMprofile(int nrows, int ncols, int ncon, int niters)
 {
@@ -223,7 +226,6 @@ int GLMprofile(int nrows, int ncols, int ncon, int niters)
 
   return(msec);
 }
-
 /*---------------------------------------------------------
   GLMdump() - saves a lot of the stuff from the GLMMAT
   struct into ascii files in the given directory.
@@ -292,7 +294,6 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
 
   return(0);
 }
-
 /*---------------------------------------------------------
   GLMsynth() - synthesizes y, X, and Cs and fits and tests. 
   ---------------------------------------------------------*/
@@ -317,10 +318,9 @@ GLMMAT *GLMsynth(void)
 
   return(glm);
 }
-
 /*----------------------------------------------------------------------
   GLMresynthTest() - tests GLM by synthesizing y, X, fitting, then
-  setting y=yhat (resynth), refitting. rvar should be 0, but less than
+  setting y=yhat (ie, resynth), refitting. rvar should be 0, but less than
   10e-9 suffices. This is repeated niter times.  If any of the niters
   are over tolerance, then 1 is returned immediately. Otherwise 0 is
   returned after all iters.  If prvar is non-null then rvar is passed
@@ -336,30 +336,25 @@ int GLMresynthTest(int niters, double *prvar)
   glm = GLMalloc();
 
   for(n=0; n<niters; n++){
-
     // synthesize a GLM
     glm->y = MatrixDRand48(nrows, 1, glm->y);
     glm->X = MatrixDRand48(nrows, ncols, glm->X);
-    
     // Fit
     GLMfit(glm);
-    
     // Copy yhat into y
     glm->y = MatrixCopy(glm->yhat,glm->y);
-    
     // Re-Fit
     GLMfit(glm);
-    
     if(glm->rvar > 10e-9){
+      // rvar should be 0, but at least less than 10^-9.
+      // Report an error if not.
       printf("GLMresynth failure: rvar = %le\n",glm->rvar);
       if(prvar != NULL) *prvar = glm->rvar;
       GLMfree(&glm);
       return(1);
     }
   }
-    
   GLMfree(&glm);
-
   return(0);
 }
 
