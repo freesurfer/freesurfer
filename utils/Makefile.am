@@ -2,8 +2,8 @@
 # Makefile.am for libutils.a
 #
 
-AM_CPPFLAGS=$(X_CFLAGS) -I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
-AM_LDFLAGS=
+AM_CPPFLAGS=$(X_CFLAGS) -I$(top_srcdir)/include -I$(top_srcdir)/include/dicom $(GSL_CFLAGS)
+AM_LDFLAGS=$(GSL_LIBS)
 
 #lib_LTLIBRARIES = libutils.la
 #libutils_la_SOURCES = $(wildcard *.c)

@@ -943,8 +943,8 @@ AC_SUBST(LIBS_TCL_OPENGL)
 ###########################################################
 # some common flags and libs
 ###########################################################
-CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS"
-LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS"
+CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS $GSL_CFLAGS"
+LDFLAGS="$LDFLAGS $MNI_LIBS $JPEG_LIBS $TIFF_LIBS $GSL_LIBS"
 LIBS="-lvolume_io -lminc -lnetcdf -ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
 LIBS=" -lgsl -lgslcblas $LIBS"
 AC_SUBST(CPPFLAGS)
