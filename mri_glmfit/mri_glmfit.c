@@ -83,7 +83,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.11 2005/09/18 04:57:32 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.12 2005/09/18 05:11:48 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -110,14 +110,9 @@ GLMPV *glmpv;
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int nargs,n,msec;
+  int nargs,n;
   struct utsname uts;
   char *cmdline, cwd[2000];
-
-  printf("Starting GLM\n");
-  msec = GLMprofile(200, 20, 5, 100000);
-  printf("Done GLM  %g\n",msec/100000.0);
-  exit(1);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -371,7 +366,7 @@ int main(int argc, char **argv)
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv)
 {
-  int  nargc , nargsused;
+  int  nargc , nargsused, msec, niters;
   char **pargv, *option ;
 
   if(argc < 1) usage_exit();
@@ -395,6 +390,14 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--yhatsave")) yhatSave = 1;
 
+    else if (!strcasecmp(option, "--profile")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&niters);
+      printf("Starting GLM profile over %d iterations\n",niters);
+      msec = GLMprofile(200, 20, 5, niters);
+      nargsused = 1;
+      exit(0);
+    }
     else if (!strcmp(option, "--y")){
       if(nargc < 1) CMDargNErr(option,1);
       yFile = pargv[0];
