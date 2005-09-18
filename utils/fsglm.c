@@ -1,5 +1,5 @@
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.2 2005/09/18 04:54:35 greve Exp $
+// $Id: fsglm.c,v 1.3 2005/09/18 05:03:18 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,7 +15,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.2 2005/09/18 04:54:35 greve Exp $"); 
+  return("$Id: fsglm.c,v 1.3 2005/09/18 05:03:18 greve Exp $"); 
 }
 
 /*-------------------------------------------------------
@@ -222,7 +222,7 @@ int GLMprofile(int nrows, int ncols, int ncon, int niters)
   msec = TimerStop(&then) ;
 
   printf("GLMprofile: nrows=%d, ncols=%d, ncon=%d, niters=%d, msec=%d, avgmsec=%g\n",
-	 nrows,ncols,niters,ncon,msec,(float)msec/niters);
+	 nrows,ncols,ncon,niters,msec,(float)msec/niters);
 
   return(msec);
 }
