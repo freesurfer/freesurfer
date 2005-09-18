@@ -18,7 +18,6 @@ foo_DATA = $(TEXFILES:%.tex=%.ps)
 	@latex $< >& /dev/null
 
 clean:
-distclean:
 	rm -f *.aux *.log *.ps
 
 release:
