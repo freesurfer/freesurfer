@@ -17,6 +17,10 @@ foo_DATA = $(TEXFILES:%.tex=%.ps)
 .tex.dvi:
 	@latex $< >& /dev/null
 
+clean:
+distclean:
+	rm -f *.aux *.log *.ps
+
 release:
 	$(MAKE) install
 
