@@ -4,15 +4,20 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-dev-env
 #
-# $Id: nmr-dev-env,v 1.10 2005/09/16 03:27:22 nicks Exp $
+# $Id: nmr-dev-env,v 1.11 2005/09/18 06:34:04 nicks Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
 #############################################################################
 
-echo "`date`|`whoami`|`hostname -s`|nmr-dev-env" >> /space/freesurfer/nmr-dev-env_user_list.txt
+if ("`uname -s`" == "Darwin") then 
+  set USER_LIST_PATH=/autofs/space/freesurfer
+else
+  set USER_LIST_PATH=/space/freesurfer
+endif
+echo "`date`|`whoami`|`hostname -s`|nmr-dev-env" >> $USER_LIST_PATH/nmr-dev-env_user_list.txt
 
-set NSE_VERSION = '$Id: nmr-dev-env,v 1.10 2005/09/16 03:27:22 nicks Exp $';
+set NSE_VERSION = '$Id: nmr-dev-env,v 1.11 2005/09/18 06:34:04 nicks Exp $';
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
   echo $NSE_VERSION
 endif
@@ -23,11 +28,12 @@ if($?NMR_DEV_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-dev-env,v 1.10 2005/09/16 03:27:22 nicks Exp $';
+set VERSION = '$Id: nmr-dev-env,v 1.11 2005/09/18 06:34:04 nicks Exp $';
 
 setenv FREESURFER_HOME /usr/local/freesurfer/dev
 if(! $?SUBJECTS_DIR) then
-  setenv SUBJECTS_DIR    /space/sake/3/users/inverse/subjects
+  if (-e /space/sake/3/users/inverse/subjects) setenv SUBJECTS_DIR /space/sake/3/users/inverse/subjects
+  if (-e /autofs/space/sake_003/users/inverse/subjects) setenv SUBJECTS_DIR /autofs/space/sake_003/users/inverse/subjects
 endif
 unsetenv NO_FSFAST
 setenv FSFAST_HOME     $FREESURFER_HOME/fsfast
