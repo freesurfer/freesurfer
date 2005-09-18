@@ -33,8 +33,8 @@ double round(double x);
 #include "annotation.h"
 #include "fmriutils.h"
 #include "cmdargs.h"
-
-#undef X
+#include "fsglm.h"
+#include "gsl/gsl_cdf.h"
 
 /*---------------------------------------------------------*/
 typedef struct{
@@ -83,7 +83,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.10 2005/09/14 23:25:20 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.11 2005/09/18 04:57:32 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -110,9 +110,14 @@ GLMPV *glmpv;
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int nargs,n;
+  int nargs,n,msec;
   struct utsname uts;
   char *cmdline, cwd[2000];
+
+  printf("Starting GLM\n");
+  msec = GLMprofile(200, 20, 5, 100000);
+  printf("Done GLM  %g\n",msec/100000.0);
+  exit(1);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -857,6 +862,5 @@ MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn)
 
   return(wn);
 }
-
 
 
