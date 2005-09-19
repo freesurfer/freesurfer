@@ -1,5 +1,5 @@
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.3 2005/09/18 05:03:18 greve Exp $
+// $Id: fsglm.c,v 1.4 2005/09/19 20:38:49 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,14 +15,14 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.3 2005/09/18 05:03:18 greve Exp $"); 
+  return("$Id: fsglm.c,v 1.4 2005/09/19 20:38:49 greve Exp $"); 
 }
 
 /*-------------------------------------------------------
   GLMalloc - allocs a GLMMAT struct and makes sure
   that everything is either NULL or 0. Does not alloc any
   of the matrices (that's done by GLMfit(), GLMtest(), and
-  GLMcontrastTranspose()).
+  GLMtransposeC();
   -------------------------------------------------------*/
 GLMMAT *GLMalloc(void)
 {
@@ -102,7 +102,7 @@ int GLMfree(GLMMAT **pglm)
 }
 
 /*-----------------------------------------------------------------
-  GLMcontrastTranspose() - given all the C's computes all the Ct's.
+  GLMtransposeC() - given all the C's computes all the Ct's.
   This includes the allocation of Ct[n]. It would be possible
   to do this within GLMtest(), but GLMtest() may be run many times
   whereas Ct only needs to be computed once.
@@ -157,7 +157,7 @@ int GLMfit(GLMMAT *glm)
 }
 /*------------------------------------------------------------------------
   GLMtest() - tests all the contrasts for the given GLM. Must have already
-  run GLMfit() and GLMcontrastTranspose().
+  run GLMfit() and GLMtransposeC().
   ------------------------------------------------------------------------*/
 int GLMtest(GLMMAT *glm)
 {
