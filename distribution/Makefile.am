@@ -11,11 +11,17 @@ foo_DATA=surface_labels.txt \
         Simple_surface_labels2005.txt	\
 	FreeSurferEnv.csh \
 	SetUpFreeSurfer.csh \
+	FreeSurferEnv.sh \
+	SetUpFreeSurfer.sh \
 	jeans_labels.txt \
 	FreeSurferColorLUT.txt \
 	numaris4-protocols.unpackcfg
 
 SetUpFreeSurfer.csh: SetUpFreeSurfer-SAMPLE.csh
+	sed < $< -e 's,REPLACE_WITH_PREFIX,$(prefix),' > $@
+	chmod a+x $@
+
+SetUpFreeSurfer.sh: SetUpFreeSurfer-SAMPLE.sh
 	sed < $< -e 's,REPLACE_WITH_PREFIX,$(prefix),' > $@
 	chmod a+x $@
 
