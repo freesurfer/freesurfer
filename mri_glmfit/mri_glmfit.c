@@ -1,5 +1,7 @@
 // mri_glmfit.c
 
+// Handle non-pv better
+//  -- change GLM to separate mtx comp from estimation
 // Save config in output dir
 // Links to source data
 // Cleanup
@@ -35,6 +37,7 @@ double round(double x);
 #include "cmdargs.h"
 #include "fsglm.h"
 #include "gsl/gsl_cdf.h"
+#include "pdf.h"
 
 /*---------------------------------------------------------*/
 typedef struct{
@@ -58,7 +61,6 @@ typedef struct{
   int ncontrasts;    // Number of contrasts
   char *cname[100];  // Contrast names
   MATRIX *C[100];    // Contrast matrices
-  MATRIX *Ct[100];   // transposes Contrast matrices
   MRI *gamma[100];   // gamma = C*beta
   MRI *F[100];       // F = gamma'*iXtX*gamma/(rvar*J)
   MRI *sig[100];     // sig = significance of the F
@@ -83,7 +85,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.12 2005/09/18 05:11:48 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.13 2005/09/19 22:10:13 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -103,6 +105,8 @@ MATRIX *M;
 int nContrasts=0;
 char *CFile[100];
 int err,c,r,s;
+double Xcond;
+int SynthSeed = -1;
 
 int npvr=0;
 GLMPV *glmpv;
@@ -141,6 +145,10 @@ int main(int argc, char **argv)
   printf("sysname  %s\n",uts.sysname);
   printf("hostname %s\n",uts.nodename);
   printf("machine  %s\n",uts.machine);
+  if(SynthSeed < 0) SynthSeed = PDFtodSeed();
+
+  printf("SynthSeed = %d\n",SynthSeed);
+
   dump_options(stdout);
 
   if(GLMDir != NULL){
@@ -173,6 +181,12 @@ int main(int argc, char **argv)
   glmpv->DOF = glmpv->Xg->rows - glmpv->Xcols;
   if(glmpv->DOF < 1){
     printf("ERROR: DOF = %g\n",glmpv->DOF);
+    exit(1);
+  }
+  Xcond = MatrixNSConditionNumber(glmpv->Xg);
+  printf("Matrix condition is %g\n",Xcond);
+  if(Xcond > 10000){
+    printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",Xcond);
     exit(1);
   }
 
@@ -210,7 +224,7 @@ int main(int argc, char **argv)
       exit(1);
     }
     printf("Synthesizing y with white noise\n");
-    glmpv->y =  MRIrandn(mritmp->width, mritmp->depth, mritmp->height, 
+    glmpv->y =  MRIrandn(mritmp->width, mritmp->height, mritmp->depth, 
 			 mritmp->nframes,0,1,NULL);
     MRIfree(&mritmp);
   }
@@ -368,6 +382,7 @@ static int parse_commandline(int argc, char **argv)
 {
   int  nargc , nargsused, msec, niters;
   char **pargv, *option ;
+  double rvartmp;
 
   if(argc < 1) usage_exit();
 
@@ -390,13 +405,36 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--yhatsave")) yhatSave = 1;
 
+    else if (!strcasecmp(option, "--seed")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&SynthSeed);
+      srand48(SynthSeed);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--profile")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&niters);
-      printf("Starting GLM profile over %d iterations\n",niters);
+      if(SynthSeed < 0) SynthSeed = PDFtodSeed();
+      srand48(SynthSeed);
+      printf("Starting GLM profile over %d iterations. Seed=%d\n",niters,SynthSeed);
       msec = GLMprofile(200, 20, 5, niters);
       nargsused = 1;
       exit(0);
+    }
+    else if (!strcasecmp(option, "--resynthtest")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&niters);
+      if(SynthSeed < 0) SynthSeed = PDFtodSeed();
+      srand48(SynthSeed);
+      printf("Starting GLM resynth test over %d iterations. Seed=%d\n",niters,SynthSeed);
+      err = GLMresynthTest(niters, &rvartmp);
+      if(err){
+	printf("Failed. rvar = %g\n",rvartmp);
+	exit(1);
+      }
+      printf("Passed. rvarmax = %g\n",rvartmp);
+      exit(0);
+      nargsused = 1;
     }
     else if (!strcmp(option, "--y")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -667,17 +705,17 @@ int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
 int MRIglmpvFit(GLMPV *glmpv)
 {
   int c,r,s,n,f,nc,nr,ns;
-  MATRIX *X0, *X=NULL, *Xt=NULL, *XtX=NULL, *iXtX=NULL, *y, *Xty=NULL;
-  MATRIX *beta=NULL,*yhat=NULL,*eres=NULL, *Mtmp;
-  MATRIX *C[50],*Ct[50];
-  MATRIX *gam=NULL, *gamt=NULL, *CiXtX=NULL,*CiXtXCt=NULL;
-  MATRIX *iCiXtXCt=NULL,*gtiCiXtXCt=NULL, *gtiCiXtXCtg=NULL;
-  double rvar,F,m,v;
+  MATRIX *X0;
+  GLMMAT *glm;
+  float m,v;
+
+  glm = GLMalloc();
+  glm->ncontrasts = glmpv->ncontrasts;
 
   glmpv->DOF = glmpv->Xg->rows - (glmpv->Xg->cols + glmpv->npvr);
-
   X0 = MatrixAlloc(glmpv->Xg->rows, glmpv->Xg->cols + glmpv->npvr, MATRIX_REAL);
-  y = MatrixAlloc(glmpv->Xg->rows, 1, MATRIX_REAL);
+
+  glm->y = MatrixAlloc(glmpv->Xg->rows, 1, MATRIX_REAL);
 
   nc = glmpv->y->width;
   nr = glmpv->y->height;
@@ -692,9 +730,9 @@ int MRIglmpvFit(GLMPV *glmpv)
   for(n = 0; n < glmpv->ncontrasts; n++){
     glmpv->gamma[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT, glmpv->C[n]->rows);
     glmpv->F[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
-    C[n] = glmpv->C[n];
-    Ct[n] = MatrixTranspose(C[n],NULL);
+    glm->C[n] = MatrixCopy(glmpv->C[n],NULL);
   }
+  GLMtransposeC(glm);
 
   // pre-load X0
   for(f = 1; f <= X0->rows; f++){
@@ -718,7 +756,7 @@ int MRIglmpvFit(GLMPV *glmpv)
 
 	// Load y and the per-vox reg --------------------------
 	for(f = 1; f <= X0->rows; f++){
-	  y->rptr[f][1] = MRIgetVoxVal(glmpv->y,c,r,s,f-1);
+	  glm->y->rptr[f][1] = MRIgetVoxVal(glmpv->y,c,r,s,f-1);
 	  for(n = 1; n <= glmpv->npvr; n++){
 	    X0->rptr[f][n+glmpv->Xg->cols] = 
 	      MRIgetVoxVal(glmpv->pvr[n-1],c,r,s,f-1);
@@ -726,74 +764,41 @@ int MRIglmpvFit(GLMPV *glmpv)
 	}
 
 	// Weight X and y
+	glm->X = MatrixCopy(X0,glm->X);
 	if(glmpv->w != NULL){
-	  X = MatrixCopy(X0,X);
-	  for(f = 1; f <= X->rows; f++){
+	  for(f = 1; f <= glm->X->rows; f++){
 	    v = MRIgetVoxVal(glmpv->w,c,r,s,f-1);	    
-	    y->rptr[f][1] *= v;
-	    for(n = 1; n <= X->cols; n++) X->rptr[f][n] *= v;
+	    glm->y->rptr[f][1] *= v;
+	    for(n = 1; n <= glm->X->cols; n++) glm->X->rptr[f][n] *= v;
 	  }
 	}
-	else X = X0;
 
-	// Compute intermediate matrices
-	Xt   = MatrixTranspose(X,Xt);
-	XtX  = MatrixMultiply(Xt,X,XtX);
-	Mtmp = MatrixInverse(XtX,iXtX);
-	if(Mtmp == NULL){
-	  MatrixPrint(stdout,X);
-	  exit(1);
-	  glmpv->n_ill_cond++;
+	GLMmatrices(glm);
+	GLMfit(glm);
+	if(glm->ill_cond_flag){
+	  glmpv->n_ill_cond ++;
 	  continue;
 	}
-	iXtX = Mtmp;
 
-	Xty  = MatrixMultiply(Xt,y,Xty);
-
-	// Now do the actual parameter estmation
-	beta = MatrixMultiply(iXtX,Xty,beta);
-
-	// Compute residual variance
-	yhat = MatrixMultiply(X,beta,yhat);
-	eres = MatrixSubtract(y, yhat, eres);
-	rvar = 0;
-	for(f = 1; f <= eres->rows; f++)
-	  rvar += (eres->rptr[f][1] * eres->rptr[f][1]);
-	rvar /= glmpv->DOF;
+	GLMtest(glm);
 
 	// Pack data back into MRI
-	MRIsetVoxVal(glmpv->rvar,c,r,s,0,rvar);
-	MRIfromMatrix(glmpv->beta, c, r, s, beta);
-	MRIfromMatrix(glmpv->eres, c, r, s, eres);
+	MRIsetVoxVal(glmpv->rvar,c,r,s,0,glm->rvar);
+	MRIfromMatrix(glmpv->beta, c, r, s, glm->beta);
+	MRIfromMatrix(glmpv->eres, c, r, s, glm->eres);
 	if(glmpv->yhatsave)
-	  MRIfromMatrix(glmpv->yhat, c, r, s, yhat);
-
-	// Now do contrasts
+	  MRIfromMatrix(glmpv->yhat, c, r, s, glm->yhat);
 	for(n = 0; n < glmpv->ncontrasts; n++){
-	  gam         = MatrixMultiply(C[n],beta,gam);
-	  gamt        = MatrixTranspose(gam,gamt);
-	  CiXtX       = MatrixMultiply(C[n],iXtX,CiXtX);
-	  CiXtXCt     = MatrixMultiply(CiXtX,Ct[n],CiXtXCt);
-	  iCiXtXCt    = MatrixInverse(CiXtXCt,iCiXtXCt);
-	  gtiCiXtXCt  = MatrixMultiply(gamt,iCiXtXCt,gtiCiXtXCt);
-	  gtiCiXtXCtg = MatrixMultiply(gtiCiXtXCt,gam,gtiCiXtXCtg);
-	  F           = gtiCiXtXCtg->rptr[1][1]/(rvar/C[n]->rows);
-	  MRIfromMatrix(glmpv->gamma[n], c, r, s, gam);
-	  MRIsetVoxVal(glmpv->F[n],c,r,s,0,F);
+	  MRIfromMatrix(glmpv->gamma[n], c, r, s, glm->gamma[n]);
+	  MRIsetVoxVal(glmpv->F[n],c,r,s,0,glm->F[n]);
 	}
 
       }
     }
   }
 
-  MatrixFree(&X0);    MatrixFree(&Xt);   MatrixFree(&XtX);
-  MatrixFree(&iXtX);  MatrixFree(&y);    MatrixFree(&Xty); 
-  MatrixFree(&beta);  MatrixFree(&yhat); MatrixFree(&eres); 
-  MatrixFree(&gam);   MatrixFree(&gamt); MatrixFree(&CiXtX); 
-  MatrixFree(&CiXtXCt);    MatrixFree(&iCiXtXCt); 
-  MatrixFree(&gtiCiXtXCt); MatrixFree(&gtiCiXtXCtg); 
-  for(n = 0; n < glmpv->ncontrasts; n++) MatrixFree(&Ct[n]); 
-  if(glmpv->w != NULL) MatrixFree(&X); 
+  MatrixFree(&X0); 
+  GLMfree(&glm);
 
   printf("n_ill_cond = %d\n",glmpv->n_ill_cond);
   return(0);
