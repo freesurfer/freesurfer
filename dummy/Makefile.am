@@ -5,10 +5,10 @@
 # when you create your own program directory, copy the from to the to lines
 # to your Makefile.am and change dummy to your program name
 #  
-# 0. mkdir  dev/yourdir and put .c file in there                   <--- old way
-# 1. modify dev/configure.in to have yourdir/Makefile              
-# 2. modify dev/Makefile.am to have yourdir as one of SUBDIRS      
-# 3. create dev/yourdir/Makefile.am  (follow dummy/Makefile.am)    
+# 0. mkdir  dev/yourdir and put .c file in there
+# 1. modify dev/configure.in to have yourdir/Makefile
+# 2. modify dev/Makefile.am to have yourdir as one of SUBDIRS
+# 3. create dev/yourdir/Makefile.am  (follow dummy/Makefile.am)
 #      i.e. replace dummy with your program name.
 #
 # 4. automake -v at the top directory, i.e. dev/ (which will create Makefile.in in yourthing directory)
@@ -26,10 +26,10 @@
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
-bin_PROGRAMS = mri_aparc2aseg
-mri_aparc2aseg_SOURCES=mri_aparc2aseg.c
-mri_aparc2aseg_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
-mri_aparc2aseg_LDFLAGS=$(OS_LDFLAGS)
+bin_PROGRAMS = dummy
+dummy_SOURCES=dummy.c
+dummy_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(top_srcdir)/lib/$(OS)/libgsl.a
+dummy_LDFLAGS=$(OS_LDFLAGS)
 # to --------------------------------------------------
 #
 # where $(OS_LDFLAGS) is to compile program statically for Linux
