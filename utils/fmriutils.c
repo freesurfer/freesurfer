@@ -1,21 +1,28 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.9 2005/09/15 22:09:40 greve Exp $
+   $Id: fmriutils.c,v 1.10 2005/09/19 23:27:31 greve Exp $
 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+double round(double x);
 #include "matrix.h"
 #include "mri.h"
 #include "MRIio_old.h"
 #include "sig.h"
 #include "fmriutils.h"
+#include "fsglm.h"
 #include "gsl/gsl_cdf.h"
 
 #ifdef X
 #undef X
 #endif
 
+/* --------------------------------------------- */
+// Return the CVS version of this file.
+const char *fMRISrcVersion(void) { 
+  return("$Id: fmriutils.c,v 1.10 2005/09/19 23:27:31 greve Exp $");
+}
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
 {
@@ -530,4 +537,300 @@ MRI *fMRIndrop(MRI *inmri, int ndrop, MRI *outmri)
   }
 
   return(outmri);
+}
+/*---------------------------------------------------------------*/
+MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s, 
+		    int Mrows, int Mcols, MATRIX *M)
+{
+  int mr, mc, f;
+
+  if(M==NULL) M = MatrixAlloc(Mrows,Mcols,MATRIX_REAL);
+  else{
+    if(M->rows != Mrows || M->cols != Mcols){
+      printf("ERROR: Matrix dim mismatch\n");
+    }
+  }
+
+  if(mri->nframes != Mrows*Mcols){
+    printf("ERROR: MRItoMatrix: MRI frames = %d, does not equal\n",
+	   mri->nframes);
+    printf("       matrix dim = %dx%d = %d",Mrows,Mcols,Mrows*Mcols);
+    return(NULL);
+  }
+
+  f = 0;
+  for(mr=1; mr <= Mrows; mr++){
+    for(mc=1; mc <= Mcols; mc++){
+      M->rptr[mr][mc] = MRIgetVoxVal(mri,c,r,s,f);
+      f++;
+    }
+  }
+  return(M);
+}
+
+/*---------------------------------------------------------------*/
+MATRIX *MRItoSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
+{
+  int mr, mc, f, Msize, nframesexp;
+
+  if(M==NULL){
+    Msize = (int)(round( (sqrt(8.0*mri->nframes + 1.0) - 1.0 )/2.0 ));
+    printf("Msize = %d\n",Msize);
+    M = MatrixAlloc(Msize,Msize,MATRIX_REAL);
+  }
+
+  nframesexp = M->rows*(M->rows+1)/2;
+  if(mri->nframes != nframesexp){
+    printf("ERROR: MRItoSymMatrix: MRI frames = %d, does not support sym\n",
+	   mri->nframes);
+    return(NULL);
+  }
+
+  f = 0;
+  for(mr=1; mr <= M->rows; mr++){
+    for(mc=mr; mc <= M->cols; mc++){
+      M->rptr[mr][mc] = MRIgetVoxVal(mri,c,r,s,f);
+      M->rptr[mc][mr] = MRIgetVoxVal(mri,c,r,s,f);
+      f++;
+    }
+  }
+  return(M);
+}
+
+/*---------------------------------------------------------------*/
+int MRIfromMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
+{
+  int mr,mc,f;
+
+  if(mri->nframes != M->rows*M->cols){
+    printf("ERROR: MRIfromMatrix: MRI frames = %d, does not equal\n",
+	   mri->nframes);
+    printf("       matrix dim = %dx%d = %d",M->rows,M->cols,M->rows*M->cols);
+    return(1);
+  }
+
+  f = 0;
+  for(mr=1; mr <= M->rows; mr++){
+    for(mc=1; mc <= M->cols; mc++){
+      MRIsetVoxVal(mri,c,r,s,f,M->rptr[mr][mc]);
+      f++;
+    }
+  }
+  return(0);
+}
+
+/*---------------------------------------------------------------*/
+int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M)
+{
+  int mr,mc,f, nframesexp;
+
+  nframesexp = M->rows*(M->rows+1)/2;
+  if(mri->nframes != nframesexp){
+    printf("ERROR: MRIfromSumMatrix: MRI frames = %d, does not equal\n",
+	   mri->nframes);
+    printf("       matrix dim = %dx%d = %d",M->rows,M->cols,M->rows*M->cols);
+    return(1);
+  }
+
+  f = 0;
+  for(mr=1; mr <= M->rows; mr++){
+    for(mc=mr; mc <= M->cols; mc++){
+      MRIsetVoxVal(mri,c,r,s,f,M->rptr[mr][mc]);
+      f++;
+    }
+  }
+  return(0);
+}
+
+/*------------------------------------------------------------------------
+  MRInormWeights() - rescales each voxel so that the sum across all
+  frames equals nframes. If sqrtFlag=1, then computes the sqrt(w)
+  before normalzing.  If invFlag=1, then computes the 1/w before
+  normalzing.  The sqrt and inv can be used if the weights are
+  variances for WLMS. Can be done in-place. If mask, then ignores
+  voxels where mask<0.5. Weights must be >  0.
+  *------------------------------------------------------*/
+MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn)
+{
+  int c,r,s,f;
+  double v, vsum, m;
+
+  //-------------------------------------------
+  if(wn == NULL){
+    wn = MRIallocSequence(w->width,w->height,w->depth,
+			  MRI_FLOAT,w->nframes);
+    if(wn == NULL){
+      printf("ERROR: MRInormWeights(): could not alloc weights\n");
+      return(NULL);
+    }
+    MRIcopyHeader(wn,w);
+  }
+
+  //-------------------------------------------
+  for(c=0; c < w->width; c++){
+    for(r=0; r < w->height; r++){
+      for(s=0; s < w->depth; s++){
+
+	if(mask != NULL){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+
+	// First go through and compute the sum
+	vsum = 0;
+	for(f = 0; f < w->nframes; f++){
+	  v = MRIgetVoxVal(w,c,r,s,f);
+	  if(v <= 0){
+	    printf("ERROR: MRInormWeights: value less than or eq to 0.\n");
+	    printf("  c=%d, r=%d, s=%d, v=%g\n",c,r,s,v);
+	    // Should do a free here, I guess
+	    return(NULL);
+	  }
+	  if(sqrtFlag) v = sqrt(v);
+	  if(invFlag)  v = 1/v;
+	  vsum += v;
+	}
+
+	// So that the sum = nframes
+	vsum /= w->nframes; 
+
+	// Now rescale
+	for(f = 0; f < w->nframes; f++){
+	  v = MRIgetVoxVal(w,c,r,s,f);
+	  if(sqrtFlag) v = sqrt(v);
+	  if(invFlag)  v = 1/v;
+	  v = v/vsum;
+	  MRIsetVoxVal(wn,c,r,s,f,v);
+	}
+      }
+    }
+  }
+
+  return(wn);
+}
+/*---------------------------------------------------------------*/
+int MRIglmFit(MRIGLM *glmmri)
+{
+  int c,r,s,n,f,nc,nr,ns,pctdone;
+  MATRIX *X0;
+  GLMMAT *glm;
+  float m,v,Xcond;
+  long nvoxtot, nthvox;
+
+  glm = GLMalloc();
+  glm->ncontrasts = glmmri->ncontrasts;
+
+  glmmri->DOF = glmmri->Xg->rows - (glmmri->Xg->cols + glmmri->npvr);
+  X0 = MatrixAlloc(glmmri->Xg->rows, glmmri->Xg->cols + glmmri->npvr, MATRIX_REAL);
+
+  glm->y = MatrixAlloc(glmmri->Xg->rows, 1, MATRIX_REAL);
+
+  nc = glmmri->y->width;
+  nr = glmmri->y->height;
+  ns = glmmri->y->depth;
+  glmmri->beta = MRIallocSequence(nc, nr, ns, MRI_FLOAT, X0->cols) ;
+  glmmri->eres = MRIallocSequence(nc, nr, ns, MRI_FLOAT, glmmri->y->nframes) ;
+  glmmri->rvar = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
+
+  if(glmmri->yhatsave)
+    glmmri->yhat = MRIallocSequence(nc, nr, ns, MRI_FLOAT, glmmri->y->nframes) ;
+  if(glmmri->condsave)
+    glmmri->cond = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1) ;
+
+  for(n = 0; n < glmmri->ncontrasts; n++){
+    glmmri->gamma[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT, glmmri->C[n]->rows);
+    glmmri->F[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
+    glm->C[n] = MatrixCopy(glmmri->C[n],NULL);
+  }
+  GLMtransposeC(glm);
+
+  if(0 && (glmmri->npvr > 0 && glmmri->w == NULL)){
+    // Same design matrix everywhere
+    glm->X = MatrixCopy(X0,glm->X);
+    GLMmatrices(glm);
+  }
+
+  // pre-load X0
+  for(f = 1; f <= X0->rows; f++){
+    for(n = 1; n <= glmmri->Xg->cols; n++){
+      X0->rptr[f][n] = glmmri->Xg->rptr[f][n];
+    }
+  }
+
+  //--------------------------------------------
+  nvoxtot = nc*nr*ns;
+  nthvox = 0;
+  pctdone = 0;
+  glmmri->n_ill_cond = 0;
+  for(c=0; c < nc; c++){
+    for(r=0; r < nr; r++){
+      for(s=0; s< ns; s++){
+	nthvox ++;
+	if(nthvox == (long) floor(.1*nvoxtot) ){
+	  pctdone += 10;
+	  printf("%2d%% ",pctdone);
+	  fflush(stdout);
+	  nthvox = 0;
+	}
+
+	// Check the mask -----------
+	if(glmmri->mask != NULL){
+	  m = MRIgetVoxVal(glmmri->mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+
+	// Load y and the per-vox reg --------------------------
+	for(f = 1; f <= X0->rows; f++){
+	  glm->y->rptr[f][1] = MRIgetVoxVal(glmmri->y,c,r,s,f-1);
+	  for(n = 1; n <= glmmri->npvr; n++){
+	    X0->rptr[f][n+glmmri->Xg->cols] = 
+	      MRIgetVoxVal(glmmri->pvr[n-1],c,r,s,f-1);
+	  }
+	}
+
+	// Weight X and y
+	glm->X = MatrixCopy(X0,glm->X);
+	if(glmmri->w != NULL){
+	  for(f = 1; f <= glm->X->rows; f++){
+	    v = MRIgetVoxVal(glmmri->w,c,r,s,f-1);	    
+	    glm->y->rptr[f][1] *= v;
+	    for(n = 1; n <= glm->X->cols; n++) glm->X->rptr[f][n] *= v;
+	  }
+	}
+
+	GLMmatrices(glm);
+	if(glmmri->condsave){
+	  Xcond = MatrixConditionNumber(glm->XtX);
+	  MRIsetVoxVal(glmmri->cond,c,r,s,0,Xcond);
+	}
+
+	if(glm->ill_cond_flag){
+	  glmmri->n_ill_cond ++;
+	  continue;
+	}
+
+	GLMfit(glm);
+	GLMtest(glm);
+
+	// Pack data back into MRI
+	MRIsetVoxVal(glmmri->rvar,c,r,s,0,glm->rvar);
+	MRIfromMatrix(glmmri->beta, c, r, s, glm->beta);
+	MRIfromMatrix(glmmri->eres, c, r, s, glm->eres);
+	if(glmmri->yhatsave)
+	  MRIfromMatrix(glmmri->yhat, c, r, s, glm->yhat);
+	for(n = 0; n < glmmri->ncontrasts; n++){
+	  MRIfromMatrix(glmmri->gamma[n], c, r, s, glm->gamma[n]);
+	  MRIsetVoxVal(glmmri->F[n],c,r,s,0,glm->F[n]);
+	}
+
+      }
+    }
+  }
+  printf("\n");
+
+  MatrixFree(&X0); 
+  GLMfree(&glm);
+
+  printf("n_ill_cond = %d\n",glmmri->n_ill_cond);
+  return(0);
 }
