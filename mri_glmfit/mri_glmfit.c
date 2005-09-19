@@ -4,6 +4,7 @@
 // Check to make sure no two contrast mtxs are the same
 // Save config in output dir
 // Links to source data
+// PCA
 // Cleanup
 
 // p-to-z
@@ -49,7 +50,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.15 2005/09/19 23:28:01 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.16 2005/09/19 23:35:05 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -235,9 +236,10 @@ int main(int argc, char **argv)
     }
   }
 
-  printf("Starting Fit\n");
+  printf("Starting fit\n");
   MRIglmFit(glmmri);
 
+  printf("Writing results\n");
   MRIwrite(glmmri->beta,betaFile);
   MRIwrite(glmmri->rvar,rvarFile);
   if(glmmri->yhatsave) MRIwrite(glmmri->yhat,yhatFile);
@@ -245,11 +247,11 @@ int main(int argc, char **argv)
   if(eresFile) MRIwrite(glmmri->eres,eresFile);    
   
   for(n=0; n < glmmri->ncontrasts; n++){
+    printf("  %s\n",glmmri->cname[n]);
     
     // Create output directory for contrast
     sprintf(tmpstr,"%s/%s",GLMDir,glmmri->cname[n]);
     mkdir(tmpstr,(mode_t)-1);
-    printf("%s\n",glmmri->cname[n]);
     
     // Save gamma and F
     sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,glmmri->cname[n]);
@@ -420,16 +422,21 @@ static void print_usage(void)
   printf("\n");
   printf("   --y input volume \n");
   printf("   --X design matrix file\n");
-  printf("   --glmdir dir : save outputs to dir\n");
+  printf("   --pvr pvr1 <--prv pvr2 ...>\n");
+  printf("   --w weight volume\n");
+  printf("   --mask mask volume\n");
   printf("   --C contrast1.mat <--C contrast2.mat ...>\n");
   printf("\n");
-  printf("   --beta regression coeffient volume\n");
-  printf("   --rvar residual variance\n");
-  printf("   --yhat input estimate\n");
-  printf("   --eres residual\n");
+  printf("   --glmdir dir : save outputs to dir\n");
+  printf("\n");
+  printf("   --saveyhat \n");
+  printf("   --savecond \n");
   printf("\n");
   printf("   --synth : replace input with gaussian \n");
+  printf("   --seed seed \n");
   printf("\n");
+  printf("   --resynthtest niters \n");
+  printf("   --profile     niters \n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
@@ -499,6 +506,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"X    %s\n",XFile);
   fprintf(fp,"beta %s\n",betaFile);
   fprintf(fp,"rvar %s\n",rvarFile);
+  if(maskFile) fprintf(fp,"mask %s\n",maskFile);
   if(yhatFile) fprintf(fp,"yhat %s\n",yhatFile);
   if(eresFile) fprintf(fp,"eres %s\n",eresFile);
   if(condFile) fprintf(fp,"cond %s\n",condFile);
