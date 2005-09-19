@@ -1,5 +1,5 @@
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.4 2005/09/19 20:38:49 greve Exp $
+// $Id: fsglm.c,v 1.5 2005/09/19 22:09:12 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,14 +15,14 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.4 2005/09/19 20:38:49 greve Exp $"); 
+  return("$Id: fsglm.c,v 1.5 2005/09/19 22:09:12 greve Exp $"); 
 }
 
 /*-------------------------------------------------------
   GLMalloc - allocs a GLMMAT struct and makes sure
   that everything is either NULL or 0. Does not alloc any
   of the matrices (that's done by GLMfit(), GLMtest(), and
-  GLMtransposeC();
+  GLMtransposeC(), and GLMmatrices.
   -------------------------------------------------------*/
 GLMMAT *GLMalloc(void)
 {
@@ -116,13 +116,16 @@ int GLMtransposeC(GLMMAT *glm)
 }
 
 /*---------------------------------------------------------------
-  GLMfit() - fit linear parameters (betas). Also computes yhat,
-  eres, and rvar. May want to defer rvar at some point (eg, to
-  do spatial filtering on the eres).
+  GLMmatrices() - compute all the matrices needed to do the
+  estimation and testing, but does not do estimation or testing.
+  This could be done inside of GLMfit() and/or GLMtest(). However,
+  it may or may not be necessary to compute these matrices more
+  than once. Eg, when doing an analysis where the desgin matrix
+  is the same at all voxels, then it is not necessary.
   ---------------------------------------------------------------*/
-int GLMfit(GLMMAT *glm)
+int GLMmatrices(GLMMAT *glm)
 {
-  int f;
+  int n;
   MATRIX *Mtmp;
 
   glm->DOF = glm->X->rows - glm->X->cols;
@@ -133,19 +136,43 @@ int GLMfit(GLMMAT *glm)
   if(Mtmp == NULL){
     // Ill-conditioned
     MatrixPrint(stdout,glm->X);
-    exit(1);
     glm->ill_cond_flag = 1;
     return(1);
   }
   glm->ill_cond_flag  = 0;
   glm->iXtX = Mtmp;
+
+  for(n = 0; n < glm->ncontrasts; n++){
+    // gamma = C*beta
+    // gCVM  = rvar*J*C*inv(X'*X)*C'
+    // F     = gamma' * inv(gCVM) * gamma;
+    glm->CiXtX[n]    = MatrixMultiply(glm->C[n],glm->iXtX,glm->CiXtX[n]);
+    glm->CiXtXCt[n]  = MatrixMultiply(glm->CiXtX[n],glm->Ct[n],glm->CiXtXCt[n]);
+  }
+  return(0);
+}
+
+/*---------------------------------------------------------------
+  GLMfit() - fit linear parameters (betas). Also computes yhat,
+  eres, and rvar. May want to defer rvar at some point (eg, to
+  do spatial filtering on the eres). XtX and iXtX must have been
+  computed by GLMmatrices() first.
+  ---------------------------------------------------------------*/
+int GLMfit(GLMMAT *glm)
+{
+  int f;
+
+  if(glm->ill_cond_flag) return(0);
+
+  // Compute X'*y
   glm->Xty  = MatrixMultiply(glm->Xt,glm->y,glm->Xty);
 
   // Now do the actual parameter (beta) estmation
+  // beta = inv(X'*X)*X'*y
   glm->beta = MatrixMultiply(glm->iXtX,glm->Xty,glm->beta);
 
   // Compute yhat, eres, and residual variance
-  glm->yhat = MatrixMultiply(glm->X,glm->beta,glm->yhat);
+  glm->yhat = MatrixMultiply(glm->X, glm->beta, glm->yhat);
   glm->eres = MatrixSubtract(glm->y, glm->yhat, glm->eres);
   glm->rvar = 0;
   for(f = 1; f <= glm->eres->rows; f++)
@@ -157,7 +184,7 @@ int GLMfit(GLMMAT *glm)
 }
 /*------------------------------------------------------------------------
   GLMtest() - tests all the contrasts for the given GLM. Must have already
-  run GLMfit() and GLMtransposeC().
+  run GLMtransposeC(), GLMmatrices(), and GLMfit().
   ------------------------------------------------------------------------*/
 int GLMtest(GLMMAT *glm)
 {
@@ -178,11 +205,12 @@ int GLMtest(GLMMAT *glm)
     // gamma = C*beta
     // gCVM  = rvar*J*C*inv(X'*X)*C'
     // F     = gamma' * inv(gCVM) * gamma;
+    // CiXtX and CiXtXCt are now computed by GLMmatrices().
+    //glm->CiXtX[n]    = MatrixMultiply(glm->C[n],glm->iXtX,glm->CiXtX[n]);
+    //glm->CiXtXCt[n]  = MatrixMultiply(glm->CiXtX[n],glm->Ct[n],glm->CiXtXCt[n]);
     dtmp = glm->rvar*glm->C[n]->rows;
     glm->gamma[n]    = MatrixMultiply(glm->C[n],glm->beta,glm->gamma[n]);
     glm->gammat[n]   = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
-    glm->CiXtX[n]    = MatrixMultiply(glm->C[n],glm->iXtX,glm->CiXtX[n]);
-    glm->CiXtXCt[n]  = MatrixMultiply(glm->CiXtX[n],glm->Ct[n],glm->CiXtXCt[n]);
     glm->gCVM[n]     = MatrixScalarMul(glm->CiXtXCt[n],dtmp,glm->gCVM[n]);
     glm->igCVM[n]    = MatrixInverse(glm->gCVM[n],glm->igCVM[n]);
     glm->gtigCVM[n]  = MatrixMultiply(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
@@ -215,6 +243,7 @@ int GLMprofile(int nrows, int ncols, int ncon, int niters)
     for(c=0; c < glm->ncontrasts; c++) 
       glm->C[c] = MatrixDRand48(2, ncols, NULL );
     GLMtransposeC(glm);
+    GLMmatrices(glm);
     GLMfit(glm);
     GLMtest(glm);
     GLMfree(&glm);
@@ -226,6 +255,77 @@ int GLMprofile(int nrows, int ncols, int ncon, int niters)
 
   return(msec);
 }
+/*---------------------------------------------------------
+  GLMsynth() - synthesizes y, X, and Cs and fits and tests. 
+  ---------------------------------------------------------*/
+GLMMAT *GLMsynth(void)
+{
+  int nrows, ncols, ncon, c;
+  GLMMAT *glm;
+  
+  nrows = 100;
+  ncols = 10;
+  ncon = 3;
+
+  glm = GLMalloc();
+  glm->y = MatrixDRand48(nrows, 1, NULL);
+  glm->X = MatrixDRand48(nrows, ncols, NULL );
+  glm->ncontrasts = ncon;
+  for(c=0; c < ncon; c++) 
+    glm->C[c] = MatrixDRand48(c+1, ncols, NULL );
+  GLMtransposeC(glm);
+  GLMmatrices(glm);
+  GLMfit(glm);
+  GLMtest(glm);
+
+  return(glm);
+}
+/*----------------------------------------------------------------------
+  GLMresynthTest() - tests GLM by synthesizing y, X, fitting, then
+  setting y=yhat (ie, resynth), refitting. rvar should be 0, but less
+  than 10e-9 suffices. This is repeated niter times.  If any of the
+  niters are over tolerance, then 1 is returned immediately. Otherwise
+  0 is returned after all iters.  If prvar is non-null then rvar of
+  the failure is passed back. If there is no failure, then the max
+  rvar is passed. 
+  ---------------------------------------------------------*/
+int GLMresynthTest(int niters, double *prvar)
+{
+  int nrows, ncols, n;
+  GLMMAT *glm;
+  double rvarmax;
+  
+  nrows = 100;
+  ncols = 10;
+  glm = GLMalloc();
+
+  rvarmax = 0;
+  for(n=0; n<niters; n++){
+    // synthesize a GLM
+    glm->y = MatrixDRand48(nrows, 1, glm->y);
+    glm->X = MatrixDRand48(nrows, ncols, glm->X);
+    // Fit
+    GLMmatrices(glm);
+    GLMfit(glm);
+    // Copy yhat into y
+    glm->y = MatrixCopy(glm->yhat,glm->y);
+    // Re-Fit
+    GLMfit(glm);
+    if(glm->rvar > 10e-9){
+      // rvar should be 0, but at least less than 10^-9.
+      // Report an error if not.
+      printf("GLMresynth failure: rvar = %le\n",glm->rvar);
+      if(prvar != NULL) *prvar = glm->rvar;
+      GLMfree(&glm);
+      return(1);
+    }
+    if(glm->rvar > rvarmax) rvarmax = glm->rvar;
+  }
+  GLMfree(&glm);
+  if(prvar != NULL) *prvar = rvarmax;
+  return(0);
+}
+
 /*---------------------------------------------------------
   GLMdump() - saves a lot of the stuff from the GLMMAT
   struct into ascii files in the given directory.
@@ -294,67 +394,3 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
 
   return(0);
 }
-/*---------------------------------------------------------
-  GLMsynth() - synthesizes y, X, and Cs and fits and tests. 
-  ---------------------------------------------------------*/
-GLMMAT *GLMsynth(void)
-{
-  int nrows, ncols, ncon, c;
-  GLMMAT *glm;
-  
-  nrows = 100;
-  ncols = 10;
-  ncon = 3;
-
-  glm = GLMalloc();
-  glm->y = MatrixDRand48(nrows, 1, NULL);
-  glm->X = MatrixDRand48(nrows, ncols, NULL );
-  glm->ncontrasts = ncon;
-  for(c=0; c < ncon; c++) 
-    glm->C[c] = MatrixDRand48(c+1, ncols, NULL );
-  GLMtransposeC(glm);
-  GLMfit(glm);
-  GLMtest(glm);
-
-  return(glm);
-}
-/*----------------------------------------------------------------------
-  GLMresynthTest() - tests GLM by synthesizing y, X, fitting, then
-  setting y=yhat (ie, resynth), refitting. rvar should be 0, but less than
-  10e-9 suffices. This is repeated niter times.  If any of the niters
-  are over tolerance, then 1 is returned immediately. Otherwise 0 is
-  returned after all iters.  If prvar is non-null then rvar is passed
-  back. 
-  ---------------------------------------------------------*/
-int GLMresynthTest(int niters, double *prvar)
-{
-  int nrows, ncols, n;
-  GLMMAT *glm;
-  
-  nrows = 100;
-  ncols = 10;
-  glm = GLMalloc();
-
-  for(n=0; n<niters; n++){
-    // synthesize a GLM
-    glm->y = MatrixDRand48(nrows, 1, glm->y);
-    glm->X = MatrixDRand48(nrows, ncols, glm->X);
-    // Fit
-    GLMfit(glm);
-    // Copy yhat into y
-    glm->y = MatrixCopy(glm->yhat,glm->y);
-    // Re-Fit
-    GLMfit(glm);
-    if(glm->rvar > 10e-9){
-      // rvar should be 0, but at least less than 10^-9.
-      // Report an error if not.
-      printf("GLMresynth failure: rvar = %le\n",glm->rvar);
-      if(prvar != NULL) *prvar = glm->rvar;
-      GLMfree(&glm);
-      return(1);
-    }
-  }
-  GLMfree(&glm);
-  return(0);
-}
-

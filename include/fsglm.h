@@ -1,5 +1,5 @@
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.2 2005/09/18 04:54:35 greve Exp $
+// $Id: fsglm.h,v 1.3 2005/09/19 22:09:12 greve Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
@@ -46,6 +46,7 @@ typedef struct{
 GLMMAT *GLMalloc(void);
 int GLMfree(GLMMAT **pgm);
 int GLMtransposeC(GLMMAT *gm);
+int GLMmatrices(GLMMAT *glm);
 int GLMfit(GLMMAT *glm);
 int GLMtest(GLMMAT *glm);
 int GLMprofile(int nrows, int ncols, int ncon, int niters);
