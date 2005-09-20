@@ -28,7 +28,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
 bin_PROGRAMS = dummy
 dummy_SOURCES=dummy.c
-dummy_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(top_srcdir)/lib/$(OS)/libgsl.a
+dummy_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 dummy_LDFLAGS=$(OS_LDFLAGS)
 # to --------------------------------------------------
 #
@@ -52,6 +52,3 @@ check_PROGRAMS= myown
 
 myown_SOURCES=myown.c
 myown_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
-
-
-
