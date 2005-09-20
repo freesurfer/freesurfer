@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below  
 #
-# $Id: FreeSurferEnv.csh,v 1.37 2005/09/12 15:52:05 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.38 2005/09/20 16:51:43 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.37 2005/09/12 15:52:05 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.38 2005/09/20 16:51:43 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -406,9 +406,27 @@ if( $output && $?TCLLIBPATH ) then
 endif
 
 
-### ----------- Miscellaneous support libraries  ------------ ####
-if ( -e $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh ) then
-    source $FREESURFER_HOME/lib/misc/SetupLibsEnv.csh
+### - Miscellaneous support libraries (tiff/jpg/glut - Mac OS only) - ###
+if ( -e $FREESURFER_HOME/lib/misc/bin ) then
+    set path = ( $FREESURFER_HOME/lib/misc/bin \
+                 $path \
+                )
+endif
+if ( -e $FREESURFER_HOME/lib/misc/lib ) then
+    setenv MISC_LIB  $FREESURFER_HOME/lib/misc/lib
+    if(! $?LD_LIBRARY_PATH ) then
+        setenv LD_LIBRARY_PATH $MISC_LIB
+    else
+        setenv LD_LIBRARY_PATH "$MISC_LIB":"$LD_LIBRARY_PATH"
+    endif
+    if(! $?DYLD_LIBRARY_PATH ) then
+        setenv DYLD_LIBRARY_PATH $MISC_LIB
+    else
+        setenv DYLD_LIBRARY_PATH "$MISC_LIB":"$DYLD_LIBRARY_PATH"
+    endif
+endif
+if( $output && $?MISC_LIB ) then
+    echo "MISC_LIB        $MISC_LIB"
 endif
 
 
