@@ -35,7 +35,7 @@ static void print_version(void);
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
-static char vcid[] = "$Id: mris_info.cpp,v 1.10 2005/08/25 16:58:16 greve Exp $";
+static char vcid[] = "$Id: mris_info.cpp,v 1.11 2005/09/20 14:01:28 fischl Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL;
 int debug = 0;
@@ -137,6 +137,13 @@ int main(int argc, char *argv[])
     for (i = 0 ; i < mris->ncmds ; i++)
       printf("cmd[%d]: %s\n", i, mris->cmdlines[i]) ;
   }
+	if (argc > 1)
+		{
+			int vno = atoi(argv[2]) ;
+			VERTEX *v ;
+			v= &mris->vertices[vno] ;
+			printf("mris[%d] = (%2.1f, %2.1f, %2.1f)\n", vno, v->x, v->y, v->z) ;
+		}
   MRISfree(&mris);
 }
 
