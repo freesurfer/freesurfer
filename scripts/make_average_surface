@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.10 2005/08/19 21:36:46 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.11 2005/09/20 18:27:48 nicks Exp $';
 
 set PrintHelp = 0;
 
@@ -82,10 +82,6 @@ else
 endif
 
 set tmp_subjects = ( $SUBJECTS )
-#cp ${SUBJECTS_DIR}/$tmp_subjects[1]/mri/T1/COR-.info \
-#    ${SUBJECTS_DIR}/${average_subject}/mri/T1
-#cp ${SUBJECTS_DIR}/$tmp_subjects[1]/mri/orig/COR-.info \
-#    ${SUBJECTS_DIR}/${average_subject}/mri/orig
 
 foreach hemi (rh lh)
 
@@ -119,6 +115,9 @@ foreach hemi (rh lh)
   cp ${hemi}.white_avg.H  ${hemi}.curv
   cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg .
   ln -s -f ${hemi}.sphere.reg ${hemi}.sphere
+  ln -s -f ${hemi}.orig_avg ${hemi}.orig
+  ln -s -f ${hemi}.white_avg ${hemi}.white
+  ln -s -f ${hemi}.pial_avg ${hemi}.pial
   set echo=1
 
 end
