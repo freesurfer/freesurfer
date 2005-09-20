@@ -35,7 +35,7 @@ static void print_version(void);
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
-static char vcid[] = "$Id: mris_info.cpp,v 1.11 2005/09/20 14:01:28 fischl Exp $";
+static char vcid[] = "$Id: mris_info.cpp,v 1.12 2005/09/20 14:57:58 fischl Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL;
 int debug = 0;
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     for (i = 0 ; i < mris->ncmds ; i++)
       printf("cmd[%d]: %s\n", i, mris->cmdlines[i]) ;
   }
-	if (argc > 1)
+	if (argc > 2)
 		{
 			int vno = atoi(argv[2]) ;
 			VERTEX *v ;
@@ -178,7 +178,8 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
     else{
-      surffile = option;
+			if (NULL == surffile)
+				surffile = option;
     }
     nargc -= nargsused;
     pargv += nargsused;
