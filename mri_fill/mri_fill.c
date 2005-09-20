@@ -24,7 +24,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.95 2005/09/05 20:49:50 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.96 2005/09/20 21:22:12 xhan Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -325,12 +325,12 @@ main(int argc, char *argv[])
   VOL_GEOM *src=0;
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_fill.c,v 1.95 2005/09/05 20:49:50 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_fill.c,v 1.96 2005/09/20 21:22:12 xhan Exp $", "$Name:  $", cmdline);
 
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.95 2005/09/05 20:49:50 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.96 2005/09/20 21:22:12 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -610,13 +610,18 @@ main(int argc, char *argv[])
 		{
 			MRI *mri_seg_tal = MRIclone(mri_seg, NULL) ;
 
+		       	MRIcopyHeader(mri_talheader, mri_seg_tal);
+
 			MRItoTalairachExInterp(mri_seg, mri_seg_tal, lta, SAMPLE_NEAREST);
+				
+			
 			if (find_cc_seed_with_segmentation(mri_tal, mri_seg_tal, &cc_tal_x, &cc_tal_y, &cc_tal_z) == NO_ERROR)
 			{
 				cc_seed_set = 1;
 				mri_cc = 
 					find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
 														 &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
+
 				mri_erase_nonmidline_voxels(mri_cc, mri_seg_tal) ;
 				if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 					MRIwrite(mri_cc, "cc.mgz") ;
@@ -662,7 +667,7 @@ main(int argc, char *argv[])
   // get the src volume version
   // we need the target volume c_(ras) to set the volume correct
   mri_tmp = MRIcopy(mri_im, NULL);   // src volume space
-	if (mri_seg == NULL)    // if mri_seg, then cutting plane already in image space
+  // if (mri_seg == NULL)    // if mri_seg, then cutting plane already in image space //I think this is wrong! if mri_seg != NULL, then mri_cc is in atlas space! We need it in image space!
 	{
 		MRIfromTalairachEx(mri_cc, mri_tmp, lta) ;
 		// only 1 or 0 values 
@@ -684,6 +689,7 @@ main(int argc, char *argv[])
 									&cc_tal_x, &cc_tal_y, &cc_tal_z);
   printf("talairach cc position changed to (%.2f, %.2f, %.2f)\n", cc_tal_x, cc_tal_y, cc_tal_z);
 
+  //Note that the following coordiantes are all in transformed (atlas or talairach space!
   if (log_fp)
     fprintf(log_fp, "CC:   %d, %d, %d (TAL: %2.1f, %2.1f, %2.1f)\n",
             x_cc, y_cc, z_cc, cc_tal_x, cc_tal_y, cc_tal_z) ;
@@ -1054,11 +1060,26 @@ main(int argc, char *argv[])
 
   if (segmentation_fname)
   {
+    //    printf("x_cc = %g, y_cc = %g, z_cc = %g\n", (float)x_cc, (float)y_cc, (float) z_cc);
+    Real x_cc_img, y_cc_img, z_cc_img;
+    //x_cc, y_cc, z_cc is still in the transformed space -xh
+    //transform them into image space
+    //note mri_cc was transformed into image space
+    MRItalairachVoxelToVoxelEx(mri_im, x_cc, y_cc, z_cc, &x_cc_img, &y_cc_img, &z_cc_img, lta);
+    x_cc = (int)x_cc_img;
+    y_cc = (int)y_cc_img;
+    z_cc = (int)z_cc_img;
+
+    printf("Voxel coord of CC in image space is (%d, %d, %d)\n", x_cc, y_cc, z_cc);
     MRIeraseTalairachPlaneNewEx(mri_seg, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
 																mri_seg->width, fill_val, lta);
 		//    edit_segmentation(mri_im, mri_seg) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_seg,"mri_seg_erased.mgz");
     MRIeraseTalairachPlaneNewEx(mri_im, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
 																mri_seg->width, fill_val, lta);
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_im,"mri_im_erased.mgz");
   }
 
   MRIfree(&mri_cc) ;
@@ -3938,8 +3959,8 @@ mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg)
 			}
 		}
 	}
-
-	MRIwrite(mri_mid, "mid.mgz") ;
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	  MRIwrite(mri_mid, "mid.mgz") ;
 	MRIfree(&mri_mid) ;
 	return(NO_ERROR) ;
 }
