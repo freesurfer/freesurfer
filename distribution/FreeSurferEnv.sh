@@ -5,10 +5,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below
 #
-# $Id: FreeSurferEnv.sh,v 1.1 2005/09/19 22:58:53 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.2 2005/09/20 16:49:28 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.1 2005/09/19 22:58:53 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.2 2005/09/20 16:49:28 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -68,7 +68,7 @@ fi
 if [ $output==1 ]; then
     echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
     if [[ "$1" = "--version" || \
-	"$1" = "--V" || \
+        "$1" = "--V" || \
         "$1" = "-V" || \
         "$1" = "-v" ]]; then
         echo $VERSION
@@ -207,6 +207,26 @@ if [[ -z $NO_FSFAST ]]; then
         echo "path(path,fsfasttoolbox);"                               >> $SUF
         echo "clear fsfasthome fsfasttoolbox;"                         >> $SUF
         echo "%-----------------------------------------------------%" >> $SUF
+    fi
+
+    tmp1=`grep FSFAST_HOME $SUF       | wc -l`;
+    tmp2=`grep FMRI_ANALYSIS_DIR $SUF | wc -l`;
+  
+    if [ $tmp1 == 0 -a $tmp2 == 0 ] ; then
+        if [ $output == "1" ] ; then
+            echo ""
+            echo "WARNING: The $SUF file does not appear to be";
+            echo "         configured correctly. You may not be able"
+            echo "         to run the FS-FAST programs";
+            echo "Try adding the following three lines to $SUF"
+            echo "----------------cut-----------------------"
+            echo "fsfasthome = getenv('FSFAST_HOME');"         
+            echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"
+            echo "path(path,fsfasttoolbox);"                        
+            echo "clear fsfasthome fsfasttoolbox;"
+            echo "----------------cut-----------------------"
+            echo ""
+        fi
     fi
 fi
 
