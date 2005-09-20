@@ -29,7 +29,7 @@ typedef enum _secondOrderType {
 } e_secondOrderType;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.5 2005/09/20 19:44:07 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.6 2005/09/20 19:49:46 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.5 2005/09/20 19:44:07 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.6 2005/09/20 19:49:46 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1053,7 +1053,7 @@ EXAMPLES								\n\
 	Same as above, with the addition of a histogram for the 	\n\
 	Gaussian and Mean curvatures as well.				\n\
 									\n\
-    mris_curvature_stats -h 10 -G -F smoothwm -m -o 801_recon \\ 	\n\
+    mris_curvature_stats -h 10 -G -F smoothwm -m -o foo \\ 		\n\
 	801_recon rh curv 						\n\
 									\n\
 	Generate several output text files that capture the min/max	\n\
@@ -1062,14 +1062,14 @@ EXAMPLES								\n\
 									\n\
 	In this case, the curvature files created are called:		\n\
 									\n\
-		801_recon.rh.smoothwm.K.curv				\n\
-		801_recon.rh.smoothwm.H.curv				\n\
+		foo.rh.smoothwm.K.curv					\n\
+		foo.rh.smoothwm.H.curv					\n\
 									\n\
 	To process these exact files with 'mris_curvature_stats', you	\n\
 	will need to rename them:					\n\
 									\n\
 		cd $SUBJECTS_DIR/801_recon/surf				\n\
-		mv 801_recon.rh.smoothwm.K.curv rh.smoothwm.K.curv	\n\
+		mv foo.rh.smoothwm.K.curv rh.smoothwm.K.curv		\n\
 									\n\
 	i.e. just strip away the first prefix. These can then be read	\n\
 	with								\n\
