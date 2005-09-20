@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.77 2005/08/18 18:23:18 kteich Exp $
+# $Id: tksurfer.tcl,v 1.78 2005/09/20 21:53:26 kteich Exp $
 
 package require BLT;
 
@@ -1548,11 +1548,14 @@ proc DoLoadTimeCourseDlog {} {
 	
 	set fwRegSub           [$fwRegistration subwidget frame]
 
+	set fwRegNote          $fwRegSub.fwRegNote
 	set fwRegFile          $fwRegSub.fwRegFile
 	set fwRegFileName      $fwRegSub.fwRegFileName
 	set fwRegFind          $fwRegSub.fwRegFind
 	set fwRegIdentity      $fwRegSub.fwRegIdentity
 
+	tkm_MakeNormalLabel $fwRegNote "If you are loading a volume encoded value file, ignore the registration options." 400
+	
 	# The bit of code in the radio buttons disables the file entry
 	# field when the file radio button is not clicked.
 	tkm_MakeRadioButton $fwRegFile "Specify registration file" \
@@ -1569,7 +1572,7 @@ proc DoLoadTimeCourseDlog {} {
 	    gRegistrationType $FunD_tRegistration(identity) "set state disabled; if { \[set gRegistrationType\] == $FunD_tRegistration(file)} { set state normal }; $fwRegFileName.ew config -state \$state; $fwRegFileName.bw config -state \$state"
 	set gRegistrationType $FunD_tRegistration(file)
 
-	pack $fwRegFile $fwRegFileName $fwRegFind $fwRegIdentity \
+	pack $fwRegNote $fwRegFile $fwRegFileName $fwRegFind $fwRegIdentity \
 	    -side top       \
 	    -expand yes     \
 	    -fill x         \

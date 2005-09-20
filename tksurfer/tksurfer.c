@@ -1334,10 +1334,15 @@ int undo_do_action_cut(UNDO_ACTION* action);
 typedef struct
 {
   float x, y, z;
+  int vno;
 } FUNC_SELECTED_VOXEL;
 
+// The functional volume can either be a mriFunctionalDataAccess or an
+// MRI encoded value file with multiple frames.
 static mriFunctionalDataRef func_timecourse = NULL;
 static mriFunctionalDataRef func_timecourse_offset = NULL;
+static MRI* func_timecourse_mri = NULL;
+static MRI* func_timecourse_offset_mri = NULL;
 static int func_use_timecourse_offset = FALSE;
 static int func_sub_prestim_avg = FALSE;
 static xGrowableArrayRef func_selected_ras = NULL;
@@ -1350,19 +1355,22 @@ static xGrowableArrayRef func_selected_ras = NULL;
 static double func_time_resolution = 0;
 static int func_num_prestim_points = 0;
 static int func_num_conditions = 0;
+static int func_num_timepoints = 0;
 
 int func_initialize ();
 
 int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
 			  char* registration);
+int func_load_timecourse_from_volume_encoded_value_file (char* fname);
 int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
 				 char* registration);
+int func_load_timecourse_offset_from_volume_encoded_value_file (char* fname);
 
 int func_select_marked_vertices ();
 int func_select_label ();
 
 int func_clear_selection();
-int func_select_ras (float x, float y, float z);
+int func_select_voxel (int vno, float x, float y, float z);
 
 int func_graph_timecourse_selection ();
 
@@ -2267,10 +2275,6 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
       else
 	{
 
-	  /* Note that we don't check for valid reg type here because
-	     the volume type could be an encoded value file, which
-	     doesn't need one. */
-	  
 	  sclv_read_from_volume(functional_fname, overlay_reg_type,
 				overlay_reg, SCLV_VAL);
 	  
@@ -2287,39 +2291,26 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   /* begin rkt */
   if (load_timecourse)
     {
-      if (FunD_tRegistration_None == timecourse_reg_type)
-	{
-	  printf ("surfer: ERROR: Must specify registration type for timecourse. Use -timecourse-reg <file>, -timecourse-reg-find, or -timecourse-reg-identity.\n");
-
-	} else {
-
-	  func_load_timecourse (timecourse_fname, 
-				timecourse_reg_type, timecourse_reg);
-
-	  /* send the number of conditions */
-	  sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
-	  send_tcl_command (tcl_cmd);
-	  
-	  /* show the graph window */
-	  send_tcl_command ("Graph_ShowWindow");
-	}
+      func_load_timecourse (timecourse_fname, 
+			    timecourse_reg_type, timecourse_reg);
+      
+      /* send the number of conditions */
+      sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
+      send_tcl_command (tcl_cmd);
+      
+      /* show the graph window */
+      send_tcl_command ("Graph_ShowWindow");
     }
   
   if (load_timecourse_offset)
     {
-      if (FunD_tRegistration_None == timecourse_offset_reg_type)
-	{
-	  printf ("surfer: ERROR: Must specify registration type for timecourse offset. Use -timecourse-offset-reg <file>, -timecourse-offset-reg-find, or -timecourse-offset-reg-identity.\n");
-
-	} else {
-	  
-	  func_load_timecourse_offset (timecourse_offset_fname, 
-				       timecourse_offset_reg_type, 
-				       timecourse_offset_reg);
-
-	  /* turn on the offset options */
-	  send_tcl_command ("Graph_ShowOffsetOptions 1");
-	}
+      
+      func_load_timecourse_offset (timecourse_offset_fname, 
+				   timecourse_offset_reg_type, 
+				   timecourse_offset_reg);
+      
+      /* turn on the offset options */
+      send_tcl_command ("Graph_ShowOffsetOptions 1");
     }
   
   /* end rkt */
@@ -5216,14 +5207,14 @@ select_vertex(short sx,short sy)
     }
   
   /* if we have functional data... */
-  if(func_timecourse!=NULL)
+  if(func_timecourse || func_timecourse_mri)
     {
       v = &(mris->vertices[selection]);
       
       /* select only this voxel and graph it */
-      func_clear_selection();
-      func_select_ras(v->origx,v->origy,v->origz);
-      func_graph_timecourse_selection();
+      func_clear_selection ();
+      func_select_voxel (vno, v->origx, v->origy, v->origz);
+      func_graph_timecourse_selection ();
     }
   
   /* select the label at this vertex, if there is one. */
@@ -5261,14 +5252,14 @@ select_vertex_by_vno (int vno)
   print_vertex_data(selection, stdout, 0) ;
   
   /* if we have functional data... */
-  if(func_timecourse!=NULL)
+  if(func_timecourse || func_timecourse_mri)
     {
       v = &(mris->vertices[selection]);
       
       /* select only this voxel and graph it */
-      func_clear_selection();
-      func_select_ras(v->origx,v->origy,v->origz);
-      func_graph_timecourse_selection();
+      func_clear_selection ();
+      func_select_voxel (selection, v->origx, v->origy, v->origz);
+      func_graph_timecourse_selection ();
     }
   
   /* select the label at this vertex, if there is one. */
@@ -7956,7 +7947,7 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
     {
       printf("surfer: couldn't load %s\n",fname);
       ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,
-		   "sclv_read_from_volume: error in FunD_New\n"));
+		   "sclv_read_from_volume: error in MRIreadInfo\n"));
     }
 
   if (mri_info->width * mri_info->height * mri_info->depth ==
@@ -18524,7 +18515,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.137 2005/09/14 19:48:24 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.138 2005/09/20 21:53:21 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21626,16 +21617,51 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   FunD_tErr volume_error;
   char tcl_cmd[1024];
   float time_resolution;
-  
+  MRI* mri_info = NULL;
+
   if (fname==NULL)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"func_load_timecourse: fname was null\n"));
   
-  /* delete existing */
+  /* delete existing mriFunctionalDataRef or MRI. */
   if (func_timecourse!=NULL)
     {
       volume_error = FunD_Delete(&func_timecourse);
       if (volume_error!=FunD_tErr_NoError)
 	ErrorPrintf(func_convert_error(volume_error),"func_load_timecourse: error in FunD_Delete\n");
+    }
+  if (func_timecourse_mri!=NULL)
+    {
+      MRIfree (&func_timecourse_mri);
+    }
+
+  /* There are two possibilites here. The volume can be an actual
+     functional volume that we have to map onto the surface, or it can
+     be a value-per-vertex mapping encoded as a volume. In the latter
+     case, the width * height * depth = num_vertices. We'll get info
+     on the volume and check for this case. */
+  mri_info = MRIreadInfo (fname);
+  if (NULL == mri_info)
+    {
+      printf("surfer: couldn't load %s\n",fname);
+      ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,
+		   "func_load_timecourse: error in MRIreadInfo\n"));
+    }
+
+  if (mri_info->width * mri_info->height * mri_info->depth ==
+      mris->nvertices)
+    {
+      MRIfree (&mri_info);
+      return func_load_timecourse_from_volume_encoded_value_file (fname);
+    }
+
+  MRIfree (&mri_info);
+
+  printf ("surfer: Interpreting time course volume %s as functional volume.\n", fname);
+
+  if (FunD_tRegistration_None == reg_type)
+    {
+      printf ("surfer: ERROR: Must specify registration type for time course. Use -timecourse-reg <file>, -timecourse-reg-find, or -timecourse-reg-identity.\n");
+      return ERROR_BADPARM;
     }
   
   /* create new volume */
@@ -21654,6 +21680,7 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   FunD_GetNumPreStimTimePoints (func_timecourse, &func_num_prestim_points);
   FunD_GetTimeResolution (func_timecourse, &time_resolution);
   FunD_GetNumConditions (func_timecourse, &func_num_conditions);
+  FunD_GetNumTimePoints (func_timecourse, &func_num_timepoints);
   func_time_resolution = (double)time_resolution;
   
   /* send the number of conditions */
@@ -21669,10 +21696,74 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   return(ERROR_NONE);
 }
 
+int func_load_timecourse_from_volume_encoded_value_file (char* fname)
+{
+  char tcl_cmd[1024];
+  MRI* mri = NULL;
+  MRI* mri_vertex = NULL;
+
+  if (fname==NULL)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"func_load_timecourse: fname was null\n"));
+  
+  /* In this case, the data is a volume, but width = num_vertices,
+     height = 1, and depth = frames. So we open it as a volume and
+     read it with MRI functions. */
+
+
+  /* Open the file with MRIread. */
+  mri = MRIread (fname);
+  if (NULL == mri)
+    {
+      printf ("surfer: ### File %s could not be opened.\n", fname);
+      return (ERROR_NOFILE);
+    }
+
+  printf ("surfer: Interpreting time course volume %s as encoded value file.\n", fname);
+
+  /* Reshape it so that everything is in the x direction. */
+  mri_vertex = mri_reshape (mri, mris->nvertices, 1, 1, mri->nframes);
+  if (NULL == mri_vertex)
+    {
+      MRIfree (&mri);
+      printf ("surfer: ### File %s could not be reshaped.\n", fname);
+      return (ERROR_NOFILE);
+    }
+
+  /* Free the volumes. */
+  MRIfree (&mri);
+  
+  /* Save the shaped volume. */
+  func_timecourse_mri = mri_vertex;
+
+  printf("surfer: loaded timecourse %s\n",fname);
+  
+  /* default time res, num conditions, and num presitm points. The
+     number of frames is the number of time points. */
+  func_num_prestim_points = 0;
+  func_time_resolution = 1;
+  func_num_conditions = 1;
+  func_num_timepoints = func_timecourse_mri->nframes;
+
+  /* send the number of conditions */
+  sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
+  send_tcl_command (tcl_cmd);
+  
+  /* show the graph window */
+  send_tcl_command ("Graph_ShowWindow");
+      
+  /* enable the related menu items */
+  enable_menu_set (MENUSET_TIMECOURSE_LOADED, 1);
+      
+  return(ERROR_NONE);
+}
+
+
+
 int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
 				 char* registration)
 {
   FunD_tErr volume_error;
+  MRI* mri_info = NULL;
 
   if (fname==NULL)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"func_load_timecourse_offset: fname was null\n"));
@@ -21683,6 +21774,36 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
       volume_error = FunD_Delete(&func_timecourse_offset);
       if (volume_error!=FunD_tErr_NoError)
 	ErrorPrintf(func_convert_error(volume_error),"func_load_timecourse_offset: error in FunD_Delete\n");
+    }
+  
+  /* There are two possibilites here. The volume can be an actual
+     functional volume that we have to map onto the surface, or it can
+     be a value-per-vertex mapping encoded as a volume. In the latter
+     case, the width * height * depth = num_vertices. We'll get info
+     on the volume and check for this case. */
+  mri_info = MRIreadInfo (fname);
+  if (NULL == mri_info)
+    {
+      printf("surfer: couldn't load %s\n",fname);
+      ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,
+		   "func_load_timecourse: error in MRIreadInfo\n"));
+    }
+
+  if (mri_info->width * mri_info->height * mri_info->depth ==
+      mris->nvertices)
+    {
+      MRIfree (&mri_info);
+      return func_load_timecourse_offset_from_volume_encoded_value_file (fname);
+    }
+
+  MRIfree (&mri_info);
+
+  printf ("surfer: Interpreting time course volume %s as functional volume.\n", fname);
+
+  if (FunD_tRegistration_None == reg_type)
+    {
+      printf ("surfer: ERROR: Must specify registration type for time course offset. Use -timecourse-offset-reg <file>, -timecourse-offset-reg-find, or -timecourse-offset-reg-identity.\n");
+      return ERROR_BADPARM;
     }
   
   /* create new volume */
@@ -21703,6 +21824,54 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
   return(ERROR_NONE);
 }
 
+int func_load_timecourse_offset_from_volume_encoded_value_file (char* fname)
+{
+  MRI* mri = NULL;
+  MRI* mri_vertex = NULL;
+  
+  if (fname==NULL)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"func_load_timecourse: fname was null\n"));
+  
+  /* In this case, the data is a volume, but width = num_vertices,
+     height = 1, and depth = frames. So we open it as a volume and
+     read it with MRI functions. */
+
+
+  /* Open the file with MRIread. */
+  mri = MRIread (fname);
+  if (NULL == mri)
+    {
+      printf ("surfer: ### File %s could not be opened.\n", fname);
+      return (ERROR_NOFILE);
+    }
+
+  printf ("surfer: Interpreting time course volume %s as encoded value file.\n", fname);
+
+  /* Reshape it so that everything is in the x direction. */
+  mri_vertex = mri_reshape (mri, mris->nvertices, 1, 1, mri->nframes);
+  if (NULL == mri_vertex)
+    {
+      MRIfree (&mri);
+      printf ("surfer: ### File %s could not be reshaped.\n", fname);
+      return (ERROR_NOFILE);
+    }
+
+  /* Free the volumes. */
+  MRIfree (&mri);
+  
+  func_timecourse_offset_mri = mri_vertex;
+
+  /* enable offset display */
+  func_use_timecourse_offset = TRUE;
+  
+  printf("surfer: loaded timecourse offset %s\n",fname);
+  
+  /* turn on the offset options */
+  send_tcl_command("Graph_ShowOffsetOptions 1");
+
+  return(ERROR_NONE);
+}
+
 int func_select_marked_vertices()
 {
 #if 0
@@ -21712,7 +21881,7 @@ int func_select_marked_vertices()
   for (vmarked = 0 ; vmarked < nmarked ; vmarked++)
     {
       v = &(mris->vertices[marked[vmarked]]);
-      func_select_ras (v->origx,v->origy,v->origz);
+      func_select_voxel (marked[nmarked], v->origx,v->origy,v->origz);
     }
 #else 
   int vno, count;
@@ -21724,7 +21893,7 @@ int func_select_marked_vertices()
       v = &(mris->vertices[vno]);
       if (v->marked)
 	{
-	  func_select_ras (v->origx,v->origy,v->origz);
+	  func_select_voxel (vno, v->origx,v->origy,v->origz);
 	  count++;
 	}
     }
@@ -21753,7 +21922,7 @@ int func_select_label()
       if (lv->vno >= 0 && lv->vno < mris->nvertices)
 	{
 	  v = &(mris->vertices[lv->vno]);
-	  func_select_ras (v->origx,v->origy,v->origz);
+	  func_select_voxel (lv->vno, v->origx, v->origy, v->origz);
 	  count++;
 	}
     }
@@ -21777,15 +21946,16 @@ int func_clear_selection()
   return(ERROR_NONE);
 }
 
-int func_select_ras (float x, float y, float z)
+int func_select_voxel (int vno, float x, float y, float z)
 {
   xGArr_tErr array_error = xGArr_tErr_NoErr;
   FUNC_SELECTED_VOXEL voxel;
-  
+
   if (func_selected_ras==NULL)
-    ErrorReturn(ERROR_NOT_INITED,(ERROR_NOT_INITED,"func_select_ras: func_selected_ras is null\n"));
+    ErrorReturn(ERROR_NOT_INITED,(ERROR_NOT_INITED,"func_select_voxel: func_selected_ras is null\n"));
   
   /* build a voxel */
+  voxel.vno = vno;
   voxel.x = x;
   voxel.y = y;
   voxel.z = z;
@@ -21793,15 +21963,15 @@ int func_select_ras (float x, float y, float z)
   /* add this voxel to the list */
   array_error = xGArr_Add (func_selected_ras, &voxel);
   if (array_error!=xGArr_tErr_NoErr)
-    ErrorReturn(ERROR_ARRAY,(ERROR_ARRAY,"func_select_ras: xGArr_Add failed\n"));
+    ErrorReturn(ERROR_ARRAY,(ERROR_ARRAY,"func_select_voxel: xGArr_Add failed\n"));
   
   return(ERROR_NONE);
 }
 
 int func_graph_timecourse_selection () {
   
-  int cond,num_conditions;
-  int tp,num_timepoints;
+  int cond;
+  int tp;
   int num_good_voxels;
   float* values;
   float* deviations;
@@ -21811,7 +21981,7 @@ int func_graph_timecourse_selection () {
   float second;
   
   /* make sure we have a volume */
-  if (func_timecourse==NULL)
+  if (func_timecourse==NULL && func_timecourse_mri==NULL)
     {
       printf ("surfer: time course not loaded\n");
       return (ERROR_NONE);
@@ -21820,17 +21990,16 @@ int func_graph_timecourse_selection () {
   /* make sure the graph window is open. */
   send_tcl_command ("Graph_ShowWindow");
   
-  /* get the number of values and allocate storage arrays. */
-  FunD_GetNumTimePoints (func_timecourse,&num_timepoints);
-  values = calloc (num_timepoints,sizeof(float));
+  /* allocate storage arrays. */
+  values = calloc (func_num_timepoints,sizeof(float));
   if (values==NULL)
-    ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"func_graph_timecourse_selection: calloc(%d,float) failed for values\n",num_timepoints));  
-  deviations = calloc (num_timepoints,sizeof(float));
+    ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"func_graph_timecourse_selection: calloc(%d,float) failed for values\n",func_num_timepoints));  
+  deviations = calloc (func_num_timepoints,sizeof(float));
   if (deviations==NULL)
-    ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"func_graph_timecourse_selection: calloc(%d,float) failed for deviations\n",num_timepoints));  
+    ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"func_graph_timecourse_selection: calloc(%d,float) failed for deviations\n",func_num_timepoints));  
   
   /* allocate the argument string.  */
-  tcl_cmd_size = (num_timepoints * knLengthOfGraphDataItem) + knLengthOfGraphDataHeader;
+  tcl_cmd_size = (func_num_timepoints * knLengthOfGraphDataItem) + knLengthOfGraphDataHeader;
   tcl_cmd = (char*)malloc(sizeof(char)*tcl_cmd_size);
   if(tcl_cmd==NULL ) 
     ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"func_graph_timecourse_selection: failed to alloc %d char string\n",tcl_cmd_size));
@@ -21839,9 +22008,8 @@ int func_graph_timecourse_selection () {
   send_tcl_command ("Graph_ClearGraph");
   send_tcl_command ("Graph_BeginData");
   
-  /* get the num of conditions. for each one... */
-  FunD_GetNumConditions (func_timecourse,&num_conditions);
-  for (cond=0;cond<num_conditions;cond++) 
+  /* for each condition... */
+  for (cond=0;cond<func_num_conditions;cond++) 
     {
       
       /* get the average values for this condition. we also find out from
@@ -21857,15 +22025,25 @@ int func_graph_timecourse_selection () {
 	  sprintf (tcl_cmd, "Graph_SetPointsData %d {", cond);
 	  
 	  /* for each time point... */
-	  for (tp=0;tp<num_timepoints;tp++)
+	  for (tp=0; tp < func_num_timepoints; tp++)
 	    {
 	      
-	      /* convert to a second. */
-	      func_error = 
-		FunD_ConvertTimePointToSecond (func_timecourse, tp, &second);
-	      if(func_error!=FunD_tErr_NoError)
-		ErrorPrintf(func_convert_error(func_error),"func_graph_timecourse_selection: error in FunD_ConvertTimePointToSecond tp=%d\n",tp);
-	      
+	      /* convert to a second. If this is a
+		 mriFunctionalDataRef, let it convert for us, using TR
+		 if present, otherwise our second is just our time
+		 point. */
+	      if (func_timecourse)
+		{
+		  func_error = 
+		    FunD_ConvertTimePointToSecond (func_timecourse, tp, &second);
+		  if(func_error!=FunD_tErr_NoError)
+		    ErrorPrintf(func_convert_error(func_error),"func_graph_timecourse_selection: error in FunD_ConvertTimePointToSecond tp=%d\n",tp);
+		}
+	      else if (func_timecourse_mri)
+		{
+		  second = tp;
+		}
+
 	      /* write the second and value to the arg list */
 	      sprintf (tcl_cmd, "%s %1.1f %2.5f", tcl_cmd, second, values[tp]);
 	    }
@@ -21878,7 +22056,7 @@ int func_graph_timecourse_selection () {
 	  sprintf (tcl_cmd, "Graph_SetErrorData %d {", cond);
 	  
 	  /* for each time point, write the deviation value. */
-	  for (tp=0;tp<num_timepoints;tp++)
+	  for (tp=0; tp < func_num_timepoints; tp++)
 	    sprintf (tcl_cmd, "%s %2.5f", tcl_cmd, deviations[tp]);
 	  
 	  /* write the last brace and send the cmd. */
@@ -21895,28 +22073,23 @@ int func_graph_timecourse_selection () {
 int func_print_timecourse_selection (char* fname)
 {
   FILE* fp = NULL;
-  int cond,num_conditions;
-  int tp,num_timepoints;
+  int cond;
+  int tp;
   int num_good_voxels;
-  float* values;
+  float* values = NULL;
   float* deviations;
   
   if (fname==NULL)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"func_print_timecourse_selection: file name was null\n"));
   
   /* make sure we have a volume */
-  if (func_timecourse==NULL)
-    ErrorReturn(ERROR_NOT_INITED,(ERROR_NOT_INITED,"func_print_timecourse_selection: func_timecourse is null\n"));
+  if (func_timecourse==NULL && func_timecourse_mri==NULL)
+    ErrorReturn(ERROR_NOT_INITED,(ERROR_NOT_INITED,"func_print_timecourse_selection: No timecourse volume.\n"));
   
-  /* get the number of values and allocate storage arrays. */
-  FunD_GetNumTimePoints (func_timecourse,&num_timepoints);
-  values = calloc (num_timepoints,sizeof(float));
-  if (values==NULL)
-    ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"func_print_timecourse_selection: calloc(%d,float) failed for values\n",num_timepoints));  
-  
-  deviations = calloc (num_timepoints,sizeof(float));
+  /* allocate storage arrays. */
+  deviations = calloc (func_num_timepoints,sizeof(float));
   if (deviations==NULL)
-    ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"func_print_timecourse_selection: calloc(%d,float) failed for deviations\n",num_timepoints));  
+    ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"func_print_timecourse_selection: calloc(%d,float) failed for deviations\n",func_num_timepoints));  
   
   
   fp = fopen (fname, "w");
@@ -21924,10 +22097,10 @@ int func_print_timecourse_selection (char* fname)
     ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,"func_print_timecourse_selection: file %s couldn't be opened\n", fname));
   
   /* get the num of conditions. for each one... */
-  FunD_GetNumConditions (func_timecourse,&num_conditions);
-  for (cond=0;cond<num_conditions;cond++) 
+  FunD_GetNumConditions (func_timecourse,&func_num_conditions);
+  for (cond=0;cond<func_num_conditions;cond++) 
     {
-      fprintf (fp,"Condition %d/%d\n",cond,num_conditions);
+      fprintf (fp,"Condition %d/%d\n",cond,func_num_conditions);
       
       /* get the average values for this condition. we also find out from
 	 this function how many of our selected voxels were actually in 
@@ -21939,9 +22112,9 @@ int func_print_timecourse_selection (char* fname)
       
       /* if we had any good voxels, print out a summary */
       if (num_good_voxels>0) 
-	for (tp=0;tp<num_timepoints;tp++)
+	for (tp=0;tp<func_num_timepoints;tp++)
 	  fprintf (fp, "%d\t%d\t%f\t%f\n",
-		   tp, num_timepoints, values[tp], deviations[tp]);
+		   tp, func_num_timepoints, values[tp], deviations[tp]);
       
     }
   
@@ -21954,7 +22127,7 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
 				     float values[], float deviations[] )
 {
   
-  int tp,num_timepoints;
+  int tp = 0;
   float* sums;
   tBoolean present;
   FUNC_SELECTED_VOXEL selected_voxel;
@@ -21963,13 +22136,10 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
   FunD_tErr func_error = FunD_tErr_NoError;
   float offset,offset_sum;
   
-  /* find the number of time points. */
-  FunD_GetNumTimePoints (func_timecourse,&num_timepoints);
-  
   /* allocate sums */
-  sums = (float*) calloc (num_timepoints,sizeof(float));
+  sums = (float*) calloc (func_num_timepoints,sizeof(float));
   if (sums==NULL)
-    ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"func_calc_avg_timecourse_values: calloc(%d,float) failed\n",num_timepoints));
+    ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"func_calc_avg_timecourse_values: calloc(%d,float) failed\n",func_num_timepoints));
   
   /* no good values yet */
   (*num_good_voxels) = 0;
@@ -21982,45 +22152,68 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
   while ((array_error=xGArr_NextItem(func_selected_ras,(void*)&selected_voxel))
 	 ==xGArr_tErr_NoErr) 
     {
-      
+
       /* convert to an xvoxel */
       xVoxl_SetFloat (&voxel,
 		      selected_voxel.x,selected_voxel.y,selected_voxel.z);
       
-      /* get all values at this voxel. */
-      func_error = FunD_GetDataForAllTimePoints( func_timecourse, &voxel, 
-						 condition, values );
-      
-      /* if it wasn't out of bounds... */
-      if (func_error==FunD_tErr_NoError) {
-	
-	/* if we are displaying offsets and we have offset data... */
-	if (func_use_timecourse_offset && func_timecourse_offset!=NULL) 
-	  {
-	    /* get the offset at this value. only one plane in offset data. */
-	    func_error = FunD_GetData( func_timecourse_offset, 
-				       &voxel, 0, 0, &offset );
-	    if (func_error==FunD_tErr_NoError )
-	      {
-		
-		/* divide all functional values by the offset and mult by 100 to 
-		   get a percent */
-		for (tp=0;tp<num_timepoints;tp++) 
-		  values[tp] = (values[tp]/offset)*100.0;
-		
-		/* get a sum off the offset. */
-		offset_sum += offset;
-	      }
+      /* get all values at this voxel. If an mriFunctionalDataRef,
+	 call the function to get it, otherwise just grab values from
+	 our MRI in different frames. */
+      if (func_timecourse)
+	{
+	  func_error = FunD_GetDataForAllTimePoints( func_timecourse, &voxel, 
+						     condition, values );
+	  /* if it was out of bounds, continue. */
+	  if (func_error!=FunD_tErr_NoError) {
+	    continue;
 	  }
-	
-	/* add all values to our sums array */
-	for (tp=0;tp<num_timepoints;tp++) 
-	  sums[tp] += values[tp];
-	
-	/* inc our count */
-	(*num_good_voxels)++;
-      }
+	} 
+      else if (func_timecourse_mri)
+	{
+	  for (tp = 0; tp < func_num_timepoints; tp++ )
+	    {
+	      values[tp] = MRIgetVoxVal (func_timecourse_mri, 
+					 selected_voxel.vno, 0, 0, tp);
+	    }
+	}
+      
+      /* if we are displaying offsets and we have offset data... */
+      if (func_use_timecourse_offset && func_timecourse_offset) 
+	{
+	  /* get the offset at this value. only one plane in offset data. */
+	  func_error = FunD_GetData( func_timecourse_offset, 
+				     &voxel, 0, 0, &offset );
+	  if (func_error==FunD_tErr_NoError )
+	    {
+	      /* divide all functional values by the offset and
+		 mult by 100 to get a percent */
+	      for (tp = 0; tp < func_num_timepoints; tp++) 
+		values[tp] = (values[tp]/offset)*100.0;
+	      
+	      /* get a sum off the offset. */
+		    offset_sum += offset;
+	    }
+	}
+      else if (func_use_timecourse_offset && func_timecourse_offset_mri) 
+	{
+	  offset= MRIgetVoxVal (func_timecourse_offset_mri, 
+				selected_voxel.vno, 0, 0, tp);
+	  for (tp = 0; tp < func_num_timepoints; tp++ )
+	    {
+	      values[tp] = (values[tp]/offset)*100.0;
+	    }
+	  offset_sum += offset;
+	}
+      
+      /* add all values to our sums array */
+      for (tp=0; tp < func_num_timepoints; tp++) 
+	sums[tp] += values[tp];
+      
+      /* inc our count */
+      (*num_good_voxels)++;
     }
+  
   
   /* if we don't have any values at this point, our whole selections
      is out of range. */
@@ -22028,53 +22221,56 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
     return(ERROR_NONE);
   
   /* divide everything by the number of values to find the average */
-  for (tp=0;tp<num_timepoints;tp++) 
+  for (tp=0; tp < func_num_timepoints; tp++) 
     values[tp] = sums[tp] / (float)(*num_good_voxels);
   
   /* if we have offset values, divide the offset sum by the number of
      values. */
-  if (func_use_timecourse_offset && func_timecourse_offset!=NULL) 
+  if (func_use_timecourse_offset) 
     offset = offset_sum / (float)(*num_good_voxels);
   
   /* if there is error data present.. */
-  FunD_IsErrorDataPresent(func_timecourse, &present);
-  if (present)
+  if (func_timecourse)
     {
-      /* go through the voxel list again. */
-      xGArr_ResetIterator (func_selected_ras);
-      array_error = xGArr_tErr_NoErr;
-      while ((array_error=xGArr_NextItem(func_selected_ras,
-					 (void*)&selected_voxel))
-	     ==xGArr_tErr_NoErr) 
+      FunD_IsErrorDataPresent(func_timecourse, &present);
+      if (present)
 	{
-	  
-	  /* convert to an xvoxel */
-	  xVoxl_SetFloat (&voxel,
-			  selected_voxel.x,selected_voxel.y,selected_voxel.z);
-	  
-	  /* get the deviations at all time points */
-	  func_error = 
-	    FunD_GetDeviationForAllTimePoints (func_timecourse,
-					       &voxel, condition, deviations);
-	  
-	  if (func_error!=FunD_tErr_NoError)
-	    ErrorPrintf(func_convert_error(func_error),"func_calc_avg_timecourse_values: error in FunD_GetDeviationForAllTimePoints\n");
-	  
-	  /* if we have offset values... */
-	  if (func_use_timecourse_offset && func_timecourse_offset!=NULL) 
+	  /* go through the voxel list again. */
+	  xGArr_ResetIterator (func_selected_ras);
+	  array_error = xGArr_tErr_NoErr;
+	  while ((array_error=xGArr_NextItem(func_selected_ras,
+					     (void*)&selected_voxel))
+		 ==xGArr_tErr_NoErr) 
 	    {
 	      
-	      /* divide all deviations by the offset and mult by 100 to 
-		 get a percent */
-	      for (tp=0;tp<num_timepoints;tp++)
-		deviations[tp] = (deviations[tp]/offset)*100.0;
+	      /* convert to an xvoxel */
+	      xVoxl_SetFloat (&voxel, selected_voxel.x,
+			      selected_voxel.y, selected_voxel.z);
+	      
+	      /* get the deviations at all time points */
+	      func_error = 
+		FunD_GetDeviationForAllTimePoints (func_timecourse, &voxel,
+						   condition, deviations);
+	      
+	      if (func_error!=FunD_tErr_NoError)
+		ErrorPrintf(func_convert_error(func_error),"func_calc_avg_timecourse_values: error in FunD_GetDeviationForAllTimePoints\n");
+	      
+	      /* if we have offset values... */
+	      if (func_use_timecourse_offset && func_timecourse_offset!=NULL) 
+		{
+		  
+		  /* divide all deviations by the offset and mult by 100 to 
+		     get a percent */
+		  for (tp=0; tp < func_num_timepoints; tp++)
+		    deviations[tp] = (deviations[tp]/offset)*100.0;
+		}
 	    }
-	}
-    } 
+	} 
+    }
   else
     {
       /* fill deviations with 0s */
-      for (tp=0;tp<num_timepoints;tp++)
+      for (tp=0; tp < func_num_timepoints; tp++)
 	deviations[tp] = 0;
     }
 
