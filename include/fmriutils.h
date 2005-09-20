@@ -18,6 +18,7 @@ typedef struct{
   float DOF;         // DOF
   int Xcols;         // X->cols + npvr
   MRI *w;            // Per-voxel, per-input weight
+  int skipweight;    // Don't use weight even if w != NULL
   MRI *mask;         // Only proc within mask
   int n_ill_cond;    // Number of ill-conditioned voxels
 

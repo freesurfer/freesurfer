@@ -1,6 +1,11 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.10 2005/09/19 23:27:31 greve Exp $
+   $Id: fmriutils.c,v 1.11 2005/09/20 04:06:42 greve Exp $
+
+Things to do:
+1. Add flag to turn use of weight on and off
+
+
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.10 2005/09/19 23:27:31 greve Exp $");
+  return("$Id: fmriutils.c,v 1.11 2005/09/20 04:06:42 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -709,7 +714,7 @@ MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn)
   return(wn);
 }
 /*---------------------------------------------------------------*/
-int MRIglmFit(MRIGLM *glmmri)
+int MRIglmFit(MRIGLM *mriglm)
 {
   int c,r,s,n,f,nc,nr,ns,pctdone;
   MATRIX *X0;
@@ -718,33 +723,33 @@ int MRIglmFit(MRIGLM *glmmri)
   long nvoxtot, nthvox;
 
   glm = GLMalloc();
-  glm->ncontrasts = glmmri->ncontrasts;
+  glm->ncontrasts = mriglm->ncontrasts;
 
-  glmmri->DOF = glmmri->Xg->rows - (glmmri->Xg->cols + glmmri->npvr);
-  X0 = MatrixAlloc(glmmri->Xg->rows, glmmri->Xg->cols + glmmri->npvr, MATRIX_REAL);
+  mriglm->DOF = mriglm->Xg->rows - (mriglm->Xg->cols + mriglm->npvr);
+  X0 = MatrixAlloc(mriglm->Xg->rows,mriglm->Xg->cols+mriglm->npvr, MATRIX_REAL);
 
-  glm->y = MatrixAlloc(glmmri->Xg->rows, 1, MATRIX_REAL);
+  glm->y = MatrixAlloc(mriglm->Xg->rows, 1, MATRIX_REAL);
 
-  nc = glmmri->y->width;
-  nr = glmmri->y->height;
-  ns = glmmri->y->depth;
-  glmmri->beta = MRIallocSequence(nc, nr, ns, MRI_FLOAT, X0->cols) ;
-  glmmri->eres = MRIallocSequence(nc, nr, ns, MRI_FLOAT, glmmri->y->nframes) ;
-  glmmri->rvar = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
+  nc = mriglm->y->width;
+  nr = mriglm->y->height;
+  ns = mriglm->y->depth;
+  mriglm->beta = MRIallocSequence(nc, nr, ns, MRI_FLOAT, X0->cols) ;
+  mriglm->eres = MRIallocSequence(nc, nr, ns, MRI_FLOAT, mriglm->y->nframes);
+  mriglm->rvar = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
 
-  if(glmmri->yhatsave)
-    glmmri->yhat = MRIallocSequence(nc, nr, ns, MRI_FLOAT, glmmri->y->nframes) ;
-  if(glmmri->condsave)
-    glmmri->cond = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1) ;
+  if(mriglm->yhatsave)
+    mriglm->yhat = MRIallocSequence(nc,nr,ns,MRI_FLOAT,mriglm->y->nframes);
+  if(mriglm->condsave)
+    mriglm->cond = MRIallocSequence(nc,nr,ns,MRI_FLOAT, 1) ;
 
-  for(n = 0; n < glmmri->ncontrasts; n++){
-    glmmri->gamma[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT, glmmri->C[n]->rows);
-    glmmri->F[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
-    glm->C[n] = MatrixCopy(glmmri->C[n],NULL);
+  for(n = 0; n < mriglm->ncontrasts; n++){
+    mriglm->gamma[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT, mriglm->C[n]->rows);
+    mriglm->F[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
+    glm->C[n] = MatrixCopy(mriglm->C[n],NULL);
   }
   GLMtransposeC(glm);
 
-  if(0 && (glmmri->npvr > 0 && glmmri->w == NULL)){
+  if(0 && (mriglm->npvr > 0 && mriglm->w == NULL)){
     // Same design matrix everywhere
     glm->X = MatrixCopy(X0,glm->X);
     GLMmatrices(glm);
@@ -752,8 +757,8 @@ int MRIglmFit(MRIGLM *glmmri)
 
   // pre-load X0
   for(f = 1; f <= X0->rows; f++){
-    for(n = 1; n <= glmmri->Xg->cols; n++){
-      X0->rptr[f][n] = glmmri->Xg->rptr[f][n];
+    for(n = 1; n <= mriglm->Xg->cols; n++){
+      X0->rptr[f][n] = mriglm->Xg->rptr[f][n];
     }
   }
 
@@ -761,7 +766,7 @@ int MRIglmFit(MRIGLM *glmmri)
   nvoxtot = nc*nr*ns;
   nthvox = 0;
   pctdone = 0;
-  glmmri->n_ill_cond = 0;
+  mriglm->n_ill_cond = 0;
   for(c=0; c < nc; c++){
     for(r=0; r < nr; r++){
       for(s=0; s< ns; s++){
@@ -774,38 +779,38 @@ int MRIglmFit(MRIGLM *glmmri)
 	}
 
 	// Check the mask -----------
-	if(glmmri->mask != NULL){
-	  m = MRIgetVoxVal(glmmri->mask,c,r,s,0);
+	if(mriglm->mask != NULL){
+	  m = MRIgetVoxVal(mriglm->mask,c,r,s,0);
 	  if(m < 0.5) continue;
 	}
 
 	// Load y and the per-vox reg --------------------------
 	for(f = 1; f <= X0->rows; f++){
-	  glm->y->rptr[f][1] = MRIgetVoxVal(glmmri->y,c,r,s,f-1);
-	  for(n = 1; n <= glmmri->npvr; n++){
-	    X0->rptr[f][n+glmmri->Xg->cols] = 
-	      MRIgetVoxVal(glmmri->pvr[n-1],c,r,s,f-1);
+	  glm->y->rptr[f][1] = MRIgetVoxVal(mriglm->y,c,r,s,f-1);
+	  for(n = 1; n <= mriglm->npvr; n++){
+	    X0->rptr[f][n+mriglm->Xg->cols] = 
+	      MRIgetVoxVal(mriglm->pvr[n-1],c,r,s,f-1);
 	  }
 	}
 
 	// Weight X and y
 	glm->X = MatrixCopy(X0,glm->X);
-	if(glmmri->w != NULL){
+	if(mriglm->w != NULL && ! mriglm->skipweight){
 	  for(f = 1; f <= glm->X->rows; f++){
-	    v = MRIgetVoxVal(glmmri->w,c,r,s,f-1);	    
+	    v = MRIgetVoxVal(mriglm->w,c,r,s,f-1);	    
 	    glm->y->rptr[f][1] *= v;
 	    for(n = 1; n <= glm->X->cols; n++) glm->X->rptr[f][n] *= v;
 	  }
 	}
 
 	GLMmatrices(glm);
-	if(glmmri->condsave){
+	if(mriglm->condsave){
 	  Xcond = MatrixConditionNumber(glm->XtX);
-	  MRIsetVoxVal(glmmri->cond,c,r,s,0,Xcond);
+	  MRIsetVoxVal(mriglm->cond,c,r,s,0,Xcond);
 	}
 
 	if(glm->ill_cond_flag){
-	  glmmri->n_ill_cond ++;
+	  mriglm->n_ill_cond ++;
 	  continue;
 	}
 
@@ -813,14 +818,14 @@ int MRIglmFit(MRIGLM *glmmri)
 	GLMtest(glm);
 
 	// Pack data back into MRI
-	MRIsetVoxVal(glmmri->rvar,c,r,s,0,glm->rvar);
-	MRIfromMatrix(glmmri->beta, c, r, s, glm->beta);
-	MRIfromMatrix(glmmri->eres, c, r, s, glm->eres);
-	if(glmmri->yhatsave)
-	  MRIfromMatrix(glmmri->yhat, c, r, s, glm->yhat);
-	for(n = 0; n < glmmri->ncontrasts; n++){
-	  MRIfromMatrix(glmmri->gamma[n], c, r, s, glm->gamma[n]);
-	  MRIsetVoxVal(glmmri->F[n],c,r,s,0,glm->F[n]);
+	MRIsetVoxVal(mriglm->rvar,c,r,s,0,glm->rvar);
+	MRIfromMatrix(mriglm->beta, c, r, s, glm->beta);
+	MRIfromMatrix(mriglm->eres, c, r, s, glm->eres);
+	if(mriglm->yhatsave)
+	  MRIfromMatrix(mriglm->yhat, c, r, s, glm->yhat);
+	for(n = 0; n < mriglm->ncontrasts; n++){
+	  MRIfromMatrix(mriglm->gamma[n], c, r, s, glm->gamma[n]);
+	  MRIsetVoxVal(mriglm->F[n],c,r,s,0,glm->F[n]);
 	}
 
       }
@@ -831,6 +836,42 @@ int MRIglmFit(MRIGLM *glmmri)
   MatrixFree(&X0); 
   GLMfree(&glm);
 
-  printf("n_ill_cond = %d\n",glmmri->n_ill_cond);
+  printf("n_ill_cond = %d\n",mriglm->n_ill_cond);
+  return(0);
+}
+
+/* -------------------------------------------------------------------
+   MRIglmLoadVox() - loads the data for the voxel at crs into the GLM
+   matrix struct and applies the weights (if applicable). This still
+   needs to be tested.
+   ------------------------------------------------------------------*/
+int MRIglmLoadVox(MRIGLM *mriglm, GLMMAT *glm, int c, int r, int s)
+{
+  int f, n, nthreg;
+  double v;
+
+  // Load y and the per-vox reg --------------------------
+  for(f = 1; f <= mriglm->y->nframes; f++){
+    glm->y->rptr[f][1] = MRIgetVoxVal(mriglm->y,c,r,s,f-1);
+    nthreg = 1;
+    for(n = 1; n <= mriglm->Xg->cols; n++){
+      glm->X->rptr[f][nthreg] = mriglm->Xg->rptr[f][n];
+      nthreg++;
+    }
+    for(n = 1; n <= mriglm->npvr; n++){
+      glm->X->rptr[f][nthreg] = MRIgetVoxVal(mriglm->pvr[n-1],c,r,s,f-1);
+      nthreg++;
+    }
+  }
+  
+  // Weight X and y
+  if(mriglm->w != NULL && ! mriglm->skipweight){
+    for(f = 1; f <= glm->X->rows; f++){
+      v = MRIgetVoxVal(mriglm->w,c,r,s,f-1);	    
+      glm->y->rptr[f][1] *= v;
+      for(n = 1; n <= glm->X->cols; n++) glm->X->rptr[f][n] *= v;
+    }
+  }
+  
   return(0);
 }
