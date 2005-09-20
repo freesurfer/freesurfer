@@ -29,7 +29,7 @@ typedef enum _secondOrderType {
 } e_secondOrderType;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.6 2005/09/20 19:49:46 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.7 2005/09/20 21:18:19 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.6 2005/09/20 19:49:46 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.7 2005/09/20 21:18:19 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -240,7 +240,7 @@ main(int argc, char *argv[])
 	fprintf(stdout, 
 	    "%*s%20.6f\n%*s%20.6f\n",
 	    G_leftCols, "min = ", mris->min_curv,
-	    G_leftCols, "min = ", mris->max_curv);
+	    G_leftCols, "max = ", mris->max_curv);
 	if(GpFILE_allLog)
 	    fprintf(GpFILE_allLog, "min = %f\nmax = %f\n", 
 		mris->min_curv, mris->max_curv);
