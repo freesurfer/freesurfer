@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.78 2005/09/20 21:53:26 kteich Exp $
+# $Id: tksurfer.tcl,v 1.79 2005/09/21 17:45:17 kteich Exp $
 
 package require BLT;
 
@@ -2568,7 +2568,7 @@ proc CreateMenuBar { ifwMenuBar } {
 		7
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 9"
-		{ SetOverlayield }
+		{ SetOverlayField }
 		gaLinkedVars(currentvaluefield)
 		8
 		mg_OverlayLoaded }
@@ -4693,12 +4693,12 @@ proc CreateImages {} {
 	icon_draw_line icon_draw_line_closed icon_fill_label icon_erase_line
 	icon_surface_main icon_surface_original icon_surface_pial
 	icon_home icon_redraw } {
-
-  if { [catch {image create photo  $image_name -file \
-    [ file join $ksImageDir $image_name.gif ]} sResult] != 0 } {
-      dputs "Error loading $image_name:"
-      dputs $sResult
-  }
+	
+	if { [catch {image create photo $image_name -file \
+	    [file join $ksImageDir $image_name.gif]} sResult] != 0 } {
+	    dputs "Error loading $image_name:"
+	    dputs $sResult
+	}
     }
 }
 
