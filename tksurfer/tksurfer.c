@@ -18515,7 +18515,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.138 2005/09/20 21:53:21 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.139 2005/09/21 17:05:32 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22561,6 +22561,11 @@ int sclv_set_timepoint_of_field (int field,
     {
       ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_set_timepoint_of_field: field %d thinks it has a binary volume but doesn't really",field));
     }  
+  
+  if (timepoint < 0 || timepoint > sclv_field_info[field].num_timepoints)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_set_timepoint_of_field: timepoint was out of bounds: %d",timepoint));
+  if (condition < 0 || condition > sclv_field_info[field].num_conditions)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_set_timepoint_of_field: condition was out of bounds: %d",condition));
   
   /* check the timepoint and condition. if they're not what we're already
      using...*/
