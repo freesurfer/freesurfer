@@ -8,8 +8,8 @@ ScubaKeyCombo::ScubaKeyCombo () :
 
 }
 
-ScubaKeyCombo::ScubaKeyCombo ( string isKey ) :
-  mKeyCode(-1), mbShift(false), mbAlt(false), mbMeta(false), mbControl(false) {
+void
+ScubaKeyCombo::SetFromString ( string isKey ) {
 
   // We're getting a string that is hopefully from a
   // ScubaKeyCombo::ToString originally, so we just look for the

@@ -87,7 +87,8 @@ TclScubaKeyComboTester::Test ( Tcl_Interp* iInterp ) {
     char sCommand[1024];
     int rTcl;
     for( int nKey = 0; nKey < 36; nKey++ ) {
-      TclScubaKeyCombo key(aKeyTests[nKey].sKey);
+      TclScubaKeyCombo key;
+      key.SetFromString(aKeyTests[nKey].sKey);
       {
 	stringstream ssError;
 	ssError.setf(ios::hex,ios::basefield);
@@ -104,7 +105,8 @@ TclScubaKeyComboTester::Test ( Tcl_Interp* iInterp ) {
       AssertTclOK( rTcl );
       const char* sTclResult = Tcl_GetStringResult( iInterp );
 
-      ScubaKeyCombo testKey( sTclResult );
+      ScubaKeyCombo testKey;
+      testKey.SetFromString( sTclResult );
       {
 	stringstream ssError;
 	ssError << "Failed tcl return " << aKeyTests[nKey].sKey 
@@ -143,8 +145,7 @@ int main ( int argc, char** argv ) {
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
 
-    TclScubaKeyComboStaticTclListener& listener = 
-      TclScubaKeyComboStaticTclListener::GetListener();
+    TclScubaKeyComboStaticTclListener::GetListener();
 
     TclScubaKeyComboTester tester0;
     tester0.Test( interp );

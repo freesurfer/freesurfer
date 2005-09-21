@@ -17,6 +17,7 @@ extern "C" {
 #include "ScubaDataCollectionFactory.h"
 #include "Scuba-impl.h"
 #include "SegmentationVolumeReport.h"
+#include "TclScubaKeyCombo.h"
 
 char* Progname = "scuba";
 
@@ -46,6 +47,8 @@ int Scuba_Init ( Tcl_Interp* iInterp ) {
 
     ScubaGlobalPreferences preferences =
       ScubaGlobalPreferences::GetPreferences();
+
+    TclScubaKeyComboStaticTclListener::GetListener();
   }
   catch( ... ) {
     return TCL_ERROR;

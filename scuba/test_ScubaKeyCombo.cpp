@@ -62,16 +62,23 @@ ScubaKeyComboTester::Test ( Tcl_Interp* iInterp ) {
     
     while( vsKey.size() > 0 ) {
       string sKey = vsKey.back();
-      ScubaKeyCombo key( sKey );
-      stringstream ssError;
-      ssError << "Failed test " << key << " == " << sKey;
-      Assert( (key.ToString() == sKey), ssError.str() );
+      ScubaKeyCombo key;
+      key.SetFromString( sKey );
+      {
+	stringstream ssError;
+	ssError << "Failed test " << key << " == " << sKey;
+	Assert( (key.ToString() == sKey), ssError.str() );
+      }
+
       vsKey.pop_back();
     }
 
-    ScubaKeyCombo a( "Ctrl A" );
-    ScubaKeyCombo a2( "Ctrl A" );
-    ScubaKeyCombo b( "Ctrl B" );
+    ScubaKeyCombo a;
+    a.SetFromString( "Ctrl A" );
+    ScubaKeyCombo a2;
+    a2.SetFromString( "Ctrl A" );
+    ScubaKeyCombo b;
+    b.SetFromString( "Ctrl B" );
     {
       stringstream ssError;
       ssError << "Failed IsSameAs " << a << ", " << b;

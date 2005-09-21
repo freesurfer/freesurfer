@@ -4,9 +4,8 @@ using namespace std;
 
 bool TclScubaKeyComboStaticTclListener::mbAddedTclCommands = false;
 
-
-TclScubaKeyCombo::TclScubaKeyCombo ( string isKey ) :
-  ScubaKeyCombo( isKey ) {
+void
+TclScubaKeyCombo::SetFromString ( string isKey ) {
 
   // We are initialied with a key code already; even if it didn't find
   // the right tk name, it definitely matched a last letter. So this
@@ -79,7 +78,8 @@ TclScubaKeyComboStaticTclListener::DoListenToTclCommand ( char* isCommand,
 
     string sKey = iasArgv[1];
 
-    TclScubaKeyCombo key( sKey );
+    TclScubaKeyCombo key;
+    key.SetFromString( sKey );
     stringstream ssReturnValues;
     ssReturnValues << "\"" << key.ToString() << "\"";
     sReturnValues = ssReturnValues.str();

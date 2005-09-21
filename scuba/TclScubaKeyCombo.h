@@ -9,7 +9,7 @@ class TclScubaKeyCombo : public ScubaKeyCombo {
  public:
 
   // Overrides constructor to read Tk key strings.
-  TclScubaKeyCombo ( std::string );
+  virtual void SetFromString ( std::string isKey );
 };
 
 class TclScubaKeyComboStaticTclListener : public TclCommandListener {

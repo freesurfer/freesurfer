@@ -7,9 +7,10 @@ class ScubaKeyCombo {
 
  public:
   ScubaKeyCombo ();
-  ScubaKeyCombo ( std::string isKey );
-  
+
   std::string ToString ();
+
+  virtual void SetFromString ( std::string isKey );
 
   bool IsSameAs ( ScubaKeyCombo& iCombo );
 
