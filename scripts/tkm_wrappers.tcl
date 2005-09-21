@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.33 2005/08/16 14:42:02 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.34 2005/09/21 17:01:46 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -701,38 +701,45 @@ proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep {
     
     frame $isFrame
     
-#    tixControl $isFrame.control \
-#	-command $iSetFunc \
-#	-label $isText \
-#	-variable $iVariable \
-#	-step $ifStep \
-#	-disablecallback true \
-#	-selectmode immediate
-
+    # Function to use if there is no set function provided. The new
+    # value will be appended to this function when it changes, so in
+    # effect this turns out to be: set IGNORE_ME $value
     if { [string length $iSetFunc] == 0 } {
 	set iSetFunc "set IGNORE_ME"
     }
     
-    tkm_MakeEntry $isFrame.ew \
-	$isText $iVariable 4 "$iSetFunc \[set $iVariable\]"
+    # Make our entry command to set the value and button commands to
+    # inc and dec the value. If they gave us a range, put the command
+    # inside an if statement that checks the range.
+    if { [llength $iRange] == 2 } {
+	set min [lindex $iRange 0]
+	set max [lindex $iRange 1]
 
-    button $isFrame.bwDec -text "-" \
-	-command "incr $iVariable -$ifStep; $iSetFunc \[set $iVariable\]" \
-	-padx 1 -pady 0
+	tkm_MakeEntry $isFrame.ew \
+	    $isText $iVariable 4 "if { \[set $iVariable\] > $min && \[set $iVariable\] < $max } { $iSetFunc \[set $iVariable\] } else { tk_messageBox -icon error -message \"Value must be between $min and $max.\" }"
     
-    button $isFrame.bwInc -text "+" \
-	-command "incr $iVariable $ifStep; $iSetFunc \[set $iVariable\]" \
-	-padx 0 -pady 0
+	button $isFrame.bwDec -text "-" \
+	    -command "if { \[set $iVariable\] > $min } { incr $iVariable -$ifStep; $iSetFunc \[set $iVariable\] }" \
+	    -padx 1 -pady 0
+	
+	button $isFrame.bwInc -text "+" \
+	    -command "if { \[set $iVariable\] < $max } { incr $iVariable $ifStep; $iSetFunc \[set $iVariable\] }" \
+	    -padx 0 -pady 0
 
-#    if {[llength $iRange] == 2} {
-#	$isFrame.control config -min [lindex $iRange 0]
-#	$isFrame.control config -max [lindex $iRange 1]
-#    }
+    } else {
+
+	tkm_MakeEntry $isFrame.ew \
+	    $isText $iVariable 4 "$iSetFunc \[set $iVariable\]"
     
-#    tkm_EnableLater $isFrame.control
-    
-#    $isFrame.control subwidget label configure -font $kNormalFont
-    
+	button $isFrame.bwDec -text "-" \
+	    -command "incr $iVariable -$ifStep; $iSetFunc \[set $iVariable\]" \
+	    -padx 1 -pady 0
+	
+	button $isFrame.bwInc -text "+" \
+	    -command "incr $iVariable $ifStep; $iSetFunc \[set $iVariable\]" \
+	    -padx 0 -pady 0
+    }
+
     pack $isFrame.ew $isFrame.bwDec $isFrame.bwInc \
 	-anchor w -side left
     
@@ -1479,7 +1486,6 @@ proc Dialog_Create { iwwTop isTitle iArgs } {
     global gDialog
     
     if [winfo exists $iwwTop] {
-	puts "exists!"
 	switch -- [wm state $iwwTop] {
 	    normal {
 		raise $iwwTop 
