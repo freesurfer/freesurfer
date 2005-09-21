@@ -1,8 +1,8 @@
 /**
  * @file   version.c
  * @author $Author: greve $
- * @date   $Date: 2005/08/30 21:29:37 $
- *         $Revision: 1.17 $
+ * @date   $Date: 2005/09/21 22:39:54 $
+ *         $Revision: 1.18 $
  * @brief  freesurfer version functions defined here
  * 
  * 
@@ -13,8 +13,11 @@
 #include <string.h>
 #include <time.h>
 #include <sys/utsname.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include "version.h"
+#include "utils.h"
 #include "error.h"
 
 /* I have no idea what this is */
@@ -353,7 +356,42 @@ char *argv2cmdline(int argc, char *argv[])
   return(cmdline);
 }
 
+/*----------------------------------------------------------
+ VERuser(void) - returns the user id (or UNKNOWN). Allocates
+ char, so caller must free.
+ *----------------------------------------------------------*/
+char *VERuser(void)
+{
+  char *cp, *user;
+  cp = getlogin() ;
+  if (cp == NULL) cp = "UNKNOWN";
+  user = strcpyalloc(cp);
+  return(user);
+}
 
+/*----------------------------------------------------------
+ VERfileTimeStamp(fname)
+ *----------------------------------------------------------*/
+char *VERfileTimeStamp(char *fname)
+{
+  struct stat buf;
+  struct tm *lt = NULL;
+  int err;
+  char *timestamp, tmpstr[1000];
+
+  err = stat(fname, &buf);
+  if(err){
+    printf("ERROR: stating file %s\n",fname);
+    return(NULL);
+  }
+  lt = localtime(&buf.st_mtime);
+  sprintf(tmpstr,"%04d/%02d/%02d %02d:%02d:%02d",
+	  lt->tm_year+1900,lt->tm_mday,lt->tm_mon,
+	  lt->tm_hour,lt->tm_min,lt->tm_sec);
+  //free(lt); // Dies here
+  timestamp = strcpyalloc(tmpstr);
+  return(timestamp);
+}
 
 
 
