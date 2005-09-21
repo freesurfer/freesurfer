@@ -19,8 +19,9 @@
 #define 	CE( x )		fprintf(stdout, ( x ))
 #define 	START_i  	3
 
+// Calculations performed on the curvature surface
 typedef enum _secondOrderType {
-	e_Raw,			// "Raw" (native) curvature
+	e_Raw,			// "Raw" (native) curvature - no calcuation
 	e_Gaussian, 		// Gaussian curvature
 	e_Mean,			// Mean curvature
 	e_Normal,		// Normalised curvature
@@ -28,8 +29,15 @@ typedef enum _secondOrderType {
 	e_ScaledTrans		// Scaled and translated curvature
 } e_secondOrderType;
 
+// Output file prefixes
+typedef enum _OFSP {
+	e_None,			// No prefix
+	e_Partial,		// A partial prefix (does not include the stem)
+	e_Full,			// Full prefix - including stem
+} e_OFSP;
+
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.7 2005/09/20 21:18:19 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.8 2005/09/21 22:53:13 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -44,24 +52,40 @@ void		histogram_wrapper(
 			e_secondOrderType	aesot
 		);
 void		histogram_create(
-			MRIS*		amris_curvature,
-			float		af_minCurv,
-			double		af_binSize,
-			int		abins,
-			float*		apf_histogram
+			MRIS*			amris_curvature,
+			float			af_minCurv,
+			double			af_binSize,
+			int			abins,
+			float*			apf_histogram
 		);
 void		OFSP_create(
-			char*		apch_prefix,
-			char*		apch_suffix
+			char*			apch_prefix,
+			char*			apch_suffix,
+			char*			apch_curv,
+			e_OFSP			ae_OFSP
 		);
 void 		secondOrderParams_print(
-			MRIS*			amris,
+			MRIS*			apmris,
 			e_secondOrderType	aesot,
 			int			ai
 		);
-void		outputFileNames_create(void);
+void		outputFileNames_create(
+			char*			apch_curv
+		);
 void		outputFiles_open(void);
-void		shut_down(void);
+void		outputFiles_close(void);
+int		MRISminMaxVertIndices(
+			MRI_SURFACE*		apmris,
+			int*			ap_vertexMin,
+			int*			ap_vertexMax,
+			float			af_min,
+			float			af_max
+		);
+int		MRICvertexCurvature_set(
+			MRI_SURFACE*		apmris,
+			int			aindex,
+			float			af_val
+		);
 
 char*		Progname ;
 char*		hemi;
@@ -84,12 +108,16 @@ static int	Gb_binSizeOverride	= 0;
 static double	Gf_binSize		= 0.;
 static int	Gb_histStartOverride	= 0;
 static float	Gf_histStart		= 0.;
+static int	Gb_histEndOverride	= 0;
+static float	Gf_histEnd		= 0.;
 static int	Gb_gaussianAndMean	= 0;
 static int	Gb_output2File		= 0;
 static int	Gb_scale		= 0;
 static int	Gb_scaleMin		= 0;
 static int	Gb_scaleMax		= 0;
-static int 	G_nbrs 			= 2 ;
+static int	Gb_zeroVertex		= 0;
+static int	G_zeroVertex		= 0;
+static int 	G_nbrs 			= 2;
 static int	G_bins			= 1;
 
 // All possible output file name and suffixes
@@ -97,7 +125,7 @@ static char	Gpch_log[STRBUF];
 static char	Gpch_logS[]		= "log";
 static FILE*	GpFILE_log		= NULL;
 static char	Gpch_allLog[STRBUF];		
-static char	Gpch_allLogS[]		= "all.log";
+static char	Gpch_allLogS[]		= "log";
 static FILE*	GpFILE_allLog		= NULL;
 static char	Gpch_rawHist[STRBUF];
 static char	Gpch_rawHistS[]		= "raw.hist";
@@ -107,22 +135,22 @@ static char	Gpch_normHist[STRBUF];
 static char	Gpch_normHistS[]	= "norm.hist";
 static FILE*	GpFILE_normHist		= NULL;
 static char	Gpch_normCurv[STRBUF];
-static char	Gpch_normCurvS[]	= "norm.curv";
+static char	Gpch_normCurvS[]	= "norm.crv";
 static char	Gpch_KHist[STRBUF];
 static char	Gpch_KHistS[]		= "K.hist";
 static FILE*	GpFILE_KHist		= NULL;
 static char	Gpch_KCurv[STRBUF];
-static char	Gpch_KCurvS[]		= "K.curv";
+static char	Gpch_KCurvS[]		= "K.crv";
 static char	Gpch_HHist[STRBUF];
 static char	Gpch_HHistS[]		= "H.hist";
 static FILE*	GpFILE_HHist		= NULL;
 static char	Gpch_HCurv[STRBUF];
-static char	Gpch_HCurvS[]		= "H.curv";
+static char	Gpch_HCurvS[]		= "H.crv";
 static char	Gpch_scaledHist[STRBUF];
 static char	Gpch_scaledHistS[]	= "scaled.hist";
 static FILE*	GpFILE_scaledHist	= NULL;
 static char	Gpch_scaledCurv[STRBUF];
-static char	Gpch_scaledCurvS[]	= "scaled.curv";
+static char	Gpch_scaledCurvS[]	= "scaled.crv";
 		
 // These are used for tabular output
 const int	G_leftCols		= 20;
@@ -148,10 +176,12 @@ main(int argc, char *argv[])
   MRI_SURFACE  	*mris ;
 
   char		pch_text[65536];
+  int		vmin				= 0;
+  int		vmax				= 0;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.7 2005/09/20 21:18:19 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.8 2005/09/21 22:53:13 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -190,8 +220,6 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
 
-  outputFileNames_create();
-  outputFiles_open();
 
   if (label_name)
   {
@@ -210,6 +238,11 @@ main(int argc, char *argv[])
   for (Gf_n= Gf_total_sq = Gf_total = 0.0, i = START_i ; i < argc ; i++)
   {
     curv_fname = argv[i] ;
+    
+    outputFiles_close();
+    outputFileNames_create(curv_fname);
+    outputFiles_open();
+
     if (MRISreadCurvatureFile(mris, curv_fname) != NO_ERROR)
       ErrorExit(ERROR_BADFILE,"%s: could not read curvature file %s.\n",
                 Progname, curv_fname);
@@ -224,9 +257,10 @@ main(int argc, char *argv[])
       	if(Gpch_scaledCurv) MRISwriteCurvature(mris, Gpch_scaledCurv);
     }
 
-    if (normalize_flag)
-      MRISnormalizeCurvature(mris);
-
+    if (normalize_flag) {
+	MRISnormalizeCurvature(mris);
+	if(Gpch_normCurv) MRISwriteCurvature(mris, Gpch_normCurv);
+    }
 
     MRISaverageCurvatures(mris, navgs) ;
     Gf_mean = MRIScomputeAverageCurvature(mris, &Gf_sigma) ;
@@ -237,10 +271,12 @@ main(int argc, char *argv[])
 	fprintf(GpFILE_allLog, "mean/sigma = %20.4f +- %2.4f\n", Gf_mean, Gf_sigma);
 
     if(Gb_minMaxShow) {
+	MRISminMaxVertIndices(	mris, &vmin, &vmax, 
+				mris->min_curv, mris->max_curv);
 	fprintf(stdout, 
-	    "%*s%20.6f\n%*s%20.6f\n",
-	    G_leftCols, "min = ", mris->min_curv,
-	    G_leftCols, "max = ", mris->max_curv);
+	     	"%*s%20.6f\tvertex = %d\n%*s%20.6f\tvertex = %d\n",
+	    	G_leftCols, "min = ", mris->min_curv, vmin,
+	    	G_leftCols, "max = ", mris->max_curv, vmax);
 	if(GpFILE_allLog)
 	    fprintf(GpFILE_allLog, "min = %f\nmax = %f\n", 
 		mris->min_curv, mris->max_curv);
@@ -273,7 +309,7 @@ main(int argc, char *argv[])
   {
     Gf_mean = Gf_total / Gf_n;
     Gf_sigma = sqrt(Gf_total_sq/Gf_n- Gf_mean*Gf_mean) ;
-    fprintf(stdout, "\nMean across %d curvature files: %8.4e +- %8.4e\n",
+    fprintf(stdout, "\nMean across %d curvatures: %8.4e +- %8.4e\n",
             (int) Gf_n, Gf_mean, Gf_sigma) ;
   }
   //else
@@ -291,13 +327,13 @@ main(int argc, char *argv[])
       fprintf(GpFILE_log, "%s: ", label_name) ;
     fprintf(GpFILE_log, "%8.4e +- %8.4e\n", Gf_mean, Gf_sigma) ;
   }
-  shut_down();
+  outputFiles_close();
   exit(0) ;
   return(0) ;  /* for ansi */
 }
 
 void secondOrderParams_print(
-	MRIS*			amris,
+	MRIS*			apmris,
 	e_secondOrderType	aesot,
 	int			ai
 ) {
@@ -315,19 +351,26 @@ void secondOrderParams_print(
     char	pch_text[65536];
     float	f_max			= 0.;
     float	f_min			= 0.;
+    int		vmax			= 0;
+    int		vmin			= 0;
 
+
+    if(Gb_zeroVertex)
+	MRICvertexCurvature_set(apmris, G_zeroVertex, 0);
     switch(aesot) {
 	case e_Gaussian:
-    	    MRISuseGaussianCurvature(amris);
+    	    MRISuseGaussianCurvature(apmris);
 	    sprintf(pch_out, "Gaussian");
-	    f_min	= amris->Kmin;
-	    f_max	= amris->Kmax;
+	    f_min	= apmris->Kmin;
+	    f_max	= apmris->Kmax;
+    	    MRISminMaxVertIndices(apmris, &vmax, &vmin, f_min, f_max);
 	break;
 	case e_Mean:
-	    MRISuseMeanCurvature(amris);
+	    MRISuseMeanCurvature(apmris);
 	    sprintf(pch_out, "Mean");
-	    f_min	= amris->Hmin;
-	    f_max	= amris->Hmax;
+	    f_min	= apmris->Hmin;
+	    f_max	= apmris->Hmax;
+	    MRISminMaxVertIndices(apmris, &vmax, &vmin, f_min, f_max);
 	break;
 	case e_Raw:
 	case e_Normal:
@@ -336,7 +379,8 @@ void secondOrderParams_print(
 	break;
     }
     
-    Gf_mean = MRIScomputeAverageCurvature(amris, &Gf_sigma);
+    printf("%f\n", apmris->vertices[G_zeroVertex].curv); 
+    Gf_mean = MRIScomputeAverageCurvature(apmris, &Gf_sigma);
     sprintf(pch_text, "%s Curvature (using '%s.%s'):", 
 			pch_out, hemi, surf_name);
     fprintf(stdout, "%-50s", pch_text);
@@ -345,19 +389,85 @@ void secondOrderParams_print(
 	fprintf(GpFILE_allLog, "mean/sigma = %20.4f +- %2.4f\n", Gf_mean, Gf_sigma);
     if(Gb_minMaxShow) {
 	fprintf(stdout, 
-	     	"%*s%20.6f\n%*s%20.6f\n",
-	G_leftCols, "min = ", f_min,
-	G_leftCols, "max = ", f_max);
+	     	"%*s%20.6f\tvertex = %d\n%*s%20.6f\tvertex = %d\n",
+	G_leftCols, "min = ", f_min, vmin,
+	G_leftCols, "max = ", f_max, vmax);
 	if(GpFILE_allLog)
 	    fprintf(GpFILE_allLog, "min = %f\nmax = %f\n",
 			f_min, f_max);
     }
 
-    if(Gb_histogram) histogram_wrapper(amris, aesot);
+    if(Gb_histogram) histogram_wrapper(apmris, aesot);
     Gpf_means[ai-START_i] 	= Gf_mean;
     Gf_total 			+= Gf_mean; 
     Gf_total_sq 		+= Gf_mean*Gf_mean ;
     Gf_n			+= 1.0;
+
+}
+
+int
+MRICvertexCurvature_set(
+	MRI_SURFACE*		apmris,
+	int			aindex,
+	float			af_val
+) {
+    //
+    // PRECONDITIONS
+    //  o <af_val> is typically zero.
+    //
+    // POSTCONDITIONS
+    //  o The curvature of the vertex at aindex is
+    //    set to <af_val>. The Gaussian and Mean are also set
+    //    to <af_val>.
+    // 
+
+    if(aindex > apmris->nvertices)
+	ErrorExit(ERROR_SIZE, "%s: target vertex is out of range.", Progname);
+
+    apmris->vertices[aindex].curv	= af_val;
+    apmris->vertices[aindex].K		= af_val;
+    apmris->vertices[aindex].H		= af_val;
+    return(NO_ERROR);
+}
+
+int
+MRISminMaxVertIndices(
+	MRI_SURFACE*		apmris,
+	int*			ap_vertexMin,
+	int*			ap_vertexMax,
+	float			af_min,
+	float			af_max
+) {
+    //
+    // PRECONDITIONS
+    //  o apmris should already have its max_curv and min_curv fields
+    //	  defined.
+    //  o for second order min/max, make sure that apmris has its Kmin/Kmax
+    //	  and Hmin/Hmax fields defined.
+    //
+    // POSTCONDITIONS
+    //	o Return the actual vertex index number corresponding to the
+    //	  minimum and maximum curvature.
+    //
+
+    VERTEX*	pvertex;
+    int		vno;
+
+    for (vno = 0 ; vno < apmris->nvertices ; vno++) {
+	pvertex = &apmris->vertices[vno] ;
+      	if (pvertex->ripflag)
+            continue;
+      	if(pvertex->curv == af_min)
+	    *ap_vertexMin = vno;
+	if(pvertex->curv == af_max)
+	    *ap_vertexMax = vno;
+    }
+
+//     printf("%f\n%f\n", 
+// 		apmris->vertices[*ap_vertexMin].curv, 
+// 		apmris->vertices[*ap_vertexMax].curv); 
+
+    return(NO_ERROR);
 
 }
 
@@ -396,7 +506,9 @@ MRISscaleCurvature(
 void
 OFSP_create(
 	char*		apch_prefix,
-	char*		apch_suffix
+	char*		apch_suffix,
+	char*		apch_curv,
+	e_OFSP		ae_OFSP
 ) {
     //
     // PRECONDITIONS
@@ -404,16 +516,34 @@ OFSP_create(
     //	  required text info.
     //
     // POSTCONDITIONS
-    //  o pch_prefix is composed of:
+    //  o a full pch_prefix is composed of:
+    //		<output_fname>.<hemi>.<surface>.<pch_suffix>
+    //  o a partial pch_prefix is compsed of:
     //		<output_fname>.<hemi>.<surface>.<pch_suffix>
     //
 
-    sprintf(apch_prefix, "%s.%s.%s.%s",
-	output_fname,
-	hemi,
-	surf_name,
-	apch_suffix
-	);    
+    switch(ae_OFSP) {
+	case e_None:
+    	    sprintf(apch_prefix, output_fname);	
+	    break;
+	case e_Partial:
+    	    sprintf(apch_prefix, "%s.%s.%s.%s",
+		hemi,
+		surf_name,
+		apch_curv,
+		apch_suffix
+	    );    
+	    break;
+	case e_Full:
+    	    sprintf(apch_prefix, "%s.%s.%s.%s.%s",
+		output_fname,
+		hemi,
+		surf_name,
+		apch_curv,
+		apch_suffix
+	    );    
+	    break;
+    }
 }
 
 void
@@ -440,11 +570,6 @@ histogram_wrapper(
     float	f_minCurv	= amris->min_curv;
     double 	f_binSize	= 0.;
  
-    if(f_maxCurv <= f_minCurv)
-	ErrorExit(ERROR_SIZE, "%s: f_maxCurv < af_minCurv.",
-			Progname);
-
-    f_binSize		= ((double)f_maxCurv - (double)f_minCurv) / (double)G_bins;
     if(Gb_binSizeOverride)
 	f_binSize	= Gf_binSize;
 
@@ -454,6 +579,16 @@ histogram_wrapper(
     if(f_minCurv < amris->min_curv)
 	f_minCurv	= amris->min_curv;
 
+    if(Gb_histEndOverride) 
+	f_maxCurv	= Gf_histEnd;
+
+    if(f_maxCurv > amris->max_curv)
+	f_maxCurv	= amris->max_curv;
+
+    f_binSize		= ((double)f_maxCurv - (double)f_minCurv) / (double)G_bins;
+    if(f_maxCurv <= f_minCurv)
+	ErrorExit(ERROR_SIZE, "%s: f_maxCurv < af_minCurv.",
+			Progname);
     if((f_minCurv+G_bins*f_binSize) > f_maxCurv)
 	ErrorExit(ERROR_SIZE, "%s: Invalid <binSize> and <bins> combination",
 			Progname);
@@ -686,14 +821,28 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "Setting histogram start point to %f...\n",
             Gf_histStart);
     break;
+  case 'J':   /* histogram end */
+    Gb_histEndOverride	= 1;
+    Gf_histEnd 		= atof(argv[2]);
+    nargs 		= 1 ;
+    fprintf(stderr, "Setting histogram end point to %f...\n",
+            Gf_histEnd);
+    break;
+  case 'Z':   /* zero a target vertex */
+    Gb_zeroVertex	= 1;
+    G_zeroVertex	= atoi(argv[2]);
+    nargs 		= 1 ;
+    fprintf(stderr, "Setting zero vertex index to %d...\n",
+            G_zeroVertex);
+    break;
   case 'N':
     normalize_flag 	= 1 ;
+    fprintf(stderr, "Setting normalisation ON...\n");
     break ;
   case 'M':
     Gb_minMaxShow	= 1;
     break;
   case 'V':
-    printf("Here!!\n\n");
     print_version() ;
     exit(1);
     break;
@@ -711,24 +860,24 @@ get_option(int argc, char *argv[])
 }
 
 void
-outputFileNames_create(void) {
+outputFileNames_create(
+	char*		apch_curv
+) {
     //
     // POSTCONDITIONS
     //	o All necessary (depending on user flags) file names are created.
     //
-    OFSP_create(Gpch_log, 		Gpch_logS);
-    // For backwards compatibility with original scheme...
-    sprintf(Gpch_log, 			output_fname);	
-    OFSP_create(Gpch_allLog, 		Gpch_allLogS);
-    OFSP_create(Gpch_rawHist,		Gpch_rawHistS);
-    OFSP_create(Gpch_normHist,		Gpch_normHistS);
-    OFSP_create(Gpch_normCurv,		Gpch_normCurvS);
-    OFSP_create(Gpch_KHist, 		Gpch_KHistS);
-    OFSP_create(Gpch_KCurv, 		Gpch_KCurvS);
-    OFSP_create(Gpch_HHist,		Gpch_HHistS);
-    OFSP_create(Gpch_HCurv,		Gpch_HCurvS);
-    OFSP_create(Gpch_scaledHist,	Gpch_scaledHistS);
-    OFSP_create(Gpch_scaledCurv,	Gpch_scaledCurvS);
+    OFSP_create(Gpch_log, 	Gpch_logS,	apch_curv,	e_None);
+    OFSP_create(Gpch_allLog, 	Gpch_allLogS,	apch_curv,	e_Full);
+    OFSP_create(Gpch_rawHist,	Gpch_rawHistS,	apch_curv,	e_Full);
+    OFSP_create(Gpch_normHist,	Gpch_normHistS,	apch_curv,	e_Full);
+    OFSP_create(Gpch_normCurv,	Gpch_normCurvS,	apch_curv,	e_Partial);
+    OFSP_create(Gpch_KHist, 	Gpch_KHistS,	apch_curv,	e_Full);
+    OFSP_create(Gpch_KCurv, 	Gpch_KCurvS,	apch_curv,	e_Partial);
+    OFSP_create(Gpch_HHist,	Gpch_HHistS,	apch_curv,	e_Full);
+    OFSP_create(Gpch_HCurv,	Gpch_HCurvS,	apch_curv,	e_Partial);
+    OFSP_create(Gpch_scaledHist,Gpch_scaledHistS,apch_curv,	e_Full);
+    OFSP_create(Gpch_scaledCurv,Gpch_scaledCurvS,apch_curv,	e_Partial);
 }
 
 void
@@ -739,74 +888,78 @@ outputFiles_open(void) {
     //
 
     if(Gb_output2File) {	
-	CE("The following files will be created / appended for this run:\n");
-  	printf("%s\n", Gpch_log);
+	CE("\n\tFiles processed for this curvature:\n");
+  	printf("%*s\n", G_leftCols*2, Gpch_log);
 	if((GpFILE_log=fopen(Gpch_log, "a"))==NULL)
 	    ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for apending.\n",
 			Progname, Gpch_log);
-  	printf("%s\n", Gpch_allLog);
+  	printf("%*s\n", G_leftCols*2, Gpch_allLog);
 	if((GpFILE_allLog=fopen(Gpch_allLog, "w"))==NULL)
 	    ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for writing.\n",
 			Progname, Gpch_allLog);
-  	printf("%s\n", Gpch_rawHist);
-	if((GpFILE_rawHist=fopen(Gpch_rawHist, "w"))==NULL)
-	    ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for writing.\n",
+	if(Gb_histogram) {
+  	    printf("%*s\n", G_leftCols*2, Gpch_rawHist);
+	    if((GpFILE_rawHist=fopen(Gpch_rawHist, "w"))==NULL)
+	    	ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for writing.\n",
 			Progname, Gpch_rawHist);
+	}
 	if(normalize_flag) {
 	    if(Gb_histogram) {
-		printf("%s\n", Gpch_normHist);
+		printf("%*s\n", G_leftCols*2, Gpch_normHist);
 	    	if((GpFILE_normHist=fopen(Gpch_normHist, "w"))==NULL)
 	    		ErrorExit(ERROR_NOFILE, 
 				"%s: Could not open file '%s' for writing.\n",
 				Progname, Gpch_normHist);
 	    }
-	    printf("%s\n", Gpch_normCurv);
+	    printf("%*s\n", G_leftCols*2, Gpch_normCurv);
 	}
 	if(Gb_gaussianAndMean) {
 	    if(Gb_histogram) {
 	    	if((GpFILE_KHist=fopen(Gpch_KHist, "w"))==NULL) {
-			printf("%s\n", Gpch_KHist);
+			printf("%*s\n", G_leftCols*2, Gpch_KHist);
 	    		ErrorExit(ERROR_NOFILE, 
 				"%s: Could not open file '%s' for writing.\n",
 				Progname, Gpch_KHist);
 		}
 	    	if((GpFILE_HHist=fopen(Gpch_HHist, "w"))==NULL) {
-			printf("%s\n", Gpch_HHist);
+			printf("%*s\n", G_leftCols*2,Gpch_HHist);
 	    		ErrorExit(ERROR_NOFILE, 
 				"%s: Could not open file '%s' for writing.\n",
 				Progname, Gpch_HHist);
 		}
 	    }
-	    printf("%s\n", Gpch_KCurv);
-	    printf("%s\n", Gpch_HCurv);
+	    printf("%*s\n", G_leftCols*2, Gpch_KCurv);
+	    printf("%*s\n", G_leftCols*2, Gpch_HCurv);
         }
-	if(Gb_scale) {
+	if(Gb_scale || (Gb_scaleMin && Gb_scaleMax)) {
 	    if(Gb_histogram) {
-		printf("%s\n", Gpch_scaledHist);		
+		printf("%*s\n", G_leftCols*2, Gpch_scaledHist);		
 	    	if((GpFILE_scaledHist=fopen(Gpch_scaledHist, "w"))==NULL)
 	    		ErrorExit(ERROR_NOFILE, 
 				"%s: Could not open file '%s' for writing.\n",
 				Progname, Gpch_scaledHist);
 	    }
-	    printf("%s\n", Gpch_scaledCurv);
+	    printf("%*s\n", G_leftCols*2, Gpch_scaledCurv);
 	}	
+    printf("\n");
   }
 }
 
 void
-shut_down(void) {
+outputFiles_close(void) {
     //
     // POSTCONDITIONS
     //	o Checks for any open files and closes them.
     //
   
-    if(GpFILE_log)		fclose(GpFILE_log);
-    if(GpFILE_allLog)		fclose(GpFILE_allLog);
-    if(GpFILE_rawHist)		fclose(GpFILE_rawHist);
-    if(GpFILE_normHist)		fclose(GpFILE_normHist);
-    if(GpFILE_KHist)		fclose(GpFILE_KHist);
-    if(GpFILE_HHist)		fclose(GpFILE_HHist);
-    if(GpFILE_scaledHist)	fclose(GpFILE_scaledHist);
+    if(GpFILE_log)	fclose(GpFILE_log);	GpFILE_log 	= NULL;
+    if(GpFILE_allLog)	fclose(GpFILE_allLog);	GpFILE_allLog 	= NULL;	
+    if(GpFILE_rawHist)	fclose(GpFILE_rawHist);	GpFILE_rawHist	= NULL;
+    if(GpFILE_normHist)	fclose(GpFILE_normHist);GpFILE_normHist	= NULL;
+    if(GpFILE_KHist)	fclose(GpFILE_KHist);	GpFILE_KHist	= NULL;
+    if(GpFILE_HHist)	fclose(GpFILE_HHist);	GpFILE_HHist	= NULL;
+    if(GpFILE_scaledHist)
+			fclose(GpFILE_scaledHist); GpFILE_scaledHist = NULL;
 }
 
 static void
@@ -883,33 +1036,38 @@ OPTIONS									\n\
 	the contents are identical to 'mris_curvature -w' created files.\n\
 									\n\
 	All possible files that can be saved are:			\n\
-	(where OFSP = <outputFileStem>.<hemi>.<surface>)		\n\
+	(where  OHSC  = <outputFileStem>.<hemi>.<surface>.<curvFile>	\n\
+		HSC   = <hemi>.<surface>.<curvFile>			\n\
 									\n\
-		<outputFileStem>	(log only a single		\n\
+		<outputFileStem>	(Log only a single		\n\
 					 mean+-sigma. If several	\n\
 					 curvature files have been	\n\
 					 specified, log the mean+-sigma \n\
-					 across all the curvatures.)	\n\
-		<OFSP>.all.log		(full output, i.e the output of	\n\
-					 curvature as it is processed)  \n\
-		<OFSP>.raw.hist		(Raw histogram file. By 'raw'   \n\
+					 across all the curvatures.	\n\
+					 Note also that this file is	\n\
+					 *appended* for each new run.)	\n\
+		<OHSC>.log		(Full output, i.e the output of	\n\
+					 each curvature file mean +-	\n\
+					 sigma, as well as min/max	\n\
+					 as it is processed.)  		\n\
+		<OHS>.raw.hist		(Raw histogram file. By 'raw'   \n\
 					 is implied that the curvature  \n\
 					 has not been further processed \n\
 					 in any manner.)		\n\
-		<OFSP>.norm.hist	(Normalised histogram file)	\n\
-		<OFSP>.norm.curv 	(Normalised curv file)		\n\
-		<OFSP>.K.hist		(Gaussian histogram file)	\n\
-		<OFSP>.K.curv 		(Gaussian curv file)		\n\
-		<OFSP>.H.hist		(Mean histogram file)		\n\
-		<OFSP>.H.curv 		(Mean curv file)		\n\
-		<OFSP>.scaled.hist	(Scaled histogram file)		\n\
-		<OFSP>.scaled.curv	(Scaled curv file)		\n\
+		<OHS>.norm.hist		(Normalised histogram file)	\n\
+		<HS>.norm.crv 		(Normalised curv file)		\n\
+		<OHS>.K.hist		(Gaussian histogram file)	\n\
+		<HS>.K.crv 		(Gaussian curv file)		\n\
+		<OHS>.H.hist		(Mean histogram file)		\n\
+		<HS>.H.crv 		(Mean curv file)		\n\
+		<OHS>.scaled.hist	(Scaled histogram file)		\n\
+		<HS>.scaled.crv		(Scaled curv file)		\n\
 									\n\
 	Note that curvature files are saved to $SUBJECTS_DIR/surf	\n\
-	and *not* to the current working directory. Also note that	\n\
-	the above names for curvature files are not compatible with	\n\
-	the command-line interface of this program. Simply rename	\n\
-	any created curvature files (see the examples section).		\n\
+	and *not* to the current working directory.			\n\
+									\n\
+	Note also that file names can become quite long and somewhat	\n\
+	unyielding.							\n\
 									\n\
     [-h <numberOfBins>] [-p <numberOfBins]				\n\
 									\n\
@@ -923,9 +1081,9 @@ OPTIONS									\n\
 	The histogram behaviour can be further tuned with the 		\n\
 	following:							\n\
 									\n\
-    [-b <binSize>] [-i <binStartCurvature]				\n\
+    [-b <binSize>] [-i <binStartCurvature] [-j <binEndCurvature]	\n\
 									\n\
-	These two arguments are only processed iff a '-h <numberOfBins>'\n\
+	These arguments are only processed iff a '-h <numberOfBins>	'\n\
 	has also been specified. By default, <binSize> is defined as	\n\
 									\n\
 		(maxCurvature - minCurvature) / <numberOfBins>		\n\
@@ -942,6 +1100,11 @@ OPTIONS									\n\
 	of its current value, <binStartCurvature> = (minCurvature).	\n\
 	Also, if (<binStartCurvature> + <binSize>*<numberOfBins> >)	\n\
 	(maxCurvature), an error is raised and processing aborts.	\n\
+									\n\
+	The '-j' allows the user to specify an optional end		\n\
+	value for the histogram. Using '-i' and '-j' together		\n\
+	are the most convenient ways to zoom into a region of interest	\n\
+	in a histogram.							\n\
 									\n\
     [-h]								\n\
 									\n\
@@ -964,10 +1127,6 @@ OPTIONS									\n\
 									\n\
 	If specified in conjunction with '-o <outputFileStem>'		\n\
 	will also create a curvature file with these values.		\n\
-									\n\
-    [-o <outputFileName>]						\n\
-									\n\
-	Output *text* results to <outputFileName>.			\n\
 									\n\
     [-s <summaryCondition>]						\n\
 									\n\
@@ -992,8 +1151,8 @@ OPTIONS									\n\
     [-c <factor>]							\n\
 									\n\
 	Scale curvature values with <factor>. The mean of the 		\n\
-	original curvature is conserved (and the sigma increases)	\n\
-	with <factor>.							\n\
+	original curvature is conserved (and the sigma increases	\n\
+	with <factor>).							\n\
 									\n\
 	If specified in conjunction with '-o <outputFileStem>'		\n\
 	will also create a curvature file with these values.		\n\
@@ -1062,19 +1221,15 @@ EXAMPLES								\n\
 									\n\
 	In this case, the curvature files created are called:		\n\
 									\n\
-		foo.rh.smoothwm.K.curv					\n\
-		foo.rh.smoothwm.H.curv					\n\
+		rh.smoothwm.K.curv					\n\
+		rh.smoothwm.H.curv					\n\
 									\n\
-	To process these exact files with 'mris_curvature_stats', you	\n\
-	will need to rename them:					\n\
+	and are saved to the $SUBJECTS_DIR/<subjid>/surf directory.	\n\
+	These can be re-read by 'mris_curvature_stats' using		\n\
 									\n\
-		cd $SUBJECTS_DIR/801_recon/surf				\n\
-		mv foo.rh.smoothwm.K.curv rh.smoothwm.K.curv		\n\
+		mris_curvature_stats -m 801_recon rh smoothwm.K.curv \\	\n\
+						     smoothwm.H.curv	\n\
 									\n\
-	i.e. just strip away the first prefix. These can then be read	\n\
-	with								\n\
-									\n\
-		mris_curvature_stats -m 801_recon rh smoothwm.K.curv	\n\
 									\n\
 ");
 
