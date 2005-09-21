@@ -62,7 +62,9 @@ GUI_SRCS= \
 	ViewState.cpp \
 	ScubaToolState.cpp \
 	ScubaGlobalPreferences.cpp \
-	ProgressDisplayManager.cpp
+	ProgressDisplayManager.cpp \
+	ScubaKeyCombo.cpp \
+	TclScubaKeyCombo.cpp
 
 SCUBA1_SRCS= \
 	ToglManager.cpp \
@@ -160,7 +162,7 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testScubaView testScubaFrame \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
 	testVectorOps testRASToVoxel testCoordTimer \
-	testSegmentationVolumeReport
+	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo
 
 TESTS=$(check_PROGRAMS) 
 
@@ -252,6 +254,16 @@ testVolumeCollection_LDADD=$(LIBS_TCL_OPENGL) \
 testSurfaceCollection_SOURCES= test_SurfaceCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
 testSurfaceCollection_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
+testScubaKeyCombo_SOURCES=test_ScubaKeyCombo.cpp \
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
+testScubaKeyCombo_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+
+testTclScubaKeyCombo_SOURCES=test_TclScubaKeyCombo.cpp \
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
+testTclScubaKeyCombo_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testScubaLayers_SOURCES=test_ScubaLayers.cpp \

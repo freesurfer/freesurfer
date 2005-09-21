@@ -541,3 +541,38 @@ Find Nearest Surface Vertex
 Set Cursor from edit.dat
 Generate Segementation Volume Report
 
+
+
+ScubaKeyCombo
+ - modifers, key code
+ScubaKeyCombo( string )
+ - parse string description and set
+string ToString()
+ - return parsable string
+bool IsSameAsInputKey ( InputState )
+ - match against input state
+
+TclScubaKeyCombo::SetKeyCodeFromTkString ( string )
+ - sets key code from a Tk input string
+TclScubaKeyCombo::GetTclListener() 
+ - register a tcl listener
+ConvertTkStringToKeyComboString <key string> <shift> <meta> <alt> <control>
+ - tcl function that takes input, creates a TclScubaKeyCombo, returns string
+
+0) ScubaKeyCombo(string) will also check for legacy stuff, which is
+   basically the Tcl string commands without modifiers. Increase prefs
+   version number. New prefs files will automatically write out with
+   the new ScubaKeyCombo::ToString format.
+
+1) ToglManager creates TclScubaKeyCombo and uses
+   SetKeyCodeFromTkString and ToString to get string value of
+   input. Call InputState::SetKey() with that string. Note that
+   information from modifiers is doubled in the sKey field, that's OK.
+
+2) scuba.tcl prefs dialog uses ConvertTkStringToKeyComboString to use
+   ScubaKeyCombo strings to set prefs values.
+
+3) All scuba objects that get prefs that are key combos use
+   KeyCombo(string) init'r, and then use IsSameAsInputKey(InputState)
+   for input comparison.
+
