@@ -1,5 +1,5 @@
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.5 2005/09/19 22:09:12 greve Exp $
+// $Id: fsglm.c,v 1.6 2005/09/22 22:21:49 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,7 +15,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.5 2005/09/19 22:09:12 greve Exp $"); 
+  return("$Id: fsglm.c,v 1.6 2005/09/22 22:21:49 greve Exp $"); 
 }
 
 /*-------------------------------------------------------
@@ -393,4 +393,37 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
   }
 
   return(0);
+}
+/*--------------------------------------------------------------------
+  GLMpmfMatrix() - compute matrix P used for partial model fit (pmf)
+  of a contrast. P = C'*inv(C*C')*C, where C is the contrast
+  matrix. Then ypmf = X*P*beta, where ypmf is y projected into the
+  contrast space. To do this, C must be well-conditioned. The
+  condition number is computed and returned through cond so that the
+  calling program can decide whether it is  ill-conditioned.
+  ------------------------------------------------------------------*/
+MATRIX *GLMpmfMatrix(MATRIX *C, double *cond, MATRIX *P)
+{
+  MATRIX *Ct=NULL, *CCt=NULL, *iCCt=NULL, *CtiCCt=NULL;
+
+  if(P != NULL){
+    if(P->rows != C->cols || P->cols != C->cols){
+      printf("ERROR: GLMpmfMatrix: dimension mismatch\n");
+      return(NULL);
+    }
+  }
+
+  Ct     = MatrixTranspose(C,Ct);
+  CCt    = MatrixMultiply(C,Ct,CCt);
+  *cond  = MatrixConditionNumber(CCt);
+  iCCt   = MatrixInverse(CCt,iCCt);
+  CtiCCt = MatrixMultiply(Ct,iCCt,CtiCCt);
+  P      = MatrixMultiply(CtiCCt,C,P);
+
+  MatrixFree(&Ct);
+  MatrixFree(&CCt);
+  MatrixFree(&iCCt);
+  MatrixFree(&CtiCCt);
+
+  return(P);
 }
