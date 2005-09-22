@@ -1228,10 +1228,15 @@ MRI *MRISspatialFilter(MRI *Src, MRI *wdist, MRI *Targ);
 MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta);
 
 int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta);
+// convert all vertex positions
+int MRISsurf2surfAll(MRIS *mris, MRI *dst, LTA *lta);
 void MRISsetReadFrame(int frame);
 int MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline) ;
 int MRISgetReadFrame(void);
 int MRISabsCurvature(MRI_SURFACE *mris) ;
 int MRISabsVals(MRI_SURFACE *mris) ;
+int MRISsmoothFrames(MRI_SURFACE *mris, MRI *mri, int navgs) ;
+int MRISwriteFrameToValues(MRI_SURFACE *mris, MRI *mri, int frame) ;
+int MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame) ;
 
 #endif
