@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.11 2005/09/20 04:06:42 greve Exp $
+   $Id: fmriutils.c,v 1.12 2005/09/22 23:12:09 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.11 2005/09/20 04:06:42 greve Exp $");
+  return("$Id: fmriutils.c,v 1.12 2005/09/22 23:12:09 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -744,16 +744,18 @@ int MRIglmFit(MRIGLM *mriglm)
 
   for(n = 0; n < mriglm->ncontrasts; n++){
     mriglm->gamma[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT, mriglm->C[n]->rows);
-    mriglm->F[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
+    mriglm->F[n]   = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
+    mriglm->sig[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
     glm->C[n] = MatrixCopy(mriglm->C[n],NULL);
+    //glm->CPMFflag[n] = 1;
   }
   GLMtransposeC(glm);
 
-  if(0 && (mriglm->npvr > 0 && mriglm->w == NULL)){
+  //if(0 && (mriglm->npvr > 0 && mriglm->w == NULL)){
     // Same design matrix everywhere
-    glm->X = MatrixCopy(X0,glm->X);
-    GLMmatrices(glm);
-  }
+    //glm->X = MatrixCopy(X0,glm->X);
+    //GLMmatrices(glm);
+  //}
 
   // pre-load X0
   for(f = 1; f <= X0->rows; f++){
@@ -816,6 +818,8 @@ int MRIglmFit(MRIGLM *mriglm)
 
 	GLMfit(glm);
 	GLMtest(glm);
+	//GLMdump("voxdump",glm);
+	//exit(1);
 
 	// Pack data back into MRI
 	MRIsetVoxVal(mriglm->rvar,c,r,s,0,glm->rvar);
@@ -826,6 +830,7 @@ int MRIglmFit(MRIGLM *mriglm)
 	for(n = 0; n < mriglm->ncontrasts; n++){
 	  MRIfromMatrix(mriglm->gamma[n], c, r, s, glm->gamma[n]);
 	  MRIsetVoxVal(mriglm->F[n],c,r,s,0,glm->F[n]);
+	  MRIsetVoxVal(mriglm->sig[n],c,r,s,0,glm->p[n]);
 	}
 
       }

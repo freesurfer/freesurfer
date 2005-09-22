@@ -1,10 +1,15 @@
 // mri_glmfit.c
 
+// Incorporate glm into glmmri
+// Add support for fsgdf
 // Check to make sure no two contrast names are the same
 // Check to make sure no two contrast mtxs are the same
-// Save config in output dir
+// Save config in output dir, and Xg and Cs
 // Links to source data
 // PCA
+// Permute X
+// Leave out one
+// cpmf
 // Cleanup
 
 // p-to-z
@@ -50,7 +55,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.16 2005/09/19 23:35:05 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.17 2005/09/22 23:12:38 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -74,7 +79,10 @@ int SynthSeed = -1;
 double Xcond;
 
 int npvr=0;
-MRIGLM *glmmri;
+MRIGLM *mriglm;
+
+char *voxdumpdir=NULL;
+int voxdump[3];
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -96,6 +104,7 @@ int main(int argc, char **argv)
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+  mriglm = (MRIGLM *) calloc(sizeof(MRIGLM),1);
 
   if(argc == 0) usage_exit();
 
@@ -110,8 +119,8 @@ int main(int argc, char **argv)
   printf("sysname  %s\n",uts.sysname);
   printf("hostname %s\n",uts.nodename);
   printf("machine  %s\n",uts.machine);
-  if(SynthSeed < 0) SynthSeed = PDFtodSeed();
 
+  if(SynthSeed < 0) SynthSeed = PDFtodSeed();
   printf("SynthSeed = %d\n",SynthSeed);
 
   dump_options(stdout);
@@ -126,31 +135,30 @@ int main(int argc, char **argv)
     }
   }
 
-  glmmri = (MRIGLM *) calloc(sizeof(MRIGLM),1);
-  glmmri->npvr = npvr;
-  glmmri->ncontrasts = nContrasts;
-  glmmri->yhatsave = yhatSave;
-  glmmri->condsave = condSave;
+  mriglm->npvr = npvr;
+  mriglm->ncontrasts = nContrasts;
+  mriglm->yhatsave = yhatSave;
+  mriglm->condsave = condSave;
 
   //-----------------------------------------------------
-  glmmri->Xg = MatrixReadTxt(XFile, NULL);
-  if(glmmri->Xg==NULL){
+  mriglm->Xg = MatrixReadTxt(XFile, NULL);
+  if(mriglm->Xg==NULL){
     printf("ERROR: loading X %s\n",XFile);
     exit(1);
   }
 
   // Total number of columns in X, including PVRs
-  glmmri->Xcols = glmmri->Xg->cols + npvr;
+  mriglm->Xcols = mriglm->Xg->cols + npvr;
 
   // Compute and check DOF -------------------------------------
-  glmmri->DOF = glmmri->Xg->rows - glmmri->Xcols;
-  if(glmmri->DOF < 1){
-    printf("ERROR: DOF = %g\n",glmmri->DOF);
+  mriglm->DOF = mriglm->Xg->rows - mriglm->Xcols;
+  if(mriglm->DOF < 1){
+    printf("ERROR: DOF = %g\n",mriglm->DOF);
     exit(1);
   }
 
   // Check the condition of the global matrix -----------------
-  Xcond = MatrixNSConditionNumber(glmmri->Xg);
+  Xcond = MatrixNSConditionNumber(mriglm->Xg);
   printf("Matrix condition is %g\n",Xcond);
   if(Xcond > 10000){
     printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",Xcond);
@@ -160,19 +168,19 @@ int main(int argc, char **argv)
   // Load the contrast matrices ---------------------------------
   if(nContrasts > 0){
     for(n=0; n < nContrasts; n++){
-      glmmri->C[n] = MatrixReadTxt(CFile[n], NULL);
-      if(glmmri->C[n] == NULL){
+      mriglm->C[n] = MatrixReadTxt(CFile[n], NULL);
+      if(mriglm->C[n] == NULL){
 	printf("ERROR: loading C %s\n",CFile[n]);
 	exit(1);
       }
-      if(glmmri->C[n]->cols != glmmri->Xcols){
+      if(mriglm->C[n]->cols != mriglm->Xcols){
 	printf("ERROR: dimension mismatch between X and contrast %s",CFile[n]);
 	printf("       X has %d cols, C has %d cols\n",
-	       glmmri->Xcols,glmmri->C[n]->cols);
+	       mriglm->Xcols,mriglm->C[n]->cols);
 	exit(1);
       }
       // Get its name
-      glmmri->cname[n] = fio_basename(CFile[n],".mat");
+      mriglm->cname[n] = fio_basename(CFile[n],".mat");
       // Should check to make sure no two are the same
     }
   }
@@ -180,8 +188,8 @@ int main(int argc, char **argv)
   // Load or synthesize input  -----------------------------------------------
   if(synth == 0){
     printf("Loading y from %s\n",yFile);
-    glmmri->y = MRIread(yFile);
-    if(glmmri->y == NULL){
+    mriglm->y = MRIread(yFile);
+    if(mriglm->y == NULL){
       printf("ERROR: loading y %s\n",yFile);
       exit(1);
     }
@@ -193,80 +201,86 @@ int main(int argc, char **argv)
       exit(1);
     }
     printf("Synthesizing y with white noise\n");
-    glmmri->y =  MRIrandn(mritmp->width, mritmp->height, mritmp->depth, 
+    mriglm->y =  MRIrandn(mritmp->width, mritmp->height, mritmp->depth, 
 			 mritmp->nframes,0,1,NULL);
     MRIfree(&mritmp);
   }
 
   // Check some dimensions -----------------------------------
-  if(glmmri->y->nframes != glmmri->Xg->rows){
+  if(mriglm->y->nframes != mriglm->Xg->rows){
     printf("ERROR: dimension mismatch between y and X.\n");
     printf("  y has %d inputs, X has %d rows.\n",
-	   glmmri->y->nframes,glmmri->Xg->rows);
+	   mriglm->y->nframes,mriglm->Xg->rows);
     exit(1);
   }
 
   // Load the mask file ----------------------------------
   if(maskFile != NULL){
-    glmmri->mask = MRIread(maskFile);
-    if(glmmri->mask  == NULL){
+    mriglm->mask = MRIread(maskFile);
+    if(mriglm->mask  == NULL){
       printf("ERROR: reading mask file %s\n",maskFile);
       exit(1);
     }
   }
-  else glmmri->mask = NULL;
+  else mriglm->mask = NULL;
 
   // Load the weight file ----------------------------------
   if(wFile != NULL){
-    glmmri->w = MRIread(wFile);
-    if(glmmri->w  == NULL){
+    mriglm->w = MRIread(wFile);
+    if(mriglm->w  == NULL){
       printf("ERROR: reading weight file %s\n",wFile);
       exit(1);
     }
-    MRInormWeights(glmmri->w, 1, 1, glmmri->mask, glmmri->w);
-    MRIwrite(glmmri->w,"wn.mgh");
+    MRInormWeights(mriglm->w, 1, 1, mriglm->mask, mriglm->w);
+    MRIwrite(mriglm->w,"wn.mgh");
   }
-  else glmmri->w = NULL;
+  else mriglm->w = NULL;
 
   // Load PVRs -----------------------------------
-  if(glmmri->npvr > 0){
-    for(n=0; n < glmmri->npvr; n++){
-      glmmri->pvr[n] = MRIread(pvrFiles[n]);
-      if(glmmri->pvr[n] == NULL) exit(1);
+  if(mriglm->npvr > 0){
+    for(n=0; n < mriglm->npvr; n++){
+      mriglm->pvr[n] = MRIread(pvrFiles[n]);
+      if(mriglm->pvr[n] == NULL) exit(1);
     }
   }
 
+  if(voxdumpdir != NULL){
+    printf("Dumping voxel %d %d %d to %s\n",
+	   voxdump[0],voxdump[1],voxdump[2],voxdumpdir);
+    printf("But not really\n");
+  }
+
   printf("Starting fit\n");
-  MRIglmFit(glmmri);
+  MRIglmFit(mriglm);
 
   printf("Writing results\n");
-  MRIwrite(glmmri->beta,betaFile);
-  MRIwrite(glmmri->rvar,rvarFile);
-  if(glmmri->yhatsave) MRIwrite(glmmri->yhat,yhatFile);
-  if(glmmri->condsave) MRIwrite(glmmri->cond,condFile);
-  if(eresFile) MRIwrite(glmmri->eres,eresFile);    
+  MRIwrite(mriglm->beta,betaFile);
+  MRIwrite(mriglm->rvar,rvarFile);
+  if(mriglm->yhatsave) MRIwrite(mriglm->yhat,yhatFile);
+  if(mriglm->condsave) MRIwrite(mriglm->cond,condFile);
+  if(eresFile) MRIwrite(mriglm->eres,eresFile);    
   
-  for(n=0; n < glmmri->ncontrasts; n++){
-    printf("  %s\n",glmmri->cname[n]);
+  for(n=0; n < mriglm->ncontrasts; n++){
+    printf("  %s\n",mriglm->cname[n]);
     
     // Create output directory for contrast
-    sprintf(tmpstr,"%s/%s",GLMDir,glmmri->cname[n]);
+    sprintf(tmpstr,"%s/%s",GLMDir,mriglm->cname[n]);
     mkdir(tmpstr,(mode_t)-1);
     
     // Save gamma and F
-    sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,glmmri->cname[n]);
-    MRIwrite(glmmri->gamma[n],tmpstr);
-    sprintf(tmpstr,"%s/%s/F.mgh",GLMDir,glmmri->cname[n]);
-    MRIwrite(glmmri->F[n],tmpstr);
+    sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,mriglm->cname[n]);
+    MRIwrite(mriglm->gamma[n],tmpstr);
+    sprintf(tmpstr,"%s/%s/F.mgh",GLMDir,mriglm->cname[n]);
+    MRIwrite(mriglm->F[n],tmpstr);
     
     // Compute and Save p-values
-    sig = fMRIsigF(glmmri->F[n], glmmri->DOF, glmmri->C[n]->rows, NULL);
-    sprintf(tmpstr,"%s/%s/p.mgh",GLMDir,glmmri->cname[n]);
+    sig = fMRIsigF(mriglm->F[n], mriglm->DOF, mriglm->C[n]->rows, NULL);
+    sprintf(tmpstr,"%s/%s/p.mgh",GLMDir,mriglm->cname[n]);
     MRIwrite(sig,tmpstr);
     
     // Compute and Save -log10 p-values
     MRIlog10(sig,sig,1);
-    sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,glmmri->cname[n]);
+    sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,mriglm->cname[n]);
     MRIwrite(sig,tmpstr);
     
     MRIfree(&sig);
@@ -314,6 +328,14 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
       srand48(SynthSeed);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--voxdump")){
+      if(nargc < 4) CMDargNErr(option,4);
+      voxdumpdir = pargv[0];
+      sscanf(pargv[1],"%d",&voxdump[0]);
+      sscanf(pargv[2],"%d",&voxdump[1]);
+      sscanf(pargv[3],"%d",&voxdump[2]);
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--profile")){
@@ -513,7 +535,5 @@ static void dump_options(FILE *fp)
 
   return;
 }
-
-
 
 

@@ -4,6 +4,7 @@
 
 #include "matrix.h"
 #include "mri.h"
+#include "fsglm.h"
 
 #ifdef X
 #undef X
@@ -11,6 +12,7 @@
 
 /*---------------------------------------------------------*/
 typedef struct{
+  GLMMAT *glm;       // Holds all the glm stuff
   MRI *y;            // Input data
   MATRIX *Xg;        // Global regressor matrix
   int npvr;          // Number of per-voxel regressors
