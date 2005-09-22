@@ -18515,7 +18515,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.139 2005/09/21 17:05:32 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.140 2005/09/22 20:39:15 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23358,7 +23358,7 @@ int labl_load (char* fname)
     {
       return (ERROR_NO_FILE);
     }
-  
+
   /* load the orig vertex positions if we haven't already. */
   if (!origsurfloaded)
     read_orig_vertex_coordinates(orfname) ;
@@ -23367,8 +23367,9 @@ int labl_load (char* fname)
   /* assign mris vertex numbers to unnumbered vertices based on their
      locations. */
   LabelFillUnassignedVertices (mris, label);
-	lnew  = LabelFillHolesWithOrig(label, mris) ;
-	LabelFree(&label) ; label = lnew ;
+  lnew  = LabelFillHolesWithOrig(label, mris) ;
+  LabelFree(&label) ;
+  label = lnew ;
   
   /* make a new entry in the label list. */
   labl_add (label, &label_index);
@@ -23380,11 +23381,15 @@ int labl_load (char* fname)
 		 LABL_DEFAULT_COLOR_R, LABL_DEFAULT_COLOR_G, 
 		 LABL_DEFAULT_COLOR_B );
   
+  /* Unmark it. */
+  LabelUnmark (label, mris);
+
   /* select this label */
   labl_select (label_index);
-  
+
   surface_compiled = 0 ;
   
+
   return (ERROR_NONE);
 }
 
