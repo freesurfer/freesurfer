@@ -1,17 +1,18 @@
 // mri_glmfit.c
 
 // Incorporate glm into glmmri
-// Add support for fsgdf
-// Check to make sure no two contrast names are the same
-// Check to make sure no two contrast mtxs are the same
+// PMF
 // Save config in output dir, and Xg and Cs
-// Links to source data
+// Add support for fsgdf
 // PCA
+// Self-Regressor
 // Permute X
 // Leave out one
-// cpmf
+// Copies or Links to source data
 // Cleanup
 
+// Check to make sure no two contrast names are the same
+// Check to make sure no two contrast mtxs are the same
 // p-to-z
 // Rewrite MatrixReadTxt to ignore # and % and empty lines
 // Auto-det/read matlab4 matrices
@@ -55,7 +56,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.17 2005/09/22 23:12:38 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.18 2005/09/22 23:17:32 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
