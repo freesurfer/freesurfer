@@ -508,6 +508,40 @@ LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris)
   MRISremoveRipped(mris) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelRipRestOfSurfaceWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh)
+{
+  int    vno, n ;
+  VERTEX *v ;
+	
+	LabelToFlat(area, mris) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    v->ripflag = 1 ;
+  }
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+		if (area->lv[n].stat < thresh)
+			continue ;
+    vno = area->lv[n].vno ;
+		if (vno < 0 || vno >= mris->nvertices)
+			continue ;
+    v = &mris->vertices[vno] ;
+    v->ripflag = 0 ;
+  }
+  MRISripFaces(mris) ;
+  MRISremoveRipped(mris) ;
+  return(NO_ERROR) ;
+}
 
 /*-----------------------------------------------------
         Parameters:
@@ -1598,76 +1632,76 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelDilate: num_times < 1"));
 
   for (n = 0; n< num_times; n++ )
-    {
-      /* Allocate an LV array the size of the surface. */
-     new_lv = (LV*) calloc( mris->nvertices, sizeof(LV) );
-     if (NULL == new_lv)
-       ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,
-				   "LabelDilate: couldn't allocate new_lv"));
-     num_new_lvs = 0;
+	{
+		/* Allocate an LV array the size of the surface. */
+		new_lv = (LV*) calloc( mris->nvertices, sizeof(LV) );
+		if (NULL == new_lv)
+			ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,
+																	"LabelDilate: couldn't allocate new_lv"));
+		num_new_lvs = 0;
       
 
-     /* Copy the existing lvs over first and increment our count. */
-     memcpy (new_lv, area->lv, area->n_points * sizeof(LV));
-     num_new_lvs = area->n_points;
+		/* Copy the existing lvs over first and increment our count. */
+		memcpy (new_lv, area->lv, area->n_points * sizeof(LV));
+		num_new_lvs = area->n_points;
 
 
-     /* For each vertex in the label... */
-     for (label_vno = 0; label_vno < area->n_points; label_vno++)
-       {
-	 vno = area->lv[label_vno].vno;
+		/* For each vertex in the label... */
+		for (label_vno = 0; label_vno < area->n_points; label_vno++)
+		{
+			vno = area->lv[label_vno].vno;
 	 
-	 /* Check its neighbors. If any are not in the label, and are
-	    not already in the new label, add it to the new label. */
-	 for (neighbor_index = 0; 
-	      neighbor_index < mris->vertices[vno].vnum; neighbor_index++)
-	   {
-	     neighbor_vno = mris->vertices[vno].v[neighbor_index];
-	     add = 0;
+			/* Check its neighbors. If any are not in the label, and are
+				 not already in the new label, add it to the new label. */
+			for (neighbor_index = 0; 
+					 neighbor_index < mris->vertices[vno].vnum; neighbor_index++)
+			{
+				neighbor_vno = mris->vertices[vno].v[neighbor_index];
+				add = 0;
 	     
-	     /* Look for neighbor_vno in the label. */
-	     found = 0;
-	     for (check_vno = 0; check_vno < area->n_points; check_vno++)
-	       if (area->lv[check_vno].vno == neighbor_vno)
-		 {
-		   found = 1;
-		   break;
-		 }
+				/* Look for neighbor_vno in the label. */
+				found = 0;
+				for (check_vno = 0; check_vno < area->n_points; check_vno++)
+					if (area->lv[check_vno].vno == neighbor_vno)
+					{
+						found = 1;
+						break;
+					}
 	     
-	     /* If we didn't find it, look for it in the new label. */
-	     if (!found)
-	     {
-	       found = 0;
-	       for (check_vno = 0; check_vno < num_new_lvs; check_vno++)
-		 if (new_lv[check_vno].vno == neighbor_vno)
-		   {
-		     found = 1;
-		     break;
-		   }
+				/* If we didn't find it, look for it in the new label. */
+				if (!found)
+				{
+					found = 0;
+					for (check_vno = 0; check_vno < num_new_lvs; check_vno++)
+						if (new_lv[check_vno].vno == neighbor_vno)
+						{
+							found = 1;
+							break;
+						}
 
-	       /* If we didn't find it there, add it. */
-	       if (!found)
-		 add = 1;
-	     }
+					/* If we didn't find it there, add it. */
+					if (!found)
+						add = 1;
+				}
 	     
-	     if (add)
-	       {
-		 new_lv[num_new_lvs].vno = neighbor_vno;
-		 new_lv[num_new_lvs].x = mris->vertices[neighbor_vno].x;
-		 new_lv[num_new_lvs].y = mris->vertices[neighbor_vno].y;
-		 new_lv[num_new_lvs].z = mris->vertices[neighbor_vno].z;
-		 num_new_lvs++;
-	       }
-	   }
-       }
+				if (add)
+				{
+					new_lv[num_new_lvs].vno = neighbor_vno;
+					new_lv[num_new_lvs].x = mris->vertices[neighbor_vno].x;
+					new_lv[num_new_lvs].y = mris->vertices[neighbor_vno].y;
+					new_lv[num_new_lvs].z = mris->vertices[neighbor_vno].z;
+					num_new_lvs++;
+				}
+			}
+		}
      
-     /* Point the label's lv to the new one and update the number of
-	points. */
-     free (area->lv);
-     area->lv = (LV*) realloc (new_lv, num_new_lvs * sizeof(LV));
-     area->n_points = num_new_lvs;
-     area->max_points = num_new_lvs;
-    }
+		/* Point the label's lv to the new one and update the number of
+			 points. */
+		free (area->lv);
+		area->lv = (LV*) realloc (new_lv, num_new_lvs * sizeof(LV));
+		area->n_points = num_new_lvs;
+		area->max_points = num_new_lvs;
+	}
   
   return (NO_ERROR);
 }
