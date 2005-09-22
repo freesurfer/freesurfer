@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (June 16, 1998)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/01/07 20:57:22 $
-// Revision       : $Revision: 1.6 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/09/22 14:11:39 $
+// Revision       : $Revision: 1.7 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.6 2005/01/07 20:57:22 tosa Exp $";
+static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.7 2005/09/22 14:11:39 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -67,6 +67,10 @@ static int auto_detect_stats = 1 ;
 static int apply_median_filter = 0 ;
 static int nbhd_size = 20 ;
 
+#define MAX_OTHER_LABELS 100
+static int num_other_labels = 0 ;
+static char *other_label_names[MAX_OTHER_LABELS] ;
+
 static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE    1.0
 
@@ -98,9 +102,10 @@ static int min_pial_averages = 2 ;
 static int max_white_averages = 4 ;
 static int min_white_averages = 0 ;
 static float pial_sigma = 2.0f ;
-static float white_sigma = 2.0f ;
+static float white_sigma = 0.5 ;
 static float max_thickness = 5.0 ;
 
+static int num_dilate = 0 ;
 
 #define MAX_WHITE             120
 #define MAX_BORDER_WHITE      105
@@ -114,6 +119,7 @@ static float max_thickness = 5.0 ;
 #define MIN_CSF                10
 #define MAX_CSF                40
 
+static double max_white = MAX_WHITE ;
 static  int   max_border_white_set = 0,
   min_border_white_set = 0,
   min_gray_at_white_border_set = 0,
@@ -154,7 +160,7 @@ main(int argc, char *argv[])
   LT            *lt =0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.6 2005/01/07 20:57:22 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.7 2005/09/22 14:11:39 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -235,6 +241,17 @@ main(int argc, char *argv[])
   sname = argv[1] ;
   hemi = argv[2] ;
   
+  ///////////////////////////////////////////////////////////////////////
+  // read orig surface
+  ///////////////////////////////////////////////////////////////////////
+  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, orig_name);
+  fprintf(stderr, "reading original surface position from %s...\n", fname) ;
+  mris = MRISreadOverAlloc(fname, 1.1) ;
+  // this tries to get src c_(ras) info
+  if (!mris)
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+              Progname, fname) ;
+
   /////////////////////////////////////////////////////////////////////////////
   // read label file
   /////////////////////////////////////////////////////////////////////////////
@@ -243,6 +260,22 @@ main(int argc, char *argv[])
   hires_label = LabelRead(NULL, fname) ;
   if (!hires_label)
     ErrorExit(ERROR_NOFILE, "%s: could not read hires label %s", Progname, argv[2]) ;
+	if (num_dilate > 0)
+		LabelDilate(hires_label, mris, num_dilate) ;
+	for (i = 0 ; i < num_other_labels ; i++)
+	{
+		LABEL *olabel ;
+		sprintf(fname, "%s/%s/label/%s", sdir, sname, other_label_names[i]) ;
+		fprintf(stderr, "reading the label file %s...\n", fname);
+		olabel = LabelRead(NULL, fname) ;
+		if (!olabel)
+			ErrorExit(ERROR_NOFILE, "%s: could not read label %s", Progname, fname) ;
+		if (num_dilate > 0)
+			LabelDilate(olabel, mris, num_dilate) ;
+		hires_label = LabelCombine(olabel, hires_label) ;
+		LabelFree(&olabel) ;
+	}
+	printf("deforming %d vertices\n", hires_label->n_points) ;
 
   /////////////////////////////////////////////////////////////////////////////
   // read or setup lowrestohires transform
@@ -294,7 +327,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
   ////////////////////////////// we can handle only conformed volumes
-  setMRIforSurface(mri_filled);
+  // setMRIforSurface(mri_filled);
 
   if (!stricmp(hemi, "lh"))
   { label_val = lh_label ; replace_val = rh_label ; }
@@ -312,7 +345,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
   /////////////////////////////////////////
-  setMRIforSurface(mri_hires);
+	// no idea why Tosa was doing this  setMRIforSurface(mri_hires);
 
   if (apply_median_filter) // -median option ... modify mri_hires using the filter
   {
@@ -335,7 +368,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
   //////////////////////////////////////////
-  setMRIforSurface(mri_wm);
+	//  setMRIforSurface(mri_wm);
 
   ///////////////////////////////////////////////////////////////////
   // convert wm into hires space
@@ -361,17 +394,6 @@ main(int argc, char *argv[])
   MRIfree(&mri_wm);
   mri_wm = mri_tran;
 
-  ///////////////////////////////////////////////////////////////////////
-  // read orig surface
-  ///////////////////////////////////////////////////////////////////////
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, orig_name);
-  fprintf(stderr, "reading original surface position from %s...\n", fname) ;
-  mris = MRISreadOverAlloc(fname, 1.1) ;
-  // this tries to get src c_(ras) info
-  if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, fname) ;
-
   ////////////////////////////////////////////////////////////////////////////
   // move the vertex positions to the lh(rh).white positions (low res)
   ////////////////////////////////////////////////////////////////////////////
@@ -382,7 +404,7 @@ main(int argc, char *argv[])
   ///////////////////////////////////////////////////////////////////////
   // convert surface into hires volume surface if needed
   //////////////////////////////////////////////////////////////////////
-  MRISsurf2surf(mris, mri_hires, hires_lta);
+  MRISsurf2surfAll(mris, mri_hires, hires_lta);
   if (debug__ == 1)
     MRISwrite(mris, "hiresSurf");
 
@@ -407,7 +429,7 @@ main(int argc, char *argv[])
   // convert surface into lowres volume surface again for more processing
   ////////////////////////////////////////////////////////////////////////
   LTAinvert(hires_lta); // get inverse
-  MRISsurf2surf(mris, mri_filled, hires_lta);
+  MRISsurf2surfAll(mris, mri_filled, hires_lta);
   LTAinvert(hires_lta); // restore the original
 #endif
 
@@ -431,7 +453,10 @@ main(int argc, char *argv[])
 #else
     MRIScomputeClassStatistics(mris, mri_hires,&white_mean, &white_std, &gray_mean, &gray_std) ;
 #endif
-    
+
+		//    if (abs(white_mean-110) > 50)
+		//			parms.l_nspring *= sqrt(110/white_mean) ;
+
     if (!min_gray_at_white_border_set)
       min_gray_at_white_border = gray_mean-gray_std ;
     if (!max_border_white_set)
@@ -448,6 +473,11 @@ main(int argc, char *argv[])
             min_border_white, MIN_BORDER_WHITE) ;
     fprintf(stderr, "setting MAX_CSF to %2.1f (was %d)\n",
             max_csf, MAX_CSF) ;
+		if (min_border_white > max_white)
+		{
+			max_white = white_mean+white_std ;
+			printf("setting MAX_WHITE to %2.1f (was %d)\n", max_white, MAX_WHITE);
+		}
 
     if (!max_gray_set)
       max_gray = white_mean-white_std ;
@@ -536,13 +566,13 @@ main(int argc, char *argv[])
     MRISprintTessellationStats(mris, stderr) ;
     if (inverted_contrast)
       MRIScomputeInvertedGrayWhiteBorderValues(mris, mri_hires, mri_smooth, 
-					       MAX_WHITE, max_border_white, min_border_white,
+					       max_white, max_border_white, min_border_white,
 					       min_gray_at_white_border, 
 					       max_border_white /*max_gray*/, current_sigma, 
 					       2*max_thickness, parms.fp) ;
     else
       MRIScomputeBorderValues(mris, mri_hires, mri_smooth, 
-			      MAX_WHITE, max_border_white, min_border_white,
+			      max_white, max_border_white, min_border_white,
 			      min_gray_at_white_border, 
 			      max_border_white /*max_gray*/, current_sigma, 
 			      2*max_thickness, parms.fp, GRAY_WHITE) ;
@@ -598,9 +628,11 @@ main(int argc, char *argv[])
     /////////////////////////////////////////////////////////////////////////
     // convert surface into lowres volume surface again for more processing
     //////////////////////////////////////////////////////////////////////////
+#if 0
     LTAinvert(hires_lta); // get inverse
-    MRISsurf2surf(mris, mri_filled, hires_lta);
+    MRISsurf2surfAll(mris, mri_filled, hires_lta);
     LTAinvert(hires_lta); // restore the original
+#endif
 
     // default smoothwm = 0 and thus don't do anything
     MRISaverageVertexPositions(mris, smoothwm) ;
@@ -623,20 +655,20 @@ main(int argc, char *argv[])
       MRISprintTessellationStats(mris, stderr) ;
 
       //  restore to hires for further processing
-      MRISsurf2surf(mris, mri_hires, hires_lta);
+      MRISsurf2surfAll(mris, mri_hires, hires_lta);
     }
   }
   else   /* read in previously generated white matter surface */
   {
     sprintf(fname, "%s", white_matter_name) ;
     LTAinvert(hires_lta); // get inverse
-    MRISsurf2surf(mris, mri_filled, hires_lta);
+    MRISsurf2surfAll(mris, mri_filled, hires_lta);
     LTAinvert(hires_lta); // restore the original
     if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
       ErrorExit(Gerror, "%s: could not read white matter surfaces.",
                 Progname) ;
     //  restore to hires for further processing
-    MRISsurf2surf(mris, mri_hires, hires_lta);
+    MRISsurf2surfAll(mris, mri_hires, hires_lta);
     MRIScomputeMetricProperties(mris) ;
   }
   
@@ -676,7 +708,7 @@ main(int argc, char *argv[])
     //////////////////////////////////////////////////////////////////////////
     printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
     LTAinvert(hires_lta); // get inverse
-    MRISsurf2surf(mris, mri_filled, hires_lta);
+    MRISsurf2surfAll(mris, mri_filled, hires_lta);
     LTAinvert(hires_lta); // restore the original
     if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
       ErrorExit(Gerror, "reading orig pial positions failed") ;
@@ -684,7 +716,7 @@ main(int argc, char *argv[])
     /////////////////////////////////////////////////////////////////////////
     // convert the surface into hires volume
     /////////////////////////////////////////////////////////////////////////
-    MRISsurf2surf(mris, mri_hires, hires_lta);
+    MRISsurf2surfAll(mris, mri_hires, hires_lta);
   }
 
   // we need to retain the mask
@@ -756,9 +788,11 @@ main(int argc, char *argv[])
   /////////////////////////////////////////////////////////////////////////
   // convert surface into lowres
   /////////////////////////////////////////////////////////////////////////
+#if 0
   LTAinvert(hires_lta); // get inverse
-  MRISsurf2surf(mris, mri_filled, hires_lta);
+  MRISsurf2surfAll(mris, mri_filled, hires_lta);
   LTAinvert(hires_lta); // restore the original
+#endif
 
   sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, pial_name, 
           output_suffix, suffix) ;
@@ -844,6 +878,12 @@ get_option(int argc, char *argv[])
   {
     white_only = 1 ;
     fprintf(stderr,  "only generating white matter surface\n") ;
+  }
+  else if (!stricmp(option, "dilate"))
+  {
+		num_dilate = atoi(argv[2]) ;
+    fprintf(stderr,  "dilating labels %d times\n", num_dilate) ;
+		nargs = 1 ;
   }
   else if (!stricmp(option, "min_border_white"))
   {
@@ -959,6 +999,10 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+	case 'L':
+		other_label_names[num_other_labels++] = argv[2] ;
+		nargs = 1 ;
+		break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
