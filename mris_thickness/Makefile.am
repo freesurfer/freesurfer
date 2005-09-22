@@ -6,8 +6,12 @@
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=-L$(top_srcdir)/lib
 
-bin_PROGRAMS = mris_thickness
+bin_PROGRAMS = mris_thickness mris_intensity_profile
 mris_thickness_SOURCES=mris_thickness.c
 mris_thickness_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mris_thickness_LDFLAGS=$(OS_LDFLAGS)
+
+mris_intensity_profile_SOURCES=mris_intensity_profile.c
+mris_intensity_profile_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_intensity_profile_LDFLAGS=$(OS_LDFLAGS)
 
