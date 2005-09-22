@@ -43,10 +43,12 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segstats.c,v 1.6 2005/08/25 23:10:51 greve Exp $";
+static char vcid[] = "$Id: mri_segstats.c,v 1.7 2005/09/22 21:48:17 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
+char *InIntensityName = "";
+char *InIntensityUnits = "unknown";
 char *MaskVolFile = NULL;
 char *PVVolFile = NULL;
 char *BrainMaskFile = NULL;
@@ -58,6 +60,7 @@ int DoFrameAvg = 0;
 int frame = 0;
 int synth = 0;
 int debug = 0;
+int dontrun = 0;
 long seed = 0;
 MRI *seg, *invol, *famri, *maskvol, *pvvol, *brainvol;
 int nsegid0, *segidlist0;
@@ -318,13 +321,17 @@ int main(int argc, char **argv)
       continue;
     }
 
-    if(pvvol == NULL)
-      nhits = MRIsegCount(seg, StatSumTable[n].id, 0);
-    else
-      nhits = MRIvoxelsInLabelWithPartialVolumeEffects(seg, pvvol, StatSumTable[n].id);
+    if(!dontrun){
+      if(pvvol == NULL)
+	nhits = MRIsegCount(seg, StatSumTable[n].id, 0);
+      else
+	nhits = MRIvoxelsInLabelWithPartialVolumeEffects(seg, pvvol, StatSumTable[n].id);
+    }
+    else  nhits = n;
+
     printf("%4d\n",nhits);
     StatSumTable[n].nhits = nhits;
-    if(InVolFile != NULL){
+    if(InVolFile != NULL && !dontrun){
       if(nhits > 0){
 	MRIsegStats(seg, StatSumTable[n].id, invol, frame,
 		    &min, &max, &range, &mean, &std);
@@ -396,20 +403,34 @@ int main(int argc, char **argv)
     fprintf(fp,"# sysname  %s\n",uts.sysname);
     fprintf(fp,"# hostname %s\n",uts.nodename);
     fprintf(fp,"# machine  %s\n",uts.machine);
+    fprintf(fp,"# user     %s\n",VERuser());
     fprintf(fp,"# \n");
+    if(subject != NULL){
+      fprintf(fp,"# SUBJECTS_DIR %s\n",SUBJECTS_DIR);
+      fprintf(fp,"# subjectname %s\n",subject);
+    }
     if(BrainMaskFile){
       fprintf(fp,"# BrainMaskFile  %s \n",BrainMaskFile);
-      fprintf(fp,"# nbrainmaskvoxels %7d\n",nbrainmaskvoxels);
-      fprintf(fp,"# brainmaskvolume %10.1lf\n",brainmaskvolume);
+      fprintf(fp,"# BrainMaskFileTimeStamp  %s \n",VERfileTimeStamp(BrainMaskFile));
+      fprintf(fp,"# Measure BrainMask, BrainMaskNVox, Number of Brain Mask Voxels, %7d, unitless\n",
+	      nbrainmaskvoxels);
+      fprintf(fp,"# Measure BrainMask, BrainMaskVol, Brain Mask Volume, %f, mm^3\n",brainmaskvolume);
     }
     if(BrainVolFromSeg) {
-      fprintf(fp,"# nbrainsegvoxels  %7d\n",nbrainsegvoxels);
-      fprintf(fp,"# brainsegvolume  %10.1lf\n",brainsegvolume);
+      fprintf(fp,"# Measure BrainSeg, BrainSegNVox, Number of Brain Segmentation Voxels, %7d, unitless\n",
+	      nbrainsegvoxels);
+      fprintf(fp,"# Measure BrainSeg, BrainSegVol, Brain Segmentation Volume, %f, mm^3\n",
+	      brainsegvolume);
     }
     fprintf(fp,"# SegVolFile %s \n",SegVolFile);
-    if(ctabfile)  fprintf(fp,"# ColorTable %s \n",ctabfile);
+    fprintf(fp,"# SegVolFileTimeStamp  %s \n",VERfileTimeStamp(SegVolFile));
+    if(ctabfile) {
+      fprintf(fp,"# ColorTable %s \n",ctabfile);
+      fprintf(fp,"# ColorTableTimeStamp %s \n",VERfileTimeStamp(ctabfile));
+    }
     if(MaskVolFile) {
       fprintf(fp,"# MaskVolFile  %s \n",MaskVolFile);
+      fprintf(fp,"#   MaskVolFileTimeStamp  %s \n",VERfileTimeStamp(MaskVolFile));
       fprintf(fp,"#   MaskThresh %f \n",maskthresh);
       fprintf(fp,"#   MaskSign   %s \n",masksign);
       fprintf(fp,"#   MaskFrame  %d \n",maskframe);
@@ -417,30 +438,73 @@ int main(int argc, char **argv)
     }
     if(InVolFile) {
       fprintf(fp,"# InVolFile  %s \n",InVolFile);
+      fprintf(fp,"# InVolFileTimeStamp  %s \n",VERfileTimeStamp(InVolFile));
       fprintf(fp,"# InVolFrame %d \n",frame);
     }
-    if(PVVolFile) fprintf(fp,"# PVVolFile  %s \n",PVVolFile);
+    if(PVVolFile){
+      fprintf(fp,"# PVVolFile  %s \n",PVVolFile);
+      fprintf(fp,"# PVVolFileTimeStamp  %s \n",VERfileTimeStamp(PVVolFile));
+    }
     if(DoExclSegId)  fprintf(fp,"# ExcludeSegId %d \n",ExclSegId);
     if(NonEmptyOnly) fprintf(fp,"# Only reporting non-empty segmentations\n");
     fprintf(fp,"# VoxelVolume_mm3 %g \n",voxelvolume);
-    fprintf(fp,"# TableCol  1 Index \n");
-    fprintf(fp,"# TableCol  2 SegId \n");
-    fprintf(fp,"# TableCol  3 NVoxels \n");
-    fprintf(fp,"# TableCol  4 Volume_mm3 \n");
+    fprintf(fp,"# TableCol  1 ColHeader Index \n");
+    fprintf(fp,"# TableCol  1 FieldName Index \n");
+    fprintf(fp,"# TableCol  1 Units     NA \n");
+
+    fprintf(fp,"# TableCol  2 ColHeader SegId \n");
+    fprintf(fp,"# TableCol  2 FieldName Segmentation Id\n");
+    fprintf(fp,"# TableCol  2 Units     NA\n");
+
+    fprintf(fp,"# TableCol  3 ColHeader NVoxels \n");
+    fprintf(fp,"# TableCol  3 FieldName Number of Voxels\n");
+    fprintf(fp,"# TableCol  3 Units     unitless\n");
+
+
+    fprintf(fp,"# TableCol  4 ColHeader Volume_mm3\n");
+    fprintf(fp,"# TableCol  4 FieldName Volume\n");
+    fprintf(fp,"# TableCol  4 Units     mm^3\n");
+
     n = 5;
-    if(ctabfile) {fprintf(fp,"# TableCol %2d SegName \n",n); n++;}
+    if(ctabfile) {
+      fprintf(fp,"# TableCol %2d ColHeader StructName\n",n);
+      fprintf(fp,"# TableCol %2d FieldName Structure Name\n",n);
+      fprintf(fp,"# TableCol %2d Units     NA\n",n);
+      n++;
+    }
+
     if(InVolFile) {
-      fprintf(fp,"# TableCol %2d Mean \n",n);   n++;
-      fprintf(fp,"# TableCol %2d StdDev \n",n); n++;
-      fprintf(fp,"# TableCol %2d Min \n",n);    n++;
-      fprintf(fp,"# TableCol %2d Max \n",n);    n++;
-      fprintf(fp,"# TableCol %2d Range \n",n);  n++;
+      fprintf(fp,"# TableCol %2d ColHeader %sMean \n",n,InIntensityName);
+      fprintf(fp,"# TableCol %2d FieldName Intensity %sMean\n",n,InIntensityName);
+      fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
+      n++;
+
+      fprintf(fp,"# TableCol %2d ColHeader %sStdDev\n",n,InIntensityName);
+      fprintf(fp,"# TableCol %2d FieldName Itensity %sStdDev\n",n,InIntensityName);
+      fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
+      n++;
+
+      fprintf(fp,"# TableCol %2d ColHeader %sMin\n",n,InIntensityName);
+      fprintf(fp,"# TableCol %2d FieldName Intensity %sMin\n",n,InIntensityName);
+      fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
+      n++;
+
+      fprintf(fp,"# TableCol %2d ColHeader %sMax\n",n,InIntensityName);
+      fprintf(fp,"# TableCol %2d FieldName Intensity %sMax\n",n,InIntensityName);
+      fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
+      n++;
+
+      fprintf(fp,"# TableCol %2d ColHeader %sRange\n",n,InIntensityName);
+      fprintf(fp,"# TableCol %2d FieldName Intensity %sRange\n",n,InIntensityName);
+      fprintf(fp,"# TableCol %2d Units     %s\n",n,InIntensityUnits);
+      n++;
+
     }
     fprintf(fp,"# NRows %d \n",nsegid);
     fprintf(fp,"# NTableCols %d \n",n-1); 
 
     fprintf(fp,"# ColHeaders  Index SegId NVoxels Volume_mm3 "); 
-    if(ctabfile) fprintf(fp,"SegName ");
+    if(ctabfile) fprintf(fp,"StructName ");
     if(InVolFile) fprintf(fp,"Mean StdDev Min Max Range  ");
     fprintf(fp,"\n");
 
@@ -526,6 +590,7 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--dontrun"))   dontrun = 1;
     else if (!strcasecmp(option, "--nonempty")) NonEmptyOnly = 1;
     else if ( !strcmp(option, "--brain-vol-from-seg") ) BrainVolFromSeg = 1;
     else if ( !strcmp(option, "--ctab-default") ) {
@@ -542,6 +607,16 @@ static int parse_commandline(int argc, char **argv)
     else if ( !strcmp(option, "--in") ) {
       if(nargc < 1) argnerr(option,1);
       InVolFile = pargv[0];
+      nargsused = 1;
+    }
+    else if ( !strcmp(option, "--in-intensity-name") ) {
+      if(nargc < 1) argnerr(option,1);
+      InIntensityName = pargv[0];
+      nargsused = 1;
+    }
+    else if ( !strcmp(option, "--in-intensity-units") ) {
+      if(nargc < 1) argnerr(option,1);
+      InIntensityUnits = pargv[0];
       nargsused = 1;
     }
     else if ( !strcmp(option, "--brainmask") ) {

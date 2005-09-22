@@ -17,7 +17,7 @@
 #include "version.h"
 #include "colortab.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.30 2005/09/14 19:29:49 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.31 2005/09/22 21:47:59 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,7 +87,7 @@ main(int argc, char *argv[])
   char *cmdline;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.30 2005/09/14 19:29:49 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.31 2005/09/22 21:47:59 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -288,27 +288,65 @@ main(int argc, char *argv[])
       fprintf(fp,"# sysname  %s\n",uts.sysname);
       fprintf(fp,"# hostname %s\n",uts.nodename);
       fprintf(fp,"# machine  %s\n",uts.machine);
+      fprintf(fp,"# user     %s\n",VERuser());
       fprintf(fp,"# \n");
       fprintf(fp,"# SUBJECTS_DIR %s\n",sdir);
       fprintf(fp,"# anatomy_type surface\n");
       fprintf(fp,"# subjectname %s\n",sname);
       fprintf(fp,"# hemi %s\n",hemi);
-      fprintf(fp,"# annotation file %s\n",annotation_name);
-      fprintf(fp,"# total white matter volume  %2.0f mm^3\n",wm_volume) ;
-      fprintf(fp,"# TotalNumVertices  %d\n",mris->nvertices);
-      fprintf(fp,"# TotalSurfaceArea  %g (units = mm^2)\n",mris->total_area);
+      fprintf(fp,"# AnnotationFile %s\n",annotation_name);
+      fprintf(fp,"# AnnotationFileTimeStamp %s\n",VERfileTimeStamp(annotation_name));
+      fprintf(fp,"# TotalWhiteMatterVolume  %2.0f mm^3\n",wm_volume) ;
+
+
+      fprintf(fp,"# Measure Cortex, NumVert, Number of Vertices,  %d, unitless\n",
+	      mris->nvertices);
+      fprintf(fp,"# Measure Cortex, SurfArea, Surface Area,  %g, mm^2\n",
+	      mris->total_area);
+
       fprintf(fp,"# NTableCols 10\n");
-      fprintf(fp,"# TableCol  1 Struct   Structure Name\n");
-      fprintf(fp,"# TableCol  2 NumVert  Number of Vertices\n");
-      fprintf(fp,"# TableCol  3 SurfArea Surface Area (units = mm^2)\n");
-      fprintf(fp,"# TableCol  4 GrayVol  Gray Matter Volume (units = mm^3)\n");
-      fprintf(fp,"# TableCol  5 ThickAvg Average Thickness (units = mm) \n");
-      fprintf(fp,"# TableCol  6 ThickStd StdDev  Thickness (units = mm) \n");
-      fprintf(fp,"# TableCol  7 MeanCurv Integrated Rectified Mean Curvature\n");
-      fprintf(fp,"# TableCol  8 GausCurv Integrated Rectified Gaussian Curvature\n");
-      fprintf(fp,"# TableCol  9 FoldInd  Folding Index \n");
-      fprintf(fp,"# TableCol 10 CurvInd  Intrinsic Curvature Index\n");
-      fprintf(fp,"# ColHeaders Struct NumVert SurfArea GrayVol ThickAvg ThickStd MeanCurv GausCurv FoldInd CurvInd\n");
+
+      fprintf(fp,"# TableCol  1 ColHeader StructName\n");
+      fprintf(fp,"# TableCol  1 FieldName Structure Name\n");
+      fprintf(fp,"# TableCol  1 Units     NA\n");
+
+      fprintf(fp,"# TableCol  2 ColHeader NumVert\n");
+      fprintf(fp,"# TableCol  2 FieldName Number of Vertices\n");
+      fprintf(fp,"# TableCol  2 Units     unitless\n");
+
+      fprintf(fp,"# TableCol  3 ColHeader SurfArea\n");
+      fprintf(fp,"# TableCol  3 FieldName Surface Area\n");
+      fprintf(fp,"# TableCol  3 Units     mm^2\n");
+
+      fprintf(fp,"# TableCol  4 ColHeader GrayVol\n");
+      fprintf(fp,"# TableCol  4 FieldName Gray Matter Volume\n");
+      fprintf(fp,"# TableCol  4 Units     mm\n");
+
+      fprintf(fp,"# TableCol  5 ColHeader ThickAvg \n");
+      fprintf(fp,"# TableCol  5 FieldName Average Thickness\n");
+      fprintf(fp,"# TableCol  5 Units     mm\n");
+
+      fprintf(fp,"# TableCol  6 ColHeader ThickStd\n");
+      fprintf(fp,"# TableCol  6 FieldName Thickness StdDev\n");
+      fprintf(fp,"# TableCol  6 Units     mm \n");
+
+      fprintf(fp,"# TableCol  7 ColHeader MeanCurv\n");
+      fprintf(fp,"# TableCol  7 FieldName Integrated Rectified Mean Curvature\n");
+      fprintf(fp,"# TableCol  7 Units     mm^-1\n");
+
+      fprintf(fp,"# TableCol  8 ColHeader GausCurv \n");
+      fprintf(fp,"# TableCol  8 FieldName Integrated Rectified Gaussian Curvature\n");
+      fprintf(fp,"# TableCol  8 Units     mm^-2\n");
+
+      fprintf(fp,"# TableCol  9 ColHeader  FoldInd\n");
+      fprintf(fp,"# TableCol  9 FieldName  Folding Index \n");
+      fprintf(fp,"# TableCol  9 Units      unitless \n");
+
+      fprintf(fp,"# TableCol 10 ColHeader CurvInd\n");
+      fprintf(fp,"# TableCol 10 FieldName Intrinsic Curvature Index\n");
+      fprintf(fp,"# TableCol 10 Units     unitless\n");
+
+      fprintf(fp,"# ColHeaders StructName NumVert SurfArea GrayVol ThickAvg ThickStd MeanCurv GausCurv FoldInd CurvInd\n");
       fclose(fp);
     }
 
