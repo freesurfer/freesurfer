@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/09/22 18:19:55 $
-// Revision       : $Revision: 1.372 $
+// Revision Date  : $Date: 2005/09/22 21:36:09 $
+// Revision       : $Revision: 1.373 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -17475,34 +17475,34 @@ MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs)
   VERTEX *v, *vn ;
 
   for (i = 0 ; i < navgs ; i++)
-    {
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
-	  v = &mris->vertices[vno] ;
-	  if (v->ripflag || v->marked == 0)
-	    continue ;
-	  val = v->val ;
-	  pnb = v->v ;
-	  vnum = v->vnum ;
-	  for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++)
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag || v->marked == 0)
+				continue ;
+			val = v->val ;
+			pnb = v->v ;
+			vnum = v->vnum ;
+			for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++)
 	    {
 	      vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
 	      if (vn->ripflag || vn->marked == 0)
-		continue ;
+					continue ;
 	      num++ ;
 	      val += vn->val ;
 	    }
-	  num++ ;  /*  account for central vertex */
-	  v->tdx = val / num ;
+			num++ ;  /*  account for central vertex */
+			v->tdx = val / num ;
+		}
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag || v->marked == 0)
+				continue ;
+			v->val = v->tdx ;
+		}
 	}
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-	{
-	  v = &mris->vertices[vno] ;
-	  if (v->ripflag || v->marked == 0)
-	    continue ;
-	  v->val = v->tdx ;
-	}
-    }
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -17520,34 +17520,34 @@ MRISaverageVals(MRI_SURFACE *mris, int navgs)
   VERTEX *v, *vn ;
 
   for (i = 0 ; i < navgs ; i++)
-    {
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
-	  v = &mris->vertices[vno] ;
-	  if (v->ripflag)
-	    continue ;
-	  val = v->val ;
-	  pnb = v->v ;
-	  vnum = v->vnum ;
-	  for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++)
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag)
+				continue ;
+			val = v->val ;
+			pnb = v->v ;
+			vnum = v->vnum ;
+			for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++)
 	    {
 	      vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
 	      if (vn->ripflag)
-		continue ;
+					continue ;
 	      num++ ;
 	      val += vn->val ;
 	    }
-	  num++ ;  /*  account for central vertex */
-	  v->tdx = val / num ;
+			num++ ;  /*  account for central vertex */
+			v->tdx = val / num ;
+		}
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag)
+				continue ;
+			v->val = v->tdx ;
+		}
 	}
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-	{
-	  v = &mris->vertices[vno] ;
-	  if (v->ripflag)
-	    continue ;
-	  v->val = v->tdx ;
-	}
-    }
   return(NO_ERROR) ;
 }
 static int
@@ -47394,7 +47394,7 @@ MRISwriteFrameToValues(MRI_SURFACE *mris, MRI *mri, int frame)
 								 mri->width, mris->nvertices)) ;
 	for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
-		v = &mris->vertices[Gdiag_no] ;
+		v = &mris->vertices[vno] ;
 		if (vno == Gdiag_no)
 			DiagBreak() ;
 		v->val = MRIgetVoxVal(mri, vno, 0, 0, frame) ;
@@ -47415,7 +47415,7 @@ MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame)
 								 mri->width, mris->nvertices)) ;
 	for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
-		v = &mris->vertices[Gdiag_no] ;
+		v = &mris->vertices[vno] ;
 		if (vno == Gdiag_no)
 			DiagBreak() ;
 		MRIsetVoxVal(mri, vno, 0, 0, frame, v->val) ;
