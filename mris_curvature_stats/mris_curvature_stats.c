@@ -37,7 +37,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.8 2005/09/21 22:53:13 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.9 2005/09/22 18:42:33 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -81,7 +81,7 @@ int		MRISminMaxVertIndices(
 			float			af_min,
 			float			af_max
 		);
-int		MRICvertexCurvature_set(
+int		MRISvertexCurvature_set(
 			MRI_SURFACE*		apmris,
 			int			aindex,
 			float			af_val
@@ -176,12 +176,12 @@ main(int argc, char *argv[])
   MRI_SURFACE  	*mris ;
 
   char		pch_text[65536];
-  int		vmin				= 0;
-  int		vmax				= 0;
+  int		vmin				= -1;
+  int		vmax				= -1;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.8 2005/09/21 22:53:13 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.9 2005/09/22 18:42:33 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -261,6 +261,9 @@ main(int argc, char *argv[])
 	MRISnormalizeCurvature(mris);
 	if(Gpch_normCurv) MRISwriteCurvature(mris, Gpch_normCurv);
     }
+
+    if(Gb_zeroVertex)
+	MRISvertexCurvature_set(mris, G_zeroVertex, 0);
 
     MRISaverageCurvatures(mris, navgs) ;
     Gf_mean = MRIScomputeAverageCurvature(mris, &Gf_sigma) ;
@@ -351,26 +354,25 @@ void secondOrderParams_print(
     char	pch_text[65536];
     float	f_max			= 0.;
     float	f_min			= 0.;
-    int		vmax			= 0;
-    int		vmin			= 0;
-
+    int		vmax			= -1;
+    int		vmin			= -1;
 
     if(Gb_zeroVertex)
-	MRICvertexCurvature_set(apmris, G_zeroVertex, 0);
+	MRISvertexCurvature_set(apmris, G_zeroVertex, 0);
     switch(aesot) {
 	case e_Gaussian:
     	    MRISuseGaussianCurvature(apmris);
 	    sprintf(pch_out, "Gaussian");
 	    f_min	= apmris->Kmin;
 	    f_max	= apmris->Kmax;
-    	    MRISminMaxVertIndices(apmris, &vmax, &vmin, f_min, f_max);
+    	    MRISminMaxVertIndices(apmris, &vmin, &vmax, f_min, f_max);
 	break;
 	case e_Mean:
 	    MRISuseMeanCurvature(apmris);
 	    sprintf(pch_out, "Mean");
 	    f_min	= apmris->Hmin;
 	    f_max	= apmris->Hmax;
-	    MRISminMaxVertIndices(apmris, &vmax, &vmin, f_min, f_max);
+	    MRISminMaxVertIndices(apmris, &vmin, &vmax, f_min, f_max);
 	break;
 	case e_Raw:
 	case e_Normal:
@@ -379,7 +381,6 @@ void secondOrderParams_print(
 	break;
     }
     
-    printf("%f\n", apmris->vertices[G_zeroVertex].curv); 
     Gf_mean = MRIScomputeAverageCurvature(apmris, &Gf_sigma);
     sprintf(pch_text, "%s Curvature (using '%s.%s'):", 
 			pch_out, hemi, surf_name);
@@ -406,7 +407,7 @@ void secondOrderParams_print(
 }
 
 int
-MRICvertexCurvature_set(
+MRISvertexCurvature_set(
 	MRI_SURFACE*		apmris,
 	int			aindex,
 	float			af_val
@@ -414,12 +415,22 @@ MRICvertexCurvature_set(
     //
     // PRECONDITIONS
     //  o <af_val> is typically zero.
+    //  o MRIScomputeSecondFundamentalForm() should have been called
+    //	  if mean/gaussian values are important.
     //
     // POSTCONDITIONS
     //  o The curvature of the vertex at aindex is
     //    set to <af_val>. The Gaussian and Mean are also set
     //    to <af_val>.
+    // 	o apmris max_curv and min_curv values are recomputed across
+    //	  the "raw", gaussian, and mean curvatures.
     // 
+
+    VERTEX*	pvertex;
+    int		vno;
+    float	f_maxCurv,  f_minCurv;
+    float 	f_maxCurvK, f_minCurvK;
+    float 	f_maxCurvH, f_minCurvH;
 
     if(aindex > apmris->nvertices)
 	ErrorExit(ERROR_SIZE, "%s: target vertex is out of range.", Progname);
@@ -427,6 +438,28 @@ MRICvertexCurvature_set(
     apmris->vertices[aindex].curv	= af_val;
     apmris->vertices[aindex].K		= af_val;
     apmris->vertices[aindex].H		= af_val;
+
+    f_maxCurv  = f_minCurv  = apmris->vertices[0].curv;
+    f_maxCurvK = f_minCurvK = apmris->vertices[0].K;
+    f_maxCurvH = f_maxCurvH = apmris->vertices[0].H;
+    for (vno = 0 ; vno < apmris->nvertices ; vno++) {
+	pvertex = &apmris->vertices[vno] ;
+      	if (pvertex->ripflag)
+            continue;
+      	if(pvertex->curv > f_maxCurv)  f_maxCurv  = pvertex->curv;
+	if(pvertex->curv < f_minCurv)  f_minCurv  = pvertex->curv;
+      	if(pvertex->K    > f_maxCurvK) f_maxCurvK = pvertex->K;
+	if(pvertex->K    < f_minCurvK) f_minCurvK = pvertex->K;
+      	if(pvertex->H    > f_maxCurvH) f_maxCurvH = pvertex->H;
+	if(pvertex->H    < f_minCurvH) f_minCurvH = pvertex->H;
+    }
+    apmris->max_curv	= f_maxCurv;
+    apmris->min_curv	= f_minCurv;
+    apmris->Kmax	= f_maxCurvK;
+    apmris->Kmin	= f_minCurvK;
+    apmris->Hmax	= f_maxCurvH;
+    apmris->Hmin	= f_minCurvH;
+    
     return(NO_ERROR);
 }
 
@@ -713,6 +746,8 @@ histogram_create(
 	apf_histogram[i]	= count;
 	if(Gb_histogramPercent)
 	    apf_histogram[i] /= nvertices;
+	if(totalCount == nvertices)
+	    break;
     }
     fprintf(stdout, "%*s = %d\n", 
 		G_leftCols, "sorted vertices", totalCount);
@@ -1161,6 +1196,15 @@ OPTIONS									\n\
 									\n\
 	Print out version number.					\n\
 									\n\
+    [-z <vertexIndex>]							\n\
+									\n\
+	Sets the curvature values at that index to zero. The 		\n\
+	'raw' curvature, as well as the Gaussian and Mean curvatures	\n\
+	are set to zero, and min/max values are recomputed.		\n\
+									\n\
+	This is useful in cases when outliers in the data (particularly \n\
+	evident in Gaussian calcuations) skew mean and sigma values.	\n\
+									\n\
 NOTES									\n\
 									\n\
 	It is important to note that some combinations of the command	\n\
@@ -1213,7 +1257,7 @@ EXAMPLES								\n\
 	Gaussian and Mean curvatures as well.				\n\
 									\n\
     mris_curvature_stats -h 10 -G -F smoothwm -m -o foo \\ 		\n\
-	801_recon rh curv 						\n\
+	801_recon rh curv sulc						\n\
 									\n\
 	Generate several output text files that capture the min/max	\n\
 	and histograms for each curvature processed. Also create	\n\
@@ -1221,14 +1265,71 @@ EXAMPLES								\n\
 									\n\
 	In this case, the curvature files created are called:		\n\
 									\n\
-		rh.smoothwm.K.curv					\n\
-		rh.smoothwm.H.curv					\n\
+		rh.smoothwm.curv.K.crv					\n\
+		rh.smoothwm.curv.H.crv					\n\
+		rh.smoothwm.sulc.K.crv					\n\
+		rh.smoothwm.sulc.H.crv					\n\
 									\n\
 	and are saved to the $SUBJECTS_DIR/<subjid>/surf directory.	\n\
-	These can be re-read by 'mris_curvature_stats' using		\n\
+	These can be re-read by 'mris_curvature_stats' using 		\n\
 									\n\
-		mris_curvature_stats -m 801_recon rh smoothwm.K.curv \\	\n\
-						     smoothwm.H.curv	\n\
+		mris_curvature_stats -m 801_recon rh \\			\n\
+			smoothwm.curv.K.crv smoothwm.sulc.K.crv		\n\
+									\n\
+ADVANCED EXAMPLES							\n\
+									\n\
+	'mris_curvature_stats' can also provide some useful side 	\n\
+	effects. Reading in a curvature, and applying any calculation	\n\
+	to it (scaling, gaussian, etc.) can result in data that		\n\
+	can be visualised quite well in a tool such as 'tksurfer'.	\n\
+									\n\
+	Consider the normal curvature display in 'tksurfer', which	\n\
+	is usually quite dark due to the dynamic range of the display.	\n\
+	We can considerably improve the brightness by scaling a 	\n\
+	curvature file and rendering the resultant in 'tksurfer'.	\n\
+									\n\
+	First, take an arbitrary curvature, apply a scale factor,	\n\
+	and an output filestem:						\n\
+									\n\
+    mris_curvature_stats -o foo -c 10 801_recon rh curv			\n\
+									\n\
+	This scales each curvature value by 10. A new curvature file	\n\
+	is saved in							\n\
+									\n\
+		$SUBJECTS_DIR/801_recon/surf/rh.orig.curv.scaled.crv	\n\
+									\n\
+	Comparing the two curvatures in 'tksurfer' will clearly show	\n\
+	the scaled file as much brighter.				\n\
+									\n\
+	Similarly, the Gaussian curvature can be processed, scaled, and	\n\
+	displayed, yielding very useful visual information. First 	\n\
+	create and save a Gaussian curvature file (remember that the	\n\
+	smoothwm surface is a better choice than the default orig	\n\
+	surface):							\n\
+									\n\
+    mris_curvature_stats -o foo -G -F smoothwm 801_recon rh curv	\n\
+									\n\
+	The 'foo' filestem is ignored when saving curvature files, but	\n\
+	needs to be specified in order to trigger output saving. This	\n\
+	command will create Gaussian and Mean curvature files in the	\n\
+	$SUBJECTS_DIR/surf directory:					\n\
+									\n\
+		rh.smoothwm.curv.K.crv					\n\
+		rh.smoothwm.curv.H.crv					\n\
+									\n\
+	Now, process the created Gaussian with the scaled curvature:	\n\
+									\n\
+    mris_curvature_stats -o foo -c 10 801_recon rh smoothwm.curv.K.crv	\n\
+									\n\
+	Again, the 'foo' filestem is ignored, but needs to be specified	\n\
+	to trigger the save. The final scaled Gaussian curvature is 	\n\
+	saved to (again in the $SUBJECTS_DIR/801_recon/surf directory):	\n\
+									\n\
+		rh.orig.smoothwm.curv.K.crv.scaled.crv			\n\
+									\n\
+	which is a much better candidate to view in 'tksurfer' than	\n\
+	the original Gaussian curvature file.				\n\
+									\n\
 									\n\
 									\n\
 ");
