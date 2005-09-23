@@ -43,7 +43,7 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segstats.c,v 1.7 2005/09/22 21:48:17 greve Exp $";
+static char vcid[] = "$Id: mri_segstats.c,v 1.8 2005/09/23 17:52:27 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -404,6 +404,7 @@ int main(int argc, char **argv)
     fprintf(fp,"# hostname %s\n",uts.nodename);
     fprintf(fp,"# machine  %s\n",uts.machine);
     fprintf(fp,"# user     %s\n",VERuser());
+    fprintf(fp,"# anatomy_type volume\n");
     fprintf(fp,"# \n");
     if(subject != NULL){
       fprintf(fp,"# SUBJECTS_DIR %s\n",SUBJECTS_DIR);
@@ -505,7 +506,9 @@ int main(int argc, char **argv)
 
     fprintf(fp,"# ColHeaders  Index SegId NVoxels Volume_mm3 "); 
     if(ctabfile) fprintf(fp,"StructName ");
-    if(InVolFile) fprintf(fp,"Mean StdDev Min Max Range  ");
+    if(InVolFile) fprintf(fp,"%sMean %sStdDev %sMin %sMax %sRange  ",
+			  InIntensityName,InIntensityName,InIntensityName,InIntensityName,
+			  InIntensityName);
     fprintf(fp,"\n");
 
     for(n=0; n < nsegid; n++){
