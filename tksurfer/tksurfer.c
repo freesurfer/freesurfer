@@ -18515,7 +18515,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.140 2005/09/22 20:39:15 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.141 2005/09/23 01:19:35 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25437,7 +25437,7 @@ void send_tcl_command (char* cmd)
       else 
 	{
 	  printf ("surfer: Error creating command storage of size %d\n",
-		  strlen(cmd));
+		  (int)strlen(cmd));
 	}
     }
   else
