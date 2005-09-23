@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.13 2005/09/23 03:27:40 greve Exp $
+   $Id: fmriutils.c,v 1.14 2005/09/23 22:58:57 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.13 2005/09/23 03:27:40 greve Exp $");
+  return("$Id: fmriutils.c,v 1.14 2005/09/23 22:58:57 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -716,21 +716,35 @@ MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn)
 /*---------------------------------------------------------------*/
 int MRIglmFit(MRIGLM *mriglm)
 {
-  int c,r,s,n,nc,nr,ns,pctdone;
+  int c,r,s,n,nc,nr,ns,nf,pctdone;
   float m,Xcond;
   long nvoxtot, nthvox;
-
-  MRIglmAllocMatrices(mriglm);
 
   nc = mriglm->y->width;
   nr = mriglm->y->height;
   ns = mriglm->y->depth;
+  nf = mriglm->y->nframes;
+
+  mriglm->nregtot = MRIglmNRegTot(mriglm);
+  GLMallocX(mriglm->glm, nf, mriglm->nregtot);
+  GLMallocY(mriglm->glm);
+
+  if(mriglm->w != NULL || mriglm->npvr != 0) mriglm->pervoxflag = 1;
+  else                                       mriglm->pervoxflag = 0;
+
+  GLMcMatrices(mriglm->glm);
+  if(! mriglm->pervoxflag) {
+    MatrixCopy(mriglm->Xg,mriglm->glm->X);
+    mriglm->XgLoaded = 1;
+    GLMxMatrices(mriglm->glm);
+  }
+
   mriglm->beta = MRIallocSequence(nc, nr, ns, MRI_FLOAT, mriglm->nregtot) ;
-  mriglm->eres = MRIallocSequence(nc, nr, ns, MRI_FLOAT, mriglm->y->nframes);
+  mriglm->eres = MRIallocSequence(nc, nr, ns, MRI_FLOAT, nf);
   mriglm->rvar = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
 
   if(mriglm->yhatsave)
-    mriglm->yhat = MRIallocSequence(nc,nr,ns,MRI_FLOAT,mriglm->y->nframes);
+    mriglm->yhat = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nf);
   if(mriglm->condsave)
     mriglm->cond = MRIallocSequence(nc,nr,ns,MRI_FLOAT, 1) ;
 
@@ -740,7 +754,7 @@ int MRIglmFit(MRIGLM *mriglm)
     mriglm->F[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
     mriglm->p[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
     if(mriglm->glm->ypmfflag[n])
-      mriglm->ypmf[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT,mriglm->y->nframes);
+      mriglm->ypmf[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nf);
   }
 
   //--------------------------------------------
@@ -768,12 +782,16 @@ int MRIglmFit(MRIGLM *mriglm)
 	// Get data from mri and put in GLM
 	MRIglmLoadVox(mriglm, c, r, s);
 
-	GLMmatrices(mriglm->glm);
+	// Compute intermediate matrices
+	GLMxMatrices(mriglm->glm);
+
+	// Compute condition
 	if(mriglm->condsave){
 	  Xcond = MatrixConditionNumber(mriglm->glm->XtX);
 	  MRIsetVoxVal(mriglm->cond,c,r,s,0,Xcond);
 	}
 
+	// Test condition
 	if(mriglm->glm->ill_cond_flag){
 	  mriglm->n_ill_cond ++;
 	  continue;
@@ -805,24 +823,40 @@ int MRIglmFit(MRIGLM *mriglm)
   return(0);
 }
 
-/* -------------------------------------------------------------------
-   MRIglmLoadVox() - loads the data for the voxel at crs into the GLM
-   matrix struct and applies the weights (if applicable). This still
-   needs to be tested.
-   ------------------------------------------------------------------*/
+/* ----------------------------------------------------------------------------------
+   MRIglmLoadVox() - loads the data (X and y) for the voxel at crs
+   into the GLM matrix struct and applies the weights (if applicable). 
+   X and y are allocated if they are NULL. mriglm->nregtot is also computed
+   here.
+   ----------------------------------------------------------------------------------*/
 int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s)
 {
   int f, n, nthreg;
   double v;
 
-  // Load y and the per-vox reg --------------------------
+  if(mriglm->glm->X == NULL){
+    mriglm->nregtot  = mriglm->Xg->cols + mriglm->npvr;
+    mriglm->glm->X   = MatrixAlloc(mriglm->y->nframes,mriglm->nregtot,MATRIX_REAL);
+  }
+  if(mriglm->glm->y == NULL)
+    mriglm->glm->y = MatrixAlloc(mriglm->y->nframes,1,MATRIX_REAL);
+
+  // Load y, Xg, and the per-vox reg --------------------------
   for(f = 1; f <= mriglm->y->nframes; f++){
     mriglm->glm->y->rptr[f][1] = MRIgetVoxVal(mriglm->y,c,r,s,f-1);
-    nthreg = 1;
-    for(n = 1; n <= mriglm->Xg->cols; n++){
-      mriglm->glm->X->rptr[f][nthreg] = mriglm->Xg->rptr[f][n];
-      nthreg++;
+
+    // Load the global design matrix if needed
+    if(mriglm->w != NULL || !mriglm->XgLoaded){
+      nthreg = 1;
+      for(n = 1; n <= mriglm->Xg->cols; n++){
+	mriglm->glm->X->rptr[f][nthreg] = mriglm->Xg->rptr[f][n];
+	nthreg++;
+      }
+      mriglm->XgLoaded = 1;
     }
+    else nthreg = mriglm->Xg->cols;
+
+    // Load the global per-voxel regressors matrix
     for(n = 1; n <= mriglm->npvr; n++){
       mriglm->glm->X->rptr[f][nthreg] = MRIgetVoxVal(mriglm->pvr[n-1],c,r,s,f-1);
       nthreg++;
@@ -841,16 +875,12 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s)
   
   return(0);
 }
-
 /*----------------------------------------------------------------
-  MRIglmAllocMatrices() - allocates the y and X matrices for the
-  GLMMAT struct of the MRIGLM. Also computes nregtot and dof.
+  MRIglmNRegTot() - computes the total number of regressors based
+  on the number of columns in Xg + number of per-voxel regressors
 ----------------------------------------------------------------*/
-int MRIglmAllocMatrices(MRIGLM *mriglm)
+int MRIglmNRegTot(MRIGLM *mriglm)
 {
   mriglm->nregtot = mriglm->Xg->cols + mriglm->npvr;
-  mriglm->glm->X = MatrixAlloc(mriglm->y->nframes,mriglm->nregtot,MATRIX_REAL);
-  mriglm->glm->y = MatrixAlloc(mriglm->y->nframes,1,MATRIX_REAL);
-  mriglm->glm->dof = mriglm->glm->X->rows - mriglm->glm->X->cols;
-  return(0);
+  return(mriglm->nregtot);
 }

@@ -56,7 +56,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.19 2005/09/23 03:28:17 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.20 2005/09/23 22:59:05 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -187,7 +187,7 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  MRIglmAllocMatrices(mriglm);
+  //MRIglmAllocMatrices(mriglm);
   if(mriglm->glm->dof < 1){
     printf("ERROR: DOF = %g\n",mriglm->glm->dof);
     exit(1);
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
       // Should check to make sure no two are the same
     }
   }
-  GLMtransposeC(mriglm->glm);
+  GLMcMatrices(mriglm->glm);
 
   // Load the mask file ----------------------------------
   if(maskFile != NULL){
@@ -249,7 +249,7 @@ int main(int argc, char **argv)
     printf("Dumping voxel %d %d %d to %s\n",
 	   voxdump[0],voxdump[1],voxdump[2],voxdumpdir);
     MRIglmLoadVox(mriglm,voxdump[0],voxdump[1],voxdump[2]);
-    GLMmatrices(mriglm->glm);
+    GLMxMatrices(mriglm->glm);
     GLMfit(mriglm->glm);
     GLMtest(mriglm->glm);
     GLMdump(voxdumpdir,mriglm->glm);

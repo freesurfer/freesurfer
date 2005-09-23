@@ -19,6 +19,9 @@ typedef struct{
   MRI *pvr[50];      // Per-voxel regressors (local)
   int nregtot;       // Total number of regressors
 
+  int pervoxflag;    // 1 if X is per-voxel
+  int XgLoaded;      // 1 if Xg has been loaded into glm->X
+
   MRI *w;            // Per-voxel, per-input weight
   int skipweight;    // Don't use weight even if w != NULL
   MRI *mask;         // Only proc within mask
@@ -57,6 +60,6 @@ int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
 MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn);
 int MRIglmFit(MRIGLM *glmmri);
 int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s);
-int MRIglmAllocMatrices(MRIGLM *mriglm);
+int MRIglmNRegTot(MRIGLM *mriglm);
 
 #endif

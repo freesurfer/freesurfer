@@ -1,5 +1,106 @@
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.8 2005/09/23 03:27:40 greve Exp $
+// $Id: fsglm.c,v 1.9 2005/09/23 22:58:57 greve Exp $
+/*
+  y = X*beta + n;                      Forward Model
+  beta = inv(X'*X)*X'*y;               Fit beta
+  dof = Xrows-Xcols                    Degrees of Freedom
+  yhat = X*beta;                       Signal Estimate
+  eres = y - yhat;                     Residual Error
+  rvar = eres'*eres/dof;               Residual Error Variance
+  gamma = C*beta;                      Contrast
+  gammacvm = J*rvar*(C*inv(X'*X)*C');  Covariance Matrix of gamma, J = rows in C
+  F = gamma' * inv(gammacvm) * gamma;  F ratio
+  p = FTest(F,dof1,dof2);              p-value for F-test
+  Mpmf = C'*inv(C*C')*C;               Partial model fit matrix
+  ypmf = X*Mpmf*beta;                  Partial model fit
+
+  While all these operations could be perfomed within one function, they
+  have been separated into several functions based on the assumption
+  that they will be used in certain ways, mainly to perform massive
+  univariate analysis (ie, many different y's). In all cases, we will
+  assume that the contrast matrices will be the same for each y. However,
+  the X may be:
+
+    1. X fixed for all y - in this case, most of the matrices above only need 
+       to be computed once and then applied over and over again. This can
+       save a lot of time, eg, inv(X'*X) only needs to be computed once.
+
+    2. X different for each y - this can happen if each voxel has some 
+       voxel-dependent regressors or if X is fixed, but there is voxel-dependent 
+       weighting (which effectively changes X for each y).
+
+  The software has been written in a way that both these situations
+  can be run efficiently by not making the same calculations many
+  times and by not having to allocate and free matrices many
+  times. 
+
+  Memory management: pointers to all matrices (intermediate and final)
+  are maintained inside the GLMMAT structure.  The caller allocates y,
+  X, and the Cs ONCE. The functions will allocate the rest of the
+  matrices ONCE on the first pass through. Subsequent passes do not
+  require re-allocation. As a result, the caller is not allowed to
+  change the sizes of y, X, and the Cs after the first pass. Note:
+  there is a function called GLMalloc(). This only allocates the GLMMAT
+  structure and assures that all MATRIX pointers are NULL. GLMfree()
+  will free all the matrices.
+
+  Workflow 0: Easiest
+   1. Allocate GLMMAT: glm = GLMalloc(); 
+   2. Allocate and fill design matrix (glm->X)
+   3. Allocate and fill input vector (glm->y)
+   4. Set number of contrasts (glm->ncontrasts)
+   5. Allocate and fill each contrast matrix (glm->C[n])
+   6. Run GLManalyze(glm)
+   7. Extract results
+   8. GLMfree(&glm);
+
+
+  Workflow 1: X fixed for all y
+    1. Allocate GLMMAT: glm = GLMalloc(); 
+    2. Allocate and fill contrast matrices: glm->C[n] = YourConMatrix
+    3. GLMcMatrices(glm) - computes the "intermediate" contrast matrices. These are 
+       matrices that are not dependent on y and X (eg, C', C*C', inv(C*C'),
+       C'*inv(C*C'), and Mpmf = C'*inv(C*C')*C.
+    4. Allocate and fill design matrix: glm->X = YourDesignMatrix
+    5. GLMallocY(glm) - Allocates y based on number of rows in X
+    6. GLMxMatrices(glm) - computes "intermediate" matrices dependent upon X and C
+       but independent of y:
+       Eg, X', X'*X, inv(X'*X), C*inv(X'*X), C*inv(X'*X)*C'. 
+    For each voxel:
+       7. Matrix glm->y filled by caller (eg, MRIglmLoadVox())
+       8. GLMfit(glm) - computes results dependent upon X and y (but not C):
+          X'*y, beta, yhat, eres, rvar.
+       9. GLMtest(glm) - computes all results dependent upon X, y, and C:
+          gamma, gammacvm, F, p, ypmf.
+       10. Save your results
+    End voxel loop
+    11. GLMfree(&glm);
+  
+  Workflow 2: different X for each y
+    1. Allocate GLMMAT: glm = GLMalloc(); 
+    2. Allocate and fill contrast matrices: glm->C[n] = YourContrastMatrix
+    3. GLMcMatrices(glm) - computes the "intermediate" contrast matrices. These are 
+       matrices that are not dependent on y and X (eg, C', C*C', inv(C*C'),
+       C'*inv(C*C'), and Mpmf = C'*inv(C*C')*C.
+    4. GLMallocX(glm,nrows,ncols) - Allocates design matrix 
+    5. GLMallocY(glm) - Allocates y based on number of rows in X
+    For each voxel:
+       6. Fill design matrix: MatrixCopy(YourVoxelDesignMatrix,glm->X)
+       7. GLMxMatrices(glm) - computes "intermediate" matrices dependent upon X and C:
+          Eg, X', X'*X, inv(X'*X), C*inv(X'*X), C*inv(X'*X)*C'. 
+       8. Matrix glm->y filled by caller (eg, MRIglmLoadVox())
+       9. GLMfit(glm) - computes results dependent upon X and y (but not C):
+          X'*y, beta, yhat, eres, rvar.
+       10. GLMtest(glm) - computes all results dependent upon X, y, and C:
+          gamma, gammacvm, F, p, ypmf.
+       11. Save your results
+    End voxel loop
+    12. GLMfree(&glm);
+  
+  Notes:
+  1. Any weighting of y and X must be done prior to GLMfit().
+
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,14 +117,28 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.8 2005/09/23 03:27:40 greve Exp $"); 
+  return("$Id: fsglm.c,v 1.9 2005/09/23 22:58:57 greve Exp $"); 
 }
+
+/*------------------------------------------------------------
+  GLManalyze() - fill y, X, ncontrasts, and C in the glm
+  and run this to fit and test.
+  -----------------------------------------------------------*/
+int GLManalyze(GLMMAT *glm)
+{
+  GLMcMatrices(glm);
+  GLMxMatrices(glm);
+  GLMfit(glm);
+  GLMtest(glm);
+  return(0);
+}
+
 
 /*-------------------------------------------------------
   GLMalloc - allocs a GLMMAT struct and makes sure
   that everything is either NULL or 0. Does not alloc any
   of the matrices (that's done by GLMfit(), GLMtest(), and
-  GLMtransposeC(), and GLMmatrices.
+  GLMcMatrices(), and GLMxMatrices.
   -------------------------------------------------------*/
 GLMMAT *GLMalloc(void)
 {
@@ -73,7 +188,34 @@ GLMMAT *GLMalloc(void)
   }
   return(glm);
 }
-
+/*---------------------------------------------------------------------
+  GLMallocX() - allocate the X matrix. If it has already been alloced
+  and the dims are correct, then just returns. If dims are not correct,
+  frees and then allocs.
+  ------------------------------------------------------------------*/
+int GLMallocX(GLMMAT *glm, int nrows, int ncols)
+{
+  if(glm->X != NULL){
+    if(glm->X->rows == nrows && glm->X->cols == ncols) return(0);
+    else MatrixFree(&glm->X);
+  }
+  glm->X = MatrixAlloc(nrows,ncols,MATRIX_REAL);
+  return(0);
+}
+/*---------------------------------------------------------------------
+  GLMallocY() - allocate the y matrix. If it has already been alloced
+  and the dims are correct, then just returns. If dims are not correct,
+  frees and then allocs.
+  ------------------------------------------------------------------*/
+int GLMallocY(GLMMAT *glm)
+{
+  if(glm->y != NULL){
+    if(glm->y->rows == glm->X->rows && glm->y->cols == 1) return(0);
+    else MatrixFree(&glm->y);
+  }
+  glm->y = MatrixAlloc(glm->X->rows,1,MATRIX_REAL);
+  return(0);
+}
 /*---------------------------------------------------------------------
   GLMfree() - frees all the matrices associcated with the GLM struct,
   and the GLM struct itself.
@@ -115,13 +257,13 @@ int GLMfree(GLMMAT **pglm)
 }
 
 /*-----------------------------------------------------------------
-  GLMtransposeC() - given all the C's computes all the Ct's.  Also
+  GLMcMatrices() - given all the C's computes all the Ct's.  Also
   computes condition number of each C as well as it's PMF.  This
   includes the allocation of Ct[n] and PMF. It would be possible to do
   this within GLMtest(), but GLMtest() may be run many times whereas
   Ct only needs to be computed once. 
   ----------------------------------------------------------------*/
-int GLMtransposeC(GLMMAT *glm)
+int GLMcMatrices(GLMMAT *glm)
 {
   int n;
   for(n=0; n < glm->ncontrasts; n++){
@@ -132,14 +274,14 @@ int GLMtransposeC(GLMMAT *glm)
 }
 
 /*---------------------------------------------------------------
-  GLMmatrices() - compute all the matrices needed to do the
+  GLMxMatrices() - compute all the matrices needed to do the
   estimation and testing, but does not do estimation or testing.
   This could be done inside of GLMfit() and/or GLMtest(). However,
   it may or may not be necessary to compute these matrices more
   than once. Eg, when doing an analysis where the desgin matrix
   is the same at all voxels, then it is not necessary.
   ---------------------------------------------------------------*/
-int GLMmatrices(GLMMAT *glm)
+int GLMxMatrices(GLMMAT *glm)
 {
   int n;
   MATRIX *Mtmp;
@@ -172,7 +314,7 @@ int GLMmatrices(GLMMAT *glm)
   GLMfit() - fit linear parameters (betas). Also computes yhat,
   eres, and rvar. May want to defer rvar at some point (eg, to
   do spatial filtering on the eres). XtX and iXtX must have been
-  computed by GLMmatrices() first.
+  computed by GLMxMatrices() first.
   ---------------------------------------------------------------*/
 int GLMfit(GLMMAT *glm)
 {
@@ -200,7 +342,7 @@ int GLMfit(GLMMAT *glm)
 }
 /*------------------------------------------------------------------------
   GLMtest() - tests all the contrasts for the given GLM. Must have already
-  run GLMtransposeC(), GLMmatrices(), and GLMfit().
+  run GLMcMatrices(), GLMxMatrices(), and GLMfit().
   ------------------------------------------------------------------------*/
 int GLMtest(GLMMAT *glm)
 {
@@ -221,7 +363,7 @@ int GLMtest(GLMMAT *glm)
     // gamma = C*beta
     // gCVM  = rvar*J*C*inv(X'*X)*C'
     // F     = gamma' * inv(gCVM) * gamma;
-    // CiXtX and CiXtXCt are now computed by GLMmatrices().
+    // CiXtX and CiXtXCt are now computed by GLMxMatrices().
     //glm->CiXtX[n]    = MatrixMultiply(glm->C[n],glm->iXtX,glm->CiXtX[n]);
     //glm->CiXtXCt[n]  = MatrixMultiply(glm->CiXtX[n],glm->Ct[n],glm->CiXtXCt[n]);
     dtmp = glm->rvar*glm->C[n]->rows;
@@ -262,8 +404,8 @@ int GLMprofile(int nrows, int ncols, int ncon, int niters)
       glm->C[c] = MatrixDRand48(2, ncols, NULL );
       glm->ypmfflag[c] = 1;
     }
-    GLMtransposeC(glm);
-    GLMmatrices(glm);
+    GLMcMatrices(glm);
+    GLMxMatrices(glm);
     GLMfit(glm);
     GLMtest(glm);
     GLMfree(&glm);
@@ -298,8 +440,8 @@ GLMMAT *GLMsynth(void)
     sprintf(tmpstr,"contrast%02d",c);
     glm->Cname[c] = strcpyalloc(tmpstr);
   }
-  GLMtransposeC(glm);
-  GLMmatrices(glm);
+  GLMcMatrices(glm);
+  GLMxMatrices(glm);
   GLMfit(glm);
   GLMtest(glm);
 
@@ -330,7 +472,7 @@ int GLMresynthTest(int niters, double *prvar)
     glm->y = MatrixDRand48(nrows, 1, glm->y);
     glm->X = MatrixDRand48(nrows, ncols, glm->X);
     // Fit
-    GLMmatrices(glm);
+    GLMxMatrices(glm);
     GLMfit(glm);
     // Copy yhat into y
     glm->y = MatrixCopy(glm->yhat,glm->y);

@@ -1,5 +1,5 @@
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.6 2005/09/23 03:27:40 greve Exp $
+// $Id: fsglm.h,v 1.7 2005/09/23 22:58:57 greve Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
@@ -51,16 +51,21 @@ typedef struct{
 
 GLMMAT *GLMalloc(void);
 int GLMfree(GLMMAT **pgm);
-int GLMtransposeC(GLMMAT *gm);
-int GLMmatrices(GLMMAT *glm);
+int GLMallocX(GLMMAT *glm, int nrows, int ncols);
+int GLMallocY(GLMMAT *glm);
+int GLMcMatrices(GLMMAT *glm);
+int GLMxMatrices(GLMMAT *glm);
 int GLMfit(GLMMAT *glm);
 int GLMtest(GLMMAT *glm);
+int GLManalyze(GLMMAT *glm);
+
 int GLMprofile(int nrows, int ncols, int ncon, int niters);
 
 GLMMAT *GLMsynth(void);
 int GLMdump(char *dumpdir, GLMMAT *glm);
 int GLMresynthTest(int niters, double *prvar);
 MATRIX *GLMpmfMatrix(MATRIX *C, double *cond, MATRIX *P);
+
 
 
 #endif
