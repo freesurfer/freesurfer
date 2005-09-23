@@ -37,7 +37,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.9 2005/09/22 18:42:33 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.10 2005/09/23 17:09:51 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -181,7 +181,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.9 2005/09/22 18:42:33 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.10 2005/09/23 17:09:51 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -622,7 +622,7 @@ histogram_wrapper(
     if(f_maxCurv <= f_minCurv)
 	ErrorExit(ERROR_SIZE, "%s: f_maxCurv < af_minCurv.",
 			Progname);
-    if((f_minCurv+G_bins*f_binSize) > f_maxCurv)
+    if(((double)f_minCurv+G_bins*(double)f_binSize) > (double)f_maxCurv)
 	ErrorExit(ERROR_SIZE, "%s: Invalid <binSize> and <bins> combination",
 			Progname);
 
