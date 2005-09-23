@@ -56,7 +56,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.18 2005/09/22 23:17:32 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.19 2005/09/23 03:28:17 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -106,6 +106,7 @@ int main(int argc, char **argv)
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
   mriglm = (MRIGLM *) calloc(sizeof(MRIGLM),1);
+  mriglm->glm = GLMalloc();
 
   if(argc == 0) usage_exit();
 
@@ -137,7 +138,7 @@ int main(int argc, char **argv)
   }
 
   mriglm->npvr = npvr;
-  mriglm->ncontrasts = nContrasts;
+  mriglm->glm->ncontrasts = nContrasts;
   mriglm->yhatsave = yhatSave;
   mriglm->condsave = condSave;
 
@@ -148,42 +149,13 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  // Total number of columns in X, including PVRs
-  mriglm->Xcols = mriglm->Xg->cols + npvr;
-
-  // Compute and check DOF -------------------------------------
-  mriglm->DOF = mriglm->Xg->rows - mriglm->Xcols;
-  if(mriglm->DOF < 1){
-    printf("ERROR: DOF = %g\n",mriglm->DOF);
-    exit(1);
-  }
-
   // Check the condition of the global matrix -----------------
   Xcond = MatrixNSConditionNumber(mriglm->Xg);
   printf("Matrix condition is %g\n",Xcond);
   if(Xcond > 10000){
-    printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",Xcond);
+    printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",
+	   Xcond);
     exit(1);
-  }
-
-  // Load the contrast matrices ---------------------------------
-  if(nContrasts > 0){
-    for(n=0; n < nContrasts; n++){
-      mriglm->C[n] = MatrixReadTxt(CFile[n], NULL);
-      if(mriglm->C[n] == NULL){
-	printf("ERROR: loading C %s\n",CFile[n]);
-	exit(1);
-      }
-      if(mriglm->C[n]->cols != mriglm->Xcols){
-	printf("ERROR: dimension mismatch between X and contrast %s",CFile[n]);
-	printf("       X has %d cols, C has %d cols\n",
-	       mriglm->Xcols,mriglm->C[n]->cols);
-	exit(1);
-      }
-      // Get its name
-      mriglm->cname[n] = fio_basename(CFile[n],".mat");
-      // Should check to make sure no two are the same
-    }
   }
 
   // Load or synthesize input  -----------------------------------------------
@@ -215,6 +187,33 @@ int main(int argc, char **argv)
     exit(1);
   }
 
+  MRIglmAllocMatrices(mriglm);
+  if(mriglm->glm->dof < 1){
+    printf("ERROR: DOF = %g\n",mriglm->glm->dof);
+    exit(1);
+  }
+
+  // Load the contrast matrices ---------------------------------
+  if(nContrasts > 0){
+    for(n=0; n < nContrasts; n++){
+      mriglm->glm->C[n] = MatrixReadTxt(CFile[n], NULL);
+      if(mriglm->glm->C[n] == NULL){
+	printf("ERROR: loading C %s\n",CFile[n]);
+	exit(1);
+      }
+      if(mriglm->glm->C[n]->cols != mriglm->nregtot){
+	printf("ERROR: dimension mismatch between X and contrast %s",CFile[n]);
+	printf("       X has %d cols, C has %d cols\n",
+	       mriglm->nregtot,mriglm->glm->C[n]->cols);
+	exit(1);
+      }
+      // Get its name
+      mriglm->glm->Cname[n] = fio_basename(CFile[n],".mat");
+      // Should check to make sure no two are the same
+    }
+  }
+  GLMtransposeC(mriglm->glm);
+
   // Load the mask file ----------------------------------
   if(maskFile != NULL){
     mriglm->mask = MRIread(maskFile);
@@ -245,10 +244,16 @@ int main(int argc, char **argv)
     }
   }
 
+  // Dump a voxel
   if(voxdumpdir != NULL){
     printf("Dumping voxel %d %d %d to %s\n",
 	   voxdump[0],voxdump[1],voxdump[2],voxdumpdir);
-    printf("But not really\n");
+    MRIglmLoadVox(mriglm,voxdump[0],voxdump[1],voxdump[2]);
+    GLMmatrices(mriglm->glm);
+    GLMfit(mriglm->glm);
+    GLMtest(mriglm->glm);
+    GLMdump(voxdumpdir,mriglm->glm);
+    exit(0);
   }
 
   printf("Starting fit\n");
@@ -261,27 +266,22 @@ int main(int argc, char **argv)
   if(mriglm->condsave) MRIwrite(mriglm->cond,condFile);
   if(eresFile) MRIwrite(mriglm->eres,eresFile);    
   
-  for(n=0; n < mriglm->ncontrasts; n++){
-    printf("  %s\n",mriglm->cname[n]);
+  for(n=0; n < mriglm->glm->ncontrasts; n++){
+    printf("  %s\n",mriglm->glm->Cname[n]);
     
     // Create output directory for contrast
-    sprintf(tmpstr,"%s/%s",GLMDir,mriglm->cname[n]);
+    sprintf(tmpstr,"%s/%s",GLMDir,mriglm->glm->Cname[n]);
     mkdir(tmpstr,(mode_t)-1);
     
     // Save gamma and F
-    sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,mriglm->cname[n]);
+    sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,mriglm->glm->Cname[n]);
     MRIwrite(mriglm->gamma[n],tmpstr);
-    sprintf(tmpstr,"%s/%s/F.mgh",GLMDir,mriglm->cname[n]);
+    sprintf(tmpstr,"%s/%s/F.mgh",GLMDir,mriglm->glm->Cname[n]);
     MRIwrite(mriglm->F[n],tmpstr);
     
-    // Compute and Save p-values
-    sig = fMRIsigF(mriglm->F[n], mriglm->DOF, mriglm->C[n]->rows, NULL);
-    sprintf(tmpstr,"%s/%s/p.mgh",GLMDir,mriglm->cname[n]);
-    MRIwrite(sig,tmpstr);
-    
     // Compute and Save -log10 p-values
-    MRIlog10(sig,sig,1);
-    sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,mriglm->cname[n]);
+    sig=MRIlog10(mriglm->p[n],sig,1);
+    sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,mriglm->glm->Cname[n]);
     MRIwrite(sig,tmpstr);
     
     MRIfree(&sig);
@@ -337,14 +337,15 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[1],"%d",&voxdump[0]);
       sscanf(pargv[2],"%d",&voxdump[1]);
       sscanf(pargv[3],"%d",&voxdump[2]);
-      nargsused = 1;
+      nargsused = 4;
     }
     else if (!strcasecmp(option, "--profile")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&niters);
       if(SynthSeed < 0) SynthSeed = PDFtodSeed();
       srand48(SynthSeed);
-      printf("Starting GLM profile over %d iterations. Seed=%d\n",niters,SynthSeed);
+      printf("Starting GLM profile over %d iterations. Seed=%d\n",
+	     niters,SynthSeed);
       msec = GLMprofile(200, 20, 5, niters);
       nargsused = 1;
       exit(0);
@@ -354,7 +355,8 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%d",&niters);
       if(SynthSeed < 0) SynthSeed = PDFtodSeed();
       srand48(SynthSeed);
-      printf("Starting GLM resynth test over %d iterations. Seed=%d\n",niters,SynthSeed);
+      printf("Starting GLM resynth test over %d iterations. Seed=%d\n",
+	     niters,SynthSeed);
       err = GLMresynthTest(niters, &rvartmp);
       if(err){
 	printf("Failed. rvar = %g\n",rvartmp);

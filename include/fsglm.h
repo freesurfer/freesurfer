@@ -1,5 +1,5 @@
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.5 2005/09/22 23:12:09 greve Exp $
+// $Id: fsglm.h,v 1.6 2005/09/23 03:27:40 greve Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
@@ -15,7 +15,7 @@ typedef struct{
   MATRIX *X;   // Design matrix: nframes-by-ncols
   // Note: weighted GLM not included here. To do weighted,
   // weight y and X prior to analysis.
-  double DOF;  // nrows of X - ncols
+  double dof;  // nrows of X - ncols
   int ill_cond_flag;
 
   MATRIX *beta;
@@ -28,8 +28,8 @@ typedef struct{
   char *Cname[GLMMAT_NCONTRASTS_MAX];    // Contrast names
   double Ccond[GLMMAT_NCONTRASTS_MAX];    // C condition number
 
-  int CPMFflag[GLMMAT_NCONTRASTS_MAX];    // flag to compute PMF
-  MATRIX *CPMF[GLMMAT_NCONTRASTS_MAX];    // Contrast PMF matrices
+  int ypmfflag[GLMMAT_NCONTRASTS_MAX];    // flag to compute PMF
+  MATRIX *Mpmf[GLMMAT_NCONTRASTS_MAX];    // Contrast PMF matrices
   MATRIX *ypmf[GLMMAT_NCONTRASTS_MAX];
 
   MATRIX *gamma[GLMMAT_NCONTRASTS_MAX];

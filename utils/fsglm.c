@@ -1,5 +1,5 @@
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.7 2005/09/22 23:12:09 greve Exp $
+// $Id: fsglm.c,v 1.8 2005/09/23 03:27:40 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +16,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.7 2005/09/22 23:12:09 greve Exp $"); 
+  return("$Id: fsglm.c,v 1.8 2005/09/23 03:27:40 greve Exp $"); 
 }
 
 /*-------------------------------------------------------
@@ -37,7 +37,7 @@ GLMMAT *GLMalloc(void)
   glm->yhat = NULL;
   glm->eres = NULL;
   glm->rvar = 0;
-  glm->DOF  = 0;
+  glm->dof  = 0;
   glm->ill_cond_flag  = 0;
 
   glm->Xt   = NULL;
@@ -52,8 +52,8 @@ GLMMAT *GLMalloc(void)
     glm->Cname[n] = NULL;
     glm->Ccond[n] = -1;
 
-    glm->CPMF[n] = NULL;
-    glm->CPMFflag[n] = 0;
+    glm->Mpmf[n] = NULL;
+    glm->ypmfflag[n] = 0;
     glm->ypmf[n] = NULL;
 
     glm->gamma[n] = NULL;
@@ -98,7 +98,7 @@ int GLMfree(GLMMAT **pglm)
   for(n=0; n < GLMMAT_NCONTRASTS_MAX; n++){
     if(glm->C[n])           MatrixFree(&glm->C[n]);
     if(glm->Cname[n])       free(&glm->Cname[n]);
-    if(glm->CPMF[n])        MatrixFree(&glm->CPMF[n]);
+    if(glm->Mpmf[n])        MatrixFree(&glm->Mpmf[n]);
     if(glm->ypmf[n])        MatrixFree(&glm->ypmf[n]);
     if(glm->Ct[n])          MatrixFree(&glm->Ct[n]);
     if(glm->CiXtX[n])       MatrixFree(&glm->CiXtX[n]);
@@ -126,7 +126,7 @@ int GLMtransposeC(GLMMAT *glm)
   int n;
   for(n=0; n < glm->ncontrasts; n++){
     glm->Ct[n]   = MatrixTranspose(glm->C[n],NULL);
-    glm->CPMF[n] = GLMpmfMatrix(glm->C[n],&glm->Ccond[n],NULL);
+    glm->Mpmf[n] = GLMpmfMatrix(glm->C[n],&glm->Ccond[n],NULL);
   }
   return(0);
 }
@@ -144,7 +144,7 @@ int GLMmatrices(GLMMAT *glm)
   int n;
   MATRIX *Mtmp;
 
-  glm->DOF = glm->X->rows - glm->X->cols;
+  glm->dof = glm->X->rows - glm->X->cols;
 
   glm->Xt   = MatrixTranspose(glm->X,glm->Xt);
   glm->XtX  = MatrixMultiply(glm->Xt,glm->X,glm->XtX);
@@ -193,7 +193,7 @@ int GLMfit(GLMMAT *glm)
   glm->rvar = 0;
   for(f = 1; f <= glm->eres->rows; f++)
     glm->rvar += (glm->eres->rptr[f][1] * glm->eres->rptr[f][1]);
-  glm->rvar /= glm->DOF;
+  glm->rvar /= glm->dof;
   if(glm->rvar < FLT_MIN) glm->rvar = FLT_MIN; // not quite 0
 
   return(0);
@@ -232,9 +232,9 @@ int GLMtest(GLMMAT *glm)
     glm->gtigCVM[n]  = MatrixMultiply(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
     F                = MatrixMultiply(glm->gtigCVM[n],glm->gamma[n],F);
     glm->F[n]        = F->rptr[1][1];
-    glm->p[n]        = gsl_cdf_fdist_Q(glm->F[n],glm->C[n]->rows,glm->DOF);
-    if(glm->CPMFflag[n])
-      glm->ypmf[n] = MatrixMultiply(glm->CPMF[n],glm->beta,glm->ypmf[n]);
+    glm->p[n]        = gsl_cdf_fdist_Q(glm->F[n],glm->C[n]->rows,glm->dof);
+    if(glm->ypmfflag[n])
+      glm->ypmf[n] = MatrixMultiply(glm->Mpmf[n],glm->beta,glm->ypmf[n]);
   }
   return(0);
 }
@@ -260,7 +260,7 @@ int GLMprofile(int nrows, int ncols, int ncon, int niters)
     glm->ncontrasts = ncon;
     for(c=0; c < glm->ncontrasts; c++) {
       glm->C[c] = MatrixDRand48(2, ncols, NULL );
-      glm->CPMFflag[c] = 1;
+      glm->ypmfflag[c] = 1;
     }
     GLMtransposeC(glm);
     GLMmatrices(glm);
@@ -294,7 +294,7 @@ GLMMAT *GLMsynth(void)
   glm->ncontrasts = ncon;
   for(c=0; c < ncon; c++){
     glm->C[c] = MatrixDRand48(c+1, ncols, NULL );
-    glm->CPMFflag[c] = 1;
+    glm->ypmfflag[c] = 1;
     sprintf(tmpstr,"contrast%02d",c);
     glm->Cname[c] = strcpyalloc(tmpstr);
   }
@@ -371,7 +371,7 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
 
   sprintf(fname,"%s/dof.dat",dumpdir);
   fp = fopen(fname,"w");
-  fprintf(fp,"%lf",glm->DOF);
+  fprintf(fp,"%lf",glm->dof);
   fclose(fp);
 
   sprintf(fname,"%s/ill_cond_flag.dat",dumpdir);
@@ -408,8 +408,8 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
     fprintf(fp,"%f",glm->Ccond[c]);
     fclose(fp);
 
-    sprintf(fname,"%s/CPMF%03d.dat",dumpdir,c+1);
-    MatrixWriteTxt(fname, glm->CPMF[c]);
+    sprintf(fname,"%s/Mpmf%03d.dat",dumpdir,c+1);
+    MatrixWriteTxt(fname, glm->Mpmf[c]);
 
     sprintf(fname,"%s/gamma%03d.dat",dumpdir,c+1);
     MatrixWriteTxt(fname, glm->gamma[c]);
@@ -431,7 +431,7 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
       fclose(fp);
     }
 
-    if(glm->CPMFflag[c]){
+    if(glm->ypmfflag[c]){
       sprintf(fname,"%s/ypmf%03d.dat",dumpdir,c+1);
       MatrixWriteTxt(fname, glm->ypmf[c]);
     }

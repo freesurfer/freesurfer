@@ -17,8 +17,8 @@ typedef struct{
   MATRIX *Xg;        // Global regressor matrix
   int npvr;          // Number of per-voxel regressors
   MRI *pvr[50];      // Per-voxel regressors (local)
-  float DOF;         // DOF
-  int Xcols;         // X->cols + npvr
+  int nregtot;       // Total number of regressors
+
   MRI *w;            // Per-voxel, per-input weight
   int skipweight;    // Don't use weight even if w != NULL
   MRI *mask;         // Only proc within mask
@@ -32,12 +32,10 @@ typedef struct{
   MRI *eres;         // eres = y - yhat
   MRI *rvar;         // rvar = sum(eres.^2)/DOF;
 
-  int ncontrasts;    // Number of contrasts
-  char *cname[100];  // Contrast names
-  MATRIX *C[100];    // Contrast matrices
   MRI *gamma[100];   // gamma = C*beta
-  MRI *F[100];       // F = gamma'*iXtX*gamma/(rvar*J)
-  MRI *sig[100];     // sig = significance of the F
+  MRI *F[100];       // F = gamma'*inv(C*inv(XtX)C')*gamma/(rvar*J)
+  MRI *p[100];       // p = significance of the F
+  MRI *ypmf[100];    // partial model fit for each contrast
 } MRIGLM;
 /*---------------------------------------------------------*/
 
@@ -58,5 +56,7 @@ int MRIfromMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
 int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
 MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn);
 int MRIglmFit(MRIGLM *glmmri);
+int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s);
+int MRIglmAllocMatrices(MRIGLM *mriglm);
 
 #endif
