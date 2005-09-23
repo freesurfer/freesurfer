@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.79 2005/09/21 17:45:17 kteich Exp $
+# $Id: tksurfer.tcl,v 1.80 2005/09/23 15:21:49 kteich Exp $
 
 package require BLT;
 
@@ -931,7 +931,6 @@ proc DoConfigOverlayDisplayDlog {} {
         set cbwInverse       $fwFlags.cbwInverse
         set cbwReverse       $fwFlags.cbwReverse
         set cbwComplex       $fwFlags.cbwComplex
-        set cbwIgnoreZeroes  $fwFlags.cbwIgnoreZeroes
 
         frame $fwFlags -relief ridge -border 2
 
@@ -955,17 +954,12 @@ proc DoConfigOverlayDisplayDlog {} {
 	    -variable gaLinkedVars(complexvalflag) \
 	    -text "Complex" \
 	    -font [tkm_GetNormalFont]
-	checkbutton $cbwIgnoreZeroes \
-	    -variable gaLinkedVars(ignorezeroesinhistogramflag) \
-	    -text "Ignore Zeroes in Histogram" \
-	    -font [tkm_GetNormalFont]
 
 	grid $lwOptions   -column 0 -row 0 -columnspan 4
 	grid $cbwTruncate -column 0 -row 1 -stick w
 	grid $cbwInverse  -column 1 -row 1 -stick w
 	grid $cbwReverse  -column 2 -row 1 -stick w
 	grid $cbwComplex  -column 3 -row 1 -stick w
-	grid $cbwIgnoreZeroes  -column 0 -row 2 -columnspan 4
 
 	# create the histogram frame and subunits
 	frame $fwHisto -relief ridge -border 2
@@ -980,6 +974,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	set fwValueOffset $fwHisto.fwValueOffset
 	set ewValue   $fwValueOffset.ewValue
 	set ewOffset  $fwValueOffset.ewOffset
+        set cbwIgnoreZeroes  $fwHisto.cbwIgnoreZeroes
 	set fwCopy    $fwHisto.fwCopy
 	set bwCopy    $fwCopy.bwCopy
 	set owTarget  $fwCopy.owTarget
@@ -1058,6 +1053,11 @@ proc DoConfigOverlayDisplayDlog {} {
 	pack $ewMin $ewMid $ewMax $ewSlope \
 	    -side left
 
+	checkbutton $cbwIgnoreZeroes \
+	    -variable gaLinkedVars(ignorezeroesinhistogramflag) \
+	    -text "Ignore Zeroes in Histogram" \
+	    -font [tkm_GetNormalFont]
+
 	# make the button and menu that the user can use to copy the
 	# threshold settings to another layer.
 	frame $fwCopy
@@ -1105,6 +1105,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	pack $gbwHisto -fill both -expand yes
 	pack $fwThresh -side top
 	pack $fwValueOffset -side top -expand yes -fill x
+	pack $cbwIgnoreZeroes -side top -expand yes -fill x
 	pack $fwCopy -side top  -expand yes -fill x
 	pack $fwFDR  -side top  -expand yes -fill x
 
