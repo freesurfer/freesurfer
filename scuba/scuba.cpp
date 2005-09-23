@@ -49,6 +49,7 @@ int Scuba_Init ( Tcl_Interp* iInterp ) {
       ScubaGlobalPreferences::GetPreferences();
 
     TclScubaKeyComboStaticTclListener::GetListener();
+    ScubaKeyCombo::SetFactory( new TclScubaKeyComboFactory() );
   }
   catch( ... ) {
     return TCL_ERROR;

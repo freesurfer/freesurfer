@@ -63,13 +63,13 @@ GUI_SRCS= \
 	ScubaToolState.cpp \
 	ScubaGlobalPreferences.cpp \
 	ProgressDisplayManager.cpp \
-	ScubaKeyCombo.cpp \
-	TclScubaKeyCombo.cpp
+	ScubaKeyCombo.cpp
 
 SCUBA1_SRCS= \
 	ToglManager.cpp \
 	TclProgressDisplayManager.cpp \
-	togl.c
+	togl.c \
+	TclScubaKeyCombo.cpp
 
 SCUBA2_SRCS= \
 	QTScubaWidget.cpp \
@@ -78,7 +78,8 @@ SCUBA2_SRCS= \
 	QtVolumeHistogram.cpp \
 	QtScubaLabelValueArea.cpp \
 	QtScubaLineEditWithTclCallback.cpp \
-	QtTclListener.cpp
+	QtTclListener.cpp \
+	QtScubaKeyCombo.cpp
 
 FORMS = mainwindow.ui \
 		viewlayersdlog.ui \

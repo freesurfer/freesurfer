@@ -869,6 +869,9 @@ VolumeCollection::DoNewROI () {
     roi->SetROIBounds( bounds );
   }
   
+  int color[] = { 0, 0, 255 };
+  roi->SetColor( color );
+
   return roi;
 }
 

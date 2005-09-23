@@ -191,25 +191,31 @@ ScubaView::ScubaView() {
 			 "coordinate." );
 
   // Get some prefs values
+  msMoveViewLeft  = ScubaKeyCombo::MakeKeyCombo();
+  msMoveViewRight = ScubaKeyCombo::MakeKeyCombo();
+  msMoveViewUp    = ScubaKeyCombo::MakeKeyCombo();
+  msMoveViewDown  = ScubaKeyCombo::MakeKeyCombo();
+  msMoveViewIn    = ScubaKeyCombo::MakeKeyCombo();
+  msMoveViewOut   = ScubaKeyCombo::MakeKeyCombo();
+  msZoomViewIn    = ScubaKeyCombo::MakeKeyCombo();
+  msZoomViewOut   = ScubaKeyCombo::MakeKeyCombo();
+
   ScubaGlobalPreferences& prefs = ScubaGlobalPreferences::GetPreferences();
-  msMoveViewLeft = 
-    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewLeft );
-  msMoveViewRight = 
-    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewRight );
-  msMoveViewUp = 
-    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewUp );
-  msMoveViewDown = 
-    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewDown );
-  msMoveViewIn = 
-    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewIn );
-  msMoveViewOut = 
-    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewOut );
-  msZoomViewIn = 
-    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyZoomViewIn );
-  msZoomViewOut = 
-    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyZoomViewOut );
+  msMoveViewLeft->SetFromString( prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewLeft ) );
+  msMoveViewRight->SetFromString( prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewRight ) );
+  msMoveViewUp->SetFromString( prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewUp ) );
+  msMoveViewDown->SetFromString( prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewDown ) );
+  msMoveViewIn->SetFromString( prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewIn ) );
+  msMoveViewOut->SetFromString( prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewOut ) );
+  msZoomViewIn->SetFromString( prefs.GetPrefAsString( ScubaGlobalPreferences::KeyZoomViewIn ) );
+  msZoomViewOut->SetFromString( prefs.GetPrefAsString( ScubaGlobalPreferences::KeyZoomViewOut ) );
   mbFlipLeftRightInYZ = 
     prefs.GetPrefAsBool( ScubaGlobalPreferences::ViewFlipLeftRight );
+
+  cerr << "msMoveViewIn " << msMoveViewIn << endl;
+  cerr << "msMoveViewOut " << msMoveViewOut << endl;
+  cerr << "msZoomViewIn " << msZoomViewIn << endl;
+  cerr << "msZoomViewOut " << msZoomViewOut << endl;
 
   list<Layer::InfoAtRAS> lInfo;
   mInfoAtRASMap["mouse"] = lInfo;
@@ -228,6 +234,15 @@ ScubaView::~ScubaView() {
   if( NULL != mBuffer ) {
     free( mBuffer );
   }
+
+  delete msMoveViewLeft;
+  delete msMoveViewRight;
+  delete msMoveViewUp;
+  delete msMoveViewDown;
+  delete msMoveViewIn;
+  delete msMoveViewOut;
+  delete msZoomViewIn;
+  delete msZoomViewOut;
 }
 
 void
@@ -1681,14 +1696,22 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
   }
 
   // We cache these values but down have to act on them right away.
-  if( isMessage == "KeyMoveViewLeft" )  msMoveViewLeft  = *(string*)iData;
-  if( isMessage == "KeyMoveViewRight" ) msMoveViewRight = *(string*)iData;
-  if( isMessage == "KeyMoveViewUp" )    msMoveViewUp    = *(string*)iData;
-  if( isMessage == "KeyMoveViewDown" )  msMoveViewDown  = *(string*)iData;
-  if( isMessage == "KeyMoveViewIn" )    msMoveViewIn    = *(string*)iData;
-  if( isMessage == "KeyMoveViewOut" )   msMoveViewOut   = *(string*)iData;
-  if( isMessage == "KeyZoomViewIn" )    msZoomViewIn    = *(string*)iData;
-  if( isMessage == "KeyZoomViewOut" )   msZoomViewOut   = *(string*)iData;
+  if( isMessage == "KeyMoveViewLeft" )  
+    msMoveViewLeft->SetFromString( *(string*)iData );
+  if( isMessage == "KeyMoveViewRight" ) 
+    msMoveViewRight->SetFromString( *(string*)iData );
+  if( isMessage == "KeyMoveViewUp" )    
+    msMoveViewUp->SetFromString( *(string*)iData );
+  if( isMessage == "KeyMoveViewDown" )  
+    msMoveViewDown->SetFromString( *(string*)iData );
+  if( isMessage == "KeyMoveViewIn" )    
+    msMoveViewIn->SetFromString( *(string*)iData );
+  if( isMessage == "KeyMoveViewOut" )   
+    msMoveViewOut->SetFromString( *(string*)iData );
+  if( isMessage == "KeyZoomViewIn" )    
+    msZoomViewIn->SetFromString( *(string*)iData );
+  if( isMessage == "KeyZoomViewOut" )   
+    msZoomViewOut->SetFromString( *(string*)iData );
 
   // New view, get some info about it.
   if( isMessage == "NewView" ) {
@@ -2193,7 +2216,7 @@ ScubaView::DoMouseDown( int iWindow[2],
 void
 ScubaView::DoKeyDown( int iWindow[2], 
 		      InputState& iInput, ScubaToolState& iTool ) {
-  string key = iInput.Key();
+  ScubaKeyCombo* key = iInput.Key();
 
   float ras[3];
   TranslateWindowToRAS( iWindow, ras );
@@ -2202,7 +2225,7 @@ ScubaView::DoKeyDown( int iWindow[2],
   // that to the specific in plane increment. If control is down,
   // multiplay that value by 10.
   float moveDistance = 1.0;
-  if( key == msMoveViewIn || key == msMoveViewOut ) {
+  if( key->IsSameAs(msMoveViewIn) || key->IsSameAs(msMoveViewOut) ) {
     moveDistance = GetThroughPlaneIncrement( mViewState.GetInPlane() );
   }
   if( iInput.IsControlKeyDown() ) {
@@ -2210,43 +2233,43 @@ ScubaView::DoKeyDown( int iWindow[2],
   }
 
   
-  if( key == msMoveViewLeft || key == msMoveViewRight ||
-      key == msMoveViewDown || key == msMoveViewUp ||
-      key == msMoveViewIn   || key == msMoveViewOut ) {
+  if( key->IsSameAs(msMoveViewLeft) || key->IsSameAs(msMoveViewRight) ||
+      key->IsSameAs(msMoveViewDown) || key->IsSameAs(msMoveViewUp) ||
+      key->IsSameAs(msMoveViewIn)   || key->IsSameAs(msMoveViewOut) ) {
     
     float move[3] = {0, 0, 0};
 
-    if( key == msMoveViewLeft ) {
+    if( key->IsSameAs(msMoveViewLeft) ) {
       switch( mViewState.GetInPlane() ) {
       case ViewState::X: move[1] = -moveDistance; break;
       case ViewState::Y: move[0] = moveDistance; break;
       case ViewState::Z: move[0] = moveDistance; break;
       }
-    } else if( key == msMoveViewRight ) {
+    } else if( key->IsSameAs(msMoveViewRight) ) {
       switch( mViewState.GetInPlane() ) {
       case ViewState::X: move[1] = moveDistance; break;
       case ViewState::Y: move[0] = -moveDistance; break;
       case ViewState::Z: move[0] = -moveDistance; break;
       }
-    } else if( key == msMoveViewDown ) {
+    } else if( key->IsSameAs(msMoveViewDown) ) {
       switch( mViewState.GetInPlane() ) {
       case ViewState::X: move[2] = -moveDistance; break;
       case ViewState::Y: move[2] = -moveDistance; break;
       case ViewState::Z: move[1] = -moveDistance; break;
       }
-    } else if( key == msMoveViewUp ) {
+    } else if( key->IsSameAs(msMoveViewUp) ) {
       switch( mViewState.GetInPlane() ) {
       case ViewState::X: move[2] = moveDistance; break;
       case ViewState::Y: move[2] = moveDistance; break;
       case ViewState::Z: move[1] = moveDistance; break;
       }
-    } else if( key == msMoveViewIn ) {
+    } else if( key->IsSameAs(msMoveViewIn) ) {
       switch( mViewState.GetInPlane() ) {
       case ViewState::X: move[0] = moveDistance; break;
       case ViewState::Y: move[1] = moveDistance; break;
       case ViewState::Z: move[2] = moveDistance; break;
       }
-    } else if( key == msMoveViewOut ) {
+    } else if( key->IsSameAs(msMoveViewOut) ) {
       switch( mViewState.GetInPlane() ) {
       case ViewState::X: move[0] = -moveDistance; break;
       case ViewState::Y: move[1] = -moveDistance; break;
@@ -2265,12 +2288,12 @@ ScubaView::DoKeyDown( int iWindow[2],
     // Rebuild our label value info because the view has moved.
     RebuildLabelValueInfo( newCenterRAS, "mouse" );
 
-  } else if( key == msZoomViewIn || key == msZoomViewOut ) {
+  } else if( key->IsSameAs(msZoomViewIn) || key->IsSameAs(msZoomViewOut) ) {
 
     float newZoom = mViewState.GetZoomLevel();
-    if( key == msZoomViewIn ) {
+    if( key->IsSameAs(msZoomViewIn) ) {
       newZoom = mViewState.GetZoomLevel() * 2.0;
-    } else if( key == msZoomViewOut ) {
+    } else if( key->IsSameAs(msZoomViewOut) ) {
       newZoom = mViewState.GetZoomLevel() / 2.0;
       if( newZoom < 0.25 ) {
 	newZoom = 0.25;

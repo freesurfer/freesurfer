@@ -2,23 +2,69 @@
 #define ScubaKeyCombo_h
 
 #include <string>
+#include "DebugReporter.h"
 
-class ScubaKeyCombo {
+// This is a class to encapsulate the idea of key combinations, or
+// keypresses to trigger events. These are used in a few places:
+
+//   The main interface widget (e.g. ToglFrame or QTScubaWidget)
+//   transforms keypress events into ScubaKeyCombo subclasses from
+//   their native widget type (tk and Qt respectively).
+
+//   Other widgets that check for key combos in event response
+//   functions can simply match input ScubaKeyCombos against
+//   ScubaKeyCombos stored in preferences. For example, ScubaView
+//   grabs the string pref for the MoveViewIn key, makes a
+//   ScubaKeyCombo out of it, and checks it against the current key
+//   from the InputState.
+
+//   Preference dialog boxes read input from the user, create a
+//   ScubaKeyCombo from it, and use the ToString function to generate
+//   the string version to be stored in ScubaGlobalPreferences.
+
+//   Each widget type should have a subclass ScubaKeyCombo
+//   (e.g. TclScubaKeyCombo) that knows how to parse input strings
+//   from that widget framework. A corresponding ScubaKeyComboFactory
+//   should be made to make those kinds of ScubaKeyCombo
+//   subclasses. The main function, knowing what kind of widget
+//   framework is being used, calls SetFactory with that subclass
+//   factory. Then, all other classes use ScubaKeyCombo::MakeKeyCombo
+//   to make their framework-specific ScubaKeyCombos.
+
+
+class ScubaKeyComboFactory;
+
+class ScubaKeyCombo : public DebugReporter {
+
+  friend class ScubaKeyComboFactory;
 
  public:
-  ScubaKeyCombo ();
+
+  static void SetFactory ( ScubaKeyComboFactory* iFactory ) {
+    mFactory = iFactory;
+  }
+  static ScubaKeyCombo* MakeKeyCombo ();
 
   std::string ToString ();
 
   virtual void SetFromString ( std::string isKey );
+  void CopyFrom ( ScubaKeyCombo& iKey );
+  void CopyFrom ( ScubaKeyCombo* iKey ) { CopyFrom(*iKey); }
 
   bool IsSameAs ( ScubaKeyCombo& iCombo );
+  bool IsSameAs ( ScubaKeyCombo* iCombo ) { return IsSameAs(*iCombo); }
 
   int GetKeyCode ()        { return mKeyCode; }
   bool IsShiftKeyDown ()   { return mbShift; }
   bool IsAltKeyDown ()     { return mbAlt; }
   bool IsMetaKeyDown ()    { return mbMeta; }
   bool IsControlKeyDown () { return mbControl; }
+  
+  void SetKeyCode        ( int iKey )    { mKeyCode = iKey; }
+  void SetShiftKeyDown   ( bool isDown ) { mbShift = isDown; }
+  void SetAltKeyDown     ( bool isDown ) { mbAlt = isDown; }
+  void SetMetaKeyDown    ( bool isDown ) { mbMeta = isDown; }
+  void SetControlKeyDown ( bool isDown ) { mbControl = isDown; }
 
   // This is straight out of Qt. We use their key codes for simplicity
   // with the QtScubaKeyCombo class.
@@ -168,9 +214,20 @@ class ScubaKeyCombo {
   };
 
  protected:
+  ScubaKeyCombo ();
+
   int mKeyCode;
   bool mbShift, mbAlt, mbMeta, mbControl;
 
+  static ScubaKeyComboFactory* mFactory;
+};
+
+class ScubaKeyComboFactory {
+ public:
+  virtual ScubaKeyCombo* MakeKeyCombo() {
+    std::cerr << "WARNING: Default ScubaKeyCombo factory called" << std::endl;
+    return new ScubaKeyCombo();
+  }
 };
 
 std::ostream& operator << ( std::ostream&, ScubaKeyCombo iKey  );

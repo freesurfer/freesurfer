@@ -3,10 +3,9 @@
 
 #include <iostream>
 #include "string_fixed.h"
+#include "ScubaKeyCombo.h"
 
 class InputState {
-  friend class ToglManager;
-  friend class GLUTManager;
   friend class InputStateTester;
  public:
   InputState ();
@@ -14,7 +13,7 @@ class InputState {
   bool IsAltKeyDown ();
   bool IsControlKeyDown ();
   int Button ();
-  std::string Key ();
+  ScubaKeyCombo* Key ();
 
   // For polling button state.
   bool IsButtonDown ();
@@ -31,10 +30,11 @@ class InputState {
   void SetButtonUpEvent ();
   void ClearEvents ();
 
-  void SetShiftKey ( bool ibShiftKey ) { mbShiftKey = ibShiftKey; }
-  void SetAltKey ( bool ibAltKey ) { mbAltKey = ibAltKey; }
-  void SetControlKey ( bool ibControlKey ) { mbControlKey = ibControlKey; }
-  void SetKey ( std::string isKey ) { msKey = isKey; }
+  void SetShiftKey ( bool ibShiftKey );
+  void SetAltKey ( bool ibAltKey );
+  void SetControlKey ( bool ibControlKey );
+  void SetKeyFromString ( std::string isKey );
+  void SetKeyCode ( int iKey );
 
  protected:
   bool mbShiftKey;
@@ -44,7 +44,7 @@ class InputState {
   bool mbButtonDragEvent;
   bool mbButtonUpEvent;
   int mButton;
-  std::string msKey;
+  ScubaKeyCombo* mKey;
 };
 
 std::ostream& operator << ( std::ostream& os, InputState& iInput );

@@ -2,12 +2,11 @@
 
 using namespace std;
 
-InputState::InputState () { 
-  mbShiftKey = false; 
-  mbAltKey = false; 
-  mbControlKey = false; 
-  mButton = 0;
-  msKey = "";
+InputState::InputState () :
+  mbShiftKey(false), mbAltKey(false), mbControlKey(false), 
+  mbButtonDownEvent(false), mbButtonDragEvent(false), mbButtonUpEvent(false),
+  mButton(0), mKey(NULL) { 
+  mKey = ScubaKeyCombo::MakeKeyCombo();
 }
 
 bool InputState::IsShiftKeyDown () { 
@@ -26,8 +25,8 @@ int InputState::Button () {
   return mButton;
 }
 
-string InputState::Key () { 
-  return msKey;
+ScubaKeyCombo* InputState::Key () { 
+  return mKey;
 }
 
 bool 
@@ -86,7 +85,33 @@ InputState::ClearEvents () {
   mButton = 0;
 }
 
+void
+InputState::SetShiftKey ( bool ibShiftKey ) { 
+  mbShiftKey = ibShiftKey; 
+  mKey->SetShiftKeyDown( ibShiftKey );
+}
 
+void 
+InputState::SetAltKey ( bool ibAltKey ) { 
+  mbAltKey = ibAltKey; 
+  mKey->SetAltKeyDown( ibAltKey );
+}
+
+void 
+InputState::SetControlKey ( bool ibControlKey ) { 
+  mbControlKey = ibControlKey; 
+  mKey->SetControlKeyDown( ibControlKey );
+}
+
+void 
+InputState::SetKeyFromString ( std::string isKey ) { 
+  mKey->SetFromString( isKey ); 
+}
+
+void 
+InputState::SetKeyCode ( int iKey ) { 
+  mKey->SetKeyCode( iKey ); 
+}
 
 std::ostream& operator << ( std::ostream& os, InputState& iInput ) { 
   if( iInput.IsShiftKeyDown() )
@@ -97,7 +122,7 @@ std::ostream& operator << ( std::ostream& os, InputState& iInput ) {
     os << "control ";
   if( iInput.Button() != 0 )
     os << "button " << iInput.Button();
-  if( iInput.Key() != "" )
+  if( iInput.Key()->GetKeyCode() != -1 )
     os << "key " << iInput.Key();
   return os;
 }

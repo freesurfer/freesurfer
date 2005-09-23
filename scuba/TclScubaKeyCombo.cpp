@@ -4,9 +4,16 @@ using namespace std;
 
 bool TclScubaKeyComboStaticTclListener::mbAddedTclCommands = false;
 
+TclScubaKeyCombo::TclScubaKeyCombo () :
+  ScubaKeyCombo() {
+
+}
+
 void
 TclScubaKeyCombo::SetFromString ( string isKey ) {
 
+  ScubaKeyCombo::SetFromString( isKey );
+  
   // We are initialied with a key code already; even if it didn't find
   // the right tk name, it definitely matched a last letter. So this
   // just gives the potential to override what we've already done, and

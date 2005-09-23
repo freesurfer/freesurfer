@@ -82,11 +82,37 @@ TclScubaKeyComboTester::Test ( Tcl_Interp* iInterp ) {
       {"braceleft", ScubaKeyCombo::Key_BraceLeft},
       {"bar", ScubaKeyCombo::Key_Bar},
       {"braceright", ScubaKeyCombo::Key_BraceRight},
-      {"asciitilde", ScubaKeyCombo::Key_AsciiTilde}};
+      {"asciitilde", ScubaKeyCombo::Key_AsciiTilde},
+      {"a", ScubaKeyCombo::Key_A},
+      {"b", ScubaKeyCombo::Key_B},
+      {"c", ScubaKeyCombo::Key_C},
+      {"d", ScubaKeyCombo::Key_D},
+      {"e", ScubaKeyCombo::Key_E},
+      {"f", ScubaKeyCombo::Key_F},
+      {"g", ScubaKeyCombo::Key_G},
+      {"h", ScubaKeyCombo::Key_H},
+      {"i", ScubaKeyCombo::Key_I},
+      {"j", ScubaKeyCombo::Key_J},
+      {"k", ScubaKeyCombo::Key_K},
+      {"l", ScubaKeyCombo::Key_L},
+      {"m", ScubaKeyCombo::Key_M},
+      {"n", ScubaKeyCombo::Key_N},
+      {"o", ScubaKeyCombo::Key_O},
+      {"p", ScubaKeyCombo::Key_P},
+      {"q", ScubaKeyCombo::Key_Q},
+      {"r", ScubaKeyCombo::Key_R},
+      {"s", ScubaKeyCombo::Key_S},
+      {"t", ScubaKeyCombo::Key_T},
+      {"u", ScubaKeyCombo::Key_U},
+      {"v", ScubaKeyCombo::Key_V},
+      {"w", ScubaKeyCombo::Key_W},
+      {"x", ScubaKeyCombo::Key_X},
+      {"y", ScubaKeyCombo::Key_Y},
+      {"z", ScubaKeyCombo::Key_Z}};
 
     char sCommand[1024];
     int rTcl;
-    for( int nKey = 0; nKey < 36; nKey++ ) {
+    for( int nKey = 0; nKey < 62; nKey++ ) {
       TclScubaKeyCombo key;
       key.SetFromString(aKeyTests[nKey].sKey);
       {

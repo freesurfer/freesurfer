@@ -19,6 +19,7 @@
 #include "ScubaTransform.h"
 #include "Point2.h"
 #include "VolumeCollection.h"
+#include "ScubaKeyCombo.h"
 
 class ScubaViewStaticTclListener : public DebugReporter, 
 				   public TclCommandListener {
@@ -258,14 +259,14 @@ protected:
   GLubyte* mBuffer;
 
   // Key assignments.
-  std::string msMoveViewLeft;
-  std::string msMoveViewRight;
-  std::string msMoveViewUp;
-  std::string msMoveViewDown;
-  std::string msMoveViewIn;
-  std::string msMoveViewOut;
-  std::string msZoomViewIn;
-  std::string msZoomViewOut;
+  ScubaKeyCombo* msMoveViewLeft;
+  ScubaKeyCombo* msMoveViewRight;
+  ScubaKeyCombo* msMoveViewUp;
+  ScubaKeyCombo* msMoveViewDown;
+  ScubaKeyCombo* msMoveViewIn;
+  ScubaKeyCombo* msMoveViewOut;
+  ScubaKeyCombo* msZoomViewIn;
+  ScubaKeyCombo* msZoomViewOut;
 
   // Link stuff.
   static std::map<int,bool> mViewIDLinkedList;

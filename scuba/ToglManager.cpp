@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include "ToglManager.h"
 #include "Timer.h"
+#include "TclScubaKeyCombo.h"
 
 using namespace std;
 
@@ -219,23 +220,25 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   // our modifiers but don't pass the key along.
   string sKey = iArgv[4];
   if( sKey == "Shift_L" || sKey == "Shift_R" ) {
-    mState.mbShiftKey = true;
+    mState.SetShiftKey( true );
 
   } else if( sKey == "Alt_L" || sKey == "Alt_R" ) {
-    mState.mbAltKey = true;
+    mState.SetAltKey( true );
 
   } else if( sKey == "Control_L" || sKey == "Control_R" ) {
-    mState.mbControlKey = true;
+    mState.SetControlKey( true );
 
   } else {
   
     // If shift, change key to lowercase.
-    if( mState.mbShiftKey ) {
+    if( mState.IsShiftKeyDown() ) {
       sKey = tolower(sKey[0]);
     }
 
     // Record the key.
-    mState.msKey = sKey;
+    ScubaKeyCombo* key = ScubaKeyCombo::MakeKeyCombo();
+    key->SetFromString( sKey );
+    mState.Key()->CopyFrom( key );
     
     WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
     WindowFrame* frame = mFrames[id];
@@ -281,19 +284,20 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   // our modifiers but don't pass the key along.
   string sKey = iArgv[4];
   if( sKey == "Shift_L" || sKey == "Shift_R" ) {
-    mState.mbShiftKey = false;
+    mState.SetShiftKey( false );
 
   } else if( sKey == "Alt_L" || sKey == "Alt_R" ) {
-    mState.mbAltKey = false;
-
+    mState.SetAltKey( false );
+    
   } else if( sKey == "Control_L" || sKey == "Control_R" ) {
-    mState.mbControlKey = false;
+    mState.SetControlKey( false );
 
   } else {
   
-  
     // Record the key.
-    mState.msKey = sKey;
+    ScubaKeyCombo* key = ScubaKeyCombo::MakeKeyCombo();
+    key->SetFromString( sKey );
+    mState.Key()->CopyFrom( key );
     
     WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
     WindowFrame* frame = mFrames[id];
@@ -315,9 +319,6 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
       eTcl = TCL_ERROR;
     }
     
-    // Clear this in the keyboard state.
-    mState.msKey = "";
-    
     // Post a redisplay if the frame wants one.
     if( frame->WantRedisplay() ) {
       Togl_PostRedisplay( iTogl );
@@ -336,10 +337,9 @@ ToglManager::ExitCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   }
 
   // Just clear the modifiers.
-  mState.mbShiftKey = false;
-  mState.mbAltKey = false;
-  mState.mbControlKey = false;
-  mState.msKey = "";
+  mState.SetShiftKey( false );
+  mState.SetAltKey( false );
+  mState.SetControlKey( false );
   mState.ClearEvents();
   
   return TCL_OK;

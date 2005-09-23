@@ -1756,7 +1756,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     if( !iInput.IsShiftKeyDown() && !iInput.IsControlKeyDown() &&
 	(( iInput.IsButtonDownEvent() && 
 	   (2 == iInput.Button() || 3 == iInput.Button()) )      ||
-	 ( iInput.Key()[0] == 'f' )) ) {
+	 ( iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F )) ) {
       
       VolumeLocation& loc =
 	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
@@ -1768,21 +1768,25 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	// Create and run the flood object.
 	if( ScubaToolState::voxelFilling == iTool.GetMode() ) {
 	  if( iInput.Button() == 2 || 
-	      (iInput.Key()[0] == 'f' && !iInput.IsControlKeyDown()) ) {
+	      (iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F && 
+	       !iInput.IsControlKeyDown()) ) {
 	    ScubaLayer2DMRIFloodVoxelEdit flooder( iTool.GetNewValue() );
 	    flooder.Flood( *mVolume, iRAS, params );
 	  } else if( iInput.Button() == 3|| 
-	      (iInput.Key()[0] == 'f' && iInput.IsControlKeyDown()) ) {
+	      (iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F && 
+	       iInput.IsControlKeyDown()) ) {
 	    ScubaLayer2DMRIFloodVoxelEdit flooder(iTool.GetEraseValue());
 	    flooder.Flood( *mVolume, iRAS, params );
 	  }
 	} else if( ScubaToolState::roiFilling == iTool.GetMode() ) {
 	  if( iInput.Button() == 2|| 
-	      (iInput.Key()[0] == 'f' && !iInput.IsControlKeyDown()) ) {
+	      (iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F &&
+	       !iInput.IsControlKeyDown()) ) {
 	    ScubaLayer2DMRIFloodSelect flooder( true );
 	    flooder.Flood( *mVolume, iRAS, params );
 	  } else if( iInput.Button() == 3|| 
-	      (iInput.Key()[0] == 'f' && iInput.IsControlKeyDown()) ) {
+	      (iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F &&
+	       iInput.IsControlKeyDown()) ) {
 	    ScubaLayer2DMRIFloodSelect flooder( false );
 	    flooder.Flood( *mVolume, iRAS, params );
 	  }

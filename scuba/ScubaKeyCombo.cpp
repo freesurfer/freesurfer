@@ -3,9 +3,31 @@
 
 using namespace std;
 
+ScubaKeyComboFactory* ScubaKeyCombo::mFactory = NULL;
+
 ScubaKeyCombo::ScubaKeyCombo () :
   mKeyCode(-1), mbShift(false), mbAlt(false), mbMeta(false), mbControl(false) {
 
+}
+
+ScubaKeyCombo*
+ScubaKeyCombo::MakeKeyCombo () {
+
+  if( mFactory ) {
+    return mFactory->MakeKeyCombo();
+  } else {
+    return new ScubaKeyCombo();
+  }
+}
+
+void
+ScubaKeyCombo::CopyFrom ( ScubaKeyCombo& iKey ) {
+
+  mKeyCode = iKey.GetKeyCode();
+  mbShift = iKey.IsShiftKeyDown();
+  mbAlt = iKey.IsAltKeyDown();
+  mbMeta = iKey.IsMetaKeyDown();
+  mbControl = iKey.IsControlKeyDown();
 }
 
 void
@@ -188,7 +210,10 @@ ScubaKeyCombo::SetFromString ( string isKey ) {
   else if(isKey.rfind("x")==isKey.length()-1) mKeyCode = Key_X;
   else if(isKey.rfind("y")==isKey.length()-1) mKeyCode = Key_Y;
   else if(isKey.rfind("z")==isKey.length()-1) mKeyCode = Key_Z;
-  else mKeyCode = Key_unknown;
+  else {
+    DebugOutput( << "Couldn't find a match for key " << isKey );
+    mKeyCode = Key_unknown;
+  }
 }
 
 string
