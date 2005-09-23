@@ -121,6 +121,12 @@ typedef struct
 	double end_rms ;
 	NODE_LOOKUP_TABLE *nlt ;
 	int    regrid  ;
+	MRI    *mri_diag ;
+	int    diag_morph_from_atlas ;
+	int    diag_mode_filter ;     // # of iterations of mode filter to apply
+	int    diag_volume ;          // what type of volume to write in write_snapshot e.g. GCAM_MEANS
+	int    npasses ;              // # of times to go through all levels
+	MRI    *mri_dist_map ;        // distance to non-zero binary values
 } GCA_MORPH_PARMS, GMP ;
 
 
@@ -178,6 +184,8 @@ int GCAMaddStatus(GCA_MORPH *gcam, int status_bit) ;
 int GCAMremoveStatus(GCA_MORPH *gcam, int status_bit) ;
 int GCAMremoveCompressedRegions(GCA_MORPH *gcam, float min_ratio) ;
 int GCAMcountCompressedNodes(GCA_MORPH *gcam, float min_ratio) ;
+GCA_MORPH *GCAMcreateFromIntensityImage(MRI *mri_source, MRI *mri_target, TRANSFORM *transform);
+int GCAMthresholdLikelihoodStatus(GCAM *gcam, MRI *mri, float thresh) ;
 
 typedef struct
 {
@@ -202,17 +210,18 @@ MRI  *GCAMinitDensities(GCA_MORPH *gcam, MRI *mri_lowres_seg, MRI *mri_intensiti
 #define GCAM_POSITION_INVALID  2
 #define GCAM_BORDER_NODE       4
 
-#define GCAM_X_GRAD 0
-#define GCAM_Y_GRAD 1
-#define GCAM_Z_GRAD 2
-#define GCAM_LABEL  3
-#define GCAM_ORIGX  4
-#define GCAM_ORIGY  5
-#define GCAM_ORIGZ  6
-#define GCAM_NODEX  7
-#define GCAM_NODEY  8
-#define GCAM_NODEZ  9
-#define GCAM_MEANS  10
-#define GCAM_COVARS 11
+#define GCAM_X_GRAD     0
+#define GCAM_Y_GRAD     1
+#define GCAM_Z_GRAD     2
+#define GCAM_LABEL      3
+#define GCAM_ORIGX      4
+#define GCAM_ORIGY      5
+#define GCAM_ORIGZ      6
+#define GCAM_NODEX      7
+#define GCAM_NODEY      8
+#define GCAM_NODEZ      9
+#define GCAM_MEANS     10
+#define GCAM_COVARS    11
+#define GCAM_DIAG_VOL  12
 
 #endif
