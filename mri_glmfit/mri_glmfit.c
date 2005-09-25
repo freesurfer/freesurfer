@@ -56,7 +56,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.20 2005/09/23 22:59:05 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.21 2005/09/25 21:10:21 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -82,8 +82,9 @@ double Xcond;
 int npvr=0;
 MRIGLM *mriglm;
 
-char *voxdumpdir=NULL;
+char voxdumpdir[1000];
 int voxdump[3];
+int voxdumpflag = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -142,13 +143,13 @@ int main(int argc, char **argv)
   mriglm->yhatsave = yhatSave;
   mriglm->condsave = condSave;
 
-  //-----------------------------------------------------
+  // X ---------------------------------------------------------
+  //Load global X------------------------------------------------
   mriglm->Xg = MatrixReadTxt(XFile, NULL);
   if(mriglm->Xg==NULL){
     printf("ERROR: loading X %s\n",XFile);
     exit(1);
   }
-
   // Check the condition of the global matrix -----------------
   Xcond = MatrixNSConditionNumber(mriglm->Xg);
   printf("Matrix condition is %g\n",Xcond);
@@ -157,8 +158,25 @@ int main(int argc, char **argv)
 	   Xcond);
     exit(1);
   }
+  // Load Per-Voxel Regressors -----------------------------------
+  if(mriglm->npvr > 0){
+    for(n=0; n < mriglm->npvr; n++){
+      mriglm->pvr[n] = MRIread(pvrFiles[n]);
+      if(mriglm->pvr[n] == NULL) exit(1);
+      if(mriglm->pvr[n]->nframes != mriglm->Xg->rows){
+	printf("ERROR: dimension mismatch between pvr and X.\n");
+	printf("  pvr has %d frames, X has %d rows.\n",
+	       mriglm->pvr[n]->nframes,mriglm->Xg->rows);
+	printf("PVR %d %s\n",n,pvrFiles[n]);
+	exit(1);
+      }
+    }
+  }
+  // Compute total number of regressors
+  MRIglmNRegTot(mriglm);
 
-  // Load or synthesize input  -----------------------------------------------
+  // --------------------------------------------------------------
+  // Load or synthesize input--------------------------------------
   if(synth == 0){
     printf("Loading y from %s\n",yFile);
     mriglm->y = MRIread(yFile);
@@ -178,21 +196,13 @@ int main(int argc, char **argv)
 			 mritmp->nframes,0,1,NULL);
     MRIfree(&mritmp);
   }
-
-  // Check some dimensions -----------------------------------
+  // Check number of frames ----------------------------------
   if(mriglm->y->nframes != mriglm->Xg->rows){
     printf("ERROR: dimension mismatch between y and X.\n");
     printf("  y has %d inputs, X has %d rows.\n",
 	   mriglm->y->nframes,mriglm->Xg->rows);
     exit(1);
   }
-
-  //MRIglmAllocMatrices(mriglm);
-  if(mriglm->glm->dof < 1){
-    printf("ERROR: DOF = %g\n",mriglm->glm->dof);
-    exit(1);
-  }
-
   // Load the contrast matrices ---------------------------------
   if(nContrasts > 0){
     for(n=0; n < nContrasts; n++){
@@ -212,6 +222,20 @@ int main(int argc, char **argv)
       // Should check to make sure no two are the same
     }
   }
+
+  // At this point, y, X, and C have been loaded, now pre-alloc
+  GLMallocX(mriglm->glm,mriglm->y->nframes,mriglm->nregtot);
+  GLMallocY(mriglm->glm);
+
+  // Check DOF
+  GLMdof(mriglm->glm);
+  printf("DOF = %g\n",mriglm->glm->dof);
+  if(mriglm->glm->dof < 1){
+    printf("ERROR: DOF = %g\n",mriglm->glm->dof);
+    exit(1);
+  }
+
+  // Compute Contrast-related matrices
   GLMcMatrices(mriglm->glm);
 
   // Load the mask file ----------------------------------
@@ -231,21 +255,22 @@ int main(int argc, char **argv)
       printf("ERROR: reading weight file %s\n",wFile);
       exit(1);
     }
-    MRInormWeights(mriglm->w, 1, 1, mriglm->mask, mriglm->w);
+    if(mriglm->y->nframes != mriglm->w->nframes){
+      printf("ERROR: dimension mismatch between y and w.\n");
+      printf("  y has %d frames, w has %d frames.\n",
+	     mriglm->y->nframes,mriglm->w->nframes);
+      exit(1);
+    }
+    mritmp = MRInormWeights(mriglm->w, 1, 1, mriglm->mask, mriglm->w);
+    if(mritmp==NULL) exit(1);
     MRIwrite(mriglm->w,"wn.mgh");
   }
   else mriglm->w = NULL;
 
-  // Load PVRs -----------------------------------
-  if(mriglm->npvr > 0){
-    for(n=0; n < mriglm->npvr; n++){
-      mriglm->pvr[n] = MRIread(pvrFiles[n]);
-      if(mriglm->pvr[n] == NULL) exit(1);
-    }
-  }
-
   // Dump a voxel
-  if(voxdumpdir != NULL){
+  if(voxdumpflag){
+    sprintf(voxdumpdir,"%s/voxdump-%d-%d-%d",GLMDir,
+	    voxdump[0],voxdump[1],voxdump[2]);
     printf("Dumping voxel %d %d %d to %s\n",
 	   voxdump[0],voxdump[1],voxdump[2],voxdumpdir);
     MRIglmLoadVox(mriglm,voxdump[0],voxdump[1],voxdump[2]);
@@ -332,12 +357,12 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--voxdump")){
-      if(nargc < 4) CMDargNErr(option,4);
-      voxdumpdir = pargv[0];
-      sscanf(pargv[1],"%d",&voxdump[0]);
-      sscanf(pargv[2],"%d",&voxdump[1]);
-      sscanf(pargv[3],"%d",&voxdump[2]);
-      nargsused = 4;
+      if(nargc < 3) CMDargNErr(option,3);
+      sscanf(pargv[0],"%d",&voxdump[0]);
+      sscanf(pargv[1],"%d",&voxdump[1]);
+      sscanf(pargv[2],"%d",&voxdump[2]);
+      voxdumpflag = 1;
+      nargsused = 3;
     }
     else if (!strcasecmp(option, "--profile")){
       if(nargc < 1) CMDargNErr(option,1);

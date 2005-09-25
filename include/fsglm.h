@@ -1,5 +1,5 @@
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.7 2005/09/23 22:58:57 greve Exp $
+// $Id: fsglm.h,v 1.8 2005/09/25 21:10:20 greve Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
@@ -65,6 +65,7 @@ GLMMAT *GLMsynth(void);
 int GLMdump(char *dumpdir, GLMMAT *glm);
 int GLMresynthTest(int niters, double *prvar);
 MATRIX *GLMpmfMatrix(MATRIX *C, double *cond, MATRIX *P);
+int GLMdof(GLMMAT *glm);
 
 
 

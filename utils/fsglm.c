@@ -1,5 +1,5 @@
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.9 2005/09/23 22:58:57 greve Exp $
+// $Id: fsglm.c,v 1.10 2005/09/25 21:10:20 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -58,9 +58,9 @@
   Workflow 1: X fixed for all y
     1. Allocate GLMMAT: glm = GLMalloc(); 
     2. Allocate and fill contrast matrices: glm->C[n] = YourConMatrix
-    3. GLMcMatrices(glm) - computes the "intermediate" contrast matrices. These are 
-       matrices that are not dependent on y and X (eg, C', C*C', inv(C*C'),
-       C'*inv(C*C'), and Mpmf = C'*inv(C*C')*C.
+    3. GLMcMatrices(glm) - computes the "intermediate" contrast matrices. 
+       These are matrices that are not dependent on y and X 
+       eg, C', C*C', inv(C*C'), C'*inv(C*C'), and Mpmf = C'*inv(C*C')*C.
     4. Allocate and fill design matrix: glm->X = YourDesignMatrix
     5. GLMallocY(glm) - Allocates y based on number of rows in X
     6. GLMxMatrices(glm) - computes "intermediate" matrices dependent upon X and C
@@ -117,7 +117,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.9 2005/09/23 22:58:57 greve Exp $"); 
+  return("$Id: fsglm.c,v 1.10 2005/09/25 21:10:20 greve Exp $"); 
 }
 
 /*------------------------------------------------------------
@@ -187,6 +187,14 @@ GLMMAT *GLMalloc(void)
     glm->gtigCVM[n] = NULL;
   }
   return(glm);
+}
+/*--------------------------------------------------------------------
+  GLMdof() - computes DOF = #Xrows - #Xcols
+  ------------------------------------------------------------------*/
+int GLMdof(GLMMAT *glm)
+{
+  glm->dof = glm->X->rows - glm->X->cols;
+  return(glm->dof);
 }
 /*---------------------------------------------------------------------
   GLMallocX() - allocate the X matrix. If it has already been alloced
@@ -499,7 +507,7 @@ int GLMresynthTest(int niters, double *prvar)
   ---------------------------------------------------------*/
 int GLMdump(char *dumpdir, GLMMAT *glm)
 {
-  char fname[1000];
+  char fname[1000], condir[1000];
   FILE *fp;
   int c;
 
@@ -542,39 +550,38 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
   fclose(fp);
  
   for(c=0; c < glm->ncontrasts; c++){
-    sprintf(fname,"%s/C%03d.dat",dumpdir,c+1);
+    if(glm->Cname[c] != NULL)
+      sprintf(condir,"%s/%s",dumpdir,glm->Cname[c]);
+    else
+      sprintf(condir,"%s/contrast%03d",dumpdir,c+1);
+    mkdir(condir,(mode_t)-1);
+
+    sprintf(fname,"%s/C.dat",condir);
     MatrixWriteTxt(fname, glm->C[c]);
 
-    sprintf(fname,"%s/Ccond%03d.dat",dumpdir,c+1);
+    sprintf(fname,"%s/Ccond.dat",condir);
     fp = fopen(fname,"w");
     fprintf(fp,"%f",glm->Ccond[c]);
     fclose(fp);
 
-    sprintf(fname,"%s/Mpmf%03d.dat",dumpdir,c+1);
+    sprintf(fname,"%s/Mpmf.dat",condir);
     MatrixWriteTxt(fname, glm->Mpmf[c]);
 
-    sprintf(fname,"%s/gamma%03d.dat",dumpdir,c+1);
+    sprintf(fname,"%s/gamma.dat",condir);
     MatrixWriteTxt(fname, glm->gamma[c]);
 
-    sprintf(fname,"%s/F%03d.dat",dumpdir,c+1);
+    sprintf(fname,"%s/F.dat",condir);
     fp = fopen(fname,"w");
     fprintf(fp,"%lf",glm->F[c]);
     fclose(fp);
 
-    sprintf(fname,"%s/p%03d.dat",dumpdir,c+1);
+    sprintf(fname,"%s/p.dat",condir);
     fp = fopen(fname,"w");
     fprintf(fp,"%le",glm->p[c]);
     fclose(fp);
 
-    if(glm->Cname[c] != NULL){
-      sprintf(fname,"%s/Cname%03d.dat",dumpdir,c+1);
-      fp = fopen(fname,"w");
-      fprintf(fp,"%s",glm->Cname[c]);
-      fclose(fp);
-    }
-
     if(glm->ypmfflag[c]){
-      sprintf(fname,"%s/ypmf%03d.dat",dumpdir,c+1);
+      sprintf(fname,"%s/ypmf.dat",condir);
       MatrixWriteTxt(fname, glm->ypmf[c]);
     }
   }
