@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/09/22 14:11:39 $
-// Revision       : $Revision: 1.7 $
+// Revision Date  : $Date: 2005/09/26 17:43:30 $
+// Revision       : $Revision: 1.8 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.7 2005/09/22 14:11:39 fischl Exp $";
+static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.8 2005/09/26 17:43:30 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -144,6 +144,8 @@ static char suffix[STRLEN] = "" ;
 static int MGZ = 0; // for use with MGZ format
 static float check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires) ; //defined at the end
 
+#define MIN_BORDER_DIST 20.0  // mm from border
+
 int
 main(int argc, char *argv[])
 {
@@ -160,7 +162,7 @@ main(int argc, char *argv[])
   LT            *lt =0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.7 2005/09/22 14:11:39 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.8 2005/09/26 17:43:30 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -209,7 +211,7 @@ main(int argc, char *argv[])
                 "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
     strcpy(sdir, cp) ;
   }
-  if (argc < 5)
+  if (argc < 4)
     usage_exit() ;
   else
   {
@@ -223,7 +225,7 @@ main(int argc, char *argv[])
       printf("\txfm          = assumes lowres to highres ras-to-ras identity\n");
     else if (argc==6)
       printf("\txfm          = %s\n", argv[5]);
-    else
+    else if (argc > 6)
     {
       print_usage();
       ErrorExit(ERROR_BADPARM, "%s: gave too many arguments\n", Progname);
@@ -252,35 +254,33 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
 
-  /////////////////////////////////////////////////////////////////////////////
-  // read label file
-  /////////////////////////////////////////////////////////////////////////////
-  sprintf(fname, "%s/%s/label/%s", sdir, sname, argv[4]) ;
-  fprintf(stderr, "reading the label file %s...\n", fname);
-  hires_label = LabelRead(NULL, fname) ;
-  if (!hires_label)
-    ErrorExit(ERROR_NOFILE, "%s: could not read hires label %s", Progname, argv[2]) ;
-	if (num_dilate > 0)
-		LabelDilate(hires_label, mris, num_dilate) ;
-	for (i = 0 ; i < num_other_labels ; i++)
-	{
-		LABEL *olabel ;
-		sprintf(fname, "%s/%s/label/%s", sdir, sname, other_label_names[i]) ;
-		fprintf(stderr, "reading the label file %s...\n", fname);
-		olabel = LabelRead(NULL, fname) ;
-		if (!olabel)
-			ErrorExit(ERROR_NOFILE, "%s: could not read label %s", Progname, fname) ;
-		if (num_dilate > 0)
-			LabelDilate(olabel, mris, num_dilate) ;
-		hires_label = LabelCombine(olabel, hires_label) ;
-		LabelFree(&olabel) ;
-	}
-	printf("deforming %d vertices\n", hires_label->n_points) ;
+  ///////////////////////////////////////////////////////////////////////
+  // read hires volume
+  ///////////////////////////////////////////////////////////////////////
+  sprintf(fname, "%s/%s/mri/%s", sdir, sname, argv[3]) ;
+  if(MGZ) sprintf(fname, "%s.mgz",fname);
+  fprintf(stderr, "reading hires volume %s...\n", fname) ;
+  mri_hires = mri_hires_pial = MRIread(fname); 
+  if (!mri_hires)
+    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
+              Progname, fname) ;
+  /////////////////////////////////////////
+	// no idea why Tosa was doing this  setMRIforSurface(mri_hires);
+
+  if (apply_median_filter) // -median option ... modify mri_hires using the filter
+  {
+    MRI *mri_tmp ;
+
+    fprintf(stderr, "applying median filter to T1 image...\n") ;
+    mri_tmp = MRImedian(mri_hires, NULL, 3) ;
+    MRIfree(&mri_hires) ;
+    mri_hires = mri_tmp ;
+  }
 
   /////////////////////////////////////////////////////////////////////////////
   // read or setup lowrestohires transform
   /////////////////////////////////////////////////////////////////////////////
-  if (argc == 5)
+  if (argc <= 5)
   {
     LINEAR_TRANSFORM *lt = 0;
     MATRIX *m_L = 0;
@@ -334,28 +334,6 @@ main(int argc, char *argv[])
   else
   { label_val = rh_label ; replace_val = lh_label ; }
 
-  ///////////////////////////////////////////////////////////////////////
-  // read hires volume
-  ///////////////////////////////////////////////////////////////////////
-  sprintf(fname, "%s/%s/mri/%s", sdir, sname, argv[3]) ;
-  if(MGZ) sprintf(fname, "%s.mgz",fname);
-  fprintf(stderr, "reading hires volume %s...\n", fname) ;
-  mri_hires = mri_hires_pial = MRIread(fname); 
-  if (!mri_hires)
-    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
-              Progname, fname) ;
-  /////////////////////////////////////////
-	// no idea why Tosa was doing this  setMRIforSurface(mri_hires);
-
-  if (apply_median_filter) // -median option ... modify mri_hires using the filter
-  {
-    MRI *mri_tmp ;
-
-    fprintf(stderr, "applying median filter to T1 image...\n") ;
-    mri_tmp = MRImedian(mri_hires, NULL, 3) ;
-    MRIfree(&mri_hires) ;
-    mri_hires = mri_tmp ;
-  }
 
   ///////////////////////////////////////////////////////////////
   // read mri_wm 
@@ -407,6 +385,40 @@ main(int argc, char *argv[])
   MRISsurf2surfAll(mris, mri_hires, hires_lta);
   if (debug__ == 1)
     MRISwrite(mris, "hiresSurf");
+
+  /////////////////////////////////////////////////////////////////////////////
+  // read label file
+  /////////////////////////////////////////////////////////////////////////////
+	if (argc > 4)  // label specified explicitly
+	{
+		sprintf(fname, "%s/%s/label/%s", sdir, sname, argv[4]) ;
+		fprintf(stderr, "reading the label file %s...\n", fname);
+		hires_label = LabelRead(NULL, fname) ;
+		if (!hires_label)
+			ErrorExit(ERROR_NOFILE, "%s: could not read hires label %s", Progname, argv[2]) ;
+		if (num_dilate > 0)
+			LabelDilate(hires_label, mris, num_dilate) ;
+
+		for (i = 0 ; i < num_other_labels ; i++)
+		{
+			LABEL *olabel ;
+			sprintf(fname, "%s/%s/label/%s", sdir, sname, other_label_names[i]) ;
+			fprintf(stderr, "reading the label file %s...\n", fname);
+			olabel = LabelRead(NULL, fname) ;
+			if (!olabel)
+				ErrorExit(ERROR_NOFILE, "%s: could not read label %s", Progname, fname) ;
+			if (num_dilate > 0)
+				LabelDilate(olabel, mris, num_dilate) ;
+			hires_label = LabelCombine(olabel, hires_label) ;
+			LabelFree(&olabel) ;
+		}
+	}
+	else   // build a label that contains the whole field of view
+	{
+		hires_label = LabelInFOV(mris, mri_hires, MIN_BORDER_DIST) ;
+	}
+
+	printf("deforming %d vertices\n", hires_label->n_points) ;
 
   ////////////////////////////////////////////////////////////////////////////
   // mark vertices near label positions as ripped=0 but the rest rippped = 1
