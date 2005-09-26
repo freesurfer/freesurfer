@@ -37,7 +37,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.11 2005/09/26 20:56:04 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.12 2005/09/26 21:39:07 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -181,7 +181,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.11 2005/09/26 20:56:04 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.12 2005/09/26 21:39:07 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -602,6 +602,7 @@ histogram_wrapper(
     float	f_maxCurv	= amris->max_curv;
     float	f_minCurv	= amris->min_curv;
     double 	f_binSize	= 0.;
+    int		b_error		= 0.;
  
     if(Gb_binSizeOverride)
 	f_binSize	= Gf_binSize;
@@ -620,11 +621,13 @@ histogram_wrapper(
 
     f_binSize		= ((double)f_maxCurv - (double)f_minCurv) / (double)G_bins;
     if(f_maxCurv <= f_minCurv)
-	ErrorExit(ERROR_SIZE, "%s: f_maxCurv < af_minCurv.",
+	ErrorExit(ERROR_SIZE, "%s: f_maxCurv < f_minCurv.",
 			Progname);
 
-    if((long)(((double)f_minCurv+(double)G_bins*(double)f_binSize)*1e10) > 
-	(long)((double)f_maxCurv)*1e10)
+    b_error =  	(long)(((double)f_minCurv+(double)G_bins*(double)f_binSize)*1e10) > 
+		(long)(((double)f_maxCurv)*1e10);
+
+    if(b_error)
 	ErrorExit(ERROR_SIZE, "%s: Invalid <binSize> and <bins> combination",
 			Progname);
 
@@ -736,7 +739,8 @@ histogram_create(
     for(i=0; i<abins; i++) {
 	count	= 0;
 	for(j=start; j<nvertices; j++) {
-	    if(pf_curvature[j] <= ((i+1)*af_binSize)+af_minCurv) {
+	    if(	pf_curvature[j] <= ((i+1)*af_binSize)+af_minCurv &&
+		pf_curvature[j] >= i*af_binSize+af_minCurv) {
 		count++;
 	        totalCount++;
 	    }
@@ -753,6 +757,8 @@ histogram_create(
     }
     fprintf(stdout, "%*s = %d\n", 
 		G_leftCols, "sorted vertices", totalCount);
+    fprintf(stdout, "%*s = %f\n", 
+		G_leftCols, "ratio", (float)totalCount / (float)nvertices);
     free(pf_curvature);
 }
 
