@@ -1496,17 +1496,26 @@ MATRIX *DevolveXFM(char *subjid, MATRIX *XFM, char *xfmname)
   }
 
   /* Load the orig header for the subject */
-  sprintf(dirname,"%s/%s/mri/orig",sd,subjid);
+  sprintf(dirname,"%s/%s/mri/orig.mgz",sd,subjid);
   printf("Trying %s\n",dirname);
-  mriorig = MRIreadHeader(dirname,MRI_CORONAL_SLICE_DIRECTORY);
-  if(mriorig == NULL){
-    sprintf(dirname,"%s/%s/mri/orig.mgz",sd,subjid);
-    printf("Trying %s\n",dirname);
+  if (fio_FileExistsReadable(dirname)) {
     mriorig = MRIreadHeader(dirname,MRI_MGH_FILE);
-    if(mriorig == NULL){
-      sprintf(dirname,"%s/%s/mri/orig.mgh",sd,subjid);
-      printf("Trying %s\n",dirname);
+  }
+  else mriorig = NULL;
+  if(mriorig == NULL){
+    sprintf(dirname,"%s/%s/mri/orig.mgh",sd,subjid);
+    printf("Trying %s\n",dirname);
+    if (fio_FileExistsReadable(dirname)) {
       mriorig = MRIreadHeader(dirname,MRI_MGH_FILE);
+    }
+    else mriorig = NULL;
+    if(mriorig == NULL){
+      sprintf(dirname,"%s/%s/mri/orig",sd,subjid);
+      printf("Trying %s\n",dirname);
+      if (fio_IsDirectory(dirname)) {
+        mriorig = MRIreadHeader(dirname,MRI_CORONAL_SLICE_DIRECTORY);
+      }
+      else mriorig = NULL;
       if(mriorig == NULL){
         printf("ERROR: could not read header for %s\n",dirname);
         return(NULL);
@@ -1996,7 +2005,8 @@ int mincFindVolume(const char *line,
       // There are two ways of getting .xfm files.
       // The most common one is by mritotal which has the 
       // second line of xfm file looks like
-      // %Wed Jan  7 13:23:45 2004>>> /usr/pubsw/packages/mni/1.1/bin/minctracc \
+      // %Wed Jan  7 13:23:45 2004>>> /usr/pubsw/packages/mni/1.1/
+      //         bin/minctracc \
       // -clobber /tmp/mritotal_7539/orig_8_dxyz.mnc \
       // /usr/pubsw/packages/mni/1.1/share/mni_autoreg/average_305_8_dxyz.mnc \
       // transforms/talairach.xfm -transformation 
@@ -2008,8 +2018,10 @@ int mincFindVolume(const char *line,
       //
       // Another type is produced by GUI registration tool which 
       //  has the following two lines
-      // trick is that the first one is the target and the second one is the src
-      // %Volume: /autofs/space/sound_003/users/ex_vivo_recons/I007/mri/T1/T1.mnc
+      // trick is that the first one is the target and the 
+      //     second one is the src
+      // %Volume: /autofs/space/sound_003/users/ex_vivo_recons
+      //      /I007/mri/T1/T1.mnc
       // %Volume: /space/solo/12/users/tmp/flash25_down.mnc
       //
       */
