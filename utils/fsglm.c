@@ -1,5 +1,5 @@
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.10 2005/09/25 21:10:20 greve Exp $
+// $Id: fsglm.c,v 1.11 2005/09/26 18:34:28 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -117,7 +117,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.10 2005/09/25 21:10:20 greve Exp $"); 
+  return("$Id: fsglm.c,v 1.11 2005/09/26 18:34:28 greve Exp $"); 
 }
 
 /*------------------------------------------------------------
@@ -300,7 +300,7 @@ int GLMxMatrices(GLMMAT *glm)
   glm->XtX  = MatrixMultiply(glm->Xt,glm->X,glm->XtX);
   Mtmp = MatrixInverse(glm->XtX,glm->iXtX);
   if(Mtmp == NULL){
-    // Ill-conditioned
+    //printf("Matrix is Ill-conditioned\n");
     MatrixPrint(stdout,glm->X);
     glm->ill_cond_flag = 1;
     return(1);
