@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/31 16:20:10 $
-// Revision       : $Revision: 1.311 $
-char *MRI_C_VERSION = "$Revision: 1.311 $";
+// Revision Date  : $Date: 2005/09/26 17:30:00 $
+// Revision       : $Revision: 1.312 $
+char *MRI_C_VERSION = "$Revision: 1.312 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11687,13 +11687,13 @@ void MRIcalcCRASforSampledVolume(MRI *src, MRI *dst, Real *pr, Real *pa, Real *p
 void MRIcalcCRASforExtractedVolume(MRI *src, MRI *dst, int x0, int y0, int z0, int x1, int y1, int z1, 
 				   Real *pr, Real *pa, Real *ps)
 {
-  int cx, cy, cz;
+  Real cx, cy, cz;
   // The "center" voxel position of the extracted volume in the original voxel position 
   //        x1 of dst corresponds to x0 of src
   // Thus, the "center" of dst corresponds to that of the src is
-  cx = x0+dst->width/2 - x1;  // integer divide cutoff extra
-  cy = y0+dst->height/2 - y1;
-  cz = z0+dst->depth/2 - z1;
+  cx = x0+(Real)dst->width/2 - x1;  // integer divide cutoff extra
+  cy = y0+(Real)dst->height/2 - y1;
+  cz = z0+(Real)dst->depth/2 - z1;
 
   if (!src->i_to_r__)
   {
@@ -12448,3 +12448,16 @@ MRInonMaxSuppress(MRI *mri_src, MRI *mri_sup, float thresh, int thresh_dir)
 
 	return(mri_sup) ;
 }
+MRI *
+MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst, MRI_REGION *region, int pad)
+{
+	MRI *mri_tmp ;
+
+	mri_dst = MRIalloc(region->dx+2*pad, region->dy+2*pad, region->dz+2*pad, mri_src->type) ;
+	MRIcopyHeader(mri_src, mri_dst) ;
+  mri_tmp = MRIextractInto(mri_src, NULL, region->x, region->y, region->z, 
+													 region->dx, region->dy, region->dz, 0, 0, 0) ;
+	MRIextractInto(mri_tmp, mri_dst, 0, 0, 0, region->dx, region->dy, region->dz, pad, pad, pad);
+	return(mri_dst) ;
+}
+
