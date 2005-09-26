@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.15 2005/09/26 17:37:11 greve Exp $
+   $Id: fmriutils.c,v 1.16 2005/09/26 18:34:47 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.15 2005/09/26 17:37:11 greve Exp $");
+  return("$Id: fmriutils.c,v 1.16 2005/09/26 18:34:47 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -856,7 +856,6 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s)
 	mriglm->glm->X->rptr[f][nthreg] = mriglm->Xg->rptr[f][n]; // X=Xg
 	nthreg++;
       }
-      mriglm->XgLoaded = 1; // Set flag that Xg has been loaded
     }
     else nthreg = mriglm->Xg->cols;
 
@@ -866,6 +865,7 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s)
       nthreg++;
     }
   }
+  mriglm->XgLoaded = 1; // Set flag that Xg has been loaded
   
   // Weight X and y, X = w.*X, y = w.*y
   if(mriglm->w != NULL && ! mriglm->skipweight){
