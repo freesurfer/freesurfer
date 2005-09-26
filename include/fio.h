@@ -39,6 +39,10 @@ int fio_FileExistsReadable(char *fname);
 int fio_IsDirectory(char *fname);
 int fio_NLines(char *fname);
 
+int fio_pushd(char *dir);
+int fio_popd(void);
+
+
 //#define fwriteLong(l, fp)   fwrite4((int)l, fp)
 
 #endif

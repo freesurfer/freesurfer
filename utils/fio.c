@@ -2,9 +2,9 @@
 // fio.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/12 17:09:54 $
-// Revision       : $Revision: 1.25 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/09/26 22:05:09 $
+// Revision       : $Revision: 1.26 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -21,6 +21,11 @@
 #include "proto.h"
 #include "error.h"
 #include "mghendian.h"
+
+#define FIO_NPUSHES_MAX 100
+int  fio_npushes = -1;
+char fio_dirstack[FIO_NPUSHES_MAX][1000];
+
 
 FILE *MGHopen_file(char *fname, char *rwmode)
 {
@@ -527,4 +532,52 @@ int fio_NLines(char *fname)
   fclose(fp);
 
   return(nrows);
+}
+
+
+/*------------------------------------------------------------------------*/
+int fio_pushd(char *dir)
+{
+  extern int fio_npushes;
+  extern char fio_dirstack[FIO_NPUSHES_MAX][1000];
+  int err;
+
+  fio_npushes ++;
+  if(fio_npushes == FIO_NPUSHES_MAX){
+    printf("ERROR: fio_pushd: maximum number of pushes reached\n");
+    return(1);
+  }
+  getcwd(fio_dirstack[fio_npushes],1000);
+  err = chdir(dir);
+  if(err){
+    printf("ERROR: fio_pushd: %s\n",dir);
+    fio_npushes --;
+    return(1);
+  }
+
+  //printf("fio_pushd: %d %s\n",fio_npushes+1,dir);
+
+  return(0);
+}
+/*------------------------------------------------------------------------*/
+int fio_popd(void)
+{
+  extern int fio_npushes; 
+  extern char fio_dirstack[FIO_NPUSHES_MAX][1000];
+  int err;
+
+  if(fio_npushes == -1){
+    printf("ERROR: fio_popd: dir stack is empty\n");
+    return(1);
+  }
+
+  err = chdir(fio_dirstack[fio_npushes]);
+  if(err){
+    printf("ERROR: fio_popd: %d %s\n",fio_npushes,fio_dirstack[fio_npushes]);
+    return(1);
+  }
+  fio_npushes --;
+  //printf("fio_popd: %d %s\n",fio_npushes+1,fio_dirstack[fio_npushes+1]);
+
+  return(0);
 }
