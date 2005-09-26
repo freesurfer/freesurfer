@@ -1,6 +1,7 @@
 // mri_glmfit.c
 
-// Save config in output dir, and Xg and Cs
+// FSGD not quite ready
+// Save some sort of config in output dir.
 // PCA
 // Permute X
 // Leave out one
@@ -45,7 +46,6 @@ double round(double x);
 #include "timer.h"
 #include "matfile.h"
 
-
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -56,7 +56,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.24 2005/09/26 19:32:16 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.25 2005/09/26 22:08:09 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -93,6 +93,8 @@ char  *gd2mtx_method = "none";
 int nSelfReg = 0;
 int crsSelfReg[100][3];
 char *SUBJECTS_DIR;
+int cmax, rmax, smax;
+double Fmax, sigmax;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -102,7 +104,7 @@ int main(int argc, char **argv)
   char *cmdline, cwd[2000];
   struct timeb  mytimer;
   int msecFitTime;
-  MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL;
+  MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Xnorm=NULL;
   FILE *fp;
 
   /* rkt: check for and handle version tag */
@@ -135,8 +137,10 @@ int main(int argc, char **argv)
   printf("hostname %s\n",uts.nodename);
   printf("machine  %s\n",uts.machine);
 
-  if(SynthSeed < 0) SynthSeed = PDFtodSeed();
-  printf("SynthSeed = %d\n",SynthSeed);
+  if(synth){
+    if(SynthSeed < 0) SynthSeed = PDFtodSeed();
+    printf("SynthSeed = %d\n",SynthSeed);
+  }
 
   dump_options(stdout);
 
@@ -170,11 +174,13 @@ int main(int argc, char **argv)
   }
 
   // Check the condition of the global matrix -----------------
-  Xcond = MatrixNSConditionNumber(mriglm->Xg);
+  Xnorm = MatrixNormalizeCol(mriglm->Xg,NULL);
+  Xcond = MatrixNSConditionNumber(Xnorm);
   printf("Matrix condition is %g\n",Xcond);
   if(Xcond > 10000){
     printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",
 	   Xcond);
+    MatrixPrint(stdout,mriglm->Xg);
     exit(1);
   }
   // Load Per-Voxel Regressors -----------------------------------
@@ -369,27 +375,48 @@ int main(int argc, char **argv)
     sprintf(tmpstr,"%s/%s/C.dat",GLMDir,mriglm->glm->Cname[n]);
     MatrixWriteTxt(tmpstr, mriglm->glm->C[n]);
 
-    // Save gamma and F
+    // Save gamma 
     sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,mriglm->glm->Cname[n]);
     MRIwrite(mriglm->gamma[n],tmpstr);
+
+    // Save F
     sprintf(tmpstr,"%s/%s/F.mgh",GLMDir,mriglm->glm->Cname[n]);
     MRIwrite(mriglm->F[n],tmpstr);
     
     // Compute and Save -log10 p-values
     sig=MRIlog10(mriglm->p[n],sig,1);
+
+    // If it is t-test (ie, one row) then apply the sign
+    if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
+
+    // Write out the sig
     sprintf(tmpstr,"%s/%s/sig.mgh",GLMDir,mriglm->glm->Cname[n]);
     MRIwrite(sig,tmpstr);
+
+    // Find and save the max sig
+    sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
+    Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
+    printf("    max sig=%g  F=%g  at  index %d %d %d    seed=%d\n",
+	   sigmax,Fmax,cmax,rmax,smax,SynthSeed);
+
+    sprintf(tmpstr,"%s/%s/sigmax.dat",GLMDir,mriglm->glm->Cname[n]);
+    fp = fopen(tmpstr,"w");
+    fprintf(fp,"%e  %e    %d %d %d     %d\n",
+	    sigmax,Fmax,cmax,rmax,smax,SynthSeed);
+    fclose(fp);
     
     MRIfree(&sig);
   }
   
+  // --------- Save FSGDF stuff --------------------------------
   if(fsgd != NULL){
     strcpy(fsgd->measname,"external");
 
-    sprintf(fsgd->datafile,"y");
+    sprintf(fsgd->datafile,"%s/%s",cwd,yFile);
 
-    sprintf(fsgd->DesignMatFile,"%s/y.X.mat",GLMDir);
-    MatlabWrite(mriglm->Xg,fsgd->DesignMatFile,"X");
+    sprintf(tmpstr,"%s/fsgd.X.mat",GLMDir);
+    MatlabWrite(mriglm->Xg,tmpstr,"X");
+    sprintf(fsgd->DesignMatFile,"fsgd.X.mat");
 
     sprintf(tmpstr,"%s/y.fsgd",GLMDir);
     fp = fopen(tmpstr,"w");
