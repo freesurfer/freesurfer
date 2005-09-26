@@ -2033,3 +2033,51 @@ MATRIX *LabelFitXYZ(LABEL *label, int order)
 
   return(beta);
 }
+LABEL *
+LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
+{
+	LABEL        *area ;
+	int          vno, npoints ;
+	VERTEX       *v ;
+	LABEL_VERTEX *lv ;
+	Real         xv, yv, zv, nvox ;
+
+	nvox = pad / MAX(MAX(mri->xsize, mri->ysize), mri->zsize) ;  // convert to voxels
+	for (npoints = vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		MRIsurfaceRASToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
+		if (xv < nvox || yv < nvox || zv < nvox ||
+				xv > (mri->width-1)-nvox ||
+				yv > (mri->height-1)-nvox ||
+				zv > (mri->depth-1)-nvox)
+			continue ;
+		npoints++ ;
+	}
+
+	area = LabelAlloc(npoints, NULL, NULL) ;
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		MRIsurfaceRASToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
+		if (xv < nvox || yv < nvox || zv < nvox ||
+				xv > (mri->width-1)-nvox ||
+				yv > (mri->height-1)-nvox ||
+				zv > (mri->depth-1)-nvox)
+			continue ;
+		lv = &area->lv[area->n_points] ;
+		area->n_points++ ;
+		lv->vno = vno ; lv->x = v->x ; lv->y = v->y ; lv->z = v->z ;
+	}
+
+	LabelWrite(area, "./lh.all.label");
+	return(area) ;
+}

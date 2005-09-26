@@ -86,6 +86,7 @@ LABEL *LabelfromASeg(MRI *aseg, int segcode);
 MATRIX *LabelFitXYZ(LABEL *label, int order);
 LABEL *LabelBoundary(LABEL *label, MRIS *surf);
 int VertexIsInLabel(int vtxno, LABEL *label);
+LABEL *LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad) ;
 
 
 #include "mrishash.h"
