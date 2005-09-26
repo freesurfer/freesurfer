@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.14 2005/09/23 22:58:57 greve Exp $
+   $Id: fmriutils.c,v 1.15 2005/09/26 17:37:11 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.14 2005/09/23 22:58:57 greve Exp $");
+  return("$Id: fmriutils.c,v 1.15 2005/09/26 17:37:11 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -724,6 +724,7 @@ int MRIglmFit(MRIGLM *mriglm)
   nr = mriglm->y->height;
   ns = mriglm->y->depth;
   nf = mriglm->y->nframes;
+  nvoxtot = nc*nr*ns;
 
   mriglm->nregtot = MRIglmNRegTot(mriglm);
   GLMallocX(mriglm->glm, nf, mriglm->nregtot);
@@ -733,6 +734,7 @@ int MRIglmFit(MRIGLM *mriglm)
   else                                       mriglm->pervoxflag = 0;
 
   GLMcMatrices(mriglm->glm);
+
   if(! mriglm->pervoxflag) {
     MatrixCopy(mriglm->Xg,mriglm->glm->X);
     mriglm->XgLoaded = 1;
@@ -758,9 +760,8 @@ int MRIglmFit(MRIGLM *mriglm)
   }
 
   //--------------------------------------------
-  nvoxtot = nc*nr*ns;
+  pctdone = 0; 
   nthvox = 0;
-  pctdone = 0;
   mriglm->n_ill_cond = 0;
   for(c=0; c < nc; c++){
     for(r=0; r < nr; r++){
@@ -827,7 +828,8 @@ int MRIglmFit(MRIGLM *mriglm)
    MRIglmLoadVox() - loads the data (X and y) for the voxel at crs
    into the GLM matrix struct and applies the weights (if applicable). 
    X and y are allocated if they are NULL. mriglm->nregtot is also computed
-   here.
+   here. If Xg has already been loaded into X, then it is not loaded again
+   unless mriglm->w is non-null.
    ----------------------------------------------------------------------------------*/
 int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s)
 {
@@ -843,27 +845,29 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s)
 
   // Load y, Xg, and the per-vox reg --------------------------
   for(f = 1; f <= mriglm->y->nframes; f++){
+
+    // Load y
     mriglm->glm->y->rptr[f][1] = MRIgetVoxVal(mriglm->y,c,r,s,f-1);
 
-    // Load the global design matrix if needed
+    // Load Xg->X the global design matrix if needed
     if(mriglm->w != NULL || !mriglm->XgLoaded){
       nthreg = 1;
       for(n = 1; n <= mriglm->Xg->cols; n++){
-	mriglm->glm->X->rptr[f][nthreg] = mriglm->Xg->rptr[f][n];
+	mriglm->glm->X->rptr[f][nthreg] = mriglm->Xg->rptr[f][n]; // X=Xg
 	nthreg++;
       }
-      mriglm->XgLoaded = 1;
+      mriglm->XgLoaded = 1; // Set flag that Xg has been loaded
     }
     else nthreg = mriglm->Xg->cols;
 
-    // Load the global per-voxel regressors matrix
+    // Load the global per-voxel regressors matrix, X = [X pvr]
     for(n = 1; n <= mriglm->npvr; n++){
       mriglm->glm->X->rptr[f][nthreg] = MRIgetVoxVal(mriglm->pvr[n-1],c,r,s,f-1);
       nthreg++;
     }
   }
   
-  // Weight X and y
+  // Weight X and y, X = w.*X, y = w.*y
   if(mriglm->w != NULL && ! mriglm->skipweight){
     for(f = 1; f <= mriglm->glm->X->rows; f++){
       v = MRIgetVoxVal(mriglm->w,c,r,s,f-1);	    
@@ -878,9 +882,23 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s)
 /*----------------------------------------------------------------
   MRIglmNRegTot() - computes the total number of regressors based
   on the number of columns in Xg + number of per-voxel regressors
-----------------------------------------------------------------*/
+  ----------------------------------------------------------------*/
 int MRIglmNRegTot(MRIGLM *mriglm)
 {
   mriglm->nregtot = mriglm->Xg->cols + mriglm->npvr;
   return(mriglm->nregtot);
+}
+
+/*----------------------------------------------------------------
+  MRItoVector() - copies all the frames from the given voxel
+  in to a vector.
+  ----------------------------------------------------------------*/
+VECTOR *MRItoVector(MRI *mri, int c, int r, int s, VECTOR *v)
+{
+  int f;
+  if(v == NULL) v = MatrixAlloc(mri->nframes,1,MATRIX_REAL);
+
+  for(f=1; f <= v->rows; f++)
+    v->rptr[f][1] = MRIgetVoxVal(mri,c,r,s,f-1);
+  return(v);
 }

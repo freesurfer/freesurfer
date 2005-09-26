@@ -61,5 +61,6 @@ MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn);
 int MRIglmFit(MRIGLM *glmmri);
 int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s);
 int MRIglmNRegTot(MRIGLM *mriglm);
+VECTOR *MRItoVector(MRI *mri, int c, int r, int s, VECTOR *v);
 
 #endif
