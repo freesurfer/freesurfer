@@ -6,7 +6,6 @@ bool TclScubaKeyComboStaticTclListener::mbAddedTclCommands = false;
 
 TclScubaKeyCombo::TclScubaKeyCombo () :
   ScubaKeyCombo() {
-
 }
 
 void

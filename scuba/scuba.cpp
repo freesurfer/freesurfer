@@ -23,41 +23,39 @@ char* Progname = "scuba";
 
 // Togl tester ---------------------------------------------------------
 
-extern "C" {
-int Scuba_Init ( Tcl_Interp* iInterp ) {
+// extern "C" {
+// int Scuba_Init ( Tcl_Interp* iInterp ) {
     
-    try {
-    ToglManager& toglMgr = ToglManager::GetManager();
-    toglMgr.InitializeTogl( iInterp );
-    toglMgr.SetFrameFactory( new ScubaFrameFactory );
+//     try {
+//     ToglManager& toglMgr = ToglManager::GetManager();
+//     toglMgr.InitializeTogl( iInterp );
+//     toglMgr.SetFrameFactory( new ScubaFrameFactory );
 
-    ScubaFrame::SetViewFactory( new ScubaViewFactory );
+//     ScubaFrame::SetViewFactory( new ScubaViewFactory );
 
-    TclCommandManager& commandMgr = TclCommandManager::GetManager();
-    commandMgr.Start( iInterp );
+//     TclCommandManager& commandMgr = TclCommandManager::GetManager();
+//     commandMgr.Start( iInterp );
 
-    ScubaLayerFactory::GetFactory();
+//     ScubaLayerFactory::GetFactory();
     
-    ScubaDataCollectionFactory::GetFactory();
+//     ScubaDataCollectionFactory::GetFactory();
 
-    PathManager::GetManager();
+//     PathManager::GetManager();
 
-    PreferencesManager& prefsMgr = PreferencesManager::GetManager();
-    prefsMgr.UseFile( ".scuba" );
+//     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
+//     prefsMgr.UseFile( ".scuba" );
 
-    ScubaGlobalPreferences preferences =
-      ScubaGlobalPreferences::GetPreferences();
+//     ScubaGlobalPreferences preferences =
+//       ScubaGlobalPreferences::GetPreferences();
 
-    TclScubaKeyComboStaticTclListener::GetListener();
-    ScubaKeyCombo::SetFactory( new TclScubaKeyComboFactory() );
-  }
-  catch( ... ) {
-    return TCL_ERROR;
-  }
+//   }
+//   catch( ... ) {
+//     return TCL_ERROR;
+//   }
 
-  return TCL_OK;
-}
-}
+//   return TCL_OK;
+// }
+//}
 
 
 
@@ -104,6 +102,8 @@ int main ( int argc, char** argv ) {
     toglMgr.InitializeTogl( interp );
     toglMgr.SetFrameFactory( new ScubaFrameFactory );
 
+    ScubaKeyCombo::SetFactory( new TclScubaKeyComboFactory() );
+
     ScubaFrame::SetViewFactory( new ScubaViewFactory );
 
     ScubaLayerFactory::GetFactory();
@@ -121,6 +121,8 @@ int main ( int argc, char** argv ) {
       ScubaGlobalPreferences::GetPreferences();
 
     SegmentationVolumeReport::GetReport();
+
+    TclScubaKeyComboStaticTclListener::GetListener();
 
     // Look for the script, first in the local dir, then in
     // ../scripts, then in $FREESURFER_HOME/lib/tcl.

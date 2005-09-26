@@ -212,11 +212,6 @@ ScubaView::ScubaView() {
   mbFlipLeftRightInYZ = 
     prefs.GetPrefAsBool( ScubaGlobalPreferences::ViewFlipLeftRight );
 
-  cerr << "msMoveViewIn " << msMoveViewIn << endl;
-  cerr << "msMoveViewOut " << msMoveViewOut << endl;
-  cerr << "msZoomViewIn " << msZoomViewIn << endl;
-  cerr << "msZoomViewOut " << msZoomViewOut << endl;
-
   list<Layer::InfoAtRAS> lInfo;
   mInfoAtRASMap["mouse"] = lInfo;
   mInfoAtRASMap["cursor"] = lInfo;
