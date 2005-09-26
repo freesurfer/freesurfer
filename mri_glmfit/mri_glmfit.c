@@ -1,7 +1,5 @@
 // mri_glmfit.c
 
-// Incorporate glm into glmmri
-// PMF
 // Save config in output dir, and Xg and Cs
 // Add support for fsgdf
 // PCA
@@ -45,6 +43,9 @@ double round(double x);
 #include "fsglm.h"
 #include "gsl/gsl_cdf.h"
 #include "pdf.h"
+#include "fsgdf.h"
+#include "timer.h"
+
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -56,7 +57,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.21 2005/09/25 21:10:21 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.22 2005/09/26 17:36:31 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -81,10 +82,15 @@ double Xcond;
 
 int npvr=0;
 MRIGLM *mriglm;
+MATRIX *wvect;
 
 char voxdumpdir[1000];
 int voxdump[3];
 int voxdumpflag = 0;
+
+char *fsgdfile = NULL;
+FSGD *fsgd=NULL;
+char  *gd2mtx_method = "none";
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -92,6 +98,8 @@ int main(int argc, char **argv)
   int nargs,n;
   struct utsname uts;
   char *cmdline, cwd[2000];
+  struct timeb  mytimer;
+  int msecFitTime;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -145,11 +153,19 @@ int main(int argc, char **argv)
 
   // X ---------------------------------------------------------
   //Load global X------------------------------------------------
-  mriglm->Xg = MatrixReadTxt(XFile, NULL);
-  if(mriglm->Xg==NULL){
-    printf("ERROR: loading X %s\n",XFile);
-    exit(1);
+
+  if(XFile){  
+    mriglm->Xg = MatrixReadTxt(XFile, NULL);
+    if(mriglm->Xg==NULL){
+      printf("ERROR: loading X %s\n",XFile);
+      exit(1);
+    }
   }
+  else{
+    mriglm->Xg = gdfMatrix(fsgd,gd2mtx_method,NULL);
+    if(mriglm->Xg==NULL) exit(1);
+  }
+
   // Check the condition of the global matrix -----------------
   Xcond = MatrixNSConditionNumber(mriglm->Xg);
   printf("Matrix condition is %g\n",Xcond);
@@ -255,15 +271,18 @@ int main(int argc, char **argv)
       printf("ERROR: reading weight file %s\n",wFile);
       exit(1);
     }
+    // Check number of frames
     if(mriglm->y->nframes != mriglm->w->nframes){
       printf("ERROR: dimension mismatch between y and w.\n");
       printf("  y has %d frames, w has %d frames.\n",
 	     mriglm->y->nframes,mriglm->w->nframes);
       exit(1);
     }
+    // Invert, Sqrt, and Normalize the weights
     mritmp = MRInormWeights(mriglm->w, 1, 1, mriglm->mask, mriglm->w);
     if(mritmp==NULL) exit(1);
-    MRIwrite(mriglm->w,"wn.mgh");
+    sprintf(tmpstr,"%s/wn.mgh",GLMDir);
+    MRIwrite(mriglm->w,tmpstr);
   }
   else mriglm->w = NULL;
 
@@ -278,11 +297,19 @@ int main(int argc, char **argv)
     GLMfit(mriglm->glm);
     GLMtest(mriglm->glm);
     GLMdump(voxdumpdir,mriglm->glm);
+    if(mriglm->w){
+      wvect = MRItoVector(mriglm->w,voxdump[0],voxdump[1],voxdump[2],NULL);
+      sprintf(tmpstr,"%s/w.dat",voxdumpdir);
+      MatrixWriteTxt(tmpstr,wvect);
+    }
     exit(0);
   }
 
+  TimerStart(&mytimer) ;
   printf("Starting fit\n");
   MRIglmFit(mriglm);
+  msecFitTime = TimerStop(&mytimer) ;
+  printf("Fit completed in %g minutes\n",msecFitTime/(1000*60.0));
 
   printf("Writing results\n");
   MRIwrite(mriglm->beta,betaFile);
@@ -448,6 +475,20 @@ static int parse_commandline(int argc, char **argv)
       nContrasts++;
       nargsused = 1;
     }
+    else if ( !strcmp(option, "--fsgd") ){
+      if(nargc < 1) CMDargNErr(option,1);
+      fsgdfile = pargv[0];
+      nargsused = 1;
+      fsgd = gdfRead(fsgdfile,0);
+      if(fsgd==NULL) exit(1);
+      if(CMDnthIsArg(nargc, pargv, 1)){
+	gd2mtx_method = pargv[1]; nargsused ++;
+	if(gdfCheckMatrixMethod(gd2mtx_method)) exit(1);
+      }
+      else gd2mtx_method = "dods";
+      printf("INFO: gd2mtx_method is %s\n",gd2mtx_method);
+      strcpy(fsgd->DesignMatMethod,gd2mtx_method);
+    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(CMDsingleDash(option))
@@ -472,6 +513,7 @@ static void print_usage(void)
   printf("\n");
   printf("   --y input volume \n");
   printf("   --X design matrix file\n");
+  printf("   --fsgd FSGDF <gd2mtx>\n");
   printf("   --pvr pvr1 <--prv pvr2 ...>\n");
   printf("   --w weight volume\n");
   printf("   --mask mask volume\n");
@@ -515,8 +557,12 @@ static void check_options(void)
     printf("ERROR: must specify input y file\n");
     exit(1);
   }
-  if(XFile == NULL){
-    printf("ERROR: must specify an input X file\n");
+  if(XFile == NULL && fsgdfile == NULL){
+    printf("ERROR: must specify an input X file or fsgd file\n");
+    exit(1);
+  }
+  if(XFile && fsgdfile ){
+    printf("ERROR: cannot specify both X file and fsgd file\n");
     exit(1);
   }
   if(GLMDir != NULL){
@@ -553,7 +599,8 @@ static void check_options(void)
 static void dump_options(FILE *fp)
 {
   fprintf(fp,"y    %s\n",yFile);
-  fprintf(fp,"X    %s\n",XFile);
+  if(XFile)     fprintf(fp,"X    %s\n",XFile);
+  if(fsgdfile)  fprintf(fp,"FSGD File %s\n",fsgdfile);
   fprintf(fp,"beta %s\n",betaFile);
   fprintf(fp,"rvar %s\n",rvarFile);
   if(maskFile) fprintf(fp,"mask %s\n",maskFile);
