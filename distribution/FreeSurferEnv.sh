@@ -5,10 +5,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below
 #
-# $Id: FreeSurferEnv.sh,v 1.2 2005/09/20 16:49:28 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.3 2005/09/26 22:01:27 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.2 2005/09/20 16:49:28 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.3 2005/09/26 22:01:27 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -55,29 +55,29 @@ os=`uname -s`
 export OS=$os
 
 ## Set this environment variable to suppress the output.
-if [ -n $FS_FREESURFERENV_NO_OUTPUT ]; then
+if [ -n "$FS_FREESURFERENV_NO_OUTPUT" ]; then
     output=0
 else
     output=1
 fi
 
-if [[ $?USER == 0 || $?prompt == 0 ]]; then
+if [[ -z "$USER" || -z "$PS1" ]]; then
     output=0
 fi
 
 if [ $output==1 ]; then
     echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
-    if [[ "$1" = "--version" || \
-        "$1" = "--V" || \
-        "$1" = "-V" || \
-        "$1" = "-v" ]]; then
+    if [[ "$1" == "--version" || \
+        "$1" == "--V" || \
+        "$1" == "-V" || \
+        "$1" == "-v" ]]; then
         echo $VERSION
     fi
 fi
 
 ## Check if FREESURFER_HOME variable exists, then check if the actual
 ## directory exists.
-if [ -z $FREESURFER_HOME ]; then
+if [ -z "$FREESURFER_HOME" ]; then
     echo "ERROR: environment variable FREESURFER_HOME is not defined"
     echo "       Run the command 'export FREESURFER_HOME <FreeSurferHome>'"
     echo "       where <FreeSurferHome> is the directory where FreeSurfer"
@@ -98,32 +98,32 @@ fi
 ## basic one just in case they don't. Then add one with all the
 ## directories we just set.  Additions are made along the way in this
 ## script.
-if [ -z $PATH ]; then
+if [ -z "$PATH" ]; then
     PATH="~/bin:/bin:/usr/bin:/usr/local/bin"
 fi
 
 ## If FS_OVERRIDE is set, this script will automatically assign
 ## defaults to all locations. Otherwise, it will only do so if the
 ## variable isn't already set
-if [ -z $FS_OVERRIDE ]; then
+if [ -z "$FS_OVERRIDE" ]; then
     export FS_OVERRIDE=0
 fi
 
-if [[ -z $FSFAST_HOME || $FS_OVERRIDE -ne 0 ]]; then
+if [[ -z "$FSFAST_HOME" || $FS_OVERRIDE != 0 ]]; then
     export FSFAST_HOME=$FREESURFER_HOME/fsfast
 fi
 
-if [[ -z $SUBJECTS_DIR  || $FS_OVERRIDE -ne 0 ]]; then
+if [[ -z "$SUBJECTS_DIR" || $FS_OVERRIDE != 0 ]]; then
     export SUBJECTS_DIR=$FREESURFER_HOME/subjects
 fi
 
-if [[ -z $FUNCTIONALS_DIR  || $FS_OVERRIDE -ne 0 ]]; then
+if [[ -z "$FUNCTIONALS_DIR" || $FS_OVERRIDE != 0 ]]; then
     export FUNCTIONALS_DIR=$FREESURFER_HOME/sessions
 fi
 
-if [[ -z $NO_MINC && ( -z $MINC_BIN_DIR  || $FS_OVERRIDE -ne 0 ) ]]; then
+if [[ -z "$NO_MINC" && ( -z "$MINC_BIN_DIR" || $FS_OVERRIDE != 0 ) ]]; then
     # try to find minc toolkit binaries
-    if [ -n $MNI_INSTALL_DIR ]; then
+    if [ -n "$MNI_INSTALL_DIR" ]; then
         export MINC_BIN_DIR=$MNI_INSTALL_DIR/bin
     elif [ -e $FREESURFER_HOME/lib/mni/bin ]; then
         export MINC_BIN_DIR=$FREESURFER_HOME/lib/mni/bin
@@ -136,9 +136,9 @@ if [[ -z $NO_MINC && ( -z $MINC_BIN_DIR  || $FS_OVERRIDE -ne 0 ) ]]; then
     fi
 fi
 
-if [[ -z $NO_MINC && ( -z $MINC_LIB_DIR  || $FS_OVERRIDE -ne 0 ) ]]; then
+if [[ -z "$NO_MINC" && ( -z "$MINC_LIB_DIR" || $FS_OVERRIDE != 0 ) ]]; then
     # try to find minc toolkit libraries
-    if [ -n $MNI_INSTALL_DIR ]; then
+    if [ -n "$MNI_INSTALL_DIR" ]; then
         export MINC_LIB_DIR=$MNI_INSTALL_DIR/lib
     elif [ -e $FREESURFER_HOME/lib/mni/lib ]; then
         export MINC_LIB_DIR=$FREESURFER_HOME/lib/mni/lib
@@ -151,10 +151,10 @@ if [[ -z $NO_MINC && ( -z $MINC_LIB_DIR  || $FS_OVERRIDE -ne 0 ) ]]; then
     fi
 fi
 
-if [[ -z $FSL_DIR  || $FS_OVERRIDE -ne 0 ]]; then
+if [[ -z "$FSL_DIR" || $FS_OVERRIDE != 0 ]]; then
     # FSLDIR is the FSL declared location, use that.
     # else try find an installation.
-    if [ -n $FSLDIR ]; then
+    if [ -n "$FSLDIR" ]; then
         export FSL_DIR=$FSLDIR
     elif [ -e /usr/pubsw/packages/fsl/current ]; then
         export FSL_DIR=/usr/pubsw/packages/fsl/current
@@ -184,7 +184,7 @@ if [ $output==1 ]; then
     echo "FSFAST_HOME     $FSFAST_HOME"
     echo "SUBJECTS_DIR    $SUBJECTS_DIR"
 fi
-if [[ $output==1 && -n $FUNCTIONALS_DIR ]]; then
+if [[ $output==1 && -n "$FUNCTIONALS_DIR" ]]; then
     echo "FUNCTIONALS_DIR $FUNCTIONALS_DIR"
 fi
 
@@ -193,7 +193,7 @@ export FS_TALAIRACH_SUBJECT=talairach
 
 
 ######## --------- Functional Analysis Stuff ----------- #######
-if [[ -z $NO_FSFAST ]]; then
+if [[ -z "$NO_FSFAST" ]]; then
     export FMRI_ANALYSIS_DIR=$FSFAST_HOME # backwards compatability
     SUF=~/matlab/startup.m
     if [ ! -e $SUF ]; then
@@ -232,14 +232,14 @@ fi
 
 
 ### ----------- MINC Stuff -------------- ####
-if [[ $output==1 && -n $MINC_BIN_DIR ]]; then
+if [[ $output==1 && -n "$MINC_BIN_DIR" ]]; then
     echo "MINC_BIN_DIR    $MINC_BIN_DIR"
 fi
-if [[ $output==1 && -n $MINC_LIB_DIR ]]; then
+if [[ $output==1 && -n "$MINC_LIB_DIR" ]]; then
     echo "MINC_LIB_DIR    $MINC_LIB_DIR"
 fi
-if [ -z $NO_MINC ]; then
-    if [ -n $MINC_BIN_DIR ]; then
+if [ -z "$NO_MINC" ]; then
+    if [ -n "$MINC_BIN_DIR" ]; then
         if [ ! -d $MINC_BIN_DIR ]; then
             if [ $output==1 ]; then
                 echo "WARNING: MINC_BIN_DIR '$MINC_BIN_DIR' does not exist.";
@@ -253,7 +253,7 @@ if [ -z $NO_MINC ]; then
             echo "         Set NO_MINC to suppress this warning."
         fi
     fi
-    if [ -n  $MINC_LIB_DIR ]; then
+    if [ -n "$MINC_LIB_DIR" ]; then
         if [ ! -d $MINC_LIB_DIR ]; then
             if [ $output==1 ]; then
                 echo "WARNING: MINC_LIB_DIR '$MINC_LIB_DIR' does not exist.";
@@ -268,17 +268,17 @@ if [ -z $NO_MINC ]; then
         fi
     fi
     ## Set Load library path ##
-    if [ -z $LD_LIBRARY_PATH ]; then
-        if [ -n $MINC_LIB_DIR ]; then
+    if [ -z "$LD_LIBRARY_PATH" ]; then
+        if [ -n "$MINC_LIB_DIR" ]; then
             export LD_LIBRARY_PATH=$MINC_LIB_DIR
         fi
     else
-        if [ -n $MINC_LIB_DIR ]; then
+        if [ -n "$MINC_LIB_DIR" ]; then
             export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":"$MINC_LIB_DIR"
         fi
     fi
     ## nu_correct and other MINC tools require a path to perl
-    if [ -z $PERL5LIB ]; then
+    if [ -z "$PERL5LIB" ]; then
         if [ -e $MINC_LIB_DIR/../System/Library/Perl/5.8.6 ]; then
             # Max OS X Tiger default:
             export PERL5LIB="$MINC_LIB_DIR/../System/Library/Perl/5.8.6"
@@ -299,12 +299,12 @@ if [ -z $NO_MINC ]; then
             export PERL5LIB="$MINC_LIB_DIR/5.6.0"
         fi
     fi
-    if [[ $output==1 && -n $PERL5LIB ]]; then
+    if [[ $output==1 && -n "$PERL5LIB" ]]; then
         echo "PERL5LIB        $PERL5LIB"
     fi
 fi
-if [ -z $NO_MINC ]; then
-    if [ -n $MINC_BIN_DIR ]; then
+if [ -z "$NO_MINC" ]; then
+    if [ -n "$MINC_BIN_DIR" ]; then
         PATH=$MINC_BIN_DIR:$PATH
     fi
 fi
@@ -316,20 +316,20 @@ if [ -d $FREESURFER_HOME/lib/gsl ]; then
 elif [ -d /usr/pubsw/packages/gsl/current ]; then
     export GSL_DIR=/usr/pubsw/packages/gsl/current
 fi
-if [ -n $GSL_DIR ]; then
+if [ -n "$GSL_DIR" ]; then
     export PATH=$GSL_DIR/bin:$PATH
-    if [ -z $LD_LIBRARY_PATH ]; then
+    if [ -z "$LD_LIBRARY_PATH" ]; then
         export LD_LIBRARY_PATH=$GSL_DIR/lib
     else
         export LD_LIBRARY_PATH="$GSL_DIR/lib":"$LD_LIBRARY_PATH"
     fi
-    if [ -z $DYLD_LIBRARY_PATH ]; then
+    if [ -z "$DYLD_LIBRARY_PATH" ]; then
         export DYLD_LIBRARY_PATH=$GSL_DIR/lib
     else
         export DYLD_LIBRARY_PATH="$GSL_DIR/lib":"$DYLD_LIBRARY_PATH"
     fi
 fi
-if [[ $output==1 && -n $GSL_DIR ]]; then
+if [[ $output==1 && -n "$GSL_DIR" ]]; then
     echo "GSL_DIR         $GSL_DIR"
 fi
 
@@ -341,15 +341,15 @@ if [ -d $FREESURFER_HOME/lib/qt ]; then
 elif [ -d /usr/pubsw/packages/qt/current ]; then
     export QTDIR=/usr/pubsw/packages/qt/current
 fi
-if [ -n $QTDIR ]; then
+if [ -n "$QTDIR" ]; then
     export PATH=$QTDIR/bin:$PATH
-    if [ -z $LD_LIBRARY_PATH ]; then
+    if [ -z "$LD_LIBRARY_PATH" ]; then
         export LD_LIBRARY_PATH=$QTDIR/lib
     else
         export LD_LIBRARY_PATH="$QTDIR/lib":"$LD_LIBRARY_PATH"
     fi
 fi
-if [[ $output==1 && -n $QTDIR ]]; then
+if [[ $output==1 && -n "$QTDIR" ]]; then
     echo "QTDIR           $QTDIR"
 fi
 
@@ -364,18 +364,18 @@ if [ -d $FREESURFER_HOME/lib/tcltktixblt/lib ]; then
     export TK_LIBRARY=$TCLLIBPATH/tk8.4
     export TIX_LIBRARY=$TCLLIBPATH/tix8.1
     export BLT_LIBRARY=$TCLLIBPATH/blt2.4
-    if [ -z $LD_LIBRARY_PATH ]; then
+    if [ -z "$LD_LIBRARY_PATH" ]; then
         export LD_LIBRARY_PATH=$TCLLIBPATH
     else
         export LD_LIBRARY_PATH="$TCLLIBPATH":"$LD_LIBRARY_PATH"
     fi
-    if [ -z $DYLD_LIBRARY_PATH ]; then
+    if [ -z "$DYLD_LIBRARY_PATH" ]; then
         export DYLD_LIBRARY_PATH=$TCLLIBPATH
     else
         export DYLD_LIBRARY_PATH="$TCLLIBPATH":"$DYLD_LIBRARY_PATH"
     fi
 fi
-if [[ $output==1 && -n $TCLLIBPATH ]]; then
+if [[ $output==1 && -n "$TCLLIBPATH" ]]; then
     echo "TCLLIBPATH      $TCLLIBPATH"
 fi
 
@@ -386,24 +386,24 @@ if [ -d $FREESURFER_HOME/lib/misc/bin ]; then
 fi
 if [ -d $FREESURFER_HOME/lib/misc/lib ]; then
     export MISC_LIB=$FREESURFER_HOME/lib/misc/lib
-    if [ -z $LD_LIBRARY_PATH ]; then
+    if [ -z "$LD_LIBRARY_PATH" ]; then
         export LD_LIBRARY_PATH=$MISC_LIB
     else
         export LD_LIBRARY_PATH="$MISC_LIB":"$LD_LIBRARY_PATH"
     fi
-    if [ -z $DYLD_LIBRARY_PATH ]; then
+    if [ -z "$DYLD_LIBRARY_PATH" ]; then
         export DYLD_LIBRARY_PATH=$MISC_LIB
     else
         export DYLD_LIBRARY_PATH="$MISC_LIB":"$DYLD_LIBRARY_PATH"
     fi
 fi
-if [[ $output==1 && -n $MISC_LIB ]]; then
+if [[ $output==1 && -n "$MISC_LIB" ]]; then
     echo "MISC_LIB        $MISC_LIB"
 fi
 
 
 ### ----------- FSL ------------ ####
-if [ -n $FSL_DIR ]; then
+if [ -n "$FSL_DIR" ]; then
     export FSLDIR=$FSL_DIR
     export FSL_BIN=$FSL_DIR/bin
     if [ ! -d $FSL_BIN ]; then
@@ -415,10 +415,10 @@ if [ -n $FSL_DIR ]; then
         source $FSL_DIR/etc/fslconf/fsl.sh
     fi
 fi
-if [ -n $FSL_BIN ]; then
+if [ -n "$FSL_BIN" ]; then
     PATH=$FSL_BIN:$PATH
 fi
-if [[ $output==1 && -n $FSL_DIR ]]; then
+if [[ $output==1 && -n "$FSL_DIR" ]]; then
     echo "FSL_DIR         $FSL_DIR"
 fi
 
@@ -427,12 +427,12 @@ fi
 export PATH=$FSFAST_HOME/bin:$FREESURFER_HOME/bin/noarch:$FREESURFER_HOME/bin:$PATH
 
 ## Add path to OS-specific static and dynamic libraries.
-if [ -z $LD_LIBRARY_PATH ]; then
+if [ -z "$LD_LIBRARY_PATH" ]; then
     export LD_LIBRARY_PATH=$FREESURFER_HOME/lib/
 else
     export LD_LIBRARY_PATH="$LD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
 fi
-if [ -z $DYLD_LIBRARY_PATH ]; then
+if [ -z "$DYLD_LIBRARY_PATH" ]; then
     export DYLD_LIBRARY_PATH=$FREESURFER_HOME/lib/
 else
     export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH":"$FREESURFER_HOME/lib/"
