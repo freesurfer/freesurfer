@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.11 2005/09/20 18:27:48 nicks Exp $';
+set VERSION = '$Id: make_average_surface,v 1.12 2005/09/26 20:48:29 nicks Exp $';
 
 set PrintHelp = 0;
 
@@ -275,6 +275,7 @@ usage_exit:
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"
   echo "   --echo    : enable command echo, for debug"
+  echo "   --debug   : same as --echo"
   echo ""
   echo "See also: recon-all, make_final_surfaces, morph_subject"
   echo ""
