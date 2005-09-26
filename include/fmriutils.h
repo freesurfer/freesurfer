@@ -62,5 +62,6 @@ int MRIglmFit(MRIGLM *glmmri);
 int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s);
 int MRIglmNRegTot(MRIGLM *mriglm);
 VECTOR *MRItoVector(MRI *mri, int c, int r, int s, VECTOR *v);
+int MRIsetSign(MRI *invol, MRI *signvol, int frame);
 
 #endif

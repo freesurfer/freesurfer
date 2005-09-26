@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.16 2005/09/26 18:34:47 greve Exp $
+   $Id: fmriutils.c,v 1.17 2005/09/26 21:02:34 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.16 2005/09/26 18:34:47 greve Exp $");
+  return("$Id: fmriutils.c,v 1.17 2005/09/26 21:02:34 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -901,4 +901,35 @@ VECTOR *MRItoVector(MRI *mri, int c, int r, int s, VECTOR *v)
   for(f=1; f <= v->rows; f++)
     v->rptr[f][1] = MRIgetVoxVal(mri,c,r,s,f-1);
   return(v);
+}
+
+/*---------------------------------------------------------------
+  MRIsetSign() - sets the sign of the invol based on the sign of the
+  nth frame of the signvol. The values of the input are changed.  All
+  frames of the input volume are affected.
+  --------------------------------------------------------------*/
+int MRIsetSign(MRI *invol, MRI *signvol, int frame)
+{
+  int c, r, s, f;
+  double v,sgn;
+
+  if(frame > signvol->nframes){
+    printf("ERROR: MRIsetSign(): input frame %d is too large",frame);
+    return(1);
+  }
+
+  for(c=0; c < invol->width; c++){
+    for(r=0; r < invol->height; r++){
+      for(s=0; s < invol->depth; s++){
+	sgn = MRIgetVoxVal(signvol,c,r,s,frame);
+	for(f=0; f < invol->nframes; f++){
+	  v = MRIgetVoxVal(invol,c,r,s,f);
+	  if(sgn < 0.0) v = -1.0*fabs(v);
+	  if(sgn > 0.0) v = +1.0*fabs(v);
+	  MRIsetVoxVal(invol,c,r,s,f,v);
+	}
+      }
+    }
+  }
+  return(0);
 }
