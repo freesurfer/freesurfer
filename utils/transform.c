@@ -2053,7 +2053,8 @@ void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
     ret = stat(srcVol, &stat_buf);
     if (ret != 0)
     {
-      fprintf(stderr, "INFO: Volume %s cannot be found.\n", srcVol);
+      // annoying useless message commented-out:
+      //fprintf(stderr, "INFO: Volume %s cannot be found.\n", srcVol);
       // now check whether it is average_305
       if (strstr(srcVol, "average_305"))
       {
@@ -2117,7 +2118,7 @@ void mincGetVolInfo(char *infoline, char *infoline2, VOL_GEOM *vgSrc, VOL_GEOM *
     {
       // average_305 value
       fprintf(stderr, "INFO: using average_305 info, since \n");
-      fprintf(stderr, "INFO: environmentatl var USE_AVERAGE_305 set\n");
+      fprintf(stderr, "INFO: environment var USE_AVERAGE_305 set\n");
       vgDst->width = 172; vgDst->height = 220; vgDst->depth = 156;
       vgDst->xsize = 1; vgDst->ysize = 1; vgDst->zsize = 1;
       vgDst->x_r = 1; vgDst->x_a = 0; vgDst->x_s = 0;
