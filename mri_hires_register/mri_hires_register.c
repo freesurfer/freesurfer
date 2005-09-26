@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/05/04 19:33:12 $
-// Revision       : $Revision: 1.7 $
+// Revision Date  : $Date: 2005/09/26 17:34:24 $
+// Revision       : $Revision: 1.8 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -30,36 +30,29 @@
 #include "version.h"
 #include "transform.h"
 #include "nr.h"
+#include "fastmarching.h"
+#include "voxlist.h"
 
-typedef struct
-{
-	int *xi ;
-	int *yi ;
-	int *zi ;
-	MRI *mri ;
-	int nvox ;
-} VOXEL_LIST ;
-
-#define MAX_ANGLE       RADIANS(25)
+#define DEFAULT_MAX_ANGLE       RADIANS(25)
+static double MAX_ANGLE = DEFAULT_MAX_ANGLE ;
+static double MAX_SCALE = 0.5 ;
 
 #define HIRES_PAD       10
 #define LOWRES_PAD      20
 
-
 static int find_gcam_node(GCA_MORPH *gcam, int label, 
 													float x_vox, float y_vox, float z_vox) ;
 
+static int angio = 0 ;
 static int find_label = -1 ;
 static float x_vox = 0.0 ;
 static float y_vox = 0.0 ;
 static float z_vox = 0.0 ;
 
+static int apply_transform = 1 ;
+
 static int fix_intensity = 0 ;
 static MRI *estimate_densities(GCA_MORPH *gcam, MRI *mri_lowres, MRI *mri_intensity) ;
-static MRI *mri_from_voxel_list(VOXEL_LIST *vl, MRI *mri) ;
-static int  free_voxel_list(VOXEL_LIST **pvoxel_list) ;
-static VOXEL_LIST *create_voxel_list(MRI *mri, float low_val, float hi_val , 
-																		 VOXEL_LIST *vl, int skip) ;
 static int write_snapshot(MRI *mri_lowres, MRI *mri_hires, 
 													MATRIX *m_vox_xform, INTEGRATION_PARMS *parms, 
 													int fno, int conform, char *fname) ;
@@ -77,7 +70,12 @@ static TRANSFORM *compute_optimal_transform(VOXEL_LIST *vl_lowres,
 																						VOXEL_LIST *vl_hires, 
 																						INTEGRATION_PARMS *parms,
 																						TRANSFORM *transform) ;
+
 static double compute_overlap(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *m_L) ;
+static double compute_distance_transform_sse(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *m_L) ;
+
+static double (*pf_overlap)(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *m_L) = compute_overlap ;
+
 static double find_optimal_translation(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, 
 																			 MATRIX *m_L, float min_trans, 
 																			 float max_trans, 
@@ -100,110 +98,6 @@ static double distance = 1.0 ;
 static MRI *mri_hires_intensity = NULL ;
 static char *hires_intensity_fname = NULL ;
 
-#if 0
-#ifdef nothing
-#undef nothing
-#endif
-#define  nothing 0
-#ifdef alveus
-#undef alveus
-#endif
-#define  alveus 1
-#ifdef perforant_pathway
-#undef perforant_pathway
-#endif
-#define  perforant_pathway 2
-#ifdef parasubiculum
-#undef parasubiculum
-#endif
-#define  parasubiculum 3
-#ifdef presubiculum
-#undef presubiculum
-#endif
-#define  presubiculum 4
-#ifdef subiculum
-#undef subiculum
-#endif
-#define  subiculum 5
-#ifdef CA1
-#undef CA1
-#endif
-#define  CA1 6
-#ifdef CA2
-#undef CA2
-#endif
-#define  CA2 7
-#ifdef CA3
-#undef CA3
-#endif
-#define  CA3 8
-#ifdef CA4
-#undef CA4
-#endif
-#define  CA4 9
-#ifdef GC_DG
-#undef GC_DG
-#endif
-#define GC_DG 10
-#ifdef HATA
-#undef HATA
-#endif
-#define HATA 11
-#ifdef fimbria
-#undef fimbria
-#endif
-#define fimbria 12
-#ifdef lateral_ventricle
-#undef lateral_ventricle
-#endif
-#define lateral_ventricle 13
-#ifdef molecular_layer_HP
-#undef molecular_layer_HP
-#endif
-#define molecular_layer_HP 14
-#ifdef hippocampal_fissure
-#undef hippocampal_fissure
-#endif
-#define hippocampal_fissure 15
-#ifdef entorhinal_cortex
-#undef entorhinal_cortex
-#endif
-#define entorhinal_cortex 16
-#ifdef molecular_layer_subiculum
-#undef molecular_layer_subiculum
-#endif
-#define molecular_layer_subiculum 17
-#ifdef Amygdala
-#undef Amygdala
-#endif
-#define Amygdala 18
-#ifdef Cerebral_White_Matter
-#undef Cerebral_White_Matter
-#endif
-#define Cerebral_White_Matter 19
-#ifdef Cerebral_Cortex
-#undef Cerebral_Cortex
-#endif
-#define Cerebral_Cortex 20
-#ifdef Inf_Lat_Vent
-#undef Inf_Lat_Vent
-#endif
-#define Inf_Lat_Vent 21
-
-
-#undef lateral_ventricle
-#define lateral_ventricle     13
-#undef entorhinal_cortex    
-#define entorhinal_cortex     16
-#undef Amygdala
-#define Amygdala              18
-#undef Cerebral_White_Matter  
-#define Cerebral_White_Matter 19
-#undef Cerebral_Cortex
-#define Cerebral_Cortex       20
-#undef Inf_Lat_Vent           
-#define Inf_Lat_Vent          21
-#endif
 
 static int non_hippo_labels[] =
 {
@@ -216,6 +110,23 @@ static int non_hippo_labels[] =
 } ;
 #define NUM_NON_HIPPO_LABELS  (sizeof(non_hippo_labels) / sizeof(non_hippo_labels[0]))
 
+static int non_artery_labels[] =
+{
+	Left_Common_IliacV,
+	Right_Common_IliacV,
+	Left_External_IliacV,
+	Right_External_IliacV,
+	Left_Internal_IliacV,
+	Right_Internal_IliacV,
+	Left_ObturatorV,
+	Right_ObturatorV,
+	Left_Internal_PudendalV,
+	Right_Internal_PudendalV,
+	Pos_Lymph,
+	Neg_Lymph
+} ;
+#define NUM_NON_ARTERY_LABELS  (sizeof(non_artery_labels) / sizeof(non_artery_labels[0]))
+
 
 static INTEGRATION_PARMS parms ;
 static TRANSFORM  *transform = NULL ;
@@ -225,8 +136,9 @@ int
 main(int argc, char *argv[])
 {
 	char       **av, *hires_fname, *aseg_fname, *intensity_fname, *out_fname, fname[STRLEN] ;
-  int        ac, nargs, i ;
-	MRI        *mri_intensity, *mri_lowres, *mri_hires, *mri_tmp, *mri_target ;
+  int        ac, nargs, i, new_transform = 0 ;
+	MRI        *mri_intensity, *mri_lowres, *mri_hires, *mri_tmp, *mri_target, *mri_dist_src = NULL, 
+             *mri_dist_dst = NULL ;
 	VOXEL_LIST *vl_lowres, *vl_hires ;
 	MRI_REGION  box ;
   struct timeb start ;
@@ -286,15 +198,21 @@ main(int argc, char *argv[])
 	if (!mri_hires)
 		ErrorExit(ERROR_NOFILE, "%s: could not read hires label volume %s",
 							Progname, hires_fname) ;
-	if (mri_hires->type != MRI_UCHAR)
-	{
-		mri_tmp = MRIchangeType(mri_hires, MRI_UCHAR, 0, 255, 1) ;
-		MRIfree(&mri_hires) ;
-		mri_hires = mri_tmp ;
-	}
 
-	/* remove non-hippo labels if only doing linear morph */
-	if (transform == NULL)
+	
+	if (angio)  // only use arterial labels for morph 
+	{
+		pf_overlap = compute_distance_transform_sse ;
+		//		if (transform == NULL)
+		{
+			for (i = 0 ; i < NUM_NON_ARTERY_LABELS ; i++)
+			{
+				label = non_artery_labels[i] ;
+				MRIreplaceValues(mri_hires, mri_hires, label, 0) ;
+			}
+		}
+	}
+	else if (transform == NULL) /* remove non-hippo labels if only doing linear morph */
 	{
 		for (i = 0 ; i < NUM_NON_HIPPO_LABELS ; i++)
 		{
@@ -302,6 +220,15 @@ main(int argc, char *argv[])
 			MRIreplaceValues(mri_hires, mri_hires, label, 0) ;
 		}
 	}
+
+	if (mri_hires->type != MRI_UCHAR && angio == 0)
+	{
+		mri_tmp = MRIchangeType(mri_hires, MRI_UCHAR, 0, 255, 1) ;
+		MRIfree(&mri_hires) ;
+		mri_hires = mri_tmp ;
+	}
+	
+	
 
 	MRIboundingBox(mri_hires, 0, &box) ;
 	box.x -= HIRES_PAD ; box.y -= HIRES_PAD ; box.z -= HIRES_PAD ; 
@@ -319,24 +246,41 @@ main(int argc, char *argv[])
 	if (!mri_lowres)
 		ErrorExit(ERROR_NOFILE, "%s: could not read aseg label volume %s",
 							Progname, aseg_fname) ;
-#if 0
-	if (FZERO(mp.l_area_intensity) && FZERO(mp.l_log_likelihood)) /* only hippocampus label */
+	if (angio)
 	{
-		mri_tmp = MRIclone(mri_lowres, NULL) ; MRIcopyLabel(mri_lowres, mri_tmp, target_label) ;
-		MRIfree(&mri_lowres) ; mri_lowres = mri_tmp ;
-	}
-
-	MRIboundingBox(mri_lowres, 0, &box) ;
-	box.x -= LOWRES_PAD ; box.y -= LOWRES_PAD ; box.z -= LOWRES_PAD ; 
-	box.x = MAX(0, box.x) ; box.y = MAX(0, box.y) ;box.z = MAX(0, box.z) ;
-	box.dx += 2*LOWRES_PAD ; box.dy += 2*LOWRES_PAD ; box.dz += 2*LOWRES_PAD ; 
-	box.dx = MIN(mri_lowres->width-box.x-1, box.dx) ;
-	box.dy = MIN(mri_lowres->height-box.y-1, box.dy) ;
-	box.dz = MIN(mri_lowres->depth-box.z-1, box.dz) ;
-	mri_tmp = MRIextractRegion(mri_lowres, NULL, &box) ;
-	MRIfree(&mri_lowres) ;
-	mri_lowres = mri_tmp ;
+		MRIbinarize(mri_lowres, mri_lowres, 1, 0, 128) ;
+		MRIbinarize(mri_hires, mri_hires, 1, 0, 128) ;
+		MRIwrite(mri_lowres, "target_labels.mgz") ;
+		MRIwrite(mri_hires, "src_labels.mgz") ;
+#if 1
+		if (mri_lowres->type != MRI_UCHAR)
+		{
+			mri_tmp = MRIchangeType(mri_lowres, MRI_UCHAR, 0, 255, 1) ;
+			MRIfree(&mri_lowres) ;
+			mri_lowres = mri_tmp ;
+		}
+		if (mri_hires->type != MRI_UCHAR)
+		{
+			mri_tmp = MRIchangeType(mri_hires, MRI_UCHAR, 0, 255, 1) ;
+			MRIfree(&mri_hires) ;
+			mri_hires = mri_tmp ;
+		}
 #endif
+		target_label = 128 ;
+		printf("creating distance transforms...\n") ;
+#if 0
+		mri_dist = MRIextractDistanceMap(mri_lowres, NULL, 128, 2*MAX(MAX(mri_lowres->width, mri_lowres->height), mri_lowres->depth),1);
+		MRIwrite(mri_dist, "dist.mgz") ;
+#else
+		if (transform == NULL)
+		{
+			mri_dist_src = MRIdistanceTransform(mri_hires, NULL, 128, -1, DTRANS_MODE_SIGNED);
+			mri_dist_dst = MRIdistanceTransform(mri_lowres, NULL, 128, -1, DTRANS_MODE_SIGNED);
+			MRIwrite(mri_dist_src, "dist_src.mgz") ;
+			MRIwrite(mri_dist_dst, "dist_dst.mgz") ;
+		}
+#endif
+	}
 
 	
   if (Gdiag & DIAG_WRITE && parms.write_iterations > 0)
@@ -364,23 +308,42 @@ main(int argc, char *argv[])
 
 	if (transform == NULL)   /* compute optimal linear transform */
 	{
-		vl_lowres = create_voxel_list(mri_lowres,target_label,target_label,NULL,0);
+		vl_lowres = VLSTcreate(mri_lowres,target_label,target_label,NULL,skip,0);
+		vl_lowres->mri2 = mri_dist_dst ;
 		for (i = 0 ; i < 3 ; i++)
 		{
 			printf("------------- outer loop iteration %d ---------------\n",i) ;
-			vl_hires = create_voxel_list(mri_hires, 1, 255, NULL, skip) ;
+			vl_hires = VLSTcreate(mri_hires, 1, 255, NULL, skip, 0) ;
+			vl_hires->mri2 = mri_dist_src ;
 			
 			transform = compute_optimal_transform(vl_lowres, vl_hires, &parms,
 																						transform) ;
-			free_voxel_list(&vl_hires) ;
-			vl_hires = create_voxel_list(mri_hires, 1, 255, NULL, skip/4) ;
+			VLSTfree(&vl_hires) ;
+			vl_hires = VLSTcreate(mri_hires, 1, 255, NULL, skip/4, 0) ;
+			vl_hires->mri2 = mri_dist_src ;
 			powell_minimize(vl_lowres, vl_hires, ((LTA *)(transform->xform))->xforms[0].m_L) ;
-			free_voxel_list(&vl_hires) ;
+			VLSTfree(&vl_hires) ;
+			if (apply_transform)
+			{
+				MRI *mri_aligned ;
+				MATRIX *m_vox_xform ;
+				char   fname[STRLEN] ;
+
+				FileNameRemoveExtension(out_fname, fname) ;
+				strcat(fname, ".mgz") ;
+				m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
+				mri_aligned = MRIclone(mri_lowres, NULL) ;
+				MRIlinearTransformInterp(mri_hires, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
+				printf("writing transformed output volume to %s...\n", fname) ;
+				MRIwrite(mri_aligned, fname) ;
+				MRIfree(&mri_aligned) ;
+			}
 			LTAvoxelToRasXform((LTA *)(transform->xform), mri_hires, mri_lowres) ;
 			TransformWrite(transform, out_fname) ;
 			LTArasToVoxelXform((LTA *)(transform->xform), mri_hires, mri_lowres) ;
+			skip /= 2 ;
 		}
-		free_voxel_list(&vl_lowres) ;
+		VLSTfree(&vl_lowres) ;
 
 		printf("final vox2vox matrix:\n") ;
 		MatrixPrint(stdout, ((LTA *)(transform->xform))->xforms[0].m_L) ;
@@ -408,6 +371,21 @@ main(int argc, char *argv[])
 			MRIfree(&mri_aligned) ;
 		}
 
+		if (apply_transform)
+		{
+			MRI *mri_aligned ;
+			MATRIX *m_vox_xform ;
+			char   fname[STRLEN] ;
+			
+			FileNameRemoveExtension(out_fname, fname) ;
+			strcat(fname, ".mgz") ;
+			m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
+			mri_aligned = MRIclone(mri_lowres, NULL) ;
+			MRIlinearTransformInterp(mri_hires, mri_aligned, m_vox_xform, SAMPLE_NEAREST);
+			printf("writing transformed output volume to %s...\n", fname) ;
+			MRIwrite(mri_aligned, fname) ;
+			MRIfree(&mri_aligned) ;
+		}
 		LTAvoxelToRasXform((LTA *)(transform->xform), mri_hires, mri_lowres) ;
 		TransformWrite(transform, out_fname) ;
 	}
@@ -420,8 +398,9 @@ main(int argc, char *argv[])
 		strcpy(mp.base_name, parms.base_name) ;
 		mp.max_grad = 0.3*mri_hires->xsize ;
 
-		if (transform->type != MORPH_3D_TYPE)
+		if (transform->type != MORPH_3D_TYPE)  // initializing m3d from a linear transform
 		{
+			new_transform = 1 ;
 			lta = ((LTA *)(transform->xform)) ;
 			m_L = MRIrasXformToVoxelXform(mri_hires, mri_lowres, lta->xforms[0].m_L, NULL) ;
 			MatrixFree(&lta->xforms[0].m_L) ;
@@ -430,7 +409,12 @@ main(int argc, char *argv[])
 
 			mri_tmp = MRITransformedCenteredMatrix(mri_hires, mri_lowres, m_L) ;
 			MRIfree(&mri_hires) ;
+			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+				MRIwrite(mri_tmp, "b.mgz") ;
 			mri_hires = MRImodeFilter(mri_tmp, NULL, 3) ;
+			MRIfree(&mri_tmp) ;
+			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+				MRIwrite(mri_hires, "a.mgz") ;
 			m_I = MatrixIdentity(4, NULL) ;
 			MRIrasXformToVoxelXform(mri_hires, mri_lowres, m_I, m_L);
 			MatrixFree(&m_I) ;
@@ -470,6 +454,9 @@ main(int argc, char *argv[])
 			ErrorExit(ERROR_BADPARM, "%s: warning gcam (%d, %d, %d), doesn't match hires vol (%d, %d, %d)",
 								Progname, gcam->width, gcam->height, gcam->depth,
 								mri_hires->width, mri_hires->height, mri_hires->depth) ;
+		mp.diag_morph_from_atlas = 1 ;
+		mp.diag_volume = GCAM_LABEL ;
+		mp.diag_mode_filter = 1 ;
 		if (regrid && 0)
 		{
 			double pct_change ;
@@ -545,19 +532,43 @@ main(int argc, char *argv[])
 			MRIfree(&mp.mri_binary) ; mp.mri_binary = mri_tmp ;
 
 			/*			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)*/
-				MRIwrite(mp.mri_binary, "aseg_target.mgz") ;
-			for (i = 0 ; i < NUM_NON_HIPPO_LABELS ; i++)
+			MRIwrite(mp.mri_binary, "aseg_target.mgz") ;
+			if (angio)   // doesn't do anything as the volume was binarized to 128 before
 			{
-				label = non_hippo_labels[i] ;
-				GCAMsetLabelStatus(gcam, label, GCAM_BINARY_ZERO) ;
+				for (i = 0 ; i < NUM_NON_ARTERY_LABELS ; i++)
+				{
+					label = non_artery_labels[i] ;
+					GCAMsetLabelStatus(gcam, label, GCAM_BINARY_ZERO) ;
+				}
 			}
+			else
+			{
+				for (i = 0 ; i < NUM_NON_HIPPO_LABELS ; i++)
+				{
+					label = non_hippo_labels[i] ;
+					GCAMsetLabelStatus(gcam, label, GCAM_BINARY_ZERO) ;
+				}
+			}
+
 			GCAMsetLabelStatus(gcam, 0, GCAM_NEVER_USE_LIKELIHOOD) ;
 			mp.mri = mri_target ;
-			if (mp.regrid == True)
+			if (mp.regrid == True && new_transform == 0)
 				GCAMregrid(gcam, mri_target, HIRES_PAD, &mp, &mri_hires) ;
 			if (find_label >= 0)
 				find_gcam_node(gcam, find_label, x_vox, y_vox, z_vox) ;
 			GCAMregister(gcam, mri_target, &mp) ;
+			if (apply_transform)
+			{
+				MRI *mri_aligned ;
+				char   fname[STRLEN] ;
+
+				FileNameRemoveExtension(out_fname, fname) ;
+				strcat(fname, ".mgz") ;
+				mri_aligned = GCAMmorphFieldFromAtlas(gcam, mp.mri, GCAM_LABEL,0, 1) ;
+				printf("writing transformed output volume to %s...\n", fname) ;
+				MRIwrite(mri_aligned, fname) ;
+				MRIfree(&mri_aligned) ;
+			}
 			GCAMvoxToRas(gcam) ;
 			GCAMwrite(gcam, out_fname) ;
 			GCAMrasToVox(gcam, mri_target) ;
@@ -633,6 +644,11 @@ get_option(int argc, char *argv[])
 		mp.regrid = False ;
     printf("disabling regridding...\n") ;
   }
+  else if (!stricmp(option, "angio"))
+  {
+		angio = 1 ;
+    printf("assuming inputs are vascular labelings...\n") ;
+  }
   else if (!stricmp(option, "regrid"))
   {
 		regrid = 1 ;
@@ -653,6 +669,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("levels = %d\n", mp.levels) ;
   }
+  else if (!stricmp(option, "trans"))
+  {
+		MAX_TRANS = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting MAX_TRANS = %2.1f\n", MAX_TRANS) ;
+  }
   else if (!stricmp(option, "area"))
   {
     mp.l_area = atof(argv[2]) ;
@@ -664,6 +686,19 @@ get_option(int argc, char *argv[])
     mp.l_area_intensity = atof(argv[2]) ;
     nargs = 1 ;
     printf("using l_area_intensity=%2.3f\n", mp.l_area_intensity) ;
+  }
+  else if (!stricmp(option, "max_angle"))
+  {
+		MAX_ANGLE = RADIANS(atof(argv[2])) ;
+    nargs = 1 ;
+    printf("setting max angle for search to %2.1f degrees\n", DEGREES(MAX_ANGLE)) ;
+  }
+  else if (!stricmp(option, "max_scale"))
+  {
+		MAX_SCALE = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting max scale for search to %2.1f --> %2.1f\n", 
+					 1-MAX_SCALE, 1+MAX_SCALE) ;
   }
   else if (!stricmp(option, "tol"))
   {
@@ -832,8 +867,8 @@ compute_optimal_transform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
 		MatrixMultiply(m_trans, m_tmp, m_vox_xform) ;
 		printf("after aligning centroids:\n") ;
 		MatrixPrint(stdout, m_vox_xform) ;
-		max_overlap = compute_overlap(vl_lowres, vl_hires, m_vox_xform) ;
-		printf("initial overlap = %2.2f...\n", max_overlap) ;
+		max_overlap = (*pf_overlap)(vl_lowres, vl_hires, m_vox_xform) ;
+		printf("initial overlap = %2.4f...\n", max_overlap) ;
 		
 		MatrixFree(&m_trans) ; MatrixFree(&m_tmp) ; VectorFree(&v_cl) ; VectorFree(&v_ch) ;
 		if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
@@ -846,7 +881,7 @@ compute_optimal_transform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
 		m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
 
 
-	trans = MAX(MAX(mri_hires->width,mri_hires->height),mri_hires->depth)/8 ;
+	trans = MAX(MAX_TRANS, MAX(MAX(mri_hires->width,mri_hires->height),mri_hires->depth)/8) ;
 	max_overlap = find_optimal_translation(vl_lowres, vl_hires, m_vox_xform, 
 																				 -trans, trans, 5, 4) ;
 		
@@ -869,8 +904,8 @@ compute_optimal_transform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
 																						m_vox_xform, m_origin,
 																						-MAX_ANGLE*scale,
 																						MAX_ANGLE*scale,
-																						1-0.5*scale, 
-																						1+0.5*scale, 
+																						1-MAX_SCALE*scale, 
+																						1+MAX_SCALE*scale, 
 																						-scale*MAX_TRANS, 
 																						scale*MAX_TRANS,
 																						3, 3, 3, 2);
@@ -881,7 +916,7 @@ compute_optimal_transform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
 										 parms, parms->start_t+niter, 1, NULL) ;
 
     }
-    printf("Result so far: scale %2.3f: max overlap=%2.2f, old max overlap=%2.2f\n",
+    printf("Result so far: scale %2.3f: max overlap = %2.4f, old max overlap=%2.4f\n",
 					 scale,max_overlap, old_max_overlap) ;
     MatrixPrint(stderr, m_vox_xform);
     /* search a finer nbhd (if do-while continues) */
@@ -910,7 +945,6 @@ compute_optimal_transform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
 	return(transform) ;
 }
 
-#if 1
 
 /* compute intersection of transformed hires with lowres divided by union */
 static double
@@ -935,7 +969,7 @@ compute_overlap(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *m_L)
 	hheight = mri_hires->height ;
 	hdepth = mri_hires->depth;
 
-	mri_intersection = mri_from_voxel_list(vl_lowres, mri_intersection) ;
+	mri_intersection = VLSTtoMri(vl_lowres, mri_intersection) ;
 
 	/* first go through lowres volume and for every voxel that is on in it,
 		 map it to the hires, and if the hires is on, add one to the overlap
@@ -958,12 +992,12 @@ compute_overlap(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *m_L)
 				yd >= 0 && yd < height &&
 				zd >= 0 && zd < depth)
 		{
-			label = MRIvox(mri_intersection, xd, yd, zd) ;
+			label = MRIgetVoxVal(mri_intersection, xd, yd, zd, 0) ;
 			switch (label)
 			{
 			case 0:  /* hires mapping outside of lowres label*/
 				Union++ ;
-				MRIvox(mri_intersection, xd, yd, zd) = IN_UNION ;
+				MRIsetVoxVal(mri_intersection, xd, yd, zd,0, IN_UNION) ;
 				break ;
 			case IN_UNION:             /* already processed one way or the other */
 			case IN_INTERSECTION:
@@ -971,7 +1005,7 @@ compute_overlap(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *m_L)
 			default:                   /* hires mapping into lowres label */
 				intersection++ ;
 				Union++ ;
-				MRIvox(mri_intersection, xd, yd, zd) = IN_INTERSECTION ;
+				MRIsetVoxVal(mri_intersection, xd, yd, zd, 0, IN_INTERSECTION) ;
 				break ;
 			}
 		}
@@ -983,7 +1017,7 @@ compute_overlap(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *m_L)
 	for (i = 0 ; i < vl_lowres->nvox ; i++)
 	{
 		x = vl_lowres->xi[i] ; y = vl_lowres->yi[i] ; z = vl_lowres->zi[i] ; 
-		label = MRIvox(mri_intersection, x, y, z) ;
+		label = MRIgetVoxVal(mri_intersection, x, y, z, 0) ;
 		switch (label)
 		{
 		case 0:  /* hires mapping outside of lowres label*/
@@ -1008,104 +1042,100 @@ compute_overlap(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *m_L)
 				yd >= 0 && yd < height &&
 				zd >= 0 && zd < depth)
 		{
-			MRIvox(mri_intersection, xd, yd, zd) = 0 ;
+			MRIsetVoxVal(mri_intersection, xd, yd, zd, 0, 0) ;
 		}
 	}
 
 	VectorFree(&v1) ; VectorFree(&v2) ;
 	return((double)intersection/(double)Union) ;
 }
-#else
-static int
-compute_overlap(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *m_L)
-{
-	int     overlap, x, y, z, width, height, depth, xd, yd, zd, label,
-      		hwidth, hheight, hdepth, i ;
-	MATRIX  *m_inv ;
-	VECTOR  *v1, *v2 ;
-	MRI     *mri_lowres_orig, *mri_hires_orig ;
-	static MRI *mri_lowres = NULL, *mri_hires = NULL ;
 
-	mri_lowres_orig = vl_lowres->mri ; 
-	mri_hires_orig = vl_hires->mri ; 
-	m_inv = MatrixInverse(m_L, NULL) ;
-	if (m_inv == NULL)
-		ErrorExit(ERROR_BADPARM, "compute_overlap: singular matrix") ;
+// compute mean squared error between distance transforms at voxel locations
+static double
+compute_distance_transform_sse(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *m_L)
+{
+	int     x, y, z, width, height, depth,
+		      hwidth, hheight, hdepth, i ;
+	VECTOR  *v1, *v2 ;
+	MRI     *mri_lowres, *mri_hires ;
+	double  sse, error ;
+	Real    d1, d2, xd, yd, zd ;
+	MATRIX  *m_L_inv ;
+
+	m_L_inv = MatrixInverse(m_L, NULL) ;
+	if (m_L_inv == NULL)
+		ErrorExit(ERROR_BADPARM, "compute_distance_transform_sse: singular matrix.") ;
+
+	mri_lowres = vl_lowres->mri2 ; mri_hires = vl_hires->mri2 ; 
 
 	v1 = VectorAlloc(4, MATRIX_REAL) ;
 	v2 = VectorAlloc(4, MATRIX_REAL) ;
 	*MATRIX_RELT(v1, 4, 1) = 1.0 ; *MATRIX_RELT(v2, 4, 1) = 1.0 ;
 
-	width = mri_lowres_orig->width ; 
-	height = mri_lowres_orig->height; 
-	depth = mri_lowres_orig->depth;
-	hwidth = mri_hires_orig->width ; 
-	hheight = mri_hires_orig->height ;
-	hdepth = mri_hires_orig->depth;
-	overlap = 0 ;
-	mri_hires = mri_from_voxel_list(vl_hires, mri_hires) ;
-	mri_lowres = mri_from_voxel_list(vl_lowres, mri_lowres) ;
+	width = mri_lowres->width ; height = mri_lowres->height; depth = mri_lowres->depth;
+	hwidth = mri_hires->width ; hheight = mri_hires->height ;hdepth = mri_hires->depth;
 
-	/* first go through lowres volume and for every voxel that is on in it,
-		 map it to the hires, and if the hires is on, add one to the overlap
-	*/
-	for (i = 0 ; i < vl_lowres->nvox ; i++)
-	{
-		x = vl_lowres->xi[i] ; y = vl_lowres->yi[i] ; z = vl_lowres->zi[i] ; 
 
-		V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
-		MatrixMultiply(m_inv, v1, v2) ;
-		xd = nint(V3_X(v2)) ; yd = nint(V3_Y(v2)) ; zd = nint(V3_Z(v2)) ; 
-		if (xd >= 0 && xd < hwidth &&
-				yd >= 0 && yd < hheight &&
-				zd >= 0 && zd < hdepth)
-		{
-			label = MRIvox(mri_hires, xd, yd, zd) ;
-			if (label > 0 && label != 255)
-			{
-				overlap++ ;
-				MRIvox(mri_hires, xd, yd, zd) = 255 ; /* only count it once */
-			}
-			else if (label == 0)
-				overlap-- ;
-		}
-		else
-			overlap-- ;
-	}
-
-	/* now go through lowres volume and for every voxel that is on in it,
+	/* go through both voxel lists and compute the sse
 		 map it to the hires, and if the hires hasn't been counted yet, count it.
 	*/
+
+	sse = 0.0 ;
 	for (i = 0 ; i < vl_hires->nvox ; i++)
 	{
 		x = vl_hires->xi[i] ; y = vl_hires->yi[i] ; z = vl_hires->zi[i] ; 
 
 		V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
 		MatrixMultiply(m_L, v1, v2) ;
-		xd = nint(V3_X(v2)) ; yd = nint(V3_Y(v2)) ; zd = nint(V3_Z(v2)) ; 
-		if (xd >= 0 && xd < width &&
-				yd >= 0 && yd < height &&
-				zd >= 0 && zd < depth)
-		{
-			label = MRIvox(mri_lowres, xd, yd, zd) ;
-			if (label > 0 && label != 255)
-			{
-				MRIvox(mri_lowres, xd, yd, zd) = 255 ;
-				overlap++ ;
-			}
-			else if (label == 0)
-				overlap-- ;
-		}
-		else
-			overlap-- ;
+		d1 = MRIgetVoxVal(vl_hires->mri2, x, y, z, 0) ;
+		xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ; 
+		if (xd < 0)
+			xd = 0 ;
+		else if (xd >= width-1)
+			xd = width-1 ;
+		if (yd < 0)
+			yd = 0 ;
+		else if (yd >= height-1)
+			yd = height-1 ;
+		if (zd < 0)
+			zd = 0 ;
+		else if (zd >= depth-1)
+			zd = depth-1 ;
+		MRIsampleVolume(vl_lowres->mri2, xd, yd, zd, &d2) ;
+		error = d1-d2 ;
+		sse += error*error ;
 	}
 
-	if (overlap == 0)
-		DiagBreak() ;
-	MatrixFree(&m_inv) ; VectorFree(&v1) ; VectorFree(&v2) ;
-	return(overlap) ;
+	/* now count lowres voxels that weren't mapped to in union */
+	for (i = 0 ; i < vl_lowres->nvox ; i++)
+	{
+		x = vl_lowres->xi[i] ; y = vl_lowres->yi[i] ; z = vl_lowres->zi[i] ; 
+		V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+		MatrixMultiply(m_L_inv, v1, v2) ;
+		d1 = MRIgetVoxVal(vl_lowres->mri2, x, y, z, 0) ;
+
+		xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ; 
+		if (xd < 0)
+			xd = 0 ;
+		else if (xd >= hwidth-1)
+			xd = hwidth-1 ;
+		if (yd < 0)
+			yd = 0 ;
+		else if (yd >= hheight-1)
+			yd = hheight-1 ;
+		if (zd < 0)
+			zd = 0 ;
+		else if (zd >= hdepth-1)
+			zd = hdepth-1 ;
+		MRIsampleVolume(vl_hires->mri2, xd, yd, zd, &d2) ;
+		error = d1-d2 ;
+		sse += error*error ;
+	}
+
+	VectorFree(&v1) ; VectorFree(&v2) ;
+	MatrixFree(&m_L_inv) ;
+	return(-sqrt(sse / (double)(vl_lowres->nvox + vl_hires->nvox))) ;
 }
-#endif
 static double
 find_optimal_translation(VOXEL_LIST *vl_lowres,  VOXEL_LIST *vl_hires,
                          MATRIX *m_L, float min_trans, float max_trans, 
@@ -1123,7 +1153,7 @@ find_optimal_translation(VOXEL_LIST *vl_lowres,  VOXEL_LIST *vl_hires,
   m_L_tmp = NULL ;
   m_trans = MatrixIdentity(4, NULL) ;
   x_max = y_max = z_max = 0.0 ;
-  max_overlap = compute_overlap(vl_lowres, vl_hires, m_L) ;
+  max_overlap = (*pf_overlap)(vl_lowres, vl_hires, m_L) ;
 
   for (i = 0 ; i <= nreductions ; i++)
   {
@@ -1153,13 +1183,13 @@ find_optimal_translation(VOXEL_LIST *vl_lowres,  VOXEL_LIST *vl_hires,
 					// get the transform
           m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
 					// calculate the overlap
-          overlap = compute_overlap(vl_lowres, vl_hires, m_L_tmp) ;
+          overlap = (*pf_overlap)(vl_lowres, vl_hires, m_L_tmp) ;
           if (overlap > max_overlap)
           {
             max_overlap = overlap ;
             x_max = x_trans ; y_max = y_trans ; z_max = z_trans ;
 #if 1
-            printf("new max overlap %2.2f found at (%2.1f, %2.1f, %2.1f)\n",
+            printf("new max overlap %2.4f found at (%2.1f, %2.1f, %2.1f)\n",
 									 max_overlap, x_trans, y_trans, z_trans) ;
 #endif
           }
@@ -1170,7 +1200,7 @@ find_optimal_translation(VOXEL_LIST *vl_lowres,  VOXEL_LIST *vl_hires,
 
     if (Gdiag & DIAG_SHOW)
       printf(
-						 "max overlap = %2.2f @ (%2.1f, %2.1f, %2.1f)\n", 
+						 "max overlap = %2.4f @ (%2.1f, %2.1f, %2.1f)\n", 
 						 max_overlap, x_max, y_max, z_max) ;
 
     /* update L to reflect new maximum and search around it */
@@ -1224,7 +1254,7 @@ find_optimal_linear_xform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
   x_max_trans = y_max_trans = z_max_trans = x_max_rot = y_max_rot = z_max_rot = 0.0 ;
   x_max_scale = y_max_scale = z_max_scale = 1.0f ;
   m_scale = MatrixIdentity(4, NULL) ;
-  max_overlap = compute_overlap(vl_lowres, vl_hires, m_L) ;
+  max_overlap = (*pf_overlap)(vl_lowres, vl_hires, m_L) ;
   for (i = 0 ; i < nreductions ; i++)
   {
     delta_trans = (max_trans-min_trans) / (trans_steps-1) ;
@@ -1288,7 +1318,7 @@ find_optimal_linear_xform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
 											*MATRIX_RELT(m_trans, 3, 4) = z_trans ;
 
 											m_L_tmp = MatrixMultiply(m_trans, m_tmp3, m_L_tmp) ;
-											overlap = compute_overlap(vl_lowres, vl_hires, m_L_tmp) ;
+											overlap = (*pf_overlap)(vl_lowres, vl_hires, m_L_tmp) ;
 		      
 											if (overlap > max_overlap)
 											{
@@ -1312,7 +1342,7 @@ find_optimal_linear_xform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
 
     if (Gdiag & DIAG_SHOW)
     {
-      printf("  max overlap = %2.2f @ R=(%2.3f,%2.3f,%2.3f),"
+      printf("  max overlap = %2.4f @ R=(%2.3f,%2.3f,%2.3f),"
 						 "S=(%2.3f,%2.3f,%2.3f), T=(%2.1f,%2.1f,%2.1f)\n", 
 						 max_overlap, DEGREES(x_max_rot), DEGREES(y_max_rot),
 						 DEGREES(z_max_rot),x_max_scale, y_max_scale, z_max_scale,
@@ -1459,7 +1489,7 @@ compute_powell_sse(float *p)
 	}
 	*MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ; 
 	*MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ; 
-	error = -compute_overlap(Gvl_lowres, Gvl_hires, mat) ;
+	error = -(*pf_overlap)(Gvl_lowres, Gvl_hires, mat) ;
 	return(error) ;
 }
 
@@ -1542,93 +1572,6 @@ write_snapshot(MRI *mri_lowres, MRI *mri_hires, MATRIX *m_vox_xform,
 	}
 
 	return(NO_ERROR) ;
-}
-
-static VOXEL_LIST *
-create_voxel_list(MRI *mri, float low_val, float hi_val, VOXEL_LIST *vl, 
-									int skip)
-{
-	int   x, y, z, nvox, i ;
-	Real  val ;
-
-	skip++ ;  /* next voxel + amount to skip */
-	for (nvox = x = 0 ; x < mri->width ; x+=skip)
-	{
-		for (y = 0 ; y < mri->height ; y+=skip)
-		{
-			for (z = 0 ; z < mri->depth ; z+=skip)
-			{
-				val = MRIgetVoxVal(mri, x, y, z, 0) ;
-				if (val > 0)
-					DiagBreak() ;
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
-				if (val >= low_val && val <= hi_val)
-					nvox++ ;
-			}
-		}
-	}
-
-	printf("allocating %d voxel indices...\n", nvox) ;
-	if (vl == NULL)
-	{
-		vl = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST)) ;
-		vl->nvox = nvox ;
-		vl->xi = (int *)calloc(nvox, sizeof(int)) ;
-		vl->yi = (int *)calloc(nvox, sizeof(int)) ;
-		vl->zi = (int *)calloc(nvox, sizeof(int)) ;
-		if (!vl || !vl->xi || !vl->yi || !vl->zi)
-			ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d voxel list\n",
-								Progname, nvox) ;
-	}
-	for (nvox = x = 0 ; x < mri->width ; x+=skip)
-	{
-		for (y = 0 ; y < mri->height ; y+=skip)
-		{
-			for (z = 0 ; z < mri->depth ; z+=skip)
-			{
-				val = MRIgetVoxVal(mri, x, y, z, 0) ;
-				if (val >= low_val && val <= hi_val)
-				{
-					i = nvox++ ;
-					vl->xi[i] = x ; vl->yi[i] = y ; vl->zi[i] = z ;
-				}
-			}
-		}
-	}
-	vl->mri = mri ;
-	return(vl) ;
-}
-
-static int
-free_voxel_list(VOXEL_LIST **pvl)
-{
-	VOXEL_LIST *vl = *pvl ;
-	*pvl = NULL ;
-
-	if (!vl)
-		return(ERROR_BADPARM) ;
-	free(vl->xi) ;
-	free(vl->yi) ;
-	free(vl->zi) ;
-	free(vl) ;
-	return(NO_ERROR) ;
-}
-static MRI *
-mri_from_voxel_list(VOXEL_LIST *vl, MRI *mri)
-{
-	int   i ;
-	Real  val ;
-
-	if (mri == NULL)
-		mri = MRIclone(vl->mri, NULL) ;
-
-	for (i = 0 ; i < vl->nvox ; i++)
-	{
-		val = MRIgetVoxVal(vl->mri, vl->xi[i], vl->yi[i], vl->zi[i], 0) ;
-		MRIsetVoxVal(mri, vl->xi[i], vl->yi[i], vl->zi[i], 0, val) ;
-	}
-	return(mri) ;
 }
 
 static MRI *
@@ -1789,5 +1732,7 @@ find_gcam_node(GCA_MORPH *gcam, int label, float x0, float y0, float z0)
 	}
 	return(NO_ERROR) ;
 }
+
+
 
 
