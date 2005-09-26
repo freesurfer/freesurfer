@@ -1,7 +1,6 @@
 // mri_glmfit.c
 
 // Save config in output dir, and Xg and Cs
-// Add support for fsgdf
 // PCA
 // Self-Regressor
 // Permute X
@@ -57,7 +56,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.22 2005/09/26 17:36:31 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.23 2005/09/26 18:35:25 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -81,8 +80,7 @@ int SynthSeed = -1;
 double Xcond;
 
 int npvr=0;
-MRIGLM *mriglm;
-MATRIX *wvect;
+MRIGLM *mriglm=NULL, *mriglmtmp=NULL;
 
 char voxdumpdir[1000];
 int voxdump[3];
@@ -92,6 +90,9 @@ char *fsgdfile = NULL;
 FSGD *fsgd=NULL;
 char  *gd2mtx_method = "none";
 
+int nSelfReg = 0;
+int crsSelfReg[100][3];
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
@@ -100,6 +101,7 @@ int main(int argc, char **argv)
   char *cmdline, cwd[2000];
   struct timeb  mytimer;
   int msecFitTime;
+  MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -147,14 +149,13 @@ int main(int argc, char **argv)
   }
 
   mriglm->npvr = npvr;
-  mriglm->glm->ncontrasts = nContrasts;
   mriglm->yhatsave = yhatSave;
   mriglm->condsave = condSave;
 
   // X ---------------------------------------------------------
   //Load global X------------------------------------------------
 
-  if(XFile){  
+  if(XFile != NULL){  
     mriglm->Xg = MatrixReadTxt(XFile, NULL);
     if(mriglm->Xg==NULL){
       printf("ERROR: loading X %s\n",XFile);
@@ -188,8 +189,6 @@ int main(int argc, char **argv)
       }
     }
   }
-  // Compute total number of regressors
-  MRIglmNRegTot(mriglm);
 
   // --------------------------------------------------------------
   // Load or synthesize input--------------------------------------
@@ -219,7 +218,64 @@ int main(int argc, char **argv)
 	   mriglm->y->nframes,mriglm->Xg->rows);
     exit(1);
   }
+  // Load the weight file ----------------------------------
+  if(wFile != NULL){
+    mriglm->w = MRIread(wFile);
+    if(mriglm->w  == NULL){
+      printf("ERROR: reading weight file %s\n",wFile);
+      exit(1);
+    }
+    // Check number of frames
+    if(mriglm->y->nframes != mriglm->w->nframes){
+      printf("ERROR: dimension mismatch between y and w.\n");
+      printf("  y has %d frames, w has %d frames.\n",
+	     mriglm->y->nframes,mriglm->w->nframes);
+      exit(1);
+    }
+    // Invert, Sqrt, and Normalize the weights
+    mritmp = MRInormWeights(mriglm->w, 1, 1, mriglm->mask, mriglm->w);
+    if(mritmp==NULL) exit(1);
+    sprintf(tmpstr,"%s/wn.mgh",GLMDir);
+    MRIwrite(mriglm->w,tmpstr);
+  }
+  else mriglm->w = NULL;
+
+  // Handle self-regressors
+  if(nSelfReg > 0){
+    for(n=0; n<nSelfReg; n++){
+      c = crsSelfReg[n][0];
+      r = crsSelfReg[n][1];
+      s = crsSelfReg[n][2];
+      printf("Self regressor %d     %d %d %d\n",n,c,r,s);
+      if(c < 0 || c >= mriglm->y->width || 
+	 r < 0 || r >= mriglm->y->height ||
+	 s < 0 || s >= mriglm->y->depth){
+	printf("ERROR: %d self regressor is out of the volume (%d,%d,%d)\n",n,c,r,s);
+	exit(1);
+      }
+      MRIglmLoadVox(mriglm,c,r,s);
+      GLMxMatrices(mriglm->glm);
+      GLMfit(mriglm->glm);
+      GLMdump("selfreg",mriglm->glm);
+      Mtmp = MatrixHorCat(Xselfreg,mriglm->glm->eres,NULL);
+      if(n > 0) MatrixFree(&Xselfreg);
+      Xselfreg = Mtmp;
+    }
+
+    // Need new mriglm, so alloc and copy the old one
+    mriglmtmp = (MRIGLM *) calloc(sizeof(MRIGLM),1);
+    mriglmtmp->glm = GLMalloc();
+    mriglmtmp->y = mriglm->y;
+    mriglmtmp->w = mriglm->w;
+    mriglmtmp->Xg = MatrixHorCat(mriglm->Xg,Xselfreg,NULL);
+    for(n=0; n < mriglm->npvr; n++) mriglmtmp->pvr[n] = mriglmtmp->pvr[n];
+    //MRIglmFree(&mriglm);
+    mriglm = mriglmtmp;
+  }
+  MRIglmNRegTot(mriglm);
+
   // Load the contrast matrices ---------------------------------
+  mriglm->glm->ncontrasts = nContrasts;
   if(nContrasts > 0){
     for(n=0; n < nContrasts; n++){
       mriglm->glm->C[n] = MatrixReadTxt(CFile[n], NULL);
@@ -264,27 +320,6 @@ int main(int argc, char **argv)
   }
   else mriglm->mask = NULL;
 
-  // Load the weight file ----------------------------------
-  if(wFile != NULL){
-    mriglm->w = MRIread(wFile);
-    if(mriglm->w  == NULL){
-      printf("ERROR: reading weight file %s\n",wFile);
-      exit(1);
-    }
-    // Check number of frames
-    if(mriglm->y->nframes != mriglm->w->nframes){
-      printf("ERROR: dimension mismatch between y and w.\n");
-      printf("  y has %d frames, w has %d frames.\n",
-	     mriglm->y->nframes,mriglm->w->nframes);
-      exit(1);
-    }
-    // Invert, Sqrt, and Normalize the weights
-    mritmp = MRInormWeights(mriglm->w, 1, 1, mriglm->mask, mriglm->w);
-    if(mritmp==NULL) exit(1);
-    sprintf(tmpstr,"%s/wn.mgh",GLMDir);
-    MRIwrite(mriglm->w,tmpstr);
-  }
-  else mriglm->w = NULL;
 
   // Dump a voxel
   if(voxdumpflag){
@@ -389,6 +424,14 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[1],"%d",&voxdump[1]);
       sscanf(pargv[2],"%d",&voxdump[2]);
       voxdumpflag = 1;
+      nargsused = 3;
+    }
+    else if (!strcasecmp(option, "--selfreg")){
+      if(nargc < 3) CMDargNErr(option,3);
+      sscanf(pargv[0],"%d",&crsSelfReg[nSelfReg][0]);
+      sscanf(pargv[1],"%d",&crsSelfReg[nSelfReg][1]);
+      sscanf(pargv[2],"%d",&crsSelfReg[nSelfReg][2]);
+      nSelfReg++;
       nargsused = 3;
     }
     else if (!strcasecmp(option, "--profile")){
@@ -512,9 +555,12 @@ static void print_usage(void)
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --y input volume \n");
+  printf("\n");
   printf("   --X design matrix file\n");
   printf("   --fsgd FSGDF <gd2mtx>\n");
   printf("   --pvr pvr1 <--prv pvr2 ...>\n");
+  printf("   --selfreg c r s\n");
+  printf("\n");
   printf("   --w weight volume\n");
   printf("   --mask mask volume\n");
   printf("   --C contrast1.mat <--C contrast2.mat ...>\n");
@@ -527,6 +573,7 @@ static void print_usage(void)
   printf("   --synth : replace input with gaussian \n");
   printf("   --seed seed \n");
   printf("\n");
+  printf("   --voxdump c r s \n");
   printf("   --resynthtest niters \n");
   printf("   --profile     niters \n");
   printf("   --debug     turn on debugging\n");
@@ -598,6 +645,8 @@ static void check_options(void)
 /* --------------------------------------------- */
 static void dump_options(FILE *fp)
 {
+  int n;
+
   fprintf(fp,"y    %s\n",yFile);
   if(XFile)     fprintf(fp,"X    %s\n",XFile);
   if(fsgdfile)  fprintf(fp,"FSGD File %s\n",fsgdfile);
@@ -607,6 +656,11 @@ static void dump_options(FILE *fp)
   if(yhatFile) fprintf(fp,"yhat %s\n",yhatFile);
   if(eresFile) fprintf(fp,"eres %s\n",eresFile);
   if(condFile) fprintf(fp,"cond %s\n",condFile);
+
+  for(n=0; n < nSelfReg; n++){
+    printf("SelfRegressor %d  %4d %4d %4d\n",n+1,
+	   crsSelfReg[n][0],crsSelfReg[n][1],crsSelfReg[n][2]);
+  }
 
   return;
 }
