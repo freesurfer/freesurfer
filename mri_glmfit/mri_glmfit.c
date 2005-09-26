@@ -2,7 +2,6 @@
 
 // Save config in output dir, and Xg and Cs
 // PCA
-// Self-Regressor
 // Permute X
 // Leave out one
 // Copies or Links to source data
@@ -44,6 +43,7 @@ double round(double x);
 #include "pdf.h"
 #include "fsgdf.h"
 #include "timer.h"
+#include "matfile.h"
 
 
 static int  parse_commandline(int argc, char **argv);
@@ -56,7 +56,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.23 2005/09/26 18:35:25 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.24 2005/09/26 19:32:16 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -92,6 +92,7 @@ char  *gd2mtx_method = "none";
 
 int nSelfReg = 0;
 int crsSelfReg[100][3];
+char *SUBJECTS_DIR;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -102,6 +103,7 @@ int main(int argc, char **argv)
   struct timeb  mytimer;
   int msecFitTime;
   MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL;
+  FILE *fp;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -352,6 +354,9 @@ int main(int argc, char **argv)
   if(mriglm->yhatsave) MRIwrite(mriglm->yhat,yhatFile);
   if(mriglm->condsave) MRIwrite(mriglm->cond,condFile);
   if(eresFile) MRIwrite(mriglm->eres,eresFile);    
+
+  sprintf(tmpstr,"%s/Xg.dat",GLMDir);
+  MatrixWriteTxt(tmpstr, mriglm->Xg);
   
   for(n=0; n < mriglm->glm->ncontrasts; n++){
     printf("  %s\n",mriglm->glm->Cname[n]);
@@ -360,6 +365,10 @@ int main(int argc, char **argv)
     sprintf(tmpstr,"%s/%s",GLMDir,mriglm->glm->Cname[n]);
     mkdir(tmpstr,(mode_t)-1);
     
+    // Dump contrast matrix
+    sprintf(tmpstr,"%s/%s/C.dat",GLMDir,mriglm->glm->Cname[n]);
+    MatrixWriteTxt(tmpstr, mriglm->glm->C[n]);
+
     // Save gamma and F
     sprintf(tmpstr,"%s/%s/gamma.mgh",GLMDir,mriglm->glm->Cname[n]);
     MRIwrite(mriglm->gamma[n],tmpstr);
@@ -374,6 +383,23 @@ int main(int argc, char **argv)
     MRIfree(&sig);
   }
   
+  if(fsgd != NULL){
+    strcpy(fsgd->measname,"external");
+
+    sprintf(fsgd->datafile,"y");
+
+    sprintf(fsgd->DesignMatFile,"%s/y.X.mat",GLMDir);
+    MatlabWrite(mriglm->Xg,fsgd->DesignMatFile,"X");
+
+    sprintf(tmpstr,"%s/y.fsgd",GLMDir);
+    fp = fopen(tmpstr,"w");
+    gdfPrintHeader(fp,fsgd);
+    fprintf(fp,"Creator          %s\n",Progname);
+    fprintf(fp,"SUBJECTS_DIR     %s\n",SUBJECTS_DIR);
+    fprintf(fp,"SynthSeed        %d\n",SynthSeed);
+    fclose(fp);
+  }
+
   printf("mri_glmfit done\n");
   return(0); 
   exit(0);
@@ -635,6 +661,14 @@ static void check_options(void)
     }
     if(rvarFile == NULL){
       printf("ERROR: must specify an output dir or rvar file\n");
+      exit(1);
+    }
+  }
+
+  if(SUBJECTS_DIR == NULL){
+    SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+    if(SUBJECTS_DIR==NULL){
+      fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
       exit(1);
     }
   }
