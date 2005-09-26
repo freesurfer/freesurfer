@@ -15,7 +15,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.1 2005/09/22 21:34:18 fischl Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.2 2005/09/26 17:36:11 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -43,6 +43,7 @@ static int normalize = 0 ;
 static char *curv_fname = NULL ;
 static int  curv_thresh = 0 ;
 static int navgs = 0 ;
+#define MIN_BORDER_DIST 20.0  // mm from border
 
 int
 main(int argc, char *argv[])
@@ -55,7 +56,7 @@ main(int argc, char *argv[])
 	LTA           *lta ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.1 2005/09/22 21:34:18 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.2 2005/09/26 17:36:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -178,6 +179,9 @@ main(int argc, char *argv[])
 			}
 			ltotal = LabelCombine(label, ltotal) ;
 		}
+		if (nlabels == 0)
+			ltotal = LabelInFOV(mris, mri, MIN_BORDER_DIST) ;
+			
 		LabelRipRestOfSurfaceWithThreshold(ltotal, mris, thresh) ;
 	}
 
