@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/09/15 22:10:06 $
-// Revision       : $Revision: 1.109 $
+// Revision Date  : $Date: 2005/09/26 16:12:26 $
+// Revision       : $Revision: 1.110 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
   ndrop = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.109 2005/09/15 22:10:06 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.110 2005/09/26 16:12:26 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1564,8 +1564,13 @@ int main(int argc, char *argv[])
 	MRIfree(&tmp); tmp = 0;
 	mri_transformed = LTAtransform(mri, mri_transformed, lta_transform);
       }
-      else
+      else{
+	printf("Applying LTA transform\n");
+	if(resample_type_val == SAMPLE_NEAREST){
+	  printf("WARNING: you have selected nearest neighbor sampling, but this will be ignored because an LTA is the input transform\n");
+	}
 	mri_transformed = LTAtransform(mri, NULL, lta_transform);
+      }
       
       if(mri_transformed == NULL){
         fprintf(stderr, "ERROR: applying transform to volume\n");
