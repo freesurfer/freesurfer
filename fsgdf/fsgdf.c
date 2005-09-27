@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.21 2005/09/15 21:10:39 greve Exp $
+  $Id: fsgdf.c,v 1.22 2005/09/27 22:44:11 kteich Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -224,10 +224,16 @@ FSGD *gdfRead(char *gdfname, int LoadData)
 
   /* Load the design matrix, if there */
   if(strlen(gd->DesignMatFile) != 0) {
-    if(NULL != dirname)
+    /* Look for DesignMatFile first. If doesn't exist, prepend the
+       directory from the gdf file. */
+    strcpy(datafilename,gd->DesignMatFile);
+    if(!fio_FileExistsReadable(datafilename)){
       sprintf(datafilename,"%s/%s",dirname,gd->DesignMatFile);
-    else
-      strcpy(datafilename,gd->DesignMatFile);
+      if(!fio_FileExistsReadable(datafilename)){
+	printf("ERROR: could not find file %s\n",gd->DesignMatFile);
+	return(NULL);
+      }
+    }
     gd->X = ReadMatlabFileVariable(datafilename,"X");
     if(gd->X == NULL){
       printf("ERROR: could not read variable X from %s\n",gd->DesignMatFile);
