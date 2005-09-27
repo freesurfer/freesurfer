@@ -2,11 +2,10 @@
 
 // FSGD not quite ready
 // Save some sort of config in output dir.
-// PCA
+
 // Permute X
 // Leave out one
 // Copies or Links to source data
-// Cleanup
 
 // Check to make sure no two contrast names are the same
 // Check to make sure no two contrast mtxs are the same
@@ -56,7 +55,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.25 2005/09/26 22:08:09 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.26 2005/09/27 04:08:49 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -95,6 +94,11 @@ int crsSelfReg[100][3];
 char *SUBJECTS_DIR;
 int cmax, rmax, smax;
 double Fmax, sigmax;
+
+int pcaSave=0;
+int npca = -1;
+MATRIX *Upca=NULL,*Spca=NULL;
+MRI *Vpca=NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -258,7 +262,8 @@ int main(int argc, char **argv)
       if(c < 0 || c >= mriglm->y->width || 
 	 r < 0 || r >= mriglm->y->height ||
 	 s < 0 || s >= mriglm->y->depth){
-	printf("ERROR: %d self regressor is out of the volume (%d,%d,%d)\n",n,c,r,s);
+	printf("ERROR: %d self regressor is out of the volume (%d,%d,%d)\n",
+	       n,c,r,s);
 	exit(1);
       }
       MRIglmLoadVox(mriglm,c,r,s);
@@ -348,6 +353,14 @@ int main(int argc, char **argv)
     exit(0);
   }
 
+  if(pcaSave){
+    if(npca < 0) npca = mriglm->y->nframes;
+    if(npca > mriglm->y->nframes){
+      printf("ERROR: npca = %d, max can be %d\n",npca,mriglm->y->nframes);
+      exit(1);
+    }
+  }
+
   TimerStart(&mytimer) ;
   printf("Starting fit\n");
   MRIglmFit(mriglm);
@@ -407,7 +420,7 @@ int main(int argc, char **argv)
     
     MRIfree(&sig);
   }
-  
+
   // --------- Save FSGDF stuff --------------------------------
   if(fsgd != NULL){
     strcpy(fsgd->measname,"external");
@@ -425,6 +438,23 @@ int main(int argc, char **argv)
     fprintf(fp,"SUBJECTS_DIR     %s\n",SUBJECTS_DIR);
     fprintf(fp,"SynthSeed        %d\n",SynthSeed);
     fclose(fp);
+  }
+
+  if(pcaSave){
+    printf("Computing PCA (%d)\n",npca);
+    sprintf(tmpstr,"%s/eres-pca",GLMDir);
+    mkdir(tmpstr,(mode_t)-1);
+    err=MRIpca(mriglm->eres, &Upca, &Spca, &Vpca, mriglm->mask);
+    if(err) exit(1);
+    sprintf(tmpstr,"%s/eres-pca/v.mgh",GLMDir);
+    MRIwrite(Vpca,tmpstr);
+    sprintf(tmpstr,"%s/eres-pca/u.mat",GLMDir);
+    MatrixWriteTxt(tmpstr, Upca);
+    sprintf(tmpstr,"%s/eres-pca/sdiag.mat",GLMDir);
+    MatrixWriteTxt(tmpstr, Spca);
+    sprintf(tmpstr,"%s/eres-pca/stats.dat",GLMDir);
+    WritePCAStats(tmpstr,Spca);
+    // Need to save PVS, CPVS
   }
 
   printf("mri_glmfit done\n");
@@ -570,6 +600,13 @@ static int parse_commandline(int argc, char **argv)
       CFile[nContrasts] = pargv[0];
       nContrasts++;
       nargsused = 1;
+    }
+    else if (!strcmp(option, "--pca")){
+      if(nargc > 0 && !CMDnthIsArg(nargc, pargv, 0)){
+	sscanf(pargv[0],"%d",&niters);
+	nargsused = 1;
+      }
+      pcaSave = 1;
     }
     else if ( !strcmp(option, "--fsgd") ){
       if(nargc < 1) CMDargNErr(option,1);
