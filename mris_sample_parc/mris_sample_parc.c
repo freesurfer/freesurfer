@@ -17,7 +17,7 @@
 #include "cma.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.15 2005/06/07 21:40:45 xhan Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.16 2005/09/27 20:48:51 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -44,6 +44,7 @@ static int fix_topology = -1 ;  // < 0 means do all
 static int fix_label_topology(MRI_SURFACE *mris, int nvertices) ;
 static int resegment_label(MRI_SURFACE *mris, LABEL *segment) ;
 static float proj_mm = 0.0 ;
+static float proj_frac = 0.5 ;
 
 static int replace_label;
 
@@ -66,7 +67,7 @@ main(int argc, char *argv[])
   Real          x, y, z, xw, yw, zw ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.15 2005/06/07 21:40:45 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.16 2005/09/27 20:48:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -144,7 +145,7 @@ main(int argc, char *argv[])
 		if (!FZERO(proj_mm))
 			d = proj_mm ;
 		else
-			d = v->curv*.5 ;  /* halfway out */
+			d = v->curv*proj_frac ;  /* halfway out */
     x = v->x+d*v->nx ; y = v->y+d*v->ny ; z = v->z+d*v->nz ;
     MRIsurfaceRASToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
 		v->annotation = v->val = 
@@ -291,11 +292,17 @@ get_option(int argc, char *argv[])
 					 cma_label_to_name(trans_out[ntrans]), trans_out[ntrans]) ;
 		ntrans++ ;
   }
-  else if (!stricmp(option, "proj"))
+  else if (!stricmp(option, "projmm"))
   {
 		proj_mm = atof(argv[2]) ;
     nargs = 1 ;
     printf("projecting %2.2f mm along surface normal\n", proj_mm) ;
+  }
+  else if (!stricmp(option, "projfrac"))
+  {
+		proj_frac = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("projecting %2.2f %% along surface normal\n", proj_frac) ;
   }
   else if (!stricmp(option, "file"))
   {
