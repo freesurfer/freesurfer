@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.12 2005/09/26 20:48:29 nicks Exp $';
+set VERSION = '$Id: make_average_surface,v 1.13 2005/09/27 19:05:57 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -184,6 +184,7 @@ while( $#argv != 0 )
     case "--debug":
     case "--echo":
       set echo = 1;
+      set verbose = 1;
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop
