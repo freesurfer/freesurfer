@@ -3,9 +3,9 @@
 //
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/08/19 20:56:21 $
-// Revision       : $Revision: 1.15 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/09/27 21:02:04 $
+// Revision       : $Revision: 1.16 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -26,7 +26,7 @@
 #include "version.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.15 2005/08/19 20:56:21 greve Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.16 2005/09/27 21:02:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
   VOL_GEOM      vg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.15 2005/08/19 20:56:21 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.16 2005/09/27 21:02:04 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -102,7 +102,7 @@ main(int argc, char *argv[])
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-		Progname, fname) ;
+								Progname, fname) ;
     // get "pial" surface vertex into ->origx, origy, origz
     if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
       ErrorExit(ERROR_BADFILE,"%s: could not read orig file for %s.\n",
@@ -134,7 +134,7 @@ main(int argc, char *argv[])
     {/*-----------------------------------------------------------------*/
       MATRIX *XFM, *sras, *tras;
 
-      XFM = DevolveXFM(argv[i], NULL, "talairach.xfm");
+      XFM = DevolveXFMWithSubjectsDir(argv[i], NULL, "talairach.xfm", sdir);
       if(XFM == NULL) exit(1);
       
       sras = MatrixAlloc(4,1,MATRIX_REAL);
@@ -144,15 +144,19 @@ main(int argc, char *argv[])
       
       printf("Applying transform.\n");  
       for(vno=0; vno < mris->nvertices; vno++){
-	v = &mris->vertices[vno] ;
-	if (v->ripflag) continue ;
-	sras->rptr[1][1] = mris->vertices[vno].x;
-	sras->rptr[2][1] = mris->vertices[vno].y;
-	sras->rptr[3][1] = mris->vertices[vno].z;
-	tras = MatrixMultiply(XFM,sras,tras);
-	mris->vertices[vno].x = tras->rptr[1][1];
-	mris->vertices[vno].y = tras->rptr[2][1];
-	mris->vertices[vno].z = tras->rptr[3][1];
+				v = &mris->vertices[vno] ;
+				if (v->ripflag) continue ;
+				sras->rptr[1][1] = mris->vertices[vno].x;
+				sras->rptr[2][1] = mris->vertices[vno].y;
+				sras->rptr[3][1] = mris->vertices[vno].z;
+				tras = MatrixMultiply(XFM,sras,tras);
+				mris->vertices[vno].x = tras->rptr[1][1];
+				mris->vertices[vno].y = tras->rptr[2][1];
+				mris->vertices[vno].z = tras->rptr[3][1];
+				if (Gdiag_no == vno)
+					printf(" v %d: (%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f)\n",
+								 vno, sras->rptr[1][1], sras->rptr[2][1], sras->rptr[3][1],
+								 tras->rptr[1][1], tras->rptr[2][1], tras->rptr[3][1]) ;
       }
       //mrisComputeSurfaceDimensions(mris) ;
 
@@ -191,7 +195,7 @@ main(int argc, char *argv[])
   // copy geometry info
   memcpy((void *) &mris_ico->vg, (void *) &vg, sizeof (VOL_GEOM));
 
-  if (Gdiag_no >= 0)
+  if (Gdiag_no >= 0 && Gdiag_no < mris_ico->nvertices)
   {
     int n ;
     VERTEX *vn ;
@@ -209,7 +213,7 @@ main(int argc, char *argv[])
   // write *h.sphere.reg
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, out_sname, hemi, canon_surf_name) ;
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr,"writing average canonical surface to to %s\n", fname);
+    fprintf(stderr,"writing average canonical surface to %s\n", fname);
   MRISwrite(mris_ico, fname) ;
 
   // get "pial vertices" from orig
@@ -223,7 +227,7 @@ main(int argc, char *argv[])
     v->z /= (float)n ;
   }
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, out_sname, hemi, avg_surf_name) ;
-  printf("writing average %s surface to to %s\n", avg_surf_name, fname);
+  printf("writing average %s surface to %s\n", avg_surf_name, fname);
   MRISwrite(mris_ico,  fname) ;
   {
     char path[STRLEN] ;
