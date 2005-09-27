@@ -78,6 +78,12 @@ VolumeCollection::VolumeCollection () :
 			 "is for converting RAS points acquired from a "
 			 "surface that is associated with a volume and "
 			 "didn't generate coordinates with CRAS info." );
+  commandMgr.AddCommand( *this, "GetVolumeSurfaceRASCoordsFromRAS", 4, 
+			 "collectionID x y z", "Returns a list of surface "
+			 "RAS coords converted from the input RAS coords. This"
+			 "is for converting RAS points acquired from a "
+			 "surface that is associated with a volume and "
+			 "didn't generate coordinates with CRAS info." );
 }
 
 VolumeCollection::~VolumeCollection() {
@@ -412,6 +418,26 @@ VolumeCollection::SurfaceRASToRAS ( float const iSurfaceRAS[3],
     oRAS[2] = RAS[2];
   } else {
     throw runtime_error( "Cannot transform from surface RAS because no "
+			 "MRI is loaded." );
+  }
+}
+
+void
+VolumeCollection::RASToSurfaceRAS ( float const iRAS[3],
+				    float oSurfaceRAS[3] ) {
+
+  if( NULL != mMRI ) {
+    Real surfaceRAS[3], RAS[3];
+    RAS[0] = iRAS[0];
+    RAS[1] = iRAS[1];
+    RAS[2] = iRAS[2];
+    MRIsurfaceRASToRAS( mMRI, RAS[0], RAS[1], RAS[2],
+		       &surfaceRAS[0], &surfaceRAS[1], &surfaceRAS[2] );
+    oSurfaceRAS[0] = surfaceRAS[0];
+    oSurfaceRAS[1] = surfaceRAS[1];
+    oSurfaceRAS[2] = surfaceRAS[2];
+  } else {
+    throw runtime_error( "Cannot transform from RAS to surface RAS because no"
 			 "MRI is loaded." );
   }
 }
@@ -835,6 +861,36 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
       stringstream ssReturnValues;
       ssReturnValues << ras[0] << " " << ras[1] << " " << ras[2];
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "Lfffl";
+
+      return ok;
+    }
+  }
+  
+  // GetVolumeSurfaceRASCoordsFromRAS <colllectionID> <x> <y> <z>
+  if( 0 == strcmp( isCommand, "GetVolumeSurfaceRASCoordsFromRAS" ) ) {
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad collectionID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      float ras[3];
+      ras[0] = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
+      ras[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
+      ras[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
+
+      float surfaceRAS[3];
+      RASToSurfaceRAS( ras, surfaceRAS );
+
+      stringstream ssReturnValues;
+      ssReturnValues << surfaceRAS[0] << " " << surfaceRAS[1] << " " << surfaceRAS[2];
       sReturnValues = ssReturnValues.str();
       sReturnFormat = "Lfffl";
 

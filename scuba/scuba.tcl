@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.142 2005/09/27 21:29:25 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.143 2005/09/27 22:32:42 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -542,7 +542,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "Data Collection Info..." { DoDataInfoWindow } }
 	{command "Show Surface Vertex..." { DoShowSurfaceVertex } }
 	{command "Find Nearest Surface Vertex..." { DoFindNearestSurfaceVertex } }
-	{command "Set Cursor from edit.dat File..." { DoSetCursorFromEditDatFileDlog } }
+	{command "Read/Write Cursor from edit.dat File..." { DoReadWriteCursorFromEditDatFileDlog } }
 	{command "Generate Segmentation Volume Report..." { DoGenerateReportDlog } }
     }
 
@@ -5385,7 +5385,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.142 2005/09/27 21:29:25 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.143 2005/09/27 22:32:42 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5952,7 +5952,8 @@ proc FindNearestSurfaceVertexCallback {} {
    
 }
 
-proc DoSetCursorFromEditDatFileDlog {} {
+proc DoReadWriteCursorFromEditDatFileDlog {} {
+    global gSubject
     global gEditDatInfo
     global gaCollection
     global gaDialog
@@ -5974,14 +5975,13 @@ proc DoSetCursorFromEditDatFileDlog {} {
 	}
     }
     
-    # If not surfaces, just do the setcursor.
+    # If not surfaces, useRealRAS.
     if { [llength $lSurfaces] == 0 } {
 	set gEditDatInfo(useRealRAS) 1
-	SetCursorFromEditDatFile
     }
 
     set wwDialog .setCursorFromEditDatFile
-    if { [tkuCreateDialog $wwDialog "Set Cursor from edit.dat" {-borderwidth 10}] } {
+    if { [tkuCreateDialog $wwDialog "Read/Write Cursor from edit.dat" {-borderwidth 10}] } {
 
 	set fwSurface     $wwDialog.fwSurface
 	set fwVolume      $wwDialog.fwVolume
@@ -6022,10 +6022,25 @@ proc DoSetCursorFromEditDatFileDlog {} {
 	pack $fwUseRealRAS.cbUseRealRAS
 
 
-	tkuMakeApplyCloseButtons $fwButtons $wwDialog \
-	    -applyLabel "Read" \
-	    -applyCmd SetCursorFromEditDatFile
-	
+	frame $fwButtons
+	set bwRead $fwButtons.bwRead
+	set bwWrite $fwButtons.bwWrite
+	set bwClose $fwButtons.bwClose
+
+	button $bwRead \
+	    -text "Read" \
+	    -command SetCursorFromEditDatFile
+	button $bwWrite \
+	    -text "Write" \
+	    -command WriteCursorToEditDatFile
+	button $bwClose \
+	    -text "Close" \
+	    -command "tkuCloseDialog $wwDialog"
+	pack $bwRead $bwWrite $bwClose \
+	    -side right \
+	    -padx 5 \
+	    -pady 5
+
 	pack $fwSurface $fwVolume $fwUseRealRAS $fwButtons \
 	    -side top       \
 	    -expand yes     \
@@ -6043,7 +6058,9 @@ proc EditDataSurfaceMenuCallback { iColID } {
     global gEditDatInfo
 
     # Get the useRealRAS value from this surface and preset the checkbox.
-    set gEditDatInfo(useRealRAS) [GetSurfaceUseRealRAS $iColID]
+    if { $iColID >= 0 } {
+	set gEditDatInfo(useRealRAS) [GetSurfaceUseRealRAS $iColID]
+    }
 }
 
 proc SetCursorFromEditDatFile {} {
@@ -6057,12 +6074,12 @@ proc SetCursorFromEditDatFile {} {
 	return
     }
 
-    set fnCursor $gSubject(homeDir)/tmp/edit.dat
+    set fnCursor [file join $gSubject(homeDir) tmp edit.dat]
 
     set err [catch {
 	set fCursor [open $fnCursor r]
     } sResult]
-    if { 0 != $err } { tkuErrorDlog "Couldn't open $fnCursor\n$err"; return }
+    if { 0 != $err } { tkuErrorDlog "Couldn't open $fnCursor\n$sResult"; return }
 
     set err [catch {
 	set lRAS [gets $fCursor]
@@ -6093,6 +6110,51 @@ proc SetCursorFromEditDatFile {} {
     SetViewRASCursor \
 	[lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
     RedrawFrame [GetMainFrameID]
+
+    UpdateCursorLabelArea
+}
+
+proc WriteCursorToEditDatFile {} {
+    global gSubject
+    global gaView
+    global gaWidget
+    global gEditDatInfo
+
+    if { ![info exists gSubject(homeDir)] } {
+	tkuErrorDlog "Can't write edit.dat file: No subject is set."
+	return
+    }
+
+    # Get the cursor
+    set lRAS [GetViewRASCursor]
+
+    # If not useRealRAS, let the volume transform our point here. 
+    if { !$gEditDatInfo(useRealRAS) } {
+
+	set lConvertedRAS \
+	    [GetVolumeSurfaceRASCoordsFromRAS $gEditDatInfo(volumeID) \
+		 [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]]
+
+	set lRAS $lConvertedRAS
+    }
+
+    set fnCursor [file join $gSubject(homeDir) tmp edit.dat]
+
+    set err [catch {
+	set fCursor [open $fnCursor w]
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog "Couldn't open $fnCursor\n$sResult"; return }
+
+    set err [catch {
+	puts $fCursor $lRAS
+    } sResult]
+    if { 0 != $err } { 
+	tkuErrorDlog "Couldn't write to $fnCursor\n$sResult"
+	close $fCursor
+	return 
+    }
+
+    close $fCursor
 
     UpdateCursorLabelArea
 }
