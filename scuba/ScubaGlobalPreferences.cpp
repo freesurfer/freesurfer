@@ -67,7 +67,9 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( KeyMoveViewUp ) ||
 	sKey == GetStringForKey( KeyMoveViewDown ) ||
 	sKey == GetStringForKey( KeyMoveViewIn ) ||
-	sKey == GetStringForKey( KeyMoveViewOut )
+	sKey == GetStringForKey( KeyMoveViewOut ) ||
+	sKey == GetStringForKey( KeyZoomViewIn ) ||
+	sKey == GetStringForKey( KeyZoomViewOut )
 	) {
       
       string sValue = prefsMgr.GetValue( sKey );
