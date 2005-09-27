@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.13 2005/09/02 22:21:32 greve Exp $
+  $Id: mri2.c,v 1.14 2005/09/27 04:08:08 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -1015,3 +1015,45 @@ int MRIpca(MRI *D, MATRIX **pU, VECTOR **pS, MRI **pV, MRI *mask)
 
   return(0);
 }
+
+/*--------------------------------------------------------------
+  PrintPCAStats() - prints pca summary statistics to a stream.
+  The summary stats are: (1) nth EV (2) var spanned by nth,
+  (3) var spanned by 1-nth EVs, (3) percent var spanned by nth,
+  (4) perent var spanned by 1-nth EVs, 
+  --------------------------------------------------------------*/
+int PrintPCAStats(FILE *fp, MATRIX *Spca)
+{
+  int n;
+  double totvar,v,vsum;
+
+  totvar=0.0;
+  for(n=1; n <= Spca->cols; n++)
+    totvar += (Spca->rptr[1][n] * Spca->rptr[1][n]);
+
+  vsum = 0.0;
+  for(n=1; n <= Spca->cols; n++){
+    v = (Spca->rptr[1][n] * Spca->rptr[1][n]);
+    vsum += v;
+    fprintf(fp,"%3d   %8.2f %9.2f   %6.2f%%  %6.2f%% \n",
+	    n,v,vsum,100*v/totvar,100*vsum/totvar);
+  }
+  return(0);
+}
+
+/*--------------------------------------------------------------
+  WritePCAStats() - writes pca summary statistics to a file.
+  see PrintPCAStats() for more info.
+  --------------------------------------------------------------*/
+int WritePCAStats(char *fname, MATRIX *Spca)
+{
+  FILE *fp;
+  fp = fopen(fname,"w");
+  if(fp == NULL){
+    printf("ERROR: opening %s\n",fname);
+    return(1);
+  }
+  PrintPCAStats(fp, Spca);
+  return(0);
+}
+
