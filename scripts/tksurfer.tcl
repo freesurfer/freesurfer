@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.80 2005/09/23 15:21:49 kteich Exp $
+# $Id: tksurfer.tcl,v 1.81 2005/09/27 22:46:55 kteich Exp $
 
 package require BLT;
 
@@ -4483,7 +4483,7 @@ proc GetDefaultLocation { iType } {
 	    SaveGDFPlotToPS - SaveGDFPlotToTable -
 	    LoadGDF {
 		set gsaDefaultLocation($iType) \
-		    [ExpandFileName "" kFileName_Home]
+		    [ExpandFileName "" kFileName_PWD]
 	    }
 	    SaveRGBAs {
 		set gsaDefaultLocation($iType) \
