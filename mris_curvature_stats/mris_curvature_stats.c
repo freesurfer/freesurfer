@@ -39,7 +39,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.13 2005/09/27 20:30:50 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.14 2005/09/27 20:48:43 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -183,7 +183,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.13 2005/09/27 20:30:50 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.14 2005/09/27 20:48:43 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -780,7 +780,7 @@ histogram_create(
 	    l_curvature		= (double)(pf_curvature[j]);
 	    l_leftBound		= (double)((i*af_binSize+af_minCurv));
             l_rightBound	= (double)((((i+1)*af_binSize)+af_minCurv));
-	    if(	l_curvature >= l_leftBound && l_curvature <= l_rightBound
+	    if(	(l_curvature >= l_leftBound && l_curvature <= l_rightBound)
 				||
 		AlmostEqual2sComplement(l_curvature, l_rightBound, maxUlps)
 				||
