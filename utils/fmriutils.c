@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.17 2005/09/26 21:02:34 greve Exp $
+   $Id: fmriutils.c,v 1.18 2005/09/27 01:26:25 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.17 2005/09/26 21:02:34 greve Exp $");
+  return("$Id: fmriutils.c,v 1.18 2005/09/27 01:26:25 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -932,4 +932,54 @@ int MRIsetSign(MRI *invol, MRI *signvol, int frame)
     }
   }
   return(0);
+}
+
+/*---------------------------------------------------------------
+  MRIframeMax() - finds the maximum in the given frame. The max is
+  returned. The CRS of the max are passed back as args. If mask is
+  non-null, then only voxels in the mask are considered. If absflag
+  is 1, then the maximum of the absolute is searched for (signed
+  value still returned).
+  --------------------------------------------------------------*/
+double MRIframeMax(MRI *vol, int frame, MRI *mask, int absflag,
+		   int *cmax, int *rmax, int *smax)
+{
+  int c, r, s;
+  double v,vmax,m;
+
+  if(frame > vol->nframes){
+    printf("ERROR: MRIframeMax(): input frame %d is too large",frame);
+    return(1);
+  }
+
+  vmax = 0.0;
+  for(c=0; c < vol->width; c++){
+    for(r=0; r < vol->height; r++){
+      for(s=0; s < vol->depth; s++){
+	if(mask != NULL){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+	v = MRIgetVoxVal(vol,c,r,s,frame);
+
+	if(absflag){
+	  if(fabs(vmax) < fabs(v)){
+	    vmax = v;
+	    *cmax = c;
+	    *rmax = r;
+	    *smax = s;
+	  }
+	}
+	else{
+	  if(vmax < v){
+	    vmax = v;
+	    *cmax = c;
+	    *rmax = r;
+	      *smax = s;
+	  }
+	}
+      }//s
+    }//r
+  }//s
+  return(vmax);
 }

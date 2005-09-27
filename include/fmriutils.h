@@ -63,5 +63,7 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s);
 int MRIglmNRegTot(MRIGLM *mriglm);
 VECTOR *MRItoVector(MRI *mri, int c, int r, int s, VECTOR *v);
 int MRIsetSign(MRI *invol, MRI *signvol, int frame);
+double MRIframeMax(MRI *vol, int frame, MRI *mask, int absflag,
+		   int *cmax, int *rmax, int *smax);
 
 #endif
