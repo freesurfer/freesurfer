@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/09/26 22:05:09 $
-// Revision       : $Revision: 1.26 $
+// Revision Date  : $Date: 2005/09/27 15:49:31 $
+// Revision       : $Revision: 1.27 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -581,3 +581,39 @@ int fio_popd(void)
 
   return(0);
 }
+
+
+/*--------------------------------------------------------------------
+  fio_fullpath() - gets full path to a file. The file must exist. Works
+  by pushing into the file dir, getting the cwd, appending the file
+  basename to the cwd to get the full path, then popping the stack.
+  -------------------------------------------------------------------*/
+char *fio_fullpath(char *fname)
+{
+  static char cwd[1000];
+  char *dirname, *basename;
+  char *fullpath;
+  int err;
+
+  basename = fio_basename(fname,NULL);
+  dirname  = fio_dirname(fname);
+
+  err = fio_pushd(dirname);
+  if(err){
+    free(dirname);
+    free(basename);
+    return(NULL);
+  }
+  getcwd(cwd,1000);
+  fio_popd();
+
+  sprintf(cwd,"%s/%s",cwd,basename);
+  fullpath = strcpyalloc(cwd);
+
+  free(dirname);
+  free(basename);
+  
+  return(fullpath);
+}
+
+
