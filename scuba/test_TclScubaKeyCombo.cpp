@@ -45,6 +45,20 @@ TclScubaKeyComboTester::Test ( Tcl_Interp* iInterp ) {
 
   try {
 
+    struct modTest { string sMod; bool bCtrl, bShift, bAlt, bMeta; };
+    modTest aModifiers[] = {{"Ctrl ", true, false, false, false},
+			    {"Shift ", false, true, false, false}, 
+			    {"Alt ", false, false, true, false}, 
+			    {"Meta ", false, false, false, true},
+			    {"Ctrl Shift ", true, true, false, false}, 
+			    {"Ctrl Alt ", true, false, true, false}, 
+			    {"Ctrl Meta ", true, false, false, true},
+			    {"Shift Alt ", false, true, true, false}, 
+			    {"Shift Meta ", false, true, false, true},
+			    {"Alt Meta ", false, false, true, true},
+			    {"Ctrl Shift Alt ", true, true, true, false},
+			    {"Shift Alt Meta ", false, true, true, true} };
+
     struct keyTest { string sKey; int keyCode; };
     keyTest aKeyTests[] = { 
       {"Prior", ScubaKeyCombo::Key_PageUp},
@@ -112,36 +126,80 @@ TclScubaKeyComboTester::Test ( Tcl_Interp* iInterp ) {
 
     char sCommand[1024];
     int rTcl;
-    for( int nKey = 0; nKey < 62; nKey++ ) {
-      TclScubaKeyCombo key;
-      key.SetFromString(aKeyTests[nKey].sKey);
-      {
-	stringstream ssError;
-	ssError.setf(ios::hex,ios::basefield);
-	ssError << "Failed test string " << aKeyTests[nKey].sKey 
-		<< " code 0x" << aKeyTests[nKey].keyCode 
-		<< " made key " << key;
-	Assert( (key.GetKeyCode() == aKeyTests[nKey].keyCode), ssError.str() );
-      }
+    for( int nMod = 0; nMod < 12; nMod++ ) {
+      for( int nKey = 0; nKey < 62; nKey++ ) {
+	string sKey = aModifiers[nMod].sMod + aKeyTests[nKey].sKey;
+	
+	ScubaKeyCombo* key = ScubaKeyCombo::MakeKeyCombo();
+	key->SetFromString(sKey);
+	{
+	  stringstream ssError;
+	  ssError.setf(ios::hex,ios::basefield);
+	  ssError << "Failed test string " << sKey 
+		  << " code 0x" << aKeyTests[nKey].keyCode 
+		  << " made key " << *key;
+	  Assert( (key->GetKeyCode() ==aKeyTests[nKey].keyCode),
+		  ssError.str() );
+	}
+	{
+	  stringstream ssError;
+	  ssError << "Failed test shift mod " << sKey 
+		  << " made key " << *key;
+	  Assert( (key->IsShiftKeyDown() == aModifiers[nMod].bShift),
+		  ssError.str() );
+	}
+	{
+	  stringstream ssError;
+	  ssError << "Failed test ctrl mod " << sKey 
+		  << " made key " << *key;
+	  Assert( (key->IsControlKeyDown() == aModifiers[nMod].bCtrl),
+		  ssError.str() );
+	}
+	{
+	  stringstream ssError;
+	  ssError << "Failed test alt mod " << sKey 
+		  << " made key " << *key;
+	  Assert( (key->IsAltKeyDown() == aModifiers[nMod].bAlt),
+		  ssError.str() );
+	}
+	{
+	  stringstream ssError;
+	  ssError << "Failed test meta mod " << sKey 
+		  << " made key " << *key;
+	  Assert( (key->IsMetaKeyDown() == aModifiers[nMod].bMeta),
+		  ssError.str() );
+	}
       
-      // Test the tcl commands.
-      sprintf( sCommand, "ConvertTkInputStringToScubaKeyComboString %s",
-	       aKeyTests[nKey].sKey.c_str() );
-      rTcl = Tcl_Eval( iInterp, sCommand );
-      AssertTclOK( rTcl );
-      const char* sTclResult = Tcl_GetStringResult( iInterp );
+	// Test the tcl commands.
+	sprintf( sCommand, 
+		 "ConvertTkInputStringToScubaKeyComboString %s %d %d %d %d",
+		 aKeyTests[nKey].sKey.c_str(), aModifiers[nMod].bShift,
+		 aModifiers[nMod].bMeta, aModifiers[nMod].bAlt,
+		 aModifiers[nMod].bCtrl );
+	rTcl = Tcl_Eval( iInterp, sCommand );
+	AssertTclOK( rTcl );
+	const char* sTclResult = Tcl_GetStringResult( iInterp );
+	
+	ScubaKeyCombo* testKey = ScubaKeyCombo::MakeKeyCombo();
+	testKey->SetFromString( sTclResult );
+	{
+	  stringstream ssError;
+	  ssError << "Failed tcl return " << aKeyTests[nKey].sKey 
+		  << " shift " << aModifiers[nMod].bShift
+		  << " meta " << aModifiers[nMod].bMeta
+		  << " alt " << aModifiers[nMod].bAlt
+		  << " ctrl " << aModifiers[nMod].bCtrl
+		  << " returned string \"" << sTclResult
+		  << "\" which made " << *testKey
+		  << " which doesn't match " << *key;
+	  Assert( key->IsSameAs( testKey ), ssError.str() );
+	}
 
-      ScubaKeyCombo testKey;
-      testKey.SetFromString( sTclResult );
-      {
-	stringstream ssError;
-	ssError << "Failed tcl return " << aKeyTests[nKey].sKey 
-		<< " returned string \"" << sTclResult
-		<< "\" which made " << testKey;
-	Assert( key.IsSameAs( testKey ), ssError.str() );
+	delete key;
+	delete testKey;
       }
     }
-
+    
   }
   catch( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
@@ -172,6 +230,7 @@ int main ( int argc, char** argv ) {
     commandMgr.Start( interp );
 
     TclScubaKeyComboStaticTclListener::GetListener();
+    ScubaKeyCombo::SetFactory( new TclScubaKeyComboFactory() );
 
     TclScubaKeyComboTester tester0;
     tester0.Test( interp );

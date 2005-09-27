@@ -17,43 +17,62 @@ TclScubaKeyCombo::SetFromString ( string isKey ) {
   // the right tk name, it definitely matched a last letter. So this
   // just gives the potential to override what we've already done, and
   // if not, goes with what we got.
-  if(isKey.find("bracketright")!=string::npos) mKeyCode =Key_BracketRight;
-  else if(isKey.find("bracketleft")!=string::npos) mKeyCode = Key_BracketLeft;
-  else if(isKey.find("asciicirum")!=string::npos) mKeyCode = Key_AsciiCircum;
-  else if(isKey.find("underscore")!=string::npos) mKeyCode = Key_Underscore;
-  else if(isKey.find("parenright")!=string::npos) mKeyCode = Key_ParenRight;
-  else if(isKey.find("numbersign")!=string::npos) mKeyCode = Key_NumberSign;
-  else if(isKey.find("apostrophe")!=string::npos) mKeyCode = Key_Apostrophe;
-  else if(isKey.find("braceright")!=string::npos) mKeyCode = Key_BraceRight;
-  else if(isKey.find("asciitilde")!=string::npos) mKeyCode = Key_AsciiTilde;
-  else if(isKey.find("backslash")!=string::npos) mKeyCode = Key_Backslash;
-  else if(isKey.find("ampersand")!=string::npos) mKeyCode = Key_Ampersand;
-  else if(isKey.find("parenleft")!=string::npos) mKeyCode = Key_ParenLeft;
-  else if(isKey.find("semicolon")!=string::npos) mKeyCode = Key_Semicolon;
-  else if(isKey.find("braceleft")!=string::npos) mKeyCode = Key_BraceLeft;
-  else if(isKey.find("backslash")!=string::npos) mKeyCode = Key_Backslash;
-  else if(isKey.find("asterisk")!=string::npos) mKeyCode = Key_Asterisk;
-  else if(isKey.find("quotedbl")!=string::npos) mKeyCode = Key_QuoteDbl;
-  else if(isKey.find("percent")!=string::npos) mKeyCode = Key_Percent;
-  else if(isKey.find("greater")!=string::npos) mKeyCode = Key_Greater;
-  else if(isKey.find("exclam")!=string::npos) mKeyCode = Key_Exclam;
-  else if(isKey.find("dollar")!=string::npos) mKeyCode = Key_Dollar;
-  else if(isKey.find("period")!=string::npos) mKeyCode = Key_Period;
-  else if(isKey.find("Prior")!=string::npos) mKeyCode = Key_PageUp;
-  else if(isKey.find("minus")!=string::npos) mKeyCode = Key_Minus;
-  else if(isKey.find("equal")!=string::npos) mKeyCode = Key_Equal;
-  else if(isKey.find("space")!=string::npos) mKeyCode = Key_Space;
-  else if(isKey.find("comma")!=string::npos) mKeyCode = Key_Comma;
-  else if(isKey.find("minus")!=string::npos) mKeyCode = Key_Minus;
-  else if(isKey.find("slash")!=string::npos) mKeyCode = Key_Slash;
-  else if(isKey.find("colon")!=string::npos) mKeyCode = Key_Colon;
-  else if(isKey.find("equal")!=string::npos) mKeyCode = Key_Equal;
-  else if(isKey.find("grave")!=string::npos) mKeyCode = Key_QuoteLeft;
-  else if(isKey.find("less")!=string::npos) mKeyCode = Key_Less;
-  else if(isKey.find("Next")!=string::npos) mKeyCode = Key_PageDown;
-  else if(isKey.find("plus")!=string::npos) mKeyCode = Key_Plus;
-  else if(isKey.find("bar")!=string::npos) mKeyCode = Key_Bar;
-  else if(isKey.find("at")!=string::npos) mKeyCode = Key_At;
+  struct keyStringCodePair { string sKey; int code; };
+  keyStringCodePair aKeys[] = {
+    {"bracketright", Key_BracketRight },
+    { "bracketleft", Key_BracketLeft },
+    { "asciicirum", Key_AsciiCircum },
+    { "underscore", Key_Underscore },
+    { "parenright", Key_ParenRight },
+    { "numbersign", Key_NumberSign },
+    { "apostrophe", Key_Apostrophe },
+    { "braceright", Key_BraceRight },
+    { "asciitilde", Key_AsciiTilde },
+    { "backslash", Key_Backslash },
+    { "ampersand", Key_Ampersand },
+    { "parenleft", Key_ParenLeft },
+    { "semicolon", Key_Semicolon },
+    { "braceleft", Key_BraceLeft },
+    { "backslash", Key_Backslash },
+    { "asterisk", Key_Asterisk },
+    { "quotedbl", Key_QuoteDbl },
+    { "percent", Key_Percent },
+    { "greater", Key_Greater },
+    { "exclam", Key_Exclam },
+    { "dollar", Key_Dollar },
+    { "period", Key_Period },
+    { "Prior", Key_Prior },
+    { "minus", Key_Minus },
+    { "equal", Key_Equal },
+    { "space", Key_Space },
+    { "comma", Key_Comma },
+    { "minus", Key_Minus },
+    { "slash", Key_Slash },
+    { "colon", Key_Colon },
+    { "equal", Key_Equal },
+    { "grave", Key_QuoteLeft },
+    { "less", Key_Less },
+    { "Next", Key_PageDown },
+    { "plus", Key_Plus },
+    { "bar", Key_Bar },
+    { "at", Key_At } };
+
+  // For each key string, try a reverse find on the input string we
+  // got. If we found it, check that the position we got is correct,
+  // and if we got a complete word (by checking that the length of the
+  // match is the same as the length of the string, or that the char
+  // before the match is a space).
+  for ( int nKey = 0; nKey < 37; nKey++ ) {
+    size_t pos;
+    pos = isKey.rfind( aKeys[nKey].sKey );
+    if( pos != string::npos && 
+	pos == isKey.length () - aKeys[nKey].sKey.length() &&
+	(isKey.length() == aKeys[nKey].sKey.length() ||
+	 isKey[pos-1] == ' ') ) {
+      mKeyCode = aKeys[nKey].code;
+      return;
+    }
+  }
 }
 
 
@@ -67,9 +86,11 @@ TclScubaKeyComboStaticTclListener::GetListener () {
     mbAddedTclCommands = true;
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.AddCommand( sListener,
-			   "ConvertTkInputStringToScubaKeyComboString", 1,
-			   "input", "Takes an input string from Tk key text "
-			   "and returns a ScubaKeyCombo key combo string." );
+			   "ConvertTkInputStringToScubaKeyComboString", 5,
+			   "input shift meta alt control", "Takes an input "
+			   "string from Tk key text and boolean values for "
+			   "modifiers and returns a ScubaKeyCombo key "
+			   "combo string." );
   }
 
   return sListener;
@@ -79,13 +100,21 @@ TclCommandManager::TclCommandResult
 TclScubaKeyComboStaticTclListener::DoListenToTclCommand ( char* isCommand, 
 							  int iArgc,
 							  char** iasArgv ) {
-  // ConvertTkInputStringToScubaKeyComboString <input string>
+  // ConvertTkInputStringToScubaKeyComboString <input string> <shift> <meta> <alt> <control>
   if( 0 == strcmp( isCommand, "ConvertTkInputStringToScubaKeyComboString" ) ) {
 
     string sKey = iasArgv[1];
+    bool bShift = TclCommandManager::ConvertArgumentToBoolean( iasArgv[2] );
+    bool bMeta = TclCommandManager::ConvertArgumentToBoolean( iasArgv[3] );
+    bool bAlt = TclCommandManager::ConvertArgumentToBoolean( iasArgv[4] );
+    bool bControl = TclCommandManager::ConvertArgumentToBoolean( iasArgv[5] );
 
     TclScubaKeyCombo key;
     key.SetFromString( sKey );
+    key.SetShiftKeyDown( bShift );
+    key.SetMetaKeyDown( bMeta );
+    key.SetAltKeyDown( bAlt );
+    key.SetControlKeyDown( bControl );
     stringstream ssReturnValues;
     ssReturnValues << "\"" << key.ToString() << "\"";
     sReturnValues = ssReturnValues.str();

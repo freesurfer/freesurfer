@@ -262,7 +262,7 @@ testScubaKeyCombo_SOURCES=test_ScubaKeyCombo.cpp \
 testScubaKeyCombo_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
-testTclScubaKeyCombo_SOURCES=test_TclScubaKeyCombo.cpp \
+testTclScubaKeyCombo_SOURCES=test_TclScubaKeyCombo.cpp TclScubaKeyCombo.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
 testTclScubaKeyCombo_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))

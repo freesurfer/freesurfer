@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.140 2005/09/16 17:06:50 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.141 2005/09/27 20:27:54 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -75,7 +75,7 @@ set gbDebugOutput false
 proc dputs { isMsg } {
     global gbDebugOutput
     if { $gbDebugOutput } {
-	puts "scuba: $isMsg"
+	]puts "scuba: $isMsg"
     }
 }
 
@@ -723,13 +723,13 @@ proc ToolBarWrapper { isName iValue } {
 		# Customize the views here if requested.
 		if { $gaView(autoConfigure) } {
 		    set fID [GetMainFrameID]
-		    if { "$isName" == "c22" } {
+		    if { [string match $isName c22] } {
 			SetViewInPlane [GetViewIDFromFrameColRow $fID 0 0] x
 			SetViewInPlane [GetViewIDFromFrameColRow $fID 1 0] y
 			SetViewInPlane [GetViewIDFromFrameColRow $fID 0 1] z
 			SetViewInPlane [GetViewIDFromFrameColRow $fID 1 1] x
 		    }
-		    if { "$isName" == "c13" } {
+		    if { [string match $isName c13] } {
 			SetViewInPlane [GetViewIDFromFrameColRow $fID 0 0] x
 			SetViewInPlane [GetViewIDFromFrameColRow $fID 0 1] x
 			SetViewInPlane [GetViewIDFromFrameColRow $fID 1 1] y
@@ -1000,27 +1000,29 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
     global gaWidget
     global gaView
 
+    set sKeyCombo [ConvertStateAndKeyToKeyComboString $iState $iKey]
+
     # Check for the mouse key equivs.
     foreach {sKey nButton} {
 	KeyMouseButtonOne   1
 	KeyMouseButtonTwo   2
 	KeyMouseButtonThree 3 } {
-	if { [string tolower "$iKey"] == [string tolower "$gaPrefs($sKey)"] } {
+	if { [string match $sKeyCombo $gaPrefs($sKey)] } {
 	    $gaWidget(scubaFrame,0) MouseUpCallback $inX $inY $nButton
 	}
     }
 
-    if { "$iKey" == "$gaPrefs(KeyInPlaneX)" } {
+    if { [string match $sKeyCombo $gaPrefs(KeyInPlaneX)] } {
 	set gaView(current,inPlane) x
     }
-    if { "$iKey" == "$gaPrefs(KeyInPlaneY)" } {
+    if { [string match $sKeyCombo $gaPrefs(KeyInPlaneY)] } {
 	set gaView(current,inPlane) y
     }
-    if { "$iKey" == "$gaPrefs(KeyInPlaneZ)" } {
+    if { [string match $sKeyCombo $gaPrefs(KeyInPlaneZ)] } {
 	set gaView(current,inPlane) z
     }
 
-    if { "$iKey" == "$gaPrefs(KeyCycleViewsInFrame)" } {
+    if { [string match $sKeyCombo $gaPrefs(KeyCycleViewsInFrame)] } {
 	CycleCurrentViewInFrame [GetMainFrameID]
 	set viewID [GetSelectedViewID [GetMainFrameID]]
 	SelectViewInViewProperties $viewID
@@ -1029,7 +1031,7 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 
     # This is the view shuffle code. It should probaby be put into its
     # own little funtion, eh.
-    if { "$iKey" == "$gaPrefs(KeyShuffleLayers)" } {
+    if { [string match $sKeyCombo $gaPrefs(KeyShuffleLayers)] } {
 	set viewID [GetSelectedViewID [GetMainFrameID]]
 	set nHighestLevel 0
 	for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
@@ -1075,12 +1077,14 @@ proc ScubaKeyDownCallback { inX inY iState iKey } {
     global gaPrefs
     global gaWidget
     
+    set sKeyCombo [ConvertStateAndKeyToKeyComboString $iState $iKey]
+
     # Check for the mouse key equivs.
     foreach {sKey nButton} {
 	KeyMouseButtonOne   1
 	KeyMouseButtonTwo   2
 	KeyMouseButtonThree 3 } {
-	if { "$iKey" == "$gaPrefs($sKey)" } {
+	if { [string match $sKeyCombo $gaPrefs($sKey)] } {
 	$gaWidget(scubaFrame,0) MouseDownCallback $inX $inY $nButton
 	    ScubaMouseDownCallback $inX $inY $iState $nButton
 	}
@@ -1108,7 +1112,7 @@ proc GotoCoordsInputCallback {} {
 
     } else {
 
-	if { "$gCoordsInput(system)" == "ras" } {
+	if { [string match $gCoordsInput(system) ras] } {
 	    
 	    # Set the cursor.
 	    SetViewRASCursor [lindex $sFiltered 0] [lindex $sFiltered 1] \
@@ -1120,7 +1124,7 @@ proc GotoCoordsInputCallback {} {
 	    set gCoordsInput(entry) "Enter RAS Coords"
 	    $gaWidget(coordsEntry) selection range 0 end
 
-	} elseif { "$gCoordsInput(system)" == "index" } {
+	} elseif { [string match $gCoordsInput(system) index] } {
 
 	    if { $gaTool(current,targetLayer) < 0 } {
 		tkuErrorDlog "Please specify a target volume layer."
@@ -1170,13 +1174,18 @@ proc GetPreferences {} {
 	KeyMouseButtonOne
 	KeyMouseButtonTwo
 	KeyMouseButtonThree
-	LockOnCursor
-	SelectedTool
     } {
 	set gaPrefs($sKey) [GetPreferencesValue $sKey]
     }
 
-    # Ready the user structure list.
+    foreach pref {
+	LockOnCursor
+	SelectedTool
+    } {
+	set gaPrefs($pref) [GetPreferencesValue $pref]
+    }
+
+    # Read the user structure list.
     set lUserStructureList [GetPreferencesValue UserStructureList]
     foreach {nStructure count} $lUserStructureList {
 	set gaTool(structureListOrder,count,$nStructure) $count
@@ -3284,7 +3293,7 @@ proc SelectToolInToolProperties { iTool } {
 	    set gaTool(current,onlyBrushZero) \
 		[GetToolOnlyBrushZero $gaTool(current,id)]
 
-	    if { "$gaTool(current,type)" == "voxelEditing" } {
+	    if { [string match $gaTool(current,type) voxelEditing] } {
 
 		grid $gaWidget(toolProperties,voxelEditing) \
 		    -column 0 -row 3 -sticky news
@@ -3321,7 +3330,7 @@ proc SelectToolInToolProperties { iTool } {
 	    set gaTool(current,onlyFloodZero) \
 		[GetToolOnlyFloodZero $gaTool(current,id)]
 
-	    if { "$gaTool(current,type)" == "voxelFilling" } {
+	    if { [string match $gaTool(current,type) voxelFilling] } {
 
 		grid $gaWidget(toolProperties,voxelEditing) \
 		    -column 0 -row 3 -sticky news
@@ -3410,7 +3419,7 @@ proc VoxelEditingStructureListBoxCallback {} {
     set nStructure $gaTool(structureListOrder,entryToIndex,$nEntry)
 
     # Increment our user count.
-    if { "$gaTool(structureListOrder,type)" == "table" } {
+    if { [string match $gaTool(structureListOrder,type) table] } {
 	if { [info exists gaTool(structureListOrder,count,$nStructure)] } {
 	    incr gaTool(structureListOrder,count,$nStructure)
 	} else {
@@ -3441,7 +3450,7 @@ proc SortVoxelEditingStructureListBox {} {
     set cStructures [GetColorLUTNumberOfEntries $gaTool(current,voxelLutID)]
 
     # If table order, just insert them in the order of the table.
-    if { "$gaTool(structureListOrder,type)" == "table" } {
+    if { [string match $gaTool(structureListOrder,type) table] } {
 	
 	set nEntry 0
 	for { set nStructure 0 } { $nStructure < $cStructures } { incr nStructure } {
@@ -3463,7 +3472,7 @@ proc SortVoxelEditingStructureListBox {} {
 	# If user order, first get all the items that have counts >
 	# 0. Then sort the list according to counts. Then go through
 	# the sorted list and insert stuff in the listbox.
-    } elseif { "$gaTool(structureListOrder,type)" == "user" } {
+    } elseif { [string match $gaTool(structureListOrder,type) user] } {
 
 	set lEntries {}
 	for { set nStructure 0 } { $nStructure < $cStructures } { incr nStructure } {
@@ -3534,7 +3543,7 @@ proc SelectStructureInVoxelEditingListBox { inStructure } {
 	SetToolNewVoxelValue $gaTool(current,id) $gaTool(current,newVoxelValue)
     }
 
-    if { "$gaTool(structureListOrder,type)" == "user" } {
+    if { [string match $gaTool(structureListOrder,type) user] } {
 	SortVoxelEditingStructureListBox
     }
 
@@ -4321,6 +4330,7 @@ proc DoPrefsDlog {} {
 
 	frame $fwKeys
 
+	set nRow 0
 	foreach {sKey sLabel} {
 	    KeyMoveViewLeft   "Move View Left"
 	    KeyMoveViewRight  "Move View Right"
@@ -4339,15 +4349,25 @@ proc DoPrefsDlog {} {
 	    KeyShuffleLayers  "Shuffle layers in a view"
 	} {
    
-	    tkuMakeEntry $fwKeys.fw$sKey \
-		-label $sLabel -width 8 -font [tkuNormalFont] \
-		-labelwidth 30 \
-		-variable gaPrefs($sKey) \
-		-command "SetPreferencesValue $sKey \$gaPrefs($sKey)" \
-		-notify 1
+	    tkuMakeNormalLabel $fwKeys.lw$sKey \
+		-font [tkuLabelFont] \
+		-label $sLabel \
+		-width 30
 
-	    pack $fwKeys.fw$sKey \
-		-side top -fill x -expand yes
+	    tkuMakeActiveLabel $fwKeys.fw$sKey \
+		-font [tkuNormalFont] \
+		-variable gaPrefs($sKey) \
+		-width 15
+
+	    button $fwKeys.bw$sKey \
+		-text "Set" \
+		-command "GetPrefsKey $sKey"
+
+	    grid $fwKeys.lw$sKey -column 0 -row $nRow
+	    grid $fwKeys.fw$sKey -column 1 -row $nRow
+	    grid $fwKeys.bw$sKey -column 2 -row $nRow
+
+	    incr nRow
 	}
 	
 
@@ -4360,6 +4380,65 @@ proc DoPrefsDlog {} {
 	    -padx 5         \
 	    -pady 5
     }
+}
+
+proc GetPrefsKey { iPrefsKey } {
+    global gPrefsKey
+
+    toplevel .wwPrefsKeyGetter
+    label .wwPrefsKeyGetter.l -text "Press key"
+    pack .wwPrefsKeyGetter.l
+    update idletasks
+    grab .wwPrefsKeyGetter
+
+    bind .wwPrefsKeyGetter <KeyRelease> "SavePrefsKey $iPrefsKey %s %K"
+
+    tkwait variable gGotPrefsKey
+
+    destroy .wwPrefsKeyGetter
+}
+
+
+proc SavePrefsKey { iPrefsKey iState iKey } {
+    global gGotPrefsKey
+    global gaPrefs
+
+    if { [string first _L $iKey] != -1 ||
+	 [string first _R $iKey] != -1 } {
+	grab .wwPrefsKeyGetter
+	return
+    }
+
+    set sKey [ConvertStateAndKeyToKeyComboString $iState $iKey]
+    set gaPrefs($iPrefsKey) $sKey
+    SetPreferencesValue $iPrefsKey $sKey
+
+    set gGotPrefsKey 1
+}
+
+proc ConvertStateAndKeyToKeyComboString { iState iKey } {
+
+    set bShift 0
+    if { [expr $iState & 1] } {
+	set bShift 1
+    }
+
+    set bControl 0
+    if { [expr $iState & 4] } {
+	set bControl 1
+    }
+
+    set bAlt 0
+    if { [expr $iState & 8] } {
+	set bAlt 1
+    }
+
+    set bMeta 0
+    if { [expr $iState & 64] } {
+	set bMeta 1
+    }
+
+    return [ConvertTkInputStringToScubaKeyComboString $iKey $bShift $bMeta $bAlt $bControl]
 }
 
 # TASK AREA ==============================================================
@@ -4840,7 +4919,7 @@ proc DoSave {} {
 
     if { [info exists gaCollection(current,id)] &&
 	 $gaCollection(current,id) >= -1 &&
-	 "$gaCollection(current,type)" == "Volume" } {
+	 [string match $gaCollection(current,type) Volume] } {
 	
 	tkuDoFileDlog -title "Save Volume" \
 	    -prompt1 "Will save the volume \"$gaCollection(current,label)\" as\n $gaCollection(current,fileName)" \
@@ -4862,7 +4941,7 @@ proc DoNewVolumeDlog {} {
 
     if { [info exists gaCollection(current,id)] &&
 	 $gaCollection(current,id) >= -1 &&
-	 "$gaCollection(current,type)" == "Volume" } {
+	 [string match $gaCollection(current,type) Volume] } {
 
 	tkuDoFileDlog -title "New Volume" \
 	    -prompt1 "Will make a new volume using volume \"$gaCollection(current,label)\" as a template." \
@@ -4932,7 +5011,7 @@ proc DoLoadPatchDlog {} {
 
     if { [info exists gaCollection(current,id)] &&
 	 $gaCollection(current,id) >= -1 &&
-	 "$gaCollection(current,type)" == "Surface" } {
+	 [string match $gaCollection(current,type) Surface] } {
 
 	tkuDoFileDlog -title "Load Patch Into Surface" \
 	    -prompt1 "Will load a patch into surface \"$gaCollection(current,label)\"." \
@@ -4959,7 +5038,7 @@ proc DoSaveAsDlog {} {
 
     if { [info exists gaCollection(current,id)] &&
 	 $gaCollection(current,id) >= -1 &&
-	 "$gaCollection(current,type)" == "Volume" } {
+	 [string match $gaCollection(current,type) Volume] } {
 
 	tkuDoFileDlog -title "Save Volume As" \
 	    -prompt1 "Will save volume \"$gaCollection(current,label)\"." \
@@ -4992,7 +5071,7 @@ proc DoSaveCopyAsDlog {} {
 
     if { [info exists gaCollection(current,id)] &&
 	 $gaCollection(current,id) >= -1 &&
-	 "$gaCollection(current,type)" == "Volume" } {
+	 [string match $gaCollection(current,type) Volume] } {
 
 	tkuDoFileDlog -title "Save Copy of Volume" \
 	    -prompt1 "Will save a copy of volume \"$gaCollection(current,label)\"." \
@@ -5199,7 +5278,7 @@ proc DoExportMarkersToControlPointsDlog {} {
 
     if { [info exists gaCollection(current,id)] &&
 	 $gaCollection(current,id) >= -1 &&
-	 "$gaCollection(current,type)" == "Volume" } {
+	 [string match $gaCollection(current,type) Volume] } {
 	
 	tkuDoFileDlog -title "Export Markers to Control Points" \
 	    -prompt1 "Will save the markers as control points using \n \"$gaCollection(current,label)\":" \
@@ -5228,7 +5307,7 @@ proc DoImportMarkersFromControlPointsDlog {} {
 
     if { [info exists gaCollection(current,id)] &&
 	 $gaCollection(current,id) >= -1 &&
-	 "$gaCollection(current,type)" == "Volume" } {
+	 [string match $gaCollection(current,type) Volume] } {
 
 	tkuDoFileDlog -title "Import Markers from Control Points" \
 	    -prompt1 "Will import control points as markers using volume\n \"$gaCollection(current,label)\":" \
@@ -5278,7 +5357,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.140 2005/09/16 17:06:50 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.141 2005/09/27 20:27:54 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5469,8 +5548,8 @@ proc MakeHistogramFillWindow {} {
     # Build a list of non-seg volumes for the source layer list.
     set lSourceLayers {}
     foreach layerID $gaLayer(idList) {
-	if { [GetLayerType $layerID] == "2DMRI" } {
-	    if { [Get2DMRILayerColorMapMethod $layerID] == "grayscale" } {
+	if { [string match [GetLayerType $layerID] 2DMRI] } {
+	    if { [string match [Get2DMRILayerColorMapMethod $layerID] grayscale] } {
 		set sLabel [GetLayerLabel $layerID]
 		lappend lSourceLayers [list $layerID "$sLabel"]
 	    }
@@ -5500,8 +5579,8 @@ proc MakeHistogramFillWindow {} {
     # Build a list of seg volumes for the dest list.
     set lDestLayers {}
     foreach layerID $gaLayer(idList) {
-	if { [GetLayerType $layerID] == "2DMRI" } {
-	    if { [Get2DMRILayerColorMapMethod $layerID] == "lut" } {
+	if { [string match [GetLayerType $layerID] 2DMRI] } {
+	    if { [string match [Get2DMRILayerColorMapMethod $layerID] lut] } {
 		set sLabel [GetLayerLabel $layerID]
 		lappend lDestLayers [list $layerID "$sLabel"]
 	    }
@@ -5849,6 +5928,11 @@ proc DoSetCursorFromEditDatFileDlog {} {
     global gEditDatInfo
     global gaCollection
     global gaDialog
+
+    if { ![info exists gSubject(homeDir)] } {
+	tkuErrorDlog "Can't read edit.dat file: No subject is set."
+	return
+    }
 
     # Make list of volume and surface collections.
     set lSurfaces {}

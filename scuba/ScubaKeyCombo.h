@@ -225,7 +225,6 @@ class ScubaKeyCombo : public DebugReporter {
 class ScubaKeyComboFactory {
  public:
   virtual ScubaKeyCombo* MakeKeyCombo() {
-    std::cerr << "WARNING: Default ScubaKeyCombo factory called" << std::endl;
     return new ScubaKeyCombo();
   }
 };

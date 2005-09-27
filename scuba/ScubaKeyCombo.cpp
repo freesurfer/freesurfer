@@ -38,182 +38,206 @@ ScubaKeyCombo::SetFromString ( string isKey ) {
   // strings we output normally in that function. 
 
   // Look for the modifier strings first.
-  if( isKey.find ("Ctrl")!=string::npos ) mbControl = true;
-  if( isKey.find ("Shift")!=string::npos ) mbShift = true;
-  if( isKey.find ("Alt")!=string::npos ) mbAlt = true;
-  if( isKey.find ("Meta")!=string::npos ) mbMeta = true;
+  if( isKey.find ("Ctrl")!=string::npos ) 
+    mbControl = true;
+  else
+    mbControl = false;
+  if( isKey.find ("Shift")!=string::npos ) 
+    mbShift = true;
+  else
+    mbShift = false;
+  if( isKey.find ("Alt")!=string::npos ) 
+    mbAlt = true;
+  else
+    mbAlt = false;
+  if( isKey.find ("Meta")!=string::npos ) 
+    mbMeta = true;
+  else
+    mbMeta = false;
 
-  // The idea here is to search for larger strings first to avoid
-  // partial matches. e.g. if we searched for Up before PageUp, the
-  // key could be PageUp but we would match Up first.
-  if(isKey.find("BracketRight")!=string::npos) mKeyCode = Key_BracketRight;
-  else if(isKey.find("BracketLeft")!=string::npos) mKeyCode = Key_BracketLeft;
-  else if(isKey.find("AsciiCircum")!=string::npos) mKeyCode = Key_AsciiCircum;
-  else if(isKey.find("Direction_L")!=string::npos) mKeyCode = Key_Direction_L;
-  else if(isKey.find("Direction_R")!=string::npos) mKeyCode = Key_Direction_R;
-  else if(isKey.find("NumberSign")!=string::npos) mKeyCode = Key_NumberSign;
-  else if(isKey.find("Apostrophe")!=string::npos) mKeyCode = Key_Apostrophe;
-  else if(isKey.find("ParenRight")!=string::npos) mKeyCode = Key_ParenRight;
-  else if(isKey.find("BraceRight")!=string::npos) mKeyCode = Key_BraceRight;
-  else if(isKey.find("AsciiTilde")!=string::npos) mKeyCode = Key_AsciiTilde;
-  else if(isKey.find("ScrollLock")!=string::npos) mKeyCode = Key_ScrollLock;
-  else if(isKey.find("Underscore")!=string::npos) mKeyCode = Key_Underscore;
-  else if(isKey.find("ParenLeft")!=string::npos) mKeyCode = Key_ParenLeft;
-  else if(isKey.find("Ampersand")!=string::npos) mKeyCode = Key_Ampersand;
-  else if(isKey.find("Semicolon")!=string::npos) mKeyCode = Key_Semicolon;
-  else if(isKey.find("Backspace")!=string::npos) mKeyCode = Key_Backspace;
-  else if(isKey.find("QuoteLeft")!=string::npos) mKeyCode = Key_QuoteLeft;
-  else if(isKey.find("BraceLeft")!=string::npos) mKeyCode = Key_BraceLeft;
-  else if(isKey.find("Backslash")!=string::npos) mKeyCode = Key_Backslash;
-  else if(isKey.find("PageDown")!=string::npos) mKeyCode = Key_Next;
-  else if(isKey.find("CapsLock")!=string::npos) mKeyCode = Key_CapsLock;
-  else if(isKey.find("Question")!=string::npos) mKeyCode = Key_Question;
-  else if(isKey.find("Asterisk")!=string::npos) mKeyCode = Key_Asterisk;
-  else if(isKey.find("QuoteDbl")!=string::npos) mKeyCode = Key_QuoteDbl;
-  else if(isKey.find("Backtab")!=string::npos) mKeyCode = Key_Backtab;
-  else if(isKey.find("NumLock")!=string::npos) mKeyCode = Key_NumLock;
-  else if(isKey.find("Super_L")!=string::npos) mKeyCode = Key_Super_L;
-  else if(isKey.find("Super_R")!=string::npos) mKeyCode = Key_Super_R;
-  else if(isKey.find("Hyper_L")!=string::npos) mKeyCode = Key_Hyper_L;
-  else if(isKey.find("Hyper_R")!=string::npos) mKeyCode = Key_Hyper_R;
-  else if(isKey.find("Greater")!=string::npos) mKeyCode = Key_Greater;
-  else if(isKey.find("Percent")!=string::npos) mKeyCode = Key_Percent;
-  else if(isKey.find("Dollar")!=string::npos) mKeyCode = Key_Dollar;
-  else if(isKey.find("Period")!=string::npos) mKeyCode = Key_Period;
-  else if(isKey.find("Exclam")!=string::npos) mKeyCode = Key_Exclam;
-  else if(isKey.find("Return")!=string::npos) mKeyCode = Key_Return;
-  else if(isKey.find("Escape")!=string::npos) mKeyCode = Key_Escape;
-  else if(isKey.find("Insert")!=string::npos) mKeyCode = Key_Insert;
-  else if(isKey.find("Delete")!=string::npos) mKeyCode = Key_Delete;
-  else if(isKey.find("SysReq")!=string::npos) mKeyCode = Key_SysReq;
-  else if(isKey.find("PageUp")!=string::npos) mKeyCode = Key_Prior;
-  else if(isKey.find("Comma")!=string::npos) mKeyCode = Key_Comma;
-  else if(isKey.find("Minus")!=string::npos) mKeyCode = Key_Minus; 
-  else if(isKey.find("Slash")!=string::npos) mKeyCode = Key_Slash;
-  else if(isKey.find("Colon")!=string::npos) mKeyCode = Key_Colon;
-  else if(isKey.find("Enter")!=string::npos) mKeyCode = Key_Enter;
-  else if(isKey.find("Pause")!=string::npos) mKeyCode = Key_Pause;
-  else if(isKey.find("Print")!=string::npos) mKeyCode = Key_Print;
-  else if(isKey.find("Clear")!=string::npos) mKeyCode = Key_Clear;
-  else if(isKey.find("Right")!=string::npos) mKeyCode = Key_Right;
-  else if(isKey.find("Equal")!=string::npos) mKeyCode = Key_Equal;
-  else if(isKey.find("Space")!=string::npos) mKeyCode = Key_Space;
-  else if(isKey.find("Plus")!=string::npos) mKeyCode = Key_Plus;
-  else if(isKey.find("Less")!=string::npos) mKeyCode = Key_Less;
-  else if(isKey.find("Help")!=string::npos) mKeyCode = Key_Help;
-  else if(isKey.find("Home")!=string::npos) mKeyCode = Key_Home;
-  else if(isKey.find("Left")!=string::npos) mKeyCode = Key_Left;
-  else if(isKey.find("Down")!=string::npos) mKeyCode = Key_Down;
-  else if(isKey.find("Menu")!=string::npos) mKeyCode = Key_Menu;
-  else if(isKey.find("End")!=string::npos) mKeyCode = Key_End;
-  else if(isKey.find("Tab")!=string::npos) mKeyCode = Key_Tab;
-  else if(isKey.find("Bar")!=string::npos) mKeyCode = Key_Bar;
-  else if(isKey.find("F10")!=string::npos) mKeyCode = Key_F10;
-  else if(isKey.find("F11")!=string::npos) mKeyCode = Key_F11;
-  else if(isKey.find("F12")!=string::npos) mKeyCode = Key_F12;
-  else if(isKey.find("F13")!=string::npos) mKeyCode = Key_F13;
-  else if(isKey.find("F14")!=string::npos) mKeyCode = Key_F14;
-  else if(isKey.find("F15")!=string::npos) mKeyCode = Key_F15;
-  else if(isKey.find("F16")!=string::npos) mKeyCode = Key_F16;
-  else if(isKey.find("F17")!=string::npos) mKeyCode = Key_F17;
-  else if(isKey.find("F18")!=string::npos) mKeyCode = Key_F18;
-  else if(isKey.find("F19")!=string::npos) mKeyCode = Key_F19;
-  else if(isKey.find("F20")!=string::npos) mKeyCode = Key_F20;
-  else if(isKey.find("F21")!=string::npos) mKeyCode = Key_F21;
-  else if(isKey.find("F22")!=string::npos) mKeyCode = Key_F22;
-  else if(isKey.find("F23")!=string::npos) mKeyCode = Key_F23;
-  else if(isKey.find("F24")!=string::npos) mKeyCode = Key_F24;
-  else if(isKey.find("F25")!=string::npos) mKeyCode = Key_F25;
-  else if(isKey.find("F26")!=string::npos) mKeyCode = Key_F26;
-  else if(isKey.find("F27")!=string::npos) mKeyCode = Key_F27;
-  else if(isKey.find("F28")!=string::npos) mKeyCode = Key_F28;
-  else if(isKey.find("F29")!=string::npos) mKeyCode = Key_F29;
-  else if(isKey.find("F30")!=string::npos) mKeyCode = Key_F30;
-  else if(isKey.find("F31")!=string::npos) mKeyCode = Key_F31;
-  else if(isKey.find("F32")!=string::npos) mKeyCode = Key_F32;
-  else if(isKey.find("F33")!=string::npos) mKeyCode = Key_F33;
-  else if(isKey.find("F34")!=string::npos) mKeyCode = Key_F34;
-  else if(isKey.find("F35")!=string::npos) mKeyCode = Key_F35;
-  else if(isKey.find("At")!=string::npos) mKeyCode = Key_At;
-  else if(isKey.find("F1")!=string::npos) mKeyCode = Key_F1;
-  else if(isKey.find("F2")!=string::npos) mKeyCode = Key_F2;
-  else if(isKey.find("F3")!=string::npos) mKeyCode = Key_F3;
-  else if(isKey.find("F4")!=string::npos) mKeyCode = Key_F4;
-  else if(isKey.find("F5")!=string::npos) mKeyCode = Key_F5;
-  else if(isKey.find("F6")!=string::npos) mKeyCode = Key_F6;
-  else if(isKey.find("F7")!=string::npos) mKeyCode = Key_F7;
-  else if(isKey.find("F8")!=string::npos) mKeyCode = Key_F8;
-  else if(isKey.find("F9")!=string::npos) mKeyCode = Key_F9;
-  else if(isKey.find("Up")!=string::npos) mKeyCode = Key_Up;
-  else if(isKey.find("0")!=string::npos) mKeyCode = Key_0;
-  else if(isKey.find("1")!=string::npos) mKeyCode = Key_1;
-  else if(isKey.find("2")!=string::npos) mKeyCode = Key_2;
-  else if(isKey.find("3")!=string::npos) mKeyCode = Key_3;
-  else if(isKey.find("4")!=string::npos) mKeyCode = Key_4;
-  else if(isKey.find("5")!=string::npos) mKeyCode = Key_5;
-  else if(isKey.find("6")!=string::npos) mKeyCode = Key_6;
-  else if(isKey.find("7")!=string::npos) mKeyCode = Key_7;
-  else if(isKey.find("8")!=string::npos) mKeyCode = Key_8;
-  else if(isKey.find("9")!=string::npos) mKeyCode = Key_9;
-  // For the single keys , make sure our match is right at the end of
-  // the string by using reverse find and checking the position we
-  // got.
-  else if(isKey.rfind("A")==isKey.length()-1) mKeyCode = Key_A;
-  else if(isKey.rfind("B")==isKey.length()-1) mKeyCode = Key_B;
-  else if(isKey.rfind("C")==isKey.length()-1) mKeyCode = Key_C;
-  else if(isKey.rfind("D")==isKey.length()-1) mKeyCode = Key_D;
-  else if(isKey.rfind("E")==isKey.length()-1) mKeyCode = Key_E;
-  else if(isKey.rfind("F")==isKey.length()-1) mKeyCode = Key_F;
-  else if(isKey.rfind("G")==isKey.length()-1) mKeyCode = Key_G;
-  else if(isKey.rfind("H")==isKey.length()-1) mKeyCode = Key_H;
-  else if(isKey.rfind("I")==isKey.length()-1) mKeyCode = Key_I;
-  else if(isKey.rfind("J")==isKey.length()-1) mKeyCode = Key_J;
-  else if(isKey.rfind("K")==isKey.length()-1) mKeyCode = Key_K;
-  else if(isKey.rfind("L")==isKey.length()-1) mKeyCode = Key_L;
-  else if(isKey.rfind("M")==isKey.length()-1) mKeyCode = Key_M;
-  else if(isKey.rfind("N")==isKey.length()-1) mKeyCode = Key_N;
-  else if(isKey.rfind("O")==isKey.length()-1) mKeyCode = Key_O;
-  else if(isKey.rfind("P")==isKey.length()-1) mKeyCode = Key_P;
-  else if(isKey.rfind("Q")==isKey.length()-1) mKeyCode = Key_Q;
-  else if(isKey.rfind("R")==isKey.length()-1) mKeyCode = Key_R;
-  else if(isKey.rfind("S")==isKey.length()-1) mKeyCode = Key_S;
-  else if(isKey.rfind("T")==isKey.length()-1) mKeyCode = Key_T;
-  else if(isKey.rfind("U")==isKey.length()-1) mKeyCode = Key_U;
-  else if(isKey.rfind("V")==isKey.length()-1) mKeyCode = Key_V;
-  else if(isKey.rfind("W")==isKey.length()-1) mKeyCode = Key_W;
-  else if(isKey.rfind("X")==isKey.length()-1) mKeyCode = Key_X;
-  else if(isKey.rfind("Y")==isKey.length()-1) mKeyCode = Key_Y;
-  else if(isKey.rfind("Z")==isKey.length()-1) mKeyCode = Key_Z;
-  else if(isKey.rfind("a")==isKey.length()-1) mKeyCode = Key_A;
-  else if(isKey.rfind("b")==isKey.length()-1) mKeyCode = Key_B;
-  else if(isKey.rfind("c")==isKey.length()-1) mKeyCode = Key_C;
-  else if(isKey.rfind("d")==isKey.length()-1) mKeyCode = Key_D;
-  else if(isKey.rfind("e")==isKey.length()-1) mKeyCode = Key_E;
-  else if(isKey.rfind("f")==isKey.length()-1) mKeyCode = Key_F;
-  else if(isKey.rfind("g")==isKey.length()-1) mKeyCode = Key_G;
-  else if(isKey.rfind("h")==isKey.length()-1) mKeyCode = Key_H;
-  else if(isKey.rfind("i")==isKey.length()-1) mKeyCode = Key_I;
-  else if(isKey.rfind("j")==isKey.length()-1) mKeyCode = Key_J;
-  else if(isKey.rfind("k")==isKey.length()-1) mKeyCode = Key_K;
-  else if(isKey.rfind("l")==isKey.length()-1) mKeyCode = Key_L;
-  else if(isKey.rfind("m")==isKey.length()-1) mKeyCode = Key_M;
-  else if(isKey.rfind("n")==isKey.length()-1) mKeyCode = Key_N;
-  else if(isKey.rfind("o")==isKey.length()-1) mKeyCode = Key_O;
-  else if(isKey.rfind("p")==isKey.length()-1) mKeyCode = Key_P;
-  else if(isKey.rfind("q")==isKey.length()-1) mKeyCode = Key_Q;
-  else if(isKey.rfind("r")==isKey.length()-1) mKeyCode = Key_R;
-  else if(isKey.rfind("s")==isKey.length()-1) mKeyCode = Key_S;
-  else if(isKey.rfind("t")==isKey.length()-1) mKeyCode = Key_T;
-  else if(isKey.rfind("u")==isKey.length()-1) mKeyCode = Key_U;
-  else if(isKey.rfind("v")==isKey.length()-1) mKeyCode = Key_V;
-  else if(isKey.rfind("w")==isKey.length()-1) mKeyCode = Key_W;
-  else if(isKey.rfind("x")==isKey.length()-1) mKeyCode = Key_X;
-  else if(isKey.rfind("y")==isKey.length()-1) mKeyCode = Key_Y;
-  else if(isKey.rfind("z")==isKey.length()-1) mKeyCode = Key_Z;
-  else {
-    DebugOutput( << "Couldn't find a match for key " << isKey );
-    mKeyCode = Key_unknown;
+  struct keyStringCodePair { string sKey; int code; };
+  keyStringCodePair aKeys[] = {
+    {"BracketRight", Key_BracketRight},
+    {"BracketLeft", Key_BracketLeft},
+    {"AsciiCircum", Key_AsciiCircum},
+    {"Direction_L", Key_Direction_L},
+    {"Direction_R", Key_Direction_R},
+    {"NumberSign", Key_NumberSign},
+    {"Apostrophe", Key_Apostrophe},
+    {"ParenRight", Key_ParenRight},
+    {"BraceRight", Key_BraceRight},
+    {"AsciiTilde", Key_AsciiTilde},
+    {"ScrollLock", Key_ScrollLock},
+    {"Underscore", Key_Underscore},
+    {"ParenLeft", Key_ParenLeft},
+    {"Ampersand", Key_Ampersand},
+    {"Semicolon", Key_Semicolon},
+    {"Backspace", Key_Backspace},
+    {"QuoteLeft", Key_QuoteLeft},
+    {"BraceLeft", Key_BraceLeft},
+    {"Backslash", Key_Backslash},
+    {"PageDown", Key_Next},
+    {"CapsLock", Key_CapsLock},
+    {"Question", Key_Question},
+    {"Asterisk", Key_Asterisk},
+    {"QuoteDbl", Key_QuoteDbl},
+    {"Backtab", Key_Backtab},
+    {"NumLock", Key_NumLock},
+    {"Super_L", Key_Super_L},
+    {"Super_R", Key_Super_R},
+    {"Hyper_L", Key_Hyper_L},
+    {"Hyper_R", Key_Hyper_R},
+    {"Greater", Key_Greater},
+    {"Percent", Key_Percent},
+    {"Dollar", Key_Dollar},
+    {"Period", Key_Period},
+    {"Exclam", Key_Exclam},
+    {"Return", Key_Return},
+    {"Escape", Key_Escape},
+    {"Insert", Key_Insert},
+    {"Delete", Key_Delete},
+    {"SysReq", Key_SysReq},
+    {"PageUp", Key_Prior},
+    {"Comma", Key_Comma},
+    {"Minus", Key_Minus},
+    {"Slash", Key_Slash},
+    {"Colon", Key_Colon},
+    {"Enter", Key_Enter},
+    {"Pause", Key_Pause},
+    {"Print", Key_Print},
+    {"Clear", Key_Clear},
+    {"Right", Key_Right},
+    {"Equal", Key_Equal},
+    {"Space", Key_Space},
+    {"Plus", Key_Plus},
+    {"Less", Key_Less},
+    {"Help", Key_Help},
+    {"Home", Key_Home},
+    {"Left", Key_Left},
+    {"Down", Key_Down},
+    {"Menu", Key_Menu},
+    {"End", Key_End},
+    {"Tab", Key_Tab},
+    {"Bar", Key_Bar},
+    {"F10", Key_F10},
+    {"F11", Key_F11},
+    {"F12", Key_F12},
+    {"F13", Key_F13},
+    {"F14", Key_F14},
+    {"F15", Key_F15},
+    {"F16", Key_F16},
+    {"F17", Key_F17},
+    {"F18", Key_F18},
+    {"F19", Key_F19},
+    {"F20", Key_F20},
+    {"F21", Key_F21},
+    {"F22", Key_F22},
+    {"F23", Key_F23},
+    {"F24", Key_F24},
+    {"F25", Key_F25},
+    {"F26", Key_F26},
+    {"F27", Key_F27},
+    {"F28", Key_F28},
+    {"F29", Key_F29},
+    {"F30", Key_F30},
+    {"F31", Key_F31},
+    {"F32", Key_F32},
+    {"F33", Key_F33},
+    {"F34", Key_F34},
+    {"F35", Key_F35},
+    {"At", Key_At},
+    {"F1", Key_F1},
+    {"F2", Key_F2},
+    {"F3", Key_F3},
+    {"F4", Key_F4},
+    {"F5", Key_F5},
+    {"F6", Key_F6},
+    {"F7", Key_F7},
+    {"F8", Key_F8},
+    {"F9", Key_F9},
+    {"Up", Key_Up},
+    {"0", Key_0},
+    {"1", Key_1},
+    {"2", Key_2},
+    {"3", Key_3},
+    {"4", Key_4},
+    {"5", Key_5},
+    {"6", Key_6},
+    {"7", Key_7},
+    {"8", Key_8},
+    {"9", Key_9},
+    {"A", Key_A},
+    {"B", Key_B},
+    {"C", Key_C},
+    {"D", Key_D},
+    {"E", Key_E},
+    {"F", Key_F},
+    {"G", Key_G},
+    {"H", Key_H},
+    {"I", Key_I},
+    {"J", Key_J},
+    {"K", Key_K},
+    {"L", Key_L},
+    {"M", Key_M},
+    {"N", Key_N},
+    {"O", Key_O},
+    {"P", Key_P},
+    {"Q", Key_Q},
+    {"R", Key_R},
+    {"S", Key_S},
+    {"T", Key_T},
+    {"U", Key_U},
+    {"V", Key_V},
+    {"W", Key_W},
+    {"X", Key_X},
+    {"Y", Key_Y},
+    {"Z", Key_Z},
+    {"a", Key_A},
+    {"b", Key_B},
+    {"c", Key_C},
+    {"d", Key_D},
+    {"e", Key_E},
+    {"f", Key_F},
+    {"g", Key_G},
+    {"h", Key_H},
+    {"i", Key_I},
+    {"j", Key_J},
+    {"k", Key_K},
+    {"l", Key_L},
+    {"m", Key_M},
+    {"n", Key_N},
+    {"o", Key_O},
+    {"p", Key_P},
+    {"q", Key_Q},
+    {"r", Key_R},
+    {"s", Key_S},
+    {"t", Key_T},
+    {"u", Key_U},
+    {"v", Key_V},
+    {"w", Key_W},
+    {"x", Key_X},
+    {"y", Key_Y},
+    {"z", Key_Z}};
+
+  // For each key string, try a reverse find on the input string we
+  // got. If we found it, check that the position we got is correct,
+  // and if we got a complete word (by checking that the length of the
+  // match is the same as the length of the string, or that the char
+  // before the match is a space).
+  for ( int nKey = 0; nKey < 161; nKey++ ) {
+    size_t pos;
+    pos = isKey.rfind( aKeys[nKey].sKey );
+    if( pos != string::npos && 
+	pos == isKey.length () - aKeys[nKey].sKey.length() &&
+	(isKey.length() == aKeys[nKey].sKey.length() ||
+	 isKey[pos-1] == ' ') ) {
+      mKeyCode = aKeys[nKey].code;
+      return;
+    }
   }
+
+  //  DebugOutput( << "Couldn't find a match for key " << isKey );
+  mKeyCode = Key_unknown;
 }
 
 string

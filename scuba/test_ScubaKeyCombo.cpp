@@ -62,34 +62,38 @@ ScubaKeyComboTester::Test ( Tcl_Interp* iInterp ) {
     
     while( vsKey.size() > 0 ) {
       string sKey = vsKey.back();
-      ScubaKeyCombo key;
-      key.SetFromString( sKey );
+      ScubaKeyCombo* key = ScubaKeyCombo::MakeKeyCombo();
+      key->SetFromString( sKey );
       {
 	stringstream ssError;
-	ssError << "Failed test " << key << " == " << sKey;
-	Assert( (key.ToString() == sKey), ssError.str() );
+	ssError << "Failed test " << *key << " == " << sKey;
+	Assert( (key->ToString() == sKey), ssError.str() );
       }
 
       vsKey.pop_back();
+      delete key;
     }
 
-    ScubaKeyCombo a;
-    a.SetFromString( "Ctrl A" );
-    ScubaKeyCombo a2;
-    a2.SetFromString( "Ctrl A" );
-    ScubaKeyCombo b;
-    b.SetFromString( "Ctrl B" );
+    ScubaKeyCombo* a = ScubaKeyCombo::MakeKeyCombo();
+    a->SetFromString( "Ctrl A" );
+    ScubaKeyCombo* a2 = ScubaKeyCombo::MakeKeyCombo();
+    a2->SetFromString( "Ctrl A" );
+    ScubaKeyCombo* b = ScubaKeyCombo::MakeKeyCombo();
+    b->SetFromString( "Ctrl B" );
     {
       stringstream ssError;
-      ssError << "Failed IsSameAs " << a << ", " << b;
-      Assert( (!a.IsSameAs( b )), ssError.str() );
+      ssError << "Failed IsSameAs " << *a << ", " << *b;
+      Assert( (!a->IsSameAs( b )), ssError.str() );
     }
     {
       stringstream ssError;
-      ssError << "Failed IsSameAs " << a << ", " << a2;
-      Assert( (a.IsSameAs( a2 )), ssError.str() );
+      ssError << "Failed IsSameAs " << *a << ", " << *a2;
+      Assert( (a->IsSameAs( a2 )), ssError.str() );
     }
     
+    delete a;
+    delete a2;
+    delete b;
   }
   catch( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
@@ -119,6 +123,7 @@ int main ( int argc, char** argv ) {
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
 
+    ScubaKeyCombo::SetFactory( new ScubaKeyComboFactory() );
 
     ScubaKeyComboTester tester0;
     tester0.Test( interp );

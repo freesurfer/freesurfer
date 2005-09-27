@@ -1,6 +1,7 @@
 #include "string_fixed.h"
 #include "ScubaGlobalPreferences.h"
 #include "PreferencesManager.h"
+#include "ScubaKeyCombo.h"
 
 using namespace std;
 
@@ -48,10 +49,7 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
   if( 0 == strcmp( isCommand, "GetPreferencesValue" ) ) {
 
     string sKey = iasArgv[1];
-    if( sKey == GetStringForKey( ViewFlipLeftRight ) ||
-	sKey == GetStringForKey( ShowConsole ) ||
-	sKey == GetStringForKey( AutoConfigureView ) ||
-	sKey == GetStringForKey( KeyInPlaneX ) ||
+    if(	sKey == GetStringForKey( KeyInPlaneX ) ||
 	sKey == GetStringForKey( KeyInPlaneY ) ||
 	sKey == GetStringForKey( KeyInPlaneZ ) ||
 	sKey == GetStringForKey( KeyCycleViewsInFrame ) ||
@@ -59,18 +57,40 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( KeyMouseButtonOne ) ||
 	sKey == GetStringForKey( KeyMouseButtonTwo ) ||
 	sKey == GetStringForKey( KeyMouseButtonThree ) ||
-	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
-	sKey == GetStringForKey( DrawMarkers ) ||
-	sKey == GetStringForKey( DrawPaths ) ||
-	sKey == GetStringForKey( DrawPlaneIntersections ) ||
 	sKey == GetStringForKey( KeyMoveViewLeft ) ||
 	sKey == GetStringForKey( KeyMoveViewRight ) ||
 	sKey == GetStringForKey( KeyMoveViewUp ) ||
 	sKey == GetStringForKey( KeyMoveViewDown ) ||
 	sKey == GetStringForKey( KeyMoveViewIn ) ||
 	sKey == GetStringForKey( KeyMoveViewOut ) ||
-	sKey == GetStringForKey( KeyZoomViewIn ) ||
-	sKey == GetStringForKey( KeyZoomViewOut ) ||
+	) {
+      
+      PreferencesManager& prefsMgr = PreferencesManager::GetManager();
+      string sValue = prefsMgr.GetValue( sKey );
+
+      // Make a key combo and return the value of the ToString
+      // function. This is just to convert key values from old versions
+      // of the prefs file to nice new ones.
+      ScubaKeyCombo* keyCombo = ScubaKeyCombo::MakeKeyCombo();
+      keyCombo->SetFromString( sValue );
+      sValue = keyCombo->ToString();
+
+      sReturnFormat = "s";
+      stringstream ssReturnValues;
+      // Enclose the value in quotes if it's not already in quotes.
+      if( sValue[0] != '\"' )
+	ssReturnValues << "\"" << sValue << "\"";
+      else 
+	ssReturnValues << sValue;
+      sReturnValues = ssReturnValues.str();
+
+    } else if( sKey == GetStringForKey( ViewFlipLeftRight ) ||
+	sKey == GetStringForKey( ShowConsole ) ||
+	sKey == GetStringForKey( AutoConfigureView ) ||
+	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
+	sKey == GetStringForKey( DrawMarkers ) ||
+	sKey == GetStringForKey( DrawPaths ) ||
+	sKey == GetStringForKey( DrawPlaneIntersections ) ||
 	sKey == GetStringForKey( ShowFPS ) ||
 	sKey == GetStringForKey( SelectedTool ) ||
 	sKey == GetStringForKey( LockOnCursor ) ||
@@ -80,7 +100,13 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
       PreferencesManager& prefsMgr = PreferencesManager::GetManager();
       string sValue = prefsMgr.GetValue( sKey );
       sReturnFormat = "s";
-      sReturnValues = sValue;
+      stringstream ssReturnValues;
+      // Enclose the value in quotes if it's not already in quotes.
+      if( sValue[0] != '\"' )
+	ssReturnValues << "\"" << sValue << "\"";
+      else 
+	ssReturnValues << sValue;
+      sReturnValues = ssReturnValues.str();
 
     } else {
 
@@ -131,6 +157,12 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	       sKey == GetStringForKey( KeyMouseButtonOne ) ||
 	       sKey == GetStringForKey( KeyMouseButtonTwo ) ||
 	       sKey == GetStringForKey( KeyMouseButtonThree ) ||
+	       sKey == GetStringForKey( KeyMoveViewIn ) ||
+	       sKey == GetStringForKey( KeyMoveViewOut ) ||
+	       sKey == GetStringForKey( KeyMoveViewLeft ) ||
+	       sKey == GetStringForKey( KeyMoveViewRight ) ||
+	       sKey == GetStringForKey( KeyMoveViewUp ) ||
+	       sKey == GetStringForKey( KeyMoveViewDown ) ||
 	       sKey == GetStringForKey( SelectedTool ) ||
 	       sKey == GetStringForKey( UserStructureList ) ) {
 
@@ -259,9 +291,23 @@ ScubaGlobalPreferences::GetPrefAsString ( PrefKey iKey ) {
       iKey == KeyMoveViewIn ||
       iKey == KeyMoveViewOut ||
       iKey == KeyZoomViewIn ||
-      iKey == KeyZoomViewOut ||
-      iKey == SelectedTool ||
-      iKey == UserStructureList ) {
+      iKey == KeyZoomViewOut ) {
+
+    PreferencesManager& prefsMgr = PreferencesManager::GetManager();
+    string sValue = prefsMgr.GetValue( GetStringForKey( iKey ) );
+
+    // Make a key combo and return the value of the ToString
+    // function. This is just to convert key values from old versions
+    // of the prefs file to nice new ones.
+    ScubaKeyCombo* keyCombo = ScubaKeyCombo::MakeKeyCombo();
+    keyCombo->SetFromString( sValue );
+    sValue = keyCombo->ToString();
+
+    PreferencesManager::StringPrefValue value( sValue );
+    return value.GetValue();
+
+  } else if( iKey == SelectedTool ||
+	     iKey == UserStructureList ) {
   
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     string sValue = prefsMgr.GetValue( GetStringForKey( iKey ) );
@@ -320,6 +366,10 @@ ScubaGlobalPreferences::ReadPreferences () {
   // actually read them in until instructed to by the tcl code.
   PreferencesManager& prefsMgr = PreferencesManager::GetManager();
 
+  // For our default key values, create a key combo, set it, and then
+  // use the ToString function to get the default string.
+  ScubaKeyCombo* keyCombo = ScubaKeyCombo::MakeKeyCombo();
+
   PreferencesManager::IntPrefValue viewFlipLeftRightInYZValue( true );
   prefsMgr.RegisterValue( GetStringForKey( ViewFlipLeftRight ), 
 			  "Flip the view in the right/left direction to mimic "
@@ -337,38 +387,46 @@ ScubaGlobalPreferences::ReadPreferences () {
 			  "configuration is changed.",
 			  autoConfigure );
 
-  PreferencesManager::StringPrefValue inPlaneX( "x" );
+  keyCombo->SetFromString( "X" );
+  PreferencesManager::StringPrefValue inPlaneX( keyCombo->ToString() );
   prefsMgr.RegisterValue( GetStringForKey( KeyInPlaneX ), 
 			  "Key to change in plane to X in the view.",
 			  inPlaneX );
 
-  PreferencesManager::StringPrefValue inPlaneY( "y" );
+  keyCombo->SetFromString( "Y" );
+  PreferencesManager::StringPrefValue inPlaneY( keyCombo->ToString() );
   prefsMgr.RegisterValue( GetStringForKey( KeyInPlaneY ), 
 			  "Key to change in plane to Y in the view.",
 			  inPlaneY );
 
-  PreferencesManager::StringPrefValue inPlaneZ( "z" );
+  keyCombo->SetFromString( "Z" );
+  PreferencesManager::StringPrefValue inPlaneZ( keyCombo->ToString() );
   prefsMgr.RegisterValue( GetStringForKey( KeyInPlaneZ ), 
 			  "Key to change in plane to Z in the view.",
 			  inPlaneZ );
 
-  PreferencesManager::StringPrefValue cycleKey( "q" );
+  keyCombo->SetFromString( "Q" );
+  PreferencesManager::StringPrefValue cycleKey( keyCombo->ToString() );
   prefsMgr.RegisterValue( GetStringForKey( KeyCycleViewsInFrame ), 
 			  "Key to cycle view in a frame.", cycleKey );
 
-  PreferencesManager::StringPrefValue shuffleKey( "c" );
+  keyCombo->SetFromString( "C" );
+  PreferencesManager::StringPrefValue shuffleKey( keyCombo->ToString() );
   prefsMgr.RegisterValue( GetStringForKey( KeyShuffleLayers ), 
 			  "Key to shuffle layers in a view.", shuffleKey );
 
-  PreferencesManager::StringPrefValue mouseOneKey( "w" );
+  keyCombo->SetFromString( "W" );
+  PreferencesManager::StringPrefValue mouseOneKey( keyCombo->ToString() );
   prefsMgr.RegisterValue( GetStringForKey( KeyMouseButtonOne ), 
 			  "Key to emulate a mouse click with button one.", mouseOneKey );
 
-  PreferencesManager::StringPrefValue mouseTwoKey( "e" );
+  keyCombo->SetFromString( "E" );
+  PreferencesManager::StringPrefValue mouseTwoKey( keyCombo->ToString() );
   prefsMgr.RegisterValue( GetStringForKey( KeyMouseButtonTwo ), 
 			  "Key to emulate a mouse click with button two.", mouseTwoKey );
 
-  PreferencesManager::StringPrefValue mouseThreeKey( "r" );
+  keyCombo->SetFromString( "R" );
+  PreferencesManager::StringPrefValue mouseThreeKey( keyCombo->ToString() );
   prefsMgr.RegisterValue( GetStringForKey( KeyMouseButtonThree ), 
 			  "Key to emulate a mouse click with button three.", mouseThreeKey );
 
@@ -392,42 +450,50 @@ ScubaGlobalPreferences::ReadPreferences () {
 			  "Draw the intersections of other views with this one as lines.", 
 			  drawPlaneIntersections );
 
-  PreferencesManager::StringPrefValue moveViewLeft( "Left" );
+  keyCombo->SetFromString( "Left" );
+  PreferencesManager::StringPrefValue moveViewLeft( keyCombo->ToString() );
   prefsMgr.RegisterValue( "KeyMoveViewLeft", 
 			  "Key to move the view to the left.",
 			  moveViewLeft );
 
-  PreferencesManager::StringPrefValue moveViewRight( "Right" );
+  keyCombo->SetFromString( "Right" );
+  PreferencesManager::StringPrefValue moveViewRight( keyCombo->ToString() );
   prefsMgr.RegisterValue( "KeyMoveViewRight", 
 			  "Key to move the view to the right.",
 			  moveViewRight );
 
-  PreferencesManager::StringPrefValue moveViewUp( "Up" );
+  keyCombo->SetFromString( "Up" );
+  PreferencesManager::StringPrefValue moveViewUp( keyCombo->ToString() );
   prefsMgr.RegisterValue( "KeyMoveViewUp", 
 			  "Key to move the view up.",
 			  moveViewUp );
 
-  PreferencesManager::StringPrefValue moveViewDown( "Down" );
+  keyCombo->SetFromString( "Down" );
+  PreferencesManager::StringPrefValue moveViewDown( keyCombo->ToString() );
   prefsMgr.RegisterValue( "KeyMoveViewDown", 
 			  "Key to move the view down.",
 			  moveViewDown );
 
-  PreferencesManager::StringPrefValue moveViewIn( "Prior" );
+  keyCombo->SetFromString( "PageUp" );
+  PreferencesManager::StringPrefValue moveViewIn( keyCombo->ToString() );
   prefsMgr.RegisterValue( "KeyMoveViewIn", 
 			  "Key to move the view in in plane.",
 			  moveViewIn );
 
-  PreferencesManager::StringPrefValue moveViewOut( "Next" );
+  keyCombo->SetFromString( "PageDown" );
+  PreferencesManager::StringPrefValue moveViewOut( keyCombo->ToString() );
   prefsMgr.RegisterValue( "KeyMoveViewOut", 
 			  "Key to move the view out in plane.",
 			  moveViewOut );
 
-  PreferencesManager::StringPrefValue zoomViewIn( "equal" );
+  keyCombo->SetFromString( "Equal" );
+  PreferencesManager::StringPrefValue zoomViewIn( keyCombo->ToString() );
   prefsMgr.RegisterValue( "KeyZoomViewIn", 
 			  "Key to zoom the view in in plane.",
 			  zoomViewIn );
 
-  PreferencesManager::StringPrefValue zoomViewOut( "minus" );
+  keyCombo->SetFromString( "Minus" );
+  PreferencesManager::StringPrefValue zoomViewOut( keyCombo->ToString() );
   prefsMgr.RegisterValue( "KeyZoomViewOut", 
 			  "Key to zoom the view out in plane.",
 			  zoomViewOut );
@@ -452,6 +518,7 @@ ScubaGlobalPreferences::ReadPreferences () {
 			  "Lock On Cursor setting.",
 			  lockOnCursor );
 
+  delete keyCombo;
 }
 
 void
