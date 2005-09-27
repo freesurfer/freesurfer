@@ -26,8 +26,8 @@
 #define DEBUG_U  255
 #define DEBUG_V  410
 #endif
-#define DEBUG_U  -1
-#define DEBUG_V  -1
+static int DEBUG_U = -1 ;
+static int DEBUG_V = -1 ;
 
 static int spherical_coordinate(double x, double y, double z,double *pphi,
                                 double *ptheta) ;
@@ -388,7 +388,7 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale,int fno)
   {
     vertex = &mris->vertices[vno] ;
     x = vertex->x ; y = vertex->y ; z = vertex->z ;
-    if (vno == Gdiag_no || vno == 1126)
+    if (vno == Gdiag_no)
       DiagBreak() ;
     theta = atan2(y/b, x/a) ;
     if (theta < 0.0f)
@@ -611,7 +611,7 @@ MRI_SP *
 MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
 {
   float     a, b, c, phi, theta, x, y, z, uf, vf, d, total_d,
-            **distances ;
+		**distances ;
   int       vno, u, v, unfilled, **filled, npasses, nfilled ;
   VERTEX    *vertex ;
 
@@ -676,16 +676,18 @@ MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
     if (v >= V_DIM(mrisp))
       v -= V_DIM(mrisp) ;
 
-		if ((u == 254 || u == 255) &&  (v == 409 || v == 410))
-			DiagBreak() ;
-    if (u == 0 && v == 56)
+    if (vno == Gdiag_no)
+		{
+			DEBUG_U = u ;
+			DEBUG_V = v ;
       DiagBreak() ;
+		}
     if ((u == DEBUG_U) && (v == DEBUG_V))
       DiagBreak() ;
 
     filled[u][v] = vno ;
     distances[u][v] += 1 ;         /* keep track of total # of nodes */
-    if ((u == DEBUG_U) && (v == DEBUG_V))
+    if (((u == DEBUG_U) && (v == DEBUG_V)) || (Gdiag_no == vno))
       fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), d = %2.3f, "
               "x = (%2.3f,%2.3f,%2.3f)\n", vno, x, y, z, d, 
               vertex->origx, vertex->origy, vertex->origz) ;
@@ -726,8 +728,8 @@ MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
 
     /* 0,0 */
     total_d = distances[u][v] ;
-if ((total_d > 10000.0) || (vertex->curv > 1000.0))
-  DiagBreak() ;
+		if ((total_d > 10000.0) || (vertex->curv > 1000.0))
+			DiagBreak() ;
     if (total_d > 0.0)
     {
       *IMAGEFseq_pix(mrisp->Ip, u,v,0) += vertex->origx/total_d ;  
@@ -741,7 +743,7 @@ if ((total_d > 10000.0) || (vertex->curv > 1000.0))
 
   }
 
-  if (DEBUG_U >= 0)
+  if (DEBUG_U >= 0 || (vno == Gdiag_no))
     fprintf(stderr,"x[%d][%d] = (%2.3f,%2.3f,%2.3f)\n\n", DEBUG_U, DEBUG_V, 
             *IMAGEFseq_pix(mrisp->Ip, DEBUG_U, DEBUG_V, 0),
             *IMAGEFseq_pix(mrisp->Ip, DEBUG_U, DEBUG_V, 1),
@@ -1026,7 +1028,14 @@ MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris)
 
     if (((u0 == DEBUG_U) || (u1 == DEBUG_U)) &&
         ((v0 == DEBUG_V) || (v1 == DEBUG_V)))
+		{
+			printf(" u,v (%d, %d) --> v %d\n", u0, v0, vno) ;
       DiagBreak() ;
+		}
+		if ((u0 == Gx && v0 == Gy) ||
+				(u0 == Gy && v0 == Gx))
+			DiagBreak() ;
+
     /* do bilinear interpolation */
 
 		val1 = *IMAGEFseq_pix(mrisp->Ip, u1, v1, 0) ;
