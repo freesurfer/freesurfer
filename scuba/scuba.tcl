@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.141 2005/09/27 20:27:54 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.142 2005/09/27 21:29:25 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4383,41 +4383,68 @@ proc DoPrefsDlog {} {
 }
 
 proc GetPrefsKey { iPrefsKey } {
+    global gaPrefs
     global gPrefsKey
 
-    toplevel .wwPrefsKeyGetter
-    label .wwPrefsKeyGetter.l -text "Press key"
-    pack .wwPrefsKeyGetter.l
+    # Create the window
+    set gaPrefs(wwKeyGetter) [toplevel .wwPrefsKeyGetter]
+    wm title $gaPrefs(wwKeyGetter) "Press a key"
+
+    # Size it and put it in the middle of the screen
+    set width 400
+    set height 150
+    set x [expr {[winfo screenwidth  $gaPrefs(wwKeyGetter)]/2 - $width/2 - [winfo vrootx $gaPrefs(wwKeyGetter)]}]
+    set y [expr {[winfo screenheight $gaPrefs(wwKeyGetter)]/2 - $height/2 - [winfo vrooty $gaPrefs(wwKeyGetter)]}]
+    wm geom $gaPrefs(wwKeyGetter) ${width}x${height}+$x+$y
+
+    # Create a label
+    set lw $gaPrefs(wwKeyGetter).lwLabel
+
+    tkuMakeNormalLabel $lw \
+	-label "Press a key" \
+	-font [tkuLabelFont]
+
+    pack $lw -side top -fill y -expand yes
+
+    # Update and grab so we get the next input.
     update idletasks
-    grab .wwPrefsKeyGetter
+    grab $gaPrefs(wwKeyGetter)
 
-    bind .wwPrefsKeyGetter <KeyRelease> "SavePrefsKey $iPrefsKey %s %K"
+    # Set a key handler
+    bind $gaPrefs(wwKeyGetter) <KeyRelease> "SavePrefsKey $iPrefsKey %s %K"
 
+    # Wait for a dummy variable to be changed, which will happen when
+    # the handler gets a valid key.
     tkwait variable gGotPrefsKey
 
-    destroy .wwPrefsKeyGetter
+    # Kill the window.
+    destroy $gaPrefs(wwKeyGetter)
 }
 
 
 proc SavePrefsKey { iPrefsKey iState iKey } {
     global gGotPrefsKey
     global gaPrefs
-
+    
+    # If we just got a modifer key, grab again.
     if { [string first _L $iKey] != -1 ||
 	 [string first _R $iKey] != -1 } {
-	grab .wwPrefsKeyGetter
+	grab $gaPrefs(wwKeyGetter)
 	return
     }
-
+    
+    # Convert the state and key and set the prefs value.
     set sKey [ConvertStateAndKeyToKeyComboString $iState $iKey]
     set gaPrefs($iPrefsKey) $sKey
     SetPreferencesValue $iPrefsKey $sKey
 
+    # Set our dummy variable to break the wait up there.
     set gGotPrefsKey 1
 }
 
 proc ConvertStateAndKeyToKeyComboString { iState iKey } {
 
+    # Check state flags to set modifier booleans.
     set bShift 0
     if { [expr $iState & 1] } {
 	set bShift 1
@@ -4438,6 +4465,7 @@ proc ConvertStateAndKeyToKeyComboString { iState iKey } {
 	set bMeta 1
     }
 
+    # Use the TclScubaKeyCombo function to get a string.
     return [ConvertTkInputStringToScubaKeyComboString $iKey $bShift $bMeta $bAlt $bControl]
 }
 
@@ -5357,7 +5385,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.141 2005/09/27 20:27:54 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.142 2005/09/27 21:29:25 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

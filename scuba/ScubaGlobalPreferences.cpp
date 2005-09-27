@@ -48,7 +48,12 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
   // GetPreferencesValue <key>
   if( 0 == strcmp( isCommand, "GetPreferencesValue" ) ) {
 
+    PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     string sKey = iasArgv[1];
+
+    // If it's a key preference, convert it to a proper ScubaKeyCombo
+    // string first. This is just to convert key values from old
+    // versions of the prefs file to nice new ones.
     if(	sKey == GetStringForKey( KeyInPlaneX ) ||
 	sKey == GetStringForKey( KeyInPlaneY ) ||
 	sKey == GetStringForKey( KeyInPlaneZ ) ||
@@ -62,46 +67,44 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( KeyMoveViewUp ) ||
 	sKey == GetStringForKey( KeyMoveViewDown ) ||
 	sKey == GetStringForKey( KeyMoveViewIn ) ||
-	sKey == GetStringForKey( KeyMoveViewOut ) ||
+	sKey == GetStringForKey( KeyMoveViewOut )
 	) {
       
-      PreferencesManager& prefsMgr = PreferencesManager::GetManager();
       string sValue = prefsMgr.GetValue( sKey );
-
+    
       // Make a key combo and return the value of the ToString
-      // function. This is just to convert key values from old versions
-      // of the prefs file to nice new ones.
+      // function. 
       ScubaKeyCombo* keyCombo = ScubaKeyCombo::MakeKeyCombo();
       keyCombo->SetFromString( sValue );
       sValue = keyCombo->ToString();
 
+      // Enclose the value in quotes if it's not already in quotes.
       sReturnFormat = "s";
       stringstream ssReturnValues;
-      // Enclose the value in quotes if it's not already in quotes.
       if( sValue[0] != '\"' )
 	ssReturnValues << "\"" << sValue << "\"";
       else 
 	ssReturnValues << sValue;
       sReturnValues = ssReturnValues.str();
 
+      // Another key, just return the value.
     } else if( sKey == GetStringForKey( ViewFlipLeftRight ) ||
-	sKey == GetStringForKey( ShowConsole ) ||
-	sKey == GetStringForKey( AutoConfigureView ) ||
-	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
-	sKey == GetStringForKey( DrawMarkers ) ||
-	sKey == GetStringForKey( DrawPaths ) ||
-	sKey == GetStringForKey( DrawPlaneIntersections ) ||
-	sKey == GetStringForKey( ShowFPS ) ||
-	sKey == GetStringForKey( SelectedTool ) ||
-	sKey == GetStringForKey( LockOnCursor ) ||
-	sKey == GetStringForKey( UserStructureList )
+	       sKey == GetStringForKey( ShowConsole ) ||
+	       sKey == GetStringForKey( AutoConfigureView ) ||
+	       sKey == GetStringForKey( DrawCoordinateOverlay ) ||
+	       sKey == GetStringForKey( DrawMarkers ) ||
+	       sKey == GetStringForKey( DrawPaths ) ||
+	       sKey == GetStringForKey( DrawPlaneIntersections ) ||
+	       sKey == GetStringForKey( ShowFPS ) ||
+	       sKey == GetStringForKey( SelectedTool ) ||
+	       sKey == GetStringForKey( LockOnCursor ) ||
+	       sKey == GetStringForKey( UserStructureList )
 	) {
       
-      PreferencesManager& prefsMgr = PreferencesManager::GetManager();
+      // Enclose the value in quotes if it's not already in quotes.
       string sValue = prefsMgr.GetValue( sKey );
       sReturnFormat = "s";
       stringstream ssReturnValues;
-      // Enclose the value in quotes if it's not already in quotes.
       if( sValue[0] != '\"' )
 	ssReturnValues << "\"" << sValue << "\"";
       else 
@@ -276,6 +279,9 @@ ScubaGlobalPreferences::GetPrefAsBool ( PrefKey iKey ) {
 string 
 ScubaGlobalPreferences::GetPrefAsString ( PrefKey iKey ) {
 
+  // If it's a key preference, convert it to a proper ScubaKeyCombo
+  // string first. This is just to convert key values from old
+  // versions of the prefs file to nice new ones.
   if( iKey == KeyInPlaneX ||
       iKey == KeyInPlaneY ||
       iKey == KeyInPlaneZ ||
@@ -306,6 +312,7 @@ ScubaGlobalPreferences::GetPrefAsString ( PrefKey iKey ) {
     PreferencesManager::StringPrefValue value( sValue );
     return value.GetValue();
 
+    // Normal string preference.
   } else if( iKey == SelectedTool ||
 	     iKey == UserStructureList ) {
   
