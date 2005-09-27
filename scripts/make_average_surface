@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.13 2005/09/27 19:05:57 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.14 2005/09/27 19:42:14 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -179,6 +179,15 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set transform_fname = $argv[1]; shift;
       set XFORM_FLAG = "-X $transform_fname";
+      breaksw
+
+    case "--nocleanup":
+      # This has no effect, but needed for compat with make_average_volume
+      set cleanup = 0;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
       breaksw
 
     case "--debug":
