@@ -325,7 +325,6 @@ int MRIgetVolumeName(char *string, char *name_only)
 
 static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, int end_frame)
 {
-
   MRI *mri, *mri2;
   IMAGE *I;
   char fname_copy[STRLEN]; 
@@ -334,6 +333,18 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   char *ep;
   int i, j, k, t;
   int volume_frames;
+
+  // sanity-checks
+  if(fname == NULL)
+    {
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): null fname!\n"));
+    }
+  if(fname[0] == 0)
+    {
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): empty fname!\n"));
+    }
 
   // if filename does not contain any directory separator, then add cwd
   if (!strchr(fname,DIR_SEPARATOR))

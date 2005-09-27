@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.78 2005/08/15 21:30:38 greve Exp $
+   $Id: DICOMRead.c,v 1.79 2005/09/27 22:27:47 nicks Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -96,12 +96,17 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   else
     SeriesList = ScanSiemensSeries(dcmfile,&nlist);
 
-  if(nlist == 0){
-    fprintf(stderr,"ERROR: could not find any files\n");
+  if(SeriesList == NULL){
+    fprintf(stderr,"ERROR: could not find any files (SeriesList==NULL)\n");
     return(NULL);
   }
 
-  //for(n=0; n<nlist; n++) printf("%3d  %s\n",n,SeriesList[n]);
+  if(nlist == 0){
+    fprintf(stderr,"ERROR: could not find any files (nlist==0)\n");
+    return(NULL);
+  }
+
+  //for(nnlist=0; nnlist<nlist; nnlist++) fprintf(stdout,"%3d  %s\n",nnlist,SeriesList[nnlist]);
   //fflush(stdout);
 
   fprintf(stderr,"INFO: loading series header info.\n");
@@ -1788,7 +1793,7 @@ char **ReadSiemensSeries(char *ListFile, int *nList, char *dcmfile)
   int AddDCMFile;
 
   if(!IsSiemensDICOM(dcmfile)){
-    fprintf(stderr,"ERROR: %s is not a siemens DICOM file\n",dcmfile);
+    fprintf(stderr,"ERROR (ReadSiemensSeries): %s is not a siemens DICOM file\n",dcmfile);
     return(NULL);
   }
 
@@ -1867,7 +1872,7 @@ char **ScanSiemensSeries(char *dcmfile, int *nList)
   char tmpstr[1000];
 
   if(!IsSiemensDICOM(dcmfile)){
-    fprintf(stderr,"ERROR: %s is not a siemens DICOM file\n",dcmfile);
+    fprintf(stderr,"ERROR (ScanSiemensSeries): %s is not a siemens DICOM file\n",dcmfile);
     fflush(stderr);
     return(NULL);
   }
