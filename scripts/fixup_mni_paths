@@ -1,0 +1,73 @@
+#!/bin/tcsh
+
+set echo=1
+
+# The MNI tools, when originally compiled and installed, hard-code
+# the perl path into several files.  This is problematic if the 
+# MNI tools are moved to another system, and the perl path is
+# different.
+
+# If the MNI tools built on one system are moved to another, then
+# this script patches the files with the correct perl path.
+
+setenv MY_PERL `which perl`
+if ($status) then
+    echo "You do not seem to have perl on your system!"
+    echo "The MNI tools require perl."
+    exit 1
+endif
+
+# MINC_BIN_DIR is defined by $FREESURFER_HOME/FreeSurferEnv.csh
+if (! $?MINC_BIN_DIR) then
+    echo "MINC_BIN_DIR is not defined!"
+    echo "Type 'source $FREESURFER_HOME/SetUpFreeSurfer.csh' to set this,"
+    echo "where FREESURFER_HOME is set to your Freesurfer installation path,"
+    echo "or set MINC_BIN_DIR to your MINC toolkit /bin path."
+    exit 1
+else if (! -e $MINC_BIN_DIR) then
+    echo "MINC_BIN_DIR '$MINC_BIN_DIR' does not exist!"
+    exit 1
+endif
+
+cd $MINC_BIN_DIR
+
+setenv SEDFLAGS1 "s,/usr/pubsw/bin/perl,${MY_PERL},g"
+setenv SEDFLAGS2 "s,/usr/local/bin/perl,${MY_PERL},g"
+echo $SEDFLAGS1 >SEDFILE1
+echo $SEDFLAGS2 >SEDFILE2
+
+# this is included to fixup older MINC toolkit installations:
+setenv MINC_HOME_DIR `echo $MINC_BIN_DIR | sed - -e s/'\/'bin//`
+echo $MINC_HOME_DIR
+setenv SEDFLAGS3 "s,/usr/pubsw/packages/mni/1.0.4,${MINC_HOME_DIR},g"
+echo $SEDFLAGS3 >SEDFILE3
+
+# these are the files that contain the hard-coded paths in need of fixup:
+set MNI_FILES = ( autocrop field2imp imp2field make_template mritoself mritotal nu_correct nu_estimate nu_estimate_np_and_em nu_evaluate resample_labels sharpen_volume xfmtool )
+
+foreach file ($MNI_FILES)
+    echo "Patching $file...(original file saved to $file.old)"
+    mv $file $file.old
+    sed -f SEDFILE1 $file.old > $file.1
+    sed -f SEDFILE2 $file.1 > $file.2
+    sed -f SEDFILE3 $file.2 > $file
+    chmod a+x $file
+    if (-e $file.1) rm -f $file.1
+    if (-e $file.2) rm -f $file.2
+end
+rm -f SEDFILE1 SEDFILE2 SEDFILE3
+echo "done."
+
+echo "Here are the changes:"
+foreach file ($MNI_FILES)
+    echo "diff $file $file.old"
+    diff $file $file.old
+end
+echo "done."
+echo "Note: not all systems will require a patch," 
+echo "and may not show any differences."
+
+echo "Now a test of the MNI tool 'nu_correct'..."
+rehash
+nu_correct
+echo "A version number and usage message should have been displayed."
