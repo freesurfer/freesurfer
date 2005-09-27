@@ -1476,17 +1476,27 @@ int FixMNITal(float  xmni, float  ymni, float  zmni,
   -----------------------------------------------------------------*/
 MATRIX *DevolveXFM(char *subjid, MATRIX *XFM, char *xfmname)
 {
+	return(DevolveXFMWithSubjectsDir(subjid,  XFM, xfmname, NULL)) ;
+}
+
+MATRIX *DevolveXFMWithSubjectsDir(char *subjid, MATRIX *XFM, char *xfmname, char *sdir)
+{
   MATRIX *Torig_tkreg, *invTorig_tkreg, *Torig_native, *Mfix;
   char dirname[2000], xfmpath[2000], *sd;
   MRI *mriorig;
   FILE *fp;
   LTA    *lta;
 
-  sd = getenv("SUBJECTS_DIR") ;
-  if(sd==NULL){
-    printf("ERROR: SUBJECTS_DIR not defined\n");
-    return(NULL);
-  }
+	if (sdir)
+		sd = sdir ;
+	else
+	{
+		sd = getenv("SUBJECTS_DIR") ;
+		if(sd==NULL){
+			printf("ERROR: SUBJECTS_DIR not defined\n");
+			return(NULL);
+		}
+	}
 
   /* Check that the subject exists */
   sprintf(dirname,"%s/%s",sd,subjid);
