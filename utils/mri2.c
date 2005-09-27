@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.14 2005/09/27 04:08:08 greve Exp $
+  $Id: mri2.c,v 1.15 2005/09/27 16:18:05 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -1035,7 +1035,7 @@ int PrintPCAStats(FILE *fp, MATRIX *Spca)
   for(n=1; n <= Spca->cols; n++){
     v = (Spca->rptr[1][n] * Spca->rptr[1][n]);
     vsum += v;
-    fprintf(fp,"%3d   %8.2f %9.2f   %6.2f%%  %6.2f%% \n",
+    fprintf(fp,"%3d   %8.2f %9.2f   %6.2f  %6.2f \n",
 	    n,v,vsum,100*v/totvar,100*vsum/totvar);
   }
   return(0);
