@@ -15,7 +15,7 @@ deface_subject \
 epidewarp.fsl\
 feat2surf \
 findsession \
-fixup_mni_perl_path \
+fixup_mni_paths \
 fix_subject \
 fix_subject_corrected \
 fix_subject_corrected-lh \
