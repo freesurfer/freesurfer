@@ -5,6 +5,8 @@
 #include <math.h>
 #include <ctype.h>
 
+#include <assert.h>
+
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
@@ -37,7 +39,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.12 2005/09/26 21:39:07 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.13 2005/09/27 20:30:50 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -181,7 +183,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.12 2005/09/26 21:39:07 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.13 2005/09/27 20:30:50 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -428,9 +430,9 @@ MRISvertexCurvature_set(
 
     VERTEX*	pvertex;
     int		vno;
-    float	f_maxCurv,  f_minCurv;
-    float 	f_maxCurvK, f_minCurvK;
-    float 	f_maxCurvH, f_minCurvH;
+    float	f_maxCurv	= 0.;    float  f_minCurv	= 0.;
+    float 	f_maxCurvK	= 0.; 	 float  f_minCurvK	= 0.;
+    float 	f_maxCurvH	= 0.;    float  f_minCurvH	= 0.;
 
     if(aindex > apmris->nvertices)
 	ErrorExit(ERROR_SIZE, "%s: target vertex is out of range.", Progname);
@@ -689,6 +691,34 @@ histogram_wrapper(
     free(pf_histogram);
 }
 
+// Usable AlmostEqual function
+//	Bruce Dawson, see
+//  http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm
+#define true  1
+#define false 0
+int AlmostEqual2sComplement(float A, float B, int maxUlps)
+{
+    int aInt;
+    int bInt;
+    int intDiff;
+
+    // Make sure maxUlps is non-negative and small enough that the
+    // default NAN won't compare as equal to anything.
+    assert(maxUlps > 0 && maxUlps < 4 * 1024 * 1024);
+    aInt = *(int*)&A;
+    // Make aInt lexicographically ordered as a twos-complement int
+    if (aInt < 0)
+        aInt = 0x80000000 - aInt;
+    // Make bInt lexicographically ordered as a twos-complement int
+    bInt = *(int*)&B;
+    if (bInt < 0)
+        bInt = 0x80000000 - bInt;
+    intDiff = abs(aInt - bInt);
+    if (intDiff <= maxUlps)
+        return true;
+    return false;
+}
+
 void
 histogram_create(
 	MRIS*			amris_curvature,
@@ -724,6 +754,13 @@ histogram_create(
     int		totalCount	= 0;
     int		nvertices	= 0;
 
+    int		maxUlps		= 10;
+    int		b_bounded	= 0;
+
+    double	l_curvature;	// These three variables
+    double	l_leftBound;	//	are scaled up and truncated
+    double	l_rightBound;	//	to minimise rounding errors
+
     nvertices		= amris_curvature->nvertices;
     fprintf(stdout, "\n%*s = %f\n",  
 		G_leftCols, "bin size", af_binSize);
@@ -739,12 +776,23 @@ histogram_create(
     for(i=0; i<abins; i++) {
 	count	= 0;
 	for(j=start; j<nvertices; j++) {
-	    if(	pf_curvature[j] <= ((i+1)*af_binSize)+af_minCurv &&
-		pf_curvature[j] >= i*af_binSize+af_minCurv) {
+	    b_bounded		= 0;
+	    l_curvature		= (double)(pf_curvature[j]);
+	    l_leftBound		= (double)((i*af_binSize+af_minCurv));
+            l_rightBound	= (double)((((i+1)*af_binSize)+af_minCurv));
+	    if(	l_curvature >= l_leftBound && l_curvature <= l_rightBound
+				||
+		AlmostEqual2sComplement(l_curvature, l_rightBound, maxUlps)
+				||
+		AlmostEqual2sComplement(l_curvature, l_leftBound, maxUlps)
+	    ) {
 		count++;
 	        totalCount++;
+		b_bounded = 1;
 	    }
-	    if(pf_curvature[j] > ((i+1)*af_binSize)+af_minCurv) {
+	    if(	l_curvature > l_rightBound &&
+		!(AlmostEqual2sComplement(l_curvature, l_rightBound, maxUlps))
+		 ) {
 		start = j;
 		break;
 	    }
@@ -1121,12 +1169,17 @@ OPTIONS									\n\
 	If '-p' is used, then the histogram is expressed as a 		\n\
 	percentage.							\n\
 									\n\
+	Note that this histogram, working off float values and float	\n\
+	boundaries, can suffer from rounding errors! There might be	\n\
+	instances when a very few (on average) curvature values might	\n\
+	not be sorted.							\n\
+									\n\
 	The histogram behaviour can be further tuned with the 		\n\
 	following:							\n\
 									\n\
     [-b <binSize>] [-i <binStartCurvature] [-j <binEndCurvature]	\n\
 									\n\
-	These arguments are only processed iff a '-h <numberOfBins>	'\n\
+	These arguments are only processed iff a '-h <numberOfBins>'	\n\
 	has also been specified. By default, <binSize> is defined as	\n\
 									\n\
 		(maxCurvature - minCurvature) / <numberOfBins>		\n\
@@ -1148,10 +1201,6 @@ OPTIONS									\n\
 	value for the histogram. Using '-i' and '-j' together		\n\
 	are the most convenient ways to zoom into a region of interest	\n\
 	in a histogram.							\n\
-									\n\
-    [-h]								\n\
-									\n\
-	Show this help screen.						\n\
 									\n\
     [-l <labelFileName>]						\n\
 									\n\
