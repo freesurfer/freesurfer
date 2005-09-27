@@ -17,7 +17,7 @@
 #include "cma.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.16 2005/09/27 20:48:51 fischl Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.17 2005/09/27 21:09:20 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -67,7 +67,7 @@ main(int argc, char *argv[])
   Real          x, y, z, xw, yw, zw ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.16 2005/09/27 20:48:51 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.17 2005/09/27 21:09:20 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -292,7 +292,7 @@ get_option(int argc, char *argv[])
 					 cma_label_to_name(trans_out[ntrans]), trans_out[ntrans]) ;
 		ntrans++ ;
   }
-  else if (!stricmp(option, "projmm"))
+  else if (!stricmp(option, "projmm") || !stricmp(option, "proj"))
   {
 		proj_mm = atof(argv[2]) ;
     nargs = 1 ;
