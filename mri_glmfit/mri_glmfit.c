@@ -55,7 +55,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.26 2005/09/27 04:08:49 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.27 2005/09/28 00:00:43 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -361,12 +361,14 @@ int main(int argc, char **argv)
     }
   }
 
+  // Now do the estimation and testing
   TimerStart(&mytimer) ;
   printf("Starting fit\n");
   MRIglmFit(mriglm);
   msecFitTime = TimerStop(&mytimer) ;
   printf("Fit completed in %g minutes\n",msecFitTime/(1000*60.0));
 
+  // Save estimation results
   printf("Writing results\n");
   MRIwrite(mriglm->beta,betaFile);
   MRIwrite(mriglm->rvar,rvarFile);
@@ -377,6 +379,7 @@ int main(int argc, char **argv)
   sprintf(tmpstr,"%s/Xg.dat",GLMDir);
   MatrixWriteTxt(tmpstr, mriglm->Xg);
   
+  // Save the contrast results
   for(n=0; n < mriglm->glm->ncontrasts; n++){
     printf("  %s\n",mriglm->glm->Cname[n]);
     
@@ -409,10 +412,10 @@ int main(int argc, char **argv)
     // Find and save the max sig
     sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
     Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
-    printf("    max sig=%g  F=%g  at  index %d %d %d    seed=%d\n",
+    printf("    maxvox sig=%g  F=%g  at  index %d %d %d    seed=%d\n",
 	   sigmax,Fmax,cmax,rmax,smax,SynthSeed);
 
-    sprintf(tmpstr,"%s/%s/sigmax.dat",GLMDir,mriglm->glm->Cname[n]);
+    sprintf(tmpstr,"%s/%s/maxvox.dat",GLMDir,mriglm->glm->Cname[n]);
     fp = fopen(tmpstr,"w");
     fprintf(fp,"%e  %e    %d %d %d     %d\n",
 	    sigmax,Fmax,cmax,rmax,smax,SynthSeed);
@@ -425,7 +428,7 @@ int main(int argc, char **argv)
   if(fsgd != NULL){
     strcpy(fsgd->measname,"external");
 
-    sprintf(fsgd->datafile,"%s/%s",cwd,yFile);
+    sprintf(fsgd->datafile,"%s",yFile);
 
     sprintf(tmpstr,"%s/fsgd.X.mat",GLMDir);
     MatlabWrite(mriglm->Xg,tmpstr,"X");
@@ -440,6 +443,7 @@ int main(int argc, char **argv)
     fclose(fp);
   }
 
+  // Compute and save PCA
   if(pcaSave){
     printf("Computing PCA (%d)\n",npca);
     sprintf(tmpstr,"%s/eres-pca",GLMDir);
@@ -454,7 +458,6 @@ int main(int argc, char **argv)
     MatrixWriteTxt(tmpstr, Spca);
     sprintf(tmpstr,"%s/eres-pca/stats.dat",GLMDir);
     WritePCAStats(tmpstr,Spca);
-    // Need to save PVS, CPVS
   }
 
   printf("mri_glmfit done\n");
@@ -492,8 +495,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
-    else if (!strcasecmp(option, "--yhatsave")) yhatSave = 1;
-    else if (!strcasecmp(option, "--condsave")) condSave = 1;
+    else if (!strcasecmp(option, "--save-yhat")) yhatSave = 1;
+    else if (!strcasecmp(option, "--save-cond")) condSave = 1;
 
     else if (!strcasecmp(option, "--seed")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -546,7 +549,7 @@ static int parse_commandline(int argc, char **argv)
     }
     else if (!strcmp(option, "--y")){
       if(nargc < 1) CMDargNErr(option,1);
-      yFile = pargv[0];
+      yFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
     else if (!strcmp(option, "--mask")){
@@ -657,8 +660,8 @@ static void print_usage(void)
   printf("\n");
   printf("   --glmdir dir : save outputs to dir\n");
   printf("\n");
-  printf("   --saveyhat \n");
-  printf("   --savecond \n");
+  printf("   --save-yhat \n");
+  printf("   --save-cond \n");
   printf("\n");
   printf("   --synth : replace input with gaussian \n");
   printf("   --seed seed \n");
