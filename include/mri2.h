@@ -25,5 +25,7 @@ int MRIpca(MRI *D, MATRIX **pU, VECTOR **pS, MRI **pV, MRI *mask);
 int WritePCAStats(char *fname, MATRIX *Spca);
 int PrintPCAStats(FILE *fp, MATRIX *Spca);
 MRI *MRIsqrt(MRI *invol, MRI *outvol);
+double MRImaxAbsDiff(MRI *vol1, MRI *vol2, 
+		     int *cmax, int *rmax, int *smax, int *fmax);
 
 #endif

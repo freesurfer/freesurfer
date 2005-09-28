@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.16 2005/09/28 18:11:50 greve Exp $
+  $Id: mri2.c,v 1.17 2005/09/28 22:11:58 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -1084,4 +1084,37 @@ MRI *MRIsqrt(MRI *invol, MRI *outvol)
   }
 
   return(outvol);
+}
+
+/*---------------------------------------------------------------
+  MRImaxAbsDiff() - finds the voxel where the two volumes differ 
+  the most. 
+  ---------------------------------------------------------------*/
+double MRImaxAbsDiff(MRI *vol1, MRI *vol2, 
+		     int *cmax, int *rmax, int *smax, int *fmax)
+{
+  int c,r,s,f;
+  double v1,v2,maxdiff;
+
+  maxdiff = 0.0;
+  for(c=0;c<vol1->width;c++){
+    for(r=0;r<vol1->height;r++){
+      for(s=0;s<vol1->depth;s++){
+	for(f=0; f < vol1->nframes; f++){
+
+	  v1 = MRIgetVoxVal(vol1,c,r,s,f);
+	  v2 = MRIgetVoxVal(vol2,c,r,s,f);
+	  if(maxdiff < fabs(v1-v2)){
+	    maxdiff = fabs(v1-v2);
+	    *cmax = c;
+	    *rmax = r;
+	    *smax = s;
+	    *fmax = f;
+	  }
+
+	}
+      }
+    }
+  }
+  return(maxdiff);
 }
