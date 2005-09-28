@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.18 2005/09/27 01:26:25 greve Exp $
+   $Id: fmriutils.c,v 1.19 2005/09/28 00:00:06 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.18 2005/09/27 01:26:25 greve Exp $");
+  return("$Id: fmriutils.c,v 1.19 2005/09/28 00:00:06 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -857,7 +857,7 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s)
 	nthreg++;
       }
     }
-    else nthreg = mriglm->Xg->cols;
+    else nthreg = mriglm->Xg->cols+1;
 
     // Load the global per-voxel regressors matrix, X = [X pvr]
     for(n = 1; n <= mriglm->npvr; n++){
