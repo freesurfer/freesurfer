@@ -35,7 +35,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_voldiff.c,v 1.1 2005/09/28 18:28:47 greve Exp $";
+static char vcid[] = "$Id: mri_voldiff.c,v 1.2 2005/09/28 18:31:04 greve Exp $";
 char *Progname = NULL;
 
 char *vol1File = NULL, *vol2File=NULL;
@@ -47,7 +47,7 @@ char tmpstr[2000];
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int nargs,n;
+  int nargs;
   struct utsname uts;
   char *cmdline, cwd[2000];
 
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv)
 {
-  int  nargc , nargsused, msec, niters;
+  int  nargc , nargsused;
   char **pargv, *option ;
 
   if(argc < 1) usage_exit();
@@ -186,7 +186,6 @@ static void check_options(void)
 /* --------------------------------------------- */
 static void dump_options(FILE *fp)
 {
-  int n;
   fprintf(fp,"vol1    %s\n",vol1File);
   fprintf(fp,"vol2    %s\n",vol2File);
   return;
