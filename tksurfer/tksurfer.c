@@ -615,9 +615,6 @@ int forcegraycurvatureflag = FALSE; /* always draw grayscale curvature */
 int drawcursorflag = TRUE; /* draw the cyan cursor */
 int ignorezeroesinhistogramflag = FALSE; /* if true, don't count 0s in
 					    overlay histogram */
-int lastignorezeroesinhistogramflag = FALSE; /* this is done to see if
-						we need to recalc the
-						freqs */
 int labels_before_overlay_flag = FALSE; /* draw labels under overlay or not */
 
 Tcl_Interp *g_interp = NULL;
@@ -1420,10 +1417,15 @@ typedef struct {
   float foffset;
   float min_value;
   float max_value;
+
+  int num_freq_bins;
   int ***frequencies; /* the frequency of values in num_freq_bins for
 			 each time point and condition i.e.
 			 frequency[cond][tp][bin] */
-  int num_freq_bins;
+  int num_zeroes_in_zero_bin;   /* This contains the number of 0s in the 0 */
+  int zero_bin_index;	        /* bin. We do this separately so we
+				   can turn off the 0 displa  easily. */
+
 } SCLV_FIELD_INFO;
 
 static int sclv_current_field = SCLV_VAL;
@@ -1492,13 +1494,20 @@ int sclv_smooth (int niter, int field);
 /* sets the overlay alpha value. */
 int sclv_set_overlay_alpha (double alpha);
 
+/* Sets the current field that will be drawn to the surface. */
 int sclv_set_current_field (int field);
+
 int sclv_send_current_field_info ();
 
-/* sets the timepoint of an overlay. if this is a binary volume, this
-   will actually paint the timepoint's data onto the proper sclv field
-   in the volume.*/
+/* Sets the timepoint of an overlay with a volume. this will actually
+   paint the timepoint's data onto the proper sclv field in the
+   volume.*/
 int sclv_set_timepoint_of_field (int field, int timepoint, int condition);
+
+/* Fills out an array of float nvertices long with the proper
+   functional values for the given field and timepoint. */
+int sclv_get_values_for_field_and_timepoint (int field, int timepoint, 
+					     int condition, float* values);
 
 /* this stuff is kind of experimental, it works but it's not very
    useful as the percentages have to be very precise. */
@@ -18515,7 +18524,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.141 2005/09/23 01:19:35 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.142 2005/09/28 22:02:10 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22386,10 +22395,9 @@ int
 sclv_calc_frequencies(int field)
 {
   int timepoint, condition;
-  float value;
+  float* values;
   int bin;
   float num_values;
-  VERTEX* v;
   int vno;
   float valPerBin;
   
@@ -22404,8 +22412,21 @@ sclv_calc_frequencies(int field)
   valPerBin = num_values / (float)sclv_field_info[field].num_freq_bins;
 	
   /* allocate storage for each time point and condition... */
+  if (NULL != sclv_field_info[field].frequencies)
+    free (sclv_field_info[field].frequencies);
+
   sclv_field_info[field].frequencies = 
     calloc( sclv_field_info[field].num_conditions, sizeof(int**) );
+
+  values = (float*) calloc( mris->nvertices, sizeof(float) );
+  if (values == NULL)
+    ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"sclv_calc_frequencies: couldn't allocate values storage."));
+
+  /* Calc the zero bin and save it. */
+  sclv_field_info[field].zero_bin_index = 
+    (float)(0 - sclv_field_info[field].min_value) / (float)valPerBin;
+  sclv_field_info[field].num_zeroes_in_zero_bin = 0;
+  
   for (condition = 0; 
        condition < sclv_field_info[field].num_conditions; condition++)
     {
@@ -22420,51 +22441,30 @@ sclv_calc_frequencies(int field)
 	  sclv_field_info[field].frequencies[condition][timepoint] = 
 	    calloc( sclv_field_info[field].num_freq_bins, sizeof(int) );
 	  
-	  /* if this is a binary volume, it will paint the proper tp
-	     and condition into the vertex fields as well as calculate
-	     the correct max/mins. */
-	  sclv_set_timepoint_of_field (field, timepoint, condition);
+	  /* Get the values at this timepoint and condition. */
+	  sclv_get_values_for_field_and_timepoint (field, timepoint, condition,
+						   values);
 	  
-	  /* for each vertex, get the scalar value. find the bin it
-	     should go in and inc the count in that bin. */
+	  /* for each vno, find the bin the value should go in and inc
+	     the count in that bin. */
 	  for (vno = 0 ; vno < mris->nvertices ; vno++)
 	    {
-	      v = &mris->vertices[vno] ;
-	      sclv_get_value (v, field, &value);
-	      if (!ignorezeroesinhistogramflag ||
-		  (ignorezeroesinhistogramflag && value != 0))
+	      if (values[vno] != 0)
 		{
-		  bin = (float)(value - sclv_field_info[field].min_value) / (float)valPerBin;
+		  bin = (float)(values[vno] - sclv_field_info[field].min_value) / (float)valPerBin;
 		  if (bin >= 0 && bin < sclv_field_info[field].num_freq_bins)
 		    sclv_field_info[field].frequencies[condition][timepoint][bin]++;
+		}
+	      else
+		{
+		  /* This is a zero so inc the number of zeroes. */
+		  sclv_field_info[field].num_zeroes_in_zero_bin++;
 		}
 	    }
 	}
     }
   
-#if 0
-  printf ("field %d ---------------------- \n", field);
-  for (condition = 0; 
-       condition < sclv_field_info[field].num_conditions; condition++)
-    {
-      printf ("\t---------------------- \n");
-      for (timepoint = 0; 
-	   timepoint < sclv_field_info[field].num_timepoints; timepoint++)
-	{
-	  printf ("\t---------------------- \n");
-	  for (bin = 0; bin < sclv_field_info[field].num_freq_bins; bin++)
-	    {
-	      if (sclv_field_info[field].frequencies[condition][timepoint][bin] != 0)
-		{
-		  printf ("\tcond %d tp %d bin %d = %d\n",
-			  condition, timepoint, bin,
-			  sclv_field_info[field].frequencies[condition][timepoint][bin]);
-		}
-	    }
-	}
-    }
-  printf ("------------------------------- \n");
-#endif
+  free (values);
 
   return (ERROR_NONE);
 }
@@ -22534,11 +22534,9 @@ int sclv_send_current_field_info ()
 int sclv_set_timepoint_of_field (int field, 
 				 int timepoint, int condition)
 {
-  FunD_tErr volume_error;
   int vno;
   VERTEX* v;
-  xVoxel voxel;
-  float func_value;
+  float* values;
   
   if (field < 0 || field > NUM_SCALAR_VALUES)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_set_timepoint_of_field: field was out of bounds: %d)",field));
@@ -22569,42 +22567,22 @@ int sclv_set_timepoint_of_field (int field,
   
   /* check the timepoint and condition. if they're not what we're already
      using...*/
-  DisableDebuggingOutput;
   if (timepoint != sclv_field_info[field].cur_timepoint ||
       condition != sclv_field_info[field].cur_condition )
     {
+      values = (float*) calloc (mris->nvertices, sizeof(float));
+      if (values == NULL)
+	ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"sclv_set_timepoint_of_field: couldn't allocate values storage."));
       
-      /* for each vertex, grab a value out of the volume and stick it
-	 in the field */
+      /* Get the values here. */
+      sclv_get_values_for_field_and_timepoint (field, timepoint, condition,
+					       values);
+      
+      /* For each vertex, set the value.. */
       for (vno = 0 ; vno < mris->nvertices ; vno++)
 	{
 	  v = &mris->vertices[vno] ;
-	  
-	  /* skip ripped verts */
-	  if (v->ripflag)
-	    continue ;
-	  
-	  /* Get value from the right volume. */
-	  if (sclv_field_info[field].is_functional_volume)
-	    {
-	      /* if the voxel is valid here, use the value, else set to 0. */
-	      xVoxl_SetFloat (&voxel, v->origx, v->origy, v->origz);
-	      volume_error = FunD_GetData(sclv_field_info[field].func_volume,
-					  &voxel, condition, timepoint,
-					  &func_value);
-	      if (volume_error == FunD_tErr_NoError)
-		{
-		  sclv_set_value (v, field, func_value);
-		} else {
-		  sclv_set_value (v, field, 0.0);
-		}
-	    }
-	  else if (sclv_field_info[field].is_mri_volume)
-	    {
-	      func_value = MRIgetVoxVal (sclv_field_info[field].mri_volume,
-					 vno, 0, 0, timepoint);
-	      sclv_set_value (v, field, func_value);
-	    }
+	  sclv_set_value (v, field, values[vno]);
 	}
       
       /* save the timepoint and condition. */
@@ -22614,11 +22592,89 @@ int sclv_set_timepoint_of_field (int field,
       /* send the info for the current field */
       if (field == sclv_current_field)
 	sclv_send_current_field_info();
+
+      free (values);
     } 
-  EnableDebuggingOutput;
  
   return (ERROR_NONE);
 }
+
+int sclv_get_values_for_field_and_timepoint (int field, int timepoint, 
+					     int condition, float* values)
+{
+  int vno;
+  VERTEX* v;
+  xVoxel voxel;
+  FunD_tErr volume_error;
+  float func_value;
+
+  if (field < 0 || field > NUM_SCALAR_VALUES)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_get_values_for_field_and_timepoint: field was out of bounds: %d)",field));
+
+  /* Check timepoint and condition */
+  if (timepoint < 0 || timepoint > sclv_field_info[field].num_timepoints)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_get_values_for_field_and_timepoint: timepoint was out of bounds: %d",timepoint));
+  if (condition < 0 || condition > sclv_field_info[field].num_conditions)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_get_values_for_field_and_timepoint: condition was out of bounds: %d",condition));
+  
+  /* Make sure we have some output. */
+  if (values == NULL )
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"sclv_get_values_for_field_and_timepoint: values was NULL"));
+
+  DisableDebuggingOutput;
+
+  /* for each vertex, grab a value out of the volume and stick it
+     in the field */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      
+      /* skip ripped verts */
+      if (v->ripflag)
+	{
+	  values[vno] = 0;
+	  continue;
+	}
+      
+      /* Get value from the right volume. */
+      if (sclv_field_info[field].is_functional_volume &&
+	  sclv_field_info[field].func_volume )
+	{
+	  /* Convert the voxel coords into a xVoxel and get the value
+	     in the volume. If the voxel is valid here, use the value,
+	     else set to 0. */
+	  xVoxl_SetFloat (&voxel, v->origx, v->origy, v->origz);
+	  volume_error = FunD_GetData(sclv_field_info[field].func_volume,
+				      &voxel, condition, timepoint,
+				      &func_value);
+	  if (volume_error == FunD_tErr_NoError)
+	    {
+	      values[vno] = func_value;
+	    } else {
+	      values[vno] = 0;
+	    }
+	}
+      else if (sclv_field_info[field].is_mri_volume &&
+	       sclv_field_info[field].mri_volume )
+	{
+	  /* Value encoded volume file, where vno is the x value and
+	     timepoint is the frame. We don't support conditions here. */
+	  func_value = MRIgetVoxVal (sclv_field_info[field].mri_volume,
+				     vno, 0, 0, timepoint);
+	  values[0] = func_value;
+	}
+      else
+	{
+	  /* There is no volume so we can just copy the proper sclv
+	     field value into our output. */
+	  sclv_get_value (v, field, &values[vno] );
+	}
+    }
+  EnableDebuggingOutput;
+
+  return (ERROR_NONE);
+}
+
 
 int sclv_set_current_threshold_from_percentile (float thresh, float mid, 
 						float max) 
@@ -22914,15 +22970,8 @@ int sclv_send_histogram ( int field ) {
   char *tcl_cmd;
   int condition, timepoint;
   int bin;
+  int count;
   
-  /* if our lastignorezeroesinhistogramflag is different than from
-     what it was last time, we need to recalc the freqs. */
-  if (lastignorezeroesinhistogramflag != ignorezeroesinhistogramflag)
-    {
-      sclv_calc_frequencies(field);
-    }
-  lastignorezeroesinhistogramflag = ignorezeroesinhistogramflag;
-
   /* calculate the number of values and the increment between
      each value */
   increment = 
@@ -22950,8 +22999,20 @@ int sclv_send_histogram ( int field ) {
   timepoint = sclv_field_info[field].cur_timepoint;
   for (bin = 0; bin < sclv_field_info[field].num_freq_bins; bin++)
     {
-      sprintf (tcl_cmd, "%s %d", tcl_cmd,
-	       sclv_field_info[field].frequencies[condition][timepoint][bin]);
+      count = sclv_field_info[field].frequencies[condition][timepoint][bin];
+
+      /* If this is the zero bin, switch on
+	 ignorezeroesinhistogramflag to see whether or not we include
+	 the count in there. If we are ignoring, don't include it,
+	 otherwise add it in. */
+      if (bin == sclv_field_info[field].zero_bin_index)
+	{
+	  if (!ignorezeroesinhistogramflag)
+	    count += sclv_field_info[field].num_zeroes_in_zero_bin;
+	}
+      
+      /* Add to the command string. */
+      sprintf (tcl_cmd, "%s %d", tcl_cmd, count);
     }
   
   /* close up the command and send it off */
