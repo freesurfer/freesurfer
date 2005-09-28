@@ -10978,6 +10978,24 @@ mghWrite(MRI *mri, char *fname, int frame)
             }
         }
     }
+  else
+    {
+      errno = 0;
+      ErrorReturn(ERROR_BADPARM, 
+		  (ERROR_BADPARM,"mghWrite: filename '%s' "
+		   "needs to have an extension of .mgh or .mgz",
+		   fname)) ;
+    }
+
+  // sanity-check: make sure a file pointer was assigned
+  if (fp==0)
+    {
+      errno = 0;
+      ErrorReturn(ERROR_BADPARM, 
+		  (ERROR_BADPARM,"mghWrite(%s, %d): could not open file: fp==0",
+		   fname, frame)) ;
+    }
+
   /* WARNING - adding or removing anything before nframes will
      cause mghAppend to fail.
   */
