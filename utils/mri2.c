@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.15 2005/09/27 16:18:05 greve Exp $
+  $Id: mri2.c,v 1.16 2005/09/28 18:11:50 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -1056,4 +1056,32 @@ int WritePCAStats(char *fname, MATRIX *Spca)
   PrintPCAStats(fp, Spca);
   return(0);
 }
+/*---------------------------------------------------------------
+  MRIsqrt() - computes sqrt(fabs(v))
+  ---------------------------------------------------------------*/
+MRI *MRIsqrt(MRI *invol, MRI *outvol)
+{
+  int c,r,s,f;
+  double v;
 
+  if(outvol == NULL){
+    outvol = MRIallocSequence(invol->width, invol->height,
+	      invol->depth,MRI_FLOAT, invol->nframes);
+    MRIcopyHeader(outvol,invol);
+    outvol->type = MRI_FLOAT;
+  }
+  // Should check that the dims are the same
+
+  for(c=0;c<invol->width;c++){
+    for(r=0;r<invol->height;r++){
+      for(s=0;s<invol->depth;s++){
+	for(f=0; f < invol->nframes; f++){
+	  v = MRIgetVoxVal(invol,c,r,s,f);
+	  MRIsetVoxVal(outvol,c,r,s,f,sqrt(fabs(v)));
+	}
+      }
+    }
+  }
+
+  return(outvol);
+}
