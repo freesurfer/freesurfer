@@ -55,7 +55,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.27 2005/09/28 00:00:43 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.28 2005/09/28 18:12:16 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -67,7 +67,7 @@ int synth = 0;
 int yhatSave=0;
 int condSave=0;
 
-MRI *mritmp=NULL, *sig=NULL;
+MRI *mritmp=NULL, *sig=NULL, *rstd;
 
 int debug = 0, checkoptsonly = 0;
 char tmpstr[2000];
@@ -372,6 +372,11 @@ int main(int argc, char **argv)
   printf("Writing results\n");
   MRIwrite(mriglm->beta,betaFile);
   MRIwrite(mriglm->rvar,rvarFile);
+
+  rstd = MRIsqrt(mriglm->rvar,NULL);
+  sprintf(tmpstr,"%s/rstd.mgh",GLMDir);
+  MRIwrite(rstd,tmpstr);
+
   if(mriglm->yhatsave) MRIwrite(mriglm->yhat,yhatFile);
   if(mriglm->condsave) MRIwrite(mriglm->cond,condFile);
   if(eresFile) MRIwrite(mriglm->eres,eresFile);    
