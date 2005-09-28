@@ -25,6 +25,9 @@ double round(double x);
 #include "cmdargs.h"
 #include "fsglm.h"
 
+static void setup_checks(void);
+static void dump_check_setup(FILE *fp);
+
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -35,7 +38,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_voldiff.c,v 1.2 2005/09/28 18:31:04 greve Exp $";
+static char vcid[] = "$Id: mri_voldiff.c,v 1.3 2005/09/28 22:12:21 greve Exp $";
 char *Progname = NULL;
 
 char *vol1File = NULL, *vol2File=NULL;
@@ -44,12 +47,31 @@ MRI *vol1=NULL, *vol2=NULL;
 int debug = 0, checkoptsonly = 0;
 char tmpstr[2000];
 
+#define DIMENSION_CHECK  0
+#define PRECISION_CHECK  1
+#define RESOLUTION_CHECK 2
+#define VOX2RAS_CHECK    3
+#define PIXEL_CHECK      4
+
+int docheck[100];
+char *checklist[100];
+int checkcode[100];
+int nchecks;
+
+int DimCheck = 0;
+
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
   int nargs;
   struct utsname uts;
   char *cmdline, cwd[2000];
+  double maxdiff;
+  int cmax,rmax,smax,fmax;
+
+  setup_checks();
+  dump_check_setup(stdout);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -78,6 +100,38 @@ int main(int argc, char **argv)
   printf("machine  %s\n",uts.machine);
 
   dump_options(stdout);
+
+  vol1 = MRIread(vol1File);
+  if(vol1 == NULL) exit(1);
+  vol2 = MRIread(vol2File);
+  if(vol2 == NULL) exit(1);
+
+  if(vol1->width   != vol2->width ||
+     vol1->height  != vol2->height ||
+     vol1->depth   != vol2->depth ||
+     vol1->nframes != vol2->nframes){
+    printf("volumes differ in dimension\n");
+    if(docheck[DIMENSION_CHECK]) exit(checkcode[DIMENSION_CHECK]);
+    exit(1);
+  }
+
+  if(vol1->xsize   != vol2->xsize ||
+     vol1->ysize   != vol2->ysize ||
+     vol1->zsize   != vol2->zsize){
+    printf("volumes differ in resolution\n");
+    if(docheck[RESOLUTION_CHECK]) exit(checkcode[RESOLUTION_CHECK]);
+    exit(1);
+  }
+
+  if(vol1->type != vol2->type){
+    printf("volumes differ in precision\n");
+    if(docheck[PRECISION_CHECK]) exit(checkcode[PRECISION_CHECK]);
+  }
+
+
+  maxdiff = MRImaxAbsDiff(vol1,vol2,&cmax,&rmax,&smax,&fmax);
+  printf("maxdiff %g at %d %d %d %d\n",maxdiff,cmax,rmax,smax,fmax);
+
 
   printf("mri_voldiff done\n");
   return(0); 
@@ -127,7 +181,7 @@ static int parse_commandline(int argc, char **argv)
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(CMDsingleDash(option))
 	fprintf(stderr,"       Did you really mean -%s ?\n",option);
-      exit(-1);
+      exit(1);
     }
     nargc -= nargsused;
     pargv += nargsused;
@@ -191,4 +245,41 @@ static void dump_options(FILE *fp)
   return;
 }
 
+/* --------------------------------------------- */
+static void setup_checks(void)
+{
+  int n;
+  n = 0;
 
+  checklist[n] = "dimension";
+  checkcode[n] = 1;
+  n++;
+
+  checklist[n] = "precision";
+  checkcode[n] = 2;
+  n++;
+
+  checklist[n] = "resolution";
+  checkcode[n] = 3;
+  n++;
+
+  checklist[n] = "vox2ras";
+  checkcode[n] = 4;
+  n++;
+
+  checklist[n] = "pixel";
+  checkcode[n] = 5;
+  n++;
+
+  nchecks = n;
+}
+
+/* --------------------------------------------- */
+static void dump_check_setup(FILE *fp)
+{
+  int n;
+
+  for(n=0; n<nchecks; n++)
+    fprintf(fp,"%2d %s %d\n",n,checklist[n],checkcode[n]);
+
+}
