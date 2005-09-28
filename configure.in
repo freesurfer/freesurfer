@@ -1160,6 +1160,7 @@ mri_transform/Makefile \
 mri_train/Makefile \
 mri_twoclass/Makefile \
 mri_volcluster/Makefile \
+mri_voldiff/Makefile \
 mri_volsynth/Makefile \
 mri_vol2roi/Makefile \
 mri_vol2surf/Makefile \
