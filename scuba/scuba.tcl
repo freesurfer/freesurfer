@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.143 2005/09/27 22:32:42 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.144 2005/09/28 22:07:03 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -654,7 +654,7 @@ proc MakeToolBar { ifwTop } {
 		-balloon "Display the label/value area is a table.\nThe width of the area may expand as more\ncolumns are added, unless you resize the\nwindow manually by making the label area\nthinner than the width of the table, making\nthe scroll bar appear." }
 	}
 
-    set gaLabelArea(mode) labelAreaTable
+    set gaLabelArea(mode) labelAreaList
 
 
     button $fwToolBar.bwZoomOut  -image icon_zoom_out \
@@ -5385,7 +5385,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.143 2005/09/27 22:32:42 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.144 2005/09/28 22:07:03 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
