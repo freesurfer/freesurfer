@@ -10,13 +10,15 @@ DeclareIDTracker(Layer);
 
 LayerStaticTclListener Layer::mStaticListener;
 
-Layer::Layer() {
-  mOpacity = 1.0;
-  mbVisible = true;
-  msLabel = "";
-  mbPostRedisplay = false;
-  mBytesPerPixel = 4;
-  mbReportInfoAtRAS = true;
+Layer::Layer() :
+  mWidth(0),
+  mHeight(0),
+  msLabel(""),
+  mOpacity(1.0),
+  mbVisible(true),
+  mbPostRedisplay(false),
+  mbReportInfoAtRAS(false),
+  mBytesPerPixel(4) {
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetLayerLabel", 2, "layerID label",
