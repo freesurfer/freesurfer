@@ -16,11 +16,11 @@ function yak(varargin)
 %
 % yak(cbstring) % for callback functions
 %
-% $Id: yak.m,v 1.4 2004/11/01 04:39:14 greve Exp $
+% $Id: yak.m,v 1.5 2005/09/29 19:48:15 greve Exp $
 
 if(nargin == 0)
   msg = 'USAGE: hfig = yak(flag,options)';
-  msg = sprintf('%s\n$Id: yak.m,v 1.4 2004/11/01 04:39:14 greve Exp $',msg);
+  msg = sprintf('%s\n$Id: yak.m,v 1.5 2005/09/29 19:48:15 greve Exp $',msg);
   qoe(msg);error(msg);
 end
 
@@ -425,11 +425,11 @@ switch (cbflag)
 
     case 'o' 
       if(~isempty(ud.ActImg))
-        title  = 'Adjust Overlay Threshold';
+        tit  = 'Adjust Overlay Threshold';
         prompt = {'Max Threshold:','Min Threshold'};
         lines  = 1;
         def = {sprintf('%7.4f',ud.PMax),sprintf('%7.4f',ud.PMin)};
-        answer   = inputdlg(prompt,title,lines,def);
+        answer   = inputdlg(prompt,tit,lines,def);
         amax = sscanf(answer{1},'%f');
         amin = sscanf(answer{2},'%f');
         if(amax <= amin)
@@ -454,11 +454,11 @@ switch (cbflag)
 
          case 'd' 
       if(~isempty(ud.ActImg))
-        title  = 'False Discovery Rate';
+        tit  = 'False Discovery Rate';
         prompt = {'FDR:'};
         lines  = 1;
         def = {sprintf('%7.4f',ud.FDR)};
-        answer   = inputdlg(prompt,title,lines,def);
+        answer   = inputdlg(prompt,tit,lines,def);
         ud.FDR = sscanf(answer{1},'%f');
 	p = 10.^(-abs(ud.ActImg(:,:,ud.CurPlaneNo)));
 	pthresh = fast_fdrthresh(p,ud.FDR);
@@ -478,11 +478,11 @@ switch (cbflag)
       end
 
      case 'f' 
-      title  = 'Goto Row/Col';
+      tit  = 'Goto Row/Col';
       prompt = {'Row:','Col'};
       lines  = 1;
       def = {sprintf('%d',ud.CurPixel(1)),sprintf('%d',ud.CurPixel(2))};
-      answer   = inputdlg(prompt,title,lines,def);
+      answer   = inputdlg(prompt,tit,lines,def);
       arow = sscanf(answer{1},'%d');
       acol = sscanf(answer{2},'%d');
       fprintf('new pos: %d %d\n',arow,acol);
@@ -596,7 +596,7 @@ switch (cbflag)
          ud.hRaw = figure;
          if(isempty(ud.rawfunc))
            plot(ud.traw,ud.yraw,'b+-');
-           % title('Raw Time Courses');
+           % tit('Raw Time Courses');
          else
   	   cmd = sprintf('%s(''init'',ud.traw,ud.yraw);',ud.rawfunc);
            eval(cmd);
