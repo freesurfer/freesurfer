@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.22 2005/09/27 22:44:11 kteich Exp $
+  $Id: fsgdf.c,v 1.23 2005/09/29 15:17:02 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -257,13 +257,14 @@ FSGD *gdfRead(char *gdfname, int LoadData)
   /* load the MRI containing our raw data. */
   if(LoadData && strlen(gd->datafile) > 0){
 
-    /* Construct the path of the data file by concat the
-       path from the GDF file and the data file name */
-    if(NULL != dirname)
-      sprintf(datafilename,"%s/%s",dirname,gd->datafile);
-    else
+    if(fio_FileExistsReadable(gd->datafile))
       strcpy(datafilename,gd->datafile);
-
+    else{
+      /* Construct the path of the data file by concat the
+	 path from the GDF file and the data file name */
+      if(NULL != dirname)
+	sprintf(datafilename,"%s/%s",dirname,gd->datafile);
+    }
 
     gd->data = MRIread(datafilename);
     if(NULL == gd->data){
