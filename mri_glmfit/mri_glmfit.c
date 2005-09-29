@@ -1,6 +1,5 @@
 // mri_glmfit.c
 
-// FSGD not quite ready
 // Save some sort of config in output dir.
 
 // Permute X
@@ -57,7 +56,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.29 2005/09/29 21:22:33 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.30 2005/09/29 21:43:55 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -105,6 +104,9 @@ MRI *Vpca=NULL;
 struct utsname uts;
 char *cmdline, cwd[2000];
 
+char *MaxVoxBase = NULL;
+int DontSave = 0;
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
@@ -139,20 +141,21 @@ int main(int argc, char **argv)
   if(synth) if(SynthSeed < 0) SynthSeed = PDFtodSeed();
   dump_options(stdout);
 
-  if(GLMDir != NULL){
-    printf("Creating output directory %s\n",GLMDir);
-    err = mkdir(GLMDir,(mode_t)-1);
-    if(err != 0 && errno != EEXIST){
-      printf("ERROR: creating directory %s\n",GLMDir);
-      perror(NULL);    
-      return(1);
+  if(! DontSave){
+    if(GLMDir != NULL){
+      printf("Creating output directory %s\n",GLMDir);
+      err = mkdir(GLMDir,(mode_t)-1);
+      if(err != 0 && errno != EEXIST){
+	printf("ERROR: creating directory %s\n",GLMDir);
+	perror(NULL);    
+	return(1);
+      }
     }
+    sprintf(tmpstr,"%s/mri_glmfit.log",GLMDir);
+    fp = fopen(tmpstr,"w");
+    dump_options(fp);
+    fclose(fp);
   }
-
-  sprintf(tmpstr,"%s/mri_glmfit.log",GLMDir);
-  fp = fopen(tmpstr,"w");
-  dump_options(fp);
-  fclose(fp);
 
   mriglm->npvr = npvr;
   mriglm->yhatsave = yhatSave;
@@ -244,7 +247,7 @@ int main(int argc, char **argv)
     mritmp = MRInormWeights(mriglm->w, 1, 1, mriglm->mask, mriglm->w);
     if(mritmp==NULL) exit(1);
     sprintf(tmpstr,"%s/wn.mgh",GLMDir);
-    MRIwrite(mriglm->w,tmpstr);
+    if(!DontSave) MRIwrite(mriglm->w,tmpstr);
   }
   else mriglm->w = NULL;
 
@@ -363,6 +366,22 @@ int main(int argc, char **argv)
   MRIglmFit(mriglm);
   msecFitTime = TimerStop(&mytimer) ;
   printf("Fit completed in %g minutes\n",msecFitTime/(1000*60.0));
+
+  if(MaxVoxBase != NULL){
+    for(n=0; n < mriglm->glm->ncontrasts; n++){
+      sig    = MRIlog10(mriglm->p[n],sig,1);
+      sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
+      Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
+      sprintf(tmpstr,"%s-%s",MaxVoxBase,mriglm->glm->Cname[n]);
+      fp = fopen(tmpstr,"a");
+      fprintf(fp,"%e  %e    %d %d %d     %d\n",
+	      sigmax,Fmax,cmax,rmax,smax,SynthSeed);
+      fclose(fp);
+      MRIfree(&sig);
+    }
+  }
+
+  if(DontSave) exit(0);
 
   // Save estimation results
   printf("Writing results\n");
@@ -498,6 +517,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--save-yhat")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
+    else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
 
     else if (!strcasecmp(option, "--seed")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -626,6 +646,11 @@ static int parse_commandline(int argc, char **argv)
       printf("INFO: gd2mtx_method is %s\n",gd2mtx_method);
       strcpy(fsgd->DesignMatMethod,gd2mtx_method);
     }
+    else if (!strcmp(option, "--maxvox")){
+      if(nargc < 1) CMDargNErr(option,1);
+      MaxVoxBase = pargv[0];
+      nargsused = 1;
+    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(CMDsingleDash(option))
@@ -646,6 +671,11 @@ static void usage_exit(void)
 /* --------------------------------------------- */
 static void print_usage(void)
 {
+  printf("\n");
+  printf("\n");
+  printf("WARNING: this program is not yet tested!\n");
+  printf("\n");
+  printf("\n");
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --y input volume \n");
@@ -660,6 +690,8 @@ static void print_usage(void)
   printf("   --C contrast1.mat <--C contrast2.mat ...>\n");
   printf("\n");
   printf("   --glmdir dir : save outputs to dir\n");
+  printf("   --dontsave\n");
+  printf("   --maxvox basename \n");
   printf("\n");
   printf("   --save-yhat \n");
   printf("   --save-cond \n");
@@ -706,6 +738,11 @@ static void check_options(void)
     printf("ERROR: cannot specify both X file and fsgd file\n");
     exit(1);
   }
+
+  if(GLMDir == NULL && !DontSave){
+    printf("ERROR: must specify GLM output dir\n");
+    exit(1);
+  }
   if(GLMDir != NULL){
     sprintf(tmpstr,"%s/beta.mgh",GLMDir);
     betaFile = strcpyalloc(tmpstr);
@@ -720,16 +757,6 @@ static void check_options(void)
     if(condSave){
       sprintf(tmpstr,"%s/cond.mgh",GLMDir);
       condFile = strcpyalloc(tmpstr);
-    }
-  }
-  else{
-    if(betaFile == NULL){
-      printf("ERROR: must specify an output dir or beta file\n");
-      exit(1);
-    }
-    if(rvarFile == NULL){
-      printf("ERROR: must specify an output dir or rvar file\n");
-      exit(1);
     }
   }
 
