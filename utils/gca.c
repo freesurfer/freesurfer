@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/18 13:28:26 $
-// Revision       : $Revision: 1.174 $
+// Revision Date  : $Date: 2005/09/29 19:57:09 $
+// Revision       : $Revision: 1.175 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9665,6 +9665,64 @@ cma_label_to_name(int label)
     return("Cerebral_Cortex") ;
   if (label == Inf_Lat_Vent  )
     return("Inf_Lat_Vent") ;
+	if (label == Aorta)
+		return("Aorta") ;
+	if (label == Left_Common_IliacA)
+		return("Left_Common_IliacA") ;
+	if (label == Right_Common_IliacA)
+		return("Right_Common_IliacA") ;
+	if (label == Left_External_IliacA)
+		return("Left_External_IliacA") ;
+	if (label == Right_External_IliacA)
+		return("Right_External_IliacA") ;
+	if (label == Left_Internal_IliacA)
+		return("Left_Internal_IliacA") ;
+	if (label == Right_Internal_IliacA)
+		return("Right_Internal_IliacA") ;
+	if (label == Left_Lateral_SacralA)
+		return("Left_Lateral_SacralA") ;
+	if (label == Right_Lateral_SacralA)
+		return("Right_Lateral_SacralA") ;
+	if (label == Left_ObturatorA)
+		return("Left_ObturatorA") ;
+	if (label == Right_ObturatorA)
+		return("Right_ObturatorA") ;
+	if (label == Left_Internal_PudendalA)
+		return("Left_Internal_PudendalA") ;
+	if (label == Right_Internal_PudendalA)
+		return("Right_Internal_PudendalA") ;
+	if (label == Left_UmbilicalA)
+		return("Left_UmbilicalA") ;
+	if (label == Right_UmbilicalA)
+		return("Right_UmbilicalA") ;
+	if (label == Left_Inf_RectalA)
+		return("Left_Inf_RectalA") ;
+	if (label == Right_Inf_RectalA)
+		return("Right_Inf_RectalA") ;
+	if (label == Left_Common_IliacV)
+		return("Left_Common_IliacV") ;
+	if (label == Right_Common_IliacV)
+		return("Right_Common_IliacV") ;
+	if (label == Left_External_IliacV)
+		return("Left_External_IliacV") ;
+	if (label == Right_External_IliacV)
+		return("Right_External_IliacV") ;
+	if (label == Left_Internal_IliacV)
+		return("Left_Internal_IliacV") ;
+	if (label == Right_Internal_IliacV)
+		return("Right_Internal_IliacV") ;
+	if (label == Left_ObturatorV)
+		return("Left_ObturatorV") ;
+	if (label == Right_ObturatorV)
+		return("Right_ObturatorV") ;
+	if (label == Left_Internal_PudendalV)
+		return("Left_Internal_PudendalV") ;
+	if (label == Right_Internal_PudendalV)
+		return("Right_Internal_PudendalV") ;
+	if (label == Pos_Lymph)
+		return("Pos_Lymph") ;
+	if (label == Neg_Lymph)
+		return("Neg_Lymph") ;
 
   return(name) ;
 }
