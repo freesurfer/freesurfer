@@ -431,8 +431,8 @@ VolumeCollection::RASToSurfaceRAS ( float const iRAS[3],
     RAS[0] = iRAS[0];
     RAS[1] = iRAS[1];
     RAS[2] = iRAS[2];
-    MRIsurfaceRASToRAS( mMRI, RAS[0], RAS[1], RAS[2],
-		       &surfaceRAS[0], &surfaceRAS[1], &surfaceRAS[2] );
+    MRIRASToSurfaceRAS( mMRI, RAS[0], RAS[1], RAS[2],
+			&surfaceRAS[0], &surfaceRAS[1], &surfaceRAS[2] );
     oSurfaceRAS[0] = surfaceRAS[0];
     oSurfaceRAS[1] = surfaceRAS[1];
     oSurfaceRAS[2] = surfaceRAS[2];
