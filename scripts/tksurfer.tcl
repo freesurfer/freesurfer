@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.81 2005/09/27 22:46:55 kteich Exp $
+# $Id: tksurfer.tcl,v 1.82 2005/09/29 16:49:01 kteich Exp $
 
 package require BLT;
 
@@ -2031,8 +2031,8 @@ proc DoCustomFillDlog {} {
 
 	# cbs for flags
 	tkm_MakeCheckboxes $cbwFlags y { \
-	    {text "Up to and including boundaries" \
-		 gFillParms(noBoundary) {} } \
+	    {text "Up to and including paths" \
+		 gFillParms(noPath) {} } \
 	    {text "Up to other labels" \
 		 gFillParms(noLabel) {} } \
 	    {text "Up to and including different curvature" \
@@ -2097,7 +2097,7 @@ proc DoCustomFillDlog {} {
 	# buttons.
 	tkm_MakeDialogButtons $fwButtons $wwDialog [list \
 		[list Apply { fill_flood_from_cursor \
-				  $gFillParms(noBoundary) \
+				  $gFillParms(noPath) \
 				  $gFillParms(noLabel) \
 				  $gFillParms(noCmid) \
 				  $gFillParms(noFThresh) \
@@ -2722,12 +2722,12 @@ proc CreateMenuBar { ifwMenuBar } {
 		mg_TimeCourseLoaded } 
 	}}
 	{ cascade "Fill" {
-	    { command "Make Fill Boundary"
-		{ fbnd_new_line_from_marked_vertices
+	    { command "Make Path"
+		{ path_new_path_from_marked_vertices
 		    clear_all_vertex_marks
 		    UpdateAndRedraw } }
-	    { command "Delete Selected Boundary"
-		{ fbnd_remove_selected_boundary } }
+	    { command "Delete Selected Path"
+		{ path_remove_selected_path } }
 	    { command "Custom Fill..."
 		{ DoCustomFillDlog } }
 	    { command "Fill Uncut Area"
@@ -3373,23 +3373,23 @@ proc CreateToolBar { ifwToolBar } {
 	    "Clear Cuts" }
     }
     
-    tkm_MakeButtons $fwPoint { \
-      { image icon_cursor_save { DoSavePoint } "Save Point" } \
-      { image icon_cursor_goto { DoGotoPoint } "Goto Saved Point" } }
+    tkm_MakeButtons $fwPoint { 
+	{ image icon_cursor_save { DoSavePoint } "Save Point" } 
+	{ image icon_cursor_goto { DoGotoPoint } "Goto Saved Point" } }
     
-    tkm_MakeButtons $fwView { \
-      { image icon_home { RestoreView } "Restore View" } \
-      { image icon_redraw { UpdateAndRedraw } "Redraw View" } }
+    tkm_MakeButtons $fwView { 
+	{ image icon_home { RestoreView } "Restore View" } 
+	{ image icon_redraw { UpdateAndRedraw } "Redraw View" } }
     
-    tkm_MakeButtons $fwFill { \
-      { image icon_draw_line { fbnd_new_line_from_marked_vertices; \
-        clear_all_vertex_marks; UpdateAndRedraw } "Make Fill Boundary" } \
-      { image icon_draw_line_closed { close_marked_vertices; \
-      fbnd_new_line_from_marked_vertices; \
-      clear_all_vertex_marks; UpdateAndRedraw } "Make Closed Fill Boundary" } \
-      { image icon_fill_label { DoCustomFillDlog } "Custom Fill" } \
-      { image icon_erase_line { fbnd_remove_selected_boundary; } \
-      "Remove Selected Boundary" } }
+    tkm_MakeButtons $fwFill { 
+	{ image icon_draw_line { path_new_path_from_marked_vertices; 
+	    clear_all_vertex_marks; UpdateAndRedraw } "Make Path" } 
+	{ image icon_draw_line_closed { close_marked_vertices; 
+	    path_new_path_from_marked_vertices; 
+	    clear_all_vertex_marks; UpdateAndRedraw } "Make Closed Path" } 
+	{ image icon_fill_label { DoCustomFillDlog } "Custom Fill" } 
+	{ image icon_erase_line { path_remove_selected_path; } 
+	    "Remove Selected Path" } }
     
     bind $fwView.bw1 <B2-ButtonRelease> [list UpdateLockButton $fwView.bw1 gaLinkedVars(redrawlockflag)]
     

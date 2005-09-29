@@ -1724,65 +1724,74 @@ int labl_print_table ();
 
 /* ---------------------------------------------------------------------- */
 
-/* ------------------------------------------------------ fill boundaries */
+/* ---------------------------------------------------------------- paths */
 
-int fbnd_debug = 0;
+int path_debug = 0;
 
 typedef struct
 {
-  int num_vertices;    /* number of vertices in line. */
-  int* vertices;    /* array of vertices in line. */
-  float min_x, max_x;    /* the bounding cube of this, uh, boundary. */
+  int num_vertices;      /* number of vertices in path. */
+  int* vertices;         /* array of vertices in path. */
+  float min_x, max_x;    /* the bounding cube of this path. */
   float min_y, max_y;
   float min_z, max_z;
   
-} FBND_BOUNDARY;
+} PATH_PATH;
 
-/* array of boundaries. */
-#define FBND_MAX_BOUNDARIES 200
-FBND_BOUNDARY fbnd_boundaries[FBND_MAX_BOUNDARIES];
-int fbnd_num_boundaries = 0;
+/* array of paths. */
+#define PATH_MAX_PATHS 200
+PATH_PATH path_paths[PATH_MAX_PATHS];
+int path_num_paths = 0;
 
-/* currently selected boundary. */
-#define FBND_NONE_SELECTED -1
-int fbnd_selected_boundary = FBND_NONE_SELECTED;
+/* currently selected path. */
+#define PATH_NONE_SELECTED -1
+int path_selected_path = PATH_NONE_SELECTED;
 
-static FBND_BOUNDARY *fbnd_copy(FBND_BOUNDARY *bsrc, FBND_BOUNDARY *bdst) ;
-static int           fbnd_set_marks(FBND_BOUNDARY *b, MRI_SURFACE *mris,int mark) ;
-static double        fbnd_sse(FBND_BOUNDARY *b, MRI_SURFACE *mris, double target_curv, 
-                              double l_curv, double l_len) ;
-static double        fbnd_length(FBND_BOUNDARY *b, MRI_SURFACE *mris) ;
+static PATH_PATH* path_copy(PATH_PATH *bsrc, PATH_PATH *bdst) ;
+static int        path_set_marks(PATH_PATH *b, MRI_SURFACE *mris,int mark) ;
 
-#define FBND_FUDGE 4.0
+/* Find length of path. */
+static double     path_sse(PATH_PATH *b, MRI_SURFACE *mris,
+			   double target_curv, double l_curv, double l_len) ;
+static double     path_length(PATH_PATH *b, MRI_SURFACE *mris) ;
 
-/* array of flags for each mris vertex, whether or not a surface
-   vertex is in a line. */
-char* fbnd_is_boundary = NULL;
+#define PATH_FUDGE 4.0
 
-int fbnd_initialize ();
+/* Array of flags for each mris vertex, whether or not a surface
+   vertex is in a path. */
+char* path_is_path = NULL;
 
-int fbnd_new_line_from_marked_vertices ();
+/* Initialize all the data structures for the path stuff. */
+int path_initialize ();
 
-int fbnd_remove_selected_boundary ();
+/* Creates a new path between the currently marked verices. */
+int path_new_path_from_marked_vertices ();
 
-int fbnd_add (int num_vertices, int* vertices, int* new_index);
-int fbnd_remove (int index);
+/* Removes the currently selected path, deleting it. */
+int path_remove_selected_path ();
 
-int fbnd_select (int index);
+/* Creates and removes paths from the path_path array. */
+int path_add (int num_vertices, int* vertices, int* new_index);
+int path_remove (int index);
 
-/* updates the fbnd_is_boundary array after a boundary has been added
-   or removed. */
-int fbnd_update_surface_boundaries ();
+/* Mark the path as selected. If this changes the selected path, cause
+a redraw event. */
+int path_select (int index);
 
-/* returns true if this vertex is on a fill boundary. */
-char fbnd_is_vertex_on_boundary (int vno);
+/* Updates the path_is_path array after a path has been added or
+   removed. */
+int path_update_surface_paths ();
 
-/* figures out if a click is on or near a boundary. if so, selects it. */
-int fbnd_select_boundary_by_vno (int vno);
+/* Returns true if this vertex is on a fill path. */
+char path_is_vertex_on_path (int vno);
 
-/* if this vno is a boundary, changes the color of this vertex
+/* Figures out if a click is on or near a path. if so, selects it. */
+#define PATH_DISTANCE_TO_SELECT 25
+int path_select_path_by_vno (int vno);
+
+/* If this vno is a path, changes the color of this vertex
    accordingly. */
-int fbnd_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b );
+int path_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b );
 
 /* ---------------------------------------------------------------------- */
 
@@ -1795,7 +1804,7 @@ int fbnd_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b );
 
 typedef struct {
   
-  char dont_cross_boundary;
+  char dont_cross_path;
   char dont_cross_label;
   char dont_cross_cmid;
   char dont_cross_fthresh;
@@ -5230,8 +5239,8 @@ select_vertex(short sx,short sy)
   if (labl_draw_flag)
     labl_select_label_by_vno (vno);
   
-  /* select the boundary at this vertex, if there is one. */
-  fbnd_select_boundary_by_vno (vno);
+  /* select the path at this vertex, if there is one. */
+  path_select_path_by_vno (vno);
   
   /* let the tcl side of things respond. */
   sprintf(command,"SelectVertex %d", vno);
@@ -5274,8 +5283,8 @@ select_vertex_by_vno (int vno)
   /* select the label at this vertex, if there is one. */
   labl_select_label_by_vno (vno);
   
-  /* select the boundary at this vertex, if there is one. */
-  fbnd_select_boundary_by_vno (vno);
+  /* select the path at this vertex, if there is one. */
+  path_select_path_by_vno (vno);
   
   /* finally, update the labels. */
   if (vno>=0)
@@ -6668,7 +6677,7 @@ read_binary_surface(char *fname)
   sclv_initialize();
   conv_initialize();
   labl_initialize();
-  fbnd_initialize();
+  path_initialize();
   ddt_initialize();
   /* end rkt */
 
@@ -12951,8 +12960,8 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
 	       any color if there is no label. */
 	    labl_apply_color_to_vertex (n, &r, &g, &b );
 	  
-	  /* let the boundary code color this vertex, if it wants to. */
-	  fbnd_apply_color_to_vertex (n, &r, &g, &b);
+	  /* let the path code color this vertex, if it wants to. */
+	  path_apply_color_to_vertex (n, &r, &g, &b);
 	  
 	  /* Apply debug hilite color */
 	  ddt_get_hilite_vertex_color (n, &r, &g, &b);
@@ -15340,7 +15349,7 @@ static int find_best_path(MRI_SURFACE *mris, int start_vno, int end_vno,
 void
 draw_fundus(int bdry_index)
 {
-  FBND_BOUNDARY  *borig, *bnew, *bold ;
+  PATH_PATH  *borig, *bnew, *bold ;
   double         last_sse, sse, curv_error, initial_length, total_length, 
     l_curv, l_len, min_curv_error, target_curv ;
   int            i, vno, n, min_n, *indices/*, new_index, old_index*/, v_in_path,
@@ -15349,34 +15358,34 @@ draw_fundus(int bdry_index)
   
   MRISclearMarks(mris) ;
   target_curv = mris->max_curv ;
-  if (bdry_index == FBND_NONE_SELECTED)
+  if (bdry_index == PATH_NONE_SELECTED)
     {
       printf("### no boundary selected\n") ;
       return ;
     }
-  borig = &fbnd_boundaries[bdry_index] ; v_last = NULL ;
+  borig = &path_paths[bdry_index] ; v_last = NULL ;
   l_curv = 1.0 ; l_len = 0.01 ;
-  initial_length = fbnd_length(borig, mris) ;
+  initial_length = path_length(borig, mris) ;
   
-  bnew = (FBND_BOUNDARY *)calloc(1, sizeof(FBND_BOUNDARY)) ;
+  bnew = (PATH_PATH *)calloc(1, sizeof(PATH_PATH)) ;
   bnew->vertices = (int *)calloc(mris->nvertices, sizeof(int)) ;
-  bold = fbnd_copy(borig, NULL) ;
+  bold = path_copy(borig, NULL) ;
   indices = (int *)calloc(mris->nvertices, sizeof(int)) ;
   if (indices == NULL || bnew->vertices == NULL)
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate index array", Progname) ;
-  fbnd_copy(bold, bnew) ;
+  path_copy(bold, bnew) ;
   niter = 0 ;
   do
     {
-      /*    fbnd_set_marks(bold, mris, 1) ;*/
+      /*    path_set_marks(bold, mris, 1) ;*/
       
       /* compute sse of current line */
-      last_sse = fbnd_sse(bold, mris, target_curv, l_curv, l_len) ;
+      last_sse = path_sse(bold, mris, target_curv, l_curv, l_len) ;
       
       bnew->num_vertices = 0 ;
       
       /* first move endpoints in direction of max curvature */
-      fbnd_set_marks(bold, mris, 1) ;
+      path_set_marks(bold, mris, 1) ;
       start_vno = bold->vertices[0] ;
       min_n = -1 ; 
       min_curv_error = v->curv-target_curv ; min_curv_error *= min_curv_error ;
@@ -15487,17 +15496,17 @@ draw_fundus(int bdry_index)
 	}
       bnew->num_vertices = v_in_path ;
       
-      sse = fbnd_sse(bnew, mris, target_curv, l_curv, l_len) ;
-      total_length = fbnd_length(bnew, mris) ;
+      sse = path_sse(bnew, mris, target_curv, l_curv, l_len) ;
+      total_length = path_length(bnew, mris) ;
       if (niter++ > 20 && last_sse < sse)
 	break ;
-      fbnd_set_marks(bnew, mris, 1) ;
-      fbnd_set_marks(bold, mris, 0) ;
-      fbnd_copy(bnew, bold) ;
+      path_set_marks(bnew, mris, 1) ;
+      path_set_marks(bold, mris, 0) ;
+      path_copy(bnew, bold) ;
       
       
       /*    if (sse < last_sse)*/
-      fbnd_copy(bnew, bold) ;
+      path_copy(bnew, bold) ;
       
       printf("sse = %2.4f (%2.4f, %2.3f%%), %d vertices in path\n", 
 	     sse, last_sse, 100*(last_sse-sse)/last_sse,bnew->num_vertices) ;
@@ -15508,7 +15517,7 @@ draw_fundus(int bdry_index)
   
 }
 static double
-fbnd_length(FBND_BOUNDARY *b, MRI_SURFACE *mris)
+path_length(PATH_PATH *b, MRI_SURFACE *mris)
 {
   double total_length, length ;
   int    i, vno ;
@@ -15531,7 +15540,7 @@ fbnd_length(FBND_BOUNDARY *b, MRI_SURFACE *mris)
 }
 
 static double
-fbnd_sse(FBND_BOUNDARY *b, MRI_SURFACE *mris, double target_curv, 
+path_sse(PATH_PATH *b, MRI_SURFACE *mris, double target_curv, 
          double l_curv, double l_len)
 {
   double sse, curv_error, length ;
@@ -17565,7 +17574,7 @@ ERR(1,"Wrong # args: swap_buffers")
      
      int                  W_draw_fundus  WBEGIN
      ERR(2,"Wrong # args: draw_fundus")
-     draw_fundus(fbnd_selected_boundary);  WEND
+     draw_fundus(path_selected_path);  WEND
      
      int                  W_put_retinotopy_stats_in_vals  WBEGIN
      ERR(1,"Wrong # args: put_retinotopy_stats_in_vals")
@@ -18315,16 +18324,15 @@ ERR(1,"Wrong # args: func_select_marked_vertices")
      int W_labl_print_table WBEGIN
      ERR(1,"Wrong # args: labl_print_table")
      labl_print_table(); WEND
-     
-     int W_fbnd_select WBEGIN
-     ERR(2,"Wrong # args: fbnd_select")
-     fbnd_select( atoi(argv[1])); WEND
-     int W_fbnd_new_line_from_marked_vertices WBEGIN
-     ERR(1,"Wrong # args: fbnd_new_line_from_marked_vertices")
-     fbnd_new_line_from_marked_vertices(); WEND
-     int W_fbnd_remove_selected_boundary WBEGIN
-     ERR(1,"Wrong # args: fbnd_remove_selected_boundary")
-     fbnd_remove_selected_boundary(); WEND
+     int W_path_select WBEGIN
+     ERR(2,"Wrong # args: path_select")
+     path_select( atoi(argv[1])); WEND
+     int W_path_new_path_from_marked_vertices WBEGIN
+     ERR(1,"Wrong # args: path_new_path_from_marked_vertices")
+     path_new_path_from_marked_vertices(); WEND
+     int W_path_remove_selected_path WBEGIN
+     ERR(1,"Wrong # args: path_remove_selected_path")
+     path_remove_selected_path(); WEND
      
 int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
 			      int argc,char *argv[])
@@ -18339,13 +18347,13 @@ int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
   if (argc != 8)
     {
       Tcl_SetResult(interp,"Wrong # args: fill_flood_from_cursor "
-		    "dont_cross_boundary dont_cross_label dont_cross_cmid "
+		    "dont_cross_path dont_cross_label dont_cross_cmid "
 		    "dont_cross_fthresh use_multiple_seeds action argument",
 		    TCL_VOLATILE);
       return TCL_ERROR;
     }
   
-  params.dont_cross_boundary = atoi(argv[1]);
+  params.dont_cross_path = atoi(argv[1]);
   params.dont_cross_label    = atoi(argv[2]);
   params.dont_cross_cmid     = atoi(argv[3]);
   params.dont_cross_fthresh  = atoi(argv[4]);
@@ -18524,7 +18532,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.142 2005/09/28 22:02:10 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.143 2005/09/29 16:48:57 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18548,7 +18556,7 @@ int main(int argc, char *argv[])   /* new main */
   conv_initialize();
   labl_initialize();
   cncl_initialize();
-  fbnd_initialize();
+  path_initialize();
   /* end rkt */
   
   /* get tksurfer tcl startup script location from environment */
@@ -19266,12 +19274,12 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_CreateCommand(interp, "labl_print_table",
 		    (Tcl_CmdProc*) W_labl_print_table, REND);
   
-  Tcl_CreateCommand(interp, "fbnd_select",
-		    (Tcl_CmdProc*) W_fbnd_select, REND);
-  Tcl_CreateCommand(interp, "fbnd_new_line_from_marked_vertices",
-		    (Tcl_CmdProc*) W_fbnd_new_line_from_marked_vertices, REND);
-  Tcl_CreateCommand(interp, "fbnd_remove_selected_boundary",
-		    (Tcl_CmdProc*) W_fbnd_remove_selected_boundary, REND);
+  Tcl_CreateCommand(interp, "path_select",
+		    (Tcl_CmdProc*) W_path_select, REND);
+  Tcl_CreateCommand(interp, "path_new_path_from_marked_vertices",
+		    (Tcl_CmdProc*) W_path_new_path_from_marked_vertices, REND);
+  Tcl_CreateCommand(interp, "path_remove_selected_path",
+		    (Tcl_CmdProc*) W_path_remove_selected_path, REND);
   
   Tcl_CreateCommand(interp, "fill_flood_from_cursor",
 		    (Tcl_CmdProc*) W_fill_flood_from_cursor, REND);
@@ -24695,9 +24703,9 @@ int labl_print_table ()
 
 /* ---------------------------------------------------------------------- */
 
-/* ------------------------------------------------------ fill boundaries */
+/* ------------------------------------------------------ fill paths */
 static int
-fbnd_set_marks(FBND_BOUNDARY *b, MRI_SURFACE *mris, int mark)
+path_set_marks(PATH_PATH *b, MRI_SURFACE *mris, int mark)
 {
   int i, vno ;
   
@@ -24712,17 +24720,17 @@ fbnd_set_marks(FBND_BOUNDARY *b, MRI_SURFACE *mris, int mark)
   
 }
 
-FBND_BOUNDARY *
-fbnd_copy(FBND_BOUNDARY *bsrc, FBND_BOUNDARY *bdst)
+PATH_PATH *
+path_copy(PATH_PATH *bsrc, PATH_PATH *bdst)
 {
   int   vno ;
   
   if (!bdst)
     {
-      bdst = (FBND_BOUNDARY *)calloc(1, sizeof(FBND_BOUNDARY)) ;
+      bdst = (PATH_PATH *)calloc(1, sizeof(PATH_PATH)) ;
       bdst->vertices = (int *)calloc(bsrc->num_vertices, sizeof(int)) ;
       if (!bdst->vertices)
-	ErrorExit(ERROR_NOMEMORY, "%s: could not copy boundary with %d vertices",
+	ErrorExit(ERROR_NOMEMORY, "%s: could not copy path with %d vertices",
 		  Progname, bdst->num_vertices) ;
     }
   
@@ -24735,95 +24743,102 @@ fbnd_copy(FBND_BOUNDARY *bsrc, FBND_BOUNDARY *bdst)
   return(bdst) ;
 }
 
-int fbnd_initialize ()
+int path_initialize ()
 {
-  int boundary;
+  int path;
   
-  /* clear the boundary array. */
-  for (boundary = 0; boundary < FBND_MAX_BOUNDARIES; boundary++)
+  /* Clear the path array. */
+  for (path = 0; path < PATH_MAX_PATHS; path++)
     {
-      fbnd_boundaries[boundary].num_vertices = 0;
-      fbnd_boundaries[boundary].vertices = NULL;
+      path_paths[path].num_vertices = 0;
+      path_paths[path].vertices = NULL;
     }
   
-  /* default values. */
-  fbnd_selected_boundary = FBND_NONE_SELECTED;
-  fbnd_num_boundaries = 0;
+  /* No paths present. */
+  path_selected_path = PATH_NONE_SELECTED;
+  path_num_paths = 0;
 
-  if (NULL != fbnd_is_boundary)
-    free (fbnd_is_boundary);
-  fbnd_is_boundary = NULL;
+  /* This will be itialized in path_update_surface_paths. */
+  if (NULL != path_is_path)
+    free (path_is_path);
+  path_is_path = NULL;
   
   return (ERROR_NONE);
 }
 
-int fbnd_new_line_from_marked_vertices ()
+int path_new_path_from_marked_vertices ()
 {
   int* path;
   int path_length;
 
+  /* Initialize a new path. */
   path = (int*) calloc (mris->nvertices, sizeof(int));
   
-  find_path (marked, nmarked, "making line", mris->nvertices,
+  /* Find the actual vnos in this path between the currently marked
+     vertices. */
+  find_path (marked, nmarked, "making path", mris->nvertices,
 	     path, &path_length);
 
-  fbnd_add (path_length, path, NULL);
+  /* Add the vertices we found to a new path. */
+  path_add (path_length, path, NULL);
 
+  /* Free the storage for our path finder. */
   free (path);
   
   return (ERROR_NONE);
 }
 
-int fbnd_remove_selected_boundary () 
+int path_remove_selected_path () 
 {
-  if (fbnd_selected_boundary >= 0 && 
-      fbnd_selected_boundary < fbnd_num_boundaries)
-    fbnd_remove (fbnd_selected_boundary);
+  /* Call path_remove on currently selected path. */
+  if (path_selected_path >= 0 && 
+      path_selected_path < path_num_paths)
+    path_remove (path_selected_path);
   
   return (ERROR_NONE);
 }
 
-int fbnd_add (int num_vertices, int* vertices, int* new_index)
+int path_add (int num_vertices, int* vertices, int* new_index)
 {
   int index;
   float min_x, max_x;
   float min_y, max_y;
   float min_z, max_z;
-  int boundary;
+  int path;
   VERTEX* v;
   
+  /* Make sure we have vertices. */
   if (num_vertices <= 0)
     return (ERROR_BADPARM);
   if (NULL == vertices)
     return (ERROR_BADPARM);
   
-  /* make sure we can add one. */ 
-  if (fbnd_num_boundaries >= FBND_MAX_BOUNDARIES)
+  /* Make sure we can add one. */ 
+  if (path_num_paths >= PATH_MAX_PATHS)
     return (ERROR_NO_MEMORY);
   
-  /* add a new one at the end of the array. */
-  index = fbnd_num_boundaries;
-  fbnd_num_boundaries++;
+  /* Add a new one at the end of our array of paths. */
+  index = path_num_paths;
+  path_num_paths++;
   
-  /* allocate the vertices array and copy everything in. */
-  fbnd_boundaries[index].num_vertices = num_vertices;
-  fbnd_boundaries[index].vertices = (int*) calloc (num_vertices, sizeof(int));
-  if (NULL == fbnd_boundaries[index].vertices)
+  /* Allocate the vertices array and copy everything in. */
+  path_paths[index].num_vertices = num_vertices;
+  path_paths[index].vertices = (int*) calloc (num_vertices, sizeof(int));
+  if (NULL == path_paths[index].vertices)
     {
-      printf ("fbnd_add: calloc failed with %d elements\n", num_vertices);
+      printf ("path_add: calloc failed with %d elements\n", num_vertices);
       return (ERROR_NO_MEMORY);
     }
-  memcpy (fbnd_boundaries[index].vertices, vertices, 
-	  num_vertices * sizeof(int));
+  memcpy (path_paths[index].vertices, vertices, num_vertices * sizeof(int));
   
-  /* go through the list and find the bounds. */
+  /* Go through the path and find the bounds of the vertices. */
   min_x = min_y = min_z = 500;
   max_x = max_y = max_z = -500;
-  for (boundary = 0; 
-       boundary < fbnd_boundaries[index].num_vertices; 
-       boundary++)
+  for (path = 0; 
+       path < path_paths[index].num_vertices; 
+       path++)
     {
-      v = &(mris->vertices[ fbnd_boundaries[index].vertices[boundary] ]);
+      v = &(mris->vertices[ path_paths[index].vertices[path] ]);
       
       if (v->x < min_x)
 	min_x = v->x;
@@ -24839,217 +24854,231 @@ int fbnd_add (int num_vertices, int* vertices, int* new_index)
 	max_z = v->z;
     }
   
-  /* set the bounds in the label, modifying it by the fudge value. */
-  fbnd_boundaries[index].min_x = min_x - FBND_FUDGE;
-  fbnd_boundaries[index].min_y = min_y - FBND_FUDGE;
-  fbnd_boundaries[index].min_z = min_z - FBND_FUDGE;
-  fbnd_boundaries[index].max_x = max_x + FBND_FUDGE;
-  fbnd_boundaries[index].max_y = max_y + FBND_FUDGE;
-  fbnd_boundaries[index].max_z = max_z + FBND_FUDGE;
+  /* Set the bounds in the path, modifying it by the fudge value. */
+  path_paths[index].min_x = min_x - PATH_FUDGE;
+  path_paths[index].min_y = min_y - PATH_FUDGE;
+  path_paths[index].min_z = min_z - PATH_FUDGE;
+  path_paths[index].max_x = max_x + PATH_FUDGE;
+  path_paths[index].max_y = max_y + PATH_FUDGE;
+  path_paths[index].max_z = max_z + PATH_FUDGE;
   
-  /* update the boundaries flags */
-  fbnd_update_surface_boundaries ();
+  /* Update the path flags. This will mark all vertices that are in
+     paths in our path_is_path array. */
+  path_update_surface_paths ();
   
-  /* return the new index if they want it. */
+  /* Return the new index if they want it. */
   if (NULL != new_index)
     *new_index = index;
   
   return (ERROR_NONE);
 }
 
-int fbnd_remove (int index)
+int path_remove (int index)
 {
   int next;
   
-  if (index < 0 || index >= fbnd_num_boundaries)
+  if (index < 0 || index >= path_num_paths)
     return (ERROR_BADPARM);
   
-  /* free the vertices array. */
-  free (fbnd_boundaries[index].vertices);
+  /* Free the vertices array. */
+  free (path_paths[index].vertices);
   
-  /* bump everything above this index down one. */
+  /* Bump everything above this index down one. */
   next = index + 1;
-  while (next < fbnd_num_boundaries)
+  while (next < path_num_paths)
     {
-      fbnd_boundaries[next-1] = fbnd_boundaries[next];
+      path_paths[next-1] = path_paths[next];
       next++;
     }
   
-  /* decrement the number of boundaries. */
-  fbnd_num_boundaries--;
+  /* Decrement the number of paths. */
+  path_num_paths--;
   
-  /* update the boundaries flags */
-  fbnd_update_surface_boundaries ();
+  /* Update the paths flags */
+  path_update_surface_paths ();
   
-  /* if this was our selected boundary, select nothing. */
-  if (fbnd_selected_boundary == index)
-    fbnd_select (-1);
+  /* If this was our selected path, select nothing. */
+  if (path_selected_path == index)
+    path_select (-1);
   
-  /* if our selection was above boundary selected, decrement it. */
-  else if (fbnd_selected_boundary > index)
-    fbnd_selected_boundary--;
-  
+  /* If our selection was above path selected, decrement it so the
+     same path is still selected. */
+  else if (path_selected_path > index)
+    path_selected_path--;
   
   return (ERROR_NONE);
 }
 
-int fbnd_select (int index)
+int path_select (int index)
 {
   int old_selected;
   
-  /* select this boundary. */
-  old_selected = fbnd_selected_boundary;
-  fbnd_selected_boundary = index;
-  
-  if (old_selected != fbnd_selected_boundary)
+  /* Select this path. */
+  old_selected = path_selected_path;
+  path_selected_path = index;
+
+  /* If this changes which path is selected, redraw. */
+  if (old_selected != path_selected_path)
     redraw();
   
   return (ERROR_NONE);
 }
 
-int fbnd_update_surface_boundaries ()
+int path_update_surface_paths ()
 {
-  int vno;
-  int boundary;
-  int boundary_vno;
+  int path;
+  int path_vno;
   
-  /* make our boundary flag array if we haven't already. */
-  if (NULL == fbnd_is_boundary)
+  /* Make our path flag array if we haven't already. It's just the
+     size of nvertices. All are initialized to FALSE. */
+  if (NULL == path_is_path)
     {
-      fbnd_is_boundary = (char*) calloc (mris->nvertices, sizeof(char));
-      if (NULL == fbnd_is_boundary)
+      path_is_path = (char*) calloc (mris->nvertices, sizeof(char));
+      if (NULL == path_is_path)
 	return (ERROR_NO_MEMORY);
     }
   
-  /* turn off all the boundary flags. */
-  for (vno = 0; vno < mris->nvertices; vno++ )
-    fbnd_is_boundary[vno] = FALSE;
-  
-  /* for every boundary... */
-  for (boundary = 0; boundary < fbnd_num_boundaries; boundary++)
+  /* For every path... */
+  for (path = 0; path < path_num_paths; path++)
     {
-      /* for every vertex, mark that vertex in the array as a
-         boundary. */
-      for (boundary_vno = 0; 
-	   boundary_vno < fbnd_boundaries[boundary].num_vertices; 
-	   boundary_vno++ )
+      /* For every vertex, mark that vertex in the array as a path. */
+      for (path_vno = 0; 
+	   path_vno < path_paths[path].num_vertices; 
+	   path_vno++ )
 	{
-	  fbnd_is_boundary[fbnd_boundaries[boundary].vertices[boundary_vno]] = TRUE;
+	  path_is_path[path_paths[path].vertices[path_vno]] = TRUE;
 	}
     }
   
   return (ERROR_NONE);
 }
 
-char fbnd_is_vertex_on_boundary (int vno)
+char path_is_vertex_on_path (int vno)
 {
   if (vno < 0 || vno >= mris->nvertices)
     return (FALSE);
-  if (NULL == fbnd_is_boundary)
+  if (NULL == path_is_path)
     return (FALSE);
   
-  /* return the value of the boundary flag here. */
-  return (fbnd_is_boundary[vno]);
+  /* Return the value of the path flag here. */
+  return (path_is_path[vno]);
 }
 
-int fbnd_select_boundary_by_vno (int vno)
+int path_select_path_by_vno (int vno)
 {
-  int boundary;
-  int boundary_vno;
+  int path;
+  int path_vno;
   float x, y, z;
   VERTEX *u;
   VERTEX *v;
   float dist_uv;
+  int smallest_distance;
+  int closest_path;
   
   if (vno < 0 || vno >= mris->nvertices)
     return (FALSE);
-  if (NULL == fbnd_is_boundary)
+  if (NULL == path_is_path)
     return (FALSE);
   
+  /* Get this vertex. */
   v = &(mris->vertices[vno]);
   
+  /* Get the RAS coords. */
   x = v->x;
   y = v->y;
   z = v->z;
   
-  for (boundary = 0; boundary < fbnd_num_boundaries; boundary++)
+  /* For each path.. */
+  smallest_distance = 1000;
+  path = -1;
+  for (path = 0; path < path_num_paths; path++)
     {
-      if (x >= fbnd_boundaries[boundary].min_x &&
-	  x <= fbnd_boundaries[boundary].max_x &&
-	  y >= fbnd_boundaries[boundary].min_y &&
-	  y <= fbnd_boundaries[boundary].max_y &&
-	  z >= fbnd_boundaries[boundary].min_z &&
-	  z <= fbnd_boundaries[boundary].max_z)
+      /* Preflight test sees if this point is in the bounding cube of
+	 the path. */
+      if (x >= path_paths[path].min_x &&
+	  x <= path_paths[path].max_x &&
+	  y >= path_paths[path].min_y &&
+	  y <= path_paths[path].max_y &&
+	  z >= path_paths[path].min_z &&
+	  z <= path_paths[path].max_z)
 	{
-	  for (boundary_vno = 0; 
-	       boundary_vno < fbnd_boundaries[boundary].num_vertices;
-	       boundary_vno++)
+	  /* For each vertex in the path... */
+	  for (path_vno = 0; 
+	       path_vno < path_paths[path].num_vertices;
+	       path_vno++)
 	    {  
-	      u = &(mris->vertices[fbnd_boundaries[boundary].vertices[boundary_vno]]);
+	      /* Get the vertex. */
+	      u = &(mris->vertices[path_paths[path].vertices[path_vno]]);
 	      
+	      /* Find the distance between our input vertex and this one. */
 	      dist_uv = ((v->x - u->x) * (v->x - u->x)) +
 		((v->y - u->y) * (v->y - u->y)) +
 		((v->z - u->z) * (v->z - u->z));
 	      
-	      if (dist_uv < 25)
+	      /* If any is less than the select distance and closer
+		 than the closest path so far, select this path. */
+	      if (dist_uv < PATH_DISTANCE_TO_SELECT && 
+		  dist_uv < smallest_distance)
 		{
-		  fbnd_select (boundary);
-		  return (ERROR_NONE);
+		  smallest_distance = dist_uv;
+		  closest_path = path;
 		}
 	    }
 	}
     }
-  
-  fbnd_select (-1);
+
+  /* If we didn't find anything, path will be -1 and this will
+     deselect the current path. */
+  path_select (closest_path);
   return (ERROR_NONE);
 }
 
-int fbnd_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
+int path_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
 {
   float x, y, z;
   char selected;
-  int boundary_vno;
+  int path_vno;
   
   if (vno < 0 || vno >= mris->nvertices)
     return (ERROR_BADPARM);
   if (NULL == r || NULL == g || NULL == b)
     return (ERROR_BADPARM);
   
-  /* if this is a boundary.. */
-  if (fbnd_is_vertex_on_boundary(vno))
+  /* If this is a path.. */
+  if (path_is_vertex_on_path(vno))
     {
       
-      /* get the location of this vertex. */
+      /* Get the location of this vertex. */
       x = mris->vertices[vno].x;
       y = mris->vertices[vno].y;
       z = mris->vertices[vno].z;
       
-      /* see if it's in the selected bound cube, then in the selectd
-         boundary vertex list. */
+      /* See if it's in the selected bound cube, then in the selectd
+         path vertex list. */
       selected = FALSE;
-      if (x >= fbnd_boundaries[fbnd_selected_boundary].min_x &&
-	  x <= fbnd_boundaries[fbnd_selected_boundary].max_x &&
-	  y >= fbnd_boundaries[fbnd_selected_boundary].min_y &&
-	  y <= fbnd_boundaries[fbnd_selected_boundary].max_y &&
-	  z >= fbnd_boundaries[fbnd_selected_boundary].min_z &&
-	  z <= fbnd_boundaries[fbnd_selected_boundary].max_z)
-	for (boundary_vno = 0; 
-	     boundary_vno < fbnd_boundaries[fbnd_selected_boundary].num_vertices;
-	     boundary_vno++)
+      if (x >= path_paths[path_selected_path].min_x &&
+	  x <= path_paths[path_selected_path].max_x &&
+	  y >= path_paths[path_selected_path].min_y &&
+	  y <= path_paths[path_selected_path].max_y &&
+	  z >= path_paths[path_selected_path].min_z &&
+	  z <= path_paths[path_selected_path].max_z)
+	for (path_vno = 0; 
+	     path_vno < path_paths[path_selected_path].num_vertices;
+	     path_vno++)
 	  if (vno == 
-	      fbnd_boundaries[fbnd_selected_boundary].vertices[boundary_vno])
+	      path_paths[path_selected_path].vertices[path_vno])
 	    selected = TRUE;
       
       if (selected)
 	{
-	  /* if it's selected, mark it yellow. */
+	  /* If it's selected, mark it yellow. */
 	  *r = 255;
 	  *g = 255;
 	  *b = 0;
 	}
       else
 	{
-	  /* else just color it red. */
+	  /* Else just color it red. */
 	  *r = 255;
 	  *g = 0;
 	  *b = 0;
@@ -25152,10 +25181,10 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
 		  continue;
 		}
 
-	      /* if we're not crossing boundaries, check if this is a
-		 boundary. if so, move on. */
-	      if (params->dont_cross_boundary && 
-		  fbnd_is_vertex_on_boundary (vno))
+	      /* if we're not crossing paths, check if this is a
+		 path. if so, move on. */
+	      if (params->dont_cross_path && 
+		  path_is_vertex_on_path (vno))
 		{
 		  continue;
 		}
