@@ -207,7 +207,7 @@ ScubaLayer2DMRIS::GetInfoAtRAS ( float iRAS[3],
       stringstream ssVertex;
       ssVertex << nVertex;
 
-      info.SetLabel( mSurface->GetLabel() + ",value" );
+      info.SetLabel( mSurface->GetLabel() + ",vertex" );
       info.SetValue( ssVertex.str() );
       ioInfo.push_back( info );
       info.Clear();
