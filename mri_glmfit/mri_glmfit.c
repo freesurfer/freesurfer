@@ -4,8 +4,10 @@
 // Save some sort of config in output dir.
 
 // Permute X
-// Leave out one
-// Copies or Links to source data
+// Leave-one-out
+// Save maxvox
+
+// Copies or Links to source data?
 
 // Check to make sure no two contrast names are the same
 // Check to make sure no two contrast mtxs are the same
@@ -55,7 +57,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.28 2005/09/28 18:12:16 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.29 2005/09/29 21:22:33 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -100,12 +102,13 @@ int npca = -1;
 MATRIX *Upca=NULL,*Spca=NULL;
 MRI *Vpca=NULL;
 
+struct utsname uts;
+char *cmdline, cwd[2000];
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
   int nargs,n;
-  struct utsname uts;
-  char *cmdline, cwd[2000];
   struct timeb  mytimer;
   int msecFitTime;
   MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Xnorm=NULL;
@@ -133,19 +136,7 @@ int main(int argc, char **argv)
   check_options();
   if(checkoptsonly) return(0);
 
-  printf("\n");
-  printf("%s\n",vcid);
-  printf("cwd %s\n",cwd);
-  printf("cmdline %s\n",cmdline);
-  printf("sysname  %s\n",uts.sysname);
-  printf("hostname %s\n",uts.nodename);
-  printf("machine  %s\n",uts.machine);
-
-  if(synth){
-    if(SynthSeed < 0) SynthSeed = PDFtodSeed();
-    printf("SynthSeed = %d\n",SynthSeed);
-  }
-
+  if(synth) if(SynthSeed < 0) SynthSeed = PDFtodSeed();
   dump_options(stdout);
 
   if(GLMDir != NULL){
@@ -157,6 +148,11 @@ int main(int argc, char **argv)
       return(1);
     }
   }
+
+  sprintf(tmpstr,"%s/mri_glmfit.log",GLMDir);
+  fp = fopen(tmpstr,"w");
+  dump_options(fp);
+  fclose(fp);
 
   mriglm->npvr = npvr;
   mriglm->yhatsave = yhatSave;
@@ -610,7 +606,7 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
     else if (!strcmp(option, "--pca")){
-      if(nargc > 0 && !CMDnthIsArg(nargc, pargv, 0)){
+      if(CMDnthIsArg(nargc, pargv, 0)){
 	sscanf(pargv[0],"%d",&niters);
 	nargsused = 1;
       }
@@ -753,18 +749,25 @@ static void dump_options(FILE *fp)
 {
   int n;
 
+  fprintf(fp,"\n");
+  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"cwd %s\n",cwd);
+  fprintf(fp,"cmdline %s\n",cmdline);
+  fprintf(fp,"sysname  %s\n",uts.sysname);
+  fprintf(fp,"hostname %s\n",uts.nodename);
+  fprintf(fp,"machine  %s\n",uts.machine);
+  fprintf(fp,"user     %s\n",VERuser());
+
+  if(synth) fprintf(fp,"SynthSeed = %d\n",SynthSeed);
+
   fprintf(fp,"y    %s\n",yFile);
   if(XFile)     fprintf(fp,"X    %s\n",XFile);
-  if(fsgdfile)  fprintf(fp,"FSGD File %s\n",fsgdfile);
-  fprintf(fp,"beta %s\n",betaFile);
-  fprintf(fp,"rvar %s\n",rvarFile);
-  if(maskFile) fprintf(fp,"mask %s\n",maskFile);
-  if(yhatFile) fprintf(fp,"yhat %s\n",yhatFile);
-  if(eresFile) fprintf(fp,"eres %s\n",eresFile);
-  if(condFile) fprintf(fp,"cond %s\n",condFile);
+  if(fsgdfile)  fprintf(fp,"FSGD %s\n",fsgdfile);
+  if(maskFile)  fprintf(fp,"mask %s\n",maskFile);
+  fprintf(fp,"glmdir %s\n",GLMDir);
 
   for(n=0; n < nSelfReg; n++){
-    printf("SelfRegressor %d  %4d %4d %4d\n",n+1,
+    fprintf(fp,"SelfRegressor %d  %4d %4d %4d\n",n+1,
 	   crsSelfReg[n][0],crsSelfReg[n][1],crsSelfReg[n][2]);
   }
 
