@@ -4439,14 +4439,22 @@ MRImodeFilterWithControlPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int ni
 MRI *
 MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter)
 {
-  int   x, y, z, n, width, height, depth, histo[256], xk, yk, zk, 
-        xi, yi, zi, val, i, max_histo, max_i ;
+  int   x, y, z, n, width, height, depth, *histo, xk, yk, zk, 
+        xi, yi, zi, val, i, max_histo, max_i, max_val ;
 	MRI   *mri_tmp ;
+	float fmin, fmax ;
+
+	
+	mri_tmp = MRIcopy(mri_src, NULL) ;
+	MRIvalRange(mri_src, &fmin, &fmax) ;
+	if (DZERO(fmax))
+		return(mri_tmp) ;
+	max_val = (int)ceil(fmax) ;
+	histo = (int *)calloc(max_val+1, sizeof(int)) ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
-	mri_tmp = MRIcopy(mri_src, NULL) ;
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth;
 
   for (n = 0 ; n < niter ; n++)
@@ -4457,7 +4465,9 @@ MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter)
       {
         for (x = 0 ; x < width; x++)
         {
-          memset(histo, 0, sizeof(histo)) ;
+					if (x == Gx && y == Gy && z == Gz)
+						DiagBreak() ;
+          memset(histo, 0, sizeof(int)*(max_val+1)) ;
           for (zk = -1 ; zk <= 1 ; zk++)
           {
             zi = mri_src->zi[z+zk] ;
@@ -4467,24 +4477,27 @@ MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter)
               for (xk = -1 ; xk <= 1 ; xk++)
               {
                 xi = mri_src->xi[x+xk] ;
-                val = MRIvox(mri_tmp, xi, yi, zi) ;
+                val = nint(MRIgetVoxVal(mri_tmp, xi, yi, zi, 0)) ;
                 histo[val]++ ;
               }
             }
           }
-          for (max_histo = max_i = i = 0 ; i < 256 ; i++)
+          for (max_histo = max_i = i = 0 ; i <= max_val ; i++)
           {
             if (histo[i] > max_histo)
             {
               max_histo = histo[i] ; max_i = i ;
             }
           }
-          MRIvox(mri_dst, x, y, z) = max_i ;
+					if (max_i > 0)
+						DiagBreak() ;
+          MRIsetVoxVal(mri_dst, x, y, z, 0, max_i) ;
         }
       }
     }
 		MRIcopy(mri_dst, mri_tmp) ;
   }
+	free(histo) ;
 	MRIfree(&mri_tmp) ;
   return(mri_dst) ;
 }
