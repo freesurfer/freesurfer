@@ -16,27 +16,32 @@ int const ScubaLayer2DMRI::kMaxPixelComponentValue = 255;
 float const ScubaLayer2DMRI::kMaxPixelComponentValueFloat = 255.0;
 int const ScubaLayer2DMRI::kcTimersBetweenAutosaves = 60000;
 
-ScubaLayer2DMRI::ScubaLayer2DMRI () {
+ScubaLayer2DMRI::ScubaLayer2DMRI () :
+  mTimersSinceLastAutosave(0),
+  mVolume(NULL),
+  mSampleMethod(nearest),
+  mColorMapMethod(grayscale),
+  mbClearZero(false),
+  mMinVisibleValue(0),
+  mMaxVisibleValue(0),
+  mBrightness(0.25),
+  mContrast(12.0), 
+  mHeatScaleMinThreshold(0),
+  mHeatScaleMidThreshold(0),
+  mHeatScaleMaxThreshold(0),
+  mColorLUT(NULL),
+  mROIOpacity(0.7),
+  mbEditableROI(true),
+  mbDrawMIP(false),
+  mbDrawEditingLine(false),
+  mCurrentPath(false),
+  mRowStartRAS(NULL),
+  mColIncrementRAS(NULL) {
 
   SetOutputStreamToCerr();
 
-  mVolume = NULL;
-  mSampleMethod = nearest;
-  mColorMapMethod = grayscale;
-  mBrightness = 0.25;
-  mContrast = 12.0; 
-  mCurrentPath = NULL;
-  mROIOpacity = 0.7;
-  mbEditableROI = true;
-  mbClearZero = false;
-  mTimersSinceLastAutosave = 0;
-  mMinVisibleValue = 0;
-  mMaxVisibleValue = 0;
   mBufferIncSize[0] = mBufferIncSize[1] = -1;
-  mRowStartRAS = mColIncrementRAS = NULL;
   mLastMouseUpRAS.Set( 0, 0, 0 );
-  mbDrawEditingLine = false;
-  mbDrawMIP = false;
 
   // Try setting our initial color LUT to the default LUT with
   // id 0. If it's not there, create it.
