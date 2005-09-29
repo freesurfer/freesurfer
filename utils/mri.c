@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/09/26 17:30:00 $
-// Revision       : $Revision: 1.312 $
-char *MRI_C_VERSION = "$Revision: 1.312 $";
+// Revision Date  : $Date: 2005/09/29 16:18:50 $
+// Revision       : $Revision: 1.313 $
+char *MRI_C_VERSION = "$Revision: 1.313 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12458,6 +12458,33 @@ MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst, MRI_REGION *region, int pad)
   mri_tmp = MRIextractInto(mri_src, NULL, region->x, region->y, region->z, 
 													 region->dx, region->dy, region->dz, 0, 0, 0) ;
 	MRIextractInto(mri_tmp, mri_dst, 0, 0, 0, region->dx, region->dy, region->dz, pad, pad, pad);
+	return(mri_dst) ;
+}
+
+MRI *
+MRIsetValuesOutsideRegion(MRI *mri_src, MRI_REGION *region, MRI *mri_dst, float val)
+{
+	int x, y, z ;
+
+	mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+	for (x = 0 ; x < mri_dst->width ; x++)
+	{
+		if (x >= region->x && x < region->x+region->dx)
+			continue ;
+		for (y = 0 ; y < mri_dst->height ; y++)
+		{
+			if (y >= region->y && y < region->y+region->dy)
+				continue ;
+			for (z = 0 ; z < mri_dst->depth ; z++)
+			{
+				if (z >= region->z && z < region->z+region->dz)
+					continue ;
+				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+			}
+		}
+	}
+
 	return(mri_dst) ;
 }
 
