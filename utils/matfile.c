@@ -2,9 +2,9 @@
 // matfile.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/08/26 15:32:07 $
-// Revision       : $Revision: 1.16 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/09/29 19:56:26 $
+// Revision       : $Revision: 1.17 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -61,13 +61,15 @@ MatlabRead(const char *fname)
   int      file_type, nrows, ncols, row, col ;
   float    *fptr = NULL ;
 
-  DiagPrintf(DIAG_WRITE, "MatlabRead: opening file %s\n",fname);
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		DiagPrintf(DIAG_SHOW, "MatlabRead: opening file %s\n",fname);
 
   fp = fopen(fname, "rb") ;
   if (!fp)
       return(NULL) ;
 
-  DiagPrintf(DIAG_WRITE, "MatlabRead: reading header\n");
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		DiagPrintf(DIAG_SHOW, "MatlabRead: reading header\n");
 
   name = MatReadHeader(fp, &mf) ;
   if(name==NULL) 
@@ -76,12 +78,14 @@ MatlabRead(const char *fname)
     return(NULL);
   }
 
-  DiagPrintf(DIAG_WRITE, "MatlabRead: allocating real matrix (r=%d,c=%d)\n",
-   (int)mf.mrows,(int)mf.ncols);
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		DiagPrintf(DIAG_SHOW, "MatlabRead: allocating real matrix (r=%d,c=%d)\n",
+							 (int)mf.mrows,(int)mf.ncols);
 
   real_matrix = matAlloc((int)mf.mrows, (int)mf.ncols) ;
 
-  DiagPrintf(DIAG_WRITE, "MatlabRead: done real mtx alloc\n");
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		DiagPrintf(DIAG_SHOW, "MatlabRead: done real mtx alloc\n");
 
   if (mf.imagf)
       imag_matrix = matAlloc((int)mf.mrows, (int)mf.ncols) ;
@@ -121,7 +125,8 @@ MatlabRead(const char *fname)
   if (mf.imagf)
       matFree(imag_matrix, nrows, ncols) ;
 
-  DiagPrintf(DIAG_WRITE, "MatlabRead: done\n");
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		DiagPrintf(DIAG_SHOW, "MatlabRead: done\n");
 
   return(mat) ;
 }
@@ -457,7 +462,8 @@ MatReadHeader(FILE *fp, MATFILE *mf)
     int   nitems ;
     char  *name ;
 
-    DiagPrintf(DIAG_WRITE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);    
+		if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+			DiagPrintf(DIAG_SHOW, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);    
 
     nitems = fread(mf, 1, sizeof(MATHD), fp) ; 
     if (nitems != sizeof(MATHD))
@@ -467,15 +473,15 @@ MatReadHeader(FILE *fp, MATFILE *mf)
       /*exit(1) ;*/
       return(NULL);
     }
-    DiagPrintf(DIAG_WRITE, "type = %ld\n", mf->type) ;
+    DiagPrintf(DIAG_SHOW, "type = %ld\n", mf->type) ;
     if (DIFFERENT_ENDIAN(mf))
     {
-      DiagPrintf(DIAG_WRITE, "mat file generated with different endian\n") ;
+      DiagPrintf(DIAG_SHOW, "mat file generated with different endian\n") ;
       swapBytes(mf) ;
     }
-    DiagPrintf(DIAG_WRITE, "after swap, type = %ld\n", mf->type) ;
+    DiagPrintf(DIAG_SHOW, "after swap, type = %ld\n", mf->type) ;
 
-    DiagPrintf(DIAG_WRITE, "MatReadHeader: nitems = %d, namelen=%d\n",
+    DiagPrintf(DIAG_SHOW, "MatReadHeader: nitems = %d, namelen=%d\n",
        nitems,(int)mf->namlen+1);
 
     name = (char *)calloc((int)mf->namlen+1, sizeof(char)) ;
@@ -495,7 +501,7 @@ MatReadHeader(FILE *fp, MATFILE *mf)
     }
 
 #if 1
-    DiagPrintf(DIAG_WRITE, 
+    DiagPrintf(DIAG_SHOW, 
                "MATFILE: %ld x %ld, type %ld, imagf %ld, name '%s'\n",
                  mf->mrows, mf->ncols, mf->type, mf->imagf, name) ;
 #endif
