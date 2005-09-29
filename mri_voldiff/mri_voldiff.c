@@ -25,8 +25,14 @@ double round(double x);
 #include "cmdargs.h"
 #include "fsglm.h"
 
-static void setup_checks(void);
-static void dump_check_setup(FILE *fp);
+// Exit codes. See dump_exit_codes.
+#define DIMENSION_EC  2
+#define PRECISION_EC  3
+#define RESOLUTION_EC 4
+#define VOX2RAS_EC    5
+#define PIXEL_EC      6
+
+static void dump_exit_codes(FILE *fp);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -37,41 +43,31 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
-
-static char vcid[] = "$Id: mri_voldiff.c,v 1.3 2005/09/28 22:12:21 greve Exp $";
+static char vcid[] = "$Id: mri_voldiff.c,v 1.4 2005/09/29 03:19:05 greve Exp $";
 char *Progname = NULL;
 
 char *vol1File = NULL, *vol2File=NULL;
 MRI *vol1=NULL, *vol2=NULL;
+MATRIX *vox2ras1,*vox2ras2;
 
 int debug = 0, checkoptsonly = 0;
 char tmpstr[2000];
 
-#define DIMENSION_CHECK  0
-#define PRECISION_CHECK  1
-#define RESOLUTION_CHECK 2
-#define VOX2RAS_CHECK    3
-#define PIXEL_CHECK      4
+int AllowResolution = 0;
+int AllowPrecision = 0;
+int AllowVox2RAS = 0;
 
-int docheck[100];
-char *checklist[100];
-int checkcode[100];
-int nchecks;
-
-int DimCheck = 0;
-
+double vox2ras_thresh = 0;
+double pixdiff_thresh = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int nargs;
+  int nargs,r,c;
   struct utsname uts;
   char *cmdline, cwd[2000];
-  double maxdiff;
+  double maxdiff,d;
   int cmax,rmax,smax,fmax;
-
-  setup_checks();
-  dump_check_setup(stdout);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -106,33 +102,55 @@ int main(int argc, char **argv)
   vol2 = MRIread(vol2File);
   if(vol2 == NULL) exit(1);
 
-  if(vol1->width   != vol2->width ||
-     vol1->height  != vol2->height ||
-     vol1->depth   != vol2->depth ||
-     vol1->nframes != vol2->nframes){
-    printf("volumes differ in dimension\n");
-    if(docheck[DIMENSION_CHECK]) exit(checkcode[DIMENSION_CHECK]);
-    exit(1);
-  }
+  vox2ras1 = MRIxfmCRS2XYZ(vol1,0);
+  vox2ras2 = MRIxfmCRS2XYZ(vol2,0);
 
   if(vol1->xsize   != vol2->xsize ||
      vol1->ysize   != vol2->ysize ||
      vol1->zsize   != vol2->zsize){
     printf("volumes differ in resolution\n");
-    if(docheck[RESOLUTION_CHECK]) exit(checkcode[RESOLUTION_CHECK]);
-    exit(1);
+    if(!AllowResolution) exit(RESOLUTION_EC);
+    printf("  but continuing\n");
   }
 
   if(vol1->type != vol2->type){
     printf("volumes differ in precision\n");
-    if(docheck[PRECISION_CHECK]) exit(checkcode[PRECISION_CHECK]);
+    if(!AllowPrecision) exit(PRECISION_EC);
+    printf("  but continuing\n");
   }
 
+  for(c=1; c <= 4; c++){
+    for(r=1; r <= 4; r++){
+      d = fabs(vox2ras1->rptr[c][r] - vox2ras2->rptr[c][r]);
+      if(fabs(d) > vox2ras_thresh){
+	printf("volumes differ in vox2ras %d %d %g %g\n",c,r,
+	       vox2ras1->rptr[c][r],vox2ras2->rptr[c][r]);
+	if(!AllowVox2RAS) exit(VOX2RAS_EC);
+	printf("  but continuing\n");
+	c=4;r=4;
+      }
+    }
+  }
+
+  if(vol1->width   != vol2->width ||
+     vol1->height  != vol2->height ||
+     vol1->depth   != vol2->depth ||
+     vol1->nframes != vol2->nframes){
+    printf("volumes differ in dimension (%d %d %d %d) (%d %d %d %d) \n",
+	   vol1->width,vol1->height,vol1->depth,vol1->nframes,
+	   vol2->width,vol2->height,vol2->depth,vol2->nframes);
+    exit(DIMENSION_EC);
+  }
 
   maxdiff = MRImaxAbsDiff(vol1,vol2,&cmax,&rmax,&smax,&fmax);
-  printf("maxdiff %g at %d %d %d %d\n",maxdiff,cmax,rmax,smax,fmax);
+  printf("pixdiff %g at %d %d %d %d\n",maxdiff,cmax,rmax,smax,fmax);
 
+  if(maxdiff > pixdiff_thresh){
+    printf("volumes differ in pixel data\n");    
+    exit(PIXEL_EC);
+  }
 
+  printf("volumes are consistent\n");    
   printf("mri_voldiff done\n");
   return(0); 
   exit(0);
@@ -166,6 +184,9 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--allow-res")) AllowResolution = 1;
+    else if (!strcasecmp(option, "--allow-prec")) AllowPrecision = 1;
+    else if (!strcasecmp(option, "--allow-vox2ras")) AllowVox2RAS = 1;
 
     else if (!strcmp(option, "--v1")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -175,6 +196,16 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--v2")){
       if(nargc < 1) CMDargNErr(option,1);
       vol2File = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--pix")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&pixdiff_thresh);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--vox2ras")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&vox2ras_thresh);
       nargsused = 1;
     }
     else{
@@ -202,6 +233,13 @@ static void print_usage(void)
   printf("   --v1 first input volume \n");
   printf("   --v2 second input volume \n");
   printf("\n");
+  printf("   --vox2ras thresh \n");
+  printf("   --pix thresh \n");
+  printf("\n");
+  printf("   --allow-prec\n");
+  printf("   --allow-res\n");
+  printf("   --allow-vox2ras\n");
+  printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
@@ -214,7 +252,24 @@ static void print_usage(void)
 static void print_help(void)
 {
   print_usage() ;
-  printf("WARNING: this program is not yet tested!\n");
+  printf(
+"Determines whether two volumes are different. The difference\n"
+"can be in pixel data or in the dimension, precision, resolution\n"
+"or geometry. If there are no errors of differences in the volumes,\n"
+"then it exits with 0. If an error occurs, then it exits with 1.\n"
+"If the volumes are different, it will exit with one of the \n"
+"following codes:\n");
+
+  printf("\n");
+  dump_exit_codes(stdout);
+  printf("\n");
+
+  printf(
+"Some of the exit conditions can be allowed with --allow-prec,\n"
+"--allow-res, --allow-vox2ras.\n"
+"\n");
+
+
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -242,44 +297,17 @@ static void dump_options(FILE *fp)
 {
   fprintf(fp,"vol1    %s\n",vol1File);
   fprintf(fp,"vol2    %s\n",vol2File);
+  fprintf(fp,"pix thresh  %g\n",pixdiff_thresh);
+  fprintf(fp,"vox2ras thresh %g\n",vox2ras_thresh);
   return;
 }
 
 /* --------------------------------------------- */
-static void setup_checks(void)
+static void dump_exit_codes(FILE *fp)
 {
-  int n;
-  n = 0;
-
-  checklist[n] = "dimension";
-  checkcode[n] = 1;
-  n++;
-
-  checklist[n] = "precision";
-  checkcode[n] = 2;
-  n++;
-
-  checklist[n] = "resolution";
-  checkcode[n] = 3;
-  n++;
-
-  checklist[n] = "vox2ras";
-  checkcode[n] = 4;
-  n++;
-
-  checklist[n] = "pixel";
-  checkcode[n] = 5;
-  n++;
-
-  nchecks = n;
-}
-
-/* --------------------------------------------- */
-static void dump_check_setup(FILE *fp)
-{
-  int n;
-
-  for(n=0; n<nchecks; n++)
-    fprintf(fp,"%2d %s %d\n",n,checklist[n],checkcode[n]);
-
+  fprintf(fp,"dimensions inconsistent   %d\n",DIMENSION_EC);
+  fprintf(fp,"precision  inconsistent   %d\n",PRECISION_EC);
+  fprintf(fp,"resolution inconsistent   %d\n",RESOLUTION_EC);
+  fprintf(fp,"vox2ras    inconsistent   %d\n",VOX2RAS_EC);
+  fprintf(fp,"pixel      inconsistent   %d\n",PIXEL_EC);
 }
