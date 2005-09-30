@@ -15,7 +15,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.2 2005/09/26 17:36:11 fischl Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.3 2005/09/30 20:03:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -44,6 +44,9 @@ static char *curv_fname = NULL ;
 static int  curv_thresh = 0 ;
 static int navgs = 0 ;
 #define MIN_BORDER_DIST 20.0  // mm from border
+#define MAX_SAMPLES 20
+
+static int max_samples = MAX_SAMPLES ;
 
 int
 main(int argc, char *argv[])
@@ -56,7 +59,7 @@ main(int argc, char *argv[])
 	LTA           *lta ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.2 2005/09/26 17:36:11 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.3 2005/09/30 20:03:04 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -103,15 +106,6 @@ main(int argc, char *argv[])
 			ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s", curv_fname) ;
 	}
 
-  sprintf(fname, "%s/%s/mri/T1.mgz", sdir, sname) ;
-	if (!FileExists(fname))
-		sprintf(fname, "%s/%s/mri/T1", sdir, sname) ;
-  fprintf(stderr, "conformed volume from %s...\n", fname) ;
-  mri_cor = MRIread(fname) ;
-  if (!mri_cor)
-    ErrorExit(ERROR_NOFILE, "%s: could not read conformed volume from %s",
-              Progname, fname) ;
-
   fprintf(stderr, "reading intensity volume from %s...\n", argv[3]) ;
   mri = MRIread(argv[3]) ;
   if (!mri)
@@ -123,10 +117,21 @@ main(int argc, char *argv[])
   fprintf(stderr, "measuring gray matter thickness...\n") ;
 
 	// now convert the surface to be in the volume ras coords
+	if (mriConformed(mri) == 0)
   {
     LINEAR_TRANSFORM *lt = 0;
     MATRIX           *m_L = 0;
 		TRANSFORM        *xform ;
+
+		printf("volume is not conformed - transforming surfaces....\n") ;
+		sprintf(fname, "%s/%s/mri/T1/COR-256", sdir, sname) ;
+		if (!FileExists(fname))
+			sprintf(fname, "%s/%s/mri/T1.mgz", sdir, sname) ;
+		fprintf(stderr, "conformed volume from %s...\n", fname) ;
+		mri_cor = MRIread(fname) ;
+		if (!mri_cor)
+			ErrorExit(ERROR_NOFILE, "%s: could not read conformed volume from %s",
+								Progname, fname) ;
 
     fprintf(stderr, "allocating identity RAS-to-RAS xform...\n") ;
     // allocate xform->xform 
@@ -244,6 +249,13 @@ get_option(int argc, char *argv[])
 		normalize = 1 ;
 		printf("normalizing profiles to be same length\n") ;
   }
+  else if (!stricmp(option, "nsamples") || !stricmp(option, "samples"))
+  {
+		max_samples = atoi(argv[2]) ;
+		normalize = 1 ;
+		nargs = 1 ;
+		printf("normalizing profiles to have %d samples\n", max_samples) ;
+  }
   else if (!stricmp(option, "max"))
   {
     max_thick = atof(argv[2]) ;
@@ -329,7 +341,6 @@ print_version(void)
   exit(1) ;
 }
 
-#define MAX_SAMPLES 20
 
 MRI *
 MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size, 
@@ -343,7 +354,7 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
 	Real    x, y, z, xv, yv, zv, val ;
 	MRI     *mri_profiles ;
 
-	mri_profiles = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, MAX_SAMPLES) ;
+	mri_profiles = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, max_samples) ;
 
   /* current vertex positions are gray matter, orig are white matter */
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -419,8 +430,8 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
 #define SAMPLE_DIST 0.25
 		if (normalize)
 		{
-			sample_dist = thick / (MAX_SAMPLES-1);
-			for (nsamples = 0, d = 0.0 ; nsamples < MAX_SAMPLES ; d += sample_dist, nsamples++)
+			sample_dist = thick / (max_samples-1);
+			for (nsamples = 0, d = 0.0 ; nsamples < max_samples ; d += sample_dist, nsamples++)
 			{
 				x = v->origx + d*dx ; y = v->origy + d*dy ; z = v->origz + d*dz ;
 				MRIsurfaceRASToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
