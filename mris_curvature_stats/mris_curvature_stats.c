@@ -39,7 +39,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.14 2005/09/27 20:48:43 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.15 2005/09/30 15:37:06 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -76,6 +76,11 @@ void		outputFileNames_create(
 		);
 void		outputFiles_open(void);
 void		outputFiles_close(void);
+int		MRISminMaxCurvatures(
+			MRI_SURFACE*		apmris,
+			float*			apf_min,
+			float*			apf_max
+		);
 int		MRISminMaxVertIndices(
 			MRI_SURFACE*		apmris,
 			int*			ap_vertexMin,
@@ -121,6 +126,8 @@ static int	Gb_zeroVertex		= 0;
 static int	G_zeroVertex		= 0;
 static int 	G_nbrs 			= 2;
 static int	G_bins			= 1;
+static int	Gb_maxUlps		= 0;
+static int	G_maxUlps		= 0;
 
 // All possible output file name and suffixes
 static char	Gpch_log[STRBUF];
@@ -183,7 +190,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.14 2005/09/27 20:48:43 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.15 2005/09/30 15:37:06 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -249,6 +256,9 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_BADFILE,"%s: could not read curvature file %s.\n",
                 Progname, curv_fname);
 
+    if(Gb_zeroVertex)
+	MRISvertexCurvature_set(mris, G_zeroVertex, 0);
+
     if(Gb_scale) {
 	MRISscaleCurvature(mris, Gf_scaleFactor);
       	if(Gpch_scaledCurv) MRISwriteCurvature(mris, Gpch_scaledCurv);
@@ -263,9 +273,6 @@ main(int argc, char *argv[])
 	MRISnormalizeCurvature(mris);
 	if(Gpch_normCurv) MRISwriteCurvature(mris, Gpch_normCurv);
     }
-
-    if(Gb_zeroVertex)
-	MRISvertexCurvature_set(mris, G_zeroVertex, 0);
 
     MRISaverageCurvatures(mris, navgs) ;
     Gf_mean = MRIScomputeAverageCurvature(mris, &Gf_sigma) ;
@@ -356,6 +363,8 @@ void secondOrderParams_print(
     char	pch_text[65536];
     float	f_max			= 0.;
     float	f_min			= 0.;
+    float	f_maxExplicit		= 0.;
+    float	f_minExplicit		= 0.;
     int		vmax			= -1;
     int		vmin			= -1;
 
@@ -367,6 +376,21 @@ void secondOrderParams_print(
 	    sprintf(pch_out, "Gaussian");
 	    f_min	= apmris->Kmin;
 	    f_max	= apmris->Kmax;
+	    MRISminMaxCurvatures(apmris, &f_minExplicit, &f_maxExplicit);
+	    if(f_min != f_minExplicit) {
+	    	printf("Lookup   min: %f\n", f_min);
+	    	printf("Explicit min: %f\n", f_minExplicit);
+		f_min = f_minExplicit;
+		apmris->Kmin 		= f_minExplicit;
+		apmris->min_curv	= f_minExplicit;
+	    }
+	    if(f_max != f_maxExplicit) {
+	    	printf("Lookup   max: %f\n", f_max);
+	    	printf("Explicit max: %f\n", f_maxExplicit);
+		f_max = f_maxExplicit;
+		apmris->Kmax 		= f_maxExplicit;
+		apmris->max_curv	= f_maxExplicit;
+	    }
     	    MRISminMaxVertIndices(apmris, &vmin, &vmax, f_min, f_max);
 	break;
 	case e_Mean:
@@ -374,6 +398,21 @@ void secondOrderParams_print(
 	    sprintf(pch_out, "Mean");
 	    f_min	= apmris->Hmin;
 	    f_max	= apmris->Hmax;
+	    MRISminMaxCurvatures(apmris, &f_minExplicit, &f_maxExplicit);
+	    if(f_min != f_minExplicit) {
+	    	printf("Lookup   min: %f\n", f_min);
+	    	printf("Explicit min: %f\n", f_minExplicit);
+		f_min = f_minExplicit;
+		apmris->Hmin 		= f_minExplicit;
+		apmris->min_curv	= f_minExplicit;
+	    }
+	    if(f_max != f_maxExplicit) {
+	    	printf("Lookup   max: %f\n", f_max);
+	    	printf("Explicit max: %f\n", f_maxExplicit);
+		f_max = f_maxExplicit;
+		apmris->Hmax 		= f_maxExplicit;
+		apmris->max_curv	= f_maxExplicit;
+	    }
 	    MRISminMaxVertIndices(apmris, &vmin, &vmax, f_min, f_max);
 	break;
 	case e_Raw:
@@ -462,6 +501,43 @@ MRISvertexCurvature_set(
     apmris->Hmax	= f_maxCurvH;
     apmris->Hmin	= f_minCurvH;
     
+    return(NO_ERROR);
+}
+
+int
+MRISminMaxCurvatures(
+	MRI_SURFACE*		apmris,
+	float*			apf_min,
+	float*			apf_max
+
+) {
+    //
+    // PRECONDITIONS
+    //  o apmris should have its curvature fields applicably set (i.e. Gaussian
+    //	  and Mean usage has already been called).
+    //
+    // POSTCONDITIONS
+    //	o Return the min and max curvatures in apf_min and apf_max respectively.
+    //
+
+    VERTEX*	pvertex;
+    int		vno;
+
+    float	f_min	= 1e6;
+    float	f_max	= -1e6;
+
+    for (vno = 0 ; vno < apmris->nvertices ; vno++) {
+	pvertex = &apmris->vertices[vno] ;
+	if(!vno) { f_min = f_max = pvertex->curv; }
+      	if (pvertex->ripflag)
+            continue;
+      	if(pvertex->curv > f_max)
+	    f_max = pvertex->curv;
+	if(pvertex->curv < f_min)
+	    f_min = pvertex->curv;
+    }
+    *apf_max = f_max; 
+    *apf_min = f_min;
     return(NO_ERROR);
 }
 
@@ -754,8 +830,8 @@ histogram_create(
     int		totalCount	= 0;
     int		nvertices	= 0;
 
-    int		maxUlps		= 10;
-    int		b_bounded	= 0;
+    int		b_onLeftBound	= 0; // Don't trigger higher order float comp
+    int		b_onRightBound	= 0; //	on left/right bounds
 
     double	l_curvature;	// These three variables
     double	l_leftBound;	//	are scaled up and truncated
@@ -776,23 +852,22 @@ histogram_create(
     for(i=0; i<abins; i++) {
 	count	= 0;
 	for(j=start; j<nvertices; j++) {
-	    b_bounded		= 0;
 	    l_curvature		= (double)(pf_curvature[j]);
 	    l_leftBound		= (double)((i*af_binSize+af_minCurv));
             l_rightBound	= (double)((((i+1)*af_binSize)+af_minCurv));
+	    if(Gb_maxUlps) {
+		b_onRightBound	= 
+		    AlmostEqual2sComplement(l_curvature,l_rightBound,G_maxUlps);
+	    	b_onLeftBound	=		
+		    AlmostEqual2sComplement(l_curvature,l_leftBound,G_maxUlps);
+	    }
 	    if(	(l_curvature >= l_leftBound && l_curvature <= l_rightBound)
-				||
-		AlmostEqual2sComplement(l_curvature, l_rightBound, maxUlps)
-				||
-		AlmostEqual2sComplement(l_curvature, l_leftBound, maxUlps)
-	    ) {
+					||
+			  b_onLeftBound || b_onRightBound ) {
 		count++;
 	        totalCount++;
-		b_bounded = 1;
 	    }
-	    if(	l_curvature > l_rightBound &&
-		!(AlmostEqual2sComplement(l_curvature, l_rightBound, maxUlps))
-		 ) {
+	    if(l_curvature > l_rightBound && !b_onRightBound) {
 		start = j;
 		break;
 	    }
@@ -924,6 +999,13 @@ get_option(int argc, char *argv[])
     G_zeroVertex	= atoi(argv[2]);
     nargs 		= 1 ;
     fprintf(stderr, "Setting zero vertex index to %d...\n",
+            G_zeroVertex);
+    break;
+  case 'Q':   /* set maxUlps */
+    Gb_maxUlps		= 1;
+    G_maxUlps		= atoi(argv[2]);
+    nargs 		= 1 ;
+    fprintf(stderr, "Setting maxUlps to %d...\n",
             G_zeroVertex);
     break;
   case 'N':
@@ -1261,6 +1343,21 @@ OPTIONS									\n\
 									\n\
 	This is useful in cases when outliers in the data (particularly \n\
 	evident in Gaussian calcuations) skew mean and sigma values.	\n\
+									\n\
+    [-q <maxUlps>]							\n\
+									\n\
+	The <maxUlps> is used to toggle a more rigorous floating point	\n\
+	comparison operation in the histogram function. Comparing 	\n\
+	float values for sorting into bins can at times fail due to	\n\
+	number precision issues. If, over the range of comparison	\n\
+	some curvature values are not sorted, add <maxUlps>.		\n\
+									\n\
+	This adds extra function calls to AlmostEqual2sComplement(..)	\n\
+	for float comparisons and improves the general accuracy, at 	\n\
+	a very slight performance penalty.				\n\
+									\n\
+	You will most likely never have to use this argument, and is 	\n\
+	for advanced use only.						\n\
 									\n\
 NOTES									\n\
 									\n\
