@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.82 2005/09/29 16:49:01 kteich Exp $
+# $Id: tksurfer.tcl,v 1.83 2005/09/30 16:24:09 kteich Exp $
 
 package require BLT;
 
@@ -2720,6 +2720,9 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { command "Save Graph to Postscript File"
 		{ DoFileDlog SaveGraphToPS }
 		mg_TimeCourseLoaded } 
+	    { command "Save Graphs of Series to Postscript File"
+		{ Graph_DoPrintSeriesDlog }
+		mg_TimeCourseLoaded }
 	}}
 	{ cascade "Fill" {
 	    { command "Make Path"
@@ -3970,6 +3973,73 @@ proc Graph_ShowOffsetOptions { ibShow } {
     global gbShowTimeCourseOffsetOptions
     puts "Graph_ShowOffsetOptions $ibShow"
     set gbShowTimeCourseOffsetOptions $ibShow
+}
+
+proc Graph_DoPrintSeriesDlog { } {
+
+    global gDialog
+    global sSuffix sPathOrMarked
+
+    set wwDialog .wwPrintGraphSeries
+
+    if { [Dialog_Create $wwDialog "Print Time Course Series" {-borderwidth 10}] } {
+	
+	set fwDir           $wwDialog.fwDir
+	set fwFileName      $wwDialog.fwFileName
+	set fwPrefix        $fwFileName.fwPrefix
+	set fwVNO           $fwFileName.fwVNO
+	set fwSuffix        $fwFileName.fwSuffix
+	set fwPathOrMarked  $wwDialog.fwPathOrMarked
+	set fwButtons       $wwDialog.fwButtons
+	
+	# the directory field
+	tkm_MakeDirectorySelector $fwDir \
+	    "Directory to save files in:" sDir
+
+	# File name template.
+	frame $fwFileName
+	tkm_MakeEntry $fwPrefix "File Name Template:" sPrefix 10
+	tkm_MakeNormalLabel $fwVNO "\$VNO"
+	tkm_MakeEntry $fwSuffix "" sSuffix 10
+	set sSuffix ".ps"
+	
+	pack $fwPrefix $fwVNO $fwSuffix \
+	    -side left
+
+	# Radio buttons for choosing path or marked.
+	set sPathOrMarked path
+	tkm_MakeRadioButtons $fwPathOrMarked y "" sPathOrMarked {
+	    { text "Use selected path" path {} }
+	    { text "Use all marked vertices" marked {} }
+	}
+
+	# ok and cancel buttons.
+	tkm_MakeCancelOKButtons $fwButtons $wwDialog {
+	    # Get a list of marked VNOs or VNOs in the current path.
+	    set lVNOs {}
+	    if { [string match $sPathOrMarked marked] } {
+		set lVNOs [get_marked_vnos]
+	    } elseif { [string match $sPathOrMarked path] } {
+		set lVNOs [get_selected_path_vnos]
+	    } 
+	    # For each on, set the graph name using the VNO, select
+	    # the VNO, which will send data to the graph, and save to
+	    # a PS file.
+	    foreach vno $lVNOs {
+		set fnGraph $sDir/$sPrefix$vno$sSuffix
+		select_vertex_by_vno $vno
+#		UpdateAndRedraw
+		Graph_SaveToPS $fnGraph
+	    }
+	}
+
+	pack $fwDir $fwFileName $fwPathOrMarked $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+    }
 }
 
 # =============================================================== LABEL WINDOW
