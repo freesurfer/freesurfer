@@ -86,9 +86,9 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: nicks $, $Date: 2005/06/20 23:49:44 $
+** Last Update:   $Author: nicks $, $Date: 2005/09/30 20:59:09 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.20 $
+** Revision:    $Revision: 1.21 $
 ** Status:    $State: Exp $
 */
 
@@ -1010,11 +1010,11 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
         if (elementItem->element.d.ot == NULL) {
           if ((*object)->fd != -1) {
             (void) lseek((*object)->fd,
-                         elementItem->dataOffset + (off_t) p, SEEK_SET);
+                         elementItem->dataOffset + (long) p, SEEK_SET);
             nBytes = read((*object)->fd, element->d.ot, (int) l);
           } else {
             (*object)->sk((*object)->userCtx,
-                          (long) (elementItem->dataOffset + (off_t) p), 
+                          (long) (elementItem->dataOffset + (long) p), 
                           SEEK_SET);
             cond = (*object)->rd((*object)->userCtx, element->d.ot, l,
                                  &nBytes);
@@ -1207,11 +1207,11 @@ DCM_GetElementValueOffset(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
       if (elementItem->element.d.ot == NULL) {
         if ((*object)->fd != -1) {
           (void) lseek((*object)->fd,
-                       elementItem->dataOffset + (off_t) p, SEEK_SET);
+                       elementItem->dataOffset + (long) p, SEEK_SET);
           nBytes = read((*object)->fd, element->d.ot, (int) l);
         } else {
           (*object)->sk((*object)->userCtx,
-                        (long) (elementItem->dataOffset + (off_t) p),
+                        (long) (elementItem->dataOffset + (long) p),
                         SEEK_SET);
           cond = (*object)->rd((*object)->userCtx, element->d.ot, l,
                                &nBytes);
@@ -3405,6 +3405,10 @@ updateSpecialElements(PRIVATE_OBJECT ** object,
                       PRV_ELEMENT_ITEM * item)
 {
   int idx;
+#ifdef Darwin
+  unsigned char* b1;
+  unsigned char* b2;
+#endif
 
   switch (item->element.tag) {
   case DCM_IMGBITSALLOCATED:
@@ -3415,6 +3419,15 @@ updateSpecialElements(PRIVATE_OBJECT ** object,
     break;
   case DCM_METAGROUPLENGTH:
     (*object)->metaHeaderLength = *item->element.d.ul;
+    //printf("(*object)->metaHeaderLength: %d",(*object)->metaHeaderLength);
+#ifdef Darwin
+    b1 = (unsigned char *)&(*object)->metaHeaderLength;
+    b2 = (unsigned char *)item->element.d.ul;
+    *b1++ = b2[2];
+    *b1++ = b2[3];
+    *b1++ = b2[0];
+    *b1++ = b2[1];
+#endif
     break;
   case DCM_METATRANSFERSYNTAX:
     if (strcmp(item->element.d.string, DICOM_TRANSFERLITTLEENDIAN) == 0) {
@@ -6811,11 +6824,11 @@ copyData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * from,
   if (from->element.d.ot == NULL) {
     if ((*object)->fd != -1) {
       (void) lseek((*object)->fd,
-                   from->dataOffset + (off_t) p, SEEK_SET);
+                   from->dataOffset + (long) p, SEEK_SET);
       nBytes = read((*object)->fd, to->d.ot, (int) l);
     } else {
       (*object)->sk((*object)->userCtx,
-                    (long) (from->dataOffset + (off_t) p), SEEK_SET);
+                    (long) (from->dataOffset + (long) p), SEEK_SET);
       cond = (*object)->rd((*object)->userCtx, to->d.ot, (long) l, &nBytes);
     }
     if (nBytes != (int) l) {
