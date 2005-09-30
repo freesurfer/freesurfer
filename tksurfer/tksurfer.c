@@ -1,6 +1,6 @@
 /*============================================================================
   Copyright (c) 1996 Martin Sereno and Anders Dale
-  =============================================================================*/
+  ==========================================================================*/
 
 #ifdef HAVE_CONFIG_H 
 #include <config.h>
@@ -18443,7 +18443,6 @@ int W_get_selected_path_vnos ( ClientData clientData, Tcl_Interp *interp,
 {
   Tcl_Obj *list;
   int path_vno, vno;
-  VERTEX* v = NULL;
 
   if(argc != 1)
     {
@@ -18567,7 +18566,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.144 2005/09/30 16:23:55 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.145 2005/09/30 22:00:06 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22704,7 +22703,7 @@ int sclv_get_values_for_field_and_timepoint (int field, int timepoint,
 	     timepoint is the frame. We don't support conditions here. */
 	  func_value = MRIgetVoxVal (sclv_field_info[field].mri_volume,
 				     vno, 0, 0, timepoint);
-	  values[0] = func_value;
+	  values[vno] = func_value;
 	}
       else
 	{
