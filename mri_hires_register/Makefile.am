@@ -26,7 +26,7 @@
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
-bin_PROGRAMS = mri_hires_register mri_nl_align_binary mri_linear_align_binary mri_compute_distances
+bin_PROGRAMS = mri_hires_register mri_nl_align_binary mri_linear_align_binary mri_compute_distances mri_linear_align mri_nl_align
 mri_hires_register_SOURCES=mri_hires_register.c
 mri_hires_register_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mri_hires_register_LDFLAGS=$(OS_LDFLAGS)
@@ -46,3 +46,10 @@ mri_compute_distances_LDFLAGS=$(OS_LDFLAGS)
 
 
 
+mri_nl_align_SOURCES=mri_nl_align.c
+mri_nl_align_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_nl_align_LDFLAGS=$(OS_LDFLAGS)
+
+mri_linear_align_SOURCES=mri_linear_align.c
+mri_linear_align_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_linear_align_LDFLAGS=$(OS_LDFLAGS)
