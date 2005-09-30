@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/09/26 17:34:25 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2005/09/30 00:54:52 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -117,7 +117,7 @@ main(int argc, char *argv[])
   struct timeb start ;
   int          msec, minutes, seconds, label ;
 	GCA_MORPH    *gcam ;
-	MATRIX       *m_L, *m_I ;
+	MATRIX       *m_L/*, *m_I*/ ;
 	LTA          *lta ;
 
 
@@ -267,6 +267,7 @@ main(int argc, char *argv[])
 			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 				write_snapshot(mri_target, mri_source, m_L, &mp, 0, 1,"linear_init");
 
+#if 0
 			// transform RAS xform of both source and non-max suppressed source to
 			// incorporate xform
 			printf("voxel xform:\n") ;
@@ -298,6 +299,7 @@ main(int argc, char *argv[])
 			MRIfree(&mri_source) ; mri_source = mri_tmp ;
 			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 				MRIwrite(mri_source, "source_xformed.mgz") ;
+#endif
 
 			lta->xforms[0].m_L = m_L ;
 			printf("initializing GCAM with vox->vox matrix:\n") ;
