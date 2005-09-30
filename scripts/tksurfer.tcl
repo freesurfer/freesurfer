@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.83 2005/09/30 16:24:09 kteich Exp $
+# $Id: tksurfer.tcl,v 1.84 2005/09/30 20:00:00 kteich Exp $
 
 package require BLT;
 
@@ -132,6 +132,7 @@ set FunD_tRegistration(identity) 2
 
 # set some default histogram data
 set gaHistogramData(zoomed) 0
+set gaHistogramData(simpleThresh) 1
 
 # used in overlay config dialog
 set gbOverlayApplyToAll 0
@@ -198,7 +199,7 @@ array set gaLinkedVarGroups {
     overlay { falpha colscale truncphaseflag invphaseflag revphaseflag 
 	complexvalflag foffset fthresh fmid fslope fmin fmax 
 	fnumtimepoints fnumconditions ftimepoint fcondition 
-	ignorezeroesinhistogramflag labels_before_overlay_flag}
+	ignorezeroesinhistogramflag autosetfslope labels_before_overlay_flag}
     curvature { cslope cmid cmin cmax forcegraycurvatureflag }
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
@@ -716,6 +717,7 @@ proc FillOverlayLayerMenu { iowOverlay {iSelectField none} } {
 
 proc SetMin { iWidget inThresh } {
     global gaLinkedVars
+    global gaHistogramData
 
     # set the linked value to the abs of the value on which they
     # clicked. draw a new line on this value.
@@ -728,21 +730,31 @@ proc SetMin { iWidget inThresh } {
 	-coords [list $negMin -Inf $negMin Inf] \
 	-name negthresh -outline red
     
+    # If in simple thresh mode, set the slope and midpoint now.
+    if { $gaHistogramData(simpleThresh) } {
+	SetSlope $iWidget [expr 1.0 / ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fmid))] 0
+	SetMid $iWidget [expr ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fthresh))/2 + $gaLinkedVars(fthresh)] 0
+    }
 }
 
 proc SetMid { iWidget inThresh ibUpdateSlope } {
     global gaLinkedVars
+    global gaHistogramData
 
     # set the linked value to the abs of the value on which they
     # clicked. draw a new line on this value.
     set gaLinkedVars(fmid) [expr abs($inThresh)]
-    $iWidget marker create line \
-	-coords [list $gaLinkedVars(fmid) -Inf $gaLinkedVars(fmid) Inf] \
-	-name mid -outline blue
-    set negMid [expr -$gaLinkedVars(fmid)]
-    $iWidget marker create line \
-	-coords [list $negMid -Inf $negMid Inf] \
-	-name negmid -outline blue
+
+    # Only draw lines if not in simple thresh mode.
+    if { !$gaHistogramData(simpleThresh) } {
+	$iWidget marker create line \
+	    -coords [list $gaLinkedVars(fmid) -Inf $gaLinkedVars(fmid) Inf] \
+	    -name mid -outline blue
+	set negMid [expr -$gaLinkedVars(fmid)]
+	$iWidget marker create line \
+	    -coords [list $negMid -Inf $negMid Inf] \
+	    -name negmid -outline blue
+    }
     # calculate the slope if necessary.
     if { $ibUpdateSlope } {
 	SetSlope $iWidget [expr 1.0 / ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fmid))] 0
@@ -752,7 +764,8 @@ proc SetMid { iWidget inThresh ibUpdateSlope } {
 
 proc SetMax { iWidget inThresh ibUpdateSlope } {
     global gaLinkedVars
- 
+    global gaHistogramData
+
     # set the linked value to the abs of the value on which they
     # clicked. draw a new line on this value.
     set gaLinkedVars(fthreshmax) [expr abs($inThresh)]
@@ -763,9 +776,13 @@ proc SetMax { iWidget inThresh ibUpdateSlope } {
     $iWidget marker create line \
 	-coords [list $negMax -Inf $negMax Inf] \
 	-name negmax -outline green
-    # calculate the slope if necessary.
-    if { $ibUpdateSlope } {
+    # calculate the slope if necessary or if we're in simple thresh mode.
+    if { $ibUpdateSlope || $gaHistogramData(simpleThresh) } {
 	SetSlope $iWidget [expr 1.0 / ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fmid))] 0
+    }
+    # If in simple thresh mode, set the midpoint too.
+    if { $gaHistogramData(simpleThresh) } {
+	SetMid $iWidget [expr ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fthresh))/2 + $gaLinkedVars(fthresh)] 0
     }
 }
 
@@ -796,7 +813,7 @@ proc DoConfigOverlayDisplayDlog {} {
     global gDialog
     global gaLinkedVars
     global gCopyFieldTarget
-    global gbwHisto
+    global gaHistoWidget
     global gsHistoValue
     global gFDRRate
     
@@ -965,7 +982,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	frame $fwHisto -relief ridge -border 2
 
 	set lwHisto   $fwHisto.lwHisto
-	set gbwHisto  $fwHisto.bwHisto
+	set gaHistoWidget(graph)  $fwHisto.bwHisto
 	set fwThresh  $fwHisto.fwThresh
 	set ewMin     $fwThresh.ewMin
 	set ewMid     $fwThresh.ewMid
@@ -975,6 +992,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	set ewValue   $fwValueOffset.ewValue
 	set ewOffset  $fwValueOffset.ewOffset
         set cbwIgnoreZeroes  $fwHisto.cbwIgnoreZeroes
+        set cbwAutoSlope  $fwHisto.cbwAutoSlope
 	set fwCopy    $fwHisto.fwCopy
 	set bwCopy    $fwCopy.bwCopy
 	set owTarget  $fwCopy.owTarget
@@ -988,29 +1006,30 @@ proc DoConfigOverlayDisplayDlog {} {
 
 	# create a barchart object. configure it to hide the legend
 	# and rotate the labels on the x axis.
-	blt::barchart $gbwHisto -width 200 -height 200
-	$gbwHisto legend config -hide yes
-	$gbwHisto axis config x -rotate 90.0 -stepsize 5
+	blt::barchart $gaHistoWidget(graph) -width 200 -height 200
+	$gaHistoWidget(graph) legend config -hide yes
+	$gaHistoWidget(graph) axis config x -rotate 90.0 -stepsize 5
 
-	# bind the button pressing events to set the thresholds.
-	bind $gbwHisto <ButtonPress-1> \
+	# Bind the button pressing events to set the thresholds. Only
+	# set the midpoint if we're not in simple thresh mode.
+	bind $gaHistoWidget(graph) <ButtonPress-1> \
 	    { SetMin %W [%W axis invtransform x %x] }
-	bind $gbwHisto <ButtonPress-2> \
-	    { SetMid %W [%W axis invtransform x %x] 1 }
-	bind $gbwHisto <ButtonPress-3> \
+	bind $gaHistoWidget(graph) <ButtonPress-2> \
+	    { if { !$gaHistogramData(simpleThresh) } { SetMid %W [%W axis invtransform x %x] 1 } }
+	bind $gaHistoWidget(graph) <ButtonPress-3> \
 	    { SetMax %W [%W axis invtransform x %x] 1 }
 
 	# bind the bututon pressing events that do the zooming.
-	bind $gbwHisto <Control-ButtonPress-1>   { Histo_RegionStart %W %x %y }
-	bind $gbwHisto <Control-B1-Motion>      { Histo_RegionMotion %W %x %y }
-	bind $gbwHisto <Control-ButtonRelease-1> { Histo_RegionEnd %W %x %y }
-	bind $gbwHisto <Control-ButtonRelease-3> { Histo_Unzoom %W }
+	bind $gaHistoWidget(graph) <Control-ButtonPress-1>   { Histo_RegionStart %W %x %y }
+	bind $gaHistoWidget(graph) <Control-B1-Motion>      { Histo_RegionMotion %W %x %y }
+	bind $gaHistoWidget(graph) <Control-ButtonRelease-1> { Histo_RegionEnd %W %x %y }
+	bind $gaHistoWidget(graph) <Control-ButtonRelease-3> { Histo_Unzoom %W }
 
 	# when the mouse moves over the histogram, find the closest
 	# bar and print its data to the active label. the y is the
 	# height of the bar.
-	bind $gbwHisto <Motion> {
-	    if { [$gbwHisto element closest %x %y aFound -halo 1] } { 
+	bind $gaHistoWidget(graph) <Motion> {
+	    if { [$gaHistoWidget(graph) element closest %x %y aFound -halo 1] } { 
 		set gsHistoValue "Value $aFound(x) Count [expr round($aFound(y))]"
 	    } 
 	}
@@ -1019,18 +1038,21 @@ proc DoConfigOverlayDisplayDlog {} {
 	frame $fwThresh
 
 	tkm_MakeEntry $ewMin "Min" gaLinkedVars(fthresh) 6 \
-	    {SetMin $gbwHisto $gaLinkedVars(fthresh)}
+	    {SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)}
 	tkm_MakeEntry $ewMid "Mid" gaLinkedVars(fmid) 6 \
-	    {SetMid $gbwHisto $gaLinkedVars(fmid) 1}
+	    {SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid) 1}
 	tkm_MakeEntry $ewMax "Max" gaLinkedVars(fthreshmax) 6 \
-	    {SetMax $gbwHisto $gaLinkedVars(fthreshmax) 1}
+	    {SetMax $gaHistoWidget(graph) $gaLinkedVars(fthreshmax) 1}
 	tkm_MakeEntry $ewSlope "Slope" gaLinkedVars(fslope) 6 \
-	    {SetSlope $gbwHisto $gaLinkedVars(fslope) 1}
+	    {SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope) 1}
 	
 	# color the entries to match the lines in the histogram.
 	$ewMin.lwLabel config -fg red 
 	$ewMid.lwLabel config -fg blue
 	$ewMax.lwLabel config -fg green
+
+	set gaHistoWidget(fmid) $ewMid
+	set gaHistoWidget(fslope) $ewSlope
 
 	frame $fwValueOffset
 
@@ -1046,9 +1068,9 @@ proc DoConfigOverlayDisplayDlog {} {
 	pack $ewOffset -side left
 
 	# set initial values for the histogram.
-	SetMin $gbwHisto $gaLinkedVars(fthresh)
-	SetMid $gbwHisto $gaLinkedVars(fmid) 0
-	SetSlope $gbwHisto $gaLinkedVars(fslope) 1
+	SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)
+	SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid) 0
+	SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope) 1
 	
 	pack $ewMin $ewMid $ewMax $ewSlope \
 	    -side left
@@ -1057,6 +1079,12 @@ proc DoConfigOverlayDisplayDlog {} {
 	    -variable gaLinkedVars(ignorezeroesinhistogramflag) \
 	    -text "Ignore Zeroes in Histogram" \
 	    -font [tkm_GetNormalFont]
+
+	checkbutton $cbwAutoSlope \
+	    -variable gaHistogramData(simpleThresh) \
+	    -text "Simple (Linear) Threshold Mode" \
+	    -font [tkm_GetNormalFont] \
+	    -command UpdateOverlayDlogInfo
 
 	# make the button and menu that the user can use to copy the
 	# threshold settings to another layer.
@@ -1102,10 +1130,11 @@ proc DoConfigOverlayDisplayDlog {} {
 	grid columnconfigure $fwCopy 1 -weight 1
 
 	pack $lwHisto -side top
-	pack $gbwHisto -fill both -expand yes
+	pack $gaHistoWidget(graph) -fill both -expand yes
 	pack $fwThresh -side top
 	pack $fwValueOffset -side top -expand yes -fill x
 	pack $cbwIgnoreZeroes -side top -expand yes -fill x
+	pack $cbwAutoSlope -side top -expand yes -fill x
 	pack $fwCopy -side top  -expand yes -fill x
 	pack $fwFDR  -side top  -expand yes -fill x
 
@@ -1183,7 +1212,7 @@ You always need to click the Apply button to apply any of these changes to the a
 proc UpdateOverlayDlogInfo {} {
     global gaLinkedVars
     global gaHistogramData
-    global gbwHisto
+    global gaHistoWidget
     global knMinWidthPerTick
 
     # change the time point and condition range labels
@@ -1202,11 +1231,33 @@ proc UpdateOverlayDlogInfo {} {
 		-label "Condition (0-$nMaxCondition)"
     }
     
+    # If we're using the simple threshold mode, disable the fmid and
+    # fslope fields. Also delete the midpoint markers on the
+    # histogram.
+    set state normal
+    if { $gaHistogramData(simpleThresh) } { 
+	set state disabled 
+    } else { 
+	set state normal 
+    }
+    $gaHistoWidget(fmid).lwLabel configure -state $state
+    $gaHistoWidget(fmid).ewEntry configure -state $state
+    $gaHistoWidget(fslope).lwLabel configure -state $state
+    $gaHistoWidget(fslope).ewEntry configure -state $state
+
+    if { $gaHistogramData(simpleThresh) } {     
+	catch { 
+	    $gaHistoWidget(graph) marker delete mid
+	    $gaHistoWidget(graph) marker delete negmid
+	}
+    }
+
+
     # set the histogram data
     set err [catch {
-	set names [$gbwHisto element names]
+	set names [$gaHistoWidget(graph) element names]
 	foreach name $names {
-	    $gbwHisto element delete $name
+	    $gaHistoWidget(graph) element delete $name
 	}
 	set nValue 0
 	for { set x $gaHistogramData(min) } \
@@ -1217,32 +1268,32 @@ proc UpdateOverlayDlogInfo {} {
 			       [expr round([lindex $lColors 0] * 255.0)] \
 			       [expr round([lindex $lColors 1] * 255.0)] \
 			       [expr round([lindex $lColors 2] * 255.0)]]
-		$gbwHisto element create "Value $x" \
+		$gaHistoWidget(graph) element create "Value $x" \
 		    -xdata $x -ydata [lindex $gaHistogramData(data) $nValue] \
 		    -foreground $color -borderwidth 0 \
 		    -barwidth $gaHistogramData(increment)
 		incr nValue
 	    }
 	if {$gaHistogramData(zoomed)} {
-	    $gbwHisto axis config x \
+	    $gaHistoWidget(graph) axis config x \
 	      -min $gaHistogramData(zoomedmin) -max $gaHistogramData(zoomedmax)
 	} else {
-	    $gbwHisto axis config x \
+	    $gaHistoWidget(graph) axis config x \
 		-min $gaHistogramData(min) -max $gaHistogramData(max)
 	}	
 
 	# set the lines in the histogram
-	SetMin $gbwHisto $gaLinkedVars(fthresh)
-	SetMid $gbwHisto $gaLinkedVars(fmid) 0
-	SetSlope $gbwHisto $gaLinkedVars(fslope) 1
+	SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)
+	SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid) 0
+	SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope) 1
 
 	# calculate a good width for the ticks.
-	set width [$gbwHisto cget -width]
+	set width [$gaHistoWidget(graph) cget -width]
 	set widthPerTick [expr $width / $gaHistogramData(numBars)]
 	if { $widthPerTick < $knMinWidthPerTick } {
 	    set numMarks [expr $width / $knMinWidthPerTick]
 	    set widthPerTick [expr $gaHistogramData(numBars) / $numMarks]
-	    $gbwHisto axis configure x -stepsize $widthPerTick
+	    $gaHistoWidget(graph) axis configure x -stepsize $widthPerTick
 	} else {
 	    set widthPerTick $gaHistogramData(increment)
 	    $gwGraph axis configure x -stepsize $widthPerTick
@@ -1299,7 +1350,7 @@ proc Histo_RegionEnd { iwHisto inX inY } {
 
 proc SetOverlayTimepointAndCondition {} {
     global gaLinkedVars
-    global gbwHisto
+    global gaHistoWidget
     SendLinkedVarGroup overlay
     sclv_set_current_timepoint $gaLinkedVars(ftimepoint) \
 	$gaLinkedVars(fcondition);
@@ -1308,9 +1359,9 @@ proc SetOverlayTimepointAndCondition {} {
 
 proc SetOverlayField {} {
     global gaLinkedVars
-    global gbwHisto
+    global gaHistoWidget
     sclv_set_current_field $gaLinkedVars(currentvaluefield)
-    catch { Histo_Unzoom $gbwHisto }
+    catch { Histo_Unzoom $gaHistoWidget(graph) }
     SendLinkedVarGroup view
     UpdateAndRedraw 
 }
