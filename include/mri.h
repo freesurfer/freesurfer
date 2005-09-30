@@ -919,6 +919,7 @@ int MRInormalizeSequence(MRI *mri, float target) ;
 int setDirectionCosine(MRI *mri, int orientation);
 int getSliceDirection(MRI *mri);
 int mriOKforSurface(MRI *mri);   // check whether the volume is conformed or not
+int mriConformed(MRI *mri) ;
 void setMRIforSurface(MRI *mri); // set c_(r,a,s) = 0 for a conformed volume
 MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRImakePositive(MRI *mri_src, MRI *mri_dst);

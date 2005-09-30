@@ -229,6 +229,19 @@ int mriOKforSurface(MRI *mri)
     return 1;
 }
 
+int mriConformed(MRI *mri)
+{
+  // first check slice direction
+  if (getSliceDirection(mri) != MRI_CORONAL)
+    return 0;
+  else if (mri->width != 256 || mri->height != 256 || mri->depth != 256)
+    return 0;
+  else if (mri->xsize != 1 || mri->ysize != 1 || mri->zsize != 1)
+		return 0;
+  else
+    return 1;
+}
+
 void setMRIforSurface(MRI *mri)
 {
   if (!mriOKforSurface(mri))
