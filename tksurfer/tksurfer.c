@@ -17233,6 +17233,7 @@ int W_clear_vertex_marks PARM;
 int W_swap_vertex_fields PARM;
 int W_undo_last_action PARM;
 int W_get_marked_vnos PARM;
+int W_get_selected_path_vnos PARM;
 int W_save_tiff PARM;
 int W_flip_normals PARM;
 /* end rkt */
@@ -18437,6 +18438,40 @@ int W_get_marked_vnos ( ClientData clientData, Tcl_Interp *interp,
   return TCL_OK;
 }
 
+int W_get_selected_path_vnos ( ClientData clientData, Tcl_Interp *interp,
+			       int argc, char *argv[] ) 
+{
+  Tcl_Obj *list;
+  int path_vno, vno;
+  VERTEX* v = NULL;
+
+  if(argc != 1)
+    {
+      Tcl_SetResult(interp, "Wrong # args: get_selected_path_vnos", TCL_VOLATILE);
+      return TCL_ERROR;
+    }
+
+  if (path_selected_path < 0 || path_selected_path >= path_num_paths)
+    {
+      Tcl_SetResult(interp, "No path selected.", TCL_VOLATILE);
+      return TCL_ERROR;
+    }
+
+  list = Tcl_NewListObj(0,NULL);
+  
+  for (path_vno = 0; 
+       path_vno < path_paths[path_selected_path].num_vertices;
+       path_vno++)
+    {
+      vno = path_paths[path_selected_path].vertices[path_vno];
+      Tcl_ListObjAppendElement(interp,list,Tcl_NewIntObj(vno));
+    }
+  
+  Tcl_SetObjResult(interp,list);
+  
+  return TCL_OK;
+}
+
      int W_save_tiff WBEGIN
      ERR(2,"Wrong # args: save_tiff filename")
      save_tiff(argv[1]); WEND
@@ -18532,7 +18567,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.143 2005/09/29 16:48:57 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.144 2005/09/30 16:23:55 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19290,14 +19325,14 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_CreateCommand(interp, "get_marked_vnos",
                     (Tcl_CmdProc*) W_get_marked_vnos, REND);
   
+  Tcl_CreateCommand(interp, "get_selected_path_vnos",
+                    (Tcl_CmdProc*) W_get_selected_path_vnos, REND);
+  
   Tcl_CreateCommand(interp, "save_tiff",
                     (Tcl_CmdProc*) W_save_tiff, REND);
   
   Tcl_CreateCommand(interp, "flip_normals",
                     (Tcl_CmdProc*) W_flip_normals, REND);
-  
-
-
 
   /* end rkt */
   /*=======================================================================*/
