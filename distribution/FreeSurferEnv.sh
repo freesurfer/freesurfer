@@ -5,10 +5,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below
 #
-# $Id: FreeSurferEnv.sh,v 1.3 2005/09/26 22:01:27 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.4 2005/10/02 21:21:04 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.3 2005/09/26 22:01:27 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.4 2005/10/02 21:21:04 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -20,7 +20,7 @@ if [[ "$1" == "--help" || "$1" == "-help" ]]; then
     echo ""
     echo "1. Create an environment variable called FREESURFER_HOME and"
     echo "   set it to the directory in which FreeSurfer is installed."
-    echo "2. From a sh or bash shell or (.login): "
+    echo "2. From a sh or bash shell or (.bash_login): "
     echo '       source $FREESURFER_HOME/FreeSurferEnv.sh'
     echo "3. There are environment variables that should point to locations"
     echo "   of software or data used by FreeSurfer. If set prior to"
@@ -31,7 +31,7 @@ if [[ "$1" == "--help" || "$1" == "-help" ]]; then
     echo "       FUNCTIONALS_DIR"
     echo "       MINC_BIN_DIR"
     echo "       MINC_LIB_DIR"
-    echo "       GSL__DIR"
+    echo "       GSL_DIR"
     echo "       FSL_DIR"
     echo "4. If NO_MINC is set (to anything), "
     echo "   then all the MINC stuff is ignored."
@@ -65,7 +65,7 @@ if [[ -z "$USER" || -z "$PS1" ]]; then
     output=0
 fi
 
-if [ $output==1 ]; then
+if [ $output == 1 ]; then
     echo "Setting up environment for FreeSurfer/FS-FAST (and FSL)"
     if [[ "$1" == "--version" || \
         "$1" == "--V" || \
@@ -173,18 +173,18 @@ export       LOCAL_DIR=$FREESURFER_HOME/local
 ## Make sure these directories exist.
 for d in "$FSFAST_HOME" "$SUBJECTS_DIR"; do
     if [ ! -d $d ]; then
-        if [ $output==1 ]; then
+        if [ $output == 1 ]; then
             echo "WARNING: $d does not exist"
         fi
     fi
 done
 
-if [ $output==1 ]; then
+if [ $output == 1 ]; then
     echo "FREESURFER_HOME $FREESURFER_HOME"
     echo "FSFAST_HOME     $FSFAST_HOME"
     echo "SUBJECTS_DIR    $SUBJECTS_DIR"
 fi
-if [[ $output==1 && -n "$FUNCTIONALS_DIR" ]]; then
+if [[ $output == 1 && -n "$FUNCTIONALS_DIR" ]]; then
     echo "FUNCTIONALS_DIR $FUNCTIONALS_DIR"
 fi
 
@@ -194,7 +194,7 @@ export FS_TALAIRACH_SUBJECT=talairach
 
 ######## --------- Functional Analysis Stuff ----------- #######
 if [[ -z "$NO_FSFAST" ]]; then
-    export FMRI_ANALYSIS_DIR=$FSFAST_HOME # backwards compatability
+    export FMRI_ANALYSIS_DIR=$FSFAST_HOME # backwards compatibility
     SUF=~/matlab/startup.m
     if [ ! -e $SUF ]; then
         echo "INFO: $SUF does not exist ... creating"
@@ -211,18 +211,18 @@ if [[ -z "$NO_FSFAST" ]]; then
 
     tmp1=`grep FSFAST_HOME $SUF       | wc -l`;
     tmp2=`grep FMRI_ANALYSIS_DIR $SUF | wc -l`;
-  
-    if [ $tmp1 == 0 -a $tmp2 == 0 ] ; then
-        if [ $output == "1" ] ; then
+
+    if [[ $tmp1 == 0 && $tmp2 == 0 ]]; then
+        if [ $output == 1 ]; then
             echo ""
             echo "WARNING: The $SUF file does not appear to be";
             echo "         configured correctly. You may not be able"
             echo "         to run the FS-FAST programs";
             echo "Try adding the following three lines to $SUF"
             echo "----------------cut-----------------------"
-            echo "fsfasthome = getenv('FSFAST_HOME');"         
+            echo "fsfasthome = getenv('FSFAST_HOME');"
             echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"
-            echo "path(path,fsfasttoolbox);"                        
+            echo "path(path,fsfasttoolbox);"
             echo "clear fsfasthome fsfasttoolbox;"
             echo "----------------cut-----------------------"
             echo ""
@@ -230,23 +230,22 @@ if [[ -z "$NO_FSFAST" ]]; then
     fi
 fi
 
-
 ### ----------- MINC Stuff -------------- ####
-if [[ $output==1 && -n "$MINC_BIN_DIR" ]]; then
+if [[ $output == 1 && -n "$MINC_BIN_DIR" ]]; then
     echo "MINC_BIN_DIR    $MINC_BIN_DIR"
 fi
-if [[ $output==1 && -n "$MINC_LIB_DIR" ]]; then
+if [[ $output == 1 && -n "$MINC_LIB_DIR" ]]; then
     echo "MINC_LIB_DIR    $MINC_LIB_DIR"
 fi
 if [ -z "$NO_MINC" ]; then
     if [ -n "$MINC_BIN_DIR" ]; then
         if [ ! -d $MINC_BIN_DIR ]; then
-            if [ $output==1 ]; then
+            if [ $output == 1 ]; then
                 echo "WARNING: MINC_BIN_DIR '$MINC_BIN_DIR' does not exist.";
             fi
         fi
     else
-        if [ $output==1 ]; then
+        if [ $output == 1 ]; then
             echo "WARNING: MINC_BIN_DIR not defined."
             echo "         'nu_correct' and other MINC tools"
             echo "         are used by some Freesurfer utilities."
@@ -255,12 +254,12 @@ if [ -z "$NO_MINC" ]; then
     fi
     if [ -n "$MINC_LIB_DIR" ]; then
         if [ ! -d $MINC_LIB_DIR ]; then
-            if [ $output==1 ]; then
+            if [ $output == 1 ]; then
                 echo "WARNING: MINC_LIB_DIR '$MINC_LIB_DIR' does not exist.";
             fi
         fi
     else
-        if [ $output==1 ]; then
+        if [ $output == 1 ]; then
             echo "WARNING: MINC_LIB_DIR not defined."
             echo "         Some Freesurfer utilities rely on the"
             echo "         MINC toolkit libraries."
@@ -299,7 +298,7 @@ if [ -z "$NO_MINC" ]; then
             export PERL5LIB="$MINC_LIB_DIR/5.6.0"
         fi
     fi
-    if [[ $output==1 && -n "$PERL5LIB" ]]; then
+    if [[ $output == 1 && -n "$PERL5LIB" ]]; then
         echo "PERL5LIB        $PERL5LIB"
     fi
 fi
@@ -329,7 +328,7 @@ if [ -n "$GSL_DIR" ]; then
         export DYLD_LIBRARY_PATH="$GSL_DIR/lib":"$DYLD_LIBRARY_PATH"
     fi
 fi
-if [[ $output==1 && -n "$GSL_DIR" ]]; then
+if [[ $output == 1 && -n "$GSL_DIR" ]]; then
     echo "GSL_DIR         $GSL_DIR"
 fi
 
@@ -349,7 +348,7 @@ if [ -n "$QTDIR" ]; then
         export LD_LIBRARY_PATH="$QTDIR/lib":"$LD_LIBRARY_PATH"
     fi
 fi
-if [[ $output==1 && -n "$QTDIR" ]]; then
+if [[ $output == 1 && -n "$QTDIR" ]]; then
     echo "QTDIR           $QTDIR"
 fi
 
@@ -375,12 +374,12 @@ if [ -d $FREESURFER_HOME/lib/tcltktixblt/lib ]; then
         export DYLD_LIBRARY_PATH="$TCLLIBPATH":"$DYLD_LIBRARY_PATH"
     fi
 fi
-if [[ $output==1 && -n "$TCLLIBPATH" ]]; then
+if [[ $output == 1 && -n "$TCLLIBPATH" ]]; then
     echo "TCLLIBPATH      $TCLLIBPATH"
 fi
 
 
-### - Miscellaneous support libraries tiff/jpg/glut (Mac OS only) - ####
+### - Miscellaneous support libraries TIFF/JPG/GLUT (MacOS only) - ####
 if [ -d $FREESURFER_HOME/lib/misc/bin ]; then
     PATH=$FREESURFER_HOME/lib/misc/bin:$PATH
 fi
@@ -397,7 +396,7 @@ if [ -d $FREESURFER_HOME/lib/misc/lib ]; then
         export DYLD_LIBRARY_PATH="$MISC_LIB":"$DYLD_LIBRARY_PATH"
     fi
 fi
-if [[ $output==1 && -n "$MISC_LIB" ]]; then
+if [[ $output == 1 && -n "$MISC_LIB" ]]; then
     echo "MISC_LIB        $MISC_LIB"
 fi
 
@@ -407,7 +406,7 @@ if [ -n "$FSL_DIR" ]; then
     export FSLDIR=$FSL_DIR
     export FSL_BIN=$FSL_DIR/bin
     if [ ! -d $FSL_BIN ]; then
-        if [ $output==1 ]; then
+        if [ $output == 1 ]; then
             echo "WARNING: $FSL_BIN does not exist.";
         fi
     fi
@@ -418,7 +417,7 @@ fi
 if [ -n "$FSL_BIN" ]; then
     PATH=$FSL_BIN:$PATH
 fi
-if [[ $output==1 && -n "$FSL_DIR" ]]; then
+if [[ $output == 1 && -n "$FSL_DIR" ]]; then
     echo "FSL_DIR         $FSL_DIR"
 fi
 
