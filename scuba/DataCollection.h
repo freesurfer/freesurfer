@@ -88,6 +88,7 @@ class DataCollection : public DebugReporter,
   // Tell this collection to select this ROI.
   void SelectROI ( int iROIID );
   int GetSelectedROI () { return mSelectedROIID; }
+  void DeleteROI ( int iROIID );
 
   // Called by NewROI, should be subclassed to return specific ROI type.
   virtual ScubaROI* DoNewROI ();

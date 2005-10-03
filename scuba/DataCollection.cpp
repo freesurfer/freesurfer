@@ -8,9 +8,11 @@ using namespace std;
 DeclareIDTracker(DataCollection);
 
 
-DataCollection::DataCollection() {
-  mSelectedROIID = -1;
-  mbSuspendDataChangedMessage = false;
+DataCollection::DataCollection() :
+  msLabel(""),
+  mSelectedROIID(-1),
+  mbSuspendDataChangedMessage(false),
+  mDataToWorldTransform(NULL) {
 
   // Try setting our initial transform to the default transform with
   // id 0. If it's not there, create it.
@@ -44,6 +46,8 @@ DataCollection::DataCollection() {
 			 "the ID." );
   commandMgr.AddCommand( *this, "SelectCollectionROI", 2, "colID roiID",
 			 "Selects an ROI for this collection." );
+  commandMgr.AddCommand( *this, "DeleteCollectionROI", 2, "colID roiID",
+			 "Deletes an ROI for this collection." );
   commandMgr.AddCommand( *this, "GetROIIDListForCollection", 1, "colID",
 			 "Returns a lit of roiIDs belonging to this "
 			 "collection." );
@@ -162,6 +166,32 @@ DataCollection::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
     }
   }
 
+  // DeleteCollectionROI <colID> <roiID
+  if( 0 == strcmp( isCommand, "DeleteCollectionROI" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      int roiID = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad roi ID";
+	return error;
+      }
+    
+      try {
+	DeleteROI( roiID );
+      }
+      catch(...) {
+	sResult = "That ROI doesn't belong to this collection";
+	return error;
+      }
+    }
+  }
+
   // GetROIIDListForCollection <colID>
   if( 0 == strcmp( isCommand, "GetROIIDListForCollection" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
@@ -180,8 +210,11 @@ DataCollection::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
       for( tIDROI = mROIMap.begin();
 	   tIDROI != mROIMap.end(); ++tIDROI ) {
 	int roiID = (*tIDROI).first;
-	ssFormat << "i";
-	ssResult << roiID << " ";
+	ScubaROI* roi = (*tIDROI).second;
+	if( NULL != roi ) {
+	  ssFormat << "i";
+	  ssResult << roiID << " ";
+	}
       }
       ssFormat << "l";
       
@@ -271,6 +304,27 @@ DataCollection::SelectROI ( int iROIID ) {
   tIDROI = mROIMap.find( iROIID );
   if( tIDROI != mROIMap.end() ) {
     mSelectedROIID = iROIID;
+  } else {
+    throw runtime_error( "ROI doesn't belong to this collection" );
+  }
+}
+
+void
+DataCollection::DeleteROI ( int iROIID ) {
+
+  // Look for this ID in the roi map. If found, delete the
+  // ROI. Otherwise throw an error.
+  map<int,ScubaROI*>::iterator tIDROI;
+  tIDROI = mROIMap.find( iROIID );
+  if( tIDROI != mROIMap.end() ) {
+
+    ScubaROI* roi = (*tIDROI).second;
+    delete roi;
+    mROIMap[iROIID] = NULL;
+
+    if( mSelectedROIID == iROIID ) {
+      mSelectedROIID = -1;
+    }
   } else {
     throw runtime_error( "ROI doesn't belong to this collection" );
   }

@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.144 2005/09/28 22:07:03 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.145 2005/10/03 19:51:39 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -478,6 +478,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "Load Label..." { DoLoadLabelDlog } }
 	{command "Save Label..." { DoSaveLabelDlog } }
 	{command "Export ROIs as Segmenation..." { DoExportROIsDlog } }
+	{command "Delete ROI..." { DoDeleteROIDlog } }
 	{separator}
 	{command "Load Paths..." { DoLoadPathsDlog } }
 	{command "Save Paths..." { DoSavePathsDlog } }
@@ -5232,6 +5233,42 @@ proc DoLoadLabelDlog {} {
 
 }
 
+proc DoDeleteROIDlog {} {
+    dputs "DoDeleteROIDlog"
+    
+    global glShortcutDirs
+    global gaROI
+    global gaCollection
+
+    if { [info exists gaCollection(current,id)] &&
+	 $gaCollection(current,id) >= -1 } {
+
+	if { [info exists gaROI(current,id)] &&
+	     $gaROI(current,id) >= -1 } {
+	    
+	    tkuDoFileDlog -title "Save Label" \
+		-prompt1 "Will delete ROI \"$gaROI(current,label)\" from data collection \"$gaCollection(current,label)\"" \
+		-type1 note \
+		-okCmd { 
+		    set err [catch {
+			DeleteCollectionROI $gaCollection(current,id) \
+			    $gaROI(current,id)
+			UpdateROIList
+		    } sResult]
+		    if { 0 != $err } { tkuErrorDlog $sResult }
+		}
+	    
+	} else {
+	    tkuErrorDlog "No ROI is selected. Make sure you have selected one in the Data Collections panel."
+	}
+	
+    } else {
+	
+	 tkuErrorDlog "There are no data collections. Load some data and try again."
+
+     }
+}
+
 proc DoLoadPathsDlog {} {
     dputs "DoLoadPathsDlog  "
 
@@ -5385,7 +5422,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.144 2005/09/28 22:07:03 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.145 2005/10/03 19:51:39 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
