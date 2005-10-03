@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/09/14 15:41:47 $
-// Revision       : $Revision: 1.35 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/10/03 22:19:34 $
+// Revision       : $Revision: 1.36 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.35 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.36 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -327,7 +327,7 @@ void usageHelp()
   fprintf(stderr, "\n-surf surfname       : save the BEM surfaces");
   fprintf(stderr, "\n-brainsurf surfname  : save the brain surface");
   fprintf(stderr, "\n-shk_br_surf int_h surfname : to save the brain surface shrank inward of int_h mm");
-  fprintf(stderr, "\n-s int_i int_j int_k : add a seed point");
+  fprintf(stderr, "\n-s int_i int_j int_k : add a seed point (range 0-255)");
   fprintf(stderr, "\n-c int_i int_j int_k : specify the center of the brain (in voxel unit)");
   fprintf(stderr, "\n-r int_r             : specify the radius of the brain (in voxel unit)");
   fprintf(stderr, "\n-t int_threshold     : change the threshold in the watershed analyze process");
@@ -504,9 +504,12 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
 	Error("\ntoo many seed points\n");
       if (argc < 7)
 	Error("\n-s option needs 3 seed points, input, output argument\n");
-      parms->seed_coord[parms->nb_seed_points][0]=atoi(argv[2]);
-      parms->seed_coord[parms->nb_seed_points][1]=atoi(argv[3]);
-      parms->seed_coord[parms->nb_seed_points][2]=atoi(argv[4]);
+      if (parms->seed_coord[parms->nb_seed_points][0]=atoi(argv[2]) < 0)
+	Error("\nseed value 'i' out of range 0-255 \n");
+      if (parms->seed_coord[parms->nb_seed_points][1]=atoi(argv[3]) < 0)
+	Error("\nseed value 'j' out of range 0-255 \n");
+      if (parms->seed_coord[parms->nb_seed_points][2]=atoi(argv[4]) < 0)
+	Error("\nseed value 'k' out of range 0-255 \n");
       nargs=3;
       parms->nb_seed_points++;
       break ;
@@ -562,7 +565,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
 ------------------------------------------------------*/
 static void Error(char *string)
 {
-  fprintf(stderr, "\nError %s\n",string) ;
+  fprintf(stderr, "\nmri_watershed Error: %s\n",string) ;
   exit(1) ;
 }
 
@@ -588,7 +591,7 @@ int main(int argc, char *argv[])
   STRIP_PARMS *parms;
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_watershed.cpp,v 1.35 2005/09/14 15:41:47 segonne Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_watershed.cpp,v 1.36 2005/10/03 22:19:34 nicks Exp $", "$Name:  $", cmdline);
 
   Progname=argv[0];
 
@@ -597,7 +600,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.35 2005/09/14 15:41:47 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.36 2005/10/03 22:19:34 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
