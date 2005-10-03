@@ -35,7 +35,7 @@ static void print_version(void);
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
-static char vcid[] = "$Id: mris_info.cpp,v 1.14 2005/10/03 15:40:25 fischl Exp $";
+static char vcid[] = "$Id: mris_info.cpp,v 1.15 2005/10/03 19:32:04 fischl Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL;
 int debug = 0;
@@ -121,6 +121,10 @@ int main(int argc, char *argv[])
   cout << "num faces   : " << mris->nfaces << endl;
   cout << "num strips  : " << mris->nstrips << endl;
   cout << "surface area: " << mris->total_area << endl;
+	if (mris->group_avg_surface_area > 0)
+		{
+		cout << "group avg surface area: " << mris->group_avg_surface_area << endl;
+		}
   cout << "ctr         : (" << mris->xctr << ", " << mris->yctr << ", " << mris->zctr << ")" << endl;
   cout << "vertex locs : " << (mris->useRealRAS ? "scannerRAS" : "surfaceRAS") << endl;
   if (mris->lta)

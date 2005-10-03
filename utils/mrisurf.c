@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/09/22 21:36:09 $
-// Revision       : $Revision: 1.373 $
+// Revision Date  : $Date: 2005/10/03 19:31:32 $
+// Revision       : $Revision: 1.374 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -716,6 +716,11 @@ MRISreadOverAlloc(char *fname, double pct_over)
 			{
 				switch (tag)
 				{
+				case TAG_GROUP_AVG_SURFACE_AREA:
+					mris->group_avg_surface_area = freadFloat(fp) ;
+					printf("reading group avg surface area %2.0f cm^2 from file\n",
+								 mris->group_avg_surface_area/100.0) ;
+					break ;
 				case TAG_OLD_SURF_GEOM:
 					readVolGeom(fp, &mris->vg);
 					break ;
@@ -1266,6 +1271,15 @@ MRISwrite(MRI_SURFACE *mris, char *name)
   fwriteInt(TAG_OLD_SURF_GEOM, fp);
   writeVolGeom(fp, &mris->vg);
 
+	if (!FZERO(mris->group_avg_surface_area))
+	{
+		long long here ;
+		printf("writing group avg surface area %2.0f cm^2 into surface file\n", 
+					 mris->group_avg_surface_area/100.0) ;
+		TAGwriteStart(fp, TAG_GROUP_AVG_SURFACE_AREA, &here, sizeof(float)) ;
+		fwriteFloat(mris->group_avg_surface_area, fp) ;
+		TAGwriteEnd(fp, here) ;
+	}
 	// write other tags
 	{
 		int i ;
@@ -10586,76 +10600,76 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
   mris->Ktotal = 0.0f ;
   vmax = -1 ; max_error = -1.0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      vertex = &mris->vertices[vno] ;
-      if (vertex->ripflag)
-	continue ;
-
-      VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz) ;
-      VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z) ;
-      VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z) ;
-
-      if (vertex->vtotal <= 0)
-	continue ;
-    
-      m_U = MatrixAlloc(vertex->vtotal, 3, MATRIX_REAL) ;
-      v_z = VectorAlloc(vertex->vtotal, MATRIX_REAL) ;
-
-      if (vno == Gdiag_no)
-	DiagBreak() ;
-
-      /* fit a quadratic form to the surface at this vertex */
-      kmin = 10000.0f ; kmax = -kmin ;
-      for (n = i = 0 ; i < vertex->vtotal ; i++)
 	{
-	  vnb = &mris->vertices[vertex->v[i]] ;
-	  if (vnb->ripflag)
-	    continue ;
-	  /* 
-	     calculate the projection of this vertex onto the local tangent plane 
-	  */
-	  VECTOR_LOAD(v_yi, vnb->x-vertex->x, vnb->y-vertex->y,vnb->z-vertex->z);
-	  ui = V3_DOT(v_yi, v_e1) ; vi = V3_DOT(v_yi, v_e2) ;
-	  *MATRIX_RELT(m_U, n+1, 1) = ui*ui ;
-	  *MATRIX_RELT(m_U, n+1, 2) = 2*ui*vi ;
-	  *MATRIX_RELT(m_U, n+1, 3) = vi*vi ;
-	  VECTOR_ELT(v_z, n+1) = V3_DOT(v_n, v_yi) ;  /* height above TpS */
-	  rsq = ui*ui + vi*vi ;
-	  if (!FZERO(rsq))
+		vertex = &mris->vertices[vno] ;
+		if (vertex->ripflag)
+			continue ;
+
+		VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz) ;
+		VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z) ;
+		VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z) ;
+
+		if (vertex->vtotal <= 0)
+			continue ;
+    
+		m_U = MatrixAlloc(vertex->vtotal, 3, MATRIX_REAL) ;
+		v_z = VectorAlloc(vertex->vtotal, MATRIX_REAL) ;
+
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+
+		/* fit a quadratic form to the surface at this vertex */
+		kmin = 10000.0f ; kmax = -kmin ;
+		for (n = i = 0 ; i < vertex->vtotal ; i++)
+		{
+			vnb = &mris->vertices[vertex->v[i]] ;
+			if (vnb->ripflag)
+				continue ;
+			/* 
+				 calculate the projection of this vertex onto the local tangent plane 
+			*/
+			VECTOR_LOAD(v_yi, vnb->x-vertex->x, vnb->y-vertex->y,vnb->z-vertex->z);
+			ui = V3_DOT(v_yi, v_e1) ; vi = V3_DOT(v_yi, v_e2) ;
+			*MATRIX_RELT(m_U, n+1, 1) = ui*ui ;
+			*MATRIX_RELT(m_U, n+1, 2) = 2*ui*vi ;
+			*MATRIX_RELT(m_U, n+1, 3) = vi*vi ;
+			VECTOR_ELT(v_z, n+1) = V3_DOT(v_n, v_yi) ;  /* height above TpS */
+			rsq = ui*ui + vi*vi ;
+			if (!FZERO(rsq))
 	    {
 	      k = VECTOR_ELT(v_z, n+1) / rsq ;
 	      if (k > kmax)
-		kmax = k ;
+					kmax = k ;
 	      if (k < kmin)
-		kmin = k ;
+					kmin = k ;
 	    }
-	  n++ ;
-	}
+			n++ ;
+		}
 
-      m_Ut = MatrixTranspose(m_U, NULL) ;          /* Ut */
-      m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL) ;   /* Ut U */
-      cond_no = MatrixConditionNumber(m_tmp2) ;
+		m_Ut = MatrixTranspose(m_U, NULL) ;          /* Ut */
+		m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL) ;   /* Ut U */
+		cond_no = MatrixConditionNumber(m_tmp2) ;
 #if 0
-      m_inverse = MatrixInverse(m_tmp2, NULL) ;    /* (Ut U)^-1 */
+		m_inverse = MatrixInverse(m_tmp2, NULL) ;    /* (Ut U)^-1 */
 #else
-      m_inverse = MatrixSVDInverse(m_tmp2, NULL) ;    /* (Ut U)^-1 */
+		m_inverse = MatrixSVDInverse(m_tmp2, NULL) ;    /* (Ut U)^-1 */
 #endif
-      if (!m_inverse)   /* singular matrix - must be planar?? */
-	{
-	  nbad++ ;
-	  evalues[0] = evalues[1] = 0.0 ;
-	}
-      else
-	{
-	  m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL) ;   /* Ut z */
-	  MatrixMultiply(m_inverse, m_tmp1, v_c) ;     /* (Ut U)^-1 Ut z */
+		if (!m_inverse)   /* singular matrix - must be planar?? */
+		{
+			nbad++ ;
+			evalues[0] = evalues[1] = 0.0 ;
+		}
+		else
+		{
+			m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL) ;   /* Ut z */
+			MatrixMultiply(m_inverse, m_tmp1, v_c) ;     /* (Ut U)^-1 Ut z */
 
-	  /* now build Hessian matrix */
-	  *MATRIX_RELT(m_Q,1,1) = 2*VECTOR_ELT(v_c, 1) ;
-	  *MATRIX_RELT(m_Q,1,2) = *MATRIX_RELT(m_Q,2,1) = 2*VECTOR_ELT(v_c, 2) ;
-	  *MATRIX_RELT(m_Q,2,2) = 2*VECTOR_ELT(v_c, 3) ;
+			/* now build Hessian matrix */
+			*MATRIX_RELT(m_Q,1,1) = 2*VECTOR_ELT(v_c, 1) ;
+			*MATRIX_RELT(m_Q,1,2) = *MATRIX_RELT(m_Q,2,1) = 2*VECTOR_ELT(v_c, 2) ;
+			*MATRIX_RELT(m_Q,2,2) = 2*VECTOR_ELT(v_c, 3) ;
 
-	  if (cond_no >= ILL_CONDITIONED)
+			if (cond_no >= ILL_CONDITIONED)
 	    {
 #if 0
 	      MatrixSVDEigenValues(m_Q, evalues) ;
@@ -10675,8 +10689,8 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
 	      continue ;
 	    }
 
-	  /* the columns of m_eigen will be the eigenvectors of m_Q */
-	  if (MatrixEigenSystem(m_Q, evalues, m_eigen) == NULL)
+			/* the columns of m_eigen will be the eigenvectors of m_Q */
+			if (MatrixEigenSystem(m_Q, evalues, m_eigen) == NULL)
 	    {
 	      nbad++ ;
 	      MatrixSVDEigenValues(m_Q, evalues) ;
@@ -10692,43 +10706,43 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
 	      continue ;
 	    }
 
-	  MatrixFree(&m_tmp1) ;
-	  MatrixFree(&m_inverse) ;
+			MatrixFree(&m_tmp1) ;
+			MatrixFree(&m_inverse) ;
+		}
+		k1 = evalues[0] ; k2 = evalues[1] ;
+		vertex->k1 = k1 ; vertex->k2 = k2 ;
+		vertex->K = k1 * k2 ;
+		vertex->H = (k1 + k2) / 2 ;
+		if (vno == Gdiag_no && (Gdiag & DIAG_SHOW))
+			fprintf(stdout, "v %d: k1=%2.3f, k2=%2.3f, K=%2.3f, H=%2.3f\n",
+							vno, vertex->k1, vertex->k2, vertex->K, vertex->H) ;
+		if (vertex->K < mris->Kmin)
+			mris->Kmin = vertex->K ;
+		if (vertex->H < mris->Hmin)
+			mris->Hmin = vertex->H ;
+		if (vertex->K > mris->Kmax)
+			mris->Kmax = vertex->K ;
+		if (vertex->H > mris->Hmax)
+			mris->Hmax = vertex->H ;
+		mris->Ktotal += (double)k1 * (double)k2 * (double)vertex->area ;
+		total_area += (double)vertex->area ;
+
+		/* now update the basis vectors to be the principal directions */
+		a11 = *MATRIX_RELT(m_eigen,1,1) ; a12 = *MATRIX_RELT(m_eigen,1,2) ;
+		a21 = *MATRIX_RELT(m_eigen,2,1) ; a22 = *MATRIX_RELT(m_eigen,2,2) ;
+		vertex->e1x = V3_X(v_e1) * a11 + V3_X(v_e2) * a21 ;
+		vertex->e1y = V3_Y(v_e1) * a11 + V3_Y(v_e2) * a21 ;
+		vertex->e1z = V3_Z(v_e1) * a11 + V3_Z(v_e2) * a21 ;
+		vertex->e2x = V3_X(v_e1) * a12 + V3_X(v_e2) * a22 ;
+		vertex->e2y = V3_Y(v_e1) * a12 + V3_Y(v_e2) * a22 ;
+		vertex->e2z = V3_Z(v_e1) * a12 + V3_Z(v_e2) * a22 ;
+
+		MatrixFree(&m_Ut) ;
+		MatrixFree(&m_tmp2) ;
+		MatrixFree(&m_U) ;
+		VectorFree(&v_z) ;
+
 	}
-      k1 = evalues[0] ; k2 = evalues[1] ;
-      vertex->k1 = k1 ; vertex->k2 = k2 ;
-      vertex->K = k1 * k2 ;
-      vertex->H = (k1 + k2) / 2 ;
-      if (vno == Gdiag_no && (Gdiag & DIAG_SHOW))
-	fprintf(stdout, "v %d: k1=%2.3f, k2=%2.3f, K=%2.3f, H=%2.3f\n",
-		vno, vertex->k1, vertex->k2, vertex->K, vertex->H) ;
-      if (vertex->K < mris->Kmin)
-	mris->Kmin = vertex->K ;
-      if (vertex->H < mris->Hmin)
-	mris->Hmin = vertex->H ;
-      if (vertex->K > mris->Kmax)
-	mris->Kmax = vertex->K ;
-      if (vertex->H > mris->Hmax)
-	mris->Hmax = vertex->H ;
-      mris->Ktotal += (double)k1 * (double)k2 * (double)vertex->area ;
-      total_area += (double)vertex->area ;
-
-      /* now update the basis vectors to be the principal directions */
-      a11 = *MATRIX_RELT(m_eigen,1,1) ; a12 = *MATRIX_RELT(m_eigen,1,2) ;
-      a21 = *MATRIX_RELT(m_eigen,2,1) ; a22 = *MATRIX_RELT(m_eigen,2,2) ;
-      vertex->e1x = V3_X(v_e1) * a11 + V3_X(v_e2) * a21 ;
-      vertex->e1y = V3_Y(v_e1) * a11 + V3_Y(v_e2) * a21 ;
-      vertex->e1z = V3_Z(v_e1) * a11 + V3_Z(v_e2) * a21 ;
-      vertex->e2x = V3_X(v_e1) * a12 + V3_X(v_e2) * a22 ;
-      vertex->e2y = V3_Y(v_e1) * a12 + V3_Y(v_e2) * a22 ;
-      vertex->e2z = V3_Z(v_e1) * a12 + V3_Z(v_e2) * a22 ;
-
-      MatrixFree(&m_Ut) ;
-      MatrixFree(&m_tmp2) ;
-      MatrixFree(&m_U) ;
-      VectorFree(&v_z) ;
-
-    }
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "max H error=%2.3f at %d\n", max_error, vmax) ;
@@ -24082,6 +24096,15 @@ MRISwriteTriangularSurface(MRI_SURFACE *mris, char *fname)
   writeVolGeom(fp, &mris->vg);
 
 	// write other tags
+	if (!FZERO(mris->group_avg_surface_area))
+	{
+		long long here ;
+		printf("writing group avg surface area %2.0f cm^2 into surface file\n", 
+					 mris->group_avg_surface_area/100.0) ;
+		TAGwriteStart(fp, TAG_GROUP_AVG_SURFACE_AREA, &here, sizeof(float)) ;
+		fwriteFloat(mris->group_avg_surface_area, fp) ;
+		TAGwriteEnd(fp, here) ;
+	}
 	{
 		int i ;
 
@@ -24294,6 +24317,11 @@ mrisReadTriangleFile(char *fname, double pct_over)
 		{
 			switch (tag)
 			{
+			case TAG_GROUP_AVG_SURFACE_AREA:
+				mris->group_avg_surface_area = freadFloat(fp) ;
+				printf("reading group avg surface area %2.0f cm^2 from file\n",
+							 mris->group_avg_surface_area/100.0) ;
+				break ;
 			case TAG_OLD_SURF_GEOM:
 				readVolGeom(fp, &mris->vg);
 				break ;

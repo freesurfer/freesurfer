@@ -252,6 +252,7 @@ typedef struct
                                      check validity by vg.valid = 1 or not */
 	char   *cmdlines[MAX_CMDS] ;
 	int    ncmds;
+	float  group_avg_surface_area ;
 } MRI_SURFACE, MRIS ;
 
 

@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/09/27 21:02:04 $
-// Revision       : $Revision: 1.16 $
+// Revision Date  : $Date: 2005/10/03 19:31:10 $
+// Revision       : $Revision: 1.17 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -26,7 +26,7 @@
 #include "version.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.16 2005/09/27 21:02:04 fischl Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.17 2005/10/03 19:31:10 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -35,6 +35,8 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
+
+static int normalize_area = 1 ;
 
 static char *orig_name = "orig" ;
 static char *xform_name = "talairach.xfm" ;
@@ -56,9 +58,10 @@ main(int argc, char *argv[])
   LTA          *lta ;
   MRI          *mri ;
   VOL_GEOM      vg;
+	float        average_surface_area = 0.0 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.16 2005/09/27 21:02:04 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.17 2005/10/03 19:31:10 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -128,6 +131,10 @@ main(int argc, char *argv[])
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     // get the vertex position from ->origx, ... (get the "pial" vertex position)
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+		MRIScomputeMetricProperties(mris) ;
+		printf("surface area: %2.1f cm^2\n", mris->total_area/100) ;
+		average_surface_area += mris->total_area ;
+
     // this means that we transform "pial" surface
 #if 1
     //MRIStalairachTransform(mris, mris, lta) ;
@@ -142,7 +149,8 @@ main(int argc, char *argv[])
       tras = MatrixAlloc(4,1,MATRIX_REAL);
       tras->rptr[4][1] = 1;
       
-      printf("Applying transform.\n");  
+			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+				printf("Applying transform.\n");  
       for(vno=0; vno < mris->nvertices; vno++){
 				v = &mris->vertices[vno] ;
 				if (v->ripflag) continue ;
@@ -167,6 +175,7 @@ main(int argc, char *argv[])
     memcpy((void *) &vg, (void *) &(mris->vg), sizeof(VOL_GEOM)); 
 #endif
     // save transformed position in ->orig (store "pial" vertices position in orig)
+		MRIScomputeMetricProperties(mris) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     // get the vertex position from ->cx (note that this is not transformed)  sphere.reg vertices
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
@@ -179,6 +188,8 @@ main(int argc, char *argv[])
     MRISPfree(&mrisp) ; MRISfree(&mris) ; LTAfree(&lta) ; MRIfree(&mri) ;
     n++ ;
   }
+	average_surface_area /= (float)n ;
+
   // mrisp_total lost info on the modified surface
   sprintf(ico_fname, "%s/lib/bem/ic%d.tri", mdir, ico_no) ;
   fprintf(stderr, "reading icosahedron from %s...\n", ico_fname) ;
@@ -226,6 +237,22 @@ main(int argc, char *argv[])
     v->y /= (float)n ;
     v->z /= (float)n ;
   }
+	if (normalize_area)
+	{
+		MRIScomputeMetricProperties(mris_ico) ;
+		printf("setting group surface area to be %2.1f cm^2 (scale=%2.2f)\n",
+					 average_surface_area/100.0,
+					 sqrt(average_surface_area/mris_ico->total_area)) ;
+
+#if 0					 
+		MRISscaleBrain(mris_ico, mris_ico, 
+									 sqrt(average_surface_area/mris_ico->total_area)) ;
+#else
+		mris_ico->group_avg_surface_area = average_surface_area ;
+#endif
+		MRIScomputeMetricProperties(mris_ico) ;
+	}
+		
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, out_sname, hemi, avg_surf_name) ;
   printf("writing average %s surface to %s\n", avg_surf_name, fname);
   MRISwrite(mris_ico,  fname) ;
@@ -270,6 +297,11 @@ get_option(int argc, char *argv[])
   {
     strcpy(sdir, argv[2]) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "nonorm"))
+  {
+		normalize_area = 0 ;
+		printf("not normalizing surface area\n") ;
   }
   else switch (toupper(*option))
   {
