@@ -20,6 +20,7 @@ static void  usage_exit(int code) ;
 static MRI *compute_bias(MRI *mri_src, MRI *mri_dst, MRI *mri_bias) ;
 static int conform = 0 ;
 static int gentle_flag = 0 ;
+static int nosnr = 1 ;
 
 static float bias_sigma = 8.0 ;
 
@@ -55,10 +56,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_normalize.c,v 1.36 2005/08/15 14:05:49 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_normalize.c,v 1.37 2005/10/03 01:15:35 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.36 2005/08/15 14:05:49 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.37 2005/10/03 01:15:35 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -94,6 +95,12 @@ main(int argc, char *argv[])
   if (!mri_src)
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
               Progname, in_fname) ;
+	if (!mriConformed(mri_src))
+	{
+		printf("unconformed source detected - conforming...\n") ;
+		mri_src = MRIconform(mri_src) ;
+	}
+
 	MRIaddCommandLine(mri_src, cmdline) ;
 	if (mask_fname)
 	{
@@ -149,6 +156,22 @@ main(int argc, char *argv[])
     fprintf(stderr, "normalizing image...\n") ;
   TimerStart(&start) ;
 
+  if (control_point_fname)
+    MRI3dUseFileControlPoints(mri_src, control_point_fname) ;
+  if (control_volume_fname)
+    // this just setup writing control-point volume saving
+    MRI3dWriteControlPoints(control_volume_fname) ;
+
+	/* first do a gentle normalization to get things in the right intensity range */
+	if (control_point_fname != NULL)  /* do one pass with only file control points first */
+		mri_dst = 
+			MRI3dGentleNormalize(mri_src, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+													 NULL,
+													 intensity_above, intensity_below/2,
+													 1, bias_sigma);
+	else
+		mri_dst = MRIcopy(mri_src, NULL) ;
+		
   if (!no1d)
   {
     MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
@@ -158,37 +181,25 @@ main(int argc, char *argv[])
 	}
   else
   {
-		if (file_only)
-			mri_dst = MRIcopy(mri_src, NULL) ;
+		if ((file_only && nosnr) || ((gentle_flag != 0) && (control_point_fname != NULL)))
+		{
+			if (mri_dst == NULL)
+				mri_dst = MRIcopy(mri_src, NULL) ;
+		}
 		else
 		{
 			printf("computing initial normalization using SNR...\n") ;
-			mri_dst = MRInormalizeHighSignalLowStd(mri_src, NULL, bias_sigma, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+			mri_dst = MRInormalizeHighSignalLowStd(mri_src, mri_dst, bias_sigma, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
 		}
     if (!mri_dst)
       ErrorExit(ERROR_BADPARM, "%s: could not allocate volume", Progname) ;
   }
 
-  if (control_point_fname)
-    MRI3dUseFileControlPoints(mri_dst, control_point_fname) ;
-  if (control_volume_fname)
-    // this just setup writing control-point volume saving
-    MRI3dWriteControlPoints(control_volume_fname) ;
-
-	/* first do a gentle normalization to get things in the right intensity range */
-#if 0
-	if (!file_only)
-		file_only = control_point_fname != NULL && no1d;
-#endif
-	if (control_point_fname != NULL && file_only == 0)  /* do one pass with only file control points first */
+	if (file_only == 0)
 		MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
 												 mri_dst,
 												 intensity_above, intensity_below/2,
-												 1, bias_sigma);
-	MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
-											 mri_dst,
-											 intensity_above, intensity_below/2,
-											 file_only, bias_sigma);
+												 file_only, bias_sigma);
 	mri_orig = MRIcopy(mri_dst, NULL) ;
   for (n = 0 ; n < num_3d_iter ; n++)
   {
@@ -199,20 +210,12 @@ main(int argc, char *argv[])
       MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
                            mri_dst,
                            intensity_above/2, intensity_below/2,
-                           control_point_fname != NULL && !n && no1d, bias_sigma);
+                           file_only, bias_sigma);
     else
-		{
-			if (file_only)
-				MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+			MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
 											 mri_dst,
 											 intensity_above, intensity_below,
 											 file_only, prune, bias_sigma);
-			else
-				MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
-											 mri_dst,
-											 intensity_above, intensity_below,
-											 control_point_fname != NULL && !n && no1d, prune, bias_sigma);
-		}
   }
 
   if (bias_volume_fname)
@@ -269,6 +272,16 @@ get_option(int argc, char *argv[])
     num_3d_iter = 1 ;
     printf("disabling 1D normalization and setting niter=1, make sure to use -f to specify control points\n") ;
   }
+  else if (!stricmp(option, "nosnr"))
+  {
+		nosnr = 1 ;
+    printf("disabling SNR normalization\n") ;
+  }
+  else if (!stricmp(option, "snr"))
+  {
+		nosnr = 0 ;
+    printf("enabling SNR normalization\n") ;
+  }
   else if (!stricmp(option, "sigma"))
   {
 		bias_sigma = atof(argv[2]) ;
@@ -285,10 +298,11 @@ get_option(int argc, char *argv[])
     gentle_flag = 1 ;
     fprintf(stderr, "performing kinder gentler normalization...\n") ;
   }
-  else if (!stricmp(option, "file_only") || !stricmp(option, "fileonly"))
+  else if (!stricmp(option, "file_only") || !stricmp(option, "fonly") || !stricmp(option, "fileonly"))
   {
     file_only = 1 ;
     control_point_fname = argv[2] ;
+		no1d = 1 ;
     nargs = 1 ;
     fprintf(stderr, "using control points from file %s...\n", 
            control_point_fname) ;
