@@ -170,7 +170,8 @@ TESTS=$(check_PROGRAMS)
 ## Test programs.
 testIDTracker_SOURCES=test_IDTracker.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
-testIDTracker_LDADD=
+testIDTracker_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testBroadcaster_SOURCES=test_Broadcaster.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
