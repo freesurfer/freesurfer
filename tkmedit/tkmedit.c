@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/09/09 21:12:40 $
-// Revision       : $Revision: 1.256 $
-char *VERSION = "$Revision: 1.256 $";
+// Revision Date  : $Date: 2005/10/03 16:09:44 $
+// Revision       : $Revision: 1.257 $
+char *VERSION = "$Revision: 1.257 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1104,7 +1104,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.256 2005/09/09 21:12:40 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.257 2005/10/03 16:09:44 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5347,7 +5347,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.256 2005/09/09 21:12:40 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.257 2005/10/03 16:09:44 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7988,7 +7988,6 @@ tkm_tErr SaveVolume ( tkm_tVolumeType iVolume,
   char*     psFileName         = NULL;
   char      sBaseFileName[tkm_knPathLen] = "";
   char      sTouchFileName[tkm_knPathLen] = "";
-  char      sCmd[tkm_knNameLen] = "";
   FILE*     fTouch = NULL;
 
   DebugEnterFunction( ("SaveVolume( iVolume=%d, isPath=%s )", 
@@ -8045,9 +8044,6 @@ tkm_tErr SaveVolume ( tkm_tVolumeType iVolume,
 		sTouchFileName, sizeof(sTouchFileName) );
   sprintf( sTouchFileName, "%s.tkmedit.touch", sTouchFileName );
 
-  //  sprintf( sCmd, "touch %s >& /dev/null", sTouchFileName );
-  //  system( sCmd );
-  
   fTouch = fopen( sTouchFileName, "w" );
   if( fTouch ) { fclose( fTouch ); }
 
