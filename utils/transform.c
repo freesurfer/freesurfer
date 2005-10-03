@@ -1507,21 +1507,24 @@ MATRIX *DevolveXFMWithSubjectsDir(char *subjid, MATRIX *XFM, char *xfmname, char
 
   /* Load the orig header for the subject */
   sprintf(dirname,"%s/%s/mri/orig.mgz",sd,subjid);
-  printf("Trying %s\n",dirname);
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		printf("Trying %s\n",dirname);
   if (fio_FileExistsReadable(dirname)) {
     mriorig = MRIreadHeader(dirname,MRI_MGH_FILE);
   }
   else mriorig = NULL;
   if(mriorig == NULL){
     sprintf(dirname,"%s/%s/mri/orig.mgh",sd,subjid);
-    printf("Trying %s\n",dirname);
+		if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+			printf("Trying %s\n",dirname);
     if (fio_FileExistsReadable(dirname)) {
       mriorig = MRIreadHeader(dirname,MRI_MGH_FILE);
     }
     else mriorig = NULL;
     if(mriorig == NULL){
       sprintf(dirname,"%s/%s/mri/orig",sd,subjid);
-      printf("Trying %s\n",dirname);
+			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+				printf("Trying %s\n",dirname);
       if (fio_IsDirectory(dirname)) {
         mriorig = MRIreadHeader(dirname,MRI_CORONAL_SLICE_DIRECTORY);
       }
@@ -2155,7 +2158,8 @@ void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
           // now check whether it is average_305
           if (strstr(srcVol, "average_305"))
             {
-              printf("INFO: The transform was made with average_305.mnc.\n");
+							if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+								printf("INFO: The transform was made with average_305.mnc.\n");
               // average_305 value
               vgSrc->width = 172; vgSrc->height = 220; vgSrc->depth = 156;
               vgSrc->xsize = 1; vgSrc->ysize = 1; vgSrc->zsize = 1;
