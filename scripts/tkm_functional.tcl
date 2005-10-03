@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.26 2005/06/27 19:51:43 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.27 2005/10/03 16:10:18 kteich Exp $
 
 package require BLT;
 
@@ -37,10 +37,13 @@ set gbIgnoreThreshold      0
 set gbGrayscale      0
 set gbOpaque         0
 set gbOverlayOffset  0
-set gbShowOverlayOffsetOptions   0
+set gbShowOverlayOffsetOptions 0 
+# The max here is not actually connected to a c variable; use it for
+# interface only.
 set gfThreshold(min)   0
-set gfThreshold(mid)   0
-set gfThreshold(slope) 0
+set gfThreshold(mid)   1
+set gfThreshold(slope) 1
+set gfThreshold(max)   2
 set gfOverlayRange(max) 0
 set gfOverlayRange(min) 0
 set gnOverlayNumTimePoints 0
@@ -50,6 +53,7 @@ set gfOverlayAlpha 1.0
 set gOverlaySampleType $FunD_tSampleType(nearest)
 set gFDRRate 0.05
 set gbFDMask 0
+set gbSimpleThreshold 1
 
 set glAllColors {Red Green Blue Purple Brown Pink Gray LightBlue Yellow Orange}
 set gnMaxColors [llength $glAllColors]
@@ -375,7 +379,7 @@ proc HideFunctionalWindow {} {
 
 proc Overlay_DoConfigDlog {} { 
 
-    global gDialog
+    global gDialog gaOverlayDlogWidgets
     global FunV_tDisplayFlag_Ol_TruncateNegative 
     global FunV_tDisplayFlag_Ol_TruncatePositive 
     global FunV_tDisplayFlag_Ol_ReversePhase
@@ -421,11 +425,11 @@ proc Overlay_DoConfigDlog {} {
 	    $fwTimePoint "Time Point (0-$nMaxTimePoint)" \
 	    gnTimePoint \
 	    {} 1
-	
+
+	# Play and stop buttons for animating the overlay.
 	button $fwLoopTimePoint \
 	    -text "|>" \
 	    -command PlayTimePoint
-
 	button $fwStopTimePoint \
 	    -text "\[\]" \
 	    -command StopTimePoint
@@ -482,8 +486,8 @@ proc Overlay_DoConfigDlog {} {
 	
 	set fwThresholdSub     [$lfwThreshold subwidget frame]
 	set fwIgnoreThresh     $fwThresholdSub.fwIgnoreThresh
-	set fwThresholdSliders $fwThresholdSub.fwThresholdSliders
-	set fwThresholdSlope   $fwThresholdSub.fwThresholdSlope
+	set fwThresholdEntries $fwThresholdSub.fwThresholdEntries
+	set fwSimpleThresh     $fwThresholdSub.fwSimpleThresh
 	
 	set fwFDR      $fwThresholdSub.fwFDR
 	set bwFDR      $fwFDR.bwFDR
@@ -493,21 +497,39 @@ proc Overlay_DoConfigDlog {} {
 	tkm_MakeCheckboxes $fwIgnoreThresh y {
 	    { text "Ignore Threshold" gbIgnoreThreshold
 		"set gbIgnoreThreshold \$gbIgnoreThreshold" } }
-		
-	tkm_MakeSliders $fwThresholdSliders \
-	    [list \
-		 [list {"Threshold minimum"} gfThreshold(min) \
-		      -10000 10000 100 {} 1 0.25] \
-		 [list {"Threshold midpoint"} gfThreshold(mid) \
-		      -10000 10000 100 {} 1 0.25]]
+
+	# These entries call the Overlay_Set{Min,Mid,Max,Slope}
+	# functions with an update parameter of 1 to tell the function
+	# to update related variables; e.g. setting the slope will
+	# update the max.
+	frame $fwThresholdEntries
+	tkm_MakeEntry $fwThresholdEntries.fwMin \
+	    "Min" gfThreshold(min) 6 {Overlay_SetMin $gfThreshold(min)}
+	tkm_MakeEntry $fwThresholdEntries.fwMid \
+	    "Mid" gfThreshold(mid) 6 {Overlay_SetMid $gfThreshold(mid) 1}
+	tkm_MakeEntry $fwThresholdEntries.fwMax \
+	    "Max" gfThreshold(max) 6 {Overlay_SetMax $gfThreshold(max) 1}
+	tkm_MakeEntry $fwThresholdEntries.fwSlope \
+	    "Slope" gfThreshold(slope) 6 {Overlay_SetSlope $gfThreshold(slope) 1}
+	pack $fwThresholdEntries.fwMin $fwThresholdEntries.fwMid \
+	    $fwThresholdEntries.fwMax $fwThresholdEntries.fwSlope \
+	    -side left
 	
-	tkm_MakeEntry $fwThresholdSlope "Threshold slope" gfThreshold(slope) 6
+	# Save these widgets because we'll enable or disable them when
+	# we check the Simple Mode cb.
+	set gaOverlayDlogWidgets(fmid) $fwThresholdEntries.fwMid 
+	set gaOverlayDlogWidgets(fslope) $fwThresholdEntries.fwSlope 
+
+	tkm_MakeCheckboxes $fwSimpleThresh y {
+	    { text "Simple (Linear) Threshold Mode" gbSimpleThreshold
+		Overlay_UpdateDlogInfo } }
 
 	frame $fwFDR
 	tkm_MakeButtons $bwFDR \
 	    [list \
 		 [list text "Set Threshold Using FDR" \
-		      {Overlay_SetThresholdUsingFDR $gFDRRate $gbFDRMask}]]
+		      {Overlay_SetThresholdUsingFDR $gFDRRate $gbFDRMask;
+			  Overlay_UpdateMax}]]
 
 	tkm_MakeEntry $ewFDRRate "Rate" gFDRRate 4 {}
 
@@ -533,21 +555,112 @@ proc Overlay_DoConfigDlog {} {
 		 [list {"Alpha"} gfOverlayAlpha \
 		      0 1 100 {} 0 0.1]]
 
-	tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
-	    { Overlay_SetConfiguration; } \
-	    { Overlay_RestoreConfiguration; }
-	
-	
+	tkm_MakeDialogButtons $fwButtons $wwDialog [list \
+		[list Apply { Overlay_SetConfiguration }] \
+		[list Close { Overlay_RestoreConfiguration}] \
+	]
+
 	pack $lfwLocation $fwTimePointTop $fwCondition \
 	    $lfwDisplay $fwOptions $fwSampleType \
 	    $lfwThreshold $lfwAlpha $fwIgnoreThresh \
-	    $fwThresholdSliders $fwThresholdSlope $fwFDR $fwAlpha \
+	    $fwThresholdEntries $fwSimpleThresh $fwFDR $fwAlpha \
 	    $fwButtons \
 	    -side top \
 	    -anchor w \
 	    -expand yes \
 	    -fill x
+	
+	# This function simply updates the max.
+	Overlay_UpdateMax
+	# Start out widgets off in the right state.
+	Overlay_UpdateDlogInfo
     }
+}
+
+proc Overlay_UpdateDlogInfo { } {
+    global gaOverlayDlogWidgets
+    global gbSimpleThreshold
+
+    # If we're using the simple threshold mode, disable the fmid and
+    # fslope fields.
+    set state normal
+    if { $gbSimpleThreshold } { 
+	set state disabled 
+    } else { 
+	set state normal 
+    }
+    $gaOverlayDlogWidgets(fmid).lwLabel configure -state $state
+    $gaOverlayDlogWidgets(fmid).ewEntry configure -state $state
+    $gaOverlayDlogWidgets(fslope).lwLabel configure -state $state
+    $gaOverlayDlogWidgets(fslope).ewEntry configure -state $state
+}
+
+proc Overlay_SetMin { inThresh } {
+    global gfThreshold
+    global gbSimpleThreshold
+
+    # set the linked value to the abs of the value on which they
+    # clicked. draw a new line on this value.
+    set gfThreshold(min) [expr abs($inThresh)]
+    
+    # If in simple thresh mode, set the slope and midpoint now.
+    if { $gbSimpleThreshold } {
+	Overlay_SetSlope [expr 1.0 / ($gfThreshold(max) - $gfThreshold(mid))] 0
+	Overlay_SetMid [expr ($gfThreshold(max) - $gfThreshold(min))/2 + $gfThreshold(min)] 0
+    }
+}
+
+proc Overlay_SetMid { inThresh ibUpdateSlope } {
+    global gfThreshold
+    global gbSimpleThreshold
+
+    # set the linked value to the abs of the value on which they
+    # clicked. draw a new line on this value.
+    set gfThreshold(mid) [expr abs($inThresh)]
+
+    # calculate the slope if necessary.
+    if { $ibUpdateSlope } {
+	Overlay_SetSlope [expr 1.0 / ($gfThreshold(max) - $gfThreshold(mid))] 0
+    }
+    
+}
+
+proc Overlay_SetMax { inThresh ibUpdateSlope } {
+    global gfThreshold
+    global gbSimpleThreshold
+
+    # set the linked value to the abs of the value on which they
+    # clicked. draw a new line on this value.
+    set gfThreshold(max) [expr abs($inThresh)]
+
+    # calculate the slope if necessary or if we're in simple thresh mode.
+    if { $ibUpdateSlope || $gbSimpleThreshold } {
+	Overlay_SetSlope [expr 1.0 / ($gfThreshold(max) - $gfThreshold(mid))] 0
+    }
+    # If in simple thresh mode, set the midpoint too.
+    if { $gbSimpleThreshold } {
+	Overlay_SetMid [expr ($gfThreshold(max) - $gfThreshold(min))/2 + $gfThreshold(min)] 0
+    }
+}
+
+proc Overlay_SetSlope { inSlope ibUpdateMax } {
+    global gfThreshold
+    global gbSimpleThreshold
+
+    # set the linked value to the value on which they clicked. draw a
+    # new line on this value.
+    set gfThreshold(slope) $inSlope
+    # calculate the max if necessary.
+    if { $ibUpdateMax } {
+	Overlay_SetMax [expr (1.0 / $gfThreshold(slope)) + $gfThreshold(mid)] 0
+    }
+}
+
+proc Overlay_UpdateMax {} {
+    global gfThreshold
+    
+    # Just calculate the max from the slope and mid.
+    set gfThreshold(max) [expr (1.0 / $gfThreshold(slope)) + $gfThreshold(mid)]
 }
 
 proc TimeCourse_DoConfigDlog {} {
@@ -1130,7 +1243,7 @@ proc TestData {} {
 
 # enable these to test the script from the command line
 #TimeCourse_DoConfigDlog
-#Overlay_DoConfigDlog
+Overlay_DoConfigDlog
 #set gbErrorBars 1
 #TestData
 
