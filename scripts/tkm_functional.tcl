@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.27 2005/10/03 16:10:18 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.28 2005/10/03 16:11:56 kteich Exp $
 
 package require BLT;
 
@@ -1243,7 +1243,7 @@ proc TestData {} {
 
 # enable these to test the script from the command line
 #TimeCourse_DoConfigDlog
-Overlay_DoConfigDlog
+# Overlay_DoConfigDlog
 #set gbErrorBars 1
 #TestData
 
