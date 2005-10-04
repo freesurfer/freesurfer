@@ -26,7 +26,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.3 2005/09/16 22:30:48 greve Exp $";
+static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.4 2005/10/04 21:19:30 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -38,7 +38,7 @@ int UseRibbon = 0;
 MRI *ASeg, *mritmp;
 MRI *AParc;
 MRI *Dist;
-MRI *Ribbon;
+MRI *lhRibbon,*rhRibbon;
 MRIS *lhwhite, *rhwhite;
 MRIS *lhpial, *rhpial;
 MHT *lhwhite_hash, *rhwhite_hash;
@@ -48,6 +48,7 @@ int  lhwvtx, lhpvtx, rhwvtx, rhpvtx;
 MATRIX *Vox2RAS, *CRS, *RAS;
 float dlhw, dlhp, drhw, drhp;
 float dminctx = 5.0;
+int LabelWM=0;
 
 
 char tmpstr[2000];
@@ -58,7 +59,7 @@ int main(int argc, char **argv)
 {
   int nargs, err, asegid, c, r, s, nctx, annot;
   int annotid, IsCortex=0, hemi=0, segval=0;
-  float dmin=0.0, RibbonVal=0;
+  float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -73,15 +74,15 @@ int main(int argc, char **argv)
 
   if(argc == 0) usage_exit();
 
-  parse_commandline(argc, argv);
-  check_options();
-  dump_options(stdout);
-
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if(SUBJECTS_DIR==NULL){
     printf("ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
   }
+
+  parse_commandline(argc, argv);
+  check_options();
+  dump_options(stdout);
 
   /* ------ Load subject's lh white surface ------ */
   sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
@@ -167,10 +168,17 @@ int main(int argc, char **argv)
   //print_annotation_table(stdout);
 
   if(UseRibbon){
-    sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
-    printf("Loading ribbon mask from %s\n",tmpstr);
-    Ribbon = MRIread(tmpstr);
-    if(Ribbon == NULL){
+    sprintf(tmpstr,"%s/%s/mri/lh.ribbon.mgz",SUBJECTS_DIR,subject);
+    printf("Loading lh ribbon mask from %s\n",tmpstr);
+    lhRibbon = MRIread(tmpstr);
+    if(lhRibbon == NULL){
+      printf("ERROR: loading aseg %s\n",tmpstr);
+      exit(1);
+    }
+    sprintf(tmpstr,"%s/%s/mri/rh.ribbon.mgz",SUBJECTS_DIR,subject);
+    printf("Loading rh ribbon mask from %s\n",tmpstr);
+    rhRibbon = MRIread(tmpstr);
+    if(rhRibbon == NULL){
       printf("ERROR: loading aseg %s\n",tmpstr);
       exit(1);
     }
@@ -240,14 +248,20 @@ int main(int argc, char **argv)
 	if(asegid == 3 || asegid == 42) IsCortex = 1;
 	else                            IsCortex = 0;
 
+	if(!IsCortex && !LabelWM) continue;
+
 	// Check whether this point is in the ribbon
 	if(UseRibbon){
-	  RibbonVal = MRIgetVoxVal(Ribbon,c,r,s,0);
-	  if(IsCortex && RibbonVal < 0.5){
-	    // ASeg says it's in cortex, but it is not part of the ribbon,
-	    // so set it to unknown (0) and go to the next voxel.
-	    MRIsetVoxVal(ASeg,c,r,s,0,0);
-	    continue;
+	  lhRibbonVal = MRIgetVoxVal(lhRibbon,c,r,s,0);
+	  rhRibbonVal = MRIgetVoxVal(rhRibbon,c,r,s,0);
+	  if(IsCortex){
+	    // ASeg says it's in cortex
+	    if(lhRibbonVal < 0.5 && rhRibbonVal < 0.5){
+	      // but it is not part of the ribbon,
+	      // so set it to unknown (0) and go to the next voxel.
+	      MRIsetVoxVal(ASeg,c,r,s,0,0);
+	      continue;
+	    }
 	  }
 	}
 
@@ -407,12 +421,14 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--ribbon"))  UseRibbon = 1;
+    else if (!strcasecmp(option, "--noribbon"))  UseRibbon = 0;
+    else if (!strcasecmp(option, "--labelwm"))  LabelWM = 1;
     else if (!strcmp(option, "--s")){
       if(nargc < 1) argnerr(option,1);
       subject = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--oaseg")){
+    else if (!strcmp(option, "--oaseg") || !strcmp(option, "--o")){
       if(nargc < 1) argnerr(option,1);
       OutASegFile = pargv[0];
       nargsused = 1;
@@ -450,10 +466,9 @@ static void print_usage(void)
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --s subject \n");
-  printf("   --oaseg  file : output aseg+aparc volume file\n");
-  printf("   --oaparc file : output aparc-only volume file\n");
-  //printf("   --ribbon : use mri/ribbon.mgz as a mask for ctx.\n");
-  printf("\n");
+  printf("   --o volfile : output aparc+aseg volume file\n");
+  //printf("   --oaparc file : output aparc-only volume file\n");
+  printf("   --noribbon : do not use mri/hemi.ribbon.mgz as a mask for ctx.\n");
   printf("\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
@@ -465,10 +480,51 @@ static void print_usage(void)
 static void print_help(void)
 {
   print_usage() ;
-  printf("Help! Currently does nothing.\n");
-  printf(" \n"
-	 "mri_aparc2aseg --s fbirn-anat-101 \n"
-	 "  --oaseg aseg_aparc.mgz --oaparc aparc.mgz\n");
+  printf(
+"Maps the cortical labels from the automatic cortical parcellation (aparc)\n"
+"to the automatic segmentation volume (aseg). The result can be used as\n"
+"the aseg would. The algorithm is to find each aseg voxel labeled as\n"
+"cortex (3 and 42) and assign it the label of the closest cortical vertex.\n"
+"If the voxel is not in the ribbon (as defined by mri/lh.ribbon and \n"
+"rh.ribbon), then the voxel is marked as unknown (0). This can be turned\n"
+"off with --noribbon. The cortical parcellation is obtained from \n"
+"subject/label/hemi.aparc.annot which should be based on the \n"
+"curvature.buckner40.filled.desikan_killiany.gcs atlas \n"
+"The aseg is obtained from subject/mri/aseg.mgz and should be based on\n"
+"the RB40_talairach_2005-07-20.gca atlas. If these atlases are used, then\n"
+"the segmentations can be viewed with tkmedit and the FreeSurferColorLUT.txt\n"
+"color table found in $FREESURFER_HOME. These are the default atlases\n"
+"used by recon-all.\n"
+"\n"
+"--s subject\n"
+"\n"
+"Name of the subject as found in the SUBJECTS_DIR.\n"
+"\n"
+"--o volfile\n"
+"\n"
+"Full path of file to save the output segmentation in. Default\n"
+"is mri/aparc+aseg.mgz\n"
+"\n"
+"--noribbon\n"
+"\n"
+"Do not mask cortical voxels with mri/hemi.ribbon.mgz. \n"
+"\n"
+"EXAMPLE:\n"
+"\n"
+"  mri_aparc2aseg --s bert\n"
+"  tkmedit bert orig.mgz -segmentation mri/aparc+aseg.mgz \n"
+"       $FREESURFER_HOME/FreeSurferColorLUT.txt\n"
+"\n"
+"NOTES AND BUGS:\n"
+"\n"
+"The volumes of the cortical labels will be different than reported by\n"
+"mris_anatomical_stats because partial volume information is lost when\n"
+"mapping the surface to the volume. The values reported by  \n"
+"mris_anatomical_stats will be more accurate than the volumes from\n"
+"the aparc+aseg volume.\n"
+"\n"
+);
+
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -494,8 +550,8 @@ static void check_options(void)
     exit(1);
   }
   if(OutASegFile == NULL){
-    printf("ERROR: must specify an output aseg file\n");
-    exit(1);
+    sprintf(tmpstr,"%s/%s/mri/aparc+aseg.mgz",SUBJECTS_DIR,subject);
+    OutASegFile = strcpyalloc(tmpstr);
   }
   return;
 }
@@ -503,6 +559,10 @@ static void check_options(void)
 /* --------------------------------------------- */
 static void dump_options(FILE *fp)
 {
+  fprintf(fp,"SUBJECTS_DIR %s",SUBJECTS_DIR);
+  fprintf(fp,"subject %s",subject);
+  fprintf(fp,"outvol %s",OutASegFile);
+  fprintf(fp,"useribbon %d",UseRibbon);
   return;
 }
 /*---------------------------------------------------------------*/
