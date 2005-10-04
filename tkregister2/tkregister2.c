@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.38 2005/09/15 17:43:48 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.39 2005/10/04 19:23:17 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.38 2005/09/15 17:43:48 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.39 2005/10/04 19:23:17 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -288,6 +288,11 @@ char *tfname;        /* (dir!) subjectsdir/name/tmp/ */
 char *sgfname;       /* (dir!) set: get from cwd: $session/rgb/ */
 char *tkrtitle=NULL; /* window title */
 
+char *int_regfname=NULL;  /* intermediate registration file */
+char *int_vol_id=NULL;  /* intermediate volume */
+MRI  *int_vol=NULL;      // MRI for intermediate volume
+MATRIX *IntRegMat=NULL,*Int2MovRegMat=NULL;
+
 int blinktop = 0;    /* says whats on top while blinking */
 int invalid_buffers = 1;
 
@@ -337,6 +342,10 @@ char talxfmfile[2000],talxfmdir[2000];
 char *mov_ostr = NULL; // orientation string for mov
 char *targ_ostr = NULL; // orientation string for targ
 int mov_frame = 0;
+char *pc;
+
+float int_ipr, int_bpr, int_fscale;
+int int_float2int,err;
 
 /**** ------------------ main ------------------------------- ****/
 int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
@@ -361,7 +370,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   printf("Diagnostic Level %d\n",Gdiag_no);
 
   /* read the registration here to get subjectid */
-  if(!mkheaderreg && fslregfname == NULL && !fstal) 
+  if(!mkheaderreg && fslregfname == NULL && !fstal && int_vol_id == NULL) 
     read_reg(regfname);
 
   if(fstal){
@@ -576,6 +585,25 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     /* Compute Reg from FSLReg */
     RegMat = MRIfsl2TkReg(targ_vol0, mov_vol, FSLRegMat);
     MatrixMultiply(RegMat,invMtc,RegMat);
+  }
+  else if(int_vol_id != NULL){
+    printf("Creating reg from intermediate\n");
+    int_vol = MRIreadHeader(int_vol_id,MRI_VOLUME_TYPE_UNKNOWN);
+    if(int_vol == NULL){
+      printf("ERROR: reading intermediate volume %s\n",int_vol_id);
+      exit(1);
+    }
+    err = regio_read_register(int_regfname, &pc, &int_ipr, &int_bpr,
+			    &int_fscale, &IntRegMat, &int_float2int);
+    if(err){
+      printf("ERROR: reading intermediate registration %s\n",int_regfname);
+      exit(1);
+    }
+    Int2MovRegMat = MRItkRegMtx(int_vol,mov_vol,NULL);
+    RegMat = MatrixMultiply(Int2MovRegMat,IntRegMat,NULL);
+    MRIfree(&int_vol);
+    MatrixFree(&IntRegMat);
+    MatrixFree(&Int2MovRegMat);
   }
   else{
     /* Use the registration file that was loaded above */
@@ -868,6 +896,12 @@ static int parse_commandline(int argc, char **argv)
 	mov_vol_fmt = checkfmt(fmt);
       }
     }
+    else if (!strcmp(option, "--int")){
+      if(nargc < 2) argnerr(option,2);
+      int_vol_id = pargv[0];
+      int_regfname = pargv[1];
+      nargsused = 2;
+    }
     else if (!strcmp(option, "--mov-orientation")){
       if(nargc < 1) argnerr(option,1);
       mov_ostr = pargv[0];
@@ -1048,6 +1082,7 @@ static void print_usage(void)
   printf("   --tag : tag mov vol near the col/row origin\n");
   printf("   --mov-orientation ostring : supply orientation string for mov\n");
   printf("   --targ-orientation ostring : supply orientation string for targ\n");
+  printf("   --int intvol intreg : use registration from intermediate volume \n");
   printf("   --gdiagno n : set debug level\n");
   printf("\n");
   printf("   --help : Oops, I accidentally documented this program!.\n");
@@ -1243,6 +1278,15 @@ static void print_help(void)
 "  specify R twice), RAP (A and P refer to the same axis). Invalid combinations\n"
 "  are detected immediately, an error printed, and the program exits. Case-insensitive.\n"
 "  \n"
+"  \n"
+"  --int volid regmat\n"
+"\n"
+"  Use registration from an intermediate volume. This can be useful when the\n"
+"  FOV of the moveable volume does not cover the entire brain. In this case, \n"
+"  you can register a full-volume COLLECTED IN THE SAME SESSION AS THE MOVEABLE\n"
+"  to the target. Then specify this volume and its registration with --int.\n"
+"  regmat will be the registration resulting from a separate invokation of \n"
+"  tkregister2 in which the intermediate volume is specified as the moveable. \n"
 "  \n"
 "  --gdiagno N\n"
 "\n"
@@ -1451,6 +1495,11 @@ static void check_options(void)
   }
   if(mkheaderreg && fslregfname != NULL){
     printf("ERROR: cannot make reg from header and fslreg \n");
+    exit(1);
+  }
+
+  if(mkheaderreg && int_vol_id != NULL){
+    printf("ERROR: cannot make reg from header and use an intermediate volume\n");
     exit(1);
   }
 
@@ -2664,6 +2713,11 @@ void  read_reg(char *fname)
 
   err = regio_read_register(fname, &tmpstr, &ipr, &bpr,
 			    &fscale, &RegMat, &float2int);
+  if(err){
+    printf("ERROR: reading %s\n",fname);
+    exit(1);
+  }
+
   ps_2 = ipr;
   st_2 = bpr;
   if(fscale_2 == 0) fscale_2 = fscale;
@@ -3753,7 +3807,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.38 2005/09/15 17:43:48 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.39 2005/10/04 19:23:17 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
