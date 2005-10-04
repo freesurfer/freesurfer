@@ -1,3 +1,4 @@
+#$Id: FreeSurferColorLUT.txt,v 1.13 2005/10/04 20:38:16 greve Exp $
   0  Unknown                            	   0    0    0     0
   1  Left-Cerebral-Exterior             	 205   62   78     0 
   2  Left-Cerebral-White-Matter         	 245  245  245     0 
@@ -198,3 +199,159 @@
 357 Right-Internal-PudendalV 170 10 200 0
 358 Pos-Lymph 20 130 180 0
 359 Neg-Lymph 20 180 130 0
+
+# Below is the color table for the cortical labels of the seg volume
+# created by mri_aparc2aseg in which the aseg cortex label is replaced
+# by the labels in the aparc. It also supports wm labels that will
+# eventually be created by mri_aparc2aseg. Otherwise, the aseg labels
+# do not change from above. The cortical lables are the same as in
+# colortable_desikan_killiany.txt, except that left hemisphere has
+# 1000 added to the index and the right has 2000 added.  The label
+# names are also prepended with ctx-lh or ctx-rh. The white matter
+# labels are the same as in colortable_desikan_killiany.txt, except
+# that left hemisphere has 3000 added to the index and the right has
+# 4000 added. The label names are also prepended with wm-lh or wm-rh.
+# Centrum semiovale is also labled with 5001 (left) and 5002 (right).
+
+1000 ctx-lh-unknown 25 5 25 0
+1001 ctx-lh-bankssts 25 100 40 0
+1002 ctx-lh-caudalanteriorcingulate 125 100 160 0
+1003 ctx-lh-caudalmiddlefrontal 100 25 0 0
+1004 ctx-lh-corpuscallosum 120 70 50 0
+1005 ctx-lh-cuneus 220 20 100 0
+1006 ctx-lh-entorhinal 220 20 10 0
+1007 ctx-lh-fusiform 180 220 140 0
+1008 ctx-lh-inferiorparietal 220 60 220 0
+1009 ctx-lh-inferiortemporal 180 40 120 0
+1010 ctx-lh-isthmuscingulate 140 20 140 0
+1011 ctx-lh-lateraloccipital 20 30 140 0
+1012 ctx-lh-lateralorbitofrontal 35 75 50 0
+1013 ctx-lh-lingual 225 140 140 0
+1014 ctx-lh-medialorbitofrontal 200 35 75 0
+1015 ctx-lh-middletemporal 160 100 50 0
+1016 ctx-lh-parahippocampal 20 220 60 0
+1017 ctx-lh-paracentral 60 220 60 0
+1018 ctx-lh-parsopercularis 220 180 140 0
+1019 ctx-lh-parsorbitalis 20 100 50 0
+1020 ctx-lh-parstriangularis 220 60 20 0
+1021 ctx-lh-pericalcarine 120 100 60 0
+1022 ctx-lh-postcentral 220 20 20 0
+1023 ctx-lh-posteriorcingulate 220 180 220 0
+1024 ctx-lh-precentral 60 20 220 0
+1025 ctx-lh-precuneus 160 140 180 0
+1026 ctx-lh-rostralanteriorcingulate 80 20 140 0
+1027 ctx-lh-rostralmiddlefrontal 75 50 125 0
+1028 ctx-lh-superiorfrontal 20 220 160 0
+1029 ctx-lh-superiorparietal 20 180 140 0
+1030 ctx-lh-superiortemporal 140 220 220 0
+1031 ctx-lh-supramarginal 80 160 20 0
+1032 ctx-lh-frontalpole 100 0 100 0
+1033 ctx-lh-temporalpole 70 70 70 0
+1034 ctx-lh-transversetemporal 150 150 200 0
+2000 ctx-rh-unknown 25 5 25 0
+2001 ctx-rh-bankssts 25 100 40 0
+2002 ctx-rh-caudalanteriorcingulate 125 100 160 0
+2003 ctx-rh-caudalmiddlefrontal 100 25 0 0
+2004 ctx-rh-corpuscallosum 120 70 50 0
+2005 ctx-rh-cuneus 220 20 100 0
+2006 ctx-rh-entorhinal 220 20 10 0
+2007 ctx-rh-fusiform 180 220 140 0
+2008 ctx-rh-inferiorparietal 220 60 220 0
+2009 ctx-rh-inferiortemporal 180 40 120 0
+2010 ctx-rh-isthmuscingulate 140 20 140 0
+2011 ctx-rh-lateraloccipital 20 30 140 0
+2012 ctx-rh-lateralorbitofrontal 35 75 50 0
+2013 ctx-rh-lingual 225 140 140 0
+2014 ctx-rh-medialorbitofrontal 200 35 75 0
+2015 ctx-rh-middletemporal 160 100 50 0
+2016 ctx-rh-parahippocampal 20 220 60 0
+2017 ctx-rh-paracentral 60 220 60 0
+2018 ctx-rh-parsopercularis 220 180 140 0
+2019 ctx-rh-parsorbitalis 20 100 50 0
+2020 ctx-rh-parstriangularis 220 60 20 0
+2021 ctx-rh-pericalcarine 120 100 60 0
+2022 ctx-rh-postcentral 220 20 20 0
+2023 ctx-rh-posteriorcingulate 220 180 220 0
+2024 ctx-rh-precentral 60 20 220 0
+2025 ctx-rh-precuneus 160 140 180 0
+2026 ctx-rh-rostralanteriorcingulate 80 20 140 0
+2027 ctx-rh-rostralmiddlefrontal 75 50 125 0
+2028 ctx-rh-superiorfrontal 20 220 160 0
+2029 ctx-rh-superiorparietal 20 180 140 0
+2030 ctx-rh-superiortemporal 140 220 220 0
+2031 ctx-rh-supramarginal 80 160 20 0
+2032 ctx-rh-frontalpole 100 0 100 0
+2033 ctx-rh-temporalpole 70 70 70 0
+2034 ctx-rh-transversetemporal 150 150 200 0
+3000 wm-lh-unknown 230 250 230 0
+3001 wm-lh-bankssts 230 155 215 0
+3002 wm-lh-caudalanteriorcingulate 130 155 95 0
+3003 wm-lh-caudalmiddlefrontal 155 230 255 0
+3004 wm-lh-corpuscallosum 135 185 205 0
+3005 wm-lh-cuneus 35 235 155 0
+3006 wm-lh-entorhinal 35 235 245 0
+3007 wm-lh-fusiform 75 35 115 0
+3008 wm-lh-inferiorparietal 35 195 35 0
+3009 wm-lh-inferiortemporal 75 215 135 0
+3010 wm-lh-isthmuscingulate 115 235 115 0
+3011 wm-lh-lateraloccipital 235 225 115 0
+3012 wm-lh-lateralorbitofrontal 220 180 205 0
+3013 wm-lh-lingual 30 115 115 0
+3014 wm-lh-medialorbitofrontal 55 220 180 0
+3015 wm-lh-middletemporal 95 155 205 0
+3016 wm-lh-parahippocampal 235 35 195 0
+3017 wm-lh-paracentral 195 35 195 0
+3018 wm-lh-parsopercularis 35 75 115 0
+3019 wm-lh-parsorbitalis 235 155 205 0
+3020 wm-lh-parstriangularis 35 195 235 0
+3021 wm-lh-pericalcarine 135 155 195 0
+3022 wm-lh-postcentral 35 235 235 0
+3023 wm-lh-posteriorcingulate 35 75 35 0
+3024 wm-lh-precentral 195 235 35 0
+3025 wm-lh-precuneus 95 115 75 0
+3026 wm-lh-rostralanteriorcingulate 175 235 115 0
+3027 wm-lh-rostralmiddlefrontal 180 205 130 0
+3028 wm-lh-superiorfrontal 235 35 95 0
+3029 wm-lh-superiorparietal 235 75 115 0
+3030 wm-lh-superiortemporal 115 35 35 0
+3031 wm-lh-supramarginal 175 95 235 0
+3032 wm-lh-frontalpole 155 255 155 0
+3033 wm-lh-temporalpole 185 185 185 0
+3034 wm-lh-transversetemporal 105 105 55 0
+4000 wm-rh-unknown 230 250 230 0
+4001 wm-rh-bankssts 230 155 215 0
+4002 wm-rh-caudalanteriorcingulate 130 155 95 0
+4003 wm-rh-caudalmiddlefrontal 155 230 255 0
+4004 wm-rh-corpuscallosum 135 185 205 0
+4005 wm-rh-cuneus 35 235 155 0
+4006 wm-rh-entorhinal 35 235 245 0
+4007 wm-rh-fusiform 75 35 115 0
+4008 wm-rh-inferiorparietal 35 195 35 0
+4009 wm-rh-inferiortemporal 75 215 135 0
+4010 wm-rh-isthmuscingulate 115 235 115 0
+4011 wm-rh-lateraloccipital 235 225 115 0
+4012 wm-rh-lateralorbitofrontal 220 180 205 0
+4013 wm-rh-lingual 30 115 115 0
+4014 wm-rh-medialorbitofrontal 55 220 180 0
+4015 wm-rh-middletemporal 95 155 205 0
+4016 wm-rh-parahippocampal 235 35 195 0
+4017 wm-rh-paracentral 195 35 195 0
+4018 wm-rh-parsopercularis 35 75 115 0
+4019 wm-rh-parsorbitalis 235 155 205 0
+4020 wm-rh-parstriangularis 35 195 235 0
+4021 wm-rh-pericalcarine 135 155 195 0
+4022 wm-rh-postcentral 35 235 235 0
+4023 wm-rh-posteriorcingulate 35 75 35 0
+4024 wm-rh-precentral 195 235 35 0
+4025 wm-rh-precuneus 95 115 75 0
+4026 wm-rh-rostralanteriorcingulate 175 235 115 0
+4027 wm-rh-rostralmiddlefrontal 180 205 130 0
+4028 wm-rh-superiorfrontal 235 35 95 0
+4029 wm-rh-superiorparietal 235 75 115 0
+4030 wm-rh-superiortemporal 115 35 35 0
+4031 wm-rh-supramarginal 175 95 235 0
+4032 wm-rh-frontalpole 155 255 155 0
+4033 wm-rh-temporalpole 185 185 185 0
+4034 wm-rh-transversetemporal 105 105 55 0
+5001 wm-lh-centrum-semiovale 20 30 40 0
+5002 wm-lh-centrum-semiovale 20 30 40 0
