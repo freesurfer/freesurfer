@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.145 2005/10/03 19:51:39 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.146 2005/10/04 17:44:59 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -474,6 +474,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "Save..." { DoSave } }
 	{command "Save As..." { DoSaveAsDlog } }
 	{command "Save Copy As..." { DoSaveCopyAsDlog } }
+	{command "Delete Data Collection..." { DoDeleteDataCollectionDlog } }
 	{separator}
 	{command "Load Label..." { DoLoadLabelDlog } }
 	{command "Save Label..." { DoSaveLabelDlog } }
@@ -502,6 +503,7 @@ proc MakeMenuBar { ifwTop } {
     set gaWidget(Menu,fileMenuSaveIndex) 5
     set gaWidget(Menu,fileMenuSaveAsIndex) 6
     set gaWidget(Menu,fileMenuSaveCopyAsIndex) 7
+    set gaWidget(Menu,fileMenuDeleteIndex) 8
 
     pack $gaMenu(file) -side left
 
@@ -2564,6 +2566,10 @@ proc UpdateCurrentCollectionInCollectionProperites {} {
 		$gaWidget(Menu,fileMenuSaveCopyAsIndex) \
 		-state normal \
 		-label "Save Copy of $gaCollection(current,label) As..."
+	    $gaWidget(Menu,fileMenu) entryconfigure \
+		$gaWidget(Menu,fileMenuDeleteIndex) \
+		-state normal \
+		-label "Delete $gaCollection(current,label)..."
 	}
 	Surface {
 	    # Pack the type panel.
@@ -2602,6 +2608,10 @@ proc UpdateCurrentCollectionInCollectionProperites {} {
 		$gaWidget(Menu,fileMenuSaveCopyAsIndex) \
 		-state disabled \
 		-label "Cannot save surfaces"
+	    $gaWidget(Menu,fileMenu) entryconfigure \
+		$gaWidget(Menu,fileMenuDeleteIndex) \
+		-state normal \
+		-label "Delete $gaCollection(current,label)..."
 	}
     }
 
@@ -2623,9 +2633,18 @@ proc UpdateCollectionList {} {
     FillMenuFromList $gaWidget(collectionProperties,menu) \
 	$gaCollection(idList) "GetCollectionLabel %s" {} false
 
-    # Reselect the current collection.
-    if { [info exists gaCollection(current,id)] && 
-	 $gaCollection(current,id) >= 0 } {
+    # Reselect the current collection. If it doesn't exist any more,
+    # set to the first in the list and try that. If there's no list,
+    # clear the properties.
+    if { [info exists gaCollection(current,id)] } {
+	if { [lsearch $gaCollection(idList) $gaCollection(current,id)] == -1 } {
+	    if { [llength $gaCollection(idList)] > 0 } {
+		set gaCollection(current,id) [lindex $gaCollection(idList) 0]
+	    } else {
+		ClearCollectionInCollectionProperties
+		return
+	    }
+	}
 	SelectCollectionInCollectionProperties $gaCollection(current,id)
     }
 
@@ -2642,6 +2661,25 @@ proc UpdateCollectionList {} {
 	$gaCollection(idList) "GetCollectionLabel %s" {} true
 
     UpdateROIList
+}
+
+proc ClearCollectionInCollectionProperties {} {
+    global gaWidget
+    global gaCollection
+    global gaROI
+
+    # Clear stuff.
+    set gaCollection(current,id) -1
+    set gaCollection(current,type) ""
+    set gaCollection(current,label) ""
+    tkuRefreshEntryNotify $gaWidget(collectionProperties,labelEntry)
+
+    # Unpack the type-specific panels.
+    grid forget $gaWidget(collectionProperties,volume)
+    grid forget $gaWidget(collectionProperties,surface)
+
+    # We don't have an ROI now either.
+    ClearROIInROIProperties
 }
 
 proc SurfaceTransformVolumeMenuCallback { iCollectionID } {
@@ -3014,28 +3052,47 @@ proc UpdateLayerList {} {
     set gaLayer(idList) [GetLayerIDList]
     FillMenuFromList $gaWidget(layerProperties,menu) $gaLayer(idList) \
 	"GetLayerLabel %s" {} false
-
-    # Reselect the current layer.
-    if { [info exists gaLayer(current,id)] && 
-	 $gaLayer(current,id) >= 0 } {
-	SelectLayerInLayerProperties $gaLayer(current,id)
-    }
-
-
+    
     # Populate the menus in the view props draw level menus.
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
-
+	
 	FillMenuFromList $gaWidget(viewProperties,drawLevelMenu$nLevel) \
 	    $gaLayer(idList) "GetLayerLabel %s" {} true
     }
-
+    
     # Populate layer target and source menus in tool properties.
     FillMenuFromList $gaWidget(toolProperties,targetLayerMenu) \
 	$gaLayer(idList) "GetLayerLabel %s" {} true
-
+    
+    # Reselect the current Layer. If it doesn't exist in this
+    # collection, get a new roi ID from the list we got from the
+    # collection. If there aren't any, clear the properties.
+    if { [info exists gaLayer(current,id)] } {
+	if { [lsearch $gaLayer(idList) $gaLayer(current,id)] == -1 } {
+	    if { [llength $gaLayer(idList)] > 0 } {
+		set gaLayer(current,id) [lindex $gaLayer(idList) 0]
+	    } else {
+		ClearLayerInLayerProperties
+		return
+	    }
+	}
+	SelectLayerInLayerProperties $gaLayer(current,id)
+    }
+    
     # Make sure the right layers are selected in the view draw level
     # menus.
     UpdateCurrentViewProperties
+}
+
+proc ClearLayerInLayerProperties {} {
+    global gaWidget
+    global gaLayer
+
+    # Clear stuff
+    set gaLayer(current,id) -1
+    set gaLayer(current,type) ""
+    set gaLayer(current,label) ""
+    tkuRefreshEntryNotify $gaWidget(layerProperties,labelEntry)
 }
 
 # VIEW PROPERTIES FUNCTIONS =============================================
@@ -4773,8 +4830,6 @@ proc Make2DMRILayer { isLabel } {
     # Make this new layer the target layer.
     SetToolTargetLayer $gaTool(current,id) $layerID
 
-    UpdateLayerList
-
     return $layerID
 }
 
@@ -4788,8 +4843,6 @@ proc Make2DMRISLayer { isLabel } {
     set err [catch { SetLayerLabel $layerID $isLabel } sResult]
     if { 0 != $err } { error "$sResult" }
 
-    UpdateLayerList
-
     return $layerID
 }
 
@@ -4801,6 +4854,8 @@ proc NewVolume { iTemplateID ibCreateLayer iFrameIDToAdd } {
     } sResult]
     if { 0 != $err } { tkuErrorDlog "$sResult"; return }
 
+    UpdateCollectionList
+
     if { $ibCreateLayer } {
 
 	set sLabel [GetCollectionLabel $colID]
@@ -4811,11 +4866,12 @@ proc NewVolume { iTemplateID ibCreateLayer iFrameIDToAdd } {
 	    Set2DMRILayerVolumeCollection $layerID $colID } sResult]
 	if { 0 != $err } { tkuErrorDlog $sResult; return }
 	
+	UpdateLayerList
+
 	if { $iFrameIDToAdd != -1 } {
 	    SetLayerInAllViewsInFrame $iFrameIDToAdd $layerID
 	}
 
-	UpdateCollectionList
 	SelectCollectionInCollectionProperties $colID
 	SelectLayerInLayerProperties $layerID
     }
@@ -4841,6 +4897,8 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
     set err [catch { set colID [MakeVolumeCollection $fnVolume] } sResult]
     if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
 
+    UpdateCollectionList
+
     if { $ibCreateLayer } {
 
 	set sLabel [ExtractLabelFromFileName $fnVolume]
@@ -4850,12 +4908,13 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 	set err [catch {
 	    Set2DMRILayerVolumeCollection $layerID $colID } sResult]
 	if { 0 != $err } { tkuErrorDlog $sResult; return -1 }
-	
+
+	UpdateLayerList
+
 	if { $iFrameIDToAdd != -1 } {
 	    SetLayerInAllViewsInFrame $iFrameIDToAdd $layerID
 	}
 
-	UpdateCollectionList
 	SelectCollectionInCollectionProperties $colID
 	SelectLayerInLayerProperties $layerID
     }
@@ -4868,7 +4927,6 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
     UpdateROIList
     SelectROIInROIProperties $roiID
     
-
     # Add this directory to the shortcut dirs if it isn't there already.
     AddDirToShortcutDirsList [file dirname $ifnVolume]
 
@@ -4888,6 +4946,8 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
     set err [catch { set colID [MakeSurfaceCollection $fnSurface] } sResult]
     if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
 
+    UpdateCollectionList
+
     if { $ibCreateLayer } {
 
 	set sLabel [ExtractLabelFromFileName $fnSurface]
@@ -4898,11 +4958,12 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
 	    Set2DMRISLayerSurfaceCollection $layerID $colID } sResult]
 	if { 0 != $err } { tkuErrorDlog "$sResult"; return -1 }
 	
+	UpdateLayerList
+
 	if { $iFrameIDToAdd != -1 } {
 	    SetLayerInAllViewsInFrame $iFrameIDToAdd $layerID
 	}
 
-	UpdateCollectionList
 	SelectCollectionInCollectionProperties $colID
 	SelectLayerInLayerProperties $layerID
     }
@@ -5119,10 +5180,37 @@ proc DoSaveCopyAsDlog {} {
 	    }
 	
     } else {
-	tkuErrorDlog "You must first select a volume to use as a template. Please select one in the data collections panel."
+	tkuErrorDlog "You must first select a volume to save. Please select one in the data collections panel."
     }
 }
 
+proc DoDeleteDataCollectionDlog {} {
+    dputs "DoDeleteDataCollectionDlog"
+    
+    global glShortcutDirs
+    global gaCollection
+
+    if { [info exists gaCollection(current,id)] &&
+	 $gaCollection(current,id) >= -1 } {
+	
+	tkuDoFileDlog -title "Delete Data Collection" \
+	    -prompt1 "Delete collection \"$gaCollection(current,label)\"?" \
+	    -type1 note \
+	    -okCmd { 
+		set err [catch {
+			DeleteDataCollection $gaCollection(current,id)
+		    DeleteLayer $gaLayer(current,id)
+		    UpdateCollectionList
+		    UpdateLayerList
+		    UpdateROIList
+		    RedrawFrame [GetMainFrameID]
+		} sResult]
+		if { 0 != $err } { tkuErrorDlog $sResult }
+	    }
+    } else {
+	tkuErrorDlog "There are no data collections to delete."
+     }
+}
 
 proc DoSaveLabelDlog {} {
     dputs "DoSaveLabelDlog  "
@@ -5246,7 +5334,7 @@ proc DoDeleteROIDlog {} {
 	if { [info exists gaROI(current,id)] &&
 	     $gaROI(current,id) >= -1 } {
 	    
-	    tkuDoFileDlog -title "Save Label" \
+	    tkuDoFileDlog -title "Delete ROI" \
 		-prompt1 "Will delete ROI \"$gaROI(current,label)\" from data collection \"$gaCollection(current,label)\"" \
 		-type1 note \
 		-okCmd { 
@@ -5422,7 +5510,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.145 2005/10/03 19:51:39 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.146 2005/10/04 17:44:59 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
