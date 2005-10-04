@@ -111,6 +111,14 @@ $ECHO cd $DEV_DIR >>& $OUTPUTF
 $ECHO echo "CMD: cvs update -d \>\& $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
 $ECHO cvs update -d >& $LOG_DIR/update-output-$HOSTNAME
 
+$ECHO echo "CMD: grep -e "Permission denied"  $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
+$ECHO grep -e "Permission denied"  $LOG_DIR/update-output-$HOSTNAME >& /dev/null
+if ($status == 0) then
+  echo "cvs update: Permission denied" >>& $OUTPUTF
+  $ECHO mail -s "$HOSTNAME dev build FAILED - cvs update permission denied" $MAIL_LIST < $OUTPUTF
+  exit 1  
+endif
+
 $ECHO echo "CMD: grep -e ^\[UP\]\  $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
 $ECHO grep -e ^\[UP\]\  $LOG_DIR/update-output-$HOSTNAME >& /dev/null
 if ($status != 0 && ! -e ${FAILED_FILE} ) then

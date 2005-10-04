@@ -4,10 +4,14 @@ freesurfer/.xdebug_tksurfer
 freesurfer/csurf.log
 freesurfer/error.log
 freesurfer/surfer.log
+freesurfer/arthur_colors
 freesurfer/bin-old
 freesurfer/bin-old-old
 freesurfer/freediffusion
 freesurfer/SetUpFreeDiffusion.csh
+freesurfer/lib/tcltktixblt/man
+freesurfer/lib/tcltktixblt/share
+freesurfer/lib/tcltktixblt/include
 freesurfer/lib/qt/src
 freesurfer/lib/qt/doc
 freesurfer/lib/qt/tools
