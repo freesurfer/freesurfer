@@ -18,6 +18,9 @@ ScubaLayerFactory::GetFactory() {
     commandMgr.AddCommand( sFactory, "MakeLayer", 1, "layerType",
 			   "Makes a new layer of the given type and returns "
 			   "the layerID.");
+    commandMgr.AddCommand( sFactory, "DeleteLayer", 1, "layerID",
+			   "Deletes a layer. Does not delete any data "
+			   "collections associated with it." );
 
   }
 
@@ -43,6 +46,27 @@ ScubaLayerFactory::DoListenToTclCommand( char* isCommand,
     catch( runtime_error& e ) {
       DebugOutput( << "Bad layer type name" );
       sResult = "bad layer type";
+      return error;
+    }
+  }
+
+  if( 0 == strcmp( isCommand, "DeleteLayer" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    try {
+      Layer& layer = Layer::FindByID( layerID );
+      delete &layer;
+    }
+    catch( runtime_error& e ) {
+      DebugOutput( << "Couldn't find layer" << layerID );
+      sResult = "Couldn't find layer.";
       return error;
     }
   }

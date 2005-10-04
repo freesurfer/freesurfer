@@ -59,6 +59,16 @@ DataCollection::DataCollection() :
 }
 
 DataCollection::~DataCollection() {
+
+  // Delete our ROIs when we get deleted.
+  map<int,ScubaROI*>::iterator tIDROI;
+  for( tIDROI = mROIMap.begin();
+       tIDROI != mROIMap.end(); ++tIDROI ) {
+    ScubaROI* roi = (*tIDROI).second;
+    if( NULL != roi ) {
+      delete roi;
+    }
+  }
 }
 
 DataLocation&

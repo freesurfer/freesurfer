@@ -1585,6 +1585,22 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
     SendBroadcast( "viewChanged", NULL );
   }
 
+  if( isMessage == "layerDeleted" ) {
+
+    // A layer is being deleted. Grab the ID, figure out if it's in
+    // any of oour levels, and if so, clear them.
+    int deleteLayerID = *(int*)iData;
+    map<int,int>::iterator tLevelLayerID;
+    for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+	 tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+      int layerID = (*tLevelLayerID).second;
+      int nLevel = (*tLevelLayerID).first;
+      if( layerID == deleteLayerID ) {
+	RemoveLayerAtLevel( nLevel );
+      }
+    }
+  }
+
   if( isMessage == "layerInfoSettingsChanged" ) {
     RebuildLabelValueInfo( mCursor.xyz(), "cursor" );
     RebuildLabelValueInfo( mLastMouseOver.xyz(), "mouse" );

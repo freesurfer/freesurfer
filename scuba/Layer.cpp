@@ -47,6 +47,8 @@ Layer::Layer() :
 }
 
 Layer::~Layer() {
+  int id = GetID();
+  SendBroadcast( "layerDeleted", (void*)&id );
 }
 
 void 

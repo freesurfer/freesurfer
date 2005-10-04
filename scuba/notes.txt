@@ -565,7 +565,7 @@ ConvertTkStringToKeyComboString <key string> <shift> <meta> <alt> <control>
    the new ScubaKeyCombo::ToString format.
 
 1) ToglManager creates TclScubaKeyCombo and uses
-   SetKeyCodeFromTkString and ToString to get string value of
+     SetKeyCodeFromTkString and ToString to get string value of
    input. Call InputState::SetKey() with that string. Note that
    information from modifiers is doubled in the sKey field, that's OK.
 

@@ -8,14 +8,14 @@ using namespace std;
 char* Progname = "test_IDTracker";
 
 class A : public IDTracker<A> {
-  
 public:
   A() {}
 };
 
-template IDTracker<A>;
-int IDTracker<A>::mNextID = 0;
-std::map<int,A*> IDTracker<A>::mIDMap;
+class B : public IDTracker<B> {
+public:
+  B() {}
+};
 
 int main ( int argc, char** argv ) {
   
@@ -90,6 +90,48 @@ int main ( int argc, char** argv ) {
       bGood = true;
     }
     if( !bGood ) throw logic_error( "found object after its deletion" );
+
+
+    B* b0 = new B();
+    list<int> bList;
+    list<int>::iterator tID;
+    bList.clear();
+    B::GetIDList( bList );
+    if( bList.size() != 1 ) {
+      throw runtime_error( "bList wasn't correct size after 1 init" );
+    }
+
+    B* b1 = new B;
+    bList.clear();
+    B::GetIDList( bList );
+    if( bList.size() != 2 ) {
+      throw runtime_error( "bList wasn't correct size after 2 init" );
+    }
+
+    B* b2 = new B;
+    bList.clear();
+    B::GetIDList( bList );
+    if( bList.size() != 3 ) {
+      throw runtime_error( "bList wasn't correct size after 3 init" );
+    }
+
+    delete b0;
+    delete b1;
+    delete b2;
+    bList.clear();
+    B::GetIDList( bList );
+    if( bList.size() != 0 ) {
+      stringstream ssError;
+      ssError << "ID list not empty after deleting all tracked objects:" 
+	      << endl << "\t";
+      list<int>::iterator tID;
+      for( tID = bList.begin(); tID != bList.end(); ++tID ) {
+	int id = *tID;
+	ssError << id << " ";
+      }
+      ssError << endl;
+      throw runtime_error( ssError.str() );
+    }
 
   }
   catch( exception& e) {
