@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # stc.fsl - front-end for FSL's slicetimer slice timing correction
 
-set VERSION = '$Id: stc.fsl,v 1.4 2005/07/25 17:42:31 greve Exp $'
+set VERSION = '$Id: stc.fsl,v 1.5 2005/10/05 19:11:12 greve Exp $'
 set debug = 0;
 set cmdargs = ($argv);
 set PrintHelp = 0;
@@ -341,11 +341,6 @@ NOTES
    0.5)/nslices. Eg, if nslices=20, then the relative center is .475
    through the TR (which corresponds to half way through the 9th
    acquired slice). If nslices=21, then delay=0 at the 10th slice.
+   As a result, you must shift the timing in your stimulus paradigms
+   by subtracting half a TR from the onset times.
 
-BUGS
-
-Currently stc.fsl will save the output as a short because the AFNI
-motion correction does funny things on the floats created (not sure if
-this is an AFNI problem or FSFAST problem). Because of this, the scale
-of the functional is changed by a factor of 4 (ie, grand-mean scaling
-by a factor of 4).

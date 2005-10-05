@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # stc-sess
 #
-set VERSION = '$Id: stc-sess,v 1.4 2005/10/04 21:57:37 greve Exp $';
+set VERSION = '$Id: stc-sess,v 1.5 2005/10/05 19:11:12 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -211,7 +211,6 @@ usage_exit:
 
   echo $VERSION
 
-  echo "------------------------------------------------------------"
   cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 
   echo "------------------------------------------------------------"
@@ -228,12 +227,23 @@ program.  This is actually a front-end for stc.fsl (which is a
 front-end for slicetimer).  Slice-timing correction should be run
 after motion correction.
 
+You of course must know the slice order of your acquisition. This is 
+not in the DICOM file. If you are using Siemens and have not done
+anything to change he slice order, you are probably safe with
+"-so siemens". 
+
+You must also adjust your stimulus timing because the slices are
+shifted in time such that time=0 occurs at the middle of the TR
+instead of the beginning of the TR. Thus, you must subtract half
+a TR from the stimulus onsets. This can be done during
+mkanalysis-sess with "-timeoffset -1.0" for TR=2s.
+
 Example:
 
 mc-sess  -fstem f -fmcstem fmc  ...
 stc-sess -i fmc -o fmcstc -so siemens ...
 spatialsmooth-sess -i fmcstc -o fmcstcsm5 -fwhm 5 ...
 inorm-sess -funcstem fmcstcsm5 ...
-mkanalysis-sess -funcstem fmcstcsm5 ...
+mkanalysis-sess -timeoffset -1.0 -funcstem fmcstcsm5 ...
 
 
