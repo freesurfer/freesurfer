@@ -84,6 +84,9 @@ VolumeCollection::VolumeCollection () :
 			 "is for converting RAS points acquired from a "
 			 "surface that is associated with a volume and "
 			 "didn't generate coordinates with CRAS info." );
+  commandMgr.AddCommand( *this, "GetVolumeAverageValueInROI", 2,
+			 "collectionID, roiID", "Returns the average value "
+			 "of the voxels in an ROI in a volume." );
 }
 
 VolumeCollection::~VolumeCollection() {
@@ -893,6 +896,49 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
       ssReturnValues << surfaceRAS[0] << " " << surfaceRAS[1] << " " << surfaceRAS[2];
       sReturnValues = ssReturnValues.str();
       sReturnFormat = "Lfffl";
+
+      return ok;
+    }
+  }
+
+  // GetVolumeAverageValueInROI <colllectionID> <roiID>
+  if( 0 == strcmp( isCommand, "GetVolumeAverageValueInROI" ) ) {
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad collectionID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      int roiID;
+      try {
+	roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+      catch( runtime_error& e ) {
+	sResult = string("bad collectionID: ") + e.what();
+	return error;
+      }
+    
+      map<int,ScubaROI*>::iterator tIDROI;
+      tIDROI = mROIMap.find( roiID );
+      if( tIDROI != mROIMap.end() ) {
+	ScubaROIVolume* roi = (ScubaROIVolume*)(*tIDROI).second;
+
+	float averageValue;
+	averageValue = GetAverageValue( *roi );
+	stringstream ssReturnValues;
+	ssReturnValues << averageValue;
+	sReturnValues = ssReturnValues.str();
+	sReturnFormat = "f";
+
+      } else {
+	sResult = string("ROI doesn't belong to that collection.");
+	return error;
+      }	
 
       return ok;
     }
@@ -1831,6 +1877,29 @@ VolumeCollection::GetAverageValue ( list<VolumeLocation>& ilLocations ) {
   }
 
   return sumValue / (float)ilLocations.size();
+}
+
+float
+VolumeCollection::GetAverageValue ( ScubaROIVolume& iROI ) {
+  
+  list<VolumeLocation> lLocs;
+  int voxel[3];
+  for( voxel[2] = 0; voxel[2] < mMRI->width; voxel[2]++ ) {
+    for( voxel[1] = 0; voxel[1] < mMRI->height; voxel[1]++ ) {
+      for( voxel[0] = 0; voxel[0] < mMRI->depth; voxel[0]++ ) {
+	
+	if( iROI.IsVoxelSelected( voxel ) ) {
+	  
+	  VolumeLocation& loc = 
+	    (VolumeLocation&) MakeLocationFromIndex( voxel );
+	  lLocs.push_back( loc );
+	  delete &loc;
+	}
+      }
+    }
+  }
+
+  return GetAverageValue( lLocs );
 }
 
 VectorOps::IntersectionResult 

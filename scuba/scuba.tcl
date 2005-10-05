@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.146 2005/10/04 17:44:59 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.147 2005/10/05 14:37:14 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -547,6 +547,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "Find Nearest Surface Vertex..." { DoFindNearestSurfaceVertex } }
 	{command "Read/Write Cursor from edit.dat File..." { DoReadWriteCursorFromEditDatFileDlog } }
 	{command "Generate Segmentation Volume Report..." { DoGenerateReportDlog } }
+	{command "ROI Stats..." { DoROIStatsDlog } }
     }
 
     pack $gaMenu(tools) -side left
@@ -5510,7 +5511,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.146 2005/10/04 17:44:59 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.147 2005/10/05 14:37:14 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6716,7 +6717,112 @@ proc SetCursorFromVolumeIndexCoords { iVolumeID iIdxX iIdxY iIdxZ } {
 
     SetViewRASCursor [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
 }
+
+proc DoROIStatsDlog {} {
+    global gaCollection
+    global gaLayer
+    global gaDialog
+    global glShortcutDirs
+    global gaROIStatsInfo
+
+    set gaROIStatsInfo(volumes) {}
+    foreach layerID $gaLayer(idList) {
+	if { [string match [GetLayerType $layerID] 2DMRI] } {	
+	    set volID [Get2DMRILayerVolumeCollection $layerID]
+	    lappend gaROIStatsInfo(volumes) $volID
+	}
+    }
     
+    # If no volumes, return.
+    if { [llength $gaROIStatsInfo(volumes)] == 0 } {
+	tkuErrorDlog "Must have volumes loaded before getting ROI stats."
+	return
+    }
+
+    set wwDialog .wwROIStats
+    if { [tkuCreateDialog $wwDialog "ROI Stats" {-borderwidth 10}] } {
+
+	set fwVolumes  $wwDialog.fwVolumes
+	set fwROIs     $wwDialog.fwROIs	
+	set fwInfo    $wwDialog.fwInfo
+	set fwButtons  $wwDialog.fwButtons
+
+	tixOptionMenu $fwVolumes \
+	    -label "Volume:" \
+	    -command ROIStatsDlogVolCallback \
+	    -variable gaROIStatsInfo(volID)
+	FillMenuFromList $fwVolumes \
+	    $gaROIStatsInfo(volumes) "GetCollectionLabel %s" {} false
+
+
+	tixOptionMenu $fwROIs \
+	    -label "ROI:" \
+	    -variable gaROIStatsInfo(roiID) \
+	    -command ROIStatsDlogROICallback
+
+	set gaROIStatsInfo(widget,ROImenu) $fwROIs
+
+	frame $fwInfo
+	set ewInfo $fwInfo.ewInfo
+
+	tixScrolledText $ewInfo -scrollbar y
+	set gaROIStatsInfo(widget,text) $ewInfo
+
+	set gaROIStatsInfo(widget,text) 
+
+	pack $ewInfo -fill both -expand 1
+
+	# Triggers ROIStatsDlogVolCallback
+	set gaROIStatsInfo(volID) [lindex $gaROIStatsInfo(volumes) 0]
+
+	tkuMakeCloseButton $fwButtons $wwDialog
+
+	pack $fwVolumes $fwROIs $fwInfo $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+    }
+}
+ 
+proc ROIStatsDlogVolCallback { iVolID } {
+    global gaROIStatsInfo
+
+    set volID $gaROIStatsInfo(volID)
+    set idList [GetROIIDListForCollection $volID]
+    FillMenuFromList $gaROIStatsInfo(widget,ROImenu) \
+	$idList "GetROILabel %s" {} false
+
+    if { [llength $idList] > 0 } {
+	set gaROIStatsInfo(roiID) [lindex $idList 0]
+    }
+}
+
+proc ROIStatsDlogROICallback { iROIID } {
+    global gaROIStatsInfo
+ 
+    [$gaROIStatsInfo(widget,text) subwidget text] \
+	config -wrap word -relief ridge -bd 1
+
+    [$gaROIStatsInfo(widget,text) subwidget text] \
+	delete 1.0 end
+
+    set sText ""
+    set err [catch {
+	
+	set average [GetVolumeAverageValueInROI $gaROIStatsInfo(volID) $gaROIStatsInfo(roiID)]
+	set sText "Average value: $average"
+	
+    } sResult]
+    if { 0 != $err } {
+	set sText $sResult
+    }
+    
+    [$gaROIStatsInfo(widget,text) subwidget text] \
+	insert end $sText
+}
+   
 # MAIN =============================================================
 
 set argc [GetArgc]
