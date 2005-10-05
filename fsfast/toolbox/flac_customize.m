@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.6 2005/03/19 00:17:02 greve Exp $
+% $Id: flac_customize.m,v 1.7 2005/10/05 19:22:14 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -62,6 +62,7 @@ for nthev = 1:nev
       fprintf('ERROR: reading timing file %s\n',stfpath);
       flacnew = []; return; 
     end
+    st(:,1) = st(:,1) + flacnew.stimulusdelay;
     flacnew.ev(nthev).st = st;
     continue;
   end  
