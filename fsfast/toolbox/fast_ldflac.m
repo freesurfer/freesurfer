@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile,flac)
 % flac = fast_ldflac(flacfile,<flac>)
 %
-% $Id: fast_ldflac.m,v 1.11 2005/02/01 19:21:59 greve Exp $
+% $Id: fast_ldflac.m,v 1.12 2005/10/05 19:21:50 greve Exp $
 
 if(nargin < 0 | nargin > 2)
   fprintf('flac = fast_ldflac(flacfile,<flac>)\n');
@@ -19,6 +19,7 @@ if(isempty(flac))
   flac.TR = [];
   flac.mask = '';
   flac.inorm = [];
+  flac.stimulusdelay = 0;
   flac.whiten = 0;
   flac.fixacf = 0;
   flac.acfsegstem = '';
@@ -97,6 +98,7 @@ while(1)
    case 'runlistfile', flac.runlistfile = sscanf(tline,'%*s %s',1);
    case 'whiten',      flac.whiten      = sscanf(tline,'%*s %d',1);
    case 'acfbins',     flac.acfbins     = sscanf(tline,'%*s %d',1);
+   case 'stimulusdelay', flac.stimulusdelay  = sscanf(tline,'%*s %f',1);
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
    case 'ACFSEG',      flac.acfsegstem  = sscanf(tline,'%*s %s',1);
    case 'INHERIT',     
