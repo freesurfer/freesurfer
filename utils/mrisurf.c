@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/10/03 19:31:32 $
-// Revision       : $Revision: 1.374 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2005/10/05 15:32:27 $
+// Revision       : $Revision: 1.375 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -33178,12 +33178,12 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 	  fclose(fp) ;
 	}
     }
-  if (Gdiag & DIAG_WRITE)
+	if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-      MRISwrite(mris,"lh.new_orig");
+      MRISwrite(mris,"new_orig");
       MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
-      MRISwrite(mris,"lh.new_qsphere");
+      MRISwrite(mris,"new_qsphere");
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
       MRISclearCurvature(mris) ;
       for (i = 0 ; i < dl->ndefects ; i++)
