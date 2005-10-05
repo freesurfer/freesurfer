@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.147 2005/10/05 14:37:14 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.148 2005/10/05 19:00:55 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5511,7 +5511,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.147 2005/10/05 14:37:14 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.148 2005/10/05 19:00:55 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6812,7 +6812,8 @@ proc ROIStatsDlogROICallback { iROIID } {
     set err [catch {
 	
 	set average [GetVolumeAverageValueInROI $gaROIStatsInfo(volID) $gaROIStatsInfo(roiID)]
-	set sText "Average value: $average"
+	set stdDev [GetVolumeStandardDeviationInROI $gaROIStatsInfo(volID) $gaROIStatsInfo(roiID)]
+	set sText "Average value: $average\nStd dev: $stdDev"
 	
     } sResult]
     if { 0 != $err } {

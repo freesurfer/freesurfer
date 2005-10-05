@@ -87,6 +87,9 @@ VolumeCollection::VolumeCollection () :
   commandMgr.AddCommand( *this, "GetVolumeAverageValueInROI", 2,
 			 "collectionID, roiID", "Returns the average value "
 			 "of the voxels in an ROI in a volume." );
+  commandMgr.AddCommand( *this, "GetVolumeStandardDeviationInROI", 2,
+			 "collectionID, roiID", "Returns the standard "
+			 "deviation of the voxels in an ROI in a volume." );
 }
 
 VolumeCollection::~VolumeCollection() {
@@ -932,6 +935,49 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 	averageValue = GetAverageValue( *roi );
 	stringstream ssReturnValues;
 	ssReturnValues << averageValue;
+	sReturnValues = ssReturnValues.str();
+	sReturnFormat = "f";
+
+      } else {
+	sResult = string("ROI doesn't belong to that collection.");
+	return error;
+      }	
+
+      return ok;
+    }
+  }
+
+  // GetVolumeStandardDeviationInROI <colllectionID> <roiID>
+  if( 0 == strcmp( isCommand, "GetVolumeStandardDeviationInROI" ) ) {
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad collectionID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+
+      int roiID;
+      try {
+	roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+      }
+      catch( runtime_error& e ) {
+	sResult = string("bad collectionID: ") + e.what();
+	return error;
+      }
+    
+      map<int,ScubaROI*>::iterator tIDROI;
+      tIDROI = mROIMap.find( roiID );
+      if( tIDROI != mROIMap.end() ) {
+	ScubaROIVolume* roi = (ScubaROIVolume*)(*tIDROI).second;
+
+	float averageValue = GetAverageValue( *roi );
+	float stdDev = GetStandardDeviation( *roi, averageValue );
+	stringstream ssReturnValues;
+	ssReturnValues << stdDev;
 	sReturnValues = ssReturnValues.str();
 	sReturnFormat = "f";
 
@@ -1864,7 +1910,7 @@ float
 VolumeCollection::GetAverageValue ( list<VolumeLocation>& ilLocations ) {
 
   if( ilLocations.size() < 1 ) {
-    throw runtime_error( "Empty list" );
+    throw runtime_error( "No voxels" );
   }
 
   float sumValue = 0;
@@ -1900,6 +1946,51 @@ VolumeCollection::GetAverageValue ( ScubaROIVolume& iROI ) {
   }
 
   return GetAverageValue( lLocs );
+}
+
+float 
+VolumeCollection::GetStandardDeviation ( list<VolumeLocation>& ilLocations,
+					 float iMean) {
+
+  if( ilLocations.size() < 1 ) {
+    throw runtime_error( "No voxels" );
+  }
+
+  float sumDeviation = 0;
+  list<VolumeLocation>::iterator tLocation;
+  for( tLocation = ilLocations.begin(); tLocation != ilLocations.end();
+       ++tLocation ) {
+
+    VolumeLocation loc = *tLocation;
+    float value = GetMRINearestValue( loc );
+    float deviation = (value - iMean) * (value - iMean);
+    sumDeviation += deviation;
+  }
+
+  return sumDeviation / (float)ilLocations.size();
+}
+
+float
+VolumeCollection::GetStandardDeviation ( ScubaROIVolume& iROI, float iMean ) {
+  
+  list<VolumeLocation> lLocs;
+  int voxel[3];
+  for( voxel[2] = 0; voxel[2] < mMRI->width; voxel[2]++ ) {
+    for( voxel[1] = 0; voxel[1] < mMRI->height; voxel[1]++ ) {
+      for( voxel[0] = 0; voxel[0] < mMRI->depth; voxel[0]++ ) {
+	
+	if( iROI.IsVoxelSelected( voxel ) ) {
+	  
+	  VolumeLocation& loc = 
+	    (VolumeLocation&) MakeLocationFromIndex( voxel );
+	  lLocs.push_back( loc );
+	  delete &loc;
+	}
+      }
+    }
+  }
+  
+  return GetStandardDeviation( lLocs, iMean );
 }
 
 VectorOps::IntersectionResult 

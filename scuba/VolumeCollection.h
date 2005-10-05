@@ -238,6 +238,8 @@ class VolumeCollection : public DataCollection {
   // Returne the average value of the input locations.
   float GetAverageValue ( std::list<VolumeLocation>& ilLocations );
   float GetAverageValue ( ScubaROIVolume& iROI );
+  float GetStandardDeviation ( std::list<VolumeLocation>& ilLocations, float iMean );
+  float GetStandardDeviation ( ScubaROIVolume& iROI, float iMean );
 
 
   // Print out the corner RAS coordinates of a voxel.
