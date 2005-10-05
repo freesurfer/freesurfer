@@ -16,7 +16,7 @@ function vol = fast_mat2vol(mat,szvol,sliceflag)
 %
 % See also fast_vol2mat.
 %
-% $Id: fast_mat2vol.m,v 1.2 2005/09/15 15:53:45 greve Exp $
+% $Id: fast_mat2vol.m,v 1.3 2005/10/05 20:42:04 greve Exp $
 
 vol = [];
 
@@ -30,7 +30,7 @@ if(isfield(mat,'volmat'))
   mat   = mat.volmat;
 else
   if(nargin ~= 2)  
-    printf('ERROR: need szvol if mat is not an mri struct\n');
+    fprintf('ERROR: need szvol if mat is not an mri struct\n');
     return;
   end
 end
