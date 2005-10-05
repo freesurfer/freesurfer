@@ -18,7 +18,7 @@ function [Fsig, F, betamn] = flacffx(flac,conname,saveresults,jknthrun)
 %
 % If saveresults, 
 %
-% $Id: flacffx.m,v 1.4 2005/03/16 20:53:16 greve Exp $
+% $Id: flacffx.m,v 1.5 2005/10/05 19:22:51 greve Exp $
 %
 
 Fsig = [];
@@ -69,13 +69,13 @@ for nthrun = 1:nruns
 
   % Skip if this is a jackknifed run
   if(nthrun == jknthrun) 
-    fprintf('  nthrun = %d/%d -- jackknifing\n',nthrun,nruns);
+    %fprintf('  nthrun = %d/%d -- jackknifing\n',nthrun,nruns);
     continue; 
   end
   jthrun = jthrun + 1;
 
   % Customize the flac
-  fprintf('  nthrun = %d/%d\n',nthrun,nruns);
+  %fprintf('  nthrun = %d/%d\n',nthrun,nruns);
   flac.nthrun = nthrun;
   flac = flac_customize(flac);
   %flac = flac_desmat(flac);
@@ -163,7 +163,7 @@ end
 
 % Now go through each contrast and compute the significances
 for nthcon = conind
-  fprintf('  contrast %s %d/%d\n',flac.con(nthcon).name,nthcon,ncon);
+  %fprintf('  contrast %s %d/%d\n',flac.con(nthcon).name,nthcon,ncon);
   C = flac.con(nthcon).C;
   J = size(C,1);
   F = gam(nthcon);
@@ -208,7 +208,7 @@ for nthcon = conind
 
 end % con
 
-fprintf('  flacffx done\n');
+%fprintf('  flacffx done\n');
 
 
 
