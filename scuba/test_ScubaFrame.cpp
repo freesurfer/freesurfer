@@ -2,7 +2,7 @@
 #include <sstream>
 #include "ScubaFrame.h"
 extern "C" {
-#include "glut.h"
+#include "GL/glut.h"
 }
 #include "Scuba-impl.h"
 

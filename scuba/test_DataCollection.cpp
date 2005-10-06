@@ -107,7 +107,7 @@ DataCollectionTester::Test ( Tcl_Interp* iInterp ) {
 
     delete col4;
     try {
-      DataCollection& col4comp = DataCollection::FindByID( col4ID );
+      DataCollection::FindByID( col4ID );
       throw( logic_error("Didn't throw on deleted collection") );
     }
     catch( ... ) {}

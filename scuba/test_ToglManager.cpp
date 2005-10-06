@@ -3,7 +3,7 @@
 #include "Scuba-impl.h"
 
 extern "C" {
-#include "glut.h"
+#include "GL/glut.h"
 }
 
 using namespace std;

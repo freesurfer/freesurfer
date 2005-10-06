@@ -175,11 +175,13 @@ testIDTracker_LDADD=$(LIBS_TCL_OPENGL) \
 
 testBroadcaster_SOURCES=test_Broadcaster.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
-testBroadcaster_LDADD=
+testBroadcaster_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testUtilities_SOURCES=test_Utilities.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
-testUtilities_LDADD=
+testUtilities_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testMatrix44_SOURCES=test_Matrix44.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
@@ -193,19 +195,23 @@ testTransform44_LDADD=$(LIBS_TCL_OPENGL) \
 
 testVolume3_SOURCES=test_Volume3.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
-testVolume3_LDADD=
+testVolume3_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testPath_SOURCES=test_Path.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
-testPath_LDADD=
+testPath_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testShortestPathFinder_SOURCES=test_ShortestPathFinder.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
-testShortestPathFinder_LDADD=
+testShortestPathFinder_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testVectorOps_SOURCES=test_VectorOps.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
-testVectorOps_LDADD=
+testVectorOps_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testRASToVoxel_SOURCES= test_RASToVoxel.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
@@ -215,11 +221,12 @@ testRASToVoxel_LDADD=$(LIBS_TCL_OPENGL) \
 testToglManager_SOURCES=test_ToglManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS)
 testToglManager_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(GLUT_LIBS)
 
 testDataManager_SOURCES=test_DataManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
-testDataManager_LDADD=
+testDataManager_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testTclCommandManager_SOURCES=test_TclCommandManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) 
@@ -228,20 +235,24 @@ testTclCommandManager_LDADD=$(LIBS_TCL_OPENGL) \
 
 testPreferencesManager_SOURCES=test_PreferencesManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) 
-testPreferencesManager_LDADD=
+testPreferencesManager_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testUndoManager_SOURCES=test_UndoManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
-testUndoManager_LDADD=
+testUndoManager_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testCoordTimer_SOURCES= test_CoordTimer.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
-testCoordTimer_LDADD=
-testCoordTimer_LDFLAGS=-L/opt/intel/mkl70/lib/32 -lmkl -lm
+testCoordTimer_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+#testCoordTimer_LDFLAGS=-L/opt/intel/mkl70/lib/32 -lmkl -lm
 
 testDataCollection_SOURCES=test_DataCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
-testDataCollection_LDADD=
+testDataCollection_LDADD=$(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 testScubaDataCollections_SOURCES=test_ScubaDataCollections.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 

@@ -1,3 +1,4 @@
+#include <fstream>
 #include "ScubaTransform.h"
 extern "C" {
 #include "macros.h"
@@ -18,6 +19,7 @@ using namespace std;
 
 #define AssertTclOK(x) \
     if( TCL_OK != (x) ) { \
+      stringstream ssError; \
       ssError << "Tcl_Eval returned not TCL_OK: " << endl  \
 	     << "Command: " << sCommand << endl \
 	     << "Result: " << iInterp->result; \
@@ -35,8 +37,6 @@ public:
 
 void 
 ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
-
-  stringstream ssError;
 
   try {
 
@@ -60,6 +60,7 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
     in[0] = 5;  in[1] = 6; in[2] = 7;
     transform.MultiplyVector3( in, out );
     if( !(in[0]*5 == out[0] && in[1]*5 == out[1] && in[2]*5 == out[2]) ) {
+      stringstream ssError;
       ssError << "Scale mult check failed" << endl
 	      << transform << endl
 	      << "out " << Point3<float>(out) << endl;
@@ -116,6 +117,7 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
     for( int r = 0; r < 4; r++ ) {
       for( int c = 0; c < 4; c++ ) {
 	float value = transform.m( c, r );
+	stringstream ssError;
 	ssError << "TCL set check failed for " << c << ", " << r;
 	Assert((value - (r*4) == c &&
 		(value - c) / 4 == r),
@@ -132,6 +134,7 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
       for( int c = 0; c < 4; c++ ) {
 	float value;
 	ssResult >> value;
+	stringstream ssError;
 	ssError << "TCL set check failed for " << c << ", " << r;
 	Assert((value - (r*4) == c &&
 		(value - c) / 4 == r),
@@ -139,16 +142,32 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
       }
     }
 
-    ScubaTransform l;
-    sprintf( sCommand, "LoadTransformFromLTAFile %d sample.lta", l.GetID() );
-    rTcl = Tcl_Eval( iInterp, sCommand );
-    AssertTclOK( rTcl );
-    Assert((l(0,0) == 1 && l(1,0) == 2 && l(2,0) == 3 && l(3,0) == 4 &&
-	    l(0,1) == 5 && l(1,1) == 6 && l(2,1) == 7 && l(3,1) == 8 &&
-	    l(0,2) == 9 && l(1,2) == 10 && l(2,2) == 11 && l(3,2) == 12 &&
-	    l(0,3) == 13 && l(1,3) == 14 && l(2,3) == 15 && l(3,3) == 16),
-	   "LTA didn't load properly.");
+    char* testDataPath = getenv("FSDEV_TEST_DATA");
+    if( NULL != testDataPath ) {
 
+      string fnLTA = string(testDataPath) + 
+	"/transform/testScubaTransform.lta";
+      ifstream fLTA( fnLTA.c_str(), ios::in );
+      if( !fLTA ) {
+	cerr << "WARNING: File " + fnLTA + " not found, test skipped." << endl;
+      } else {
+
+	fLTA.close();
+	ScubaTransform l;
+	sprintf( sCommand, "LoadTransformFromLTAFile %d %s", 
+		 l.GetID(), fnLTA.c_str() );
+	rTcl = Tcl_Eval( iInterp, sCommand );
+	AssertTclOK( rTcl );
+	Assert((l(0,0) == 1 && l(1,0) == 2 && l(2,0) == 3 && l(3,0) == 4 &&
+		l(0,1) == 5 && l(1,1) == 6 && l(2,1) == 7 && l(3,1) == 8 &&
+		l(0,2) == 9 && l(1,2) == 10 && l(2,2) == 11 && l(3,2) == 12 &&
+		l(0,3) == 13 && l(1,3) == 14 && l(2,3) == 15 && l(3,3) == 16),
+	       "LTA didn't load properly.");
+	
+      }
+    } else {
+      cerr << "WARNING: FSDEV_TEST_DATA not defined, couldn't perform some tests." << endl;
+    }
   }
   catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;

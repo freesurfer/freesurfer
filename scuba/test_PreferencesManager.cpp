@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/05/24 21:28:13 $
-// Revision       : $Revision: 1.6 $
+// Revision Date  : $Date: 2005/10/06 23:27:24 $
+// Revision       : $Revision: 1.7 $
 
 #include <stdlib.h>
 #include "string_fixed.h"
@@ -57,7 +57,7 @@ void TestWR( PreferencesManager::SimplePreferenceValue& iValue,
 	     string                isKeyName, 
 	     string                isError ) {
   
-  PreferencesManager& prefsMgr = PreferencesManager::GetManager();
+  PreferencesManager::GetManager();
 
   TestW( iValue, isKeyName, isError );
   TestR( iValue, isKeyName, isError );
@@ -68,7 +68,7 @@ void TestWR( PreferencesManager::SimplePreferenceValue& iValue,
 
 
 // Run lots of test cycles on a certain pref value type.
-template <typename TPrefValue, typename TValue>
+template <class TPrefValue, class TValue>
 void TestType ( int icValues,
 		string(*iGetName)(int n),
 		TValue(*iGetNewValue)() ) {
@@ -87,7 +87,7 @@ void TestType ( int icValues,
   }
 
   // TestRegister and TestWR all our values.
-  map<string,TPrefValue*>::iterator tValue;
+  typename map<string,TPrefValue*>::iterator tValue;
   for( tValue = aValues.begin(); tValue != aValues.end(); ++tValue ) {
     
     string sName = (*tValue).first;

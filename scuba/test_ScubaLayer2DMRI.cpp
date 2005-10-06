@@ -43,8 +43,8 @@ ScubaLayer2DMRITester::Test ( Tcl_Interp* iInterp ) {
     }
     VolumeCollection vol;
     vol.SetFileName( fnMRI );
-    MRI* mri = vol.GetMRI();
-    int collectionID = vol.GetID();
+    vol.GetMRI();
+    vol.GetID();
 
     ScubaLayer2DMRI layer;
     layer.SetVolumeCollection( vol );
@@ -54,13 +54,13 @@ ScubaLayer2DMRITester::Test ( Tcl_Interp* iInterp ) {
     char sCommand[1024];
     int rTcl;
     
-    sprintf( sCommand, "SetVolumeCollection 99 99" );
+    sprintf( sCommand, "Set2DMRILayerVolumeCollection 99 99" );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
 
     int layerID = layer.GetID();
     int volID = vol.GetID();
-    sprintf( sCommand, "SetVolumeCollection %d %d", layerID, volID );
+    sprintf( sCommand, "Set2DMRILayerVolumeCollection %d %d", layerID, volID );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
 
