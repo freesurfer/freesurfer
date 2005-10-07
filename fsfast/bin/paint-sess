@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # paint-sess
 #
-set VERSION = '$Id: paint-sess,v 1.6 2005/08/30 17:13:35 greve Exp $';
+set VERSION = '$Id: paint-sess,v 1.7 2005/10/07 17:48:04 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -182,7 +182,11 @@ foreach hs ($hemi)
       echo "ERROR: $mapdir does not exist" |& tee -a $LF
       exit 1;
     endif
-    set inmapstem = $mapdir/$map
+    if($con == omnibus && $DoAllContrasts) then
+      set inmapstem = $mapdir/fsig
+    else
+      set inmapstem = $mapdir/$map
+    endif
 
     if(! $IsGroup ) then
       set regfile = $sess/$fsd/register.dat;
