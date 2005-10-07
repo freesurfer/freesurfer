@@ -1,3 +1,4 @@
+#include <fstream>
 #include "VolumeCollection.h"
 extern "C" {
 #include "macros.h"
@@ -25,7 +26,26 @@ int main ( int argc, char** argv ) {
 
   try {
 
-    string fnVol( "/home/kteich/freesurfer/subjects/bert/mri/T1" );
+    char* sSubjectsDir = getenv("SUBJECTS_DIR");
+    char* sTestDataDir = getenv("FSDEV_TEST_DATA");
+    
+    string fnVol;
+    
+    bool bFound = true;
+    if( NULL != sTestDataDir ) {
+      fnVol = string(sTestDataDir) + "anatomical/bert/mri/T1";
+      ifstream fVol( fnVol.c_str(), ios::in );
+      if( !fVol ) {
+	if( NULL != sSubjectsDir ) {
+	  fnVol = string(sSubjectsDir) + "/bert/mri/T1";
+	  ifstream fVol( fnVol.c_str(), ios::in );
+	  if( !fVol ) {
+	    throw runtime_error( "Couldn't find necessary test data" );
+	  }
+	}
+      }
+      fVol.close();
+    }
 
     VolumeCollection col;
     col.SetFileName( fnVol );
@@ -37,9 +57,11 @@ int main ( int argc, char** argv ) {
     Timer timer;
     float fps[10];
 
+#if 0
     cerr << "Ready?" << endl;
     char blah;
     cin >> blah;
+#endif
 
     for( int i = 0; i < 10; i++ ) {
       

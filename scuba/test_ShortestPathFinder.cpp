@@ -23,6 +23,7 @@ public:
   void Test();
 };
 
+// These edge costs set us up so that we should be straight from 2,2 to 8,8
 float const maEdgeCosts[10][10] = {
   {  9,   9,   9,   9,   9,   9,   9,   9,   9,   9},
   {  9,   1,   1,   1,   1,   1,   1,   1,   1,   9},
@@ -59,10 +60,31 @@ ShortestPathFinderTester::Test () {
     finder.SetDebug( true );
 
     Point2<int> begin( 1, 1 );
-    Point2<int> end( 8, 1 );
+    Point2<int> end( 8, 8 );
     list<Point2<int> > points;
     finder.FindPath( begin, end, points );
     
+    // Our path should be straight from 2,2 to 8,8.
+    list<Point2<int> >::iterator tPoint;
+    int nPoint = 0;
+    for( tPoint = points.begin(); tPoint != points.end(); ++tPoint, nPoint++ ){
+      Point2<int> p = *tPoint;
+      stringstream ssError;
+      bool bGood = false;
+      switch( nPoint ) {
+      case 0: bGood = p[0] == 2 && p[1] == 2; break;
+      case 1: bGood = p[0] == 3 && p[1] == 3; break;
+      case 2: bGood = p[0] == 4 && p[1] == 4; break;
+      case 3: bGood = p[0] == 5 && p[1] == 5; break;
+      case 4: bGood = p[0] == 6 && p[1] == 6; break;
+      case 5: bGood = p[0] == 7 && p[1] == 7; break;
+      case 6: bGood = p[0] == 8 && p[1] == 8; break;
+      default: ssError << "Too many points!" << endl; break;
+      }
+      ssError << "Wrong point at index " << nPoint << ", was " << p;
+      Assert( (bGood), ssError.str() );      
+    }
+
   }
   catch( runtime_error& e ) {
     cerr << "failed with exception: " << e.what() << endl;

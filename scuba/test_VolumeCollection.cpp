@@ -4,6 +4,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <map>
+#include <fstream>
 #include "VolumeCollection.h"
 #include "DataManager.h"
 extern "C" {
@@ -47,25 +48,27 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
   
   try {
   
-    char* testDataPath = getenv("FSDEV_TEST_DATA");
-    if( NULL == testDataPath ) {
-      throw
-	runtime_error("Couldn't load test data: FSDEV_TEST_DATA not defined" );
-    }
-    string fnTestDataPath( testDataPath );
-
-    string fnMRI = "/Users/kteich/work/subjects/bert/mri/T1";
-    
     char* sSubjectsDir = getenv("SUBJECTS_DIR");
-    
-    if( NULL != sSubjectsDir ) {
-      fnMRI = string(sSubjectsDir) + "/bert/mri/T1";
+    char* sTestDataDir = getenv("FSDEV_TEST_DATA");
+
+    string fnMRI;
+    if( NULL != sTestDataDir ) {
+      fnMRI = string(sTestDataDir) + "anatomical/bert/mri/T1";
+      ifstream fMRI( fnMRI.c_str(), ios::in );
+      if( !fMRI ) {
+	if( NULL != sSubjectsDir ) {
+	  fnMRI = string(sSubjectsDir) + "/bert/mri/T1";
+	  ifstream fMRI( fnMRI.c_str(), ios::in );
+	  if( !fMRI ) {
+	    throw runtime_error("Couldn't find necessary test data.");
+	  }
+	}
+      }
     }
 
     VolumeCollection vol;
     vol.SetFileName( fnMRI );
     MRI* mri = vol.GetMRI();
-    
 
     Assert( (vol.GetTypeDescription() == "Volume"),
 	     "GetTypeDescription didn't return Volume" );
@@ -114,10 +117,12 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     Point3<int> index;
     world.Set( -50, 0, -80 );
     vol.RASToMRIIndex( world.xyz(), index.xyz() );
-    if( index.x() != 183 || index.y() != 208 || index.z() != 110 ) {
-      cerr << "RASToMRIIndex failed. world " 
-	   << world << " index " << index << endl;
-      throw( runtime_error( "failed" ) );
+    {
+      stringstream ssError;
+      ssError << "RASToMRIIndex failed. world " 
+	      << world << " index " << index;
+      Assert( (index.x() == 183 && index.y() == 208 && index.z() == 110),
+	      ssError.str() );
     } 
 
     // Set a transform that scales the volume up by 2x in the world.
@@ -130,12 +135,14 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 
     world.Set( -50, 0, -80 );
     vol.RASToDataRAS( world.xyz(), data.xyz() );
-    if( !(FEQUAL(data.x(),-25)) || 
-	!(FEQUAL(data.y(),0)) || 
-	!(FEQUAL(data.z(),-40)) ) {
-      cerr << "RASToDataRAS failed. world " 
-	   << world << " data " << data << endl;
-      throw( runtime_error( "failed" ) );
+    {
+      stringstream ssError;
+      ssError << "RASToDataRAS failed. world " 
+	      << world << " data " << data;
+      Assert( ((FEQUAL(data.x(),-25)) &&
+	       (FEQUAL(data.y(),0)) &&
+	       (FEQUAL(data.z(),-40))),
+	      ssError.str() );
     } 
     
     vol.RASToMRIIndex( world.xyz(), index.xyz() );
@@ -151,15 +158,17 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     VolumeLocation& loc = 
       (VolumeLocation&) vol.MakeLocationFromRAS( world.xyz() );
     if( !vol.IsInBounds( loc ) ) {
-      cerr << "IsInBounds failed. world " << world << endl;
-      throw( runtime_error( "failed" ) );
+      stringstream ssError;
+      ssError << "IsInBounds failed. world " << world;
+      throw( runtime_error( ssError.str() ) );
     }
     world.Set( -1000, 0, 0 );
     VolumeLocation& loc2 =
       (VolumeLocation&) vol.MakeLocationFromRAS( world.xyz() );
     if( vol.IsInBounds( loc2 ) ) {
-      cerr << "IsInBounds failed. world " << world << endl;
-      throw( runtime_error( "failed" ) );
+      stringstream ssError;
+      ssError << "IsInBounds failed. world " << world;
+      throw( runtime_error( ssError.str() ) );
     }
 
 
@@ -172,10 +181,11 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     VolumeLocation& loc3 =
       (VolumeLocation&) vol.MakeLocationFromRAS( world.xyz() );
     if( vol.IsInBounds( loc3 ) ) {
+      stringstream ssError;
       vol.RASToMRIIndex( world.xyz(), index.xyz() );
-      cerr << "IsRASInMRIBounds failed. world " << world 
-	   << " index " << index << endl;
-      throw( runtime_error( "failed" ) );
+      ssError << "IsRASInMRIBounds failed. world " << world 
+	      << " index " << index;
+      throw( runtime_error( ssError.str() ) );
     }
 
 
@@ -273,8 +283,14 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     {
       // This is a 5cubed volume whose values are set to the x
       // coordinate. So for x=3,y=0..4,z=0..4, value = 3. 
-      string fnVol = testDataPath +
+      string fnVol = sTestDataDir +
 	string("/anatomical/testVolumeCollection-GetVoxelsWithValue.mgh");
+      ifstream fVol( fnMRI.c_str(), ios::in );
+      if( !fVol ) {
+	throw runtime_error("Couldn't find necessary test data.");
+      }
+      fVol.close();
+
       VolumeCollection vol;
       vol.SetFileName( fnVol );
       vol.LoadVolume();
@@ -322,8 +338,14 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     // GetAverageValue
     {
       // We'll use the same volume as with GetVoxelsWithValue.
-      string fnVol = testDataPath +
+      string fnVol = sTestDataDir +
 	string("/anatomical/testVolumeCollection-GetVoxelsWithValue.mgh");
+      ifstream fVol( fnMRI.c_str(), ios::in );
+      if( !fVol ) {
+	throw runtime_error("Couldn't find necessary test data.");
+      }
+      fVol.close();
+
       VolumeCollection vol;
       vol.SetFileName( fnVol );
       vol.LoadVolume();

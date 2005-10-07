@@ -7,8 +7,12 @@
 #include "Array2.h"
 #include "DebugReporter.h"
 
-
-
+// This class calculates shortest paths in a 2d plane given a cost to
+// go to each point. (This is possibly incorrectly called 'edge cost',
+// but is actually the cost to get to that point from any other.) The
+// path from point A to B is returned as A+1 to B, not including the
+// original point A.
+// To use it, subclass Shortest and redefine GetEdgeCost if you want. 
 
 class listElement {
  public:

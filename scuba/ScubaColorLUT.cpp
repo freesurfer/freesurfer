@@ -252,9 +252,6 @@ ScubaColorLUT::ReadFile () {
       if( nEntry > maxEntry ) maxEntry = nEntry;
     
       if( nEntry != nLastEntry + 1 ) {
-	DebugOutput( << "Went from entry " << nLastEntry
-		     << " to " << nEntry );
-
 	for( int i = nLastEntry+1; i < nEntry; i++ ) {
 	  mEntries[i].color[0] = 255;
 	  mEntries[i].color[1] = 0;

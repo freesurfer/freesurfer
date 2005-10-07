@@ -289,6 +289,7 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     Assert( (NULL != view.mBuffer), "buffer not allocated on reshape" );
     Assert( (100 == aLayer[0].mWidth &&
 	     50 == aLayer[0].mHeight), "layer width/height not correct" );
+    view.DisableOutput();
     try {
       view.Reshape( -1, 0 );
       sError << "error not thrown when reshaping with -1, 0" << endl;
@@ -301,6 +302,7 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
       throw  0;
     }
     catch(...) {}
+    view.SetOutputStreamToCerr();
     view.Reshape( 200, 200 );
 
     // Draw the view, all our layers should be drawn.
@@ -485,8 +487,6 @@ ScubaViewTester::Test( Tcl_Interp* iInterp ) {
     view.RemoveAllLayers();
     Assert( (view.mLevelLayerIDMap.size() == 0 ), "RemoveAllLayers failed" );
 
-    cerr << "Done" << endl;
-
   }
   catch(...) {
     throw logic_error(sError.str());
@@ -520,7 +520,6 @@ int main( int argc, char** argv ) {
     }
 
     for( int nTrial = 0; nTrial < 50; nTrial++ ) {
-      cerr << "Trial " << nTrial << endl;
       ScubaViewTester tester0;
       tester0.Test( interp );
     }

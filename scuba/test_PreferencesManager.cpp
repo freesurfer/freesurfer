@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/10/06 23:27:24 $
-// Revision       : $Revision: 1.7 $
+// Revision Date  : $Date: 2005/10/07 20:32:30 $
+// Revision       : $Revision: 1.8 $
 
 #include <stdlib.h>
 #include "string_fixed.h"
@@ -157,11 +157,14 @@ string GetStringValue() {
 
 int main ( int argc, char** argv ) {
 
+  cerr << "Beginning test" << endl;
+
   string sHeader = "This is the header.";
 
   try { 
  
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
+    prefsMgr.DisableOutput();
 
     // Try filenames. Punching in a relative filename should end up in
     // the home dir. A full filename should be the same.

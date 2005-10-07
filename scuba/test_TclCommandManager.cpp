@@ -12,7 +12,13 @@ extern "C" {
 #include "TclCommandManager.h"
 #include "Scuba-impl.h"
 
-#define Assert(x,s)   if(!(x)) { throw logic_error( s ); }
+#define Assert(x,s)   \
+  if(!(x)) { \
+  stringstream ss; \
+  ss << "Line " << __LINE__ << ": " << s; \
+  cerr << ss.str().c_str() << endl; \
+  throw runtime_error( ss.str() ); \
+  }
 
 char* Progname = "test_TclCommandManager";
 
@@ -129,15 +135,12 @@ public:
       sprintf( asCommandNames[nCommand], "command%d", nCommand );
     }
     
-    cerr << "TclCommandListener::GetManager()" << endl;
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
     
     
     // Add half of the commands for each even listener before Start()
     // is called. Don't add them to the odd listeners.
-    cerr << "Adding " << kzCommands/2 << " commands to even listeners "
-      "before Start() is called" << endl;
     for( int nListener = 0; nListener < kzListeners; nListener++ ) {
       if( nListener % 2 == 0 ) {
 	for( int nCommand = 0; nCommand < kzCommands/2; nCommand++ ) {
@@ -151,13 +154,10 @@ public:
     
 
     // Call start.
-    cerr << "TclCommandManager::Start()" << endl;
     commandMgr.Start( iInterp );
     
     
     // Call those commands many times each.
-    cerr << "Calling " << kzCommands/2 << " commands " 
-	 << kNumberOfCallsToMake << " times" << endl;
     for( int nCommand = 0; nCommand < kzCommands/2; nCommand++ ) {
       char sCommandAndArgs[1024];
       sprintf( sCommandAndArgs, "%s arg1 arg2 arg3", 
@@ -190,8 +190,6 @@ public:
     
     // Add some commands for each even listener now that Start() has
     // called. Don't add them to the odd listeners.
-    cerr << "Adding " << kzCommands/2 << " commands to even listeners "
-      "after Start() is called" << endl;
     for( int nListener = 0; nListener < kzListeners; nListener++ ) {
       if( nListener % 2 == 0 ) {
 	for( int nCommand = kzCommands/2; nCommand < kzCommands; nCommand++ ) {
@@ -205,8 +203,6 @@ public:
     
     
     // Call those commands many times each.
-    cerr << "Calling " << kzCommands/2 << " commands " 
-	 << kNumberOfCallsToMake << " times" << endl;
     for( int nCommand = kzCommands/2; nCommand < kzCommands; nCommand++ ) {
       char sCommandAndArgs[1024];
       sprintf( sCommandAndArgs, "%s arg1 arg2 arg3", 
@@ -268,7 +264,6 @@ public:
     commandMgr.AddCommand( *listener, "TestThrow", 0, "", "" );
   
     // Run the script that will test tcl return stuff.
-    cerr << "Running tcl script..." << endl;
     rTcl = Tcl_EvalFile( iInterp, "test_TclCommandManager.tcl" );
     const char* sTclResult = Tcl_GetStringResult( iInterp );
     if( 0 != strcmp( sTclResult, "" ) ) {
@@ -283,17 +278,25 @@ public:
     
     // Delete all the listeners and then make sure the the manager's
     // command lists are empty.
+    TclCommandManager::Command* cmd = commandMgr.mlCommands.front();
     for( int nListener = 0; nListener < kzListeners; nListener++ ) {
       delete aListener[nListener];
     }
     delete listener;
-    
+
+    // Don't check the commands that are listened to by the
+    // TclCommandManager, as these are 'global'.
     std::list<TclCommandManager::Command*>::iterator tCommand;
     for( tCommand = commandMgr.mlCommands.begin(); 
 	 tCommand != commandMgr.mlCommands.end(); ++tCommand ) {
       TclCommandManager::Command* command = *tCommand;
-      if( 0 != command->mlListeners.size() ) {
-	cerr << "Not all listeners removed size = " 
+      if( 0 != command->mlListeners.size() &&
+	  command->msCommand != "PrintAllCommands" && 
+	  command->msCommand != "GetArgc" && 
+	  command->msCommand != "GetArgv" && 
+	  command->msCommand != "DebugOutput" ) {
+	cerr << "Not all listeners removed for command " 
+	     << command->msCommand << " size = " 
 	     << command->mlListeners.size() << endl;
       }
     }

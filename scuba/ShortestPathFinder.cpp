@@ -75,8 +75,6 @@ ShortestPathFinder::FindPath ( Point2<int>& iStartPoint,
       // Update the current path cost
       currentCost = maCost->Get( current );
 
-      DebugOutput( << "Pulled " << current << " with cost " << currentCost );
-
       // Mark this point done.
       maDone->Set( current, true );
 
@@ -115,13 +113,11 @@ ShortestPathFinder::FindPath ( Point2<int>& iStartPoint,
 	    
 	    // then put it in the proper place in Q for its new cost
 	    mQueue->Insert( neighbor, (int)newCost );
-
-	    DebugOutput( << "\tAdded neighbor " << neighbor 
-			 << " with new cost " << newCost );
 	  }
         }
       }
       
+#if 0
       if( mDebug ) {
 	cerr << "after pulling" << current << endl;
 	for( int nY = 0; nY < mzY; nY++ ) {
@@ -140,11 +136,11 @@ ShortestPathFinder::FindPath ( Point2<int>& iStartPoint,
 	}
 	cerr << endl;
       }
+#endif
     }
 
     // Start at the end and follow the direction table back to the
     // beginning, adding points on the way.
-    DebugOutput( << "Path:" );
     ioPoints.clear();
     Point2<int> current( end );
     Point2<int> next;
@@ -153,33 +149,13 @@ ShortestPathFinder::FindPath ( Point2<int>& iStartPoint,
 
       ioPoints.push_front( current );
 
-      DebugOutput( << current );
-
       next.Set( current.x() - aDirectionOffsets[maDir->Get(current)][0], 
 		current.y() - aDirectionOffsets[maDir->Get(current)][1]);
-
-      if( next.x() == current.x() && next.y() == current.y() ) {
-	DebugOutput( << "direction on " << current << " was " 
-		     << maDir->Get(current) << ", begin was " << begin
-		     << ", end was " << end );
-	break;
-      }
 
       current.Set( next.x(), next.y() );
     }
 
 #if 0
-    // Traverse that list in reverse and add it to the outgoing list.
-    ioPoints.clear();
-    list<Point2<int> >::reverse_iterator tPoints;
-    for( tPoints = points.end(); tPoints != points.begin(); tPoints++ ) {
-      ioPoints.p
-
-    }
-#endif
-
-
-
     if( mDebug ) {
       cerr << "final cost array and path" << endl;
       for( int nY = 0; nY < mzY; nY++ ) {
@@ -195,11 +171,13 @@ ShortestPathFinder::FindPath ( Point2<int>& iStartPoint,
 	    }
 	  }
 	  if ( bInPath ) {
-	    cerr.width( 4 );
+	    cerr.width( 7 );
+	    cerr.precision( 4 );
 	    cerr.fill( '-' );
 	    cerr << maCost->Get( nX, nY ) << "-";
 	  } else {
-	    cerr.width( 4 );
+	    cerr.width( 7 );
+	    cerr.precision( 4 );
 	    cerr.fill( ' ' );
 	    cerr << maCost->Get( nX, nY ) << " ";
 	  }
@@ -208,7 +186,7 @@ ShortestPathFinder::FindPath ( Point2<int>& iStartPoint,
       }
       cerr << endl;
     }
-
+#endif
 }
 
 

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <fstream>
 #include "string_fixed.h"
 #include <iostream>
 #include <sstream>
@@ -51,20 +52,17 @@ void TestLoader ( string const& ifnData,
 
   loader.SetOutputStreamToCerr();
 
-  cerr << "GetData( " << ifnData << " )" << endl;
   DataType data = loader.GetData( ifnData );
   Assert( 1 == loader.CountLoaded(), "CountLoaded didn't return 1" );
   Assert( 1 == loader.CountReferences(data), "CountReferences didn't return 1" );
 
   // Release the Data and check the count.
-  cerr << "Releasing" << endl;
   loader.ReleaseData( &data );
   Assert( 0 == loader.CountLoaded(), "CountLoaded didn't return 0" );
   Assert( 0 == loader.CountReferences(data), "CountReferences didn't return 0" );
   
   // Load the data with multiple references. Make sure we still only
   // loaded it once. Make sure all the Datas are ones we want.
-  cerr << "Loading multiple times" << endl;
   DataType data1 = loader.GetData( ifnData );
   Assert( 1 == loader.CountReferences(data1), "CountReferences didn't return 1" );
   Assert( 1 == loader.CountLoaded(),  "CountLoaded didn't return 1" );
@@ -78,7 +76,6 @@ void TestLoader ( string const& ifnData,
   Assert( data2 == data3, "Datas don't match" );
   
   // Release some of the references and make sure the Data is loaded.
-  cerr << "Releasing all but one" << endl;
   loader.ReleaseData( &data1 );
   Assert( 2 == loader.CountReferences(data2), "CountReferences didn't return 2" );
   Assert( 1 == loader.CountLoaded(), "CountLoaded didn't return 1" );
@@ -87,21 +84,16 @@ void TestLoader ( string const& ifnData,
   Assert( 1 == loader.CountLoaded(), "CountLoaded didn't return 1" );
   
   // Final release. Check the count.
-  cerr << "Releasing final instance" << endl;
   loader.ReleaseData( &data3 );
   Assert( 0 == loader.CountLoaded(), "CountLoaded didn't return 0" );
 
 
   // Load the data in a function, then check the counts, release the
   // data in a function, and check the counts again.
-  cerr << "Loading up one level" << endl;
   TestLoaderStackLoad<LoaderType,DataType>( ifnData, loader, data );
-  cerr << "Checking down one level" << endl;
   Assert( 1 == loader.CountLoaded(), "CountLoaded didn't return 1" );
   Assert( 1 == loader.CountReferences(data), "CountReferences didn't return 1" );
-  cerr << "Releasing up one level" << endl;
   TestLoaderStackRelease<LoaderType,DataType>( ifnData, loader, data );
-  cerr << "Checking down one level" << endl;
   Assert( 0 == loader.CountLoaded(), "CountLoaded didn't return 1" );
   Assert( 0 == loader.CountReferences(data), "CountReferences didn't return 1" );
 }
@@ -109,27 +101,63 @@ void TestLoader ( string const& ifnData,
 
 int main ( int argc, char** argv ) {
 
-  string fnMRI = "/Users/kteich/work/subjects/bert/mri/T1";
-  string fnMRIS = "/Users/kteich/work/subjects/bert/surf/lh.white";
-
-  char* sSubjectsDir = getenv("SUBJECTS_DIR");
-
-  if( NULL != sSubjectsDir ) {
-    fnMRI = string(sSubjectsDir) + "/bert/mri/T1";
-    fnMRIS = string(sSubjectsDir) + "/bert/surf/lh.white";
-  }
-
+  cerr << "Beginning test" << endl;
 
   try { 
  
     DataManager& dataMgr = DataManager::GetManager();
     dataMgr.SetOutputStreamToCerr();
+    
+    char* sSubjectsDir = getenv("SUBJECTS_DIR");
+    char* sTestDataDir = getenv("FSDEV_TEST_DATA");
+    
+    string fnMRI;
+    
+    bool bFound = true;
+    if( NULL != sTestDataDir ) {
+      fnMRI = string(sTestDataDir) + "anatomical/bert/mri/T1";
+      ifstream fMRI( fnMRI.c_str(), ios::in );
+      if( !fMRI ) {
+	if( NULL != sSubjectsDir ) {
+	  fnMRI = string(sSubjectsDir) + "/bert/mri/T1";
+	  ifstream fMRI( fnMRI.c_str(), ios::in );
+	  if( !fMRI ) {
+	    cerr << "WARNING: File " + fnMRI + 
+	      " not found, test skipped." << endl;
+	    bFound = false;
+	  }
+	}
+      }
+      fMRI.close();
+    }
 
-    cerr << "Testing MRILoader" << endl;
-    TestLoader<MRILoader,MRI*>( fnMRI, dataMgr.GetMRILoader() );
+    if( bFound ) {
+      TestLoader<MRILoader,MRI*>( fnMRI, dataMgr.GetMRILoader() );
+    }
 
-    cerr << "Testing MRISLoader" << endl;
-    TestLoader<MRISLoader,MRIS*>( fnMRIS, dataMgr.GetMRISLoader() );
+    string fnMRIS;
+
+    bFound = true;
+    if( NULL != sTestDataDir ) {
+      fnMRIS = string(sTestDataDir) + "anatomical/bert/surf/lh.white";
+      ifstream fMRIS( fnMRIS.c_str(), ios::in );
+      if( !fMRIS ) {
+	if( NULL != sSubjectsDir ) {
+	  fnMRIS = string(sSubjectsDir) + "/bert/surf/lh.white";
+	  ifstream fMRIS( fnMRIS.c_str(), ios::in );
+	  if( !fMRIS ) {
+	    cerr << "WARNING: File " + fnMRIS + 
+	      " not found, test skipped." << endl;
+	    bFound = false;
+	  }
+	}
+      }
+      fMRIS.close();
+    }
+
+    if( bFound ) {
+      TestLoader<MRISLoader,MRIS*>( fnMRIS, dataMgr.GetMRISLoader() );
+    }
 
   }
   catch( exception& e ) {

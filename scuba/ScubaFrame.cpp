@@ -19,7 +19,6 @@ ViewFactory* ScubaFrame::mFactory = NULL;
 ScubaFrame::ScubaFrame( ID iID ) 
   : WindowFrame( iID ) {
 
-  DebugOutput( << "Created ScubaFrame " << iID );
   SetOutputStreamToCerr();
 
   mcRows = 0;

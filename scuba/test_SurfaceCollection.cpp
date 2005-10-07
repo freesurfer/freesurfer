@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <fstream>
 #include "string_fixed.h"
 #include <iostream>
 #include <sstream>
@@ -19,14 +20,28 @@ char* Progname = "test_SurfaceCollection";
 
 int main ( int argc, char** argv ) {
 
+  cerr << "Beginning test..." << endl;
+
   try {
 
-    string fnMRIS = "/Users/kteich/work/subjects/bert/surf/lh.white";
-    
     char* sSubjectsDir = getenv("SUBJECTS_DIR");
+    char* sTestDataDir = getenv("FSDEV_TEST_DATA");
     
-    if( NULL != sSubjectsDir ) {
-      fnMRIS = string(sSubjectsDir) + "/bert/surf/lh.white";
+    string fnMRIS;
+    
+    if( NULL != sTestDataDir ) {
+      fnMRIS = string(sTestDataDir) + "anatomical/bert/surf/lh.white";
+      ifstream fMRIS( fnMRIS.c_str(), ios::in );
+      if( !fMRIS ) {
+	if( NULL != sSubjectsDir ) {
+	  fnMRIS = string(sSubjectsDir) + "/bert/surf/lh.white";
+	  ifstream fMRIS( fnMRIS.c_str(), ios::in );
+	  if( !fMRIS ) {
+	    throw runtime_error( "Couldn't find necessary data." );
+	  }
+	}
+      }
+      fMRIS.close();
     }
 
     SurfaceCollection surf;

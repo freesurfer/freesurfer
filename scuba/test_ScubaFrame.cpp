@@ -68,7 +68,7 @@ TestView::DoDraw() {
   glRasterPos2i( mWidth / 2, mHeight / 2 - sLabel.length()/2);
   
   glColor3f( 1, 0, 1 );
-  for( int nChar = 0; nChar < sLabel.length(); nChar++ ) {
+  for( int nChar = 0; nChar < (int)sLabel.length(); nChar++ ) {
     glutBitmapCharacter( GLUT_BITMAP_HELVETICA_18, sLabel[nChar] );
   }
   
@@ -232,7 +232,7 @@ int main( int argc, char** argv ) {
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
-    
+
     for( int nTrial = 0; nTrial < 50; nTrial++ ) {
       ScubaFrameTester tester0;
       tester0.Test( interp );
