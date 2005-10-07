@@ -1,5 +1,5 @@
 // mri_concat.c
-// $Id: mri_concat.c,v 1.2 2005/08/08 21:32:58 greve Exp $
+// $Id: mri_concat.c,v 1.3 2005/10/07 00:03:49 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +25,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.2 2005/08/08 21:32:58 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.3 2005/10/07 00:03:49 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[100];
@@ -146,10 +146,13 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
     else{
-      fprintf(stderr,"ERROR: Option %s unknown\n",option);
-      if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
-      exit(-1);
+      inlist[ninputs] = pargv[0];
+      ninputs ++;
+      nargsused = 1;
+      //fprintf(stderr,"ERROR: Option %s unknown\n",option);
+      //if(singledash(option))
+      //fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      //exit(-1);
     }
     nargc -= nargsused;
     pargv += nargsused;
@@ -167,7 +170,7 @@ static void print_usage(void)
 {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --i invol <--i invol ...> \n");
+  printf("   --i invol <--i invol ...> (don't need --i) \n");
   printf("   --o out \n");
   printf("\n");
   printf("   --help      print out information on how to use this program\n");
@@ -182,6 +185,10 @@ static void print_help(void)
   print_usage() ;
 
   printf("Concatenates input data sets.\n");
+  printf("EXAMPLES:\n");
+  printf("  mri_concat --i f1.mgh --i f2.mgh --o fout.mgh\n");
+  printf("  mri_concat f1.mgh f2.mgh --o fout.mgh\n");
+  printf("  mri_concat f*.mgh --o fout.mgh\n");
 
   exit(1) ;
 }
