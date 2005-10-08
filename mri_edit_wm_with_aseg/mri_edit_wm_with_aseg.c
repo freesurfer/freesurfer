@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/31 19:54:29 $
-// Revision       : $Revision: 1.7 $
+// Revision Date  : $Date: 2005/10/08 14:11:09 $
+// Revision       : $Revision: 1.8 $
 //
 
 #include <stdio.h>
@@ -52,10 +52,10 @@ main(int argc, char *argv[])
 	int    msec, nargs ;
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.7 2005/08/31 19:54:29 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.8 2005/10/08 14:11:09 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.7 2005/08/31 19:54:29 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.8 2005/10/08 14:11:09 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
@@ -438,6 +438,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
         case Left_Accumbens_area:
         case Right_Accumbens_area:
         case Left_Caudate:
+				case Left_vessel:
+				case Right_vessel:
         case Right_Caudate:
         case Left_Putamen:
         case Right_Putamen:
