@@ -2,8 +2,9 @@ function eulerangles = MRImdc2euler(Mdc)
 % eulerangles = MRImdc2euler(Mdc)
 %
 % Solves for the Euler angles given the 3x3 matrix of direction cosines.
+% This code does not work in all cases.
 %
-% $Id: MRImdc2euler.m,v 1.1 2005/10/12 05:40:27 greve Exp $
+% $Id: MRImdc2euler.m,v 1.2 2005/10/12 05:41:12 greve Exp $
 
 eulerangles = [];
 if(nargin ~= 1)
