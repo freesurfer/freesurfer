@@ -150,10 +150,10 @@ int main ( int argc, char** argv ) {
       fnMRI = argv[1];
     }
 
-    VolumeCollection vol;
+    VolumeCollection* vol = new VolumeCollection;
     try { 
-      vol.SetFileName( fnMRI );
-      vol.LoadVolume();
+      vol->SetFileName( fnMRI );
+      vol->LoadVolume();
     }
     catch( runtime_error& e ) {
       cerr << e.what() << endl;
@@ -164,12 +164,9 @@ int main ( int argc, char** argv ) {
       exit( 1 );
     }
 
-    Matrix44 rasToVoxelM = vol.GetWorldToIndexTransform();
     Transform44 rasToVoxel;
-    rasToVoxel.SetMainTransform ( rasToVoxelM );
-
-    cerr << "Transform: " << endl;
-    cerr << rasToVoxelM << endl;
+    rasToVoxel.SetMainTransform ( vol->GetWorldToIndexTransform() );
+    delete vol;
 
     Point3<float> ras;
     if( argc == 5 ) {
