@@ -39,7 +39,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.15 2005/09/30 15:37:06 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.16 2005/10/13 14:39:17 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -76,22 +76,41 @@ void		outputFileNames_create(
 		);
 void		outputFiles_open(void);
 void		outputFiles_close(void);
-int		MRISminMaxCurvatures(
-			MRI_SURFACE*		apmris,
-			float*			apf_min,
-			float*			apf_max
-		);
-int		MRISminMaxVertIndices(
+int		MRISminMaxCurvaturesSearchSOT(
 			MRI_SURFACE*		apmris,
 			int*			ap_vertexMin,
 			int*			ap_vertexMax,
-			float			af_min,
-			float			af_max
+			float*			apf_min,
+			float*			apf_max,
+			e_secondOrderType	aesot		
+		);
+int		MRISminMaxCurvaturesSearch(
+			MRI_SURFACE*		apmris,
+			int*			ap_vertexMin,
+			int*			ap_vertexMax,
+			float*			apf_min,
+			float*			apf_max
+		) {
+		MRISminMaxCurvaturesSearchSOT( 	apmris,
+						ap_vertexMin,
+						ap_vertexMax,
+						apf_min,
+						apf_max,
+						e_Raw);	
+			return(NO_ERROR);				
+		};
+int		MRISminMaxCurvatureIndicesLookup(
+			MRI_SURFACE*		apmris,
+			int*			ap_vertexMin,
+			int*			ap_vertexMax
 		);
 int		MRISvertexCurvature_set(
 			MRI_SURFACE*		apmris,
 			int			aindex,
 			float			af_val
+		);
+int  		MRISzeroCurvature(
+			MRI_SURFACE*		apmris 
 		);
 
 char*		Progname ;
@@ -190,7 +209,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.15 2005/09/30 15:37:06 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.16 2005/10/13 14:39:17 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -283,8 +302,7 @@ main(int argc, char *argv[])
 	fprintf(GpFILE_allLog, "mean/sigma = %20.4f +- %2.4f\n", Gf_mean, Gf_sigma);
 
     if(Gb_minMaxShow) {
-	MRISminMaxVertIndices(	mris, &vmin, &vmax, 
-				mris->min_curv, mris->max_curv);
+	MRISminMaxCurvatureIndicesLookup(mris, &vmin, &vmax);
 	fprintf(stdout, 
 	     	"%*s%20.6f\tvertex = %d\n%*s%20.6f\tvertex = %d\n",
 	    	G_leftCols, "min = ", mris->min_curv, vmin,
@@ -373,47 +391,45 @@ void secondOrderParams_print(
     switch(aesot) {
 	case e_Gaussian:
     	    MRISuseGaussianCurvature(apmris);
-	    sprintf(pch_out, "Gaussian");
+	    sprintf(pch_out, "\nGaussian");
 	    f_min	= apmris->Kmin;
 	    f_max	= apmris->Kmax;
-	    MRISminMaxCurvatures(apmris, &f_minExplicit, &f_maxExplicit);
+	    MRISminMaxCurvaturesSearch(apmris, &vmin, &vmax, &f_minExplicit, &f_maxExplicit);
 	    if(f_min != f_minExplicit) {
-	    	printf("Lookup   min: %f\n", f_min);
-	    	printf("Explicit min: %f\n", f_minExplicit);
+	    	printf("\tLookup   min: %f\n", f_min);
+	    	printf("\tExplicit min: %f\tvertex = %d\n", f_minExplicit, vmin);
 		f_min = f_minExplicit;
 		apmris->Kmin 		= f_minExplicit;
 		apmris->min_curv	= f_minExplicit;
 	    }
 	    if(f_max != f_maxExplicit) {
-	    	printf("Lookup   max: %f\n", f_max);
-	    	printf("Explicit max: %f\n", f_maxExplicit);
+	    	printf("\tLookup   max: %f\n", f_max);
+	    	printf("\tExplicit max: %f\tvertex = %d\n", f_maxExplicit, vmax);
 		f_max = f_maxExplicit;
 		apmris->Kmax 		= f_maxExplicit;
 		apmris->max_curv	= f_maxExplicit;
 	    }
-    	    MRISminMaxVertIndices(apmris, &vmin, &vmax, f_min, f_max);
 	break;
 	case e_Mean:
 	    MRISuseMeanCurvature(apmris);
-	    sprintf(pch_out, "Mean");
+	    sprintf(pch_out, "\nMean");
 	    f_min	= apmris->Hmin;
 	    f_max	= apmris->Hmax;
-	    MRISminMaxCurvatures(apmris, &f_minExplicit, &f_maxExplicit);
+	    MRISminMaxCurvaturesSearch(apmris, &vmin, &vmax, &f_minExplicit, &f_maxExplicit);
 	    if(f_min != f_minExplicit) {
-	    	printf("Lookup   min: %f\n", f_min);
-	    	printf("Explicit min: %f\n", f_minExplicit);
+	    	printf("\tLookup   min: %f\n", f_min);
+	    	printf("\tExplicit min: %f\tvertex = %d\n", f_minExplicit, vmin);
 		f_min = f_minExplicit;
 		apmris->Hmin 		= f_minExplicit;
 		apmris->min_curv	= f_minExplicit;
 	    }
 	    if(f_max != f_maxExplicit) {
-	    	printf("Lookup   max: %f\n", f_max);
-	    	printf("Explicit max: %f\n", f_maxExplicit);
+	    	printf("\tLookup   max: %f\n", f_max);
+	    	printf("\tExplicit max: %f\tvertex = %d\n", f_maxExplicit, vmax);
 		f_max = f_maxExplicit;
 		apmris->Hmax 		= f_maxExplicit;
 		apmris->max_curv	= f_maxExplicit;
 	    }
-	    MRISminMaxVertIndices(apmris, &vmin, &vmax, f_min, f_max);
 	break;
 	case e_Raw:
 	case e_Normal:
@@ -482,7 +498,7 @@ MRISvertexCurvature_set(
 
     f_maxCurv  = f_minCurv  = apmris->vertices[0].curv;
     f_maxCurvK = f_minCurvK = apmris->vertices[0].K;
-    f_maxCurvH = f_maxCurvH = apmris->vertices[0].H;
+    f_maxCurvH = f_minCurvH = apmris->vertices[0].H;
     for (vno = 0 ; vno < apmris->nvertices ; vno++) {
 	pvertex = &apmris->vertices[vno] ;
       	if (pvertex->ripflag)
@@ -505,11 +521,13 @@ MRISvertexCurvature_set(
 }
 
 int
-MRISminMaxCurvatures(
+MRISminMaxCurvaturesSearchSOT(
 	MRI_SURFACE*		apmris,
+	int*			ap_vertexMin,
+	int*			ap_vertexMax,
 	float*			apf_min,
-	float*			apf_max
-
+	float*			apf_max,
+	e_secondOrderType	aesot
 ) {
     //
     // PRECONDITIONS
@@ -517,7 +535,9 @@ MRISminMaxCurvatures(
     //	  and Mean usage has already been called).
     //
     // POSTCONDITIONS
-    //	o Return the min and max curvatures in apf_min and apf_max respectively.
+    //	o Return the min and max curvatures in apf_min and apf_max respectively,
+    //	  and similarly the indices in ap_vertex{Min/Max}.
+    //	o This is an explicit search.
     //
 
     VERTEX*	pvertex;
@@ -525,16 +545,35 @@ MRISminMaxCurvatures(
 
     float	f_min	= 1e6;
     float	f_max	= -1e6;
+    float	f_curv	= 0.;
 
     for (vno = 0 ; vno < apmris->nvertices ; vno++) {
 	pvertex = &apmris->vertices[vno] ;
-	if(!vno) { f_min = f_max = pvertex->curv; }
+	switch(aesot) {
+	    case e_Normal:
+	    case e_Scaled:
+	    case e_ScaledTrans:
+	    case e_Raw:
+		f_curv 	= pvertex->curv;
+		break;
+	    case e_Gaussian:
+		f_curv	= pvertex->K;
+		break;
+	    case e_Mean:
+		f_curv	= pvertex->H;
+		break;
+	}
+	if(!vno) { f_min = f_max = f_curv; *ap_vertexMin = *ap_vertexMax = 0;}
       	if (pvertex->ripflag)
             continue;
-      	if(pvertex->curv > f_max)
-	    f_max = pvertex->curv;
-	if(pvertex->curv < f_min)
-	    f_min = pvertex->curv;
+      	if(f_curv > f_max) {
+	    f_max 		= f_curv;
+	    *ap_vertexMax	= vno;
+	}
+	if(f_curv < f_min) {
+	    f_min = f_curv;
+	    *ap_vertexMin	= vno;
+	}
     }
     *apf_max = f_max; 
     *apf_min = f_min;
@@ -542,12 +581,10 @@ MRISminMaxCurvatures(
 }
 
 int
-MRISminMaxVertIndices(
+MRISminMaxCurvatureIndicesLookup(
 	MRI_SURFACE*		apmris,
 	int*			ap_vertexMin,
-	int*			ap_vertexMax,
-	float			af_min,
-	float			af_max
+	int*			ap_vertexMax
 ) {
     //
     // PRECONDITIONS
@@ -563,23 +600,43 @@ MRISminMaxVertIndices(
 
     VERTEX*	pvertex;
     int		vno;
+    float	f_min	= apmris->min_curv;
+    float	f_max	= apmris->max_curv;
 
     for (vno = 0 ; vno < apmris->nvertices ; vno++) {
 	pvertex = &apmris->vertices[vno] ;
       	if (pvertex->ripflag)
             continue;
-      	if(pvertex->curv == af_min)
+      	if(pvertex->curv == f_min)
 	    *ap_vertexMin = vno;
-	if(pvertex->curv == af_max)
+	if(pvertex->curv == f_max)
 	    *ap_vertexMax = vno;
     }
-
-//     printf("%f\n%f\n", 
-// 		apmris->vertices[*ap_vertexMin].curv, 
-// 		apmris->vertices[*ap_vertexMax].curv); 
-
     return(NO_ERROR);
+}
 
+int  
+MRISzeroCurvature(
+	MRI_SURFACE*	apmris
+) {
+    //
+    // POSTCONDITIONS
+    //	o Each curvature (as well as Gaussian and Mean )value in 
+    //	  apmris is simply set to zero.
+    //
+
+    VERTEX*	pvertex;
+    int		vno;
+
+    for (vno = 0 ; vno < apmris->nvertices ; vno++) {
+	pvertex = &apmris->vertices[vno] ;
+      	if (pvertex->ripflag)
+            continue;
+      	pvertex->curv 	= 0.;
+	pvertex->K	= 0.;
+	pvertex->H	= 0.;
+    }
+    return(NO_ERROR);
 }
 
 int  
