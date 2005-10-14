@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: rudolph $
-// Revision Date  : $Date: 2005/10/13 18:04:44 $
-// Revision       : $Revision: 1.376 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/10/14 20:05:28 $
+// Revision       : $Revision: 1.377 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -1290,6 +1290,7 @@ MRISwrite(MRI_SURFACE *mris, char *name)
   fclose(fp);
   return(NO_ERROR) ;
 }
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -1301,7 +1302,6 @@ MRI_SURFACE  *
 MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int nfaces)
 {
   MRI_SURFACE  *mris ;
-  VOL_GEOM vg = {};
 
   if (max_vertices <= 0)
     max_vertices = nvertices ;
@@ -1313,9 +1313,11 @@ MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int nfaces)
   mris->max_vertices = max_vertices ;
   mris->max_faces = max_faces ;
   mris->useRealRAS = 0; /* just initialize */
-  mris->vg = vg;
+  mris->vg.valid = 0; /* mark as invalid */
+
   return(mris) ;
 }
+
 /*-----------------------------------------------------
   Parameters:
 
