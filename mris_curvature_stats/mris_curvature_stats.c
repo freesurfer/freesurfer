@@ -39,7 +39,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.16 2005/10/13 14:39:17 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.17 2005/10/14 13:50:46 rudolph Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -209,7 +209,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.16 2005/10/13 14:39:17 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.17 2005/10/14 13:50:46 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1063,7 +1063,7 @@ get_option(int argc, char *argv[])
     G_maxUlps		= atoi(argv[2]);
     nargs 		= 1 ;
     fprintf(stderr, "Setting maxUlps to %d...\n",
-            G_zeroVertex);
+            G_maxUlps);
     break;
   case 'N':
     normalize_flag 	= 1 ;
