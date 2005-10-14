@@ -22,13 +22,14 @@ tqli.o: tqli.c
 	$(COMPILE) -ffloat-store -c `test -f '$<' || echo '$(srcdir)/'`$<
 
 # mrisurf must be compiled w/o optimization disabled, in order 
-# to mask a segfault appearing on the Mac when running mris_fix_topology
+# to mask a segfault appearing on the Mac when running mris_fix_topology.
+# also, including -fstack-check seems to work, but this is a hack.
 mrisurf.o: mrisurf.c
 	@echo "compiling mrisurf.c to mrisurf.o (with -O0)"
 	source='$<' object='$@' libtool=no \
 	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
 	$(CCDEPMODE) $(depcomp) \
-	$(COMPILE) -O0 -c `test -f '$<' || echo '$(srcdir)/'`$<
+	$(COMPILE) -fstack-check -O0 -c `test -f '$<' || echo '$(srcdir)/'`$<
 
 .c.o:
 	source='$<' object='$@' libtool=no \
