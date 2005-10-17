@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/09/29 16:18:50 $
-// Revision       : $Revision: 1.313 $
-char *MRI_C_VERSION = "$Revision: 1.313 $";
+// Revision Date  : $Date: 2005/10/17 17:18:00 $
+// Revision       : $Revision: 1.314 $
+char *MRI_C_VERSION = "$Revision: 1.314 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -1428,7 +1428,7 @@ MRIboundingBoxNbhd(MRI *mri, int thresh, int wsize,MRI_REGION *box)
 int
 MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
 {
-  int      width, height, depth, x, y, z, x1, y1, z1, ndark, max_dark, start, nlight ;
+  int      width, height, depth, x, y, z, x1, y1, z1, ndark, max_dark, start, nlight, max_light ;
   double   means[3] ;
   Real     val ;
 
@@ -1456,7 +1456,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     else
     {
       if (++nlight > MAX_LIGHT)
-	max_dark = 0 ;
+				max_dark = 0 ;
       if (ndark > max_dark)
       {
         max_dark = ndark ; x1 = start ;
@@ -1489,7 +1489,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     else
     {
       if (++nlight > MAX_LIGHT)
-	max_dark = 0 ;
+				max_dark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; x1 = start ;
@@ -1506,14 +1506,17 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     x1 = mri->width-1 ;
   box->dx = x1 - box->x + 1 ;
 
-  /* search for inferior edge */
-  nlight = ndark = max_dark = 0 ; 
-  x = nint(means[0]) ; z = nint(means[2]) ;
+  /* search for superior edge */
+  nlight = ndark = max_dark = max_light = 0 ; 
+  x = MAX(0,nint(means[0])-20) ; // avoid inter-hemispheric fissure
+	z = nint(means[2]) ;
   for (start = y1 = y = nint(means[1]) ; y >= 0 ; y--)
   {
     MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
     if (val < thresh)
     {
+			if (nlight > max_light)
+				max_light = nlight ;
       if (!ndark)
         start = y ;
       ndark++ ;
@@ -1522,15 +1525,24 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     else
     {
       if (++nlight > MAX_LIGHT)
-	max_dark = 0 ;
+				max_dark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; y1 = start ;
+				max_light = 0 ;  // max_light is max in a row light above dark
       }
       ndark = 0 ;
     }
   }
-  if (ndark > max_dark)
+
+	/* if we ended on a string of dark voxels, check two things:
+		 1. the string was longer than the previous longest
+		 2. the strong was longer than 1/2 the previous longest, and there
+		    was an intervening string of light voxels indicated it was still in 
+				brain.
+	*/
+  if ((ndark > max_dark) || (y < 0 && 
+														 (ndark > max_dark/2) && max_light > MAX_LIGHT/2))
   {
     max_dark = ndark ;
     y1 = start ;
@@ -1539,7 +1551,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     y1 = 0 ;
   box->y = y1 ;
 
-  /* search for superior edge */
+  /* search for inferior edge */
   nlight = ndark = max_dark = 0 ; 
   x = nint(means[0]) ; z = nint(means[2]) ;
   for (start = y = y1 = nint(means[1]) ; y < height ; y++)
@@ -1555,7 +1567,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     else
     {
       if (++nlight > MAX_LIGHT)
-	max_dark = 0 ;
+				max_dark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; y1 = start ;
@@ -1588,7 +1600,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     else
     {
       if (++nlight > MAX_LIGHT)
-	max_dark = 0 ;
+				max_dark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; z1 = start ;
@@ -1621,7 +1633,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
     else
     {
       if (++nlight > MAX_LIGHT)
-	max_dark = 0 ;
+				max_dark = 0 ;
       if (ndark >= max_dark)
       {
         max_dark = ndark ; z1 = start ;

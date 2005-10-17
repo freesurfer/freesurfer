@@ -4139,6 +4139,7 @@ find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, float *pgm, flo
 #define MIN_PEAK_HALF_WIDTH  10
 	wm_valley = HISTOfindPreviousValley(hsmooth, nint(wm_peak-5*hsmooth->bin_size)) ;
 	gm_peak = HISTOfindPreviousPeak(hsmooth, wm_peak-10*hsmooth->bin_size, MIN_PEAK_HALF_WIDTH) ;
+#define MIN_GM 40
 	if (gm_peak < 0)
 		gm_peak = HISTOfindBin(hsmooth, wm_val*.75) ;
 	gm_valley = HISTOfindPreviousValley(hsmooth, gm_peak-10*hsmooth->bin_size) ;
@@ -4149,7 +4150,15 @@ find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, float *pgm, flo
 		gm_peak = wm_peak*.8 ;
 	if (csf_peak > gm_peak*.75)
 		csf_peak = gm_peak*.75 ;
+	if (hsmooth->bins[gm_peak] < MIN_GM || csf_peak <= 0 || gm_valley <= 0)
+	{
+		gm_peak = .75*wm_peak ;
+		csf_peak = gm_peak*.5 ;
+	}
+
 	printf("gm peak at %2.0f (%d), valley at %2.0f (%d)\n", hsmooth->bins[gm_peak], gm_peak, hsmooth->bins[gm_valley], gm_valley) ;
+
+	// check pathological conditions
 	thresh_bin = (2*gm_peak+csf_peak)/3 ;
 	csf_thresh = (hsmooth->bins[thresh_bin]) ;
 	printf("csf peak at %2.0f, setting threshold to %2.0f\n", hsmooth->bins[csf_peak], csf_thresh) ;
