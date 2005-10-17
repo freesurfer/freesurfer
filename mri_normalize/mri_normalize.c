@@ -56,10 +56,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_normalize.c,v 1.37 2005/10/03 01:15:35 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_normalize.c,v 1.38 2005/10/17 15:57:32 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.37 2005/10/03 01:15:35 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.38 2005/10/17 15:57:32 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -178,6 +178,8 @@ main(int argc, char *argv[])
     mri_dst = MRInormalize(mri_src, NULL, &mni) ;
     if (!mri_dst)
       ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+			MRIwrite(mri_dst, "/tmp/norm1d.mgz") ;
 	}
   else
   {
