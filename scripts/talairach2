@@ -12,7 +12,7 @@
 # The algorithm of mritotal is correlation based and thus
 # it is better to use the intensity normalized volume, nu.
 #########################################################
-set VERSION = '$Id: talairach2,v 1.8 2005/09/06 13:54:17 nicks Exp $';
+set VERSION = '$Id: talairach2,v 1.9 2005/10/17 18:05:33 nicks Exp $';
 
 set MGZ = ();
 
@@ -64,7 +64,7 @@ if($status) then
 endif
 
 if(! -e nu.mnc) then
-  echo "ERROR: cannot find orig.mnc"
+  echo "ERROR: cannot find nu.mnc"
   exit 1;
 endif
 
@@ -87,10 +87,18 @@ set cmd = (mri_add_xform_to_header $transform $base/orig$MGZ $base/orig$MGZ)
 echo $cmd
 $cmd
 if($status) then
-  echo "ERROR: mri_add_xform_to_header failed"
+  echo "ERROR: mri_add_xform_to_header $base/orig$MGZ failed"
   exit 1;
 endif
 
+echo "--------------------------------------------"
+set cmd = (mri_add_xform_to_header $transform $base/nu$MGZ $base/nu$MGZ)
+echo $cmd
+$cmd
+if($status) then
+  echo "ERROR: mri_add_xform_to_header $base/nu$MGZ failed"
+  exit 1;
+endif
 popd > /dev/null
 
 date
