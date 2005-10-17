@@ -4152,7 +4152,7 @@ find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, float *pgm, flo
 		csf_peak = gm_peak*.75 ;
 	if (hsmooth->bins[gm_peak] < MIN_GM || csf_peak <= 0 || gm_valley <= 0)
 	{
-		gm_peak = .75*wm_peak ;
+		gm_peak = .7*wm_peak ;
 		csf_peak = gm_peak*.5 ;
 	}
 
