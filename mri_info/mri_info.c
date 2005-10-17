@@ -2,12 +2,12 @@
 // mri_info.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/08/15 16:14:04 $
-// Revision       : $Revision: 1.40 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/10/17 18:04:18 $
+// Revision       : $Revision: 1.41 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.40 $";
+char *MRI_INFO_VERSION = "$Revision: 1.41 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -38,7 +38,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.40 2005/08/15 16:14:04 kteich Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.41 2005/10/17 18:04:18 nicks Exp $";
 
 char *Progname ;
 
@@ -457,8 +457,8 @@ static void do_file(char *fname)
     }
   }
   MRIdircosToOrientationString(mri,ostr);
-  printf("Orientation %s\n",ostr);
-  printf("Primary Slice Direction %s\n",MRIsliceDirectionName(mri));
+  printf("Orientation:  :  %s\n",ostr);
+  printf("Primary Slice Direction: %s\n",MRIsliceDirectionName(mri));
   m = MRIgetVoxelToRasXform(mri) ; // extract_i_to_r(mri) (just macto)
   printf("\nvoxel to ras transform:\n") ; PrettyMatrixPrint(m) ;
   printf("\nvoxel-to-ras determinant %g\n",MatrixDeterminant(m));
