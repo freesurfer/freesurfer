@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/09/30 17:37:46 $
-// Revision       : $Revision: 1.113 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/10/17 19:53:39 $
+// Revision       : $Revision: 1.114 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
   int nthframe=-1; 
   char cmdline[STRLEN] ;
         
-  TAGmakeCommandLineString(argc, argv, cmdline) ;
+	make_cmd_version_string (argc, argv, "$Id: mri_convert.c,v 1.114 2005/10/17 19:53:39 fischl Exp $", "$Name:  $", cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -244,7 +244,7 @@ int main(int argc, char *argv[])
     handle_version_option 
     (
      argc, argv, 
-     "$Id: mri_convert.c,v 1.113 2005/09/30 17:37:46 nicks Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.114 2005/10/17 19:53:39 fischl Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
