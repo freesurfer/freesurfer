@@ -45,6 +45,9 @@ class Layer : public DebugReporter,
   Layer();
   virtual ~Layer();
 
+  static bool kbDefaultReportInfo; // Initial value for whether the
+				   // layer reports info
+
   void SetBytesPerPixel ( int icBytes ) { mBytesPerPixel = icBytes; }
 
   // Tell the layer to draw its contents into a GL frame buffer.

@@ -46,6 +46,9 @@ public:
 
   static int const kBytesPerPixel;         // for buffer size
   static int const kcInPlaneMarkerColors;  // number of preset colors
+  static bool const kbDefaultLevelReportInfo; // whether a level
+					      // should report info by
+					      // default
 
   // Sets the view. Used by something that wants to explicitly set up
   // the view area, such as a linked view broadcasting its position or

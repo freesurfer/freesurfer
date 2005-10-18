@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.148 2005/10/05 19:00:55 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.149 2005/10/18 22:59:16 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3250,8 +3250,8 @@ proc ViewPropertiesLevelReportInfoCallback { inLevel } {
     global gaView
 
     SetLevelReportInfoInView $gaView(current,id) $inLevel $gaView(current,reportInfo$inLevel)
-    UpdateCursorLabelArea
     UpdateMouseLabelArea
+    UpdateCursorLabelArea
     RedrawFrame [GetMainFrameID]
 }
 
@@ -5511,7 +5511,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.148 2005/10/05 19:00:55 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.149 2005/10/18 22:59:16 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

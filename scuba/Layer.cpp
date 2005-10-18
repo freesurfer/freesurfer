@@ -8,6 +8,8 @@ using namespace std;
 
 DeclareIDTracker(Layer);
 
+bool Layer::kbDefaultReportInfo = true;
+
 LayerStaticTclListener Layer::mStaticListener;
 
 Layer::Layer() :
@@ -17,7 +19,7 @@ Layer::Layer() :
   mOpacity(1.0),
   mbVisible(true),
   mbPostRedisplay(false),
-  mbReportInfoAtRAS(false),
+  mbReportInfoAtRAS(kbDefaultReportInfo),
   mBytesPerPixel(4) {
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();

@@ -23,6 +23,7 @@ int ScubaView::mNextMarker = 0;
 std::map<int,Point3<float> > ScubaView::mMarkerRAS;
 std::map<int,bool> ScubaView::mMarkerVisible;
 ScubaViewStaticTclListener ScubaView::mStaticListener;
+bool const ScubaView::kbDefaultLevelReportInfo = false;
 
 GLenum glError;
 #define CheckGLError()  \
@@ -477,9 +478,9 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
 	mLevelVisibilityMap[iLevel] = true;
       }
 
-      // Start out reporting info.
+      // Default reporting info value.
       if( mLevelReportInfoMap.find( iLevel ) == mLevelReportInfoMap.end() ) {
-	mLevelReportInfoMap[iLevel] = true;
+	mLevelReportInfoMap[iLevel] = kbDefaultLevelReportInfo;
       }
 
       // Listen to it.
@@ -584,7 +585,7 @@ bool
 ScubaView::GetDrawLevelReportInfo ( int inLevel ) {
 
   if( mLevelReportInfoMap.find( inLevel ) == mLevelReportInfoMap.end() ) 
-    mLevelReportInfoMap[inLevel] = true;
+    mLevelReportInfoMap[inLevel] = kbDefaultLevelReportInfo;
 
   return mLevelReportInfoMap[inLevel];
 }

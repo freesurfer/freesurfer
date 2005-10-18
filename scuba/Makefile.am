@@ -14,72 +14,72 @@ AM_CPPFLAGS=$(GLUT_CFLAGS) \
 AM_LDFLAGS=-L$(top_srcdir)/lib \
 	$(LDFLAGS_TCL) $(GLUT_LIBS)
 
-UTILITIES_SRCS=Volume3.cpp \
-	Point2.cpp \
-	Point3.cpp \
-	Path.cpp \
-	Array2.cpp \
-	Utilities.cpp \
-	Matrix44.cpp \
-	Transform44.cpp \
-	VectorOps.cpp
+UTILITIES_SRCS=Volume3.cpp Volume3.h \
+	Point2.cpp Point2.h \
+	Point3.cpp Point3.h \
+	Path.cpp Path.h \
+	Array2.cpp Array2.h \
+	Utilities.cpp Utilities.h \
+	Matrix44.cpp Matrix44.h \
+	Transform44.cpp Transform44.h \
+	VectorOps.cpp VectorOps.h
 
-BASIC_SRCS=TclCommandManager.cpp \
-	DebugReporter.cpp \
-	IDTracker.cpp \
-	PreferencesManager.cpp \
-	Broadcaster.cpp \
-	Listener.cpp \
-	UndoManager.cpp \
-	Timer.cpp \
-	ShortestPathFinder.cpp \
-	PathManager.cpp 
+BASIC_SRCS=TclCommandManager.cpp TclCommandManager.h \
+	DebugReporter.cpp DebugReporter.h \
+	IDTracker.cpp IDTracker.h \
+	PreferencesManager.cpp PreferencesManager.h \
+	Broadcaster.cpp Broadcaster.h \
+	Listener.cpp Listener.h \
+	UndoManager.cpp UndoManager.h \
+	Timer.cpp Timer.h \
+	ShortestPathFinder.cpp ShortestPathFinder.h \
+	PathManager.cpp PathManager.h 
 
 FSDATA_SRCS= \
-	DataManager.cpp \
-	DataCollection.cpp \
-	ScubaDataCollectionFactory.cpp \
-	VolumeCollection.cpp \
-	SurfaceCollection.cpp \
-	ScubaTransform.cpp \
-	ScubaColorLUT.cpp \
-	ScubaROI.cpp \
-	ScubaROIVolume.cpp \
-	SegmentationVolumeReport.cpp
+	DataManager.cpp DataManager.h \
+	DataCollection.cpp DataCollection.h \
+	ScubaDataCollectionFactory.cpp ScubaDataCollectionFactory.h \
+	VolumeCollection.cpp VolumeCollection.h \
+	SurfaceCollection.cpp SurfaceCollection.h \
+	ScubaTransform.cpp ScubaTransform.h \
+	ScubaColorLUT.cpp ScubaColorLUT.h \
+	ScubaROI.cpp ScubaROI.h \
+	ScubaROIVolume.cpp ScubaROIVolume.h \
+	SegmentationVolumeReport.cpp SegmentationVolumeReport.h
 
-LAYER_SRCS=ScubaLayerFactory.cpp \
-	ScubaLayer2DMRI.cpp \
-	ScubaLayer2DMRIS.cpp
+LAYER_SRCS=ScubaLayerFactory.cpp ScubaLayerFactory.h \
+	ScubaLayer2DMRI.cpp ScubaLayer2DMRI.h \
+	ScubaLayer2DMRIS.cpp ScubaLayer2DMRIS.h
 
 GUI_SRCS= \
-	WindowFrame.cpp \
-	ScubaFrame.cpp \
-	View.cpp \
-	ScubaView.cpp \
-	ScubaWindowToRASTranslator.cpp \
-	Layer.cpp \
-	InputState.cpp \
-	ViewState.cpp \
-	ScubaToolState.cpp \
-	ScubaGlobalPreferences.cpp \
-	ProgressDisplayManager.cpp \
-	ScubaKeyCombo.cpp
+	WindowFrame.cpp WindowFrame.h \
+	ScubaFrame.cpp ScubaFrame.h \
+	View.cpp View.h \
+	ScubaView.cpp ScubaView.h \
+	ScubaWindowToRASTranslator.cpp ScubaWindowToRASTranslator.h \
+	Layer.cpp Layer.h \
+	InputState.cpp InputState.h \
+	ViewState.cpp ViewState.h \
+	ScubaToolState.cpp ScubaToolState.h \
+	ScubaGlobalPreferences.cpp ScubaGlobalPreferences.h \
+	ProgressDisplayManager.cpp ProgressDisplayManager.h \
+	ScubaKeyCombo.cpp ScubaKeyCombo.h
 
 SCUBA1_SRCS= \
-	ToglManager.cpp \
-	TclProgressDisplayManager.cpp \
+	ToglManager.cpp ToglManager.h \
+	TclProgressDisplayManager.cpp TclProgressDisplayManager.h \
 	togl.c \
-	TclScubaKeyCombo.cpp
+	TclScubaKeyCombo.cpp TclScubaKeyCombo.h
 
 SCUBA2_SRCS= \
-	QTScubaWidget.cpp \
-	QtProgressDisplayManager.cpp \
-	QtScubaUtilities.cpp \
-	QtVolumeHistogram.cpp \
-	QtScubaLabelValueArea.cpp \
-	QtScubaLineEditWithTclCallback.cpp \
-	QtTclListener.cpp \
-	QtScubaKeyCombo.cpp
+	QTScubaWidget.cpp QTScubaWidget.h \
+	QtProgressDisplayManager.cpp QtProgressDisplayManager.h \
+	QtScubaUtilities.cpp QtScubaUtilities.h \
+	QtVolumeHistogram.cpp QtVolumeHistogram.h \
+	QtScubaLabelValueArea.cpp QtScubaLabelValueArea.h \
+	QtScubaLineEditWithTclCallback.cpp QtScubaLineEditWithTclCallback.h \
+	QtTclListener.cpp QtTclListener.h \
+	QtScubaKeyCombo.cpp QtScubaKeyCombo.h
 
 FORMS = mainwindow.ui \
 		viewlayersdlog.ui \
@@ -247,7 +247,7 @@ testCoordTimer_SOURCES= test_CoordTimer.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
 testCoordTimer_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
-#testCoordTimer_LDFLAGS=-L/opt/intel/mkl70/lib/32 -lmkl -lm
+#fortestCoordTimer_LDFLAGS=-L/opt/intel/mkl70/lib/32 -lmkl -lm
 
 testDataCollection_SOURCES=test_DataCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
