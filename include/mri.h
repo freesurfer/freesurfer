@@ -329,6 +329,7 @@ MRI   *MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset) ;
 MRI   *MRIclone(MRI *mri_src, MRI *mri_dst) ;  // it just copies the header info
 MRI   *MRIcloneRoi(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold) ;
+MRI   *MRIinvert(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIinvertContrast(MRI *mri_src, MRI *mri_dst, float threshold) ;
 MRI   *MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold,
                    BUFTYPE low_val, BUFTYPE hi_val) ;
@@ -668,7 +669,7 @@ MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
                float out_val) ;
 MRI   *MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize) ;
 MRI   *MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
-                        BUFTYPE mask_threshold, BUFTYPE out_val) ;
+                        float mask_threshold, float out_val) ;
 
 /* constants used in mri_dir of MRIoffsetDirection and for MRIminmax filter */
 #define OFFSET_NEGATIVE_GRADIENT_DIRECTION    0
