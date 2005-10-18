@@ -12,7 +12,11 @@ bin_PROGRAMS = tkmedit
 tkmedit_SOURCES=tkmedit.c \
 	tkmDisplayArea.c \
 	tkmFunctionalVolume.c \
-	tkmMeditWindow.c
+	tkmMeditWindow.c \
+	tkmedit.h \
+	tkmDisplayArea.h \
+	tkmFunctionalVolume.h \
+	tkmMeditWindow.h
 tkmedit_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
 	$(X_LIBS) $(GLUT_LIBS)

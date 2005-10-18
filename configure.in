@@ -1069,6 +1069,7 @@ check_siemens_dir/Makefile \
 repair_siemens_file/Makefile \
 mkxsubjreg/Makefile \
 rbftest/Makefile rawtocor/Makefile \
+include/Makefile \
 mri_add_xform_to_header/Makefile \
 mri_annotation2label/Makefile \
 mri_aparc2aseg/Makefile \

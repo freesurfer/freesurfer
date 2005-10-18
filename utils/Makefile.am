@@ -10,7 +10,7 @@ AM_LDFLAGS=$(GSL_LIBS)
 #libutils_la_LDFLAGS = version-info 0:0:0
 
 noinst_LIBRARIES= libutils.a
-libutils_a_SOURCES = $(wildcard *.c)
+libutils_a_SOURCES = $(wildcard *.c) $(wildcard *.h)
 am_libutils_a_OBJECTS = $(libutils_a_SOURCES:%.c=%.o)
 
 # tqli needs with -ffloat-store

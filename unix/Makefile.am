@@ -9,7 +9,7 @@ AM_CPPFLAGS=$(X_CFLAGS) \
 AM_LDFLAGS=
 
 noinst_LIBRARIES= libunix.a
-libunix_a_SOURCES = $(wildcard *.c)
+libunix_a_SOURCES = $(wildcard *.c) $(wildcard *.h)
 am_libunix_a_OBJECTS = $(libunix_a_SOURCES:%.c=%.o)
 
 .c.o:

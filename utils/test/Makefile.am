@@ -10,60 +10,28 @@ AM_LDFLAGS=-L$(top_srcdir)/lib
 check_PROGRAMS=mnitest i2rtest icotest surftest extest \
 	mghxform inftest difftool  mri_ms_fcm mri_compute_stats \
 	mri_ms_LDA mri_fslmat_to_lta mri_concatenate_lta \
-	checkWfile mri_transform_to_COR  mri_compute_all_CNR \
+	mri_transform_to_COR  mri_compute_all_CNR \
 	mri_ms_compute_CNR  mris_diff mris_compute_thickness \
 	mri_apply_INU mri_ms_EM mri_edit_wm mri_apply_EM_mask \
-	mri_extract mri_ms_gca_EM mris_indirect_morph mris_average \
-	mri_ms_compute_T2star mri_ms_optimize_seq refine_aseg \
-	seg_pallidum mri_compute_seg_overlap aseg_for_one \
-	mri_count_seg_vols mri_unmask mris_measure_volume \
-	mri_ms_EM_INU mri_ms_computeB1map mri_diff mris_map_annot \
-	aseg_new mri_combine_xforms CtrlVol2CtrlPts mri_check_region_histo \
-	mri_normalize_tp2 mri_invert_lta surface_morph_to_volume \
-	mri_ms_FCM mris_surface_stats mris_global_stats \
-	mris_annot_to_mask
+	mri_extract mri_ms_gca_EM mris_indirect_morph
 
 TESTS=mnitest i2rtest icotest extest mghxform inftest checkanalyze
 
-mris_annot_to_mask_SOURCES = mris_annot_to_mask.c
-mris_global_stats_SOURCES = mris_global_stats.c		
-mris_surface_stats_SOURCES = mris_surface_stats.c	
-mri_ms_FCM_SOURCES=mri_ms_FCM.c mg_mri.c
-mri_invert_lta_SOURCE=mri_invert_lta
-mri_normalize_tp2_SOURCE=mri_normalize_tp2.c
-mri_check_region_histo_SOURCES=mri_check_region_histo.c myutil.c
-CtrlVol2CtrlPts_SOURCE=CtrlVol2CtrlPts.c
-mri_combine_xforms_SOURCE=mri_combine_xforms.c
-aseg_new_SOUCRES=aseg_new.c
-mri_diff_SOURCES=mri_diff.c
-mris_measure_volume_SOURCES=mris_measure_volume.c
-aseg_for_one_SOURCES=aseg_for_one.c
 mri_ms_fcm_SOURCE=mri_ms_fcm.c
-mri_unmask_SOURCE=mri_unmask.c
 mri_edit_wm_SOURCE=mri_edit_wm.c
 mri_apply_EM_mask_SOURCE=mri_apply_EM_mask.c
 mri_ms_EM_SOURCE=mri_ms_EM.c
 mri_ms_gca_EM_SOURCE=mri_ms_EM.c
 mri_ms_LDA_SOURCE=mri_ms_LDA.c
-mri_count_seg_vols_SOURCES=mri_count_seg_vols.c	
 mri_apply_INU_SOURCE=mri_apply_INU.c
-checkWfile_SOURCE=checkWfile.c
 mri_compute_stats_SOURCE=mri_compute_stats.c
-mri_compute_seg_overlap_SOURCES=mri_compute_seg_overlap.c
 mri_compute_all_CNR_SOURCE=mri_compute_all_CNR.c
 mri_fslmat_to_lta_SOURCE=mri_fslmat_to_lta.c
 mri_transform_to_COR_SOURCE=mri_transform_to_COR.c
 mri_concatenate_lta_SOURCE=mri_concatenate_lta.c
-#mri_ms_EM_INU_SOURCES=mri_ms_EM_INU.c PoissonSolver.c
-mri_ms_EM_INU_SOURCES=mri_ms_EM_INU.c mg_mri.c
-mri_ms_computeB1map_SOURCES=mri_ms_computeB1map.c PoissonSolver.c
-mris_diff_SOURCES=mris_diff.cpp fmarching3dnband.c heap_vol.c
+mris_diff_SOURCES=mris_diff.cpp fmarching3dnband.c
 mri_ms_compute_CNR_SOURCES=mri_ms_compute_CNR.c
-seg_pallidum_SOURCES=seg_pallidum.c
-mri_ms_compute_T2star_SOURCES=mri_ms_compute_T2star.c
 mris_compute_thickness_SOURCES=mris_compute_thickness.cpp
-surface_morph_to_volume_SOURCES=surface_morph_to_volume.cpp fmarching3dnband.c heap_vol.c mg_mri.c 
-mri_ms_optimize_seq_SOURCE=mri_ms_optimize_seq.c
 mri_extract_SOURCE=mri_extract.c
 mnitest_SOURCES=mnitest.cpp
 i2rtest_SOURCES=i2rtest.cpp
@@ -74,9 +42,6 @@ mghxform_SOURCES=mghxform.cpp
 inftest_SOURCES=inftest.cpp
 difftool_SOURCES=difftool.cpp
 mris_indirect_morph_SOURCES=mris_indirect_morph.cpp
-mris_map_annot_SOURCES=mris_map_annot.cpp
-mris_average_SOURCES=mris_average.c
-refine_aseg_SOURCES=refine_aseg.c
 
 LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
@@ -86,14 +51,9 @@ mris_diff_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mris_indirect_morph_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib -L$(top_srcdir)/lib
 mris_indirect_morph_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
-mris_map_annot_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib -L$(top_srcdir)/lib
-mris_map_annot_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
-
 #mris_thickness_diff_LDFLAGS=$(OS_LDFLAGS)
 
 mris_compute_thickness_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib \
 	-L$(top_srcdir)/lib
 mris_compute_thickness_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
-surface_morph_to_volume_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib -L$(top_srcdir)/lib
-surface_morph_to_volume_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))

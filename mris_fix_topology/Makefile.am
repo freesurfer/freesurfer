@@ -9,10 +9,3 @@ bin_PROGRAMS = mris_fix_topology
 mris_fix_topology_SOURCES=mris_fix_topology.c
 mris_fix_topology_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mris_fix_topology_LDFLAGS=$(OS_LDFLAGS)
-
-check_PROGRAMS= test
-
-test_SOURCES=test.c
-test_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
-test_LDFLAGS=$(OS_LDFLAGS)
-

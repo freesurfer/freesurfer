@@ -49,7 +49,7 @@ MISCDIRS=histo_compute_joint_density histo_register_block regdat2xfm brik2bfloat
 paint scripts images distribution
 
 SUBDIRS=unix dicom hipsstubs rgb utils utilscpp log fsgdf $(MRISUBDIRS) $(MRISSUBDIRS) $(GLSUBDIRS) $(FSGDF) $(FSLUTILS) $(STATSDIRS) \
-$(MISCDIRS) dummy scuba fsfast matlab hiam_make_surfaces
+$(MISCDIRS) dummy scuba fsfast matlab hiam_make_surfaces include
 
 .PHONY: release uninstall-release
 
