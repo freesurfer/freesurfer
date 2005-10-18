@@ -23,8 +23,9 @@
 #include "tags.h"
 #include "transform.h"
 #include "talairachex.h"
+#include "subroutines.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.96 2005/09/20 21:22:12 xhan Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.97 2005/10/18 21:16:00 xhan Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -79,6 +80,7 @@ static char vcid[] = "$Id: mri_fill.c,v 1.96 2005/09/20 21:22:12 xhan Exp $";
 /*-------------------------------------------------------------------
                                 GLOBAL DATA
 -------------------------------------------------------------------*/
+MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg);
 
 static int find_rh_seed_point(MRI *mri, int *prh_vol_x, int *prh_vol_y, int *prh_vol_z) ;
 static int mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg_tal) ;
@@ -325,12 +327,12 @@ main(int argc, char *argv[])
   VOL_GEOM *src=0;
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_fill.c,v 1.96 2005/09/20 21:22:12 xhan Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_fill.c,v 1.97 2005/10/18 21:16:00 xhan Exp $", "$Name:  $", cmdline);
 
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.96 2005/09/20 21:22:12 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.97 2005/10/18 21:16:00 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -564,6 +566,7 @@ main(int argc, char *argv[])
   else
     mri_seg = NULL;
 
+  
   ///////////////////////////////////////////////////////////////////////////
   // find corpus callosum (work under the talairach volume)
   ///////////////////////////////////////////////////////////////////////////
@@ -880,9 +883,12 @@ main(int argc, char *argv[])
   /* make cuts in both image and labels image to avoid introducing a connection
      with one of the labels
 	*/
-  MRImask(mri_im, mri_cc, mri_im, 1, fill_val) ;
-	if (mri_pons)
-		MRImask(mri_im, mri_pons, mri_im, 1, fill_val) ;
+  if(mri_seg == NULL){
+    MRImask(mri_im, mri_cc, mri_im, 1, fill_val) ;
+    if (mri_pons)
+      MRImask(mri_im, mri_pons, mri_im, 1, fill_val) ;
+  }
+
   if (mri_saved_labels)
   {
     MRImask(mri_saved_labels, mri_cc, mri_saved_labels, 1, 0) ;
@@ -1058,6 +1064,7 @@ main(int argc, char *argv[])
               neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z)) ;
   }
 
+#if 0
   if (segmentation_fname)
   {
     //    printf("x_cc = %g, y_cc = %g, z_cc = %g\n", (float)x_cc, (float)y_cc, (float) z_cc);
@@ -1081,57 +1088,74 @@ main(int argc, char *argv[])
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_im,"mri_im_erased.mgz");
   }
+#endif
 
   MRIfree(&mri_cc) ;
-  mri_lh_fill = MRIclone(mri_im, NULL) ;
-  mri_rh_fill = MRIclone(mri_im, NULL) ;
-  mri_lh_im = MRIcopy(mri_im, NULL) ;
-  mri_rh_im = MRIcopy(mri_im, NULL) ;
 
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_im, "fill0.mgh") ;
-  fprintf(stderr, "filling left hemisphere...\n") ;
-  MRIfillVolume(mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
-  fprintf(stderr, "filling right hemisphere...\n") ;
-  MRIfillVolume(mri_rh_fill, mri_rh_im, wm_rh_x, wm_rh_y, wm_rh_z,rh_fill_val);
-  MRIfree(&mri_lh_im) ; MRIfree(&mri_rh_im) ; MRIfree(&mri_im) ;
-
-  /* find and eliminate degenerate surface locations caused by diagonal
-     connectivity in which a vertex is simultaneously on both sides of 
-     the surface. This might cause bubbles in the volume - seems unlikely,
-     but....
-  */
-  fprintf(stderr, "filling degenerate left hemisphere surface locations...\n");
-  MRIfillDegenerateLocations(mri_lh_fill, lh_fill_val) ;
-  fprintf(stderr,"filling degenerate right hemisphere surface locations...\n");
-  MRIfillDegenerateLocations(mri_rh_fill, rh_fill_val) ;
-
-  /*  must redo filling to avoid holes caused by  filling of  degenerate  locations */
-  mri_lh_im =  MRIcopy(mri_lh_fill, NULL);
-  mri_rh_im =  MRIcopy(mri_rh_fill, NULL);
-  fprintf(stderr, "refilling left hemisphere...\n") ;
-  MRIfillVolume(mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
-  fprintf(stderr, "refilling right hemisphere...\n") ;
-  MRIfillVolume(mri_rh_fill, mri_rh_im, wm_rh_x, wm_rh_y, wm_rh_z,rh_fill_val);
-  MRIfree(&mri_lh_im) ; MRIfree(&mri_rh_im) ; 
-
-  fprintf(stderr, "combining hemispheres...\n") ;
-  MRIvoxelToTalairachEx(mri_lh_fill, (Real)wm_lh_x, (Real)wm_lh_y, (Real)wm_lh_z,
-												&xr, &yr, &zr, lta) ;
-  MRIvoxelToTalairachEx(mri_rh_fill, (Real)wm_rh_x, (Real)wm_rh_y, (Real)wm_rh_z,
-												&xr, &yr, &zr, lta) ;
-  
-  mri_fill = MRIcombineHemispheres(mri_lh_fill, mri_rh_fill, NULL, 
-                                   wm_lh_x, wm_lh_y, wm_lh_z,
-                                   wm_rh_x, wm_rh_y, wm_rh_z) ;
-
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-  {
-    MRIwrite(mri_lh_fill, "./lh_fill.mgh"); 
-    MRIwrite(mri_rh_fill, "./rh_fill.mgh");
+  if(segmentation_fname && (mri_seg != NULL)){
+    //This can be done in the beginning, and all the seed points are unnecessary for the usual fill; the reason the previous seed-computation is kept is to be consistent with the following atlas-based autofill of ventricles etc 
+    printf("compute mri_fill using aseg\n");
+    if (mri_saved_labels)
+      {
+	for (i = 0 ; i < NLABELS ; i++)
+	  MRIcopyLabel(mri_saved_labels, mri_im, labels[i]) ;
+	MRIfree(&mri_saved_labels) ;
+      }
+    
+    mri_fill = fill_with_aseg(mri_im, mri_seg); 
+  }
+  else{
+    mri_lh_fill = MRIclone(mri_im, NULL) ;
+    mri_rh_fill = MRIclone(mri_im, NULL) ;
+    mri_lh_im = MRIcopy(mri_im, NULL) ;
+    mri_rh_im = MRIcopy(mri_im, NULL) ;
+    
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_im, "fill0.mgh") ;
+    fprintf(stderr, "filling left hemisphere...\n") ;
+    MRIfillVolume(mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
+    fprintf(stderr, "filling right hemisphere...\n") ;
+    MRIfillVolume(mri_rh_fill, mri_rh_im, wm_rh_x, wm_rh_y, wm_rh_z,rh_fill_val);
+    MRIfree(&mri_lh_im) ; MRIfree(&mri_rh_im) ; MRIfree(&mri_im) ;
+    
+    /* find and eliminate degenerate surface locations caused by diagonal
+       connectivity in which a vertex is simultaneously on both sides of 
+       the surface. This might cause bubbles in the volume - seems unlikely,
+       but....
+    */
+    fprintf(stderr, "filling degenerate left hemisphere surface locations...\n");
+    MRIfillDegenerateLocations(mri_lh_fill, lh_fill_val) ;
+    fprintf(stderr,"filling degenerate right hemisphere surface locations...\n");
+    MRIfillDegenerateLocations(mri_rh_fill, rh_fill_val) ;
+    
+    /*  must redo filling to avoid holes caused by  filling of  degenerate  locations */
+    mri_lh_im =  MRIcopy(mri_lh_fill, NULL);
+    mri_rh_im =  MRIcopy(mri_rh_fill, NULL);
+    fprintf(stderr, "refilling left hemisphere...\n") ;
+    MRIfillVolume(mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
+    fprintf(stderr, "refilling right hemisphere...\n") ;
+    MRIfillVolume(mri_rh_fill, mri_rh_im, wm_rh_x, wm_rh_y, wm_rh_z,rh_fill_val);
+    MRIfree(&mri_lh_im) ; MRIfree(&mri_rh_im) ; 
+    
+    fprintf(stderr, "combining hemispheres...\n") ;
+    MRIvoxelToTalairachEx(mri_lh_fill, (Real)wm_lh_x, (Real)wm_lh_y, (Real)wm_lh_z,
+			  &xr, &yr, &zr, lta) ;
+    MRIvoxelToTalairachEx(mri_rh_fill, (Real)wm_rh_x, (Real)wm_rh_y, (Real)wm_rh_z,
+			  &xr, &yr, &zr, lta) ;
+    
+    mri_fill = MRIcombineHemispheres(mri_lh_fill, mri_rh_fill, NULL, 
+				     wm_lh_x, wm_lh_y, wm_lh_z,
+				     wm_rh_x, wm_rh_y, wm_rh_z) ;
+    
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      {
+	MRIwrite(mri_lh_fill, "./lh_fill.mgh"); 
+	MRIwrite(mri_rh_fill, "./rh_fill.mgh");
+      }
+    
+    MRIfree(&mri_lh_fill) ; MRIfree(&mri_rh_fill) ;
   }
 
-  MRIfree(&mri_lh_fill) ; MRIfree(&mri_rh_fill) ;
 
   if (atlas_name)
   {
@@ -4106,3 +4130,152 @@ count_hemisphere_separation(MRI *mri, double xn, double yn, double zn, int x0, i
 
 #endif
 
+
+MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg){
+  int x, y, z;
+  MRI *mri_fill;
+  MRI *mri_ctrl;
+  MRI *mri_fill_lh;
+  MRI *mri_fill_rh;
+  int depth, width, height;
+  int label;
+
+  depth = mri_img->depth;
+  width = mri_img->width;
+  height = mri_img->height;
+
+  mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR);
+  mri_fill = MRIalloc(width, height, depth, MRI_UCHAR);
+  mri_fill_lh = MRIalloc(width, height, depth, MRI_UCHAR);
+  mri_fill_rh = MRIalloc(width, height, depth, MRI_UCHAR);
+
+  printf("Erasing Brain Stem and Cerebellum ...\n");
+  
+  MRIsetLabelValues(mri_img, mri_seg, mri_img, Brain_Stem, 0);
+  MRIsetLabelValues(mri_img, mri_seg, mri_img, Left_Cerebellum_White_Matter, 0);
+  MRIsetLabelValues(mri_img, mri_seg, mri_img, Left_Cerebellum_Cortex, 0);
+  MRIsetLabelValues(mri_img, mri_seg, mri_img, Right_Cerebellum_White_Matter, 0);
+  MRIsetLabelValues(mri_img, mri_seg, mri_img, Right_Cerebellum_Cortex, 0);
+
+  printf("Define left and right masks using aseg:\n");
+  for(z=0; z < depth; z++)
+    for(y=0; y< height; y++)
+      for(x=0; x < width; x++)
+	{
+	  MRIvox(mri_ctrl,x,y,z) = 0;
+	  MRIvox(mri_fill, x, y, z) = 0;
+	  MRIvox(mri_fill_lh, x, y, z) = 0;
+	  MRIvox(mri_fill_rh, x, y, z) = 0;
+
+	  label = MRIvox(mri_seg,x, y,z);
+	  
+	  switch (label){
+	  case Unknown:
+	    break;
+
+	  case Left_Cerebral_White_Matter:
+	  case Left_Cerebral_Cortex:
+	  case Left_Lateral_Ventricle:
+	  case Left_Inf_Lat_Vent:
+	  case Left_Thalamus:
+	  case Left_Thalamus_Proper:
+	  case Left_Caudate:
+	  case Left_Putamen:
+	  case Left_Pallidum:
+	  case Left_Hippocampus:
+	  case Left_Amygdala:
+	  case Left_Insula: 
+	  case Left_Operculum:
+	  case Left_Lesion:
+	  case Left_vessel:
+	  case Left_Accumbens_area:
+	  case Left_VentralDC:
+	  case Left_choroid_plexus:
+	  case Left_Substancia_Nigra:
+	  case Left_F3orb:
+	  case Left_lOg:
+	  case Left_aOg:
+	  case Left_mOg:
+	  case  Left_pOg:
+	  case Left_Stellate:
+	  case Left_Porg:
+	  case Left_Aorg:
+	    MRIvox(mri_ctrl,x,y,z) = 1;
+	    MRIvox(mri_fill, x,y,z) = lh_fill_val;
+	    break;
+
+	  case Right_Cerebral_White_Matter:
+	  case Right_Cerebral_Cortex:
+	  case Right_Lateral_Ventricle:
+	  case Right_Inf_Lat_Vent:
+	  case Right_Thalamus:
+	  case Right_Thalamus_Proper:
+	  case Right_Caudate:
+	  case Right_Putamen:
+	  case Right_Pallidum:
+	  case Right_Hippocampus:
+	  case Right_Amygdala:
+	  case Right_Insula: 
+	  case Right_Operculum:
+	  case Right_Lesion:
+	  case Right_vessel:
+	  case Right_Accumbens_area:
+	  case Right_VentralDC:
+	  case Right_choroid_plexus:
+	  case Right_Substancia_Nigra:
+	  case Right_F3orb:
+	  case Right_lOg:
+	  case Right_aOg:
+	  case Right_mOg:
+	  case  Right_pOg:
+	  case Right_Stellate:
+	  case Right_Porg:
+	  case Right_Aorg:
+	    MRIvox(mri_ctrl,x,y,z) = 1;
+	    MRIvox(mri_fill, x,y,z) = rh_fill_val;
+	    break;
+	  }
+	}
+
+  printf("Build Voronoi Diagram ...\n");
+  MRIbuildVoronoiDiagram(mri_fill, mri_ctrl, mri_fill);
+   
+  printf("Using the voronoi diagram to separate WM into two hemispheres ...\n");
+
+  for(z=0; z < depth; z++)
+    for(y=0; y< height; y++)
+      for(x=0; x < width; x++)
+	{
+	  if(MRIgetVoxVal(mri_img, x, y, z, 0) < WM_MIN_VAL) continue;
+
+	  if(MRIvox(mri_fill, x, y, z) == rh_fill_val)
+	    MRIvox(mri_fill_rh,x,y,z) = 1;
+	  else
+	    MRIvox(mri_fill_lh,x,y,z) = 1;
+	}  
+  
+  printf("Find the largest connected component for each hemisphere ...\n");
+ 
+  GetLargestCC18(mri_fill_lh);
+  GetLargestCC18(mri_fill_rh);
+
+  RemoveHoles(mri_fill_lh);
+  RemoveHoles(mri_fill_rh);
+
+  for(z=0; z < depth; z++)
+    for(y=0; y< height; y++)
+      for(x=0; x < width; x++)
+	{
+	  MRIvox(mri_fill, x, y, z) = 0;
+	  if(MRIvox(mri_fill_lh, x, y, z) > 0)
+	    MRIvox(mri_fill, x, y, z) = lh_fill_val;
+	  else if(MRIvox(mri_fill_rh, x, y, z) > 0)
+	    MRIvox(mri_fill, x, y, z) = rh_fill_val;
+	}
+
+  MRIfree(&mri_ctrl);
+  MRIfree(&mri_fill_lh);
+  MRIfree(&mri_fill_rh);
+
+  return (mri_fill);
+} 
