@@ -1570,10 +1570,11 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
 ------------------------------------------------------*/
 MRI *
 MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
-                 BUFTYPE mask_threshold,BUFTYPE out_val)
+                 float mask_threshold,float out_val)
 {
   int     width, height, depth, x, y, z;
   BUFTYPE *pdst, *psrc, *pmask, val, mask_val ;
+	float   fval, fmask ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -1582,24 +1583,44 @@ MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pmask = &MRIvox(mri_mask, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
-        val = *psrc++ ;
-        mask_val = *pmask++ ;
-        if (mask_val >= mask_threshold)
-          *pdst++ = val ;
-        else
-          *pdst++ = out_val ;
-      }
-    }
-  }
+	if (mri_src->type == MRI_UCHAR && mri_mask->type == MRI_UCHAR)
+	{
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				pdst = &MRIvox(mri_dst, 0, y, z) ;
+				psrc = &MRIvox(mri_src, 0, y, z) ;
+				pmask = &MRIvox(mri_mask, 0, y, z) ;
+				for (x = 0 ; x < width ; x++)
+				{
+					val = *psrc++ ;
+					mask_val = *pmask++ ;
+					if (mask_val >= mask_threshold)
+						*pdst++ = val ;
+					else
+						*pdst++ = out_val ;
+				}
+			}
+		}
+	}
+	else
+	{
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					fval = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+					fmask = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
+					if (fmask < mask_threshold)
+						fval = out_val ;
+					MRIsetVoxVal(mri_dst, x, y, z, 0,fval) ;
+				}
+			}
+		}
+	}
   return(mri_dst) ;
 }
 /*----------------------------------------------------------------------

@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/10/17 17:18:00 $
-// Revision       : $Revision: 1.314 $
-char *MRI_C_VERSION = "$Revision: 1.314 $";
+// Revision Date  : $Date: 2005/10/18 14:59:45 $
+// Revision       : $Revision: 1.315 $
+char *MRI_C_VERSION = "$Revision: 1.315 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -3618,6 +3618,7 @@ MRIabsdiff(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z ;
   BUFTYPE *p1, *p2, *pdst, v1, v2 ;
+	float   f1, f2 ;
 
   width = mri1->width ;
   height = mri1->height ;
@@ -3629,24 +3630,42 @@ MRIabsdiff(MRI *mri1, MRI *mri2, MRI *mri_dst)
     MRIcopyHeader(mri1, mri_dst) ;
   }
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      p1 = mri1->slices[z][y] ;
-      p2 = mri2->slices[z][y] ;
-      pdst = mri_dst->slices[z][y] ;
-      for (x = 0 ; x < width ; x++)
-      {
-        v1 = *p1++ ;
-        v2 = *p2++ ;
-        if (v1 > v2)
-          *pdst++ = v1 - v2 ;
-        else
-          *pdst++ = v2 - v1 ;
-      }
-    }
-  }
+	if (mri1->type == MRI_UCHAR && mri2->type == MRI_UCHAR)
+	{
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				p1 = mri1->slices[z][y] ;
+				p2 = mri2->slices[z][y] ;
+				pdst = mri_dst->slices[z][y] ;
+				for (x = 0 ; x < width ; x++)
+				{
+					v1 = *p1++ ;
+					v2 = *p2++ ;
+					if (v1 > v2)
+						*pdst++ = v1 - v2 ;
+					else
+						*pdst++ = v2 - v1 ;
+				}
+			}
+		}
+	}
+	else
+	{
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					f1 = MRIgetVoxVal(mri1, x, y, z, 0)  ;
+					f2 = MRIgetVoxVal(mri2, x, y, z, 0)  ;
+					MRIsetVoxVal(mri_dst, x, y, z, 0, fabs(f1 - f2)) ;
+				}
+			}
+		}
+	}
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
