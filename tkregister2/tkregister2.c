@@ -1,10 +1,12 @@
 /*============================================================================
- Copyright (c) 1996 Martin Sereno and Anders Dale
-=============================================================================*/
-/*   $Id: tkregister2.c,v 1.39 2005/10/04 19:23:17 greve Exp $   */
+  Copyright (c) 1996 Martin Sereno and Anders Dale
+  ============================================================================
+*/
+/*   $Id: tkregister2.c,v 1.40 2005/10/18 15:56:01 nicks Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.39 2005/10/04 19:23:17 greve Exp $";
+static char vcid[] = 
+"$Id: tkregister2.c,v 1.40 2005/10/18 15:56:01 nicks Exp $";
 #endif /* lint */
 
 #define TCL
@@ -68,7 +70,8 @@ static char vcid[] = "$Id: tkregister2.c,v 1.39 2005/10/04 19:23:17 greve Exp $"
 #  define frontbuffer(X)   glDrawBuffer(GL_FRONT)
 #  define backbuffer(X)    glDrawBuffer(GL_BACK)
 #  define clear()          glClear(GL_COLOR_BUFFER_BIT)
-#  define getorigin(X,Y)   *(X) = w.x; *(Y) = 1024 - w.y - w.h /*WINDOW_REC w;*/
+#  define getorigin(X,Y)   *(X) = w.x; *(Y) = 1024 - w.y - w.h 
+                           /*WINDOW_REC w;*/
 #  define getsize(X,Y)     *(X) = w.w; *(Y) = w.h
 #  define Colorindex       unsigned short
 #  define color(X)         glIndexs(X)
@@ -127,12 +130,16 @@ void optimize2();
 void read_images(char fpref[]);
 void read_second_images(char fpref[]);
 void select_pixel(short sx,short sy);
-void transform(float x1,float y1,float z1,float *x2,float *y2,float *z2,float M[4][4]);
+void transform(float x1,float y1,float z1,
+               float *x2,float *y2,float *z2,
+               float M[4][4]);
 void draw_image(int imc,int ic,int jc);
 void draw_image2(int imc,int ic,int jc);
 void blur(float factor);
 void make_filenames(char *lsubjectsdir);
-void read_float_images(float ***fim,char *format,int nslices,int nperslice,int xdim,int ydim,short **buf);
+void read_float_images(float ***fim,char *format,
+                       int nslices,int nperslice,
+                       int xdim,int ydim,short **buf);
 void usecnap(int usec);
 void initcolormap();
 void pseudo_swapbuffers();
@@ -140,7 +147,7 @@ int crScreen2AnatInd(int c, int r, int *cor, int *hor, int *sag);
 int AnatInd2AnatXYZ(int cor, int hor, int sag, float *x, float *y, float *z);
 int crScreen2AnatXYZ(int c, int r, float *x, float *y, float *z);
 int FuncXYZ2FuncInd(float x, float y, float z,
-		    float *col, float *row, float *slice);
+                    float *col, float *row, float *slice);
 int draw_cross_hair(int rScreen, int cScreen);
 int erase_cross_hair(int rScreen, int cScreen);
 
@@ -201,7 +208,7 @@ static int MRItagVol(MRI *mri, float val);
 #define MOTIF_YFUDGE  32
 #define TMP_DIR "tmp"
 #define SLICE1_POS_UNDEF   9999.0
-  /* overlay modes */
+/* overlay modes */
 #define TARGET   1
 #define MOVEABLE 2
 
@@ -384,22 +391,22 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     sprintf(talxfmfile,"%s/talairach.xfm",talxfmdir);
     if(!mkheaderreg){
       if(!fio_DirIsWritable(talxfmdir,0)){
-	printf("\n");
-	printf("\n");
-	printf("WARNING: cannot write to %s.\n",talxfmdir);
-	printf("You will not be able to save any edits.\n");
-	printf("Hit Enter to continue: ");
-	getc(stdin);
-	printf(" ... continuing\n");
-	printf("\n");
+        printf("\n");
+        printf("\n");
+        printf("WARNING: cannot write to %s.\n",talxfmdir);
+        printf("You will not be able to save any edits.\n");
+        printf("Hit Enter to continue: ");
+        getc(stdin);
+        printf(" ... continuing\n");
+        printf("\n");
       }
       if(regio_read_mincxfm(talxfmfile, &RegMat)) exit(1);
       printf("talairach.xfm ---------------------\n");
       MatrixPrint(stdout,RegMat);
       for (i=0;i<4;i++){
-	for (j=0;j<4;j++){
-	  tm[i][j] = RegMat->rptr[i+1][j+1];
-	}
+        for (j=0;j<4;j++){
+          tm[i][j] = RegMat->rptr[i+1][j+1];
+        }
       }
     }
     mov_vol_id = (char *) calloc(sizeof(char),2000);
@@ -418,7 +425,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       exit(1);
     }
     sprintf(targ_vol_path,"%s/%s/mri/%s%s",
-	    subjectsdir,subjectid,targ_vol_id,fstalfmt);
+            subjectsdir,subjectid,targ_vol_id,fstalfmt);
   }
   else
     memcpy(targ_vol_path,targ_vol_id,strlen(targ_vol_id));
@@ -594,7 +601,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       exit(1);
     }
     err = regio_read_register(int_regfname, &pc, &int_ipr, &int_bpr,
-			    &int_fscale, &IntRegMat, &int_float2int);
+                              &int_fscale, &IntRegMat, &int_float2int);
     if(err){
       printf("ERROR: reading intermediate registration %s\n",int_regfname);
       exit(1);
@@ -610,22 +617,22 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     MatrixMultiply(RegMat,invMtc,RegMat);
     if(float2int == FLT2INT_TKREG){
       if(fixtkreg){
-	printf("INFO: making tkreg matrix compatible with round\n");
-	RegMat = MRIfixTkReg(mov_vol,RegMat);
-	printf("---- New registration matrix --------\n");
-	MatrixPrint(stdout,RegMat);
-	printf("---------------------------------------\n");
-	for (i=0;i<4;i++){
-	  for (j=0;j<4;j++){
-	    tm[i][j] = RegMat->rptr[i+1][j+1];
-	  }
-	}
+        printf("INFO: making tkreg matrix compatible with round\n");
+        RegMat = MRIfixTkReg(mov_vol,RegMat);
+        printf("---- New registration matrix --------\n");
+        MatrixPrint(stdout,RegMat);
+        printf("---------------------------------------\n");
+        for (i=0;i<4;i++){
+          for (j=0;j<4;j++){
+            tm[i][j] = RegMat->rptr[i+1][j+1];
+          }
+        }
       }
       else{
-	printf("INFO: this registration matrix was created using\n");
-	printf("      the old float2int truncation method and you\n");
-	printf("      have chosen not to fix it (--nofix), so\n");
-	printf("      the registration may be shifted.\n");
+        printf("INFO: this registration matrix was created using\n");
+        printf("      the old float2int truncation method and you\n");
+        printf("      have chosen not to fix it (--nofix), so\n");
+        printf("      the registration may be shifted.\n");
       }
     }
   }
@@ -687,7 +694,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     surf = MRISread(surf_path) ;
     if (!surf)
       ErrorExit(ERROR_NOFILE,"%s: could not read surface %s", 
-		Progname, surfname) ;
+                Progname, surfname) ;
     printf("Done reading surface\n");
 
     /* make a surface mask in the volume */
@@ -711,7 +718,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     surf = MRISread(surf_path) ;
     if (!surf)
       ErrorExit(ERROR_NOFILE,"%s: could not read surface %s", 
-		Progname, surfname) ;
+                Progname, surfname) ;
     printf("Done reading surface\n");
 
     /* make a surface mask in the volume */
@@ -734,13 +741,13 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   /*------------------------------------------------------*/
   if( abs(ps_2 - mov_vol->xsize) > .001 ){
     printf("WARNING: pixel size in regfile (%g) does not match that of "
-	   "movable volume (%g)\n",ps_2,mov_vol->xsize);
+           "movable volume (%g)\n",ps_2,mov_vol->xsize);
     printf("If the movable volume is a bshort or bfloat, make sure\n");
     printf("that a .bhdr file exists\n");
   }
   if( abs(st_2 - mov_vol->zsize) > .001 ){
     printf("WARNING: slice thickness in regfile (%f) does not match that of "
-	   "movable volume (%f)\n",st_2,mov_vol->zsize);
+           "movable volume (%f)\n",st_2,mov_vol->zsize);
     printf("If the movable volume is a bshort or bfloat, make sure\n");
     printf("that a .bhdr file exists\n");
   }
@@ -872,8 +879,8 @@ static int parse_commandline(int argc, char **argv)
       targ_vol_id = pargv[0];
       nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-	fmt = pargv[1]; nargsused ++;
-	targ_vol_fmt = checkfmt(fmt);
+        fmt = pargv[1]; nargsused ++;
+        targ_vol_fmt = checkfmt(fmt);
       }
     }
     else if (!strcmp(option, "--targ-orientation")){
@@ -881,9 +888,9 @@ static int parse_commandline(int argc, char **argv)
       targ_ostr = pargv[0];
       errstr = MRIcheckOrientationString(targ_ostr);
       if(errstr){
-	printf("ERROR: with target orientation string %s\n",targ_ostr);
-	printf("%s\n",errstr);
-	exit(1);
+        printf("ERROR: with target orientation string %s\n",targ_ostr);
+        printf("%s\n",errstr);
+        exit(1);
       }
       nargsused = 1;
     }
@@ -892,8 +899,8 @@ static int parse_commandline(int argc, char **argv)
       mov_vol_id = pargv[0];
       nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-	fmt = pargv[1]; nargsused ++;
-	mov_vol_fmt = checkfmt(fmt);
+        fmt = pargv[1]; nargsused ++;
+        mov_vol_fmt = checkfmt(fmt);
       }
     }
     else if (!strcmp(option, "--int")){
@@ -907,9 +914,9 @@ static int parse_commandline(int argc, char **argv)
       mov_ostr = pargv[0];
       errstr = MRIcheckOrientationString(mov_ostr);
       if(errstr){
-	printf("ERROR: with mov orientation string %s\n",mov_ostr);
-	printf("%s\n",errstr);
-	exit(1);
+        printf("ERROR: with mov orientation string %s\n",mov_ostr);
+        printf("%s\n",errstr);
+        exit(1);
       }
       nargsused = 1;
     }
@@ -941,8 +948,8 @@ static int parse_commandline(int argc, char **argv)
       if( strcmp(pargv[0],"ax")  == 0) plane_init = HORIZONTAL;
       if( strcmp(pargv[0],"hor") == 0) plane_init = HORIZONTAL;
       if(plane_init == -1000){
-	printf("ERROR: orientation %s unrecognized\n",pargv[0]);
-	exit(1);
+        printf("ERROR: orientation %s unrecognized\n",pargv[0]);
+        exit(1);
       }
       nargsused = 1;
     }
@@ -952,8 +959,8 @@ static int parse_commandline(int argc, char **argv)
       if( strcmp(pargv[0],"mov") == 0)  overlay_mode_init = MOVEABLE;
       if( strcmp(pargv[0],"targ") == 0) overlay_mode_init = TARGET;
       if(overlay_mode_init == -1000){
-	printf("ERROR: volview %s unrecognized\n",pargv[0]);
-	exit(1);
+        printf("ERROR: volview %s unrecognized\n",pargv[0]);
+        exit(1);
       }
       nargsused = 1;
     }
@@ -962,9 +969,9 @@ static int parse_commandline(int argc, char **argv)
       UseSurf  = 1;
       nargsused = 0;
       if(nth_is_arg(nargc, pargv, 0)){
-	surfname = pargv[0]; 
+        surfname = pargv[0]; 
         nargsused ++;
-	printf("surfname set to %s\n",surfname);
+        printf("surfname set to %s\n",surfname);
       }
     }
     else if (!strcmp(option, "--reg")){
@@ -987,20 +994,20 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       float2int_use = float2int_code(pargv[0]);
       if(float2int_use == -1){
-	printf("ERROR: float2int method %s unrecognized\n",pargv[0]);
-	exit(1);
+        printf("ERROR: float2int method %s unrecognized\n",pargv[0]);
+        exit(1);
       }
       nargsused = 1;
     }
     else if ( !strcmp(option, "--subject") ||
-	      !strcmp(option, "--s") ){
+              !strcmp(option, "--s") ){
       if(nargc < 1) argnerr(option,1);
       memset(subjectid,'\0',1000);
       memcpy(subjectid,pargv[0],strlen(pargv[0]));
       nargsused = 1;
     }
     else if ( !strcmp(option, "--talsubject") ||
-	      !strcmp(option, "--tals") ){
+              !strcmp(option, "--tals") ){
       if(nargc < 1) argnerr(option,1);
       talsubject = pargv[0];
       nargsused = 1;
@@ -1038,7 +1045,7 @@ static int parse_commandline(int argc, char **argv)
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+        fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -1081,11 +1088,13 @@ static void print_usage(void)
   printf("   --title title : set window title\n");
   printf("   --tag : tag mov vol near the col/row origin\n");
   printf("   --mov-orientation ostring : supply orientation string for mov\n");
-  printf("   --targ-orientation ostring : supply orientation string for targ\n");
-  printf("   --int intvol intreg : use registration from intermediate volume \n");
+  printf("   --targ-orientation ostring : "
+         "supply orientation string for targ\n");
+  printf("   --int intvol intreg : "
+         "use registration from intermediate volume \n");
   printf("   --gdiagno n : set debug level\n");
   printf("\n");
-  printf("   --help : Oops, I accidentally documented this program!.\n");
+  printf("   --help : usage documentation\n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
 }
@@ -1099,361 +1108,464 @@ static void print_help(void)
 
   printf(
 
-"SUMMARY\n"
-"\n"
-"tkregister2 is a tool to assist in the manual tuning of the linear\n"
-"registration between two volumes, mainly for the purpose of\n"
-"interacting with the FreeSurfer anatomical stream. The GUI displays a\n"
-"window in which the user can toggle between the two volumes to see how\n"
-"well they line up. It is also possible to display the cortical surface\n"
-"to assist in alignment. The user can edit the registration by\n"
-"translation, rotation, and stretching.  The initial registration can\n"
-"be based on: (1) a previously existing registration, (2) the spatial\n"
-"information contained in the headers of the two input volumes, or (3)\n"
-"an FSL registration matrix. The output takes the form of a FreeSurfer\n"
-"registration matrix. It is also possible to output an FSL registration\n"
-"matrix. It is possible to run tkregister2 without the manual editing\n"
-"stage (ie, it exits immediately) in order to compute and/or convert\n"
-"registration matrices. tkregister2 can also compute registration\n"
-"matrices from two volumes aligned in SPM or FSL.\n"
-"\n"
-"  \n"
-"FLAGS AND OPTIONS\n"
-"  \n"
-"  --targ target-volume-id\n"
-"  \n"
-"  This is the path to the target volume. It can read anything readable \n"
-"  by mri_convert. See also --fstarg.\n"
-"  \n"
-"  --fstarg\n"
-"  \n"
-"  This flag implicitly sets the target volume to be the T1 volume found\n"
-"  in the subjects directory under the subject name found in the \n"
-"  input registration matrix. \n"
-"  \n"
-"  --mov movable-volume-id\n"
-"  \n"
-"  This is the path to the target volume. It can read anything readable \n"
-"  by mri_convert. See also --fstal.\n"
-"  \n"
-"  --fstal\n"
-"\n"
-"  Check and edit the talairach registration at was created during\n"
-"  the FreeSurfer reconstruction. Sets the movable volume to be \n"
-"  $SUJBECTS_DIR/talairach/mri/orig and  sets the registration file to be \n"
-"  $SUBJECTS_DIR/subjectid/transforms/talairach.xfm. User must have\n"
-"  write permission to this file. Do not specify --reg with this\n"
-"  flag. It is ok to specify --regheader with this flag. The format\n"
-"  of the anatomical can be changed with --mgh or --mghz\n"
-"\n"
-"  --mgh\n"
-"  --mgz\n"
-"\n"
-"  Assume mgh or mgz format when loading the anatoical for --fstal.\n"
-"  With --mgh, looks for mri/orig.mgh. With --mgz, looks for mri/orig.mgz.\n"
-"  This applies only when using --fstal.\n"
-"\n"
-"  --plane <orientation>\n"
-"\n"
-"  Set the initial orientation. Valid values are cor, sag, and ax.\n"
-"  The default is cor.\n"
-"\n"
-"  --slice sliceno\n"
-"\n"
-"  Set the initial slice to view. \n"
-"\n"
-"  --fov FOV\n"
-"\n"
-"  Set the view port field-of-view. Default is 256. Note, the zoom\n"
-"  can also be controlled interactively with - and =.\n"
-"\n"
-"  --movscale scale\n"
-"\n"
-"  Adjust registration matrix to scale mov volume by scale. This has\n"
-"  the same effect as adjusting the scale manually. It also flags\n"
-"  the matrix as being edited, and so you will be asked to save it\n"
-"  even if you have not made any manual edits.\n"
-"\n"
-"  --movframe frame\n"
-"\n"
-"  Use frame from moveable volume.\n"
-"\n"
-"  --surf <surfacename>\n"
-"\n"
-"  Load the cortical surface (both hemispheres) and display as an\n"
-"  overlay on the volumes. If just --surf is supplied, then the white \n"
-"  surface is loaded, otherwise surfacename is loaded. The subject\n"
-"  name (as found in the input registration file or as specified\n"
-"  on the command-line) must be valid, and the surface must exist\n"
-"  in the subject's anatomical directory. The surface display can\n"
-"  be toggled by clicking in the window and hitting 's'.\n"
-"\n"
-"  --reg registration-file\n"
-"  \n"
-"  Path to the input or output FreeSurfer registration file. If the user\n"
-"  specifies that the initial registration be computed from the input\n"
-"  headers or from an FSL matrix, then this will be the output file.\n"
-"  Otherwise, the initial registration will be read from this file\n"
-"  (it will still be the output file). Note: a FreeSurfer registration\n"
-"  file must be specified even if you only want the FSL registration\n"
-"  file as the output. See also --fstal.\n"
-"  \n"
-"  --regheader\n"
-"  \n"
-"  Compute the initial registration from the information in the headers\n"
-"  of the input volumes. The contents of the registration-file, if it\n"
-"  exists, will be ignored. This mostly makes sense when the two volumes\n"
-"  were acquired at the same time (ie, when the head motion is minimal).\n"
-"  \n"
-"  --fslreg FSL-registration-file\n"
-"  \n"
-"  Use the matrix produced by the FSL routines as the initial registration.\n"
-"  It should be an ascii file with a 4x4 matrix. Note: the matrix should\n"
-"  map from the mov to the target.\n"
-"  \n"
-"  --s subjectid\n"
-"  \n"
-"  Subject identifier string that will be printed in the output registration\n"
-"  file when no the input registration file is not specified (ie, with\n"
-"  --regheader or --fslreg).\n"
-"  \n"
-"  --sd subjectsdir\n"
-"  \n"
-"  Set the path to the parent directory of the FreeSurfer anatomical \n"
-"  reconstructions. If unspecified, this will default to the SUBJECTS_DIR \n"
-"  environment variable. This only has an effect with --fstarg.\n"
-"  \n"
-"  --noedit\n"
-"  \n"
-"  Do not bring up the GUI, just print out file(s) and exit. This is mainly\n"
-"  useful saving the header-computer registration matrix (or for converting\n"
-"  from FreeSurfer to FSL, or the other way around).\n"
-"  \n"
-"  --fslregout FSL-registration-file\n"
-"  \n"
-"  Compute an FSL-compatible registration matrix based on either the\n"
-"  FreeSurfer matrix or the header. This can be helpful for initializing\n"
-"  the FSL registration routines.\n"
-"  \n"
-"  --nofix\n"
-"  \n"
-"  This is only here for debugging purposes in order to simulate the behavior\n"
-"  of the old tkregister.\n"
-"  \n"
-"  --float2int code\n"
-"  \n"
-"  This is only here for debugging purposes in order to simulate the \n"
-"  behavior of the old tkregister.\n"
-"  \n"
-"  --title title\n"
-"  \n"
-"  Set the window titles to title. Default is subjectname.\n"
-"  \n"
-"  --tag\n"
-"  \n"
-"  Creates a hatched pattern in the mov volume prior to resampling.\n"
-"  This pattern is in all slices near the col/row origin (ie, near\n"
-"  col=0,row=0). This can help to determine if there is a left-right\n"
-"  reversal. Think of this as a synthetic fiducial. Can be good in \n"
-"  combination with --mov-orientation.\n"
-"  \n"
-"  --mov-orientation ostring\n"
-"  --targ-orientation ostring\n"
-"  \n"
-"  Supply the orientation information in the form of an orientation string \n"
-"  (ostring). The ostring is three letters that roughly describe how the volume\n"
-"  is oriented. This is usually described by the direction cosine information\n"
-"  as originally derived from the dicom but might not be available in all data\n"
-"  sets. --mov-orientation will have no effect unless --regheader is specified.\n"
-"  The first  character of ostring determines the direction of increasing column.\n"
-"  The second character of ostring determines the direction of increasing row.\n"
-"  The third  character of ostring determines the direction of increasing slice.\n"
-"  Eg, if the volume is axial starting inferior and going superior the slice \n"
-"  is oriented such that nose is pointing up and the right side of the subject\n"
-"  is on the left side of the image, then this would correspond to LPS, ie,\n"
-"  as the column increases, you move to the patients left; as the row increases,\n"
-"  you move posteriorly, and as the slice increases, you move superiorly. Valid\n"
-"  letters are L, R, P, A, I, and S. There are 48 valid combinations (eg, RAS\n"
-"  LPI, SRI). Some invalid ones are DPS (D is not a valid letter), RRS (can't\n"
-"  specify R twice), RAP (A and P refer to the same axis). Invalid combinations\n"
-"  are detected immediately, an error printed, and the program exits. Case-insensitive.\n"
-"  \n"
-"  \n"
-"  --int volid regmat\n"
-"\n"
-"  Use registration from an intermediate volume. This can be useful when the\n"
-"  FOV of the moveable volume does not cover the entire brain. In this case, \n"
-"  you can register a full-volume COLLECTED IN THE SAME SESSION AS THE MOVEABLE\n"
-"  to the target. Then specify this volume and its registration with --int.\n"
-"  regmat will be the registration resulting from a separate invokation of \n"
-"  tkregister2 in which the intermediate volume is specified as the moveable. \n"
-"  \n"
-"  --gdiagno N\n"
-"\n"
-"  Set the diagnostic/debug level. Default is 0.\n"
-"\n"
-"FREESURFER REGISTRATION CONVENTIONS\n"
-"\n"
-"For the purposes of FreeSurfer, the registration matrix maps the XYZ\n"
-"of the anatomical reference (ie, the subjects brain as found in \n"
-"$SUBJECTS_DIR) to the XYZ of the functional volume. The anatomical\n"
-"reference is the 'target' volume (argument of --targ) and the \n"
-"functional volume is the 'movable' volume (argument of --mov).\n"
-"The XYZ of a given col, row, and slice is defined\n"
-"based on the field-of-view by the following matrix:\n"
-"\n"
-"          (-dc 0   0  dc*Nc/2)\n"
-"     T =  ( 0  0  ds -ds*Ns/2) \n"
-"          ( 0 -dr  0  dr*Nr/2)\n"
-"          ( 0  0   0     1   )\n"
-"\n"
-"where dc, dr, and ds are the voxel resolutions in the column, row, \n"
-"and slice directions, respectively, and  Nc, Nr, and Ns are the\n"
-"number of columns, rows, and slices.  Under this convention, \n"
-"\n"
-"  XYZ = T*[r c s 1]\n"
-"\n"
-"The FreeSurfer registration matrix is then defined by:\n"
-"\n"
-"   XYZmov = R*XYZtarg\n"
-"\n"
-"FREESURFER REGISTRATION FILE FORMAT\n"
-"\n"
-"The FreeSurfer registration is stored in an ASCII file with the \n"
-"following format:\n"
-"\n"
-"      subjectname\n"
-"      in-plane-res-mm\n"
-"      between-plane-res-mm\n"
-"      intensity\n"
-"      m11 m12 m13 m14\n"
-"      m21 m22 m23 m24\n"
-"      m31 m32 m33 m34\n"
-"      0   0   0   1\n"
-"\n"
-"The subject name is that as found in the SUBJECTS_DIR. The in-plane-res-mm\n"
-"is the in-plane pixels size in mm. The between-plane-res-mm is\n"
-"the distance between slices in mm. Intensity only affect the display\n"
-"of the movable in the GUI.\n"
-"\n"
-"USING THE GUI\n"
-"\n"
-"Two volumes are compared slice-by-slice by hitting the Compare button;\n"
-"this will alternatively display one volume and then the other. If held\n"
-"down, it will flash. The relative position of the movable volume can\n"
-"be changed with three sliders (1) Translate, (2) Rotate, and (3) Scale.\n"
-"Each operates in-plane; the Rotate rotates about the red cross-hair.\n"
-"The current orientation can be changed by hitting either the CORONAL,\n"
-"SAGITTAL, or HORIZONTAL buttons. The matrix can be saved by hitting the\n"
-"SAVE REG button. The intensity of the movable can be changed by editing\n"
-"the value of the 'fmov:' text box. The brightntess and contrast of the\n"
-"target can be changed by editing the 'contrast:' and 'midpoint:' text\n"
-"boxes. The target can be masked off to the FOV of the movable by \n"
-"pressing the 'masktarg' radio button. If a surface has been loaded, it\n"
-"can be toggled by clicking in the display window and hitting 's'.\n"
-"\n"
-"SUMMARY OF KEYPRESS COMMANDS\n"
-"\n"
-"0 swap buffers (same as Compare)\n"
-"1 dispaly target\n"
-"2 dispaly moveable\n"
-"a increase moveable frame by 1"
-"b decrease moveable frame by 1"
-"i intensity normalize images\n"
-"n use nearest neighbor interpolation\n"
-"t use trilinear interpolation\n"
-"s toggle display of cortical surface\n"
-"x show sagittal view\n"
-"y show horizontal view\n"
-"z show coronal view\n"
-"- or _ zoom out\n"
-"+ or = zoom in\n"
-"p translate up\n"
-". translate down\n"
-"l translate left\n"
-"; translate right\n"
-"g translate into screen\n"
-"h translate out of screen\n"
-"[ rotate counter-clockwise about image normal\n"
-"] rotate clockwise about image normal\n"
-"q rotate about horiztonal image axis (neg)\n"
-"w rotate about horiztonal image axis (pos)\n"
-"r rotate about vertical image axis (neg)\n"
-"f rotate about vertical image axis (pos)\n"
-"Insert increase scale horizontally\n"
-"Delete decrease scale horizontally\n"
-"Home   increase scale vertically\n"
-"End    decrease scale vertically\n"
-"\n"
-"\n"
-"USING WITH FSL and SPM \n"
-"\n"
-"In order to apply the FreeSurfer tools to data analyzed in FSL or SPM, it\n"
-"is necessary that you create a FreeSurfer-style registration matrix. This\n"
-"matrix is stored in a text file which is usually called 'register.dat'.\n"
-"It is not the same as an SPM .mat file. It is not the same as an FSL .mat \n"
-"file. It is not the same as an analyze .hdr file. You can obtain a\n"
-"FreeSurfer-style registration matrix from those things but it is not the\n"
-"same as those things. If you do not obtain a FreeSurfer-style registration \n"
-"matrix, then you will not be able to use the FreeSurfer tools with your\n"
-"functional data.\n"
-"\n"
-"You can obtain a FreeSurfer-style registration matrix by directly editing the\n"
-"registration from within tkregister2, however, it will be easier if you\n"
-"use FSL or SPM to perform the registration and then use tkregister2 to\n"
-"generate the FreeSurfer-style registration matrix. To do this, first convert\n"
-"the anatomical (ie, the one in SUBJECTS_DIR/subjectname/mri/orig) \n"
-"to analyze format (use mri_convert SUBJECTS_DIR/subjectname/mri/orig cor.img).\n"
-"Convert the functional to analyze format (eg, f.img). \n"
-"\n"
-"When using the SPM registration tool, select the functional (f.img) as the object\n"
-"and the anatomical (cor.img) as the target, and select the 'Coregister only' option. \n"
-"The registration will be written into the functional .mat file. Run tkregister2 \n"
-"with the --regheader option. Use the --noedit option to suppress\n"
-"the GUI. Editing the registration will not affect the registration\n"
-"as seen by SPM. An example command-line is\n"
-"\n"
-"  tkregister2 --mov f.img --s yoursubject --regheader --noedit --reg register.dat \n"
-"\n"
-"This will create/overwrite register.dat.\n"
-"\n"
-"For FSL, coregister the functional (f.img) to the anatomical (cor.img) (ie, \n"
-"use the anatomical (cor.img) as the reference). This will produce an FSL registration\n"
-"file (an ASCII file with the 4x4 matrix). Run tkregister2 specifying\n"
-"this file as the argument to the --fslreg flag. Note, it is possible\n"
-"to generate an FSL matrix from the headers, which can be useful to\n"
-"initialize the FSL registration routines. To do this, just run\n"
-"tkregister2 with the --fslregout fsl.mat and --regheader flags,\n"
-"where fsl.mat is the name of the FSL matrix file. Use the --noedit \n"
-"option to suppress the GUI. Editing the registration will not affect \n"
-"the registration as seen by FSL unless --fslregout is specfied.\n"
-"An example command-line is\n"
-"\n"
-"  tkregister2 --mov f.img --fslreg fsl.mat --s yoursubject --regheader\n"
-"      --noedit --reg register.dat \n"
-"\n"
-"This will create/overwrite register.dat.\n"
-"\n"
-"If you don't include the --noedit, then the GUI will come up, and you\n"
-"can flip back and forth between the functional and the structural. If\n"
-"they are not well aligned then you are going to see garbage when you\n"
-"when you use tkmedit and tksurfer to view your data. So, CHECK YOUR\n"
-"REGISTRATION!!!\n"
-"\n"
-"BUGS\n"
-"\n"
-"It used to be the case that the GUI would not work if the target"
-"was not 256x256x256 voxels, isotropic at 1mm. This has been fixed\n"
-"by resampling the target into this space. This does not affect the\n"
-"final registration, ie, the registration matrix maps the original\n"
-"target (regarless of size) to the movable.\n"
-"\n"
-"AUTHORS\n"
-"\n"
-"The original tkregister was written by Martin Sereno and Anders Dale\n"
-"in 1996. The original was modified by Douglas Greve in 2002.\n"
-);
-
+         "SUMMARY\n"
+         "\n"
+         "tkregister2 is a tool to assist in the manual tuning of the linear\n"
+         "registration between two volumes, mainly for the purpose of\n"
+         "interacting with the FreeSurfer anatomical stream. "
+         "The GUI displays a\n"
+         "window in which the user can toggle between the two volumes "
+         "to see how\n"
+         "well they line up. It is also possible to display "
+         "the cortical surface\n"
+         "to assist in alignment. The user can edit the registration by\n"
+         "translation, rotation, and stretching.  "
+         "The initial registration can\n"
+         "be based on: (1) a previously existing registration, "
+         "(2) the spatial\n"
+         "information contained in the headers of the two input volumes, "
+         "or (3)\n"
+         "an FSL registration matrix. The output takes the form of a "
+         "FreeSurfer\n"
+         "registration matrix. It is also possible to output an "
+         "FSL registration\n"
+         "matrix. It is possible to run tkregister2 without the "
+         "manual editing\n"
+         "stage (ie, it exits immediately) in order to compute "
+         "and/or convert\n"
+         "registration matrices. tkregister2 can also compute registration\n"
+         "matrices from two volumes aligned in SPM or FSL.\n"
+         "\n"
+         "  \n"
+         "FLAGS AND OPTIONS\n"
+         "  \n"
+         "  --targ target-volume-id\n"
+         "  \n"
+         "  This is the path to the target volume. It can read "
+         "anything readable \n"
+         "  by mri_convert. See also --fstarg.\n"
+         "  \n"
+         "  --fstarg\n"
+         "  \n"
+         "  This flag implicitly sets the target volume to be the "
+         "T1 volume found\n"
+         "  in the subjects directory under the subject name found in the \n"
+         "  input registration matrix. \n"
+         "  \n"
+         "  --mov movable-volume-id\n"
+         "  \n"
+         "  This is the path to the target volume. "
+         "It can read anything readable \n"
+         "  by mri_convert. See also --fstal.\n"
+         "  \n"
+         "  --fstal\n"
+         "\n"
+         "  Check and edit the talairach registration that was "
+         "created during\n"
+         "  the FreeSurfer reconstruction. Sets the movable volume to be \n"
+         "  $SUBJECTS_DIR/talairach/mri/orig and "
+         "sets the registration file to be \n"
+         "  $SUBJECTS_DIR/subjectid/transforms/talairach.xfm. User must have\n"
+         "  write permission to this file. Do not specify --reg with this\n"
+         "  flag. It is ok to specify --regheader with this flag. The format\n"
+         "  of the anatomical can be changed with --mgh or --mghz\n"
+         "\n"
+         "  --mgh\n"
+         "  --mgz\n"
+         "\n"
+         "  Assume mgh or mgz format when loading the anatoical for --fstal.\n"
+         "  With --mgh, looks for mri/orig.mgh. With --mgz, looks for "
+         "mri/orig.mgz.\n"
+         "  This applies only when using --fstal.\n"
+         "\n"
+         "  --plane <orientation>\n"
+         "\n"
+         "  Set the initial orientation. Valid values are cor, sag, and ax.\n"
+         "  The default is cor.\n"
+         "\n"
+         "  --slice sliceno\n"
+         "\n"
+         "  Set the initial slice to view. \n"
+         "\n"
+         "  --fov FOV\n"
+         "\n"
+         "  Set the view port field-of-view. Default is 256. Note, the zoom\n"
+         "  can also be controlled interactively with - and =.\n"
+         "\n"
+         "  --movscale scale\n"
+         "\n"
+         "  Adjust registration matrix to scale mov volume by scale. "
+         "This has\n"
+         "  the same effect as adjusting the scale manually. It also flags\n"
+         "  the matrix as being edited, and so you will be asked to save it\n"
+         "  even if you have not made any manual edits.\n"
+         "\n"
+         "  --movframe frame\n"
+         "\n"
+         "  Use frame from moveable volume.\n"
+         "\n"
+         "  --surf <surfacename>\n"
+         "\n"
+         "  Load the cortical surface (both hemispheres) and display as an\n"
+         "  overlay on the volumes. If just --surf is supplied, "
+         "then the white \n"
+         "  surface is loaded, otherwise surfacename is loaded. The subject\n"
+         "  name (as found in the input registration file or as specified\n"
+         "  on the command-line) must be valid, and the surface must exist\n"
+         "  in the subject's anatomical directory. The surface display can\n"
+         "  be toggled by clicking in the window and hitting 's'.\n"
+         "\n"
+         "  --reg registration-file\n"
+         "  \n"
+         "  Path to the input or output FreeSurfer registration file. "
+         "If the user\n"
+         "  specifies that the initial registration be computed from "
+         "the input\n"
+         "  headers or from an FSL matrix, then this will be the output "
+         "file.\n"
+         "  Otherwise, the initial registration will be read from this file\n"
+         "  (it will still be the output file). Note: a FreeSurfer "
+         "registration\n"
+         "  file must be specified even if you only want the "
+         "FSL registration\n"
+         "  file as the output. See also --fstal.\n"
+         "  \n"
+         "  --regheader\n"
+         "  \n"
+         "  Compute the initial registration from the information "
+         "in the headers\n"
+         "  of the input volumes. The contents of the registration file, "
+         "if it\n"
+         "  exists, will be ignored. This mostly makes sense when the "
+         "two volumes\n"
+         "  were acquired at the same time (ie, when the head motion "
+         "is minimal).\n"
+         "  \n"
+         "  --fslreg FSL-registration-file\n"
+         "  \n"
+         "  Use the matrix produced by the FSL routines as the "
+         "initial registration.\n"
+         "  It should be an ascii file with a 4x4 matrix. "
+         "Note: the matrix should\n"
+         "  map from the mov to the target.\n"
+         "  \n"
+         "  --s subjectid\n"
+         "  \n"
+         "  Subject identifier string that will be printed in the "
+         "output registration\n"
+         "  file when no the input registration file is not specified "
+         "(ie, with\n"
+         "  --regheader or --fslreg).\n"
+         "  \n"
+         "  --sd subjectsdir\n"
+         "  \n"
+         "  Set the path to the parent directory of the FreeSurfer "
+         "anatomical \n"
+         "  reconstructions. If unspecified, this will default to the "
+         "SUBJECTS_DIR \n"
+         "  environment variable. This only has an effect with --fstarg.\n"
+         "  \n"
+         "  --noedit\n"
+         "  \n"
+         "  Do not bring up the GUI, just print out file(s) and exit. "
+         "This is mainly\n"
+         "  useful saving the header-computer registration matrix "
+         "(or for converting\n"
+         "  from FreeSurfer to FSL, or the other way around).\n"
+         "  \n"
+         "  --fslregout FSL-registration-file\n"
+         "  \n"
+         "  Compute an FSL-compatible registration matrix based on "
+         "either the\n"
+         "  FreeSurfer matrix or the header. This can be helpful for "
+         "initializing\n"
+         "  the FSL registration routines.\n"
+         "  \n"
+         "  --nofix\n"
+         "  \n"
+         "  This is only here for debugging purposes in order to "
+         "simulate the behavior\n"
+         "  of the old tkregister.\n"
+         "  \n"
+         "  --float2int code\n"
+         "  \n"
+         "  This is only here for debugging purposes in order to "
+         "simulate the \n"
+         "  behavior of the old tkregister.\n"
+         "  \n"
+         "  --title title\n"
+         "  \n"
+         "  Set the window titles to title. Default is subjectname.\n"
+         "  \n"
+         "  --tag\n"
+         "  \n"
+         "  Creates a hatched pattern in the mov volume prior to resampling.\n"
+         "  This pattern is in all slices near the col/row origin (ie, near\n"
+         "  col=0,row=0). This can help to determine if there is a "
+         "left-right\n"
+         "  reversal. Think of this as a synthetic fiducial. Can be good in \n"
+         "  combination with --mov-orientation.\n"
+         "  \n"
+         "  --mov-orientation ostring\n"
+         "  --targ-orientation ostring\n"
+         "  \n"
+         "  Supply the orientation information in the form of an "
+         "orientation string \n"
+         "  (ostring). The ostring is three letters that roughly "
+         "describe how the volume\n"
+         "  is oriented. This is usually described by the direction "
+         "cosine information\n"
+         "  as originally derived from the dicom but might not be "
+         "available in all data\n"
+         "  sets. --mov-orientation will have no effect unless "
+         "--regheader is specified.\n"
+         "  The first  character of ostring determines the "
+         "direction of increasing column.\n"
+         "  The second character of ostring determines the "
+         "direction of increasing row.\n"
+         "  The third  character of ostring determines the "
+         "direction of increasing slice.\n"
+         "  Eg, if the volume is axial starting inferior and "
+         "going superior the slice \n"
+         "  is oriented such that nose is pointing up and the "
+         "right side of the subject\n"
+         "  is on the left side of the image, then this would "
+         "correspond to LPS, ie,\n"
+         "  as the column increases, you move to the patients left; "
+         "as the row increases,\n"
+         "  you move posteriorly, and as the slice increases, "
+         "you move superiorly. Valid\n"
+         "  letters are L, R, P, A, I, and S. There are "
+         "48 valid combinations (eg, RAS\n"
+         "  LPI, SRI). Some invalid ones are DPS (D is not a valid letter), "
+         "RRS (can't\n"
+         "  specify R twice), RAP (A and P refer to the same axis). "
+         "Invalid combinations\n"
+         "  are detected immediately, an error printed, and the "
+         "program exits. Case-\n  insensitive.\n"
+         "  \n"
+         "  \n"
+         "  --int volid regmat\n"
+         "\n"
+         "  Use registration from an intermediate volume. This can be "
+         "useful when the\n"
+         "  FOV of the moveable volume does not cover the entire brain. "
+         "In this case, \n"
+         "  you can register a full-volume COLLECTED IN THE SAME "
+         "SESSION AS THE MOVEABLE\n"
+         "  to the target. Then specify this volume and its "
+         "registration with --int.\n"
+         "  regmat will be the registration resulting from a separate "
+         "invocation of \n"
+         "  tkregister2 in which the intermediate volume is specified "
+         "as the moveable. \n"
+         "  \n"
+         "  --gdiagno N\n"
+         "\n"
+         "  Set the diagnostic/debug level. Default is 0.\n"
+         "\n"
+         "FREESURFER REGISTRATION CONVENTIONS\n"
+         "\n"
+         "For the purposes of FreeSurfer, the registration matrix maps "
+         "the XYZ\n"
+         "of the anatomical reference (ie, the subjects brain as found in \n"
+         "$SUBJECTS_DIR) to the XYZ of the functional volume. The anatomical\n"
+         "reference is the 'target' volume (argument of --targ) and the \n"
+         "functional volume is the 'movable' volume (argument of --mov).\n"
+         "The XYZ of a given col, row, and slice is defined\n"
+         "based on the field-of-view by the following matrix:\n"
+         "\n"
+         "          (-dc 0   0  dc*Nc/2)\n"
+         "     T =  ( 0  0  ds -ds*Ns/2) \n"
+         "          ( 0 -dr  0  dr*Nr/2)\n"
+         "          ( 0  0   0     1   )\n"
+         "\n"
+         "where dc, dr, and ds are the voxel resolutions in the column, row,\n"
+         "and slice directions, respectively, and  Nc, Nr, and Ns are the\n"
+         "number of columns, rows, and slices.  Under this convention, \n"
+         "\n"
+         "  XYZ = T*[r c s 1]\n"
+         "\n"
+         "The FreeSurfer registration matrix is then defined by:\n"
+         "\n"
+         "   XYZmov = R*XYZtarg\n"
+         "\n"
+         "FREESURFER REGISTRATION FILE FORMAT\n"
+         "\n"
+         "The FreeSurfer registration is stored in an ASCII file with the \n"
+         "following format:\n"
+         "\n"
+         "      subjectname\n"
+         "      in-plane-res-mm\n"
+         "      between-plane-res-mm\n"
+         "      intensity\n"
+         "      m11 m12 m13 m14\n"
+         "      m21 m22 m23 m24\n"
+         "      m31 m32 m33 m34\n"
+         "      0   0   0   1\n"
+         "\n"
+         "The subject name is that as found in the SUBJECTS_DIR. "
+         "The in-plane-res-mm\n"
+         "is the in-plane pixels size in mm. The between-plane-res-mm is\n"
+         "the distance between slices in mm. Intensity only affect the "
+         "display\n"
+         "of the movable in the GUI.\n"
+         "\n"
+         "USING THE GUI\n"
+         "\n"
+         "Two volumes are compared slice-by-slice by hitting the "
+         "Compare button;\n"
+         "this will alternatively display one volume and then the other. "
+         "If held\n"
+         "down, it will flash. The relative position of the movable "
+         "volume can\n"
+         "be changed with three sliders (1) Translate, (2) Rotate, "
+         "and (3) Scale.\n"
+         "Each operates in-plane; the Rotate rotates about the "
+         "red cross-hair.\n"
+         "The current orientation can be changed by hitting either "
+         "the CORONAL,\n"
+         "SAGITTAL, or HORIZONTAL buttons. The matrix can be saved "
+         "by hitting the\n"
+         "SAVE REG button. The intensity of the movable can be "
+         "changed by editing\n"
+         "the value of the 'fmov:' text box. The brightntess and "
+         "contrast of the\n"
+         "target can be changed by editing the 'contrast:' and "
+         "'midpoint:' text\n"
+         "boxes. The target can be masked off to the FOV of the movable by \n"
+         "pressing the 'masktarg' radio button. If a surface has "
+         "been loaded, it\n"
+         "can be toggled by clicking in the display window and hitting 's'.\n"
+         "\n"
+         "SUMMARY OF KEYPRESS COMMANDS\n"
+         "\n"
+         "0 swap buffers (same as Compare)\n"
+         "1 dispaly target\n"
+         "2 dispaly moveable\n"
+         "a increase moveable frame by 1\n"
+         "b decrease moveable frame by 1\n"
+         "i intensity normalize images\n"
+         "n use nearest neighbor interpolation\n"
+         "t use trilinear interpolation\n"
+         "s toggle display of cortical surface\n"
+         "x show sagittal view\n"
+         "y show horizontal view\n"
+         "z show coronal view\n"
+         "- or _ zoom out\n"
+         "+ or = zoom in\n"
+         "p translate up\n"
+         ". translate down\n"
+         "l translate left\n"
+         "; translate right\n"
+         "g translate into screen\n"
+         "h translate out of screen\n"
+         "[ rotate counter-clockwise about image normal\n"
+         "] rotate clockwise about image normal\n"
+         "q rotate about horiztonal image axis (neg)\n"
+         "w rotate about horiztonal image axis (pos)\n"
+         "r rotate about vertical image axis (neg)\n"
+         "f rotate about vertical image axis (pos)\n"
+         "Insert increase scale horizontally\n"
+         "Delete decrease scale horizontally\n"
+         "Home   increase scale vertically\n"
+         "End    decrease scale vertically\n"
+         "\n"
+         "\n"
+         "USING WITH FSL and SPM \n"
+         "\n"
+         "In order to apply the FreeSurfer tools to data analyzed in "
+         "FSL or SPM, it\n"
+         "is necessary that you create a FreeSurfer-style registration "
+         "matrix. This\n"
+         "matrix is stored in a text file which is usually called "
+         "'register.dat'.\n"
+         "It is not the same as an SPM .mat file. It is not the same "
+         "as an FSL .mat \n"
+         "file. It is not the same as an analyze .hdr file. You can obtain a\n"
+         "FreeSurfer-style registration matrix from those things but "
+         "it is not the\n"
+         "same as those things. If you do not obtain a FreeSurfer-style "
+         "registration \n"
+         "matrix, then you will not be able to use the FreeSurfer tools "
+         "with your\n"
+         "functional data.\n"
+         "\n"
+         "You can obtain a FreeSurfer-style registration matrix by "
+         "directly editing the\n"
+         "registration from within tkregister2, however, it will be "
+         "easier if you\n"
+         "use FSL or SPM to perform the registration and then use "
+         "tkregister2 to\n"
+         "generate the FreeSurfer-style registration matrix. To do this, "
+         "first convert\n"
+         "the anatomical (ie, the one in SUBJECTS_DIR/subjectname/mri/orig) \n"
+         "to analyze format (use "
+         "mri_convert SUBJECTS_DIR/subjectname/mri/orig cor.img).\n"
+         "Convert the functional to analyze format (eg, f.img). \n"
+         "\n"
+         "When using the SPM registration tool, select the functional "
+         "(f.img) as the object\n"
+         "and the anatomical (cor.img) as the target, and select the "
+         "'Coregister only' option. \n"
+         "The registration will be written into the functional .mat file. "
+         "Run tkregister2 \n"
+         "with the --regheader option. Use the --noedit option to suppress\n"
+         "the GUI. Editing the registration will not affect the registration\n"
+         "as seen by SPM. An example command-line is\n"
+         "\n"
+         "  tkregister2 --mov f.img --s yoursubject --regheader --noedit "
+         "--reg register.dat \n"
+         "\n"
+         "This will create/overwrite register.dat.\n"
+         "\n"
+         "For FSL, coregister the functional (f.img) to the anatomical "
+         "(cor.img) (ie, \n"
+         "use the anatomical (cor.img) as the reference). This will produce "
+         "an FSL \nregistration "
+         "file (an ASCII file with the 4x4 matrix). Run tkregister2 "
+         "specifying\n"
+         "this file as the argument to the --fslreg flag. Note, it is "
+         "possible\n"
+         "to generate an FSL matrix from the headers, which can be useful to\n"
+         "initialize the FSL registration routines. To do this, just run\n"
+         "tkregister2 with the --fslregout fsl.mat and --regheader flags,\n"
+         "where fsl.mat is the name of the FSL matrix file. Use the --noedit\n"
+         "option to suppress the GUI. Editing the registration will not "
+         "affect\n"
+         "the registration as seen by FSL unless --fslregout is specfied.\n"
+         "An example command-line is\n"
+         "\n"
+         "  tkregister2 --mov f.img --fslreg fsl.mat --s yoursubject "
+         "--regheader\n"
+         "      --noedit --reg register.dat \n"
+         "\n"
+         "This will create/overwrite register.dat.\n"
+         "\n"
+         "If you don't include the --noedit, then the GUI will come up, "
+         "and you\n"
+         "can flip back and forth between the functional and the structural."
+         " If\n"
+         "they are not well aligned then you are going to see garbage "
+         "when you\n"
+         "when you use tkmedit and tksurfer to view your data. So, "
+         "CHECK YOUR\n"
+         "REGISTRATION!!!\n"
+         "\n"
+         "BUGS\n"
+         "\n"
+         "It used to be the case that the GUI would not work if the target\n"
+         "was not 256x256x256 voxels, isotropic at 1mm. This has been fixed\n"
+         "by resampling the target into this space. This does not affect the\n"
+         "final registration, ie, the registration matrix maps the original\n"
+         "target (regarless of size) to the movable.\n"
+         "\n"
+         "AUTHORS\n"
+         "\n"
+         "The original tkregister was written by Martin Sereno and "
+         "Anders Dale\n"
+         "in 1996. The original was modified by Douglas Greve in 2002.\n"
+         );
 
   exit(1) ;
 }
@@ -1477,7 +1589,7 @@ static void check_options(void)
 {
   if(targ_vol_id == NULL){
     printf("INFO: no target volume specified, assuming "
-	   "FreeSurfer orig volume.\n");
+           "FreeSurfer orig volume.\n");
     targ_vol_id = "orig";
     fstarg =1;
   }
@@ -1499,7 +1611,8 @@ static void check_options(void)
   }
 
   if(mkheaderreg && int_vol_id != NULL){
-    printf("ERROR: cannot make reg from header and use an intermediate volume\n");
+    printf("ERROR: cannot make reg from header and use an "
+           "intermediate volume\n");
     exit(1);
   }
 
@@ -1660,10 +1773,10 @@ void draw_image2(int imc,int ic,int jc)
     printf("Anat: Nc = %d, Nr = %d, Ns = %d\n",xnum_2,ynum_2,numimg_2);
     printf("ps_2 = %g, st_2 = %g, fscale_2 = %g\n",ps_2,st_2,fscale_2);
     printf("maskflag = %d, inorm = %d, interp=%d\n",maskflag,use_inorm,
-	   interpmethod);
+           interpmethod);
     printf("xdim = %d, ydim = %d, zf = %d\n",xdim,ydim,zf);
     printf("mode = %d, plane = %s (%d), %d %d %d\n",
-	   overlay_mode, planestring, plane, imc, ic, jc);
+           overlay_mode, planestring, plane, imc, ic, jc);
     fflush(stdout);
   }
 
@@ -1682,158 +1795,158 @@ void draw_image2(int imc,int ic,int jc)
   }
 
   if(update_needed != 0){
-  targimgmax = -100000;
-  targimgmin = 1000000000.0;
-  movimgmax  = -100000;
-  movimgmin  = 1000000000.0;
-  for(r = 0; r < ydim; r++){
-    for(c = 0; c < xdim; c++){
-      targimg[r][c] = 0.0;
-      movimg[r][c]  = 0.0;
-      surfimg[r][c] = 0;
+    targimgmax = -100000;
+    targimgmin = 1000000000.0;
+    movimgmax  = -100000;
+    movimgmin  = 1000000000.0;
+    for(r = 0; r < ydim; r++){
+      for(c = 0; c < xdim; c++){
+        targimg[r][c] = 0.0;
+        movimg[r][c]  = 0.0;
+        surfimg[r][c] = 0;
 
-      /* crsTarg = Qtarg * [c r 0 1]' */
-      fcTarg = Qtarg->rptr[1][1]*c + Qtarg->rptr[1][2]*r + Qtarg->rptr[1][4];
-      frTarg = Qtarg->rptr[2][1]*c + Qtarg->rptr[2][2]*r + Qtarg->rptr[2][4];
-      fsTarg = Qtarg->rptr[3][1]*c + Qtarg->rptr[3][2]*r + Qtarg->rptr[3][4];
+        /* crsTarg = Qtarg * [c r 0 1]' */
+        fcTarg = Qtarg->rptr[1][1]*c + Qtarg->rptr[1][2]*r + Qtarg->rptr[1][4];
+        frTarg = Qtarg->rptr[2][1]*c + Qtarg->rptr[2][2]*r + Qtarg->rptr[2][4];
+        fsTarg = Qtarg->rptr[3][1]*c + Qtarg->rptr[3][2]*r + Qtarg->rptr[3][4];
 
-      /* use (int) here to make the halfs consistent */
-      icTarg = (int)fcTarg;
-      irTarg = (int)frTarg;
-      isTarg = (int)fsTarg;
-      //icTarg = nint(fcTarg);
-      //irTarg = nint(frTarg);
-      //isTarg = nint(fsTarg);
+        /* use (int) here to make the halfs consistent */
+        icTarg = (int)fcTarg;
+        irTarg = (int)frTarg;
+        isTarg = (int)fsTarg;
+        //icTarg = nint(fcTarg);
+        //irTarg = nint(frTarg);
+        //isTarg = nint(fsTarg);
 
-      if(icTarg < 0 || icTarg >= targ_vol->width || 
-	 irTarg < 0 || irTarg >= targ_vol->height || 
-	 isTarg < 0 || isTarg >= targ_vol->depth)  continue;
+        if(icTarg < 0 || icTarg >= targ_vol->width || 
+           irTarg < 0 || irTarg >= targ_vol->height || 
+           isTarg < 0 || isTarg >= targ_vol->depth)  continue;
 
-      /* Could interp here, but why bother? */
-      //targimg[r][c] = MRIFseq_vox(targ_vol,icTarg,irTarg,isTarg,0);
-      /* This implements the trilinear interp - makes it so that
-	 when the same volume is loaded as targ and mov, the
-	 registration is perfect */
-      MRIsampleVolume(targ_vol,fcTarg,frTarg,fsTarg,&rVoxVal);
-      targimg[r][c] = rVoxVal;
+        /* Could interp here, but why bother? */
+        //targimg[r][c] = MRIFseq_vox(targ_vol,icTarg,irTarg,isTarg,0);
+        /* This implements the trilinear interp - makes it so that
+           when the same volume is loaded as targ and mov, the
+           registration is perfect */
+        MRIsampleVolume(targ_vol,fcTarg,frTarg,fsTarg,&rVoxVal);
+        targimg[r][c] = rVoxVal;
 
-      if(UseSurf) surfimg[r][c] = MRIvox(mrisurf,icTarg,irTarg,isTarg);
+        if(UseSurf) surfimg[r][c] = MRIvox(mrisurf,icTarg,irTarg,isTarg);
       
-      /* Keep track of the max and min */
-      if(targimgmax < targimg[r][c]) targimgmax = targimg[r][c];
-      if(targimgmin > targimg[r][c]) targimgmin = targimg[r][c];
+        /* Keep track of the max and min */
+        if(targimgmax < targimg[r][c]) targimgmax = targimg[r][c];
+        if(targimgmin > targimg[r][c]) targimgmin = targimg[r][c];
 
-      /* crsMov = Qmov * [c r 0 1]' */
-      fcMov = Qmov->rptr[1][1]*c + Qmov->rptr[1][2]*r + Qmov->rptr[1][4];
-      frMov = Qmov->rptr[2][1]*c + Qmov->rptr[2][2]*r + Qmov->rptr[2][4];
-      fsMov = Qmov->rptr[3][1]*c + Qmov->rptr[3][2]*r + Qmov->rptr[3][4];
+        /* crsMov = Qmov * [c r 0 1]' */
+        fcMov = Qmov->rptr[1][1]*c + Qmov->rptr[1][2]*r + Qmov->rptr[1][4];
+        frMov = Qmov->rptr[2][1]*c + Qmov->rptr[2][2]*r + Qmov->rptr[2][4];
+        fsMov = Qmov->rptr[3][1]*c + Qmov->rptr[3][2]*r + Qmov->rptr[3][4];
 
-      icMov = nint(fcMov);
-      irMov = nint(frMov);
-      isMov = nint(fsMov);
-      if(icMov < 0 || icMov >= mov_vol->width ||
-	 irMov < 0 || irMov >= mov_vol->height ||
-	 isMov < 0 || isMov >= mov_vol->depth ){
-	if(maskflag) targimg[r][c] = 0;
-	continue;
+        icMov = nint(fcMov);
+        irMov = nint(frMov);
+        isMov = nint(fsMov);
+        if(icMov < 0 || icMov >= mov_vol->width ||
+           irMov < 0 || irMov >= mov_vol->height ||
+           isMov < 0 || isMov >= mov_vol->depth ){
+          if(maskflag) targimg[r][c] = 0;
+          continue;
+        }
+
+        if(Gdiag_no > 3){
+          printf("Scrn cr:  %d, %d\n",c,r);
+          printf("Anat crs: %g, %g, %g\n",fcTarg,frTarg,fsTarg);
+          printf("Anat crs: %d, %d, %d\n",icTarg,irTarg,isTarg);
+          printf("Func crs: %g, %g, %g\n",fcMov,frMov,fsMov);
+          printf("Func crs: %d, %d, %d\n",icMov,irMov,isMov);
+          fflush(stdout);
+        }
+
+        switch(interpmethod){
+        case  SAMPLE_NEAREST:
+          switch(float2int_use){
+          case FLT2INT_ROUND:
+            f = (float) MRIFseq_vox(mov_vol,icMov,irMov,isMov,mov_frame);
+            break;
+          case FLT2INT_TKREG:
+            /* This is provided for testing only */
+            icMov = floor(fcMov);
+            irMov =  ceil(frMov);
+            isMov = floor(fsMov);
+            if(icMov < 0 || icMov >= mov_vol->width ||
+               irMov < 0 || irMov >= mov_vol->height ||
+               isMov < 0 || isMov >= mov_vol->depth) 
+              f = 0;
+            else
+              f = (float) MRIFseq_vox(mov_vol,icMov,irMov,isMov,mov_frame);
+            break;
+          }
+          //printf("Func crs: %d, %d, %d \n",cFunc,rFunc,sFunc);
+          //f = (float) fscale_2*fim_2[sFunc][rFunc][cFunc];
+          break;
+        case  SAMPLE_TRILINEAR:
+          MRIsampleVolumeFrame(mov_vol,fcMov,frMov,fsMov,mov_frame,&rVoxVal);
+          f = rVoxVal;
+          break;
+        case  SAMPLE_SINC:
+          MRIsincSampleVolume(mov_vol,fcMov,frMov,fsMov,5,&rVoxVal);
+          f = rVoxVal;
+          break;
+        }
+        movimg[r][c] = f;
+
+        if(movimgmax  < movimg[r][c])  movimgmax  = movimg[r][c];
+        if(movimgmin  > movimg[r][c])  movimgmin  = movimg[r][c];
+
       }
-
-      if(Gdiag_no > 3){
-	printf("Scrn cr:  %d, %d\n",c,r);
-	printf("Anat crs: %g, %g, %g\n",fcTarg,frTarg,fsTarg);
-	printf("Anat crs: %d, %d, %d\n",icTarg,irTarg,isTarg);
-	printf("Func crs: %g, %g, %g\n",fcMov,frMov,fsMov);
-	printf("Func crs: %d, %d, %d\n",icMov,irMov,isMov);
-	fflush(stdout);
-      }
-
-      switch(interpmethod){
-      case  SAMPLE_NEAREST:
-	switch(float2int_use){
-	case FLT2INT_ROUND:
-	  f = (float) MRIFseq_vox(mov_vol,icMov,irMov,isMov,mov_frame);
-	  break;
-	case FLT2INT_TKREG:
-	  /* This is provided for testing only */
-	  icMov = floor(fcMov);
-	  irMov =  ceil(frMov);
-	  isMov = floor(fsMov);
-	  if(icMov < 0 || icMov >= mov_vol->width ||
-	     irMov < 0 || irMov >= mov_vol->height ||
-	     isMov < 0 || isMov >= mov_vol->depth) 
-	    f = 0;
-	  else
-	    f = (float) MRIFseq_vox(mov_vol,icMov,irMov,isMov,mov_frame);
-	  break;
-	}
-	//printf("Func crs: %d, %d, %d \n",cFunc,rFunc,sFunc);
-	//f = (float) fscale_2*fim_2[sFunc][rFunc][cFunc];
-	break;
-      case  SAMPLE_TRILINEAR:
-	MRIsampleVolumeFrame(mov_vol,fcMov,frMov,fsMov,mov_frame,&rVoxVal);
-	f = rVoxVal;
-	break;
-      case  SAMPLE_SINC:
-	MRIsincSampleVolume(mov_vol,fcMov,frMov,fsMov,5,&rVoxVal);
-	f = rVoxVal;
-	break;
-      }
-      movimg[r][c] = f;
-
-      if(movimgmax  < movimg[r][c])  movimgmax  = movimg[r][c];
-      if(movimgmin  > movimg[r][c])  movimgmin  = movimg[r][c];
-
     }
-  }
 
-  /* Auto-control of intensity - this does not work very well*/
-  targimgrange = targimgmax - targimgmin;
-  if(targimgrange == 0) targimgrange = 1;
-  movimgrange = movimgmax - movimgmin;
-  if(movimgrange == 0) movimgrange = 1;
-  for(r = 0; r < ydim; r++){
-    for(c = 0; c < xdim; c++){
-      if(use_inorm){
-	targimg[r][c] = 255*(targimg[r][c] - targimgmin)/targimgrange;
-	if(targimg[r][c] < 0) targimg[r][c] = 0;
-	movimg[r][c]  = 255*(movimg[r][c]  - movimgmin)/movimgrange;
-	if(movimg[r][c] < 0) movimg[r][c] = 0;
+    /* Auto-control of intensity - this does not work very well*/
+    targimgrange = targimgmax - targimgmin;
+    if(targimgrange == 0) targimgrange = 1;
+    movimgrange = movimgmax - movimgmin;
+    if(movimgrange == 0) movimgrange = 1;
+    for(r = 0; r < ydim; r++){
+      for(c = 0; c < xdim; c++){
+        if(use_inorm){
+          targimg[r][c] = 255*(targimg[r][c] - targimgmin)/targimgrange;
+          if(targimg[r][c] < 0) targimg[r][c] = 0;
+          movimg[r][c]  = 255*(movimg[r][c]  - movimgmin)/movimgrange;
+          if(movimg[r][c] < 0) movimg[r][c] = 0;
+        }
+        else movimg[r][c] *= fscale_2;
       }
-      else movimg[r][c] *= fscale_2;
     }
-  }
-  if(Gdiag_no > 0){
-    printf("targimg: %g %g %g\n",targimgmin,targimgmax,targimgrange);
-    printf("movimg:  %g %g %g\n",movimgmin,movimgmax,movimgrange);
-  }
+    if(Gdiag_no > 0){
+      printf("targimg: %g %g %g\n",targimgmin,targimgmax,targimgrange);
+      printf("movimg:  %g %g %g\n",movimgmin,movimgmax,movimgrange);
+    }
   }/*--------- end if update needed ---------------------*/
 
   k = 0;
   for(r = 0; r < ydim; r++){
     for(c = 0; c < xdim; c++){
       if(UseSurf && surfimg[r][c]){
-	lvidbuf[3*k]   = 0;
-	lvidbuf[3*k+1] = 255;
-	lvidbuf[3*k+2] = 0;
+        lvidbuf[3*k]   = 0;
+        lvidbuf[3*k+1] = 255;
+        lvidbuf[3*k+2] = 0;
       }
       else{
-	switch(overlay_mode){
-	case TARGET:   f = targimg[r][c]; break;
-	case MOVEABLE: f = movimg[r][c];  break;
-	}
-	if(f < 0)        f = 0;
-	else if(f > 255) f = 255;
-	voxval = (unsigned char)(nint(f));
-	if(!use_inorm){
-	  lvidbuf[3*k]   = colormap[voxval];
-	  lvidbuf[3*k+1] = colormap[voxval];
-	  lvidbuf[3*k+2] = colormap[voxval];
-	}
-	else{
-	  lvidbuf[3*k]   = voxval;
-	  lvidbuf[3*k+1] = voxval;
-	  lvidbuf[3*k+2] = voxval;
-	}
+        switch(overlay_mode){
+        case TARGET:   f = targimg[r][c]; break;
+        case MOVEABLE: f = movimg[r][c];  break;
+        }
+        if(f < 0)        f = 0;
+        else if(f > 255) f = 255;
+        voxval = (unsigned char)(nint(f));
+        if(!use_inorm){
+          lvidbuf[3*k]   = colormap[voxval];
+          lvidbuf[3*k+1] = colormap[voxval];
+          lvidbuf[3*k+2] = colormap[voxval];
+        }
+        else{
+          lvidbuf[3*k]   = voxval;
+          lvidbuf[3*k+1] = voxval;
+          lvidbuf[3*k+2] = voxval;
+        }
       }
       k++;
     }
@@ -2046,7 +2159,7 @@ int crScreen2AnatXYZ(int c, int r, float *x, float *y, float *z)
 }
 /*-----------------------------------------------*/
 int AnatInd2AnatXYZ(int cor, int hor, int sag, 
-		    float *x, float *y, float *z)
+                    float *x, float *y, float *z)
 {
   extern MATRIX *Ttarg;
   static MATRIX *crs, *xyz;
@@ -2070,7 +2183,7 @@ int AnatInd2AnatXYZ(int cor, int hor, int sag,
 }
 /*-----------------------------------------------*/
 int FuncXYZ2FuncInd(float x, float y, float z,
-		    float *col, float *row, float *slice)
+                    float *col, float *row, float *slice)
 {
   extern MATRIX *invTmov;
   extern int xdim_2, ydim_2, imnr1_2; /* func Nc, Ns, Nr */
@@ -2201,7 +2314,8 @@ void select_pixel(short sx, short sy)
 
   if(overlay_mode==TARGET) lvidbuf = blinkbuft;
   else                     lvidbuf = blinkbufm;
-  //printf("sx=%d, sy=%d, ox=%ld, oy=%ld, lx=%ld, ly=%ld, dx = %ld, dy = %ld\n",
+  //printf("sx=%d, sy=%d, ox=%ld, oy=%ld, lx=%ld, 
+  //ly=%ld, dx = %ld, dy = %ld\n",
   // sx,sy,ox,oy,lx,ly,sx-ox,sy-oy);
 
   /* hack: x-y of click on tk win caught by qread when clicks buffered! */
@@ -2209,27 +2323,27 @@ void select_pixel(short sx, short sy)
   if (sy<oy || sy>oy+ly) sy = oy+ly/2;
 
   if (plane==CORONAL)
-  {
-    ic = (sy-oy);
-    jc = (sx-ox);
-  } else
-  if (plane==HORIZONTAL)
-  {
-    imc = (sy-oy);
-    jc = (sx-ox);
-  } else
-  if (plane==SAGITTAL)
-  {
-    imc = (sx-ox);
-    ic = (sy-oy);
-  }
+    {
+      ic = (sy-oy);
+      jc = (sx-ox);
+    } else
+      if (plane==HORIZONTAL)
+        {
+          imc = (sy-oy);
+          jc = (sx-ox);
+        } else
+          if (plane==SAGITTAL)
+            {
+              imc = (sx-ox);
+              ic = (sy-oy);
+            }
   xc = xx1-ps*jc/fsf; 
   yc = yy0+st*imc/fsf; 
   zc = zz1-ps*(255.0-ic/fsf);
   //printf("select_pixel: xc=%g, yc=%g,  zc=%g\n",xc,yc,zc);
   //printf("select_pixel: jc=%d, imc=%d, ic=%d\n",jc,imc,ic);
   //printf("xx1 = %g, ps = %g, fsf = %g, st=%g, yy0 = %g, zz1 = %g\n",
-  //	 xx1,ps,fsf,st,yy0,zz1);
+  //     xx1,ps,fsf,st,yy0,zz1);
 
   erase_cross_hair(rScreenCur,cScreenCur);
   cScreen = sx-ox;
@@ -2248,18 +2362,18 @@ void select_pixel(short sx, short sy)
 
   printf("------------------------------------------------------------\n");
   printf("  Screen:  %3d %3d (%d,%d,%d), inorm = %d\n",cScreen,rScreen,
-	 lvidbuf[3*kScreen], lvidbuf[3*kScreen+1], lvidbuf[3*kScreen+2],
-	 use_inorm);
+         lvidbuf[3*kScreen], lvidbuf[3*kScreen+1], lvidbuf[3*kScreen+2],
+         use_inorm);
   printf("  Anat:    (%3d %3d %3d)   (%6.1f %6.1f %6.1f)  ",
-	 sag,hor,cor,xAnat,yAnat,zAnat);
+         sag,hor,cor,xAnat,yAnat,zAnat);
   if(!soob) printf("%8.4f  %6.1f\n",MRIFseq_vox(targ_vol,sag,hor,cor,0),
-		   targimg[rScreen][cScreen]);
+                   targimg[rScreen][cScreen]);
   else      printf("OutOfBounds\n");
 
   printf("  Func:    (%3d %3d %3d)   (%6.1f %6.1f %6.1f)  ",
-	 cFunc,rFunc,sFunc,xFunc,yFunc,zFunc);
+         cFunc,rFunc,sFunc,xFunc,yFunc,zFunc);
   if(!foob) printf("%8.4f  %6.1f\n",MRIFseq_vox(mov_vol,cFunc,rFunc,sFunc,0),
-		   movimg[rScreen][cScreen]);
+                   movimg[rScreen][cScreen]);
   else      printf("OutOfBounds\n");
   printf("--------------------------------------------------------------\n");
 
@@ -2300,247 +2414,247 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 
     switch (current.type) {
 
-      case ConfigureNotify:
-        XGetWindowAttributes(xDisplay, w.wMain, &wat);
-        XTranslateCoordinates(xDisplay, w.wMain, wat.root,
-                              -wat.border_width, -wat.border_width,
-                              &rx, &ry, &junkwin);
-        w.x = rx;  /* left orig         (current.xconfigure.x = 0 relative!) */
-        w.y = ry;  /* top orig: +y down (current.xconfigure.y = 0 relative!) */
-        w.w = current.xconfigure.width;
-        w.h = current.xconfigure.height;
+    case ConfigureNotify:
+      XGetWindowAttributes(xDisplay, w.wMain, &wat);
+      XTranslateCoordinates(xDisplay, w.wMain, wat.root,
+                            -wat.border_width, -wat.border_width,
+                            &rx, &ry, &junkwin);
+      w.x = rx;  /* left orig         (current.xconfigure.x = 0 relative!) */
+      w.y = ry;  /* top orig: +y down (current.xconfigure.y = 0 relative!) */
+      w.w = current.xconfigure.width;
+      w.h = current.xconfigure.height;
 
-        resize_window_intstep();
-        Tcl_Eval(interp,"set zf $zf");  /* touch for trace */ 
-        if (followglwinflag && zf != 4) {
-          /* below */ 
-          /*sprintf(command,"wm geometry . +%d+%d",w.x,w.y+w.h+MOTIF_YFUDGE);*/
-          /* above */ 
-          sprintf(command,"putaboveglwin %d %d", w.x, w.y-MOTIF_YFUDGE);
-          Tcl_Eval(interp,command);
-          /* Tcl_Eval(interp,"raise ."); */
-        }
-        if (visible_mode!=overlay_mode) /* suppress mode change */
-          overlay_mode = visible_mode;
-        glViewport(0, 0, xdim, ydim);
-        /* updateflag = TRUE; */
-        break;
-
-      case Expose:
-        if (XPending(xDisplay)) {
-          XPeekEvent(xDisplay, &ahead);
-          if (ahead.type==Expose) break;  /* skip extras */
-        }
-        if (visible_mode!=overlay_mode)
-          overlay_mode = visible_mode;
-        updateflag = TRUE;
-        break;
-
-      case ButtonPress:
-        sx = current.xbutton.x;
-        sy = current.xbutton.y;
-        sx += w.x;   /* convert back to screen pos (ugh) */
-        sy = 1024 - w.y - sy;
-        if (current.xbutton.button == 1) {  /** left **/
-	  select_pixel(sx,sy);
-          Tcl_Eval(interp,"unzoomcoords $plane"); 
-          button1pressed = TRUE;
-	  PixelSelected = 1;
-        }
-        if (current.xbutton.button == 2) {  /** middle **/
-          button2pressed = TRUE;
-        }
-        if (current.xbutton.button == 3) {  /** right **/
-          button3pressed = TRUE;
-        }
-        if (visible_mode!=overlay_mode)
-          overlay_mode = visible_mode;
-        updateflag = TRUE;
-        break;
-
-      case ButtonRelease:
-        if (current.xbutton.button == 1)  button1pressed = FALSE;
-        if (current.xbutton.button == 2)  button2pressed = FALSE;
-        if (current.xbutton.button == 3)  button3pressed = FALSE;
-        break;
-
-      case KeyPress:
-        XLookupString(&current.xkey, buf, sizeof(buf), &ks, 0);
-	//printf("button press %c\n",buf[0]);
-        switch (ks) {
-
-          /* numbers */
-	case XK_0: record_swapbuffers(); break;
-	case XK_1: overlay_mode = TARGET;   updateflag = TRUE; break;
-	case XK_2: overlay_mode = MOVEABLE; updateflag = TRUE; break;
-	  
-          /* upper case */
-	case XK_A: if (altkeypressed)  ; break;
-	  
-          /* lower case */
-	case XK_i: use_inorm = !use_inorm;  updateflag = TRUE; break;
-	case XK_n: interpmethod = SAMPLE_NEAREST; updateflag = TRUE; break;
-	case XK_t: interpmethod = SAMPLE_TRILINEAR; updateflag = TRUE; break;
-
-	  /* translate in-plane up or down */
-	case XK_p: 
-	case '.':
-	  if(plane == SAGITTAL)   c = 'z';
-	  if(plane == CORONAL)    c = 'z';
-	  if(plane == HORIZONTAL) c = 'y';
-	  if(ks == 'p') translate_brain(-.5,c);
-	  if(ks == '.') translate_brain(+.5,c);
-	  updateflag = TRUE; 
-	  break;
-
-	  /* translate left or right */
-	case XK_l: 
-	case ';':
-	  d = 0.5;
-	  if(plane == SAGITTAL)   {c = 'y'; d = -0.5;}
-	  if(plane == CORONAL)    c = 'x';
-	  if(plane == HORIZONTAL) c = 'x';
-	  if(ks == ';') translate_brain(+d,c);
-	  if(ks == 'l') translate_brain(-d,c);
-	  updateflag = TRUE; 
-	  break;
-
-	  /* translate thru-plane in or out */
-	case 'g': 
-	case 'h':
-	  if(plane == SAGITTAL)   c = 'x';
-	  if(plane == CORONAL)    c = 'y';
-	  if(plane == HORIZONTAL) c = 'z';
-	  if(ks == 'g') translate_brain(-.5,c);
-	  if(ks == 'h') translate_brain(+.5,c);
-	  updateflag = TRUE; 
-	  break;
-
-	  /* rotation about normal to image plane */
-	case '[':
-	case ']':
-	  r = +2.0;
-	  if(plane == SAGITTAL)   c = 'x';
-	  if(plane == CORONAL)    c = 'y';
-	  if(plane == HORIZONTAL) {c = 'z'; r = -2.0;}
-	  if(ks == ']') rotate_brain(+r,c); /* in tenths of deg */
-	  if(ks == '[') rotate_brain(-r,c); /* in tenths of deg */
-	  updateflag = TRUE; 
-	  break;
-
-	  /* rotation about horizontal image axis */
-	case 'q': /* top comes out, bottom goes in */
-	case 'w': /* top goes in, comes out */
-	  //printf("ks = %c\n",ks);
-	  r = +10.0;
-	  if(plane == SAGITTAL)   c = 'y';
-	  if(plane == CORONAL)    c = 'x';
-	  if(plane == HORIZONTAL) {c = 'x'; r = -10.0;}
-	  if(ks == 'q') rotate_brain(+r,c); /* in tenths of deg */
-	  if(ks == 'w') rotate_brain(-r,c); /* in tenths of deg */
-	  updateflag = TRUE; 
-	  break;
-
-	  /* rotation about vertical image axis */
-	case 'r': /* left goes in, right comes out*/
-	case 'f':
-	  //printf("ks = %c\n",ks);
-	  r = +10.0;
-	  if(plane == SAGITTAL)   c = 'z';
-	  if(plane == CORONAL)    c = 'z';
-	  if(plane == HORIZONTAL) {c = 'y'; r = -10.0;}
-	  if(ks == 'r') rotate_brain(+r,c); /* in tenths of deg */
-	  if(ks == 'f') rotate_brain(-r,c); /* in tenths of deg */
-	  updateflag = TRUE; 
-	  break;
-
-	case 'a': /* advance frame */
-	  mov_frame ++;
-	  if(mov_frame >= mov_vol->nframes) mov_frame = 0;
-	  printf("mov_frame = %d\n",mov_frame);
-	  updateflag = TRUE; 
-	  break;
-
-	case 'b': /* recede frame */
-	  mov_frame --;
-	  if(mov_frame < 0) mov_frame = mov_vol->nframes-1;
-	  printf("mov_frame = %d\n",mov_frame);
-	  updateflag = TRUE; 
-	  break;
-
-	  /* scale horizontally */
-	case XK_Insert:
-	case XK_Delete:
-	  if(plane == SAGITTAL)   c = 'y';
-	  if(plane == CORONAL)    c = 'x';
-	  if(plane == HORIZONTAL) c = 'x';
-	  if(ks == XK_Insert) scale_brain(+0.995,c);
-	  if(ks == XK_Delete) scale_brain(+1.005,c);
-	  updateflag = TRUE; 
-	  break;
-
-	  /* scale vertically */
-	case XK_Home:
-	case XK_End:
-	  if(plane == SAGITTAL)   c = 'z';
-	  if(plane == CORONAL)    c = 'z';
-	  if(plane == HORIZONTAL) c = 'y';
-	  if(ks == XK_Home) scale_brain(+0.995,c);
-	  if(ks == XK_End) scale_brain(+1.005,c);
-	  updateflag = TRUE; 
-	  break;
-
-	case XK_x: plane=SAGITTAL;   updateflag = TRUE; break;
-	case XK_y: plane=CORONAL;    updateflag = TRUE; break;
-	case XK_z: plane=HORIZONTAL; updateflag = TRUE; break;
-	case XK_s: if(LoadSurf) UseSurf = !UseSurf; updateflag = TRUE; break;
-
-	case '+':
-	case '=':
-	  FOV = FOV/2;
-	  updateflag = TRUE; 
-	  break;
-	case '-':
-	case '_':
-	  FOV = 2*FOV;
-	  updateflag = TRUE; 
-	  break;
-
-
-          /* others */
-	case XK_Up:
-	  
-	  Tcl_Eval(interp,
-                  "set fscale_2 [expr $fscale_2 * 1.5]; set updateflag TRUE");
-            break;
-          case XK_Down:
-             Tcl_Eval(interp,
-                  "set fscale_2 [expr $fscale_2 / 1.5]; set updateflag TRUE");
-            break;
-          case XK_Right:
-            Tcl_Eval(interp,"changeslice up $plane; set updateflag TRUE");
-            break;
-          case XK_Left:
-            Tcl_Eval(interp,"changeslice down $plane; set updateflag TRUE");
-            break;
-
-          /* modifiers */
-          case XK_Shift_L:   case XK_Shift_R:   shiftkeypressed=TRUE; break;
-          case XK_Control_L: case XK_Control_R: ctrlkeypressed=TRUE;  break;
-          case XK_Alt_L:     case XK_Alt_R:     altkeypressed=TRUE;   break;
-        }
-        break;
-
-      case KeyRelease:   /* added this mask to xwindow.c */
-        XLookupString(&current.xkey, buf, sizeof(buf), &ks, 0);
-        switch (ks) {
-          case XK_Shift_L:   case XK_Shift_R:   shiftkeypressed=FALSE; break;
-          case XK_Control_L: case XK_Control_R: ctrlkeypressed=FALSE;  break;
-          case XK_Alt_L:     case XK_Alt_R:     altkeypressed=FALSE;   break;
-    case XK_0:
+      resize_window_intstep();
+      Tcl_Eval(interp,"set zf $zf");  /* touch for trace */ 
+      if (followglwinflag && zf != 4) {
+        /* below */ 
+        /*sprintf(command,"wm geometry . +%d+%d",w.x,w.y+w.h+MOTIF_YFUDGE);*/
+        /* above */ 
+        sprintf(command,"putaboveglwin %d %d", w.x, w.y-MOTIF_YFUDGE);
+        Tcl_Eval(interp,command);
+        /* Tcl_Eval(interp,"raise ."); */
+      }
+      if (visible_mode!=overlay_mode) /* suppress mode change */
+        overlay_mode = visible_mode;
+      glViewport(0, 0, xdim, ydim);
+      /* updateflag = TRUE; */
       break;
-        }
+
+    case Expose:
+      if (XPending(xDisplay)) {
+        XPeekEvent(xDisplay, &ahead);
+        if (ahead.type==Expose) break;  /* skip extras */
+      }
+      if (visible_mode!=overlay_mode)
+        overlay_mode = visible_mode;
+      updateflag = TRUE;
+      break;
+
+    case ButtonPress:
+      sx = current.xbutton.x;
+      sy = current.xbutton.y;
+      sx += w.x;   /* convert back to screen pos (ugh) */
+      sy = 1024 - w.y - sy;
+      if (current.xbutton.button == 1) {  /** left **/
+        select_pixel(sx,sy);
+        Tcl_Eval(interp,"unzoomcoords $plane"); 
+        button1pressed = TRUE;
+        PixelSelected = 1;
+      }
+      if (current.xbutton.button == 2) {  /** middle **/
+        button2pressed = TRUE;
+      }
+      if (current.xbutton.button == 3) {  /** right **/
+        button3pressed = TRUE;
+      }
+      if (visible_mode!=overlay_mode)
+        overlay_mode = visible_mode;
+      updateflag = TRUE;
+      break;
+
+    case ButtonRelease:
+      if (current.xbutton.button == 1)  button1pressed = FALSE;
+      if (current.xbutton.button == 2)  button2pressed = FALSE;
+      if (current.xbutton.button == 3)  button3pressed = FALSE;
+      break;
+
+    case KeyPress:
+      XLookupString(&current.xkey, buf, sizeof(buf), &ks, 0);
+      //printf("button press %c\n",buf[0]);
+      switch (ks) {
+
+        /* numbers */
+      case XK_0: record_swapbuffers(); break;
+      case XK_1: overlay_mode = TARGET;   updateflag = TRUE; break;
+      case XK_2: overlay_mode = MOVEABLE; updateflag = TRUE; break;
+          
+        /* upper case */
+      case XK_A: if (altkeypressed)  ; break;
+          
+        /* lower case */
+      case XK_i: use_inorm = !use_inorm;  updateflag = TRUE; break;
+      case XK_n: interpmethod = SAMPLE_NEAREST; updateflag = TRUE; break;
+      case XK_t: interpmethod = SAMPLE_TRILINEAR; updateflag = TRUE; break;
+
+        /* translate in-plane up or down */
+      case XK_p: 
+      case '.':
+        if(plane == SAGITTAL)   c = 'z';
+        if(plane == CORONAL)    c = 'z';
+        if(plane == HORIZONTAL) c = 'y';
+        if(ks == 'p') translate_brain(-.5,c);
+        if(ks == '.') translate_brain(+.5,c);
+        updateflag = TRUE; 
         break;
+
+        /* translate left or right */
+      case XK_l: 
+      case ';':
+        d = 0.5;
+        if(plane == SAGITTAL)   {c = 'y'; d = -0.5;}
+        if(plane == CORONAL)    c = 'x';
+        if(plane == HORIZONTAL) c = 'x';
+        if(ks == ';') translate_brain(+d,c);
+        if(ks == 'l') translate_brain(-d,c);
+        updateflag = TRUE; 
+        break;
+
+        /* translate thru-plane in or out */
+      case 'g': 
+      case 'h':
+        if(plane == SAGITTAL)   c = 'x';
+        if(plane == CORONAL)    c = 'y';
+        if(plane == HORIZONTAL) c = 'z';
+        if(ks == 'g') translate_brain(-.5,c);
+        if(ks == 'h') translate_brain(+.5,c);
+        updateflag = TRUE; 
+        break;
+
+        /* rotation about normal to image plane */
+      case '[':
+      case ']':
+        r = +2.0;
+        if(plane == SAGITTAL)   c = 'x';
+        if(plane == CORONAL)    c = 'y';
+        if(plane == HORIZONTAL) {c = 'z'; r = -2.0;}
+        if(ks == ']') rotate_brain(+r,c); /* in tenths of deg */
+        if(ks == '[') rotate_brain(-r,c); /* in tenths of deg */
+        updateflag = TRUE; 
+        break;
+
+        /* rotation about horizontal image axis */
+      case 'q': /* top comes out, bottom goes in */
+      case 'w': /* top goes in, comes out */
+        //printf("ks = %c\n",ks);
+        r = +10.0;
+        if(plane == SAGITTAL)   c = 'y';
+        if(plane == CORONAL)    c = 'x';
+        if(plane == HORIZONTAL) {c = 'x'; r = -10.0;}
+        if(ks == 'q') rotate_brain(+r,c); /* in tenths of deg */
+        if(ks == 'w') rotate_brain(-r,c); /* in tenths of deg */
+        updateflag = TRUE; 
+        break;
+
+        /* rotation about vertical image axis */
+      case 'r': /* left goes in, right comes out*/
+      case 'f':
+        //printf("ks = %c\n",ks);
+        r = +10.0;
+        if(plane == SAGITTAL)   c = 'z';
+        if(plane == CORONAL)    c = 'z';
+        if(plane == HORIZONTAL) {c = 'y'; r = -10.0;}
+        if(ks == 'r') rotate_brain(+r,c); /* in tenths of deg */
+        if(ks == 'f') rotate_brain(-r,c); /* in tenths of deg */
+        updateflag = TRUE; 
+        break;
+
+      case 'a': /* advance frame */
+        mov_frame ++;
+        if(mov_frame >= mov_vol->nframes) mov_frame = 0;
+        printf("mov_frame = %d\n",mov_frame);
+        updateflag = TRUE; 
+        break;
+
+      case 'b': /* recede frame */
+        mov_frame --;
+        if(mov_frame < 0) mov_frame = mov_vol->nframes-1;
+        printf("mov_frame = %d\n",mov_frame);
+        updateflag = TRUE; 
+        break;
+
+        /* scale horizontally */
+      case XK_Insert:
+      case XK_Delete:
+        if(plane == SAGITTAL)   c = 'y';
+        if(plane == CORONAL)    c = 'x';
+        if(plane == HORIZONTAL) c = 'x';
+        if(ks == XK_Insert) scale_brain(+0.995,c);
+        if(ks == XK_Delete) scale_brain(+1.005,c);
+        updateflag = TRUE; 
+        break;
+
+        /* scale vertically */
+      case XK_Home:
+      case XK_End:
+        if(plane == SAGITTAL)   c = 'z';
+        if(plane == CORONAL)    c = 'z';
+        if(plane == HORIZONTAL) c = 'y';
+        if(ks == XK_Home) scale_brain(+0.995,c);
+        if(ks == XK_End) scale_brain(+1.005,c);
+        updateflag = TRUE; 
+        break;
+
+      case XK_x: plane=SAGITTAL;   updateflag = TRUE; break;
+      case XK_y: plane=CORONAL;    updateflag = TRUE; break;
+      case XK_z: plane=HORIZONTAL; updateflag = TRUE; break;
+      case XK_s: if(LoadSurf) UseSurf = !UseSurf; updateflag = TRUE; break;
+
+      case '+':
+      case '=':
+        FOV = FOV/2;
+        updateflag = TRUE; 
+        break;
+      case '-':
+      case '_':
+        FOV = 2*FOV;
+        updateflag = TRUE; 
+        break;
+
+
+        /* others */
+      case XK_Up:
+          
+        Tcl_Eval(interp,
+                 "set fscale_2 [expr $fscale_2 * 1.5]; set updateflag TRUE");
+        break;
+      case XK_Down:
+        Tcl_Eval(interp,
+                 "set fscale_2 [expr $fscale_2 / 1.5]; set updateflag TRUE");
+        break;
+      case XK_Right:
+        Tcl_Eval(interp,"changeslice up $plane; set updateflag TRUE");
+        break;
+      case XK_Left:
+        Tcl_Eval(interp,"changeslice down $plane; set updateflag TRUE");
+        break;
+
+        /* modifiers */
+      case XK_Shift_L:   case XK_Shift_R:   shiftkeypressed=TRUE; break;
+      case XK_Control_L: case XK_Control_R: ctrlkeypressed=TRUE;  break;
+      case XK_Alt_L:     case XK_Alt_R:     altkeypressed=TRUE;   break;
+      }
+      break;
+
+    case KeyRelease:   /* added this mask to xwindow.c */
+      XLookupString(&current.xkey, buf, sizeof(buf), &ks, 0);
+      switch (ks) {
+      case XK_Shift_L:   case XK_Shift_R:   shiftkeypressed=FALSE; break;
+      case XK_Control_L: case XK_Control_R: ctrlkeypressed=FALSE;  break;
+      case XK_Alt_L:     case XK_Alt_R:     altkeypressed=FALSE;   break;
+      case XK_0:
+        break;
+      }
+      break;
     }
     return GL_FALSE;
   }
@@ -2559,11 +2673,11 @@ void  open_window(char *name)
 
   /* TKO_DEPTH because all OpenGL 4096 visuals have depth buffer!! */
 
-  #ifdef RGB
+#ifdef RGB
   tkoInitDisplayMode(TKO_DOUBLE | TKO_RGB | TKO_DEPTH);
-  #else
+#else
   tkoInitDisplayMode(TKO_DOUBLE | TKO_INDEX | TKO_DEPTH);
-  #endif
+#endif
 
   if (!initpositiondoneflag)
     tkoInitPosition(MOTIF_XFUDGE+wx0,(1024-wy0-ydim)+MOTIF_XFUDGE,xdim,ydim);
@@ -2638,10 +2752,10 @@ void blinkbuffers()
   if (blinkflag) {
 #ifdef RGB
     /* if(blinkdelay==1) { */
-      /* printf("reaload for delay 1\n"); */
+    /* printf("reaload for delay 1\n"); */
     /* reload_buffers(); */
-      /* printf("saving frontbuffer");
-   glReadPixels(0,0,512,512,GL_RGB,GL_UNSIGNED_BYTE,blinkbuf); */
+    /* printf("saving frontbuffer");
+       glReadPixels(0,0,512,512,GL_RGB,GL_UNSIGNED_BYTE,blinkbuf); */
     /* } */
 #endif
     if (blinkdelay<0) {
@@ -2659,18 +2773,18 @@ void record_swapbuffers()    /* called by compare button */
   int swaptmp;
   
 #ifdef RGB
-/* if(blinkflag) {
-    if(invalid_buffers == 1) {
-      reload_buffers();
-    } else {
-      if(blinktop==1) {
-        rectwrite(0,0,xdim-1,ydim-1,blinkbuft);
-      } else { 
-        rectwrite(0,0,xdim-1,ydim-1,blinkbufm);
-      }
-    }
-    blinktop = (blinktop == 0) ? 1 : 0;
-    } */
+  /* if(blinkflag) {
+     if(invalid_buffers == 1) {
+     reload_buffers();
+     } else {
+     if(blinktop==1) {
+     rectwrite(0,0,xdim-1,ydim-1,blinkbuft);
+     } else { 
+     rectwrite(0,0,xdim-1,ydim-1,blinkbufm);
+     }
+     }
+     blinktop = (blinktop == 0) ? 1 : 0;
+     } */
 #endif
   swapbuffers();
   swaptmp = visible_plane;
@@ -2712,7 +2826,7 @@ void  read_reg(char *fname)
   float ipr, bpr, fscale;
 
   err = regio_read_register(fname, &tmpstr, &ipr, &bpr,
-			    &fscale, &RegMat, &float2int);
+                            &fscale, &RegMat, &float2int);
   if(err){
     printf("ERROR: reading %s\n",fname);
     exit(1);
@@ -2755,8 +2869,8 @@ void  read_fslreg(char *fname)
     for (j=0;j<4;j++){
       n = fscanf(fp,"%f",&(FSLRegMat->rptr[i+1][j+1]));
       if(n != 1){
-	printf("ERROR: reading %s, row %d, col %d\n",fname,i,j);
-	exit(1);
+        printf("ERROR: reading %s, row %d, col %d\n",fname,i,j);
+        exit(1);
       }
     }
   }
@@ -2791,7 +2905,8 @@ void write_reg(char *fname)
     regio_write_mincxfm(talxfmfile,RegMatTmp);
     sprintf(touchfile,"%s/%s/touch",subjectsdir,pname);
     if(!fio_IsDirectory(touchfile)) mkdir(touchfile,(mode_t)-1);
-    sprintf(touchfile,"%s/%s/touch/talairach.tkregister2.touch",subjectsdir,pname);
+    sprintf(touchfile,"%s/%s/touch/talairach.tkregister2.touch",
+            subjectsdir,pname);
     fp = fopen(touchfile,"w");    
     fprintf(fp,"talairach registration %s edited by tkregister2\n",talxfmfile);
     fclose(fp);
@@ -2816,7 +2931,7 @@ void write_reg(char *fname)
   }
   fprintf(fp,"round\n");
   printf("register: file %s written\n",fname);PR
-  fclose(fp);
+                                                fclose(fp);
 
   if(fslregoutfname != NULL) write_fslreg(fslregoutfname);
 
@@ -2885,12 +3000,14 @@ void scrsave_to_rgb(char *fname)  /* about 2X faster than pix_to_rgb */
   x0 = (int)xorig;  x1 = (int)(xorig+xsize-1);
   y0 = (int)yorig;  y1 = (int)(yorig+ysize-1);
   fp = fopen(fname,"w");
-  if (fp==NULL){printf("register: ### can't create file %s\n",fname);PR return;}
+  if (fp==NULL){
+    printf("register: ### can't create file %s\n",fname);
+    PR return;}
   fclose(fp);
   sprintf(command,"scrsave %s %d %d %d %d\n",fname,x0,x1,y0,y1);
   system(command);
   printf("register: file %s written\n",fname);PR
-}
+                                                }
 /*-----------------------------------------------------*/
 void downslice()
 {
@@ -2920,7 +3037,9 @@ void goto_point(char *dir)
 
   sprintf(fname,"%s/edit.dat",dir);
   fp=fopen(fname,"r");
-  if (fp==NULL) {printf("register: ### File %s not found\n",fname);PR return;}
+  if (fp==NULL) {
+    printf("register: ### File %s not found\n",fname);
+    PR return;}
   fscanf(fp,"%f %f %f",&xpt,&ypt,&zpt);
   fclose(fp);
   set_cursor(xpt,ypt,zpt);
@@ -2934,7 +3053,9 @@ void write_point(char *dir)
 
   sprintf(fname,"%s/edit.dat",dir);
   fp=fopen(fname,"w");
-  if (fp==NULL){printf("register: ### can't create file %s\n",fname);PR return;}
+  if (fp==NULL){
+    printf("register: ### can't create file %s\n",fname);
+    PR return;}
   xpt = xx1-ps*jc/fsf;
   ypt = yy0+st*imc/fsf;
   zpt = zz1-ps*(255.0-ic/fsf);
@@ -2954,88 +3075,88 @@ void rotate_brain(float a,char c)
   }
 
   if (c=='x')
-  {
-    translate_brain(yc,'y');
-    translate_brain(zc,'z');
-  } else
-  if (c=='z')
-  {
-    translate_brain(xc,'x');
-    translate_brain(yc,'y');
-  } else
-  if (c=='y')
-  {
-    translate_brain(xc,'x');
-    translate_brain(zc,'z');
-  }
+    {
+      translate_brain(yc,'y');
+      translate_brain(zc,'z');
+    } else
+      if (c=='z')
+        {
+          translate_brain(xc,'x');
+          translate_brain(yc,'y');
+        } else
+          if (c=='y')
+            {
+              translate_brain(xc,'x');
+              translate_brain(zc,'z');
+            }
 
   for (i=0;i<4;i++)
-  for (j=0;j<4;j++)
-    m1[i][j] = (i==j)?1.0:0.0;
+    for (j=0;j<4;j++)
+      m1[i][j] = (i==j)?1.0:0.0;
   a = a*M_PI/1800;
   sa = sin(a);
   ca = cos(a);
   if (c=='y')
-  {
-    m1[0][0] = m1[2][2] = ca;
-    m1[2][0] = -(m1[0][2] = sa);
-  } else
-  if (c=='x')
-  {
-    m1[1][1] = m1[2][2] = ca;
-    m1[1][2] = -(m1[2][1] = sa);
-  } else
-  if (c=='z')
-  {
-    m1[0][0] = m1[1][1] = ca;
-    m1[0][1] = -(m1[1][0] = sa);
-  } else printf("Illegal axis %c\n",c);
+    {
+      m1[0][0] = m1[2][2] = ca;
+      m1[2][0] = -(m1[0][2] = sa);
+    } else
+      if (c=='x')
+        {
+          m1[1][1] = m1[2][2] = ca;
+          m1[1][2] = -(m1[2][1] = sa);
+        } else
+          if (c=='z')
+            {
+              m1[0][0] = m1[1][1] = ca;
+              m1[0][1] = -(m1[1][0] = sa);
+            } else printf("Illegal axis %c\n",c);
   for (i=0;i<4;i++)
-  for (j=0;j<4;j++)
-  {
-    m2[i][j] = 0;
-    for (k=0;k<4;k++)
-      m2[i][j] += tm[i][k]*m1[k][j];
-  }
+    for (j=0;j<4;j++)
+      {
+        m2[i][j] = 0;
+        for (k=0;k<4;k++)
+          m2[i][j] += tm[i][k]*m1[k][j];
+      }
   for (i=0;i<4;i++)
-  for (j=0;j<4;j++)
-    tm[i][j] = m2[i][j];
+    for (j=0;j<4;j++)
+      tm[i][j] = m2[i][j];
 
   if (c=='x')
-  {
-    translate_brain(-yc,'y');
-    translate_brain(-zc,'z');
-  } else
-  if (c=='z')
-  {
-    translate_brain(-xc,'x');
-    translate_brain(-yc,'y');
-  } else
-  if (c=='y')
-  {
-    translate_brain(-xc,'x');
-    translate_brain(-zc,'z');
-  }
+    {
+      translate_brain(-yc,'y');
+      translate_brain(-zc,'z');
+    } else
+      if (c=='z')
+        {
+          translate_brain(-xc,'x');
+          translate_brain(-yc,'y');
+        } else
+          if (c=='y')
+            {
+              translate_brain(-xc,'x');
+              translate_brain(-zc,'z');
+            }
   editedmatrix = TRUE;
 }
 
 void align_points()
 {
   if (plane==SAGITTAL)
-  {
-    translate_brain(-(yc-yc_old),'y');
-    translate_brain(-(zc-zc_old),'z');
-  }
+    {
+      translate_brain(-(yc-yc_old),'y');
+      translate_brain(-(zc-zc_old),'z');
+    }
   if (plane==HORIZONTAL)
-  {
-    translate_brain(-(xc-xc_old),'x');
-    translate_brain(-(yc-yc_old),'y');
-  }
+    {
+      translate_brain(-(xc-xc_old),'x');
+      translate_brain(-(yc-yc_old),'y');
+    }
   if (plane==CORONAL)
-  {
-    translate_brain(-(xc-xc_old),'x');
-    translate_brain(-(zc-zc_old),'z');
-  }
+    {
+      translate_brain(-(xc-xc_old),'x');
+      translate_brain(-(zc-zc_old),'z');
+    }
 }
 /*-----------------------------------------------------*/
 void translate_brain(float a, char c)
@@ -3046,8 +3167,8 @@ void translate_brain(float a, char c)
   if(debug) printf("translating: a = %g, c = %c\n",a,c);
 
   for (i=0;i<4;i++)
-  for (j=0;j<4;j++)
-    m1[i][j] = (i==j)?1.0:0.0;
+    for (j=0;j<4;j++)
+      m1[i][j] = (i==j)?1.0:0.0;
   if (c=='y')
     m1[1][3] = a;
   else if (c=='x')
@@ -3056,15 +3177,15 @@ void translate_brain(float a, char c)
     m1[2][3] = a;
   else printf("Illegal axis %c\n",c);
   for (i=0;i<4;i++)
-  for (j=0;j<4;j++)
-  {
-    m2[i][j] = 0;
-    for (k=0;k<4;k++)
-      m2[i][j] += tm[i][k]*m1[k][j];
-  }
+    for (j=0;j<4;j++)
+      {
+        m2[i][j] = 0;
+        for (k=0;k<4;k++)
+          m2[i][j] += tm[i][k]*m1[k][j];
+      }
   for (i=0;i<4;i++)
-  for (j=0;j<4;j++)
-    tm[i][j] = m2[i][j];
+    for (j=0;j<4;j++)
+      tm[i][j] = m2[i][j];
   editedmatrix = TRUE;
 }
 /*-----------------------------------------------------*/
@@ -3076,8 +3197,8 @@ void scale_brain(float s, char c)
   if(debug) printf("scaling: s = %g, c = %c\n",s,c);
 
   for (i=0;i<4;i++)
-  for (j=0;j<4;j++)
-    m1[i][j] = (i==j)?1.0:0.0;
+    for (j=0;j<4;j++)
+      m1[i][j] = (i==j)?1.0:0.0;
   if (c=='x')
     m1[0][0] = s;
   else if (c=='y')
@@ -3086,15 +3207,15 @@ void scale_brain(float s, char c)
     m1[2][2] = s;
   else printf("Illegal axis %c\n",c);
   for (i=0;i<4;i++)
-  for (j=0;j<4;j++)
-  {
-    m2[i][j] = 0;
-    for (k=0;k<4;k++)
-      m2[i][j] += tm[i][k]*m1[k][j];
-  }
+    for (j=0;j<4;j++)
+      {
+        m2[i][j] = 0;
+        for (k=0;k<4;k++)
+          m2[i][j] += tm[i][k]*m1[k][j];
+      }
   for (i=0;i<4;i++)
-  for (j=0;j<4;j++)
-    tm[i][j] = m2[i][j];
+    for (j=0;j<4;j++)
+      tm[i][j] = m2[i][j];
   editedmatrix = TRUE;
 }
 /*-----------------------------------------------------*/
@@ -3112,21 +3233,21 @@ void set_cursor(float xpt,float ypt,float zpt)
   double dzf;
 
   if (ptype==0) /* Horizontal */
-  {
-    jpt = (int)((xx1-xpt)*zf/ps+0.5);
-    ipt = (int)((ypt-yy0)*zf/ps+0.5);
-    impt = (int)((zpt-zz0)*zf/st+0.5);
-  } else if (ptype==2) /* Coronal */
-  {
-    jpt = (int)((xx1-xpt)*zf/ps+0.5);
-    ipt = (int)((255.0-(zz1-zpt)/ps)*zf+0.5);
-    impt = (int)((ypt-yy0)*zf/st+0.5);
-  } else if (ptype==1) /* Sagittal */
-  {
-    jpt = (int)((xx1-xpt)*zf/ps+0.5);
-    ipt = (int)((ypt-yy0)*zf/ps+0.5);
-    impt = (int)((zpt-zz0)*zf/st+0.5);
-  }
+    {
+      jpt = (int)((xx1-xpt)*zf/ps+0.5);
+      ipt = (int)((ypt-yy0)*zf/ps+0.5);
+      impt = (int)((zpt-zz0)*zf/st+0.5);
+    } else if (ptype==2) /* Coronal */
+      {
+        jpt = (int)((xx1-xpt)*zf/ps+0.5);
+        ipt = (int)((255.0-(zz1-zpt)/ps)*zf+0.5);
+        impt = (int)((ypt-yy0)*zf/st+0.5);
+      } else if (ptype==1) /* Sagittal */
+        {
+          jpt = (int)((xx1-xpt)*zf/ps+0.5);
+          ipt = (int)((ypt-yy0)*zf/ps+0.5);
+          impt = (int)((zpt-zz0)*zf/st+0.5);
+        }
   dzf = (double)zf;
   imc = zf * (int)(rint((double)impt/dzf));  /* round to slice */
   ic =  zf * (int)(rint((double)ipt/dzf));
@@ -3144,22 +3265,22 @@ void set_scale()
   short v;
 
   for (i=0;i<NUMVALS;i++)
-  {
-/*
-    f = i/fscale+fthresh;
-    f = ((f<0.0)?0.0:((f>1.0)?1.0:f));
-    f = pow(f,fsquash);
-    v = f*fscale+0.5;
-*/
-    f = i/fscale;
-    f = 1.0/(1.0+exp(-fsquash*(f-fthresh)));
-    v = f*fscale+0.5;
+    {
+      /*
+        f = i/fscale+fthresh;
+        f = ((f<0.0)?0.0:((f>1.0)?1.0:f));
+        f = pow(f,fsquash);
+        v = f*fscale+0.5;
+      */
+      f = i/fscale;
+      f = 1.0/(1.0+exp(-fsquash*(f-fthresh)));
+      v = f*fscale+0.5;
 #ifdef RGB
-    colormap[i] = (unsigned char)v;
+      colormap[i] = (unsigned char)v;
 #else
-    mapcolor(i+MAPOFFSET,v,v,v);
+      mapcolor(i+MAPOFFSET,v,v,v);
 #endif
-  }
+    }
   mapcolor(NUMVALS+MAPOFFSET,v,0.0,0.0);
 }
 /*-----------------------------------------------------*/
@@ -3191,21 +3312,21 @@ void pop_gl_window()
 void mri2pix(float xpt,float ypt,float zpt,int *jpt,int *ipt,int *impt)
 {
   if (ptype==0) /* Horizontal */
-  {
-    *jpt = nint(((xx1-xpt)/ps+0.5));
-    *ipt = nint((ypt-yy0)/ps+0.5);
-    *impt = nint((zpt-zz0)/st+0.5);
-  } else if (ptype==2) /* Coronal */
-  {
-    *jpt = nint((xx1-xpt)/ps+0.5);
-    *ipt = nint((255.0-(zz1-zpt)/ps)+0.5);
-    *impt = nint((ypt-yy0)/st+0.5);
-  } else if (ptype==1) /* Sagittal */
-  {
-    *jpt = nint((xx1-xpt)/ps+0.5);
-    *ipt = nint((ypt-yy0)/ps+0.5);
-    *impt = nint((zpt-zz0)/st+0.5);
-  }
+    {
+      *jpt = nint(((xx1-xpt)/ps+0.5));
+      *ipt = nint((ypt-yy0)/ps+0.5);
+      *impt = nint((zpt-zz0)/st+0.5);
+    } else if (ptype==2) /* Coronal */
+      {
+        *jpt = nint((xx1-xpt)/ps+0.5);
+        *ipt = nint((255.0-(zz1-zpt)/ps)+0.5);
+        *impt = nint((ypt-yy0)/st+0.5);
+      } else if (ptype==1) /* Sagittal */
+        {
+          *jpt = nint((xx1-xpt)/ps+0.5);
+          *ipt = nint((ypt-yy0)/ps+0.5);
+          *impt = nint((zpt-zz0)/st+0.5);
+        }
 }
 /*-----------------------------------------------------*/
 int imval(float px,float py,float pz)
@@ -3233,27 +3354,27 @@ float Error(int p,float dp)
   mu = mu1 = mu2 = 0;
   num = 0;
   for (i=0;i<npts;i++)
-  {
-    mu += imval(ptx[i],pty[i],ptz[i]);
-    mu1 += imval(ptx[i]*0.9,pty[i]*0.9,ptz[i]*0.9);
-    mu2 += imval(ptx[i]*1.05,pty[i]*1.05,ptz[i]*1.05);
-    num ++;
-  }
+    {
+      mu += imval(ptx[i],pty[i],ptz[i]);
+      mu1 += imval(ptx[i]*0.9,pty[i]*0.9,ptz[i]*0.9);
+      mu2 += imval(ptx[i]*1.05,pty[i]*1.05,ptz[i]*1.05);
+      num ++;
+    }
   mu /= num;
   mu1 /= num;
   mu2 /= num;
   sum = sum1 = sum2 = 0;
   num = 0;
   for (i=0;i<npts;i++)
-  {
-    error = imval(ptx[i],pty[i],ptz[i])-mu;
-    sum += error*error;
-    error = imval(ptx[i]*0.9,pty[i]*0.9,ptz[i]*0.9)-mu1;
-    sum1 += error*error;
-    error = imval(ptx[i]*1.05,pty[i]*1.05,ptz[i]*1.05)-mu2;
-    sum2 += error*error;
-    num ++;
-  }
+    {
+      error = imval(ptx[i],pty[i],ptz[i])-mu;
+      sum += error*error;
+      error = imval(ptx[i]*0.9,pty[i]*0.9,ptz[i]*0.9)-mu1;
+      sum1 += error*error;
+      error = imval(ptx[i]*1.05,pty[i]*1.05,ptz[i]*1.05)-mu2;
+      sum2 += error*error;
+      num ++;
+    }
   sum = sqrt((sum+sum2)/num);
   if (p>=0)
     par[p] -= dp;
@@ -3270,19 +3391,19 @@ void optimize(int maxiter)
   float error;
 
   for (iter=0;iter<maxiter;iter++)
-  {
-    error = Error(-1,0);
-    printf("%d: %5.2f %5.2f %5.2f %7.3f\n",
-           iter,par[0],par[1],par[2],error);
-    for (p=0;p<3;p++)
     {
-      dE[p] = tanh((Error(p,epsilon/2)-Error(p,-epsilon/2))/epsilon);
+      error = Error(-1,0);
+      printf("%d: %5.2f %5.2f %5.2f %7.3f\n",
+             iter,par[0],par[1],par[2],error);
+      for (p=0;p<3;p++)
+        {
+          dE[p] = tanh((Error(p,epsilon/2)-Error(p,-epsilon/2))/epsilon);
+        }
+      for (p=0;p<3;p++)
+        {
+          par[p] += (dpar[p] = momentum*dpar[p] - lambda*dE[p]);
+        }
     }
-    for (p=0;p<3;p++)
-    {
-      par[p] += (dpar[p] = momentum*dpar[p] - lambda*dE[p]);
-    }
-  }
   error = Error(-1,0);
   printf("%d: %5.2f %5.2f %5.2f %7.3f\n",
          iter,par[0],par[1],par[2],error);
@@ -3300,23 +3421,23 @@ void optimize2()
   printf("%5.2f %5.2f %5.2f %7.3f\n",
          par[0],par[1],par[2],error);
   for (p0 = -10;p0 <= 10;p0 += epsilon)
-  for (p1 = -10;p1 <= 10;p1 += epsilon)
-  for (p2 = -10;p2 <= 10;p2 += epsilon)
-  {
-    par[0] = p0;
-    par[1] = p1;
-    par[2] = p2;
-    error = Error(-1,0);
-    if (error<minerror)
-    {
-      printf("%5.2f %5.2f %5.2f %7.3f\n",
-             par[0],par[1],par[2],error);
-      minerror = error;
-      p0min = p0;
-      p1min = p1;
-      p2min = p2;
-    }
-  }
+    for (p1 = -10;p1 <= 10;p1 += epsilon)
+      for (p2 = -10;p2 <= 10;p2 += epsilon)
+        {
+          par[0] = p0;
+          par[1] = p1;
+          par[2] = p2;
+          error = Error(-1,0);
+          if (error<minerror)
+            {
+              printf("%5.2f %5.2f %5.2f %7.3f\n",
+                     par[0],par[1],par[2],error);
+              minerror = error;
+              p0min = p0;
+              p1min = p1;
+              p2min = p2;
+            }
+        }
   par[0] = p0min;
   par[1] = p1min;
   par[2] = p2min;
@@ -3364,60 +3485,60 @@ void read_images(char *fpref)
   numimg = imnr1-imnr0+1;
   xdim=xnum*zf;
   ydim=ynum*zf;
-/*
-  printf("imnr0=%d,imnr1=%d,numimg=%d,xdim=%d,ydim=%d\n",
-                imnr0,imnr1,numimg,xdim,ydim);
-*/
+  /*
+    printf("imnr0=%d,imnr1=%d,numimg=%d,xdim=%d,ydim=%d\n",
+    imnr0,imnr1,numimg,xdim,ydim);
+  */
 
-/* Allocate memory */
+  /* Allocate memory */
 
   bufsize = ((unsigned long)xnum)*ynum;
   buf = (unsigned char *)lcalloc(bufsize,sizeof(char));
   for (k=0;k<numimg;k++)
-  {
-    im[k] = (unsigned char **)lcalloc(ynum,sizeof(char *));
-    for (i=0;i<ynum;i++)
     {
-      im[k][i] = (unsigned char *)lcalloc(xnum,sizeof(char));
-    }
-  }
-  for (k=0;k<6;k++)
-  {
-    sim[k] = (unsigned char **)lcalloc(ynum,sizeof(char *));
-    for (i=0;i<ynum;i++)
-    {
-      sim[k][i] = (unsigned char *)lcalloc(xnum,sizeof(char));
-    }
+      im[k] = (unsigned char **)lcalloc(ynum,sizeof(char *));
+      for (i=0;i<ynum;i++)
+        {
+          im[k][i] = (unsigned char *)lcalloc(xnum,sizeof(char));
         }
+    }
+  for (k=0;k<6;k++)
+    {
+      sim[k] = (unsigned char **)lcalloc(ynum,sizeof(char *));
+      for (i=0;i<ynum;i++)
+        {
+          sim[k][i] = (unsigned char *)lcalloc(xnum,sizeof(char));
+        }
+    }
 
   for (k=0;k<numimg;k++)
-  {
-    changed[k] = FALSE;
-    file_name(fpref,fname,k+imnr0,"%03d");
-    fptr = fopen(fname,"rb");
-    if (fptr==NULL) {
-      printf("register: ### File %s not found\n",fname);exit(1);}
-    fread(buf,sizeof(char),bufsize,fptr);
-    buffer_to_image(buf,im[k],xnum,ynum);
-    fclose(fptr);
-/*
-          printf("file %s read in\n",fname);
-*/
-  }
-        printf("register: done reading target COR images\n");
+    {
+      changed[k] = FALSE;
+      file_name(fpref,fname,k+imnr0,"%03d");
+      fptr = fopen(fname,"rb");
+      if (fptr==NULL) {
+        printf("register: ### File %s not found\n",fname);exit(1);}
+      fread(buf,sizeof(char),bufsize,fptr);
+      buffer_to_image(buf,im[k],xnum,ynum);
+      fclose(fptr);
+      /*
+        printf("file %s read in\n",fname);
+      */
+    }
+  printf("register: done reading target COR images\n");
 
   for (k=0;k<numimg;k++)
-        for (i=0;i<ynum;i++)
-        for (j=0;j<xnum;j++)
+    for (i=0;i<ynum;i++)
+      for (j=0;j<xnum;j++)
         {
           if (im[k][i][j]/2>sim[3][i][j]) sim[3][i][j] = im[k][i][j]/2;
           if (im[k][i][j]/2>sim[4][k][j]) sim[4][k][j] = im[k][i][j]/2;
           if (im[k][i][j]/2>sim[5][i][k]) sim[5][i][k] = im[k][i][j]/2;
         }
-        for (i=0;i<ynum;i++)
-        for (j=0;j<xnum;j++)
-        for (k=0;k<3;k++)
-          sim[k][i][j] = sim[k+3][i][j];
+  for (i=0;i<ynum;i++)
+    for (j=0;j<xnum;j++)
+      for (k=0;k<3;k++)
+        sim[k][i][j] = sim[k+3][i][j];
        
 }
 
@@ -3465,7 +3586,8 @@ void read_second_images(char *fpref)
 
   if (nslices!=numimg_2) {
     printf("register ### numslices mismatch--analyse.dat ignored \n");
-    printf("  nslices: analyse.dat = %d   COR-.info = %d\n",nslices,numimg_2); }
+    printf("  nslices: analyse.dat = %d   COR-.info = %d\n",
+           nslices,numimg_2); }
   if (fabs(ps_2b-ps_2)>0.00001 || fabs(st_2b-st_2)>0.00001) {
     printf("register ### slicethick,pixsize mismatch--register.dat ignored\n");
     printf("  thick:   register.dat = %f   COR-.info = %f\n",st_2b,st_2);
@@ -3492,14 +3614,16 @@ void read_second_images(char *fpref)
     fclose(fptr);
     n=0;
     for (i=0;i<ynum_2;i++)
-    for (j=0;j<xnum_2;j++) {
-      fim_2[k][i][j] = buf_2[n++];  /* 64Meg <- 16Meg! */
-    }
+      for (j=0;j<xnum_2;j++) {
+        fim_2[k][i][j] = buf_2[n++];  /* 64Meg <- 16Meg! */
+      }
   }
   printf("register: done reading to-be-registered functional images\n");
 }
 
-void transform(float x1,float y1,float z1,float *x2,float *y2,float *z2,float M[4][4])
+void transform(float x1,float y1,float z1,
+               float *x2,float *y2,float *z2,
+               float M[4][4])
 {
   *x2 = x1*M[0][0]+y1*M[0][1]+z1*M[0][2]+M[0][3];
   *y2 = x1*M[1][0]+y1*M[1][1]+z1*M[1][2]+M[1][3];
@@ -3523,7 +3647,7 @@ void blur(float factor)  /* test hack */
   sprintf(command,"scrsave /tmp/tmp1.rgb %d %d %d %d\n",x0,x1,y0,y1);
   system(command);
   sprintf(command,"blur /tmp/tmp1.rgb /tmp/tmp2.rgb %d\n",
-                                            (int)((float)xsize/factor));
+          (int)((float)xsize/factor));
   system(command);
   sprintf(command,"tobin /tmp/tmp2.rgb /tmp/tmp2.bin\n");
   system(command);
@@ -3532,18 +3656,21 @@ void blur(float factor)  /* test hack */
   fread(binbuff,3,xdim*ydim,fp);
   k = 0;
   for (i=0;i<ydim;i++)
-  for (j=0;j<xdim;j++) {
-    /*vidbuf[k] = binbuff[(i*xdim+j)*3+0]+MAPOFFSET;*/  /* x9 */
+    for (j=0;j<xdim;j++) {
+      /*vidbuf[k] = binbuff[(i*xdim+j)*3+0]+MAPOFFSET;*/  /* x9 */
 
 #ifdef RGB
-    vidbuf[3*k] = binbuff[i*xdim+j]+MAPOFFSET;  /* stretched dark to light */
-    vidbuf[3*k+1] = binbuff[i*xdim+j]+MAPOFFSET;  /* stretched dark to light */
-    vidbuf[3*k+2] = binbuff[i*xdim+j]+MAPOFFSET;  /* stretched dark to light */
+      vidbuf[3*k] = 
+        binbuff[i*xdim+j]+MAPOFFSET;  /* stretched dark to light */
+      vidbuf[3*k+1] = 
+        binbuff[i*xdim+j]+MAPOFFSET;  /* stretched dark to light */
+      vidbuf[3*k+2] = 
+        binbuff[i*xdim+j]+MAPOFFSET;  /* stretched dark to light */
 #else
-    vidbuf[k] = binbuff[i*xdim+j]+MAPOFFSET;  /* stretched dark to light */
+      vidbuf[k] = binbuff[i*xdim+j]+MAPOFFSET;  /* stretched dark to light */
 #endif    
-    k++;
-  }
+      k++;
+    }
   backbuffer(FALSE);
   frontbuffer(TRUE);
   rectwrite(0,0,xdim-1,ydim-1,vidbuf);
@@ -3555,23 +3682,31 @@ void blur(float factor)  /* test hack */
 
 void make_filenames(char *lsubjectsdir)
 {
-    subjectsdir = (char *)malloc(NAME_LENGTH*sizeof(char)); /* malloc for tcl */
-    srname = (char *)malloc(NAME_LENGTH*sizeof(char));
-    psrname = (char *)malloc(NAME_LENGTH*sizeof(char));
-    pname = (char *)malloc(NAME_LENGTH*sizeof(char));
-    regfname = (char *)malloc(NAME_LENGTH*sizeof(char));
-    afname = (char *)malloc(NAME_LENGTH*sizeof(char));
-    targpref = (char *)malloc(NAME_LENGTH*sizeof(char));
-    movformat = (char *)malloc(NAME_LENGTH*sizeof(char));
-    tfname = (char *)malloc(NAME_LENGTH*sizeof(char));
-    sgfname = (char *)malloc(NAME_LENGTH*sizeof(char));
+  subjectsdir = (char *)malloc(NAME_LENGTH*sizeof(char)); /* malloc for tcl */
+  srname = (char *)malloc(NAME_LENGTH*sizeof(char));
+  psrname = (char *)malloc(NAME_LENGTH*sizeof(char));
+  pname = (char *)malloc(NAME_LENGTH*sizeof(char));
+  regfname = (char *)malloc(NAME_LENGTH*sizeof(char));
+  afname = (char *)malloc(NAME_LENGTH*sizeof(char));
+  targpref = (char *)malloc(NAME_LENGTH*sizeof(char));
+  movformat = (char *)malloc(NAME_LENGTH*sizeof(char));
+  tfname = (char *)malloc(NAME_LENGTH*sizeof(char));
+  sgfname = (char *)malloc(NAME_LENGTH*sizeof(char));
 
-    strcpy(subjectsdir,lsubjectsdir);
-    strcpy(movformat,"");
-    /* TODO: init others here */
+  strcpy(subjectsdir,lsubjectsdir);
+  strcpy(movformat,"");
+  /* TODO: init others here */
 }
 
-void read_float_images(float ***fim,char *format,int nslices,int nperslice,int xdim,int ydim,short **buf) /* was MRIio.c */
+void read_float_images
+(
+ float ***fim,
+ char *format,
+ int nslices,
+ int nperslice,
+ int xdim,
+ int ydim,
+ short **buf) /* was MRIio.c */
 {
 #ifdef Linux
   int scount ;
@@ -3661,13 +3796,13 @@ void read_float_images(float ***fim,char *format,int nslices,int nperslice,int x
     sum = sum2 = 0;
     n = 0;
     for (i=0;i<ydim;i++)
-    for (j=0;j<xdim;j++) {
-      f = fim[k][i][j] = (*buf)[n++];
-      if (f<min) min = f;
-      if (f>max) max = f;
-      sum += f;
-      sum2 += f*f;
-    }
+      for (j=0;j<xdim;j++) {
+        f = fim[k][i][j] = (*buf)[n++];
+        if (f<min) min = f;
+        if (f>max) max = f;
+        sum += f;
+        sum2 += f*f;
+      }
     sum /= xdim*ydim;
     sum2 = sqrt(sum2/(xdim*ydim)-sum*sum);
     /*printf("File %s read\n",fname);*/
@@ -3678,7 +3813,8 @@ void read_float_images(float ***fim,char *format,int nslices,int nperslice,int x
 }
 
 /* boilerplate wrap function defines for easier viewing */
-#define WBEGIN (ClientData clientData,Tcl_Interp *interp,int argc,char *argv[]){
+#define WBEGIN (ClientData clientData,Tcl_Interp *interp,\
+int argc,char *argv[]){
 #define ERR(N,S)  if(argc!=N){interp->result=S;return TCL_ERROR;}
 #define WEND   return TCL_OK;}
 #define REND  (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL
@@ -3686,104 +3822,104 @@ void read_float_images(float ***fim,char *format,int nslices,int nperslice,int x
 /*=======================================================================*/
 /* function wrappers and errors */
 int                  W_move_window  WBEGIN
-  ERR(3,"Wrong # args: move_window <x> <y>")
-                       move_window(atoi(argv[1]),atoi(argv[2]));  WEND
+ERR(3,"Wrong # args: move_window <x> <y>")
+     move_window(atoi(argv[1]),atoi(argv[2]));  WEND
 
-int                  W_pop_gl_window  WBEGIN 
-  ERR(1,"Wrong # args: pop_gl_window")
-                       pop_gl_window();  WEND
+     int                  W_pop_gl_window  WBEGIN 
+     ERR(1,"Wrong # args: pop_gl_window")
+     pop_gl_window();  WEND
 
-int                  W_redraw  WBEGIN 
-  ERR(1,"Wrong # args: redraw")
-                       redraw();  WEND
+     int                  W_redraw  WBEGIN 
+     ERR(1,"Wrong # args: redraw")
+     redraw();  WEND
 
-int                  W_upslice WBEGIN 
-  ERR(1,"Wrong # args: upslice")
-                       upslice();  WEND
+     int                  W_upslice WBEGIN 
+     ERR(1,"Wrong # args: upslice")
+     upslice();  WEND
 
-int                  W_downslice WBEGIN 
-  ERR(1,"Wrong # args: downslice")
-                       downslice();  WEND
+     int                  W_downslice WBEGIN 
+     ERR(1,"Wrong # args: downslice")
+     downslice();  WEND
 
-int                  W_rotate_brain_x  WBEGIN
-  ERR(2,"Wrong # args: rotate_brain_x <deg>")
-                       rotate_brain(atof(argv[1]),'x'); WEND
+     int                  W_rotate_brain_x  WBEGIN
+     ERR(2,"Wrong # args: rotate_brain_x <deg>")
+     rotate_brain(atof(argv[1]),'x'); WEND
 
-int                  W_rotate_brain_y  WBEGIN
-  ERR(2,"Wrong # args: rotate_brain_y <deg>")
-                       rotate_brain(atof(argv[1]),'y'); WEND
+     int                  W_rotate_brain_y  WBEGIN
+     ERR(2,"Wrong # args: rotate_brain_y <deg>")
+     rotate_brain(atof(argv[1]),'y'); WEND
 
-int                  W_rotate_brain_z  WBEGIN
-  ERR(2,"Wrong # args: rotate_brain_z <deg>")
-                       rotate_brain(atof(argv[1]),'z'); WEND
+     int                  W_rotate_brain_z  WBEGIN
+     ERR(2,"Wrong # args: rotate_brain_z <deg>")
+     rotate_brain(atof(argv[1]),'z'); WEND
 
-int                  W_translate_brain_x  WBEGIN
-  ERR(2,"Wrong # args: translate_brain_x <mm>")
-                       translate_brain(atof(argv[1]),'x');  WEND
+     int                  W_translate_brain_x  WBEGIN
+     ERR(2,"Wrong # args: translate_brain_x <mm>")
+     translate_brain(atof(argv[1]),'x');  WEND
 
-int                  W_translate_brain_y  WBEGIN
-  ERR(2,"Wrong # args: translate_brain_y <mm>")
-                       translate_brain(atof(argv[1]),'y');  WEND
+     int                  W_translate_brain_y  WBEGIN
+     ERR(2,"Wrong # args: translate_brain_y <mm>")
+     translate_brain(atof(argv[1]),'y');  WEND
 
-int                  W_translate_brain_z  WBEGIN
-  ERR(2,"Wrong # args: translate_brain_z <mm>")
-                       translate_brain(atof(argv[1]),'z');  WEND
+     int                  W_translate_brain_z  WBEGIN
+     ERR(2,"Wrong # args: translate_brain_z <mm>")
+     translate_brain(atof(argv[1]),'z');  WEND
 
-int                  W_scale_brain_x  WBEGIN
-  ERR(2,"Wrong # args: scale_brain_x <mm>")
-                       scale_brain(atof(argv[1]),'x');  WEND
+     int                  W_scale_brain_x  WBEGIN
+     ERR(2,"Wrong # args: scale_brain_x <mm>")
+     scale_brain(atof(argv[1]),'x');  WEND
 
-int                  W_scale_brain_y  WBEGIN
-  ERR(2,"Wrong # args: scale_brain_y <mm>")
-                       scale_brain(atof(argv[1]),'y');  WEND
+     int                  W_scale_brain_y  WBEGIN
+     ERR(2,"Wrong # args: scale_brain_y <mm>")
+     scale_brain(atof(argv[1]),'y');  WEND
 
-int                  W_scale_brain_z  WBEGIN
-  ERR(2,"Wrong # args: scale_brain_z <mm>")
-                       scale_brain(atof(argv[1]),'z');  WEND
+     int                  W_scale_brain_z  WBEGIN
+     ERR(2,"Wrong # args: scale_brain_z <mm>")
+     scale_brain(atof(argv[1]),'z');  WEND
 
-int                  W_goto_point  WBEGIN
-  ERR(1,"Wrong # args: goto_point")
-                       goto_point(tfname);  WEND
+     int                  W_goto_point  WBEGIN
+     ERR(1,"Wrong # args: goto_point")
+     goto_point(tfname);  WEND
 
-int                  W_write_point  WBEGIN
-  ERR(1,"Wrong # args: write_point")
-                       write_point(tfname);  WEND
+     int                  W_write_point  WBEGIN
+     ERR(1,"Wrong # args: write_point")
+     write_point(tfname);  WEND
 
-int                  W_save_rgb  WBEGIN
-  ERR(1,"Wrong # args: save_rgb")
-                       save_rgb(sgfname);  WEND
+     int                  W_save_rgb  WBEGIN
+     ERR(1,"Wrong # args: save_rgb")
+     save_rgb(sgfname);  WEND
 
-int                  W_record_swapbuffers  WBEGIN
-  ERR(1,"Wrong # args: record_swapbuffers")
-                       record_swapbuffers();  WEND
+     int                  W_record_swapbuffers  WBEGIN
+     ERR(1,"Wrong # args: record_swapbuffers")
+     record_swapbuffers();  WEND
 
-int                  W_set_scale  WBEGIN
-  ERR(1,"Wrong # args: set_scale")
-                       set_scale();  WEND
+     int                  W_set_scale  WBEGIN
+     ERR(1,"Wrong # args: set_scale")
+     set_scale();  WEND
 
-int                  W_blur  WBEGIN
-  ERR(2,"Wrong # args: blur <factor>")
-                       blur(atof(argv[1]));  WEND
+     int                  W_blur  WBEGIN
+     ERR(2,"Wrong # args: blur <factor>")
+     blur(atof(argv[1]));  WEND
 
-int                  W_read_reg  WBEGIN
-  ERR(1,"Wrong # args: read_reg")
-                       read_reg(regfname);  WEND
+     int                  W_read_reg  WBEGIN
+     ERR(1,"Wrong # args: read_reg")
+     read_reg(regfname);  WEND
 
-int                  W_write_reg  WBEGIN
-  ERR(1,"Wrong # args: write_reg")
-                       write_reg(regfname);  WEND
+     int                  W_write_reg  WBEGIN
+     ERR(1,"Wrong # args: write_reg")
+     write_reg(regfname);  WEND
 
-int                  W_align_points  WBEGIN
-  ERR(1,"Wrong # args: align_points")
-                       align_points();  WEND
+     int                  W_align_points  WBEGIN
+     ERR(1,"Wrong # args: align_points")
+     align_points();  WEND
 
-int                  W_mirror_brain  WBEGIN
-  ERR(1,"Wrong # args: mirror_brain")
-                       mirror_brain();  WEND
-/*=======================================================================*/
+     int                  W_mirror_brain  WBEGIN
+     ERR(1,"Wrong # args: mirror_brain")
+     mirror_brain();  WEND
+     /*===============================================================*/
 
-/* for tcl/tk */
-static void StdinProc _ANSI_ARGS_((ClientData clientData, int mask));
+     /* for tcl/tk */
+     static void StdinProc _ANSI_ARGS_((ClientData clientData, int mask));
 static void Prompt _ANSI_ARGS_((Tcl_Interp *interp, int partial));
 #ifndef TCL8
 static Tk_Window mainWindow;
@@ -3793,8 +3929,8 @@ static Tcl_DString command;
 static int tty;
 
 int main(argc, argv)   /* new main */
-int argc;
-char **argv;
+     int argc;
+     char **argv;
 {
   int code;
 #ifndef TCL8
@@ -3807,7 +3943,10 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.39 2005/10/04 19:23:17 greve Exp $", "$Name:  $");
+  nargs = 
+    handle_version_option 
+    (argc, argv, 
+     "$Id: tkregister2.c,v 1.40 2005/10/18 15:56:01 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3844,7 +3983,7 @@ char **argv;
 #endif
 
   /*
-  if (mainWindow == NULL) {
+    if (mainWindow == NULL) {
     fprintf(stderr, "%s\n", interp->result);
     exit(1); }
   */
@@ -3862,30 +4001,54 @@ char **argv;
 
   /*=======================================================================*/
   /* register wrapped surfer functions with interpreter */
-  Tcl_CreateCommand(interp, "redraw",          (Tcl_CmdProc *)   W_redraw,             REND);
-  Tcl_CreateCommand(interp, "move_window",     (Tcl_CmdProc *)   W_move_window,        REND);
-  Tcl_CreateCommand(interp, "pop_gl_window",   (Tcl_CmdProc *)   W_pop_gl_window,      REND);
-  Tcl_CreateCommand(interp, "upslice",         (Tcl_CmdProc *)   W_upslice,            REND);
-  Tcl_CreateCommand(interp, "downslice",       (Tcl_CmdProc *)   W_downslice,          REND);
-  Tcl_CreateCommand(interp, "rotate_brain_x",  (Tcl_CmdProc *)   W_rotate_brain_x,     REND);
-  Tcl_CreateCommand(interp, "rotate_brain_y",  (Tcl_CmdProc *)   W_rotate_brain_y,     REND);
-  Tcl_CreateCommand(interp, "rotate_brain_z",  (Tcl_CmdProc *)   W_rotate_brain_z,     REND);
-  Tcl_CreateCommand(interp, "translate_brain_x",(Tcl_CmdProc *)  W_translate_brain_x,  REND);
-  Tcl_CreateCommand(interp, "translate_brain_y",(Tcl_CmdProc *)  W_translate_brain_y,  REND);
-  Tcl_CreateCommand(interp, "translate_brain_z",(Tcl_CmdProc *)  W_translate_brain_z,  REND);
-  Tcl_CreateCommand(interp, "scale_brain_x",    (Tcl_CmdProc *)  W_scale_brain_x,      REND);
-  Tcl_CreateCommand(interp, "scale_brain_y",    (Tcl_CmdProc *)  W_scale_brain_y,      REND);
-  Tcl_CreateCommand(interp, "scale_brain_z",    (Tcl_CmdProc *)  W_scale_brain_z,      REND);
-  Tcl_CreateCommand(interp, "goto_point",       (Tcl_CmdProc *)  W_goto_point,         REND);
-  Tcl_CreateCommand(interp, "write_point",      (Tcl_CmdProc *)  W_write_point,        REND);
-  Tcl_CreateCommand(interp, "save_rgb",         (Tcl_CmdProc *)  W_save_rgb,           REND);
-  Tcl_CreateCommand(interp, "record_swapbuffers",(Tcl_CmdProc *) W_record_swapbuffers, REND);
-  Tcl_CreateCommand(interp, "set_scale",        (Tcl_CmdProc *)  W_set_scale,          REND);
-  Tcl_CreateCommand(interp, "blur",             (Tcl_CmdProc *)  W_blur,               REND);
-  Tcl_CreateCommand(interp, "read_reg",         (Tcl_CmdProc *)  W_read_reg,           REND);
-  Tcl_CreateCommand(interp, "write_reg",        (Tcl_CmdProc *)  W_write_reg,          REND);
-  Tcl_CreateCommand(interp, "align_points",     (Tcl_CmdProc *)  W_align_points,       REND);
-  Tcl_CreateCommand(interp, "mirror_brain",     (Tcl_CmdProc *)  W_mirror_brain,       REND);
+  Tcl_CreateCommand(interp, "redraw",          
+                    (Tcl_CmdProc *)   W_redraw,             REND);
+  Tcl_CreateCommand(interp, "move_window",     
+                    (Tcl_CmdProc *)   W_move_window,        REND);
+  Tcl_CreateCommand(interp, "pop_gl_window",   
+                    (Tcl_CmdProc *)   W_pop_gl_window,      REND);
+  Tcl_CreateCommand(interp, "upslice",         
+                    (Tcl_CmdProc *)   W_upslice,            REND);
+  Tcl_CreateCommand(interp, "downslice",       
+                    (Tcl_CmdProc *)   W_downslice,          REND);
+  Tcl_CreateCommand(interp, "rotate_brain_x",  
+                    (Tcl_CmdProc *)   W_rotate_brain_x,     REND);
+  Tcl_CreateCommand(interp, "rotate_brain_y",  
+                    (Tcl_CmdProc *)   W_rotate_brain_y,     REND);
+  Tcl_CreateCommand(interp, "rotate_brain_z",  
+                    (Tcl_CmdProc *)   W_rotate_brain_z,     REND);
+  Tcl_CreateCommand(interp, "translate_brain_x",
+                    (Tcl_CmdProc *)  W_translate_brain_x,  REND);
+  Tcl_CreateCommand(interp, "translate_brain_y",
+                    (Tcl_CmdProc *)  W_translate_brain_y,  REND);
+  Tcl_CreateCommand(interp, "translate_brain_z",
+                    (Tcl_CmdProc *)  W_translate_brain_z,  REND);
+  Tcl_CreateCommand(interp, "scale_brain_x",    
+                    (Tcl_CmdProc *)  W_scale_brain_x,      REND);
+  Tcl_CreateCommand(interp, "scale_brain_y",    
+                    (Tcl_CmdProc *)  W_scale_brain_y,      REND);
+  Tcl_CreateCommand(interp, "scale_brain_z",    
+                    (Tcl_CmdProc *)  W_scale_brain_z,      REND);
+  Tcl_CreateCommand(interp, "goto_point",       
+                    (Tcl_CmdProc *)  W_goto_point,         REND);
+  Tcl_CreateCommand(interp, "write_point",      
+                    (Tcl_CmdProc *)  W_write_point,        REND);
+  Tcl_CreateCommand(interp, "save_rgb",         
+                    (Tcl_CmdProc *)  W_save_rgb,           REND);
+  Tcl_CreateCommand(interp, "record_swapbuffers",
+                    (Tcl_CmdProc *) W_record_swapbuffers, REND);
+  Tcl_CreateCommand(interp, "set_scale",        
+                    (Tcl_CmdProc *)  W_set_scale,          REND);
+  Tcl_CreateCommand(interp, "blur",             
+                    (Tcl_CmdProc *)  W_blur,               REND);
+  Tcl_CreateCommand(interp, "read_reg",         
+                    (Tcl_CmdProc *)  W_read_reg,           REND);
+  Tcl_CreateCommand(interp, "write_reg",        
+                    (Tcl_CmdProc *)  W_write_reg,          REND);
+  Tcl_CreateCommand(interp, "align_points",     
+                    (Tcl_CmdProc *)  W_align_points,       REND);
+  Tcl_CreateCommand(interp, "mirror_brain",     
+                    (Tcl_CmdProc *)  W_mirror_brain,       REND);
   /*=======================================================================*/
   /***** link global BOOLEAN variables to tcl equivalents */
   Tcl_LinkVar(interp,"maxflag",(char *)&maxflag, TCL_LINK_BOOLEAN);
@@ -3895,7 +4058,7 @@ char **argv;
   Tcl_LinkVar(interp,"maskflag",(char *)&maskflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"promptflag",(char *)&promptflag,TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"followglwinflag",(char *)&followglwinflag,
-                                                        TCL_LINK_BOOLEAN);
+              TCL_LINK_BOOLEAN);
   /*=======================================================================*/
   /***** link global INT variables to tcl equivalents */
   Tcl_LinkVar(interp,"zf",(char *)&zf, TCL_LINK_INT);
@@ -3911,10 +4074,10 @@ char **argv;
   Tcl_LinkVar(interp,"overlay_mode",(char *)&overlay_mode, TCL_LINK_INT);
   Tcl_LinkVar(interp,"visible_mode",(char *)&visible_mode, TCL_LINK_INT);
   Tcl_LinkVar(interp,"last_visible_mode",(char *)&last_visible_mode, 
-                                                                TCL_LINK_INT);
+              TCL_LINK_INT);
   Tcl_LinkVar(interp,"visible_plane",(char *)&visible_plane, TCL_LINK_INT);
   Tcl_LinkVar(interp,"last_visible_plane",(char *)&last_visible_plane, 
-                                                                TCL_LINK_INT);
+              TCL_LINK_INT);
   Tcl_LinkVar(interp,"blinkdelay",(char *)&blinkdelay, TCL_LINK_INT);
   Tcl_LinkVar(interp,"blinktime",(char *)&blinktime, TCL_LINK_INT);
   /*=======================================================================*/
@@ -3954,162 +4117,163 @@ char **argv;
 #ifdef TCL8
   while(Tk_GetNumMainWindows() > 0) {
 #else
-  while(tk_NumMainWindows > 0) {
+    while(tk_NumMainWindows > 0) {
 #endif
-    while (Tk_DoOneEvent(TK_ALL_EVENTS|TK_DONT_WAIT)) {
-      /* do all the tk events; non-blocking */
+      while (Tk_DoOneEvent(TK_ALL_EVENTS|TK_DONT_WAIT)) {
+        /* do all the tk events; non-blocking */
+      }
+      do_one_gl_event(interp);
+      /*sginap((long)1);*/   /* block for 10 msec */
+      usecnap(10000);     /* block for 10 msec */
     }
-    do_one_gl_event(interp);
-    /*sginap((long)1);*/   /* block for 10 msec */
-    usecnap(10000);     /* block for 10 msec */
+
+    Tcl_Eval(interp, "exit");
+    exit(0);
   }
 
-  Tcl_Eval(interp, "exit");
-  exit(0);
-}
+  void usecnap(int usec)
+    {
+      struct timeval delay;
 
-void usecnap(int usec)
-{
-  struct timeval delay;
+      delay.tv_sec = 0;
+      delay.tv_usec = (long)usec;
+      select(0,NULL,NULL,NULL,&delay);
+    }
 
-  delay.tv_sec = 0;
-  delay.tv_usec = (long)usec;
-  select(0,NULL,NULL,NULL,&delay);
-}
+  void initcolormap()
+    {
+      int i;
+      for(i=0; i<256; i++)
+        colormap[i]=i;
+      for(i=256; i<512; i++)
+        colormap[i]=255; 
+    }
 
-void initcolormap()
-{
-  int i;
-  for(i=0; i<256; i++)
-    colormap[i]=i;
-  for(i=256; i<512; i++)
-    colormap[i]=255; 
-}
-
-void pseudo_swapbuffers()
-{
-  if(pswapnext==MOVEABLE) {
-    rectwrite(0,0,xdim-1,ydim-1,blinkbufm);
-    pswapnext=TARGET;
-  } else {
-    rectwrite(0,0,xdim-1,ydim-1,blinkbuft);
-    pswapnext=MOVEABLE;
-  }
-}
-/*=== from TkMain.c ===================================================*/
-static void StdinProc(clientData, mask)
-  ClientData clientData;
+  void pseudo_swapbuffers()
+    {
+      if(pswapnext==MOVEABLE) {
+        rectwrite(0,0,xdim-1,ydim-1,blinkbufm);
+        pswapnext=TARGET;
+      } else {
+        rectwrite(0,0,xdim-1,ydim-1,blinkbuft);
+        pswapnext=MOVEABLE;
+      }
+    }
+  /*=== from TkMain.c ===================================================*/
+  static void StdinProc(clientData, mask)
+    ClientData clientData;
   int mask;
-{
+  {
 #define BUFFER_SIZE 4000
-  char input[BUFFER_SIZE+1];
-  static int gotPartial = 0;
-  char *cmd;
-  int code, count;
+    char input[BUFFER_SIZE+1];
+    static int gotPartial = 0;
+    char *cmd;
+    int code, count;
 
-  count = read(fileno(stdin), input, BUFFER_SIZE);
-  if (count <= 0) {
-    if (!gotPartial) {
-      if (tty) {Tcl_Eval(interp, "exit"); exit(1);}
-      else     {Tk_DeleteFileHandler(0);}
-      return;
+    count = read(fileno(stdin), input, BUFFER_SIZE);
+    if (count <= 0) {
+      if (!gotPartial) {
+        if (tty) {Tcl_Eval(interp, "exit"); exit(1);}
+        else     {Tk_DeleteFileHandler(0);}
+        return;
+      }
+      else count = 0;
     }
-    else count = 0;
-  }
-  cmd = Tcl_DStringAppend(&command, input, count);
-  if (count != 0) {
-    if ((input[count-1] != '\n') && (input[count-1] != ';')) {
-      gotPartial = 1;
-      goto prompt; }
-    if (!Tcl_CommandComplete(cmd)) {
-      gotPartial = 1;
-      goto prompt; }
-  }
-  gotPartial = 0;
-  Tk_CreateFileHandler(0, 0, StdinProc, (ClientData) 0);
-  code = Tcl_RecordAndEval(interp, cmd, TCL_EVAL_GLOBAL);
-  Tk_CreateFileHandler(0, TK_READABLE, StdinProc, (ClientData) 0);
-  Tcl_DStringFree(&command);
-  if (*interp->result != 0)
-    if ((code != TCL_OK) || (tty))
-      puts(interp->result);
+    cmd = Tcl_DStringAppend(&command, input, count);
+    if (count != 0) {
+      if ((input[count-1] != '\n') && (input[count-1] != ';')) {
+        gotPartial = 1;
+        goto prompt; }
+      if (!Tcl_CommandComplete(cmd)) {
+        gotPartial = 1;
+        goto prompt; }
+    }
+    gotPartial = 0;
+    Tk_CreateFileHandler(0, 0, StdinProc, (ClientData) 0);
+    code = Tcl_RecordAndEval(interp, cmd, TCL_EVAL_GLOBAL);
+    Tk_CreateFileHandler(0, TK_READABLE, StdinProc, (ClientData) 0);
+    Tcl_DStringFree(&command);
+    if (*interp->result != 0)
+      if ((code != TCL_OK) || (tty))
+        puts(interp->result);
   prompt:
-  if (tty)  Prompt(interp, gotPartial);
-  Tcl_ResetResult(interp);
-}
+    if (tty)  Prompt(interp, gotPartial);
+    Tcl_ResetResult(interp);
+  }
 
-/*=== from TkMain.c ===================================================*/
-static void Prompt(interp, partial)
-  Tcl_Interp *interp;
+  /*=== from TkMain.c ===================================================*/
+  static void Prompt(interp, partial)
+    Tcl_Interp *interp;
   int partial;
-{
-  char *promptCmd;
-  int code;
+  {
+    char *promptCmd;
+    int code;
 
-  promptCmd = Tcl_GetVar(interp,
-      partial ? "tcl_prompt2" : "tcl_prompt1", TCL_GLOBAL_ONLY);
-  if (promptCmd == NULL) {
+    promptCmd = 
+      Tcl_GetVar
+      (interp,partial ? "tcl_prompt2" : "tcl_prompt1",TCL_GLOBAL_ONLY);
+    if (promptCmd == NULL) {
     defaultPrompt:
-    if (!partial)
-      fputs("% ", stdout);
-  }
-  else {
-    code = Tcl_Eval(interp, promptCmd);
-    if (code != TCL_OK) {
-      Tcl_AddErrorInfo(interp,
-                    "\n    (script that generates prompt)");
-      fprintf(stderr, "%s\n", interp->result);
-      goto defaultPrompt;
+      if (!partial)
+        fputs("% ", stdout);
     }
+    else {
+      code = Tcl_Eval(interp, promptCmd);
+      if (code != TCL_OK) {
+        Tcl_AddErrorInfo(interp,
+                         "\n    (script that generates prompt)");
+        fprintf(stderr, "%s\n", interp->result);
+        goto defaultPrompt;
+      }
+    }
+    fflush(stdout);
   }
-  fflush(stdout);
-}
 
-/*----------------------------------------------------
-  MRIisConformant() - checks whether the input volume
-  conforms to the COR format, ie, coronally sliced,
-  256^3 which voxel size 1mm^3.
-  ----------------------------------------------------*/
-static int MRIisConformant(MRI *vol)
-{
-  // Voxel size should be 1mm^3
-  if(fabs(vol->xsize - 1) > .001) return(0);
-  if(fabs(vol->ysize - 1) > .001) return(0);
-  if(fabs(vol->zsize - 1) > .001) return(0);
+  /*----------------------------------------------------
+    MRIisConformant() - checks whether the input volume
+    conforms to the COR format, ie, coronally sliced,
+    256^3 which voxel size 1mm^3.
+    ----------------------------------------------------*/
+  static int MRIisConformant(MRI *vol)
+    {
+      // Voxel size should be 1mm^3
+      if(fabs(vol->xsize - 1) > .001) return(0);
+      if(fabs(vol->ysize - 1) > .001) return(0);
+      if(fabs(vol->zsize - 1) > .001) return(0);
 
-  // Column Direction Cosine should be -1 0 0
-  if(fabs(vol->x_r + 1) > .001) return(0);
-  if(fabs(vol->x_a) > .001) return(0);
-  if(fabs(vol->x_s) > .001) return(0);
+      // Column Direction Cosine should be -1 0 0
+      if(fabs(vol->x_r + 1) > .001) return(0);
+      if(fabs(vol->x_a) > .001) return(0);
+      if(fabs(vol->x_s) > .001) return(0);
 
-  // Row Direction Cosine should be 0 0 -1
-  if(fabs(vol->y_r) > .001) return(0);
-  if(fabs(vol->y_a) > .001) return(0);
-  if(fabs(vol->y_s + 1) > .001) return(0);
+      // Row Direction Cosine should be 0 0 -1
+      if(fabs(vol->y_r) > .001) return(0);
+      if(fabs(vol->y_a) > .001) return(0);
+      if(fabs(vol->y_s + 1) > .001) return(0);
 
-  // Slice Direction Cosine should be 0 1 0
-  if(fabs(vol->z_r) > .001) return(0);
-  if(fabs(vol->z_a - 1) > .001) return(0);
-  if(fabs(vol->z_s) > .001) return(0);
+      // Slice Direction Cosine should be 0 1 0
+      if(fabs(vol->z_r) > .001) return(0);
+      if(fabs(vol->z_a - 1) > .001) return(0);
+      if(fabs(vol->z_s) > .001) return(0);
 
-  // Dimension should be 256^3
-  if(vol->width  != 256) return(0);
-  if(vol->depth  != 256) return(0);
-  if(vol->height != 256) return(0);
+      // Dimension should be 256^3
+      if(vol->width  != 256) return(0);
+      if(vol->depth  != 256) return(0);
+      if(vol->height != 256) return(0);
 
-  return(1);
-}
-/*----------------------------------------------*/
-static int MRItagVol(MRI *mri, float val)
-{
-  int r,c,s;
-  float min, max;
+      return(1);
+    }
+  /*----------------------------------------------*/
+  static int MRItagVol(MRI *mri, float val)
+    {
+      int r,c,s;
+      float min, max;
 
-  MRIlimits(mri,&min,&max);
+      MRIlimits(mri,&min,&max);
 
-  for(c=0; c < 10; c+=2)
-    for(r=0; r < 10; r+=2)
-      for(s=0; s < mri->depth; s++)
-	MRIsetVoxVal(mri,c,r,s,0,.9*max);
-  return(0);
-}
+      for(c=0; c < 10; c+=2)
+        for(r=0; r < 10; r+=2)
+          for(s=0; s < mri->depth; s++)
+            MRIsetVoxVal(mri,c,r,s,0,.9*max);
+      return(0);
+    }
