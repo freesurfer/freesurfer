@@ -180,10 +180,21 @@ signaRead(char *fname, int read_volume_flag)
   HINFO  header ;
   char   h[HLENGTH+2] ;
   FILE   *fp ;
-  int    ret, i ;
+  int    ret, i, odd_only, even_only, slice ;
   MRI    *mri ;
   char   path[STRLEN] ;
 
+	odd_only = even_only = 0 ;
+	if (getenv("GE_ODD"))
+	{
+		odd_only = 1 ;
+		printf("only using odd # GE Signa files\n") ;
+	}
+	else if (getenv("GE_EVEN"))
+	{
+		even_only = 1 ;
+		printf("only using even # GE Signa files\n") ;
+	}
   fp = fopen(fname, "rb") ;
   if (!fp)
     ErrorReturn(0, (ERROR_NOFILE, "is_signa(%s): could not open file",fname)) ;
@@ -200,7 +211,24 @@ signaRead(char *fname, int read_volume_flag)
             header.imnr1) ;
     header.imnr1 = 124 ;
   }
-  mri = MRIalloc(header.x, header.y, header.imnr1-header.imnr0+1, MRI_SHORT) ;
+	if (odd_only)
+	{
+		if (ISEVEN(header.imnr0))
+			header.imnr0++ ;
+		if (ISEVEN(header.imnr1))
+			header.imnr1++ ;
+	}
+	else if (even_only)
+	{
+		if (ISODD(header.imnr0))
+			header.imnr0++ ;
+		if (ISODD(header.imnr1))
+			header.imnr1++ ;
+	}
+	if (odd_only || even_only)
+		mri = MRIalloc(header.x, header.y, (header.imnr1-header.imnr0)/2+1, MRI_SHORT) ;
+	else
+		mri = MRIalloc(header.x, header.y, header.imnr1-header.imnr0+1, MRI_SHORT) ;
   if (!mri)
     ErrorReturn(NULL, (ERROR_NOMEMORY, 
                        "signaRead(%s): could not read %dx%dx%d volume",
@@ -222,7 +250,7 @@ signaRead(char *fname, int read_volume_flag)
     return(mri) ;
 
   FileNamePath(fname, path) ;
-  for (i = mri->imnr0 ; i <= mri->imnr1 ; i++)
+  for (slice = 0, i = mri->imnr0 ; i <= mri->imnr1 ; i++, slice++)
   {
     sprintf(fname, "%s/I.%03d", path, i) ;
 
@@ -232,10 +260,12 @@ signaRead(char *fname, int read_volume_flag)
                       fname)) ;
 
     fseek(fp, HLENGTH, SEEK_SET) ;
-    fread(&MRISvox(mri, 0, 0, i-mri->imnr0),
+    fread(&MRISvox(mri, 0, 0, slice),
           sizeof(short),mri->width*mri->height,fp);
-    orderShortBuffer(&MRISvox(mri,0,0,i-mri->imnr0),mri->width*mri->height) ;
+    orderShortBuffer(&MRISvox(mri,0,0,slice),mri->width*mri->height) ;
     fclose(fp) ;
+		if (odd_only || even_only)
+			i++ ;
   }
 
   /* now figure out what the image #s start and end at */

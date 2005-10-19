@@ -4547,145 +4547,184 @@ static MRI *genesisRead(char *fname, int read_volume)
   MRI *header;
   float xfov, yfov, zfov;
   float nlength;
-  int twoformats = 0;
+  int twoformats = 0, odd_only, even_only ;
+
+	odd_only = even_only = 0 ;
+	if (getenv("GE_ODD"))
+	{
+		odd_only = 1 ;
+		printf("only using odd # GE files\n") ;
+	}
+	else if (getenv("GE_EVEN"))
+	{
+		even_only = 1 ;
+		printf("only using even # GE files\n") ;
+	}
 
   /* ----- check the first (passed) file ----- */
   if(!FileExists(fname))
-    {
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s", fname));
-    }
+	{
+		errno = 0;
+		ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s", fname));
+	}
 
   /* ----- split the file name into name and directory ----- */
   c = strrchr(fname, '/');
   if(c == NULL)
-    {
-      fname_dir[0] = '\0';
-      strcpy(fname_base, fname);
-    }
+	{
+		fname_dir[0] = '\0';
+		strcpy(fname_base, fname);
+	}
   else
-    {
-      strncpy(fname_dir, fname, (c - fname + 1));
-      fname_dir[c-fname+1] = '\0';
-      strcpy(fname_base, c+1);
-    }
+	{
+		strncpy(fname_dir, fname, (c - fname + 1));
+		fname_dir[c-fname+1] = '\0';
+		strcpy(fname_base, c+1);
+	}
 
   /* ----- derive the file name format (for sprintf) ----- */
   // this one fix fname_format only
   if(strncmp(fname_base, "I.", 2) == 0)
-    {
-      twoformats = 0;
-      im_init = atoi(&fname_base[2]);
-      sprintf(fname_format, "I.%%03d");
-    }
+	{
+		twoformats = 0;
+		im_init = atoi(&fname_base[2]);
+		sprintf(fname_format, "I.%%03d");
+	}
   // this one fix both fname_format and fname_format2
   else if(strlen(fname_base) >= 3) /* avoid core dumps below... */
-    {
-      twoformats = 1;
-      c = &fname_base[strlen(fname_base)-3];
-      if(strcmp(c, ".MR") == 0)
-        {
-          *c = '\0';
-          for(c--;isdigit(*c) && c >= fname_base;c--);
-          c++;
-          im_init = atoi(c);
-          *c = '\0';
-          // this is too quick to assume of this type
-          // another type %s%%03d.MR" must be examined
-          sprintf(fname_format, "%s%%d.MR", fname_base);
-          sprintf(fname_format2, "%s%%03d.MR", fname_base);
-        }
-      else
-        {
-          errno = 0;
-          ErrorReturn(NULL, (ERROR_BADPARM, 
-                             "genesisRead(): can't determine file name format for %s", fname));
-        }
-    }
+	{
+		twoformats = 1;
+		c = &fname_base[strlen(fname_base)-3];
+		if(strcmp(c, ".MR") == 0)
+		{
+			*c = '\0';
+			for(c--;isdigit(*c) && c >= fname_base;c--);
+			c++;
+			im_init = atoi(c);
+			*c = '\0';
+			// this is too quick to assume of this type
+			// another type %s%%03d.MR" must be examined
+			sprintf(fname_format, "%s%%d.MR", fname_base);
+			sprintf(fname_format2, "%s%%03d.MR", fname_base);
+		}
+		else
+		{
+			errno = 0;
+			ErrorReturn(NULL, (ERROR_BADPARM, 
+												 "genesisRead(): can't determine file name format for %s", fname));
+		}
+	}
   else
-    {
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADPARM, 
-                         "genesisRead(): can't determine file name format for %s", fname));
-    }
+	{
+		errno = 0;
+		ErrorReturn(NULL, (ERROR_BADPARM, 
+											 "genesisRead(): can't determine file name format for %s", fname));
+	}
 
   if (strlen(fname_format) != 0)
-    {
-      strcpy(temp_string, fname_format);
-      sprintf(fname_format, "%s%s", fname_dir, temp_string);
-      printf("fname_format  : %s\n", fname_format);
-    }
+	{
+		strcpy(temp_string, fname_format);
+		sprintf(fname_format, "%s%s", fname_dir, temp_string);
+		printf("fname_format  : %s\n", fname_format);
+	}
   if (strlen(fname_format2) != 0)
-    {
-      strcpy(temp_string, fname_format2);
-      sprintf(fname_format2, "%s%s", fname_dir, temp_string);
-      printf("fname_format2 : %s\n", fname_format2);
-    }
+	{
+		strcpy(temp_string, fname_format2);
+		sprintf(fname_format2, "%s%s", fname_dir, temp_string);
+		printf("fname_format2 : %s\n", fname_format2);
+	}
   /* ----- find the low and high files ----- */
-  im_low = im_init;
-  do
+	if (odd_only || even_only)
+	{
+		if ((odd_only && ISEVEN(im_init)) ||
+				(even_only && ISODD(im_init)))
+			im_init++ ;
+		im_low = im_init;
+		do
+    {
+      im_low -=2 ;
+      sprintf(fname_use, fname_format, im_low);
+    } while(FileExists(fname_use));
+		im_low += 2 ;
+		
+		im_high = im_init;
+		do
+    {
+      im_high += 2 ;
+      sprintf(fname_use, fname_format, im_high);
+    } while(FileExists(fname_use));
+		im_high -=2;
+	}
+	else
+	{
+		im_low = im_init;
+		do
     {
       im_low--;
       sprintf(fname_use, fname_format, im_low);
     } while(FileExists(fname_use));
-  im_low++;
-
-  im_high = im_init;
-  do
+		im_low++;
+		
+		im_high = im_init;
+		do
     {
       im_high++;
       sprintf(fname_use, fname_format, im_high);
     } while(FileExists(fname_use));
-  im_high--;
-
+		im_high--;
+	}
+		
   if (twoformats)
-    {
-      // now test fname_format2
-      im_low2 = im_init;
-      do
-        {
-          im_low2--;
-          sprintf(fname_use, fname_format2, im_low2);
-        } while(FileExists(fname_use));
-      im_low2++;
+	{
+		// now test fname_format2
+		im_low2 = im_init;
+		do
+		{
+			im_low2--;
+			sprintf(fname_use, fname_format2, im_low2);
+		} while(FileExists(fname_use));
+		im_low2++;
     
-      im_high2 = im_init;
-      do
-        {
-          im_high2++;
-          sprintf(fname_use, fname_format2, im_high2);
-        } while(FileExists(fname_use));
-      im_high2--;
-    }
+		im_high2 = im_init;
+		do
+		{
+			im_high2++;
+			sprintf(fname_use, fname_format2, im_high2);
+		} while(FileExists(fname_use));
+		im_high2--;
+	}
   else
-    {
-      im_high2 = im_low2 = 0;
-    }
+	{
+		im_high2 = im_low2 = 0;
+	}
   // now decide which one to pick
   if ((im_high2-im_low2) > (im_high-im_low))
-    {
-      // we have to use fname_format2
-      strcpy(fname_format, fname_format2);
-      im_high = im_high2;
-      im_low = im_low2;
-    }
+	{
+		// we have to use fname_format2
+		strcpy(fname_format, fname_format2);
+		im_high = im_high2;
+		im_low = im_low2;
+	}
   // otherwise the same
 
   /* ----- allocate the mri structure ----- */
   header = MRIallocHeader(1, 1, 1, MRI_SHORT);
 
-  header->depth = im_high - im_low + 1;
+	if (odd_only || even_only)
+		header->depth = (im_high - im_low)/2 + 1;
+	else
+		header->depth = im_high - im_low + 1;
   header->imnr0 = 1;
   header->imnr1 = header->depth;
 
   /* ----- get the header information from the first file ----- */
   sprintf(fname_use, fname_format, im_low);
   if((fp = fopen(fname_use, "r")) == NULL)
-    {
-      MRIfree(&header);
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s\n", fname_use));
-    }
+	{
+		MRIfree(&header);
+		errno = 0;
+		ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s\n", fname_use));
+	}
 
   fseek(fp, 8, SEEK_SET);
   fread(&width, 4, 1, fp);  
@@ -4744,10 +4783,10 @@ static MRI *genesisRead(char *fname, int read_volume)
   n_s = n_s / nlength;
 
   if (getenv("KILLIANY_SWAP") != NULL)
-    {
-      printf("WARNING - swapping normal direction!\n") ;
-      n_a *= -1 ;
-    }
+	{
+		printf("WARNING - swapping normal direction!\n") ;
+		n_a *= -1 ;
+	}
 
   header->x_r = (tr_r - tl_r);  header->x_a = (tr_a - tl_a);  header->x_s = (tr_s - tl_s);
   header->y_r = (br_r - tr_r);  header->y_a = (br_a - tr_a);  header->y_s = (br_s - tr_s);
@@ -4796,47 +4835,46 @@ static MRI *genesisRead(char *fname, int read_volume)
 
   /* ----- read the volume if required ----- */
   if(read_volume)
-    {
+	{
+		int slice ; 
+		for(slice = 0, i = im_low;i <= im_high; (odd_only || even_only) ? i+=2 : i++, slice++)
+		{
+			sprintf(fname_use, fname_format, i);
+			if((fp = fopen(fname_use, "r")) == NULL)
+			{
+				MRIfree(&mri);
+				errno = 0;
+				ErrorReturn(NULL, 
+										(ERROR_BADFILE, 
+										 "genesisRead(): error opening file %s", fname_use));
+			}
 
-      for(i = im_low;i <= im_high;i++)
-        {
+			fseek(fp, 4, SEEK_SET);
+			fread(&pixel_data_offset, 4, 1, fp);  
+			pixel_data_offset = orderIntBytes(pixel_data_offset);
+			fseek(fp, pixel_data_offset, SEEK_SET);
 
-          sprintf(fname_use, fname_format, i);
-          if((fp = fopen(fname_use, "r")) == NULL)
-            {
-              MRIfree(&mri);
-              errno = 0;
-              ErrorReturn(NULL, 
-                          (ERROR_BADFILE, 
-                           "genesisRead(): error opening file %s", fname_use));
-            }
-
-          fseek(fp, 4, SEEK_SET);
-          fread(&pixel_data_offset, 4, 1, fp);  
-          pixel_data_offset = orderIntBytes(pixel_data_offset);
-          fseek(fp, pixel_data_offset, SEEK_SET);
-
-          for(y = 0;y < mri->height;y++)
-            {
-              if(fread(mri->slices[i-im_low][y], 2, mri->width, fp) != mri->width)
-                {
-                  fclose(fp);
-                  MRIfree(&mri);
-                  errno = 0;
-                  ErrorReturn(NULL, (ERROR_BADFILE, 
-                                     "genesisRead(): error reading from file file %s", 
-                                     fname_use));
-                }
+			for(y = 0;y < mri->height;y++)
+			{
+				if(fread(mri->slices[slice][y], 2, mri->width, fp) != mri->width)
+				{
+					fclose(fp);
+					MRIfree(&mri);
+					errno = 0;
+					ErrorReturn(NULL, (ERROR_BADFILE, 
+														 "genesisRead(): error reading from file file %s", 
+														 fname_use));
+				}
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-              swab(mri->slices[i-im_low][y], mri->slices[i-im_low][y], 2 * mri->width);
+				swab(mri->slices[slice][y], mri->slices[slice][y], 2 * mri->width);
 #endif
-            }
+			}
 
-          fclose(fp);
+			fclose(fp);
 
-        }
+		}
 
-    }
+	}
 
   return(mri);
 
@@ -4870,51 +4908,51 @@ static MRI *gelxRead(char *fname, int read_volume)
 
   /* ----- check the first (passed) file ----- */
   if(!FileExists(fname))
-    {
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s", fname));
-    }
+	{
+		errno = 0;
+		ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s", fname));
+	}
 
   /* ----- split the file name into name and directory ----- */
   c = strrchr(fname, '/');
   if(c == NULL)
-    {
-      fname_dir[0] = '\0';
-      strcpy(fname_base, fname);
-    }
+	{
+		fname_dir[0] = '\0';
+		strcpy(fname_base, fname);
+	}
   else
-    {
-      strncpy(fname_dir, fname, (c - fname + 1));
-      fname_dir[c-fname+1] = '\0';
-      strcpy(fname_base, c+1);
-    }
+	{
+		strncpy(fname_dir, fname, (c - fname + 1));
+		fname_dir[c-fname+1] = '\0';
+		strcpy(fname_base, c+1);
+	}
 
   ecount = scount = icount = 0;
   good_flag = TRUE;
   for(c = fname_base;*c != '\0';c++)
-    {
-      if(*c == 'e')
-        ecount++;
-      else if(*c == 's')
-        scount++;
-      else if(*c == 'i')
-        icount++;
-      else if(!isdigit(*c))
-        good_flag = FALSE;
-    }
+	{
+		if(*c == 'e')
+			ecount++;
+		else if(*c == 's')
+			scount++;
+		else if(*c == 'i')
+			icount++;
+		else if(!isdigit(*c))
+			good_flag = FALSE;
+	}
   if(good_flag && ecount == 1 && scount == 1 && icount == 1)
-    {
-      c = strrchr(fname_base, 'i');
-      im_init = atoi(c+1);
-      *c = '\0';
-      sprintf(fname_format, "%si%%d", fname_base);
-    }
+	{
+		c = strrchr(fname_base, 'i');
+		im_init = atoi(c+1);
+		*c = '\0';
+		sprintf(fname_format, "%si%%d", fname_base);
+	}
   else
-    {
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADPARM, 
-                         "genesisRead(): can't determine file name format for %s", fname));
-    }
+	{
+		errno = 0;
+		ErrorReturn(NULL, (ERROR_BADPARM, 
+											 "genesisRead(): can't determine file name format for %s", fname));
+	}
 
   strcpy(temp_string, fname_format);
   sprintf(fname_format, "%s%s", fname_dir, temp_string);
@@ -4922,18 +4960,18 @@ static MRI *gelxRead(char *fname, int read_volume)
   /* ----- find the low and high files ----- */
   im_low = im_init;
   do
-    {
-      im_low--;
-      sprintf(fname_use, fname_format, im_low);
-    } while(FileExists(fname_use));
+	{
+		im_low--;
+		sprintf(fname_use, fname_format, im_low);
+	} while(FileExists(fname_use));
   im_low++;
 
   im_high = im_init;
   do
-    {
-      im_high++;
-      sprintf(fname_use, fname_format, im_high);
-    } while(FileExists(fname_use));
+	{
+		im_high++;
+		sprintf(fname_use, fname_format, im_high);
+	} while(FileExists(fname_use));
   im_high--;
 
   /* ----- allocate the mri structure ----- */
@@ -4946,10 +4984,10 @@ static MRI *gelxRead(char *fname, int read_volume)
   /* ----- get the header information from the first file ----- */
   sprintf(fname_use, fname_format, im_low);
   if((fp = fopen(fname_use, "r")) == NULL)
-    {
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s\n", fname_use));
-    }
+	{
+		errno = 0;
+		ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s\n", fname_use));
+	}
 
   fseek(fp, 3236, SEEK_SET);
   fread(&width, 4, 1, fp);  width = orderIntBytes(width);
@@ -5032,43 +5070,42 @@ static MRI *gelxRead(char *fname, int read_volume)
 
   /* ----- read the volume if required ----- */
   if(read_volume)
-    {
+	{
+		for(i = im_low;i <= im_high; i++)
+		{
 
-      for(i = im_low;i <= im_high;i++)
-        {
+			sprintf(fname_use, fname_format, i);
+			if((fp = fopen(fname_use, "r")) == NULL)
+			{
+				MRIfree(&mri);
+				errno = 0;
+				ErrorReturn(NULL, (ERROR_BADFILE, 
+													 "genesisRead(): error opening file %s", fname_use));
+			}
 
-          sprintf(fname_use, fname_format, i);
-          if((fp = fopen(fname_use, "r")) == NULL)
-            {
-              MRIfree(&mri);
-              errno = 0;
-              ErrorReturn(NULL, (ERROR_BADFILE, 
-                                 "genesisRead(): error opening file %s", fname_use));
-            }
+			fseek(fp, 8432, SEEK_SET);
 
-          fseek(fp, 8432, SEEK_SET);
-
-          for(y = 0;y < mri->height;y++)
-            {
-              if(fread(mri->slices[i-im_low][y], 2, mri->width, fp) != mri->width)
-                {
-                  fclose(fp);
-                  MRIfree(&mri);
-                  errno = 0;
-                  ErrorReturn(NULL, (ERROR_BADFILE, 
-                                     "genesisRead(): error reading from file file %s", 
-                                     fname_use));
-                }
+			for(y = 0;y < mri->height;y++)
+			{
+				if(fread(mri->slices[i-im_low][y], 2, mri->width, fp) != mri->width)
+				{
+					fclose(fp);
+					MRIfree(&mri);
+					errno = 0;
+					ErrorReturn(NULL, (ERROR_BADFILE, 
+														 "genesisRead(): error reading from file file %s", 
+														 fname_use));
+				}
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-              swab(mri->slices[i-im_low][y], mri->slices[i-im_low][y], 2 * mri->width);
+				swab(mri->slices[i-im_low][y], mri->slices[i-im_low][y], 2 * mri->width);
 #endif
-            }
+			}
 
-          fclose(fp);
+			fclose(fp);
 
-        }
+		}
 
-    }
+	}
 
   return(mri);
 
