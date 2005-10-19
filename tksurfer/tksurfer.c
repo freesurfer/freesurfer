@@ -18566,7 +18566,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.145 2005/09/30 22:00:06 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.146 2005/10/19 18:13:38 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24971,7 +24971,12 @@ int path_update_surface_paths ()
       if (NULL == path_is_path)
 	return (ERROR_NO_MEMORY);
     }
-  
+  else
+    {
+      /* Erase the current array. */
+      bzero (path_is_path, mris->nvertices*sizeof(char) );
+    }  
+
   /* For every path... */
   for (path = 0; path < path_num_paths; path++)
     {
