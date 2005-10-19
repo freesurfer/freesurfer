@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/10/14 20:05:28 $
-// Revision       : $Revision: 1.377 $
+// Revision Author: $Author: rudolph $
+// Revision Date  : $Date: 2005/10/19 17:24:10 $
+// Revision       : $Revision: 1.378 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -10686,7 +10686,11 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
 	      // K >> mris->Kmax and H >> mris->Hmax, which skews
 	      // statistics on the surface. This hardlimits the 
 	      // K and H curvatures to not exceed the current maxima.
-	      vertex->K = mris->Kmax ; vertex->H = mris->Hmax;
+	      if(k1*k2<0) {
+	      	vertex->K = mris->Kmin ; vertex->H = mris->Hmin;
+	      } else {
+		vertex->K = mris->Kmax ; vertex->H = mris->Hmax;
+	      }
 	      MatrixFree(&m_Ut) ;
 	      MatrixFree(&m_tmp2) ;
 	      MatrixFree(&m_U) ;
@@ -10876,7 +10880,11 @@ MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris, int vno,
 	  vertex->k2 = k2 = kmin ;
 #endif
 	  //vertex->K = k1*k2 ; vertex->H = (k1+k2)/2 ;
-	  vertex->K = mris->Kmax ; vertex->H = mris->Hmax;
+	  if(k1*k2<0) {
+	      vertex->K = mris->Kmin ; vertex->H = mris->Hmin;
+	  } else {
+	      vertex->K = mris->Kmax ; vertex->H = mris->Hmax;
+	  }
 	  MatrixFree(&m_Ut) ;
 	  MatrixFree(&m_tmp2) ;
 	  MatrixFree(&m_U) ;
