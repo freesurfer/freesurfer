@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.40 2005/10/18 15:56:01 nicks Exp $   */
+/*   $Id: tkregister2.c,v 1.41 2005/10/19 17:09:04 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.40 2005/10/18 15:56:01 nicks Exp $";
+"$Id: tkregister2.c,v 1.41 2005/10/19 17:09:04 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -338,6 +338,7 @@ char *fslregoutfname;
 MATRIX *invDmov, *FSLRegMat, *invFSLRegMat; 
 MATRIX *Mtc, *invMtc, *Vt2s,*Ttargcor, *invTtargcor; 
 MATRIX *Dtargcor, *invDtargcor, *Dtarg, *invDtarg;
+MATRIX *vox2ras_targ=NULL,*ras2vox_targ=NULL;
 
 int LoadSurf = 0, UseSurf=0;
 char *surfname = "white", surf_path[2000];
@@ -688,6 +689,10 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     mrisurf->c_a = -0.5;
     mrisurf->c_s = +0.5;
 
+    // For the surf, vox2ras must be tkreg-style
+    vox2ras_targ = MRIxfmCRS2XYZtkreg(targ_vol);
+    ras2vox_targ = MatrixInverse(vox2ras_targ,NULL);
+
     /* load in the left hemi */
     sprintf(surf_path,"%s/%s/surf/lh.%s",subjectsdir,subjectid,surfname);
     printf("Reading lh surface %s\n",surfname);
@@ -704,7 +709,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       Vxyz->rptr[1][1] = surf->vertices[n].x;
       Vxyz->rptr[2][1] = surf->vertices[n].y;
       Vxyz->rptr[3][1] = surf->vertices[n].z;
-      Vcrs = MatrixMultiply(invTtarg,Vxyz,Vcrs);
+      Vcrs = MatrixMultiply(ras2vox_targ,Vxyz,Vcrs);
       c = nint(Vcrs->rptr[1][1]);
       r = nint(Vcrs->rptr[2][1]);
       s = nint(Vcrs->rptr[3][1]);
@@ -728,7 +733,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
       Vxyz->rptr[1][1] = surf->vertices[n].x;
       Vxyz->rptr[2][1] = surf->vertices[n].y;
       Vxyz->rptr[3][1] = surf->vertices[n].z;
-      Vcrs = MatrixMultiply(invTtarg,Vxyz,Vcrs);
+      Vcrs = MatrixMultiply(ras2vox_targ,Vxyz,Vcrs);
       c = nint(Vcrs->rptr[1][1]);
       r = nint(Vcrs->rptr[2][1]);
       s = nint(Vcrs->rptr[3][1]);
@@ -3946,7 +3951,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.40 2005/10/18 15:56:01 nicks Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.41 2005/10/19 17:09:04 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
