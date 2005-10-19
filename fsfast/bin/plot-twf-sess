@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # plotmc-sess
 #
-# $Id: plot-twf-sess,v 1.6 2005/08/30 17:14:21 greve Exp $
-set VERSION = '$Id: plot-twf-sess,v 1.6 2005/08/30 17:14:21 greve Exp $';
+# $Id: plot-twf-sess,v 1.7 2005/10/19 17:35:45 greve Exp $
+set VERSION = '$Id: plot-twf-sess,v 1.7 2005/10/19 17:35:45 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -132,7 +132,7 @@ foreach sess ($SessList)
   set gnpcmd = ($gnpcmd set output "'"$imgfile"'" ;)
   set gnpcmd = ($gnpcmd set key $keycorner;)
   #set gnpcmd = ($gnpcmd set term jpeg transparent large size 640,480; )
-  set gnpcmd = ($gnpcmd set term png;  )
+  set gnpcmd = ($gnpcmd set term png color;  )
   set gnpcmd = ($gnpcmd set title '"'$sessbase $title '"';)
   set gnpcmd = ($gnpcmd set xlabel '"'$xlabel'"' ; )
   set gnpcmd = ($gnpcmd plot [$xmin : $xmax] [$ymin : $ymax] )
