@@ -5,10 +5,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below
 #
-# $Id: FreeSurferEnv.sh,v 1.4 2005/10/02 21:21:04 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.5 2005/10/20 23:22:30 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.4 2005/10/02 21:21:04 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.5 2005/10/20 23:22:30 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -290,6 +290,9 @@ if [ -z "$NO_MINC" ]; then
         elif [ -e $MINC_LIB_DIR/perl5/5.8.3 ]; then
             # Linux FC2:
             export PERL5LIB="$MINC_LIB_DIR/perl5/5.8.3"
+        elif [ -e $MINC_LIB_DIR/perl5/5.8.0 ]; then
+            # Linux RH9:
+            export PERL5LIB="$MINC_LIB_DIR/perl5/5.8.0"
         elif [ -e $MINC_LIB_DIR/perl5/site_perl/5.8.3 ]; then
             # Linux:
             export PERL5LIB="$MINC_LIB_DIR/perl5/site_perl/5.8.3"
