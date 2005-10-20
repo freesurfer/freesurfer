@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/09/29 19:56:26 $
-// Revision       : $Revision: 1.17 $
+// Revision Date  : $Date: 2005/10/20 18:30:27 $
+// Revision       : $Revision: 1.18 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -463,7 +463,7 @@ MatReadHeader(FILE *fp, MATFILE *mf)
     char  *name ;
 
 		if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-			DiagPrintf(DIAG_SHOW, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);    
+			DiagPrintf(DIAG_VERBOSE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);    
 
     nitems = fread(mf, 1, sizeof(MATHD), fp) ; 
     if (nitems != sizeof(MATHD))
@@ -473,15 +473,15 @@ MatReadHeader(FILE *fp, MATFILE *mf)
       /*exit(1) ;*/
       return(NULL);
     }
-    DiagPrintf(DIAG_SHOW, "type = %ld\n", mf->type) ;
+    DiagPrintf(DIAG_VERBOSE, "type = %ld\n", mf->type) ;
     if (DIFFERENT_ENDIAN(mf))
     {
-      DiagPrintf(DIAG_SHOW, "mat file generated with different endian\n") ;
+      DiagPrintf(DIAG_VERBOSE, "mat file generated with different endian\n") ;
       swapBytes(mf) ;
     }
-    DiagPrintf(DIAG_SHOW, "after swap, type = %ld\n", mf->type) ;
+    DiagPrintf(DIAG_VERBOSE, "after swap, type = %ld\n", mf->type) ;
 
-    DiagPrintf(DIAG_SHOW, "MatReadHeader: nitems = %d, namelen=%d\n",
+    DiagPrintf(DIAG_VERBOSE, "MatReadHeader: nitems = %d, namelen=%d\n",
        nitems,(int)mf->namlen+1);
 
     name = (char *)calloc((int)mf->namlen+1, sizeof(char)) ;
@@ -501,7 +501,7 @@ MatReadHeader(FILE *fp, MATFILE *mf)
     }
 
 #if 1
-    DiagPrintf(DIAG_SHOW, 
+    DiagPrintf(DIAG_VERBOSE, 
                "MATFILE: %ld x %ld, type %ld, imagf %ld, name '%s'\n",
                  mf->mrows, mf->ncols, mf->type, mf->imagf, name) ;
 #endif
