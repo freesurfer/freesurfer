@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/10/18 14:59:45 $
-// Revision       : $Revision: 1.315 $
-char *MRI_C_VERSION = "$Revision: 1.315 $";
+// Revision Date  : $Date: 2005/10/20 19:35:50 $
+// Revision       : $Revision: 1.316 $
+char *MRI_C_VERSION = "$Revision: 1.316 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12257,7 +12257,7 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
 	else
 		MRIclear(mri_dist) ;
 
-	if (mode == DTRANS_MODE_SIGNED)
+	if (mode != DTRANS_MODE_OUTSIDE)
 		vl_current = VLSTcreate(mri_src, label, label, NULL, 0, 1) ;
 	else
 		vl_current = VLSTcreate(mri_src, label, label, NULL, 0, 0) ;
@@ -12318,7 +12318,7 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
 #endif
 	} while (vl_new != NULL) ;
 
-	if (mode == DTRANS_MODE_SIGNED)  // set interior distances to negative vals
+	if (mode != DTRANS_MODE_OUTSIDE)  // set interior distances to negative vals
 	{
 		int x, y, z ;
 
@@ -12344,6 +12344,8 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
 	VLSTfree(&vl_current)  ;
 	MRIfree(&mri_processed) ;
 
+	if (mode == DTRANS_MODE_UNSIGNED)
+		MRIabs(mri_dist, mri_dist) ;
 	return(mri_dist) ;
 }
 
@@ -12483,7 +12485,14 @@ MRI *
 MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst, MRI_REGION *region, int pad)
 {
 	MRI *mri_tmp ;
+	MRI_REGION box ;
 
+	if (region == NULL)
+	{
+		region = & box ;
+		box.x = box.y = box.z = 0 ;
+		box.dx = mri_src->width ; box.dy = mri_src->height ; box.dz = mri_src->depth ;
+	}
 	mri_dst = MRIalloc(region->dx+2*pad, region->dy+2*pad, region->dz+2*pad, mri_src->type) ;
 	MRIcopyHeader(mri_src, mri_dst) ;
   mri_tmp = MRIextractInto(mri_src, NULL, region->x, region->y, region->z, 
