@@ -232,6 +232,12 @@ ScubaColorLUT::ReadFile () {
 
       string sLine;
       getline( fLUT, sLine );
+
+      // Skip comment lines.
+      if( sLine[0] == '#' ) {
+	nLine++;
+	continue;
+      }
       
       int nEntry;
       char sLabel[1024];
@@ -242,6 +248,7 @@ ScubaColorLUT::ReadFile () {
 	  -1 != eRead ) {
 	DebugOutput(  "Error parsing " << mfnLUT << ": Malformed line " 
 		      << nLine );
+	nLine++;
 	continue;
       }
 
