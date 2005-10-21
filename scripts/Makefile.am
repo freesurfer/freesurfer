@@ -134,7 +134,6 @@ xsanatreg
 
 tcldir = $(prefix)/lib/tcl
 tcl_SCRIPTS= \
-check_func_ras_coords.tcl \
 curv-flat.tcl \
 curv-views.tcl \
 dara_data.tcl \
@@ -174,6 +173,8 @@ twocond-views.tcl \
 wrappers.tcl \
 fsgdfPlot.tcl
 
+EXTRA_DIST = csurf.in $(tcl_SCRIPTS)
+
 recon-all: recon-all-nmr
 #	cat ./recon-all-nmr | grep -v dASEGd > ./recon-all
 	rm -f ./recon-all
@@ -206,3 +207,10 @@ csurf: csurf.in
 
 #tksurfer.tcl: tksurfer.xxx
 #	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
+
+
+# Our release target. Include files to be excluded here. They will be
+# found and removed after 'make install' is run during the 'make
+# release' target.
+EXCLUDE_FILES=""
+include $(top_srcdir)/Makefile.extra

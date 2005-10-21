@@ -11,3 +11,10 @@ mri_estimate_tissue_parms_SOURCES=mri_estimate_tissue_parms.c
 mri_estimate_tissue_parms_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mri_estimate_tissue_parms_LDFLAGS=$(OS_LDFLAGS)
 
+
+
+# Our release target. Include files to be excluded here. They will be
+# found and removed after 'make install' is run during the 'make
+# release' target.
+EXCLUDE_FILES=""
+include $(top_srcdir)/Makefile.extra

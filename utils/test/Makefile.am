@@ -5,7 +5,7 @@ AM_CFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom
 AM_CXXFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom
-AM_LDFLAGS=-L$(top_srcdir)/lib
+AM_LDFLAGS=
 
 check_PROGRAMS=mnitest i2rtest icotest surftest extest \
 	mghxform inftest difftool  mri_ms_fcm mri_compute_stats \
@@ -45,15 +45,14 @@ mris_indirect_morph_SOURCES=mris_indirect_morph.cpp
 
 LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
-mris_diff_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib -L$(top_srcdir)/lib
+mris_diff_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib 
 mris_diff_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
-mris_indirect_morph_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib -L$(top_srcdir)/lib
+mris_indirect_morph_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib 
 mris_indirect_morph_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
 #mris_thickness_diff_LDFLAGS=$(OS_LDFLAGS)
 
-mris_compute_thickness_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib \
-	-L$(top_srcdir)/lib
+mris_compute_thickness_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib
 mris_compute_thickness_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 

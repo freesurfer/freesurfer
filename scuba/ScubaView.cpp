@@ -584,6 +584,8 @@ ScubaView::SetDrawLevelReportInfo ( int inLevel, bool ibReportInfo ) {
 bool
 ScubaView::GetDrawLevelReportInfo ( int inLevel ) {
 
+  // If we don't have a setting for this level yet, set it to our
+  // default.
   if( mLevelReportInfoMap.find( inLevel ) == mLevelReportInfoMap.end() ) 
     mLevelReportInfoMap[inLevel] = kbDefaultLevelReportInfo;
 

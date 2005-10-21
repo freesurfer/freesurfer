@@ -16,34 +16,11 @@ foo_DATA=license.freesurfer \
 	license.tix \
 	license.afni
 
-# big pdf and .ps files are only installed when release is specified
-.PHONY: release
+EXTRA_DIST=$(foo_DATA)
 
-release: articles.html \
-	recon1.pdf \
-	recon2.pdf \
-	morphing.pdf \
-	cortical-thickness.pdf \
-	topology-fixing.pdf \
-	labeling.pdf \
-	parcellation.pdf
-	$(INSTALL_DATA) articles.html \
-	recon1.pdf \
-	recon2.pdf \
-	morphing.pdf \
-	cortical-thickness.pdf \
-	topology-fixing.pdf \
-	labeling.pdf \
-	parcellation.pdf \
-	$(foodir)
 
-uninstall-release:
-	cd $(prefix)/docs; rm -f articles.html \
-	recon1.pdf \
-	recon2.pdf \
-	morphing.pdf \
-	cortical-thickness.pdf \
-	topology-fixing.pdf \
-	labeling.pdf \
-	parcellation.pdf
-
+# Our release target. Include files to be excluded here. They will be
+# found and removed after 'make install' is run during the 'make
+# release' target.
+EXCLUDE_FILES=""
+include $(top_srcdir)/Makefile.extra

@@ -11,3 +11,10 @@ check_PROGRAMS=test
 test_SOURCES=test.c
 test_LDADD=libfsgdf.a $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 TESTS=test
+
+
+# Our release target. Include files to be excluded here. They will be
+# found and removed after 'make install' is run during the 'make
+# release' target.
+EXCLUDE_FILES=""
+include $(top_srcdir)/Makefile.extra

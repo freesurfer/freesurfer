@@ -1,7 +1,7 @@
 #
 # Makefile.am
 #
-SUBDIRS=. average lib docs grad_unwarp_tables fsafd subjects sessions
+SUBDIRS=average lib docs grad_unwarp_tables fsafd subjects sessions
 
 foodir=$(prefix)
 foo_DATA=surface_labels.txt \
@@ -17,6 +17,8 @@ foo_DATA=surface_labels.txt \
 	FreeSurferColorLUT.txt \
 	numaris4-protocols.unpackcfg
 
+EXTRA_DIST=$(foo_DATA) SetUpFreeSurfer-SAMPLE.csh SetUpFreeSurfer-SAMPLE.sh
+
 SetUpFreeSurfer.csh: SetUpFreeSurfer-SAMPLE.csh
 	sed < $< -e 's,REPLACE_WITH_PREFIX,$(prefix),' > $@
 	chmod a+x $@
@@ -25,15 +27,8 @@ SetUpFreeSurfer.sh: SetUpFreeSurfer-SAMPLE.sh
 	sed < $< -e 's,REPLACE_WITH_PREFIX,$(prefix),' > $@
 	chmod a+x $@
 
-.PHONY: release
-
-# nothing here goto docs directory
-release:
-	$(MAKE) install
-	$(MAKE) release -C docs
-	$(MAKE) release -C grad_unwarp_tables
-
-uninstall-release:
-	$(MAKE) uninstall 
-	$(MAKE) uninstall-release -C docs
-	$(MAKE) uninstall-release -C grad_unwarp_tables
+# Our release target. Include files to be excluded here. They will be
+# found and removed after 'make install' is run during the 'make
+# release' target.
+EXCLUDE_FILES=""
+include $(top_srcdir)/Makefile.extra

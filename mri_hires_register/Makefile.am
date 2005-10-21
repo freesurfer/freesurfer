@@ -53,3 +53,10 @@ mri_nl_align_LDFLAGS=$(OS_LDFLAGS)
 mri_linear_align_SOURCES=mri_linear_align.c
 mri_linear_align_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mri_linear_align_LDFLAGS=$(OS_LDFLAGS)
+
+
+# Our release target. Include files to be excluded here. They will be
+# found and removed after 'make install' is run during the 'make
+# release' target.
+EXCLUDE_FILES=""
+include $(top_srcdir)/Makefile.extra

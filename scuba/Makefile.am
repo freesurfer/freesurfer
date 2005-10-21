@@ -2,6 +2,8 @@
 # Makefile.am for scuba
 #
 
+SUBDIRS=images
+
 AM_CPPFLAGS=$(GLUT_CFLAGS) \
 	$(GL_FLAGS) \
 	$(X_CFLAGS) \
@@ -11,8 +13,7 @@ AM_CPPFLAGS=$(GLUT_CFLAGS) \
 	-I$(top_srcdir)/dicom \
 	-I/opt/intel/mkl70/include
 
-AM_LDFLAGS=-L$(top_srcdir)/lib \
-	$(LDFLAGS_TCL) $(GLUT_LIBS)
+AM_LDFLAGS=$(LDFLAGS_TCL) $(GLUT_LIBS)
 
 UTILITIES_SRCS=Volume3.cpp Volume3.h \
 	Point2.cpp Point2.h \
@@ -22,7 +23,8 @@ UTILITIES_SRCS=Volume3.cpp Volume3.h \
 	Utilities.cpp Utilities.h \
 	Matrix44.cpp Matrix44.h \
 	Transform44.cpp Transform44.h \
-	VectorOps.cpp VectorOps.h
+	VectorOps.cpp VectorOps.h \
+	string_fixed.h togl.h
 
 BASIC_SRCS=TclCommandManager.cpp TclCommandManager.h \
 	DebugReporter.cpp DebugReporter.h \
@@ -33,7 +35,8 @@ BASIC_SRCS=TclCommandManager.cpp TclCommandManager.h \
 	UndoManager.cpp UndoManager.h \
 	Timer.cpp Timer.h \
 	ShortestPathFinder.cpp ShortestPathFinder.h \
-	PathManager.cpp PathManager.h 
+	PathManager.cpp PathManager.h \
+	Scuba-impl.h
 
 FSDATA_SRCS= \
 	DataManager.cpp DataManager.h \
@@ -85,10 +88,11 @@ FORMS = mainwindow.ui \
 		viewlayersdlog.ui \
 		toolsettingsdlog.ui \
 		roisettingsdlog.ui
-UICDECLS = .ui/mainwindow.h \
-		.ui/viewlayersdlog.h \
-		.ui/toolsettingsdlog.h \
-		.ui/roisettingsdlog.h
+UICDECLS = .ui/mainwindow.h mainwindow.ui.h \
+		.ui/viewlayersdlog.h viewlayersdlog.ui.h \
+		.ui/toolsettingsdlog.h toolsettingsdlog.ui.h \
+		.ui/roisettingsdlog.h roisettingsdlog.ui.h
+
 UICIMPLS = .ui/mainwindow.cpp \
 		.ui/viewlayersdlog.cpp \
 		.ui/toolsettingsdlog.cpp \
@@ -101,14 +105,15 @@ SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 		.moc/moc_viewlayersdlog.cpp \
 		.moc/moc_toolsettingsdlog.cpp \
 		.moc/moc_roisettingsdlog.cpp
-OBJMOC = .obj/moc_QtVolumeHistogram.$(OBJEXT) \
-		.obj/moc_QTScubaWidget.$(OBJEXT) \
-		.obj/moc_QtScubaLabelValueArea.$(OBJEXT) \
-		.obj/moc_QtScubaLineEditWithTclCallback.$(OBJEXT) \
-		.obj/moc_mainwindow.$(OBJEXT) \
-		.obj/moc_viewlayersdlog.$(OBJEXT) \
-		.obj/moc_toolsettingsdlog.$(OBJEXT) \
-		.obj/moc_roisettingsdlog.$(OBJEXT)
+
+#OBJMOC = moc_QtVolumeHistogram.$(OBJEXT) \
+#		moc_QTScubaWidget.$(OBJEXT) \
+#		moc_QtScubaLabelValueArea.$(OBJEXT) \
+#		moc_QtScubaLineEditWithTclCallback.$(OBJEXT) \
+#		moc_mainwindow.$(OBJEXT) \
+#		moc_viewlayersdlog.$(OBJEXT) \
+#		moc_toolsettingsdlog.$(OBJEXT) \
+#		moc_roisettingsdlog.$(OBJEXT)
 
 MOC      = $(QTDIR)/bin/moc
 UIC      = $(QTDIR)/bin/uic
@@ -164,6 +169,8 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
 	testVectorOps testRASToVoxel testCoordTimer \
 	testSegmentationVolumeReport testScubaKeyCombo testTclScubaKeyCombo
+
+EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl)
 
 TESTS=$(check_PROGRAMS) 
 
@@ -325,108 +332,89 @@ testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
 
 # All the scuba2 stuff.
-.ui/mainwindow.h: ui_dir mainwindow.ui
-	$(UIC) mainwindow.ui -o .ui/mainwindow.h
-.ui/mainwindow.cpp: ui_dir \
+.ui/mainwindow.h: mainwindow.ui
+	$(UIC) mainwindow.ui -o $@
+.ui/mainwindow.cpp: \
 	.ui/mainwindow.h \
 	.ui/toolsettingsdlog.h \
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h \
 	mainwindow.ui
-	$(UIC) mainwindow.ui -i mainwindow.h -o .ui/mainwindow.cpp
-.obj/mainwindow.$(OBJEXT): obj_dir .ui/mainwindow.cpp mainwindow.ui.h .ui/mainwindow.h
-	$(CXX) $(CXXFLAGS) -o .obj/mainwindow.$(OBJEXT) .ui/mainwindow.cpp
+	$(UIC) mainwindow.ui -i mainwindow.h -o $@
+mainwindow.$(OBJEXT): .ui/mainwindow.cpp 
+	mainwindow.ui.h .ui/mainwindow.h
 
-.ui/toolsettingsdlog.h: ui_dir toolsettingsdlog.ui
-	$(UIC) toolsettingsdlog.ui -o .ui/toolsettingsdlog.h
-.ui/toolsettingsdlog.cpp: ui_dir \
+.ui/toolsettingsdlog.h: toolsettingsdlog.ui
+	$(UIC) toolsettingsdlog.ui -o $@
+.ui/toolsettingsdlog.cpp: \
 	.ui/mainwindow.h \
 	.ui/toolsettingsdlog.h \
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h  \
 	toolsettingsdlog.ui
-	$(UIC) toolsettingsdlog.ui -i toolsettingsdlog.h -o .ui/toolsettingsdlog.cpp
-.obj/toolsettingsdlog.$(OBJEXT): obj_dir \
-	.ui/toolsettingsdlog.cpp \
-	toolsettingsdlog.ui.h \
-	.ui/toolsettingsdlog.h
-	$(CXX) $(CXXFLAGS) -o .obj/toolsettingsdlog.$(OBJEXT) .ui/toolsettingsdlog.cpp
+	$(UIC) toolsettingsdlog.ui -i toolsettingsdlog.h -o $@
+toolsettingsdlog.$(OBJEXT): .ui/toolsettingsdlog.cpp 
+	toolsettingsdlog.ui.h .ui/toolsettingsdlog.h
 
-.ui/viewlayersdlog.h: ui_dir viewlayersdlog.ui
-	$(UIC) viewlayersdlog.ui -o .ui/viewlayersdlog.h
-.ui/viewlayersdlog.cpp: ui_dir \
+.ui/viewlayersdlog.h: viewlayersdlog.ui
+	$(UIC) viewlayersdlog.ui -o $@
+.ui/viewlayersdlog.cpp: \
 	.ui/mainwindow.h \
 	.ui/toolsettingsdlog.h \
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h \
 	viewlayersdlog.ui
-	$(UIC) viewlayersdlog.ui -i viewlayersdlog.h -o .ui/viewlayersdlog.cpp
-.obj/viewlayersdlog.$(OBJEXT): obj_dir \
-	.ui/viewlayersdlog.cpp \
-	viewlayersdlog.ui.h \
-	.ui/viewlayersdlog.h
-	$(CXX) $(CXXFLAGS) -o .obj/viewlayersdlog.$(OBJEXT) .ui/viewlayersdlog.cpp
+	$(UIC) viewlayersdlog.ui -i viewlayersdlog.h -o $@
+viewlayersdlog.$(OBJEXT): .ui/viewlayersdlog.cpp \
+	viewlayersdlog.ui.h .ui/viewlayersdlog.h
 
-.ui/roisettingsdlog.h: ui_dir roisettingsdlog.ui
-	$(UIC) roisettingsdlog.ui -o .ui/roisettingsdlog.h
-.ui/roisettingsdlog.cpp: ui_dir \
+.ui/roisettingsdlog.h: roisettingsdlog.ui
+	$(UIC) roisettingsdlog.ui -o $@
+.ui/roisettingsdlog.cpp: \
 	.ui/mainwindow.h \
 	.ui/toolsettingsdlog.h \
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h \
 	roisettingsdlog.ui
-	$(UIC) roisettingsdlog.ui -i roisettingsdlog.h -o .ui/roisettingsdlog.cpp
-.obj/roisettingsdlog.$(OBJEXT): obj_dir \
-	.ui/roisettingsdlog.cpp \
-	roisettingsdlog.ui.h \
-	.ui/roisettingsdlog.h
-	$(CXX) $(CXXFLAGS) -o .obj/roisettingsdlog.$(OBJEXT) .ui/roisettingsdlog.cpp
+	$(UIC) roisettingsdlog.ui -i roisettingsdlog.h -o $@
+roisettingsdlog.$(OBJEXT): .ui/roisettingsdlog.cpp \
+	roisettingsdlog.ui.h .ui/roisettingsdlog.h
 
-.obj/moc_QtVolumeHistogram.$(OBJEXT): obj_dir .moc/moc_QtVolumeHistogram.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_QtVolumeHistogram.$(OBJEXT)
-.moc/moc_QtVolumeHistogram.cpp: moc_dir QtVolumeHistogram.h
-	$(MOC) QtVolumeHistogram.h -o .moc/moc_QtVolumeHistogram.cpp
+moc_QtVolumeHistogram.$(OBJEXT): .moc/moc_QtVolumeHistogram.cpp
+.moc/moc_QtVolumeHistogram.cpp: QtVolumeHistogram.h
+	$(MOC) QtVolumeHistogram.h -o $@
 
-.obj/moc_QTScubaWidget.$(OBJEXT): obj_dir .moc/moc_QTScubaWidget.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_QTScubaWidget.$(OBJEXT)
-.moc/moc_QTScubaWidget.cpp: moc_dir QTScubaWidget.h
-	$(MOC) QTScubaWidget.h -o .moc/moc_QTScubaWidget.cpp
+moc_QTScubaWidget.$(OBJEXT): .moc/moc_QTScubaWidget.cpp
+.moc/moc_QTScubaWidget.cpp: QTScubaWidget.h
+	$(MOC) QTScubaWidget.h -o $@
 
-.obj/moc_QtScubaLabelValueArea.$(OBJEXT): obj_dir .moc/moc_QtScubaLabelValueArea.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_QtScubaLabelValueArea.$(OBJEXT)
-.moc/moc_QtScubaLabelValueArea.cpp: moc_dir QtScubaLabelValueArea.h
-	$(MOC) QtScubaLabelValueArea.h -o .moc/moc_QtScubaLabelValueArea.cpp
+moc_QtScubaLabelValueArea.$(OBJEXT): .moc/moc_QtScubaLabelValueArea.cpp
+.moc/moc_QtScubaLabelValueArea.cpp: QtScubaLabelValueArea.h
+	$(MOC) QtScubaLabelValueArea.h -o $@
 
-.obj/moc_QtScubaLineEditWithTclCallback.$(OBJEXT): obj_dir .moc/moc_QtScubaLineEditWithTclCallback.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_QtScubaLineEditWithTclCallback.$(OBJEXT)
-.moc/moc_QtScubaLineEditWithTclCallback.cpp: moc_dir QtScubaLineEditWithTclCallback.h
-	$(MOC) QtScubaLineEditWithTclCallback.h -o .moc/moc_QtScubaLineEditWithTclCallback.cpp
+moc_QtScubaLineEditWithTclCallback.$(OBJEXT): .moc/moc_QtScubaLineEditWithTclCallback.cpp
+.moc/moc_QtScubaLineEditWithTclCallback.cpp: QtScubaLineEditWithTclCallback.h
+	$(MOC) QtScubaLineEditWithTclCallback.h -o $@
 
-.obj/moc_mainwindow.$(OBJEXT): obj_dir .moc/moc_mainwindow.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_mainwindow.$(OBJEXT)
-.moc/moc_mainwindow.cpp: moc_dir .ui/mainwindow.h
-	$(MOC) .ui/mainwindow.h -o .moc/moc_mainwindow.cpp
+moc_mainwindow.$(OBJEXT): .moc/moc_mainwindow.cpp
+.moc/moc_mainwindow.cpp: .ui/mainwindow.h
+	$(MOC) .ui/mainwindow.h -o $@
 
-.obj/moc_viewlayersdlog.$(OBJEXT): obj_dir .moc/moc_viewlayersdlog.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_viewlayersdlog.$(OBJEXT)
-.moc/moc_viewlayersdlog.cpp: moc_dir .ui/viewlayersdlog.h
-	$(MOC) .ui/viewlayersdlog.h -o .moc/moc_viewlayersdlog.cpp
+moc_viewlayersdlog.$(OBJEXT): .moc/moc_viewlayersdlog.cpp
+.moc/moc_viewlayersdlog.cpp: .ui/viewlayersdlog.h
+	$(MOC) .ui/viewlayersdlog.h -o $@
 
-.obj/moc_toolsettingsdlog.$(OBJEXT): obj_dir .moc/moc_toolsettingsdlog.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_toolsettingsdlog.$(OBJEXT)
-.moc/moc_toolsettingsdlog.cpp: moc_dir .ui/toolsettingsdlog.h
-	$(MOC) .ui/toolsettingsdlog.h -o .moc/moc_toolsettingsdlog.cpp
+moc_toolsettingsdlog.$(OBJEXT): .moc/moc_toolsettingsdlog.cpp
+.moc/moc_toolsettingsdlog.cpp: .ui/toolsettingsdlog.h
+	$(MOC) .ui/toolsettingsdlog.h -o $@
 
-.obj/moc_roisettingsdlog.$(OBJEXT): obj_dir .moc/moc_roisettingsdlog.cpp
-	$(CXX) $(CXXFLAGS) -o .obj/moc_roisettingsdlog.$(OBJEXT)
-.moc/moc_roisettingsdlog.cpp: moc_dir .ui/roisettingsdlog.h
-	$(MOC) .ui/roisettingsdlog.h -o .moc/moc_roisettingsdlog.cpp
+moc_roisettingsdlog.$(OBJEXT): .moc/moc_roisettingsdlog.cpp
+.moc/moc_roisettingsdlog.cpp: .ui/roisettingsdlog.h
+	$(MOC) .ui/roisettingsdlog.h -o $@
 
-.obj/image_collection.$(OBJEXT): obj_dir .ui/image_collection.cpp
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .obj/image_collection.$(OBJEXT) \
-	.ui/image_collection.cpp
+image_collection.$(OBJEXT): .ui/image_collection.cpp
 
-.ui/image_collection.cpp: ui_dir images/filenew \
+.ui/image_collection.cpp: images/filenew \
 		images/fileopen \
 		images/filesave \
 		images/print \
@@ -516,8 +504,7 @@ testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
 		icon_eye.xpm \
 		icon_lock.xpm \
 		icon_pencil.xpm
-	$(UIC)  -embed scuba2 images/filenew images/fileopen images/filesave images/print images/undo images/redo images/editcut images/editcopy images/editpaste images/searchfind images/icon_arrow_ccw.png images/icon_arrow_cw.png images/icon_arrow_down.png images/icon_arrow_expand_x.png images/icon_arrow_expand_y.png images/icon_arrow_left.png images/icon_arrow_right.png images/icon_arrow_rot_x_neg.png images/icon_arrow_rot_x_pos.png images/icon_arrow_rot_y_neg.png images/icon_arrow_rot_y_pos.png images/icon_arrow_rot_z_neg.png images/icon_arrow_rot_z_pos.png images/icon_arrow_shrink_x.png images/icon_arrow_shrink_y.png images/icon_arrow_up.png images/icon_aux_volume.png images/icon_brush_3d.png images/icon_brush_circle.png images/icon_brush_square.png images/icon_color_label.png images/icon_color_picker.png images/icon_control_point.png images/icon_cursor_goto.png images/icon_cursor_save.png images/icon_cut_area.png images/icon_cut_clear.png images/icon_cut_closed_line.png images/icon_cut_line.png images/icon_cut_plane.png images/icon_disk.png images/icon_draw_line.png images/icon_draw_line_closed.png images/icon_edit_ctrlpts.png images/icon_edit_custom.png images/icon_edit_label.png images/icon_edit_parc.png images/icon_edit_volume.png images/icon_erase_label.png images/icon_erase_line.png images/icon_fill.png images/icon_fill_label.png images/icon_folder.png images/icon_home.png images/icon_label_to_marked.png images/icon_line_tool.png images/icon_linked_cursors.png images/icon_main_volume.png images/icon_marked_to_label.png images/icon_marker_crosshair.png images/icon_marker_diamond.png images/icon_navigate.png images/icon_orientation_coronal.png images/icon_orientation_horizontal.png images/icon_orientation_sagittal.png images/icon_redraw.png images/icon_rotate_plane.png images/icon_snapshot_load.png images/icon_snapshot_save.png images/icon_stopwatch.png images/icon_surface_main.png images/icon_surface_original.png images/icon_surface_pial.png images/icon_view_31.png images/icon_view_mosaic.png images/icon_view_multiple.png images/icon_view_single.png images/icon_zoom_in.png images/icon_draw_edge_path.png images/view_inplane.png images/view_inplane_x.png images/view_inplane_y.png icon_eye.xpm icon_lock.xpm icon_pencil.xpm images/icon_zoom_out.png images/icon_fill_roi.png images/icon_fill_volume.png images/icon_label_list.png images/icon_label_table.png -o .ui/image_collection.cpp
-
+	$(UIC)  -embed scuba2 images/filenew images/fileopen images/filesave images/print images/undo images/redo images/editcut images/editcopy images/editpaste images/searchfind images/icon_arrow_ccw.png images/icon_arrow_cw.png images/icon_arrow_down.png images/icon_arrow_expand_x.png images/icon_arrow_expand_y.png images/icon_arrow_left.png images/icon_arrow_right.png images/icon_arrow_rot_x_neg.png images/icon_arrow_rot_x_pos.png images/icon_arrow_rot_y_neg.png images/icon_arrow_rot_y_pos.png images/icon_arrow_rot_z_neg.png images/icon_arrow_rot_z_pos.png images/icon_arrow_shrink_x.png images/icon_arrow_shrink_y.png images/icon_arrow_up.png images/icon_aux_volume.png images/icon_brush_3d.png images/icon_brush_circle.png images/icon_brush_square.png images/icon_color_label.png images/icon_color_picker.png images/icon_control_point.png images/icon_cursor_goto.png images/icon_cursor_save.png images/icon_cut_area.png images/icon_cut_clear.png images/icon_cut_closed_line.png images/icon_cut_line.png images/icon_cut_plane.png images/icon_disk.png images/icon_draw_line.png images/icon_draw_line_closed.png images/icon_edit_ctrlpts.png images/icon_edit_custom.png images/icon_edit_label.png images/icon_edit_parc.png images/icon_edit_volume.png images/icon_erase_label.png images/icon_erase_line.png images/icon_fill.png images/icon_fill_label.png images/icon_folder.png images/icon_home.png images/icon_label_to_marked.png images/icon_line_tool.png images/icon_linked_cursors.png images/icon_main_volume.png images/icon_marked_to_label.png images/icon_marker_crosshair.png images/icon_marker_diamond.png images/icon_navigate.png images/icon_orientation_coronal.png images/icon_orientation_horizontal.png images/icon_orientation_sagittal.png images/icon_redraw.png images/icon_rotate_plane.png images/icon_snapshot_load.png images/icon_snapshot_save.png images/icon_stopwatch.png images/icon_surface_main.png images/icon_surface_original.png images/icon_surface_pial.png images/icon_view_31.png images/icon_view_mosaic.png images/icon_view_multiple.png images/icon_view_single.png images/icon_zoom_in.png images/icon_draw_edge_path.png images/view_inplane.png images/view_inplane_x.png images/view_inplane_y.png icon_eye.xpm icon_lock.xpm icon_pencil.xpm images/icon_zoom_out.png images/icon_fill_roi.png images/icon_fill_volume.png images/icon_label_list.png images/icon_label_table.png -o $@
 
 scuba_bundle: scuba2
 	@test -d scuba2.app/Contents/MacOS/ || mkdir -p scuba2.app/Contents/MacOS/
@@ -531,14 +518,5 @@ scuba_bundle: scuba2
 	@cp scuba2 scuba2.app/Contents/MacOS/
 	@cp -r scuba2.app $(DESTDIR)$(bindir)
 
-obj_dir:
-	@test -d .obj || mkdir -p .obj
-
-moc_dir:
-	@test -d .moc || mkdir -p .moc
-
-ui_dir:
-	@test -d .ui || mkdir -p .ui
-
-.PHONY: scuba_bundle ui_dir obj_dir moc_dir
+.PHONY: scuba_bundle
 

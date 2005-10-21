@@ -1612,7 +1612,7 @@ Volm_tErr Volm_ConvertRASToIdx ( mriVolumeRef this,
 	      xVoxl_ExpandFloat( iRAS )) );
   MRIworldToVoxel( this->mpMriValues, xVoxl_ExpandFloat( iRAS ),
 		   &idxX, &idxY, &idxZ );
-  
+
   /* stuff results */
   DebugNote( ("Stuffing result into xVoxel") );
   xVoxl_SetFloat( &mriIdx, (float)idxX, (float)idxY, (float)idxZ );

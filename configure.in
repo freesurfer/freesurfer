@@ -767,6 +767,27 @@ AC_SUBST(TCL_LIBS)
 AC_SUBST(LIBS_TCL)
 
 
+############################################################
+# Install NMR Martinos Center files (not included in distribution)
+############################################################
+AC_ARG_ENABLE(nmr-install,
+              [  --enable-nmr-install     install NMR Center-only files],
+	      [case "${enableval}" in
+	         yes) nmrinstall=true ;;
+		 no)  nmrinstall=false  ;;
+		 *)   AC_MSG_ERROR(bad value ${enableval} for --enable-nmr-install) ;;
+	       esac],
+	      [nmrinstall=false])
+
+if test "x$nmrinstall" = "xtrue"; then
+    AC_MSG_RESULT([Performing an NMR installation.])
+else
+    AC_MSG_RESULT([Performing an off-site installation.])
+fi
+
+AM_CONDITIONAL(NMR_INSTALL, test x$nmrinstall = xtrue)
+
+
 ################################################
 LIBDIRS_MGH="utils rgb unix dicom hipsstubs"
 AC_SUBST(LIBDIRS_MGH)
@@ -1070,6 +1091,12 @@ repair_siemens_file/Makefile \
 mkxsubjreg/Makefile \
 rbftest/Makefile rawtocor/Makefile \
 include/Makefile \
+include/dicom/Makefile \
+include/xview/Makefile \
+include/sys/Makefile \
+include/gsl/Makefile \
+include/nodelib/Makefile \
+include/pixrect/Makefile \
 mri_add_xform_to_header/Makefile \
 mri_annotation2label/Makefile \
 mri_aparc2aseg/Makefile \
@@ -1230,6 +1257,7 @@ statcombine/Makefile \
 stat_normalize/Makefile \
 regdat2xfm/Makefile \
 scuba/Makefile \
+scuba/images/Makefile \
 test_window_env/Makefile \
 brik2bfloat/Makefile \
 minc_to_bshort/Makefile \
