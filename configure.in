@@ -6,7 +6,7 @@
 # Process this file with autoconf to produce a configure script.
 #
 AC_PREREQ(2.57)
-AC_INIT(Freesurfer, 0.1, fsdev@nmr.mgh.harvard.edu)
+AC_INIT(Freesurfer, dev2-0-0, freesurfer@nmr.mgh.harvard.edu)
 AC_CONFIG_AUX_DIR([config])
 # create specifal dir for intermediate files
 AC_MSG_NOTICE(Setting System...)
