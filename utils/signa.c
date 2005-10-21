@@ -214,9 +214,9 @@ signaRead(char *fname, int read_volume_flag)
 	if (odd_only)
 	{
 		if (ISEVEN(header.imnr0))
-			header.imnr0++ ;
+			header.imnr0-- ;
 		if (ISEVEN(header.imnr1))
-			header.imnr1++ ;
+			header.imnr1-- ;
 	}
 	else if (even_only)
 	{
@@ -250,7 +250,7 @@ signaRead(char *fname, int read_volume_flag)
     return(mri) ;
 
   FileNamePath(fname, path) ;
-  for (slice = 0, i = mri->imnr0 ; i <= mri->imnr1 ; i++, slice++)
+  for (slice = 0, i = header.imnr0 ; i <= header.imnr1 ; i++, slice++)
   {
     sprintf(fname, "%s/I.%03d", path, i) ;
 
