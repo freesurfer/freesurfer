@@ -37,6 +37,14 @@ set FAILED_FILE=${BUILD_DIR}/dev-FAILED
 setenv LD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 setenv DYLD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 
+# on Mac OS X Tiger, glut is not automatically in lib path, and
+# need /sw/bin to get latex and dvips
+if ("$HOSTNAME" == "storm") then
+    set GLUT_DYLIB_DIR=/space/freesurfer/build/storm/tiffjpegglut/lib
+    setenv PATH "/sw/bin":"$PATH"
+    rehash
+endif
+
 # Output file
 ######################################################################
 set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
@@ -154,8 +162,8 @@ $ECHO echo "CMD: autoconf" >>& $OUTPUTF
 $ECHO autoconf >>& $OUTPUTF
 $ECHO echo "CMD: automake" >>& $OUTPUTF
 $ECHO automake >>& $OUTPUTF
-$ECHO echo "CMD: ./configure `cat ${BUILD_DIR}/configure_options.txt` --prefix=${DEV_DEST_DIR}" >>& $OUTPUTF
-$ECHO ./configure `cat ${BUILD_DIR}/configure_options.txt` --prefix=${DEV_DEST_DIR} >>& $OUTPUTF
+$ECHO echo "CMD: ./configure `cat ${BUILD_DIR}/configure_options.txt` --prefix=${DEV_DEST_DIR} --enable-nmr-install" >>& $OUTPUTF
+$ECHO ./configure `cat ${BUILD_DIR}/configure_options.txt` --prefix=${DEV_DEST_DIR} --enable-nmr-install >>& $OUTPUTF
 if ($status != 0) then
   echo "########################################################" >>& $OUTPUTF
   echo "config.log" >>& $OUTPUTF
