@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.149 2005/10/18 22:59:16 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.150 2005/10/21 21:34:59 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5144,6 +5144,7 @@ proc DoSaveAsDlog {} {
 		set err [catch {
 		    SetVolumeCollectionFileName $gaCollection(current,id) %s3
 		    SaveVolume $gaCollection(current,id)
+		    UpdateCollectionList
 		} sResult]
 		if { 0 != $err } { tkuErrorDlog $sResult }
 	    }
@@ -5511,7 +5512,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.149 2005/10/18 22:59:16 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.150 2005/10/21 21:34:59 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
