@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.14 2005/09/07 17:35:08 greve Exp $
+  $Id: mri_surfcluster.c,v 1.15 2005/10/22 18:51:36 greve Exp $
 */
 
 #include <stdio.h>
@@ -45,7 +45,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.14 2005/09/07 17:35:08 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.15 2005/10/22 18:51:36 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -77,6 +77,12 @@ char *labelsubjid  = NULL;
 char *omaskid = NULL;
 char *omaskfmt = "paint";
 char *omasksubjid = NULL;
+
+// Constraining label
+char  *clabelfile=NULL;
+LABEL *clabel=NULL;
+int   clabelinv = 0;
+
 
 char *outid = NULL;
 char *outfmt = "paint";
@@ -130,7 +136,7 @@ int main(int argc, char **argv)
   char *cmdline, cwd[2000];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.14 2005/09/07 17:35:08 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.15 2005/10/22 18:51:36 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -150,6 +156,16 @@ int main(int argc, char **argv)
   check_options();
 
   dump_options(stdout);
+
+  if(clabelfile){
+    printf("Loading clabel %s.\n",clabelfile);
+    clabel = LabelRead(NULL, clabelfile);
+    if(clabel == NULL){
+      fprintf(stderr,"ERROR reading %s\n",clabelfile);
+      exit(1);
+    }
+    printf("Found %d points in clabel.\n",clabel->n_points);
+  }
 
   sprintf(xfmpath,"%s/%s/mri/transforms/%s",subjectsdir,srcsubjid,xfmfile);
   //XFM = LoadxfmMatrix(xfmpath);
@@ -231,6 +247,31 @@ int main(int argc, char **argv)
     for(vtx = 0; vtx < srcsurf->nvertices; vtx++)
       srcsurf->vertices[vtx].val = MRIFseq_vox(srcval,vtx,0,0,srcframe);
     MRIfree(&srcval); 
+  }
+
+  // ---------- Constrain with clabel ----------------------- //
+  if(clabelfile){
+    if(clabelinv){
+      // Constrain to be OUTSIDE clabel by setting INSIDE values to 0
+      for(n=0; n<clabel->n_points; n++){
+	vtx = clabel->lv[n].vno;
+	srcsurf->vertices[vtx].val = 0.0;
+      }
+    }
+    else{ 
+      // Constrain to be INSIDE clabel by OUTSIDE setting values to 0
+      // Trickier -- use val2 to create a mask
+      for(vtx = 0; vtx < srcsurf->nvertices; vtx++)
+	srcsurf->vertices[vtx].val2 = 1;
+      for(n=0; n<clabel->n_points; n++){
+	vtx = clabel->lv[n].vno;
+	srcsurf->vertices[vtx].val2 = 0;
+      }
+      for(vtx = 0; vtx < srcsurf->nvertices; vtx++){
+	if(srcsurf->vertices[vtx].val2) 
+	  srcsurf->vertices[vtx].val = 0.0;
+      }
+    }
   }
 
   /* Compute the overall max and min */
@@ -349,6 +390,11 @@ int main(int argc, char **argv)
     fprintf(fp,"# Area Threshold    %g mm^2\n",minarea);  
     if(synthfunc != NULL)
       fprintf(fp,"# Synthesize        %s\n",synthfunc);  
+    if(clabelfile){
+      fprintf(fp,"# clabelfile %s\n",clabelfile);
+      fprintf(fp,"# clabelinv  %d\n",clabelinv);
+    }
+
     fprintf(fp,"# Overall max %g at vertex %d\n",overallmax,overallmaxvtx);
     fprintf(fp,"# Overall min %g at vertex %d\n",overallmin,overallminvtx);
     fprintf(fp,"# NClusters          %d\n",NClusters);  
@@ -432,6 +478,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--fixmni"))   FixMNI = 1;
     else if (!strcasecmp(option, "--nofixmni")) FixMNI = 0;
+    else if (!strcasecmp(option, "--clabelinv")) clabelinv = 1;
 
     else if (!strcmp(option, "--hemi")){
       if(nargc < 1) argnerr(option,1);
@@ -540,6 +587,12 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
     
+    else if (!strcmp(option, "--clabel")){
+      if(nargc < 1) argnerr(option,1);
+      clabelfile = pargv[0];
+      nargsused = 1;
+    }
+
     else if (!strcmp(option, "--label")){
       if(nargc < 1) argnerr(option,1);
       labelfile = pargv[0];
@@ -673,6 +726,8 @@ static void print_usage(void)
   printf("   --thsign   sign      : <abs>, pos, neg\n");
   printf("   --minarea  area      : area threshold for a cluster (mm^2)\n");
   printf("\n");
+  printf("   --clabel labelfile : constrain to be within clabel\n");
+  printf("   --clabelinv : constrain to be OUTSIDE clabel\n");
   //  printf("   --mask       maskid <fmt> \n");
   //  printf("   --maskthresh thresh \n");
   //  printf("   --masksign   sign : <abs>, pos, or neg \n");
@@ -768,6 +823,16 @@ static void print_help(void)
 "Minimum surface area (in mm^2) that a set of contiguous vertices\n"
 "must achieve in order to be considered a cluster.\n"
 "\n"
+"--clabel labelfile\n"
+"\n"
+"Constrain cluster search to be inside or outside clabel. By default,\n"
+"it will be constrained to be INSIDE. For OUTSIDE, specify --clabelinv.\n"
+"clabel must be a surface-based label.\n"
+"\n"
+"--clabelinv \n"
+"\n"
+"Constrain cluster search to be OUTSIDE clabel. \n"
+"\n"
 "--sum summaryfile\n"
 "\n"
 "Text file in which to store the cluster summary. See SUMMARY FILE\n"
@@ -843,7 +908,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.14 2005/09/07 17:35:08 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.15 2005/10/22 18:51:36 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
@@ -955,6 +1020,10 @@ static void check_options(void)
     exit(1);
   }
 
+  if(clabelinv && clabelfile == NULL){
+    printf("ERROR: must specify a clabel with --clabelinv\n");
+    exit(1);
+  }
 
   return;
 }
@@ -977,6 +1046,10 @@ static void dump_options(FILE *fp)
     fprintf(fp,"masksubjid     = %s\n",masksubjid);
     fprintf(fp,"maskthresh     = %g\n",maskthresh);
     fprintf(fp,"masksign       = %s\n",masksign);
+  }
+  if(clabelfile != NULL){
+    fprintf(fp,"clabelfile     = %s\n",clabelfile);
+    fprintf(fp,"clabelinv      = %d\n",clabelinv);
   }
   if(labelfile != NULL)  fprintf(fp,"labelfile   = %s\n",labelfile);
   if(labelsubjid != NULL)fprintf(fp,"labelsubjid = %s\n",labelsubjid);
