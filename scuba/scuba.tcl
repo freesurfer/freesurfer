@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.150 2005/10/21 21:34:59 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.151 2005/10/24 16:22:58 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1066,8 +1066,10 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	SelectViewInViewProperties $viewID
 
 	# Also select the layer that's now on the top level.
-	SelectLayerInLayerProperties \
-	    [GetLayerInViewAtLevel $viewID $nHighestLevel]
+	set topLayerID [GetLayerInViewAtLevel $viewID $nHighestLevel]
+	if { $topLayerID >= 0 } {
+	    SelectLayerInLayerProperties $topLayerID
+	}
     }
 
     # This is kind of arbitrary, but since some keypresses can change
@@ -5512,7 +5514,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.150 2005/10/21 21:34:59 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.151 2005/10/24 16:22:58 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
