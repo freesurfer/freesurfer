@@ -626,11 +626,13 @@ LayerStaticTclListener::DoListenToTclCommand ( char* isCommand,
 
 
 Layer::InfoAtRAS::InfoAtRAS() 
-  : msLabel(""), msValue(""), msTclCallback(""), msInputFilter("") {
+  : msLabel(""), msValue(""), msTclCallback(""), msInputFilter(""), 
+    mbShortenHint(false) {
 
 }
 
 void
 Layer::InfoAtRAS::Clear () {
   msLabel = msValue = msTclCallback = msInputFilter = "";
+  mbShortenHint = false;
 }

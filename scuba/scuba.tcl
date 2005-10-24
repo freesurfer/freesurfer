@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.151 2005/10/24 16:22:58 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.152 2005/10/24 17:25:30 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4230,6 +4230,8 @@ proc DrawLabelArea {} {
 	    set glLabelValues($nArea,"$label",callback) $aInfo(callback)
 	    set glLabelValues($nArea,"$label",filter) $aInfo(filter)
 
+	    set glLabelValues($nArea,"$label",shortenHint) $aInfo(shortenHint)
+
 	    # Has comma and in table mode? If so, add it to the list
 	    # of table entries. Otherwise add it to the list of normal
 	    # entries.
@@ -4276,8 +4278,20 @@ proc DrawLabelArea {} {
 	    $grid set 0 $nRow -itemtype text -text $sShortLabel
 	    set gaLabelArea(itemType,0,$nRow) label
 
-	    $grid set 1 $nRow -itemtype text \
-		-text $glLabelValues($nArea,"$label",value)
+	    set value $glLabelValues($nArea,"$label",value)
+
+	    # Cap the value to 20 chars if necessary.
+	    if { $glLabelValues($nArea,"$label",shortenHint) } {
+		set zValue [string length $value]
+		if { $zValue > 20 } {
+		    set sFirst [string range $value 0 9]
+		    set sLast [string range $value [expr $zValue-9] end]
+		    set value "${sFirst}...${sLast}"
+		}
+	    }
+
+	    $grid set 1 $nRow -itemtype text -text $value
+
 	    set gaLabelArea(itemType,1,$nRow) value
 	    set gaLabelArea(callback,1,$nRow) \
 		$glLabelValues($nArea,"$label",callback)
@@ -4326,10 +4340,20 @@ proc DrawLabelArea {} {
 		if { $nRow > $maxRow } { set maxRow $nRow }
 		if { $nCol > $maxCol } { set maxCol $nCol }
 
+		# Cap the value to 20 chars if necessary.
+		set value $glLabelValues($nArea,"$sX,$sY",value)
+		if { $glLabelValues($nArea,"$sX,$sY",shortenHint) } {
+		    set zValue [string length $value]
+		    if { $zValue > 20 } {
+			set sFirst [string range $value 0 9]
+			set sLast [string range $value [expr $zValue-9] end]
+			set value "${sFirst}...${sLast}"
+		    }
+		}
+
 		# Set the value in the grid, and mark it as a value.
 		catch {
-		    $grid set $nCol $nRow -itemtype text \
-			-text $glLabelValues($nArea,"$sX,$sY",value)
+		    $grid set $nCol $nRow -itemtype text -text $value
 		    set gaLabelArea(itemType,$nCol,$nRow) value
 		    set gaLabelArea(callback,$nCol,$nRow) \
 			$glLabelValues($nArea,"$sX,$sY",callback)
@@ -5514,7 +5538,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.151 2005/10/24 16:22:58 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.152 2005/10/24 17:25:30 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

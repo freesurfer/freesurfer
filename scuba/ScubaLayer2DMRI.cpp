@@ -705,11 +705,12 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
     float value;
     value = mVolume->GetMRINearestValue( loc ); 
 
-    // If this is a LUT volume, use the label from the lookup file,
-    // otherwise just display the value.
+    // If this is a LUT volume, use the label from the lookup file and
+    // set the shorten hint, otherwise just display the value.
     stringstream ssValue;
     if( mColorMapMethod == LUT && NULL != mColorLUT ) {
       ssValue << mColorLUT->GetLabelAtIndex((int)value);
+      info.SetShortenHint( true );
     } else {
       ssValue << value;
     }

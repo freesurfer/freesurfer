@@ -1018,14 +1018,15 @@ ScubaView::DoListenToTclCommand( char* isCommand,
 	
 	for( tInfo = lInfo.begin(); tInfo != lInfo.end(); ++tInfo ) {
 	  
-	  ssFormat << "Lssssssssl";
+	  ssFormat << "Lssssssssssl";
 	  ssResult << "\"label\" \"" << (*tInfo).GetLabel() << "\" "
 		   << "\"value\" \"" << (*tInfo).GetValue() << "\" "
 		   << "\"callback\" \"" << (*tInfo).GetTclCallback() << "\" "
-		   << "\"filter\" \"" << (*tInfo).GetInputFilter() << "\" ";
+		   << "\"filter\" \"" << (*tInfo).GetInputFilter() << "\" "
+		   << "\"shortenHint\" \"" << (*tInfo).GetShortenHint()<<"\" ";
 	}
 	ssFormat << "l";
-	
+
 	sReturnFormat = ssFormat.str();
 	sReturnValues = ssResult.str();
       }

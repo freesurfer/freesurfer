@@ -63,16 +63,19 @@ class Layer : public DebugReporter,
     void SetValue ( std::string is ) { msValue = is; }
     void SetTclCallback ( std::string is ) { msTclCallback = is; }
     void SetInputFilter ( std::string is ) { msInputFilter = is; }
+    void SetShortenHint ( bool ib ) { mbShortenHint = ib; }
     void Clear();
     std::string GetLabel () { return msLabel; }
     std::string GetValue () { return msValue; }
     std::string GetTclCallback () { return msTclCallback; }
     std::string GetInputFilter () { return msInputFilter; }
+    bool GetShortenHint () { return mbShortenHint; }
   protected:
     std::string msLabel, msValue;  // label/value to display
     std::string msTclCallback;     // Function to call on input ("" if none)
     // The callback call will be $msTclCallback $mID $input
     std::string msInputFilter;     // Filter to use when calling callback
+    bool mbShortenHint;		   // Whether client should shorten value
   };
 
   // Asks the layer to describe a point of data by making InfoAtRAS
