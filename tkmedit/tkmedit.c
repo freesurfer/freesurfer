@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/10/03 16:09:44 $
-// Revision       : $Revision: 1.257 $
-char *VERSION = "$Revision: 1.257 $";
+// Revision Date  : $Date: 2005/10/25 19:29:40 $
+// Revision       : $Revision: 1.258 $
+char *VERSION = "$Revision: 1.258 $";
 
 #define TCL
 #define TKMEDIT 
@@ -383,7 +383,8 @@ tkm_tErr UnloadVolume  ( tkm_tVolumeType iType );
 
 /* saves the anatomical volume. if isPath is null, saves over the original. */
 tkm_tErr SaveVolume    ( tkm_tVolumeType iType,
-			 char*     isPath );
+			 char*           isPath,
+			 tBoolean        ibSetFileName );
 
 
 /* tells volume to load or unload this display transform */
@@ -532,7 +533,8 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType    iVolume,
 
 /* Saves a segmentation volume to COR format. */
 void SaveSegmentationVolume     ( tkm_tSegType    iVolume,
-				  char*           inVolumeDir );
+				  char*           inFileName,
+				  tBoolean        ibSetFileName );
 
 /* Uses the ChangedVolume to save a volume with only those label
    values that have been editied in this session. Basically an AND of
@@ -1104,7 +1106,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.257 2005/10/03 16:09:44 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.258 2005/10/25 19:29:40 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -3895,7 +3897,7 @@ int TclSaveVolume ( ClientData inClientData, Tcl_Interp* inInterp,
   }
   
   if( gbAcceptingTclCommands ) {
-    SaveVolume( atoi( argv[1] ), NULL );
+    SaveVolume( atoi( argv[1] ), NULL, FALSE );
   }
   
   return TCL_OK;
@@ -3911,7 +3913,7 @@ int TclSaveVolumeAs ( ClientData inClientData, Tcl_Interp* inInterp,
   }
   
   if( gbAcceptingTclCommands ) {
-    SaveVolume( atoi( argv[1] ), argv[2] );
+    SaveVolume( atoi( argv[1] ), argv[2], TRUE );
   }
   
   return TCL_OK;
@@ -4915,9 +4917,9 @@ int TclSaveSegmentationVolume ( ClientData inClientData,
 
     /* if they gave us a filename, use it, else pass null. */
     if( argc == 2 ) {
-      SaveSegmentationVolume( atoi(argv[1]), NULL );
+      SaveSegmentationVolume( atoi(argv[1]), NULL, FALSE );
     } else {
-      SaveSegmentationVolume( atoi(argv[1]), argv[2] );
+      SaveSegmentationVolume( atoi(argv[1]), argv[2], TRUE );
     }
   }  
   
@@ -5347,7 +5349,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.257 2005/10/03 16:09:44 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.258 2005/10/25 19:29:40 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7884,7 +7886,7 @@ tkm_tErr UnloadVolume ( tkm_tVolumeType iType ) {
 }
 
 tkm_tErr LoadDisplayTransform ( tkm_tVolumeType iVolume,
-        char*    isFileName ) {
+				char*    isFileName ) {
   
   tkm_tErr  eResult           = tkm_tErr_NoErr;
   Volm_tErr eVolume           = Volm_tErr_NoErr;
@@ -7979,7 +7981,8 @@ tkm_tErr UnloadDisplayTransform ( tkm_tVolumeType iVolume ) {
 }
 
 tkm_tErr SaveVolume ( tkm_tVolumeType iVolume,
-		      char*           isPath ) {
+		      char*           isPath,
+		      tBoolean        ibSetFileName) {
   
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
@@ -8020,8 +8023,7 @@ tkm_tErr SaveVolume ( tkm_tVolumeType iVolume,
   } 
   
   /* write the main anatomical volume */
-  eVolume = Volm_ExportNormToCOR( gAnatomicalVolume[iVolume], 
-          psFileName );
+  eVolume = Volm_Save( gAnatomicalVolume[iVolume], psFileName, ibSetFileName );
   if( Volm_tErr_NoErr != eVolume ) {
     tkm_DisplayError( "Saving Volume", 
           "Couldn't save volume",
@@ -9525,7 +9527,8 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
 }
 
 void SaveSegmentationVolume ( tkm_tSegType iVolume,
-			      char*        isVolumeDirWithPrefix ) {
+			      char*        isFileName,
+			      tBoolean     ibSetFileName ) {
   
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   char      sError[tkm_knErrStringLen] = "";
@@ -9534,8 +9537,7 @@ void SaveSegmentationVolume ( tkm_tSegType iVolume,
   char*     psSegmentationFileName     = NULL;
   
   DebugEnterFunction( ("SaveSegmentationVolume ( iVolume=%d, "
-		       "isVolumeDirWithPrefix=%s )", (int)iVolume,
-		       isVolumeDirWithPrefix) );
+		       "isFileName=%s )", (int)iVolume, isFileName) );
 
   DebugAssertThrowX( (iVolume >= 0 && iVolume <= tkm_knNumSegTypes),
 		     eResult, tkm_tErr_InvalidParameter );
@@ -9543,8 +9545,8 @@ void SaveSegmentationVolume ( tkm_tSegType iVolume,
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
   /* make a file name if they gave us one. */
-  if( NULL != isVolumeDirWithPrefix ) {
-    MakeFileName( isVolumeDirWithPrefix, tkm_tFileName_Segmentation, 
+  if( NULL != isFileName ) {
+    MakeFileName( isFileName, tkm_tFileName_Segmentation, 
 		  sSegmentationFileName, sizeof(sSegmentationFileName) );
     psSegmentationFileName = sSegmentationFileName;
   } else {
@@ -9554,8 +9556,8 @@ void SaveSegmentationVolume ( tkm_tSegType iVolume,
   /* Export the thing to a COR volume. */
   OutputPrint "Saving... " EndOutputPrint;
   DebugNote( ("Exporting to COR") );
-  eVolume = Volm_ExportNormToCOR( gSegmentationVolume[iVolume], 
-				  psSegmentationFileName );
+  eVolume = Volm_Save( gSegmentationVolume[iVolume], 
+		       psSegmentationFileName, ibSetFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 		     eResult, tkm_tErr_CouldntWriteFile );
   OutputPrint "done.\n" EndOutputPrint;
@@ -9565,7 +9567,7 @@ void SaveSegmentationVolume ( tkm_tSegType iVolume,
   
   if( eResult != tkm_tErr_CouldntLoadColorTable ) {
     xUtil_snprintf( sError, sizeof(sError),
-		    "Saving Segmentation %s", isVolumeDirWithPrefix );
+		    "Saving Segmentation %s", isFileName );
     tkm_DisplayError( sError,
 		      tkm_GetErrorString(eResult),
 		      "Tkmedit couldn't save the segmentation you "
@@ -9634,7 +9636,7 @@ tkm_tErr ExportChangedSegmentationVolume ( tkm_tSegType iVolume,
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
   /* Now save it. */
-  eVolume = Volm_ExportNormToCOR( newVolume, sSegmentationFileName );
+  eVolume = Volm_Save( newVolume, sSegmentationFileName, FALSE );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 		     eResult, tkm_tErr_CouldntWriteFile );
 
@@ -12653,7 +12655,7 @@ void HandleSegfault ( int nSignal ) {
   IsVolumeDirty( tkm_tVolumeType_Main, &bDirty );
   if( bDirty ) {
     printf( "    : Attempting to save main volume to /tmp directory...\n" );
-    SaveVolume( tkm_tVolumeType_Main, "/tmp" );
+    SaveVolume( tkm_tVolumeType_Main, "/tmp", FALSE );
     printf( "    : Data was saved to /tmp.\n" );
     printf( "    :\n" );
   }
