@@ -13,6 +13,7 @@
 #include "mri_conform.h"
 #include "tags.h"
 #include "version.h"
+#include "cma.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -37,6 +38,12 @@ static float intensity_below = 10 ;
 
 static char *control_point_fname ;
 
+static char *aseg_fname = NULL ;
+//static int aseg_wm_labels[] = { Left_Cerebral_White_Matter, Right_Cerebral_White_Matter, Brain_Stem} ;
+static int aseg_wm_labels[] = { Left_Cerebral_White_Matter, Right_Cerebral_White_Matter} ;
+#define NWM_LABELS (sizeof(aseg_wm_labels) / sizeof(aseg_wm_labels[0]))
+
+
 static char *control_volume_fname = NULL ;
 static char *bias_volume_fname = NULL ;
 static int read_flag = 0 ;
@@ -49,17 +56,17 @@ main(int argc, char *argv[])
 {
   char   **av ;
   int    ac, nargs, n ;
-  MRI    *mri_src, *mri_dst = NULL, *mri_bias, *mri_orig ;
+  MRI    *mri_src, *mri_dst = NULL, *mri_bias, *mri_orig, *mri_aseg ;
   char   *in_fname, *out_fname ;
   int          msec, minutes, seconds ;
   struct timeb start ;
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_normalize.c,v 1.38 2005/10/17 15:57:32 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_normalize.c,v 1.39 2005/10/25 18:26:23 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.38 2005/10/17 15:57:32 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.39 2005/10/25 18:26:23 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -151,6 +158,14 @@ main(int argc, char *argv[])
   }
 #endif
 
+	if (aseg_fname)
+	{
+		mri_aseg = MRIread(aseg_fname) ;
+		if (mri_aseg == NULL)
+			ErrorExit(ERROR_NOFILE, "%s: could not read aseg from file %s", Progname, aseg_fname) ;
+	}
+	else
+		aseg_fname = NULL ;
 
   if (verbose)
     fprintf(stderr, "normalizing image...\n") ;
@@ -162,40 +177,58 @@ main(int argc, char *argv[])
     // this just setup writing control-point volume saving
     MRI3dWriteControlPoints(control_volume_fname) ;
 
-	/* first do a gentle normalization to get things in the right intensity range */
-	if (control_point_fname != NULL)  /* do one pass with only file control points first */
-		mri_dst = 
-			MRI3dGentleNormalize(mri_src, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
-													 NULL,
-													 intensity_above, intensity_below/2,
-													 1, bias_sigma);
-	else
-		mri_dst = MRIcopy(mri_src, NULL) ;
-		
-  if (!no1d)
-  {
-    MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
-    mri_dst = MRInormalize(mri_src, NULL, &mni) ;
-    if (!mri_dst)
-      ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
-		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-			MRIwrite(mri_dst, "/tmp/norm1d.mgz") ;
+	if (mri_aseg)
+	{
+		MRI *mri_ctrl, *mri_bias ;
+		int  i ;
+
+		mri_ctrl = MRIclone(mri_aseg, NULL) ;
+		for (i = 0 ; i < NWM_LABELS ; i++)
+			MRIcopyLabel(mri_aseg, mri_ctrl, aseg_wm_labels[i]) ;
+		MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
+		MRIerode(mri_ctrl, mri_ctrl) ;
+		MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+		MRIwrite(mri_ctrl, "c.mgz") ;
+    mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, bias_sigma) ;
+		MRIfree(&mri_ctrl) ; MRIfree(&mri_aseg) ;
+		mri_dst = MRIapplyBiasCorrectionSameGeometry(mri_src, mri_bias, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+		MRIwrite(mri_dst, "n1.mgz") ;
 	}
-  else
-  {
-		if ((file_only && nosnr) || ((gentle_flag != 0) && (control_point_fname != NULL)))
+	else
+	{
+		/* first do a gentle normalization to get things in the right intensity range */
+		if (control_point_fname != NULL)  /* do one pass with only file control points first */
+			mri_dst = 
+				MRI3dGentleNormalize(mri_src, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+														 NULL,
+														 intensity_above, intensity_below/2,
+														 1, bias_sigma);
+		else
+			mri_dst = MRIcopy(mri_src, NULL) ;
+		
+		if (!no1d)
 		{
-			if (mri_dst == NULL)
-				mri_dst = MRIcopy(mri_src, NULL) ;
+			MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
+			mri_dst = MRInormalize(mri_src, NULL, &mni) ;
+			if (!mri_dst)
+				ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
 		}
 		else
 		{
-			printf("computing initial normalization using SNR...\n") ;
-			mri_dst = MRInormalizeHighSignalLowStd(mri_src, mri_dst, bias_sigma, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+			if ((file_only && nosnr) || ((gentle_flag != 0) && (control_point_fname != NULL)))
+			{
+				if (mri_dst == NULL)
+					mri_dst = MRIcopy(mri_src, NULL) ;
+			}
+			else
+			{
+				printf("computing initial normalization using SNR...\n") ;
+				mri_dst = MRInormalizeHighSignalLowStd(mri_src, mri_dst, bias_sigma, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+			}
+			if (!mri_dst)
+				ErrorExit(ERROR_BADPARM, "%s: could not allocate volume", Progname) ;
 		}
-    if (!mri_dst)
-      ErrorExit(ERROR_BADPARM, "%s: could not allocate volume", Progname) ;
-  }
+	}
 
 	if (file_only == 0)
 		MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
@@ -294,6 +327,12 @@ get_option(int argc, char *argv[])
   {
     conform = 1 ;
     fprintf(stderr, "interpolating and embedding volume to be 256^3...\n") ;
+  }
+  else if (!stricmp(option, "aseg") || !stricmp(option, "segmentation"))
+  {
+		aseg_fname = argv[2] ;
+    nargs = 1  ;
+		fprintf(stderr, "using segmentation for initial intensity normalization\n") ;
   }
   else if (!stricmp(option, "gentle"))
   {
