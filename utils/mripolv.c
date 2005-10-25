@@ -2068,7 +2068,7 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
     }
 
     total_filled += nfilled ;
-    if (Gdiag & DIAG_SHOW)
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "%d: segment %d, %d voxels, filled = %d, total = %d\n",
               nseg, i, mseg->nvoxels, nfilled, total_filled) ;
 
@@ -3870,7 +3870,7 @@ MRIremoveHoles(MRI *mri_src, MRI*mri_dst, int wsize, float pct, int use_all)
         if (num_off >= thresh)
           val = MRI_NOT_WHITE ;
         else if (num_on >= thresh)
-          val = 255 ;
+          val = MRI_WHITE ;
         else
           val = MRI_AMBIGUOUS ;
         if (val != MRI_AMBIGUOUS)
@@ -4638,7 +4638,7 @@ MRIremoveIslands(MRI *mri_src, MRI*mri_dst, int wsize, int thresh)
         if (val && (num_off >= thresh))
           val = 0 ;
         else if (!val && (num_on >= thresh))
-          val = 255 ;
+          val = THICKEN_FILL ;
         *pdst++ = val ;
       }
     }
@@ -4714,7 +4714,7 @@ MRIfillPlanarHoles(MRI *mri_src, MRI *mri_segment, MRI *mri_dst,
             if (MRIneighborsOn(mri_binary_strand, x, y, z, 1) ==
                 MRIneighborsOn(mri_dst, x, y, z, WM_MIN_VAL))
             {
-              MRIvox(mri_dst, x, y, z) = 255 ;
+              MRIvox(mri_dst, x, y, z) = THICKEN_FILL ;
               MRIvox(mri_binary_strand, x, y, z) = 1 ;
               MRIvox(mri_strand_border, x, y, z) = 0 ;
               nfilled++ ;
@@ -4726,7 +4726,7 @@ MRIfillPlanarHoles(MRI *mri_src, MRI *mri_segment, MRI *mri_dst,
     total_filled += nfilled ;
   } while (nfilled > 0) ;
 
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "%d planar holes filled\n", total_filled) ;
   MRIfree(&mri_binary_strand) ; MRIfree(&mri_strand_border) ;
   return(mri_dst) ;
