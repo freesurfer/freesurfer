@@ -682,6 +682,50 @@ Volm_tErr Volm_ExportNormToCOR ( mriVolumeRef this,
   return eResult;
 }
 
+Volm_tErr Volm_Save ( mriVolumeRef this,
+		      char*        isFileName,
+		      tBoolean     ibSaveFileName ) {
+  
+  Volm_tErr eResult              = Volm_tErr_NoErr;
+  char      sFileName[mri_knPathLen] = "";
+  int       eMRI                 = NO_ERROR;
+  
+  DebugEnterFunction( ("Volm_Save( this=%p, isFileName=%s, ibSaveFileName )",
+		       this, isFileName, ibSaveFileName) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  /* if out isFileName is null, use the original. */
+  if( NULL == isFileName ) {
+    xUtil_strncpy( sFileName, this->msOriginalPath, sizeof( sFileName ) );
+  } else {
+    xUtil_strncpy( sFileName, isFileName, sizeof( sFileName ) );
+  }
+  
+  /* write the volume */
+  DebugNote( ("Writing volume with MRIwrite") );
+  eMRI = MRIwrite( this->mpMriValues, sFileName );
+  DebugAssertThrowX( (NO_ERROR == eMRI), 
+		     eResult, Volm_tErr_CouldntExportVolumeToCOR );
+
+  /* Save the filename if they want. */
+  if( NULL != isFileName && ibSaveFileName ) {
+    DebugNote( ("Saving file name") );
+    xUtil_strncpy( this->msOriginalPath, isFileName,
+		   sizeof( this->msOriginalPath ) );
+  }
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////////////

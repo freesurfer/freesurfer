@@ -182,6 +182,10 @@ Volm_tErr Volm_ImportData      ( mriVolumeRef this,
 Volm_tErr Volm_ExportNormToCOR ( mriVolumeRef this,
 				 char*        isPath );
 
+Volm_tErr Volm_Save ( mriVolumeRef iVolume,
+		      char*        isFileName,
+		      tBoolean     ibSaveFileName );
+
 Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 				      char*        isSource );
 Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this );
