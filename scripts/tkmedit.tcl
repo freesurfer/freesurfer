@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.95 2005/09/06 17:52:18 kteich Exp $
+# $Id: tkmedit.tcl,v 1.96 2005/10/26 21:56:42 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -1096,7 +1096,7 @@ set tDlogSpecs(LoadAuxSegmentation) [list \
   SetDefaultLocation ImportSegmentation_Volume %s1; \
   SetDefaultLocation Segmentation_ColorTable %s2} ]
 set tDlogSpecs(SaveSegmentationAs) [list \
-  -title "Save Segmenation As" \
+  -title "Save Segmentation As" \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
   -note1 "The directory in which to write the COR volume files" \
@@ -1106,7 +1106,7 @@ set tDlogSpecs(SaveSegmentationAs) [list \
   -okCmd {SaveSegmentationVolume 0 %s1; \
   SetDefaultLocation SaveSegmentationAs %s1} ]
 set tDlogSpecs(SaveAuxSegmentationAs) [list \
-  -title "Save Aux Segmenation As" \
+  -title "Save Aux Segmentation As" \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
   -note1 "The directory in which to write the COR volume files" \
@@ -1116,7 +1116,7 @@ set tDlogSpecs(SaveAuxSegmentationAs) [list \
   -okCmd {SaveSegmentationVolume 1 %s1; \
   SetDefaultLocation SaveSegmentationAs %s1} ]
 set tDlogSpecs(ExportChangedSegmentationVolume) [list \
-  -title "Save Changed Segmenation Values As" \
+  -title "Save Changed Segmentation Values As" \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
   -note1 "The directory in which to write the COR volume files" \
@@ -1126,7 +1126,7 @@ set tDlogSpecs(ExportChangedSegmentationVolume) [list \
   -okCmd {ExportChangedSegmentationVolume 0 %s1; \
   SetDefaultLocation ExportChangedSegmentationVolume %s1} ]
 set tDlogSpecs(ExportAuxChangedSegmentationVolume) [list \
-  -title "Save Aux Changed Segmenation Values As" \
+  -title "Save Aux Changed Segmentation Values As" \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
   -note1 "The directory in which to write the COR volume files" \
