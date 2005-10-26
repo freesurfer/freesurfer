@@ -4366,3 +4366,34 @@ MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out)
 	return(mri_out) ;
 
 }
+MRI *
+MRIapplyBiasCorrectionSameGeometry(MRI *mri_in, MRI *mri_bias, MRI *mri_out, float target_val)
+{
+	int    x, y, z ;
+	Real   bias, val ;
+
+
+	if (mri_out == NULL)
+		mri_out = MRIclone(mri_in, NULL) ;
+
+	for (x = 0 ; x < mri_in->width ; x++)
+	{
+		for (y = 0 ; y < mri_in->height ; y++)
+		{
+			for (z = 0 ; z < mri_in->depth ; z++)
+			{
+				val = MRIgetVoxVal(mri_in, x, y, z, 0) ;
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				MRIsampleVolume(mri_bias, x, y, z, &bias) ;
+				val *= (target_val/bias) ;
+				if (bias < 0)
+					DiagBreak() ;
+				MRIsetVoxVal(mri_out, x, y, z, 0, val) ;
+			}
+		}
+	}
+
+	return(mri_out) ;
+
+}

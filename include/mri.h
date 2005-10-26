@@ -602,6 +602,7 @@ extern float ic_z_vertices[]  ;
 #define NII_FILE                      24 // NIfTI-1 .nii (single file)
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
+int        MRInonzeroValRange(MRI *mri, float *pmin, float *pmax) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
 int        MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame) ;
 MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
@@ -838,6 +839,7 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
 #define VENTRICLE_FILL       220
 #define DIAGONAL_FILL        230
 #define DEGENERATE_FILL      240
+#define OFFSET_FILTER_FILL   245
 #define AUTO_FILL            250
 
 MRI *MRIchangeType(MRI *src, int dest_type, float f_low, 
@@ -933,6 +935,7 @@ float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int labe
 MRI   *MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst) ;
 int MRIcropBoundingBox(MRI *mri, 	MRI_REGION  *box) ;
 MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out) ;
+MRI *MRIapplyBiasCorrectionSameGeometry(MRI *mri_in, MRI *mri_bias, MRI *mri_out, float target_val) ;
 MATRIX *MRIgetVoxelToVoxelXform(MRI *mri_src, MRI *mri_dst) ;
 
 /* extract the RASToVoxeMatrix from an MRI */
