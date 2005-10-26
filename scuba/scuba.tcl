@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.152 2005/10/24 17:25:30 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.153 2005/10/26 17:01:08 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -526,6 +526,7 @@ proc MakeMenuBar { ifwTop } {
 	{check "Plane Intersections" { SetPreferencesValue DrawPlaneIntersections $gaView(planeIntersections); RedrawFrame [GetMainFrameID] } gaView(planeIntersections) }
 	{check "Show Console:Alt N" { ShowHideConsole $gaView(tkcon,visible) } gaView(tkcon,visible) }
 	{check "Auto-Configure" {} gaView(autoConfigure) }
+	{check "Automatically Report Info in Level if LUT" {AutoReportInfoChanged; AdjustReportInfoForAuto} gaView(autoReportInfoForLUT) }
 	{check "Show FPS" { SetPreferencesValue ShowFPS $gaView(showFPS) } gaView(showFPS) }
     }
 
@@ -536,6 +537,8 @@ proc MakeMenuBar { ifwTop } {
     set gaView(paths)         [GetPreferencesValue DrawPaths]
     set gaView(planeIntersections) [GetPreferencesValue DrawPlaneIntersections]
     set gaView(autoConfigure) [GetPreferencesValue AutoConfigureView]
+    set gaView(autoReportInfoForLUT) \
+	[GetPreferencesValue AutoReportInfoForLUT]
     set gaView(showFPS)       [GetPreferencesValue ShowFPS]
 
     pack $gaMenu(view) -side left
@@ -759,6 +762,8 @@ proc ToolBarWrapper { isName iValue } {
 		set gaLayer(current,clearZero) \
 		    [Get2DMRILayerDrawZeroClear $gaLayer(current,id)]
 
+		AdjustReportInfoForAuto
+		
 		RedrawFrame [GetMainFrameID]
 	    }
 	    nearest - trilinear - sinc - magnitude {
@@ -1061,6 +1066,7 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	    }
 
 	    SetLayerInViewAtLevel $viewID $curLayer($nNextLevel) $nLevel
+	    AdjustReportInfoForAuto
 	}
 
 	SelectViewInViewProperties $viewID
@@ -1249,6 +1255,7 @@ proc Quit {} {
     SetPreferencesValue DrawPaths $gaView(paths)
     SetPreferencesValue DrawPlaneIntersections $gaView(planeIntersections)
     SetPreferencesValue AutoConfigureView $gaView(autoConfigure)
+    SetPreferencesValue AutoReportInfoForLUT $gaView(autoReportInfoForLUT)
     SetPreferencesValue ShowFPS $gaView(showFPS)
     SetPreferences
     SaveGlobalPreferences
@@ -3119,6 +3126,8 @@ proc ViewPropertiesDrawLevelMenuCallback { iLevel iLayerID } {
     # Get the new inplane inc value if necessary.
     set gaView(current,throughPlaneInc) \
 	[GetViewThroughPlaneIncrement $gaView(current,id) $gaView(current,inPlane)]
+
+    AdjustReportInfoForAuto
 }
 
 proc ViewPropertiesTransformMenuCallback { iTransformID } {
@@ -4700,7 +4709,8 @@ proc SetLayerInAllViewsInFrame { iFrameID iLayerID } {
 	    }
        }
     }
-    
+
+    AdjustReportInfoForAuto
     UpdateLayerList
 }
 
@@ -4777,6 +4787,95 @@ proc ZoomViewOut { } {
     
     set zoomLevel [GetViewZoomLevel $gaView(current,id)]
     SetViewZoomLevel $gaView(current,id) [expr $zoomLevel / 2]
+}
+
+proc AutoReportInfoChanged {} {
+    global gaView
+
+    # For each view...
+    set err [catch { set cRows [GetNumberOfRowsInFrame [GetMainFrameID]] } sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+    for { set nRow 0 } { $nRow < $cRows } { incr nRow } {
+	
+	set err [catch { 
+	    set cCols [GetNumberOfColsAtRowInFrame [GetMainFrameID] $nRow]
+	} sResult]
+	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	
+	for { set nCol 0 } { $nCol < $cCols } { incr nCol } {
+	    
+	    set err [catch { 
+		set viewID [GetViewIDFromFrameColRow [GetMainFrameID] $nCol $nRow] 
+	    } sResult]
+	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+	    
+	    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+		
+		if { $gaView(autoReportInfoForLUT) } {
+		
+		    set gaView(savedReportInfo,$viewID,$nLevel) \
+			[GetLevelReportInfoInView $viewID $nLevel]
+		    
+		} else {
+
+		    if { [info exists gaView(savedReportInfo,$viewID,$nLevel)] } {
+			SetLevelReportInfoInView $viewID $nLevel \
+			    $gaView(savedReportInfo,$viewID,$nLevel) 
+			
+			if { $viewID == $gaView(current,id) } {
+			    set gaView(current,reportInfo$nLevel) \
+				$gaView(savedReportInfo,$viewID,$nLevel)
+			}
+		    }
+		}
+	    }
+	}
+    }
+}
+
+proc AdjustReportInfoForAuto {} {
+    global gaView
+
+    if { $gaView(autoReportInfoForLUT) } {
+
+	# For each view...
+	set err [catch { set cRows [GetNumberOfRowsInFrame [GetMainFrameID]] } sResult]
+	if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+	for { set nRow 0 } { $nRow < $cRows } { incr nRow } {
+	    
+	    set err [catch { 
+		set cCols [GetNumberOfColsAtRowInFrame [GetMainFrameID] $nRow]
+	    } sResult]
+	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+	    
+	    for { set nCol 0 } { $nCol < $cCols } { incr nCol } {
+		
+		set err [catch { 
+		    set viewID [GetViewIDFromFrameColRow [GetMainFrameID] $nCol $nRow] 
+		} sResult]
+		if { 0 != $err } { tkuErrorDlog $sResult; return }
+		
+		for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+
+		    set layerID [GetLayerInViewAtLevel $viewID $nLevel]
+		    if { $layerID >= 0 } {
+			set bReportInfo \
+			    [string match [Get2DMRILayerColorMapMethod $layerID] lut]
+			SetLevelReportInfoInView $viewID $layerID $bReportInfo
+
+			if { $viewID == $gaView(current,id) } {
+			    set gaView(current,reportInfo$nLevel) \
+				$bReportInfo
+			}
+		    }
+		}
+	    }
+	}
+
+	UpdateMouseLabelArea
+	UpdateCursorLabelArea
+	RedrawFrame [GetMainFrameID]
+    }
 }
 
 # DATA LOADING =====================================================
@@ -5538,7 +5637,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.152 2005/10/24 17:25:30 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.153 2005/10/26 17:01:08 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
