@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.16 2005/04/07 18:53:19 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.17 2005/10/26 20:57:25 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -89,6 +89,8 @@ float PhaseEncodeFOV, ReadoutFOV, FlipAngle;
 int Strict = 1;
 int nthpcn;
 int BinaryADCDump=0;
+char *basename = "meas";
+int DumpPCN = 1;
 
 /*------------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -112,7 +114,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.16 2005/04/07 18:53:19 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.17 2005/10/26 20:57:25 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -128,7 +130,7 @@ int main(int argc, char **argv)
   check_options();
   dump_options(stdout);
 
-  sprintf(measoutpath,"%s/meas.out",srcdir);
+  sprintf(measoutpath,"%s/%s.out",srcdir,basename);
   if(!fio_FileExistsReadable(measoutpath)){
     printf("ERROR: %s does not exist or is not readable\n",measoutpath);
     exit(1);
@@ -333,7 +335,7 @@ int main(int argc, char **argv)
   }
 
   /* copy the meas.asc to the output directory */
-  sprintf(fname,"cp %s/meas.asc %s/meas.asc",srcdir,outdir);
+  sprintf(fname,"cp %s/%s.asc %s/%s.asc",srcdir,basename,outdir,basename);
   system(fname);
 
 
@@ -486,6 +488,11 @@ static int parse_commandline(int argc, char **argv)
       srcdir = pargv[0];
       nargsused = 1;
     }
+    else if (stringmatch(option, "--base")){
+      if(nargc < 1) argnerr(option,1);
+      basename = pargv[0];
+      nargsused = 1;
+    }
     else if (stringmatch(option, "--outdir")){
       if(nargc < 1) argnerr(option,1);
       outdir = pargv[0];
@@ -556,6 +563,7 @@ static void print_usage(void)
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --srcdir dir : directory with meas.out\n");
+  printf("   --base basename : default is meas\n");
   printf("   --outdir dir : output directory\n");
   //printf("   --rev        : apply reversals \n");
   printf("   --dim nframes nslices nechoes nlines nperline npcns\n");
@@ -563,9 +571,10 @@ static void print_usage(void)
   printf("   --TR TR \n");
   printf("   --TE TE1 TE2 ... \n");
   printf("\n");
-  printf("   --dump : dump info about each adc (but not adc) \n");
-  printf("   --dumpadc file : dump adc into text file\n");
+  printf("   --dump : dump info about each adc to term (but not adc) \n");
+  printf("   --dumpadc file : dump adc into text file (unless --binary)\n");
   printf("   --binary : dump adc into binary file\n");
+  printf("   --nopcn : do not dump pcns\n");
   printf("   --adcstats : dump min, max, and avg over all adcs \n");
   printf("\n");
   printf("   --help : a short story about a Spanish boy named Manual\n");
@@ -624,6 +633,17 @@ static void print_help(void)
 "\n"
 "Print out min, max, and avg over all ADCs. Only the source dir \n"
 "needs to be given for this option. This is good for finding spikes.\n"
+"\n"
+"EXAMPLES:\n"
+"\n"
+"\nmri_convert_mdh --srcdir . --base spiral_32x32_1meas \n"
+"        --binary --dumpadc tmp.dump\n"
+"\n"
+"NOTES:\n"
+"\n"
+"Ncols is the number of samples where each sample has a real and\n"
+"complex component.\n"
+"\n"
 "\n"
 "BUGS:\n"
 "\n"
@@ -730,7 +750,7 @@ int MDHversion(char *measoutpath)
   sprintf(fname,"%s/mrprot.asc",measoutdir);
   if(fio_FileExistsReadable(fname))  return(15);
 
-  sprintf(fname,"%s/meas.asc",measoutdir);
+  sprintf(fname,"%s/%s.asc",measoutdir,basename);
   if(fio_FileExistsReadable(fname))  return(21);
 
   free(measoutdir);
@@ -766,7 +786,7 @@ char *MDHascPath(char *measoutdir)
     return(mrprot);
   }
 
-  sprintf(fname,"%s/meas.asc",measoutdir);
+  sprintf(fname,"%s/%s.asc",measoutdir,basename);
   if(fio_FileExistsReadable(fname)){
     len = strlen(fname);
     mrprot = (char *) calloc(sizeof(char),len+1);
@@ -1606,7 +1626,7 @@ int MDHdumpADC(char *measoutpath, char *outfile, int binary)
   unsigned long offset;
   int m;
   MDH *mdh=NULL;
-  int mdhversion;
+  int mdhversion,n;
   float adc[10000];
 
   mdhversion = MDHversion(measoutpath);
@@ -1616,9 +1636,12 @@ int MDHdumpADC(char *measoutpath, char *outfile, int binary)
 
   outfp = fopen(outfile,"w");
 
+  n = 0;
   while(!feof(fp)){
     mdh = ReadMiniHeader(fp,mdh,mdhversion);
     if(feof(fp)) break;
+    if(mdh->BitMask1 == 1) break;
+    if(mdh->IsPCN && ! DumpPCN) continue;
     fread(adc,sizeof(float), 2*mdh->Ncols, fp);
     for(m=0; m < 2*mdh->Ncols; m++){
       if(! binary)
@@ -1626,9 +1649,12 @@ int MDHdumpADC(char *measoutpath, char *outfile, int binary)
       else
 	fwrite(&adc[m],sizeof(float),1,outfp);
     }
+    n++;
   }
   fclose(fp);
   fclose(outfp);
+
+  printf("dumped %d lines\n",n);
 
   return(0);
 }
