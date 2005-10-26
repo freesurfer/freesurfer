@@ -541,10 +541,3 @@ Find Nearest Surface Vertex
 Set Cursor from edit.dat
 Generate Segementation Volume Report
 
-
-Automatically set Report Info to true when layer is an LUT color map
- - When layer is changed in level from view panel PDM
- - When color map is changed in layer panel
- - Also need to update the setting in all other views
- - When layer-in-level or color map value changes, need to restore old value
- - See LayerChanged function for first pass
