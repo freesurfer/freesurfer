@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.153 2005/10/26 17:01:08 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.154 2005/10/26 21:42:12 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -756,13 +756,12 @@ proc ToolBarWrapper { isName iValue } {
 		Set2DMRILayerColorMapMethod \
 		    $gaLayer(current,id) $gaLayer(current,colorMapMethod)
 
-		# Hack - we know that changing the method to LUT will
-		# autoset the drawZero flag to 1, or to 0 if
-		# otherwise, so check that here.
-		set gaLayer(current,clearZero) \
-		    [Get2DMRILayerDrawZeroClear $gaLayer(current,id)]
-
 		AdjustReportInfoForAuto
+
+		set bDrawZeroClear [string match \
+					$gaLayer(current,colorMapMethod) lut]
+		Set2DMRILayerDrawZeroClear $gaLayer(current,id) $bDrawZeroClear
+		set gaLayer(current,clearZero) $bDrawZeroClear
 		
 		RedrawFrame [GetMainFrameID]
 	    }
@@ -4789,43 +4788,56 @@ proc ZoomViewOut { } {
     SetViewZoomLevel $gaView(current,id) [expr $zoomLevel / 2]
 }
 
-proc AutoReportInfoChanged {} {
-    global gaView
+proc GetListOfViews { iFrameID } {
+
+    set lViewIDs {}
 
     # For each view...
-    set err [catch { set cRows [GetNumberOfRowsInFrame [GetMainFrameID]] } sResult]
+    set err [catch { set cRows [GetNumberOfRowsInFrame $iFrameID] } sResult]
     if { 0 != $err } { tkuErrorDlog "$sResult"; return }
     for { set nRow 0 } { $nRow < $cRows } { incr nRow } {
 	
 	set err [catch { 
-	    set cCols [GetNumberOfColsAtRowInFrame [GetMainFrameID] $nRow]
+	    set cCols [GetNumberOfColsAtRowInFrame $iFrameID $nRow]
 	} sResult]
 	if { 0 != $err } { tkuErrorDlog $sResult; return }
 	
 	for { set nCol 0 } { $nCol < $cCols } { incr nCol } {
 	    
 	    set err [catch { 
-		set viewID [GetViewIDFromFrameColRow [GetMainFrameID] $nCol $nRow] 
+		set viewID [GetViewIDFromFrameColRow $iFrameID $nCol $nRow] 
 	    } sResult]
 	    if { 0 != $err } { tkuErrorDlog $sResult; return }
 	    
-	    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
-		
-		if { $gaView(autoReportInfoForLUT) } {
-		
-		    set gaView(savedReportInfo,$viewID,$nLevel) \
-			[GetLevelReportInfoInView $viewID $nLevel]
-		    
-		} else {
+	    lappend lViewIDs $viewID
+	}
+    }
+    
+    return lViewIDs
+}
 
-		    if { [info exists gaView(savedReportInfo,$viewID,$nLevel)] } {
-			SetLevelReportInfoInView $viewID $nLevel \
-			    $gaView(savedReportInfo,$viewID,$nLevel) 
-			
-			if { $viewID == $gaView(current,id) } {
-			    set gaView(current,reportInfo$nLevel) \
-				$gaView(savedReportInfo,$viewID,$nLevel)
-			}
+
+proc AutoReportInfoChanged {} {
+    global gaView
+
+    set lViews [GetListOfViews [GetMainFrameID]]
+    foreach viewID $lViews {
+	for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	    
+	    if { $gaView(autoReportInfoForLUT) } {
+		
+		set gaView(savedReportInfo,$viewID,$nLevel) \
+		    [GetLevelReportInfoInView $viewID $nLevel]
+		
+	    } else {
+		
+		if { [info exists gaView(savedReportInfo,$viewID,$nLevel)] } {
+		    SetLevelReportInfoInView $viewID $nLevel \
+			$gaView(savedReportInfo,$viewID,$nLevel) 
+		    
+		    if { $viewID == $gaView(current,id) } {
+			set gaView(current,reportInfo$nLevel) \
+			    $gaView(savedReportInfo,$viewID,$nLevel)
 		    }
 		}
 	    }
@@ -4838,42 +4850,47 @@ proc AdjustReportInfoForAuto {} {
 
     if { $gaView(autoReportInfoForLUT) } {
 
-	# For each view...
-	set err [catch { set cRows [GetNumberOfRowsInFrame [GetMainFrameID]] } sResult]
-	if { 0 != $err } { tkuErrorDlog "$sResult"; return }
-	for { set nRow 0 } { $nRow < $cRows } { incr nRow } {
+	set lViews [GetListOfViews [GetMainFrameID]]
+	foreach viewID $lViews {
 	    
-	    set err [catch { 
-		set cCols [GetNumberOfColsAtRowInFrame [GetMainFrameID] $nRow]
-	    } sResult]
-	    if { 0 != $err } { tkuErrorDlog $sResult; return }
-	    
-	    for { set nCol 0 } { $nCol < $cCols } { incr nCol } {
+	    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 		
-		set err [catch { 
-		    set viewID [GetViewIDFromFrameColRow [GetMainFrameID] $nCol $nRow] 
-		} sResult]
-		if { 0 != $err } { tkuErrorDlog $sResult; return }
-		
-		for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
-
-		    set layerID [GetLayerInViewAtLevel $viewID $nLevel]
-		    if { $layerID >= 0 } {
-			set bReportInfo \
-			    [string match [Get2DMRILayerColorMapMethod $layerID] lut]
-			SetLevelReportInfoInView $viewID $layerID $bReportInfo
-
-			if { $viewID == $gaView(current,id) } {
-			    set gaView(current,reportInfo$nLevel) \
-				$bReportInfo
-			}
+		set layerID [GetLayerInViewAtLevel $viewID $nLevel]
+		if { $layerID >= 0 } {
+		    set bReportInfo \
+		      [string match [Get2DMRILayerColorMapMethod $layerID] lut]
+		    SetLevelReportInfoInView $viewID $layerID $bReportInfo
+		    
+		    if { $viewID == $gaView(current,id) } {
+			set gaView(current,reportInfo$nLevel) \
+			    $bReportInfo
 		    }
 		}
 	    }
+	    
+	    UpdateMouseLabelArea
+	    UpdateCursorLabelArea
+	    RedrawFrame [GetMainFrameID]
 	}
+    }
+}
 
-	UpdateMouseLabelArea
-	UpdateCursorLabelArea
+proc AdjustLayerSettingsForColorMap {} {
+    global gaLayer
+
+    foreach layerID $gaLayer(idList) {
+
+	if { [string match [Get2DMRILayerColorMapMethod $layerID] lut] } {
+
+	    Set2DMRILayerDrawZeroClear $layerID 1
+
+	    if { $layerID == $gaLayer(current,id) } {
+		set gaLayer(current,clearZero) \
+		    [Get2DMRILayerDrawZeroClear $gaLayer(current,id)]
+	    }
+	}
+    
+	UpdateLayerList
 	RedrawFrame [GetMainFrameID]
     }
 }
@@ -5637,7 +5654,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.153 2005/10/26 17:01:08 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.154 2005/10/26 21:42:12 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
