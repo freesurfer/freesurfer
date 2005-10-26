@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.84 2005/09/30 20:00:00 kteich Exp $
+# $Id: tksurfer.tcl,v 1.85 2005/10/26 20:51:51 kteich Exp $
 
 package require BLT;
 
@@ -2086,6 +2086,8 @@ proc DoCustomFillDlog {} {
 		 gFillParms(noPath) {} } \
 	    {text "Up to other labels" \
 		 gFillParms(noLabel) {} } \
+	    {text "Up to unlabeled" \
+		 gFillParms(noUnlabeled) {} } \
 	    {text "Up to and including different curvature" \
 		 gFillParms(noCmid) {} } \
 	    {text "Up to functional values below threshold" \
@@ -2150,6 +2152,7 @@ proc DoCustomFillDlog {} {
 		[list Apply { fill_flood_from_cursor \
 				  $gFillParms(noPath) \
 				  $gFillParms(noLabel) \
+				  $gFillParms(noUnlabeled) \
 				  $gFillParms(noCmid) \
 				  $gFillParms(noFThresh) \
 				  $gFillParms(multiseed) \

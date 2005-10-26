@@ -1808,6 +1808,7 @@ typedef struct {
   char dont_cross_label;
   char dont_cross_cmid;
   char dont_cross_fthresh;
+  char dont_fill_unlabeled;
 
   char use_multiple_seeds;
 
@@ -18345,22 +18346,24 @@ int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
   int nseeds;
   int n;
   
-  if (argc != 8)
+  if (argc != 9)
     {
       Tcl_SetResult(interp,"Wrong # args: fill_flood_from_cursor "
-		    "dont_cross_path dont_cross_label dont_cross_cmid "
-		    "dont_cross_fthresh use_multiple_seeds action argument",
+		    "dont_cross_path dont_cross_label dont_fill_unlabeled "
+		    "dont_cross_cmid dont_cross_fthresh  "
+		    "use_multiple_seeds action argument",
 		    TCL_VOLATILE);
       return TCL_ERROR;
     }
   
-  params.dont_cross_path = atoi(argv[1]);
+  params.dont_cross_path     = atoi(argv[1]);
   params.dont_cross_label    = atoi(argv[2]);
-  params.dont_cross_cmid     = atoi(argv[3]);
-  params.dont_cross_fthresh  = atoi(argv[4]);
-  params.use_multiple_seeds  = atoi(argv[5]);
-  params.action              = atoi(argv[6]);
-  params.argument            = atoi(argv[7]);
+  params.dont_fill_unlabeled = atoi(argv[3]);
+  params.dont_cross_cmid     = atoi(argv[4]);
+  params.dont_cross_fthresh  = atoi(argv[5]);
+  params.use_multiple_seeds  = atoi(argv[6]);
+  params.action              = atoi(argv[7]);
+  params.argument            = atoi(argv[8]);
 
   if (params.use_multiple_seeds)
     {
@@ -18566,7 +18569,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.146 2005/10/19 18:13:38 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.147 2005/10/26 20:51:46 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25250,14 +25253,16 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
 		  /* if we're not crossing labels, check if the label at
 		     this vertex is the same as the one at the seed. if not,
 		     move on. */
-		  if (params->dont_cross_label)
+		  if (params->dont_cross_label || 
+		      params->dont_fill_unlabeled)
 		    {
 
 		      labl_find_label_by_vno (neighbor_vno, 0,
 					      label_index_array,
 					      LABL_MAX_LABELS,
 					      &num_labels_found);
-		      if (num_labels_found > 0) 
+		      if (num_labels_found > 0 && 
+			  params->dont_cross_label) 
 			{
 			  skip = 0;
 			  for (found_label_index = 0;
@@ -25272,6 +25277,11 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
 				}
 			    }
 			  if (skip) continue;
+			}
+		      if (num_labels_found == 0 && 
+			  params->dont_fill_unlabeled) 
+			{
+			  continue;
 			}
 		    }
 		  
