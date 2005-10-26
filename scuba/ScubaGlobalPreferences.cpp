@@ -93,6 +93,7 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
     } else if( sKey == GetStringForKey( ViewFlipLeftRight ) ||
 	       sKey == GetStringForKey( ShowConsole ) ||
 	       sKey == GetStringForKey( AutoConfigureView ) ||
+	       sKey == GetStringForKey( AutoReportInfoForLUT ) ||
 	       sKey == GetStringForKey( DrawCoordinateOverlay ) ||
 	       sKey == GetStringForKey( DrawMarkers ) ||
 	       sKey == GetStringForKey( DrawPaths ) ||
@@ -129,6 +130,7 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
     if( sKey == GetStringForKey( ViewFlipLeftRight ) ||
 	sKey == GetStringForKey( ShowConsole ) ||
 	sKey == GetStringForKey( AutoConfigureView ) ||
+	sKey == GetStringForKey( AutoReportInfoForLUT ) ||
 	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
 	sKey == GetStringForKey( DrawMarkers ) ||
 	sKey == GetStringForKey( DrawPaths ) ||
@@ -194,6 +196,7 @@ ScubaGlobalPreferences::SetPreferencesValue ( PrefKey iKey, bool ibValue ) {
   if( iKey == ViewFlipLeftRight  ||
       iKey == ShowConsole ||
       iKey == AutoConfigureView ||
+      iKey == AutoReportInfoForLUT ||
       iKey == DrawCoordinateOverlay ||
       iKey == DrawMarkers ||
       iKey == DrawPaths ||
@@ -259,6 +262,7 @@ ScubaGlobalPreferences::GetPrefAsBool ( PrefKey iKey ) {
   if( iKey == ViewFlipLeftRight  ||
       iKey == ShowConsole ||
       iKey == AutoConfigureView ||
+      iKey == AutoReportInfoForLUT ||
       iKey == DrawCoordinateOverlay ||
       iKey == DrawMarkers ||
       iKey == DrawPaths ||
@@ -336,6 +340,7 @@ ScubaGlobalPreferences::GetStringForKey ( PrefKey iKey ) {
   switch( iKey ) {
   case ShowConsole:                return "ShowConsole";                 break;
   case AutoConfigureView:          return "AutoConfigureView";           break;
+  case AutoReportInfoForLUT:       return "AutoReportInfoForLUT";        break;
   case ViewFlipLeftRight:          return "ViewFlipLeftRight";           break;
   case KeyInPlaneX:                return "KeyInPlaneX";                 break;
   case KeyInPlaneY:                return "KeyInPlaneY";                 break;
@@ -395,6 +400,13 @@ ScubaGlobalPreferences::ReadPreferences () {
 			  "Automatically set up the view when the view "
 			  "configuration is changed.",
 			  autoConfigure );
+
+  PreferencesManager::IntPrefValue autoReportInfo( true );
+  prefsMgr.RegisterValue( GetStringForKey( AutoReportInfoForLUT ), 
+			  "Automatically set the Report Info checkbox for "
+			  "a view on if the layer in the view is an LUT "
+			  "volume.",
+			  autoReportInfo );
 
   keyCombo->SetFromString( "X" );
   PreferencesManager::StringPrefValue inPlaneX( keyCombo->ToString() );
