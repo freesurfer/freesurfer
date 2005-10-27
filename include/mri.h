@@ -968,5 +968,6 @@ int MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg) ;
 MRI *MRInonMaxSuppress(MRI *mri_src, MRI *mri_sup, float thresh, int thresh_dir) ;
 MRI *MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst, MRI_REGION *region, int pad) ;
 MRI *MRIsetValuesOutsideRegion(MRI *mri_src, MRI_REGION *region, MRI *mri_dst, float val) ;
+int MRIcountNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z) ;
 
 #endif
