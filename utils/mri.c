@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/10/20 19:35:50 $
-// Revision       : $Revision: 1.316 $
-char *MRI_C_VERSION = "$Revision: 1.316 $";
+// Revision Date  : $Date: 2005/10/27 18:07:37 $
+// Revision       : $Revision: 1.317 $
+char *MRI_C_VERSION = "$Revision: 1.317 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -928,6 +928,42 @@ MRIvalRange(MRI *mri, float *pmin, float *pmax)
     break ;
   }
 
+  *pmin = fmin ;
+  *pmax = fmax ;
+  return(NO_ERROR) ;
+}
+int
+MRInonzeroValRange(MRI *mri, float *pmin, float *pmax)
+{
+  int      width, height, depth, x, y, z, frame ;
+  float    fmin, fmax, val ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  fmin = 10000.0f ;
+  fmax = -10000.0f ;
+	for (frame = 0 ; frame < mri->nframes ; frame++)
+	{
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					val = MRIgetVoxVal(mri, x, y, z, 0) ;
+					if (FZERO(val))
+						continue ;
+					if (val < fmin)
+						fmin = val ;
+					if (val > fmax)
+						fmax = val ;
+				}
+			}
+		}
+	}
+	
   *pmin = fmin ;
   *pmax = fmax ;
   return(NO_ERROR) ;
@@ -10801,6 +10837,28 @@ MRIfindNearestNonzero(MRI *mri, int wsize, Real xr, Real yr, Real zr)
     }
   }
   return(min_val) ;
+}
+int
+MRIcountNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z)
+{
+  int   xk, yk, zk, xi, yi, zi, whalf, total ;
+
+  whalf = (wsize-1)/2 ;
+  for (total = 0, zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        if (MRIgetVoxVal(mri, xi, yi, zi,0) > 0)
+					total++ ;
+      }
+    }
+  }
+  return(total) ;
 }
 float
 MRIfindNearestNonzeroLocation(MRI *mri, int wsize, Real xr, Real yr, Real zr,
