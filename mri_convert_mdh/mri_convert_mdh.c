@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.17 2005/10/26 20:57:25 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.18 2005/10/27 21:14:31 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.17 2005/10/26 20:57:25 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.18 2005/10/27 21:14:31 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -481,6 +481,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--dump"))    dumpmdh = 1;
     else if (!strcasecmp(option, "--binary"))  BinaryADCDump = 1;
     else if (!strcasecmp(option, "--adcstats")) adcstats = 1;
+    else if (!strcasecmp(option, "--nopcn")) DumpPCN = 0;
     //else if (!strcasecmp(option, "--rev"))     rev = 1;
 
     else if (stringmatch(option, "--srcdir")){
@@ -1641,8 +1642,8 @@ int MDHdumpADC(char *measoutpath, char *outfile, int binary)
     mdh = ReadMiniHeader(fp,mdh,mdhversion);
     if(feof(fp)) break;
     if(mdh->BitMask1 == 1) break;
-    if(mdh->IsPCN && ! DumpPCN) continue;
     fread(adc,sizeof(float), 2*mdh->Ncols, fp);
+    if(mdh->IsPCN && ! DumpPCN) continue;
     for(m=0; m < 2*mdh->Ncols; m++){
       if(! binary)
 	fprintf(outfp,"%20.40f\n",adc[m]);
