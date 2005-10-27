@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/09/30 00:54:52 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2005/10/27 13:02:46 $
+// Revision       : $Revision: 1.3 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -37,6 +37,7 @@
 #define PAD      10
 #define PADVOX   1
 
+static int check_angio_labels(MRI *mri_source, MRI *mri_target) ;
 static int find_gcam_node(GCA_MORPH *gcam, int label, 
 													float x_vox, float y_vox, float z_vox) ;
 
@@ -127,12 +128,14 @@ main(int argc, char *argv[])
 	mp.l_binary = .025 ;
 	mp.dt = 0.005 ;
 	mp.noneg = True ;
-	mp.exp_k = 20 ;
+	mp.exp_k = 5 ;
 	mp.momentum = 0.9 ;
 	if (FZERO(mp.l_smoothness))
-		mp.l_smoothness = 1 ;
+		mp.l_smoothness = .001 ;
 	mp.sigma = 8 ;
 	mp.relabel_avgs = -1 ;
+	mp.uncompress = 1 ;     // remove compression each time step
+	mp.ratio_thresh = 0.1 ; // nodes with area/orig smaller than this are compressed
 	mp.navgs = 256 ;
 	mp.levels = 6 ;
 	mp.integration_type = GCAM_INTEGRATE_BOTH ;
@@ -177,18 +180,27 @@ main(int argc, char *argv[])
 		ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s",
 							Progname, target_fname) ;
 	MRIboundingBox(mri_source, 0, &box) ;
+#if 0
 	pad = (int)ceil(PADVOX * 
 									MAX(mri_target->xsize,MAX(mri_target->ysize,mri_target->zsize)) / 
 									MIN(mri_source->xsize,MIN(mri_source->ysize,mri_source->zsize))); 
-	mri_tmp = MRIextractRegionAndPad(mri_source, NULL, &box, pad) ;
+#else
+	pad = PADVOX ;
+#endif
 	printf("padding source with %d voxels...\n", pad) ;
 	if (pad < 1)
 		pad = 1 ;
-	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE)
-		MRIwrite(mri_tmp, "t.mgz") ;
+	mri_tmp = MRIextractRegionAndPad(mri_source, NULL, &box, pad) ;
 	MRIfree(&mri_source) ;
 	mri_source = mri_tmp ;
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE)
+		MRIwrite(mri_source, "t.mgz") ;
 	mri_orig_source = MRIcopy(mri_source, NULL) ;
+
+	MRIboundingBox(mri_target, 0, &box) ;
+	mri_tmp = MRIextractRegionAndPad(mri_target, NULL, &box, pad) ;
+	MRIfree(&mri_target) ;
+	mri_target = mri_tmp ;
 
 	if (which == ANGIO)
 	{
@@ -198,6 +210,7 @@ main(int argc, char *argv[])
 			MRIreplaceValues(mri_source, mri_source, label, 0) ;
 			MRIreplaceValues(mri_target, mri_target, label, 0) ;
 		}
+		check_angio_labels(mri_source, mri_target) ;
 	}
 	else if (which == HIPPO)
 	{
@@ -412,6 +425,7 @@ main(int argc, char *argv[])
 	return(0) ;
 }
 
+extern int gcam_write_grad ;
 static int
 get_option(int argc, char *argv[])
 {
@@ -428,10 +442,14 @@ get_option(int argc, char *argv[])
 		nargs = 3 ;
 		printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
 	}
-  else if (!stricmp(option, "OPTIMAL"))
+  else if (!stricmp(option, "CJ"))
   {
-    mp.integration_type = GCAM_INTEGRATE_OPTIMAL ;
-    printf("using optimal time-step integration\n") ;
+    mp.constrain_jacobian = 1;
+		mp.l_jacobian = 0 ;
+		mp.ratio_thresh = .25 ;
+		mp.noneg = False ;
+    printf("constraining jacobian to be in [%2.2f %2.2f]\n",
+					 mp.ratio_thresh, 1/mp.ratio_thresh) ;
   }
   else if (!stricmp(option, "find_label"))
   {
@@ -864,6 +882,34 @@ find_gcam_node(GCA_MORPH *gcam, int label, float x0, float y0, float z0)
 	return(NO_ERROR) ;
 }
 
+static int
+check_angio_labels(MRI *mri_source, MRI *mri_target)
+{
+	int   label, imin, imax, scount, tcount ;
+	float smin, smax, tmin, tmax ;
 
+	MRInonzeroValRange(mri_source, &smin, &smax) ;
+	MRInonzeroValRange(mri_target, &tmin, &tmax) ;
+	imin = nint(MIN(smin,tmin)) ; imax = nint(MAX(smax,tmax)) ;
+
+	printf("checking labels %d (%s) --> %d (%s)\n", imin, 
+				 cma_label_to_name(imin), imax, cma_label_to_name(imax)) ;
+	for (label = imin ; label <= imax ; label++)
+	{
+		scount = MRIvoxelsInLabel(mri_source, label) ;
+		tcount = MRIvoxelsInLabel(mri_target, label) ;
+		if (scount == 0 && tcount > 0)
+		{
+			printf("removing label %s (%d) from target volume\n", cma_label_to_name(label), label) ;
+			MRIreplaceValues(mri_target, mri_target, label, 0) ;
+		}
+		else if (tcount == 0 && scount > 0)
+		{
+			printf("removing label %s (%d) from source volume\n", cma_label_to_name(label), label) ;
+			MRIreplaceValues(mri_source, mri_source, label, 0) ;
+		}
+	}
+	return(NO_ERROR) ;
+}
 
 

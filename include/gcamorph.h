@@ -33,6 +33,7 @@ typedef struct
   float  log_p ;         /* current log probability of this sample */
   float  dx, dy, dz;     /* current gradient */
   float  odx, ody, odz ; /* previous gradient */
+	float  jx, jy, jz ;    /* jacobian gradient */
   float  area ;
   float  orig_area ;
   int    status ;       /* ignore likelihood term */
@@ -98,6 +99,7 @@ typedef struct
 	double l_binary ;
   double l_map ;
 	double l_area_intensity;
+	double l_spring ;
   double tol ;
   int    levels ;
   FILE   *log_fp ;
@@ -121,12 +123,14 @@ typedef struct
 	double end_rms ;
 	NODE_LOOKUP_TABLE *nlt ;
 	int    regrid  ;
+	int    uncompress ;           // remove lattice compression each time step
 	MRI    *mri_diag ;
 	int    diag_morph_from_atlas ;
 	int    diag_mode_filter ;     // # of iterations of mode filter to apply
 	int    diag_volume ;          // what type of volume to write in write_snapshot e.g. GCAM_MEANS
 	int    npasses ;              // # of times to go through all levels
 	MRI    *mri_dist_map ;        // distance to non-zero binary values
+	int    constrain_jacobian ;
 } GCA_MORPH_PARMS, GMP ;
 
 
