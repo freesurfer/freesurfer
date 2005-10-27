@@ -27,7 +27,7 @@ function [d, StartTime, TimeStep, ColIds] = tdr_ldgraddump(dfile)
 % 
 % See also: tdr_measasc.m
 % 
-% $Id: tdr_ldgraddump.m,v 1.1 2005/10/26 22:23:27 greve Exp $
+% $Id: tdr_ldgraddump.m,v 1.2 2005/10/27 02:56:45 greve Exp $
 
 %dfile = '/space/greve/1/users/greve/spiral/bay2-oct24/GradMom_spiral_32x32.txt';
 
@@ -102,7 +102,8 @@ while(1)
     tmp = findstr('Y-Gradientmoment',tline);
     if(~isempty(tmp)) ColIds = strvcat(ColIds,'ygradmom'); end
   
-    tmp = findstr('Z-Gradientmoment',tline);
+    % The "n" in "Gradientnmoment" appears to be a typo
+    tmp = findstr('Z-Gradientnmoment',tline);
     if(~isempty(tmp)) ColIds = strvcat(ColIds,'zgradmom'); end
   
     tmp = findstr(' RF-Signal Data',tline);
@@ -126,9 +127,12 @@ fclose(fp);
 nvals = length(vals);
 nd    = length(d);
 if(rem(nd,nvals) ~= 0)
-  fprintf('ERROR: reading vals %s\n',dfile);
-  return;
+  fprintf('WARNING: %s appears to be truncated.\n',dfile);
 end
+
+ndkeep = nd - rem(nd,nvals);
+d = d(1:ndkeep);
+nd    = length(d);
 
 d = reshape(d,[nvals nd/nvals])';      
 d = [vals; d];
