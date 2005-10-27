@@ -229,6 +229,7 @@ int        GCAcomputeSampleCoords(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
 MRI        *GCAmri(GCA *gca, MRI *mri) ;
 MRI        *GCAlabelMri(GCA *gca, MRI *mri, int label, TRANSFORM *transform) ;
 MRI        *GCAbuildMostLikelyVolume(GCA *gca, MRI *mri) ;
+MRI        *GCAbuildMostLikelyVolumeForStructure(GCA *gca, MRI *mri_seg, int label, int border, TRANSFORM *transform) ;
 MRI        *GCAbuildMostLikelyVolumeFrame(GCA *gca, MRI *mri, int frame) ;
 MRI  *GCAlabelProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform);
 MRI  *GCAcomputeProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels, 
@@ -263,6 +264,7 @@ int   GCAhistogramTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD,
 int   GCAnormalizeTissueStatistics(GCA *gca) ;
 int  GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
 int  GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform) ;
+int  GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 int  GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
                             int wsize, float pthresh) ;
 int  GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
