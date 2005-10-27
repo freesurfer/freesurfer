@@ -2986,3 +2986,27 @@ TransformWrite(TRANSFORM *transform, char *fname)
   return(NO_ERROR) ;  /* will never get here */
 }
 
+TRANSFORM *
+TransformCopy(TRANSFORM *tsrc, TRANSFORM *tdst)
+{
+	if (!tdst)
+		tdst = TransformAlloc(tsrc->type, NULL) ;
+
+	switch (tsrc->type)
+	{
+    case MORPH_3D_TYPE:
+      ErrorReturn(NULL, (ERROR_UNSUPPORTED,
+                         "TransformCopy(MORPH_3D_TYPE): unsupported")) ;
+      break ;
+	default:
+		{
+			LTA *lta_src, *lta_dst ;
+			lta_src = (LTA *)(tsrc->xform) ;
+			lta_dst = (LTA *)(tdst->xform) ;
+			MatrixCopy(lta_src->xforms[0].m_L, lta_dst->xforms[0].m_L) ;
+			break ;
+		}
+	}
+	return(tdst) ;
+}
+

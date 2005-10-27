@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/09/27 21:01:15 $                                             */
-/* Revision       : $Revision: 1.42 $                                         */
+/* Revision Date  : $Date: 2005/10/27 19:41:28 $                                             */
+/* Revision       : $Revision: 1.43 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -139,6 +139,8 @@ int       TransformSampleInverseVoxel(TRANSFORM *transform, int width, int heigh
                                       int xv, int yv, int zv, 
                                       int *px, int *py, int *pz) ;
 TRANSFORM *TransformAlloc(int type, MRI *mri) ;
+TRANSFORM *TransformCopy(TRANSFORM *tsrc, TRANSFORM *tdst) ;
+
 int       TransformInvert(TRANSFORM *transform, MRI *mri) ;
 int       TransformSwapInverse(TRANSFORM *transform) ;
 MRI       *TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
