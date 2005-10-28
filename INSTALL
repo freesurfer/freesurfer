@@ -231,6 +231,18 @@ overridden in the site shell script).
 `configure' also accepts some other, not widely useful, options.  Run
 `configure --help' for more details.
 
+'configure' troubleshooting
+===========================
+To recreate the files that configure uses as input, run the following:
+
+  rm -rf autom4te.cache
+  aclocal
+  libtoolize --force
+  autoreconf --force
+
+This may fix strange platform specific errors that may appear when running
+the default configure script.
+
 FreeSurfer Specific Options
 ===========================
 
@@ -265,14 +277,16 @@ You can also download the latest source release from the MINC
 website. As of 10/21/2005, the current release is 1.4 and it works
 fine with FreeSurfer.
 
-Alternatively, special bundle of the source code for the packages
+Alternatively, a special bundle of the source code for the packages
 required by Freesurfer has been assembled at MGH and is available from
 the download site:
 
-  http://surfer.nmr.mgh.harvard.edu/pub/dist/
+  https://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs
 
 Look for mni.srcbuild.tar.gz, and mni.srcbuild.README.txt describes
-the build process.
+the build process.  Also look for tcltktixblt.tar.gz, gsl-1.6.tar.gz
+and tiffjpegglut.tar.gz.  Each contains a build script, handling the
+idiosyncracies of making each library work with Freesurfer.
 
 Normally, the MINC toolkit is installed into /usr/local/mni, although
 your site may have a different system of sharing
