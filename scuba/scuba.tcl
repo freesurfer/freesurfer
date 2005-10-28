@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.154 2005/10/26 21:42:12 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.155 2005/10/28 19:53:59 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1065,7 +1065,6 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	    }
 
 	    SetLayerInViewAtLevel $viewID $curLayer($nNextLevel) $nLevel
-	    AdjustReportInfoForAuto
 	}
 
 	SelectViewInViewProperties $viewID
@@ -1075,6 +1074,8 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	if { $topLayerID >= 0 } {
 	    SelectLayerInLayerProperties $topLayerID
 	}
+
+	AdjustReportInfoForAuto
     }
 
     # This is kind of arbitrary, but since some keypresses can change
@@ -5654,7 +5655,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.154 2005/10/26 21:42:12 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.155 2005/10/28 19:53:59 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6944,7 +6945,7 @@ proc ROIStatsDlogVolCallback { iVolID } {
 
 proc ROIStatsDlogROICallback { iROIID } {
     global gaROIStatsInfo
- 
+
     [$gaROIStatsInfo(widget,text) subwidget text] \
 	config -wrap word -relief ridge -bd 1
 
@@ -6953,7 +6954,7 @@ proc ROIStatsDlogROICallback { iROIID } {
 
     set sText ""
     set err [catch {
-	
+
 	set average [GetVolumeAverageValueInROI $gaROIStatsInfo(volID) $gaROIStatsInfo(roiID)]
 	set stdDev [GetVolumeStandardDeviationInROI $gaROIStatsInfo(volID) $gaROIStatsInfo(roiID)]
 	set sText "Average value: $average\nStd dev: $stdDev"
