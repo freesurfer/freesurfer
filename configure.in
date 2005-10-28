@@ -1066,10 +1066,6 @@ AC_CHECK_FUNCS([\
 #########################################################################
 # output
 #########################################################################
-DEV=`pwd`
-export DEV
-./config/removemakefile.sh
-
 AC_OUTPUT(\
 Makefile \
 unix/Makefile \
