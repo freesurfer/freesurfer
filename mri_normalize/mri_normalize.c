@@ -63,10 +63,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_normalize.c,v 1.39 2005/10/25 18:26:23 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_normalize.c,v 1.40 2005/10/28 00:08:51 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.39 2005/10/25 18:26:23 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.40 2005/10/28 00:08:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -165,7 +165,7 @@ main(int argc, char *argv[])
 			ErrorExit(ERROR_NOFILE, "%s: could not read aseg from file %s", Progname, aseg_fname) ;
 	}
 	else
-		aseg_fname = NULL ;
+		mri_aseg = NULL ;
 
   if (verbose)
     fprintf(stderr, "normalizing image...\n") ;
