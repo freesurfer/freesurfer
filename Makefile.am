@@ -45,7 +45,7 @@ FSLUTILS=fslutils
 
 STATSDIRS=optseq2 spm2bfloat statcombine stat_normalize
 
-MISCDIRS=histo_compute_joint_density histo_register_block regdat2xfm brik2bfloat minc_to_bshort test_window_env dngtester \
+MISCDIRS=histo_compute_joint_density histo_register_block regdat2xfm brik2bfloat minc_to_bshort test_window_env dngtester test_makevol \
 paint scripts images distribution
 
 SUBDIRS=unix dicom hipsstubs rgb utils utilscpp log fsgdf $(MRISUBDIRS) $(MRISSUBDIRS) $(GLSUBDIRS) $(FSGDF) $(FSLUTILS) $(STATSDIRS) \

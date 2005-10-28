@@ -1255,6 +1255,7 @@ regdat2xfm/Makefile \
 scuba/Makefile \
 scuba/images/Makefile \
 test_window_env/Makefile \
+test_makevol/Makefile \
 brik2bfloat/Makefile \
 minc_to_bshort/Makefile \
 paint/Makefile \
