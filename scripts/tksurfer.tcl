@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.85 2005/10/26 20:51:51 kteich Exp $
+# $Id: tksurfer.tcl,v 1.86 2005/10/28 18:28:18 kteich Exp $
 
 package require BLT;
 
@@ -1260,6 +1260,7 @@ proc UpdateOverlayDlogInfo {} {
 	    $gaHistoWidget(graph) element delete $name
 	}
 	set nValue 0
+
 	for { set x $gaHistogramData(min) } \
 	    { $x < $gaHistogramData(max) } \
 	    { set x [expr $x + $gaHistogramData(increment)] } {
@@ -1287,19 +1288,11 @@ proc UpdateOverlayDlogInfo {} {
 	SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid) 0
 	SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope) 1
 
-	# calculate a good width for the ticks.
-	set width [$gaHistoWidget(graph) cget -width]
-	set widthPerTick [expr $width / $gaHistogramData(numBars)]
-	if { $widthPerTick < $knMinWidthPerTick } {
-	    set numMarks [expr $width / $knMinWidthPerTick]
-	    set widthPerTick [expr $gaHistogramData(numBars) / $numMarks]
-	    $gaHistoWidget(graph) axis configure x -stepsize $widthPerTick
-	} else {
-	    set widthPerTick $gaHistogramData(increment)
-	    $gwGraph axis configure x -stepsize $widthPerTick
-	}
+	# Automatically calculate a good width for the ticks.
+	$gaHistoWidget(graph) axis configure x -stepsize 0
+
     } result]
-#    if {$err != 0} {puts "ERROR updating histo: $result"}
+    if {$err != 0} {puts "ERROR updating histo: $result"}
 
     # rebuild the copy target menu
     catch {
