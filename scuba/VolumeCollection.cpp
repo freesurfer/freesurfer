@@ -1930,9 +1930,9 @@ VolumeCollection::GetAverageValue ( ScubaROIVolume& iROI ) {
   
   list<VolumeLocation> lLocs;
   int voxel[3];
-  for( voxel[2] = 0; voxel[2] < mMRI->width; voxel[2]++ ) {
+  for( voxel[2] = 0; voxel[2] < mMRI->depth; voxel[2]++ ) {
     for( voxel[1] = 0; voxel[1] < mMRI->height; voxel[1]++ ) {
-      for( voxel[0] = 0; voxel[0] < mMRI->depth; voxel[0]++ ) {
+      for( voxel[0] = 0; voxel[0] < mMRI->width; voxel[0]++ ) {
 	
 	if( iROI.IsVoxelSelected( voxel ) ) {
 	  
@@ -1975,9 +1975,9 @@ VolumeCollection::GetStandardDeviation ( ScubaROIVolume& iROI, float iMean ) {
   
   list<VolumeLocation> lLocs;
   int voxel[3];
-  for( voxel[2] = 0; voxel[2] < mMRI->width; voxel[2]++ ) {
+  for( voxel[2] = 0; voxel[2] < mMRI->depth; voxel[2]++ ) {
     for( voxel[1] = 0; voxel[1] < mMRI->height; voxel[1]++ ) {
-      for( voxel[0] = 0; voxel[0] < mMRI->depth; voxel[0]++ ) {
+      for( voxel[0] = 0; voxel[0] < mMRI->width; voxel[0]++ ) {
 	
 	if( iROI.IsVoxelSelected( voxel ) ) {
 	  

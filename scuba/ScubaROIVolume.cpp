@@ -102,7 +102,10 @@ ScubaROIVolume::IsVoxelSelected ( int const iVoxel[3] ) const {
   if( iVoxel[0] < 0 || iVoxel[0] >= mBounds[0] ||
       iVoxel[1] < 0 || iVoxel[1] >= mBounds[1] ||
       iVoxel[2] < 0 || iVoxel[2] >= mBounds[2] ) {
-    throw runtime_error( "out of bounds" );
+    stringstream ssErr;
+    ssErr << "Out of bounds voxel " << iVoxel[0] << ", "
+	  << iVoxel[1] << ", " << iVoxel[2] << endl;
+    throw runtime_error( ssErr.str() );
   }    
 
   return mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]];
