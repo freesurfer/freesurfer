@@ -1838,7 +1838,6 @@ VolumeCollection::AutosaveIfDirty () {
   if( mbAutosave && mbAutosaveDirty ) {
     Save( mfnAutosave );
     mbAutosaveDirty = false;
-    cerr << "saving " << mfnAutosave << endl;
   }
 }
 

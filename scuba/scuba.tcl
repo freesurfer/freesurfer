@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.155 2005/10/28 19:53:59 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.156 2005/10/31 18:56:10 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5486,6 +5486,20 @@ proc DoDeleteROIDlog {} {
 		    set err [catch {
 			DeleteCollectionROI $gaCollection(current,id) \
 			    $gaROI(current,id)
+
+			# Check to see if there are any more ROIs for
+			# this collection. If not, create one so
+			# they'll have something to draw into.
+			set lROIs \
+			  [GetROIIDListForCollection $gaCollection(current,id)]
+			if { [llength $lROIs] == 0 } {
+			    set roiID \
+				[NewCollectionROI $gaCollection(current,id)]
+			    SetROILabel $roiID "New ROI"
+			    UpdateROIList
+			    SelectROIInROIProperties $roiID
+			}
+			
 			UpdateROIList
 		    } sResult]
 		    if { 0 != $err } { tkuErrorDlog $sResult }
@@ -5655,7 +5669,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.155 2005/10/28 19:53:59 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.156 2005/10/31 18:56:10 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

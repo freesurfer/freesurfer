@@ -330,7 +330,8 @@ DataCollection::DeleteROI ( int iROIID ) {
 
     ScubaROI* roi = (*tIDROI).second;
     delete roi;
-    mROIMap[iROIID] = NULL;
+
+    mROIMap.erase( iROIID );
 
     if( mSelectedROIID == iROIID ) {
       mSelectedROIID = -1;
