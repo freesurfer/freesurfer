@@ -455,21 +455,12 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       layer.SetBytesPerPixel( kBytesPerPixel );
 
       // Try to see if we alreayd looked at the preferred through
-      // plane increments for this layer. If not, check them out, and
-      // if they are < what we already have, set to the lower value.
+      // plane increments for this layer. If not, check them out.
       map<int,bool>::iterator tLayerIDGotThroughPlaneIncrements;
       tLayerIDGotThroughPlaneIncrements = 
 	mLayerIDGotThroughPlaneIncrements.find( iLayerID );
       if( tLayerIDGotThroughPlaneIncrements == 
 	  mLayerIDGotThroughPlaneIncrements.end() ) {
-	float incs[3];
-	layer.GetPreferredThroughPlaneIncrements( incs );
-	if( incs[0] < mThroughPlaneIncrements[0] )
-	  mThroughPlaneIncrements[0] = incs[0];
-	if( incs[1] < mThroughPlaneIncrements[1] )
-	  mThroughPlaneIncrements[1] = incs[1];
-	if( incs[2] < mThroughPlaneIncrements[2] )
-	  mThroughPlaneIncrements[2] = incs[2];
 	mLayerIDGotThroughPlaneIncrements[iLayerID] = true;
       }
 
@@ -495,6 +486,18 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       DebugOutput( << "Couldn't find layer " << iLayerID );
     }
   }
+
+  // Get the increments from the top level.
+  int highestLevel = 0;
+  map<int,int>::iterator tLevelLayerID;
+  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+    int level = (*tLevelLayerID).first;
+    if( level > highestLevel ) 
+      highestLevel = level;
+  }
+  Layer& layer = Layer::FindByID( mLevelLayerIDMap[highestLevel] );
+  layer.GetPreferredThroughPlaneIncrements( mThroughPlaneIncrements );
 
   RequestRedisplay();
 }
@@ -527,17 +530,28 @@ ScubaView::RemoveLayerAtLevel ( int iLevel ) {
 int
 ScubaView::GetFirstUnusedDrawLevel () {
 
-  int highestLevel = 0;
+  // This is actually the lowest empty level, 
+  int lowestEmptyLevel = 0;
   map<int,int>::iterator tLevelLayerID;
   for( tLevelLayerID = mLevelLayerIDMap.begin(); 
        tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
 
     int level = (*tLevelLayerID).first;
-    
-    highestLevel = level + 1;
+
+    // If the level above this one is empty,
+    if( mLevelLayerIDMap.find(level+1) == mLevelLayerIDMap.end () ||
+	mLevelLayerIDMap[level+1] == -1 ) {
+
+      // And if the level above this one is the lowest empty level,
+      if( level + 1 > lowestEmptyLevel ) {
+
+	// Save this level.
+	lowestEmptyLevel = level + 1;
+      }
+    }
   }
 
-  return highestLevel;
+  return lowestEmptyLevel;
 }
 
 void
