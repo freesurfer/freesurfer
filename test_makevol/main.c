@@ -24,6 +24,7 @@ int main ( int argc, char** argv ) {
   int setValue = 0;
   char fnVol[256] = "new_volume.mgz";
   int i;
+  char* arg = NULL;
 
   for( i = 1; i < argc; i++ ) {
     
@@ -32,7 +33,7 @@ int main ( int argc, char** argv ) {
       continue;
     }
 
-    char* arg = argv[i];
+    arg = argv[i];
     while( arg[0] == '-' )
       arg = arg+1;
 
