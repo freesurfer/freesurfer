@@ -25,7 +25,7 @@
 #include "talairachex.h"
 #include "subroutines.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.97 2005/10/18 21:16:00 xhan Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.98 2005/10/31 17:20:45 xhan Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -327,12 +327,12 @@ main(int argc, char *argv[])
   VOL_GEOM *src=0;
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_fill.c,v 1.97 2005/10/18 21:16:00 xhan Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_fill.c,v 1.98 2005/10/31 17:20:45 xhan Exp $", "$Name:  $", cmdline);
 
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.97 2005/10/18 21:16:00 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.98 2005/10/31 17:20:45 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4145,9 +4145,13 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg){
   height = mri_img->height;
 
   mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR);
+  MRIcopyHeader(mri_img, mri_ctrl);
   mri_fill = MRIalloc(width, height, depth, MRI_UCHAR);
+  MRIcopyHeader(mri_img, mri_fill);
   mri_fill_lh = MRIalloc(width, height, depth, MRI_UCHAR);
+  MRIcopyHeader(mri_img, mri_fill_lh);
   mri_fill_rh = MRIalloc(width, height, depth, MRI_UCHAR);
+  MRIcopyHeader(mri_img, mri_fill_rh);
 
   printf("Erasing Brain Stem and Cerebellum ...\n");
   
