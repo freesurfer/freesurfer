@@ -3195,55 +3195,55 @@ Volm_tErr Volm_ExtractAndSetSubjectName ( mriVolumeRef this,
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (NULL != isSource), eResult, Volm_tErr_InvalidParamater );
   
-  /* look for 'subjects' in the title */
-  DebugNote( ("Looking for subjects/ in source") );
-  sWord = strstr( isSource, "subjects/" );
+  /* look for /mri in the title */
+  DebugNote( ("Looking for /mri in source") );
+  sWord = strstr( isSource, "/mri" );
   if( NULL != sWord ) {
     
-    /* we're at the s in subjects now. scoot ahead to the slash. */
-    DebugNote( ("Scooting ahead to the slash") );
-    nChar = 0;
-    while( sWord[nChar] != '/' &&
-	   sWord[nChar] != '\0' ) {
-      nChar++;
+    /* we're at the slash now. go to the slash before this one. while
+       we're not at the beginning.. */
+    DebugNote( ("Going to the slash before /mri") );
+    while( sWord != isSource ) {
+      sWord -= sizeof( char );
+      if( *sWord == '/' )
+	break;
     }
     
-    /* if found, use the next part as the name */
-    DebugNote( ("Copying in chars from subjects/ to the next /") );
+    /* inc past the slash and use the next part as the name */
+    sWord += sizeof( char );
     nWordChar = 0;
-    nChar++; /* get past the slash */
-    while( sWord[nChar] != '/' &&
-	   sWord[nChar] != '\0' ) {
-      sName[nWordChar] = sWord[nChar];
+    DebugNote( ("Copying in the part after the slash before /mri to /mri") );
+    while( *sWord != '/' &&
+	   *sWord != '\0' ) {
+      sName[nWordChar] = *sWord;
       nWordChar++;
-      nChar++;
+      sWord += sizeof( char );
     }
     
   } else {
     
-    /* look for /mri in the title */
-    DebugNote( ("Looking for /mri in source") );
-    sWord = strstr( isSource, "/mri" );
+    /* look for 'subjects' in the title */
+    DebugNote( ("Looking for subjects/ in source") );
+    sWord = strstr( isSource, "subjects/" );
     if( NULL != sWord ) {
       
-      /* we're at the slash now. go to the slash before this one. while
-	 we're not at the beginning.. */
-      DebugNote( ("Going to the slash before /mri") );
-      while( sWord != isSource ) {
-	sWord -= sizeof( char );
-	if( *sWord == '/' )
-	  break;
+      /* we're at the s in subjects now. scoot ahead to the slash. */
+      DebugNote( ("Scooting ahead to the slash") );
+      nChar = 0;
+      while( sWord[nChar] != '/' &&
+	     sWord[nChar] != '\0' ) {
+	nChar++;
       }
       
-      /* inc past the slash and use the next part as the name */
-      sWord += sizeof( char );
+      /* if found, use the next part as the name */
+      DebugNote( ("Copying in chars from subjects/ to the next /") );
       nWordChar = 0;
-      DebugNote( ("Copying in the part after the slash before /mri to /mri") );
-      while( *sWord != '/' &&
-	     *sWord != '\0' ) {
-	sName[nWordChar] = *sWord;
+      nChar++; /* get past the slash */
+      while( sWord[nChar] != '/' &&
+	   sWord[nChar] != '\0' ) {
+	sName[nWordChar] = sWord[nChar];
 	nWordChar++;
-	sWord += sizeof( char );
+	nChar++;
       }
       
     } else {
