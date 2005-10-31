@@ -541,3 +541,13 @@ Find Nearest Surface Vertex
 Set Cursor from edit.dat
 Generate Segementation Volume Report
 
+For scuba2:
+Mimic level behavior
+ - Report info auto-config stuff
+ - LUT/clear zero stuff
+ROI stats dlog
+Delete ROI command
+ - If delete and ROI and none left, create a new one
+Shorten seg label values
+Through plane increment, verify
+Why does slider-with-field increment not integer, or even decent?
