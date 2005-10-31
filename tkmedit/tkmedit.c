@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/10/25 19:29:40 $
-// Revision       : $Revision: 1.258 $
-char *VERSION = "$Revision: 1.258 $";
+// Revision Date  : $Date: 2005/10/31 20:06:49 $
+// Revision       : $Revision: 1.259 $
+char *VERSION = "$Revision: 1.259 $";
 
 #define TCL
 #define TKMEDIT 
@@ -214,12 +214,6 @@ void MakeFileName ( char*     isInput,
 		    tkm_tFileName  iType, 
 		    char*         osCompleteFileName,
 		    int         inDestSize );
-
-/* attempts to extract a name from the data */
-void ExtractSubjectName ( char* isDataSource,
-			  char* osSubjectName );
-void ExtractVolumeName  ( char* isDataSource,
-			  char* osVolumeName );
 
 /* only tries to prepend subdirectories if this flag is true. it is set to
    false if -f is used on the command line. */
@@ -1106,7 +1100,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.258 2005/10/25 19:29:40 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.259 2005/10/31 20:06:49 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5349,7 +5343,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.258 2005/10/25 19:29:40 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.259 2005/10/31 20:06:49 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7421,99 +7415,6 @@ void MakeFileName ( char*     isInput,
   xUtil_strncpy( osCompleteFileName, sFileName, inDestSize );
   
   DebugExitFunction;
-}
-
-void ExtractSubjectName ( char* isDataSource,
-        char* osSubjectName ) {
-  
-  int  nChar     = 0;
-  int  nWordChar  = 0;
-  char* sWord     = NULL;
-  char  sName[STRLEN] = "";
-  int  nLastSlash = 0;
-  
-  /* look for 'subjects' in the title */
-  sWord = strstr( isDataSource, "/subjects/" );
-  if( NULL != sWord ) {
-    
-    /* we're at the s in subjects now. scoot ahead to the slash. */
-    nChar = 0;
-    while( sWord[nChar] != '/' &&
-     sWord[nChar] != '\0' ) {
-      nChar++;
-    }
-    
-    /* if found, use the next part as the name */
-    nWordChar = 0;
-    nChar++; /* get past the slash */
-    while( sWord[nChar] != '/' &&
-     sWord[nChar] != '\0' ) {
-      sName[nWordChar] = sWord[nChar];
-      nWordChar++;
-      nChar++;
-    }
-    
-    /* look for /mri in the title */
-  } else if ( (sWord = strstr( isDataSource, "/mri" )) != NULL ){ 
-    
-    /* we're at the slash now. go to the slash before this one. while
-       we're not at the beginning.. */
-    while( sWord != isDataSource ) {
-      sWord -= sizeof( char );
-      if( *sWord == '/' )
-  break;
-    }
-    
-    /* inc past the slash and use the next part as the name */
-    sWord += sizeof( char );
-    nWordChar = 0;
-    while( *sWord != '/' &&
-     *sWord != '\0' ) {
-      sName[nWordChar] = *sWord;
-      nWordChar++;
-      sWord += sizeof( char );
-    }
-    
-  } else {
-    
-    /* else just use the last part */
-    nChar = 0;
-    while( isDataSource[nChar] != '\0' ) {
-      if( isDataSource[nChar] == '/' )
-  nLastSlash = nChar;
-      nChar++;
-    }
-    
-    /* if we got it, use it, else use the whole source. */
-    if( isDataSource[nLastSlash] == '/' ) 
-      strcpy( sName, &(isDataSource[nLastSlash+1]) );
-    else 
-      strcpy( sName, isDataSource );
-  }
-  
-  /* return the result */
-  strcpy( osSubjectName, sName );
-}
-
-void ExtractVolumeName ( char* isDataSource,
-       char* osVolumeName ) {
-  
-  int nChar   = 0;
-  int nLastSlash = 0;
-  
-  /* look for the last / */
-  while( isDataSource[nChar] != '\0' ) {
-    if( isDataSource[nChar] == '/' )
-      nLastSlash = nChar;
-    nChar++;
-  }
-  
-  /* if we got one, everything from there+1 into the subjectname, 
-     otherwise just use the whole name */
-  if( isDataSource[nLastSlash] == '/' )
-    strcpy( osVolumeName, &(isDataSource[nLastSlash+1]) );
-  else
-    strcpy( osVolumeName, isDataSource );
 }
 
 // ===========================================================================
