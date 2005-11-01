@@ -82,29 +82,35 @@ SCUBA2_SRCS= \
 	QtScubaLabelValueArea.cpp QtScubaLabelValueArea.h \
 	QtScubaLineEditWithTclCallback.cpp QtScubaLineEditWithTclCallback.h \
 	QtTclListener.cpp QtTclListener.h \
-	QtScubaKeyCombo.cpp QtScubaKeyCombo.h
+	QtScubaKeyCombo.cpp QtScubaKeyCombo.h \
+	QtKeyGrabberButton.cpp QtKeyGrabberButton.h
 
 FORMS = mainwindow.ui \
 		viewlayersdlog.ui \
 		toolsettingsdlog.ui \
-		roisettingsdlog.ui
+		roisettingsdlog.ui \
+		prefsdlog.ui \
 UICDECLS = .ui/mainwindow.h mainwindow.ui.h \
 		.ui/viewlayersdlog.h viewlayersdlog.ui.h \
 		.ui/toolsettingsdlog.h toolsettingsdlog.ui.h \
-		.ui/roisettingsdlog.h roisettingsdlog.ui.h
+		.ui/roisettingsdlog.h roisettingsdlog.ui.h \
+		.ui/prefsdlog.h prefsdlog.ui.h
 
 UICIMPLS = .ui/mainwindow.cpp \
 		.ui/viewlayersdlog.cpp \
 		.ui/toolsettingsdlog.cpp \
-		.ui/roisettingsdlog.cpp
+		.ui/roisettingsdlog.cpp \
+		.ui/prefsdlog.cpp
 SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 		.moc/moc_QTScubaWidget.cpp \
 		.moc/moc_QtScubaLabelValueArea.cpp \
 		.moc/moc_QtScubaLineEditWithTclCallback.cpp \
+		.moc/moc_QtKeyGrabberButton.cpp \
 		.moc/moc_mainwindow.cpp \
 		.moc/moc_viewlayersdlog.cpp \
 		.moc/moc_toolsettingsdlog.cpp \
-		.moc/moc_roisettingsdlog.cpp
+		.moc/moc_roisettingsdlog.cpp \
+		.moc/moc_prefsdlog.cpp
 
 #OBJMOC = moc_QtVolumeHistogram.$(OBJEXT) \
 #		moc_QTScubaWidget.$(OBJEXT) \
@@ -339,6 +345,7 @@ testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
 	.ui/toolsettingsdlog.h \
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h \
+	.ui/prefsdlog.h \
 	mainwindow.ui
 	$(UIC) mainwindow.ui -i mainwindow.h -o $@
 mainwindow.$(OBJEXT): .ui/mainwindow.cpp 
@@ -351,6 +358,7 @@ mainwindow.$(OBJEXT): .ui/mainwindow.cpp
 	.ui/toolsettingsdlog.h \
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h  \
+	.ui/prefsdlog.h \
 	toolsettingsdlog.ui
 	$(UIC) toolsettingsdlog.ui -i toolsettingsdlog.h -o $@
 toolsettingsdlog.$(OBJEXT): .ui/toolsettingsdlog.cpp 
@@ -363,6 +371,7 @@ toolsettingsdlog.$(OBJEXT): .ui/toolsettingsdlog.cpp
 	.ui/toolsettingsdlog.h \
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h \
+	.ui/prefsdlog.h \
 	viewlayersdlog.ui
 	$(UIC) viewlayersdlog.ui -i viewlayersdlog.h -o $@
 viewlayersdlog.$(OBJEXT): .ui/viewlayersdlog.cpp \
@@ -375,10 +384,24 @@ viewlayersdlog.$(OBJEXT): .ui/viewlayersdlog.cpp \
 	.ui/toolsettingsdlog.h \
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h \
+	.ui/prefsdlog.h \
 	roisettingsdlog.ui
 	$(UIC) roisettingsdlog.ui -i roisettingsdlog.h -o $@
 roisettingsdlog.$(OBJEXT): .ui/roisettingsdlog.cpp \
 	roisettingsdlog.ui.h .ui/roisettingsdlog.h
+
+.ui/prefsdlog.h: prefsdlog.ui
+	$(UIC) prefsdlog.ui -o $@
+.ui/prefsdlog.cpp: \
+	.ui/mainwindow.h \
+	.ui/toolsettingsdlog.h \
+	.ui/viewlayersdlog.h \
+	.ui/roisettingsdlog.h \
+	.ui/prefsdlog.h \
+	prefsdlog.ui
+	$(UIC) prefsdlog.ui -i prefsdlog.h -o $@
+prefsdlog.$(OBJEXT): .ui/prefsdlog.cpp \
+	prefsdlog.ui.h .ui/prefsdlog.h
 
 moc_QtVolumeHistogram.$(OBJEXT): .moc/moc_QtVolumeHistogram.cpp
 .moc/moc_QtVolumeHistogram.cpp: QtVolumeHistogram.h
@@ -396,6 +419,10 @@ moc_QtScubaLineEditWithTclCallback.$(OBJEXT): .moc/moc_QtScubaLineEditWithTclCal
 .moc/moc_QtScubaLineEditWithTclCallback.cpp: QtScubaLineEditWithTclCallback.h
 	$(MOC) QtScubaLineEditWithTclCallback.h -o $@
 
+moc_QtKeyGrabberButton.$(OBJEXT): .moc/moc_QtKeyGrabberButton.cpp
+.moc/moc_QtKeyGrabberButton.cpp: QtKeyGrabberButton.h
+	$(MOC) QtKeyGrabberButton.h -o $@
+
 moc_mainwindow.$(OBJEXT): .moc/moc_mainwindow.cpp
 .moc/moc_mainwindow.cpp: .ui/mainwindow.h
 	$(MOC) .ui/mainwindow.h -o $@
@@ -411,6 +438,10 @@ moc_toolsettingsdlog.$(OBJEXT): .moc/moc_toolsettingsdlog.cpp
 moc_roisettingsdlog.$(OBJEXT): .moc/moc_roisettingsdlog.cpp
 .moc/moc_roisettingsdlog.cpp: .ui/roisettingsdlog.h
 	$(MOC) .ui/roisettingsdlog.h -o $@
+
+moc_prefsdlog.$(OBJEXT): .moc/moc_prefsdlog.cpp
+.moc/moc_prefsdlog.cpp: .ui/prefsdlog.h
+	$(MOC) .ui/prefsdlog.h -o $@
 
 image_collection.$(OBJEXT): .ui/image_collection.cpp
 
