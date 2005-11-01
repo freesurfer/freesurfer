@@ -2159,6 +2159,7 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
   int          nSize         = 0;
   tBoolean*    visited       = NULL;
   xVoxelRef    curVoxel      = NULL;
+  void*        pCurVoxel     = NULL;
   xVoxelRef    newVoxel      = NULL;
   Volm_tVisitCommand eVisit  = Volm_tVisitComm_Continue;
   int          nVisitedIndex = 0;
@@ -2224,13 +2225,16 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
   xList_PushItem( list, newVoxel );
 
   /* Start going through the list. */
-  curVoxel = NULL;
+  pCurVoxel = NULL;
   eList = xList_tErr_NoErr;
   while ( xList_tErr_NoErr == eList ) {
 
     /* Try to pop a voxel off the list. If we get one... */
-    eList = xList_PopItem ( list, (void**)&curVoxel );
-    if ( eList == xList_tErr_NoErr && NULL != curVoxel ) {
+    eList = xList_PopItem ( list, &pCurVoxel );
+    if ( eList == xList_tErr_NoErr && NULL != pCurVoxel ) {
+
+      /* To avoid type punning, which is bad. */
+      curVoxel = (xVoxelRef) pCurVoxel;
 
       /* Make sure it's in bounds. */
       if( Volm_tErr_NoErr != Volm_VerifyMRIIdx_( this, curVoxel ) ) {
