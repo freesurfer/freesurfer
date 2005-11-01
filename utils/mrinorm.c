@@ -29,6 +29,7 @@
 #include "mrinorm.h"
 #include "talairachex.h"
 #include "ctrpoints.h"
+#include "nr_wrapper.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS

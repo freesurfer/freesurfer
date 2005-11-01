@@ -13,8 +13,8 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/11/01 03:25:20 $
-// Revision       : $Revision: 1.47 $
+// Revision Date  : $Date: 2005/11/01 17:50:16 $
+// Revision       : $Revision: 1.48 $
 
 ------------------------------------------------------------------------*/
 
@@ -25,8 +25,6 @@
 /*------------------------------------------------------------------------
                               HEADERS
 ------------------------------------------------------------------------*/
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,6 +44,7 @@
 #include "image.h"
 #include "macros.h"
 #include "mghendian.h"
+#include "nr_wrapper.h"
 
 /*------------------------------------------------------------------------
                             CONSTANTS

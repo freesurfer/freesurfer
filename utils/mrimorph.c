@@ -11,8 +11,8 @@
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/11/01 03:25:20 $
-// Revision       : $Revision: 1.45 $
+// Revision Date  : $Date: 2005/11/01 17:50:16 $
+// Revision       : $Revision: 1.46 $
 */
 
 /*-----------------------------------------------------
@@ -38,6 +38,7 @@
 #include "mrisurf.h"
 #include "icosahedron.h"
 #include "mrishash.h"
+#include "nr_wrapper.h"
 
 #define MN_SUB(mns1, mns2, v)     \
     V3_LOAD(v, mns1->x - mns2->x, mns1->y - mns2->y, mns1->z - mns2->z)
