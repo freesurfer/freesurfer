@@ -1,40 +1,40 @@
 /** \file znzlib.c
     \brief Low level i/o interface to compressed and noncompressed files.
-	Written by Mark Jenkinson, FMRIB
+    Written by Mark Jenkinson, FMRIB
 
-This library provides an interface to both compressed (gzip/zlib) and
-uncompressed (normal) file IO.  The functions are written to have the
-same interface as the standard file IO functions.
+    This library provides an interface to both compressed (gzip/zlib) and
+    uncompressed (normal) file IO.  The functions are written to have the
+    same interface as the standard file IO functions.
 
-To use this library instead of normal file IO, the following changes
-are required:
- - replace all instances of FILE* with znzFile
- - change the name of all function calls, replacing the initial character
-   f with the znz  (e.g. fseek becomes znzseek)
-   one exception is rewind() -> znzrewind()
- - add a third parameter to all calls to znzopen (previously fopen)
-   that specifies whether to use compression (1) or not (0)
- - use znz_isnull rather than any (pointer == NULL) comparisons in the code
-   for znzfile types (normally done after a return from znzopen)
+    To use this library instead of normal file IO, the following changes
+    are required:
+    - replace all instances of FILE* with znzFile
+    - change the name of all function calls, replacing the initial character
+    f with the znz  (e.g. fseek becomes znzseek)
+    one exception is rewind() -> znzrewind()
+    - add a third parameter to all calls to znzopen (previously fopen)
+    that specifies whether to use compression (1) or not (0)
+    - use znz_isnull rather than any (pointer == NULL) comparisons in the code
+    for znzfile types (normally done after a return from znzopen)
  
-NB: seeks for writable files with compression are quite restricted
+    NB: seeks for writable files with compression are quite restricted
 
- */
+*/
 
 #include "znzlib.h"
 
 /*
-znzlib.c  (zipped or non-zipped library)
+  znzlib.c  (zipped or non-zipped library)
 
-*****            This code is released to the public domain.            *****
+  *****            This code is released to the public domain.            *****
 
-*****  Author: Mark Jenkinson, FMRIB Centre, University of Oxford       *****
-*****  Date:   September 2004                                           *****
+  *****  Author: Mark Jenkinson, FMRIB Centre, University of Oxford       *****
+  *****  Date:   September 2004                                           *****
 
-*****  Neither the FMRIB Centre, the University of Oxford, nor any of   *****
-*****  its employees imply any warranty of usefulness of this software  *****
-*****  for any purpose, and do not assume any liability for damages,    *****
-*****  incidental or otherwise, caused by any use of this document.     *****
+  *****  Neither the FMRIB Centre, the University of Oxford, nor any of   *****
+  *****  its employees imply any warranty of usefulness of this software  *****
+  *****  for any purpose, and do not assume any liability for damages,    *****
+  *****  incidental or otherwise, caused by any use of this document.     *****
 
 */
 
@@ -49,8 +49,8 @@ znzFile znzopen(const char *path, const char *mode, int use_compression)
   znzFile file;
   file = (znzFile) calloc(1,sizeof(struct znzptr));
   if( file == NULL ){
-     fprintf(stderr,"** ERROR: znzopen failed to alloc znzptr\n");
-     return NULL;
+    fprintf(stderr,"** ERROR: znzopen failed to alloc znzptr\n");
+    return NULL;
   }
 
   file->nzfptr = NULL;
@@ -61,8 +61,8 @@ znzFile znzopen(const char *path, const char *mode, int use_compression)
   if (use_compression) {
     file->withz = 1;
     if((file->zfptr = gzopen(path,mode)) == NULL) {
-        free(file);
-        file = NULL;
+      free(file);
+      file = NULL;
     }
   } else {
 #endif
@@ -86,8 +86,8 @@ znzFile znzdopen(int fd, const char *mode, int use_compression)
   znzFile file;
   file = (znzFile) calloc(1,sizeof(struct znzptr));
   if( file == NULL ){
-     fprintf(stderr,"** ERROR: znzdopen failed to alloc znzptr\n");
-     return NULL;
+    fprintf(stderr,"** ERROR: znzdopen failed to alloc znzptr\n");
+    return NULL;
   }
 #ifdef HAVE_ZLIB
   if (use_compression) {
@@ -116,7 +116,7 @@ int Xznzclose(znzFile * file)
     if ((*file)->zfptr!=NULL)  { retval = gzclose((*file)->zfptr); }
 #endif
     if ((*file)->nzfptr!=NULL) { retval = fclose((*file)->nzfptr); }
-                                                                                
+                                                                     
     free(*file);
     *file = NULL;
   }
@@ -235,7 +235,9 @@ int znzgetc(znzFile file)
 int znzprintf(znzFile stream, const char *format, ...)
 {
   int retval=0;
-  char *tmpstr;
+#ifdef HAVE_ZLIB
+  char *tmpstr=NULL;
+#endif
   va_list va;
   if (stream==NULL) { return 0; }
   va_start(va, format);
@@ -245,17 +247,17 @@ int znzprintf(znzFile stream, const char *format, ...)
     size = strlen(format) + 1000000;  /* overkill I hope */
     tmpstr = (char *)calloc(1, size);
     if( tmpstr == NULL ){
-       fprintf(stderr,"** ERROR: znzprintf failed to alloc %d bytes\n", size);
-       return retval;
+      fprintf(stderr,"** ERROR: znzprintf failed to alloc %d bytes\n", size);
+      return retval;
     }
     vsprintf(tmpstr,format,va);
     retval=gzprintf(stream->zfptr,"%s",tmpstr);
     free(tmpstr);
   } else 
 #endif
-  {
-   retval=vfprintf(stream->nzfptr,format,va);
-  }
+    {
+      retval=vfprintf(stream->nzfptr,format,va);
+    }
   va_end(va);
   return retval;
 }
