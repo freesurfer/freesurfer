@@ -26,7 +26,6 @@
 #include "filter.h"
 #include "box.h"
 #include "region.h"
-#include "nr.h"
 #include "mrinorm.h"
 
 /*-----------------------------------------------------

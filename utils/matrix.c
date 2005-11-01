@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.71 2005/09/02 17:28:45 greve Exp $
+// $Id: matrix.c,v 1.72 2005/11/01 03:25:18 nicks Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,7 +10,6 @@
 #include <sys/mman.h>
 #endif
 
-#include "nr.h"
 #include "matrix.h"
 #include "proto.h"
 #include "error.h"
@@ -18,6 +17,7 @@
 #include "diag.h"
 #include "eigen.h"
 #include "macros.h"
+#include "nr_wrapper.h"
 
 MATRIX *
 MatrixCopy(MATRIX *mIn, MATRIX *mOut)
@@ -1273,7 +1273,6 @@ MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
 }
 
 
-#include "nrutil.h"
 
 void identity_matrix(float **I,int n) ;
 void svd(float **A, float **V, float *z, int m, int n) ;

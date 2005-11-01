@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/11/22 19:33:29 $
-// Revision       : $Revision: 1.44 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/11/01 03:25:20 $
+// Revision       : $Revision: 1.45 $
 */
 
 /*-----------------------------------------------------
@@ -6865,8 +6865,6 @@ mriOrthonormalizeTransform(MATRIX *m_L)
 
         Description
 ------------------------------------------------------*/
-#include "nr.h"
-#include "nrutil.h"
 #include "gca.h"
 
 static MRI *g_mri_in, *g_mri_ref ;

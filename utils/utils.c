@@ -12,9 +12,9 @@
     Description: miscellaneous utility functions
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/09/09 22:30:07 $
-// Revision       : $Revision: 1.46 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/11/01 03:25:20 $
+// Revision       : $Revision: 1.47 $
 
 ------------------------------------------------------------------------*/
 
@@ -39,7 +39,6 @@
 
 #include <time.h> /* msvc (dng) */
 
-#include "nr.h"
 #include "const.h"
 #include "utils.h"
 #include "proto.h"

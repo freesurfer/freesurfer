@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/10/27 18:07:37 $
-// Revision       : $Revision: 1.317 $
-char *MRI_C_VERSION = "$Revision: 1.317 $";
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/11/01 03:25:20 $
+// Revision       : $Revision: 1.318 $
+char *MRI_C_VERSION = "$Revision: 1.318 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -34,7 +34,6 @@ char *MRI_C_VERSION = "$Revision: 1.317 $";
 #include "filter.h"
 #include "box.h"
 #include "region.h"
-#include "nr.h"
 #include "mri_transform.h"
 #include "utils.h"
 #include "matrix.h"
