@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.41 2005/10/19 17:09:04 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.42 2005/11/01 23:57:39 nicks Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.41 2005/10/19 17:09:04 greve Exp $";
+"$Id: tkregister2.c,v 1.42 2005/11/01 23:57:39 nicks Exp $";
 #endif /* lint */
 
 #define TCL
@@ -71,7 +71,7 @@ static char vcid[] =
 #  define backbuffer(X)    glDrawBuffer(GL_BACK)
 #  define clear()          glClear(GL_COLOR_BUFFER_BIT)
 #  define getorigin(X,Y)   *(X) = w.x; *(Y) = 1024 - w.y - w.h 
-                           /*WINDOW_REC w;*/
+/*WINDOW_REC w;*/
 #  define getsize(X,Y)     *(X) = w.w; *(Y) = w.h
 #  define Colorindex       unsigned short
 #  define color(X)         glIndexs(X)
@@ -3951,7 +3951,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.41 2005/10/19 17:09:04 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.42 2005/11/01 23:57:39 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4215,7 +4215,7 @@ int main(argc, argv)   /* new main */
     int code;
 
     promptCmd = 
-      Tcl_GetVar
+      (char*)Tcl_GetVar
       (interp,partial ? "tcl_prompt2" : "tcl_prompt1",TCL_GLOBAL_ONLY);
     if (promptCmd == NULL) {
     defaultPrompt:

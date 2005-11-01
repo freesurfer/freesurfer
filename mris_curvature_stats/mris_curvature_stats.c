@@ -39,7 +39,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] = 
-	"$Id: mris_curvature_stats.c,v 1.17 2005/10/14 13:50:46 rudolph Exp $";
+	"$Id: mris_curvature_stats.c,v 1.18 2005/11/01 23:57:38 nicks Exp $";
 
 int 		main(int argc, char *argv[]) ;
 
@@ -209,7 +209,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-	"$Id: mris_curvature_stats.c,v 1.17 2005/10/14 13:50:46 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.18 2005/11/01 23:57:38 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -834,16 +834,18 @@ int AlmostEqual2sComplement(float A, float B, int maxUlps)
     int aInt;
     int bInt;
     int intDiff;
+    void* ptrA = (void*)&A;
+    void* ptrB = (void*)&B;
 
     // Make sure maxUlps is non-negative and small enough that the
     // default NAN won't compare as equal to anything.
     assert(maxUlps > 0 && maxUlps < 4 * 1024 * 1024);
-    aInt = *(int*)&A;
+    aInt = *(int*)ptrA;
     // Make aInt lexicographically ordered as a twos-complement int
     if (aInt < 0)
         aInt = 0x80000000 - aInt;
     // Make bInt lexicographically ordered as a twos-complement int
-    bInt = *(int*)&B;
+    bInt = *(int*)ptrB;
     if (bInt < 0)
         bInt = 0x80000000 - bInt;
     intDiff = abs(aInt - bInt);

@@ -3,10 +3,11 @@
  * Version 1.3.13u-20020625-1212
  * 
  * This file is not intended to be easily readable and contains a number of 
- * coding conventions designed to improve portability and efficiency. Do not make
+ * coding conventions designed to improve portability and efficiency. 
+ * Do not make
  * changes to this file unless you know what you are doing--modify the SWIG 
  * interface file instead. 
- * ----------------------------------------------------------------------------- */
+ * ------------------------------------------------------------------------ */
 
 /***********************************************************************
  * common.swg
@@ -190,7 +191,7 @@ SWIG_TypeClientData(swig_type_info *ti, void *clientdata) {
 #endif
 
 /*
- * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.8 2004/09/27 17:11:28 kteich Exp $
+ * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.9 2005/11/01 23:57:38 nicks Exp $
  * 
  * swigtcl8.swg
  */
@@ -590,10 +591,13 @@ SWIG_GetArgs(Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[], const char *fm
   }
 }
 
+#if 0
 /* Object support */
 static Tcl_HashTable  swigobjectTable;
 static int            swigobjectTableinit = 0;
+#endif
 
+#if 0
 /* Acquire ownership of a pointer */
 SWIGRUNTIME(void)
 SWIG_Acquire(void *ptr)
@@ -606,7 +610,9 @@ SWIG_Acquire(void *ptr)
   }
   entryPtr = Tcl_CreateHashEntry(&swigobjectTable, (char *) ptr, &newobj);
 }
+#endif
 
+#if 0
 /* Disown a pointer.  Returns 1 if we owned it to begin with */
 SWIGRUNTIME(int)
 SWIG_Disown(void *ptr)
@@ -620,7 +626,9 @@ SWIG_Disown(void *ptr)
   } 
   return 0;
 }
+#endif
 
+#if 0
 SWIGRUNTIME(void)
 SWIG_ObjectDelete(ClientData clientData) {
   swig_instance *si = (swig_instance *) clientData;
@@ -632,7 +640,9 @@ SWIG_ObjectDelete(ClientData clientData) {
   Tcl_DecrRefCount(si->thisptr);
   free(si);
 }
+#endif
 
+#if 0
 /* Function to invoke object methods given an instance */
 SWIGRUNTIME(int)
 SWIG_MethodCommand(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST _objv[])
@@ -789,6 +799,7 @@ SWIG_MethodCommand(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj 
   }
   return TCL_ERROR;
 }
+#endif
 
 /* Function to create objects */
 #if 0
@@ -871,6 +882,7 @@ SWIG_ObjectConstructor(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_
 }
 #endif
 
+#if 0
 /* This function takes the current result and turns it into an object command */
 SWIGRUNTIME(Tcl_Obj *)
 SWIG_NewInstanceObj(Tcl_Interp *interp, void *thisvalue, swig_type_info *type, int flags) {
@@ -895,6 +907,8 @@ SWIG_NewInstanceObj(Tcl_Interp *interp, void *thisvalue, swig_type_info *type, i
   }
   return robj;
 }
+#endif
+
 
 #endif
 

@@ -1,5 +1,5 @@
 // mri_concat.c
-// $Id: mri_concat.c,v 1.3 2005/10/07 00:03:49 greve Exp $
+// $Id: mri_concat.c,v 1.4 2005/11/01 23:57:38 nicks Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,11 +21,11 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
-static int  singledash(char *flag);
+//static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.3 2005/10/07 00:03:49 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.4 2005/11/01 23:57:38 nicks Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[100];
@@ -227,6 +227,7 @@ static void dump_options(FILE *fp)
   return;
 }
 /*---------------------------------------------------------------*/
+#if 0
 static int singledash(char *flag)
 {
   int len;
@@ -236,3 +237,4 @@ static int singledash(char *flag)
   if(flag[0] == '-' && flag[1] != '-') return(1);
   return(0);
 }
+#endif

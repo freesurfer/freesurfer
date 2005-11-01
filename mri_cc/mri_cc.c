@@ -5,9 +5,9 @@
 // date: 01/27/04
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: pengyu $
-// Revision Date  : $Date: 2004/02/12 18:38:48 $
-// Revision       : $Revision: 1.2 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/11/01 23:57:38 $
+// Revision       : $Revision: 1.3 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -34,7 +34,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_cc.c,v 1.2 2004/02/12 18:38:48 pengyu Exp $";
+//static char vcid[] = "$Id: mri_cc.c,v 1.3 2005/11/01 23:57:38 nicks Exp $";
 
 
 int             main(int argc, char *argv[]) ; 

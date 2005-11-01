@@ -104,8 +104,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CFLAGS="$CFLAGS -g -O2 -Wall -fwritable-strings"
- CXXFLAGS="$CXXFLAGS -g -O2 -Wall"
+ CFLAGS="$CFLAGS -g -O2 -Wall -Werror -fwritable-strings"
+ CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
  ;;
  x86_64-*)
  OS=Linux
@@ -115,8 +115,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CFLAGS="$CFLAGS -g -O2 -Wall -fwritable-strings"
- CXXFLAGS="$CXXFLAGS -g -O2 -Wall"
+ CFLAGS="$CFLAGS -g -O2 -Wall -Werror -fwritable-strings"
+ CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
  ;; 
 *-apple-darwin*)
  # Mac OS X 
@@ -126,8 +126,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
- CFLAGS="$CFLAGS -g -O2 -Wall"
- CXXFLAGS="$CXXFLAGS -g -O2 -Wall"
+ CFLAGS="$CFLAGS -g -O2 -Wall -Werror"
+ CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
  ;;
 esac
 AC_SUBST(OS)

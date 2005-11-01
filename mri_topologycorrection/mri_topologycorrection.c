@@ -25,6 +25,7 @@
 #include "gca.h"
 #include "mri_tess.h"
 #include "mrisutils.h"
+#include "cma.h"
 
 char *Progname;
 
