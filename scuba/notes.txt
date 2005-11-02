@@ -523,8 +523,7 @@ x ROI dlog
 
 - be able to delete a single item from the user LUT list
 
-Preferences
-
+x Preferences
 
 x additional tools
 x label table mode
@@ -549,5 +548,4 @@ ROI stats dlog
 Delete ROI command
  - If delete and ROI and none left, create a new one
 Shorten seg label values
-Through plane increment, verify
 Why does slider-with-field increment not integer, or even decent?
