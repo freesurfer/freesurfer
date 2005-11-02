@@ -818,8 +818,10 @@ TiffReadImage(char *fname, int frame0)
   byte     *iptr ;
   tdata_t *buf;
   short    photometric;
+  int      photometricInt;
   short    fillorder;
   short    compression;
+  int      compressionInt;
   short    orientation;
 #if 0 // we used to translate RGB image into grey scale
   unsigned char     *buffer;
@@ -871,7 +873,9 @@ TiffReadImage(char *fname, int frame0)
     fprintf(stderr, "samples/pixel: %d\n", nsamples);
     fprintf(stderr, "  bits/sample: %d\n", bits_per_sample);
     fprintf(stderr, "  orientation: %d\n", orientation);
-    switch(photometric)
+    photometricInt = photometric; // used in 'case' statement to avoid
+                                  // gcc warning 'case value out of range'
+    switch(photometricInt)
     {
     case PHOTOMETRIC_MINISWHITE:
       fprintf(stderr, "  photometric: min value is white.\n"); break;
@@ -898,8 +902,10 @@ TiffReadImage(char *fname, int frame0)
     default:
       fprintf(stderr, "  photometric: unknown type\n"); break;
     }
-    // we are not supporting compression at this time
-    switch(compression)
+    compressionInt = compression; // used in 'case' statement to avoid
+                                  // gcc warning 'case value out of range'
+   // we are not supporting compression at this time
+    switch(compressionInt)
     {
     case COMPRESSION_NONE:
       fprintf(stderr, "  compression: no compression\n"); break;
