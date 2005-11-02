@@ -131,6 +131,7 @@ typedef struct
 	int    npasses ;              // # of times to go through all levels
 	MRI    *mri_dist_map ;        // distance to non-zero binary values
 	int    constrain_jacobian ;
+	int    diag_write_snapshots ;
 } GCA_MORPH_PARMS, GMP ;
 
 
@@ -171,6 +172,7 @@ int GCAMresetLabelNodeStatus(GCA_MORPH *gcam)  ;
 #define GCAM_LABEL_NODE            0x0002
 #define GCAM_BINARY_ZERO           0x0004
 #define GCAM_NEVER_USE_LIKELIHOOD  0x0008
+#define GCAM_TARGET_DEFINED        0x0010
 
 int GCAMresetLikelihoodStatus(GCA_MORPH *gcam) ;
 int GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status) ;
@@ -190,6 +192,7 @@ int GCAMremoveCompressedRegions(GCA_MORPH *gcam, float min_ratio) ;
 int GCAMcountCompressedNodes(GCA_MORPH *gcam, float min_ratio) ;
 GCA_MORPH *GCAMcreateFromIntensityImage(MRI *mri_source, MRI *mri_target, TRANSFORM *transform);
 int GCAMthresholdLikelihoodStatus(GCAM *gcam, MRI *mri, float thresh) ;
+int GCAMreinitWithLTA(GCA_MORPH *gcam, LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms) ;
 
 typedef struct
 {
@@ -227,5 +230,8 @@ MRI  *GCAMinitDensities(GCA_MORPH *gcam, MRI *mri_lowres_seg, MRI *mri_intensiti
 #define GCAM_MEANS     10
 #define GCAM_COVARS    11
 #define GCAM_DIAG_VOL  12
+#define GCAM_X         13
+#define GCAM_Y         14
+#define GCAM_Z         15
 
 #endif

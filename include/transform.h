@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/10/27 19:41:28 $                                             */
-/* Revision       : $Revision: 1.43 $                                         */
+/* Revision Date  : $Date: 2005/11/02 21:44:03 $                                             */
+/* Revision       : $Revision: 1.44 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -43,6 +43,7 @@ typedef struct
   TransformType type;        /* record transform type       */
   VOL_GEOM   src;            /* src for the transform       */
   VOL_GEOM   dst;            /* dst for the transform       */
+	int        label ;         // if this xform only applies to a specific label
 } LINEAR_TRANSFORM, LT ;
 
 typedef struct
