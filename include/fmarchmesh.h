@@ -12,6 +12,8 @@
 #define ALIVE 1
 #define NBAND 2
 #define FAWAY 3 
+
+#undef INFINITY
 #define INFINITY 1000000000 
 
 typedef struct
