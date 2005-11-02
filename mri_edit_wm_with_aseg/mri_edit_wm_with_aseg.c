@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/11/02 21:37:56 $
-// Revision       : $Revision: 1.9 $
+// Revision Date  : $Date: 2005/11/02 21:38:34 $
+// Revision       : $Revision: 1.10 $
 //
 
 #include <stdio.h>
@@ -65,10 +65,10 @@ main(int argc, char *argv[])
 	int    msec, nargs ;
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.9 2005/11/02 21:37:56 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.10 2005/11/02 21:38:34 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.9 2005/11/02 21:37:56 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.10 2005/11/02 21:38:34 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
@@ -100,7 +100,7 @@ main(int argc, char *argv[])
 	MRIaddCommandLine(mri_wm, cmdline) ;
 	mri_T1 = MRIread(argv[2]) ;
 	if (!mri_T1)
-		ErrorExit(ERROR_NOFILE, "%s: could not read T1 volume from %s",
+		ErrorExit(ERROR_NOFILE, "%s: could not read T1/brain volume from %s",
 							Progname, argv[2]) ;
 
 
@@ -171,7 +171,7 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s <input wm volume> <input T1 volume> <aseg volume> <output wm volume>\n", 
+  printf("usage: %s <input wm volume> <input T1/brain volume> <aseg volume> <output wm volume>\n", 
          Progname) ;
   exit(code) ;
 }
