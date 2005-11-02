@@ -4,9 +4,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/11/02 21:38:34 $
-// Revision       : $Revision: 1.10 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/11/02 23:15:43 $
+// Revision       : $Revision: 1.11 $
 //
 
 #include <stdio.h>
@@ -31,7 +31,9 @@
 static void
 DiagBreak2(){}
 
+#if 0
 static int MRInonzeroInNbhd(MRI *mri, int x, int y, int z, int whalf) ;
+#endif // not used
 static int MRInonfilledInNbhd(MRI *mri, int x, int y, int z, int whalf) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -65,10 +67,10 @@ main(int argc, char *argv[])
 	int    msec, nargs ;
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.10 2005/11/02 21:38:34 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.11 2005/11/02 23:15:43 nicks Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.10 2005/11/02 21:38:34 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.11 2005/11/02 23:15:43 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
@@ -1418,6 +1420,7 @@ MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
   }
   return(count) ;
 }
+#if 0
 static int
 MRInonzeroInNbhd(MRI *mri, int x, int y, int z, int whalf)
 {
@@ -1439,6 +1442,7 @@ MRInonzeroInNbhd(MRI *mri, int x, int y, int z, int whalf)
   }
   return(count) ;
 }
+#endif
 static int
 distance_to_label(MRI *mri_labeled, int label, int x, int y, int z, int dx, 
                   int dy, int dz, int max_dist)
