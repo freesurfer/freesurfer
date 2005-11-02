@@ -126,7 +126,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
- CFLAGS="$CFLAGS -g -O2 -Wall -Werror"
+ CFLAGS="$CFLAGS -g -O2 -Wall -Werror -Wno-long-double"
  CXXFLAGS="$CXXFLAGS -g -O2 -Wall -Werror"
  ;;
 esac
