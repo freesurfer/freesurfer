@@ -161,7 +161,7 @@ main(int argc,char *argv[])
     int nargs;
     
     /* rkt: check for and handle version tag */
-    nargs = handle_version_option (argc, argv, "$Id: mri_make_bem_surfaces.c,v 1.8 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
+    nargs = handle_version_option (argc, argv, "$Id: mri_make_bem_surfaces.c,v 1.9 2005/11/02 22:22:43 nicks Exp $", "$Name:  $");
     if (nargs && argc - nargs == 1)
       exit (0);
     argc -= nargs;
@@ -1034,7 +1034,7 @@ estimate_thickness(int niter)
   float /* d,*/ dx,dy,dz,sval,sinval,soutval,snc,inmean,sum,nsum;
   float nx,ny,nz;
   ss_vertex_type *v;
-  int imnr,i,j,iter,k,m,n;
+  int imnr,i,j,iter,k,m,n=0;
   float sd,ad,dmax;
   int navg,an,nclip,inim,ini,inj,outim,outi,outj;
   int delpos, mindelpos;
