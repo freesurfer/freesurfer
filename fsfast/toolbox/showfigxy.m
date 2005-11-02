@@ -15,7 +15,7 @@ function showfigxy(varargin)
 %
 % Note: this will take over keyboard and mousing callbacks!
 %
-% $Id: showfigxy.m,v 1.6 2005/01/05 22:04:25 greve Exp $
+% $Id: showfigxy.m,v 1.7 2005/11/02 18:43:36 greve Exp $
 %
 
 if(nargin == 0)  event = 'init'; 
@@ -41,8 +41,8 @@ switch(event)
   set(hfig,'WindowButtonMotionFcn','showfigxy(''wbm'')');
   ud = get(hfig,'UserData');
   ud.showfigxy = 1;
-  ud.curxytxt = uicontrol('Style', 'text','Position',  [1 1 250 20]);
-  ud.mvxytxt = uicontrol('Style', 'text','Position',  [260 1 250 20]);
+  ud.curxytxt = uicontrol('Style', 'text','Position',  [1 1 250 30]);
+  ud.mvxytxt = uicontrol('Style', 'text','Position',  [260 1 250 30]);
   ax = axis;
   ud.curxy = [(ax(1)+ax(2))/2 (ax(3)+ax(4))/2];
   ud.mvxy  = [(ax(1)+ax(2))/2 (ax(3)+ax(4))/2];
