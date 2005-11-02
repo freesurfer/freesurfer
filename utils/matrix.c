@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.72 2005/11/01 03:25:18 nicks Exp $
+// $Id: matrix.c,v 1.73 2005/11/02 21:41:08 fischl Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -3163,3 +3163,124 @@ MATRIX *GaussianMatrix(int len, float std, int norm, MATRIX *G)
 
   return(G);
 }
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_linalg.h>
+
+gsl_matrix *
+MatrixToGSL(MATRIX *m, gsl_matrix *gm)
+{
+	int  rows, cols, r, c ;
+
+  cols = m->cols ;
+  rows = m->rows ;
+	if (gm == NULL)
+		gm = gsl_matrix_alloc(rows, cols) ;
+	for (r = 0 ; r < rows ; r++)
+		for (c = 0 ;c < cols ; c++)
+			gsl_matrix_set(gm, r, c, *MATRIX_RELT(m, r+1, c+1)) ;
+	return(gm) ;
+}
+
+MATRIX *
+MatrixFromGSL(gsl_matrix *gm, MATRIX *m)
+{
+	int  rows, cols, r, c ;
+
+  rows = gm->size1 ;
+  cols = gm->size2 ;
+	if (m == NULL)
+		m = MatrixAlloc(rows, cols, MATRIX_REAL) ;
+	for (r = 0 ; r < rows ; r++)
+		for (c = 0 ;c < cols ; c++)
+			*MATRIX_RELT(m, r+1, c+1) = gsl_matrix_get(gm, r, c) ;
+	return(m) ;
+}
+VECTOR *
+VectorFromGSL(gsl_vector *gv, VECTOR  *v)
+{
+	int  rows, r ;
+
+  rows = gv->size ;
+	if (v == NULL)
+		v = VectorAlloc(rows, MATRIX_REAL) ;
+	for (r = 0 ; r < rows ; r++)
+		VECTOR_ELT(v, r+1) = gsl_vector_get(gv, r);
+	return(v) ;
+}
+
+MATRIX *
+MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
+{
+	gsl_matrix  *U, *V ;
+	gsl_vector  *work, *S ;
+	int     cols, rows ;
+	MATRIX  *m_U, *m_V, *mT, *m_Ur, *m_Vr, *m_Sr, *m_tmp, *m_S ;
+	VECTOR  *v_S ;
+
+  cols = m->cols ;
+  rows = m->rows ;
+	if (m->rows < m->cols)
+	{
+		mT = MatrixTranspose(m, NULL) ;
+		m_pseudo_inv = MatrixSVDPseudoInverse(mT, m_pseudo_inv) ;
+		MatrixFree(&mT) ;
+		mT = m_pseudo_inv ;
+		m_pseudo_inv = MatrixTranspose(mT, NULL) ;
+	}
+	else
+	{
+		int r,c ;
+
+		U = MatrixToGSL(m, NULL) ;
+		V = gsl_matrix_alloc(cols, cols) ;
+		work = gsl_vector_alloc(cols) ;
+		S = gsl_vector_alloc(cols) ;
+		gsl_linalg_SV_decomp(U, V, S, work) ;
+		m_U = MatrixFromGSL(U, NULL) ;
+		v_S = VectorFromGSL(S, NULL) ;
+		m_V = MatrixFromGSL(V, NULL) ;
+		gsl_vector_free(work) ;
+		gsl_vector_free(S) ;
+		gsl_matrix_free(U) ;
+		gsl_matrix_free(V) ;
+		for (r = 1 ; r <= v_S->rows ; r++)
+			if (VECTOR_ELT(v_S,r)/VECTOR_ELT(v_S,1) < 1e-4)
+				break ;
+		r-- ; // previous one was last non-zero
+		m_tmp = MatrixCopyRegion(m_U, NULL, 1, 1, m_U->rows, r, 1, 1) ;
+		m_Ur = MatrixTranspose(m_tmp, NULL) ; MatrixFree(&m_tmp) ;
+		m_S = MatrixDiag(v_S, NULL) ;
+		m_Sr = MatrixCopyRegion(m_S, NULL, 1, 1, r, r, 1, 1) ;
+		for (c = 1 ; c <= m_Sr->rows ; c++)
+			*MATRIX_RELT(m_Sr, c, c) = 1 / *MATRIX_RELT(m_Sr, c, c) ;
+		m_Vr = MatrixCopyRegion(m_V, NULL, 1, 1, m_V->rows, r, 1, 1) ;
+		m_tmp = MatrixMultiply(m_Vr, m_Sr, NULL) ;
+		m_pseudo_inv = MatrixMultiply(m_tmp, m_Ur, NULL) ;
+		MatrixFree(&m_tmp) ;
+		MatrixFree(&m_Ur) ;
+		MatrixFree(&m_Sr) ;
+		MatrixFree(&m_S) ;
+		MatrixFree(&m_Vr) ;
+		VectorFree(&v_S) ;
+#if 0
+		if (rows > 1)
+			s = diag(S);
+		else (rows == 1)
+			s = S(1);
+		else 
+			s = 0;
+
+		r = sum(s > tol);
+   if (r == 0)
+      X = zeros(size(A'),class(A));
+   else
+      s = diag(ones(r,1)./s(1:r));
+      X = V(:,1:r)*s*U(:,1:r)';
+   end
+#endif
+	 }
+
+	return(m_pseudo_inv) ;
+}
+
+
