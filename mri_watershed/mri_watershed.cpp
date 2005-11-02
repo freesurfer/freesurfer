@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/10/18 17:47:33 $
-// Revision       : $Revision: 1.37 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2005/11/02 16:29:44 $
+// Revision       : $Revision: 1.38 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.37 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.38 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -563,11 +563,14 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
             Error("\ntoo many seed points\n");
           if (argc < 7)
             Error("\n-s option needs 3 seed points, input, output argument\n");
-          if (parms->seed_coord[parms->nb_seed_points][0]=atoi(argv[2]) < 0)
+	  parms->seed_coord[parms->nb_seed_points][0] = atoi(argv[2]);
+	  parms->seed_coord[parms->nb_seed_points][1] = atoi(argv[3]);
+	  parms->seed_coord[parms->nb_seed_points][2] = atoi(argv[4]);
+          if (parms->seed_coord[parms->nb_seed_points][0] < 0)
             Error("\nseed value 'i' out of range 0-255 \n");
-          if (parms->seed_coord[parms->nb_seed_points][1]=atoi(argv[3]) < 0)
+          if (parms->seed_coord[parms->nb_seed_points][1] < 0)
             Error("\nseed value 'j' out of range 0-255 \n");
-          if (parms->seed_coord[parms->nb_seed_points][2]=atoi(argv[4]) < 0)
+          if (parms->seed_coord[parms->nb_seed_points][2] < 0)
             Error("\nseed value 'k' out of range 0-255 \n");
           nargs=3;
           parms->nb_seed_points++;
@@ -655,7 +658,7 @@ int main(int argc, char *argv[])
         
   make_cmd_version_string 
     (argc, argv, 
-"$Id: mri_watershed.cpp,v 1.37 2005/10/18 17:47:33 nicks Exp $", "$Name:  $",
+"$Id: mri_watershed.cpp,v 1.38 2005/11/02 16:29:44 kteich Exp $", "$Name:  $",
      cmdline);
 
   Progname=argv[0];
@@ -666,7 +669,7 @@ int main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-"$Id: mri_watershed.cpp,v 1.37 2005/10/18 17:47:33 nicks Exp $", "$Name:  $");
+"$Id: mri_watershed.cpp,v 1.38 2005/11/02 16:29:44 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
