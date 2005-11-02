@@ -93,7 +93,7 @@ class Matrix44 : public DebugReporter {
 // Matrix44 a;
 // Matrix44 b;
 // Matrix44 c = a * b;
-inline Matrix44 operator*(Matrix44& m1, Matrix44& m2);
+Matrix44 operator*(Matrix44& m1, Matrix44& m2);
 inline Point3<float> operator*(Matrix44& m, Point3<float>& p);
 
 std::ostream& operator << ( std::ostream&, Matrix44& iMatrix   );

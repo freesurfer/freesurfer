@@ -1,4 +1,4 @@
-/* $Id: togl.c,v 1.2 2004/04/14 18:42:54 kteich Exp $ */
+/* $Id: togl.c,v 1.3 2005/11/02 00:19:51 nicks Exp $ */
 
 /*
  * Togl - a Tk OpenGL widget
@@ -1067,7 +1067,8 @@ int Togl_Configure(Tcl_Interp *interp, struct Togl *togl,
    int oldAuxNumber   = togl->AuxNumber;
 
    if (Tk_ConfigureWidget(interp, togl->TkWin, configSpecs,
-                          argc, (char **)argv, (char *)togl, flags) == TCL_ERROR) {
+                          argc, (const char **)argv, 
+			  (char *)togl, flags) == TCL_ERROR) {
       return(TCL_ERROR);
    }
 #ifndef USE_OVERLAY
