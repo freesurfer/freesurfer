@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/09/29 19:57:09 $
-// Revision       : $Revision: 1.175 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/11/03 00:32:19 $
+// Revision       : $Revision: 1.176 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2314,7 +2314,7 @@ GCAupdatePrior(GCA *gca, MRI *mri, int xn, int yn, int zn, int label)
       if (n >= gcap->max_labels)
         {
           int  old_max_labels ;
-          char *old_labels ;
+          unsigned char *old_labels ;
           float *old_priors ;
 
           old_max_labels = gcap->max_labels ; 
@@ -2486,7 +2486,7 @@ GCAupdateNode(GCA *gca, MRI *mri,
       if (n >= gcan->max_labels)
         {
           int  old_max_labels ;
-          char *old_labels ;
+          unsigned char *old_labels ;
           GC1D *old_gcs ;
 
           old_max_labels = gcan->max_labels ; 
@@ -5729,7 +5729,7 @@ GCAupdateNodeGibbsPriors(GCA *gca, MRI*mri, int xn, int yn, int zn,
       if (n >= gc->nlabels[i])   /* not there - reallocate stuff */
         {
 #if 1
-          char *old_labels ;
+          unsigned char *old_labels ;
           float *old_label_priors ;
 
           old_labels = gc->labels[i] ;
@@ -10424,8 +10424,8 @@ GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled,
                        GCA *gca, TRANSFORM *transform,
                        int wsize, float pthresh)
 {
-  int              x, y, z, n, label, nsamples, xp,yp, zp,
-    peak, orig_wsize, frame ;
+  int x, y, z, n, label, xp,yp, zp, peak, orig_wsize, frame ;
+  int nsamples=0;
 #if 0
   int              i, index, *ordered_indices ;
   float            mean, var ;
@@ -15212,7 +15212,7 @@ GCAbuildRegionalGCAN(GCA *gca, int xn, int yn, int zn, int wsize)
 
   gcan->nlabels = gcan->max_labels = nlabels ;
   gcan->gcs = alloc_gcs(nlabels, GCA_NO_MRF, gca->ninputs) ;
-  gcan->labels = (char *)calloc(nlabels, sizeof(char)) ;
+  gcan->labels = (unsigned char *)calloc(nlabels, sizeof(char)) ;
 
   for (nlabels = 0, n = 0 ; n <= MAX_CMA_LABELS ; n++)
     {
@@ -15251,7 +15251,7 @@ GCA *GCAcompactify(GCA *gca)
   GCA_PRIOR *gcap = 0;
   GCA_NODE  *gcan = 0;
   float *old_priors;
-  char *old_labels;
+  unsigned char *old_labels;
   GC1D *old_gcs;
   int n, nmax;
   int i,j, k;
