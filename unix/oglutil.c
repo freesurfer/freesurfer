@@ -20,7 +20,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.25 2005/06/08 19:44:54 nicks Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.26 2005/11/03 00:05:14 nicks Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -103,7 +103,7 @@ OGLUinit(MRI_SURFACE *mris, long frame_xdim, long frame_ydim)
   {
     const char *errstr ;
 
-    errstr = gluErrorString(error) ;
+    errstr = (const char *)gluErrorString(error) ;
     fprintf(stderr, "GL error %d: %s\n", error, errstr) ;
     exit(1) ;
   }
@@ -196,7 +196,8 @@ static float brightness = 255.0f ;
 int
 OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
 {
-  int          k, n, red, green, blue, error, mv, marked, vno ;
+  int          k, n, red, green, blue, mv, marked, vno ;
+  int          error;
   face_type    *f;
   VERTEX       *v, *vn ;
   float        v1[3], min_curv, max_curv, coord_coef = 0.0, color_val;
@@ -773,7 +774,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   {
     const char *errstr ;
 
-    errstr = gluErrorString(error) ;
+    errstr = (const char*)gluErrorString(error) ;
     fprintf(stderr, "GL error %d: %s\n", error, errstr) ;
     exit(1) ;
   }
