@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.73 2005/11/02 21:41:08 fischl Exp $
+// $Id: matrix.c,v 1.74 2005/11/03 00:50:20 fischl Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -3262,22 +3262,6 @@ MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
 		MatrixFree(&m_S) ;
 		MatrixFree(&m_Vr) ;
 		VectorFree(&v_S) ;
-#if 0
-		if (rows > 1)
-			s = diag(S);
-		else (rows == 1)
-			s = S(1);
-		else 
-			s = 0;
-
-		r = sum(s > tol);
-   if (r == 0)
-      X = zeros(size(A'),class(A));
-   else
-      s = diag(ones(r,1)./s(1:r));
-      X = V(:,1:r)*s*U(:,1:r)';
-   end
-#endif
 	 }
 
 	return(m_pseudo_inv) ;
