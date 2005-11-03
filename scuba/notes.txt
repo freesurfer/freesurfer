@@ -541,11 +541,9 @@ Set Cursor from edit.dat
 Generate Segementation Volume Report
 
 For scuba2:
-Mimic level behavior
- - Report info auto-config stuff
-   - Incorperate AdjustReportInfoForAuto into UpdateLayerSettings
- - LUT/clear zero stuff
-   - Incorperate AdjustLayerSettingsForColorMap into UpdateLayersList
+x Mimic level behavior
+ x Report info auto-config stuff
+ x LUT/clear zero stuff
 ROI stats dlog
 Delete ROI command
  - If delete and ROI and none left, create a new one

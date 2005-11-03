@@ -14,7 +14,9 @@ class ScubaGlobalPreferences : public TclCommandListener, public Broadcaster {
 
  public:
 
-  enum PrefKey { ShowConsole, AutoConfigureView, AutoReportInfoForLUT,
+  enum PrefKey { ShowConsole, 
+		 AutoConfigureView, AutoReportInfoForLUT,
+		 AutoDrawZeroClearForLUT,
 		 ViewFlipLeftRight,
 		 KeyInPlaneX, KeyInPlaneY, KeyInPlaneZ,
 		 KeyMoveViewLeft, KeyMoveViewRight,

@@ -94,6 +94,7 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	       sKey == GetStringForKey( ShowConsole ) ||
 	       sKey == GetStringForKey( AutoConfigureView ) ||
 	       sKey == GetStringForKey( AutoReportInfoForLUT ) ||
+	       sKey == GetStringForKey( AutoDrawZeroClearForLUT ) ||
 	       sKey == GetStringForKey( DrawCoordinateOverlay ) ||
 	       sKey == GetStringForKey( DrawMarkers ) ||
 	       sKey == GetStringForKey( DrawPaths ) ||
@@ -131,6 +132,7 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( ShowConsole ) ||
 	sKey == GetStringForKey( AutoConfigureView ) ||
 	sKey == GetStringForKey( AutoReportInfoForLUT ) ||
+	sKey == GetStringForKey( AutoDrawZeroClearForLUT ) ||
 	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
 	sKey == GetStringForKey( DrawMarkers ) ||
 	sKey == GetStringForKey( DrawPaths ) ||
@@ -197,6 +199,7 @@ ScubaGlobalPreferences::SetPreferencesValue ( PrefKey iKey, bool ibValue ) {
       iKey == ShowConsole ||
       iKey == AutoConfigureView ||
       iKey == AutoReportInfoForLUT ||
+      iKey == AutoDrawZeroClearForLUT ||
       iKey == DrawCoordinateOverlay ||
       iKey == DrawMarkers ||
       iKey == DrawPaths ||
@@ -263,6 +266,7 @@ ScubaGlobalPreferences::GetPrefAsBool ( PrefKey iKey ) {
       iKey == ShowConsole ||
       iKey == AutoConfigureView ||
       iKey == AutoReportInfoForLUT ||
+      iKey == AutoDrawZeroClearForLUT ||
       iKey == DrawCoordinateOverlay ||
       iKey == DrawMarkers ||
       iKey == DrawPaths ||
@@ -341,6 +345,7 @@ ScubaGlobalPreferences::GetStringForKey ( PrefKey iKey ) {
   case ShowConsole:                return "ShowConsole";                 break;
   case AutoConfigureView:          return "AutoConfigureView";           break;
   case AutoReportInfoForLUT:       return "AutoReportInfoForLUT";        break;
+  case AutoDrawZeroClearForLUT:    return "AutoDrawZeroClearForLUT";     break;
   case ViewFlipLeftRight:          return "ViewFlipLeftRight";           break;
   case KeyInPlaneX:                return "KeyInPlaneX";                 break;
   case KeyInPlaneY:                return "KeyInPlaneY";                 break;
@@ -407,6 +412,12 @@ ScubaGlobalPreferences::ReadPreferences () {
 			  "a view on if the layer in the view is an LUT "
 			  "volume.",
 			  autoReportInfo );
+
+  PreferencesManager::IntPrefValue autoDrawZeroClearForLUT( true );
+  prefsMgr.RegisterValue( GetStringForKey( AutoDrawZeroClearForLUT ), 
+			  "Automatically set the Draw Zero Clear option for "
+			  "layers that have their colormaps set to LUT.",
+			  autoDrawZeroClearForLUT );
 
   keyCombo->SetFromString( "X" );
   PreferencesManager::StringPrefValue inPlaneX( keyCombo->ToString() );
