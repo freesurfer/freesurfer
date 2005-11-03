@@ -86,9 +86,9 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: nicks $, $Date: 2005/09/30 20:59:09 $
+** Last Update:   $Author: nicks $, $Date: 2005/11/03 00:19:29 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.21 $
+** Revision:    $Revision: 1.22 $
 ** Status:    $State: Exp $
 */
 
@@ -1423,7 +1423,7 @@ DCM_ScanParseObject(DCM_OBJECT ** callerObject, void *buf, size_t bufferSize,
   CTNBOOLEAN
     found;
   U32
-    l;
+    l=0;
   char
     *p;
 
@@ -7607,7 +7607,8 @@ DCM_AddFragment(DCM_OBJECT** callerObject, void* fragment, U32 fragmentLength)
                               "DCM_AddFragment");
   }
 
-  fragmentItem->fragment = ((char*)fragmentItem)+ sizeof(DCM_FRAGMENT_ITEM);
+  fragmentItem->fragment = (unsigned char*)fragmentItem + 
+	(long)sizeof(DCM_FRAGMENT_ITEM);
   fragmentItem->length = fragmentLength;
   memcpy(fragmentItem->fragment, fragment, fragmentLength);
   elementItem->fragmentFlag = 1;
