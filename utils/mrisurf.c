@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: rudolph $
-// Revision Date  : $Date: 2005/10/19 17:24:10 $
-// Revision       : $Revision: 1.378 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2005/11/03 17:40:45 $
+// Revision       : $Revision: 1.379 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -32945,6 +32945,13 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
   //  tmp       = inflated vertices
   //  current   = canonical vertices 
 
+	/* saving additional information */
+	MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+	MRISwrite(mris,"orig_uncorrected");
+	MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+	MRISwrite(mris,"inflated_uncorrected");
+	// current = inflated
+
 #if MATRIX_ALLOCATION
   /* allocation of the transform matrix */
   VoxelFromSRASmatrix=GetSurfaceRASToVoxelMatrix(mri);
@@ -33092,6 +33099,9 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
   MRISaverageVertexPositions(mris, 2) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   /* at this point : original vertices become smoothed original vertices */
+	//saving out additional information
+	MRISwrite(mris,"orig_smooth_uncorrected");
+
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   /* at this point : back to original vertices */
 #endif
@@ -33168,80 +33178,81 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 #endif
 	  fprintf(fp, "\nconvex hull (%d)\n", dl->defects[i].nchull) ;
 	  for (n = 0 ; n < dl->defects[i].nchull ; n++)
-	    {
+		{
 	      fprintf(fp, "%d\n", dl->defects[i].chull[n]) ;
 	      if (dl->defects[i].chull[n] == Gdiag_no)
 		DiagBreak() ;
-	    }
+		}
 	  fclose(fp) ;
       
 	  sprintf(fname, "%s.%s.defects.log", 
 		  mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
-		  mris->subject_name) ;
+						mris->subject_name) ;
 	  fp = fopen(fname, "wb") ;
 	  for (total_defective_area = 0.0f, total_defective_vertices = i = 0 ; 
 	       i < dl->ndefects ; i++)
-	    {
-	      total_defective_vertices += dl->defects[i].nvertices ;
-	      total_defective_area += dl->defects[i].area ;
-	    }
+		{
+			total_defective_vertices += dl->defects[i].nvertices ;
+			total_defective_area += dl->defects[i].area ;
+		}
 	  fprintf(fp, "%d %2.3f\n", total_defective_vertices,total_defective_area);
 	  for (i = 0 ; i < dl->ndefects ; i++)
-	    {
-	      for (n = 0 ; n < dl->defects[i].nvertices ; n++)
-		fprintf(fp, "%d\n", dl->defects[i].vertices[n]) ;
-	    }
+		{
+			for (n = 0 ; n < dl->defects[i].nvertices ; n++)
+				fprintf(fp, "%d\n", dl->defects[i].vertices[n]) ;
+		}
 	  fclose(fp) ;
 	}
     }
-	if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
-      MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-      MRISwrite(mris,"new_orig");
+	//always writting out additional information
+	//if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	  {
+			MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+      MRISwrite(mris,"new_orig_uncorrected");
       MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
-      MRISwrite(mris,"new_qsphere");
+      MRISwrite(mris,"new_qsphere_uncorrected");
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
       MRISclearCurvature(mris) ;
       for (i = 0 ; i < dl->ndefects ; i++)
-	{
-	  defect = &dl->defects[i] ;
-	  for (n = 0 ; n < defect->nvertices ; n++)
-	    {
-	      mris->vertices[defect->vertices[n]].curv = i+1 ;
-	    }
-	}
-      if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
-	MRISwriteCurvature(mris, "defect_labels") ;
+			{
+				defect = &dl->defects[i] ;
+				for (n = 0 ; n < defect->nvertices ; n++)
+				{
+					mris->vertices[defect->vertices[n]].curv = i+1 ;
+				}
+			}
+      //if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
+				MRISwriteCurvature(mris, "defect_labels") ;
       for (i = 0 ; i < dl->ndefects ; i++)
-	{
-	  defect = &dl->defects[i] ;
-	  for (n = 0 ; n < defect->nborder ; n++)
-	    {
-	      mris->vertices[defect->border[n]].curv -= 1;
-	    }
-	}
-      if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
-	MRISwriteCurvature(mris, "defect_borders") ;
+			{
+				defect = &dl->defects[i] ;
+				for (n = 0 ; n < defect->nborder ; n++)
+				{
+					mris->vertices[defect->border[n]].curv -= 1;
+				}
+			}
+      //if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
+				MRISwriteCurvature(mris, "defect_borders") ;
       for (i = 0 ; i < dl->ndefects ; i++)
-	{
-	  defect = &dl->defects[i] ;
-	  for (n = 0 ; n < defect->nchull ; n++)
-	    {
-	      mris->vertices[defect->chull[n]].curv = 2;
-	    }
-	  for (n = 0 ; n < defect->nborder ; n++)
-	    {
-	      mris->vertices[defect->border[n]].curv = -1;
-	    }
-	  for (n = 0 ; n < defect->nvertices ; n++)
-	    {
-	      mris->vertices[defect->vertices[n]].curv = i+1 ;
-	    }
-	}
-      if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
-	MRISwriteCurvature(mris, "defect_chull") ;
+			{
+				defect = &dl->defects[i] ;
+				for (n = 0 ; n < defect->nchull ; n++)
+				{
+					mris->vertices[defect->chull[n]].curv = 2;
+				}
+				for (n = 0 ; n < defect->nborder ; n++)
+				{
+					mris->vertices[defect->border[n]].curv = -1;
+				}
+				for (n = 0 ; n < defect->nvertices ; n++)
+				{
+					mris->vertices[defect->vertices[n]].curv = i+1 ;
+				}
+			}
+      //if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
+				MRISwriteCurvature(mris, "defect_chull") ;
     }
-
+	
   /* now start building the target surface */
   MRISclearMarks(mris) ;
   kept_vertices = mris->nvertices ;
