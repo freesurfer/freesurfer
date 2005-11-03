@@ -2919,7 +2919,11 @@ Volm_tErr Volm_Flip ( mriVolumeRef     this,
   int         nXLimit       = 0;
   int         nYLimit       = 0;
   int         nZLimit       = 0;
-  
+
+  flippedIdx.mfX=0;
+  flippedIdx.mfY=0;
+  flippedIdx.mfZ=0;
+
   DebugEnterFunction( ("Volm_Flip( this=%p, iAxis=%d )", this, (int)iAxis) );
   
   DebugNote( ("Verifying volume") );
