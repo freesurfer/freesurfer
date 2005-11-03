@@ -69,7 +69,7 @@ init_header(IMAGE *I,char *onm,char *snm,int nfr,char *odt,int rw,int cl,int pfm
   I->numpix = I->rows * I->cols ;
   I->sizeimage = I->numpix * I->sizepix ;
   I->firstpix = I->image ;
-  I->image = (char *)calloc(bytes, sizeof(char)) ;
+  I->image = (byte *)calloc(bytes, sizeof(char)) ;
   if (!I->image)
     ErrorExit(ERROR_NOMEMORY, "init_header: could not allocate %d bytes",
               bytes) ;
