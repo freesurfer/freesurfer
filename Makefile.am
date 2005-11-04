@@ -1,6 +1,9 @@
 ## 
 ## Makefile.am
 ##
+foodir=$(prefix)
+foo_DATA=README COPYING
+
 GLSUBDIRS=mris2rgb nmovie mris_show tkmedit tkregister tkregister2 tksurfer mri_probedicom
 
 MRISUBDIRS=check_siemens_dir repair_siemens_file mkxsubjreg rbftest rawtocor \
@@ -51,52 +54,8 @@ paint scripts images distribution
 SUBDIRS=unix dicom hipsstubs rgb utils utilscpp log fsgdf $(MRISUBDIRS) $(MRISSUBDIRS) $(GLSUBDIRS) $(FSGDF) $(FSLUTILS) $(STATSDIRS) \
 $(MISCDIRS) dummy scuba fsfast matlab hiam_make_surfaces include
 
-.PHONY: release uninstall-release
-
-# contains the list of files to release public
-include release_files.sh
-
-release: 
-	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(bindir)
-	@list=$(PROGS); for p in $$list ; do \
-	  $(MAKE) install -C $$p; \
-	done
-	@list=$(SCRIPTS_BIN); for p in $$list; do \
-	  d="$(srcdir)/scripts/"; \
-	  if test -f $$d$$p; then \
-	    f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
-	    echo " $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(bindir)/$$f"; \
-	    $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(bindir)/$$f; \
-	  else :; fi; \
-	done
-	$(mkinstalldirs) $(DESTDIR)$(libdir)/tcl
-	@list=$(SCRIPTS_LIB); for p in $$list; do \
-	  d="$(srcdir)/scripts/"; \
-	  if test -f $$d$$p; then \
-	    f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
-	    echo " $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(libdir)/tcl/$$f"; \
-	    $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(libdir)/tcl/$$f; \
-	  else :; fi; \
-	done
-	$(mkinstalldirs) $(DESTDIR)$(prefix)
-	$(MAKE) install -C images
-	$(MAKE) release -C distribution
-
-uninstall-release:
-	@$(NORMAL_UNINSTALL)
-	@list=$(PROGS); for p in $$list ; do \
-	  $(MAKE) uninstall -C $$p; \
-	done
-	@list=$(SCRIPTS_BIN); for p in $$list; do \
-	  f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
-	  echo " rm -f $(DESTDIR)$(bindir)/$$f"; \
-	  rm -f $(DESTDIR)$(bindir)/$$f; \
-	done
-	@list=$(SCRIPTS_LIB); for p in $$list; do \
-	  f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
-	  echo " rm -f $(DESTDIR)$(libdir)/tcl/$$f"; \
-	  rm -f $(DESTDIR)$(libdir)/tcl/$$f; \
-	done
-	$(MAKE) uninstall -C images
-	$(MAKE) uninstall-release -C distribution
+# Our release target. Include files to be excluded here. They will be
+# found and removed after 'make install' is run during the 'make
+# release' target.
+EXCLUDE_FILES=""
+include $(top_srcdir)/Makefile.extra

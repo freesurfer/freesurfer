@@ -56,3 +56,9 @@ mris_indirect_morph_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mris_compute_thickness_LDFLAGS=-L/autofs/homes/003/xhan/lnxlib
 mris_compute_thickness_LDADD=-lANN $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
+
+# Our release target. Include files to be excluded here. They will be
+# found and removed after 'make install' is run during the 'make
+# release' target.
+EXCLUDE_FILES=""
+include $(top_srcdir)/Makefile.extra

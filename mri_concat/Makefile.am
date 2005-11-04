@@ -8,3 +8,10 @@ bin_PROGRAMS = mri_concat
 mri_concat_SOURCES=mri_concat.c
 mri_concat_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mri_concat_LDFLAGS=$(OS_LDFLAGS)
+
+
+# Our release target. Include files to be excluded here. They will be
+# found and removed after 'make install' is run during the 'make
+# release' target.
+EXCLUDE_FILES=""
+include $(top_srcdir)/Makefile.extra
