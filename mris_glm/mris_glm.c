@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.43 2005/08/17 22:19:35 greve Exp $
+  $Id: mris_glm.c,v 1.44 2005/11/04 22:18:03 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -75,7 +75,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.43 2005/08/17 22:19:35 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.44 2005/11/04 22:18:03 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.43 2005/08/17 22:19:35 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.44 2005/11/04 22:18:03 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 
   /* R is the matrix that when multiplied by y gives the residual error */
   R = MatrixSubtract(MatrixIdentity(nsubjects,NULL),T,NULL);
-  DOF = MatrixTrace(R);
+  DOF = X->rows - X->cols;
 
   printf("Design Matrix ------------------------------------\n");
   MatrixPrint(stdout,X);
