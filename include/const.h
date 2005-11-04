@@ -17,7 +17,7 @@
 #endif
 
 #define FSMALL          0.00001f
-#define MAX_LINE_LEN    2000
+#define MAX_LINE_LEN    4096
 #define UNDEFINED       255
 #define DEFINED(r, s)   ((r != UNDEFINED) && (s != UNDEFINED))
 
@@ -31,9 +31,9 @@
 
 #define INV_SQRTPI      0.56419
 
-#define STR_LEN         500   /* misc. string length */
+#define STR_LEN         1024   /* misc. string length */
 #define STRLEN          STR_LEN
-#define CMD_LINE_LEN     1024
+#define CMD_LINE_LEN    4096
 
 /* predefined file descriptors */
 #define FD_STDIN       0
