@@ -541,6 +541,8 @@ x Mimic level behavior
 x Delete ROI command
  x If delete and ROI and none left, create a new one
 
+x Delete Data Collection
+
 Shorten seg label values
 
 Data Collection Info window
