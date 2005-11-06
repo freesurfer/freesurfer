@@ -116,6 +116,7 @@ CTABreadFrom(FILE *fp)
 		cte->g = freadInt(fp) ;
 		cte->b = freadInt(fp) ;
 		cte->flag = freadInt(fp) ;
+		cte->index = i ;
 	}
 	return(ct) ;
 }
