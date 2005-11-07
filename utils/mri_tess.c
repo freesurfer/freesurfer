@@ -788,7 +788,8 @@ check_face(int im0, int i0, int j0, int im1, int i1,int j1, int f, int n,
           im1>=parms->zmin&&im1<=parms->zmax&&i1>=parms->ymin&&i1<=parms->ymax
 	  &&j1>=parms->xmin&&j1<=parms->xmax))
   {
-    if ((parms->all_flag && ((im[im0][i0][j0] != im[im1][i1][j1]!=value))) ||
+    if ((parms->all_flag && ((im[im0][i0][j0] != im[im1][i1][j1]) && (
+						im[im1][i1][j1] == 0))) ||
         (((im[im0][i0][j0]==value) && (im[im1][i1][j1]!=value))))
     {
       if (n==0)

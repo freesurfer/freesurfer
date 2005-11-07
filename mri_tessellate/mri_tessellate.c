@@ -2,9 +2,9 @@
 // mri_tessellate.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/08/18 16:19:10 $
-// Revision       : $Revision: 1.24 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2005/11/07 14:28:45 $
+// Revision       : $Revision: 1.25 $
 //
 //
 // How it works.
@@ -39,7 +39,7 @@
 //
 //          MRIvoxelToSurfaceRAS()
 //
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.24 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.25 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
   int xnum, ynum, numimg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.24 2005/08/18 16:19:10 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.25 2005/11/07 14:28:45 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -275,7 +275,8 @@ check_face(MRI *mri, int im0, int i0, int j0, int im1, int i1,int j1,
   if ((im0>=0&&im0<numimg&&i0>=imin&&i0<imax&&j0>=jmin&&j0<jmax&&
        im1>=0&&im1<numimg&&i1>=imin&&i1<imax&&j1>=jmin&&j1<jmax))
   {
-    if ((all_flag && ((MRIvox(mri, j0, i0, im0) != MRIvox(mri, j1, i1, im1)!=value))) ||
+    if ((all_flag && ((MRIvox(mri, j0, i0, im0) != MRIvox(mri, j1, i1, im1)) && (
+																							MRIvox(mri, j1, i1, im1) == 0))) ||
         (((MRIvox(mri, j0, i0, im0)==value) && (MRIvox(mri, j1, i1, im1)!=value))))
     {
       if (n==0)
