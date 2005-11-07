@@ -27,7 +27,7 @@ function hdr = load_analyze(imgfile,hdronly)
 %
 % See also: load_analyze_hdr.m
 %
-% $Id: load_analyze.m,v 1.1 2005/06/27 14:32:11 greve Exp $
+% $Id: load_analyze.m,v 1.2 2005/11/07 20:35:57 greve Exp $
 
 
 hdr = [];
@@ -67,7 +67,7 @@ if(hdronly) return; end
 
 
 % Opening img:  big or little does not seem to matter
-fp = fopen(imgfile,'rb');
+fp = fopen(imgfile,'r',hdr.endian);
 if(fp == -1) 
   fprintf('ERROR: could not open %s\n',imgfile);
   hdr = [];
