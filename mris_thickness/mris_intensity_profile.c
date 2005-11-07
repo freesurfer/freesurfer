@@ -15,7 +15,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.3 2005/09/30 20:03:04 fischl Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.4 2005/11/07 22:14:05 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -48,6 +48,13 @@ static int navgs = 0 ;
 
 static int max_samples = MAX_SAMPLES ;
 
+/* The following specifies the src and dst volumes of the input FSL/LTA transform */
+MRI          *lta_src = 0;
+MRI          *lta_dst = 0;
+static int invert = 0 ;
+static char *xform_fname = NULL;
+static char *mean_outname = NULL;
+
 int
 main(int argc, char *argv[])
 {
@@ -59,7 +66,7 @@ main(int argc, char *argv[])
 	LTA           *lta ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.3 2005/09/30 20:03:04 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.4 2005/11/07 22:14:05 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -116,23 +123,121 @@ main(int argc, char *argv[])
     ErrorExit(Gerror, "%s: could not read white matter surface", Progname) ;
   fprintf(stderr, "measuring gray matter thickness...\n") ;
 
-	// now convert the surface to be in the volume ras coords
-	if (mriConformed(mri) == 0)
+  //use the specified xform if it's given 
+  if(xform_fname != NULL){
+    LTA *lta = 0;
+    int transform_type;
+    
+    printf("INFO: Applying transformation from file %s...\n", 
+	   xform_fname);
+    transform_type =  TransformFileNameType(xform_fname);
+
+    if(transform_type == MNI_TRANSFORM_TYPE || 
+       transform_type == TRANSFORM_ARRAY_TYPE ||
+       transform_type == REGISTER_DAT ||
+       transform_type == FSLREG_TYPE
+       ){
+      
+      printf("Reading transform ...\n");
+      lta = LTAreadEx(xform_fname) ;
+      
+      if (!lta)
+	ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
+		  Progname, xform_fname) ;
+      
+      if (transform_type == FSLREG_TYPE){
+	if(lta_src == 0 || lta_dst == 0){
+	  fprintf(stderr, "ERROR: fslmat does not have information on the src and dst volumes\n");
+	  fprintf(stderr, "ERROR: you must give options '-src' and '-dst' to specify the src and dst volume infos for the registration\n");
+	}
+	
+	
+	LTAmodifySrcDstGeom(lta, lta_src, lta_dst); // add src and dst information
+	//The following is necessary to interpret FSLMAT correctly!!!
+	LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+      }
+      if (lta->xforms[0].src.valid == 0){
+	if(lta_src == 0){
+	  fprintf(stderr, "The transform does not have the valid src volume info.\n");
+	  fprintf(stderr, "Either you give src volume info by option -src or\n");
+	  fprintf(stderr, "make the transform to have the valid src info.\n");
+	  ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
+	}else{
+	  LTAmodifySrcDstGeom(lta, lta_src, NULL); // add src information
+	}
+      }
+      if (lta->xforms[0].dst.valid == 0){
+	if(lta_dst == 0){
+	  fprintf(stderr, "The transform does not have the valid dst volume info.\n");
+	  fprintf(stderr, "Either you give src volume info by option -dst or\n");
+	  fprintf(stderr, "make the transform to have the valid dst info.\n");
+	  fprintf(stderr, "If the dst was average_305, then you can set\n");
+	  fprintf(stderr, "environmental variable USE_AVERAGE305 true\n");
+	  fprintf(stderr, "instead.\n");
+	  ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
+	}else{
+	  LTAmodifySrcDstGeom(lta, NULL, lta_dst); // add  dst information
+	}
+      }
+
+      if (invert){
+	VOL_GEOM vgtmp;
+	LT *lt;
+	MATRIX *m_tmp = lta->xforms[0].m_L ;
+	lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
+	MatrixFree(&m_tmp) ;
+	lt = &lta->xforms[0];
+	if (lt->dst.valid == 0 || lt->src.valid == 0){
+	  fprintf(stderr, "WARNING:***************************************************************\n");
+	  fprintf(stderr, "WARNING:dst volume infor is invalid.  Most likely produce wrong inverse.\n");
+	  fprintf(stderr, "WARNING:***************************************************************\n");
+	}
+	copyVolGeom(&lt->dst, &vgtmp);
+	copyVolGeom(&lt->src, &lt->dst);
+	copyVolGeom(&vgtmp, &lt->src);
+      }
+      
+
+      LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+
+      printf("---------------------------------\n");
+      printf("INFO: Transform Matrix \n");
+      MatrixPrint(stdout,lta->xforms[0].m_L);
+      printf("---------------------------------\n");
+      
+      // convert surface into hires volume surface if needed
+      //////////////////////////////////////////////////////////////////////
+      MRISsurf2surfAll(mris, mri, lta);
+      
+      if (lta_src)
+	MRIfree(&lta_src);
+      if (lta_dst)
+	MRIfree(&lta_dst);
+      
+    }else
+      {
+	fprintf(stderr, "unknown transform type in file %s\n", 
+		xform_fname);
+	exit(1);
+      }
+  }
+  // now convert the surface to be in the volume ras coords
+  else if (mriConformed(mri) == 0)
   {
     LINEAR_TRANSFORM *lt = 0;
     MATRIX           *m_L = 0;
-		TRANSFORM        *xform ;
-
-		printf("volume is not conformed - transforming surfaces....\n") ;
-		sprintf(fname, "%s/%s/mri/T1/COR-256", sdir, sname) ;
-		if (!FileExists(fname))
-			sprintf(fname, "%s/%s/mri/T1.mgz", sdir, sname) ;
-		fprintf(stderr, "conformed volume from %s...\n", fname) ;
-		mri_cor = MRIread(fname) ;
-		if (!mri_cor)
-			ErrorExit(ERROR_NOFILE, "%s: could not read conformed volume from %s",
-								Progname, fname) ;
-
+    TRANSFORM        *xform ;
+    
+    printf("volume is not conformed - transforming surfaces....\n") ;
+    sprintf(fname, "%s/%s/mri/T1/COR-256", sdir, sname) ;
+    if (!FileExists(fname))
+      sprintf(fname, "%s/%s/mri/T1.mgz", sdir, sname) ;
+    fprintf(stderr, "conformed volume from %s...\n", fname) ;
+    mri_cor = MRIread(fname) ;
+    if (!mri_cor)
+      ErrorExit(ERROR_NOFILE, "%s: could not read conformed volume from %s",
+		Progname, fname) ;
+    
     fprintf(stderr, "allocating identity RAS-to-RAS xform...\n") ;
     // allocate xform->xform 
     xform = TransformAlloc(MNI_TRANSFORM_TYPE, NULL); 
@@ -147,60 +252,95 @@ main(int argc, char *argv[])
     MatrixIdentity(4, m_L);
     getVolGeom(mri, &lt->dst);
     getVolGeom(mri_cor, &lt->src);
-		if (Gdiag & DIAG_WRITE)
-		{
-			MRI *mri_tmp;
-			mri_tmp = MRIclone(mri, NULL);
-			MRIapplyRASlinearTransform(mri_cor, mri_tmp, lt->m_L);
-			MRIwrite(mri_tmp, "T1_xformed.mgz") ;
-			MRIfree(&mri_tmp) ;
-		}
-		MRIfree(&mri_cor) ;
-		///////////////////////////////////////////////////////////////////////
-		// convert surface into hires volume surface if needed
-		//////////////////////////////////////////////////////////////////////
-		MRISsurf2surfAll(mris, mri, lta);
+    if (Gdiag & DIAG_WRITE)
+      {
+	MRI *mri_tmp;
+	mri_tmp = MRIclone(mri, NULL);
+	MRIapplyRASlinearTransform(mri_cor, mri_tmp, lt->m_L);
+	MRIwrite(mri_tmp, "T1_xformed.mgz") ;
+	MRIfree(&mri_tmp) ;
+      }
+    MRIfree(&mri_cor) ;
+    ///////////////////////////////////////////////////////////////////////
+    // convert surface into hires volume surface if needed
+    //////////////////////////////////////////////////////////////////////
+    MRISsurf2surfAll(mris, mri, lta);
+  }
+  
+  if (nlabels > 0)
+    {
+      int l ;
+      char label_name[STRLEN] ;
+      LABEL *ltotal = NULL ;
+      
+      for (l = 0 ; l < nlabels ; l++)
+	{
+	  sprintf(label_name, "%s/%s/label/%s.%s.label", sdir, sname, hemi,label_names[l]) ;
+	  
+	  label = LabelRead(NULL, label_name) ;
+	  if (!label)
+	    ErrorExit(ERROR_NOFILE, "%s: could not read label file %s...\n", Progname,
+		      label_name) ;
+	  if (num_erode > 0)
+	    {
+	      printf("eroding label %d times, npoints went from %d ", num_erode,label->n_points) ;
+	      LabelErode(label, mris, num_erode) ;
+	      printf("to %d ", label->n_points) ;
+	    }
+	  ltotal = LabelCombine(label, ltotal) ;
+	}
+      if (nlabels == 0)
+	ltotal = LabelInFOV(mris, mri, MIN_BORDER_DIST) ;
+      
+      LabelRipRestOfSurfaceWithThreshold(ltotal, mris, thresh) ;
+    }
+  
+  mri_profiles = 
+    MRISmeasureCorticalIntensityProfiles(mris, mri, nbhd_size, max_thick, normalize, curv_thresh) ;
+
+  if (navgs > 0)
+    {
+      printf("smoothing profiles %d times\n", navgs) ;
+      MRISsmoothFrames(mris, mri_profiles, navgs) ;
+    }
+  MRIwrite(mri_profiles, out_fname) ;
+
+  if(mean_outname != NULL){
+    printf("Compute the mean of the intensity profile ...\n");
+
+    MRI *mri_mean;
+    int vtx, index;
+    double sum_profile;
+ 
+    mri_mean = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 1);
+
+    for(vtx = 0; vtx < mris->nvertices; vtx++){
+      sum_profile = 0;
+      
+      if (mris->vertices[vtx].ripflag){
+	MRIsetVoxVal(mri_mean, vtx, 0, 0, 0, sum_profile);
+	continue ; 
+      }
+
+      for(index= 0; index < mri_profiles->nframes; index++)
+      	sum_profile += MRIFseq_vox(mri_profiles, vtx, 0, 0, index);
+
+      sum_profile /= (float)mri_profiles->nframes;
+
+      MRIsetVoxVal(mri_mean, vtx, 0, 0, 0, sum_profile);
+    }
+    
+    MRIScopyMRI(mris, mri_mean, 0, "curv");
+
+    printf("writing average intensity profiles to curvature file %s...\n", mean_outname) ;
+    MRISwriteCurvature(mris, mean_outname);
+
+    MRIfree(&mri_mean);
   }
 
-	if (nlabels > 0)
-	{
-		int l ;
-		char label_name[STRLEN] ;
-		LABEL *ltotal = NULL ;
-
-		for (l = 0 ; l < nlabels ; l++)
-		{
-			sprintf(label_name, "%s/%s/label/%s.%s.label", sdir, sname, hemi,label_names[l]) ;
-			
-			label = LabelRead(NULL, label_name) ;
-			if (!label)
-				ErrorExit(ERROR_NOFILE, "%s: could not read label file %s...\n", Progname,
-									label_name) ;
-			if (num_erode > 0)
-			{
-				printf("eroding label %d times, npoints went from %d ", num_erode,label->n_points) ;
-				LabelErode(label, mris, num_erode) ;
-				printf("to %d ", label->n_points) ;
-			}
-			ltotal = LabelCombine(label, ltotal) ;
-		}
-		if (nlabels == 0)
-			ltotal = LabelInFOV(mris, mri, MIN_BORDER_DIST) ;
-			
-		LabelRipRestOfSurfaceWithThreshold(ltotal, mris, thresh) ;
-	}
-
-	mri_profiles = 
-		MRISmeasureCorticalIntensityProfiles(mris, mri, nbhd_size, max_thick, normalize, curv_thresh) ;
   printf("writing cortical intensity profiles to %s...\n", out_fname) ;
-	if (navgs > 0)
-	{
-		printf("smoothing profiles %d times\n", navgs) ;
-		MRISsmoothFrames(mris, mri_profiles, navgs) ;
-	}
-	MRIwrite(mri_profiles, out_fname) ;
-	MRIfree(&mri_profiles) ;
-
+  MRIfree(&mri_profiles) ;
+  
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -235,26 +375,26 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "erode"))
   {
-		num_erode = atoi(argv[2]) ;
+    num_erode = atoi(argv[2]) ;
     fprintf(stderr,  "eroding label %d times\n", num_erode) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "sdir"))
   {
-		sdir = argv[2] ;
-    nargs = 1 ;
+      sdir = argv[2] ;
+      nargs = 1 ;
   }
   else if (!stricmp(option, "normalize"))
   {
-		normalize = 1 ;
-		printf("normalizing profiles to be same length\n") ;
+    normalize = 1 ;
+    printf("normalizing profiles to be same length\n") ;
   }
   else if (!stricmp(option, "nsamples") || !stricmp(option, "samples"))
   {
-		max_samples = atoi(argv[2]) ;
-		normalize = 1 ;
-		nargs = 1 ;
-		printf("normalizing profiles to have %d samples\n", max_samples) ;
+    max_samples = atoi(argv[2]) ;
+    normalize = 1 ;
+    nargs = 1 ;
+    printf("normalizing profiles to have %d samples\n", max_samples) ;
   }
   else if (!stricmp(option, "max"))
   {
@@ -263,35 +403,82 @@ get_option(int argc, char *argv[])
             max_thick) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "mean"))
+  {
+    mean_outname = argv[2];
+    fprintf(stderr,  "output the intensity profile mean to file %s.\n",
+            mean_outname) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "xform") || 
+	   !stricmp(option, "at")
+	   ){
+    xform_fname = argv[2];
+    nargs = 1;
+    fprintf(stderr, "transform file name is %s\n", xform_fname);
+  }
+  else if (!stricmp(option, "ait")
+	   ){
+    xform_fname = argv[2];
+    invert = 1;
+    nargs = 1;
+    fprintf(stderr, "Inversely apply the transform given by %s\n", xform_fname);
+  }
+  else if (!stricmp(option, "invert")){
+    invert = 1;
+    fprintf(stderr, "Inversely apply the given registration transform\n");
+  }
+  else if (!stricmp(option, "lta_src") ||
+	   !stricmp(option, "src")
+	   ){
+    fprintf(stderr, "src volume for the given transform (given by -xform) is %s\n",argv[2]); 
+    fprintf(stderr, "Reading the src volume...\n");
+    lta_src = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
+    if (!lta_src){
+      ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
+    }
+    nargs = 1;
+  }
+  else if (!stricmp(option, "lta_dst") ||
+	   !stricmp(option, "dst")
+	   ){
+    fprintf(stderr, "dst volume for the transform (given by -xform) is %s\n",argv[2]); 
+    fprintf(stderr, "Reading the dst volume...\n");
+    lta_dst = MRIreadHeader(argv[2], MRI_VOLUME_TYPE_UNKNOWN);
+    if (!lta_dst){
+      ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
+    }
+    nargs = 1;
+  }
   else switch (toupper(*option))
   {
-	case 'C':
-		curv_fname = argv[2] ;
-		curv_thresh = atoi(argv[3]) ;
-		printf("reading curvature from %s, and limiting calculations to %s regions\n",
-					 curv_fname, curv_thresh > 0 ? "sulcal" : "gyral") ;
-		nargs = 2 ;
-		break ;
+         case 'C':
+	   curv_fname = argv[2] ;
+	   curv_thresh = atoi(argv[3]) ;
+	   printf("reading curvature from %s, and limiting calculations to %s regions\n",
+		  curv_fname, curv_thresh > 0 ? "sulcal" : "gyral") ;
+	   nargs = 2 ;
+	   break ;
 	case 'L':
-		label_names[nlabels] = argv[2] ;
-		nargs = 1 ;
-		printf("limiting profile calculation to label %s\n", label_names[nlabels]) ;
-		nlabels++ ;
-		break ;
+	  label_names[nlabels] = argv[2] ;
+	  nargs = 1 ;
+	  printf("limiting profile calculation to label %s\n", label_names[nlabels]) ;
+	  nlabels++ ;
+	  break ;
   case 'N':
     nbhd_size = atoi(argv[2]) ;
     fprintf(stderr, "using neighborhood size=%d\n", nbhd_size) ;
     nargs = 1 ;
     break ;
-	case 'A':
-		navgs = atoi(argv[2]) ;
-		nargs = 1;
-		printf("smoothing profiles %d times across space\n", navgs) ;
-		break ;
-	case 'T':
-		thresh = atof(argv[2]) ;
-		nargs = 1 ;
-		break ;
+  case 'A':
+    navgs = atoi(argv[2]) ;
+    nargs = 1;
+    printf("smoothing profiles %d times across space\n", navgs) ;
+    break ;
+  case 'T':
+    thresh = atof(argv[2]) ;
+    nargs = 1 ;
+    break ;
   case '?':
   case 'U':
     print_usage() ;
@@ -330,7 +517,15 @@ print_help(void)
           "and writes the resulting measurement into a 'curvature' file\n"
           "<output file>.\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
-  /*  fprintf(stderr, "-n    normalize output curvatures.\n") ;*/
+  fprintf(stderr, "-sdir %%s specifies the SUBJECTS_DIR \n") ;
+  fprintf(stderr, "-white %%s specifies WHITE surface filename.\n") ;
+  fprintf(stderr, "-pial %%s specifies PIAL surface filename.\n") ;
+  fprintf(stderr, "-normalize normalized sampling w.r.t. thickness  \n") ;
+  fprintf(stderr, "-mean %%s outputs the mean profile-integral to the specified file (output is in curv format).\n") ;
+  fprintf(stderr, "-xform %%s specify the registration xform that maps the T1 volume (from which the surfaces were computed) to the input volume to be sampled.\n") ;
+  fprintf(stderr, "-src %%s source volume used when computing the registration xform\n");
+  fprintf(stderr, "-dst %%s destination volume used when computing the registration xform\n");
+  fprintf(stderr, "-invert this flag asks to apply the registration xform inversely \n");
   exit(1) ;
 }
 
@@ -442,7 +637,8 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
 		else
 		{
 			sample_dist = SAMPLE_DIST ;
-			for (nsamples = 0, d = 0.0 ; d <= max_thick ; d += sample_dist, nsamples++)
+			//			for (nsamples = 0, d = 0.0 ; d <= max_thick ; d += sample_dist, nsamples++)
+			for (nsamples = 0, d = 0.0 ;nsamples < max_samples; d += sample_dist, nsamples++)
 			{
 				if (d > thick)  // so each row has the same # of cols
 				{
