@@ -18,7 +18,7 @@
 
 /* the volume that the classifiers are distributed within */
 #define DEFAULT_VOLUME_SIZE   256
-#define MAX_GCA_LABELS        1000
+#define MAX_GCA_LABELS        100
 
 /* for flags field */
 #define GCA_NO_FLAGS          0x0000
@@ -264,7 +264,7 @@ int   GCAhistogramTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD,
 int   GCAnormalizeTissueStatistics(GCA *gca) ;
 int  GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
 int  GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform) ;
-int  GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform) ;
+int  GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, char *base_name, LTA **plta) ;
 int  GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
                             int wsize, float pthresh) ;
 int  GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
@@ -279,6 +279,7 @@ int GCArenormalizeIntensitiesAbsolute(GCA *gca, int *labels,
                                       float *intensities, int num) ;
 int GCArenormalizeToExample(GCA *gca, MRI *mri_seg, MRI *mri_T1) ;
 
+int     GCAlabelMode(GCA *gca, int label, float *modes) ;
 int     GCAlabelMean(GCA *gca, int label, float *means) ;
 int     GCAlabelMeanFromImage(GCA *gca, TRANSFORM *transform, MRI *mri, int label, float *means) ;
 MATRIX  *GCAlabelCovariance(GCA *gca, int label, MATRIX *m_total) ;
