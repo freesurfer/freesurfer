@@ -1334,4 +1334,49 @@ HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end)
 	return(hdst) ;
 }
 
+static double 
+histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
+{
+	int    b1, b2 ;
+	double error, sse, c1, c2;
+
+	for (sse = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
+	{
+		b2 = b1*a +b ;
+		if (b2 < 0)
+			b2 = 0 ;
+		if (b2 >= h2->nbins)
+			b2 = h2->nbins-1 ;
+		c1 = h1->counts[b1] ; c2 = h2->counts[b2] ;
+		error = (c2 - c1) ;
+		sse += error*error ;
+	}
+	return(sse) ;
+}
+
+#define NSTEPS 50
+int
+HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax, 
+									 double bmin, double bmax, float *pa, float *pb)
+{
+	double   a, b, sse, min_sse, min_a, min_b, astep, bstep ;
+
+	min_sse = histoComputeLinearFitError(h1, h2, 1.0, 0.0) ;
+	min_a = 1.0 ; min_b = 0.0 ;
+	astep = (amax-amin)/NSTEPS ;
+	bstep = (bmax-bmin)/NSTEPS ;
+	for (a = amin ; a <= amax ; a += astep)
+		for (b = bmin ; b <= bmax ; b += bstep)
+	{
+		sse = histoComputeLinearFitError(h1, h2, a, b) ;
+		if (sse < min_sse)
+		{
+			min_sse = sse ;
+			min_a = a ; min_b = b ;
+		}
+	}
+
+	*pa = min_a ; *pb = min_b ;
+	return(NO_ERROR) ;
+}
 
