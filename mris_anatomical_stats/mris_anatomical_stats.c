@@ -17,7 +17,7 @@
 #include "version.h"
 #include "colortab.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.32 2005/10/30 01:17:05 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.33 2005/11/07 16:22:03 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -46,7 +46,6 @@ int    MRISreplaceAnnotations(MRI_SURFACE *mris, int in_annotation, int out_anno
 
 char *Progname ;
 static double sigma = 0.0f ;
-static int ignore_set = 0 ;
 static float ignore_below = 0 ;
 static float ignore_above = 20 ;
 
@@ -85,10 +84,10 @@ main(int argc, char *argv[])
   int           n_vertices = -1;
   MRI           *ThicknessMap = NULL;
   struct utsname uts;
-  char          *cmdline, ext[STRLEN] ;
+  char *cmdline;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.32 2005/10/30 01:17:05 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.33 2005/11/07 16:22:03 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -183,19 +182,7 @@ main(int argc, char *argv[])
   fprintf(stderr, "reading pial surface position from %s...\n", fname) ;
   MRISreadVertexPositions(mris, fname) ;
 #else
-	FileNameExtension(thickness_name, ext) ;
-	if (stricmp(ext, "w") == 0)
-	{
-		MRISreadValues(mris, thickness_name) ;
-		MRIScopyValuesToCurvature(mris) ;
-		if (!ignore_set)
-		{
-			ignore_below = -10000000 ;
-			ignore_above = -ignore_below ;
-		}
-	}
-	else
-		MRISreadCurvatureFile(mris, thickness_name) ;
+  MRISreadCurvatureFile(mris, thickness_name) ;
 
   if(nsmooth > 0){
     printf("Smooth thickness map with %d iterations on surface\n", nsmooth);
@@ -363,6 +350,203 @@ main(int argc, char *argv[])
 		fclose(fp);
 	}
 
+
+	if (annotation_name) // new stuff
+	{
+#define MAX_INDICES 1000
+		double  areas[MAX_INDICES], volumes[MAX_INDICES], thicknesses[MAX_INDICES],
+			      avg_thick, volume, thickness_vars[MAX_INDICES], std ;
+		int     v0_index, v1_index, v2_index, fno, m, i, dofs[MAX_INDICES] ;
+		VERTEX  *v0, *v1, *v2 ;
+		FACE    *f ;
+		
+		memset(areas, 0, sizeof(areas)) ;
+		memset(volumes, 0, sizeof(volumes)) ;
+		memset(thicknesses, 0, sizeof(thicknesses)) ;
+		memset(dofs, 0, sizeof(dofs)) ;
+		memset(thickness_vars, 0, sizeof(thickness_vars)) ;
+		
+		MRIScomputeMetricProperties(mris) ;
+
+		// first do white surface
+		MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+		MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+		MRIScomputeMetricProperties(mris) ;
+		for (fno = 0 ; fno < mris->nfaces ; fno++)
+		{
+			f = &mris->faces[fno] ;
+			if (f->ripflag)
+				continue ;
+			v0 = &mris->vertices[f->v[0]] ;
+			v0_index = CTABannotationToIndex(mris->ct, v0->annotation); 
+			v1 = &mris->vertices[f->v[1]] ;
+			v1_index = CTABannotationToIndex(mris->ct, v1->annotation); 
+			v2 = &mris->vertices[f->v[2]] ;
+			v2_index = CTABannotationToIndex(mris->ct, v2->annotation); 
+			for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++)
+			{
+				vno = f->v[m] ;
+				v = &mris->vertices[vno] ;
+				avg_thick += v->imag_val ;
+			}
+			avg_thick /= VERTICES_PER_FACE ;
+			volume = (avg_thick * f->area) ;
+			volumes[v0_index] += volume/VERTICES_PER_FACE ;
+			volumes[v1_index] += volume/VERTICES_PER_FACE ;
+			volumes[v2_index] += volume/VERTICES_PER_FACE ;
+		}
+
+		// now do pial surface
+		MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
+		MRIScomputeMetricProperties(mris) ;
+		for (fno = 0 ; fno < mris->nfaces ; fno++)
+		{
+			f = &mris->faces[fno] ;
+			if (f->ripflag)
+				continue ;
+			v0 = &mris->vertices[f->v[0]] ;
+			v0_index = CTABannotationToIndex(mris->ct, v0->annotation); 
+			v1 = &mris->vertices[f->v[1]] ;
+			v1_index = CTABannotationToIndex(mris->ct, v1->annotation); 
+			v2 = &mris->vertices[f->v[2]] ;
+			v2_index = CTABannotationToIndex(mris->ct, v2->annotation); 
+			for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++)
+			{
+				vno = f->v[m] ;
+				v = &mris->vertices[vno] ;
+				avg_thick += v->imag_val ;
+			}
+			avg_thick /= VERTICES_PER_FACE ;
+			volume = (avg_thick * f->area) ;
+			volumes[v0_index] += volume/VERTICES_PER_FACE ;
+			volumes[v1_index] += volume/VERTICES_PER_FACE ;
+			volumes[v2_index] += volume/VERTICES_PER_FACE ;
+		}
+
+		// area should just be surface area os specified surface (in ORIG_VERTICES)
+		MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+		MRIScomputeMetricProperties(mris) ;
+		for (fno = 0 ; fno < mris->nfaces ; fno++)
+		{
+			f = &mris->faces[fno] ;
+			if (f->ripflag)
+				continue ;
+			v0 = &mris->vertices[f->v[0]] ;
+			v0_index = CTABannotationToIndex(mris->ct, v0->annotation); 
+			v1 = &mris->vertices[f->v[1]] ;
+			v1_index = CTABannotationToIndex(mris->ct, v1->annotation); 
+			v2 = &mris->vertices[f->v[2]] ;
+			v2_index = CTABannotationToIndex(mris->ct, v2->annotation); 
+			areas[v0_index] += f->area/VERTICES_PER_FACE ;
+			areas[v1_index] += f->area/VERTICES_PER_FACE ;
+			areas[v2_index] += f->area/VERTICES_PER_FACE ;
+		}
+
+		// compute thickness for each annotation
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v0 = &mris->vertices[vno] ;
+			v0_index = CTABannotationToIndex(mris->ct, v0->annotation); 
+			thicknesses[v0_index] += v0->imag_val ;
+			dofs[v0_index]++ ;
+		}
+
+		for (i = 0 ; i < MAX_INDICES ; i++)
+		{
+			if (dofs[i] == 0)
+				continue ;
+			thicknesses[i] /= dofs[i] ;
+		}
+		// compute thickness variance for each annotation
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v0 = &mris->vertices[vno] ;
+			v0_index = CTABannotationToIndex(mris->ct, v0->annotation); 
+			std = (v0->imag_val-thicknesses[v0_index]);
+			thickness_vars[v0_index] += std*std ;
+		}
+
+		for (i = 0 ; i < MAX_INDICES ; i++)
+		{
+			if (dofs[i] == 0)
+				continue ;
+			if (CTABindexToAnnotation(mris->ct, i, &annotation) != NO_ERROR)
+				continue ;
+      MRISripVerticesWithoutAnnotation(mris, annotation) ;
+      MRISuseMeanCurvature(mris) ;
+      mean_abs_mean_curvature = MRIScomputeAbsoluteCurvature(mris) ;
+
+      MRISuseGaussianCurvature(mris) ;
+      mean_abs_gaussian_curvature = MRIScomputeAbsoluteCurvature(mris) ;
+      MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
+      MRISrestoreSurface(mris) ;
+
+			volumes[i] /= 2 ;
+			thickness_vars[i] /= dofs[i] ;
+      /* output */
+
+      if(annotation_name && tablefile != NULL){
+				fp = fopen(tablefile,"a");
+				fprintf(fp, "%-40s", mris->ct->bins[i].name);
+        fprintf(fp, "%5d", dofs[i]);
+        fprintf(fp, "  %5.0f", areas[i]) ;
+        fprintf(fp, "  %5.0f", volumes[i]) ;
+        fprintf(fp, "  %5.3f %5.3f", thicknesses[i], sqrt(thickness_vars[i])) ;
+        fprintf(fp, "  %8.3f", mean_abs_mean_curvature) ;
+        fprintf(fp, "  %8.3f", mean_abs_gaussian_curvature) ;
+        fprintf(fp, "  %7.3f", fi);
+        fprintf(fp, "  %6.3f",ici);
+        fprintf(fp, "\n");
+				fclose(fp);
+      }
+
+      if(tabular_output_flag)
+      {
+
+        fprintf(stdout, "%5d", dofs[i]);
+        fprintf(stdout, "  %5.0f", areas[i]) ;
+        fprintf(stdout, "  %5.0f", volumes[i]) ;
+        fprintf(stdout, "  %5.3f %5.3f", thicknesses[i], sqrt(thickness_vars[i])) ;
+        fprintf(stdout, "  %8.3f", mean_abs_mean_curvature) ;
+        fprintf(stdout, "  %8.3f", mean_abs_gaussian_curvature) ;
+        fprintf(stdout, "  %7.3f", fi);
+        fprintf(stdout, "  %6.3f",ici);
+				fprintf(stdout, "  %s", mris->ct->bins[i].name);
+        fprintf(stdout, "\n");
+
+      }
+      else
+      {
+
+				if (mris->ct == NULL)
+					ErrorExit(ERROR_BADFILE, "%s: no color table loaded - cannot translate annot  file",Progname);
+
+
+				fprintf(stdout, "structure is \"%s\"\n", mris->ct->bins[i].name);
+
+        fprintf(stdout, "number of vertices                      = %d\n", 
+                dofs[i]);
+
+        fprintf(stdout, "total surface area                      = %2.0f mm^2\n",
+                areas[i]) ;
+        fprintf(stdout, "total gray matter volume                = %2.0f mm^3\n",
+                volumes[i]) ;
+        fprintf(stdout, 
+								"average cortical thickness              = %2.3f mm +- %2.3f mm\n",
+								thicknesses[i], sqrt(thickness_vars[i])) ;
+        fprintf(stdout, "average integrated rectified mean curvature     = %2.3f\n", 
+                mean_abs_mean_curvature) ;
+        fprintf(stdout, "average integrated rectified Gaussian curvature = %2.3f\n", 
+                mean_abs_gaussian_curvature) ;
+        fprintf(stdout, "folding index                           = %2.3f\n", fi);
+        fprintf(stdout, "intrinsic curvature index               = %2.3f\n",ici);
+
+      }
+
+		}
+		MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+		exit(0) ;
+	}
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -643,7 +827,6 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   case 'I':
-		ignore_set = 1 ;
     ignore_below = atof(argv[2]) ;
     ignore_above = atof(argv[3]) ;
     fprintf(stderr, 
