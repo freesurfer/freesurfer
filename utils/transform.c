@@ -300,12 +300,12 @@ LTAalloc(int nxforms, MRI *mri)
   float                  x0, y0, z0 ;
 
   if (mri)
-    {
-      MRIboundingBox(mri, 70, &bbox) ;
-      x0 = bbox.x + bbox.dx/2 ; 
-      y0 = bbox.y + bbox.dy/2 ; 
-      z0 = bbox.z + bbox.dz/2 ; 
-    }
+	{
+		MRIboundingBox(mri, 70, &bbox) ;
+		x0 = bbox.x + bbox.dx/2 ; 
+		y0 = bbox.y + bbox.dy/2 ; 
+		z0 = bbox.z + bbox.dz/2 ; 
+	}
   else
     x0 = y0 = z0 = 0 ;
 
@@ -323,29 +323,29 @@ LTAalloc(int nxforms, MRI *mri)
               "LTAalloc(%d): could not allocate inverse xforms",
               nxforms);
   for (i = 0 ; i < nxforms ; i++)
-    {
-      lta->xforms[i].x0 = x0 ; 
-      lta->xforms[i].y0 = y0 ; 
-      lta->xforms[i].z0 = z0 ;
-      lta->xforms[i].sigma = 10000.0f ;
-      lta->xforms[i].m_L = MatrixIdentity(4, NULL) ;
-      lta->xforms[i].m_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
-      lta->xforms[i].m_last_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
-      initVolGeom(&lta->xforms[i].src);
-      initVolGeom(&lta->xforms[i].dst);
-      lta->xforms[i].type = UNKNOWN;;
+	{
+		lta->xforms[i].x0 = x0 ; 
+		lta->xforms[i].y0 = y0 ; 
+		lta->xforms[i].z0 = z0 ;
+		lta->xforms[i].sigma = 10000.0f ;
+		lta->xforms[i].m_L = MatrixIdentity(4, NULL) ;
+		lta->xforms[i].m_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
+		lta->xforms[i].m_last_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
+		initVolGeom(&lta->xforms[i].src);
+		initVolGeom(&lta->xforms[i].dst);
+		lta->xforms[i].type = UNKNOWN;;
 
-      lta->inv_xforms[i].x0 = x0 ; 
-      lta->inv_xforms[i].y0 = y0 ; 
-      lta->inv_xforms[i].z0 = z0 ;
-      lta->inv_xforms[i].sigma = 10000.0f ;
-      lta->inv_xforms[i].m_L = MatrixIdentity(4, NULL) ;
-      lta->inv_xforms[i].m_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
-      lta->inv_xforms[i].m_last_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
-      initVolGeom(&lta->inv_xforms[i].src);
-      initVolGeom(&lta->inv_xforms[i].dst);
-      lta->inv_xforms[i].type = UNKNOWN;;
-    }
+		lta->inv_xforms[i].x0 = x0 ; 
+		lta->inv_xforms[i].y0 = y0 ; 
+		lta->inv_xforms[i].z0 = z0 ;
+		lta->inv_xforms[i].sigma = 10000.0f ;
+		lta->inv_xforms[i].m_L = MatrixIdentity(4, NULL) ;
+		lta->inv_xforms[i].m_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
+		lta->inv_xforms[i].m_last_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
+		initVolGeom(&lta->inv_xforms[i].src);
+		initVolGeom(&lta->inv_xforms[i].dst);
+		lta->inv_xforms[i].type = UNKNOWN;;
+	}
   return(lta) ;
 }
 /*-----------------------------------------------------
@@ -384,12 +384,13 @@ LTAwrite(LTA *lta, char *fname)
   fprintf(fp, "type      = %d\n", lta->type) ;
   fprintf(fp, "nxforms   = %d\n", lta->num_xforms) ;
   for (i = 0 ; i < lta->num_xforms ; i++)
-    {
-      lt = &lta->xforms[i] ;
-      fprintf(fp, "mean      = %2.3f %2.3f %2.3f\n", lt->x0, lt->y0, lt->z0) ;
-      fprintf(fp, "sigma     = %2.3f\n", lt->sigma) ;
-      MatrixAsciiWriteInto(fp, lt->m_L) ;
-    }
+	{
+		lt = &lta->xforms[i] ;
+		fprintf(fp, "mean      = %2.3f %2.3f %2.3f\n", lt->x0, lt->y0, lt->z0) ;
+		fprintf(fp, "sigma     = %2.3f\n", lt->sigma) ;
+		MatrixAsciiWriteInto(fp, lt->m_L) ;
+		fprintf(fp, "label     = %d\n", lt->label) ;
+	}
   fclose(fp) ;
   return(NO_ERROR) ;
 }
@@ -411,63 +412,63 @@ LTAread(char *fname)
 
   type = TransformFileNameType(fname);
   switch (type)
-    {
-    case REGISTER_DAT:
-      lta = ltaReadRegisterDat(fname) ;
-      if (!lta) return(NULL) ;
+	{
+	case REGISTER_DAT:
+		lta = ltaReadRegisterDat(fname) ;
+		if (!lta) return(NULL) ;
 
-      V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
-      W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
-      *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
-      *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
-      *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
-      *MATRIX_RELT(V, 4, 4) = 1 ;
+		V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
+		W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
+		*MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
+		*MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
+		*MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
+		*MATRIX_RELT(V, 4, 4) = 1 ;
     
-      *MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
-      *MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
-      *MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
-      *MATRIX_RELT(W, 4, 4) = 1 ;
+		*MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
+		*MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
+		*MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
+		*MATRIX_RELT(W, 4, 4) = 1 ;
     
-      m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
-      MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
-      MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
-      lta->type = LINEAR_VOX_TO_VOX ;
-      break ;
-    case MNI_TRANSFORM_TYPE:
-      lta = ltaMNIread(fname) ;
-      if (!lta)
-        return(NULL) ;
+		m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
+		MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
+		MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
+		lta->type = LINEAR_VOX_TO_VOX ;
+		break ;
+	case MNI_TRANSFORM_TYPE:
+		lta = ltaMNIread(fname) ;
+		if (!lta)
+			return(NULL) ;
     
-      /* by default convert MNI files to voxel coords.
-         Sorry, I know this shouldn't be done here, particularly since we
-         don't know enough to convert to scanner RAS coords, but I don't want 
-         to risk breaking the Talairach code by mucking around with it (BRF).
-      */
-      /* convert to voxel coords */
-      V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
-      W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
-      *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
-      *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
-      *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
-      *MATRIX_RELT(V, 4, 4) = 1 ;
+		/* by default convert MNI files to voxel coords.
+			 Sorry, I know this shouldn't be done here, particularly since we
+			 don't know enough to convert to scanner RAS coords, but I don't want 
+			 to risk breaking the Talairach code by mucking around with it (BRF).
+		*/
+		/* convert to voxel coords */
+		V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
+		W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
+		*MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
+		*MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
+		*MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
+		*MATRIX_RELT(V, 4, 4) = 1 ;
     
-      *MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
-      *MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
-      *MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
-      *MATRIX_RELT(W, 4, 4) = 1 ;
+		*MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
+		*MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
+		*MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
+		*MATRIX_RELT(W, 4, 4) = 1 ;
     
-      m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
-      MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
-      MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
-      lta->type = LINEAR_VOX_TO_VOX ;
-      break ;
-    case LINEAR_VOX_TO_VOX:
-    case LINEAR_RAS_TO_RAS:
-    case TRANSFORM_ARRAY_TYPE:
-    default:
-      lta = ltaReadFile(fname) ;
-      break ;
-    }
+		m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
+		MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
+		MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
+		lta->type = LINEAR_VOX_TO_VOX ;
+		break ;
+	case LINEAR_VOX_TO_VOX:
+	case LINEAR_RAS_TO_RAS:
+	case TRANSFORM_ARRAY_TYPE:
+	default:
+		lta = ltaReadFile(fname) ;
+		break ;
+	}
   return(lta) ;
 }
 /*-----------------------------------------------------
@@ -482,7 +483,7 @@ ltaReadFile(char *fname)
 {
   FILE             *fp;
   LINEAR_TRANSFORM *lt ;
-  int              i, nxforms, type ;
+  int              i, nxforms, type, skip = 0 ;
   char             line[STRLEN], *cp ;
   LTA              *lta ;
 
@@ -492,22 +493,33 @@ ltaReadFile(char *fname)
                 (ERROR_BADFILE, "ltaReadFile(%s): can't open file",fname));
   cp = fgetl(line, 199, fp) ; 
   if (cp == NULL)
-    {
-      fclose(fp) ;
-      ErrorReturn(NULL, (ERROR_BADFILE, "ltaReadFile(%s): can't read data",
-                         fname));
-    }
+	{
+		fclose(fp) ;
+		ErrorReturn(NULL, (ERROR_BADFILE, "ltaReadFile(%s): can't read data",
+											 fname));
+	}
   sscanf(cp, "type      = %d\n", &type) ;
   cp = fgetl(line, 199, fp) ; sscanf(cp, "nxforms   = %d\n", &nxforms) ;
   lta = LTAalloc(nxforms, NULL) ;
   lta->type = type ;
   for (i = 0 ; i < lta->num_xforms ; i++)
-    {
-      lt = &lta->xforms[i] ;
-      fscanf(fp, "mean      = %f %f %f\n", &lt->x0, &lt->y0, &lt->z0) ;
-      fscanf(fp, "sigma     = %f\n", &lt->sigma) ;
-      MatrixAsciiReadFrom(fp, lt->m_L) ;
-    }
+	{
+		lt = &lta->xforms[i] ;
+		if (skip == 0)
+			cp = fgetl(line, 199, fp) ; 
+		sscanf(cp, "mean      = %f %f %f\n", &lt->x0, &lt->y0, &lt->z0) ;
+		cp = fgetl(line, 199, fp) ; 
+		sscanf(cp, "sigma     = %f\n", &lt->sigma) ;
+		MatrixAsciiReadFrom(fp, lt->m_L) ;
+		cp = fgetl(line, 199, fp) ; 
+		if (strncmp(cp, "label", 5) == 0) // not all files have the label tag
+		{
+			sscanf(cp, "label     = %d\n", &lt->label) ;
+			skip = 0 ;
+		}
+		else
+			skip = 1 ;
+	}
   fclose(fp) ;
   return(lta) ;
 }
@@ -1653,62 +1665,62 @@ TransformSample(TRANSFORM *transform,
 
   *px = *py = *pz = 0 ;
   if (transform->type == MORPH_3D_TYPE)
-    {
-      gcam = (GCA_MORPH *)transform->xform ;
-      if (!gcam->mri_xind)
-        ErrorReturn(ERROR_UNSUPPORTED, 
-                    (ERROR_UNSUPPORTED, 
-                     "TransformSample: gcam has not been inverted!")) ;
+	{
+		gcam = (GCA_MORPH *)transform->xform ;
+		if (!gcam->mri_xind)
+			ErrorReturn(ERROR_UNSUPPORTED, 
+									(ERROR_UNSUPPORTED, 
+									 "TransformSample: gcam has not been inverted!")) ;
 
-      // the following should not happen /////////////////
-      if (xv < 0)
-        xv = 0 ;
-      if (xv >= gcam->mri_xind->width)
-        xv = gcam->mri_xind->width-1 ;
-      if (yv < 0)
-        yv = 0 ;
-      if (yv >= gcam->mri_yind->height)
-        yv = gcam->mri_yind->height-1 ;
-      if (zv < 0)
-        zv = 0 ;
-      if (zv >= gcam->mri_zind->depth)
-        zv = gcam->mri_zind->depth-1 ;
+		// the following should not happen /////////////////
+		if (xv < 0)
+			xv = 0 ;
+		if (xv >= gcam->mri_xind->width)
+			xv = gcam->mri_xind->width-1 ;
+		if (yv < 0)
+			yv = 0 ;
+		if (yv >= gcam->mri_yind->height)
+			yv = gcam->mri_yind->height-1 ;
+		if (zv < 0)
+			zv = 0 ;
+		if (zv >= gcam->mri_zind->depth)
+			zv = gcam->mri_zind->depth-1 ;
 
-      xi = nint(xv) ; yi = nint(yv) ; zi = nint(zv) ;
+		xi = nint(xv) ; yi = nint(yv) ; zi = nint(zv) ;
 
-      xt = nint(MRIgetVoxVal(gcam->mri_xind, xi, yi, zi, 0))*gcam->spacing ;
-      yt = nint(MRIgetVoxVal(gcam->mri_yind, xi, yi, zi, 0))*gcam->spacing ;
-      zt = nint(MRIgetVoxVal(gcam->mri_zind, xi, yi, zi, 0))*gcam->spacing ;
+		xt = nint(MRIgetVoxVal(gcam->mri_xind, xi, yi, zi, 0))*gcam->spacing ;
+		yt = nint(MRIgetVoxVal(gcam->mri_yind, xi, yi, zi, 0))*gcam->spacing ;
+		zt = nint(MRIgetVoxVal(gcam->mri_zind, xi, yi, zi, 0))*gcam->spacing ;
 
-    }
+	}
   else
-    {
-      lta = (LTA *)transform->xform ;
-      if (lta->type != LINEAR_VOXEL_TO_VOXEL)
-        ErrorExit(ERROR_BADPARM, "Transform was not of voxel-to-voxel type");
-      if (!v_canon)
-        {
-          v_input = VectorAlloc(4, MATRIX_REAL) ;
-          v_canon = VectorAlloc(4, MATRIX_REAL) ;
-          *MATRIX_RELT(v_input, 4, 1) = 1.0 ;
-          *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
-        }
-      V3_X(v_input) = xv;
-      V3_Y(v_input) = yv;
-      V3_Z(v_input) = zv;
-      MatrixMultiply(lta->xforms[0].m_L, v_input, v_canon) ;
-      xt = V3_X(v_canon) ; yt = V3_Y(v_canon) ; zt = V3_Z(v_canon) ;
+	{
+		lta = (LTA *)transform->xform ;
+		if (lta->type != LINEAR_VOXEL_TO_VOXEL)
+			ErrorExit(ERROR_BADPARM, "Transform was not of voxel-to-voxel type");
+		if (!v_canon)
+		{
+			v_input = VectorAlloc(4, MATRIX_REAL) ;
+			v_canon = VectorAlloc(4, MATRIX_REAL) ;
+			*MATRIX_RELT(v_input, 4, 1) = 1.0 ;
+			*MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
+		}
+		V3_X(v_input) = xv;
+		V3_Y(v_input) = yv;
+		V3_Z(v_input) = zv;
+		MatrixMultiply(lta->xforms[0].m_L, v_input, v_canon) ;
+		xt = V3_X(v_canon) ; yt = V3_Y(v_canon) ; zt = V3_Z(v_canon) ;
     
-      if (xt < 0) xt = 0;
-      if (yt < 0) yt = 0;
-      if (zt < 0) zt = 0;
+		if (xt < 0) xt = 0;
+		if (yt < 0) yt = 0;
+		if (zt < 0) zt = 0;
 
-      if (!v_canon)
-        {
-          VectorFree(&v_input);
-          VectorFree(&v_canon);
-        }
-    }
+		if (!v_canon)
+		{
+			VectorFree(&v_input);
+			VectorFree(&v_canon);
+		}
+	}
   *px = xt ; *py = yt ; *pz = zt ;
 
   return errCode ;
