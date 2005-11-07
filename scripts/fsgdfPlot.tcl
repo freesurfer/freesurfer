@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: fsgdfPlot.tcl,v 1.12 2005/04/07 16:47:27 kteich Exp $
+# $Id: fsgdfPlot.tcl,v 1.13 2005/11/07 21:52:54 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -79,6 +79,7 @@ source $fnUtils
 #       data,subjects,n - where n is 0 -> cSubjects
 #         variable - variable value for this subject (for state,nVariable)
 #         measurement - measurement value for this subject
+#         stdDev - standard deviation for this subject
 #       hiElement - name of hilighted element in plot
 #       subjects,n - where n is 0 -> cSubjects
 #         visible - whether or not is visible
@@ -582,10 +583,11 @@ proc FsgdfPlot_PlotData { iID } {
 	
 	# For each class, for each subject, if the subject's class is
 	# the same as the current class, get its data points and add
-	# them to a list. Then draw the entire list of data in the
-	# class's color/marker. If the class is hidden, set the color
-	# to white (so it shows up white in the legend) and hide the
-	# element.
+	# them to a list. Also calculate error bar coords. Then draw
+	# the entire list of data in the class's color/marker. If the
+	# class is hidden, set the color to white (so it shows up
+	# white in the legend) and hide the element. Draw the error
+	# bars as well.
 	for  { set nClass 0 } { $nClass < $gGDF($iID,cClasses) } { incr nClass } {
 
 	    set lData {}
@@ -603,6 +605,13 @@ proc FsgdfPlot_PlotData { iID } {
 		    
 		    lappend lData $gPlot($iID,state,data,subjects,$nSubj,variable)
 		    lappend lData $gPlot($iID,state,data,subjects,$nSubj,measurement)
+
+		    # Make the error coords a line from x=variable and
+		    # +-y=stddev.
+		    set meas $gPlot($iID,state,data,subjects,$nSubj,measurement)
+		    set stdDev $gPlot($iID,state,data,subjects,$nSubj,stdDev)
+		    lappend lErrorBars [list $gPlot($iID,state,data,subjects,$nSubj,variable) [expr $meas - $stdDev] $gPlot($iID,state,data,subjects,$nSubj,variable) [expr $meas + $stdDev]]
+
 		}
 	    }
 
@@ -618,16 +627,31 @@ proc FsgdfPlot_PlotData { iID } {
 		-symbol $gGDF($iID,classes,$nClass,marker) \
 		-color $color -linewidth 0 -outlinewidth 1 -hide $bHide \
 		-activepen activeElement
+
+	    # We're drawing a series of elements here that each need a
+	    # unique name.
+	    set nErrorIndex 0
+	    foreach lBar $lErrorBars {
+		$gw element create error$nClass$nErrorIndex \
+		    -data $lBar \
+		    -color $color \
+		    -symbol splus \
+		    -label "" \
+		    -pixels 5
+
+		incr nErrorIndex
+	    }
 	}
 
     } else {
 	
 	
-	# For each subject, if the points have changed, calculate the #
-	# measurements. Get the variable value. If the subject is visible,
-	# set # the hide flag to 0 and the color to the subject's class
-	# color, else # set the hide flag to 1 and set the color to
-	# white. Create the # element.
+	# For each subject, if the points have changed, calculate the
+	# measurements. Get the variable value. If the subject is
+	# visible, set the hide flag to 0 and the color to the
+	# subject's class color, else set the hide flag to 1 and set
+	# the color to white. Create the element. Also calc and create
+	# error bar elements.
 	for { set nSubj 0 } { $nSubj < $gGDF($iID,cSubjects) } { incr nSubj } {
 	    
 	    if { $gPlot($iID,state,pointsChanged) } {
@@ -644,12 +668,25 @@ proc FsgdfPlot_PlotData { iID } {
 		set bHide 1
 		set color white
 	    }
+
 	    $gw element create $gGDF($iID,subjects,$nSubj,id) \
 		-data [list $gPlot($iID,state,data,subjects,$nSubj,variable) \
 			   $gPlot($iID,state,data,subjects,$nSubj,measurement)] \
 		-symbol $gGDF($iID,classes,$gGDF($iID,subjects,$nSubj,nClass),marker) \
 		-color $color -linewidth 0 -outlinewidth 1 -hide $bHide \
 		-activepen activeElement
+
+	    set meas $gPlot($iID,state,data,subjects,$nSubj,measurement)
+	    set stdDev $gPlot($iID,state,data,subjects,$nSubj,stdDev)
+	    $gw element create error$nSubj \
+		-data [list $gPlot($iID,state,data,subjects,$nSubj,variable) \
+			   [expr $meas - $stdDev] \
+			   $gPlot($iID,state,data,subjects,$nSubj,variable) \
+			   [expr $meas + $stdDev]] \
+		-color $color \
+		-symbol splus \
+		-label "" \
+		-pixels 5
 	}
     }
 
@@ -714,7 +751,8 @@ proc FsgdfPlot_CalculateSubjectMeasurement { iID inSubject } {
     global gPlot gGDF
 
     # Get the average of the points we've been given.
-    set meas 0
+    set sumMean 0
+    set sumVar 0
     set cGood 0
     foreach lPoint $gPlot($iID,state,lPoints) {
 	
@@ -723,16 +761,24 @@ proc FsgdfPlot_CalculateSubjectMeasurement { iID inSubject } {
 			  $inSubject $x $y $z]
 	set err [lindex $lResults 0]
 	if { 0 == $err } {
-	    set meas [expr $meas + [lindex $lResults 1]]
+	    set sumMean [expr $sumMean + [lindex $lResults 1]]
+	    set sumVar [expr $sumVar + pow([lindex $lResults 1],2.0)]
 	    incr cGood
 	}
     }
+    set mean 0
+    set stdDev 0
     if { $cGood > 0 } {
-	set meas [expr $meas / $cGood.0]
+	set mean [expr $sumMean / $cGood.0]
+	if { $cGood > 1 } {
+	    set stdDev [expr sqrt($sumVar / $cGood.0 - pow($mean,2))]
+	}
     }
     
     # Store the values in gPlot.
-    set gPlot($iID,state,data,subjects,$inSubject,measurement) $meas
+    set gPlot($iID,state,data,subjects,$inSubject,measurement) $mean
+    set gPlot($iID,state,data,subjects,$inSubject,stdDev) $stdDev
+
 }
 
 
@@ -801,6 +847,11 @@ proc FsgdfPlot_UnfocusElement { iID } {
 proc FsgdfPlot_FocusElement { iID iElement inSubjInClass iX iY } {
     global gPlot gWidgets gGDF
 
+    # Don't focus on error bars.
+    if { [string match error* $iElement] } {
+	return
+    }
+
     # Set the highlighted element name and highlight the element.
     set gPlot($iID,state,hiElement) $iElement
     FsgdfPlot_HilightElement $iID $gPlot($iID,state,hiElement)
@@ -816,7 +867,7 @@ proc FsgdfPlot_FocusElement { iID iElement inSubjInClass iX iY } {
     } else {
 	set nClass [FsgdfPlot_GetClassIndexFromLabel $iID $iElement]
 	set nSubj $gGDF($iID,classes,$nClass,subjects,$inSubjInClass,index)
-      set sId $gGDF($iID,subjects,$nSubj,id)
+	set sId $gGDF($iID,subjects,$nSubj,id)
     }
     $gWidgets($iID,gwPlot) marker create text \
 	-name hover -text $sId -anchor nw \
@@ -1051,7 +1102,7 @@ proc FsgdfPlot_SaveToTable { iID ifnTable } {
     puts $fp "Data: $gGDF($iID,dataFileName)"
     puts $fp "Variable: $gGDF($iID,variables,$gPlot($iID,state,nVariable),label)"
     puts $fp "Measurement: $gGDF($iID,measurementName)"
-    puts $fp "subject id, class id, variable value, measurement value"
+    puts $fp "subject id, class id, variable value, measurement value, standard deviation"
     puts $fp "------------"
     for { set nSubj 0 } { $nSubj < $gGDF($iID,cSubjects) } { incr nSubj } {
 
@@ -1059,8 +1110,9 @@ proc FsgdfPlot_SaveToTable { iID ifnTable } {
 	set classLabel $gGDF($iID,classes,$gGDF($iID,subjects,$nSubj,nClass),label)
 	set var $gPlot($iID,state,data,subjects,$nSubj,variable)
 	set meas $gPlot($iID,state,data,subjects,$nSubj,measurement)
+	set stdDev $gPlot($iID,state,data,subjects,$nSubj,stdDev)
 
-	puts $fp "$subjLabel $classLabel $var $meas"
+	puts $fp "$subjLabel $classLabel $var $meas $stdDev"
     }
     puts $fp "------------"
     puts ""
