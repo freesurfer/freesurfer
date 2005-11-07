@@ -127,6 +127,7 @@ float ghf( char *header, int offset )
 int
 get_signa_header_info(char *h,HINFO *hinfo)
 {
+	hinfo->plane_type = ghi(h, SEHDR_START+SEHDR_PTYPE) ;
   hinfo->x = ghi( h, IHDR_START+IHDR_X ) ;
   hinfo->y = ghi( h, IHDR_START+IHDR_Y ) ;
   hinfo->tr = ghf( h, IHDR_START+IHDR_TR ) ;
@@ -145,6 +146,13 @@ get_signa_header_info(char *h,HINFO *hinfo)
   hinfo->ptype = ghi( h, SEHDR_START+SEHDR_PTYPE ) ;
   hinfo->imnr0 = 1 ;
   hinfo->imnr1 = ghi( h, SEHDR_START+SEHDR_IALLOC ) ;
+
+	hinfo->c_r = ghf(h, SEHDR_START+SEHDR_C_R) ;
+	hinfo->c_a = ghf(h, SEHDR_START+SEHDR_C_A) ;
+	hinfo->c_s = ghf(h, SEHDR_START+SEHDR_C_S) ;
+
+	hinfo->num_echoes = ghi(h, IHDR_START+IHDR_NECHO) ;
+
   return(NO_ERROR) ;
 }
 int
@@ -227,6 +235,11 @@ signaRead(char *fname, int read_volume_flag)
 	}
 	if (odd_only || even_only)
 		mri = MRIalloc(header.x, header.y, (header.imnr1-header.imnr0)/2+1, MRI_SHORT) ;
+	else if (header.num_echoes > 1)
+	{
+		printf("SIGNA multi-echo file detected (%d echoes)\n", header.num_echoes) ;
+		mri = MRIallocSequence(header.x, header.y, (header.imnr1-header.imnr0)/2+1, MRI_SHORT, header.num_echoes) ;
+	}
 	else
 		mri = MRIalloc(header.x, header.y, header.imnr1-header.imnr0+1, MRI_SHORT) ;
   if (!mri)
@@ -243,7 +256,22 @@ signaRead(char *fname, int read_volume_flag)
   mri->xsize = mri->ysize = mri->ps = 1000*header.psiz;
   mri->zsize = mri->thick = 1000*header.thick;
   // no orientation info and thus sets to coronal
-  setDirectionCosine(mri, MRI_CORONAL); 
+	switch (header.plane_type)
+	{
+	case SIGNA_AXIAL:
+		setDirectionCosine(mri, MRI_HORIZONTAL); 
+		break ;
+	case SIGNA_SAGITTAL:
+		setDirectionCosine(mri, MRI_SAGITTAL); 
+		break ;
+	case SIGNA_CORONAL:
+	default:
+		setDirectionCosine(mri, MRI_CORONAL); 
+		break ;
+	}
+	mri->c_r = header.c_r ;
+	mri->c_s = header.c_s ;
+	mri->c_a = header.c_a ;
 
   fclose(fp) ;
   if (!read_volume_flag)
@@ -260,9 +288,24 @@ signaRead(char *fname, int read_volume_flag)
                       fname)) ;
 
     fseek(fp, HLENGTH, SEEK_SET) ;
-    fread(&MRISvox(mri, 0, 0, slice),
-          sizeof(short),mri->width*mri->height,fp);
-    orderShortBuffer(&MRISvox(mri,0,0,slice),mri->width*mri->height) ;
+		if (header.num_echoes > 1)
+		{
+			int frame ;
+
+			frame = (i-header.imnr0) % header.num_echoes ;
+
+			fread(&MRISseq_vox(mri, 0, 0, slice, frame),
+						sizeof(short),mri->width*mri->height,fp);
+			orderShortBuffer(&MRISseq_vox(mri,0,0,slice,frame),mri->width*mri->height) ;
+			if (frame == 0)
+				slice-- ;  // same slice, next echo
+		}
+		else
+		{
+			fread(&MRISvox(mri, 0, 0, slice),
+						sizeof(short),mri->width*mri->height,fp);
+			orderShortBuffer(&MRISvox(mri,0,0,slice),mri->width*mri->height) ;
+		}
     fclose(fp) ;
 		if (odd_only || even_only)
 			i++ ;
