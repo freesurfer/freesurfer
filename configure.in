@@ -234,15 +234,15 @@ case "$CPUTYPE" in
      ;; 
   opteron)
 #     CPUFLAGS="-march=x86-64"
-     CPUFLAGS=""
+     CPUFLAGS="-m64"
      ;;
   athlon64)
 #     CPUFLAGS="-march=x86-64"
-     CPUFLAGS=""
+     CPUFLAGS="-m64"
      ;;
   athlon-fx)
 #     CPUFLAGS="-march=x86-64"
-     CPUFLAGS=""
+     CPUFLAGS="-m64"
      ;;
   G4)
      CPUFLAGS="-mtune=G4 -mcpu=G4 -faltivec"
