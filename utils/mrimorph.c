@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/11/07 19:19:12 $
-// Revision       : $Revision: 1.47 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/11/07 20:27:21 $
+// Revision       : $Revision: 1.48 $
 */
 
 /*-----------------------------------------------------
@@ -7847,6 +7847,7 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
 static int    powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat);
 static float compute_powell_sse(float *p) ;
 static double compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L) ;
+#if 0
 static int write_snapshot(MRI *mri_source, MRI *mri_target, 
 													MATRIX *m_vox_xform, char *base_name, int fno) ;
 
@@ -7875,6 +7876,7 @@ write_snapshot(MRI *mri_source, MRI *mri_target, MATRIX *m_vox_xform,
 
 	return(NO_ERROR) ;
 }
+#endif
 /* compute mean squared error of two images with a transform */
 static double
 compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L)
