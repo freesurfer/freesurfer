@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/11/01 03:25:20 $
-// Revision       : $Revision: 1.318 $
-char *MRI_C_VERSION = "$Revision: 1.318 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/11/07 19:11:06 $
+// Revision       : $Revision: 1.319 $
+char *MRI_C_VERSION = "$Revision: 1.319 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -9090,7 +9090,7 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
 
         if (nint(y1) == 13 && nint(y2) == 10 && nint(y3) == 7)
           DiagBreak() ;
-        if (nint(x1) == 13 && nint(x2) == 10 && nint(x3) == 7)
+        if (nint(x1) == Gx && nint(x2) == Gy && nint(x3) == Gz)
         {
 #if 0
           fprintf(stderr, "(%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f)\n",
