@@ -412,7 +412,7 @@ MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset)
       switch (mri_dst->type)
       {
       case MRI_UCHAR:
-        pdst = &MRIvox(mri_dst, 0, y, z) ;
+        pdst = (char*)&MRIvox(mri_dst, 0, y, z) ;
         break ;
       case MRI_FLOAT:
         fdst = &MRIFvox(mri_dst, 0, y, z) ;

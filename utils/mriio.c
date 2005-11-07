@@ -5564,7 +5564,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   if(!read_volume) return(mri);
 
   /* Alloc the maximum amount of memory that a row could need */
-  buf = (unsigned char *)malloc(mri->width * 8);
+  buf = (char *)malloc(mri->width * 8);
 
   /* Open the one file, if there is one file */
   if(nfiles == 1){

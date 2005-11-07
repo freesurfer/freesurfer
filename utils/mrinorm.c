@@ -196,7 +196,7 @@ mriSplineNormalizeShort(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
   for (y = 0 ; y < height ; y++)
   {
     if (pmri_field)
-      pfield = &MRIvox(mri_field, 0, y, 0) ;
+      pfield = (char*)&MRIvox(mri_field, 0, y, 0) ;
     splint(inputs, outputs, outputs_2, npoints, (float)y, &frac) ;
     if (pmri_field)
       for (i = 0 ; i < BIAS_IMAGE_WIDTH ; i++)
