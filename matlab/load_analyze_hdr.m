@@ -24,7 +24,7 @@ function hdr = load_analyze_hdr(hdrfile)
 % hdr.vox2ras is the vox2ras matrix if the hdrfile is accompanied
 %   by a .mat file.
 %
-% $Id: load_analyze_hdr.m,v 1.1 2005/06/27 14:32:11 greve Exp $
+% $Id: load_analyze_hdr.m,v 1.2 2005/11/07 20:35:40 greve Exp $
 
 
 hdr = [];
@@ -34,8 +34,8 @@ if(nargin ~= 1)
   return;
 end
 
-% Opening as big or little does not seem to matter
-fp = fopen(hdrfile,'rb');
+% Try opening as big endian first
+fp = fopen(hdrfile,'r','b');
 if(fp == -1) 
   hdrfile0 = hdrfile;
   hdrfile = sprintf('%s.hdr',hdrfile);
@@ -49,10 +49,20 @@ end
 
 hdr.key.sizeof_hdr  = fread(fp,1,'int');
 if(hdr.key.sizeof_hdr ~= 348)
-  fprintf('ERROR: %s: hdr size = %d, should be 348\n',hdr.key.sizeof_hdr);
   fclose(fp);
-  hdr = [];
-  return;
+  % Now try opening as little endian
+  fp = fopen(hdrfile,'r','l');
+  hdr.key.sizeof_hdr  = fread(fp,1,'int');
+  if(hdr.key.sizeof_hdr ~= 348)
+    fclose(fp);
+    fprintf('ERROR: %s: hdr size = %d, should be 348\n',...
+	    hdrfile,hdr.key.sizeof_hdr);
+    hdr = [];
+    return;
+  end
+  hdr.endian = 'l';
+else
+  hdr.endian = 'b';
 end
 
 hdr.key.data_type     = fscanf(fp,'%c',10);
@@ -106,13 +116,15 @@ fclose(fp);
 % Load the .mat file if there
 basename = hdrfile(1:end-4);
 matfile = sprintf('%s.mat',basename);
-fp = fopen(matfile);
+fp = fopen(matfile,'r');
 if(fp == -1) 
-  hdr.vox2ras = [];
+  hdr.vox2ras = eye(4);
+  hdr.have_vox2ras = 0;
 else
   fclose(fp);
   tmp = load(matfile);
   hdr.vox2ras = tmp.M;
+  hdr.have_vox2ras = 1;
 end
 
 
