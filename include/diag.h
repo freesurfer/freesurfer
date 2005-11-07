@@ -118,6 +118,9 @@ extern int Gprofile ;
 #define GREEN  4
 #endif
 
+extern FILE *Gstdout ;
+extern FILE *Gstderr ;
+extern FILE *Gstdin ;
 
 
 #endif

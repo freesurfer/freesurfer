@@ -30,6 +30,10 @@
                     GLOBAL VARIABLES
 -------------------------------------------------------*/
 
+FILE *Gstdout ;
+FILE *Gstderr ;
+FILE *Gstdin ;
+
 int Gprofile = 0 ;
 int Gvx = -1 ;
 int Gvy = -1 ;
@@ -77,6 +81,7 @@ DiagInit(char *fname,
   char *cp = 0;
   unsigned long diag = 0L ;
 
+	Gstdout = stdout ; Gstdin = stdin ; Gstderr = stderr ; // for use in gdb
   if (fname)
     strcpy(diag_fname, fname) ;
   if (vfprint)
