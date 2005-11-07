@@ -104,6 +104,10 @@
 #define SEHDR_PSSTYPE   150  /* Pulse sequence subtype*/
 #define SEHDR_FOV       151  /* Field of view*/
 #define SEHDR_CENTER    153  /* Center*/
+#define SEHDR_C_R       153
+#define SEHDR_C_A       155
+#define SEHDR_C_S       157
+
 #define SEHDR_ORIEN     159  /* Orientation*/
 #define SEHDR_POS       160  /* Position*/
 #define SEHDR_ANREF     161  /* Longitudinal Anotomical Reference*/
@@ -303,7 +307,16 @@ typedef struct HINFO_
   int x,y,ptype;
   float tr,ti,te,strtx,endx,strty,endy,strtz,endz;
   float locatn,fov,psiz,thick;
+	float c_r, c_a, c_s ;
+	int  plane_type ;
+	int  num_echoes ;
 } HINFO;
+
+#define SIGNA_AXIAL      0
+#define SIGNA_SAGITTAL   1
+#define SIGNA_CORONAL    2
+#define SIGNA_OBLIQUE    3
+#define SIGNA_SCREENSAVE 4
 
 char *ghc( char *destin, char *header, int offset, int byte_length );
 int ghi( char *header, int offset );
