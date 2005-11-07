@@ -4759,6 +4759,13 @@ static MRI *genesisRead(char *fname, int read_volume)
   header->te = freadInt(fp)/MICROSECONDS_PER_MILLISECOND  ;
   fseek(fp, image_header_offset + 254, SEEK_SET);
   header->flip_angle = RADIANS(freadShort(fp)) ;  /* was in degrees */
+  fseek(fp, image_header_offset + 210, SEEK_SET);  // # of echoes
+	header->nframes = freadShort(fp) ;
+	if (header->nframes > 1)
+	{
+		printf("multi-echo genesis file detected (%d echoes)...\n", header->nframes) ;
+	}
+
 
   fseek(fp, image_header_offset + 130, SEEK_SET);
   fread(&c_r,  4, 1, fp);  c_r  = orderFloatBytes(c_r);
@@ -4826,7 +4833,7 @@ static MRI *genesisRead(char *fname, int read_volume)
   fclose(fp);
 
   if(read_volume)
-    mri = MRIalloc(header->width, header->height, header->depth, header->type);
+    mri = MRIallocSequence(header->width, header->height, header->depth, header->type, header->nframes);
   else
     mri = MRIallocHeader(header->width, header->height, header->depth, header->type);
 
@@ -4836,9 +4843,10 @@ static MRI *genesisRead(char *fname, int read_volume)
   /* ----- read the volume if required ----- */
   if(read_volume)
 	{
-		int slice ; 
+		int slice, frame ; 
 		for(slice = 0, i = im_low;i <= im_high; (odd_only || even_only) ? i+=2 : i++, slice++)
 		{
+			frame = (i-im_low) % mri->nframes ;
 			sprintf(fname_use, fname_format, i);
 			if((fp = fopen(fname_use, "r")) == NULL)
 			{
@@ -4856,7 +4864,7 @@ static MRI *genesisRead(char *fname, int read_volume)
 
 			for(y = 0;y < mri->height;y++)
 			{
-				if(fread(mri->slices[slice][y], 2, mri->width, fp) != mri->width)
+				if(fread(&MRISseq_vox(mri, 0, y, slice, frame), sizeof(short), mri->width, fp) != mri->width)
 				{
 					fclose(fp);
 					MRIfree(&mri);
@@ -4866,12 +4874,16 @@ static MRI *genesisRead(char *fname, int read_volume)
 														 fname_use));
 				}
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-				swab(mri->slices[slice][y], mri->slices[slice][y], 2 * mri->width);
+				//				swab(mri->slices[slice][y], mri->slices[slice][y], 2 * mri->width);
+				swab(&MRISseq_vox(mri, 0, y, slice, frame), &MRISseq_vox(mri, 0, y, slice, frame), 
+						 sizeof(short) * mri->width);
 #endif
 			}
 
 			fclose(fp);
 
+			if (frame != (mri->nframes-1))
+				slice-- ;
 		}
 
 	}
