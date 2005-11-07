@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.15 2005/10/13 18:47:41 nicks Exp $';
+set VERSION = '$Id: make_average_surface,v 1.16 2005/11/07 18:32:37 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -43,6 +43,13 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+echo $VERSION
+date
+pwd
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"
+id
+
+
 #
 # Begin script guts...
 #
@@ -66,31 +73,68 @@ else
   mkdir -p ${SUBJECTS_DIR}/${average_subject}/surf
 endif
 
+set d = ${SUBJECTS_DIR}/${average_subject}/surf
+if(! -e $d) then
+  echo "ERROR: making $d"
+  exit 1;
+endif
+
 set tmp_subjects = ( $SUBJECTS )
 
 foreach hemi (rh lh)
 
+  echo ""
+  echo ""
+
   cd ${SUBJECTS_DIR}/${average_subject}
   foreach s (orig white pial inflated)
-    echo mris_make_average_surface...
-    mris_make_average_surface $XFORM_FLAG \
+    echo "Making average $hemi.$s surface --------------------------------"
+    date
+    set cmd = (mris_make_average_surface $XFORM_FLAG \
                 -i 7 \
                 -o $s \
                 ${hemi} \
                 ${s}_avg sphere.reg \
                 ${average_subject} \
-                $SUBJECTS
+                $SUBJECTS)
+    pwd
+    echo $cmd
+    $cmd
+    if($status) then
+      echo "mris_average_surface failed"
+      exit 1;
+    endif
+    echo ""
+    echo ""
   end
+  echo "---------------------------------------------------"
+  echo ""
+  echo ""
+  echo ""
 
   foreach c (sulc curv thickness)
-    echo mris_average_curvature...
-    mris_average_curvature \
+    echo "Making average $hemi.$c --------------------------------"
+    date
+    set cmd = (mris_average_curvature \
                 $c \
                 ${hemi} \
                 sphere.reg \
                 $SUBJECTS \
-                $SUBJECTS_DIR/${average_subject}/surf/${hemi}.avg_${c}
+                $SUBJECTS_DIR/${average_subject}/surf/${hemi}.avg_${c})
+    pwd
+    echo $cmd
+    $cmd
+    if($status) then
+      echo "mris_average_curvature failed"
+      exit 1;
+    endif
+    echo ""
+    echo ""
   end
+  echo "---------------------------------------------------"
+  echo ""
+  echo ""
+  echo ""
 
   cd ${SUBJECTS_DIR}/${average_subject}/surf      
   pwd     
@@ -106,6 +150,13 @@ foreach hemi (rh lh)
   set echo=1
 
 end
+
+echo "---------------------------------------------------"
+echo ""
+echo ""
+echo ""
+date
+echo "make_average_surface done"
 
 exit 0
 
