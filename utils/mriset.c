@@ -2245,7 +2245,7 @@ MRItotalVoxelsOn(MRI *mri, int thresh)
 int
 MRIvoxelsInLabel(MRI *mri, int label)
 {
-  int     width, height, depth, x, y, z, nvox ;
+  int     width, height, depth, x, y, z, nvox, val ;
   BUFTYPE *pbuf ;
 
   width = mri->width ;
@@ -2259,7 +2259,8 @@ MRIvoxelsInLabel(MRI *mri, int label)
       pbuf = &MRIvox(mri, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        if (*pbuf++ == label)
+				val = nint(MRIgetVoxVal(mri, x, y, z, 0)) ;
+        if (val == label)
           nvox++ ;
       }
     }
