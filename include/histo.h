@@ -70,6 +70,9 @@ int       HISTOtotalInRegion(HISTO *h, int b0, int b1) ;
 int       HISTOfindBin(HISTOGRAM *h, float val) ;
 HISTO     *HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end) ;
 int       HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf) ;
+HISTO     *HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale,
+														float offset) ;
+
 int       HISTOfindLinearFit(HISTOGRAM *h1, 
                              HISTOGRAM *h2, 
                              double amin, double amax, 

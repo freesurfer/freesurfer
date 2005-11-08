@@ -1380,3 +1380,16 @@ HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax,
 	return(NO_ERROR) ;
 }
 
+HISTO *
+HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale, float offset)
+{
+	int    b ;
+	float  bin ;
+
+	hdst = HISTOcopy(hsrc, hdst) ;
+
+	for (b = 0 ; b < hdst->nbins ; b++)
+		hdst->bins[b] = hdst->bins[b]*scale+offset ;
+	return(hdst) ;
+}
+
