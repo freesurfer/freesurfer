@@ -18,7 +18,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.60 2005/08/22 17:47:27 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.61 2005/11/08 19:37:33 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -137,6 +137,8 @@ static char sdir[STRLEN] = "" ;
 
 static int MGZ = 0; // for use with MGZ format
 
+static int longitudinal = 0;
+
 static float check_contrast_direction(MRI_SURFACE *mris,MRI *mri_T1) ;
 int
 main(int argc, char *argv[])
@@ -154,10 +156,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.60 2005/08/22 17:47:27 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.61 2005/11/08 19:37:33 xhan Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.60 2005/08/22 17:47:27 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.61 2005/11/08 19:37:33 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -640,8 +642,30 @@ main(int argc, char *argv[])
   if (orig_pial)
   {
     printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
+
+    if(longitudinal){
+      //save final white location
+      MRISsaveVertexPositions(mris, TMP_VERTICES);      
+    }
+
     if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
       ErrorExit(Gerror, "reading orig pial positions failed") ;
+    
+    if(longitudinal){
+      //reset starting point to be in the middle of final white and orig pial
+      int vno;
+      VERTEX *v;
+      //reset the starting position to be slightly inside the orig_pial in the longitudinal case
+      for(vno = 0; vno < mris->nvertices; vno++){
+	v = &mris->vertices[vno];
+	if(v->ripflag)
+	  continue;
+	v->x = 0.75*v->x + 0.25*v->tx;
+	v->y = 0.75*v->y + 0.25*v->ty;
+	v->z = 0.75*v->z + 0.25*v->tz;
+      }
+    }  
+    MRIScomputeMetricProperties(mris) ; //shouldn't this be done whenever orig_pial is used??? Maybe that's why the cross-intersection was caused
   }
   /*    parms.l_convex = 1000 ;*/
   mri_T1 = mri_T1_pial ; 
@@ -856,6 +880,11 @@ get_option(int argc, char *argv[])
 			ErrorExit(ERROR_NOFILE, "%s: could not read highres label %s", Progname, argv[2]) ;
 		nargs = 1 ;
 	}
+  else if (!stricmp(option, "long"))
+  {
+    longitudinal = 1;
+    printf("Using longitudinal scheme\n");
+  }
   else if (!stricmp(option, "SDIR"))
   {
     strcpy(sdir, argv[2]) ;
