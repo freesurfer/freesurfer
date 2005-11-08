@@ -4,9 +4,9 @@
 // original author: Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/11/08 16:08:47 $
-// Revision       : $Revision: 1.50 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2005/11/08 18:01:06 $
+// Revision       : $Revision: 1.51 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -176,6 +176,8 @@ main(int argc, char *argv[])
   double FA=0;
   int    modified;
 
+  FA = TE = TR = 0;
+
   /* The following variables are just for finding the brain mask */
   HISTOGRAM *histo;
   MRI_SEGMENTATION *mriseg;
@@ -187,12 +189,12 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-"$Id: mri_ms_fitparms.c,v 1.50 2005/11/08 16:08:47 nicks Exp $", "$Name:  $",
+"$Id: mri_ms_fitparms.c,v 1.51 2005/11/08 18:01:06 kteich Exp $", "$Name:  $",
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-"$Id: mri_ms_fitparms.c,v 1.50 2005/11/08 16:08:47 nicks Exp $", "$Name:  $");
+"$Id: mri_ms_fitparms.c,v 1.51 2005/11/08 18:01:06 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
