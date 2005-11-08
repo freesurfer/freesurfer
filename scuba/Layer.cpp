@@ -45,7 +45,9 @@ Layer::Layer() :
 			 "Return whether or not a layer is reporting info." );
   commandMgr.AddCommand( *this, "SetLayerReportInfo", 2, "layerID report",
 			 "Set whether or not a layer should report info." );
-  
+  commandMgr.AddCommand( *this, "GetLayerMainDataCollection", 1, "layerID",
+			 "Returns the collection ID of the main collection "
+			 "for this layer." );
 }
 
 Layer::~Layer() {
@@ -248,6 +250,34 @@ Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
     }
   }
   
+  // GetLayerMainDataCollection <layerID>
+  if( 0 == strcmp( isCommand, "GetLayerMainDataCollection" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      DataCollection* collection = GetMainDataCollection();
+      if( collection ) {
+	stringstream ssReturnValues;
+	ssReturnValues << collection->GetID();
+	sReturnValues = ssReturnValues.str();
+	sReturnFormat = "i";
+      } else {
+	stringstream ssReturnValues;
+	ssReturnValues << -1;
+	sReturnValues = ssReturnValues.str();
+	sReturnFormat = "i";
+      }
+    }
+  }
+
   return ok;
 }
 
