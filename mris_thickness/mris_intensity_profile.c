@@ -15,7 +15,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.4 2005/11/07 22:14:05 xhan Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.5 2005/11/08 18:03:31 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -66,7 +66,7 @@ main(int argc, char *argv[])
 	LTA           *lta ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.4 2005/11/07 22:14:05 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.5 2005/11/08 18:03:31 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -306,12 +306,12 @@ main(int argc, char *argv[])
   MRIwrite(mri_profiles, out_fname) ;
 
   if(mean_outname != NULL){
-    printf("Compute the mean of the intensity profile ...\n");
-
     MRI *mri_mean;
     int vtx, index;
     double sum_profile;
  
+    printf("Compute the mean of the intensity profile ...\n");
+
     mri_mean = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 1);
 
     for(vtx = 0; vtx < mris->nvertices; vtx++){
