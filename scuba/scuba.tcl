@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.157 2005/11/08 17:24:34 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.158 2005/11/08 18:52:17 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -457,6 +457,7 @@ proc MakeMenuBar { ifwTop } {
     global gaMenu
     global gaView
     global gaWidget
+    global gaLabelArea
     
     set fwMenuBar     $ifwTop.fwMenuBar
     set gaMenu(file)  $fwMenuBar.mbwFile
@@ -527,6 +528,7 @@ proc MakeMenuBar { ifwTop } {
 	{check "Show Console:Alt N" { ShowHideConsole $gaView(tkcon,visible) } gaView(tkcon,visible) }
 	{check "Auto-Configure" {} gaView(autoConfigure) }
 	{check "Automatically Report Info in Level if LUT" {AutoReportInfoChanged; AdjustReportInfoForAuto} gaView(autoReportInfoForLUT) }
+	{check "Flip Axes in Label Table" {DrawLabelArea} gaLabelArea(flipAxes) }
 	{check "Show FPS" { SetPreferencesValue ShowFPS $gaView(showFPS) } gaView(showFPS) }
     }
 
@@ -4239,13 +4241,6 @@ proc DrawLabelArea {} {
 	    # Get the label and value.
 	    set label    $aInfo(label)
 	    set value    $aInfo(value)
-	    set glLabelValues($nArea,"$label",value) $value
-
-	    # Callback info.
-	    set glLabelValues($nArea,"$label",callback) $aInfo(callback)
-	    set glLabelValues($nArea,"$label",filter) $aInfo(filter)
-
-	    set glLabelValues($nArea,"$label",shortenHint) $aInfo(shortenHint)
 
 	    # Has comma and in table mode? If so, add it to the list
 	    # of table entries. Otherwise add it to the list of normal
@@ -4259,6 +4254,13 @@ proc DrawLabelArea {} {
 		set sX [string range $label 0 [expr $nComma - 1]]
 		set sY [string range $label [expr $nComma + 1] end]
 
+		if { $gaLabelArea(flipAxes) } { 
+		    set temp $sX
+		    set sX $sY
+		    set sY $temp
+		    set label "$sX,$sY"
+		}
+
 		set tableEntries($sX,$sY) $value
 		if { [lsearch $tableX $sX] == -1 } {
 		    lappend tableX $sX
@@ -4271,6 +4273,12 @@ proc DrawLabelArea {} {
 
 		set normalEntries($label) $value
 	    }
+
+	    # We'll use this info later.
+	    set glLabelValues($nArea,"$label",value) $value
+	    set glLabelValues($nArea,"$label",callback) $aInfo(callback)
+	    set glLabelValues($nArea,"$label",filter) $aInfo(filter)
+	    set glLabelValues($nArea,"$label",shortenHint) $aInfo(shortenHint)
 	}
 
 	# First pack our normal entries.
@@ -5675,7 +5683,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.157 2005/11/08 17:24:34 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.158 2005/11/08 18:52:17 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
