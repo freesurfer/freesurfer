@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.23 2005/09/29 15:17:02 greve Exp $
+  $Id: fsgdf.c,v 1.24 2005/11/08 23:04:50 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -520,11 +520,11 @@ int gdfCountItemsInString(char *str)
 int gdfCountItemsOnLine(FILE *fp)
 {
   fpos_t now;
-  char tmpstr[1000];
+  char tmpstr[10000];
   int nitems;
 
   fgetpos(fp,&now);
-  fgets(tmpstr,1000,fp);
+  fgets(tmpstr,10000,fp);
   fsetpos(fp,&now);
 
   nitems = gdfCountItemsInString(tmpstr);
