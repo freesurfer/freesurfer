@@ -13,7 +13,7 @@ typedef struct
   int     nbins ;
   float   *bins ;   /* upper end of the range that maps to this bin */
   float   *counts ; /* # of voxels which map to this bin */
-	float   bin_size ;
+  float   bin_size ;
 } HISTOGRAM, HISTO ;
 
 int       HISTOfree(HISTOGRAM **phisto) ;
@@ -35,7 +35,7 @@ HISTOGRAM *HISTOcompose(HISTOGRAM *histo1, HISTOGRAM *histo2,
 HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, 
                           int max_val) ;
 HISTOGRAM *HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv, 
-                        HISTOGRAM *histo_dst) ;
+                              HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
@@ -60,14 +60,19 @@ int       HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
 int       HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1);
 int       HISTOplot(HISTOGRAM *histo, char *fname) ;
 int       HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax) ;
-int       HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct) ;
+int       HISTOfindCurrentPeak(HISTOGRAM *histo, 
+                               int b0, 
+                               int wsize, 
+                               float min_pct) ;
 int       HISTOfillHoles(HISTO *h) ;
 int       HISTOtotal(HISTO *h) ;
 int       HISTOtotalInRegion(HISTO *h, int b0, int b1) ;
 int       HISTOfindBin(HISTOGRAM *h, float val) ;
 HISTO     *HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end) ;
 int       HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf) ;
-int       HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax, double bmin, double bmax,
-														 float *pa, float *pb) ;
-
+int       HISTOfindLinearFit(HISTOGRAM *h1, 
+                             HISTOGRAM *h2, 
+                             double amin, double amax, 
+                             double bmin, double bmax,
+                             float *pa, float *pb) ;
 #endif
