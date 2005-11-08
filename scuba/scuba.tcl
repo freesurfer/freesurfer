@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.156 2005/10/31 18:56:10 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.157 2005/11/08 17:24:34 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3441,6 +3441,12 @@ proc ToolTargetLayerMenuCallback { iLayer } {
     set max [expr 20 * $inc]
     tkuUpdateSlidersRange $gaWidget(toolProperties,radiusSlider) \
 	$min $max $inc
+
+    # Select this collection.
+    set colID [GetLayerMainDataCollection $iLayer]
+    if { $colID >= 0 } {
+	SelectCollectionInCollectionProperties $colID
+    }
 }
 
 proc ToolFloodSourceCollectionMenuCallback { iLayer } {
@@ -5669,7 +5675,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.156 2005/10/31 18:56:10 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.157 2005/11/08 17:24:34 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
