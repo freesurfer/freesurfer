@@ -4,9 +4,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/11/02 23:15:43 $
-// Revision       : $Revision: 1.11 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/11/08 19:13:01 $
+// Revision       : $Revision: 1.12 $
 //
 
 #include <stdio.h>
@@ -56,6 +56,7 @@ static int distance_to_zero(MRI *mri_wm, int x,
 char *Progname ;
 
 static int fillven = 1 ;
+static int keep_edits = 0 ;
 static void usage_exit(int code) ;
 
 
@@ -65,12 +66,12 @@ main(int argc, char *argv[])
 	MRI    *mri_wm, *mri_aseg, *mri_T1 ;
   struct timeb  then ;
 	int    msec, nargs ;
-	char cmdline[CMD_LINE_LEN] ;
+	char cmdline[CMD_LINE_LEN], *output_file_name ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.11 2005/11/02 23:15:43 nicks Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.12 2005/11/08 19:13:01 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.11 2005/11/02 23:15:43 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.12 2005/11/08 19:13:01 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
@@ -87,7 +88,8 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
-  
+
+  output_file_name = argv[4] ;
   if (argc < 5)
     usage_exit(1) ;   /* will exit */
 
@@ -113,8 +115,24 @@ main(int argc, char *argv[])
 
 
 	edit_segmentation(mri_wm, mri_T1, mri_aseg) ;
-	printf("writing edited volume to %s....\n", argv[4]) ;
-	MRIwrite(mri_wm, argv[4]) ;
+  if (keep_edits)
+  {
+    MRI *mri_old ;
+
+		printf("probagating editing to output volume...\n") ;
+    mri_old = MRIread(output_file_name) ;
+    if (!mri_old)
+      ErrorPrintf(ERROR_NOFILE, "%s: could not read file %s to preserve edits",
+                Progname, output_file_name) ;
+    else
+    {
+      MRIcopyLabel(mri_old, mri_wm, WM_EDITED_ON_VAL) ;
+      MRIcopyLabel(mri_old, mri_wm, WM_EDITED_OFF_VAL) ;
+      MRIfree(&mri_old) ;
+    }
+  }
+	printf("writing edited volume to %s....\n", output_file_name) ;
+	MRIwrite(mri_wm, output_file_name) ;
 
   msec = TimerStop(&then) ;
   fprintf(stderr, "auto filling took %2.2f minutes\n",
@@ -142,6 +160,11 @@ get_option(int argc, char *argv[])
 		fillven = atoi(argv[2]) ;
 		printf("%sfilling ventricles\n", fillven == 0 ? "not " : "") ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "keep"))
+  {
+    keep_edits = 1 ;
+    fprintf(stderr, "preserving editing changes in output volume...\n");
   }
   else if (!stricmp(option, "debug_voxel"))
   {
