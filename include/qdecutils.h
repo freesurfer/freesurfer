@@ -1,5 +1,5 @@
 // QDEC Query-Design-Estimation-Contrast
-// $Id: qdecutils.h,v 1.3 2005/11/08 22:16:18 greve Exp $
+// $Id: qdecutils.h,v 1.4 2005/11/08 23:16:27 greve Exp $
 
 #ifndef QDEC_INC
 #define QDEC_INC
@@ -52,5 +52,7 @@ char *QDEClevels2ClassName(QDECD *D, int *nthlevels);
 char *QDECinputClassName(QDECD *D, int nthInput);
 //const char *QDECcheckDesign(QDECD *D);
 QDECD *QDECloadTable(char *tablebase);
+char **QDECdiscreteFactorNames(QDECD *D, int *ndf);
+char **QDECcontinuousFactorNames(QDECD *D, int *ncf);
 
 #endif
