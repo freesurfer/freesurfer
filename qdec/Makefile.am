@@ -25,14 +25,16 @@ UIC      = $(QTDIR)/bin/uic
 bin_PROGRAMS=qdec
 EXTRA_PROGRAMS=
 
-qdec_SOURCES=$(FORMS) \
+qdec_SOURCES=\
+	Utilities.cpp \
+	$(FORMS) \
 	$(UICDECLS) \
 	$(UICIMPLS) \
 	$(SRCMOC) \
 	$(OBJMOC) \
 	.ui/image_collection.cpp \
 	main.cpp 
-qdec_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
+qdec_LDADD=$(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
 	-L$(QTDIR)/lib -lqt-mt
 qdec_LDFLAGS=
