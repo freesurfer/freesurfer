@@ -23,9 +23,24 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetTargetLayer ( int iTarget ) { mTargetLayer = iTarget; }
   int GetTargetLayer () { return mTargetLayer; }
 
-  // voxelEditing
+  // Editing values.
   void SetNewValue ( float iValue ) { mNewValue = iValue; }
   float GetNewValue () { return mNewValue; }
+
+  void SetNewValueMinThreshold ( float i ) { mNewValueMinThreshold = i; }
+  float GetNewValueMinThreshold () { return mNewValueMinThreshold; }
+
+  void SetNewValueMaxThreshold ( float i ) { mNewValueMaxThreshold = i; }
+  float GetNewValueMaxThreshold () { return mNewValueMaxThreshold; }
+
+  void SetEraseValueMinThreshold ( float i ) { mEraseValueMinThreshold = i; }
+  float GetEraseValueMinThreshold () { return mEraseValueMinThreshold; }
+
+  void SetEraseValueMaxThreshold ( float i ) { mEraseValueMaxThreshold = i; }
+  float GetEraseValueMaxThreshold () { return mEraseValueMaxThreshold; }
+
+  void SetUseEditThreshold ( bool ib ) { mbUseEditThreshold = ib; }
+  bool GetUseEditThreshold () { return mbUseEditThreshold; }
 
   void SetEraseValue ( float iValue ) { mEraseValue = iValue; }
   float GetEraseValue () { return mEraseValue; }
@@ -93,18 +108,23 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
 
   // Voxel edit settings.
   float mNewValue;
+  float mNewValueMinThreshold;
+  float mNewValueMaxThreshold;
   float mEraseValue;
+  float mEraseValueMinThreshold;
+  float mEraseValueMaxThreshold;
+  bool mbUseEditThreshold;
   float mbOnlyFillZero;
 
   // Flood settings.
   bool mbFloodStopAtPaths;
   bool mbFloodStopAtROIs;
   float mFloodFuzziness;
+  FuzzinessType mFloodFuzzinessType;
   float mFloodMaxDistance;
   bool mbFlood3D;
   int mFloodSourceCollection;
   bool mbOnlyFloodZero;
-  FuzzinessType mFloodFuzzinessType;
 
   // Edge path settings.
   float mEdgePathStraightBias;

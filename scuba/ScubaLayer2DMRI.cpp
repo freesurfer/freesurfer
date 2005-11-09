@@ -1665,6 +1665,20 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 		  origValue != 0 )
 		continue; 
 	      
+	      // If we're using a threhold and we're not in LUT mode,
+	      // and this value doesn't fall in it, skip.
+	      if( iTool.GetUseEditThreshold() &&
+		  mColorMapMethod != LUT ) {
+		if( iInput.Button() == 2 && 
+		    (origValue < iTool.GetNewValueMinThreshold() ||
+		     origValue > iTool.GetNewValueMaxThreshold() ))
+		  continue;
+		if( iInput.Button() == 3 && 
+		    (origValue < iTool.GetEraseValueMinThreshold() ||
+		     origValue > iTool.GetEraseValueMaxThreshold() ))
+		  continue;
+	      }
+
 	      // New value depends on voxel button.
 	      float newValue = iInput.Button() == 2 ? 
 		iTool.GetNewValue() : iTool.GetEraseValue();

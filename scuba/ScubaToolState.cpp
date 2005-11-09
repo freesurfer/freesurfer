@@ -7,26 +7,31 @@ using namespace std;
 DeclareIDTracker(ScubaToolState);
 
 
-ScubaToolState::ScubaToolState() {
-  mMode = navigation;
-  mBrushRadius = 0.5;
-  mBrushShape = voxel;
-  mbBrush3D = false;
-  mbFloodStopAtPaths = true;
-  mbFloodStopAtROIs = true;
-  mFloodFuzziness = 0;
-  mFloodFuzzinessType = seed;
-  mFloodMaxDistance = 0;
-  mbFlood3D = false;
-  mEdgePathStraightBias = 0.9;
-  mEdgePathEdgeBias = 0.9;
-  mTargetLayer = -1;
-  mFloodSourceCollection = -1;
-  mNewValue = 1;
-  mEraseValue = 0;
-  mbOnlyFillZero = false;
-  mbOnlyFloodZero = false;
-
+ScubaToolState::ScubaToolState() :
+  mMode( navigation ),
+  mTargetLayer( -1 ),
+  mBrushRadius( 0.5 ),
+  mBrushShape( voxel ),
+  mbBrush3D( false ),
+  mNewValue( 1 ),
+  mNewValueMinThreshold( 0 ), // These are for COR volume editing
+  mNewValueMaxThreshold( 5 ),
+  mEraseValue( 0 ),
+  mEraseValueMinThreshold( 5 ),
+  mEraseValueMaxThreshold( 255 ),
+  mbUseEditThreshold( false ),
+  mbOnlyFillZero( false ),
+  mbFloodStopAtPaths( true ),
+  mbFloodStopAtROIs( true ),
+  mFloodFuzziness( 0 ),
+  mFloodFuzzinessType( seed ),
+  mFloodMaxDistance( 0 ),
+  mbFlood3D( false ),
+  mFloodSourceCollection( -1 ),
+  mbOnlyFloodZero( false ),
+  mEdgePathStraightBias( 0.9 ),
+  mEdgePathEdgeBias( 0.9 )
+{
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetToolMode", 2, "toolID mode",
 			 "Sets the current mode of a tool." );
