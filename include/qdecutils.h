@@ -1,8 +1,10 @@
 // QDEC Query-Design-Estimation-Contrast
-// $Id: qdecutils.h,v 1.5 2005/11/09 00:53:31 greve Exp $
+// $Id: qdecutils.h,v 1.6 2005/11/09 01:39:33 greve Exp $
 
 #ifndef QDEC_INC
 #define QDEC_INC
+
+#include "matrix.h"
 
 #ifdef X
 #undef X
@@ -23,6 +25,14 @@ typedef struct{
   double  *cValues; // continuous value for each input
   char   **dValues; // or discrete value for each input
 } QDEC_FACTOR, QDECF;
+/*---------------------------------------------------------*/
+
+/*---------------------------------------------------------*/
+typedef struct{
+  int nContrasts;
+  char **ContrastNames;
+  MATRIX **C;
+} QDEC_CONTRAST, QDECC;
 /*---------------------------------------------------------*/
 
 /*---------------------------------------------------------*/
@@ -73,5 +83,8 @@ char **QDECcontinuousFactorNames(QDECD *D, int *ncf);
 int QDECfactorNumber(QDECD *D, char *FactorName);
 QDECF *QDECcloneFactor(QDECF *F, QDECF *Fsrc);
 QDECD *QDECextractDesign(QDECD *DD, QDECDGUI *dgui);
+QDECC *QDECallocContrasts(int nContrasts);
+int QDECnthContinuousFactor(QDECD *D, int nthcf);
+int QDECnthDiscreteFactor(QDECD *D, int nthdf);
 
 #endif
