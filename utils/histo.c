@@ -1384,7 +1384,6 @@ HISTO *
 HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale, float offset)
 {
 	int    b ;
-	float  bin ;
 
 	hdst = HISTOcopy(hsrc, hdst) ;
 
