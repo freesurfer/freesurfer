@@ -1030,8 +1030,6 @@ AC_FUNC_MMAP
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_FUNC_STAT
-AC_FUNC_STRTOD
-AC_FUNC_VPRINTF
 # freesurfer uses calloc, getenv often so added
 AC_CHECK_FUNCS([\
   bzero \
@@ -1046,7 +1044,6 @@ AC_CHECK_FUNCS([\
   memset \
   mkdir \
   munmap \
-  pow \
   putenv \
   rint \
   select \
@@ -1284,6 +1281,8 @@ distribution/grad_unwarp_tables/Makefile \
 distribution/fsafd/Makefile \
 distribution/subjects/Makefile \
 distribution/sessions/Makefile \
+qdec/Makefile \
+qdec/images/Makefile
 )
 
 AC_MSG_RESULT(
