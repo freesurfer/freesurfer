@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.86 2005/10/28 18:28:18 kteich Exp $
+# $Id: tksurfer.tcl,v 1.87 2005/11/09 22:26:17 kteich Exp $
 
 package require BLT;
 
@@ -4449,14 +4449,15 @@ proc LblLst_FillListMenu { iowList {ibSelectCurrentLabel 0} } {
 
 # ================================================================= FSGDF PLOT
 
+# iOverlay is no longer used
 proc GDF_Load { ifnGDF {iOverlay 0} } {
     global gbGDFLoaded gGDFID
 
     set ID [FsgdfPlot_Read $ifnGDF]
     if { $ID < 0 } { return }
 
-    set gGDFID(overlay,$iOverlay) $ID
-    FsgdfPlot_ShowWindow $gGDFID(overlay,$iOverlay)
+    set gGDFID $ID
+    FsgdfPlot_ShowWindow $gGDFID
 
     tkm_SetMenuItemGroupStatus mg_GDFLoaded 1
     set gbGDFLoaded 1
@@ -4466,8 +4467,8 @@ proc GDF_HideAllWindows {} {
     global gbGDFLoaded gGDFID gaLinkedVars
     if { ![info exists gbGDFLoaded] || !$gbGDFLoaded } { return }
     for { set n 0 } { $n < 9 } { incr n } {
-	if { [info exists gGDFID(overlay,$n)] } {
-	    FsgdfPlot_HideWindow $gGDFID(overlay,$n)
+	if { [info exists gGDFID] } {
+	    FsgdfPlot_HideWindow $gGDFID
 	}
     }
 }
@@ -4475,8 +4476,8 @@ proc GDF_HideAllWindows {} {
 proc GDF_ShowCurrentWindow {} {
     global gbGDFLoaded gGDFID gaLinkedVars
     if { ![info exists gbGDFLoaded] || !$gbGDFLoaded } { return }
-    if { [info exists gGDFID(overlay,$gaLinkedVars(currentvaluefield))] } {
-	FsgdfPlot_ShowWindow $gGDFID(overlay,$gaLinkedVars(currentvaluefield))
+    if { [info exists gGDFID] } {
+	FsgdfPlot_ShowWindow $gGDFID
     }
 }
 
@@ -4497,18 +4498,18 @@ proc GDF_SendCurrentPoints {} {
     set nCurOverlay $gaLinkedVars(currentvaluefield)
     set lMarkedVnos $gState(lSelectedVnos)
 
-    FsgdfPlot_BeginPointList $gGDFID(overlay,$nCurOverlay) 
+    FsgdfPlot_BeginPointList $gGDFID
     foreach vno $lMarkedVnos {
-	FsgdfPlot_AddPoint $gGDFID(overlay,$nCurOverlay) $vno 0 0
+	FsgdfPlot_AddPoint $gGDFID $vno 0 0
     }
-    FsgdfPlot_EndPointList $gGDFID(overlay,$nCurOverlay) 
+    FsgdfPlot_EndPointList $gGDFID 
 
     if { [llength $lMarkedVnos] == 1 } {
 	set gGDFState(info) "Vertex number [lindex $lMarkedVnos 0]"
     } else {
 	set gGDFState(info) "Average of [llength $lMarkedVnos] Marked Vertices"
     }
-    FsgdfPlot_SetInfo $gGDFID(overlay,$nCurOverlay) $gGDFState(info)
+    FsgdfPlot_SetInfo $gGDFID $gGDFState(info)
 }
 
 
@@ -5214,7 +5215,7 @@ set tDlogSpecs(SaveGDFPlotToPS) \
 	 -okCmd {
 	     SetDefaultLocation SaveGDFPlotToPS %s1;
 	     FsgdfPlot_SaveToPostscript \
-		 $gGDFID(overlay,$gaLinkedVars(currentvaluefield)) \
+		 $gGDFID \
 		 [ExpandFileName %s1 kFileName_Home]  }]
 set tDlogSpecs(SaveGDFPlotToTable) \
     [list \
@@ -5227,7 +5228,7 @@ set tDlogSpecs(SaveGDFPlotToTable) \
 	 -okCmd {
 	     SetDefaultLocation SaveGDFPlotToTable %s1;
 	     FsgdfPlot_SaveToTable \
-		 $gGDFID(overlay,$gaLinkedVars(currentvaluefield)) \
+		 $gGDFID \
 		 [ExpandFileName %s1 kFileName_Home]  }]
 set tDlogSpecs(MaskLabel) \
     [list \
