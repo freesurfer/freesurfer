@@ -1,5 +1,5 @@
 // QDEC Query-Design-Estimation-Contrast
-// $Id: qdecutils.h,v 1.4 2005/11/08 23:16:27 greve Exp $
+// $Id: qdecutils.h,v 1.5 2005/11/09 00:53:31 greve Exp $
 
 #ifndef QDEC_INC
 #define QDEC_INC
@@ -35,6 +35,22 @@ typedef struct{
 } QDEC_DESIGN, QDECD;
 /*---------------------------------------------------------*/
 
+/*---------------------------------------------------------*/
+typedef struct{
+  char *name;         // Design name
+  char *measure;      // thickness, sulc, curv
+  char *hemi;         // lh or rh
+  char *df1;          // name of discrete factor 1
+  char *df2;          // name of discrete factor 2
+  char *cf1;          // name of continuous factor 1
+  char *cf2;          // name of continuous factor 2
+  int  nsmooth;       // number of smooth steps
+} QDEC_DESIGN_GUI, QDECDGUI;
+/*---------------------------------------------------------*/
+
+
+
+
 const char *QDECsrcVersion(void);
 int QDECisContinuousFactor(QDECF *F);
 int QDECisDiscreteFactor(QDECF *F);
@@ -54,5 +70,8 @@ char *QDECinputClassName(QDECD *D, int nthInput);
 QDECD *QDECloadTable(char *tablebase);
 char **QDECdiscreteFactorNames(QDECD *D, int *ndf);
 char **QDECcontinuousFactorNames(QDECD *D, int *ncf);
+int QDECfactorNumber(QDECD *D, char *FactorName);
+QDECF *QDECcloneFactor(QDECF *F, QDECF *Fsrc);
+QDECD *QDECextractDesign(QDECD *DD, QDECDGUI *dgui);
 
 #endif
