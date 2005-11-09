@@ -771,13 +771,13 @@ AC_SUBST(LIBS_TCL)
 # Install NMR Martinos Center files (not included in distribution)
 ############################################################
 AC_ARG_ENABLE(nmr-install,
-              [  --enable-nmr-install     install NMR Center-only files],
-	      [case "${enableval}" in
-	         yes) nmrinstall=true ;;
-		 no)  nmrinstall=false  ;;
-		 *)   AC_MSG_ERROR(bad value ${enableval} for --enable-nmr-install) ;;
-	       esac],
-	      [nmrinstall=false])
+ [  --enable-nmr-install     install NMR Center-only files],
+   [case "${enableval}" in
+	yes) nmrinstall=true ;;
+	no)  nmrinstall=false  ;;
+	*)   AC_MSG_ERROR(bad value ${enableval} for --enable-nmr-install) ;;
+    esac],
+[nmrinstall=false])
 
 if test "x$nmrinstall" = "xtrue"; then
     AC_MSG_RESULT([Performing an NMR installation.])
@@ -1030,6 +1030,8 @@ AC_FUNC_MMAP
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_FUNC_STAT
+AC_FUNC_STRTOD
+AC_FUNC_VPRINTF
 # freesurfer uses calloc, getenv often so added
 AC_CHECK_FUNCS([\
   bzero \
