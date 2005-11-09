@@ -543,7 +543,9 @@ x Delete ROI command
 
 x Delete Data Collection
 
-Shorten seg label values
+x Shorten seg label values
+
+Threshold stuff for editing
 
 Data Collection Info window
 Show Surface Vertex
