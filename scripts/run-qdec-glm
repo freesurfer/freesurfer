@@ -1,8 +1,8 @@
 #!/bin/csh -f
-# $Id: run-qdec-glm,v 1.3 2005/11/10 22:36:48 greve Exp $
+# $Id: run-qdec-glm,v 1.4 2005/11/10 22:56:50 greve Exp $
 # setenv SUBJECTS_DIR /autofs/space/dijon_024/users/jpacheco/for_qdec
 
-set version = '$Id: run-qdec-glm,v 1.3 2005/11/10 22:36:48 greve Exp $';
+set version = '$Id: run-qdec-glm,v 1.4 2005/11/10 22:56:50 greve Exp $';
 
 if($#argv != 1) then
   echo "run-qdec-glm qdecdir"
@@ -178,10 +178,10 @@ echo "set curvflag 1; " >> $tclfile
 echo "redraw" >> $tclfile
 
 echo "cd $qdecdir"
-echo "tksurfer average7 lh inflated -tcl qdec.show.tcl"
+echo "tksurfer average7 $hemi inflated -tcl qdec.show.tcl"
 
 cd $qdecdir
-tksurfer average7 lh inflated -tcl qdec.show.tcl
+tksurfer average7 $hemi inflated -tcl qdec.show.tcl
 
 
 
