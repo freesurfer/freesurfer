@@ -4,12 +4,9 @@
 
 SUBDIRS=images
 
-AM_CPPFLAGS=$(GLUT_CFLAGS) \
-	$(GL_FLAGS) \
-	$(X_CFLAGS) \
-	-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include
 
-AM_LDFLAGS=$(LDFLAGS_TCL) $(GLUT_LIBS)
+AM_LDFLAGS=
 
 FORMS = mainform.ui
 
@@ -35,7 +32,6 @@ qdec_SOURCES=\
 	.ui/image_collection.cpp \
 	main.cpp 
 qdec_LDADD=$(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
-	$(LIBS_TCL_OPENGL) \
 	-L$(QTDIR)/lib -lqt-mt
 qdec_LDFLAGS=
 qdec_CXXFLAGS=-DQT_SHARED \
@@ -44,7 +40,7 @@ qdec_CXXFLAGS=-DQT_SHARED \
 	-I$(QTDIR)/include \
 	-I.ui/ 
 
-# All the qdec stuff.
+# All the Qt stuff
 .ui/mainform.h: mainform.ui
 	$(UIC) mainform.ui -o $@
 .ui/mainform.cpp: \
