@@ -238,7 +238,6 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     // Find this row start.
     dest = iBuffer +
       (((iWidth * window[1]) + windowUpdateBounds[0]) * mBytesPerPixel);
-
     for( window[0] = windowUpdateBounds[0]; 
 	 window[0] <= windowUpdateBounds[2]; window[0]++ ) {
 

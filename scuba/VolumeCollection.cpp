@@ -919,10 +919,10 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
       int roiID;
       try {
-	roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+	roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
       }
       catch( runtime_error& e ) {
-	sResult = string("bad collectionID: ") + e.what();
+	sResult = string("bad roiID: ") + e.what();
 	return error;
       }
     
@@ -962,10 +962,10 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
       int roiID;
       try {
-	roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+	roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
       }
       catch( runtime_error& e ) {
-	sResult = string("bad collectionID: ") + e.what();
+	sResult = string("bad roiID: ") + e.what();
 	return error;
       }
     
@@ -1934,7 +1934,7 @@ VolumeCollection::GetAverageValue ( ScubaROIVolume& iROI ) {
       for( voxel[0] = 0; voxel[0] < mMRI->width; voxel[0]++ ) {
 	
 	if( iROI.IsVoxelSelected( voxel ) ) {
-	  
+
 	  VolumeLocation& loc = 
 	    (VolumeLocation&) MakeLocationFromIndex( voxel );
 	  lLocs.push_back( loc );
@@ -1966,7 +1966,7 @@ VolumeCollection::GetStandardDeviation ( list<VolumeLocation>& ilLocations,
     sumDeviation += deviation;
   }
 
-  return sumDeviation / (float)ilLocations.size();
+  return sqrt( sumDeviation / (float)ilLocations.size() );
 }
 
 float

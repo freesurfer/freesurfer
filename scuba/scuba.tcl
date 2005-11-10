@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.158 2005/11/08 18:52:17 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.159 2005/11/10 17:53:27 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5683,7 +5683,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.158 2005/11/08 18:52:17 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.159 2005/11/10 17:53:27 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6979,7 +6979,7 @@ proc ROIStatsDlogROICallback { iROIID } {
 
     [$gaROIStatsInfo(widget,text) subwidget text] \
 	delete 1.0 end
-
+    
     set sText ""
     set err [catch {
 
