@@ -12,9 +12,9 @@
     Description: miscellaneous utility functions
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/11/01 17:50:16 $
-// Revision       : $Revision: 1.48 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/11/10 05:21:42 $
+// Revision       : $Revision: 1.49 $
 
 ------------------------------------------------------------------------*/
 
@@ -1103,3 +1103,45 @@ char *strcpyalloc(char *str)
   strcpy(cpstr,str);
   return(cpstr);
 }
+
+
+/*---------------------------------------------------------------------
+  ItemsInString() - counts the number of items in a string, which an
+  "item" is one or more contiguous non-white space characters. Items
+  are separated by white space as determined by isspace(). These
+  include \f, \n, \r, \t and \v as well as the simple space.
+  *-----------------------------------------------------------*/
+int ItemsInString(char *str)
+{
+  int items, nthchar, len;
+  len = strlen(str);
+
+  items = 0;
+  nthchar = 0;
+
+  // Scroll through any white space at the beginning
+  while(isspace(str[nthchar])){
+    nthchar ++;
+    if(nthchar == len) return(0); // only whitespace
+  }
+
+  // Scroll through the rest of the string
+  while(1){
+    items++;
+    while(!isspace(str[nthchar])){
+      // scroll thru chars in the item = nonwhitespace
+      nthchar ++; 
+      if(nthchar == len) return(items);
+    }
+    while(isspace(str[nthchar])){
+      // scroll thru whitespace after the item
+      nthchar ++;
+      if(nthchar == len)  return(items);
+    }
+  }
+
+  return(items); // should never get here
+}
+
+
+
