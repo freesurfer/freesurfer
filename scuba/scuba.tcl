@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.160 2005/11/10 21:49:49 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.161 2005/11/10 22:58:41 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4362,6 +4362,12 @@ proc DrawLabelArea {} {
 
 	    set nCol 1
 	    foreach sX $tableX {
+
+		# If this value doesn't exist, continue.
+		if { ![info exists glLabelValues($nArea,"$sX,$sY",value)] } {
+		    incr nCol
+		    continue
+		}
 		
 		if { $nRow > $maxRow } { set maxRow $nRow }
 		if { $nCol > $maxCol } { set maxCol $nCol }
@@ -5686,7 +5692,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.160 2005/11/10 21:49:49 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.161 2005/11/10 22:58:41 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
