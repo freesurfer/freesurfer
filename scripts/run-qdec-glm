@@ -1,0 +1,191 @@
+#!/bin/csh -f
+# $Id: run-qdec-glm,v 1.1 2005/11/10 18:20:04 greve Exp $
+# setenv SUBJECTS_DIR /autofs/space/dijon_024/users/jpacheco/for_qdec
+
+set version = '$Id: run-qdec-glm,v 1.1 2005/11/10 18:20:04 greve Exp $';
+
+if($#argv != 1) then
+  echo "run-qdec-glm qdecdir"
+  echo $version
+  exit 1;
+endif
+
+set qdecdir = $argv[1];
+if(! -e $qdecdir) then
+  echo "ERROR: cannot fin $qdecdir"
+  exit 1;
+endif
+
+set cfg = $qdecdir/qdec.cfg
+if(! -e $cfg) then
+  echo "ERROR: cannot fin $cfg"
+  exit 1;
+endif
+
+set fsgdf = $qdecdir/qdec.fsgd
+if(! -e $fsgdf) then
+  echo "ERROR: cannot fin $fsgdf"
+  exit 1;
+endif
+
+set cdir = $qdecdir/contrasts
+if(! -e $cdir) then
+  echo "ERROR: cannot fin $cdir"
+  exit 1;
+endif
+
+set measure = `grep \#MEASURE $cfg | awk '{print $2}'`;
+if($#measure != 1) then
+  echo "ERROR: $cfg, MEASURE"
+  exit 1;
+endif
+
+set hemi = `grep \#HEMI $cfg | awk '{print $2}'`;
+if($#hemi != 1) then
+  echo "ERROR: $cfg, HEMI"
+  exit 1;
+endif
+
+set fwhm = `grep \#FWHM $cfg | awk '{print $2}'`;
+if($#fwhm != 1) then
+  echo "ERROR: $cfg, FWHM"
+  exit 1;
+endif
+
+set contrasts = `grep \#CONTRAST $cfg | awk '{print $2}'`;
+
+foreach c ($contrasts)
+  set cmat = $cdir/$c.mat
+  if(! -e $cmat) then
+    echo "ERROR: cannot find $cmat"
+    exit 1;
+  endif
+end
+
+echo setenv SUBJECTS_DIR $SUBJECTS_DIR
+
+set StartDate = `date`;
+
+echo measure $measure
+echo hemi $hemi
+echo fwhm $fwhm
+echo nContrasts $#contrasts
+foreach c ($contrasts)
+  echo $c
+end
+
+#----------- Concatenate inputs ------------------#
+echo "Concatenating Inputs"
+set subjlist = `grep Input $fsgdf | awk '{print $2}'`;
+set y = $qdecdir/y.mgh
+set cmd = (mri_concat --o $y)
+foreach subj ($subjlist)
+  set infile = $SUBJECTS_DIR/$subj/surf/$hemi.$measure.fwhm$fwhm.average7.mgh
+  if(! -e $infile) then
+    echo "ERROR: $infile does not exist"
+    exit 1;
+  endif
+  set cmd = ($cmd --i $infile);
+end
+pwd
+$cmd
+if($status) exit 1;
+
+mri_info --nframes $y --o /tmp/nframes.$$.dat
+set nsubjects = `cat /tmp/nframes.$$.dat`;
+
+# ----------- Run the GLM -------------------------
+set cmd = (mri_glmfit --y $y --fsgd $fsgdf dods --glmdir $qdecdir)
+foreach c ($contrasts)
+  set cmat = $cdir/$c.mat
+  set cmd = ($cmd --C $cmat)
+end
+pwd
+$cmd
+if($status) exit 1;
+
+
+#-------------------------------------------------------------
+# Concatenate into one file with multiple frames
+set concatfile = $qdecdir/contrasts.sig.mgh
+set cmd = (mri_concat --o $concatfile)
+foreach c ($contrasts)
+  set sigfile = $qdecdir/$c/sig.mgh
+  if(! -e $sigfile) then
+    echo "ERROR: cannot find $sigfile"
+    exit 1;
+  endif
+  set cmd = ($cmd --i $sigfile);
+end
+pwd
+$cmd
+if($status) exit 1;
+
+
+set EndDate = `date`;
+
+echo Started at $StartDate
+echo Ended   at $EndDate
+
+#-------------------------------------------------------------------#
+set tclfile = $qdecdir/qdec.show.tcl
+rm -f $tclfile
+
+echo toplevel .infoDlog >> $tclfile
+echo wm title .infoDlog \"QDEC Contrasts\" >> $tclfile
+echo frame .infoDlog.fw >> $tclfile
+echo tixScrolledText .infoDlog.fw.st -scrollbar y >> $tclfile
+echo [.infoDlog.fw.st subwidget text] config -wrap word -relief ridge -bd 1 >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"nSubjects $nsubjects \\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"Measure $measure \\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"FWHM $fwhm \\n\" >> $tclfile
+
+echo [.infoDlog.fw.st subwidget text] insert end \" \\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \" Overlay Layer 1: Contrasts\\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \" Overlay Layer 2: Residual Error StdDev\\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \" Overlay Layer 3: Regression Coefficients\\n\" >> $tclfile
+
+echo [.infoDlog.fw.st subwidget text] insert end \" \\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"TimePoint \\t Contrast \\n\" >> $tclfile
+@ nthc = 0;
+foreach c ($contrasts)
+  echo [.infoDlog.fw.st subwidget text] insert end \"$nthc \\t $c \\n\" >> $tclfile
+  @ nthc = $nthc + 1;
+end
+echo [.infoDlog.fw.st subwidget text] insert end \" \\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"To view a contrast change the TimePoint using the \\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"View-\>Configure-\>Overlay panel\\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \" \\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"MEFx - Main Experimental Effect \\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"MFx  - Main Effect of a Factor\\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"SMFx - Effect within the levels of a Factor\\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"XFx  - Interaction Effect between two Factors\\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \" \\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"SUBJECTS_DIR $SUBJECTS_DIR \\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"qdecdir $qdecdir \\n\" >> $tclfile
+echo pack .infoDlog.fw.st -expand yes -fill both >> $tclfile
+echo pack .infoDlog.fw -expand yes -fill both >> $tclfile
+
+echo "open_window" >> $tclfile
+echo "sclv_read_from_volume 2 beta.mgh 2" >> $tclfile
+echo "sclv_read_from_volume 1 rstd.mgh 2" >> $tclfile
+echo "sclv_read_from_volume 0 contrasts.sig.mgh 2" >> $tclfile
+echo "GDF_Load y.fsgd 0" >> $tclfile
+echo "set gaLinkedVars(currentvaluefield) 0"  >> $tclfile
+echo "set curv $hemi.curv" >> $tclfile
+echo "read_binary_curv; " >> $tclfile
+echo "set curvflag 1; " >> $tclfile
+echo "redraw" >> $tclfile
+
+echo "cd $qdecdir"
+echo "tksurfer average7 lh inflated -tcl qdec.show.tcl"
+
+cd $qdecdir
+tksurfer average7 lh inflated -tcl qdec.show.tcl
+
+
+
+
+
+exit 0
+
