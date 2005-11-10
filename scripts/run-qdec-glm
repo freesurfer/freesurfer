@@ -1,8 +1,8 @@
 #!/bin/csh -f
-# $Id: run-qdec-glm,v 1.2 2005/11/10 22:25:33 greve Exp $
+# $Id: run-qdec-glm,v 1.3 2005/11/10 22:36:48 greve Exp $
 # setenv SUBJECTS_DIR /autofs/space/dijon_024/users/jpacheco/for_qdec
 
-set version = '$Id: run-qdec-glm,v 1.2 2005/11/10 22:25:33 greve Exp $';
+set version = '$Id: run-qdec-glm,v 1.3 2005/11/10 22:36:48 greve Exp $';
 
 if($#argv != 1) then
   echo "run-qdec-glm qdecdir"
@@ -155,8 +155,14 @@ foreach c ($contrasts)
 end
 
 echo [.infoDlog.fw.st subwidget text] insert end \" \\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"To change contrast, change the TimePoint \\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \"using the View-\>Config-\>Overlay panel.\\n\" >> $tclfile
+echo [.infoDlog.fw.st subwidget text] insert end \" \\n\" >> $tclfile
+
+echo [.infoDlog.fw.st subwidget text] insert end \" \\n\" >> $tclfile
 echo [.infoDlog.fw.st subwidget text] insert end \"SUBJECTS_DIR $SUBJECTS_DIR \\n\" >> $tclfile
 echo [.infoDlog.fw.st subwidget text] insert end \"qdecdir $qdecdir \\n\" >> $tclfile
+
 echo pack .infoDlog.fw.st -expand yes -fill both >> $tclfile
 echo pack .infoDlog.fw -expand yes -fill both >> $tclfile
 
