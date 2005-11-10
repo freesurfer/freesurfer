@@ -1,5 +1,5 @@
 // QDEC Query-Design-Estimation-Contrast
-// $Id: qdecutils.h,v 1.7 2005/11/10 03:07:13 greve Exp $
+// $Id: qdecutils.h,v 1.8 2005/11/10 22:31:04 greve Exp $
 
 #ifndef QDEC_INC
 #define QDEC_INC
@@ -31,6 +31,7 @@ typedef struct{
 typedef struct{
   int nContrasts;
   char **ContrastNames;
+  char **ContrastQuestions;
   MATRIX **C;
 } QDEC_CONTRAST, QDECC;
 /*---------------------------------------------------------*/
@@ -41,6 +42,7 @@ typedef struct{
   int nInputs;        // Number of subjects
   char **InputIdList; // Subject Ids
   int nFactors;
+  char *measure;
   QDEC_FACTOR *Factors;
 } QDEC_DESIGN, QDECD;
 /*---------------------------------------------------------*/
@@ -54,6 +56,7 @@ typedef struct{
   char *df2;          // name of discrete factor 2
   char *cf1;          // name of continuous factor 1
   char *cf2;          // name of continuous factor 2
+  double fwhm;        // approx fwhm
   int  nsmooth;       // number of smooth steps
 } QDEC_DESIGN_GUI, QDECDGUI;
 /*---------------------------------------------------------*/
