@@ -20,7 +20,10 @@ PathManager::GetManager() {
   return *sManager;
 }
 
-PathManager::PathManager () {
+PathManager::PathManager () :
+  Broadcaster( "PathManager" ), 
+  Listener( "PathManager" ) 
+{
   mbSendUpdates = true;
 }
 

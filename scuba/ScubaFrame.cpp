@@ -16,8 +16,10 @@ using namespace std;
 
 ViewFactory* ScubaFrame::mFactory = NULL;
 
-ScubaFrame::ScubaFrame( ID iID ) 
-  : WindowFrame( iID ) {
+ScubaFrame::ScubaFrame( ID iID ) :
+  WindowFrame( iID ) ,
+  Listener( "ScubaFrame" )
+{
 
   SetOutputStreamToCerr();
 

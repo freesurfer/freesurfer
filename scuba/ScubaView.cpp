@@ -3353,8 +3353,10 @@ ScubaView::DrawOverlay () {
   glCallList( kOverlayDrawListID + mID );
 }
 
-ScubaViewBroadcaster::ScubaViewBroadcaster () {
-  mCurrentBroadcaster = -1;
+ScubaViewBroadcaster::ScubaViewBroadcaster () :
+  Broadcaster( "ScubaViewBroadcaster" ),
+  mCurrentBroadcaster( -1 )
+{
 }
 
 View* 

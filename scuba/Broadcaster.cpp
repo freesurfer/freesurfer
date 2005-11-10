@@ -3,7 +3,8 @@
 
 using namespace std;
 
-Broadcaster::Broadcaster () {
+Broadcaster::Broadcaster ( string isLabel ) :
+  msLabel(isLabel) {
 
 }
 

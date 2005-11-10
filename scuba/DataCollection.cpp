@@ -9,6 +9,8 @@ DeclareIDTracker(DataCollection);
 
 
 DataCollection::DataCollection() :
+  Listener( "DataCollection" ),
+  Broadcaster( "DataCollection" ),
   msLabel(""),
   mSelectedROIID(-1),
   mbSuspendDataChangedMessage(false),

@@ -8,11 +8,13 @@ DeclareIDTracker(ScubaTransform);
 
 ScubaTransformStaticTclListener ScubaTransform::mStaticListener;
 
-ScubaTransform::ScubaTransform() {
-  msLabel = "";
-  mIsRegistration = false;
-  mSourceVolume = NULL;
-  mDestVolume = NULL;
+ScubaTransform::ScubaTransform() :
+  Broadcaster( "ScubaTransform" ),
+  msLabel( "" ),
+  mIsRegistration( false ),
+  mSourceVolume( NULL ),
+  mDestVolume( NULL ) 
+{
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetTransformLabel", 2, "transformID label",

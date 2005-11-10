@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.159 2005/11/10 17:53:27 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.160 2005/11/10 21:49:49 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3437,17 +3437,20 @@ proc ToolTargetLayerMenuCallback { iLayer } {
     set gaTool(current,targetLayer) $iLayer
     SetToolTargetLayer $gaTool(current,id) $gaTool(current,targetLayer)
 
-    # Update the radius slider.
-    set inc [GetLayerPreferredBrushRadiusIncrement $iLayer]
-    set min $inc
-    set max [expr 20 * $inc]
-    tkuUpdateSlidersRange $gaWidget(toolProperties,radiusSlider) \
-	$min $max $inc
-
-    # Select this collection.
-    set colID [GetLayerMainDataCollection $iLayer]
-    if { $colID >= 0 } {
-	SelectCollectionInCollectionProperties $colID
+    if { $iLayer >= 0 } {
+	
+	# Update the radius slider.
+	set inc [GetLayerPreferredBrushRadiusIncrement $iLayer]
+	set min $inc
+	set max [expr 20 * $inc]
+	tkuUpdateSlidersRange $gaWidget(toolProperties,radiusSlider) \
+	    $min $max $inc
+	
+	# Select this collection.
+	set colID [GetLayerMainDataCollection $iLayer]
+	if { $colID >= 0 } {
+	    SelectCollectionInCollectionProperties $colID
+	}
     }
 }
 
@@ -5683,7 +5686,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.159 2005/11/10 17:53:27 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.160 2005/11/10 21:49:49 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

@@ -1450,6 +1450,8 @@ ScubaLayer2DMRI::DataChanged () {
     ssCommand << "2DMRILayerMinMaxValueChanged " << GetID();
     TclCommandManager& mgr = TclCommandManager::GetManager();
     mgr.SendCommand( ssCommand.str() );
+
+    
   }
 
   RequestRedisplay();
@@ -1710,33 +1712,19 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  
 	  delete &loc;
 	}
-
+	
 	RequestRedisplay();
       }
-
+      
       // If this is a mouse up event, close the undo stuff.
       if( iInput.IsButtonUpEvent() ) {
 	undoList.EndAction();
       }
-      
-    }  
+    }
     
     // Also request a redisplay if this is a mouse up.
     if( iInput.IsButtonUpEvent() ) {
       RequestRedisplay();
-    }
-    
-    if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
-      
-      // Adjust the min/max visible value.
-      if( iTool.GetMode() == ScubaToolState::voxelEditing ) {
-	float newValue = iInput.Button() == 2 ? 
-	  iTool.GetNewValue() : iTool.GetEraseValue();
-	if( newValue < mMinVisibleValue )
-	  mMinVisibleValue = newValue;
-	if( newValue > mMaxVisibleValue )
-	  mMaxVisibleValue = newValue;
-      }
     }
 
   } break;
@@ -2268,7 +2256,7 @@ ScubaLayer2DMRI::SetMinVisibleValue ( float iValue ) {
 
   mMinVisibleValue = iValue; 
   if( mMinVisibleValue >= mMaxVisibleValue ) {
-    mMinVisibleValue = mMinVisibleValue - 0.00001;
+    mMinVisibleValue = mMaxVisibleValue - 0.00001;
   }
 }
 

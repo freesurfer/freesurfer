@@ -13,6 +13,8 @@ bool Layer::kbDefaultReportInfo = true;
 LayerStaticTclListener Layer::mStaticListener;
 
 Layer::Layer() :
+  Listener( "Layer" ),
+  Broadcaster( "Layer" ),
   mWidth(0),
   mHeight(0),
   msLabel(""),

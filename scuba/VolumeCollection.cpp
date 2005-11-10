@@ -1560,6 +1560,11 @@ VolumeCollection::WriteROIsToSegmentation ( string ifnVolume ) {
 void
 VolumeCollection::SetDataToWorldTransform ( int iTransformID ) {
 
+  // Don't set if we're already using this one.
+  if( NULL != mDataToWorldTransform &&
+      iTransformID == mDataToWorldTransform->GetID() )
+    return;
+
   DataCollection::SetDataToWorldTransform( iTransformID );
   CalcWorldToIndexTransform();
 }
@@ -1574,6 +1579,10 @@ VolumeCollection::GetWorldToIndexTransform () {
 
 void
 VolumeCollection::SetUseWorldToIndexTransform ( bool ibUse ) {
+
+  // Don't change if it's the current setting.
+  if( ibUse == mbUseDataToIndexTransform )
+    return;
 
   mbUseDataToIndexTransform = ibUse;
   CalcWorldToIndexTransform();

@@ -4,10 +4,13 @@ using namespace std;
 
 DeclareIDTracker(View);
 
-View::View() {
-  mWidth = 0;
-  mHeight = 0;
-  mbPostRedisplay = false;
+View::View() :
+  Broadcaster( "View" ),
+  Listener( "View" ),
+  mWidth( 0 ),
+  mHeight( 0 ),
+  mbPostRedisplay( false )
+{
 }
 
 View::~View() {

@@ -25,7 +25,9 @@ ScubaGlobalPreferences::GetPreferences() {
   return *sPreferences;
 }
 
-ScubaGlobalPreferences::ScubaGlobalPreferences () {
+ScubaGlobalPreferences::ScubaGlobalPreferences () :
+  Broadcaster( "ScubaGlobalPreferences" )
+{
 
   ReadPreferences();
 }

@@ -4,7 +4,9 @@
 using namespace std;
 
 template <typename T>
-Path<T>::Path () {
+Path<T>::Path () :
+  Broadcaster( "Path" )
+{
 
   mIndexOfSegmentEnd = 0;
   mbSelected = false;

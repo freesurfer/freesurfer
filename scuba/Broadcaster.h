@@ -9,7 +9,7 @@ class Broadcaster {
 
  public:
 
-  Broadcaster ();
+  Broadcaster ( std::string isLabel );
   virtual ~Broadcaster ();
 
   void AddListener ( Listener* iListener );
@@ -18,7 +18,7 @@ class Broadcaster {
   virtual void SendBroadcast ( std::string iMessage, void* iData );
 
  protected:
-
+  std::string msLabel;
   std::list<Listener*> mlListeners;
 };
 
