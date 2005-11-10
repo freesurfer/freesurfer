@@ -1,5 +1,5 @@
 // QDEC Query-Design-Estimation-Contrast
-// $Id: qdecutils.h,v 1.6 2005/11/09 01:39:33 greve Exp $
+// $Id: qdecutils.h,v 1.7 2005/11/10 03:07:13 greve Exp $
 
 #ifndef QDEC_INC
 #define QDEC_INC
@@ -86,5 +86,7 @@ QDECD *QDECextractDesign(QDECD *DD, QDECDGUI *dgui);
 QDECC *QDECallocContrasts(int nContrasts);
 int QDECnthContinuousFactor(QDECD *D, int nthcf);
 int QDECnthDiscreteFactor(QDECD *D, int nthdf);
+QDECC *QDECcontrasts(QDECD *D);
+char *QDECsaveConfig(QDECD *D, QDECDGUI *dgui, char *qdecdir);
 
 #endif
