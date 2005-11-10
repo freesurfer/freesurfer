@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.96 2005/10/26 21:56:42 kteich Exp $
+# $Id: tkmedit.tcl,v 1.97 2005/11/10 20:40:23 fischl Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -3375,11 +3375,11 @@ proc CreateMenuBar { ifwMenuBar } {
 	    {DoFileDlog LoadMainSurface} }
 	{ cascade "Load Surface Configuration..." {
 	    { command
-		"Original Verticies"
+		"Original Vertices"
 		{DoFileDlog LoadOriginalSurface}
 		tMenuGroup_SurfaceLoading }
 	    { command
-		"Pial Verticies "
+		"Pial Vertices "
 		{DoFileDlog LoadPialSurface}
 		tMenuGroup_SurfaceLoading } 
 	}}
@@ -3402,11 +3402,11 @@ proc CreateMenuBar { ifwMenuBar } {
 		tMenuGroup_SurfaceLoading }
 	    { cascade "Load Aux Surface Configuration..." {
 		{ command
-		    "Original Verticies"
+		    "Original Vertices"
 		    {DoFileDlog LoadOriginalAuxSurface}
 		    tMenuGroup_SurfaceLoading }
 		{ command
-		    "Pial Verticies "
+		    "Pial Vertices "
 		    {DoFileDlog LoadPialAuxSurface}
 		    tMenuGroup_SurfaceLoading }
 	    }}
