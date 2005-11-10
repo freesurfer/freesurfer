@@ -1,8 +1,8 @@
 #!/bin/csh -f
-# $Id: run-qdec-glm,v 1.1 2005/11/10 18:20:04 greve Exp $
+# $Id: run-qdec-glm,v 1.2 2005/11/10 22:25:33 greve Exp $
 # setenv SUBJECTS_DIR /autofs/space/dijon_024/users/jpacheco/for_qdec
 
-set version = '$Id: run-qdec-glm,v 1.1 2005/11/10 18:20:04 greve Exp $';
+set version = '$Id: run-qdec-glm,v 1.2 2005/11/10 22:25:33 greve Exp $';
 
 if($#argv != 1) then
   echo "run-qdec-glm qdecdir"
@@ -120,12 +120,11 @@ end
 pwd
 $cmd
 if($status) exit 1;
-
-
 set EndDate = `date`;
 
 echo Started at $StartDate
 echo Ended   at $EndDate
+
 
 #-------------------------------------------------------------------#
 set tclfile = $qdecdir/qdec.show.tcl
@@ -149,17 +148,12 @@ echo [.infoDlog.fw.st subwidget text] insert end \" \\n\" >> $tclfile
 echo [.infoDlog.fw.st subwidget text] insert end \"TimePoint \\t Contrast \\n\" >> $tclfile
 @ nthc = 0;
 foreach c ($contrasts)
-  echo [.infoDlog.fw.st subwidget text] insert end \"$nthc \\t $c \\n\" >> $tclfile
+  set nthcpad = `printf \#Q%03d $nthc`;
+  set q = `grep $nthcpad $cfg| sed 's/\#Q//'`;
+  echo [.infoDlog.fw.st subwidget text] insert end \"$nthc \\t "$q" \\n\" >> $tclfile
   @ nthc = $nthc + 1;
 end
-echo [.infoDlog.fw.st subwidget text] insert end \" \\n\" >> $tclfile
-echo [.infoDlog.fw.st subwidget text] insert end \"To view a contrast change the TimePoint using the \\n\" >> $tclfile
-echo [.infoDlog.fw.st subwidget text] insert end \"View-\>Configure-\>Overlay panel\\n\" >> $tclfile
-echo [.infoDlog.fw.st subwidget text] insert end \" \\n\" >> $tclfile
-echo [.infoDlog.fw.st subwidget text] insert end \"MEFx - Main Experimental Effect \\n\" >> $tclfile
-echo [.infoDlog.fw.st subwidget text] insert end \"MFx  - Main Effect of a Factor\\n\" >> $tclfile
-echo [.infoDlog.fw.st subwidget text] insert end \"SMFx - Effect within the levels of a Factor\\n\" >> $tclfile
-echo [.infoDlog.fw.st subwidget text] insert end \"XFx  - Interaction Effect between two Factors\\n\" >> $tclfile
+
 echo [.infoDlog.fw.st subwidget text] insert end \" \\n\" >> $tclfile
 echo [.infoDlog.fw.st subwidget text] insert end \"SUBJECTS_DIR $SUBJECTS_DIR \\n\" >> $tclfile
 echo [.infoDlog.fw.st subwidget text] insert end \"qdecdir $qdecdir \\n\" >> $tclfile
