@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.87 2005/11/09 22:26:17 kteich Exp $
+# $Id: tksurfer.tcl,v 1.88 2005/11/10 22:12:58 kteich Exp $
 
 package require BLT;
 
@@ -776,13 +776,13 @@ proc SetMax { iWidget inThresh ibUpdateSlope } {
     $iWidget marker create line \
 	-coords [list $negMax -Inf $negMax Inf] \
 	-name negmax -outline green
-    # calculate the slope if necessary or if we're in simple thresh mode.
-    if { $ibUpdateSlope || $gaHistogramData(simpleThresh) } {
-	SetSlope $iWidget [expr 1.0 / ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fmid))] 0
-    }
     # If in simple thresh mode, set the midpoint too.
     if { $gaHistogramData(simpleThresh) } {
 	SetMid $iWidget [expr ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fthresh))/2 + $gaLinkedVars(fthresh)] 0
+    }
+    # calculate the slope if necessary or if we're in simple thresh mode.
+    if { $ibUpdateSlope || $gaHistogramData(simpleThresh) } {
+	SetSlope $iWidget [expr 1.0 / ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fmid))] 0
     }
 }
 
