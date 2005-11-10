@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.74 2005/11/03 00:50:20 fischl Exp $
+// $Id: matrix.c,v 1.75 2005/11/10 05:23:05 greve Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -6,6 +6,7 @@
 #include <memory.h>
 #include <math.h>
 #include <unistd.h>
+#include <ctype.h>
 #ifdef _POSIX_MAPPED_FILES
 #include <sys/mman.h>
 #endif
@@ -581,8 +582,10 @@ MATRIX *
 MatrixReadTxt(char *fname, MATRIX *mat)
 {
   FILE   *fp ;
-  int     rows, cols, row, col ;
-  char    *cp, line[400] ;
+  int     rows, cols, row, col, nlinemax, nread;
+  char    line[1000] ;
+  //char    *cp;
+  nlinemax = 999;
 
   fp = fopen(fname, "r") ;
   if (!fp)
@@ -590,20 +593,40 @@ MatrixReadTxt(char *fname, MATRIX *mat)
                 (ERROR_NO_FILE, "MatrixRead(%s) - file open failed\n", fname));
 
 
-  if (!fgets(line, 399, fp))
+  // Read in the first line, including the newline
+  if(!fgets(line, nlinemax, fp))
     ErrorReturn(NULL,
                 (ERROR_BADPARM, 
                  "MatrixRead: could not read 1st line from %s\n", fname));
 
-  for (cols = 0,cp = strtok(line, " \t,") ; cp ; cp = strtok(NULL, " \t,"))
-    cols++ ;
+  //for(cols = 0,cp = strtok(line, " \t,") ; cp ; cp = strtok(NULL, " \t,"))
+  //  cols++ ;
 
-  for (rows = 1 ; fgets(line, 399, fp) ; rows++)
-  {}
+  cols = ItemsInString(line);
 
+  // Count the number of lines, start at row=1 because 
+  // a line was read above.
+  for (rows = 1 ; fgets(line, nlinemax, fp) ; rows++){}
+
+  //printf("MatrixReadTxt: %d rows and %d cols\n",rows,cols);
   mat = MatrixAlloc(rows, cols, MATRIX_REAL) ;
-  rewind(fp) ;
 
+  rewind(fp) ;
+  for(row=1; row <= rows; row++){
+    for(col=1; col <= cols; col++){
+      nread = fscanf(fp, "%f", &mat->rptr[row][col]);
+      if(nread != 1){
+        MatrixFree(&mat) ;
+        ErrorReturn(NULL,(ERROR_BADPARM, 
+			  "MatrixReadTxT: could not scan value [%d][%d]\n", 
+			  row, col));
+      }
+    }
+  }
+  fclose(fp) ;
+  return(mat) ;
+
+#if 0
   for (row = 1 ; fgets(line, 399, fp) ; row++)
   {
     for (col = 1, cp = strtok(line, " \t,") ;
@@ -623,6 +646,7 @@ MatrixReadTxt(char *fname, MATRIX *mat)
 
   fclose(fp) ;
   return(mat) ;
+#endif
 }
 
 #include "matfile.h"
