@@ -33,15 +33,15 @@ cd $MINC_BIN_DIR
 
 setenv SEDFLAGS1 "s,/usr/pubsw/bin/perl,${MY_PERL},g"
 setenv SEDFLAGS2 "s,/usr/local/bin/perl,${MY_PERL},g"
-echo $SEDFLAGS1 >SEDFILE1
-echo $SEDFLAGS2 >SEDFILE2
+echo $SEDFLAGS1 >sedfile1
+echo $SEDFLAGS2 >sedfile2
 
 # this is included to fixup older MINC toolkit installations:
 setenv MINC_HOME_DIR `echo $MINC_BIN_DIR | sed - -e s/'\/'bin//`
 setenv SEDFLAGS3 "s,/usr/pubsw/packages/mni/1.0.4,${MINC_HOME_DIR},g"
-echo $SEDFLAGS3 >SEDFILE3
+echo $SEDFLAGS3 >sedfile3
 setenv SEDFLAGS4 "s,/usr/pubsw/packages/mni/current,${MINC_HOME_DIR},g"
-echo $SEDFLAGS4 >SEDFILE4
+echo $SEDFLAGS4 >sedfile4
 
 # these are the files that contain the hard-coded paths in need of fixup:
 set MNI_FILES = ( autocrop field2imp imp2field make_template mritoself mritotal nu_correct nu_estimate nu_estimate_np_and_em nu_evaluate resample_labels sharpen_volume xfmtool )
@@ -49,16 +49,16 @@ set MNI_FILES = ( autocrop field2imp imp2field make_template mritoself mritotal 
 foreach file ($MNI_FILES)
     echo "Patching $file...(original file saved to $file.old)"
     mv $file $file.old
-    sed -f SEDFILE1 $file.old > $file.1
-    sed -f SEDFILE2 $file.1 > $file.2
-    sed -f SEDFILE3 $file.2 > $file.3
-    sed -f SEDFILE4 $file.3 > $file
+    sed -f sedfile1 $file.old > $file.1
+    sed -f sedfile2 $file.1 > $file.2
+    sed -f sedfile3 $file.2 > $file.3
+    sed -f sedfile4 $file.3 > $file
     chmod a+x $file
     if (-e $file.1) rm -f $file.1
     if (-e $file.2) rm -f $file.2
     if (-e $file.3) rm -f $file.3
 end
-rm -f SEDFILE1 SEDFILE2 SEDFILE3 SEDFILE4
+rm -f sedfile1 sedfile2 sedfile3 sedfile4
 echo "done."
 
 echo "Here are the changes:"
