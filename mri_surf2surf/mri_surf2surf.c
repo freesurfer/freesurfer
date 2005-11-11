@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.22 2005/03/03 23:55:19 greve Exp $
+  $Id: mri_surf2surf.c,v 1.23 2005/11/11 17:33:19 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -32,6 +32,9 @@
 #include "prime.h"
 #include "version.h"
 
+int DumpSurface(MRIS *surf, char *outfile);
+MRI *MRIShksmooth(MRIS *Surf, MRI *Src, double sigma, int nSmoothSteps, MRI *Targ);
+MRI *MRISheatkernel(MRIS *surf, double sigma);
 
 double MRISareaTriangle(double x0, double y0, double z0, 
 			double x1, double y1, double z1, 
@@ -66,7 +69,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.22 2005/03/03 23:55:19 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.23 2005/11/11 17:33:19 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = NULL;
@@ -133,7 +136,7 @@ int main(int argc, char **argv)
   float *framepower = NULL;
   char fname[2000];
   int nTrg121,nSrc121,nSrcLost;
-  int nTrgMulti,nSrcMulti;
+  int nTrgMulti,nSrcMulti, ntmp;
   float MnTrgMultiHits,MnSrcMultiHits;
   int nargs;
   FACE *face;
@@ -141,7 +144,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.22 2005/03/03 23:55:19 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.23 2005/11/11 17:33:19 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -151,6 +154,10 @@ int main(int argc, char **argv)
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+
+  //SrcSurfReg = ReadIcoByOrder(7,100);
+  //MRISwrite(SrcSurfReg,"lh.ico7");
+  //exit(1);
 
   if(argc == 0) usage_exit();
 
@@ -269,12 +276,7 @@ int main(int argc, char **argv)
 
   if(SrcDumpFile != NULL){
     printf("Dumping input to %s\n",SrcDumpFile);
-    dump_surf(SrcDumpFile,SrcSurfReg,SrcVals);
-  }
-
-  if(SrcDumpFile != NULL){
-    printf("Dumping input to %s\n",SrcDumpFile);
-    dump_surf(SrcDumpFile,SrcSurfReg,SrcVals);
+    DumpSurface(SrcSurfReg, SrcDumpFile);
   }
 
   /* Smooth input if desired */
@@ -285,7 +287,16 @@ int main(int argc, char **argv)
   if(fwhm_Input > 0){
     printf("Gaussian smoothing input with fwhm = %g, std = %g\n",
 	   fwhm_Input,gstd_Input);
-    if(!usediff) MRISgaussianSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals, 3.0);
+    if(!usediff){
+      //MRISgaussianSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals, 3.0);
+      //ntmp = round((gstd_Input*gstd_Input)*3.1416*log(256.0)/(2.3*2.3*2));
+      ntmp = 25;
+      gstd_Input = 1;
+      //gstd_Input = fwhm_Input/sqrt(log(256.0)*ntmp);
+      printf("Starting heatkernel smoothing, n = %d, gstd = %g\n",ntmp,gstd_Input);
+      SrcVals = MRIShksmooth(SrcSurfReg, SrcVals, gstd_Input, ntmp, SrcVals);
+      printf("Done heatkernel smoothing\n");
+    }
     if(usediff){
       printf("Computing distance along the sphere \n");
       sphdist = MRISdistSphere(SrcSurfReg, gstd_Input*3);
@@ -406,8 +417,12 @@ int main(int argc, char **argv)
   if(nSmoothSteps > 0)
     MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, TrgVals);
   if(fwhm > 0){
-    printf("Gaussian smoothing with fwhm = %g, std = %g\n",fwhm,gstd);
-    MRISgaussianSmooth(TrgSurfReg, TrgVals, gstd, TrgVals, 3.0);
+    //printf("Gaussian smoothing with fwhm = %g, std = %g\n",fwhm,gstd);
+    //MRISgaussianSmooth(TrgSurfReg, TrgVals, gstd, TrgVals, 3.0);
+
+    printf("Starting heatkernel smoothing\n"); // 10 = #steps
+    TrgVals = MRIShksmooth(TrgSurfReg, TrgVals, gstd, 10, TrgVals);
+    printf("Done heatkernel smoothing\n");
   }
 
   /* readjust frame power if necessary */
@@ -486,12 +501,18 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nousediff")) usediff = 0;
 
     /* -------- source value inputs ------ */
+    else if (!strcmp(option, "--s")){
+      if(nargc < 1) argnerr(option,1);
+      srcsubject = pargv[0];
+      trgsubject = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--srcsubject")){
       if(nargc < 1) argnerr(option,1);
       srcsubject = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--srcsurfval")){
+    else if (!strcmp(option, "--srcsurfval") || !strcmp(option, "--sval")){
       if(nargc < 1) argnerr(option,1);
       srcvalfile = pargv[0];
       nargsused = 1;
@@ -501,7 +522,7 @@ static int parse_commandline(int argc, char **argv)
       SrcDumpFile = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--srcfmt") ||
+    else if (!strcmp(option, "--srcfmt") || !strcmp(option, "--sfmt") ||
        !strcmp(option, "--src_type")){
       if(nargc < 1) argnerr(option,1);
       srctypestring = pargv[0];
@@ -557,7 +578,7 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%d",&TrgIcoOrder);
       nargsused = 1;
     }
-    else if (!strcmp(option, "--trgsurfval")){
+    else if (!strcmp(option, "--trgsurfval")  || !strcmp(option, "--tval")){
       if(nargc < 1) argnerr(option,1);
       trgvalfile = pargv[0];
       nargsused = 1;
@@ -567,7 +588,7 @@ static int parse_commandline(int argc, char **argv)
       TrgDumpFile = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--trgfmt") ||
+    else if (!strcmp(option, "--trgfmt") ||!strcmp(option, "--tfmt") ||
        !strcmp(option, "--trg_type")){
       if(nargc < 1) argnerr(option,1);
       trgtypestring = pargv[0];
@@ -657,13 +678,14 @@ static void print_usage(void)
   fprintf(stdout, "USAGE: %s \n",Progname) ;
   fprintf(stdout, "\n");
   fprintf(stdout, "   --srcsubject source subject\n");
-  fprintf(stdout, "   --srcsurfval path of file with input values \n");
-  fprintf(stdout, "   --src_type   source format\n");
+  fprintf(stdout, "   --sval path of file with input values \n");
+  fprintf(stdout, "   --sfmt   source format\n");
   fprintf(stdout, "   --srcicoorder when srcsubject=ico and src is .w\n");
   fprintf(stdout, "   --trgsubject target subject\n");
   fprintf(stdout, "   --trgicoorder when trgsubject=ico\n");
-  fprintf(stdout, "   --trgsurfval path of file in which to store output values\n");
-  fprintf(stdout, "   --trg_type   target format\n");
+  fprintf(stdout, "   --tval path of file in which to store output values\n");
+  fprintf(stdout, "   --tfmt target format\n");
+  fprintf(stdout, "   --s subject : use subject as src and target\n");
   fprintf(stdout, "   --hemi       hemisphere (lh or rh) \n");
   fprintf(stdout, "   --surfreg    surface registration (sphere.reg)  \n");
   fprintf(stdout, "   --mapmethod  nnfr or nnf\n");
@@ -698,11 +720,11 @@ static void print_help(void)
 "    The input data must have been sampled onto this subject's surface (eg, \n"
 "    using mri_vol2surf)\n"
 "\n"
-"  --srcsurfval sourcefile\n"
+"  --sval sourcefile\n"
 "\n"
 "    Name of file where the data on the source surface is located.\n"
 "\n"
-"  --src_type typestring\n"
+"  --sfmt typestring\n"
 "\n"
 "    Format type string. Can be either curv (for FreeSurfer curvature file), \n"
 "    paint or w (for FreeSurfer paint files), or anything accepted by \n"
@@ -735,12 +757,12 @@ static void print_help(void)
 "                7          163842 \n"
 "    In general, it is best to use the largest size available.\n"
 "\n"
-"  --trgsurfval targetfile\n"
+"  --tval targetfile\n"
 "\n"
 "    Name of file where the data on the target surface will be stored.\n"
 "    BUG ALERT: for trg_type w or paint, use the full path.\n"
 "\n"
-"  --trg_type typestring\n"
+"  --tfmt typestring\n"
 "\n"
 "    Format type string. Can be paint or w (for FreeSurfer paint files) or anything\n"
 "    accepted by mri_convert. NOTE: output cannot be stored in curv format\n"
@@ -1341,4 +1363,160 @@ int MRISdumpVertexNeighborhood(MRIS *surf, int vtxno)
 }
 
 /*--------------------------------------------------------------------------*/
+MRI *MRISheatkernel(MRIS *surf, double sigma)
+{
+  int vtxno, nbrvtxno, nnbrs, nnbrsmax;
+  VERTEX *cvtx, *nbrvtx;
+  double K, Ksum, two_sigma_sqr, dx, dy, dz, d2;
+  MRI *hk;
 
+  two_sigma_sqr = 2*pow(sigma,2);
+
+  // Count the maximum number of neighbors
+  nnbrsmax = 0;
+  for(vtxno=0; vtxno < surf->nvertices; vtxno++){
+    nnbrs = surf->vertices[vtxno].vnum;
+    if(nnbrsmax < nnbrs) nnbrsmax = nnbrs;
+  }
+
+  printf("max no of neighbors = %d\n",nnbrsmax);
+  hk = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, nnbrsmax+1);
+
+  printf("Filling in heat kernel weights\n");
+  for(vtxno=0; vtxno < surf->nvertices; vtxno++){
+    cvtx = &(surf->vertices[vtxno]);
+    nnbrs = cvtx->vnum;
+    Ksum = 0;
+    for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+      nbrvtxno = cvtx->v[nthnbr];
+      nbrvtx = &(surf->vertices[nbrvtxno]);
+      dx = (cvtx->x - nbrvtx->x);
+      dy = (cvtx->y - nbrvtx->y);
+      dz = (cvtx->z - nbrvtx->z);
+      d2 = dx*dx + dy*dy + dz*dz;
+      K = exp(-d2/two_sigma_sqr);
+      Ksum += K;
+      MRIsetVoxVal(hk,vtxno,0,0,nthnbr,K);
+    }
+    for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+      K = MRIgetVoxVal(hk,vtxno,0,0,nthnbr);
+      MRIsetVoxVal(hk,vtxno,0,0,nthnbr,K/(Ksum+1.0)); // +1 for self
+    }
+    MRIsetVoxVal(hk,vtxno,0,0,nnbrs,1/(Ksum+1.0));  // self
+  }
+  
+  printf("Done computing heat kernel weights\n");
+
+  MRIwrite(hk,"hk.mgh");
+
+  return(hk);
+}
+
+
+/*--------------------------------------------------------------------------*/
+
+MRI *MRIShksmooth(MRIS *Surf, MRI *Src, double sigma, int nSmoothSteps, MRI *Targ)
+{
+  int nnbrs, nthstep, frame, vtx, nbrvtx, nthnbr;
+  double val, w;
+  MRI *SrcTmp, *hk;
+  
+  if(Surf->nvertices != Src->width){
+    printf("ERROR: MRIShksmooth: Surf/Src dimension mismatch\n");
+    return(NULL);
+  }
+  
+  if(Targ == NULL){
+    Targ = MRIallocSequence(Src->width, Src->height, Src->depth, 
+			    MRI_FLOAT, Src->nframes);
+    if(Targ==NULL){
+      printf("ERROR: MRIShksmooth: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(Src->width   != Targ->width  || 
+       Src->height  != Targ->height || 
+       Src->depth   != Targ->depth  ||
+       Src->nframes != Targ->nframes){
+      printf("ERROR: MRIShksmooth: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(Targ->type != MRI_FLOAT){
+      printf("ERROR: MRIShksmooth: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  hk = MRISheatkernel(SrcSurfReg, sigma);
+  MRIwrite(hk,"hk.mgh");
+  
+  SrcTmp = MRIcopy(Src,NULL);
+  for(nthstep = 0; nthstep < nSmoothSteps; nthstep ++){
+    //printf("Step = %d\n",nthstep); fflush(stdout);
+    
+    for(vtx = 0; vtx < Surf->nvertices; vtx++){
+      nnbrs = Surf->vertices[vtx].vnum;
+      
+      for(frame = 0; frame < Targ->nframes; frame ++){
+	w = MRIgetVoxVal(hk,vtx,0,0,nnbrs);
+	val = w*MRIFseq_vox(SrcTmp,vtx,0,0,frame);
+	
+	for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+	  nbrvtx = Surf->vertices[vtx].v[nthnbr];
+	  w = MRIgetVoxVal(hk,vtx,0,0,nthnbr);
+	  val += w*MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
+	}/* end loop over neighbor */
+	
+	MRIFseq_vox(Targ,vtx,0,0,frame) = val;
+      }/* end loop over frame */
+      
+    } /* end loop over vertex */
+    
+    MRIcopy(Targ,SrcTmp);
+  }/* end loop over smooth step */
+  
+  MRIfree(&SrcTmp);
+  
+  return(Targ);
+}
+
+
+int DumpSurface(MRIS *surf, char *outfile)
+{
+  FILE *fp;
+  int nnbrsmax, vtxno, nnbrs, nbrvtxno;
+  VERTEX *cvtx;
+
+  printf("Dumping surface to %s\n",outfile);
+
+  // Count the maximum number of neighbors
+  nnbrsmax = 0;
+  for(vtxno=0; vtxno < surf->nvertices; vtxno++){
+    nnbrs = surf->vertices[vtxno].vnum;
+    if(nnbrsmax < nnbrs) nnbrsmax = nnbrs;
+  }
+
+  fp = fopen(outfile,"w");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s for writing\n",outfile);
+    return(1);
+  }
+
+  for(vtxno=0; vtxno < surf->nvertices; vtxno++){
+    nnbrs = surf->vertices[vtxno].vnum;
+    cvtx = &(surf->vertices[vtxno]);
+    fprintf(fp,"%6d   %8.3f %8.3f %8.3f   %2d   ",
+	    vtxno+1,cvtx->x,cvtx->y,cvtx->z,nnbrs);
+    for(nthnbr = 0; nthnbr < nnbrsmax; nthnbr++){
+      if(nthnbr < nnbrs) nbrvtxno = cvtx->v[nthnbr];
+      else               nbrvtxno = -1;
+      fprintf(fp,"%6d ",nbrvtxno+1);
+    }
+    fprintf(fp,"\n");
+  }
+  fclose(fp);
+
+  printf("Done dumping surface\n");
+  return(0);
+}
