@@ -71,6 +71,10 @@ DataCollection::~DataCollection() {
       delete roi;
     }
   }
+
+  // Stop listening to whoever is still around.
+  if( mDataToWorldTransform )
+    mDataToWorldTransform->RemoveListener( this );
 }
 
 DataLocation&

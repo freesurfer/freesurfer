@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.161 2005/11/10 22:58:41 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.162 2005/11/11 00:34:57 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5366,8 +5366,16 @@ proc DoDeleteDataCollectionDlog {} {
 	    -type1 note \
 	    -okCmd { 
 		set err [catch {
-			DeleteDataCollection $gaCollection(current,id)
-		    DeleteLayer $gaLayer(current,id)
+		    set colID $gaCollection(current,id)
+		    foreach layerID $gaLayer(idList) {
+			if { [GetLayerMainDataCollection $layerID] ==
+			     $colID } {
+			    DeleteLayer $layerID
+			}
+		    }
+		    DeleteDataCollection $gaCollection(current,id)
+		    set gaCollection(current,id) -1
+		    set gaLayer(current,id) -1
 		    UpdateCollectionList
 		    UpdateLayerList
 		    UpdateROIList
@@ -5692,7 +5700,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.161 2005/11/10 22:58:41 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.162 2005/11/11 00:34:57 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

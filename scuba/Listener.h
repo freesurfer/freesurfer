@@ -14,6 +14,8 @@ class Listener {
 
   virtual void DoListenToMessage ( std::string iMessage, void* iData );
 
+  std::string GetLabel() { return msLabel; }
+
  protected:
   std::string msLabel;
 

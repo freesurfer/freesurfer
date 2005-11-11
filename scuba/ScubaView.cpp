@@ -239,6 +239,31 @@ ScubaView::~ScubaView() {
   delete msMoveViewOut;
   delete msZoomViewIn;
   delete msZoomViewOut;
+
+  // Stop listening.
+  ScubaGlobalPreferences& globalPrefs =
+    ScubaGlobalPreferences::GetPreferences();
+  globalPrefs.RemoveListener( this );
+
+  ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
+  broadcaster.RemoveListener( this );
+
+  PathManager& pathMgr = PathManager::GetManager();
+  pathMgr.RemoveListener( this );
+
+  if( mWorldToView ) 
+    mWorldToView->RemoveListener( this );
+
+  map<int,int>::iterator tLevelLayerID;
+  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+    int layerID = (*tLevelLayerID).second;
+    try {
+      Layer& layer = Layer::FindByID( layerID );
+      layer.RemoveListener( this );
+    }
+    catch(...) {}
+  }
 }
 
 void

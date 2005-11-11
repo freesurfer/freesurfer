@@ -68,6 +68,21 @@ ScubaFrame::ScubaFrame( ID iID ) :
 }
 
 ScubaFrame::~ScubaFrame() {
+
+  // Stop listening to our views.
+  for( int nRow = 0; nRow < mcRows; nRow++ ) {
+    int cCols = mcCols[nRow];
+    for( int nCol = 0; nCol < cCols; nCol++ ) {
+      
+      try {
+	View* view;
+	view = GetViewAtColRow( nCol, nRow );
+	if( view ) 
+	  view->RemoveListener( this );
+      }
+      catch(...){}
+    }
+  }
 }
 
 TclCommandListener::TclCommandResult
