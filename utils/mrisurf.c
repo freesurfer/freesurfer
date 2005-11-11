@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/11/03 17:40:45 $
-// Revision       : $Revision: 1.379 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/11/11 15:28:02 $
+// Revision       : $Revision: 1.380 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -12810,9 +12810,9 @@ mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
 	}
     
       nc = sx*v->nx+sy*v->ny+sz*v->nz;   /* projection onto normal */
-      sx -= l_spring*nc*v->nx ;                   /* remove  normal component */
-      sy -= l_spring*nc*v->ny ;
-      sz -= l_spring*nc*v->nz;
+      sx = l_spring*(sx - nc*v->nx);     /* remove  normal component and then scale */
+      sy = l_spring*(sy - nc*v->ny);
+      sz = l_spring*(sz - nc*v->nz);
 
       v->dx += sx ;
       v->dy += sy ;

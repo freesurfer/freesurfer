@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
   int ac, nargs;
   int width, height, depth, x, y, z;
   int cnrflag = 0;
+  int count;
 
   float v1, v2;
   double meanV1, stdV1, meanV2, stdV2;
@@ -47,7 +48,7 @@ int main(int argc, char *argv[])
   
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_stats.c,v 1.2 2005/07/07 16:22:11 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_stats.c,v 1.3 2005/11/11 15:28:04 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs ;
@@ -61,19 +62,52 @@ int main(int argc, char *argv[])
     argv += nargs ;
   }
   
-  if(argc != 4 && argc != 5)
+  if( argc != 2 && argc != 4 && argc != 5)
     usage(1);
   
   mri_src = MRIread(argv[1]) ;
   if (!mri_src)
     ErrorExit(ERROR_BADPARM, "%s: could not read source volume %s",
 	      Progname, argv[1]) ;
+
+  if(argc == 2){
+    count = 0;
+    for(z=0; z < mri_src->depth; z++)
+      for(y=0; y< mri_src->height; y++)
+	for(x=0; x < mri_src->width; x++){
+	  if(MRIgetVoxVal(mri_src,x, y, z, 0) > 1e-30)
+	    count++;
+	}
+    printf("# foreground voxels = %d\n", count);
+    MRIfree(&mri_src);
+    exit(0);
+  }
+
   mri_label = MRIread(argv[2]) ;
   if (!mri_label)
     ErrorExit(ERROR_BADPARM, "%s: could not read label volume %s",
 	      Progname, argv[2]) ;
+  
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
 
+  mri_mask = MRIclone(mri_label, NULL);
 
+#if 0
+  printf("This program is borrowed to create things");
+  for(z=0; z < depth; z++)
+    for(y=0; y< height; y++)
+      for(x=0; x < width; x++)
+	{
+	  if(MRIvox(mri_label, x, y, z) == 17 || MRIvox(mri_label, x, y, z) == 53)
+	     MRIvox(mri_mask, x, y,z) = 255;
+	  else
+	     MRIvox(mri_mask, x, y,z) = 0;
+	}
+  
+  MRIwrite(mri_mask, "hippo.mgz");
+#endif 
 
   if ((mri_src->width != mri_label->width) ||
       (mri_src->height != mri_label->height) ||
@@ -242,6 +276,7 @@ void usage(int exit_val)
   fprintf(fout, "usage: %s <in vol> <label vol> label [label2] \n", Progname);
   fprintf(fout, "this program computes the mean and std of a labeled region. \n") ;
   fprintf(fout, "If label2 is also specified, the program computes the CNR between the two labelled regions. \n") ;
+  fprintf(fout, "If only <in vol> is given, it will output the volume of all foreground voxels in it. \n") ;
 
   exit(exit_val);
 

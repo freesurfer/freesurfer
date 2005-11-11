@@ -12,8 +12,8 @@
 // C. Archambeau et al Flexible and Robust Bayesian Classification by Finite Mixture Models, ESANN'2004
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/04/19 22:37:01 $
-// Revision       : $Revision: 1.5 $
+// Revision Date  : $Date: 2005/11/11 15:28:05 $
+// Revision       : $Revision: 1.6 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -40,7 +40,7 @@
 #include "mrinorm.h"
 
 #define SWAP(a,b) itemp=(a);(a)=(b);(b)=itemp;
-
+#define oneDonly 0
 
 /* maximum number of classes */
 #define MAX_CLASSES 20
@@ -185,7 +185,7 @@ main(int argc, char *argv[])
   int indexmap[MAX_CLASSES + 1];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.5 2005/04/19 22:37:01 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.6 2005/11/11 15:28:05 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -220,6 +220,7 @@ main(int argc, char *argv[])
   out_prefx = argv[argc-1] ;
 
   printf("command line parsing finished\n");
+  printf("weight for MRF is %g\n", mybeta);
 
   //////////////////////////////////////////////////////////////////////////////////
   /*** Read in the input multi-echo volumes ***/
@@ -424,12 +425,23 @@ main(int argc, char *argv[])
   
   for(i=0; i < num_classes; i++){
     centroids1D[i] = min_val + (i+1.0)*(max_val - min_val)/(1.0 + num_classes);
+    
   }
 
+  if(oneDonly && num_classes == 3){
+    centroids1D[0] = 30;
+    centroids1D[1] = 500;
+    centroids1D[2] = 600;
+  }
   printf("Perform 1D EM on the first volume\n");
   MRI_FCM(mri_flash[0], mri_mem, mri_mask, centroids1D, num_classes);
   //  MRI_EM(mri_flash[0], mri_mem, mri_mask, centroids1D, num_classes);
   printf("1D EM finished.\n");
+
+  if(oneDonly){
+    printf("Stop segmentation after 1D FCM on channel 1\n");
+    goto oneDres;
+  }
 
   /* Use the membership function obtained above to get initial centroids
    * for the multi-dimensional clustering 
@@ -560,7 +572,10 @@ main(int argc, char *argv[])
 	    /* Use current membership */
 	    /* Gives better convergence rate */
 	    /* Maybe a Gauss-seidel iteration is even better */
-	    nbhdP = NbhdLikelihood(mri_mem, mri_mask, x, y, z, c, num_classes);
+	    if(mybeta < 1e-30)
+	      nbhdP = 1.0;
+	    else
+	      nbhdP = NbhdLikelihood(mri_mem, mri_mask, x, y, z, c, num_classes);
 
 	    if(debug_flag && x == Gx && y == Gy && z == Gz){
 	      printf("c= %d, nbhdP =%g \n", c, nbhdP);
@@ -640,6 +655,8 @@ main(int argc, char *argv[])
 
   /* Update centroids using first image and use it in corting */
   update_centroids1D(mri_flash[0], mri_mem, mri_mask, centroids1D, num_classes);
+
+ oneDres:
   
   for(i=0; i < num_classes; i++){
     NRarray[i+1] = centroids1D[i]; 
@@ -1186,10 +1203,13 @@ usage_exit(int code)
   printf("\t -E # to set the convergence tolerance \n");
   printf("\t -R # to set the max number of iterations \n");
   printf("\t -T # to set the threshold for background \n");
+  printf("\t -beta # to set the weight for MRF smoothing \n");
   printf("\t -norm to normalize input volumes before clustering \n");
   printf("\t -conform to conform input volumes (brain mask typically already conformed) \n");
   printf("\t -noconform to prevent conforming to COR \n");
   printf("\t -synthonly to prevent output membership functions \n");
+  printf("Example: mri_ms_EM -mask brain.mgz -M 4 -E 0.015 -beta 0 \n");
+  printf("\t -hard_seg -noconform -synthonly flash30avg.mgz test\n");
   exit(code) ;
   
 }
