@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-set echo=1
+#set echo=1
 
 # The MNI tools, when originally compiled and installed, hard-code
 # the perl path into several files.  This is problematic if the 
