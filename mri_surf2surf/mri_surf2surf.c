@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.23 2005/11/11 17:33:19 greve Exp $
+  $Id: mri_surf2surf.c,v 1.24 2005/11/12 00:34:11 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -16,6 +16,7 @@
 #include "mri.h"
 #include "icosahedron.h"
 #include "fio.h"
+#include "pdf.h"
 
 #include "MRIio_old.h"
 #include "error.h"
@@ -69,7 +70,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.23 2005/11/11 17:33:19 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.24 2005/11/12 00:34:11 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = NULL;
@@ -129,6 +130,9 @@ int cavtx = 0; /* command-line vertex -- for debugging */
 
 MRI *sphdist;
 
+int SynthPDF = 0;
+int SynthSeed = -1;
+
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
@@ -144,7 +148,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.23 2005/11/11 17:33:19 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.24 2005/11/12 00:34:11 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -272,6 +276,13 @@ int main(int argc, char **argv)
   if(SrcVals == NULL){
     fprintf(stderr,"ERROR loading source values from %s\n",srcvalfile);
     exit(1);
+  }
+  if(SynthPDF != 0){
+    if(SynthSeed < 0) SynthSeed = PDFtodSeed();
+    printf("INFO: synthesizing, pdf = %d, seed = %d\n",SynthPDF,SynthSeed);
+    srand48(SynthSeed);
+    MRIrandn(SrcVals->width, SrcVals->height, SrcVals->depth,
+	     SrcVals->nframes,0, 1, SrcVals);
   }
 
   if(SrcDumpFile != NULL){
@@ -499,8 +510,13 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--reshape"))   reshape = 1;
     else if (!strcasecmp(option, "--usediff"))   usediff = 1;
     else if (!strcasecmp(option, "--nousediff")) usediff = 0;
+    else if (!strcasecmp(option, "--synth"))     SynthPDF = 1;
 
-    /* -------- source value inputs ------ */
+    else if (!strcmp(option, "--seed")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&SynthSeed);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--s")){
       if(nargc < 1) argnerr(option,1);
       srcsubject = pargv[0];
@@ -693,6 +709,8 @@ static void print_usage(void)
   fprintf(stdout, "   --nsmooth-in N  : smooth the input\n");  
   fprintf(stdout, "   --nsmooth-out N : smooth the output\n");  
   fprintf(stdout, "   --noreshape  do not reshape output to multiple 'slices'\n");  
+  fprintf(stdout, "   --synth : replace input with WGN\n");  
+  fprintf(stdout, "   --seed seed : seed for synth (default is auto)\n");  
 
   fprintf(stdout, "\n");
   printf("%s\n", vcid) ;
