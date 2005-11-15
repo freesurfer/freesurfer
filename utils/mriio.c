@@ -197,12 +197,14 @@ int setDirectionCosine(MRI *mri, int orientation)
   return (NO_ERROR);
 }
 
-#define isOne(a)  FZERO(fabs(a)-1)
+#define isOne(a)  (fabs(fabs(a)-1)<0.00001)
 
 // here I take the narrow view of slice_direction
 int getSliceDirection(MRI *mri)
 {
   int direction = MRI_UNDEFINED;
+	float f ;
+	
   if (isOne(mri->x_r) && isOne(mri->y_s) && isOne(mri->z_a))
     direction = MRI_CORONAL;
   else if (isOne(mri->x_a) && isOne(mri->y_s) && isOne(mri->z_r))
