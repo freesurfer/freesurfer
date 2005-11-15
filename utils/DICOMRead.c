@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.80 2005/10/13 18:24:54 nicks Exp $
+   $Id: DICOMRead.c,v 1.81 2005/11/15 19:41:29 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1301,10 +1301,17 @@ int sdcmIsMosaic(char *dcmfile,
     if(pNrows != NULL) *pNrows = NrowsExp;
     if(pNcols != NULL) *pNcols = NcolsExp;
     if(pNslices != NULL){
-      tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.lSize", 0);
-      if(tmpstr == NULL) return(0);
-      sscanf(tmpstr,"%d",pNslices);
-      free(tmpstr);
+      tmpstr = getenv("NSLICES_OVERRIDE_BCHWAUNIE");
+      if(tmpstr == NULL){
+	tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.lSize", 0);
+	if(tmpstr == NULL) return(0);
+	sscanf(tmpstr,"%d",pNslices);
+	free(tmpstr);
+      }
+      else{
+	sscanf(tmpstr,"%d",pNslices);
+	printf("Overriding number of slices with %d\n",*pNslices);
+      }
     }
     if(pNframes != NULL){
       tmpstr = SiemensAsciiTagEx(dcmfile, "lRepetitions", 0);
