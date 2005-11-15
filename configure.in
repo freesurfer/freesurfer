@@ -1284,7 +1284,8 @@ distribution/fsafd/Makefile \
 distribution/subjects/Makefile \
 distribution/sessions/Makefile \
 qdec/Makefile \
-qdec/images/Makefile
+qdec/images/Makefile \
+mri_segment_wm_damage/Makefile 
 )
 
 AC_MSG_RESULT(
