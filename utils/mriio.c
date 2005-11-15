@@ -203,7 +203,6 @@ int setDirectionCosine(MRI *mri, int orientation)
 int getSliceDirection(MRI *mri)
 {
   int direction = MRI_UNDEFINED;
-	float f ;
 	
   if (isOne(mri->x_r) && isOne(mri->y_s) && isOne(mri->z_a))
     direction = MRI_CORONAL;
