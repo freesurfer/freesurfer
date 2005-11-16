@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.88 2005/11/10 22:12:58 kteich Exp $
+# $Id: tksurfer.tcl,v 1.89 2005/11/16 17:23:26 kteich Exp $
 
 package require BLT;
 
@@ -1252,6 +1252,9 @@ proc UpdateOverlayDlogInfo {} {
 	}
     }
 
+    # Set the max from the slope and mid.
+    SetMax $gaHistoWidget(graph) \
+	[expr (1.0 / $gaLinkedVars(fslope)) + $gaLinkedVars(fmid)] 0
 
     # set the histogram data
     set err [catch {
