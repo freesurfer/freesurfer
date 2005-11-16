@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.75 2005/11/10 05:23:05 greve Exp $
+// $Id: matrix.c,v 1.76 2005/11/16 18:59:49 greve Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -3292,3 +3292,22 @@ MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
 }
 
 
+/*-----------------------------------------------------------------
+  MatrixReorderRows() - reorders the rows of a matrix to be that
+  indicated by NewRowOrder. The first row of the output matrix
+  will be the row of the input matrix indicated by NewRowOrder[0].
+  Eg, if NewRowOrder[0]=3, then the 1st row of XRO will be the
+  3rd row of X. The rows in NewRowOrder are 1-based. See also
+  RandPermList() in evschutils.c.
+  -----------------------------------------------------------------*/
+MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO)
+{
+  int r, c;
+  if(XRO == NULL) XRO = MatrixAlloc(X->rows,X->cols,MATRIX_REAL);
+  for(r=1; r <= X->rows; r++){
+    for(c=1; c <= X->cols; c++){
+      XRO->rptr[r][c] = X->rptr[NewRowOrder[r-1]][c];
+    }
+  }
+  return(XRO);
+}
