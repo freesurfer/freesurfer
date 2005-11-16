@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.163 2005/11/16 20:20:37 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.164 2005/11/16 21:29:46 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2645,6 +2645,18 @@ proc UpdateCollectionList {} {
     FillMenuFromList $gaWidget(collectionProperties,menu) \
 	$gaCollection(idList) "GetCollectionLabel %s" {} false
 
+    # Build source and dest menus in transforms.
+    FillMenuFromList $gaWidget(transformProperties,regSourceMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} false
+    FillMenuFromList $gaWidget(transformProperties,regDestMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} false
+
+    FillMenuFromList $gaWidget(collectionProperties,surfaceTransformMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} false
+
+    FillMenuFromList $gaWidget(toolProperties,floodSourceCollectionMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} true
+
     # Reselect the current collection. If it doesn't exist any more,
     # set to the first in the list and try that. If there's no list,
     # clear the properties.
@@ -2659,18 +2671,6 @@ proc UpdateCollectionList {} {
 	}
 	SelectCollectionInCollectionProperties $gaCollection(current,id)
     }
-
-    # Build source and dest menus in transforms.
-    FillMenuFromList $gaWidget(transformProperties,regSourceMenu) \
-	$gaCollection(idList) "GetCollectionLabel %s" {} false
-    FillMenuFromList $gaWidget(transformProperties,regDestMenu) \
-	$gaCollection(idList) "GetCollectionLabel %s" {} false
-
-    FillMenuFromList $gaWidget(collectionProperties,surfaceTransformMenu) \
-	$gaCollection(idList) "GetCollectionLabel %s" {} false
-
-    FillMenuFromList $gaWidget(toolProperties,floodSourceCollectionMenu) \
-	$gaCollection(idList) "GetCollectionLabel %s" {} true
 
     UpdateROIList
 }
@@ -4881,8 +4881,10 @@ proc AdjustReportInfoForAuto {} {
 		
 		set layerID [GetLayerInViewAtLevel $viewID $nLevel]
 		if { $layerID >= 0 } {
-		    set bReportInfo \
-		      [string match [Get2DMRILayerColorMapMethod $layerID] lut]
+		    set bReportInfo false
+		    catch { set bReportInfo 
+		     [string match [Get2DMRILayerColorMapMethod $layerID] lut]
+		    }
 		    SetLevelReportInfoInView $viewID $layerID $bReportInfo
 		    
 		    if { $viewID == $gaView(current,id) } {
@@ -4904,13 +4906,15 @@ proc AdjustLayerSettingsForColorMap {} {
 
     foreach layerID $gaLayer(idList) {
 
-	if { [string match [Get2DMRILayerColorMapMethod $layerID] lut] } {
-
-	    Set2DMRILayerDrawZeroClear $layerID 1
-
-	    if { $layerID == $gaLayer(current,id) } {
-		set gaLayer(current,clearZero) \
-		    [Get2DMRILayerDrawZeroClear $gaLayer(current,id)]
+	catch {
+	    if { [string match [Get2DMRILayerColorMapMethod $layerID] lut] } {
+		
+		Set2DMRILayerDrawZeroClear $layerID 1
+		
+		if { $layerID == $gaLayer(current,id) } {
+		    set gaLayer(current,clearZero) \
+			[Get2DMRILayerDrawZeroClear $gaLayer(current,id)]
+		}
 	    }
 	}
     
@@ -5712,7 +5716,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.163 2005/11/16 20:20:37 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.164 2005/11/16 21:29:46 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
