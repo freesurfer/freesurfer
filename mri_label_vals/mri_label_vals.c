@@ -41,7 +41,7 @@ main(int argc, char *argv[])
 	Real   xw, yw, zw, xv, yv, zv, val;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.10 2005/01/05 17:28:29 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.11 2005/11/16 17:02:09 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -101,9 +101,9 @@ main(int argc, char *argv[])
 
 		for (x = 0  ; x  < mri_seg->width ; x++)
 		{
-			for (y = 0  ; y  < mri_seg->width ; y++)
+			for (y = 0  ; y  < mri_seg->height ; y++)
 			{
-				for (z = 0  ; z  < mri_seg->width ; z++)
+				for (z = 0  ; z  < mri_seg->depth ; z++)
 				{
 					if (MRIvox(mri_seg, x, y,  z) == segmentation_flag)
 					{
