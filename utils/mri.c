@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/11/07 19:11:06 $
-// Revision       : $Revision: 1.319 $
-char *MRI_C_VERSION = "$Revision: 1.319 $";
+// Revision Date  : $Date: 2005/11/16 19:35:13 $
+// Revision       : $Revision: 1.320 $
+char *MRI_C_VERSION = "$Revision: 1.320 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2458,19 +2458,20 @@ int MRIsurfaceRASToVoxel(MRI *mri, Real xr, Real yr, Real zr,
 			 Real *xv, Real *yv, Real *zv)
 {
   MATRIX *voxelFromSRAS;
-  VECTOR *sr, *vv;
+  static VECTOR *sr = NULL, *vv = NULL;
 
   voxelFromSRAS=voxelFromSurfaceRAS_(mri);
-  sr = VectorAlloc(4, MATRIX_REAL);
+	if (sr == NULL)
+		sr = VectorAlloc(4, MATRIX_REAL);
   V4_LOAD(sr, xr, yr, zr, 1.);
-  vv = MatrixMultiply(voxelFromSRAS, sr, NULL);
+  vv = MatrixMultiply(voxelFromSRAS, sr, vv);
   *xv = V3_X(vv);
   *yv = V3_Y(vv);
   *zv = V3_Z(vv);
 
   MatrixFree(&voxelFromSRAS);
-  VectorFree(&sr);
-  VectorFree(&vv);
+	//  VectorFree(&sr);
+	//  VectorFree(&vv);
 
   return (NO_ERROR);
 }
@@ -12585,3 +12586,24 @@ MRIsetValuesOutsideRegion(MRI *mri_src, MRI_REGION *region, MRI *mri_dst, float 
 	return(mri_dst) ;
 }
 
+int
+MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
+{
+  int xi, yi, zi, xk, yk, zk, count ;
+  
+  for (count = 0, zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        if (MRIvox(mri, xi, yi, zi) == label)
+	  count++;
+      }
+    }
+  }
+  return(count) ;
+}

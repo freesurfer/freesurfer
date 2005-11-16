@@ -659,6 +659,7 @@ int   MRIneighborsOn(MRI *mri, int x0, int y0, int z0, int min_val) ;
 int   MRIneighborsOff(MRI *mri, int x0, int y0, int z0, int min_val) ;
 int   MRIneighborsOn3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
 int   MRIneighborsOff3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
+int   MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label) ;
 
 int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, 
 	       int InterpCode, float param);
