@@ -144,7 +144,8 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
 }
 
 ScubaLayer2DMRI::~ScubaLayer2DMRI () {
-
+  if( NULL != mVolume )
+    mVolume->RemoveListener( this );
 }
 
 void

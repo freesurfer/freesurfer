@@ -3328,6 +3328,7 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
   mInfoAtRASMap[isLabel].push_back( info );
   info.Clear();
 
+#if 0
   int window[2];
   TranslateRASToWindow( iRAS, window );
   stringstream ssWindowCoords;
@@ -3336,6 +3337,7 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
   info.SetValue( ssWindowCoords.str() );
   mInfoAtRASMap[isLabel].push_back( info );
   info.Clear();
+#endif
 
   // Go through our draw levels. For each one, get the Layer.
   map<int,int>::iterator tLevelLayerID;

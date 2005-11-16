@@ -14,7 +14,7 @@ Listener::~Listener () {
 void
 Listener::ListenToMessage ( string iMessage, void* iData ) {
 
-  cerr << "Listener " << msLabel << " got message " << iMessage << endl;
+  //  cerr << "Listener " << msLabel << " got message " << iMessage << endl;
   
   this->DoListenToMessage( iMessage, iData );
 }
