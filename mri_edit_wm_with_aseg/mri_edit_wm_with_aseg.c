@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/11/08 19:13:01 $
-// Revision       : $Revision: 1.12 $
+// Revision Date  : $Date: 2005/11/17 15:15:11 $
+// Revision       : $Revision: 1.13 $
 //
 
 #include <stdio.h>
@@ -33,11 +33,11 @@ DiagBreak2(){}
 
 #if 0
 static int MRInonzeroInNbhd(MRI *mri, int x, int y, int z, int whalf) ;
+static int MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label) ;
 #endif // not used
 static int MRInonfilledInNbhd(MRI *mri, int x, int y, int z, int whalf) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
-static int MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label) ;
 static int neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label);
 static int edit_segmentation(MRI *mri_im, MRI *mri_T1, MRI *mri_seg) ;
 static int distance_to_label(MRI *mri_labeled, int label, int x,  
@@ -68,10 +68,10 @@ main(int argc, char *argv[])
 	int    msec, nargs ;
 	char cmdline[CMD_LINE_LEN], *output_file_name ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.12 2005/11/08 19:13:01 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.13 2005/11/17 15:15:11 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.12 2005/11/08 19:13:01 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.13 2005/11/17 15:15:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
@@ -1422,6 +1422,7 @@ neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label)
   return(0) ;
 }
 
+#if 0
 static int
 MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
 {
@@ -1443,7 +1444,6 @@ MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
   }
   return(count) ;
 }
-#if 0
 static int
 MRInonzeroInNbhd(MRI *mri, int x, int y, int z, int whalf)
 {
