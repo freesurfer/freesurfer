@@ -43,7 +43,7 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segstats.c,v 1.8 2005/09/23 17:52:27 greve Exp $";
+static char vcid[] = "$Id: mri_segstats.c,v 1.9 2005/11/17 18:03:43 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -79,6 +79,7 @@ double brainsegvolume = 0;
 int   nbrainmaskvoxels = 0;
 double brainmaskvolume = 0;
 int   BrainVolFromSeg = 0;
+int   DoETIV = 0; 
 
 char *ctabfile = NULL;
 COLOR_TABLE *ctab = NULL;
@@ -96,6 +97,9 @@ int main(int argc, char **argv)
   double  **favg;
   struct utsname uts;
   char *cmdline;
+  char tmpstr[1000];
+  LTA    *atlas_lta ;
+  double atlas_det=0, atlas_icv=0 ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -123,6 +127,17 @@ int main(int argc, char **argv)
       fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
       exit(1);
     }
+  }
+
+  if(DoETIV){
+    sprintf(tmpstr,"%s/%s/mri/transforms/talairach_with_skull.lta",SUBJECTS_DIR,subject);
+    atlas_lta = LTAreadEx(tmpstr);
+    if (atlas_lta == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not open atlas transform file %s", Progname, tmpstr) ;
+    atlas_det = MatrixDeterminant(atlas_lta->xforms[0].m_L) ;
+    LTAfree(&atlas_lta) ;
+    atlas_icv = 2889.2*(10*10*10) / atlas_det ;  // our version with talairach_with_skull.lta
+    printf("atlas_icv = %g\n",atlas_icv);
   }
 
   /* Make sure we can open the output summary table file*/
@@ -303,10 +318,11 @@ int main(int argc, char **argv)
 	StatSumTable[n].id = UserSegIdList[n];
     }
   }
-  printf("Found %3d segmentations\n",nsegid);
 
+  printf("Found %3d segmentations\n",nsegid);
   printf("Computing statistics for each segmentation\n");
-  for(n=0; n < nsegid; n++){
+  fflush(stdout);
+  for(n=0; n < nsegid && 0; n++){
     if(DoExclSegId && StatSumTable[n].id == ExclSegId) continue; 
 
     printf("%3d   %3d  %s ",n,StatSumTable[n].id,StatSumTable[n].name);
@@ -423,6 +439,9 @@ int main(int argc, char **argv)
       fprintf(fp,"# Measure BrainSeg, BrainSegVol, Brain Segmentation Volume, %f, mm^3\n",
 	      brainsegvolume);
     }
+    if(DoETIV){
+      fprintf(fp,"# Measure IntraCranialVol, ICV, Intracranial Volume, %f, mm^3\n",atlas_icv);
+    }   
     fprintf(fp,"# SegVolFile %s \n",SegVolFile);
     fprintf(fp,"# SegVolFileTimeStamp  %s \n",VERfileTimeStamp(SegVolFile));
     if(ctabfile) {
@@ -596,6 +615,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--dontrun"))   dontrun = 1;
     else if (!strcasecmp(option, "--nonempty")) NonEmptyOnly = 1;
     else if ( !strcmp(option, "--brain-vol-from-seg") ) BrainVolFromSeg = 1;
+    else if ( !strcmp(option, "--etiv") ) DoETIV = 1;
+
     else if ( !strcmp(option, "--ctab-default") ) {
       FREESURFER_HOME = getenv("FREESURFER_HOME");
       ctabfile = (char *) calloc(sizeof(char),1000);
@@ -758,6 +779,7 @@ static void print_usage(void)
   printf("Brain volume options\n");
   printf("   --brain-vol-from-seg : get brain volume from brain segmentations\n");
   printf("   --brainmask brainmask: compute volume from non-zero vox in brain mask\n");
+  printf("   --etiv : compute intracranial volume from subject/mri/transfomrs/talairach_with_skull.lta\n");
   printf("\n");
   printf("Average waveform options\n");
   printf("   --avgwf textfile  : save into an ascii file\n");
@@ -1037,6 +1059,10 @@ static void check_options(void)
   }
   if(DoFrameAvg && InVolFile == NULL){
     printf("ERROR: cannot do frame average without input volume\n");
+    exit(1);
+  }
+  if(DoETIV && subject == NULL){
+    printf("ERROR: need subject with --etiv\n");
     exit(1);
   }
   return;
