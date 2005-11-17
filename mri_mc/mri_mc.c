@@ -906,6 +906,9 @@ int main(int argc, char *argv[])
 	freeTesselationParms(&parms);
 	MRIfree(&mri);
 
+	fprintf(stderr,"checking orientation of surface...");
+	MRISmarkOrientationChanges(mris);
+
 	fprintf(stderr,"writting out surface...");
 	MRISwrite(mris,argv[3]);
 	fprintf(stderr,"done\n");

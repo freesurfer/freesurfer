@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/11/11 15:28:02 $
-// Revision       : $Revision: 1.380 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2005/11/17 15:25:10 $
+// Revision       : $Revision: 1.381 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -42150,7 +42150,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris
 #endif
 #endif
 
-      static int computeOrientation(MRIS *mris,int f,int v0, int v1){
+static int computeOrientation(MRIS *mris,int f,int v0, int v1){
 	FACE *face;
 	
 	face=&mris->faces[f];
@@ -42164,30 +42164,57 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris
 	};
 	if(face->v[0]==v1) return 1;
 	else return -1;
-      }
-
-      /* This function finds the orientation changes in the triangles 
+}
+ 
+/* This function finds the orientation changes in the triangles 
 	 constituting the tessellation. Writes the orientation changes in
-	 val. Note that this function can easily be modified to check the 
+	 curv. Note that this function can easily be modified to check the 
 	 orientation changes for any tessellations (not only triangulations) */
-      int MRISmarkOrientationChanges(MRI_SURFACE *mris){
-
-	VERTEX *v;
-	int face1,face2,vn0,p,vn1,vn2,d1,d2,count;
+ int MRISmarkOrientationChanges(MRI_SURFACE *mris){
+	 
+	VERTEX *v,*vp1,*vp2;
+	int face1,face2,vn0,p,vn1,vn2,d1,d2,count,found;
 #if 0
 	int k,vn3,vn4,vn5,vn6,v1,v2,same_orientation;
 #endif
 	/* to avoid compiler warnings */
 	face1=face2=0; d1=d2=0;
-
-	/* erase curvature for diag purposes */
+	
+	/* erase curvature for counting purposes */
 	MRISclearCurvature(mris);
 
-
-
+	fprintf(WHICH_OUTPUT,"\ncounting number of connected components...");
+	for(count=0,vn0=0; vn0 < mris->nvertices ;vn0++) {
+		v=&mris->vertices[vn0];
+		if(v->curv) continue;
+		v->curv=++count;
+		found=1;
+		while(found){
+			found=0;
+			for(vn1=0; vn1 < mris->nvertices ;vn1++) {
+				vp1=&mris->vertices[vn1];
+				if(vp1->curv) continue;
+				/* check neighbors */
+				for (p=0 ; p < vp1->vnum ; p++){
+					vn2=vp1->v[p];
+					vp2=&mris->vertices[vn2];
+					if(vp2->curv==count){
+						vp1->curv=count;
+						found=1;
+						break;
+					}
+				}
+			}
+		}
+	}
+	fprintf(WHICH_OUTPUT,"\n%d component(s) have been found",count);
+	
+	/* erase curvature for diag purposes */
+	MRISclearCurvature(mris);
+	
 #if 1
 	for(count=0,vn0=0; vn0 < mris->nvertices ;vn0++) {
-
+		
 	  int nfaces,n;
 	  v=&mris->vertices[vn0];
 	  if(v->ripflag) continue;
@@ -42334,9 +42361,11 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris
 	}
 	fprintf(WHICH_OUTPUT,"\n%2.3f %% of the vertices (%d vertices) exhibit an orientation change\n",100.*count/mris->nvertices,count);
 #endif
+	
+	
 
 	return count;
-      }
+ }
 
 
       /*-----------------------------------------------------
