@@ -1,6 +1,7 @@
 #include <list>
 #include "ScubaLayer2DMRIS.h"
 #include "VectorOps.h"
+#include "Utilities.h"
 
 using namespace std;
 
@@ -513,4 +514,59 @@ ScubaLayer2DMRIS::ClearCache () {
   // Just set one bogus value so it won't compare as the same next
   // time through.
   mCachedViewState.SetZoomLevel( -1 );
+}
+
+void
+ScubaLayer2DMRIS::ProcessOption ( string isOption, string isValue ) {
+
+  char sValue[1024];
+  strcpy( sValue, isValue.c_str() );
+
+  if( 0 == isOption.compare( "linecolor" ) || 
+      0 == isOption.compare( "vertexcolor" ) ) {
+    // Value will be "r,g,b" so we need to separate out the three
+    // values.
+    vector<string> lResults;
+    Utilities::SplitString( isValue, ",", lResults );
+    if( 3 != lResults.size() ) {
+      throw runtime_error( "Couldn't parse three values from value string" );
+    }
+
+    // Covert each to a number 0-255.
+    int color[3];
+    color[0] = strtol( lResults[0].c_str(), (char**)NULL, 10 );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Couldn't convert first value" );
+    }
+    if( color[0] < 0 || color[0] > 255 ) {
+      throw runtime_error( "First value is out of range" );
+    }
+    
+    color[1] = strtol( lResults[1].c_str(), (char**)NULL, 10 );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Couldn't convert second value" );
+    }
+    if( color[1] < 0 || color[1] > 255 ) {
+      throw runtime_error( "Second value is out of range" );
+    }
+    
+    color[2] = strtol( lResults[2].c_str(), (char**)NULL, 10 );
+    if( ERANGE == errno ) {
+      throw runtime_error( "Couldn't convert third value" );
+    }
+    if( color[2] < 0 || color[2] > 255 ) {
+      throw runtime_error( "Third value is out of range" );
+    }
+
+    // Set the color.
+    if( 0 == isOption.compare( "linecolor" ) ) {
+      SetLineColor3d( color );
+    } else if( 0 == isOption.compare( "vertexcolor" ) ) {
+      SetVertexColor3d( color );
+    }
+
+  } else {
+    
+    return Layer::ProcessOption( isOption, isValue );
+  }
 }

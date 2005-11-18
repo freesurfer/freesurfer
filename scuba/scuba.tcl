@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.165 2005/11/18 20:26:54 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.166 2005/11/18 22:37:45 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5728,7 +5728,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.165 2005/11/18 20:26:54 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.166 2005/11/18 22:37:45 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -7131,9 +7131,33 @@ while { $nArg < $argc } {
 	    }
 	}
 	f - surface {
-	    incr nArg
-	    set fnSurface [lindex $argv $nArg]
-	    lappend lCommands "LoadSurface $fnSurface 1 [GetMainFrameID]"
+
+	    while { [expr ($nArg + 1) < $argc] &&
+		    [string range [lindex $argv [expr $nArg+1]] 0 0] != "-" } {
+		incr nArg
+
+		set sCurArg [lindex $argv $nArg]
+		set fnSurface [lindex $argv $nArg]
+		set sLayerArgs ""
+		if { [string first : $fnSurface] != -1 } {
+		    set fnSurface \
+			[string range $sCurArg 0 \
+			 [expr [string first : $sCurArg]-1]]
+		    set sLayerArgs \
+			[string range $sCurArg \
+			 [expr [string first : $sCurArg]+1] end]
+		}
+		lappend lCommands \
+		    "set layerID \[LoadSurface $fnSurface 1 \[GetMainFrameID\]\]"
+		
+		if { $sLayerArgs != "" } {
+		    lappend lCommands \
+			"set err \[catch {
+                          ProcessLayerOptionList \$layerID $sLayerArgs
+                         } sResult\]
+                         if { 0 != \$err } { tkuErrorDlog \$sResult }"
+		}
+	    }
 	}
 	s - subject {
 	    incr nArg

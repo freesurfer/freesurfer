@@ -64,6 +64,8 @@ class ScubaLayer2DMRIS : public Layer {
     oaVertexColor[2] = maVertexColor[2];
   }
 
+  // To process command line options.
+  void ProcessOption ( std::string isOption, std::string isValue );
 
  protected:
   SurfaceCollection* mSurface;
