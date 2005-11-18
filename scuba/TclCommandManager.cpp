@@ -395,10 +395,12 @@ TclCommandManager::SendCommand ( string isCommand ) {
     char* sCommand = strdup( isCommand.c_str() );
     int rTcl = Tcl_Eval( mInterp, sCommand );
     const char* sTclResult = Tcl_GetStringResult( mInterp );
-    if( TCL_OK != rTcl ) {
-      DebugOutput( << "Error on cmd: \"" << sCommand << "\", " << sTclResult );
-    }
+    stringstream ssError;
+    ssError << "Error on cmd: \"" << sCommand << "\", " << sTclResult;
     free( sCommand );
+    if( TCL_OK != rTcl ) {
+      throw runtime_error( ssError.str() );
+    }
     return string(sTclResult);
   } else {
     return "";

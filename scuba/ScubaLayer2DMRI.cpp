@@ -727,7 +727,7 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
     ssIndex << index[0] << " " << index[1] << " " << index[2];
 
     stringstream ssCallback;
-    ssCallback << "SetCursorFromVolumeIndexCoords " << GetID();
+    ssCallback << "SetCursorFromVolumeIndexCoords " << mVolume->GetID();
 
     info.SetLabel( mVolume->GetLabel() + ",index" );
     info.SetInputFilter( "3ui" );
@@ -745,7 +745,7 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
     info.Clear(); 
 
     stringstream ssCallback;
-    ssCallback << "SetCursorFromVolumeIndexCoords " << GetID();
+    ssCallback << "SetCursorFromVolumeIndexCoords " << mVolume->GetID();
 
     info.SetLabel( mVolume->GetLabel() + ",index" );
     info.SetValue( "OOB" );

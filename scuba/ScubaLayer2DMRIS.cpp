@@ -207,8 +207,13 @@ ScubaLayer2DMRIS::GetInfoAtRAS ( float iRAS[3],
       stringstream ssVertex;
       ssVertex << nVertex;
 
+      stringstream ssCallback;
+      ssCallback << "SetCursorFromSurfaceVertexIndex " << mSurface->GetID();
+
       info.SetLabel( mSurface->GetLabel() + ",vertex" );
       info.SetValue( ssVertex.str() );
+      info.SetInputFilter( "ui" );
+      info.SetTclCallback( ssCallback.str() );
       ioInfo.push_back( info );
       info.Clear();
 
@@ -221,8 +226,13 @@ ScubaLayer2DMRIS::GetInfoAtRAS ( float iRAS[3],
       info.Clear();
     }
     catch(...) {
+      stringstream ssCallback;
+      ssCallback << "SetCursorFromSurfaceVertexIndex " << mSurface->GetID();
+
       info.SetLabel( mSurface->GetLabel() + ",vertex" );
       info.SetValue( "None" );
+      info.SetInputFilter( "ui" );
+      info.SetTclCallback( ssCallback.str() );
       ioInfo.push_back( info );
       info.Clear();
 

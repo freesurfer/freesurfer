@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.164 2005/11/16 21:29:46 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.165 2005/11/18 20:26:54 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1152,7 +1152,10 @@ proc GotoCoordsInputCallback {} {
 		return;
 	    }
 
-	    SetCursorFromVolumeIndexCoords $gaTool(current,targetLayer) \
+	    # Get the volume id from the target layer.
+	    set volID [GetLayerMainDataCollection $gaTool(current,targetLayer)]
+
+	    SetCursorFromVolumeIndexCoords $volID \
 		[lindex $sFiltered 0] [lindex $sFiltered 1] \
 		[lindex $sFiltered 2]
 	    RedrawFrame [GetMainFrameID]
@@ -4145,6 +4148,15 @@ proc LabelAreaEditDoneCallback {w inCol inRow} {
 		tkuErrorDlog "Invalid coordinate string. Make sure there are three numbers."
 	    }
 	    
+	} elseif { [string match $gaLabelArea(filter,$inCol,$inRow) ui] } {
+	    # \d+ matches a series of digits like 12
+	    set sFiltered [regexp -inline -all -- {\d+} $sCoords]
+
+	    # Make sure we have one element.
+	    if { [llength $sFiltered] != 1 } {
+		tkuErrorDlog "Invalid string. Make sure there is one number."
+	    }
+	    
 	} elseif { [string match $gaLabelArea(filter,$inCol,$inRow) 3sf] } {
 	    # [-+]? matches the leading - or +
 	    # \d+ matches a series of digits like 12
@@ -5716,7 +5728,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.164 2005/11/16 21:29:46 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.165 2005/11/18 20:26:54 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6206,6 +6218,21 @@ proc ShowSurfaceVertexCallback {} {
     } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
    
+}
+
+proc SetCursorFromSurfaceVertexIndex { iLayerID inVertex } {
+    set err [catch {
+	set lRAS \
+	    [Get2DMRISRASCoordsFromVertexIndex $iLayerID $inVertex]
+	
+	SetViewRASCursor \
+	    [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
+
+	UpdateCursorLabelArea
+
+	RedrawFrame [GetMainFrameID]
+    } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
 }
 
 proc DoFindNearestSurfaceVertex {} {
