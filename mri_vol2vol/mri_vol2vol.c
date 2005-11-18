@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.10 2005/08/15 14:21:17 fischl Exp $
+  $Id: mri_vol2vol.c,v 1.11 2005/11/18 05:17:44 greve Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -58,7 +58,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.10 2005/08/15 14:21:17 fischl Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.11 2005/11/18 05:17:44 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -102,6 +102,8 @@ MRI *tmpmri;
 MATRIX *Vt2s, *X, *invX, *Xtmp;
 MATRIX *Tin, *Tout, *invTin;
 MATRIX *Xtal, *R, *Xtalfov;
+MATRIX *Ttemp, *Mtemp, *D;
+MATRIX *invTtemp, *invMtemp;
 
 char *subjectsdir = NULL;   /* SUBJECTS_DIR */
 char *talxfmfile = "talairach.xfm";
@@ -114,6 +116,8 @@ char *subject = NULL;
 int dont_irescale = 1;
 float minrescale = 0.0, maxrescale = 255.0;
 char fname[1000], dname[1000];
+int ModInput = 0;
+
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -125,10 +129,10 @@ int main(int argc, char **argv)
 
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_vol2vol.c,v 1.10 2005/08/15 14:21:17 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_vol2vol.c,v 1.11 2005/11/18 05:17:44 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2vol.c,v 1.10 2005/08/15 14:21:17 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2vol.c,v 1.11 2005/11/18 05:17:44 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
@@ -215,7 +219,8 @@ int main(int argc, char **argv)
     printf("ERROR: could not read %s as %s\n",involpath,involfmt);
     exit(1);
   }
-	MRIaddCommandLine(InVol, cmdline) ;
+  Tin  = MRIxfmCRS2XYZtkreg(InVol); 
+  MRIaddCommandLine(InVol, cmdline) ;
   printf("Done loading source volume \n");
 
   /* --------- read in transform ------------------*/
@@ -272,6 +277,21 @@ int main(int argc, char **argv)
   else X = MatrixIdentity(4,NULL);
   printf("Final XFM ------------------------------\n");
   MatrixPrint(stdout,X);
+
+  if(ModInput){
+    printf("Modifying input vox2ras instead of resampling\n");
+    Ttemp = MRIxfmCRS2XYZtkreg(TempVol); 
+    invTtemp = MatrixInverse(Ttemp,NULL);
+    Mtemp = MRIxfmCRS2XYZ(TempVol,0); 
+    invMtemp = MatrixInverse(Mtemp,NULL);
+    D = MatrixMultiply(invMtemp,invTtemp,NULL);
+    D = MatrixMultiply(D,X,D);
+    D = MatrixMultiply(D,Tin,D);
+    printf("D ---------------------\n");
+    MatrixPrint(stdout,D);
+    exit(1);
+  }
+
 
   /*---------- Allocate the output volume ------------------*/
   OutVol = MRIallocSequence(TempVol->width, TempVol->height, 
@@ -412,6 +432,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--fstal"))       fstalairach = 1;
     else if (!strcasecmp(option, "--fstalairach")) fstalairach = 1;
     else if (!strcasecmp(option, "--invxfm"))   invertxfm = 1;
+    else if (!strcasecmp(option, "--modinput"))  ModInput = 1;
 
     else if ( !strcmp(option, "--gdiagno") ) {
       if(nargc < 1) argnerr(option,1);
@@ -828,7 +849,7 @@ static void check_options(void)
     printf("ERROR: No input supplied.\n");
     exit(1);
   }
-  if(outvolpath == NULL){
+  if(!ModInput && outvolpath == NULL){
     printf("ERROR: No output supplied.\n");
     exit(1);
   }
