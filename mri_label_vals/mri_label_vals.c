@@ -28,6 +28,8 @@ static int scaleup_flag = 0 ;
 static int cras =0; // 0 is false.  1 is true
 static char *surface_dir = NULL ;
 static char *hemi ;
+static int erode = 0 ;
+static int coords = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -41,7 +43,7 @@ main(int argc, char *argv[])
 	Real   xw, yw, zw, xv, yv, zv, val;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.11 2005/11/16 17:02:09 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.12 2005/11/18 17:12:25 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -94,21 +96,43 @@ main(int argc, char *argv[])
 	if (segmentation_flag >= 0)
 	{
 		int x, y, z  ;
+		VECTOR *v_seg, *v_mri ;
+		MATRIX *m_seg_to_mri ;
+
+		v_seg = VectorAlloc(4, MATRIX_REAL) ;
+		v_mri = VectorAlloc(4, MATRIX_REAL) ;
+		VECTOR_ELT(v_seg, 4) = 1.0 ;
+		VECTOR_ELT(v_mri, 4) = 1.0 ;
 
 		mri_seg = MRIread(argv[2]) ;
 		if (!mri_seg)
 			ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s",Progname, argv[2]) ;
+		if (erode)
+		{
+			MRI *mri_tmp ;
 
+			mri_tmp = MRIclone(mri_seg, NULL) ;
+			MRIcopyLabel(mri_seg, mri_tmp, segmentation_flag) ;
+			while (erode-- > 0)
+				MRIerode(mri_tmp, mri_tmp) ;
+			MRIcopy(mri_tmp, mri_seg) ;
+			MRIfree(&mri_tmp) ;
+		}
+
+		m_seg_to_mri = MRIgetVoxelToVoxelXform(mri_seg, mri) ;
 		for (x = 0  ; x  < mri_seg->width ; x++)
 		{
+			V3_X(v_seg) = x ;
 			for (y = 0  ; y  < mri_seg->height ; y++)
 			{
+				V3_Y(v_seg) = y ;
 				for (z = 0  ; z  < mri_seg->depth ; z++)
 				{
+					V3_Z(v_seg) = z ;
 					if (MRIvox(mri_seg, x, y,  z) == segmentation_flag)
 					{
-						MRIvoxelToSurfaceRAS(mri_seg, x, y,  z, &xw,  &yw, &zw) ;
-						MRIsurfaceRASToVoxel(mri, xw,  yw,  zw, &xv, &yv, &zv) ;
+						MatrixMultiply(m_seg_to_mri, v_seg, v_mri) ;
+						xv = V3_X(v_mri) ; yv = V3_Y(v_mri) ; zv = V3_Z(v_mri) ; 
 						MRIsampleVolumeType(mri, xv,  yv, zv, &val, SAMPLE_NEAREST);
 #if  0
 						if (val < .000001)
@@ -118,11 +142,15 @@ main(int argc, char *argv[])
 						}
 						else
 #endif
+						if (coords)
+							printf("%2.1f %2.1f %2.1f %f\n", xv, yv, zv, val);
+						else
 							printf("%f\n", val);
 					}
 				}
 			}
 		}
+		MatrixFree(&m_seg_to_mri) ; VectorFree(&v_seg) ; VectorFree(&v_mri) ;
 	}
 	else
 	{
@@ -168,7 +196,10 @@ main(int argc, char *argv[])
 						xw = v->x + v->curv*.5*v->nx ;
 						yw = v->y + v->curv*.5*v->ny ;
 						zw = v->z + v->curv*.5*v->nz ;
-						MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
+						if (cras == 1)
+							MRIworldToVoxel(mri, xw, yw,  zw, &xv, &yv, &zv) ;
+						else
+							MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
 						MRIsampleVolume(mri, xv, yv, zv, &val) ;
 						annot_means[index] += val ;
 						sprintf(fname, "%s-%s-%s.dat", annot_prefix, hemi, mris->ct->bins[index].name) ;
@@ -247,7 +278,19 @@ get_option(int argc, char *argv[])
 	{
 		segmentation_flag = atoi(argv[2]) ;
 		nargs =  1  ;
-		fprintf(stderr,"using  annotation %d as label...\n", segmentation_flag)  ;
+		fprintf(stderr,"using segmentation %d (%s) as label...\n", segmentation_flag, 
+						cma_label_to_name(segmentation_flag))  ;
+	}
+	else if (strcmp("coords", option) == 0)
+	{
+		coords = 1 ;
+		fprintf(stderr,"printing out coordinates with values\n") ;
+	}
+	else if (strcmp("erode", option) == 0)
+	{
+		erode = atoi(argv[2]) ;
+		nargs = 1;
+		fprintf(stderr,"eroding segmentation label %d times (must specify label with -segmentaiton)\n", erode);
 	}
   else
   {
