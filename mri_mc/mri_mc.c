@@ -909,6 +909,22 @@ int main(int argc, char *argv[])
 	fprintf(stderr,"checking orientation of surface...");
 	MRISmarkOrientationChanges(mris);
 
+	fprintf(stderr,"computing the maximum edge length...");
+	{
+		float dist,max_e=0.0;
+		int n,p;
+		VERTEX *v,*vp;
+		for(n = 0 ; n < mris->nvertices ; n++){
+			v=&mris->vertices[n];
+			for(p = 0 ; p < v->vnum ; p++){
+				vp = &mris->vertices[v->v[p]];
+				dist=SQR(vp->x-v->x)+SQR(vp->y-v->y)+SQR(vp->z-v->z);
+				if(dist>max_e) max_e=dist;
+			}
+		}
+		fprintf(stderr,"%fmm\n",sqrt(max_e));
+	}
+
 	fprintf(stderr,"writting out surface...");
 	MRISwrite(mris,argv[3]);
 	fprintf(stderr,"done\n");
