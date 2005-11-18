@@ -1,15 +1,15 @@
-function kdatgrid = tdr_regrid(kx,ky,kdat,kgridsize)
-% kdatgrid = tdr_regrid(kx,ky,kdat,kgridsize)
+function [kdatgrid, rgmap] = tdr_regrid(kx,ky,kdat,kgridsize)
+% [kdatgrid rgmap] = tdr_regrid(kx,ky,kdat,kgridsize)
 % 
 % Regrids using nearest neighbor
 %
-% $Id: tdr_regrid.m,v 1.1 2005/11/01 23:00:31 greve Exp $
+% $Id: tdr_regrid.m,v 1.2 2005/11/18 23:54:30 greve Exp $
 
 
 kdatgrid = [];
 
 if(nargin ~= 4)
-  fprintf('kdatgrid = tdr_regrid(kx,ky,kdat,kgridsize)\n');
+  fprintf('[kdatgrid rgmap] = tdr_regrid(kx,ky,kdat,kgridsize)\n');
   return;
 end
 
@@ -37,6 +37,7 @@ tmp = tmp/max(abs(tmp));
 kyg = kymax * tmp;
 
 kdatgrid = zeros(kgridsize);
+rgmap    = zeros(kgridsize);
 
 for gx = 1:xkgridsize
   for gy = 1:ykgridsize
@@ -47,6 +48,7 @@ for gx = 1:xkgridsize
     d2 = dx.^2 + dy.^2;
     [blah nnbr] = min(d2);
     kdatgrid(gy,gx) = kdat(nnbr);
+    rgmap(gy,gx) = nnbr;
   end
 end
 
