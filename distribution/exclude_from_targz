@@ -38,4 +38,6 @@ freesurfer/lib/qt/README
 freesurfer/lib/qt/config.tests
 freesurfer/lib/qt/MANIFEST
 freesurfer/lib/qt/configure
+freesurfer/lib/gsl/include
+freesurfer/lib/gsl/share
 freesurfer/grad_unwarp_tables
