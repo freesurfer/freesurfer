@@ -909,9 +909,9 @@ int main(int argc, char *argv[])
 	fprintf(stderr,"checking orientation of surface...");
 	MRISmarkOrientationChanges(mris);
 	mris_corrected=MRISextractMainComponent(mris,0);
-	MRISextractMainComponent(mris_corrected,1);
+	//	MRISextractMainComponent(mris_corrected,1);
 
-	fprintf(stderr,"computing the maximum edge length...");
+	fprintf(stderr,"\ncomputing the maximum edge length...");
 	{
 		float dist,max_e=0.0;
 		int n,p;
