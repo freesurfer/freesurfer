@@ -1,0 +1,13 @@
+These files are concerned with the generation of surfaces
+(triangulations) from a volume (MRI).
+
+*mri_mc: it generates a marching cubes triangulation that is
+ topologically consistent with a specific choice of connectivity. By
+ default, this program will only keep the main connected component.
+
+
+*mris_extract_main_component: extract the main connected component
+ from a surface.
+
+*build_MC_table: build the marching cubes table.
+

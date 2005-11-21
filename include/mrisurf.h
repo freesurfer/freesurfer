@@ -1024,6 +1024,8 @@ typedef struct
 
 int MRIScenterSphere(MRI_SURFACE *mris);
 int MRISmarkOrientationChanges(MRI_SURFACE *mris);
+MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract);
+MRIS* MRISextractMarkedVertices(MRIS *mris);
 MRIS* MRISremoveRippedSurfaceElements(MRIS *mris);
 
 MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, 

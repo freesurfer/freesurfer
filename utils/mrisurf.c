@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/11/17 15:25:10 $
-// Revision       : $Revision: 1.381 $
+// Revision Date  : $Date: 2005/11/21 18:10:23 $
+// Revision       : $Revision: 1.382 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -42165,49 +42165,184 @@ static int computeOrientation(MRIS *mris,int f,int v0, int v1){
 	if(face->v[0]==v1) return 1;
 	else return -1;
 }
- 
-/* This function finds the orientation changes in the triangles 
-	 constituting the tessellation. Writes the orientation changes in
-	 curv. Note that this function can easily be modified to check the 
-	 orientation changes for any tessellations (not only triangulations) */
- int MRISmarkOrientationChanges(MRI_SURFACE *mris){
-	 
-	VERTEX *v,*vp1,*vp2;
-	int face1,face2,vn0,p,vn1,vn2,d1,d2,count,found;
-#if 0
-	int k,vn3,vn4,vn5,vn6,v1,v2,same_orientation;
-#endif
-	/* to avoid compiler warnings */
-	face1=face2=0; d1=d2=0;
-	
-	/* erase curvature for counting purposes */
-	MRISclearCurvature(mris);
 
+/* extract the non-marked vertices from a surface */
+MRIS* MRISextractMarkedVertices(MRIS *mris){
+	MRIS *mris_corrected;
+	int *face_trans,*vertex_trans;
+	VERTEX *v,*vdst;
+	FACE *f,*fdst;
+	int vno,i,n,fno;
+
+	face_trans  =(int *)calloc(mris->nfaces, sizeof(int)) ;
+  vertex_trans = (int *)calloc(mris->nvertices, sizeof(int)) ;
+  memset(vertex_trans, -1, mris->nvertices*sizeof(int)) ;
+  memset(face_trans, -1, mris->nfaces*sizeof(int)) ;
+  // create a new surface
+  mris_corrected = MRISalloc(mris->nvertices, mris->nfaces) ;
+  // keep the extra info into the new one
+  mris_corrected->useRealRAS = mris->useRealRAS;
+  copyVolGeom(&mris->vg, &mris_corrected->vg);
+
+  mris_corrected->type = MRIS_TRIANGULAR_SURFACE ;
+
+  for (mris_corrected->nvertices = vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      /* ignore the marked defect vertices but not the bordering ones */
+      if (v->marked) continue ;
+      vdst = &mris_corrected->vertices[mris_corrected->nvertices] ;
+      vdst->nsize = v->nsize ;
+      /* original vertices */
+      vdst->x = v->x ; vdst->y = v->y ; vdst->z = v->z ; 
+      /* smoothed vertices */
+      vdst->origx = v->origx ; vdst->origy = v->origy ; vdst->origz = v->origz ;
+      vdst->tx = v->tx ; vdst->ty = v->ty ; vdst->tz = v->tz ; 
+      vdst->nx = v->nx ; vdst->ny = v->ny ; vdst->nz = v->nz ; 
+      /* canonical vertices */
+      vdst->cx = v->cx ; vdst->cy = v->cy ; vdst->cz = v->cz ; 
+      vdst->num = v->num ; 
+      vdst->val = v->val ;  vdst->val2 = v->val2 ; 
+      vdst->valbak = v->valbak ; vdst->val2bak = v->val2bak ; 
+      vdst->imag_val = v->imag_val ; 
+      vdst->curv = v->curv ;  vdst->curvbak = v->curvbak ; vdst->stat = v->stat ;
+      vdst->mean = v->mean ; vdst->mean_imag = v->mean_imag ; vdst->std_error = v->std_error;
+      vdst->H = v->H ; vdst->K = v->K ; vdst->k1 = v->k1 ; vdst->k2 = v->k2 ; 
+      vdst->border=0; 
+      vertex_trans[vno] = mris_corrected->nvertices++ ;
+    }
+	
+  for (mris_corrected->nfaces = fno = 0 ; fno < mris->nfaces ; fno++){
+		f = &mris->faces[fno] ;
+		/* don't update triangle with marked vertices */
+		if (triangleMarked(mris, fno))
+			continue ;
+		/* initialize face */
+		fdst = &mris_corrected->faces[mris_corrected->nfaces] ;
+		for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+			fdst->v[n] = vertex_trans[f->v[n]] ;
+		face_trans[fno] = mris_corrected->nfaces++ ;
+	}
+	
+  /* now allocate face and neighbor stuff in mris_corrected */
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+		v = &mris->vertices[vno] ;
+		if (v->marked)
+			continue ;
+		if (vertex_trans[vno]<0 || vertex_trans[vno] >= mris_corrected->nvertices)
+			continue ;
+		vdst = &mris_corrected->vertices[vertex_trans[vno]] ;
+    
+		/* count # of good triangles attached to this vertex */
+		for (vdst->num = n = 0 ; n < v->num ; n++)
+			if (triangleMarked(mris, v->f[n]) == 0)
+				vdst->num++ ;
+		vdst->f = (int *)calloc(vdst->num, sizeof(int)) ;
+		vdst->n = (uchar *)calloc(vdst->num, sizeof(uchar)) ;
+		for (i = n = 0 ; n < v->num ; n++)
+		{
+			if (triangleMarked(mris, v->f[n]))
+				continue ;
+			vdst->n[i] = v->n[n] ; vdst->f[i] = face_trans[v->f[n]] ; i++ ;
+		}
+		
+		/* count # of valid neighbors */
+		for (n = vdst->vnum = 0 ; n < v->vnum ; n++)
+			if (mris->vertices[v->v[n]].marked == 0)
+				vdst->vnum++ ;
+		vdst->vtotal = vdst->vnum ;
+		vdst->v = (int *)calloc(vdst->vnum, sizeof(int)) ;
+		for (i = n = 0 ; n < v->vnum ; n++)
+			if (mris->vertices[v->v[n]].marked == 0)
+				vdst->v[i++] = vertex_trans[v->v[n]] ;
+	}
+	
+	return mris_corrected;
+}
+
+/* extract the main connected component from a triangulation 
+	 use the v->marked to extract the surface */
+MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract){
+	MRIS* mris_out;
+	VERTEX *v,*vp1,*vp2;
+	int n,vn0,vn1,vn2,p,count,max_c,max_nbr,found,ncpt;
+
+	/* use marked field for counting purposes */
+	MRISclearMarks(mris);
+	
+	max_c=0; max_nbr=0;
 	fprintf(WHICH_OUTPUT,"\ncounting number of connected components...");
 	for(count=0,vn0=0; vn0 < mris->nvertices ;vn0++) {
 		v=&mris->vertices[vn0];
-		if(v->curv) continue;
-		v->curv=++count;
+		if(v->marked) continue;
+		count++;
+		v->marked=count;
 		found=1;
+		ncpt=1;
 		while(found){
 			found=0;
 			for(vn1=0; vn1 < mris->nvertices ;vn1++) {
 				vp1=&mris->vertices[vn1];
-				if(vp1->curv) continue;
+				if(vp1->marked) continue;
 				/* check neighbors */
 				for (p=0 ; p < vp1->vnum ; p++){
 					vn2=vp1->v[p];
 					vp2=&mris->vertices[vn2];
-					if(vp2->curv==count){
-						vp1->curv=count;
+					if(vp2->marked==count){
+						vp1->marked=count;
 						found=1;
+						ncpt++;
 						break;
 					}
 				}
 			}
 		}
+		if(max_nbr<ncpt) {
+			max_c=count;
+			max_nbr=ncpt;
+		}
+		fprintf(stderr,"\n...%d voxel in cpt #%d",ncpt,count); 
 	}
-	fprintf(WHICH_OUTPUT,"\n%d component(s) have been found",count);
+	
+	if(count <= 1){
+		fprintf(WHICH_OUTPUT,"\nOne single component has been found");
+		if(!do_not_extract)
+			fprintf(WHICH_OUTPUT,"\nnothing to do");
+	}else{
+		fprintf(WHICH_OUTPUT,"\n%d components have been found",count);
+		if(!do_not_extract)
+			fprintf(WHICH_OUTPUT,"\nkeeping component #%d with %d vertices",max_c,max_nbr);
+	}
+	
+	/* nothing to do */
+	if(do_not_extract) return mris;
+
+/* set vertex mark to 1 if removed vertex */
+	for(n = 0 ; n < mris->nvertices ; n++){
+		v=&mris->vertices[n];
+		if(v->marked==max_c) 
+			v->marked=0;
+		else v->marked=1;
+	}
+
+	mris_out= MRISextractMarkedVertices(mris);
+	MRISclearMarks(mris);
+	return mris_out;
+}
+ 
+/* This function finds the orientation changes in the triangles 
+	 constituting the tessellation. Writes the orientation changes in
+	 curv. Note that this function can easily be modified to check the 
+	 orientation changes for any tessellations (not only triangulations) */
+int MRISmarkOrientationChanges(MRI_SURFACE *mris){
+	 
+	VERTEX *v;
+	int face1,face2,vn0,p,vn1,vn2,d1,d2,count;
+#if 0
+	int k,vn3,vn4,vn5,vn6,v1,v2,same_orientation;
+#endif
+	/* to avoid compiler warnings */
+	face1=face2=0; d1=d2=0;
 	
 	/* erase curvature for diag purposes */
 	MRISclearCurvature(mris);
