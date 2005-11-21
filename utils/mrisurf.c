@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/11/21 18:10:23 $
-// Revision       : $Revision: 1.382 $
+// Revision Date  : $Date: 2005/11/21 18:24:58 $
+// Revision       : $Revision: 1.383 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -42266,10 +42266,12 @@ MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract){
 	MRIS* mris_out;
 	VERTEX *v,*vp1,*vp2;
 	int n,vn0,vn1,vn2,p,count,max_c,max_nbr,found,ncpt;
+	int nv,ne,nf,nX,tX,tv,te,tf;
 
 	/* use marked field for counting purposes */
 	MRISclearMarks(mris);
-	
+
+	tX=tv=te=tf=0;
 	max_c=0; max_nbr=0;
 	fprintf(WHICH_OUTPUT,"\ncounting number of connected components...");
 	for(count=0,vn0=0; vn0 < mris->nvertices ;vn0++) {
@@ -42301,9 +42303,29 @@ MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract){
 			max_c=count;
 			max_nbr=ncpt;
 		}
-		fprintf(stderr,"\n...%d voxel in cpt #%d",ncpt,count); 
+		/* computing Euler Number of component */
+		ne=0;nv=0;
+		for(vn1=0; vn1 < mris->nvertices ;vn1++) {
+				vp1=&mris->vertices[vn1];
+				if(vp1->marked!=count) continue;
+				ne += vp1->vnum;
+				nv++;
+		}
+		ne /= 2;
+		/* now counting faces */
+		nf=0;
+		for(vn1=0; vn1 < mris->nfaces ;vn1++) {
+			if(mris->vertices[mris->faces[vn1].v[0]].marked==count) nf++;
+		}
+		nX=nv-ne+nf;
+		tX += nX;
+		tv += nv;
+		te += ne;
+		tf += nf;
+		fprintf(stderr,"\n...%d voxel in cpt #%d: X=%d [v=%d,e=%d,f=%d]",ncpt,count,nX,nv,ne,nf); 
 	}
-	
+	fprintf(stderr,"\nFor the whole surface: X=%d [v=%d,e=%d,f=%d]",tX,tv,te,tf);
+
 	if(count <= 1){
 		fprintf(WHICH_OUTPUT,"\nOne single component has been found");
 		if(!do_not_extract)
