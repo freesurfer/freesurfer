@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.166 2005/11/18 22:37:45 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.167 2005/11/21 19:41:08 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5728,7 +5728,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.166 2005/11/18 22:37:45 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.167 2005/11/21 19:41:08 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6372,10 +6372,10 @@ proc DoReadWriteCursorFromEditDatFileDlog {} {
 	set gEditDatInfo(useRealRAS) 0
 	frame $fwUseRealRAS
 	tkuMakeCheckboxes $fwUseRealRAS.cbUseRealRAS \
-	-font [tkuNormalFont] \
-	-checkboxes { 
-	    {-type text -label "Use Real RAS" 
-		-variable gEditDatInfo(useRealRAS) }}
+	    -font [tkuNormalFont] \
+	    -checkboxes { 
+		{-type text -label "Use Real RAS" 
+		    -variable gEditDatInfo(useRealRAS) }}
 
 	pack $fwUseRealRAS.cbUseRealRAS
 

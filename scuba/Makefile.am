@@ -90,17 +90,20 @@ FORMS = mainwindow.ui \
 		toolsettingsdlog.ui \
 		roisettingsdlog.ui \
 		prefsdlog.ui \
+		editdatdlog.ui
 UICDECLS = .ui/mainwindow.h mainwindow.ui.h \
 		.ui/viewlayersdlog.h viewlayersdlog.ui.h \
 		.ui/toolsettingsdlog.h toolsettingsdlog.ui.h \
 		.ui/roisettingsdlog.h roisettingsdlog.ui.h \
-		.ui/prefsdlog.h prefsdlog.ui.h
+		.ui/prefsdlog.h prefsdlog.ui.h \
+		.ui/editdatdlog.h editdatdlog.ui.h
 
 UICIMPLS = .ui/mainwindow.cpp \
 		.ui/viewlayersdlog.cpp \
 		.ui/toolsettingsdlog.cpp \
 		.ui/roisettingsdlog.cpp \
-		.ui/prefsdlog.cpp
+		.ui/prefsdlog.cpp \
+		.ui/editdatdlog.cpp
 SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 		.moc/moc_QTScubaWidget.cpp \
 		.moc/moc_QtScubaLabelValueArea.cpp \
@@ -110,7 +113,8 @@ SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 		.moc/moc_viewlayersdlog.cpp \
 		.moc/moc_toolsettingsdlog.cpp \
 		.moc/moc_roisettingsdlog.cpp \
-		.moc/moc_prefsdlog.cpp
+		.moc/moc_prefsdlog.cpp \
+		.moc/moc_editdatdlog.cpp
 
 #OBJMOC = moc_QtVolumeHistogram.$(OBJEXT) \
 #		moc_QTScubaWidget.$(OBJEXT) \
@@ -346,6 +350,7 @@ testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h \
 	.ui/prefsdlog.h \
+	.ui/editdatdlog.h \
 	mainwindow.ui
 	$(UIC) mainwindow.ui -i mainwindow.h -o $@
 mainwindow.$(OBJEXT): .ui/mainwindow.cpp 
@@ -359,6 +364,7 @@ mainwindow.$(OBJEXT): .ui/mainwindow.cpp
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h  \
 	.ui/prefsdlog.h \
+	.ui/editdatdlog.h \
 	toolsettingsdlog.ui
 	$(UIC) toolsettingsdlog.ui -i toolsettingsdlog.h -o $@
 toolsettingsdlog.$(OBJEXT): .ui/toolsettingsdlog.cpp 
@@ -372,6 +378,7 @@ toolsettingsdlog.$(OBJEXT): .ui/toolsettingsdlog.cpp
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h \
 	.ui/prefsdlog.h \
+	.ui/editdatdlog.h \
 	viewlayersdlog.ui
 	$(UIC) viewlayersdlog.ui -i viewlayersdlog.h -o $@
 viewlayersdlog.$(OBJEXT): .ui/viewlayersdlog.cpp \
@@ -385,6 +392,7 @@ viewlayersdlog.$(OBJEXT): .ui/viewlayersdlog.cpp \
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h \
 	.ui/prefsdlog.h \
+	.ui/editdatdlog.h \
 	roisettingsdlog.ui
 	$(UIC) roisettingsdlog.ui -i roisettingsdlog.h -o $@
 roisettingsdlog.$(OBJEXT): .ui/roisettingsdlog.cpp \
@@ -398,10 +406,25 @@ roisettingsdlog.$(OBJEXT): .ui/roisettingsdlog.cpp \
 	.ui/viewlayersdlog.h \
 	.ui/roisettingsdlog.h \
 	.ui/prefsdlog.h \
+	.ui/editdatdlog.h \
 	prefsdlog.ui
 	$(UIC) prefsdlog.ui -i prefsdlog.h -o $@
 prefsdlog.$(OBJEXT): .ui/prefsdlog.cpp \
 	prefsdlog.ui.h .ui/prefsdlog.h
+
+.ui/editdatdlog.h: editdatdlog.ui
+	$(UIC) editdatdlog.ui -o $@
+.ui/editdatdlog.cpp: \
+	.ui/mainwindow.h \
+	.ui/toolsettingsdlog.h \
+	.ui/viewlayersdlog.h \
+	.ui/roisettingsdlog.h \
+	.ui/prefsdlog.h \
+	.ui/editdatdlog.h \
+	editdatdlog.ui
+	$(UIC) editdatdlog.ui -i editdatdlog.h -o $@
+editdatdlog.$(OBJEXT): .ui/editdatdlog.cpp \
+	editdatdlog.ui.h .ui/editdatdlog.h
 
 moc_QtVolumeHistogram.$(OBJEXT): .moc/moc_QtVolumeHistogram.cpp
 .moc/moc_QtVolumeHistogram.cpp: QtVolumeHistogram.h
@@ -442,6 +465,10 @@ moc_roisettingsdlog.$(OBJEXT): .moc/moc_roisettingsdlog.cpp
 moc_prefsdlog.$(OBJEXT): .moc/moc_prefsdlog.cpp
 .moc/moc_prefsdlog.cpp: .ui/prefsdlog.h
 	$(MOC) .ui/prefsdlog.h -o $@
+
+moc_editdatdlog.$(OBJEXT): .moc/moc_editdatdlog.cpp
+.moc/moc_editdatdlog.cpp: .ui/editdatdlog.h
+	$(MOC) .ui/editdatdlog.h -o $@
 
 image_collection.$(OBJEXT): .ui/image_collection.cpp
 
