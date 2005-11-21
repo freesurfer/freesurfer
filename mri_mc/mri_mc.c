@@ -867,7 +867,7 @@ void generateMCtesselation(tesselation_parms * parms)
 int main(int argc, char *argv[])
 {
 	tesselation_parms *parms;
-	MRIS **mris_table, *mris;
+	MRIS **mris_table, *mris,*mris_corrected;
 	MRI *mri;
 	
 	Progname=argv[0];
@@ -908,6 +908,8 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr,"checking orientation of surface...");
 	MRISmarkOrientationChanges(mris);
+	mris_corrected=MRISextractMainComponent(mris,0);
+	MRISextractMainComponent(mris_corrected,1);
 
 	fprintf(stderr,"computing the maximum edge length...");
 	{
@@ -926,7 +928,7 @@ int main(int argc, char *argv[])
 	}
 
 	fprintf(stderr,"writting out surface...");
-	MRISwrite(mris,argv[3]);
+	MRISwrite(mris_corrected,argv[3]);
 	fprintf(stderr,"done\n");
 
   return 0;
