@@ -140,6 +140,7 @@ char * MRIprecisionString(int PrecisionCode);
 int MRIprecisionCode(char *PrecisionString);
 
 
+int MRIareNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z) ;
 float  MRIfindNearestNonzero(MRI *mri, int wsize, Real x0, Real y0, Real z0) ;
 float  MRIfindNearestNonzeroLocation(MRI *mri, int wsize, Real xr, Real yr, Real zr,
                                      int *pxv, int *pyv, int *pzv) ;
@@ -895,6 +896,7 @@ int stuff_four_by_four(MATRIX *m, float m11, float m12, float m13, float m14,
 MATRIX *extract_r_to_i(MRI *mri) ;
 #define MRIgetVoxelToRasXform   extract_i_to_r
 #define MRIgetRasToVoxelXform   extract_r_to_i
+int    MRIsetVoxelToRasXform(MRI *mri, MATRIX *m_vox2ras) ;
 MATRIX *MRIvoxelXformToRasXform(MRI *mri_src, MRI *mri_dst,
                                 MATRIX *m_voxel_xform, MATRIX *m_ras_xform);
 MATRIX *MRIrasXformToVoxelXform(MRI *mri_src, MRI *mri_dst,

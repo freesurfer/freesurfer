@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/11/16 19:35:13 $
-// Revision       : $Revision: 1.320 $
-char *MRI_C_VERSION = "$Revision: 1.320 $";
+// Revision Date  : $Date: 2005/11/21 19:17:28 $
+// Revision       : $Revision: 1.321 $
+char *MRI_C_VERSION = "$Revision: 1.321 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2235,7 +2235,7 @@ int MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
 }
 
 /* 
-   int MRIvoxleToSurfaceRAS and int MRIsurfaceRASToVoxel
+   int MRIvoxelToSurfaceRAS and int MRIsurfaceRASToVoxel
  
    get the surfaceRAS values from original voxel
    Note that this is different from MRIvoxelToWorld().
@@ -10601,6 +10601,42 @@ MATRIX *extract_r_to_i(MRI *mri)
   return(m_ras_to_voxel) ;
 }
   
+int
+MRIsetVoxelToRasXform(MRI *mri, MATRIX *m_vox2ras)
+{
+  float ci, cj, ck;
+
+	mri->x_r = *MATRIX_RELT(m_vox2ras, 1, 1) / mri->xsize ;
+  mri->y_r = *MATRIX_RELT(m_vox2ras, 1, 2) / mri->ysize ;  
+	mri->z_r = *MATRIX_RELT(m_vox2ras, 1, 3) / mri->zsize ;
+
+	mri->x_a = *MATRIX_RELT(m_vox2ras, 2, 1) / mri->xsize ;
+  mri->y_a = *MATRIX_RELT(m_vox2ras, 2, 2) / mri->ysize ;  
+	mri->z_a = *MATRIX_RELT(m_vox2ras, 2, 3) / mri->zsize ;
+
+	mri->x_s = *MATRIX_RELT(m_vox2ras, 3, 1) / mri->xsize ;
+  mri->y_s = *MATRIX_RELT(m_vox2ras, 3, 2) / mri->ysize ;  
+	mri->z_s = *MATRIX_RELT(m_vox2ras, 3, 3) / mri->zsize ;
+
+  ci = (mri->width) / 2.0;
+  cj = (mri->height) / 2.0;
+  ck = (mri->depth) / 2.0;
+	mri->c_r = *MATRIX_RELT(m_vox2ras, 1, 4) + 
+		(*MATRIX_RELT(m_vox2ras, 1, 1) * ci + 
+		 *MATRIX_RELT(m_vox2ras, 1, 2) * cj + 
+		 *MATRIX_RELT(m_vox2ras, 1, 3) * ck);
+	mri->c_a = *MATRIX_RELT(m_vox2ras, 2, 4) + 
+		(*MATRIX_RELT(m_vox2ras, 2, 1) * ci + 
+		 *MATRIX_RELT(m_vox2ras, 2, 2) * cj + 
+		 *MATRIX_RELT(m_vox2ras, 2, 3) * ck);
+	mri->c_s = *MATRIX_RELT(m_vox2ras, 3, 4) + 
+		(*MATRIX_RELT(m_vox2ras, 3, 1) * ci + 
+		 *MATRIX_RELT(m_vox2ras, 3, 2) * cj + 
+		 *MATRIX_RELT(m_vox2ras, 3, 3) * ck);
+  MRIreInitCache(mri);
+	return(NO_ERROR) ;
+}
+
 // allocate memory and the user must free it.
 MATRIX *extract_i_to_r(MRI *mri)
 {
@@ -10859,6 +10895,28 @@ MRIcountNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z)
     }
   }
   return(total) ;
+}
+int
+MRIareNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z)
+{
+  int   xk, yk, zk, xi, yi, zi, whalf ;
+
+  whalf = (wsize-1)/2 ;
+  for (zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        if (MRIgetVoxVal(mri, xi, yi, zi,0) > 0)
+					return(1) ;
+      }
+    }
+  }
+  return(0) ;
 }
 float
 MRIfindNearestNonzeroLocation(MRI *mri, int wsize, Real xr, Real yr, Real zr,
