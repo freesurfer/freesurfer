@@ -1,5 +1,5 @@
 // mri_concat.c
-// $Id: mri_concat.c,v 1.4 2005/11/01 23:57:38 nicks Exp $
+// $Id: mri_concat.c,v 1.5 2005/11/22 01:34:33 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +25,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.4 2005/11/01 23:57:38 nicks Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.5 2005/11/22 01:34:33 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[100];
@@ -57,7 +57,9 @@ int main(int argc, char **argv)
   check_options();
   dump_options(stdout);
 
+  printf("ninputs = %d\n",ninputs);
   for(nthin = 0; nthin < ninputs; nthin++){
+    printf("%2d %s\n",nthin,inlist[nthin]);
     mritmp = MRIreadHeader(inlist[nthin],MRI_VOLUME_TYPE_UNKNOWN);
     if(mritmp == NULL){
       printf("ERROR: reading %s\n",inlist[nthin]);
@@ -74,6 +76,7 @@ int main(int argc, char **argv)
 	     inlist[0],inlist[nthin]);
       exit(1);
     }
+
     nframestot += mritmp->nframes;
     MRIfree(&mritmp);
   }
@@ -146,9 +149,8 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
     else{
-      inlist[ninputs] = pargv[0];
+      inlist[ninputs] = option;
       ninputs ++;
-      nargsused = 1;
       //fprintf(stderr,"ERROR: Option %s unknown\n",option);
       //if(singledash(option))
       //fprintf(stderr,"       Did you really mean -%s ?\n",option);
