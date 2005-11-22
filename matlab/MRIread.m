@@ -23,7 +23,7 @@ function mri = MRIread(fstring,headeronly)
 % input is not bhdr, then mri.srcbext will exist but be empty.
 % See also MRIwrite() and mri.outbext.
 %
-% $Id: MRIread.m,v 1.8 2005/08/11 17:28:43 greve Exp $
+% $Id: MRIread.m,v 1.9 2005/11/22 02:06:49 greve Exp $
 
 mri = [];
 
@@ -152,6 +152,8 @@ mri.nframes = volsz(4);
 % resolution, and P0 from vox2ras0. If you change other geometry
 % elements below, it will not be reflected in the output volume.
 
+mri.vox2ras = mri.vox2ras0;
+
 mri.nvoxels = mri.height * mri.width * mri.depth; % number of spatial voxles
 mri.xsize = sqrt(sum(M(:,1).^2));
 mri.ysize = sqrt(sum(M(:,2).^2));
@@ -187,6 +189,7 @@ mri.Mdc = [M(1:3,1)/mri.xsize M(1:3,2)/mri.ysize M(1:3,3)/mri.zsize];
 % Vector of voxel resolutions
 mri.volres = [mri.xsize mri.ysize mri.zsize];
 
+mri.tkrvox2ras = vox2ras_tkreg(mri.volsize,mri.volres);
 
 
 return;
