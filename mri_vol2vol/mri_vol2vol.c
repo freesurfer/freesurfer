@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.11 2005/11/18 05:17:44 greve Exp $
+  $Id: mri_vol2vol.c,v 1.12 2005/11/22 02:42:21 greve Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -58,7 +58,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.11 2005/11/18 05:17:44 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.12 2005/11/22 02:42:21 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -103,7 +103,7 @@ MATRIX *Vt2s, *X, *invX, *Xtmp;
 MATRIX *Tin, *Tout, *invTin;
 MATRIX *Xtal, *R, *Xtalfov;
 MATRIX *Ttemp, *Mtemp, *D;
-MATRIX *invTtemp, *invMtemp;
+MATRIX *invTtemp;
 
 char *subjectsdir = NULL;   /* SUBJECTS_DIR */
 char *talxfmfile = "talairach.xfm";
@@ -129,10 +129,10 @@ int main(int argc, char **argv)
 
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_vol2vol.c,v 1.11 2005/11/18 05:17:44 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_vol2vol.c,v 1.12 2005/11/22 02:42:21 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2vol.c,v 1.11 2005/11/18 05:17:44 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2vol.c,v 1.12 2005/11/22 02:42:21 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
@@ -275,7 +275,9 @@ int main(int argc, char **argv)
     }
   }
   else X = MatrixIdentity(4,NULL);
-  printf("Final XFM ------------------------------\n");
+  if(invertxfm) MatrixInverse(X,X);
+
+  printf("Final XFM (including any inversion) ----------------\n");
   MatrixPrint(stdout,X);
 
   if(ModInput){
@@ -283,15 +285,13 @@ int main(int argc, char **argv)
     Ttemp = MRIxfmCRS2XYZtkreg(TempVol); 
     invTtemp = MatrixInverse(Ttemp,NULL);
     Mtemp = MRIxfmCRS2XYZ(TempVol,0); 
-    invMtemp = MatrixInverse(Mtemp,NULL);
-    D = MatrixMultiply(invMtemp,invTtemp,NULL);
+    D = MatrixMultiply(Mtemp,invTtemp,NULL);
     D = MatrixMultiply(D,X,D);
     D = MatrixMultiply(D,Tin,D);
     printf("D ---------------------\n");
     MatrixPrint(stdout,D);
     exit(1);
   }
-
 
   /*---------- Allocate the output volume ------------------*/
   OutVol = MRIallocSequence(TempVol->width, TempVol->height, 
@@ -304,7 +304,6 @@ int main(int argc, char **argv)
   OutVol->nframes = InVol->nframes;
   OutVol->type = MRI_FLOAT; /*Keep float until the end*/
 
-  if(invertxfm) MatrixInverse(X,X);
 
   /* Construct the matrix to map from out CRS to in CRS */
   /* Vt2s = inv(Tin)*inv(X)*Tout */
