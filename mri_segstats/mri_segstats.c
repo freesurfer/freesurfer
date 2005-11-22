@@ -43,7 +43,7 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segstats.c,v 1.9 2005/11/17 18:03:43 greve Exp $";
+static char vcid[] = "$Id: mri_segstats.c,v 1.10 2005/11/22 00:31:13 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
   printf("Found %3d segmentations\n",nsegid);
   printf("Computing statistics for each segmentation\n");
   fflush(stdout);
-  for(n=0; n < nsegid && 0; n++){
+  for(n=0; n < nsegid; n++){
     if(DoExclSegId && StatSumTable[n].id == ExclSegId) continue; 
 
     printf("%3d   %3d  %s ",n,StatSumTable[n].id,StatSumTable[n].name);
