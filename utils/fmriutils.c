@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.19 2005/09/28 00:00:06 greve Exp $
+   $Id: fmriutils.c,v 1.20 2005/11/26 06:46:54 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.19 2005/09/28 00:00:06 greve Exp $");
+  return("$Id: fmriutils.c,v 1.20 2005/11/26 06:46:54 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -742,21 +742,33 @@ int MRIglmFit(MRIGLM *mriglm)
   }
 
   mriglm->beta = MRIallocSequence(nc, nr, ns, MRI_FLOAT, mriglm->nregtot) ;
+  MRIcopyHeader(mriglm->y,mriglm->beta);
   mriglm->eres = MRIallocSequence(nc, nr, ns, MRI_FLOAT, nf);
+  MRIcopyHeader(mriglm->y,mriglm->eres);
   mriglm->rvar = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
+  MRIcopyHeader(mriglm->y,mriglm->rvar);
 
-  if(mriglm->yhatsave)
+  if(mriglm->yhatsave){
     mriglm->yhat = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nf);
-  if(mriglm->condsave)
+    MRIcopyHeader(mriglm->y,mriglm->yhat);
+  }
+  if(mriglm->condsave){
     mriglm->cond = MRIallocSequence(nc,nr,ns,MRI_FLOAT, 1) ;
+    MRIcopyHeader(mriglm->y,mriglm->cond);
+  }
 
   for(n = 0; n < mriglm->glm->ncontrasts; n++){
     mriglm->gamma[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT, 
 					mriglm->glm->C[n]->rows);
+    MRIcopyHeader(mriglm->y,mriglm->gamma[n]);
     mriglm->F[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
+    MRIcopyHeader(mriglm->y,mriglm->F[n]);
     mriglm->p[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
-    if(mriglm->glm->ypmfflag[n])
+    MRIcopyHeader(mriglm->y,mriglm->p[n]);
+    if(mriglm->glm->ypmfflag[n]){
       mriglm->ypmf[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nf);
+      MRIcopyHeader(mriglm->y,mriglm->ypmf[n]);
+    }
   }
 
   //--------------------------------------------

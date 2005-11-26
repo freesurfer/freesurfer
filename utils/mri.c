@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/11/21 19:17:28 $
-// Revision       : $Revision: 1.321 $
-char *MRI_C_VERSION = "$Revision: 1.321 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/11/26 06:46:54 $
+// Revision       : $Revision: 1.322 $
+char *MRI_C_VERSION = "$Revision: 1.322 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11045,6 +11045,8 @@ MRI *MRIlog10(MRI *inmri, MRI *outmri, int negflag)
   if(outmri==NULL){
     outmri = MRIallocSequence(inmri->width, inmri->height, inmri->depth, 
 			      MRI_FLOAT, inmri->nframes);
+    MRIcopyHeader(inmri,outmri);
+
     if(outmri==NULL){
       printf("ERROR: fMRIlog10: could not alloc\n");
       return(NULL);
