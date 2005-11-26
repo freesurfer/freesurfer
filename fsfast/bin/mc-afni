@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: mc-afni,v 1.5 2005/09/07 22:00:26 greve Exp $';
+set VERSION = '$Id: mc-afni,v 1.6 2005/11/26 06:47:59 greve Exp $';
 
 unset verbose ;
 
@@ -200,7 +200,12 @@ endif
 endif
 #------------------------- end obsolete --------------------------------#
 
-mri_convert $afnisession/$afniprefix.volreg+orig.BRIK $outstem"_000".$inext
+set cmd = (mri_convert $afnisession/$afniprefix.volreg+orig.BRIK \
+  $outstem"_000".$inext)
+echo $cmd
+$cmd
+if($status) exit 1;
+
 #afni2bvol -i $afnisession/$afniprefix.volreg+orig.BRIK \
 #  -o $outstem -oext $inext
 #if($status) exit 1;
