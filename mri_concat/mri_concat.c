@@ -1,5 +1,5 @@
 // mri_concat.c
-// $Id: mri_concat.c,v 1.5 2005/11/22 01:34:33 greve Exp $
+// $Id: mri_concat.c,v 1.6 2005/11/27 02:06:45 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +11,7 @@
 #include "diag.h"
 #include "mri.h"
 #include "mri2.h"
+#include "fmriutils.h"
 #include "version.h"
 
 static int  parse_commandline(int argc, char **argv);
@@ -25,13 +26,14 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.5 2005/11/22 01:34:33 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.6 2005/11/27 02:06:45 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[100];
 int ninputs = 0;
 char *out = NULL;
 MRI *mritmp, *mritmp0, *mriout;
+int DoMean=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -106,6 +108,13 @@ int main(int argc, char **argv)
     MRIfree(&mritmp);
   }
 
+  if(DoMean){
+    printf("Computing mean \n");
+    mritmp = MRIframeMean(mriout,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
+
   printf("Writing to %s\n",out);
   MRIwrite(mriout,out);
 
@@ -137,6 +146,8 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--mean"))   DoMean = 1;
+
     else if ( !strcmp(option, "--i") ) {
       if(nargc < 1) argnerr(option,1);
       inlist[ninputs] = pargv[0];
@@ -175,6 +186,7 @@ static void print_usage(void)
   printf("   --i invol <--i invol ...> (don't need --i) \n");
   printf("   --o out \n");
   printf("\n");
+  printf("   --mean : compute mean of concatenated volumes\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
@@ -188,9 +200,10 @@ static void print_help(void)
 
   printf("Concatenates input data sets.\n");
   printf("EXAMPLES:\n");
-  printf("  mri_concat --i f1.mgh --i f2.mgh --o fout.mgh\n");
-  printf("  mri_concat f1.mgh f2.mgh --o fout.mgh\n");
-  printf("  mri_concat f*.mgh --o fout.mgh\n");
+  printf("  mri_concat --i f1.mgh --i f2.mgh --o cout.mgh\n");
+  printf("  mri_concat f1.mgh f2.mgh --o cout.mgh\n");
+  printf("  mri_concat f*.mgh --o cout.mgh\n");
+  printf("  mri_concat f*.mgh --o coutmn.mgh --mean\n");
 
   exit(1) ;
 }
