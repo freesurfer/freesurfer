@@ -15,6 +15,8 @@
 #include "mri.h"
 #include "mrisurf.h"
 #include "gca.h"
+#include "tags.h"
+#include "version.h"
 #include "MC.h"
 
 #define SQR(x) ((x)*(x))
@@ -600,6 +602,9 @@ int main(int argc, char *argv[])
 	MRI *mri_seg,*mri_orig;
 	int niter=10,ntotal=0,nmodified,i,j,k,nvoxels;
 	int label;
+	char cmdline[CMD_LINE_LEN] ;
+	
+  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.3 2005/11/27 20:25:34 fischl Exp $", "$Name:  $", cmdline);
 
 	Progname=argv[0];
 
@@ -611,6 +616,8 @@ int main(int argc, char *argv[])
 	mri_seg=MRIread(argv[1]);
 	label=atoi(argv[2]);
 	mri_orig=MRIread(argv[3]);
+	if (mri_orig == NULL)
+		ErrorExit(ERROR_NOFILE, "%s: could not open %s", Progname, argv[3]) ;
 	
 	fprintf(stderr,"\nAmbiguous edge configurations...");
 	
@@ -632,6 +639,7 @@ int main(int argc, char *argv[])
 	fprintf(stderr,"\n\nTotal Number of Modified Voxels = %d (out of %d: %f)\n",ntotal,nvoxels,100.0*ntotal/nvoxels);
 
 	fprintf(stderr,"\nWritting out volume...");
+	MRIaddCommandLine(mri_seg, cmdline) ;
 	MRIwrite(mri_seg,argv[4]);
 
 	fprintf(stderr,"\n\n");

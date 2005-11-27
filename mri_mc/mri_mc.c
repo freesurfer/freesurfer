@@ -1,6 +1,6 @@
 /**
- * @file   dummy.c
- * @author Yasunari Tosa
+ * @file   mri_mc.c
+ * @author Florent Segonne
  * @date   Wed Oct 13 11:47:18 2004
  * 
  * @brief  sample dummy program
@@ -24,6 +24,8 @@
 #include "MRIio_old.h"
 #include "mri.h"
 #include "mrisurf.h"
+#include "version.h"
+#include "tags.h"
 #include "gca.h"
 #include "MC.h"
 
@@ -95,7 +97,7 @@ typedef struct tesselation_parms_
   //  int *vertex_index_table;
   
   /*used for the debugging*/
-  char fname[100];
+  char fname[STRLEN];
 
 } tesselation_parms;
 
@@ -870,6 +872,9 @@ int main(int argc, char *argv[])
 	MRIS **mris_table, *mris,*mris_corrected;
 	MRI *mri;
 	
+	char cmdline[CMD_LINE_LEN] ;
+	
+  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.6 2005/11/27 20:25:34 fischl Exp $", "$Name:  $", cmdline);
 	Progname=argv[0];
 
 	if(argc < 4) {
@@ -928,6 +933,7 @@ int main(int argc, char *argv[])
 	}
 
 	fprintf(stderr,"writting out surface...");
+	MRISaddCommandLine(mris, cmdline) ;
 	MRISwrite(mris_corrected,argv[3]);
 	fprintf(stderr,"done\n");
 
