@@ -1337,24 +1337,45 @@ HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end)
 static double 
 histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
 {
-	int    b1, b2 ;
+	int    b1, b2, h2_done[256] ;
 	double error, sse, c1, c2;
 
+	if (h2->nbins > 256)
+		ErrorExit(ERROR_UNSUPPORTED, "histoComputeLinearFitError: only 256 bins allowed") ;
+	memset(h2_done, 0, sizeof(h2_done)) ;
 	for (sse = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
 	{
-		b2 = b1*a +b ;
-		if (b2 < 0)
-			b2 = 0 ;
-		if (b2 >= h2->nbins)
-			b2 = h2->nbins-1 ;
-		c1 = h1->counts[b1] ; c2 = h2->counts[b2] ;
+		b2 = nint(b1*a+b) ;
+		if ((b2 < 0) || (b2 > h2->nbins-1))
+			c2 = 0 ;
+		else
+		{
+			c2 = h2->counts[b2] ;
+			h2_done[b2] = 1 ;
+		}
+		c1 = h1->counts[b1] ; 
+		error = (c2 - c1) ;
+		sse += error*error ;
+	}
+
+	// inverse map
+	for (b2 = 0 ; b2 < h2->nbins ; b2++)
+	{
+		if (h2_done[b2])
+			continue ;
+		b1 = nint(b2-b)/a ;
+		if ((b1 < 0) || (b1 > h1->nbins-1))
+			c1 = 0 ;
+		else
+			c1 = h1->counts[b1] ;
+		c2 = h2->counts[b2] ; 
 		error = (c2 - c1) ;
 		sse += error*error ;
 	}
 	return(sse) ;
 }
 
-#define NSTEPS 50
+#define NSTEPS 100
 int
 HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax, 
 									 double bmin, double bmax, float *pa, float *pb)
@@ -1363,7 +1384,7 @@ HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax,
 
 	min_sse = histoComputeLinearFitError(h1, h2, 1.0, 0.0) ;
 	min_a = 1.0 ; min_b = 0.0 ;
-	astep = (amax-amin)/NSTEPS ;
+	astep = MIN(amin, (amax-amin)/NSTEPS) ;
 	bstep = (bmax-bmin)/NSTEPS ;
 	for (a = amin ; a <= amax ; a += astep)
 		for (b = bmin ; b <= bmax ; b += bstep)
@@ -1392,3 +1413,34 @@ HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale, float offset)
 	return(hdst) ;
 }
 
+float
+HISTOthreshSum(HISTOGRAM *h_mask, HISTOGRAM *h_src, float m_thresh)
+{
+	int   b ;
+	float total ;
+
+	for (total = 0.0, b = 0 ; b < h_mask->nbins ; b++)
+	{
+		if (h_mask->counts[b] > m_thresh)
+			total += h_src->counts[b] ;
+	}
+	return(total) ;
+}
+HISTOGRAM *
+HISTOmakePDF(HISTO *h_src, HISTO *h_dst)
+{
+	int    b ;
+	float  total ;
+
+	if (h_dst == NULL)
+		h_dst = HISTOcopy(h_src, NULL) ;
+	
+	for (total = 0.0, b = 0 ; b < h_dst->nbins ; b++)
+		total += h_dst->counts[b] ;
+
+	if (total > 0)
+		for (b = 0 ; b < h_dst->nbins ; b++)
+			h_dst->counts[b]/=total ;
+
+	return(h_dst) ;
+}
