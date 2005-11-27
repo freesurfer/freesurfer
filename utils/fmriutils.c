@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.20 2005/11/26 06:46:54 greve Exp $
+   $Id: fmriutils.c,v 1.21 2005/11/27 02:04:26 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.20 2005/11/26 06:46:54 greve Exp $");
+  return("$Id: fmriutils.c,v 1.21 2005/11/27 02:04:26 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -994,4 +994,29 @@ double MRIframeMax(MRI *vol, int frame, MRI *mask, int absflag,
     }//r
   }//s
   return(vmax);
+}
+/*---------------------------------------------------------------
+  MRIframeMean() - computes mean over frames of each voxel.
+  --------------------------------------------------------------*/
+MRI *MRIframeMean(MRI *vol, MRI *volmn)
+{
+  int c, r, s,f;
+  double v;
+
+  if(volmn == NULL){
+    volmn = MRIallocSequence(vol->width,vol->height,vol->depth,MRI_FLOAT,1);
+    MRIcopyHeader(vol,volmn);
+  }
+
+  for(c=0; c < vol->width; c++){
+    for(r=0; r < vol->height; r++){
+      for(s=0; s < vol->depth; s++){
+	v = 0;
+	for(f=0; f < vol->nframes; f++)
+	  v += MRIgetVoxVal(vol,c,r,s,f);
+	MRIsetVoxVal(volmn,c,r,s,0,v/vol->nframes);
+      }//s
+    }//r
+  }//s
+  return(volmn);
 }

@@ -65,5 +65,5 @@ VECTOR *MRItoVector(MRI *mri, int c, int r, int s, VECTOR *v);
 int MRIsetSign(MRI *invol, MRI *signvol, int frame);
 double MRIframeMax(MRI *vol, int frame, MRI *mask, int absflag,
 		   int *cmax, int *rmax, int *smax);
-
+MRI *MRIframeMean(MRI *vol, MRI *volmn);
 #endif
