@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/11/28 01:36:09 $                                             */
-/* Revision       : $Revision: 1.45 $                                         */
+/* Revision Date  : $Date: 2005/11/28 13:17:34 $                                             */
+/* Revision       : $Revision: 1.46 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -167,7 +167,6 @@ int  vg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2); // return 1 if equal 
 void vg_print(const VOL_GEOM *vg);
  
 int LTAvoxelXformToRASXform(const MRI *src, const MRI *dst, LT *voxTran, LT *rasTran);
-#endif
 
 // well uses LTA
 MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta);
@@ -175,3 +174,4 @@ MRI   *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta) ;
 int TransformSampleReal(TRANSFORM *transform,
 												float xv, float yv, float zv, 
 												float *px, float *py, float *pz) ;
+#endif
