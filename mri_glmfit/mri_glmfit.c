@@ -45,6 +45,8 @@ double round(double x);
 #include "fsgdf.h"
 #include "timer.h"
 #include "matfile.h"
+#include "volcluster.h"
+#include "surfcluster.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -56,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.30 2005/09/29 21:43:55 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.31 2005/11/28 06:56:13 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -64,7 +66,6 @@ char *yhatFile=NULL, *eresFile=NULL, *wFile=NULL, *maskFile;
 char *condFile=NULL;
 char *GLMDir=NULL;
 char *pvrFiles[50];
-int synth = 0;
 int yhatSave=0;
 int condSave=0;
 
@@ -107,6 +108,19 @@ char *cmdline, cwd[2000];
 char *MaxVoxBase = NULL;
 int DontSave = 0;
 
+int DoLoop=0;
+int nloop = 0;
+int synth = 0;
+int perm = 0;
+double thresh=0;
+int threshsign=0; //0=abs,+1,-1
+SURFCLUSTERSUM *SurfClustList;
+int nClusters;
+char *subject=NULL, *hemi=NULL, *loopbase=NULL;
+MRI_SURFACE *surf=NULL;
+int nthloop;
+double csize;
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
@@ -138,7 +152,7 @@ int main(int argc, char **argv)
   check_options();
   if(checkoptsonly) return(0);
 
-  if(synth) if(SynthSeed < 0) SynthSeed = PDFtodSeed();
+  if(SynthSeed < 0) SynthSeed = PDFtodSeed();
   dump_options(stdout);
 
   if(! DontSave){
@@ -201,27 +215,14 @@ int main(int argc, char **argv)
     }
   }
 
-  // --------------------------------------------------------------
-  // Load or synthesize input--------------------------------------
-  if(synth == 0){
-    printf("Loading y from %s\n",yFile);
-    mriglm->y = MRIread(yFile);
-    if(mriglm->y == NULL){
-      printf("ERROR: loading y %s\n",yFile);
-      exit(1);
-    }
+  // Load input--------------------------------------
+  printf("Loading y from %s\n",yFile);
+  mriglm->y = MRIread(yFile);
+  if(mriglm->y == NULL){
+    printf("ERROR: loading y %s\n",yFile);
+    exit(1);
   }
-  else{
-    mritmp = MRIreadHeader(yFile,MRI_VOLUME_TYPE_UNKNOWN);
-    if(mritmp == NULL){
-      printf("ERROR: reading header for y %s\n",yFile);
-      exit(1);
-    }
-    printf("Synthesizing y with white noise\n");
-    mriglm->y =  MRIrandn(mritmp->width, mritmp->height, mritmp->depth, 
-			 mritmp->nframes,0,1,NULL);
-    MRIfree(&mritmp);
-  }
+
   // Check number of frames ----------------------------------
   if(mriglm->y->nframes != mriglm->Xg->rows){
     printf("ERROR: dimension mismatch between y and X.\n");
@@ -360,12 +361,66 @@ int main(int argc, char **argv)
     }
   }
 
-  // Now do the estimation and testing
-  TimerStart(&mytimer) ;
-  printf("Starting fit\n");
-  MRIglmFit(mriglm);
-  msecFitTime = TimerStop(&mytimer) ;
-  printf("Fit completed in %g minutes\n",msecFitTime/(1000*60.0));
+  //--------------------------------------------------------------------------
+  if(!DoLoop){
+    // Now do the estimation and testing
+    TimerStart(&mytimer) ;
+    printf("Starting fit\n");
+    MRIglmFit(mriglm);
+    msecFitTime = TimerStop(&mytimer) ;
+    printf("Fit completed in %g minutes\n",msecFitTime/(1000*60.0));
+  }
+
+  //--------------------------------------------------------------------------
+  if(DoLoop){
+    // Write header to output files
+    for(n=0; n < mriglm->glm->ncontrasts; n++){
+      sprintf(tmpstr,"%s-%s.dat",loopbase,mriglm->glm->Cname[n]);
+      fp = fopen(tmpstr,"w");
+      fprintf(fp,"# mri_glmfit simulation loop\n");
+      fprintf(fp,"# perm   %d\n",perm);
+      fprintf(fp,"# synth  %d\n",synth);
+      fprintf(fp,"# seed   %d\n",SynthSeed);
+      fprintf(fp,"# thresh %g\n",thresh);
+      fprintf(fp,"# hostname %s\n",uts.nodename);
+      fprintf(fp,"# machine  %s\n",uts.machine);
+      if(surf == NULL) fprintf(fp,"# anatomy-type volume\n");
+      else             fprintf(fp,"# anatomy-type surface %s %s\n",subject,hemi);
+      fprintf(fp,"# LoopNo nClusters MaxClustSize MaxSig MaxF\n");
+
+      fclose(fp);
+    }
+
+    printf("Staring simulation loop over %d trials\n",nloop);
+    for(nthloop=0; nthloop < nloop; nthloop++){
+
+      if(synth)
+	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
+		 0,1,mriglm->y);
+      if(perm) MatrixRandPermRows(mriglm->Xg);
+
+      MRIglmFit(mriglm);
+
+      for(n=0; n < mriglm->glm->ncontrasts; n++){
+	sig    = MRIlog10(mriglm->p[n],sig,1);
+	sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
+	Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
+	MRISsetValsFromMRI(surf, sig, 0);
+	SurfClustList = sclustMapSurfClusters(surf,thresh,-1,threshsign,0,&nClusters,NULL);
+	csize = sclustMaxClusterArea(SurfClustList, nClusters);
+	MRIfree(&sig);
+
+	printf("%s %d %d   %g  %g  %g\n",mriglm->glm->Cname[n],nthloop,
+	       nClusters,csize,sigmax,Fmax);
+	sprintf(tmpstr,"%s-%s.dat",loopbase,mriglm->glm->Cname[n]);
+	fp = fopen(tmpstr,"a");
+	fprintf(fp,"%d %d   %g  %g  %g\n",nthloop,nClusters,csize,sigmax,Fmax);
+	fclose(fp);
+      }
+    }
+    exit(0);
+  }
+  //--------------------------------------------------------------------------
 
   if(MaxVoxBase != NULL){
     for(n=0; n < mriglm->glm->ncontrasts; n++){
@@ -514,11 +569,37 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-    else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--save-yhat")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
+    else if (!strcasecmp(option, "--synth"))   synth = 1;
+    else if (!strcasecmp(option, "--perm"))    perm = 1;
 
+    else if (!strcasecmp(option, "--loop")){
+      if(nargc < 3) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nloop);
+      sscanf(pargv[1],"%lf",&thresh);
+      loopbase = pargv[2];
+      DoLoop = 1;
+      DontSave = 1;
+      nargsused = 3;
+    }
+    else if (!strcasecmp(option, "--surf")){
+      if(nargc < 2) CMDargNErr(option,1);
+      SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+      if(SUBJECTS_DIR == NULL){
+	printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+	exit(1);
+      }
+      subject = pargv[0];
+      hemi    = pargv[1];
+      nargsused = 2;
+      sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
+      printf("Reading source surface %s\n",tmpstr);
+      surf = MRISread(tmpstr) ;
+      if (!surf)
+	ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, tmpstr) ;
+    }
     else if (!strcasecmp(option, "--seed")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
