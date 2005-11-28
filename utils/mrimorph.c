@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/11/07 20:27:21 $
-// Revision       : $Revision: 1.48 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/11/28 01:33:52 $
+// Revision       : $Revision: 1.49 $
 */
 
 /*-----------------------------------------------------
@@ -7844,9 +7844,10 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
   return(NO_ERROR) ;
 }
 #include "voxlist.h"
-static int    powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat);
+static int    powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat, float *pscale_factor,
+															MATRIX *m_constraint);
 static float compute_powell_sse(float *p) ;
-static double compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L) ;
+static double compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, float scale_factor) ;
 #if 0
 static int write_snapshot(MRI *mri_source, MRI *mri_target, 
 													MATRIX *m_vox_xform, char *base_name, int fno) ;
@@ -7879,7 +7880,7 @@ write_snapshot(MRI *mri_source, MRI *mri_target, MATRIX *m_vox_xform,
 #endif
 /* compute mean squared error of two images with a transform */
 static double
-compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L)
+compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, float scale_factor)
 {
 	int     x, y, z, width, height, depth,
 		      hwidth, hheight, hdepth, i ;
@@ -7929,7 +7930,7 @@ compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L)
 		else if (zd >= depth-1)
 			zd = depth-1 ;
 		MRIsampleVolume(vl_target->mri2, xd, yd, zd, &d2) ;
-		error = d1-d2 ;
+		error = scale_factor*d1-d2 ;
 		sse += error*error ;
 	}
 
@@ -7966,7 +7967,7 @@ compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L)
 	return(-sqrt(sse / (double)(vl_target->nvox + vl_source->nvox))) ;
 }
 MATRIX *
-MRIpowellAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L)
+MRIpowellAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L, float *pscale_factor, MATRIX *m_constraint)
 {
   int    i ;
   float  fmin, fmax ;
@@ -7983,14 +7984,16 @@ MRIpowellAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L)
 		MRIvalRange(mri_target, &fmin, &fmax) ;
 		vl_source = VLSTcreate(mri_source, 1, fmax+1, NULL, 0, 0) ;
 		vl_source->mri2 = mri_source ;
-		powell_minimize(vl_source, vl_target, m_L) ;
+		powell_minimize(vl_source, vl_target, m_L, pscale_factor, m_constraint) ;
 		VLSTfree(&vl_source) ;
 	}
+	if (pscale_factor)
+		printf("best matching intensity scaling = %2.4f\n", *pscale_factor) ;
 	VLSTfree(&vl_target) ;
 	//	write_snapshot(mri_source, mri_target, m_L, "after_powell", 0) ;
   return(m_L) ;
 }
-#define NPARMS (4*4)
+#define NPARMS (3*4)
 #ifdef TOL
 #undef TOL
 #endif
@@ -8000,51 +8003,157 @@ MRIpowellAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L)
 static VOXEL_LIST *Gvl_target, *Gvl_source ;
 
 static int
-powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat)
+powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat, float *pscale_factor, MATRIX *m_constraint)
 {
-	float *p, **xi, fret, fstart;
+	float *p, **xi, fret, fstart, scale_factor;
 	int   i, r, c, iter ;
-	
-
-	p = vector(1, NPARMS) ;
-	xi = matrix(1, NPARMS, 1, NPARMS) ;
-	for (i = r = 1 ; r <= 4 ; r++)
+	p = vector(1, NPARMS+1) ;
+	xi = matrix(1, NPARMS+1, 1, NPARMS+1) ;
+	p[i=1] = *MATRIX_RELT(mat, 1, 4) ;
+	p[i++] = *MATRIX_RELT(mat, 2, 4) ;
+	p[i++] = *MATRIX_RELT(mat, 3, 4) ;
+	for ( r = 1 ; r <= 3 ; r++)
 	{
-		for (c = 1 ; c <= 4 ; c++)
+		for (c = 1 ; c <= 3 ; c++)
 		{
 			p[i++] = *MATRIX_RELT(mat, r, c) ;
 		}
 	}
+	p[i] = 1.0 ;   // scaling parameter
 
 	Gvl_target = vl_target ; Gvl_source = vl_source ;
-	for (r = 1 ; r <= NPARMS ; r++)
+	for (r = 1 ; r <= NPARMS+1 ; r++)
 	{
-		for (c = 1 ; c <= NPARMS ; c++)
+		for (c = 1 ; c <= NPARMS+1 ; c++)
 		{
 			xi[r][c] = r == c ? 1 : 0 ;
 		}
 	}
 
-	powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+	if (m_constraint)
+	{
+		for (i = r = 1 ; r <= 4 ; r++)
+		{
+			for (c = 1 ; c <= 4 ; c++, i++)
+			{
+				if (*MATRIX_RELT(m_constraint, r, c) > 0)
+					xi[i][i] = 0 ;   // remove this direction from powell set
+			}
+		}
+	}
+
+#if 0
+	{
+		float scale, min_sse, sse, min_scale ;
+		MATRIX *m_scale = NULL, *m_tot = NULL, *m_min, *m_origin, *m_origin_inv,
+			     *m_tmp = NULL;
+		double   in_means[3] ;
+
+    MRIcenterOfMass(vl_source->mri2, in_means, 0) ;
+		m_origin = MatrixIdentity(4, NULL) ;
+		*MATRIX_RELT(m_origin, 1, 4) = in_means[0] ;
+		*MATRIX_RELT(m_origin, 2, 4) = in_means[1] ;
+		*MATRIX_RELT(m_origin, 3, 4) = in_means[2] ;
+		*MATRIX_RELT(m_origin, 4, 4) = 1 ;
+		m_origin_inv = MatrixCopy(m_origin, NULL) ;
+		*MATRIX_RELT(m_origin_inv, 1, 4) *= -1 ;
+		*MATRIX_RELT(m_origin_inv, 2, 4) *= -1 ;
+		*MATRIX_RELT(m_origin_inv, 3, 4) *= -1 ;
+
+		min_sse = compute_powell_sse(p) ;   
+		m_min = MatrixCopy(mat, NULL) ;
+		min_scale = 1.0 ;
+
+		printf("starting sse before global scale: %2.3f\n", min_sse) ;
+		for (scale = 0.25 ; scale <= 4.0 ; scale += 0.025)
+		{
+			m_scale = MatrixIdentity(4, m_scale) ;
+			MatrixScalarMul(m_scale, scale, m_scale) ;
+			*MATRIX_RELT(m_scale, 4, 4) = 1 ;
+			m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
+			MatrixMultiply(m_origin, m_tmp, m_scale) ;
+			m_tot = MatrixMultiply(m_scale, mat, m_tot) ;
+			for (i = r = 1 ; r <= 4 ; r++)
+			{
+				for (c = 1 ; c <= 4 ; c++)
+				{
+					p[i++] = *MATRIX_RELT(m_tot, r, c) ;
+				}
+			}
+			sse = compute_powell_sse(p) ;   
+			if (sse < min_sse)
+			{
+				min_sse = sse ;
+				MatrixCopy(m_tot, m_min) ;
+				min_scale = scale ;
+			}
+			if (DIAG_VERBOSE_ON)
+			{
+				MRI *mri_aligned ;
+				mri_aligned = MRIlinearTransform(vl_source->mri2, NULL, m_tot) ;
+				MRIwrite(mri_aligned, "a.mgz") ;
+				MRIfree(&mri_aligned) ;
+			}
+		}
+		MatrixCopy(m_min, mat) ;
+		MatrixFree(&m_scale) ; MatrixFree(&m_tot) ; MatrixFree(&m_min) ;
+		MatrixFree(&m_origin) ; MatrixFree(&m_origin_inv) ; MatrixFree(&m_tmp) ;
+		for (i = r = 1 ; r <= 4 ; r++)
+		{
+			for (c = 1 ; c <= 4 ; c++)
+			{
+				p[i++] = *MATRIX_RELT(mat, r, c) ;
+			}
+		}
+		printf("after global search, min scale %2.3f, sse: %2.3f\n", 
+					 min_scale, min_sse) ;
+	}
+#endif
+
+	if (pscale_factor)
+		powell(p, xi, NPARMS+1, TOL, &iter, &fret, compute_powell_sse);
+	else
+		powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+	scale_factor = p[i] ; 
 	do
 	{
-		for (r = 1 ; r <= NPARMS ; r++)
+		// reinitialize powell directions
+		for (r = 1 ; r <= NPARMS+1 ; r++)
 		{
-			for (c = 1 ; c <= NPARMS ; c++)
+			for (c = 1 ; c <= NPARMS+1 ; c++)
 			{
 				xi[r][c] = r == c ? 1 : 0 ;
 			}
 		}
 
-		fstart = fret ;
-		powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
-		for (i = r = 1 ; r <= 4 ; r++)
+		if (m_constraint)
 		{
-			for (c = 1 ; c <= 4 ; c++)
+			for (i = r = 1 ; r <= 4 ; r++)
+			{
+				for (c = 1 ; c <= 4 ; c++, i++)
+				{
+					if (*MATRIX_RELT(m_constraint, r, c) > 0)
+						xi[i][i] = 0 ;   // remove this direction from powell set
+				}
+			}
+		}
+		fstart = fret ;
+		if (pscale_factor)
+			powell(p, xi, NPARMS+1, TOL, &iter, &fret, compute_powell_sse);
+		else
+			powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+		
+		*MATRIX_RELT(mat, 1, 4) = p[i=1] ;
+		*MATRIX_RELT(mat, 2, 4) = p[i++] ; 
+		*MATRIX_RELT(mat, 3, 4) = p[i++] ;
+		for ( r = 1 ; r <= 3 ; r++)
+		{
+			for (c = 1 ; c <= 3 ; c++)
 			{
 				*MATRIX_RELT(mat, r, c) = p[i++] ;
 			}
 		}
+		scale_factor = p[i] ; 
 		*MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ; 
 		*MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ; 
 		if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -8055,27 +8164,33 @@ powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat)
 
 	free_matrix(xi, 1, NPARMS, 1, NPARMS) ;
 	free_vector(p, 1, NPARMS) ;
+	if (pscale_factor)
+		*pscale_factor = scale_factor ;
 	return(NO_ERROR) ;
 }
 static float
 compute_powell_sse(float *p)
 {
 	static MATRIX *mat = NULL ;
-	float  error ;
+	float  error, scale_factor ;
 	int    i, r, c ;
 
 	if (mat == NULL)
 		mat = MatrixAlloc(4, 4, MATRIX_REAL) ;
-	for (i = r = 1 ; r <= 4 ; r++)
+	*MATRIX_RELT(mat, 1, 4) = p[i=1] ;
+	*MATRIX_RELT(mat, 2, 4) = p[i++] ; 
+	*MATRIX_RELT(mat, 3, 4) = p[i++] ;
+	for (r = 1 ; r <= 3 ; r++)
 	{
-		for (c = 1 ; c <= 4 ; c++)
+		for (c = 1 ; c <= 3 ; c++)
 		{
 			*MATRIX_RELT(mat, r, c) = p[i++] ;
 		}
 	}
+	scale_factor = p[i] ;
 	*MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ; 
 	*MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ; 
-	error = -compute_likelihood(Gvl_source, Gvl_target, mat) ;
+	error = -compute_likelihood(Gvl_source, Gvl_target, mat, scale_factor) ;
 	return(error) ;
 }
 
