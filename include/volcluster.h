@@ -90,6 +90,8 @@ CSD *CSDread(char *csdfile);
 CSD *CSDmerge(CSD *csd1, CSD *csd2);
 CSD *CSDreadMerge(char *csdfile, CSD *csd);
 int CSDprint(FILE *fp, CSD *csd);
+double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
+			double ciPct, double *pvalLow, double *pvalHi);
 
 /*----------------------------------------------------------*/
 typedef struct {

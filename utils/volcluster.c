@@ -3,6 +3,7 @@
 #include <math.h>
 #include <string.h>
 
+#include <gsl/gsl_randist.h>
 #include "mri.h"
 #include "resample.h"
 #include "transform.h"
@@ -1248,5 +1249,62 @@ int CSDprint(FILE *fp, CLUSTER_SIM_DATA *csd)
 	    csd->MaxClusterSize[nthrep],csd->MaxSig[nthrep]);
   }
   return(0);
+}
+/*--------------------------------------------------------------
+  CSDpvalClustSize() - computes the emperical pvalue for a given
+  cluster size, as well as the confidence interval. ciPct is the conf
+  interval given in percent (eg, 90 for 90%). This means that there
+  will be a 90% chance that the "true" pvalue for the cluster will lie
+  between pvalLow and pvalHi (based on binomial distribution).
+  --------------------------------------------------------------*/
+double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
+			double ciPct, double *pvalLow, double *pvalHi)
+{
+  int nthrep,nover, k, nlow, nhi;
+  double pval,psum, pcilow, pcihi;
+
+  // First, count the number of MaxClusters whose size is greater than
+  // the one under test
+  nover = 0;
+  for(nthrep = 0; nthrep < csd->nreps; nthrep++)
+    if(csd->MaxClusterSize[nthrep] > ClusterSize) nover++;
+
+  // If none is over, then give a pval=0, but set the confidence interval 
+  // very wide
+  if(nover == 0){
+    pval = 0;
+    *pvalLow = 0;
+    *pvalHi  = 1;
+    return(pval);
+  }
+
+  // Compute the nomial pvalue
+  pval = (double)nover/csd->nreps;
+
+  // Ranges for confidence interval
+  pcihi  = ciPct/100;
+  pcilow = 1-pcihi;
+
+  // Loop thru all possible outcomes (k), computing the CDF of the 
+  // binomial distribution, until the upper conf interval is reached.
+  nlow = -1;
+  k = 0;
+  psum = gsl_ran_binomial_pdf(k,pval,csd->nreps);
+  while(psum < pcihi && k <= csd->nreps){
+    //printf("%3d %lf\n",k,psum);
+    if(nlow < 0 && psum > pcilow) nlow = k;
+    k++;
+    psum += gsl_ran_binomial_pdf(k,pval,csd->nreps);
+  }
+  nhi = k;
+
+  // Compute the pvalues at the lower and upper confidence intervals
+  *pvalLow = (double)nlow/csd->nreps;
+  *pvalHi  = (double)nhi/csd->nreps;
+
+  //printf("csize=%lf  p=%lf  ci=%lf  nLow=%d pLow=%lf nHi=%d pHi=%lf\n",
+  //	 ClusterSize,pval,ciPct,nlow,*pvalLow,nhi,*pvalHi);
+
+  return(pval);
 }
 
