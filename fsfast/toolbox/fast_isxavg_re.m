@@ -417,6 +417,7 @@ function s = check_params(s)
     switch(s.involfmt)
       case 'bfile'
         [nslices nrows ncols nt] = fmri_bvoldim(invol);
+	if(nslices == 0) s=[];  return; end
         if(s.nslices == -1) s.nslices = nslices; end
       case 'minc'
         if(~fast_fileexists(invol))

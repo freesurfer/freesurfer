@@ -1,7 +1,7 @@
 function [nslices, nrows, ncols, nt, endian, bext, hdrdat] = fmri_bvoldim(stem)
 % [nslices nrows ncols nt endian bext hdrdat] = fmri_bvoldim(stem)
 % 
-% $Id: fmri_bvoldim.m,v 1.1 2003/03/04 20:47:39 greve Exp $
+% $Id: fmri_bvoldim.m,v 1.2 2005/11/28 22:40:29 greve Exp $
 
 nslices = 0;
 nrows   = 0;
@@ -25,6 +25,11 @@ for slice = 0:1000
   fid = fopen(fname,'r');
   if(fid == -1) break;  end
   hdr = fscanf(fid,'%d',[1,4]);
+  if(isempty(hdr))
+    fprintf('ERROR: reading %s\n',fname);
+    nslices = 0;
+    return;
+  end
   nrows = hdr(1);
   ncols = hdr(2);
   nt = hdr(3);
