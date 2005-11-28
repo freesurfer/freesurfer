@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.44 2005/11/04 22:18:03 greve Exp $
+  $Id: mris_glm.c,v 1.45 2005/11/28 07:04:07 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -75,7 +75,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.44 2005/11/04 22:18:03 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.45 2005/11/28 07:04:07 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -191,7 +191,7 @@ int abs_flag = 0;
 
 int nvoxels;
 FILE *fp;
-
+int DoPermute = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.44 2005/11/04 22:18:03 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.45 2005/11/28 07:04:07 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -454,10 +454,8 @@ int main(int argc, char **argv)
 
 
   if(SynthPDF != 0){
-    if(SynthSeed < 0) SynthSeed = PDFtodSeed();
     printf("INFO: synthesizing, pdf = %d, seed = %d\n",SynthPDF,SynthSeed);
     printf("INFO: simulating over %d loops\n",nsim);
-    srand48(SynthSeed);
   }
 
   /* ------- Start simulation loop -- only one pass for non-sim runs -------- */
@@ -513,7 +511,11 @@ int main(int argc, char **argv)
     /*-------- Compute beta ----------- */
     if(beta_in_id == NULL){
       
-      /* Do permutation here. */
+      if(DoPermute){
+	MatrixRandPermRows(X);
+	printf("Permuting rows of design matrix (seed = %d)\n",SynthSeed);
+	MatrixPrint(stdout,X);
+      }
       
       if(nthsim == 1) printf("INFO: computing beta \n");fflush(stdout);
       beta = fMRImatrixMultiply(SrcVals, Q, beta);
@@ -678,6 +680,7 @@ static int parse_commandline(int argc, char **argv)
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if ( !strcmp(option, "--xmatonly") ) xmatonly = 1;
     else if ( !strcmp(option, "--abs") ) abs_flag = 1;
+    else if ( !strcmp(option, "--permute") ) DoPermute = 1;
 
     else if (!strcmp(option, "--seed")){
       if(nargc < 1) argnerr(option,1);
@@ -1035,6 +1038,7 @@ static void print_usage(void)
   printf("   --mcsim nsim fname nithr ithrlo ithrhi ithrsign nsthr sthrlo sthrhi: "
 	 "MC Simulation.\n");
   printf("\n");
+  printf("   --xmatonly : only compute and save the design matrix\n");
   printf("   --allowsubjrep : allow subject name to be replicated\n");
   printf("   --force : force processing with badly cond X\n");
   printf("   --sd    subjectsdir : default is env SUBJECTS_DIR\n");
@@ -1448,6 +1452,14 @@ static void argnerr(char *option, int n)
 /* --------------------------------------------- */
 static void check_options(void)
 {
+  if(SynthSeed < 0) SynthSeed = PDFtodSeed();
+  srand48(SynthSeed);
+
+  if(DoPermute){
+    printf("Permuting rows of design matrix (seed = %d)\n",SynthSeed);
+    MatrixRandPermRows(X);
+    MatrixPrint(stdout,X);
+  }
 
   if(xmatonly){
     if(fsgdfile == NULL){
@@ -1458,7 +1470,7 @@ static void check_options(void)
       printf("ERROR: need xmat file with --matonly\n");
       exit(1);
     }
-    X = gdfMatrix(fsgd,gd2mtx_method,NULL);
+    //X = gdfMatrix(fsgd,gd2mtx_method,NULL); // X should already exist
     MatrixWriteFmt(X,xmatfile,xmatfmt);
     exit(0);
   }
