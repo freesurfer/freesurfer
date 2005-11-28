@@ -1,5 +1,5 @@
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.11 2005/09/26 18:34:28 greve Exp $
+// $Id: fsglm.c,v 1.12 2005/11/28 05:45:09 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -117,7 +117,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.11 2005/09/26 18:34:28 greve Exp $"); 
+  return("$Id: fsglm.c,v 1.12 2005/11/28 05:45:09 greve Exp $"); 
 }
 
 /*------------------------------------------------------------
@@ -344,7 +344,9 @@ int GLMfit(GLMMAT *glm)
   for(f = 1; f <= glm->eres->rows; f++)
     glm->rvar += (glm->eres->rptr[f][1] * glm->eres->rptr[f][1]);
   glm->rvar /= glm->dof;
-  if(glm->rvar < FLT_MIN) glm->rvar = FLT_MIN; // not quite 0
+
+  if(glm->rvar < FLT_MIN) glm->rvar = 100000; // not quite 0
+
 
   return(0);
 }
