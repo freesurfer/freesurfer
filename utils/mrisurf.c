@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/11/21 18:24:58 $
-// Revision       : $Revision: 1.383 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/11/28 06:12:06 $
+// Revision       : $Revision: 1.384 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -47663,4 +47663,35 @@ MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame)
 	}
 	return(NO_ERROR) ;
 	
+}
+
+/*---------------------------------------------------------------
+  MRISsetValsFromMRI() - sets the values of a surface from the 
+  values in an MRI struct. 
+  ---------------------------------------------------------------*/
+int MRISsetValsFromMRI(MRI_SURFACE *surf, MRI *mri, int frame)
+{
+  int c,r,s,v;
+  double val;
+
+  if(frame >= mri->nframes)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+       "MRISsetValsFromMRI: frame=%d > nframes=%d",frame, mri->nframes)) ;
+
+  if(surf->nvertices != (mri->width * mri->height * mri->depth))
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+       "MRISsetValsFromMRI: dimension mismatch")) ;
+
+  v=0;
+  for(s=0; s < mri->depth; s++){
+    for(r=0; r < mri->height; r++){
+      for(c=0; c < mri->width; c++){
+	val = MRIgetVoxVal(mri,c,r,s,frame);
+	surf->vertices[v].val = val;
+	v++;
+      }
+    }
+  }
+
+  return(0);
 }
