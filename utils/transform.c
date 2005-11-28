@@ -417,6 +417,7 @@ LTAread(char *fname)
 		lta = ltaReadRegisterDat(fname) ;
 		if (!lta) return(NULL) ;
 
+#if 0
 		V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
 		W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
 		*MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
@@ -433,6 +434,9 @@ LTAread(char *fname)
 		MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
 		MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
 		lta->type = LINEAR_VOX_TO_VOX ;
+#else
+		lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
+#endif
 		break ;
 	case MNI_TRANSFORM_TYPE:
 		lta = ltaMNIread(fname) ;
@@ -1725,6 +1729,79 @@ TransformSample(TRANSFORM *transform,
 
   return errCode ;
 }
+int
+TransformSampleReal(TRANSFORM *transform,
+										float xv, float yv, float zv, 
+										float *px, float *py, float *pz)
+{
+  static VECTOR   *v_input, *v_canon = NULL ;
+  float           xt, yt, zt ;
+  LTA             *lta ;
+  GCA_MORPH       *gcam ;
+  int errCode = NO_ERROR, xi, yi, zi;
+
+  *px = *py = *pz = 0 ;
+  if (transform->type == MORPH_3D_TYPE)
+	{
+		gcam = (GCA_MORPH *)transform->xform ;
+		if (!gcam->mri_xind)
+			ErrorReturn(ERROR_UNSUPPORTED, 
+									(ERROR_UNSUPPORTED, 
+									 "TransformSample: gcam has not been inverted!")) ;
+
+		// the following should not happen /////////////////
+		if (xv < 0)
+			xv = 0 ;
+		if (xv >= gcam->mri_xind->width)
+			xv = gcam->mri_xind->width-1 ;
+		if (yv < 0)
+			yv = 0 ;
+		if (yv >= gcam->mri_yind->height)
+			yv = gcam->mri_yind->height-1 ;
+		if (zv < 0)
+			zv = 0 ;
+		if (zv >= gcam->mri_zind->depth)
+			zv = gcam->mri_zind->depth-1 ;
+
+		xi = nint(xv) ; yi = nint(yv) ; zi = nint(zv) ;
+
+		xt = MRIgetVoxVal(gcam->mri_xind, xi, yi, zi, 0)*gcam->spacing ;
+		yt = MRIgetVoxVal(gcam->mri_yind, xi, yi, zi, 0)*gcam->spacing ;
+		zt = MRIgetVoxVal(gcam->mri_zind, xi, yi, zi, 0)*gcam->spacing ;
+
+	}
+  else
+	{
+		lta = (LTA *)transform->xform ;
+		if (lta->type != LINEAR_VOXEL_TO_VOXEL)
+			ErrorExit(ERROR_BADPARM, "Transform was not of voxel-to-voxel type");
+		if (!v_canon)
+		{
+			v_input = VectorAlloc(4, MATRIX_REAL) ;
+			v_canon = VectorAlloc(4, MATRIX_REAL) ;
+			*MATRIX_RELT(v_input, 4, 1) = 1.0 ;
+			*MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
+		}
+		V3_X(v_input) = xv;
+		V3_Y(v_input) = yv;
+		V3_Z(v_input) = zv;
+		MatrixMultiply(lta->xforms[0].m_L, v_input, v_canon) ;
+		xt = V3_X(v_canon) ; yt = V3_Y(v_canon) ; zt = V3_Z(v_canon) ;
+    
+		if (xt < 0) xt = 0;
+		if (yt < 0) yt = 0;
+		if (zt < 0) zt = 0;
+
+		if (!v_canon)
+		{
+			VectorFree(&v_input);
+			VectorFree(&v_canon);
+		}
+	}
+  *px = xt ; *py = yt ; *pz = zt ;
+
+  return errCode ;
+}
 /*
   take a voxel in gca/gcamorph space and find the MRI voxel to which
   it maps
@@ -2002,10 +2079,12 @@ ltaReadRegisterDat(char *fname)
   lta->xforms[0].sigma = 1.0f ;
   lta->xforms[0].x0 = lta->xforms[0].y0 = lta->xforms[0].z0 = 0 ;
   reg = StatReadRegistration(fname) ;
+	if (reg == NULL)
+		ErrorReturn(NULL,(ERROR_BADPARM, "ltaReadRegisterDat: could not read %s", fname));
   MatrixCopy(reg->mri2fmri, lta->xforms[0].m_L) ;
   StatFreeRegistration(&reg) ;
 
-  lta->type = LINEAR_VOXEL_TO_VOXEL ;
+	lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
   return(lta) ;
 }
 
@@ -2409,57 +2488,63 @@ LTA *
 LTAreadEx(const char *fname)
 {
   int       type ;
-  LTA       *lta=0 ;
+  LTA       *lta=NULL ;
+#if 0
   MATRIX *V, *W, *m_tmp;
+#endif
 
   type = TransformFileNameType((char *) fname) ;
   switch (type)
-    {
-    case FSLREG_TYPE:
-      lta = ltaFSLread(fname) ;
-      break ;
-    case REGISTER_DAT:
-      printf("INFO: This REGISTER_DAT transform "
-             "is valid only for volumes between "
-             " COR types with c_(r,a,s) = 0.\n");
-      lta = ltaReadRegisterDat((char *) fname);
-      if (!lta)
-        return(NULL) ;
+	{
+	case FSLREG_TYPE:
+		lta = ltaFSLread(fname) ;
+		break ;
+	case REGISTER_DAT:
+		printf("INFO: This REGISTER_DAT transform "
+					 "is valid only for volumes between "
+					 " COR types with c_(r,a,s) = 0.\n");
+		lta = ltaReadRegisterDat((char *) fname);
+		if (!lta)
+			return(NULL) ;
 
-      V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
-      W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
-      *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
-      *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
-      *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
-      *MATRIX_RELT(V, 4, 4) = 1 ;
+#if 0
+		V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
+		W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
+		*MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
+		*MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
+		*MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
+		*MATRIX_RELT(V, 4, 4) = 1 ;
     
-      *MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
-      *MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
-      *MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
-      *MATRIX_RELT(W, 4, 4) = 1 ;
+		*MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
+		*MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
+		*MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
+		*MATRIX_RELT(W, 4, 4) = 1 ;
     
-      m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
-      MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
-      MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
-      lta->type = LINEAR_VOX_TO_VOX ;
-      break ;
+		m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
+		MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
+		MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
+		lta->type = LINEAR_VOX_TO_VOX ;
+#else
+		lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
+#endif
+		break ;
 
-    case MNI_TRANSFORM_TYPE:
-      // this routine collect info on original src and dst volume
-      // so that you can use the information to modify c_(r,a,s)
-      // we no longer convert the transform to vox-to-vox
-      // the transform is ras-to-ras
-      lta = ltaMNIreadEx(fname) ;
-      break ;
+	case MNI_TRANSFORM_TYPE:
+		// this routine collect info on original src and dst volume
+		// so that you can use the information to modify c_(r,a,s)
+		// we no longer convert the transform to vox-to-vox
+		// the transform is ras-to-ras
+		lta = ltaMNIreadEx(fname) ;
+		break ;
 
-    case LINEAR_VOX_TO_VOX:
-    case LINEAR_RAS_TO_RAS:
-    case TRANSFORM_ARRAY_TYPE:
-    default:
-      // get the original src and dst information
-      lta = ltaReadFileEx(fname);
-      break ;
-    }
+	case LINEAR_VOX_TO_VOX:
+	case LINEAR_RAS_TO_RAS:
+	case TRANSFORM_ARRAY_TYPE:
+	default:
+		// get the original src and dst information
+		lta = ltaReadFileEx(fname);
+		break ;
+	}
   return(lta) ;
 }
 
