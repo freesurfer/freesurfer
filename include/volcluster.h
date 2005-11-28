@@ -69,6 +69,30 @@ int clustDumpClusterList(FILE *fp, VOLCLUSTER **vclist, int nlist,
 
 /*----------------------------------------------------------*/
 typedef struct {
+  char simtype[100];  // perm or synth
+  char anattype[100]; // surface or volume
+  char subject[100];  // when anattype==surf
+  char hemi[10];      // when anattype==surf
+  long seed;          // used for simulation
+  char contrast[100]; // contrast name
+  double thresh;
+  int nreps;          // number of repetitions
+  int *nClusters;
+  double *MaxClusterSize;
+  double *MaxSig;
+  int mergedflag;     // Flag to indicate that two or more merged
+} CLUSTER_SIM_DATA, CSD;
+
+int CSDallocData(CLUSTER_SIM_DATA *csd);
+int CSDfreeData(CLUSTER_SIM_DATA *csd);
+CSD *CSDcopy(CSD *csd, CSD *csdcopy);
+CSD *CSDread(char *csdfile);
+CSD *CSDmerge(CSD *csd1, CSD *csd2);
+CSD *CSDreadMerge(char *csdfile, CSD *csd);
+int CSDprint(FILE *fp, CSD *csd);
+
+/*----------------------------------------------------------*/
+typedef struct {
   int nsim; /* number of simulation runs to generate table */
   long int seed; /* seed for random number generator */
   int nvox; /* number of voxels/vertices in search area */

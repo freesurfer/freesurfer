@@ -1009,3 +1009,244 @@ int CHTsignId(char *ithr_sign)
   printf("       ithr_sign must be pos, neg, or abs.\n");
   return(-100);
 }
+
+/*-------###########################################--------*/
+/*-------###########################################--------*/
+/*-------###########################################--------*/
+
+/*--------------------------------------------------------------
+  CSDread() - reads a cluster simulation data file. The format
+  of this file is currently defined by mri_glmfit.
+  --------------------------------------------------------------*/
+CLUSTER_SIM_DATA *CSDread(char *csdfile)
+{
+  FILE *fp;
+  CLUSTER_SIM_DATA *csd;
+  char tag[1000], tmpstr[1000];
+  int r,nthrep;
+
+  fp = fopen(csdfile,"r");
+  if(fp == NULL){
+    printf("ERROR: CSDread(): could not open %s\n",csdfile);
+    return(NULL);
+  }
+
+  csd = (CLUSTER_SIM_DATA *) calloc(sizeof(CLUSTER_SIM_DATA),1);
+  csd->mergedflag = 0; // not a merged data 
+
+  // Go through each input line
+  nthrep = 0;
+  while(1){
+    r = fscanf(fp,"%s",tag);
+    if(r==EOF) break;
+
+    if(!strcmp(tag,"#")){
+      // ----------- Header ------------
+      fscanf(fp,"%s",tag);
+      if(!strcmp(tag,"simtype")) fscanf(fp,"%s",csd->simtype);
+      else if(!strcmp(tag,"anatomy-type")){
+	fscanf(fp,"%s",csd->anattype);
+	fscanf(fp,"%s",csd->subject);
+	fscanf(fp,"%s",csd->hemi);
+      }
+      else if(!strcmp(tag,"thresh")) fscanf(fp,"%lf",&(csd->thresh));
+      else if(!strcmp(tag,"seed"))   fscanf(fp,"%ld",&(csd->seed));
+      if(!strcmp(tag,"contrast"))    fscanf(fp,"%s",csd->contrast);
+      else if(!strcmp(tag,"nloop")){
+	fscanf(fp,"%d",&(csd->nreps));
+	CSDallocData(csd);
+      }
+      else fgets(tmpstr,1000,fp); // not an interesting line, so get past it
+    }
+    else{
+      // ----------- Data ------------
+      //printf("%s \n",tag);
+      fscanf(fp,"%d", &(csd->nClusters[nthrep]));
+      fscanf(fp,"%lf",&(csd->MaxClusterSize[nthrep]));
+      fscanf(fp,"%lf",&(csd->MaxSig[nthrep]));
+      nthrep++;
+    }
+  }
+  return(csd);
+}
+/*--------------------------------------------------------------
+  CSDreadMerge() - reads in a CSD file and merges it with 
+  another CSD. If the input csd is NULL, then it is the 
+  same as CSDread(). The purpose is to be able to do somthing
+  like this: csd = CSDreadMerge(csdfile, csd);
+  --------------------------------------------------------------*/
+CLUSTER_SIM_DATA *CSDreadMerge(char *csdfile, CSD *csd)
+{
+  CLUSTER_SIM_DATA *csd2=NULL, *csdmerged=NULL;
+
+  if(csd == NULL){
+    csd = CSDread(csdfile);
+    return(csd);
+  }
+  
+  csd2 = CSDread(csdfile);
+  if(csd2 == NULL) return(NULL);
+
+  csdmerged = CSDmerge(csd,csd2);
+  if(csdmerged == NULL){
+    CSDfreeData(csd2);
+    return(NULL);
+  }
+
+  CSDcopy(csdmerged,csd);
+
+  CSDfreeData(csd2);
+  CSDfreeData(csdmerged);
+  return(csd);
+}
+
+/*--------------------------------------------------------------
+  CSDallocData() - allocates the arrays for a CSD (not the
+  structure iteself).
+  --------------------------------------------------------------*/
+int CSDallocData(CLUSTER_SIM_DATA *csd)
+{
+  csd->nClusters = (int *) calloc(csd->nreps, sizeof(int));
+  csd->MaxClusterSize = (double *) calloc(csd->nreps, sizeof(double));
+  csd->MaxSig = (double *) calloc(csd->nreps, sizeof(double));
+  return(0);
+}
+/*--------------------------------------------------------------
+  CSDfreeData() - frees the data arrays and sets their pointers
+  to NULL. Does not try to free the structure.
+  --------------------------------------------------------------*/
+int CSDfreeData(CLUSTER_SIM_DATA *csd)
+{
+  if(csd->nClusters){
+    free(csd->nClusters); 
+    csd->nClusters=NULL;
+  }
+  if(csd->MaxClusterSize){
+    free(csd->MaxClusterSize); 
+    csd->MaxClusterSize=NULL;
+  }
+  if(csd->MaxSig){
+    free(csd->MaxSig); 
+    csd->MaxSig = NULL;
+  }
+  return(0);
+}
+/*--------------------------------------------------------------
+  CSDcopy() - copies csd into csdcopy. If csdcopy is NULL, it is
+  allocated. If csdcopy is non-null, the data are freed and 
+  then re-allocated.
+  --------------------------------------------------------------*/
+CSD *CSDcopy(CSD *csd, CSD *csdcopy)
+{
+  int nthrep;
+  
+  if(csdcopy == NULL)
+    csdcopy = (CLUSTER_SIM_DATA *) calloc(sizeof(CLUSTER_SIM_DATA),1);
+  else CSDfreeData(csdcopy);
+
+  strcpy(csdcopy->simtype, csd->simtype);
+  strcpy(csdcopy->anattype,csd->anattype);
+  strcpy(csdcopy->subject, csd->subject);
+  strcpy(csdcopy->hemi,    csd->hemi);
+  csdcopy->thresh = csd->thresh;
+
+  csdcopy->nreps = csd->nreps;
+  CSDallocData(csdcopy);
+
+  for(nthrep = 0; nthrep < csd->nreps; nthrep++){
+    csdcopy->nClusters[nthrep]      = csd->nClusters[nthrep];
+    csdcopy->MaxClusterSize[nthrep] = csd->MaxClusterSize[nthrep];
+    csdcopy->MaxSig[nthrep]         = csd->MaxSig[nthrep];
+  }
+  return(csdcopy);
+}
+/*--------------------------------------------------------------
+  CSDmerge() - merge two CSDs into one. Requires that: 
+    (1) simtypes be the same
+    (2) anattypes be the same
+    (3) contrasts be the same
+    (4) thresholds be the same
+    (5) seeds be different
+  The seed from the first is copied into the merge, and the
+  mergeflag is set to 1.
+  --------------------------------------------------------------*/
+CSD *CSDmerge(CSD *csd1, CSD *csd2)
+{
+  int nthrep1, nthrep2, nthrep;
+  CSD *csd;
+
+  if(strcmp(csd1->simtype,csd2->simtype)){
+    printf("ERROR: CSDmerge: CSDs have different sim types\n");
+    return(NULL);
+  }
+  if(strcmp(csd1->anattype,csd2->anattype)){
+    printf("ERROR: CSDmerge: CSDs have different anat types\n");
+    return(NULL);
+  }
+  if(strcmp(csd1->contrast,csd2->contrast)){
+    printf("ERROR: CSDmerge: CSDs have different contrasts\n");
+    return(NULL);
+  }
+  if(csd1->thresh != csd2->thresh){
+    printf("ERROR: CSDmerge: CSDs have different thresholds\n");
+    return(NULL);
+  }
+  if(csd1->seed == csd2->seed){
+    printf("ERROR: CSDmerge: CSDs have same seed\n");
+    return(NULL);
+  }
+  
+  csd = (CLUSTER_SIM_DATA *) calloc(sizeof(CLUSTER_SIM_DATA),1);
+  strcpy(csd->simtype,  csd1->simtype);
+  strcpy(csd->anattype, csd1->anattype);
+  strcpy(csd->contrast, csd1->contrast);
+  strcpy(csd->subject,  csd1->subject);
+  strcpy(csd->hemi,     csd1->hemi);
+  csd->thresh = csd1->thresh;
+  csd->seed   = csd1->seed;
+  csd->mergedflag = 1;
+
+  csd->nreps = csd1->nreps + csd2->nreps;
+  CSDallocData(csd);
+
+  nthrep = 0;
+  for(nthrep1 = 0; nthrep1 < csd1->nreps; nthrep1++){
+    csd->nClusters[nthrep]      = csd1->nClusters[nthrep1];
+    csd->MaxClusterSize[nthrep] = csd1->MaxClusterSize[nthrep1];
+    csd->MaxSig[nthrep]         = csd1->MaxSig[nthrep1];
+    nthrep++;
+  }
+  for(nthrep2 = 0; nthrep2 < csd2->nreps; nthrep2++){
+    csd->nClusters[nthrep]      = csd2->nClusters[nthrep2];
+    csd->MaxClusterSize[nthrep] = csd2->MaxClusterSize[nthrep2];
+    csd->MaxSig[nthrep]         = csd2->MaxSig[nthrep2];
+    nthrep++;
+  }
+
+  return(csd);
+}
+/*--------------------------------------------------------------
+  CSDprint() - prints a CSD to the given stream.
+  --------------------------------------------------------------*/
+int CSDprint(FILE *fp, CLUSTER_SIM_DATA *csd)
+{
+  int nthrep;
+
+  fprintf(fp,"# simtype %s\n",csd->simtype);
+  if(!strcmp(csd->anattype,"surface"))
+    fprintf(fp,"# anattype %s  %s %s\n",csd->anattype,csd->subject,csd->hemi);
+  else
+    fprintf(fp,"# anattype %s \n",csd->anattype);
+  fprintf(fp,"# merged %d\n",csd->mergedflag);
+  fprintf(fp,"# contrast %s\n",csd->contrast);
+  fprintf(fp,"# seed %ld\n",csd->seed);
+  fprintf(fp,"# thresh %lf\n",csd->thresh);
+  fprintf(fp,"# nreps %d\n",csd->nreps);
+  
+  for(nthrep = 0; nthrep < csd->nreps; nthrep++){
+    fprintf(fp,"%3d %3d %g %g \n",nthrep,csd->nClusters[nthrep],
+	    csd->MaxClusterSize[nthrep],csd->MaxSig[nthrep]);
+  }
+  return(0);
+}
+
