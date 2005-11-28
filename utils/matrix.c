@@ -1,4 +1,4 @@
-// $Id: matrix.c,v 1.76 2005/11/16 18:59:49 greve Exp $
+// $Id: matrix.c,v 1.77 2005/11/28 02:37:01 greve Exp $
  
 #include <stdlib.h>
 #include <stdio.h>
@@ -19,6 +19,7 @@
 #include "eigen.h"
 #include "macros.h"
 #include "nr_wrapper.h"
+#include "evschutils.h"
 
 MATRIX *
 MatrixCopy(MATRIX *mIn, MATRIX *mOut)
@@ -3298,7 +3299,7 @@ MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
   will be the row of the input matrix indicated by NewRowOrder[0].
   Eg, if NewRowOrder[0]=3, then the 1st row of XRO will be the
   3rd row of X. The rows in NewRowOrder are 1-based. See also
-  RandPermList() in evschutils.c.
+  RandPermList() in evschutils.c. CANNOT be done in-place.
   -----------------------------------------------------------------*/
 MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO)
 {
@@ -3310,4 +3311,21 @@ MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO)
     }
   }
   return(XRO);
+}
+
+/*-----------------------------------------------------------------
+  MatrixRandPermRows() - randomly reorders the rows of the input
+  matrix.
+  -----------------------------------------------------------------*/
+int MatrixRandPermRows(MATRIX *X)
+{
+  int *NewRowOrder, r;
+  MATRIX *X0;
+
+  NewRowOrder = RandPerm(X->rows,NULL);
+  for(r=0; r < X->rows; r++) NewRowOrder[r]++; // Make one-based
+  X0 = MatrixCopy(X,NULL);
+  MatrixReorderRows(X0, NewRowOrder, X);
+  MatrixFree(&X0);
+  return(0);
 }
