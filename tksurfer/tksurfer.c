@@ -18965,7 +18965,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.148 2005/11/01 23:57:39 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.149 2005/11/28 17:15:56 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21625,7 +21625,7 @@ vset_set_current_set(int set)
 int conv_initialize()
 {
   char fname[STRLEN] = "";
-  char path[STRLEN] = "";
+  char surf_path[STRLEN] = "";
   struct stat info;
   int rStat;
 
@@ -21669,17 +21669,17 @@ int conv_initialize()
      available, and get the extract_i_to_r transform. */
   if( NULL != mris ) 
     {
-      FileNamePath (mris->fname, path);
-      sprintf (fname, "%s/../mri/orig", path);
+      FileNamePath (mris->fname, surf_path);
+      sprintf (fname, "%s/../mri/orig/COR", surf_path);
       
       rStat = stat (fname, &info);
-      if (S_ISREG(info.st_mode))
+      if (S_ISDIR(info.st_mode))
         {
           origMRI = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
         }
       if( NULL == origMRI ) 
         {
-          strcat (fname, ".mgz");
+	  sprintf (fname, "%s/../mri/orig.mgh", surf_path);
           rStat = stat (fname, &info);
           if (S_ISREG(info.st_mode))
             {
@@ -21687,17 +21687,26 @@ int conv_initialize()
             }
           if( NULL == origMRI ) 
             {
-              printf ("WARNING: Couldn't not load orig volume from %s\n"
-                      "         Talairach coords will be incorrect.\n", fname);
-            }
+	      sprintf (fname, "%s/../mri/orig.mgz", surf_path);
+	      rStat = stat (fname, &info);
+	      if (S_ISREG(info.st_mode))
+		{
+		  origMRI = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+		}
+	      if( NULL == origMRI ) 
+		{
+		  printf ("WARNING: Could not load orig volume.\n"
+			  "         Talairach coords will be incorrect.\n" );
+		}
+	    }
         }
-
+      
       if (NULL != origMRI)
         {
           surfaceRAStoRAS = surfaceRASFromRAS_( origMRI );
         }
     }
-
+  
   return(NO_ERROR);
 }
 
