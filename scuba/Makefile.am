@@ -90,20 +90,23 @@ FORMS = mainwindow.ui \
 		toolsettingsdlog.ui \
 		roisettingsdlog.ui \
 		prefsdlog.ui \
-		editdatdlog.ui
+		editdatdlog.ui \
+		findsurfacevertexdlog.ui
 UICDECLS = .ui/mainwindow.h mainwindow.ui.h \
 		.ui/viewlayersdlog.h viewlayersdlog.ui.h \
 		.ui/toolsettingsdlog.h toolsettingsdlog.ui.h \
 		.ui/roisettingsdlog.h roisettingsdlog.ui.h \
 		.ui/prefsdlog.h prefsdlog.ui.h \
-		.ui/editdatdlog.h editdatdlog.ui.h
+		.ui/editdatdlog.h editdatdlog.ui.h \
+		.ui/findsurfacevertexdlog.h findsurfacevertexdlog.u.h
 
 UICIMPLS = .ui/mainwindow.cpp \
 		.ui/viewlayersdlog.cpp \
 		.ui/toolsettingsdlog.cpp \
 		.ui/roisettingsdlog.cpp \
 		.ui/prefsdlog.cpp \
-		.ui/editdatdlog.cpp
+		.ui/editdatdlog.cpp \
+		.ui/findsurfacevertexdlog.cpp
 SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 		.moc/moc_QTScubaWidget.cpp \
 		.moc/moc_QtScubaLabelValueArea.cpp \
@@ -114,7 +117,8 @@ SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 		.moc/moc_toolsettingsdlog.cpp \
 		.moc/moc_roisettingsdlog.cpp \
 		.moc/moc_prefsdlog.cpp \
-		.moc/moc_editdatdlog.cpp
+		.moc/moc_editdatdlog.cpp \
+		.moc/moc_findsurfacevertexdlog.cpp
 
 #OBJMOC = moc_QtVolumeHistogram.$(OBJEXT) \
 #		moc_QTScubaWidget.$(OBJEXT) \
@@ -351,6 +355,7 @@ testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
 	.ui/roisettingsdlog.h \
 	.ui/prefsdlog.h \
 	.ui/editdatdlog.h \
+	.ui/findsurfacevertexdlog.h \
 	mainwindow.ui
 	$(UIC) mainwindow.ui -i mainwindow.h -o $@
 mainwindow.$(OBJEXT): .ui/mainwindow.cpp 
@@ -365,6 +370,7 @@ mainwindow.$(OBJEXT): .ui/mainwindow.cpp
 	.ui/roisettingsdlog.h  \
 	.ui/prefsdlog.h \
 	.ui/editdatdlog.h \
+	.ui/findsurfacevertexdlog.h \
 	toolsettingsdlog.ui
 	$(UIC) toolsettingsdlog.ui -i toolsettingsdlog.h -o $@
 toolsettingsdlog.$(OBJEXT): .ui/toolsettingsdlog.cpp 
@@ -379,6 +385,7 @@ toolsettingsdlog.$(OBJEXT): .ui/toolsettingsdlog.cpp
 	.ui/roisettingsdlog.h \
 	.ui/prefsdlog.h \
 	.ui/editdatdlog.h \
+	.ui/findsurfacevertexdlog.h \
 	viewlayersdlog.ui
 	$(UIC) viewlayersdlog.ui -i viewlayersdlog.h -o $@
 viewlayersdlog.$(OBJEXT): .ui/viewlayersdlog.cpp \
@@ -393,6 +400,7 @@ viewlayersdlog.$(OBJEXT): .ui/viewlayersdlog.cpp \
 	.ui/roisettingsdlog.h \
 	.ui/prefsdlog.h \
 	.ui/editdatdlog.h \
+	.ui/findsurfacevertexdlog.h \
 	roisettingsdlog.ui
 	$(UIC) roisettingsdlog.ui -i roisettingsdlog.h -o $@
 roisettingsdlog.$(OBJEXT): .ui/roisettingsdlog.cpp \
@@ -407,6 +415,7 @@ roisettingsdlog.$(OBJEXT): .ui/roisettingsdlog.cpp \
 	.ui/roisettingsdlog.h \
 	.ui/prefsdlog.h \
 	.ui/editdatdlog.h \
+	.ui/findsurfacevertexdlog.h \
 	prefsdlog.ui
 	$(UIC) prefsdlog.ui -i prefsdlog.h -o $@
 prefsdlog.$(OBJEXT): .ui/prefsdlog.cpp \
@@ -421,10 +430,26 @@ prefsdlog.$(OBJEXT): .ui/prefsdlog.cpp \
 	.ui/roisettingsdlog.h \
 	.ui/prefsdlog.h \
 	.ui/editdatdlog.h \
+	.ui/findsurfacevertexdlog.h \
 	editdatdlog.ui
 	$(UIC) editdatdlog.ui -i editdatdlog.h -o $@
 editdatdlog.$(OBJEXT): .ui/editdatdlog.cpp \
 	editdatdlog.ui.h .ui/editdatdlog.h
+
+.ui/findsurfacevertexdlog.h: findsurfacevertexdlog.ui
+	$(UIC) findsurfacevertexdlog.ui -o $@
+.ui/findsurfacevertexdlog.cpp: \
+	.ui/mainwindow.h \
+	.ui/toolsettingsdlog.h \
+	.ui/viewlayersdlog.h \
+	.ui/roisettingsdlog.h \
+	.ui/prefsdlog.h \
+	.ui/editdatdlog.h \
+	.ui/findsurfacevertexdlog.h \
+	findsurfacevertexdlog.ui
+	$(UIC) findsurfacevertexdlog.ui -i findsurfacevertexdlog.h -o $@
+findsurfacevertexdlog.$(OBJEXT): .ui/findsurfacevertexdlog.cpp \
+	findsurfacevertexdlog.ui.h .ui/findsurfacevertexdlog.h
 
 moc_QtVolumeHistogram.$(OBJEXT): .moc/moc_QtVolumeHistogram.cpp
 .moc/moc_QtVolumeHistogram.cpp: QtVolumeHistogram.h
@@ -469,6 +494,10 @@ moc_prefsdlog.$(OBJEXT): .moc/moc_prefsdlog.cpp
 moc_editdatdlog.$(OBJEXT): .moc/moc_editdatdlog.cpp
 .moc/moc_editdatdlog.cpp: .ui/editdatdlog.h
 	$(MOC) .ui/editdatdlog.h -o $@
+
+moc_findsurfacevertexdlog.$(OBJEXT): .moc/moc_findsurfacevertexdlog.cpp
+.moc/moc_findsurfacevertexdlog.cpp: .ui/findsurfacevertexdlog.h
+	$(MOC) .ui/findsurfacevertexdlog.h -o $@
 
 image_collection.$(OBJEXT): .ui/image_collection.cpp
 
