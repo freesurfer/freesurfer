@@ -1241,5 +1241,6 @@ int MRISabsVals(MRI_SURFACE *mris) ;
 int MRISsmoothFrames(MRI_SURFACE *mris, MRI *mri, int navgs) ;
 int MRISwriteFrameToValues(MRI_SURFACE *mris, MRI *mri, int frame) ;
 int MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame) ;
+int MRISsetValsFromMRI(MRI_SURFACE *surf, MRI *mri, int frame);
 
 #endif
