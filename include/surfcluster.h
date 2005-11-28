@@ -32,5 +32,6 @@ SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters);
 int DumpSurfClusterSum(FILE *fp, SCS *scs, int nClusters);
 SCS *SortSurfClusterSum(SCS *scs, int nClusters);
 int sclustReMap(MRI_SURFACE *Surf, int nClusters, SCS *scs_sorted);
+double sclustMaxClusterArea(SURFCLUSTERSUM **scs, int nClusters);
 
 #endif
