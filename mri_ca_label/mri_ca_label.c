@@ -68,7 +68,8 @@ static int novar = 0 ;
 static char *renormalization_fname = NULL ;
 static int renormalize_wsize = 0 ;
 static int renormalize_iter = 0 ;
-static int renormalize_new ;
+static int renormalize_new = 0 ;
+static int renormalize_align = 0 ;
 static int filter = 0 ;
 static float pthresh = .7 ;
 #if 0
@@ -114,10 +115,10 @@ main(int argc, char *argv[])
   
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.62 2005/08/18 13:29:41 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.63 2005/11/28 02:00:06 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.62 2005/08/18 13:29:41 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.63 2005/11/28 02:00:06 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -481,7 +482,7 @@ main(int argc, char *argv[])
 						 Ggca_x, Ggca_y, Ggca_z, cma_label_to_name(MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
 						 MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)) ;
   }
-  else
+  else   // don't read old one in - create new labeling
 	{
     if (reg_fname == NULL){ //so read_fname must be NULL too
       printf("labeling volume...\n") ;
@@ -515,18 +516,34 @@ main(int argc, char *argv[])
 				printf("writing snapshot to %s...\n", fname) ;
 				MRIwrite(mri_labeled, fname) ;
       }
-#if 0
-      while (renormalize_iter--)  /* update gca values  and relabel */
-			{
-				preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
-				printf("renormalizing GCA to initial labeling...\n") ;
-				GCArenormalizeAdaptive(mri_inputs, mri_labeled, gca, transform, renormalize_wsize,
-															 pthresh) ;
-				GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
-			}
-#else
       // renormalize iteration 
-      if (renormalize_iter > 0)
+			if (renormalize_align)
+			{
+				FILE *logfp ;
+				char base_name[STRLEN] ;
+
+				FileNameOnly(out_fname, base_name) ;
+				FileNameRemoveExtension(base_name, base_name) ;
+				if (Gdiag & DIAG_WRITE)
+				{
+					char fname[STRLEN] ;
+					strcpy(fname, base_name) ;
+					strcat(fname, ".log") ;
+					logfp = fopen(fname, "w") ;
+				}
+				else
+					logfp = NULL ;
+				GCAmapRenormalize(gca, mri_inputs, transform) ;
+				GCAmapRenormalizeWithAlignment(gca, mri_inputs, transform, logfp, base_name, NULL) ;
+				GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
+				{
+					MRI *mri_imp ;
+					mri_imp = GCAmarkImpossible(gca, mri_labeled, NULL, transform) ;
+					MRIwrite(mri_imp, "imp.mgz") ;
+					MRIfree(&mri_imp) ;
+				}
+			}
+			else if (renormalize_iter > 0)
 			{
 				if (renormalize_new)
 					GCAmapRenormalizeByClass(gca, mri_inputs, transform) ;
@@ -539,7 +556,6 @@ main(int argc, char *argv[])
       }
 			else if (regularize_mean > 0)
 				GCAregularizeConditionalDensities(gca, regularize_mean) ;
-#endif
       preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
       if (fixed_flag == 0)
 				MRIfree(&mri_fixed) ;
@@ -833,6 +849,15 @@ get_option(int argc, char *argv[])
 					 regularize_mean, 1-regularize_mean) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "align-cross-sequence") || !stricmp(option, "align"))
+  {
+    regularize = .5 ;
+		regularize_mean = 0.5 ;
+		avgs = 2 ;
+		renormalize_align = 1 ;
+    printf("renormalizing sequences with structure alignment, equivalent to:\n") ;
+		printf("\t-renormalize\n\t-renormalize_mean %2.3f\n\t-regularize %2.3f\n",regularize_mean, regularize) ;
+  } 
   else if (!stricmp(option, "cross-sequence") || !stricmp(option, "cross_sequence") ||
 					 !stricmp(option, "cross-sequence-new") || !stricmp(option, "cross_sequence-new"))
   {
