@@ -78,4 +78,7 @@ int       HISTOfindLinearFit(HISTOGRAM *h1,
                              double amin, double amax, 
                              double bmin, double bmax,
                              float *pa, float *pb) ;
+float HISTOthreshSum(HISTOGRAM *h_mask, HISTOGRAM *h_src, float m_thresh) ;
+HISTOGRAM *HISTOmakePDF(HISTO *h_src, HISTO *h_dst) ;
+
 #endif
