@@ -229,7 +229,8 @@ int        GCAcomputeSampleCoords(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
 MRI        *GCAmri(GCA *gca, MRI *mri) ;
 MRI        *GCAlabelMri(GCA *gca, MRI *mri, int label, TRANSFORM *transform) ;
 MRI        *GCAbuildMostLikelyVolume(GCA *gca, MRI *mri) ;
-MRI        *GCAbuildMostLikelyVolumeForStructure(GCA *gca, MRI *mri_seg, int label, int border, TRANSFORM *transform) ;
+MRI        *GCAbuildMostLikelyVolumeForStructure(GCA *gca, MRI *mri_seg, int label, int border, TRANSFORM *transform,
+																								 MRI *mri_labels) ;
 MRI        *GCAbuildMostLikelyVolumeFrame(GCA *gca, MRI *mri, int frame) ;
 MRI  *GCAlabelProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform);
 MRI  *GCAcomputeProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels, 
@@ -350,6 +351,8 @@ GC1D *alloc_gcs(int nlabels, int flags, int ninputs) ;
 int GCAmapRenormalizeByClass(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label, Ggca_nbr_label ;
 extern char *G_write_probs ;
+MRI *GCAmarkImpossible(GCA *gca, MRI *mri_labeled, MRI *mri_dst, TRANSFORM *transform) ;
+int GCAclassMode(GCA *gca, int class, float *modes) ;
 
 #define GCA_DEFAULT_NOISE_PARAMETER  1
 

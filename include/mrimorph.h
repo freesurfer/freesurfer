@@ -127,7 +127,7 @@ int       MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms);
 int       MRIrigidAlign(MRI *mri_in,MRI *mri_ref, MORPH_PARMS *parms, 
                         MATRIX *m_L);
 int       MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L);
-MATRIX    *MRIpowellAlignImages(MRI *mri_in, MRI *mri_target, MATRIX *m_L) ;
+MATRIX    *MRIpowellAlignImages(MRI *mri_in, MRI *mri_target, MATRIX *m_L, float *pscale_factor, MATRIX *m_constraint) ;
 int       MRIinitTranslation(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) ;
 int       MRIinitScaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) ;
 int       MRIfindMeans(MRI *mri, float *means) ;

@@ -132,6 +132,7 @@ typedef struct
 	MRI    *mri_dist_map ;        // distance to non-zero binary values
 	int    constrain_jacobian ;
 	int    diag_write_snapshots ;
+	int    scale_smoothness ;     // scale down smoothness coef at larger gradient smoothing scales
 } GCA_MORPH_PARMS, GMP ;
 
 
