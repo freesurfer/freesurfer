@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/11/02 21:44:03 $                                             */
-/* Revision       : $Revision: 1.44 $                                         */
+/* Revision Date  : $Date: 2005/11/28 01:36:09 $                                             */
+/* Revision       : $Revision: 1.45 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -172,3 +172,6 @@ int LTAvoxelXformToRASXform(const MRI *src, const MRI *dst, LT *voxTran, LT *ras
 // well uses LTA
 MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta);
 MRI   *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta) ;
+int TransformSampleReal(TRANSFORM *transform,
+												float xv, float yv, float zv, 
+												float *px, float *py, float *pz) ;
