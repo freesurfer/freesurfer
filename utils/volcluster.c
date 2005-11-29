@@ -1255,7 +1255,9 @@ int CSDprint(FILE *fp, CLUSTER_SIM_DATA *csd)
   cluster size, as well as the confidence interval. ciPct is the conf
   interval given in percent (eg, 90 for 90%). This means that there
   will be a 90% chance that the "true" pvalue for the cluster will lie
-  between pvalLow and pvalHi (based on binomial distribution).
+  between pvalLow and pvalHi (based on binomial distribution). If
+  no item from the simulation is larger than ClusterSize, then
+  it is assumed that 1 item is so that things dont break.
   --------------------------------------------------------------*/
 double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
 			double ciPct, double *pvalLow, double *pvalHi)
@@ -1269,14 +1271,8 @@ double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
   for(nthrep = 0; nthrep < csd->nreps; nthrep++)
     if(csd->MaxClusterSize[nthrep] > ClusterSize) nover++;
 
-  // If none is over, then give a pval=0, but set the confidence interval 
-  // very wide
-  if(nover == 0){
-    pval = 0;
-    *pvalLow = 0;
-    *pvalHi  = 1;
-    return(pval);
-  }
+  // If none is over, then set nover = 1 so that things don't beak
+  if(nover == 0) nover = 1;
 
   // Compute the nomial pvalue
   pval = (double)nover/csd->nreps;
