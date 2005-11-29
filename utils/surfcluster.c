@@ -2,7 +2,7 @@
   surfcluster.c - routines for growing clusters on the surface
   based on intensity thresholds and area threshold. Note: this
   makes use of the undefval in the MRI_SURFACE structure.
-  $Id: surfcluster.c,v 1.7 2005/11/28 06:59:25 greve Exp $
+  $Id: surfcluster.c,v 1.8 2005/11/29 00:39:11 greve Exp $
   ----------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -376,6 +376,8 @@ double sclustMaxClusterArea(SURFCLUSTERSUM *scs, int nClusters)
 {
   int n;
   double maxarea;
+
+  if(nClusters==0) return(0);
 
   maxarea = scs[0].area;
   for(n=0; n<nClusters; n++)
