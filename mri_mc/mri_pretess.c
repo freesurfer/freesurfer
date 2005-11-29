@@ -602,10 +602,13 @@ int main(int argc, char *argv[])
 {
 	MRI *mri_seg,*mri_orig, *mri_seg_orig ;
 	int niter=10,ntotal=0,nmodified,i,j,k,nvoxels;
-	int label;
+	int label, nargs;
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.4 2005/11/29 16:49:50 fischl Exp $", "$Name:  $", cmdline);
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_pretess.c,v 1.5 2005/11/29 17:15:44 fischl Exp $", "$Name:  $");
+
+  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.5 2005/11/29 17:15:44 fischl Exp $", "$Name:  $", cmdline);
 
 	Progname=argv[0];
 
