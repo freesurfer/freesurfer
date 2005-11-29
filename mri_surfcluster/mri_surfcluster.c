@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.15 2005/10/22 18:51:36 greve Exp $
+  $Id: mri_surfcluster.c,v 1.16 2005/11/29 01:35:46 greve Exp $
 */
 
 #include <stdio.h>
@@ -45,7 +45,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.15 2005/10/22 18:51:36 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.16 2005/11/29 01:35:46 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -117,12 +117,9 @@ SURFCLUSTERSUM *scs;
 int overallmaxvtx,overallminvtx;
 float overallmax,overallmin;
 
-CHT  *cht; // Cluster Hit Table 
-char *chtfile=NULL;
-double ithr, sthr;
-int    n_ithr, nth_ithr, n_sthr, nth_sthr, NClusters;
-double ithr_lo, ithr_hi, sthr_lo, sthr_hi;
-char *ithr_sign;
+CSD *csd=NULL;
+char *csdfile;
+double pvalLow, pvalHi, ciPct=90, pval, ClusterSize;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -136,7 +133,7 @@ int main(int argc, char **argv)
   char *cmdline, cwd[2000];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.15 2005/10/22 18:51:36 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.16 2005/11/29 01:35:46 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -314,34 +311,13 @@ int main(int argc, char **argv)
   printf("surface area %f\n",totarea);
 
 
-  if(cht == NULL){
-    /*---------------------------------------------------------*/
-    /* This is where all the action is */
-    printf("Searching for Clusters ...\n");
-    scs = sclustMapSurfClusters(srcsurf,thmin,thmax,thsignid,
-				minarea,&NClusters,XFM);
-    printf("Found %d clusters\n",NClusters);
-    /*---------------------------------------------------------*/
-  }
-  else{
-    cht->nvox = srcsurf->nvertices;
-    cht->totsize = srcsurf->total_area;
-    printf("Counting clusters across threshold\n");
-    for(nth_ithr=0; nth_ithr < cht->n_ithr; nth_ithr++ ){
-      ithr = cht->ithr[nth_ithr];
-      for(nth_sthr=0; nth_sthr < cht->n_sthr; nth_sthr++ ){
-	sthr = cht->sthr[nth_sthr];
-	scs = sclustMapSurfClusters(srcsurf,ithr,-1,cht->ithr_signid,
-				    sthr,&NClusters,NULL);
-	printf("  %6.2f %6.2f %3d \n",ithr,sthr,NClusters);
-	if(NClusters > 0) cht->hits[nth_ithr][nth_sthr] ++;
-	free(scs);
-      }
-    }
-    cht->nsim ++;
-    CHTwrite(chtfile,cht);
-    exit(0);
-  }
+  /*---------------------------------------------------------*/
+  /* This is where all the action is */
+  printf("Searching for Clusters ...\n");
+  scs = sclustMapSurfClusters(srcsurf,thmin,thmax,thsignid,
+			      minarea,&NClusters,XFM);
+  printf("Found %d clusters\n",NClusters);
+  /*---------------------------------------------------------*/
 
   if(FixMNI){
     printf("INFO: fixing MNI talairach coordinates\n");
@@ -351,6 +327,15 @@ int main(int argc, char **argv)
     }
   }
 
+  if(csd != NULL){
+    for(n=0; n < NClusters; n++){
+      ClusterSize = scs[n].area;
+      pval = CSDpvalClustSize(csd, ClusterSize, ciPct, &pvalLow, &pvalHi);
+      scs[n].pval_clusterwise     = pval;
+      scs[n].pval_clusterwise_low = pvalLow;
+      scs[n].pval_clusterwise_hi  = pvalHi;
+    }
+  }
 
   if(debug){
     printf("-------------------------------------\n");
@@ -395,17 +380,31 @@ int main(int argc, char **argv)
       fprintf(fp,"# clabelinv  %d\n",clabelinv);
     }
 
+    if(csd != NULL){
+      fprintf(fp,"# CSD thresh  %lf\n",csd->thresh);      
+      fprintf(fp,"# CSD nreps    %d\n",csd->nreps);      
+      fprintf(fp,"# CSD simtype  %s\n",csd->simtype);      
+      fprintf(fp,"# CSD contrast %s\n",csd->contrast);      
+      fprintf(fp,"# CSD confint  %lf\n",ciPct);      
+    }
+
     fprintf(fp,"# Overall max %g at vertex %d\n",overallmax,overallmaxvtx);
     fprintf(fp,"# Overall min %g at vertex %d\n",overallmin,overallminvtx);
     fprintf(fp,"# NClusters          %d\n",NClusters);  
     fprintf(fp,"# Total Cortical Surface Area %g (mm^2)\n",totarea);
     fprintf(fp,"# FixMNI = %d\n",FixMNI);  
     fprintf(fp,"# \n");  
-    fprintf(fp,"# ClusterNo    Max   VtxMax  Size(mm^2)   TalX   TalY   TalZ\n");
+    fprintf(fp,"# ClusterNo  Max   VtxMax   Size(mm^2)  TalX   TalY   TalZ ");
+    if(csd != NULL)  fprintf(fp,"   CWP    CWPLow    CWPHi\n");
+    else fprintf(fp,"\n");
     for(n=0; n < NClusters; n++){
-      fprintf(fp,"%4d     %8.3f  %6d  %8.2f   %6.1f %6.1f %6.1f\n",
+      fprintf(fp,"%4d     %8.3f  %6d  %8.2f   %6.1f %6.1f %6.1f",
        n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
        scs[n].xxfm, scs[n].yxfm, scs[n].zxfm);
+    if(csd != NULL)  
+      fprintf(fp,"  %7.5lf  %7.5lf  %7.5lf\n",
+	      scs[n].pval_clusterwise,scs[n].pval_clusterwise_low,scs[n].pval_clusterwise_hi);
+    else fprintf(fp,"\n");
     }
     fclose(fp);
   }
@@ -514,6 +513,17 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--xfm")){
       if(nargc < 1) argnerr(option,1);
       xfmfile = pargv[0]; nargsused = 1;
+    }
+    else if (!strcmp(option, "--csd")){
+      if(nargc < 1) argnerr(option,1);
+      csdfile = pargv[0]; 
+      csd = CSDreadMerge(csdfile,csd);
+      if(csd == NULL) exit(1);
+      if(strcmp(csd->anattype,"surface")){
+	printf("ERROR: csd must have anattype of surface\n");
+	exit(1);
+      }
+      nargsused = 1;
     }
     else if (!strcmp(option, "--thmin")){
       if(nargc < 1) argnerr(option,1);
@@ -661,42 +671,10 @@ static int parse_commandline(int argc, char **argv)
       subjectsdir = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--cht")){
-      if(nargc < 8) argnerr(option,8);
-      chtfile = pargv[0];
-      sscanf(pargv[1],"%d",&n_ithr);
-      sscanf(pargv[2],"%lf",&ithr_lo);
-      sscanf(pargv[3],"%lf",&ithr_hi);
-      ithr_sign = pargv[4];
-      thsign = ithr_sign;
-      sscanf(pargv[5],"%d",&n_sthr); // Area threshold is in mm
-      sscanf(pargv[6],"%lf",&sthr_lo);
-      sscanf(pargv[7],"%lf",&sthr_hi);
-      cht = CHTalloc(n_ithr,ithr_lo,ithr_hi, n_sthr,sthr_lo,sthr_hi);
-      if(cht==NULL){
-	printf("ERROR: with cht params\n");
-        exit(1);
-      }
-      if(CHTsetSignString(cht, thsign) == -100){
-	printf("ERROR: with cht params\n");
-        exit(1);
-      }
-      if(fio_FileExistsReadable(chtfile)) {
-	CHTfree(&cht); // Overwrite input parameters with those from file
-	cht = CHTread(chtfile);
-	if(cht == NULL){
-	  printf("ERROR: reading cht file %s\n",chtfile);
-	  exit(1);
-	}
-	CHTprint(stdout, cht);
-      }
-      nargsused = 8;
-    }
-
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-  fprintf(stderr,"       Did you really mean -%s ?\n",option);
+	fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -745,8 +723,6 @@ static void print_usage(void)
   printf("   --o outid <fmt>   : input with non-clusters set to 0\n");
   printf("   --ocn ocnid <fmt> : value is cluster number \n");
   printf("   --olab labelbase  : output clusters as labels \n");
-  printf("\n");
-  printf("   --cht chtfile nithr ithrlo ithrhi ithrsign nsthr sthrlo sthrhi\n");
   printf("\n");
   printf("   --xfm xfmfile     : talairach transform (def is talairach.xfm) \n");
   printf("   --<no>fixmni      : <do not> fix MNI talairach coordinates\n");
@@ -908,7 +884,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.15 2005/10/22 18:51:36 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.16 2005/11/29 01:35:46 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
@@ -938,6 +914,38 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void check_options(void)
 {
+  if(csd != NULL){
+    if(hemi == NULL) hemi = strcpyalloc(csd->hemi);
+    else{
+      if(strcmp(hemi,csd->hemi)){
+	printf("ERROR: you have specified hemi=%s on cmdline, but\n",hemi);
+	printf("CSD file was created with %s\n",csd->hemi);
+	exit(1);
+      }
+    }
+    if(srcsubjid == NULL) srcsubjid = strcpyalloc(csd->subject);
+    else{
+      if(strcmp(srcsubjid,csd->subject)){
+	printf("ERROR: you have specified srcsubjid=%s on cmdline, but\n",srcsubjid);
+	printf("CSD file was created with %s\n",csd->subject);
+	exit(1);
+      }
+    }
+    if(thmin < 0) thmin = csd->thresh;
+    else{
+      if(thmin != csd->thresh){
+	printf("ERROR: you have specified thmin=%f on cmdline, but\n",thmin);
+	printf("CSD file was created with %lf\n",csd->thresh);
+	exit(1);
+      }
+    }
+    if(minarea > 0){
+      printf("ERROR: you cannot specify a minarea with --csd\n");
+      exit(1);
+    }
+    minarea = 0;
+  } // end csd != NULL
+
 
   if(hemi == NULL){
     printf("ERROR: hemi must be supplied\n");
