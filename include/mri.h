@@ -843,6 +843,7 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
 #define DEGENERATE_FILL      240
 #define OFFSET_FILTER_FILL   245
 #define AUTO_FILL            250
+#define PRETESS_FILL         215
 
 MRI *MRIchangeType(MRI *src, int dest_type, float f_low, 
        float f_high, int no_scale_option_flag);
