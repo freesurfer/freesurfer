@@ -1,5 +1,5 @@
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.12 2005/11/28 05:45:09 greve Exp $
+// $Id: fsglm.c,v 1.13 2005/11/29 00:16:19 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -117,7 +117,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void) { 
-  return("$Id: fsglm.c,v 1.12 2005/11/28 05:45:09 greve Exp $"); 
+  return("$Id: fsglm.c,v 1.13 2005/11/29 00:16:19 greve Exp $"); 
 }
 
 /*------------------------------------------------------------
@@ -345,8 +345,8 @@ int GLMfit(GLMMAT *glm)
     glm->rvar += (glm->eres->rptr[f][1] * glm->eres->rptr[f][1]);
   glm->rvar /= glm->dof;
 
-  if(glm->rvar < FLT_MIN) glm->rvar = 100000; // not quite 0
-
+  // What to do when rvar=0? Set to FLT_MIN. Affects resynth test.
+  if(glm->rvar < FLT_MIN) glm->rvar = FLT_MIN;
 
   return(0);
 }
@@ -376,7 +376,11 @@ int GLMtest(GLMMAT *glm)
     // CiXtX and CiXtXCt are now computed by GLMxMatrices().
     //glm->CiXtX[n]    = MatrixMultiply(glm->C[n],glm->iXtX,glm->CiXtX[n]);
     //glm->CiXtXCt[n]  = MatrixMultiply(glm->CiXtX[n],glm->Ct[n],glm->CiXtXCt[n]);
-    dtmp = glm->rvar*glm->C[n]->rows;
+
+    // Error trap for when rvar==0
+    if(glm->rvar < 2*FLT_MIN)  dtmp = 1e10*glm->C[n]->rows;
+    else                       dtmp = glm->rvar*glm->C[n]->rows;
+
     glm->gamma[n]    = MatrixMultiply(glm->C[n],glm->beta,glm->gamma[n]);
     glm->gammat[n]   = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
     glm->gCVM[n]     = MatrixScalarMul(glm->CiXtXCt[n],dtmp,glm->gCVM[n]);
@@ -489,7 +493,7 @@ int GLMresynthTest(int niters, double *prvar)
     // Re-Fit
     GLMfit(glm);
     if(glm->rvar > 10e-9){
-      // rvar should be 0, but at least less than 10^-9.
+      // rvar should be 0, but 10e-9 should be sufficient
       // Report an error if not.
       printf("GLMresynth failure: rvar = %le\n",glm->rvar);
       if(prvar != NULL) *prvar = glm->rvar;
