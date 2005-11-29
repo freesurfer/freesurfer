@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.13 2005/06/08 15:41:53 greve Exp $
+# $Id: flacproc-sess,v 1.14 2005/11/29 02:02:35 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.13 2005/06/08 15:41:53 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.14 2005/11/29 02:02:35 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -91,7 +91,7 @@ EOF
 end # Loop over sessions #
 
 if(! $monly) then
-  cat $MLF | matlab -display iconic
+  cat $MLF | matlab -display iconic |& tee -a $LF
   rm -f $MLF
 endif
 
@@ -122,6 +122,7 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $flacfile"
         exit 1;
       endif
+      set flac = `basename $flacname .flag`;
       breaksw
 
     case "-npca":
