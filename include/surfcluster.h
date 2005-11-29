@@ -15,6 +15,9 @@ typedef struct {
   int   vtxmaxval;
   float x,y,z;
   float xxfm,yxfm,zxfm;
+  double pval_clusterwise; // from cluster simulation 
+  double pval_clusterwise_low; // from cluster simulation 
+  double pval_clusterwise_hi; // from cluster simulation 
 } SURFCLUSTERSUM, SCS;
 
 SCS *sclustMapSurfClusters(MRI_SURFACE *Surf, float thmin, float thmax, 
