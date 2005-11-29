@@ -1447,11 +1447,13 @@ ScubaLayer2DMRI::DataChanged () {
     SetMinVisibleValue( mVolume->GetMRIMinValue() );
     SetMaxVisibleValue( mVolume->GetMRIMaxValue() );
 
-    stringstream ssCommand;
-    ssCommand << "2DMRILayerMinMaxValueChanged " << GetID();
-    TclCommandManager& mgr = TclCommandManager::GetManager();
-    mgr.SendCommand( ssCommand.str() );
-
+    try {
+      stringstream ssCommand;
+      ssCommand << "2DMRILayerMinMaxValueChanged " << GetID();
+      TclCommandManager& mgr = TclCommandManager::GetManager();
+      mgr.SendCommand( ssCommand.str() );
+    }
+    catch(...) {}
     
   }
 
@@ -2511,9 +2513,7 @@ ScubaLayer2DMRI::GetPreferredBrushRadiusIncrement () {
 float
 ScubaLayer2DMRI::GetPreferredValueIncrement () {
 
-  // Get our range and divide it by 100.
-  float range = mMaxVisibleValue - mMinVisibleValue;
-  return (range / 100.0);
+  return mVolume->GetPreferredValueIncrement();
 }
 
 void

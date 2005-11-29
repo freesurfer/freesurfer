@@ -542,15 +542,11 @@ x Delete ROI command
  x If delete and ROI and none left, create a new one
 
 x Delete Data Collection
-
 x Shorten seg label values
-
 x Threshold stuff for editing
-
 x Set Cursor from edit.dat
-
-Show Surface Vertex
-Find Nearest Surface Vertex
+x Show Surface Vertex
+x Find Nearest Surface Vertex
 Data Collection Info window
 Generate Segementation Volume Report
 ROI stats dlog

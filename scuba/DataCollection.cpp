@@ -372,6 +372,12 @@ DataCollection::GetDataToWorldTransform () {
   return mDataToWorldTransform->GetID();
 }
 
+float
+DataCollection::GetPreferredValueIncrement () {
+  
+  return 0;
+}
+
 void
 DataCollection::DataChanged () {
   

@@ -97,6 +97,9 @@ class DataCollection : public DebugReporter,
   virtual void SetDataToWorldTransform ( int iTransformID );
   int GetDataToWorldTransform ();
 
+  // Returns a best guess value increment for a GUI.
+  virtual float GetPreferredValueIncrement ();
+
   // Suppresses the dataChanged message. Use when changing a lot of
   // voxels in a row that don't need updates in between. Will call
   // DataChanged() at the end.

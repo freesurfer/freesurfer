@@ -1914,9 +1914,33 @@ VolumeCollection::GetRASVolumeOfNVoxels ( int icVoxels ) {
   return GetVoxelXSize() * GetVoxelYSize() * GetVoxelZSize() * (float)icVoxels;
 }
 
+float
+VolumeCollection::GetPreferredValueIncrement () {
+
+  // Look at the range. If it's > 100, inc is 1, 10-100, inc is .1,
+  // 1-10, inc is .01, etc.
+  float range = mMRIMaxValue - mMRIMinValue;
+  float inc = 1;
+       if( range >= 1000000 )        { inc = 1000; }
+  else if( range >=  100000 )        { inc =  100; }
+  else if( range >=   10000 )        { inc =   10; }
+  else if( range >=    1000 )        { inc =    1; }
+  else if( range >=      10 )        { inc =    0.1; }
+  else if( range >=       1 )        { inc =    0.01; }
+  else if( range >=       0.1 )      { inc =    0.001; }
+  else if( range >=       0.01 )     { inc =    0.0001; }
+  else if( range >=       0.001 )    { inc =    0.00001; }
+  else if( range >=       0.0001 )   { inc =    0.000001; }
+  else if( range >=       0.00001 )  { inc =    0.0000001; }
+  else if( range >=       0.000001 ) { inc =    0.00000001; }
+       else                          { inc =    0.000000001; }
+
+       return inc;
+}
+
 float 
 VolumeCollection::GetAverageValue ( list<VolumeLocation>& ilLocations ) {
-
+  
   if( ilLocations.size() < 1 ) {
     throw runtime_error( "No voxels" );
   }

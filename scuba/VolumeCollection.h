@@ -235,6 +235,9 @@ class VolumeCollection : public DataCollection {
   // Returns the volume of N voxels.
   float GetRASVolumeOfNVoxels ( int icVoxels );
 
+  // Returns a best guess value increment for a GUI.
+  virtual float GetPreferredValueIncrement ();
+
   // Returne the average value of the input locations.
   float GetAverageValue ( std::list<VolumeLocation>& ilLocations );
   float GetAverageValue ( ScubaROIVolume& iROI );
