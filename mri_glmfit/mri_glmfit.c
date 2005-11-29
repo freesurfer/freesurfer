@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.31 2005/11/28 06:56:13 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.32 2005/11/29 01:36:46 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -153,6 +153,8 @@ int main(int argc, char **argv)
   if(checkoptsonly) return(0);
 
   if(SynthSeed < 0) SynthSeed = PDFtodSeed();
+  srand48(SynthSeed);
+
   dump_options(stdout);
 
   if(! DontSave){
@@ -363,6 +365,11 @@ int main(int argc, char **argv)
 
   //--------------------------------------------------------------------------
   if(!DoLoop){
+    if(synth){
+      printf("Replacing data with synthetic white noise\n");
+      MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
+	       0,1,mriglm->y);
+    }
     // Now do the estimation and testing
     TimerStart(&mytimer) ;
     printf("Starting fit\n");
@@ -372,27 +379,35 @@ int main(int argc, char **argv)
   }
 
   //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
   if(DoLoop){
     // Write header to output files
     for(n=0; n < mriglm->glm->ncontrasts; n++){
-      sprintf(tmpstr,"%s-%s.dat",loopbase,mriglm->glm->Cname[n]);
+      sprintf(tmpstr,"%s-%s.csd",loopbase,mriglm->glm->Cname[n]);
       fp = fopen(tmpstr,"w");
       fprintf(fp,"# mri_glmfit simulation loop\n");
-      fprintf(fp,"# perm   %d\n",perm);
-      fprintf(fp,"# synth  %d\n",synth);
+      if(perm)  fprintf(fp,"# simtype perm \n");
+      if(synth) fprintf(fp,"# simtype synth \n");
       fprintf(fp,"# seed   %d\n",SynthSeed);
       fprintf(fp,"# thresh %g\n",thresh);
+      fprintf(fp,"# contrast %s\n",mriglm->glm->Cname[n]);
       fprintf(fp,"# hostname %s\n",uts.nodename);
       fprintf(fp,"# machine  %s\n",uts.machine);
+      fprintf(fp,"# nloop   %d\n",nloop);
       if(surf == NULL) fprintf(fp,"# anatomy-type volume\n");
-      else             fprintf(fp,"# anatomy-type surface %s %s\n",subject,hemi);
-      fprintf(fp,"# LoopNo nClusters MaxClustSize MaxSig MaxF\n");
+      else fprintf(fp,"# anatomy-type surface %s %s\n",subject,hemi);
+      fprintf(fp,"# LoopNo nClusters MaxClustSize MaxSig\n");
 
       fclose(fp);
     }
 
     printf("Staring simulation loop over %d trials\n",nloop);
+    TimerStart(&mytimer) ;
     for(nthloop=0; nthloop < nloop; nthloop++){
+      msecFitTime = TimerStop(&mytimer) ;
+      printf("%4d/%d t=%g ----------------------\n",
+	     nthloop+1,nloop,msecFitTime/(1000*60.0));
 
       if(synth)
 	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
@@ -408,14 +423,14 @@ int main(int argc, char **argv)
 	MRISsetValsFromMRI(surf, sig, 0);
 	SurfClustList = sclustMapSurfClusters(surf,thresh,-1,threshsign,0,&nClusters,NULL);
 	csize = sclustMaxClusterArea(SurfClustList, nClusters);
-	MRIfree(&sig);
-
 	printf("%s %d %d   %g  %g  %g\n",mriglm->glm->Cname[n],nthloop,
 	       nClusters,csize,sigmax,Fmax);
-	sprintf(tmpstr,"%s-%s.dat",loopbase,mriglm->glm->Cname[n]);
+	sprintf(tmpstr,"%s-%s.csd",loopbase,mriglm->glm->Cname[n]);
 	fp = fopen(tmpstr,"a");
-	fprintf(fp,"%d %d   %g  %g  %g\n",nthloop,nClusters,csize,sigmax,Fmax);
+	fprintf(fp,"%d %d   %g  %g\n",nthloop,nClusters,csize,sigmax);
 	fclose(fp);
+	MRIfree(&sig);
+	free(SurfClustList);
       }
     }
     exit(0);
@@ -603,7 +618,6 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--seed")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
-      srand48(SynthSeed);
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--voxdump")){
