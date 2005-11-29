@@ -19,6 +19,7 @@
 #include "version.h"
 #include "MC.h"
 
+#define USE_WM -1
 #define SQR(x) ((x)*(x))
 
 char *Progname;
@@ -599,12 +600,12 @@ static int mriRemoveBackgroundCornerConfiguration(MRI *mri_seg, MRI *mri_orig, i
 
 int main(int argc, char *argv[])
 {
-	MRI *mri_seg,*mri_orig;
+	MRI *mri_seg,*mri_orig, *mri_seg_orig ;
 	int niter=10,ntotal=0,nmodified,i,j,k,nvoxels;
 	int label;
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.3 2005/11/27 20:25:34 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.4 2005/11/29 16:49:50 fischl Exp $", "$Name:  $", cmdline);
 
 	Progname=argv[0];
 
@@ -614,11 +615,23 @@ int main(int argc, char *argv[])
 	} 
 	
 	mri_seg=MRIread(argv[1]);
-	label=atoi(argv[2]);
+	if (!stricmp(argv[2], "wm"))
+		label = USE_WM ;
+	else
+		label=atoi(argv[2]);
 	mri_orig=MRIread(argv[3]);
 	if (mri_orig == NULL)
 		ErrorExit(ERROR_NOFILE, "%s: could not open %s", Progname, argv[3]) ;
-	
+
+	if (label == USE_WM)
+	{
+		printf("binarizing input wm segmentation...\n") ;
+		label = 128 ;
+		mri_seg_orig = mri_seg ;
+		mri_seg = MRIbinarize(mri_seg_orig, NULL, WM_MIN_VAL, 0, label) ;
+	}
+	else
+		mri_seg_orig = NULL ;
 	fprintf(stderr,"\nAmbiguous edge configurations...");
 	
 	while(niter--){
@@ -638,7 +651,19 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr,"\n\nTotal Number of Modified Voxels = %d (out of %d: %f)\n",ntotal,nvoxels,100.0*ntotal/nvoxels);
 
-	fprintf(stderr,"\nWritting out volume...");
+	fprintf(stderr,"\nWriting out volume...");
+	if (mri_seg_orig)
+	{
+		int x, y, z ;
+		for (x = 0 ; x < mri_seg->width ; x++)
+			for (y = 0 ; y < mri_seg->height ; y++)
+				for (z = 0 ; z < mri_seg->depth ; z++)
+					if (MRIvox(mri_seg,x,y,z) > WM_MIN_VAL && MRIvox(mri_seg_orig,x,y,z) < WM_MIN_VAL)
+						MRIvox(mri_seg_orig, x, y, z) = PRETESS_FILL ;
+		MRIfree(&mri_seg) ;
+		mri_seg = mri_seg_orig ;
+	}
+
 	MRIaddCommandLine(mri_seg, cmdline) ;
 	MRIwrite(mri_seg,argv[4]);
 
