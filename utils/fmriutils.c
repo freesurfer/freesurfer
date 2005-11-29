@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.22 2005/11/28 21:01:55 greve Exp $
+   $Id: fmriutils.c,v 1.23 2005/11/29 00:23:56 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.22 2005/11/28 21:01:55 greve Exp $");
+  return("$Id: fmriutils.c,v 1.23 2005/11/29 00:23:56 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -741,33 +741,35 @@ int MRIglmFit(MRIGLM *mriglm)
     GLMxMatrices(mriglm->glm);
   }
 
-  mriglm->beta = MRIallocSequence(nc, nr, ns, MRI_FLOAT, mriglm->nregtot) ;
-  MRIcopyHeader(mriglm->y,mriglm->beta);
-  mriglm->eres = MRIallocSequence(nc, nr, ns, MRI_FLOAT, nf);
-  MRIcopyHeader(mriglm->y,mriglm->eres);
-  mriglm->rvar = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
-  MRIcopyHeader(mriglm->y,mriglm->rvar);
+  // If beta has not been allocated, assume that no one has been alloced
+  if(mriglm->beta == NULL){
+    mriglm->beta = MRIallocSequence(nc, nr, ns, MRI_FLOAT, mriglm->nregtot) ;
+    MRIcopyHeader(mriglm->y,mriglm->beta);
+    mriglm->eres = MRIallocSequence(nc, nr, ns, MRI_FLOAT, nf);
+    MRIcopyHeader(mriglm->y,mriglm->eres);
+    mriglm->rvar = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
+    MRIcopyHeader(mriglm->y,mriglm->rvar);
+    if(mriglm->yhatsave){
+      mriglm->yhat = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nf);
+      MRIcopyHeader(mriglm->y,mriglm->yhat);
+    }
+    if(mriglm->condsave){
+      mriglm->cond = MRIallocSequence(nc,nr,ns,MRI_FLOAT, 1) ;
+      MRIcopyHeader(mriglm->y,mriglm->cond);
+    }
 
-  if(mriglm->yhatsave){
-    mriglm->yhat = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nf);
-    MRIcopyHeader(mriglm->y,mriglm->yhat);
-  }
-  if(mriglm->condsave){
-    mriglm->cond = MRIallocSequence(nc,nr,ns,MRI_FLOAT, 1) ;
-    MRIcopyHeader(mriglm->y,mriglm->cond);
-  }
-
-  for(n = 0; n < mriglm->glm->ncontrasts; n++){
-    mriglm->gamma[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT, 
-					mriglm->glm->C[n]->rows);
-    MRIcopyHeader(mriglm->y,mriglm->gamma[n]);
-    mriglm->F[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
-    MRIcopyHeader(mriglm->y,mriglm->F[n]);
-    mriglm->p[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
-    MRIcopyHeader(mriglm->y,mriglm->p[n]);
-    if(mriglm->glm->ypmfflag[n]){
-      mriglm->ypmf[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nf);
-      MRIcopyHeader(mriglm->y,mriglm->ypmf[n]);
+    for(n = 0; n < mriglm->glm->ncontrasts; n++){
+      mriglm->gamma[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT, 
+					  mriglm->glm->C[n]->rows);
+      MRIcopyHeader(mriglm->y,mriglm->gamma[n]);
+      mriglm->F[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
+      MRIcopyHeader(mriglm->y,mriglm->F[n]);
+      mriglm->p[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
+      MRIcopyHeader(mriglm->y,mriglm->p[n]);
+      if(mriglm->glm->ypmfflag[n]){
+	mriglm->ypmf[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nf);
+	MRIcopyHeader(mriglm->y,mriglm->ypmf[n]);
+      }
     }
   }
 
