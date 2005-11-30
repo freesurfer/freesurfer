@@ -874,7 +874,7 @@ int main(int argc, char *argv[])
 	
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.6 2005/11/27 20:25:34 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.7 2005/11/30 18:12:09 segonne Exp $", "$Name:  $", cmdline);
 	Progname=argv[0];
 
 	if(argc < 4) {
@@ -911,16 +911,12 @@ int main(int argc, char *argv[])
 	freeTesselationParms(&parms);
 	MRIfree(&mri);
 
-	fprintf(stderr,"checking orientation of surface...");
-	MRISmarkOrientationChanges(mris);
-	mris_corrected=MRISextractMainComponent(mris,0);
-	//	MRISextractMainComponent(mris_corrected,1);
-
-	fprintf(stderr,"\ncomputing the maximum edge length...");
+	
 	{
 		float dist,max_e=0.0;
-		int n,p;
+		int n,p,vn0,vn2;
 		VERTEX *v,*vp;
+		fprintf(stderr,"computing the maximum edge length...");
 		for(n = 0 ; n < mris->nvertices ; n++){
 			v=&mris->vertices[n];
 			for(p = 0 ; p < v->vnum ; p++){
@@ -929,13 +925,38 @@ int main(int argc, char *argv[])
 				if(dist>max_e) max_e=dist;
 			}
 		}
-		fprintf(stderr,"%fmm\n",sqrt(max_e));
+		fprintf(stderr,"%f mm",sqrt(max_e));
+ 		fprintf(stderr,"\nreversing orientation of faces...");
+		for(n = 0 ; n < mris->nfaces ; n++){
+			vn0=mris->faces[n].v[0];
+			vn2=mris->faces[n].v[2];
+			/* vertex 0 becomes vertex 2 */			
+			v=&mris->vertices[vn0];
+			for(p = 0 ; p < v->num ; p++)
+				if(v->f[p]==n)
+					v->n[p]=2;
+			mris->faces[n].v[2]=vn0;
+			/* vertex 2 becomes vertex 0 */			
+			v=&mris->vertices[vn2];
+			for(p = 0 ; p < v->num ; p++)
+				if(v->f[p]==n)
+					v->n[p]=0;
+			mris->faces[n].v[0]=vn2;
+		}
 	}
 
-	fprintf(stderr,"writting out surface...");
-	MRISaddCommandLine(mris, cmdline) ;
+	fprintf(stderr,"\nchecking orientation of surface...");
+	MRISmarkOrientationChanges(mris);
+	mris_corrected=MRISextractMainComponent(mris,0);	
+	
+	MRISfree(&mris);
+
+	fprintf(stderr,"\nwritting out surface...");
+	MRISaddCommandLine(mris_corrected, cmdline) ;
 	MRISwrite(mris_corrected,argv[3]);
 	fprintf(stderr,"done\n");
+
+	MRISfree(&mris_corrected);
 
   return 0;
 }
