@@ -1,8 +1,7 @@
 // mri_glmfit.c
 
 // Things to do:
-//
-// --smooth, --var-smooth
+// Set up an actual CSD struct
 // --synth  for input synth only
 // --sim-synth for synth during simulation
 // --sim-perm  for perm  during simulation
@@ -71,7 +70,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.34 2005/12/01 03:50:29 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.35 2005/12/01 05:05:34 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -243,7 +242,11 @@ int main(int argc, char **argv)
   }
   // Synth input here if desired
 
-  if(SmoothLevel > 0) SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
+  if(SmoothLevel > 0){
+    printf("Smoothing Input ... \n");
+    SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
+    printf("   ... done\n");
+  }
 
   // Check number of frames ----------------------------------
   if(mriglm->y->nframes != mriglm->Xg->rows){
@@ -443,7 +446,11 @@ int main(int argc, char **argv)
       if(synth){
 	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
 		 mriglm->y->nframes,0,1,mriglm->y);
-	if(SmoothLevel > 0) SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
+	if(SmoothLevel > 0){
+	  printf("Smoothing Input ... \n");
+	  SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
+	  printf("   ... done\n");
+	}
       }
       if(perm) MatrixRandPermRows(mriglm->Xg);
 
@@ -964,7 +971,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel)
     MRIgaussianSmooth(mri, gstd, 1, mri); /* 1 = normalize */
   }
   else{
-    printf("  Surface Smoothing to %lf iterations\n",SmthLevel);
+    printf("  Surface Smoothing to %d iterations\n",(int)SmthLevel);
     MRISsmoothMRI(surf, mri, SmthLevel, mri);
   }
   return(0);
