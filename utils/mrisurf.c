@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/11/28 06:12:06 $
-// Revision       : $Revision: 1.384 $
+// Revision Date  : $Date: 2005/12/01 03:50:19 $
+// Revision       : $Revision: 1.385 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -45817,79 +45817,79 @@ int MRISmarkOrientationChanges(MRI_SURFACE *mris){
 
 	  return(mri);
 	}
-      /*-------------------------------------------------------------------
-	MRISsmoothMRI() - smooths values on the surface when the surface
-	values are stored in an MRI_VOLUME structure with the number of
-	columns (ie width) equal to the number of nvertices on the
-	surface. The number of rows (height) and slices (depth) in the MRI
-	struct should be 1. Can handle multiple frames. Can be performed
-	in-place. If Targ is NULL, it will automatically allocate a new MRI
-	strucutre.
-	-------------------------------------------------------------------*/
-      MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
-	{
-	  int nnbrs, nthstep, frame, vtx, nbrvtx, nthnbr;
-	  float val;
-	  MRI *SrcTmp;
-
-	  if(Surf->nvertices != Src->width){
-	    printf("ERROR: MRISsmooth: Surf/Src dimension mismatch\n");
-	    return(NULL);
-	  }
-
-	  if(Targ == NULL){
-	    Targ = MRIallocSequence(Src->width, Src->height, Src->depth, 
-				    MRI_FLOAT, Src->nframes);
-	    if(Targ==NULL){
-	      printf("ERROR: MRISsmooth: could not alloc\n");
-	      return(NULL);
-	    }
-	  }
-	  else{
-	    if(Src->width   != Targ->width  || 
-	       Src->height  != Targ->height || 
-	       Src->depth   != Targ->depth  ||
-	       Src->nframes != Targ->nframes){
-	      printf("ERROR: MRISsmooth: output dimension mismatch\n");
-	      return(NULL);
-	    }
-	    if(Targ->type != MRI_FLOAT){
-	      printf("ERROR: MRISsmooth: structure passed is not MRI_FLOAT\n");
-	      return(NULL);
-	    }
-	  }
-
-	  SrcTmp = MRIcopy(Src,NULL);
-	  for(nthstep = 0; nthstep < nSmoothSteps; nthstep ++){
-	    //printf("Step = %d\n",nthstep); fflush(stdout);
-
-	    for(vtx = 0; vtx < Surf->nvertices; vtx++){
-	      nnbrs = Surf->vertices[vtx].vnum;
-
-	      for(frame = 0; frame < Targ->nframes; frame ++){
-		val = MRIFseq_vox(SrcTmp,vtx,0,0,frame);
-	
-		for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
-		  nbrvtx = Surf->vertices[vtx].v[nthnbr];
-		  val += MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
-		}/* end loop over neighbor */
-	
-		MRIFseq_vox(Targ,vtx,0,0,frame) = (val/(nnbrs+1));
-	      }/* end loop over frame */
-      
-	    } /* end loop over vertex */
+/*-------------------------------------------------------------------
+  MRISsmoothMRI() - smooths values on the surface when the surface
+  values are stored in an MRI_VOLUME structure with the number of
+  columns (ie width) equal to the number of nvertices on the
+  surface. The number of rows (height) and slices (depth) in the MRI
+  struct should be 1. Can handle multiple frames. Can be performed
+  in-place. If Targ is NULL, it will automatically allocate a new MRI
+  strucutre.
+  -------------------------------------------------------------------*/
+MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
+{
+  int nnbrs, nthstep, frame, vtx, nbrvtx, nthnbr;
+  float val;
+  MRI *SrcTmp;
+  
+  if(Surf->nvertices != Src->width){
+    printf("ERROR: MRISsmooth: Surf/Src dimension mismatch\n");
+    return(NULL);
+  }
+  
+  if(Targ == NULL){
+    Targ = MRIallocSequence(Src->width, Src->height, Src->depth, 
+			    MRI_FLOAT, Src->nframes);
+    if(Targ==NULL){
+      printf("ERROR: MRISsmooth: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(Src->width   != Targ->width  || 
+       Src->height  != Targ->height || 
+       Src->depth   != Targ->depth  ||
+       Src->nframes != Targ->nframes){
+      printf("ERROR: MRISsmooth: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(Targ->type != MRI_FLOAT){
+      printf("ERROR: MRISsmooth: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+  
+  SrcTmp = MRIcopy(Src,NULL);
+  for(nthstep = 0; nthstep < nSmoothSteps; nthstep ++){
+    //printf("Step = %d\n",nthstep); fflush(stdout);
     
-	    MRIcopy(Targ,SrcTmp);
-	  }/* end loop over smooth step */
+    for(vtx = 0; vtx < Surf->nvertices; vtx++){
+      nnbrs = Surf->vertices[vtx].vnum;
+      
+      for(frame = 0; frame < Targ->nframes; frame ++){
+	val = MRIFseq_vox(SrcTmp,vtx,0,0,frame);
+	
+	for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+	  nbrvtx = Surf->vertices[vtx].v[nthnbr];
+	  val += MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
+	}/* end loop over neighbor */
+	
+	MRIFseq_vox(Targ,vtx,0,0,frame) = (val/(nnbrs+1));
+      }/* end loop over frame */
+      
+    } /* end loop over vertex */
+    
+    MRIcopy(Targ,SrcTmp);
+  }/* end loop over smooth step */
   
-	  MRIfree(&SrcTmp);
+  MRIfree(&SrcTmp);
   
-	  return(Targ);
-	}
+  return(Targ);
+}
 
-      int
-	MRISrectifyCurvature(MRI_SURFACE *mris)
-      {
+/*----------------------------------------------------------------------*/
+int MRISrectifyCurvature(MRI_SURFACE *mris)
+{
 	int    vno ;
 	VERTEX *v ;
 
