@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/01 03:50:19 $
-// Revision       : $Revision: 1.385 $
+// Revision Date  : $Date: 2005/12/01 04:59:40 $
+// Revision       : $Revision: 1.386 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -45820,21 +45820,38 @@ int MRISmarkOrientationChanges(MRI_SURFACE *mris){
 /*-------------------------------------------------------------------
   MRISsmoothMRI() - smooths values on the surface when the surface
   values are stored in an MRI_VOLUME structure with the number of
-  columns (ie width) equal to the number of nvertices on the
-  surface. The number of rows (height) and slices (depth) in the MRI
-  struct should be 1. Can handle multiple frames. Can be performed
-  in-place. If Targ is NULL, it will automatically allocate a new MRI
-  strucutre.
+  spatial voxels equal to the number of nvertices on the surface. Can
+  handle multiple frames. Can be performed in-place. If Targ is NULL,
+  it will automatically allocate a new MRI strucutre. Note that the
+  input MRI struct does not have to have any particular configuration
+  of cols, rows, and slices as long as the product equals nvertices.
   -------------------------------------------------------------------*/
 MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
 {
-  int nnbrs, nthstep, frame, vtx, nbrvtx, nthnbr;
+  int nnbrs, nthstep, frame, vtx, nbrvtx, nthnbr, *crslut[3], c,r,s, nvox;
   float val;
   MRI *SrcTmp;
   
-  if(Surf->nvertices != Src->width){
+  nvox = Src->width * Src->height * Src->depth;
+  if(Surf->nvertices != nvox){
     printf("ERROR: MRISsmooth: Surf/Src dimension mismatch\n");
     return(NULL);
+  }
+
+  //Build LUT to map from col,row,slice to vertex
+  crslut[0] = (int *) calloc(nvox,sizeof(int));
+  crslut[1] = (int *) calloc(nvox,sizeof(int));
+  crslut[2] = (int *) calloc(nvox,sizeof(int));
+  vtx = 0; 
+  for(c=0; c < Src->width; c++){
+    for(r=0; r < Src->height; r++){
+      for(s=0; s < Src->depth; s++){
+	crslut[0][vtx] = c;
+	crslut[1][vtx] = r;
+	crslut[2][vtx] = s;
+	vtx++;
+      }
+    }
   }
   
   if(Targ == NULL){
@@ -45865,16 +45882,19 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
     
     for(vtx = 0; vtx < Surf->nvertices; vtx++){
       nnbrs = Surf->vertices[vtx].vnum;
-      
+      c = crslut[0][vtx];
+      r = crslut[1][vtx];
+      s = crslut[2][vtx];
       for(frame = 0; frame < Targ->nframes; frame ++){
-	val = MRIFseq_vox(SrcTmp,vtx,0,0,frame);
+	val = MRIFseq_vox(SrcTmp,c,r,s,frame);
 	
 	for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
 	  nbrvtx = Surf->vertices[vtx].v[nthnbr];
-	  val += MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
+	  val += MRIFseq_vox(SrcTmp,crslut[0][nbrvtx],
+			     crslut[1][nbrvtx],crslut[2][nbrvtx],frame);
 	}/* end loop over neighbor */
 	
-	MRIFseq_vox(Targ,vtx,0,0,frame) = (val/(nnbrs+1));
+	MRIFseq_vox(Targ,c,r,s,frame) = (val/(nnbrs+1));
       }/* end loop over frame */
       
     } /* end loop over vertex */
@@ -45883,6 +45903,9 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
   }/* end loop over smooth step */
   
   MRIfree(&SrcTmp);
+  free(crslut[0]);
+  free(crslut[1]);
+  free(crslut[2]);
   
   return(Targ);
 }
