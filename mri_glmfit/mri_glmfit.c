@@ -1,13 +1,23 @@
 // mri_glmfit.c
 
-// Separate fit and test (and both)
-// Smoothing - variance and input
+// Things to do:
+//
+// --smooth, --var-smooth
+// --synth  for input synth only
+// --sim-synth for synth during simulation
+// --sim-perm  for perm  during simulation
+// --sim-nrep  for number of simulation repetitions
+// --sim-thresh
+// --sim-thresh-sign
+// --sim-out
+// --surf subject hemi : use surface anat (otherwise assume vol)
+// Package volume cluster better
+// Label as a mask
+// Invert mask
 
 // Save some sort of config in output dir.
 
 // Leave-one-out
-// Save maxvox
-
 // Copies or Links to source data?
 
 // Check to make sure no two contrast names are the same
@@ -57,10 +67,11 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
+static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.33 2005/12/01 03:09:40 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.34 2005/12/01 03:50:29 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -84,6 +95,9 @@ double Xcond;
 
 int npvr=0;
 MRIGLM *mriglm=NULL, *mriglmtmp=NULL;
+
+double SmoothLevel=0;
+double VarSmoothLevel=0;
 
 char voxdumpdir[1000];
 int voxdump[3];
@@ -110,7 +124,7 @@ char *cmdline, cwd[2000];
 char *MaxVoxBase = NULL;
 int DontSave = 0;
 
-int DoLoop=0;
+int DoSim=0;
 int nsim = 0;
 int synth = 0;
 int perm = 0;
@@ -227,6 +241,9 @@ int main(int argc, char **argv)
     printf("ERROR: loading y %s\n",yFile);
     exit(1);
   }
+  // Synth input here if desired
+
+  if(SmoothLevel > 0) SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
 
   // Check number of frames ----------------------------------
   if(mriglm->y->nframes != mriglm->Xg->rows){
@@ -366,8 +383,8 @@ int main(int argc, char **argv)
     }
   }
 
-  //--------------------------------------------------------------------------
-  if(!DoLoop){
+  // Don't do sim --------------------------------------------------------
+  if(!DoSim){
     if(synth){
       printf("Replacing data with synthetic white noise\n");
       MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
@@ -376,9 +393,11 @@ int main(int argc, char **argv)
     // Now do the estimation and testing
     TimerStart(&mytimer) ;
 
-    if(0){
+    if(VarSmoothLevel > 0){
       printf("Starting fit\n");
       MRIglmFit(mriglm);
+      printf("Variance smoothing\n");
+      SmoothSurfOrVol(surf, mriglm->rvar, SmoothLevel);
       printf("Starting test\n");
       MRIglmTest(mriglm);
     }
@@ -393,7 +412,7 @@ int main(int argc, char **argv)
   //--------------------------------------------------------------------------
   //--------------------------------------------------------------------------
   //--------------------------------------------------------------------------
-  if(DoLoop){
+  if(DoSim){
     // Write header to output files
     for(n=0; n < mriglm->glm->ncontrasts; n++){
       sprintf(tmpstr,"%s-%s.csd",simbase,mriglm->glm->Cname[n]);
@@ -421,15 +440,31 @@ int main(int argc, char **argv)
       printf("%4d/%d t=%g ----------------------\n",
 	     nthsim+1,nsim,msecFitTime/(1000*60.0));
 
-      if(synth)
-	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
-		 0,1,mriglm->y);
+      if(synth){
+	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
+		 mriglm->y->nframes,0,1,mriglm->y);
+	if(SmoothLevel > 0) SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
+      }
       if(perm) MatrixRandPermRows(mriglm->Xg);
 
-      MRIglmFitAndTest(mriglm);
-
+      // If variance smoothing, then need to test and fit separately
+      if(VarSmoothLevel > 0){
+	printf("Starting fit\n");
+	MRIglmFit(mriglm);
+	printf("Variance smoothing\n");
+	SmoothSurfOrVol(surf, mriglm->rvar, SmoothLevel);
+	printf("Starting test\n");
+	MRIglmTest(mriglm);
+      }
+      else{
+	printf("Starting fit and test\n");
+	MRIglmFitAndTest(mriglm);
+      }
+      
       for(n=0; n < mriglm->glm->ncontrasts; n++){
 	sig    = MRIlog10(mriglm->p[n],sig,1);
+	// If it is t-test (ie, one row) then apply the sign
+	if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
 	sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
 	Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
 	MRISsetValsFromMRI(surf, sig, 0);
@@ -444,7 +479,7 @@ int main(int argc, char **argv)
 	MRIfree(&sig);
 	free(SurfClustList);
       }
-    }
+    }// simulation loop
     exit(0);
   }
   //--------------------------------------------------------------------------
@@ -607,7 +642,7 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%d",&nsim);
       sscanf(pargv[1],"%lf",&thresh);
       simbase = pargv[2];
-      DoLoop = 1;
+      DoSim = 1;
       DontSave = 1;
       nargsused = 3;
     }
@@ -630,6 +665,16 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--seed")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--smooth")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&SmoothLevel);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--var-smooth")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&VarSmoothLevel);
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--voxdump")){
@@ -908,4 +953,19 @@ static void dump_options(FILE *fp)
   return;
 }
 
+/*--------------------------------------------------------------------*/
+static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel)
+{
+  double gstd;
 
+  if(surf == NULL){
+    gstd = SmthLevel/sqrt(log(256.0));
+    printf("  Volume Smoothing to FWHM=%lf, Gstd=%lf\n",SmthLevel,gstd);
+    MRIgaussianSmooth(mri, gstd, 1, mri); /* 1 = normalize */
+  }
+  else{
+    printf("  Surface Smoothing to %lf iterations\n",SmthLevel);
+    MRISsmoothMRI(surf, mri, SmthLevel, mri);
+  }
+  return(0);
+}
