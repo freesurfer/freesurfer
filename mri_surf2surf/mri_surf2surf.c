@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.24 2005/11/12 00:34:11 greve Exp $
+  $Id: mri_surf2surf.c,v 1.25 2005/12/01 23:50:58 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -70,11 +70,12 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.24 2005/11/12 00:34:11 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.25 2005/12/01 23:50:58 greve Exp $";
 char *Progname = NULL;
 
-char *surfreg = NULL;
-char *hemi    = NULL;
+char *surfregfile = NULL;
+char *srchemi    = NULL;
+char *trghemi    = NULL;
 
 char *srcsubject = NULL;
 char *srcvalfile = NULL;
@@ -148,7 +149,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.24 2005/11/12 00:34:11 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.25 2005/12/01 23:50:58 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -189,11 +190,17 @@ int main(int argc, char **argv)
     printf("Source Ico Order = %d\n",SrcIcoOrder);
   }
   else{
-    sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,hemi,surfreg);
+    if(!strcmp(srchemi,trghemi)) // hemis are the same
+      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,
+	      srcsubject,srchemi,surfregfile);
+    else // hemis are the different
+      sprintf(fname,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,
+	      srcsubject,srchemi,trghemi,surfregfile);
+
     printf("Reading source surface reg %s\n",fname);
     SrcSurfReg = MRISread(fname) ;
     if(cavtx > 0) 
-      printf("cavtx = %d, srcsurfreg: %g, %g, %g\n",cavtx,
+      printf("cavtx = %d, srcsurfregfile: %g, %g, %g\n",cavtx,
 	   SrcSurfReg->vertices[cavtx].x,
 	   SrcSurfReg->vertices[cavtx].y,
 	   SrcSurfReg->vertices[cavtx].z);
@@ -224,7 +231,7 @@ int main(int argc, char **argv)
       memcpy(fname,srcvalfile,strlen(srcvalfile));
     }
     else
-      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,hemi,srcvalfile);
+      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,srcvalfile);
     printf("Reading curvature file %s\n",fname);
     if(MRISreadCurvatureFile(SrcSurfReg, fname) != 0){
       printf("ERROR: reading curvature file\n");
@@ -330,7 +337,7 @@ int main(int argc, char **argv)
       reshapefactor = 6;
     }
     else{
-      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,hemi,surfreg);
+      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,trghemi,surfregfile);
       printf("Reading target surface reg %s\n",fname);
       TrgSurfReg = MRISread(fname) ;
     }
@@ -629,12 +636,23 @@ static int parse_commandline(int argc, char **argv)
     }
     else if (!strcmp(option, "--hemi")){
       if(nargc < 1) argnerr(option,1);
-      hemi = pargv[0];
+      srchemi = pargv[0];
+      trghemi = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--srchemi")){
+      if(nargc < 1) argnerr(option,1);
+      srchemi = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--trghemi")){
+      if(nargc < 1) argnerr(option,1);
+      trghemi = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--surfreg")){
       if(nargc < 1) argnerr(option,1);
-      surfreg = pargv[0];
+      surfregfile = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--mapmethod")){
@@ -880,8 +898,9 @@ static void dump_options(FILE *fp)
   fprintf(fp,"trgsubject = %s\n",trgsubject);
   fprintf(fp,"trgval     = %s\n",trgvalfile);
   fprintf(fp,"trgtype    = %s\n",trgtypestring);
-  fprintf(fp,"surfreg    = %s\n",surfreg);
-  fprintf(fp,"hemi       = %s\n",hemi);
+  fprintf(fp,"surfreg    = %s\n",surfregfile);
+  fprintf(fp,"srchemi    = %s\n",srchemi);
+  fprintf(fp,"trghemi    = %s\n",trghemi);
   fprintf(fp,"frame      = %d\n",framesave);
   fprintf(fp,"fwhm-in    = %g\n",fwhm_Input);
   fprintf(fp,"fwhm-out   = %g\n",fwhm);
@@ -955,10 +974,10 @@ static void check_options(void)
     }
   }
 
-  if(surfreg == NULL) surfreg = "sphere.reg";
-  else printf("Registration surface changed to %s\n",surfreg);
+  if(surfregfile == NULL) surfregfile = "sphere.reg";
+  else printf("Registration surface changed to %s\n",surfregfile);
 
-  if(hemi == NULL){
+  if(srchemi == NULL){
     fprintf(stdout,"ERROR: no hemifield specified\n");
     exit(1);
   }
