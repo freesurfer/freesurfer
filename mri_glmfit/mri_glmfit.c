@@ -70,7 +70,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.35 2005/12/01 05:05:34 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.36 2005/12/01 21:25:49 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -400,7 +400,7 @@ int main(int argc, char **argv)
       printf("Starting fit\n");
       MRIglmFit(mriglm);
       printf("Variance smoothing\n");
-      SmoothSurfOrVol(surf, mriglm->rvar, SmoothLevel);
+      SmoothSurfOrVol(surf, mriglm->rvar, VarSmoothLevel);
       printf("Starting test\n");
       MRIglmTest(mriglm);
     }
@@ -459,7 +459,7 @@ int main(int argc, char **argv)
 	printf("Starting fit\n");
 	MRIglmFit(mriglm);
 	printf("Variance smoothing\n");
-	SmoothSurfOrVol(surf, mriglm->rvar, SmoothLevel);
+	SmoothSurfOrVol(surf, mriglm->rvar, VarSmoothLevel);
 	printf("Starting test\n");
 	MRIglmTest(mriglm);
       }
