@@ -1045,7 +1045,7 @@ CLUSTER_SIM_DATA *CSDread(char *csdfile)
       // ----------- Header ------------
       fscanf(fp,"%s",tag);
       if(!strcmp(tag,"simtype")) fscanf(fp,"%s",csd->simtype);
-      else if(!strcmp(tag,"anatomy-type")){
+      else if(!strcmp(tag,"anattype")){
 	fscanf(fp,"%s",csd->anattype);
 	fscanf(fp,"%s",csd->subject);
 	fscanf(fp,"%s",csd->hemi);
@@ -1053,7 +1053,7 @@ CLUSTER_SIM_DATA *CSDread(char *csdfile)
       else if(!strcmp(tag,"thresh")) fscanf(fp,"%lf",&(csd->thresh));
       else if(!strcmp(tag,"seed"))   fscanf(fp,"%ld",&(csd->seed));
       if(!strcmp(tag,"contrast"))    fscanf(fp,"%s",csd->contrast);
-      else if(!strcmp(tag,"nloop")){
+      else if(!strcmp(tag,"nsim")){
 	fscanf(fp,"%d",&(csd->nreps));
 	CSDallocData(csd);
       }
