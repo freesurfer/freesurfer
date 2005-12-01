@@ -2,7 +2,7 @@
 # mergecontrasts-sess - AND conjunction of two contrasts
 #
 
-set VERSION = '$Id: mergecontrasts-sess,v 1.4 2005/12/01 20:56:58 greve Exp $';
+set VERSION = '$Id: mergecontrasts-sess,v 1.5 2005/12/01 22:15:14 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -501,11 +501,11 @@ each contrast must meet the threshold criteria at a voxel for the
 voxel to be set to 1.  For the 'or' conjunction, the voxel is set to 1
 if any contrast meets the threshold criteria. Otherwise, the voxel is
 set to zero. For the 'andor' conjunction, a voxel is set to 2 if both
-of the inputs meet the criteria. If the first input meets the criteria,
-then the voxel is set to 1. If the second input meets the criteria,
-then the voxel is set to 2. Otherwise, the voxel is zero. The andor
-only makes sense with two input. The andor conjunction allows four
-distinct areas to be visualized.
+of the inputs meet the criteria. If the first input only meets the
+criteria, then the voxel is set to 1. If the second input only meets
+the criteria, then the voxel is set to -1. Otherwise, the voxel is
+zero. The andor only makes sense with two input. The andor conjunction
+allows four distinct areas to be visualized.
 
 The output is a map with the same name as the input map which will be
 placed in a new contrast directory. The merged contrast can be
