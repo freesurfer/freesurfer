@@ -58,8 +58,11 @@ MATRIX *MRItoSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
 int MRIfromMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
 int MRIfromSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M);
 MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn);
+
+int MRIglmFitAndTest(MRIGLM *mriglm);
 int MRIglmFit(MRIGLM *glmmri);
-int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s);
+int MRIglmTest(MRIGLM *mriglm);
+int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s, int LoadBeta);
 int MRIglmNRegTot(MRIGLM *mriglm);
 VECTOR *MRItoVector(MRI *mri, int c, int r, int s, VECTOR *v);
 int MRIsetSign(MRI *invol, MRI *signvol, int frame);
