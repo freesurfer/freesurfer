@@ -1,8 +1,10 @@
 // mri_glmfit.c
 
+// Separate fit and test (and both)
+// Smoothing - variance and input
+
 // Save some sort of config in output dir.
 
-// Permute X
 // Leave-one-out
 // Save maxvox
 
@@ -58,7 +60,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.32 2005/11/29 01:36:46 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.33 2005/12/01 03:09:40 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -109,16 +111,16 @@ char *MaxVoxBase = NULL;
 int DontSave = 0;
 
 int DoLoop=0;
-int nloop = 0;
+int nsim = 0;
 int synth = 0;
 int perm = 0;
 double thresh=0;
 int threshsign=0; //0=abs,+1,-1
 SURFCLUSTERSUM *SurfClustList;
 int nClusters;
-char *subject=NULL, *hemi=NULL, *loopbase=NULL;
+char *subject=NULL, *hemi=NULL, *simbase=NULL;
 MRI_SURFACE *surf=NULL;
-int nthloop;
+int nthsim;
 double csize;
 
 /*--------------------------------------------------*/
@@ -152,11 +154,13 @@ int main(int argc, char **argv)
   check_options();
   if(checkoptsonly) return(0);
 
+  // Seed the random number generator just in case
   if(SynthSeed < 0) SynthSeed = PDFtodSeed();
   srand48(SynthSeed);
 
   dump_options(stdout);
 
+  // Create the output directory 
   if(! DontSave){
     if(GLMDir != NULL){
       printf("Creating output directory %s\n",GLMDir);
@@ -173,13 +177,12 @@ int main(int argc, char **argv)
     fclose(fp);
   }
 
-  mriglm->npvr = npvr;
+  mriglm->npvr     = npvr;
   mriglm->yhatsave = yhatSave;
   mriglm->condsave = condSave;
 
   // X ---------------------------------------------------------
   //Load global X------------------------------------------------
-
   if(XFile != NULL){  
     mriglm->Xg = MatrixReadTxt(XFile, NULL);
     if(mriglm->Xg==NULL){
@@ -268,7 +271,7 @@ int main(int argc, char **argv)
 	       n,c,r,s);
 	exit(1);
       }
-      MRIglmLoadVox(mriglm,c,r,s);
+      MRIglmLoadVox(mriglm,c,r,s,0);
       GLMxMatrices(mriglm->glm);
       GLMfit(mriglm->glm);
       GLMdump("selfreg",mriglm->glm);
@@ -342,7 +345,7 @@ int main(int argc, char **argv)
 	    voxdump[0],voxdump[1],voxdump[2]);
     printf("Dumping voxel %d %d %d to %s\n",
 	   voxdump[0],voxdump[1],voxdump[2],voxdumpdir);
-    MRIglmLoadVox(mriglm,voxdump[0],voxdump[1],voxdump[2]);
+    MRIglmLoadVox(mriglm,voxdump[0],voxdump[1],voxdump[2],0);
     GLMxMatrices(mriglm->glm);
     GLMfit(mriglm->glm);
     GLMtest(mriglm->glm);
@@ -372,8 +375,17 @@ int main(int argc, char **argv)
     }
     // Now do the estimation and testing
     TimerStart(&mytimer) ;
-    printf("Starting fit\n");
-    MRIglmFit(mriglm);
+
+    if(0){
+      printf("Starting fit\n");
+      MRIglmFit(mriglm);
+      printf("Starting test\n");
+      MRIglmTest(mriglm);
+    }
+    else{
+      printf("Starting fit and test\n");
+      MRIglmFitAndTest(mriglm);
+    }
     msecFitTime = TimerStop(&mytimer) ;
     printf("Fit completed in %g minutes\n",msecFitTime/(1000*60.0));
   }
@@ -384,9 +396,9 @@ int main(int argc, char **argv)
   if(DoLoop){
     // Write header to output files
     for(n=0; n < mriglm->glm->ncontrasts; n++){
-      sprintf(tmpstr,"%s-%s.csd",loopbase,mriglm->glm->Cname[n]);
+      sprintf(tmpstr,"%s-%s.csd",simbase,mriglm->glm->Cname[n]);
       fp = fopen(tmpstr,"w");
-      fprintf(fp,"# mri_glmfit simulation loop\n");
+      fprintf(fp,"# mri_glmfit simulation sim\n");
       if(perm)  fprintf(fp,"# simtype perm \n");
       if(synth) fprintf(fp,"# simtype synth \n");
       fprintf(fp,"# seed   %d\n",SynthSeed);
@@ -394,27 +406,27 @@ int main(int argc, char **argv)
       fprintf(fp,"# contrast %s\n",mriglm->glm->Cname[n]);
       fprintf(fp,"# hostname %s\n",uts.nodename);
       fprintf(fp,"# machine  %s\n",uts.machine);
-      fprintf(fp,"# nloop   %d\n",nloop);
-      if(surf == NULL) fprintf(fp,"# anatomy-type volume\n");
-      else fprintf(fp,"# anatomy-type surface %s %s\n",subject,hemi);
+      fprintf(fp,"# nsim   %d\n",nsim);
+      if(surf == NULL) fprintf(fp,"# anattype volume\n");
+      else fprintf(fp,"# anattype surface %s %s\n",subject,hemi);
       fprintf(fp,"# LoopNo nClusters MaxClustSize MaxSig\n");
 
       fclose(fp);
     }
 
-    printf("Staring simulation loop over %d trials\n",nloop);
+    printf("Staring simulation sim over %d trials\n",nsim);
     TimerStart(&mytimer) ;
-    for(nthloop=0; nthloop < nloop; nthloop++){
+    for(nthsim=0; nthsim < nsim; nthsim++){
       msecFitTime = TimerStop(&mytimer) ;
       printf("%4d/%d t=%g ----------------------\n",
-	     nthloop+1,nloop,msecFitTime/(1000*60.0));
+	     nthsim+1,nsim,msecFitTime/(1000*60.0));
 
       if(synth)
 	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
 		 0,1,mriglm->y);
       if(perm) MatrixRandPermRows(mriglm->Xg);
 
-      MRIglmFit(mriglm);
+      MRIglmFitAndTest(mriglm);
 
       for(n=0; n < mriglm->glm->ncontrasts; n++){
 	sig    = MRIlog10(mriglm->p[n],sig,1);
@@ -423,11 +435,11 @@ int main(int argc, char **argv)
 	MRISsetValsFromMRI(surf, sig, 0);
 	SurfClustList = sclustMapSurfClusters(surf,thresh,-1,threshsign,0,&nClusters,NULL);
 	csize = sclustMaxClusterArea(SurfClustList, nClusters);
-	printf("%s %d %d   %g  %g  %g\n",mriglm->glm->Cname[n],nthloop,
+	printf("%s %d %d   %g  %g  %g\n",mriglm->glm->Cname[n],nthsim,
 	       nClusters,csize,sigmax,Fmax);
-	sprintf(tmpstr,"%s-%s.csd",loopbase,mriglm->glm->Cname[n]);
+	sprintf(tmpstr,"%s-%s.csd",simbase,mriglm->glm->Cname[n]);
 	fp = fopen(tmpstr,"a");
-	fprintf(fp,"%d %d   %g  %g\n",nthloop,nClusters,csize,sigmax);
+	fprintf(fp,"%d %d   %g  %g\n",nthsim,nClusters,csize,sigmax);
 	fclose(fp);
 	MRIfree(&sig);
 	free(SurfClustList);
@@ -590,11 +602,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--perm"))    perm = 1;
 
-    else if (!strcasecmp(option, "--loop")){
+    else if (!strcasecmp(option, "--sim")){
       if(nargc < 3) CMDargNErr(option,1);
-      sscanf(pargv[0],"%d",&nloop);
+      sscanf(pargv[0],"%d",&nsim);
       sscanf(pargv[1],"%lf",&thresh);
-      loopbase = pargv[2];
+      simbase = pargv[2];
       DoLoop = 1;
       DontSave = 1;
       nargsused = 3;
