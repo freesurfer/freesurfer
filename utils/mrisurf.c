@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/01 04:59:40 $
-// Revision       : $Revision: 1.386 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2005/12/02 23:30:35 $
+// Revision       : $Revision: 1.387 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -15261,8 +15261,9 @@ MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
 	{
 	  fclose(fp) ;
 	  ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
-				      "MRISreadVertexPositions(%s): surfaces differ.\n",
-				      fname)) ;
+				      "MRISreadVertexPositions(%s): surfaces differ. Main: %d verts %d faces, %s: %d verts %d faces\n",
+				      fname, mris->nvertices, mris->nfaces,
+				      name, nvertices, nfaces)) ;
 	}
 
       for (vno = 0 ; vno < nvertices ; vno++)
