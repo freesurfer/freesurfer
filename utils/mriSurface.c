@@ -55,6 +55,9 @@ Surf_tErr Surf_New ( mriSurfaceRef*  opSurface,
   this->mabVertexSetLoaded[ Surf_tVertexSet_Main ]     = TRUE; 
   this->mabVertexSetLoaded[ Surf_tVertexSet_Original ] = FALSE;
   this->mabVertexSetLoaded[ Surf_tVertexSet_Pial ]     = FALSE;
+  this->mabVertexSetConverted[ Surf_tVertexSet_Main ]     = FALSE; 
+  this->mabVertexSetConverted[ Surf_tVertexSet_Original ] = FALSE;
+  this->mabVertexSetConverted[ Surf_tVertexSet_Pial ]     = FALSE;
   
   /* init iterators */
   this->mnCurFace   = 0;
@@ -165,8 +168,19 @@ Surf_tErr Surf_SetTransform ( mriSurfaceRef this,
   /* copy the transformation */
   Trns_DeepClone( iTransform, &this->mTransform );
   
+  /* Clear our converted flags. */
+  this->mabVertexSetConverted[ Surf_tVertexSet_Main ]     = FALSE; 
+  this->mabVertexSetConverted[ Surf_tVertexSet_Original ] = FALSE;
+  this->mabVertexSetConverted[ Surf_tVertexSet_Pial ]     = FALSE;
+
   /* convert our surface */
   Surf_ConvertSurfaceToClientSpace_( this, Surf_tVertexSet_Main );
+  if( this->mabVertexSetLoaded[Surf_tVertexSet_Pial] ) {
+    Surf_ConvertSurfaceToClientSpace_( this, Surf_tVertexSet_Pial );
+  }
+  if( this->mabVertexSetLoaded[Surf_tVertexSet_Original] ) {
+    Surf_ConvertSurfaceToClientSpace_( this, Surf_tVertexSet_Original );
+  }
   
   goto cleanup;
   
@@ -193,7 +207,6 @@ Surf_tErr Surf_LoadVertexSet ( mriSurfaceRef   this,
   eResult = Surf_Verify( this );
   if( Surf_tErr_NoErr != eResult ) 
     goto error;
-  
   
   /* save current vertex set to tmp */
   MRISsaveVertexPositions( this->mSurface, TMP_VERTICES );
@@ -362,6 +375,11 @@ Surf_tErr Surf_ConvertSurfaceToClientSpace_ ( mriSurfaceRef   this,
   float         dy                 = 0;
   float         dz                 = 0;
   float         fDistance          = 0;
+
+  if( this->mabVertexSetConverted[iSet] ) {
+    goto cleanup;
+  }
+
   for( nFaceIdx = 0; nFaceIdx < this->mSurface->nfaces; nFaceIdx++ ) {
     
     face = &(this->mSurface->faces[nFaceIdx]);
@@ -379,7 +397,7 @@ Surf_tErr Surf_ConvertSurfaceToClientSpace_ ( mriSurfaceRef   this,
       /* get the next vertex */
       nNeighborVertexIdx = nVertexIdx==0 ? VERTICES_PER_FACE-1 : nVertexIdx-1;
       neighborVertex =&(this->mSurface->vertices[face->v[nNeighborVertexIdx]]);
-      
+
       /* calc the distance */
       dx = (Surf_GetVertexCoord( vertex,         iSet, Surf_tOrientation_X ) -
 	    Surf_GetVertexCoord( neighborVertex, iSet, Surf_tOrientation_X ));
@@ -404,6 +422,8 @@ Surf_tErr Surf_ConvertSurfaceToClientSpace_ ( mriSurfaceRef   this,
   fprintf( stdout, "\rConverting %s surface: 100%% done.       \n", 
 	   Surf_ksaVertexSets[iSet] );
   
+  this->mabVertexSetConverted[iSet] = TRUE;
+
   goto cleanup;
   
   goto error;
@@ -642,7 +662,11 @@ Surf_tErr Surf_TransformToVolumeGeometry ( mriSurfaceRef this,
 		     eResult, Surf_tErr_ErrorAccesssingSurface );
 
   /* Since that changes the vertex positions, reconvert our client
-     space cache. */
+     space cache. Clear our converted flags first. */
+  this->mabVertexSetConverted[ Surf_tVertexSet_Main ]     = FALSE; 
+  this->mabVertexSetConverted[ Surf_tVertexSet_Original ] = FALSE;
+  this->mabVertexSetConverted[ Surf_tVertexSet_Pial ]     = FALSE;
+
   Surf_ConvertSurfaceToClientSpace_( this, Surf_tVertexSet_Main );
   if( this->mabVertexSetLoaded[Surf_tVertexSet_Pial] ) {
     Surf_ConvertSurfaceToClientSpace_( this, Surf_tVertexSet_Pial );

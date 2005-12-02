@@ -78,6 +78,7 @@ typedef struct {
   
   /* load status */
   tBoolean mabVertexSetLoaded[ Surf_knNumVertexSets ];
+  tBoolean mabVertexSetConverted[ Surf_knNumVertexSets ];
   
   /* iterator state */
   Surf_tOrientation mIterOrientation;
