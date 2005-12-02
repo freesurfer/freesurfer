@@ -34,25 +34,6 @@ VOLCLUSTER *clustAllocCluster(int nmembers)
   return(vc);
 }
 /*----------------------------------------------------------------*/
-int clustFreeCluster(VOLCLUSTER **ppvc)
-{
-  VOLCLUSTER *vc;
-
-  vc = *ppvc;
-
-  if(vc->col != NULL) free(&vc->col);
-  if(vc->row != NULL) free(&vc->row);
-  if(vc->slc != NULL) free(&vc->slc);
-
-  if(vc->x != NULL) free(&vc->x);
-  if(vc->y != NULL) free(&vc->y);
-  if(vc->z != NULL) free(&vc->z);
-
-  free(ppvc);
-
-  return(0);
-}
-/*----------------------------------------------------------------*/
 VOLCLUSTER **clustAllocClusterList(int nlist)
 {
   VOLCLUSTER **vclist;
@@ -62,6 +43,25 @@ VOLCLUSTER **clustAllocClusterList(int nlist)
     return(NULL);
   }
   return(vclist);
+}
+/*----------------------------------------------------------------*/
+int clustFreeCluster(VOLCLUSTER **ppvc)
+{
+  VOLCLUSTER *vc;
+  vc = *ppvc;
+
+  if(vc->col != NULL) {free(vc->col);vc->col=NULL;}
+  if(vc->row != NULL) {free(vc->row);vc->row=NULL;}
+  if(vc->slc != NULL) {free(vc->slc);vc->slc=NULL;}
+
+  if(vc->x != NULL) {free(vc->x);vc->x=NULL;}
+  if(vc->y != NULL) {free(vc->y);vc->y=NULL;}
+  if(vc->z != NULL) {free(vc->z);vc->z=NULL;}
+
+  free(*ppvc);
+  *ppvc=NULL;
+
+  return(0);
 }
 /*------------------------------------------------------------------------*/
 int clustFreeClusterList(VOLCLUSTER ***pppvclist, int nlist)
@@ -73,7 +73,8 @@ int clustFreeClusterList(VOLCLUSTER ***pppvclist, int nlist)
   for(n=0;n<nlist;n++)
     if(vclist[n] != NULL) clustFreeCluster(&vclist[n]);
 
-  free(pppvclist);
+  free(**pppvclist);
+  **pppvclist = NULL;
   
   return(0);
 }
@@ -647,9 +648,9 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
     /* go through functional space in incr of 1 mm */
     for(x = xc - colres/2;   x <= xc + colres/2;  x += 1.0){
       for(y = yc - sliceres/2; y <= yc + sliceres/2; y += 1.0){
-  for(z = zc - rowres/2;   z <= zc + rowres/2;   z += 1.0){
-    nlabel ++;
-  }
+	for(z = zc - rowres/2;   z <= zc + rowres/2;   z += 1.0){
+	  nlabel ++;
+	}
       }
     }
   }
@@ -669,7 +670,7 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
     /* go through functional space in incr of 1 mm */
     for(x = xc - colres/2; x <= xc + colres/2; x += 1.0){
       for(y = yc - sliceres/2; y <= yc + sliceres/2; y += 1.0){
-  for(z = zc - rowres/2; z <= zc + rowres/2; z += 1.0){
+	for(z = zc - rowres/2; z <= zc + rowres/2; z += 1.0){
 
     /* convert Functional XYZ FSA XYZ */
     xyzFunc->rptr[1][1] = x;
@@ -697,6 +698,100 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
 
   return(label);
 }
+/*-------------------------------------------------------------*/
+VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
+      float threshmin, float threshmax, 
+      int threshsign, float minclustsizemm3, 
+      MRI *binmask, int *nClusters,
+      MATRIX *XFM)
+{
+  int nthhit,nclusters,nhits, *hitcol, *hitrow, *hitslc;
+  int col,row,slc,allowdiag=0,nprunedclusters;
+  MRI *HitMap;
+  VOLCLUSTER **ClusterList, **ClusterList2;
+  float voxsizemm3, distthresh=0; 
+
+  voxsizemm3 = vol->xsize*vol->ysize*vol->zsize;
+
+  /* Initialize the hit map - this is a map of voxels that have been
+     accounted for as either outside of a the threshold range or
+     belonging to a cluster. The initialization is for thresholding */
+  HitMap = clustInitHitMap(vol, frame, threshmin, threshmax, threshsign, 
+			   &nhits, &hitcol, &hitrow, &hitslc, binmask,0);
+  if(HitMap == NULL) exit(1);
+  printf("INFO: Found %d voxels in threhold range\n",nhits);
+
+  /* Allocate an array of clusters equal to the number of hits -- this
+     is the maximum number of clusters possible */
+  ClusterList = clustAllocClusterList(nhits);
+  if(ClusterList == NULL){
+    fprintf(stderr,"ERROR: could not alloc %d clusters\n",nhits);
+    exit(1);
+  }
+
+  nclusters = 0;
+  for(nthhit = 0; nthhit < nhits; nthhit ++){
+
+    /* Determine whether this hit is still valid. It may 
+       not be if it was assigned to the cluster of a 
+       previous hit */
+    col = hitcol[nthhit];
+    row = hitrow[nthhit];
+    slc = hitslc[nthhit];
+    if(MRIIseq_vox(HitMap,col,row,slc,0)) continue;
+
+    /* Grow cluster using this hit as a seed */
+    ClusterList[nclusters] = clustGrow(col,row,slc,HitMap,allowdiag);
+
+    /* Determine the member with the maximum value */
+    clustMaxMember(ClusterList[nclusters], vol, frame, threshsign);
+
+    clustComputeTal(ClusterList[nclusters],XFM);
+
+    /* increment the number of clusters */
+    nclusters ++;
+  }
+
+  printf("INFO: Found %d clusters that meet threshold criteria\n",
+	 nclusters);
+
+  /* Remove clusters that do not meet the minimum size requirement */
+  ClusterList2 = clustPruneBySize(ClusterList,nclusters,
+				  voxsizemm3,minclustsizemm3,
+				  &nprunedclusters);
+  clustFreeClusterList(&ClusterList,nclusters);
+  nclusters = nprunedclusters;
+  ClusterList = ClusterList2;
+
+  printf("INFO: Found %d clusters that meet size criteria\n",
+	 nclusters);
+
+  /* Remove clusters that do not meet the minimum distance requirement */
+  if(distthresh > 0.0){
+    printf("INFO: pruning by distance %g\n",distthresh);
+    ClusterList2 = clustPruneByDistance(ClusterList,nclusters,
+          distthresh, &nprunedclusters);
+    clustFreeClusterList(&ClusterList,nclusters);
+    nclusters = nprunedclusters;
+    ClusterList = ClusterList2;
+  }
+
+  /* Sort Clusters by MaxValue */
+  ClusterList2 = clustSortClusterList(ClusterList2,nclusters,NULL);
+  clustFreeClusterList(&ClusterList,nclusters);
+  ClusterList = ClusterList2;
+
+  MRIfree(&HitMap);
+
+  printf("INFO: Found %d final clusters\n",nclusters);
+  *nClusters = nclusters;
+  return(ClusterList);
+}
+/*-------------------------------------------------------------*/
+
+
+
+
 /*----------------------------------------------------------------*/
 /*--------------- STATIC FUNCTIONS BELOW HERE --------------------*/
 /*----------------------------------------------------------------*/
@@ -1014,6 +1109,8 @@ int CHTsignId(char *ithr_sign)
 /*-------###########################################--------*/
 /*-------###########################################--------*/
 /*-------###########################################--------*/
+
+
 
 /*--------------------------------------------------------------
   CSDread() - reads a cluster simulation data file. The format

@@ -66,6 +66,11 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
 
 int clustDumpClusterList(FILE *fp, VOLCLUSTER **vclist, int nlist, 
        MRI *vol, int frame);
+VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
+      float threshmin, float threshmax, 
+      int threshsign, float minclustsizemm3, 
+      MRI *binmask, int *nClusters,
+      MATRIX *XFM);
 
 /*----------------------------------------------------------*/
 typedef struct {
