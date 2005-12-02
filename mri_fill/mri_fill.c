@@ -25,7 +25,7 @@
 #include "talairachex.h"
 #include "subroutines.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.98 2005/10/31 17:20:45 xhan Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.99 2005/12/02 20:53:12 fischl Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -86,6 +86,7 @@ static int find_rh_seed_point(MRI *mri, int *prh_vol_x, int *prh_vol_y, int *prh
 static int mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg_tal) ;
 
 static int find_rh_voxel = 0 ;
+static int find_lh_voxel = 0 ;
 static int fillonly = 0 ;
 static int fillven = 0 ;
 static FILE *log_fp = NULL ;
@@ -327,12 +328,12 @@ main(int argc, char *argv[])
   VOL_GEOM *src=0;
 	char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_fill.c,v 1.98 2005/10/31 17:20:45 xhan Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_fill.c,v 1.99 2005/12/02 20:53:12 fischl Exp $", "$Name:  $", cmdline);
 
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.98 2005/10/31 17:20:45 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.99 2005/12/02 20:53:12 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -376,11 +377,18 @@ main(int argc, char *argv[])
 	{
 		find_rh_seed_point(mri_im, &rh_vol_x, &rh_vol_y, &rh_vol_z) ;
 	}
+	else if (find_lh_voxel)
+	{
+		find_rh_seed_point(mri_im, &lh_vol_x, &lh_vol_y, &lh_vol_z) ;
+	}
 	if (fillonly)
 	{
 		mri_rh_fill = MRIclone(mri_im, NULL) ;
 		mri_rh_im = MRIcopy(mri_im, NULL) ;
-		MRIfillVolume(mri_rh_fill, mri_rh_im, rh_vol_x, rh_vol_y, rh_vol_z,rh_fill_val);
+		if (find_rh_voxel || rhv)   // rh specified
+			MRIfillVolume(mri_rh_fill, mri_rh_im, rh_vol_x, rh_vol_y, rh_vol_z,rh_fill_val);
+		else   // assume it's lh
+			MRIfillVolume(mri_rh_fill, mri_rh_im, lh_vol_x, lh_vol_y, lh_vol_z,lh_fill_val);
 		MRIwrite(mri_rh_fill, out_fname) ;
 		exit(0) ;
 	}
@@ -1415,6 +1423,11 @@ get_option(int argc, char *argv[])
   {
 		find_rh_voxel = 1 ;
     fprintf(stderr,"finding any rh seed point that has all 27 nbrs on\n") ;
+  }
+  else if (!stricmp(option, "findlhv"))
+  {
+		find_lh_voxel = 1 ;
+    fprintf(stderr,"finding any lh seed point that has all 27 nbrs on\n") ;
   }
   else if (!stricmp(option, "lval"))
   {
@@ -3934,7 +3947,7 @@ find_rh_seed_point(MRI *mri, int *prh_vol_x, int *prh_vol_y, int *prh_vol_z)
 					*prh_vol_x = x ;
 					*prh_vol_y = y ;
 					*prh_vol_z = z ;
-					printf("rh seed point found at (%d, %d, %d)\n", x, y, z) ;
+					printf("seed point found at (%d, %d, %d)\n", x, y, z) ;
 					return(NO_ERROR) ;
 				}
 			}
