@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/10/31 20:06:49 $
-// Revision       : $Revision: 1.259 $
-char *VERSION = "$Revision: 1.259 $";
+// Revision Date  : $Date: 2005/12/02 23:28:44 $
+// Revision       : $Revision: 1.260 $
+char *VERSION = "$Revision: 1.260 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1100,7 +1100,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.259 2005/10/31 20:06:49 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.260 2005/12/02 23:28:44 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -3163,13 +3163,15 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   
   tkm_tErr  eResult           = tkm_tErr_NoErr;
   Surf_tErr eSurface          = Surf_tErr_NoErr;
-  Volm_tErr eVolume           = Volm_tErr_NoErr;
   tBoolean  bLoaded           = FALSE;
   char      sName[tkm_knPathLen]       = "";
   char      sError[tkm_knErrStringLen] = "";
   tBoolean  bUseRealRAS;
+#if 0
+  Volm_tErr eVolume           = Volm_tErr_NoErr;
   VOL_GEOM  surfaceGeometry;
   VOL_GEOM  volumeGeometry;
+#endif
 
   DebugEnterFunction( ("LoadSurface( iType=%d, isName=%s )", 
            (int)iType, isName) );
@@ -3216,7 +3218,8 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
     tkm_SendTclCommand( tkm_tTclCommand_DoResolveUseRealRASDlog, "" );
   }
 
-
+  /* This stuff stopped working after Tosa left, so don't use it now. */
+#if 0
   /* We might need to adjust the surface coordinates if volume
      geomoetry information is present and it doesn't match the current
      volume. */
@@ -3243,7 +3246,7 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
 			 eResult, tkm_tErr_ErrorAccessingSurface );
     }
   }
-
+#endif
 
   /* turn on the loading and viewing options for surfaces in our interface.
      also turn the surface display onn in the window. turn on the 
@@ -3259,7 +3262,7 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
 		       DspA_tDisplayFlag_InterpolateSurfaceVertices,
 		       bLoaded ? TRUE : FALSE);
   
-  /* load other vertices. if these fail, it's okay. */
+  /* load other vertex sets. See if they exist first. */
   DebugNote( ("Loading orig set") );
   LoadSurfaceVertexSet( iType, Surf_tVertexSet_Original, "orig" );
   DebugNote( ("Loading pial set") );
@@ -5343,7 +5346,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.259 2005/10/31 20:06:49 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.260 2005/12/02 23:28:44 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
