@@ -1,7 +1,7 @@
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
-bin_PROGRAMS = mri_mc		
+bin_PROGRAMS = mri_mc		mri_pretess
 mri_mc_SOURCES=mri_mc.c
 mri_mc_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 #mri_mc_LDFLAGS=$(OS_LDFLAGS)
