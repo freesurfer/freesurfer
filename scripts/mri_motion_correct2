@@ -3,7 +3,7 @@
 # Performs motion correction of anatomicals. This should produce
 # the same output as mri_motion_correct
 
-set VERSION = '$Id: mri_motion_correct2,v 1.9 2004/12/14 03:37:42 greve Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.10 2005/12/02 19:41:30 greve Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -102,20 +102,16 @@ foreach input ($inputlist)
   endif
 
   if($TR != $TR0) then
-    echo "ERROR: TRs are inconsistent $TR0 $TR"
-    exit 1;
+    echo "WARNING: TRs are inconsistent $TR0 $TR"
   endif
   if($TE != $TE0) then
-    echo "ERROR: TEs are inconsistent $TE0 $TE"
-    exit 1;
+    echo "WARNING: TEs are inconsistent $TE0 $TE"
   endif
   if($TI != $TI0) then
-    echo "ERROR: TIs are inconsistent $TI0 $TI"
-    exit 1;
+    echo "WARNING: TIs are inconsistent $TI0 $TI"
   endif
   if($FlipAngle != $FlipAngle0) then
-    echo "ERROR: FlipAngles are inconsistent $FlipAngle0 $FlipAngle"
-    exit 1;
+    echo "WARNING: FlipAngles are inconsistent $FlipAngle0 $FlipAngle"
   endif
 
 end
