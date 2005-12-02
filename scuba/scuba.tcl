@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.167 2005/11/21 19:41:08 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.168 2005/12/02 01:45:42 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -527,6 +527,7 @@ proc MakeMenuBar { ifwTop } {
 	{check "Plane Intersections" { SetPreferencesValue DrawPlaneIntersections $gaView(planeIntersections); RedrawFrame [GetMainFrameID] } gaView(planeIntersections) }
 	{check "Show Console:Alt N" { ShowHideConsole $gaView(tkcon,visible) } gaView(tkcon,visible) }
 	{check "Auto-Configure" {} gaView(autoConfigure) }
+	{check "Always Report Info in Views with LUT Volumes" {} gaView(autoReportInfoLUT) }
 	{check "Automatically Report Info in Level if LUT" {AutoReportInfoChanged; AdjustReportInfoForAuto} gaView(autoReportInfoForLUT) }
 	{check "Flip Axes in Label Table" {DrawLabelArea} gaLabelArea(flipAxes) }
 	{check "Show FPS" { SetPreferencesValue ShowFPS $gaView(showFPS) } gaView(showFPS) }
@@ -4824,6 +4825,21 @@ proc ZoomViewOut { } {
     SetViewZoomLevel $gaView(current,id) [expr $zoomLevel / 2]
 }
 
+proc LayerChanged { iViewID iLayerID iLevel } {
+
+    # If this is an LUT volume, make sure our report info is on.
+    if { $gaView(autoReportInfoLUT) &&
+	 [string match [Get2DMRILayerColorMapMethod $iLayerID] lut] } {
+
+	set gaView($gaView(current,id),savedLevelReportInfo$iLevel) \
+	    [GetLevelReportInfoInView $gaView(current,id)]
+
+	set gaView(current,reportInfo$iLevel) true
+	SetLevelReportInfoInView $gaView(current,id) $inLevel true
+    }
+
+}
+
 proc GetListOfViews { iFrameID } {
 
     set lViewIDs {}
@@ -5728,7 +5744,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.167 2005/11/21 19:41:08 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.168 2005/12/02 01:45:42 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

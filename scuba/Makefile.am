@@ -11,7 +11,8 @@ AM_CPPFLAGS=$(GLUT_CFLAGS) \
 	$(tcl_includes) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/dicom \
-	-I/opt/intel/mkl70/include
+	-I/opt/intel/mkl70/include \
+	-Iqconsole -Iqconsole/include
 
 AM_LDFLAGS=$(LDFLAGS_TCL) $(GLUT_LIBS)
 
@@ -68,6 +69,13 @@ GUI_SRCS= \
 	ProgressDisplayManager.cpp ProgressDisplayManager.h \
 	ScubaKeyCombo.cpp ScubaKeyCombo.h
 
+QCONSOLE_SRCS = \
+	qconsole/src/commands.cpp qconsole/include/commands.h \
+	qconsole/src/commandsManager.cpp qconsole/include/commandsManager.h \
+	qconsole/src/interceptor.cpp qconsole/include/interceptor.h \
+	qconsole/src/qconsole.cpp qconsole/include/qconsole.h \
+	qconsole/src/qtclconsole.cpp qconsole/include/qtclconsole.h
+
 SCUBA1_SRCS= \
 	ToglManager.cpp ToglManager.h \
 	TclProgressDisplayManager.cpp TclProgressDisplayManager.h \
@@ -118,7 +126,9 @@ SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
 		.moc/moc_roisettingsdlog.cpp \
 		.moc/moc_prefsdlog.cpp \
 		.moc/moc_editdatdlog.cpp \
-		.moc/moc_findsurfacevertexdlog.cpp
+		.moc/moc_findsurfacevertexdlog.cpp \
+		.moc/moc_interceptor.cpp \
+		.moc/moc_qconsole.cpp
 
 #OBJMOC = moc_QtVolumeHistogram.$(OBJEXT) \
 #		moc_QTScubaWidget.$(OBJEXT) \
@@ -151,6 +161,7 @@ scuba2_SOURCES=$(UTILITIES_SRCS) \
 	$(GUI_SRCS) \
 	$(LAYER_SRCS) \
 	$(MOC_SRCS) \
+	$(QCONSOLE_SRCS) \
 	$(SCUBA2_SRCS) \
 	$(FORMS) \
 	$(UICDECLS) \
@@ -498,6 +509,14 @@ moc_editdatdlog.$(OBJEXT): .moc/moc_editdatdlog.cpp
 moc_findsurfacevertexdlog.$(OBJEXT): .moc/moc_findsurfacevertexdlog.cpp
 .moc/moc_findsurfacevertexdlog.cpp: .ui/findsurfacevertexdlog.h
 	$(MOC) .ui/findsurfacevertexdlog.h -o $@
+
+moc_interceptor.$(OBJEXT): .moc/moc_interceptor.cpp
+.moc/moc_interceptor.cpp:
+	$(MOC) qconsole/include/interceptor.h -o $@
+
+moc_qconsole.$(OBJEXT): .moc/moc_qconsole.cpp
+.moc/moc_qconsole.cpp:
+	$(MOC) qconsole/include/qconsole.h -o $@
 
 image_collection.$(OBJEXT): .ui/image_collection.cpp
 

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/01/19 20:43:22 $
-// Revision       : $Revision: 1.15 $
+// Revision Date  : $Date: 2005/12/02 01:45:42 $
+// Revision       : $Revision: 1.16 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -121,6 +121,8 @@ class TclCommandManager : public DebugReporter, public TclCommandListener {
   static float ConvertArgumentToFloat ( std::string isArg );
   static bool ConvertArgumentToBoolean ( std::string isArg );
   static std::string ConvertBooleanToReturnValue ( bool ib );
+
+  Tcl_Interp* GetInterp () { return mInterp; }
 
  protected:
 
