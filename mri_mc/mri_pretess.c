@@ -25,6 +25,10 @@
 char *Progname;
 
 
+static void  usage_exit(int ecode) ;
+static int get_option(int argc, char *argv[]) ;
+static int corners = 0 ;
+
 static int mriRemoveEdgeConfiguration(MRI *mri_seg, MRI *mri_orig, int label){
 	static int niter=0;
 	int i,j,k;
@@ -599,16 +603,24 @@ static int mriRemoveBackgroundCornerConfiguration(MRI *mri_seg, MRI *mri_orig, i
 int main(int argc, char *argv[])
 {
 	MRI *mri_seg,*mri_orig, *mri_seg_orig ;
-	int niter=10,ntotal=0,nmodified,i,j,k,nvoxels;
+	int niter=10,ntotal=0,nmodified,i,j,k,nvoxels, ac ;
 	int label, nargs;
-	char cmdline[CMD_LINE_LEN] ;
-	
+	char cmdline[CMD_LINE_LEN], **av ;
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_pretess.c,v 1.6 2005/12/02 18:22:42 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_pretess.c,v 1.7 2005/12/02 18:36:48 fischl Exp $", "$Name:  $");
 
-  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.6 2005/12/02 18:22:42 segonne Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.7 2005/12/02 18:36:48 fischl Exp $", "$Name:  $", cmdline);
 
 	Progname=argv[0];
+
+  ac = argc ;
+  av = argv ;
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
 	if(argc < 5) {
 		fprintf(stderr,"\n\nUSAGE: mri_pretess filled label normalized newfilled\n\n");
@@ -620,6 +632,12 @@ int main(int argc, char *argv[])
 		label = USE_WM ;
 	else
 		label=atoi(argv[2]);
+	if (mri_seg->type != MRI_UCHAR)
+	{
+		MRI *mri_tmp ;
+		mri_tmp = MRIchangeType(mri_seg, MRI_UCHAR, 0, 255, 1) ;
+		MRIfree(&mri_seg) ; mri_seg = mri_tmp ;
+	}
 	mri_orig=MRIread(argv[3]);
 	if (mri_orig == NULL)
 		ErrorExit(ERROR_NOFILE, "%s: could not open %s", Progname, argv[3]) ;
@@ -638,7 +656,8 @@ int main(int argc, char *argv[])
 	while(niter--){
 		nmodified=0;
 		nmodified += mriRemoveEdgeConfiguration(mri_seg,mri_orig,label);
-		if(0) nmodified += mriRemoveCornerConfiguration(mri_seg,mri_orig,label);
+		if (corners) 
+			nmodified += mriRemoveCornerConfiguration(mri_seg,mri_orig,label);
 		nmodified += mriRemoveBackgroundCornerConfiguration(mri_seg,mri_orig,label);
 		if(nmodified==0) break;
 		ntotal += nmodified;
@@ -673,3 +692,52 @@ int main(int argc, char *argv[])
 }
 
 
+static int
+get_option(int argc, char *argv[])
+{
+  int  nargs = 0 ;
+  char *option ;
+
+  option = argv[1] + 1 ;            /* past '-' */
+  StrUpper(option) ;
+  if (!stricmp(option, "debug_voxel"))
+	{
+		Gx = atoi(argv[2]) ;
+		Gy = atoi(argv[3]) ;
+		Gz = atoi(argv[4]) ;
+		nargs = 3 ;
+		printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+	}
+  else if (!stricmp(option, "corners"))
+  {
+		corners = 1 ;
+		printf("removing corner configurations in addition to edge ones\n") ;
+  }
+	else switch (*option)
+	{
+	case 'W':
+		Gdiag |= DIAG_WRITE ;
+		break ;
+  case '?':
+  case 'U':
+    usage_exit(1);
+    break ;
+	default:
+    printf("unknown option %s\n", argv[1]) ;
+		usage_exit(1) ;
+    break ;
+	}
+	return(nargs) ;
+}
+
+static void 
+usage_exit(int ecode)
+{
+	printf(
+				 "usage: %s <wm vol> <label> <T1 vol> <output wm>\n",
+				 Progname) ;
+	printf("       where <wm vol> is usually wm.mgz\n") ;
+	printf("             <label> is usually wm\n") ;
+	printf("             <T1 vol> is brain.mgz\n") ;
+	exit(ecode) ;
+}
