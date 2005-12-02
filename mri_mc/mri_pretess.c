@@ -24,7 +24,6 @@
 
 char *Progname;
 
-#define DEBUG 0
 
 static int mriRemoveEdgeConfiguration(MRI *mri_seg, MRI *mri_orig, int label){
 	static int niter=0;
@@ -83,7 +82,7 @@ static int mriRemoveEdgeConfiguration(MRI *mri_seg, MRI *mri_orig, int label){
 		ntotal += nfound;
 		fprintf(stderr,"\npass %3d (xy-): %3d found - %3d modified     |    TOTAL: %3d",npass,nfound,nmodified,ntotal);
 	}
-#if DEBUG
+
   /* dealing with yz-plane */
   nfound=1;
   nmodified=0;
@@ -181,7 +180,6 @@ static int mriRemoveEdgeConfiguration(MRI *mri_seg, MRI *mri_orig, int label){
     ntotal += nfound;
     fprintf(stderr,"\npass %3d (xz): %3d found - %3d modified     |    TOTAL: %3d",npass,nfound,nmodified,ntotal);
   }
-#endif
 
 	return ntotal;
 }
@@ -606,9 +604,9 @@ int main(int argc, char *argv[])
 	char cmdline[CMD_LINE_LEN] ;
 	
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_pretess.c,v 1.5 2005/11/29 17:15:44 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_pretess.c,v 1.6 2005/12/02 18:22:42 segonne Exp $", "$Name:  $");
 
-  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.5 2005/11/29 17:15:44 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.6 2005/12/02 18:22:42 segonne Exp $", "$Name:  $", cmdline);
 
 	Progname=argv[0];
 
