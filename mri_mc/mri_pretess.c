@@ -637,9 +637,9 @@ int main(int argc, char *argv[])
 	int x, y, z ,convert=0;
 	
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_pretess.c,v 1.9 2005/12/02 20:44:45 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_pretess.c,v 1.10 2005/12/02 20:46:21 segonne Exp $", "$Name:  $");
 
-  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.9 2005/12/02 20:44:45 segonne Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.10 2005/12/02 20:46:21 segonne Exp $", "$Name:  $", cmdline);
 
 	Progname=argv[0];
 
@@ -715,7 +715,6 @@ int main(int argc, char *argv[])
 	fprintf(stderr,"\n\nTotal Number of Modified Voxels = %d (out of %d: %f)\n",ntotal,nvoxels,100.0*ntotal/nvoxels);
 
 	fprintf(stderr,"\nWriting out volume...");
-
 	if (mri_seg_orig)
 	{
 		if(!convert){
