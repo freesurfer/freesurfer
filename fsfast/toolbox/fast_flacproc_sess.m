@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.2 2005/06/19 05:23:26 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.3 2005/12/03 21:55:47 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -149,8 +149,12 @@ for nthrun = 1:nruns
   end
   clear racf;
 
-  fprintf('Performing GLS estimation   (%6.1f)\n',toc);
-  [beta rvar vdof r] = fast_glmfitw(y.vol,flac.X,nacfseg,acfseg.vol);
+  if(flac.whiten)
+    fprintf('Performing GLS estimation   (%6.1f)\n',toc);
+    [beta rvar vdof r] = fast_glmfitw(y.vol,flac.X,nacfseg,acfseg.vol);
+  else
+    fprintf('NOT Whitening   (%6.1f)\n',toc);
+  end
 
   % Replace the zeros with means. The exact value does not really
   % matter, but this allows images to still look ok
@@ -205,7 +209,12 @@ for nthrun = 1:nruns
     end
 
     C = flac.con(nthcon).C;
-    [F dof1 dof2 ces cescvm] = fast_fratiow(beta,flac.X,rvartmp,C,nacfseg,acfseg.vol);
+    if(flac.whiten)
+      [F dof1 dof2 ces cescvm] = fast_fratiow(beta,flac.X,rvartmp,C,nacfseg,acfseg.vol);
+    else
+      [F dof1 dof2 ces cescvm] = fast_fratiow(beta,flac.X,rvartmp,C);
+    end
+
     p = FTest(dof1, dof2, F);
     sig = -log10(p);
 
