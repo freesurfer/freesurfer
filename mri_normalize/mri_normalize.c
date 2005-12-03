@@ -56,17 +56,17 @@ main(int argc, char *argv[])
 {
   char   **av ;
   int    ac, nargs, n ;
-  MRI    *mri_src, *mri_dst = NULL, *mri_bias, *mri_orig, *mri_aseg ;
+  MRI    *mri_src, *mri_dst = NULL, *mri_bias, *mri_orig, *mri_aseg = NULL ;
   char   *in_fname, *out_fname ;
   int          msec, minutes, seconds ;
   struct timeb start ;
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_normalize.c,v 1.40 2005/10/28 00:08:51 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_normalize.c,v 1.41 2005/12/03 21:56:41 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.40 2005/10/28 00:08:51 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.41 2005/12/03 21:56:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -192,7 +192,8 @@ main(int argc, char *argv[])
     mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, bias_sigma) ;
 		MRIfree(&mri_ctrl) ; MRIfree(&mri_aseg) ;
 		mri_dst = MRIapplyBiasCorrectionSameGeometry(mri_src, mri_bias, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
-		MRIwrite(mri_dst, "n1.mgz") ;
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+			MRIwrite(mri_dst, "n1.mgz") ;
 	}
 	else
 	{
