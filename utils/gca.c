@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/11/28 01:33:54 $
-// Revision       : $Revision: 1.177 $
+// Revision Date  : $Date: 2005/12/03 15:10:08 $
+// Revision       : $Revision: 1.178 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14267,8 +14267,8 @@ static int align_labels[] =
 	Right_Lateral_Ventricle,
 	Right_Cerebral_White_Matter, 
 	Left_Cerebral_White_Matter, 
-	Left_Caudate, 
 	Right_Caudate, 
+	Left_Caudate, 
 	Left_Cerebellum_Cortex, 
 	Right_Cerebellum_Cortex, 
 	Left_Cerebellum_White_Matter, 
@@ -14612,10 +14612,12 @@ GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *l
 			HISTOfillHoles(h_mri) ;
 			HISTOmakePDF(h_mri, h_mri) ;
 			printf("peak = %2.5f (%d)\n", h_mri->counts[peak], peak) ;
-			if (h_mri->counts[peak] < 0.05 || num <= 50)  /* not enough to reliably estimate density */
+			if ((num <= 50) ||
+					((transform->type != MORPH_3D_TYPE) && (h_mri->counts[peak] < 0.05)))
 			{
 				if (h_mri->counts[peak] < .05)
-					printf("uniform distribution in MR - rejecting arbitrary fit\n") ;
+					printf("uniform distribution in %s MR - rejecting arbitrary fit\n",
+								 cma_label_to_name(l)) ;
 				if (m_L)
 					MatrixFree(&m_L) ;
 				continue ;
@@ -14661,7 +14663,8 @@ GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *l
 			}
 			else
 			{
-				printf("insufficient overlap %2.4f in histograms - rejecting\n",overlap) ;
+				printf("insufficient overlap %2.4f in %s histograms - rejecting\n",
+							 overlap, cma_label_to_name(l)) ;
 			}
       
 			if (l == Gdiag_no)
@@ -15103,7 +15106,7 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 			if (l == Gdiag_no)
 			{
 				HISTOplot(h, "h.plt") ;
-				if (mri_fsamples)
+				if (mri_fsamples && (Gdiag & MRI_WRITE))
 				{
 					char fname[STRLEN] ;
 					sprintf(fname, "fsamples%d.mgz", l) ;
@@ -15170,6 +15173,11 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 				}
 			}
 			label_scales[l] = (float)smooth_peak / label_modes[l] ;
+			if ((label_scales[l] < 0.5 || label_scales[l] > 1.5) && !IS_LAT_VENT(l))
+			{
+				printf("!!!!!!! rejecting excessive scaling %2.2f\n", label_scales[l]) ;
+				label_scales[l] = 1.0 ;
+			}
 			printf("%s (%d): AFTER PRIOR: peak at %2.2f, smooth "
 						 "at %2.2f (%d voxels), scaling by %2.2f\n", 
 						 cma_label_to_name(l), l, peak, smooth_peak, num,
