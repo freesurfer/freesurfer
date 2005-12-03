@@ -1,5 +1,5 @@
 % fast_flacproc_sess
-% $Id: fast_flacproc_sess.m,v 1.3 2005/12/03 21:55:47 greve Exp $
+% $Id: fast_flacproc_sess.m,v 1.4 2005/12/03 22:57:23 greve Exp $
 
 % flacfile = '$flacfile';
 % sess = '$sess';
@@ -92,6 +92,12 @@ for nthrun = 1:nruns
   Nv = prod(szvol);
   y.vol = fast_vol2mat(y.vol);
 
+  if(flac.inorm > 0)
+    ygmn = mean(reshape1d(y.vol(:,indmask)));
+    fprintf('Inorming, ygmn = %g \n',ygmn);
+    y.vol = y.vol * (flac.inorm/ygmn);
+  end
+  
   if(Synth)
     fprintf('Synthesizing input, AR1 = %g \n',SynthAR1);
     y.vol = randn(size(y.vol));
