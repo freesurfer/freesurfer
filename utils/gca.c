@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/12/03 15:10:08 $
-// Revision       : $Revision: 1.178 $
+// Revision Date  : $Date: 2005/12/04 15:49:32 $
+// Revision       : $Revision: 1.179 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15106,7 +15106,7 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 			if (l == Gdiag_no)
 			{
 				HISTOplot(h, "h.plt") ;
-				if (mri_fsamples && (Gdiag & MRI_WRITE))
+				if (mri_fsamples && (Gdiag & DIAG_WRITE))
 				{
 					char fname[STRLEN] ;
 					sprintf(fname, "fsamples%d.mgz", l) ;
