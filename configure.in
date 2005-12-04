@@ -1146,6 +1146,7 @@ mri_make_template/Makefile \
 mri_make_register/Makefile \
 mri_mark_temporal_lobe/Makefile \
 mri_mask/Makefile \
+mri_mcsim/Makefile \
 mri_matrix_multiply/Makefile \
 mri_ms_fitparms/Makefile \
 mri_modify/Makefile \
