@@ -2,7 +2,7 @@
 # mergecontrasts-sess - AND conjunction of two contrasts
 #
 
-set VERSION = '$Id: mergecontrasts-xsess,v 1.4 2005/12/05 22:26:04 greve Exp $';
+set VERSION = '$Id: mergecontrasts-xsess,v 1.5 2005/12/05 23:34:53 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -415,7 +415,7 @@ check_params:
     exit 1
   endif
 
-  if("$conjunction" != "and" && "$conjunction" != "or") then
+  if("$conjunction" != "and" && "$conjunction" != "or" && "$conjunction" != "andor") then
     echo "ERROR: conjunction = $conjunction, must be 'and', 'or', or 'andor'"
     exit 1;
   endif
