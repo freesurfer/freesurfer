@@ -26,7 +26,7 @@
 #define SAMPLE_BSPLINE 5
 #define DBL_EPSILON 1e-10
 
-static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.4 2005/08/01 23:03:56 xhan Exp $";
+static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.5 2005/12/05 22:24:08 xhan Exp $";
 
 LTA *ltaReadFileEx(const char *fname);
 int MYvg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2);
@@ -96,7 +96,7 @@ main(int argc, char *argv[])
   //  MATRIX *i_to_r, *r_to_i;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.4 2005/08/01 23:03:56 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.5 2005/12/05 22:24:08 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     usage_exit (0);
   argc -= nargs;
@@ -177,63 +177,115 @@ main(int argc, char *argv[])
    */
   /* Things become more complicated when allowing inverse transform */
   if(transform_flag){
+    int transform_type;
+    
+    printf("INFO: Applying transformation from file %s...\n", 
+	   transform_fname);
+    transform_type =  TransformFileNameType(transform_fname);
+    
     /* Read in LTA transform file name */
-    lta = ltaReadFileEx(transform_fname);
-    if(!lta){
-      MRIfree(&mri_in);
-      ErrorExit(ERROR_BADFILE, "%s: can't read file %s",Progname, transform_fname);
-    }
-
-    // The following procedure aims to apply an LTA computed from COR format to a volume in non-COR format, or vice versa, as long as they share the same RAS
-    // first change to LINEAR RAS_TO_RAS using old info
-    if(lta->type == LINEAR_VOX_TO_VOX){
-      LTAchangeType(lta, LINEAR_RAS_TO_RAS);
-    }
-
-    // now possiblly reset the src and dst
-    if(lta_src != NULL){
-      //always trust the user
-      LTAmodifySrcDstGeom(lta, lta_src, NULL);
-    }
-    if(lta_dst != NULL){
-      //always trust the user
-      LTAmodifySrcDstGeom(lta, NULL, lta_dst);
-    }
-
-    if(lta->type == LINEAR_RAS_TO_RAS){
-      /* Convert it to VOX_TO_VOX */
-      /* VOXELsrc_to_VOXELdst = R2Vdst*R2Rlta*V2Rsrc */
-      /* Note whether the input should be identical to src or dst here depends
-       * on whether the LTA here is the direct or inverse transform
-       */
-      i_to_r_src = vg_i_to_r(&lta->xforms[0].src);
-      r_to_i_dst = vg_r_to_i(&lta->xforms[0].dst);
+    if(transform_type == MNI_TRANSFORM_TYPE || 
+       transform_type == TRANSFORM_ARRAY_TYPE ||
+       transform_type == REGISTER_DAT ||
+       transform_type == FSLREG_TYPE
+       ){
       
-      if(!r_to_i_dst || !i_to_r_src)
-	ErrorExit(ERROR_BADFILE, "%s: failed to extract volume geometries from input LTA file",Progname);
-      m_tmp = MatrixMultiply(lta->xforms[0].m_L, i_to_r_src, NULL);
-      V_to_V = MatrixMultiply(r_to_i_dst, m_tmp, NULL);
-      MatrixFree(&m_tmp);
+      printf("Reading transform ...\n");
+      lta = LTAreadEx(transform_fname) ;
       
-      MatrixFree(&i_to_r_src);
-      MatrixFree(&r_to_i_dst);
-    }
-    else{
-      ErrorExit(ERROR_BADFILE, "%s: only LINEAR_RAS_TO_RAS and LINEAR_VOX_TO_VOX LTA types are supported",Progname);
-    }
-  
+      if (!lta)
+	ErrorExit(ERROR_NOFILE, "%s: could not read transform file %s",
+		  Progname, transform_fname) ;
+      
+      if (transform_type == FSLREG_TYPE){
+	if(lta_src == 0 || lta_dst == 0){
+	  fprintf(stderr, "ERROR: fslmat does not have information on the src and dst volumes\n");
+	  fprintf(stderr, "ERROR: you must give options '-src' and '-dst' to specify the src and dst volume infos for the registration\n");
+	}
+	
+	
+	LTAmodifySrcDstGeom(lta, lta_src, lta_dst); // add src and dst information
+	//The following is necessary to interpret FSLMAT correctly!!!
+	LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+      }
+      if (lta->xforms[0].src.valid == 0){
+	if(lta_src == 0){
+	  fprintf(stderr, "The transform does not have the valid src volume info.\n");
+	  fprintf(stderr, "Either you give src volume info by option -src or\n");
+	  fprintf(stderr, "make the transform to have the valid src info.\n");
+	  ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
+	}else{
+	  LTAmodifySrcDstGeom(lta, lta_src, NULL); // add src information
+	}
+      }
+      if (lta->xforms[0].dst.valid == 0){
+	if(lta_dst == 0){
+	  fprintf(stderr, "The transform does not have the valid dst volume info.\n");
+	  fprintf(stderr, "Either you give src volume info by option -dst or\n");
+	  fprintf(stderr, "make the transform to have the valid dst info.\n");
+	  fprintf(stderr, "If the dst was average_305, then you can set\n");
+	  fprintf(stderr, "environmental variable USE_AVERAGE305 true\n");
+	  fprintf(stderr, "instead.\n");
+	  ErrorExit(ERROR_BAD_PARM, "Bailing out...\n");
+	}else{
+	  LTAmodifySrcDstGeom(lta, NULL, lta_dst); // add  dst information
+	}
+      }
+      
+      
+      // The following procedure aims to apply an LTA computed from COR format to a volume in non-COR format, or vice versa, as long as they share the same RAS
+      // first change to LINEAR RAS_TO_RAS using old info
+      if(lta->type != LINEAR_RAS_TO_RAS){
+	LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      }
+      
+      // now possiblly reset the src and dst
+      if(lta_src != NULL){
+	//always trust the user
+	LTAmodifySrcDstGeom(lta, lta_src, NULL);
+      }
+      if(lta_dst != NULL){
+	//always trust the user
+	LTAmodifySrcDstGeom(lta, NULL, lta_dst);
+      }
 
+      if(lta->type == LINEAR_RAS_TO_RAS){
+	/* Convert it to VOX_TO_VOX */
+	/* VOXELsrc_to_VOXELdst = R2Vdst*R2Rlta*V2Rsrc */
+	/* Note whether the input should be identical to src or dst here depends
+	 * on whether the LTA here is the direct or inverse transform
+	 */
+	i_to_r_src = vg_i_to_r(&lta->xforms[0].src);
+	r_to_i_dst = vg_r_to_i(&lta->xforms[0].dst);
+	
+	if(!r_to_i_dst || !i_to_r_src)
+	  ErrorExit(ERROR_BADFILE, "%s: failed to extract volume geometries from input LTA file",Progname);
+	m_tmp = MatrixMultiply(lta->xforms[0].m_L, i_to_r_src, NULL);
+	V_to_V = MatrixMultiply(r_to_i_dst, m_tmp, NULL);
+	MatrixFree(&m_tmp);
+	
+	MatrixFree(&i_to_r_src);
+	MatrixFree(&r_to_i_dst);
+      }
+    }
+    else
+      {
+	fprintf(stderr, "unknown transform type in file %s\n", 
+		transform_fname);
+	exit(1);
+      }
+    
     if(invert_flag){
       /* Geometry of input volume should match that of the dst of the LTA */
       if(MYvg_isEqual(&lta->xforms[0].dst, &vgm_in) == 0){
 	ErrorExit(ERROR_BADFILE, "%s: dst volume of lta doesn't match that of input volume",Progname);
       }
-
+      
       i_to_r_reg = vg_i_to_r(&lta->xforms[0].src);
       
       if(!i_to_r_reg)
 	ErrorExit(ERROR_BADFILE, "%s: failed to extract i_to_r of registered volume from LTA",Progname);
-
+      
       m_tmp =  MatrixInverse(V_to_V, NULL);
       if(!m_tmp)
 	ErrorExit(ERROR_BADPARM, "%s: transform is singular!", Progname);
@@ -245,13 +297,13 @@ main(int argc, char *argv[])
       if(MYvg_isEqual(&lta->xforms[0].src, &vgm_in) == 0){
 	ErrorExit(ERROR_BADFILE, "%s: src volume of lta doesn't match that of input volume",Progname);
       }
-
+      
       i_to_r_reg = vg_i_to_r(&lta->xforms[0].dst);
-
+      
       if(!i_to_r_reg)
 	ErrorExit(ERROR_BADFILE, "%s: failed to extract i_to_r of registered volume from LTA",Progname);
     }
-
+    
   }else{
     /* No registration transform need be applied */
     V_to_V = MatrixIdentity(4, NULL);
@@ -259,7 +311,7 @@ main(int argc, char *argv[])
     if(!i_to_r_reg)
       ErrorExit(ERROR_BADFILE, "%s: failed to extract i_to_r from input volume",Progname);
   }
-
+  
   /* Now need to find the vox-to-vox transformation between registered volume 
    * (or input volume itself if no registration involved) and the output 
    * volume, either in COR format or as the out-like volume
@@ -726,6 +778,8 @@ usage_exit(int exit_val)
   printf("\t -out_type #: specify output volume type to be the number\n");
   printf("\t -high #: value near 1 to specify higher-end percentage for histogram guided float-to-byte conversion \n");
   printf("\t -low #: value near 0 for lower-end of histogram scaling \n");
+
+  print_version();
 
   exit(exit_val);
 }

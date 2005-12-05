@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/12/04 15:49:32 $
-// Revision       : $Revision: 1.179 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/12/05 22:24:06 $
+// Revision       : $Revision: 1.180 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -227,6 +227,8 @@ static int ynbr_offset[] = { 0, 0,  1, -1, 0,  0} ;
 static int znbr_offset[] = { 0, 0,  0, 0,  1, -1} ;
 int check_finite(char *where, double what) ;
 static int boundsCheck(int *pix, int *piy, int *piz, MRI *mri);
+
+static void  set_equilavent_classes(int *equivalent_classes);
 
 void GCAsetVolGeom(GCA *gca, VOL_GEOM *vg)
 {
@@ -14327,6 +14329,7 @@ static int csf_labels[] =
 
 #define NCSF_LABELS (sizeof(csf_labels) / sizeof(csf_labels[0]))
 
+#if 0 //This is Bruce's version
 int
 GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, char *base_name, LTA **plta)
 {
@@ -14998,6 +15001,728 @@ GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *l
 		MRIfree(&mri_seg) ;
   return(NO_ERROR) ;
 }
+#endif
+
+
+
+int
+GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, char *base_name, LTA **plta)
+{
+  HISTOGRAM *h_mri, *h_gca ;
+  int       l, nbins, i, x, y, z, xn, yn, zn, num, frame, bin, j, n, computed[MAX_CMA_LABELS], b, label, k,
+    border = BORDER_SIZE, peak ;
+  float     fmin, fmax, label_scales[MAX_CMA_LABELS], overlap,
+    mean_gm_scale, mean_wm_scale, mean_csf_scale,
+    label_offsets[MAX_CMA_LABELS], mean_wm_offset, mean_csf_offset, mean_gm_offset ;
+  Real      val/*, scale*/ ;
+  GCA_NODE  *gcan ;
+  GC1D      *gc ;
+  MRI       *mri_seg = NULL, *mri_aligned, *mri_labels = NULL ;
+  char      fname[STRLEN] ;
+  MATRIX    *m_L, *m_by_label[MAX_CMA_LABELS] ;
+  LTA       *lta ;
+
+  int equiv_class[MAX_CMA_LABELS];
+  set_equilavent_classes(equiv_class);
+
+  printf("renormalizing by structure alignment....\n") ;
+  if (plta)
+    lta = *plta ;
+  else
+    lta = NULL ;
+  for (frame = 0 ; frame < mri->nframes ; frame++)
+    {
+      for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+	{
+	  if (l == Gdiag_no)
+	    DiagBreak() ;
+	  label_scales[l] = 1.0 ;
+	  label_offsets[l] = 0.0 ;	
+	  computed[l] = 0 ;
+	  m_by_label[l] = NULL ;  // not estimated yet
+	}
+      
+      printf("renormalizing input #%d\n", frame) ;
+      MRIvalRangeFrame(mri, &fmin, &fmax, frame) ;
+      nbins = 256 ; 
+      h_mri = HISTOalloc(nbins) ;
+      for (j = 0 ; j < NALIGN_LABELS ; j++)
+	{
+	  l = align_labels[j] ;
+	  if (l == Gdiag_no)
+	    DiagBreak() ;
+	  
+	  mri_seg = MRIclone(mri, mri_seg) ;
+	  mri_labels = MRIclone(mri, mri_labels) ;
+	  
+	  /* include 2 voxel border to get context around structure.
+	     e.g. hippo is made easier to find by wm inferior and ventricle
+	     posterior.
+	  */
+	  if (IS_HIPPO(l) || IS_AMYGDALA(l) || IS_CAUDATE(l) || IS_PUTAMEN(l) || IS_PALLIDUM(l))
+	    border = BORDER_SIZE+1 ;  // need more context for hippo
+	  else
+	    border = BORDER_SIZE ;
+	  GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, border, transform,mri_labels) ;
+	  for (x = 0 ; x < mri_labels->width ; x++)
+	    {
+	      for (y = 0 ; y < mri_labels->height ; y++)
+		{
+		  for (z = 0 ; z < mri_labels->depth ; z++)
+		    {
+		      if (x == Gx && y == Gy && z == Gz)
+			DiagBreak() ;
+		      label = MRIgetVoxVal(mri_labels, x, y, z, 0) ;
+		      if (computed[label] == 0)
+			continue ;
+		      val = MRIgetVoxVal(mri_seg, x, y, z, frame) ;
+		      val = val * label_scales[label] + label_offsets[label] ;
+		      MRIsetVoxVal(mri_seg, x, y, z, frame, val) ;
+		    }
+		}
+	    }
+	  
+	  /* ventricle at the posterior part of hippo frequently makes local minima
+	     in alignment energy functional - remove them.
+	  */
+#if 1
+	  if (l == Left_Hippocampus || l == Right_Hippocampus)
+	    {
+	      for (x = 0 ; x < mri_labels->width ; x++)
+		{
+		  for (y = 0 ; y < mri_labels->height ; y++)
+		    {
+		      for (z = 0 ; z < mri_labels->depth ; z++)
+			{
+			  if (x == Gx && y == Gy && z == Gz)
+			    DiagBreak() ;
+			  label = MRIgetVoxVal(mri_labels, x, y, z, 0) ;
+			  if (IS_LAT_VENT(label) || IS_INF_LAT_VENT(label))
+			    MRIsetVoxVal(mri_seg, x, y, z, frame, 0) ;
+			}
+		    }
+		}
+	    }
+#endif
+	  if (l == Left_Cerebral_White_Matter || l == Right_Cerebral_White_Matter)
+	    {
+	      MRI *mri_tmp, *mri_border ;
+	      
+	      // create a volume that is the wm eroded 3 times, plus the border voxels
+	      mri_tmp = MRIclone(mri_seg, NULL) ;
+	      GCAbuildMostLikelyVolumeForStructure(gca, mri_tmp, l, 0, transform, NULL) ;
+	      mri_border = MRIsubtract(mri_seg, mri_tmp, NULL) ; // just outside
+	      
+	      // erode just the interior 4 times to get to high prob regions
+	      MRIerode(mri_tmp, mri_tmp) ;
+	      MRIerode(mri_tmp, mri_tmp) ;
+	      MRIerode(mri_tmp, mri_tmp) ;
+	      MRIerode(mri_tmp, mri_tmp) ;
+	      MRIadd(mri_tmp, mri_border, mri_seg) ;  // border + interior
+	      MRIfree(&mri_tmp) ; MRIfree(&mri_border) ;
+	    }
+	  
+	  if (Gdiag & DIAG_WRITE)
+	    {
+	      sprintf(fname, "%s_label%d.mgz", base_name, l) ;
+	      MRIwrite(mri_seg, fname) ;
+	    }
+	  if (transform->type != MORPH_3D_TYPE)
+	    {
+	      if (lta)   // try to find a previously computed one
+		{
+		  for (n = 0 ; n < lta->num_xforms ; n++)
+		    if (lta->xforms[n].label == l)
+		      break ;
+		  if (n >= lta->num_xforms)
+		    n = -1 ;  // indicate no xform found
+		}
+	      else   // no transform specified by caller
+		n = -1 ;
+	      if (n < 0)  // no transform - compute one
+		{
+		  // double det ;
+		  // float  evalues[4] ;
+		  // MATRIX *m_evectors ;
+		  
+		  printf("aligning %s...\n", cma_label_to_name(l)) ;
+		  m_L = MRIgetVoxelToVoxelXform(mri_seg, mri) ;
+#if 0 		  
+		  MRIpowellAlignImages(mri_seg, mri,  m_L, &scale_factor, NULL) ;
+#else
+		  MRIfaridAlignImages(mri_seg, mri,  m_L) ;
+#endif
+
+#if 0 
+		  det = MatrixDeterminant(m_L) ;
+		  m_evectors = MatrixEigenSystem(m_L, evalues, NULL) ;
+		  printf("eigen values (%2.2f, %2.2f, %2.2f, %2.2f), vectors:\n",
+			 evalues[0], evalues[1], evalues[2], evalues[3]) ;
+		  MatrixPrint(stdout, m_evectors) ;
+		  MatrixFree(&m_evectors) ;
+		  if (det < 0.1 || det > 4 ||  evalues[3] < 0.2)
+		    {
+		      printf("invalid transform detected (det=%2.4f \n",
+			     det) ;
+		      MatrixFree(&m_L) ;
+		      m_L = MRIgetVoxelToVoxelXform(mri_seg, mri) ;
+		      
+		    }
+#endif
+		}
+	      else   // use previously computed transform
+		m_L = MatrixCopy(lta->xforms[n].m_L, NULL) ;
+	      
+	      if (l == Gdiag_no)
+		DiagBreak() ;
+	      
+	      if (Gdiag & DIAG_WRITE)
+		{
+		  sprintf(fname, "%s_label%d_after.mgz", base_name, l) ;
+		  mri_aligned = MRIlinearTransform(mri_seg, NULL, m_L) ;
+		  MRIwrite(mri_aligned, fname) ;
+		  MRIfree(&mri_aligned) ;
+		}
+	      
+	      if (l == Left_Cerebral_White_Matter || l == Right_Cerebral_White_Matter)
+		{
+		  // wm so big it's hard to localize with a linear xform
+		  GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform, NULL) ;
+		  MRIerode(mri_seg, mri_seg) ;
+		  MRIerode(mri_seg, mri_seg) ;
+		}
+	      else
+		{
+		  /* put ventricles back in for erosion to remove (otherwise a bunch of hippo
+		     gets removed */
+		  if (l == Left_Hippocampus || l == Right_Hippocampus)
+		    {
+		      for (x = 0 ; x < mri_labels->width ; x++)
+			{
+			  for (y = 0 ; y < mri_labels->height ; y++)
+			    {
+			      for (z = 0 ; z < mri_labels->depth ; z++)
+				{
+				  if (x == Gx && y == Gy && z == Gz)
+				    DiagBreak() ;
+				  label = MRIgetVoxVal(mri_labels, x, y, z, 0) ;
+				  if (IS_LAT_VENT(label) || IS_INF_LAT_VENT(label))
+				    MRIsetVoxVal(mri_seg, x, y, z, frame, 128) ;
+				}
+			    }
+			}
+		    }
+		  for (b = 0 ; b < border ; b++)
+		    MRIerode(mri_seg, mri_seg) ; // get rid of outside border
+		  MRIerode(mri_seg, mri_seg) ; // get rid of inside border
+		}
+	      
+	      mri_aligned = MRIlinearTransform(mri_seg, NULL, m_L) ;
+	    }
+	  else  // 3d morph already done - don't bother aligning
+	    {
+	      m_L = NULL ;
+	      if (l == Left_Cerebral_White_Matter || l == Right_Cerebral_White_Matter)
+		{
+		  // wm so big it's hard to localize with a linear xform
+		  GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform, NULL) ;
+		  MRIerode(mri_seg, mri_seg) ;
+		}
+	      else
+		{
+		  /* put ventricles back in for erosion to remove (otherwise a bunch of hippo
+		     gets removed */
+		  if (l == Left_Hippocampus || l == Right_Hippocampus)
+		    {
+		      for (x = 0 ; x < mri_labels->width ; x++)
+			{
+			  for (y = 0 ; y < mri_labels->height ; y++)
+			    {
+			      for (z = 0 ; z < mri_labels->depth ; z++)
+				{
+				  if (x == Gx && y == Gy && z == Gz)
+				    DiagBreak() ;
+				  label = MRIgetVoxVal(mri_labels, x, y, z, 0) ;
+				  if (IS_LAT_VENT(label) || IS_INF_LAT_VENT(label))
+				    MRIsetVoxVal(mri_seg, x, y, z, frame, 128) ;
+				}
+			    }
+			}
+		    }
+		  for (b = 0 ; b < border ; b++)
+		    MRIerode(mri_seg, mri_seg) ; // get rid of outside border
+		}
+	      mri_aligned = MRIerode(mri_seg, NULL) ; // get rid of inside border
+	    }
+	  
+	  MRIbinarize(mri_aligned, mri_aligned, 1, 0, 128) ;
+	  if (Gdiag & DIAG_WRITE)
+	    {
+	      sprintf(fname, "%s_label%d_eroded.mgz", base_name, l) ;
+	      MRIwrite(mri_aligned, fname) ;
+	    }
+	  if (l == Gdiag_no)
+	    DiagBreak() ;
+	  HISTOclear(h_mri, h_mri) ;
+	  h_mri->bin_size = (fmax-fmin)/255.0 ;
+	  if (h_mri->bin_size < 1 && (mri->type == MRI_UCHAR || mri->type == MRI_SHORT))
+	    h_mri->bin_size = 1 ;
+	  for (i = 0 ; i < nbins ; i++)
+	    h_mri->bins[i] = (i+1)*h_mri->bin_size ;
+	  
+	  for (num = x = 0 ; x < mri_aligned->width ; x++)
+	    {
+	      for (y = 0 ; y < mri_aligned->height ; y++)
+		{
+		  for (z = 0 ; z < mri_aligned->depth ; z++)
+		    {
+		      if (x == Gx && y == Gy && z == Gz)
+			DiagBreak() ;
+		      MRIsampleVolumeFrame(mri_aligned, x, y, z, frame, &val) ;
+		      if (DZERO(val))  // not in this structure
+			continue ;
+		      MRIsampleVolumeFrame(mri, x, y, z, frame, &val) ;
+		      
+		      if (FZERO(val))  // skull stripped 
+			continue ;
+		      bin = nint((val - fmin)/h_mri->bin_size) ;
+		      if (bin >= h_mri->nbins)
+			bin = h_mri->nbins-1 ;
+		      else if (bin < 0)
+			bin = 0 ;
+		      
+		      h_mri->counts[bin]++ ; num++ ;
+		    }
+		}
+	    }
+	  MRIfree(&mri_aligned) ; 
+
+	  h_gca = gcaGetLabelHistogram(gca, l) ;
+	  peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
+	  HISTOmakePDF(h_gca, h_gca) ;
+	  printf("gca peak = %2.5f (%d)\n", h_gca->counts[peak], peak) ;
+
+	  peak = HISTOfindHighestPeakInRegion(h_mri, 0, h_mri->nbins) ;
+	  HISTOfillHoles(h_mri) ;
+	  HISTOmakePDF(h_mri, h_mri) ;
+	  printf("mri peak = %2.5f (%d)\n", h_mri->counts[peak], peak) ;
+
+	  
+	  if (h_mri->counts[peak] < 0.03 || num <= 50)  /* not enough to reliably estimate density */
+	    {
+	      if (h_mri->counts[peak] < .03)
+		printf("uniform distribution in MR - rejecting arbitrary fit\n") ;
+	      if (m_L)
+		MatrixFree(&m_L) ;
+	      continue ;
+	    }
+	  if (m_L)
+	    {
+	      if (plta)
+		m_by_label[l] = m_L ;  // store if for assembling an LTA later
+	      else
+		MatrixFree(&m_L) ;
+	    }
+
+	  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	  {
+	    sprintf(fname, "%s_label%d_mri.plt", base_name, l) ;
+	    HISTOplot(h_mri, fname) ;
+	    sprintf(fname, "%s_label%d_gca.plt", base_name, l) ;
+	    HISTOplot(h_gca, fname) ;
+	    DiagBreak() ;
+	  }
+	  overlap = HISTOthreshSum(h_mri, h_gca, .025) ;
+	  //if (overlap > 0.01)
+	  //	  if (overlap > 0.001)
+	  if(1)
+	  {
+	      //			if (l == Gdiag_no)
+	      //  HISTOfindLinearFit(h_gca, h_mri, .025, 10, -75, 75,&label_scales[l],  &label_offsets[l]) ;
+	      //	      HISTOfindLinearFit(h_gca, h_mri, .025, 4, -125, 125, &label_scales[l], &label_offsets[l]) ;
+	      HISTOfindLinearFit(h_gca, h_mri, .025, 4, 0, 0, &label_scales[l], &label_offsets[l]) ;
+	      
+	      computed[l] = 1 ;
+	      printf("%s (%d): linear fit = %2.2f x + %2.1f (%d voxels, overlap=%2.3f)\n",
+		     cma_label_to_name(l), l, label_scales[l], label_offsets[l], num,overlap);
+
+	      //note that the following range need be changed if both scale and offset are allowed
+	      if((label_scales[l] < 0.5 || (label_scales[l] > 1.5)) && (!IS_CSF_CLASS(l))){
+		//scaling is unreliable, ignore it
+		computed[l] = 0 ;
+		m_by_label[l] = NULL; 
+	      }
+
+	      if (logfp)
+		{
+		  fprintf(logfp, "%s (%d): linear fit = %2.2f x + %2.1f (%d voxels)\n",
+			  cma_label_to_name(l), l, label_scales[l], label_offsets[l], 
+			  num);
+		  fflush(logfp) ;
+		}
+	      {
+		HISTOlinearScale(h_gca, h_gca, label_scales[l], label_offsets[l]) ;
+		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON){
+		  sprintf(fname, "%s_label%d_gca_scaled.plt", base_name, l) ;
+		  HISTOplot(h_gca, fname) ;
+		}
+	      }
+	    }
+	  else
+	    {
+	      printf("insufficient overlap %2.4f in histograms - rejecting\n",overlap) ;
+	    }
+	  
+	  if (l == Gdiag_no)
+	    DiagBreak() ;
+	  if (l >100)
+	    break ;
+	}
+      HISTOfree(&h_gca) ; HISTOfree(&h_mri) ;
+      
+      if (DIAG_VERBOSE_ON)
+	{
+	  FILE *fp ;
+	  float scale, offset ;
+	  fp = fopen("norm_offset.plt", "r") ;
+	  if(fp != NULL){ 
+	    for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+	      {
+		fscanf(fp, "%d %f %f", &l, &scale, &offset) ;
+		label_scales[l] = scale ;
+		label_offsets[l] = offset ;
+		computed[l] = 1 ;
+	      }
+	    fclose(fp) ;
+	  }
+	}
+      num = 0 ; mean_gm_scale = 0 ; mean_gm_offset = 0 ;
+      for (k = 0 ; k < NGM_LABELS ; k++)
+	{
+	  label = gm_labels[k] ;
+	  if (computed[label])
+	    {
+	      mean_gm_scale += label_scales[label] ;
+	      mean_gm_offset += label_offsets[label] ;
+	      num++ ;
+	    }
+	}
+      if (num == 0)
+	{
+	  mean_gm_scale = 1 ; mean_gm_offset = 0 ;
+	}
+      else
+	{
+	  mean_gm_scale /= (float)num ; mean_gm_offset /= (float)num ;
+	}
+      
+      num = 0 ; mean_wm_scale = 0 ; mean_wm_offset = 0 ;
+      for (k = 0 ; k < NWM_LABELS ; k++)
+	{
+	  label = wm_labels[k] ;
+	  if (computed[label])
+	    {
+	      mean_wm_scale += label_scales[label] ;
+	      mean_wm_offset += label_offsets[label] ;
+	      num++ ;
+	    }
+	}
+      if (num == 0)
+	{
+	  mean_wm_scale = 1 ; mean_wm_offset = 0 ;
+	}
+      else
+	{
+	  mean_wm_scale /= (float)num ; mean_wm_offset /= (float)num ;
+	}
+      
+      num = 0 ; mean_csf_scale = 0 ; mean_csf_offset = 0 ;
+      for (k = 0 ; k < NCSF_LABELS ; k++)
+	{
+	  label = csf_labels[k] ;
+	  if (computed[label])
+	    {
+	      mean_csf_scale += label_scales[label] ;
+	      mean_csf_offset += label_offsets[label] ;
+	      num++ ;
+	    }
+	}
+      if (num == 0)
+	{
+	  mean_csf_scale = 1 ; mean_csf_offset = 0 ;
+	}
+      else
+	{
+	  mean_csf_scale /= (float)num ; mean_csf_offset /= (float)num ;
+	}
+      
+      printf("estimating mean gm scale to be %2.2f x + %2.1f\n", 
+	     mean_gm_scale, mean_gm_offset) ;
+      printf("estimating mean wm scale to be %2.2f x + %2.1f\n", 
+	     mean_wm_scale, mean_wm_offset) ;
+      printf("estimating mean csf scale to be %2.2f x + %2.1f\n", 
+	     mean_csf_scale, mean_csf_offset) ;
+      
+      // assume that cortical gm goes as wm
+      if (computed[Left_Cerebral_Cortex] == 0 &&
+	  computed[Left_Cerebral_White_Matter] != 0)
+	{
+	  if (m_by_label[Left_Cerebral_White_Matter])
+	    m_by_label[Left_Cerebral_Cortex] = MatrixCopy(m_by_label[Left_Cerebral_White_Matter], NULL) ;
+	  label_scales[Left_Cerebral_Cortex] = mean_gm_scale ;
+	  label_offsets[Left_Cerebral_Cortex] = mean_gm_offset ;
+	  computed[Left_Cerebral_Cortex] = 1;
+	}
+      if (computed[Right_Cerebral_Cortex] == 0 && 
+	  computed[Right_Cerebral_White_Matter] != 0)
+	{
+	  if (m_by_label[Right_Cerebral_White_Matter])
+	    m_by_label[Right_Cerebral_Cortex] = MatrixCopy(m_by_label[Right_Cerebral_White_Matter], NULL) ;
+	  label_scales[Right_Cerebral_Cortex] = mean_gm_scale ;
+	  label_offsets[Right_Cerebral_Cortex] = mean_gm_offset ;
+	  computed[Right_Cerebral_Cortex] = 1;
+	}
+      
+      // lock some labels scaling to others that have been estimated
+      if (computed[Left_Caudate])
+	{
+	  label_offsets[Left_Accumbens_area] = label_offsets[Left_Caudate] ;
+	  label_scales[Left_Accumbens_area] = label_scales[Left_Caudate] ;
+	  computed[Left_Accumbens_area] = 1;
+	}
+      if (computed[Right_Caudate])
+	{
+	  label_offsets[Right_Accumbens_area] = label_offsets[Right_Caudate] ;
+	  label_scales[Right_Accumbens_area] = label_scales[Right_Caudate] ;
+	  computed[Right_Accumbens_area] = 1;
+	}
+      if (computed[Left_Inf_Lat_Vent] == 0 && computed[Left_Hippocampus] != 0)
+	{
+	  label_scales[Left_Inf_Lat_Vent] = label_scales[Left_Hippocampus] ;
+	  label_offsets[Left_Inf_Lat_Vent] = label_offsets[Left_Hippocampus] ;
+	  computed[Left_Inf_Lat_Vent] = 1 ;
+	}
+      if (computed[Right_Inf_Lat_Vent] == 0 && computed[Right_Hippocampus] != 0)
+	{
+	  label_scales[Right_Inf_Lat_Vent] = label_scales[Right_Hippocampus] ;
+	  label_offsets[Right_Inf_Lat_Vent] = label_offsets[Right_Hippocampus] ;
+	  computed[Right_Inf_Lat_Vent] = 1 ;
+	}
+      
+      label_scales[CSF] = mean_csf_scale ;
+      label_scales[Fifth_Ventricle] = mean_csf_scale ;
+      label_offsets[CSF] = mean_csf_offset ;
+      label_offsets[Fifth_Ventricle] = mean_csf_offset ;
+      computed[CSF] = computed[Fifth_Ventricle] = 1 ;
+      
+      //set the scale and offset for the rest; added by xhan
+      for (l = 0 ; l < MAX_CMA_LABELS ; l++){
+	if(computed[l] == 1) continue;
+	if(equiv_class[l] == 1){
+	  label_scales[l] = mean_csf_scale;
+	  label_offsets[l] = mean_csf_offset;
+	}else if(equiv_class[l] == 2){
+	  label_scales[l] = mean_wm_scale;
+	  label_offsets[l] = mean_wm_offset;
+	}else if(equiv_class[l] == 3){
+	  label_scales[l] = mean_gm_scale;
+	  label_offsets[l] = mean_gm_offset;
+	}	
+	
+      }
+      
+      if (logfp)
+	{
+	  for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+	    if (computed[l] != 0)
+	      fprintf(logfp, "label %s: scaling by %2.2f  + %2.1f\n",
+		      cma_label_to_name(l), label_scales[l], label_offsets[l]) ;
+	  fflush(logfp) ;
+	}
+      if (DIAG_VERBOSE_ON)
+	{
+	  FILE *fp ;
+	  fp = fopen("norm_offset.plt", "w") ;
+	  for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+	    if (computed[l] != 0)
+	      fprintf(fp, "%d %f %f\n", l, label_scales[l], label_offsets[l]) ;
+	  fclose(fp) ;
+	}
+      
+
+      gcaCheck(gca) ;
+      for (xn = 0 ; xn < gca->node_width ; xn++)
+	{
+	  double     means_before[MAX_GCA_LABELS], means_after[MAX_GCA_LABELS], scales[MAX_GCA_LABELS];
+#if 1
+	  double     delta_i, delta_j ;
+	  int        xp, yp, zp ;
+#endif
+	  int        labels[MAX_GCA_LABELS], niter ;
+	  LABEL_PROB ranks_before[MAX_GCA_LABELS], ranks_after[MAX_GCA_LABELS] ;
+	  
+	  for (yn = 0 ; yn < gca->node_height ; yn++)
+	    {
+	      for (zn = 0 ; zn < gca->node_depth ; zn++)
+		{
+		  if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+		    DiagBreak() ;
+		  gcan = &gca->nodes[xn][yn][zn] ;
+		  if (gcan->nlabels <= 0)
+		    continue ;
+		  
+		  for (i = 0 ; i < gcan->nlabels ; i++)
+		    {
+		      gc = &gcan->gcs[i] ;
+		      l = gcan->labels[i] ;
+		      labels[i] = l ;
+		      scales[i] = label_scales[l] ;
+		      means_before[i] = gc->means[frame] ;
+		      ranks_before[i].label = l ;
+		      ranks_before[i].prob = means_before[i] ;
+		      ranks_before[i].index = i ;
+		    }
+		  qsort(ranks_before, gcan->nlabels, 
+			sizeof(LABEL_PROB), compare_sort_probabilities) ;
+		  niter = 0 ;
+		  for (i = 0 ; i < gcan->nlabels ; i++)
+		    {
+		      gc = &gcan->gcs[i] ;
+		      l = gcan->labels[i] ;
+		      means_after[i] = 
+			means_before[i]*label_scales[l] + label_offsets[l] ;
+		      if (means_after[i] < 0)
+			means_after[i] = 0 ;
+		      ranks_after[i].label = l ;
+		      ranks_after[i].prob = means_after[i] ;
+		      ranks_after[i].index = i ;
+		    }
+		  qsort(ranks_after, gcan->nlabels, 
+			sizeof(LABEL_PROB), compare_sort_probabilities) ;
+		  for (i = 0 ; i < gcan->nlabels ; i++)
+		    {
+#if 1
+		      if (ranks_before[i].label != ranks_after[i].label)
+			{
+			  double    pi, pj, lambda ;
+			  int       j, ind_j, ind_i ;
+			  GCA_PRIOR *gcap; 
+			  
+			  /* two have swapped position - put them */
+			  /* back in the right order */
+			  for (j = 0 ; j < gcan->nlabels ; j++)
+			    if (ranks_after[j].label == ranks_before[i].label)
+			      break ;
+			  if (j >= gcan->nlabels)
+			    {
+			      DiagBreak() ;
+			      continue ;
+			    }
+			  gcaNodeToPrior(gca, xn, yn, zn, &xp, &yp, &zp) ;
+			  gcap = &gca->priors[xp][yp][zp] ;
+			  pi = getPrior(gcap, ranks_after[i].label) ;
+			  pj = getPrior(gcap, ranks_after[j].label) ;
+			  if (FZERO(pi) && FZERO(pj))
+			    break ;   // both labels will never happen
+			  lambda = pi / (pi + pj) ;
+			  ind_j = ranks_after[j].index ; ind_i = ranks_after[i].index ; 
+			  delta_j = (means_after[ind_j] - means_after[ind_i]) * lambda ;
+			  delta_i = (means_after[ind_i] - means_after[ind_j]) * (1-lambda) ;
+			  
+			  if ((fabs(delta_j) < 1) && (fabs(delta_i) < 1))
+			    {
+			      // this will move one mean to the other side of the other
+			      if ((fabs(delta_j) > fabs(delta_i)) && !FZERO(delta_j))
+				delta_j /= fabs(delta_j) ;  // make it +-1
+			      else if (!FZERO(delta_i))
+				delta_i /= fabs(delta_i) ;  // make it +-1
+			    }
+			  if (!finite(delta_i) || !finite(delta_j))
+			    {
+			      DiagBreak() ;
+			      break ;
+			    }
+			  ranks_after[j].prob = means_after[ind_j] = means_after[ind_j] - delta_j ;
+			  ranks_after[i].prob = means_after[ind_i] = means_after[ind_i] - delta_i ;
+			  if ((xn == Gx && yn == Gy && zn == Gz) &&
+			      (ranks_after[i].label == gcan->labels[i] ||
+			       ranks_after[j].label == gcan->labels[j] || Ggca_label < 0))
+			    {
+			      printf("ordering of labels %s and %s changed, modifying means by %2.0f (%2.1f) and %2.0f (%2.1f)\n",
+				     cma_label_to_name(ranks_after[i].label), cma_label_to_name(ranks_after[j].label), 
+				     means_after[i], delta_i, means_after[j], delta_i) ;
+			    }
+			  
+			  qsort(ranks_after, gcan->nlabels, 
+				sizeof(LABEL_PROB), 
+				compare_sort_probabilities) ;
+			  i = -1 ;   /* start loop over */
+			  if (niter++ > 9)
+			    {
+			      DiagBreak() ;
+			      break ;
+			    }
+			  continue ;
+			}
+#endif
+		    }
+		  
+		  for (i = 0 ; i < gcan->nlabels ; i++)
+		    {
+		      if (FZERO(label_scales[gcan->labels[i]]))
+			continue ;
+		      gc = &gcan->gcs[i] ;
+		      if ((xn == Gx && yn == Gy && zn == Gz) &&
+			  (Ggca_label == gcan->labels[i] || Ggca_label < 0))
+			{
+			  printf("scaling gc for label %s at "
+				 "(%d, %d, %d) from %2.1f to %2.1f\n",
+				 cma_label_to_name(gcan->labels[i]),
+				 xn, yn, zn,
+				 means_before[i], means_after[i]) ;
+			  DiagBreak() ;
+			}
+		      gc->means[frame] = means_after[i] ;
+		      check_finite("after rescaling", gc->means[frame]) ;
+		    }
+		}
+	    }
+	}
+      gcaCheck(gca) ;
+    }
+  
+  if (plta)  // return linear transform array to caller
+    {
+      int i ;
+      
+      // count # of xforms
+      for (i = l = 0 ; l < MAX_CMA_LABELS ; l++)
+	{
+	  if (m_by_label[l] != NULL)
+	    i++ ;
+	}
+      
+      if (i > 0)  // should always be true
+	{
+	  *plta = lta = LTAalloc(i, mri) ;
+	  for (i = l = 0 ; l < MAX_CMA_LABELS ; l++)
+	    {
+	      if (m_by_label[l] != NULL)
+		{
+		  MatrixCopy(m_by_label[l], lta->xforms[i].m_L) ;
+		  MatrixFree(&m_by_label[l]) ;
+		  lta->xforms[i].label = l ;
+		  i++ ;
+		}
+	    }
+	}
+    }
+  
+  if (mri_seg)
+    MRIfree(&mri_seg) ;
+  return(NO_ERROR) ;
+}
+
 static float pthresh = 0.5 ;
 int
 GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
@@ -16922,3 +17647,104 @@ gcaComputePrior(GCA *gca, MRI *mri, TRANSFORM *transform, int x0, int y0, int z0
 }
 
 #endif
+
+
+
+static void  set_equilavent_classes(int *equivalent_classes){
+  int i;
+
+  for(i=0; i < MAX_CMA_LABELS; i++){
+    equivalent_classes[i] = i;
+  }
+  
+  //CSF 1, GM 3, WM 2
+  equivalent_classes[0] = 0;
+  equivalent_classes[1] = 1;
+  equivalent_classes[2] = 2;
+  equivalent_classes[3] = 3;
+  equivalent_classes[4] = 1;
+  equivalent_classes[5] = 1;
+  equivalent_classes[6] = 0;
+  equivalent_classes[7] = 2;
+  equivalent_classes[8] = 3;
+  equivalent_classes[9] = 3;
+  equivalent_classes[10] = 3;
+  equivalent_classes[11] = 3;
+  equivalent_classes[12] = 3;
+  equivalent_classes[13] = 3;
+  equivalent_classes[14] = 1;
+  equivalent_classes[15] = 1;
+  equivalent_classes[16] = 2; //this is brain stem, really WM??
+  equivalent_classes[17] = 3;
+  equivalent_classes[18] = 3;
+  equivalent_classes[19] = 0; //Left_Insula
+  equivalent_classes[20] = 0; //Left_Operculum
+  equivalent_classes[21] = 0; //Line_1
+  equivalent_classes[22] = 0; //Line_2
+  equivalent_classes[23] = 0; //Line_3
+  equivalent_classes[24] = 1; //CSF
+  equivalent_classes[25] = 0; //Left_lesion
+  equivalent_classes[26] = 0; //left_accumbens_area
+  equivalent_classes[27] = 0; //Left_Substancia_Nigra
+  equivalent_classes[28] = 0; //Left_VentralDC;
+  equivalent_classes[29] = 0; //left_undetermined
+  equivalent_classes[30] = 0; // Left_vessel
+  equivalent_classes[31] = 0; //left_choroid_plexus
+  equivalent_classes[32] = 0; //lEFT_f3ORB
+  equivalent_classes[33] = 0; //Left_lOg 
+  equivalent_classes[34] = 0; //Left_aOg
+  equivalent_classes[35] = 0; // Left_mOg
+  equivalent_classes[36] = 0; //Left_pOg
+  equivalent_classes[37] = 0; //Left_Stellate
+  equivalent_classes[38] = 0; //Left_Porg
+  equivalent_classes[39] = 0; //Left_Aorg
+  equivalent_classes[40] = equivalent_classes[1];
+  equivalent_classes[41] = equivalent_classes[2];
+  equivalent_classes[42] = equivalent_classes[3];
+  equivalent_classes[43] =equivalent_classes[4];
+  equivalent_classes[44] =equivalent_classes[5];
+  equivalent_classes[45] =equivalent_classes[6];
+  equivalent_classes[46] =equivalent_classes[7];
+  equivalent_classes[47] =equivalent_classes[8];
+  equivalent_classes[48] =equivalent_classes[9];
+  equivalent_classes[49] =equivalent_classes[10];
+  equivalent_classes[50] =equivalent_classes[11];
+  equivalent_classes[51] =equivalent_classes[12];
+  equivalent_classes[52] =equivalent_classes[13];
+  equivalent_classes[53] =equivalent_classes[17];
+  equivalent_classes[54] =equivalent_classes[18];
+  equivalent_classes[55] =equivalent_classes[19];
+  equivalent_classes[56] =equivalent_classes[20];
+  equivalent_classes[57] =equivalent_classes[25];
+  equivalent_classes[58] =equivalent_classes[26];
+  equivalent_classes[59] =equivalent_classes[27];
+  equivalent_classes[60] =equivalent_classes[28];
+  equivalent_classes[61] =equivalent_classes[29];
+  equivalent_classes[62] =equivalent_classes[30];
+  equivalent_classes[63] =equivalent_classes[31]; //choroid_plexus
+  equivalent_classes[64] =equivalent_classes[32];
+  equivalent_classes[65] =equivalent_classes[33];
+  equivalent_classes[66] =equivalent_classes[34];
+  equivalent_classes[67] =equivalent_classes[35];
+  equivalent_classes[68] =equivalent_classes[36];
+  equivalent_classes[69] =equivalent_classes[37];
+  equivalent_classes[70] =equivalent_classes[38];
+  equivalent_classes[71] =equivalent_classes[39];
+  equivalent_classes[72] =1;
+  equivalent_classes[73] =0; // Left_Interior
+  equivalent_classes[74] =equivalent_classes[73];
+  equivalent_classes[75] = 1; 
+  equivalent_classes[76] =equivalent_classes[75];
+  equivalent_classes[77] = 2;
+  equivalent_classes[78] = 2;
+  equivalent_classes[79] =equivalent_classes[78];
+  equivalent_classes[80] = 2;
+  equivalent_classes[81] = 2;
+  equivalent_classes[82] =equivalent_classes[81];
+  equivalent_classes[83] = 0;
+  equivalent_classes[84] =equivalent_classes[83];
+  equivalent_classes[186] = 2;
+  equivalent_classes[187] =equivalent_classes[186];
+
+  return;
+}

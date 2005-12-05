@@ -240,3 +240,34 @@ VLSTdilate(VOXEL_LIST *vl, int mode, MRI *mri_exclude)
   return(vl_exp) ;
 }
 
+
+
+void VLSTcomputeStats(VOXEL_LIST *vl)
+{
+  double mean =0; 
+  double std = 0;
+  int i;
+  double val;
+  
+  if(vl->mri == NULL || vl->nvox <= 0){
+    vl->mean = 0;
+    vl->std = 0;
+    return;
+  }
+
+  for (i = 0 ; i < vl->nvox ; i++){
+    val = MRIgetVoxVal(vl->mri, vl->xi[i], vl->yi[i], vl->zi[i], 0);
+    mean += val;
+    std += val*val;
+  }
+  
+  mean /= (double)vl->nvox;
+  std /= (double)vl->nvox;
+  
+  std = sqrt(std - mean*mean);
+
+  vl->mean = mean;
+  vl->std = std;
+  
+  return;
+}

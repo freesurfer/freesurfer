@@ -2078,6 +2078,6 @@ LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
 		lv->vno = vno ; lv->x = v->x ; lv->y = v->y ; lv->z = v->z ;
 	}
 
-	LabelWrite(area, "./lh.all.label");
+	//	LabelWrite(area, "./lh.all.label");
 	return(area) ;
 }

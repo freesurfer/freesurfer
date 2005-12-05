@@ -134,35 +134,35 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
   Xheap H;				/* Narrrow band heap */
   XheapElement he;  
   
-  int heapindex;
-  
   int i,j,d;			/* Iteration index, d for depth */
   int koff;				/* Neighbourhood index */
   int newi,newj, newd;
-  float Nv,Sv,Wv,Ev, Fv, Bv;    /* Value at six neighours of a pixel */
+  float Nv=0,Sv=0,Wv=0,Ev=0, Fv=0, Bv=0;    /* Value at six neighours of a pixel */
   float Cv;									 /* Value at local point */	
   unsigned char Nl, Sl, Wl, El, Fl, Bl; /* Label at six neighours of a pixel */
   
   int NSFlag, WEFlag, FBFlag; 
        /* Logical variables aid in locating sign change */
-  float s,t,w;		 /* Used in initialization */
+  float s=0,t=0,w=0;		 /* Used in initialization */
   float result;          /* 1/s*s + 1/t*t + 1/w*w */		
 
-  float value, newvalue, oldvalue;
+  float value, newvalue;
   
   int LX,HX,LY,HY,LZ,HZ; /* Logical variables aid in dealing with boundary */ 
 
   XN = Ori->width; YN = Ori->height; ZN = Ori->depth;
 
   /* Memeory allocation */
-  label = MRIallocSequence(Ori->width, Ori->height,Ori->depth, 
-                       MRI_UCHAR, Ori->nframes);
+  label = MRIalloc(Ori->width, Ori->height,Ori->depth, 
+                       MRI_UCHAR);
 
   MRIcopyHeader(Ori, label);
 
-  BackPointer = MRIallocSequence(Ori->width, Ori->height,Ori->depth, 
-                       MRI_INT, Ori->nframes);
+  BackPointer = MRIalloc(Ori->width, Ori->height,Ori->depth, 
+                       MRI_INT);
   MRIcopyHeader(Ori, BackPointer);
+
+  //  printf("(0,0,0) = %g\n", MRIFvox(Ori,0,0,0));
 
   /* Initialize heap structure */
   H = xhInitEmpty();
@@ -174,7 +174,7 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
   for(d = 0; d < ZN; d++){
     for(i=0; i<YN; i++){
       for(j=0; j<XN;j++){
-	MRIseq_vox(label, j, i, d, 0) = (unsigned char) FAWAY;/*All points are labelled as FAR AWAY */
+	MRIvox(label, j, i, d) = (unsigned char) FAWAY;/*All points are labelled as FAR AWAY */
       }
     }
   }
@@ -189,7 +189,7 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
 	if( value < 0.0000001 && value > -0.0000001)
 	  { /* This grid point lies exactly on the contour */
 	    MRIsetVoxVal(T, j,  i, d, 0, 0); /* Its distance value is exactly zero */
-	    MRIseq_vox(label, j, i, d, 0) =  (unsigned char)ALIVE;
+	    MRIvox(label, j, i, d) =  (unsigned char)ALIVE;
 	  }
 	else{ /* Judge whether it's within one pixel away from the contour */
 	  LY = (i==0); HY = (i==(YN-1));
@@ -262,7 +262,7 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
 	  
 	  if(result == 0) continue; /* Not within 1 pixel away */
 
-	  MRIseq_vox(label, j, i, d, 0) = (unsigned char)ALIVE; /*Within 1 pixel away, put into ALIVE */
+	  MRIvox(label, j, i, d) = (unsigned char)ALIVE; /*Within 1 pixel away, put into ALIVE */
 	  
 	  result = (float)sqrt((double)result);
 	  
@@ -272,11 +272,13 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
     }
   }
   
+
+
   /* Initialize NarrowBand Heap */
   for(d=0; d<ZN;d++){
     for(i=0; i<YN; i++){
       for(j=0; j<XN;j++){
-	if(MRIseq_vox(label,j,i,d,0) != (unsigned char)ALIVE) continue;
+	if(MRIvox(label,j,i,d) != (unsigned char)ALIVE) continue;
 	
 	/* Put its 6 neighbors into NarrowBand */
 	
@@ -289,51 +291,53 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
 	     newj >= XN || newd < 0 || newd >= ZN) 
 	    continue; /* Out of computational Boundary*/
 	  
-	  if(MRIseq_vox(label, newj, newi, newd, 0) != (unsigned char)FAWAY) continue;
+	  if(MRIvox(label, newj, newi, newd) != (unsigned char)FAWAY) continue;
 	  
 	  /* Compute the distance at this point and add to the heap */
-	  MRIseq_vox(label, newj, newi, newd, 0) = (unsigned char)NBAND;
+	  MRIvox(label, newj, newi, newd) = (unsigned char)NBAND;
 	  /* Note: Only ALIVE points contribute to the distance computation */
 	  /* Neighbour to the north*/
 	  if(newi > 0) { 
 	    Nv = MRIgetVoxVal(T, newj, newi-1, newd,0); // T[newd][newi-1][newj];
-	    Nl = MRIseq_vox(label, newj, newi-1, newd,0); //label[newd][newi-1][newj];
+	    Nl = MRIvox(label, newj, newi-1, newd); //label[newd][newi-1][newj];
 	  }else Nl = 0;
 	  
 	  /* Neighbour to the south*/
 	  if(newi < YN-1) {
 	    Sv = MRIgetVoxVal(T, newj, newi+1, newd,0); // T[newd][newi+1][newj];
-	    Sl = MRIseq_vox(label, newj, newi+1, newd,0); // label[newd][newi+1][newj];
+	    Sl = MRIvox(label, newj, newi+1, newd); // label[newd][newi+1][newj];
 	  } else Sl = 0;
 	  
 	  /* Neighbour to the east*/
 	  if(newj < XN-1) {
 	    Ev = MRIgetVoxVal(T, newj+1, newi, newd,0); // T[newd][newi][newj+1];
-	    El = MRIseq_vox(label, newj+1, newi, newd,0); //label[newd][newi][newj+1];
+	    El = MRIvox(label, newj+1, newi, newd); //label[newd][newi][newj+1];
 	  }else El = 0;
 	  
 	  /*Neighbour to the west*/
 	  if(newj > 0){
 	    Wv = MRIgetVoxVal(T, newj-1, newi, newd,0);// T[newd][newi][newj-1];
-	    Wl = MRIseq_vox(label, newj-1, newi, newd,0); // label[newd][newi][newj-1];
+	    Wl = MRIvox(label, newj-1, newi, newd); // label[newd][newi][newj-1];
 	  }else Wl = 0;
 	  
 	  /* Neighbour to the front */
 	  if(newd < ZN-1) {
 	    Fv = MRIgetVoxVal(T, newj, newi, newd+1,0); // T[newd+1][newi][newj];
-	    Fl = MRIseq_vox(label, newj, newi, newd+1,0);// label[newd+1][newi][newj];
+	    Fl = MRIvox(label, newj, newi, newd+1);// label[newd+1][newi][newj];
 	  }else Fl = 0;
 	  
 	  /*Neighbour to the back */
 	  if(newd > 0){
 	    Bv = MRIgetVoxVal(T, newj, newi, newd-1,0); // T[newd-1][newi][newj];
-	    Bl = MRIseq_vox(label, newj, newi, newd-1,0); //label[newd-1][newi][newj];
+	    Bl = MRIvox(label, newj, newi, newd-1); //label[newd-1][newi][newj];
 	  }else Bl = 0;
 	  
 	  /*Update the value of this to-be-updated NarrowBand point*/
 	  newvalue = ReCompute(Nv,Sv,Ev,Wv,Fv,Bv,Nl,Sl,El,Wl,Fl,Bl);	
 	  MRIsetVoxVal(T, newj, newi, newd, 0, newvalue);
-	  xhInsert(newvalue, newj, newi, newd, &MRIIseq_vox(BackPointer, newj, newi, newd, 0), H);
+	  //	  printf("(x,y,z)=(%d,%d,%d)\n", newj, newi, newd);
+	  // printf("%p\n", &MRIIvox(BackPointer, newj, newi, newd));
+	  xhInsert(newvalue, newj, newi, newd, &MRIIvox(BackPointer, newj, newi, newd), H);
 	  
 	}
 	
@@ -341,6 +345,8 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
     }
   }
   /* End of Initialization */
+
+  //  printf("Heap size = %d\n", xhSize(H));
   
   /* Begin Fast Marching to get the unsigned distance function inwords 
    * and outwards simultaneously
@@ -358,8 +364,9 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
 
     if(he.value > Thred) break;
 
+    //    printf("he.value = %g\n", he.value);
     MRIsetVoxVal(T, j, i, d, 0, he.value);
-    MRIseq_vox(label, j, i,d , 0) = (unsigned char)ALIVE; 
+    MRIvox(label, j, i,d) = (unsigned char)ALIVE; 
     
     /* Update its neighbor */
     /* Put FARAWAY neighbour into NarrowBand, Recompute values at 
@@ -374,7 +381,7 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
       if(newi <0 || newi >= YN || newj < 0 || newj >= XN || newd <0 || newd >=ZN) 
 	continue; /* Out of boundary */
       // if(label[newd][newi][newj] == (unsigned char)ALIVE) 
-      if(MRIseq_vox(label, newj, newi, newd, 0) == (unsigned char)ALIVE) 
+      if(MRIvox(label, newj, newi, newd) == (unsigned char)ALIVE) 
 	continue; /* Don't change ALIVE neighbour */
       
       /* ReCompute the value at (newj, newi, newd) */
@@ -388,52 +395,53 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
       /* Neighbour to the north */
       if(newi > 0) { 
 	Nv = MRIgetVoxVal(T, newj, newi-1, newd,0); // T[newd][newi-1][newj];
-	Nl = MRIseq_vox(label, newj, newi-1, newd,0); //label[newd][newi-1][newj];
+	Nl = MRIvox(label, newj, newi-1, newd); //label[newd][newi-1][newj];
       }else Nl = 0;
       
       /* Neighbour to the south*/
       if(newi < YN-1) {
 	Sv = MRIgetVoxVal(T, newj, newi+1, newd,0); // T[newd][newi+1][newj];
-	Sl = MRIseq_vox(label, newj, newi+1, newd,0); // label[newd][newi+1][newj];
+	Sl = MRIvox(label, newj, newi+1, newd); // label[newd][newi+1][newj];
       } else Sl = 0;
       
       /* Neighbour to the east*/
       if(newj < XN-1) {
 	Ev = MRIgetVoxVal(T, newj+1, newi, newd,0); // T[newd][newi][newj+1];
-	El = MRIseq_vox(label, newj+1, newi, newd,0); //label[newd][newi][newj+1];
+	El = MRIvox(label, newj+1, newi, newd); //label[newd][newi][newj+1];
       }else El = 0;
       
       /*Neighbour to the west*/
       if(newj > 0){
 	Wv = MRIgetVoxVal(T, newj-1, newi, newd,0);// T[newd][newi][newj-1];
-	Wl = MRIseq_vox(label, newj-1, newi, newd,0); // label[newd][newi][newj-1];
+	Wl = MRIvox(label, newj-1, newi, newd); // label[newd][newi][newj-1];
       }else Wl = 0;
       
       /* Neighbour to the front */
       if(newd < ZN-1) {
 	Fv = MRIgetVoxVal(T, newj, newi, newd+1,0); // T[newd+1][newi][newj];
-	Fl = MRIseq_vox(label, newj, newi, newd+1,0);// label[newd+1][newi][newj];
+	Fl = MRIvox(label, newj, newi, newd+1);// label[newd+1][newi][newj];
       }else Fl = 0;
       
       /*Neighbour to the back */
       if(newd > 0){
 	Bv = MRIgetVoxVal(T, newj, newi, newd-1,0); // T[newd-1][newi][newj];
-	Bl = MRIseq_vox(label, newj, newi, newd-1,0); //label[newd-1][newi][newj];
+	Bl = MRIvox(label, newj, newi, newd-1); //label[newd-1][newi][newj];
       }else Bl = 0;
       
       
       /* Update the value of this to-be-updated NarrowBand point */
       newvalue = ReCompute(Nv,Sv,Ev,Wv,Fv,Bv,Nl,Sl,El,Wl,Fl,Bl);	
-      
+
       /* If it was a FARAWAY point, add it to the NarrowBand Heap; 
        * otherwise, just update its value
        * using the backpointer
        */
       if(MRIseq_vox(label, newj, newi, newd, 0) == (unsigned char)NBAND) 
-	xhChangeValue(MRIIseq_vox(BackPointer, newj, newi, newd, 0),newvalue, H);
+	xhChangeValue(MRIIvox(BackPointer, newj, newi, newd),newvalue, H);
       else{
-	xhInsert(newvalue, newj, newi, newd, &(MRIIseq_vox(BackPointer, newj, newi, newd,0)), H);
-	MRIseq_vox(label, newj, newi, newd, 0) = (unsigned char)NBAND;
+
+	xhInsert(newvalue, newj, newi, newd, &(MRIIvox(BackPointer, newj, newi, newd)), H);
+	MRIvox(label, newj, newi, newd) = (unsigned char)NBAND;
       }
     } /* End of updating 6 neighbours */
     
@@ -443,7 +451,7 @@ void fmarching3d(MRI *Ori, MRI *T, float Thred){
   for(d=0; d<ZN; d++){
     for(i=0; i<YN; i++){
       for(j=0; j<XN;j++){
-	if(MRIseq_vox(label, j, i, d , 0) != (unsigned char)ALIVE) 
+	if(MRIvox(label, j, i, d) != (unsigned char)ALIVE) 
 	  MRIsetVoxVal(T, j, i, d, 0, Thred);
 	
 	if(MRIgetVoxVal(Ori, j, i,d ,0) < 0 ){ 

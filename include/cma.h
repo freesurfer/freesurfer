@@ -201,6 +201,8 @@
 
 #define IS_INF_LAT_VENT(l)  (((l) == Left_Inf_Lat_Vent) || ((l) == Right_Inf_Lat_Vent))
 #define IS_CAUDATE(l) (((l) == Left_Caudate) || ((l) == Right_Caudate))
+#define IS_PUTAMEN(l) (((l) == Left_Putamen) || ((l) == Right_Putamen))
+#define IS_PALLIDUM(l) (((l) == Left_Pallidum) || ((l) == Right_Pallidum))
 
 #define MAX_CMA_LABEL (Corpus_Callosum+1)
 #define MAX_CMA_LABELS (MAX_CMA_LABEL+1)

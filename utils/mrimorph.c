@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/11/28 01:33:52 $
-// Revision       : $Revision: 1.49 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/12/05 22:24:08 $
+// Revision       : $Revision: 1.50 $
 */
 
 /*-----------------------------------------------------
@@ -39,6 +39,8 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 #include "nr_wrapper.h"
+#include "voxlist.h"
+#include "matrix.h"
 
 #define MN_SUB(mns1, mns2, v)     \
     V3_LOAD(v, mns1->x - mns2->x, mns1->y - mns2->y, mns1->z - mns2->z)
@@ -110,6 +112,10 @@ static int    log3DIntegration(MORPH_PARMS *parms, MORPH_3D *m3d,
                                double area_rms) ;
 static int     finitep(float f) ;
 static int     mriNormalizeStds(MRI *mri) ;
+
+//the following two functions are added for gradient-descent type of linear alignment
+static int ComputeStepTransform(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, float cx, float cy, float cz, MATRIX *Minc);
+static int farid_align(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L);
 
 static int debug_x = -1 ;
 static int debug_y = -1 ;
@@ -8255,4 +8261,255 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
   } while ((fold-fnew)/fold > parms->tol) ;
 
   return(NO_ERROR) ;
+}
+
+
+
+MATRIX *
+MRIfaridAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L)
+{
+  //compute linear registration using Hanry Farid's method
+  float  fmin, fmax ;
+  VOXEL_LIST *vl_target, *vl_source ;
+  MRI *mri_tmp;
+  
+  if (m_L == NULL)
+    m_L = MRIgetVoxelToVoxelXform(mri_source, mri_target) ;
+  
+  MRIvalRange(mri_target, &fmin, &fmax) ;
+  vl_target = VLSTcreate(mri_target,1,fmax+1,NULL,0,0);
+  mri_tmp = MRIcopy(mri_target, NULL); //store the transformed target
+  if(mri_tmp == NULL){
+    fprintf(stderr, "Unable to allocate memory for linear alignment. Exit.\n");
+    exit(0);
+  }
+  vl_target->mri = mri_target; 
+  vl_target->mri2 = mri_tmp; 
+
+  MRIvalRange(mri_target, &fmin, &fmax) ;
+  vl_source = VLSTcreate(mri_source, 1, fmax+1, NULL, 0, 0) ;
+  vl_source->mri2 = mri_source ;
+  VLSTcomputeStats(vl_source);
+  printf("source mean =%g, std = %g\n", vl_source->mean, vl_source->std);
+  farid_align(vl_source, vl_target, m_L) ;
+
+  VLSTfree(&vl_source) ;
+
+  VLSTfree(&vl_target) ;
+
+  MRIfree(&mri_tmp);
+
+  return(m_L) ;
+}
+
+static int ComputeStepTransform(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, float cx, float cy, float cz, MATRIX *Minc){
+  //(cx, cy, cz) is used to translate the coordinates system to be centered at it; may help reduce numerical errors
+  int i, j, k, width, height, depth;
+  int x, y, z;
+  Real d1, d2;
+  float x1, y1, z1;
+
+  Real fx, fy, fz, ft, ck;
+  MATRIX *sumCC, *invCC;
+  VECTOR *sumCk;
+  float Mvec[14];
+  
+  //  float  evalues[4] ;
+  // MATRIX *m_evectors ;
+
+  double c[14];
+  
+  sumCC = MatrixAlloc(14, 14, MATRIX_REAL);
+
+  sumCk = VectorAlloc(14, MATRIX_REAL);
+  
+  for(j = 1; j <= 14; j++){
+    VECTOR_ELT(sumCk, j) = 0;
+    for(k=1; k<=14; k++){
+      sumCC->rptr[j][k] = 0.0;
+    }
+  }
+  for(i=0; i < vl_source->nvox; i++){
+    x = vl_source->xi[i] ; y = vl_source->yi[i] ; z = vl_source->zi[i] ;
+    d1 = MRIgetVoxVal(vl_source->mri2, x, y, z, 0) ;
+    d2 = MRIgetVoxVal(vl_target->mri2, x, y, z, 0) ;
+    
+
+    ft = d1 - d2; 
+
+    /*    MRIsampleVolumeDerivativeScale(vl_source->mri2, x, y, z, 1, 0, 0, &fx, 0.5);
+    MRIsampleVolumeDerivativeScale(vl_source->mri2, x, y, z, 0, 1, 0, &fy, 0.5);
+    MRIsampleVolumeDerivativeScale(vl_source->mri2, x, y, z, 0, 0, 1, &fz, 0.5);
+    */
+    fx = (MRIgetVoxVal(vl_source->mri2, x+1, y, z, 0) -  MRIgetVoxVal(vl_source->mri2, x-1, y, z, 0))*0.5;
+    fy = (MRIgetVoxVal(vl_source->mri2, x, y+1, z, 0) -  MRIgetVoxVal(vl_source->mri2, x, y-1, z, 0))*0.5;
+    fz = (MRIgetVoxVal(vl_source->mri2, x, y, z+1, 0) -  MRIgetVoxVal(vl_source->mri2, x, y, z-1, 0))*0.5;
+
+
+    x1 = x; y1 =  y; z1 = z;
+    c[0] = x1*fx; c[1] = y1*fx; c[2] = z1*fx;
+    c[3] = x1*fy; c[4] = y1*fy; c[5] = z1*fy;
+    c[6] = x1*fz; c[7] = y1*fz; c[8] = z1*fz;
+    c[9] = fx; c[10] = fy; c[11] = fz;
+    c[12] = -d1;  c[13] = -1.0;
+    ck = ft - d1 + x1*fx + y1*fy + z1*fz;
+
+    for(j = 1; j <= 14; j++){
+      VECTOR_ELT(sumCk, j) += c[j-1]*ck;
+      for(k=1; k<=14; k++){
+	sumCC->rptr[j][k] += c[j-1]*c[k-1];
+      }
+    }
+  }
+
+  for(j = 1; j <= 14; j++){
+    VECTOR_ELT(sumCk, j) /= (float)vl_source->nvox;
+    for(k=1; k<=14; k++){
+      sumCC->rptr[j][k] /= (float)vl_source->nvox;
+    }
+  }
+
+  invCC = MatrixInverse(sumCC, NULL);
+
+  for(i=0; i < 14; i++)
+    Mvec[i] = 0;
+
+  if(!invCC){
+
+    Mvec[0] = 1.0; Mvec[4] = 1.0; Mvec[8] = 1.0; Mvec[12] = 1.0; 
+    
+  }
+  else{
+    for(i=1; i <= 14; i++)
+      for(j=1;j<=14;j++)
+	Mvec[i-1] += invCC->rptr[i][j]*VECTOR_ELT(sumCk, j);
+  }
+
+  if(!Minc){
+    printf("This shouldn't happen, be sure to alloc Minc before calling this function\n");
+  }
+
+  Minc->rptr[1][1] = Mvec[0];   Minc->rptr[1][2] = Mvec[1];   Minc->rptr[1][3] = Mvec[2];
+  Minc->rptr[2][1] = Mvec[3];   Minc->rptr[2][2] = Mvec[4];   Minc->rptr[2][3] = Mvec[5];
+  Minc->rptr[3][1] = Mvec[6];   Minc->rptr[3][2] = Mvec[7];   Minc->rptr[3][3] = Mvec[8];
+  Minc->rptr[4][1] = 0;   Minc->rptr[4][2] = 0;   Minc->rptr[4][3] = 0; 
+  
+  Minc->rptr[1][4] = Mvec[9];
+  Minc->rptr[2][4] = Mvec[10];
+  Minc->rptr[3][4] = Mvec[11];
+  Minc->rptr[4][4] = 1.0; 
+  
+  //  printf("intensity scaling = %g, offset = %g\n", Mvec[12], Mvec[13]);
+  
+
+  MatrixFree(&sumCC);
+  MatrixFree(&invCC);
+  VectorFree(&sumCk);
+  
+  width = 128; height = 128; depth = 128;
+  x1 = Mvec[0]*width + Mvec[1]*height + Mvec[2]*depth + Mvec[9];
+  y1 = Mvec[3]*width + Mvec[4]*height + Mvec[5]*depth + Mvec[10];
+  z1 = Mvec[6]*width + Mvec[7]*height + Mvec[8]*depth + Mvec[11];
+
+  d2 = (x1 - width)*(x1-width) + (y1-height)*(y1-height) + (z1 - depth)*(z1-depth);
+
+  if(d2 < 0.01) return 1; //converged
+  else return 0;
+  
+}
+
+static int farid_align(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L) {
+  int iterations;
+  int i;
+  int width, height, depth, x, y, z;
+  int minX, maxX, minY, maxY, minZ, maxZ;
+  float cx, cy, cz;
+  VECTOR  *v1, *v2 ;
+  Real    d2, xd, yd, zd ;
+  int flag;
+  MATRIX *Minc, *Mtmp;
+  //  float  evalues[4] ;
+  // MATRIX *m_evectors ;
+  //  int  out_of_range ;
+
+  Minc = MatrixAlloc(4, 4, MATRIX_REAL);
+
+  width = vl_source->mri2->width;
+  height = vl_source->mri2->height;
+  depth = vl_source->mri2->depth;
+  minX = width; maxX = 0; minY = height; maxY = 0;
+  minZ = depth; maxZ = 0;
+  
+  // to save time, first compute the range of voxels that need to be filled 
+  // for transforming target volume
+  cx = 0; cy = 0; cz = 0;
+  for(i=0; i < vl_source->nvox; i++){
+    x = vl_source->xi[i] ; y = vl_source->yi[i] ; z = vl_source->zi[i] ;
+    cx += x; cy += y; cz += z;
+    if(minX > x) minX = x;
+    if(maxX < x) maxX = x;
+    if(minY > y) minY = y;
+    if(maxY < y) maxY = y;
+    if(minZ > z) minZ = z;
+    if(maxZ < z) maxZ = z;
+  }
+  
+  //centroid of structure
+  cx /= (float)vl_source->nvox;
+  cy /= (float)vl_source->nvox;
+  cz /= (float)vl_source->nvox;
+
+  if(minX > 0) minX -= 1;
+  if(maxX < width -1) maxX += 1;
+  if(minY > 0) minY -= 1;
+  if(maxY < height -1) maxY += 1;
+  if(minZ > 0) minZ -= 1;
+  if(maxZ < depth -1) maxZ += 1;
+
+
+  printf("X:%d-%d; Y:%d-%d; Z:%d-%d\n", minX, maxX, minY, maxY, minZ, maxZ);
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  *MATRIX_RELT(v1, 4, 1) = 1.0 ; *MATRIX_RELT(v2, 4, 1) = 1.0 ;
+  flag = 0;
+  for(iterations = 1; iterations <= 30; iterations++){
+    //apply current registration to target volume
+    for(z = minZ; z <= maxZ; z++)
+      for(y = minY; y <= maxY; y++)
+	for(x = minX; x <= maxX; x++){
+	  V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+	  MatrixMultiply(m_L, v1, v2) ;
+	  xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
+	  if (xd < 0 ||  xd >= width-1 || yd < 0 || yd >= height -1 || zd < 0 || zd >= depth -1)
+	    d2 = 0;
+	  else
+	    MRIsampleVolume(vl_target->mri, xd, yd, zd, &d2) ;
+	  
+	  MRIsetVoxVal(vl_target->mri2, x, y, z, 0, d2);
+	} 
+
+    //find the alignment between src and transformed target
+    flag = ComputeStepTransform(vl_source, vl_target, cx, cy, cz, Minc);
+    // printf("Minc\n");
+    // MatrixPrint(stdout, Minc);
+    Mtmp = MatrixCopy(m_L, NULL);
+    m_L = MatrixMultiply(Mtmp, Minc, m_L);
+    MatrixFree(&Mtmp);
+
+    //    printf("M_L\n");
+    // MatrixPrint(stdout, m_L);
+
+    if(flag) break;
+  }
+
+
+  
+  MatrixFree(&Minc);
+  VectorFree(&v1);
+  VectorFree(&v2);
+  if(iterations == 31){
+    //    printf("Not converged yet after 30 iterations \n");
+    return 0;
+  }else 
+    return 1;
 }

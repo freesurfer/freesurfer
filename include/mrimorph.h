@@ -146,6 +146,9 @@ int       MRIsample3DmorphOrig(MORPH_3D *m3d, float x, float y, float z,
 MRI_SURFACE   *MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms) ;
 int           MRIeraseNeck(MRI *mri, NECK_PARMS *np) ;
 
+MATRIX *
+MRIfaridAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L);
+
 #define M3D_MAGIC  0xabcdef42
 
 extern int IMAGE_SIZE ;

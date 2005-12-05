@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/07/07 16:22:11 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2005/12/05 22:24:08 $
+// Revision       : $Revision: 1.4 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-#include "nr.h"
+#include "nr_wrapper.h"
 #include "nrutil.h"
 #include "mri.h"
 #include "matrix.h"
@@ -44,9 +44,15 @@ static int zoff[6] = {0,  0, 0,  0, 1, -1};
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
+/*
 static int CNR_pairs = 34;
 static int ilist[34] = {2, 17, 17, 17, 17, 17, 18, 18, 18, 18, 10, 10, 10, 10, 41, 53, 53, 53, 53, 53, 54, 54, 54, 54, 49, 49, 49, 49,  2,   3, 11, 41, 42, 50};
 static int jlist[34] = {3, 2,  3,  18, 4,  5,  2,  3,  4,  5,  11, 4,  12, 2,  42, 41, 42, 54, 43, 44, 41, 42, 43, 44, 50, 43, 51, 41, 77,  77, 77, 77, 77, 77};
+*/
+
+static int CNR_pairs = 32;
+static int ilist[34] = {2, 10, 10, 10, 11, 11, 12, 12, 12, 13, 13, 17, 17, 17, 18, 18, 41, 49, 49, 49, 50, 50, 51, 51, 51, 52, 52, 53, 53, 53, 54, 54};
+static int jlist[34] = {3,  2,  11, 4,  2,  4,  2, 3,  13,  2,  3, 18,  2,  3,  2,  3, 42, 41, 50, 43, 41, 43, 41, 42, 52, 41, 42, 54, 41, 42, 41, 42};
 
 
 char *Progname ;
@@ -113,7 +119,7 @@ main(int argc, char *argv[])
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_compute_CNR.c,v 1.3 2005/07/07 16:22:11 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_compute_CNR.c,v 1.4 2005/12/05 22:24:08 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

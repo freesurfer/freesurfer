@@ -1334,6 +1334,7 @@ HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end)
 	return(hdst) ;
 }
 
+#if 0
 static double 
 histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
 {
@@ -1374,6 +1375,43 @@ histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
 	}
 	return(sse) ;
 }
+#endif
+
+static double 
+histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
+{
+  //this one uses correlation instead of SSE, and should be more robust!
+  int    b1, b2 ;
+  double error, sse, c1, c2;
+  
+  for (sse = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
+    {
+      b2 = nint(b1*a+b) ;
+      if ((b2 < 0) || (b2 > h2->nbins-1))
+	c2 = 0 ;
+      else
+	c2 = h2->counts[b2] ;
+      c1 = h1->counts[b1] ; 
+      error = c1*c2;
+      sse -= error;
+    }
+  
+  //	printf("sse = %g\n", sse);
+  // inverse map
+  for (b2 = 0 ; b2 < h2->nbins ; b2++)
+    {
+      b1 = nint(b2-b)/a ;
+      if ((b1 < 0) || (b1 > h1->nbins-1))
+	c1 = 0 ;
+      else
+	c1 = h1->counts[b1] ;
+      c2 = h2->counts[b2] ; 
+      error = c1*c2;
+      sse -= error;
+    }
+  //	printf("a= %g, b= %g, sse = %g\n", a, b, sse);
+  return(sse) ;
+}
 
 #define NSTEPS 100
 int
@@ -1385,7 +1423,9 @@ HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax,
 	min_sse = histoComputeLinearFitError(h1, h2, 1.0, 0.0) ;
 	min_a = 1.0 ; min_b = 0.0 ;
 	astep = MIN(amin, (amax-amin)/NSTEPS) ;
+	astep = MAX(astep, 0.01);
 	bstep = (bmax-bmin)/NSTEPS ;
+	bstep = MAX(bstep, 0.01);
 	for (a = amin ; a <= amax ; a += astep)
 		for (b = bmin ; b <= bmax ; b += bstep)
 	{
