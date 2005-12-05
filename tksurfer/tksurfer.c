@@ -547,6 +547,7 @@ float st,ps,fov,xx0,xx1,yy0,yy1,zz0,zz1;
 float dipscale = 1.0;
 
 static int selection = -1;
+static int mouseover_vno = -1;
 int nmarked = 0;
 int *marked;
 
@@ -1064,6 +1065,7 @@ void flip_normals (char *axes);
 
 void swap_vertex_fields(int a, int b); /* params are FIELD_*  */
 static void print_vertex_data(int vno, FILE *fp, float dmin) ;
+static void send_current_labels() ;
 static void update_labels(int label_set, int vno, float dmin) ; /* LABELSET_ */
 
 /* set the rip value of a face or vertex. */
@@ -2507,7 +2509,8 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           sy = 1024 - w.y - sy;
           find_vertex_at_screen_point( sx, sy, &mvno, &md );
           if( mvno >= 0 )
-            update_labels(LABELSET_MOUSEOVER, mvno, md);
+	    mouseover_vno = mvno;
+            update_labels(LABELSET_MOUSEOVER, mouseover_vno, md);
         }
       break;
       /* end rkt */
@@ -17566,6 +17569,7 @@ int W_draw_all_cursor  PARM;
 int W_draw_all_vertex_cursor  PARM;
 int W_clear_all_vertex_cursor  PARM;
 /* begin rkt */
+int W_send_current_labels PARM;
 int W_select_vertex_by_vno PARM;
 int W_sclv_read_from_dotw  PARM; 
 int W_sclv_read_from_dotw_frame  PARM; 
@@ -18437,6 +18441,10 @@ ERR(1,"Wrong # args: swap_buffers")
      ERR(1,"Wrong # args: clear_all_vertex_cursor")
      clear_all_vertex_cursor();  WEND
      /* begin rkt */
+     int W_send_current_labels WBEGIN
+     ERR(1, "Wrong # args: send_current_labels")
+     send_current_labels (); WEND
+     
      int W_select_vertex_by_vno WBEGIN
      ERR(2, "Wrong # args: select_vertex_by_vno vno")
      select_vertex_by_vno (atoi(argv[1])); WEND
@@ -18965,7 +18973,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.149 2005/11/28 17:15:56 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.150 2005/12/05 23:26:14 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19597,6 +19605,9 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_CreateCommand(interp, "clear_all_vertex_cursor",
                     (Tcl_CmdProc*) W_clear_all_vertex_cursor, REND);
   /* begin rkt */
+  Tcl_CreateCommand(interp, "send_current_labels",
+                    (Tcl_CmdProc*) W_send_current_labels, REND);
+  
   Tcl_CreateCommand(interp, "select_vertex_by_vno",
                     (Tcl_CmdProc*) W_select_vertex_by_vno, REND);
   
@@ -20919,6 +20930,15 @@ print_vertex_data(int vno, FILE *fp, float dmin)
     }
 }
 
+static void
+send_current_labels()
+{
+  /* We've cached the current vnos of the cursor and mouseover, so
+     just send those. */
+  update_labels (LABELSET_MOUSEOVER, mouseover_vno, 0);
+  update_labels (LABELSET_CURSOR, selection, 0);
+}
+
 static void 
 update_labels(int label_set, int vno, float dmin)
 {
@@ -21151,8 +21171,8 @@ void wndw_handle_event (void* data, xGWin_tEventRef event)
   int size_y;
   float translate_x;
   float translate_y;
-  int mvno;
   float md;
+  int mvno;
   int vno;
   int d;
 #if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
@@ -21317,7 +21337,10 @@ void wndw_handle_event (void* data, xGWin_tEventRef event)
       screen_y = 1024 - w.y - event->mWhere.mnY ;
       find_vertex_at_screen_point (screen_x, screen_y, &mvno, &md);
       if (mvno >= 0)
-        update_labels (LABELSET_MOUSEOVER, mvno, md);
+	{
+	  mouseover_vno = vno;
+	  update_labels (LABELSET_MOUSEOVER, mouseover_vno, md);
+	}
       break;
       
     case xGWin_tEventType_Resize:
