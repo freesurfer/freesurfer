@@ -4,7 +4,7 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-dev-env
 #
-# $Id: nmr-dev-env,v 1.11 2005/09/18 06:34:04 nicks Exp $
+# $Id: nmr-dev-env,v 1.12 2005/12/05 19:54:34 nicks Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
@@ -17,7 +17,7 @@ else
 endif
 echo "`date`|`whoami`|`hostname -s`|nmr-dev-env" >> $USER_LIST_PATH/nmr-dev-env_user_list.txt
 
-set NSE_VERSION = '$Id: nmr-dev-env,v 1.11 2005/09/18 06:34:04 nicks Exp $';
+set NSE_VERSION = '$Id: nmr-dev-env,v 1.12 2005/12/05 19:54:34 nicks Exp $';
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
   echo $NSE_VERSION
 endif
@@ -28,7 +28,7 @@ if($?NMR_DEV_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-dev-env,v 1.11 2005/09/18 06:34:04 nicks Exp $';
+set VERSION = '$Id: nmr-dev-env,v 1.12 2005/12/05 19:54:34 nicks Exp $';
 
 setenv FREESURFER_HOME /usr/local/freesurfer/dev
 if(! $?SUBJECTS_DIR) then
@@ -46,6 +46,11 @@ if(! -e $FS_ENV_FILE) then
   exit 1;
 endif
 source $FS_ENV_FILE
+
+# TCLLIBPATH is defined in FreeSurferEnv.csh to ensure compatibility
+# in the public distributions, but creates a tix library
+# conflict with FSL, so unset it.
+unsetenv TCLLIBPATH
 
 # Necessary for FSL to work w/ some freesurfer tools:
 setenv FSLOUTPUTTYPE ANALYZE
