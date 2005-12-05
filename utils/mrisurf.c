@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/12/02 23:30:35 $
-// Revision       : $Revision: 1.387 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/12/05 21:38:35 $
+// Revision       : $Revision: 1.388 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -45809,6 +45809,21 @@ int MRISmarkOrientationChanges(MRI_SURFACE *mris){
 	    else if(!strcmp(Field,"curvbak"))  val = surf->vertices[vtx].curvbak;
 	    else if(!strcmp(Field,"fsmask"))   val = surf->vertices[vtx].fsmask;
 	    else if(!strcmp(Field,"nc"))       val = surf->vertices[vtx].nc;
+	    else if(!strcmp(Field,"undefval")) val = surf->vertices[vtx].undefval;
+	    else if(!strcmp(Field,"x")) val = surf->vertices[vtx].x;
+	    else if(!strcmp(Field,"y")) val = surf->vertices[vtx].y;
+	    else if(!strcmp(Field,"z")) val = surf->vertices[vtx].z;
+	    else if(!strcmp(Field,"vnum")) val = surf->vertices[vtx].vnum;
+	    else if(!strcmp(Field,"annotation")) val = surf->vertices[vtx].annotation;
+	    else if(!strcmp(Field,"ripflag")) val = surf->vertices[vtx].ripflag;
+	    else if(!strcmp(Field,"area")) val = surf->vertices[vtx].area;
+	    else if(!strcmp(Field,"K")) val = surf->vertices[vtx].K;
+	    else if(!strcmp(Field,"H")) val = surf->vertices[vtx].H;
+	    else if(!strcmp(Field,"k1")) val = surf->vertices[vtx].k1;
+	    else if(!strcmp(Field,"k2")) val = surf->vertices[vtx].k2;
+	    else if(!strcmp(Field,"nx")) val = surf->vertices[vtx].nx;
+	    else if(!strcmp(Field,"ny")) val = surf->vertices[vtx].ny;
+	    else if(!strcmp(Field,"nz")) val = surf->vertices[vtx].nz;
 	    else {
 	      printf("ERROR: MRIScopyMRI(): Field %s not supported\n",Field);
 	      return(NULL);
