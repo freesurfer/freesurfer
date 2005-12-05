@@ -1,4 +1,18 @@
-
+// Random field simulator
+//
+// Things to do:
+// 1. how to do two-sided tests --one-tailed --two-tailed
+// 2. surf
+// 3. smooth
+// 4. cluster
+// 5. glm
+// 6. smooth with ubermask
+// 7. label as ubermask
+// 8. binarize mask
+// 9. merge masks
+// 10. invert mask
+// 11. permute?
+// 12. power?
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +61,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.2 2005/12/05 05:38:43 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.3 2005/12/05 05:46:08 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
