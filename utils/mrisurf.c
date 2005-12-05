@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/05 21:38:35 $
-// Revision       : $Revision: 1.388 $
+// Revision Date  : $Date: 2005/12/05 23:59:02 $
+// Revision       : $Revision: 1.389 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -45700,139 +45700,164 @@ int MRISmarkOrientationChanges(MRI_SURFACE *mris){
 
 	  return(SrcVals);
 	}
-      /*-----------------------------------------------------------------
-	MRIScopyMRI() - copies the data from an MRI_VOLUME struct into a
-	field in the MRI_SURFACE vertex struct. The MRI_VOLUME struct is
-	assumed to have the dimension: nvertices X 1 X 1 X nframes.  Frame
-	is the zero-based frame number to copy. Field is a string that
-	indicates which field of the vertex structure the data should be
-	copied to. For example, "val" indicates the val field.  Other
-	supported fields are: val, stat, valbak, val2, val2bak, imag_val,
-	curv, curvbak, fsmask, nc. Others can be easily added. If there
-	is an error, a 1 is returned; otherwise 0.
-	-----------------------------------------------------------------*/
-      int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field)
-      {
-	int vtx, useval=0, usecurv=0;
-	float val;
+/*-----------------------------------------------------------------
+  MRIScopyMRI() - copies the data from an MRI_VOLUME struct into a
+  field in the MRI_SURFACE vertex struct. The MRI_VOLUME struct is
+  assumed to have the dimension such that ncols*nrows*nslices =
+  nvertices. Frame is the zero-based frame number to copy. Field is a
+  string that indicates which field of the vertex structure the data
+  should be copied to. For example, "val" indicates the val field.
+  Other supported fields are: val, stat, valbak, val2, val2bak,
+  imag_val, curv, curvbak, fsmask, nc. Others can be easily added. If
+  there is an error, a 1 is returned; otherwise 0. 
+  -----------------------------------------------------------------*/
+int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field)
+{
+  int vtx, useval=0, usecurv=0, nvox, c, r, s;
+  float val;
 
-	if(Surf->nvertices != Src->width){
-	  printf("ERROR: MRIScopyMRI: Surf/Src dimension mismatch.\n");
+  nvox = Src->width * Src->height * Src->depth;
+  if(Surf->nvertices != nvox){
+    printf("ERROR: MRIScopyMRI: Surf/Src dimension mismatch.\n");
+    return(1);
+  }
+  
+  if(Frame >= Src->nframes){
+    printf("ERROR: MRIScopyMRI: requested frame number is too large.\n");
+    printf("ERROR:   requested = %d, max = %d\n",Frame,Src->nframes);
+    return(1);
+  }
+  
+  /* A separate variable is used for val and curv for speed purposes */
+  if(!strcmp(Field,"val")) useval = 1;
+  else                     useval = 0;
+  if(!strcmp(Field,"curv")) usecurv = 1;
+  else                      usecurv = 0;
+  
+  /*------------------------------------------------*/
+  vtx = 0;
+  for(c = 0; c < Src->width; c++){
+    for(r = 0; r < Src->height; r++){
+      for(s = 0; s < Src->depth; s++){
+	val = MRIgetVoxVal(Src, vtx, 0, 0,Frame);
+    
+	if(useval)                         Surf->vertices[vtx].val = val;
+	else if(usecurv)                   Surf->vertices[vtx].curv = val;
+	else if(!strcmp(Field,"stat"))     Surf->vertices[vtx].stat = val;
+	else if(!strcmp(Field,"valbak"))   Surf->vertices[vtx].valbak = val;
+	else if(!strcmp(Field,"val2"))     Surf->vertices[vtx].val2 = val;
+	else if(!strcmp(Field,"val2bak"))  Surf->vertices[vtx].val2bak = val;
+	else if(!strcmp(Field,"imag_val")) Surf->vertices[vtx].imag_val = val;
+	else if(!strcmp(Field,"curvbak"))  Surf->vertices[vtx].curvbak = val;
+	else if(!strcmp(Field,"fsmask"))   Surf->vertices[vtx].fsmask = val;
+	else if(!strcmp(Field,"nc"))       Surf->vertices[vtx].nc = val;
+	else if(!strcmp(Field,"undefval")) Surf->vertices[vtx].undefval = val;
+	else if(!strcmp(Field,"x")) Surf->vertices[vtx].x = val;
+	else if(!strcmp(Field,"y")) Surf->vertices[vtx].y = val;
+	else if(!strcmp(Field,"z")) Surf->vertices[vtx].z = val;
+	else if(!strcmp(Field,"vnum")) Surf->vertices[vtx].vnum = val;
+	else if(!strcmp(Field,"annotation")) Surf->vertices[vtx].annotation = val;
+	else if(!strcmp(Field,"ripflag")) Surf->vertices[vtx].ripflag = val;
+	else if(!strcmp(Field,"area")) Surf->vertices[vtx].area = val;
+	else if(!strcmp(Field,"K")) Surf->vertices[vtx].K = val;
+	else if(!strcmp(Field,"H")) Surf->vertices[vtx].H = val;
+	else if(!strcmp(Field,"k1")) Surf->vertices[vtx].k1 = val;
+	else if(!strcmp(Field,"k2")) Surf->vertices[vtx].k2 = val;
+	else if(!strcmp(Field,"nx")) Surf->vertices[vtx].nx = val;
+	else if(!strcmp(Field,"ny")) Surf->vertices[vtx].ny = val;
+	else if(!strcmp(Field,"nz")) Surf->vertices[vtx].nz = val;
+	else {
+	  printf("ERROR: MRIScopyMRI(): Field %s not supported\n",Field);
 	  return(1);
 	}
-
-	if(Frame >= Src->nframes){
-	  printf("ERROR: MRIScopyMRI: requested frame number is too large.\n");
-	  printf("ERROR:   requested = %d, max = %d\n",Frame,Src->nframes);
-	  return(1);
-	}
-
-	/* A separate variable is used for val and curv for speed purposes */
-	if(!strcmp(Field,"val")) useval = 1;
-	else                     useval = 0;
-	if(!strcmp(Field,"curv")) usecurv = 1;
-	else                      usecurv = 0;
-
-	/*------------------------------------------------*/
-	for(vtx = 0; vtx < Surf->nvertices; vtx++){
-	  val = MRIgetVoxVal(Src, vtx, 0, 0,Frame);
-
-	  if(useval)                         Surf->vertices[vtx].val = val;
-	  else if(usecurv)                   Surf->vertices[vtx].curv = val;
-	  else if(!strcmp(Field,"stat"))     Surf->vertices[vtx].stat = val;
-	  else if(!strcmp(Field,"valbak"))   Surf->vertices[vtx].valbak = val;
-	  else if(!strcmp(Field,"val2"))     Surf->vertices[vtx].val2 = val;
-	  else if(!strcmp(Field,"val2bak"))  Surf->vertices[vtx].val2bak = val;
-	  else if(!strcmp(Field,"imag_val")) Surf->vertices[vtx].imag_val = val;
-	  else if(!strcmp(Field,"curvbak"))  Surf->vertices[vtx].curvbak = val;
-	  else if(!strcmp(Field,"fsmask"))   Surf->vertices[vtx].fsmask = val;
-	  else if(!strcmp(Field,"nc"))       Surf->vertices[vtx].nc = val;
-	  else printf("ERROR: MRIScopyMRI(): Field %s not supported\n",Field);
-
-	}
-
-	return(0);
+	vtx++;
       }
-      /*-----------------------------------------------------------------
-	MRIcopyMRIS() - copies the data from the given field of an
-	MRI_SURFACE struct into a given frame of an MRI_VOLUME struct. The
-	MRI_VOLUME should have the dimension: nvertices X 1 X 1 X nframes.
-	Frame is the zero-based frame number to copy to. Field is a string
-	that indicates which field of the vertex structure the data should
-	be copied from. For example, "val" indicates the val field.  Other
-	supported fields are: val, stat, valbak, val2, val2bak, imag_val,
-	curv, curvbak, fsmask, nc. If mri is NULL, it will be allocated
-	with nframes=Frame+1 (ie, just enough frames) and type will be
-	MRI_FLOAT. A pointer to mri is returned. If an error occurs, 
-	NULL is returned.
-	-----------------------------------------------------------------*/
-      MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field)
-	{
-	  int vtx, useval=0, usecurv=0;
-	  float val;
+    }
+  }
+  return(0);
+}
+/*-----------------------------------------------------------------
+  MRIcopyMRIS() - copies the data from the given field of an
+  MRI_SURFACE struct into a given frame of an MRI_VOLUME struct. The
+  MRI_VOLUME should have the dimension such that: ncols*nrows*nslices
+  = nvertices.  Frame is the zero-based frame number to copy to. Field
+  is a string that indicates which field of the vertex structure the
+  data should be copied from. For example, "val" indicates the val
+  field.  Other supported fields are: val, stat, valbak, val2,
+  val2bak, imag_val, curv, curvbak, fsmask, nc. If mri is NULL, it
+  will be allocated with nframes=Frame+1 (ie, just enough frames) and
+  type will be MRI_FLOAT. A pointer to mri is returned. If an error
+  occurs, NULL is returned.
+  -----------------------------------------------------------------*/
+MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field){
+  int vtx, useval=0, usecurv=0, nvox, c, r, s;
+  float val;
 
-	  if(mri == NULL){
-	    mri = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, Frame+1);
-	    if(mri==NULL){
-	      printf("ERROR: MRIcopyMRIS: could not alloc\n");
-	      return(NULL);
-	    }
-	  }
-	  else{
-	    if(surf->nvertices != mri->width){
-	      printf("ERROR: MRIcopyMRIS: surf/mri dimension mismatch.\n");
-	      return(NULL);
-	    }
-	    if(Frame >= mri->nframes){
-	      printf("ERROR: MRIScopyMRI: requested frame number is too large.\n");
-	      printf("ERROR:   requested = %d, max = %d\n",Frame,mri->nframes);
-	      return(NULL);
-	    }
-	  }
-
-	  /* A separate variable is used for val and curv for speed purposes */
-	  if(!strcmp(Field,"val")) useval = 1;
-	  else                     useval = 0;
-	  if(!strcmp(Field,"curv")) usecurv = 1;
-	  else                      usecurv = 0;
-
-	  /*------------------------------------------------*/
-	  for(vtx = 0; vtx < surf->nvertices; vtx++){
-
-	    if(useval)                         val = surf->vertices[vtx].val;
-	    else if(usecurv)                   val = surf->vertices[vtx].curv;
-	    else if(!strcmp(Field,"stat"))     val = surf->vertices[vtx].stat;
-	    else if(!strcmp(Field,"valbak"))   val = surf->vertices[vtx].valbak;
-	    else if(!strcmp(Field,"val2"))     val = surf->vertices[vtx].val2;
-	    else if(!strcmp(Field,"val2bak"))  val = surf->vertices[vtx].val2bak;
-	    else if(!strcmp(Field,"imag_val")) val = surf->vertices[vtx].imag_val;
-	    else if(!strcmp(Field,"curvbak"))  val = surf->vertices[vtx].curvbak;
-	    else if(!strcmp(Field,"fsmask"))   val = surf->vertices[vtx].fsmask;
-	    else if(!strcmp(Field,"nc"))       val = surf->vertices[vtx].nc;
-	    else if(!strcmp(Field,"undefval")) val = surf->vertices[vtx].undefval;
-	    else if(!strcmp(Field,"x")) val = surf->vertices[vtx].x;
-	    else if(!strcmp(Field,"y")) val = surf->vertices[vtx].y;
-	    else if(!strcmp(Field,"z")) val = surf->vertices[vtx].z;
-	    else if(!strcmp(Field,"vnum")) val = surf->vertices[vtx].vnum;
-	    else if(!strcmp(Field,"annotation")) val = surf->vertices[vtx].annotation;
-	    else if(!strcmp(Field,"ripflag")) val = surf->vertices[vtx].ripflag;
-	    else if(!strcmp(Field,"area")) val = surf->vertices[vtx].area;
-	    else if(!strcmp(Field,"K")) val = surf->vertices[vtx].K;
-	    else if(!strcmp(Field,"H")) val = surf->vertices[vtx].H;
-	    else if(!strcmp(Field,"k1")) val = surf->vertices[vtx].k1;
-	    else if(!strcmp(Field,"k2")) val = surf->vertices[vtx].k2;
-	    else if(!strcmp(Field,"nx")) val = surf->vertices[vtx].nx;
-	    else if(!strcmp(Field,"ny")) val = surf->vertices[vtx].ny;
-	    else if(!strcmp(Field,"nz")) val = surf->vertices[vtx].nz;
-	    else {
-	      printf("ERROR: MRIScopyMRI(): Field %s not supported\n",Field);
-	      return(NULL);
-	    }
-	    MRIsetVoxVal(mri, vtx, 0, 0, Frame, val);
-	  }
-
-	  return(mri);
+  if(mri == NULL){
+    mri = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, Frame+1);
+    if(mri==NULL){
+      printf("ERROR: MRIcopyMRIS: could not alloc\n");
+      return(NULL);
+    }
+  }
+  nvox = mri->width * mri->height * mri->depth;
+  if(surf->nvertices != nvox){
+    printf("ERROR: MRIcopyMRIS: Surf/Src dimension mismatch.\n");
+    return(NULL);
+  }
+  if(Frame >= mri->nframes){
+    printf("ERROR: MRIScopyMRI: requested frame number is too large.\n");
+    printf("ERROR:   requested = %d, max = %d\n",Frame,mri->nframes);
+    return(NULL);
+    }
+  
+  /* A separate variable is used for val and curv for speed purposes */
+  if(!strcmp(Field,"val")) useval = 1;
+  else                     useval = 0;
+  if(!strcmp(Field,"curv")) usecurv = 1;
+  else                      usecurv = 0;
+  
+  /*------------------------------------------------*/
+  vtx = 0;
+  for(c = 0; c < mri->width; c++){
+    for(r = 0; r < mri->height; r++){
+      for(s = 0; s < mri->depth; s++){
+	if(useval)                         val = surf->vertices[vtx].val;
+	else if(usecurv)                   val = surf->vertices[vtx].curv;
+	else if(!strcmp(Field,"stat"))     val = surf->vertices[vtx].stat;
+	else if(!strcmp(Field,"valbak"))   val = surf->vertices[vtx].valbak;
+	else if(!strcmp(Field,"val2"))     val = surf->vertices[vtx].val2;
+	else if(!strcmp(Field,"val2bak"))  val = surf->vertices[vtx].val2bak;
+	else if(!strcmp(Field,"imag_val")) val = surf->vertices[vtx].imag_val;
+	else if(!strcmp(Field,"curvbak"))  val = surf->vertices[vtx].curvbak;
+	else if(!strcmp(Field,"fsmask"))   val = surf->vertices[vtx].fsmask;
+	else if(!strcmp(Field,"nc"))       val = surf->vertices[vtx].nc;
+	else if(!strcmp(Field,"undefval")) val = surf->vertices[vtx].undefval;
+	else if(!strcmp(Field,"x")) val = surf->vertices[vtx].x;
+	else if(!strcmp(Field,"y")) val = surf->vertices[vtx].y;
+	else if(!strcmp(Field,"z")) val = surf->vertices[vtx].z;
+	else if(!strcmp(Field,"vnum")) val = surf->vertices[vtx].vnum;
+	else if(!strcmp(Field,"annotation")) val = surf->vertices[vtx].annotation;
+	else if(!strcmp(Field,"ripflag")) val = surf->vertices[vtx].ripflag;
+	else if(!strcmp(Field,"area")) val = surf->vertices[vtx].area;
+	else if(!strcmp(Field,"K")) val = surf->vertices[vtx].K;
+	else if(!strcmp(Field,"H")) val = surf->vertices[vtx].H;
+	else if(!strcmp(Field,"k1")) val = surf->vertices[vtx].k1;
+	else if(!strcmp(Field,"k2")) val = surf->vertices[vtx].k2;
+	else if(!strcmp(Field,"nx")) val = surf->vertices[vtx].nx;
+	else if(!strcmp(Field,"ny")) val = surf->vertices[vtx].ny;
+	else if(!strcmp(Field,"nz")) val = surf->vertices[vtx].nz;
+	else {
+	  printf("ERROR: MRIScopyMRI(): Field %s not supported\n",Field);
+	  return(NULL);
 	}
+	MRIsetVoxVal(mri, c, r, s, Frame, val);
+	vtx++;
+      }
+    }
+  }
+  return(mri);
+}
 /*-------------------------------------------------------------------
   MRISsmoothMRI() - smooths values on the surface when the surface
   values are stored in an MRI_VOLUME structure with the number of
@@ -47704,33 +47729,3 @@ MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame)
 	
 }
 
-/*---------------------------------------------------------------
-  MRISsetValsFromMRI() - sets the values of a surface from the 
-  values in an MRI struct. 
-  ---------------------------------------------------------------*/
-int MRISsetValsFromMRI(MRI_SURFACE *surf, MRI *mri, int frame)
-{
-  int c,r,s,v;
-  double val;
-
-  if(frame >= mri->nframes)
-    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-       "MRISsetValsFromMRI: frame=%d > nframes=%d",frame, mri->nframes)) ;
-
-  if(surf->nvertices != (mri->width * mri->height * mri->depth))
-    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
-       "MRISsetValsFromMRI: dimension mismatch")) ;
-
-  v=0;
-  for(s=0; s < mri->depth; s++){
-    for(r=0; r < mri->height; r++){
-      for(c=0; c < mri->width; c++){
-	val = MRIgetVoxVal(mri,c,r,s,frame);
-	surf->vertices[v].val = val;
-	v++;
-      }
-    }
-  }
-
-  return(0);
-}
