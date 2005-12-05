@@ -631,15 +631,15 @@ static int mriRemoveBackgroundCornerConfiguration(MRI *mri_seg, MRI *mri_orig, i
 int main(int argc, char *argv[])
 {
 	MRI *mri_seg,*mri_orig, *mri_seg_orig ;
-	int niter=10,ntotal=0,nmodified,i,j,k,nvoxels, ac ;
+	int niter=100,ntotal=0,nmodified,i,j,k,nvoxels, ac ;
 	int label, nargs;
 	char cmdline[CMD_LINE_LEN], **av ;
 	int x, y, z ,convert=0;
 	
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_pretess.c,v 1.10 2005/12/02 20:46:21 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_pretess.c,v 1.11 2005/12/05 16:40:51 segonne Exp $", "$Name:  $");
 
-  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.10 2005/12/02 20:46:21 segonne Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.11 2005/12/05 16:40:51 segonne Exp $", "$Name:  $", cmdline);
 
 	Progname=argv[0];
 
@@ -715,6 +715,7 @@ int main(int argc, char *argv[])
 	fprintf(stderr,"\n\nTotal Number of Modified Voxels = %d (out of %d: %f)\n",ntotal,nvoxels,100.0*ntotal/nvoxels);
 
 	fprintf(stderr,"\nWriting out volume...");
+	//if(argc==6) MRIwrite(mri_seg,argv[5]);
 	if (mri_seg_orig)
 	{
 		if(!convert){
