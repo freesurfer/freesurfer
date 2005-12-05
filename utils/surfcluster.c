@@ -2,7 +2,7 @@
   surfcluster.c - routines for growing clusters on the surface
   based on intensity thresholds and area threshold. Note: this
   makes use of the undefval in the MRI_SURFACE structure.
-  $Id: surfcluster.c,v 1.8 2005/11/29 00:39:11 greve Exp $
+  $Id: surfcluster.c,v 1.9 2005/12/05 21:58:19 greve Exp $
   ----------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -211,7 +211,7 @@ float sclustZeroSurfaceNonClusters(MRI_SURFACE *Surf)
   return(0);
 }
 /*----------------------------------------------------------------
-  sclustSetSurfaceClusterToVal() - sets the value of a vertex to the
+  sclustSetSurfaceClusterToClusterNo() - sets the value of a vertex to the
   cluster number. The cluster number is the undefval member of the
   surface structure.
   ----------------------------------------------------------------*/
@@ -222,6 +222,23 @@ float sclustSetSurfaceValToClusterNo(MRI_SURFACE *Surf)
   for(vtx = 0; vtx < Surf->nvertices; vtx++){
     vtx_clusterno = Surf->vertices[vtx].undefval;
     Surf->vertices[vtx].val = vtx_clusterno;
+  }
+
+  return(0);
+}
+/*----------------------------------------------------------------
+  sclustSetSurfaceClusterToCWP() - sets the value of a vertex to 
+  -log10(cluster-wise pvalue).
+  ----------------------------------------------------------------*/
+float sclustSetSurfaceValToCWP(MRI_SURFACE *Surf, SCS *scs)
+{
+  int vtx, vtx_clusterno;
+
+  for(vtx = 0; vtx < Surf->nvertices; vtx++){
+    vtx_clusterno = Surf->vertices[vtx].undefval;
+
+    if(vtx_clusterno==0) Surf->vertices[vtx].val = 0;
+    else Surf->vertices[vtx].val = -log10(scs[vtx_clusterno-1].pval_clusterwise);
   }
 
   return(0);
