@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.16 2005/11/29 01:35:46 greve Exp $
+  $Id: mri_surfcluster.c,v 1.17 2005/12/05 21:57:30 greve Exp $
 */
 
 #include <stdio.h>
@@ -45,7 +45,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.16 2005/11/29 01:35:46 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.17 2005/12/05 21:57:30 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -90,6 +90,9 @@ int   outfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *ocnid = NULL;
 char *ocnfmt = "paint";
 int   ocnfmtid = MRI_VOLUME_TYPE_UNKNOWN;
+char *ocpvalid = NULL;
+char *ocpvalfmt = "paint";
+int   ocpvalfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *sumfile  = NULL;
 
 char *outlabelbase = NULL;
@@ -121,6 +124,8 @@ CSD *csd=NULL;
 char *csdfile;
 double pvalLow, pvalHi, ciPct=90, pval, ClusterSize;
 
+MRI *merged;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
@@ -133,7 +138,7 @@ int main(int argc, char **argv)
   char *cmdline, cwd[2000];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.16 2005/11/29 01:35:46 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.17 2005/12/05 21:57:30 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -409,14 +414,50 @@ int main(int argc, char **argv)
     fclose(fp);
   }
 
+  if(ocpvalid != NULL){
+    merged = MRIallocSequence(srcsurf->nvertices, 1, 1,MRI_FLOAT,4);
+    MRIcopyMRIS(merged, srcsurf, 0, "val"); // original data
+    // frame 1 filled in below
+    MRIcopyMRIS(merged, srcsurf, 2, "undefval"); // cluster numbers removed
+    // More below
+  }
 
   /* --- Save the output as the thresholded input --- */
+  sclustZeroSurfaceNonClusters(srcsurf);
   if(outid != NULL){
     printf("Saving thresholded output to  %s\n",outid);
-    sclustZeroSurfaceNonClusters(srcsurf);
-    if(!strcmp(outfmt,"paint") || !strcmp(outfmt,"w")){
+    if(!strcmp(outfmt,"paint") || !strcmp(outfmt,"w"))
       MRISwriteValues(srcsurf,outid);
+    else{
+      mritmp = MRIcopyMRIS(NULL,srcsurf,0,"val");
+      MRIwrite(mritmp,outid);
+      MRIfree(&mritmp);
     }
+  }
+  if(ocpvalid != NULL){
+    MRIcopyMRIS(merged, srcsurf, 1, "val"); // non-clusters removed
+    // More below
+  }
+
+  /* --- Save the cluster number output --- */
+  if(ocnid != NULL){
+    printf("Saving cluster numbers to %s\n",ocnid);
+    sclustSetSurfaceValToClusterNo(srcsurf);
+    if(!strcmp(ocnfmt,"paint") || !strcmp(ocnfmt,"w"))
+      MRISwriteValues(srcsurf,ocnid);
+    else{
+      mritmp = MRIcopyMRIS(NULL,srcsurf,0,"undefval");
+      MRIwrite(mritmp,ocnid);
+      MRIfree(&mritmp);
+    }
+  }
+
+  /* --- Save the cluster pval --- */
+  if(ocpvalid != NULL){
+    sclustSetSurfaceValToCWP(srcsurf,scs);
+    MRIcopyMRIS(merged, srcsurf, 3, "val"); // cluster-wise pval
+    printf("Saving cluster pval %s\n",ocpvalid);
+    MRIwrite(merged,ocpvalid);
   }
 
   /* -- Save output clusters as labels -- */
@@ -442,18 +483,12 @@ int main(int argc, char **argv)
     } // End loop over clusters
   }
 
-  /* --- Save the cluster number output --- */
-  if(ocnid != NULL){
-    printf("Saving cluster numbers to %s\n",ocnid);
-    sclustSetSurfaceValToClusterNo(srcsurf);
-    if(!strcmp(ocnfmt,"paint") || !strcmp(ocnfmt,"w")){
-      MRISwriteValues(srcsurf,ocnid);
-    }
-  }
-
   return(0);
 }
 /* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+
 static int parse_commandline(int argc, char **argv)
 {
   int  nargc , nargsused;
@@ -648,12 +683,29 @@ static int parse_commandline(int argc, char **argv)
       if(nth_is_arg(nargc, pargv, 1)){
 	outfmt = pargv[1]; nargsused ++;
       }
+      else {
+	outfmtid = mri_identify(outid);
+	if(outfmtid != MRI_VOLUME_TYPE_UNKNOWN) 
+	  outfmt = type_to_string(outfmtid);
+      }
     }
     else if (!strcmp(option, "--ocn")){
       if(nargc < 1) argnerr(option,1);
       ocnid = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
 	ocnfmt = pargv[1]; nargsused ++;
+      }
+      else {
+	ocnfmtid = mri_identify(ocnid);
+	if(ocnfmtid != MRI_VOLUME_TYPE_UNKNOWN) 
+	  ocnfmt = type_to_string(ocnfmtid);
+      }
+    }
+    else if (!strcmp(option, "--ocp")){
+      if(nargc < 1) argnerr(option,1);
+      ocpvalid = pargv[0]; nargsused = 1;
+      if(nth_is_arg(nargc, pargv, 1)){
+	ocpvalfmt = pargv[1]; nargsused ++;
       }
     }
     else if (!strcmp(option, "--olab")){
@@ -721,8 +773,9 @@ static void print_usage(void)
   //  printf("\n");
   printf("   --sum sumfile     : text summary file\n");
   printf("   --o outid <fmt>   : input with non-clusters set to 0\n");
-  printf("   --ocn ocnid <fmt> : value is cluster number \n");
-  printf("   --olab labelbase  : output clusters as labels \n");
+  printf("   --ocn ocnid <fmt>    : value is cluster number \n");
+  printf("   --ocp ocpvalid <fmt> : value is cluster-wise pvalue (not ready yet)\n");
+  printf("   --olab labelbase     : output clusters as labels \n");
   printf("\n");
   printf("   --xfm xfmfile     : talairach transform (def is talairach.xfm) \n");
   printf("   --<no>fixmni      : <do not> fix MNI talairach coordinates\n");
@@ -884,7 +937,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.16 2005/11/29 01:35:46 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.17 2005/12/05 21:57:30 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
