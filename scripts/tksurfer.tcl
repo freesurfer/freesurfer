@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.89 2005/11/16 17:23:26 kteich Exp $
+# $Id: tksurfer.tcl,v 1.90 2005/12/05 23:26:34 kteich Exp $
 
 package require BLT;
 
@@ -317,6 +317,11 @@ proc SwapValueLabelNames { inValueIndexA inValueIndexB } {
 proc RequestOverlayInfoUpdate {} {
     # tell the c code to send us the current overlay info.
     sclv_send_current_field_info
+}
+
+proc RequestLabelsUpdate {} {
+    # tell the c code to send us the current labels.
+    send_current_labels
 }
 
 # ==================================================================== GLOBALS
@@ -2579,47 +2584,47 @@ proc CreateMenuBar { ifwMenuBar } {
 	}}
 	{cascade "Overlay Layer" {
 	    { radio "Overlay Layer 1"
-		{ SetOverlayField }
+		{ SetOverlayField; send_current_labels }
 		gaLinkedVars(currentvaluefield)
 		0
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 2"
-		{ SetOverlayField }
+		{ SetOverlayField; send_current_labels }
 		gaLinkedVars(currentvaluefield)
 		1
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 3"
-		{ SetOverlayField }
+		{ SetOverlayField; send_current_labels }
 		gaLinkedVars(currentvaluefield)
 		2
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 4"
-		{ SetOverlayField }
+		{ SetOverlayField; send_current_labels }
 		gaLinkedVars(currentvaluefield)
 		3
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 5"
-		{ SetOverlayField }
+		{ SetOverlayField; send_current_labels }
 		gaLinkedVars(currentvaluefield)
 		4
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 6"
-		{ SetOverlayField }
+		{ SetOverlayField; send_current_labels }
 		gaLinkedVars(currentvaluefield)
 		5
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 7"
-		{ SetOverlayField }
+		{ SetOverlayField; send_current_labels }
 		gaLinkedVars(currentvaluefield)
 		6
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 8"
-		{ SetOverlayField }
+		{ SetOverlayField; send_current_labels }
 		gaLinkedVars(currentvaluefield)
 		7
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 9"
-		{ SetOverlayField }
+		{ SetOverlayField; send_current_labels }
 		gaLinkedVars(currentvaluefield)
 		8
 		mg_OverlayLoaded }
