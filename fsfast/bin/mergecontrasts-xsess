@@ -2,7 +2,7 @@
 # mergecontrasts-sess - AND conjunction of two contrasts
 #
 
-set VERSION = '$Id: mergecontrasts-xsess,v 1.3 2005/08/30 17:10:39 greve Exp $';
+set VERSION = '$Id: mergecontrasts-xsess,v 1.4 2005/12/05 22:26:04 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -185,6 +185,17 @@ tee $MLF > /dev/null <<EOF
       switch(conjunction)
       case 'and',   mmerged = mthresh & mmerged;
       case 'or',    mmerged = mthresh | mmerged;
+      case 'andor', 
+        % This only makes sense for 2 inputs %
+        map_both = mthresh & mmerged;
+	ind_both = find(map_both);
+        indA = find(mmerged);
+        indB = find(mthresh);
+        mmerged_tmp = zeros(size(mmerged));
+        mmerged_tmp(indA)     = +1;
+        mmerged_tmp(indB)     = -1;
+        mmerged_tmp(ind_both) = +2;
+        mmerged = mmerged_tmp;
       end
     end
 
