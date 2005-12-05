@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/11/26 06:46:54 $
-// Revision       : $Revision: 1.322 $
-char *MRI_C_VERSION = "$Revision: 1.322 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/12/05 18:28:45 $
+// Revision       : $Revision: 1.323 $
+char *MRI_C_VERSION = "$Revision: 1.323 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -8797,17 +8797,17 @@ MRIneighbors(MRI *mri, int x0, int y0, int z0, int val)
 {
   int   nbrs = 0 ;
 
-  if (MRIvox(mri,mri->xi[x0-1],y0,z0) == val)
+  if (nint(MRIgetVoxVal(mri,mri->xi[x0-1],y0,z0,0)) == val)
     nbrs++ ;
-  if (MRIvox(mri,mri->xi[x0+1],y0,z0) == val)
+  if (nint(MRIgetVoxVal(mri,mri->xi[x0+1],y0,z0,0)) == val)
     nbrs++ ;
-  if (MRIvox(mri,x0,mri->yi[y0+1],z0) == val)
+  if (nint(MRIgetVoxVal(mri,x0,mri->yi[y0+1],z0,0)) == val)
     nbrs++ ;
-  if (MRIvox(mri,x0,mri->yi[y0-1],z0) == val)
+  if (nint(MRIgetVoxVal(mri,x0,mri->yi[y0-1],z0,0)) == val)
     nbrs++ ;
-  if (MRIvox(mri,x0,y0,mri->zi[z0+1]) == val)
+  if (nint(MRIgetVoxVal(mri,x0,y0,mri->zi[z0+1],0)) == val)
     nbrs++ ;
-  if (MRIvox(mri,x0,y0,mri->zi[z0-1]) == val)
+  if (nint(MRIgetVoxVal(mri,x0,y0,mri->zi[z0-1],0)) == val)
     nbrs++ ;
   return(nbrs) ;
 }
@@ -12446,6 +12446,8 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
 			{
 				for (z = 0 ; z < mri_src->depth ; z++)
 				{
+					if (x == Gx && y == Gy && z == Gz)
+						DiagBreak() ;
 					if (FEQUAL(MRIgetVoxVal(mri_src, x, y, z, 0), label))
 					{
 						dist = MRIgetVoxVal(mri_dist, x, y, z, 0) ;
