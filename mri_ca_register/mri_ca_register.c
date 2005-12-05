@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/11/28 01:59:51 $
-// Revision       : $Revision: 1.36 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/12/05 22:28:20 $
+// Revision       : $Revision: 1.37 $
 
 
 #include <math.h>
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.36 2005/11/28 01:59:51 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.37 2005/12/05 22:28:20 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -178,7 +178,7 @@ main(int argc, char *argv[])
   FileNameOnly(out_fname, fname) ;
   FileNameRemoveExtension(fname, fname) ;
   strcpy(parms.base_name, fname) ;
-  Gdiag |= DIAG_WRITE ;
+  //  Gdiag |= DIAG_WRITE ;
   printf("logging results to %s.log\n", parms.base_name) ;
 
   TimerStart(&start) ;
@@ -702,7 +702,7 @@ main(int argc, char *argv[])
 			lta = NULL ;
     if(!xform_name)
 		{
-      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
+		  //      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
       GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, &lta) ;
 		}
     else
@@ -711,7 +711,7 @@ main(int argc, char *argv[])
       trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
       trans->type = TransformFileNameType(xform_name);
       trans->xform = (void *)gcam;
-      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
+      //      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
       GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, trans, parms.log_fp, parms.base_name, &lta) ;
       free(trans);
 		}

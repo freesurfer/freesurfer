@@ -115,10 +115,10 @@ main(int argc, char *argv[])
   
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.63 2005/11/28 02:00:06 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.64 2005/12/05 22:31:48 xhan Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.63 2005/11/28 02:00:06 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.64 2005/12/05 22:31:48 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -533,7 +533,7 @@ main(int argc, char *argv[])
 				}
 				else
 					logfp = NULL ;
-				GCAmapRenormalize(gca, mri_inputs, transform) ;
+				// GCAmapRenormalize(gca, mri_inputs, transform) ;
 				GCAmapRenormalizeWithAlignment(gca, mri_inputs, transform, logfp, base_name, NULL) ;
 				GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
 				{
