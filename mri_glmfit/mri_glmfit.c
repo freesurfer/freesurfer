@@ -70,7 +70,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.36 2005/12/01 21:25:49 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.37 2005/12/05 23:59:52 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -474,7 +474,7 @@ int main(int argc, char **argv)
 	if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
 	sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
 	Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
-	MRISsetValsFromMRI(surf, sig, 0);
+	MRIScopyMRI(surf, sig, 0, "val");
 	SurfClustList = sclustMapSurfClusters(surf,thresh,-1,threshsign,0,&nClusters,NULL);
 	csize = sclustMaxClusterArea(SurfClustList, nClusters);
 	printf("%s %d %d   %g  %g  %g\n",mriglm->glm->Cname[n],nthsim,
