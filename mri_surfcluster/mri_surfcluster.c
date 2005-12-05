@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.17 2005/12/05 21:57:30 greve Exp $
+  $Id: mri_surfcluster.c,v 1.18 2005/12/05 22:05:41 greve Exp $
 */
 
 #include <stdio.h>
@@ -45,7 +45,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.17 2005/12/05 21:57:30 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.18 2005/12/05 22:05:41 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
   char *cmdline, cwd[2000];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.17 2005/12/05 21:57:30 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.18 2005/12/05 22:05:41 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -416,9 +416,10 @@ int main(int argc, char **argv)
 
   if(ocpvalid != NULL){
     merged = MRIallocSequence(srcsurf->nvertices, 1, 1,MRI_FLOAT,4);
-    MRIcopyMRIS(merged, srcsurf, 0, "val"); // original data
-    // frame 1 filled in below
-    MRIcopyMRIS(merged, srcsurf, 2, "undefval"); // cluster numbers removed
+    // frame 0 will be filled in below with cluster-wise pval
+    MRIcopyMRIS(merged, srcsurf, 1, "val"); // original data
+    // frame 2 filled in below with thresholded
+    MRIcopyMRIS(merged, srcsurf, 3, "undefval"); // cluster numbers
     // More below
   }
 
@@ -435,7 +436,7 @@ int main(int argc, char **argv)
     }
   }
   if(ocpvalid != NULL){
-    MRIcopyMRIS(merged, srcsurf, 1, "val"); // non-clusters removed
+    MRIcopyMRIS(merged, srcsurf, 2, "val"); // non-clusters removed
     // More below
   }
 
@@ -455,7 +456,7 @@ int main(int argc, char **argv)
   /* --- Save the cluster pval --- */
   if(ocpvalid != NULL){
     sclustSetSurfaceValToCWP(srcsurf,scs);
-    MRIcopyMRIS(merged, srcsurf, 3, "val"); // cluster-wise pval
+    MRIcopyMRIS(merged, srcsurf, 0, "val"); // cluster-wise pval
     printf("Saving cluster pval %s\n",ocpvalid);
     MRIwrite(merged,ocpvalid);
   }
@@ -937,7 +938,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.17 2005/12/05 21:57:30 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.18 2005/12/05 22:05:41 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
