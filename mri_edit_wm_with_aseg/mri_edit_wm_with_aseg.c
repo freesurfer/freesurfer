@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/12/03 15:41:07 $
-// Revision       : $Revision: 1.14 $
+// Revision Date  : $Date: 2005/12/05 16:08:24 $
+// Revision       : $Revision: 1.15 $
 //
 
 #include <stdio.h>
@@ -53,9 +53,9 @@ static int distance_to_zero(MRI *mri_wm, int x,
 														int dz, int max_dist) ;
 
 #endif
-static int remove_medial_voxels(MRI *mri_roi, MRI *mri_aseg, int dx, int dist) ;
+static int remove_medial_voxels(MRI *mri_roi, MRI *mri_aseg, int left) ;
 static int remove_gray_matter_voxels(MRI *mri_roi, MRI *mri_aseg) ;
-static int remove_unknown_voxels(MRI *mri_roi, MRI *mri_aseg) ;
+static int remove_unknown_voxels(MRI *mri_roi, MRI *mri_aseg, int left) ;
 static int distance_to_anterior_edge(MRI *mri_seg, int label, int x, int y, int z) ;
 static int remove_lateral_and_anterior_hippocampus(MRI *mri_roi, MRI *mri_aseg, int left) ;
 static int remove_anterior_and_superior_amygdala(MRI *mri_roi, MRI *mri_aseg) ;
@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static int neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label);
 static int edit_segmentation(MRI *mri_im, MRI *mri_T1, MRI *mri_seg) ;
+static int spackle_wm_superior_to_mtl(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg) ;
 static int distance_to_label(MRI *mri_labeled, int label, int x,  
 														 int y, int z, int dx, int dy, 
                              int dz, int max_dist) ;
@@ -84,10 +85,10 @@ main(int argc, char *argv[])
 	int    msec, nargs ;
 	char cmdline[CMD_LINE_LEN], *output_file_name ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.14 2005/12/03 15:41:07 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.15 2005/12/05 16:08:24 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.14 2005/12/03 15:41:07 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.15 2005/12/05 16:08:24 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
@@ -132,6 +133,7 @@ main(int argc, char *argv[])
 
 	remove_paths_to_cortex(mri_wm, mri_T1, mri_aseg) ;
 	edit_segmentation(mri_wm, mri_T1, mri_aseg) ;
+	spackle_wm_superior_to_mtl(mri_wm, mri_T1, mri_aseg) ;
   if (keep_edits)
   {
     MRI *mri_old ;
@@ -1936,6 +1938,7 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
 	float  intensity, brightest_intensity ;
 	MRI_REGION box ;
 
+	xgm = ygm = zgm = -1 ;  // to get rid of warning
 	mri_hippo = MRIclone(mri_aseg, NULL) ;
 	mri_roi = MRIclone(mri_aseg, NULL) ;
 	MRIcopyLabel(mri_aseg, mri_roi, Left_Hippocampus) ;
@@ -1946,8 +1949,8 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
 		MRIdilate(mri_roi, mri_roi) ;   // build a mask and don't let things escape from that region
 	remove_anterior_and_superior_amygdala(mri_roi, mri_aseg) ;
 	remove_lateral_and_anterior_hippocampus(mri_roi, mri_aseg, 1) ;
-	remove_medial_voxels(mri_roi, mri_aseg, -1, 10) ;
-	remove_unknown_voxels(mri_roi, mri_aseg) ;
+	remove_medial_voxels(mri_roi, mri_aseg, 1) ;
+	remove_unknown_voxels(mri_roi, mri_aseg, 1) ;
 	remove_gray_matter_voxels(mri_roi, mri_aseg) ;
 	MRIboundingBox(mri_roi, 1, &box) ;
 	x1 = MAX(box.x,1) ; x2 = MIN(box.x + box.dx-1, mri_aseg->width-2) ;
@@ -2125,8 +2128,8 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
 		MRIdilate(mri_roi, mri_roi) ;   // build a mask and don't let things escape from that region
 	remove_anterior_and_superior_amygdala(mri_roi, mri_aseg) ;
 	remove_lateral_and_anterior_hippocampus(mri_roi, mri_aseg, 0) ;
-	remove_medial_voxels(mri_roi, mri_aseg, 1, 10) ;
-	remove_unknown_voxels(mri_roi, mri_aseg) ;
+	remove_medial_voxels(mri_roi, mri_aseg, 0) ;
+	remove_unknown_voxels(mri_roi, mri_aseg, 0) ;
 	remove_gray_matter_voxels(mri_roi, mri_aseg) ;
 	MRIboundingBox(mri_roi, 1, &box) ;
 	x1 = MAX(box.x,1) ; x2 = MIN(box.x + box.dx-1, mri_aseg->width-2) ;
@@ -2441,84 +2444,73 @@ distance_to_inferior_edge(MRI *mri_seg, int label, int x, int y, int z)
 static int
 distance_to_anterior_edge(MRI *mri_seg, int label, int x, int y, int z)
 {
-	int yi, dist ;
+	int zi, dist ;
 
 	for (dist = 0 ; dist < mri_seg->height ; dist++)
 	{
-		yi = mri_seg->yi[y-dist] ;
-		if (distance_to_label(mri_seg, label, x, yi, z, 0, 0, 1, 10) >= 10)
+		zi = mri_seg->zi[z+dist] ;
+		if (distance_to_label(mri_seg, label, x, y, zi, 0, 0, 1, 10) >= 10)
 			return(dist) ;
 	}
 	return(-1) ;
 }
 static int
-remove_medial_voxels(MRI *mri_roi, MRI *mri_aseg, int dx, int dist)
+remove_medial_voxels(MRI *mri_roi, MRI *mri_aseg, int left)
 {
-	int x, y, z, xm, label ;
+	int x, y, z, xmid, xmin, xmax, label ;
 
-	if (dx < 0)   // lh
+	for (z = 0 ; z < mri_roi->depth ; z++)
 	{
-		for (z = 0 ; z < mri_roi->depth ; z++)
+		// find medialmost hippo for this slice
+		xmin = mri_roi->width-1 ;
+		xmax = 0 ;
+		for (x = 0 ; x < mri_roi->width ; x++)
 		{
-			// find medialmost hippo for this slice
-			xm = mri_roi->width-1 ;
-			for (x = 0 ; x < mri_roi->width ; x++)
+			for (y = 0 ; y < mri_roi->height ; y++)
 			{
-				for (y = 0 ; y < mri_roi->height ; y++)
+				label = MRIvox(mri_aseg, x, y, z) ;
+				if ((left && (label == Left_Hippocampus ||
+										 label == Left_Amygdala)) ||
+						((left == 0) &&
+						 ((label == Right_Amygdala) || (label == Right_Hippocampus))))
 				{
-					label = MRIvox(mri_aseg, x, y, z) ;
-					if (((label == Left_Amygdala) || (label == Left_Hippocampus)) && (x < xm))
-						xm = x ;
-				}
-			}
-			// now remove gray matter from ROI if it's medial
-			for (x = 0 ; x < mri_roi->width ; x++)
-			{
-				for (y = 0 ; y < mri_roi->height ; y++)
-				{
-					if (x == Gx && y == Gy && z == Gz)
-						DiagBreak() ;
-					label = MRIvox(mri_aseg, x, y, z) ;
-					if (((label == Left_Amygdala) || 
-							 (label == Left_Hippocampus) || 
-							 (label == Left_Cerebral_Cortex)) && 
-							(x < xm+dist))
-						MRIvox(mri_roi, x, y, z) = 0 ;
-					if ((label == Unknown) && x < xm+3)
-						MRIvox(mri_roi, x, y, z) = 0 ;
+					if (x < xmin)
+						xmin = x ;
+					if (x > xmax)
+						xmax = x ;
+					
 				}
 			}
 		}
-	}
-	else // rh
-	{
-		for (z = 0 ; z < mri_roi->depth ; z++)
+
+		xmid = left ? (2*xmin+xmax)/3 : (2*xmax + xmin)/3 ;
+		
+		// now remove gray matter from ROI if it's medial
+		for (x = 0 ; x < mri_roi->width ; x++)
 		{
-			// find medialmost hippo for this slice
-			xm = 0 ;
-			for (x = 0 ; x < mri_roi->width ; x++)
+			for (y = 0 ; y < mri_roi->height ; y++)
 			{
-				for (y = 0 ; y < mri_roi->height ; y++)
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				label = MRIvox(mri_aseg, x, y, z) ;
+				if (left)
 				{
-					label = MRIvox(mri_aseg, x, y, z) ;
-					if (((label == Right_Amygdala) || (label == Right_Hippocampus)) && x > xm)
-						xm = x ;
+					if (((label == Left_Amygdala) || 
+							 (label == Left_Hippocampus) || 
+							 (label == Left_Cerebral_Cortex)) && 
+							(x < xmid))
+						MRIvox(mri_roi, x, y, z) = 0 ;
+					if ((label == Unknown) && x < xmin+3)
+						MRIvox(mri_roi, x, y, z) = 0 ;
 				}
-			}
-			// now remove gray matter from ROI if it's medial
-			for (x = 0 ; x < mri_roi->width ; x++)
-			{
-				for (y = 0 ; y < mri_roi->height ; y++)
+				else // rh
 				{
-					if (x == Gx && y == Gy && z == Gz)
-						DiagBreak() ;
-					label = MRIvox(mri_aseg, x, y, z) ;
 					if (((label == Right_Amygdala) || 
 							 (label == Right_Hippocampus) || 
 							 (label == Right_Cerebral_Cortex)) && 
-							(x > xm-dist))
+							(x > xmid))
 						MRIvox(mri_roi, x, y, z) = 0 ;
-					if ((label == Unknown) && x > xm-3)
+					if ((label == Unknown) && x > xmax-3)
 						MRIvox(mri_roi, x, y, z) = 0 ;
 				}
 			}
@@ -2528,13 +2520,36 @@ remove_medial_voxels(MRI *mri_roi, MRI *mri_aseg, int dx, int dist)
 }
 
 static int
-remove_unknown_voxels(MRI *mri_roi, MRI *mri_aseg)
+remove_unknown_voxels(MRI *mri_roi, MRI *mri_aseg, int left)
 {
-	int x, y, z, label ;
+	int x, y, z, label, xmin, xmax, xmid ;
 
 	for (z = 0 ; z < mri_roi->depth ; z++)
 	{
+		xmin = mri_roi->width-1 ;
+		xmax = 0 ;
 		for (x = 0 ; x < mri_roi->width ; x++)
+		{
+			for (y = 0 ; y < mri_roi->height ; y++)
+			{
+				label = MRIvox(mri_aseg, x, y, z) ;
+				if ((label == (left ? Left_Hippocampus : Right_Hippocampus)) ||
+						(label == (left ? Left_Amygdala : Right_Amygdala)))
+				{
+					if (x < xmin)
+						xmin = x ;
+					if (x > xmax)
+						xmax = x ;
+				}
+			}
+		}
+		// only do lateral half of hippo/amy
+		xmid = (xmin + xmax) / 2 ;
+		if (left)
+			xmax = xmid ;
+		else
+			xmin = xmid ;
+		for (x = xmin ; x <= xmax ; x++)
 		{
 			for (y = 0 ; y < mri_roi->height ; y++)
 			{
@@ -2585,6 +2600,59 @@ remove_gray_matter_voxels(MRI *mri_roi, MRI *mri_aseg)
 			}
 		}
 	}
+	return(NO_ERROR) ;
+}
+
+static int
+spackle_wm_superior_to_mtl(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg)
+{
+	int    x, y, z, label, slabel, yi, xi, left ;
+
+	for (x = 0 ; x < mri_wm->width ; x++)
+	{
+		for (y = 1 ; y < mri_wm->height; y++)
+		{
+			for (z = 0 ; z < mri_wm->depth ; z++)
+			{
+				if (x == Gx && y  == Gy && z == Gz)
+					DiagBreak() ;
+				label = MRIvox(mri_aseg, x, y, z) ;
+				if (!IS_HIPPO(label) && !IS_AMYGDALA(label))
+					continue ;				
+				left = (label == Left_Amygdala || label == Left_Hippocampus) ;
+				if (distance_to_superior_edge(mri_aseg, label, x, y, z) > 1)
+					continue ;
+				if ((distance_to_anterior_edge(mri_aseg, label, x, y, z) < 2) &&
+						(distance_to_anterior_edge(mri_aseg, label, x, y+1, z) < 2))
+					continue ;
+				yi = mri_aseg->yi[y-1] ;
+				slabel = MRIvox(mri_aseg, x, yi, z) ;
+				if (IS_CORTEX(slabel) && (MRIvox(mri_wm, x, yi, z) < MIN_WM_VAL))
+				{
+					if (x == Gx && yi == Gy && z == Gz)  
+						DiagBreak2() ;
+					MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
+				}
+				xi = left ? x+1 : x-1 ;
+				if (IS_AMYGDALA(label) && IS_CORTEX(MRIvox(mri_aseg, xi, y, z)) && 
+						(MRIvox(mri_wm, xi, y, z) < MIN_WM_VAL))
+				{
+					if (xi == Gx && y == Gy && z == Gz)  
+						DiagBreak2() ;
+					MRIvox(mri_wm, xi, y, z) = AUTO_FILL ;
+				}
+
+				if (IS_AMYGDALA(label) && IS_CORTEX(MRIvox(mri_aseg, xi, yi, z)) && 
+						(MRIvox(mri_wm, xi, yi, z) < MIN_WM_VAL))
+				{
+					if (xi == Gx && yi == Gy && z == Gz)  
+						DiagBreak2() ;
+					MRIvox(mri_wm, xi, yi, z) = AUTO_FILL ;
+				}
+			}
+		}
+	}
+
 	return(NO_ERROR) ;
 }
 
