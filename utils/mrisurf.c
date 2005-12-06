@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/12/06 19:04:18 $
-// Revision       : $Revision: 1.392 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/12/06 21:45:33 $
+// Revision       : $Revision: 1.393 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -518,12 +518,12 @@ int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)=NUL
 int (*gMRISexternalClearSSEStatus)(MRI_SURFACE *mris) = NULL ;
 int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) = NULL ;
 
+/*---------------------------------------------------------------
+  MRISurfSrcVersion() - returns CVS version of this file.
+  ---------------------------------------------------------------*/
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.393 2005/12/06 21:45:33 greve Exp $"); }
+
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
   ------------------------------------------------------*/
 MRI_SURFACE *
 MRISreadOverAlloc(char *fname, double pct_over)
