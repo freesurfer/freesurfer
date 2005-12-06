@@ -49,5 +49,6 @@ int make_cmd_version_string (int argc, char** argv,  char* id_string,
 char *argv2cmdline(int argc, char *argv[]);
 char *VERuser(void);
 char *VERfileTimeStamp(char *fname);
+char *VERcurTimeStamp(void);
 
 #endif

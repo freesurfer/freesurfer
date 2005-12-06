@@ -1,8 +1,8 @@
 /**
  * @file   version.c
  * @author $Author: greve $
- * @date   $Date: 2005/09/21 22:39:54 $
- *         $Revision: 1.18 $
+ * @date   $Date: 2005/12/06 21:37:36 $
+ *         $Revision: 1.19 $
  * @brief  freesurfer version functions defined here
  * 
  * 
@@ -391,6 +391,26 @@ char *VERfileTimeStamp(char *fname)
   //free(lt); // Dies here
   timestamp = strcpyalloc(tmpstr);
   return(timestamp);
+}
+/*----------------------------------------------------------
+ VERcurTimeStamp() - time stamp at the time this function
+ is called.
+ *----------------------------------------------------------*/
+char *VERcurTimeStamp(void)
+{
+  char tmpstr[2000], *time_stamp;
+  time_t seconds;
+  struct tm broken_time;
+  seconds = time(NULL);
+  gmtime_r (&seconds, &broken_time);
+  sprintf (tmpstr, "20%02d/%02d/%02d-%02d:%02d:%02d-GMT",
+	   broken_time.tm_year%100, /* mod here to change 103 to 03 */
+	   broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
+	   broken_time.tm_mday, broken_time.tm_hour,
+	   broken_time.tm_min, broken_time.tm_sec);
+  //Note: NOT Y3K compliant!
+  time_stamp = strcpyalloc(tmpstr);
+  return(time_stamp);
 }
 
 
