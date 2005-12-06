@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/05 23:59:02 $
-// Revision       : $Revision: 1.389 $
+// Revision Date  : $Date: 2005/12/06 02:29:26 $
+// Revision       : $Revision: 1.390 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -45869,7 +45869,7 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field){
   -------------------------------------------------------------------*/
 MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
 {
-  int nnbrs, nthstep, frame, vtx, nbrvtx, nthnbr, *crslut[3], c,r,s, nvox;
+  int nnbrs, nthstep, frame, vtx, nbrvtx, nthnbr, **crslut, c,r,s, nvox;
   float val;
   MRI *SrcTmp;
   
@@ -45880,21 +45880,8 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
   }
 
   //Build LUT to map from col,row,slice to vertex
-  crslut[0] = (int *) calloc(nvox,sizeof(int));
-  crslut[1] = (int *) calloc(nvox,sizeof(int));
-  crslut[2] = (int *) calloc(nvox,sizeof(int));
-  vtx = 0; 
-  for(c=0; c < Src->width; c++){
-    for(r=0; r < Src->height; r++){
-      for(s=0; s < Src->depth; s++){
-	crslut[0][vtx] = c;
-	crslut[1][vtx] = r;
-	crslut[2][vtx] = s;
-	vtx++;
-      }
-    }
-  }
-  
+  crslut = MRIScrsLUT(Surf, Src);
+
   if(Targ == NULL){
     Targ = MRIallocSequence(Src->width, Src->height, Src->depth, 
 			    MRI_FLOAT, Src->nframes);
@@ -45944,11 +45931,118 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
   }/* end loop over smooth step */
   
   MRIfree(&SrcTmp);
+  MRIScrsLUTFree(crslut);
+  return(Targ);
+}
+/*-----------------------------------------------------------------------
+  MRISar1() - computes spatial AR1 at each vertex by averaging the AR1s 
+  within the neighborhood of a vertex. Note: does not try to take into
+  account different distances between neighbors. Note: theoretical AR1 
+  for one smoothing step is 4/7=0.57. 
+  -----------------------------------------------------------------------*/
+MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1)
+{
+  int nnbrs, frame, vtx, nbrvtx, nthnbr, **crslut, c,r,s, nvox;
+  int cnbr, rnbr,snbr;
+  float valvtx, valnbr, ar1sum, sumsqvtx, vtxvar, sumsqnbr, sumsqx, nbrvar;
+
+  nvox = src->width * src->height * src->depth;
+  if(surf->nvertices != nvox){
+    printf("ERROR: MRISar1: Surf/Src dimension mismatch.\n");
+    return(NULL);
+  }
+
+  if(ar1 == NULL) {
+    ar1 = MRIcloneBySpace(src, 1);
+    if(ar1 == NULL){
+      printf("ERROR: could not alloc\n");
+      return(NULL);
+    }
+  }
+
+  //Build LUT to map from col,row,slice to vertex
+  crslut = MRIScrsLUT(surf,src);
+
+  for(vtx = 0; vtx < surf->nvertices; vtx++){
+    c = crslut[0][vtx];
+    r = crslut[1][vtx];
+    s = crslut[2][vtx];
+    nnbrs = surf->vertices[vtx].vnum;
+
+    sumsqvtx = 0;
+    for(frame = 0; frame < src->nframes; frame ++){
+      valvtx = MRIFseq_vox(src,c,r,s,frame);
+      sumsqvtx += (valvtx*valvtx);
+    }
+    vtxvar = sumsqvtx/src->nframes;
+    
+    ar1sum = 0;
+    for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+      nbrvtx = surf->vertices[vtx].v[nthnbr];
+      cnbr = crslut[0][nbrvtx];
+      rnbr = crslut[1][nbrvtx];
+      snbr = crslut[2][nbrvtx];
+      sumsqnbr = 0;
+      sumsqx   = 0;
+      for(frame = 0; frame < src->nframes; frame ++){
+	valvtx = MRIFseq_vox(src,c,r,s,frame);
+	valnbr = MRIFseq_vox(src,cnbr,rnbr,snbr,frame);
+	sumsqnbr += (valnbr*valnbr);
+	sumsqx   += (valvtx*valnbr);
+      }
+      nbrvar = sumsqnbr/src->nframes;
+      ar1sum += (sumsqx/src->nframes)/sqrt(vtxvar*nbrvar);
+    }/* end loop over neighbor */
+      
+    MRIFseq_vox(ar1,c,r,s,0) = (ar1sum/nnbrs);
+  } /* end loop over vertex */
+
+  MRIScrsLUTFree(crslut);
+  return(ar1);
+}
+/*---------------------------------------------------------------
+  MRIScrsLUT() - constructs a lookup table to quickly map from 
+  a vertex to the col, row, slice in an MRI struct, where the
+  MRI struct has ncols*nrows*nslices = nvertices. 
+  See also MRIScrsLUTFee().
+  ---------------------------------------------------------------*/
+int **MRIScrsLUT(MRIS *surf, MRI *src)
+{
+  int **crslut,c,r,s,nvox,vtx;
+  crslut = (int **) calloc(3,sizeof(int*));
+
+  nvox = src->width * src->height * src->depth;
+  if(surf->nvertices != nvox){
+    printf("ERROR: MRIScrsLUT: surf/src dimension mismatch.\n");
+    return(NULL);
+  }
+  
+  crslut[0] = (int *) calloc(nvox,sizeof(int));
+  crslut[1] = (int *) calloc(nvox,sizeof(int));
+  crslut[2] = (int *) calloc(nvox,sizeof(int));
+  vtx = 0; 
+  for(c=0; c < src->width; c++){
+    for(r=0; r < src->height; r++){
+      for(s=0; s < src->depth; s++){
+	crslut[0][vtx] = c;
+	crslut[1][vtx] = r;
+	crslut[2][vtx] = s;
+	vtx++;
+      }
+    }
+  }
+  return(crslut);
+}
+/*----------------------------------------------------------
+ MRIScrsLUTFree() - frees memoary allocated by MRIScrsLUT.
+ ----------------------------------------------------------*/
+int MRIScrsLUTFree(int **crslut)
+{
   free(crslut[0]);
   free(crslut[1]);
   free(crslut[2]);
-  
-  return(Targ);
+  free(crslut);
+  return(0);
 }
 
 /*----------------------------------------------------------------------*/
