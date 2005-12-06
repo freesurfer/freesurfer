@@ -10589,55 +10589,50 @@ mghRead(char *fname, int read_volume, int frame)
   int tag;
 
   ext = strrchr(fname, '.') ;
-  if (ext)
-    {
-      ++ext;
-      // if mgz, then it is compressed
-      if (!stricmp(ext, "mgz") || strstr(fname, "mgh.gz"))
-        {
-          gzipped = 1;
-          myclose = pclose;  // assign function pointer for closing
+  if (ext){
+    ++ext;
+    // if mgz, then it is compressed
+    if (!stricmp(ext, "mgz") || strstr(fname, "mgh.gz")){
+      gzipped = 1;
+      myclose = pclose;  // assign function pointer for closing
 #ifdef Darwin
-          // zcat on Max OS always appends and assumes a .Z extention,
-          // whereas we want .m3z
-          strcpy(command, "gunzip -c ");
+      // zcat on Max OS always appends and assumes a .Z extention,
+      // whereas we want .m3z
+      strcpy(command, "gunzip -c ");
 #else
-          strcpy(command, "zcat ");
+      strcpy(command, "zcat ");
 #endif
-          strcat(command, fname);
-
-          errno = 0; 
-          fp = popen(command, "r");
-          if (!fp)
-            {
-              errno = 0;
-              ErrorReturn(NULL, (ERROR_BADPARM,
-                                 "mghRead: encountered error executing: '%s'"
-                                 ",frame %d",
-                                 command,frame)) ;
-            }
-          if (errno)
-            {
-              pclose(fp);
-              errno = 0;
-              ErrorReturn(NULL, (ERROR_BADPARM,
-                                 "mghRead: encountered error executing: '%s'"
-                                 ",frame %d",
-                                 command,frame)) ;
-            }
-        }
-      else if (!stricmp(ext, "mgh"))
-        {
-          myclose = fclose; // assign function pointer for closing
-          fp = fopen(fname, "rb") ;
-          if (!fp)
-            {
-              errno = 0;
-              ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open file",
-                                 fname, frame)) ;
-            }
-        }
+      strcat(command, fname);
+      
+      errno = 0; 
+      fp = popen(command, "r");
+      if (!fp){
+	errno = 0;
+	ErrorReturn(NULL, (ERROR_BADPARM,
+			   "mghRead: encountered error executing: '%s'"
+			   ",frame %d",
+			   command,frame)) ;
+      }
+      if (errno){
+	pclose(fp);
+	errno = 0;
+	ErrorReturn(NULL, (ERROR_BADPARM,
+			   "mghRead: encountered error executing: '%s'"
+			   ",frame %d",
+			   command,frame)) ;
+      }
     }
+    else if (!stricmp(ext, "mgh")){
+      myclose = fclose; // assign function pointer for closing
+      fp = fopen(fname, "rb") ;
+      if (!fp)
+	{
+	  errno = 0;
+	  ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open file",
+			     fname, frame)) ;
+	}
+    }
+  }
 
   /* keep the compiler quiet */
   xsize = ysize = zsize = 0;
@@ -10661,175 +10656,161 @@ mghRead(char *fname, int read_volume, int frame)
   unused_space_size = UNUSED_SPACE_SIZE-sizeof(short) ;
 
   good_ras_flag = freadShort(fp) ;
-  if (good_ras_flag > 0)     /* has RAS and voxel size info */
-    {
-      unused_space_size -= USED_SPACE_SIZE ;
-      xsize = freadFloat(fp) ;
-      ysize = freadFloat(fp) ;
-      zsize = freadFloat(fp) ;
+  if (good_ras_flag > 0){     /* has RAS and voxel size info */
+    unused_space_size -= USED_SPACE_SIZE ;
+    xsize = freadFloat(fp) ;
+    ysize = freadFloat(fp) ;
+    zsize = freadFloat(fp) ;
     
-      x_r = freadFloat(fp) ; x_a = freadFloat(fp) ; x_s = freadFloat(fp) ;
-      y_r = freadFloat(fp) ; y_a = freadFloat(fp) ; y_s = freadFloat(fp) ;
+    x_r = freadFloat(fp) ; x_a = freadFloat(fp) ; x_s = freadFloat(fp) ;
+    y_r = freadFloat(fp) ; y_a = freadFloat(fp) ; y_s = freadFloat(fp) ;
     
-      z_r = freadFloat(fp) ; z_a = freadFloat(fp) ; z_s = freadFloat(fp) ;
-      c_r = freadFloat(fp) ; c_a = freadFloat(fp) ; c_s = freadFloat(fp) ;
-    }
+    z_r = freadFloat(fp) ; z_a = freadFloat(fp) ; z_s = freadFloat(fp) ;
+    c_r = freadFloat(fp) ; c_a = freadFloat(fp) ; c_s = freadFloat(fp) ;
+  }
   /* so stuff can be added to the header in the future */
   fread(unused_buf, sizeof(char), unused_space_size, fp) ;
 
-  switch (type)
-    {
-    default:
-    case MRI_FLOAT:  bpv = sizeof(float) ; break ;
-    case MRI_UCHAR:  bpv = sizeof(char)  ; break ;
-    case MRI_SHORT:  bpv = sizeof(short) ; break ;
-    case MRI_INT:    bpv = sizeof(int) ; break ;
-    case MRI_TENSOR:  bpv = sizeof(float) ; nframes = 9 ; break ;
-    }
+  switch (type){
+  default:
+  case MRI_FLOAT:  bpv = sizeof(float) ; break ;
+  case MRI_UCHAR:  bpv = sizeof(char)  ; break ;
+  case MRI_SHORT:  bpv = sizeof(short) ; break ;
+  case MRI_INT:    bpv = sizeof(int) ; break ;
+  case MRI_TENSOR:  bpv = sizeof(float) ; nframes = 9 ; break ;
+  }
   bytes = width * height * bpv ;  /* bytes per slice */
-  if (!read_volume)
-    {
-      mri = MRIallocHeader(width, height, depth, type) ;
-      mri->dof = dof ; mri->nframes = nframes ;
-      if (gzipped) // pipe cannot seek
-        {
-          int count;
-          for (count=0; count < mri->nframes*width*height*depth*bpv; count++)
-            fgetc(fp);
-        }
-      else
-        fseek(fp, mri->nframes*width*height*depth*bpv, SEEK_CUR) ;
+  if(!read_volume){
+    mri = MRIallocHeader(width, height, depth, type) ;
+    mri->dof = dof ; mri->nframes = nframes ;
+    if(gzipped){ // pipe cannot seek
+      int count;
+      for (count=0; count < mri->nframes*width*height*depth*bpv; count++)
+	fgetc(fp);
     }
-  else
-    {
-      if (frame >= 0)
-        {
-          start_frame = end_frame = frame ;
-          if (gzipped) // pipe cannot seek
-            {
-              int count;
-              for (count=0; count < frame*width*height*depth*bpv; count++)
-                fgetc(fp);
-            }
-          else
-            fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
-          nframes = 1 ;
-        }
+    else
+      fseek(fp, mri->nframes*width*height*depth*bpv, SEEK_CUR) ;
+  }
+  else{
+    if (frame >= 0) {
+      start_frame = end_frame = frame ;
+      if (gzipped){ // pipe cannot seek
+	int count;
+	for (count=0; count < frame*width*height*depth*bpv; count++)
+	  fgetc(fp);
+      }
       else
-        {  /* hack - # of frames < -1 means to only read in that
+	fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
+      nframes = 1 ;
+    }
+    else{  /* hack - # of frames < -1 means to only read in that
               many frames. Otherwise I would have had to change the whole
               MRIread interface and that was too much of a pain. Sorry.
            */
-          if (frame < -1)  
-            nframes = frame*-1 ; 
+      if (frame < -1)  
+	nframes = frame*-1 ; 
+      
+      start_frame = 0 ; end_frame = nframes-1 ;
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	fprintf(stderr, "read %d frames\n", nframes);
+    }
+    buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
+    mri = MRIallocSequence(width, height, depth, type, nframes) ;
+    mri->dof = dof ;
+    for (frame = start_frame ; frame <= end_frame ; frame++){
+      for (z = 0 ; z < depth ; z++){
+	if (fread(buf, sizeof(char), bytes, fp) != bytes){
+	  // fclose(fp) ;
+	  myclose(fp); 
+	  free(buf) ;
+	  ErrorReturn(NULL, (ERROR_BADFILE, 
+			     "mghRead(%s): could not read %d bytes at slice %d",
+			     fname, bytes, z)) ;
+	}
+	switch (type)
+	  {
+	  case MRI_INT:
+	    for (i = y = 0 ; y < height ; y++)
+	      {
+		for (x = 0 ; x < width ; x++, i++)
+		  {
+		    ival = orderIntBytes(((int *)buf)[i]) ; 
+		    MRIIseq_vox(mri,x,y,z,frame-start_frame) = ival ;
+		  }
+	      }
+	    break ;
+	  case MRI_SHORT:
+	    for (i = y = 0 ; y < height ; y++)
+	      {
+		for (x = 0 ; x < width ; x++, i++)
+		  {
+		    sval = orderShortBytes(((short *)buf)[i]) ; 
+		    MRISseq_vox(mri,x,y,z,frame-start_frame) = sval ;
+		  }
+	      }
+	    break ;
+	  case MRI_TENSOR:
+	  case MRI_FLOAT:
+	    for (i = y = 0 ; y < height ; y++)
+	      {
+		for (x = 0 ; x < width ; x++, i++)
+		  {
+		    fval = orderFloatBytes(((float *)buf)[i]) ; 
+		    MRIFseq_vox(mri,x,y,z,frame-start_frame) = fval ;
+		  }
+	      }
+	    break ;
+	  case MRI_UCHAR:
+	    local_buffer_to_image(buf, mri, z, frame-start_frame) ;
+	    break ;
+	  default:
+	    errno = 0;
+	    ErrorReturn(NULL, 
+			(ERROR_UNSUPPORTED, "mghRead: unsupported type %d",
+			 mri->type)) ;
+	    break ;
+	  }
+      }
+    }
+    if (buf) free(buf) ;
+  }
 
-          start_frame = 0 ; end_frame = nframes-1 ;
-          if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-            fprintf(stderr, "read %d frames\n", nframes);
-        }
-      buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
-      mri = MRIallocSequence(width, height, depth, type, nframes) ;
-      mri->dof = dof ;
-      for (frame = start_frame ; frame <= end_frame ; frame++)
-        {
-          for (z = 0 ; z < depth ; z++)
-            {
-              if (fread(buf, sizeof(char), bytes, fp) != bytes)
-                {
-                  // fclose(fp) ;
-                  myclose(fp); 
-                  free(buf) ;
-                  ErrorReturn(NULL, (ERROR_BADFILE, 
-                                     "mghRead(%s): could not read %d bytes at slice %d",
-                                     fname, bytes, z)) ;
-                }
-              switch (type)
-                {
-                case MRI_INT:
-                  for (i = y = 0 ; y < height ; y++)
-                    {
-                      for (x = 0 ; x < width ; x++, i++)
-                        {
-                          ival = orderIntBytes(((int *)buf)[i]) ; 
-                          MRIIseq_vox(mri,x,y,z,frame-start_frame) = ival ;
-                        }
-                    }
-                  break ;
-                case MRI_SHORT:
-                  for (i = y = 0 ; y < height ; y++)
-                    {
-                      for (x = 0 ; x < width ; x++, i++)
-                        {
-                          sval = orderShortBytes(((short *)buf)[i]) ; 
-                          MRISseq_vox(mri,x,y,z,frame-start_frame) = sval ;
-                        }
-                    }
-                  break ;
-                case MRI_TENSOR:
-                case MRI_FLOAT:
-                  for (i = y = 0 ; y < height ; y++)
-                    {
-                      for (x = 0 ; x < width ; x++, i++)
-                        {
-                          fval = orderFloatBytes(((float *)buf)[i]) ; 
-                          MRIFseq_vox(mri,x,y,z,frame-start_frame) = fval ;
-                        }
-                    }
-                  break ;
-                case MRI_UCHAR:
-                  local_buffer_to_image(buf, mri, z, frame-start_frame) ;
-                  break ;
-                default:
-                  errno = 0;
-                  ErrorReturn(NULL, 
-                              (ERROR_UNSUPPORTED, "mghRead: unsupported type %d",
-                               mri->type)) ;
-                  break ;
-                }
-            }
-        }
-      if (buf)
-        free(buf) ;
-    }
-
-  if (good_ras_flag > 0)
-    {
-      mri->xsize =     xsize ;
-      mri->ysize =     ysize ;
-      mri->zsize =     zsize ;
+  if(good_ras_flag > 0){
+    mri->xsize =     xsize ;
+    mri->ysize =     ysize ;
+    mri->zsize =     zsize ;
     
-      mri->x_r = x_r  ;
-      mri->x_a = x_a  ;
-      mri->x_s = x_s  ;
+    mri->x_r = x_r  ;
+    mri->x_a = x_a  ;
+    mri->x_s = x_s  ;
     
-      mri->y_r = y_r  ;
-      mri->y_a = y_a  ;
-      mri->y_s = y_s  ;
+    mri->y_r = y_r  ;
+    mri->y_a = y_a  ;
+    mri->y_s = y_s  ;
     
-      mri->z_r = z_r  ;
-      mri->z_a = z_a  ;
-      mri->z_s = z_s  ;
+    mri->z_r = z_r  ;
+    mri->z_a = z_a  ;
+    mri->z_s = z_s  ;
     
-      mri->c_r = c_r  ;
-      mri->c_a = c_a  ;
-      mri->c_s = c_s  ;
-      if (good_ras_flag > 0)
-        mri->ras_good_flag = 1 ;
-    }
-  else
-    {
-      fprintf(stderr,
-              "-----------------------------------------------------------------\n"
-              "Could not find the direction cosine information.\n"
-              "Will use the CORONAL orientation.\n"
-              "If not suitable, please provide the information in %s.\n"
-              "-----------------------------------------------------------------\n",
-              fname  
-              );
-      setDirectionCosine(mri, MRI_CORONAL);
-    }
+    mri->c_r = c_r  ;
+    mri->c_a = c_a  ;
+    mri->c_s = c_s  ;
+    if (good_ras_flag > 0)
+      mri->ras_good_flag = 1 ;
+  }
+  else{
+    fprintf(stderr,
+	    "-----------------------------------------------------------------\n"
+	    "Could not find the direction cosine information.\n"
+	    "Will use the CORONAL orientation.\n"
+	    "If not suitable, please provide the information in %s.\n"
+	    "-----------------------------------------------------------------\n",
+	    fname  
+	    );
+    setDirectionCosine(mri, MRI_CORONAL);
+  }
   // read TR, Flip, TE, TI, FOV
-  if (freadFloatEx(&(mri->tr), fp))
+  if (freadFloatEx(&(mri->tr), fp)){
     if (freadFloatEx(&fval, fp))
       {
         mri->flip_angle = fval; // flip_angle is double. I cannot use the same trick.
@@ -10838,112 +10819,56 @@ mghRead(char *fname, int read_volume, int frame)
             if (freadFloatEx(&(mri->fov), fp))
               ;
       }
-
-#if 0  
-  // xform fname
-  if (freadIntEx(&tag, fp))
-    {
-      if (tag == TAG_MGH_XFORM)
-        {
-          int len;
-          if (freadIntEx(&len, fp)) // len includes null character
-            {
-              fgets(mri->transform_fname, len, fp);
-              // if this file exists then read the transform
-              if (FileExists(mri->transform_fname))
-                {
-                  // copied from corRead()
-                  if(input_transform_file(mri->transform_fname, &(mri->transform)) == NO_ERROR)
-                    {
-                      mri->linear_transform = get_linear_transform_ptr(&mri->transform);
-                      mri->inverse_linear_transform = 
-                        get_inverse_linear_transform_ptr(&mri->transform);
-                      mri->free_transform = 1;
-                      if (DIAG_VERBOSE_ON)
-                        fprintf(stderr, 
-                                "INFO: loaded talairach xform : %s\n", 
-                                mri->transform_fname);
-                    }
-                  else
-                    {
-                      errno = 0;
-                      ErrorPrintf(ERROR_BAD_FILE,
-                                  "error loading transform from %s",
-                                  mri->transform_fname);
-                      mri->linear_transform = NULL;
-                      mri->inverse_linear_transform = NULL;
-                      mri->free_transform = 1;
-                      (mri->transform_fname)[0] = '\0';
-                    }
-                }
-              else
-                {
-                  fprintf(stderr,
-                          "WARNING: can't find the talairach xform '%s'\n",
-                          mri->transform_fname);
-                  fprintf(stderr, "WARNING: transform is not loaded into mri\n");
-                }
-            }
-        }
-    }
-
-  // gets in the way of reading real tag data
-  if (freadIntEx(&(tag_data_size), fp))
-    {
-      mri->tag_data_size = tag_data_size;
-      if( tag_data_size > 0 ) 
-        {
-          mri->tag_data = calloc(mri->tag_data_size, 1 );
-          if( NULL != mri->tag_data ) 
-            fread( mri->tag_data, tag_data_size, 1, fp );
-        }
-    }
-#endif
-
-
+  }
   // tag reading 
   {
     long long len ;
+    char *fnamedir;
 
-    while ((tag = TAGreadStart(fp, &len)) != 0)
-      {
-        switch (tag)
-          {
-          case TAG_OLD_MGH_XFORM:
-          case TAG_MGH_XFORM:
-            fgets(mri->transform_fname, len+1, fp);
-            // if this file exists then read the transform
-            if (FileExists(mri->transform_fname))
-              {
-                // copied from corRead()
-                if(input_transform_file(mri->transform_fname, &(mri->transform)) == NO_ERROR)
-                  {
-                    mri->linear_transform = get_linear_transform_ptr(&mri->transform);
-                    mri->inverse_linear_transform = 
-                      get_inverse_linear_transform_ptr(&mri->transform);
-                    mri->free_transform = 1;
-                    if (DIAG_VERBOSE_ON)
-                      fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
-                  }
-                else
-                  {
-                    errno = 0;
-                    ErrorPrintf(ERROR_BAD_FILE, 
-                                "error loading transform from %s",mri->transform_fname);
-                    mri->linear_transform = NULL;
-                    mri->inverse_linear_transform = NULL;
-                    mri->free_transform = 1;
-                    (mri->transform_fname)[0] = '\0';
-                  }
-              }
-            else
-              {
-                fprintf(stderr, 
-                        "WARNING: can't find the talairach xform '%s'\n",
-                        mri->transform_fname);
-                fprintf(stderr, "WARNING: transform is not loaded into mri\n");
-              }
-            break ;
+    while ((tag = TAGreadStart(fp, &len)) != 0){
+        switch (tag){
+	case TAG_OLD_MGH_XFORM:
+	case TAG_MGH_XFORM:
+	  fgets(mri->transform_fname, len+1, fp);
+	  // if this file exists then read the transform
+	  if(!FileExists(mri->transform_fname)){
+	    printf("WARNING: talairach transform %s does not exist ...\n",
+		   mri->transform_fname);
+	    fnamedir = fio_dirname(fname);
+	    sprintf(mri->transform_fname,"%s/transforms/talairach.xfm",fnamedir);
+	    printf("   ... trying %s ...",mri->transform_fname);
+	    if(FileExists(mri->transform_fname)) printf("which does exists ");
+	    else                                 printf("which does NOT exist ");
+	    printf("\n");
+	    free(fnamedir);
+	  }
+	  if(FileExists(mri->transform_fname)){
+	    // copied from corRead()
+	    if(input_transform_file(mri->transform_fname, &(mri->transform)) == NO_ERROR){
+	      mri->linear_transform = get_linear_transform_ptr(&mri->transform);
+	      mri->inverse_linear_transform = 
+		get_inverse_linear_transform_ptr(&mri->transform);
+	      mri->free_transform = 1;
+	      if (DIAG_VERBOSE_ON)
+		fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
+	    }
+	    else{
+	      errno = 0;
+	      ErrorPrintf(ERROR_BAD_FILE, 
+			  "error loading transform from %s",mri->transform_fname);
+	      mri->linear_transform = NULL;
+		mri->inverse_linear_transform = NULL;
+		mri->free_transform = 1;
+		(mri->transform_fname)[0] = '\0';
+	    }
+	  }
+	  else{
+	    fprintf(stderr, 
+		    "WARNING: can't find the talairach xform '%s'\n",
+		    mri->transform_fname);
+	    fprintf(stderr, "WARNING: transform is not loaded into mri\n");
+	  }
+	  break ;
           case TAG_CMDLINE:
             if (mri->ncmds > MAX_CMDS)
               ErrorExit(ERROR_NOMEMORY, 
