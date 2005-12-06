@@ -2,9 +2,9 @@
 // mri_tessellate.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/11/07 14:28:45 $
-// Revision       : $Revision: 1.25 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/12/06 23:08:53 $
+// Revision       : $Revision: 1.26 $
 //
 //
 // How it works.
@@ -39,7 +39,7 @@
 //
 //          MRIvoxelToSurfaceRAS()
 //
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.25 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.26 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,6 +58,8 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.25 $";
 #include "tags.h"
 #include "matrix.h"
 #include "transform.h"
+
+static char vcid[] = "$Id: mri_tessellate.c,v 1.26 2005/12/06 23:08:53 greve Exp $";
 
 #define SQR(x) ((x)*(x))
 
@@ -120,7 +122,7 @@ main(int argc, char *argv[])
   int xnum, ynum, numimg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.25 2005/11/07 14:28:45 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.26 2005/12/06 23:08:53 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -143,12 +145,14 @@ main(int argc, char *argv[])
   }
   sscanf(argv[2],"%d",&value);        // this assumes that argv[2] can be changed to int
   sprintf(ofpref,"%s",argv[3]);      // this assumes argv[3] is the file
-  
-
 
   // passing dir/COR- 
   mri = read_images(argv[1]);
-  
+
+  printf("%s\n",vcid);
+  printf("  %s\n",MRISurfSrcVersion());
+  fflush(stdout);
+
   // 4 connected (6 in 3D) neighbors
   xnum = mri->width;
   ynum = mri->height;

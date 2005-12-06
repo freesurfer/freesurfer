@@ -18,7 +18,7 @@
 #include "version.h"
 
 static char vcid[] 
-= "$Id: mris_fix_topology.c,v 1.33 2005/10/10 21:56:17 nicks Exp $";
+= "$Id: mris_fix_topology.c,v 1.34 2005/12/06 23:11:27 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -65,7 +65,7 @@ main(int argc, char *argv[])
   make_cmd_version_string 
     (argc, 
      argv, 
-     "$Id: mris_fix_topology.c,v 1.33 2005/10/10 21:56:17 nicks Exp $", "$Name:  $", 
+     "$Id: mris_fix_topology.c,v 1.34 2005/12/06 23:11:27 greve Exp $", "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
@@ -73,7 +73,7 @@ main(int argc, char *argv[])
     handle_version_option 
     (argc, 
      argv, 
-     "$Id: mris_fix_topology.c,v 1.33 2005/10/10 21:56:17 nicks Exp $", 
+     "$Id: mris_fix_topology.c,v 1.34 2005/12/06 23:11:27 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -141,6 +141,10 @@ main(int argc, char *argv[])
     usage_exit() ;
  
   print_parameters();
+
+  printf("%s\n",vcid);
+  printf("  %s\n",MRISurfSrcVersion());
+  fflush(stdout);
 
   TimerStart(&then) ;
   sname = argv[1] ;
