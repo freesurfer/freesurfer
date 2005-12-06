@@ -17,7 +17,7 @@
 #include "version.h"
 #include "colortab.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.33 2005/11/07 16:22:03 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.34 2005/12/06 21:58:40 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,7 +87,7 @@ main(int argc, char *argv[])
   char *cmdline;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.33 2005/11/07 16:22:03 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.34 2005/12/06 21:58:40 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -282,8 +282,10 @@ main(int argc, char *argv[])
 		fp = fopen(tablefile,"w");
 		fprintf(fp,"# Table of FreeSurfer cortical parcellation anatomical statistics \n");
 		fprintf(fp,"# \n");
+		fprintf(fp,"# CreationTime %s\n",VERcurTimeStamp());
 		fprintf(fp,"# generating_program %s\n",Progname);
 		fprintf(fp,"# cvs_version %s\n",vcid);
+		fprintf(fp,"# mrisurf.c-cvs_version %s\n",MRISurfSrcVersion());
 		fprintf(fp,"# cmdline %s\n",cmdline);
 		fprintf(fp,"# sysname  %s\n",uts.sysname);
 		fprintf(fp,"# hostname %s\n",uts.nodename);
