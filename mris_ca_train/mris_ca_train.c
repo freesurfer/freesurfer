@@ -15,6 +15,9 @@
 #include "transform.h"
 #include "version.h"
 
+static char vcid[] = 
+"$Id: mris_ca_train.c,v 1.12 2005/12/06 00:37:15 nicks Exp $";
+
 #define MAX_LABELS  1000
 #if 0
 static int write_ptable(char *fname, int *ptable, int nparcs) ;
@@ -35,6 +38,9 @@ static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
 static void usage_exit(int code) ;
+static void print_usage(void) ;
+static void print_help(void) ;
+static void print_version(void) ;
 
 static char *orig_name = "smoothwm" ;
 
@@ -64,8 +70,7 @@ main(int argc, char *argv[])
   GCSA         *gcsa ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, 
-  "$Id: mris_ca_train.c,v 1.11 2005/11/16 23:04:41 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -256,7 +261,11 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "SDIR"))
+  if (!stricmp(option, "-help"))
+    print_help() ;
+  else if (!stricmp(option, "-version"))
+    print_version() ;
+  else if (!stricmp(option, "SDIR"))
     {
       strcpy(subjects_dir, argv[2]) ;
       nargs = 1 ;
@@ -340,13 +349,109 @@ get_option(int argc, char *argv[])
   Description:
   ----------------------------------------------------------------------*/
 static void
+print_usage(void)
+{
+  fprintf(stderr, 
+          "Usage:\n"
+          "------\n"
+          "\n%s [options] <hemi> <canon surf> "
+         "<annot file> <subject 1> <subject 2> ... <output file>\n", 
+          Progname) ;
+}
+
+static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <hemi> <canon surf> "
-         "<annot file> <subject 1> <subject 2> ... <output file>\n",
-         Progname) ;
+  print_usage();
   exit(code) ;
 }
+
+static void
+print_help(void)
+{
+  print_usage() ;
+  fprintf(stderr,
+	  "\n"
+          "Creates a cortical parcellation atlas file based on one or \n"
+          "more annotated subjects. mris_ca_train builds probabilistic \n"
+          "information estimated from a manually labeled training set \n"
+          "(of annotated subjects). The manual labeling can be carried out \n"
+          "directly on surface models using drawing tools in tksurfer, or \n"
+          "volumetrically, then sampled onto the surfaces using \n"
+          "mris_sample_parc. This information is then used by mris_ca_label\n"
+          "to automatically assign a neuroanatomical label to each location \n"
+          "on a cortical surface model. This procedure incorporates both \n"
+          "geometric information derived from the cortical model (sulcus \n"
+          "and curvature), and neuroanatomical convention, as found in the \n"
+          "training set. The result of mris_ca_train and mris_ca_label is \n"
+          "a complete labeling of cortical sulci and gyri.\n\n");
+  fprintf(stderr, 
+	  "Required args:\n"
+          "--------------\n\n") ;
+  fprintf(stderr,
+          "  <hemi>               hemisphere: rh or lh\n\n");
+  fprintf(stderr,
+          "  <canon surf>         canonical surface filename\n\n");
+  fprintf(stderr,
+          "  <annot file>         annotation filename\n\n");
+  fprintf(stderr,
+          "  <subject 1> <subject 2> ...  the subject id(s)\n\n");
+  fprintf(stderr,
+          "  <outputfile>         classifier array output file\n\n");
+  fprintf(stderr,
+          "Optional args:\n"
+          "--------------\n\n");
+  fprintf(stderr,
+          "  -sdir <directory>    use <directory> as subjects directory \n"
+          "                       (default: $SUBJECTS_DIR)\n\n");
+  fprintf(stderr,
+          "  -nbrs <number>       neighborhood size (default=2)\n\n");
+  fprintf(stderr,
+          "  -orig <filename>     specify filename of original surface \n"
+          "                       (default=smoothwm)\n\n");
+  fprintf(stderr,
+          "  -norm1               GCSA normalize input #1 after reading \n"
+          "                       (default: disabled)\n\n");
+  fprintf(stderr,
+          "  -norm2               GCSA normalize input #2 after reading \n"
+          "                       (default: disabled)\n\n");
+  fprintf(stderr,
+          "  -norm3               GCSA normalize input #3 after reading \n"
+          "                       (default: disabled)\n\n");
+  fprintf(stderr,
+          "  -ic <number_priors> <number_classifiers>   parameters passed \n"
+          "                                             to the classifier \n"
+          "                                             routine \n"
+          "                                             (default: -ic 7 4)"
+          "\n\n");
+  fprintf(stderr,
+          "  -sulc                 specify sulc as only input \n"
+          "                        (default: sulcus and curvature)\n\n");
+  fprintf(stderr,
+          "  -sulconly             same as -sulc\n\n");
+  fprintf(stderr,
+          "  -a <number>           number of averages (default=5)\n\n");
+  fprintf(stderr,
+          "  -t <filename>         specify parcellation table input file \n"
+          "                        (default: none)\n\n");
+  fprintf(stderr,
+          "  -v <number>           diagnostic level (default=0)\n\n");
+  fprintf(stderr,
+          "  -n <number>           number of inputs (default=1)\n\n");
+  fprintf(stderr,
+          "  --help                print help info\n\n");
+  fprintf(stderr,
+          "  --version             print version info\n");
+  exit(1) ;
+}
+
+static void
+print_version(void)
+{
+  fprintf(stderr, "%s\n", vcid) ;
+  exit(1) ;
+}
+
 #if 0
 static int
 write_ptable(char *fname, int *ptable, int nparcs)

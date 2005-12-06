@@ -18,7 +18,7 @@
 #include "gca.h"
 
 static char vcid[] = 
-"$Id: mris_sample_parc.c,v 1.18 2005/11/16 23:04:10 nicks Exp $";
+"$Id: mris_sample_parc.c,v 1.19 2005/12/06 00:36:22 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -70,7 +70,7 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-"$Id: mris_sample_parc.c,v 1.18 2005/11/16 23:04:10 nicks Exp $", "$Name:  $");  if (nargs && argc - nargs == 1)
+"$Id: mris_sample_parc.c,v 1.19 2005/12/06 00:36:22 nicks Exp $", "$Name:  $");  if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
@@ -331,6 +331,11 @@ get_option(int argc, char *argv[])
   else switch (toupper(*option))
     {
     case 'V':
+      if (argc==2)
+        {
+          print_help();
+          exit(1);
+        }
       Gdiag_no = atoi(argv[2]) ;
       nargs = 1 ;
       break ;
@@ -355,14 +360,15 @@ get_option(int argc, char *argv[])
       printf("using thickness file %s\n", thickness_name) ;
       break ;
     case 'U':
+      if (argc==2)
+        {
+          print_help();
+          exit(1);
+        }
       unknown_label = atoi(argv[2]) ;
       printf("changing largest connected unknown region to label %d\n", 
              unknown_label) ;
       nargs = 1 ;
-      break ;
-    case '?':
-      print_usage() ;
-      exit(1) ;
       break ;
     default:
       fprintf(stderr, "unknown option %s\n", argv[1]) ;
@@ -384,8 +390,10 @@ static void
 print_usage(void)
 {
   fprintf(stderr, 
-          "usage: %s [options] <subject name> <hemi> "
-          "<parc name> <output annot>\n", 
+          "Usage:\n"
+          "------\n"
+          "\n%s [options] <subject name> <hemi> <parc name> "
+          "<output annot>\n", 
           Progname) ;
 }
 
@@ -395,11 +403,85 @@ print_help(void)
   print_usage() ;
   fprintf(stderr, 
           "\nThis program samples a volumetric parcellation "
-          "onto a surface\n") ;
-  fprintf(stderr, "\nvalid options are:\n\n") ;
+          "onto a surface. \nManual labeling can be carried out ");
   fprintf(stderr,
-          "-t <thickness file>          - use specified file for computing "
-          "thickness statistics\n") ;
+          "directly on surface models \nusing drawing tools in tksurfer, "
+          "or volumetrically in tkmedit, \nthen sampled onto the ");
+  fprintf(stderr,
+          "surfaces using mris_sample_parc.\n") ;
+  fprintf(stderr,
+          "mris_ca_train is used to create an atlas from a set of \n"
+          "annotated subjects. The information output by mris_ca_train\n");
+  fprintf(stderr,
+          "is then used by mris_ca_label to automatically assign a\n"
+          "neuroanatomical label to each location on a cortical "
+          "surface model.\n\n");
+  fprintf(stderr, 
+	  "Required args:\n"
+          "--------------\n\n") ;
+  fprintf(stderr,
+          "  <subject name>       the subject id\n\n");
+  fprintf(stderr,
+          "  <hemi>               hemisphere: rh or lh\n\n");
+  fprintf(stderr,
+          "  <parc name>          parcellation filename\n\n");
+  fprintf(stderr,
+          "  <output annot>       annotation filename\n\n");
+  fprintf(stderr,
+          "Optional args:\n"
+          "--------------\n\n");
+  fprintf(stderr,
+          "  -sdir <directory>    use <directory> as subjects directory \n"
+          "                       (default: $SUBJECTS_DIR)\n\n");
+  fprintf(stderr,
+          "  -surf <filename>     use <filename> as surface "
+          "(default: 'white')\n\n");
+  fprintf(stderr,
+          "  -fix <number>        fix topology of all labels smaller \n"
+          "                       than <number> vertices (default=-1, "
+          "do all)\n\n");
+  fprintf(stderr,
+          "  -replace <number>    replace label <number> with deeper "
+	  "ones\n\n");
+  fprintf(stderr,
+          "  -trans <number_in> <number_out>      translate <number_in> to \n"
+          "                                       <number_out>\n\n");
+  fprintf(stderr,
+          "  -projmm <number>     project <number> millimeters along \n"
+          "                       surface normal (default=0.0)\n\n");
+  fprintf(stderr,
+          "  -proj <number>       same as -projmm\n\n");
+  fprintf(stderr,
+          "  -projfrac <number>   project <number> percent along surface \n"
+          "                       normal (default=0.5)\n\n");
+  fprintf(stderr,
+          "  -file <filename>     use <filename> as translation \n"
+          "                       (default: 'cma_parcellation_colors.txt')"
+	  "\n\n");
+  fprintf(stderr,
+          "  -ct <filename>       embed color table <filename> into output \n"
+          "                       annotation file\n\n");
+  fprintf(stderr,
+          "  -v <number>          diagnostic level (default=0)\n\n");
+  fprintf(stderr,
+          "  -f <number>          apply mode filter <number> times to \n"
+          "                       parcellation (default=0)\n\n");
+  fprintf(stderr,
+          "  -a <number>          smooth surface <number> times "
+          "(default=0)\n\n");
+  fprintf(stderr,
+          "  -w <number>          use window size <number> for sampling\n"
+          "                       (default=7)\n\n");
+  fprintf(stderr,
+          "  -t <filename>        use thickness file <filename> \n"
+          "                       (default: 'thickness')\n\n");
+  fprintf(stderr,
+          "  -u <number>          change largest connected unknown region to\n"
+          "                       label <number> (default: don't change)\n\n");
+  fprintf(stderr,
+          "  --help               print help info\n\n");
+  fprintf(stderr,
+          "  --version            print version info\n");
   exit(1) ;
 }
 
