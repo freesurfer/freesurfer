@@ -30,6 +30,7 @@ float sclustSurfaceMax(int ClusterNo, MRI_SURFACE *Surf, int *vtxmax) ;
 float sclustZeroSurfaceClusterNo(int ClusterNo, MRI_SURFACE *Surf);
 float sclustZeroSurfaceNonClusters(MRI_SURFACE *Surf);
 float sclustSetSurfaceValToClusterNo(MRI_SURFACE *Surf);
+float sclustSetSurfaceValToCWP(MRI_SURFACE *Surf, SCS *scs);
 float sclustCountClusters(MRI_SURFACE *Surf);
 SCS *SurfClusterSummary(MRI_SURFACE *Surf, MATRIX *T, int *nClusters);
 int DumpSurfClusterSum(FILE *fp, SCS *scs, int nClusters);
