@@ -6,10 +6,14 @@
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=
 
-bin_PROGRAMS = mris_sphere
+bin_PROGRAMS = mris_sphere mris_remove_negative_vertices
 mris_sphere_SOURCES=mris_sphere.c
 mris_sphere_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mris_sphere_LDFLAGS=$(OS_LDFLAGS)
+
+mris_remove_negative_vertices_SOURCES=mris_remove_negative_vertices.c
+mris_remove_negative_vertices_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_remove_negative_vertices_LDFLAGS=$(OS_LDFLAGS)
 
 
 

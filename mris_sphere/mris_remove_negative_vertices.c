@@ -17,7 +17,7 @@
 #include "timer.h"
 #include "version.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.32 2005/12/06 18:56:14 fischl Exp $";
+static char vcid[]="$Id: mris_remove_negative_vertices.c,v 1.1 2005/12/06 18:56:14 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -26,7 +26,6 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-int MRISscaleUp(MRI_SURFACE *mris) ;
 
 char *Progname ;
 
@@ -40,7 +39,6 @@ static int   max_passes = 1 ;
 static int   randomly_project = 0 ;
 static int   talairach = 0 ;
 static float scale = 1.0 ;
-static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int quick = 0 ;
 static int load = 0 ;
 static float inflate_area  = 0.0f ;
@@ -70,9 +68,6 @@ static int smooth_avgs = 0 ;
 
 static char *xform_fname = NULL ;
 static char *vol_fname = NULL ;
-
-static int remove_negative = 1 ;
-
 int
 main(int argc, char *argv[])
 {
@@ -81,14 +76,13 @@ main(int argc, char *argv[])
   int          ac, nargs, msec ;
   MRI_SURFACE  *mris ;
   struct timeb  then ;
-  float         max_dim ;
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_sphere.c,v 1.32 2005/12/06 18:56:14 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_remove_negative_vertices.c,v 1.1 2005/12/06 18:56:14 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.32 2005/12/06 18:56:14 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_remove_negative_vertices.c,v 1.1 2005/12/06 18:56:14 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -100,7 +94,7 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  parms.dt = .05 ;
+  parms.dt = .1 ;
   parms.projection = PROJECT_ELLIPSOID ;
   parms.tol = .5 /*1e-1*/ ;
   parms.n_averages = 1024 ;
@@ -116,11 +110,8 @@ main(int argc, char *argv[])
   parms.niterations = 25 ;
   parms.write_iterations = 1000 ;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
-  parms.dt_increase = 1.01 /* DT_INCREASE */;
-  parms.dt_decrease = 0.99 /* DT_DECREASE*/ ;
-  parms.error_ratio = 1.03 /*ERROR_RATIO */;
-  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
-  parms.momentum = 0.9 ;
+  parms.integration_type = INTEGRATE_MOMENTUM ;
+  parms.momentum = 0.0 ;
   parms.desired_rms_height = -1.0 ;
   parms.base_name[0] = 0 ;
   parms.Hdesired = 0.0 ;   /* a flat surface */
@@ -162,115 +153,9 @@ main(int argc, char *argv[])
 
 	MRISaddCommandLine(mris, cmdline) ;
 
-  fprintf(stderr, "reading original vertex positions...\n") ;
-  if (!FZERO(disturb))
-    mrisDisturbVertices(mris, disturb) ;
-  MRISreadOriginalProperties(mris, orig_name) ;
-  if (smooth_avgs > 0)
-  {
-    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-    MRISaverageVertexPositions(mris, smooth_avgs) ;
-    MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-  }
-  
-	if (!FZERO(ralpha) || !FZERO(rbeta) || !FZERO(rgamma))
-	{
-    MRISrotate(mris, mris, RADIANS(ralpha), RADIANS(rbeta), RADIANS(rgamma)) ;
-		//		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-			MRISwrite(mris, "rot") ;
-	}		
-  fprintf(stderr, "unfolding cortex into spherical form...\n");
-  if (talairach)
-	{
-    MRIStalairachTransform(mris, mris) ;
-		MRISwrite(mris, "tal") ;
-	}
-
-	if (xform_fname)
-	{
-		LTA *lta ;
-		MRI *mri ;
-
-		lta = LTAread(xform_fname) ;
-		if (lta == NULL)
-			ErrorExit(ERROR_NOFILE, "%s: could not load %s", xform_fname) ;
-		mri = MRIread(vol_fname) ;
-		if (mri == NULL)
-			ErrorExit(ERROR_NOFILE, "%s: could not load %s", vol_fname) ;
-		MRIStransform(mris, mri, lta, mri) ;
-		MRIfree(&mri) ; LTAfree(&lta) ;
-		MRISwrite(mris, "xfm") ;
-	}
-  max_dim = MAX(abs(mris->xlo), abs(mris->xhi)) ;
-  max_dim = MAX(abs(max_dim), abs(mris->ylo)) ;
-  max_dim = MAX(abs(max_dim), abs(mris->yhi)) ;
-  max_dim = MAX(abs(max_dim), abs(mris->zlo)) ;
-  max_dim = MAX(abs(max_dim), abs(mris->zhi)) ;
-  if (max_dim > .75*DEFAULT_RADIUS)
-  {
-    float ratio = .75*DEFAULT_RADIUS / (max_dim) ;
-    printf("scaling brain by %2.3f...\n", ratio) ;
-    MRISscaleBrain(mris, mris, ratio) ;
-  }
-
-  if (!load && inflate)
-  {
-    INTEGRATION_PARMS inflation_parms ;
-
-    memset(&inflation_parms, 0, sizeof(INTEGRATION_PARMS)) ;
-    strcpy(inflation_parms.base_name, parms.base_name) ;
-    inflation_parms.write_iterations = parms.write_iterations ;
-    inflation_parms.niterations = inflate_iterations ;
-    inflation_parms.l_spring_norm = l_spring_norm ;
-    inflation_parms.l_nlarea = inflate_nlarea ;
-    inflation_parms.l_area = inflate_area ;
-    inflation_parms.n_averages = inflate_avgs ;
-    inflation_parms.l_sphere = l_sphere ;
-    inflation_parms.l_convex = l_convex ;
-#define SCALE_UP 2
-    inflation_parms.a = SCALE_UP*DEFAULT_RADIUS ;
-    inflation_parms.tol = inflate_tol ;
-    inflation_parms.integration_type = INTEGRATE_MOMENTUM ;
-    inflation_parms.momentum = 0.9 ;
-    inflation_parms.dt = 0.9 ;
-    
-    /* store the inflated positions in the v->c? field so that they can
-       be used in the repulsive term.
-    */
-    /*    inflation_parms.l_repulse_ratio = .1 ;*/
-    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-    MRISinflateToSphere(mris, &inflation_parms) ;
-		MRISscaleBrain(mris, mris, 1.0/SCALE_UP) ;
-    parms.start_t = inflation_parms.start_t ;
-  }
-
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
-  fprintf(stderr,"surface projected - minimizing metric distortion...\n");
-  MRISsetNeighborhoodSize(mris, nbrs) ;
-  if (quick)
-  {
-    if (!load)
-    {
-#if 0
-      parms.n_averages = 32 ;
-      parms.tol = .1 ;
-      parms.l_parea = parms.l_dist = 0.0 ; parms.l_nlarea = 1 ; 
-#endif
-      MRISprintTessellationStats(mris, stderr) ;
-      MRISquickSphere(mris, &parms, max_passes) ;  
-    }
-  }
-  else
-    MRISunfold(mris, &parms, max_passes) ;  
-	if (remove_negative)
-		MRISremoveOverlapWithSmoothing(mris,&parms) ;
-  if (!load)
-  {
-    fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
-    MRISwrite(mris, out_fname) ;
-  }
+	MRISremoveOverlapWithSmoothing(mris,&parms) ;
+
 
   msec = TimerStop(&then) ;
   fprintf(stderr, "spherical transformation took %2.2f hours\n",
@@ -327,13 +212,6 @@ get_option(int argc, char *argv[])
   {
     talairach = 1 ;
     fprintf(stderr, "transforming surface into Talairach space.\n") ;
-  }
-  else if (!stricmp(option, "remove_negative"))
-  {
-    remove_negative = atoi(argv[2]) ;
-		nargs = 1 ;
-    fprintf(stderr, "%sremoving negative triangles with iterative smoothing\n",
-						remove_negative ? "" : "not ") ;
   }
   else if (!stricmp(option, "notal"))
   {
@@ -620,70 +498,5 @@ print_version(void)
 {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
-}
-
-static int
-mrisDisturbVertices(MRI_SURFACE *mris, double amount)
-{
-  int    vno ;
-  VERTEX *v ;
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    v->x += randomNumber(-amount, amount) ;
-    v->y += randomNumber(-amount, amount) ;
-  }
-
-  MRIScomputeMetricProperties(mris) ;
-  return(NO_ERROR) ;
-}
-int
-MRISscaleUp(MRI_SURFACE *mris)
-{
-  int     vno, n, max_v, max_n ;
-  VERTEX  *v ;
-  float   ratio, max_ratio ;
-
-  max_ratio = 0.0f ; max_v = max_n = 0 ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    if (vno == Gdiag_no)
-      DiagBreak() ;
-    for (n = 0 ; n < v->vnum ; n++)
-    {
-      if (FZERO(v->dist[n]))   /* would require infinite scaling */
-        continue ;
-      ratio = v->dist_orig[n] / v->dist[n] ;
-      if (ratio > max_ratio)
-      {
-        max_v = vno ; max_n = n ;
-        max_ratio = ratio ;
-      }
-    }
-  }
-
-  fprintf(stderr, "max @ (%d, %d), scaling brain by %2.3f\n", 
-          max_v, max_n, max_ratio) ;
-#if 0
-  MRISscaleBrain(mris, mris, max_ratio) ;
-#else
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    if (vno == Gdiag_no)
-      DiagBreak() ;
-    for (n = 0 ; n < v->vnum ; n++)
-      v->dist_orig[n] /= max_ratio ;
-  }
-#endif
-  return(NO_ERROR) ;
 }
 
