@@ -226,7 +226,7 @@ ScubaKeyCombo::SetFromString ( string isKey ) {
   // and if we got a complete word (by checking that the length of the
   // match is the same as the length of the string, or that the char
   // before the match is a space).
-  for ( int nKey = 0; nKey < 161; nKey++ ) {
+  for ( int nKey = 0; nKey < 163; nKey++ ) {
     size_t pos;
     pos = isKey.rfind( aKeys[nKey].sKey );
     if( pos != string::npos && 

@@ -1,3 +1,4 @@
+#include <iostream>
 #include "TclScubaKeyCombo.h"
 
 using namespace std;
