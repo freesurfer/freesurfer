@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/06 21:45:33 $
-// Revision       : $Revision: 1.393 $
+// Revision Date  : $Date: 2005/12/06 22:44:23 $
+// Revision       : $Revision: 1.394 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -521,7 +521,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.393 2005/12/06 21:45:33 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.394 2005/12/06 22:44:23 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -2606,7 +2606,10 @@ MRIScomputeNormals(MRI_SURFACE *mris)
 	continue ;
       mrisNormalize(snorm);
 	
-      v->area /= 2 ;
+      // DNG Changed from /=2 to /=3. 
+      // See also MRIScomputeTriangleProperties()
+      v->area /= 3.0 ;
+
       if (v->origarea<0)        /* has never been set */
 	v->origarea = v->area;
 
@@ -6471,7 +6474,9 @@ mrisOrientPlane(MRI_SURFACE *mris)
 	  face = &mris->faces[v->f[fno]] ;
 	  v->area += face->area ;
 	}
-      v->area /= 2 ;
+      // DNG Changed from /=2 to /=3. 
+      // See also MRIScomputeTriangleProperties()
+      v->area /= 3.0; 
     }
 
   return(NO_ERROR) ;
@@ -6937,7 +6942,8 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 			if (face->ripflag == 0)
 				v->area += face->area ;
 		}
-		v->area /= 2.0 ;
+		// DNG Changed from /=2 to /=3. 
+		v->area /= 3.0 ;
 	}
 
   VectorFree(&v_a) ;
