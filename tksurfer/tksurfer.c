@@ -18973,7 +18973,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.150 2005/12/05 23:26:14 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.151 2005/12/06 18:01:28 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20959,10 +20959,14 @@ update_labels(int label_set, int vno, float dmin)
   /* make sure we an interpreter to send commands to */
   if(g_interp==NULL)
     return;
+
+  /* Make sure we have a valid vno. */
+  if( vno < 0 || vno >= mris->nvertices )
+    return;
   
   /* get the vertex */
   v = &mris->vertices[vno];
-  
+
   /* send each label value */
   sprintf(command, "UpdateLabel %d %d %d", label_set, LABEL_VERTEXINDEX, vno);
   send_tcl_command(command);
@@ -21695,6 +21699,7 @@ int conv_initialize()
       FileNamePath (mris->fname, surf_path);
       sprintf (fname, "%s/../mri/orig/COR", surf_path);
       
+      info.st_mode = 0;
       rStat = stat (fname, &info);
       if (S_ISDIR(info.st_mode))
         {
