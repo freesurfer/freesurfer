@@ -17,7 +17,7 @@
 #include "timer.h"
 #include "version.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.32 2005/12/06 18:56:14 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.33 2005/12/06 19:09:01 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -85,10 +85,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_sphere.c,v 1.32 2005/12/06 18:56:14 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_sphere.c,v 1.33 2005/12/06 19:09:01 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.32 2005/12/06 18:56:14 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.33 2005/12/06 19:09:01 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -100,6 +100,7 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
+	memset(&parms, 0, sizeof(parms)) ;
   parms.dt = .05 ;
   parms.projection = PROJECT_ELLIPSOID ;
   parms.tol = .5 /*1e-1*/ ;
@@ -265,7 +266,10 @@ main(int argc, char *argv[])
   else
     MRISunfold(mris, &parms, max_passes) ;  
 	if (remove_negative)
+	{
+		parms.niterations = 1000 ;
 		MRISremoveOverlapWithSmoothing(mris,&parms) ;
+	}
   if (!load)
   {
     fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
