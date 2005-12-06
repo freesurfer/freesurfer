@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/12/05 18:28:45 $
-// Revision       : $Revision: 1.323 $
-char *MRI_C_VERSION = "$Revision: 1.323 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/12/06 02:28:05 $
+// Revision       : $Revision: 1.324 $
+char *MRI_C_VERSION = "$Revision: 1.324 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -4088,11 +4088,21 @@ MRI *MRIclone(MRI *mri_src, MRI *mri_dst)
   MRIcopyHeader(mri_src, mri_dst) ;
   return(mri_dst) ;
 }
+/*---------------------------------------------------------------------
+  MRIcloneSpace() - create a copy of an mri struct but allows user to
+  set nframes (ie, all the spatial stuff is copied). Copies header
+  info and allocs the pixel space (but does not copy pixel data).
+  -------------------------------------------------------------------*/
+MRI *MRIcloneBySpace(MRI *mri_src, int nframes)
+{
+  MRI *mri_dst;
+  mri_dst = MRIallocSequence(mri_src->width, mri_src->height,mri_src->depth, 
+			     mri_src->type, nframes);
+  MRIcopyHeader(mri_src, mri_dst) ;
+  mri_dst->nframes = nframes;
+  return(mri_dst) ;
+}
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
   Description
   Copy one MRI into another (including header info)
   ------------------------------------------------------*/
