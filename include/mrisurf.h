@@ -389,6 +389,7 @@ typedef struct
   float   l_surf_repulse ;    /* repulsive orig surface (for white->pial) */
   float   l_external ;        /* external (user-defined) coefficient */
   float   l_shrinkwrap ;      /* move in if MRI=0 and out otherwise */
+  float   l_expandwrap ;      /* move out */
   float   l_unfold ;          /* move inwards along normal */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
@@ -454,6 +455,8 @@ typedef struct
   MRI     *mri_smooth ;       /* smoothed version of mri_brain */
   void    *user_parms ;       /* arbitrary spot for user to put stuff */
   MRI     *mri_dist ;         /* distance map for repulsion term */
+	float   target_radius ;
+	int     ignore_energy ;     // when no valid energy functional is availabel - just integrate
 } INTEGRATION_PARMS ;
 
 extern double (*gMRISexternalGradient)(MRI_SURFACE *mris, 
@@ -1244,4 +1247,5 @@ int MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame) ;
 MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1);
 int **MRIScrsLUT(MRIS *surf, MRI *src);
 int MRIScrsLUTFree(int **crslut);
+int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 #endif
