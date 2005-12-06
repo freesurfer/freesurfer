@@ -17,7 +17,7 @@
 #include "version.h"
 
 static char vcid[] = 
-"$Id: mris_ca_label.c,v 1.13 2005/12/06 00:39:12 nicks Exp $";
+"$Id: mris_ca_label.c,v 1.14 2005/12/06 23:19:24 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -97,6 +97,10 @@ main(int argc, char *argv[])
   hemi = argv[2] ; 
   canon_surf_name = argv[3] ; 
   out_fname = argv[5] ;
+
+  printf("%s\n",vcid);
+  printf("  %s\n",MRISurfSrcVersion());
+  fflush(stdout);
 
   printf("reading atlas from %s...\n", argv[4]) ;
   gcsa = GCSAread(argv[4]) ;
