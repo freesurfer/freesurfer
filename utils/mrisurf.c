@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/12/06 18:56:55 $
-// Revision       : $Revision: 1.391 $
+// Revision Date  : $Date: 2005/12/06 19:04:18 $
+// Revision       : $Revision: 1.392 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -47920,7 +47920,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 		printf("%03d: %d negative vertices\n", parms->t++, negative) ;
 		mrisSmoothingTimeStep(mris, parms) ;
 		negative = MRIScountNegativeTriangles(mris) ;
-		if (parms->t > 1000)
+		if (parms->t > parms->niterations)
 			break ;
 	}
 
