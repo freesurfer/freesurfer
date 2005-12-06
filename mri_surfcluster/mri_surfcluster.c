@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.18 2005/12/05 22:05:41 greve Exp $
+  $Id: mri_surfcluster.c,v 1.19 2005/12/06 21:47:13 greve Exp $
 */
 
 #include <stdio.h>
@@ -45,7 +45,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.18 2005/12/05 22:05:41 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.19 2005/12/06 21:47:13 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
   char *cmdline, cwd[2000];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.18 2005/12/05 22:05:41 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.19 2005/12/06 21:47:13 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -357,6 +357,8 @@ int main(int argc, char **argv)
     }
     fprintf(fp,"# Cluster Growing Summary (mri_surfcluster)\n");
     fprintf(fp,"# %s\n",vcid);
+    fprintf(fp,"# %s\n",MRISurfSrcVersion());
+    fprintf(fp,"# CreationTime %s\n",VERcurTimeStamp());
     fprintf(fp,"# cmdline %s\n",cmdline);
     fprintf(fp,"# cwd %s\n",cwd);
     fprintf(fp,"# sysname  %s\n",uts.sysname);
@@ -938,7 +940,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.18 2005/12/05 22:05:41 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.19 2005/12/06 21:47:13 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
