@@ -200,6 +200,7 @@ VolumeCollection::LoadVolume () {
     // Save new data.
     mMRI = newMRI;
     InitializeFromMRI();
+    DataChanged();
 
   } else {
 

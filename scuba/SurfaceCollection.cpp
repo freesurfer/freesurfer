@@ -104,6 +104,7 @@ SurfaceCollection::LoadSurface () {
 
     /* Save new data. */
     mMRIS = newMRIS;
+    DataChanged();
     
     // Generate hash table.
     mHashTable = MHTfillVertexTableRes( mMRIS, NULL, CURRENT_VERTICES, 2.0 );

@@ -152,7 +152,6 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     }
   }
 
-
   // Draw all the intersection points we just calced.
   bool bDraw = false;
   int window[2];
