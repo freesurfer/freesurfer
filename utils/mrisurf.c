@@ -4,9 +4,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/06 22:44:23 $
-// Revision       : $Revision: 1.394 $
+// Revision Date  : $Date: 2005/12/07 00:11:17 $
+// Revision       : $Revision: 1.395 $
 //////////////////////////////////////////////////////////////////
+
+
 
 #include <stdio.h>
 #include <string.h>
@@ -170,6 +172,8 @@ static int mriSurfaceRASToVoxel(Real xr, Real yr, Real zr, Real *xv, Real *yv, R
 
 static int mris_readval_frame = -1;
 
+static int fix_vertex_area_env_read = 0;
+static int fix_vertex_area= 0;
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
@@ -521,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.394 2005/12/06 22:44:23 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.395 2005/12/07 00:11:17 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -2608,7 +2612,16 @@ MRIScomputeNormals(MRI_SURFACE *mris)
 	
       // DNG Changed from /=2 to /=3. 
       // See also MRIScomputeTriangleProperties()
-      v->area /= 3.0 ;
+      if(!fix_vertex_area_env_read){
+	if(getenv("FIX_VERTEX_AREA") != NULL){
+	  printf("INFO: Fixing vertex area\n");
+	  fix_vertex_area = 1;
+	}
+	else printf("INFO: NOT Fixing vertex area\n");
+	fix_vertex_area_env_read = 1;
+      }
+      if(fix_vertex_area) v->area /= 3.0 ;
+      else                v->area /= 2.0 ;
 
       if (v->origarea<0)        /* has never been set */
 	v->origarea = v->area;
@@ -6476,7 +6489,16 @@ mrisOrientPlane(MRI_SURFACE *mris)
 	}
       // DNG Changed from /=2 to /=3. 
       // See also MRIScomputeTriangleProperties()
-      v->area /= 3.0; 
+      if(!fix_vertex_area_env_read){
+	if(getenv("FIX_VERTEX_AREA") != NULL){
+	  printf("INFO: Fixing vertex area\n");
+	  fix_vertex_area = 1;
+	}
+	else printf("INFO: NOT Fixing vertex area\n");
+	fix_vertex_area_env_read = 1;
+      }
+      if(fix_vertex_area) v->area /= 3.0 ;
+      else                v->area /= 2.0 ;
     }
 
   return(NO_ERROR) ;
@@ -6943,7 +6965,16 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 				v->area += face->area ;
 		}
 		// DNG Changed from /=2 to /=3. 
-		v->area /= 3.0 ;
+		if(!fix_vertex_area_env_read){
+		  if(getenv("FIX_VERTEX_AREA") != NULL){
+		    printf("INFO: Fixing vertex area\n");
+		    fix_vertex_area = 1;
+		  }
+		  else printf("INFO: NOT Fixing vertex area\n");
+		  fix_vertex_area_env_read = 1;
+		}
+		if(fix_vertex_area) v->area /= 3.0 ;
+		else                v->area /= 2.0 ;
 	}
 
   VectorFree(&v_a) ;
