@@ -15,7 +15,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.31 2005/12/06 23:13:58 greve Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.32 2005/12/07 14:22:57 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -61,6 +61,7 @@ static void initParms(void);
 static int use_defaults = 1 ;
 
 static INTEGRATION_PARMS  parms ;
+static int remove_negative = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -72,10 +73,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.31 2005/12/06 23:13:58 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.32 2005/12/07 14:22:57 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.31 2005/12/06 23:13:58 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.32 2005/12/07 14:22:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -213,6 +214,11 @@ main(int argc, char *argv[])
   }else
     MRISregister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
   
+	if (remove_negative)
+	{
+		parms.niterations = 5000 ;
+		MRISremoveOverlapWithSmoothing(mris,&parms) ;
+	}
   fprintf(stderr, "writing registered surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
   if (jacobian_fname)
@@ -425,6 +431,13 @@ get_option(int argc, char *argv[])
     sscanf(argv[2], "%f", &parms.l_corr) ;
     nargs = 1 ;
     fprintf(stderr, "using l_corr = %2.3f\n", parms.l_corr) ;
+  }
+  else if (!stricmp(option, "remove_negative"))
+  {
+    remove_negative = atoi(argv[2]) ;
+		nargs = 1 ;
+    fprintf(stderr, "%sremoving negative triangles with iterative smoothing\n",
+						remove_negative ? "" : "not ") ;
   }
   else if (!stricmp(option, "curv"))
   {

@@ -17,7 +17,7 @@
 #include "timer.h"
 #include "version.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.34 2005/12/06 23:17:11 greve Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.35 2005/12/07 14:23:21 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -71,7 +71,7 @@ static int smooth_avgs = 0 ;
 static char *xform_fname = NULL ;
 static char *vol_fname = NULL ;
 
-static int remove_negative = 1 ;
+static int remove_negative = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -85,10 +85,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_sphere.c,v 1.34 2005/12/06 23:17:11 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_sphere.c,v 1.35 2005/12/07 14:23:21 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.34 2005/12/06 23:17:11 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sphere.c,v 1.35 2005/12/07 14:23:21 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
