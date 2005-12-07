@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/07 00:11:17 $
-// Revision       : $Revision: 1.395 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/12/07 14:23:47 $
+// Revision       : $Revision: 1.396 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.395 2005/12/07 00:11:17 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.396 2005/12/07 14:23:47 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -13573,22 +13573,22 @@ mrisComputeNormalizedSpringTerm(MRI_SURFACE *mris, double l_spring)
   dot_total = 0.0 ;
   num = (double)mrisValidVertices(mris) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-	continue ;
-      if (vno == Gdiag_no)
-	DiagBreak() ;
-
-      x = v->x ;      y = v->y ;     z = v->z ;
-      nx = v->nx ;    ny = v->ny ;   nz = v->nz ;
-
-      sx = sy = sz = 0.0 ;
-      n=0;
-      for (m = 0 ; m < v->vnum ; m++)
 	{
-	  vn = &mris->vertices[v->v[m]] ;
-	  if (!vn->ripflag)
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+
+		x = v->x ;      y = v->y ;     z = v->z ;
+		nx = v->nx ;    ny = v->ny ;   nz = v->nz ;
+
+		sx = sy = sz = 0.0 ;
+		n=0;
+		for (m = 0 ; m < v->vnum ; m++)
+		{
+			vn = &mris->vertices[v->v[m]] ;
+			if (!vn->ripflag)
 	    {
 	      dx = vn->x - x;
 	      dy = vn->y - y;
@@ -13598,36 +13598,36 @@ mrisComputeNormalizedSpringTerm(MRI_SURFACE *mris, double l_spring)
 	      sz += dz ;
 	      n++;
 	    }
-	}
-      if (n>0)
-	{
-	  sx = dist_scale*sx/n;
-	  sy = dist_scale*sy/n;
-	  sz = dist_scale*sz/n;
-	}
+		}
+		if (n>0)
+		{
+			sx = dist_scale*sx/n;
+			sy = dist_scale*sy/n;
+			sz = dist_scale*sz/n;
+		}
 
-      dot_total += l_spring*(nx*sx + ny*sy + nz*sz) ;
-      v->dx += l_spring * sx ;
-      v->dy += l_spring * sy ;
-      v->dz += l_spring * sz ;
-      if (vno == Gdiag_no)
-	fprintf(stdout, "v %d spring norm term: (%2.3f, %2.3f, %2.3f)\n",
-		vno, v->dx, v->dy, v->dz) ;
-    }
+		dot_total += l_spring*(nx*sx + ny*sy + nz*sz) ;
+		v->dx += l_spring * sx ;
+		v->dy += l_spring * sy ;
+		v->dz += l_spring * sz ;
+		if (vno == Gdiag_no)
+			fprintf(stdout, "v %d spring norm term: (%2.3f, %2.3f, %2.3f)\n",
+							vno, v->dx, v->dy, v->dz) ;
+	}
   dot_total /= num ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-	continue ;
-      if (vno == Gdiag_no)
-	DiagBreak() ;
-      nx = v->nx ;    ny = v->ny ;   nz = v->nz ;
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		nx = v->nx ;    ny = v->ny ;   nz = v->nz ;
 
-      v->dx -= dot_total * nx ;
-      v->dy -= dot_total * ny ;
-      v->dz -= dot_total * nz ;
-    }
+		v->dx -= dot_total * nx ;
+		v->dy -= dot_total * ny ;
+		v->dz -= dot_total * nz ;
+	}
   
   return(NO_ERROR) ;
 }
@@ -47954,8 +47954,9 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 	while (negative > 0)
 	{
 		old_neg = negative ;
-		printf("%03d: %d negative vertices\n", parms->t++, negative) ;
+		printf("%03d: %d negative triangles\n", parms->t++, negative) ;
 		mrisSmoothingTimeStep(mris, parms) ;
+		mrisProjectSurface(mris) ;
 		negative = MRIScountNegativeTriangles(mris) ;
 		if (parms->t > parms->niterations)
 			break ;
