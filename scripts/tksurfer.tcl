@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.90 2005/12/05 23:26:34 kteich Exp $
+# $Id: tksurfer.tcl,v 1.91 2005/12/07 18:50:04 kteich Exp $
 
 package require BLT;
 
@@ -3294,14 +3294,17 @@ proc CreateLabelFrame { ifwTop iSet } {
 	set gfwaLabel($label,$iSet) $ifwTop.fw$label
     }
     
-    # create two active labels in each label frame
+    # create two active labels in each label frame as well as a button
+    # that is used for the overlay labels.
     foreach label $glLabel {
 	frame $gfwaLabel($label,$iSet)
+	set fwOverlay $gfwaLabel($label,$iSet).fwOverlay
 	set fwLabel $gfwaLabel($label,$iSet).fwLabel
 	set fwValue $gfwaLabel($label,$iSet).fwValue
 	
-	# if it's a value label, make it a normal entry (editable). else 
-	# make it an active label (uneditable).
+	# if it's a value label, make it a normal entry (editable) and
+	# a real button. else make it an active label (uneditable) and
+	# a fake button.
 	if { $label == "kLabel_Val" ||         \
 		 $label == "kLabel_Val2" ||     \
 		 $label == "kLabel_ValBak" ||   \
@@ -3311,8 +3314,25 @@ proc CreateLabelFrame { ifwTop iSet } {
 		 $label == "kLabel_Mean" ||  \
 		 $label == "kLabel_MeanImag" ||  \
 		 $label == "kLabel_StdError" } { 
+
+	    # Find the relative index of the overlay.
+	    set nOverlay [expr [lsearch $glLabel $label] - \
+			  [lsearch $glLabel "kLabel_Val"]]
+
+	    # The button command will set the current overlay.
+	    button $fwOverlay -text "*" -width 1 -padx 2 \
+		-command "set gaLinkedVars(currentvaluefield) $nOverlay ;
+			       SetOverlayField ; 
+			       send_current_labels"
+		    
+	    # The entry will set the overlay name.
 	    tkm_MakeEntry $fwLabel "" gsaLabelContents($label,name) 14 "UpdateOverlayDlogInfo; UpdateValueLabelName $gaScalarValueID($label,index) \[set gsaLabelContents($label,name)\]"
 	} else {
+
+	    # A dummy button.
+	    frame $fwOverlay -width 1
+	    
+	    # Active but uneditable label.
 	    tkm_MakeActiveLabel $fwLabel "" gsaLabelContents($label,name) 14
 	}
 	
@@ -3324,7 +3344,8 @@ proc CreateLabelFrame { ifwTop iSet } {
 	    tkm_MakeActiveLabel $fwValue "" gsaLabelContents($label,value,$iSet) 18
 	}
 	
-	pack $fwLabel $fwValue \
+	# Pack them left to right.
+	pack $fwLabel $fwValue $fwOverlay \
 	    -side left \
 	    -anchor w
     }
@@ -3357,48 +3378,48 @@ proc PackLabel { isLabel iSet ibShow } {
     # find the label index in our list.
     set nLabel [lsearch -exact $glLabel $isLabel]
     if { $nLabel == -1 } {
-  puts "Couldn't find $isLabel\n"
-  return;
+	puts "Couldn't find $isLabel\n"
+	return;
     }
-
+    
     # are we showing or hiding?
     if { $ibShow == 1 } {
-
-  # go back and try to pack it after the previous labels
-  set lTemp [lrange $glLabel 0 [expr $nLabel - 1]]
-  set lLabelsBelow ""
-  foreach element $lTemp {
-      set lLabelsBelow [linsert $lLabelsBelow 0 $element]
-  }
-  foreach label $lLabelsBelow {
-      if {[catch { pack $gfwaLabel($isLabel,$iSet) \
-        -after $gfwaLabel($label,$iSet)    \
-        -side top                \
-        -anchor w } sResult] == 0} {
-    return;
-      }
-  }
-  
-  # if that fails, go forward and try to pack it before the later labels
-  set lLabelsAbove [lrange $glLabel [expr $nLabel + 1] [llength $glLabel]]
-  foreach label $lLabelsAbove {
-      if {[catch { pack $gfwaLabel($isLabel,$iSet)  \
-        -before $gfwaLabel($label,$iSet)    \
-        -side top                  \
-        -anchor w } sResult] == 0} {
-    return;
-      }
-  }
-
-  # must be the first one. just pack it.
-  catch { pack $gfwaLabel($isLabel,$iSet)  \
-    -side top                \
-    -anchor w } sResult
-
+	
+	# go back and try to pack it after the previous labels
+	set lTemp [lrange $glLabel 0 [expr $nLabel - 1]]
+	set lLabelsBelow ""
+	foreach element $lTemp {
+	    set lLabelsBelow [linsert $lLabelsBelow 0 $element]
+	}
+	foreach label $lLabelsBelow {
+	    if {[catch { pack $gfwaLabel($isLabel,$iSet) \
+			     -after $gfwaLabel($label,$iSet)    \
+			     -side top                \
+			     -anchor w } sResult] == 0} {
+		return;
+	    }
+	}
+	
+	# if that fails, go forward and try to pack it before the later labels
+	set lLabelsAbove [lrange $glLabel [expr $nLabel + 1] [llength $glLabel]]
+	foreach label $lLabelsAbove {
+	    if {[catch { pack $gfwaLabel($isLabel,$iSet)  \
+			     -before $gfwaLabel($label,$iSet)    \
+			     -side top                  \
+			     -anchor w } sResult] == 0} {
+		return;
+	    }
+	}
+	
+	# must be the first one. just pack it.
+	catch { pack $gfwaLabel($isLabel,$iSet)  \
+		    -side top                \
+		    -anchor w } sResult
+	
     } else {
-  
-  # else just forget it
-  pack forget $gfwaLabel($isLabel,$iSet)
+	
+	# else just forget it
+	pack forget $gfwaLabel($isLabel,$iSet)
     } 
 }
 
