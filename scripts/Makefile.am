@@ -72,6 +72,7 @@ morph_subject-rh \
 morph_tables-lh \
 morph_tables-rh \
 mri_autorecon \
+mri_nu_correct.mni\
 mri-func2sph \
 mri-funcvits \
 mri_mergelabels \
