@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/11/28 01:33:54 $
-// Revision       : $Revision: 1.84 $
+// Revision Date  : $Date: 2005/12/08 16:06:32 $
+// Revision       : $Revision: 1.85 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -5604,7 +5604,8 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_dist_after, "dist_after.mgz") ;
 
-  printf("%d inconsistent label nodes removed...\n", nremoved) ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		printf("%d inconsistent label nodes removed...\n", nremoved) ;
   inconsistentLabelNodes=nremoved;
 
   /* do posterior/anterior consistency check */
@@ -5683,7 +5684,7 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 
 
   MRIfree(&mri_dist) ; MRIfree(&mri_dist_after) ;
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("\t%d nodes for which label term applies\n", num) ;
   return(NO_ERROR) ;
 }

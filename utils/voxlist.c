@@ -37,7 +37,8 @@ VLSTcreate(MRI *mri,
 		}
 	}
 
-  printf("allocating %d voxel indices...\n", nvox) ;
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		printf("allocating %d voxel indices...\n", nvox) ;
   if (vl == NULL)
 	{
 		vl = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST)) ;
