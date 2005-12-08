@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # mri_nu_correct.mni
 # 
-set VERSION = '$Id: mri_nu_correct.mni,v 1.2 2005/12/08 01:15:07 greve Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.3 2005/12/08 01:27:21 greve Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -43,6 +43,7 @@ if(-e $LF) mv $LF $LF.bak
 pwd  | tee -a $LF
 which mri_nu_correct.mni | tee -a $LF
 echo $cmdargs | tee -a $LF
+echo "nIters $nIters" | tee -a $LF
 echo $VERSION | tee -a $LF
 uname -a | tee -a $LF
 date | tee -a $LF
@@ -65,6 +66,8 @@ endif
 # Run intensity correction #
 @ nthIter = 1;
 while($nthIter <= $nIters)
+  echo " " |& tee -a $LF 
+  echo "--------------------------------------------------------" |& tee -a $LF 
   echo "Iteration $nthIter `date`" |& tee -a $LF 
   @ m = $nthIter - 1
   set cmd = (nu_correct -clobber $tmpdir/nu${m}.mnc $tmpdir/nu${nthIter}.mnc)
@@ -76,7 +79,10 @@ while($nthIter <= $nIters)
   endif
   rm -f $tmpdir/nu${m}.mnc $tmpdir/nu${m}.imp
   @ nthIter = $nthIter + 1;
+  echo " " |& tee -a $LF 
 end
+echo " " |& tee -a $LF 
+echo " " |& tee -a $LF 
 
 # Convert nu back to cor or mgz, use --like to keep all the header info
 set numnc = $tmpdir/nu$nIters.mnc
@@ -90,7 +96,8 @@ endif
 
 rm -r $tmpdir
 
-
+echo " " |& tee -a $LF 
+echo " " |& tee -a $LF 
 date | tee -a $LF 
 echo "mri_nu_correct.mni done" | tee -a $LF 
 
