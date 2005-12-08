@@ -1,0 +1,202 @@
+#!/bin/tcsh -f
+# mri_nu_correct.mni
+# 
+set VERSION = '$Id: mri_nu_correct.mni,v 1.1 2005/12/08 00:53:27 greve Exp $';
+
+set InVol = ();
+set OutVol = ();
+set nIters = 4; # default in recon-all
+set HiRes = ();
+set LF = ();
+
+set debug = 0;
+set PrintHelp = 0;
+
+set cmdargs = ($argv);
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 1;
+endif
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+# Parse the command-line arguments
+goto parse_args;
+parse_args_return:
+
+# Check the command-line arguments
+goto check_params;
+check_params_return:
+
+set OutDir = `dirname $OutVol`;
+mkdir -p $OutDir;
+
+if($#LF == 0) set LF = $OutDir/mri_nu_correct.mni.log
+if(-e $LF) mv $LF $LF.bak
+
+pwd  | tee -a $LF
+which mri_nu_correct.mni | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a | tee -a $LF
+date | tee -a $LF
+nu_correct -version | tee -a $LF
+
+set tmpdir = $OutDir/tmp.mri_nu_correct.mni.$$
+mkdir -p $tmpdir
+echo "tmpdir is $tmpdir" | tee -a $LF
+
+# Convert input to minc
+set cmd = (mri_convert ${HiRes} $InVol $tmpdir/nu0.mnc)
+pwd |& tee -a $LF
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF 
+if($status) then
+  echo "ERROR: converting to minc" |& tee -a $LF 
+  exit 1;
+endif
+
+# Run intensity correction #
+@ nthIter = 1;
+while($nthIter <= $nIters)
+  echo "Iteration $nthIter `date`" |& tee -a $LF 
+  @ m = $nthIter - 1
+  set cmd = (nu_correct -clobber $tmpdir/nu${m}.mnc $tmpdir/nu${nthIter}.mnc)
+  echo $cmd |& tee -a $LF 
+  $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: nu_correct" |& tee -a $LF 
+    exit 1;
+  endif
+  rm -f $tmpdir/nu${m}.mnc $tmpdir/nu${m}.imp
+  @ nthIter = $nthIter + 1;
+end
+
+# Convert nu back to cor or mgz #
+set numnc = $tmpdir/nu$nIters.mnc
+set cmd = (mri_convert ${HiRes} $numnc $OutVol)
+echo $cmd |& tee -a $LF 
+$cmd |& tee -a $LF 
+if($status) then
+  echo "ERROR: converting nu to COR/mgz" |& tee -a $LF 
+  exit 1;
+endif
+
+rm -r $tmpdir
+
+
+date | tee -a $LF 
+echo "mri_nu_correct.mni done" | tee -a $LF 
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--i":
+      if ( $#argv == 0) goto arg1err;
+      set InVol = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv == 0) goto arg1err;
+      set OutVol = $argv[1]; shift;
+      breaksw
+
+    case "--niters":
+      if ( $#argv == 0) goto arg1err;
+      set nIters = $argv[1]; shift;
+      breaksw
+
+    case "--cm":
+      set HiRes = (-cm)
+      breaksw
+
+    case "--log":
+      if ( $#argv == 0) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      set debug = 1;
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag not recognized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#InVol == 0) then
+    echo "ERROR: must specify an input volume"
+    exit 1;
+  endif
+  if(! -e $InVol) then
+    echo "ERROR: input volume $InVol does not exist"
+    exit 1;
+  endif
+  if($#OutVol == 0) then
+    echo "ERROR: must specify an output volume"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mri_nu_correct.mni"
+  echo ""
+  echo " --i  invol"
+  echo " --o  outvol"
+  echo " --niters niters : default is $nIters"
+  echo " --cm"
+  echo ""
+  echo "Optional flags and arguments:"
+  echo ""
+  echo " --help               : print help and exit"
+  echo " --debug              : turn on debugging"
+  echo " --version            : print version and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
