@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # mri_nu_correct.mni
 # 
-set VERSION = '$Id: mri_nu_correct.mni,v 1.1 2005/12/08 00:53:27 greve Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.2 2005/12/08 01:15:07 greve Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -78,9 +78,9 @@ while($nthIter <= $nIters)
   @ nthIter = $nthIter + 1;
 end
 
-# Convert nu back to cor or mgz #
+# Convert nu back to cor or mgz, use --like to keep all the header info
 set numnc = $tmpdir/nu$nIters.mnc
-set cmd = (mri_convert ${HiRes} $numnc $OutVol)
+set cmd = (mri_convert ${HiRes} $numnc $OutVol --like $InVol)
 echo $cmd |& tee -a $LF 
 $cmd |& tee -a $LF 
 if($status) then
@@ -117,7 +117,7 @@ while( $#argv != 0 )
       set OutVol = $argv[1]; shift;
       breaksw
 
-    case "--niters":
+    case "--n":
       if ( $#argv == 0) goto arg1err;
       set nIters = $argv[1]; shift;
       breaksw
@@ -177,10 +177,10 @@ usage_exit:
   echo ""
   echo "USAGE: mri_nu_correct.mni"
   echo ""
-  echo " --i  invol"
-  echo " --o  outvol"
-  echo " --niters niters : default is $nIters"
-  echo " --cm"
+  echo " --i  invol  : input volume"
+  echo " --o  outvol : output volume"
+  echo " --n  niters : number of iterations, default is $nIters"
+  echo " --cm        : conform COR volumes to the min voxel size "
   echo ""
   echo "Optional flags and arguments:"
   echo ""
@@ -199,4 +199,23 @@ exit 1;
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
+
+Wrapper for nu_correct, a program from the Montreal Neurological
+Insitute (MNI) used for correcting intensity non-uniformity (ie, bias
+fields). You must have the MNI software installed on your system to
+run this. See www.bic.mni.mcgill.ca/software/N3 for more info.
+
+--i  invol  : input volum
+--o  outvol : output volume
+
+Input and output can be any format accepted by mri_convert. If the output
+format is COR, then the directory must exist.
+
+--n niters
+
+Number of iterations to run nu_correct. Default is 4.
+
+--cm
+
+For use with data that is higher than 1mm resolution. 
 
