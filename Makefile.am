@@ -68,6 +68,8 @@ MRISUBDIRS=check_siemens_dir \
 	mri_mark_temporal_lobe \
 	mri_mask mri_ms_fitparms \
 	mri_mcsim \
+	mri_mc \
+	mri_pretess \
 	mri_matrix_multiply \
 	mri_modify \
 	mri_nlfilter \
