@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/12/05 22:28:20 $
-// Revision       : $Revision: 1.37 $
+// Revision Date  : $Date: 2005/12/09 18:47:42 $
+// Revision       : $Revision: 1.38 $
 
 
 #include <math.h>
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.37 2005/12/05 22:28:20 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.38 2005/12/09 18:47:42 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -633,145 +633,145 @@ main(int argc, char *argv[])
   //  if (renormalize)
   //  GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
   if (renormalize)
-	{
-    if(!xform_name)
-      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
-    else
-		{
-      TRANSFORM *trans ;
-      trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
-      trans->type = TransformFileNameType(xform_name);
-      trans->xform = (void *)gcam;
-      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
-      free(trans);
-		}
-  }
-	else if (renormalize_new)
-	{
-    if(!xform_name)
-      GCAmapRenormalizeByClass(gcam->gca, mri_inputs, transform) ;
-    else
-		{
-      TRANSFORM *trans ;
-      trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
-      trans->type = TransformFileNameType(xform_name);
-      trans->xform = (void *)gcam;
-      GCAmapRenormalizeByClass(gcam->gca, mri_inputs, trans) ;
-      free(trans);
-		}
-	}
-	else if (renormalize_align)
-	{
-		LTA _lta, *lta = &_lta ;
-
-#if 0
-		sprintf(fname, "%s.gca", parms.base_name) ;
-		gca = GCAread(fname) ;
-		sprintf(fname, "%s.lta", parms.base_name) ;
-		lta = LTAread(fname) ;
-		
-		if (Gdiag & DIAG_WRITE)
-		{
-			char fname[STRLEN] ;
-			sprintf(fname, "%s.log", parms.base_name) ;
-			parms.log_fp = fopen(fname, "w") ;
-		}
-		{
-			MRI *mri_seg, *mri_aligned ;
-			int l ;
-			mri_seg = MRIclone(mri_inputs, NULL) ;
-			l = lta->xforms[0].label ;
-			GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform,NULL) ;
-			mri_aligned = MRIlinearTransform(mri_seg, NULL, lta->xforms[0].m_L) ;
-			MRIwrite(mri_seg, "s.mgz")  ; MRIwrite(mri_aligned, "a.mgz") ;
-			MRIfree(&mri_seg) ; MRIfree(&mri_aligned) ;
-		}
-#else
-		if (Gdiag & DIAG_WRITE)
-		{
-			char fname[STRLEN] ;
-			sprintf(fname, "%s.log", parms.base_name) ;
-			parms.log_fp = fopen(fname, "w") ;
-		}
-		if (read_lta)
-		{
-			sprintf(fname, "%s_array.lta", parms.base_name) ;
-			lta = LTAread(fname) ;
-		}
-		else
-			lta = NULL ;
-    if(!xform_name)
-		{
-		  //      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
-      GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, &lta) ;
-		}
-    else
-		{
-      TRANSFORM *trans ;
-      trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
-      trans->type = TransformFileNameType(xform_name);
-      trans->xform = (void *)gcam;
-      //      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
-      GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, trans, parms.log_fp, parms.base_name, &lta) ;
-      free(trans);
-		}
-		sprintf(fname, "%s.gca", parms.base_name) ;
-		printf("writing gca to %s...\n", fname) ;
-		//		GCAwrite(gca, fname) ;
-		sprintf(fname, "%s_array.lta", parms.base_name) ;
-		LTAwrite(lta, fname) ;
-		if (DIAG_VERBOSE_ON)
-		{
-			MRI *mri_seg, *mri_aligned ;
-			int l ;
-			lta = LTAread("gcam.lta") ;
-			mri_seg = MRIclone(mri_inputs, NULL) ;
-			l = lta->xforms[0].label ;
-			GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform, NULL) ;
-			LTAinvert(lta) ;
-			mri_aligned = MRIlinearTransform(mri_seg, NULL, lta->xforms[0].m_L) ;
-			MRIwrite(mri_seg, "s.mgz")  ; MRIwrite(mri_aligned, "a.mgz") ;
-			MRIfree(&mri_seg) ; MRIfree(&mri_aligned) ;
-		}
-#endif
-		if (reinit)
-			GCAMreinitWithLTA(gcam, lta, mri_inputs, &parms) ;
-		if (DIAG_VERBOSE_ON)
-		{
-			MRI *mri_seg ;
-			int l ;
-			l = lta->xforms[0].label ;
-			mri_seg = MRIclone(mri_inputs, NULL) ;
-			GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform,NULL) ;
-			MRIwrite(mri_seg, "sa.mgz") ;
-			MRIfree(&mri_seg) ;
-		}
-		LTAfree(&lta) ;
-	}
-
-	if (regularize_mean > 0)
- 		GCAregularizeConditionalDensities(gca, regularize_mean) ;
-
-  if (parms.write_iterations != 0)
-  {
-    char fname[STRLEN] ;
-    MRI  *mri_gca, *mri_tmp ;
-    mri_gca = MRIclone(mri_inputs, NULL) ;
-    GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-    if (mri_gca->nframes > 1)
     {
-      printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
-      mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
-      MRIfree(&mri_gca) ; mri_gca = mri_tmp ;
+      if(!xform_name)
+	GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
+      else
+	{
+	  TRANSFORM *trans ;
+	  trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
+	  trans->type = TransformFileNameType(xform_name);
+	  trans->xform = (void *)gcam;
+	  GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
+	  free(trans);
+	}
     }
-    sprintf(fname, "%s_target", parms.base_name) ;
-    MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-    sprintf(fname, "%s_target.mgz", parms.base_name) ;
-    printf("writing target volume to %s...\n", fname) ;
-    MRIwrite(mri_gca, fname) ;
-    MRIfree(&mri_gca) ;
-  }
-
+  else if (renormalize_new)
+    {
+      if(!xform_name)
+	GCAmapRenormalizeByClass(gcam->gca, mri_inputs, transform) ;
+      else
+	{
+	  TRANSFORM *trans ;
+	  trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
+	  trans->type = TransformFileNameType(xform_name);
+	  trans->xform = (void *)gcam;
+	  GCAmapRenormalizeByClass(gcam->gca, mri_inputs, trans) ;
+	  free(trans);
+	}
+    }
+  else if (renormalize_align)
+    {
+      LTA _lta, *lta = &_lta ;
+      
+#if 0
+      sprintf(fname, "%s.gca", parms.base_name) ;
+      gca = GCAread(fname) ;
+      sprintf(fname, "%s.lta", parms.base_name) ;
+      lta = LTAread(fname) ;
+      
+      if (Gdiag & DIAG_WRITE)
+	{
+	  char fname[STRLEN] ;
+	  sprintf(fname, "%s.log", parms.base_name) ;
+	  parms.log_fp = fopen(fname, "w") ;
+	}
+      {
+	MRI *mri_seg, *mri_aligned ;
+	int l ;
+	mri_seg = MRIclone(mri_inputs, NULL) ;
+	l = lta->xforms[0].label ;
+	GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform,NULL) ;
+	mri_aligned = MRIlinearTransform(mri_seg, NULL, lta->xforms[0].m_L) ;
+	MRIwrite(mri_seg, "s.mgz")  ; MRIwrite(mri_aligned, "a.mgz") ;
+	MRIfree(&mri_seg) ; MRIfree(&mri_aligned) ;
+      }
+#else
+      if (Gdiag & DIAG_WRITE)
+	{
+	  char fname[STRLEN] ;
+	  sprintf(fname, "%s.log", parms.base_name) ;
+	  parms.log_fp = fopen(fname, "w") ;
+	}
+      if (read_lta)
+	{
+	  sprintf(fname, "%s_array.lta", parms.base_name) ;
+	  lta = LTAread(fname) ;
+	}
+      else
+	lta = NULL ;
+      if(!xform_name)
+	{
+	  //      GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
+	  GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, transform, parms.log_fp, parms.base_name, &lta) ;
+	}
+      else
+	{
+	  TRANSFORM *trans ;
+	  trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
+	  trans->type = TransformFileNameType(xform_name);
+	  trans->xform = (void *)gcam;
+	  //      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
+	  GCAmapRenormalizeWithAlignment(gcam->gca, mri_inputs, trans, parms.log_fp, parms.base_name, &lta) ;
+	  free(trans);
+	}
+      sprintf(fname, "%s.gca", parms.base_name) ;
+      printf("writing gca to %s...\n", fname) ;
+      //		GCAwrite(gca, fname) ;
+      sprintf(fname, "%s_array.lta", parms.base_name) ;
+      LTAwrite(lta, fname) ;
+      if (DIAG_VERBOSE_ON)
+	{
+	  MRI *mri_seg, *mri_aligned ;
+	  int l ;
+	  lta = LTAread("gcam.lta") ;
+	  mri_seg = MRIclone(mri_inputs, NULL) ;
+	  l = lta->xforms[0].label ;
+	  GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform, NULL) ;
+	  LTAinvert(lta) ;
+	  mri_aligned = MRIlinearTransform(mri_seg, NULL, lta->xforms[0].m_L) ;
+	  MRIwrite(mri_seg, "s.mgz")  ; MRIwrite(mri_aligned, "a.mgz") ;
+	  MRIfree(&mri_seg) ; MRIfree(&mri_aligned) ;
+	}
+#endif
+      if (reinit)
+	GCAMreinitWithLTA(gcam, lta, mri_inputs, &parms) ;
+      if (DIAG_VERBOSE_ON)
+	{
+	  MRI *mri_seg ;
+	  int l ;
+	  l = lta->xforms[0].label ;
+	  mri_seg = MRIclone(mri_inputs, NULL) ;
+	  GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform,NULL) ;
+	  MRIwrite(mri_seg, "sa.mgz") ;
+	  MRIfree(&mri_seg) ;
+	}
+      LTAfree(&lta) ;
+    }
+  
+  if (regularize_mean > 0)
+    GCAregularizeConditionalDensities(gca, regularize_mean) ;
+  
+  if (parms.write_iterations != 0)
+    {
+      char fname[STRLEN] ;
+      MRI  *mri_gca, *mri_tmp ;
+      mri_gca = MRIclone(mri_inputs, NULL) ;
+      GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+      if (mri_gca->nframes > 1)
+	{
+	  printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
+	  mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+	  MRIfree(&mri_gca) ; mri_gca = mri_tmp ;
+	}
+      sprintf(fname, "%s_target", parms.base_name) ;
+      MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+      sprintf(fname, "%s_target.mgz", parms.base_name) ;
+      printf("writing target volume to %s...\n", fname) ;
+      MRIwrite(mri_gca, fname) ;
+      MRIfree(&mri_gca) ;
+    }
+  
   ///////////////////////////////////////////////////////////////////
   // -reset option
   if (reset)
