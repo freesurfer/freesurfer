@@ -637,9 +637,9 @@ int main(int argc, char *argv[])
 	int x, y, z ,convert=0;
 	
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_pretess.c,v 1.11 2005/12/05 16:40:51 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_pretess.c,v 1.12 2005/12/09 22:31:18 fischl Exp $", "$Name:  $");
 
-  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.11 2005/12/05 16:40:51 segonne Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_pretess.c,v 1.12 2005/12/09 22:31:18 fischl Exp $", "$Name:  $", cmdline);
 
 	Progname=argv[0];
 
@@ -658,6 +658,8 @@ int main(int argc, char *argv[])
 	} 
 	
 	mri_seg=MRIread(argv[1]);
+	if (mri_seg == NULL)
+		ErrorExit(ERROR_NOFILE,"%s: could not open %s", Progname, argv[1]) ;
 	if (!stricmp(argv[2], "wm"))
 		label = USE_WM ;
 	else
