@@ -14,14 +14,14 @@ endif
 if ("$1" == "dev") then
   set RELEASE_TYPE=dev
   set DEV_DIR=${BUILD_DIR}/trunk/dev
-  set DEV_DEST_DIR=/usr/local/freesurfer/dev
+  set DEST_DIR=/usr/local/freesurfer/dev
 else if ("$1" == "stable") then
   set RELEASE_TYPE=stable
   set DEV_DIR=${BUILD_DIR}/stable/dev
-  set DEV_DEST_DIR=/usr/local/freesurfer/beta
+  set DEST_DIR=/usr/local/freesurfer/beta
   set PUB_DEST_DIR=/usr/local/freesurfer/pub
 else
-  echo "ERROR: release_type is either dev or stable"
+  echo "ERROR: release_type must be either dev or stable"
   exit 1
 endif
 
@@ -30,12 +30,12 @@ set SCRIPT_DIR=/space/freesurfer/build/scripts
 set LOG_DIR=/space/freesurfer/build/logs
 
 # QTDIR should match that declared in each $HOSTNAME/configure_options.txt file
-setenv QTDIR /space/freesurfer/build/$HOSTNAME/qt
+setenv QTDIR /usr/pubsw/packages/qt/current
 setenv GLUT_DYLIB_DIR ""
-# on Mac OS X Tiger, glut is not automatically in lib path, and
-# need /sw/bin to get latex and dvips
+# on Mac OS X Tiger, glut is not automatically in lib path.
+# also, need /sw/bin to get latex and dvips
 if ("$HOSTNAME" == "storm") then
-    set GLUT_DYLIB_DIR=/space/freesurfer/build/$HOSTNAME/tiffjpegglut/lib
+    set GLUT_DYLIB_DIR=/usr/pubsw/packages/tiffjpegglut/lib
     setenv PATH "/sw/bin":"$PATH"
     rehash
 endif
@@ -160,8 +160,8 @@ $ECHO echo "CMD: autoconf" >>& $OUTPUTF
 $ECHO autoconf >>& $OUTPUTF
 $ECHO echo "CMD: automake" >>& $OUTPUTF
 $ECHO automake >>& $OUTPUTF
-$ECHO echo "CMD: ./configure `cat ${BUILD_DIR}/configure_options.txt` --prefix=${DEV_DEST_DIR} --enable-nmr-install" >>& $OUTPUTF
-$ECHO ./configure `cat ${BUILD_DIR}/configure_options.txt` --prefix=${DEV_DEST_DIR} --enable-nmr-install >>& $OUTPUTF
+$ECHO echo "CMD: ./configure `cat ${BUILD_DIR}/configure_options.txt` --prefix=${DEST_DIR} --enable-nmr-install" >>& $OUTPUTF
+$ECHO ./configure `cat ${BUILD_DIR}/configure_options.txt` --prefix=${DEST_DIR} --enable-nmr-install >>& $OUTPUTF
 if ($status != 0) then
   echo "########################################################" >>& $OUTPUTF
   echo "config.log" >>& $OUTPUTF
@@ -180,10 +180,11 @@ echo "##########################################################" >>& $OUTPUTF
 echo "Building dev" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 # make
-$ECHO echo "CMD: make" >>& $OUTPUTF
-$ECHO make >>& $OUTPUTF
+$ECHO echo "CMD: make -j 4" >>& $OUTPUTF
+$ECHO make -j 4 >>& $OUTPUTF
 if ($status != 0) then
-  # note: /usr/local/freesurfer/dev/bin/ dirs have not been modified (make install does that)
+  # note: /usr/local/freesurfer/dev/bin/ dirs have not 
+  # been modified (make install does that)
   $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build (make) FAILED" $MAIL_LIST < $OUTPUTF
   $ECHO touch ${FAILED_FILE}
   $ECHO chmod g+w ${FAILED_FILE}
@@ -194,27 +195,27 @@ if ($status != 0) then
 endif
 
 # Shift bin to bin-old and bin-old to bin-old-old to keep around old versions.
-$ECHO echo "CMD: rm -rf ${DEV_DEST_DIR}/bin-old-old" >>& $OUTPUTF
-if (-e ${DEV_DEST_DIR}/bin-old-old) rm -rf ${DEV_DEST_DIR}/bin-old-old >>& $OUTPUTF
-$ECHO echo "CMD: mv ${DEV_DEST_DIR}/bin-old ${DEV_DEST_DIR}/bin-old-old" >>& $OUTPUTF
-if (-e ${DEV_DEST_DIR}/bin-old) mv ${DEV_DEST_DIR}/bin-old ${DEV_DEST_DIR}/bin-old-old >>& $OUTPUTF
-$ECHO echo "CMD: mv ${DEV_DEST_DIR}/bin ${DEV_DEST_DIR}/bin-old" >>& $OUTPUTF
-$ECHO mv ${DEV_DEST_DIR}/bin ${DEV_DEST_DIR}/bin-old >>& $OUTPUTF
+$ECHO echo "CMD: rm -rf ${DEST_DIR}/bin-old-old" >>& $OUTPUTF
+if (-e ${DEST_DIR}/bin-old-old) rm -rf ${DEST_DIR}/bin-old-old >>& $OUTPUTF
+$ECHO echo "CMD: mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old" >>& $OUTPUTF
+if (-e ${DEST_DIR}/bin-old) mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old >>& $OUTPUTF
+$ECHO echo "CMD: mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old" >>& $OUTPUTF
+$ECHO mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
 
-# make install
-$ECHO echo "CMD: make install" >>& $OUTPUTF
-$ECHO make install >>& $OUTPUTF
+# make install (-j 4 flag launches up to 4 jobs simultaneously, using multi-processors)
+$ECHO echo "CMD: make -j 4 install" >>& $OUTPUTF
+$ECHO make -j 4 install >>& $OUTPUTF
 if ($status != 0) then
   $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build (make install) FAILED" $MAIL_LIST < $OUTPUTF
   $ECHO touch ${FAILED_FILE}
   $ECHO chmod g+w ${FAILED_FILE}
   # restore prior (possibly working) bin/ dirs
-  $ECHO echo "CMD: mv ${DEV_DEST_DIR}/bin ${DEV_DEST_DIR}/bin-failed" >>& $OUTPUTF
-  $ECHO mv ${DEV_DEST_DIR}/bin ${DEV_DEST_DIR}/bin-failed >>& $OUTPUTF
-  $ECHO echo "CMD: mv ${DEV_DEST_DIR}/bin-old ${DEV_DEST_DIR}/bin" >>& $OUTPUTF
-  $ECHO mv ${DEV_DEST_DIR}/bin-old ${DEV_DEST_DIR}/bin >>& $OUTPUTF
-  $ECHO echo "CMD: mv ${DEV_DEST_DIR}/bin-old-old ${DEV_DEST_DIR}/bin-old" >>& $OUTPUTF
-  $ECHO mv ${DEV_DEST_DIR}/bin-old-old ${DEV_DEST_DIR}/bin-old >>& $OUTPUTF
+  $ECHO echo "CMD: mv ${DEST_DIR}/bin ${DEST_DIR}/bin-failed" >>& $OUTPUTF
+  $ECHO mv ${DEST_DIR}/bin ${DEST_DIR}/bin-failed >>& $OUTPUTF
+  $ECHO echo "CMD: mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin" >>& $OUTPUTF
+  $ECHO mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin >>& $OUTPUTF
+  $ECHO echo "CMD: mv ${DEST_DIR}/bin-old-old ${DEST_DIR}/bin-old" >>& $OUTPUTF
+  $ECHO mv ${DEST_DIR}/bin-old-old ${DEST_DIR}/bin-old >>& $OUTPUTF
   # set group write bit on files changed by make tools:
   $ECHO echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
   $ECHO chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
@@ -224,20 +225,20 @@ endif
 echo "##########################################################" >>& $OUTPUTF
 echo "Setting permissions" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
-$ECHO echo "CMD: chmod -R g+rw ${DEV_DEST_DIR}" >>& $OUTPUTF
-$ECHO chmod -R g+rw ${DEV_DEST_DIR} >>& $OUTPUTF
+$ECHO echo "CMD: chmod -R g+rw ${DEST_DIR}" >>& $OUTPUTF
+$ECHO chmod -R g+rw ${DEST_DIR} >>& $OUTPUTF
 $ECHO echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
 $ECHO chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
 $ECHO echo "CMD: chmod -R g+rw ${LOG_DIR}" >>& $OUTPUTF
 $ECHO chmod -R g+rw ${LOG_DIR} >>& $OUTPUTF
 
 if ($?PUB_DEST_DIR) then
-  echo "##########################################################" >>& $OUTPUTF
+  echo "########################################################" >>& $OUTPUTF
   echo "Building public stable" >>& $OUTPUTF
   echo "" >>& $OUTPUTF
   # make
-  $ECHO echo "CMD: make release prefix=$PUB_DEST_DIR" >>& $OUTPUTF
-  $ECHO make release prefix=${PUB_DEST_DIR} >>& $OUTPUTF
+  $ECHO echo "CMD: make -j 4 release prefix=$PUB_DEST_DIR" >>& $OUTPUTF
+  $ECHO make -j 4 release prefix=${PUB_DEST_DIR} >>& $OUTPUTF
   if ($status != 0) then
     $ECHO mail -s "$HOSTNAME $RELEASE_TYPE release build (make) FAILED" $MAIL_LIST < $OUTPUTF
     $ECHO touch ${FAILED_FILE}
