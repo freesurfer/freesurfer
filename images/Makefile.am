@@ -29,6 +29,7 @@ icon_color_picker.gif \
 icon_control_point.gif \
 icon_cursor_goto.gif \
 icon_cursor_save.gif  \
+icon_curv.gif \
 icon_cut_area.gif  \
 icon_cut_clear.gif  \
 icon_cut_closed_line.gif \
