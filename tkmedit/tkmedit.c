@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/12/02 23:28:44 $
-// Revision       : $Revision: 1.260 $
-char *VERSION = "$Revision: 1.260 $";
+// Revision Date  : $Date: 2005/12/09 18:50:33 $
+// Revision       : $Revision: 1.261 $
+char *VERSION = "$Revision: 1.261 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1100,7 +1100,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.260 2005/12/02 23:28:44 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.261 2005/12/09 18:50:33 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2352,22 +2352,18 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     /* Check that they specified a reg type. */
     if( FunD_tRegistration_None == overlayRegType ) {
 
-      tkm_DisplayError( "Loading Functional Overlay",
-			"No registration type specified",
-			"Must specify a registration type to use with "
-			"the functional overlay. Use -overlay-reg <file>, "
-			"-overlay-reg-find, or -overlay-reg-identity." );
+      OutputPrint "INFO: No registration type specified for overlay, "
+	"assuming identity.\n" EndOutputPrint;
+      overlayRegType = FunD_tRegistration_Identity;
+    }
 
-    } else {
-
-      eResult = LoadFunctionalOverlay( sOverlayFileName,
-				       psOverlayOffsetFileName,
-				       overlayRegType,
-				       sOverlayRegistration );
+    eResult = LoadFunctionalOverlay( sOverlayFileName,
+				     psOverlayOffsetFileName,
+				     overlayRegType,
+				     sOverlayRegistration );
       
-      if( eResult == tkm_tErr_NoErr && bSmooth ) {
-	eResult = SmoothOverlayData( smoothSigma );
-      }
+    if( eResult == tkm_tErr_NoErr && bSmooth ) {
+      eResult = SmoothOverlayData( smoothSigma );
     }
   }
   
@@ -2377,20 +2373,15 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     /* Check that they specified a reg type. */
     if( FunD_tRegistration_None == timecourseRegType ) {
 
-      tkm_DisplayError( "Loading Functional Time Course",
-			"No registration type specified",
-			"Must specify a registration type to use with "
-			"the functional time course. Use -timecourse-reg "
-			"<file>, -timecourse-reg-find, or "
-			"-timecourse-reg-identity." );
-
-    } else {
-
-      eResult = LoadFunctionalTimeCourse( sTimeCourseFileName, 
-					  psTimeCourseOffsetFileName,
-					  timecourseRegType,
-					  sTimeCourseRegistration );
+      OutputPrint "INFO: No registration type specified for time course, "
+	"assuming identity.\n" EndOutputPrint;
+      timecourseRegType = FunD_tRegistration_Identity;
     }
+
+    eResult = LoadFunctionalTimeCourse( sTimeCourseFileName, 
+					psTimeCourseOffsetFileName,
+					timecourseRegType,
+					sTimeCourseRegistration );
   }
   
   /* set registration */
@@ -4963,25 +4954,34 @@ int TclLoadFunctionalOverlay ( ClientData inClientData,
 			       int argc, char* argv[] ) {
   
   char sFileName[tkm_knPathLen] = "";
-  char sRegistration[tkm_knPathLen] = "";
+  char* sRegistration = NULL;
   FunD_tRegistrationType regType = FunD_tRegistration_None;
   
-  if ( argc != 3 && argc != 4 ) {
+  if ( argc != 2 && argc != 3 && argc != 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadFunctionalOverlay "
-		    "filename registrationType [registration]", TCL_VOLATILE );
+		    "filename [registrationType [registration]]", 
+		    TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
     
     xUtil_strncpy( sFileName, argv[1], sizeof(sFileName) );
-    regType = (FunD_tRegistrationType) atoi( argv[2] );
+    regType = FunD_tRegistration_Identity;
+
+    if( argc > 2 && argv[2][0] != '\0' ) {
+      regType = (FunD_tRegistrationType) atoi( argv[2] );
+    }      
 
     if( argc > 3 && argv[3][0] != '\0' ) {
+      sRegistration = (char*) calloc( tkm_knPathLen, sizeof(char) );
       xUtil_strncpy( sRegistration, argv[3], sizeof(sRegistration) );
-      LoadFunctionalOverlay( sFileName, NULL, regType, sRegistration );
-    } else {
-      LoadFunctionalOverlay( sFileName, NULL, regType, NULL );
+    }
+
+    LoadFunctionalOverlay( sFileName, NULL, regType, sRegistration );
+
+    if( NULL != sRegistration ) {
+      free( sRegistration );
     }
   }  
   
@@ -4993,25 +4993,34 @@ int TclLoadFunctionalTimeCourse ( ClientData inClientData,
 				  int argc, char* argv[] ) {
   
   char sFileName[tkm_knPathLen] = "";
-  char sRegistration[tkm_knPathLen] = "";
+  char* sRegistration = NULL;
   FunD_tRegistrationType regType = FunD_tRegistration_None;
-    
-  if ( argc != 3 && argc != 4 ) {
+  
+  if ( argc != 2 && argc != 3 && argc != 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadFunctionalTimeCourse "
-		    "filename registrationType [registration]", TCL_VOLATILE );
+		    "filename [registrationType [registration]]", 
+		    TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
     
     xUtil_strncpy( sFileName, argv[1], sizeof(sFileName) );
-    regType = (FunD_tRegistrationType) atoi( argv[2] );
+    regType = FunD_tRegistration_Identity;
+
+    if( argc > 2 && argv[2][0] != '\0' ) {
+      regType = (FunD_tRegistrationType) atoi( argv[2] );
+    }      
 
     if( argc > 3 && argv[3][0] != '\0' ) {
+      sRegistration = (char*) calloc( tkm_knPathLen, sizeof(char) );
       xUtil_strncpy( sRegistration, argv[3], sizeof(sRegistration) );
-      LoadFunctionalTimeCourse( sFileName, NULL, regType, sRegistration );
-    } else {
-      LoadFunctionalTimeCourse( sFileName, NULL, regType, NULL );
+    }
+
+    LoadFunctionalTimeCourse( sFileName, NULL, regType, sRegistration );
+
+    if( NULL != sRegistration ) {
+      free( sRegistration );
     }
   }  
   
@@ -5346,7 +5355,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.260 2005/12/02 23:28:44 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.261 2005/12/09 18:50:33 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
