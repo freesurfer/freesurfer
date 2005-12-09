@@ -8802,6 +8802,7 @@ read_binary_curvature(char *fname)
   /* enable our menu options. */
   enable_menu_set (MENUSET_CURVATURE_LOADED, curvloaded);
   send_tcl_command ("ShowLabel kLabel_Curvature 1");
+  send_tcl_command ("EnableCurvatureButton 1");
   
   /* turn on the curvflag */
   curvflag = 1;
@@ -18973,7 +18974,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.151 2005/12/06 18:01:28 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.152 2005/12/09 17:49:15 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
