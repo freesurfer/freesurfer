@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/12/05 22:24:08 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2005/12/09 18:36:27 $
+// Revision       : $Revision: 1.5 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -50,15 +50,22 @@ static int ilist[34] = {2, 17, 17, 17, 17, 17, 18, 18, 18, 18, 10, 10, 10, 10, 4
 static int jlist[34] = {3, 2,  3,  18, 4,  5,  2,  3,  4,  5,  11, 4,  12, 2,  42, 41, 42, 54, 43, 44, 41, 42, 43, 44, 50, 43, 51, 41, 77,  77, 77, 77, 77, 77};
 */
 
+/*
 static int CNR_pairs = 32;
-static int ilist[34] = {2, 10, 10, 10, 11, 11, 12, 12, 12, 13, 13, 17, 17, 17, 18, 18, 41, 49, 49, 49, 50, 50, 51, 51, 51, 52, 52, 53, 53, 53, 54, 54};
-static int jlist[34] = {3,  2,  11, 4,  2,  4,  2, 3,  13,  2,  3, 18,  2,  3,  2,  3, 42, 41, 50, 43, 41, 43, 41, 42, 52, 41, 42, 54, 41, 42, 41, 42};
+
+static int ilist[32] = {2, 10, 10, 10, 11, 11, 12, 12, 12, 13, 13, 17, 17, 17, 18, 18, 41, 49, 49, 49, 50, 50, 51, 51, 51, 52, 52, 53, 53, 53, 54, 54};
+static int jlist[32] = {3,  2,  11, 4,  2,  4,  2, 3,  13,  2,  3, 18,  2,  3,  2,  3, 42, 41, 50, 43, 41, 43, 41, 42, 52, 41, 42, 54, 41, 42, 41, 42};
+*/
+
+static int CNR_pairs = 33;
+static int ilist[33] = {219, 10, 10, 10, 11, 11, 12, 12, 12, 13, 13, 17, 17, 17, 18, 18, 219, 49, 49, 49, 50, 50, 51, 51, 51, 52, 52, 53, 53, 53, 54, 54, 2};
+static int jlist[33] = {220,  219,  11, 4,  219,  4,  219, 220,  13,  219,  220, 18,  219,  220,  219,  220, 220, 219, 50, 43, 219, 43, 220, 220, 52, 219, 220, 54, 219, 220, 219, 220, 3};
 
 
 char *Progname ;
 
 static int MINLABEL = 2; 
-static int MAXLABEL = 80;
+static int MAXLABEL = 250;
 
 /* Compute LDA only in a local neighborhood of the 
  * specified debug voxel
@@ -119,7 +126,7 @@ main(int argc, char *argv[])
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_compute_CNR.c,v 1.4 2005/12/05 22:24:08 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_compute_CNR.c,v 1.5 2005/12/09 18:36:27 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

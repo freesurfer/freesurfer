@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/12/05 22:24:06 $
-// Revision       : $Revision: 1.180 $
+// Revision Date  : $Date: 2005/12/09 18:36:27 $
+// Revision       : $Revision: 1.181 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14253,30 +14253,29 @@ GCAlabelMeanFromImage(GCA *gca, TRANSFORM *transform,
 
 /* don't try to estimate cortex directly - too hard to
 	 get alignment. We'll estimate it from other gm classes
+   but how about just use initial linear registration?	 
 */
 #if 1
 static int align_labels[] = 
 {
+	Right_Cerebral_White_Matter, 
+	Left_Cerebral_White_Matter, 
 	Right_Hippocampus,
 	Left_Hippocampus,
-#if 0
 	Left_Cerebral_Cortex,
 	Right_Cerebral_Cortex,
+#if 0
 	Left_Inf_Lat_Vent,
 	Right_Inf_Lat_Vent,
 #endif
 	Left_Lateral_Ventricle,
 	Right_Lateral_Ventricle,
-	Right_Cerebral_White_Matter, 
-	Left_Cerebral_White_Matter, 
 	Right_Caudate, 
 	Left_Caudate, 
 	Left_Cerebellum_Cortex, 
 	Right_Cerebellum_Cortex, 
 	Left_Cerebellum_White_Matter, 
 	Right_Cerebellum_White_Matter, 
-	Third_Ventricle,
-	Fourth_Ventricle,
 	Left_Amygdala,
 	Right_Amygdala,
 	Left_Thalamus_Proper,
@@ -14287,7 +14286,9 @@ static int align_labels[] =
 	Right_Pallidum,
 	Brain_Stem,
 	Right_VentralDC,
-	Left_VentralDC
+	Left_VentralDC,
+	Third_Ventricle,
+	Fourth_Ventricle
 } ;
 #else
 static int align_labels[] = 
@@ -14306,7 +14307,11 @@ static int gm_labels[] =
 		Left_Amygdala,
 		Right_Amygdala,
 		Left_Caudate,
-		Right_Caudate
+		Right_Caudate,
+		Left_Cerebral_Cortex,
+		Right_Cerebral_Cortex
+		//		Left_Putamen,
+		//	Right_Putamen
 } ;
 
 #define NGM_LABELS (sizeof(gm_labels) / sizeof(gm_labels[0]))
@@ -15022,6 +15027,14 @@ GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *l
   MATRIX    *m_L, *m_by_label[MAX_CMA_LABELS] ;
   LTA       *lta ;
 
+  float peak_threshold = 0.03;
+  float overlap_threshold = 0.001;
+
+  if(transform->type == MORPH_3D_TYPE){
+    peak_threshold = 0.01; 
+    overlap_threshold = -1.0; //at mri_ca_label stage; trust the registration more
+  }
+
   int equiv_class[MAX_CMA_LABELS];
   set_equilavent_classes(equiv_class);
 
@@ -15052,6 +15065,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *l
 	  if (l == Gdiag_no)
 	    DiagBreak() ;
 	  
+
 	  mri_seg = MRIclone(mri, mri_seg) ;
 	  mri_labels = MRIclone(mri, mri_labels) ;
 	  
@@ -15059,166 +15073,155 @@ GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *l
 	     e.g. hippo is made easier to find by wm inferior and ventricle
 	     posterior.
 	  */
-	  if (IS_HIPPO(l) || IS_AMYGDALA(l) || IS_CAUDATE(l) || IS_PUTAMEN(l) || IS_PALLIDUM(l))
-	    border = BORDER_SIZE+1 ;  // need more context for hippo
-	  else
-	    border = BORDER_SIZE ;
-	  GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, border, transform,mri_labels) ;
-	  for (x = 0 ; x < mri_labels->width ; x++)
-	    {
-	      for (y = 0 ; y < mri_labels->height ; y++)
-		{
-		  for (z = 0 ; z < mri_labels->depth ; z++)
-		    {
-		      if (x == Gx && y == Gy && z == Gz)
-			DiagBreak() ;
-		      label = MRIgetVoxVal(mri_labels, x, y, z, 0) ;
-		      if (computed[label] == 0)
-			continue ;
-		      val = MRIgetVoxVal(mri_seg, x, y, z, frame) ;
-		      val = val * label_scales[label] + label_offsets[label] ;
-		      MRIsetVoxVal(mri_seg, x, y, z, frame, val) ;
-		    }
-		}
-	    }
-	  
-	  /* ventricle at the posterior part of hippo frequently makes local minima
-	     in alignment energy functional - remove them.
-	  */
-#if 1
-	  if (l == Left_Hippocampus || l == Right_Hippocampus)
-	    {
-	      for (x = 0 ; x < mri_labels->width ; x++)
-		{
-		  for (y = 0 ; y < mri_labels->height ; y++)
-		    {
-		      for (z = 0 ; z < mri_labels->depth ; z++)
-			{
-			  if (x == Gx && y == Gy && z == Gz)
-			    DiagBreak() ;
-			  label = MRIgetVoxVal(mri_labels, x, y, z, 0) ;
-			  if (IS_LAT_VENT(label) || IS_INF_LAT_VENT(label))
-			    MRIsetVoxVal(mri_seg, x, y, z, frame, 0) ;
-			}
-		    }
-		}
-	    }
-#endif
-	  if (l == Left_Cerebral_White_Matter || l == Right_Cerebral_White_Matter)
-	    {
-	      MRI *mri_tmp, *mri_border ;
-	      
-	      // create a volume that is the wm eroded 3 times, plus the border voxels
-	      mri_tmp = MRIclone(mri_seg, NULL) ;
-	      GCAbuildMostLikelyVolumeForStructure(gca, mri_tmp, l, 0, transform, NULL) ;
-	      mri_border = MRIsubtract(mri_seg, mri_tmp, NULL) ; // just outside
-	      
-	      // erode just the interior 4 times to get to high prob regions
-	      MRIerode(mri_tmp, mri_tmp) ;
-	      MRIerode(mri_tmp, mri_tmp) ;
-	      MRIerode(mri_tmp, mri_tmp) ;
-	      MRIerode(mri_tmp, mri_tmp) ;
-	      MRIadd(mri_tmp, mri_border, mri_seg) ;  // border + interior
-	      MRIfree(&mri_tmp) ; MRIfree(&mri_border) ;
-	    }
-	  
-	  if (Gdiag & DIAG_WRITE)
-	    {
-	      sprintf(fname, "%s_label%d.mgz", base_name, l) ;
-	      MRIwrite(mri_seg, fname) ;
-	    }
-	  if (transform->type != MORPH_3D_TYPE)
-	    {
-	      if (lta)   // try to find a previously computed one
-		{
-		  for (n = 0 ; n < lta->num_xforms ; n++)
-		    if (lta->xforms[n].label == l)
-		      break ;
-		  if (n >= lta->num_xforms)
-		    n = -1 ;  // indicate no xform found
-		}
-	      else   // no transform specified by caller
-		n = -1 ;
-	      if (n < 0)  // no transform - compute one
-		{
-		  // double det ;
-		  // float  evalues[4] ;
-		  // MATRIX *m_evectors ;
-		  
-		  printf("aligning %s...\n", cma_label_to_name(l)) ;
-		  m_L = MRIgetVoxelToVoxelXform(mri_seg, mri) ;
-#if 0 		  
-		  MRIpowellAlignImages(mri_seg, mri,  m_L, &scale_factor, NULL) ;
-#else
+	  if (transform->type != MORPH_3D_TYPE){
+	    if (IS_HIPPO(l) || IS_AMYGDALA(l) || IS_CAUDATE(l) || IS_PUTAMEN(l) || IS_PALLIDUM(l))
+	      border = BORDER_SIZE+1 ;  // need more context for hippo
+	    else
+	      border = BORDER_SIZE ;
+	    GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, border, transform,mri_labels) ;
+	    for (x = 0 ; x < mri_labels->width ; x++)
+	      {
+		for (y = 0 ; y < mri_labels->height ; y++)
+		  {
+		    for (z = 0 ; z < mri_labels->depth ; z++)
+		      {
+			if (x == Gx && y == Gy && z == Gz)
+			  DiagBreak() ;
+			label = MRIgetVoxVal(mri_labels, x, y, z, 0) ;
+			if (computed[label] == 0)
+			  continue ;
+			val = MRIgetVoxVal(mri_seg, x, y, z, frame) ;
+			val = val * label_scales[label] + label_offsets[label] ;
+			MRIsetVoxVal(mri_seg, x, y, z, frame, val) ;
+		      }
+		  }
+	      }
+	    
+	    /* ventricle at the posterior part of hippo frequently makes local minima
+	       in alignment energy functional - remove them.
+	    */
+	    if (l == Left_Hippocampus || l == Right_Hippocampus)
+	      {
+		for (x = 0 ; x < mri_labels->width ; x++)
+		  {
+		    for (y = 0 ; y < mri_labels->height ; y++)
+		      {
+			for (z = 0 ; z < mri_labels->depth ; z++)
+			  {
+			    if (x == Gx && y == Gy && z == Gz)
+			      DiagBreak() ;
+			    label = MRIgetVoxVal(mri_labels, x, y, z, 0) ;
+			    if (IS_LAT_VENT(label) || IS_INF_LAT_VENT(label))
+			      MRIsetVoxVal(mri_seg, x, y, z, frame, 0) ;
+			  }
+		      }
+		  }
+	      }
+	    if (l == Left_Cerebral_White_Matter || l == Right_Cerebral_White_Matter)
+	      {
+		MRI *mri_tmp, *mri_border ;
+		
+		// create a volume that is the wm eroded 3 times, plus the border voxels
+		mri_tmp = MRIclone(mri_seg, NULL) ;
+		GCAbuildMostLikelyVolumeForStructure(gca, mri_tmp, l, 0, transform, NULL) ;
+		mri_border = MRIsubtract(mri_seg, mri_tmp, NULL) ; // just outside
+		
+		// erode just the interior 4 times to get to high prob regions
+		MRIerode(mri_tmp, mri_tmp) ;
+		MRIerode(mri_tmp, mri_tmp) ;
+		MRIerode(mri_tmp, mri_tmp) ;
+		MRIerode(mri_tmp, mri_tmp) ;
+		MRIadd(mri_tmp, mri_border, mri_seg) ;  // border + interior
+		MRIfree(&mri_tmp) ; MRIfree(&mri_border) ;
+	      }
+	    
+	    if (Gdiag & DIAG_WRITE)
+	      {
+		sprintf(fname, "%s_label%d.mgz", base_name, l) ;
+		MRIwrite(mri_seg, fname) ;
+	      }
+	    
+	    if (lta)   // try to find a previously computed one
+	      {
+		for (n = 0 ; n < lta->num_xforms ; n++)
+		  if (lta->xforms[n].label == l)
+		    break ;
+		if (n >= lta->num_xforms)
+		  n = -1 ;  // indicate no xform found
+	      }
+	    else   // no transform specified by caller
+	      n = -1 ;
+	    if (n < 0)  // no transform - compute one
+	      {
+		double det ;
+		// float  evalues[4] ;
+		// MATRIX *m_evectors ;
+		
+		printf("aligning %s...\n", cma_label_to_name(l)) ;
+		m_L = MRIgetVoxelToVoxelXform(mri_seg, mri) ;
+		if(! IS_GM(l)){ //always use the initial alignment for GM
+		  //  MRIpowellAlignImages(mri_seg, mri,  m_L, &scale_factor, NULL) ;
 		  MRIfaridAlignImages(mri_seg, mri,  m_L) ;
-#endif
-
-#if 0 
-		  det = MatrixDeterminant(m_L) ;
-		  m_evectors = MatrixEigenSystem(m_L, evalues, NULL) ;
-		  printf("eigen values (%2.2f, %2.2f, %2.2f, %2.2f), vectors:\n",
-			 evalues[0], evalues[1], evalues[2], evalues[3]) ;
-		  MatrixPrint(stdout, m_evectors) ;
-		  MatrixFree(&m_evectors) ;
-		  if (det < 0.1 || det > 4 ||  evalues[3] < 0.2)
-		    {
-		      printf("invalid transform detected (det=%2.4f \n",
-			     det) ;
-		      MatrixFree(&m_L) ;
-		      m_L = MRIgetVoxelToVoxelXform(mri_seg, mri) ;
-		      
-		    }
-#endif
 		}
-	      else   // use previously computed transform
-		m_L = MatrixCopy(lta->xforms[n].m_L, NULL) ;
-	      
-	      if (l == Gdiag_no)
-		DiagBreak() ;
-	      
-	      if (Gdiag & DIAG_WRITE)
-		{
-		  sprintf(fname, "%s_label%d_after.mgz", base_name, l) ;
-		  mri_aligned = MRIlinearTransform(mri_seg, NULL, m_L) ;
-		  MRIwrite(mri_aligned, fname) ;
-		  MRIfree(&mri_aligned) ;
-		}
-	      
-	      if (l == Left_Cerebral_White_Matter || l == Right_Cerebral_White_Matter)
-		{
-		  // wm so big it's hard to localize with a linear xform
-		  GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform, NULL) ;
-		  MRIerode(mri_seg, mri_seg) ;
-		  MRIerode(mri_seg, mri_seg) ;
-		}
-	      else
-		{
-		  /* put ventricles back in for erosion to remove (otherwise a bunch of hippo
-		     gets removed */
-		  if (l == Left_Hippocampus || l == Right_Hippocampus)
-		    {
-		      for (x = 0 ; x < mri_labels->width ; x++)
-			{
-			  for (y = 0 ; y < mri_labels->height ; y++)
-			    {
-			      for (z = 0 ; z < mri_labels->depth ; z++)
-				{
-				  if (x == Gx && y == Gy && z == Gz)
-				    DiagBreak() ;
-				  label = MRIgetVoxVal(mri_labels, x, y, z, 0) ;
-				  if (IS_LAT_VENT(label) || IS_INF_LAT_VENT(label))
-				    MRIsetVoxVal(mri_seg, x, y, z, frame, 128) ;
-				}
-			    }
-			}
-		    }
-		  for (b = 0 ; b < border ; b++)
-		    MRIerode(mri_seg, mri_seg) ; // get rid of outside border
-		  MRIerode(mri_seg, mri_seg) ; // get rid of inside border
-		}
-	      
-	      mri_aligned = MRIlinearTransform(mri_seg, NULL, m_L) ;
-	    }
+		
+		det = MatrixDeterminant(m_L) ;
+		if (det < 0.25 || det > 4)
+		  {
+		    printf("invalid transform detected (det=%2.4f \n",
+			   det) ;
+		    MatrixFree(&m_L) ;
+		    m_L = MRIgetVoxelToVoxelXform(mri_seg, mri) ;
+		  }
+	      }
+	    else   // use previously computed transform
+	      m_L = MatrixCopy(lta->xforms[n].m_L, NULL) ;
+	    
+	    if (l == Gdiag_no)
+	      DiagBreak() ;
+	    
+	    if (Gdiag & DIAG_WRITE)
+	      {
+		sprintf(fname, "%s_label%d_after.mgz", base_name, l) ;
+		mri_aligned = MRIlinearTransform(mri_seg, NULL, m_L) ;
+		MRIwrite(mri_aligned, fname) ;
+		MRIfree(&mri_aligned) ;
+	      }
+	    
+	    if (l == Left_Cerebral_White_Matter || l == Right_Cerebral_White_Matter)
+	      {
+		// wm so big it's hard to localize with a linear xform
+		GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform, NULL) ;
+		MRIerode(mri_seg, mri_seg) ;
+		MRIerode(mri_seg, mri_seg) ;
+	      }
+	    else
+	      {
+		/* put ventricles back in for erosion to remove (otherwise a bunch of hippo
+		   gets removed */
+		if (l == Left_Hippocampus || l == Right_Hippocampus)
+		  {
+		    for (x = 0 ; x < mri_labels->width ; x++)
+		      {
+			for (y = 0 ; y < mri_labels->height ; y++)
+			  {
+			    for (z = 0 ; z < mri_labels->depth ; z++)
+			      {
+				if (x == Gx && y == Gy && z == Gz)
+				  DiagBreak() ;
+				label = MRIgetVoxVal(mri_labels, x, y, z, 0) ;
+				if (IS_LAT_VENT(label) || IS_INF_LAT_VENT(label))
+				  MRIsetVoxVal(mri_seg, x, y, z, frame, 128) ;
+			      }
+			  }
+		      }
+		  }
+		for (b = 0 ; b < border ; b++)
+		  MRIerode(mri_seg, mri_seg) ; // get rid of outside border
+		MRIerode(mri_seg, mri_seg) ; // get rid of inside border
+	      }
+	    
+	    mri_aligned = MRIlinearTransform(mri_seg, NULL, m_L) ;
+	  }
 	  else  // 3d morph already done - don't bother aligning
 	    {
 	      m_L = NULL ;
@@ -15230,29 +15233,9 @@ GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *l
 		}
 	      else
 		{
-		  /* put ventricles back in for erosion to remove (otherwise a bunch of hippo
-		     gets removed */
-		  if (l == Left_Hippocampus || l == Right_Hippocampus)
-		    {
-		      for (x = 0 ; x < mri_labels->width ; x++)
-			{
-			  for (y = 0 ; y < mri_labels->height ; y++)
-			    {
-			      for (z = 0 ; z < mri_labels->depth ; z++)
-				{
-				  if (x == Gx && y == Gy && z == Gz)
-				    DiagBreak() ;
-				  label = MRIgetVoxVal(mri_labels, x, y, z, 0) ;
-				  if (IS_LAT_VENT(label) || IS_INF_LAT_VENT(label))
-				    MRIsetVoxVal(mri_seg, x, y, z, frame, 128) ;
-				}
-			    }
-			}
-		    }
-		  for (b = 0 ; b < border ; b++)
-		    MRIerode(mri_seg, mri_seg) ; // get rid of outside border
+		  GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, 0, transform, NULL) ;
 		}
-	      mri_aligned = MRIerode(mri_seg, NULL) ; // get rid of inside border
+	      mri_aligned = MRIerode(mri_seg, NULL);
 	    }
 	  
 	  MRIbinarize(mri_aligned, mri_aligned, 1, 0, 128) ;
@@ -15308,9 +15291,9 @@ GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *l
 	  printf("mri peak = %2.5f (%d)\n", h_mri->counts[peak], peak) ;
 
 	  
-	  if (h_mri->counts[peak] < 0.03 || num <= 50)  /* not enough to reliably estimate density */
+	  if (h_mri->counts[peak] < peak_threshold || num <= 50)  /* not enough to reliably estimate density */
 	    {
-	      if (h_mri->counts[peak] < .03)
+	      if (h_mri->counts[peak] < peak_threshold)
 		printf("uniform distribution in MR - rejecting arbitrary fit\n") ;
 	      if (m_L)
 		MatrixFree(&m_L) ;
@@ -15333,10 +15316,11 @@ GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *l
 	    DiagBreak() ;
 	  }
 	  overlap = HISTOthreshSum(h_mri, h_gca, .025) ;
+	  
 	  //if (overlap > 0.01)
 	  //	  if (overlap > 0.001)
-	  if(1)
-	  {
+	  if(IS_LAT_VENT(l) || overlap > overlap_threshold)
+	    {
 	      //			if (l == Gdiag_no)
 	      //  HISTOfindLinearFit(h_gca, h_mri, .025, 10, -75, 75,&label_scales[l],  &label_offsets[l]) ;
 	      //	      HISTOfindLinearFit(h_gca, h_mri, .025, 4, -125, 125, &label_scales[l], &label_offsets[l]) ;
@@ -15345,12 +15329,20 @@ GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *l
 	      computed[l] = 1 ;
 	      printf("%s (%d): linear fit = %2.2f x + %2.1f (%d voxels, overlap=%2.3f)\n",
 		     cma_label_to_name(l), l, label_scales[l], label_offsets[l], num,overlap);
-
-	      //note that the following range need be changed if both scale and offset are allowed
-	      if((label_scales[l] < 0.5 || (label_scales[l] > 1.5)) && (!IS_CSF_CLASS(l))){
-		//scaling is unreliable, ignore it
-		computed[l] = 0 ;
-		m_by_label[l] = NULL; 
+	      
+	      //note that the following range need be changed if both scale and offset are allowed' 1/1.5 = 0.67
+	      if((label_scales[l] < 0.67 || (label_scales[l] > 1.5)) && !IS_LAT_VENT(l)){
+		/*
+		  if(IS_CSF(l)){
+		  if(label_scales[l] < 0.67) label_scales[l] = 0.67;
+		  else if(label_scales[l] > 1.5) label_scales[l] = 1.5; 
+		  } else
+		*/
+		 {
+		  //scaling is unreliable, ignore it
+		  computed[l] = 0 ;
+		  m_by_label[l] = NULL; 
+		}
 	      }
 
 	      if (logfp)
@@ -15370,6 +15362,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *l
 	    }
 	  else
 	    {
+	      printf("overlap = %g, overlap_threshold = %g\n", overlap, overlap_threshold);
 	      printf("insufficient overlap %2.4f in histograms - rejecting\n",overlap) ;
 	    }
 	  
@@ -17684,7 +17677,7 @@ static void  set_equilavent_classes(int *equivalent_classes){
   equivalent_classes[23] = 0; //Line_3
   equivalent_classes[24] = 1; //CSF
   equivalent_classes[25] = 0; //Left_lesion
-  equivalent_classes[26] = 0; //left_accumbens_area
+  equivalent_classes[26] = 3; //left_accumbens_area
   equivalent_classes[27] = 0; //Left_Substancia_Nigra
   equivalent_classes[28] = 0; //Left_VentralDC;
   equivalent_classes[29] = 0; //left_undetermined
