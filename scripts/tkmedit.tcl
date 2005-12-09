@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.97 2005/11/10 20:40:23 fischl Exp $
+# $Id: tkmedit.tcl,v 1.98 2005/12/09 19:39:04 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -722,16 +722,12 @@ proc UpdateVolumeValueMinMax { iVolume iMin iMax } {
     set gVolume($iVolume,minValue) $iMin
     set gVolume($iVolume,maxValue) $iMax
 
-    # Change slider ranges. (This will fail silently if the dlog is
-    # not open.)
-    catch { $gInterface(colorScaleDlog,minValueSlider,$iVolume) \
-		config -from $iMin }
-    catch { $gInterface(colorScaleDlog,minValueSlider,$iVolume) \
-		config -to $iMax }
-    catch { $gInterface(colorScaleDlog,maxValueSlider,$iVolume) \
-		config -from $iMin }
-    catch { $gInterface(colorScaleDlog,maxValueSlider,$iVolume) \
-		config -to $iMax }
+    # Change the value that the button sets the value to. (This will
+    # fail silently if the dlog is not open.)
+    catch { $gInterface(colorScaleDlog,minValueButton,$iVolume) 
+	config -cmd "set gVolume($iVolume,colorScale,min) $gVolume($iVolume,minValue); SendVolumeMinMax" }
+    catch { $gInterface(colorScaleDlog,maxValueButton,$iVolume) 
+	config -cmd "set gVolume($iVolume,colorScale,max) $gVolume($iVolume,maxValue); SendVolumeMaxMax" }
 }
 
 # =============================================================== DIALOG BOXES
@@ -2172,48 +2168,80 @@ proc DoVolumeColorScaleInfoDlog { } {
     if { [Dialog_Create $wwDialog \
 	      "Brightness / Contrast" {-borderwidth 10}] } {
 
-	set fwSliders    $wwDialog.fwSliders
-	set fwButtons    $wwDialog.fwButtons
+	set fwMainSliders $wwDialog.fwMainSliders
+	set fwMainMin     $wwDialog.fwMainMin
+	set fwMainMax     $wwDialog.fwMainMax
+	set fwAuxSliders  $wwDialog.fwAuxSliders
+	set fwAuxMin      $wwDialog.fwAuxMin
+	set fwAuxMax      $wwDialog.fwAuxMax
+	set fwButtons     $wwDialog.fwButtons
 	
-	# brightness and contrast for main and aux sliders
-	tkm_MakeSliders $fwSliders [list \
+	# brightness and contrast for main volume.
+	tkm_MakeSliders $fwMainSliders [list \
 		[list {"Brightness"} gVolume(0,colorScale,brightness) \
 		     1 0 100 "SendVolumeBrightnessContrast" 1 0.01] \
 		[list {"Contrast"} gVolume(0,colorScale,contrast) \
-		     0 30 100 "SendVolumeBrightnessContrast" 1] \
-		[list {"Min"} gVolume(0,colorScale,min) \
-		     $gVolume(0,minValue) $gVolume(0,maxValue) \
-		     100 "SendVolumeMinMax" 1] \
-		[list {"Max"} gVolume(0,colorScale,max) \
-		     $gVolume(0,minValue) $gVolume(0,maxValue) \
-		     100 "SendVolumeMinMax" 1] \
-					\
+		     0 30 100 "SendVolumeBrightnessContrast" 1] ]
+
+	# Min and max buttons for main volume. An entry for setting
+	# the value, and a button to set the value to the volume's
+	# value min or max.
+	frame $fwMainMin
+	tkm_MakeEntry $fwMainMin.ew "Main Min value" \
+	    gVolume(0,colorScale,min) 10 "SendVolumeMinMax"
+	button $fwMainMin.bw -text "Set to $gVolume(0,minValue)" \
+	    -command "set gVolume(0,colorScale,min) $gVolume(0,minValue); SendVolumeMinMax"
+	pack $fwMainMin.ew $fwMainMin.bw \
+	    -side left
+
+	frame $fwMainMax
+	tkm_MakeEntry $fwMainMax.ew "Main Max value" \
+	    gVolume(0,colorScale,max) 10 "SendVolumeMinMax"
+	button $fwMainMax.bw -text "Set to $gVolume(0,maxValue)" \
+	    -command "set gVolume(0,colorScale,max) $gVolume(0,maxValue); SendVolumeMinMax"
+	pack $fwMainMax.ew $fwMainMax.bw \
+	    -side left
+
+	# And same for the aux volume.
+	tkm_MakeSliders $fwAuxSliders [list \
 	        [list {"Aux Brightness"} gVolume(1,colorScale,brightness) \
 		     1 0 100 "SendVolumeBrightnessContrast" 1 0.01] \
 		[list {"Aux Contrast"} gVolume(1,colorScale,contrast)  \
-		     0 30 100 "SendVolumeBrightnessContrast" 1] \
-	        [list {"Aux Min"} gVolume(1,colorScale,min)  \
-		     $gVolume(1,minValue) $gVolume(1,maxValue) \
-		     100 "SendVolumeMinMax" 1] \
-		[list {"Aux Max"} gVolume(1,colorScale,max) \
-		     $gVolume(1,minValue) $gVolume(1,maxValue) \
-		     100 "SendVolumeMinMax" 1 ] ]
+		     0 30 100 "SendVolumeBrightnessContrast" 1] ]
+
+	frame $fwAuxMin
+	tkm_MakeEntry $fwAuxMin.ew "Aux Min value" \
+	    gVolume(1,colorScale,min) 10 "SendVolumeMinMax"
+	button $fwAuxMin.bw -text "Set to $gVolume(1,minValue)" \
+	    -command "set gVolume(1,colorScale,min) $gVolume(1,minValue); SendVolumeMinMax"
+	pack $fwAuxMin.ew $fwAuxMin.bw \
+	    -side left
+
+	frame $fwAuxMax
+	tkm_MakeEntry $fwAuxMax.ew "Aux Max value" \
+	    gVolume(1,colorScale,max) 10 "SendVolumeMinMax"
+	button $fwAuxMax.bw -text "Set to $gVolume(1,maxValue)" \
+	    -command "set gVolume(1,colorScale,max) $gVolume(1,maxValue); SendVolumeMinMax"
+	pack $fwAuxMax.ew $fwAuxMax.bw \
+	    -side left
 
 	# Save these slider var names so we can update them if the
 	# values change.
-	set gInterface(colorScaleDlog,brightnessSlider,0) $fwSliders.sw0
-	set gInterface(colorScaleDlog,contrastSlider,0)   $fwSliders.sw1
-	set gInterface(colorScaleDlog,minValueSlider,0)   $fwSliders.sw2
-	set gInterface(colorScaleDlog,maxValueSlider,0)   $fwSliders.sw3
-	set gInterface(colorScaleDlog,brightnessSlider,1) $fwSliders.sw4
-	set gInterface(colorScaleDlog,contrastSlider,1)   $fwSliders.sw5
-	set gInterface(colorScaleDlog,minValueSlider,1)   $fwSliders.sw6
-	set gInterface(colorScaleDlog,maxValueSlider,1)   $fwSliders.sw7
+	set gInterface(colorScaleDlog,brightnessSlider,0) $fwMainSliders.sw0
+	set gInterface(colorScaleDlog,contrastSlider,0)   $fwMainSliders.sw1
+	set gInterface(colorScaleDlog,minValueButton,0)   $fwMainMin.bw
+	set gInterface(colorScaleDlog,maxValueButton,0)   $fwMainMax.bw
+	set gInterface(colorScaleDlog,brightnessSlider,1) $fwAuxSliders.sw4
+	set gInterface(colorScaleDlog,contrastSlider,1)   $fwAuxSliders.sw5
+	set gInterface(colorScaleDlog,minValueButton,1)   $fwAuxMin.bw
+	set gInterface(colorScaleDlog,maxValueButton,1)   $fwAuxMax.bw
 
 	# buttons
 	tkm_MakeCloseButton $fwButtons $wwDialog
 	
-	pack $fwSliders $fwButtons  \
+	pack $fwMainSliders $fwMainMin $fwMainMax \
+	    $fwAuxSliders $fwAuxMin $fwAuxMax \
+	    $fwButtons  \
 	    -side top    \
 	    -expand yes     \
 	    -fill x         \
