@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/12/09 18:47:42 $
-// Revision       : $Revision: 1.38 $
+// Revision Date  : $Date: 2005/12/09 19:11:31 $
+// Revision       : $Revision: 1.39 $
 
 
 #include <math.h>
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.38 2005/12/09 18:47:42 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.39 2005/12/09 19:11:31 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1201,6 +1201,9 @@ get_option(int argc, char *argv[])
     printf("renormalizing sequences with structure alignment, equivalent to:\n") ;
 		printf("\t-renormalize\n\t-regularize_mean %2.3f\n\t-regularize %2.3f\n",regularize_mean, regularize) ;
   } 
+  else if (!stricmp(option, "no-re-init") || !stricmp(option, "no-reinit") || !stricmp(option, "no_re_init") ){
+    reinit = 0; //donot reinitialize GCAM with the multiple linear registration
+  }
   else if (!stricmp(option, "cross-sequence-new") || !stricmp(option, "cross_sequence_new"))
   {
     regularize = .5 ;
