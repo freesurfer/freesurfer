@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.91 2005/12/07 18:50:04 kteich Exp $
+# $Id: tksurfer.tcl,v 1.92 2005/12/09 17:49:23 kteich Exp $
 
 package require BLT;
 
@@ -3426,6 +3426,7 @@ proc PackLabel { isLabel iSet ibShow } {
 proc CreateToolBar { ifwToolBar } {
 
     global gfwaToolBar
+    global gfwCurvatureButton
 
     frame $ifwToolBar
 
@@ -3434,6 +3435,7 @@ proc CreateToolBar { ifwToolBar } {
     set fwCut              $gfwaToolBar(main).fwCut
     set fwPoint            $gfwaToolBar(main).fwPoint
     set fwView             $gfwaToolBar(main).fwView
+    set fwCurv             $gfwaToolBar(main).fwCurv
     set fwFill             $gfwaToolBar(main).fwFill
     set fwLabel            $gfwaToolBar(main).fwLabel
     
@@ -3460,6 +3462,12 @@ proc CreateToolBar { ifwToolBar } {
 	{ image icon_home { RestoreView } "Restore View" } 
 	{ image icon_redraw { UpdateAndRedraw } "Redraw View" } }
     
+    tkm_MakeCheckboxes $fwCurv h { 
+	{ image icon_curv gaLinkedVars(curvflag) 
+	    "SendLinkedVarGroup view; UpdateAndRedraw" "Show Curvature" } }
+    set gfwCurvatureButton $fwCurv.cb0
+    EnableCurvatureButton 0
+
     tkm_MakeButtons $fwFill { 
 	{ image icon_draw_line { path_new_path_from_marked_vertices; 
 	    clear_all_vertex_marks; UpdateAndRedraw } "Make Path" } 
@@ -3491,7 +3499,7 @@ proc CreateToolBar { ifwToolBar } {
 	      { CreateColorPickerWindow LblLst_SetCurrentLabelColor } 
 	    "Change label color" } }
 
-    pack $fwCut $fwPoint $fwView $fwFill $fwLabel $fwColor \
+    pack $fwCut $fwPoint $fwView $fwCurv $fwFill $fwLabel $fwColor \
       -side left \
       -anchor w \
       -padx 5
@@ -3539,6 +3547,16 @@ proc OverlayLayerChanged {} {
     GDF_HideAllWindows
     GDF_ShowCurrentWindow
     GDF_SendCurrentPoints
+}
+
+proc EnableCurvatureButton { ibEnable } {
+    global gfwCurvatureButton
+    
+    if { $ibEnable } {
+	$gfwCurvatureButton config -state normal
+    } else {
+	$gfwCurvatureButton config -state disabled
+    }
 }
 
 # ====================================================================== GRAPH
@@ -4840,7 +4858,7 @@ proc CreateImages {} {
 	icon_cut_plane icon_cut_clear
 	icon_draw_line icon_draw_line_closed icon_fill_label icon_erase_line
 	icon_surface_main icon_surface_original icon_surface_pial
-	icon_home icon_redraw } {
+	icon_home icon_redraw icon_curv } {
 	
 	if { [catch {image create photo $image_name -file \
 	    [file join $ksImageDir $image_name.gif]} sResult] != 0 } {
