@@ -70,6 +70,7 @@ static int renormalize_wsize = 0 ;
 static int renormalize_iter = 0 ;
 static int renormalize_new = 0 ;
 static int renormalize_align = 0 ;
+static int no_old_renormalize = 0;
 static int filter = 0 ;
 static float pthresh = .7 ;
 #if 0
@@ -115,10 +116,10 @@ main(int argc, char *argv[])
   
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.64 2005/12/05 22:31:48 xhan Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.65 2005/12/09 18:41:42 xhan Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.64 2005/12/05 22:31:48 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.65 2005/12/09 18:41:42 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -533,7 +534,8 @@ main(int argc, char *argv[])
 				}
 				else
 					logfp = NULL ;
-				// GCAmapRenormalize(gca, mri_inputs, transform) ;
+				if(!no_old_renormalize)
+				  GCAmapRenormalize(gca, mri_inputs, transform) ;
 				GCAmapRenormalizeWithAlignment(gca, mri_inputs, transform, logfp, base_name, NULL) ;
 				GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
 				{
@@ -857,7 +859,11 @@ get_option(int argc, char *argv[])
 		renormalize_align = 1 ;
     printf("renormalizing sequences with structure alignment, equivalent to:\n") ;
 		printf("\t-renormalize\n\t-renormalize_mean %2.3f\n\t-regularize %2.3f\n",regularize_mean, regularize) ;
-  } 
+  }
+  else if (!stricmp(option, "no_old_renormalize"))
+  {
+    no_old_renormalize  = 1; //this option turns off the initial GCAmapRenormalize() when -align option is used
+  }
   else if (!stricmp(option, "cross-sequence") || !stricmp(option, "cross_sequence") ||
 					 !stricmp(option, "cross-sequence-new") || !stricmp(option, "cross_sequence-new"))
   {
