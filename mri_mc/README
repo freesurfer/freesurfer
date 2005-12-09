@@ -10,4 +10,5 @@ These files are concerned with the generation of surfaces
  from a surface.
 
 *build_MC_table: build the marching cubes table.
-
+The edge and vertex references used in the marching cube table are
+explicated in the figure mc_table.gif
