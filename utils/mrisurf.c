@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/12/07 14:23:47 $
-// Revision       : $Revision: 1.396 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/12/09 00:57:30 $
+// Revision       : $Revision: 1.397 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.396 2005/12/07 14:23:47 fischl Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.397 2005/12/09 00:57:30 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -46068,9 +46068,9 @@ int **MRIScrsLUT(MRIS *surf, MRI *src)
   crslut[1] = (int *) calloc(nvox,sizeof(int));
   crslut[2] = (int *) calloc(nvox,sizeof(int));
   vtx = 0; 
-  for(c=0; c < src->width; c++){
+  for(s=0; s < src->depth; s++){
     for(r=0; r < src->height; r++){
-      for(s=0; s < src->depth; s++){
+      for(c=0; c < src->width; c++){ // Do columns fastest
 	crslut[0][vtx] = c;
 	crslut[1][vtx] = r;
 	crslut[2][vtx] = s;
