@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/10 00:20:28 $
-// Revision       : $Revision: 1.39 $
+// Revision Date  : $Date: 2005/12/10 00:55:33 $
+// Revision       : $Revision: 1.40 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.39 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.40 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -139,6 +139,7 @@ typedef struct STRIP_PARMS
   int KeepEdits;
   char *PreEditVolName;
   char *PostEditVolName;
+  char *NewWithKeepVolName;
 
 } STRIP_PARMS ;
 
@@ -390,8 +391,9 @@ void usageHelp()
           "iterations (default 10)");
   fprintf(stderr, "\n-mask                : "
           "mask a volume with the brain mask");
-  fprintf(stderr, "\n-keep PreEditVol PostEditVol : "
-          "keep edits as indicated by the differences \nbetween pre and post volumes");
+  fprintf(stderr, "\n-keep PreEditVol PostEditVol NewWithEditsVol : "
+          "keep edits as indicated by the differences \nbetween pre and post volumes.");
+  fprintf(stderr, "Note: this does not change output, just create NewWithEditsVol\n");
   fprintf(stderr, "\n\n--help               : show this usage message");
   fprintf(stderr, "\n--version            : show the current version\n\n");
 }
@@ -560,6 +562,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
       parms->KeepEdits = 1;
       parms->PreEditVolName  = argv[2];
       parms->PostEditVolName = argv[3];
+      parms->NewWithKeepVolName = argv[4];
       if(!fio_FileExistsReadable(parms->PreEditVolName)){
 	printf("ERROR: volume %s does not exist or is not readable\n",
 	       parms->PreEditVolName);
@@ -571,7 +574,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
 	exit(1);
       }
       printf("Keeping brain edits %s %s\n",parms->PreEditVolName,parms->PostEditVolName);
-      nargs = 2 ;
+      nargs = 3 ;
     }
   // check one character options -s, -c, -r, -t, -n
   else if (strlen(option) == 1)
@@ -677,7 +680,7 @@ int main(int argc, char *argv[])
   char  *in_fname, *out_fname;
   int nargs, c, r ,s;
   MRI *mri_with_skull, *mri_without_skull=NULL, *mri_mask;
-  MRI *PreEditVol=NULL, *PostEditVol=NULL;
+  MRI *PreEditVol=NULL, *PostEditVol=NULL, *mritmp=NULL;
   float preval, postval, outval;
 
   STRIP_PARMS *parms;
@@ -685,7 +688,7 @@ int main(int argc, char *argv[])
         
   make_cmd_version_string 
     (argc, argv, 
-"$Id: mri_watershed.cpp,v 1.39 2005/12/10 00:20:28 greve Exp $", "$Name:  $",
+"$Id: mri_watershed.cpp,v 1.40 2005/12/10 00:55:33 greve Exp $", "$Name:  $",
      cmdline);
 
   Progname=argv[0];
@@ -696,7 +699,7 @@ int main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-"$Id: mri_watershed.cpp,v 1.39 2005/12/10 00:20:28 greve Exp $", "$Name:  $");
+"$Id: mri_watershed.cpp,v 1.40 2005/12/10 00:55:33 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -779,8 +782,13 @@ int main(int argc, char *argv[])
     mri_mask = mri_without_skull ;
 
   //-------------------------------------------------------------------
+  fprintf(stderr,"\n\n******************************\nSave...");
+  MRIwrite(mri_without_skull,out_fname);
+     
+  //-------------------------------------------------------------------
   if(parms->KeepEdits){
-    printf("Keeping edits .....\n");
+    printf("Keeping edits ...\n");
+    mritmp = MRIcopy(mri_without_skull,NULL);
     for(c=0; c < PreEditVol->width; c++){
       for(r=0; r < PreEditVol->height; r++){
 	for(s=0; s < PreEditVol->height; s++){
@@ -789,17 +797,16 @@ int main(int argc, char *argv[])
 	  if(preval == postval) continue;
 	  if(postval == 0) outval = 0;
 	  else outval = MRIgetVoxVal(mri_with_skull,c,r,s,0);
-	  MRIsetVoxVal(mri_without_skull,c,r,s,0,outval);
+	  MRIsetVoxVal(mritmp,c,r,s,0,outval);
 	}
       }
     }
+    printf("Saving kept edits to %s .....\n",parms->NewWithKeepVolName);
+    MRIwrite(mritmp,parms->NewWithKeepVolName);
+    MRIfree(&mritmp);
   }
 
-  //-------------------------------------------------------------------
-  fprintf(stderr,"\n\n******************************\nSave...");
-  MRIwrite(mri_without_skull,out_fname);
   MRIfree(&mri_with_skull) ;
-     
   fprintf(stderr,"done\n");
   
   if (nmask_volumes > 0)
