@@ -2,9 +2,36 @@
 //
 /*
 BEGINHELP
-$Id: mri_diff.c,v 1.4 2005/12/10 22:27:49 greve Exp $
 
-Determines whether two volumes differ. 
+Determines whether two volumes differ. See below for what 
+'differ' means. 
+
+The basic usage is something like:
+
+mri_diff vol1 vol2
+
+It then prints to the terminal whether they differ or not.
+
+NOTE: stuff might get printed to the terminal regardless of whether
+the volumes are different or not, so you cannot just use the 
+presence or absence of terminal output to determine whether they
+are different as you can with unix diff.
+
+There are three ways to determine whether they are different:
+1. Look for 'volumes differ' in the terminal output
+2. Program exits with status > 100
+3. Create a log file
+
+To create a log file, add --log yourlogfile any where in the
+command line, eg:
+
+mri_diff vol1 vol2 --log yourlogfile
+
+If youlogfile exists, it will be immediately deleted when the 
+program starts. If a difference is detected, yourlogfile will
+be created, and information about the difference will be
+printed to it. If there is no difference, yourlogfile will
+not exist when the program finishes.
 
 Volumes can differ in six ways:
   1. Dimension,               return status = 101
@@ -14,27 +41,51 @@ Volumes can differ in six ways:
   5. Precision,               return status = 105
   6. Pixel Data,              return status = 106
 
+Dimension is number of rows, cols, slices, and frames.
+Resolution is voxel size.
+Acqusition parameters are: flip angle, TR, TE, and TI.
+Geometry checks the vox2ras matrices for equality.
+Precision is int, float, short, etc.
+
 By default, all of these are checked, but some can be turned off
 with certain command-line flags:
 
 --allow-res  : turns of resolution checking
 --allow-acq  : turns of acquistion parameter checking
 --allow-geo  : turns of geometry checking
---allow-prec : turns of precisiono checking
+--allow-prec : turns of precision checking
 --allow-pix  : turns of pixel checking
 
-In addition, the minimum difference in pixel data required
+In addition, the minimum difference in pixel value required
 to be considered different can be controlled with --thresh.
-Eg, if two volumes differ by 
+Eg, if two volumes differ by .00001, and you do not consider
+this to be significant, then --thresh .00002 will prevent
+that difference from being considered different. The default
+threshold is 0.
 
+QUALITY ASSURANCE
+
+mri_diff can be used to check that two volumes where acquired in the
+same way with the --qa flag. This turns on Res, Acq, and Prec, and
+turns of Geo and Pix. Instead of checking geometry, it checks for the
+basic orientation of the volumes (eg, RAS, LPI, etc). The idea here is
+that the pixel data and exact geometry may be different, but other
+things should be the same.
+
+EXIT STATUS
+
+0   Volumes are not different and there were no errors
+1   Errors encounted. Volumes may or may not be different
+101 Volumes differ in dimension
+102 Volumes differ in resolution
+103 Volumes differ in acquisition parameters
+104 Volumes differ in geometry
+105 Volumes differ in precision
+106 Volumes differ in pixel data
+107 Volumes differ in orientation
 
 ENDHELP
 */
-
-
-
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,7 +130,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.4 2005/12/10 22:27:49 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.5 2005/12/10 23:02:14 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -98,8 +149,10 @@ int CheckResolution=1;
 int CheckAcqParams=1;
 int CheckPixVals=1;
 int CheckGeo=1;
+int CheckOrientation=1;
 int CheckPrecision=1;
 MATRIX *vox2ras1,*vox2ras2;
+char Orient1[4], Orient2[4];
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -266,6 +319,7 @@ int main(int argc, char *argv[])
     } // r
   } // checkgeo
 
+  //-------------------------------------------------------
   if(CheckPrecision){
     if(InVol1->type != InVol2->type){
       printf("Volumes differ in precision %d %d\n",
@@ -333,6 +387,28 @@ int main(int argc, char *argv[])
     }
   }
 
+  //----------------------------------------------------------
+  if(CheckOrientation){
+    MRIdircosToOrientationString(InVol1,Orient1);
+    MRIdircosToOrientationString(InVol2,Orient2);
+    if(strcmp(Orient1,Orient2)){
+      printf("Volumes differ in orientation %s %s\n",
+	     Orient1,Orient2);
+      if(DiffFile){
+	fp = fopen(DiffFile,"w");
+	if(fp==NULL){
+	  printf("ERROR: could not open %s\n",DiffFile);
+	  exit(1);
+	}
+	dump_options(fp);
+	fprintf(fp,"Volumes differ in orientation %s %s\n",
+	       Orient1,Orient2);
+	fclose(fp);
+      }
+      exit(107);
+    }
+  }
+
   exit(0);
   return(0);
 }
@@ -361,11 +437,16 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
 
-    else if (!strcasecmp(option, "--allow-res")) CheckResolution = 0;
-    else if (!strcasecmp(option, "--allow-acq")) CheckAcqParams = 0;
-    else if (!strcasecmp(option, "--allow-geo")) CheckGeo = 0;
-    else if (!strcasecmp(option, "--allow-pix")) CheckPixVals = 0;
+    else if (!strcasecmp(option, "--allow-res"))  CheckResolution = 0;
+    else if (!strcasecmp(option, "--allow-acq"))  CheckAcqParams = 0;
+    else if (!strcasecmp(option, "--allow-geo"))  CheckGeo = 0;
     else if (!strcasecmp(option, "--allow-prec")) CheckPrecision = 0;
+    else if (!strcasecmp(option, "--allow-pix"))  CheckPixVals = 0;
+    else if (!strcasecmp(option, "--allow-ori"))  CheckOrientation = 0;
+    else if (!strcasecmp(option, "--qa")){
+      CheckPixVals = 0;
+      CheckGeo     = 0;
+    }
 
     else if (!strcasecmp(option, "--v1")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -461,6 +542,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"checkacq  %d\n",CheckAcqParams);
   fprintf(fp,"checkpix  %d\n",CheckPixVals);
   fprintf(fp,"checkgeo  %d\n",CheckGeo);
+  fprintf(fp,"checkori  %d\n",CheckOrientation);
   fprintf(fp,"checkprec %d\n",CheckPrecision);
   fprintf(fp,"logfile   %s\n",DiffFile);
   //fprintf(fp,"resthresh %lf\n",pixthresh);
@@ -474,11 +556,14 @@ static void print_usage(void)
   //printf("   --v1 volfile1 : first  input volume \n");
   //printf("   --v2 volfile2 : second input volume \n");
   printf("\n");
-  printf("   --allow-res    : do not check for resolution diffs\n");
-  printf("   --allow-acq    : do not check for acq param diffs\n");
-  printf("   --allow-geo    : do not check for geometry diffs\n");
-  printf("   --allow-pix    : do not check for pixel diffs\n");
-  printf("   --allow-prec   : do not check for precision diffs\n");
+  printf("   --allow-res  : do not check for resolution diffs\n");
+  printf("   --allow-acq  : do not check for acq param diffs\n");
+  printf("   --allow-geo  : do not check for geometry diffs\n");
+  printf("   --allow-prec : do not check for precision diffs\n");
+  printf("   --allow-pix  : do not check for pixel diffs\n");
+  printf("   --allow-ori  : do not check for orientation diffs\n");
+  printf("\n");
+  printf("   --qa         : check res, acq, precision, and orientation only\n");
   printf("\n");
   printf("   --thresh thresh : pix diffs must be greater than this \n");
   printf("   --log DiffFile : store diff info in this file. \n");
@@ -495,50 +580,90 @@ static void print_usage(void)
 static void print_help(void)
 {
   print_usage() ;
-  printf("Determines whether two volumes differ in pixel data.\n");
-  printf("The voxels are compared on a voxel-by-voxel basis.\n");
-  printf("If the absolute difference is greater than a threshold,\n");
-  printf("the volumes are considered to be different and the program\n");
-  printf("exits with value 101. If a DiffFile has been specified,\n");
-  printf("that file is created and information about the environment\n");
-  printf("and how the volumes were different is stored in it.\n");
-  printf("The DiffFile is not created if the volumes are not different.\n");
-  printf("If DiffFile exists when the program is run, it is immediately\n");
-  printf("deleted.\n");
-  printf("\n");
-  printf("By default, the threshold is 0, but can be changed with\n");
-  printf("--thresh.\n");
-  printf("\n");
-  printf("If an error is encountered, then exits with status=1.\n");
-  printf("An error includes differing in dimension\n");
-  printf("\n");
-  printf("If there was no error and no difference, exit status=0\n");
-  printf("\n");
-  printf("EXAMPLES:\n");
-  printf("\n");
-  printf("mri_diff --v1 vol1.mgh --v2 vol2.img\n");
-  printf("mri_diff --v1 vol1.nii --v2 vol2.img --thresh 20\n");
-  printf("mri_diff --v1 vol1.mgh --v2 vol2.bhdr --thresh 20\n");
-  printf("   --diff DiffFile\n");
-  printf("\n");
-  printf("EXAMPLE DiffFile:\n");
-  printf("\n");
-  printf("$Id: mri_diff.c,v 1.4 2005/12/10 22:27:49 greve Exp $\n");
-  printf("mri_diff\n"
-         "FREESURFER_HOME /space/cadet/2/users/cadet/freesurfer\n"
-         "cwd       /space/cadet/2/users/cadet/dev/mri_diff\n"
-         "cmdline   ./mri_diff --v1 /home/cadet/projects/swf/skb/skb01.v1/bold/010/f.bhdr --v2 /home/cadet/projects/swf/skb/skb01.v1/bold/010/fmc.bhdr --diff-file mydifffile.dat --thresh 10 \n"
-         "timestamp 2005/12/10-04:34:08-GMT\n"
-         "sysname   Linux\n"
-         "hostname  sloth\n"
-         "machine   x86_64\n"
-         "user      cadet\n"
-         "v1        /space/cadet/projects/swf/skb/skb01.v1/bold/010/f.bhdr\n"
-         "v2        /space/cadet/projects/swf/skb/skb01.v1/bold/010/fmc.bhdr\n"
-         "pixthresh 10.000000\n"
-         "diff-file mydifffile.dat\n"
-         "maxdiff 254 at 42 49 26 95\n"
-	   "Volumes differ in pixel value\n");
-  printf("\n");
+
+printf("\n");
+printf("Determines whether two volumes differ. See below for what \n");
+printf("'differ' means. \n");
+printf("\n");
+printf("The basic usage is something like:\n");
+printf("\n");
+printf("mri_diff vol1 vol2\n");
+printf("\n");
+printf("It then prints to the terminal whether they differ or not.\n");
+printf("\n");
+printf("NOTE: stuff might get printed to the terminal regardless of whether\n");
+printf("the volumes are different or not, so you cannot just use the \n");
+printf("presence or absence of terminal output to determine whether they\n");
+printf("are different as you can with unix diff.\n");
+printf("\n");
+printf("There are three ways to determine whether they are different:\n");
+printf("1. Look for 'volumes differ' in the terminal output\n");
+printf("2. Program exits with status > 100\n");
+printf("3. Create a log file\n");
+printf("\n");
+printf("To create a log file, add --log yourlogfile any where in the\n");
+printf("command line, eg:\n");
+printf("\n");
+printf("mri_diff vol1 vol2 --log yourlogfile\n");
+printf("\n");
+printf("If youlogfile exists, it will be immediately deleted when the \n");
+printf("program starts. If a difference is detected, yourlogfile will\n");
+printf("be created, and information about the difference will be\n");
+printf("printed to it. If there is no difference, yourlogfile will\n");
+printf("not exist when the program finishes.\n");
+printf("\n");
+printf("Volumes can differ in six ways:\n");
+printf("  1. Dimension,               return status = 101\n");
+printf("  2. Resolutions,             return status = 102\n");
+printf("  3. Acquisition Parameters,  return status = 103\n");
+printf("  4. Geometry,                return status = 104\n");
+printf("  5. Precision,               return status = 105\n");
+printf("  6. Pixel Data,              return status = 106\n");
+printf("\n");
+printf("Dimension is number of rows, cols, slices, and frames.\n");
+printf("Resolution is voxel size.\n");
+printf("Acqusition parameters are: flip angle, TR, TE, and TI.\n");
+printf("Geometry checks the vox2ras matrices for equality.\n");
+printf("Precision is int, float, short, etc.\n");
+printf("\n");
+printf("By default, all of these are checked, but some can be turned off\n");
+printf("with certain command-line flags:\n");
+printf("\n");
+printf("--allow-res  : turns of resolution checking\n");
+printf("--allow-acq  : turns of acquistion parameter checking\n");
+printf("--allow-geo  : turns of geometry checking\n");
+printf("--allow-prec : turns of precision checking\n");
+printf("--allow-pix  : turns of pixel checking\n");
+printf("\n");
+printf("In addition, the minimum difference in pixel value required\n");
+printf("to be considered different can be controlled with --thresh.\n");
+printf("Eg, if two volumes differ by .00001, and you do not consider\n");
+printf("this to be significant, then --thresh .00002 will prevent\n");
+printf("that difference from being considered different. The default\n");
+printf("threshold is 0.\n");
+printf("\n");
+printf("QUALITY ASSURANCE\n");
+printf("\n");
+printf("mri_diff can be used to check that two volumes where acquired in the\n");
+printf("same way with the --qa flag. This turns on Res, Acq, and Prec, and\n");
+printf("turns of Geo and Pix. Instead of checking geometry, it checks for the\n");
+printf("basic orientation of the volumes (eg, RAS, LPI, etc). The idea here is\n");
+printf("that the pixel data and exact geometry may be different, but other\n");
+printf("things should be the same.\n");
+printf("\n");
+printf("EXIT STATUS\n");
+printf("\n");
+printf("0   Volumes are not different and there were no errors\n");
+printf("1   Errors encounted. Volumes may or may not be different\n");
+printf("101 Volumes differ in dimension\n");
+printf("102 Volumes differ in resolution\n");
+printf("103 Volumes differ in acquisition parameters\n");
+printf("104 Volumes differ in geometry\n");
+printf("105 Volumes differ in precision\n");
+printf("106 Volumes differ in pixel data\n");
+printf("107 Volumes differ in orientation\n");
+printf("\n");
+
+
   exit(1) ;
 }
