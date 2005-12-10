@@ -1116,6 +1116,7 @@ mri_convert/Makefile \
 mri_convert_mdh/Makefile \
 mri_copy_values/Makefile \
 mri_deface/Makefile \
+mri_diff/Makefile \
 mri_distance_transform/Makefile \
 mri_edit_segmentation/Makefile \
 mri_edit_segmentation_with_surfaces/Makefile \

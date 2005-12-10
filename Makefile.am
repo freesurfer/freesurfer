@@ -40,6 +40,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_copy_values \
 	mri_cor2label \
 	mri_deface \
+	mri_diff \
 	mri_hires_register \
 	mri_edit_segmentation \
 	mri_edit_segmentation_with_surfaces \
