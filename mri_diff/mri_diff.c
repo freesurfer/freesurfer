@@ -1,3 +1,39 @@
+// mri_voldiff v1 v2
+//
+/*
+BEGINHELP
+$Id: mri_diff.c,v 1.4 2005/12/10 22:27:49 greve Exp $
+
+Determines whether two volumes differ. 
+
+Volumes can differ in six ways:
+  1. Dimension,               return status = 101
+  2. Resolutions,             return status = 102
+  3. Acquisition Parameters,  return status = 103
+  4. Geometry,                return status = 104
+  5. Precision,               return status = 105
+  6. Pixel Data,              return status = 106
+
+By default, all of these are checked, but some can be turned off
+with certain command-line flags:
+
+--allow-res  : turns of resolution checking
+--allow-acq  : turns of acquistion parameter checking
+--allow-geo  : turns of geometry checking
+--allow-prec : turns of precisiono checking
+--allow-pix  : turns of pixel checking
+
+In addition, the minimum difference in pixel data required
+to be considered different can be controlled with --thresh.
+Eg, if two volumes differ by 
+
+
+ENDHELP
+*/
+
+
+
+
 
 
 #include <stdio.h>
@@ -43,7 +79,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.3 2005/12/10 05:49:08 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.4 2005/12/10 22:27:49 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -53,11 +89,17 @@ struct utsname uts;
 char *InVol1File=NULL;
 char *InVol2File=NULL;
 char *subject, *hemi, *SUBJECTS_DIR;
-double pixthresh=0, resthresh=0;
+double pixthresh=0, resthresh=0, geothresh=0;
 char *DiffFile=NULL;
 
 MRI *InVol1=NULL, *InVol2=NULL;
-int CheckResolution=0;
+
+int CheckResolution=1;
+int CheckAcqParams=1;
+int CheckPixVals=1;
+int CheckGeo=1;
+int CheckPrecision=1;
+MATRIX *vox2ras1,*vox2ras2;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -84,7 +126,8 @@ int main(int argc, char *argv[])
   parse_commandline(argc, argv);
   check_options();
   if(checkoptsonly) return(0);
-  dump_options(stdout);
+
+  if(debug) dump_options(stdout);
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if(SUBJECTS_DIR == NULL){
@@ -105,42 +148,16 @@ int main(int argc, char *argv[])
   InVol2 = MRIread(InVol2File);
   if(InVol2==NULL) exit(1);
   
+  /*- Check dimension ---------------------------------*/
   if(InVol1->width   != InVol2->width  ||
      InVol1->height  != InVol2->height ||
      InVol1->depth   != InVol2->depth  ||
      InVol1->nframes != InVol2->nframes){
-    printf("ERROR: volumes differ in dimension\n");
-    exit(1);
-  }
-  
-  // Compare pixel values
-  c=r=s=f=0;
-  val1 = MRIgetVoxVal(InVol1,c,r,s,f);
-  val2 = MRIgetVoxVal(InVol2,c,r,s,f);
-  maxdiff = fabs(val1-val2);
-  cmax=rmax=smax=fmax=0;
-  for(c=0; c < InVol1->width; c++){
-    for(r=0; r < InVol1->height; r++){
-      for(s=0; s < InVol1->depth; s++){
-	for(f=0; f < InVol1->nframes; f++){
-	  val1 = MRIgetVoxVal(InVol1,c,r,s,f);
-	  val2 = MRIgetVoxVal(InVol2,c,r,s,f);
-	  diff = fabs(val1-val2);
-	  if(maxdiff < diff){
-	    maxdiff = diff;
-	    cmax = c;
-	    rmax = r;
-	    smax = s;
-	    fmax = f;
-	  }
-	}
-      }
-    }
-  }
-
-  printf("maxdiff %g at %d %d %d %d\n",maxdiff,cmax,rmax,smax,fmax);
-  if(maxdiff > pixthresh){
-    printf("Volumes differ\n");
+    printf("Volumes differ in dimension\n");
+    printf("v1dim %d %d %d %d\n",
+	    InVol1->width,InVol1->height,InVol1->depth,InVol1->nframes);
+    printf("v2dim %d %d %d %d\n",
+	    InVol2->width,InVol2->height,InVol2->depth,InVol2->nframes);
     if(DiffFile){
       fp = fopen(DiffFile,"w");
       if(fp==NULL){
@@ -148,18 +165,26 @@ int main(int argc, char *argv[])
 	exit(1);
       }
       dump_options(fp);
-      fprintf(fp,"maxdiff %g at %d %d %d %d\n",maxdiff,cmax,rmax,smax,fmax);
-      fprintf(fp,"Volumes differ in pixel value\n");
+      fprintf(fp,"v1dim %d %d %d %d\n",
+	      InVol1->width,InVol1->height,InVol1->depth,InVol1->nframes);
+      fprintf(fp,"v2dim %d %d %d %d\n",
+	      InVol2->width,InVol2->height,InVol2->depth,InVol2->nframes);
+      fprintf(fp,"Volumes differ in dimension\n");
       fclose(fp);
     }
     exit(101);
   }
-
+  
+  //---------------------------------------------------
   if(CheckResolution){
     if(InVol1->xsize   != InVol2->xsize  ||
        InVol1->ysize   != InVol2->ysize ||
        InVol1->zsize   != InVol2->zsize){
       printf("Volumes differ in resolution\n");
+      printf("v1res %f %f %f\n",
+	     InVol1->xsize,InVol1->ysize,InVol1->zsize);
+      printf("v2res %f %f %f\n",
+	     InVol2->xsize,InVol2->ysize,InVol2->zsize);
       if(DiffFile){
 	fp = fopen(DiffFile,"w");
 	if(fp==NULL){
@@ -167,6 +192,10 @@ int main(int argc, char *argv[])
 	  exit(1);
 	}
 	dump_options(fp);
+	fprintf(fp,"v1res %f %f %f\n",
+		InVol1->xsize,InVol1->ysize,InVol1->zsize);
+	fprintf(fp,"v2res %f %f %f\n",
+		InVol2->xsize,InVol2->ysize,InVol2->zsize);
 	fprintf(fp,"Volumes differ in resolution\n");
 	fclose(fp);
       }
@@ -174,6 +203,135 @@ int main(int argc, char *argv[])
     }
   }
 
+  //---------------------------------------------------
+  if(CheckAcqParams){
+    if(InVol1->flip_angle   != InVol2->flip_angle ||
+       InVol1->tr   != InVol2->tr ||
+       InVol1->te   != InVol2->te ||
+       InVol1->ti   != InVol2->ti){
+      printf("Volumes differ in acquisition parameters\n");
+      printf("v1acq fa=%f tr=%f te=%f ti=%f\n",
+	      InVol1->flip_angle,InVol1->tr,InVol1->te,InVol1->ti);
+      printf("v2acq fa=%f tr=%f te=%f ti=%f\n",
+	     InVol2->flip_angle,InVol2->tr,InVol2->te,InVol2->ti);
+      if(DiffFile){
+	fp = fopen(DiffFile,"w");
+	if(fp==NULL){
+	  printf("ERROR: could not open %s\n",DiffFile);
+	  exit(1);
+	}
+	dump_options(fp);
+	fprintf(fp,"v1acq fa=%f tr=%f te=%f ti=%f\n",
+		InVol1->flip_angle,InVol1->tr,InVol1->te,InVol1->ti);
+	fprintf(fp,"v2acq fa=%f tr=%f te=%f ti=%f\n",
+		InVol2->flip_angle,InVol2->tr,InVol2->te,InVol2->ti);
+	fprintf(fp,"Volumes differ in acquisition parameters\n");
+	fclose(fp);
+      }
+      exit(103);
+    }
+  }
+
+  //------------------------------------------------------
+  if(CheckGeo){
+    vox2ras1 = MRIxfmCRS2XYZ(InVol1,0);
+    vox2ras2 = MRIxfmCRS2XYZ(InVol2,0);
+    for(r=1; r<=4; r++){
+      for(c=1; c<=4; c++){
+	val1 = vox2ras1->rptr[r][c];
+	val2 = vox2ras2->rptr[r][c];
+	diff = fabs(val1-val2);
+	if(diff > geothresh){
+	  printf("Volumes differ in geometry %d %d %lf\n",
+		  r,c,diff);
+	  if(DiffFile){
+	    fp = fopen(DiffFile,"w");
+	    if(fp==NULL){
+	      printf("ERROR: could not open %s\n",DiffFile);
+	      exit(1);
+	    }
+	    dump_options(fp);
+	    fprintf(fp,"v1 vox2ras ----------\n");
+	    MatrixPrint(fp,vox2ras1);
+	    fprintf(fp,"v2 vox2ras ---------\n");
+	    MatrixPrint(fp,vox2ras2);
+
+	    fprintf(fp,"Volumes differ in geometry vox2ras r=%d c=%d %lf\n",
+		    r,c,diff);
+	    fclose(fp);
+	  }
+	  exit(104);
+	}
+      } // c
+    } // r
+  } // checkgeo
+
+  if(CheckPrecision){
+    if(InVol1->type != InVol2->type){
+      printf("Volumes differ in precision %d %d\n",
+	     InVol1->type,InVol2->type);
+      if(DiffFile){
+	fp = fopen(DiffFile,"w");
+	if(fp==NULL){
+	  printf("ERROR: could not open %s\n",DiffFile);
+	  exit(1);
+	}
+	dump_options(fp);
+	fprintf(fp,"Volumes differ in precision %d %d\n",
+	       InVol1->type,InVol2->type);
+
+	fclose(fp);
+      }
+      exit(105);
+    }
+  }
+
+  //------------------------------------------------------
+  // Compare pixel values
+  if(CheckPixVals){
+    c=r=s=f=0;
+    val1 = MRIgetVoxVal(InVol1,c,r,s,f);
+    val2 = MRIgetVoxVal(InVol2,c,r,s,f);
+    maxdiff = fabs(val1-val2);
+    cmax=rmax=smax=fmax=0;
+    for(c=0; c < InVol1->width; c++){
+      for(r=0; r < InVol1->height; r++){
+	for(s=0; s < InVol1->depth; s++){
+	  for(f=0; f < InVol1->nframes; f++){
+	    val1 = MRIgetVoxVal(InVol1,c,r,s,f);
+	    val2 = MRIgetVoxVal(InVol2,c,r,s,f);
+	    diff = fabs(val1-val2);
+	    if(maxdiff < diff){
+	      maxdiff = diff;
+	      cmax = c;
+	      rmax = r;
+	      smax = s;
+	      fmax = f;
+	    }
+	  }
+	}
+      }
+    }
+    if(debug) printf("maxdiff %g at %d %d %d %d\n",
+		     maxdiff,cmax,rmax,smax,fmax);
+    if(maxdiff > pixthresh){
+      printf("Volumes differ in pixel data\n");
+      printf("maxdiff %g at %d %d %d %d\n",
+	     maxdiff,cmax,rmax,smax,fmax);
+      if(DiffFile){
+	fp = fopen(DiffFile,"w");
+	if(fp==NULL){
+	  printf("ERROR: could not open %s\n",DiffFile);
+	  exit(1);
+	}
+	dump_options(fp);
+	fprintf(fp,"maxdiff %g at %d %d %d %d\n",maxdiff,cmax,rmax,smax,fmax);
+	fprintf(fp,"Volumes differ in pixel value\n");
+	fclose(fp);
+      }
+      exit(106);
+    }
+  }
 
   exit(0);
   return(0);
@@ -203,6 +361,12 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
 
+    else if (!strcasecmp(option, "--allow-res")) CheckResolution = 0;
+    else if (!strcasecmp(option, "--allow-acq")) CheckAcqParams = 0;
+    else if (!strcasecmp(option, "--allow-geo")) CheckGeo = 0;
+    else if (!strcasecmp(option, "--allow-pix")) CheckPixVals = 0;
+    else if (!strcasecmp(option, "--allow-prec")) CheckPrecision = 0;
+
     else if (!strcasecmp(option, "--v1")){
       if(nargc < 1) CMDargNErr(option,1);
       InVol1File = pargv[0];
@@ -224,16 +388,27 @@ static int parse_commandline(int argc, char **argv)
       CheckResolution=1;
       nargsused = 1;
     }
-    else if (!strcasecmp(option, "--diff-file")){
+    else if (!strcasecmp(option, "--geo-thresh")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&geothresh);
+      CheckResolution=1;
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--diff-file") ||
+	     !strcasecmp(option, "--log")){
       if(nargc < 1) CMDargNErr(option,1);
       DiffFile = pargv[0];
       nargsused = 1;
     }
     else{
-      fprintf(stderr,"ERROR: Option %s unknown\n",option);
-      if(CMDsingleDash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
-      exit(-1);
+      if(InVol1File == NULL)      InVol1File = option;
+      else if(InVol2File == NULL) InVol2File = option;
+      else{
+	fprintf(stderr,"ERROR: Option %s unknown\n",option);
+	if(CMDsingleDash(option))
+	  fprintf(stderr,"       Did you really mean -%s ?\n",option);
+	exit(-1);
+      }
     }
     nargc -= nargsused;
     pargv += nargsused;
@@ -282,20 +457,31 @@ static void dump_options(FILE *fp)
   fprintf(fp,"v1        %s\n",InVol1File);
   fprintf(fp,"v2        %s\n",InVol2File);
   fprintf(fp,"pixthresh %lf\n",pixthresh);
-  //fprintf(fp,"checkres  %d\n",CheckResolution);
+  fprintf(fp,"checkres  %d\n",CheckResolution);
+  fprintf(fp,"checkacq  %d\n",CheckAcqParams);
+  fprintf(fp,"checkpix  %d\n",CheckPixVals);
+  fprintf(fp,"checkgeo  %d\n",CheckGeo);
+  fprintf(fp,"checkprec %d\n",CheckPrecision);
+  fprintf(fp,"logfile   %s\n",DiffFile);
   //fprintf(fp,"resthresh %lf\n",pixthresh);
-  fprintf(fp,"diff-file %s\n",DiffFile);
   return;
 }
 /* --------------------------------------------- */
 static void print_usage(void)
 {
-  printf("USAGE: %s \n",Progname) ;
+  printf("USAGE: %s <options> vol1file vol2file <options> \n",Progname) ;
   printf("\n");
-  printf("   --v1 volfile1 : first  input volume \n");
-  printf("   --v2 volfile2 : second input volume \n");
-  printf("   --thresh thresh : must be greater than this \n");
-  printf("   --diff-file DiffFile : store diff info in this file. \n");
+  //printf("   --v1 volfile1 : first  input volume \n");
+  //printf("   --v2 volfile2 : second input volume \n");
+  printf("\n");
+  printf("   --allow-res    : do not check for resolution diffs\n");
+  printf("   --allow-acq    : do not check for acq param diffs\n");
+  printf("   --allow-geo    : do not check for geometry diffs\n");
+  printf("   --allow-pix    : do not check for pixel diffs\n");
+  printf("   --allow-prec   : do not check for precision diffs\n");
+  printf("\n");
+  printf("   --thresh thresh : pix diffs must be greater than this \n");
+  printf("   --log DiffFile : store diff info in this file. \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -337,7 +523,7 @@ static void print_help(void)
   printf("\n");
   printf("EXAMPLE DiffFile:\n");
   printf("\n");
-  printf("$Id: mri_diff.c,v 1.3 2005/12/10 05:49:08 greve Exp $\n");
+  printf("$Id: mri_diff.c,v 1.4 2005/12/10 22:27:49 greve Exp $\n");
   printf("mri_diff\n"
          "FREESURFER_HOME /space/cadet/2/users/cadet/freesurfer\n"
          "cwd       /space/cadet/2/users/cadet/dev/mri_diff\n"
