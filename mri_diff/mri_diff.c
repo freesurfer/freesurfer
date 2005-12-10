@@ -43,7 +43,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.2 2005/12/10 05:45:05 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.3 2005/12/10 05:49:08 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -309,7 +309,7 @@ static void print_usage(void)
 static void print_help(void)
 {
   print_usage() ;
-  printf("Determines whether two voxels differ in pixel data.\n");
+  printf("Determines whether two volumes differ in pixel data.\n");
   printf("The voxels are compared on a voxel-by-voxel basis.\n");
   printf("If the absolute difference is greater than a threshold,\n");
   printf("the volumes are considered to be different and the program\n");
@@ -337,8 +337,8 @@ static void print_help(void)
   printf("\n");
   printf("EXAMPLE DiffFile:\n");
   printf("\n");
-  printf("$Id: mri_diff.c,v 1.2 2005/12/10 05:45:05 greve Exp $\n");
-  printf("./mri_diff\n"
+  printf("$Id: mri_diff.c,v 1.3 2005/12/10 05:49:08 greve Exp $\n");
+  printf("mri_diff\n"
          "FREESURFER_HOME /space/cadet/2/users/cadet/freesurfer\n"
          "cwd       /space/cadet/2/users/cadet/dev/mri_diff\n"
          "cmdline   ./mri_diff --v1 /home/cadet/projects/swf/skb/skb01.v1/bold/010/f.bhdr --v2 /home/cadet/projects/swf/skb/skb01.v1/bold/010/fmc.bhdr --diff-file mydifffile.dat --thresh 10 \n"
