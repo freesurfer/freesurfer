@@ -43,7 +43,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.1 2005/12/10 05:42:35 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.2 2005/12/10 05:45:05 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -337,18 +337,18 @@ static void print_help(void)
   printf("\n");
   printf("EXAMPLE DiffFile:\n");
   printf("\n");
-  printf("$Id: mri_diff.c,v 1.1 2005/12/10 05:42:35 greve Exp $\n");
+  printf("$Id: mri_diff.c,v 1.2 2005/12/10 05:45:05 greve Exp $\n");
   printf("./mri_diff\n"
-         "FREESURFER_HOME /space/greve/2/users/greve/freesurfer\n"
-         "cwd       /home/space/greve/2/users/greve/dev/mri_diff\n"
-         "cmdline   ./mri_diff --v1 /home/greve/projects/swf/skb/skb01.v1/bold/010/f.bhdr --v2 /home/greve/projects/swf/skb/skb01.v1/bold/010/fmc.bhdr --diff-file mydifffile.dat --thresh 10 \n"
+         "FREESURFER_HOME /space/cadet/2/users/cadet/freesurfer\n"
+         "cwd       /space/cadet/2/users/cadet/dev/mri_diff\n"
+         "cmdline   ./mri_diff --v1 /home/cadet/projects/swf/skb/skb01.v1/bold/010/f.bhdr --v2 /home/cadet/projects/swf/skb/skb01.v1/bold/010/fmc.bhdr --diff-file mydifffile.dat --thresh 10 \n"
          "timestamp 2005/12/10-04:34:08-GMT\n"
          "sysname   Linux\n"
          "hostname  sloth\n"
          "machine   x86_64\n"
-         "user      greve\n"
-         "v1        /home/greve/projects/swf/skb/skb01.v1/bold/010/f.bhdr\n"
-         "v2        /home/greve/projects/swf/skb/skb01.v1/bold/010/fmc.bhdr\n"
+         "user      cadet\n"
+         "v1        /space/cadet/projects/swf/skb/skb01.v1/bold/010/f.bhdr\n"
+         "v2        /space/cadet/projects/swf/skb/skb01.v1/bold/010/fmc.bhdr\n"
          "pixthresh 10.000000\n"
          "diff-file mydifffile.dat\n"
          "maxdiff 254 at 42 49 26 95\n"
