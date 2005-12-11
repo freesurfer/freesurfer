@@ -1,3 +1,13 @@
+
+// things to do:
+// --test-surf-vtx vtxno val field
+// --test-surf-face faceno val field
+// --test-aparc vtxno val
+// --test-curv vtxno val
+// --log
+// --thresh
+// --debug
+
 /*
 BEGINHELP
 
@@ -76,7 +86,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.2 2005/12/11 06:46:40 greve Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.3 2005/12/11 18:28:58 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
