@@ -156,6 +156,7 @@ MRISSUBDIRS=stim \
 	mris_reverse \
 	mris_rotate \
 	mris_ms_refine \
+	mris_diff \
 	mris_distance_to_label \
 	mris_register \
 	mris_sample_label \

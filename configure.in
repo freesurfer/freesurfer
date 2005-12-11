@@ -1206,6 +1206,7 @@ mris_compute_acorr/Makefile \
 mris_compute_overlap/Makefile \
 mris_convert/Makefile mris_curvature/Makefile \
 mris_curvature_stats/Makefile \
+mris_diff/Makefile \
 mris_entropy/Makefile mris_errors/Makefile \
 mris_euler_number/Makefile \
 mris_expand/Makefile \
