@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.16 2005/11/07 18:32:37 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.17 2005/12/12 16:10:54 nicks Exp $';
 
 set PrintHelp = 0;
 
@@ -23,6 +23,7 @@ set average_subject=average
 set ddir = ${SUBJECTS_DIR}/${average_subject}
 set transform_fname=""
 set XFORM_FLAG=""
+set ico_no=7
 
 # note: SUBJECTS can be set by --subjects
 # SUBJECTS_DIR can be set by --sdir
@@ -91,7 +92,7 @@ foreach hemi (rh lh)
     echo "Making average $hemi.$s surface --------------------------------"
     date
     set cmd = (mris_make_average_surface $XFORM_FLAG \
-                -i 7 \
+                -i $ico_no \
                 -o $s \
                 ${hemi} \
                 ${s}_avg sphere.reg \
@@ -226,6 +227,16 @@ while( $#argv != 0 )
       set XFORM_FLAG = "-X $transform_fname";
       breaksw
 
+    case "--i":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set ico_no = $argv[1]; shift;
+      breaksw
+
     case "--nocleanup":
       # This has no effect, but needed for compat with make_average_volume
       set cleanup = 0;
@@ -326,6 +337,7 @@ usage_exit:
   echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
   echo "   --sd      : same as --sdir"
   echo "   --xform <transform_fname>       : filename of transform file"
+  echo "   --i <number>  : specify icosahedron number, default is 7 (ic7.tri)"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"
