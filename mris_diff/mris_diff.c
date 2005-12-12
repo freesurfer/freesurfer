@@ -86,7 +86,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.3 2005/12/11 18:28:58 greve Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.4 2005/12/12 05:26:06 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -103,6 +103,7 @@ MRIS *surf1, *surf2;
 int CheckSurf=0;
 int CheckCurv=0;
 int CheckAParc=0;
+double thresh=0; 
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -188,27 +189,27 @@ int main(int argc, char *argv[])
 	       nthvtx,vtx1->ripflag,vtx2->ripflag);
 	exit(103);
       }
-      if(vtx1->x != vtx2->x){
+      if(fabs(vtx1->x-vtx2->x)>thresh){
 	printf("Vertex %d differs in x %g %g\n",nthvtx,vtx1->x,vtx2->x);
 	exit(103);
       }
-      if(vtx1->y != vtx2->y){
+      if(fabs(vtx1->y - vtx2->y)>thresh){
 	printf("Vertex %d differs in y %g %g\n",nthvtx,vtx1->y,vtx2->y);
 	exit(103);
       }
-      if(vtx1->z != vtx2->z){
+      if(fabs(vtx1->z - vtx2->z)>thresh){
 	printf("Vertex %d differs in z %g %g\n",nthvtx,vtx1->z,vtx2->z);
 	exit(103);
       }
-      if(vtx1->nx != vtx2->nx){
+      if(fabs(vtx1->nx - vtx2->nx)>thresh){
 	printf("Vertex %d differs in nx %g %g\n",nthvtx,vtx1->nx,vtx2->nx);
 	exit(103);
       }
-      if(vtx1->ny != vtx2->ny){
+      if(fabs(vtx1->ny - vtx2->ny)>thresh){
 	printf("Vertex %d differs in ny %g %g\n",nthvtx,vtx1->ny,vtx2->ny);
 	exit(103);
       }
-      if(vtx1->nz != vtx2->nz){
+      if(fabs(vtx1->nz - vtx2->nz)>thresh){
 	printf("Vertex %d differs in nz %g %g\n",nthvtx,vtx1->nz,vtx2->nz);
 	exit(103);
       }
@@ -234,19 +235,19 @@ int main(int argc, char *argv[])
     for(nthface=0; nthface < surf1->nfaces; nthface++){
       face1 = &(surf1->faces[nthface]);
       face2 = &(surf2->faces[nthface]);
-      if(face1->nx != face2->nx){
+      if(fabs(face1->nx - face2->nx)>thresh){
 	printf("Face %d differs in nx %g %g\n",nthface,face1->nx,face2->nx);
 	exit(103);
       }
-      if(face1->ny != face2->ny){
+      if(fabs(face1->ny - face2->ny)>thresh){
 	printf("Face %d differs in ny %g %g\n",nthface,face1->ny,face2->ny);
 	exit(103);
       }
-      if(face1->nz != face2->nz){
+      if(fabs(face1->nz - face2->nz)>thresh){
 	printf("Face %d differs in nz %g %g\n",nthface,face1->nz,face2->nz);
 	exit(103);
       }
-      if(face1->area != face2->area){
+      if(fabs(face1->area - face2->area)>thresh){
 	printf("Face %d differs in area %g %g\n",nthface,face1->area,face2->area);
 	exit(103);
       }
@@ -270,25 +271,22 @@ int main(int argc, char *argv[])
   // -----------------------------------------------------------------
   if(CheckCurv){
     printf("Checking curv file %s\n",curvname);
-
     sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject1,hemi,curvname);
     printf("Loading curv file %s\n",tmpstr);
     if(MRISreadCurvatureFile(surf1, tmpstr) != 0){
       printf("ERROR: reading curvature file %s\n",tmpstr);
       exit(1);
     }
-
     sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject2,hemi,curvname);
     printf("Loading curv file %s\n",tmpstr);
     if(MRISreadCurvatureFile(surf2, tmpstr) != 0){
       printf("ERROR: reading curvature file %s\n",tmpstr);
       exit(1);
     }
-
     for(nthvtx=0; nthvtx < surf1->nvertices; nthvtx++){
       vtx1 = &(surf1->vertices[nthvtx]);
       vtx2 = &(surf2->vertices[nthvtx]);
-      if(fabs(vtx1->curv-vtx2->curv) > 0){
+      if(fabs(vtx1->curv-vtx2->curv) > thresh){
 	printf("curv files differ at vertex %d %g %g\n",
 	       nthvtx,vtx1->curv,vtx2->curv);
 	exit(103);
@@ -386,6 +384,11 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) CMDargNErr(option,1);
       aparcname = pargv[0];
       CheckAParc=1;
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--thresh")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&thresh);
       nargsused = 1;
     }
     else{
