@@ -15167,7 +15167,7 @@ floodfill_marked_patch(int filltype)
   VERTEX *v, *vn;
   int i,k,m,filled,totfilled=0,kmin,kmax,kstep;
   /* begin rkt */
-  float value;
+  float value = 0;
   /* end rkt */
   
   if (nmarked==0) return;
@@ -18978,7 +18978,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.155 2005/12/12 18:53:43 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.156 2005/12/12 19:00:54 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23427,7 +23427,7 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked)
 {
   float *saved_val;
   float *saved_val2;
-  float current_value;
+  float current_value=0;
   double threshold;
   int err;
   int sign;
@@ -23621,6 +23621,8 @@ int sclv_swap_fields ( int fielda, int fieldb ) {
   char cmd[STRLEN];
   int k;
   float a, b;
+  a=0;
+  b=0;
   
   if (fielda < 0 || fielda >= NUM_SCALAR_VALUES)
     return (ERROR_BADPARM);
@@ -25791,7 +25793,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
   int neighbor_vno;
   VERTEX* v;
   VERTEX* neighbor_v;
-  float fvalue;
+  float fvalue = 0;
   float seed_curv = 0;
   float seed_fvalue = 0;
   int new_index;
