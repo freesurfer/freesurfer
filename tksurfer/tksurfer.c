@@ -18974,7 +18974,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.152 2005/12/09 17:49:15 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.153 2005/12/12 15:32:55 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -26057,6 +26057,11 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
       /* Set src and dest */
       src_vno = vert_vno[cur_vert_vno+1];
       dest_vno = vert_vno[cur_vert_vno];
+
+      /* make sure both are in range. */
+      if (src_vno < 0 || src_vno >= mris->nvertices ||
+	  dest_vno < 0 || dest_vno >= mris->nvertices)
+	continue;
 
       /* calc the vector from src to dst. */
       srcdst_x = mris->vertices[dest_vno].x - mris->vertices[src_vno].x;
