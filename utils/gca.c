@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/12/12 17:16:19 $
-// Revision       : $Revision: 1.182 $
+// Revision Date  : $Date: 2005/12/12 17:18:23 $
+// Revision       : $Revision: 1.183 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15153,6 +15153,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 
   float peak_threshold = 0.03;
   float overlap_threshold = 0.001;
+  int equiv_class[MAX_CMA_LABELS];
 
   if(transform->type == MORPH_3D_TYPE){
     peak_threshold = 0.01; 
@@ -15160,7 +15161,6 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                               // trust the registration more
   }
 
-  int equiv_class[MAX_CMA_LABELS];
   set_equilavent_classes(equiv_class);
 
   printf("renormalizing by structure alignment....\n") ;
