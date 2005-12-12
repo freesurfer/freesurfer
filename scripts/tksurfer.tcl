@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.92 2005/12/09 17:49:23 kteich Exp $
+# $Id: tksurfer.tcl,v 1.93 2005/12/12 21:59:24 kteich Exp $
 
 package require BLT;
 
@@ -1378,48 +1378,55 @@ proc DoConfigCurvatureDisplayDlog {} {
 
     if { [Dialog_Create $wwDialog "Configure Curvature Display" {-borderwidth 10}] } {
 
-  set fwMain             $wwDialog.fwMain
-  set lfwThreshold       $wwDialog.lfwThreshold
-  set fwGrayscale        $wwDialog.fwGrayscale
-  set fwButtons          $wwDialog.fwButtons
+	set fwMain             $wwDialog.fwMain
+	set lfwThreshold       $wwDialog.lfwThreshold
+	set fwGrayscale        $wwDialog.fwGrayscale
+	set fwButtons          $wwDialog.fwButtons
+	
+	frame $fwMain
+	
+	# fields for slope and midpoint
+	tixLabelFrame $lfwThreshold \
+	    -label "Threshold" \
+	    -labelside acrosstop \
+	    -options { label.padX 5 }
+	
+	set fwThresholdSub     [$lfwThreshold subwidget frame]
+	set fwThresholdSliders $fwThresholdSub.fwThresholdSliders
+	set fwThresholdSlope   $fwThresholdSub.fwThresholdSlope
+	
+	if { ![winfo exists $fwThresholdSliders] } {
+	    tkm_MakeSliders $fwThresholdSliders [list \
+						     [list {"Threshold midpoint"} gaLinkedVars(cmid) \
+							  $gaLinkedVars(cmin) $gaLinkedVars(cmax) 100 {} 1 0.05 ]]
+	} else {
+	    $fwThresholdSliders.sw0 config \
+		-from $gaLinkedVars(cmin) \
+		-to $gaLinkedVars(cmax)
+	}
 
-  frame $fwMain
-
-  # fields for slope and midpoint
-  tixLabelFrame $lfwThreshold \
-    -label "Threshold" \
-    -labelside acrosstop \
-    -options { label.padX 5 }
-
-  set fwThresholdSub     [$lfwThreshold subwidget frame]
-  set fwThresholdSliders $fwThresholdSub.fwThresholdSliders
-  set fwThresholdSlope   $fwThresholdSub.fwThresholdSlope
-
-  tkm_MakeSliders $fwThresholdSliders [list \
-    [list {"Threshold midpoint"} gaLinkedVars(cmid) \
-    $gaLinkedVars(cmin) $gaLinkedVars(cmax) 100 {} 1 0.05 ]]
-  tkm_MakeEntry $fwThresholdSlope "Threshold slope" \
-    gaLinkedVars(cslope) 6
-
-  pack $fwThresholdSliders $fwThresholdSlope \
-    -side top \
-    -anchor w
-
-  tkm_MakeCheckboxes $fwGrayscale x {
-      { text "Binary gray" gaLinkedVars(forcegraycurvatureflag) {} 
-	  "Always draw curvature in binary gray" }
-  }
-
-  # buttons.
-  tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
-    { SendLinkedVarGroup curvature; UpdateAndRedraw } {}
-
-  pack $fwMain $lfwThreshold $fwGrayscale $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x         \
-    -padx 5         \
-    -pady 5
+	tkm_MakeEntry $fwThresholdSlope "Threshold slope" \
+	    gaLinkedVars(cslope) 6
+	
+	pack $fwThresholdSliders $fwThresholdSlope \
+	    -side top \
+	    -anchor w
+	
+	tkm_MakeCheckboxes $fwGrayscale x {
+	    { text "Binary gray" gaLinkedVars(forcegraycurvatureflag) {} 
+		"Always draw curvature in binary gray" }
+	}
+	
+	# buttons.
+	tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
+	    { SendLinkedVarGroup curvature; UpdateAndRedraw } {}
+	
+	pack $fwMain $lfwThreshold $fwGrayscale $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
     }
 }
 
