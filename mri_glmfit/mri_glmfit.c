@@ -72,7 +72,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.38 2005/12/12 22:07:15 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.39 2005/12/12 22:10:32 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
@@ -449,9 +449,9 @@ int main(int argc, char **argv)
       else	          fprintf(fp,"# smoothinglevel -1\n");
       fprintf(fp,"# hostname %s\n",uts.nodename);
       fprintf(fp,"# machine  %s\n",uts.machine);
-      fprintf(fp,"# LoopNo nClusters MaxClustSize MaxSig\n");
       fprintf(fp,"# label  %s\n",labelFile);
       fprintf(fp,"# label-inv  %d\n",clabelinv);
+      fprintf(fp,"# LoopNo nClusters MaxClustSize MaxSig\n");
       fclose(fp);
     }
 
