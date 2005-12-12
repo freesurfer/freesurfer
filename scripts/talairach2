@@ -12,7 +12,7 @@
 # The algorithm of mritotal is correlation based and thus
 # it is better to use the intensity normalized volume, nu.
 #########################################################
-set VERSION = '$Id: talairach2,v 1.9 2005/10/17 18:05:33 nicks Exp $';
+set VERSION = '$Id: talairach2,v 1.10 2005/12/12 22:45:01 greve Exp $';
 
 set MGZ = ();
 
@@ -20,7 +20,7 @@ set MGZ = ();
 setenv LANG C
 
 # Look for version #
-set n = `echo $argv | grep version | wc -l` 
+set n = `echo $argv | grep -e --version | wc -l` 
 if($n != 0) then
   echo $VERSION
   ## gather version info used by this script
