@@ -5430,6 +5430,10 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
   VERTEX *v;                    /* Current vertex when testng int with plane */
   float dx, dy, dz, d;          /* Distance of currect vert to intersection */
 
+  xmin[0] = 0;
+  xmin[1] = 0;
+  xmin[2] = 0;
+
   if (Gdiag)
     ddt_clear();
 
@@ -18974,7 +18978,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.153 2005/12/12 15:32:55 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.154 2005/12/12 18:49:40 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24365,7 +24369,7 @@ int labl_import_annotation (char *fname)
   /* init our done array. */
   r = g = b = 255;
   MRISRGBToAnnot(r,g,b,max_annot);
-  done = (int*) calloc( max_annot, sizeof(int) );
+  done = (unsigned int*) calloc( max_annot, sizeof(int) );
   if ( NULL == done ) {
     printf( "calloc of size %d failed\n", max_annot );
     return (ERROR_NO_MEMORY);
