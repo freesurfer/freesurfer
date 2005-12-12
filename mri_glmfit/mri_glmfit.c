@@ -59,6 +59,8 @@ double round(double x);
 #include "volcluster.h"
 #include "surfcluster.h"
 
+int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag);
+
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -70,16 +72,20 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.37 2005/12/05 23:59:52 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.38 2005/12/12 22:07:15 greve Exp $";
 char *Progname = NULL;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
-char *yhatFile=NULL, *eresFile=NULL, *wFile=NULL, *maskFile;
+char *yhatFile=NULL, *eresFile=NULL, *wFile=NULL, *maskFile=NULL;
 char *condFile=NULL;
 char *GLMDir=NULL;
 char *pvrFiles[50];
 int yhatSave=0;
 int condSave=0;
+
+char *labelFile=NULL;
+LABEL *clabel=NULL;
+int   clabelinv = 0;
 
 MRI *mritmp=NULL, *sig=NULL, *rstd;
 
@@ -348,6 +354,8 @@ int main(int argc, char **argv)
   // Compute Contrast-related matrices
   GLMcMatrices(mriglm->glm);
 
+  mriglm->mask = NULL;
+
   // Load the mask file ----------------------------------
   if(maskFile != NULL){
     mriglm->mask = MRIread(maskFile);
@@ -356,8 +364,16 @@ int main(int argc, char **argv)
       exit(1);
     }
   }
-  else mriglm->mask = NULL;
-
+  // Load the label mask file ----------------------------------
+  if(labelFile != NULL){
+    clabel = LabelRead(NULL, labelFile);
+    if(clabel == NULL){
+      printf("ERROR reading %s\n",labelFile);
+      exit(1);
+    }
+    printf("Found %d points in label.\n",clabel->n_points);
+    MRISmaskByLabel(mriglm->y, surf, clabel, clabelinv);
+  }
 
   // Dump a voxel
   if(voxdumpflag){
@@ -426,13 +442,16 @@ int main(int argc, char **argv)
       fprintf(fp,"# seed   %d\n",SynthSeed);
       fprintf(fp,"# thresh %g\n",thresh);
       fprintf(fp,"# contrast %s\n",mriglm->glm->Cname[n]);
-      fprintf(fp,"# hostname %s\n",uts.nodename);
-      fprintf(fp,"# machine  %s\n",uts.machine);
       fprintf(fp,"# nsim   %d\n",nsim);
       if(surf == NULL) fprintf(fp,"# anattype volume\n");
       else fprintf(fp,"# anattype surface %s %s\n",subject,hemi);
+      if(SmoothLevel > 0) fprintf(fp,"# smoothinglevel %lf \n",SmoothLevel);
+      else	          fprintf(fp,"# smoothinglevel -1\n");
+      fprintf(fp,"# hostname %s\n",uts.nodename);
+      fprintf(fp,"# machine  %s\n",uts.machine);
       fprintf(fp,"# LoopNo nClusters MaxClustSize MaxSig\n");
-
+      fprintf(fp,"# label  %s\n",labelFile);
+      fprintf(fp,"# label-inv  %d\n",clabelinv);
       fclose(fp);
     }
 
@@ -481,7 +500,7 @@ int main(int argc, char **argv)
 	       nClusters,csize,sigmax,Fmax);
 	sprintf(tmpstr,"%s-%s.csd",simbase,mriglm->glm->Cname[n]);
 	fp = fopen(tmpstr,"a");
-	fprintf(fp,"%d %d   %g  %g\n",nthsim,nClusters,csize,sigmax);
+	fprintf(fp,"%5d     %d     %g     %g\n",nthsim,nClusters,csize,sigmax);
 	fclose(fp);
 	MRIfree(&sig);
 	free(SurfClustList);
@@ -643,6 +662,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--perm"))    perm = 1;
+    else if (!strcasecmp(option, "--label-inv"))  clabelinv = 1;
 
     else if (!strcasecmp(option, "--sim")){
       if(nargc < 3) CMDargNErr(option,1);
@@ -735,6 +755,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--mask")){
       if(nargc < 1) CMDargNErr(option,1);
       maskFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--label")){
+      if(nargc < 1) CMDargNErr(option,1);
+      labelFile = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--w")){
@@ -927,6 +952,11 @@ static void check_options(void)
     }
   }
 
+  if(labelFile != NULL && surf==NULL){
+    printf("ERROR: need --surf with --label\n");
+    exit(1);
+  }
+
   return;
 }
 
@@ -956,6 +986,10 @@ static void dump_options(FILE *fp)
     fprintf(fp,"SelfRegressor %d  %4d %4d %4d\n",n+1,
 	   crsSelfReg[n][0],crsSelfReg[n][1],crsSelfReg[n][2]);
   }
+  if(labelFile){
+    fprintf(fp,"label  %s\n",labelFile);
+    fprintf(fp,"label-inv  %d\n",clabelinv);
+  }
 
   return;
 }
@@ -974,5 +1008,32 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel)
     printf("  Surface Smoothing to %d iterations\n",(int)SmthLevel);
     MRISsmoothMRI(surf, mri, SmthLevel, mri);
   }
+  return(0);
+}
+/*--------------------------------------------------------------------*/
+int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag)
+{
+  int **crslut, *lbmask, vtxno, n, c, r, s, f;
+
+  lbmask = (int*) calloc(surf->nvertices,sizeof(int));
+
+  // Set each label vertex in lbmask to 1
+  for(n=0; n<lb->n_points; n++){
+    vtxno = lb->lv[n].vno;
+    lbmask[vtxno] = 1;
+  }
+
+  crslut = MRIScrsLUT(surf, y);
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
+    if(lbmask[vtxno] && !invflag) continue; // in-label and not inverting
+    if(!lbmask[vtxno] && invflag) continue; // out-label but inverting
+    c = crslut[0][vtxno];
+    r = crslut[1][vtxno];
+    s = crslut[2][vtxno];
+    for(f=0; f < y->nframes; f++) MRIsetVoxVal(y,c,r,s,f,0);
+  }
+
+  free(lbmask);
+  MRIScrsLUTFree(crslut);
   return(0);
 }
