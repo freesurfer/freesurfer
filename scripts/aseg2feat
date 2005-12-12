@@ -2,11 +2,12 @@
 # aseg2feat
 # 
 
-set VERSION = '$Id: aseg2feat,v 1.6 2005/10/11 17:49:10 greve Exp $';
+set VERSION = '$Id: aseg2feat,v 1.7 2005/12/12 23:44:42 greve Exp $';
 set FeatDirList = ();
 set debug = 0;
 set usedev = 0;
 set asegvol = aseg
+set svstats = 0;
 
 set PrintHelp = 0;
 
@@ -60,8 +61,12 @@ foreach FeatDir ($FeatDirList)
 
   set cmd = ($L2V --seg $aseg \
               --temp $FeatDir/example_func.img  \
-              --reg  $FeatDir/reg/freesurfer/anat2exf.register.dat \
-              --o    $FeatDir/reg/freesurfer/$asegvol.img)
+              --reg  $FeatDir/reg/freesurfer/anat2exf.register.dat)
+  if($svstats) then
+    set cmd = ($cmd --o $FeatDir/stats/$asegvol.img)
+  else
+    set cmd = ($cmd --o $FeatDir/reg/freesurfer/$asegvol.img)
+  endif
   date      | tee -a $LF
   pwd       | tee -a $LF
   echo $cmd | tee -a $LF
@@ -109,6 +114,10 @@ while( $#argv != 0 )
         exit 1;
       endif
       set FeatDirList = ($FeatDirList `cat $FeatFile`); shift;
+      breaksw
+
+    case "--svstats":
+      set svstats = 1;
       breaksw
 
     case "--debug":
@@ -191,6 +200,7 @@ usage_exit:
   echo "Optional flags and arguments:"
   echo ""
   echo " --aseg asegvol       : change aseg volume (default is aseg)"
+  echo " --svstats            : save in featdir/stats"
   echo " --help               : print help and exit"
   echo " --debug              : turn on debugging"
   echo " --version            : print version and exit"
@@ -232,6 +242,10 @@ than specifying all of them with --feat on the command-line. Multiple
 Change the aseg volume. Default is aseg. Newer version of recon-all
 will also create an aparc+aseg.mgz, which has all the subcortical and
 cortical segmentations in it (see $FREESURFER_HOME/FreeSurferColorLUT.txt).
+
+--svstats
+
+Flag to save result in featdir/stats instead of featdir/reg/freesurfer
 
 NOTES
 
