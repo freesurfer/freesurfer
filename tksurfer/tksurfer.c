@@ -14704,12 +14704,12 @@ set_complexval_color(float x, float y, float stat, float curv)
   float tmpoffset,fscale;
   float a_cycles, oa = 0.0f;
   
-  f -= foffset ;
-  
   if (statflag || sclv_current_field == SCLV_VALSTAT)
     f = stat;
   else
     f = sqrt(x*x+y*y);
+  
+  f -= foffset ;
   
   if (curv<0.0) tmpoffset = cvfact*offset;
   else          tmpoffset = offset;
@@ -18978,7 +18978,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.154 2005/12/12 18:49:40 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.155 2005/12/12 18:53:43 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
