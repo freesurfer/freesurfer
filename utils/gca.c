@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/12/12 17:54:27 $
-// Revision       : $Revision: 1.184 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/12/12 23:17:11 $
+// Revision       : $Revision: 1.185 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15205,7 +15205,9 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                 IS_PUTAMEN(l) || 
                 IS_PALLIDUM(l))
               border = BORDER_SIZE+1 ;  // need more context for hippo
-            else
+            else if(IS_GM(l))
+	      border = 0;
+	    else
               border = BORDER_SIZE ;
             GCAbuildMostLikelyVolumeForStructure
               (gca, mri_seg, l, border, transform,mri_labels) ;
@@ -15295,12 +15297,28 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                 
                 printf("aligning %s...\n", cma_label_to_name(l)) ;
                 m_L = MRIgetVoxelToVoxelXform(mri_seg, mri) ;
-                if(! IS_GM(l)){ //always use the initial alignment for GM
+                if(! IS_GM(l)){ // will use alignment of WM for GM
                   //  MRIpowellAlignImages(mri_seg, mri,  
                   // m_L, &scale_factor, NULL) ;
                   MRIfaridAlignImages(mri_seg, mri,  m_L) ;
-                }
-                
+                }else{
+		  // assume that cortical gm goes as wm
+		  if ((l == Left_Cerebral_Cortex) &&
+		      computed[Left_Cerebral_White_Matter] != 0)
+		    {
+		      if (m_by_label[Left_Cerebral_White_Matter])
+			m_L = 
+			  MatrixCopy(m_by_label[Left_Cerebral_White_Matter], m_L) ;
+		    }
+		  if ( (l == Right_Cerebral_Cortex) && 
+		      computed[Right_Cerebral_White_Matter] != 0)
+		    {
+		      if (m_by_label[Right_Cerebral_White_Matter])
+			m_L = 
+			  MatrixCopy(m_by_label[Right_Cerebral_White_Matter], m_L) ;	
+		    }
+		}
+
                 det = MatrixDeterminant(m_L) ;
                 if (det < 0.25 || det > 4)
                   {
@@ -15448,7 +15466,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
             }
           if (m_L)
             {
-              if (plta)
+              if (plta && (!IS_GM(l))) //GM will be copied from WM later
                 m_by_label[l] = m_L ;  // store if for assembling an LTA later
               else
                 MatrixFree(&m_L) ;
