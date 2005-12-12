@@ -1077,7 +1077,7 @@ TiffReadImage(char *fname, int frame0)
   return(I) ;
 }
 
-
+#ifndef Darwin
 /* unresolved in libtiff for some reason... */
 void __eprintf(void) ;
 
@@ -1085,6 +1085,7 @@ void
 __eprintf(void)
 {
 }
+#endif
 
 /*----------------------------------------------------------------------
             Parameters:
