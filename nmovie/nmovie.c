@@ -1,12 +1,12 @@
 // nmovie.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/02/23 23:15:39 $
-// Revision       : $Revision: 1.24 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2005/12/12 18:31:27 $
+// Revision       : $Revision: 1.25 $
 //
 ////////////////////////////////////////////////////////////////////
-char *NMOVIE_VERSION = "$Revision: 1.24 $";
+char *NMOVIE_VERSION = "$Revision: 1.25 $";
 #include <stdio.h>
 #include <image.h>
 #include <stdlib.h>
@@ -65,7 +65,7 @@ void start_timer(void);
 static void XInit(int *argc, char ***argv);
 static int highbit(unsigned long ul);
 static void XSetupDisplay(int nframes);
-void rgb2xcol(IMAGE *I, byte *ximgdata, int fnum);
+void rgb2xcol(IMAGE *I, char *ximgdata, int fnum);
 void ConvertImages(int nframes, char **argv);
 void MakeDispNames(int argc, char **argv);
 /* -------- End Prototypes -------- */
@@ -92,7 +92,7 @@ Widget frame,toplevel,quit_bt,canvas,buttons,stop_bt,loop_bt,swing_bt;
 Widget fast_bt,slow_bt;
 int shmext,nframes;
 XImage *ximg;
-byte *imgdata;
+char *imgdata;
 XCRUFT xi;
 int nm_pfmt=0,rows=0,cols=0;
 int running = 0;
@@ -389,7 +389,7 @@ static void XSetupDisplay(int nframes)
   //                      bytes_per_line = 0 means assume contiguous and calculated
           cols, rows, 32, 0);
 
-  if ((imgdata = (byte *)calloc((size_t)(rows*ximg->bytes_per_line*nframes),
+  if ((imgdata = (char *)calloc((size_t)(rows*ximg->bytes_per_line*nframes),
         sizeof(byte))) 
       ==NULL)
     ErrorExit(ERROR_NO_MEMORY,"Failed to allocate image buffer");
@@ -397,11 +397,12 @@ static void XSetupDisplay(int nframes)
   ximg->data = (char *) imgdata;
 }
 
-void rgb2xcol(IMAGE *I, byte *ximgdata, int fnum)
+void rgb2xcol(IMAGE *I, char *ximgdata, int fnum)
 {
   int i,j;
   unsigned long r,g,b,xcol;
-  byte *bptr, *xptr, *ip;
+  byte *bptr;
+  char *xptr, *ip;
  
   bptr = I->image;
   xptr = ximgdata+(fnum+1)*rows*ximg->bytes_per_line-ximg->bytes_per_line;
@@ -605,7 +606,7 @@ int main(int argc, char **argv)
 	DiagInit(NULL, NULL, NULL) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: nmovie.c,v 1.24 2005/02/23 23:15:39 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: nmovie.c,v 1.25 2005/12/12 18:31:27 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
