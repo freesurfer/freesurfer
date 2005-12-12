@@ -4457,6 +4457,10 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
   xVoxelRef  pVoxel             = NULL;
   xVoxel     funcIdx;
   xVoxel     funcRAS;
+
+  funcRAS.mfX = 0;
+  funcRAS.mfY = 0;
+  funcRAS.mfZ = 0;
   
   /* verify us */
   eResult = FunV_Verify( this );
