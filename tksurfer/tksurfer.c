@@ -1908,16 +1908,17 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   int  nargs ;
   char *functional_fname = NULL, *patch_name = NULL ;
   /* begin rkt */
-  FunD_tRegistrationType overlay_reg_type = FunD_tRegistration_None;
+  FunD_tRegistrationType overlay_reg_type = FunD_tRegistration_Identity;
   char overlay_reg[NAME_LENGTH];
 
   int load_timecourse = FALSE;
-  FunD_tRegistrationType timecourse_reg_type = FunD_tRegistration_None;
+  FunD_tRegistrationType timecourse_reg_type = FunD_tRegistration_Identity;
   char timecourse_fname[NAME_LENGTH];
   char timecourse_reg[NAME_LENGTH];
 
   int load_timecourse_offset = FALSE;
-  FunD_tRegistrationType timecourse_offset_reg_type = FunD_tRegistration_None;
+  FunD_tRegistrationType timecourse_offset_reg_type = 
+    FunD_tRegistration_Identity;
   char timecourse_offset_fname[NAME_LENGTH];
   char timecourse_offset_reg[NAME_LENGTH];
 
@@ -18978,7 +18979,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.156 2005/12/12 19:00:54 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.157 2005/12/13 23:28:50 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20003,7 +20004,8 @@ int main(int argc, char *argv[])   /* new main */
   printf("surfer: using interface %s\n",tksurfer_tcl);
   code = Tcl_EvalFile(g_interp, tksurfer_tcl);
   if (code != TCL_OK)  
-    printf(Tcl_GetStringResult(interp));
+    printf("Error sourcing %s:\n\t%s\n", tksurfer_tcl,
+	   Tcl_GetStringResult(interp));
   
   /* begin rkt */
 
@@ -21491,6 +21493,34 @@ enable_menu_set (int set, int enable) {
     }
   sprintf (tcl_cmd, "%s %d", tcl_cmd, enable);
   send_tcl_command(tcl_cmd);
+
+  /* Also enable additional buttons for vertex sets. */
+  switch(set)
+    {
+    case MENUSET_VSET_INFLATED_LOADED:
+      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d %d", 
+	       VSET_INFLATED, enable );
+      send_tcl_command (tcl_cmd);
+      break;
+    case MENUSET_VSET_WHITE_LOADED:
+      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d %d", 
+	       VSET_WHITE, enable );
+      send_tcl_command (tcl_cmd);
+      break;
+    case MENUSET_VSET_PIAL_LOADED:
+      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d %d", 
+	       VSET_PIAL, enable );
+      send_tcl_command (tcl_cmd);
+      break;
+    case MENUSET_VSET_ORIGINAL_LOADED:
+      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d %d", 
+	       VSET_ORIGINAL, enable );
+      send_tcl_command (tcl_cmd);
+      break;
+    default:
+      break;
+    }
+
   return(ERROR_NONE);
 }
 
@@ -21554,7 +21584,7 @@ vset_read_vertex_set(int set, char* fname)
     default:
       break;
     }
-  
+
   return(NO_ERROR);
 }
 
