@@ -10837,7 +10837,7 @@ mghRead(char *fname, int read_volume, int frame)
 	    fnamedir = fio_dirname(fname);
 	    sprintf(mri->transform_fname,"%s/transforms/talairach.xfm",fnamedir);
 	    printf("   ... trying %s ...",mri->transform_fname);
-	    if(FileExists(mri->transform_fname)) printf("which does exists ");
+	    if(FileExists(mri->transform_fname)) printf("which does exist ");
 	    else                                 printf("which does not exist ");
 	    printf("\n");
 	    free(fnamedir);
