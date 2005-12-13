@@ -18,7 +18,7 @@
 #include "version.h"
 
 static char vcid[] 
-= "$Id: mris_fix_topology.c,v 1.35 2005/12/13 23:47:15 greve Exp $";
+= "$Id: mris_fix_topology.c,v 1.36 2005/12/13 23:55:01 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -66,7 +66,7 @@ main(int argc, char *argv[])
   make_cmd_version_string 
     (argc, 
      argv, 
-     "$Id: mris_fix_topology.c,v 1.35 2005/12/13 23:47:15 greve Exp $", "$Name:  $", 
+     "$Id: mris_fix_topology.c,v 1.36 2005/12/13 23:55:01 greve Exp $", "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
@@ -74,7 +74,7 @@ main(int argc, char *argv[])
     handle_version_option 
     (argc, 
      argv, 
-     "$Id: mris_fix_topology.c,v 1.35 2005/12/13 23:47:15 greve Exp $", 
+     "$Id: mris_fix_topology.c,v 1.36 2005/12/13 23:55:01 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -571,6 +571,11 @@ get_option(int argc, char *argv[])
       fprintf(stderr,"reading original coordinates from '%s'\n",orig_name);
       nargs = 1 ;
     }
+  else if (!stricmp(option, "brain")){
+    brain_name = argv[2] ;
+    fprintf(stderr,"using '%s' as brain volume\n",brain_name);
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "seed"))
     {
       setRandomSeed(atol(argv[2])) ;
