@@ -18,7 +18,7 @@
 #include "version.h"
 
 static char vcid[] 
-= "$Id: mris_fix_topology.c,v 1.34 2005/12/06 23:11:27 greve Exp $";
+= "$Id: mris_fix_topology.c,v 1.35 2005/12/13 23:47:15 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -33,11 +33,12 @@ char *Progname ;
 
 static int exit_after_diag = 0 ;
 
-static char *brain_name = "brain" ;
-static char *wm_name = "wm" ;
-static char *sphere_name = "qsphere" ;
+static char *brain_name    = "brain" ;
+static char *wm_name       = "wm" ;
+static char *sphere_name   = "qsphere" ;
 static char *inflated_name = "inflated" ;
-static char *orig_name = "orig" ;
+static char *orig_name     = "orig" ;
+
 static char suffix[STRLEN] = "" ;
 static int  add = 1 ;
 static int  write_inflated = 0 ;
@@ -65,7 +66,7 @@ main(int argc, char *argv[])
   make_cmd_version_string 
     (argc, 
      argv, 
-     "$Id: mris_fix_topology.c,v 1.34 2005/12/06 23:11:27 greve Exp $", "$Name:  $", 
+     "$Id: mris_fix_topology.c,v 1.35 2005/12/13 23:47:15 greve Exp $", "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
@@ -73,7 +74,7 @@ main(int argc, char *argv[])
     handle_version_option 
     (argc, 
      argv, 
-     "$Id: mris_fix_topology.c,v 1.34 2005/12/06 23:11:27 greve Exp $", 
+     "$Id: mris_fix_topology.c,v 1.35 2005/12/13 23:47:15 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -127,18 +128,13 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  fprintf(stderr,"\n**************************************"
-          "***********************\n");
-  fprintf(stderr,"Setting options\n\n");
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++){
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
-  if (argc < 2)
-    usage_exit() ;
+  if(argc < 2)  usage_exit() ;
  
   print_parameters();
 
@@ -149,17 +145,16 @@ main(int argc, char *argv[])
   TimerStart(&then) ;
   sname = argv[1] ;
   hemi = argv[2] ;
-  if (strlen(sdir) == 0)
-    {
-      cp = getenv("SUBJECTS_DIR") ;
-      if (!cp)
-        ErrorExit(ERROR_BADPARM, 
-                  "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
-      strcpy(sdir, cp) ;
-    }
+  if(strlen(sdir) == 0){
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, 
+		"%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+    strcpy(sdir, cp) ;
+  }
 
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, sphere_name) ;
-  fprintf(stderr, "reading input surface %s...\n", fname) ;
+  printf("reading input surface %s...\n", fname) ;
   mris = MRISreadOverAlloc(fname,pct_over) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read input surface %s",
@@ -232,14 +227,13 @@ main(int argc, char *argv[])
       while (MRISdivideLongEdges(mris_corrected, max_len) > 0)
         {}
 
-  if (write_inflated)
-    {
-      MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES) ;
-      sprintf(fname, "%s/%s/surf/%s.%s%s", 
-              sdir,sname,hemi,inflated_name,suffix);
-      fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
-      MRISwrite(mris_corrected, fname) ;
-    }
+  if(write_inflated){
+    MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES) ;
+    sprintf(fname, "%s/%s/surf/%s.%s%s", 
+	    sdir,sname,hemi,inflated_name,suffix);
+    fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
+    MRISwrite(mris_corrected, fname) ;
+  }
 
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
   /* at this point : smoothed corrected orig vertices = solution */
@@ -624,8 +618,37 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  fprintf(stderr, "usage: %s [options] <subject name> <hemisphere>\n", 
-          Progname) ;
+  printf("%s [options] <subject name> <hemisphere>\n",Progname) ;
+  printf("\n");
+  printf("Options:\n");
+  printf("\n");
+  printf(" -orig origname   : name of orig surface\n");
+  printf(" -sphere spherename\n");
+  printf(" -inflated inflatedname\n");
+  printf(" -wi : write fixed inflated\n");
+  printf(" -verbose \n");
+  printf(" -verbose_low \n");
+  printf(" -warnings\n");
+  printf(" -errors\n");
+  printf(" -movies\n");
+  printf(" -intersect : check if the final surface self-intersects\n");
+  printf(" -mappings : generate several different mappings\n");
+  printf(" -correct_defect nthD : correct nthD defect only\n");
+  printf(" -mri l_mri : ???\n");
+  printf(" -curv  l_curv  : ???\n");
+  printf(" -qcurv l_qcurv : ???\n");
+  printf(" -unmri l_unmri : ???\n");
+  printf(" -niters niters : stopping genetic algorithm after niters iterations\n");
+  printf(" -genetic : use genetic search\n");
+  printf(" -ga       : optmize genetic search\n");
+  printf(" -optimize : optmize genetic search\n");
+  printf(" -random N : use random search with N iterations\n");
+  printf(" -diag : sets DIAG_SAVE_DIAGS\n");
+  printf(" -mgz : assume volumes are in mgz format\n");
+  printf(" -s N : smooth corrected surface by N iterations\n");
+  printf(" -v D : set diagnostic level to D\n");
+  printf(" -help : print help and exit\n");
+  printf(" -version : print version and exit\n");
 }
 
 static void
