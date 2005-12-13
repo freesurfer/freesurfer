@@ -1,0 +1,39 @@
+#!/bin/tcsh -f
+#
+# USAGE: fsr-getxopts cmd xoptsfile
+# 
+# Parses expert options for freesurfer recon.
+# Looks in xoptsfile for a line with cmd as the first item,
+# then returns the rest of the items on that line.
+#
+# Eg, if the file expert.opts contains:
+#   mri_em_register -p .5
+# Then
+#   fsr-getxopts mri_em_register expert.opts
+# will return
+#   -p .5
+#
+
+set VERSION = '$Id: fsr-getxopts,v 1.1 2005/12/13 20:50:40 greve Exp $';
+
+if($#argv < 2) exit 0;
+
+set cmd       = $argv[1];
+set xoptsfile = $argv[2];
+
+if(! -e $xoptsfile) then
+  echo "ERROR: cannot find $xoptsfile"
+  exit 1;
+endif
+
+set tmp = `grep $cmd $xoptsfile | wc -l`;
+if($tmp == 0) exit(0);
+if($tmp > 1) then
+  echo "ERROR: cmd $cmd represented more than once in $xoptsfile"
+  exit 1;
+endif
+
+set tmp = `grep $cmd $xoptsfile`;
+echo $tmp[2-$#tmp];
+
+exit 0
