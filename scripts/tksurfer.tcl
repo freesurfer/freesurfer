@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.93 2005/12/12 21:59:24 kteich Exp $
+# $Id: tksurfer.tcl,v 1.94 2005/12/13 23:29:10 kteich Exp $
 
 package require BLT;
 
@@ -449,7 +449,8 @@ set gaScalarValueID(8,label) kLabel_StdError
 
 # tool bar frames
 set gfwaToolBar(main)  ""
-set gfwaToolBar(label)  ""
+set gfwaToolBar(nav)  ""
+set gfwaToolBar(tools)  ""
 
 # ========================================================= BUILDING INTERFACE
 
@@ -2402,7 +2403,15 @@ proc CreateMenuBar { ifwMenuBar } {
 		{ check
 		    "Main"
 		    "ShowToolBar main $gbShowToolBar(main)"
-		    gbShowToolBar(main) } }}
+		    gbShowToolBar(main) }
+		{ check
+		    "Navigation"
+		    "ShowToolBar nav $gbShowToolBar(nav)"
+		    gbShowToolBar(nav) }
+		{ check
+		    "Tools"
+		    "ShowToolBar tools $gbShowToolBar(tools)"
+		    gbShowToolBar(tools) } }}
 	{ cascade
 	    "Information" {
 		{ check
@@ -2856,381 +2865,6 @@ proc CreateMenuBar { ifwMenuBar } {
       -side left
 }
 
-proc CreateNavigationArea { ifwTop } {
-
-    global gNextTransform
-
-    ResetTransform
-
-    frame $ifwTop
-    set fwNoteBook $ifwTop.fwNoteBook
-    set fwButtons  $ifwTop.fwButtons
-
-    tixNoteBook $fwNoteBook
-
-    $fwNoteBook add nav1 -label "Historical"
-    CreateOldNavigationArea [$fwNoteBook subwidget nav1].fw
-    pack [$fwNoteBook subwidget nav1].fw
-
-    $fwNoteBook add nav2 -label "Sensible"
-    CreateSimpleNavigationArea [$fwNoteBook subwidget nav2].fw
-    pack [$fwNoteBook subwidget nav2].fw
-
-    frame $fwButtons -relief raised -border 2
-    tkm_MakeButtons $fwButtons.restore { \
-      { text "Restore View" { RestoreView } "" } }
-    tkm_MakeButtons $fwButtons.redraw { \
-      { text "Redraw View" { UpdateAndRedraw } "" } }
-
-    bind $fwButtons.redraw.bw0 <B2-ButtonRelease> [list UpdateLockButton $fwButtons.redraw.bw0 gaLinkedVars(redrawlockflag)]
-
-    pack $fwButtons.restore $fwButtons.redraw \
-      -side left \
-      -expand yes \
-      -fill x
-
-    pack $fwNoteBook $fwButtons \
-      -side top \
-      -expand yes \
-      -fill x
-}
-
-proc CreateSmallNavigationArea { ifwTop } {
-
-    global gaNavigationPane
-
-    ResetTransform
-
-    frame $ifwTop
-    set fwNavigation $ifwTop.fwNavigation
-    set fwCompressed $ifwTop.fwCompressed
-    set fwOld        $ifwTop.fwOld
-    set fwButtons    $ifwTop.fwButtons
-
-    CreateSimpleNavigationArea     $fwNavigation
-    CreateOldNavigationArea        $fwOld
-    CreateCompressedNavigationArea $fwCompressed
-
-    pack $fwCompressed \
-      -side top
-}
-
-proc CreateSimpleNavigationArea { ifwTop } {
-
-    global gNextTransform
-
-    set knSliderWidth 150
-    set knSliderHeight 100
-
-    frame $ifwTop
-    
-    tkm_MakeBigLabel $ifwTop.rot_label "Rotate"
-    tkm_MakeButtons $ifwTop.rot_n {{image icon_arrow_rot_x_pos \
-      { rotate_brain_x -$gNextTransform(rotate,degrees); \
-      UpdateAndRedraw } ""}}
-    tkm_MakeButtons $ifwTop.rot_ne {{image icon_arrow_rot_z_neg \
-      { rotate_brain_z $gNextTransform(rotate,degrees); \
-      UpdateAndRedraw } ""}}
-    tkm_MakeButtons $ifwTop.rot_e {{image icon_arrow_rot_y_neg \
-      { rotate_brain_y $gNextTransform(rotate,degrees); \
-      UpdateAndRedraw } ""}}
-    tkm_MakeButtons $ifwTop.rot_s {{image icon_arrow_rot_x_neg \
-      { rotate_brain_x $gNextTransform(rotate,degrees); \
-      UpdateAndRedraw } ""}}
-    tkm_MakeButtons $ifwTop.rot_w {{image icon_arrow_rot_y_pos \
-      { rotate_brain_y -$gNextTransform(rotate,degrees); \
-      UpdateAndRedraw } ""}}
-    tkm_MakeButtons $ifwTop.rot_nw {{image icon_arrow_rot_z_pos \
-      { rotate_brain_z -$gNextTransform(rotate,degrees); \
-      UpdateAndRedraw } ""}}
-    tkm_MakeSliders $ifwTop.rot_deg [list \
-      [list {"Deg"} gNextTransform(rotate,degrees) \
-      0 180.0 [expr $knSliderWidth / 2] {} 1 1 horizontal]]
-    set nBaseCol 0
-    grid $ifwTop.rot_label -column [expr 0 + $nBaseCol] -row 0 -columnspan 3
-    grid $ifwTop.rot_n -column [expr 1 + $nBaseCol] -row 1
-    grid $ifwTop.rot_ne -column [expr 2 + $nBaseCol] -row 1
-    grid $ifwTop.rot_e -column [expr 2 + $nBaseCol] -row 2
-    grid $ifwTop.rot_s -column [expr 1 + $nBaseCol] -row 3
-    grid $ifwTop.rot_w -column [expr 0 + $nBaseCol] -row 2
-    grid $ifwTop.rot_nw -column [expr 0 + $nBaseCol] -row 1
-    grid $ifwTop.rot_deg -column [expr 0 + $nBaseCol] -row 4 -columnspan 3
-
-
-    grid [frame $ifwTop.space1 -width 10] -column 3 -row 0
-
-    tkm_MakeBigLabel $ifwTop.trans_label "Translate"
-    tkm_MakeButtons $ifwTop.trans_n {{image icon_arrow_up \
-      { translate_brain_y $gNextTransform(translate,dist); \
-      UpdateAndRedraw } ""}}
-    tkm_MakeButtons $ifwTop.trans_e {{image icon_arrow_right \
-      { translate_brain_x $gNextTransform(translate,dist); \
-      UpdateAndRedraw } ""}}
-    tkm_MakeButtons $ifwTop.trans_s {{image icon_arrow_down \
-      { translate_brain_y -$gNextTransform(translate,dist); \
-      UpdateAndRedraw } ""}}
-    tkm_MakeButtons $ifwTop.trans_w {{image icon_arrow_left \
-      { translate_brain_x -$gNextTransform(translate,dist); \
-      UpdateAndRedraw } ""}}
-    tkm_MakeSliders $ifwTop.trans_mm [list \
-      [list {"mm"} gNextTransform(translate,dist) \
-      0 100.0 [expr $knSliderWidth / 2] {} 1 1 horizontal]]
-    set nBaseCol 4
-    grid $ifwTop.trans_label -column [expr 0 + $nBaseCol] -row 0 -columnspan 3
-    grid $ifwTop.trans_n -column [expr 1 + $nBaseCol] -row 1
-    grid $ifwTop.trans_e -column [expr 2 + $nBaseCol] -row 2
-    grid $ifwTop.trans_s -column [expr 1 + $nBaseCol] -row 3
-    grid $ifwTop.trans_w -column [expr 0 + $nBaseCol] -row 2
-    grid $ifwTop.trans_mm -column [expr 0 + $nBaseCol] -row 4 -columnspan 3
-
-    grid [frame $ifwTop.space2 -width 10] -column 7 -row 0
-
-    tkm_MakeBigLabel $ifwTop.scl_label "Scale"
-    tkm_MakeButtons $ifwTop.scl_s {{image icon_zoom_out \
-      { scale_brain [expr 1.0 / [expr $gNextTransform(scale,amt)/100.0]]; \
-      UpdateAndRedraw } ""}}
-    tkm_MakeButtons $ifwTop.scl_b {{image icon_zoom_in \
-      { scale_brain [expr $gNextTransform(scale,amt)/100.0]; \
-      UpdateAndRedraw } ""}}
-    tkm_MakeSliders $ifwTop.scl_per [list \
-      [list {"%"} gNextTransform(scale,amt) \
-      0 200.0 [expr $knSliderWidth / 2] {} 1 1 horizontal]]
-    set nBaseCol 8
-    grid $ifwTop.scl_label -column [expr 0 + $nBaseCol] -row 0 -columnspan 3
-    grid $ifwTop.scl_s -column [expr 0 + $nBaseCol] -row 2
-    grid $ifwTop.scl_b -column [expr 2 + $nBaseCol] -row 2
-    grid $ifwTop.scl_per -column [expr 0 + $nBaseCol] -row 4 -columnspan 3
-}
-
-proc CreateCompressedNavigationArea { ifwTop } {
-
-    global gNextTransform
-
-    set knSliderWidth 150
-    set knSliderHeight 100
-
-    frame $ifwTop
-    
-    set fwRotation   $ifwTop.fwRotation
-    set fwRotButtons $fwRotation.fwRotButtons
-    set fwRotSlider  $fwRotation.fwRotSlider
-
-    frame $fwRotation -relief raised -border 2
-
-    tkm_MakeButtons $fwRotButtons { \
-      {image icon_arrow_rot_x_pos \
-      { rotate_brain_x -$gNextTransform(rotate,degrees); \
-      UpdateAndRedraw } ""} \
-      \
-      {image icon_arrow_rot_z_neg \
-      { rotate_brain_z $gNextTransform(rotate,degrees); \
-      UpdateAndRedraw } ""} \
-      \
-      {image icon_arrow_rot_y_neg \
-      { rotate_brain_y $gNextTransform(rotate,degrees); \
-      UpdateAndRedraw } ""} \
-      \
-      {image icon_arrow_rot_x_neg \
-      { rotate_brain_x $gNextTransform(rotate,degrees); \
-      UpdateAndRedraw } ""} \
-      \
-      {image icon_arrow_rot_y_pos \
-      { rotate_brain_y -$gNextTransform(rotate,degrees); \
-      UpdateAndRedraw } ""} \
-      \
-      {image icon_arrow_rot_z_pos \
-      { rotate_brain_z -$gNextTransform(rotate,degrees); \
-      UpdateAndRedraw } ""} }
-
-    tkm_MakeSliders $fwRotSlider [list \
-      [list {"Deg"} gNextTransform(rotate,degrees) \
-      0 180.0 [expr $knSliderWidth / 2] {} 1 1 horizontal]]
-
-    pack $fwRotButtons $fwRotSlider -side top
-
-
-    set fwTranslation   $ifwTop.fwTranslation
-    set fwTransButtons  $fwTranslation.fwTransButtons
-    set fwTransSlider   $fwTranslation.fwTransSlider
-
-    frame $fwTranslation -relief raised -border 2
-
-    tkm_MakeButtons $fwTransButtons { \
-      {image icon_arrow_left \
-      { translate_brain_x -$gNextTransform(translate,dist); \
-      UpdateAndRedraw } ""} \
-      \
-      {image icon_arrow_down \
-      { translate_brain_y -$gNextTransform(translate,dist); \
-      UpdateAndRedraw } ""} \
-      \
-      {image icon_arrow_up \
-      { translate_brain_y $gNextTransform(translate,dist); \
-      UpdateAndRedraw } ""} \
-      \
-      {image icon_arrow_right \
-      { translate_brain_x $gNextTransform(translate,dist); \
-      UpdateAndRedraw } ""} }
-
-    tkm_MakeSliders $fwTransSlider [list \
-      [list {"mm"} gNextTransform(translate,dist) \
-      0 100.0 [expr $knSliderWidth / 2] {} 1 1 horizontal]]
-
-    pack $fwTransButtons $fwTransSlider -side top
-
-
-    set fwScale       $ifwTop.fwScale
-    set fwSclButtons  $fwScale.fwSclButtons
-    set fwSclSlider   $fwScale.fwSclSlider
-
-    frame $fwScale -relief raised -border 2
-
-    tkm_MakeButtons $fwSclButtons { \
-      {image icon_zoom_out \
-      { scale_brain [expr 1.0 / [expr $gNextTransform(scale,amt)/100.0]]; \
-      UpdateAndRedraw } ""} \
-      \
-      {image icon_zoom_in \
-      { scale_brain [expr $gNextTransform(scale,amt)/100.0]; \
-      UpdateAndRedraw } ""} }
-
-    tkm_MakeSliders $fwSclSlider [list \
-      [list {"%"} gNextTransform(scale,amt) \
-      0 200.0 [expr $knSliderWidth / 2] {} 1 1 horizontal]]
-
-    pack $fwSclButtons $fwSclSlider -side top
-
-    pack $fwRotation $fwTranslation $fwScale -side left
-}
-
-proc CreateOldNavigationArea { ifwTop } {
-
-    set knSliderWidth 150
-    set knSliderHeight 100
-
-    frame $ifwTop
-    
-    frame [set fwTransform   $ifwTop.fwTransform]
-    frame [set fwRotate      $fwTransform.fwRotate]
-    frame [set fwTop         $fwRotate.fwTop]
-    frame [set fwBottom      $fwRotate.fwBottom]
-    frame [set fwBottomRight $fwRotate.fwBottomRight]
-    
-    tkm_MakeBigLabel $fwTop.label "Rotate (deg)"
-    tkm_MakeSliders $fwTop.y [list \
-      [list {"Y"} gNextTransform(rotate,y) \
-      180.0 -180.0 $knSliderWidth {} 0 1 horizontal]]
-    tkm_MakeSliders $fwBottom.x [list \
-    [list {"X"} gNextTransform(rotate,x) \
-    180.0 -180.0 $knSliderHeight {} 0 1 vertical]]
-    tkm_MakeEntry $fwBottomRight.x "X" gNextTransform(rotate,x) 5
-    tkm_MakeEntry $fwBottomRight.y "Y" gNextTransform(rotate,y) 5
-    tkm_MakeEntry $fwBottomRight.z "Z" gNextTransform(rotate,z) 5
-
-    pack $fwTop.label $fwTop.y \
-      -side top
-    pack $fwBottom.x
-    pack $fwBottomRight.x $fwBottomRight.y $fwBottomRight.z \
-      -side top
-
-    pack $fwTop \
-      -side top
-    pack $fwBottom \
-      -side left
-    pack $fwBottomRight \
-      -side left \
-      -expand yes \
-      -fill x
-  
-    pack $fwRotate  \
-      -side left \
-      -padx 5 \
-      -expand yes \
-      -fill x
-
-    frame [set fwTranslate   $fwTransform.fwTranslate]
-    frame [set fwTop         $fwTranslate.fwTop]
-    frame [set fwBottom      $fwTranslate.fwBottom]
-    frame [set fwBottomRight $fwTranslate.fwBottomRight]
-    
-    tkm_MakeBigLabel $fwTop.label "Translate (mm)"
-    tkm_MakeSliders $fwTop.x [list \
-      [list {"X"} gNextTransform(translate,x) \
-      -100.0 100.0 $knSliderWidth {} 0 1 horizontal]]
-    tkm_MakeSliders $fwBottom.y [list \
-    [list {"Y"} gNextTransform(translate,y) \
-    100.0 -100.0 $knSliderHeight {} 0 1 vertical]]
-    tkm_MakeEntry $fwBottomRight.x "X" gNextTransform(translate,x) 5
-    tkm_MakeEntry $fwBottomRight.y "Y" gNextTransform(translate,y) 5
-
-    pack $fwTop.label $fwTop.x \
-      -side top
-    pack $fwBottom.y
-    pack $fwBottomRight.x $fwBottomRight.y \
-      -side top
-
-    pack $fwTop \
-      -side top
-    pack $fwBottom \
-      -side left
-    pack $fwBottomRight \
-      -side left \
-      -expand yes \
-      -fill x
-  
-    pack $fwTranslate \
-      -side left \
-      -padx 5 \
-      -expand yes \
-      -fill x
-
-    frame [set fwScale       $fwTransform.fwScale]
-    frame [set fwTop         $fwScale.fwTop]
-    frame [set fwLeft        $fwScale.fwLeft]
-    frame [set fwRight       $fwScale.fwRight]
-    
-    tkm_MakeBigLabel $fwTop.label "Scale (%)"
-
-    tkm_MakeSliders $fwLeft.scale [list \
-    [list {""} gNextTransform(scale) \
-    0.0 200.0 $knSliderHeight {} 0 1 vertical]]
-    tkm_MakeEntry $fwRight.scale "" gNextTransform(scale) 5
-
-    pack $fwTop.label \
-      -side top
-    pack $fwLeft.scale $fwRight.scale \
-      -side left
-
-    pack $fwTop \
-      -side top 
-    pack $fwLeft \
-      -side left \
-      -expand yes \
-      -fill y 
-    pack $fwRight \
-      -side left \
-      -expand yes \
-      -fill x
-  
-    pack $fwScale \
-      -side left \
-      -expand yes \
-      -fill y \
-      -padx 5
-
-    frame [set fwButton $ifwTop.fwButton]
-    tkm_MakeButtons $fwButton.transform {{ text "Transform" \
-      { DoTransform; ResetTransform; UpdateAndRedraw} }}
-    pack $fwButton.transform
-
-    pack $fwTransform $fwButton \
-      -side top \
-      -expand yes \
-      -fill x \
-      -pady 5
-    pack $fwTransform
-}
-
 proc CreateCursorFrame { ifwTop } {
 
     set fwLabel             $ifwTop.fwMainLabel
@@ -3331,7 +2965,8 @@ proc CreateLabelFrame { ifwTop iSet } {
 		-command "set gaLinkedVars(currentvaluefield) $nOverlay ;
 			       SetOverlayField ; 
 			       send_current_labels"
-		    
+	    bind $fwOverlay <Control-Button> "$fwOverlay invoke; DoConfigOverlayDisplayDlog"
+
 	    # The entry will set the overlay name.
 	    tkm_MakeEntry $fwLabel "" gsaLabelContents($label,name) 14 "UpdateOverlayDlogInfo; UpdateValueLabelName $gaScalarValueID($label,index) \[set gsaLabelContents($label,name)\]"
 	} else {
@@ -3434,20 +3069,81 @@ proc CreateToolBar { ifwToolBar } {
 
     global gfwaToolBar
     global gfwCurvatureButton
+    global gNextTransform
+    global gaLinkedVars
+    global gfwSurfaceConfigButton
 
     frame $ifwToolBar
 
     # main toolbar
-    set gfwaToolBar(main)   $ifwToolBar.fwMainBar
-    set fwCut              $gfwaToolBar(main).fwCut
+    set gfwaToolBar(main)  $ifwToolBar.fwMainBar
     set fwPoint            $gfwaToolBar(main).fwPoint
-    set fwView             $gfwaToolBar(main).fwView
+    set fwSurfaces         $gfwaToolBar(main).fwSurfaces
     set fwCurv             $gfwaToolBar(main).fwCurv
-    set fwFill             $gfwaToolBar(main).fwFill
-    set fwLabel            $gfwaToolBar(main).fwLabel
+    set fwSpacer           $gfwaToolBar(main).fwSpace
+    set fwView             $gfwaToolBar(main).fwView
     
     frame $gfwaToolBar(main) -border 2 -relief raised
     
+    tkm_MakeButtons $fwPoint { 
+	{ image icon_cursor_save { DoSavePoint } "Save Point" } 
+	{ image icon_cursor_goto { DoGotoPoint } "Goto Saved Point" } }
+    
+    tkm_MakeRadioButtons $fwSurfaces h "" gaLinkedVars(vertexset) {
+	{ image icon_surface_main 0
+	    "set_current_vertex_set $gaLinkedVars(vertexset); UpdateLinkedVarGroup view; UpdateAndRedraw" "Show Main Surface" }
+	{ image icon_surface_inflated 1
+	    "set_current_vertex_set $gaLinkedVars(vertexset); UpdateLinkedVarGroup view; UpdateAndRedraw" "Show Inflated Surface" }
+	{ image icon_surface_white 2
+	    "set_current_vertex_set $gaLinkedVars(vertexset); UpdateLinkedVarGroup view; UpdateAndRedraw" "Show White Surface" }
+	{ image icon_surface_pial 3
+	    "set_current_vertex_set $gaLinkedVars(vertexset); UpdateLinkedVarGroup view; UpdateAndRedraw" "Show Pial Surface" }
+	{ image icon_surface_original 4
+	    "set_current_vertex_set $gaLinkedVars(vertexset); UpdateLinkedVarGroup view; UpdateAndRedraw" "Show Original Surface" }
+    }
+    set gfwSurfaceConfigButton $fwSurfaces
+    EnableSurfaceConfigButton 1 0
+    EnableSurfaceConfigButton 2 0
+    EnableSurfaceConfigButton 3 0
+    EnableSurfaceConfigButton 4 0
+
+    tkm_MakeCheckboxes $fwCurv h { 
+	{ image icon_curv gaLinkedVars(curvflag) 
+	    "SendLinkedVarGroup view; UpdateAndRedraw" "Show Curvature" } }
+    set gfwCurvatureButton $fwCurv.cb0
+    EnableCurvatureButton 0
+
+    frame $fwSpacer
+
+    tkm_MakeButtons $fwView { 
+	{ image icon_home { RestoreView } "Restore View" } 
+	{ image icon_redraw { UpdateAndRedraw } "Redraw View" } }
+    
+    pack $fwPoint $fwSurfaces $fwCurv \
+	-side left \
+	-anchor w \
+	-padx 5
+    
+    pack $fwSpacer \
+	-side left \
+	-anchor w \
+	-fill x \
+	-expand yes
+    
+    pack $fwView \
+	-side left \
+	-anchor w \
+	-padx 5
+
+    # Tools toolbar
+    set gfwaToolBar(tools)   $ifwToolBar.fwToolsBar
+    set fwCut                $gfwaToolBar(tools).fwCut
+    set fwFill               $gfwaToolBar(tools).fwFill
+    set fwLabel              $gfwaToolBar(tools).fwLabel
+    set fwColor              $gfwaToolBar(tools).fwColor
+
+    frame $gfwaToolBar(tools) -border 2 -relief raised
+
     tkm_MakeButtons $fwCut { 
 	{ image icon_cut_line { cut_line 0; UpdateAndRedraw } 
 	    "Cut Line" } 
@@ -3461,20 +3157,6 @@ proc CreateToolBar { ifwToolBar } {
 	    "Clear Cuts" }
     }
     
-    tkm_MakeButtons $fwPoint { 
-	{ image icon_cursor_save { DoSavePoint } "Save Point" } 
-	{ image icon_cursor_goto { DoGotoPoint } "Goto Saved Point" } }
-    
-    tkm_MakeButtons $fwView { 
-	{ image icon_home { RestoreView } "Restore View" } 
-	{ image icon_redraw { UpdateAndRedraw } "Redraw View" } }
-    
-    tkm_MakeCheckboxes $fwCurv h { 
-	{ image icon_curv gaLinkedVars(curvflag) 
-	    "SendLinkedVarGroup view; UpdateAndRedraw" "Show Curvature" } }
-    set gfwCurvatureButton $fwCurv.cb0
-    EnableCurvatureButton 0
-
     tkm_MakeButtons $fwFill { 
 	{ image icon_draw_line { path_new_path_from_marked_vertices; 
 	    clear_all_vertex_marks; UpdateAndRedraw } "Make Path" } 
@@ -3487,9 +3169,6 @@ proc CreateToolBar { ifwToolBar } {
     
     bind $fwView.bw1 <B2-ButtonRelease> [list UpdateLockButton $fwView.bw1 gaLinkedVars(redrawlockflag)]
     
-    set fwLabel              $gfwaToolBar(main).fwLabel
-    set fwColor              $gfwaToolBar(main).fwColor
-
     tkm_MakeButtons $fwLabel {
       { image icon_marked_to_label 
 	  { labl_new_from_marked_vertices; UpdateAndRedraw } 
@@ -3506,10 +3185,103 @@ proc CreateToolBar { ifwToolBar } {
 	      { CreateColorPickerWindow LblLst_SetCurrentLabelColor } 
 	    "Change label color" } }
 
-    pack $fwCut $fwPoint $fwView $fwCurv $fwFill $fwLabel $fwColor \
+    pack $fwCut $fwFill $fwLabel $fwColor \
       -side left \
       -anchor w \
       -padx 5
+
+    # Nav toolbar
+    set gfwaToolBar(nav)  $ifwToolBar.fwNavBar
+    set fwRotation        $gfwaToolBar(nav).fwRotation
+    set fwRotButtons      $fwRotation.fwRotButtons
+    set fwRotSlider       $fwRotation.fwRotSlider
+    set fwTranslation     $gfwaToolBar(nav).fwTranslation
+    set fwTransButtons    $fwTranslation.fwTransButtons
+    set fwTransSlider     $fwTranslation.fwTransSlider
+    set fwScale           $gfwaToolBar(nav).fwScale
+    set fwSclButtons      $fwScale.fwSclButtons
+    set fwSclSlider       $fwScale.fwSclSlider
+
+    set knSliderWidth 75
+
+    frame $gfwaToolBar(nav) -border 2 -relief raised
+
+    frame $fwRotation
+
+    tkm_MakeButtons $fwRotButtons {
+	{image icon_arrow_rot_x_pos
+	    { rotate_brain_x -$gNextTransform(rotate,degrees);
+		UpdateAndRedraw } ""}
+	{image icon_arrow_rot_z_neg
+	    { rotate_brain_z $gNextTransform(rotate,degrees);
+		UpdateAndRedraw } ""}
+	{image icon_arrow_rot_y_neg
+	    { rotate_brain_y $gNextTransform(rotate,degrees);
+		UpdateAndRedraw } ""}
+	{image icon_arrow_rot_x_neg
+	    { rotate_brain_x $gNextTransform(rotate,degrees);
+		UpdateAndRedraw } ""}
+	{image icon_arrow_rot_y_pos
+	    { rotate_brain_y -$gNextTransform(rotate,degrees);
+		UpdateAndRedraw } ""}
+	{image icon_arrow_rot_z_pos
+	  { rotate_brain_z -$gNextTransform(rotate,degrees);
+	      UpdateAndRedraw } ""} }
+
+    tkm_MakeSliders $fwRotSlider [list \
+	    [list {"Deg"} gNextTransform(rotate,degrees) \
+		 0 180.0 $knSliderWidth {} 1 1 horizontal]]
+
+    pack $fwRotButtons $fwRotSlider \
+	-side top \
+	-padx 0 -pady 0
+    
+    frame $fwTranslation
+
+    tkm_MakeButtons $fwTransButtons {
+	{image icon_arrow_left
+	    { translate_brain_x -$extTransform(translate,dist); \
+		  UpdateAndRedraw } ""}
+	{image icon_arrow_down
+	    { translate_brain_y -$gNextTransform(translate,dist);
+		UpdateAndRedraw } ""}
+	{image icon_arrow_up
+	    { translate_brain_y $gNextTransform(translate,dist);
+		UpdateAndRedraw } ""}
+	{image icon_arrow_right
+	    { translate_brain_x $gNextTransform(translate,dist);
+		 UpdateAndRedraw } ""} }
+    
+    tkm_MakeSliders $fwTransSlider [list \
+	    [list {"mm"} gNextTransform(translate,dist) \
+	      0 100.0 $knSliderWidth {} 1 1 horizontal]]
+    
+    pack $fwTransButtons $fwTransSlider \
+	-side top \
+	-padx 0 -pady 0
+    
+    frame $fwScale
+
+    tkm_MakeButtons $fwSclButtons {
+	{image icon_zoom_out
+	    { scale_brain [expr 1.0 / [expr $gNextTransform(scale,amt)/100.0]];
+		UpdateAndRedraw } ""}
+	{image icon_zoom_in
+	    { scale_brain [expr $gNextTransform(scale,amt)/100.0];
+		UpdateAndRedraw } ""} }
+    
+    tkm_MakeSliders $fwSclSlider [list \
+	    [list {"%"} gNextTransform(scale,amt) \
+		 0 200.0 $knSliderWidth {} 1 1 horizontal]]
+
+    pack $fwSclButtons $fwSclSlider \
+	-side top \
+	-padx 0 -pady 0
+    
+    pack $fwRotation $fwTranslation $fwScale \
+	-side left \
+	-anchor w \
+	-padx 5
 }
 
 proc ShowToolBar { isWhich ibShow } {
@@ -3563,6 +3335,16 @@ proc EnableCurvatureButton { ibEnable } {
 	$gfwCurvatureButton config -state normal
     } else {
 	$gfwCurvatureButton config -state disabled
+    }
+}
+
+proc EnableSurfaceConfigButton { iConfig ibEnable } {
+    global gfwSurfaceConfigButton
+
+    if { $ibEnable } {
+	$gfwSurfaceConfigButton.rb$iConfig config -state normal
+    } else {
+	$gfwSurfaceConfigButton.rb$iConfig config -state disabled
     }
 }
 
@@ -4853,7 +4635,8 @@ proc CreateImages {} {
 
     global ksImageDir
 
-    foreach image_name { icon_cursor_goto icon_cursor_save
+    foreach image_name { 
+	icon_cursor_goto icon_cursor_save
 	icon_arrow_up icon_arrow_down icon_arrow_left icon_arrow_right
 	icon_arrow_rot_z_pos icon_arrow_rot_z_neg
 	icon_zoom_in icon_zoom_out
@@ -4864,7 +4647,8 @@ proc CreateImages {} {
 	icon_color_label
 	icon_cut_plane icon_cut_clear
 	icon_draw_line icon_draw_line_closed icon_fill_label icon_erase_line
-	icon_surface_main icon_surface_original icon_surface_pial
+	icon_surface_main icon_surface_original icon_surface_pial 
+	icon_surface_white icon_surface_inflated
 	icon_home icon_redraw icon_curv } {
 	
 	if { [catch {image create photo $image_name -file \
@@ -5338,19 +5122,16 @@ CreateImages
 set wwTop        .w
 set fwMenuBar    $wwTop.fwMenuBar
 set fwToolBar    $wwTop.fwToolBar
-set fwNavigation $wwTop.fwNavigation
 set fwCursor     $wwTop.fwCursor
 set fwMouseover  $wwTop.fwMouseover
 
 CreateWindow         $wwTop
 CreateMenuBar        $fwMenuBar
 CreateToolBar        $fwToolBar
-#CreateNavigationArea $fwNavigation
-CreateSmallNavigationArea $fwNavigation
 CreateCursorFrame    $fwCursor
 CreateMouseoverFrame $fwMouseover
 
-pack $fwMenuBar $fwToolBar $fwNavigation \
+pack $fwMenuBar $fwToolBar \
   -side top \
   -expand true \
   -fill x
@@ -5366,6 +5147,8 @@ pack $fwCursor $fwMouseover \
 pack $wwTop
 
 ShowToolBar main 1
+ShowToolBar nav 1
+ShowToolBar tools 1
 
 # set up graph window 
 CreateGraphWindow .wwGraph
@@ -5398,6 +5181,8 @@ catch {
     labl_load_color_table $env(FREESURFER_HOME)/surface_labels.txt
 }
 
+# Init the display transform
+ResetTransform
 
 # Init the fsgdf code.
 set gbGDFLoaded 0
