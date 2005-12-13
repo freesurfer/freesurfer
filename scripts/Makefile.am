@@ -86,6 +86,7 @@ parcellate_subject-lh \
 parcellate_subject-rh \
 printdat \
 progressbar.tcl \
+fsr-getxopts \
 recon-all-nmr \
 recon-all \
 reg-feat2anat \
