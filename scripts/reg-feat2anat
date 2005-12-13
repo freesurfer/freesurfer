@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.9 2005/08/17 21:16:37 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.10 2005/12/13 23:17:38 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -15,6 +15,7 @@ set cleanup = 1;
 set usedev = 0;
 set manual = 0;
 set manual_use_surf = 1;
+set manxfm = func2anat;
 
 set PrintHelp = 0;
 
@@ -65,10 +66,24 @@ if(! -e $tempvol) then
 endif
 
 set anat2exf_regdat = $FeatDir/reg/freesurfer/anat2exf.register.dat
+set anat2std_regdat = $FeatDir/reg/freesurfer/anat2std.register.dat
+set std2anat_fslmat = $FeatDir/reg/freesurfer/std2anat.fsl.mat
+set exf2anat_init_fslmat = $FeatDir/reg/freesurfer/exf2anat.init.fsl.mat
+set exf2anat_fslmat = $FeatDir/reg/freesurfer/exf2anat.fsl.mat
+set std2exf_regdat  = $FeatDir/reg/freesurfer/std2exf.register.dat
+set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol.mgz
+if(! -e $refvolcor) then
+  set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol
+  if(! -e $refvolcor/COR-.info) then
+    echo "ERROR: cannot find $anatvol for $subject " 
+    exit 1;
+  endif
+endif
 
-if($manual) then
+# Check functional-to-anatomical registration
+if($manual && $manxfm == func2anat) then
   if(! -e $anat2exf_regdat) then
-    echo "ERROR: you must run without --manual to create registration first"
+    echo "ERROR: you must run without --manual or --manxfm to create registration first"
     exit 1;
   endif
   set cmd = ($TKR --s $subject --mov $tempvol \
@@ -77,6 +92,38 @@ if($manual) then
   if(! -e $SUBJECTS_DIR/$subject/mri/orig/COR-001) set cmd = ($cmd --mgz)
   echo $cmd
   $cmd
+  if($status) exit 1;
+  exit 0;
+endif
+
+# Check standard-to-anatomical registration
+if($manual && $manxfm == std2anat) then
+  if(! -e $anat2std_regdat) then
+    echo "ERROR: you must run without --manual or --manxfm to create registration first"
+    exit 1;
+  endif
+  set cmd = ($TKR   --tag --s $subject \
+            --targ $refvolcor \
+            --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
+            --reg $anat2std_regdat --fslreg $std2anat_fslmat)
+  if($manual_use_surf) set cmd = ($cmd --surf orig);
+  echo $cmd 
+  $cmd 
+  if($status) exit 1;
+  exit 0;
+endif
+
+# Check function-tostandard registration
+if($manual && $manxfm == func2std) then
+  if(! -e $std2exf_regdat) then
+    echo "ERROR: you must run without --manual or --manxfm to create registration first"
+    exit 1;
+  endif
+  set cmd = ($TKR --targ $FSLDIR/etc/standard/avg152T1_brain.img \
+            --mov $FeatDir/example_func.img \
+            --reg $std2exf_regdat --s $subject --tag);
+  echo $cmd 
+  $cmd 
   if($status) exit 1;
   exit 0;
 endif
@@ -91,7 +138,6 @@ echo $0 | tee -a $LF
 echo $cmdargs | tee -a $LF 
 uname -a | tee -a $LF 
 
-# Convert the reference volume to analyze
 set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol.mgz
 if(! -e $refvolcor) then
   set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol
@@ -100,22 +146,18 @@ if(! -e $refvolcor) then
     exit 1;
   endif
 endif
+# Convert the reference volume to analyze
 set refvol =  $FeatDir/reg/freesurfer/tmp/anat.img
 set cmd = (mri_convert $refvolcor $refvol)
 echo $cmd | tee -a $LF 
-$cmd |& tee -a $LF 
+#$cmd |& tee -a $LF 
 if($status) then
   echo "ERROR: mri_convert" | tee -a $LF 
   exit 1;
 endif
 
-set anat2std_regdat = $FeatDir/reg/freesurfer/anat2std.register.dat
-set std2anat_fslmat = $FeatDir/reg/freesurfer/std2anat.fsl.mat
-set exf2anat_init_fslmat = $FeatDir/reg/freesurfer/exf2anat.init.fsl.mat
-set exf2anat_fslmat = $FeatDir/reg/freesurfer/exf2anat.fsl.mat
-set std2exf_regdat  = $FeatDir/reg/freesurfer/std2exf.register.dat
-
-# Create the init matrix
+# Create the init std2anat matrix -- this is not accurate, Just
+# gets things lined up. We'll compute a better one below
 set cmd = ($TKR \
             --targ $refvolcor \
             --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
@@ -124,14 +166,14 @@ set cmd = ($TKR \
             --regheader --noedit)
 echo "-------------------------------------------------------" | tee -a $LF 
 echo $cmd | tee -a $LF 
-$cmd | tee -a $LF 
+#$cmd | tee -a $LF 
 if($status) exit 1;
 
 set MM = mri_matrix_multiply
 if($usedev) set MM = $DEV/$MM/$MM
 
 set cmd = ($MM -fsl -bin \
-            -im $std2anat_fslmat -im $exf2std_fslmat \
+            -iim $std2anat_fslmat -iim $exf2std_fslmat \
             -om $exf2anat_init_fslmat)
 echo $cmd | tee -a $LF 
 $cmd | tee -a $LF 
@@ -157,7 +199,7 @@ set cmd = ($cmd  -searchry -$maxangle $maxangle);
 set cmd = ($cmd  -searchrz -$maxangle $maxangle);
 date | tee -a $LF 
 echo $cmd | tee -a $LF 
-$cmd |& tee -a $LF 
+#$cmd |& tee -a $LF 
 if($status) then
   echo "ERROR: flirt" | tee -a $LF 
   exit 1;
@@ -210,6 +252,30 @@ if($status) then
   echo "ERROR: tkregister2" | tee -a $LF 
   exit 1;
 endif
+
+# Now recompute the std2anat
+set cmd = ($MM -fsl \
+  -im $FeatDir/reg/freesurfer/exf2anat.fsl.mat \
+  -iim $FeatDir/reg/example_func2standard.mat \
+  -om $FeatDir/reg/freesurfer/std2anat.fsl.mat)
+echo $cmd | tee -a $LF 
+$cmd |& tee -a $LF 
+if($status) then
+  echo "ERROR: tkregister2" | tee -a $LF 
+  exit 1;
+endif
+
+# Now recompute the anat2std
+set cmd = ($TKR \
+            --targ $refvolcor \
+            --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
+            --reg $anat2std_regdat \
+            --fslreg $std2anat_fslmat --noedit)
+echo "-------------------------------------------------------" | tee -a $LF 
+echo $cmd | tee -a $LF 
+$cmd | tee -a $LF 
+if($status) exit 1;
+
 
 echo ""
 echo "To visually check your results, run:" | tee -a $LF 
@@ -303,6 +369,12 @@ while( $#argv != 0 )
       set manual = 1;
       breaksw
 
+    case "--manxfm":
+      if ( $#argv == 0) goto arg1err;
+      set manxfm = $argv[1]; shift;
+      set manual = 1;
+      breaksw
+
     case "--manual-no-surf":
       set manual_use_surf = 0;
       breaksw
@@ -349,6 +421,11 @@ if(! -e $SUBJECTS_DIR/$subject) then
   echo "ERROR: cannot find FreeSurfer subject $subject in $SUBJECTS_DIR"
   exit 1;
 endif
+if($manxfm != "func2anat" && $manxfm != "std2anat" && $manxfm != "func2std") then
+  echo "ERROR: manxfm is $manxfm, must be func2anat, std2anat, func2std"
+  exit 1;
+endif
+
 
 goto check_params_return;
 ############--------------##################
@@ -370,6 +447,7 @@ usage_exit:
   echo "Optional flags and arguments:"
   echo ""
   echo " --manual         : interactively view/edit registration"
+  echo " --manxfm xfmtype : interactively view/edit registration for xfmtype"
   echo " --dof  dof       : FLIRT DOF (default is $dof)"
   echo " --bins bins      : FLIRT bins (default is $bins)"
   echo " --cost cost      : FLIRT cost (default is $cost)"
@@ -436,6 +514,13 @@ OTHER ARGUMENTS
 
 Interactively view or edit registration with tkregister2. You must have
 already run reg-feat2anat without --manual to create the initial registration.
+Equivalent to --manxfm func2anat.
+
+--manxfm xfmtype
+
+xfmtype can be func2anat, std2anat, or func2std. Implies --manual.
+Interactively view or edit registration with tkregister2. You must have
+already run reg-feat2anat without --manxfm to create the initial registration.
 
 
 --version            : print version and exit
