@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.35 2005/12/13 21:25:24 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.36 2005/12/13 22:36:07 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -421,7 +421,8 @@ proc tkm_MakeRadioButtons { isFrame isDirection isTitle iVariable ilRadioButtons
 		    -variable $iVariable \
 		    -command [lindex $lRadioButton 3] \
 		    -indicatoron false \
-		    -selectcolor gray
+		    -selectcolor gray \
+		    -value [lindex $lRadioButton 2]
 		
 		# if horizontal, pack in increasing columns. if vertical,
 		# pack in increasing rows.
