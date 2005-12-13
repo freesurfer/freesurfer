@@ -69,9 +69,11 @@ icon_rotate_plane.gif \
 icon_snapshot_load.gif \
 icon_snapshot_save.gif \
 icon_stopwatch.gif \
+icon_surface_inflated.gif \
 icon_surface_main.gif \
 icon_surface_original.gif \
 icon_surface_pial.gif \
+icon_surface_white.gif \
 icon_view_31.gif \
 icon_view_mosaic.gif \
 icon_view_multiple.gif \
