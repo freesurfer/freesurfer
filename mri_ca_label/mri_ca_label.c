@@ -70,7 +70,7 @@ static int renormalize_wsize = 0 ;
 static int renormalize_iter = 0 ;
 static int renormalize_new = 0 ;
 static int renormalize_align = 0 ;
-static int no_old_renormalize = 0;
+static int no_old_renormalize = 1;
 static int filter = 0 ;
 static float pthresh = .7 ;
 #if 0
@@ -116,10 +116,10 @@ main(int argc, char *argv[])
   
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.65 2005/12/09 18:41:42 xhan Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_ca_label.c,v 1.66 2005/12/13 19:59:35 xhan Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.65 2005/12/09 18:41:42 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.66 2005/12/13 19:59:35 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
