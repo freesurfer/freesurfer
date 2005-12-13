@@ -10832,13 +10832,13 @@ mghRead(char *fname, int read_volume, int frame)
 	  fgets(mri->transform_fname, len+1, fp);
 	  // if this file exists then read the transform
 	  if(!FileExists(mri->transform_fname)){
-	    printf("WARNING: talairach transform %s does not exist ...\n",
+	    printf("  Talairach transform %s does not exist ...\n",
 		   mri->transform_fname);
 	    fnamedir = fio_dirname(fname);
 	    sprintf(mri->transform_fname,"%s/transforms/talairach.xfm",fnamedir);
 	    printf("   ... trying %s ...",mri->transform_fname);
 	    if(FileExists(mri->transform_fname)) printf("which does exists ");
-	    else                                 printf("which does NOT exist ");
+	    else                                 printf("which does not exist ");
 	    printf("\n");
 	    free(fnamedir);
 	  }
@@ -10864,9 +10864,9 @@ mghRead(char *fname, int read_volume, int frame)
 	  }
 	  else{
 	    fprintf(stderr, 
-		    "WARNING: can't find the talairach xform '%s'\n",
+		    "Can't find the talairach xform '%s'\n",
 		    mri->transform_fname);
-	    fprintf(stderr, "WARNING: transform is not loaded into mri\n");
+	    fprintf(stderr, "Transform is not loaded into mri\n");
 	  }
 	  break ;
           case TAG_CMDLINE:
