@@ -18979,7 +18979,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.157 2005/12/13 23:28:50 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.158 2005/12/13 23:40:19 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21663,8 +21663,14 @@ vset_set_current_set(int set)
   if (set < 0 || set > NUM_VERTEX_SETS)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
-                 "vset_load_surface_vertices: invalid set %d\n",set));
+                 "vset_set_current_set: invalid set %d\n",set));
   
+  /* Make sure this set is loaded. */
+  if (NULL == vset_vertex_list[set])
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM,
+                 "vset_set_current_set: set %d not loaded\n",set));
+
   /* save the main set if we haven't done so yet */
   if (vset_current_set==VSET_MAIN && vset_vertex_list[VSET_MAIN]==NULL)
     vset_save_surface_vertices(VSET_MAIN);
