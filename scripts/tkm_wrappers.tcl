@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.34 2005/09/21 17:01:46 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.35 2005/12/13 21:25:24 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -442,7 +442,7 @@ proc tkm_MakeRadioButtons { isFrame isDirection isTitle iVariable ilRadioButtons
 	# to create one for the label, but if we did an image we don't have
 	# one.
 	if { [lindex $lRadioButton 4] != "" } {
-	    $fwMain.baw bind $cbw \
+	    $fwMain.baw bind $rbw \
 		-balloonmsg [lindex $lRadioButton 4]
 	    
 	    catch { $fwMain.baw bind $lw \
