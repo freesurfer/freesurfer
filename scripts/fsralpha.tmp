@@ -2,11 +2,11 @@
 #
 # expertopts
 # fsl motion correction
-
+# mris_smooth writes out curv and area
 
 umask 002;
 
-set VERSION = '$Id: fsralpha.tmp,v 1.1 2005/12/14 01:37:00 greve Exp $';
+set VERSION = '$Id: fsralpha.tmp,v 1.2 2005/12/14 04:23:16 greve Exp $';
 
 # MNI tool requires the following
 setenv LANG C
@@ -621,7 +621,7 @@ foreach hemi ($hemilist)
   if($DoSmooth1) then
     echo "---------------------------------------------"|& tee -a $LF 
     echo "Smooth1 $hemi `date`" |& tee -a $SF |& tee -a $LF 
-    set cmd = (mris_smooth surf/$hemi.orig.nofix surf/$hemi.smoothwm.nofix)
+    set cmd = (mris_smooth -nw surf/$hemi.orig.nofix surf/$hemi.smoothwm.nofix)
     echo $cmd |& tee -a $LF |& tee -a $CF 
     pwd |& tee -a $LF 
     if($RunIt) $cmd |& tee -a $LF
@@ -652,7 +652,8 @@ foreach hemi ($hemilist)
     echo "QSphere $hemi `date`" |& tee -a $SF |& tee -a $LF 
     pwd |& tee -a $LF 
     set cmd = (mris_sphere -w 0 -inflate -in 200 \
-       -q surf/$hemi.inflated.nofix surf/$hemi.qsphere.nofix)
+       -q -O surf/$hemi.inflated.nofix surf/$hemi.inflated.nofix \
+       surf/$hemi.qsphere.nofix)
     echo $cmd |& tee -a $LF |& tee -a $CF 
     if($RunIt) $cmd |& tee -a $LF
     if($status) then
@@ -673,11 +674,12 @@ foreach hemi ($hemilist)
     set cmd = (cp surf/lh.inflated.nofix surf/lh.inflated)
     echo $cmd |& tee -a $LF |& tee -a $CF 
     if($RunIt) $cmd |& tee -a $LF
-    set cmd = (cp surf/lh.qsphere.nofix surf/lh.qsphere)
-    echo $cmd |& tee -a $LF |& tee -a $CF 
-    if($RunIt) $cmd |& tee -a $LF
+    #set cmd = (cp surf/lh.qsphere.nofix surf/lh.qsphere)
+    #echo $cmd |& tee -a $LF |& tee -a $CF 
+    #if($RunIt) $cmd |& tee -a $LF
     # Now can run fixer
-    set cmd = (mris_fix_topology -errors -mgz $subjid $hemi)
+    set cmd = (mris_fix_topology -errors -mgz \
+      -sphere qsphere.nofix $subjid $hemi)
     echo $cmd |& tee -a $LF |& tee -a $CF 
     if($RunIt) $cmd |& tee -a $LF 
     if($status) then
@@ -742,19 +744,23 @@ foreach hemi ($hemilist)
   if($DoFinalSurfs) then
     echo "---------------------------------------------"|& tee -a $LF 
     echo "Make Final Surf $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    # Must mask the brain with brainmask
     pwd |& tee -a $LF 
-    set cmd = (mris_make_surfaces -mgz -w 0 $subjid $hemi);
+    set cmd = (mri_mask mri/brain.mgz mri/brainmask.mgz \
+      mri/brain.finalsurfs.mgz)
     echo $cmd |& tee -a $LF |& tee -a $CF 
     if($RunIt) $cmd |& tee -a $LF 
-    if($status) then
-      echo "ERROR: mris_make_surfaces exited with non-zero status"
-      goto error_exit;
-    endif
+    if($status) goto error_exit;
+    set cmd = (mris_make_surfaces -mgz -w 0 \
+       -T1 brain.finalsurfs $subjid $hemi);
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF 
+    if($status) goto error_exit;
   endif
 
   if($DoCortRibbonVolMask) then
     echo "---------------------------------------------"|& tee -a $LF 
-    echo "Making vol mask of cortical ribbon $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    echo "Cortical ribbon $hemi `date`" |& tee -a $SF |& tee -a $LF 
     pwd |& tee -a $LF 
     set cmd = (mri_surf2vol --mkmask --hemi $hemi --fillribbon \
       --template mri/orig.mgz --volregidentity $subjid \
@@ -842,8 +848,9 @@ foreach hemi ($hemilist)
     pwd |& tee -a $LF                                             
     set CPAtlas = $FREESURFER_HOME/average/$hemi.$GCS      
     set sphreg = surf/$hemi.sphere.reg                    
-    set cmd = (mris_ca_label $subjid $hemi surf/sphere.reg $CPAtlas \
+    set cmd = (mris_ca_label $subjid $hemi surf/$hemi.sphere.reg $CPAtlas \
       surf/$hemi.aparc.annot)
+    echo $cmd |& tee -a $LF
     if($RunIt) $cmd |& tee -a $LF                                  
     if($status) then                                               
       echo "ERROR: mris_ca_label exited with non-zero status" |& tee -a $LF  
@@ -1739,7 +1746,6 @@ usage_exit:
   echo "  See -help"
   echo ""
   echo " Expert Preferences"
-  echo "  -old-atlas : use old atlases (pre Aug 2005)"
   echo "  -usecontrolpoints : use control points when intensity normalizing"
   echo "  -keepwmedits : keep edits to wm volume when segmenting"
   echo "  -pons-xyz X Y Z : XYZ of seed point for pons, used in fill"
@@ -1753,8 +1759,6 @@ usage_exit:
   echo "  -wsatlas : use atlas when skull stripping"
   echo "  -wsthresh pct : explicity set watershed threshold"
   echo "  -wsseed C R S : identify an index (C, R, S) point in the skull"
-  echo "  -nuiterations N : set number of iterations for nu intensity "
-  echo "     correction (default is $NuIterations)"
   echo "  -norm3diters niters : number of 3d iterations for mri_normalize"
   echo "  -normmaxgrad maxgrad : max grad (-g) for mri_normalize. Default is 1."
   echo "  -cm           : conform COR volumes to the min voxel size "
