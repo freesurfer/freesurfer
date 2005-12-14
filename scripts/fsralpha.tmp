@@ -6,7 +6,7 @@
 
 umask 002;
 
-set VERSION = '$Id: fsralpha.tmp,v 1.3 2005/12/14 04:45:33 greve Exp $';
+set VERSION = '$Id: fsralpha.tmp,v 1.4 2005/12/14 04:51:07 greve Exp $';
 
 # MNI tool requires the following
 setenv LANG C
@@ -715,6 +715,7 @@ foreach hemi ($hemilist)
   if($DoSmooth2) then
     echo "---------------------------------------------"|& tee -a $LF 
     echo "Smooth2 $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    # Should there be a -nw to keep from writing out curv and area?
     set cmd = (mris_smooth surf/$hemi.orig surf/$hemi.smoothwm)
     echo $cmd |& tee -a $LF |& tee -a $CF 
     pwd |& tee -a $LF 
