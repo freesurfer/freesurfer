@@ -1,0 +1,30 @@
+#!/bin/tcsh -f
+#
+# USAGE: fsr-checkxopts xoptsfile
+# 
+# Checks the xoptsfile to make sure that there are no errors in it.
+#
+
+set VERSION = '$Id: fsr-checkxopts,v 1.1 2005/12/14 17:41:08 greve Exp $';
+
+if($#argv < 1) exit 0;
+set xoptsfile = $argv[1];
+
+if(! -e $xoptsfile) then
+  echo "ERROR: cannot find $xoptsfile"
+  exit 1;
+endif
+
+# Get the number of commands in the xopts file
+set n1 = `grep -v \# $xoptsfile | awk '{print $1}' | sort | wc -l`;
+
+# Get the number of unique commands in the xopts file
+set n2 = `grep -v \# $xoptsfile | awk '{print $1}' | sort | uniq | wc -l`;
+
+# If they are not the same, then it means that there is a replication
+if($n1 != $n2) then
+  echo "ERROR: multiple occurances of a command in expert options file $xoptsfile"
+  exit 1;
+endif
+
+exit 0
