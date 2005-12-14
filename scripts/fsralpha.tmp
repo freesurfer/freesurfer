@@ -6,7 +6,7 @@
 
 umask 002;
 
-set VERSION = '$Id: fsralpha.tmp,v 1.2 2005/12/14 04:23:16 greve Exp $';
+set VERSION = '$Id: fsralpha.tmp,v 1.3 2005/12/14 04:45:33 greve Exp $';
 
 # MNI tool requires the following
 setenv LANG C
@@ -36,13 +36,11 @@ set GCASkull = RB40_talairach_with_skull_2005-07-20.gca
 # For cortical registration, as found in:
 # $FREESURFER_HOME/average/$hemi.$AvgCurvTif
 set AvgCurvTif     = average.curvature.filled.buckner40.tif
-set AvgCurvTif_Old = average.tif # "Historical"
-
 
 # For cortical parcellation atlas, as found in:
 # $FREESURFER_HOME/average/$hemi.$GCS
-set GCS     = curvature.buckner40.filled.desikan_killiany.gcs
-#set GCS     = atlas2005_simple.gcs
+set dkGCS     = curvature.buckner40.filled.desikan_killiany.gcs
+set cdGCS     = atlas2005_simple.gcs
 
 # Set this to 0 to do everything but run the command.
 # This is good for debugging.
@@ -205,7 +203,8 @@ mri_ca_label -all-info >> $LF
 echo "#######################################" >> $LF
 echo "GCA $GCA" >> $LF
 echo "AvgCurvTif $AvgCurvTif" >> $LF
-echo "GCS $GCS" >> $LF
+echo "dkGCS $dkGCS" >> $LF
+echo "cdGCS $cdGCS" >> $LF
 echo "#######################################" >> $LF
 
 if($DoVersionsOnly) exit 0;
@@ -842,37 +841,48 @@ foreach hemi ($hemilist)
   endif
 
   #---------------- Cortical Parcellation------------------------# 
-  if($DoCortParc) then                                             
-    echo "------------------------------------------"|& tee -a $LF 
-    echo "Cortical Parcellation $hemi `date`" |& tee -a $SF |& tee -a $LF 
-    pwd |& tee -a $LF                                             
-    set CPAtlas = $FREESURFER_HOME/average/$hemi.$GCS      
-    set sphreg = surf/$hemi.sphere.reg                    
-    set cmd = (mris_ca_label $subjid $hemi surf/$hemi.sphere.reg $CPAtlas \
-      surf/$hemi.aparc.annot)
-    echo $cmd |& tee -a $LF
-    if($RunIt) $cmd |& tee -a $LF                                  
-    if($status) then                                               
-      echo "ERROR: mris_ca_label exited with non-zero status" |& tee -a $LF  
-      goto error_exit;                                             
-    endif                                                          
-  endif                                                            
+  foreach GCS ($dkGCS $cdGCS)
+    if($GCS == $dkGCS) then
+      set annot = label/$hemi.aparc.annot
+      set stats = stats/$hemi.aparc.stats
+      set ctab  = stats/aparc.annot.ctab
+    endif
+    if($GCS == $cdGCS) then
+      set annot = label/$hemi.aparc.cd.annot
+      set stats = stats/$hemi.aparc.cd.stats
+      set ctab  = stats/aparc.annot.cd.ctab
+    endif
 
-  # ---------- Surface Anatomical Stats ---------------------------
-  if($DoParcStats) then
-    echo "------------------------------------------"|& tee -a $LF
-    echo "Parcellation Stats $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    if($DoCortParc) then                                             
+      echo "------------------------------------------"|& tee -a $LF 
+      echo "Cort Parc $hemi `date`" |& tee -a $SF |& tee -a $LF 
+      echo "$GCS "|& tee -a $SF |& tee -a $LF 
+      pwd |& tee -a $LF                                             
+      set CPAtlas = $FREESURFER_HOME/average/$hemi.$GCS      
+      set sphreg = surf/$hemi.sphere.reg                    
+      set cmd = (mris_ca_label $subjid $hemi surf/$hemi.sphere.reg \
+                 $CPAtlas $annot)
+      echo $cmd |& tee -a $LF
+      if($RunIt) $cmd |& tee -a $LF                                  
+      if($status) then                                               
+        echo "ERROR: mris_ca_label exited with non-zero status" |& tee -a $LF  
+        goto error_exit;                                             
+      endif
+    endif
 
-    pwd |& tee -a $LF                                    
-    set cmd = (mris_anatomical_stats -mgz -f stats/$hemi.aparc.stats \
-      -b -a label/$hemi.aparc.annot -c label/aparc.annot.ctab $subjid $hemi);
-    echo $cmd |& tee -a $LF |& tee -a $CF                                        
-    if($RunIt) $cmd |& tee -a $LF                                  
-    if($status) then                                               
-      echo "ERROR: mris_anatomical_stats exited with non-zero status" |& tee -a $LF 
-      goto error_exit;                                             
-    endif                                                          
-  endif
+    if($DoParcStats) then
+      echo "------------------------------------------"|& tee -a $LF
+      echo "Parcellation Stats $hemi `date`" |& tee -a $SF |& tee -a $LF 
+      echo "$GCS "|& tee -a $SF |& tee -a $LF 
+      pwd |& tee -a $LF                                    
+      set cmd = (mris_anatomical_stats -mgz -f $stats \
+            -b -a $annot -c $ctab $subjid $hemi);
+      echo $cmd |& tee -a $LF |& tee -a $CF                                        
+      if($RunIt) $cmd |& tee -a $LF                                  
+      if($status) goto error_exit;                                             
+    endif
+
+  end # Loop over cort parc
 
 end # Loop over hemilist
 
