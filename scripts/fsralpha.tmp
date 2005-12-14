@@ -1,0 +1,2524 @@
+#!/bin/tcsh -f
+#
+# expertopts
+# fsl motion correction
+
+
+umask 002;
+
+set VERSION = '$Id: fsralpha.tmp,v 1.1 2005/12/14 01:37:00 greve Exp $';
+
+# MNI tool requires the following
+setenv LANG C
+
+set ProgName = `basename $0`;
+
+set inputargs = ($argv);
+set subjid = ();
+set hemilist = (lh rh);
+set PrintHelp = 0;
+set LF = ();
+set SF = ();
+set CF = ();
+set AppendLog    = 1;
+set AppendStatus = 1;
+set KeepEdits = 1;
+set SegKeepWMEdits = 1;
+
+# Expert preferences
+set HiRes = '';         # hires option (currently only conformed to min)
+set RmNeckRadius = 25;  # used by mri_remove_neck
+
+# For subcortical segmentation
+set GCA      = RB40_talairach_2005-07-20.gca
+set GCASkull = RB40_talairach_with_skull_2005-07-20.gca
+
+# For cortical registration, as found in:
+# $FREESURFER_HOME/average/$hemi.$AvgCurvTif
+set AvgCurvTif     = average.curvature.filled.buckner40.tif
+set AvgCurvTif_Old = average.tif # "Historical"
+
+
+# For cortical parcellation atlas, as found in:
+# $FREESURFER_HOME/average/$hemi.$GCS
+set GCS     = curvature.buckner40.filled.desikan_killiany.gcs
+#set GCS     = atlas2005_simple.gcs
+
+# Set this to 0 to do everything but run the command.
+# This is good for debugging.
+set RunIt = 1; 
+set ReRunFlag = 0;
+
+set DoVersionsOnly = 0;
+set UseControlPoints = 0;
+
+#----- Volume -----------#
+set DoMotionCor       = 0;
+set DoConform         = 0;
+set DoTalairach       = 0;
+set DoNuIntensityCor  = 0;
+set DoNormalization1  = 0;
+set DoSkullStrip     = 0;
+set DoGCAReg         = 0; 
+set DoCANormalize    = 0; 
+set DoCAReg          = 0; 
+set DoRemoveNeck     = 0;
+set DoSkullLTA       = 0;
+set DoCALabel        = 0;
+set DoSegStats       = 0; 
+set DoNormalization2  = 0;
+set DoSegmentation    = 0;
+set DoEditWMwithASeg = 0;
+set DoFill            = 0;
+set DoBFSMask         = 0;
+
+#----- Surface -----------#
+set DoTessellate     = 0;
+set DoSmooth1        = 0;
+set DoInflate1       = 0;
+set DoQSphere        = 0;
+set DoFix            = 0;
+set DoEuler          = 0;
+set DoSmooth2        = 0;
+set DoInflate2       = 0;
+set DoSphere         = 0;
+set DoSurfReg        = 0;
+set DoContraSurfReg  = 0;
+set DoAvgCurv        = 0;
+set DoAvgLabels      = 0;
+set DoFinalSurfs     = 0;
+set DoCortParc       = 0; 
+set DoParcStats      = 0;
+set DoCortParc2      = 0; 
+set DoParcStats2     = 0;
+set DoCortRibbonVolMask = 0;
+
+# ----------- Surface and Volume ------------------#
+set DoAParc2ASeg = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | egrep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set DateString = "`date '+%y%m%d%H%M'`"
+
+mkdir -p $subjdir # This variable is set in check_params
+cd $subjdir 
+mkdir -p mri scripts surf tmp label stats
+mkdir -p mri/transforms 
+set touchdir = touch
+
+# Create a separate status file for the env
+if(! $DoVersionsOnly) then
+  set CF = $subjdir/scripts/recon-all.cmd
+  rm -f $CF
+  set ENVF = $subjdir/scripts/recon-all.env
+  if(-e $ENVF) mv $ENVF $ENVF.bak
+  date                                     >> $ENVF
+  echo "FREESURFER_HOME $FREESURFER_HOME"  >> $ENVF
+  echo "Actual FREESURFER_HOME $freesurfer_home_true"  >> $ENVF
+  pwd                                      >> $ENVF
+  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" >> $ENVF
+  echo $inputargs                          >> $ENVF
+  uname -a                                 >> $ENVF
+  echo ""                                  >> $ENVF
+  limit                                    >> $ENVF
+  echo ""                                  >> $ENVF
+  printenv                                 >> $ENVF
+endif
+
+# Create the log file #
+if($DoVersionsOnly) then
+  set LF = /dev/null
+  set SF = /dev/null
+endif
+if($#LF == 0) then
+  set LF = ($subjdir/scripts/recon-all.log)
+  if(-e $LF) then
+    if(! $AppendLog) then
+       mv $LF $LF.old
+    else
+      echo "\n\n"  >> $LF
+      echo "New invocation of recon-all "  >> $LF
+      echo "\n\n"  >> $LF
+    endif
+  endif
+else
+  if(-e $LF) then
+    echo "\n\n"  >> $LF
+    echo "New invocation of recon-all "  >> $LF
+    echo "\n\n"  >> $LF
+  endif
+endif
+
+date >> $LF
+pwd >> $LF
+echo $0 >> $LF
+echo $inputargs >> $LF
+echo "subjid $subjid" >> $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" >> $LF
+echo "FREESURFER_HOME $FREESURFER_HOME" >> $LF
+echo "Actual FREESURFER_HOME $freesurfer_home_true"  >> $LF
+uname -a | tee -a $LF
+limit                                   >> $LF
+
+## gather all verisions here
+echo "########################################" | tee -a $LF
+echo "program versions used" >> $LF
+echo $VERSION                >> $LF
+mri_motion_correct2 -version >> $LF
+talairach --version >> $LF
+nu_correct -version >> $LF
+mri_normalize -all-info >> $LF
+mri_watershed -all-info >> $LF
+mri_segment -all-info >> $LF
+mri_fill -all-info >> $LF
+mri_tessellate -all-info >> $LF
+mris_smooth -all-info >> $LF
+mris_inflate -all-info >> $LF
+mris_sphere -all-info >> $LF
+mris_fix_topology -all-info >> $LF
+mris_euler_number -all-info >> $LF
+mris_make_surfaces -all-info >> $LF
+mris_sphere -all-info >> $LF
+mris_register -all-info >> $LF
+mrisp_paint -all-info >> $LF
+mri_label2label -all-info >> $LF
+mri_em_register -all-info >> $LF
+mri_ca_normalize -all-info >> $LF
+mri_ca_register -all-info >> $LF
+mri_ca_label -all-info >> $LF
+echo "#######################################" >> $LF
+echo "GCA $GCA" >> $LF
+echo "AvgCurvTif $AvgCurvTif" >> $LF
+echo "GCS $GCS" >> $LF
+echo "#######################################" >> $LF
+
+if($DoVersionsOnly) exit 0;
+
+# Get FREESURFER_HOME dir to see if it matches
+set CSDF = $subjdir/scripts/csurfdir
+if(-e $CSDF) then
+  set tmp = `cat $CSDF`;
+  if($tmp != $FREESURFER_HOME) then
+   echo "WARNING: current FREESURFER_HOME does not match that of previous processing." | tee -a $LF
+   echo "    Current: $FREESURFER_HOME" | tee -a $LF
+   echo "    Previous: $tmp" | tee -a $LF
+   sleep 1;
+  endif
+else
+  echo $FREESURFER_HOME > $CSDF
+endif
+
+# Create the status file #
+if($#SF == 0) then
+  set SF = $subjdir/scripts/recon-all.status
+  if(-e $SF) then
+    if(! $AppendStatus) then
+       mv $SF $SF.old
+    else
+      echo "\n\n"  >> $SF
+      echo "New invocation of recon-all "  >> $SF
+      echo "\n\n"  >> $SF
+    endif
+  endif
+else 
+  if(-e $SF) then
+    echo "\n\n"  >> $SF
+    echo "New invocation of recon-all "  >> $SF
+    echo "\n\n"  >> $SF
+  endif
+endif
+echo "status file for recon-all" >> $SF
+date >> $SF
+
+#--------------------------------------
+set ControlPointsFile = tmp/control.dat
+if(-e $ControlPointsFile) then
+  echo "Control Points ------------------" | tee -a $LF
+  cat $ControlPointsFile                   | tee -a $LF
+  echo "---------------------------------" | tee -a $LF
+endif
+
+#----------- Convert input files if necessary ------------------#
+
+#----------- Motion Correct and Average ------------------#
+if($DoMotionCor) then
+  #----------- Get input list in mri dir
+  set inlist = (`ls src/[0-9][0-9][0-9].mgz`);
+  if($#inlist == 0) then
+    echo "ERROR: cannot find any input files in $subjdir/mri"|& tee -a $LF 
+    goto error_exit;
+  endif
+  echo "Input list: $inlist"|& tee -a $LF 
+  if($#inlist == 0) then
+    echo "WARNING: only one run found. This is OK, but motion"|& tee -a $LF 
+    echo "correction cannot be performed on one run, so I'll"|& tee -a $LF 
+    echo "copy the run to rawavg.mgz and continue."|& tee -a $LF 
+    sleep 2s;
+    if($RunIt) cp $inlist mri/rawavg.mgz
+  else
+    set cmd = (mri_motion_correct2  ${HiRes} -o mri/rawavg.mgz -wild $inlist)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF 
+    if($status) then
+      echo "ERROR: mri_motion_correct exited with non-zero status"|& tee -a $LF
+      goto error_exit;
+    endif
+  endif
+endif
+
+#----------- Conform to 1mm^3, 256^3 ------------------#
+if($DoConform) then
+  set cmd = (mri_convert mri/rawavg.mgz mri/orig.mgz --conform)
+  pwd |& tee -a $LF 
+  echo $cmd |& tee -a $LF |& tee -a $CF 
+  if($RunIt) $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: mri_convert exited with non-zero status"|& tee -a $LF
+    goto error_exit;
+  endif
+  # Add xfm to orig, eventhough it does not exist yet
+  set cmd = (mri_add_xform_to_header transforms/talairach.xfm \
+             mri/orig.mgz mri/orig.mgz); 
+  echo $cmd |& tee -a $LF 
+  if($RunIt) $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: mri_add_xform_to_header mri/orig.mgz failed"|& tee -a $LF 
+    goto error_exit;
+  endif
+endif
+
+#----------- Nu Intensity Correction ------------------#
+if($DoNuIntensityCor) then
+  echo "---------------------------------------------"|& tee -a $LF 
+  echo "Nu Intensity Correction `date`" |& tee -a $SF |& tee -a $LF 
+  set cmd = (mri_nu_correct.mni ${HiRes} --i mri/orig.mgz --o mri/nu.mgz --n 4)
+  echo $cmd |& tee -a $LF |& tee -a $CF 
+  if($RunIt) $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: converting orig to minc" |& tee -a $LF 
+    goto error_exit;
+  endif
+endif
+
+#----------- Talairach ------------------#
+if($DoTalairach) then
+  echo "---------------------------------------------"|& tee -a $LF 
+  echo "Talairach `date`" |& tee -a $SF |& tee -a $LF 
+  mkdir -p transforms/bak
+  set xfm = mri/transforms/talairach.auto.xfm
+  if(-e $xfm) then
+    set xfmbak = transforms/bak/talairach.auto.xfm.$DateString
+    cp $xfm $xfmbak
+  endif
+  set cmd = (talairach --i mri/nu.mgz --xfm $xfm)
+  pwd |& tee -a $LF 
+  echo $cmd |& tee -a $LF |& tee -a $CF 
+  if($RunIt) $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: talairach exited with non-zero status" |& tee -a $LF 
+    goto error_exit;
+  endif
+  # Need to check for diff, keep, etc
+  cp transforms/talairach.auto.xfm transforms/talairach.xfm
+
+  if(0) then
+  set cmd = (mri_add_xform_to_header transforms/talairach.xfm \
+             mri/nu.mgz mri/nu.mgz); 
+  echo $cmd |& tee -a $LF 
+  if($RunIt) $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: mri_add_xform_to_header mri/nu.mgz failed"|& tee -a $LF 
+    goto error_exit;
+  endif
+  endif
+
+endif
+
+#----------- Intensity Normalization ------------------#
+if($DoNormalization1) then
+  echo "---------------------------------------------"|& tee -a $LF 
+  echo "Intensity Normalization 1 `date`" |& tee -a $SF |& tee -a $LF 
+  set cmd = (mri_normalize -g 1);
+  if(-e $ControlPointsFile)  set cmd = ($cmd -f $ControlPointsFile)
+  set cmd = ($cmd mri/nu.mgz mri/T1.mgz)
+  pwd |& tee -a $LF 
+  echo $cmd |& tee -a $LF |& tee -a $CF 
+  if($RunIt) $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: mri_normalize exited with non-zero status" |& tee -a $LF 
+    goto error_exit;
+  endif
+endif
+
+#----------- Skull Stripping ------------------#
+if($DoSkullStrip) then
+  echo "---------------------------------------------"|& tee -a $LF 
+  echo "Skull Stripping `date`" |& tee -a $SF |& tee -a $LF 
+  pwd |& tee -a $LF 
+  set BMA = mri/brainmask.auto.mgz
+  set BM  = mri/brainmask.mgz
+  set cmd = (mri_watershed);
+  if(-e $BMA && -e $BM && $KeepEdits) set cmd = ($cmd -keep $BMA $BM $BM)
+  set cmd = ($cmd mri/T1.mgz $BMA)
+  echo $cmd |& tee -a $LF |& tee -a $CF 
+  if($RunIt) $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: mri_watershed exited with non-zero status" |& tee -a $LF 
+    goto error_exit;
+  endif
+  # Copy auto to man
+  if(! -e $BM || ! $KeepEdits) then
+    set cmd = (cp $BMA $BM)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF 
+  endif
+endif
+
+#-------------- GCA Registration  -------------------------# 
+if($DoGCAReg) then                                           
+  echo "--------------------------------------"|& tee -a $LF 
+  echo "GCARegistration `date`" |& tee -a $SF |& tee -a $LF   
+  pwd |& tee -a $LF                                          
+  set cmd = (mri_em_register -mask brainmask.mgz -p .5 nu.mgz)          
+  set cmd = ($cmd $FREESURFER_HOME/average/$GCA mri/transforms/talairach.lta) 
+  echo $cmd |& tee -a $LF |& tee -a $CF                                     
+  if($RunIt) $cmd |& tee -a $LF                               
+  if($status) then                                            
+    echo "ERROR: mri_em_register with non-zero status" |& tee -a $LF 
+    goto error_exit;                                          
+  endif
+endif                                                         
+
+#---- Cannonical Spatial Normalization --------------#        
+if($DoCANormalize) then                                       
+  echo "---------------------------------------"|& tee -a $LF 
+  echo "CA Normalize `date`" |& tee -a $SF |& tee -a $LF      
+  pwd |& tee -a $LF                                          
+  set cmd = (mri_ca_normalize)
+  if($UseControlPoints)  set cmd = ($cmd -f $ControlPointsFile)
+  set cmd = ($cmd -mask mri/brainmask.mgz mri/nu.mgz \
+               $FREESURFER_HOME/average/$GCA \
+               mri/transforms/talairach.lta mri/norm.mgz)          
+  echo $cmd |& tee -a $LF |& tee -a $CF                                     
+  if($RunIt) $cmd |& tee -a $LF                               
+  if($status) then                                            
+    echo "ERROR: mri_ca_normalize with non-zero status" |& tee -a $LF 
+    goto error_exit;                                          
+  endif                                                       
+endif
+
+#------------ Cannonical Registration --------------#         
+if($DoCAReg) then                                             
+  echo "---------------------------------------"|& tee -a $LF 
+  echo "CA Reg `date`" |& tee -a $SF |& tee -a $LF            
+  pwd |& tee -a $LF                                          
+  set cmd = (mri_ca_register -cross-sequence -mask mri/brainmask.mgz \
+    -T mri/transforms/talairach.lta mri/norm.mgz \
+    $FREESURFER_HOME/average/$GCA mri/transforms/talairach.m3z)           
+  echo $cmd |& tee -a $LF |& tee -a $CF                                     
+  if($RunIt) $cmd |& tee -a $LF                               
+  if($status) then                                            
+    echo "ERROR: mri_ca_register with non-zero status" |& tee -a $LF 
+    goto error_exit;                                          
+  endif                                                       
+endif
+
+#------------ Removes neck and part of the face  --------------#         
+if($DoRemoveNeck) then                                             
+  echo "---------------------------------------"|& tee -a $LF 
+  echo "Remove Neck `date`" |& tee -a $SF |& tee -a $LF            
+  set cmd = (mri_remove_neck -radius $RmNeckRadius  mri/nu.mgz \
+             mri/transforms/talairach.m3z $FREESURFER_HOME/average/$GCA \
+             mri/nu_noneck.mgz)
+  echo $cmd |& tee -a $LF |& tee -a $CF                                     
+  if($RunIt) $cmd |& tee -a $LF                               
+  if($status) then                                            
+    echo "ERROR: mri_remove_neck exited with non-zero status" |& tee -a $LF 
+    goto error_exit;                                          
+  endif                                                       
+endif
+
+#------------ Recompute lta with skull but no neck  --------------#         
+if($DoSkullLTA) then                                             
+  echo "---------------------------------------"|& tee -a $LF 
+  echo "SkullLTA `date`" |& tee -a $SF |& tee -a $LF            
+  set cmd = (mri_em_register -skull -t mri/transforms/talairach.lta \
+     mri/nu_noneck.mgz $FREESURFER_HOME/average/$GCASkull \
+     mri/transforms/talairach_with_skull.lta)
+  echo $cmd |& tee -a $LF |& tee -a $CF                                     
+  if($RunIt) $cmd |& tee -a $LF                               
+  if($status) then                                            
+    echo "ERROR: mri_em_register exited with non-zero status" |& tee -a $LF 
+    goto error_exit;                                          
+  endif                                                       
+endif
+
+#-------------- SubCort Segmentation --------------#          
+if($DoCALabel) then                                           
+  echo "---------------------------------------"|& tee -a $LF 
+  echo "SubCort Seg `date`" |& tee -a $SF |& tee -a $LF       
+  pwd |& tee -a $LF                                          
+  set cmd = (mri_ca_label -cross-sequence mri/norm.mgz \
+    mri/transforms/talairach.m3z $FREESURFER_HOME/average/$GCA \
+    mri/aseg.auto.mgz);    
+  echo $cmd |& tee -a $LF |& tee -a $CF                                     
+  if($RunIt) $cmd |& tee -a $LF                               
+  if($status) then                                            
+    echo "ERROR: mri_ca_label with non-zero status" |& tee -a $LF 
+    goto error_exit;                                          
+  endif                    
+  if($RunIt) cp mri/aseg.auto.mgz mri/aseg.mgz
+endif                                                         
+
+if($DoSegStats) then
+  # Stats on the auotmatic segmentation 
+  echo "---------------------------------------------"|& tee -a $LF 
+  echo "ASeg Stats `date`" |& tee -a $SF |& tee -a $LF 
+  set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
+  set cmd = ($cmd --pv mri/norm.mgz --in mri/orig.mgz)
+  set cmd = ($cmd --ctab-default --excludeid 0)
+  set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brain.mgz)
+  set cmd = ($cmd --etiv);
+  set cmd = ($cmd --subject $subjid)
+  set cmd = ($cmd --in-intensity-name orig --in-intensity-units MR) 
+  pwd |& tee -a $LF 
+  echo $cmd |& tee -a $LF |& tee -a $CF 
+  if($RunIt) $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: mri_segstats exited with non-zero status" |& tee -a $LF 
+    goto error_exit;
+  endif
+endif
+
+#---------------- Intensity Normalization 2 --------------------------#
+if($DoNormalization2) then
+  echo "---------------------------------------------"|& tee -a $LF 
+  echo "Intensity Normalization2 `date`" |& tee -a $SF |& tee -a $LF 
+  set cmd = (mri_normalize);
+  if($UseControlPoints)   set cmd = ($cmd -f $ControlPointsFile)
+  set cmd = ($cmd -mask mri/brainmask.mgz mri/norm.mgz mri/brain.mgz)
+  pwd |& tee -a $LF 
+  echo $cmd |& tee -a $LF |& tee -a $CF 
+  if($RunIt) $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: mri_normalize exited with non-zero status" |& tee -a $LF 
+    goto error_exit;
+  endif
+endif
+
+#---------------- Segmentation --------------------------#
+if($DoSegmentation) then
+  echo "---------------------------------------------"|& tee -a $LF 
+  echo "WM Segmentation `date`" |& tee -a $SF |& tee -a $LF 
+  pwd |& tee -a $LF 
+
+  set SegKeepWMEdits = 0;
+  if($KeepEdits && -e mri/wm.mgz) set SegKeepWMEdits = 1;
+
+  if($SegKeepWMEdits) then
+    set cmd = (cp mri/wm.mgz mri/wm.seg.mgz)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF 
+  endif
+
+  set cmd = (mri_segment);
+  if($SegKeepWMEdits) set cmd = ($cmd -keep)
+  set cmd = ($cmd mri/brain.mgz mri/wm.seg.mgz)
+  echo $cmd |& tee -a $LF |& tee -a $CF 
+  if($RunIt) $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: mri_segment exited with non-zero status" |& tee -a $LF 
+    goto error_exit;
+  endif
+
+  set cmd = (mri_edit_wm_with_aseg mri/wm.seg.mgz mri/brain.mgz \
+     mri/aseg.mgz mri/wm.asegedit.mgz) 
+  if($SegKeepWMEdits) set cmd = ($cmd -keep)
+  echo $cmd |& tee -a $LF |& tee -a $CF                                     
+  if($RunIt) $cmd |& tee -a $LF                               
+  if($status) then                                            
+    echo "ERROR: mri_edit_wm_with_aseg with non-zero status" |& tee -a $LF 
+    goto error_exit;                                          
+  endif                                                       
+
+  set cmd = (mri_pretess mri/wm.asegedit.mgz wm mri/norm.mgz \
+    mri/wm.auto.mgz)
+  echo $cmd |& tee -a $LF |& tee -a $CF                                     
+  if($RunIt) $cmd |& tee -a $LF                               
+  if($status) then                                            
+    echo "ERROR: mri_pretess with non-zero status" |& tee -a $LF 
+    goto error_exit;                                          
+  endif                          
+
+  set cmd = (cp mri/wm.auto.mgz mri/wm.mgz) 
+  echo $cmd |& tee -a $LF |& tee -a $CF 
+  if($RunIt) $cmd |& tee -a $LF 
+endif
+
+#---------------- Fill --------------------------#
+if($DoFill) then
+  echo "---------------------------------------------"|& tee -a $LF 
+  echo "Fill `date`" |& tee -a $SF |& tee -a $LF 
+  set cmd = (mri_fill -a scripts/ponscc.cut.log \
+     -xform mri/transforms/talairach.lta \
+     -segmentation mri/aseg.mgz mri/wm.mgz mri/filled.mgz)
+  echo $cmd |& tee -a $LF |& tee -a $CF 
+  pwd |& tee -a $LF 
+  if($RunIt) $cmd |& tee -a $LF 
+  if($status) then
+    echo "ERROR: mri_fill exited with non-zero status" |& tee -a $LF 
+    goto error_exit;
+  endif
+endif
+
+
+#########################################################
+#                  Per-Hemisphere                       #
+#########################################################
+echo "INFO: starting per-hemisphere operations" |& tee -a $SF |& tee -a $LF 
+
+foreach hemi ($hemilist)
+  echo "----- Starting Hemisphere $hemi --------" |& tee -a $SF |& tee -a $LF 
+
+  #---------------- Tessellate --------------------------#
+  if($DoTessellate) then
+    if($hemi == "lh") then
+      set hemivalue = 255;
+    else
+      set hemivalue = 127;
+    endif
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "Tessellate $hemi `date`" |& tee -a $SF |& tee -a $LF 
+
+    set cmd = (mri_tessellate mri/filled.mgz $hemivalue \
+               surf/$hemi.orig.nofix)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    pwd |& tee -a $LF 
+    if($RunIt) $cmd |& tee -a $LF 
+    if($status) then
+      echo "ERROR: mri_tessellate exited with non-zero status"
+      goto error_exit;
+    endif
+  endif
+
+  #---------------- Smooth1 --------------------------#
+  if($DoSmooth1) then
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "Smooth1 $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    set cmd = (mris_smooth surf/$hemi.orig.nofix surf/$hemi.smoothwm.nofix)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    pwd |& tee -a $LF 
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: mris_smooth exited with non-zero status"
+      goto error_exit;
+    endif
+  endif
+
+  #---------------- Inflate1 --------------------------#
+  if($DoInflate1) then
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "Inflation1 $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    set cmd = (mris_inflate -dist 0 surf/$hemi.smoothwm.nofix \
+      surf/$hemi.inflated.nofix)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    pwd |& tee -a $LF 
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: mris_inflate exited with non-zero status"
+      goto error_exit;
+    endif
+  endif
+
+  #---------------- QSphere --------------------------#
+  if($DoQSphere) then
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "QSphere $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    pwd |& tee -a $LF 
+    set cmd = (mris_sphere -w 0 -inflate -in 200 \
+       -q surf/$hemi.inflated.nofix surf/$hemi.qsphere.nofix)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: mris_sphere exited with non-zero status"
+      goto error_exit;
+    endif
+  endif
+
+  #---------------- Fix Topology --------------------------#
+  if($DoFix) then
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "Fix Topology $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    pwd |& tee -a $LF 
+    # Must copy unfixed to fixed
+    set cmd = (cp surf/lh.orig.nofix surf/lh.orig)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF
+    set cmd = (cp surf/lh.inflated.nofix surf/lh.inflated)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF
+    set cmd = (cp surf/lh.qsphere.nofix surf/lh.qsphere)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF
+    # Now can run fixer
+    set cmd = (mris_fix_topology -errors -mgz $subjid $hemi)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF 
+    if($status) then
+      echo "ERROR: mris_fix_topology exited with non-zero status"
+      rm surf/lh.orig surf/lh.inflated surf/lh.qsphere
+      goto error_exit;
+    endif
+  endif
+
+  #---------------- Euler Number --------------------------#
+  if($DoEuler) then
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "Euler Number $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    pwd |& tee -a $LF 
+    set surffile = surf/$hemi.orig;
+    set outfile  = $surffile.euler
+    set cmd = (mris_euler_number surf/$hemi.orig)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) then
+      $cmd |& tee $outfile |& tee -a $LF 
+      if($status) then
+        echo "ERROR: mris_euler_number exited with non-zero status"
+        goto error_exit;
+      endif
+      set NHoles = `cat $outfile | awk '{if($1=="euler") print $15}'`;
+      echo "Euler: NHoles = $NHoles" |& tee -a $SF |& tee -a $LF 
+      if($NHoles != 0) then
+        echo "WARNING: Number of holes is not zero"|& tee -a $SF |& tee -a $LF 
+      endif
+    endif
+  endif
+
+  #---------------- Smooth2 --------------------------#
+  if($DoSmooth2) then
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "Smooth2 $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    set cmd = (mris_smooth surf/$hemi.orig surf/$hemi.smoothwm)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    pwd |& tee -a $LF 
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: mris_smooth exited with non-zero status"
+      goto error_exit;
+    endif
+  endif
+
+  #---------------- Inflate2 --------------------------#
+  if($DoInflate2) then
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "Inflation2 $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    pwd |& tee -a $LF 
+    set cmd = (mris_inflate -dist 0 surf/$hemi.smoothwm surf/$hemi.inflated)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: mris_inflate exited with non-zero status"
+      goto error_exit;
+    endif
+  endif
+
+  #---------------- Make Final Surfaces --------------------------#
+  if($DoFinalSurfs) then
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "Make Final Surf $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    pwd |& tee -a $LF 
+    set cmd = (mris_make_surfaces -mgz -w 0 $subjid $hemi);
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF 
+    if($status) then
+      echo "ERROR: mris_make_surfaces exited with non-zero status"
+      goto error_exit;
+    endif
+  endif
+
+  if($DoCortRibbonVolMask) then
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "Making vol mask of cortical ribbon $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    pwd |& tee -a $LF 
+    set cmd = (mri_surf2vol --mkmask --hemi $hemi --fillribbon \
+      --template mri/orig.mgz --volregidentity $subjid \
+      --outvol mri/$hemi.ribbon.mgz);
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF 
+    if($status) then
+      echo "ERROR: mri_surf2vol exited with non-zero status"
+      goto error_exit;
+    endif
+  endif
+
+  #---------------Begin Morph --------------------------------#
+  #---------------- Sphere --------------------------#
+  if($DoSphere) then
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "Sphere $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    pwd |& tee -a $LF 
+    set cmd = (mris_sphere -w 0 surf/$hemi.inflated surf/$hemi.sphere)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF 
+    if($status) then
+      echo "ERROR: mris_sphere exited with non-zero status"
+      goto error_exit;
+    endif
+  endif
+
+  #---------------- Surface Registration --------------------------#
+  if($DoSurfReg) then
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "Surf Ipsi Reg $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
+    pwd |& tee -a $LF 
+    set cmd = (mris_register -w 0 -curv surf/$hemi.sphere $AvgTif \
+      surf/$hemi.sphere.reg)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF 
+    if($status) then
+      echo "ERROR: mris_register exited with non-zero status"
+      goto error_exit;
+    endif
+  endif
+
+  #-------- Contra Surface Registration ----------------#
+  if($DoContraSurfReg) then
+    if($hemi == lh) then
+      set nothemi = rh;
+    else
+      set nothemi = lh;
+    endif
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "Contra Surf Reg $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
+    pwd |& tee -a $LF 
+    set cmd = (mris_register -w 0 -curv -reverse surf/$hemi.sphere \
+      $AvgTif surf/$hemi.$nothemi.sphere.reg)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF 
+    if($status) then
+      echo "ERROR: mris_register exited with non-zero status"
+      goto error_exit;
+    endif
+  endif
+
+  #---------------- Average Curv for Display----------------------#
+  if($DoAvgCurv) then
+    echo "---------------------------------------------"|& tee -a $LF 
+    echo "AvgCurv $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
+    pwd |& tee -a $LF 
+    set cmd = (mrisp_paint -a 5 "$AvgTif#6" \
+      surf/$hemi.sphere.reg surf/$hemi.avg_curv)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if($RunIt) $cmd |& tee -a $LF 
+    if($status) then
+      echo "ERROR: mrisp_paint exited with non-zero status"
+      goto error_exit;
+    endif
+  endif
+
+  #---------------- Cortical Parcellation------------------------# 
+  if($DoCortParc) then                                             
+    echo "------------------------------------------"|& tee -a $LF 
+    echo "Cortical Parcellation $hemi `date`" |& tee -a $SF |& tee -a $LF 
+    pwd |& tee -a $LF                                             
+    set CPAtlas = $FREESURFER_HOME/average/$hemi.$GCS      
+    set sphreg = surf/$hemi.sphere.reg                    
+    set cmd = (mris_ca_label $subjid $hemi surf/sphere.reg $CPAtlas \
+      surf/$hemi.aparc.annot)
+    if($RunIt) $cmd |& tee -a $LF                                  
+    if($status) then                                               
+      echo "ERROR: mris_ca_label exited with non-zero status" |& tee -a $LF  
+      goto error_exit;                                             
+    endif                                                          
+  endif                                                            
+
+  # ---------- Surface Anatomical Stats ---------------------------
+  if($DoParcStats) then
+    echo "------------------------------------------"|& tee -a $LF
+    echo "Parcellation Stats $hemi `date`" |& tee -a $SF |& tee -a $LF 
+
+    pwd |& tee -a $LF                                    
+    set cmd = (mris_anatomical_stats -mgz -f stats/$hemi.aparc.stats \
+      -b -a label/$hemi.aparc.annot -c label/aparc.annot.ctab $subjid $hemi);
+    echo $cmd |& tee -a $LF |& tee -a $CF                                        
+    if($RunIt) $cmd |& tee -a $LF                                  
+    if($status) then                                               
+      echo "ERROR: mris_anatomical_stats exited with non-zero status" |& tee -a $LF 
+      goto error_exit;                                             
+    endif                                                          
+  endif
+
+end # Loop over hemilist
+
+# ----------------- AParc2ASeg ---------------------------------------- #
+if($DoAParc2ASeg) then
+  echo "------------------------------------------"|& tee -a $LF
+  echo "AParc-to-ASeg `date`" |& tee -a $SF |& tee -a $LF 
+  pwd |& tee -a $LF                                    
+  set cmd = (mri_aparc2aseg --s $subjid --ribbon)
+  echo $cmd |& tee -a $LF |& tee -a $CF                                        
+  if($RunIt) $cmd |& tee -a $LF                                  
+  if($status) then                                               
+    echo "ERROR: mri_aparc2aseg exited with non-zero status" |& tee -a $LF 
+    goto error_exit;                                             
+  endif                                                          
+endif
+
+
+echo "" |& tee -a $LF 
+echo "-------------------------------------------" |& tee -a $LF 
+echo "" |& tee -a $LF 
+
+echo "done"
+
+exit 0
+#############------------------------------------#######################
+##################>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<<#######################
+#############------------------------------------#######################
+
+############--------------##################
+error_exit:
+  #echo "------------------------------------------" |& tee -a $LF
+  #df . |& tee -a $LF
+  #echo "------------------------------------------" |& tee -a $LF
+  uname -a | tee -a $LF | tee -a $SF 
+  echo "recon-all exited with errors at `date`" |& tee -a $LF |& tee -a $SF 
+  exit 1;
+endif
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    # This is a temporary flag to test how changing the way the vertex
+    # area is computed in mrisurf.c affects a recon.
+    case "-fixvertexarea"
+      setenv FIX_VERTEX_AREA;
+      breaksw
+    case "-nofixvertexarea"
+      unsetenv FIX_VERTEX_AREA;
+      breaksw
+
+    case "-subjid":
+    case "-sid":
+    case "-s":
+      if ( $#argv < 1) goto arg1err;
+      set subjid = $argv[1]; shift;
+      set subjid = `basename $subjid`; # remove trailing /
+      breaksw
+
+    case "-sd":
+      if ( $#argv < 1) goto arg1err;
+      setenv  SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv < 1) goto arg1err;
+      set hemilist = $argv[1]; shift;
+      if($hemilist != lh && $hemilist != rh) then
+        echo "ERROR: hemi = $hemilist, must be either lh or rh"
+        exit 1;
+      endif
+      breaksw
+
+    case "-mail":
+      if ( $#argv < 1) goto arg1err;
+      set mailuser = $argv[1]; shift;
+      breaksw
+
+    case "-motioncor":
+      set DoMotionCor = 1;
+      breaksw
+    case "-nomotioncor":
+      set DoMotionCor = 0;
+      breaksw
+
+    case "-conform":
+      set DoConform = 1;
+      breaksw
+    case "-noconform":
+      set DoConform = 0;
+      breaksw
+
+    case "-talairach":
+      set DoTalairach = 1;
+      breaksw
+    case "-notalairach":
+      set DoTalairach = 0;
+      breaksw
+
+    case "-nuintensitycor":
+      set DoNuIntensityCor = 1;
+      breaksw
+    case "-nonuintensitycor":
+      set DoNuIntensityCor = 0;
+      breaksw
+    case "-usenuintensitycor":
+      set UseNuIntensityCor = 1;
+      breaksw
+    case "-nousenuintensitycor":
+      set UseNuIntensityCor = 0;
+      breaksw
+
+    case "-normalization":
+      set DoNormalization1 = 1;
+      breaksw
+    case "-nonormalization":
+      set DoNormalization1 = 0;
+      breaksw
+    case "-normalization2":
+      set DoNormalization2 = 1;
+      breaksw
+    case "-nonormalization2":
+      set DoNormalization2 = 0;
+      breaksw
+
+    case "-usecontrolpoints":
+      set UseControlPoints = 1;
+      breaksw
+
+    case "-skullstrip":
+      set DoSkullStrip = 1;
+      breaksw
+    case "-noskullstrip":
+      set DoSkullStrip = 0;
+      breaksw
+
+    case "-segmentation":
+      set DoSegmentation = 1;
+      breaksw
+    case "-nosegmentation":
+      set DoSegmentation = 0;
+      breaksw
+
+    case "-gcareg":       
+      set DoGCAReg = 1;   
+      breaksw             
+    case "-nogcareg":     
+      set DoGCAReg = 0;   
+      breaksw             
+
+    case "-canorm":            
+      set DoCANormalize = 1;   
+      breaksw                  
+    case "-nocanorm":          
+      set DoCANormalize = 0;   
+      breaksw                  
+
+    case "-careg":        
+      set DoCAReg = 1;    
+      breaksw             
+    case "-nocareg":      
+      set DoCAReg = 0;    
+      breaksw             
+
+    case "-rmneck":        
+      set DoRemoveNeck = 1;    
+      breaksw             
+    case "-normneck":        
+      set DoRemoveNeck = 0;    
+      breaksw             
+
+    case "-skull-lta":        
+      set DoSkullLTA  = 1;
+      breaksw             
+    case "-noskull-lta":        
+      set DoSkullLTA  = 0;
+      breaksw             
+
+    case "-calabel":        
+      set DoCALabel = 1;    
+      breaksw               
+    case "-nocalabel":      
+      set DoCALabel = 0;    
+      breaksw               
+
+    case "-subcortseg":     
+      set DoGCAReg         = 1; 
+      set DoRemoveNeck     = 1;    
+      set DoSkullLTA       = 1;
+      set DoCANormalize    = 1; 
+      set DoCAReg          = 1; 
+      set DoCALabel        = 1; 
+      set DoSegStats       = 1;  
+      breaksw                
+
+    case "-nosubcortseg":     
+      set DoGCAReg         = 0; 
+      set DoRemoveNeck     = 0;    
+      set DoSkullLTA       = 0;
+      set DoCANormalize    = 0; 
+      set DoCAReg          = 0; 
+      set DoCALabel        = 0; 
+      set DoSegStats       = 0;  
+      breaksw                
+
+    case "-edit_wm_with_aseg":     
+      set DoEditWMwithASeg      = 1; 
+      breaksw                      
+    case "-noedit_wm_with_aseg":   
+      set DoEditWMwithASeg      = 0; 
+      breaksw                      
+
+    case "-old-atlas"
+      set OldAtlasFlag = 1;
+      set FillWithASeg = 0;
+      breaksw                          
+
+    case "-gca":                       
+      if ( $#argv < 1) goto arg1err;   
+      set GCA = $argv[1]; shift;       
+      breaksw                          
+
+    case "-fill":
+      set DoFill = 1;
+      breaksw
+    case "-nofill":
+      set DoFill = 0;
+      breaksw
+    case "-pons-xyz":
+      if ( $#argv < 3) goto arg3err;
+      set FillPonsXYZ = ($argv[1] $argv[2] $argv[3]);
+      shift;shift;shift;
+      breaksw
+    case "-cc-xyz":
+      if ( $#argv < 3) goto arg3err;
+      set FillCCXYZ = ($argv[1] $argv[2] $argv[3]);
+      shift;shift;shift;
+      breaksw
+    case "-lh-xyz":
+      if ( $#argv < 3) goto arg3err;
+      set FillLHXYZ = ($argv[1] $argv[2] $argv[3]);
+      shift;shift;shift;
+      breaksw
+    case "-rh-xyz":
+      if ( $#argv < 3) goto arg3err;
+      set FillRHXYZ = ($argv[1] $argv[2] $argv[3]);
+      shift;shift;shift;
+      breaksw
+    case "-fill-with-aseg"
+      set FillWithASeg = 1;
+      breaksw
+    case "-no-fill-with-aseg"
+      set FillWithASeg = 0;
+      breaksw
+    case "-watershed":
+      echo $argv[1];
+      if ( $#argv < 1 ) goto arg1err;
+      switch($argv[1])
+	case "nowatershed":
+	  set WaterShed = 0; breaksw;
+	case "normal":
+	  set WaterShed = 1; breaksw;
+	case "watershedonly":
+	  set WaterShed = 2; breaksw;
+	case "watershedtemplate":
+	  set WaterShed = 3; breaksw;
+	case "atlas":
+	  set WaterShed = 4; breaksw;
+	default:
+	  echo "ERROR: -watershed argument $argv[1] unrecognized."
+	  echo "Valid arguments are: atlas, nowatershed, normal, watershedonly,"
+	  echo "and watershedtemplate."
+          exit 1;
+	breaksw;
+      endsw
+# YO.  You got shift to absorb argv[] for this guy
+      shift; 
+      endif
+      breaksw
+    case "-wsless":
+      set WSLess = 1; breaksw
+    case "-wsmore":
+      set WSMore = 1; breaksw
+    case "-wsatlas":
+      set WSAtlas = 1; breaksw
+    case "-wsthresh":
+      if ( $#argv < 1) goto arg1err;
+      set WSPctPreFlood = $argv[1]; shift;
+      breaksw
+    case "-wsseed":
+      if ( $#argv < 3) goto arg3err;
+      set WSSeedPoint = ($argv[1] $argv[2] $argv[3]);
+      shift;shift;shift;
+      breaksw
+
+    case "-tessellate":
+    case "-tess":
+      set DoTessellate = 1;
+      breaksw
+    case "-notessellate":
+    case "-notess":
+      set DoTessellate = 0;
+      breaksw
+
+    case "-svinitorigsurf":
+      set SvInitOrigSurf = 1;
+      breaksw
+    case "-nosvinitorigsurf":
+      set SvInitOrigSurf = 0;
+      breaksw
+
+    case "-smooth1":
+      set DoSmooth1 = 1;
+      breaksw
+    case "-nosmooth1":
+      set DoSmooth1 = 0;
+      breaksw
+
+    case "-inflate1":
+      set DoInflate1 = 1;
+      breaksw
+    case "-noinflate1":
+      set DoInflate1 = 0;
+      breaksw
+
+    case "-svinitinflated":
+      set SvInitInflated = 1;
+      breaksw
+    case "-nosvinitinflated":
+      set SvInitInflated = 0;
+      breaksw
+
+    case "-qsphere":
+      set DoQSphere = 1;
+      breaksw
+    case "-noqsphere":
+      set DoQSphere = 0;
+      breaksw
+
+    case "-fix":
+      set DoFix = 1;
+      breaksw
+    case "-nofix":
+      set DoFix = 0;
+      breaksw
+
+    case "-fix-with-ga":
+      set FixWithGA = 1;
+      breaksw
+
+    case "-fix-with-ga-errflag":
+      set DoFix = 1;
+      set FixWithGA = 1;
+      set FixWithErrFlag = 1;
+      breaksw
+
+    case "-no-fix-with-ga":
+      set FixWithGA = 0;
+      breaksw
+
+    case "-euler":
+      set DoEuler = 1;
+      breaksw
+    case "-noeuler":
+      set DoEuler = 0;
+      breaksw
+
+    case "-smooth2":
+      set DoSmooth2 = 1;
+      breaksw
+    case "-nosmooth2":
+      set DoSmooth2 = 0;
+      breaksw
+
+    case "-inflate2":
+      set DoInflate2 = 1;
+      breaksw
+    case "-noinflate2":
+      set DoInflate2 = 0;
+      breaksw
+
+    case "-cortribbon":
+      set DoCortRibbonVolMask = 1;
+      breaksw
+    case "-nocortribbon":
+      set DoCortRibbonVolMask = 0;
+      breaksw
+
+    case "-sphere":
+      set DoSphere = 1;
+      breaksw
+    case "-nosphere":
+      set DoSphere = 0;
+      breaksw
+
+    case "-surfreg":
+      set DoSurfReg = 1;
+      breaksw
+    case "-nosurfreg":
+      set DoSurfReg = 0;
+      breaksw
+
+    case "-contrasurfreg":
+      set DoContraSurfReg = 1;
+      breaksw
+    case "-nocontrasurfreg":
+      set DoContraSurfReg = 0;
+      breaksw
+
+    case "-avgcurv":
+      set DoAvgCurv = 1;
+      breaksw
+    case "-noavgcurv":
+      set DoAvgCurv = 0;
+      breaksw
+
+    case "-avglabels":
+      set DoAvgLabels = 1;
+      breaksw
+    case "-noavglabels":
+      set DoAvgLabels = 0;
+      breaksw
+
+    case "-finalsurfs":
+      set DoFinalSurfs = 1;
+      breaksw
+    case "-nofinalsurfs":
+      set DoFinalSurfs = 0;
+      breaksw
+
+    case "-cortparc":      
+      set DoCortParc = 1;  
+      breaksw              
+    case "-nocortparc":    
+      set DoCortParc = 0;  
+      breaksw              
+
+    case "-cortparc2":      
+      set DoCortParc2 = 1;  
+      breaksw              
+    case "-nocortparc2":    
+      set DoCortParc2 = 0;  
+      breaksw              
+
+    case "-parcstats":      
+      set DoParcStats = 1;  
+      breaksw              
+    case "-noparcstats":    
+      set DoParcStats = 0;  
+      breaksw              
+
+    case "-parcstats2":      
+      set DoParcStats2 = 1;  
+      breaksw              
+    case "-noparcstats2":    
+      set DoParcStats2 = 0;  
+      breaksw              
+
+    case "-segstats":      
+      set DoSegStats = 1;  
+      breaksw              
+    case "-nosegstats":      
+      set DoSegStats = 0;  
+      breaksw              
+
+    case "-aparc2aseg":      
+      set DoAParc2ASeg = 1;  
+      breaksw              
+    case "-noaparc2aseg":      
+      set DoAParc2ASeg = 0;  
+      breaksw              
+
+    case "-autorecon-all":
+      set UseNuIntensityCor   = 1;
+      set FillWithASeg        = 1;
+      set DoMotionCor      = 1;
+      set DoConform       = 1;
+      set DoTalairach      = 1;
+      set DoNuIntensityCor = 1;
+      set DoNormalization1  = 1;
+      set DoSkullStrip     = 1;
+      set DoGCAReg         = 1;
+      set DoRemoveNeck = 1;    
+      set DoSkullLTA  = 1;
+      set DoCANormalize    = 1;
+      set DoCAReg          = 1;
+      set DoCALabel        = 1;
+      set DoSegStats       = 1;  
+      set DoNormalization2 = 1;
+      set DoSegmentation   = 1;
+      set DoEditWMwithASeg = 1;
+      set DoFill           = 1;
+      set DoTessellate     = 1;
+      set DoSmooth1        = 1;
+      set DoInflate1       = 1;
+      set DoFill           = 1;
+      set DoQSphere        = 1;
+      set DoFix            = 1;
+      set DoEuler          = 1;
+      set DoSmooth2        = 1;
+      set DoInflate2       = 1;
+      set DoFinalSurfs     = 1;
+      set DoCortRibbonVolMask = 1;
+      set DoSphere         = 1;
+      set DoSurfReg        = 1;
+      set DoContraSurfReg  = 1;
+      set DoAvgCurv        = 1;
+      set DoAvgLabels      = 0;
+      set DoCortParc       = 1; 
+      set DoParcStats      = 1; 
+      set DoCortParc2      = 1;  
+      set DoParcStats2     = 1; 
+      set DoAParc2ASeg     = 1;  
+      breaksw
+
+    case "-autorecon1":
+      set DoMotionCor      = 1;
+      set DoConform       = 1;
+      set DoTalairach      = 1;
+      set DoNuIntensityCor = 1;
+      set DoNormalization1  = 1;
+      set DoSkullStrip     = 1;
+      set UseNuIntensityCor = 1;
+      breaksw
+    
+    case "-autorecon2":
+      set UseNuIntensityCor   = 1;
+      set FillWithASeg        = 1;
+      set DoGCAReg         = 1;
+      set DoRemoveNeck = 1;    
+      set DoSkullLTA  = 1;
+      set DoCANormalize    = 1;
+      set DoCAReg          = 1;
+      set DoCALabel        = 1;
+      set DoSegStats       = 1;  
+      set DoNormalization2 = 1;
+      set DoSegmentation   = 1;
+      set DoEditWMwithASeg    = 1;
+      set DoFill           = 1;
+      set DoTessellate     = 1;
+      set DoSmooth1        = 1;
+      set DoInflate1       = 1;
+      set DoQSphere        = 1;
+      set DoFix            = 1;
+      set DoEuler          = 1;
+      set DoSmooth2        = 1;
+      set DoInflate2       = 1;
+      set DoFinalSurfs     = 1;
+      set DoCortRibbonVolMask = 1;
+      breaksw
+
+    case "-autorecon2-cp":
+      set SegKeepWMEdits      = 1;
+      set UseControlPoints    = 1;
+      set UseNuIntensityCor   = 1;
+      set FillWithASeg        = 1;
+      set DoNormalization2 = 1;
+      set DoSegmentation   = 1;
+      set DoEditWMwithASeg = 1;
+      set DoFill           = 1;
+      set DoTessellate     = 1;
+      set DoSmooth1        = 1;
+      set DoInflate1       = 1;
+      set DoQSphere        = 1;
+      set DoFix            = 1;
+      set DoEuler          = 1;
+      set DoSmooth2        = 1;
+      set DoInflate2       = 1;
+      set DoFinalSurfs     = 1;
+      set DoCortRibbonVolMask = 1;
+      breaksw
+   
+    case "-autorecon2-wm":
+      set UseNuIntensityCor   = 1;
+      set FillWithASeg        = 1;
+      set DoFill           = 1;
+      set DoTessellate     = 1;
+      set DoSmooth1        = 1;
+      set DoInflate1       = 1;
+      set DoQSphere        = 1;
+      set DoFix            = 1;
+      set DoEuler          = 1;
+      set DoSmooth2        = 1;
+      set DoInflate2       = 1;
+      set DoFinalSurfs     = 1;
+      set DoCortRibbonVolMask = 1;
+      breaksw
+
+    case "-autorecon2-pial":
+      set DoFinalSurfs     = 1;
+      set DoCortRibbonVolMask = 1;
+      breaksw
+
+    case "-autorecon3":
+      set DoSphere         = 1;
+      set DoSurfReg        = 1;
+      set DoContraSurfReg  = 1;
+      set DoAvgCurv        = 1;
+      set DoCortParc       = 1;
+      set DoParcStats      = 1; 
+      set DoCortParc2      = 1;  
+      set DoParcStats2     = 1; 
+      set DoAParc2ASeg     = 1;  
+      set DoAvgLabels      = 0;
+      breaksw
+    
+
+    case "-status":
+      if ( $#argv < 1) goto arg1err;
+      set SF = $argv[1]; shift;
+      breaksw
+
+    case "-noappendlog":
+      set AppendLog = 0;
+      breaksw
+
+    case "-noappendstatus":
+      set AppendStatus = 0;
+      breaksw
+
+    case "-noappend":
+      set AppendLog = 0;
+      set AppendStatus = 0;
+      breaksw
+
+    case "-log":
+      if ( $#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "-csurfdir":
+      if ( $#argv < 1) goto arg1err;
+      setenv FREESURFER_HOME $argv[1]; shift;
+      if(! -e $FREESURFER_HOME) then
+        echo "ERROR: cannot find $FREESURFER_HOME"
+        exit 1;
+      endif
+      pushd $FREESURFER_HOME > /dev/null
+      setenv FREESURFER_HOME `pwd`;
+      breaksw
+
+    case "-dontrun":
+      set RunIt = 0;
+      breaksw
+
+    case "-onlyversions":
+      set DoVersionsOnly = 1;
+      breaksw
+
+    case "-allowcoredump":
+      limit coredumpsize unlimited
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv < 1) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "-grp":
+      if ( $#argv < 1) goto arg1err;
+      set grp = $argv[1];
+      set curgrp = `id -gn`;
+      if($grp != $curgrp) then
+        echo "ERROR: current group ($curgrp) does not equal specified group $grp"
+        exit 1;
+      endif
+      breaksw
+
+    case "-cm":
+      set HiRes =('-cm')
+      echo "INFO: all COR volumes are conformed to the min voxel size"
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+end
+
+goto parse_args_return;
+############--------------##################
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
+  exit 1
+############--------------##################
+
+
+############--------------##################
+check_params:
+  if(! $DoVersionsOnly) then
+    if($#subjid != 1) then
+      echo "ERROR: must specify a subject id"
+      exit 1;
+    endif
+
+    if(! $?SUBJECTS_DIR ) then
+      echo "ERROR: environment variable SUBJECTS_DIR not set"
+      echo "  this can be done by setting it in the shell before"
+      echo "  executing recon-all or by using the -sd flag"
+      exit 1;
+    endif
+
+    if(! -e $SUBJECTS_DIR ) then
+      echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
+      exit 1;
+    endif
+
+    # Get the full path #
+    pushd $SUBJECTS_DIR > /dev/null
+    echo pwd
+    setenv SUBJECTS_DIR `pwd`;
+    popd > /dev/null
+
+    echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
+
+    set subjdir = $SUBJECTS_DIR/$subjid
+    if(! -e $subjdir) then
+      echo "ERROR: cannot find $subjdir"
+      exit 1;
+    endif
+    if(! -w $subjdir) then
+      echo "ERROR: you do not have write permission to  $subjdir"
+      exit 1;
+    endif
+  else
+    set subjdir = /tmp
+  endif
+
+  if(! $?FREESURFER_HOME ) then
+    echo "ERROR: environment variable FREESURFER_HOME not set."
+    exit 1;
+  endif
+
+  # Get "True" FS HOME
+  pushd $FREESURFER_HOME > /dev/null
+  set freesurfer_home_true = `pwd`;
+  popd > /dev/null
+  echo "Actual FREESURFER_HOME $freesurfer_home_true"
+
+  if(! -e $FREESURFER_HOME ) then
+    echo "ERROR: FREESURFER_HOME $FREESURFER_HOME does not exist."
+    exit 1;
+  endif
+
+  if(! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg ) then 
+  if(! $DoMotionCor && ! $DoTalairach && ! $DoNormalization1  && \
+     ! $DoNormalization2  && ! $DoParcStats && ! $DoParcStats2 && ! $DoVersionsOnly &&\
+     ! $DoSkullStrip && ! $DoSegmentation && ! $DoNuIntensityCor &&\
+     ! $DoFill && ! $DoTessellate && ! $DoEuler && ! $DoAParc2ASeg && \
+     ! $DoSmooth1  && ! $DoInflate1 && ! $DoQSphere && ! $DoRemoveNeck &&\
+     ! $DoFix  && ! $DoSmooth2 && ! $DoInflate2  && ! $DoSphere && ! $DoSkullLTA &&\
+     ! $DoSurfReg  && ! $DoContraSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
+     ! $DoFinalSurfs && ! $DoAvgLabels && ! $DoCortRibbonVolMask && \
+     ! $DoConform && \
+     ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoEditWMwithASeg) then
+     echo "ERROR: nothing to do"
+     exit 1;
+  endif
+  endif 
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: $ProgName"
+  echo ""
+  echo " Required Arguments:";
+  echo "   -subjid <subjid>"
+  echo "   -<process directive>"
+  echo ""
+  echo " Fully-Automated Directive:"
+  echo "  -autorecon-all : do everything, including subcortical segmentation"
+  echo ""
+  echo " Manual-Intervention Workflow Directives:"
+  echo "  -autorecon1    : process stages 1-5 (see below)"
+  echo "                   after autorecon1, troubleshoot norm/talairach/skullstrip problems"
+  echo "  -autorecon2    : process stages 6-23"
+  echo "                   after autorecon2, check final surfaces:"
+  echo "                     a. if wm edit was required, then run -autorecon2-wm"
+  echo "                     b. if control points added, then run -autorecon2-cp"
+  echo "                     c. if edits made to correct pial, then run -autorecon2-pial"
+  echo "                     d. proceed to run -autorecon3"
+  echo "  -autorecon2-cp : process stages 10-23 (uses -f w/ mri_normalize, -keep w/ mri_seg)"
+  echo "  -autorecon2-wm : process stages 13-23"
+  echo "  -autorecon2-pial : process stages 21-23"
+  echo "  -autorecon3    : process stages 24-29"
+  echo "  -hemi ?h       : just do lh or rh (default is to do both)"
+  echo ""
+  echo "  Autorecon Processing Stages (see -autorecon# flags above):"
+  echo "    1.  Motion Correction and Conform"
+  echo "    2.  Talairach transform computation"
+  echo "    3.  NU (Non-uniform intensity normalization)"
+  echo "    4.  Intensity Normalization 1 "
+  echo "    5.  Skull Strip"
+  echo ""
+  echo "    6.  EM Register (linear volumetric registration)"
+  echo "    7.  CA Intensity Normalization"
+  echo "    8.  CA Non-linear Volumetric Registration "
+  echo "    9.  CA Label (Volumetric Labeling) and Statistics"
+  echo ""
+  echo "    10. Intensity Normalization 2 (start here for control points)"
+  echo "    11. White matter segmentation"
+  echo "    12. Edit WM With ASeg"
+  echo "    13. Fill (start here for wm edits)"
+  echo "    14. Tessellation (begins per-hemisphere operations)"
+  echo "    15. Smooth1"
+  echo "    16. Inflate1"
+  echo "    17. QSphere"
+  echo "    18. Automatic Topology Fixer"
+  echo "    19. Euler Number"
+  echo "    20. Smooth2"
+  echo "    21. Inflate2"
+  echo "    22. Final Surfs (start here for brain edits for pial surf)"
+  echo "    23. Cortical Ribbon Mask"
+  echo ""
+  echo "    24. Spherical Morph"
+  echo "    25. Spherical Registration "
+  echo "    26. Spherical Registration, Contralater hemisphere"
+  echo "    27. Map average curvature to subject"
+  echo "    28. Cortical Parcellation (Labeling)"
+  echo "    29. Cortical Parcellation Statistics"
+  echo "    30. Cortical Parcellation mapped to ASeg"
+  echo ""
+  echo " Deprecated Clustered Directives:"
+  echo "  -all      : do everything"
+  echo "  -stage1   : pre-manual  editing (mc, tal, norm, strip, seg, stage2)"
+  echo "  -stage2   : with manual editing (fill, tess, sm1, inf1)"
+  echo "  -stage3   : runs the topology fixer (and stage2)"
+  echo "  -stage4a  : make final surfaces"
+  echo "  -stage4b  : spherical morph"
+  echo "  -hemi ?h  : just do lh or rh (default is to do both)"
+  echo "  -subcortseg : automatic subcortical segmentation (aseg)"
+  echo ""
+  echo " Legacy Clustered Directives:"
+  echo "  -segment_subject : (same as stage1 without motion cor)"
+  echo "  -inflate_subject : fill, tessellate, smooth1, inflate1"
+  echo "  -fix_subject : (qsphere, fix, smooth2, inflate2)"
+  echo "  -morph       : (sphere, surfreg, contrasurfreg, avgcurv, avglabels)"
+  echo "  -make_final_surfaces  : finalsurfs"
+  echo ""
+  echo " Step-wise Directives"
+  echo "  See -help"
+  echo ""
+  echo " Expert Preferences"
+  echo "  -old-atlas : use old atlases (pre Aug 2005)"
+  echo "  -usecontrolpoints : use control points when intensity normalizing"
+  echo "  -keepwmedits : keep edits to wm volume when segmenting"
+  echo "  -pons-xyz X Y Z : XYZ of seed point for pons, used in fill"
+  echo "  -cc-xyz X Y Z : XYZ of seed point for corpus callosum, used in fill"
+  echo "  -lh-xyz X Y Z : XYZ of seed point for left hemisphere, used in fill"
+  echo "  -rh-xyz X Y Z : XYZ of seed point for right hemisphere, used in fill"
+  echo "  -fill-with-aseg : use the automatic subcort seg to fill"
+  echo "  -watershed cmd : control skull stripping/watershed program"
+  echo "  -wsless : decrease watershed threshold (shrinks skull surface)"
+  echo "  -wsmore : increase watershed threshold (expands skull surface)"
+  echo "  -wsatlas : use atlas when skull stripping"
+  echo "  -wsthresh pct : explicity set watershed threshold"
+  echo "  -wsseed C R S : identify an index (C, R, S) point in the skull"
+  echo "  -nuiterations N : set number of iterations for nu intensity "
+  echo "     correction (default is $NuIterations)"
+  echo "  -norm3diters niters : number of 3d iterations for mri_normalize"
+  echo "  -normmaxgrad maxgrad : max grad (-g) for mri_normalize. Default is 1."
+  echo "  -cm           : conform COR volumes to the min voxel size "
+  echo "  -edit_wm_with_aseg : use automatic segmentation to edit WM volume."
+  echo "  -no-fix-with-ga : do not use genetic algorithm when fixing topology"
+  echo ""
+  echo " Notification Files (Optional)"
+  echo "  -waitfor file : wait for file to appear before beginning"
+  echo "  -notify  file : create this file after finishing"
+  echo ""
+  echo " Status and Log files (Optional)"
+  echo "  -log     file : default is scripts/recon-all.log"
+  echo "  -status  file : default is scripts/recon-all.status"
+  echo "  -noappend     : start new log and status files instead of appending"
+  echo ""
+  echo " Other Arguments (Optional)"
+  echo "  -mgz : use compressed MGH format (see help)"
+  echo "  -COR : use compressed MGH format (see help)"
+  echo "  -disable-autoseg : disable automatic segmentation" 
+  echo "  -sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
+  echo "  -gca gcafile    : full path to gca file (def $GCA)"
+  echo "  -gca-tl gcatlfile : full path to gca temporal lobe file"
+  echo "  -mail username  : mail user when done"
+  echo "  -umask umask    : set unix file permission mask (default 002)"
+  echo "  -grp groupid    : check that current group is alpha groupid "
+  echo "  -onlyversions   : print version of each binary and exit"
+  echo "  -debug          : print out lots of info"
+  echo "  -allowcoredump  : set coredump limit to unlimited"
+  echo "  -dontrun        : do everything but execute each command"
+  echo "  -version        : print version of this script and exit"
+  echo "  -help           : yea, like anybody's going to read this"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+  echo ""
+
+  cat $0 | sed 's/dASEGd//g' | awk 'BEGIN{prt=0}{if(prt) print $0;if($1 == "BEGINHELP") prt=1}' 
+  exit 1;
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0;if($1 == "BEGINHELP") prt=1}'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Performs all, or any part of, the FreeSurfer cortical reconstruction
+process. It is assumed that the subject directory has already been
+created using mksubjdirs and that the raw data already exists in
+subjid/mri/orig, either in COR format or mgz. The format is
+automatically detected.  To explicitly use COR, then add -COR.  To
+explicitly use mgz, then add -mgz. When automatically detecting, looks
+for a COR volume in orig/XXX in COR format (XXX is a three-digit,
+zero-padded number). If that is not found, then looks for orig/XXX.mgz.
+See USING COMPRESSED MGH FORMAT (MGZ) below.
+
+This help is not meant to be exhaustive documentation on
+FreeSurfer. For more information, see the references at the end or go
+to the FreeSurfer web site at https://surfer.nmr.mgh.harvard.edu.  In
+particular, there is both a reconstruction guide and tutorial as well
+as manuals for tkmedit and tksurfer. The FreeSurfer mailing list can
+also be reached at freesurfer@nmr.mgh.harvard.edu.
+
+SUBJECT IDENTIFICATION STRING
+
+-subjid subjectid
+
+This is the FreeSurfer subject identification string which doubles as
+the name of the reconstruction root directory for this subject. This
+reconstruction should be referenced by this string for all FreeSurfer
+commands and in the register.dat matrix (for functional interfacing).
+
+SPECIFYING DIRECTIVES
+
+Directives instruct recon-all which part(s) of the reconstruction
+stream to run. While it is possible to do everything in one shot (using 
+the -autorecon-all flag), there can be some benefits to customizing the
+stream. These benefits include stopping to perform manual editing as
+well as parallelization. Directives are either clustered or step-wise.
+Clustered directives are sets of steps that can be performed by
+specifying a single flag. A step-wise directive refers to a single
+step.  Directives accumulate. For example, specifying -stage1 and
+-stage3 will perform all the steps in both stage 1 and 2. A step can
+be removed from a cluster by adding -no<step> after the cluster
+flag. For example, specifying -autorecon-all followed by -notalairach
+will perform all the reconstruction steps except talairaching. However,
+note that if -notalairach *preceeded* -autorecon-all, talairaching would 
+still be performed.
+
+
+CLUSTERED DIRECTIVES
+
+-all 
+
+Perform all reconstruction steps. Implies -old-atlas.
+
+-autorecon-all 
+
+Perform all reconstruction steps including subcortical segmentation. Uses 
+subcortical segmentation to fill in ventricles and subcortical structures
+that would normally be manually filled. Requires using "new" cortical
+atlas (ie, do not use -old-atlas).
+
+-autorecon1
+
+Motion correction through skull strip
+
+-autorecon2
+
+Subcortical segmentation through make final surfaces
+
+-autorecon2-cp
+
+Normalization2 through make final surfaces. Implies -usecontrolpoints
+and -keepwmedits. Used after adding control points after running
+-autorecon2.
+
+-autorecon2-wm
+
+Fill through make final surfaces. Used after editing wm volume after running
+-autorecon2.
+
+-autorecon2-pial
+
+Makes final surfaces. Used after editing brain volume after running
+-autorecon2. The brain volume may be edited to fix problems with the
+pial surface.
+
+-autorecon3
+
+Spherical morph and automatic cortical parcellation.
+
+-stage1
+
+Perform all the stages prior to manually editing the wm volume. This
+includes motion correction and averaging, talairaching, non-uniform
+(nu) intensity correction, intensity normalization, skull stripping,
+and white matter segmentation. It also runs stage2 so that users can
+immediately start manual editing using the surface as a guide (stage2
+usually only takes a few minutes).  Runs the following steps:
+motioncor, talairach, normalization, skullstrip, fill, tessellate,
+smooth1, and inflate1. Approximate run time: 20 min. Implies
+-old-atlas.
+
+-stage2
+
+Run this stage after each manual edit.  Cuts hemispheres from each
+other and from the mid brain and fills each hemisphere in the volume
+with a constant value, tesslates the surface, smooths, and inflates.
+Runs the following steps: fill, tessellate, smooth1, and inflate1.
+This stage is also run with stage1 and stage3. Approximate
+run time: less than 5 min. Implies -old-atlas.
+
+-stage3
+
+Runs qsphere and automatic topology fixing. This will regenerate the
+orig surface as well as the smoothwm surface, the inflated surface,
+and the area, curv, and sulc files.  Runs the following steps: fill,
+tessellate, smooth1, inflate1, fix, euler, smooth2, inflate2. It is a
+good idea to check the orig surface at this stage. It also runs stage2
+just in case the user did not run it after manual editing (stage2
+usually only takes a few minutes). Approximate run time: 1 hour per
+hemisphere. Implies -old-atlas.
+
+-stage4a
+
+Creates the final surfaces (ie, white, pial, and thickness).  Includes
+the following step: finalsurfs.  Can be run in parallel with -stage4b.
+Approximate run time: 1.5 hour per hemisphere. Includes creating a
+mask of the cortical ribbon (see -cortribbon) as ?h.ribbon.mgz.
+Implies -old-atlas.
+
+-stage4b
+
+Run spherical morph, which includes the following steps: sphere,
+surfreg, contrasurfreg, avgcurv, avglabels.  Can be run in parallel
+with -stage4a. Approximate run time: 6.5 hours per hemisphere.
+Implies -old-atlas.
+
+-hemi hemisphere
+
+Instruct recon-all to only operate on the specified hemisphere.  Legal
+values are lh and rh. This can be used to run the surface-related
+steps in parallel.
+
+-rerun
+
+This flag is used to when re-reconstructing a subject from scratch. It
+assures that all modifications and edits are kept.  Sets flags to keep
+wm edits, use control points (if file exists), and apply brain mask
+instead of re-skull-stripping. If seeds points were manually selected,
+then they will be kept. Will not re-talairach in case the talairach
+transform was manually edited. Note that this does not actually create
+any directives, so you will need to tell it to do something (eg, 
+-autorecon-all).
+
+
+LEGACY CLUSTERED DIRECTIVES
+
+Legacy clustered directives implement sets of steps associated with 
+scripts before the advent of recon-all.
+
+STEP-WISE DIRECTIVES
+
+Step-wise directives allow the user to implement a single step in the
+reconstruction process. See also STEP DESCRIPTION SUMMARIES below.
+They also allow users to include/exclude a step from a clustered
+DIRECTIVE. To include a step, use -step (eg, -skullstrip). To exclude
+a step, use -nostep (eg -noskullstrip). Run times are approximate for
+Pentium III (Coppermine) 1GHz processor.
+
+  -<no>motioncor        < 5 min
+  -<no>talairach          2 min
+  -<no>nuintensitycor    12 min
+  -<no>usenuintensitycor  N/A
+  -<no>normalization      5 min
+  -<no>skullstrip         1 min
+  -<no>normalization2     5 min
+  -<no>segmentation       4 min
+  -<no>gcareg            10 min                  
+  -<no>fill               1 min 
+  -<no>tessellate         1 min     per hemisphere
+  -<no>smooth1            1 min     per hemisphere
+  -<no>inflate1           4 min     per hemisphere
+  -<no>qsphere           40 min     per hemisphere
+  -<no>fix                2 min     per hemisphere
+  -<no>euler              1 min     per hemisphere
+  -<no>smooth2            1 min     per hemisphere
+  -<no>inflate2           4 min     per hemisphere
+  -<no>finalsurfs       1.5 hours   per hemisphere
+  -<no>cortribbon         1 min     per hemisphere
+  -<no>sphere           3.0 hours   per hemisphere
+  -<no>surfreg          1.5 hours   per hemisphere
+  -<no>contrasurfreg    1.5 hours   per hemisphere
+  -<no>avgcurv            1 min     per hemisphere
+  -<no>avglabels          5 min     per hemisphere
+  -<no>cortparc           5 min     per hemisphere 
+  -<no>parcstats          1 min     per hemisphere 
+  -edit_wm_with_aseg
+
+EXPERT PREFERENCES 
+
+-usecontrolpoints
+
+Use control points during intensity normalization. They are used when
+the intensity normalization fails because it cannot determine the
+proper intensity for white matter. A control point is a manually selected 
+location in the volume that the user feels sure is inside white matter.
+Control points are created using tkmedit. Inside tkmedit, enable
+editing of control points with Tools->EditCtrlPts. Middle-clicking
+will create a control point; right-clicking will delete a control
+point. After creation, File->SaveControlPoints; this will create a
+file called subjid/tmp/control.dat.
+
+-keepwmedits
+
+Keep edits manually made edits to the wm volume when segmenting the
+brain volume (normally the segmentation step will just overwrite
+the wm volume).
+
+-pons-xyz X Y Z
+
+Specify a seed point for the pons during the fill operation. This is
+used to cut the brain stem from brain. By default, this point will be
+determined automatically. It should only be specified if there is a
+cut failure. To determine what this point should be, find the center
+of the pons in the T1 volume (in tkmedit) and record the Talairach XYZ
+values. If the talairach is not available, use the Volume RAS
+Coordinates. Creates a file called scripts/seed-ponsxyz.man.dat 
+with the XYZ.
+
+-cc-xyz X Y Z
+
+Specify a seed point for the corpus callosum during the fill
+operation. This is used to help separate the hemispheres.  By default,
+this point will be determined automatically. It should only be
+specified if there is a cut failure. To determine what this point
+should be, find the center of the corpus callosum in the T1 volume (in
+tkmedit) and record the Talairach XYZ values. If the talairach is not
+available, use the Volume RAS Coordinates. Creates a file called 
+scripts/seed-ccxyz.man.dat with the XYZ.
+
+-lh-xyz X Y Z
+
+Specify a seed point for the left hemisphere during the fill
+operation. This is used to help identify the left hemisphere.  By
+default, this point will be determined automatically. It should only
+be specified if there is a cut failure. To determine what this point
+should be, find a point in the white matter mass of the left
+hemisphere in the T1 volume (in tkmedit) and record the Talairach XYZ
+values. If the talairach is not available, use the Volume RAS
+Coordinates. Remember that tkmedit displays the volume in radiological
+convention (ie, left is right). Creates a file called 
+scripts/seed-lhxyz.man.dat with the XYZ.
+
+-rh-xyz X Y Z
+
+Same as -lh-xyz but for the right hemisphere. Creates a file called 
+scripts/seed-rhxyz.man.dat with the XYZ.
+
+-fill-with-aseg
+
+Fill subcortical structures based on results from automatic subcortical.
+segmentation.
+
+-watershed cmd
+
+This controls how the skull stripping will be performed. Legal values are
+normal (the default), atlas, nowatershed, watershedonly, and watershedtemplate.
+
+-wsmore/-wsless
+
+Increase/decrease the preflooding height (threshold) when skull
+stripping. -wsmore will expand the skull surface; -wsless will shrink
+the skull surface.  See also -wsthresh.
+
+-wsthresh pctheight
+
+Explicitly set the preflooding height when skull stripping.
+
+-wsseed R C S
+
+Supply a point in the volume that the user believes to be in the white
+matter.  By default, this point will be determined automatically. It
+should only be specified if there is a strip failure. To determine
+what this point should be, find a point in the white matter using
+tkmedit and record the Volume Index values (NOT the XYZ coordinates).
+
+-gca gcafile                                                          
+                                                                      
+Specify the full path to the gaussian classifier array (GCA) file     
+to be used with GCA registration and automatic subcortical            
+segmentation. Default is RB40_talairach_2005-07-20.gca located in
+FREESURFER_HOME/average. With -old-atlas, uses talairach_mixed.gca.  
+This has no effect unless the GCA registration  or subcortical 
+segmentation stages are to be performed.                      
+
+-old-atlas
+
+Use "old" atlases when performing registration and labeling. By
+default, uses RB40_talairach_2005-07-20.gca for volume-based
+registration and labeling but will use talairach_mixed.gca with
+-old-atlas. By default, uses average.curvature.filled.buckner40.tif
+for surface-based registration, but will use average.tif with
+-old-atlas. By default, uses
+curvature.buckner40.filled.desikan_killiany.gcs for surface-based
+labeling, but will use atlas2002_simple.gcs with -old-atlas. The
+change to the new atlases took place around Aug 17, 2005. The actual
+atlases used are stored in the scripts directory in
+mri_em_register.atlas.dat, mris_register.atlas.dat, and
+mris_ca_label.atlas.dat. If these files do not exist, then the old
+atlas are assumed. -old-atlas is implied by any of the "stage" flags
+(ie, -all, -stage1, -stage2, etc).
+                                                                      
+-nuiterations
+
+Number of iterations in the non-uniform intensity correction. Default
+is 4.
+
+-norm3diters niters
+
+Use niters 3d normalization iterations (passes as -n to mri_normalize).
+
+-normmaxgrad maxgrad
+
+Passes "-g maxgrad" to mri_normalize. Max grad default is 1.
+
+-edit_wm_with_aseg
+
+Uses the results of the automatic subcortical segmentation to edit the
+WM. Uses wm-init as the input volume. See also -subcortseg.
+
+NOTIFICATION FILES
+
+Notification files allow the user to cascade invocations to recon-all,
+with one invocation waiting until another one terminates. This is done
+by specifying a file that must exist before an invocation can precede
+(-waitfor) and/or specifying a file that is created when an invocation
+terminates (-notify). This type of interprocess communication can
+allow users to parallelize the stream. If this is to be done, note
+that each hemisphere can be run separately by specifying the -hemi
+flag.
+
+LOG AND STATUS FILES
+
+By default, log and status files are created in subjid/scripts. The
+log file contains all the output from all the programs that have been
+run during the invocation to recon-all. The status file has a list of
+all the programs that have been run and the time at which each
+started. The log file is intended to be a record of what was done
+whereas the status file allows the user to easily see where in the
+stream a currently running process is. The log file should be sent
+with all bug reports. By default, these files are called recon-all.log
+and recon-all.status, but this can be changed with the -log and
+-status options. By default, the log and status are appended to. New
+log and status files can be forced with the -noappend flag.
+
+
+OTHER ARGUMENTS
+
+-sd subjectsdir
+
+This allows the user to specify the root of the FreeSufer subjects
+directory. If unspecified, the environment variable SUBJECTS_DIR
+is used.
+
+-mail username
+
+Send email to username when the process terminates.
+
+
+STEP DESCRIPTION SUMMARIES
+
+Motion Correction  (-<no>motioncor)
+
+When there are multiple source volumes, this step will correct for
+small motions between them and then average them together. The input
+are the COR volumes found in mri/orig/XXX (or mri/XXX.mgz with the
+-mgz option). The output will be the orig COR volune in mri/orig (or
+orig.mgz with the -mgz option). If no runs are found then it looks for
+a volume in mri/orig (or mri/orig.mgz). If that volume is there, then
+it is used in subsequent processes as if it was the motion corrected
+volume. If no volume is found, then the process exits with errors.  It
+uses the MINC program minctracc (see Collins, et al, 1994) through a
+FreeSurfer script called mri_motion_correct. Users must have the MINC
+tools installed. 
+
+Talairach  (-<no>talairach)
+
+This computes the affine transform from the orig volume to the MNI305
+atlas using the MINC program mritotal (see Collins, et al, 1994)
+through a FreeSurfer script called talairach. Users must have the MINC
+tools installed.  Several of the downstream programs use talairach
+coordinates as seed points. You can/should check how good the
+talairach registration is using "tkregister2 --s subjid --fstal". You
+must have a "talairach" subject in your SUBJECTS_DIR. tkregister2
+allows you to compare the orig volume against the talairach volume
+resampled into the orig space. If you modify the registration, it
+will change the talairach.xfm file. Your edits will be overwritten
+if you run recon-all without specifying -notalairach. Run 
+"tkregister2 --help" for more information.
+
+Normalization (-<no>normalization)
+
+Performs intensity normalization of the orig volume and places the
+result in T1 (or T1.mgz). Attempts to correct for fluctuations in
+intensity that would otherwise make intensity-based segmentation much
+more difficult. Intensities for all voxels are scaled so that the mean
+intensity of the white matter is 110. If there are problems with the
+normalization, users can add control points. If -usenuintensitycor is
+specified, then the input comes from the nu directory intead of orig
+(to create this volume, run with -nuintensitycor). A file called
+mri/T1/input-source is created indicating which input was used for
+intensity normalization. See also Normalization2.
+
+Skull Strip (-<no>skullstrip)
+
+Removes the skull from mri/T1 and stores the result in mri/brain (or
+mri/brain.mgz). Runs the mri_watershed program. If the strip fails,
+users can specify seed points (-wsseed) or change the threshold
+(-wsthresh, -wsmore, -wsless).
+
+Normalization2 (-<no>normalization)
+
+Performs a second intensity using only the brain volume as the input
+(so that it has to be done after the skull strip). Intensity
+normalization works better when the skull has been removed. Creates
+a new T1 volume. It also creates a new brain volume by masking the
+T1 with the original brain mask. Currently, this is not automatically
+performed with Stage1 as this is experimental.
+
+Segmentation  -<no>segmentation
+
+Attempts to separate white matter from everything else. The input is
+mri/brain, and the output is mri/wm (or wm.mgz). Uses intensity,
+neighborhood, and smoothness constraints. This is the volume that is
+edited when manually fixing defects. Calls mri_segment. To keep
+previous edits, run with -keepwmedits.
+
+Cut/Fill  -<no>fill
+
+This creates the subcortical mass from which the orig surface is
+created. The mid brain is cut from the cerebrum, and the hemispheres
+are cut from each other. The left hemisphere is binarized to 255.  The
+right hemisphere is binarized to 127.  The input is mri/wm and the
+output is mri/filled (or filled.mgz). Calls mri_fill. If the cut
+fails, then seed points can be supplied (-cc-xyz, -pons-xyz, -lh-xyz,
+-rh-xyz). The actual points used for the cutting planes in the
+corpus callosum and pons can be found in scripts/ponscc.cut.log.
+
+Tessellation  -<no>tessellate
+
+This is the step where the orig surface (ie, surf/?h.orig) is created.
+The surface is created by covering the filled hemisphere with
+triangles. Runs mri_tessellate. The places where the points of the
+triangles meet are called vertices. Note: the topology fixer will
+over-write the orig surface.
+
+Orig Surface Smoothing  (-<no>smooth1, -<no>smooth2)
+
+After tesselation, the orig surface is very jagged because each
+triangle is on the edge of a voxel face and so are at right angles to
+each other. The vertex positions are adjusted slightly here to reduce
+the angle. This is only necessary for the inflation processes.
+Creates surf/?h.smoothwm. Calls mris_smooth. Smooth1 is the step just
+after tessellation, and smooth2 is the step just after topology
+fixing.
+
+Inflation  (-<no>inflate1, -<no>inflate2)
+
+Inflation of the surf/?h.smoothwm surface to create surf/?h.inflated.
+The inflation attempts to minimize metric distortion so that distances
+and areas are perserved (ie, the surface is not stretched). In this
+sense, it is like inflating a paper bag and not a balloon.  Inflate1
+is the step just after tessellation, and inflate2 is the step just
+after topology fixing. Calls mris_inflate. Creates ?h.inflated,
+?h.sulc, ?h.curv, and ?h.area.
+
+QSphere (-<no>qsphere)
+
+This is the initial step of automatic topology fixing. It is a "quick"
+spherical morph of the inflated surface designed to make the
+topological defects show up clearly to the automatic topology fixer.
+Calls mris_sphere. Creates surf/?h.qsphere.
+
+Automatic Topology Fixer (-<no>fix)
+
+Finds topological defects (ie, holes in a filled hemisphere) using
+surf/?h.qsphere, and changes the orig surface (surf/?h.orig) to remove
+the defects. Changes the number of vertices.  All the defects will be
+removed, but the user should check the orig surface in the volume to
+make sure that it looks appropriate. Calls mris_fix_topology. 
+Overwrites surf/?h.orig.
+
+Euler Number (-<no>euler)
+
+Computes the euler number of the orig surface. If there are no
+defects, the euler number will be 2 (0 holes). Creates
+surf/?h.orig.euler, which is just a text file with the output
+of mris_euler_number.
+
+Final Surfaces  (-<no>finalsurfs)
+
+Creates the ?h.white and ?h.pial surfaces as well as the thickness
+file (?h.thickness). The white surface is created by "nudging" the
+orig surface so that it closely follows the white-gray intensity
+gradient as found in the T1 volume. The pial surface is created by
+expanding the white surface so that it closely follows the gray-CSF
+intensity gradient as found in the T1 volume. Calls
+mris_make_surfaces.
+
+Cortical Ribbon Mask (-<no>cortribbon)
+
+Creates binary volume masks of the cortical ribbon, ie, each voxel is
+either a 1 or 0 depending upon whether it falls in the ribbon or not.
+Saved as ?h.ribbon.mgz.  Uses mgz regardless of whether the -mgz
+option is used.
+
+Spherical Inflation  (-<no>sphere)
+
+Inflates the orig surface into a sphere while minimizing metric
+distortion.  This step is necessary in order to register the surface
+to the spherical atlas. (also known as the spherical morph). Calls
+mris_sphere. Creates surf/?h.sphere.
+
+Ipsilateral Surface Registation (Spherical Morph) (-<no>surfreg)
+
+Registers the orig surface to the spherical atlas through
+surf/?h.sphere. The surfaces are first coarsely registered by aligning
+the large scale folding patterns found in ?h.sulc and then fine tuned
+using the small-scale patterns as in ?h.curv. Calls
+mris_register. Creates surf/?h.sphere.reg.
+
+Contralateral Surface Registation (Spherical Morph) (-<no>contrasurfreg)
+
+Same as ipsilateral but registers to the contralateral atlas. Creates
+lh.rh.sphere.reg and rh.lh.sphere.reg.
+
+Average Curvature  (-<no>avgcurv)
+
+Resamples the average curvature from the atlas to that of the subject.
+Allows the user to display activity on the surface of an individual
+with the folding pattern (ie, anatomy) of a group. Calls mrisp_paint.
+Creates surf/?h.avg_curv.
+
+Average Labels (-<no>avglabels)
+
+This is obsolete because full surface parcellation is now done
+automatically with -cortparc. This supplies all labels which can then
+be checked to make sure that they ended up in the right place. It is
+still possible to to use this flag, but it is turned off by default.
+If you turn it on, make sure that you have an average7 subject.
+
+Resamples several labels from the average7 subject onto the surface of
+the subject. The labels are for the calcarine central, and superior
+temporal sulci. The purpose of this is to help check how well the
+registration performed. The user can view these labels in tksurfer by
+loading them through the File->Label->Load. Creates
+?h-calcarine_sulcus.label, ?h-central_sulcus.label, and
+?h-superior_temporal_sulcus.label in the label directory.
+
+Parcellation Statistics (-<no>parcstats)
+
+Runs mris_anatomical_stats to create a summary table of cortical
+parcellation statistics for each structure, including 1. structure
+name 2. number of vertices 3. total surface area (mm^2) 4. total gray
+matter volume (mm^3) 5. average cortical thickness (mm) 6. standard
+error of cortical thicknessr (mm) 7. integrated rectified mean
+curvature 8. integrated rectified Gaussian curvature 9. folding index
+10. intrinsic curvature index. The file is saved in
+stats/?h.aparc.stats. 
+
+Automatic Subcortical Segmentation <-subcortseg>
+
+This is done in four stages. (1) CGA linear registration
+(-cgareg). This is an initial registration to a template. (2)
+Canonical Normalization (-canorm), (3) Cannonical Registration
+(-careg). (4) Subcortical labeling (-calabel). See also
+-edit_wm_with_aseg.
+
+
+MANUAL CHECKING AND EDITING OF SURFACES
+
+To manually edit segmenation, run the following command (make sure
+that your SUBJECTS_DIR environment variable is properly set).
+
+  tkmedit subjid wm -aux T1
+
+The surfaces can be loaded through the menu item
+File->LoadMainSurface. To enable editing, set Tools->EditVoxels.  It
+may also be convenient to bring up the reconstruction toolbar with
+View->ToolBars->Reconstruction. Alt-C toggles between the main (wm)
+and auxiliary (T1) volumes. Middle clicking will set a voxel value to
+255; left clicking will set a voxel value to 0. Only edit the wm
+volume. When finished, File-SaveMainVolume.
+
+To view the inflated surface simultaneosly with the volume, run the 
+following command from a different shell:
+
+  tksurfer subjid lh inflated
+
+To goto a point on the surface inside the volume, click on the point
+and hit SavePoint (icon looks like a floppy disk), then, in tkmedit,
+hit GotoSavedPoint (icon looks like an open file).
+
+USING COMPRESSED MGH FORMAT (MGZ)
+
+MGZ format can be used by specifying the -mgz flag.  The MGH format is
+a single-file format in which both pixel and meta data are stored.
+Files in this format have a .mgh extension. This can be compressed
+with gzip to give a compressed MGH format for which the extension is
+.mgz.  This can provide substantial savings on disk space, but it does
+change the way that the data are stored. When COR format is used, an
+entire directory must be dedicated to the volume, and the volume is
+identified by the directory name (eg, mri/brain contains the
+skull-stripped volume). When MGZ is used, the COR volume and directory
+are replaced by a single file named <directory>.mgz (eg, brain.mgz).
+When setting up the raw data in the subject directory, create MGZ
+files with the names RRR.mgz in the mri directory, where RRR is the
+3-digit, 0-padded run number (eg, 004.mgz). Do not use numbers over
+100. Note that the input runs do not have to be conformed (ie, 256^3,
+1mm isotropic). The input runs will be motion corrected and averaged
+togther into rawavg.mgz which will then be conformed into orig.mgz.
+
+TOUCH FILES
+
+This scripts creates a directory called "touch". Each time a stage is
+run a "touch file" is created (eg, skull_strip.touch). This will be
+used in the future to automatically determine which stages need to be
+run or re-run. The modification time of the touch file is important.
+The content is irrelevent, though it often contains a command-line.
+
+FLATTENING
+
+Flattening is not actually done in this script. This part just documents
+how one would go about performing the flattening. First, load the subject
+surface into tksurfer:
+
+   tksurfer subjid lh inflated
+
+Load the curvature through the File->Curvature->Load menu (load
+lh.curv). This should show a green/red curvature pattern. Red = sulci.
+
+Right click before making a cut; this will clear previous points. This
+is needed because it will string together all the previous places you
+have clicked to make the cut. To make a line cut, left click on a line
+of points. Make the points fairly close together; if they are too far
+appart, the cut fails. After making your line of points, execute the
+cut by clicking on the Cut icon (scissors with an open triangle for a
+line cut or scissors with a closed triangle for a closed cut). To make
+a plane cut, left click on three points to define the plane, then left
+click on the side to keep. Then hit the CutPlane icon.
+
+Fill the patch. Left click in the part of the surface that you want to
+form your patch. Then hit the Fill Uncut Area button (icon = filled
+triangle). This will fill the patch with white. The non-patch area
+will be unaccessible through the interface.  Save the patch through
+File->Patch->SaveAs. For whole cortex, save it to something like
+lh.cort.patch.3d. For occipital patches, save it to lh.occip.patch.3d.
+
+Cd into the subject surf directory and run
+
+  mris_flatten -w N -distances Size Radius lh.patch.3d lh.patch.flat
+
+where N instructs mris_flatten to write out an intermediate surface
+every N interations. This is only useful for making movies; otherwise
+set N=0.  Size is maximum number of neighbors; Radius radius (mm) in
+which to search for neighbors. In general, the more neighbors that are
+taken into account, the less the metric distortion but the more
+computationally intensive. Typical values are Size=12 for large
+patches, and Size=20 for small patches. Radius is typically 7.
+Note: flattening may take 12-24 hours to complete. The patch can be
+viewed at any time by loading the subjects inflated surface, then
+loading the patch through File->Patch->LoadPatch...
+
+GETTING HELP
+
+Send email to freesurfer@nmr.mgh.harvard.edu. Also see
+https://surfer.nmr.mgh.harvard.edu. In particular, there is both a
+reconstruction guide and tutorial as well as manuals for tkmedit and
+tksurfer.
+
+REFERENCES
+
+[1] Collins, DL, Neelin, P., Peters, TM, and Evans, AC. (1994)
+Automatic 3D Inter-Subject Registration of MR Volumetric Data in
+Standardized Talairach Space, Journal of Computer Assisted Tomography,
+18(2) p192-205, 1994 PMID: 8126267; UI: 94172121
+
+[2] Cortical Surface-Based Analysis I: Segmentation and Surface
+Reconstruction Dale, A.M., Fischl, Bruce, Sereno, M.I.,
+(1999). Cortical Surface-Based Analysis I: Segmentation and Surface
+Reconstruction.  NeuroImage 9(2):179-194
+
+[3] Fischl, B.R., Sereno, M.I.,Dale, A. M.  (1999) Cortical
+Surface-Based Analysis II: Inflation, Flattening, and Surface-Based
+Coordinate System. NeuroImage, 9, 195-207.
+
+[4] Fischl, Bruce, Sereno, M.I., Tootell, R.B.H., and Dale, A.M.,
+(1999). High-resolution inter-subject averaging and a coordinate
+system for the cortical surface. Human Brain Mapping, 8(4): 272-284
+
+[5] Fischl, Bruce, and Dale, A.M., (2000).  Measuring the Thickness of
+the Human Cerebral Cortex from Magnetic Resonance Images.  Proceedings
+of the National Academy of Sciences, 97:11044-11049.
+
+[6] Fischl, Bruce, Liu, Arthur, and Dale, A.M., (2001). Automated
+Manifold Surgery: Constructing Geometrically Accurate and
+Topologically Correct Models of the Human Cerebral Cortex. IEEE
+Transactions on Medical Imaging, 20(1):70-80
+
+[7] Non-Uniform Intensity Correction. 
+http://www.bic.mni.mcgill.ca/software/N3/node6.html
+
+[8] Fischl B, Salat DH, Busa E, Albert M, Dieterich M, Haselgrove C,
+van der Kouwe A, Killiany R, Kennedy D, Klaveness S, Montillo A,
+Makris N, Rosen B, Dale AM. Whole brain segmentation: automated
+labeling of neuroanatomical structures in the human
+brain. Neuron. 2002 Jan 31;33(3):341-55.
+
+[9] Bruce Fischl, Andre van der Kouwe, Christophe Destrieux, Eric
+Halgren, Florent Segonne, David H. Salat, Evelina Busa, Larry
+J. Seidman, Jill Goldstein, David Kennedy, Verne Caviness, Nikos
+Makris, Bruce Rosen, and Anders M. Dale.  Automatically Parcellating
+the Human Cerebral Cortex. Cerebral Cortex January 2004; 14:11-22.
