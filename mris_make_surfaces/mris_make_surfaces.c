@@ -18,7 +18,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.62 2005/12/06 23:06:12 greve Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.63 2005/12/14 02:44:22 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -84,13 +84,13 @@ static int nowhite = 0 ;
 static int nbrs = 2 ;
 static int write_vals = 0 ;
 
-static char *orig_name = ORIG_NAME ;
+static char *orig_name = ORIG_NAME ; // "orig"
 static char *suffix = "" ;
 static char *output_suffix = "" ;
 static char *xform_fname = NULL ;
 
 static char pial_name[STRLEN] = "pial" ;
-static char white_matter_name[STRLEN] = WHITE_MATTER_NAME ;
+static char white_matter_name[STRLEN] = WHITE_MATTER_NAME ; // "white"
 
 static int lh_label = LH_LABEL ;
 static int rh_label = RH_LABEL ;
@@ -157,10 +157,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.62 2005/12/06 23:06:12 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.63 2005/12/14 02:44:22 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.62 2005/12/06 23:06:12 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.63 2005/12/14 02:44:22 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1288,8 +1288,15 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  fprintf(stderr, "usage: %s [options] <subject name> <hemisphere>\n", 
-          Progname) ;
+  printf("%s [options] <subject name> <hemisphere>\n",Progname) ;
+  printf("\n");
+  printf("options\n");
+  printf("  -T1 T1vol : default is %s\n",T1_name);
+  printf("  -wvol whitevol <hires>\n");
+  printf("  -long : longitudinal\n");
+  printf("  -SDIR SUBJECTS_DIR \n");
+  printf("  -pial pialsurfname \n");
+  printf("  -white whitesurfname \n");
 }
 
 static void
