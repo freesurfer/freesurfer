@@ -6,7 +6,7 @@
 
 umask 002;
 
-set VERSION = '$Id: fsralpha.tmp,v 1.5 2005/12/14 05:09:18 greve Exp $';
+set VERSION = '$Id: fsralpha.tmp,v 1.6 2005/12/14 15:08:21 greve Exp $';
 
 # MNI tool requires the following
 setenv LANG C
@@ -483,7 +483,7 @@ if($DoSegStats) then
   set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz --in mri/orig.mgz)
   set cmd = ($cmd --ctab-default --excludeid 0)
-  set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brain.mgz)
+  set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
   set cmd = ($cmd --etiv);
   set cmd = ($cmd --subject $subjid)
   set cmd = ($cmd --in-intensity-name orig --in-intensity-units MR) 
