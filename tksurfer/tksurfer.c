@@ -8807,7 +8807,6 @@ read_binary_curvature(char *fname)
   /* enable our menu options. */
   enable_menu_set (MENUSET_CURVATURE_LOADED, curvloaded);
   send_tcl_command ("ShowLabel kLabel_Curvature 1");
-  send_tcl_command ("EnableCurvatureButton 1");
   
   /* turn on the curvflag */
   curvflag = 1;
@@ -18979,7 +18978,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.158 2005/12/13 23:40:19 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.159 2005/12/14 20:43:31 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21494,33 +21493,40 @@ enable_menu_set (int set, int enable) {
   sprintf (tcl_cmd, "%s %d", tcl_cmd, enable);
   send_tcl_command(tcl_cmd);
 
-  /* Also enable additional buttons for vertex sets. */
+  /* Also enable additional buttons. */
+  strcpy (tcl_cmd, "");
   switch(set)
     {
     case MENUSET_VSET_INFLATED_LOADED:
-      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d %d", 
-	       VSET_INFLATED, enable );
-      send_tcl_command (tcl_cmd);
+      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d", VSET_INFLATED );
       break;
     case MENUSET_VSET_WHITE_LOADED:
-      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d %d", 
-	       VSET_WHITE, enable );
-      send_tcl_command (tcl_cmd);
+      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d", VSET_WHITE );
       break;
     case MENUSET_VSET_PIAL_LOADED:
-      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d %d", 
-	       VSET_PIAL, enable );
-      send_tcl_command (tcl_cmd);
+      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d", VSET_PIAL );
       break;
     case MENUSET_VSET_ORIGINAL_LOADED:
-      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d %d", 
-	       VSET_ORIGINAL, enable );
-      send_tcl_command (tcl_cmd);
+      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d", VSET_ORIGINAL );
+      break;
+    case MENUSET_CURVATURE_LOADED:
+      sprintf (tcl_cmd, "EnableCurvatureButton");
+      break;
+    case MENUSET_OVERLAY_LOADED:
+      sprintf (tcl_cmd, "EnableOverlayButtons");
+      break;
+    case MENUSET_LABEL_LOADED:
+      sprintf (tcl_cmd, "EnableLabelButtons");
       break;
     default:
       break;
     }
-
+  if (strlen(tcl_cmd) > 0) 
+    {
+      sprintf (tcl_cmd, "%s %d", tcl_cmd, enable);
+      send_tcl_command(tcl_cmd);
+    }
+  
   return(ERROR_NONE);
 }
 
