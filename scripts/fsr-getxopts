@@ -14,7 +14,7 @@
 #   -p .5
 #
 
-set VERSION = '$Id: fsr-getxopts,v 1.1 2005/12/13 20:50:40 greve Exp $';
+set VERSION = '$Id: fsr-getxopts,v 1.2 2005/12/14 18:08:01 greve Exp $';
 
 if($#argv < 2) exit 0;
 
@@ -34,6 +34,6 @@ if($tmp > 1) then
 endif
 
 set tmp = `grep $cmd $xoptsfile`;
-echo $tmp[2-$#tmp];
+echo "$tmp[2-$#tmp]"
 
 exit 0
