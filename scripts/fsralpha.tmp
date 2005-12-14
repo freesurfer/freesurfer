@@ -6,7 +6,7 @@
 
 umask 002;
 
-set VERSION = '$Id: fsralpha.tmp,v 1.4 2005/12/14 04:51:07 greve Exp $';
+set VERSION = '$Id: fsralpha.tmp,v 1.5 2005/12/14 05:09:18 greve Exp $';
 
 # MNI tool requires the following
 setenv LANG C
@@ -319,10 +319,10 @@ endif
 if($DoTalairach) then
   echo "---------------------------------------------"|& tee -a $LF 
   echo "Talairach `date`" |& tee -a $SF |& tee -a $LF 
-  mkdir -p transforms/bak
+  mkdir -p mri/transforms/bak
   set xfm = mri/transforms/talairach.auto.xfm
   if(-e $xfm) then
-    set xfmbak = transforms/bak/talairach.auto.xfm.$DateString
+    set xfmbak = mri/transforms/bak/talairach.auto.xfm.$DateString
     cp $xfm $xfmbak
   endif
   set cmd = (talairach --i mri/nu.mgz --xfm $xfm)
@@ -334,18 +334,9 @@ if($DoTalairach) then
     goto error_exit;
   endif
   # Need to check for diff, keep, etc
-  cp transforms/talairach.auto.xfm transforms/talairach.xfm
-
-  if(0) then
-  set cmd = (mri_add_xform_to_header transforms/talairach.xfm \
-             mri/nu.mgz mri/nu.mgz); 
-  echo $cmd |& tee -a $LF 
+  set cmd = (cp $xfm mri/transforms/talairach.xfm)
+  echo $cmd |& tee -a $LF |& tee -a $CF 
   if($RunIt) $cmd |& tee -a $LF 
-  if($status) then
-    echo "ERROR: mri_add_xform_to_header mri/nu.mgz failed"|& tee -a $LF 
-    goto error_exit;
-  endif
-  endif
 
 endif
 
@@ -394,7 +385,7 @@ if($DoGCAReg) then
   echo "--------------------------------------"|& tee -a $LF 
   echo "GCARegistration `date`" |& tee -a $SF |& tee -a $LF   
   pwd |& tee -a $LF                                          
-  set cmd = (mri_em_register -mask brainmask.mgz -p .5 nu.mgz)          
+  set cmd = (mri_em_register -mask mri/brainmask.mgz -p .5 mri/nu.mgz)          
   set cmd = ($cmd $FREESURFER_HOME/average/$GCA mri/transforms/talairach.lta) 
   echo $cmd |& tee -a $LF |& tee -a $CF                                     
   if($RunIt) $cmd |& tee -a $LF                               
