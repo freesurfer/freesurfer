@@ -26,6 +26,7 @@ icon_brush_circle.gif \
 icon_brush_square.gif \
 icon_color_label.gif \
 icon_color_picker.gif \
+icon_color_scalebar.gif \
 icon_control_point.gif \
 icon_cursor_goto.gif \
 icon_cursor_save.gif  \
@@ -51,6 +52,9 @@ icon_fill_volume.gif \
 icon_fill_roi.gif \
 icon_folder.gif \
 icon_home.gif \
+icon_label_filled.gif \
+icon_label_off.gif \
+icon_label_outline.gif \
 icon_label_to_marked.gif \
 icon_label_list.gif \
 icon_label_table.gif \
@@ -64,6 +68,7 @@ icon_navigate.gif \
 icon_orientation_coronal.gif \
 icon_orientation_horizontal.gif \
 icon_orientation_sagittal.gif \
+icon_overlay.gif \
 icon_redraw.gif \
 icon_rotate_plane.gif \
 icon_snapshot_load.gif \
