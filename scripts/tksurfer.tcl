@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.94 2005/12/13 23:29:10 kteich Exp $
+# $Id: tksurfer.tcl,v 1.95 2005/12/14 20:43:42 kteich Exp $
 
 package require BLT;
 
@@ -3068,10 +3068,12 @@ proc PackLabel { isLabel iSet ibShow } {
 proc CreateToolBar { ifwToolBar } {
 
     global gfwaToolBar
-    global gfwCurvatureButton
     global gNextTransform
     global gaLinkedVars
-    global gfwSurfaceConfigButton
+    global gfwCurvatureButton
+    global gaSurfaceConfigButton
+    global glOverlayButtons
+    global glLabelButtons
 
     frame $ifwToolBar
 
@@ -3080,8 +3082,11 @@ proc CreateToolBar { ifwToolBar } {
     set fwPoint            $gfwaToolBar(main).fwPoint
     set fwSurfaces         $gfwaToolBar(main).fwSurfaces
     set fwCurv             $gfwaToolBar(main).fwCurv
+    set fwOverlay          $gfwaToolBar(main).fwOverlay
+    set fwLabels           $gfwaToolBar(main).fwLabels
+    set fwLabelStyle       $gfwaToolBar(main).fwLabelStyle
     set fwSpacer           $gfwaToolBar(main).fwSpace
-    set fwView             $gfwaToolBar(main).fwView
+    set fwRedraw           $gfwaToolBar(main).fwRedraw
     
     frame $gfwaToolBar(main) -border 2 -relief raised
     
@@ -3101,7 +3106,12 @@ proc CreateToolBar { ifwToolBar } {
 	{ image icon_surface_original 4
 	    "set_current_vertex_set $gaLinkedVars(vertexset); UpdateLinkedVarGroup view; UpdateAndRedraw" "Show Original Surface" }
     }
-    set gfwSurfaceConfigButton $fwSurfaces
+    set gaSurfaceConfigButton(0) $fwSurfaces.rb0
+    set gaSurfaceConfigButton(1) $fwSurfaces.rb1
+    set gaSurfaceConfigButton(2) $fwSurfaces.rb2
+    set gaSurfaceConfigButton(3) $fwSurfaces.rb3
+    set gaSurfaceConfigButton(4) $fwSurfaces.rb4
+    EnableSurfaceConfigButton 0 1
     EnableSurfaceConfigButton 1 0
     EnableSurfaceConfigButton 2 0
     EnableSurfaceConfigButton 3 0
@@ -3112,14 +3122,40 @@ proc CreateToolBar { ifwToolBar } {
 	    "SendLinkedVarGroup view; UpdateAndRedraw" "Show Curvature" } }
     set gfwCurvatureButton $fwCurv.cb0
     EnableCurvatureButton 0
+    bind $fwCurv.cb0 <Control-Button> "DoConfigCurvatureDisplayDlog"
+
+    tkm_MakeCheckboxes $fwOverlay h { 
+	{ image icon_overlay gaLinkedVars(overlayflag) 
+	    "SendLinkedVarGroup view; UpdateAndRedraw" "Show Overlay" } 
+	{ image icon_color_scalebar gaLinkedVars(colscalebarflag) 
+	   "SendLinkedVarGroup view; UpdateAndRedraw" "Show Color Scale Bar" } 
+    }
+    lappend glOverlayButtons $fwOverlay.cb0 $fwOverlay.cb1
+    EnableOverlayButtons 0
+    bind $fwOverlay.cb0 <Control-Button> "DoConfigOverlayDisplayDlog"
+
+    tkm_MakeCheckboxes $fwLabels h { 
+	{ image icon_label_off gaLinkedVars(drawlabelflag) 
+	    "SendLinkedVarGroup label; UpdateAndRedraw" "Show Labels" } }
+    lappend glLabelButtons $fwLabels.cb0
+    bind $fwLabels.cb0 <Control-Button> "LblLst_ShowWindow"
+
+    tkm_MakeRadioButtons $fwLabelStyle h "" gaLinkedVars(labelstyle) {
+	{ image icon_label_filled 0
+	    "SendLinkedVarGroup label; UpdateAndRedraw" "Draw Filled Labels" }
+	{ image icon_label_outline 1
+	   "SendLinkedVarGroup label; UpdateAndRedraw" "Draw Outlined Labels" }
+    }
+    lappend glLabelButtons $fwLabelStyle.rb0 $fwLabelStyle.rb1
+    EnableLabelButtons 0
 
     frame $fwSpacer
 
-    tkm_MakeButtons $fwView { 
-	{ image icon_home { RestoreView } "Restore View" } 
+    tkm_MakeButtons $fwRedraw { 
 	{ image icon_redraw { UpdateAndRedraw } "Redraw View" } }
+    bind $fwRedraw.bw0 <B2-ButtonRelease> [list UpdateLockButton $fwRedraw.bw0 gaLinkedVars(redrawlockflag)]
     
-    pack $fwPoint $fwSurfaces $fwCurv \
+    pack $fwPoint $fwSurfaces $fwCurv $fwOverlay $fwLabels $fwLabelStyle \
 	-side left \
 	-anchor w \
 	-padx 5
@@ -3130,7 +3166,7 @@ proc CreateToolBar { ifwToolBar } {
 	-fill x \
 	-expand yes
     
-    pack $fwView \
+    pack $fwRedraw \
 	-side left \
 	-anchor w \
 	-padx 5
@@ -3167,8 +3203,6 @@ proc CreateToolBar { ifwToolBar } {
 	{ image icon_erase_line { path_remove_selected_path; } 
 	    "Remove Selected Path" } }
     
-    bind $fwView.bw1 <B2-ButtonRelease> [list UpdateLockButton $fwView.bw1 gaLinkedVars(redrawlockflag)]
-    
     tkm_MakeButtons $fwLabel {
       { image icon_marked_to_label 
 	  { labl_new_from_marked_vertices; UpdateAndRedraw } 
@@ -3201,6 +3235,8 @@ proc CreateToolBar { ifwToolBar } {
     set fwScale           $gfwaToolBar(nav).fwScale
     set fwSclButtons      $fwScale.fwSclButtons
     set fwSclSlider       $fwScale.fwSclSlider
+    set fwSpacer          $gfwaToolBar(nav).fwSpacer
+    set fwRestore         $gfwaToolBar(nav).fwRestore
 
     set knSliderWidth 75
 
@@ -3274,6 +3310,12 @@ proc CreateToolBar { ifwToolBar } {
 	    [list {"%"} gNextTransform(scale,amt) \
 		 0 200.0 $knSliderWidth {} 1 1 horizontal]]
 
+    frame $fwSpacer
+
+    tkm_MakeButtons $fwRestore { 
+	{ image icon_home { RestoreView } "Restore View" } 
+    }
+
     pack $fwSclButtons $fwSclSlider \
 	-side top \
 	-padx 0 -pady 0
@@ -3282,6 +3324,19 @@ proc CreateToolBar { ifwToolBar } {
 	-side left \
 	-anchor w \
 	-padx 5
+
+    pack $fwSpacer \
+	-side left \
+	-anchor w \
+	-fill x \
+	-expand yes
+    
+    pack $fwRestore \
+	-side left \
+	-anchor w \
+	-padx 5
+
+
 }
 
 proc ShowToolBar { isWhich ibShow } {
@@ -3339,12 +3394,39 @@ proc EnableCurvatureButton { ibEnable } {
 }
 
 proc EnableSurfaceConfigButton { iConfig ibEnable } {
-    global gfwSurfaceConfigButton
+    global gaSurfaceConfigButton
 
+    set state disabled
     if { $ibEnable } {
-	$gfwSurfaceConfigButton.rb$iConfig config -state normal
-    } else {
-	$gfwSurfaceConfigButton.rb$iConfig config -state disabled
+	set state normal
+    }
+
+    $gaSurfaceConfigButton($iConfig) config -state $state
+}
+
+proc EnableOverlayButtons { ibEnable } {
+    global glOverlayButtons
+
+    set state disabled
+    if { $ibEnable } {
+	set state normal
+    }
+
+    foreach bw $glOverlayButtons {
+	$bw config -state $state
+    }
+}
+
+proc EnableLabelButtons { ibEnable } {
+    global glLabelButtons
+
+    set state disabled
+    if { $ibEnable } {
+	set state normal
+    }
+
+    foreach bw $glLabelButtons {
+	$bw config -state $state
     }
 }
 
@@ -4645,6 +4727,8 @@ proc CreateImages {} {
 	icon_cut_area icon_cut_closed_line icon_cut_line
 	icon_marked_to_label icon_label_to_marked icon_erase_label
 	icon_color_label
+	icon_label_off icon_label_outline icon_label_filled
+	icon_overlay icon_color_scalebar
 	icon_cut_plane icon_cut_clear
 	icon_draw_line icon_draw_line_closed icon_fill_label icon_erase_line
 	icon_surface_main icon_surface_original icon_surface_pial 
