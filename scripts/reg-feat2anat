@@ -2,7 +2,7 @@
 # reg-feat2anat
 # Registers example func to freesurfer using fsl
 
-set VERSION = '$Id: reg-feat2anat,v 1.10 2005/12/13 23:17:38 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.11 2005/12/14 05:07:29 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brain;
@@ -150,7 +150,7 @@ endif
 set refvol =  $FeatDir/reg/freesurfer/tmp/anat.img
 set cmd = (mri_convert $refvolcor $refvol)
 echo $cmd | tee -a $LF 
-#$cmd |& tee -a $LF 
+$cmd |& tee -a $LF 
 if($status) then
   echo "ERROR: mri_convert" | tee -a $LF 
   exit 1;
@@ -166,7 +166,7 @@ set cmd = ($TKR \
             --regheader --noedit)
 echo "-------------------------------------------------------" | tee -a $LF 
 echo $cmd | tee -a $LF 
-#$cmd | tee -a $LF 
+$cmd | tee -a $LF 
 if($status) exit 1;
 
 set MM = mri_matrix_multiply
@@ -199,7 +199,7 @@ set cmd = ($cmd  -searchry -$maxangle $maxangle);
 set cmd = ($cmd  -searchrz -$maxangle $maxangle);
 date | tee -a $LF 
 echo $cmd | tee -a $LF 
-#$cmd |& tee -a $LF 
+$cmd |& tee -a $LF 
 if($status) then
   echo "ERROR: flirt" | tee -a $LF 
   exit 1;
