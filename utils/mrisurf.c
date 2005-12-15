@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/12/15 20:03:59 $
-// Revision       : $Revision: 1.401 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/12/15 21:11:35 $
+// Revision       : $Revision: 1.402 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.401 2005/12/15 20:03:59 fischl Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.402 2005/12/15 21:11:35 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -39670,7 +39670,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris
 		if (fitness > best_fitness)
 		  {
 		    best_fitness = fitness ; best_i = i ;
-				if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+				if(parms->verbose>VERBOSE_MODE_DEFAULT)
 					fprintf(WHICH_OUTPUT,"new optimal fitness found at %d: %2.4f\n", i, fitness) ;
 
 		    nfinalvertices=nremovedvertices;
@@ -39824,7 +39824,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris
 		if (fitness > best_fitness)
 		  {
 		    best_fitness = fitness ; best_i = i ;
-				if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+				if(parms->verbose>VERBOSE_MODE_DEFAULT)
 					fprintf(WHICH_OUTPUT,"new optimal fitness found at %d: %2.4f\n", i, fitness) ;
 
 		    nfinalvertices=nremovedvertices;
@@ -39865,7 +39865,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris
 	    fitness_sigma = sqrt(fitness_sigma) ;
 	
 		
-		if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+		if(parms->verbose>VERBOSE_MODE_DEFAULT)
 			fprintf(WHICH_OUTPUT,"Initial population for defect %d:\nbest fitness at %d: %2.4f (%2.4f +- %2.4f)\n"
 							,defect->defect_number,best_i,best_fitness,fitness_mean,fitness_sigma);
 	
@@ -39939,7 +39939,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris
 		      /* save current status of vertices */
 		      memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
 
-		      if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+		      if(parms->verbose>VERBOSE_MODE_DEFAULT)
 						fprintf(WHICH_OUTPUT,"replacement %d MUTATION: new optimal fitness found at %d: %2.4e\n", 
 			      i, best_i, fitness) ;
 		      if(parms->verbose==VERBOSE_MODE_LOW)
@@ -40077,7 +40077,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris
 		      memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
 
 		      
-					if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+					if(parms->verbose>VERBOSE_MODE_DEFAULT)
 						fprintf(WHICH_OUTPUT,"CROSSOVER (%d x %d): new optimal fitness found at %d: %2.4e\n", 
 			      dps[p1].rank, dps[p2].rank, best_i, fitness) ;
 		      if(parms->verbose==VERBOSE_MODE_LOW)
@@ -40134,7 +40134,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris
 			  /* save current status of vertices */
 			  memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
 
-			  if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+			  if(parms->verbose>VERBOSE_MODE_DEFAULT)
 					fprintf(WHICH_OUTPUT,"CROSSOVER (%d x %d) & MUTATION: new optimal fitness found at %d: %2.4e\n", dps[p1].rank , dps[p2].rank , best_i, fitness) ;
 			  if(parms->verbose==VERBOSE_MODE_LOW)
 			    printDefectStatistics(dp);
@@ -40192,7 +40192,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris
     
 	      fitness_mean /= (float)max_patches ;
 	      fitness_sigma = sqrt(fitness_sigma/max_patches - (fitness_mean*fitness_mean)) ;
-				if(parms->verbose>=VERBOSE_MODE_DEFAULT)
+				if(parms->verbose>VERBOSE_MODE_DEFAULT)
 					fprintf(WHICH_OUTPUT,"generation %d complete, optimal fitness = %2.4e (%2.4e +- %2.4e)\n", ++g,best_fitness,
 		      fitness_mean, fitness_sigma);
 	      if (FEQUAL(last_best, best_fitness))
