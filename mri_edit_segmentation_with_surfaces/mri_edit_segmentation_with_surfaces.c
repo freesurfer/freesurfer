@@ -19,7 +19,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.8 2003/09/16 18:29:01 tosa Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.9 2005/12/15 20:09:12 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -416,7 +416,7 @@ edit_hippocampal_complex(MRI *mri, MRI_SURFACE *mris, int right, char *annot_nam
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    MRISvertexToVoxel(v, mri_above_para, &xw, &yw, &zw) ;
+    MRISvertexToVoxel(mris, v, mri_above_para, &xw, &yw, &zw) ;
     index = CTABannotationToIndex(mris->ct, v->annotation) ;
     if ((index == LINGUAL_SULCUS || index == LINGUAL_SULCUS2) &&
 	sqrt(SQR(xw-Gx)+SQR(yw-Gy)+SQR(zw-Gz)) < 3)
