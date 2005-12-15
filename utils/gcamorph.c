@@ -4,8 +4,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/12/08 16:06:32 $
-// Revision       : $Revision: 1.85 $
+// Revision Date  : $Date: 2005/12/15 19:07:59 $
+// Revision       : $Revision: 1.86 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -3913,21 +3913,22 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
     load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs) ;
     maxGradient=max_norm;
     gradientArea=gcam->nodes[xmax][ymax][zmax].area;
-		if (Gdiag & DIAG_SHOW)
-			printf("   max grad %2.3f mm @ (%d, %d, %d), Area=%2.3f, new/orig=%2.3f, ", 
-						 max_norm, xmax, ymax, zmax,
-						 gcam->nodes[xmax][ymax][zmax].area,
-						 gcam->nodes[xmax][ymax][zmax].area/gcam->nodes[xmax][ymax][zmax].orig_area) ;
-    fflush(stdout);
-    printf("vals(means) = ") ;
-    for (r = 0 ; r < gcam->ninputs ; r++)
-      printf("%2.1f (%2.1f)  ", vals[r], gcamn->gc ? gcamn->gc->means[r] :-0.0);
-    fflush(stdout);
+    if(Gdiag & DIAG_SHOW){
+      printf("   max grad %2.3f mm @ (%d, %d, %d), Area=%2.3f, new/orig=%2.3f, ", 
+	     max_norm, xmax, ymax, zmax,
+	     gcam->nodes[xmax][ymax][zmax].area,
+	     gcam->nodes[xmax][ymax][zmax].area/gcam->nodes[xmax][ymax][zmax].orig_area);
+      fflush(stdout);
+      printf("vals(means) = ") ;
+      for (r = 0 ; r < gcam->ninputs ; r++)
+	printf("%2.1f (%2.1f)  ", vals[r], gcamn->gc ? gcamn->gc->means[r] :-0.0);
+      fflush(stdout);
 #if 0
-    if (memoryUsed=getMemoryUsed() != -1)
-      printf("memory used: %d Kbytes\n", getMemoryUsed());
+      if (memoryUsed=getMemoryUsed() != -1)
+	printf("memory used: %d Kbytes\n", getMemoryUsed());
 #endif 
-    printf("\n") ;
+      printf("\n") ;
+    }
   }
 
 #if 0

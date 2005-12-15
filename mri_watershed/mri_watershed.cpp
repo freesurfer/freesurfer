@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/10 00:55:33 $
-// Revision       : $Revision: 1.40 $
+// Revision Date  : $Date: 2005/12/15 19:07:28 $
+// Revision       : $Revision: 1.41 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.40 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.41 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -688,7 +688,7 @@ int main(int argc, char *argv[])
         
   make_cmd_version_string 
     (argc, argv, 
-"$Id: mri_watershed.cpp,v 1.40 2005/12/10 00:55:33 greve Exp $", "$Name:  $",
+"$Id: mri_watershed.cpp,v 1.41 2005/12/15 19:07:28 greve Exp $", "$Name:  $",
      cmdline);
 
   Progname=argv[0];
@@ -699,7 +699,7 @@ int main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-"$Id: mri_watershed.cpp,v 1.40 2005/12/10 00:55:33 greve Exp $", "$Name:  $");
+"$Id: mri_watershed.cpp,v 1.41 2005/12/15 19:07:28 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2348,9 +2348,11 @@ static int Analyze(STRIP_PARMS *parms,MRI_variables *MRI_var)
         free(MRI_var->Table[pos][u]);
       free(MRI_var->Table[pos]);
 
-      fprintf(stderr,"\r      %3d%%... %8ld basins; main size = %8ld         ",
-              (MRI_var->Imax-pos)*100/(MRI_var->Imax-1),
-              MRI_var->basinnumber,MRI_var->basinsize);
+      if(Gdiag & DIAG_SHOW){
+	fprintf(stderr,"\n      %3d%%... %8ld basins; main size = %8ld         ",
+		(MRI_var->Imax-pos)*100/(MRI_var->Imax-1),
+		MRI_var->basinnumber,MRI_var->basinsize);
+      }
     }
 
 
