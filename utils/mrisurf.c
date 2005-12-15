@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/15 19:23:44 $
-// Revision       : $Revision: 1.399 $
+// Revision Date  : $Date: 2005/12/15 19:59:16 $
+// Revision       : $Revision: 1.400 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.399 2005/12/15 19:23:44 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.400 2005/12/15 19:59:16 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -33017,12 +33017,12 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
   //  tmp       = inflated vertices
   //  current   = canonical vertices 
 
-	/* saving additional information */
-	MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-	MRISwrite(mris,"orig_uncorrected");
-	MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-	MRISwrite(mris,"inflated_uncorrected");
-	// current = inflated
+  /* saving additional information */
+  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+  //MRISwrite(mris,"orig_uncorrected");
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  //MRISwrite(mris,"inflated_uncorrected");
+  // current = inflated
 
 #if MATRIX_ALLOCATION
   /* allocation of the transform matrix */
@@ -33171,8 +33171,8 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
   MRISaverageVertexPositions(mris, 2) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   /* at this point : original vertices become smoothed original vertices */
-	//saving out additional information
-	MRISwrite(mris,"orig_smooth_uncorrected");
+  //saving out additional information
+  //MRISwrite(mris,"orig_smooth_uncorrected");
 
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   /* at this point : back to original vertices */
@@ -33276,16 +33276,17 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 	  fclose(fp) ;
 	}
     }
-	//always writting out additional information
-	//if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-	  {
-			MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-      MRISwrite(mris,"new_orig_uncorrected");
-      MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
-      MRISwrite(mris,"new_qsphere_uncorrected");
-      MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-      MRISclearCurvature(mris) ;
-      for (i = 0 ; i < dl->ndefects ; i++)
+  //always writting out additional information
+  //if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    //MRISwrite(mris,"new_orig_uncorrected");
+    MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+    //MRISwrite(mris,"new_qsphere_uncorrected");
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    MRISclearCurvature(mris) ;
+
+    for (i = 0 ; i < dl->ndefects ; i++)
 			{
 				defect = &dl->defects[i] ;
 				for (n = 0 ; n < defect->nvertices ; n++)
