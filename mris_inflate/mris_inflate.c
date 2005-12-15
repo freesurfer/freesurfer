@@ -16,7 +16,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.29 2005/12/14 20:38:48 greve Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.30 2005/12/15 19:18:19 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -50,16 +50,16 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_inflate.c,v 1.29 2005/12/14 20:38:48 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_inflate.c,v 1.30 2005/12/15 19:18:19 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_inflate.c,v 1.29 2005/12/14 20:38:48 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_inflate.c,v 1.30 2005/12/15 19:18:19 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
   TimerStart(&then) ;
-  Gdiag |= DIAG_SHOW ;
+  //Gdiag |= DIAG_SHOW ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
