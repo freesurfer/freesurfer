@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/12/12 21:39:21 $
-// Revision       : $Revision: 1.398 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/12/15 19:23:44 $
+// Revision       : $Revision: 1.399 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.398 2005/12/12 21:39:21 kteich Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.399 2005/12/15 19:23:44 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -8350,12 +8350,30 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
   char  fname[STRLEN], *cp ;
   FILE *fp;
   double sum=0,sum2=0,max= -1000,min=1000;
+  int   ftype, err;
+  MRI *TempMRI;
 
 #if 1
   MRISbuildFileName(mris, sname, fname) ;
 #else
   strcpy(fname, sname) ;
 #endif
+
+  // Try saving it in a "volume" format -- but not img or nifti
+  // as they use shorts for the number of vertices. Should add
+  // a reshape.
+  ftype = mri_identify(sname);
+  if(ftype != MRI_VOLUME_TYPE_UNKNOWN){
+    TempMRI = MRIcopyMRIS(NULL,mris,0,"val");
+    if(TempMRI==NULL){
+      printf("ERROR: MRISwriteValues: could not alloc MRI\n");
+      return(1);
+    }
+    printf("Saving surf vals in 'volume' format to %s\n",sname);
+    err = MRIwrite(TempMRI,sname);
+    return(err);
+  }
+
   cp = strrchr(fname, '.') ;
   if (!cp || *(cp+1) != 'w')
     strcat(fname, ".w") ;
@@ -8650,10 +8668,10 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
     vno = 0;
     for(s=0; s < TempMRI->depth; s++){
       for(r=0; r < TempMRI->height; r++){
-				for(c=0; c < TempMRI->width; c++){
-					mris->vertices[vno].val = MRIgetVoxVal(TempMRI,c,r,s,frame);
-					vno++;
-				}
+	for(c=0; c < TempMRI->width; c++){
+	  mris->vertices[vno].val = MRIgetVoxVal(TempMRI,c,r,s,frame);
+	  vno++;
+	}
       }
     }
     MRIfree(&TempMRI);
@@ -11382,8 +11400,8 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   niterations = parms->niterations ;
   rms_height = MRISrmsTPHeight(mris) ;
   desired_rms_height = parms->desired_rms_height ;
-  fprintf(stdout, "inflating to desired rms height = %2.3f\n", 
-          desired_rms_height);
+  //fprintf(stdout, "inflating to desired rms height = %2.3f\n", 
+  // desired_rms_height);
 
   /* write out initial surface */
   if (!parms->start_t && (parms->write_iterations > 0) && (Gdiag&DIAG_WRITE))
@@ -46269,7 +46287,7 @@ int MRISrectifyCurvature(MRI_SURFACE *mris)
 		      (fabs(v->z) > 128.0f))
 		    DiagBreak() ;
 			
-		  if (vno == Gdiag_no)
+		  if (vno == Gdiag_no && 0)
 		    {
 		      float dist, dot, dx, dy, dz ;
 				

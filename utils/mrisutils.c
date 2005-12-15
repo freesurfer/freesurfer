@@ -966,9 +966,9 @@ mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring)
     vertex->dx += sx ;
     vertex->dy += sy ;
     vertex->dz += sz ;
-    if (vno == Gdiag_no)
-      fprintf(stdout, "v %d spring normal term:  (%2.3f, %2.3f, %2.3f)\n",
-              vno, sx, sy, sz) ;
+    //if (vno == Gdiag_no)
+    //fprintf(stdout, "v %d spring normal term:  (%2.3f, %2.3f, %2.3f)\n",
+    //        vno, sx, sy, sz) ;
   }
   
 
