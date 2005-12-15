@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.28 2005/10/03 16:11:56 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.29 2005/12/15 23:55:41 kteich Exp $
 
 package require BLT;
 
@@ -557,7 +557,7 @@ proc Overlay_DoConfigDlog {} {
 
 	tkm_MakeDialogButtons $fwButtons $wwDialog [list \
 		[list Apply { Overlay_SetConfiguration }] \
-		[list Close { Overlay_RestoreConfiguration}] \
+		[list Close {} ] \
 	]
 
 	pack $lfwLocation $fwTimePointTop $fwCondition \
