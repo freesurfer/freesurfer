@@ -88,6 +88,7 @@ printdat \
 progressbar.tcl \
 fsr-checkxopts \
 fsr-getxopts \
+recon-all-dev \
 recon-all-nmr \
 recon-all \
 reg-feat2anat \
