@@ -18978,7 +18978,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.159 2005/12/14 20:43:31 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.160 2005/12/15 20:10:19 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20325,7 +20325,7 @@ read_and_smooth_parcellation(char *parc_name, char *lut_name,
       v = &mris->vertices[vno] ;
       if (v->ripflag)
         continue ;
-      MRISvertexToVoxel(v, mri, &x, &y, &z) ;
+      MRISvertexToVoxel(mris,v, mri, &x, &y, &z) ;
       xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
       xv = MAX(0,xv) ; yv = MAX(0,yv) ; zv = MAX(0,zv) ;
       xv = MIN(mri->width-1, xv) ;
