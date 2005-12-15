@@ -544,7 +544,7 @@ mrisRmsValError(MRI_SURFACE *mris, MRI *mri)
     if (v->ripflag || v->val < 0)
       continue ;
     n++ ;
-    MRISvertexToVoxel(v, mri, &x, &y, &z) ;
+    MRISvertexToVoxel(mris,v, mri, &x, &y, &z) ;
     xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
     MRIsampleVolume(mri, x, y, z, &val) ;
     delta = (val - v->val) ;

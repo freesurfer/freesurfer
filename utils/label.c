@@ -301,7 +301,7 @@ LabelFromTalairach(LABEL *area, MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    MRISorigVertexToVoxel(v, mri, &xw, &yw, &zw) ;
+    MRISorigVertexToVoxel(mris, v, mri, &xw, &yw, &zw) ;
     xv = nint(xw) ; yv = nint(yw) ; zv = nint(zw) ;
     if (xv < 0) xv = 0 ; if (yv < 0) yv = 0 ; if (zv < 0) zv = 0 ;
     if (xv >= mri->width)  xv = mri->width-1 ;
@@ -1780,7 +1780,7 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->marked)   /* already in label */
       continue ;
-    MRISvertexToVoxel(v, mri, &xv, &yv, &zv) ;
+    MRISvertexToVoxel(mris, v, mri, &xv, &yv, &zv) ;
     if (MRIvox(mri, nint(xv), nint(yv), nint(zv)) == 1)
     {
       area_dst->lv[dst_index].vno = vno ;
@@ -1825,7 +1825,7 @@ LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->marked)   /* already in label */
       continue ;
-    MRISorigVertexToVoxel(v, mri, &xv, &yv, &zv) ;
+    MRISorigVertexToVoxel(mris, v, mri, &xv, &yv, &zv) ;
     if (MRIvox(mri, nint(xv), nint(yv), nint(zv)) == 1)
     {
       area_dst->lv[dst_index].vno = vno ;
