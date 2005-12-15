@@ -613,16 +613,22 @@ image_collection.$(OBJEXT): .ui/image_collection.cpp
 	$(UIC)  -embed scuba2 images/filenew images/fileopen images/filesave images/print images/undo images/redo images/editcut images/editcopy images/editpaste images/searchfind images/icon_arrow_ccw.png images/icon_arrow_cw.png images/icon_arrow_down.png images/icon_arrow_expand_x.png images/icon_arrow_expand_y.png images/icon_arrow_left.png images/icon_arrow_right.png images/icon_arrow_rot_x_neg.png images/icon_arrow_rot_x_pos.png images/icon_arrow_rot_y_neg.png images/icon_arrow_rot_y_pos.png images/icon_arrow_rot_z_neg.png images/icon_arrow_rot_z_pos.png images/icon_arrow_shrink_x.png images/icon_arrow_shrink_y.png images/icon_arrow_up.png images/icon_aux_volume.png images/icon_brush_3d.png images/icon_brush_circle.png images/icon_brush_square.png images/icon_color_label.png images/icon_color_picker.png images/icon_control_point.png images/icon_cursor_goto.png images/icon_cursor_save.png images/icon_cut_area.png images/icon_cut_clear.png images/icon_cut_closed_line.png images/icon_cut_line.png images/icon_cut_plane.png images/icon_disk.png images/icon_draw_line.png images/icon_draw_line_closed.png images/icon_edit_ctrlpts.png images/icon_edit_custom.png images/icon_edit_label.png images/icon_edit_parc.png images/icon_edit_volume.png images/icon_erase_label.png images/icon_erase_line.png images/icon_fill.png images/icon_fill_label.png images/icon_folder.png images/icon_home.png images/icon_label_to_marked.png images/icon_line_tool.png images/icon_linked_cursors.png images/icon_main_volume.png images/icon_marked_to_label.png images/icon_marker_crosshair.png images/icon_marker_diamond.png images/icon_navigate.png images/icon_orientation_coronal.png images/icon_orientation_horizontal.png images/icon_orientation_sagittal.png images/icon_redraw.png images/icon_rotate_plane.png images/icon_snapshot_load.png images/icon_snapshot_save.png images/icon_stopwatch.png images/icon_surface_main.png images/icon_surface_original.png images/icon_surface_pial.png images/icon_view_31.png images/icon_view_mosaic.png images/icon_view_multiple.png images/icon_view_single.png images/icon_zoom_in.png images/icon_draw_edge_path.png images/view_inplane.png images/view_inplane_x.png images/view_inplane_y.png icon_eye.xpm icon_lock.xpm icon_pencil.xpm images/icon_zoom_out.png images/icon_fill_roi.png images/icon_fill_volume.png images/icon_label_list.png images/icon_label_table.png -o $@
 
 scuba_bundle: scuba2
+	@echo Making OSX bundle...
 	@test -d scuba2.app/Contents/MacOS/ || mkdir -p scuba2.app/Contents/MacOS/
 	@rm -f scuba2.app/Contents/MacOS/../PkgInfo
 	@echo "APPL????" >scuba2.app/Contents/MacOS/../PkgInfo
 	@test -d scuba2.app/Contents/MacOS/ || mkdir -p scuba2.app/Contents/MacOS/
 	@rm -f scuba2.app/Contents/MacOS/../Info.plist
-	@sed -e "s,@ICON@,application.icns,g" -e "s,@EXECUTABLE@,scuba,g" "$(QTDIR)/mkspecs/default/Info.plist.app" >"scuba2.app/Contents/MacOS/../Info.plist"
+	@sed -e "s,@ICON@,application.icns,g" -e "s,@EXECUTABLE@,scuba2,g" "$(QTDIR)/mkspecs/default/Info.plist.app" >"scuba2.app/Contents/MacOS/../Info.plist"
 	@test -d scuba2.app/Contents/MacOS/ || mkdir -p scuba2.app/Contents/MacOS/
 	@rm -f scuba2.app/Contents/MacOS/scuba2
 	@cp scuba2 scuba2.app/Contents/MacOS/
 	@cp -r scuba2.app $(DESTDIR)$(bindir)
+	@test -d scuba2.app/Contents/Frameworks || mkdir -p scuba2.app/Contents/Frameworks
+	@cp $(QTDIR)/lib/libqt-mt.3.dylib scuba2.app/Contents/Frameworks
+	@install_name_tool -id @executable_path/../Frameworks/libqt-mt.3.dylib scuba2.app/Contents/Frameworks/libqt-mt.3.dylib
+	@install_name_tool -change libqt-mt.3.dylib @executable_path/../Frameworks/libqt-mt.3.dylib scuba2.app/Contents/MacOS/scuba2
+
 
 .PHONY: scuba_bundle
 
