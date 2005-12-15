@@ -457,6 +457,7 @@ typedef struct
   MRI     *mri_dist ;         /* distance map for repulsion term */
 	float   target_radius ;
 	int     ignore_energy ;     // when no valid energy functional is availabel - just integrate
+	int     check_tol ;         // to avoid changing mris_make_surfaces
 } INTEGRATION_PARMS ;
 
 extern double (*gMRISexternalGradient)(MRI_SURFACE *mris, 
@@ -610,10 +611,12 @@ MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src,
                                              float a, float b, float c);
 MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
 MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
-int MRISorigVertexToVoxel(VERTEX *v, 
+int MRISorigVertexToVoxel(MRI_SURFACE *, 
+													VERTEX *v, 
                           MRI *mri,
                           Real *pxv, Real *pyv, Real *pzv) ;
-int          MRISvertexToVoxel(VERTEX *v, MRI *mri,Real *pxv, Real *pyv, 
+int          MRISvertexToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri,
+															 Real *pxv, Real *pyv, 
                                Real *pzv) ;
 #if 0
 int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, 
@@ -1250,4 +1253,6 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1);
 int **MRIScrsLUT(MRIS *surf, MRI *src);
 int MRIScrsLUTFree(int **crslut);
 int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new) ;
+int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri) ;
 #endif
