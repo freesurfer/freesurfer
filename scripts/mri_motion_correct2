@@ -3,7 +3,7 @@
 # Performs motion correction of anatomicals. This should produce
 # the same output as mri_motion_correct
 
-set VERSION = '$Id: mri_motion_correct2,v 1.10 2005/12/02 19:41:30 greve Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.11 2005/12/16 00:39:52 greve Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -133,6 +133,7 @@ foreach input ($inputlist)
   rm -f $mncinput
 
   set cmd = (mri_convert $input $mncinput)
+  #set cmd = (mri_convert $input $mncinput -odt float) # should do this instead?
   pwd >> $LF
   echo $cmd >> $LF
   $cmd |& tee -a $LF
@@ -381,7 +382,7 @@ arg1err:
 ############--------------##################
 cleanup:
 
-  if($CleanUp) then
+  if($#CleanUp > 0) then
     foreach f ($CleanUpList)
       rm -f $f
     end
