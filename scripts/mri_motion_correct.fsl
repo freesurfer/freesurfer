@@ -2,7 +2,7 @@
 # mri_motion_correct.fsl - should do the same thing as mri_motion_correct2,
 # but using flirt.
 
-set VERSION = '$Id: mri_motion_correct.fsl,v 1.1 2005/12/16 00:49:26 greve Exp $';
+set VERSION = '$Id: mri_motion_correct.fsl,v 1.2 2005/12/16 01:02:05 greve Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -26,7 +26,7 @@ set n = `echo $argv | grep -e -version | wc -l`
 if($n != 0) then
   echo $VERSION
   ##### gather version info used in this script
-  mri_convert --version 
+  mri_convert -all-info
   exit 0;
 endif
 
