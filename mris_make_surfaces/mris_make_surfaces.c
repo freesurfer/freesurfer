@@ -18,7 +18,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.63 2005/12/14 02:44:22 greve Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.64 2005/12/16 01:18:29 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -157,10 +157,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.63 2005/12/14 02:44:22 greve Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.64 2005/12/16 01:18:29 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.63 2005/12/14 02:44:22 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.64 2005/12/16 01:18:29 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -605,7 +605,7 @@ main(int argc, char *argv[])
       sprintf(fname, "%s.area%s%s",
               mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", output_suffix,
               suffix);
-#if 0
+#if 1
       fprintf(stderr, "writing smoothed area to %s\n", fname) ;
       MRISwriteArea(mris, fname) ;
 #endif
