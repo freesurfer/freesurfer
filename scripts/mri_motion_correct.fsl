@@ -1,0 +1,434 @@
+#!/bin/csh -f
+# mri_motion_correct.fsl - should do the same thing as mri_motion_correct2,
+# but using flirt.
+
+set VERSION = '$Id: mri_motion_correct.fsl,v 1.1 2005/12/16 00:49:26 greve Exp $';
+
+set tmpdir      = ();
+set inputlist   = ();
+set outspec     = ();
+set PrintHelp   = 0;
+set LF          = ();
+set CleanUp     = 1;
+set CleanUpList = ();
+set PWD = pwd;
+set HiRes = '';
+set outfmt = ();
+set AllowWild = 0;
+set RunIt = 1;
+
+setenv FSLOUTPUTTYPE ANALYZE
+
+# If no args, print usage and exit #
+if($#argv == 0) goto usage_exit;
+# Look for version #
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  ##### gather version info used in this script
+  mri_convert --version 
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+if($#LF == 0) then
+  if("$outfmt" == "COR") then
+    set LF = $outdir/mri_motion_correct.fsl.log
+  else
+    set LF = $outspec.mri_motion_correct.fsl.log
+  endif
+  if(-e $LF) mv $LF $LF.old
+endif
+
+echo "--------------------------------------------------------------"
+echo "mri_motion_correct.fsl logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "mri_motion_correct.fsl log file" >> $LF
+echo $VERSION      >> $LF
+echo $0            >> $LF
+echo $argv         >> $LF
+pwd                >> $LF
+uname -a           >> $LF
+date               >> $LF
+which mri_convert  >> $LF
+which flirt        >> $LF
+
+set StartTime = `date`;
+
+# Get TR, TI, TE, and FlipAngle, check consist
+foreach input ($inputlist)
+  set TR = `mri_info $input --tr`;
+  if($status) then
+    echo "ERROR: $status"
+    exit 1;
+  endif
+  set TE = `mri_info $input --te`;
+  if($status) then
+    echo "ERROR: $status"
+    exit 1;
+  endif
+  set TI = `mri_info $input --ti`;
+  if($status) then
+    echo "ERROR: $status"
+    exit 1;
+  endif
+  set FlipAngle = `mri_info $input --flip_angle`;
+  if($status) then
+    echo "ERROR: $status"
+    exit 1;
+  endif
+
+  if($input == $inputlist[1]) then
+    set TR0 = $TR;
+    set TE0 = $TE;
+    set TI0 = $TI;
+    set FlipAngle0 = $FlipAngle
+  endif
+
+  if($TR != $TR0) then
+    echo "WARNING: TRs are inconsistent $TR0 $TR"
+  endif
+  if($TE != $TE0) then
+    echo "WARNING: TEs are inconsistent $TE0 $TE"
+  endif
+  if($TI != $TI0) then
+    echo "WARNING: TIs are inconsistent $TI0 $TI"
+  endif
+  if($FlipAngle != $FlipAngle0) then
+    echo "WARNING: FlipAngles are inconsistent $FlipAngle0 $FlipAngle"
+  endif
+
+end
+
+
+#------------- Convert each input to MINC ------------#
+set CleanUpList = ($CleanUpList );
+set imginputlist = ();
+@ run = 0;
+foreach input ($inputlist)
+  @ run = $run + 1;
+
+  echo "-----------------------------------------" |& tee -a $LF
+  echo "Converting $input " |& tee -a $LF
+  date |& tee -a $LF
+
+  set imginput = $tmpdir/cor-$run.img
+  set imginputlist = ($imginputlist $imginput);
+  rm -f $imginput
+
+  set cmd = (mri_convert $input $imginput -odt float)
+  pwd | tee -a $LF
+  echo $cmd >> $LF
+  if($RunIt) then
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
+  set CleanUpList = ($CleanUpList $imginput);
+end
+
+#----------- Motion Correct ---------------#
+set imgresampled = $tmpdir/resampled.img
+set imgtarget = $imginputlist[1];
+@ run = 0;
+foreach imginput ($imginputlist)
+  @ run = $run + 1;
+  if($imginput == $imgtarget) continue;
+  if($RunIt) rm -f $imgresampled
+
+  echo "-----------------------------------------" |& tee -a $LF
+  echo "Motion Correcting $imginput" |& tee -a $LF
+  date |& tee -a $LF
+  set cmd = (fsl_rigid_register -r $imgtarget -i $imginput -o $imgresampled)
+  pwd | tee -a $LF
+  echo $cmd | tee -a $LF
+  if($RunIt) then
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
+  set cmd = (mv $imgresampled $imginput)
+  echo $cmd  |& tee -a $LF
+  if($RunIt) then
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+end
+
+#----------- Average Volumes Together ---------------#
+echo "-----------------------------------------" |& tee -a $LF
+echo "Averaging " |& tee -a $LF
+date |& tee -a $LF
+set avgvol = $tmpdir/avgvol.img
+set CleanUpList = ($CleanUpList $avgvol);
+rm -f $avgvol
+set cmd = (mri_average -noconform $imginputlist $avgvol);
+pwd | tee -a $LF
+echo $cmd >> $LF
+if($RunIt) then
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
+
+#----------- Convert Average to output ---------------#
+echo "-----------------------------------------" |& tee -a $LF
+echo "Converting Average to output " |& tee -a $LF
+date |& tee -a $LF
+set cmd = (mri_convert ${HiRes} $avgvol $outspec);
+set cmd = ($cmd -tr $TR -te $TE -TI $TI -flip_angle $FlipAngle)
+pwd | tee -a $LF
+echo $cmd | tee -a $LF
+if($RunIt) then
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
+
+echo "-----------------------------------------" |& tee -a $LF
+goto cleanup;
+cleanup_return:
+
+#---------------- end processing--------------------#
+echo "Started at: $StartTime"    |& tee -a $LF
+echo "Ended at:   `date`"        |& tee -a $LF
+echo "mri_motion_correct.fsl: done" |& tee -a $LF
+
+exit 0;
+
+################# subroutines #######################
+#################             #######################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-help"
+    case "--help"
+      set PrintHelp = 1;
+      goto usage_exit;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outspec = $argv[1]; shift;
+      breaksw
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set inputlist = ($inputlist $argv[1]); shift;
+      breaksw
+
+    case "-tmpdir":
+      if ( $#argv == 0) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set CleanUp = 0;
+      breaksw
+
+    case "-log":
+      if ( $#argv == 0) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+      if ( $#argv == 0) goto arg1err;
+      set LF = /dev/null
+      breaksw
+
+    case "-nocleanup":
+      set CleanUp = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-wild":
+      set AllowWild = 1;
+      breaksw
+
+    case "-cm":
+      set HiRes = ('-cm')
+      breaksw
+
+    case "-dontrun":
+      set RunIt = 0;
+      breaksw
+
+    default:
+      if($AllowWild) then
+        set inputlist = ($inputlist $flag);
+      else
+        echo ERROR: Flag $flag unrecognized. 
+        echo $cmdline
+        exit 1
+      endif
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#inputlist == 0) then
+    echo "ERROR: no inputs specified"
+    exit 1;
+  endif
+
+  if($#inputlist == 1) then
+    echo "ERROR: only one input specified"
+    exit 1;
+  endif
+
+  if($#outspec == 0) then
+    echo "ERROR: no output specified"
+    exit 1;
+  endif
+
+  set outfmt = `mri_info $outspec --format`
+  if("$outfmt" == "unknown") set outfmt = "COR";
+
+  if("$outfmt" == "COR") then
+    set outdir = $outspec
+  else
+    set outdir = `dirname $outspec`;
+  endif
+  mkdir -p $outdir
+  if($status) then
+    echo "ERROR: cannot create $outdir"
+    exit 1;
+  endif
+
+  # Go through each input, make sure it exists
+  foreach i ($inputlist)
+    mri_info $i > /dev/null
+    if($status) then
+      echo "ERROR: with $i"
+      exit 1;
+    endif
+  end
+
+  # Create the tmp directory and get full path
+  if($#tmpdir == 0) then
+    set tmpdir = $outdir/tmp-mri_motion_correct.fsl-$$
+  endif
+  echo tmpdir is $tmpdir 
+  if($tmpdir != /tmp) then
+    mkdir -p $tmpdir
+    if($status) then
+      echo "ERROR: cannot create $tmpdir"
+      exit 1;
+    endif
+    pushd $tmpdir > /dev/null
+    set tmpdir = `pwd`;
+    popd > /dev/null
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+
+############--------------##################
+cleanup:
+
+  if($#CleanUp > 0) then
+    foreach f ($CleanUpList)
+      rm -f $f
+    end
+  endif
+
+  rm -r $tmpdir
+
+goto cleanup_return;
+############--------------##################
+
+
+
+
+############--------------##################
+usage_exit:
+  echo "USAGE: mri_motion_correct.fsl"
+  echo ""
+  echo "Required Arguments:"
+  echo ""
+  echo "  -o  output spec : output file or directory (for COR)"
+  echo "  -i  input1 <-i input2 <-i input3>>"
+  echo ""
+  echo "Optional Arguments:";
+  echo ""
+  echo "  -wild          : assume unmatched args are input files"
+  echo "  -tmpdir tmpdir : directory for temporary files"
+  echo "  -nocleanup     : do not delete temporary files"
+  echo "  -cm            : COR volumes conform to min voxel size"
+  echo "  -version       : print version and exit"
+  echo "  -log logfile   : explicitly spec logfile"
+  echo "  -nolog         : do not create a log file"
+  echo "  -debug         : print lots of stuff to screen"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Aligns and averages two or more volumes. Uses the FSL flirt program.
+Actually calls fsl_rigid_register which calls flirt. See 
+fsl_rigid_register -help. This should basically do the same thing
+as mri_motion_correct and mri_motion_correct2. One difference is
+that mri_motion_correct.fsl forces the input data to be float
+when converting to ANALYZE, and so the final output is is also float.
+mri_motion_correct2 keeps the native precision.
+
+The inputs and output can be any format accepted by mri_convert.
+
+Example 1:
+
+mri_motion_correct.fsl -i 002.mgz  -i 003 -o mc4.img
+
+  002.mgz is a volume in compressed MGH format.
+  003 is in COR format.
+  mc4.img (the output) is in analyze format.
+
+Example 2:
+
+Say you have many input volumes, eg, 001.mgh ... 010.mgh, and
+you do not want to list all of them on the command-line with
+a -i. Then you can:
+
+mri_motion_correct.fsl -o mc.mgh  -wild *.mgh
+
+Note that -wild must appear BEFORE the wildcard.
