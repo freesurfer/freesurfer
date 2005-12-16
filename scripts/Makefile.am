@@ -78,6 +78,7 @@ mri-funcvits \
 mri_mergelabels \
 mri_motion_correct \
 mri_motion_correct2 \
+mri_motion_correct.fsl \
 mri-sph2surf \
 mri-structvits \
 ms_refine_subject \
