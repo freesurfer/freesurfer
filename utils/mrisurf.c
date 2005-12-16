@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/15 21:11:35 $
-// Revision       : $Revision: 1.402 $
+// Revision Date  : $Date: 2005/12/16 00:57:41 $
+// Revision       : $Revision: 1.403 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.402 2005/12/15 21:11:35 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.403 2005/12/16 00:57:41 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -13762,7 +13762,7 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 	  V3_NORMALIZE(v_y, v_y) ;   /* make it a unit vector */
 	  V3_SCALAR_MUL(v_y, delta, v_y) ;
 	  V3_ADD(v_y, v_delta, v_delta) ;
-	  if (vno == Gdiag_no && Gdiag & DIAG_SHOW)
+	  if (vno == Gdiag_no && Gdiag & DIAG_SHOW & 0)// deverbosified by dng
 	    fprintf(stdout, 
 		    "nbr %d (%6.6d) @ (%2.2f, %2.2f, %2.2f), "
 		    "d0 %2.2f, dt %2.2f, delta %2.3f\n\ty=%2.3f, %2.3f, %2.3f)\n",
