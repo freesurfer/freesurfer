@@ -1222,6 +1222,7 @@ mris_make_surfaces/Makefile \
 mris_make_template/Makefile \
 mris_morph_stats/Makefile \
 mris_multiscale_stats/Makefile \
+mris_niters2fwhm/Makefile \
 mris_remove_variance/Makefile \
 mris_rescale/Makefile \
 mris_reverse/Makefile \

@@ -151,6 +151,7 @@ MRISSUBDIRS=stim \
 	mris_make_template \
 	mris_morph_stats \
 	mris_multiscale_stats \
+	mris_niters2fwhm \
 	mris_remove_variance \
 	mris_rescale \
 	mris_reverse \
