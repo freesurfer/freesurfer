@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/16 00:57:41 $
-// Revision       : $Revision: 1.403 $
+// Revision Date  : $Date: 2005/12/17 08:54:06 $
+// Revision       : $Revision: 1.404 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.403 2005/12/16 00:57:41 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.404 2005/12/17 08:54:06 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -47245,7 +47245,7 @@ mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwra
 	    err = MRISextendedNeighbors(Surf,vtxno1,vtxno1,DotProdThresh, XNbrVtxNo, 
 					XNbrDotProd, &nXNbrs, Surf->nvertices);
 	    MRIFseq_vox(nXNbrsMRI,vtxno1,0,0,0) = nXNbrs;
-	    if(vtxno1%10000==0){
+	    if(vtxno1%10000==0 && Gdiag_no > 0){
 	      printf("vtxno1 = %d, nXNbrs = %d\n",vtxno1,nXNbrs);
 	      fflush(stdout);
 	    }
