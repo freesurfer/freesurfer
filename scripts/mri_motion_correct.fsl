@@ -2,10 +2,11 @@
 # mri_motion_correct.fsl - should do the same thing as mri_motion_correct2,
 # but using flirt.
 
-set VERSION = '$Id: mri_motion_correct.fsl,v 1.2 2005/12/16 01:02:05 greve Exp $';
+set VERSION = '$Id: mri_motion_correct.fsl,v 1.3 2005/12/19 16:32:30 fischl Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
+set maxangle      = 90 ;
 set outspec     = ();
 set PrintHelp   = 0;
 set LF          = ();
@@ -145,7 +146,7 @@ foreach imginput ($imginputlist)
   echo "-----------------------------------------" |& tee -a $LF
   echo "Motion Correcting $imginput" |& tee -a $LF
   date |& tee -a $LF
-  set cmd = (fsl_rigid_register -r $imgtarget -i $imginput -o $imgresampled)
+  set cmd = (fsl_rigid_register -maxangle $maxangle -r $imgtarget -i $imginput -o $imgresampled)
   pwd | tee -a $LF
   echo $cmd | tee -a $LF
   if($RunIt) then
@@ -259,6 +260,10 @@ while( $#argv != 0 )
     case "-debug":
       set verbose = 1;
       set echo = 1;
+      breaksw
+
+    case "-maxangle":
+      set maxangle = ($argv[1]) ; shift ;
       breaksw
 
     case "-wild":
