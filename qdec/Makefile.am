@@ -90,11 +90,11 @@ qdec_bundle: qdec
 	@test -d qdec.app/Contents/MacOS/ || mkdir -p qdec.app/Contents/MacOS/
 	@rm -f qdec.app/Contents/MacOS/qdec
 	@cp qdec qdec.app/Contents/MacOS/
-	@cp -r qdec.app $(DESTDIR)$(bindir)
 	@test -d qdec.app/Contents/Frameworks || mkdir -p qdec.app/Contents/Frameworks
 	@cp $(QTDIR)/lib/libqt-mt.3.dylib qdec.app/Contents/Frameworks
 	@install_name_tool -id @executable_path/../Frameworks/libqt-mt.3.dylib qdec.app/Contents/Frameworks/libqt-mt.3.dylib
 	@install_name_tool -change libqt-mt.3.dylib @executable_path/../Frameworks/libqt-mt.3.dylib qdec.app/Contents/MacOS/qdec
+	@cp -r qdec.app $(DESTDIR)$(bindir)
 
 .PHONY: qdec_bundle
 
