@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/17 08:54:06 $
-// Revision       : $Revision: 1.404 $
+// Revision Date  : $Date: 2005/12/19 16:58:45 $
+// Revision       : $Revision: 1.405 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.404 2005/12/17 08:54:06 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.405 2005/12/19 16:58:45 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -47143,7 +47143,7 @@ mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwra
 	  float val;
 	  MRI *SrcTmp, *GSum, *GSum2, *nXNbrsMRI;
 	  VERTEX *vtx1;
-	  double Radius, Radius2, dmax, GVar2, f, d, costheta, theta, g, dotprod;
+	  double Radius, Radius2, dmax, GVar2, f, d, costheta, theta, g, dotprod, ga;
 	  int n, err, nXNbrs, *XNbrVtxNo, frame;
 	  double *XNbrDotProd, DotProdThresh;
 	  double InterVertexDistAvg,InterVertexDistStdDev;
@@ -47200,7 +47200,7 @@ mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwra
 	  Radius  = sqrt(Radius2);
 	  dmax = TruncFactor*GStd; // truncate after TruncFactor stddevs
 	  GVar2 = 2*(GStd*GStd);
-	  f = 1/(sqrt(2*M_PI)*GStd);
+	  f = pow(1/(sqrt(2*M_PI)*GStd),2.0); // squared for 2D
 	  DotProdThresh = Radius2*cos(dmax/Radius)*(1.0001);
 
 	  printf("Radius = %g, gstd = %g, dmax = %g, GVar2 = %g, f = %g, dpt = %g\n",
@@ -47267,8 +47267,9 @@ mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwra
 
 	      /* Compute weighting factor for this distance */
 	      g = f*exp( -(d*d)/(GVar2) ); /* f not really nec */
+	      ga = g * Surf->vertices[vtxno2].area;
 
-	      if(vtxno1 == 0 && 0){
+	      if(vtxno1 == 81921 && 1){
 		printf("%d %d %g %g %g %g %g\n",
 		       vtxno1,vtxno2,dotprod,costheta,theta,d,g);
 	      }
@@ -47287,6 +47288,7 @@ mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwra
   
 
 	  /* Normalize */
+	  if(1){
 	  for(vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
 	    vtx1 = &Surf->vertices[vtxno1] ;
 	    g = MRIFseq_vox(GSum,vtxno1,0,0,0);
@@ -47296,6 +47298,7 @@ mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwra
 	      val = MRIFseq_vox(Targ,vtxno1,0,0,frame);
 	      MRIFseq_vox(Targ,vtxno1,0,0,frame) = val/g;
 	    }
+	  }
 	  }
 
 	  //MRIwrite(GSum,"gsum_000.bfloat");
