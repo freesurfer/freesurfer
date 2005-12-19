@@ -63,7 +63,6 @@ int nitersmax = 100;
 int main(int argc, char *argv[])
 {
   int nargs, nthiter=0;
-  nthiter=0;
   MRI *mri=NULL, *var=NULL, *mri0, *delta, *deltasm=NULL, *xyz;
   double gmax, vrfmn, vrfstd, gstd, fwhm;
 
