@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 {
   int nargs, nthiter=0;
   nthiter=0;
-  MRI *mri=NULL, *var=NULL, *mri0;
+  MRI *mri=NULL, *var=NULL, *mri0, *delta, *deltasm=NULL, *xyz;
   double gmax, vrfmn, vrfstd, gstd, fwhm;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -103,16 +103,31 @@ int main(int argc, char *argv[])
   printf("Number of faces    %d\n",surf->nfaces);
   printf("Avg IterVertex     %lf\n",MRISmeanInterVertexDist(surf));
 
+  xyz = MRIallocSequence(surf->nvertices,1,1,MRI_FLOAT,4);
+  MRIcopyMRIS(xyz,surf,0,"x");
+  MRIcopyMRIS(xyz,surf,1,"y");
+  MRIcopyMRIS(xyz,surf,2,"z");
+  MRIcopyMRIS(xyz,surf,3,"area");
+  MRIwrite(xyz,"xyz.mgh");
+
+  delta = MRIalloc(surf->nvertices,1,1,MRI_FLOAT);
+  MRIsetVoxVal(delta,(int)(surf->nvertices/2),0,0,0,1);
+  MRIwrite(delta,"delta.mgh");
+
+  deltasm = MRISgaussianSmooth(surf, delta, 2, NULL, 5.0);
+  //deltasm = MRISsmoothMRI(surf, delta, 2, deltasm);
+  MRIwrite(deltasm,"deltasm.mgh");
+
   mri0 = MRIrandn(surf->nvertices,1,1,dof,0, 1, NULL);
   mri = MRIcopy(mri0,NULL);
   
   for(nthiter = 1; nthiter <= nitersmax; nthiter++){
     //MRISsmoothMRI(surf, mri, 1, mri);
-    MRISgaussianSmooth(surf, mri0, nthiter, mri, 3.0);
+    MRISgaussianSmooth(surf, mri0, nthiter, mri, 5.0);
 
     var = fMRIvariance(mri, dof, 0, var);
     RFglobalStats(var, NULL, &vrfmn, &vrfstd, &gmax);
-    gstd = pow(1/((2*vrfmn)*sqrt(PI)),0.5);
+    gstd = 1/(2*sqrt(vrfmn*PI));
     fwhm = gstd*sqrt(log(256.0));
     printf("%3d %lf  %lf  %lf %lf\n",nthiter,vrfmn,vrfstd,gstd,fwhm);
     
