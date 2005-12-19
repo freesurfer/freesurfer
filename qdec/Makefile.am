@@ -79,6 +79,25 @@ image_collection.$(OBJEXT): .ui/image_collection.cpp
 	images/searchfind \
 	-o $@
 
+qdec_bundle: qdec
+	@echo Making OSX bundle...
+	@test -d qdec.app/Contents/MacOS/ || mkdir -p qdec.app/Contents/MacOS/
+	@rm -f qdec.app/Contents/MacOS/../PkgInfo
+	@echo "APPL????" >qdec.app/Contents/MacOS/../PkgInfo
+	@test -d qdec.app/Contents/MacOS/ || mkdir -p qdec.app/Contents/MacOS/
+	@rm -f qdec.app/Contents/MacOS/../Info.plist
+	@sed -e "s,@ICON@,application.icns,g" -e "s,@EXECUTABLE@,qdec,g" "$(QTDIR)/mkspecs/default/Info.plist.app" >"qdec.app/Contents/MacOS/../Info.plist"
+	@test -d qdec.app/Contents/MacOS/ || mkdir -p qdec.app/Contents/MacOS/
+	@rm -f qdec.app/Contents/MacOS/qdec
+	@cp qdec qdec.app/Contents/MacOS/
+	@cp -r qdec.app $(DESTDIR)$(bindir)
+	@test -d qdec.app/Contents/Frameworks || mkdir -p qdec.app/Contents/Frameworks
+	@cp $(QTDIR)/lib/libqt-mt.3.dylib qdec.app/Contents/Frameworks
+	@install_name_tool -id @executable_path/../Frameworks/libqt-mt.3.dylib qdec.app/Contents/Frameworks/libqt-mt.3.dylib
+	@install_name_tool -change libqt-mt.3.dylib @executable_path/../Frameworks/libqt-mt.3.dylib qdec.app/Contents/MacOS/qdec
+
+.PHONY: qdec_bundle
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
