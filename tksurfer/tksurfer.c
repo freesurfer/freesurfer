@@ -737,7 +737,7 @@ int vertex_nplotlist=0,vertex_plotlist[MAX_NPLOTLIST];
 #define LIGHT1_BR  0.0 
 #define LIGHT2_BR  0.6 /* was 0.3 */
 #define LIGHT3_BR  0.2 /* was 0.1 */
-#define OFFSET 0.25   /* was 0.15 */
+#define OFFSET 0.35   /* was 0.15, then was .25 (changed to .4 by BRF) */
 #define BACKGROUND 0x00000000
 double offset = OFFSET;
 double light0_br,light1_br,light2_br,light3_br;
@@ -18978,7 +18978,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.160 2005/12/15 20:10:19 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.161 2005/12/19 19:59:26 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
