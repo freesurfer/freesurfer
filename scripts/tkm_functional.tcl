@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.29 2005/12/15 23:55:41 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.30 2005/12/20 22:44:00 kteich Exp $
 
 package require BLT;
 
@@ -504,13 +504,29 @@ proc Overlay_DoConfigDlog {} {
 	# update the max.
 	frame $fwThresholdEntries
 	tkm_MakeEntry $fwThresholdEntries.fwMin \
-	    "Min" gfThreshold(min) 6 {Overlay_SetMin $gfThreshold(min)}
+	    "Min" gfThreshold(min) 6 {
+		Overlay_SetMin $gfThreshold(min)
+		if { $gbSimpleThreshold } {
+		    Overlay_CalcNewLinearThreshold
+		} else {
+		    Overlay_CalcNewThresholdSlopeAndMaxFromMinMid
+		}
+	    }
 	tkm_MakeEntry $fwThresholdEntries.fwMid \
-	    "Mid" gfThreshold(mid) 6 {Overlay_SetMid $gfThreshold(mid) 1}
+	    "Mid" gfThreshold(mid) 6 {
+		Overlay_SetMid $gfThreshold(mid)
+		Overlay_CalcNewThresholdSlopeAndMaxFromMinMid
+	    }
 	tkm_MakeEntry $fwThresholdEntries.fwMax \
-	    "Max" gfThreshold(max) 6 {Overlay_SetMax $gfThreshold(max) 1}
+	    "Max" gfThreshold(max) 6 {
+		Overlay_SetMax $gfThreshold(max)
+		Overlay_CalcNewLinearThreshold
+	    }
 	tkm_MakeEntry $fwThresholdEntries.fwSlope \
-	    "Slope" gfThreshold(slope) 6 {Overlay_SetSlope $gfThreshold(slope) 1}
+	    "Slope" gfThreshold(slope) 6 {
+		Overlay_SetSlope $gfThreshold(slope)
+		Overlay_CalcNewThresholdMaxFromMinSlope
+	    }
 	pack $fwThresholdEntries.fwMin $fwThresholdEntries.fwMid \
 	    $fwThresholdEntries.fwMax $fwThresholdEntries.fwSlope \
 	    -side left
@@ -529,7 +545,7 @@ proc Overlay_DoConfigDlog {} {
 	    [list \
 		 [list text "Set Threshold Using FDR" \
 		      {Overlay_SetThresholdUsingFDR $gFDRRate $gbFDRMask;
-			  Overlay_UpdateMax}]]
+			  Overlay_CalcNewThresholdMaxFromMinSlope}]]
 
 	tkm_MakeEntry $ewFDRRate "Rate" gFDRRate 4 {}
 
@@ -571,7 +587,7 @@ proc Overlay_DoConfigDlog {} {
 	    -fill x
 	
 	# This function simply updates the max.
-	Overlay_UpdateMax
+	Overlay_CalcNewThresholdMaxFromMinSlope
 	# Start out widgets off in the right state.
 	Overlay_UpdateDlogInfo
     }
@@ -597,70 +613,59 @@ proc Overlay_UpdateDlogInfo { } {
 
 proc Overlay_SetMin { inThresh } {
     global gfThreshold
-    global gbSimpleThreshold
-
-    # set the linked value to the abs of the value on which they
-    # clicked. draw a new line on this value.
     set gfThreshold(min) [expr abs($inThresh)]
-    
-    # If in simple thresh mode, set the slope and midpoint now.
-    if { $gbSimpleThreshold } {
-	Overlay_SetSlope [expr 1.0 / ($gfThreshold(max) - $gfThreshold(mid))] 0
-	Overlay_SetMid [expr ($gfThreshold(max) - $gfThreshold(min))/2 + $gfThreshold(min)] 0
-    }
 }
 
-proc Overlay_SetMid { inThresh ibUpdateSlope } {
+proc Overlay_SetMid { inThresh } {
     global gfThreshold
-    global gbSimpleThreshold
-
-    # set the linked value to the abs of the value on which they
-    # clicked. draw a new line on this value.
     set gfThreshold(mid) [expr abs($inThresh)]
-
-    # calculate the slope if necessary.
-    if { $ibUpdateSlope } {
-	Overlay_SetSlope [expr 1.0 / ($gfThreshold(max) - $gfThreshold(mid))] 0
-    }
-    
 }
 
-proc Overlay_SetMax { inThresh ibUpdateSlope } {
+proc Overlay_SetMax { inThresh } {
     global gfThreshold
-    global gbSimpleThreshold
-
-    # set the linked value to the abs of the value on which they
-    # clicked. draw a new line on this value.
     set gfThreshold(max) [expr abs($inThresh)]
-
-    # calculate the slope if necessary or if we're in simple thresh mode.
-    if { $ibUpdateSlope || $gbSimpleThreshold } {
-	Overlay_SetSlope [expr 1.0 / ($gfThreshold(max) - $gfThreshold(mid))] 0
-    }
-    # If in simple thresh mode, set the midpoint too.
-    if { $gbSimpleThreshold } {
-	Overlay_SetMid [expr ($gfThreshold(max) - $gfThreshold(min))/2 + $gfThreshold(min)] 0
-    }
 }
 
-proc Overlay_SetSlope { inSlope ibUpdateMax } {
+proc Overlay_SetSlope { inSlope } {
     global gfThreshold
-    global gbSimpleThreshold
-
-    # set the linked value to the value on which they clicked. draw a
-    # new line on this value.
     set gfThreshold(slope) $inSlope
-    # calculate the max if necessary.
-    if { $ibUpdateMax } {
-	Overlay_SetMax [expr (1.0 / $gfThreshold(slope)) + $gfThreshold(mid)] 0
+}
+
+proc Overlay_CalcNewLinearThreshold {} {
+    global gfThreshold
+
+    # This is called when the user is in Linear Threshold mode and the
+    # Min or Max was just set. We need to calculate the Mid and Slope.
+    Overlay_SetMid \
+	[expr ($gfThreshold(max) - $gfThreshold(min)) / 2.0 + \
+	     $gfThreshold(min)]
+
+    if { [expr $gfThreshold(max) - $gfThreshold(min)] == 0 } {
+	Overlay_SetSlope 0
+    } else {
+	Overlay_SetSlope \
+	    [expr 1.0 / ($gfThreshold(max) - $gfThreshold(min))]
     }
 }
 
-proc Overlay_UpdateMax {} {
+proc Overlay_CalcNewThresholdSlopeAndMaxFromMinMid {} {
     global gfThreshold
-    
-    # Just calculate the max from the slope and mid.
-    set gfThreshold(max) [expr (1.0 / $gfThreshold(slope)) + $gfThreshold(mid)]
+
+    # This is called when the user is in normal threshold mode and
+    # min or mid was changed. Calc the slope and the max.
+    Overlay_SetSlope \
+	[expr 0.5 / ($gfThreshold(mid) - $gfThreshold(min))]
+    Overlay_SetMax \
+	[expr (1.0 / $gfThreshold(slope)) + $gfThreshold(min)]
+}
+
+proc Overlay_CalcNewThresholdMaxFromMinSlope {} {
+    global gfThreshold
+
+    # This is called when the user is in normal threshold mode and
+    # they changed the slope. We'll set the max now.
+    Overlay_SetMax \
+	[expr (1.0 / $gfThreshold(slope)) + $gfThreshold(min)]
 }
 
 proc TimeCourse_DoConfigDlog {} {
