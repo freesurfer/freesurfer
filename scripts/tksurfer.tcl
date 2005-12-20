@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.95 2005/12/14 20:43:42 kteich Exp $
+# $Id: tksurfer.tcl,v 1.96 2005/12/20 21:57:43 kteich Exp $
 
 package require BLT;
 
@@ -164,7 +164,6 @@ set gaLinkedVars(fnumtimepoints) 0
 set gaLinkedVars(ftimepoint) 0
 set gaLinkedVars(fcondition) 0
 set gaLinkedVars(fmin) 0
-set gaLinkedVars(fmax) 0
 set gaLinkedVars(cslope) 0
 set gaLinkedVars(cmid) 0
 set gaLinkedVars(cmin) 0
@@ -735,15 +734,9 @@ proc SetMin { iWidget inThresh } {
     $iWidget marker create line \
 	-coords [list $negMin -Inf $negMin Inf] \
 	-name negthresh -outline red
-    
-    # If in simple thresh mode, set the slope and midpoint now.
-    if { $gaHistogramData(simpleThresh) } {
-	SetSlope $iWidget [expr 1.0 / ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fmid))] 0
-	SetMid $iWidget [expr ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fthresh))/2 + $gaLinkedVars(fthresh)] 0
-    }
 }
 
-proc SetMid { iWidget inThresh ibUpdateSlope } {
+proc SetMid { iWidget inThresh } {
     global gaLinkedVars
     global gaHistogramData
 
@@ -760,21 +753,19 @@ proc SetMid { iWidget inThresh ibUpdateSlope } {
 	$iWidget marker create line \
 	    -coords [list $negMid -Inf $negMid Inf] \
 	    -name negmid -outline blue
+    } else {
+	$iWidget marker delete mid negmid
     }
-    # calculate the slope if necessary.
-    if { $ibUpdateSlope } {
-	SetSlope $iWidget [expr 1.0 / ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fmid))] 0
-    }
-    
 }
 
-proc SetMax { iWidget inThresh ibUpdateSlope } {
+proc SetMax { iWidget inThresh } {
     global gaLinkedVars
     global gaHistogramData
 
     # set the linked value to the abs of the value on which they
     # clicked. draw a new line on this value.
     set gaLinkedVars(fthreshmax) [expr abs($inThresh)]
+
     $iWidget marker create line \
 	-coords [list $gaLinkedVars(fthreshmax) -Inf $gaLinkedVars(fthreshmax) Inf] \
 	-name max -outline green
@@ -782,26 +773,50 @@ proc SetMax { iWidget inThresh ibUpdateSlope } {
     $iWidget marker create line \
 	-coords [list $negMax -Inf $negMax Inf] \
 	-name negmax -outline green
-    # If in simple thresh mode, set the midpoint too.
-    if { $gaHistogramData(simpleThresh) } {
-	SetMid $iWidget [expr ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fthresh))/2 + $gaLinkedVars(fthresh)] 0
-    }
-    # calculate the slope if necessary or if we're in simple thresh mode.
-    if { $ibUpdateSlope || $gaHistogramData(simpleThresh) } {
-	SetSlope $iWidget [expr 1.0 / ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fmid))] 0
+}
+
+proc SetSlope { iWidget inSlope } {
+    global gaLinkedVars
+
+    # set the linked value to the value on which they clicked.
+    set gaLinkedVars(fslope) $inSlope
+}
+
+proc CalcNewLinearThreshold { iWidget } {
+    global gaLinkedVars
+
+    # This is called when the user is in Linear Threshold mode and the
+    # Min or Max was just set. We need to calculate the Mid and Slope.
+    SetMid $iWidget \
+	[expr ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fthresh)) / 2.0 + \
+	     $gaLinkedVars(fthresh)]
+
+    if { [expr $gaLinkedVars(fthreshmax) - $gaLinkedVars(fthresh)] == 0 } {
+	SetSlope $iWidget 0
+    } else {
+	SetSlope $iWidget \
+	    [expr 1.0 / ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fthresh))]
     }
 }
 
-proc SetSlope { iWidget inSlope ibUpdateMax } {
+proc CalcNewThresholdSlopeAndMaxFromMinMid { iWidget } {
     global gaLinkedVars
 
-    # set the linked value to the value on which they clicked. draw a
-    # new line on this value.
-    set gaLinkedVars(fslope) $inSlope
-    # calculate the max if necessary.
-    if { $ibUpdateMax } {
-	SetMax $iWidget [expr (1.0 / $gaLinkedVars(fslope)) + $gaLinkedVars(fmid)] 0
-    }
+    # This is called when the user is in normal threshold mode and
+    # just clicked on the min or mid. Calc the slope and the max.
+    SetSlope $iWidget \
+	[expr 0.5 / ($gaLinkedVars(fmid) - $gaLinkedVars(fthresh))]
+    SetMax $iWidget \
+	[expr (1.0 / $gaLinkedVars(fslope)) + $gaLinkedVars(fthresh)]
+}
+
+proc CalcNewThresholdMaxFromMinSlope { iWidget } {
+    global gaLinkedVars
+
+    # This is called when the user is in normal threshold mode and
+    # just clicked on the slope. We'll set the max now.
+    SetMax $iWidget \
+	[expr (1.0 / $gaLinkedVars(fslope)) + $gaLinkedVars(fthresh)]
 }
 
 proc UpdateHistogramData { iMin iMax iIncrement iNum ilData } {
@@ -1017,13 +1032,29 @@ proc DoConfigOverlayDisplayDlog {} {
 	$gaHistoWidget(graph) axis config x -rotate 90.0 -stepsize 5
 
 	# Bind the button pressing events to set the thresholds. Only
-	# set the midpoint if we're not in simple thresh mode.
+	# set the midpoint if we're not in simple thresh mode. Only
+	# set the max if we're in simple mode.
 	bind $gaHistoWidget(graph) <ButtonPress-1> \
-	    { SetMin %W [%W axis invtransform x %x] }
+	    { 
+		SetMin %W [%W axis invtransform x %x] 
+		if { $gaHistogramData(simpleThresh) } { 
+		    CalcNewLinearThreshold $gaHistoWidget(graph)
+		} else { 
+		    CalcNewThresholdSlopeAndMaxFromMinMid $gaHistoWidget(graph)
+		}
+	    }
 	bind $gaHistoWidget(graph) <ButtonPress-2> \
-	    { if { !$gaHistogramData(simpleThresh) } { SetMid %W [%W axis invtransform x %x] 1 } }
+	    { 
+		if { !$gaHistogramData(simpleThresh) } { 
+		    SetMid %W [%W axis invtransform x %x] 
+		    CalcNewThresholdSlopeAndMaxFromMinMid $gaHistoWidget(graph)
+		}
+	    }
 	bind $gaHistoWidget(graph) <ButtonPress-3> \
-	    { SetMax %W [%W axis invtransform x %x] 1 }
+	    { 
+		SetMax %W [%W axis invtransform x %x]
+		CalcNewLinearThreshold $gaHistoWidget(graph)
+	    }
 
 	# bind the bututon pressing events that do the zooming.
 	bind $gaHistoWidget(graph) <Control-ButtonPress-1>   { Histo_RegionStart %W %x %y }
@@ -1042,21 +1073,39 @@ proc DoConfigOverlayDisplayDlog {} {
 		
 	# make the entries for the threshold values.
 	frame $fwThresh
-
+	
 	tkm_MakeEntry $ewMin "Min" gaLinkedVars(fthresh) 6 \
-	    {SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)}
+	    {
+		SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)
+		if { $gaHistogramData(simpleThresh) } { 
+		    CalcNewLinearThreshold $gaHistoWidget(graph)
+		} else {
+		    CalcNewThresholdSlopeAndMaxFromMinMid $gaHistoWidget(graph)
+		}
+	    }
+	# Mid field isn't active in simple threshold mode.
 	tkm_MakeEntry $ewMid "Mid" gaLinkedVars(fmid) 6 \
-	    {SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid) 1}
+	    {
+		SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid)
+		CalcNewThresholdSlopeAndMaxFromMinMid $gaHistoWidget(graph)
+	    }
 	tkm_MakeEntry $ewMax "Max" gaLinkedVars(fthreshmax) 6 \
-	    {SetMax $gaHistoWidget(graph) $gaLinkedVars(fthreshmax) 1}
+	    {
+		SetMax $gaHistoWidget(graph) $gaLinkedVars(fthreshmax)
+		CalcNewLinearThreshold $gaHistoWidget(graph)
+	    }
+	# Slope field isn't active in simple threshold mode.
 	tkm_MakeEntry $ewSlope "Slope" gaLinkedVars(fslope) 6 \
-	    {SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope) 1}
+	    {
+		SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope)
+		CalcNewThresholdMaxFromMinSlope $gaHistoWidget(graph)
+	    }
 	
 	# color the entries to match the lines in the histogram.
 	$ewMin.lwLabel config -fg red 
 	$ewMid.lwLabel config -fg blue
 	$ewMax.lwLabel config -fg green
-
+    
 	set gaHistoWidget(fmid) $ewMid
 	set gaHistoWidget(fslope) $ewSlope
 
@@ -1075,8 +1124,8 @@ proc DoConfigOverlayDisplayDlog {} {
 
 	# set initial values for the histogram.
 	SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)
-	SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid) 0
-	SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope) 1
+	SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid)
+	SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope)
 	
 	pack $ewMin $ewMid $ewMax $ewSlope \
 	    -side left
@@ -1166,6 +1215,8 @@ proc DoConfigOverlayDisplayDlog {} {
 
 	# now update it so that we have the current info and stuff.
 	UpdateOverlayDlogInfo
+
+	CalcNewThresholdMaxFromMinSlope $gaHistoWidget(graph)
     }
 }
 
@@ -1253,14 +1304,9 @@ proc UpdateOverlayDlogInfo {} {
 
     if { $gaHistogramData(simpleThresh) } {     
 	catch { 
-	    $gaHistoWidget(graph) marker delete mid
-	    $gaHistoWidget(graph) marker delete negmid
+	    $gaHistoWidget(graph) marker delete mid negmid
 	}
-    }
-
-    # Set the max from the slope and mid.
-    SetMax $gaHistoWidget(graph) \
-	[expr (1.0 / $gaLinkedVars(fslope)) + $gaLinkedVars(fmid)] 0
+    } 
 
     # set the histogram data
     set err [catch {
@@ -1294,8 +1340,8 @@ proc UpdateOverlayDlogInfo {} {
 
 	# set the lines in the histogram
 	SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)
-	SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid) 0
-	SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope) 1
+	SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid)
+	SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope)
 
 	# Automatically calculate a good width for the ticks.
 	$gaHistoWidget(graph) axis configure x -stepsize 0
@@ -2965,7 +3011,7 @@ proc CreateLabelFrame { ifwTop iSet } {
 		-command "set gaLinkedVars(currentvaluefield) $nOverlay ;
 			       SetOverlayField ; 
 			       send_current_labels"
-	    bind $fwOverlay <Control-Button> "$fwOverlay invoke; DoConfigOverlayDisplayDlog"
+	    bind $fwOverlay <Control-Button> "DoConfigOverlayDisplayDlog"
 
 	    # The entry will set the overlay name.
 	    tkm_MakeEntry $fwLabel "" gsaLabelContents($label,name) 14 "UpdateOverlayDlogInfo; UpdateValueLabelName $gaScalarValueID($label,index) \[set gsaLabelContents($label,name)\]"
@@ -3116,14 +3162,27 @@ proc CreateToolBar { ifwToolBar } {
     EnableSurfaceConfigButton 2 0
     EnableSurfaceConfigButton 3 0
     EnableSurfaceConfigButton 4 0
+    bind $fwSurfaces.rb0 <Control-Button-3> "DoFileDlog LoadMainSurface"
+    bind $fwSurfaces.rb1 <Control-Button-3> "DoFileDlog LoadInflatedSurface"
+    bind $fwSurfaces.rb2 <Control-Button-3> "DoFileDlog LoadWhiteSurface"
+    bind $fwSurfaces.rb3 <Control-Button-3> "DoFileDlog LoadPialSurface"
+    bind $fwSurfaces.rb4 <Control-Button-3> "DoFileDlog LoadOriginalSurface"
 
+
+    # Checkbox to enable curv display. Control-left-click to show the
+    # settings, control-right-click to open a load dialog box. Note
+    # that for the control button 1 click, we have to toggle flag,
+    # since even control-clicking will trigger the main cmd, so we
+    # need to reverse it.
     tkm_MakeCheckboxes $fwCurv h { 
 	{ image icon_curv gaLinkedVars(curvflag) 
 	    "SendLinkedVarGroup view; UpdateAndRedraw" "Show Curvature" } }
     set gfwCurvatureButton $fwCurv.cb0
     EnableCurvatureButton 0
-    bind $fwCurv.cb0 <Control-Button> "DoConfigCurvatureDisplayDlog"
+    bind $fwCurv.cb0 <Control-Button-1> "set gaLinkedVars(curvflag) ![set gaLinkedVars(curvflag)] ; DoConfigCurvatureDisplayDlog"
+    bind $fwCurv.cb0 <Control-Button-3> "DoFileDlog LoadCurvature"
 
+    # Checkbox to enable overlay display. Works like the curv checkbox.
     tkm_MakeCheckboxes $fwOverlay h { 
 	{ image icon_overlay gaLinkedVars(overlayflag) 
 	    "SendLinkedVarGroup view; UpdateAndRedraw" "Show Overlay" } 
@@ -3132,13 +3191,16 @@ proc CreateToolBar { ifwToolBar } {
     }
     lappend glOverlayButtons $fwOverlay.cb0 $fwOverlay.cb1
     EnableOverlayButtons 0
-    bind $fwOverlay.cb0 <Control-Button> "DoConfigOverlayDisplayDlog"
+    bind $fwOverlay.cb0 <Control-Button-1> "set gaLinkedVars(overlayflag) ![set gaLinkedVars(overlayflag)] ; DoConfigOverlayDisplayDlog"
+    bind $fwOverlay.cb0 <Control-Button-3> "DoLoadOverlayDlog"
 
+    # Label buttons.
     tkm_MakeCheckboxes $fwLabels h { 
 	{ image icon_label_off gaLinkedVars(drawlabelflag) 
 	    "SendLinkedVarGroup label; UpdateAndRedraw" "Show Labels" } }
     lappend glLabelButtons $fwLabels.cb0
-    bind $fwLabels.cb0 <Control-Button> "LblLst_ShowWindow"
+    bind $fwLabels.cb0 <Control-Button-1> "set gaLinkedVars(drawlabelflag) ![set gaLinkedVars(drawlabelflag)] ; LblLst_ShowWindow"
+    bind $fwLabels.cb0 <Control-Button-3> "DoFileDlog LoadLabel"
 
     tkm_MakeRadioButtons $fwLabelStyle h "" gaLinkedVars(labelstyle) {
 	{ image icon_label_filled 0
@@ -4479,16 +4541,55 @@ proc LoadSurface { isFileName } {
 
 proc GetDefaultLocation { iType } {
     global gsaDefaultLocation 
-    global gsSubjectDirectory gsSegmentationColorTable env
+    global gsSubjectDirectory gsSegmentationColorTable env hemi
     if { [info exists gsaDefaultLocation($iType)] == 0 } {
 	switch $iType {
 	    LoadSurface - SaveSurfaceAs - LoadMainSurface -
-	    LoadInflatedSurface - LoadWhiteSurface - LoadPialSurface -
-	    LoadOriginalSurface - LoadCurvature - SaveCurvatureAs -
+	    SaveCurvatureAs -
 	    LoadPatch - SavePatchAs -
 	    SaveValuesAs {
 		set gsaDefaultLocation($iType) \
 		    [ExpandFileName "" kFileName_Surface]
+	    }
+	    LoadInflatedSurface {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_Surface]
+		set fn [file join $gsaDefaultLocation($iType) $hemi.inflated]
+		if { [file exists $fn] } {
+		    set gsaDefaultLocation($iType) $fn
+		}
+	    }
+	    LoadWhiteSurface {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_Surface]
+		set fn [file join $gsaDefaultLocation($iType) $hemi.white]
+		if { [file exists $fn] } {
+		    set gsaDefaultLocation($iType) $fn
+		}
+	    }
+	    LoadPialSurface {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_Surface]
+		set fn [file join $gsaDefaultLocation($iType) $hemi.pial]
+		if { [file exists $fn] } {
+		    set gsaDefaultLocation($iType) $fn
+		}
+	    }
+	    LoadOriginalSurface {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_Surface]
+		set fn [file join $gsaDefaultLocation($iType) $hemi.orig]
+		if { [file exists $fn] } {
+		    set gsaDefaultLocation($iType) $fn
+		}
+	    }
+	    LoadCurvature {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_Surface]
+		set fn [file join $gsaDefaultLocation($iType) $hemi.curv]
+		if { [file exists $fn] } {
+		    set gsaDefaultLocation($iType) $fn
+		}
 	    }
 	    LoadTimeCourse_Volume - LoadTimeCourse_Register -
 	    LoadFieldSign - SaveFieldSignAs -
