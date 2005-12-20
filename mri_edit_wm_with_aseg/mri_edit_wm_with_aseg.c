@@ -4,9 +4,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/12/05 16:08:24 $
-// Revision       : $Revision: 1.15 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2005/12/20 18:10:17 $
+// Revision       : $Revision: 1.16 $
 //
 
 #include <stdio.h>
@@ -74,23 +74,23 @@ char *Progname ;
 
 static int fillven = 1 ;
 static int keep_edits = 0 ;
+static int keep_edits_input = 0 ;
 static void usage_exit(int code) ;
 
 
 int
 main(int argc, char *argv[])
 {
-	MRI    *mri_wm, *mri_aseg, *mri_T1 ;
+  MRI    *mri_wm, *mri_aseg, *mri_T1 ;
   struct timeb  then ;
-	int    msec, nargs ;
-	char cmdline[CMD_LINE_LEN], *output_file_name ;
-
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.15 2005/12/05 16:08:24 fischl Exp $", "$Name:  $", cmdline);
-
+  int    msec, nargs ;
+  char cmdline[CMD_LINE_LEN], *output_file_name,*input_file_name, *edits_file_name ;
+  
+  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.16 2005/12/20 18:10:17 greve Exp $", "$Name:  $", cmdline);
+  
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.15 2005/12/05 16:08:24 fischl Exp $", "$Name:  $");
-  if (nargs && argc - nargs == 1)
-    exit (0);
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.16 2005/12/20 18:10:17 greve Exp $", "$Name:  $");
+  if (nargs && argc - nargs == 1) exit (0);
 
   TimerStart(&then) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -98,7 +98,6 @@ main(int argc, char *argv[])
 
   Progname = argv[0] ;
 
-	
   for ( ; argc > 1 && (*argv[1] == '-') ; argc--, argv++)
   {
     nargs = get_option(argc, argv) ;
@@ -107,52 +106,55 @@ main(int argc, char *argv[])
   }
 
   output_file_name = argv[4] ;
-  if (argc < 5)
-    usage_exit(1) ;   /* will exit */
-
-
-	printf("reading wm segmentation from %s...\n", argv[1]) ;
-	mri_wm = MRIread(argv[1]) ;
-	if (!mri_wm)
-		ErrorExit(ERROR_NOFILE, "%s: could not read wm volume from %s",
-							Progname, argv[1]) ;
-
-
-	MRIaddCommandLine(mri_wm, cmdline) ;
-	mri_T1 = MRIread(argv[2]) ;
-	if (!mri_T1)
-		ErrorExit(ERROR_NOFILE, "%s: could not read T1/brain volume from %s",
-							Progname, argv[2]) ;
-
-
-	mri_aseg = MRIread(argv[3]) ;
-	if (!mri_aseg)
-		ErrorExit(ERROR_NOFILE, "%s: could not read aseg volume from %s",
-							Progname, argv[3]) ;
-
-
-	remove_paths_to_cortex(mri_wm, mri_T1, mri_aseg) ;
-	edit_segmentation(mri_wm, mri_T1, mri_aseg) ;
-	spackle_wm_superior_to_mtl(mri_wm, mri_T1, mri_aseg) ;
-  if (keep_edits)
-  {
+  if(argc < 5) usage_exit(1) ;   /* will exit */
+  
+  input_file_name = argv[1];
+  printf("reading wm segmentation from %s...\n", input_file_name) ;
+  mri_wm = MRIread(input_file_name) ;
+  if (!mri_wm)
+    ErrorExit(ERROR_NOFILE, "%s: could not read wm volume from %s",
+	      Progname, input_file_name) ;
+  
+  
+  MRIaddCommandLine(mri_wm, cmdline) ;
+  mri_T1 = MRIread(argv[2]) ;
+  if (!mri_T1)
+    ErrorExit(ERROR_NOFILE, "%s: could not read T1/brain volume from %s",
+	      Progname, argv[2]) ;
+  
+  
+  mri_aseg = MRIread(argv[3]) ;
+  if (!mri_aseg)
+    ErrorExit(ERROR_NOFILE, "%s: could not read aseg volume from %s",
+	      Progname, argv[3]) ;
+  
+  
+  remove_paths_to_cortex(mri_wm, mri_T1, mri_aseg) ;
+  edit_segmentation(mri_wm, mri_T1, mri_aseg) ;
+  spackle_wm_superior_to_mtl(mri_wm, mri_T1, mri_aseg) ;
+  if (keep_edits){
     MRI *mri_old ;
-
-		printf("propagating editing to output volume...\n") ;
-    mri_old = MRIread(output_file_name) ;
-    if (!mri_old)
+    
+    if(! keep_edits_input) edits_file_name = output_file_name;
+    else                   edits_file_name = input_file_name;
+    printf("propagating editing to output volume from %s\n",edits_file_name) ;
+    mri_old = MRIread(edits_file_name) ;
+    if (!mri_old){
       ErrorPrintf(ERROR_NOFILE, "%s: could not read file %s to preserve edits",
-                Progname, output_file_name) ;
-    else
-    {
-      MRIcopyLabel(mri_old, mri_wm, WM_EDITED_ON_VAL) ;
-      MRIcopyLabel(mri_old, mri_wm, WM_EDITED_OFF_VAL) ;
-      MRIfree(&mri_old) ;
+		  Progname, edits_file_name) ;
+      exit(1);
     }
+    MRIcopyLabel(mri_old, mri_wm, WM_EDITED_ON_VAL) ;
+    printf("115,126,128 old %g   new %g\n",MRIgetVoxVal(mri_old,115,126,128,0),
+	   MRIgetVoxVal(mri_old,115,126,128,0));
+    MRIcopyLabel(mri_old, mri_wm, WM_EDITED_OFF_VAL) ;
+    printf("115,126,128 old %g   new %g\n",MRIgetVoxVal(mri_old,115,126,128,0),
+	   MRIgetVoxVal(mri_old,115,126,128,0));
+    MRIfree(&mri_old) ;
   }
-	printf("writing edited volume to %s....\n", output_file_name) ;
-	MRIwrite(mri_wm, output_file_name) ;
-
+  printf("writing edited volume to %s....\n", output_file_name) ;
+  MRIwrite(mri_wm, output_file_name) ;
+  
   msec = TimerStop(&then) ;
   fprintf(stderr, "auto filling took %2.2f minutes\n",
           (float)msec/(1000.0f*60.0f));
@@ -176,8 +178,8 @@ get_option(int argc, char *argv[])
   }
   else if (!strcmp(option, "fillven"))
   {
-		fillven = atoi(argv[2]) ;
-		printf("%sfilling ventricles\n", fillven == 0 ? "not " : "") ;
+    fillven = atoi(argv[2]) ;
+    printf("%sfilling ventricles\n", fillven == 0 ? "not " : "") ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "keep"))
@@ -185,12 +187,18 @@ get_option(int argc, char *argv[])
     keep_edits = 1 ;
     fprintf(stderr, "preserving editing changes in output volume...\n");
   }
+  else if (!stricmp(option, "keep-in"))
+  {
+    keep_edits = 1 ;
+    keep_edits_input = 1 ;
+    fprintf(stderr, "preserving editing changes in input volume...\n");
+  }
   else if (!stricmp(option, "debug_voxel"))
   {
-		Gx = atoi(argv[2]) ;
-		Gy = atoi(argv[3]) ;
-		Gz = atoi(argv[4]) ;
-		printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
     nargs = 3 ;
   }
   else switch (toupper(*option))
@@ -215,8 +223,19 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s <input wm volume> <input T1/brain volume> <aseg volume> <output wm volume>\n", 
+  printf(" \n");
+  printf("%s <options> input-wm input-T1/brain aseg output-wm\n", 
          Progname) ;
+  printf(" \n");
+  printf(" Options (must appear BEFORE volume list):\n");
+  printf("  -fillven\n");
+  printf("  -keep : keep edits as found in output volume \n");
+  printf("  -keep-in : keep edits as found in input volume \n");
+  printf("  -debug_voxel Gx Gy Gz \n");
+  printf(" \n");
+  printf("Example: \n");
+  printf("  mri_edit_wm_with_aseg -keep-in wm.seg.mgz brain.mgz aseg.mgz wm.asegedit.mgz \n");
+  printf(" \n");
   exit(code) ;
 }
 #if !SPACKLE_MTL
