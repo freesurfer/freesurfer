@@ -63,6 +63,10 @@ this to be significant, then --thresh .00002 will prevent
 that difference from being considered different. The default
 threshold is 0.
 
+--diff diffvol
+
+Saves difference image to diffvol.
+
 QUALITY ASSURANCE
 
 mri_diff can be used to check that two volumes where acquired in the
@@ -130,7 +134,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.5 2005/12/10 23:02:14 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.6 2005/12/20 05:21:40 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -143,7 +147,8 @@ char *subject, *hemi, *SUBJECTS_DIR;
 double pixthresh=0, resthresh=0, geothresh=0;
 char *DiffFile=NULL;
 
-MRI *InVol1=NULL, *InVol2=NULL;
+MRI *InVol1=NULL, *InVol2=NULL, *DiffVol=NULL;
+char *DiffVolFile=NULL;
 
 int CheckResolution=1;
 int CheckAcqParams=1;
@@ -343,6 +348,9 @@ int main(int argc, char *argv[])
   //------------------------------------------------------
   // Compare pixel values
   if(CheckPixVals){
+    if(DiffVolFile) 
+      DiffVol = MRIallocSequence(InVol1->width,InVol1->height,
+			 InVol1->depth,MRI_FLOAT,InVol1->nframes);
     c=r=s=f=0;
     val1 = MRIgetVoxVal(InVol1,c,r,s,f);
     val2 = MRIgetVoxVal(InVol2,c,r,s,f);
@@ -355,6 +363,7 @@ int main(int argc, char *argv[])
 	    val1 = MRIgetVoxVal(InVol1,c,r,s,f);
 	    val2 = MRIgetVoxVal(InVol2,c,r,s,f);
 	    diff = fabs(val1-val2);
+	    if(DiffVolFile) MRIsetVoxVal(DiffVol,c,r,s,f,val1-val2);
 	    if(maxdiff < diff){
 	      maxdiff = diff;
 	      cmax = c;
@@ -368,6 +377,8 @@ int main(int argc, char *argv[])
     }
     if(debug) printf("maxdiff %g at %d %d %d %d\n",
 		     maxdiff,cmax,rmax,smax,fmax);
+    if(DiffVolFile) MRIwrite(DiffVol,DiffVolFile);
+
     if(maxdiff > pixthresh){
       printf("Volumes differ in pixel data\n");
       printf("maxdiff %g at %d %d %d %d\n",
@@ -481,6 +492,11 @@ static int parse_commandline(int argc, char **argv)
       DiffFile = pargv[0];
       nargsused = 1;
     }
+    else if(!strcasecmp(option, "--diff")){
+      if(nargc < 1) CMDargNErr(option,1);
+      DiffVolFile = pargv[0];
+      nargsused = 1;
+    }
     else{
       if(InVol1File == NULL)      InVol1File = option;
       else if(InVol2File == NULL) InVol2File = option;
@@ -567,6 +583,7 @@ static void print_usage(void)
   printf("\n");
   printf("   --thresh thresh : pix diffs must be greater than this \n");
   printf("   --log DiffFile : store diff info in this file. \n");
+  printf("   --diff DiffVol : save difference image. \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -641,6 +658,10 @@ printf("Eg, if two volumes differ by .00001, and you do not consider\n");
 printf("this to be significant, then --thresh .00002 will prevent\n");
 printf("that difference from being considered different. The default\n");
 printf("threshold is 0.\n");
+printf("\n");
+printf("--diff diffvol\n");
+printf("\n");
+printf("Saves difference image to diffvol.\n");
 printf("\n");
 printf("QUALITY ASSURANCE\n");
 printf("\n");
