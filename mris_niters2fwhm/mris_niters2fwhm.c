@@ -65,10 +65,12 @@ int nitersmax = 100;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-  int nargs;
-  int nthiter=0;
-  MRI *mri=NULL, *var=NULL, *mri0, *delta, *deltasm=NULL, *xyz;
+  int nargs, nthiter;
+  MRI *mri, *var, *mri0, *delta, *deltasm, *xyz;
   double gmax, vrfmn, vrfstd, gstd, fwhm;
+  
+  nthiter = 0;
+  mri = var = mri0 = delta = deltasm = xyz = NULL;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
