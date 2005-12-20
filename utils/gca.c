@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/12/12 23:17:11 $
-// Revision       : $Revision: 1.185 $
+// Revision Date  : $Date: 2005/12/20 17:52:31 $
+// Revision       : $Revision: 1.186 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15502,6 +15502,10 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
               
               //note that the following range need be changed 
               // if both scale and offset are allowed' 1/1.5 = 0.67
+	      if(IS_LAT_VENT(l)){
+		if(label_scales[l] < 0.4) label_scales[l] = 0.4;
+		else if(label_scales[l] > 1.5) label_scales[l] = 1.5; 
+	      }
               if((label_scales[l] < 0.67 || 
                   (label_scales[l] > 1.5)) && !IS_LAT_VENT(l)){
                 /*
