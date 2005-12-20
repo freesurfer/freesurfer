@@ -31,6 +31,7 @@ double round(double x);
 #include "timer.h"
 #include "matfile.h"
 #include "randomfields.h"
+#include "icosahedron.h"
 double MRISmeanInterVertexDist(MRIS *surf);
 
 MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
@@ -96,7 +97,8 @@ int main(int argc, char *argv[])
 
   if(debug) dump_options(stdout);
 
-  surf = MRISread(surfpath);
+  surf = ReadIcoByOrder(7,100);
+  //surf = MRISread(surfpath);
   if(surf == NULL){
     printf("ERROR: could not read %s\n",surfpath);
     exit(1);
