@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.96 2005/12/20 21:57:43 kteich Exp $
+# $Id: tksurfer.tcl,v 1.97 2005/12/21 23:54:57 kteich Exp $
 
 package require BLT;
 
@@ -4635,6 +4635,20 @@ proc GetDefaultLocation { iType } {
 	    } 
 	}
     } 
+
+    # If the file or path doesn't exist, just give pwd instead.
+    if { ![file exists $gsaDefaultLocation($iType)] } {
+	set gsaDefaultLocation($iType) [exec pwd]
+    }
+
+    # If location is a directory, make sure that the last char is a
+    # slash.
+    if { [file isdirectory $gsaDefaultLocation($iType)] } {
+	if { [string range $gsaDefaultLocation($iType) end end] != "/" } {
+	    set gsaDefaultLocation($iType) $gsaDefaultLocation($iType)/
+	}
+    }
+
     return $gsaDefaultLocation($iType)
 }
 
