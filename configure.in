@@ -1290,7 +1290,8 @@ distribution/subjects/Makefile \
 distribution/sessions/Makefile \
 qdec/Makefile \
 qdec/images/Makefile \
-mri_segment_wm_damage/Makefile 
+mri_segment_wm_damage/Makefile \
+mri_fslmat_to_lta/Makefile
 )
 
 AC_MSG_RESULT(
