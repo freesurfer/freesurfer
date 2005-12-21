@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.98 2005/12/09 19:39:04 kteich Exp $
+# $Id: tkmedit.tcl,v 1.99 2005/12/21 23:55:11 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -338,6 +338,8 @@ set gsSegmentationColorTable ""
 set gbVolumeDirty 0
 set gbAuxVolumeDirty 0
 set gbTalTransformPresent 0
+set gsSurfaceHemi($tkm_tSurfaceType(main)) lh
+set gsSurfaceHemi($tkm_tSurfaceType(aux)) rh
 
 # determine the list of shortcut dirs for the file dlog boxes
 proc BuildShortcutDirsList {} {
@@ -730,11 +732,17 @@ proc UpdateVolumeValueMinMax { iVolume iMin iMax } {
 	config -cmd "set gVolume($iVolume,colorScale,max) $gVolume($iVolume,maxValue); SendVolumeMaxMax" }
 }
 
+proc UpdateSurfaceHemi { iSurfaceType isHemi } {
+    global gsSurfaceHemi
+    set gsSurfaceHemi($iSurfaceType) $isHemi
+}
+
 # =============================================================== DIALOG BOXES
 
 proc GetDefaultLocation { iType } {
     global gsaDnefaultLocation 
     global gsSubjectDirectory gsSegmentationColorTable env
+    global gsSurfaceHemi tkm_tSurfaceType
     if { [info exists gsaDefaultLocation($iType)] == 0 } {
 	switch $iType {
 	    LoadVolume - LoadAuxVolume - SaveVolumeAs - SaveAuxVolumeAs -
@@ -763,8 +771,31 @@ proc GetDefaultLocation { iType } {
 		    set gsaDefaultLocation($iType) [exec pwd]
 		}
 	    }
-	    LoadMainSurface - LoadOriginalSurface - LoadPialSurface -
-	    LoadPialSurface - LoadMainAuxSurface - 
+	    LoadPialSurface {
+		if { $gsSubjectDirectory != "/" } {
+		    set gsaDefaultLocation($iType) $gsSubjectDirectory/surf
+		    set fn [file join $gsaDefaultLocation($iType) \
+				$gsSurfaceHemi($tkm_tSurfaceType(main)).pial]
+		    if { [file exists $fn] } {
+			set gsaDefaultLocation($iType) $fn
+		    }
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}
+	    }
+	    LoadOriginalSurface {
+		if { $gsSubjectDirectory != "/" } {
+		    set gsaDefaultLocation($iType) $gsSubjectDirectory/surf
+		    set fn [file join $gsaDefaultLocation($iType) \
+				$gsSurfaceHemi($tkm_tSurfaceType(main)).orig]
+		    if { [file exists $fn] } {
+			set gsaDefaultLocation($iType) $fn
+		    }
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}
+	    }
+	    LoadMainSurface - LoadMainAuxSurface - 
 	    LoadOriginalAuxSurface - LoadPialAuxSurface -
 	    WriteSurfaceValues { 
 		if { $gsSubjectDirectory != "/" } {
@@ -825,7 +856,13 @@ proc GetDefaultLocation { iType } {
 	}
     }
 
-    # If location is a directory, make sure last char is a slash.
+    # If the file or path doesn't exist, just give pwd instead.
+    if { ![file exists $gsaDefaultLocation($iType)] } {
+	set gsaDefaultLocation($iType) [exec pwd]
+    }
+
+    # If location is a directory, make sure that the last char is a
+    # slash.
     if { [file isdirectory $gsaDefaultLocation($iType)] } {
 	if { [string range $gsaDefaultLocation($iType) end end] != "/" } {
 	    set gsaDefaultLocation($iType) $gsaDefaultLocation($iType)/
