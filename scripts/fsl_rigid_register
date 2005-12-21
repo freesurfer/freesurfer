@@ -1,28 +1,32 @@
 #!/bin/csh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.7 2003/08/21 23:28:03 ebeth Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.7 2003/08/21 23:28:03 ebeth Exp $';
+# $Id: fsl_rigid_register,v 1.8 2005/12/21 17:45:36 xhan Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.8 2005/12/21 17:45:36 xhan Exp $';
+
+setenv FSLOUTPUTTYPE ANALYZE
 
 set refvol = ();
 set invol = ();
 set outvol = ();
 set interp = trilinear;
 set debug = 0;
-set tmpdir = /tmp/fsl_rigid_register.$$;
+set tmpdir = $SUBJECTS_DIR/tmp/fsl_rigid_register.$$;
 set cleanup = 1;
 set PrintHelp = 0;
 set applyxfm = ();
 set initxfm = ();
-set initgeom = 1;
+set initgeom = 0;
 set dof = 6;
 set maxangle = 90;
 set bins = 256;
 set cost = corratio;
+#set cost = mutualinfo;
 set costlist = (mutualinfo corratio normcorr normmi leastsq);
 set fslmatfile = ();
 set regmatfile = ();
 set xfmmatfile = ();
+set ltamatfile = ();
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep version | wc -l` 
@@ -140,6 +144,7 @@ if($#applyxfm == 0) then
     # Convert to register.dat or xfm #
     set tmpregdat = $tmpdir/reg.dat
     set cmd = (tkregister2 --targ $refvol --mov $invol)
+   # set cmd = (tkregister2 --targ $invol --mov $refvol)
     set cmd = ($cmd --reg $tmpregdat)
     set cmd = ($cmd --fslreg $fslmatfile)
     set cmd = ($cmd --noedit);
@@ -162,6 +167,11 @@ if($#applyxfm == 0) then
 
   endif
 
+  if($#ltamatfile) then
+      rm -f $ltamatfile
+      mri_fslmat_to_lta $invol $refvol $fslmatfile $ltamatfile
+  endif
+
 endif
 
 # Cleanup
@@ -182,6 +192,7 @@ echo "To check results, run:"
 echo "tkmedit -f $refvol -aux $outvol"
 echo " "
 
+rm -rf $tmpdir
 
 exit 0;
 ###############################################
@@ -225,6 +236,11 @@ while( $#argv != 0 )
       set xfmmatfile = $argv[1]; shift;
       breaksw
 
+    case "-ltamat":
+      if ( $#argv < 1) goto arg1err;
+      set ltamatfile = $argv[1]; shift;
+      breaksw
+
     case "-interp":
       if ( $#argv < 1) goto arg1err;
       set interp = $argv[1]; shift;
@@ -245,7 +261,7 @@ while( $#argv != 0 )
       set cost = $argv[1]; shift;
       set err = 1;
       foreach c ($costlist);
-        if($cost == $c) err = 0;
+        if($cost == $c) set err = 0;
       end
       if($err) then 
         echo "ERROR: cost $cost is unrecognized"
@@ -391,6 +407,7 @@ usage_exit:
   echo "   -fslmat fsmatfile  : spec explicitly"
   echo "   -regmat regmatfile : get reg matrix as register.dat file"
   echo "   -xfmmat xfmmatfile :  get reg matrix as MNI xfm file"
+  echo "   -ltamat ltamatfile :  get reg matrix as MGH lta file"
   echo "   -noinitgeom : do not initialize matrix based on geometry"
   echo "   -initxfm  xfmfile : use this as an initial matrix"
   echo "   -applyxfm xfmfile : do not reg, just apply xfm to input"
@@ -440,9 +457,9 @@ Store the FSL registration matrix in fslmatfile instead of outvol.fslmat
 Convert the FSL matrix to register.dat format and save in regmatfile. You
 will have to edit the subject name.
 
--xfmmat xfmmatfile
+-ltamat ltamatfile
 
-Convert the FSL matrix to an MNI xfm file. 
+Convert the FSL matrix to an MGH lta file. 
 
 -noinitgeom
 
