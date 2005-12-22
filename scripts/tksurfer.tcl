@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.99 2005/12/22 23:26:01 kteich Exp $
+# $Id: tksurfer.tcl,v 1.100 2005/12/22 23:53:20 kteich Exp $
 
 package require BLT;
 
@@ -136,11 +136,6 @@ set gaHistogramData(simpleThresh) 1
 
 # used in overlay config dialog
 set gbOverlayApplyToAll 0
-
-set gbCurvatureButtonEnabled 0
-set gbSurfaceConfigButtonEnabled 0
-set gbOverlayButtonEnabled 0
-set gbLabelButtonEnabled 0
 
 # ====================================================== LINKED VAR MANAGEMENT
 
@@ -3157,16 +3152,10 @@ proc CreateToolBar { ifwToolBar } {
 	{ image icon_surface_original 4
 	    "set_current_vertex_set $gaLinkedVars(vertexset); UpdateLinkedVarGroup view; UpdateAndRedraw" "Show Original Surface" }
     }
-    set gaSurfaceConfigButton(0) $fwSurfaces.rb0
-    set gaSurfaceConfigButton(1) $fwSurfaces.rb1
-    set gaSurfaceConfigButton(2) $fwSurfaces.rb2
-    set gaSurfaceConfigButton(3) $fwSurfaces.rb3
-    set gaSurfaceConfigButton(4) $fwSurfaces.rb4
-    EnableSurfaceConfigButton 0 1
-    EnableSurfaceConfigButton 1 0
-    EnableSurfaceConfigButton 2 0
-    EnableSurfaceConfigButton 3 0
-    EnableSurfaceConfigButton 4 0
+    tkm_AddRadioButtonToEnableGroup mg_InflatedVSetLoaded $fwSurfaces.rb1
+    tkm_AddRadioButtonToEnableGroup mg_WhiteVSetLoaded $fwSurfaces.rb2
+    tkm_AddRadioButtonToEnableGroup mg_PialVSetLoaded $fwSurfaces.rb3
+    tkm_AddRadioButtonToEnableGroup mg_OriginalVSetLoaded $fwSurfaces.rb4
     bind $fwSurfaces.rb0 <Control-Button-3> "DoFileDlog LoadMainSurface"
     bind $fwSurfaces.rb1 <Control-Button-3> "DoFileDlog LoadInflatedSurface"
     bind $fwSurfaces.rb2 <Control-Button-3> "DoFileDlog LoadWhiteSurface"
@@ -3182,10 +3171,9 @@ proc CreateToolBar { ifwToolBar } {
     tkm_MakeCheckboxes $fwCurv h { 
 	{ image icon_curv gaLinkedVars(curvflag) 
 	    "SendLinkedVarGroup view; UpdateAndRedraw" "Show Curvature" } }
-    set gfwCurvatureButton $fwCurv.cb0
-    EnableCurvatureButton 0
+    tkm_AddCheckboxToEnableGroup mg_CurvatureLoaded $fwCurv.cb0
     bind $fwCurv.cb0 <Control-Button-1> {
-	if { $gbCurvatureButtonEnabled } {
+	if { [tkm_IsGroupEnabled mg_CurvatureLoaded] } {
 	    set gaLinkedVars(curvflag) [expr !$gaLinkedVars(curvflag)] 
 	    DoConfigCurvatureDisplayDlog
 	}
@@ -3199,10 +3187,10 @@ proc CreateToolBar { ifwToolBar } {
 	{ image icon_color_scalebar gaLinkedVars(colscalebarflag) 
 	   "SendLinkedVarGroup view; UpdateAndRedraw" "Show Color Scale Bar" } 
     }
-    lappend glOverlayButtons $fwOverlay.cb0 $fwOverlay.cb1
-    EnableOverlayButtons 0
+    tkm_AddCheckboxToEnableGroup mg_OverlayLoaded $fwOverlay.cb0
+    tkm_AddCheckboxToEnableGroup mg_OverlayLoaded $fwOverlay.cb1
     bind $fwOverlay.cb0 <Control-Button-1> {
-	if { $gbOverlayButtonEnabled } {
+	if { [tkm_IsGroupEnabled mg_OverlayLoaded] } {
 	    set gaLinkedVars(overlayflag) [expr !$gaLinkedVars(overlayflag)]
 	    DoConfigOverlayDisplayDlog
 	}
@@ -3213,9 +3201,9 @@ proc CreateToolBar { ifwToolBar } {
     tkm_MakeCheckboxes $fwLabels h { 
 	{ image icon_label_off gaLinkedVars(drawlabelflag) 
 	    "SendLinkedVarGroup label; UpdateAndRedraw" "Show Labels" } }
-    lappend glLabelButtons $fwLabels.cb0
+    tkm_AddCheckboxToEnableGroup mg_LabelLoaded $fwLabels.cb0
     bind $fwLabels.cb0 <Control-Button-1> {
-	if { $gbLabelButtonEnabled } {
+	if { [tkm_IsGroupEnabled mg_LabelLoaded] } {
 	  set gaLinkedVars(drawlabelflag) [expr !$gaLinkedVars(drawlabelflag)]
 	    LblLst_ShowWindow
 	}
@@ -3228,8 +3216,8 @@ proc CreateToolBar { ifwToolBar } {
 	{ image icon_label_outline 1
 	   "SendLinkedVarGroup label; UpdateAndRedraw" "Draw Outlined Labels" }
     }
-    lappend glLabelButtons $fwLabelStyle.rb0 $fwLabelStyle.rb1
-    EnableLabelButtons 0
+    tkm_AddRadioButtonToEnableGroup mg_LabelLoaded $fwLabelStyle.rb0
+    tkm_AddRadioButtonToEnableGroup mg_LabelLoaded $fwLabelStyle.rb1
 
     frame $fwSpacer
 
@@ -3463,61 +3451,6 @@ proc OverlayLayerChanged {} {
     GDF_HideAllWindows
     GDF_ShowCurrentWindow
     GDF_SendCurrentPoints
-}
-
-proc EnableCurvatureButton { ibEnable } {
-    global gfwCurvatureButton gbCurvatureButtonEnabled
-
-    set gbCurvatureButtonEnabled $ibEnable
-    
-    if { $ibEnable } {
-	$gfwCurvatureButton config -state normal
-    } else {
-	$gfwCurvatureButton config -state disabled
-    }
-}
-
-proc EnableSurfaceConfigButton { iConfig ibEnable } {
-    global gaSurfaceConfigButton gbSurfaceConfigButtonEnabled
-
-    set gbSurfaceConfigButtonEnabled $ibEnable
-
-    set state disabled
-    if { $ibEnable } {
-	set state normal
-    }
-
-    $gaSurfaceConfigButton($iConfig) config -state $state
-}
-
-proc EnableOverlayButtons { ibEnable } {
-    global glOverlayButtons gbOverlayButtonEnabled
-    
-    set gbOverlayButtonEnabled $ibEnable
-
-    set state disabled
-    if { $ibEnable } {
-	set state normal
-    }
-
-    foreach bw $glOverlayButtons {
-	$bw config -state $state
-    }
-}
-
-proc EnableLabelButtons { ibEnable } {
-    global glLabelButtons gbLabelButtonEnabled
-
-    set gbLabelButtonEnabled $ibEnable
-
-    set state disabled
-    if { $ibEnable } {
-	set state normal
-    }
-
-    foreach bw $glLabelButtons {
-	$bw config -state $state
-    }
 }
 
 # ====================================================================== GRAPH
