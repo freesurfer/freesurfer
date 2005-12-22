@@ -2088,8 +2088,10 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   float     min     = 0; /* threshold */
   float     mid     = 0;
   float     max     = 0;
+#if 0
   float     tmp     = 0;
-  
+#endif  
+
   /* set up values */
   f = (float)iValue;
   r = g = b = 0;
@@ -2129,7 +2131,7 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   } else {
     min = (float)(this->mThresholdMin);
     mid = (float)(this->mThresholdMid);
-    max = 1.0 / (float)(this->mThresholdSlope) + mid;
+    max = 0.5 / (float)(this->mThresholdSlope) + mid;
   }
   
   /* if we're truncating values, modify approriatly */
@@ -2157,13 +2159,15 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
     goto cleanup;
   }
   
+#if 0
   /* this puts values between min and mid on a nice scale */
   if ( fabs(f) > min && fabs(f) < mid ) {
     tmp = fabs(f);
     tmp = (1.0/(mid-min)) * (tmp-min)*(tmp-min) + min;
     f = (f<0) ? -tmp : tmp;
   }
-  
+#endif  
+
   /* calc the color */
   if ( f >= 0 ) {
     
@@ -4687,7 +4691,7 @@ FunV_tErr FunV_GetThresholdMax ( tkmFunctionalVolumeRef this,
     FunD_GetValueRange( this->mpOverlayVolume, &min, &max );
     *oValue = max;
   } else {
-    *oValue = 1.0 / this->mThresholdSlope + this->mThresholdMid;
+    *oValue = 0.5 / this->mThresholdSlope + this->mThresholdMid;
   }
   
   goto cleanup;
