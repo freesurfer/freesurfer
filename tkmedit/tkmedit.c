@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/12/09 18:50:33 $
-// Revision       : $Revision: 1.261 $
-char *VERSION = "$Revision: 1.261 $";
+// Revision Date  : $Date: 2005/12/22 19:59:59 $
+// Revision       : $Revision: 1.262 $
+char *VERSION = "$Revision: 1.262 $";
 
 #define TCL
 #define TKMEDIT 
@@ -24,6 +24,7 @@ char *VERSION = "$Revision: 1.261 $";
 #include <signal.h>
 /*#endif */
 #include <fcntl.h>
+#include <libgen.h>
 #include "error.h"
 #include "diag.h"
 #include "utils.h"
@@ -1100,7 +1101,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.261 2005/12/09 18:50:33 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.262 2005/12/22 19:59:59 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -3158,6 +3159,10 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   char      sName[tkm_knPathLen]       = "";
   char      sError[tkm_knErrStringLen] = "";
   tBoolean  bUseRealRAS;
+  char      sTclArgs[tkm_knNameLen] = "";
+  char*     sBaseName;
+  char      sHemi[3];
+  char      sFileNameCopy[tkm_knPathLen];
 #if 0
   Volm_tErr eVolume           = Volm_tErr_NoErr;
   VOL_GEOM  surfaceGeometry;
@@ -3253,6 +3258,19 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
 		       DspA_tDisplayFlag_InterpolateSurfaceVertices,
 		       bLoaded ? TRUE : FALSE);
   
+  /* Extract the hemisphere (lh or rh) and update in the tcl land. */
+  DebugNote( ("Extracting hemi") );
+  strncpy( sFileNameCopy, isName, sizeof(sFileNameCopy) );
+  sBaseName = basename( sFileNameCopy );
+  if( strlen(sBaseName) > 2 &&
+      (sBaseName[0] == 'l' || sBaseName[0] == 'r') &&
+      sBaseName[1] == 'h' && sBaseName[2] == '.' ) {
+    strncpy( sHemi, sBaseName, 2 );
+    sprintf( sTclArgs, "%d %s", (int)iType, sHemi );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateSurfaceHemi, sTclArgs );
+  } 
+  
+
   /* load other vertex sets. See if they exist first. */
   DebugNote( ("Loading orig set") );
   LoadSurfaceVertexSet( iType, Surf_tVertexSet_Original, "orig" );
@@ -5355,7 +5373,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.261 2005/12/09 18:50:33 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.262 2005/12/22 19:59:59 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -12321,6 +12339,7 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "UpdateVolumeValueMinMax",
   "UpdateVolumeSampleType",
   "UpdateVolumeResampleMethod",
+  "UpdateSurfaceHemi",
   
   /* display status */
   "ShowVolumeCoords",
