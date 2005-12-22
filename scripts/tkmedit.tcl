@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.99 2005/12/21 23:55:11 kteich Exp $
+# $Id: tkmedit.tcl,v 1.100 2005/12/22 00:31:44 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -4309,46 +4309,57 @@ proc CreateToolBar { ifwToolBar } {
     set fwViews            $gfwaToolBar(main).fwViews
     set fwSurfaces         $gfwaToolBar(main).fwSurfaces
     set fwVolumeToggles    $gfwaToolBar(main).fwVolumeToggles
+    set fwSegVolume        $gfwaToolBar(main).fwSegVolume
 
     frame $gfwaToolBar(main) -border 2 -relief raised
     
     tkm_MakeToolbar $fwTools \
       1 \
       gTool \
-      UpdateToolWrapper { \
-      { image 0 icon_navigate "Navigate Tool (n)" } \
-      { image 1 icon_edit_label "Select Voxels Tool (s)" } \
-      { image 2 icon_edit_volume "Edit Voxels Tool (a)" } \
-      { image 3 icon_edit_parc "Edit Segmentation Tool (g)" } \
-      { image 4 icon_edit_ctrlpts "Edit Ctrl Pts Tool (c)" } \
-      { image 5 icon_line_tool "Line Tool (l)" } }
+      UpdateToolWrapper {
+	  { image 0 icon_navigate "Navigate Tool (n)" }
+	  { image 1 icon_edit_label "Select Voxels Tool (s)" }
+	  { image 2 icon_edit_volume "Edit Voxels Tool (a)" }
+	  { image 3 icon_edit_parc "Edit Segmentation Tool (g)" }
+	  { image 4 icon_edit_ctrlpts "Edit Ctrl Pts Tool (c)" }
+	  { image 5 icon_line_tool "Line Tool (l)" } 
+      }
 
     tkm_MakeToolbar $fwViews \
-      1 \
-      gViewPreset \
-      UpdateViewPresetWrapper { \
-      { image 0 icon_view_single "Single View" } \
-      { image 1 icon_view_multiple "Multiple Views" } \
-      { image 2 icon_view_mosaic "Mosaic" } }
+	1 \
+	gViewPreset \
+	UpdateViewPresetWrapper {
+	    { image 0 icon_view_single "Single View" } 
+	    { image 1 icon_view_multiple "Multiple Views" } 
+	    { image 2 icon_view_mosaic "Mosaic" } 
+	}
     
-    tkm_MakeCheckboxes $fwSurfaces h { \
-      { image icon_surface_main gbDisplayFlag(flag_MainSurface) \
-      "SendDisplayFlagValue flag_MainSurface" "Show Main Surface" } \
-      { image icon_surface_original gbDisplayFlag(flag_OriginalSurface) \
-      "SendDisplayFlagValue flag_OriginalSurface" \
-      "Show Original Surface" } \
-      { image icon_surface_pial gbDisplayFlag(flag_PialSurface) \
-      "SendDisplayFlagValue flag_PialSurface" \
-      "Show Pial Surface" } }
-
+    tkm_MakeCheckboxes $fwSurfaces h {
+	{ image icon_surface_main gbDisplayFlag(flag_MainSurface)
+	    "SendDisplayFlagValue flag_MainSurface" "Show Main Surface" }
+	{ image icon_surface_original gbDisplayFlag(flag_OriginalSurface)
+	    "SendDisplayFlagValue flag_OriginalSurface"
+	    "Show Original Surface" }
+	{ image icon_surface_pial gbDisplayFlag(flag_PialSurface)
+	    "SendDisplayFlagValue flag_PialSurface"
+	    "Show Pial Surface" } 
+    }
+    
     tkm_MakeToolbar $fwVolumeToggles \
-      1 \
-      gbDisplayFlag(flag_AuxVolume) \
-      UpdateVolumeToggleWrapper { \
-      { image 0 icon_main_volume "Show Main Volume" } \
-      { image 1 icon_aux_volume "Show Aux Volume" } }
+	1 \
+	gbDisplayFlag(flag_AuxVolume) \
+	UpdateVolumeToggleWrapper {
+	    { image 0 icon_main_volume "Show Main Volume" }
+	    { image 1 icon_aux_volume "Show Aux Volume" } 
+	}
 
-    pack $fwTools $fwViews $fwSurfaces $fwVolumeToggles \
+    tkm_MakeCheckboxes $fwSegVolume h {
+	{ image icon_seg_volume gbDisplayFlag(flag_SegmentationVolumeOverlay)
+	    "SendDisplayFlagValue flag_SegmentationVolumeOverlay" 
+	    "Show Segmentation" }
+    }
+    
+    pack $fwTools $fwViews $fwSurfaces $fwVolumeToggles $fwSegVolume \
       -side left \
       -anchor w \
       -padx 5
@@ -4473,7 +4484,7 @@ proc CreateImages {} {
       icon_navigate icon_edit_ctrlpts icon_edit_parc icon_line_tool \
       icon_view_single icon_view_multiple icon_view_mosaic \
       icon_cursor_goto icon_cursor_save \
-      icon_main_volume icon_aux_volume icon_linked_cursors \
+      icon_main_volume icon_aux_volume icon_seg_volume icon_linked_cursors \
       icon_arrow_up icon_arrow_down icon_arrow_left icon_arrow_right \
       icon_arrow_cw icon_arrow_ccw \
       icon_arrow_expand_x icon_arrow_expand_y \
