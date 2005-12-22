@@ -14370,7 +14370,7 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset)
             ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
           g = tmpoffset*
             ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-            ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
+            ((f<fmid)?0:(f<fmid+0.5/fslope)?1*(f-fmid)*fslope:1);
           b = tmpoffset*
             ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0);
         } else
@@ -14381,7 +14381,7 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset)
               ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
             g = tmpoffset*
               ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-              ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
+              ((f<fmid)?0:(f<fmid+0.5/fslope)?1*(f-fmid)*fslope:1);
             r = tmpoffset*
               ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0);
           }
@@ -18978,7 +18978,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.161 2005/12/19 19:59:26 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.162 2005/12/22 20:07:32 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
