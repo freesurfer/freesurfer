@@ -18978,7 +18978,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.163 2005/12/22 23:25:51 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.164 2005/12/22 23:54:35 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21493,40 +21493,6 @@ enable_menu_set (int set, int enable) {
   sprintf (tcl_cmd, "%s %d", tcl_cmd, enable);
   send_tcl_command(tcl_cmd);
 
-  /* Also enable additional buttons. */
-  strcpy (tcl_cmd, "");
-  switch(set)
-    {
-    case MENUSET_VSET_INFLATED_LOADED:
-      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d", VSET_INFLATED );
-      break;
-    case MENUSET_VSET_WHITE_LOADED:
-      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d", VSET_WHITE );
-      break;
-    case MENUSET_VSET_PIAL_LOADED:
-      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d", VSET_PIAL );
-      break;
-    case MENUSET_VSET_ORIGINAL_LOADED:
-      sprintf (tcl_cmd, "EnableSurfaceConfigButton %d", VSET_ORIGINAL );
-      break;
-    case MENUSET_CURVATURE_LOADED:
-      sprintf (tcl_cmd, "EnableCurvatureButton");
-      break;
-    case MENUSET_OVERLAY_LOADED:
-      sprintf (tcl_cmd, "EnableOverlayButtons");
-      break;
-    case MENUSET_LABEL_LOADED:
-      sprintf (tcl_cmd, "EnableLabelButtons");
-      break;
-    default:
-      break;
-    }
-  if (strlen(tcl_cmd) > 0) 
-    {
-      sprintf (tcl_cmd, "%s %d", tcl_cmd, enable);
-      send_tcl_command(tcl_cmd);
-    }
-  
   return(ERROR_NONE);
 }
 
