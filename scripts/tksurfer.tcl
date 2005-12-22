@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.97 2005/12/21 23:54:57 kteich Exp $
+# $Id: tksurfer.tcl,v 1.98 2005/12/22 22:00:14 kteich Exp $
 
 package require BLT;
 
@@ -136,6 +136,11 @@ set gaHistogramData(simpleThresh) 1
 
 # used in overlay config dialog
 set gbOverlayApplyToAll 0
+
+set gbCurvatureButtonEnabled 0
+set gbSurfaceConfigButtonEnabled 0
+set gbOverlayButtonEnabled 0
+set gbLabelButtonEnabled 0
 
 # ====================================================== LINKED VAR MANAGEMENT
 
@@ -3179,7 +3184,12 @@ proc CreateToolBar { ifwToolBar } {
 	    "SendLinkedVarGroup view; UpdateAndRedraw" "Show Curvature" } }
     set gfwCurvatureButton $fwCurv.cb0
     EnableCurvatureButton 0
-    bind $fwCurv.cb0 <Control-Button-1> "set gaLinkedVars(curvflag) ![set gaLinkedVars(curvflag)] ; DoConfigCurvatureDisplayDlog"
+    bind $fwCurv.cb0 <Control-Button-1> {
+	if { $gbCurvatureButtonEnabled } {
+	    set gaLinkedVars(curvflag) [expr !$gaLinkedVars(curvflag)] 
+	    DoConfigCurvatureDisplayDlog
+	}
+    }
     bind $fwCurv.cb0 <Control-Button-3> "DoFileDlog LoadCurvature"
 
     # Checkbox to enable overlay display. Works like the curv checkbox.
@@ -3191,7 +3201,12 @@ proc CreateToolBar { ifwToolBar } {
     }
     lappend glOverlayButtons $fwOverlay.cb0 $fwOverlay.cb1
     EnableOverlayButtons 0
-    bind $fwOverlay.cb0 <Control-Button-1> "set gaLinkedVars(overlayflag) ![set gaLinkedVars(overlayflag)] ; DoConfigOverlayDisplayDlog"
+    bind $fwOverlay.cb0 <Control-Button-1> {
+	if { $gbOverlayButtonEnabled } {
+	    set gaLinkedVars(overlayflag) [expr !$gaLinkedVars(overlayflag)]
+	    DoConfigOverlayDisplayDlog
+	}
+    }
     bind $fwOverlay.cb0 <Control-Button-3> "DoLoadOverlayDlog"
 
     # Label buttons.
@@ -3199,7 +3214,12 @@ proc CreateToolBar { ifwToolBar } {
 	{ image icon_label_off gaLinkedVars(drawlabelflag) 
 	    "SendLinkedVarGroup label; UpdateAndRedraw" "Show Labels" } }
     lappend glLabelButtons $fwLabels.cb0
-    bind $fwLabels.cb0 <Control-Button-1> "set gaLinkedVars(drawlabelflag) ![set gaLinkedVars(drawlabelflag)] ; LblLst_ShowWindow"
+    bind $fwLabels.cb0 <Control-Button-1> {
+	if { $gbLabelButtonEnabled } {
+	  set gaLinkedVars(drawlabelflag) [expr !$gaLinkedVars(drawlabelflag)]
+	    LblLst_ShowWindow
+	}
+    }
     bind $fwLabels.cb0 <Control-Button-3> "DoFileDlog LoadLabel"
 
     tkm_MakeRadioButtons $fwLabelStyle h "" gaLinkedVars(labelstyle) {
@@ -3446,7 +3466,9 @@ proc OverlayLayerChanged {} {
 }
 
 proc EnableCurvatureButton { ibEnable } {
-    global gfwCurvatureButton
+    global gfwCurvatureButton gbCurvatureButtonEnabled
+
+    set gbCurvatureButtonEnabled $ibEnable
     
     if { $ibEnable } {
 	$gfwCurvatureButton config -state normal
@@ -3456,7 +3478,9 @@ proc EnableCurvatureButton { ibEnable } {
 }
 
 proc EnableSurfaceConfigButton { iConfig ibEnable } {
-    global gaSurfaceConfigButton
+    global gaSurfaceConfigButton gbSurfaceConfigButtonEnabled
+
+    set gbSurfaceConfigButtonEnabled $ibEnable
 
     set state disabled
     if { $ibEnable } {
@@ -3467,7 +3491,9 @@ proc EnableSurfaceConfigButton { iConfig ibEnable } {
 }
 
 proc EnableOverlayButtons { ibEnable } {
-    global glOverlayButtons
+    global glOverlayButtons gbOverlayButtonEnabled
+    
+    set gbOverlayButtonEnabled $ibEnable
 
     set state disabled
     if { $ibEnable } {
@@ -3480,7 +3506,9 @@ proc EnableOverlayButtons { ibEnable } {
 }
 
 proc EnableLabelButtons { ibEnable } {
-    global glLabelButtons
+    global glLabelButtons gbLabelButtonEnabled
+
+    set gbLabelButtonEnabled $ibEnable
 
     set state disabled
     if { $ibEnable } {
