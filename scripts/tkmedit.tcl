@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.101 2005/12/22 23:26:01 kteich Exp $
+# $Id: tkmedit.tcl,v 1.102 2005/12/22 23:59:20 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -4344,14 +4344,32 @@ proc CreateToolBar { ifwToolBar } {
 	    "SendDisplayFlagValue flag_PialSurface"
 	    "Show Pial Surface" } 
     }
+    tkm_AddCheckboxToEnableGroup tMenuGroup_SurfaceViewing $fwSurfaces.cb0
+    tkm_AddCheckboxToEnableGroup tMenuGroup_OriginalSurfaceViewing \
+	$fwSurfaces.cb1
+    tkm_AddCheckboxToEnableGroup tMenuGroup_PialSurfaceViewing $fwSurfaces.cb2
     # Control-left-click to show the settings, control-right-click to
     # open a load dialog box. Note that for the control button 1
     # click, we have to toggle flag, since even control-clicking will
     # trigger the main cmd, so we need to reverse it.
     bind $fwSurfaces.cb0 <Control-Button-1> {
-	if { } {
+	if { [tkm_IsGroupEnabled tMenuGroup_SurfaceViewing] } {
 	    set gbDisplayFlag(flag_MainSurface) \
-		[expr !gbDisplayFlag(flag_MainSurface)] 
+		[expr !$gbDisplayFlag(flag_MainSurface)] 
+	    DoSurfaceInfoDlog
+	}
+    }
+    bind $fwSurfaces.cb1 <Control-Button-1> {
+	if { [tkm_IsGroupEnabled tMenuGroup_OriginalSurfaceViewing] } {
+	    set gbDisplayFlag(flag_OriginalSurface) \
+		[expr !$gbDisplayFlag(flag_OriginalSurface)] 
+	    DoSurfaceInfoDlog
+	}
+    }
+    bind $fwSurfaces.cb2 <Control-Button-1> {
+	if { [tkm_IsGroupEnabled tMenuGroup_PialSurfaceViewing] } {
+	    set gbDisplayFlag(flag_PialSurface) \
+		[expr !$gbDisplayFlag(flag_PialSurface)] 
 	    DoSurfaceInfoDlog
 	}
     }
