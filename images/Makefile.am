@@ -71,6 +71,7 @@ icon_orientation_sagittal.gif \
 icon_overlay.gif \
 icon_redraw.gif \
 icon_rotate_plane.gif \
+icon_seg_volume.gif \
 icon_snapshot_load.gif \
 icon_snapshot_save.gif \
 icon_stopwatch.gif \
