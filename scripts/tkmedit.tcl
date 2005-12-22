@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.100 2005/12/22 00:31:44 kteich Exp $
+# $Id: tkmedit.tcl,v 1.101 2005/12/22 23:26:01 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -3250,7 +3250,7 @@ proc ShowAuxSegLabel { ibShow } {
 
 proc ShowHeadPointLabel { ibShow } {
     ShowLabel kLabel_Label_Head $ibShow
-    tkm_SetMenuItemGroupStatus tMenuGroup_HeadPoints $ibShow
+    tkm_SetEnableGroupStatus tMenuGroup_HeadPoints $ibShow
 }
 
 proc ShowFuncCoords { ibShow } {
@@ -4344,7 +4344,21 @@ proc CreateToolBar { ifwToolBar } {
 	    "SendDisplayFlagValue flag_PialSurface"
 	    "Show Pial Surface" } 
     }
-    
+    # Control-left-click to show the settings, control-right-click to
+    # open a load dialog box. Note that for the control button 1
+    # click, we have to toggle flag, since even control-clicking will
+    # trigger the main cmd, so we need to reverse it.
+    bind $fwSurfaces.cb0 <Control-Button-1> {
+	if { } {
+	    set gbDisplayFlag(flag_MainSurface) \
+		[expr !gbDisplayFlag(flag_MainSurface)] 
+	    DoSurfaceInfoDlog
+	}
+    }
+    bind $fwSurfaces.cb0 <Control-Button-3> "DoFileDlog LoadMainSurface"
+    bind $fwSurfaces.cb1 <Control-Button-3> "DoFileDlog LoadOriginalSurface"
+    bind $fwSurfaces.cb2 <Control-Button-3> "DoFileDlog LoadPialSurface"
+
     tkm_MakeToolbar $fwVolumeToggles \
 	1 \
 	gbDisplayFlag(flag_AuxVolume) \
@@ -4843,18 +4857,18 @@ pack $fwLeft $fwRight \
 pack $wwTop
 
 # start out with the main bar enabled
-    ShowToolBar main 1
-    ShowToolBar nav 1
+ShowToolBar main 1
+ShowToolBar nav 1
 
 # look for environment variable settings to automatically show toolbars
 foreach toolbar {main nav recon} {
     catch {
-  if { $env(TKMEDIT_TOOLBAR_[string toupper $toolbar]) == 1 } {
-      ShowToolBar $toolbar 1
-  }
-  if { $env(TKMEDIT_TOOLBAR_[string toupper $toolbar]) == 0 } {
-      ShowToolBar $toolbar 0
-  }
+	if { $env(TKMEDIT_TOOLBAR_[string toupper $toolbar]) == 1 } {
+	    ShowToolBar $toolbar 1
+	}
+	if { $env(TKMEDIT_TOOLBAR_[string toupper $toolbar]) == 0 } {
+	    ShowToolBar $toolbar 0
+	}
     }
 }
 

@@ -18978,7 +18978,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.162 2005/12/22 20:07:32 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.163 2005/12/22 23:25:51 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21453,7 +21453,7 @@ int
 enable_menu_set (int set, int enable) {
   char tcl_cmd[1024];
   
-  strncpy (tcl_cmd, "tkm_SetMenuItemGroupStatus", sizeof(tcl_cmd));
+  strncpy (tcl_cmd, "tkm_SetEnableGroupStatus", sizeof(tcl_cmd));
   switch(set)
     {
     case MENUSET_VSET_INFLATED_LOADED:

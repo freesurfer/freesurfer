@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.36 2005/12/13 22:36:07 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.37 2005/12/22 23:26:01 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -33,7 +33,7 @@
 # item = { cascade   "Item Name" {item...}              [group_name] }
 # item = { separator }
 
-# tkm_SetMenuItemGroupStatus group_name 0|1
+# tkm_SetEnableGroupStatus group_name 0|1
 
 # tkm_MakeEntryWithIncDecButtons fwFrame "Label" variable {function} step range
 # tkm_MakeSlider fwFrame {"Left text" "Right text"} variable
@@ -657,7 +657,7 @@ proc tkm_AddMenuItemsToMenu { isMenu ilMenuItems } {
 		}
 
 		if { [string compare $sGroupName ""] != 0 } {
-		    tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
+		    tkm_AddMenuItemToEnableGroup $sGroupName $isMenu $nItemNum
 		}
 
 		set bProcessed 1
@@ -677,7 +677,7 @@ proc tkm_AddMenuItemsToMenu { isMenu ilMenuItems } {
 		
 		set sGroupName [lindex $lItem 3]
 		if { [string compare $sGroupName ""] != 0 } {
-		    tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
+		    tkm_AddMenuItemToEnableGroup $sGroupName $isMenu $nItemNum
 		}
 		set bProcessed 1
 	    }
@@ -1343,7 +1343,7 @@ proc tkm_UpdateDirectorySelectorVariable { isFrame } {
 
 # =========================================================================
 
-proc tkm_AddItemToMenuGroup { isGroupName ifwMenuObject inMenuItemNum } {
+proc tkm_AddMenuItemToEnableGroup { isGroupName ifwMenuObject inMenuItemNum } {
     
     global glMenuGroups
     
@@ -1351,7 +1351,7 @@ proc tkm_AddItemToMenuGroup { isGroupName ifwMenuObject inMenuItemNum } {
     lappend glMenuGroups($isGroupName) "$ifwMenuObject $inMenuItemNum"
 }
 
-proc tkm_SetMenuItemGroupStatus { isGroupName ibEnable } {
+proc tkm_SetEnableGroupStatus { isGroupName ibEnable } {
     
     global glMenuGroups
     

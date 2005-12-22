@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/12/22 19:59:59 $
-// Revision       : $Revision: 1.262 $
-char *VERSION = "$Revision: 1.262 $";
+// Revision Date  : $Date: 2005/12/22 23:25:41 $
+// Revision       : $Revision: 1.263 $
+char *VERSION = "$Revision: 1.263 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1101,7 +1101,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.262 2005/12/22 19:59:59 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.263 2005/12/22 23:25:41 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5373,7 +5373,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.262 2005/12/22 19:59:59 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.263 2005/12/22 23:25:41 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -12351,24 +12351,24 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "ShowHeadPointLabel",
   "ShowFuncCoords",
   "ShowFuncValue",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_AuxVolumeOptions",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_DirtyAnatomicalVolume",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_DirtyAuxAnatomicalVolume",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_VolumeMainTransformLoadedOptions",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_VolumeAuxTransformLoadedOptions",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_OverlayOptions",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_TimeCourseOptions",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_SurfaceLoading",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_SurfaceViewing",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_OriginalSurfaceViewing",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_PialSurfaceViewing",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_HeadPoints",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_VLIOptions",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_GCAOptions",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_DTIOptions",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_Registration",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_SegmentationOptions",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_AuxSegmentationOptions",
+  "tkm_SetEnableGroupStatus tMenuGroup_AuxVolumeOptions",
+  "tkm_SetEnableGroupStatus tMenuGroup_DirtyAnatomicalVolume",
+  "tkm_SetEnableGroupStatus tMenuGroup_DirtyAuxAnatomicalVolume",
+  "tkm_SetEnableGroupStatus tMenuGroup_VolumeMainTransformLoadedOptions",
+  "tkm_SetEnableGroupStatus tMenuGroup_VolumeAuxTransformLoadedOptions",
+  "tkm_SetEnableGroupStatus tMenuGroup_OverlayOptions",
+  "tkm_SetEnableGroupStatus tMenuGroup_TimeCourseOptions",
+  "tkm_SetEnableGroupStatus tMenuGroup_SurfaceLoading",
+  "tkm_SetEnableGroupStatus tMenuGroup_SurfaceViewing",
+  "tkm_SetEnableGroupStatus tMenuGroup_OriginalSurfaceViewing",
+  "tkm_SetEnableGroupStatus tMenuGroup_PialSurfaceViewing",
+  "tkm_SetEnableGroupStatus tMenuGroup_HeadPoints",
+  "tkm_SetEnableGroupStatus tMenuGroup_VLIOptions",
+  "tkm_SetEnableGroupStatus tMenuGroup_GCAOptions",
+  "tkm_SetEnableGroupStatus tMenuGroup_DTIOptions",
+  "tkm_SetEnableGroupStatus tMenuGroup_Registration",
+  "tkm_SetEnableGroupStatus tMenuGroup_SegmentationOptions",
+  "tkm_SetEnableGroupStatus tMenuGroup_AuxSegmentationOptions",
   "ClearSegColorTable",
   "AddSegColorTableEntry",
   

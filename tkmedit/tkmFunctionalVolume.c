@@ -2088,9 +2088,7 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   float     min     = 0; /* threshold */
   float     mid     = 0;
   float     max     = 0;
-#if 0
   float     tmp     = 0;
-#endif  
 
   /* set up values */
   f = (float)iValue;
@@ -2159,14 +2157,12 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
     goto cleanup;
   }
   
-#if 0
   /* this puts values between min and mid on a nice scale */
   if ( fabs(f) > min && fabs(f) < mid ) {
     tmp = fabs(f);
     tmp = (1.0/(mid-min)) * (tmp-min)*(tmp-min) + min;
     f = (f<0) ? -tmp : tmp;
   }
-#endif  
 
   /* calc the color */
   if ( f >= 0 ) {

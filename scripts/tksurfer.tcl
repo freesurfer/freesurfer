@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.98 2005/12/22 22:00:14 kteich Exp $
+# $Id: tksurfer.tcl,v 1.99 2005/12/22 23:26:01 kteich Exp $
 
 package require BLT;
 
@@ -4467,7 +4467,7 @@ proc GDF_Load { ifnGDF {iOverlay 0} } {
     set gGDFID $ID
     FsgdfPlot_ShowWindow $gGDFID
 
-    tkm_SetMenuItemGroupStatus mg_GDFLoaded 1
+    tkm_SetEnableGroupStatus mg_GDFLoaded 1
     set gbGDFLoaded 1
 }
 
@@ -5413,7 +5413,7 @@ ResetTransform
 
 # Init the fsgdf code.
 set gbGDFLoaded 0
-tkm_SetMenuItemGroupStatus mg_GDFLoaded 0
+tkm_SetEnableGroupStatus mg_GDFLoaded 0
 FsgdfPlot_Init
 
 # we did it!
