@@ -232,6 +232,7 @@ MRI        *GCAbuildMostLikelyVolume(GCA *gca, MRI *mri) ;
 MRI        *GCAbuildMostLikelyVolumeForStructure(GCA *gca, MRI *mri_seg, int label, int border, TRANSFORM *transform,
 																								 MRI *mri_labels) ;
 MRI        *GCAbuildMostLikelyVolumeFrame(GCA *gca, MRI *mri, int frame) ;
+MRI *GCAbuildMostLikelyLabelVolume(GCA *gca);
 MRI  *GCAlabelProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform);
 MRI  *GCAcomputeProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels, 
                               MRI *mri_dst, TRANSFORM *transform);

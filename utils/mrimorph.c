@@ -11,8 +11,8 @@
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/12/05 22:24:08 $
-// Revision       : $Revision: 1.50 $
+// Revision Date  : $Date: 2005/12/22 15:41:05 $
+// Revision       : $Revision: 1.51 $
 */
 
 /*-----------------------------------------------------
@@ -8512,4 +8512,192 @@ static int farid_align(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L
     return 0;
   }else 
     return 1;
+}
+
+
+static int    powell_minimize_label(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat);
+static float compute_powell_label_sse(float *p) ;
+static double compute_label_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L) ;
+
+/* compute mean squared error of two label images with a transform */
+static double
+compute_label_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L)
+{
+  int     x, y, z, width, height, depth,
+    hwidth, hheight, hdepth, i ;
+  VECTOR  *v1, *v2 ;
+  MRI     *mri_target, *mri_source ;
+  double  sse;
+  Real    xd, yd, zd ;
+  int d1, d2;
+  MATRIX  *m_L_inv ;
+  
+  m_L_inv = MatrixInverse(m_L, NULL) ;
+  if (m_L_inv == NULL)
+    ErrorExit(ERROR_BADPARM, "compute_distance_transform_sse: singular matrix.") ;
+  
+  mri_target = vl_target->mri2 ; mri_source = vl_source->mri2 ; 
+  
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  *MATRIX_RELT(v1, 4, 1) = 1.0 ; *MATRIX_RELT(v2, 4, 1) = 1.0 ;
+  
+  width = mri_target->width ; height = mri_target->height; depth = mri_target->depth;
+  hwidth = mri_source->width ; hheight = mri_source->height ;hdepth = mri_source->depth;
+  
+  
+  /* go through both voxel lists and compute the sse
+     map it to the source, and if the source hasn't been counted yet, count it.
+  */
+  
+  sse = 0.0 ;
+  for (i = 0 ; i < vl_source->nvox ; i++)
+    {
+      x = vl_source->xi[i] ; y = vl_source->yi[i] ; z = vl_source->zi[i] ; 
+      
+      V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+      MatrixMultiply(m_L, v1, v2) ;
+      d1 = (int)MRIgetVoxVal(vl_source->mri2, x, y, z, 0) ;
+      xd = (int)(V3_X(v2) + 0.5); yd = (int)(V3_Y(v2)+0.5); zd = (int)(V3_Z(v2)  + 0.5); 
+      if (xd < 0 || xd >= width-1
+	  || yd < 0  || yd >= height-1 || zd < 0 || zd >= depth-1)
+	d2 = 0;
+      else
+	d2 = (int)MRIgetVoxVal(vl_target->mri2, xd, yd, zd, 0) ;
+      
+      if(d1 != d2)
+	sse += 1; //may need to weighted with the probability
+    }
+  
+  VectorFree(&v1) ; VectorFree(&v2) ;
+  MatrixFree(&m_L_inv) ;
+  return(-sqrt(sse / (double)(vl_target->nvox + vl_source->nvox))) ;
+}
+
+MATRIX *
+MRIpowellAlignLabels(MRI *mri_source, MRI *mri_target, MATRIX *m_L)
+{
+  //align two label volumes
+  VOXEL_LIST *vl_target, *vl_source ;
+  
+  if (m_L == NULL)
+    m_L = MRIgetVoxelToVoxelXform(mri_source, mri_target) ;
+  
+  //  MRIvalRange(mri_target, &fmin, &fmax) ;
+  vl_target = VLSTcreate(mri_target,1,255,NULL,0,0);
+  vl_target->mri2 = mri_target ;
+
+  //  MRIvalRange(mri_target, &fmin, &fmax) ;
+  vl_source = VLSTcreate(mri_source, 1, 255, NULL, 0, 0) ;
+  vl_source->mri2 = mri_source ;
+  powell_minimize_label(vl_source, vl_target, m_L) ;
+  VLSTfree(&vl_source) ;
+
+  VLSTfree(&vl_target) ;
+  //	write_snapshot(mri_source, mri_target, m_L, "after_powell", 0) ;
+  return(m_L) ;
+}
+
+
+#ifdef NPARMS
+#undef NPARMS
+#endif
+#define NPARMS (3*4)
+#ifdef TOL
+#undef TOL
+#endif
+#define TOL 1e-5
+
+static int
+powell_minimize_label(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat)
+{
+  //used for registration of two label volumes
+  float *p, **xi, fret, fstart;
+  int   i, r, c, iter ;
+  p = vector(1, NPARMS) ;
+  xi = matrix(1, NPARMS, 1, NPARMS) ;
+  p[i=1] = *MATRIX_RELT(mat, 1, 4) ;
+  p[i++] = *MATRIX_RELT(mat, 2, 4) ;
+  p[i++] = *MATRIX_RELT(mat, 3, 4) ;
+  for ( r = 1 ; r <= 3 ; r++)
+    {
+      for (c = 1 ; c <= 3 ; c++)
+	{
+	  p[i++] = *MATRIX_RELT(mat, r, c) ;
+	}
+    }
+  
+  Gvl_target = vl_target ; Gvl_source = vl_source ;
+  for (r = 1 ; r <= NPARMS; r++)
+    {
+      for (c = 1 ; c <= NPARMS; c++)
+	{
+	  xi[r][c] = r == c ? 1 : 0 ;
+	}
+    }
+  
+  powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_label_sse);
+
+  do
+    {
+      // reinitialize powell directions
+      for (r = 1 ; r <= NPARMS; r++)
+	{
+	  for (c = 1 ; c <= NPARMS; c++)
+	    {
+	      xi[r][c] = r == c ? 1 : 0 ;
+	    }
+	}
+      
+
+      fstart = fret ;
+      powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_label_sse);
+		
+      *MATRIX_RELT(mat, 1, 4) = p[i=1] ;
+      *MATRIX_RELT(mat, 2, 4) = p[i++] ; 
+      *MATRIX_RELT(mat, 3, 4) = p[i++] ;
+      for ( r = 1 ; r <= 3 ; r++)
+	{
+	  for (c = 1 ; c <= 3 ; c++)
+	    {
+	      *MATRIX_RELT(mat, r, c) = p[i++] ;
+	    }
+	}
+      *MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ; 
+      *MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ; 
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	printf("best alignment after powell: %2.3f (%d steps)\n", fret, iter) ;
+      if ((fstart-fret)/fstart < TOL)
+	break ;
+    } while (fret < fstart) ;
+  
+  free_matrix(xi, 1, NPARMS, 1, NPARMS) ;
+  free_vector(p, 1, NPARMS) ;
+
+  return(NO_ERROR) ;
+}
+static float
+compute_powell_label_sse(float *p)
+{
+  static MATRIX *mat = NULL ;
+  float  error;
+  int    i, r, c ;
+  
+  if (mat == NULL)
+    mat = MatrixAlloc(4, 4, MATRIX_REAL) ;
+  *MATRIX_RELT(mat, 1, 4) = p[i=1] ;
+  *MATRIX_RELT(mat, 2, 4) = p[i++] ; 
+  *MATRIX_RELT(mat, 3, 4) = p[i++] ;
+  for (r = 1 ; r <= 3 ; r++)
+    {
+      for (c = 1 ; c <= 3 ; c++)
+	{
+	  *MATRIX_RELT(mat, r, c) = p[i++] ;
+	}
+    }
+
+  *MATRIX_RELT(mat, 4, 1) = 0.0 ; *MATRIX_RELT(mat, 4, 2) = 0.0 ; 
+  *MATRIX_RELT(mat, 4, 3) = 0.0 ; *MATRIX_RELT(mat, 4, 4) = 1.0 ; 
+  error = -compute_label_likelihood(Gvl_source, Gvl_target, mat) ;
+  return(error) ;
 }
