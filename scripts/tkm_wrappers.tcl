@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.37 2005/12/22 23:26:01 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.38 2005/12/22 23:52:55 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -1343,36 +1343,101 @@ proc tkm_UpdateDirectorySelectorVariable { isFrame } {
 
 # =========================================================================
 
+proc tkm_IsGroupEnabled { isGroupName } {
+    global gbEnabledGroups
+
+    if { ![info exists gbEnabledGroups($isGroupName)] } { 
+	return false
+    } else {
+	return $gbEnabledGroups($isGroupName)
+    }
+}
+
 proc tkm_AddMenuItemToEnableGroup { isGroupName ifwMenuObject inMenuItemNum } {
-    
-    global glMenuGroups
+    global gbEnabledGroups
+    global glEnableGroups
+
+    if { ![info exists gbEnabledGroups($isGroupName)] } { 
+	set gbEnabledGroups($isGroupName) false
+    }
     
     # add this menu / item pair to the list
-    lappend glMenuGroups($isGroupName) "$ifwMenuObject $inMenuItemNum"
+    lappend glEnableGroups($isGroupName) "menu $ifwMenuObject $inMenuItemNum"
+}
+
+proc tkm_AddCheckboxToEnableGroup { isGroupName ifwCheckbox } {
+    global gbEnabledGroups
+    global glEnableGroups
+    
+    if { ![info exists gbEnabledGroups($isGroupName)] } { 
+	set gbEnabledGroups($isGroupName) false
+    }
+    
+    # Add this checkbox
+    lappend glEnableGroups($isGroupName) "checkbox $ifwCheckbox"
+}
+
+proc tkm_AddRadioButtonToEnableGroup { isGroupName ifwRadioButton } {
+    global gbEnabledGroups
+    global glEnableGroups
+    
+    if { ![info exists gbEnabledGroups($isGroupName)] } { 
+	set gbEnabledGroups($isGroupName) false
+    }
+    
+    # Add this radio button
+    lappend glEnableGroups($isGroupName) "radiobutton $ifwRadioButton"
+    $ifwRadioButton configure -state disabled
 }
 
 proc tkm_SetEnableGroupStatus { isGroupName ibEnable } {
+    global gbEnabledGroups
+    global glEnableGroups
     
-    global glMenuGroups
+    set gbEnabledGroups($isGroupName) $ibEnable
     
-    # for each menu / item pair in the list
-    foreach lMenuItemPair $glMenuGroups($isGroupName) {
+    # for each entry in the list
+    foreach lEntry $glEnableGroups($isGroupName) {
 	
-	# first item is a menu button
-	set mbwMenu [lindex $lMenuItemPair 0]
-	
-	# second item is a list of items
-	set nMenuItem [lindex $lMenuItemPair 1]
-	
-	if { $ibEnable == 0 } {
-	    if { [catch {$mbwMenu entryconfigure $nMenuItem -state disabled} sResult] } {
-		set sType [$mbwMenu type $nMenuItem]
-		puts "error, $isGroupName: $mbwMenu $nMenuItem $sType\n\t$sResult"
-		
+	# first item is the type
+	set sType [lindex $lEntry 0]
+	switch $sType {
+
+	    menu {
+		# Second item is the menu name, third is the menu item.
+		set mbwMenu [lindex $lEntry 1]
+		set nMenuItem [lindex $lEntry 2]
+
+		set sState normal
+		if { $ibEnable == 0 } {
+		    set sState disabled
+		}
+
+		if { [catch {
+		    $mbwMenu entryconfigure $nMenuItem -state $sState
+		} sResult] } {
+		    puts "Error en/disabling $isGroupName: "
+		    puts "\t$mbwMenu $nMenuItem to $sState"
+		    puts "\t$sResult"
+		}
 	    }
-	} else {
-	    if { [catch {$mbwMenu entryconfigure $nMenuItem -state normal} sResult] } {
-		puts "error, $isGroupName: $mbwMenu $nMenuItem\n\t$sResult"
+
+	    checkbox - radiobutton {
+		# Second item is widget name.
+		set wWidget [lindex $lEntry 1]
+
+		set sState normal
+		if { $ibEnable == 0 } {
+		    set sState disabled
+		}
+
+		if { [catch {
+		    $wWidget configure -state $sState
+		} sResult] } {
+		    puts "Error en/disabling $isGroupName: "
+		    puts "\t$wWidget to $sState"
+		    puts "\t$sResult"
+		}
 	    }
 	}
     }
