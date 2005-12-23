@@ -45,6 +45,7 @@ setenv DYLD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 # Output file
 ######################################################################
 set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
+set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
 set OUTPUTF=$LOG_DIR/build_log-$RELEASE_TYPE-$HOSTNAME.txt
 echo "$HOSTNAME $RELEASE_TYPE build" >& $OUTPUTF
 $ECHO chmod g+w $OUTPUTF
@@ -59,12 +60,12 @@ set OS=`uname -s`
 ######################################################################
 if(! -d $SCRIPT_DIR) then 
   echo "$SCRIPT_DIR doesn't exist" >>& $OUTPUTF
-  $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - sanity" $MAIL_LIST < $OUTPUTF
+  $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - sanity" $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
 endif
 if(! -d $DEV_DIR) then 
   echo "$DEV_DIR doesn't exist" >>& $OUTPUTF
-  $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - sanity" $MAIL_LIST < $OUTPUTF
+  $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - sanity" $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
 endif
 
@@ -121,7 +122,7 @@ $ECHO echo "CMD: grep -e "Permission denied" $LOG_DIR/update-output-$HOSTNAME" >
 $ECHO grep -e "Permission denied"  $LOG_DIR/update-output-$HOSTNAME >& /dev/null
 if ($status == 0) then
   echo "cvs update: Permission denied" >>& $OUTPUTF
-  $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - cvs update permission denied" $MAIL_LIST < $OUTPUTF
+  $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - cvs update permission denied" $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
 endif
 
@@ -167,7 +168,7 @@ if ($status != 0) then
   echo "config.log" >>& $OUTPUTF
   echo "" >>& $OUTPUTF
   $ECHO cat ${DEV_DIR}/config.log >>& $OUTPUTF
-  $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build FAILED after configure" $MAIL_LIST < $OUTPUTF
+  $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build FAILED after configure" $FAILURE_MAIL_LIST < $OUTPUTF
   $ECHO touch ${FAILED_FILE}
   $ECHO chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
@@ -185,7 +186,7 @@ $ECHO make -j 4 >>& $OUTPUTF
 if ($status != 0) then
   # note: /usr/local/freesurfer/dev/bin/ dirs have not 
   # been modified (make install does that)
-  $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build (make) FAILED" $MAIL_LIST < $OUTPUTF
+  $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build (make) FAILED" $FAILURE_MAIL_LIST < $OUTPUTF
   $ECHO touch ${FAILED_FILE}
   $ECHO chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
@@ -206,7 +207,7 @@ $ECHO mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
 $ECHO echo "CMD: make -j 4 install" >>& $OUTPUTF
 $ECHO make -j 4 install >>& $OUTPUTF
 if ($status != 0) then
-  $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build (make install) FAILED" $MAIL_LIST < $OUTPUTF
+  $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build (make install) FAILED" $FAILURE_MAIL_LIST < $OUTPUTF
   $ECHO touch ${FAILED_FILE}
   $ECHO chmod g+w ${FAILED_FILE}
   # restore prior (possibly working) bin/ dirs
@@ -240,7 +241,7 @@ if ($?PUB_DEST_DIR) then
   $ECHO echo "CMD: make -j 4 release prefix=$PUB_DEST_DIR" >>& $OUTPUTF
   $ECHO make -j 4 release prefix=${PUB_DEST_DIR} >>& $OUTPUTF
   if ($status != 0) then
-    $ECHO mail -s "$HOSTNAME $RELEASE_TYPE release build (make) FAILED" $MAIL_LIST < $OUTPUTF
+    $ECHO mail -s "$HOSTNAME $RELEASE_TYPE release build (make) FAILED" $FAILURE_MAIL_LIST < $OUTPUTF
     $ECHO touch ${FAILED_FILE}
     $ECHO chmod g+w ${FAILED_FILE}
     # set group write bit on files changed by make tools:
