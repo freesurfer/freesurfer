@@ -18,7 +18,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.64 2005/12/16 01:18:29 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.65 2005/12/27 17:28:40 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -157,10 +157,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.64 2005/12/16 01:18:29 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.65 2005/12/27 17:28:40 xhan Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.64 2005/12/16 01:18:29 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.65 2005/12/27 17:28:40 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -824,7 +824,11 @@ main(int argc, char *argv[])
   /*  if (!(parms.flags & IPFLAG_NO_SELF_INT_TEST))*/
   {
     fprintf(stderr, "measuring cortical thickness...\n") ;
-    MRISmeasureCorticalThickness(mris, nbhd_size, max_thickness) ;
+    if(longitudinal)
+      MRISmeasureCorticalThickness(mris, nbhd_size, 5.0) ;
+    else
+      MRISmeasureCorticalThickness(mris, nbhd_size, max_thickness) ;
+
     fprintf(stderr, 
             "writing cortical thickness estimate to 'thickness' file.\n") ;
     sprintf(fname, "thickness%s%s", output_suffix, suffix) ;
