@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.102 2005/12/22 23:59:20 kteich Exp $
+# $Id: tkmedit.tcl,v 1.103 2005/12/28 14:46:26 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -3509,15 +3509,15 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ command
 	    "Save Segmentation"
 	    "SaveSegmentationVolume 0"
-	    tMenuGroup_Segmentation }
+	    tMenuGroup_SegmentationOptions }
 	{ command
 	    "Save Segmentation As..."
 	    {DoFileDlog SaveSegmentationAs}
-	    tMenuGroup_Segmentation }
+	    tMenuGroup_SegmentationOptions }
 	{ command
 	    "Save Changed Values"
 	    {DoFileDlog ExportChangedSegmentationVolume}
-	    tMenuGroup_Segmentation }
+	    tMenuGroup_SegmentationOptions }
 	{ cascade "Aux Segmentation" {
 	    { command
 		"New Aux Segmentation..."
@@ -3539,7 +3539,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { command
 		"Save Aux Changed Values"
 		{DoFileDlog ExportAuxChangedSegmentationVolume}
-		tMenuGroup_Segmentation }
+		tMenuGroup_SegmentationOptions }
 	}}
 	{ separator }
 	{ cascade "Transforms" {
@@ -3984,7 +3984,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ command
 	    "Configure Segmentation Brush..."
 	    DoEditSegBrushInfoDlog
-	    tMenuGroup_Segmentation }
+	    tMenuGroup_SegmentationOptions }
 	{ command
 	    "Configure Flood Select..."
 	    DoEditFloodSelectParamsDlog }
@@ -4136,11 +4136,11 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { command
 		"Select Main Segmentation Label At Cursor"
 		"SelectSegLabelAtCursor $tkm_tSegType(main)"
-		tMenuGroup_Segmentation }
+		tMenuGroup_SegmentationOptions }
 	    { command
 		"Select Aux Segmentation Label At Cursor"
 		"SelectSegLabelAtCursor $tkm_tSegType(aux)"
-		tMenuGroup_Segmentation }
+		tMenuGroup_SegmentationOptions }
 	    { check
 		"Verbose GCA Display"
 		"SendDisplayFlagValue flag_VerboseGCADump"
@@ -4385,11 +4385,23 @@ proc CreateToolBar { ifwToolBar } {
 	    { image 1 icon_aux_volume "Show Aux Volume" } 
 	}
 
+    # Segmentation checkbox. Control-left click shows options,
+    # control-right click shows load dlog.
     tkm_MakeCheckboxes $fwSegVolume h {
 	{ image icon_seg_volume gbDisplayFlag(flag_SegmentationVolumeOverlay)
 	    "SendDisplayFlagValue flag_SegmentationVolumeOverlay" 
 	    "Show Segmentation" }
     }
+    tkm_AddCheckboxToEnableGroup tMenuGroup_SegmentationOptions \
+	$fwSegVolume.cb0
+    bind $fwSegVolume.cb0 <Control-Button-1> {
+	if { [tkm_IsGroupEnabled tMenuGroup_SegmentationOptions] } {
+	    set gbDisplayFlag(flag_SegmentationVolumeOverlay) \
+		[expr !$gbDisplayFlag(flag_SegmentationVolumeOverlay)] 
+	    DoSegmentationVolumeDisplayInfoDlog
+	}
+    }
+    bind $fwSegVolume.cb0 <Control-Button-3> "DoFileDlog LoadSegmentation"
     
     pack $fwTools $fwViews $fwSurfaces $fwVolumeToggles $fwSegVolume \
       -side left \
