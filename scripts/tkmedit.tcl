@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.103 2005/12/28 14:46:26 kteich Exp $
+# $Id: tkmedit.tcl,v 1.104 2005/12/28 15:04:10 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -4377,6 +4377,10 @@ proc CreateToolBar { ifwToolBar } {
     bind $fwSurfaces.cb1 <Control-Button-3> "DoFileDlog LoadOriginalSurface"
     bind $fwSurfaces.cb2 <Control-Button-3> "DoFileDlog LoadPialSurface"
 
+    # Volume buttons. Main button, you can always control left click
+    # to bring up options and control right click to see load
+    # dialog. Aux button, only enables when aux volume is enabled, but
+    # has same behavior.
     tkm_MakeToolbar $fwVolumeToggles \
 	1 \
 	gbDisplayFlag(flag_AuxVolume) \
@@ -4384,6 +4388,21 @@ proc CreateToolBar { ifwToolBar } {
 	    { image 0 icon_main_volume "Show Main Volume" }
 	    { image 1 icon_aux_volume "Show Aux Volume" } 
 	}
+    bind [$fwVolumeToggles.tbw subwidget 0] <Control-Button-1> \
+	DoVolumeColorScaleInfoDlog
+    bind [$fwVolumeToggles.tbw subwidget 0] <Control-Button-3> \
+	"DoFileDlog LoadVolume"
+    tkm_AddCheckboxToEnableGroup tMenuGroup_AuxVolumeOptions \
+	[$fwVolumeToggles.tbw subwidget 1]
+    bind [$fwVolumeToggles.tbw subwidget 1] <Control-Button-3> \
+	"DoFileDlog LoadAuxVolume"
+    bind [$fwVolumeToggles.tbw subwidget 1] <Control-Button-1> {
+	if { [tkm_IsGroupEnabled tMenuGroup_AuxVolumeOptions] } {
+	    set gbDisplayFlag(flag_AuxVolume) \
+		[expr !$gbDisplayFlag(flag_AuxVolume)] 
+	    DoVolumeColorScaleInfoDlog
+	}
+    }
 
     # Segmentation checkbox. Control-left click shows options,
     # control-right click shows load dlog.
