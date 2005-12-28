@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.104 2005/12/28 15:04:10 kteich Exp $
+# $Id: tkmedit.tcl,v 1.105 2005/12/28 15:56:28 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -366,6 +366,47 @@ proc BuildShortcutDirsList {} {
 }
 BuildShortcutDirsList
 
+proc BuildVolumeLoadList {} {
+    global gaLoadMenu
+    global gsSubjectDirectory
+
+    # Clear the menus.
+    $gaLoadMenu(main) delete 0 end
+    $gaLoadMenu(aux) delete 0 end
+	
+    # Go through looking for file names.
+    foreach {fn label} {
+	brain/COR-.info "Load brain COR"
+	brain/brain.mgz "Load brain.mgz"
+	brain/brain.mgh "Load brain.mgh"
+	filled/COR-.info "Load filled COR"
+	filled/filled.mgz "Load filled.mgz"
+	filled/filled.mgh "Load filled.mgh"
+	orig/COR-.info "Load orig COR"
+	orig/orig.mgz "Load orig.mgz"
+	orig/orig.mgh "Load orig.mgh"
+	T1/COR-.info "Load T1 COR"
+	T1/T1.mgz "Load T1.mgz"
+	T1/T1.mgh "Load T1.mgh"
+	wm/COR-.info "Load wm COR"
+	wm/wm.mgz "Load wm.mgz"
+	wm/wm.mgh "Load wm.mgh"
+    } {
+
+	# Create the full path using the subject dir and mri/. Then
+	# look fir the file. If it exists, make a menu command for it.
+	set fnFull [file join $gsSubjectDirectory mri $fn]
+	if { [file exists $fnFull] } {
+	    $gaLoadMenu(main) add command \
+		-command "LoadVolume $fnFull" \
+		-label $label
+	    $gaLoadMenu(aux) add command \
+		-command "LoadAuxVolume $fnFull" \
+		-label $label
+	}
+    }
+}
+
 # ========================================================= UPDATES FROM MEDIT
 
 proc UpdateLinkedCursorFlag { ibLinked } {
@@ -655,6 +696,7 @@ proc UpdateSubjectDirectory { isSubjectDir } {
     global gsSubjectDirectory
     set gsSubjectDirectory $isSubjectDir
     BuildShortcutDirsList
+    BuildVolumeLoadList
 }
 
 proc UpdateSegmentationColorTable { isColorTable } {
@@ -4293,7 +4335,8 @@ proc SetCursorFromLabelContents { iLabel iSet iSpace } {
 }
 
 proc CreateToolBar { ifwToolBar } {
-
+    
+    global gaLoadMenu
     global gfwaToolBar
     global gTool gViewPreset gDisplayedVolume
     global gbLinkedCursor
@@ -4403,6 +4446,16 @@ proc CreateToolBar { ifwToolBar } {
 	    DoVolumeColorScaleInfoDlog
 	}
     }
+
+    # Make and attach the load menus to the buttons. These will be
+    # build in BuildVolumeLoadList when the subject dir is set.
+    set gaLoadMenu(main) [menu .mmLoadMenu]
+    bind [$fwVolumeToggles.tbw subwidget 0] <Button-3> \
+	"tk_popup $gaLoadMenu(main) %X %Y"
+    set gaLoadMenu(aux) [menu .mmAuxLoadMenu]
+    bind [$fwVolumeToggles.tbw subwidget 1] <Button-3> \
+	"tk_popup $gaLoadMenu(aux) %X %Y"
+
 
     # Segmentation checkbox. Control-left click shows options,
     # control-right click shows load dlog.
