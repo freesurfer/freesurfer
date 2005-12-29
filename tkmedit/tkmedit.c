@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/12/22 23:25:41 $
-// Revision       : $Revision: 1.263 $
-char *VERSION = "$Revision: 1.263 $";
+// Revision Date  : $Date: 2005/12/29 20:58:08 $
+// Revision       : $Revision: 1.264 $
+char *VERSION = "$Revision: 1.264 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1101,7 +1101,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.263 2005/12/22 23:25:41 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.264 2005/12/29 20:58:08 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2984,14 +2984,56 @@ tkm_tErr CalcAndSetSurfaceClientTransformation ( tkm_tSurfaceType iType ) {
 }
 
 
+void CopyEditDatFileName ( char* osFileName, int izFileName ) {
 
+  static tBoolean bWarnedLocal = FALSE;
+  char*     pLocalEditFile  = NULL;
+  tBoolean  bFoundLocal     = FALSE;
+  char      sSubjectName[tkm_knNameLen] = "";
+  FILE*     fTest           = NULL;
+  char      sFileName[tkm_knPathLen] = "";
+
+  /* First check if the local edit.dat file exists. If not, use the
+     normal one. */
+  bFoundLocal = FALSE;
+  pLocalEditFile = getenv( "FS_SAVE_GOTO_POINT" );
+  if( NULL != pLocalEditFile ) {
+
+    Volm_CopySubjectName( gAnatomicalVolume[tkm_tVolumeType_Main],
+			  sSubjectName, sizeof( sSubjectName ));
+    sprintf( sFileName, "%s-%s", pLocalEditFile, sSubjectName );
+
+    fTest = fopen( sFileName, "r" );
+    if( fTest ) { 
+      bFoundLocal = TRUE;
+      fclose( fTest ); 
+      
+      if( !bWarnedLocal ) {
+	OutputPrint "tkmedit: Using local edit.dat file %s\n", sFileName 
+	  EndOutputPrint;
+	bWarnedLocal = TRUE;
+      }
+    }
+  }
+
+  if( !bFoundLocal ) {
+    
+    /* Make the normal file name. */
+    DebugNote( ("Making file name from edit.dat") );
+    MakeFileName( "edit.dat", tkm_tFileName_Edit,
+		  sFileName, sizeof(sFileName) );
+  }
+  
+  /* Return the file name. */
+  strncpy( osFileName, sFileName, izFileName );
+}
 
 void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
   
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
   char      sFileName[tkm_knPathLen] = "";
-  FILE*      file         = NULL;
+  FILE*     file            = NULL;
   xVoxel    MRIIdx;
   xVoxel    ras;
   xVoxel    tal;
@@ -3000,10 +3042,9 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
   DebugEnterFunction( ("WriteVoxelToEditFile ( iAnaIdx=%d,%d,%d )",
            xVoxl_ExpandInt( iAnaIdx )) );
   
-  /* make the file name */
-  MakeFileName( "edit.dat", tkm_tFileName_Edit, 
-    sFileName, sizeof(sFileName) );
-  
+  /* Get the file name. */
+  CopyEditDatFileName( sFileName, sizeof(sFileName) );
+
   /* open it */
   DebugNote( ("Opening edit file") );
   file = fopen( sFileName, "w" );
@@ -3057,12 +3098,11 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
 void GotoSavedCursor () {
   
   char sFileName[tkm_knPathLen] = "";
-  
+ 
   DebugEnterFunction( ("GotoSavedCursor ()") );
   
-  /* make the file name. */
-  DebugNote( ("Making file name from edit.dat") );
-  MakeFileName( "edit.dat", tkm_tFileName_Edit, sFileName, sizeof(sFileName) );
+  /* Get the file name. */
+  CopyEditDatFileName( sFileName, sizeof(sFileName) );
   
   ReadCursorFromEditFile( sFileName );
   
@@ -3084,6 +3124,7 @@ void ReadCursorFromEditFile ( char* isFileName ) {
   xVoxel    ras;
   xVoxel    MRIIdx;
   xVoxel    idx;
+  char      sError[tkm_knErrStringLen] = "";
   
   DebugEnterFunction( ("ReadCursorFromEditFile ( isFileName=%s )",
            isFileName) );
@@ -3122,11 +3163,11 @@ void ReadCursorFromEditFile ( char* isFileName ) {
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
-  
+
+  sprintf( sError, "Tkmedit couldn't read the cursor from %s.", isFileName );
   tkm_DisplayError( "Going to saved cursor",
-        tkm_GetErrorString(eResult),
-        "Tkmedit couldn't read the cursor from the edit.dat "
-        "file." );
+		    tkm_GetErrorString(eResult),
+		    sError );
   EndDebugCatch;
   
   if( NULL != file ) {
@@ -5373,7 +5414,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.263 2005/12/22 23:25:41 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.264 2005/12/29 20:58:08 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7980,7 +8021,6 @@ tkm_tErr SaveVolume ( tkm_tVolumeType iVolume,
   fTouch = fopen( sTouchFileName, "w" );
   if( fTouch ) { fclose( fTouch ); }
 
-  
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
@@ -11765,7 +11805,7 @@ tkm_tErr StopTimer () {
   
   /* get the subject name */
   Volm_CopySubjectName( gAnatomicalVolume[tkm_tVolumeType_Main], 
-      sSubjectName, sizeof(sSubjectName) );
+			sSubjectName, sizeof(sSubjectName) );
   
   /* look for the file name override from the environment variable. */
   psFileName = getenv( ksTkTimerDataFileEnvVar );
