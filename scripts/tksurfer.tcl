@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.100 2005/12/22 23:53:20 kteich Exp $
+# $Id: tksurfer.tcl,v 1.101 2005/12/29 15:31:06 kteich Exp $
 
 package require BLT;
 
@@ -3125,16 +3125,19 @@ proc CreateToolBar { ifwToolBar } {
 
     # main toolbar
     set gfwaToolBar(main)  $ifwToolBar.fwMainBar
+    set fwRedraw           $gfwaToolBar(main).fwRedraw
     set fwPoint            $gfwaToolBar(main).fwPoint
     set fwSurfaces         $gfwaToolBar(main).fwSurfaces
     set fwCurv             $gfwaToolBar(main).fwCurv
     set fwOverlay          $gfwaToolBar(main).fwOverlay
     set fwLabels           $gfwaToolBar(main).fwLabels
     set fwLabelStyle       $gfwaToolBar(main).fwLabelStyle
-    set fwSpacer           $gfwaToolBar(main).fwSpace
-    set fwRedraw           $gfwaToolBar(main).fwRedraw
     
     frame $gfwaToolBar(main) -border 2 -relief raised
+    
+    tkm_MakeButtons $fwRedraw { 
+	{ image icon_redraw { UpdateAndRedraw } "Redraw View" } }
+    bind $fwRedraw.bw0 <B2-ButtonRelease> [list UpdateLockButton $fwRedraw.bw0 gaLinkedVars(redrawlockflag)]
     
     tkm_MakeButtons $fwPoint { 
 	{ image icon_cursor_save { DoSavePoint } "Save Point" } 
@@ -3219,24 +3222,8 @@ proc CreateToolBar { ifwToolBar } {
     tkm_AddRadioButtonToEnableGroup mg_LabelLoaded $fwLabelStyle.rb0
     tkm_AddRadioButtonToEnableGroup mg_LabelLoaded $fwLabelStyle.rb1
 
-    frame $fwSpacer
-
-    tkm_MakeButtons $fwRedraw { 
-	{ image icon_redraw { UpdateAndRedraw } "Redraw View" } }
-    bind $fwRedraw.bw0 <B2-ButtonRelease> [list UpdateLockButton $fwRedraw.bw0 gaLinkedVars(redrawlockflag)]
-    
-    pack $fwPoint $fwSurfaces $fwCurv $fwOverlay $fwLabels $fwLabelStyle \
-	-side left \
-	-anchor w \
-	-padx 5
-    
-    pack $fwSpacer \
-	-side left \
-	-anchor w \
-	-fill x \
-	-expand yes
-    
-    pack $fwRedraw \
+    pack $fwRedraw $fwPoint $fwSurfaces $fwCurv \
+	$fwOverlay $fwLabels $fwLabelStyle \
 	-side left \
 	-anchor w \
 	-padx 5
@@ -3296,6 +3283,7 @@ proc CreateToolBar { ifwToolBar } {
 
     # Nav toolbar
     set gfwaToolBar(nav)  $ifwToolBar.fwNavBar
+    set fwRestore         $gfwaToolBar(nav).fwRestore
     set fwRotation        $gfwaToolBar(nav).fwRotation
     set fwRotButtons      $fwRotation.fwRotButtons
     set fwRotSlider       $fwRotation.fwRotSlider
@@ -3305,12 +3293,14 @@ proc CreateToolBar { ifwToolBar } {
     set fwScale           $gfwaToolBar(nav).fwScale
     set fwSclButtons      $fwScale.fwSclButtons
     set fwSclSlider       $fwScale.fwSclSlider
-    set fwSpacer          $gfwaToolBar(nav).fwSpacer
-    set fwRestore         $gfwaToolBar(nav).fwRestore
 
     set knSliderWidth 75
 
     frame $gfwaToolBar(nav) -border 2 -relief raised
+
+    tkm_MakeButtons $fwRestore { 
+	{ image icon_home { RestoreView } "Restore View" } 
+    }
 
     frame $fwRotation
 
@@ -3380,33 +3370,14 @@ proc CreateToolBar { ifwToolBar } {
 	    [list {"%"} gNextTransform(scale,amt) \
 		 0 200.0 $knSliderWidth {} 1 1 horizontal]]
 
-    frame $fwSpacer
-
-    tkm_MakeButtons $fwRestore { 
-	{ image icon_home { RestoreView } "Restore View" } 
-    }
-
     pack $fwSclButtons $fwSclSlider \
 	-side top \
 	-padx 0 -pady 0
     
-    pack $fwRotation $fwTranslation $fwScale \
+    pack $fwRestore $fwRotation $fwTranslation $fwScale \
 	-side left \
 	-anchor w \
 	-padx 5
-
-    pack $fwSpacer \
-	-side left \
-	-anchor w \
-	-fill x \
-	-expand yes
-    
-    pack $fwRestore \
-	-side left \
-	-anchor w \
-	-padx 5
-
-
 }
 
 proc ShowToolBar { isWhich ibShow } {
