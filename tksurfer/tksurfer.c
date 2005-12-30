@@ -1880,6 +1880,8 @@ int ddt_get_hilite_face_color (int vno, GLubyte* r, GLubyte* g, GLubyte* b);
 
 int save_tiff (char* fname);
 
+void copy_edit_dat_file_name (char* fname, int len);
+
 /* end rkt */
 
 
@@ -6999,7 +7001,8 @@ send_spherical_point(char *subject_name, char *canon_name, char *orig_name)
     }
   
   sv = &mriss->vertices[min_vno] ;
-  sprintf(fname,"%s/%s/%s/edit.dat",subjectsdir,subject_name,TMP_DIR);
+
+  copy_edit_dat_file_name (fname, sizeof(fname));
   if (DIAG_VERBOSE_ON)
     printf("writing coordinates to file %s\n", fname) ;
   fp = fopen(fname,"w");
@@ -7260,7 +7263,7 @@ find_orig_vertex_coordinates(int vindex)
     }
   if (transform_loaded) 
     conv_ras_to_tal(x, y, z, &x_tal, &y_tal, &z_tal) ;
-  sprintf(fname,"%s/edit.dat",tfname);
+  copy_edit_dat_file_name (fname, sizeof(fname));
   printf("writing coordinates to file %s\n", fname) ;
   fp = fopen(fname,"w");
   if (fp==NULL) 
@@ -7329,6 +7332,49 @@ find_orig_vertex_coordinates(int vindex)
   PR
     }
 
+void copy_edit_dat_file_name (char* fname, int len)
+{
+  static int warned_local = 0;
+  char* local_file  = NULL;
+  int found = 0;
+  FILE* test_file = NULL;
+  char file_name[NAME_LENGTH] = "";
+
+  /* First check if the local edit.dat file exists. If not, use the
+     normal one. */
+  found = FALSE;
+  local_file = getenv ("FS_SAVE_GOTO_POINT");
+  if (NULL != local_file)
+    {
+      
+      sprintf (file_name, "%s-%s", local_file, pname);
+
+      test_file = fopen (file_name, "r");
+      if (test_file)
+	{ 
+	  found = TRUE;
+	  fclose (test_file); 
+	  
+	  if (!warned_local)
+	    {
+	      printf ("tksurfer: Using local edit.dat file %s\n", file_name); 
+	      warned_local = TRUE;
+	    }
+	}
+    }
+
+  if (!found)
+    {
+      
+      /* Make the normal file name. */
+      sprintf (file_name, "%s/edit.dat", tfname);
+    }
+  
+  /* Return the file name. */
+  strncpy (fname, file_name, len);
+}
+
+
 void
 select_talairach_point(int *vindex,float x_tal,float y_tal,float z_tal)
 {
@@ -7345,7 +7391,7 @@ select_talairach_point(int *vindex,float x_tal,float y_tal,float z_tal)
   
   conv_tal_to_ras(x_tal, y_tal, z_tal, &x, &y, &z) ;
   
-  sprintf(fname,"%s/edit.dat",tfname);
+  copy_edit_dat_file_name (fname, sizeof(fname));
   fp = fopen(fname,"w");
   if (fp==NULL) {printf("surfer: ### can't create file %s\n",fname);PR return;}
   fprintf(fp,"%f %f %f\n",x,y,z);
@@ -7364,7 +7410,7 @@ select_orig_vertex_coordinates(int *vindex)
   char  fname[NAME_LENGTH];
   FILE  *fp;
   
-  sprintf(fname,"%s/edit.dat",tfname);
+  copy_edit_dat_file_name (fname, sizeof(fname));
   fp = fopen(fname,"r");
   if (fp==NULL) {printf("surfer: ### File %s not found\n",fname);PR return;}
   fscanf(fp,"%f %f %f\n",&px,&py,&pz);
@@ -18978,7 +19024,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.164 2005/12/22 23:54:35 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.165 2005/12/30 18:05:15 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
