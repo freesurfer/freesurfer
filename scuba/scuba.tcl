@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.168 2005/12/02 01:45:42 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.169 2005/12/30 20:37:09 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4562,7 +4562,7 @@ proc SavePrefsKey { iPrefsKey iState iKey } {
 	grab $gaPrefs(wwKeyGetter)
 	return
     }
-    
+
     # Convert the state and key and set the prefs value.
     set sKey [ConvertStateAndKeyToKeyComboString $iState $iKey]
     set gaPrefs($iPrefsKey) $sKey
@@ -5744,7 +5744,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.168 2005/12/02 01:45:42 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.169 2005/12/30 20:37:09 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
