@@ -73,7 +73,7 @@ main(int argc, char *argv[])
   MRI *mri_tmp=0 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.22 2005/07/19 17:52:48 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_template.c,v 1.23 2005/12/30 16:18:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -192,7 +192,7 @@ main(int argc, char *argv[])
             MRIaccumulateMaskedMeansAndVariances(mri_T1, mri_binary, mri_dof,
                                                  90, 100, mri_mean, mri_std) ;
             fprintf(stderr, "T1 = %d, binary = %d, mean = %2.1f\n",
-                    MRIvox(mri_T1, 141,100,127), 
+                    (int)MRIgetVoxVal(mri_T1, 141,100,127,0), 
                     MRIvox(mri_binary, 141,100,127),
                     MRIFvox(mri_mean, 141,100,127)) ;
           }
@@ -502,7 +502,7 @@ MRIaccumulateMeansAndVariances(MRI *mri, MRI *mri_mean, MRI *mri_std)
       pstd = &MRIFvox(mri_std, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        val = MRIvox(mri,x,y,z) ;
+        val = MRIgetVoxVal(mri,x,y,z,0) ;
         if (x == DEBUG_X && y == DEBUG_Y && z == DEBUG_Z)
 	  DiagBreak() ;
 #if 1
@@ -649,7 +649,7 @@ MRIaccumulateMaskedMeansAndVariances(MRI *mri, MRI *mri_mask, MRI *mri_dof,
         mask = *pmask++ ;
         if (mask >= low_val && mask <= hi_val)
         {
-          val = MRIvox(mri,x,y,z) ;
+          val = MRIgetVoxVal(mri,x,y,z,0) ;
           MRIFvox(mri_mean,x,y,z) += val ;
           MRIFvox(mri_std,x,y,z) += val*val ;
           MRIvox(mri_dof,x,y,z)++ ;
