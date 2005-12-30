@@ -17,7 +17,7 @@
 
 #define UNIT_VOLUME 128
 
-static char vcid[] = "$Id: mri_make_density_map.c,v 1.2 2005/05/28 18:52:48 fischl Exp $";
+static char vcid[] = "$Id: mri_make_density_map.c,v 1.3 2005/12/30 16:08:55 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -46,7 +46,7 @@ main(int argc, char *argv[])
 	
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_density_map.c,v 1.2 2005/05/28 18:52:48 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_density_map.c,v 1.3 2005/12/30 16:08:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -204,13 +204,13 @@ static void
 print_usage(void)
 {
   fprintf(stderr, 
-          "usage: %s [options] <input volume> <label 1> <label 2> ... <output name>\n",
+          "usage: %s [options] <aseg volume> <norm volume> <xform> <label 1> <label 2> ... <output name>\n",
           Progname) ;
   fprintf(stderr, "where options are:\n") ;
   fprintf(stderr, 
           "\t-s <sigma>\tapply a Gaussian smoothing kernel\n"
-          "\t-r <n>\tapply a Gaussian reduction n times\n"
-          "\t-t <xform file>\tapply the transform in <xform file> to extracted volume\n");
+          "\t-r <n>\tapply a Gaussian reduction n times\n") ;
+					//          "\t-t <xform file>\tapply the transform in <xform file> to extracted volume\n");
 }
 
 static void
