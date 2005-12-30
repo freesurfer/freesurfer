@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/11/28 13:17:34 $                                             */
-/* Revision       : $Revision: 1.46 $                                         */
+/* Revision Date  : $Date: 2005/12/30 19:16:37 $                                             */
+/* Revision       : $Revision: 1.47 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -162,6 +162,8 @@ MATRIX *vg_i_to_r(const VOL_GEOM *vg);
 MATRIX *vg_r_to_i(const VOL_GEOM *vg);
 #define vg_getRasToVoxelXform vg_r_to_i
 #define vg_getVoxelToRasXform vg_i_to_r
+
+int TransformCopyVolGeomToMRI(TRANSFORM *transform, MRI *mri);
 
 int  vg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2); // return 1 if equal return 0 if not equal
 void vg_print(const VOL_GEOM *vg);

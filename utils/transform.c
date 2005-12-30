@@ -126,6 +126,24 @@ void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst)
   MRIreInitCache(dst);
 }
 
+int
+TransformCopyVolGeomToMRI(TRANSFORM *transform, MRI *mri)
+{
+	LTA       *lta ;
+	GCA_MORPH *gcam ;
+
+  if (transform->type == MORPH_3D_TYPE)
+	{
+		gcam = (GCA_MORPH *)transform->xform ;
+	}
+	else
+	{
+		lta = (LTA *)transform->xform ;
+		MRIcopyVolGeomToMRI(mri, &lta->xforms[0].dst) ;
+	}
+	return(NO_ERROR) ;
+}
+
 void copyVolGeom(const VOL_GEOM *src, VOL_GEOM *dst)
 {
   dst->valid = src->valid;
