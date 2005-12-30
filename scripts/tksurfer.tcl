@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.101 2005/12/29 15:31:06 kteich Exp $
+# $Id: tksurfer.tcl,v 1.102 2005/12/30 18:46:07 kteich Exp $
 
 package require BLT;
 
@@ -3336,8 +3336,8 @@ proc CreateToolBar { ifwToolBar } {
 
     tkm_MakeButtons $fwTransButtons {
 	{image icon_arrow_left
-	    { translate_brain_x -$extTransform(translate,dist); \
-		  UpdateAndRedraw } ""}
+	    { translate_brain_x -$gNextTransform(translate,dist);
+		UpdateAndRedraw } ""}
 	{image icon_arrow_down
 	    { translate_brain_y -$gNextTransform(translate,dist);
 		UpdateAndRedraw } ""}
@@ -3346,7 +3346,7 @@ proc CreateToolBar { ifwToolBar } {
 		UpdateAndRedraw } ""}
 	{image icon_arrow_right
 	    { translate_brain_x $gNextTransform(translate,dist);
-		 UpdateAndRedraw } ""} }
+		UpdateAndRedraw } ""} }
     
     tkm_MakeSliders $fwTransSlider [list \
 	    [list {"mm"} gNextTransform(translate,dist) \
