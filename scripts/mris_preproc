@@ -1,0 +1,227 @@
+#!/bin/tcsh -f
+#
+
+set VERSION = '$Id: mris_preproc,v 1.1 2006/01/01 21:35:03 greve Exp $';
+
+set PrintHelp = 0;
+set fsgdf = ();
+set meas = ();
+set isplist = ();
+set ivplist = ();
+set irplist = ();
+set target = average7
+set fwhmsrc  = ();
+set fwhmtarg = ();
+set projfract = ();
+set outpath = ();
+set paireddiff = ();
+set synth = ();
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+set n = `echo $argv | grep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+# Parse the command-line arguments
+goto parse_args;
+parse_args_return:
+
+# Check the command-line arguments
+goto check_params;
+check_params_return:
+
+
+
+
+echo "mris_preproc done"
+
+exit 0
+#----------------------------------------------------------#
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if ( $#argv == 0) goto arg1err;
+      set subjlist = ($subjlist $argv[1]); shift;
+      breaksw
+
+    case "--isp":
+      if ( $#argv == 0) goto arg1err;
+      set isp = $argv[1];shift;
+      if(! -e $isp) then
+        echo "ERROR: cannot find $isp"
+        exit 1;
+      endif
+      set isplist = ($isplist $isp); 
+      breaksw
+
+    case "--ivp":
+      if($#argv < 2) goto arg2err;
+      set ivp = $argv[1];shift;
+      if(! -e $ivp) then
+        echo "ERROR: cannot find $ivp"
+        exit 1;
+      endif
+      set irp = $argv[1];shift;
+      if(! -e "$irp") then
+        echo "ERROR: cannot find $irp"
+        exit 1;
+      endif
+      set ivplist = ($ivplist $ivp);
+      set irplist = ($irplist $irp);
+      breaksw
+
+    case "--fsgd":
+      if ( $#argv == 0) goto arg1err;
+      set fsgdf = $argv[1]; shift;
+      if(! -e $fsgdf) then
+        echo "ERROR: cannot find $fsgdf";
+        exit 1;
+      endif
+      breaksw
+
+    case "--meas":
+      if ( $#argv == 0) goto arg1err;
+      set meas = $argv[1]; shift;
+      breaksw
+
+    case "--hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      breaksw
+
+    case "--target":
+      if ( $#argv == 0) goto arg1err;
+      set target = $argv[1]; shift;
+      breaksw
+
+    case "--fwhm-src":
+      if ( $#argv == 0) goto arg1err;
+      set fwhmsrc = $argv[1]; shift;
+      breaksw
+
+    case "--fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "--projfrace":
+      if ( $#argv == 0) goto arg1err;
+      set projfrac = $argv[1]; shift;
+      breaksw
+
+    case "--out":
+      if ( $#argv == 0) goto arg1err;
+      set outpath = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if ( $#argv == 0) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--paired-diff":
+      set paireddiff = 1;
+      breaksw
+
+    case "--synth":
+      set synth = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      set debug = 1;
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag not recognized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#InVol == 0) then
+    echo "ERROR: must specify an input volume"
+    exit 1;
+  endif
+  if(! -e $InVol) then
+    echo "ERROR: input volume $InVol does not exist"
+    exit 1;
+  endif
+  if($#XFM == 0) then
+    echo "ERROR: must specify an output transform file"
+    exit 1;
+  endif
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mris_prepoc"
+  echo ""
+  echo "  --subjects <subj1> <subj2> ... <subjN>" 
+  echo "  --fsgd fsgdfile"
+  echo "  --meas surfmeas"
+  echo "  --is surfmeaspath <--is surfmeaspath> "
+  echo "  --iv volmeaspath reg <--iv volmeaspath reg>"
+  echo "  --target subject"
+  echo "  --fwhm fwhm"
+  echo "  --fwhm-src fwhmsrc"
+  echo "  --projfrac frac"
+  echo "  --hemi hemi "
+  echo "  --out outpath"
+  echo "  --paired-diff"
+  echo "  --synth"
+  echo ""
+  echo "  --help    : short descriptive help"
+  echo "  --version : script version info"
+  echo "  --debug   "
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo Version: $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
