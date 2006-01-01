@@ -15,4 +15,7 @@ MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
 int MRISfdr2vwth(MRIS *surf, double fdr, int signid, 
 		 int log10flag, int maskflag, double *vwth);
 
+int MRISfwhm2niters(double fwhm, MRIS *surf);
+int MRISfwhm2nitersSubj(double fwhm,char *subject,char *hemi,char *surfname);
+
 #endif
