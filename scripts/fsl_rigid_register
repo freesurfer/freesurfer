@@ -1,8 +1,8 @@
 #!/bin/csh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.8 2005/12/21 17:45:36 xhan Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.8 2005/12/21 17:45:36 xhan Exp $';
+# $Id: fsl_rigid_register,v 1.9 2006/01/01 21:22:58 greve Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.9 2006/01/01 21:22:58 greve Exp $';
 
 setenv FSLOUTPUTTYPE ANALYZE
 
@@ -179,6 +179,7 @@ if($cleanup) then
   echo "Cleaning up"
   rm $involbase.* $outvolbase.* $refvolbase.*
   if($initgeom) rm $initxfm
+  rm -rf $tmpdir
 endif
 
 echo " "
@@ -191,8 +192,6 @@ echo " "
 echo "To check results, run:"
 echo "tkmedit -f $refvol -aux $outvol"
 echo " "
-
-rm -rf $tmpdir
 
 exit 0;
 ###############################################
@@ -273,6 +272,7 @@ while( $#argv != 0 )
     case "-tmp":
       if ( $#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
       breaksw
 
     case "-applyxfm":
@@ -314,6 +314,10 @@ while( $#argv != 0 )
 
     case "-nocleanup":
       set nocleanup = 0;
+      breaksw
+
+    case "-cleanup":
+      set nocleanup = 1;
       breaksw
 
     case "-echo":
@@ -417,8 +421,9 @@ usage_exit:
   echo "   -bins bins : number of bins to use (default $bins)"
   echo "   -cost cost : objective function (default $cost)"
   echo "      valid costs are $costlist"
-  echo "   -tmp  tmpdir (default is $tmpdir)"
+  echo "   -tmp  tmpdir (default is $tmpdir). Implies -nocleanup"
   echo "   -nocleanup  : do not delete temporary files"
+  echo "   -cleanup  : delete temporary files (default)"
   echo ""
   echo "   -version : print version and exit"
   echo "   -help    : print help and exit"
