@@ -1,12 +1,55 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.25 2005/12/01 23:50:58 greve Exp $
+  $Id: mri_surf2surf.c,v 1.26 2006/01/01 20:09:29 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
   just a format conversion. The source or target subject may
   be ico.  Can handle data with multiple frames.
   -----------------------------------------------------------*/
+
+/*
+BEGINHELP
+
+This is what I'd like it to look like:
+
+mri_surf2surf 
+  --subject subject (--s)
+  --hemi hemi (--h)
+  --surf surfname (def is white)
+
+  --in insurfvals : path to input surface (--sval)
+  --in-xyz  : use vertex xyz as input
+  --in-nxyz : use vertex normals as input
+  --in-area : use vertex area as input
+
+  --fwhm fwhm : smooth input by fwhm mm
+  --fwhm-surf surfname : def is white
+  --niters niters : smooth input with niters
+
+  --mask maskpath  
+  --mask-thresh
+  --mask-tail
+  --mask-frame
+  --label labelfile 
+  --annot annotfile annotid
+  --mask-inv
+
+  --out-subject outsubject (--os)
+  --out-hemi hemi          (--oh)
+  --surfreg surf : sphere.reg
+  --out-fwhm fwhm : smooth by fwhm on the output surface
+
+  --synth
+  --synth-nframes
+  --synth-seed
+
+  --noreshape
+  --out outpath
+
+ENDHELP
+*/
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +65,7 @@
 #include "error.h"
 #include "diag.h"
 #include "mrisurf.h"
+#include "mrisutils.h"
 #include "mri2.h"
 #include "mri_identify.h"
 
@@ -70,7 +114,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.25 2005/12/01 23:50:58 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.26 2006/01/01 20:09:29 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -141,7 +185,7 @@ int main(int argc, char **argv)
   float *framepower = NULL;
   char fname[2000];
   int nTrg121,nSrc121,nSrcLost;
-  int nTrgMulti,nSrcMulti, ntmp;
+  int nTrgMulti,nSrcMulti;
   float MnTrgMultiHits,MnSrcMultiHits;
   int nargs;
   FACE *face;
@@ -149,7 +193,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.25 2005/12/01 23:50:58 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.26 2006/01/01 20:09:29 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -298,34 +342,18 @@ int main(int argc, char **argv)
   }
 
   /* Smooth input if desired */
+  if(fwhm_Input > 0){
+    nSmoothSteps_Input = 
+      MRISfwhm2nitersSubj(fwhm_Input,srcsubject,srchemi,"white");
+    if(nSmoothSteps_Input == -1) exit(1);
+    printf("Approximating gaussian smoothing of source with fwhm = %lf,\n"
+	   "std = %lf, with %d iterations of nearest-neighbor smoothing\n",
+	   fwhm_Input,gstd_Input,nSmoothSteps_Input);
+  }
+
   if(nSmoothSteps_Input > 0){
     printf("NN smoothing input with n = %d\n",nSmoothSteps_Input);
     MRISsmoothMRI(SrcSurfReg, SrcVals, nSmoothSteps_Input, SrcVals);
-  }
-  if(fwhm_Input > 0){
-    printf("Gaussian smoothing input with fwhm = %g, std = %g\n",
-	   fwhm_Input,gstd_Input);
-    if(!usediff){
-      //MRISgaussianSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals, 3.0);
-      //ntmp = round((gstd_Input*gstd_Input)*3.1416*log(256.0)/(2.3*2.3*2));
-      ntmp = 25;
-      gstd_Input = 1;
-      //gstd_Input = fwhm_Input/sqrt(log(256.0)*ntmp);
-      printf("Starting heatkernel smoothing, n = %d, gstd = %g\n",ntmp,gstd_Input);
-      SrcVals = MRIShksmooth(SrcSurfReg, SrcVals, gstd_Input, ntmp, SrcVals);
-      printf("Done heatkernel smoothing\n");
-    }
-    if(usediff){
-      printf("Computing distance along the sphere \n");
-      sphdist = MRISdistSphere(SrcSurfReg, gstd_Input*3);
-      printf("Computing weights\n");
-      MRISgaussianWeights(SrcSurfReg, sphdist, gstd_Input);
-      MRIwrite(sphdist,"weights.mgh");
-      printf("Applying weights\n");
-      MRISspatialFilter(SrcVals, sphdist, SrcVals);      
-      printf("Done filtering input\n");
-    }
-    //if(usediff)  MRISdiffusionSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals);
   }
 
   if(strcmp(srcsubject,trgsubject)){
@@ -432,16 +460,15 @@ int main(int argc, char **argv)
   }
        
   /* Smooth output if desired */
+  if(fwhm > 0){
+    nSmoothSteps = MRISfwhm2nitersSubj(fwhm,trgsubject,trghemi,"white");
+    if(nSmoothSteps == -1) exit(1);
+    printf("Approximating gaussian smoothing of target with fwhm = %lf,\n"
+	   " std = %lf, with %d iterations of nearest-neighbor smoothing\n",
+	   fwhm,gstd,nSmoothSteps);
+  }
   if(nSmoothSteps > 0)
     MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, TrgVals);
-  if(fwhm > 0){
-    //printf("Gaussian smoothing with fwhm = %g, std = %g\n",fwhm,gstd);
-    //MRISgaussianSmooth(TrgSurfReg, TrgVals, gstd, TrgVals, 3.0);
-
-    printf("Starting heatkernel smoothing\n"); // 10 = #steps
-    TrgVals = MRIShksmooth(TrgSurfReg, TrgVals, gstd, 10, TrgVals);
-    printf("Done heatkernel smoothing\n");
-  }
 
   /* readjust frame power if necessary */
   if(is_sxa_volume(srcvalfile)){
@@ -576,14 +603,14 @@ static int parse_commandline(int argc, char **argv)
       }
       nargsused = 1;
     }
-    else if (!strcmp(option, "--fwhm-in")){
+    else if (!strcmp(option, "--fwhm-src")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fwhm_Input);
       gstd_Input = fwhm_Input/sqrt(log(256.0));
       nargsused = 1;
     }
     else if (!strcmp(option, "--fwhm") ||
-	     !strcmp(option, "--fwhm-out")){
+	     !strcmp(option, "--fwhm-trg")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fwhm);
       gstd = fwhm/sqrt(log(256.0));
@@ -634,7 +661,7 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%d",&cavtx);
       nargsused = 1;
     }
-    else if (!strcmp(option, "--hemi")){
+    else if(!strcmp(option, "--hemi") || !strcmp(option, "--h")){
       if(nargc < 1) argnerr(option,1);
       srchemi = pargv[0];
       trghemi = pargv[0];
@@ -724,8 +751,11 @@ static void print_usage(void)
   fprintf(stdout, "   --surfreg    surface registration (sphere.reg)  \n");
   fprintf(stdout, "   --mapmethod  nnfr or nnf\n");
   fprintf(stdout, "   --frame      save only nth frame (with --trg_type paint)\n");
+  fprintf(stdout, "   --fwhm-src fwhmsrc: smooth the source to fwhmsrc\n");  
+  fprintf(stdout, "   --fwhm-trg fwhmtrg: smooth the target to fwhmtrg\n");  
   fprintf(stdout, "   --nsmooth-in N  : smooth the input\n");  
   fprintf(stdout, "   --nsmooth-out N : smooth the output\n");  
+
   fprintf(stdout, "   --noreshape  do not reshape output to multiple 'slices'\n");  
   fprintf(stdout, "   --synth : replace input with WGN\n");  
   fprintf(stdout, "   --seed seed : seed for synth (default is auto)\n");  
@@ -827,6 +857,16 @@ static void print_help(void)
 "    target vertex. If a target vertex has multiple source vertices, then the\n"
 "    source values are averaged together. It does not seem to make much difference.\n"
 "\n"
+"  --fwhm-src fwhmsrc"
+"  --fwhm-trg fwhmtrg (can also use --fwhm)\n"
+"\n"
+"    Smooth the source or target with a gaussian with the given fwhm (mm). This is\n"
+"    actually an approximation done using iterative nearest neighbor smoothing.\n"
+"    The number of iterations is computed based on the white surface. This\n"
+"    method is similar to heat kernel smoothing. This will give the same\n"
+"    results as --nsmooth-{in,out}, but automatically computes the the \n"
+"    number of iterations based on the desired fwhm.\n"
+"\n"
 "  --nsmooth-in  niterations\n"
 "  --nsmooth-out niterations  [note: same as --smooth]\n"
 "\n"
@@ -834,7 +874,7 @@ static void print_help(void)
 "    vertex with its neighbors. When only smoothing is desired, just set the \n"
 "    the source and target subjects to the same subject. --smooth-in smooths\n"
 "    the input surface values prior to any resampling. --smooth-out smooths\n"
-"    after any resampling. \n"
+"    after any resampling. See also --fwhm-src and --fwhm-trg.\n"
 "\n"
 "  --frame framenumber\n"
 "\n"
@@ -1445,7 +1485,6 @@ MRI *MRISheatkernel(MRIS *surf, double sigma)
   printf("Done computing heat kernel weights\n");
 
   MRIwrite(hk,"hk.mgh");
-
   return(hk);
 }
 
@@ -1557,3 +1596,5 @@ int DumpSurface(MRIS *surf, char *outfile)
   printf("Done dumping surface\n");
   return(0);
 }
+
+
