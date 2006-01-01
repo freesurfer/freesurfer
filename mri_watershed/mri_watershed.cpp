@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/15 19:07:28 $
-// Revision       : $Revision: 1.41 $
+// Revision Date  : $Date: 2006/01/01 22:09:06 $
+// Revision       : $Revision: 1.42 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.41 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.42 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -688,7 +688,7 @@ int main(int argc, char *argv[])
         
   make_cmd_version_string 
     (argc, argv, 
-"$Id: mri_watershed.cpp,v 1.41 2005/12/15 19:07:28 greve Exp $", "$Name:  $",
+"$Id: mri_watershed.cpp,v 1.42 2006/01/01 22:09:06 greve Exp $", "$Name:  $",
      cmdline);
 
   Progname=argv[0];
@@ -699,7 +699,7 @@ int main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-"$Id: mri_watershed.cpp,v 1.41 2005/12/15 19:07:28 greve Exp $", "$Name:  $");
+"$Id: mri_watershed.cpp,v 1.42 2006/01/01 22:09:06 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -795,7 +795,7 @@ int main(int argc, char *argv[])
 	  preval  = MRIgetVoxVal(PreEditVol, c,r,s,0);
 	  postval = MRIgetVoxVal(PostEditVol,c,r,s,0);
 	  if(preval == postval) continue;
-	  if(postval == 0) outval = 0;
+	  if(postval == 1) outval = 1;
 	  else outval = MRIgetVoxVal(mri_with_skull,c,r,s,0);
 	  MRIsetVoxVal(mritmp,c,r,s,0,outval);
 	}
