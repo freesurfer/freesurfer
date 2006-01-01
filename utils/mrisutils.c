@@ -1405,3 +1405,48 @@ int MRISfdr2vwth(MRIS *surf, double fdr, int signid,
 
   return(0);
 }
+
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*---------------------------------------------------------------*/
+int MRISfwhm2niters(double fwhm, MRIS *surf)
+{
+  double avgvtxarea, gstd;
+  int niters;
+
+  MRIScomputeMetricProperties(surf);
+  avgvtxarea = surf->total_area/surf->nvertices;
+  gstd = fwhm/sqrt(log(256.0));
+  //1.14 is a fudge factor based on emprical fit of nearest neighbor
+  niters = floor(1.14*(4*PI*(gstd*gstd))/(7*avgvtxarea) + 0.5);
+  return(niters);
+}
+/*---------------------------------------------------------------*/
+int MRISfwhm2nitersSubj(double fwhm, char *subject, char *hemi, char *surfname)
+{
+  char *SUBJECTS_DIR, surfpath[2000];
+  MRIS *surf;
+  int niters;
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  if(SUBJECTS_DIR == NULL){
+    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+    return(-1);
+  }
+  sprintf(surfpath,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
+
+  surf = MRISread(surfpath);
+  if(surf == NULL){
+    printf("ERROR: could not read %s\n",surfpath);
+    return(-1);
+  }
+  MRIScomputeMetricProperties(surf);
+
+  niters = MRISfwhm2niters(fwhm,surf);
+
+  return(niters);
+}
+
+
