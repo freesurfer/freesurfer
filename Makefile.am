@@ -141,6 +141,7 @@ MRISSUBDIRS=stim \
 	mris_find_flat_regions \
 	mris_fix_topology \
 	mris_flatten \
+	mris_fwhm \
 	mris_inflate \
 	mris_info \
 	mris_jacobian \

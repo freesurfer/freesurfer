@@ -1213,6 +1213,7 @@ mris_expand/Makefile \
 mris_find_flat_regions/Makefile \
 mris_fix_topology/Makefile \
 mris_flatten/Makefile \
+mris_fwhm/Makefile \
 mris_glm/Makefile mris_inflate/Makefile \
 mris_info/Makefile mris_jacobian/Makefile \
 mris_label_area/Makefile \
