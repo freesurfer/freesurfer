@@ -1,5 +1,5 @@
 // mri_concat.c
-// $Id: mri_concat.c,v 1.6 2005/11/27 02:06:45 greve Exp $
+// $Id: mri_concat.c,v 1.7 2006/01/01 20:12:47 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.6 2005/11/27 02:06:45 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.7 2006/01/01 20:12:47 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[100];
@@ -34,13 +34,14 @@ int ninputs = 0;
 char *out = NULL;
 MRI *mritmp, *mritmp0, *mriout;
 int DoMean=0;
+int DoPairedDiff=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
   int nargs, nthin, nframestot=0, nr=0,nc=0,ns=0, fout;
   int r,c,s,f;
-  double v;
+  double v, v1, v2;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -84,6 +85,14 @@ int main(int argc, char **argv)
   }
   printf("nframestot = %d\n",nframestot); 
 
+  if(DoPairedDiff){
+    if(remainder(nframestot,2) != 0){
+      printf("ERROR: --paired-diff specified but there are an "
+	     "odd number of frames\n");
+      exit(1);
+    }
+  }
+
   mriout = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nframestot);
   if(mriout == NULL) exit(1);
 
@@ -106,6 +115,27 @@ int main(int argc, char **argv)
       fout++;
     }
     MRIfree(&mritmp);
+  }
+
+
+  if(DoPairedDiff){
+    printf("Performing paired difference\n");
+    mritmp = MRIcloneBySpace(mriout,mriout->nframes/2);
+    for(c=0; c < nc; c++){
+      for(r=0; r < nr; r++){
+	for(s=0; s < ns; s++){
+	  fout = 0;
+	  for(f=0; f < mriout->nframes; f+=2){
+	    v1 = MRIgetVoxVal(mriout,c,r,s,f);
+	    v2 = MRIgetVoxVal(mriout,c,r,s,f+1);
+	    MRIsetVoxVal(mritmp,c,r,s,fout,v1-v2);
+	    fout++;
+	  }
+	}
+      }
+    }
+    MRIfree(&mriout);
+    mriout = mritmp;
   }
 
   if(DoMean){
@@ -147,6 +177,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--mean"))   DoMean = 1;
+    else if (!strcasecmp(option, "--paired-diff")) DoPairedDiff = 1;
 
     else if ( !strcmp(option, "--i") ) {
       if(nargc < 1) argnerr(option,1);
@@ -186,7 +217,9 @@ static void print_usage(void)
   printf("   --i invol <--i invol ...> (don't need --i) \n");
   printf("   --o out \n");
   printf("\n");
+  printf("   --paired-diff : compute paired diff (1-2, 3-4, etc) \n");
   printf("   --mean : compute mean of concatenated volumes\n");
+  printf("\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
@@ -204,6 +237,7 @@ static void print_help(void)
   printf("  mri_concat f1.mgh f2.mgh --o cout.mgh\n");
   printf("  mri_concat f*.mgh --o cout.mgh\n");
   printf("  mri_concat f*.mgh --o coutmn.mgh --mean\n");
+  printf("  mri_concat f*.mgh --o coutdiff.mgh --paired-diff\n");
 
   exit(1) ;
 }
