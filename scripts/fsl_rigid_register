@@ -1,8 +1,8 @@
 #!/bin/csh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.9 2006/01/01 21:22:58 greve Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.9 2006/01/01 21:22:58 greve Exp $';
+# $Id: fsl_rigid_register,v 1.10 2006/01/01 21:24:58 greve Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.10 2006/01/01 21:24:58 greve Exp $';
 
 setenv FSLOUTPUTTYPE ANALYZE
 
@@ -11,7 +11,7 @@ set invol = ();
 set outvol = ();
 set interp = trilinear;
 set debug = 0;
-set tmpdir = $SUBJECTS_DIR/tmp/fsl_rigid_register.$$;
+set tmpdir = ();
 set cleanup = 1;
 set PrintHelp = 0;
 set applyxfm = ();
@@ -50,13 +50,16 @@ date
 
 set StartTime = `date`;
 
-# make the temporary directory
-mkdir -p $tmpdir
-
 # create the output directory
 echo $outvol
 set outdir = `dirname $outvol`;
 mkdir -p $outdir
+
+# make the temporary directory
+if($#tmpdir == 0) then
+  set tmpdir = $outdir/fsl_rigid_register.$$;
+endif
+mkdir -p $tmpdir
 
 # Convert reference to analyze
 set refvolbase = $tmpdir/refvol.fsl_rigid_register
