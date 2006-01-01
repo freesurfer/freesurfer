@@ -1,0 +1,358 @@
+/*
+BEGINHELP
+
+ENDHELP
+*/
+
+/*
+Need to add demean, detrend, matrix detrend
+
+*/
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+double round(double x);
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/utsname.h>
+#include <unistd.h>
+
+#include "macros.h"
+#include "utils.h"
+#include "mrisurf.h"
+#include "mrisutils.h"
+#include "error.h"
+#include "diag.h"
+#include "mri.h"
+#include "fmriutils.h"
+#include "mrisurf.h"
+#include "mri2.h"
+#include "fio.h"
+#include "version.h"
+#include "annotation.h"
+#include "cmdargs.h"
+#include "timer.h"
+#include "matfile.h"
+#include "randomfields.h"
+#include "icosahedron.h"
+#include "pdf.h"
+double MRISmeanInterVertexDist(MRIS *surf);
+int MRISfwhm2niters(double fwhm, MRIS *surf);
+
+static int  parse_commandline(int argc, char **argv);
+static void check_options(void);
+static void print_usage(void) ;
+static void usage_exit(void);
+static void print_help(void) ;
+static void print_version(void) ;
+static void dump_options(FILE *fp);
+int main(int argc, char *argv[]) ;
+
+static char vcid[] = "$Id";
+char *Progname = NULL;
+char *cmdline, cwd[2000];
+int debug=0;
+int checkoptsonly=0;
+struct utsname uts;
+
+char *subject=NULL, *hemi=NULL, *SUBJECTS_DIR=NULL;
+char *surfname="white";
+char *surfpath=NULL;
+char *inpath=NULL;
+char *outpath=NULL;
+char *sumfile=NULL;
+char tmpstr[2000];
+MRI *InVals=NULL;
+
+MRIS *surf;
+double infwhm = 0, ingstd = 0;
+int synth = 0, nframes = 10;
+int SynthSeed = -1;
+
+/*---------------------------------------------------------------*/
+int main(int argc, char *argv[])
+{
+  int nargs, niters=0;
+  double fwhm = 0, gstd = 0, ar1mn, ar1std, ar1max, avgvtxarea;
+  double InterVertexDistAvg, InterVertexDistStdDev;
+  MRI *ar1=NULL;
+  FILE *fp;
+
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  if (nargs && argc - nargs == 1) exit (0);
+  argc -= nargs;
+  cmdline = argv2cmdline(argc,argv);
+  uname(&uts);
+  getcwd(cwd,2000);
+
+  Progname = argv[0] ;
+  argc --;
+  argv++;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
+  if(argc == 0) usage_exit();
+  parse_commandline(argc, argv);
+  check_options();
+  if(checkoptsonly) return(0);
+
+  setenv("FIX_VERTEX_AREA", "1", 1);
+
+  if(SynthSeed < 0) SynthSeed = PDFtodSeed();
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  if(SUBJECTS_DIR == NULL){
+    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+    exit(1);
+  }
+  sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
+  surfpath = strcpyalloc(tmpstr);
+
+  if(debug) dump_options(stdout);
+
+  surf = MRISread(surfpath);
+  if(surf == NULL){
+    printf("ERROR: could not read %s\n",surfpath);
+    exit(1);
+  }
+  MRIScomputeMetricProperties(surf);
+  InterVertexDistAvg = MRISavgInterVetexDist(surf, &InterVertexDistStdDev);
+
+  printf("%s %s %s\n",subject,hemi,surfname);
+  printf("Number of vertices %d\n",surf->nvertices);
+  printf("Number of faces    %d\n",surf->nfaces);
+  printf("Total area         %lf\n",surf->total_area);
+  avgvtxarea = surf->total_area/surf->nvertices;
+  printf("AvgVtxArea       %lf\n",avgvtxarea);
+  printf("AvgVtxDist       %lf\n",InterVertexDistAvg);
+  printf("StdVtxDist       %lf\n",InterVertexDistStdDev);
+
+  if(!synth){
+    InVals = MRIread(inpath);
+    if(InVals == NULL) exit(1);
+  }
+  else{
+    printf("Synthesizing %d frames, Seed = %d\n",nframes,SynthSeed);
+    InVals = MRIrandn(surf->nvertices, 1, 1, nframes,0, 1, NULL);
+  }
+
+  if(infwhm > 0){
+    niters = MRISfwhm2niters(infwhm,surf);
+    printf("Smoothing by fwhm=%lf, gstd=%lf, niters=%d \n",
+	   infwhm,ingstd,niters);
+    MRISsmoothMRI(surf, InVals, niters, InVals);
+  }
+
+  printf("Computing spatial AR1 \n");
+  ar1 = MRISar1(surf, InVals, NULL);
+
+  // Average AR1 over all vertices
+  RFglobalStats(ar1, NULL, &ar1mn, &ar1std, &ar1max);
+  gstd = InterVertexDistAvg/sqrt(-4*log(ar1mn));
+  fwhm = gstd*sqrt(log(256.0));
+
+  printf("gstd = %lf\n",gstd);
+  printf("fwhm = %lf\n",fwhm);
+  fflush(stdout);
+
+  if(sumfile){
+    fp = fopen(sumfile,"w");
+    if(fp == NULL){
+      printf("ERROR: opening %s\n",sumfile);
+      exit(1);
+    }
+    dump_options(fp);
+    if(infwhm>0) fprintf(fp,"inniters %d\n",niters);
+    fprintf(fp,"Number of vertices %d\n",surf->nvertices);
+    fprintf(fp,"Number of faces    %d\n",surf->nfaces);
+    fprintf(fp,"Total area         %lf\n",surf->total_area);
+    fprintf(fp,"AvgVtxArea       %lf\n",avgvtxarea);
+    fprintf(fp,"AvgVtxDist       %lf\n",InterVertexDistAvg);
+    fprintf(fp,"StdVtxDist       %lf\n",InterVertexDistStdDev);
+    fprintf(fp,"ar1mn %lf\n",ar1mn);
+    fprintf(fp,"ar1std %lf\n",ar1std);
+    fprintf(fp,"gstd %lf\n",gstd);
+    fprintf(fp,"fwhm %lf\n",fwhm);
+    fclose(fp);
+  }
+
+  if(outpath) MRIwrite(InVals,outpath);
+
+
+  return 0;
+}
+/* --------------------------------------------- */
+static int parse_commandline(int argc, char **argv)
+{
+  int  nargc , nargsused;
+  char **pargv, *option ;
+
+  if(argc < 1) usage_exit();
+
+  nargc   = argc;
+  pargv = argv;
+  while(nargc > 0){
+
+    option = pargv[0];
+    if(debug) printf("%d %s\n",nargc,option);
+    nargc -= 1;
+    pargv += 1;
+
+    nargsused = 0;
+
+    if (!strcasecmp(option, "--help"))  print_help() ;
+    else if (!strcasecmp(option, "--version")) print_version() ;
+    else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
+    else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--synth")) synth = 1;
+    else if (!strcasecmp(option, "--nosynth")) synth = 0;
+
+    else if(!strcasecmp(option, "--s") || !strcasecmp(option, "--subject")){
+      if(nargc < 1) CMDargNErr(option,1);
+      subject = pargv[0];
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--h") || !strcasecmp(option, "--hemi")){
+      if(nargc < 1) CMDargNErr(option,1);
+      hemi = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--surf")){
+      if(nargc < 1) CMDargNErr(option,1);
+      surfname = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--in")){
+      if(nargc < 1) CMDargNErr(option,1);
+      inpath = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--sum")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sumfile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--fwhm")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&infwhm);
+      ingstd = infwhm/sqrt(log(256.0));
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--synth-frames")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nframes);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--out")){
+      if(nargc < 1) CMDargNErr(option,1);
+      outpath = pargv[0];
+      nargsused = 1;
+    }
+    else{
+      fprintf(stderr,"ERROR: Option %s unknown\n",option);
+      if(CMDsingleDash(option))
+	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      exit(-1);
+    }
+    nargc -= nargsused;
+    pargv += nargsused;
+  }
+  return(0);
+}
+/* ------------------------------------------------------ */
+static void usage_exit(void)
+{
+  print_usage() ;
+  exit(1) ;
+}
+/* --------------------------------------------- */
+static void print_usage(void)
+{
+  printf("USAGE: %s\n",Progname) ;
+  printf("\n");
+  printf("   --subject subject (--s)\n");
+  printf("   --hemi hemi (--h)\n");
+  printf("   --surf surf <white>\n");
+  printf("   --in input\n");
+  printf("   --sum sumfile\n");
+  printf("   \n");
+  printf("   --fwhm fwhm : apply before measuring\n");
+  printf("   --out output\n");
+  printf("\n");
+  printf("   --synth \n");
+  printf("   --synth-frames nframes : default is 10 \n");
+  printf("\n");
+  printf("   --debug     turn on debugging\n");
+  printf("   --checkopts don't run anything, just check options and exit\n");
+  printf("   --help      print out information on how to use this program\n");
+  printf("   --version   print out version and exit\n");
+  printf("\n");
+  printf("%s\n", vcid) ;
+  printf("\n");
+}
+/* --------------------------------------------- */
+static void print_help(void)
+{
+  print_usage() ;
+  printf("Estimates the smoothness of a surface-based data set.\n");
+  exit(1) ;
+}
+/* --------------------------------------------- */
+static void print_version(void)
+{
+  printf("%s\n", vcid) ;
+  exit(1) ;
+}
+/* --------------------------------------------- */
+static void check_options(void)
+{
+  return;
+}
+
+/* --------------------------------------------- */
+static void dump_options(FILE *fp)
+{
+  fprintf(fp,"\n");
+  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"%s\n",Progname);
+  fprintf(fp,"FREESURFER_HOME %s\n",getenv("FREESURFER_HOME"));
+  fprintf(fp,"SUBJECTS_DIR %s\n",getenv("SUBJECTS_DIR"));
+  fprintf(fp,"cwd       %s\n",cwd);
+  fprintf(fp,"cmdline   %s\n",cmdline);
+  fprintf(fp,"timestamp %s\n",VERcurTimeStamp());
+  fprintf(fp,"sysname   %s\n",uts.sysname);
+  fprintf(fp,"hostname  %s\n",uts.nodename);
+  fprintf(fp,"machine   %s\n",uts.machine);
+  fprintf(fp,"user      %s\n",VERuser());
+  fprintf(fp,"subject %s\n",subject);
+  fprintf(fp,"hemi     %s\n",hemi);
+  fprintf(fp,"surfname %s\n",surfname);
+  if(inpath) fprintf(fp,"input  %s\n",inpath);
+  fprintf(fp,"infwhm %lf\n",infwhm);
+  fprintf(fp,"ingstd %lf\n",ingstd);
+  fprintf(fp,"synth %d\n",synth);
+  if(synth){
+    fprintf(fp,"synth-frames %d\n",nframes);
+    fprintf(fp,"seed  %d\n",SynthSeed);
+  }
+  if(sumfile) fprintf(fp,"sumfile  %s\n",sumfile);
+  if(outpath) fprintf(fp,"out  %s\n",outpath);
+
+  return;
+}
+/*---------------------------------------------------------------*/
+int MRISfwhm2niters(double fwhm, MRIS *surf)
+{
+  double avgvtxarea, gstd;
+  int niters;
+
+  MRIScomputeMetricProperties(surf);
+  avgvtxarea = surf->total_area/surf->nvertices;
+  gstd = fwhm/sqrt(log(256.0));
+  //1.028
+  //1.14 is a fudge factor based on emprical fit of nearest neighbor
+  niters = round(1.14*(4*PI*(gstd*gstd))/(7*avgvtxarea));
+  return(niters);
+}
