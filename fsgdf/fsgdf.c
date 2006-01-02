@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.24 2005/11/08 23:04:50 greve Exp $
+  $Id: fsgdf.c,v 1.25 2006/01/02 21:48:42 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -86,6 +86,7 @@ FSGD *gdfAlloc(int version)
   FSGD *gd;
   gd = (FSGD *) calloc(sizeof(FSGD),1);
   gd->version = version;
+  gd->ResFWHM = -1;
   return(gd);
 }
 /*--------------------------------------------------*/
@@ -93,8 +94,7 @@ int gdfFree(FSGD **ppgd)
 {
   FSGD *gd;
   gd = *ppgd;
-  if(gd->data)
-    MRIfree(&gd->data);
+  if(gd->data)  MRIfree(&gd->data);
   free(gd);
   *ppgd = NULL;
   return(0);
@@ -141,6 +141,7 @@ static int gdfPrintV1(FILE *fp, FSGD *gd)
     fprintf(fp,"PlotFile %s\n",gd->datafile);
   if(strlen(gd->DesignMatFile) > 0)
     fprintf(fp,"DesignMatFile %s %s\n",gd->DesignMatFile,gd->DesignMatMethod);
+  fprintf(fp,"ResidualFWHM %lf\n",gd->ResFWHM);
   if(strlen(gd->defvarlabel) > 0)
     fprintf(fp,"DefaultVariable %s\n",gd->defvarlabel);
   if(gd->nclasses > 0){
@@ -354,6 +355,12 @@ static FSGD *gdfReadV1(char *gdfname)
 
     if(!strcasecmp(tag,"DesignMatFile")){
       r = fscanf(fp,"%s %s",gd->DesignMatFile,gd->DesignMatMethod);
+      if(r==EOF) goto formaterror;
+      continue;
+    }
+
+    if(!strcasecmp(tag,"ResidualFWHM")){
+      r = fscanf(fp,"%*s %lf",&gd->ResFWHM);
       if(r==EOF) goto formaterror;
       continue;
     }
@@ -840,6 +847,14 @@ int gdfGetMeasurementName(FSGD *gd, char *name)
   return(0);
 }
 
+/*------------------------------------------------------------
+  gdfGetFWHM() - returns ResFWHM.
+  ------------------------------------------------------------*/
+double gdfGetFWHM(FSGD *gd)
+{
+  if(NULL == gd)  return(-1);
+  return(gd->ResFWHM);
+}
 /*------------------------------------------------------------
   gdfGetSubjectName() - copies the subject name into the 
   output argument.

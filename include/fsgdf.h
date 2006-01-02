@@ -45,6 +45,7 @@ typedef struct {
   char DesignMatMethod[100]; /* creation method */
   MATRIX *X, *T; /* design matrix, T = inv(X'*X)*X' */
   MRI *data;
+  double ResFWHM;
 } GROUPDESCRIPTOR, FSGD;
 
 FSGD   *gdfAlloc(int version);
@@ -70,6 +71,7 @@ int gdfStringIndex(char *str, char **list, int nlist);
 int gdfGetTitle(FSGD *gd, char *title);
 int gdfGetMeasurementName(FSGD *gd, char *name);
 int gdfGetSubjectName(FSGD *gd, char *name);
+double gdfGetFWHM(FSGD *gd);
 int gdfGetDataFileName(FSGD *gd, char *filename);
 int gdfGetNumClasses(FSGD *gd, int *nclasses);
 int gdfGetNthClassLabel(FSGD *gd, int nclass, char *label);
