@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.26 2006/01/01 20:09:29 greve Exp $
+  $Id: mri_surf2surf.c,v 1.27 2006/01/02 01:46:15 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -114,7 +114,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.26 2006/01/01 20:09:29 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.27 2006/01/02 01:46:15 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -123,7 +123,7 @@ char *trghemi    = NULL;
 
 char *srcsubject = NULL;
 char *srcvalfile = NULL;
-char *srctypestring = NULL;
+char *srctypestring = "";
 int   srctype = MRI_VOLUME_TYPE_UNKNOWN;
 MRI  *SrcVals, *SrcHits, *SrcDist;
 MRI_SURFACE *SrcSurfReg;
@@ -134,7 +134,7 @@ int SrcIcoOrder = -1;
 
 char *trgsubject = NULL;
 char *trgvalfile = NULL;
-char *trgtypestring = NULL;
+char *trgtypestring = "";
 int   trgtype = MRI_VOLUME_TYPE_UNKNOWN;
 MRI  *TrgVals, *TrgValsSmth, *TrgHits, *TrgDist;
 MRI_SURFACE *TrgSurfReg;
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.26 2006/01/01 20:09:29 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.27 2006/01/02 01:46:15 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -973,19 +973,15 @@ static void check_options(void)
     exit(1);
   }
 
-  if(srctypestring == NULL){
-    srctypestring = "bfloat";
-    srctype = BFLOAT_FILE;
-  }
   if( strcasecmp(srctypestring,"w") != 0 &&
       strcasecmp(srctypestring,"curv") != 0 &&
       strcasecmp(srctypestring,"paint") != 0 ){
     if(srctype == MRI_VOLUME_TYPE_UNKNOWN) {
-  srctype = mri_identify(srcvalfile);
-  if(srctype == MRI_VOLUME_TYPE_UNKNOWN){
-    fprintf(stdout,"ERROR: could not determine type of %s\n",srcvalfile);
-    exit(1);
-  }
+      srctype = mri_identify(srcvalfile);
+      if(srctype == MRI_VOLUME_TYPE_UNKNOWN){
+	fprintf(stdout,"ERROR: could not determine type of %s\n",srcvalfile);
+	exit(1);
+      }
     }
   }
 
@@ -998,10 +994,6 @@ static void check_options(void)
     exit(1);
   }
 
-  if(trgtypestring == NULL){
-    trgtypestring = "bfloat";
-    trgtype = BFLOAT_FILE;
-  }
   if( strcasecmp(trgtypestring,"w") != 0 &&
       strcasecmp(trgtypestring,"curv") != 0 &&
       strcasecmp(trgtypestring,"paint") != 0 ){
