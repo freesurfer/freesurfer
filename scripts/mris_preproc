@@ -1,10 +1,10 @@
 #!/bin/tcsh -f
 #
 
-set VERSION = '$Id: mris_preproc,v 1.1 2006/01/01 21:35:03 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.2 2006/01/02 00:33:27 greve Exp $';
 
 set PrintHelp = 0;
-set fsgdf = ();
+set subjlist = ();
 set meas = ();
 set isplist = ();
 set ivplist = ();
@@ -12,10 +12,16 @@ set irplist = ();
 set target = average7
 set fwhmsrc  = ();
 set fwhmtarg = ();
-set projfract = ();
+set projfrac = ();
 set outpath = ();
 set paireddiff = ();
-set synth = ();
+set synth = 0;
+set srcsurf = 0;
+set srcvol  = 0;
+set tmpdir = ();
+set cleanup = 1;
+set RunIt = 1;
+set LF = ();
 
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e --help | wc -l` 
@@ -38,10 +44,118 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+set nsubjects = $#subjlist;
+if($srcsurf) set geom = surface
+if($srcvol)  set geom = volume
+
+# Create the output directory
+set outdir = `dirname $outpath`;
+mkdir -p $outdir
+if($status) then
+  echo "ERROR: creating $outdir"
+  exit 1;
+endif
+
+# Create the tmpdir
+if($#tmpdir == 0) set tmpdir = $outdir/tmp.mris_preproc.$$
+mkdir -p $tmpdir
+if($status) then
+  echo "ERROR: creating $tmpdir"
+  exit 1;
+endif
+
+# Log file
+if($#LF == 0) then
+  set LF = $outdir/mris_preproc.$geom.$hemi.log
+  if(-e $LF) mv $LF $LF.bak
+endif
+
+date | tee -a $LF
+pwd | tee -a $LF
+echo $argv  | tee -a $LF
+uname -a  | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "tmpdir is $tmpdir"| tee -a $LF
+
+set tvallist = ();
+@ nthsubj = 1;
+foreach subj ($subjlist)
+  set subjpath = $SUBJECTS_DIR/$subj
+
+  if($srcvol) then
+    # Source is a volume, run mri_vol2surf
+    set srcsurfpath = $tmpdir/subjsurfvals.mgh
+    set vol = $ivplist[$nthsubj];
+    set reg = $irplist[$nthsubj];
+    set cmd = (mri_vol2surf --src $vol --srcreg $reg --hemi $hemi)
+    set cmd = ($cmd --out $srcsurfpath)
+    if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
+    if($synth)     set cmd = ($cmd --srcsynth -1) # Synth if desired
+    echo "-----------------------"| tee -a $LF
+    echo $cmd | tee -a $LF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) exit 1;
+  else
+    # Source is already a surface
+    if($#meas) then
+      set srcsurfpath = $subjpath/surf/$hemi.$meas
+    else
+      set srcsurfpath = $isplist[$nthsubj];
+    endif
+  endif
+
+  # Now srcsurfpath file exists, convert it to the target subject
+  set tval = $tmpdir/$subj.mgh
+  set cmd = (mri_surf2surf --hemi $hemi --srcsubject $subj --sval $srcsurfpath)
+  if($#meas)   set cmd = ($cmd --sfmt curv)
+  if(! $#meas) set cmd = ($cmd --sfmt mgh)
+  set cmd = ($cmd --trgsubject $target --tval $tval --tfmt mgh)
+  if($synth && ! $srcvol) set cmd = ($cmd --synth) # Synth if desired
+  if($#fwhmsrc)  set cmd = ($cmd --fwhm-src $fwhmsrc) # Smth in the targ space below
+  echo "-----------------------"| tee -a $LF
+  echo $cmd | tee -a $LF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  # Prepare to concatenate them
+  set tvallist = ($tvallist $tval)
+
+  @ nthsubj = $nthsubj + 1;
+end
+
+# Now concatenate all the inputs together
+set cmd = (mri_concat $tvallist --o $outpath)
+if($paireddiff) set cmd = ($cmd --paired-diff);
+echo "-----------------------"| tee -a $LF
+echo $cmd | tee -a $LF
+if($RunIt) $cmd |& tee -a $LF
+if($status) exit 1;
+
+# Smooth in the target space
+if($#fwhmtarg) then
+  set cmd = (mri_surf2surf --hemi $hemi --s $target )
+  set cmd = ($cmd --sval $outpath --sfmt mgh)
+  set cmd = ($cmd --tval $outpath --tfmt mgh)
+  set cmd = ($cmd --fwhm-trg $fwhmtarg)
+  echo "-----------------------"| tee -a $LF
+  echo $cmd | tee -a $LF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
 
 
+if($cleanup) then
+  echo "Cleaning up" | tee -a $LF
+  set cmd = (rm -r $tmpdir)
+  echo "-----------------------"| tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
 
-echo "mris_preproc done"
+
+date | tee -a $LF
+echo "mris_preproc done"| tee -a $LF
 
 exit 0
 #----------------------------------------------------------#
@@ -55,22 +169,51 @@ while( $#argv != 0 )
   
   switch($flag)
 
+    case "--subject":
     case "--s":
-      if ( $#argv == 0) goto arg1err;
+      if($#argv < 1) goto arg1err;
       set subjlist = ($subjlist $argv[1]); shift;
       breaksw
 
-    case "--isp":
+    case "--f":
+      if($#argv < 1) goto arg1err;
+      set subjlistfile = $argv[1]; shift;
+      if(! -e $subjlistfile) then
+        echo "ERROR: cannot find $subjlistfile";
+        exit 1;
+      endif
+      set subjlist = ($subjlist `cat $subjlistfile`);
+      breaksw
+
+    case "--fsgd":
       if ( $#argv == 0) goto arg1err;
+      set fsgdf = $argv[1]; shift;
+      if(! -e $fsgdf) then
+        echo "ERROR: cannot find $fsgdf";
+        exit 1;
+      endif
+      set sl = `cat $fsgdf | awk '{if($1 == "Input") print $2}'`;
+      set subjlist = ($subjlist $sl);
+      breaksw
+
+    case "--meas":
+      if($#argv < 1) goto arg1err;
+      set meas = $argv[1]; shift;
+      set srcsurf = 1;
+      breaksw
+
+    case "--isp": # Input surface path
+      if($#argv < 1) goto arg1err;
       set isp = $argv[1];shift;
       if(! -e $isp) then
         echo "ERROR: cannot find $isp"
         exit 1;
       endif
       set isplist = ($isplist $isp); 
+      set srcsurf = 1;
       breaksw
 
-    case "--ivp":
+    case "--ivp": # Input volume path
       if($#argv < 2) goto arg2err;
       set ivp = $argv[1];shift;
       if(! -e $ivp) then
@@ -84,20 +227,7 @@ while( $#argv != 0 )
       endif
       set ivplist = ($ivplist $ivp);
       set irplist = ($irplist $irp);
-      breaksw
-
-    case "--fsgd":
-      if ( $#argv == 0) goto arg1err;
-      set fsgdf = $argv[1]; shift;
-      if(! -e $fsgdf) then
-        echo "ERROR: cannot find $fsgdf";
-        exit 1;
-      endif
-      breaksw
-
-    case "--meas":
-      if ( $#argv == 0) goto arg1err;
-      set meas = $argv[1]; shift;
+      set srcvol = 1;
       breaksw
 
     case "--hemi":
@@ -115,12 +245,13 @@ while( $#argv != 0 )
       set fwhmsrc = $argv[1]; shift;
       breaksw
 
+    case "--fwhm-targ":
     case "--fwhm":
       if ( $#argv == 0) goto arg1err;
-      set fwhm = $argv[1]; shift;
+      set fwhmtarg = $argv[1]; shift;
       breaksw
 
-    case "--projfrace":
+    case "--projfrac":
       if ( $#argv == 0) goto arg1err;
       set projfrac = $argv[1]; shift;
       breaksw
@@ -143,6 +274,10 @@ while( $#argv != 0 )
       set synth = 1;
       breaksw
 
+    case "--dontrun":
+      set RunIt = 0;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1; # turns on terminal echoing
@@ -162,18 +297,90 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
-  if($#InVol == 0) then
-    echo "ERROR: must specify an input volume"
+
+if($#subjlist == 0) then
+  echo "ERROR: no subjects specified"
+  exit 1;
+endif
+echo "nsubjects = $#subjlist";
+if($#hemi == 0) then
+  echo "ERROR: no hemi specified"
+  exit 1;
+endif
+if($#outpath == 0) then
+  echo "ERROR: no output specified"
+  exit 1;
+endif
+if($#target == 0) then
+  echo "ERROR: no target subject specified"
+  exit 1;
+endif
+if($srcsurf == 0 && $srcvol == 0) then
+  echo "ERROR: no input specified"
+  exit 1;
+endif
+if($srcsurf && $srcvol) then
+  echo "ERROR: cannot use both surface and volume sources"
+  exit 1;
+endif
+if($srcsurf && $#projfrac != 0) then
+  echo "ERROR: can only use projfrac with volume-based sources"
+  exit 1;
+endif
+if($#meas && $#isplist) then
+  echo "ERROR: cannot specify both --meas and --is"
+  exit 1;
+endif
+if($#ivplist != 0) then
+  if($#ivplist != $#subjlist) then
+    echo "ERROR: number of input volumes ($#ivplist) does not equal number of subjects"
     exit 1;
   endif
-  if(! -e $InVol) then
-    echo "ERROR: input volume $InVol does not exist"
+endif
+if($#isplist != 0) then
+  if($#isplist != $#subjlist) then
+    echo "ERROR: number of input surfaces ($#isplist) does not equal number of subjects"
     exit 1;
   endif
-  if($#XFM == 0) then
-    echo "ERROR: must specify an output transform file"
+endif
+if($paireddiff) then
+  set rem = `echo "$#subjlist%2" | bc`;
+  if($rem != 0) then
+    echo "ERROR: need an even number of subjects with --paired-diff"
     exit 1;
   endif
+endif
+
+if(! -e $SUBJECTS_DIR) then
+  echo "ERROR: cannot find SUBJECTS_DIR $SUBJECTS_DIR"
+  exit 1;
+endif
+@ nthsubj = 1;
+foreach subj ($subjlist)
+  set subjpath = $SUBJECTS_DIR/$subj
+  if(! -e $subjpath) then
+    echo "ERROR: cannot find $subjpath"
+    exit 1;
+  endif
+  if($#meas) then
+    set measpath = $subjpath/surf/$hemi.$meas
+    if(! -e $measpath) then
+      echo "ERROR: cannot find $measpath"
+      exit 1;
+    endif
+  endif
+  if($#ivplist != 0) then
+    set regfile = $irplist[$nthsubj];
+    set regsubj = `head -n 1 $regfile`;
+    if($regsubj != $subj) then
+      echo "ERROR: subject mismatch for input $nthsubj ($regsubj vs $subj)"
+      exit 1;
+    endif
+  endif
+  @ nthsubj = $nthsubj + 1;
+end
+
+
 goto check_params_return;
 ############--------------##################
 
@@ -194,20 +401,30 @@ usage_exit:
   echo ""
   echo "USAGE: mris_prepoc"
   echo ""
-  echo "  --subjects <subj1> <subj2> ... <subjN>" 
-  echo "  --fsgd fsgdfile"
-  echo "  --meas surfmeas"
-  echo "  --is surfmeaspath <--is surfmeaspath> "
-  echo "  --iv volmeaspath reg <--iv volmeaspath reg>"
+  echo "  --out outfile"
   echo "  --target subject"
-  echo "  --fwhm fwhm"
-  echo "  --fwhm-src fwhmsrc"
-  echo "  --projfrac frac"
   echo "  --hemi hemi "
-  echo "  --out outpath"
+  echo ""
+  echo "  --meas surfmeas"
+  echo "  --s subj1 <--s subj2 ... --s subjN>" 
+  echo "  --fsgd fsgdfile"
+  echo "  --f subjectlistfile"
+  echo ""
+  echo "  --is surfmeasfile <--is surfmeasfile> "
+  echo ""
+  echo "  --iv volmeasfile reg <--iv volmeasfile reg>"
+  echo "  --projfrac frac : projection fraction for vol2surf"
+  echo ""
+  echo "  --fwhm fwhm : smooth to fwhm mm on the target surface"
+  echo "  --fwhm-src fwhmsrc : smooth to fwhm mm on the source surface"
+  echo ""
   echo "  --paired-diff"
+  echo ""
   echo "  --synth"
   echo ""
+  echo "  --tmpdir dir : use tmpdir. Implies --nocleanup."
+  echo "  --nocleanup  : do not delete tmpdir"
+  echo "  --cleanup  : delete tmpdir (default)"
   echo "  --help    : short descriptive help"
   echo "  --version : script version info"
   echo "  --debug   "
@@ -224,4 +441,142 @@ exit 1;
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
+
+SUMMARY
+
+Script to prepare surface-based data for high-level analysis by
+resampling surface or volume source data to a common sujbect (usually
+an average subject) and then concatenating them into one file which
+can then be used by a number of programs (eg, mri_glmfit).
+
+COMMAND-LINE ARGUMENTS
+
+--out outfile
+
+Save output here.
+
+--target subject
+
+Subject to use as the common-space. All the input data will be 
+resampled to the surface of this subject.
+
+--hemi hemi
+
+Use hemi for source and target surfaces. hemi can be lh or rh.
+
+--meas surfmeasure
+
+Use subject/surf/hemi.surfmeasure as input. For use with --s, --fsgd, or --f.
+
+--s subjN
+
+Specify an input subject on the command-line. All subjects must be
+specified in this way on the command-line (ie, each with its own
+--s). For use with --meas.
+
+--fsgd fsgdfile
+
+Specify the list of input subjects from the fsgd file. The fsgd file can then
+be used with mri_glmfit (unless --paired-diff is specified). The subject list
+is obtained from the "Input" lines. See surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
+for more info. For use with --meas.
+
+--f subjlistfile
+
+List all subjects separated by white space in subjlistfile. This is just an
+alternative to using an fsgd file. For use with --meas.
+
+--is surfmeasfile
+
+Specify full path to input surface measure file. This is an alternative to
+using --meas. This still requires that a subject list be supplied.
+
+--iv volmeasfile
+
+Specify full path to a volume file and its registration matrix file.
+The registration matrix file is of the type accepted/created by
+tkregister2. The volume is sampled to the surface, and the result is
+used as the input surface measure. This is an alternative to
+using --meas. This still requires that a subject list be supplied.
+
+--projfrac projfrac
+
+When sampling a volume onto the surface, sample a fraction of the thickness
+along the surface normal. projfrac is 0-1. Default is 0.
+
+--fwhm fwhm
+
+Smooth the data on the target surface by fwhm mm.
+
+--fwhm-src fwhm
+
+Smooth the data on the source surface by fwhm mm. It is better to do it
+on the target surface.
+
+--paired-diff
+
+Afer concatenating all the inputs together, create a new output file by
+computing paired differences, ie, Input1-Input2, Input3-Input4, etc.
+There must be an even number of inputs.
+
+--synth
+
+Synthesize the input data with white gaussian noise. For volume source,
+the volume is synthesized prior to resampling to the surface. The 
+synthesis is done prior to any smoothing. This is mainly good for testing
+and running simulations.
+
+--tmpdir tmpdir
+
+Use tmpdir. By default, creates a tmpdir in the output directory.
+Implies --nocleanup
+
+--nocleanup
+
+Do not delete temporary directory and files.
+
+--cleanup
+
+DO delete temporary directory and files.  Done by default.
+
+
+EXAMPLES
+
+1. Resample abcXX-anat/surf/lh.thickness onto average7:
+
+mris_preproc --s abc01-anat --s abc02-anat --s abc03-anat --s abc04-anat \
+  --target average7 --hemi lh --meas thickness --out abc-lh-thickness.mgh
+
+2. Same as #1 but using an fsgd file (which would have the abcXXs as Inputs):
+
+mris_preproc --fsgd abc.fsgd --target average7 --hemi lh --meas thickness \
+  --out abc-lh-thickness.mgh
+
+3. Same as #1 but smooths by 5mm fwhm:
+
+mris_preproc --s abc01-anat --s abc02-anat --s abc03-anat --s abc04-anat \
+  --target average7 --hemi lh --meas thickness \
+  --fwhm 5 --out abc-lh-thickness.sm5.mgh 
+
+4. Same as #1 but using full paths (note there is no --meas, but
+   --fsgd still needed to provide list of subjects, which must be in
+   the same order as the --isp):
+
+mris_preproc --target average7 --hemi lh --out abc-lh-thickness.mgh \
+  --fsgd abc.fsgd 
+  --isp abc01-anat/surf/lh.thickness
+  --isp abc02-anat/surf/lh.thickness
+  --isp abc03-anat/surf/lh.thickness
+  --isp abc04-anat/surf/lh.thickness
+
+5. Sample volume data (no --meas):
+
+mris_preproc --fsgd abc.fsgd  --target average7 --hemi lh \
+  --out abc-lh-vol.mgh \
+  --ivp abc01-func/bold/main/nvr/ces.bhdr abc01-func/bold/register.dat \
+  --ivp abc02-func/bold/main/nvr/ces.bhdr abc02-func/bold/register.dat \
+  --ivp abc03-func/bold/main/nvr/ces.bhdr abc03-func/bold/register.dat \
+  --ivp abc04-func/bold/main/nvr/ces.bhdr abc04-func/bold/register.dat
+
+
 
