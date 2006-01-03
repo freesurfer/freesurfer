@@ -74,13 +74,17 @@ VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
 
 /*----------------------------------------------------------*/
 typedef struct {
-  char simtype[100];  // perm or synth
+  char simtype[100];  // perm, null-full, null-z
   char anattype[100]; // surface or volume
   char subject[100];  // when anattype==surf
   char hemi[10];      // when anattype==surf
   long seed;          // used for simulation
   char contrast[100]; // contrast name
   double thresh;
+  double threshsign;  //0=abs,+1,-1
+  double nullfwhm;    // smoothing of null simulation
+  double varfwhm;     // amount of variance smoothing
+  double searchspace; // in mm^2 for surf or mm^3 for vol
   int nreps;          // number of repetitions
   int *nClusters;
   double *MaxClusterSize;
@@ -88,15 +92,18 @@ typedef struct {
   int mergedflag;     // Flag to indicate that two or more merged
 } CLUSTER_SIM_DATA, CSD;
 
+CLUSTER_SIM_DATA *CSDalloc(void);
 int CSDallocData(CLUSTER_SIM_DATA *csd);
 int CSDfreeData(CLUSTER_SIM_DATA *csd);
 CSD *CSDcopy(CSD *csd, CSD *csdcopy);
 CSD *CSDread(char *csdfile);
 CSD *CSDmerge(CSD *csd1, CSD *csd2);
 CSD *CSDreadMerge(char *csdfile, CSD *csd);
+int CSDprintHeader(FILE *fp, CLUSTER_SIM_DATA *csd);
 int CSDprint(FILE *fp, CSD *csd);
 double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
 			double ciPct, double *pvalLow, double *pvalHi);
+int CSDcheckSimType(char *simtype);
 
 /*----------------------------------------------------------*/
 typedef struct {

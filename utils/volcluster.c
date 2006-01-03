@@ -1110,7 +1110,28 @@ int CHTsignId(char *ithr_sign)
 /*-------###########################################--------*/
 /*-------###########################################--------*/
 
-
+/*------------------------------------------------------------
+  CSDalloc() - just allocs structure and sets some initial vars
+  ------------------------------------------------------------*/
+CLUSTER_SIM_DATA *CSDalloc(void)
+{
+  CLUSTER_SIM_DATA *csd;
+  csd = (CLUSTER_SIM_DATA *) calloc(sizeof(CLUSTER_SIM_DATA),1);
+  csd->mergedflag = 0; // not a merged data 
+  bzero(csd->simtype,strlen(csd->simtype));
+  bzero(csd->anattype,strlen(csd->anattype));
+  bzero(csd->subject,strlen(csd->subject));
+  bzero(csd->hemi,strlen(csd->hemi));
+  bzero(csd->contrast,strlen(csd->contrast));
+  csd->seed = -1;
+  csd->thresh = -1;
+  csd->threshsign = 0;
+  csd->nullfwhm = -1;
+  csd->varfwhm = -1;
+  csd->searchspace = -1;
+  csd->nreps = -1;
+  return(csd);
+}
 
 /*--------------------------------------------------------------
   CSDread() - reads a cluster simulation data file. The format
@@ -1147,9 +1168,13 @@ CLUSTER_SIM_DATA *CSDread(char *csdfile)
 	fscanf(fp,"%s",csd->subject);
 	fscanf(fp,"%s",csd->hemi);
       }
-      else if(!strcmp(tag,"thresh")) fscanf(fp,"%lf",&(csd->thresh));
-      else if(!strcmp(tag,"seed"))   fscanf(fp,"%ld",&(csd->seed));
-      if(!strcmp(tag,"contrast"))    fscanf(fp,"%s",csd->contrast);
+      else if(!strcmp(tag,"thresh"))     fscanf(fp,"%lf",&(csd->thresh));
+      else if(!strcmp(tag,"threshsign")) fscanf(fp,"%lf",&(csd->threshsign));
+      else if(!strcmp(tag,"seed"))     fscanf(fp,"%ld",&(csd->seed));
+      else if(!strcmp(tag,"contrast")) fscanf(fp,"%s",csd->contrast);
+      else if(!strcmp(tag,"nullfwhm")) fscanf(fp,"%lf",&csd->nullfwhm);
+      else if(!strcmp(tag,"varfwhm"))  fscanf(fp,"%lf",&csd->varfwhm);
+      else if(!strcmp(tag,"searchspace")) fscanf(fp,"%lf",&csd->searchspace);
       else if(!strcmp(tag,"nsim")){
 	fscanf(fp,"%d",&(csd->nreps));
 	CSDallocData(csd);
@@ -1246,7 +1271,11 @@ CSD *CSDcopy(CSD *csd, CSD *csdcopy)
   strcpy(csdcopy->anattype,csd->anattype);
   strcpy(csdcopy->subject, csd->subject);
   strcpy(csdcopy->hemi,    csd->hemi);
-  csdcopy->thresh = csd->thresh;
+  csdcopy->thresh     = csd->thresh;
+  csdcopy->threshsign = csd->threshsign;
+  csdcopy->searchspace = csd->searchspace;
+  csdcopy->nullfwhm = csd->nullfwhm;
+  csdcopy->varfwhm  = csd->varfwhm;
 
   csdcopy->nreps = csd->nreps;
   CSDallocData(csdcopy);
@@ -1264,7 +1293,11 @@ CSD *CSDcopy(CSD *csd, CSD *csdcopy)
     (2) anattypes be the same
     (3) contrasts be the same
     (4) thresholds be the same
-    (5) seeds be different
+    (5) threshold signs be the same
+    (6) nullfwhm be the same
+    (7) varfwhm be the same
+    (8) searchspace be the same
+    (9) seeds be different
   The seed from the first is copied into the merge, and the
   mergeflag is set to 1.
   --------------------------------------------------------------*/
@@ -1289,6 +1322,22 @@ CSD *CSDmerge(CSD *csd1, CSD *csd2)
     printf("ERROR: CSDmerge: CSDs have different thresholds\n");
     return(NULL);
   }
+  if(csd1->threshsign != csd2->threshsign){
+    printf("ERROR: CSDmerge: CSDs have different threshold signs\n");
+    return(NULL);
+  }
+  if(csd1->searchspace != csd2->searchspace){
+    printf("ERROR: CSDmerge: CSDs have different search spaces\n");
+    return(NULL);
+  }
+  if(csd1->nullfwhm != csd2->nullfwhm){
+    printf("ERROR: CSDmerge: CSDs have different null fwhm\n");
+    return(NULL);
+  }
+  if(csd1->varfwhm != csd2->varfwhm){
+    printf("ERROR: CSDmerge: CSDs have different variance fwhm\n");
+    return(NULL);
+  }
   if(csd1->seed == csd2->seed){
     printf("ERROR: CSDmerge: CSDs have same seed\n");
     return(NULL);
@@ -1300,8 +1349,12 @@ CSD *CSDmerge(CSD *csd1, CSD *csd2)
   strcpy(csd->contrast, csd1->contrast);
   strcpy(csd->subject,  csd1->subject);
   strcpy(csd->hemi,     csd1->hemi);
-  csd->thresh = csd1->thresh;
-  csd->seed   = csd1->seed;
+  csd->thresh     = csd1->thresh;
+  csd->threshsign = csd1->threshsign;
+  csd->searchspace = csd1->searchspace;
+  csd->nullfwhm = csd1->nullfwhm;
+  csd->varfwhm  = csd1->varfwhm;
+  csd->seed     = csd1->seed;
   csd->mergedflag = 1;
 
   csd->nreps = csd1->nreps + csd2->nreps;
@@ -1324,25 +1377,36 @@ CSD *CSDmerge(CSD *csd1, CSD *csd2)
   return(csd);
 }
 /*--------------------------------------------------------------
-  CSDprint() - prints a CSD to the given stream.
+  CSDprintHeader() - print CSD header to the given stream.
   --------------------------------------------------------------*/
-int CSDprint(FILE *fp, CLUSTER_SIM_DATA *csd)
+int CSDprintHeader(FILE *fp, CLUSTER_SIM_DATA *csd)
 {
-  int nthrep;
-
   fprintf(fp,"# simtype %s\n",csd->simtype);
   if(!strcmp(csd->anattype,"surface"))
     fprintf(fp,"# anattype %s  %s %s\n",csd->anattype,csd->subject,csd->hemi);
   else
     fprintf(fp,"# anattype %s \n",csd->anattype);
-  fprintf(fp,"# merged %d\n",csd->mergedflag);
-  fprintf(fp,"# contrast %s\n",csd->contrast);
-  fprintf(fp,"# seed %ld\n",csd->seed);
-  fprintf(fp,"# thresh %lf\n",csd->thresh);
-  fprintf(fp,"# nreps %d\n",csd->nreps);
-  
+  fprintf(fp,"# merged      %d\n",csd->mergedflag);
+  fprintf(fp,"# contrast    %s\n",csd->contrast);
+  fprintf(fp,"# seed        %ld\n",csd->seed);
+  fprintf(fp,"# thresh      %lf\n",csd->thresh);
+  fprintf(fp,"# threshsign  %lf\n",csd->threshsign);
+  fprintf(fp,"# searchspace %lf\n",csd->searchspace);
+  fprintf(fp,"# nullfwhm    %lf\n",csd->nullfwhm);
+  fprintf(fp,"# varfwhm     %lf\n",csd->varfwhm);
+  fprintf(fp,"# nreps       %d\n",csd->nreps);
+  return(0);
+}
+/*--------------------------------------------------------------
+  CSDprint() - prints a CSD to the given stream.
+  --------------------------------------------------------------*/
+int CSDprint(FILE *fp, CLUSTER_SIM_DATA *csd)
+{
+  int nthrep;
+  CSDprintHeader(fp,csd);
+  fprintf(fp,"# LoopNo nClusters MaxClustSize        MaxSig\n");
   for(nthrep = 0; nthrep < csd->nreps; nthrep++){
-    fprintf(fp,"%3d %3d %g %g \n",nthrep,csd->nClusters[nthrep],
+    fprintf(fp,"%7d       %3d      %g          %g \n",nthrep,csd->nClusters[nthrep],
 	    csd->MaxClusterSize[nthrep],csd->MaxSig[nthrep]);
   }
   return(0);
@@ -1400,4 +1464,14 @@ double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
 
   return(pval);
 }
-
+/*-----------------------------------------------------------------------
+  CSDcheckSimType() - checks simulation type string to make sure it
+  is one that is recognized. Returns 0 if ok, 1 otherwise.
+  -----------------------------------------------------------------------*/
+int CSDcheckSimType(char *simtype)
+{
+  if(!strcmp(simtype,"perm"))      return(0);
+  if(!strcmp(simtype,"null-full")) return(0);
+  if(!strcmp(simtype,"null-z"))    return(0);
+  return(1);
+}
