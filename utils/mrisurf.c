@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/03 06:21:21 $
-// Revision       : $Revision: 1.411 $
+// Revision Date  : $Date: 2006/01/03 23:12:02 $
+// Revision       : $Revision: 1.412 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.411 2006/01/03 06:21:21 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.412 2006/01/03 23:12:02 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -45793,6 +45793,8 @@ int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field)
   int vtx, useval=0, usecurv=0, nvox, c, r, s;
   float val;
 
+  if(Gdiag_no > 0) printf("MRIScopyMRI\n");
+
   nvox = Src->width * Src->height * Src->depth;
   if(Surf->nvertices != nvox){
     printf("ERROR: MRIScopyMRI: Surf/Src dimension mismatch.\n");
@@ -45813,10 +45815,11 @@ int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field)
   
   /*------------------------------------------------*/
   vtx = 0;
-  for(c = 0; c < Src->width; c++){
+  for(s = 0; s < Src->depth; s++){
     for(r = 0; r < Src->height; r++){
-      for(s = 0; s < Src->depth; s++){
-	val = MRIgetVoxVal(Src, vtx, 0, 0,Frame);
+      for(c = 0; c < Src->width; c++){
+	val = MRIgetVoxVal(Src, c, r, s, Frame); 
+	//val = MRIgetVoxVal(Src, vtx, 0, 0, Frame); // was vtx,0,0 dng, wrong
     
 	if(useval)                         Surf->vertices[vtx].val = val;
 	else if(usecurv)                   Surf->vertices[vtx].curv = val;
@@ -45870,6 +45873,8 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field){
   int vtx, useval=0, usecurv=0, nvox, c, r, s;
   float val;
 
+  if(Gdiag_no > 0) printf("MRIcopyMRIS\n");
+
   if(mri == NULL){
     mri = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, Frame+1);
     if(mri==NULL){
@@ -45896,9 +45901,9 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field){
   
   /*------------------------------------------------*/
   vtx = 0;
-  for(c = 0; c < mri->width; c++){
+  for(s = 0; s < mri->depth; s++){
     for(r = 0; r < mri->height; r++){
-      for(s = 0; s < mri->depth; s++){
+      for(c = 0; c < mri->width; c++){
 	if(useval)                         val = surf->vertices[vtx].val;
 	else if(usecurv)                   val = surf->vertices[vtx].curv;
 	else if(!strcmp(Field,"stat"))     val = surf->vertices[vtx].stat;
