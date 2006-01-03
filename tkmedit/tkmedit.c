@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/12/29 21:18:59 $
-// Revision       : $Revision: 1.265 $
-char *VERSION = "$Revision: 1.265 $";
+// Revision Date  : $Date: 2006/01/03 13:22:04 $
+// Revision       : $Revision: 1.266 $
+char *VERSION = "$Revision: 1.266 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1103,7 +1103,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.265 2005/12/29 21:18:59 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.266 2006/01/03 13:22:04 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -3005,7 +3005,7 @@ void CopyEditDatFileName ( char* osFileName, int izFileName ) {
 			  sSubjectName, sizeof( sSubjectName ));
     sprintf( sFileName, "%s-%s", pLocalEditFile, sSubjectName );
 
-    fTest = fopen( sFileName, "r" );
+    fTest = fopen( sFileName, "a" );
     if( fTest ) { 
       bFoundLocal = TRUE;
       fclose( fTest ); 
@@ -5416,7 +5416,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.265 2005/12/29 21:18:59 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.266 2006/01/03 13:22:04 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */

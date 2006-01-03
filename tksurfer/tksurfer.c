@@ -7349,7 +7349,7 @@ void copy_edit_dat_file_name (char* fname, int len)
       
       sprintf (file_name, "%s-%s", local_file, pname);
 
-      test_file = fopen (file_name, "r");
+      test_file = fopen (file_name, "a");
       if (test_file)
 	{ 
 	  found = TRUE;
@@ -19024,7 +19024,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.165 2005/12/30 18:05:15 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.166 2006/01/03 13:22:36 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
