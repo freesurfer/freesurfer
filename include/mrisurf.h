@@ -1249,7 +1249,7 @@ int MRISabsVals(MRI_SURFACE *mris) ;
 int MRISsmoothFrames(MRI_SURFACE *mris, MRI *mri, int navgs) ;
 int MRISwriteFrameToValues(MRI_SURFACE *mris, MRI *mri, int frame) ;
 int MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame) ;
-MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1);
+MRI *MRISar1(MRIS *surf, MRI *src, MRI *mask, MRI *ar1);
 int **MRIScrsLUT(MRIS *surf, MRI *src);
 int MRIScrsLUTFree(int **crslut);
 int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
