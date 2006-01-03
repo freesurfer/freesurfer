@@ -64,6 +64,13 @@ Layer::DrawIntoBuffer( GLubyte*, int, int,
   cerr << "Layer " << msLabel << " is drawing into buffer" << endl;
 }
 
+void
+Layer::DrawIntoGL ( ViewState& iViewState,
+		    ScubaWindowToRASTranslator& iTranslator ) {
+
+  cerr << "Layer " << msLabel << " is drawing into GL" << endl;
+}
+
 void 
 Layer::GetInfoAtRAS ( float[3], list<InfoAtRAS>& ioInfo ) {
 

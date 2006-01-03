@@ -27,6 +27,10 @@ class ScubaLayer2DMRI : public Layer {
 				ViewState& iViewState,
 				ScubaWindowToRASTranslator& iTranslator );
 
+  // Tell the layer to draw its contents that need openGl commands.
+  virtual void DrawIntoGL ( ViewState& iViewState,
+			    ScubaWindowToRASTranslator& iTranslator );
+
   // Draws the MIP into the buffer.
   virtual void DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 				   ViewState& iViewState,

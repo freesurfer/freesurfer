@@ -20,6 +20,10 @@ class ScubaLayer2DMRIS : public Layer {
 				ViewState& iViewState,
 				ScubaWindowToRASTranslator& iTranslator );
   
+  // Tell the layer to draw its contents that need openGl commands.
+  virtual void DrawIntoGL ( ViewState& iViewState,
+			    ScubaWindowToRASTranslator& iTranslator );
+
   // Asks the layer to describe a point of data by making InfoAtRAS
   // structs.
   virtual void GetInfoAtRAS ( float iRAS[3],

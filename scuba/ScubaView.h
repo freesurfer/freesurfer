@@ -230,18 +230,19 @@ protected:
   void RebuildLabelValueInfo ( float iRAS[3], std::string isLabel );
 
   // The draw list for the view overlay and a boolean saying whether
-  // it should be rebuilt, usually when the view changes. This view
-  // will actually use list kOverlayDrawListID + mID.
-  #define kOverlayDrawListID 1
+  // it should be rebuilt, usually when the view changes.
+  int mDrawListID;
   bool mbRebuildOverlayDrawList;
 
   std::map<std::string,std::list<Layer::InfoAtRAS> > mInfoAtRASMap;
 
-  // List of layers and their levels (level, layerID).
+  // List of layers and their levels (level, layerID) and other level
+  // related info.
   std::map<int,int> mLevelLayerIDMap;
   std::map<int,bool> mLevelVisibilityMap;
   std::map<int,bool> mLevelReportInfoMap;
-  
+  std::map<int,int> mLevelGLListIDMap;
+
   // Current view information for this view.
   ViewState mViewState;
 

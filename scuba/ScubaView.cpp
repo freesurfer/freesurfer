@@ -223,6 +223,9 @@ ScubaView::ScubaView() {
   RebuildLabelValueInfo( origin, "cursor" );
   RebuildLabelValueInfo( origin, "mouse" );
 
+  // Generate a draw list for us.
+  mDrawListID = glGenLists( 1 );
+
   mViewState.ResetUpdateRect();
 }
 
@@ -497,6 +500,11 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       // Default reporting info value.
       if( mLevelReportInfoMap.find( iLevel ) == mLevelReportInfoMap.end() ) {
 	mLevelReportInfoMap[iLevel] = kbDefaultLevelReportInfo;
+      }
+
+      // Make a new display list for this level if necessary.
+      if( mLevelGLListIDMap.find( iLevel ) == mLevelGLListIDMap.end() ) {
+	mLevelGLListIDMap[iLevel] = glGenLists( 1 );
       }
 
       // Listen to it.
@@ -1795,6 +1803,14 @@ ScubaView::DoDraw() {
   DrawFrameBuffer();
   DrawOverlay();
 
+  // Go through our draw levels. For each one, call the draw list.
+  map<int,int>::iterator tLevelLayerID;
+  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+    int nLevel = (*tLevelLayerID).first;
+    glCallList( mLevelGLListIDMap[nLevel] );
+  }
+
   int msec = timer.TimeNow();
 
   if( prefs.GetPrefAsBool( ScubaGlobalPreferences::ShowFPS )) {
@@ -2948,6 +2964,13 @@ ScubaView::BuildFrameBuffer () {
       
       // tell it to draw into our buffer with our view state information.
       layer.DrawIntoBuffer( mBuffer, mWidth, mHeight, mViewState, *this );
+
+      // Start a draw list, tell the layer to draw it's 3d stuff, then
+      // close the list.
+      glNewList( mLevelGLListIDMap[nLevel], GL_COMPILE );
+      layer.DrawIntoGL( mViewState, *this );
+      glEndList();
+
     }
     catch(...) {
       cerr << "Couldn't find layer " << layerID << endl;
@@ -3044,7 +3067,7 @@ ScubaView::BuildOverlay () {
     return;
 
   // Open the overlay display list.
-  glNewList( kOverlayDrawListID + mID, GL_COMPILE );
+  glNewList( mDrawListID, GL_COMPILE );
     
 
   // Draw the HUD overlay if necessary. We need to take our edge
@@ -3377,7 +3400,7 @@ ScubaView::DrawOverlay () {
   if( mbRebuildOverlayDrawList )
     BuildOverlay();
 
-  glCallList( kOverlayDrawListID + mID );
+  glCallList( mDrawListID );
 }
 
 ScubaViewBroadcaster::ScubaViewBroadcaster () :

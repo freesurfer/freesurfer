@@ -191,6 +191,12 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 }
   
 void
+ScubaLayer2DMRIS::DrawIntoGL ( ViewState& iViewState,
+			      ScubaWindowToRASTranslator& iTranslator ) {
+
+}
+
+void
 ScubaLayer2DMRIS::GetInfoAtRAS ( float iRAS[3],
 				std::list<InfoAtRAS>& ioInfo ) {
   

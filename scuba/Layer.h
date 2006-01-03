@@ -55,6 +55,10 @@ class Layer : public DebugReporter,
 			       ViewState& iViewState,
 			       ScubaWindowToRASTranslator& iTranslator );
   
+  // Tell the layer to draw its contents that need openGl commands.
+  virtual void DrawIntoGL ( ViewState& iViewState,
+			    ScubaWindowToRASTranslator& iTranslator );
+
   // This is what layers will fill out when GetInfoAtRAS is called.
   class InfoAtRAS {
   public:
