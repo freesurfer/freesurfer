@@ -3,7 +3,7 @@ BEGINHELP
 
 Estimates the smoothness of a surface-based data set.
 
---in input
+--i input
 
 Input data. Format must be something readable by mri_convert
 (eg, mgh, mgz, img, nii). Alternately, one can synthesize
@@ -13,6 +13,23 @@ white gaussian noise with --synth and --synth-frames.
 
 Subject whose surface the input is defined on. Can use --s instead of
 --subject.
+
+--surf surfname
+
+Compute AR1 on surface surfname. Default is white.
+
+--mask maskfile
+
+Compute AR1 only over voxels in the given mask. Format can be anything
+accepted by mri_convert. See also --label.
+
+--mask-inv
+
+Invert mask, ie, compute AR1 only over voxels outside the given mask.
+
+--label label
+
+Use label as a mask. Can be inverted with --mask-inv.
 
 --hemi hemi (--h)
 
@@ -55,12 +72,6 @@ Implies --synth.
 ENDHELP
 */
 
-/*
-Need to add demean, detrend, matrix detrend
-
-*/
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -90,10 +101,6 @@ double round(double x);
 #include "icosahedron.h"
 #include "pdf.h"
 #include "matfile.h"
-double MRISmeanInterVertexDist(MRIS *surf);
-
-//MRI *fMRIdetrend(MRI *y, MATRIX *X);
-
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -104,7 +111,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.2 2006/01/03 04:32:37 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.3 2006/01/03 06:26:34 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -119,6 +126,14 @@ char *outpath=NULL;
 char *sumfile=NULL;
 char tmpstr[2000];
 MRI *InVals=NULL, *mritmp;
+
+char *maskpath=NULL;
+char *labelpath=NULL;
+MRI *mask=NULL;
+LABEL *label=NULL;
+int maskinv = 0;
+
+MRI *mritmp=NULL;
 
 MRIS *surf;
 double infwhm = 0, ingstd = 0;
@@ -194,6 +209,27 @@ int main(int argc, char *argv[])
     InVals = MRIrandn(surf->nvertices, 1, 1, nframes,0, 1, NULL);
   }
 
+  if(labelpath){
+    label = LabelRead(NULL, labelpath);
+    if(label == NULL){
+      printf("ERROR reading %s\n",labelpath);
+      exit(1);
+    }
+    mask = MRISlabel2Mask(surf, label, NULL);
+    mritmp = mri_reshape(mask, InVals->width,InVals->height, InVals->depth, 1);
+    MRIfree(&mask);
+    mask = mritmp;
+  }
+  if(maskpath){
+    printf("Loading mask %s\n",maskpath);
+    mask = MRIread(maskpath);
+    if(mask==NULL) exit(1);
+  }
+  if(mask){
+    if(maskinv) MRImaskInvert(mask,mask);
+    printf("Found %d voxels in mask\n",MRInMask(mask));
+  }
+
   if(X){
     printf("Detrending\n");
     if(X->rows != InVals->nframes){
@@ -214,10 +250,10 @@ int main(int argc, char *argv[])
   }
 
   printf("Computing spatial AR1 \n");
-  ar1 = MRISar1(surf, InVals, NULL);
+  ar1 = MRISar1(surf, InVals, mask, NULL);
 
   // Average AR1 over all vertices
-  RFglobalStats(ar1, NULL, &ar1mn, &ar1std, &ar1max);
+  RFglobalStats(ar1, mask, &ar1mn, &ar1std, &ar1max);
   gstd = InterVertexDistAvg/sqrt(-4*log(ar1mn));
   fwhm = gstd*sqrt(log(256.0));
 
@@ -277,6 +313,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--synth")) synth = 1;
     else if (!strcasecmp(option, "--nosynth")) synth = 0;
+    else if (!strcasecmp(option, "--mask-inv")) maskinv = 1;
 
     else if(!strcasecmp(option, "--s") || !strcasecmp(option, "--subject")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -293,9 +330,19 @@ static int parse_commandline(int argc, char **argv)
       surfname = pargv[0];
       nargsused = 1;
     }
-    else if (!strcasecmp(option, "--in")){
+    else if (!strcasecmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
       inpath = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--mask")){
+      if(nargc < 1) CMDargNErr(option,1);
+      maskpath = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--label")){
+      if(nargc < 1) CMDargNErr(option,1);
+      labelpath = pargv[0];
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--sum")){
@@ -315,7 +362,7 @@ static int parse_commandline(int argc, char **argv)
       synth = 1;
       nargsused = 1;
     }
-    else if (!strcasecmp(option, "--out")){
+    else if (!strcasecmp(option, "--o")){
       if(nargc < 1) CMDargNErr(option,1);
       outpath = pargv[0];
       nargsused = 1;
@@ -349,15 +396,17 @@ static void print_usage(void)
 {
   printf("USAGE: %s\n",Progname) ;
   printf("\n");
-  printf("   --in input\n");
+  printf("   --i input\n");
   printf("   --subject subject (--s)\n");
   printf("   --hemi hemi (--h)\n");
   printf("   --surf surf <white>\n");
+  printf("   --label labelfile\n");
+  printf("   --mask maskfile\n");
   printf("   --X x.mat : matlab4 detrending matrix\n");
   printf("   --sum sumfile\n");
   printf("   \n");
   printf("   --fwhm fwhm : apply before measuring\n");
-  printf("   --out output\n");
+  printf("   --o output\n");
   printf("\n");
   printf("   --synth \n");
   printf("   --synth-frames nframes : default is 10 \n");
@@ -377,7 +426,7 @@ static void print_help(void)
 printf("\n");
 printf("Estimates the smoothness of a surface-based data set.\n");
 printf("\n");
-printf("--in input\n");
+printf("--i input\n");
 printf("\n");
 printf("Input data. Format must be something readable by mri_convert\n");
 printf("(eg, mgh, mgz, img, nii). Alternately, one can synthesize\n");
@@ -388,6 +437,19 @@ printf("\n");
 printf("Subject whose surface the input is defined on. Can use --s instead of\n");
 printf("--subject.\n");
 printf("\n");
+printf("--surf surfname\n");
+printf("\n");
+printf("Compute AR1 on surface surfname. Default is white.\n");
+printf("\n");
+printf("--mask maskfile\n");
+printf("\n");
+printf("Compute AR1 only over voxels in the given mask. Format can be anything\n");
+printf("accepted by mri_convert.\n");
+printf("\n");
+printf("--mask-inv\n");
+printf("\n");
+printf("Invert mask, ie, compute AR1 only over voxels outside the given mask.\n");
+printf("\n");
 printf("--hemi hemi (--h)\n");
 printf("\n");
 printf("Hemifield that the input is defined on. Legal values are lh and rh.\n");
@@ -395,7 +457,7 @@ printf("Can use --h instead of --hemi.\n");
 printf("\n");
 printf("--X x.mat\n");
 printf("\n");
-printf("Detrend data with the matrix in x.mat. Ie, y = (I-inv(X'*X)*X'*)y, where\n");
+printf("Detrend data with the matrix in x.mat. Ie, y = (I-inv(X'*X)*X')*y, where\n");
 printf("y is the input. x.mat must be a matlab4 matrix.\n");
 printf("\n");
 printf("--sum sumfile\n");
@@ -427,6 +489,7 @@ printf("Implies --synth.\n");
 printf("\n");
 printf("\n");
 
+
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -450,6 +513,10 @@ static void check_options(void)
     printf("ERROR: need to specify --in or --synth\n");
     exit(1);
   }
+  if(maskpath && labelpath){
+    printf("ERROR: cannot specify both --label and --mask\n");
+    exit(1);
+  }
   return;
 }
 
@@ -471,7 +538,8 @@ static void dump_options(FILE *fp)
   fprintf(fp,"subject %s\n",subject);
   fprintf(fp,"hemi     %s\n",hemi);
   fprintf(fp,"surfname %s\n",surfname);
-  if(inpath) fprintf(fp,"input  %s\n",inpath);
+  if(inpath)   fprintf(fp,"input  %s\n",inpath);
+  if(maskpath) fprintf(fp,"mask  %s\n",maskpath);
   fprintf(fp,"infwhm %lf\n",infwhm);
   fprintf(fp,"ingstd %lf\n",ingstd);
   fprintf(fp,"synth %d\n",synth);
