@@ -73,7 +73,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.46 2006/01/03 19:52:02 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.47 2006/01/03 23:49:11 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
   if(VarFWHM > 0 && surf != NULL){
     VarSmoothLevel = MRISfwhm2nitersSubj(VarFWHM, subject, hemi, "white");
     printf("Variance surface smoothing by fwhm=%lf, niters=%lf\n",VarFWHM,VarSmoothLevel);
-  } else SmoothLevel = FWHM;
+  } else VarSmoothLevel = VarFWHM;
 
   dump_options(stdout);
 
@@ -454,7 +454,7 @@ int main(int argc, char **argv)
     MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
 	     0,1,mriglm->y);
   }
-  if(FWHM > 0 && !DoSim){
+  if(FWHM > 0 && (!DoSim || !strcmp(csd->simtype,"perm")) ){
     printf("Smoothing input by fwhm %lf \n",FWHM);
     SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
     printf("   ... done\n");
