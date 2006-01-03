@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/03 01:24:53 $
-// Revision       : $Revision: 1.406 $
+// Revision Date  : $Date: 2006/01/03 01:28:03 $
+// Revision       : $Revision: 1.407 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.406 2006/01/03 01:24:53 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.407 2006/01/03 01:28:03 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -46047,6 +46047,8 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1)
   crslut = MRIScrsLUT(surf,src);
 
   for(vtx = 0; vtx < surf->nvertices; vtx++){
+    if(surf->vertices[vtx].ripped) continue;
+
     c = crslut[0][vtx];
     r = crslut[1][vtx];
     s = crslut[2][vtx];
@@ -46059,9 +46061,11 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1)
     }
     vtxvar = sumsqvtx/src->nframes;
     
+    nnbrs_actual = 0;
     ar1sum = 0;
     for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
       nbrvtx = surf->vertices[vtx].v[nthnbr];
+      if(surf->vertices[nbrvtx].ripped) continue;
       cnbr = crslut[0][nbrvtx];
       rnbr = crslut[1][nbrvtx];
       snbr = crslut[2][nbrvtx];
@@ -46075,9 +46079,10 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1)
       }
       nbrvar = sumsqnbr/src->nframes;
       ar1sum += (sumsqx/src->nframes)/sqrt(vtxvar*nbrvar);
+      nnbrs_actual ++;
     }/* end loop over neighbor */
       
-    MRIFseq_vox(ar1,c,r,s,0) = (ar1sum/nnbrs);
+    MRIFseq_vox(ar1,c,r,s,0) = (ar1sum/nnbrs_actual);
   } /* end loop over vertex */
 
   MRIScrsLUTFree(crslut);
