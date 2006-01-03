@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.19 2005/12/06 21:47:13 greve Exp $
+  $Id: mri_surfcluster.c,v 1.20 2006/01/03 23:33:34 greve Exp $
 */
 
 #include <stdio.h>
@@ -45,7 +45,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.19 2005/12/06 21:47:13 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.20 2006/01/03 23:33:34 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -136,9 +136,10 @@ int main(int argc, char **argv)
   int nargs;
   struct utsname uts;
   char *cmdline, cwd[2000];
+  double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.19 2005/12/06 21:47:13 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.20 2006/01/03 23:33:34 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -319,9 +320,14 @@ int main(int argc, char **argv)
   /*---------------------------------------------------------*/
   /* This is where all the action is */
   printf("Searching for Clusters ...\n");
+  printf("thmin=%f, thmax=%f, thsignid=%d, minarea=%lf\n",
+	 thmin,thmax,thsignid,minarea);
   scs = sclustMapSurfClusters(srcsurf,thmin,thmax,thsignid,
 			      minarea,&NClusters,XFM);
   printf("Found %d clusters\n",NClusters);
+  cmaxsize = sclustMaxClusterArea(scs, NClusters);
+  printf("Max cluster size %lf\n",cmaxsize);
+  
   /*---------------------------------------------------------*/
 
   if(FixMNI){
@@ -517,6 +523,12 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nofixmni")) FixMNI = 0;
     else if (!strcasecmp(option, "--clabelinv")) clabelinv = 1;
 
+    else if (!strcasecmp(option, "--diag")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&Gdiag_no);
+      printf("Gdiag_no = %d\n",Gdiag_no);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--hemi")){
       if(nargc < 1) argnerr(option,1);
       hemi = pargv[0];
@@ -940,7 +952,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.19 2005/12/06 21:47:13 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.20 2006/01/03 23:33:34 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
