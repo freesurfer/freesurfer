@@ -584,9 +584,9 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
       *pBaseEnd = '\0';
       xUtil_snprintf( sFileName, sizeof(sFileName),
 		      "%s/%s", sBasePath, FunD_ksRegisterFileName );
+
     }
 
-    
     /* See if the file exists and is a regular file. */
     DebugNote( ("Checking if %s exists", sFileName) );
     eStat = stat( sFileName, &fileInfo );
@@ -596,6 +596,8 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
     DebugNote( ("Checking S_ISREG") );
     DebugAssertThrowX( ( S_ISREG(fileInfo.st_mode) ), 
 		       eResult, FunD_tErr_CouldntReadRegisterFile );
+
+    //printf("Reading registration file %s\n",sFileName);
     
     /* read the registration info. */
     DebugNote( ("StatReadRegistration on %s\n", sFileName ) );
@@ -626,7 +628,7 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
 		   this->mpData->xsize, this->mpData->zsize,
 		   theRegInfo->in_plane_res, theRegInfo->slice_thickness) );
     }
-    
+
     // create RAS to fRAS transform
     rasTotkregRAS = MatrixMultiply( this->mTkregMatrix, 
 				    this->mClientTransform->mRAStoA, NULL);
@@ -687,7 +689,14 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
     /* Couldn't find a valid registration file, so crate our own. */
     rasTofRAS = MRItkRegMtx( iAnatomicalVolume->mpMriValues,
 			     this->mpData, NULL );
-    
+
+    /* I'm not sure why this is needed, but it works. DNG*/
+    rasTotkregRAS = MatrixMultiply( this->mTkregMatrix, 
+				    this->mClientTransform->mRAStoA, NULL);
+    rasTofRAS     = MatrixMultiply( rasTofRAS, rasTotkregRAS, 
+				    NULL);
+    MatrixFree(&rasTotkregRAS);
+
     /* Get our stats as floats  */
     ps     = this->mpData->xsize;
     st     = this->mpData->zsize;
