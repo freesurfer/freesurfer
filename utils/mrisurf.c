@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/03 04:53:07 $
-// Revision       : $Revision: 1.409 $
+// Revision Date  : $Date: 2006/01/03 06:03:29 $
+// Revision       : $Revision: 1.410 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.409 2006/01/03 04:53:07 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.410 2006/01/03 06:03:29 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -46023,7 +46023,7 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
   account different distances between neighbors. Note: theoretical AR1 
   for one smoothing step is 4/7=0.57. 
   -----------------------------------------------------------------------*/
-MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1)
+MRI *MRISar1(MRIS *surf, MRI *src, MRI *mask, MRI *ar1)
 {
   int nnbrs, frame, vtx, nbrvtx, nthnbr, **crslut, c,r,s, nvox;
   int cnbr, rnbr,snbr, nnbrs_actual;
@@ -46052,13 +46052,15 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1)
     c = crslut[0][vtx];
     r = crslut[1][vtx];
     s = crslut[2][vtx];
-    nnbrs = surf->vertices[vtx].vnum;
+    if(mask) if(MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
 
+    nnbrs = surf->vertices[vtx].vnum;
     sumsqvtx = 0;
     for(frame = 0; frame < src->nframes; frame ++){
       valvtx = MRIFseq_vox(src,c,r,s,frame);
       sumsqvtx += (valvtx*valvtx);
     }
+    if(sumsqvtx == 0) continue; // exclude voxels with 0 variance
     vtxvar = sumsqvtx/src->nframes;
     
     nnbrs_actual = 0;
@@ -46069,6 +46071,7 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1)
       cnbr = crslut[0][nbrvtx];
       rnbr = crslut[1][nbrvtx];
       snbr = crslut[2][nbrvtx];
+      if(mask) if(MRIgetVoxVal(mask,cnbr,rnbr,snbr,0) < 0.5) continue;
       sumsqnbr = 0;
       sumsqx   = 0;
       for(frame = 0; frame < src->nframes; frame ++){
@@ -46077,6 +46080,7 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1)
 	sumsqnbr += (valnbr*valnbr);
 	sumsqx   += (valvtx*valnbr);
       }
+      if(sumsqnbr==0) continue;
       nbrvar = sumsqnbr/src->nframes;
       ar1sum += (sumsqx/src->nframes)/sqrt(vtxvar*nbrvar);
       nnbrs_actual ++;
