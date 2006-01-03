@@ -75,7 +75,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.40 2006/01/03 01:46:16 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.41 2006/01/03 04:52:15 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -312,7 +312,7 @@ int main(int argc, char **argv)
     mri_reshape(mriglm->mask, mriglm->y->width, mriglm->y->height, mriglm->y->depth, 1);
   }
   if(mriglm->mask && maskinv) MRImaskInvert(mriglm->mask,mriglm->mask);
-  if(surf) MRISremoveRippedFromMask(surf, mriglm->mask, mriglm->mask);
+  if(surf && mriglm->mask) MRISremoveRippedFromMask(surf, mriglm->mask, mriglm->mask);
 
   if(mriglm->mask){
     nmask = MRInMask(mriglm->mask);
