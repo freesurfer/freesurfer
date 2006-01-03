@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/03 01:37:07 $
-// Revision       : $Revision: 1.408 $
+// Revision Date  : $Date: 2006/01/03 04:53:07 $
+// Revision       : $Revision: 1.409 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.408 2006/01/03 01:37:07 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.409 2006/01/03 04:53:07 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -46144,7 +46144,7 @@ MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask)
   vtx = 0;
   for(s=0; s < mask->depth; s++){
     for(r=0; r < mask->height; r++){
-      for(c=0; c < mask->depth; c++){
+      for(c=0; c < mask->width; c++){
 	if(surf->vertices[vtx].ripflag) 
 	  MRIsetVoxVal(outmask,c,r,s,0,0.0);
 	vtx++;
