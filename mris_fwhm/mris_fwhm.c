@@ -1,6 +1,57 @@
 /*
 BEGINHELP
 
+Estimates the smoothness of a surface-based data set.
+
+--in input
+
+Input data. Format must be something readable by mri_convert
+(eg, mgh, mgz, img, nii). Alternately, one can synthesize
+white gaussian noise with --synth and --synth-frames.
+
+--subject subject (--s)
+
+Subject whose surface the input is defined on. Can use --s instead of
+--subject.
+
+--hemi hemi (--h)
+
+Hemifield that the input is defined on. Legal values are lh and rh.
+Can use --h instead of --hemi.
+
+--X x.mat
+
+Detrend data with the matrix in x.mat. Ie, y = (I-inv(X'*X)*X')*y, where
+y is the input. x.mat must be a matlab4 matrix.
+
+--sum sumfile
+
+Prints ascii summary to sumfile.
+
+--fwhm fwhm
+
+Smooth by fwhm mm before estimating the fwhm. This is mainly good for 
+debuggging. But with --out can also be used to smooth data on the
+surface (but might be better to use mri_surf2surf for this).
+
+--out outfile
+
+Save (possibly synthesized and/or smoothed) data to outfile. Automatically
+detects format. Format must be one accepted as by mri_convert. Note: do 
+not use analyze or nifit as these cannot store more than 32k in a dimension.
+mri_surf2surf can store surface data in those formats.
+
+--synth 
+
+Synthesize input with white gaussian noise. Ten frames are used by default,
+but this can be changed with --synth-frames.
+
+--synth-frames nframes
+
+Synthesize input with white gaussian noise with the given number of frames.
+Implies --synth.
+
+
 ENDHELP
 */
 
@@ -38,8 +89,11 @@ double round(double x);
 #include "randomfields.h"
 #include "icosahedron.h"
 #include "pdf.h"
+#include "matfile.h"
 double MRISmeanInterVertexDist(MRIS *surf);
-int MRISfwhm2niters(double fwhm, MRIS *surf);
+
+//MRI *fMRIdetrend(MRI *y, MATRIX *X);
+
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -50,7 +104,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.2 2006/01/03 04:32:37 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -64,12 +118,15 @@ char *inpath=NULL;
 char *outpath=NULL;
 char *sumfile=NULL;
 char tmpstr[2000];
-MRI *InVals=NULL;
+MRI *InVals=NULL, *mritmp;
 
 MRIS *surf;
 double infwhm = 0, ingstd = 0;
 int synth = 0, nframes = 10;
 int SynthSeed = -1;
+
+char *Xfile=NULL;
+MATRIX *X=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -135,6 +192,18 @@ int main(int argc, char *argv[])
   else{
     printf("Synthesizing %d frames, Seed = %d\n",nframes,SynthSeed);
     InVals = MRIrandn(surf->nvertices, 1, 1, nframes,0, 1, NULL);
+  }
+
+  if(X){
+    printf("Detrending\n");
+    if(X->rows != InVals->nframes){
+      printf("ERROR: dimension mismatch between X and input\n");
+      exit(1);
+    }
+    mritmp = fMRIdetrend(InVals,X);
+    if(mritmp == NULL) exit(1);
+    MRIfree(&InVals);
+    InVals = mritmp;
   }
 
   if(infwhm > 0){
@@ -243,11 +312,19 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--synth-frames")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nframes);
+      synth = 1;
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--out")){
       if(nargc < 1) CMDargNErr(option,1);
       outpath = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--X")){
+      if(nargc < 1) CMDargNErr(option,1);
+      Xfile = pargv[0];
+      //X = MatrixReadTxt(Xfile, NULL);
+      X = MatlabRead(Xfile);
       nargsused = 1;
     }
     else{
@@ -272,10 +349,11 @@ static void print_usage(void)
 {
   printf("USAGE: %s\n",Progname) ;
   printf("\n");
+  printf("   --in input\n");
   printf("   --subject subject (--s)\n");
   printf("   --hemi hemi (--h)\n");
   printf("   --surf surf <white>\n");
-  printf("   --in input\n");
+  printf("   --X x.mat : matlab4 detrending matrix\n");
   printf("   --sum sumfile\n");
   printf("   \n");
   printf("   --fwhm fwhm : apply before measuring\n");
@@ -296,7 +374,59 @@ static void print_usage(void)
 static void print_help(void)
 {
   print_usage() ;
-  printf("Estimates the smoothness of a surface-based data set.\n");
+printf("\n");
+printf("Estimates the smoothness of a surface-based data set.\n");
+printf("\n");
+printf("--in input\n");
+printf("\n");
+printf("Input data. Format must be something readable by mri_convert\n");
+printf("(eg, mgh, mgz, img, nii). Alternately, one can synthesize\n");
+printf("white gaussian noise with --synth and --synth-frames.\n");
+printf("\n");
+printf("--subject subject (--s)\n");
+printf("\n");
+printf("Subject whose surface the input is defined on. Can use --s instead of\n");
+printf("--subject.\n");
+printf("\n");
+printf("--hemi hemi (--h)\n");
+printf("\n");
+printf("Hemifield that the input is defined on. Legal values are lh and rh.\n");
+printf("Can use --h instead of --hemi.\n");
+printf("\n");
+printf("--X x.mat\n");
+printf("\n");
+printf("Detrend data with the matrix in x.mat. Ie, y = (I-inv(X'*X)*X'*)y, where\n");
+printf("y is the input. x.mat must be a matlab4 matrix.\n");
+printf("\n");
+printf("--sum sumfile\n");
+printf("\n");
+printf("Prints ascii summary to sumfile.\n");
+printf("\n");
+printf("--fwhm fwhm\n");
+printf("\n");
+printf("Smooth by fwhm mm before estimating the fwhm. This is mainly good for \n");
+printf("debuggging. But with --out can also be used to smooth data on the\n");
+printf("surface (but might be better to use mri_surf2surf for this).\n");
+printf("\n");
+printf("--out outfile\n");
+printf("\n");
+printf("Save (possibly synthesized and/or smoothed) data to outfile. Automatically\n");
+printf("detects format. Format must be one accepted as by mri_convert. Note: do \n");
+printf("not use analyze or nifit as these cannot store more than 32k in a dimension.\n");
+printf("mri_surf2surf can store surface data in those formats.\n");
+printf("\n");
+printf("--synth \n");
+printf("\n");
+printf("Synthesize input with white gaussian noise. Ten frames are used by default,\n");
+printf("but this can be changed with --synth-frames.\n");
+printf("\n");
+printf("--synth-frames nframes\n");
+printf("\n");
+printf("Synthesize input with white gaussian noise with the given number of frames.\n");
+printf("Implies --synth.\n");
+printf("\n");
+printf("\n");
+
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -308,6 +438,18 @@ static void print_version(void)
 /* --------------------------------------------- */
 static void check_options(void)
 {
+  if(subject == NULL){
+    printf("ERROR: need to specify --subject\n");
+    exit(1);
+  }
+  if(hemi == NULL){
+    printf("ERROR: need to specify --hemi\n");
+    exit(1);
+  }
+  if(inpath == NULL && !synth){
+    printf("ERROR: need to specify --in or --synth\n");
+    exit(1);
+  }
   return;
 }
 
@@ -337,22 +479,9 @@ static void dump_options(FILE *fp)
     fprintf(fp,"synth-frames %d\n",nframes);
     fprintf(fp,"seed  %d\n",SynthSeed);
   }
+  if(Xfile) fprintf(fp,"xfile %s\n",Xfile);
   if(sumfile) fprintf(fp,"sumfile  %s\n",sumfile);
   if(outpath) fprintf(fp,"out  %s\n",outpath);
 
   return;
-}
-/*---------------------------------------------------------------*/
-int MRISfwhm2niters(double fwhm, MRIS *surf)
-{
-  double avgvtxarea, gstd;
-  int niters;
-
-  MRIScomputeMetricProperties(surf);
-  avgvtxarea = surf->total_area/surf->nvertices;
-  gstd = fwhm/sqrt(log(256.0));
-  //1.028
-  //1.14 is a fudge factor based on emprical fit of nearest neighbor
-  niters = round(1.14*(4*PI*(gstd*gstd))/(7*avgvtxarea));
-  return(niters);
 }
