@@ -352,8 +352,6 @@ x fill tool
   x gradient option, cacls fuzziness per voxel instead of only on seed
   x faster (remove updates)
 
-======== HERE
-
 x hide/show paths
 
 - histo tool
@@ -557,7 +555,6 @@ Generate Segementation Volume Report
 ROI stats dlog
 
 
-=======
 int curLayer
 int curROIp
 
