@@ -58,8 +58,11 @@ double round(double x);
 #include "matfile.h"
 #include "volcluster.h"
 #include "surfcluster.h"
+#include "randomfields.h"
 
 int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag);
+MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask);
+MRI *MRIapplyMask(MRI *src, MRI *mask, MRI *out);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -72,8 +75,10 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.39 2005/12/12 22:10:32 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.40 2006/01/03 01:46:16 greve Exp $";
 char *Progname = NULL;
+
+int SynthSeed = -1;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
 char *yhatFile=NULL, *eresFile=NULL, *wFile=NULL, *maskFile=NULL;
@@ -85,7 +90,9 @@ int condSave=0;
 
 char *labelFile=NULL;
 LABEL *clabel=NULL;
-int   clabelinv = 0;
+int   maskinv = 0;
+int   nmask, nvoxels;
+float maskfraction, voxelsize;
 
 MRI *mritmp=NULL, *sig=NULL, *rstd;
 
@@ -95,14 +102,16 @@ char tmpstr[2000];
 int nContrasts=0;
 char *CFile[100];
 int err,c,r,s;
-int SynthSeed = -1;
 double Xcond;
 
 int npvr=0;
 MRIGLM *mriglm=NULL, *mriglmtmp=NULL;
 
+double FWHM=0;
 double SmoothLevel=0;
+double VarFWHM=0;
 double VarSmoothLevel=0;
+double ResFWHM;
 
 char voxdumpdir[1000];
 int voxdump[3];
@@ -130,17 +139,24 @@ char *MaxVoxBase = NULL;
 int DontSave = 0;
 
 int DoSim=0;
-int nsim = 0;
 int synth = 0;
-int perm = 0;
-double thresh=0;
-int threshsign=0; //0=abs,+1,-1
+
 SURFCLUSTERSUM *SurfClustList;
 int nClusters;
 char *subject=NULL, *hemi=NULL, *simbase=NULL;
 MRI_SURFACE *surf=NULL;
-int nthsim;
+int nsim,nthsim;
 double csize;
+
+int DiagCluster=0;
+double DiagClusterSize=0;
+
+double  InterVertexDistAvg, InterVertexDistStdDev, avgvtxarea, ar1mn, ar1std, ar1max;
+double eresgstd, eresfwhm;
+MRI *ar1=NULL, *z=NULL;
+
+CSD *csd;
+RFS *rfs;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -150,6 +166,10 @@ int main(int argc, char **argv)
   int msecFitTime;
   MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Xnorm=NULL;
   FILE *fp;
+
+  eresfwhm = -1;
+  csd = CSDalloc();
+  csd->threshsign = 0; //0=abs,+1,-1
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -176,6 +196,29 @@ int main(int argc, char **argv)
   // Seed the random number generator just in case
   if(SynthSeed < 0) SynthSeed = PDFtodSeed();
   srand48(SynthSeed);
+  
+  if(surf != NULL){
+    MRIScomputeMetricProperties(surf);
+    InterVertexDistAvg = MRISavgInterVetexDist(surf, &InterVertexDistStdDev);
+    avgvtxarea = surf->total_area/surf->nvertices;
+    printf("Number of vertices %d\n",surf->nvertices);
+    printf("Number of faces    %d\n",surf->nfaces);
+    printf("Total area         %lf\n",surf->total_area);
+    printf("AvgVtxArea       %lf\n",avgvtxarea);
+    printf("AvgVtxDist       %lf\n",InterVertexDistAvg);
+    printf("StdVtxDist       %lf\n",InterVertexDistStdDev);
+  }
+
+  // Compute number of iterations for surface smoothing
+  if(FWHM > 0 && surf != NULL){
+    SmoothLevel = MRISfwhm2nitersSubj(FWHM, subject, hemi, "white");
+    printf("Surface smoothing by fwhm=%lf, niters=%lf\n",FWHM,SmoothLevel);
+  } else SmoothLevel = FWHM;
+
+  if(VarFWHM > 0 && surf != NULL){
+    VarSmoothLevel = MRISfwhm2nitersSubj(VarFWHM, subject, hemi, "white");
+    printf("Variance surface smoothing by fwhm=%lf, niters=%lf\n",VarFWHM,VarSmoothLevel);
+  } else SmoothLevel = FWHM;
 
   dump_options(stdout);
 
@@ -246,13 +289,37 @@ int main(int argc, char **argv)
     printf("ERROR: loading y %s\n",yFile);
     exit(1);
   }
-  // Synth input here if desired
+  nvoxels = mriglm->y->width*mriglm->y->height*mriglm->y->depth;
 
-  if(SmoothLevel > 0){
-    printf("Smoothing Input ... \n");
-    SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
-    printf("   ... done\n");
+  mriglm->mask = NULL;
+  // Load the mask file ----------------------------------
+  if(maskFile != NULL){
+    mriglm->mask = MRIread(maskFile);
+    if(mriglm->mask  == NULL){
+      printf("ERROR: reading mask file %s\n",maskFile);
+      exit(1);
+    }
   }
+  // Load the label mask file ----------------------------------
+  if(labelFile != NULL){
+    clabel = LabelRead(NULL, labelFile);
+    if(clabel == NULL){
+      printf("ERROR reading %s\n",labelFile);
+      exit(1);
+    }
+    printf("Found %d points in label.\n",clabel->n_points);
+    mriglm->mask = MRISlabel2Mask(surf, clabel, NULL);
+    mri_reshape(mriglm->mask, mriglm->y->width, mriglm->y->height, mriglm->y->depth, 1);
+  }
+  if(mriglm->mask && maskinv) MRImaskInvert(mriglm->mask,mriglm->mask);
+  if(surf) MRISremoveRippedFromMask(surf, mriglm->mask, mriglm->mask);
+
+  if(mriglm->mask){
+    nmask = MRInMask(mriglm->mask);
+    printf("Found %d voxels in mask\n",nmask);
+  }
+  else nmask = nvoxels;
+  maskfraction = (double)nmask/nvoxels;
 
   // Check number of frames ----------------------------------
   if(mriglm->y->nframes != mriglm->Xg->rows){
@@ -354,27 +421,6 @@ int main(int argc, char **argv)
   // Compute Contrast-related matrices
   GLMcMatrices(mriglm->glm);
 
-  mriglm->mask = NULL;
-
-  // Load the mask file ----------------------------------
-  if(maskFile != NULL){
-    mriglm->mask = MRIread(maskFile);
-    if(mriglm->mask  == NULL){
-      printf("ERROR: reading mask file %s\n",maskFile);
-      exit(1);
-    }
-  }
-  // Load the label mask file ----------------------------------
-  if(labelFile != NULL){
-    clabel = LabelRead(NULL, labelFile);
-    if(clabel == NULL){
-      printf("ERROR reading %s\n",labelFile);
-      exit(1);
-    }
-    printf("Found %d points in label.\n",clabel->n_points);
-    MRISmaskByLabel(mriglm->y, surf, clabel, clabelinv);
-  }
-
   // Dump a voxel
   if(voxdumpflag){
     sprintf(voxdumpdir,"%s/voxdump-%d-%d-%d",GLMDir,
@@ -402,17 +448,23 @@ int main(int argc, char **argv)
     }
   }
 
+  if(synth){
+    printf("Replacing input data with synthetic white noise\n");
+    MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
+	     0,1,mriglm->y);
+  }
+  if(FWHM > 0 && !DoSim){
+    printf("Smoothing input by fwhm %lf \n",FWHM);
+    SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
+    printf("   ... done\n");
+  }
+
   // Don't do sim --------------------------------------------------------
   if(!DoSim){
-    if(synth){
-      printf("Replacing data with synthetic white noise\n");
-      MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
-	       0,1,mriglm->y);
-    }
     // Now do the estimation and testing
     TimerStart(&mytimer) ;
 
-    if(VarSmoothLevel > 0){
+    if(VarFWHM > 0){
       printf("Starting fit\n");
       MRIglmFit(mriglm);
       printf("Variance smoothing\n");
@@ -432,27 +484,26 @@ int main(int argc, char **argv)
   //--------------------------------------------------------------------------
   //--------------------------------------------------------------------------
   if(DoSim){
-    // Write header to output files
-    for(n=0; n < mriglm->glm->ncontrasts; n++){
-      sprintf(tmpstr,"%s-%s.csd",simbase,mriglm->glm->Cname[n]);
-      fp = fopen(tmpstr,"w");
-      fprintf(fp,"# mri_glmfit simulation sim\n");
-      if(perm)  fprintf(fp,"# simtype perm \n");
-      if(synth) fprintf(fp,"# simtype synth \n");
-      fprintf(fp,"# seed   %d\n",SynthSeed);
-      fprintf(fp,"# thresh %g\n",thresh);
-      fprintf(fp,"# contrast %s\n",mriglm->glm->Cname[n]);
-      fprintf(fp,"# nsim   %d\n",nsim);
-      if(surf == NULL) fprintf(fp,"# anattype volume\n");
-      else fprintf(fp,"# anattype surface %s %s\n",subject,hemi);
-      if(SmoothLevel > 0) fprintf(fp,"# smoothinglevel %lf \n",SmoothLevel);
-      else	          fprintf(fp,"# smoothinglevel -1\n");
-      fprintf(fp,"# hostname %s\n",uts.nodename);
-      fprintf(fp,"# machine  %s\n",uts.machine);
-      fprintf(fp,"# label  %s\n",labelFile);
-      fprintf(fp,"# label-inv  %d\n",clabelinv);
-      fprintf(fp,"# LoopNo nClusters MaxClustSize MaxSig\n");
-      fclose(fp);
+    csd->seed = SynthSeed;
+    if(surf != NULL){
+      strcpy(csd->anattype,"surface");
+      strcpy(csd->subject,subject);
+      strcpy(csd->hemi,hemi);
+      csd->searchspace = surf->total_area * maskfraction;
+    }
+    else {
+      strcpy(csd->anattype,"volume");
+      voxelsize = mriglm->y->xsize * mriglm->y->ysize * mriglm->y->zsize;
+      csd->searchspace = nmask * voxelsize;
+    }
+    csd->nreps = nsim;
+    CSDallocData(csd);
+    if(!strcmp(csd->simtype,"null-z")){
+      rfs = RFspecInit(SynthSeed,NULL);
+      rfs->name = strcpyalloc("gaussian");
+      rfs->params[0] = 0;
+      rfs->params[1] = 1;
+      z = MRIalloc(mriglm->y->width,mriglm->y->height,mriglm->y->depth,MRI_FLOAT);
     }
 
     printf("Staring simulation sim over %d trials\n",nsim);
@@ -462,46 +513,91 @@ int main(int argc, char **argv)
       printf("%4d/%d t=%g ----------------------\n",
 	     nthsim+1,nsim,msecFitTime/(1000*60.0));
 
-      if(synth){
+      if(!strcmp(csd->simtype,"null-full")){
 	MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
 		 mriglm->y->nframes,0,1,mriglm->y);
-	if(SmoothLevel > 0){
+	if(FWHM > 0){
 	  printf("Smoothing Input ... \n");
 	  SmoothSurfOrVol(surf, mriglm->y, SmoothLevel);
 	  printf("   ... done\n");
 	}
       }
-      if(perm) MatrixRandPermRows(mriglm->Xg);
+      if(!strcmp(csd->simtype,"perm"))
+	MatrixRandPermRows(mriglm->Xg);
 
       // If variance smoothing, then need to test and fit separately
-      if(VarSmoothLevel > 0){
-	printf("Starting fit\n");
-	MRIglmFit(mriglm);
-	printf("Variance smoothing\n");
-	SmoothSurfOrVol(surf, mriglm->rvar, VarSmoothLevel);
-	printf("Starting test\n");
-	MRIglmTest(mriglm);
-      }
-      else{
-	printf("Starting fit and test\n");
-	MRIglmFitAndTest(mriglm);
+      if(strcmp(csd->simtype,"null-z")){
+	// not a null z
+	if(VarFWHM > 0){
+	  printf("Starting fit\n");
+	  MRIglmFit(mriglm);
+	  printf("Variance smoothing\n");
+	  SmoothSurfOrVol(surf, mriglm->rvar, VarSmoothLevel);
+	  printf("Starting test\n");
+	  MRIglmTest(mriglm);
+	}
+	else{
+	  printf("Starting fit and test\n");
+	  MRIglmFitAndTest(mriglm);
+	}
       }
       
+      // Go through each contrast
       for(n=0; n < mriglm->glm->ncontrasts; n++){
-	sig    = MRIlog10(mriglm->p[n],sig,1);
-	// If it is t-test (ie, one row) then apply the sign
-	if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
-	sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
-	Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
+	if(strcmp(csd->simtype,"null-z")){
+	  // not a null z
+	  sig  = MRIlog10(mriglm->p[n],sig,1);
+	  // If it is t-test (ie, one row) then apply the sign
+	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
+	  sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
+	  Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
+	}
+	else {
+	  // null-z: synth z-field, smooth, rescale, compute p, compute sig
+	  // This should do the same thing as AFNI's AlphaSim
+	  RFsynth(z,rfs,mriglm->mask);
+	  SmoothSurfOrVol(surf, z, SmoothLevel);
+	  RFrescale(z,rfs,mriglm->mask,z);
+	  mriglm->p[n] = RFstat2P(z,rfs,mriglm->mask,mriglm->p[n]);
+	  sig = MRIlog10(mriglm->p[n],sig,1);
+	  MRImask(sig,mriglm->mask,sig,0.0,0.0);
+	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,z,0);
+	  sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
+	  Fmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
+	}
 	MRIScopyMRI(surf, sig, 0, "val");
-	SurfClustList = sclustMapSurfClusters(surf,thresh,-1,threshsign,0,&nClusters,NULL);
+	SurfClustList = sclustMapSurfClusters(surf,csd->thresh,-1,csd->threshsign,
+					      0,&nClusters,NULL);
 	csize = sclustMaxClusterArea(SurfClustList, nClusters);
 	printf("%s %d %d   %g  %g  %g\n",mriglm->glm->Cname[n],nthsim,
 	       nClusters,csize,sigmax,Fmax);
+
+	// Re-write the full CSD file each time. Should not take that
+	// long and assures output can be used immediately regardless
+	// of whether the job terminated properly or not
+	strcpy(csd->contrast,mriglm->glm->Cname[n]);
 	sprintf(tmpstr,"%s-%s.csd",simbase,mriglm->glm->Cname[n]);
-	fp = fopen(tmpstr,"a");
-	fprintf(fp,"%5d     %d     %g     %g\n",nthsim,nClusters,csize,sigmax);
+	fp = fopen(tmpstr,"w");
+	fprintf(fp,"# mri_glmfit simulation sim\n");
+	fprintf(fp,"# hostname %s\n",uts.nodename);
+	fprintf(fp,"# machine  %s\n",uts.machine);
+	//fprintf(fp,"# label  %s\n",labelFile);
+	//fprintf(fp,"# label-inv  %d\n",clabelinv);
+	csd->nreps = nthsim+1;
+	csd->nClusters[nthsim] = nClusters;
+	csd->MaxClusterSize[nthsim] = csize;
+	csd->MaxSig[nthsim] = sigmax;
+	CSDprint(fp, csd);
 	fclose(fp);
+
+	if(DiagCluster && csize > DiagClusterSize){
+	  sprintf(tmpstr,"./%s-sig.mgh",mriglm->glm->Cname[n]);
+	  printf("Found cluster size =%lf > %lf, saving into %s\n",
+		 csize,DiagClusterSize,tmpstr);
+	  MRIwrite(sig,tmpstr);
+	  exit(1);
+	}
+
 	MRIfree(&sig);
 	free(SurfClustList);
       }
@@ -525,6 +621,18 @@ int main(int argc, char **argv)
   }
 
   if(DontSave) exit(0);
+
+  // Compute fwhm of residual
+  if(surf != NULL){
+    printf("Computing spatial AR1 \n");
+    ar1 = MRISar1(surf, mriglm->eres, NULL);
+    sprintf(tmpstr,"%s/ar1.mgh",GLMDir);
+    MRIwrite(ar1,tmpstr);
+    RFglobalStats(ar1, NULL, &ar1mn, &ar1std, &ar1max);
+    eresgstd = InterVertexDistAvg/sqrt(-4*log(ar1mn));
+    eresfwhm = eresgstd*sqrt(log(256.0));
+    printf("Residual: ar1=%lf, gstd=%lf, fwhm=%lf\n",ar1mn,eresgstd,eresfwhm);
+  }
 
   // Save estimation results
   printf("Writing results\n");
@@ -590,14 +698,14 @@ int main(int argc, char **argv)
   // --------- Save FSGDF stuff --------------------------------
   if(fsgd != NULL){
     strcpy(fsgd->measname,"external");
-
     sprintf(fsgd->datafile,"%s",yFile);
 
     sprintf(tmpstr,"%s/fsgd.X.mat",GLMDir);
     MatlabWrite(mriglm->Xg,tmpstr,"X");
     sprintf(fsgd->DesignMatFile,"fsgd.X.mat");
-
     sprintf(tmpstr,"%s/y.fsgd",GLMDir);
+    fsgd->ResFWHM = eresfwhm;
+
     fp = fopen(tmpstr,"w");
     gdfPrintHeader(fp,fsgd);
     fprintf(fp,"Creator          %s\n",Progname);
@@ -661,17 +769,33 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
-    else if (!strcasecmp(option, "--perm"))    perm = 1;
-    else if (!strcasecmp(option, "--label-inv"))  clabelinv = 1;
+    else if (!strcasecmp(option, "--mask-inv"))  maskinv = 1;
 
+    else if (!strcasecmp(option, "--diag")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&Gdiag_no);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--diag-cluster")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&DiagClusterSize);
+      DiagCluster=1;
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--sim")){
-      if(nargc < 3) CMDargNErr(option,1);
-      sscanf(pargv[0],"%d",&nsim);
-      sscanf(pargv[1],"%lf",&thresh);
-      simbase = pargv[2];
+      if(nargc < 4) CMDargNErr(option,4);
+      if(CSDcheckSimType(pargv[0])){
+	printf("ERROR: simulation type %s unrecognized, supported values are\n"
+	       "  perm, null-full, null-z\n", pargv[0]);
+	exit(1);
+      }
+      strcpy(csd->simtype,pargv[0]);
+      sscanf(pargv[1],"%d",&nsim);
+      sscanf(pargv[2],"%lf",&csd->thresh);
+      simbase = pargv[3]; // basename
       DoSim = 1;
       DontSave = 1;
-      nargsused = 3;
+      nargsused = 4;
     }
     else if (!strcasecmp(option, "--surf")){
       if(nargc < 2) CMDargNErr(option,1);
@@ -694,14 +818,16 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%d",&SynthSeed);
       nargsused = 1;
     }
-    else if (!strcasecmp(option, "--smooth")){
+    else if(!strcasecmp(option, "--smooth") || !strcasecmp(option, "--fwhm")){
       if(nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%lf",&SmoothLevel);
+      sscanf(pargv[0],"%lf",&FWHM);
+      csd->nullfwhm = FWHM;
       nargsused = 1;
     }
-    else if (!strcasecmp(option, "--var-smooth")){
+    else if(!strcasecmp(option, "--var-smooth") || !strcasecmp(option, "--var-fwhm")){
       if(nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%lf",&VarSmoothLevel);
+      sscanf(pargv[0],"%lf",&VarFWHM);
+      csd->varfwhm = VarFWHM;
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--voxdump")){
@@ -870,8 +996,15 @@ static void print_usage(void)
   printf("   --selfreg c r s\n");
   printf("\n");
   printf("   --w weight volume\n");
+  printf("\n");
   printf("   --mask mask volume\n");
+  printf("   --label labelfile : use label as mask, surfaces only\n");
+  printf("   --maskinv : invert mask\n");
+  printf("\n");
   printf("   --C contrast1.mat <--C contrast2.mat ...>\n");
+  printf("\n");
+  printf("   --fwhm fwhm : smooth input by fwhm\n");
+  printf("   --var-fwhm fwhm : smooth variance by fwhm\n");
   printf("\n");
   printf("   --glmdir dir : save outputs to dir\n");
   printf("   --dontsave\n");
@@ -879,10 +1012,16 @@ static void print_usage(void)
   printf("\n");
   printf("   --save-yhat \n");
   printf("   --save-cond \n");
+  printf("   --pca : perform pca/svd analysis on residual\n");
+  printf("\n");
+  printf("   --sim simtype nsim thresh basename : perm, null-full, null-z\n");
   printf("\n");
   printf("   --synth : replace input with gaussian \n");
   printf("   --seed seed \n");
   printf("\n");
+  printf("   --surf subject hemi : uses white be default\n");
+  printf("\n");
+  printf("   --diag Gdiag_no : set diagnositc level \n");
   printf("   --voxdump c r s \n");
   printf("   --resynthtest niters \n");
   printf("   --profile     niters \n");
@@ -957,6 +1096,11 @@ static void check_options(void)
     exit(1);
   }
 
+  if(DoSim && VarFWHM > 0 && !strcmp(csd->simtype,"null-z")){
+    printf("ERROR: cannot use variance smoothing with null-z simulation\n");
+    exit(1);
+  }
+
   return;
 }
 
@@ -974,21 +1118,29 @@ static void dump_options(FILE *fp)
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
 
+  if(FWHM > 0){
+    fprintf(fp,"fwhm     %lf\n",FWHM);
+    if(surf != NULL) fprintf(fp,"niters    %lf\n",SmoothLevel);
+  }
+  if(VarFWHM > 0){
+    fprintf(fp,"varfwhm  %lf\n",VarFWHM);
+    if(surf != NULL) fprintf(fp,"varniters %lf\n",VarSmoothLevel);
+  }
+
   if(synth) fprintf(fp,"SynthSeed = %d\n",SynthSeed);
 
   fprintf(fp,"y    %s\n",yFile);
   if(XFile)     fprintf(fp,"X    %s\n",XFile);
   if(fsgdfile)  fprintf(fp,"FSGD %s\n",fsgdfile);
+  if(labelFile) fprintf(fp,"labelmask  %s\n",labelFile);
   if(maskFile)  fprintf(fp,"mask %s\n",maskFile);
+  if(labelFile || maskFile) fprintf(fp,"maskinv %d\n",maskinv);
+
   fprintf(fp,"glmdir %s\n",GLMDir);
 
   for(n=0; n < nSelfReg; n++){
     fprintf(fp,"SelfRegressor %d  %4d %4d %4d\n",n+1,
 	   crsSelfReg[n][0],crsSelfReg[n][1],crsSelfReg[n][2]);
-  }
-  if(labelFile){
-    fprintf(fp,"label  %s\n",labelFile);
-    fprintf(fp,"label-inv  %d\n",clabelinv);
   }
 
   return;
@@ -1001,11 +1153,11 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel)
 
   if(surf == NULL){
     gstd = SmthLevel/sqrt(log(256.0));
-    printf("  Volume Smoothing to FWHM=%lf, Gstd=%lf\n",SmthLevel,gstd);
+    printf("  Volume Smoothing by FWHM=%lf, Gstd=%lf\n",SmthLevel,gstd);
     MRIgaussianSmooth(mri, gstd, 1, mri); /* 1 = normalize */
   }
   else{
-    printf("  Surface Smoothing to %d iterations\n",(int)SmthLevel);
+    printf("  Surface Smoothing by %d iterations\n",(int)SmthLevel);
     MRISsmoothMRI(surf, mri, SmthLevel, mri);
   }
   return(0);
@@ -1036,4 +1188,18 @@ int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag)
   free(lbmask);
   MRIScrsLUTFree(crslut);
   return(0);
+}
+/*------------------------------------------------------------------*/
+MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask)
+{
+  int vtxno, n;
+
+  if(mask == NULL)
+    mask = MRIconst(surf->nvertices,1,1,1,0,NULL);
+  
+  for(n=0; n < lb->n_points; n++){
+    vtxno = lb->lv[n].vno;
+    MRIsetVoxVal(mask, vtxno,0,0,0, 1);
+  }
+  return(mask);
 }
