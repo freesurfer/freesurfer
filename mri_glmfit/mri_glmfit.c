@@ -75,7 +75,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.41 2006/01/03 04:52:15 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.42 2006/01/03 05:44:56 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -309,7 +309,10 @@ int main(int argc, char **argv)
     }
     printf("Found %d points in label.\n",clabel->n_points);
     mriglm->mask = MRISlabel2Mask(surf, clabel, NULL);
-    mri_reshape(mriglm->mask, mriglm->y->width, mriglm->y->height, mriglm->y->depth, 1);
+    mritmp = mri_reshape(mriglm->mask, mriglm->y->width, 
+			 mriglm->y->height, mriglm->y->depth, 1);
+    MRIfree(&mriglm->mask);
+    mriglm->mask = mritmp;
   }
   if(mriglm->mask && maskinv) MRImaskInvert(mriglm->mask,mriglm->mask);
   if(surf && mriglm->mask) MRISremoveRippedFromMask(surf, mriglm->mask, mriglm->mask);
@@ -999,7 +1002,7 @@ static void print_usage(void)
   printf("\n");
   printf("   --mask mask volume\n");
   printf("   --label labelfile : use label as mask, surfaces only\n");
-  printf("   --maskinv : invert mask\n");
+  printf("   --mask-inv : invert mask\n");
   printf("\n");
   printf("   --C contrast1.mat <--C contrast2.mat ...>\n");
   printf("\n");
