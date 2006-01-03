@@ -73,7 +73,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.44 2006/01/03 06:21:22 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.45 2006/01/03 08:40:55 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -523,12 +523,11 @@ int main(int argc, char **argv)
 	  printf("   ... done\n");
 	}
       }
-      if(!strcmp(csd->simtype,"perm"))
-	MatrixRandPermRows(mriglm->Xg);
+      if(!strcmp(csd->simtype,"perm")) MatrixRandPermRows(mriglm->Xg);
 
-      // If variance smoothing, then need to test and fit separately
-      if(strcmp(csd->simtype,"null-z")){
-	// not a null z
+      // Variance smoothing
+      if(strcmp(csd->simtype,"null-z")){ // not a null z
+	// If variance smoothing, then need to test and fit separately
 	if(VarFWHM > 0){
 	  printf("Starting fit\n");
 	  MRIglmFit(mriglm);
@@ -553,15 +552,15 @@ int main(int argc, char **argv)
 	  sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
 	  Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
 	}
-	else {
+	else{
 	  // null-z: synth z-field, smooth, rescale, compute p, compute sig
 	  // This should do the same thing as AFNI's AlphaSim
 	  RFsynth(z,rfs,mriglm->mask);
-	  SmoothSurfOrVol(surf, z, SmoothLevel);
+	  if(SmoothLevel > 0) SmoothSurfOrVol(surf, z, SmoothLevel);
 	  RFrescale(z,rfs,mriglm->mask,z);
 	  mriglm->p[n] = RFstat2P(z,rfs,mriglm->mask,mriglm->p[n]);
 	  sig = MRIlog10(mriglm->p[n],sig,1);
-	  MRImask(sig,mriglm->mask,sig,0.0,0.0);
+	  if(mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
 	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,z,0);
 	  sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
 	  Fmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
@@ -578,6 +577,8 @@ int main(int argc, char **argv)
 	// of whether the job terminated properly or not
 	strcpy(csd->contrast,mriglm->glm->Cname[n]);
 	sprintf(tmpstr,"%s-%s.csd",simbase,mriglm->glm->Cname[n]);
+	//printf("csd %s \n",tmpstr);
+	fflush(stdout);
 	fp = fopen(tmpstr,"w");
 	fprintf(fp,"# mri_glmfit simulation sim\n");
 	fprintf(fp,"# hostname %s\n",uts.nodename);
@@ -797,6 +798,7 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[1],"%d",&nsim);
       sscanf(pargv[2],"%lf",&csd->thresh);
       simbase = pargv[3]; // basename
+      printf("simbase %s\n",simbase);
       DoSim = 1;
       DontSave = 1;
       nargsused = 4;
@@ -1085,6 +1087,11 @@ static void check_options(void)
       sprintf(tmpstr,"%s/cond.mgh",GLMDir);
       condFile = strcpyalloc(tmpstr);
     }
+  }
+
+  if(nContrasts == 0){
+    printf("ERROR: no contrasts specified\n");
+    exit(1);
   }
 
   if(SUBJECTS_DIR == NULL){
