@@ -73,7 +73,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.45 2006/01/03 08:40:55 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.46 2006/01/03 19:52:02 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -558,6 +558,7 @@ int main(int argc, char **argv)
 	  RFsynth(z,rfs,mriglm->mask);
 	  if(SmoothLevel > 0) SmoothSurfOrVol(surf, z, SmoothLevel);
 	  RFrescale(z,rfs,mriglm->mask,z);
+	  if(csd->threshsign == 0) MRIabs(z,z); // two-tailed
 	  mriglm->p[n] = RFstat2P(z,rfs,mriglm->mask,mriglm->p[n]);
 	  sig = MRIlog10(mriglm->p[n],sig,1);
 	  if(mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
