@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/03 01:28:03 $
-// Revision       : $Revision: 1.407 $
+// Revision Date  : $Date: 2006/01/03 01:37:07 $
+// Revision       : $Revision: 1.408 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.407 2006/01/03 01:28:03 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.408 2006/01/03 01:37:07 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -46026,7 +46026,7 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
 MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1)
 {
   int nnbrs, frame, vtx, nbrvtx, nthnbr, **crslut, c,r,s, nvox;
-  int cnbr, rnbr,snbr;
+  int cnbr, rnbr,snbr, nnbrs_actual;
   float valvtx, valnbr, ar1sum, sumsqvtx, vtxvar, sumsqnbr, sumsqx, nbrvar;
 
   nvox = src->width * src->height * src->depth;
@@ -46047,7 +46047,7 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1)
   crslut = MRIScrsLUT(surf,src);
 
   for(vtx = 0; vtx < surf->nvertices; vtx++){
-    if(surf->vertices[vtx].ripped) continue;
+    if(surf->vertices[vtx].ripflag) continue;
 
     c = crslut[0][vtx];
     r = crslut[1][vtx];
@@ -46065,7 +46065,7 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *ar1)
     ar1sum = 0;
     for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
       nbrvtx = surf->vertices[vtx].v[nthnbr];
-      if(surf->vertices[nbrvtx].ripped) continue;
+      if(surf->vertices[nbrvtx].ripflag) continue;
       cnbr = crslut[0][nbrvtx];
       rnbr = crslut[1][nbrvtx];
       snbr = crslut[2][nbrvtx];
@@ -46132,6 +46132,28 @@ int MRIScrsLUTFree(int **crslut)
   free(crslut);
   return(0);
 }
+
+/*-------------------------------------------------------------------
+  MRISremoveRippedFromMask() - sets voxels in mask to 0 if corresponding
+  vertex has been ripped.
+  -------------------------------------------------------------------*/
+MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask)
+{
+  int c,r,s,vtx;
+  outmask = MRIcopy(mask,outmask);
+  vtx = 0;
+  for(s=0; s < mask->depth; s++){
+    for(r=0; r < mask->height; r++){
+      for(c=0; c < mask->depth; c++){
+	if(surf->vertices[vtx].ripflag) 
+	  MRIsetVoxVal(outmask,c,r,s,0,0.0);
+	vtx++;
+      }
+    }
+  }
+  return(outmask);
+}
+
 
 /*----------------------------------------------------------------------*/
 int MRISrectifyCurvature(MRI_SURFACE *mris)

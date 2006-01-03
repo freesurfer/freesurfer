@@ -1255,4 +1255,6 @@ int MRIScrsLUTFree(int **crslut);
 int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new) ;
 int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri) ;
+MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask);
+
 #endif
