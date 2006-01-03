@@ -134,7 +134,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.7 2005/12/30 23:53:43 nicks Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.8 2006/01/03 21:52:24 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -375,13 +375,13 @@ int main(int argc, char *argv[])
         }
       }
     }
-    if(debug) printf("maxdiff %g at %d %d %d %d\n",
+    if(debug) printf("maxdiff %f at %d %d %d %d\n",
                      maxdiff,cmax,rmax,smax,fmax);
     if(DiffVolFile) MRIwrite(DiffVol,DiffVolFile);
 
     if(maxdiff > pixthresh){
       printf("Volumes differ in pixel data\n");
-      printf("maxdiff %g at %d %d %d %d\n",
+      printf("maxdiff %f at %d %d %d %d\n",
              maxdiff,cmax,rmax,smax,fmax);
       if(DiffFile){
         fp = fopen(DiffFile,"w");
@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
           exit(1);
         }
         dump_options(fp);
-        fprintf(fp,"maxdiff %g at %d %d %d %d\n",maxdiff,cmax,rmax,smax,fmax);
+        fprintf(fp,"maxdiff %f at %d %d %d %d\n",maxdiff,cmax,rmax,smax,fmax);
         fprintf(fp,"Volumes differ in pixel value\n");
         fclose(fp);
       }
