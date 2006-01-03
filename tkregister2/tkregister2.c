@@ -2,11 +2,11 @@
   Copyright (c) 1996 Martin Sereno and Anders Dale
   ============================================================================
 */
-/*   $Id: tkregister2.c,v 1.42 2005/11/01 23:57:39 nicks Exp $   */
+/*   $Id: tkregister2.c,v 1.43 2006/01/03 00:47:52 greve Exp $   */
 
 #ifndef lint
 static char vcid[] = 
-"$Id: tkregister2.c,v 1.42 2005/11/01 23:57:39 nicks Exp $";
+"$Id: tkregister2.c,v 1.43 2006/01/03 00:47:52 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -697,9 +697,11 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     sprintf(surf_path,"%s/%s/surf/lh.%s",subjectsdir,subjectid,surfname);
     printf("Reading lh surface %s\n",surfname);
     surf = MRISread(surf_path) ;
-    if (!surf)
+    if(!surf){
       ErrorExit(ERROR_NOFILE,"%s: could not read surface %s", 
                 Progname, surfname) ;
+      exit(1);
+    }
     printf("Done reading surface\n");
 
     /* make a surface mask in the volume */
@@ -3951,7 +3953,7 @@ int main(argc, argv)   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tkregister2.c,v 1.42 2005/11/01 23:57:39 nicks Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.43 2006/01/03 00:47:52 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
