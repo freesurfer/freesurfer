@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/19 16:58:45 $
-// Revision       : $Revision: 1.405 $
+// Revision Date  : $Date: 2006/01/03 01:24:53 $
+// Revision       : $Revision: 1.406 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.405 2005/12/19 16:58:45 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.406 2006/01/03 01:24:53 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -45943,10 +45943,13 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field){
   it will automatically allocate a new MRI strucutre. Note that the
   input MRI struct does not have to have any particular configuration
   of cols, rows, and slices as long as the product equals nvertices.
+  Does not smooth data from ripped vertices into unripped vertices
+  (but does go the other way).
   -------------------------------------------------------------------*/
 MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
 {
   int nnbrs, nthstep, frame, vtx, nbrvtx, nthnbr, **crslut, c,r,s, nvox;
+  int nnbrs_actual;
   float val;
   MRI *SrcTmp;
   
@@ -45993,13 +45996,16 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
       for(frame = 0; frame < Targ->nframes; frame ++){
 	val = MRIFseq_vox(SrcTmp,c,r,s,frame);
 	
+	nnbrs_actual = 0;
 	for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
 	  nbrvtx = Surf->vertices[vtx].v[nthnbr];
+	  if(Surf->vertices[nbrvtx].ripflag) continue; //skip ripped vtxs
 	  val += MRIFseq_vox(SrcTmp,crslut[0][nbrvtx],
 			     crslut[1][nbrvtx],crslut[2][nbrvtx],frame);
+	  nnbrs_actual++;
 	}/* end loop over neighbor */
 	
-	MRIFseq_vox(Targ,c,r,s,frame) = (val/(nnbrs+1));
+	MRIFseq_vox(Targ,c,r,s,frame) = (val/(nnbrs_actual+1));
       }/* end loop over frame */
       
     } /* end loop over vertex */
