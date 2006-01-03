@@ -4766,6 +4766,11 @@ static MRI *genesisRead(char *fname, int read_volume)
 	{
 		printf("multi-echo genesis file detected (%d echoes)...\n", header->nframes) ;
 	}
+	else if (header->nframes == 0)
+	{
+		printf("zero frames specified in file - setting to 1\n") ;
+		header->nframes = 1 ;
+	}
 
 
   fseek(fp, image_header_offset + 130, SEEK_SET);
