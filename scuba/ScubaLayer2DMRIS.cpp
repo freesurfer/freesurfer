@@ -5,15 +5,19 @@
 
 using namespace std;
 
-ScubaLayer2DMRIS::ScubaLayer2DMRIS () {
-  SetOutputStreamToCerr();
-  mSurface = NULL;
+ScubaLayer2DMRIS::ScubaLayer2DMRIS () :
+  mSurface( NULL ),
+  mLineWidth( 1 )
+{
+
   maLineColor[0] = 0;
   maLineColor[1] = 255;
   maLineColor[2] = 0;
   maVertexColor[0] = 255;
   maVertexColor[1] = 0;
   maVertexColor[2] = 255;
+
+  SetOutputStreamToCerr();
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "Set2DMRISLayerSurfaceCollection", 2, 
@@ -36,6 +40,12 @@ ScubaLayer2DMRIS::ScubaLayer2DMRIS () {
   commandMgr.AddCommand( *this, "Get2DMRISLayerVertexColor", 1, "layerID",
 			 "Returns the vertex color for this layer as a list "
 			 " of red, green, and blue integers from 0-255." );
+  commandMgr.AddCommand( *this, "Set2DMRISLayerLineWidth", 2, "layerID width",
+			 "Sets the line width for this layer. width should "
+			 "be and integer." );
+  commandMgr.AddCommand( *this, "Get2DMRISLayerLineWidth", 1, "layerID",
+			 "Returns the line width for this layer as an "
+			 "integer." );
   commandMgr.AddCommand( *this, "Get2DMRISRASCoordsFromVertexIndex", 2,
 			 "layerID vertexIndex", "Returns as a list of RAS "
 			 "coords the location of the vertex." );
@@ -64,6 +74,11 @@ void
 ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 				   ViewState& iViewState,
 				   ScubaWindowToRASTranslator& iTranslator ) {
+}
+  
+void
+ScubaLayer2DMRIS::DrawIntoGL ( ViewState& iViewState,
+			      ScubaWindowToRASTranslator& iTranslator ) {
 
   if( NULL == mSurface ) {
     DebugOutput( << "No surface to draw" );
@@ -126,26 +141,21 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	  int window[2];
 	  iTranslator.TranslateRASToWindow( intersectionRAS.xyz(), window );
 	  
-	  if( window[0] >= 0 && window[0] < iWidth && 
-	      window[1] >= 0 && window[1] < iHeight ) { 
-	    
-	    // Add this intersection window point to our pair. If we
-	    // have two intersections, they make a line of the
-	    // intersection of this face and the in plane, so add them
-	    // to the list of points to draw.
-	    intersectionPair[cIntersectionsInFace][0] = window[0];
-	    intersectionPair[cIntersectionsInFace][1] = window[1];
-	    
-	    cIntersectionsInFace++;
-	    
-	    if( cIntersectionsInFace == 2 ) {
-	      cIntersectionsInFace = 0;
-	      mCachedDrawList.push_back( intersectionPair[0][0] );
-	      mCachedDrawList.push_back( intersectionPair[0][1] );
-	      mCachedDrawList.push_back( intersectionPair[1][0] );
-	      mCachedDrawList.push_back( intersectionPair[1][1] );
-	    }
-
+	  // Add this intersection window point to our pair. If we
+	  // have two intersections, they make a line of the
+	  // intersection of this face and the in plane, so add them
+	  // to the list of points to draw.
+	  intersectionPair[cIntersectionsInFace][0] = window[0];
+	  intersectionPair[cIntersectionsInFace][1] = window[1];
+	  
+	  cIntersectionsInFace++;
+	  
+	  if( cIntersectionsInFace == 2 ) {
+	    cIntersectionsInFace = 0;
+	    mCachedDrawList.push_back( intersectionPair[0][0] );
+	    mCachedDrawList.push_back( intersectionPair[0][1] );
+	    mCachedDrawList.push_back( intersectionPair[1][0] );
+	    mCachedDrawList.push_back( intersectionPair[1][1] );
 	  }
 	}
       }
@@ -179,21 +189,20 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       window2[1] = window[1];
       bDraw = false;
 
-      DrawPixelIntoBuffer( iBuffer, iWidth, iHeight, window1, 
-			   maVertexColor, mOpacity );
-      DrawPixelIntoBuffer( iBuffer, iWidth, iHeight, window2, 
-			   maVertexColor, mOpacity );
+      glLineWidth( mLineWidth );
+      glColor3f( maLineColor[0], maLineColor[1], maLineColor[2] );	    
+      glBegin( GL_LINES );
+      glVertex2d( window1[0], window1[1] );
+      glVertex2d( window2[0], window2[1] );
+      glEnd();
 
-      DrawLineIntoBuffer( iBuffer, iWidth, iHeight, window1, window2,
-			  maLineColor, 1, mOpacity );
+      glColor3f( maVertexColor[0], maVertexColor[1], maVertexColor[2] );
+      glBegin( GL_POINTS );
+      glVertex2d( window1[0], window1[1] );
+      glVertex2d( window2[0], window2[1] );
+      glEnd();
     }
   }
-}
-  
-void
-ScubaLayer2DMRIS::DrawIntoGL ( ViewState& iViewState,
-			      ScubaWindowToRASTranslator& iTranslator ) {
-
 }
 
 void
@@ -435,6 +444,42 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
       stringstream ssReturnValues;
       ssReturnValues << maVertexColor[0] << " " << maVertexColor[1] << " "
 		     << maVertexColor[2];
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // Set2DMRISLayerLineWidth <layerID> <width>
+  if( 0 == strcmp( isCommand, "Set2DMRISLayerLineWidth" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      int width = strtol( iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad width";
+	return error;
+      }
+
+      SetLineWidth( width );
+    }
+  }
+
+  // Get2DMRISLayerLineWidth <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRISLayerLineWidth" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << mLineWidth;
       sReturnValues = ssReturnValues.str();
     }
   }

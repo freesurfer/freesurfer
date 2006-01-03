@@ -68,6 +68,13 @@ class ScubaLayer2DMRIS : public Layer {
     oaVertexColor[2] = maVertexColor[2];
   }
 
+  void SetLineWidth ( int iWidth ) {
+    mLineWidth = iWidth;
+  }
+  int GetLineWidth () {
+    return mLineWidth;
+  }
+
   // To process command line options.
   void ProcessOption ( std::string isOption, std::string isValue );
 
@@ -76,6 +83,7 @@ class ScubaLayer2DMRIS : public Layer {
 
   int maLineColor[3];
   int maVertexColor[3];
+  int mLineWidth;
 
   std::list<int> mCachedDrawList;
   ViewState mCachedViewState;

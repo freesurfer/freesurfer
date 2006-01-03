@@ -3046,6 +3046,7 @@ ScubaView::DrawFrameBuffer () {
        << ", height " << windowUpdateBounds[3] - windowUpdateBounds[1]
        << endl;
 
+  glLineWidth( 1 );
   glColor3f( 0, 1, 0 );
   glBegin( GL_LINE_STRIP );
   glVertex2d( mViewState.mUpdateRect[0], mViewState.mUpdateRect[1] );
@@ -3159,6 +3160,7 @@ ScubaView::BuildOverlay () {
     // Draw our marker color around us.
     glColor3f( mInPlaneMarkerColor[0], 
 	       mInPlaneMarkerColor[1], mInPlaneMarkerColor[2] );
+    glLineWidth( 1 );
     glBegin( GL_LINE_STRIP );
     glVertex2d( 2, 2 );
     glVertex2d( mWidth-3, 2 );
@@ -3307,6 +3309,7 @@ ScubaView::BuildOverlay () {
 	    TranslateRASToWindow( curVertex.xyz(), curWindow );
 	    TranslateRASToWindow( backVertex.xyz(), backWindow );
 	    
+	    glLineWidth( 1 );
 	    glBegin( GL_LINES );
 	    glVertex2d( backWindow[0], backWindow[1] );
 	    glVertex2d( curWindow[0], curWindow[1] );

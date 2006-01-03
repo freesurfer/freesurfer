@@ -309,31 +309,6 @@ void
 ScubaLayer2DMRI::DrawIntoGL ( ViewState& iViewState,
 			      ScubaWindowToRASTranslator& iTranslator ) {
 
-#if 0
-  int windowUpdateBounds[4];
-  iViewState.CopyUpdateRect( windowUpdateBounds );
-  int window[2];
-  float topRAS[2], bottomRAS[2];
-  for( window[1] = windowUpdateBounds[1];
-       window[1] <= windowUpdateBounds[3]; window[1]+= 10 ) {
-
-    window[0] = windowUpdateBounds[0];
-    iTranslator.TranslateWindowToRAS( window, topRAS );
-    window[0] = windowUpdateBounds[2];
-    iTranslator.TranslateWindowToRAS( window, bottomRAS );
-
-    cerr << "drawing " << Point3<float>(topRAS) << ", " 
-	 << Point3<float>(bottomRAS) << endl;
-    
-    glLineWidth( 1 );
-    glColor3f( 0,1,0 );
-    glBegin( GL_LINES );
-    glVertex3f( topRAS[0], topRAS[1], topRAS[2] );
-    glVertex3f( bottomRAS[0], bottomRAS[1], bottomRAS[2] );
-    glEnd();
-  }
-#endif
-
 }
 
 void 

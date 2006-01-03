@@ -541,6 +541,119 @@ x Mimic level behavior
 x Delete ROI command
  x If delete and ROI and none left, create a new one
 
+xfuzziness in fiill should be based on the source volume
+
+x Delete Data Collection
+x Shorten seg label values
+x Threshold stuff for editing
+x Set Cursor from edit.dat
+x Show Surface Vertex
+x Find Nearest Surface Vertex
+
+Transform menu, and Set Transform from Volume cb on surface layer serttings
+
+Data Collection Info window
+Generate Segementation Volume Report
+ROI stats dlog
+
+
+=======
+int curLayer
+int curROIp
+
+SetCurrentLayer
+ - update menu items
+
+NewVolume
+ - get template volume ID
+NewVolume( templateID )
+ - make volume using template
+ - set label
+ - make layer, add to views
+SaveVolume
+ - layer->Volume()->Save()
+SaveVolumeAs
+ - get filename
+ - layer->Volume()->SetFileName
+ - SaveVolume
+LoadLabel
+ - get file name, LoadLabel( fn )
+LoadLabel( fn )
+ - layer->Volume()->NewROIFromlabel( fn );
+ - label->SetLabel()
+SaveLabel
+ - layer->Volume()->WriteROIToLabel( curROI, fn )
+SaveLabelAs
+ - get filename
+ - curROI->SetFileName( fn )
+ - SaveLabel
+ExportROIsAsLabels
+ - get filename
+ - layer->Volume()->WriteROIsToSegmentation( fn )
+LoadPaths
+ - get filename
+ - PathManager->ReadPathFile( fn )
+SavePathsAs
+ - get filename
+ - PathManager->WritePathFile( fn )
+ImportMarkersFromControlPoints
+ - get filename
+ - view->ImportControlPoints( layer()->Volume()->GetID, fn )
+ExportMarkersToControlPoints
+ - get filename
+ - view->ExportControlPoints( layer()->Volume()->GetID, fn )
+SaveTIFF
+ - get filename
+ - frame->CaptureFrameToFile( fn )
+SaveSceneSetupScript
+ - get filename
+ - write script
+Undo
+Redo
+Preferences
+SetCurrentViewMode
+SetCurrentInPlane
+SetFlipView
+setAutoConfigure
+SetShowCoordinates
+SetShowFPS
+SetShowMarkers
+SetShowPlaneIntersections
+
+x ROI dlog
+  x needs to get initial target layer for setup in init()
+  x shows 2 ROIs when there is only one
+
+- data col interface
+  x volume
+    x use RAS transform
+    x use transform
+  - surface
+    - use transform
+    - transform to volume
+
+- save or load LUT user lists
+
+- be able to delete a single item from the user LUT list
+
+x Preferences
+
+x additional tools
+x label table mode
+x enter coords with callbacks
+
+Layers
+ x Report Info
+ - numerical fields for b/c
+ x automatically configure Draw Zero Clear with seg and heatscale
+
+x Mimic level behavior
+ x Report info auto-config stuff
+ x LUT/clear zero stuff
+
+x Delete ROI command
+ x If delete and ROI and none left, create a new one
+
 x Delete Data Collection
 x Shorten seg label values
 x Threshold stuff for editing

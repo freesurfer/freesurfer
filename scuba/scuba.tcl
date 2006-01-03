@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.169 2005/12/30 20:37:09 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.170 2006/01/03 19:53:48 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2168,8 +2168,15 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     set gaWidget(layerProperties,vertexColorPickers) \
 	$fwProps2DMRIS.cpVertexColors
 
+    tkuMakeSliders $fwProps2DMRIS.swLineWidth -sliders {
+	{-label "Line Width" -variable gaLayer(current,lineWidth) 
+	    -min 0 -max 10 -resolution 1
+	    -command {Set2DMRISLayerLineWidth $gaLayer(current,id) $gaLayer(current,lineWidth); RedrawFrame [GetMainFrameID]}}
+    }
+
     grid $fwProps2DMRIS.cpLineColors     -column 0 -row 1 -sticky ew
     grid $fwProps2DMRIS.cpVertexColors   -column 0 -row 2 -sticky ew
+    grid $fwProps2DMRIS.swLineWidth      -column 0 -row 3 -sticky ew
     set gaWidget(layerProperties,2DMRIS) $fwProps2DMRIS
 
 
@@ -3019,6 +3026,8 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    set gaLayer(current,redVertexColor) [lindex $lColor 0]
 	    set gaLayer(current,greenVertexColor) [lindex $lColor 1]
 	    set gaLayer(current,blueVertexColor) [lindex $lColor 2]
+
+	    set gaLayer(current,lineWidth) [Get2DMRISLayerLineWidth $iLayerID]
 
 	    # Configure color selector.
 	    tkuUpdateColorPickerValues \
@@ -5744,7 +5753,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.169 2005/12/30 20:37:09 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.170 2006/01/03 19:53:48 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
