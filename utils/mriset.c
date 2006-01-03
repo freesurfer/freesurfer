@@ -1502,64 +1502,106 @@ MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize)
       pmask = &MRIvox(mri_mask, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
-				mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
-				val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-					
-				if (mask_val == mask)
-				{
-					val = MRIvoxelMean(mri_src, x, y, z, wsize) ;
-				}
-				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
+	val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+	
+	if (mask_val == mask)
+	  {
+	    val = MRIvoxelMean(mri_src, x, y, z, wsize) ;
+	  }
+	MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
       }
     }
   }
   return(mri_dst) ;
 }
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+/*--------------------------------------------------------------------------
+  MRImask() - applies mask to an mri data set. If mri_mask == mask at a voxel,
+  then that voxel is set to out_val. Eg, if your mask is binary (0 and 1), 
+  and you want to set voxels outside the mask to (ie, maskmri=0) 0, then
+  MRImask(src,mask,dst,0,0). Handles multiple frames.
+  --------------------------------------------------------------------------*/
 MRI *
-MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
+MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
 {
-  int     width, height, depth, x, y, z, mask_val;
+  int     width, height, depth, nframes, x, y, z, f, mask_val;
   float   val ;
 
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
+  nframes = mri_src->nframes ;
 
-  if (!mri_dst)
-    mri_dst = MRIclone(mri_src, NULL) ;
+  if(!mri_dst) mri_dst = MRIclone(mri_src, NULL) ;
 
-  if (mri_src->type != mri_dst->type)
+  if(mri_src->type != mri_dst->type)
     ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED, "MRImask: src and dst must be same type")) ;
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
-				mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
-				val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-					
-				if (mask_val == mask)
-					val = out_val ;
-				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+  for (z = 0 ; z < depth ; z++){
+    for (y = 0 ; y < height ; y++){
+      for (x = 0 ; x < width ; x++){
+	if (x == Gx && y == Gy && z == Gz) DiagBreak() ;
+	mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
+	for(f = 0; f < nframes; f++){
+	  if(mask_val == mask) val = out_val ;
+	  else val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+	  MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+	}
       }
     }
   }
   return(mri_dst) ;
 }
+/*------------------------------------------------------------------
+  MRImaskInvert() - changes the 1s to 0s and vice versa.
+  ------------------------------------------------------------------*/
+MRI *MRImaskInvert(MRI *mask, MRI *outmask)
+{
+  int c,r,s,f;
+  double v;
+
+  if(outmask == NULL) outmask = MRIcopy(mask,NULL);
+
+  for(c=0; c < mask->width; c++){
+    for(r=0; r < mask->height; r++){
+      for(s=0; s < mask->depth; s++){
+	for(f=0; f < mask->nframes; f++){
+	  v = MRIgetVoxVal(mask,c,r,s,f);
+	  if(v > 0.5) MRIsetVoxVal(outmask,c,r,s,f,0);
+	  else        MRIsetVoxVal(outmask,c,r,s,f,1);
+	}
+      }
+    }
+  }
+  return(outmask);
+}
+
+/*------------------------------------------------------------------
+  MRInMask() - count the number of voxels in the mask. "In the mask"
+  means > 0.5.
+  ------------------------------------------------------------------*/
+int MRInMask(MRI *mask)
+{
+  int c,r,s,f,nmask;
+  double v;
+
+  nmask = 0;
+  for(c=0; c < mask->width; c++){
+    for(r=0; r < mask->height; r++){
+      for(s=0; s < mask->depth; s++){
+	for(f=0; f < mask->nframes; f++){
+	  v = MRIgetVoxVal(mask,c,r,s,f);
+	  if(v > 0.5) nmask++;
+	}
+      }
+    }
+  }
+  return(nmask);
+}
+
 /*-----------------------------------------------------
         Parameters:
 

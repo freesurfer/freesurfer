@@ -671,6 +671,9 @@ MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
 MRI   *MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst, BUFTYPE in_val, BUFTYPE out_val) ;
 MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
                float out_val) ;
+MRI *MRImaskInvert(MRI *mask, MRI *outmask);
+int MRInMask(MRI *mask);
+
 MRI   *MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize) ;
 MRI   *MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
                         float mask_threshold, float out_val) ;
