@@ -69,4 +69,5 @@ int MRIsetSign(MRI *invol, MRI *signvol, int frame);
 double MRIframeMax(MRI *vol, int frame, MRI *mask, int absflag,
 		   int *cmax, int *rmax, int *smax);
 MRI *MRIframeMean(MRI *vol, MRI *volmn);
+MRI *fMRIdetrend(MRI *y, MATRIX *X);
 #endif

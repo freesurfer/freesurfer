@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.24 2005/12/01 03:03:08 greve Exp $
+   $Id: fmriutils.c,v 1.25 2006/01/03 04:31:30 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.24 2005/12/01 03:03:08 greve Exp $");
+  return("$Id: fmriutils.c,v 1.25 2006/01/03 04:31:30 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -1227,4 +1227,39 @@ MRI *MRIframeMean(MRI *vol, MRI *volmn)
     }//r
   }//s
   return(volmn);
+}
+/*---------------------------------------------------------------
+  fMRIdetrend() - returns (I-inv(X'*X)*X')*y
+---------------------------------------------------------------*/
+MRI *fMRIdetrend(MRI *y, MATRIX *X)
+{
+  MATRIX *Xt, *XtX, *iXtX, *B;
+  MRI *beta, *yhat, *res;
+
+  if(X->rows != y->nframes){
+    printf("ERROR: dimension mismatch between X and input\n");
+    return(NULL);
+  }
+
+  Xt = MatrixTranspose(X,NULL);
+  XtX = MatrixMultiply(Xt,X,NULL);
+  iXtX = MatrixInverse(XtX,NULL);
+  if(iXtX==NULL){
+    printf("ERROR: could not compute psuedo inverse of X\n");
+    exit(1);
+  }
+  B = MatrixMultiply(iXtX,Xt,NULL);
+
+  beta = fMRImatrixMultiply(y, B, NULL);
+  yhat = fMRImatrixMultiply(beta, X, NULL);
+  res = MRIsubtract(y,yhat,NULL);
+
+  MatrixFree(&Xt);
+  MatrixFree(&XtX);
+  MatrixFree(&iXtX);
+  MatrixFree(&B);
+  MRIfree(&beta);
+  MRIfree(&yhat);
+
+  return(res);
 }
