@@ -75,7 +75,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.42 2006/01/03 05:44:56 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.43 2006/01/03 06:05:15 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -628,13 +628,16 @@ int main(int argc, char **argv)
   // Compute fwhm of residual
   if(surf != NULL){
     printf("Computing spatial AR1 \n");
-    ar1 = MRISar1(surf, mriglm->eres, NULL);
+    ar1 = MRISar1(surf, mriglm->eres, mriglm->mask, NULL);
     sprintf(tmpstr,"%s/ar1.mgh",GLMDir);
     MRIwrite(ar1,tmpstr);
-    RFglobalStats(ar1, NULL, &ar1mn, &ar1std, &ar1max);
+    RFglobalStats(ar1, mriglm->mask, &ar1mn, &ar1std, &ar1max);
     eresgstd = InterVertexDistAvg/sqrt(-4*log(ar1mn));
     eresfwhm = eresgstd*sqrt(log(256.0));
-    printf("Residual: ar1=%lf, gstd=%lf, fwhm=%lf\n",ar1mn,eresgstd,eresfwhm);
+    printf("Residual: ar1mn=%lf, ar1std=%lf, gstd=%lf, fwhm=%lf\n",
+	   ar1mn,ar1std,eresgstd,eresfwhm);
+    //printf("Residual: ar1mn=%lf, ar1std=%lf, ar1max=%lf, gstd=%lf, fwhm=%lf\n",
+    //   ar1mn,ar1std,ar1max,eresgstd,eresfwhm);
   }
 
   // Save estimation results
