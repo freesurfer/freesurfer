@@ -61,8 +61,6 @@ double round(double x);
 #include "randomfields.h"
 
 int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag);
-MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask);
-MRI *MRIapplyMask(MRI *src, MRI *mask, MRI *out);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -75,7 +73,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.43 2006/01/03 06:05:15 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.44 2006/01/03 06:21:22 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1194,18 +1192,4 @@ int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag)
   free(lbmask);
   MRIScrsLUTFree(crslut);
   return(0);
-}
-/*------------------------------------------------------------------*/
-MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask)
-{
-  int vtxno, n;
-
-  if(mask == NULL)
-    mask = MRIconst(surf->nvertices,1,1,1,0,NULL);
-  
-  for(n=0; n < lb->n_points; n++){
-    vtxno = lb->lv[n].vno;
-    MRIsetVoxVal(mask, vtxno,0,0,0, 1);
-  }
-  return(mask);
 }

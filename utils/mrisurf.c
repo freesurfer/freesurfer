@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/03 06:03:29 $
-// Revision       : $Revision: 1.410 $
+// Revision Date  : $Date: 2006/01/03 06:21:21 $
+// Revision       : $Revision: 1.411 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.410 2006/01/03 06:03:29 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.411 2006/01/03 06:21:21 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -46156,6 +46156,23 @@ MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask)
     }
   }
   return(outmask);
+}
+/*------------------------------------------------------------------
+  MRISlabel2Mask() - creates a mask from the label by setting each
+  voxel corresponding to a label point to 1 with the rest 0.
+  ------------------------------------------------------------------*/
+MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask)
+{
+  int vtxno, n;
+
+  if(mask == NULL) // create mask as all 0s
+    mask = MRIconst(surf->nvertices,1,1,1,0,NULL);
+  
+  for(n=0; n < lb->n_points; n++){
+    vtxno = lb->lv[n].vno;
+    MRIsetVoxVal(mask, vtxno,0,0,0, 1);
+  }
+  return(mask);
 }
 
 
