@@ -223,8 +223,10 @@ ScubaView::ScubaView() {
   RebuildLabelValueInfo( origin, "cursor" );
   RebuildLabelValueInfo( origin, "mouse" );
 
-  // Generate a draw list for us.
-  mDrawListID = glGenLists( 1 );
+  // For some reason we can't use glGenLists yet because it will
+  // return 0, an invalid index. So just set our draw list ID to 0 now
+  // and we'll make one later.
+  mDrawListID = 0;
 
   mViewState.ResetUpdateRect();
 }
@@ -505,6 +507,8 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       // Make a new display list for this level if necessary.
       if( mLevelGLListIDMap.find( iLevel ) == mLevelGLListIDMap.end() ) {
 	mLevelGLListIDMap[iLevel] = glGenLists( 1 );
+	cerr << "mLevelGLListIDMap " << iLevel << " got " 
+	     << mLevelGLListIDMap[iLevel] << endl;
       }
 
       // Listen to it.
@@ -1704,12 +1708,12 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
       Set2DRASCenter( newCenter );
     }
 
-    mbRebuildOverlayDrawList = true;
+    RebuildOverlayDrawList();
     RequestRedisplay();
     }
 
   if( isMessage == "markerChanged" ) {
-    mbRebuildOverlayDrawList = true;
+    RebuildOverlayDrawList();
     RequestRedisplay();
   }
 
@@ -1752,7 +1756,7 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
 
     // If we're visible request redisplays.
     if( IsVisibleInFrame() ) {
-      mbRebuildOverlayDrawList = true;
+      RebuildOverlayDrawList();
       RequestRedisplay();
     }
   }
@@ -1785,7 +1789,7 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
 
   if( isMessage == "pathChanged" ||
       isMessage == "pathVertexAdded" ) {
-    mbRebuildOverlayDrawList = true;
+    RebuildOverlayDrawList();
     RequestRedisplay();
   }
 
@@ -1875,7 +1879,7 @@ ScubaView::DoReshape( int iWidth, int iHeight ) {
     }
   }
 
-  mbRebuildOverlayDrawList = true;
+  RebuildOverlayDrawList();
 }
 
 void
@@ -2114,7 +2118,7 @@ ScubaView::DoMouseUp( int iWindow[2],
       break;
     }
 
-    mbRebuildOverlayDrawList = true;
+    RebuildOverlayDrawList();
     RequestRedisplay();
   }
 
@@ -2165,7 +2169,7 @@ ScubaView::DoMouseUp( int iWindow[2],
     }
 
     mCurrentMovingViewIntersection = -1;
-    mbRebuildOverlayDrawList = true;
+    RebuildOverlayDrawList();
     RequestRedisplay();
   }
 
@@ -2253,7 +2257,7 @@ ScubaView::DoMouseDown( int iWindow[2],
       scubaView.Get2DRASCenter( mOriginalCenterRAS );
       scubaView.Get2DPlaneNormal( mOriginalPlaneNormal.xyz() );
 
-      mbRebuildOverlayDrawList = true;
+      RebuildOverlayDrawList();
       RequestRedisplay();
     }
   }
@@ -3067,7 +3071,11 @@ ScubaView::BuildOverlay () {
   if( !mbRebuildOverlayDrawList )
     return;
 
-  // Open the overlay display list.
+  // Create a draw list ID if we don't have one yet. Open the overlay
+  // display list.
+  if( 0 == mDrawListID ) {
+    mDrawListID = glGenLists( 1 );
+  }
   glNewList( mDrawListID, GL_COMPILE );
     
 
@@ -3320,9 +3328,6 @@ ScubaView::BuildOverlay () {
     }
   }
   
-
-
-
   glEndList();
 
   mbRebuildOverlayDrawList = false;
@@ -3400,8 +3405,9 @@ ScubaView::GetInPlaneMarkerColor ( float oColor[3] ) {
 void
 ScubaView::DrawOverlay () {
 
-  if( mbRebuildOverlayDrawList )
+  if( mbRebuildOverlayDrawList ) {
     BuildOverlay();
+  }
 
   glCallList( mDrawListID );
 }
