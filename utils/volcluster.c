@@ -1175,7 +1175,7 @@ CLUSTER_SIM_DATA *CSDread(char *csdfile)
       else if(!strcmp(tag,"nullfwhm")) fscanf(fp,"%lf",&csd->nullfwhm);
       else if(!strcmp(tag,"varfwhm"))  fscanf(fp,"%lf",&csd->varfwhm);
       else if(!strcmp(tag,"searchspace")) fscanf(fp,"%lf",&csd->searchspace);
-      else if(!strcmp(tag,"nsim")){
+      else if(!strcmp(tag,"nreps")){
 	fscanf(fp,"%d",&(csd->nreps));
 	CSDallocData(csd);
       }
