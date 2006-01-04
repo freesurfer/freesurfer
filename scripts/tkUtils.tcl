@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.14 2005/05/10 19:01:27 kteich Exp $
+# $Id: tkUtils.tcl,v 1.15 2006/01/04 17:56:05 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -1728,7 +1728,7 @@ proc tkuColorPicker_HandleClick { iID icwPicker } {
     scan $color "%d-%d-%d" r g b
 
     # Detroy the color picker dlog.
-    destroy .wwColorPicker
+    destroy .wwColorPicker-$iID
 
     # Call the callback function.
     $gColorPickerCB $iID $r $g $b
@@ -1736,15 +1736,23 @@ proc tkuColorPicker_HandleClick { iID icwPicker } {
 
 proc tkuColorPicker_CreateWindow { iID iCallbuckFunction } {
 
-    # Make a new window, put a color picker inside it with our given
-    # callback function, and pack it.
-    toplevel .wwColorPicker 
-    wm title .wwColorPicker "Choose a color..."
-    tkuMakeNormalLabel .wwColorPicker.lwInstructions \
-	-label "Chose a color..."
-    tkuColorPicker_CreatePicker .wwColorPicker.cpwColor $iID $iCallbuckFunction
-    pack .wwColorPicker.lwInstructions .wwColorPicker.cpwColor \
-	-side top
+    # If it doesn't exist, make a new window, put a color picker
+    # inside it with our given callback function, and pack it.
+    if { ![winfo exists .wwColorPicker] } {
+
+	toplevel .wwColorPicker-$iID
+	wm title .wwColorPicker-$iID "Choose a color..."
+	tkuMakeNormalLabel .wwColorPicker-$iID.lwInstructions \
+	    -label "Chose a color..."
+	tkuColorPicker_CreatePicker .wwColorPicker-$iID.cpwColor \
+	    $iID $iCallbuckFunction
+	pack .wwColorPicker-$iID.lwInstructions .wwColorPicker-$iID.cpwColor \
+	    -side top
+
+    } else {
+
+	raise .wwColorPicker-$iID
+    }
 }
 
 
