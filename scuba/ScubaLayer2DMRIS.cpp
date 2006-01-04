@@ -190,13 +190,13 @@ ScubaLayer2DMRIS::DrawIntoGL ( ViewState& iViewState,
       bDraw = false;
 
       glLineWidth( mLineWidth );
-      glColor3f( maLineColor[0], maLineColor[1], maLineColor[2] );	    
+      glColor3ub( maLineColor[0], maLineColor[1], maLineColor[2] );	    
       glBegin( GL_LINES );
       glVertex2d( window1[0], window1[1] );
       glVertex2d( window2[0], window2[1] );
       glEnd();
 
-      glColor3f( maVertexColor[0], maVertexColor[1], maVertexColor[2] );
+      glColor3ub( maVertexColor[0], maVertexColor[1], maVertexColor[2] );
       glBegin( GL_POINTS );
       glVertex2d( window1[0], window1[1] );
       glVertex2d( window2[0], window2[1] );
