@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.20 2005/05/06 17:13:59 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.21 2006/01/05 22:42:35 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.20 2005/05/06 17:13:59 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.21 2006/01/05 22:42:35 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -129,6 +129,7 @@ if(~isempty(find(diff(condlist)~=1)))
 end
 
 % Count the number per condition %
+parall = [];
 Npercond= zeros(Nc,1);
 for run = 1:nruns
   par = fmri_ldpar(deblank(parfilelist(run,:)));
@@ -141,6 +142,7 @@ for run = 1:nruns
   end
   fprintf(1,'\n');
   Npercond = Npercond + npc'; %'
+  parall = [parall; par];
 end
 
 % Setup Spatial Smoothing Kernal %
@@ -196,6 +198,9 @@ for slice = firstslice:lastslice
         fprintf('Check your paradigm file for file for periodicities\n');
         fprintf('or for some event types that all ways follow other\n');
         fprintf('event types (or itself).\n');
+        fname = sprintf('%s.sumxtx.mat',hstem);
+	fprintf('Saving Xfinal to %s/%s\n',pwd,fname);
+	save(fname,'SumXtWX','Xfinal');
 	if(TR ~= TER)
 	  fprintf('\n');
 	  fprintf('It could also be due to the fact that the TER\n');
@@ -232,6 +237,7 @@ for slice = firstslice:lastslice
     end
 
     %-------------------- Run Loop ------------------------%
+    Xfirall = [];
     ntrstot = 0;
     ntpxtot = 0;
     for run = 1:nruns
@@ -320,6 +326,7 @@ for slice = firstslice:lastslice
         nn = [1:SubSampRate:size(Xfirtmp,1)];
         Xfir = Xfirtmp(nn,:);
       end
+      Xfirall = [Xfirall; Xfir];
 
       % Tranform for Fitting to Gamma Function or SPM HRF %
       if(GammaFit > 0)
