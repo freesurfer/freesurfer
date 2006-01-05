@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/11/01 03:25:21 $
-// Revision       : $Revision: 1.2 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/01/05 17:34:03 $
+// Revision       : $Revision: 1.3 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -35,7 +35,7 @@
 
 #define DEFAULT_MAX_ANGLE       RADIANS(25)
 static double MAX_ANGLE = DEFAULT_MAX_ANGLE ;
-static double MAX_SCALE = 0.5 ;
+static double MAX_SCALE = 0.25 ;
 
 #define PAD       10
 
@@ -87,7 +87,7 @@ static int target_label = Right_Hippocampus ;
 
 static int skip = 2 ;
 static double distance = 1.0 ;
-
+static int npasses = 3 ;
 
 static int non_artery_labels[] =
 {
@@ -104,12 +104,24 @@ static int non_artery_labels[] =
 	Pos_Lymph,
 	Neg_Lymph
 } ;
+static int non_hippo_labels[] =
+{
+
+
+	entorhinal_cortex,
+	Amygdala,
+	Cerebral_White_Matter,
+	Cerebral_Cortex,
+	Inf_Lat_Vent
+} ;
 #define NUM_NON_ARTERY_LABELS  (sizeof(non_artery_labels) / sizeof(non_artery_labels[0]))
+#define NUM_NON_HIPPO_LABELS  (sizeof(non_hippo_labels) / sizeof(non_hippo_labels[0]))
 
 
 static INTEGRATION_PARMS parms ;
 static TRANSFORM  *transform = NULL ;
 
+static MRI *mri_orig_source ;  // for debugging
 int
 main(int argc, char *argv[])
 {
@@ -156,12 +168,16 @@ main(int argc, char *argv[])
 							Progname, source_fname) ;
 
 	
-	pf_overlap = compute_distance_transform_sse ;
 	//		if (transform == NULL)
 	{
 		for (i = 0 ; i < NUM_NON_ARTERY_LABELS ; i++)
 		{
 			label = non_artery_labels[i] ;
+			MRIreplaceValues(mri_source, mri_source, label, 0) ;
+		}
+		for (i = 0 ; i < NUM_NON_HIPPO_LABELS ; i++)
+		{
+			label = non_hippo_labels[i] ;
 			MRIreplaceValues(mri_source, mri_source, label, 0) ;
 		}
 	}
@@ -189,6 +205,15 @@ main(int argc, char *argv[])
 		ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s",
 							Progname, target_fname) ;
 
+	if (target_label >= 0)
+	{
+		MRI *mri_tmp ;
+		mri_tmp = MRIclone(mri_target, NULL) ;
+		MRIcopyLabel(mri_target, mri_tmp, target_label) ;
+		MRIfree(&mri_target) ; mri_target = mri_tmp ; 
+	}
+
+	mri_orig_source = MRIcopy(mri_source, NULL) ;
 	MRIbinarize(mri_target, mri_target, 1, 0, 128) ;
 	MRIbinarize(mri_source, mri_source, 1, 0, 128) ;
 	MRIwrite(mri_target, "target_labels.mgz") ;
@@ -221,9 +246,10 @@ main(int argc, char *argv[])
 
 	
 	/* compute optimal linear transform */
-	vl_target = VLSTcreate(mri_target,target_label,target_label,NULL,skip,0);
+	//	vl_target = VLSTcreate(mri_target,target_label,target_label,NULL,skip,0);
+	vl_target = VLSTcreate(mri_target,target_label,target_label,NULL,0,0);
 	vl_target->mri2 = mri_dist_dst ;
-	for (i = 0 ; i < 3 ; i++)
+	for (i = 0 ; i < npasses ; i++)
 	{
 		printf("------------- outer loop iteration %d ---------------\n",i) ;
 		vl_source = VLSTcreate(mri_source, 1, 255, NULL, skip, 0) ;
@@ -338,6 +364,11 @@ get_option(int argc, char *argv[])
     printf("finding label %s (%d) at (%2.1f, %2.1f, %2.1f)\n",
 					 cma_label_to_name(find_label), find_label, x_vox, y_vox,z_vox) ;
   }
+  else if (!stricmp(option, "angio"))
+  {
+		pf_overlap = compute_distance_transform_sse ;
+    printf("using distance transform to align angiograms\n") ;
+  }
   else if (!stricmp(option, "distance"))
   {
     distance = atof(argv[2]) ;
@@ -379,6 +410,11 @@ get_option(int argc, char *argv[])
 	}
 	else switch (*option)
 	{
+	case 'N':
+		npasses = atoi(argv[2]) ;
+		nargs = 1 ;
+		printf("using npasses=%d\n", npasses) ;
+		break ;
 	case 'W':
 		parms.write_iterations = atoi(argv[2]) ;
 		Gdiag |= DIAG_WRITE ;
@@ -464,7 +500,7 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 		MatrixFree(&m_trans) ; MatrixFree(&m_tmp) ; VectorFree(&v_cl) ; VectorFree(&v_ch) ;
 		if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
 		{
-			write_snapshot(mri_target, mri_source, m_vox_xform, parms, parms->start_t,1,NULL);
+			write_snapshot(mri_target, mri_orig_source, m_vox_xform, parms, parms->start_t,1,NULL);
 		}
 		parms->start_t++ ;
 	}
@@ -478,7 +514,7 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 		
 	if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
 	{
-		write_snapshot(mri_target, mri_source, m_vox_xform, parms, parms->start_t,1,NULL);
+		write_snapshot(mri_target, mri_orig_source, m_vox_xform, parms, parms->start_t,1,NULL);
 	}
 	parms->start_t++ ;
 #define MIN_SCALES 3
@@ -500,10 +536,14 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 																						-scale*MAX_TRANS, 
 																						scale*MAX_TRANS,
 																						3, 3, 3, 2);
+#if 0
+		trans = MAX(MAX_TRANS, MAX(MAX(mri_source->width,mri_source->height),mri_source->depth)/(16*scale)) ;
+		max_overlap = find_optimal_translation(vl_target, vl_source, m_vox_xform, -trans, trans, 5, 4) ;
+#endif
     
     if (parms->write_iterations != 0)
     {
-			write_snapshot(mri_target, mri_source, ((LTA *)(transform->xform))->xforms[0].m_L, 
+			write_snapshot(mri_target, mri_orig_source, ((LTA *)(transform->xform))->xforms[0].m_L, 
 										 parms, parms->start_t+niter, 1, NULL) ;
 
     }
@@ -560,6 +600,8 @@ compute_overlap(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L)
 	hheight = mri_source->height ;
 	hdepth = mri_source->depth;
 
+	//	if (mri_intersection)
+	//		MRIclear(mri_intersection) ;
 	mri_intersection = VLSTtoMri(vl_target, mri_intersection) ;
 
 	/* first go through target volume and for every voxel that is on in it,
@@ -635,6 +677,11 @@ compute_overlap(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *m_L)
 		{
 			MRIsetVoxVal(mri_intersection, xd, yd, zd, 0, 0) ;
 		}
+	}
+	for (i = 0 ; i < vl_target->nvox ; i++)
+	{
+		x = vl_target->xi[i] ; y = vl_target->yi[i] ; z = vl_target->zi[i] ; 
+		MRIsetVoxVal(mri_intersection, x, y, z, 0, 0) ;
 	}
 
 	VectorFree(&v1) ; VectorFree(&v2) ;
