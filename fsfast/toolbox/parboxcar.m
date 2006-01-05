@@ -34,7 +34,7 @@ function [bpar,nstimlen] = parboxcar(erpar,TER,stimlen,runlen)
 % Notes:
 %  1. Stim Id 0 in erpar will not be represented in the output. 
 %
-% $Id: parboxcar.m,v 1.1 2004/05/21 16:29:03 greve Exp $
+% $Id: parboxcar.m,v 1.2 2006/01/05 22:42:08 greve Exp $
 %
 
 bpar = [];
@@ -45,6 +45,8 @@ if(nargin < 1 | nargin > 4)
 end
 if(~exist('stimlen','var')) stimlen=[]; end
 if(~exist('runlen','var'))  runlen=[]; end
+
+erpar0 = erpar;
 
 nstim = size(erpar,1);
 
@@ -76,6 +78,11 @@ else
   for nthstim = 1:nstim-1
     dt = erpar(nthstim+1,1)-erpar(nthstim,1);
     nstimlen(nthstim) = round(dt/TER);
+    if(nstimlen(nthstim)==0)
+      fprintf('ERROR: parboxcar(): stimulus %d at time %g has duration %g < TER=%g\n',...
+	      nthstim,erpar(nthstim,1),dt,TER);
+      return;
+    end
   end
 end
 
