@@ -1292,7 +1292,10 @@ distribution/sessions/Makefile \
 qdec/Makefile \
 qdec/images/Makefile \
 mri_segment_wm_damage/Makefile \
-mri_fslmat_to_lta/Makefile
+mri_fslmat_to_lta/Makefile \
+plotter/Makefile \
+plotter/docs/Makefile \
+plotter/docs/en/Makefile
 )
 
 AC_MSG_RESULT(

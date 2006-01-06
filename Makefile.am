@@ -223,7 +223,8 @@ SUBDIRS=unix \
 	hiam_make_surfaces \
 	include \
 	qdec \
-	mri_fslmat_to_lta
+	mri_fslmat_to_lta \
+	plotter
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
