@@ -2125,7 +2125,10 @@ ScubaLayer2DMRI::ProcessOption ( string isOption, string isValue ) {
       throw runtime_error( "LUT not found" );
     }
 
-  } else if( 0 == isOption.compare( "drawzeroclear" ) ) {
+  } else if( 0 == isOption.compare( "drawzeroclear" ) ||
+	     /* Alternate Bruce spellings */
+	     0 == isOption.compare( "drawzerosclear" ) ||
+	     0 == isOption.compare( "drawzeroesclear" ) ) {
     int bDrawZeroClear = strtol( sValue, (char**)NULL, 10 );
     if( ERANGE == errno ) {
       throw runtime_error( "Bad drawzeroclear value" );
