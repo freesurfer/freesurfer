@@ -1,5 +1,7 @@
 #!/bin/tcsh -f
 
+set VERSION = '$Id: build_release_type.csh,v 1.5 2006/01/06 18:34:22 nicks Exp $'
+
 set ECHO=
 #set echo=1
 
