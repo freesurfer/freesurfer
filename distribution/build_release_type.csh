@@ -181,8 +181,8 @@ echo "##########################################################" >>& $OUTPUTF
 echo "Building dev" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 # make
-$ECHO echo "CMD: make -j 4" >>& $OUTPUTF
-$ECHO make -j 4 >>& $OUTPUTF
+$ECHO echo "CMD: make" >>& $OUTPUTF
+$ECHO make >>& $OUTPUTF
 if ($status != 0) then
   # note: /usr/local/freesurfer/dev/bin/ dirs have not 
   # been modified (make install does that)
@@ -203,9 +203,9 @@ if (-e ${DEST_DIR}/bin-old) mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old >>& $
 $ECHO echo "CMD: mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old" >>& $OUTPUTF
 $ECHO mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
 
-# make install (-j 4 flag launches up to 4 jobs simultaneously, using multi-processors)
-$ECHO echo "CMD: make -j 4 install" >>& $OUTPUTF
-$ECHO make -j 4 install >>& $OUTPUTF
+# make install 
+$ECHO echo "CMD: make install" >>& $OUTPUTF
+$ECHO make install >>& $OUTPUTF
 if ($status != 0) then
   $ECHO mail -s "$HOSTNAME $RELEASE_TYPE build (make install) FAILED" $FAILURE_MAIL_LIST < $OUTPUTF
   $ECHO touch ${FAILED_FILE}
@@ -238,8 +238,8 @@ if ($?PUB_DEST_DIR) then
   echo "Building public stable" >>& $OUTPUTF
   echo "" >>& $OUTPUTF
   # make
-  $ECHO echo "CMD: make -j 4 release prefix=$PUB_DEST_DIR" >>& $OUTPUTF
-  $ECHO make -j 4 release prefix=${PUB_DEST_DIR} >>& $OUTPUTF
+  $ECHO echo "CMD: make release prefix=$PUB_DEST_DIR" >>& $OUTPUTF
+  $ECHO make release prefix=${PUB_DEST_DIR} >>& $OUTPUTF
   if ($status != 0) then
     $ECHO mail -s "$HOSTNAME $RELEASE_TYPE release build (make) FAILED" $FAILURE_MAIL_LIST < $OUTPUTF
     $ECHO touch ${FAILED_FILE}
