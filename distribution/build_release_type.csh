@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION = '$Id: build_release_type.csh,v 1.6 2006/01/06 18:52:14 nicks Exp $'
+set VERSION = '$Id: build_release_type.csh,v 1.7 2006/01/06 19:42:36 nicks Exp $'
 
 set ECHO=
 #set echo=1
@@ -198,13 +198,14 @@ if ($status != 0) then
 endif
 
 # Shift bin to bin-old and bin-old to bin-old-old to keep around old versions.
+# Move bin/ to bin-old/ instead of copy, to avoid core dumps if some script
+# is using a binary in bin/
 $ECHO echo "CMD: rm -rf ${DEST_DIR}/bin-old-old" >>& $OUTPUTF
 $ECHO if (-e ${DEST_DIR}/bin-old-old) rm -rf ${DEST_DIR}/bin-old-old >>& $OUTPUTF
 $ECHO echo "CMD: mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old" >>& $OUTPUTF
 $ECHO if (-e ${DEST_DIR}/bin-old) mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old >>& $OUTPUTF
-$ECHO echo "CMD: cp -r ${DEST_DIR}/bin/* ${DEST_DIR}/bin-old/" >>& $OUTPUTF
-$ECHO mkdir ${DEST_DIR}/bin-old >>& $OUTPUTF
-$ECHO cp -r ${DEST_DIR}/bin/* ${DEST_DIR}/bin-old/ >>& $OUTPUTF
+$ECHO echo "CMD: mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old" >>& $OUTPUTF
+$ECHO mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
 
 # make install 
 $ECHO echo "CMD: make install" >>& $OUTPUTF
