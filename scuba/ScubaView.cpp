@@ -507,8 +507,6 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       // Make a new display list for this level if necessary.
       if( mLevelGLListIDMap.find( iLevel ) == mLevelGLListIDMap.end() ) {
 	mLevelGLListIDMap[iLevel] = glGenLists( 1 );
-	cerr << "mLevelGLListIDMap " << iLevel << " got " 
-	     << mLevelGLListIDMap[iLevel] << endl;
       }
 
       // Listen to it.
