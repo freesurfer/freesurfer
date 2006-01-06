@@ -13,7 +13,7 @@ function err = fmri_svbfile(y, BFileName, Endian)
 %
 % See also: LdBFile
 %
-% $Id: fmri_svbfile.m,v 1.2 2003/12/19 22:26:32 greve Exp $
+% $Id: fmri_svbfile.m,v 1.3 2006/01/06 01:30:12 greve Exp $
 
 err = 1 ;
 if(nargin ~= 2 & nargin ~= 3) 
@@ -56,7 +56,7 @@ HdrFile   = strcat(Base,'.hdr');
 %%% Open the header file %%%%
 fid=fopen(HdrFile,'w');
 if fid == -1 
-  msg = sprintf('Could not open header %s\n',HdrFile);
+  msg = sprintf('Could not open header %s for writing\n',HdrFile);
   qoe(msg);
   error(msg);
 end
@@ -76,7 +76,7 @@ else            EndianFlag = 'l';
 end
 fid=fopen(BFileName,'w',EndianFlag);
 if fid == -1 
-  msg = sprintf('Could not open header %s\n',BFileName);
+  msg = sprintf('Could not open bfile %s for writing\n',BFileName);
   qoe(msg);
   error(msg);
 end
