@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.21 2006/01/05 22:42:35 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.22 2006/01/06 02:37:58 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.21 2006/01/05 22:42:35 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.22 2006/01/06 02:37:58 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -21,6 +21,7 @@ if(isempty(s)) return; end
 % This may be needed 
 %s.PreStimWin = s.TER*floor(s.PreStimWin/s.TER);
 %s.TotWin = s.TER*round(s.TotWin/s.TER);
+outvolpath = fast_dirname(deblank(s.hvol));
 
 sxa_print_struct(s,1);
 
@@ -156,6 +157,8 @@ SubSampRate = round(TR/TER);
 instem = deblank(instemlist(1,:));
 [nslices nrows ncols ntrs] = fmri_bvoldim(instem);
 mristruct = fast_ldbhdr(instem);
+rstd = MRIread(instem,1);
+rstd.vol = zeros(rstd.volsize);
 
 %-----------------------------------------------------------------%
 %--------------- Beginning of Slice Loop -------------------------%
@@ -499,6 +502,8 @@ for slice = firstslice:lastslice
           fname = sprintf('%s/s%03d_%03d.bfloat',sigestdir,run,slice);
           tmp = reshape(pmf', [nrows ncols ntrs])/RescaleFactor; %'
   	  fmri_svbfile(tmp,fname);
+          bhdrfile = sprintf('%s/s%03d.bhdr',sigestdir,run);
+	  fast_svbhdr(mristruct, bhdrfile, isstem)
   	  clear tmp pmf;
         end
 
@@ -507,6 +512,8 @@ for slice = firstslice:lastslice
           fname = sprintf('%s/e%03d_%03d.bfloat',eresdir,run,slice);
           tmp = reshape(eres', [nrows ncols ntrs])/RescaleFactor; %'
   	  fmri_svbfile(tmp,fname);
+          bhdrfile = sprintf('%s/e%03d.bhdr',eresdir,run);
+	  fast_svbhdr(mristruct, bhdrfile, 0);
         end
 
         if(~isempty(s.acfdir))
@@ -623,19 +630,12 @@ for slice = firstslice:lastslice
       fprintf('ERROR: saving %s\n',s.betavol);
       return;
     end
-    
-    tmp = eres_var;
-    ntmp = size(tmp,1);
-    tmp = reshape(tmp',[nrows ncols ntmp]);
-    fname = sprintf('%s-var',s.betavol);
-    err = fast_svbslice(tmp,fname,slice,'',mristruct);
-    if(err) 
-      fprintf('ERROR: saving %s\n',fname);
-      return;
-    end
-
     clear tmp;
   end
+    
+  tmp = eres_var;
+  tmp = reshape(tmp',[nrows ncols]);
+  rstd.vol(:,:,slice+1) = sqrt(tmp);
 
   % Omnibus Significance Test %
   if(~isempty(fomnibusstem) | ~isempty(pomnibusstem))
@@ -743,6 +743,10 @@ if(~isempty(s.ErrCovMtxStem))
   ErrCovMtx = SumESSMtx/NBrainVoxsTot;
   fmri_svbfile(ErrCovMtx,fname);
 end
+
+fname = sprintf('%s/rstd.mgh',outvolpath);
+MRIwrite(rstd,fname);
+
 
 % Save the .dat file %
 fname = sprintf('%s.dat',hstem);
