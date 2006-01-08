@@ -8,15 +8,15 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.18 2005/12/15 23:08:15 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.19 2006/01/08 02:25:28 nicks Exp $';
 
 set PrintHelp = 0;
 
 if ( $?SUBJECTS) then
-    set SUBJECTS=($SUBJECTS)
+  set SUBJECTS=($SUBJECTS)
 endif
 if ( $?SUBJECTS_DIR) then
-    set SUBJECTS_DIR=($SUBJECTS_DIR)
+  set SUBJECTS_DIR=($SUBJECTS_DIR)
 endif
 
 set average_subject=average
@@ -66,7 +66,7 @@ mkdir -p ${ddir} \
         ${ddir}/mri/transforms \
         ${ddir}/mri/T1 \
         ${ddir}/mri/orig \
-        ${ddir}/label
+        ${ddir}/label \
         ${ddir}/stats
 
 if (-e ${SUBJECTS_DIR}/${average_subject} == 0) then
