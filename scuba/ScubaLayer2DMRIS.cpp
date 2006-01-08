@@ -168,6 +168,8 @@ ScubaLayer2DMRIS::DrawIntoGL ( ViewState& iViewState,
   int window1[2];
   int window2[2];
   list<int>::iterator tDrawList;
+  window1[0]=0;
+  window1[1]=0;
   for( tDrawList = mCachedDrawList.begin(); 
        tDrawList != mCachedDrawList.end(); ++tDrawList ) {
     
