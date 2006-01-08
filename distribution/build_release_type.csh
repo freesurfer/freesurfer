@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION = '$Id: build_release_type.csh,v 1.7 2006/01/06 19:42:36 nicks Exp $'
+set VERSION = '$Id: build_release_type.csh,v 1.8 2006/01/08 00:02:51 nicks Exp $'
 
 set ECHO=
 #set echo=1
@@ -37,9 +37,9 @@ setenv GLUT_DYLIB_DIR ""
 # on Mac OS X Tiger, glut is not automatically in lib path.
 # also, need /sw/bin to get latex and dvips
 if ("$HOSTNAME" == "storm") then
-    set GLUT_DYLIB_DIR=/usr/pubsw/packages/tiffjpegglut/lib
-    setenv PATH "/sw/bin":"$PATH"
-    rehash
+  set GLUT_DYLIB_DIR=/usr/pubsw/packages/tiffjpegglut/lib
+  setenv PATH "/sw/bin":"$PATH"
+  rehash
 endif
 setenv LD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
 setenv DYLD_LIBRARY_PATH "${QTDIR}/lib":"${GLUT_DYLIB_DIR}"
@@ -201,11 +201,11 @@ endif
 # Move bin/ to bin-old/ instead of copy, to avoid core dumps if some script
 # is using a binary in bin/
 $ECHO echo "CMD: rm -rf ${DEST_DIR}/bin-old-old" >>& $OUTPUTF
-$ECHO if (-e ${DEST_DIR}/bin-old-old) rm -rf ${DEST_DIR}/bin-old-old >>& $OUTPUTF
+if (-e ${DEST_DIR}/bin-old-old) rm -rf ${DEST_DIR}/bin-old-old >>& $OUTPUTF
 $ECHO echo "CMD: mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old" >>& $OUTPUTF
-$ECHO if (-e ${DEST_DIR}/bin-old) mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old >>& $OUTPUTF
+if (-e ${DEST_DIR}/bin-old) mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old >>& $OUTPUTF
 $ECHO echo "CMD: mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old" >>& $OUTPUTF
-$ECHO mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
+mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
 
 # make install 
 $ECHO echo "CMD: make install" >>& $OUTPUTF
