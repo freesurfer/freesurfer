@@ -51,6 +51,11 @@ Smooth by fwhm mm before estimating the fwhm. This is mainly good for
 debuggging. But with --out can also be used to smooth data on the
 surface (but might be better to use mri_surf2surf for this).
 
+--niters-only
+
+Only report the number of iterations needed to achieve the FWHM given
+by fwhm.
+
 --out outfile
 
 Save (possibly synthesized and/or smoothed) data to outfile. Automatically
@@ -111,7 +116,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.3 2006/01/03 06:26:34 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.4 2006/01/09 23:21:46 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -139,6 +144,7 @@ MRIS *surf;
 double infwhm = 0, ingstd = 0;
 int synth = 0, nframes = 10;
 int SynthSeed = -1;
+int nitersonly=1;
 
 char *Xfile=NULL;
 MATRIX *X=NULL;
@@ -244,6 +250,10 @@ int main(int argc, char *argv[])
 
   if(infwhm > 0){
     niters = MRISfwhm2niters(infwhm,surf);
+    if(nitersonly){
+      printf("niters %d\n",niters);
+      exit(0);
+    }
     printf("Smoothing by fwhm=%lf, gstd=%lf, niters=%d \n",
 	   infwhm,ingstd,niters);
     MRISsmoothMRI(surf, InVals, niters, InVals);
@@ -314,6 +324,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--synth")) synth = 1;
     else if (!strcasecmp(option, "--nosynth")) synth = 0;
     else if (!strcasecmp(option, "--mask-inv")) maskinv = 1;
+    else if (!strcasecmp(option, "--niters-only")) nitersonly = 1;
 
     else if(!strcasecmp(option, "--s") || !strcasecmp(option, "--subject")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -406,6 +417,7 @@ static void print_usage(void)
   printf("   --sum sumfile\n");
   printf("   \n");
   printf("   --fwhm fwhm : apply before measuring\n");
+  printf("   --niters-only : only report on niters for fwhm\n");
   printf("   --o output\n");
   printf("\n");
   printf("   --synth \n");
@@ -444,11 +456,15 @@ printf("\n");
 printf("--mask maskfile\n");
 printf("\n");
 printf("Compute AR1 only over voxels in the given mask. Format can be anything\n");
-printf("accepted by mri_convert.\n");
+printf("accepted by mri_convert. See also --label.\n");
 printf("\n");
 printf("--mask-inv\n");
 printf("\n");
 printf("Invert mask, ie, compute AR1 only over voxels outside the given mask.\n");
+printf("\n");
+printf("--label label\n");
+printf("\n");
+printf("Use label as a mask. Can be inverted with --mask-inv.\n");
 printf("\n");
 printf("--hemi hemi (--h)\n");
 printf("\n");
@@ -470,6 +486,11 @@ printf("Smooth by fwhm mm before estimating the fwhm. This is mainly good for \n
 printf("debuggging. But with --out can also be used to smooth data on the\n");
 printf("surface (but might be better to use mri_surf2surf for this).\n");
 printf("\n");
+printf("--niters-only\n");
+printf("\n");
+printf("Only report the number of iterations needed to achieve the FWHM given\n");
+printf("by fwhm.\n");
+printf("\n");
 printf("--out outfile\n");
 printf("\n");
 printf("Save (possibly synthesized and/or smoothed) data to outfile. Automatically\n");
@@ -488,7 +509,6 @@ printf("Synthesize input with white gaussian noise with the given number of fram
 printf("Implies --synth.\n");
 printf("\n");
 printf("\n");
-
 
   exit(1) ;
 }
@@ -517,6 +537,11 @@ static void check_options(void)
     printf("ERROR: cannot specify both --label and --mask\n");
     exit(1);
   }
+  if(infwhm == 0 && nitersonly){
+    printf("ERROR: must specify --fwhm with --niters-only\n");
+    exit(1);
+  }
+
   return;
 }
 
