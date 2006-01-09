@@ -2066,8 +2066,15 @@ MRIgaussian1d(float sigma, int max_len)
   if (max_len > 0 && (max_len < len))
     len = max_len ;
   half = len/2 ;
+	if (len < 1)
+		len = 1 ;
   mri = MRIalloc(len, 1, 1, MRI_FLOAT) ;
 
+	if (len <= 1)
+	{
+		MRIFvox(mri, 0, 0, 0) = 1.0 ;
+		return(mri) ;
+	}
   norm = 0.0f ;
   two_sigma = 2.0f * sigma ;
 
