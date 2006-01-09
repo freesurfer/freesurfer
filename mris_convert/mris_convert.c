@@ -13,9 +13,16 @@
 #include "macros.h"
 #include "fio.h"
 #include "version.h"
+#include "matrix.h"
+#include "transform.h"
 
+int MRISmatrixMultiply(MRIS *mris, MATRIX *M);
+
+
+
+//------------------------------------------------------------------------
 static char vcid[] = 
-"$Id: mris_convert.c,v 1.18 2006/01/09 20:08:55 greve Exp $";
+"$Id: mris_convert.c,v 1.19 2006/01/09 21:21:24 greve Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -38,6 +45,7 @@ static int writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) ;
 char *Progname ;
 
 static int talairach_flag = 0 ;
+static char *talxfmsubject = NULL;
 static int patch_flag = 0 ;
 static int read_orig_positions = 0 ;
 static int w_file_dst_flag = 0 ;
@@ -47,6 +55,7 @@ static char *curv_fname ;
 static char *orig_surf_name = NULL ;
 static double scale=0;
 static int rescale=0;  // for rescaling group average surfaces
+static MATRIX *XFM=NULL;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -61,7 +70,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_convert.c,v 1.18 2006/01/09 20:08:55 greve Exp $", "$Name:  $");
+     "$Id: mris_convert.c,v 1.19 2006/01/09 21:21:24 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -82,6 +91,11 @@ main(int argc, char *argv[])
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
+
+  if(talxfmsubject && curv_file_flag){
+    printf("ERROR: cannot specify -t and -c\n");
+    exit(1);
+  }
 
   // check whether outputis a .w file
   dot = strrchr(out_fname, '.') ;
@@ -139,6 +153,14 @@ main(int argc, char *argv[])
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
 		Progname, in_fname) ;
+  }
+
+  if(talxfmsubject){
+    XFM = DevolveXFM(talxfmsubject, NULL, NULL);
+    if(XFM == NULL) exit(1);
+    printf("Applying talairach transform\n");
+    MatrixPrint(stdout,XFM);
+    MRISmatrixMultiply(mris,XFM);
   }
 
   if(rescale){
@@ -218,6 +240,8 @@ get_option(int argc, char *argv[])
       break ;
     case 'T':
       talairach_flag = 1 ;
+      talxfmsubject = argv[2] ;
+      nargs = 1 ;
       break ;
     case '?':
     case 'U':
@@ -263,7 +287,7 @@ print_help(void)
   printf( "  -o origname       read orig positions\n") ;
   printf( "  -s scale          scale vertex xyz by scale\n") ;
   printf( "  -r                rescale vertex xyz so total area is same as group average\n") ;
-  printf( "  -t                turn on talairaching (does nothing)\n") ;
+  printf( "  -t subject        apply talairach xfm of subject to vertex xyz\n") ;
   printf( "\n") ;
   printf( "Surface and curvature files can be ascii or binary.\n") ;
   printf( "Ascii file is assumed if filename ends with .asc\n") ;
@@ -272,6 +296,9 @@ print_help(void)
   printf( "\n");
   printf( "Convert a surface file to ascii:\n");
   printf( "  mris_convert lh.white lh.white.asc\n") ;
+  printf( "\n");
+  printf( "Apply talairach xfm to white surface, save as binary:\n");
+  printf( "  mris_convert -t bert lh.white lh.white.tal\n") ;
   printf( "\n");
   printf( "Convert a curv file to ascii:\n");
   printf( "  mris_convert -c lh.thickness lh.white lh.thickness.asc\n") ;
