@@ -38,13 +38,16 @@ static void print_version(void);
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
-static char vcid[] = "$Id: mris_info.cpp,v 1.16 2006/01/09 19:56:11 greve Exp $";
+static char vcid[] = "$Id: mris_info.cpp,v 1.17 2006/01/09 21:52:55 greve Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
 int debug = 0;
 char tmpstr[2000];
 struct utsname uts;
+int talairach_flag = 0 ;
+MATRIX *XFM=NULL;
+
 
 /*------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -89,6 +92,17 @@ int main(int argc, char *argv[])
     return -1;
   }
 
+  if(talairach_flag){
+    if(! subject){
+      printf("ERROR: need --s with --t\n");
+      exit(1);
+    }
+    XFM = DevolveXFM(subject, NULL, NULL);
+    if(XFM == NULL) exit(1);
+    printf("Applying talairach transform\n");
+    MatrixPrint(stdout,XFM);
+    MRISmatrixMultiply(mris,XFM);
+  }
  
   cout << "SURFACE INFO ======================================== " << endl;
   cout << "type        : " << type[mris->type].c_str() << endl;
@@ -165,6 +179,7 @@ int main(int argc, char *argv[])
   if(subject)      fprintf(fp,"subject       %s\n",subject);
   if(hemi)         fprintf(fp,"hemi          %s\n",hemi);
   if(surfname)     fprintf(fp,"surfname      %s\n",surfname);
+  fprintf(fp,"talairach_flag  %d\n",talairach_flag);
   fprintf(fp,"nvertices   %d\n",mris->nvertices);
   fprintf(fp,"nfaces      %d\n",mris->nfaces);
   fprintf(fp,"total_area  %f\n",mris->total_area);
@@ -204,6 +219,8 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--tal"))   talairach_flag = 1;
+    else if (!strcasecmp(option, "--t"))   talairach_flag = 1;
     else if ( !strcmp(option, "--o") ) {
       if(nargc < 1) argnerr(option,1);
       outfile = pargv[0];
@@ -247,9 +264,9 @@ static void print_usage(void)
 {
   printf("USAGE: %s   surfacefile\n",Progname) ;
   printf("\n");
-  printf("  --s subject hemi surfname : instead of surfacefile\n");
-  printf("\n");
   printf("  --o outfile : save some data to outfile\n");
+  printf("  --s subject hemi surfname : instead of surfacefile\n");
+  printf("  --tal : apply talairach xfm before reporting info\n");
   printf("\n");
   printf("  --version   : print version and exits\n");
   printf("  --help      : no clue what this does\n");
