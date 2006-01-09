@@ -20,6 +20,7 @@ extern "C" {
 #include "colortab.h"
 #include "transform.h"
 #include "mrisurf.h"
+#include "mrisutils.h"
 #include "version.h"
 
 
@@ -38,7 +39,7 @@ static void print_version(void);
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
-static char vcid[] = "$Id: mris_info.cpp,v 1.17 2006/01/09 21:52:55 greve Exp $";
+static char vcid[] = "$Id: mris_info.cpp,v 1.18 2006/01/09 22:35:12 greve Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
@@ -47,7 +48,8 @@ char tmpstr[2000];
 struct utsname uts;
 int talairach_flag = 0 ;
 MATRIX *XFM=NULL;
-
+int rescale = 0;
+double scale=0;
 
 /*------------------------------------------------------------*/
 int main(int argc, char *argv[])
@@ -90,6 +92,16 @@ int main(int argc, char *argv[])
   if (!mris) {
     cerr << "could not open " << surffile << endl;
     return -1;
+  }
+
+  if(rescale){
+    if(mris->group_avg_surface_area == 0){
+      printf("ERROR: cannot rescale a non-group surface\n");
+      exit(1);
+    }
+    scale = sqrt((double)mris->group_avg_surface_area/mris->total_area);
+    printf("scale = %lf\n",scale);
+    MRISscale(mris,scale);
   }
 
   if(talairach_flag){
@@ -180,6 +192,7 @@ int main(int argc, char *argv[])
   if(hemi)         fprintf(fp,"hemi          %s\n",hemi);
   if(surfname)     fprintf(fp,"surfname      %s\n",surfname);
   fprintf(fp,"talairach_flag  %d\n",talairach_flag);
+  fprintf(fp,"rescale     %lf\n",scale);
   fprintf(fp,"nvertices   %d\n",mris->nvertices);
   fprintf(fp,"nfaces      %d\n",mris->nfaces);
   fprintf(fp,"total_area  %f\n",mris->total_area);
@@ -221,6 +234,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--tal"))   talairach_flag = 1;
     else if (!strcasecmp(option, "--t"))   talairach_flag = 1;
+    else if (!strcasecmp(option, "--r"))   rescale = 1;
     else if ( !strcmp(option, "--o") ) {
       if(nargc < 1) argnerr(option,1);
       outfile = pargv[0];
@@ -266,7 +280,8 @@ static void print_usage(void)
   printf("\n");
   printf("  --o outfile : save some data to outfile\n");
   printf("  --s subject hemi surfname : instead of surfacefile\n");
-  printf("  --tal : apply talairach xfm before reporting info\n");
+  printf("  --t : apply talairach xfm before reporting info\n");
+  printf("  --r : rescale group surface so metrics same as avg of individuals\n");
   printf("\n");
   printf("  --version   : print version and exits\n");
   printf("  --help      : no clue what this does\n");
