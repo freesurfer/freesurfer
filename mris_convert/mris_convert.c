@@ -9,12 +9,13 @@
 #include "diag.h"
 #include "proto.h"
 #include "mrisurf.h"
+#include "mrisutils.h"
 #include "macros.h"
 #include "fio.h"
 #include "version.h"
 
 static char vcid[] = 
-"$Id: mris_convert.c,v 1.17 2005/12/20 22:54:13 nicks Exp $";
+"$Id: mris_convert.c,v 1.18 2006/01/09 20:08:55 greve Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -44,6 +45,8 @@ static int w_file_src_flag = 0 ;
 static int curv_file_flag = 0 ;
 static char *curv_fname ;
 static char *orig_surf_name = NULL ;
+static double scale=0;
+static int rescale=0;  // for rescaling group average surfaces
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -58,7 +61,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_convert.c,v 1.17 2005/12/20 22:54:13 nicks Exp $", "$Name:  $");
+     "$Id: mris_convert.c,v 1.18 2006/01/09 20:08:55 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -69,101 +72,104 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++){
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
-  if (argc < 3)
-    usage_exit() ;
+  if(argc < 3) usage_exit() ;
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
 
+  // check whether outputis a .w file
   dot = strrchr(out_fname, '.') ;
-  if (dot)
-    {
-      strcpy(ext, dot+1) ;
-      if (!stricmp(ext, "W")) 
-        w_file_dst_flag = 1 ;
-    }
+  if (dot){
+    strcpy(ext, dot+1) ;
+    if (!stricmp(ext, "W")) w_file_dst_flag = 1 ;
+  }
 
-  if (w_file_dst_flag)
-    {
-      convertToWFile(in_fname, out_fname) ;
-      exit(0) ;
-    }
+  if(w_file_dst_flag){
+    convertToWFile(in_fname, out_fname) ; //???
+    exit(0) ;
+  }
 
+  // check whether input is a .w file
   dot = strrchr(in_fname, '.') ;
-  if (dot)
-    {
-      strcpy(ext, dot+1) ;
-      if (!stricmp(ext, "W")) 
-        w_file_src_flag = 1 ;
-    }
+  if (dot){
+    strcpy(ext, dot+1) ;
+    if (!stricmp(ext, "W")) w_file_src_flag = 1 ;
+  }
 
-  if (w_file_src_flag)
-    {
-      convertFromWFile(in_fname, out_fname) ;
-      exit(0) ;
-    }
+  if (w_file_src_flag){
+    convertFromWFile(in_fname, out_fname) ; //???
+    exit(0) ;
+  }
 
-  if (patch_flag)   /* read in orig surface before reading in patch */
-    {
-      char name[100] ;
-
-      FileNamePath(in_fname, path) ;
-      FileNameOnly(in_fname, name) ;
-      cp = strchr(name, '.') ;
-      if (cp)
-        {
-          strncpy(hemi, cp-2, 2) ;
-          hemi[2] = 0 ;
-        }
-      else
-        strcpy(hemi, "lh") ;
-
-      sprintf(fname, "%s/%s.orig", path, hemi) ;
-      mris = MRISread(fname) ;
-      if (!mris)
-        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-                  Progname, fname) ;
-      if (MRISreadPatch(mris, in_fname) != NO_ERROR)
-        ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
-                  Progname, in_fname) ;
-      if (read_orig_positions)
-        {
-          if (MRISreadVertexPositions(mris, orig_surf_name) != NO_ERROR)
-            ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-                      Progname, orig_surf_name) ;
-        }
+  if(patch_flag){   /* read in orig surface before reading in patch */
+    char name[100] ;
+    
+    FileNamePath(in_fname, path) ;
+    FileNameOnly(in_fname, name) ;
+    cp = strchr(name, '.') ;
+    if (cp){
+      strncpy(hemi, cp-2, 2) ;
+      hemi[2] = 0 ;
     }
-  else
-    {
-      mris = MRISread(in_fname) ;
-      if (!mris)
-        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-                  Progname, in_fname) ;
-    }
+    else
+      strcpy(hemi, "lh") ;
 
-  if (curv_file_flag)
-    {
-      int type ;
-                
-      MRISreadCurvatureFile(mris, curv_fname) ;
-      type = MRISfileNameType(out_fname) ;
-      if (type == MRIS_ASCII_FILE)
-        writeAsciiCurvFile(mris, out_fname) ;
-      else
-        MRISwriteCurvature(mris, out_fname) ;
+    sprintf(fname, "%s/%s.orig", path, hemi) ;
+    mris = MRISread(fname) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+		Progname, fname) ;
+    if (MRISreadPatch(mris, in_fname) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
+		Progname, in_fname) ;
+    if(read_orig_positions){
+      if (MRISreadVertexPositions(mris, orig_surf_name) != NO_ERROR)
+	ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+		  Progname, orig_surf_name) ;
     }
+  }
+  else {
+    mris = MRISread(in_fname) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+		Progname, in_fname) ;
+  }
+
+  if(rescale){
+    if(mris->group_avg_surface_area == 0){
+      printf("ERROR: cannot rescale a non-group surface\n");
+      exit(1);
+    }
+    scale = sqrt((double)mris->group_avg_surface_area/mris->total_area);
+  }
+
+  if(scale > 0) {
+    printf("scale = %lf\n",scale);
+    MRISscale(mris,scale);
+    MRIScomputeMetricProperties(mris);
+  }
+
+  if(curv_file_flag){
+    int type ;
+    
+    MRISreadCurvatureFile(mris, curv_fname) ;
+    type = MRISfileNameType(out_fname) ;
+    if (type == MRIS_ASCII_FILE)
+      writeAsciiCurvFile(mris, out_fname) ;
+    else
+      MRISwriteCurvature(mris, out_fname) ;
+  }
   else if (mris->patch)
     MRISwritePatch(mris, out_fname) ;
   else
     MRISwrite(mris, out_fname) ;
-
+  
   MRISfree(&mris) ;
 
   exit(0) ;
@@ -198,6 +204,13 @@ get_option(int argc, char *argv[])
       read_orig_positions = 1 ;
       orig_surf_name = argv[2] ;
       nargs = 1 ;
+      break ;
+    case 'S':
+      sscanf(argv[2],"%lf",&scale);
+      nargs = 1 ;
+      break ;
+    case 'R':
+      rescale = 1;
       break ;
     case 'P':
       patch_flag = 1 ;
@@ -240,27 +253,37 @@ static void
 print_help(void)
 {
   print_usage() ;
-  fprintf(stderr, 
+  printf( 
           "\nThis program will convert an MRI surface to ascii, and "
 	  "vice-versa.\n") ;
-  fprintf(stderr, 
-          "\nvalid options are:\n") ;
-  fprintf(stderr, 
-          "  -p                input is a patch not a full surface\n") ;
-  fprintf(stderr, 
-          "  -c <curv file>    input is curvature file (must still "
-          "specify surface)\n\n") ;
-  fprintf(stderr, 
-          "Surface and curvature files can be ascii or binary.\n") ;
-  fprintf(stderr, 
-          "Ascii file is assumed if filename ends with .asc\n") ;
+  printf( "\nvalid options are:\n") ;
+  printf( "  -p                input is a patch, not a full surface\n") ;
+  printf( "  -c <curv file>    input is curvature file (must still "
+          "                    specify surface)\n") ;
+  printf( "  -o origname       read orig positions\n") ;
+  printf( "  -s scale          scale vertex xyz by scale\n") ;
+  printf( "  -r                rescale vertex xyz so total area is same as group average\n") ;
+  printf( "  -t                turn on talairaching (does nothing)\n") ;
+  printf( "\n") ;
+  printf( "Surface and curvature files can be ascii or binary.\n") ;
+  printf( "Ascii file is assumed if filename ends with .asc\n") ;
+  printf( "\n") ;
+  printf( "EXAMPLES:\n") ;
+  printf( "\n");
+  printf( "Convert a surface file to ascii:\n");
+  printf( "  mris_convert lh.white lh.white.asc\n") ;
+  printf( "\n");
+  printf( "Convert a curv file to ascii:\n");
+  printf( "  mris_convert -c lh.thickness lh.white lh.thickness.asc\n") ;
+  printf( "\n") ;
+  printf( "See also mri_surf2surf\n") ;
   exit(1) ;
 }
 
 static void
 print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  printf( "%s\n", vcid) ;
   exit(1) ;
 }
 static int
@@ -364,4 +387,3 @@ writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
-
