@@ -3,7 +3,7 @@
 # to the icosahedron.
 #
 
-set VERSION = '$Id: sphsmooth-sess,v 1.2 2005/04/08 20:54:26 greve Exp $'
+set VERSION = '$Id: sphsmooth-sess,v 1.3 2006/01/09 23:45:56 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -137,8 +137,8 @@ foreach hs ($hemi)
 
     #-- Selxavg Output ----------------------------------------#
     set cmd = (mri_surf2surf);
-    set cmd = ($cmd --srcsubject ico --srcsurfval $instem);
-    set cmd = ($cmd --trgsubject ico --trgsurfval $outstem);
+    set cmd = ($cmd --srcsubject ico --srcsurfval $instem.bhdr);
+    set cmd = ($cmd --trgsubject ico --trgsurfval $outstem.bhdr);
     set cmd = ($cmd --trgicoorder $icoorder  --hemi $hs )
     set cmd = ($cmd --nsmooth $smoothsteps);
     echo $cmd |& tee -a $LF
@@ -150,8 +150,8 @@ foreach hs ($hemi)
 
     #-- Mean T2 values -----------------------------------------#
     set cmd = (mri_surf2surf);
-    set cmd = ($cmd --srcsubject ico --srcsurfval $inoffsetstem);
-    set cmd = ($cmd --trgsubject ico --trgsurfval $outoffsetstem);
+    set cmd = ($cmd --srcsubject ico --srcsurfval $inoffsetstem.bhdr);
+    set cmd = ($cmd --trgsubject ico --trgsurfval $outoffsetstem.bhdr);
     set cmd = ($cmd --trgicoorder $icoorder  --hemi $hs )
     set cmd = ($cmd --nsmooth $smoothsteps);
     echo $cmd |& tee -a $LF
