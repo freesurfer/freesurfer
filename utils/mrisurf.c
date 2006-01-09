@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/03 23:12:02 $
-// Revision       : $Revision: 1.412 $
+// Revision Date  : $Date: 2006/01/09 21:18:56 $
+// Revision       : $Revision: 1.413 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.412 2006/01/03 23:12:02 greve Exp $"); }
+const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.413 2006/01/09 21:18:56 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -25876,6 +25876,7 @@ MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz)
   Note that the LT is given in MRI coordinates, so the
   surface must be transformed into that coordinate system
   before applying the linear transform
+  See also MRISmatrixMultiply().
   ------------------------------------------------------*/
 int
 MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
@@ -26130,6 +26131,36 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
 	  }
 	else
 	  return(NO_ERROR) ;
+}
+/*------------------------------------------------------------------------
+  MRISmatrixMultiply() - simply multiplies matrix M by the vertex xyz.
+  See also MRIStransform().
+  ------------------------------------------------------------------------*/
+int MRISmatrixMultiply(MRIS *mris, MATRIX *M)
+{
+  int    vno ;
+  VERTEX *v ;
+  MATRIX *xyz, *Mxyz;
+
+  xyz  = MatrixAlloc(4,1,MATRIX_REAL);
+  xyz->rptr[4][1] = 1.0;
+  Mxyz = MatrixAlloc(4,1,MATRIX_REAL);
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    xyz->rptr[1][1] = v->x;
+    xyz->rptr[2][1] = v->y;
+    xyz->rptr[3][1] = v->z;
+    MatrixMultiply(M,xyz,Mxyz);
+
+    v->x = Mxyz->rptr[1][1]; 
+    v->y = Mxyz->rptr[2][1]; 
+    v->z = Mxyz->rptr[3][1]; 
+  }
+
+  MatrixFree(&xyz);
+  MatrixFree(&Mxyz);
+  return(0);
 }
 
 /*-----------------------------------------------------
