@@ -10,6 +10,7 @@
 #include "/usr/include/g++-3/alloc.h"
 #endif
 #include <string>
+#include <sys/utsname.h>
 
 extern "C" {
 #include "fio.h"
@@ -19,6 +20,8 @@ extern "C" {
 #include "colortab.h"
 #include "transform.h"
 #include "mrisurf.h"
+#include "version.h"
+
 
   char *Progname = "mris_info";
 }
@@ -35,18 +38,18 @@ static void print_version(void);
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
-static char vcid[] = "$Id: mris_info.cpp,v 1.15 2005/10/03 19:32:04 fischl Exp $";
+static char vcid[] = "$Id: mris_info.cpp,v 1.16 2006/01/09 19:56:11 greve Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL;
+char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
 int debug = 0;
-int PrintNVertices = 0;
-int PrintNFaces    = 0;
-int PrintNStrips = 0;
-
+char tmpstr[2000];
+struct utsname uts;
 
 /*------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
+  double InterVertexDistAvg, InterVertexDistStdDev,avgvtxarea;
   char ext[STRLEN] ;
   vector<string> type;
   FILE *fp;
@@ -86,23 +89,7 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  // Open an output file to capture values
-  if(outfile != NULL){
-    fp = fopen(outfile,"w");
-    if(fp == NULL){
-      printf("ERROR: cannot open %s\n",outfile);
-      exit(1);
-    }
-  }
-  else fp = stdout;
-
-  if(PrintNVertices) fprintf(fp,"nvertices %d\n",mris->nvertices);
-  if(PrintNFaces)    fprintf(fp,"nfaces    %d\n",mris->nfaces);
-  if(PrintNStrips)   fprintf(fp,"nstrips   %d\n",mris->nstrips);
-
-  if(outfile != NULL) fclose(fp);
-
-  
+ 
   cout << "SURFACE INFO ======================================== " << endl;
   cout << "type        : " << type[mris->type].c_str() << endl;
   if (mris->type == MRIS_BINARY_QUADRANGLE_FILE){
@@ -116,15 +103,21 @@ int main(int argc, char *argv[])
     fclose(fp);
   }
 
-	MRIScomputeMetricProperties(mris) ;
+  MRIScomputeMetricProperties(mris) ;
+  InterVertexDistAvg = MRISavgInterVetexDist(mris, &InterVertexDistStdDev);
+  avgvtxarea = mris->total_area/mris->nvertices;
+
   cout << "num vertices: " << mris->nvertices << endl;
   cout << "num faces   : " << mris->nfaces << endl;
   cout << "num strips  : " << mris->nstrips << endl;
   cout << "surface area: " << mris->total_area << endl;
-	if (mris->group_avg_surface_area > 0)
-		{
-		cout << "group avg surface area: " << mris->group_avg_surface_area << endl;
-		}
+  printf("AvgVtxArea       %lf\n",avgvtxarea);
+  printf("AvgVtxDist       %lf\n",InterVertexDistAvg);
+  printf("StdVtxDist       %lf\n",InterVertexDistStdDev);
+
+  if (mris->group_avg_surface_area > 0){
+    cout << "group avg surface area: " << mris->group_avg_surface_area << endl;
+  }
   cout << "ctr         : (" << mris->xctr << ", " << mris->yctr << ", " << mris->zctr << ")" << endl;
   cout << "vertex locs : " << (mris->useRealRAS ? "scannerRAS" : "surfaceRAS") << endl;
   if (mris->lta)
@@ -143,13 +136,49 @@ int main(int argc, char *argv[])
     for (i = 0 ; i < mris->ncmds ; i++)
       printf("cmd[%d]: %s\n", i, mris->cmdlines[i]) ;
   }
-	if (argc > 2)
-		{
-			int vno = atoi(argv[2]) ;
-			VERTEX *v ;
-			v= &mris->vertices[vno] ;
-			printf("mris[%d] = (%2.1f, %2.1f, %2.1f)\n", vno, v->x, v->y, v->z) ;
-		}
+  if (argc > 2){
+    int vno = atoi(argv[2]) ;
+    VERTEX *v ;
+    v= &mris->vertices[vno] ;
+    printf("mris[%d] = (%2.1f, %2.1f, %2.1f)\n", vno, v->x, v->y, v->z) ;
+  }
+
+  uname(&uts);
+  
+  // Open an output file to capture values
+  if(outfile != NULL){
+    fp = fopen(outfile,"w");
+    if(fp == NULL){
+      printf("ERROR: cannot open %s\n",outfile);
+      exit(1);
+    }
+  }
+  else fp = stdout;
+
+  fprintf(fp,"mris_info\n");
+  fprintf(fp,"creationtime %s\n",VERcurTimeStamp());
+  fprintf(fp,"sysname  %s\n",uts.sysname);
+  fprintf(fp,"hostname %s\n",uts.nodename);
+  fprintf(fp,"machine  %s\n",uts.machine);
+  fprintf(fp,"surfacefile %s\n",surffile);
+  if(SUBJECTS_DIR) fprintf(fp,"SUBJECTS_DIR  %s\n",SUBJECTS_DIR);
+  if(subject)      fprintf(fp,"subject       %s\n",subject);
+  if(hemi)         fprintf(fp,"hemi          %s\n",hemi);
+  if(surfname)     fprintf(fp,"surfname      %s\n",surfname);
+  fprintf(fp,"nvertices   %d\n",mris->nvertices);
+  fprintf(fp,"nfaces      %d\n",mris->nfaces);
+  fprintf(fp,"total_area  %f\n",mris->total_area);
+  fprintf(fp,"hemicode    %d\n",mris->hemisphere);
+  fprintf(fp,"avgvtxarea  %lf\n",avgvtxarea);
+  fprintf(fp,"avgvtxdist  %lf\n",InterVertexDistAvg);
+  fprintf(fp,"stdvtxdist  %lf\n",InterVertexDistStdDev);
+  if(mris->group_avg_surface_area > 0)
+    fprintf(fp,"group_avg_surf_area  %f\n",mris->group_avg_surface_area);
+  fprintf(fp,"vtx0xyz   %f %f %f\n",mris->vertices[0].x,mris->vertices[0].y,mris->vertices[0].z);
+
+  if(outfile != NULL) fclose(fp);
+
+
   MRISfree(&mris);
 }
 
@@ -175,17 +204,32 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
-    else if (!strcasecmp(option, "--nvertices")) PrintNVertices = 1;
-    else if (!strcasecmp(option, "--nfaces"))    PrintNFaces = 1;
-    else if (!strcasecmp(option, "--nstrips"))   PrintNStrips = 1;
     else if ( !strcmp(option, "--o") ) {
       if(nargc < 1) argnerr(option,1);
       outfile = pargv[0];
       nargsused = 1;
     }
+    else if ( !strcmp(option, "--o") ) {
+      if(nargc < 1) argnerr(option,1);
+      outfile = pargv[0];
+      nargsused = 1;
+    }
+    else if ( !strcmp(option, "--s") ) {
+      if(nargc < 3) argnerr(option,3);
+      subject  = pargv[0];
+      hemi     = pargv[1];
+      surfname = pargv[2];
+      SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+      if(SUBJECTS_DIR==NULL){
+	printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+	exit(1);
+      }
+      sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
+      surffile = strcpyalloc(tmpstr);
+      nargsused = 3;
+    }
     else{
-			if (NULL == surffile)
-				surffile = option;
+      if(NULL == surffile) surffile = option;
     }
     nargc -= nargsused;
     pargv += nargsused;
@@ -202,9 +246,10 @@ static void usage_exit(void)
 static void print_usage(void)
 {
   printf("USAGE: %s   surfacefile\n",Progname) ;
+  printf("\n");
+  printf("  --s subject hemi surfname : instead of surfacefile\n");
+  printf("\n");
   printf("  --o outfile : save some data to outfile\n");
-  printf("  --nvertices : print nverticies\n");
-  printf("  --nfaces    : print nfaces\n");
   printf("\n");
   printf("  --version   : print version and exits\n");
   printf("  --help      : no clue what this does\n");
