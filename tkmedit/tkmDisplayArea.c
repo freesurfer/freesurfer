@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/09/06 17:51:48 $
-// Revision       : $Revision: 1.125 $
+// Revision Date  : $Date: 2006/01/09 23:36:22 $
+// Revision       : $Revision: 1.126 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -5679,7 +5679,6 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
       /* get a functional value. */
       eFunctional = FunV_GetValueAtAnaIdx( this->mpFunctionalVolume,
 					   &anaIdx, TRUE, &funcValue );
-      
 
       /* If we're masking to the aux volume, check its value first. */
       if(this->mabDisplayFlags[DspA_tDisplayFlag_MaskFunctionalOverlayToAux]){

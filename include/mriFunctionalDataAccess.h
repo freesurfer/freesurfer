@@ -493,46 +493,14 @@ void FunD_ConvertClientToFloatFuncIdx_ ( mriFunctionalDataRef this,
   } else { \
     this->mTmpFrame = (inCondition * this->mNumTimePoints) + inTimePoint; \
   } \
-  switch( iData->type ) { \
-    case MRI_UCHAR: \
-      *oValue = MRIseq_vox( iData , \
-			    (int)(iIdx)->mfX, \
-			    (int)(iIdx)->mfY, \
-			    (int)(iIdx)->mfZ, \
-			    this->mTmpFrame); \
-      break; \
-    case MRI_INT: \
-      *oValue = MRIIseq_vox( iData , \
-			     (int)(iIdx)->mfX, \
-			     (int)(iIdx)->mfY, \
-			     (int)(iIdx)->mfZ,\
-			     this->mTmpFrame); \
-      break; \
-    case MRI_LONG: \
-      *oValue = MRILseq_vox( iData , \
-			     (int)(iIdx)->mfX, \
-			     (int)(iIdx)->mfY, \
-			     (int)(iIdx)->mfZ,\
-			     this->mTmpFrame); \
-      break; \
-    case MRI_FLOAT: \
-      *oValue = MRIFseq_vox( iData , \
-			     (int)(iIdx)->mfX,\
-			     (int)(iIdx)->mfY, \
-			     (int)(iIdx)->mfZ,\
-			     this->mTmpFrame); \
-      break; \
-    case MRI_SHORT: \
-      *oValue = MRISseq_vox( iData ,\
-			     (int)(iIdx)->mfX,\
-			     (int)(iIdx)->mfY, \
-			     (int)(iIdx)->mfZ,\
-			     this->mTmpFrame); \
-      break; \
-    default: \
-      *oValue = 0; \
-      break ; \
-    }
+  MRIsampleVolumeFrameType( (iData), \
+			    xVoxl_GetFloatX((iIdx)),\
+			    xVoxl_GetFloatY((iIdx)),\
+			    xVoxl_GetFloatZ((iIdx)),\
+			    this->mTmpFrame, \
+			    SAMPLE_NEAREST, \
+			    &this->mTmpReal ); \
+  *(oValue) = this->mTmpReal;
 
 #define FunD_GetSampledValue_(this,iData,iIdx,inCondition,inTimePoint,oValue) \
   if( this->mbErrorDataPresent ) { \

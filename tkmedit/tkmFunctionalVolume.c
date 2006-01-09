@@ -1973,7 +1973,7 @@ FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
     *opValue = 0;
     goto error;
   }
-  
+      
   /* if we are displaying offsets and we have offset data... */
   if( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_OffsetValues] 
       && NULL != this->mpOverlayOffsetVolume ) {

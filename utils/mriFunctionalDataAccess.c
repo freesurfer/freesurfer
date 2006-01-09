@@ -993,7 +993,7 @@ FunD_tErr FunD_GetData ( mriFunctionalDataRef this,
 #ifndef BE_SUPA_FAST
   DebugNote( ("Converting client to func idx") );
 #endif
-  FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
+  FunD_ConvertClientToFloatFuncIdx_( this, iClientVox, &funcIdx );
 
 #ifndef BE_SUPA_FAST
   DebugNote( ("Verifying func idx") );
@@ -2778,6 +2778,17 @@ void FunD_GetValue_ ( mriFunctionalDataRef this,
 
   FunD_GetDataFrameNumber(inCondition,inTimePoint,&nFrame);
 
+  MRIsampleVolumeFrameType( iData,
+			    xVoxl_GetFloatX(iIdx),
+			    xVoxl_GetFloatY(iIdx),
+			    xVoxl_GetFloatZ(iIdx),
+			    nFrame,
+			    SAMPLE_NEAREST,
+			    &this->mTmpReal );
+
+  *oValue = this->mTmpReal;
+
+#if 0
   switch( iData->type ) {
     case MRI_UCHAR:
       *oValue = MRIseq_vox( iData, xVoxl_GetX(iIdx), 
@@ -2803,6 +2814,7 @@ void FunD_GetValue_ ( mriFunctionalDataRef this,
       *oValue = 0;
       break ;
     }
+#endif
 }
 
 void FunD_GetSampledValue_ ( mriFunctionalDataRef this,
