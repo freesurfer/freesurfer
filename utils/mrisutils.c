@@ -1449,4 +1449,18 @@ int MRISfwhm2nitersSubj(double fwhm, char *subject, char *hemi, char *surfname)
   return(niters);
 }
 
-
+/*----------------------------------------------------------------------
+  MRIscale() - scales vertex XYZ by scale.
+  ----------------------------------------------------------------------*/
+int MRISscale(MRIS *mris, double scale)
+{
+  int    vno ;
+  VERTEX *v ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+      v = &mris->vertices[vno] ;
+      v->x *= scale;
+      v->y *= scale;
+      v->z *= scale;
+  }
+  return(0);
+}

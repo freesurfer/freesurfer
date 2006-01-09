@@ -17,5 +17,6 @@ int MRISfdr2vwth(MRIS *surf, double fdr, int signid,
 
 int MRISfwhm2niters(double fwhm, MRIS *surf);
 int MRISfwhm2nitersSubj(double fwhm,char *subject,char *hemi,char *surfname);
+int MRISscale(MRIS *mris, double scale);
 
 #endif
