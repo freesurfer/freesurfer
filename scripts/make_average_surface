@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.19 2006/01/08 02:25:28 nicks Exp $';
+set VERSION = '$Id: make_average_surface,v 1.20 2006/01/10 19:11:20 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -44,30 +44,31 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-echo $VERSION
-date
-pwd
-echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"
-id
-
-
-#
-# Begin script guts...
-#
-echo ====================
-echo make_average_surface
-echo ====================
-echo input subjects: ${SUBJECTS}
-echo output subject: ${average_subject}
-
 mkdir -p ${ddir} \
         ${ddir}/surf \
         ${ddir}/mri \
         ${ddir}/mri/transforms \
-        ${ddir}/mri/T1 \
-        ${ddir}/mri/orig \
+        ${ddir}/scripts \
         ${ddir}/label \
         ${ddir}/stats
+
+set LF = ${ddir}/scripts/make_average_surface.log
+if(-e $LF) mv $LF $LF.bak 
+
+echo $VERSION | tee -a $LF
+date | tee -a $LF
+pwd | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+id | tee -a $LF
+
+#
+# Begin script guts...
+#
+echo ==================== | tee -a $LF
+echo make_average_surface | tee -a $LF
+echo ==================== | tee -a $LF
+echo input subjects: ${SUBJECTS}  | tee -a $LF
+echo output subject: ${average_subject}  | tee -a $LF
 
 if (-e ${SUBJECTS_DIR}/${average_subject} == 0) then
   mksubjdirs ${SUBJECTS_DIR}/${average_subject}
@@ -85,13 +86,13 @@ set tmp_subjects = ( $SUBJECTS )
 
 foreach hemi (rh lh)
 
-  echo ""
-  echo ""
+  echo ""  | tee -a $LF
+  echo ""  | tee -a $LF
 
   cd ${SUBJECTS_DIR}/${average_subject}
   foreach s (orig white pial inflated)
-    echo "Making average $hemi.$s surface --------------------------------"
-    date
+    echo "#@# Making average $hemi.$s surface ---------------------"  | tee -a $LF
+    date  | tee -a $LF
     set cmd = (mris_make_average_surface $XFORM_FLAG \
                 -i $ico_no \
                 -o $s \
@@ -99,23 +100,23 @@ foreach hemi (rh lh)
                 ${s}_avg sphere.reg \
                 ${average_subject} \
                 $SUBJECTS)
-    pwd
-    echo $cmd
-    $cmd
+    pwd  | tee -a $LF
+    echo $cmd  | tee -a $LF
+    $cmd |& tee -a $LF
     if($status) then
-      echo "mris_average_surface failed"
+      echo "mris_average_surface failed"  | tee -a $LF
       exit 1;
     endif
-    echo ""
-    echo ""
+    echo ""  | tee -a $LF
+    echo ""  | tee -a $LF
   end
-  echo "---------------------------------------------------"
-  echo ""
-  echo ""
-  echo ""
+  echo "---------------------------------------------------"  | tee -a $LF
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
 
   foreach c (sulc curv thickness)
-    echo "Making average $hemi.$c --------------------------------"
+    echo "#@# Making average $hemi.$c ----------------------" | tee -a $LF
     date
     set cmd = (mris_average_curvature \
                 $c \
@@ -123,29 +124,37 @@ foreach hemi (rh lh)
                 sphere.reg \
                 $SUBJECTS \
                 $SUBJECTS_DIR/${average_subject}/surf/${hemi}.avg_${c})
-    pwd
-    echo $cmd
-    $cmd
+    pwd | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
     if($status) then
-      echo "mris_average_curvature failed"
+      echo "mris_average_curvature failed" | tee -a $LF
       exit 1;
     endif
-    echo ""
-    echo ""
+    echo "" | tee -a $LF
+    echo "" | tee -a $LF
   end
-  echo "---------------------------------------------------"
-  echo ""
-  echo ""
+  echo "---------------------------------------------------" | tee -a $LF
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
   echo ""
 
+  echo "#@# Smoothing, inflating, etc $hemi ----------------" | tee -a $LF
   cd ${SUBJECTS_DIR}/${average_subject}/surf      
-  pwd     
-  mris_smooth -n 5 ./${hemi}.white_avg ./${hemi}.smoothwm
-  mris_inflate  ./${hemi}.smoothwm ./${hemi}.inflated
-  mris_curvature -a 10 -w ./${hemi}.white_avg
-  cp ${hemi}.white_avg.H  ${hemi}.curv
-  cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg .
-  ln -s -f ${hemi}.sphere.reg ${hemi}.sphere
+  echo "" | tee -a $LF
+  pwd     | tee -a $LF
+  echo "mris_smooth" | tee -a $LF
+  mris_smooth -n 5 ./${hemi}.white_avg ./${hemi}.smoothwm  |& tee -a $LF
+  echo "" | tee -a $LF
+  echo "mris_inflate" | tee -a $LF
+  mris_inflate  ./${hemi}.smoothwm ./${hemi}.inflated  |& tee -a $LF
+  echo "" | tee -a $LF
+  echo "mris_curvature" | tee -a $LF
+  mris_curvature -a 10 -w ./${hemi}.white_avg |& tee -a $LF
+  echo "" | tee -a $LF
+  cp ${hemi}.white_avg.H  ${hemi}.curv 
+  cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg . 
+  ln -s -f ${hemi}.sphere.reg ${hemi}.sphere 
   ln -s -f ${hemi}.orig_avg ${hemi}.orig
   ln -s -f ${hemi}.white_avg ${hemi}.white
   ln -s -f ${hemi}.pial_avg ${hemi}.pial
@@ -153,12 +162,13 @@ foreach hemi (rh lh)
 
 end
 
-echo "---------------------------------------------------"
-echo ""
-echo ""
-echo ""
-date
-echo "make_average_surface done"
+echo "---------------------------------------------------" | tee -a $LF
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+date | tee -a $LF
+echo "make_average_surface done" | tee -a $LF
+echo "" 
 
 exit 0
 
