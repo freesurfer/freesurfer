@@ -196,6 +196,9 @@ typedef struct
   float        max_curv ;
   float        min_curv ;
   float        total_area ;
+  double       avg_vertex_area;
+  double       avg_vertex_dist;
+  double       std_vertex_dist;
   float        orig_area ;
   float        neg_area ;
   float        neg_orig_area ;   /* amount of original surface in folds */
@@ -704,7 +707,6 @@ int          MRISuseCurvatureRatio(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureContrast(MRI_SURFACE *mris) ;
 
 double MRIScomputeFolding(MRI_SURFACE *mris) ;
-double MRISavgInterVetexDist(MRIS *Surf, double *StdDev);
 double MRISavgVetexRadius(MRIS *Surf, double *StdDev);
 
 int          MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius) ;

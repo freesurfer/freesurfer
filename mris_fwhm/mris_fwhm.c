@@ -116,7 +116,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.4 2006/01/09 23:21:46 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.5 2006/01/10 00:55:41 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -195,13 +195,14 @@ int main(int argc, char *argv[])
     exit(1);
   }
   MRIScomputeMetricProperties(surf);
-  InterVertexDistAvg = MRISavgInterVetexDist(surf, &InterVertexDistStdDev);
+  InterVertexDistAvg    = surf->avg_vertex_dist;
+  InterVertexDistStdDev = surf->std_vertex_dist;
+  avgvtxarea = surf->avg_vertex_area;
 
   printf("%s %s %s\n",subject,hemi,surfname);
   printf("Number of vertices %d\n",surf->nvertices);
   printf("Number of faces    %d\n",surf->nfaces);
   printf("Total area         %lf\n",surf->total_area);
-  avgvtxarea = surf->total_area/surf->nvertices;
   printf("AvgVtxArea       %lf\n",avgvtxarea);
   printf("AvgVtxDist       %lf\n",InterVertexDistAvg);
   printf("StdVtxDist       %lf\n",InterVertexDistStdDev);

@@ -368,6 +368,7 @@ MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
     printf("ERROR: MRISgaussianSmooth: could not alloc GSum2\n");
     return(NULL);
   }
+  MRIScomputeMetricProperties(Surf);
   
   nXNbrsMRI = MRIallocSequence(Src->width,Src->height,Src->depth,MRI_FLOAT, 1);
   
@@ -382,9 +383,10 @@ MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
   printf("Radius = %g, gstd = %g, dmax = %g, GVar2 = %g, f = %g, dpt = %g\n",
 	 Radius,GStd,dmax,GVar2,f,DotProdThresh);
   
-  InterVertexDistAvg = MRISavgInterVetexDist(Surf, &InterVertexDistStdDev);
+  InterVertexDistAvg    = Surf->avg_vertex_dist;
+  InterVertexDistStdDev = Surf->std_vertex_dist;
   VertexRadiusAvg = MRISavgVetexRadius(Surf, &VertexRadiusStdDev);
-  MRIScomputeMetricProperties(Surf);
+
   printf("Total Area = %g \n",Surf->total_area);
   printf("Dist   = %g +/- %g\n",InterVertexDistAvg,InterVertexDistStdDev);
   printf("Radius = %g +/- %g\n",VertexRadiusAvg,VertexRadiusStdDev);

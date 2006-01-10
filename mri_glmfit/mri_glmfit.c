@@ -73,7 +73,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.48 2006/01/04 00:19:39 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.49 2006/01/10 00:55:42 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -197,8 +197,9 @@ int main(int argc, char **argv)
   
   if(surf != NULL){
     MRIScomputeMetricProperties(surf);
-    InterVertexDistAvg = MRISavgInterVetexDist(surf, &InterVertexDistStdDev);
-    avgvtxarea = surf->total_area/surf->nvertices;
+    InterVertexDistAvg    = surf->avg_vertex_dist;
+    InterVertexDistStdDev = surf->std_vertex_dist;
+    avgvtxarea = surf->avg_vertex_area;
     printf("Number of vertices %d\n",surf->nvertices);
     printf("Number of faces    %d\n",surf->nfaces);
     printf("Total area         %lf\n",surf->total_area);
