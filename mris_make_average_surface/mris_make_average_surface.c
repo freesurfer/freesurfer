@@ -3,9 +3,9 @@
 //
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/10/03 19:31:10 $
-// Revision       : $Revision: 1.17 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/01/10 21:39:58 $
+// Revision       : $Revision: 1.18 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -26,7 +26,7 @@
 #include "version.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.17 2005/10/03 19:31:10 fischl Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.18 2006/01/10 21:39:58 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
 	float        average_surface_area = 0.0 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.17 2005/10/03 19:31:10 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.18 2006/01/10 21:39:58 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -131,16 +131,16 @@ main(int argc, char *argv[])
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     // get the vertex position from ->origx, ... (get the "pial" vertex position)
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-		MRIScomputeMetricProperties(mris) ;
-		printf("surface area: %2.1f cm^2\n", mris->total_area/100) ;
-		average_surface_area += mris->total_area ;
-
+    MRIScomputeMetricProperties(mris) ;
+    printf("surface area: %2.1f cm^2\n", mris->total_area/100) ;
+    average_surface_area += mris->total_area ;
+    
     // this means that we transform "pial" surface
 #if 1
     //MRIStalairachTransform(mris, mris, lta) ;
     {/*-----------------------------------------------------------------*/
       MATRIX *XFM, *sras, *tras;
-
+      
       XFM = DevolveXFMWithSubjectsDir(argv[i], NULL, "talairach.xfm", sdir);
       if(XFM == NULL) exit(1);
       
@@ -149,25 +149,25 @@ main(int argc, char *argv[])
       tras = MatrixAlloc(4,1,MATRIX_REAL);
       tras->rptr[4][1] = 1;
       
-			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-				printf("Applying transform.\n");  
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	printf("Applying transform.\n");  
       for(vno=0; vno < mris->nvertices; vno++){
-				v = &mris->vertices[vno] ;
-				if (v->ripflag) continue ;
-				sras->rptr[1][1] = mris->vertices[vno].x;
-				sras->rptr[2][1] = mris->vertices[vno].y;
-				sras->rptr[3][1] = mris->vertices[vno].z;
-				tras = MatrixMultiply(XFM,sras,tras);
-				mris->vertices[vno].x = tras->rptr[1][1];
-				mris->vertices[vno].y = tras->rptr[2][1];
-				mris->vertices[vno].z = tras->rptr[3][1];
-				if (Gdiag_no == vno)
-					printf(" v %d: (%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f)\n",
-								 vno, sras->rptr[1][1], sras->rptr[2][1], sras->rptr[3][1],
-								 tras->rptr[1][1], tras->rptr[2][1], tras->rptr[3][1]) ;
+	v = &mris->vertices[vno] ;
+	if (v->ripflag) continue ;
+	sras->rptr[1][1] = mris->vertices[vno].x;
+	sras->rptr[2][1] = mris->vertices[vno].y;
+	sras->rptr[3][1] = mris->vertices[vno].z;
+	tras = MatrixMultiply(XFM,sras,tras);
+	mris->vertices[vno].x = tras->rptr[1][1];
+	mris->vertices[vno].y = tras->rptr[2][1];
+	mris->vertices[vno].z = tras->rptr[3][1];
+	if (Gdiag_no == vno)
+	  printf(" v %d: (%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f)\n",
+		 vno, sras->rptr[1][1], sras->rptr[2][1], sras->rptr[3][1],
+		 tras->rptr[1][1], tras->rptr[2][1], tras->rptr[3][1]) ;
       }
       //mrisComputeSurfaceDimensions(mris) ;
-
+      
     }/*-----------------------------------------------------------------*/
 #else
     MRIStransform(mris, mri, lta, 0) ;
@@ -175,7 +175,7 @@ main(int argc, char *argv[])
     memcpy((void *) &vg, (void *) &(mris->vg), sizeof(VOL_GEOM)); 
 #endif
     // save transformed position in ->orig (store "pial" vertices position in orig)
-		MRIScomputeMetricProperties(mris) ;
+    MRIScomputeMetricProperties(mris) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     // get the vertex position from ->cx (note that this is not transformed)  sphere.reg vertices
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
@@ -188,7 +188,7 @@ main(int argc, char *argv[])
     MRISPfree(&mrisp) ; MRISfree(&mris) ; LTAfree(&lta) ; MRIfree(&mri) ;
     n++ ;
   }
-	average_surface_area /= (float)n ;
+  average_surface_area /= (float)n ;
 
   // mrisp_total lost info on the modified surface
   sprintf(ico_fname, "%s/lib/bem/ic%d.tri", mdir, ico_no) ;
@@ -237,22 +237,22 @@ main(int argc, char *argv[])
     v->y /= (float)n ;
     v->z /= (float)n ;
   }
-	if (normalize_area)
-	{
-		MRIScomputeMetricProperties(mris_ico) ;
-		printf("setting group surface area to be %2.1f cm^2 (scale=%2.2f)\n",
-					 average_surface_area/100.0,
-					 sqrt(average_surface_area/mris_ico->total_area)) ;
-
+  if (normalize_area)
+    {
+      MRIScomputeMetricProperties(mris_ico) ;
+      printf("setting group surface area to be %2.1f cm^2 (scale=%2.2f)\n",
+	     average_surface_area/100.0,
+	     sqrt(average_surface_area/mris_ico->total_area)) ;
+      
 #if 0					 
-		MRISscaleBrain(mris_ico, mris_ico, 
-									 sqrt(average_surface_area/mris_ico->total_area)) ;
+      MRISscaleBrain(mris_ico, mris_ico, 
+		     sqrt(average_surface_area/mris_ico->total_area)) ;
 #else
-		mris_ico->group_avg_surface_area = average_surface_area ;
+      mris_ico->group_avg_surface_area = average_surface_area ;
 #endif
-		MRIScomputeMetricProperties(mris_ico) ;
-	}
-		
+      MRIScomputeMetricProperties(mris_ico) ;
+    }
+  
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, out_sname, hemi, avg_surf_name) ;
   printf("writing average %s surface to %s\n", avg_surf_name, fname);
   MRISwrite(mris_ico,  fname) ;
