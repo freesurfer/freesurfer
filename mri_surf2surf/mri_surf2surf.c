@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.30 2006/01/10 21:01:50 greve Exp $
+  $Id: mri_surf2surf.c,v 1.31 2006/01/10 22:42:54 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -11,41 +11,182 @@
 /*
 BEGINHELP
 
-This is what I'd like it to look like:
+This program will resample one surface onto another. The source and 
+target subjects can be any subject in $SUBJECTS_DIR and/or the  
+icosahedron (ico). The source and target file formats can be anything 
+supported by mri_convert. The source format can also be a curvature 
+file or a paint (.w) file. The user also has the option of smoothing 
+on the surface. 
 
-mri_surf2surf 
-  --subject subject (--s)
-  --hemi hemi (--h)
-  --surf surfname (def is white)
+OPTIONS
 
-  --in insurfvals : path to input surface (--sval)
-  --in-xyz  : use vertex xyz as input
-  --in-nxyz : use vertex normals as input
-  --in-area : use vertex area as input
+  --srcsubject subjectname
 
-  --fwhm fwhm : smooth input by fwhm mm
-  --fwhm-surf surfname : def is white
-  --niters niters : smooth input with niters
+    Name of source subject as found in $SUBJECTS_DIR or ico for icosahedron.
+    The input data must have been sampled onto this subject's surface (eg, 
+    using mri_vol2surf)
 
-  --mask maskpath  
-  --mask-thresh
-  --mask-tail
-  --mask-frame
-  --label labelfile 
-  --annot annotfile annotid
-  --mask-inv
+  --sval sourcefile
 
-  --out-subject outsubject (--os)
-  --out-hemi hemi          (--oh)
-  --surfreg surf : sphere.reg
-  --out-fwhm fwhm : smooth by fwhm on the output surface
+    Name of file where the data on the source surface is located.
 
-  --synth
-  --synth-nframes
-  --synth-seed
+  --sval-xyz     surfname
+  --sval-tal-xyz surfname
+  --sval-area    surfname
+
+    Use measures from the input surface as the source (instead of specifying
+    a source file explicitly with --sval). --sval-xyz extracts the x, y, and
+    z of each vertex. --sval-tal-xyz is the same as --sval-xyz, but applies
+    the talairach transform from srcsubject/mri/transforms/talairach.xfm.
+    --sval-area extracts the vertex area. See also --tval-xyz
+
+  --sfmt typestring
+
+    Format type string. Can be either curv (for FreeSurfer curvature file), 
+    paint or w (for FreeSurfer paint files), or anything accepted by 
+    mri_convert. If no type string  is given, then the type is determined 
+    from the sourcefile (if possible). If curv is used, then the curvature
+    file will be looked for in $SUBJECTS_DIR/srcsubject/surf/hemi.sourcefile.
+
+  --srcicoorder order
+
+    Icosahedron order of the source. Normally, this can be detected based
+    on the number of verticies, but this will fail with a .w file as input.
+    This is only needed when the source is a .w file.
+
+  --trgsubject subjectname
+
+    Name of target subject as found in $SUBJECTS_DIR or ico for icosahedron.
+
+  --trgicoorder order
+
+    Icosahedron order number. This specifies the size of the
+    icosahedron according to the following table: 
+              Order  Number of Vertices
+                0              12 
+                1              42 
+                2             162 
+                3             642 
+                4            2562 
+                5           10242 
+                6           40962 
+                7          163842 
+    In general, it is best to use the largest size available.
+
+  --tval targetfile
+
+    Name of file where the data on the target surface will be stored.
+    BUG ALERT: for trg_type w or paint, use the full path.
+
+  --tval-xyz
+
+    Flag to indicate that the source surface xyz as a binary surface file
+    given by the target file. This requires that --sval-xyz or --sval-tal-xyz.
+    This is a good way to map the surface of one subject to an average
+    (talairach) subject. Note: it will save targetfile as
+    trgsubject/surf/targetfile unless targetfile has a path.
+
+  --tfmt typestring
+
+    Format type string. Can be paint or w (for FreeSurfer paint files) or anything
+    accepted by mri_convert. NOTE: output cannot be stored in curv format
+    If no type string  is given, then the type is determined from the sourcefile
+    (if possible). If using paint or w, see also --frame.
+
+  --hemi hemifield (lh or rh)
+
+  --surfreg registration_surface
+
+    If the source and target subjects are not the same, this surface is used 
+    to register the two surfaces. sphere.reg is used as the default. Don't change
+    this unless you know what you are doing.
+
+  --mapmethod methodname
+
+    Method used to map from the vertices in one subject to those of another.
+    Legal values are: nnfr (neighest-neighbor, forward and reverse) and nnf
+    (neighest-neighbor, forward only). Default is nnfr. The mapping is done
+    in the following way. For each vertex on the target surface, the closest
+    vertex in the source surface is found, based on the distance in the 
+    registration space (this is the forward map). If nnf is chosen, then the
+    the value at the target vertex is set to that of the closest source vertex.
+    This, however, can leave some source vertices unrepresented in target (ie,
+    'holes'). If nnfr is chosen, then each hole is assigned to the closest
+    target vertex. If a target vertex has multiple source vertices, then the
+    source values are averaged together. It does not seem to make much difference.
+
+  --fwhm-src fwhmsrc
+  --fwhm-trg fwhmtrg (can also use --fwhm)
+
+    Smooth the source or target with a gaussian with the given fwhm (mm). This is
+    actually an approximation done using iterative nearest neighbor smoothing.
+    The number of iterations is computed based on the white surface. This
+    method is similar to heat kernel smoothing. This will give the same
+    results as --nsmooth-{in,out}, but automatically computes the the 
+    number of iterations based on the desired fwhm.
+
+  --nsmooth-in  niterations
+  --nsmooth-out niterations  [note: same as --smooth]
+
+    Number of smoothing iterations. Each iteration consists of averaging each
+    vertex with its neighbors. When only smoothing is desired, just set the 
+    the source and target subjects to the same subject. --smooth-in smooths
+    the input surface values prior to any resampling. --smooth-out smooths
+    after any resampling. See also --fwhm-src and --fwhm-trg.
+
+  --frame framenumber
+
+    When using paint/w output format, this specifies which frame to output. This
+    format can store only one frame. The frame number is zero-based (default is 0).
 
   --noreshape
-  --out outpath
+
+    By default, mri_surf2surf will save the output as multiple
+    'slices'; has no effect for paint/w output format. For ico, the output
+    will appear to be a 'volume' with Nv/R colums, 1 row, R slices and Nf 
+    frames, where Nv is the number of vertices on the surface. For icosahedrons, 
+    R=6. For others, R will be the prime factor of Nv closest to 6. Reshaping 
+    is for logistical purposes (eg, in the analyze format the size of a dimension 
+    cannot exceed 2^15). Use this flag to prevent this behavior. This has no 
+    effect when the output type is paint.
+
+EXAMPLES:
+
+1. Resample a subject's thickness of the left cortical hemisphere on to a 
+   7th order icosahedron and save in analyze4d format:
+
+   mri_surf2surf --hemi lh --srcsubject bert 
+      --srcsurfval thickness --src_type curv 
+      --trgsubject ico --trgicoorder 7 
+      --trgsurfval bert-thickness-lh.img --trg_type analyze4d 
+
+2. Resample data on the icosahedron to the right hemisphere of subject bert.
+   Save in paint so that it can be viewed as an overlay in tksurfer. The 
+   source data is stored in bfloat format (ie, icodata_000.bfloat, ...)
+
+   mri_surf2surf --hemi rh --srcsubject ico 
+      --srcsurfval icodata-rh --src_type bfloat 
+      --trgsubject bert 
+      --trgsurfval ./bert-ico-rh.w --trg_type paint 
+
+3. Convert the surface coordinates of the lh.white of a subject to a
+   (talairach) average (ie, a subject created by make_average_subject):
+
+   mri_surf2surf --s yoursubject --hemi lh --sval-tal-xyz white 
+      --tval lh.white.yoursubject --tval-xyz --trgsubject youraveragesubject
+
+   This will create youraveragesubject/surf/lh.white.yoursubject
+
+
+BUG REPORTS: send bugs to analysis-bugs@nmr.mgh.harvard.edu. Make sure 
+    to include the version and full command-line and enough information to
+    be able to recreate the problem. Not that anyone does.
+
+BUGS:
+
+  When the output format is paint, the output file must be specified with
+  a partial path (eg, ./data-lh.w) or else the output will be written into
+  the subject's anatomical directory.
 
 ENDHELP
 */
@@ -114,7 +255,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.30 2006/01/10 21:01:50 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.31 2006/01/10 22:42:54 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -139,6 +280,7 @@ MATRIX *XFM=NULL;
 #define SURF_SRC_XYZ     1
 #define SURF_SRC_TAL_XYZ 2
 #define SURF_SRC_AREA    3
+int UseSurfTarg=0; // Put Src XYZ into a target surface
 
 char *trgsubject = NULL;
 char *trgvalfile = NULL;
@@ -201,7 +343,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.30 2006/01/10 21:01:50 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.31 2006/01/10 22:42:54 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -521,6 +663,12 @@ int main(int argc, char **argv)
     MRIScopyMRI(TrgSurfReg, TrgVals, framesave, "val");
     MRISwriteValues(TrgSurfReg,trgvalfile);
   }
+  else if(UseSurfTarg){
+    MRIScopyMRI(TrgSurfReg,TrgVals,0,"x");
+    MRIScopyMRI(TrgSurfReg,TrgVals,1,"y");
+    MRIScopyMRI(TrgSurfReg,TrgVals,2,"z");
+    MRISwrite(TrgSurfReg, trgvalfile);
+  }
   else {
     if(reshape){
       if(reshapefactor == 0) 
@@ -681,6 +829,9 @@ static int parse_commandline(int argc, char **argv)
       trgvalfile = pargv[0];
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--tval-xyz")){
+      UseSurfTarg = 1;
+    }
     else if (!strcmp(option, "--trgdump")){
       if(nargc < 1) argnerr(option,1);
       TrgDumpFile = pargv[0];
@@ -796,6 +947,7 @@ static void print_usage(void)
   fprintf(stdout, "   --trgsubject target subject\n");
   fprintf(stdout, "   --trgicoorder when trgsubject=ico\n");
   fprintf(stdout, "   --tval path of file in which to store output values\n");
+  fprintf(stdout, "   --tval-xyz : save as surface with source xyz \n");
   fprintf(stdout, "   --tfmt target format\n");
   fprintf(stdout, "   --s subject : use subject as src and target\n");
   fprintf(stdout, "   --hemi       hemisphere (lh or rh) \n");
@@ -820,162 +972,184 @@ static void print_usage(void)
 static void print_help(void)
 {
   print_usage() ;
-  printf(
-
-"This program will resample one surface onto another. The source and \n"
-"target subjects can be any subject in $SUBJECTS_DIR and/or the  \n"
-"icosahedron (ico). The source and target file formats can be anything \n"
-"supported by mri_convert. The source format can also be a curvature \n"
-"file or a paint (.w) file. The user also has the option of smoothing \n"
-"on the surface. \n"
-"\n"
-"OPTIONS\n"
-"\n"
-"  --srcsubject subjectname\n"
-"\n"
-"    Name of source subject as found in $SUBJECTS_DIR or ico for icosahedron.\n"
-"    The input data must have been sampled onto this subject's surface (eg, \n"
-"    using mri_vol2surf)\n"
-"\n"
-"  --sval sourcefile\n"
-"\n"
-"    Name of file where the data on the source surface is located.\n"
-"\n"
-"  --sfmt typestring\n"
-"\n"
-"    Format type string. Can be either curv (for FreeSurfer curvature file), \n"
-"    paint or w (for FreeSurfer paint files), or anything accepted by \n"
-"    mri_convert. If no type string  is given, then the type is determined \n"
-"    from the sourcefile (if possible). If curv is used, then the curvature\n"
-"    file will be looked for in $SUBJECTS_DIR/srcsubject/surf/hemi.sourcefile.\n"
-"\n"
-"  --srcicoorder order\n"
-"\n"
-"    Icosahedron order of the source. Normally, this can be detected based\n"
-"    on the number of verticies, but this will fail with a .w file as input.\n"
-"    This is only needed when the source is a .w file.\n"
-"\n"
-"  --trgsubject subjectname\n"
-"\n"
-"    Name of target subject as found in $SUBJECTS_DIR or ico for icosahedron.\n"
-"\n"
-"  --trgicoorder order\n"
-"\n"
-"    Icosahedron order number. This specifies the size of the\n"
-"    icosahedron according to the following table: \n"
-"              Order  Number of Vertices\n"
-"                0              12 \n"
-"                1              42 \n"
-"                2             162 \n"
-"                3             642 \n"
-"                4            2562 \n"
-"                5           10242 \n"
-"                6           40962 \n"
-"                7          163842 \n"
-"    In general, it is best to use the largest size available.\n"
-"\n"
-"  --tval targetfile\n"
-"\n"
-"    Name of file where the data on the target surface will be stored.\n"
-"    BUG ALERT: for trg_type w or paint, use the full path.\n"
-"\n"
-"  --tfmt typestring\n"
-"\n"
-"    Format type string. Can be paint or w (for FreeSurfer paint files) or anything\n"
-"    accepted by mri_convert. NOTE: output cannot be stored in curv format\n"
-"    If no type string  is given, then the type is determined from the sourcefile\n"
-"    (if possible). If using paint or w, see also --frame.\n"
-"\n"
-"  --hemi hemifield (lh or rh)\n"
-"\n"
-"  --surfreg registration_surface"
-"\n"
-"    If the source and target subjects are not the same, this surface is used \n"
-"    to register the two surfaces. sphere.reg is used as the default. Don't change\n"
-"    this unless you know what you are doing.\n"
-"\n"
-"  --mapmethod methodname\n"
-"\n"
-"    Method used to map from the vertices in one subject to those of another.\n"
-"    Legal values are: nnfr (neighest-neighbor, forward and reverse) and nnf\n"
-"    (neighest-neighbor, forward only). Default is nnfr. The mapping is done\n"
-"    in the following way. For each vertex on the target surface, the closest\n"
-"    vertex in the source surface is found, based on the distance in the \n"
-"    registration space (this is the forward map). If nnf is chosen, then the\n"
-"    the value at the target vertex is set to that of the closest source vertex.\n"
-"    This, however, can leave some source vertices unrepresented in target (ie,\n"
-"    'holes'). If nnfr is chosen, then each hole is assigned to the closest\n"
-"    target vertex. If a target vertex has multiple source vertices, then the\n"
-"    source values are averaged together. It does not seem to make much difference.\n"
-"\n"
-"  --fwhm-src fwhmsrc"
-"  --fwhm-trg fwhmtrg (can also use --fwhm)\n"
-"\n"
-"    Smooth the source or target with a gaussian with the given fwhm (mm). This is\n"
-"    actually an approximation done using iterative nearest neighbor smoothing.\n"
-"    The number of iterations is computed based on the white surface. This\n"
-"    method is similar to heat kernel smoothing. This will give the same\n"
-"    results as --nsmooth-{in,out}, but automatically computes the the \n"
-"    number of iterations based on the desired fwhm.\n"
-"\n"
-"  --nsmooth-in  niterations\n"
-"  --nsmooth-out niterations  [note: same as --smooth]\n"
-"\n"
-"    Number of smoothing iterations. Each iteration consists of averaging each\n"
-"    vertex with its neighbors. When only smoothing is desired, just set the \n"
-"    the source and target subjects to the same subject. --smooth-in smooths\n"
-"    the input surface values prior to any resampling. --smooth-out smooths\n"
-"    after any resampling. See also --fwhm-src and --fwhm-trg.\n"
-"\n"
-"  --frame framenumber\n"
-"\n"
-"    When using paint/w output format, this specifies which frame to output. This\n"
-"    format can store only one frame. The frame number is zero-based (default is 0).\n"
-"\n"
-"  --noreshape"
-"\n"
-"    By default, mri_surf2surf will save the output as multiple\n"
-"    'slices'; has no effect for paint/w output format. For ico, the output\n"
-"    will appear to be a 'volume' with Nv/R colums, 1 row, R slices and Nf \n"
-"    frames, where Nv is the number of vertices on the surface. For icosahedrons, \n"
-"    R=6. For others, R will be the prime factor of Nv closest to 6. Reshaping \n"
-"    is for logistical purposes (eg, in the analyze format the size of a dimension \n"
-"    cannot exceed 2^15). Use this flag to prevent this behavior. This has no \n"
-"    effect when the output type is paint.\n"
-"\n"
-"EXAMPLES:\n"
-"\n"
-"1. Resample a subject's thickness of the left cortical hemisphere on to a \n"
-"   7th order icosahedron and save in analyze4d format:\n"
-"\n"
-"   mri_surf2surf --hemi lh --srcsubject bert \n"
-"      --srcsurfval thickness --src_type curv \n"
-"      --trgsubject ico --trgicoorder 7 \n"
-"      --trgsurfval bert-thickness-lh.img --trg_type analyze4d \n"
-"\n"
-"2. Resample data on the icosahedron to the right hemisphere of subject bert.\n"
-"   Save in paint so that it can be viewed as an overlay in tksurfer. The \n"
-"   source data is stored in bfloat format (ie, icodata_000.bfloat, ...)\n"
-"\n"
-"   mri_surf2surf --hemi rh --srcsubject ico \n"
-"      --srcsurfval icodata-rh --src_type bfloat \n"
-"      --trgsubject bert \n"
-"      --trgsurfval ./bert-ico-rh.w --trg_type paint \n"
-"\n"
-"BUG REPORTS: send bugs to analysis-bugs@nmr.mgh.harvard.edu. Make sure \n"
-"    to include the version and full command-line and enough information to\n"
-"    be able to recreate the problem. Not that anyone does.\n"
-"\n"
-"\n"
-"BUGS:\n"
-"\n"
-"  When the output format is paint, the output file must be specified with\n"
-"  a partial path (eg, ./data-lh.w) or else the output will be written into\n"
-"  the subject's anatomical directory.\n"
-"\n"
-"\n"
-"AUTHOR: Douglas N. Greve, Ph.D., MGH-NMR Center (greve@nmr.mgh.harvard.edu)\n"
-"\n");
+printf("\n");
+printf("This program will resample one surface onto another. The source and \n");
+printf("target subjects can be any subject in $SUBJECTS_DIR and/or the  \n");
+printf("icosahedron (ico). The source and target file formats can be anything \n");
+printf("supported by mri_convert. The source format can also be a curvature \n");
+printf("file or a paint (.w) file. The user also has the option of smoothing \n");
+printf("on the surface. \n");
+printf("\n");
+printf("OPTIONS\n");
+printf("\n");
+printf("  --srcsubject subjectname\n");
+printf("\n");
+printf("    Name of source subject as found in $SUBJECTS_DIR or ico for icosahedron.\n");
+printf("    The input data must have been sampled onto this subject's surface (eg, \n");
+printf("    using mri_vol2surf)\n");
+printf("\n");
+printf("  --sval sourcefile\n");
+printf("\n");
+printf("    Name of file where the data on the source surface is located.\n");
+printf("\n");
+printf("  --sval-xyz     surfname\n");
+printf("  --sval-tal-xyz surfname\n");
+printf("  --sval-area    surfname\n");
+printf("\n");
+printf("    Use measures from the input surface as the source (instead of specifying\n");
+printf("    a source file explicitly with --sval). --sval-xyz extracts the x, y, and\n");
+printf("    z of each vertex. --sval-tal-xyz is the same as --sval-xyz, but applies\n");
+printf("    the talairach transform from srcsubject/mri/transforms/talairach.xfm.\n");
+printf("    --sval-area extracts the vertex area. See also --tval-xyz\n");
+printf("\n");
+printf("  --sfmt typestring\n");
+printf("\n");
+printf("    Format type string. Can be either curv (for FreeSurfer curvature file), \n");
+printf("    paint or w (for FreeSurfer paint files), or anything accepted by \n");
+printf("    mri_convert. If no type string  is given, then the type is determined \n");
+printf("    from the sourcefile (if possible). If curv is used, then the curvature\n");
+printf("    file will be looked for in $SUBJECTS_DIR/srcsubject/surf/hemi.sourcefile.\n");
+printf("\n");
+printf("  --srcicoorder order\n");
+printf("\n");
+printf("    Icosahedron order of the source. Normally, this can be detected based\n");
+printf("    on the number of verticies, but this will fail with a .w file as input.\n");
+printf("    This is only needed when the source is a .w file.\n");
+printf("\n");
+printf("  --trgsubject subjectname\n");
+printf("\n");
+printf("    Name of target subject as found in $SUBJECTS_DIR or ico for icosahedron.\n");
+printf("\n");
+printf("  --trgicoorder order\n");
+printf("\n");
+printf("    Icosahedron order number. This specifies the size of the\n");
+printf("    icosahedron according to the following table: \n");
+printf("              Order  Number of Vertices\n");
+printf("                0              12 \n");
+printf("                1              42 \n");
+printf("                2             162 \n");
+printf("                3             642 \n");
+printf("                4            2562 \n");
+printf("                5           10242 \n");
+printf("                6           40962 \n");
+printf("                7          163842 \n");
+printf("    In general, it is best to use the largest size available.\n");
+printf("\n");
+printf("  --tval targetfile\n");
+printf("\n");
+printf("    Name of file where the data on the target surface will be stored.\n");
+printf("    BUG ALERT: for trg_type w or paint, use the full path.\n");
+printf("\n");
+printf("  --tval-xyz\n");
+printf("\n");
+printf("    Flag to indicate that the source surface xyz as a binary surface file\n");
+printf("    given by the target file. This requires that --sval-xyz or --sval-tal-xyz.\n");
+printf("    This is a good way to map the surface of one subject to an average\n");
+printf("    (talairach) subject. Note: it will save targetfile as\n");
+printf("    trgsubject/surf/targetfile unless targetfile has a path.\n");
+printf("\n");
+printf("  --tfmt typestring\n");
+printf("\n");
+printf("    Format type string. Can be paint or w (for FreeSurfer paint files) or anything\n");
+printf("    accepted by mri_convert. NOTE: output cannot be stored in curv format\n");
+printf("    If no type string  is given, then the type is determined from the sourcefile\n");
+printf("    (if possible). If using paint or w, see also --frame.\n");
+printf("\n");
+printf("  --hemi hemifield (lh or rh)\n");
+printf("\n");
+printf("  --surfreg registration_surface\n");
+printf("\n");
+printf("    If the source and target subjects are not the same, this surface is used \n");
+printf("    to register the two surfaces. sphere.reg is used as the default. Don't change\n");
+printf("    this unless you know what you are doing.\n");
+printf("\n");
+printf("  --mapmethod methodname\n");
+printf("\n");
+printf("    Method used to map from the vertices in one subject to those of another.\n");
+printf("    Legal values are: nnfr (neighest-neighbor, forward and reverse) and nnf\n");
+printf("    (neighest-neighbor, forward only). Default is nnfr. The mapping is done\n");
+printf("    in the following way. For each vertex on the target surface, the closest\n");
+printf("    vertex in the source surface is found, based on the distance in the \n");
+printf("    registration space (this is the forward map). If nnf is chosen, then the\n");
+printf("    the value at the target vertex is set to that of the closest source vertex.\n");
+printf("    This, however, can leave some source vertices unrepresented in target (ie,\n");
+printf("    'holes'). If nnfr is chosen, then each hole is assigned to the closest\n");
+printf("    target vertex. If a target vertex has multiple source vertices, then the\n");
+printf("    source values are averaged together. It does not seem to make much difference.\n");
+printf("\n");
+printf("  --fwhm-src fwhmsrc\n");
+printf("  --fwhm-trg fwhmtrg (can also use --fwhm)\n");
+printf("\n");
+printf("    Smooth the source or target with a gaussian with the given fwhm (mm). This is\n");
+printf("    actually an approximation done using iterative nearest neighbor smoothing.\n");
+printf("    The number of iterations is computed based on the white surface. This\n");
+printf("    method is similar to heat kernel smoothing. This will give the same\n");
+printf("    results as --nsmooth-{in,out}, but automatically computes the the \n");
+printf("    number of iterations based on the desired fwhm.\n");
+printf("\n");
+printf("  --nsmooth-in  niterations\n");
+printf("  --nsmooth-out niterations  [note: same as --smooth]\n");
+printf("\n");
+printf("    Number of smoothing iterations. Each iteration consists of averaging each\n");
+printf("    vertex with its neighbors. When only smoothing is desired, just set the \n");
+printf("    the source and target subjects to the same subject. --smooth-in smooths\n");
+printf("    the input surface values prior to any resampling. --smooth-out smooths\n");
+printf("    after any resampling. See also --fwhm-src and --fwhm-trg.\n");
+printf("\n");
+printf("  --frame framenumber\n");
+printf("\n");
+printf("    When using paint/w output format, this specifies which frame to output. This\n");
+printf("    format can store only one frame. The frame number is zero-based (default is 0).\n");
+printf("\n");
+printf("  --noreshape\n");
+printf("\n");
+printf("    By default, mri_surf2surf will save the output as multiple\n");
+printf("    'slices'; has no effect for paint/w output format. For ico, the output\n");
+printf("    will appear to be a 'volume' with Nv/R colums, 1 row, R slices and Nf \n");
+printf("    frames, where Nv is the number of vertices on the surface. For icosahedrons, \n");
+printf("    R=6. For others, R will be the prime factor of Nv closest to 6. Reshaping \n");
+printf("    is for logistical purposes (eg, in the analyze format the size of a dimension \n");
+printf("    cannot exceed 2^15). Use this flag to prevent this behavior. This has no \n");
+printf("    effect when the output type is paint.\n");
+printf("\n");
+printf("EXAMPLES:\n");
+printf("\n");
+printf("1. Resample a subject's thickness of the left cortical hemisphere on to a \n");
+printf("   7th order icosahedron and save in analyze4d format:\n");
+printf("\n");
+printf("   mri_surf2surf --hemi lh --srcsubject bert \n");
+printf("      --srcsurfval thickness --src_type curv \n");
+printf("      --trgsubject ico --trgicoorder 7 \n");
+printf("      --trgsurfval bert-thickness-lh.img --trg_type analyze4d \n");
+printf("\n");
+printf("2. Resample data on the icosahedron to the right hemisphere of subject bert.\n");
+printf("   Save in paint so that it can be viewed as an overlay in tksurfer. The \n");
+printf("   source data is stored in bfloat format (ie, icodata_000.bfloat, ...)\n");
+printf("\n");
+printf("   mri_surf2surf --hemi rh --srcsubject ico \n");
+printf("      --srcsurfval icodata-rh --src_type bfloat \n");
+printf("      --trgsubject bert \n");
+printf("      --trgsurfval ./bert-ico-rh.w --trg_type paint \n");
+printf("\n");
+printf("3. Convert the surface coordinates of the lh.white of a subject to a\n");
+printf("   (talairach) average (ie, a subject created by make_average_subject):\n");
+printf("\n");
+printf("   mri_surf2surf --s yoursubject --hemi lh --sval-tal-xyz white \n");
+printf("      --tval lh.white.yoursubject --tval-xyz --trgsubject youraveragesubject\n");
+printf("\n");
+printf("   This will create youraveragesubject/surf/lh.white.yoursubject\n");
+printf("\n");
+printf("\n");
+printf("BUG REPORTS: send bugs to analysis-bugs@nmr.mgh.harvard.edu. Make sure \n");
+printf("    to include the version and full command-line and enough information to\n");
+printf("    be able to recreate the problem. Not that anyone does.\n");
+printf("\n");
+printf("BUGS:\n");
+printf("\n");
+printf("  When the output format is paint, the output file must be specified with\n");
+printf("  a partial path (eg, ./data-lh.w) or else the output will be written into\n");
+printf("  the subject's anatomical directory.\n");
+printf("\n");
 
   exit(1) ;
 }
@@ -1047,15 +1221,23 @@ static void check_options(void)
     exit(1);
   }
 
-  if( strcasecmp(trgtypestring,"w") != 0 &&
-      strcasecmp(trgtypestring,"curv") != 0 &&
-      strcasecmp(trgtypestring,"paint") != 0 ){
-    if(trgtype == MRI_VOLUME_TYPE_UNKNOWN) {
-      trgtype = mri_identify(trgvalfile);
-      if(trgtype == MRI_VOLUME_TYPE_UNKNOWN){
-	fprintf(stdout,"ERROR: could not determine type of %s\n",trgvalfile);
-	exit(1);
+  if(UseSurfTarg == 0){
+    if( strcasecmp(trgtypestring,"w") != 0 &&
+	strcasecmp(trgtypestring,"curv") != 0 &&
+	strcasecmp(trgtypestring,"paint") != 0 ){
+      if(trgtype == MRI_VOLUME_TYPE_UNKNOWN) {
+	trgtype = mri_identify(trgvalfile);
+	if(trgtype == MRI_VOLUME_TYPE_UNKNOWN){
+	  fprintf(stdout,"ERROR: could not determine type of %s\n",trgvalfile);
+	  exit(1);
+	}
       }
+    }
+  }
+  else{
+    if(UseSurfSrc != SURF_SRC_XYZ && UseSurfSrc != SURF_SRC_TAL_XYZ){
+      printf("ERROR: must use --sval-xyz or --sval-tal-xyz with --tval-xyz\n");
+      exit(1);
     }
   }
 
