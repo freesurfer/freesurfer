@@ -1,8 +1,8 @@
 #!/bin/csh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.11 2006/01/02 19:51:09 greve Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.11 2006/01/02 19:51:09 greve Exp $';
+# $Id: fsl_rigid_register,v 1.12 2006/01/10 21:15:06 fischl Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.12 2006/01/10 21:15:06 fischl Exp $';
 
 setenv FSLOUTPUTTYPE ANALYZE
 
@@ -121,8 +121,8 @@ endif
 
 echo "--------------------------------------"
 pwd
-echo $cmd
-$cmd
+echo calling eval $cmd
+eval $cmd
 if($status) then
   echo "ERROR: running flirt"
   exit 1;
