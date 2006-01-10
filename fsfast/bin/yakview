@@ -6,7 +6,7 @@
 # responses.
 ############################################################
 
-set YAKVIEW_VER = '\$Id: yakview,v 1.8 2005/01/23 17:16:35 greve Exp $'
+set YAKVIEW_VER = '\$Id: yakview,v 1.9 2006/01/10 21:43:26 greve Exp $'
 
 # Set Default Values #
 set imgstem = ();
@@ -48,6 +48,8 @@ set datFile = ();
 set UseVersion = 2;
 set fmtimg = 0;
 set pneg = 0;
+
+set AutoDet = 1;
 
 if ( $#argv < 2 ) then
   echo "USAGE: -i imgstem -sn slicenum -p sigstem -th threshold -f pformat -h hdrstem ";
@@ -240,6 +242,7 @@ endif
 
 ######## Hemodynamic Response Image  ######################
 if( $#hdrstem == 1 ) then
+ if($fmtimg == 0) then
   if( $slice == -1 ) then 
     # Full file name is specified #
     set HDRFile = $hdrstem
@@ -272,17 +275,27 @@ if( $#hdrstem == 1 ) then
     echo "ERROR: cannot find $datFile"
     exit 1;
   endif
+ else
+  set HDRFile = $hdrstem
+  if($IsMosaic || $ForceMkMosaic) set HDRMkMosaic = 1;
+  if(! -e $HDRFile) then
+    echo "ERROR: cannot find $HDRFile" 
+    exit 1;
+  endif
+  set tmpstem = `basename $hdrstem .mgh`;
+  set datFile = $tmpstem.dat
+ endif #fmtimg
 endif
 
 ######## Offset Image  ######################
 if( $#offstem == 0 && $#hdrstem == 1 ) then
+ if($fmtimg == 0) then
   if($SliceStr != "_mos") then
     set tmp = $hdrstem-offset$SliceStr.$bext;
   else
     set tmp = $hdrstem-offset_000.$bext;
   endif
   if(-e $tmp)  set offstem = $hdrstem-offset;
-endif
 if( $#offstem != 0 && $#hdrstem == 0 ) then
   echo "INFO: ignoring offset image"
 else if( $#offstem != 0) then
@@ -312,6 +325,14 @@ else if( $#offstem != 0) then
     endif
   endif
 endif
+ else
+  set tmpstem = `basename $hdrstem .mgh`;
+  set offstem = $tmpstem-offset.mgh;
+  set OffFile = $tmpstem-offset.mgh;
+  set OffMkMosaic = 1;
+ endif
+endif
+
 
 
 ## Set path for matlab file ##
@@ -568,6 +589,10 @@ while( $#argv != 0 )
       set IsMosaic = 1;
       breaksw
 
+    case "-noautodet":
+      set AutoDet = 0;
+      breaksw
+
     case "-debug":
       set verbose
       set echo
@@ -606,7 +631,7 @@ check_params:
   if($MosaicDirection != slice) set ForceMkMosaic = 1;
 
   # Autodetect if MGH format
-  if($fmtimg == 0) then
+  if($fmtimg == 0 && $AutoDet) then
     set tmp = `basename $imgstem .mgh`
     set tmp2 = $tmp.mgh
     if(-e $tmp2) then
