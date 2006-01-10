@@ -1,8 +1,8 @@
 % yakview - views images, stat overlays, and hemodynamic responses.
-% $Id: yakview.m,v 1.7 2004/12/07 23:55:08 greve Exp $
+% $Id: yakview.m,v 1.8 2006/01/10 21:46:10 greve Exp $
 
 fprintf(1,'\n\n');
-fprintf(1,'yakview: $Id: yakview.m,v 1.7 2004/12/07 23:55:08 greve Exp $\n');
+fprintf(1,'yakview: $Id: yakview.m,v 1.8 2006/01/10 21:46:10 greve Exp $\n');
 
 if(~exist('UseVersion')) UseVersion = 2; end
 
@@ -45,9 +45,8 @@ if(~ImgMkMosaic)
     fprintf('ERROR: loading %s\n',ImgFile);
     return;
   end
-  fprintf('%g sec\n',toc);
   s = s(:,:,1); % keep only first plane of the base 
-  basesize = size(s);
+  basesize = size(s)
 else
   switch(fmtimg)
    case 0, 
@@ -189,18 +188,25 @@ if(~isempty(HDRFile))
     hsa = fmri_ldbfile(HDRFile);
     fprintf('%g sec\n',toc);
   else
-    hsa = fmri_ldbvolume(HDRFile);
-    fprintf('%g  sec\n',toc);
+    switch(fmtimg)
+     case 0, 
+      hsa = fmri_ldbvolume(HDRFile);
+     case 1, 
+      hsa = fast_ldanalyze(HDRFile);
+     case 2, 
+      tmp = MRIread(HDRFile);
+      hsa = tmp.vol;
+      clear tmp;
+    end
     fprintf(1,'Making Hemodynamic Data Mosaic ... '); tic;
     hsa = permute(hsa, [2 3 1 4]);  
     switch(MosaicDirection)
-       case 'row'
-         hsa = permute(hsa, [3 2 1 4]);  
-       case 'col'
-         hsa = permute(hsa, [3 1 2 4]);  
+     case 'row'
+      hsa = permute(hsa, [3 2 1 4]);  
+     case 'col'
+      hsa = permute(hsa, [3 1 2 4]);  
     end
     hsa = vol2mos(hsa);
-    fprintf('%g  sec\n',toc);
   end
 
   %fprintf(1,'Loading DatFile %s\n',datFile);
