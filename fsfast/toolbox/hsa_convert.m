@@ -10,7 +10,7 @@ function [havg, hstd, Nh] = hsa_convert(hsa,Nnnc)
   end
   Nh = Nch2/(2*Nc);
 
-  hsa2 = permute(hsa, [3 2 1]); % t,c,r
+  hsa2 = permute(hsa, [3 2 1 4]); % t,c,r
   hsa3 = reshape(hsa2, [Nh 2 Nc ud.nCols ud.nRows ]); % h stat cond col row
   clear hsa2;
 
