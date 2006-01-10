@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/10 00:55:33 $
-// Revision       : $Revision: 1.414 $
+// Revision Date  : $Date: 2006/01/10 21:23:50 $
+// Revision       : $Revision: 1.415 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -380,7 +380,7 @@ static int mrisComputeShrinkwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double  
 static double mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwrap) ;
 static int mrisComputeExpandwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double  l_expandwrap) ;
 static double mrisComputeExpandwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_expandwrap, 
-																				 double target_radius) ;
+					 double target_radius) ;
 
 
 #if 0
@@ -510,27 +510,27 @@ static MATRIX *getSRASToTalSRAS(LT *lt);
 #define DEBUG_VERTEX(v)   (((v) == 75530) && (Gdiag & DIAG_SURFACE) && 1)
 #define VDEBUG_VERTEX(v)   (((v) == 77115) && (Gdiag & DIAG_SURFACE) && 0)
 
-/*--------------------------------------------------------------------*/
-/*------------------------ STATIC DATA -------------------------------*/
+				/*--------------------------------------------------------------------*/
+				/*------------------------ STATIC DATA -------------------------------*/
 
-/*-------------------------- FUNCTIONS -------------------------------*/
-double (*gMRISexternalGradient)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
-double (*gMRISexternalSSE)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
-double (*gMRISexternalRMS)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
-int (*gMRISexternalTimestep)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
-int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)=NULL;
-int (*gMRISexternalClearSSEStatus)(MRI_SURFACE *mris) = NULL ;
-int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) = NULL ;
+				/*-------------------------- FUNCTIONS -------------------------------*/
+				double (*gMRISexternalGradient)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
+				double (*gMRISexternalSSE)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
+				double (*gMRISexternalRMS)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
+				int (*gMRISexternalTimestep)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
+				int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)=NULL;
+				int (*gMRISexternalClearSSEStatus)(MRI_SURFACE *mris) = NULL ;
+				int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) = NULL ;
 
-/*---------------------------------------------------------------
-  MRISurfSrcVersion() - returns CVS version of this file.
-  ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.414 2006/01/10 00:55:33 greve Exp $"); }
+				/*---------------------------------------------------------------
+				  MRISurfSrcVersion() - returns CVS version of this file.
+				  ---------------------------------------------------------------*/
+				const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.415 2006/01/10 21:23:50 greve Exp $"); }
 
-/*-----------------------------------------------------
-  ------------------------------------------------------*/
-MRI_SURFACE *
-MRISreadOverAlloc(char *fname, double pct_over)
+				/*-----------------------------------------------------
+				  ------------------------------------------------------*/
+				MRI_SURFACE *
+				MRISreadOverAlloc(char *fname, double pct_over)
 {
   MRI_SURFACE *mris = NULL ;
   int         nquads, nvertices, magic, version, ix, iy, iz, vno, fno, n, m,
@@ -544,82 +544,82 @@ MRISreadOverAlloc(char *fname, double pct_over)
   chklc() ;    /* check to make sure license.dat is present */
   type = MRISfileNameType(fname) ; /* using extension to get type */
   if (type == MRIS_ASCII_TRIANGLE_FILE)  /* .ASC */
-	{
-		mris = mrisReadAsciiFile(fname) ;
-		if (!mris)
-			return(NULL) ;
-		version = -3 ;
-	}
+    {
+      mris = mrisReadAsciiFile(fname) ;
+      if (!mris)
+	return(NULL) ;
+      version = -3 ;
+    }
   else if (type == MRIS_ICO_FILE)        /* .TRI, .ICO */
-	{
-		mris = ICOreadOverAlloc(fname, pct_over) ;
-		if (!mris)
-			return(NULL) ;
-		return(mris) ;
-		version = -2 ;
-	}
+    {
+      mris = ICOreadOverAlloc(fname, pct_over) ;
+      if (!mris)
+	return(NULL) ;
+      return(mris) ;
+      version = -2 ;
+    }
   else if (type == MRIS_GEO_TRIANGLE_FILE) /* .GEO */ 
-	{
-		mris = mrisReadGeoFile(fname) ;
-		if (!mris)
-			return(NULL) ;
-		version = -4;
-	}
+    {
+      mris = mrisReadGeoFile(fname) ;
+      if (!mris)
+	return(NULL) ;
+      version = -4;
+    }
   else // default type MRIS_BINARY_QUADRANGLE_FILE ... use magic number
-	{
-		fp = fopen(fname, "rb") ;
-		if (!fp)
-			ErrorReturn(NULL,(ERROR_NOFILE,"MRISread(%s): could not open file",
-												fname));
+    {
+      fp = fopen(fname, "rb") ;
+      if (!fp)
+	ErrorReturn(NULL,(ERROR_NOFILE,"MRISread(%s): could not open file",
+			  fname));
 		
-		fread3(&magic, fp) ;
-		if (magic == QUAD_FILE_MAGIC_NUMBER) 
-		{
-			version = -1;
-			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-				fprintf(stdout, "new surface file format\n");
-		}
-		else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) 
-		{
-			version = -2 ;
-		}
-		else if (magic == TRIANGLE_FILE_MAGIC_NUMBER)
-		{
-			fclose(fp) ;
-			mris = mrisReadTriangleFile(fname, pct_over) ;
-			if (!mris)
-				ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n")) ;
-			version = -3 ;
-		}
-		else /* no magic number assigned */
-		{
-			rewind(fp);
-			version = 0;
-			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-				printf("surfer: old surface file format\n");
-		}
+      fread3(&magic, fp) ;
+      if (magic == QUAD_FILE_MAGIC_NUMBER) 
+	{
+	  version = -1;
+	  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	    fprintf(stdout, "new surface file format\n");
 	}
+      else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) 
+	{
+	  version = -2 ;
+	}
+      else if (magic == TRIANGLE_FILE_MAGIC_NUMBER)
+	{
+	  fclose(fp) ;
+	  mris = mrisReadTriangleFile(fname, pct_over) ;
+	  if (!mris)
+	    ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n")) ;
+	  version = -3 ;
+	}
+      else /* no magic number assigned */
+	{
+	  rewind(fp);
+	  version = 0;
+	  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	    printf("surfer: old surface file format\n");
+	}
+    }
   /* some type of quadrangle file processing */
   if (version >= -2) 
-	{
-		fread3(&nvertices, fp);
-		fread3(&nquads, fp);   /* # of qaudrangles - not triangles */
+    {
+      fread3(&nvertices, fp);
+      fread3(&nquads, fp);   /* # of qaudrangles - not triangles */
     
-		if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-			fprintf(stdout,"reading %d vertices and %d faces.\n",
-							nvertices,2*nquads);
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	fprintf(stdout,"reading %d vertices and %d faces.\n",
+		nvertices,2*nquads);
     
-		mris = MRISoverAlloc(pct_over*nvertices,pct_over*2*nquads,nvertices, 
-												 2*nquads);
-		mris->type = MRIS_BINARY_QUADRANGLE_FILE ;
+      mris = MRISoverAlloc(pct_over*nvertices,pct_over*2*nquads,nvertices, 
+			   2*nquads);
+      mris->type = MRIS_BINARY_QUADRANGLE_FILE ;
 		
-		imnr0 = 1000 ;
-		imnr1 = 0 ;
-		/* read vertices *************************************************/
-		for (vno = 0 ; vno < nvertices ; vno++)
-		{
-			vertex = &mris->vertices[vno] ;
-			if (version == -1)        /* QUAD_FILE_MAGIC_NUMBER */
+      imnr0 = 1000 ;
+      imnr1 = 0 ;
+      /* read vertices *************************************************/
+      for (vno = 0 ; vno < nvertices ; vno++)
+	{
+	  vertex = &mris->vertices[vno] ;
+	  if (version == -1)        /* QUAD_FILE_MAGIC_NUMBER */
 	    {
 	      fread2(&ix,fp);
 	      fread2(&iy,fp);
@@ -628,32 +628,32 @@ MRISreadOverAlloc(char *fname, double pct_over)
 	      vertex->y = iy/100.0;
 	      vertex->z = iz/100.0;
 	    }
-			else  /* version == -2 */ /* NEW_QUAD_FILE_MAGIC_NUMBER */
+	  else  /* version == -2 */ /* NEW_QUAD_FILE_MAGIC_NUMBER */
 	    {
 	      vertex->x = freadFloat(fp) ;
 	      vertex->y = freadFloat(fp) ;
 	      vertex->z = freadFloat(fp) ;
 	    }
 #if 0
-			vertex->label = NO_LABEL ;
+	  vertex->label = NO_LABEL ;
 #endif
-			/* brain-dead code and never used again either */
-			imnr = (int)((vertex->y-START_Y)/SLICE_THICKNESS+0.5);
-			if (imnr > imnr1)
-				imnr1 = imnr ;
-			if (imnr < imnr0)
-				imnr0 = imnr ;
-			if (version == 0)  /* old surface format */
+	  /* brain-dead code and never used again either */
+	  imnr = (int)((vertex->y-START_Y)/SLICE_THICKNESS+0.5);
+	  if (imnr > imnr1)
+	    imnr1 = imnr ;
+	  if (imnr < imnr0)
+	    imnr0 = imnr ;
+	  if (version == 0)  /* old surface format */
 	    {
 	      fread1(&num,fp);   /* # of faces we are part of */
 	      vertex->num = num ;
 	      vertex->f = (int *)calloc(vertex->num,sizeof(int));
 	      if (!vertex->f)
-					ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d faces",
-										vertex->num) ;
+		ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d faces",
+			  vertex->num) ;
 	      vertex->n = (uchar *)calloc(vertex->num,sizeof(uchar));
 	      if (!vertex->n)
-					ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d nbrs",
+		ErrorExit(ERROR_NO_MEMORY, "MRISread: could not allocate %d nbrs",
 										vertex->n) ;
 	      for (n=0;n<vertex->num;n++)
 					fread3(&vertex->f[n],fp);
@@ -2674,16 +2674,11 @@ MRIScomputeNormals(MRI_SURFACE *mris)
 
   return(NO_ERROR) ;
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  calculate distances between each vertex and all of its neighbors
-  ------------------------------------------------------*/
-static int
-mrisComputeVertexDistances(MRI_SURFACE *mris)
+/*-----------------------------------------------------------------
+  Calculate distances between each vertex and all of its neighbors.
+  CVD.
+  ----------------------------------------------------------------*/
+static int mrisComputeVertexDistances(MRI_SURFACE *mris)
 {
   int     vno, n, vtotal, *pv ;
   VERTEX  *v, *vn ;
@@ -2693,60 +2688,121 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
   v1 = VectorAlloc(3, MATRIX_REAL) ;
   v2 = VectorAlloc(3, MATRIX_REAL) ;
 
-  for (vno=0;vno<mris->nvertices;vno++)
-    {
-      v = &mris->vertices[vno];
-      if (v->ripflag || v->dist == NULL)
-	continue ;
-      if (vno == Gdiag_no)
-	DiagBreak() ;
-      vtotal = v->vtotal ;
-      switch (mris->status)
-	{
-	default:   /* don't really know what to do in other cases */
-	case MRIS_PLANE:
-	  for (pv = v->v, n = 0 ; n < vtotal ; n++)
-	    {
-	      vn = &mris->vertices[*pv++] ;
-	      if (vn->ripflag)
-		continue ;
-	      xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
-	      d = xd*xd + yd*yd + zd*zd ;
-	      v->dist[n] = sqrt(d) ;
-	    }
-	  break ;
-	case MRIS_PARAMETERIZED_SPHERE:
-	case MRIS_SPHERE:
-	  VECTOR_LOAD(v1, v->x, v->y, v->z) ;  /* radius vector */
-	  if (FZERO(circumference))   /* only calculate once */
-	    circumference = M_PI * 2.0 * V3_LEN(v1) ;
-	  for (pv = v->v, n = 0 ; n < vtotal ; n++)
-	    {
-	      vn = &mris->vertices[*pv++] ;
-	      if (vn->ripflag)
-		continue ;
-	      VECTOR_LOAD(v2, vn->x, vn->y, vn->z) ;  /* radius vector */
-	      angle = fabs(Vector3Angle(v1, v2)) ;
+  for (vno=0;vno<mris->nvertices;vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag || v->dist == NULL) continue ;
+    if (vno == Gdiag_no)  DiagBreak() ;
+    vtotal = v->vtotal ;
+    switch (mris->status) {
+    default:   /* don't really know what to do in other cases */
+    case MRIS_PLANE:
+      for (pv = v->v, n = 0 ; n < vtotal ; n++) {
+	vn = &mris->vertices[*pv++] ;
+	if (vn->ripflag) continue ;
+	xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
+	d = xd*xd + yd*yd + zd*zd ;
+	v->dist[n] = sqrt(d) ;
+      }
+      break ;
+    case MRIS_PARAMETERIZED_SPHERE:
+    case MRIS_SPHERE:
+      VECTOR_LOAD(v1, v->x, v->y, v->z) ;  /* radius vector */
+      if (FZERO(circumference))   /* only calculate once */
+	circumference = M_PI * 2.0 * V3_LEN(v1) ;
+      for (pv = v->v, n = 0 ; n < vtotal ; n++) {
+	vn = &mris->vertices[*pv++] ;
+	if (vn->ripflag) continue ;
+	VECTOR_LOAD(v2, vn->x, vn->y, vn->z) ;  /* radius vector */
+	angle = fabs(Vector3Angle(v1, v2)) ;
 #if 0
-	      xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
-	      d = sqrt(xd*xd + yd*yd + zd*zd) ;
+	xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
+	d = sqrt(xd*xd + yd*yd + zd*zd) ;
 #endif
-	      d = circumference * angle / (2.0 * M_PI) ;
-	      v->dist[n] = d ;
-	    }
-	  break ;
-	}
+	d = circumference * angle / (2.0 * M_PI) ;
+	v->dist[n] = d ;
+      }
+      break ;
     }
+  }
   
   VectorFree(&v1) ; VectorFree(&v2) ;
   return(NO_ERROR) ;
 }
+/*-------------------------------------------------------------
+  MRISavgInterVertexDist() - computes the average and stddev of
+  the distance between neighboring vertices. If StdDev is NULL,
+  it is ignored. Requires that mrisComputeVertexDistances()
+  have been run in order to comute vertex->dist[n].
+  -------------------------------------------------------------*/
+static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
+{
+  double Avg, Sum, Sum2, d;
+  VERTEX *vtx1,*vtx2;
+  int nNNbrs, nthNNbr, NbrVtxNo, VtxNo;
+  long N;
+  
+  Sum = 0;
+  Sum2 = 0;
+  N = 0;
+  for(VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++){
+    vtx1 = &Surf->vertices[VtxNo] ;
+    if(vtx1->ripflag) continue;
+    nNNbrs = Surf->vertices[VtxNo].vnum;
+    for(nthNNbr = 0; nthNNbr < nNNbrs; nthNNbr++){
+      NbrVtxNo = Surf->vertices[VtxNo].v[nthNNbr];
+      vtx2 = &Surf->vertices[NbrVtxNo] ;
+      if(vtx2->ripflag) continue;
+      d = vtx1->dist[nthNNbr];
+      /*d = sqrt( (vtx1->x-vtx2->x)*(vtx1->x-vtx2->x) +
+		(vtx1->y-vtx2->y)*(vtx1->y-vtx2->y) +
+		(vtx1->z-vtx2->z)*(vtx1->z-vtx2->z) );*/
+      Sum  += d;
+      Sum2 += (d*d);
+      N++;
+    }
+  }
+  Avg = Sum/N;
+  if(StdDev != NULL) *StdDev = sqrt( N*(Sum2/N - Avg*Avg)/(N-1) );
+  
+  //printf("\n\nN = %ld, Sum = %g, Sum2 = %g, Avg=%g, Std = %g\n\n",
+  // N,Sum,Sum2,Avg,*StdDev);
+  
+  return(Avg);
+}
+
+/*-------------------------------------------------------------
+  MRISavgVetexRadius() - computes the average and stddev of
+  the distance from the origin to each vertex. If StdDev is NULL,
+  it is ignored.
+  -------------------------------------------------------------*/
+double MRISavgVetexRadius(MRIS *Surf, double *StdDev)
+{
+  double Avg, Sum, Sum2, d;
+  VERTEX *vtx;
+  int VtxNo, N;
+
+  Sum = 0;
+  Sum2 = 0;
+  for(VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++){
+    vtx = &Surf->vertices[VtxNo] ;
+    d = sqrt( vtx->x*vtx->x + vtx->y*vtx->y + vtx->z*vtx->z );
+    Sum  += d;
+    Sum2 += (d*d);
+  }
+
+  N = Surf->nvertices;
+  Avg = Sum/N;
+  if(StdDev != NULL) *StdDev = sqrt( N*(Sum2/N - Avg*Avg)/(N-1) );
+
+  //printf("\n\nN = %ld, Sum = %g, Sum2 = %g, Avg=%g, Std = %g\n\n",
+  // N,Sum,Sum2,Avg,*StdDev);
+
+  return(Avg);
+}
+
+
+
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
   ------------------------------------------------------*/
 static void
 mrisNormalize(float v[3])
@@ -8649,6 +8705,7 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
   type = mri_identify(sname);
   if(type != MRI_VOLUME_TYPE_UNKNOWN){
     frame = MRISgetReadFrame();
+    printf("MRISreadValues: frame=%d\n",frame);
     TempMRI = MRIreadHeader(sname,type);
     if(TempMRI==NULL) return(ERROR_BADFILE);
     if(TempMRI->nframes <= frame){
@@ -15376,36 +15433,63 @@ MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
 int
 MRIScomputeMetricProperties(MRI_SURFACE *mris)
 {
-  MRIScomputeNormals(mris) ;
-  mrisComputeVertexDistances(mris) ;
-  mrisComputeSurfaceDimensions(mris) ;
-  MRIScomputeTriangleProperties(mris) ;  /* compute areas and normals */
+  MRIScomputeNormals(mris);
+  mrisComputeVertexDistances(mris);
+  mrisComputeSurfaceDimensions(mris);
+  MRIScomputeTriangleProperties(mris);  /* compute areas and normals */
   mris->avg_vertex_area = mris->total_area/mris->nvertices;
   mris->avg_vertex_dist = MRISavgInterVertexDist(mris, &mris->std_vertex_dist);
-  mrisOrientSurface(mris) ; 
+  mrisOrientSurface(mris); 
+  // See also MRISrescaleMetricProperties()
   if (mris->status == MRIS_PARAMETERIZED_SPHERE || 
-      mris->status == MRIS_RIGID_BODY)
-    {
-      double old_area ;
-      old_area = mris->total_area ;
-      mris->total_area = M_PI * mris->radius * mris->radius * 4.0 ;
-#if 0
-      fprintf(stdout, "computed %.1f, analytic %.1f\n",
-	      old_area, mris->total_area) ;
-      mris->total_area = old_area ;
-#endif
-    }
+      mris->status == MRIS_RIGID_BODY){
+    double old_area ;
+    old_area = mris->total_area ;
+    mris->total_area = M_PI * mris->radius * mris->radius * 4.0 ;
+  }
   return(NO_ERROR) ;
 }
-/*-----------------------------------------------------
-  Parameters:
+/* --------------------------------------------------------------------
+   MRISrescaleMetricProperties() - rescale metric properties (area,
+   dist) of group surfaces so that they match that of the average of
+   the input set. Does not change the actual vertex xyz. Requires that
+   MRISrescaleMetricProperties() have been run. Returns the distance
+   scaling factor. Has no effect if surface is not a group surface.
+   -------------------------------------------------------------------- */
+double MRISrescaleMetricProperties(MRIS *surf)
+{
+  int VtxNo, nthNNbr, nNNbrs, NbrVtxNo;
+  VERTEX *vtx1,*vtx2;
+  double scale;
 
-  Returns value:
+  if(surf->group_avg_surface_area == 0) return(0.0); // not a group surface
 
-  Description
+  scale = sqrt((double)surf->group_avg_surface_area/surf->total_area);
+  printf("scale = %lf\n",scale);
+  
+  for(VtxNo = 0; VtxNo < surf->nvertices; VtxNo++){
+    vtx1 = &surf->vertices[VtxNo] ;
+    if(vtx1->ripflag) continue;
+    vtx1->area *= (scale*scale);
+    nNNbrs = surf->vertices[VtxNo].vnum;
+    for(nthNNbr = 0; nthNNbr < nNNbrs; nthNNbr++){
+      NbrVtxNo = surf->vertices[VtxNo].v[nthNNbr];
+      vtx2 = &surf->vertices[NbrVtxNo] ;
+      if(vtx2->ripflag) continue;
+      vtx1->dist[nthNNbr] *= scale;
+    }
+  }
+  surf->total_area *= (scale*scale);
+  surf->avg_vertex_dist  *= scale;
+  surf->std_vertex_dist  *= scale;
+  surf->avg_vertex_area *= (scale*scale);
+  return(scale);
+}
+
+
+/*------------------------------------------------------
   ------------------------------------------------------*/
-static int
-mrisCountTotalNeighbors(MRI_SURFACE *mris)
+static int mrisCountTotalNeighbors(MRI_SURFACE *mris)
 {
   int     vno, total ;
   VERTEX  *v ;
@@ -24190,17 +24274,17 @@ MRISwriteTriangularSurface(MRI_SURFACE *mris, char *fname)
   fwriteInt(TAG_OLD_SURF_GEOM, fp);
   writeVolGeom(fp, &mris->vg);
 
-	// write other tags
-	if (!FZERO(mris->group_avg_surface_area))
-	{
-		long long here ;
-		printf("writing group avg surface area %2.0f cm^2 into surface file\n", 
-					 mris->group_avg_surface_area/100.0) ;
-		TAGwriteStart(fp, TAG_GROUP_AVG_SURFACE_AREA, &here, sizeof(float)) ;
-		fwriteFloat(mris->group_avg_surface_area, fp) ;
-		TAGwriteEnd(fp, here) ;
-	}
-	{
+  // write other tags
+  if (!FZERO(mris->group_avg_surface_area))
+    {
+      long long here ;
+      printf("writing group avg surface area %2.0f cm^2 into surface file\n", 
+	     mris->group_avg_surface_area/100.0) ;
+      TAGwriteStart(fp, TAG_GROUP_AVG_SURFACE_AREA, &here, sizeof(float)) ;
+      fwriteFloat(mris->group_avg_surface_area, fp) ;
+      TAGwriteEnd(fp, here) ;
+    }
+  {
 		int i ;
 
 		for (i = 0 ; i < mris->ncmds ; i++)
@@ -24405,22 +24489,22 @@ mrisReadTriangleFile(char *fname, double pct_over)
   mris->useRealRAS = 0;
 
 	// read tags
-	{
-		long long len ;
-		
-		while ((tag = TAGreadStart(fp, &len)) != 0)
-		{
-			switch (tag)
-			{
-			case TAG_GROUP_AVG_SURFACE_AREA:
-				mris->group_avg_surface_area = freadFloat(fp) ;
-				printf("reading group avg surface area %2.0f cm^2 from file\n",
-							 mris->group_avg_surface_area/100.0) ;
-				break ;
-			case TAG_OLD_SURF_GEOM:
-				readVolGeom(fp, &mris->vg);
-				break ;
-			case TAG_OLD_USEREALRAS:
+  {
+    long long len ;
+    
+    while ((tag = TAGreadStart(fp, &len)) != 0)
+      {
+	switch (tag)
+	  {
+	  case TAG_GROUP_AVG_SURFACE_AREA:
+	    mris->group_avg_surface_area = freadFloat(fp) ;
+	    printf("reading group avg surface area %2.0f cm^2 from file\n",
+		   mris->group_avg_surface_area/100.0) ;
+	    break ;
+	  case TAG_OLD_SURF_GEOM:
+	    readVolGeom(fp, &mris->vg);
+	    break ;
+	  case TAG_OLD_USEREALRAS:
 				if (!freadIntEx(&mris->useRealRAS,fp)) // set useRealRAS
 					mris->useRealRAS = 0; // if error, set to default
 				break ;
@@ -47154,73 +47238,6 @@ mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwra
 	  return(0.0) ;
 #endif
 }
-/*-------------------------------------------------------------
-  MRISavgInterVertexDist() - computes the average and stddev of
-  the distance between neighboring vertices. If StdDev is NULL,
-  it is ignored.
-  -------------------------------------------------------------*/
-static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
-      {
-	double Avg, Sum, Sum2, d;
-	VERTEX *vtx1,*vtx2;
-	int nNNbrs, nthNNbr, NbrVtxNo, VtxNo;
-	long N;
-
-	Sum = 0;
-	Sum2 = 0;
-	N = 0;
-	for(VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++){
-	  vtx1 = &Surf->vertices[VtxNo] ;
-	  nNNbrs = Surf->vertices[VtxNo].vnum;
-	  for(nthNNbr = 0; nthNNbr < nNNbrs; nthNNbr++){
-	    NbrVtxNo = Surf->vertices[VtxNo].v[nthNNbr];
-	    vtx2 = &Surf->vertices[NbrVtxNo] ;
-	    d = sqrt( (vtx1->x-vtx2->x)*(vtx1->x-vtx2->x) +
-		      (vtx1->y-vtx2->y)*(vtx1->y-vtx2->y) +
-		      (vtx1->z-vtx2->z)*(vtx1->z-vtx2->z) );
-	    Sum  += d;
-	    Sum2 += (d*d);
-	    N++;
-	  }
-	}
-	Avg = Sum/N;
-	if(StdDev != NULL) *StdDev = sqrt( N*(Sum2/N - Avg*Avg)/(N-1) );
-
-	//printf("\n\nN = %ld, Sum = %g, Sum2 = %g, Avg=%g, Std = %g\n\n",
-	// N,Sum,Sum2,Avg,*StdDev);
-
-	return(Avg);
-      }
-
-      /*-------------------------------------------------------------
-	MRISavgVetexRadius() - computes the average and stddev of
-	the distance from the origin to each vertex. If StdDev is NULL,
-	it is ignored.
-	-------------------------------------------------------------*/
-      double MRISavgVetexRadius(MRIS *Surf, double *StdDev)
-      {
-	double Avg, Sum, Sum2, d;
-	VERTEX *vtx;
-	int VtxNo, N;
-
-	Sum = 0;
-	Sum2 = 0;
-	for(VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++){
-	  vtx = &Surf->vertices[VtxNo] ;
-	  d = sqrt( vtx->x*vtx->x + vtx->y*vtx->y + vtx->z*vtx->z );
-	  Sum  += d;
-	  Sum2 += (d*d);
-	}
-
-	N = Surf->nvertices;
-	Avg = Sum/N;
-	if(StdDev != NULL) *StdDev = sqrt( N*(Sum2/N - Avg*Avg)/(N-1) );
-
-	//printf("\n\nN = %ld, Sum = %g, Sum2 = %g, Avg=%g, Std = %g\n\n",
-	// N,Sum,Sum2,Avg,*StdDev);
-
-	return(Avg);
-      }
 
 /*-------------------------------------------------------------------
   MRISgaussianSmooth() - perform gaussian smoothing on a spherical 

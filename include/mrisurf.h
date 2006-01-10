@@ -741,6 +741,7 @@ double       MRISmomentumTimeStep(MRI_SURFACE *mris,
 int          MRISapplyGradient(MRI_SURFACE *mris, double dt) ;
 int          MRIScomputeNormals(MRI_SURFACE *mris) ;
 int          MRIScomputeMetricProperties(MRI_SURFACE *mris) ;
+double       MRISrescaleMetricProperties(MRIS *surf);
 int          MRISrestoreOldPositions(MRI_SURFACE *mris) ;
 int          MRISstoreCurrentPositions(MRI_SURFACE *mris) ;
 int          MRISupdateSurface(MRI_SURFACE *mris) ;
