@@ -46,7 +46,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id";
+static char vcid[] = "$Id: mris_niters2fwhm.c,v 1.9 2006/01/10 00:57:06 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
