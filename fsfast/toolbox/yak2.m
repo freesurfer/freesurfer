@@ -16,11 +16,11 @@ function yak2(varargin)
 %
 % yak(cbstring) % for callback functions
 %
-% $Id: yak2.m,v 1.7 2004/12/07 23:54:46 greve Exp $
+% $Id: yak2.m,v 1.8 2006/01/10 21:46:44 greve Exp $
 
 if(nargin == 0)
   msg = 'USAGE: hfig = yak2(flag,options)';
-  msg = sprintf('%s\n$Id: yak2.m,v 1.7 2004/12/07 23:54:46 greve Exp $',msg);
+  msg = sprintf('%s\n$Id: yak2.m,v 1.8 2006/01/10 21:46:44 greve Exp $',msg);
   qoe(msg);error(msg);
 end
 
@@ -869,36 +869,6 @@ function arg1check(cbflag,nflag,nmax)
 return
 
 %%%------------------------------------------%%%%
-function [havg, hstd, Nh] = hsa_convert(hsa,Nnnc)
-  Nc = Nnnc+1;
-
-  if(size(hsa,2) == 1 & length(size(hsa)) == 2)
-    ud.nRows = 1;
-    ud.nCols = 1;
-    Nch2 = size(hsa,1);
-  else
-    [ud.nRows ud.nCols Nch2] = size(hsa);
-  end
-  Nh = Nch2/(2*Nc);
-
-  hsa2 = permute(hsa, [3 2 1]); % t,c,r
-  clear hsa;
-  hsa3 = reshape(hsa2, [Nh 2 Nc ud.nCols ud.nRows ]); % h stat cond col row
-  clear hsa2;
-
-  hsa4 = permute(hsa3, [5 4 3  1 2 ]); % row col cond h stat
-  clear hsa3;
-
-  havg = (hsa4(:,:,:,:,1)); % col row cond havg 
-  hstd = (hsa4(:,:,:,:,2)); % col row cond hstd
-
-  %havg = squeeze(hsa4(:,:,:,:,1)); % col row cond havg 
-  %hstd = squeeze(hsa4(:,:,:,:,2)); % col row cond hstd
-  clear hsa4;
-
-return
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function set_text(hYak,ud)
 
   s = sprintf('%5d,%3s, %4.2f, %4.2f',...
