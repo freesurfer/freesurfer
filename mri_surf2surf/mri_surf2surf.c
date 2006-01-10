@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.27 2006/01/02 01:46:15 greve Exp $
+  $Id: mri_surf2surf.c,v 1.28 2006/01/10 20:45:41 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -114,7 +114,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.27 2006/01/02 01:46:15 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.28 2006/01/10 20:45:41 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -131,6 +131,11 @@ char *SrcHitFile = NULL;
 char *SrcDistFile = NULL;
 int nSrcVtxs = 0;
 int SrcIcoOrder = -1;
+
+int UseSurfSrc=0; // Get source values from surface, eg, xyz
+char *SurfSrcName=NULL;
+MRI_SURFACE *SurfSrc;
+#define SURF_SRC_XYZ 1
 
 char *trgsubject = NULL;
 char *trgvalfile = NULL;
@@ -193,7 +198,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.27 2006/01/02 01:46:15 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.28 2006/01/10 20:45:41 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -286,6 +291,16 @@ int main(int argc, char **argv)
   else if(!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w")){
     MRISreadValues(SrcSurfReg,srcvalfile);
     SrcVals = MRIcopyMRIS(NULL, SrcSurfReg, 0, "val");
+  }
+  else if(UseSurfSrc){
+    sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,SurfSrcName);
+    SurfSrc = MRISread(fname);
+    if(SurfSrc==NULL) exit(1);
+    MRIScomputeMetricProperties(SurfSrc);
+    SrcVals = MRIcopyMRIS(NULL, SurfSrc, 2, "z"); // start at z to autoalloc 
+    MRIcopyMRIS(SrcVals, SurfSrc, 0, "x");
+    MRIcopyMRIS(SrcVals, SurfSrc, 1, "y");
+    MRISfree(&SurfSrc);
   }
   else { /* Use MRIreadType */
     SrcVals =  MRIreadType(srcvalfile,srctype);
@@ -567,6 +582,12 @@ static int parse_commandline(int argc, char **argv)
       srcvalfile = pargv[0];
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--sval-xyz")){
+      if(nargc < 1) argnerr(option,1);
+      SurfSrcName = pargv[0];
+      UseSurfSrc = SURF_SRC_XYZ;
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--srcdump")){
       if(nargc < 1) argnerr(option,1);
       SrcDumpFile = pargv[0];
@@ -740,6 +761,7 @@ static void print_usage(void)
   fprintf(stdout, "\n");
   fprintf(stdout, "   --srcsubject source subject\n");
   fprintf(stdout, "   --sval path of file with input values \n");
+  fprintf(stdout, "   --sval-xyz surfname : use xyz of surfname as input \n");
   fprintf(stdout, "   --sfmt   source format\n");
   fprintf(stdout, "   --srcicoorder when srcsubject=ico and src is .w\n");
   fprintf(stdout, "   --trgsubject target subject\n");
@@ -968,11 +990,12 @@ static void check_options(void)
     fprintf(stdout,"ERROR: no source subject specified\n");
     exit(1);
   }
-  if(srcvalfile == NULL){
+  if(srcvalfile == NULL && UseSurfSrc == 0){
     fprintf(stdout,"A source value path must be supplied\n");
     exit(1);
   }
 
+  if(UseSurfSrc == 0){
   if( strcasecmp(srctypestring,"w") != 0 &&
       strcasecmp(srctypestring,"curv") != 0 &&
       strcasecmp(srctypestring,"paint") != 0 ){
@@ -983,6 +1006,7 @@ static void check_options(void)
 	exit(1);
       }
     }
+  }
   }
 
   if(trgsubject == NULL){
