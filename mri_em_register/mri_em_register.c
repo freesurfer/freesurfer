@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/01/10 01:19:25 $
-// Revision       : $Revision: 1.51 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/01/11 21:01:40 $
+// Revision       : $Revision: 1.52 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -29,6 +29,8 @@
 #include "cma.h"
 #include "mrinorm.h"
 #include "version.h"
+
+static void printUsage(void);
 
 static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
@@ -159,7 +161,7 @@ main(int argc, char *argv[])
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: mri_em_register.c,v 1.51 2006/01/10 01:19:25 nicks Exp $", 
+     "$Id: mri_em_register.c,v 1.52 2006/01/11 21:01:40 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -193,11 +195,10 @@ main(int argc, char *argv[])
       argv += nargs ;
     }
 
-  if (argc < 4)
-    ErrorExit
-      (ERROR_BADPARM, 
-       "usage: %s <in brain volume> <template gca> <output transform name>\n",
-       Progname) ;
+  if (argc < 4) {
+    printUsage();
+    exit(1);
+  }
 
   ninputs = argc-3 ;
   printf("reading %d input volumes...\n", ninputs) ;
@@ -1297,15 +1298,68 @@ find_optimal_translation
 }
 
 /*----------------------------------------------------------------------
-  Parameters:
-
-  Description:
   ----------------------------------------------------------------------*/
-void printUsage()
+static void printUsage(void)
 {
   // there are so many options. 
   printf("usage: mri_em_register [<options>] "
          "<in volume> <template volume> <output transform>\n") ;
+  printf("\n");
+  printf("Options\n");
+  printf("\n");
+  printf("  -dist distance\n");
+  printf("  -nomap\n");
+  printf("  -flash\n");
+  printf("  -mask mask\n");
+  printf("  -skull\n");
+  printf("  -uns nbrspacing\n");
+  printf("  -diag diagfile\n");
+  printf("  -debug_voxel x y z\n");
+  printf("  -debug_label label\n");
+  printf("  -tr TR\n");
+  printf("  -te TE\n");
+  printf("  -alpha alpha\n");
+  printf("  -example T1 seg\n");
+  printf("  -samples fname\n");
+  printf("  -fsamples fname\n");
+  printf("  -nsamples fname\n");
+  printf("  -contrast\n");
+  printf("  -flash_parms parameter\n");
+  printf("  -transonly \n");
+  printf("  -write_mean fname\n");
+  printf("  -prior min_prior\n");
+  printf("  -spacing max_spacing\n");
+  printf("  -scales nscales\n");
+  printf("  -novar\n");
+  printf("  -dt dt\n");
+  printf("  -tol tol\n");
+  printf("  -center\n");
+  printf("  -noscale\n");
+  printf("  -noiscale\n");
+  printf("  -num num_xforms\n");
+  printf("  -area area\n");
+  printf("  -nlarea nlarea\n");
+  printf("  -levels levels\n");
+  printf("  -intensity intensity\n");
+  printf("  -reduce nreductions\n");
+  printf("  -nsamples nsamples\n");
+  printf("  -norm fname\n");
+  printf("  -trans max_trans\n");
+  printf("  -steps max_angles\n");
+  printf("  -l xform long_reg\n");
+  printf("  -f controlpoints\n");
+  printf("  -d tx ty tz\n");
+  printf("  -r rx ry rz\n");
+  printf("  -t xform\n");
+  printf("  -b blur_sigma\n");
+  printf("  -v diagno\n");
+  printf("  -s max_angles\n");
+  printf("  -n niters\n");
+  printf("  -w write_iters\n");
+  printf("  -p ctl_point_pct : use top pct percent wm points as control points\n");
+  printf("  -m momentum\n");
+  printf("  \n");
+
 }
 
 static int
