@@ -18905,7 +18905,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.167 2006/01/11 17:54:17 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.168 2006/01/11 19:17:19 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23082,7 +23082,6 @@ int sclv_get_values_for_field_and_timepoint (int field, int timepoint,
 	      
 	  /* If the voxel is valid here, use the value, else set
 	     to 0. */
-	  xVoxl_SetFloat (&voxel, v->origx, v->origy, v->origz);
 	  volume_error = FunD_GetData(sclv_field_info[field].func_volume,
 				      &voxel, condition, timepoint,
 				      &func_value);
