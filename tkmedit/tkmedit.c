@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/01/11 21:04:51 $
-// Revision       : $Revision: 1.267 $
-char *VERSION = "$Revision: 1.267 $";
+// Revision Date  : $Date: 2006/01/11 23:25:16 $
+// Revision       : $Revision: 1.268 $
+char *VERSION = "$Revision: 1.268 $";
 
 #define TCL
 #define TKMEDIT 
@@ -203,7 +203,7 @@ tkm_tErr FindUserHomeDir    ();
 
 /* subdirectories local to subject's home dir */
 char *ksaFileNameSubDirs[tkm_knNumFileNameTypes] = {
-  "fmri", "", "bem", "surf", "mri", "mri/transforms", "label", "mri", "", "image/rgb", "tmp", "tmp", "lib/tcl", "touch"
+  ".", "fmri", "", "bem", "surf", "mri", "mri/transforms", "label", "mri", "", "image/rgb", "tmp", "tmp", "lib/tcl", "touch"
 };
 
 /* input starts with ., gsUserHomeDir will be prepended. if ~ or nothing,
@@ -1103,7 +1103,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.267 2006/01/11 21:04:51 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.268 2006/01/11 23:25:16 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5416,7 +5416,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.267 2006/01/11 21:04:51 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.268 2006/01/11 23:25:16 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7475,9 +7475,13 @@ void MakeFileName ( char*     isInput,
     /* else, prepend subject home, then sub dir, then rest of file name. */
   default:
     if( gEnableFileNameGuessing ) {
-      xUtil_snprintf( sFileName, sizeof(sFileName),
-		      "%s/%s/%s", gsSubjectHomeDir, 
-		      ksaFileNameSubDirs[iType], isInput );
+      if( iType != tkm_tFileName_PWD ) {
+	xUtil_snprintf( sFileName, sizeof(sFileName),
+			"%s/%s/%s", gsSubjectHomeDir, 
+			ksaFileNameSubDirs[iType], isInput );
+      } else {
+	xUtil_snprintf(sFileName,sizeof(sFileName), "./%s", isInput);
+      }
     } else {
       xUtil_snprintf(sFileName,sizeof(sFileName), "./%s", isInput);
       /* xUtil_strncpy( sFileName, isInput, sizeof(sFileName) ); */
@@ -8825,17 +8829,17 @@ tkm_tErr LoadFunctionalOverlay( char* isFileName,
   DebugEnterFunction( ("LoadFunctionalOverlay( isFileName=%s, "
 		       "isOffsetFileName=%s, iRegType=%d, "
 		       "isRegistrationFileName=%s )", isFileName,
-		       isOffsetFileName, iRegType , sRegistrationFileName) );
+		       isOffsetFileName, iRegType , isRegistrationFileName) );
   
   /* Make our filename. If we have an offset or registration file
      name, make that too. */
   DebugNote( ("Making file name from %s", isFileName) );
-  MakeFileName( isFileName, tkm_tFileName_Functional, 
+  MakeFileName( isFileName, tkm_tFileName_PWD, 
 		sFileName, sizeof(sFileName) );
 
   if( NULL != isOffsetFileName ) {
     DebugNote( ("Making file name from %s", isOffsetFileName) );
-    MakeFileName( isOffsetFileName, tkm_tFileName_Functional, 
+    MakeFileName( isOffsetFileName, tkm_tFileName_PWD, 
 		  sOffsetFileName, sizeof(sOffsetFileName) );
     psOffsetFileName = sOffsetFileName;
   } else {
@@ -8844,7 +8848,7 @@ tkm_tErr LoadFunctionalOverlay( char* isFileName,
 
   if( NULL != isRegistrationFileName ) {
     DebugNote( ("Making file name from %s", isRegistrationFileName) );
-    MakeFileName( isRegistrationFileName, tkm_tFileName_Functional, 
+    MakeFileName( isRegistrationFileName, tkm_tFileName_PWD, 
 		  sRegistrationFileName, sizeof(sRegistrationFileName) );
     psRegistrationFileName = sRegistrationFileName;
   } else {
@@ -8929,12 +8933,12 @@ tkm_tErr LoadFunctionalTimeCourse( char* isFileName,
   /* Make our filename. If we have an offset or registration file
      name, make that too. */
   DebugNote( ("Making file name from %s", isFileName) );
-  MakeFileName( isFileName, tkm_tFileName_Functional, 
+  MakeFileName( isFileName, tkm_tFileName_PWD, 
 		sFileName, sizeof(sFileName) );
 
   if( NULL != isOffsetFileName ) {
     DebugNote( ("Making file name from %s", isOffsetFileName) );
-    MakeFileName( isOffsetFileName, tkm_tFileName_Functional, 
+    MakeFileName( isOffsetFileName, tkm_tFileName_PWD, 
 		  sOffsetFileName, sizeof(sOffsetFileName) );
     psOffsetFileName = sOffsetFileName;
   } else {
@@ -8943,7 +8947,7 @@ tkm_tErr LoadFunctionalTimeCourse( char* isFileName,
 
   if( NULL != isRegistrationFileName ) {
     DebugNote( ("Making file name from %s", isRegistrationFileName) );
-    MakeFileName( isRegistrationFileName, tkm_tFileName_Functional, 
+    MakeFileName( isRegistrationFileName, tkm_tFileName_PWD, 
 		  sRegistrationFileName, sizeof(sRegistrationFileName) );
     psRegistrationFileName = sRegistrationFileName;
   } else {

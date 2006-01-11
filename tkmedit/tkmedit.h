@@ -214,7 +214,8 @@ typedef enum {
 } tkm_tAxis;
 
 typedef enum {
-  tkm_tFileName_Functional = 0,
+  tkm_tFileName_PWD = 0,
+  tkm_tFileName_Functional,
   tkm_tFileName_Segmentation,
   tkm_tFileName_HeadPoints,
   tkm_tFileName_Surface,
