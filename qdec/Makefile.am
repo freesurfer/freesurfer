@@ -79,7 +79,7 @@ image_collection.$(OBJEXT): .ui/image_collection.cpp
 	images/searchfind \
 	-o $@
 
-qdec_bundle: qdec $(DESTDIR)$(bindir)/qdec.app
+qdec_bundle: qdec
 	@echo Making OSX bundle...
 	test -d qdec.app/Contents/MacOS/ || mkdir -p qdec.app/Contents/MacOS/
 	rm -f qdec.app/Contents/MacOS/../PkgInfo
