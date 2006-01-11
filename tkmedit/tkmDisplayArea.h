@@ -569,10 +569,12 @@ tBoolean xUtil_LineIntersectsPlane ( xVoxelRef         ipAnaIdxA,
 
 /* walks through a surafce list and draws the points with openGL. can
    be used to draw lines or points. the port should already be set up
-   with the proper color and point size. */
+   with the proper point size. Points will be drawn in the color
+   specified, unless overridden in the draw list node.*/
 DspA_tErr DspA_ParsePointList_ ( tkmDisplayAreaRef this,
 				 GLenum            inMode,
-				 xGrowableArrayRef ipList );
+				 xGrowableArrayRef ipList,
+				 float             ifaColor[3] );
 
 /* used to move a drawn crosshair point from .0,.0,.0 to .5,.5,.5 to
    make it show in the middle of a voxel. */

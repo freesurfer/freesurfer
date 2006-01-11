@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/01/03 13:22:04 $
-// Revision       : $Revision: 1.266 $
-char *VERSION = "$Revision: 1.266 $";
+// Revision Date  : $Date: 2006/01/11 21:04:51 $
+// Revision       : $Revision: 1.267 $
+char *VERSION = "$Revision: 1.267 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1103,7 +1103,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.266 2006/01/03 13:22:04 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.267 2006/01/11 21:04:51 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5416,7 +5416,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.266 2006/01/03 13:22:04 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.267 2006/01/11 21:04:51 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -9724,36 +9724,38 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
       MRISAnnotToRGB( pVertex->annotation, 
 		      color.mnRed, color.mnGreen, color.mnBlue );
       CLUT_GetIndex( gColorTable[iVolume], &color, &nStructure );
-    }
-
-    /* Set all the voxels between the white (current) vertex and the
-       pial vertex coords. Find the direction from the pial to the
-       normal vertex positions. Then step from the normal outward in
-       that direction in 0.1 increments to a distance of 1, convert
-       the coord to ana idx, and set the voxel in the seg volume to
-       the structure index we found above. */
-    dx = pVertex->cx - pVertex->x;
-    dy = pVertex->cy - pVertex->y;
-    dz = pVertex->cz - pVertex->z;
     
-    len = sqrt(dx*dx + dy*dy + dz*dz) ;
-    dx /= len; 
-    dy /= len; 
-    dz /= len;
-    
-    for( d = 0 ; d <= len; d = d+0.1 ) {
-      xVoxl_SetFloat( &surfRAS, 
-		      pVertex->x + (d * dx),
-		      pVertex->y + (d * dy),
-		      pVertex->z + (d * dz) );
-      if( gbUseRealRAS ) {
-	eVolume = 
-	  Volm_ConvertRASToMRIIdx( newVolume, &surfRAS, &MRIIdx );
-      } else {
-	eVolume = 
-	  Volm_ConvertSurfaceRASToMRIIdx( newVolume, &surfRAS, &MRIIdx );
+      
+      /* Set all the voxels between the white (current) vertex and the
+	 pial vertex coords. Find the direction from the pial to the
+	 normal vertex positions. Then step from the normal outward in
+	 that direction in 0.1 increments to a distance of 1, convert
+	 the coord to ana idx, and set the voxel in the seg volume to
+	 the structure index we found above. */
+      dx = pVertex->cx - pVertex->x;
+      dy = pVertex->cy - pVertex->y;
+      dz = pVertex->cz - pVertex->z;
+      
+      len = sqrt(dx*dx + dy*dy + dz*dz) ;
+      dx /= len; 
+      dy /= len; 
+      dz /= len;
+      
+      for( d = 0 ; d <= len; d = d+0.1 ) {
+	xVoxl_SetFloat( &surfRAS, 
+			pVertex->x + (d * dx),
+			pVertex->y + (d * dy),
+			pVertex->z + (d * dz) );
+	if( gbUseRealRAS ) {
+	  eVolume = 
+	    Volm_ConvertRASToMRIIdx( newVolume, &surfRAS, &MRIIdx );
+	} else {
+	  eVolume = 
+	    Volm_ConvertSurfaceRASToMRIIdx( newVolume, &surfRAS, &MRIIdx );
+	}
+	eVolume =
+	  Volm_SetValueAtMRIIdx( newVolume, &MRIIdx, (float)nStructure );
       }
-      eVolume = Volm_SetValueAtMRIIdx( newVolume, &MRIIdx, (float)nStructure );
     }
     if( !(nVertex % 1000) ) {
       fprintf( stdout, "\rConverting annotation... %.2f%% done",

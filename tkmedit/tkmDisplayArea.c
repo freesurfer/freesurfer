@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/01/09 23:36:22 $
-// Revision       : $Revision: 1.126 $
+// Revision Date  : $Date: 2006/01/11 21:04:48 $
+// Revision       : $Revision: 1.127 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -4636,11 +4636,10 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
 	  /* set the color */
        xColr_PackFloatArray(&(this->maSurfaceLineColor[nSurface][vertexSet]), 
 				faColor );
-	  glColor3fv( faColor );
 	  
 	  /* draw the points. */
 	  glLineWidth(  this->manSurfaceLineWidth[nSurface][vertexSet] );
-	  DspA_ParsePointList_( this, GL_LINES, list );
+	  DspA_ParsePointList_( this, GL_LINES, list, faColor );
 	  
 	  /* if vertices are visible... */
 	  if( this->mabDisplayFlags[DspA_tDisplayFlag_DisplaySurfaceVertices] ) {
@@ -4649,13 +4648,12 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
 	    faColor[0] = 1.0 - faColor[0];
 	    faColor[1] = 1.0 - faColor[1];
 	    faColor[2] = 1.0 - faColor[2];
-	    glColor3fv( faColor );
 	    
 	    /* set point size. */
 	    glPointSize( DspA_knSurfaceVertexSize );
 	    
 	    /* draw the vertices. */
-	    DspA_ParsePointList_( this, GL_POINTS, list );
+	    DspA_ParsePointList_( this, GL_POINTS, list, faColor );
 	  }
 	  
 	  /* if we have a hilited vertex for this surface... */
@@ -8788,7 +8786,8 @@ DspA_tErr DspA_UnadjustSurfaceAnaIdx ( tkmDisplayAreaRef this,
 
 DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
 				GLenum            inMode,
-				xGrowableArrayRef iList ) {
+				xGrowableArrayRef iList,
+				float             ifaColor[3] ) {
   
   DspA_tErr  eResult        = DspA_tErr_NoErr;
   xGArr_tErr eList          = xGArr_tErr_NoErr;
@@ -8845,6 +8844,8 @@ DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
       if( drawListNode.mOverrideColor ) {
 	xColr_PackFloatArray( &(drawListNode.mColor), faColor );
 	glColor3fv( faColor );
+      } else {
+	glColor3fv( ifaColor );
       }
 
       /* and draw the pt. */
