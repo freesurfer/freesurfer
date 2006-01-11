@@ -623,12 +623,13 @@ scuba_bundle: scuba2
 	@test -d scuba2.app/Contents/MacOS/ || mkdir -p scuba2.app/Contents/MacOS/
 	@rm -f scuba2.app/Contents/MacOS/scuba2
 	@cp scuba2 scuba2.app/Contents/MacOS/
-	@cp -r scuba2.app $(DESTDIR)$(bindir)
 	@test -d scuba2.app/Contents/Frameworks || mkdir -p scuba2.app/Contents/Frameworks
 	@cp $(QTDIR)/lib/libqt-mt.3.dylib scuba2.app/Contents/Frameworks
 	@install_name_tool -id @executable_path/../Frameworks/libqt-mt.3.dylib scuba2.app/Contents/Frameworks/libqt-mt.3.dylib
 	@install_name_tool -change libqt-mt.3.dylib @executable_path/../Frameworks/libqt-mt.3.dylib scuba2.app/Contents/MacOS/scuba2
-
+	@cp -r scuba2.app $(DESTDIR)$(bindir)
+	@echo "$(FREESURFER_HOME)/bin/scuba2.app/Contents/MacOS/scuba2" > $(DESTDIR)$(bindir)/scuba2
+	@chmod a+x $(DESTDIR)$(bindir)/scuba2
 
 .PHONY: scuba_bundle
 
