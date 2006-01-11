@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/10 21:23:50 $
-// Revision       : $Revision: 1.415 $
+// Revision Date  : $Date: 2006/01/11 20:37:03 $
+// Revision       : $Revision: 1.416 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ static MATRIX *getSRASToTalSRAS(LT *lt);
 				/*---------------------------------------------------------------
 				  MRISurfSrcVersion() - returns CVS version of this file.
 				  ---------------------------------------------------------------*/
-				const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.415 2006/01/10 21:23:50 greve Exp $"); }
+				const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.416 2006/01/11 20:37:03 greve Exp $"); }
 
 				/*-----------------------------------------------------
 				  ------------------------------------------------------*/
@@ -3865,98 +3865,97 @@ MRISclone(MRI_SURFACE *mris_src)
 
   mris_dst->radius = mris_src->radius; // to be checked 
 
+  mris_dst->avg_vertex_area = mris_src->avg_vertex_area;
+  mris_dst->avg_vertex_dist = mris_src->avg_vertex_dist;
+  mris_dst->std_vertex_dist = mris_src->std_vertex_dist;
+
   // just copy the pointer ///////////////////////////////////
-#if 0
-  mris_dst->linear_transform = mris_src->linear_transform ;
-  mris_dst->inverse_linear_transform = mris_src->inverse_linear_transform ;
-#endif
   mris_dst->lta = mris_src->lta;
   mris_dst->SRASToTalSRAS_ = mris_src->SRASToTalSRAS_;
   mris_dst->TalSRASToSRAS_ = mris_src->TalSRASToSRAS_;
   mris_dst->free_transform = 0 ;  // mark not to try to free them
   /////////////////////////////////////////////////////////////
-    if (mris_src->v_frontal_pole)
-      mris_dst->v_frontal_pole = 
-	&mris_dst->vertices[mris_src->v_frontal_pole - mris_src->vertices] ;
-    if (mris_src->v_occipital_pole)
-      mris_dst->v_occipital_pole = 
-	&mris_dst->vertices[mris_src->v_occipital_pole - mris_src->vertices] ;
-    if (mris_src->v_temporal_pole)
-      mris_dst->v_temporal_pole = 
-	&mris_dst->vertices[mris_src->v_temporal_pole - mris_src->vertices] ;
-    for (vno = 0 ; vno < mris_src->nvertices ; vno++)
-      {
-	vsrc = &mris_src->vertices[vno] ;
-	vdst = &mris_dst->vertices[vno] ;
-	vdst->x = vsrc->x ;
-	vdst->y = vsrc->y ;
-	vdst->z = vsrc->z ;
-	vdst->nx = vsrc->nx ;
-	vdst->ny = vsrc->ny ;
-	vdst->nz = vsrc->nz ;
-	vdst->cx = vsrc->cx ;
-	vdst->cy = vsrc->cy ;
-	vdst->cz = vsrc->cz ;
+  if(mris_src->v_frontal_pole)
+    mris_dst->v_frontal_pole = 
+      &mris_dst->vertices[mris_src->v_frontal_pole - mris_src->vertices] ;
+  if(mris_src->v_occipital_pole)
+    mris_dst->v_occipital_pole = 
+      &mris_dst->vertices[mris_src->v_occipital_pole - mris_src->vertices] ;
+  if (mris_src->v_temporal_pole)
+    mris_dst->v_temporal_pole = 
+      &mris_dst->vertices[mris_src->v_temporal_pole - mris_src->vertices] ;
+  for(vno = 0 ; vno < mris_src->nvertices ; vno++){
+    vsrc = &mris_src->vertices[vno] ;
+    vdst = &mris_dst->vertices[vno] ;
+    vdst->x = vsrc->x ;
+    vdst->y = vsrc->y ;
+    vdst->z = vsrc->z ;
+    vdst->nx = vsrc->nx ;
+    vdst->ny = vsrc->ny ;
+    vdst->nz = vsrc->nz ;
+    vdst->cx = vsrc->cx ;
+    vdst->cy = vsrc->cy ;
+    vdst->cz = vsrc->cz ;
+    vdst->curv = vsrc->curv ;
+    vdst->num = vsrc->num ;
 #if 0
-	vdst->ox = vsrc->ox ;
-	vdst->oy = vsrc->oy ;
-	vdst->oz = vsrc->oz ;
+    vdst->ox = vsrc->ox ;
+    vdst->oy = vsrc->oy ;
+    vdst->oz = vsrc->oz ;
 #endif
-	vdst->curv = vsrc->curv ;
-	vdst->num = vsrc->num ;
 
-	if (vdst->num)
-	  {
-	    vdst->f = (int *)calloc(vdst->num,sizeof(int));
-	    if (!vdst->f)
-	      ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces",
-			vdst->num) ;
-	    vdst->n = (uchar *)calloc(vdst->num,sizeof(uchar));
-	    if (!vdst->n)
-	      ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",
-			vdst->n) ;
-	    for (n = 0; n < vdst->num; n++)
-	      {
-		vdst->n[n] = vsrc->n[n] ;
-		vdst->f[n] = vsrc->f[n] ;
-	      }
-	  }
+    if(vdst->num){
+      vdst->f = (int *)calloc(vdst->num,sizeof(int));
+      if(!vdst->f)
+	ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces",
+		  vdst->num) ;
+      vdst->n = (uchar *)calloc(vdst->num,sizeof(uchar));
+      if(!vdst->n)
+	ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",
+		  vdst->num) ;
+      vdst->dist = (float *)calloc(vdst->num, sizeof(float)) ;
+      if(!vdst->dist )ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",vdst->num) ;
+      vdst->dist_orig = (float *)calloc(vdst->num, sizeof(float)) ;
+      if(!vdst->dist_orig )ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",vdst->num) ;
+      for(n = 0; n < vdst->num; n++){
+	vdst->n[n] = vsrc->n[n] ;
+	vdst->f[n] = vsrc->f[n] ;
+	vdst->dist[n] = vsrc->dist[n] ;
+	vdst->dist_orig[n] = vsrc->dist_orig[n] ;
+      }
+    }
 
-	vdst->vnum = vsrc->vnum ;
-	vdst->v2num = vsrc->v2num ;
-	vdst->v3num = vsrc->v3num ;
-	vdst->vtotal = vsrc->vtotal ;
-	if (vdst->vnum)
-	  {
-	    vdst->v = (int *)calloc(vdst->vtotal, sizeof(int)) ;
-	    if (!vdst->v)
-	      ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d nbrs",
-			vdst->vtotal) ;
-	    for (n = 0; n < vdst->vtotal; n++)
-	      vdst->v[n] = vsrc->v[n] ;
-	  }
-
-	vdst->ripflag = vsrc->ripflag ;
+    vdst->vnum = vsrc->vnum ;
+    vdst->v2num = vsrc->v2num ;
+    vdst->v3num = vsrc->v3num ;
+    vdst->vtotal = vsrc->vtotal ;
+    if(vdst->vnum){
+      vdst->v = (int *)calloc(vdst->vtotal, sizeof(int)) ;
+      if(!vdst->v)
+	ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d nbrs",
+		  vdst->vtotal) ;
+      for (n = 0; n < vdst->vtotal; n++) vdst->v[n] = vsrc->v[n] ;
+    }
+      vdst->ripflag = vsrc->ripflag ;
+      vdst->border = vsrc->border ;
+      vdst->area = vsrc->area ;
+      vdst->origarea = vsrc->origarea ;
 #if 0
-	vdst->oripflag = vsrc->oripflag ;
-	vdst->origripflag = vsrc->origripflag ;
-	memcpy(vdst->coord, vsrc->coord, sizeof(vsrc->coord)) ;
+      vdst->oripflag = vsrc->oripflag ;
+      vdst->origripflag = vsrc->origripflag ;
+      memcpy(vdst->coord, vsrc->coord, sizeof(vsrc->coord)) ;
 #endif
-	vdst->border = vsrc->border ;
-	vdst->area = vsrc->area ;
-	vdst->origarea = vsrc->origarea ;
-      }
+    }
 
-    for (fno = 0 ; fno < mris_src->nfaces ; fno++)
-      {
-	fsrc = &mris_src->faces[fno] ;
-	fdst = &mris_dst->faces[fno] ;
-	memmove(fdst, fsrc, sizeof(FACE)) ;
-      }
-    // copy geometry info
-    copyVolGeom(&mris_src->vg, &mris_dst->vg);
+  for (fno = 0 ; fno < mris_src->nfaces ; fno++) {
+    fsrc = &mris_src->faces[fno] ;
+    fdst = &mris_dst->faces[fno] ;
+    memmove(fdst, fsrc, sizeof(FACE)) ;
+  }
+  // copy geometry info
+  copyVolGeom(&mris_src->vg, &mris_dst->vg);
 
-    return(mris_dst) ;
+  return(mris_dst) ;
 }
 /*-----------------------------------------------------
   Parameters:
@@ -43851,11 +43850,6 @@ int MRISmarkOrientationChanges(MRI_SURFACE *mris){
 	  return(NO_ERROR) ;
 	}
       /*-----------------------------------------------------
-	Parameters:
-
-	Returns value:
-
-	Description
 	------------------------------------------------------*/
       static int
 	mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
