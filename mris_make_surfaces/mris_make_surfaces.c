@@ -18,7 +18,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.65 2005/12/27 17:28:40 xhan Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.66 2006/01/11 21:41:45 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -157,10 +157,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.65 2005/12/27 17:28:40 xhan Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.66 2006/01/11 21:41:45 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.65 2005/12/27 17:28:40 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.66 2006/01/11 21:41:45 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -269,7 +269,7 @@ main(int argc, char *argv[])
     mri_T1_white = MRIread(fname) ;
     if (!mri_T1_white)
       ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
-		Progname, fname) ;
+								Progname, fname) ;
     /////////////////////////////////////////
     if (mri_T1_white->type != MRI_UCHAR)
     {
@@ -530,7 +530,7 @@ main(int argc, char *argv[])
         VERTEX *v ;
         v = &mris->vertices[Gdiag_no] ;
         fprintf(stderr,"v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
-		Gdiag_no, v->val, v->mean, v->d) ;
+								Gdiag_no, v->val, v->mean, v->d) ;
       }
     }
 
@@ -668,12 +668,12 @@ main(int argc, char *argv[])
       VERTEX *v;
       //reset the starting position to be slightly inside the orig_pial in the longitudinal case
       for(vno = 0; vno < mris->nvertices; vno++){
-	v = &mris->vertices[vno];
-	if(v->ripflag)
-	  continue;
-	v->x = 0.75*v->x + 0.25*v->tx;
-	v->y = 0.75*v->y + 0.25*v->ty;
-	v->z = 0.75*v->z + 0.25*v->tz;
+				v = &mris->vertices[vno];
+				if(v->ripflag)
+					continue;
+				v->x = 0.75*v->x + 0.25*v->tx;
+				v->y = 0.75*v->y + 0.25*v->ty;
+				v->z = 0.75*v->z + 0.25*v->tz;
       }
     }  
     MRIScomputeMetricProperties(mris) ; //shouldn't this be done whenever orig_pial is used??? Maybe that's why the cross-intersection was caused
@@ -742,6 +742,26 @@ main(int argc, char *argv[])
           output_suffix, suffix) ;
   fprintf(stderr, "writing pial surface to %s...\n", fname) ;
   MRISwrite(mris, fname) ;
+	if (create)   /* write out curvature and area files */
+	{
+		MRIScomputeMetricProperties(mris) ;
+		MRIScomputeSecondFundamentalForm(mris) ;
+		MRISuseMeanCurvature(mris) ;
+		MRISaverageCurvatures(mris, curvature_avgs) ;
+		sprintf(fname, "%s.curv.pial%s%s",
+						mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", output_suffix,
+						suffix);
+		fprintf(stderr, "writing smoothed curvature to %s\n", fname) ;
+		MRISwriteCurvature(mris, fname) ;
+		sprintf(fname, "%s.area.pial%s%s",
+						mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh", output_suffix,
+						suffix);
+#if 1
+		fprintf(stderr, "writing smoothed area to %s\n", fname) ;
+		MRISwriteArea(mris, fname) ;
+#endif
+		MRISprintTessellationStats(mris, stderr) ;
+	}
 
   if (in_out_in_flag)
   {
