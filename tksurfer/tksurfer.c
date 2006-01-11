@@ -1343,15 +1343,12 @@ typedef struct
   int vno;
 } FUNC_SELECTED_VOXEL;
 
-// The functional volume can either be a mriFunctionalDataAccess or an
-// MRI encoded value file with multiple frames.
 static mriFunctionalDataRef func_timecourse = NULL;
 static mriFunctionalDataRef func_timecourse_offset = NULL;
-static MRI* func_timecourse_mri = NULL;
-static MRI* func_timecourse_offset_mri = NULL;
 static int func_use_timecourse_offset = FALSE;
 static int func_sub_prestim_avg = FALSE;
 static xGrowableArrayRef func_selected_ras = NULL;
+static tBoolean func_is_scalar_volume = TRUE;
 
 #define knLengthOfGraphDataItem              18 // for "100.1 1000.12345 "
 #define knLengthOfGraphDataHeader            20 // for cmd name + cond + {}
@@ -1367,10 +1364,8 @@ int func_initialize ();
 
 int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
                           char* registration);
-int func_load_timecourse_from_volume_encoded_value_file (char* fname);
 int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
                                  char* registration);
-int func_load_timecourse_offset_from_volume_encoded_value_file (char* fname);
 
 int func_select_marked_vertices ();
 int func_select_label ();
@@ -1412,13 +1407,12 @@ static char *sclv_field_names [NUM_SCALAR_VALUES] = {
   "mean", "meanimag", "std_error"};
 
 typedef struct {
-  int is_functional_volume;
-  int is_mri_volume;
+  int is_functional_volume; /* use func_volume */
+  tBoolean is_scalar_volume;     /* use vno,0,0 as func index */
   int cur_timepoint;
   int cur_condition;
   int num_timepoints; /* always 1 for .w files */
   int num_conditions; /* always 1 for .w files */
-  MRI* mri_volume;
   mriFunctionalDataRef func_volume;
   float fthresh;
   float fmid;
@@ -1486,8 +1480,6 @@ int sclv_read_from_dotw_frame (char* fname, int field);
 
 int sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
                            char* registration, int field);
-
-int sclv_read_from_volume_encoded_value_file (char* fname, int field);
 
 /* writes .w files only */
 int sclv_write_dotw (char* fname, int field);
@@ -5335,7 +5327,7 @@ select_vertex(short sx,short sy)
     }
   
   /* if we have functional data... */
-  if(func_timecourse || func_timecourse_mri)
+  if(func_timecourse)
     {
       v = &(mris->vertices[selection]);
       
@@ -5380,7 +5372,7 @@ select_vertex_by_vno (int vno)
   print_vertex_data(selection, stdout, 0) ;
   
   /* if we have functional data... */
-  if(func_timecourse || func_timecourse_mri)
+  if(func_timecourse)
     {
       v = &(mris->vertices[selection]);
       
@@ -8151,39 +8143,12 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
                        char* registration, int field)
 {
   FunD_tErr volume_error;
-  MRI* mri_info = NULL;
   mriFunctionalDataRef volume;
   char cmd[STRLEN];
 
   /* unload this field if it already exists */
   sclv_unload_field (field);
   
-  /* There are two possibilites here. The volume can be an actual
-     functional volume that we have to map onto the surface, or it can
-     be a value-per-vertex mapping encoded as a volume. In the latter
-     case, the width * height * depth = num_vertices. We'll get info
-     on the volume and check for this case. */
-  mri_info = MRIreadInfo (fname);
-  if (NULL == mri_info)
-    {
-      printf("surfer: couldn't load %s\n",fname);
-      ErrorReturn(ERROR_NOFILE,
-                  (ERROR_NOFILE,
-                   "sclv_read_from_volume: error in MRIreadInfo\n"));
-    }
-
-  if (mri_info->width * mri_info->height * mri_info->depth ==
-      mris->nvertices)
-    {
-      MRIfree (&mri_info);
-      return sclv_read_from_volume_encoded_value_file (fname, field);
-    }
-
-  MRIfree (&mri_info);
-
-  printf ("surfer: Interpreting overlay volume %s as functional volume.\n", 
-          fname);
-
   if (FunD_tRegistration_None == reg_type)
     {
       printf ("surfer: ERROR: Must specify registration type for overlay. "
@@ -8193,9 +8158,14 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
     }
 
   /* create volume. */
-  volume_error = FunD_New (&volume, sclv_client_transform,
-                           fname, NULL, reg_type, registration, 
-                           sclv_register_transform, NULL);
+  volume_error = FunD_New (&volume,
+			   sclv_client_transform,
+                           fname,
+			   reg_type,
+			   registration, 
+			   mris->nvertices, /* Try to be scalar */
+                           sclv_register_transform,
+			   NULL);
   if (volume_error!=FunD_tErr_NoError)
     {
       printf("surfer: couldn't load %s\n",fname);
@@ -8203,7 +8173,21 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
                   (func_convert_error(volume_error),
                    "sclv_read_from_volume: error in FunD_New\n"));
     }
-  
+
+  /* See if it's scalar */
+  FunD_IsScalar (volume, &sclv_field_info[field].is_scalar_volume);
+
+  if (sclv_field_info[field].is_scalar_volume)
+    {
+      printf ("surfer: Interpreting overlay volume %s "
+	      "as encoded scalar volume.\n", fname);
+    } 
+  else
+    {
+      printf ("surfer: Interpreting overlay volume %s "
+	      "as registered functional volume.\n", fname);
+    }
+
   /* save the volume and mark this field as binary */
   sclv_field_info[field].is_functional_volume = TRUE;
   sclv_field_info[field].func_volume = volume;
@@ -8310,109 +8294,6 @@ sclv_read_from_dotw_frame(char *fname,
   PR
     
     return (ERROR_NONE);
-}
-
-int
-sclv_read_from_volume_encoded_value_file (char *fname, int field)
-{
-  int                   vno ;
-  MRI*                  mri;
-  MRI*                  mri_vertex;
-  int                   frame;
-  float                 value;
-  char                  val_name[STRLEN];
-  char                  cmd[STRLEN];
-  float                 min, max;
-  
-  /* In this case, the data is a volume, but width = num_vertices,
-     height = 1, and depth = frames. So we open it as a volume and
-     read it with MRI functions. */
-
-  /* unload this field if it already exists */
-  sclv_unload_field (field);
-  
-  /* Open the file with MRIread. */
-  mri = MRIread (fname);
-  if (NULL == mri)
-    {
-      printf ("surfer: ### File %s could not be opened.\n", fname);
-      return (ERROR_NOFILE);
-    }
-
-  printf ("surfer: Interpreting overlay volume %s as encoded value file.\n", 
-          fname);
-
-  /* Reshape it so that everything is in the x direction. */
-  mri_vertex = mri_reshape (mri, mris->nvertices, 1, 1, mri->nframes);
-  if (NULL == mri_vertex)
-    {
-      MRIfree (&mri);
-      printf ("surfer: ### File %s could not be reshaped.\n", fname);
-      return (ERROR_NOFILE);
-    }
-
-  /* Free the volumes. */
-  MRIfree (&mri);
-  
-  /* Save the reshaped volume and mark this field as having an mri
-     volume. */
-  sclv_field_info[field].mri_volume = mri_vertex;
-  sclv_field_info[field].is_mri_volume = TRUE;
-
-  /* look for the min and max values. */
-  min = 1000000;
-  max = -1000000;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-    for (frame = 0 ; frame < mri_vertex->nframes ; frame++)
-      {
-        value = MRIgetVoxVal (mri_vertex, vno, 0, 0, frame);
-        
-        /* look for the min or max value */
-        if (value < min)
-          min = value;
-        if (value > max)
-          max = value;
-      }
-  
-  /* save the range */
-  sclv_field_info[field].min_value = min;
-  sclv_field_info[field].max_value = max;
-  
-  printf ("\tmin value=%f\n", min);
-  printf ("\tmax value=%f\n", max);
-
-  /* Save info about the frames. */
-  sclv_field_info[field].cur_timepoint = -1;
-  sclv_field_info[field].cur_condition = -1;
-  sclv_field_info[field].num_timepoints = mri_vertex->nframes;
-  sclv_field_info[field].num_conditions = 1;
-  
-  /* paint the first condition/timepoint in this field */
-  sclv_set_timepoint_of_field (field, 0, 0);
-  
-  /* calc the frquencies */
-  sclv_calc_frequencies (field);
-  
-  /* request a redraw. turn on the overlay flag and select this value set */
-  vertex_array_dirty = 1 ;
-  overlayflag = TRUE;
-  sclv_set_current_field (field);
-  
-  /* set the field name to the name of the file loaded */
-  FileNameOnly (fname, val_name);
-  sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, val_name);
-  send_tcl_command (cmd);
-  sprintf (cmd, "ShowValueLabel %d 1", field);
-  send_tcl_command (cmd);
-  sprintf (cmd, "UpdateLinkedVarGroup view");
-  send_tcl_command (cmd);
-  sprintf (cmd, "UpdateLinkedVarGroup overlay");
-  send_tcl_command (cmd);
-  
-  /* enable the menu items */
-  enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
-  
-  return (ERROR_NONE);
 }
 
 int
@@ -19024,7 +18905,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.166 2006/01/03 13:22:36 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.167 2006/01/11 17:54:17 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22233,7 +22114,6 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   FunD_tErr volume_error;
   char tcl_cmd[1024];
   float time_resolution;
-  MRI* mri_info = NULL;
 
   if (fname==NULL)
     ErrorReturn(ERROR_BADPARM,
@@ -22248,36 +22128,6 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
         ErrorPrintf(func_convert_error(volume_error),
                     "func_load_timecourse: error in FunD_Delete\n");
     }
-  if (func_timecourse_mri!=NULL)
-    {
-      MRIfree (&func_timecourse_mri);
-    }
-
-  /* There are two possibilites here. The volume can be an actual
-     functional volume that we have to map onto the surface, or it can
-     be a value-per-vertex mapping encoded as a volume. In the latter
-     case, the width * height * depth = num_vertices. We'll get info
-     on the volume and check for this case. */
-  mri_info = MRIreadInfo (fname);
-  if (NULL == mri_info)
-    {
-      printf("surfer: couldn't load %s\n",fname);
-      ErrorReturn(ERROR_NOFILE,
-                  (ERROR_NOFILE,
-                   "func_load_timecourse: error in MRIreadInfo\n"));
-    }
-
-  if (mri_info->width * mri_info->height * mri_info->depth ==
-      mris->nvertices)
-    {
-      MRIfree (&mri_info);
-      return func_load_timecourse_from_volume_encoded_value_file (fname);
-    }
-
-  MRIfree (&mri_info);
-
-  printf ("surfer: Interpreting time course volume %s as "
-          "functional volume.\n", fname);
 
   if (FunD_tRegistration_None == reg_type)
     {
@@ -22288,9 +22138,14 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
     }
   
   /* create new volume */
-  volume_error = FunD_New (&func_timecourse, sclv_client_transform,
-                           fname, NULL, reg_type, registration, 
-                           sclv_register_transform, NULL);
+  volume_error = FunD_New (&func_timecourse,
+			   sclv_client_transform,
+                           fname,
+			   reg_type,
+			   registration, 
+			   mris->nvertices,
+                           sclv_register_transform,
+			   NULL);
   if (volume_error!=FunD_tErr_NoError)
     {
       printf("### surfer: couldn't load %s\n",fname);
@@ -22301,6 +22156,20 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   
   printf("surfer: loaded timecourse %s\n",fname);
   
+  /* See if it's scalar */
+  FunD_IsScalar (func_timecourse, &func_is_scalar_volume);
+
+  if (func_is_scalar_volume)
+    {
+      printf ("surfer: Interpreting time course volume %s "
+	      "as encoded scalar volume.\n", fname);
+    } 
+  else
+    {
+      printf ("surfer: Interpreting time course volume %s "
+	      "as registered functional volume.\n", fname);
+    }
+
   /* get the time res, num conditions, and num presitm points */
   FunD_GetNumPreStimTimePoints (func_timecourse, &func_num_prestim_points);
   FunD_GetTimeResolution (func_timecourse, &time_resolution);
@@ -22321,77 +22190,10 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   return(ERROR_NONE);
 }
 
-int func_load_timecourse_from_volume_encoded_value_file (char* fname)
-{
-  char tcl_cmd[1024];
-  MRI* mri = NULL;
-  MRI* mri_vertex = NULL;
-
-  if (fname==NULL)
-    ErrorReturn(ERROR_BADPARM,
-                (ERROR_BADPARM,
-                 "func_load_timecourse: fname was null\n"));
-  
-  /* In this case, the data is a volume, but width = num_vertices,
-     height = 1, and depth = frames. So we open it as a volume and
-     read it with MRI functions. */
-
-
-  /* Open the file with MRIread. */
-  mri = MRIread (fname);
-  if (NULL == mri)
-    {
-      printf ("surfer: ### File %s could not be opened.\n", fname);
-      return (ERROR_NOFILE);
-    }
-
-  printf ("surfer: Interpreting time course volume %s as "
-          "encoded value file.\n", fname);
-
-  /* Reshape it so that everything is in the x direction. */
-  mri_vertex = mri_reshape (mri, mris->nvertices, 1, 1, mri->nframes);
-  if (NULL == mri_vertex)
-    {
-      MRIfree (&mri);
-      printf ("surfer: ### File %s could not be reshaped.\n", fname);
-      return (ERROR_NOFILE);
-    }
-
-  /* Free the volumes. */
-  MRIfree (&mri);
-  
-  /* Save the shaped volume. */
-  func_timecourse_mri = mri_vertex;
-
-  printf("surfer: loaded timecourse %s\n",fname);
-  
-  /* default time res, num conditions, and num presitm points. The
-     number of frames is the number of time points. */
-  func_num_prestim_points = 0;
-  func_time_resolution = 1;
-  func_num_conditions = 1;
-  func_num_timepoints = func_timecourse_mri->nframes;
-
-  /* send the number of conditions */
-  sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
-  send_tcl_command (tcl_cmd);
-  
-  /* show the graph window */
-  send_tcl_command ("Graph_ShowWindow");
-      
-  /* enable the related menu items */
-  enable_menu_set (MENUSET_TIMECOURSE_LOADED, 1);
-      
-  return(ERROR_NONE);
-}
-
-
-
 int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
                                  char* registration)
 {
   FunD_tErr volume_error;
-  MRI* mri_info = NULL;
 
   if (fname==NULL)
     ErrorReturn(ERROR_BADPARM,
@@ -22407,33 +22209,6 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
                     "func_load_timecourse_offset: error in FunD_Delete\n");
     }
   
-  /* There are two possibilites here. The volume can be an actual
-     functional volume that we have to map onto the surface, or it can
-     be a value-per-vertex mapping encoded as a volume. In the latter
-     case, the width * height * depth = num_vertices. We'll get info
-     on the volume and check for this case. */
-  mri_info = MRIreadInfo (fname);
-  if (NULL == mri_info)
-    {
-      printf("surfer: couldn't load %s\n",fname);
-      ErrorReturn(ERROR_NOFILE,
-                  (ERROR_NOFILE,
-                   "func_load_timecourse: error in MRIreadInfo\n"));
-    }
-
-  if (mri_info->width * mri_info->height * mri_info->depth ==
-      mris->nvertices)
-    {
-      MRIfree (&mri_info);
-      return func_load_timecourse_offset_from_volume_encoded_value_file \
-        (fname);
-    }
-
-  MRIfree (&mri_info);
-
-  printf ("surfer: Interpreting time course volume %s "
-          "as functional volume.\n", fname);
-
   if (FunD_tRegistration_None == reg_type)
     {
       printf ("surfer: ERROR: Must specify registration type for "
@@ -22444,64 +22219,19 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
     }
   
   /* create new volume */
-  volume_error = FunD_New (&func_timecourse_offset, sclv_client_transform,
-                           fname, NULL, reg_type, registration, 
-                           sclv_register_transform, NULL);
+  volume_error = FunD_New (&func_timecourse_offset, 
+			   sclv_client_transform,
+                           fname,
+			   reg_type,
+			   registration, 
+			   mris->nvertices, /* Try to be scalar */
+                           sclv_register_transform,
+			   NULL);
   if (volume_error!=FunD_tErr_NoError)
     ErrorReturn(func_convert_error(volume_error),
                 (func_convert_error(volume_error),
                  "func_load_timecourse_offset: error in FunD_New\n"));
   
-  /* enable offset display */
-  func_use_timecourse_offset = TRUE;
-  
-  printf("surfer: loaded timecourse offset %s\n",fname);
-  
-  /* turn on the offset options */
-  send_tcl_command("Graph_ShowOffsetOptions 1");
-
-  return(ERROR_NONE);
-}
-
-int func_load_timecourse_offset_from_volume_encoded_value_file (char* fname)
-{
-  MRI* mri = NULL;
-  MRI* mri_vertex = NULL;
-  
-  if (fname==NULL)
-    ErrorReturn(ERROR_BADPARM,
-                (ERROR_BADPARM,"func_load_timecourse: fname was null\n"));
-  
-  /* In this case, the data is a volume, but width = num_vertices,
-     height = 1, and depth = frames. So we open it as a volume and
-     read it with MRI functions. */
-
-
-  /* Open the file with MRIread. */
-  mri = MRIread (fname);
-  if (NULL == mri)
-    {
-      printf ("surfer: ### File %s could not be opened.\n", fname);
-      return (ERROR_NOFILE);
-    }
-
-  printf ("surfer: Interpreting time course volume %s as "
-          "encoded value file.\n", fname);
-
-  /* Reshape it so that everything is in the x direction. */
-  mri_vertex = mri_reshape (mri, mris->nvertices, 1, 1, mri->nframes);
-  if (NULL == mri_vertex)
-    {
-      MRIfree (&mri);
-      printf ("surfer: ### File %s could not be reshaped.\n", fname);
-      return (ERROR_NOFILE);
-    }
-
-  /* Free the volumes. */
-  MRIfree (&mri);
-  
-  func_timecourse_offset_mri = mri_vertex;
-
   /* enable offset display */
   func_use_timecourse_offset = TRUE;
   
@@ -22630,7 +22360,7 @@ int func_graph_timecourse_selection () {
   float second;
   
   /* make sure we have a volume */
-  if (func_timecourse==NULL && func_timecourse_mri==NULL)
+  if (func_timecourse==NULL)
     {
       printf ("surfer: time course not loaded\n");
       return (ERROR_NONE);
@@ -22704,10 +22434,6 @@ int func_graph_timecourse_selection () {
                                 "error in FunD_ConvertTimePointToSecond "
                                 "tp=%d\n",tp);
                 }
-              else if (func_timecourse_mri)
-                {
-                  second = tp;
-                }
 
               /* write the second and value to the arg list */
               sprintf (tcl_cmd, "%s %1.1f %2.5f", tcl_cmd, second, values[tp]);
@@ -22750,7 +22476,7 @@ int func_print_timecourse_selection (char* fname)
                  "func_print_timecourse_selection: file name was null\n"));
   
   /* make sure we have a volume */
-  if (func_timecourse==NULL && func_timecourse_mri==NULL)
+  if (func_timecourse==NULL)
     ErrorReturn(ERROR_NOT_INITED,
                 (ERROR_NOT_INITED,
                  "func_print_timecourse_selection: No timecourse volume.\n"));
@@ -22831,13 +22557,18 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
          ==xGArr_tErr_NoErr) 
     {
 
-      /* convert to an xvoxel */
-      xVoxl_SetFloat (&voxel,
-                      selected_voxel.x,selected_voxel.y,selected_voxel.z);
-      
-      /* get all values at this voxel. If an mriFunctionalDataRef,
-         call the function to get it, otherwise just grab values from
-         our MRI in different frames. */
+      /* If it's scalar, our index is vno,0,0, otherwise use the voxel. */
+      if (func_is_scalar_volume)
+	{
+	  xVoxl_Set (&voxel, selected_voxel.vno, 0, 0);
+	}
+      else
+	{
+	  xVoxl_SetFloat (&voxel,
+			  selected_voxel.x,selected_voxel.y,selected_voxel.z);
+	}	  
+
+      /* get all values at this voxel.*/
       if (func_timecourse)
         {
           func_error = FunD_GetDataForAllTimePoints( func_timecourse, &voxel, 
@@ -22847,14 +22578,6 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
             continue;
           }
         } 
-      else if (func_timecourse_mri)
-        {
-          for (tp = 0; tp < func_num_timepoints; tp++ )
-            {
-              values[tp] = MRIgetVoxVal (func_timecourse_mri, 
-                                         selected_voxel.vno, 0, 0, tp);
-            }
-        }
       
       /* if we are displaying offsets and we have offset data... */
       if (func_use_timecourse_offset && func_timecourse_offset) 
@@ -22872,16 +22595,6 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
               /* get a sum off the offset. */
               offset_sum += offset;
             }
-        }
-      else if (func_use_timecourse_offset && func_timecourse_offset_mri) 
-        {
-          offset= MRIgetVoxVal (func_timecourse_offset_mri, 
-                                selected_voxel.vno, 0, 0, tp);
-          for (tp = 0; tp < func_num_timepoints; tp++ )
-            {
-              values[tp] = (values[tp]/offset)*100.0;
-            }
-          offset_sum += offset;
         }
       
       /* add all values to our sums array */
@@ -22921,10 +22634,21 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
                  ==xGArr_tErr_NoErr) 
             {
               
-              /* convert to an xvoxel */
-              xVoxl_SetFloat (&voxel, selected_voxel.x,
-                              selected_voxel.y, selected_voxel.z);
-              
+	      /* If it's scalar, our index is vno,0,0, otherwise use
+		 the voxel. */
+	      if (func_is_scalar_volume)
+		{
+		  xVoxl_Set (&voxel, selected_voxel.vno, 0, 0);
+		}
+	      else
+		{
+		  xVoxl_SetFloat (&voxel,
+				  selected_voxel.x,
+				  selected_voxel.y,
+				  selected_voxel.z);
+		}	  
+
+
               /* get the deviations at all time points */
               func_error = 
                 FunD_GetDeviationForAllTimePoints (func_timecourse, &voxel,
@@ -22995,11 +22719,10 @@ int sclv_initialize ()
   for (field = 0; field < NUM_SCALAR_VALUES; field++)
     {
       sclv_field_info[field].is_functional_volume = FALSE;
-      sclv_field_info[field].is_mri_volume = FALSE;
+      sclv_field_info[field].is_scalar_volume = FALSE;
       sclv_field_info[field].cur_timepoint = -1;
       sclv_field_info[field].cur_condition = -1;
       sclv_field_info[field].func_volume = NULL;
-      sclv_field_info[field].mri_volume = NULL;
       sclv_field_info[field].fthresh = fthresh;
       sclv_field_info[field].fmid = fmid;
       sclv_field_info[field].foffset = foffset;
@@ -23042,23 +22765,6 @@ int sclv_unload_field (int field)
                      "sclv_unload_field: error in FunD_Delete\n"));
       
       sclv_field_info[field].is_functional_volume = FALSE;
-      
-      /* force a repaint next load */
-      sclv_field_info[field].cur_timepoint = -1;
-      sclv_field_info[field].cur_condition = -1;
-    }
-  
-  /* if we have an mri volume, delete it */
-  if (sclv_field_info[field].is_mri_volume && 
-      sclv_field_info[field].mri_volume != NULL )
-    {
-      volume_error = MRIfree (&(sclv_field_info[field].mri_volume));
-      if (volume_error != NO_ERROR)
-        ErrorReturn(volume_error,
-                    (volume_error,
-                     "sclv_unload_field: error in FunD_Delete\n"));
-      
-      sclv_field_info[field].is_mri_volume = FALSE;
       
       /* force a repaint next load */
       sclv_field_info[field].cur_timepoint = -1;
@@ -23239,8 +22945,7 @@ int sclv_set_timepoint_of_field (int field,
                  field));
   
   /* check if this field has a binary volume */
-  if (sclv_field_info[field].is_functional_volume == FALSE &&
-      sclv_field_info[field].is_mri_volume == FALSE)
+  if (sclv_field_info[field].is_functional_volume == FALSE)
     {
       /* commented out because tksurfer.tcl will call this function
          even when there is a .w file in this layer. */
@@ -23253,9 +22958,7 @@ int sclv_set_timepoint_of_field (int field,
   
   /* make sure it actually has one */
   if ((sclv_field_info[field].is_functional_volume && 
-       sclv_field_info[field].func_volume == NULL)  ||
-      (sclv_field_info[field].is_mri_volume && 
-       sclv_field_info[field].mri_volume == NULL))
+       sclv_field_info[field].func_volume == NULL))
     {
       ErrorReturn(ERROR_BADPARM,
                   (ERROR_BADPARM,
@@ -23365,29 +23068,31 @@ int sclv_get_values_for_field_and_timepoint (int field, int timepoint,
       if (sclv_field_info[field].is_functional_volume &&
           sclv_field_info[field].func_volume )
         {
-          /* Convert the voxel coords into a xVoxel and get the value
-             in the volume. If the voxel is valid here, use the value,
-             else set to 0. */
-          xVoxl_SetFloat (&voxel, v->origx, v->origy, v->origz);
-          volume_error = FunD_GetData(sclv_field_info[field].func_volume,
-                                      &voxel, condition, timepoint,
-                                      &func_value);
-          if (volume_error == FunD_tErr_NoError)
-            {
-              values[vno] = func_value;
-            } else {
-              values[vno] = 0;
-            }
-        }
-      else if (sclv_field_info[field].is_mri_volume &&
-               sclv_field_info[field].mri_volume )
-        {
-          /* Value encoded volume file, where vno is the x value and
-             timepoint is the frame. We don't support conditions here. */
-          func_value = MRIgetVoxVal (sclv_field_info[field].mri_volume,
-                                     vno, 0, 0, timepoint);
-          values[vno] = func_value;
-        }
+	  
+	  /* If it's scalar, our index is vno,0,0, otherwise use the
+	     orig coords. */
+	  if (sclv_field_info[field].is_scalar_volume)
+	    {
+	      xVoxl_Set (&voxel, vno, 0, 0);
+	    }
+	  else
+	    {
+	      xVoxl_SetFloat (&voxel, v->origx, v->origy, v->origz);
+	    }	  
+	      
+	  /* If the voxel is valid here, use the value, else set
+	     to 0. */
+	  xVoxl_SetFloat (&voxel, v->origx, v->origy, v->origz);
+	  volume_error = FunD_GetData(sclv_field_info[field].func_volume,
+				      &voxel, condition, timepoint,
+				      &func_value);
+	  if (volume_error == FunD_tErr_NoError)
+	    {
+	      values[vno] = func_value;
+	    } else {
+	      values[vno] = 0;
+	    }
+	}
       else
         {
           /* There is no volume so we can just copy the proper sclv
@@ -23861,7 +23566,7 @@ int sclv_load_label_value_file (char *fname, int field)
 
   /* mark this field as not binary */
   sclv_field_info[field].is_functional_volume = FALSE;
-  sclv_field_info[field].is_mri_volume = FALSE;
+  sclv_field_info[field].is_scalar_volume = FALSE;
   
   /* save the range */
   sclv_field_info[field].min_value = min;
