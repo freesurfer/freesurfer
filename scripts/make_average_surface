@@ -8,7 +8,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_surface,v 1.20 2006/01/10 19:11:20 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.21 2006/01/11 18:04:30 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -18,12 +18,11 @@ endif
 if ( $?SUBJECTS_DIR) then
   set SUBJECTS_DIR=($SUBJECTS_DIR)
 endif
-
 set average_subject=average
-set ddir = ${SUBJECTS_DIR}/${average_subject}
 set transform_fname=""
 set XFORM_FLAG=""
 set ico_no=7
+set topdir = ();
 
 # note: SUBJECTS can be set by --subjects
 # SUBJECTS_DIR can be set by --sdir
@@ -43,6 +42,31 @@ parse_args_return:
 
 goto check_params;
 check_params_return:
+
+
+# This will put the data under $topdir and create a link to
+# to SUBJECTS_DIR
+if($#topdir != 0) then
+  set ddir = $topdir/$average_subject
+  mkdir -p $ddir
+  if($status) then
+    echo "ERROR: creating $ddir"
+    exit 1;
+  endif
+  pushd $ddir > /dev/null
+  set ddir = `pwd`;
+  popd > /dev/null
+  pushd $SUBJECTS_DIR > /dev/null
+  set cmd = (ln -s $ddir $average_subject)
+  $cmd
+  if($status) then
+    echo "ERROR: $cmd"
+    exit 1;
+  endif
+  popd > /dev/null
+endif
+
+set ddir = ${SUBJECTS_DIR}/${average_subject}
 
 mkdir -p ${ddir} \
         ${ddir}/surf \
@@ -203,6 +227,17 @@ while( $#argv != 0 )
       set getting_subjects = 1; # see 'default:' case 
       breaksw
 
+    case "--fsgd":
+      if ( $#argv == 0) goto arg1err;
+      set fsgdf = $argv[1]; shift;
+      if(! -e $fsgdf) then
+        echo "ERROR: cannot find $fsgdf";
+        exit 1;
+      endif
+      set sl = `cat $fsgdf | awk '{if($1 == "Input") print $2}'`;
+      set SUBJECTS = ($sl);
+      breaksw
+
     case "--out":
       if ( $getting_subjects ) then
         # got em all, from --subjects variable arg loop
@@ -211,7 +246,16 @@ while( $#argv != 0 )
       endif
       if ( $#argv == 0) goto arg1err;
       set average_subject = $argv[1]; shift;
-      set ddir = ${SUBJECTS_DIR}/${average_subject}
+      breaksw
+
+    case "--topdir":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set topdir = $argv[1]; shift;
       breaksw
 
     case "--sd":
@@ -224,7 +268,6 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set SUBJECTS_DIR = $argv[1]; shift;
       set SUBJECTS_DIR = `basename ${SUBJECTS_DIR}`; # remove trailing /
-      set ddir = ${SUBJECTS_DIR}/${average_subject}
       breaksw
 
     case "--xform":
@@ -319,6 +362,13 @@ check_params:
       exit 1;
     endif
   endif
+  set outdir = ${SUBJECTS_DIR}/${average_subject}
+  if(-e $outdir) then
+    echo "ERROR: $outdir already exists. "
+    echo "       Select a new average subject name or delete and rerun" 
+    echo ""
+    exit 1;
+  endif
 goto check_params_return;
 ############--------------##################
 
@@ -342,9 +392,11 @@ usage_exit:
   echo "Required Arguments"
   echo "   --subjects <subj1> <subj2> ... <subjN>" 
   echo "             : or declare subjects in SUBJECTS env var"
+  echo "   --fsgd fsgdfile : get subject list from fsgd"
   echo ""
   echo "Optional Arguments"
   echo "   --out <average subject name>    : default name is 'average'"
+  echo "   --topdir topdir : put data here and link to SUBJECTS_DIR"
   echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
   echo "   --sd      : same as --sdir"
   echo "   --xform <transform_fname>       : filename of transform file"
@@ -384,7 +436,7 @@ white, pial, inflated for each hemi.
 
 SEE ALSO
 
-make_average_volume
+make_average_subject, make_average_volume
 
 GETTING HELP
 
