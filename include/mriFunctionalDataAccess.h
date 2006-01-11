@@ -103,6 +103,9 @@ typedef struct {
   /* The data. */
   MRI* mpData;
 
+  /* If we're scalar data, we don't use transformation objects. */
+  tBoolean mbScalar;
+
   /* Sample type to use. */
   FunD_tSampleType mSampleType;
   
@@ -212,26 +215,37 @@ typedef struct {
 */
 
 
-/* Allocates and deletes volumes. isFileName should be something
-   appropriate for MRIread. isHeaderStem is the stem of an optional;
-   header file (the function will still try to look for the file even
-   The transform should be a->b index->RAS (only a->RAS transform will
-   be used). */
+/* Allocates and deletes volumes. Volumes can be interpreted as
+   anatomically-based volumes that are registered onto a real
+   anatomical volume, or as a scalar volume, with a list of indexed
+   values. iTransform is the client transform, used to transform into
+   client space. The transform should be a->b index->RAS (only a->RAS
+   transform will be used). isFileName should be something appropriate
+   for MRIread. iRegistrationType is one of the registration types,
+   and is used if the volume turns out to be
+   anatomical. isRegistrationFile is an optional registration file to
+   be used if the registration type is
+   FunD_tRegistration_File. inScalarSize is a number of scalar values;
+   if specified (not -1), the size of the volumeis compared to this
+   number and if it matches, the volume will be treated as a scalar
+   value set, and registration will not be use. iTkregMat is a matrix
+   used in calculating the registration. iAnatomicalVolume is used if
+   the registration type is FunD_tRegistration_Identity to calculate
+   an identity registration, and can be NULL. */
 
 FunD_tErr FunD_New    ( mriFunctionalDataRef*  opVolume,
 			mriTransformRef        iTransform,
 			char*                  isFileName,
-			char*                  isHeaderStem,
 			FunD_tRegistrationType iRegistrationType,
 			char*                  isRegistrationFile,
+			int                    inScalarSize,
 			MATRIX*                iTkregMat,
 			mriVolumeRef           iAnatomicalVolume );
+
 FunD_tErr FunD_Delete ( mriFunctionalDataRef*  iopVolume );
 
-
 /* Parse a stem header if available. */
-FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this,
-					 char*                isStem  );
+FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this );
 
 /* Get meta information from MRI data. */
 FunD_tErr FunD_GuessMetaInformation_   ( mriFunctionalDataRef this );
@@ -272,6 +286,10 @@ FunD_tErr FunD_GetSampleType ( mriFunctionalDataRef this,
 
 FunD_tErr FunD_SetSampleType ( mriFunctionalDataRef this, 
 			       FunD_tSampleType     iType );
+
+/* Whether or not the volume is scalar and has been reshaped. */
+FunD_tErr FunD_IsScalar ( mriFunctionalDataRef this,
+			  tBoolean*            obScalar );
 
 /* Value accessors. */
 FunD_tErr FunD_GetData                 ( mriFunctionalDataRef this,
@@ -398,6 +416,13 @@ FunD_tErr FunD_GetPercentileOfValue ( mriFunctionalDataRef this,
 
 
 /* internal functions */
+
+/* If the dimensions of the data, multiplied, match the number of
+   values here, the data is reshaped into the x direction and treated
+   as a scalar volume with no transform. */
+FunD_tErr FunD_ReshapeIfScalar_ ( mriFunctionalDataRef this,
+				 int                  inNumValues,
+				 tBoolean*            obReshaped );
 
 /* Resamples the data into client space for fast lookup. */
 FunD_tErr FunD_ResampleData_ ( mriFunctionalDataRef this );

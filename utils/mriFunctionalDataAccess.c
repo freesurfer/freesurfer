@@ -15,11 +15,11 @@
 #include "mri2.h"
 
 #ifndef min
-#define min(x,y) x<y?x:y
+#define min(x,y) (x<y?x:y)
 #endif
 
 #ifndef max
-#define max(x,y) x>y?x:y
+#define max(x,y) (x>y?x:y)
 #endif
 
 #define KEEP_NULL_CONDITION 1
@@ -51,8 +51,8 @@ char *FunD_ksaErrorString [FunD_tErr_knNumErrorCodes] = {
   "Invalid time resolution, number of time points must be evenly divisble by it.",
   "Invalid number of pre stim time points.",
   "Invalid functional voxel, out of bounds.",
-  "Invalid condition (is it zero-indexed?)",
-  "Invalid time point (is it zero-indexed?)",
+  "Invalid condition (is it zero-based?)",
+  "Invalid time point (is it zero-based?)",
   "Couldn't transform mask into local space.",
   "Error performing FDR.",
   "Invalid error code."
@@ -63,9 +63,9 @@ char *FunD_ksaErrorString [FunD_tErr_knNumErrorCodes] = {
 FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
 		     mriTransformRef        iTransform,
 		     char*                  isFileName, 
-		     char*                  isHeaderStem,
 		     FunD_tRegistrationType iRegistrationType,
 		     char*                  isRegistrationFileName,
+		     int                    inScalarSize,
 		     MATRIX*                iTkregMat,
 		     mriVolumeRef           iAnatomicalVolume ) {
   
@@ -73,10 +73,11 @@ FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
   FunD_tErr            eResult = FunD_tErr_NoError;
   
   DebugEnterFunction( ("FunD_New( opVolume=%p, iTransform=%p, isFileName=%s, "
-		       "isHeaderStem=%s, iRegistrationType=%d, "
-		       "isRegistrationFileName=%s, iTkregMat=%p )", 
-		       opVolume, iTransform, isFileName, isHeaderStem, 
-		       iRegistrationType, isRegistrationFileName, iTkregMat) );
+		       "iRegistrationType=%d, isRegistrationFileName=%s, "
+		       "inScalarSize=%d, iTkregMat=%p, iAnatomicalVolume=%p)", 
+		       opVolume, iTransform, isFileName, iRegistrationType, 
+		       isRegistrationFileName, inScalarSize, iTkregMat,
+		       iAnatomicalVolume) );
   
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (NULL != opVolume &&
@@ -127,6 +128,7 @@ FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
   this->mClientYMax = -1;
   this->mClientZMax = -1;
   this->mbHaveClientBounds = FALSE;
+  this->mbScalar = FALSE;
   
   this->mFrequencies = NULL;
   this->mNumBins = 0;
@@ -149,36 +151,28 @@ FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
 
   /* Try to parse a stem header if we have a stem specified. */
   DebugNote( ("Trying stem header") );
-  eResult = FunD_FindAndParseStemHeader_( this, isHeaderStem );
+  eResult = FunD_FindAndParseStemHeader_( this );
   if( FunD_tErr_NoError != eResult ) {
 
     DebugNote( ("Guess meta information") );
     eResult = FunD_GuessMetaInformation_( this );
   }
-  
-  /* parse the registration file */
-  DebugNote( ("Parsing registration file") );
-  eResult = FunD_ParseRegistrationAndInitMatricies_( this, 
-						     iRegistrationType,
-						     iAnatomicalVolume );
-  DebugAssertThrow( (FunD_tErr_NoError == eResult) );
-  
-#if 0
-  /* if we have error data... */
-  if( this->mbErrorDataPresent ) {
-    
-    /* Calculate the data. If there is an error, note that we don't
-       have the data.  */
-    eResult = FunD_CalcDeviations_( this );
-    if( FunD_tErr_CouldntCalculateDeviations == eResult ) {
-      this->mbErrorDataPresent = FALSE;
-      eResult = FunD_tErr_NoError;
-    } else {
-      DebugAssertThrow( (FunD_tErr_NoError == eResult) );
-    }
-  }
-#endif  
 
+  /* Try to reshape if we can. */
+  if( inScalarSize > 0 ) {
+    DebugNote( ("Trying reshape with %d values", inScalarSize) );
+    FunD_ReshapeIfScalar_( this, inScalarSize, NULL );
+  }
+  
+  /* If we're not scalar by now, parse the registration file */
+  if( !this->mbScalar ) {
+    DebugNote( ("Parsing registration file") );
+    eResult = FunD_ParseRegistrationAndInitMatricies_( this, 
+						       iRegistrationType,
+						       iAnatomicalVolume );
+    DebugAssertThrow( (FunD_tErr_NoError == eResult) );
+  }
+  
   FunD_DebugPrint( this );
 
   /* Get the value range. */
@@ -259,8 +253,61 @@ FunD_tErr FunD_Delete ( mriFunctionalDataRef* iopVolume ) {
   return eResult;
 }
 
-FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this,
-					 char*                isStem ) {
+FunD_tErr FunD_ReshapeIfScalar_ ( mriFunctionalDataRef this,
+				 int                  inNumValues,
+				 tBoolean*            obReshaped ) {
+
+  FunD_tErr eResult        = FunD_tErr_NoError;
+  MRI*      reshapedVolume = NULL;
+
+  DebugEnterFunction( ("FunD_ReshapeIfScalar_( this=%p, inNumValues=%d, "
+		       "obReshaped=%p )", this, inNumValues, obReshaped) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (NULL != this), eResult, FunD_tErr_InvalidParameter );
+  DebugAssertThrowX( (inNumValues > 0), eResult, FunD_tErr_InvalidParameter );
+
+  if( this->mpData->width * this->mpData->height * this->mpData->depth ==
+      inNumValues ) {
+    
+    /* Reshape it so that everything is in the x direction. */
+    DebugNote( ("Calling mri_reshape") );
+    reshapedVolume = 
+      mri_reshape( this->mpData, inNumValues, 1, 1, this->mpData->nframes );
+    DebugAssertThrowX( (NULL != reshapedVolume), eResult,
+		       FunD_tErr_CouldntAllocateVolume );
+
+    DebugNote( ("Freeing current data") );
+    MRIfree( &this->mpData );
+    this->mpData = reshapedVolume;
+    reshapedVolume = NULL;
+  
+    /* If we're scalar, we don't use a registration or transform. */
+    this->mbScalar = TRUE;
+
+  }
+  
+  if( NULL != obReshaped ) {
+    DebugNote( ("Returning whether it was reshaped") );
+    *obReshaped = this->mbScalar = TRUE;
+  }
+
+  DebugCatch;
+  DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
+  
+  if( NULL != reshapedVolume ) {
+    DebugNote( ("Freeing reshaped volume") );
+    MRIfree( &reshapedVolume );
+  }
+  
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this ) {
   
   FunD_tErr eResult        = FunD_tErr_NoError;
   tBoolean  bFoundFile = FALSE;
@@ -279,58 +326,39 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this,
   int       nValue         = 0;
   int       nValuesRead    = 0;
 
-  DebugEnterFunction( ("FunD_FindAndParseStemHeader_( this=%p, isStem=%s )",
-		       this, isStem) );
+  DebugEnterFunction( ("FunD_FindAndParseStemHeader_( this=%p )", this) );
   
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (NULL != this), eResult, FunD_tErr_InvalidParameter );
 
-  /* If we have a stem header, use that. If that doesn't work, or if
-     we don't have a stem header, try to guess one from the file
-     name. */
-  bFoundFile = FALSE;
-  if( (NULL != isStem) && strcmp( isStem, "" ) != 0 ) {
-    xUtil_snprintf( sFileName, FunD_knPathLen,
-		    "%s.%s", isStem, FunD_ksStemHeaderSuffix );
-
-    /* Try to open it. */
-    DebugNote( ("Trying to open %s", sFileName) );
-    pHeader = fopen( sFileName, "r" );
-    if( NULL == pHeader ) {
-      fclose( pHeader );
-      bFoundFile = TRUE;
+  /* Try to guess one from the file name. Try to guess the name --
+     take everything up to the last underscore and then add the
+     suffix. */
+  
+  /* Copy the name into a new buffer. Start at the beginning and go
+     through the chars, looking for the last _ */
+  xUtil_strncpy( sMRIFileName, this->msFileName, sizeof(sMRIFileName) );
+  pCurChar = sMRIFileName;
+  pBaseEnd = pCurChar;
+  while( NULL != pCurChar && *pCurChar != '\0' ) {
+    if( '_' == *pCurChar ) {
+      pBaseEnd = pCurChar;
     }
+    pCurChar++;
   }
-
-  /* Try to guess the name -- take everything up to the last
-     underscore and then add the suffix. */
-  if( !bFoundFile ) {
-
-    /* Copy the name into a new buffer. Start at the beginning and go
-       through the chars, looking for the last _ */
-    xUtil_strncpy( sMRIFileName, this->msFileName, sizeof(sMRIFileName) );
-    pCurChar = sMRIFileName;
-    pBaseEnd = pCurChar;
-    while( NULL != pCurChar && *pCurChar != '\0' ) {
-      if( '_' == *pCurChar ) {
-	pBaseEnd = pCurChar;
-      }
-      pCurChar++;
-    }
-
-    /* Set this to null char, terminating the string. Then use this
-       string and the header suffix to build the header file name. */
-    *pBaseEnd = '\0';
-    xUtil_snprintf( sFileName, FunD_knPathLen,
-		    "%s.%s", sMRIFileName, FunD_ksStemHeaderSuffix );
-
-    /* Try to open it. */
-    DebugNote( ("Trying to open %s", sFileName) );
-    pHeader = fopen( sFileName, "r" );
-    if( NULL != pHeader ) {
-      fclose( pHeader );
+  
+  /* Set this to null char, terminating the string. Then use this
+     string and the header suffix to build the header file name. */
+  *pBaseEnd = '\0';
+  xUtil_snprintf( sFileName, FunD_knPathLen,
+		  "%s.%s", sMRIFileName, FunD_ksStemHeaderSuffix );
+  
+  /* Try to open it. */
+  DebugNote( ("Trying to open %s", sFileName) );
+  pHeader = fopen( sFileName, "r" );
+  if( NULL != pHeader ) {
+    fclose( pHeader );
       bFoundFile = TRUE;
-    }
   }
   
   /* One more guess. Take everything up to the last dot and then add
@@ -946,6 +974,35 @@ FunD_tErr FunD_SetSampleType ( mriFunctionalDataRef this,
   return eResult;
 }
 
+FunD_tErr FunD_IsScalar ( mriFunctionalDataRef this,
+			  tBoolean* obScalar ) {
+
+  FunD_tErr eResult = FunD_tErr_NoError;
+  
+  DebugEnterFunction( ("FunD_IsScalar( this=%p, obScalar=%p )", 
+		       this, obScalar ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = FunD_Verify( this );
+  DebugAssertThrow( (eResult == FunD_tErr_NoError) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (obScalar != NULL),
+                     eResult, FunD_tErr_InvalidParameter );
+  
+  /* return the value */
+  DebugNote( ("Returning the scalar flag") );
+  *obScalar = this->mbScalar;
+  
+  DebugCatch;
+  DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 
 /* NOTE: I removed all the DebugEnter/ExitFunction and DebugNote calls
    because they make this call much slower. I wish there was a better
@@ -990,10 +1047,14 @@ FunD_tErr FunD_GetData ( mriFunctionalDataRef this,
   eResult = FunD_Verify( this );
   DebugAssertThrow( (eResult == FunD_tErr_NoError) );
 
+  if( !this->mbScalar ) {
 #ifndef BE_SUPA_FAST
-  DebugNote( ("Converting client to func idx") );
+    DebugNote( ("Converting client to func idx") );
 #endif
-  FunD_ConvertClientToFloatFuncIdx_( this, iClientVox, &funcIdx );
+    FunD_ConvertClientToFloatFuncIdx_( this, iClientVox, &funcIdx );
+  } else {
+    xVoxl_Copy( &funcIdx, iClientVox );
+  }
 
 #ifndef BE_SUPA_FAST
   DebugNote( ("Verifying func idx") );
@@ -1061,10 +1122,14 @@ FunD_tErr FunD_GetSampledData ( mriFunctionalDataRef this,
   eResult = FunD_Verify( this );
   DebugAssertThrow( (eResult == FunD_tErr_NoError) );
 
+  if( !this->mbScalar ) {
 #ifndef BE_SUPA_FAST
-  DebugNote( ("Converting client to func idx") );
+    DebugNote( ("Converting client to func idx") );
 #endif
-  FunD_ConvertClientToFloatFuncIdx_( this, iClientVox, &funcIdx );
+    FunD_ConvertClientToFloatFuncIdx_( this, iClientVox, &funcIdx );
+  } else {
+    xVoxl_Copy( &funcIdx, iClientVox );
+  }
 
 #ifndef BE_SUPA_FAST
   DebugNote( ("Verifying func idx") );
@@ -1120,8 +1185,12 @@ FunD_tErr FunD_GetDataForAllTimePoints ( mriFunctionalDataRef this,
   eResult = FunD_Verify( this );
   DebugAssertThrow( (eResult == FunD_tErr_NoError) );
 
-  DebugNote( ("Converting client to func idx") );
-  FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
+  if( !this->mbScalar ) {
+    DebugNote( ("Converting client to func idx") );
+    FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
+  } else {
+    xVoxl_Copy( &funcIdx, iClientVox );
+  }
   
   DebugNote( ("Verifying func idx") );
   eResult = FunD_VerifyFuncIdx_( this, &funcIdx );
@@ -1191,9 +1260,13 @@ FunD_tErr FunD_GetDeviation ( mriFunctionalDataRef this,
     nCovMtx = ((iCondition-1) * this->mNumTimePoints) + iTimePoint;
     fCovariance = this->mCovMtx[nCovMtx][nCovMtx];
     
-    DebugNote( ("Converting client voxel to func idx") );
-    FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
-    
+    if( !this->mbScalar ) {
+      DebugNote( ("Converting client to func idx") );
+      FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
+    } else {
+      xVoxl_Copy( &funcIdx, iClientVox );
+    }
+  
     DebugNote( ("Getting sigma value") );
     FunD_GetSigma_ ( this, &funcIdx, iTimePoint, &fSigma );
     
@@ -1236,8 +1309,12 @@ FunD_tErr FunD_GetDeviationForAllTimePoints ( mriFunctionalDataRef this,
   eResult = FunD_Verify( this );
   DebugAssertThrow( (eResult == FunD_tErr_NoError) );
 
-  DebugNote( ("Converting client voxel to func idx") );
-  FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
+  if( !this->mbScalar ) {
+    DebugNote( ("Converting client to func idx") );
+    FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
+  } else {
+    xVoxl_Copy( &funcIdx, iClientVox );
+  }
   
   for( nTimePoint = 0; nTimePoint < this->mNumTimePoints; nTimePoint++ ) {
     
@@ -2403,7 +2480,12 @@ FunD_tErr FunD_ResampleData_ ( mriFunctionalDataRef this ) {
 		     xVoxl_GetZ( &clientIdx ) ) );
 	
 	/* Get the func idx. */
-	FunD_ConvertClientToFuncIdx_( this, &clientIdx, &funcIdx );
+	if( !this->mbScalar ) {
+	  DebugNote( ("Converting client to func idx") );
+	  FunD_ConvertClientToFuncIdx_( this, &clientIdx, &funcIdx );
+	} else {
+	  xVoxl_Copy( &funcIdx, &clientIdx );
+	}
 	eResult = FunD_VerifyFuncIdx_( this, &funcIdx );
 	if( FunD_tErr_NoError == eResult ) {
 	  FunD_GetValue_ ( this, this->mpData, &funcIdx, 
@@ -2411,7 +2493,6 @@ FunD_tErr FunD_ResampleData_ ( mriFunctionalDataRef this ) {
 	} else {
 	  continue;
 	}
-
 
 	/* Set the value. */
 	xVoxl_Set( &resampleIdx, 
