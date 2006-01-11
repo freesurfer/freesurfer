@@ -498,9 +498,14 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
   }
   
   /* load the volume */
-  eVolume = FunD_New( &pVolume, iTransform, isFileName, isHeaderStem, 
-		      regType, isRegistration, 
-		      this->tkregMat, iAnatomicalVolume );
+  eVolume = FunD_New( &pVolume,
+		      iTransform,
+		      isFileName,
+		      regType, 
+		      isRegistration,
+		      -1,  /* Don't try to be a scalar volume */
+		      this->tkregMat,
+		      iAnatomicalVolume );
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorLoadingVolume;
     goto error;
