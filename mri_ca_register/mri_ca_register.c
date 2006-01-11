@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2006/01/10 03:50:58 $
-// Revision       : $Revision: 1.40 $
+// Revision Date  : $Date: 2006/01/11 22:40:00 $
+// Revision       : $Revision: 1.41 $
 
 
 #include <math.h>
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.40 2006/01/10 03:50:58 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.41 2006/01/11 22:40:00 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1193,11 +1193,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "align-cross-sequence") || !stricmp(option, "align"))
   {
     regularize = .5 ;
-//		reinit = 1 ;
+    reinit = 1 ;
     regularize_mean = .5 ;
-		parms.ratio_thresh = 0.000001 ;
-		//		avgs = 2 ;   not used anymore
-		renormalize_align = 1 ;
+    parms.ratio_thresh = 0.000001 ;
+    //		avgs = 2 ;   not used anymore
+    renormalize_align = 1 ;
     printf("renormalizing sequences with structure alignment, equivalent to:\n") ;
 		printf("\t-renormalize\n\t-regularize_mean %2.3f\n\t-regularize %2.3f\n",regularize_mean, regularize) ;
   } 
