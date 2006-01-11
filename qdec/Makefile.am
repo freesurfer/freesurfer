@@ -79,22 +79,24 @@ image_collection.$(OBJEXT): .ui/image_collection.cpp
 	images/searchfind \
 	-o $@
 
-qdec_bundle: qdec
+qdec_bundle: qdec $(DESTDIR)$(bindir)/qdec.app
 	@echo Making OSX bundle...
-	@test -d qdec.app/Contents/MacOS/ || mkdir -p qdec.app/Contents/MacOS/
-	@rm -f qdec.app/Contents/MacOS/../PkgInfo
+	test -d qdec.app/Contents/MacOS/ || mkdir -p qdec.app/Contents/MacOS/
+	rm -f qdec.app/Contents/MacOS/../PkgInfo
 	@echo "APPL????" >qdec.app/Contents/MacOS/../PkgInfo
-	@test -d qdec.app/Contents/MacOS/ || mkdir -p qdec.app/Contents/MacOS/
-	@rm -f qdec.app/Contents/MacOS/../Info.plist
-	@sed -e "s,@ICON@,application.icns,g" -e "s,@EXECUTABLE@,qdec,g" "$(QTDIR)/mkspecs/default/Info.plist.app" >"qdec.app/Contents/MacOS/../Info.plist"
-	@test -d qdec.app/Contents/MacOS/ || mkdir -p qdec.app/Contents/MacOS/
-	@rm -f qdec.app/Contents/MacOS/qdec
-	@cp qdec qdec.app/Contents/MacOS/
-	@test -d qdec.app/Contents/Frameworks || mkdir -p qdec.app/Contents/Frameworks
-	@cp $(QTDIR)/lib/libqt-mt.3.dylib qdec.app/Contents/Frameworks
-	@install_name_tool -id @executable_path/../Frameworks/libqt-mt.3.dylib qdec.app/Contents/Frameworks/libqt-mt.3.dylib
-	@install_name_tool -change libqt-mt.3.dylib @executable_path/../Frameworks/libqt-mt.3.dylib qdec.app/Contents/MacOS/qdec
-	@cp -r qdec.app $(DESTDIR)$(bindir)
+	test -d qdec.app/Contents/MacOS/ || mkdir -p qdec.app/Contents/MacOS/
+	rm -f qdec.app/Contents/MacOS/../Info.plist
+	sed -e "s,@ICON@,application.icns,g" -e "s,@EXECUTABLE@,qdec,g" "$(QTDIR)/mkspecs/default/Info.plist.app" >"qdec.app/Contents/MacOS/../Info.plist"
+	test -d qdec.app/Contents/MacOS/ || mkdir -p qdec.app/Contents/MacOS/
+	rm -f qdec.app/Contents/MacOS/qdec
+	cp qdec qdec.app/Contents/MacOS/
+	test -d qdec.app/Contents/Frameworks || mkdir -p qdec.app/Contents/Frameworks
+	cp $(QTDIR)/lib/libqt-mt.3.dylib qdec.app/Contents/Frameworks
+	install_name_tool -id @executable_path/../Frameworks/libqt-mt.3.dylib qdec.app/Contents/Frameworks/libqt-mt.3.dylib
+	install_name_tool -change libqt-mt.3.dylib @executable_path/../Frameworks/libqt-mt.3.dylib qdec.app/Contents/MacOS/qdec
+	cp -r qdec.app $(DESTDIR)$(bindir)
+	echo "$(FREESURFER_HOME)/bin/qdec.app/Contents/MacOS/qdec" > $(DESTDIR)$(bindir)/qdec
+	chmod a+x $(DESTDIR)$(bindir)/qdec
 
 .PHONY: qdec_bundle
 
