@@ -147,6 +147,7 @@ MRISSUBDIRS=stim \
 	mris_jacobian \
 	mris_label_area \
 	mris_label_mode \
+	label_area \
 	mris_make_average_surface \
 	mris_make_surfaces \
 	mris_make_template \

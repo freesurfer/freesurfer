@@ -1136,6 +1136,7 @@ mri_histo_eq/Makefile \
 mri_info/Makefile \
 mri_joint_density/Makefile \
 mri_label_histo/Makefile \
+label_area/Makefile \
 mri_label_vals/Makefile \
 mri_label_volume/Makefile \
 mri_label2label/Makefile \
