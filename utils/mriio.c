@@ -5875,7 +5875,8 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
         hdr.hist.orient = 3; // transverse flipped    LPS
       else
         {
-          fprintf(stderr, "No such orientation specified in Analyze7.5. Set orient to 0\n");
+          fprintf(stderr, "No such orientation specified in Analyze7.5. Set orient to 0.\n");
+          fprintf(stderr, "Not a problem as long as you use the .mat file.\n");
           printDirCos(mri);
           hdr.hist.orient = 0;
         }  
