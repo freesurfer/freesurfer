@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/02 01:29:10 $
-// Revision       : $Revision: 1.43 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/01/12 02:19:39 $
+// Revision       : $Revision: 1.44 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.43 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.44 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -688,7 +688,7 @@ int main(int argc, char *argv[])
         
   make_cmd_version_string 
     (argc, argv, 
-"$Id: mri_watershed.cpp,v 1.43 2006/01/02 01:29:10 greve Exp $", "$Name:  $",
+"$Id: mri_watershed.cpp,v 1.44 2006/01/12 02:19:39 fischl Exp $", "$Name:  $",
      cmdline);
 
   Progname=argv[0];
@@ -699,7 +699,7 @@ int main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-"$Id: mri_watershed.cpp,v 1.43 2006/01/02 01:29:10 greve Exp $", "$Name:  $");
+"$Id: mri_watershed.cpp,v 1.44 2006/01/12 02:19:39 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -725,8 +725,8 @@ int main(int argc, char *argv[])
   fprintf(stderr,"\n*********************************************************"
           "\nThe input file is %s"
           "\nThe output file is %s"
-          "\nIf this is incorrect, please exit quickly the program "
-          "(Ctl-C)\n\n",in_fname,out_fname);
+          "\nIf this is incorrect, please exit with CTL-C\n\n",
+          in_fname,out_fname);
 
   
   /*************** PROG *********************/
