@@ -5,6 +5,7 @@
 #include "mrisurf.h"
 #include "mriTransform.h"
 #include "xVoxel.h"
+#include "mriColorLookupTable.h"
 
 typedef enum {
   
@@ -118,6 +119,15 @@ Surf_tErr Surf_IsVertexSetLoaded ( mriSurfaceRef   this,
 /* read an annotation file */
 Surf_tErr Surf_LoadAnnotation ( mriSurfaceRef this,
 				char*         isFileName );
+
+/* Query and return a color table based on internal data, like if a
+   annotation had an embedded color table. This allocates a new table
+   and the caller is repsonsible for deleting it. */
+Surf_tErr Surf_IsInternalColorTablePresent ( mriSurfaceRef this,
+					     tBoolean*     obPresent );
+Surf_tErr Surf_NewColorTableFromInternal   ( mriSurfaceRef           this,
+					     mriColorLookupTableRef* opTable );
+
 
 /* ======================================================= Vertex iteration */
 

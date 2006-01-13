@@ -358,6 +358,72 @@ Surf_tErr Surf_LoadAnnotation ( mriSurfaceRef   this,
   return eResult;
 }
 
+Surf_tErr Surf_IsInternalColorTablePresent ( mriSurfaceRef this,
+					     tBoolean*     obPresent ) {
+  
+  Surf_tErr eResult = Surf_tErr_NoErr;
+  
+  eResult = Surf_Verify( this );
+  if( Surf_tErr_NoErr != eResult ) 
+    goto error;
+  
+  /* Return whether or not we have a ct. */
+  *obPresent = (this->mSurface->ct != NULL);
+  
+  goto cleanup;
+  
+ error:
+  
+  if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Surf_IsInternalColorTablePresent: %s\n",
+		 eResult, Surf_GetErrorString( eResult ) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+Surf_tErr Surf_NewColorTableFromInternal   ( mriSurfaceRef           this,
+					     mriColorLookupTableRef* opTable ){
+  
+  Surf_tErr              eResult    = Surf_tErr_NoErr;
+  CLUT_tErr              eCLUT      = CLUT_tErr_NoErr;
+  mriColorLookupTableRef colorTable = NULL;
+
+  eResult = Surf_Verify( this );
+  if( Surf_tErr_NoErr != eResult ) 
+    goto error;
+
+  /* Make a new color table from our ct, if we have one. */
+  if( this->mSurface->ct ) {
+
+    eCLUT = CLUT_NewFromCTAB( &colorTable, this->mSurface->ct );
+    if( CLUT_tErr_NoErr != eCLUT )
+      goto error;
+
+    *opTable = colorTable;
+  }
+
+  
+  goto cleanup;
+  
+ error:
+  
+  if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Surf_NewColorTableFromInternal: %s\n",
+		 eResult, Surf_GetErrorString( eResult ) ) );
+  }
+  if( CLUT_tErr_NoErr != eCLUT ) {
+    DebugPrint( ("Error %d in Surf_NewColorTableFromInternal: %s\n",
+		 eResult, CLUT_GetErrorString( eResult ) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
 
 Surf_tErr Surf_ConvertSurfaceToClientSpace_ ( mriSurfaceRef   this,
 					      Surf_tVertexSet iSet ) {
