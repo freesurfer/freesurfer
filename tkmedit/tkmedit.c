@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/01/11 23:25:16 $
-// Revision       : $Revision: 1.268 $
-char *VERSION = "$Revision: 1.268 $";
+// Revision Date  : $Date: 2006/01/13 22:27:58 $
+// Revision       : $Revision: 1.269 $
+char *VERSION = "$Revision: 1.269 $";
 
 #define TCL
 #define TKMEDIT 
@@ -549,6 +549,9 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
 
 tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
 				      char*        inColorFileName );
+
+/* Updates the tcl interface with a new color table. */
+tkm_tErr SendColorTableInformationToTcl ( tkm_tSegType iVolume );
 
 
 /* Sets the display alpha for determining the opacity of the
@@ -1103,7 +1106,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.268 2006/01/11 23:25:16 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.269 2006/01/13 22:27:58 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5416,7 +5419,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.268 2006/01/11 23:25:16 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.269 2006/01/13 22:27:58 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -9641,6 +9644,8 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
   mriVolumeRef newVolume               = NULL;
   mriVolumeRef newChangedVolume        = NULL;
   MRIS*        mris                    = NULL;
+  tBoolean     bInternalTable          = FALSE;
+  mriColorLookupTableRef colorTable    = NULL;
   int          nVertex                 = 0;
   VERTEX*      pVertex                 = 0;
   xColor3n     color;
@@ -9715,6 +9720,31 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
   DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
 		     eResult, tkm_tErr_ErrorAccessingSurface );
 
+  /* Annotations usually have embedded color tables. If so, the
+     surface will have a link to it now. Check if there's one
+     present. If so... */
+  Surf_IsInternalColorTablePresent( gSurface[tkm_tSurfaceType_Main],
+				    &bInternalTable );
+  if( bInternalTable ) {
+
+    /* Make a new color table from the embedded one. If we got
+       it... */
+    eSurface = Surf_NewColorTableFromInternal( gSurface[tkm_tSurfaceType_Main],
+					       &colorTable );
+    if( Surf_tErr_NoErr == eSurface ) {
+
+      /* Replace our existing color table with it. */
+      CLUT_Delete( &gColorTable[iVolume] );
+      gColorTable[iVolume] = colorTable;
+
+      /* Update the window and tcl stuff. */
+      MWin_SetSegmentationColorTable( gMeditWindow, iVolume, 
+				      -1, gColorTable[iVolume] );
+
+      SendColorTableInformationToTcl( iVolume );
+    }
+  }
+
   /* For every vertex in the surface, get the annot value. Unpack it
      to an RGB value. Look in the LUT to get the corresponding
      index. Get the orig coords from the vertex and set the
@@ -9728,7 +9758,6 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
       MRISAnnotToRGB( pVertex->annotation, 
 		      color.mnRed, color.mnGreen, color.mnBlue );
       CLUT_GetIndex( gColorTable[iVolume], &color, &nStructure );
-    
       
       /* Set all the voxels between the white (current) vertex and the
 	 pial vertex coords. Find the direction from the pial to the
@@ -9833,10 +9862,6 @@ tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   char      sColorFileName[tkm_knPathLen]   = "";
   CLUT_tErr eColorTable         = CLUT_tErr_NoErr;
-  int      nNumEntries         = 0;
-  int      nEntry         = 0;
-  char      sLabel[CLUT_knLabelLen]     = "";
-  char      sTclArguments[tkm_knTclCmdLen]   = "";
   char      sError[tkm_knErrStringLen]     = "";
   
   DebugEnterFunction( ("LoadSegmentationColorTable( iVolume=%d, "
@@ -9852,9 +9877,42 @@ tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
   
   /* try to load color table */
   DebugNote( ("Loading color table") );
-  eColorTable = CLUT_New( &gColorTable[iVolume], isColorFileName );
+  eColorTable = CLUT_NewFromFile( &gColorTable[iVolume], isColorFileName );
   DebugAssertThrowX( (CLUT_tErr_NoErr == eColorTable),
          eResult, tkm_tErr_CouldntLoadColorTable );
+  
+  /* Send the labels to tcl. */
+  SendColorTableInformationToTcl( iVolume );
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  
+  xUtil_snprintf( sError, sizeof(sError),
+		  "Loading Color Table %s", isColorFileName );
+  tkm_DisplayError( sError,
+		    tkm_GetErrorString(eResult),
+		    "Tkmedit couldn't read the color table you "
+		    "specified. This could be because the file wasn't"
+		    "valid or wasn't found." );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+tkm_tErr SendColorTableInformationToTcl ( tkm_tSegType iVolume ) {
+
+  tkm_tErr  eResult                        = tkm_tErr_NoErr;
+  CLUT_tErr eColorTable                    = CLUT_tErr_NoErr;
+  int       nNumEntries                    = 0;
+  int       nEntry                         = 0;
+  char      sLabel[CLUT_knLabelLen]        = "";
+  char      sTclArguments[tkm_knTclCmdLen] = "";
+  char      sFileName[256]                 = "";
+
+  DebugEnterFunction( ("SendColorTableInformationToTcl( iVolume=%d )", 
+		       iVolume) );
   
   /* build the color table for the interface. go through the entries
      and for each one, make a string of its number and its label, and send
@@ -9877,19 +9935,15 @@ tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
 			sTclArguments );
   }
 
+  /* Copy the file name and send that. */
+  CLUT_CopyFileName( gColorTable[iVolume], sFileName, sizeof(sFileName) );
+
   tkm_SendTclCommand( tkm_tTclCommand_UpdateSegmentationColorTable,
-		      isColorFileName );
+		      sFileName );
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   
-  xUtil_snprintf( sError, sizeof(sError),
-		  "Loading Color Table %s", isColorFileName );
-  tkm_DisplayError( sError,
-		    tkm_GetErrorString(eResult),
-		    "Tkmedit couldn't read the color table you "
-		    "specified. This could be because the file wasn't"
-		    "valid or wasn't found." );
   EndDebugCatch;
   
   DebugExitFunction;
