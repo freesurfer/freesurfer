@@ -18905,7 +18905,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.168 2006/01/11 19:17:19 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.169 2006/01/13 22:27:26 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23711,10 +23711,10 @@ int labl_load_color_table (char* fname)
   xColor3n color;
   
   /* create a new table. */
-  clut_err = CLUT_New (&table, fname);
+  clut_err = CLUT_NewFromFile (&table, fname);
   if (CLUT_tErr_NoErr != clut_err)
     {
-      fprintf (stderr, "labl_load_color_table %s: CLUT_New returned "
+      fprintf (stderr, "labl_load_color_table %s: CLUT_NewFromFile returned "
                "%d: %s\n", fname, clut_err, CLUT_GetErrorString (clut_err) );
       return (ERROR_CLUT);
     }

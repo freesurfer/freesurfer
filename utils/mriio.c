@@ -7981,7 +7981,7 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
       ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIreadOtl(): error allocating MRI structure"));
     }
 
-  if(CLUT_New(&color_table, color_file_name) != CLUT_tErr_NoErr)
+  if(CLUT_NewFromFile(&color_table, color_file_name) != CLUT_tErr_NoErr)
     {
       MRIfree(&mri);
       errno = 0;
