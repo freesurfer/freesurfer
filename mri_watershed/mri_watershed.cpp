@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/12 02:19:39 $
-// Revision       : $Revision: 1.44 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/01/14 23:39:11 $
+// Revision       : $Revision: 1.45 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.44 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.45 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -392,8 +392,10 @@ void usageHelp()
   fprintf(stderr, "\n-mask                : "
           "mask a volume with the brain mask");
   fprintf(stderr, "\n-keep PreEditVol PostEditVol NewWithEditsVol : "
-          "keep edits as indicated by the differences \nbetween pre and post volumes.");
-  fprintf(stderr, "Note: this does not change output, just create NewWithEditsVol\n");
+          "keep edits as indicated by the differences "
+          "\nbetween pre and post volumes.");
+  fprintf(stderr, "Note: this does not change output, just create "
+          "NewWithEditsVol\n");
   fprintf(stderr, "\n\n--help               : show this usage message");
   fprintf(stderr, "\n--version            : show the current version\n\n");
 }
@@ -564,16 +566,17 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
       parms->PostEditVolName = argv[3];
       parms->NewWithKeepVolName = argv[4];
       if(!fio_FileExistsReadable(parms->PreEditVolName)){
-	printf("ERROR: volume %s does not exist or is not readable\n",
-	       parms->PreEditVolName);
-	exit(1);
+        printf("ERROR: volume %s does not exist or is not readable\n",
+               parms->PreEditVolName);
+        exit(1);
       }
       if(!fio_FileExistsReadable(parms->PostEditVolName)){
-	printf("ERROR: volume %s does not exist or is not readable\n",
-	       parms->PostEditVolName);
-	exit(1);
+        printf("ERROR: volume %s does not exist or is not readable\n",
+               parms->PostEditVolName);
+        exit(1);
       }
-      printf("Keeping brain edits %s %s\n",parms->PreEditVolName,parms->PostEditVolName);
+      printf("Keeping brain edits %s %s\n",
+             parms->PreEditVolName,parms->PostEditVolName);
       nargs = 3 ;
     }
   // check one character options -s, -c, -r, -t, -n
@@ -591,9 +594,9 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
             Error("\ntoo many seed points\n");
           if (argc < 7)
             Error("\n-s option needs 3 seed points, input, output argument\n");
-	  parms->seed_coord[parms->nb_seed_points][0] = atoi(argv[2]);
-	  parms->seed_coord[parms->nb_seed_points][1] = atoi(argv[3]);
-	  parms->seed_coord[parms->nb_seed_points][2] = atoi(argv[4]);
+          parms->seed_coord[parms->nb_seed_points][0] = atoi(argv[2]);
+          parms->seed_coord[parms->nb_seed_points][1] = atoi(argv[3]);
+          parms->seed_coord[parms->nb_seed_points][2] = atoi(argv[4]);
           if (parms->seed_coord[parms->nb_seed_points][0] < 0)
             Error("\nseed value 'i' out of range 0-255 \n");
           if (parms->seed_coord[parms->nb_seed_points][1] < 0)
@@ -686,9 +689,9 @@ int main(int argc, char *argv[])
   STRIP_PARMS *parms;
   char cmdline[CMD_LINE_LEN] ;
         
-  make_cmd_version_string 
+  make_cmd_version_string
     (argc, argv, 
-"$Id: mri_watershed.cpp,v 1.44 2006/01/12 02:19:39 fischl Exp $", "$Name:  $",
+     "$Id: mri_watershed.cpp,v 1.45 2006/01/14 23:39:11 nicks Exp $", "$Name:  $",
      cmdline);
 
   Progname=argv[0];
@@ -698,8 +701,9 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, 
-"$Id: mri_watershed.cpp,v 1.44 2006/01/12 02:19:39 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mri_watershed.cpp,v 1.45 2006/01/14 23:39:11 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -791,14 +795,14 @@ int main(int argc, char *argv[])
     mritmp = MRIcopy(mri_without_skull,NULL);
     for(c=0; c < PreEditVol->width; c++){
       for(r=0; r < PreEditVol->height; r++){
-	for(s=0; s < PreEditVol->height; s++){
-	  preval  = MRIgetVoxVal(PreEditVol, c,r,s,0);
-	  postval = MRIgetVoxVal(PostEditVol,c,r,s,0);
-	  if(preval == postval) continue;
-	  if(postval < 2) outval = postval;
-	  else outval = MRIgetVoxVal(mri_with_skull,c,r,s,0);
-	  MRIsetVoxVal(mritmp,c,r,s,0,outval);
-	}
+        for(s=0; s < PreEditVol->height; s++){
+          preval  = MRIgetVoxVal(PreEditVol, c,r,s,0);
+          postval = MRIgetVoxVal(PostEditVol,c,r,s,0);
+          if(preval == postval) continue;
+          if(postval < 2) outval = postval;
+          else outval = MRIgetVoxVal(mri_with_skull,c,r,s,0);
+          MRIsetVoxVal(mritmp,c,r,s,0,outval);
+        }
       }
     }
     printf("Saving kept edits to %s .....\n",parms->NewWithKeepVolName);
@@ -1519,6 +1523,7 @@ static int calBrainRadius(MRI_variables *MRI_var)
 
   return 0;
 }
+
 /*-----------------------------------------------------  
   int Pre_CharSorting
 
@@ -1935,7 +1940,8 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
                           MRI_var->Basin[k][j][i].type=1;
                           MRI_var->Basin[k][j][i].next=
                             (Cell*)(&MRI_var->Basin[kg][jg][ig]);
-                  ((BasinCell*)(MRI_var->Basin[kg][jg][ig].next))->size++;
+                          ((BasinCell*)\
+                           (MRI_var->Basin[kg][jg][ig].next))->size++;
                         }
                     }
                 }
@@ -2349,9 +2355,9 @@ static int Analyze(STRIP_PARMS *parms,MRI_variables *MRI_var)
       free(MRI_var->Table[pos]);
 
       if(Gdiag & DIAG_SHOW){
-	fprintf(stderr,"\n      %3d%%... %8ld basins; main size = %8ld         ",
-		(MRI_var->Imax-pos)*100/(MRI_var->Imax-1),
-		MRI_var->basinnumber,MRI_var->basinsize);
+        fprintf(stderr,"\n      %3d%%... %8ld basins; main size = %8ld ",
+                (MRI_var->Imax-pos)*100/(MRI_var->Imax-1),
+                MRI_var->basinnumber,MRI_var->basinsize);
       }
     }
 
@@ -3343,7 +3349,7 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
 #endif
         }
       fprintf(stderr,
-              "\n\n*********************VALIDATION*********************");
+              "\n\n*********************VALIDATION*********************\n");
       MRI_var->atlas=parms->atlas;
       // check with the atlas for any errors
       MRI_var->validation=ValidationSurfaceShape(MRI_var);
@@ -4019,7 +4025,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
       MRI_var->CSF_HALF_MAX=
         MIN((MRI_var->CSF_intensity+
              MIN(MRI_var->CSF_MAX,MRI_var->TRANSITION_intensity))/2
-                                ,MRI_var->CSF_HALF_MAX);
+            ,MRI_var->CSF_HALF_MAX);
       if (MRI_var->CSF_MAX>=MRI_var->TRANSITION_intensity)
         MRI_var->CSF_MAX=
           (MRI_var->CSF_HALF_MAX+MRI_var->TRANSITION_intensity)/2;
@@ -5435,17 +5441,23 @@ normal_face(int f,float *n,MRIS *mris)
   float v1[3],v2[3];
 
   v1[0]=
-   mris->vertices[mris->faces[f].v[0]].x-mris->vertices[mris->faces[f].v[1]].x;
+    mris->vertices[mris->faces[f].v[0]].x-mris->vertices\
+    [mris->faces[f].v[1]].x;
   v1[1] =
-   mris->vertices[mris->faces[f].v[0]].y-mris->vertices[mris->faces[f].v[1]].y;
+    mris->vertices[mris->faces[f].v[0]].y-mris->vertices\
+    [mris->faces[f].v[1]].y;
   v1[2] =
-   mris->vertices[mris->faces[f].v[0]].z-mris->vertices[mris->faces[f].v[1]].z;
+    mris->vertices[mris->faces[f].v[0]].z-mris->vertices\
+    [mris->faces[f].v[1]].z;
   v2[0] =
-   mris->vertices[mris->faces[f].v[2]].x-mris->vertices[mris->faces[f].v[1]].x;
+    mris->vertices[mris->faces[f].v[2]].x-mris->vertices\
+    [mris->faces[f].v[1]].x;
   v2[1] =
-   mris->vertices[mris->faces[f].v[2]].y-mris->vertices[mris->faces[f].v[1]].y;
+    mris->vertices[mris->faces[f].v[2]].y-mris->vertices\
+    [mris->faces[f].v[1]].y;
   v2[2] =
-   mris->vertices[mris->faces[f].v[2]].z-mris->vertices[mris->faces[f].v[1]].z;
+    mris->vertices[mris->faces[f].v[2]].z-mris->vertices\
+    [mris->faces[f].v[1]].z;
   n[0] = v1[1]*v2[2]-v1[2]*v2[1];
   n[1] = v1[2]*v2[0]-v1[0]*v2[2];
   n[2] = v1[0]*v2[1]-v1[1]*v2[0];
@@ -5696,8 +5708,6 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var)
     }
   else
     fprintf(stderr,"\n      Validation of the shape of the surface done.");
-  
-
   
   MRISPfree(&mrisp_template);
   //  MRISPfree(&parms.mrisp) ;
@@ -6481,7 +6491,6 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
   MHT    *mht = NULL ;
 #endif
 
-
   xCOG=yCOG=zCOG=0; /* to stop compilator warnings !*/ 
 
   mris=MRI_var->mris;
@@ -6519,7 +6528,6 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
   niter =int_smooth;
   force = 0.0f ; 
   pcout=0;
-
 
   for (k=0;k<mris->nvertices;k++)
     {
@@ -7150,14 +7158,18 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
           for (m=0;m<v->vnum;m++)
             {
               csf+=
-              mrisphere->vertices[v->v[m]].tx*mrisphere->vertices[v->v[m]].ty;
+                mrisphere->vertices[v->v[m]].tx*mrisphere->vertices\
+                [v->v[m]].ty;
               w1+=mrisphere->vertices[v->v[m]].ty;
               gm+=
-              mrisphere->vertices[v->v[m]].tz*mrisphere->vertices[v->v[m]].ty;
+                mrisphere->vertices[v->v[m]].tz*mrisphere->vertices\
+                [v->v[m]].ty;
               var_csf+=
-              mrisphere->vertices[v->v[m]].tdx*mrisphere->vertices[v->v[m]].ty;
+                mrisphere->vertices[v->v[m]].tdx*mrisphere->vertices\
+                [v->v[m]].ty;
               var_gray+=
-              mrisphere->vertices[v->v[m]].tdz*mrisphere->vertices[v->v[m]].ty;
+                mrisphere->vertices[v->v[m]].tdz*mrisphere->vertices\
+                [v->v[m]].ty;
         
               n++;
             }
@@ -7214,7 +7226,7 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
 }
 
 static double estimateNRG(MRI_variables *MRI_var, 
-			  double cx, double cy ,double cz);
+                          double cx, double cy ,double cz);
 static void computeGradient(MRI_variables *MRI_var,
                             double cx, double cy ,double cz,
                             double *gx,double *gy, double *gz);
@@ -7348,7 +7360,7 @@ static int computeCOG(MRI_variables *MRI_var,
         z=z+epsilon*dz;
                                 
         /* printf(stderr,"\nNew Minimum found: NRG=%lf,( %f , %f , %f )"
-                                        ,NRG , x, y,z);*/ 
+           ,NRG , x, y,z);*/ 
       }else
         NRG=estimateNRG(MRI_var,x,y,z);
     }  
@@ -8046,7 +8058,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
                     "\nScaling of atlas fields onto current surface fields");
           MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
           MRISscaleFields(mris,MRI_var->mris_dCOG,
-			  MRI_var->mris_var_dCOG,DIST_MODE);
+                          MRI_var->mris_var_dCOG,DIST_MODE);
           MRISscaleFields(mris,MRI_var->mris_curv,
                           MRI_var->mris_var_curv,CURV_MODE);
           if(VERBOSE_MODE)
