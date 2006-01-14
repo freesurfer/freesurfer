@@ -635,6 +635,7 @@ extern float ic_z_vertices[]  ;
 #define MRI_GCA_FILE                  22
 #define BHDR                          23 // for bshort or bfloat
 #define NII_FILE                      24 // NIfTI-1 .nii (single file)
+#define MRI_CURV_FILE                 25 // surface curv format
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRInonzeroValRange(MRI *mri, float *pmin, float *pmax) ;

@@ -59,6 +59,7 @@
 #include "mghendian.h"
 #include "tags.h"
 #include "nifti1.h"
+#include "znzlib.h"
 
 // unix director separator 
 #define DIR_SEPARATOR '/'
@@ -132,12 +133,14 @@ static MRI *ximgRead(char *fname, int read_volume);
 
 static MRI *nifti1Read(char *fname, int read_volume);
 static int nifti1Write(MRI *mri, char *fname);
-static MRI *niiRead(char *fname, int read_volume);
+//static MRI *niiRead(char *fname, int read_volume);
+static MRI *niiRead2(char *fname, int read_volume);
 static int niiWrite(MRI *mri, char *fname);
 static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr);
 static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr);
 static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr);
 static void swap_nifti_1_header(struct nifti_1_header *hdr);
+static MRI *MRISreadCurvAsMRI(char *curvfile, int read_volume);
 
 /********************************************/
 
@@ -571,15 +574,14 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
       mri = nifti1Read(fname_copy, volume_flag);
     }
   else if(type == NII_FILE)
-    {
-      mri = niiRead(fname_copy, volume_flag);
-    }
-  else if (type == IMAGE_FILE)
-    {
-      I = ImageRead(fname_copy);
-      mri = ImageToMRI(I);
-      ImageFree(&I);
-    }
+    mri = niiRead2(fname_copy, volume_flag);
+  else if(type == MRI_CURV_FILE)
+    mri = MRISreadCurvAsMRI(fname_copy, volume_flag);
+  else if (type == IMAGE_FILE) {
+    I = ImageRead(fname_copy);
+    mri = ImageToMRI(I);
+    ImageFree(&I);
+  }
   else
     {
       fprintf(stderr,"mri_read(): type = %d\n",type);
@@ -8327,6 +8329,48 @@ static MRI *ximgRead(char *fname, int read_volume)
 
 } /* end ximgRead() */
 
+/*-----------------------------------------------------------
+  MRISreadCurvAsMRI() - reads freesurfer surface curv format
+  as an MRI. 
+  -----------------------------------------------------------*/
+static MRI *MRISreadCurvAsMRI(char *curvfile, int read_volume)
+{
+  int    magno,k,vnum,fnum, vals_per_vertex ;
+  float  curv;
+  FILE   *fp;
+  MRI *curvmri;
+
+  if(!IDisCurv(curvfile)) return(NULL);
+  
+  fp = fopen(curvfile,"r");
+  fread3(&magno,fp);
+  
+  vnum = freadInt(fp);
+  fnum = freadInt(fp);
+  vals_per_vertex = freadInt(fp) ;
+  if (vals_per_vertex != 1){
+    fclose(fp) ;
+    printf("ERROR: MRISreadCurvAsMRI: %s, vals/vertex %d unsupported\n",
+	   curvfile,vals_per_vertex);
+    return(NULL);
+  }
+
+  if(!read_volume){
+    curvmri = MRIallocHeader(vnum, 1,1,MRI_FLOAT);
+    curvmri->nframes = 1;
+    return(curvmri);
+  }
+
+  curvmri = MRIalloc(vnum,1,1,MRI_FLOAT);
+  for (k=0;k<vnum;k++){
+    curv = freadFloat(fp) ;
+    MRIsetVoxVal(curvmri,k,0,0,0,curv);
+  }
+  fclose(fp);
+
+  return(curvmri) ;
+}
+
 /*------------------------------------------------------------------
   nifti1Read() - note: there is also an niiRead(). Make sure to 
   edit both. NIFTI1 is defined to be the two-file NIFTI standard, ie,
@@ -8992,10 +9036,10 @@ static int nifti1Write(MRI *mri, char *fname)
   niiRead() - note: there is also an nifti1Read(). Make sure to 
   edit both.
   -----------------------------------------------------------------*/
-static MRI *niiRead(char *fname, int read_volume)
+static MRI *niiRead2(char *fname, int read_volume)
 {
 
-  FILE *fp;
+  znzFile fp;
   MRI *mri;
   struct nifti_1_header hdr;
   int nslices;
@@ -9005,55 +9049,51 @@ static MRI *niiRead(char *fname, int read_volume)
   int n_read, i, j, k, t;
   int bytes_per_voxel,time_units,space_units ;
 
-  fp = fopen(fname, "r");
-  if(fp == NULL)
-    {
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error opening file %s", fname));
-    }
+  fp = znzopen(fname, "r", 1);
+  if(fp == NULL){
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, 
+		       "niiRead(): error opening file %s", fname));
+  }
 
-  if(fread(&hdr, sizeof(hdr), 1, fp) != 1)
-    {
-      fclose(fp);
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error reading header from %s", fname));
-    }
+  if(znzread(&hdr, sizeof(hdr), 1, fp) != 1){
+    znzclose(fp);
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, 
+		       "niiRead(): error reading header from %s", fname));
+  }
 
-  fclose(fp);
+  znzclose(fp);
 
   swapped_flag = FALSE;
-  if(hdr.dim[0] < 1 || hdr.dim[0] > 7)
-    {
-      swapped_flag = TRUE;
-      swap_nifti_1_header(&hdr);
-      if(hdr.dim[0] < 1 || hdr.dim[0] > 7)
-        {
-          ErrorReturn(NULL, (ERROR_BADFILE, 
-                             "niiRead(): bad number of dimensions (%hd) in %s", 
-                             hdr.dim[0], fname));
-        }
+  if(hdr.dim[0] < 1 || hdr.dim[0] > 7){
+    swapped_flag = TRUE;
+    swap_nifti_1_header(&hdr);
+    if(hdr.dim[0] < 1 || hdr.dim[0] > 7){
+      ErrorReturn(NULL, (ERROR_BADFILE, 
+			 "niiRead(): bad number of dimensions (%hd) in %s", 
+			 hdr.dim[0], fname));
     }
+  }
 
-  if(memcmp(hdr.magic, NII_MAGIC, 4) != 0)
-    {
-      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): bad magic number in %s", fname));
-    }
+  if(memcmp(hdr.magic, NII_MAGIC, 4) != 0){
+    ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): bad magic number in %s", 
+		       fname));
+  }
 
-  if(hdr.dim[0] != 3 && hdr.dim[0] != 4)
-    {
-      ErrorReturn(NULL, 
-                  (ERROR_UNSUPPORTED, 
-                   "niiRead(): %hd dimensions in %s; unsupported",
-                   hdr.dim[0], fname));
-    }
+  if(hdr.dim[0] != 3 && hdr.dim[0] != 4){
+    ErrorReturn(NULL, 
+		(ERROR_UNSUPPORTED, 
+		 "niiRead(): %hd dimensions in %s; unsupported",
+		 hdr.dim[0], fname));
+  }
 
-  if(hdr.datatype == DT_NONE || hdr.datatype == DT_UNKNOWN)
-    {
-      ErrorReturn(NULL, 
-                  (ERROR_UNSUPPORTED, 
-                   "niiRead(): unknown or no data type in %s; bailing out", 
-                   fname));
-    }
+  if(hdr.datatype == DT_NONE || hdr.datatype == DT_UNKNOWN){
+    ErrorReturn(NULL, 
+		(ERROR_UNSUPPORTED, 
+		 "niiRead(): unknown or no data type in %s; bailing out", 
+		 fname));
+  }
 
   space_units  = XYZT_TO_SPACE(hdr.xyzt_units) ;
   if(space_units == NIFTI_UNITS_METER)       space_units_factor = 1000.0;
@@ -9084,111 +9124,94 @@ static MRI *niiRead(char *fname, int read_volume)
     not yet supported here
   */
 
-  if(hdr.slice_code != 0 && DIM_INFO_TO_SLICE_DIM(hdr.dim_info) != 0 && hdr.slice_duration > 0.0)
-    {
+  if(hdr.slice_code != 0 && DIM_INFO_TO_SLICE_DIM(hdr.dim_info) != 0 
+     && hdr.slice_duration > 0.0){
       ErrorReturn(NULL, 
                   (ERROR_UNSUPPORTED, 
                    "niiRead(): unsupported timing pattern in %s", fname));
     }
 
-  if(hdr.dim[0] == 3)
-    nslices = 1;
-  else
-    nslices = hdr.dim[4];
+  if(hdr.dim[0] == 3) nslices = 1;
+  else                nslices = hdr.dim[4];
 
-  if(hdr.scl_slope == 0) // voxel values are unscaled -- we use the file's data type
-    {
-
-      if(hdr.datatype == DT_UNSIGNED_CHAR)
-        {
-          fs_type = MRI_UCHAR;
-          bytes_per_voxel = 1;
-        }
-      else if(hdr.datatype == DT_SIGNED_SHORT)
-        {
-          fs_type = MRI_SHORT;
-          bytes_per_voxel = 2;
-        }
-      else if(hdr.datatype == DT_SIGNED_INT)
-        {
-          fs_type = MRI_INT;
-          bytes_per_voxel = 4;
-        }
-      else if(hdr.datatype == DT_FLOAT)
-        {
-          fs_type = MRI_FLOAT;
-          bytes_per_voxel = 4;
-        }
-      else
-        {
-          ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
-                             "niiRead(): unsupported datatype %d (with scl_slope = 0) in %s", 
-                             hdr.datatype, fname));
-        }
+  if(hdr.scl_slope == 0){ 
+    // voxel values are unscaled -- we use the file's data type
+    if(hdr.datatype == DT_UNSIGNED_CHAR){
+      fs_type = MRI_UCHAR;
+      bytes_per_voxel = 1;
     }
-  else // we must scale the voxel values
-    {
-      if(   hdr.datatype != DT_UNSIGNED_CHAR
-            && hdr.datatype != DT_SIGNED_SHORT
-            && hdr.datatype != DT_SIGNED_INT
-            && hdr.datatype != DT_FLOAT
-            && hdr.datatype != DT_DOUBLE
-            && hdr.datatype != DT_INT8
-            && hdr.datatype != DT_UINT16
-            && hdr.datatype != DT_UINT32)
-        {
-          ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
-                             "niiRead(): unsupported datatype %d (with scl_slope != 0) in %s",
-                             hdr.datatype, fname));
-        }
+    else if(hdr.datatype == DT_SIGNED_SHORT){
+      fs_type = MRI_SHORT;
+      bytes_per_voxel = 2;
+    }
+    else if(hdr.datatype == DT_SIGNED_INT){
+      fs_type = MRI_INT;
+      bytes_per_voxel = 4;
+    }
+    else if(hdr.datatype == DT_FLOAT){
       fs_type = MRI_FLOAT;
-      bytes_per_voxel = 0; /* set below -- this line is to avoid the compiler warning */
+      bytes_per_voxel = 4;
     }
+    else{
+      ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+	 "niiRead(): unsupported datatype %d (with scl_slope = 0) in %s", 
+                             hdr.datatype, fname));
+    }
+  }
+  else{
+    // we must scale the voxel values
+    if(   hdr.datatype != DT_UNSIGNED_CHAR
+	  && hdr.datatype != DT_SIGNED_SHORT
+	  && hdr.datatype != DT_SIGNED_INT
+	  && hdr.datatype != DT_FLOAT
+	  && hdr.datatype != DT_DOUBLE
+	  && hdr.datatype != DT_INT8
+	  && hdr.datatype != DT_UINT16
+	  && hdr.datatype != DT_UINT32){
+      ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+	 "niiRead(): unsupported datatype %d (with scl_slope != 0) in %s",
+			 hdr.datatype, fname));
+    }
+    fs_type = MRI_FLOAT;
+    bytes_per_voxel = 0; /* set below -- avoid the compiler warning */
+  }
 
   if(read_volume)
-    mri = MRIallocSequence(hdr.dim[1], hdr.dim[2], hdr.dim[3], fs_type, nslices);
-  else
-    {
-      mri = MRIallocHeader(hdr.dim[1], hdr.dim[2], hdr.dim[3], fs_type);
-      mri->nframes = nslices;
-    }
+    mri = MRIallocSequence(hdr.dim[1],hdr.dim[2],hdr.dim[3],fs_type,nslices);
+  else{
+    mri = MRIallocHeader(hdr.dim[1], hdr.dim[2], hdr.dim[3], fs_type);
+    mri->nframes = nslices;
+  }
 
-  if(mri == NULL)
-    return(NULL);
+  if(mri == NULL) return(NULL);
 
   mri->xsize = hdr.pixdim[1];
   mri->ysize = hdr.pixdim[2];
   mri->zsize = hdr.pixdim[3];
-  if(hdr.dim[0] == 4)
-    mri->tr = hdr.pixdim[4];
+  if(hdr.dim[0] == 4) mri->tr = hdr.pixdim[4];
 
-  if(hdr.qform_code == 0)
-    {
-      printf("WARNING: missing NIfTI-1 orientation (qform_code = 0)\n");
-      printf("WARNING: your volume will probably be incorrectly oriented\n");
-      mri->x_r = 1.0;  mri->x_a = 0.0;  mri->x_s = 0.0;
-      mri->y_r = 0.0;  mri->y_a = 1.0;  mri->y_s = 0.0;
-      mri->z_r = 0.0;  mri->z_a = 0.0;  mri->z_s = 1.0;
-      mri->c_r = mri->xsize * mri->width / 2.0;
-      mri->c_a = mri->ysize * mri->height / 2.0;
-      mri->c_s = mri->zsize * mri->depth / 2.0;
+  if(hdr.qform_code == 0){
+    printf("WARNING: missing NIfTI-1 orientation (qform_code = 0)\n");
+    printf("WARNING: your volume will probably be incorrectly oriented\n");
+    mri->x_r = 1.0;  mri->x_a = 0.0;  mri->x_s = 0.0;
+    mri->y_r = 0.0;  mri->y_a = 1.0;  mri->y_s = 0.0;
+    mri->z_r = 0.0;  mri->z_a = 0.0;  mri->z_s = 1.0;
+    mri->c_r = mri->xsize * mri->width / 2.0;
+    mri->c_a = mri->ysize * mri->height / 2.0;
+    mri->c_s = mri->zsize * mri->depth / 2.0;
+  }
+  else if(hdr.sform_code <= 0){
+    if(niftiQformToMri(mri, &hdr) != NO_ERROR){
+      MRIfree(&mri);
+      return(NULL);
     }
-  else if(hdr.sform_code <= 0)
-    {
-      if(niftiQformToMri(mri, &hdr) != NO_ERROR)
-        {
-          MRIfree(&mri);
-          return(NULL);
-        }
+  }
+  else{
+    if(niftiSformToMri(mri, &hdr) != NO_ERROR){
+      MRIfree(&mri);
+      return(NULL);
     }
-  else
-    {
-      if(niftiSformToMri(mri, &hdr) != NO_ERROR)
-        {
-          MRIfree(&mri);
-          return(NULL);
-        }
-    }
+  }
 
   mri->xsize = mri->xsize * space_units_factor;
   mri->ysize = mri->ysize * space_units_factor;
@@ -9196,301 +9219,277 @@ static MRI *niiRead(char *fname, int read_volume)
   mri->c_r = mri->c_r * space_units_factor;
   mri->c_a = mri->c_a * space_units_factor;
   mri->c_s = mri->c_s * space_units_factor;
-  if(hdr.dim[0] == 4)
-    mri->tr = mri->tr * time_units_factor;
+  if(hdr.dim[0] == 4)  mri->tr = mri->tr * time_units_factor;
 
-  if(!read_volume)
-    return(mri);
+  if(!read_volume) return(mri);
 
-  fp = fopen(fname, "r");
-  if(fp == NULL)
-    {
-      MRIfree(&mri);
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error opening file %s", fname));
-    }
+  fp = znzopen(fname, "r", 1);
+  if(fp == NULL) {
+    MRIfree(&mri);
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, 
+		       "niiRead(): error opening file %s", fname));
+  }
 
-  if(fseek(fp, (long)(hdr.vox_offset), SEEK_SET) == -1)
-    {
-      fclose(fp);
-      MRIfree(&mri);
-      errno = 0;
-      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error finding voxel data in %s", fname));
-    }
+  if(znzseek(fp, (long)(hdr.vox_offset), SEEK_SET) == -1){
+    znzclose(fp);
+    MRIfree(&mri);
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, 
+		       "niiRead(): error finding voxel data in %s", fname));
+  }
 
-  if(hdr.scl_slope == 0) // no voxel value scaling needed
-    {
+  if(hdr.scl_slope == 0){
+    // no voxel value scaling needed
+    void *buf;
+    
+    for(t = 0;t < mri->nframes;t++)
+      for(k = 0;k < mri->depth;k++)
+	for(j = 0;j < mri->height;j++) {
+	  buf = &MRIseq_vox(mri, 0, j, k, t);
+	  
+	  n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
+	  if(n_read != mri->width) {
+	    znzclose(fp);
+	    MRIfree(&mri);
+	    errno = 0;
+	    ErrorReturn(NULL, (ERROR_BADFILE, 
+			       "niiRead(): error reading from %s", fname));
+	  }
 
-      void *buf;
-
+	  if(swapped_flag) {
+	    if(bytes_per_voxel == 2) 
+	      byteswapbufshort(buf, bytes_per_voxel * mri->width);
+	    if(bytes_per_voxel == 4) 
+	      byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+	  }
+	  
+	}
+    
+  }
+  else{
+    // voxel value scaling needed 
+    if(hdr.datatype == DT_UNSIGNED_CHAR) {
+      unsigned char *buf;
+      bytes_per_voxel = 1;
+      buf = (unsigned char *)malloc(mri->width * bytes_per_voxel);
       for(t = 0;t < mri->nframes;t++)
-        for(k = 0;k < mri->depth;k++)
-          for(j = 0;j < mri->height;j++)
-            {
-
-              buf = &MRIseq_vox(mri, 0, j, k, t);
-
-              n_read = fread(buf, bytes_per_voxel, mri->width, fp);
-              if(n_read != mri->width)
-                {
-                  fclose(fp);
-                  MRIfree(&mri);
-                  errno = 0;
-                  ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error reading from %s", fname));
-                }
-
-              if(swapped_flag)
-                {
-                  if(bytes_per_voxel == 2) 
-                    byteswapbufshort(buf, bytes_per_voxel * mri->width);
-                  if(bytes_per_voxel == 4) 
-                    byteswapbuffloat(buf, bytes_per_voxel * mri->width);
-                }
-
-            }
-
-    }
-  else // voxel value scaling needed
-    {
-
-      if(hdr.datatype == DT_UNSIGNED_CHAR)
-        {
-          unsigned char *buf;
-          bytes_per_voxel = 1;
-          buf = (unsigned char *)malloc(mri->width * bytes_per_voxel);
-          for(t = 0;t < mri->nframes;t++)
-            for(k = 0;k < mri->depth;k++)
-              for(j = 0;j < mri->height;j++)
-                {
-                  n_read = fread(buf, bytes_per_voxel, mri->width, fp);
-                  if(n_read != mri->width)
-                    {
-                      free(buf);
-                      fclose(fp);
-                      MRIfree(&mri);
-                      errno = 0;
-                      ErrorReturn(NULL, 
-                                  (ERROR_BADFILE,
-                                   "niiRead(): error reading from %s", fname));
-                    }
-                  for(i = 0;i < mri->width;i++)
-                    MRIFseq_vox(mri, i, j, k, t) = hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
-                }
-          free(buf);
-        }
-
-      if(hdr.datatype == DT_SIGNED_SHORT)
-        {
-          short *buf;
-          bytes_per_voxel = 2;
-          buf = (short *)malloc(mri->width * bytes_per_voxel);
-          for(t = 0;t < mri->nframes;t++)
-            for(k = 0;k < mri->depth;k++)
-              for(j = 0;j < mri->height;j++)
-                {
-                  n_read = fread(buf, bytes_per_voxel, mri->width, fp);
-                  if(n_read != mri->width)
-                    {
-                      free(buf);
-                      fclose(fp);
-                      MRIfree(&mri);
-                      errno = 0;
-                      ErrorReturn(NULL, 
-                                  (ERROR_BADFILE,
-                                   "niiRead(): error reading from %s", fname));
-                    }
-                  if(swapped_flag)
-                    byteswapbufshort(buf, bytes_per_voxel * mri->width);
-                  for(i = 0;i < mri->width;i++)
-                    MRIFseq_vox(mri, i, j, k, t) = hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
-                }
-          free(buf);
-        }
-
-      if(hdr.datatype == DT_SIGNED_INT)
-        {
-          int *buf;
-          bytes_per_voxel = 4;
-          buf = (int *)malloc(mri->width * bytes_per_voxel);
-          for(t = 0;t < mri->nframes;t++)
-            for(k = 0;k < mri->depth;k++)
-              for(j = 0;j < mri->height;j++)
-                {
-                  n_read = fread(buf, bytes_per_voxel, mri->width, fp);
-                  if(n_read != mri->width)
-                    {
-                      free(buf);
-                      fclose(fp);
-                      MRIfree(&mri);
-                      errno = 0;
-                      ErrorReturn(NULL,
-                                  (ERROR_BADFILE,
-                                   "niiRead(): error reading from %s", fname));
-                    }
-                  if(swapped_flag)
-                    byteswapbuffloat(buf, bytes_per_voxel * mri->width);
-                  for(i = 0;i < mri->width;i++)
-                    MRIFseq_vox(mri, i, j, k, t) = hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
-                }
-          free(buf);
-        }
-
-      if(hdr.datatype == DT_FLOAT)
-        {
-          float *buf;
-          bytes_per_voxel = 4;
-          buf = (float *)malloc(mri->width * bytes_per_voxel);
-          for(t = 0;t < mri->nframes;t++)
-            for(k = 0;k < mri->depth;k++)
-              for(j = 0;j < mri->height;j++)
-                {
-                  n_read = fread(buf, bytes_per_voxel, mri->width, fp);
-                  if(n_read != mri->width)
-                    {
-                      free(buf);
-                      fclose(fp);
-                      MRIfree(&mri);
-                      errno = 0;
-                      ErrorReturn(NULL,
-                                  (ERROR_BADFILE, 
-                                   "niiRead(): error reading from %s", fname));
-                    }
-                  if(swapped_flag)
-                    byteswapbuffloat(buf, bytes_per_voxel * mri->width);
-                  for(i = 0;i < mri->width;i++)
-                    MRIFseq_vox(mri, i, j, k, t) = hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
-                }
-          free(buf);
-        }
-
-      if(hdr.datatype == DT_DOUBLE)
-        {
-          double *buf;
-          unsigned char *cbuf, ccbuf[8];
-          bytes_per_voxel = 8;
-          buf = (double *)malloc(mri->width * bytes_per_voxel);
-          for(t = 0;t < mri->nframes;t++)
-            for(k = 0;k < mri->depth;k++)
-              for(j = 0;j < mri->height;j++)
-                {
-                  n_read = fread(buf, bytes_per_voxel, mri->width, fp);
-                  if(n_read != mri->width)
-                    {
-                      free(buf);
-                      fclose(fp);
-                      MRIfree(&mri);
-                      errno = 0;
-                      ErrorReturn(NULL, 
-                                  (ERROR_BADFILE,
-                                   "niiRead(): error reading from %s", fname));
-                    }
-                  if(swapped_flag)
-                    {
-                      for(i = 0;i < mri->width;i++)
-                        {
-                          cbuf = (unsigned char *)&buf[i];
-                          memcpy(ccbuf, cbuf, 8);
-                          cbuf[0] = ccbuf[7];
-                          cbuf[1] = ccbuf[6];
-                          cbuf[2] = ccbuf[5];
-                          cbuf[3] = ccbuf[4];
-                          cbuf[4] = ccbuf[3];
-                          cbuf[5] = ccbuf[2];
-                          cbuf[6] = ccbuf[1];
-                          cbuf[7] = ccbuf[0];
-                        }
-                    }
-                  for(i = 0;i < mri->width;i++)
-                    MRIFseq_vox(mri, i, j, k, t) = hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
-                }
-          free(buf);
-        }
-
-      if(hdr.datatype == DT_INT8)
-        {
-          char *buf;
-          bytes_per_voxel = 1;
-          buf = (char *)malloc(mri->width * bytes_per_voxel);
-          for(t = 0;t < mri->nframes;t++)
-            for(k = 0;k < mri->depth;k++)
-              for(j = 0;j < mri->height;j++)
-                {
-                  n_read = fread(buf, bytes_per_voxel, mri->width, fp);
-                  if(n_read != mri->width)
-                    {
-                      free(buf);
-                      fclose(fp);
-                      MRIfree(&mri);
-                      errno = 0;
-                      ErrorReturn(NULL,
-                                  (ERROR_BADFILE,
-                                   "niiRead(): error reading from %s", fname));
-                    }
-                  for(i = 0;i < mri->width;i++)
-                    MRIFseq_vox(mri, i, j, k, t) = hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
-                }
-          free(buf);
-        }
-
-      if(hdr.datatype == DT_UINT16)
-        {
-          unsigned short *buf;
-          bytes_per_voxel = 2;
-          buf = (unsigned short *)malloc(mri->width * bytes_per_voxel);
-          for(t = 0;t < mri->nframes;t++)
-            for(k = 0;k < mri->depth;k++)
-              for(j = 0;j < mri->height;j++)
-                {
-                  n_read = fread(buf, bytes_per_voxel, mri->width, fp);
-                  if(n_read != mri->width)
-                    {
-                      free(buf);
-                      fclose(fp);
-                      MRIfree(&mri);
-                      errno = 0;
-                      ErrorReturn(NULL,
-                                  (ERROR_BADFILE, 
-                                   "niiRead(): error reading from %s", fname));
-                    }
-                  if(swapped_flag)
-                    byteswapbufshort(buf, bytes_per_voxel * mri->width);
-                  for(i = 0;i < mri->width;i++)
-                    MRIFseq_vox(mri, i, j, k, t) = hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
-                }
-          free(buf);
-        }
-
-      if(hdr.datatype == DT_UINT32)
-        {
-          unsigned int *buf;
-          bytes_per_voxel = 4;
-          buf = (unsigned int *)malloc(mri->width * bytes_per_voxel);
-          for(t = 0;t < mri->nframes;t++)
-            for(k = 0;k < mri->depth;k++)
-              for(j = 0;j < mri->height;j++)
-                {
-                  n_read = fread(buf, bytes_per_voxel, mri->width, fp);
-                  if(n_read != mri->width)
-                    {
-                      free(buf);
-                      fclose(fp);
-                      MRIfree(&mri);
-                      errno = 0;
-                      ErrorReturn(NULL, 
-                                  (ERROR_BADFILE,
-                                   "niiRead(): error reading from %s", fname));
-                    }
-                  if(swapped_flag)
-                    byteswapbuffloat(buf, bytes_per_voxel * mri->width);
-                  for(i = 0;i < mri->width;i++)
-                    MRIFseq_vox(mri, i, j, k, t) = hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
-                }
-          free(buf);
-        }
-
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++) {
+	      n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
+	      if(n_read != mri->width) {
+		free(buf);
+		znzclose(fp);
+		MRIfree(&mri);
+		errno = 0;
+		ErrorReturn(NULL, 
+			    (ERROR_BADFILE,
+			     "niiRead(): error reading from %s", fname));
+	      }
+	      for(i = 0;i < mri->width;i++)
+		MRIFseq_vox(mri, i, j, k, t) = 
+		  hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	    }
+      free(buf);
     }
 
-  fclose(fp);
+    if(hdr.datatype == DT_SIGNED_SHORT){
+      short *buf;
+      bytes_per_voxel = 2;
+      buf = (short *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++) {
+	    n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
+	    if(n_read != mri->width) {
+	      free(buf);
+	      znzclose(fp);
+	      MRIfree(&mri);
+	      errno = 0;
+	      ErrorReturn(NULL, 
+			  (ERROR_BADFILE,
+			   "niiRead(): error reading from %s", fname));
+	    }
+	    if(swapped_flag)
+	      byteswapbufshort(buf, bytes_per_voxel * mri->width);
+	    for(i = 0;i < mri->width;i++)
+	      MRIFseq_vox(mri, i, j, k, t) = 
+		hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	  }
+      free(buf);
+    }
+
+    if(hdr.datatype == DT_SIGNED_INT) {
+      int *buf;
+      bytes_per_voxel = 4;
+      buf = (int *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++) {
+	      n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
+	      if(n_read != mri->width){
+		free(buf);
+		znzclose(fp);
+		MRIfree(&mri);
+		errno = 0;
+		ErrorReturn(NULL,
+			    (ERROR_BADFILE,
+			       "niiRead(): error reading from %s", fname));
+	      }
+	      if(swapped_flag)
+		byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+	      for(i = 0;i < mri->width;i++)
+		MRIFseq_vox(mri, i, j, k, t) = 
+		  hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	    }
+      free(buf);
+    }
+
+    if(hdr.datatype == DT_FLOAT) {
+      float *buf;
+      bytes_per_voxel = 4;
+      buf = (float *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++) {
+	    n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
+	    if(n_read != mri->width) {
+	      free(buf);
+	      znzclose(fp);
+	      MRIfree(&mri);
+	      errno = 0;
+	      ErrorReturn(NULL,
+			  (ERROR_BADFILE, 
+			   "niiRead(): error reading from %s", fname));
+	    }
+	    if(swapped_flag)
+	      byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+	    for(i = 0;i < mri->width;i++)
+	      MRIFseq_vox(mri, i, j, k, t) = 
+		hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	  }
+      free(buf);
+    }
+
+    if(hdr.datatype == DT_DOUBLE) {
+      double *buf;
+      unsigned char *cbuf, ccbuf[8];
+      bytes_per_voxel = 8;
+      buf = (double *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++) {
+	    n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
+	    if(n_read != mri->width) {
+	      free(buf);
+	      znzclose(fp);
+	      MRIfree(&mri);
+	      errno = 0;
+	      ErrorReturn(NULL, 
+			  (ERROR_BADFILE,
+			   "niiRead(): error reading from %s", fname));
+	    }
+	    if(swapped_flag) {
+	      for(i = 0;i < mri->width;i++)
+		{
+		  cbuf = (unsigned char *)&buf[i];
+		  memcpy(ccbuf, cbuf, 8);
+		  cbuf[0] = ccbuf[7];
+		  cbuf[1] = ccbuf[6];
+		  cbuf[2] = ccbuf[5];
+		  cbuf[3] = ccbuf[4];
+		  cbuf[4] = ccbuf[3];
+		  cbuf[5] = ccbuf[2];
+		  cbuf[6] = ccbuf[1];
+		  cbuf[7] = ccbuf[0];
+		}
+	    }
+	    for(i = 0;i < mri->width;i++)
+	      MRIFseq_vox(mri, i, j, k, t) = 
+		hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	  }
+      free(buf);
+    }
+
+    if(hdr.datatype == DT_INT8) {
+      char *buf;
+      bytes_per_voxel = 1;
+      buf = (char *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++){
+	    n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
+	    if(n_read != mri->width) {
+	      free(buf);
+	      znzclose(fp);
+	      MRIfree(&mri);
+	      errno = 0;
+	      ErrorReturn(NULL,
+			  (ERROR_BADFILE,
+			   "niiRead(): error reading from %s", fname));
+	    }
+	    for(i = 0;i < mri->width;i++)
+	      MRIFseq_vox(mri, i, j, k, t) = 
+		hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	  }
+      free(buf);
+    }
+
+    if(hdr.datatype == DT_UINT16) {
+      unsigned short *buf;
+      bytes_per_voxel = 2;
+      buf = (unsigned short *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++) {
+	    n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
+	    if(n_read != mri->width){
+	      free(buf);
+	      znzclose(fp);
+	      MRIfree(&mri);
+	      errno = 0;
+	      ErrorReturn(NULL,
+			  (ERROR_BADFILE, 
+			   "niiRead(): error reading from %s", fname));
+	    }
+	    if(swapped_flag)
+	      byteswapbufshort(buf, bytes_per_voxel * mri->width);
+	    for(i = 0;i < mri->width;i++)
+	      MRIFseq_vox(mri, i, j, k, t) = 
+		hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	  }
+      free(buf);
+    }
+    
+    if(hdr.datatype == DT_UINT32) {
+      unsigned int *buf;
+      bytes_per_voxel = 4;
+      buf = (unsigned int *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++)
+	    {
+	      n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
+	      if(n_read != mri->width)
+		{
+		  free(buf);
+		  znzclose(fp);
+		  MRIfree(&mri);
+		  errno = 0;
+		  ErrorReturn(NULL, 
+			      (ERROR_BADFILE,
+			       "niiRead(): error reading from %s", fname));
+		}
+	      if(swapped_flag)
+		byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+	      for(i = 0;i < mri->width;i++)
+		MRIFseq_vox(mri, i, j, k, t) = 
+		  hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	    }
+      free(buf);
+    }
+  }
+  znzclose(fp);
 
   return(mri);
 
@@ -12908,3 +12907,471 @@ MRIaddCommandLine(MRI *mri, char *cmdline)
   strcpy(mri->cmdlines[i], cmdline) ;
   return(NO_ERROR) ;
 }
+
+
+//---------------------------------------------------------------
+#if 0 // old version without support for compressed
+/*------------------------------------------------------------------
+  niiRead() - note: there is also an nifti1Read(). Make sure to 
+  edit both.
+  -----------------------------------------------------------------*/
+static MRI *niiRead(char *fname, int read_volume)
+{
+
+  FILE *fp;
+  MRI *mri;
+  struct nifti_1_header hdr;
+  int nslices;
+  int fs_type;
+  float time_units_factor, space_units_factor;
+  int swapped_flag;
+  int n_read, i, j, k, t;
+  int bytes_per_voxel,time_units,space_units ;
+
+  fp = fopen(fname, "r");
+  if(fp == NULL){
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error opening file %s", fname));
+  }
+
+  if(fread(&hdr, sizeof(hdr), 1, fp) != 1){
+    fclose(fp);
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): error reading header from %s", fname));
+  }
+
+  fclose(fp);
+
+  swapped_flag = FALSE;
+  if(hdr.dim[0] < 1 || hdr.dim[0] > 7){
+    swapped_flag = TRUE;
+    swap_nifti_1_header(&hdr);
+    if(hdr.dim[0] < 1 || hdr.dim[0] > 7)
+      {
+	ErrorReturn(NULL, (ERROR_BADFILE, 
+			   "niiRead(): bad number of dimensions (%hd) in %s", 
+			   hdr.dim[0], fname));
+      }
+  }
+
+  if(memcmp(hdr.magic, NII_MAGIC, 4) != 0){
+    ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): bad magic number in %s", fname));
+  }
+
+  if(hdr.dim[0] != 3 && hdr.dim[0] != 4){
+    ErrorReturn(NULL, 
+		(ERROR_UNSUPPORTED, 
+		 "niiRead(): %hd dimensions in %s; unsupported",
+		 hdr.dim[0], fname));
+  }
+
+  if(hdr.datatype == DT_NONE || hdr.datatype == DT_UNKNOWN)
+    {
+      ErrorReturn(NULL, 
+                  (ERROR_UNSUPPORTED, 
+                   "niiRead(): unknown or no data type in %s; bailing out", 
+                   fname));
+    }
+
+  space_units  = XYZT_TO_SPACE(hdr.xyzt_units) ;
+  if(space_units == NIFTI_UNITS_METER)       space_units_factor = 1000.0;
+  else if(space_units == NIFTI_UNITS_MM)     space_units_factor = 1.0;
+  else if(space_units == NIFTI_UNITS_MICRON) space_units_factor = 0.001;
+  else
+      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): unknown space units %d in %s", space_units,
+			 fname));
+
+  time_units = XYZT_TO_TIME (hdr.xyzt_units) ;
+  if(time_units == NIFTI_UNITS_SEC)       time_units_factor = 1000.0;
+  else if(time_units == NIFTI_UNITS_MSEC) time_units_factor = 1.0;
+  else if(time_units == NIFTI_UNITS_USEC) time_units_factor = 0.001;
+  else{
+    if(hdr.dim[4] > 1){
+      ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): unknown time units %d in %s", 
+			 time_units,fname));
+    }
+    else time_units_factor = 0;
+  }
+  //printf("hdr.xyzt_units = %d, time_units = %d, %g, %g\n",
+  // hdr.xyzt_units,time_units,hdr.pixdim[4],time_units_factor);
+
+  /*
+    nifti1.h says: slice_code = If this is nonzero, AND if slice_dim is nonzero, AND
+    if slice_duration is positive, indicates the timing
+    pattern of the slice acquisition.
+    not yet supported here
+  */
+
+  if(hdr.slice_code != 0 && DIM_INFO_TO_SLICE_DIM(hdr.dim_info) != 0 
+     && hdr.slice_duration > 0.0){
+      ErrorReturn(NULL, 
+                  (ERROR_UNSUPPORTED, 
+                   "niiRead(): unsupported timing pattern in %s", fname));
+    }
+
+  if(hdr.dim[0] == 3)
+    nslices = 1;
+  else
+    nslices = hdr.dim[4];
+
+  if(hdr.scl_slope == 0){ 
+    // voxel values are unscaled -- we use the file's data type
+      if(hdr.datatype == DT_UNSIGNED_CHAR){
+          fs_type = MRI_UCHAR;
+          bytes_per_voxel = 1;
+        }
+      else if(hdr.datatype == DT_SIGNED_SHORT){
+          fs_type = MRI_SHORT;
+          bytes_per_voxel = 2;
+        }
+      else if(hdr.datatype == DT_SIGNED_INT){
+          fs_type = MRI_INT;
+          bytes_per_voxel = 4;
+        }
+      else if(hdr.datatype == DT_FLOAT){
+          fs_type = MRI_FLOAT;
+          bytes_per_voxel = 4;
+        }
+      else{
+          ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+                             "niiRead(): unsupported datatype %d (with scl_slope = 0) in %s", 
+                             hdr.datatype, fname));
+        }
+    }
+  else{
+    // we must scale the voxel values
+      if(   hdr.datatype != DT_UNSIGNED_CHAR
+            && hdr.datatype != DT_SIGNED_SHORT
+            && hdr.datatype != DT_SIGNED_INT
+            && hdr.datatype != DT_FLOAT
+            && hdr.datatype != DT_DOUBLE
+            && hdr.datatype != DT_INT8
+            && hdr.datatype != DT_UINT16
+            && hdr.datatype != DT_UINT32){
+	ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+	   "niiRead(): unsupported datatype %d (with scl_slope != 0) in %s",
+			   hdr.datatype, fname));
+      }
+      fs_type = MRI_FLOAT;
+      bytes_per_voxel = 0; /* set below -- avoid the compiler warning */
+    }
+
+  if(read_volume)
+    mri = MRIallocSequence(hdr.dim[1],hdr.dim[2],hdr.dim[3],fs_type,nslices);
+  else{
+    mri = MRIallocHeader(hdr.dim[1], hdr.dim[2], hdr.dim[3], fs_type);
+    mri->nframes = nslices;
+  }
+
+  if(mri == NULL) return(NULL);
+
+  mri->xsize = hdr.pixdim[1];
+  mri->ysize = hdr.pixdim[2];
+  mri->zsize = hdr.pixdim[3];
+  if(hdr.dim[0] == 4) mri->tr = hdr.pixdim[4];
+
+  if(hdr.qform_code == 0){
+    printf("WARNING: missing NIfTI-1 orientation (qform_code = 0)\n");
+    printf("WARNING: your volume will probably be incorrectly oriented\n");
+    mri->x_r = 1.0;  mri->x_a = 0.0;  mri->x_s = 0.0;
+    mri->y_r = 0.0;  mri->y_a = 1.0;  mri->y_s = 0.0;
+    mri->z_r = 0.0;  mri->z_a = 0.0;  mri->z_s = 1.0;
+    mri->c_r = mri->xsize * mri->width / 2.0;
+    mri->c_a = mri->ysize * mri->height / 2.0;
+    mri->c_s = mri->zsize * mri->depth / 2.0;
+  }
+  else if(hdr.sform_code <= 0){
+    if(niftiQformToMri(mri, &hdr) != NO_ERROR){
+      MRIfree(&mri);
+      return(NULL);
+    }
+  }
+  else{
+    if(niftiSformToMri(mri, &hdr) != NO_ERROR){
+      MRIfree(&mri);
+      return(NULL);
+    }
+  }
+
+  mri->xsize = mri->xsize * space_units_factor;
+  mri->ysize = mri->ysize * space_units_factor;
+  mri->zsize = mri->zsize * space_units_factor;
+  mri->c_r = mri->c_r * space_units_factor;
+  mri->c_a = mri->c_a * space_units_factor;
+  mri->c_s = mri->c_s * space_units_factor;
+  if(hdr.dim[0] == 4)  mri->tr = mri->tr * time_units_factor;
+
+  if(!read_volume) return(mri);
+
+  fp = fopen(fname, "r");
+  if(fp == NULL) {
+    MRIfree(&mri);
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, 
+		       "niiRead(): error opening file %s", fname));
+  }
+
+  if(fseek(fp, (long)(hdr.vox_offset), SEEK_SET) == -1){
+    fclose(fp);
+    MRIfree(&mri);
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, 
+		       "niiRead(): error finding voxel data in %s", fname));
+  }
+
+  if(hdr.scl_slope == 0){
+    // no voxel value scaling needed
+    void *buf;
+    
+    for(t = 0;t < mri->nframes;t++)
+      for(k = 0;k < mri->depth;k++)
+	for(j = 0;j < mri->height;j++) {
+	  buf = &MRIseq_vox(mri, 0, j, k, t);
+	  
+	  n_read = fread(buf, bytes_per_voxel, mri->width, fp);
+	  if(n_read != mri->width) {
+	    fclose(fp);
+	    MRIfree(&mri);
+	    errno = 0;
+	    ErrorReturn(NULL, (ERROR_BADFILE, 
+			       "niiRead(): error reading from %s", fname));
+	  }
+
+	  if(swapped_flag) {
+	    if(bytes_per_voxel == 2) 
+	      byteswapbufshort(buf, bytes_per_voxel * mri->width);
+	    if(bytes_per_voxel == 4) 
+	      byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+	  }
+	  
+	}
+    
+  }
+  else{
+    // voxel value scaling needed 
+    if(hdr.datatype == DT_UNSIGNED_CHAR) {
+      unsigned char *buf;
+      bytes_per_voxel = 1;
+      buf = (unsigned char *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++) {
+	      n_read = fread(buf, bytes_per_voxel, mri->width, fp);
+	      if(n_read != mri->width) {
+		free(buf);
+		fclose(fp);
+		MRIfree(&mri);
+		errno = 0;
+		ErrorReturn(NULL, 
+			    (ERROR_BADFILE,
+			     "niiRead(): error reading from %s", fname));
+	      }
+	      for(i = 0;i < mri->width;i++)
+		MRIFseq_vox(mri, i, j, k, t) = 
+		  hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	    }
+      free(buf);
+    }
+
+    if(hdr.datatype == DT_SIGNED_SHORT){
+      short *buf;
+      bytes_per_voxel = 2;
+      buf = (short *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++) {
+	    n_read = fread(buf, bytes_per_voxel, mri->width, fp);
+	    if(n_read != mri->width) {
+	      free(buf);
+	      fclose(fp);
+	      MRIfree(&mri);
+	      errno = 0;
+	      ErrorReturn(NULL, 
+			  (ERROR_BADFILE,
+			   "niiRead(): error reading from %s", fname));
+	    }
+	    if(swapped_flag)
+	      byteswapbufshort(buf, bytes_per_voxel * mri->width);
+	    for(i = 0;i < mri->width;i++)
+	      MRIFseq_vox(mri, i, j, k, t) = 
+		hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	  }
+      free(buf);
+    }
+
+    if(hdr.datatype == DT_SIGNED_INT) {
+      int *buf;
+      bytes_per_voxel = 4;
+      buf = (int *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++) {
+	      n_read = fread(buf, bytes_per_voxel, mri->width, fp);
+	      if(n_read != mri->width){
+		  free(buf);
+		  fclose(fp);
+		  MRIfree(&mri);
+		  errno = 0;
+		  ErrorReturn(NULL,
+			      (ERROR_BADFILE,
+			       "niiRead(): error reading from %s", fname));
+		}
+	      if(swapped_flag)
+		byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+	      for(i = 0;i < mri->width;i++)
+		MRIFseq_vox(mri, i, j, k, t) = 
+		  hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	    }
+      free(buf);
+    }
+
+    if(hdr.datatype == DT_FLOAT) {
+      float *buf;
+      bytes_per_voxel = 4;
+      buf = (float *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++) {
+	    n_read = fread(buf, bytes_per_voxel, mri->width, fp);
+	    if(n_read != mri->width) {
+	      free(buf);
+	      fclose(fp);
+	      MRIfree(&mri);
+	      errno = 0;
+	      ErrorReturn(NULL,
+			  (ERROR_BADFILE, 
+			   "niiRead(): error reading from %s", fname));
+	    }
+	    if(swapped_flag)
+	      byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+	    for(i = 0;i < mri->width;i++)
+	      MRIFseq_vox(mri, i, j, k, t) = 
+		hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	  }
+      free(buf);
+    }
+
+    if(hdr.datatype == DT_DOUBLE) {
+      double *buf;
+      unsigned char *cbuf, ccbuf[8];
+      bytes_per_voxel = 8;
+      buf = (double *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++) {
+	    n_read = fread(buf, bytes_per_voxel, mri->width, fp);
+	    if(n_read != mri->width) {
+	      free(buf);
+	      fclose(fp);
+	      MRIfree(&mri);
+	      errno = 0;
+	      ErrorReturn(NULL, 
+			  (ERROR_BADFILE,
+			   "niiRead(): error reading from %s", fname));
+	    }
+	    if(swapped_flag) {
+	      for(i = 0;i < mri->width;i++)
+		{
+		  cbuf = (unsigned char *)&buf[i];
+		  memcpy(ccbuf, cbuf, 8);
+		  cbuf[0] = ccbuf[7];
+		  cbuf[1] = ccbuf[6];
+		  cbuf[2] = ccbuf[5];
+		  cbuf[3] = ccbuf[4];
+		  cbuf[4] = ccbuf[3];
+		  cbuf[5] = ccbuf[2];
+		  cbuf[6] = ccbuf[1];
+		  cbuf[7] = ccbuf[0];
+		}
+	    }
+	    for(i = 0;i < mri->width;i++)
+	      MRIFseq_vox(mri, i, j, k, t) = 
+		hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	  }
+      free(buf);
+    }
+
+    if(hdr.datatype == DT_INT8) {
+      char *buf;
+      bytes_per_voxel = 1;
+      buf = (char *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++){
+	    n_read = fread(buf, bytes_per_voxel, mri->width, fp);
+	    if(n_read != mri->width) {
+	      free(buf);
+	      fclose(fp);
+	      MRIfree(&mri);
+	      errno = 0;
+	      ErrorReturn(NULL,
+			  (ERROR_BADFILE,
+			   "niiRead(): error reading from %s", fname));
+	    }
+	    for(i = 0;i < mri->width;i++)
+	      MRIFseq_vox(mri, i, j, k, t) = 
+		hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	  }
+      free(buf);
+    }
+
+    if(hdr.datatype == DT_UINT16) {
+      unsigned short *buf;
+      bytes_per_voxel = 2;
+      buf = (unsigned short *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++) {
+	    n_read = fread(buf, bytes_per_voxel, mri->width, fp);
+	    if(n_read != mri->width){
+	      free(buf);
+	      fclose(fp);
+	      MRIfree(&mri);
+	      errno = 0;
+	      ErrorReturn(NULL,
+			  (ERROR_BADFILE, 
+			   "niiRead(): error reading from %s", fname));
+	    }
+	    if(swapped_flag)
+	      byteswapbufshort(buf, bytes_per_voxel * mri->width);
+	    for(i = 0;i < mri->width;i++)
+	      MRIFseq_vox(mri, i, j, k, t) = 
+		hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	  }
+      free(buf);
+    }
+    
+    if(hdr.datatype == DT_UINT32) {
+      unsigned int *buf;
+      bytes_per_voxel = 4;
+      buf = (unsigned int *)malloc(mri->width * bytes_per_voxel);
+      for(t = 0;t < mri->nframes;t++)
+	for(k = 0;k < mri->depth;k++)
+	  for(j = 0;j < mri->height;j++)
+	    {
+	      n_read = fread(buf, bytes_per_voxel, mri->width, fp);
+	      if(n_read != mri->width)
+		{
+		  free(buf);
+		  fclose(fp);
+		  MRIfree(&mri);
+		  errno = 0;
+		  ErrorReturn(NULL, 
+			      (ERROR_BADFILE,
+			       "niiRead(): error reading from %s", fname));
+		}
+	      if(swapped_flag)
+		byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+	      for(i = 0;i < mri->width;i++)
+		MRIFseq_vox(mri, i, j, k, t) = 
+		  hdr.scl_slope * (float)(buf[i]) + hdr.scl_inter;
+	    }
+      free(buf);
+    }
+  }
+  fclose(fp);
+
+  return(mri);
+
+} /* end niiRead() */
+#endif

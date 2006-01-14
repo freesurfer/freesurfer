@@ -33,6 +33,7 @@ int is_otl(char *fname);
 int is_ximg(char *fname);
 int is_nifti1(char *fname);
 int is_nii(char *fname);
+int IDisCurv(char *curvfile);
 char * bhdr_stem(char *fname);
 char * bhdr_precisionstring(char *fname);
 int bhdr_precision(char *fname);

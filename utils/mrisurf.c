@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/11 20:37:03 $
-// Revision       : $Revision: 1.416 $
+// Revision Date  : $Date: 2006/01/14 22:06:09 $
+// Revision       : $Revision: 1.417 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -481,7 +481,7 @@ static MATRIX *getSRASToTalSRAS(LT *lt);
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 /* 16777215 = 0xFFFFFF */
-#define NEW_VERSION_MAGIC_NUMBER  16777215
+//#define NEW_VERSION_MAGIC_NUMBER  16777215 // moved to mrisurf.h
 #define START_Y                   (-128)
 #define SLICE_THICKNESS           1
 
@@ -525,7 +525,7 @@ static MATRIX *getSRASToTalSRAS(LT *lt);
 				/*---------------------------------------------------------------
 				  MRISurfSrcVersion() - returns CVS version of this file.
 				  ---------------------------------------------------------------*/
-				const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.416 2006/01/11 20:37:03 greve Exp $"); }
+				const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.417 2006/01/14 22:06:09 greve Exp $"); }
 
 				/*-----------------------------------------------------
 				  ------------------------------------------------------*/

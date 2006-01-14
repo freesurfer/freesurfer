@@ -50,6 +50,7 @@ char *type_to_string(int type)
   case XIMG_FILE:   tmpstr = "ximg"; break;
   case NIFTI1_FILE: tmpstr = "nifti1"; break;
   case NII_FILE:    tmpstr = "nii"; break;
+  case MRI_CURV_FILE: tmpstr = "curv"; break;
   default: tmpstr = "unknown"; break;
   }
 
@@ -112,16 +113,11 @@ int string_to_type(char *string)
     type = SDT_FILE;
   if(strcmp(ls, "otl") == 0 || strcmp(ls, "outline") == 0)
     type = OTL_FILE;
-  if(strcmp(ls, "gdf") == 0)
-    type = GDF_FILE;
-  if(strcmp(ls, "bruker")==0)
-    type = BRUKER_FILE;
-  if(strcmp(ls, "ximg") == 0)
-    type = XIMG_FILE;
-  if(strcmp(ls, "nifti1") == 0)
-    type = NIFTI1_FILE;
-  if(strcmp(ls, "nii") == 0)
-    type = NII_FILE;
+  if(strcmp(ls, "gdf") == 0)     type = GDF_FILE;
+  if(strcmp(ls, "bruker")==0)    type = BRUKER_FILE;
+  if(strcmp(ls, "ximg") == 0)    type = XIMG_FILE;
+  if(strcmp(ls, "nifti1") == 0)  type = NIFTI1_FILE;
+  if(strcmp(ls, "nii") == 0)     type = NII_FILE;
   // check for IMAGE file
   if (!strcmp(ls, "mat")
       || !strcmp(ls, "tif") || !strcmp(ls, "tiff")
@@ -129,6 +125,7 @@ int string_to_type(char *string)
       || !strcmp(ls, "pgm") || !strcmp(ls, "ppm")
       || !strcmp(ls, "pbm") || !strcmp(ls, "rgb"))
     type = IMAGE_FILE;
+  if(strcmp(ls, "curv") == 0) type = MRI_CURV_FILE;
   
   return(type);
 
@@ -157,32 +154,25 @@ int mri_identify(char *fname_passed)
       // first use the extension to identify
       type = string_to_type(ext);
 
-      if (type == MRI_GZIPPED)
-      {
-	if (strstr(fname, ".mgh.gz"))
-	{
-	  type = MRI_MGH_FILE;
-	}
-	else
-	{
+      if(type == MRI_GZIPPED){
+	if(strstr(fname, ".mgh.gz")) type = MRI_MGH_FILE;
+	if(strstr(fname, ".nii.gz")) type = NII_FILE;
+	else{
 	  type = MRI_VOLUME_TYPE_UNKNOWN;
-	  fprintf(stderr, "INFO: Currently supports gzipped mgh file (.mgz or .mgh.gz) only\n");
+	  printf("INFO: Currently supports gzipped mgh file "
+		 "(.mgz or .mgh.gz) only\n");
 	  return type;
 	}
       }
+
       ///////////////////////////////////////////////
       // if type is found then verify
       // IMAGE file uses only extension
-      if (type == IMAGE_FILE)
-	return type;
+      if (type == IMAGE_FILE) return type;
 			
-      if (type != MRI_VOLUME_TYPE_UNKNOWN)
-      {
-	switch(type)
-	{
-	case MRI_GCA_FILE:
-	  return(type) ;
-	  break ;
+      if (type != MRI_VOLUME_TYPE_UNKNOWN){
+	switch(type){
+	case MRI_GCA_FILE: return(type);  break ;
 	case BRUKER_FILE:          // this cannot be identified by extension
 	  if (is_bruker(fname))
 	    return type;
@@ -231,13 +221,9 @@ int mri_identify(char *fname_passed)
 	    return type;
 	  break;
 	case MRI_MINC_FILE:
-	  if (is_mnc(fname))
-	    return type;
-	  break;
+	  if (is_mnc(fname)) return type; break;
 	case NII_FILE:
-	  if (is_nii(fname))
-	    return type;
-	  break;
+	  if(is_nii(fname))  return type;  break;
 	case NIFTI1_FILE:
 	  if (is_nifti1(fname))
 	    return type;
@@ -282,49 +268,29 @@ int mri_identify(char *fname_passed)
   // using extension to find type failed or verification failed
   //////////////////////////////////////////////////////////////
   // if type cannot be found then go through the list again
-  if (is_bruker(fname))
-    return(BRUKER_FILE);
-  else if(is_cor(fname))
-    return(MRI_CORONAL_SLICE_DIRECTORY);
-  else if(is_bshort(fname))
-    return(BSHORT_FILE);
-  else if(is_bfloat(fname))
-    return(BFLOAT_FILE);
-  else if (IsSiemensDICOM(fname))
-    return(SIEMENS_DICOM_FILE);
-  else if (IsDICOM(fname))
-    return(DICOM_FILE);
-  else if(is_genesis(fname))
-    return(GENESIS_FILE);
-  else if(is_signa(fname))
-    return(SIGNA_FILE);
-  else if(is_ge_lx(fname))
-    return(GE_LX_FILE);
-  else if(is_sdt(fname))
-    return(SDT_FILE);
-  else if(is_mgh(fname))
-    return(MRI_MGH_FILE);
-  else if(is_mnc(fname))
-    return(MRI_MINC_FILE);
+  if (is_bruker(fname))    return(BRUKER_FILE);
+  else if(is_cor(fname))   return(MRI_CORONAL_SLICE_DIRECTORY);
+  else if(is_bshort(fname))  return(BSHORT_FILE);
+  else if(is_bfloat(fname))    return(BFLOAT_FILE);
+  else if (IsSiemensDICOM(fname))    return(SIEMENS_DICOM_FILE);
+  else if (IsDICOM(fname))    return(DICOM_FILE);
+  else if(is_genesis(fname))    return(GENESIS_FILE);
+  else if(is_signa(fname))    return(SIGNA_FILE);
+  else if(is_ge_lx(fname))    return(GE_LX_FILE);
+  else if(is_sdt(fname))    return(SDT_FILE);
+  else if(is_mgh(fname))    return(MRI_MGH_FILE);
+  else if(is_mnc(fname))    return(MRI_MINC_FILE);
   else if(is_nifti1(fname)) // must appear before ANALYZE
     return(NIFTI1_FILE);
-  else if(is_nii(fname))
-    return(NII_FILE);
-  else if(is_analyze(fname))
-    return(MRI_ANALYZE_FILE);
-  else if(is_siemens(fname))
-    return(SIEMENS_FILE);
-  else if(is_brik(fname))
-    return(BRIK_FILE);
-  else if(is_otl(fname))
-    return(OTL_FILE);
-  else if(is_gdf(fname))
-    return(GDF_FILE);
-  else if(is_ximg(fname))
-    return(XIMG_FILE);
-  else
-    return(MRI_VOLUME_TYPE_UNKNOWN);
-
+  else if(is_nii(fname))    return(NII_FILE);
+  else if(is_analyze(fname))    return(MRI_ANALYZE_FILE);
+  else if(is_siemens(fname))    return(SIEMENS_FILE);
+  else if(is_brik(fname))    return(BRIK_FILE);
+  else if(is_otl(fname))    return(OTL_FILE);
+  else if(is_gdf(fname))    return(GDF_FILE);
+  else if(is_ximg(fname))    return(XIMG_FILE);
+  else if(IDisCurv(fname))    return(MRI_CURV_FILE);
+  else return(MRI_VOLUME_TYPE_UNKNOWN);
 }  /*  end mri_identify()  */
 
 int is_cor(char *fname)
@@ -919,10 +885,11 @@ int is_nii(char *fname)
 
   dot = strrchr(fname, '.');
 
-  if(dot != NULL)
-  {
-    if(strcmp(dot, ".nii") == 0)
-      return(TRUE);
+  if(dot != NULL){
+    if(strcmp(dot, ".nii") == 0) return(TRUE);
+    if(strcmp(dot, ".gz") == 0){
+      if(strstr(fname, ".nii.gz")) return(TRUE);
+    }
   }
 
   fp = fopen(fname, "r");
@@ -954,5 +921,26 @@ int is_nii(char *fname)
   return(TRUE);
 
 }  /*  end is_nii()  */
+
+/*----------------------------------------
+  IDisCurv() - surface curve file format
+  ----------------------------------------*/
+int IDisCurv(char *curvfile)
+{
+  int magno;
+  FILE *fp;
+
+  fp = fopen(curvfile,"r");
+  if (fp==NULL)return(0); // return quietly
+  fread3(&magno,fp);
+  fclose(fp) ;
+  if(magno != NEW_VERSION_MAGIC_NUMBER) return(FALSE);
+  return(TRUE);
+}
+
+
+
+
+
 
 /* EOF */

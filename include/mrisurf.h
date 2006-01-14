@@ -41,6 +41,8 @@
 #define GRAYMID_NAME         LAYERIV_NAME
 #define MAX_CMDS 1000
 
+#define NEW_VERSION_MAGIC_NUMBER  16777215 // was in mrisurf.c
+
 typedef struct _area_label
 {
   char     name[STRLEN] ;     /* name of region */
