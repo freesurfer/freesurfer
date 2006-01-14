@@ -12,12 +12,10 @@
 #include "region.h"
 #include "machine.h"
 #include "fio.h"
+#include "mri_identify.h" // declare IDisCurv function
+#include "mrisurf.h" // get #define NEW_VERSION_MAGIC_NUMBER
 
-#define NEW_VERSION_MAGIC_NUMBER  16777215 // defined in mrisurf.c
-
-int IDisCurv(char *curvfile);
 MRI *MRISreadCurvAsMRI(char *curvfile);
-
 
 char *Progname = "dngtester";
 char *subject=NULL, *hemi=NULL;
@@ -52,23 +50,9 @@ int main(int argc, char **argv)
   mri = MRISreadCurvAsMRI(tmpstr);
   MRIwrite(mri,"./lh.curv2.mgh");
 
-
   return(0);
 }
 
-/*----------------------------------------*/
-int IDisCurv(char *curvfile)
-{
-  int magno;
-  FILE *fp;
-
-  fp = fopen(curvfile,"r");
-  if (fp==NULL)return(0); // return quietly
-  fread3(&magno,fp);
-  fclose(fp) ;
-  if(magno != NEW_VERSION_MAGIC_NUMBER) return(0);
-  return(1);
-}
 /*----------------------------------------*/
 MRI *MRISreadCurvAsMRI(char *curvfile)
 {
@@ -88,7 +72,7 @@ MRI *MRISreadCurvAsMRI(char *curvfile)
   if (vals_per_vertex != 1){
     fclose(fp) ;
     printf("ERROR: MRISreadCurvAsMRI: %s, vals/vertex %d unsupported\n",
-	   curvfile,vals_per_vertex);
+           curvfile,vals_per_vertex);
     return(NULL);
   }
 
