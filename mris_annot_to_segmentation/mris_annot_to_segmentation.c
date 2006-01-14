@@ -46,7 +46,7 @@ main(int argc, char *argv[])
   
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_annot_to_segmentation.c,v 1.3 2004/03/03 18:54:50 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_annot_to_segmentation.c,v 1.4 2006/01/14 17:16:43 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -100,7 +100,7 @@ main(int argc, char *argv[])
 	      annot_file);
 
   /* Read the color look up table. */
-  err = CLUT_New ( &clut, color_file );
+  err = CLUT_NewFromFile ( &clut, color_file );
   if (err != CLUT_tErr_NoErr)
     ErrorExit(ERROR_NOFILE, "%s: could not read color table %s\n",
 	      color_file);
