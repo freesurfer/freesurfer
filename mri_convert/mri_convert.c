@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/01/15 01:18:26 $
-// Revision       : $Revision: 1.115 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/01/15 05:26:50 $
+// Revision       : $Revision: 1.116 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
         
   make_cmd_version_string 
     (argc, argv, 
-    "$Id: mri_convert.c,v 1.115 2006/01/15 01:18:26 nicks Exp $", "$Name:  $",
+    "$Id: mri_convert.c,v 1.116 2006/01/15 05:26:50 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
     handle_version_option 
     (
      argc, argv, 
-     "$Id: mri_convert.c,v 1.115 2006/01/15 01:18:26 nicks Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.116 2006/01/15 05:26:50 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2522,6 +2522,7 @@ void usage(FILE *stream)
           "  nifti1        - NIfTI-1 volume (separate image "
           "and header files)\n"
           "  nii           - NIfTI-1 volume (single file)\n"
+          "    if the input/output has extension .nii.gz, then compressed is used\n"
           "\n"
           "CONVERTING TO SPM-ANALYZE FORMAT \n"
           "\n"
