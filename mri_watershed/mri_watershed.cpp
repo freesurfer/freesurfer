@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/01/14 23:39:11 $
-// Revision       : $Revision: 1.45 $
+// Revision Date  : $Date: 2006/01/15 18:52:37 $
+// Revision       : $Revision: 1.46 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.45 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.46 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -691,7 +691,7 @@ int main(int argc, char *argv[])
         
   make_cmd_version_string
     (argc, argv, 
-     "$Id: mri_watershed.cpp,v 1.45 2006/01/14 23:39:11 nicks Exp $", "$Name:  $",
+     "$Id: mri_watershed.cpp,v 1.46 2006/01/15 18:52:37 nicks Exp $", "$Name:  $",
      cmdline);
 
   Progname=argv[0];
@@ -703,7 +703,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_watershed.cpp,v 1.45 2006/01/14 23:39:11 nicks Exp $", "$Name:  $");
+     "$Id: mri_watershed.cpp,v 1.46 2006/01/15 18:52:37 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3265,7 +3265,7 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
 #ifndef __OPTIMIZE__
   int brainsize;
 #endif
-  fprintf(stderr,"\n****************TEMPLATE DEFORMATION****************");
+  fprintf(stderr,"\n****************TEMPLATE DEFORMATION****************\n");
                     
   read_geometry(0,MRI_var,NULL);
   brain_params(MRI_var);
