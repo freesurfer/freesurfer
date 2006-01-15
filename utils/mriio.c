@@ -133,8 +133,7 @@ static MRI *ximgRead(char *fname, int read_volume);
 
 static MRI *nifti1Read(char *fname, int read_volume);
 static int nifti1Write(MRI *mri, char *fname);
-//static MRI *niiRead(char *fname, int read_volume);
-static MRI *niiRead2(char *fname, int read_volume);
+static MRI *niiRead(char *fname, int read_volume);
 static int niiWrite(MRI *mri, char *fname);
 static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr);
 static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr);
@@ -574,7 +573,7 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
       mri = nifti1Read(fname_copy, volume_flag);
     }
   else if(type == NII_FILE)
-    mri = niiRead2(fname_copy, volume_flag);
+    mri = niiRead(fname_copy, volume_flag);
   else if(type == MRI_CURV_FILE)
     mri = MRISreadCurvAsMRI(fname_copy, volume_flag);
   else if (type == IMAGE_FILE) {
@@ -954,10 +953,7 @@ int MRIwriteType(MRI *mri, char *fname, int type)
     {
       error = nifti1Write(mri, fname);
     }
-  else if(type == NII_FILE)
-    {
-      error = niiWrite(mri, fname);
-    }
+  else if(type == NII_FILE) error = niiWrite(mri, fname);
   else if(type == GENESIS_FILE)
     {
       errno = 0;
@@ -9036,7 +9032,7 @@ static int nifti1Write(MRI *mri, char *fname)
   niiRead() - note: there is also an nifti1Read(). Make sure to 
   edit both.
   -----------------------------------------------------------------*/
-static MRI *niiRead2(char *fname, int read_volume)
+static MRI *niiRead(char *fname, int read_volume)
 {
 
   znzFile fp;
@@ -9502,7 +9498,7 @@ static MRI *niiRead2(char *fname, int read_volume)
 static int niiWrite(MRI *mri, char *fname)
 {
 
-  FILE *fp;
+  znzFile fp;
   int j, k, t;
   BUFTYPE *buf;
   struct nifti_1_header hdr;
@@ -9534,49 +9530,41 @@ static int niiWrite(MRI *mri, char *fname)
     hdr.pixdim[4] = mri->tr/1000.0; // see also xyzt_units
   }
 
-  if(mri->type == MRI_UCHAR)
-    {
-      hdr.datatype = DT_UNSIGNED_CHAR;
-      hdr.bitpix = 8;
-    }
-  else if(mri->type == MRI_INT)
-    {
-      hdr.datatype = DT_SIGNED_INT;
-      hdr.bitpix = 32;
-    }
-  else if(mri->type == MRI_LONG)
-    {
-      hdr.datatype = DT_SIGNED_INT;
-      hdr.bitpix = 32;
-    }
-  else if(mri->type == MRI_FLOAT)
-    {
-      hdr.datatype = DT_FLOAT;
-      hdr.bitpix = 32;
-    }
-  else if(mri->type == MRI_SHORT)
-    {
-      hdr.datatype = DT_SIGNED_SHORT;
-      hdr.bitpix = 16;
-    }
-  else if(mri->type == MRI_BITMAP)
-    {
-      ErrorReturn(ERROR_UNSUPPORTED, 
-                  (ERROR_UNSUPPORTED,
-                   "niiWrite(): data type MRI_BITMAP unsupported"));
-    }
-  else if(mri->type == MRI_TENSOR)
-    {
-      ErrorReturn(ERROR_UNSUPPORTED, 
-                  (ERROR_UNSUPPORTED,
-                   "niiWrite(): data type MRI_TENSOR unsupported"));
-    }
-  else
-    {
-      ErrorReturn(ERROR_BADPARM, 
-                  (ERROR_BADPARM,
-                   "niiWrite(): unknown data type %d", mri->type));
-    }
+  if(mri->type == MRI_UCHAR){
+    hdr.datatype = DT_UNSIGNED_CHAR;
+    hdr.bitpix = 8;
+  }
+  else if(mri->type == MRI_INT){
+    hdr.datatype = DT_SIGNED_INT;
+    hdr.bitpix = 32;
+  }
+  else if(mri->type == MRI_LONG){
+    hdr.datatype = DT_SIGNED_INT;
+    hdr.bitpix = 32;
+  }
+  else if(mri->type == MRI_FLOAT){
+    hdr.datatype = DT_FLOAT;
+    hdr.bitpix = 32;
+  }
+  else if(mri->type == MRI_SHORT){
+    hdr.datatype = DT_SIGNED_SHORT;
+    hdr.bitpix = 16;
+  }
+  else if(mri->type == MRI_BITMAP){
+    ErrorReturn(ERROR_UNSUPPORTED, 
+		(ERROR_UNSUPPORTED,
+		 "niiWrite(): data type MRI_BITMAP unsupported"));
+  }
+  else if(mri->type == MRI_TENSOR){
+    ErrorReturn(ERROR_UNSUPPORTED, 
+		(ERROR_UNSUPPORTED,
+		 "niiWrite(): data type MRI_TENSOR unsupported"));
+  }
+  else{
+    ErrorReturn(ERROR_BADPARM, 
+		(ERROR_BADPARM,
+		 "niiWrite(): unknown data type %d", mri->type));
+  }
 
   hdr.intent_code = NIFTI_INTENT_NONE;
   hdr.intent_name[0] = '\0';
@@ -9595,40 +9583,36 @@ static int niiWrite(MRI *mri, char *fname)
 
   memcpy(hdr.magic, NII_MAGIC, 4);
 
-  fp = fopen(fname, "w");
-  if(fp == NULL)
-    {
-      errno = 0;
-      ErrorReturn(ERROR_BADFILE, 
-                  (ERROR_BADFILE, 
-                   "niiWrite(): error opening file %s", fname));
-    }
+  fp = znzopen(fname, "w", 1);
+  if(fp == NULL){
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE, 
+		(ERROR_BADFILE, 
+		 "niiWrite(): error opening file %s", fname));
+  }
 
-  if(fwrite(&hdr, sizeof(hdr), 1, fp) != 1)
-    {
-      fclose(fp);
-      errno = 0;
-      ErrorReturn(ERROR_BADFILE, 
-                  (ERROR_BADFILE,
-                   "niiWrite(): error writing header to %s", fname));
-    }
+  if(znzwrite(&hdr, sizeof(hdr), 1, fp) != 1) {
+    znzclose(fp);
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE, 
+		(ERROR_BADFILE,
+		 "niiWrite(): error writing header to %s", fname));
+  }
 
   for(t = 0;t < mri->nframes;t++)
     for(k = 0;k < mri->depth;k++)
-      for(j = 0;j < mri->height;j++)
-        {
-          buf = &MRIseq_vox(mri, 0, j, k, t);
-          if(fwrite(buf, hdr.bitpix/8, mri->width, fp) != mri->width)
-            {
-              fclose(fp);
-              errno = 0;
-              ErrorReturn(ERROR_BADFILE, 
-                          (ERROR_BADFILE,
-                           "niiWrite(): error writing data to %s", fname));
-            }
-        }
+      for(j = 0;j < mri->height;j++){
+	buf = &MRIseq_vox(mri, 0, j, k, t);
+	if(znzwrite(buf, hdr.bitpix/8, mri->width, fp) != mri->width){
+	  znzclose(fp);
+	  errno = 0;
+	  ErrorReturn(ERROR_BADFILE, 
+		      (ERROR_BADFILE,
+		       "niiWrite(): error writing data to %s", fname));
+	}
+      }
 
-  fclose(fp);
+  znzclose(fp);
 
   return(NO_ERROR);
 
@@ -12910,7 +12894,7 @@ MRIaddCommandLine(MRI *mri, char *cmdline)
 
 
 //---------------------------------------------------------------
-#if 0 // old version without support for compressed
+#if 0 // old versions without support for compressed nifti
 /*------------------------------------------------------------------
   niiRead() - note: there is also an nifti1Read(). Make sure to 
   edit both.
@@ -13374,4 +13358,143 @@ static MRI *niiRead(char *fname, int read_volume)
   return(mri);
 
 } /* end niiRead() */
+/*------------------------------------------------------------------
+  niiWrite() - note: there is also an nifti1Write(). Make sure to 
+  edit both.
+  -----------------------------------------------------------------*/
+static int niiWrite(MRI *mri, char *fname)
+{
+
+  FILE *fp;
+  int j, k, t;
+  BUFTYPE *buf;
+  struct nifti_1_header hdr;
+  int error;
+
+  memset(&hdr, 0x00, sizeof(hdr));
+
+  hdr.sizeof_hdr = 348;
+  hdr.dim_info = 0;
+
+  if(mri->nframes == 1){
+    hdr.dim[0] = 3;
+    hdr.dim[1] = mri->width;
+    hdr.dim[2] = mri->height;
+    hdr.dim[3] = mri->depth;
+    hdr.pixdim[1] = mri->xsize;
+    hdr.pixdim[2] = mri->ysize;
+    hdr.pixdim[3] = mri->zsize;
+  }
+  else{
+    hdr.dim[0] = 4;
+    hdr.dim[1] = mri->width;
+    hdr.dim[2] = mri->height;
+    hdr.dim[3] = mri->depth;
+    hdr.dim[4] = mri->nframes;
+    hdr.pixdim[1] = mri->xsize;
+    hdr.pixdim[2] = mri->ysize;
+    hdr.pixdim[3] = mri->zsize;
+    hdr.pixdim[4] = mri->tr/1000.0; // see also xyzt_units
+  }
+
+  if(mri->type == MRI_UCHAR)
+    {
+      hdr.datatype = DT_UNSIGNED_CHAR;
+      hdr.bitpix = 8;
+    }
+  else if(mri->type == MRI_INT)
+    {
+      hdr.datatype = DT_SIGNED_INT;
+      hdr.bitpix = 32;
+    }
+  else if(mri->type == MRI_LONG)
+    {
+      hdr.datatype = DT_SIGNED_INT;
+      hdr.bitpix = 32;
+    }
+  else if(mri->type == MRI_FLOAT)
+    {
+      hdr.datatype = DT_FLOAT;
+      hdr.bitpix = 32;
+    }
+  else if(mri->type == MRI_SHORT)
+    {
+      hdr.datatype = DT_SIGNED_SHORT;
+      hdr.bitpix = 16;
+    }
+  else if(mri->type == MRI_BITMAP)
+    {
+      ErrorReturn(ERROR_UNSUPPORTED, 
+                  (ERROR_UNSUPPORTED,
+                   "niiWrite(): data type MRI_BITMAP unsupported"));
+    }
+  else if(mri->type == MRI_TENSOR)
+    {
+      ErrorReturn(ERROR_UNSUPPORTED, 
+                  (ERROR_UNSUPPORTED,
+                   "niiWrite(): data type MRI_TENSOR unsupported"));
+    }
+  else
+    {
+      ErrorReturn(ERROR_BADPARM, 
+                  (ERROR_BADPARM,
+                   "niiWrite(): unknown data type %d", mri->type));
+    }
+
+  hdr.intent_code = NIFTI_INTENT_NONE;
+  hdr.intent_name[0] = '\0';
+  hdr.vox_offset = sizeof(hdr);
+  hdr.scl_slope = 0.0;
+  hdr.slice_code = 0;
+  hdr.xyzt_units = NIFTI_UNITS_MM | NIFTI_UNITS_SEC;
+  hdr.cal_max = 0.0;
+  hdr.cal_min = 0.0;
+  hdr.toffset = 0;
+
+  /* set the nifti header qform values */
+  error = mriToNiftiQform(mri, &hdr);
+  if(error != NO_ERROR)
+    return(error);
+
+  memcpy(hdr.magic, NII_MAGIC, 4);
+
+  fp = fopen(fname, "w");
+  if(fp == NULL)
+    {
+      errno = 0;
+      ErrorReturn(ERROR_BADFILE, 
+                  (ERROR_BADFILE, 
+                   "niiWrite(): error opening file %s", fname));
+    }
+
+  if(fwrite(&hdr, sizeof(hdr), 1, fp) != 1)
+    {
+      fclose(fp);
+      errno = 0;
+      ErrorReturn(ERROR_BADFILE, 
+                  (ERROR_BADFILE,
+                   "niiWrite(): error writing header to %s", fname));
+    }
+
+  for(t = 0;t < mri->nframes;t++)
+    for(k = 0;k < mri->depth;k++)
+      for(j = 0;j < mri->height;j++)
+        {
+          buf = &MRIseq_vox(mri, 0, j, k, t);
+          if(fwrite(buf, hdr.bitpix/8, mri->width, fp) != mri->width)
+            {
+              fclose(fp);
+              errno = 0;
+              ErrorReturn(ERROR_BADFILE, 
+                          (ERROR_BADFILE,
+                           "niiWrite(): error writing data to %s", fname));
+            }
+        }
+
+  fclose(fp);
+
+  return(NO_ERROR);
+
+} /* end niiWrite() */
+
 #endif
