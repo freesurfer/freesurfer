@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/14 22:06:09 $
-// Revision       : $Revision: 1.417 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/01/15 22:43:24 $
+// Revision       : $Revision: 1.418 $
 //////////////////////////////////////////////////////////////////
 
 
@@ -525,7 +525,7 @@ static MATRIX *getSRASToTalSRAS(LT *lt);
 				/*---------------------------------------------------------------
 				  MRISurfSrcVersion() - returns CVS version of this file.
 				  ---------------------------------------------------------------*/
-				const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.417 2006/01/14 22:06:09 greve Exp $"); }
+				const char *MRISurfSrcVersion(void) { return("$Id: mrisurf.c,v 1.418 2006/01/15 22:43:24 fischl Exp $"); }
 
 				/*-----------------------------------------------------
 				  ------------------------------------------------------*/
@@ -1652,11 +1652,11 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   vall = (int *)calloc(MAX_VERTICES, sizeof(int)) ;
   vtotal = total_nbrs = 0 ;
   for (vtotal = max_possible = 0, n = 1 ; n <= max_nbhd ; n++)
-    {
-      max_possible += nbrs[n] ;
-      if (n > mris->nsize)
-	vtotal += nbrs[n] ;
-    }
+	{
+		max_possible += nbrs[n] ;
+		if (n > mris->nsize)
+			vtotal += nbrs[n] ;
+	}
   if (Gdiag & DIAG_HEARTBEAT)
     fprintf(stdout, 
             "\nsampling %d dists/vertex (%2.1f at each dist) = %2.1fMB\n",
@@ -1666,325 +1666,325 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
             (1024.0f*1024.0f)) ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      if ((Gdiag & DIAG_HEARTBEAT) && (!(vno % (mris->nvertices/10))))
-	fprintf(stdout, "%%%1.0f done\n", 
-		100.0f*(float)vno / (float)mris->nvertices) ;
-      v = &mris->vertices[vno] ;
-      if (vno == Gdiag_no)
-	DiagBreak()  ;
-
-      if (v->ripflag)
-	continue ;
-
-      /* small neighborhood is always fixed, don't overwrite them */
-      vtotal = v->vtotal ;
-      if (v->v3num > 0)
-	v->vtotal = v->v3num ;
-      else if (v->v2num > 0)
-	v->vtotal = v->v2num ;
-      else
-	v->vtotal = v->vnum ;
-
-      max_v = v->vtotal+max_possible ;
-      if (vtotal < max_v)  /* won't fit in current allocation,reallocate stuff */
 	{
-	  /* save and restore neighbor list */
-	  memmove(old_v, v->v, v->vtotal*sizeof(v->v[0])) ;
-	  free(v->v) ;
-	  v->v = (int *)calloc(max_v, sizeof(int)) ;
-	  if (!v->v)
-	    ErrorExit(ERROR_NO_MEMORY, 
-		      "MRISsampleDistances: could not allocate list of %d "
-		      "nbrs at v=%d", max_v, vno) ;
-	  memmove(v->v, old_v, v->vtotal*sizeof(v->v[0])) ;
+		if ((Gdiag & DIAG_HEARTBEAT) && (!(vno % (mris->nvertices/10))))
+			fprintf(stdout, "%%%1.0f done\n", 
+							100.0f*(float)vno / (float)mris->nvertices) ;
+		v = &mris->vertices[vno] ;
+		if (vno == Gdiag_no)
+			DiagBreak()  ;
+
+		if (v->ripflag)
+			continue ;
+
+		/* small neighborhood is always fixed, don't overwrite them */
+		vtotal = v->vtotal ;
+		if (v->v3num > 0)
+			v->vtotal = v->v3num ;
+		else if (v->v2num > 0)
+			v->vtotal = v->v2num ;
+		else
+			v->vtotal = v->vnum ;
+
+		max_v = v->vtotal+max_possible ;
+		if (vtotal < max_v)  /* won't fit in current allocation,reallocate stuff */
+		{
+			/* save and restore neighbor list */
+			memmove(old_v, v->v, v->vtotal*sizeof(v->v[0])) ;
+			free(v->v) ;
+			v->v = (int *)calloc(max_v, sizeof(int)) ;
+			if (!v->v)
+				ErrorExit(ERROR_NO_MEMORY, 
+									"MRISsampleDistances: could not allocate list of %d "
+									"nbrs at v=%d", max_v, vno) ;
+			memmove(v->v, old_v, v->vtotal*sizeof(v->v[0])) ;
       
-	  /* save and restore distance vector */
-	  memmove(old_dist, v->dist, v->vtotal*sizeof(v->dist[0])) ;
-	  free(v->dist) ;
-	  v->dist = (float *)calloc(max_v, sizeof(float)) ;
-	  if (!v->dist)
-	    ErrorExit(ERROR_NOMEMORY,
-		      "MRISsampleDistances: could not allocate list of %d "
-		      "dists at v=%d", max_v, vno) ;
-	  memmove(v->dist, old_dist, v->vtotal*sizeof(v->dist[0])) ;
+			/* save and restore distance vector */
+			memmove(old_dist, v->dist, v->vtotal*sizeof(v->dist[0])) ;
+			free(v->dist) ;
+			v->dist = (float *)calloc(max_v, sizeof(float)) ;
+			if (!v->dist)
+				ErrorExit(ERROR_NOMEMORY,
+									"MRISsampleDistances: could not allocate list of %d "
+									"dists at v=%d", max_v, vno) ;
+			memmove(v->dist, old_dist, v->vtotal*sizeof(v->dist[0])) ;
 
-	  /* save and restore original distance vector */
-	  memmove(old_dist, v->dist_orig, v->vtotal*sizeof(v->dist_orig[0])) ;
-	  free(v->dist_orig) ;
-	  v->dist_orig = (float *)calloc(max_v, sizeof(float)) ;
-	  if (!v->dist_orig)
-	    ErrorExit(ERROR_NOMEMORY,
-		      "MRISsampleDistances: could not allocate list of %d "
-		      "dists at v=%d", max_v, vno) ;
-	  memmove(v->dist_orig, old_dist, v->vtotal*sizeof(v->dist_orig[0])) ;
-	}
+			/* save and restore original distance vector */
+			memmove(old_dist, v->dist_orig, v->vtotal*sizeof(v->dist_orig[0])) ;
+			free(v->dist_orig) ;
+			v->dist_orig = (float *)calloc(max_v, sizeof(float)) ;
+			if (!v->dist_orig)
+				ErrorExit(ERROR_NOMEMORY,
+									"MRISsampleDistances: could not allocate list of %d "
+									"dists at v=%d", max_v, vno) ;
+			memmove(v->dist_orig, old_dist, v->vtotal*sizeof(v->dist_orig[0])) ;
+		}
 
-      /* 
-	 find all the neighbors at each extent (i.e. 1-neighbors, then 
-	 2-neighbors, etc..., marking their corrected edge-length distances
-	 as you go.
-      */
-      vall[0] = vno ; vall_num = 1 ; old_vnum = 0 ; 
-      v->marked = 1 ;  /* a hack - it is a zero neighbor */
-      for (nbhd_size = 1 ; vall_num < MAX_VERTICES && nbhd_size <= max_nbhd ; 
-	   nbhd_size++)
-	{
-	  /* expand neighborhood outward by a ring of vertices */
-	  vnbrs_num = 0 ;  /* will count neighbors in this ring */
-	  vnum = vall_num ;
-	  for (found = 0, n = old_vnum; vall_num<MAX_VERTICES && n < vall_num; n++)
+		/* 
+			 find all the neighbors at each extent (i.e. 1-neighbors, then 
+			 2-neighbors, etc..., marking their corrected edge-length distances
+			 as you go.
+		*/
+		vall[0] = vno ; vall_num = 1 ; old_vnum = 0 ; 
+		v->marked = 1 ;  /* a hack - it is a zero neighbor */
+		for (nbhd_size = 1 ; vall_num < MAX_VERTICES && nbhd_size <= max_nbhd ; 
+				 nbhd_size++)
+		{
+			/* expand neighborhood outward by a ring of vertices */
+			vnbrs_num = 0 ;  /* will count neighbors in this ring */
+			vnum = vall_num ;
+			for (found = 0, n = old_vnum; vall_num<MAX_VERTICES && n < vall_num; n++)
 	    {
 	      vn = &mris->vertices[vall[n]] ;
 	      if (vn->ripflag)
-		continue ;
+					continue ;
 
 	      /* search through vn's neighbors to find an unmarked vertex */
 	      for (n2 = 0 ; n2 < vn->vnum ; n2++)
-		{
-		  vn2 = &mris->vertices[vn->v[n2]] ;
-		  if (vn2->ripflag || vn2->marked)
-		    continue ;
+				{
+					vn2 = &mris->vertices[vn->v[n2]] ;
+					if (vn2->ripflag || vn2->marked)
+						continue ;
 
-		  /* found one, mark it and put it in the vall list */
-		  found++ ;
-		  vn2->marked = nbhd_size ;
-		  vall[vnum++] = vn->v[n2] ;
-		  if (nbrs[nbhd_size] > 0)  /* want to store this distance */
-		    {
-		      vnbrs[vnbrs_num++] = vn->v[n2] ;
-		    }
-		}
+					/* found one, mark it and put it in the vall list */
+					found++ ;
+					vn2->marked = nbhd_size ;
+					vall[vnum++] = vn->v[n2] ;
+					if (nbrs[nbhd_size] > 0)  /* want to store this distance */
+					{
+						vnbrs[vnbrs_num++] = vn->v[n2] ;
+					}
+				}
 	    }  /* done with all neighbors at previous distance */
 
-	  /* found all neighbors at this extent - calculate distances */
-	  old_vnum = vall_num ;  /* old_vnum is index of 1st nbr at this distance*/
-	  vall_num += found ;    /* vall_num is total # of nbrs */
-	  for (n = old_vnum ; n < vall_num ; n++)
+			/* found all neighbors at this extent - calculate distances */
+			old_vnum = vall_num ;  /* old_vnum is index of 1st nbr at this distance*/
+			vall_num += found ;    /* vall_num is total # of nbrs */
+			for (n = old_vnum ; n < vall_num ; n++)
 	    {
 	      vn = &mris->vertices[vall[n]] ;
 	      if (vn->ripflag)
-		continue ;
+					continue ;
 #define UNFOUND_DIST 1000000.0f
 	      for (min_dist = UNFOUND_DIST, n2 = 0 ; n2 < vn->vnum ; n2++)
-		{
-		  vn2 = &mris->vertices[vn->v[n2]] ;
-		  if (vn2->ripflag)
-		    continue ;
-		  if (!vn2->marked || vn2->marked == nbhd_size)
-		    continue ;
-		  xd = vn2->x - vn->x ; yd = vn2->y - vn->y ; zd = vn2->z - vn->z ;
-		  dist = sqrt(xd*xd + yd*yd + zd*zd) ;
+				{
+					vn2 = &mris->vertices[vn->v[n2]] ;
+					if (vn2->ripflag)
+						continue ;
+					if (!vn2->marked || vn2->marked == nbhd_size)
+						continue ;
+					xd = vn2->x - vn->x ; yd = vn2->y - vn->y ; zd = vn2->z - vn->z ;
+					dist = sqrt(xd*xd + yd*yd + zd*zd) ;
 #if !MULTI_DIST_SCALING
-		  if (nbhd_size > 1)
-		    dist /= dist_scale ;
-		  if (vn2->d+dist < min_dist)
-		    min_dist = vn2->d+dist ;
+					if (nbhd_size > 1)
+						dist /= dist_scale ;
+					if (vn2->d+dist < min_dist)
+						min_dist = vn2->d+dist ;
 #else
-		  dist = 
-		    (dist + vn2->d * distance_scale[vn2->marked]) / 
-		    distance_scale[vn2->marked+1] ;
-		  if (dist < min_dist)
-		    min_dist = dist ;
+					dist = 
+						(dist + vn2->d * distance_scale[vn2->marked]) / 
+						distance_scale[vn2->marked+1] ;
+					if (dist < min_dist)
+						min_dist = dist ;
 #endif
-		}
+				}
 	      vn->d = min_dist  ;
 	      if (nbhd_size <= 2)
-		{
-		  xd = vn->x - v->x ; yd = vn->y - v->y ; zd = vn->z - v->z ;
-		  dist = sqrt(xd*xd + yd*yd + zd*zd) ;
-		  vn->d = dist ;
-		}
+				{
+					xd = vn->x - v->x ; yd = vn->y - v->y ; zd = vn->z - v->z ;
+					dist = sqrt(xd*xd + yd*yd + zd*zd) ;
+					vn->d = dist ;
+				}
 	    }
 
-	  /* 
-	     now check each to see if a neighbor at the same 'distance'
-	     is actually closer than neighbors which are 'nearer' (i.e. maybe
-	     the path through a 3-neighbor is shorter than that through any
-	     of the 2-neighbors.
-	  */
-	  for (n = old_vnum ; n < vall_num ; n++)
+			/* 
+				 now check each to see if a neighbor at the same 'distance'
+				 is actually closer than neighbors which are 'nearer' (i.e. maybe
+				 the path through a 3-neighbor is shorter than that through any
+				 of the 2-neighbors.
+			*/
+			for (n = old_vnum ; n < vall_num ; n++)
 	    {
 	      vn = &mris->vertices[vall[n]] ;
 	      if (vn->ripflag)
-		continue ;
+					continue ;
 	      min_dist = vn->d ;
 	      for (n2 = 0 ; n2 < vn->vnum ; n2++)
-		{
-		  vn2 = &mris->vertices[vn->v[n2]] ;
-		  if (!vn2->marked || vn2->marked != nbhd_size || vn2->ripflag)
-		    continue ;
-		  xd = vn2->x - vn->x ; yd = vn2->y - vn->y ; zd = vn2->z - vn->z ;
-		  dist = sqrt(xd*xd + yd*yd + zd*zd) ;
+				{
+					vn2 = &mris->vertices[vn->v[n2]] ;
+					if (!vn2->marked || vn2->marked != nbhd_size || vn2->ripflag)
+						continue ;
+					xd = vn2->x - vn->x ; yd = vn2->y - vn->y ; zd = vn2->z - vn->z ;
+					dist = sqrt(xd*xd + yd*yd + zd*zd) ;
 #if !MULTI_DIST_SCALING
-		  if (nbhd_size > 1)
-		    dist /= dist_scale ;
-		  if (vn2->d+dist < min_dist)
-		    min_dist = vn2->d + dist ;
+					if (nbhd_size > 1)
+						dist /= dist_scale ;
+					if (vn2->d+dist < min_dist)
+						min_dist = vn2->d + dist ;
 #else
-		  dist = 
-		    (dist + vn2->d * distance_scale[vn2->marked]) /
-		    distance_scale[vn2->marked+1] ;
-		  if (dist < min_dist)
-		    min_dist = dist ;
+					dist = 
+						(dist + vn2->d * distance_scale[vn2->marked]) /
+						distance_scale[vn2->marked+1] ;
+					if (dist < min_dist)
+						min_dist = dist ;
 #endif
-		}
+				}
 	      vn->d = min_dist ;
 	      {
-		xd = vn->x - v->x ; yd = vn->y - v->y ; zd = vn->z - v->z ;
-		dist = sqrt(xd*xd + yd*yd + zd*zd) ;
-		c[nbhd_size] += vn->d / dist ;
-		nc[nbhd_size]++ ;
+					xd = vn->x - v->x ; yd = vn->y - v->y ; zd = vn->z - v->z ;
+					dist = sqrt(xd*xd + yd*yd + zd*zd) ;
+					c[nbhd_size] += vn->d / dist ;
+					nc[nbhd_size]++ ;
 	      }
 	    }
 
-	  /* if this set of neighbors are to be stored, sample from them */
-	  if (nbrs[nbhd_size] <= 0)
-	    continue ;
+			/* if this set of neighbors are to be stored, sample from them */
+			if (nbrs[nbhd_size] <= 0)
+				continue ;
 
-	  /* make sure the points are not too close together */
-	  min_angle = 0.9*2.0*M_PI / (float)nbrs[nbhd_size] ;
+			/* make sure the points are not too close together */
+			min_angle = 0.9*2.0*M_PI / (float)nbrs[nbhd_size] ;
 
-	  /*
-	    at this point, the vall list contains all the neighbors currently found
-	    at ALL distances, while the vnbrs list contains ONLY the 
-	    nbhd_size-neighbors.
-	  */
-	  if (found <= nbrs[nbhd_size])  /* just copy them all in */
+			/*
+				at this point, the vall list contains all the neighbors currently found
+				at ALL distances, while the vnbrs list contains ONLY the 
+				nbhd_size-neighbors.
+			*/
+			if (found <= nbrs[nbhd_size])  /* just copy them all in */
 	    {
 	      for (n = 0 ; n < found ; n++, v->vtotal++)
-		{
-		  v->v[v->vtotal] = vnbrs[n] ;
-		  v->dist_orig[v->vtotal] = mris->vertices[vnbrs[n]].d ;
-		}
+				{
+					v->v[v->vtotal] = vnbrs[n] ;
+					v->dist_orig[v->vtotal] = mris->vertices[vnbrs[n]].d ;
+				}
 	    }
-	  else                   /* randomly sample from them */
+			else                   /* randomly sample from them */
 	    {
 	      int vstart = v->vtotal ;
 	      for (n = 0 ; n < nbrs[nbhd_size] ; n++, v->vtotal++)
-		{
-		  int j, niter = 0 ;
-		  do
-		    {
-		      do
-			{
-			  i = nint(randomNumber(0.0, (double)found-1)) ;
-			} while (vnbrs[i] < 0) ;
-		      /* 
-			 now check to make sure that the angle between this
-			 point and the others already selected is not too
-			 small to make sure the points are not bunched.
-		      */
-		      vn = &mris->vertices[vnbrs[i]] ;
-		      VECTOR_LOAD(v1, vn->x-v->x, vn->y-v->y, vn->z-v->z) ;
-		      done = 1 ;
-		      for (j = vstart ; done && j < v->vtotal ; j++)
-			{
-			  vn2 = &mris->vertices[v->v[j]] ;
-			  VECTOR_LOAD(v2, vn2->x-v->x, vn2->y-v->y, vn2->z-v->z) ;
-			  angle = Vector3Angle(v1, v2) ;
-			  if (angle < min_angle)
-			    done = 0 ;
-			}
-		      if (++niter > found)  /* couldn't find enough at this difference */
-			{
-			  min_angle *= 0.75f ;  /* be more liberal */
-			  niter = 0 ;
-			}
-		    } while (!done && !FZERO(min_angle)) ;
-		  vn = &mris->vertices[vnbrs[i]] ;
-		  v->v[v->vtotal] = vnbrs[i] ;
-		  v->dist_orig[v->vtotal] = vn->d ;
-		  if (FZERO(vn->d))
-		    DiagBreak() ;
-		  vnbrs[i] = -1 ;
-		}
+				{
+					int j, niter = 0 ;
+					do
+					{
+						do
+						{
+							i = nint(randomNumber(0.0, (double)found-1)) ;
+						} while (vnbrs[i] < 0) ;
+						/* 
+							 now check to make sure that the angle between this
+							 point and the others already selected is not too
+							 small to make sure the points are not bunched.
+						*/
+						vn = &mris->vertices[vnbrs[i]] ;
+						VECTOR_LOAD(v1, vn->x-v->x, vn->y-v->y, vn->z-v->z) ;
+						done = 1 ;
+						for (j = vstart ; done && j < v->vtotal ; j++)
+						{
+							vn2 = &mris->vertices[v->v[j]] ;
+							VECTOR_LOAD(v2, vn2->x-v->x, vn2->y-v->y, vn2->z-v->z) ;
+							angle = Vector3Angle(v1, v2) ;
+							if (angle < min_angle)
+								done = 0 ;
+						}
+						if (++niter > found)  /* couldn't find enough at this difference */
+						{
+							min_angle *= 0.75f ;  /* be more liberal */
+							niter = 0 ;
+						}
+					} while (!done && !FZERO(min_angle)) ;
+					vn = &mris->vertices[vnbrs[i]] ;
+					v->v[v->vtotal] = vnbrs[i] ;
+					v->dist_orig[v->vtotal] = vn->d ;
+					if (FZERO(vn->d))
+						DiagBreak() ;
+					vnbrs[i] = -1 ;
+				}
 	    }
-	}
+		}
 
 
-      if ((Gdiag_no == vno) && DIAG_VERBOSE_ON)
-	{
-	  FILE  *fp ;
-	  char  fname[STRLEN] ;
+		if ((Gdiag_no == vno) && DIAG_VERBOSE_ON)
+		{
+			FILE  *fp ;
+			char  fname[STRLEN] ;
 
-	  sprintf(fname, "v%d", vno) ;
-	  fp = fopen(fname, "w") ;
-	  fprintf(fp, "%d\n", vall_num) ;
-	  for (n = 0 ; n < vall_num ; n++)
-	    fprintf(fp, "%d\n", vall[n]) ;
-	  fclose(fp) ;
+			sprintf(fname, "v%d", vno) ;
+			fp = fopen(fname, "w") ;
+			fprintf(fp, "%d\n", vall_num) ;
+			for (n = 0 ; n < vall_num ; n++)
+				fprintf(fp, "%d\n", vall[n]) ;
+			fclose(fp) ;
 
-	  sprintf(fname, "vn%d", vno) ;
-	  fp = fopen(fname, "w") ;
-	  fprintf(fp, "%d\n", v->vtotal) ;
-	  for (n = 0 ; n < v->vtotal ; n++)
-	    fprintf(fp, "%d\n", v->v[n]) ;
-	  fclose(fp) ;
-	  for (n = 0 ; n < mris->nvertices ; n++)
+			sprintf(fname, "vn%d", vno) ;
+			fp = fopen(fname, "w") ;
+			fprintf(fp, "%d\n", v->vtotal) ;
+			for (n = 0 ; n < v->vtotal ; n++)
+				fprintf(fp, "%d\n", v->v[n]) ;
+			fclose(fp) ;
+			for (n = 0 ; n < mris->nvertices ; n++)
 	    {
 	      vn = &mris->vertices[n] ;
 #if 0
 	      if (vn->ripflag)
-		continue ;
+					continue ;
 #endif
 	      vn->curv = vn->d ;
 	    }
-	  sprintf(fname, "%s.dist", mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh");
-	  MRISwriteCurvature(mris, fname) ;
-	}
+			sprintf(fname, "%s.dist", mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh");
+			MRISwriteCurvature(mris, fname) ;
+		}
 
-      /* 
-	 done building arrays - allocate distance vectors and
-	 sample from the found neighbors list.
-      */
-      /* now unmark them all */
-      for (n = 0 ; n < vall_num ; n++)
-	{
-	  mris->vertices[vall[n]].marked = 0 ;
-	  mris->vertices[vall[n]].d = 0.0 ;
-	}
+		/* 
+			 done building arrays - allocate distance vectors and
+			 sample from the found neighbors list.
+		*/
+		/* now unmark them all */
+		for (n = 0 ; n < vall_num ; n++)
+		{
+			mris->vertices[vall[n]].marked = 0 ;
+			mris->vertices[vall[n]].d = 0.0 ;
+		}
 
-      total_nbrs += v->vtotal ;
-    }
+		total_nbrs += v->vtotal ;
+	}
 
   /* now fill in immediate neighborhood(Euclidean) distances */
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (vno == Gdiag_no)
-	DiagBreak()  ;
-      if (v->ripflag)
-	continue ;
-      if (v->v3num > 0)
-	vtotal = v->v3num ;
-      else if (v->v2num > 0)
-	vtotal = v->v2num ;
-      else
-	vtotal = v->vnum ;
-      for (n = 0 ; n < vtotal ; n++)
 	{
-	  vn = &mris->vertices[v->v[n]] ;
-	  if (vn->ripflag)
-	    continue ;
-	  xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
-	  v->dist_orig[n] = sqrt(xd*xd+yd*yd+zd*zd) ;
+		v = &mris->vertices[vno] ;
+		if (vno == Gdiag_no)
+			DiagBreak()  ;
+		if (v->ripflag)
+			continue ;
+		if (v->v3num > 0)
+			vtotal = v->v3num ;
+		else if (v->v2num > 0)
+			vtotal = v->v2num ;
+		else
+			vtotal = v->vnum ;
+		for (n = 0 ; n < vtotal ; n++)
+		{
+			vn = &mris->vertices[v->v[n]] ;
+			if (vn->ripflag)
+				continue ;
+			xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
+			v->dist_orig[n] = sqrt(xd*xd+yd*yd+zd*zd) ;
+		}
 	}
-    }
 
   /* check reasonableness of distances */
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-	continue ;
-      for (n = 0 ; n < v->vtotal ; n++)
 	{
-	  if (DZERO(v->dist_orig[n]))
-	    fprintf(stderr, "zero distance at v %d, n %d (vn = %d)\n",
-		    vno, n, v->v[n]) ;
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		for (n = 0 ; n < v->vtotal ; n++)
+		{
+			if (DZERO(v->dist_orig[n]))
+				fprintf(stderr, "zero distance at v %d, n %d (vn = %d)\n",
+								vno, n, v->v[n]) ;
+		}
 	}
-    }
 
   mris->avg_nbrs = (float)total_nbrs / (float)mrisValidVertices(mris) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -1992,21 +1992,21 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 
 #if MULTI_DIST_SCALING
   if (Gdiag & DIAG_SHOW)
-    {
-      for (n = 0 ; n <= max_nbhd ; n++)
 	{
-	  if (nc[n])
-	    c[n] /= (float)nc[n] ;
-	  fprintf(stdout, "c[%d] = %2.5f (%d samples)\n", n, c[n], nc[n]) ;
+		for (n = 0 ; n <= max_nbhd ; n++)
+		{
+			if (nc[n])
+				c[n] /= (float)nc[n] ;
+			fprintf(stdout, "c[%d] = %2.5f (%d samples)\n", n, c[n], nc[n]) ;
+		}
+		fprintf(stdout, "c[] = { ") ;
+		for (n = 0 ; n <= max_nbhd ; n++)
+		{
+			fprintf(stdout, "%2.5f", c[n]) ;
+			if (n < max_nbhd)
+				fprintf(stdout, ", ") ;
+		}
 	}
-      fprintf(stdout, "c[] = { ") ;
-      for (n = 0 ; n <= max_nbhd ; n++)
-	{
-	  fprintf(stdout, "%2.5f", c[n]) ;
-	  if (n < max_nbhd)
-	    fprintf(stdout, ", ") ;
-	}
-    }
 #endif
   free(vnbrs) ;
   free(vall) ;
@@ -2691,35 +2691,39 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
   for (vno=0;vno<mris->nvertices;vno++) {
     v = &mris->vertices[vno];
     if (v->ripflag || v->dist == NULL) continue ;
-    if (vno == Gdiag_no)  DiagBreak() ;
+    if (vno == Gdiag_no)  
+			DiagBreak() ;
     vtotal = v->vtotal ;
     switch (mris->status) {
     default:   /* don't really know what to do in other cases */
     case MRIS_PLANE:
       for (pv = v->v, n = 0 ; n < vtotal ; n++) {
-	vn = &mris->vertices[*pv++] ;
-	if (vn->ripflag) continue ;
-	xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
-	d = xd*xd + yd*yd + zd*zd ;
-	v->dist[n] = sqrt(d) ;
+				vn = &mris->vertices[*pv++] ;
+				if (vn->ripflag) continue ;
+				xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
+				d = xd*xd + yd*yd + zd*zd ;
+				v->dist[n] = sqrt(d) ;
+				if (mris->vertices[12].v[0] >= mris->nvertices)
+					DiagBreak() ;
       }
+			DiagBreak() ;
       break ;
     case MRIS_PARAMETERIZED_SPHERE:
     case MRIS_SPHERE:
       VECTOR_LOAD(v1, v->x, v->y, v->z) ;  /* radius vector */
       if (FZERO(circumference))   /* only calculate once */
-	circumference = M_PI * 2.0 * V3_LEN(v1) ;
+				circumference = M_PI * 2.0 * V3_LEN(v1) ;
       for (pv = v->v, n = 0 ; n < vtotal ; n++) {
-	vn = &mris->vertices[*pv++] ;
-	if (vn->ripflag) continue ;
-	VECTOR_LOAD(v2, vn->x, vn->y, vn->z) ;  /* radius vector */
-	angle = fabs(Vector3Angle(v1, v2)) ;
+				vn = &mris->vertices[*pv++] ;
+				if (vn->ripflag) continue ;
+				VECTOR_LOAD(v2, vn->x, vn->y, vn->z) ;  /* radius vector */
+				angle = fabs(Vector3Angle(v1, v2)) ;
 #if 0
-	xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
-	d = sqrt(xd*xd + yd*yd + zd*zd) ;
+				xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
+				d = sqrt(xd*xd + yd*yd + zd*zd) ;
 #endif
-	d = circumference * angle / (2.0 * M_PI) ;
-	v->dist[n] = d ;
+				d = circumference * angle / (2.0 * M_PI) ;
+				v->dist[n] = d ;
       }
       break ;
     }
@@ -3588,46 +3592,46 @@ MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, double r)
   mris_dst->radius = r ;
 
   for (total_dist = vno = 0 ; vno < mris_dst->nvertices ; vno++) 
-    {
-      v = &mris_dst->vertices[vno];
-      if (v->ripflag)  /* shouldn't happen */
-	continue ;
-      if (vno == 118009)
-	{ DiagBreak() ; }
-      x = (double)v->x;
-      y = (double)v->y;
-      z = (double)v->z;
+	{
+		v = &mris_dst->vertices[vno];
+		if (v->ripflag)  /* shouldn't happen */
+			continue ;
+		if (vno == 118009)
+		{ DiagBreak() ; }
+		x = (double)v->x;
+		y = (double)v->y;
+		z = (double)v->z;
 
-      x2 = x*x ; y2 = y*y ; z2 = z*z ;
-      dist = sqrt(x2+y2+z2) ;
-      if (FZERO(dist))
-	d = 0 ;
-      else
-	d = 1 - r / dist ;
-      dx = d*x ;
-      dy = d*y;
-      dz = d*z;
-      v->x = x-dx ;
-      v->y = y-dy;
-      v->z = z-dz;
+		x2 = x*x ; y2 = y*y ; z2 = z*z ;
+		dist = sqrt(x2+y2+z2) ;
+		if (FZERO(dist))
+			d = 0 ;
+		else
+			d = 1 - r / dist ;
+		dx = d*x ;
+		dy = d*y;
+		dz = d*z;
+		v->x = x-dx ;
+		v->y = y-dy;
+		v->z = z-dz;
 
-      if (!finite(v->x) || !finite(v->y) || !finite(v->z))
-	DiagBreak() ;
+		if (!finite(v->x) || !finite(v->y) || !finite(v->z))
+			DiagBreak() ;
 
-      /*    if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)*/
-      {
-	dist = sqrt((double)(dx*dx+dy*dy+dz*dz));
-	total_dist += dist;
-      }
+		/*    if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)*/
+		{
+			dist = sqrt((double)(dx*dx+dy*dy+dz*dz));
+			total_dist += dist;
+		}
 #if 1
-      x = (double)v->x;
-      y = (double)v->y;
-      z = (double)v->z;
-      x2 = x*x ; y2 = y*y ; z2 = z*z ;
-      dist = sqrt(x2+y2+z2) ;
+		x = (double)v->x;
+		y = (double)v->y;
+		z = (double)v->z;
+		x2 = x*x ; y2 = y*y ; z2 = z*z ;
+		dist = sqrt(x2+y2+z2) ;
 #endif
 
-    }
+	}
   if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) 
     fprintf(stdout,  "sphere_project: total dist = %f\n",total_dist);
   MRISupdateEllipsoidSurface(mris_dst) ;
@@ -3885,6 +3889,8 @@ MRISclone(MRI_SURFACE *mris_src)
     mris_dst->v_temporal_pole = 
       &mris_dst->vertices[mris_src->v_temporal_pole - mris_src->vertices] ;
   for(vno = 0 ; vno < mris_src->nvertices ; vno++){
+		if (vno== Gdiag_no)
+			DiagBreak() ;
     vsrc = &mris_src->vertices[vno] ;
     vdst = &mris_dst->vertices[vno] ;
     vdst->x = vsrc->x ;
@@ -3898,6 +3904,10 @@ MRISclone(MRI_SURFACE *mris_src)
     vdst->cz = vsrc->cz ;
     vdst->curv = vsrc->curv ;
     vdst->num = vsrc->num ;
+    vdst->vnum = vsrc->vnum ;
+    vdst->v2num = vsrc->v2num ;
+    vdst->v3num = vsrc->v3num ;
+    vdst->vtotal = vsrc->vtotal ;
 #if 0
     vdst->ox = vsrc->ox ;
     vdst->oy = vsrc->oy ;
@@ -3907,45 +3917,43 @@ MRISclone(MRI_SURFACE *mris_src)
     if(vdst->num){
       vdst->f = (int *)calloc(vdst->num,sizeof(int));
       if(!vdst->f)
-	ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces",
-		  vdst->num) ;
+				ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces",
+									vdst->num) ;
       vdst->n = (uchar *)calloc(vdst->num,sizeof(uchar));
       if(!vdst->n)
-	ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",
-		  vdst->num) ;
-      vdst->dist = (float *)calloc(vdst->num, sizeof(float)) ;
-      if(!vdst->dist )ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",vdst->num) ;
-      vdst->dist_orig = (float *)calloc(vdst->num, sizeof(float)) ;
-      if(!vdst->dist_orig )ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",vdst->num) ;
+				ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",
+									vdst->num) ;
+      vdst->dist = (float *)calloc(vdst->vtotal, sizeof(float)) ;
+      if(!vdst->dist )ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",vdst->vtotal) ;
+      vdst->dist_orig = (float *)calloc(vdst->vtotal, sizeof(float)) ;
+      if(!vdst->dist_orig )ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",vdst->vtotal) ;
       for(n = 0; n < vdst->num; n++){
-	vdst->n[n] = vsrc->n[n] ;
-	vdst->f[n] = vsrc->f[n] ;
-	vdst->dist[n] = vsrc->dist[n] ;
-	vdst->dist_orig[n] = vsrc->dist_orig[n] ;
+				vdst->n[n] = vsrc->n[n] ;
+				vdst->f[n] = vsrc->f[n] ;
+			}
+      for(n = 0; n < vdst->vtotal; n++){
+				vdst->dist[n] = vsrc->dist[n] ;
+				vdst->dist_orig[n] = vsrc->dist_orig[n] ;
       }
     }
 
-    vdst->vnum = vsrc->vnum ;
-    vdst->v2num = vsrc->v2num ;
-    vdst->v3num = vsrc->v3num ;
-    vdst->vtotal = vsrc->vtotal ;
     if(vdst->vnum){
       vdst->v = (int *)calloc(vdst->vtotal, sizeof(int)) ;
       if(!vdst->v)
-	ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d nbrs",
-		  vdst->vtotal) ;
+				ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d nbrs",
+									vdst->vtotal) ;
       for (n = 0; n < vdst->vtotal; n++) vdst->v[n] = vsrc->v[n] ;
     }
-      vdst->ripflag = vsrc->ripflag ;
-      vdst->border = vsrc->border ;
-      vdst->area = vsrc->area ;
-      vdst->origarea = vsrc->origarea ;
+		vdst->ripflag = vsrc->ripflag ;
+		vdst->border = vsrc->border ;
+		vdst->area = vsrc->area ;
+		vdst->origarea = vsrc->origarea ;
 #if 0
-      vdst->oripflag = vsrc->oripflag ;
-      vdst->origripflag = vsrc->origripflag ;
-      memcpy(vdst->coord, vsrc->coord, sizeof(vsrc->coord)) ;
+		vdst->oripflag = vsrc->oripflag ;
+		vdst->origripflag = vsrc->origripflag ;
+		memcpy(vdst->coord, vsrc->coord, sizeof(vsrc->coord)) ;
 #endif
-    }
+	}
 
   for (fno = 0 ; fno < mris_src->nfaces ; fno++) {
     fsrc = &mris_src->faces[fno] ;
