@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/10/17 19:53:39 $
-// Revision       : $Revision: 1.114 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2006/01/15 01:18:26 $
+// Revision       : $Revision: 1.115 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,11 +16,7 @@
 #include "fmriutils.h"
 #include "error.h"
 #include "mri_identify.h"
-#include "utils.h"
-#include "transform.h"
-#include "mrimorph.h"
 #include "gcamorph.h"
-#include "tags.h"
 #include "DICOMRead.h"
 #include "unwarpGradientNonlinearity.h"
 #include "version.h"
@@ -147,7 +143,10 @@ int main(int argc, char *argv[])
   int nthframe=-1; 
   char cmdline[STRLEN] ;
         
-	make_cmd_version_string (argc, argv, "$Id: mri_convert.c,v 1.114 2005/10/17 19:53:39 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string 
+    (argc, argv, 
+    "$Id: mri_convert.c,v 1.115 2006/01/15 01:18:26 nicks Exp $", "$Name:  $",
+     cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -244,7 +243,7 @@ int main(int argc, char *argv[])
     handle_version_option 
     (
      argc, argv, 
-     "$Id: mri_convert.c,v 1.114 2005/10/17 19:53:39 fischl Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.115 2006/01/15 01:18:26 nicks Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1199,7 +1198,6 @@ int main(int argc, char *argv[])
   /* ----- catch the parse-only flag ----- */
   if(parse_only_flag)
     {
-
       printf("input volume name: %s\n", in_name);
       printf("input name only: %s\n", in_name_only);
       printf("output volume name: %s\n", out_name);
@@ -1230,7 +1228,6 @@ int main(int argc, char *argv[])
              translate_labels_flag ? "on" : "off");
 
       exit(0);
-
     }
 
 
