@@ -5,7 +5,7 @@
 # Checks the xoptsfile to make sure that there are no errors in it.
 #
 
-set VERSION = '$Id: fsr-checkxopts,v 1.1 2005/12/14 17:41:08 greve Exp $';
+set VERSION = '$Id: fsr-checkxopts,v 1.2 2006/01/16 23:14:31 nicks Exp $';
 
 if($#argv < 1) exit 0;
 set xoptsfile = $argv[1];
@@ -23,7 +23,7 @@ set n2 = `grep -v \# $xoptsfile | awk '{print $1}' | sort | uniq | wc -l`;
 
 # If they are not the same, then it means that there is a replication
 if($n1 != $n2) then
-  echo "ERROR: multiple occurances of a command in expert options file $xoptsfile"
+  echo "ERROR: multiple occurrences of a command in expert options file $xoptsfile"
   exit 1;
 endif
 
