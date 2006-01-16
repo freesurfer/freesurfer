@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/01/16 04:00:05 $
-// Revision       : $Revision: 1.419 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/01/16 21:13:59 $
+// Revision       : $Revision: 1.420 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -553,7 +553,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.419 2006/01/16 04:00:05 nicks Exp $"); }
+  return("$Id: mrisurf.c,v 1.420 2006/01/16 21:13:59 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -30301,7 +30301,8 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
 
   white_val=mean;
 
-  fprintf(WHICH_OUTPUT,"      -white ( %2.2f , %2.2f ) \n",mean,sqrt(var));
+	if (DIAG_VERBOSE_ON)
+		fprintf(WHICH_OUTPUT,"      -white ( %2.2f , %2.2f ) \n",mean,sqrt(var));
 
   /* white matter */
   h=h_gray;
@@ -30332,7 +30333,8 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
 
   gray_val=mean;
 
-  fprintf(WHICH_OUTPUT,"      -gray ( %2.2f , %2.2f ) \n",mean,sqrt(var));
+	if (DIAG_VERBOSE_ON)
+		fprintf(WHICH_OUTPUT,"      -gray ( %2.2f , %2.2f ) \n",mean,sqrt(var));
 
   for(mw=0,mg=0,vw=0,vg=0,i=0 ; i < 256 ; i++)
     for(j = 0 ; j < 256 ; j++){
@@ -30347,7 +30349,8 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   vw -= SQR(mw);
   vg -= SQR(mg);
 
-  fprintf(WHICH_OUTPUT,"      -gray ( %2.2f , %2.2f ) - white ( %2.2f , %2.2f ) \n",mg,sqrt(vg),mw,sqrt(vw));
+	if (DIAG_VERBOSE_ON)
+		fprintf(WHICH_OUTPUT,"      -gray ( %2.2f , %2.2f ) - white ( %2.2f , %2.2f ) \n",mg,sqrt(vg),mw,sqrt(vw));
 
   //FLO : To be Checked
   mw=white_val;
@@ -30359,7 +30362,8 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   defect->white_mean_ll = log(h_white->counts[MAX(0,MIN(h_white->nbins-1,nint(mw)))]);
   defect->gray_mean_ll = log(h_gray->counts[MAX(0,MIN(h_gray->nbins-1,nint(mg)))]);
 
-  fprintf(WHICH_OUTPUT,"      -intensity (%f [log = %f ]- %f [log = %f ])\n",mg,defect->gray_mean_ll,mw,defect->white_mean_ll);
+	if (DIAG_VERBOSE_ON)
+		fprintf(WHICH_OUTPUT,"      -intensity (%f [log = %f ]- %f [log = %f ])\n",mg,defect->gray_mean_ll,mw,defect->white_mean_ll);
 
   /* computing curvature statistics */
 
@@ -30435,7 +30439,8 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   vk1 -= SQR(k1);
   vk2 -= SQR(k2);
 
-  fprintf(WHICH_OUTPUT,"      - k1 ( %2.2f , %2.2f ) - k2 ( %2.2f , %2.2f ) \n",k1,sqrt(vk1),k2,sqrt(vk2));
+	if (DIAG_VERBOSE_ON)
+		fprintf(WHICH_OUTPUT,"      - k1 ( %2.2f , %2.2f ) - k2 ( %2.2f , %2.2f ) \n",k1,sqrt(vk1),k2,sqrt(vk2));
 
   //    fprintf(stderr," k1 (%f - %f - %f) k2 (%f - %f - %f) \n",mri_k1_k2->xstart,mri_k1_k2->xsize,mri_k1_k2->xstart+mri_k1_k2->width*mri_k1_k2->xsize,mri_k1_k2->ystart,mri_k1_k2->ysize,mri_k1_k2->ystart+mri_k1_k2->height*mri_k1_k2->ysize);
 
@@ -34219,7 +34224,7 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
         ne/=2;
         euler_nb=nv+nf-ne;
         theoric_euler=3+defect->defect_number-dl->ndefects;
-        fprintf(WHICH_OUTPUT,"After retessellation of defect %d, we have euler=%d (%d,%d,%d) : difference with theory (%d) = %d \n",i,euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
+        fprintf(WHICH_OUTPUT,"After retessellation of defect %d, euler #=%d (%d,%d,%d) : difference with theory (%d) = %d \n",i,euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
 
       }
 #endif
@@ -34321,7 +34326,7 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
               ne/=2;
               euler_nb=nv+nf-ne;
               theoric_euler=3+defect->defect_number-dl->ndefects;
-              fprintf(WHICH_OUTPUT,"After retessellation of defect %d, we have euler=%d (%d,%d,%d) : difference with theory (%d) = %d \n",i,euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
+              fprintf(WHICH_OUTPUT,"After retessellation of defect %d, euler #=%d (%d,%d,%d) : difference with theory (%d) = %d \n",i,euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
 
             }
 #endif
@@ -34397,7 +34402,7 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
         euler_nb=nv+nf-ne;
         theoric_euler=3+defect->defect_number-dl->ndefects;
         fprintf(WHICH_OUTPUT,"After retessellation of defect %d, "
-                "we have euler=%d (%d,%d,%d) : "
+                "euler #=%d (%d,%d,%d) : "
                 "difference with theory (%d) = %d \n\n",
                 i,euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
       }
@@ -34463,8 +34468,22 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
       fprintf(WHICH_OUTPUT, "\n") ;
 #endif
     for (vno = 0 ; vno < mris_corrected->nvertices ; vno++)
-      mris_corrected->vertices[vno].vtotal =
-        mris_corrected->vertices[vno].vnum ;
+		{
+			VERTEX *v ;
+
+			v = &mris_corrected->vertices[vno] ;
+			if (v->dist)
+				free(v->dist) ;
+			if (v->dist_orig)
+				free(v->dist_orig) ;
+			v->vtotal = v->vnum ;
+      v->dist = (float *)calloc(v->vtotal, sizeof(float)) ;
+      if(!v->dist )
+				ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",v->vtotal) ;
+      v->dist_orig = (float *)calloc(v->vtotal, sizeof(float)) ;
+      if(!v->dist_orig )
+				ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",v->vtotal) ;
+		}
 
     fprintf(WHICH_OUTPUT, "computing original vertex metric properties...\n") ;
     MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
@@ -39226,7 +39245,8 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
   /* first build table of all possible edges among vertices in the defect
      and on its border.
   */
-  fprintf(stderr,"\nCORRECTING DEFECT %d\n",defect->defect_number);
+  fprintf(stderr,"\nCORRECTING DEFECT %d (vertices=%d, convex hull=%d)\n",
+					defect->defect_number, defect->nvertices, defect->nchull);
 
   if(parms->search_mode!=GREEDY_SEARCH)
     computeDefectStatistics(mri,mris,defect, h_white,h_gray,mri_gray_white,h_k1,h_k2,mri_k1_k2);
@@ -39246,7 +39266,8 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
     vlist[nvertices++] = defect->border[i] ;
   }
   //  if (nvertices > 250)  //FLO
-  fprintf(WHICH_OUTPUT, "retessellating defect %d with %d vertices (convex hull=%d).\n",
+	if (DIAG_VERBOSE_ON)
+		fprintf(WHICH_OUTPUT, "retessellating defect %d with %d vertices (convex hull=%d).\n",
           defect->defect_number, nvertices, defect->nchull) ;
   dno++ ;
   if (nvertices == 0)  /* should never happen */
@@ -39452,7 +39473,8 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
     }
   }
 
-  fprintf(WHICH_OUTPUT,"%d of %d overlapping edges discarded\n", ndiscarded, nedges) ;
+	if (DIAG_VERBOSE_ON)
+		fprintf(WHICH_OUTPUT,"%d of %d overlapping edges discarded\n", ndiscarded, nedges) ;
 
   /* sort the edge list by edge length */
   qsort(et, nedges, sizeof(EDGE), compare_edge_length) ;
@@ -39830,7 +39852,8 @@ static int tessellatePatch(MRI *mri,MRI_SURFACE *mris, MRI_SURFACE *mris_correct
   DP dp;
   EDGE_TABLE *new_et=NULL;
 
-  fprintf(WHICH_OUTPUT,"tessellating patch....\n");
+	if (DIAG_VERBOSE_ON)
+		fprintf(WHICH_OUTPUT,"tessellating patch....\n");
 
   /* allocation */
   dvs = mrisRecordVertexState(mris_corrected, defect, vertex_trans) ;
@@ -39893,7 +39916,8 @@ static int tessellatePatch(MRI *mri,MRI_SURFACE *mris, MRI_SURFACE *mris_correct
   for(i = 0 ; i < dp.defect->nborder ; i++)
     mris_corrected->vertices[vertex_trans[dp.defect->border[i]]].marked=0;
 
-  fprintf(WHICH_OUTPUT,"done\n");
+	if (DIAG_VERBOSE_ON)
+		fprintf(WHICH_OUTPUT,"done\n");
 
   return NO_ERROR;
 }
