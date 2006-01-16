@@ -58,6 +58,10 @@
 #include "AFNI.h"
 #include "mghendian.h"
 #include "tags.h"
+#ifdef Darwin
+// /usr/include/zconf.h should typedef Byte, but doesnt on the Mac:
+typedef unsigned char  Byte;  /* 8 bits */
+#endif
 #include "nifti1.h"
 #include "znzlib.h"
 

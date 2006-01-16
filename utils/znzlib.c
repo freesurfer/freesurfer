@@ -21,6 +21,10 @@
 
 */
 
+#ifdef Darwin
+// prevent declaration conflicts with swab:
+#define _POSIX_C_SOURCE 1
+#endif
 #include "znzlib.h"
 
 /*

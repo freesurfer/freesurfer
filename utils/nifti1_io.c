@@ -1,5 +1,9 @@
 #define _NIFTI1_IO_C_
 
+#ifdef Darwin
+// prevent declaration conflicts with swab:
+#define _POSIX_C_SOURCE 1
+#endif
 #include "nifti1_io.h"   /* typedefs, prototypes, macros, etc. */
 
 /*****===================================================================*****/
