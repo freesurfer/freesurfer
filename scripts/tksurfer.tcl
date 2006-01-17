@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.102 2005/12/30 18:46:07 kteich Exp $
+# $Id: tksurfer.tcl,v 1.103 2006/01/17 19:20:33 kteich Exp $
 
 package require BLT;
 
@@ -132,7 +132,7 @@ set FunD_tRegistration(identity) 2
 
 # set some default histogram data
 set gaHistogramData(zoomed) 0
-set gaHistogramData(simpleThresh) 1
+set gaHistogramData(threshMode) linear
 
 # used in overlay config dialog
 set gbOverlayApplyToAll 0
@@ -744,8 +744,8 @@ proc SetMid { iWidget inThresh } {
     # clicked. draw a new line on this value.
     set gaLinkedVars(fmid) [expr abs($inThresh)]
 
-    # Only draw lines if not in simple thresh mode.
-    if { !$gaHistogramData(simpleThresh) } {
+    # Only draw the mid line if we're in piecewise mode.
+    if { [string match $gaHistogramData(threshMode) piecewise] } {
 	$iWidget marker create line \
 	    -coords [list $gaLinkedVars(fmid) -Inf $gaLinkedVars(fmid) Inf] \
 	    -name mid -outline blue
@@ -753,7 +753,7 @@ proc SetMid { iWidget inThresh } {
 	$iWidget marker create line \
 	    -coords [list $negMid -Inf $negMid Inf] \
 	    -name negmid -outline blue
-    } else {
+    } elseif { [string match $gaHistogramData(threshMode) linear] } {
 	$iWidget marker delete mid negmid
     }
 }
@@ -799,24 +799,18 @@ proc CalcNewLinearThreshold { iWidget } {
     }
 }
 
-proc CalcNewThresholdSlopeAndMaxFromMinMid { iWidget } {
+proc CalcNewPiecewiseThresholdMaxFromMidSlope { iWidget } {
     global gaLinkedVars
 
-    # This is called when the user is in normal threshold mode and
-    # just clicked on the min or mid. Calc the slope and the max.
-    SetSlope $iWidget \
-	[expr 0.5 / ($gaLinkedVars(fmid) - $gaLinkedVars(fthresh))]
     SetMax $iWidget \
-	[expr (1.0 / $gaLinkedVars(fslope)) + $gaLinkedVars(fthresh)]
+	[expr (0.5 / $gaLinkedVars(fslope)) + $gaLinkedVars(fmid)]
 }
 
-proc CalcNewThresholdMaxFromMinSlope { iWidget } {
+proc CalcNewPiecewiseThresholdSlopeFromMidMax { iWidget } {
     global gaLinkedVars
 
-    # This is called when the user is in normal threshold mode and
-    # just clicked on the slope. We'll set the max now.
-    SetMax $iWidget \
-	[expr (1.0 / $gaLinkedVars(fslope)) + $gaLinkedVars(fthresh)]
+    SetSlope $iWidget \
+	[expr (0.5 / ($gaLinkedVars(fthreshmax) - $gaLinkedVars(fmid)))]
 }
 
 proc UpdateHistogramData { iMin iMax iIncrement iNum ilData } {
@@ -902,19 +896,6 @@ proc DoConfigOverlayDisplayDlog {} {
 	grid $fwCondition -column 1 -row 1 -sticky w
 
 	# color scale
-	if { 0 } {
-	tkm_MakeRadioButtons $fwColorScale y "Color Scale" \
-	    gaLinkedVars(colscale) { 
-		{ text "Color Wheel (Complex)" 0 {} }
-		{ text "RYGB Wheel (Complex)" 8 {} }
-		{ text "Two Condition Green Red (Complex)" 4 {} }
-		{ text "Green to Red (Signed)" 7 {} }
-		{ text "Heat Scale (Stat, Positive)" 1 {} }
-		{ text "Blue to Red (Signed)" 6 {} }
-		{ text "Not Here (Signed)" 9 {} } }
-	}
-
-
 	set lwColorScale  $fwColorScale.lwColorScale
 	set lwSingle      $fwColorScale.lwSingle
 	set lwComplex     $fwColorScale.lwComplex
@@ -1013,7 +994,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	set ewValue   $fwValueOffset.ewValue
 	set ewOffset  $fwValueOffset.ewOffset
         set cbwIgnoreZeroes  $fwHisto.cbwIgnoreZeroes
-        set cbwAutoSlope  $fwHisto.cbwAutoSlope
+        set fwThreshMode  $fwHisto.fwThreshMode
 	set fwCopy    $fwHisto.fwCopy
 	set bwCopy    $fwCopy.bwCopy
 	set owTarget  $fwCopy.owTarget
@@ -1031,29 +1012,33 @@ proc DoConfigOverlayDisplayDlog {} {
 	$gaHistoWidget(graph) legend config -hide yes
 	$gaHistoWidget(graph) axis config x -rotate 90.0 -stepsize 5
 
-	# Bind the button pressing events to set the thresholds. Only
-	# set the midpoint if we're not in simple thresh mode. Only
-	# set the max if we're in simple mode.
+	# Bind the button pressing events to set the thresholds. In
+	# linear thresh mode, clicking min or max will calc a new
+	# linear threshold. In piecewise mode, clicking mid or max
+	# will update the slope. Only set the midpoint if we're
+	# in piecewise thresh mode.
 	bind $gaHistoWidget(graph) <ButtonPress-1> \
 	    { 
 		SetMin %W [%W axis invtransform x %x] 
-		if { $gaHistogramData(simpleThresh) } { 
+		if { [string match $gaHistogramData(threshMode) linear] } { 
 		    CalcNewLinearThreshold $gaHistoWidget(graph)
-		} else { 
-		    CalcNewThresholdSlopeAndMaxFromMinMid $gaHistoWidget(graph)
 		}
 	    }
 	bind $gaHistoWidget(graph) <ButtonPress-2> \
 	    { 
-		if { !$gaHistogramData(simpleThresh) } { 
+		if { [string match $gaHistogramData(threshMode) piecewise] } { 
 		    SetMid %W [%W axis invtransform x %x] 
-		    CalcNewThresholdSlopeAndMaxFromMinMid $gaHistoWidget(graph)
+		    CalcNewPiecewiseThresholdSlopeFromMidMax $gaHistoWidget(graph)
 		}
 	    }
 	bind $gaHistoWidget(graph) <ButtonPress-3> \
 	    { 
 		SetMax %W [%W axis invtransform x %x]
-		CalcNewLinearThreshold $gaHistoWidget(graph)
+		if { [string match $gaHistogramData(threshMode) linear] } { 
+		    CalcNewLinearThreshold $gaHistoWidget(graph)
+		} elseif { [string match $gaHistogramData(threshMode) piecewise] } {
+		    CalcNewPiecewiseThresholdSlopeFromMidMax $gaHistoWidget(graph)
+		}
 	    }
 
 	# bind the bututon pressing events that do the zooming.
@@ -1074,31 +1059,41 @@ proc DoConfigOverlayDisplayDlog {} {
 	# make the entries for the threshold values.
 	frame $fwThresh
 	
+	# These edit fields have the same behavior as clicking the
+	# histogram, aboce. There is also a slope field, which is only
+	# enabled when in piecewise threshold mode, and which will
+	# calc a new max when set.
 	tkm_MakeEntry $ewMin "Min" gaLinkedVars(fthresh) 6 \
 	    {
 		SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)
-		if { $gaHistogramData(simpleThresh) } { 
+		if { [string match $gaHistogramData(threshMode) linear] } { 
 		    CalcNewLinearThreshold $gaHistoWidget(graph)
-		} else {
-		    CalcNewThresholdSlopeAndMaxFromMinMid $gaHistoWidget(graph)
 		}
 	    }
-	# Mid field isn't active in simple threshold mode.
+	# Mid field isn't active in linear threshold mode.
 	tkm_MakeEntry $ewMid "Mid" gaLinkedVars(fmid) 6 \
 	    {
-		SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid)
-		CalcNewThresholdSlopeAndMaxFromMinMid $gaHistoWidget(graph)
+		if { [string match $gaHistogramData(threshMode) piecewise] } { 
+		    SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid)
+		    CalcNewPiecewiseThresholdSlopeFromMidMax $gaHistoWidget(graph)
+		}
 	    }
 	tkm_MakeEntry $ewMax "Max" gaLinkedVars(fthreshmax) 6 \
 	    {
 		SetMax $gaHistoWidget(graph) $gaLinkedVars(fthreshmax)
-		CalcNewLinearThreshold $gaHistoWidget(graph)
+		if { [string match $gaHistogramData(threshMode) linear] } { 
+		    CalcNewLinearThreshold $gaHistoWidget(graph)
+		} elseif { [string match $gaHistogramData(threshMode) piecewise] } {   
+		    CalcNewPiecewiseThresholdSlopeFromMidMax $gaHistoWidget(graph)
+		}
 	    }
-	# Slope field isn't active in simple threshold mode.
+	# Slope field isn't active in linear threshold mode.
 	tkm_MakeEntry $ewSlope "Slope" gaLinkedVars(fslope) 6 \
 	    {
-		SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope)
-		CalcNewThresholdMaxFromMinSlope $gaHistoWidget(graph)
+		if { [string match $gaHistogramData(threshMode) piecewise] } { 
+		    SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope)
+		    CalcNewPiecewiseThresholdMaxFromMidSlope $gaHistoWidget(graph)
+		}
 	    }
 	
 	# color the entries to match the lines in the histogram.
@@ -1135,11 +1130,12 @@ proc DoConfigOverlayDisplayDlog {} {
 	    -text "Ignore Zeroes in Histogram" \
 	    -font [tkm_GetNormalFont]
 
-	checkbutton $cbwAutoSlope \
-	    -variable gaHistogramData(simpleThresh) \
-	    -text "Simple (Linear) Threshold Mode" \
-	    -font [tkm_GetNormalFont] \
-	    -command UpdateOverlayDlogInfo
+
+	tkm_MakeRadioButtons $fwThreshMode x "Threshold" \
+	    gaHistogramData(threshMode) {
+	    {text "Linear" linear {UpdateOverlayDlogInfo} "" }
+	    {text "Piecewise" piecewise {UpdateOverlayDlogInfo} "" }
+	}
 
 	# make the button and menu that the user can use to copy the
 	# threshold settings to another layer.
@@ -1189,7 +1185,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	pack $fwThresh -side top
 	pack $fwValueOffset -side top -expand yes -fill x
 	pack $cbwIgnoreZeroes -side top -expand yes -fill x
-	pack $cbwAutoSlope -side top -expand yes -fill x
+	pack $fwThreshMode -side top -expand yes -fill x
 	pack $fwCopy -side top  -expand yes -fill x
 	pack $fwFDR  -side top  -expand yes -fill x
 
@@ -1216,7 +1212,10 @@ proc DoConfigOverlayDisplayDlog {} {
 	# now update it so that we have the current info and stuff.
 	UpdateOverlayDlogInfo
 
-	CalcNewThresholdMaxFromMinSlope $gaHistoWidget(graph)
+	# Since the max threshold is an artifical value that is only
+	# used on the interface side, we have to initialize it
+	# ourselves if this is the first time we've opened the dlog.
+	CalcNewPiecewiseThresholdMaxFromMidSlope $gaHistoWidget(graph)
     }
 }
 
@@ -1288,13 +1287,12 @@ proc UpdateOverlayDlogInfo {} {
 		-label "Condition (0-$nMaxCondition)"
     }
     
-    # If we're using the simple threshold mode, disable the fmid and
-    # fslope fields. Also delete the midpoint markers on the
-    # histogram.
+    # If we're using the linear threshold mode, disable the fmid and
+    # fslope fields. 
     set state normal
-    if { $gaHistogramData(simpleThresh) } { 
+    if { [string match $gaHistogramData(threshMode) linear] } { 
 	set state disabled 
-    } else { 
+    } elseif { [string match $gaHistogramData(threshMode) piecewise] } { 
 	set state normal 
     }
     $gaHistoWidget(fmid).lwLabel configure -state $state
@@ -1302,7 +1300,8 @@ proc UpdateOverlayDlogInfo {} {
     $gaHistoWidget(fslope).lwLabel configure -state $state
     $gaHistoWidget(fslope).ewEntry configure -state $state
 
-    if { $gaHistogramData(simpleThresh) } {     
+    # If in linear mode, delete the mid line.
+    if { [string match $gaHistogramData(threshMode) linear] } {     
 	catch { 
 	    $gaHistoWidget(graph) marker delete mid negmid
 	}
