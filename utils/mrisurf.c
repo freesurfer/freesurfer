@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/17 14:29:22 $
-// Revision       : $Revision: 1.421 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2006/01/17 21:14:51 $
+// Revision       : $Revision: 1.422 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -553,7 +553,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.421 2006/01/17 14:29:22 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.422 2006/01/17 21:14:51 greve Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -2693,7 +2693,7 @@ MRIScomputeNormals(MRI_SURFACE *mris)
       // DNG Changed from /=2 to /=3.
       // See also MRIScomputeTriangleProperties()
       if(!fix_vertex_area_env_read){
-        if(getenv("DONT_FIX_VERTEX_AREA") == NULL){
+        if(getenv("FIX_VERTEX_AREA") == NULL){
           printf("INFO: Fixing vertex area\n");
           fix_vertex_area = 1;
         }
@@ -6763,7 +6763,7 @@ mrisOrientPlane(MRI_SURFACE *mris)
           v->area += face->area ;
         }
       // DNG Changed from /=2 to /=3.
-      // See also MRIScomputeTriangleProperties()
+      // See als MRIScomputeTriangleProperties()
       if(!fix_vertex_area_env_read){
         if(getenv("FIX_VERTEX_AREA") != NULL){
           printf("INFO: Fixing vertex area\n");
