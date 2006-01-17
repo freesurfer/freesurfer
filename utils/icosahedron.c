@@ -7986,6 +7986,7 @@ ICOread(char *fname)
     }
   }
 
+  MRISsetNeighborhoodSize(mris,-1);
   MRIScomputeMetricProperties(mris) ;
 #if 0
   for (fno = 0 ; fno < mris->nfaces ; fno++)
