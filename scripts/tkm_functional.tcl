@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.30 2005/12/20 22:44:00 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.31 2006/01/17 21:07:17 kteich Exp $
 
 package require BLT;
 
@@ -53,7 +53,7 @@ set gfOverlayAlpha 1.0
 set gOverlaySampleType $FunD_tSampleType(nearest)
 set gFDRRate 0.05
 set gbFDMask 0
-set gbSimpleThreshold 1
+set gThresholdMode linear
 
 set glAllColors {Red Green Blue Purple Brown Pink Gray LightBlue Yellow Orange}
 set gnMaxColors [llength $glAllColors]
@@ -390,6 +390,7 @@ proc Overlay_DoConfigDlog {} {
     global gbGrayscale gbOpaque gbTruncatePositive
     global gfThreshold gfOverlayRange
     global gfOverlayAlpha
+    global gThresholdMode
     
     set wwDialog .wwOverlayConfigDlog
     
@@ -487,7 +488,7 @@ proc Overlay_DoConfigDlog {} {
 	set fwThresholdSub     [$lfwThreshold subwidget frame]
 	set fwIgnoreThresh     $fwThresholdSub.fwIgnoreThresh
 	set fwThresholdEntries $fwThresholdSub.fwThresholdEntries
-	set fwSimpleThresh     $fwThresholdSub.fwSimpleThresh
+	set fwThreshMode       $fwThresholdSub.fwThreshMode
 	
 	set fwFDR      $fwThresholdSub.fwFDR
 	set bwFDR      $fwFDR.bwFDR
@@ -498,34 +499,36 @@ proc Overlay_DoConfigDlog {} {
 	    { text "Ignore Threshold" gbIgnoreThreshold
 		"set gbIgnoreThreshold \$gbIgnoreThreshold" } }
 
-	# These entries call the Overlay_Set{Min,Mid,Max,Slope}
-	# functions with an update parameter of 1 to tell the function
-	# to update related variables; e.g. setting the slope will
-	# update the max.
+	# If we're in linear threshold mode, only the min and max
+	# fields are active, and setting them should just calc a new
+	# linear threshold. If in piecewise mode, setting the mid,
+	# max, and slope calc new piecewise threshold values.
 	frame $fwThresholdEntries
 	tkm_MakeEntry $fwThresholdEntries.fwMin \
 	    "Min" gfThreshold(min) 6 {
 		Overlay_SetMin $gfThreshold(min)
-		if { $gbSimpleThreshold } {
+		if { [string match $gThresholdMode linear] } {
 		    Overlay_CalcNewLinearThreshold
-		} else {
-		    Overlay_CalcNewThresholdSlopeAndMaxFromMinMid
 		}
 	    }
 	tkm_MakeEntry $fwThresholdEntries.fwMid \
 	    "Mid" gfThreshold(mid) 6 {
 		Overlay_SetMid $gfThreshold(mid)
-		Overlay_CalcNewThresholdSlopeAndMaxFromMinMid
+		Overlay_CalcNewPiecewiseThresholdSlopeFromMidMax
 	    }
 	tkm_MakeEntry $fwThresholdEntries.fwMax \
 	    "Max" gfThreshold(max) 6 {
 		Overlay_SetMax $gfThreshold(max)
-		Overlay_CalcNewLinearThreshold
+		if { [string match $gThresholdMode linear] } {
+		    Overlay_CalcNewLinearThreshold
+		} elseif { [string match $gThresholdMode piecewise] } {
+		    Overlay_CalcNewPiecewiseThresholdSlopeFromMidMax
+		}
 	    }
 	tkm_MakeEntry $fwThresholdEntries.fwSlope \
 	    "Slope" gfThreshold(slope) 6 {
 		Overlay_SetSlope $gfThreshold(slope)
-		Overlay_CalcNewThresholdMaxFromMinSlope
+		Overlay_CalcNewPiecewiseThresholdMaxFromMidSlope
 	    }
 	pack $fwThresholdEntries.fwMin $fwThresholdEntries.fwMid \
 	    $fwThresholdEntries.fwMax $fwThresholdEntries.fwSlope \
@@ -536,16 +539,18 @@ proc Overlay_DoConfigDlog {} {
 	set gaOverlayDlogWidgets(fmid) $fwThresholdEntries.fwMid 
 	set gaOverlayDlogWidgets(fslope) $fwThresholdEntries.fwSlope 
 
-	tkm_MakeCheckboxes $fwSimpleThresh y {
-	    { text "Simple (Linear) Threshold Mode" gbSimpleThreshold
-		Overlay_UpdateDlogInfo } }
+	tkm_MakeRadioButtons $fwThreshMode x "Threshold" \
+	    gThresholdMode {
+	    {text "Linear" linear {Overlay_UpdateDlogInfo} "" }
+	    {text "Piecewise" piecewise {Overlay_UpdateDlogInfo} "" }
+	}
 
 	frame $fwFDR
 	tkm_MakeButtons $bwFDR \
 	    [list \
 		 [list text "Set Threshold Using FDR" \
 		      {Overlay_SetThresholdUsingFDR $gFDRRate $gbFDRMask;
-			  Overlay_CalcNewThresholdMaxFromMinSlope}]]
+			  Overlay_CalcNewPiecewiseThresholdMaxFromMidSlope}]]
 
 	tkm_MakeEntry $ewFDRRate "Rate" gFDRRate 4 {}
 
@@ -579,7 +584,7 @@ proc Overlay_DoConfigDlog {} {
 	pack $lfwLocation $fwTimePointTop $fwCondition \
 	    $lfwDisplay $fwOptions $fwSampleType \
 	    $lfwThreshold $lfwAlpha $fwIgnoreThresh \
-	    $fwThresholdEntries $fwSimpleThresh $fwFDR $fwAlpha \
+	    $fwThresholdEntries $fwThreshMode $fwFDR $fwAlpha \
 	    $fwButtons \
 	    -side top \
 	    -anchor w \
@@ -587,7 +592,7 @@ proc Overlay_DoConfigDlog {} {
 	    -fill x
 	
 	# This function simply updates the max.
-	Overlay_CalcNewThresholdMaxFromMinSlope
+	Overlay_CalcNewPiecewiseThresholdMaxFromMidSlope
 	# Start out widgets off in the right state.
 	Overlay_UpdateDlogInfo
     }
@@ -595,14 +600,14 @@ proc Overlay_DoConfigDlog {} {
 
 proc Overlay_UpdateDlogInfo { } {
     global gaOverlayDlogWidgets
-    global gbSimpleThreshold
+    global gThresholdMode
 
     # If we're using the simple threshold mode, disable the fmid and
     # fslope fields.
     set state normal
-    if { $gbSimpleThreshold } { 
+    if { [string match $gThresholdMode linear] } { 
 	set state disabled 
-    } else { 
+    } elseif { [string match $gThresholdMode piecewise] } { 
 	set state normal 
     }
     $gaOverlayDlogWidgets(fmid).lwLabel configure -state $state
@@ -648,24 +653,18 @@ proc Overlay_CalcNewLinearThreshold {} {
     }
 }
 
-proc Overlay_CalcNewThresholdSlopeAndMaxFromMinMid {} {
+proc Overlay_CalcNewPiecewiseThresholdMaxFromMidSlope {} {
     global gfThreshold
 
-    # This is called when the user is in normal threshold mode and
-    # min or mid was changed. Calc the slope and the max.
-    Overlay_SetSlope \
-	[expr 0.5 / ($gfThreshold(mid) - $gfThreshold(min))]
     Overlay_SetMax \
-	[expr (1.0 / $gfThreshold(slope)) + $gfThreshold(min)]
+	[expr (0.5 / $gfThreshold(slope)) + $gfThreshold(mid)]
 }
 
-proc Overlay_CalcNewThresholdMaxFromMinSlope {} {
+proc Overlay_CalcNewPiecewiseThresholdSlopeFromMidMax {} {
     global gfThreshold
 
-    # This is called when the user is in normal threshold mode and
-    # they changed the slope. We'll set the max now.
-    Overlay_SetMax \
-	[expr (1.0 / $gfThreshold(slope)) + $gfThreshold(min)]
+    Overlay_SetSlope \
+	[expr (0.5 / ($gfThreshold(max) - $gfThreshold(mid)))]
 }
 
 proc TimeCourse_DoConfigDlog {} {
