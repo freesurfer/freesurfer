@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.38 2005/12/22 23:52:55 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.39 2006/01/17 19:27:14 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -403,9 +403,14 @@ proc tkm_MakeRadioButtons { isFrame isDirection isTitle iVariable ilRadioButtons
 		# same row as the number of this checkbox.
 		switch $isDirection {
 		    h - x { 
-			grid $rbw -column [expr 2 * $nRadioButton] -row 0
-			grid $lw -column [expr 1 + [expr 2 * $nRadioButton]] \
+			grid $rbw -column [expr 2 * $nRadioButton] -row 0 \
+			    -sticky e
+			grid $lw -column [expr 1 + (2 * $nRadioButton)] \
 			    -row 0 -sticky w
+			grid columnconfigure $fwMain \
+			    [expr 2 * $nRadioButton] -weight 0
+			grid columnconfigure $fwMain \
+			    [expr 1+ (2 * $nRadioButton)] -weight 1
 		    }
 		    v - y { 
 			grid $rbw -column 0 -row $nRadioButton
@@ -429,6 +434,7 @@ proc tkm_MakeRadioButtons { isFrame isDirection isTitle iVariable ilRadioButtons
 		switch $isDirection {
 		    h - x { 
 			grid $rbw -column $nRadioButton -row 0
+			grid configure $rbw -padx 5
 		    }
 		    v - y { 
 			grid $rbw -column 0 -row $nRadioButton
@@ -453,8 +459,12 @@ proc tkm_MakeRadioButtons { isFrame isDirection isTitle iVariable ilRadioButtons
 	incr nRadioButton
     }
     
-    grid columnconfigure $fwMain 0 -weight 0
-    grid columnconfigure $fwMain 1 -weight 1
+    switch $isDirection {
+	v - y { 
+	    grid columnconfigure $fwMain 0 -weight 0
+	    grid columnconfigure $fwMain 1 -weight 1
+	}
+    }
 }
 
 proc tkm_MakeRadioButton { isFrame isText iVariable iValue {iCmd ""} } {
