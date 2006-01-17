@@ -1,13 +1,15 @@
 ////////////////////////////////////////////////////////////////////
 // mri_info.c
 //
-// Warning: Do not edit the following four lines.  CVS maintains them.
+// Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/10/17 18:21:59 $
-// Revision       : $Revision: 1.42 $
+// Revision Date  : $Date: 2006/01/17 21:28:56 $
+// Revision       : $Revision: 1.43 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.42 $";
+
+char *MRI_INFO_VERSION = "$Revision: 1.43 $";
+
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -29,7 +31,6 @@ char *MRI_INFO_VERSION = "$Revision: 1.42 $";
 #include "mghendian.h"
 #include "fio.h"
 
-
 static void do_file(char *fname);
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -38,10 +39,9 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.42 2005/10/17 18:21:59 nicks Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.43 2006/01/17 21:28:56 nicks Exp $";
 
 char *Progname ;
-
 char *inputlist[100];
 int nthinput=0;
 int PrintTR=0;
@@ -68,7 +68,6 @@ int PrintSliceDirection = 0;
 FILE *fpout;
 int PrintToFile = 0;
 char *outfile = NULL;
-
 int debug = 0;
 
 /***-------------------------------------------------------****/
@@ -217,15 +216,15 @@ static void print_help(void)
 {
   print_usage() ;
   printf(
-"\n"
-"Dumps information about the volume to stdout. Specific pieces \n"
-"of information can be printed out as well by specifying the proper\n"
-"flag (eg, --tr for TR). Time is in msec. Distance is in MM. Angles\n"
-"are in radians.\n"
-"\n"
-"The direction cosine outputs (--cdc, --rdc, --sdc) correspond to \n"
-"mri_convert flags -iid, -ijd, -ikd.\n"
-);
+         "\n"
+         "Dumps information about the volume to stdout. Specific pieces \n"
+         "of information can be printed out as well by specifying the proper\n"
+         "flag (eg, --tr for TR). Time is in msec. Distance is in MM. Angles\n"
+         "are in radians.\n"
+         "\n"
+         "The direction cosine outputs (--cdc, --rdc, --sdc) correspond to \n"
+         "mri_convert flags -iid, -ijd, -ikd.\n"
+         );
 
 
   exit(1) ;
@@ -262,13 +261,14 @@ int PrettyMatrixPrint(MATRIX *mat)
 
   if (mat->type != MATRIX_REAL)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "mat is not Real type")) ;
- 
+
   if (mat->rows != 4 || mat->cols != 4)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "mat is not of 4 x 4")) ;
-    
+
   for (row=1; row < 5; ++row)
     printf("              %8.4f %8.4f %8.4f %10.4f\n",
-	   mat->rptr[row][1], mat->rptr[row][2], mat->rptr[row][3], mat->rptr[row][4]);
+           mat->rptr[row][1], mat->rptr[row][2],
+           mat->rptr[row][3], mat->rptr[row][4]);
   return (NO_ERROR);
 }
 
@@ -281,12 +281,12 @@ static void do_file(char *fname)
   char ostr[5];
   GCA_MORPH *gcam;
   ostr[4] = '\0';
-  
+
   if(!(strstr(fname, ".m3d") == 0 && strstr(fname, ".m3z") == 0
-     && strstr(fname, ".M3D") == 0 && strstr(fname, ".M3Z") == 0)     
+       && strstr(fname, ".M3D") == 0 && strstr(fname, ".M3Z") == 0)
      ){
     fprintf(fpout,"Input file is a 3D morph.\n");
-    
+
     gcam = NULL;
     gcam = GCAMread(fname);
     if(!gcam) return;
@@ -371,7 +371,7 @@ static void do_file(char *fname)
     m = MRIgetVoxelToRasXform(mri) ;
     for(r=1; r<=4; r++){
       for(c=1; c<=4; c++){
-	fprintf(fpout,"%10.5f ",m->rptr[r][c]);
+        fprintf(fpout,"%10.5f ",m->rptr[r][c]);
       }
       fprintf(fpout,"\n");
     }
@@ -383,7 +383,7 @@ static void do_file(char *fname)
     minv = MatrixInverse(m,NULL);
     for(r=1; r<=4; r++){
       for(c=1; c<=4; c++){
-	fprintf(fpout,"%10.5f ",minv->rptr[r][c]);
+        fprintf(fpout,"%10.5f ",minv->rptr[r][c]);
       }
       fprintf(fpout,"\n");
     }
@@ -395,7 +395,7 @@ static void do_file(char *fname)
     m = MRIxfmCRS2XYZtkreg(mri);
     for(r=1; r<=4; r++){
       for(c=1; c<=4; c++){
-	fprintf(fpout,"%10.5f ",m->rptr[r][c]);
+        fprintf(fpout,"%10.5f ",m->rptr[r][c]);
       }
       fprintf(fpout,"\n");
     }
@@ -413,49 +413,60 @@ static void do_file(char *fname)
   }
 
   fprintf(fpout,"Volume information for %s\n", fname);
-  // mri_identify has been called but the result is not stored and thus I have to call it again
+  // mri_identify has been called but the result is not stored
+  // and thus I have to call it again
   printf("          type: %s\n", type_to_string(mri_identify(fname)));
   if (mri->nframes > 1)
-    printf("    dimensions: %d x %d x %d x %d\n", mri->width, mri->height, mri->depth, mri->nframes) ;
+    printf("    dimensions: %d x %d x %d x %d\n",
+           mri->width, mri->height, mri->depth, mri->nframes) ;
   else
-    printf("    dimensions: %d x %d x %d\n", mri->width, mri->height, mri->depth) ;
-  printf("   voxel sizes: %6.4f, %6.4f, %6.4f\n", mri->xsize, mri->ysize, mri->zsize) ;
+    printf("    dimensions: %d x %d x %d\n",
+           mri->width, mri->height, mri->depth) ;
+  printf("   voxel sizes: %6.4f, %6.4f, %6.4f\n",
+         mri->xsize, mri->ysize, mri->zsize) ;
   printf("          type: %s (%d)\n",
-	 mri->type == MRI_UCHAR   ? "UCHAR" :
-	 mri->type == MRI_SHORT   ? "SHORT" :
-	 mri->type == MRI_INT     ? "INT" :
-	 mri->type == MRI_LONG    ? "LONG" :
-	 mri->type == MRI_BITMAP  ? "BITMAP" :
-	 mri->type == MRI_TENSOR  ? "TENSOR" :
-	 mri->type == MRI_FLOAT   ? "FLOAT" : "UNKNOWN", mri->type) ;
+         mri->type == MRI_UCHAR   ? "UCHAR" :
+         mri->type == MRI_SHORT   ? "SHORT" :
+         mri->type == MRI_INT     ? "INT" :
+         mri->type == MRI_LONG    ? "LONG" :
+         mri->type == MRI_BITMAP  ? "BITMAP" :
+         mri->type == MRI_TENSOR  ? "TENSOR" :
+         mri->type == MRI_FLOAT   ? "FLOAT" : "UNKNOWN", mri->type) ;
   printf("           fov: %2.3f\n", mri->fov) ;
-  printf("        xstart: %2.1f, xend: %2.1f\n", mri->xstart*mri->xsize, mri->xend*mri->xsize) ;
-  printf("        ystart: %2.1f, yend: %2.1f\n", mri->ystart*mri->ysize, mri->yend*mri->ysize) ;
-  printf("        zstart: %2.1f, zend: %2.1f\n", mri->zstart*mri->zsize, mri->zend*mri->zsize) ;
-  printf("            TR: %2.2f msec, TE: %2.2f msec, TI: %2.2f msec, flip angle: %2.2f degrees\n",
-	 mri->tr, mri->te, mri->ti, DEGREES(mri->flip_angle)) ;
+  printf("        xstart: %2.1f, xend: %2.1f\n",
+         mri->xstart*mri->xsize, mri->xend*mri->xsize) ;
+  printf("        ystart: %2.1f, yend: %2.1f\n",
+         mri->ystart*mri->ysize, mri->yend*mri->ysize) ;
+  printf("        zstart: %2.1f, zend: %2.1f\n",
+         mri->zstart*mri->zsize, mri->zend*mri->zsize) ;
+  printf("            TR: %2.2f msec, TE: %2.2f msec, TI: %2.2f msec, "
+         "flip angle: %2.2f degrees\n",
+         mri->tr, mri->te, mri->ti, DEGREES(mri->flip_angle)) ;
   printf("       nframes: %d\n", mri->nframes) ;
   printf("ras xform %spresent\n", mri->ras_good_flag ? "" : "not ") ;
-  printf("    xform info: x_r = %8.4f, y_r = %8.4f, z_r = %8.4f, c_r = %10.4f\n",
-	 mri->x_r, mri->y_r, mri->z_r, mri->c_r);
-  printf("              : x_a = %8.4f, y_a = %8.4f, z_a = %8.4f, c_a = %10.4f\n",
-	 mri->x_a, mri->y_a, mri->z_a, mri->c_a);
-  printf("              : x_s = %8.4f, y_s = %8.4f, z_s = %8.4f, c_s = %10.4f\n",
-	 mri->x_s, mri->y_s, mri->z_s, mri->c_s);
+  printf("    xform info: x_r = %8.4f, y_r = %8.4f, z_r = %8.4f, "
+         "c_r = %10.4f\n",
+         mri->x_r, mri->y_r, mri->z_r, mri->c_r);
+  printf("              : x_a = %8.4f, y_a = %8.4f, z_a = %8.4f, "
+         "c_a = %10.4f\n",
+         mri->x_a, mri->y_a, mri->z_a, mri->c_a);
+  printf("              : x_s = %8.4f, y_s = %8.4f, z_s = %8.4f, "
+         "c_s = %10.4f\n",
+         mri->x_s, mri->y_s, mri->z_s, mri->c_s);
 
   if (fio_IsDirectory(fname))
     printf("\ntalairach xfm : %s\n", mri->transform_fname);
   else
-  {
-    char *ext = 0;
-    ext = fio_extension(fname);
-    if (ext)
     {
-      if (strcmp(ext, "mgz") == 0 || strcmp(ext, "mgh")==0)
-	printf("\ntalairach xfm : %s\n", mri->transform_fname);
-      free(ext);
+      char *ext = 0;
+      ext = fio_extension(fname);
+      if (ext)
+        {
+          if (strcmp(ext, "mgz") == 0 || strcmp(ext, "mgh")==0)
+            printf("\ntalairach xfm : %s\n", mri->transform_fname);
+          free(ext);
+        }
     }
-  }
   MRIdircosToOrientationString(mri,ostr);
   printf("Orientation   : %s\n",ostr);
   printf("Primary Slice Direction: %s\n",MRIsliceDirectionName(mri));
@@ -467,7 +478,7 @@ static void do_file(char *fname)
   printf("\nras to voxel transform:\n"); PrettyMatrixPrint(m);
   MatrixFree(&m);
   MRIfree(&mri);
-  
+
   return;
 
 } /* end do_file */
