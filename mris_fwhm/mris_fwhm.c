@@ -116,7 +116,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.5 2006/01/10 00:55:41 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.6 2006/01/17 22:48:28 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -144,7 +144,7 @@ MRIS *surf;
 double infwhm = 0, ingstd = 0;
 int synth = 0, nframes = 10;
 int SynthSeed = -1;
-int nitersonly=1;
+int nitersonly=0;
 
 char *Xfile=NULL;
 MATRIX *X=NULL;
@@ -153,7 +153,7 @@ MATRIX *X=NULL;
 int main(int argc, char *argv[])
 {
   int nargs, niters=0;
-  double fwhm = 0, gstd = 0, ar1mn, ar1std, ar1max, avgvtxarea;
+  double fwhm = 0, ar1mn, ar1std, ar1max, avgvtxarea;
   double InterVertexDistAvg, InterVertexDistStdDev;
   MRI *ar1=NULL;
   FILE *fp;
@@ -203,6 +203,10 @@ int main(int argc, char *argv[])
   printf("Number of vertices %d\n",surf->nvertices);
   printf("Number of faces    %d\n",surf->nfaces);
   printf("Total area         %lf\n",surf->total_area);
+  if(surf->group_avg_surface_area > 0) printf("GroupSurface %f\n",surf->group_avg_surface_area);
+  else                                 printf("GroupSurface 0\n");
+  if(getenv("FIX_VERTEX_AREA") != NULL) printf("FIX_VERTEX_AREA 1\n");
+  else                                  printf("FIX_VERTEX_AREA 0\n");
   printf("AvgVtxArea       %lf\n",avgvtxarea);
   printf("AvgVtxDist       %lf\n",InterVertexDistAvg);
   printf("StdVtxDist       %lf\n",InterVertexDistStdDev);
@@ -255,7 +259,7 @@ int main(int argc, char *argv[])
       printf("niters %d\n",niters);
       exit(0);
     }
-    printf("Smoothing by fwhm=%lf, gstd=%lf, niters=%d \n",
+    printf("Smoothing input by fwhm=%lf, gstd=%lf, niters=%d \n",
 	   infwhm,ingstd,niters);
     MRISsmoothMRI(surf, InVals, niters, InVals);
   }
@@ -265,10 +269,8 @@ int main(int argc, char *argv[])
 
   // Average AR1 over all vertices
   RFglobalStats(ar1, mask, &ar1mn, &ar1std, &ar1max);
-  gstd = InterVertexDistAvg/sqrt(-4*log(ar1mn));
-  fwhm = gstd*sqrt(log(256.0));
+  fwhm = MRISfwhmFromAR1(surf, ar1mn);
 
-  printf("gstd = %lf\n",gstd);
   printf("fwhm = %lf\n",fwhm);
   fflush(stdout);
 
@@ -283,12 +285,15 @@ int main(int argc, char *argv[])
     fprintf(fp,"Number of vertices %d\n",surf->nvertices);
     fprintf(fp,"Number of faces    %d\n",surf->nfaces);
     fprintf(fp,"Total area         %lf\n",surf->total_area);
+    if(surf->group_avg_surface_area > 0) fprintf(fp,"GroupSurface %f\n",surf->group_avg_surface_area);
+    else                                 fprintf(fp,"GroupSurface 0\n");
+    if(getenv("FIX_VERTEX_AREA") != NULL) fprintf(fp,"FIX_VERTEX_AREA 1\n");
+    else                                  fprintf(fp,"FIX_VERTEX_AREA 0\n");
     fprintf(fp,"AvgVtxArea       %lf\n",avgvtxarea);
     fprintf(fp,"AvgVtxDist       %lf\n",InterVertexDistAvg);
     fprintf(fp,"StdVtxDist       %lf\n",InterVertexDistStdDev);
     fprintf(fp,"ar1mn %lf\n",ar1mn);
     fprintf(fp,"ar1std %lf\n",ar1std);
-    fprintf(fp,"gstd %lf\n",gstd);
     fprintf(fp,"fwhm %lf\n",fwhm);
     fclose(fp);
   }
