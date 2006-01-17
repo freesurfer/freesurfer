@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/16 21:13:59 $
-// Revision       : $Revision: 1.420 $
+// Revision Date  : $Date: 2006/01/17 14:29:22 $
+// Revision       : $Revision: 1.421 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -553,7 +553,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.420 2006/01/16 21:13:59 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.421 2006/01/17 14:29:22 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -2693,7 +2693,7 @@ MRIScomputeNormals(MRI_SURFACE *mris)
       // DNG Changed from /=2 to /=3.
       // See also MRIScomputeTriangleProperties()
       if(!fix_vertex_area_env_read){
-        if(getenv("FIX_VERTEX_AREA") != NULL){
+        if(getenv("DONT_FIX_VERTEX_AREA") == NULL){
           printf("INFO: Fixing vertex area\n");
           fix_vertex_area = 1;
         }
@@ -29377,8 +29377,9 @@ static SEGMENTATION* segmentIntersectingEdges(MRIS *mris, DEFECT *defect, int * 
     }
   }
 
-  fprintf(WHICH_OUTPUT,"Edge Clustering: %d segments were found (%d were discarded )\n",segmentation->nsegments,ndiscarded);
-
+	if (DIAG_VERBOSE_ON)
+		fprintf(WHICH_OUTPUT,"Edge Clustering: %d segments were found (%d were discarded )\n",segmentation->nsegments,ndiscarded);
+	
 #if 0
   for( n = 0 ; n < segmentation->max_segments ; n++)
     if(segmentation->segments[n].nedges>0)
@@ -29442,7 +29443,10 @@ static SEGMENTATION* segmentIntersectingEdges(MRIS *mris, DEFECT *defect, int * 
   }
   for( n = 0 ; n < segmentation->max_segments ; n++)
     if(segmentation->segments[n].nedges>0)
-      fprintf(WHICH_OUTPUT,"                 cluster %d has %d edges\n",n,segmentation->segments[n].nedges);
+		{
+			if(DIAG_VERBOSE_ON)
+				fprintf(WHICH_OUTPUT,"                 cluster %d has %d edges\n",n,segmentation->segments[n].nedges);
+		}
 
   for ( n = 0  ; n < nes ; n++ )
     if(es[n].xedges)
@@ -30016,7 +30020,8 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
   depth  = ceil(scale*(zmax-zmin)) ;
   mri=MRIalloc(width,height,depth,MRI_UCHAR);
 
-  fprintf(WHICH_OUTPUT,"Defect size : %d by %d by %d (scale = %d)\n",width,height,depth,(int)scale);
+  if(parms->verbose==VERBOSE_MODE_HIGH)
+		fprintf(WHICH_OUTPUT,"Defect size : %d by %d by %d (scale = %d)\n",width,height,depth,(int)scale);
 
   mri->xstart=xmin;
   mri->xsize=scale;
@@ -30270,7 +30275,8 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   cz /= (float)defect->nvertices;
   ival /= (float)defect->nvertices;
 
-  fprintf(WHICH_OUTPUT,"Computing statistics for defect %d [ (%d,%d,%d) - %3.3f ]\n",defect->defect_number,(int)cx,(int)cy,(int)cz,ival);
+	if(DIAG_VERBOSE_ON)
+		fprintf(WHICH_OUTPUT,"Computing statistics for defect %d [ (%d,%d,%d) - %3.3f ]\n",defect->defect_number,(int)cx,(int)cy,(int)cz,ival);
 
   /* computing intensity statistics */
 
@@ -30424,9 +30430,10 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
 
   defect->k2_mean=mean;
 
-  fprintf(WHICH_OUTPUT,"      -curvature(kmax=%f : rmin = %f |  kmin=%f : rmax = %f )\n",defect->k1_mean,-1.0/defect->k1_mean,
-          defect->k2_mean,-1.0/defect->k2_mean);
-
+	if(DIAG_VERBOSE_ON)
+		fprintf(WHICH_OUTPUT,"      -curvature(kmax=%f : rmin = %f |  kmin=%f : rmax = %f )\n",defect->k1_mean,-1.0/defect->k1_mean,
+						defect->k2_mean,-1.0/defect->k2_mean);
+	
   for(k1=0,vk1=0,k2=0,vk2=0,i=0 ; i < mri_k1_k2->width ; i++)
     for(j = 0 ; j < mri_k1_k2->height ; j++){
       val=mri_k1_k2->xstart+(float)i*mri_k1_k2->xsize;
@@ -34403,7 +34410,7 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
         theoric_euler=3+defect->defect_number-dl->ndefects;
         fprintf(WHICH_OUTPUT,"After retessellation of defect %d, "
                 "euler #=%d (%d,%d,%d) : "
-                "difference with theory (%d) = %d \n\n",
+                "difference with theory (%d) = %d \n",
                 i,euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
       }
 
@@ -41213,26 +41220,29 @@ static int mrisComputeOptimalRetessellation
   /* saving self-intersection */
   defect->intersect=nintersections;
 
-  fprintf
-    (WHICH_OUTPUT,
-     "PATCH #:%03d:  FITNESS:   %2.2f\n              "
-     "MUTATIONS: %d (out of %d)\n              "
-     "CROSSOVERS: %d (out of %d)\n",
-     defect->defect_number,fitness,nmutations,
-     ntotalmutations,ncross_overs,ntotalcross_overs);
-  fprintf
-    (WHICH_OUTPUT,
-     "              ELIMINATED VERTICES:  %d (out of %d)\n",
-     nfinalvertices,defect->nvertices);
-  fprintf
-    (WHICH_OUTPUT,
-     "              BEST PATCH #: %d (out of %d generated patches)\n",
-     nbestpatch,number_of_patches);
-  if(parms->check_surface_intersection)
-    fprintf
-      (WHICH_OUTPUT,
-       "              NUMBER OF INTERSECTING FACES: %d (out of %d) \n",
-       nintersections,dp->tp.nfaces);
+	if(parms->verbose==VERBOSE_MODE_HIGH)
+	{
+		fprintf
+			(WHICH_OUTPUT,
+			 "PATCH #:%03d:  FITNESS:   %2.2f\n              "
+			 "MUTATIONS: %d (out of %d)\n              "
+			 "CROSSOVERS: %d (out of %d)\n",
+			 defect->defect_number,fitness,nmutations,
+			 ntotalmutations,ncross_overs,ntotalcross_overs);
+		fprintf
+			(WHICH_OUTPUT,
+			 "              ELIMINATED VERTICES:  %d (out of %d)\n",
+			 nfinalvertices,defect->nvertices);
+		fprintf
+			(WHICH_OUTPUT,
+			 "              BEST PATCH #: %d (out of %d generated patches)\n",
+			 nbestpatch,number_of_patches);
+		if(parms->check_surface_intersection)
+			fprintf
+				(WHICH_OUTPUT,
+				 "              NUMBER OF INTERSECTING FACES: %d (out of %d) \n",
+				 nintersections,dp->tp.nfaces);
+	}
 
   /* should free the tessellated patch structure */
   TPfree(&dp->tp);
