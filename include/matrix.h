@@ -2,15 +2,14 @@
 #define MATRIX_H
 
 #ifdef X
-  #undef X
+#undef X
 #endif
-
 
 #include <stdio.h>
 
-/* matrices and vectors are the same data type, vector will only 
+/* matrices and vectors are the same data type, vector will only
    have one column (by default) or one row.
- */
+*/
 typedef struct
 {
   short   type ;
@@ -74,17 +73,17 @@ MATRIX  *MatrixSignedSquareElts(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixSqrtElts(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixDiag(MATRIX *mDiag, MATRIX *mOut) ;
 MATRIX  *MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst) ;
-MATRIX  *MatrixCopyRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, 
-                                 int start_col, int rows, int cols, 
-                                 int dest_row, int dest_col) ;
+MATRIX  *MatrixCopyRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
+                          int start_col, int rows, int cols,
+                          int dest_row, int dest_col) ;
 MATRIX  *MatrixCopyRealRegion(MATRIX *mSrc, MATRIX *mDst,int start_row,
-                                 int start_col, int rows, int cols, 
-                                 int dest_row, int dest_col) ;
+                              int start_col, int rows, int cols,
+                              int dest_row, int dest_col) ;
 MATRIX  *MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
-                                 int start_col, int rows, int cols, 
-                                 int dest_row, int dest_col) ;
-MATRIX  *MatrixSetRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, 
-			 int start_col, int rows, int cols, float val);
+                              int start_col, int rows, int cols,
+                              int dest_row, int dest_col) ;
+MATRIX  *MatrixSetRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
+                         int start_col, int rows, int cols, float val);
 MATRIX *MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut);
 MATRIX *MatrixRegularize(MATRIX *mIn, MATRIX *mOut) ;
 int    MatrixSingular(MATRIX *m) ;
@@ -132,9 +131,7 @@ MATRIX *MatrixAsciiRead(char *fname, MATRIX *m) ;
 #define VECTOR_LOAD   VECTOR3_LOAD
 #define V3_LOAD       VECTOR3_LOAD
 
-
-double  Vector3Angle(VECTOR *v1, VECTOR *v2) ;
-
+double Vector3Angle(VECTOR *v1, VECTOR *v2) ;
 float  VectorLen(VECTOR *v) ;
 float  VectorAngle(VECTOR *v1, VECTOR *v2) ;
 float  VectorDot(VECTOR *v1, VECTOR *v2) ;
@@ -146,7 +143,6 @@ VECTOR *VectorCrossProduct(VECTOR *v1, VECTOR *v2, VECTOR *vdst) ;
 float  VectorTripleProduct(VECTOR *v1, VECTOR *v2, VECTOR *v3) ;
 VECTOR *VectorNormalize(VECTOR *vin, VECTOR *vout) ;
 MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm);
-
 
 /* these are macro versions that work on 3-d vectors */
 #define RV3_X(v)     (RVECTOR_ELT(v,1))
@@ -161,7 +157,7 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm);
 #define V3_CROSS_PRODUCT(va,vb,vc) \
                  V3_X(vc) = V3_Y(va)*V3_Z(vb)- V3_Z(va)*V3_Y(vb),  \
                  V3_Y(vc) = V3_Z(va)*V3_X(vb)- V3_X(va)*V3_Z(vb),  \
-                 V3_Z(vc) = V3_X(va)*V3_Y(vb)- V3_Y(va)*V3_X(vb) ; 
+                 V3_Z(vc) = V3_X(va)*V3_Y(vb)- V3_Y(va)*V3_X(vb) ;
 #define V3_TRIPLE_PRODUCT(va,vb,vc) \
                 (V3_X(vc) * (V3_Y(va)*V3_Z(vb)- V3_Z(va)*V3_Y(vb)) + \
                  V3_Y(vc) * (V3_Z(va)*V3_X(vb)- V3_X(va)*V3_Z(vb)) + \
@@ -203,7 +199,7 @@ MATRIX *MatrixConstVal(float val, int rows, int cols, MATRIX *X);
 MATRIX *MatrixZero(int rows, int cols, MATRIX *X);
 MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum);
 MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m);
-MATRIX *MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst) ;
+MATRIX *MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst);
 
 double VectorSum(MATRIX *v);
 double VectorMean(MATRIX *v);
@@ -212,12 +208,8 @@ double VectorStdDev(MATRIX *v, double *pMean);
 double VectorRange(MATRIX *v, double *pVmin, double *pVmax);
 
 MATRIX *GaussianMatrix(int len, float std, int norm, MATRIX *G);
-MATRIX *GaussianVector(int len, float mean, float std, int norm,
-		       MATRIX *g);
+MATRIX *GaussianVector(int len, float mean, float std, int norm, MATRIX *g);
 MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO);
 int MatrixRandPermRows(MATRIX *X);
 
 #endif
-
-
-
