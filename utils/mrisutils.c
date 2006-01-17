@@ -1418,8 +1418,18 @@ int MRISfwhm2niters(double fwhm, MRIS *surf)
 
   MRIScomputeMetricProperties(surf);
   avgvtxarea = surf->total_area/surf->nvertices;
+
+  if(surf->group_avg_surface_area > 0){
+    // This should be ok even if metric properties have been scaled ??
+    if(getenv("FIX_VERTEX_AREA") != NULL){
+      printf("INFO: fwhm2niters: Fixing group surface area\n");
+      avgvtxarea *= (surf->group_avg_surface_area/surf->total_area);
+    }
+    else printf("INFO: fwhm2niters: NOT fixing group surface area\n");
+  }
+
   gstd = fwhm/sqrt(log(256.0));
-  //1.14 is a fudge factor based on emprical fit of nearest neighbor
+  //1.14 is a fudge factor based on empirical fit of nearest neighbor
   niters = floor(1.14*(4*PI*(gstd*gstd))/(7*avgvtxarea) + 0.5);
   return(niters);
 }
@@ -1447,6 +1457,30 @@ int MRISfwhm2nitersSubj(double fwhm, char *subject, char *hemi, char *surfname)
   niters = MRISfwhm2niters(fwhm,surf);
 
   return(niters);
+}
+
+/*----------------------------------------------------------------------
+  MRISfwhm() - estimates fwhm from global ar1 mean
+  ----------------------------------------------------------------------*/
+double MRISfwhmFromAR1(MRIS *surf, double ar1)
+{
+  double fwhm, gstd,InterVertexDistAvg;
+  
+  MRIScomputeMetricProperties(surf);
+  InterVertexDistAvg = surf->avg_vertex_dist;
+  if(surf->group_avg_surface_area > 0){
+    // This should be ok even if metric properties have been scaled ??
+    if(getenv("FIX_VERTEX_AREA") != NULL){
+      printf("INFO: fwhmFromAR1: Fixing group surface area\n");
+      InterVertexDistAvg *= (surf->group_avg_surface_area/surf->total_area);
+    }
+    else printf("INFO: fwhmFromAR1: NOT fixing group surface area\n");
+  }
+
+  gstd = InterVertexDistAvg/sqrt(-4*log(ar1));
+  fwhm = gstd*sqrt(log(256.0));
+
+  return(fwhm);
 }
 
 /*----------------------------------------------------------------------
