@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/01/11 21:04:48 $
-// Revision       : $Revision: 1.127 $
+// Revision Date  : $Date: 2006/01/17 22:45:48 $
+// Revision       : $Revision: 1.128 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -7482,6 +7482,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   float                 fDistance          = 0;
 
   xVoxel MRIIdx;
+  xVoxel auxMRIIdx;
 
   /* send the anatomical index. */
   // translate the screen idx into the src Idx
@@ -7586,15 +7587,19 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   /* send aux volume value if it's loaded. */
   if( NULL != this->mpVolume[tkm_tVolumeType_Aux] ) 
     {
+
+      Volm_ConvertIdxToMRIIdx(this->mpVolume[tkm_tVolumeType_Aux],
+			      iAnaIdx, &auxMRIIdx);
+
       Volm_GetValueAtMRIIdx_( this->mpVolume[tkm_tVolumeType_Aux],
-			      &MRIIdx, &fVolumeValue );
+			      &auxMRIIdx, &fVolumeValue );
 
       switch (this->mpVolume[tkm_tVolumeType_Aux]->mpMriValues->type)
 	{
 	default:
 	  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
 	    sprintf( sTclArguments, "%s **%d**", 
-		 DspA_ksaDisplaySet[iSet], (int)fVolumeValue );
+		     DspA_ksaDisplaySet[iSet], (int)fVolumeValue );
 	  } else {
 	    sprintf( sTclArguments, "%s %d", 
 		 DspA_ksaDisplaySet[iSet], (int)fVolumeValue );
