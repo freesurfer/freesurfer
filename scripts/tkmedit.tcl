@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.105 2005/12/28 15:56:28 kteich Exp $
+# $Id: tkmedit.tcl,v 1.106 2006/01/17 20:00:27 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -4353,6 +4353,7 @@ proc CreateToolBar { ifwToolBar } {
     set fwSurfaces         $gfwaToolBar(main).fwSurfaces
     set fwVolumeToggles    $gfwaToolBar(main).fwVolumeToggles
     set fwSegVolume        $gfwaToolBar(main).fwSegVolume
+    set fwOverlayVolume    $gfwaToolBar(main).fwOverlayVolume
 
     frame $gfwaToolBar(main) -border 2 -relief raised
     
@@ -4475,11 +4476,35 @@ proc CreateToolBar { ifwToolBar } {
     }
     bind $fwSegVolume.cb0 <Control-Button-3> "DoFileDlog LoadSegmentation"
     
-    pack $fwTools $fwViews $fwSurfaces $fwVolumeToggles $fwSegVolume \
-      -side left \
-      -anchor w \
-      -padx 5
-
+    # Overlay checkbox. Control-left click shows options,
+    # control-right click shows load dlog.
+    tkm_MakeCheckboxes $fwOverlayVolume h {
+	{ image icon_overlay gbDisplayFlag(flag_FunctionalOverlay)
+	    "SendDisplayFlagValue flag_FunctionalOverlay" 
+	    "Show Functional Overlay" }
+	{ image icon_color_scalebar gbDisplayFlag(flag_FunctionalColorScaleBar)
+	    "SendDisplayFlagValue flag_FunctionalColorScaleBar" 
+	    "Show Functional Color Bar" }
+    }
+    tkm_AddCheckboxToEnableGroup tMenuGroup_OverlayOptions \
+	$fwOverlayVolume.cb0
+    tkm_AddCheckboxToEnableGroup tMenuGroup_OverlayOptions \
+	$fwOverlayVolume.cb1
+    bind $fwOverlayVolume.cb0 <Control-Button-1> {
+	if { [tkm_IsGroupEnabled tMenuGroup_OverlayOptions] } {
+	    set gbDisplayFlag(flag_FunctionalOverlay) \
+		[expr !$gbDisplayFlag(flag_FunctionalOverlay)] 
+	    Overlay_DoConfigDlog
+	}
+    }
+    bind $fwOverlayVolume.cb0 <Control-Button-3> "DoLoadFunctionalDlog overlay"
+    
+    pack $fwTools $fwViews $fwSurfaces $fwVolumeToggles \
+	$fwSegVolume $fwOverlayVolume \
+	-side left \
+	-anchor w \
+	-padx 5
+    
     # navigation toolbar
     set gfwaToolBar(nav)   $ifwToolBar.fwNavBar
     set fwOrientation      $gfwaToolBar(nav).fwOrientation
@@ -4596,24 +4621,25 @@ proc CreateImages {} {
 
     global ksImageDir
 
-    foreach image_name { icon_edit_label icon_edit_volume \
-      icon_navigate icon_edit_ctrlpts icon_edit_parc icon_line_tool \
-      icon_view_single icon_view_multiple icon_view_mosaic \
-      icon_cursor_goto icon_cursor_save \
-      icon_main_volume icon_aux_volume icon_seg_volume icon_linked_cursors \
-      icon_arrow_up icon_arrow_down icon_arrow_left icon_arrow_right \
-      icon_arrow_cw icon_arrow_ccw \
-      icon_arrow_expand_x icon_arrow_expand_y \
-      icon_arrow_shrink_x icon_arrow_shrink_y \
-      icon_orientation_coronal icon_orientation_horizontal \
-      icon_orientation_sagittal \
-      icon_zoom_in icon_zoom_out \
-      icon_brush_square icon_brush_circle icon_brush_3d \
-      icon_surface_main icon_surface_original icon_surface_pial \
-      icon_snapshot_save icon_snapshot_load \
-      icon_marker_crosshair icon_marker_diamond \
-      icon_stopwatch } {
-
+    foreach image_name { icon_edit_label icon_edit_volume 
+	icon_navigate icon_edit_ctrlpts icon_edit_parc icon_line_tool
+	icon_view_single icon_view_multiple icon_view_mosaic
+	icon_overlay icon_color_scalebar
+	icon_cursor_goto icon_cursor_save
+	icon_main_volume icon_aux_volume icon_seg_volume icon_linked_cursors
+	icon_arrow_up icon_arrow_down icon_arrow_left icon_arrow_right
+	icon_arrow_cw icon_arrow_ccw
+	icon_arrow_expand_x icon_arrow_expand_y
+	icon_arrow_shrink_x icon_arrow_shrink_y
+	icon_orientation_coronal icon_orientation_horizontal
+	icon_orientation_sagittal
+	icon_zoom_in icon_zoom_out
+	icon_brush_square icon_brush_circle icon_brush_3d
+	icon_surface_main icon_surface_original icon_surface_pial 
+	icon_snapshot_save icon_snapshot_load
+	icon_marker_crosshair icon_marker_diamond
+	icon_stopwatch } {
+	
   if { [catch {image create photo  $image_name -file \
     [ file join $ksImageDir $image_name.gif ]} sResult] != 0 } {
       dputs "Error loading $image_name:"
