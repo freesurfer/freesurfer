@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.31 2006/01/10 22:42:54 greve Exp $
+  $Id: mri_surf2surf.c,v 1.32 2006/01/18 20:08:32 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -33,12 +33,14 @@ OPTIONS
   --sval-xyz     surfname
   --sval-tal-xyz surfname
   --sval-area    surfname
+  --sval-nxyz    surfname
 
     Use measures from the input surface as the source (instead of specifying
     a source file explicitly with --sval). --sval-xyz extracts the x, y, and
     z of each vertex. --sval-tal-xyz is the same as --sval-xyz, but applies
     the talairach transform from srcsubject/mri/transforms/talairach.xfm.
-    --sval-area extracts the vertex area. See also --tval-xyz
+    --sval-area extracts the vertex area. --sval-nxyz extracts the surface
+    normals at each vertex. See also --tval-xyz.
 
   --sfmt typestring
 
@@ -161,19 +163,25 @@ EXAMPLES:
       --trgsurfval bert-thickness-lh.img --trg_type analyze4d 
 
 2. Resample data on the icosahedron to the right hemisphere of subject bert.
-   Save in paint so that it can be viewed as an overlay in tksurfer. The 
-   source data is stored in bfloat format (ie, icodata_000.bfloat, ...)
+   Note that both the source and target data are stored in mgh format
+   as "volume-encoded suface" data.
 
-   mri_surf2surf --hemi rh --srcsubject ico 
-      --srcsurfval icodata-rh --src_type bfloat 
-      --trgsubject bert 
-      --trgsurfval ./bert-ico-rh.w --trg_type paint 
+   mri_surf2surf --hemi rh --srcsubject ico --srcsurfval icodata-rh.mgh
+      --trgsubject bert --trgsurfval ./bert-ico-rh.mgh 
 
 3. Convert the surface coordinates of the lh.white of a subject to a
    (talairach) average (ie, a subject created by make_average_subject):
 
    mri_surf2surf --s yoursubject --hemi lh --sval-tal-xyz white 
       --tval lh.white.yoursubject --tval-xyz --trgsubject youraveragesubject
+
+   This will create youraveragesubject/surf/lh.white.yoursubject
+
+4. Extract surface normals of the white surface and save in a
+   volume-encoded file:
+
+   mri_surf2surf --s yoursubject --hemi lh --sval-nxyz white 
+      --tval lh.white.norm.mgh 
 
    This will create youraveragesubject/surf/lh.white.yoursubject
 
@@ -255,7 +263,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.31 2006/01/10 22:42:54 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.32 2006/01/18 20:08:32 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -280,6 +288,7 @@ MATRIX *XFM=NULL;
 #define SURF_SRC_XYZ     1
 #define SURF_SRC_TAL_XYZ 2
 #define SURF_SRC_AREA    3
+#define SURF_SRC_NXYZ    4 // surface normals
 int UseSurfTarg=0; // Put Src XYZ into a target surface
 
 char *trgsubject = NULL;
@@ -343,7 +352,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.31 2006/01/10 22:42:54 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.32 2006/01/18 20:08:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -453,6 +462,12 @@ int main(int argc, char **argv)
       SrcVals = MRIcopyMRIS(NULL, SurfSrc, 2, "z"); // start at z to autoalloc 
       MRIcopyMRIS(SrcVals, SurfSrc, 0, "x");
       MRIcopyMRIS(SrcVals, SurfSrc, 1, "y");
+    }
+    if(UseSurfSrc == SURF_SRC_NXYZ){
+      printf("Extracting surface normals\n");
+      SrcVals = MRIcopyMRIS(NULL, SurfSrc, 2, "nz"); // start at z to autoalloc 
+      MRIcopyMRIS(SrcVals, SurfSrc, 0, "nx");
+      MRIcopyMRIS(SrcVals, SurfSrc, 1, "ny");
     }
     if(UseSurfSrc == SURF_SRC_AREA){
       SrcVals = MRIcopyMRIS(NULL, SurfSrc, 0, "area"); 
@@ -751,6 +766,12 @@ static int parse_commandline(int argc, char **argv)
       UseSurfSrc = SURF_SRC_XYZ;
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--sval-nxyz")){
+      if(nargc < 1) argnerr(option,1);
+      SurfSrcName = pargv[0];
+      UseSurfSrc = SURF_SRC_NXYZ;
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--sval-tal-xyz")){
       if(nargc < 1) argnerr(option,1);
       SurfSrcName = pargv[0];
@@ -942,6 +963,7 @@ static void print_usage(void)
   fprintf(stdout, "   --sval-xyz  surfname : use xyz of surfname as input \n");
   fprintf(stdout, "   --sval-tal-xyz  surfname : use tal xyz of surfname as input \n");
   fprintf(stdout, "   --sval-area surfname : use vertex area of surfname as input \n");
+  fprintf(stdout, "   --sval-nxyz surfname : use surface normals of surfname as input \n");
   fprintf(stdout, "   --sfmt   source format\n");
   fprintf(stdout, "   --srcicoorder when srcsubject=ico and src is .w\n");
   fprintf(stdout, "   --trgsubject target subject\n");
@@ -995,12 +1017,14 @@ printf("\n");
 printf("  --sval-xyz     surfname\n");
 printf("  --sval-tal-xyz surfname\n");
 printf("  --sval-area    surfname\n");
+printf("  --sval-nxyz    surfname\n");
 printf("\n");
 printf("    Use measures from the input surface as the source (instead of specifying\n");
 printf("    a source file explicitly with --sval). --sval-xyz extracts the x, y, and\n");
 printf("    z of each vertex. --sval-tal-xyz is the same as --sval-xyz, but applies\n");
 printf("    the talairach transform from srcsubject/mri/transforms/talairach.xfm.\n");
-printf("    --sval-area extracts the vertex area. See also --tval-xyz\n");
+printf("    --sval-area extracts the vertex area. --sval-nxyz extracts the surface\n");
+printf("    normals at each vertex. See also --tval-xyz.\n");
 printf("\n");
 printf("  --sfmt typestring\n");
 printf("\n");
@@ -1150,7 +1174,6 @@ printf("  When the output format is paint, the output file must be specified wit
 printf("  a partial path (eg, ./data-lh.w) or else the output will be written into\n");
 printf("  the subject's anatomical directory.\n");
 printf("\n");
-
   exit(1) ;
 }
 
