@@ -1,18 +1,349 @@
 // mri_glmfit.c
 
+/* 
+
+BEGINUSAGE --------------------------------------------------------------
+
+USAGE: ./mri_glmfit 
+
+   --glmdir dir : save outputs to dir
+
+   --y inputfile
+   --fsgd FSGDF <gd2mtx> : freesurfer descriptor file
+   --X design matrix file
+   --C contrast1.mat <--C contrast2.mat ...>
+
+   --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors
+   --selfreg col row slice   : self-regressor from index col row slice
+
+   --w weightfile : weight for each input at each voxel
+   --w-inv : invert weights
+   --w-sqrt : sqrt of (inverted) weights
+
+   --fwhm fwhm : smooth input by fwhm
+   --var-fwhm fwhm : smooth variance by fwhm
+
+   --mask maskfile : binary mask
+   --label labelfile : use label as mask, surfaces only
+   --mask-inv : invert mask
+
+   --surf subject hemi : needed for some flags (uses white be default)
+
+   --sim nulltype nsim thresh csdbasename : simulation perm, null-full, null-z
+
+   --pca : perform pca/svd analysis on residual
+   --save-yhat : flag to save signal estimate
+   --save-cond  : flag to save design matrix condition at each voxel
+   --voxdump col row slice  : dump voxel GLM and exit 
+
+   --seed seed : used for synthesizing noise
+   --synth : replace input with gaussian 
+
+   --resynthtest niters : test GLM by resynthsis
+   --profile     niters : test speed
+
+   --diag Gdiag_no : set diagnositc level 
+   --debug     turn on debugging
+   --checkopts don't run anything, just check options and exit
+   --help      print out information on how to use this program
+   --version   print out version and exit
+
+
+ENDUSAGE --------------------------------------------------------------
+
+BEGINHELP --------------------------------------------------------------
+
+OUTLINE:
+  SUMMARY
+  MATHEMATICAL BACKGROUND
+  COMMAND-LINE ARGUMENTS
+  MONTE CARLO SIMULATION AND CORRECTION FOR MULTIPLE COMPARISONS
+
+SUMMARY
+
+Performs general linear model (GLM) analysis in the volume or the
+surface.  Options include simulation for correction for multiple
+comparisons, weighted LMS, variance smoothing, PCA/SVD analysis of
+residuals, per-voxel design matrices, and 'self' regressors. This
+program performs both the estimation and inference. This program
+is meant to replace mris_glm (which only operated on surfaces).
+This program can be run in conjunction with mris_preproc.
+
+MATHEMATICAL BACKGROUND
+
+This brief intoduction to GLM theory is provided to help the user
+understand what the inputs and outputs are and how to set the 
+various parameters. These operations are performed at each voxel
+or vertex separately (except with --var-fwhm).
+
+The forward model is given by:
+
+    y = W*X*B + n
+
+where X is the Ns-by-Nb design matrix, y is the Ns-by-Nv input data
+set, B is the Nb-by-Nv regression parameters, and n is noise. Ns is
+the number of inputs, Nb is the number of regressors, and Nv is the
+number of voxels/vertices (all cols/rows/slices). y may be surface
+or volume data and may or may not have been spatially smoothed. W
+is a diagonal weighing matrix. 
+
+During the estimation stage, the forward model is inverted to
+solve for B:
+
+    B = inv(X'W'*W*X)*X'W'y
+
+The signal estimate is computed as 
+
+    yhat = B*X
+
+The residual error is computed as 
+
+    eres = y - yhat
+
+The noise variance estimate (rvar) is computed as the sum of the
+squares of the residual error divided by the DOF.  The DOF equals the
+number of rows of X minus the number of columns.
+
+A contrast matrix C has J rows and as many columns as columns of
+X. The contrast is then computed as:
+
+   G = C*B
+
+The F-ratio for the contrast is then given by:
+
+   F = G'*inv(C*inv(X'W'*W*X))*C')*G/(J*rvar)
+
+The F is then used to compute a p-value.  Note that when J=1, this
+reduces to a two-tailed t-test.
+
+
+COMMAND-LINE ARGUMENTS
+
+--glmdir dir
+
+Directory where output will be saved. Not needed with --sim.
+
+The outputs will be saved in mgh format as:
+  beta.mgh - all regression coefficients (B above)
+  eres.mgh - residual error
+  rvar.mgh - residual error variance
+  rstd.mgh - residual error stddev (just sqrt of rvar)
+  wn.mgh - normalized weights (with --w)
+  yhat.mgh - signal estimate (with --save-yhat)
+  cond.mgh - design matrix condition at each voxel (with --save-cond)
+  contrast1name/ - directory for each contrast (see --C)
+    C.dat - copy of contrast matrix
+    gamma.mgh - contrast (G above)
+    F.mgh - F-ratio
+    sig.mgh - significance from F-test (actually -log10(p))
+
+--y inputfile
+
+Path to input file with each frame being a separate input. This can be
+volume or surface-based, but the file must be one of the 'volume'
+formats (eg, mgh, img, nii, etc) accepted by mri_convert. See
+mris_preproc for an easy way to generate this file for surface data.
+
+--fsgd fname <gd2mtx>
+
+Specify the global design matrix with a FreeSurfer Group Descriptor
+File (FSGDF).  See http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
+for more info.  The gd2mtx is the method by which the group
+description is converted into a design matrix. Legal values are doss
+(Different Offset, Same Slope) and dods (Different Offset, Different
+Slope). doss will create a design matrix in which each class has it's
+own offset but forces all classes to have the same slope. dods models
+each class with it's own offset and slope. In either case, you'll need
+to know the order of the regressors in order to correctly specify the
+contrast vector. For doss, the first NClass columns refer to the
+offset for each class.  The remaining columns are for the continuous
+variables. In dods, the first NClass columns again refer to the offset
+for each class.  However, there will be NClass*NVar more columns (ie,
+one column for each variable for each class). The first NClass columns
+are for the first variable, etc. If neither of these models works for
+you, you will have to specify the design matrix manually (with --X).
+
+--X design matrix file
+
+Specify the design matrix in matlab4 format. Within matlab, you can
+save a matrix with save('X.mat','X','-v4');
+
+--C contrast1.mat <--C contrast2.mat ...>
+
+Specify one or more contrasts to test. The contrast.mat file is an
+ASCII text file with the contrast matrix in it (make sure the last
+line is blank). The output will be saved in glmdir/contrast1,
+glmdir/contrast2, etc. Eg, if --C norm-v-cont.mat, then the ouput
+will be glmdir/norm-v-cont.
+
+--pvr pvr1 <--prv pvr2 ...>
+
+Per-voxel (or vertex) regressors (PVR). Normally, the design matrix is
+'global', ie, the same matrix is used at each voxel. This option allows the
+user to specify voxel-specific regressors to append to the design
+matrix. Note: the contrast matrices must include columns for these
+components.
+
+--selfreg col row slice
+
+Create a 'self-regressor' from the input data based on the waveform at 
+index col row slice. This waveform is residualized and then added as a 
+column to the design matrix. Note: the contrast matrices must include 
+columns for this component.
+
+--w weightfile
+--w-inv
+--w-sqrt
+
+Perform weighted LMS using per-voxel weights from the weightfile. The
+data in weightfile must have the same dimensions as the input y
+file. If --w-inv is flagged, then the inverse of each weight is used
+as the weight.  If --w-sqrt is flagged, then the square root of each
+weight is used as the weight.  If both are flagged, the inverse is
+done first. The final weights are normalized so that the sum at each
+voxel equals 1. The normalized weights are then saved in
+glmdir/wn.mgh.  The --w-inv and --w-sqrt flags are useful when passing
+contrast variances from a lower level analysis to a higher level
+analysis (as is often done in fMRI).
+
+--fwhm fwhm
+
+Smooth input with a Gaussian kernel with the given full-width/half-maximum
+(fwhm) specified in mm. If the data are surface-based, then you must
+specify --surf, otherwise mri_glmfit assumes that the input is a volume
+and will perform volume smoothing.
+
+--var-fwhm fwhm
+
+Smooth residual variance map with a Gaussian kernel with the given 
+full-width/half-maximum (fwhm) specified in mm. If the data are 
+surface-based, then you must specify --surf, otherwise mri_glmfit 
+assumes that the input is a volume and will perform volume smoothing.
+
+--mask maskfile
+--label labelfile
+--mask-inv
+
+Only perform analysis where mask=1. All other voxels will be set to 0. 
+If using surface, then labelfile will be converted to a binary mask 
+(requires --surf). If --mask-inv is flagged, then performs analysis 
+only where mask=0. If performing a simulation (--sim), map maximums
+and clusters will only be searched for in the mask.
+
+--surf subject hemi
+
+Specify that the input has a surface geometry from the hemisphere of the
+given FreeSurfer subject. This is necessary for smoothing surface data
+(--fwhm or --var-fwhm), specifying a label as a mask (--label), or
+running a simulation (--sim) on surface data. If --surf is not specified,
+then mri_glmfit will assume that the data are volume-based and use
+the geometry as specified in the header to make spatial calculations.
+
+--pca
+
+Flag to perform PCA/SVD analysis on the residual. The result is stored
+in glmdir/pca-eres as v.mgh (spatial eigenvectors), u.mat (frame 
+eigenvectors), sdiag.mat (singular values). eres = u*s*v'. The matfiles
+are just ASCII text. The spatial EVs can be loaded as overlays in 
+tkmedit or tksurfer. In addition, there is stats.dat with 5 columns:
+  (1) component number 
+  (2) variance spanned by that component
+  (3) cumulative variance spanned up to that component
+  (4) percent variance spanned by that component
+  (5) cumulative percent variance spanned up to that component
+
+--save-yhat
+
+Flag to save the signal estimate (yhat) as glmdir/yhat.mgh. Normally, this
+pis not very useful except for debugging. 
+
+--save-cond
+
+Flag to save the condition number of the design matrix at eaach voxel.
+Normally, this is not very useful except for debugging. It is totally
+useless if not using weights or PVRs.
+
+--seed seed
+
+Use seed as the seed for the random number generator. By default, mri_glmfit
+will select a seed based on time-of-day. This only has an effect with
+--sim or --synth.
+
+--synth
+
+Replace input data with whise gaussian noise. This is good for testing.
+
+--voxdump col row slice
+
+Save GLM data for a single voxel in directory glmdir/voxdump-col-row-slice.
+Exits immediately. Good for debugging.
+
+
+MONTE CARLO SIMULATION AND CORRECTION FOR MULTIPLE COMPARISONS
+
+One method for correcting for multiple comparisons is to perform simulations
+under the null hypothesis and see how often the value of a statistic 
+from the 'true' analysis is exceeded. This frequency is then interpreted
+as a p-value which has been corrected for multiple comparisons. This
+is especially useful with surface-based data as traditional random
+field theory is harder to implement. This simulator is roughly based
+on FSLs permuation simulator (randomise) and AFNIs null-z simulator
+(AlphaSim). Note that FreeSurfer also offers False Discovery Rate (FDR) 
+correction in tkmedit and tksurfer. 
+
+The estimation, simulation, and correction are done in three distinct
+phases:
+  1. Estimation: run the analysis on your data without simulation. 
+     At this point you can view your results (see if FDR is 
+     sufficient:). 
+  2. Simulation: run the simulator with the same parameters 
+     as the estimation to get the Cluster Simulation Data (CSD). 
+  3. Clustering: run mri_surfcluster or mri_volcluster with the CSD 
+     from the simulator and the output of the estimation. These
+     programs will print out clusters along with their p-values.
+
+The Estimation step is described in detail above. The simulation
+is invoked by calling mri_glmfit with the following arguments:
+
+--sim nulltype nsim thresh csdbasename 
+
+It is not necessary to specify --glmdir (it will be ignored). If 
+you are analyzing surface data, then include --surf.
+
+nulltype is the method of generating the null data. Legal values are: 
+  (1) perm - perumation (cf FSL randomise)
+  (2) null-full - replace input with white gaussian noise
+  (3) null-z - do not actually do analysis, just assume the output 
+      is z-distributed (cf ANFI AlphaSim)
+nsim - number of simulation iterations to run (see below)
+thresh - threshold, specified as -log10(pvalue) to use for clustering
+csdbasename - base name of the file to store the CSD data in. Each
+  contrast will get its own file (created by appending the contrast
+  name to the base name). A '.csd' is appended to each file name.
+
+Multiple simulations can be run in parallel by specifying different
+csdbasenames. Then pass the multiple CSD files to mri_surfcluster 
+and mri_volcluster. The Full CSD file is written on each iteration,
+which means that the CSD file will be valid if the simulation
+is aborted or crashes.
+
+
+
+
+
+
+ENDHELP --------------------------------------------------------------
+
+*/
+
+
+
+
+
+
 // Things to do:
 // Set up an actual CSD struct
-// --synth  for input synth only
-// --sim-synth for synth during simulation
-// --sim-perm  for perm  during simulation
-// --sim-nrep  for number of simulation repetitions
-// --sim-thresh
-// --sim-thresh-sign
-// --sim-out
-// --surf subject hemi : use surface anat (otherwise assume vol)
 // Package volume cluster better
-// Label as a mask
-// Invert mask
 
 // Save some sort of config in output dir.
 
@@ -24,7 +355,6 @@
 // p-to-z
 // Rewrite MatrixReadTxt to ignore # and % and empty lines
 // Auto-det/read matlab4 matrices
-// Profiling
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +403,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.49 2006/01/10 00:55:42 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.50 2006/01/18 23:00:59 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -155,6 +485,7 @@ MRI *ar1=NULL, *z=NULL;
 
 CSD *csd;
 RFS *rfs;
+int weightinv=0, weightsqrt=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -345,10 +676,13 @@ int main(int argc, char **argv)
       exit(1);
     }
     // Invert, Sqrt, and Normalize the weights
-    mritmp = MRInormWeights(mriglm->w, 1, 1, mriglm->mask, mriglm->w);
+    mritmp = MRInormWeights(mriglm->w, weightsqrt, weightinv, 
+			    mriglm->mask, mriglm->w);
     if(mritmp==NULL) exit(1);
-    sprintf(tmpstr,"%s/wn.mgh",GLMDir);
-    if(!DontSave) MRIwrite(mriglm->w,tmpstr);
+    if(weightsqrt || weightinv){
+      sprintf(tmpstr,"%s/wn.mgh",GLMDir);
+      if(!DontSave) MRIwrite(mriglm->w,tmpstr);
+    }
   }
   else mriglm->w = NULL;
 
@@ -726,7 +1060,7 @@ int main(int argc, char **argv)
   // Compute and save PCA
   if(pcaSave){
     printf("Computing PCA (%d)\n",npca);
-    sprintf(tmpstr,"%s/eres-pca",GLMDir);
+    sprintf(tmpstr,"%s/pca-eres",GLMDir);
     mkdir(tmpstr,(mode_t)-1);
     err=MRIpca(mriglm->eres, &Upca, &Spca, &Vpca, mriglm->mask);
     if(err) exit(1);
@@ -779,6 +1113,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--mask-inv"))  maskinv = 1;
+    else if (!strcasecmp(option, "--w-inv"))  weightinv = 1;
+    else if (!strcasecmp(option, "--w-sqrt")) weightsqrt = 1;
 
     else if (!strcasecmp(option, "--diag")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -991,63 +1327,338 @@ static void usage_exit(void)
 /* --------------------------------------------- */
 static void print_usage(void)
 {
-  printf("\n");
-  printf("\n");
-  printf("WARNING: this program is not yet tested!\n");
-  printf("\n");
-  printf("\n");
-  printf("USAGE: %s \n",Progname) ;
-  printf("\n");
-  printf("   --y input volume \n");
-  printf("\n");
-  printf("   --X design matrix file\n");
-  printf("   --fsgd FSGDF <gd2mtx>\n");
-  printf("   --pvr pvr1 <--prv pvr2 ...>\n");
-  printf("   --selfreg c r s\n");
-  printf("\n");
-  printf("   --w weight volume\n");
-  printf("\n");
-  printf("   --mask mask volume\n");
-  printf("   --label labelfile : use label as mask, surfaces only\n");
-  printf("   --mask-inv : invert mask\n");
-  printf("\n");
-  printf("   --C contrast1.mat <--C contrast2.mat ...>\n");
-  printf("\n");
-  printf("   --fwhm fwhm : smooth input by fwhm\n");
-  printf("   --var-fwhm fwhm : smooth variance by fwhm\n");
-  printf("\n");
-  printf("   --glmdir dir : save outputs to dir\n");
-  printf("   --dontsave\n");
-  printf("   --maxvox basename \n");
-  printf("\n");
-  printf("   --save-yhat \n");
-  printf("   --save-cond \n");
-  printf("   --pca : perform pca/svd analysis on residual\n");
-  printf("\n");
-  printf("   --sim simtype nsim thresh basename : perm, null-full, null-z\n");
-  printf("\n");
-  printf("   --synth : replace input with gaussian \n");
-  printf("   --seed seed \n");
-  printf("\n");
-  printf("   --surf subject hemi : uses white be default\n");
-  printf("\n");
-  printf("   --diag Gdiag_no : set diagnositc level \n");
-  printf("   --voxdump c r s \n");
-  printf("   --resynthtest niters \n");
-  printf("   --profile     niters \n");
-  printf("   --debug     turn on debugging\n");
-  printf("   --checkopts don't run anything, just check options and exit\n");
-  printf("   --help      print out information on how to use this program\n");
-  printf("   --version   print out version and exit\n");
-  printf("\n");
-  printf("%s\n", vcid) ;
-  printf("\n");
+printf("\n");
+printf("USAGE: ./mri_glmfit \n");
+printf("\n");
+printf("   --glmdir dir : save outputs to dir\n");
+printf("\n");
+printf("   --y inputfile\n");
+printf("   --fsgd FSGDF <gd2mtx> : freesurfer descriptor file\n");
+printf("   --X design matrix file\n");
+printf("   --C contrast1.mat <--C contrast2.mat ...>\n");
+printf("\n");
+printf("   --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors\n");
+printf("   --selfreg col row slice   : self-regressor from index col row slice\n");
+printf("\n");
+printf("   --w weightfile : weight for each input at each voxel\n");
+printf("   --w-inv : invert weights\n");
+printf("   --w-sqrt : sqrt of (inverted) weights\n");
+printf("\n");
+printf("   --fwhm fwhm : smooth input by fwhm\n");
+printf("   --var-fwhm fwhm : smooth variance by fwhm\n");
+printf("\n");
+printf("   --mask maskfile : binary mask\n");
+printf("   --label labelfile : use label as mask, surfaces only\n");
+printf("   --mask-inv : invert mask\n");
+printf("\n");
+printf("   --surf subject hemi : needed for some flags (uses white be default)\n");
+printf("\n");
+printf("   --sim nulltype nsim thresh csdbasename : simulation perm, null-full, null-z\n");
+printf("\n");
+printf("   --pca : perform pca/svd analysis on residual\n");
+printf("   --save-yhat : flag to save signal estimate\n");
+printf("   --save-cond  : flag to save design matrix condition at each voxel\n");
+printf("   --voxdump col row slice  : dump voxel GLM and exit \n");
+printf("\n");
+printf("   --seed seed : used for synthesizing noise\n");
+printf("   --synth : replace input with gaussian \n");
+printf("\n");
+printf("   --resynthtest niters : test GLM by resynthsis\n");
+printf("   --profile     niters : test speed\n");
+printf("\n");
+printf("   --diag Gdiag_no : set diagnositc level \n");
+printf("   --debug     turn on debugging\n");
+printf("   --checkopts don't run anything, just check options and exit\n");
+printf("   --help      print out information on how to use this program\n");
+printf("   --version   print out version and exit\n");
+printf("\n");
+printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void)
 {
   print_usage() ;
-  printf("WARNING: this program is not yet tested!\n");
+printf("\n");
+printf("OUTLINE:\n");
+printf("  SUMMARY\n");
+printf("  MATHEMATICAL BACKGROUND\n");
+printf("  COMMAND-LINE ARGUMENTS\n");
+printf("  MONTE CARLO SIMULATION AND CORRECTION FOR MULTIPLE COMPARISONS\n");
+printf("\n");
+printf("SUMMARY\n");
+printf("\n");
+printf("Performs general linear model (GLM) analysis in the volume or the\n");
+printf("surface.  Options include simulation for correction for multiple\n");
+printf("comparisons, weighted LMS, variance smoothing, PCA/SVD analysis of\n");
+printf("residuals, per-voxel design matrices, and 'self' regressors. This\n");
+printf("program performs both the estimation and inference. This program\n");
+printf("is meant to replace mris_glm (which only operated on surfaces).\n");
+printf("This program can be run in conjunction with mris_preproc.\n");
+printf("\n");
+printf("MATHEMATICAL BACKGROUND\n");
+printf("\n");
+printf("This brief intoduction to GLM theory is provided to help the user\n");
+printf("understand what the inputs and outputs are and how to set the \n");
+printf("various parameters. These operations are performed at each voxel\n");
+printf("or vertex separately (except with --var-fwhm).\n");
+printf("\n");
+printf("The forward model is given by:\n");
+printf("\n");
+printf("    y = W*X*B + n\n");
+printf("\n");
+printf("where X is the Ns-by-Nb design matrix, y is the Ns-by-Nv input data\n");
+printf("set, B is the Nb-by-Nv regression parameters, and n is noise. Ns is\n");
+printf("the number of inputs, Nb is the number of regressors, and Nv is the\n");
+printf("number of voxels/vertices (all cols/rows/slices). y may be surface\n");
+printf("or volume data and may or may not have been spatially smoothed. W\n");
+printf("is a diagonal weighing matrix. \n");
+printf("\n");
+printf("During the estimation stage, the forward model is inverted to\n");
+printf("solve for B:\n");
+printf("\n");
+printf("    B = inv(X'W'*W*X)*X'W'y\n");
+printf("\n");
+printf("The signal estimate is computed as \n");
+printf("\n");
+printf("    yhat = B*X\n");
+printf("\n");
+printf("The residual error is computed as \n");
+printf("\n");
+printf("    eres = y - yhat\n");
+printf("\n");
+printf("The noise variance estimate (rvar) is computed as the sum of the\n");
+printf("squares of the residual error divided by the DOF.  The DOF equals the\n");
+printf("number of rows of X minus the number of columns.\n");
+printf("\n");
+printf("A contrast matrix C has J rows and as many columns as columns of\n");
+printf("X. The contrast is then computed as:\n");
+printf("\n");
+printf("   G = C*B\n");
+printf("\n");
+printf("The F-ratio for the contrast is then given by:\n");
+printf("\n");
+printf("   F = G'*inv(C*inv(X'W'*W*X))*C')*G/(J*rvar)\n");
+printf("\n");
+printf("The F is then used to compute a p-value.  Note that when J=1, this\n");
+printf("reduces to a two-tailed t-test.\n");
+printf("\n");
+printf("\n");
+printf("COMMAND-LINE ARGUMENTS\n");
+printf("\n");
+printf("--glmdir dir\n");
+printf("\n");
+printf("Directory where output will be saved. Not needed with --sim.\n");
+printf("\n");
+printf("The outputs will be saved in mgh format as:\n");
+printf("  beta.mgh - all regression coefficients (B above)\n");
+printf("  eres.mgh - residual error\n");
+printf("  rvar.mgh - residual error variance\n");
+printf("  rstd.mgh - residual error stddev (just sqrt of rvar)\n");
+printf("  wn.mgh - normalized weights (with --w)\n");
+printf("  yhat.mgh - signal estimate (with --save-yhat)\n");
+printf("  cond.mgh - design matrix condition at each voxel (with --save-cond)\n");
+printf("  contrast1name/ - directory for each contrast (see --C)\n");
+printf("    C.dat - copy of contrast matrix\n");
+printf("    gamma.mgh - contrast (G above)\n");
+printf("    F.mgh - F-ratio\n");
+printf("    sig.mgh - significance from F-test (actually -log10(p))\n");
+printf("\n");
+printf("--y inputfile\n");
+printf("\n");
+printf("Path to input file with each frame being a separate input. This can be\n");
+printf("volume or surface-based, but the file must be one of the 'volume'\n");
+printf("formats (eg, mgh, img, nii, etc) accepted by mri_convert. See\n");
+printf("mris_preproc for an easy way to generate this file for surface data.\n");
+printf("\n");
+printf("--fsgd fname <gd2mtx>\n");
+printf("\n");
+printf("Specify the global design matrix with a FreeSurfer Group Descriptor\n");
+printf("File (FSGDF).  See http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt\n");
+printf("for more info.  The gd2mtx is the method by which the group\n");
+printf("description is converted into a design matrix. Legal values are doss\n");
+printf("(Different Offset, Same Slope) and dods (Different Offset, Different\n");
+printf("Slope). doss will create a design matrix in which each class has it's\n");
+printf("own offset but forces all classes to have the same slope. dods models\n");
+printf("each class with it's own offset and slope. In either case, you'll need\n");
+printf("to know the order of the regressors in order to correctly specify the\n");
+printf("contrast vector. For doss, the first NClass columns refer to the\n");
+printf("offset for each class.  The remaining columns are for the continuous\n");
+printf("variables. In dods, the first NClass columns again refer to the offset\n");
+printf("for each class.  However, there will be NClass*NVar more columns (ie,\n");
+printf("one column for each variable for each class). The first NClass columns\n");
+printf("are for the first variable, etc. If neither of these models works for\n");
+printf("you, you will have to specify the design matrix manually (with --X).\n");
+printf("\n");
+printf("--X design matrix file\n");
+printf("\n");
+printf("Specify the design matrix in matlab4 format. Within matlab, you can\n");
+printf("save a matrix with save('X.mat','X','-v4');\n");
+printf("\n");
+printf("--C contrast1.mat <--C contrast2.mat ...>\n");
+printf("\n");
+printf("Specify one or more contrasts to test. The contrast.mat file is an\n");
+printf("ASCII text file with the contrast matrix in it (make sure the last\n");
+printf("line is blank). The output will be saved in glmdir/contrast1,\n");
+printf("glmdir/contrast2, etc. Eg, if --C norm-v-cont.mat, then the ouput\n");
+printf("will be glmdir/norm-v-cont.\n");
+printf("\n");
+printf("--pvr pvr1 <--prv pvr2 ...>\n");
+printf("\n");
+printf("Per-voxel (or vertex) regressors (PVR). Normally, the design matrix is\n");
+printf("'global', ie, the same matrix is used at each voxel. This option allows the\n");
+printf("user to specify voxel-specific regressors to append to the design\n");
+printf("matrix. Note: the contrast matrices must include columns for these\n");
+printf("components.\n");
+printf("\n");
+printf("--selfreg col row slice\n");
+printf("\n");
+printf("Create a 'self-regressor' from the input data based on the waveform at \n");
+printf("index col row slice. This waveform is residualized and then added as a \n");
+printf("column to the design matrix. Note: the contrast matrices must include \n");
+printf("columns for this component.\n");
+printf("\n");
+printf("--w weightfile\n");
+printf("--w-inv\n");
+printf("--w-sqrt\n");
+printf("\n");
+printf("Perform weighted LMS using per-voxel weights from the weightfile. The\n");
+printf("data in weightfile must have the same dimensions as the input y\n");
+printf("file. If --w-inv is flagged, then the inverse of each weight is used\n");
+printf("as the weight.  If --w-sqrt is flagged, then the square root of each\n");
+printf("weight is used as the weight.  If both are flagged, the inverse is\n");
+printf("done first. The final weights are normalized so that the sum at each\n");
+printf("voxel equals 1. The normalized weights are then saved in\n");
+printf("glmdir/wn.mgh.  The --w-inv and --w-sqrt flags are useful when passing\n");
+printf("contrast variances from a lower level analysis to a higher level\n");
+printf("analysis (as is often done in fMRI).\n");
+printf("\n");
+printf("--fwhm fwhm\n");
+printf("\n");
+printf("Smooth input with a Gaussian kernel with the given full-width/half-maximum\n");
+printf("(fwhm) specified in mm. If the data are surface-based, then you must\n");
+printf("specify --surf, otherwise mri_glmfit assumes that the input is a volume\n");
+printf("and will perform volume smoothing.\n");
+printf("\n");
+printf("--var-fwhm fwhm\n");
+printf("\n");
+printf("Smooth residual variance map with a Gaussian kernel with the given \n");
+printf("full-width/half-maximum (fwhm) specified in mm. If the data are \n");
+printf("surface-based, then you must specify --surf, otherwise mri_glmfit \n");
+printf("assumes that the input is a volume and will perform volume smoothing.\n");
+printf("\n");
+printf("--mask maskfile\n");
+printf("--label labelfile\n");
+printf("--mask-inv\n");
+printf("\n");
+printf("Only perform analysis where mask=1. All other voxels will be set to 0. \n");
+printf("If using surface, then labelfile will be converted to a binary mask \n");
+printf("(requires --surf). If --mask-inv is flagged, then performs analysis \n");
+printf("only where mask=0. If performing a simulation (--sim), map maximums\n");
+printf("and clusters will only be searched for in the mask.\n");
+printf("\n");
+printf("--surf subject hemi\n");
+printf("\n");
+printf("Specify that the input has a surface geometry from the hemisphere of the\n");
+printf("given FreeSurfer subject. This is necessary for smoothing surface data\n");
+printf("(--fwhm or --var-fwhm), specifying a label as a mask (--label), or\n");
+printf("running a simulation (--sim) on surface data. If --surf is not specified,\n");
+printf("then mri_glmfit will assume that the data are volume-based and use\n");
+printf("the geometry as specified in the header to make spatial calculations.\n");
+printf("\n");
+printf("--pca\n");
+printf("\n");
+printf("Flag to perform PCA/SVD analysis on the residual. The result is stored\n");
+printf("in glmdir/pca-eres as v.mgh (spatial eigenvectors), u.mat (frame \n");
+printf("eigenvectors), sdiag.mat (singular values). eres = u*s*v'. The matfiles\n");
+printf("are just ASCII text. The spatial EVs can be loaded as overlays in \n");
+printf("tkmedit or tksurfer. In addition, there is stats.dat with 5 columns:\n");
+printf("  (1) component number \n");
+printf("  (2) variance spanned by that component\n");
+printf("  (3) cumulative variance spanned up to that component\n");
+printf("  (4) percent variance spanned by that component\n");
+printf("  (5) cumulative percent variance spanned up to that component\n");
+printf("\n");
+printf("--save-yhat\n");
+printf("\n");
+printf("Flag to save the signal estimate (yhat) as glmdir/yhat.mgh. Normally, this\n");
+printf("pis not very useful except for debugging. \n");
+printf("\n");
+printf("--save-cond\n");
+printf("\n");
+printf("Flag to save the condition number of the design matrix at eaach voxel.\n");
+printf("Normally, this is not very useful except for debugging. It is totally\n");
+printf("useless if not using weights or PVRs.\n");
+printf("\n");
+printf("--seed seed\n");
+printf("\n");
+printf("Use seed as the seed for the random number generator. By default, mri_glmfit\n");
+printf("will select a seed based on time-of-day. This only has an effect with\n");
+printf("--sim or --synth.\n");
+printf("\n");
+printf("--synth\n");
+printf("\n");
+printf("Replace input data with whise gaussian noise. This is good for testing.\n");
+printf("\n");
+printf("--voxdump col row slice\n");
+printf("\n");
+printf("Save GLM data for a single voxel in directory glmdir/voxdump-col-row-slice.\n");
+printf("Exits immediately. Good for debugging.\n");
+printf("\n");
+printf("\n");
+printf("MONTE CARLO SIMULATION AND CORRECTION FOR MULTIPLE COMPARISONS\n");
+printf("\n");
+printf("One method for correcting for multiple comparisons is to perform simulations\n");
+printf("under the null hypothesis and see how often the value of a statistic \n");
+printf("from the 'true' analysis is exceeded. This frequency is then interpreted\n");
+printf("as a p-value which has been corrected for multiple comparisons. This\n");
+printf("is especially useful with surface-based data as traditional random\n");
+printf("field theory is harder to implement. This simulator is roughly based\n");
+printf("on FSLs permuation simulator (randomise) and AFNIs null-z simulator\n");
+printf("(AlphaSim). Note that FreeSurfer also offers False Discovery Rate (FDR) \n");
+printf("correction in tkmedit and tksurfer. \n");
+printf("\n");
+printf("The estimation, simulation, and correction are done in three distinct\n");
+printf("phases:\n");
+printf("  1. Estimation: run the analysis on your data without simulation. \n");
+printf("     At this point you can view your results (see if FDR is \n");
+printf("     sufficient:). \n");
+printf("  2. Simulation: run the simulator with the same parameters \n");
+printf("     as the estimation to get the Cluster Simulation Data (CSD). \n");
+printf("  3. Clustering: run mri_surfcluster or mri_volcluster with the CSD \n");
+printf("     from the simulator and the output of the estimation. These\n");
+printf("     programs will print out clusters along with their p-values.\n");
+printf("\n");
+printf("The Estimation step is described in detail above. The simulation\n");
+printf("is invoked by calling mri_glmfit with the following arguments:\n");
+printf("\n");
+printf("--sim nulltype nsim thresh csdbasename \n");
+printf("\n");
+printf("It is not necessary to specify --glmdir (it will be ignored). If \n");
+printf("you are analyzing surface data, then include --surf.\n");
+printf("\n");
+printf("nulltype is the method of generating the null data. Legal values are: \n");
+printf("  (1) perm - perumation (cf FSL randomise)\n");
+printf("  (2) null-full - replace input with white gaussian noise\n");
+printf("  (3) null-z - do not actually do analysis, just assume the output \n");
+printf("      is z-distributed (cf ANFI AlphaSim)\n");
+printf("nsim - number of simulation iterations to run (see below)\n");
+printf("thresh - threshold, specified as -log10(pvalue) to use for clustering\n");
+printf("csdbasename - base name of the file to store the CSD data in. Each\n");
+printf("  contrast will get its own file (created by appending the contrast\n");
+printf("  name to the base name). A '.csd' is appended to each file name.\n");
+printf("\n");
+printf("Multiple simulations can be run in parallel by specifying different\n");
+printf("csdbasenames. Then pass the multiple CSD files to mri_surfcluster \n");
+printf("and mri_volcluster. The Full CSD file is written on each iteration,\n");
+printf("which means that the CSD file will be valid if the simulation\n");
+printf("is aborted or crashes.\n");
+printf("\n");
+printf("\n");
+printf("\n");
+printf("\n");
+printf("\n");
+printf("\n");
+
   exit(1) ;
 }
 /* --------------------------------------------- */
