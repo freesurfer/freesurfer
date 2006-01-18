@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/17 22:44:04 $
-// Revision       : $Revision: 1.423 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/01/18 02:21:22 $
+// Revision       : $Revision: 1.424 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -553,7 +553,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.423 2006/01/17 22:44:04 greve Exp $"); }
+  return("$Id: mrisurf.c,v 1.424 2006/01/18 02:21:22 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -2407,135 +2407,154 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
     sequentially after it.
   */
   for (niter = 0 ; niter < nsize-mris->nsize ; niter++)
-    {
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (vno == Gdiag_no)
-            DiagBreak()  ;
-          if (v->nsize >= nsize)
-            continue ;
-          vnum = v->vtotal ;
-          if (v->ripflag || !vnum)
-            continue ;
-          memmove(vtmp, v->v, vnum*sizeof(int)) ;
+	{
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (vno == Gdiag_no)
+				DiagBreak()  ;
+			if (v->nsize >= nsize)
+				continue ;
+			vnum = v->vtotal ;
+			if (v->ripflag || !vnum)
+				continue ;
+			memmove(vtmp, v->v, vnum*sizeof(int)) ;
 
-          /* mark 1-neighbors so we don't count them twice */
-          v->marked = 1 ;
-          for (i = 0 ; i < vnum; i++)
-            mris->vertices[v->v[i]].marked = 1 ;
+			/* mark 1-neighbors so we don't count them twice */
+			v->marked = 1 ;
+			for (i = 0 ; i < vnum; i++)
+				mris->vertices[v->v[i]].marked = 1 ;
 
-          /* count 2-neighbors */
-          for (neighbors = vnum, i = 0;
-               neighbors < MAX_NEIGHBORS && i < vnum;
-               i++)
-            {
-              n = v->v[i] ;
-              vnb = &mris->vertices[n] ;
-              vnb->marked = 1 ;
-              if (vnb->ripflag)
-                continue ;
+			/* count 2-neighbors */
+			for (neighbors = vnum, i = 0;
+					 neighbors < MAX_NEIGHBORS && i < vnum;
+					 i++)
+			{
+				n = v->v[i] ;
+				vnb = &mris->vertices[n] ;
+				vnb->marked = 1 ;
+				if (vnb->ripflag)
+					continue ;
 
-              switch (v->nsize)
-                {
-                case 1: nb_vnum = vnb->vnum ;    break ;
-                case 2: nb_vnum = vnb->v2num ;   break ;
-                default:
-                case 3: nb_vnum = vnb->v3num ;  break ;
-                }
+				switch (v->nsize)
+				{
+				case 1: nb_vnum = vnb->vnum ;    break ;
+				case 2: nb_vnum = vnb->v2num ;   break ;
+				default:
+				case 3: nb_vnum = vnb->v3num ;  break ;
+				}
 
-              for (j = 0 ; j < nb_vnum ; j++)
-                {
-                  vnb2 = &mris->vertices[vnb->v[j]] ;
-                  if (vnb2->ripflag || vnb2->marked)
-                    continue ;
-                  vtmp[neighbors] = vnb->v[j] ;
-                  vnb2->marked = 1 ;
-                  if (++neighbors >= MAX_NEIGHBORS)
-                    {
-                      fprintf(stderr,
-                              "vertex %d has too many neighbors!\n",vno) ;
-                      break ;
-                    }
-                }
-            }
-          /*
-            now reallocate the v->v structure and
-            place the 2-connected neighbors
-            suquentially after the 1-connected neighbors.
-          */
-          free(v->v) ;
-          v->v = (int *)calloc(neighbors, sizeof(int)) ;
-          if (!v->v)
-            ErrorExit(ERROR_NO_MEMORY,
-                      "MRISsetNeighborhoodSize: could not allocate list of %d "
-                      "nbrs at v=%d", neighbors, vno) ;
+				for (j = 0 ; j < nb_vnum ; j++)
+				{
+					vnb2 = &mris->vertices[vnb->v[j]] ;
+					if (vnb2->ripflag || vnb2->marked)
+						continue ;
+					vtmp[neighbors] = vnb->v[j] ;
+					vnb2->marked = 1 ;
+					if (++neighbors >= MAX_NEIGHBORS)
+					{
+						fprintf(stderr,
+										"vertex %d has too many neighbors!\n",vno) ;
+						break ;
+					}
+				}
+			}
+			/*
+				now reallocate the v->v structure and
+				place the 2-connected neighbors
+				suquentially after the 1-connected neighbors.
+			*/
+			free(v->v) ;
+			v->v = (int *)calloc(neighbors, sizeof(int)) ;
+			if (!v->v)
+				ErrorExit(ERROR_NO_MEMORY,
+									"MRISsetNeighborhoodSize: could not allocate list of %d "
+									"nbrs at v=%d", neighbors, vno) ;
 
-          v->marked = 0 ;
-          for (n = 0 ; n < neighbors ; n++)
-            {
-              v->v[n] = vtmp[n] ;
-              mris->vertices[vtmp[n]].marked = 0 ;
-            }
-          if (v->dist)
-            free(v->dist) ;
-          if (v->dist_orig)
-            free(v->dist_orig) ;
+			v->marked = 0 ;
+			for (n = 0 ; n < neighbors ; n++)
+			{
+				v->v[n] = vtmp[n] ;
+				mris->vertices[vtmp[n]].marked = 0 ;
+			}
+			if (v->dist)
+				free(v->dist) ;
+			if (v->dist_orig)
+				free(v->dist_orig) ;
 
-          v->dist = (float *)calloc(neighbors, sizeof(float)) ;
-          if (!v->dist)
-            ErrorExit(ERROR_NOMEMORY,
-                      "MRISsetNeighborhoodSize: could not allocate list of %d "
-                      "dists at v=%d", neighbors, vno) ;
-          v->dist_orig = (float *)calloc(neighbors, sizeof(float)) ;
-          if (!v->dist_orig)
-            ErrorExit(ERROR_NOMEMORY,
-                      "MRISsetNeighborhoodSize: could not allocate list of %d "
-                      "dists at v=%d", neighbors, vno) ;
-          v->nsize++ ;
-          switch (v->nsize)
-            {
-            case 2:
-              v->v2num = neighbors ;
-              break ;
-            case 3:
-              v->v3num = neighbors ;
-              break ;
-            default:   /* store old neighborhood size in v3num */
-              v->v3num = v->vtotal ;
-              break ;
-            }
-          v->vtotal = neighbors ;
-          for (n = 0 ; n < neighbors ; n++)
-            for (i = 0 ; i < neighbors ; i++)
-              if (i != n && v->v[i] == v->v[n])
-                fprintf
-                  (stderr,
-                   "warning: vertex %d has duplicate neighbors %d and %d!\n",
-                   vno, i, n) ;
-          if ((vno == Gdiag_no) && (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
-            {
-              fprintf(stdout, "v %d: vnum=%d, v2num=%d, vtotal=%d\n",
-                      vno, v->vnum, v->v2num, v->vtotal) ;
-              for (n = 0 ; n < neighbors ; n++)
-                fprintf(stdout, "v[%d] = %d\n", n, v->v[n]) ;
-            }
-        }
-    }
+			v->dist = (float *)calloc(neighbors, sizeof(float)) ;
+			if (!v->dist)
+				ErrorExit(ERROR_NOMEMORY,
+									"MRISsetNeighborhoodSize: could not allocate list of %d "
+									"dists at v=%d", neighbors, vno) ;
+			v->dist_orig = (float *)calloc(neighbors, sizeof(float)) ;
+			if (!v->dist_orig)
+				ErrorExit(ERROR_NOMEMORY,
+									"MRISsetNeighborhoodSize: could not allocate list of %d "
+									"dists at v=%d", neighbors, vno) ;
+			v->nsize++ ;
+			switch (v->nsize)
+			{
+			case 2:
+				v->v2num = neighbors ;
+				break ;
+			case 3:
+				v->v3num = neighbors ;
+				break ;
+			default:   /* store old neighborhood size in v3num */
+				v->v3num = v->vtotal ;
+				break ;
+			}
+			v->vtotal = neighbors ;
+			for (n = 0 ; n < neighbors ; n++)
+				for (i = 0 ; i < neighbors ; i++)
+					if (i != n && v->v[i] == v->v[n])
+						fprintf
+							(stderr,
+							 "warning: vertex %d has duplicate neighbors %d and %d!\n",
+							 vno, i, n) ;
+			if ((vno == Gdiag_no) && (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+			{
+				fprintf(stdout, "v %d: vnum=%d, v2num=%d, vtotal=%d\n",
+								vno, v->vnum, v->v2num, v->vtotal) ;
+				for (n = 0 ; n < neighbors ; n++)
+					fprintf(stdout, "v[%d] = %d\n", n, v->v[n]) ;
+			}
+		}
+	}
 
   for (vno = ntotal = vtotal = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      vtotal += v->vtotal ;
-      ntotal++ ;
-    }
+	{
+		v = &mris->vertices[vno] ;
+		if (v->vtotal > 0)
+		{
+			if (v->dist)
+				free(v->dist) ;
+			if (v->dist_orig)
+				free(v->dist_orig) ;
+      v->dist = (float *)calloc(v->vtotal, sizeof(float)) ;
+      if (!v->dist)
+        ErrorExit(ERROR_NOMEMORY,
+                  "MRISsetNeighborhoodSize: could not allocate list of %d "
+                  "dists at v=%d", v->vtotal, vno) ;
+      v->dist_orig = (float *)calloc(v->vtotal, sizeof(float)) ;
+      if (!v->dist_orig)
+        ErrorExit(ERROR_NOMEMORY,
+                  "MRISsetNeighborhoodSize: could not allocate list of %d "
+                  "orig dists at v=%d", v->vtotal, vno) ;
+		}
+			
+		if (v->ripflag)
+			continue ;
+		vtotal += v->vtotal ;
+		ntotal++ ;
+	}
 
   mris->avg_nbrs = (float)vtotal / (float)ntotal ;
   mris->nsize = nsize ;
   if (Gdiag & DIAG_SHOW && mris->nsize > 1 && DIAG_VERBOSE_ON)
     fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs) ;
+	mrisComputeVertexDistances(mris) ;
   return(NO_ERROR) ;
 }
 
