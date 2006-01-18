@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.106 2006/01/17 20:00:27 kteich Exp $
+# $Id: tkmedit.tcl,v 1.107 2006/01/18 17:56:04 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -4556,7 +4556,6 @@ proc CreateToolBar { ifwToolBar } {
     set fw3D               $gfwaToolBar(recon).fw3D
     set fwRadius           $gfwaToolBar(recon).fwRadius
     set fwSnapshot         $gfwaToolBar(recon).fwSnapshot
-    set fwTimer            $gfwaToolBar(recon).fwTimer
 
     frame $gfwaToolBar(recon) -border 2 -relief raised
 
@@ -4580,11 +4579,7 @@ proc CreateToolBar { ifwToolBar } {
       { image icon_snapshot_load \
       { RestoreVolumeFromSnapshot } "Restore Volume from Snapshot" } }
 
-    tkm_MakeCheckboxes $fwTimer h { \
-      { image icon_stopwatch gbTimerOn \
-      "SetTimerStatus $gbTimerOn" "Start/Stop TkTimer" } }
-
-    pack $fwShape $fw3D $fwRadius $fwSnapshot $fwTimer \
+    pack $fwShape $fw3D $fwRadius $fwSnapshot \
       -side left \
       -anchor w \
       -padx 5
