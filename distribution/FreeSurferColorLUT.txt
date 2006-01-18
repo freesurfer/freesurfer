@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.13 2005/10/04 20:38:16 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.14 2006/01/18 19:54:19 fischl Exp $
   0  Unknown                            	   0    0    0     0
   1  Left-Cerebral-Exterior             	 205   62   78     0 
   2  Left-Cerebral-White-Matter         	 245  245  245     0 
@@ -88,6 +88,61 @@
  86  Corpus_Callosum                        250 255 50 0
  96  Left-Amygdala-Anterior               205   10  125    0
  97  Right-Amygdala-Anterior              205   10  125    0
+ 98  Dura                                 160   32  240    0
+100  Left-wm-intensity-abnormality                 124 140 178    0
+101  Left-caudate-intensity-abnormality            125 140 178    0
+102  Left-putamen-intensity-abnormality            126 140 178    0
+103  Left-accumbens-intensity-abnormality          127 140 178    0
+104  Left-pallidum-intensity-abnormality           124 141 178    0
+105  Left-amygdala-intensity-abnormality           124 142 178    0
+106  Left-hippocampus-intensity-abnormality        124 143 178    0
+107  Left-thalamus-intensity-abnormality           124 144 178    0
+108  Left-VDC-intensity-abnormality                124 140 179    0
+109  Right-wm-intensity-abnormality                124 140 178    0
+110  Right-caudate-intensity-abnormality           125 140 178    0
+111  Right-putamen-intensity-abnormality           126 140 178    0
+112  Right-accumbens-intensity-abnormality         127 140 178    0
+113  Right-pallidum-intensity-abnormality          124 141 178    0
+114  Right-amygdala-intensity-abnormality          124 142 178    0
+115  Right-hippocampus-intensity-abnormality       124 143 178    0
+116  Right-thalamus-intensity-abnormality          124 144 178    0
+117  Right-VDC-intensity-abnormality               124 140 179    0
+118  Epidermis                                     255  20 147    0
+119  Conn-Tissue                                   205 179 139    0
+120  SC-Fat/Muscle                                 238 238 209    0
+121  Cranium                                       200 200 200    0
+122  CSF-SA                                        74  255  74    0
+123  Muscle                                        238   0   0    0
+124  Ear                                             0   0 139    0
+125  Adipose                                       173 255  47    0
+126  Spinal-Cord                                   133 203 229    0
+127  Soft-Tissue                                    26 237  57    0
+128  Nerve                                          34 139  34    0
+129  Bone                                           30 144 255    0
+130  Air                                           147  19 173    0
+131  Orbital-Fat                                   238  59  59    0
+132  Tongue                                        221  39 200    0
+133  Nasal-Structures                              238 174 238    0
+134  Globe                                         255   0   0    0
+135  Teeth                                          72  61 139    0
+136  Left-Caudate/Putamen                           21  39 132    0
+137  Right-Caudate/Putamen                          21  39 132    0
+138  Left-Claustrum                                 65 135  20    0
+139  Right-Claustrum                                65 135  20    0
+140  Cornea                                        134   4 160    0
+142  Diploe                                        221 226  68    0
+143  Vitreous-Humor                                255 255 254    0
+144  Lens                                           52 209 226    0
+145  Aqueous-Humor                                 239 160 223    0
+146  Outer-Table                                    70 130 180    0
+147  Inner-Table                                    70 130 181    0
+148  Periosteum                                    139 121  94    0
+149  Endosteum                                     224 224 224    0
+150  R/C/S                                         255   0   0    0
+151  Iris                                          205 205   0    0
+152  SC-Adipose/Muscle                             238 238 209    0
+153  SC-Tissue                                     139 121  94    0
+154  Orbital-Adipose                               238  59  59    0
 
  98  Dura                                 160   32  240    0
 100  Left-wm-intensity-abnormality                 124 140 178    0
@@ -200,6 +255,16 @@
 358 Pos-Lymph 20 130 180 0
 359 Neg-Lymph 20 180 130 0
 
+400  V1      206   62   78     0 
+401  V2      121   18  134     0 
+402  BA44    199   58  250     0 
+403  BA45    1  148    0     0           
+404  BA4a    221  248  164     0    
+405  BA4p    231  148   34     0             
+406  BA6     1  118   14     0 
+407  BA2     120  118   14     0          
+408  BAun1     123  186  220    0          
+409  BAun2     238   13  176    0          
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg in which the aseg cortex label is replaced
 # by the labels in the aparc. It also supports wm labels that will
