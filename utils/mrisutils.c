@@ -1472,7 +1472,7 @@ double MRISfwhmFromAR1(MRIS *surf, double ar1)
     // This should be ok even if metric properties have been scaled ??
     if(getenv("FIX_VERTEX_AREA") != NULL){
       printf("INFO: fwhmFromAR1: Fixing group surface area\n");
-      InterVertexDistAvg *= (surf->group_avg_surface_area/surf->total_area);
+      InterVertexDistAvg *= sqrt(surf->group_avg_surface_area/surf->total_area);
     }
     else printf("INFO: fwhmFromAR1: NOT fixing group surface area\n");
   }
