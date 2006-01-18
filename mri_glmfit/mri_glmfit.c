@@ -26,8 +26,9 @@ USAGE: ./mri_glmfit
    --mask maskfile : binary mask
    --label labelfile : use label as mask, surfaces only
    --mask-inv : invert mask
+   --save-mask : save final mask to glmdir/mask.mgh
 
-   --surf subject hemi : needed for some flags (uses white be default)
+   --surf subject hemi : needed for some flags (uses white by default)
 
    --sim nulltype nsim thresh csdbasename : simulation perm, null-full, null-z
 
@@ -124,12 +125,15 @@ COMMAND-LINE ARGUMENTS
 Directory where output will be saved. Not needed with --sim.
 
 The outputs will be saved in mgh format as:
+  mri_glmfit.log - execution parameters (send with bug reports)
   beta.mgh - all regression coefficients (B above)
   eres.mgh - residual error
   rvar.mgh - residual error variance
   rstd.mgh - residual error stddev (just sqrt of rvar)
+  y.fsgd - fsgd file (if one was input)
   wn.mgh - normalized weights (with --w)
   yhat.mgh - signal estimate (with --save-yhat)
+  mask.mgh - final mask (with --save-mask)
   cond.mgh - design matrix condition at each voxel (with --save-cond)
   contrast1name/ - directory for each contrast (see --C)
     C.dat - copy of contrast matrix
@@ -223,12 +227,14 @@ assumes that the input is a volume and will perform volume smoothing.
 --mask maskfile
 --label labelfile
 --mask-inv
+--save-mask
 
 Only perform analysis where mask=1. All other voxels will be set to 0. 
 If using surface, then labelfile will be converted to a binary mask 
 (requires --surf). If --mask-inv is flagged, then performs analysis 
 only where mask=0. If performing a simulation (--sim), map maximums
-and clusters will only be searched for in the mask.
+and clusters will only be searched for in the mask. --save-mask
+will save final mask in glmdir/mask.mgh
 
 --surf subject hemi
 
@@ -327,19 +333,9 @@ and mri_volcluster. The Full CSD file is written on each iteration,
 which means that the CSD file will be valid if the simulation
 is aborted or crashes.
 
-
-
-
-
-
 ENDHELP --------------------------------------------------------------
 
 */
-
-
-
-
-
 
 // Things to do:
 // Set up an actual CSD struct
@@ -403,7 +399,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.50 2006/01/18 23:00:59 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.51 2006/01/18 23:28:33 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -415,11 +411,12 @@ char *GLMDir=NULL;
 char *pvrFiles[50];
 int yhatSave=0;
 int condSave=0;
+int maskSave=0;
 
 char *labelFile=NULL;
 LABEL *clabel=NULL;
 int   maskinv = 0;
-int   nmask, nvoxels;
+int   nmask, nvoxels, saveMask=0;
 float maskfraction, voxelsize;
 
 MRI *mritmp=NULL, *sig=NULL, *rstd;
@@ -480,7 +477,7 @@ int DiagCluster=0;
 double DiagClusterSize=0;
 
 double  InterVertexDistAvg, InterVertexDistStdDev, avgvtxarea, ar1mn, ar1std, ar1max;
-double eresgstd, eresfwhm;
+double eresgstd, eresfwhm, searchspace;
 MRI *ar1=NULL, *z=NULL;
 
 CSD *csd;
@@ -650,9 +647,20 @@ int main(int argc, char **argv)
   if(mriglm->mask){
     nmask = MRInMask(mriglm->mask);
     printf("Found %d voxels in mask\n",nmask);
+    if(!DontSave && saveMask){
+      sprintf(tmpstr,"%s/mask.mgh",GLMDir);
+      MRIwrite(mriglm->mask,tmpstr);
+    }
   }
   else nmask = nvoxels;
   maskfraction = (double)nmask/nvoxels;
+
+  if(surf != NULL)  {
+    searchspace = surf->total_area * maskfraction;
+    if(surf->group_avg_surface_area > 0)
+      searchspace *= (surf->group_avg_surface_area/surf->total_area);
+  }
+  else  searchspace = nmask * voxelsize;
 
   // Check number of frames ----------------------------------
   if(mriglm->y->nframes != mriglm->Xg->rows){
@@ -825,13 +833,12 @@ int main(int argc, char **argv)
       strcpy(csd->anattype,"surface");
       strcpy(csd->subject,subject);
       strcpy(csd->hemi,hemi);
-      csd->searchspace = surf->total_area * maskfraction;
     }
     else {
       strcpy(csd->anattype,"volume");
       voxelsize = mriglm->y->xsize * mriglm->y->ysize * mriglm->y->zsize;
-      csd->searchspace = nmask * voxelsize;
     }
+    csd->searchspace = searchspace;
     csd->nreps = nsim;
     CSDallocData(csd);
     if(!strcmp(csd->simtype,"null-z")){
@@ -1074,6 +1081,16 @@ int main(int argc, char **argv)
     WritePCAStats(tmpstr,Spca);
   }
 
+  // re-write the log file, adding a few things
+  sprintf(tmpstr,"%s/mri_glmfit.log",GLMDir);
+  fp = fopen(tmpstr,"w");
+  dump_options(fp);
+  fprintf(fp,"ResidualFWHM %lf\n",eresfwhm);
+  fprintf(fp,"SearchSpace %lf\n",searchspace);
+  if(surf != NULL)  fprintf(fp,"anattype surface\n");
+  else              fprintf(fp,"anattype volume\n");
+  fclose(fp);
+
   printf("mri_glmfit done\n");
   return(0); 
   exit(0);
@@ -1110,6 +1127,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--save-yhat")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
+    else if (!strcasecmp(option, "--save-mask")) maskSave = 1;
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--mask-inv"))  maskinv = 1;
@@ -1350,8 +1368,9 @@ printf("\n");
 printf("   --mask maskfile : binary mask\n");
 printf("   --label labelfile : use label as mask, surfaces only\n");
 printf("   --mask-inv : invert mask\n");
+printf("   --save-mask : save final mask to glmdir/mask.mgh\n");
 printf("\n");
-printf("   --surf subject hemi : needed for some flags (uses white be default)\n");
+printf("   --surf subject hemi : needed for some flags (uses white by default)\n");
 printf("\n");
 printf("   --sim nulltype nsim thresh csdbasename : simulation perm, null-full, null-z\n");
 printf("\n");
@@ -1373,6 +1392,8 @@ printf("   --help      print out information on how to use this program\n");
 printf("   --version   print out version and exit\n");
 printf("\n");
 printf("\n");
+
+
 }
 /* --------------------------------------------- */
 static void print_help(void)
@@ -1450,12 +1471,15 @@ printf("\n");
 printf("Directory where output will be saved. Not needed with --sim.\n");
 printf("\n");
 printf("The outputs will be saved in mgh format as:\n");
+printf("  mri_glmfit.log - execution parameters (send with bug reports)\n");
 printf("  beta.mgh - all regression coefficients (B above)\n");
 printf("  eres.mgh - residual error\n");
 printf("  rvar.mgh - residual error variance\n");
 printf("  rstd.mgh - residual error stddev (just sqrt of rvar)\n");
+printf("  y.fsgd - fsgd file (if one was input)\n");
 printf("  wn.mgh - normalized weights (with --w)\n");
 printf("  yhat.mgh - signal estimate (with --save-yhat)\n");
+printf("  mask.mgh - final mask (with --save-mask)\n");
 printf("  cond.mgh - design matrix condition at each voxel (with --save-cond)\n");
 printf("  contrast1name/ - directory for each contrast (see --C)\n");
 printf("    C.dat - copy of contrast matrix\n");
@@ -1549,12 +1573,14 @@ printf("\n");
 printf("--mask maskfile\n");
 printf("--label labelfile\n");
 printf("--mask-inv\n");
+printf("--save-mask\n");
 printf("\n");
 printf("Only perform analysis where mask=1. All other voxels will be set to 0. \n");
 printf("If using surface, then labelfile will be converted to a binary mask \n");
 printf("(requires --surf). If --mask-inv is flagged, then performs analysis \n");
 printf("only where mask=0. If performing a simulation (--sim), map maximums\n");
-printf("and clusters will only be searched for in the mask.\n");
+printf("and clusters will only be searched for in the mask. --save-mask\n");
+printf("will save final mask in glmdir/mask.mgh\n");
 printf("\n");
 printf("--surf subject hemi\n");
 printf("\n");
@@ -1659,6 +1685,7 @@ printf("\n");
 printf("\n");
 printf("\n");
 
+
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -1726,6 +1753,12 @@ static void check_options(void)
     printf("ERROR: cannot use variance smoothing with null-z simulation\n");
     exit(1);
   }
+
+  if(saveMask && (maskFile==NULL && labelFile==NULL)){
+    printf("ERROR: need mask with --save-mask\n");
+    exit(1);
+  }
+
 
   return;
 }
