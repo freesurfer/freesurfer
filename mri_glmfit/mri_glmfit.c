@@ -31,6 +31,7 @@ USAGE: ./mri_glmfit
    --surf subject hemi : needed for some flags (uses white by default)
 
    --sim nulltype nsim thresh csdbasename : simulation perm, null-full, null-z
+   --perm-1 : do permutation test for one-sample group mean
 
    --pca : perform pca/svd analysis on residual
    --save-yhat : flag to save signal estimate
@@ -317,7 +318,7 @@ It is not necessary to specify --glmdir (it will be ignored). If
 you are analyzing surface data, then include --surf.
 
 nulltype is the method of generating the null data. Legal values are: 
-  (1) perm - perumation (cf FSL randomise)
+  (1) perm - perumation, randomly permute rows of X (cf FSL randomise)
   (2) null-full - replace input with white gaussian noise
   (3) null-z - do not actually do analysis, just assume the output 
       is z-distributed (cf ANFI AlphaSim)
@@ -332,6 +333,15 @@ csdbasenames. Then pass the multiple CSD files to mri_surfcluster
 and mri_volcluster. The Full CSD file is written on each iteration,
 which means that the CSD file will be valid if the simulation
 is aborted or crashes.
+
+--perm-1
+
+In the cases where the design matrix is a single columns of ones
+(ie, one-sample group mean), it makes no sense to permute the
+rows of the design matrix so this flag tells mri_glmfit to
+rebuild the design matrix with alternating +1 and -1s. Same
+as the -1 option to FSL's randomise.
+
 
 ENDHELP --------------------------------------------------------------
 
@@ -399,7 +409,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.51 2006/01/18 23:28:33 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.52 2006/01/19 22:47:12 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -416,7 +426,7 @@ int maskSave=0;
 char *labelFile=NULL;
 LABEL *clabel=NULL;
 int   maskinv = 0;
-int   nmask, nvoxels, saveMask=0;
+int   nmask, nvoxels;
 float maskfraction, voxelsize;
 
 MRI *mritmp=NULL, *sig=NULL, *rstd;
@@ -484,10 +494,12 @@ CSD *csd;
 RFS *rfs;
 int weightinv=0, weightsqrt=0;
 
+int OneSamplePerm=0;
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int nargs,n;
+  int nargs,n, m;
   struct timeb  mytimer;
   int msecFitTime;
   MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Xnorm=NULL;
@@ -647,8 +659,9 @@ int main(int argc, char **argv)
   if(mriglm->mask){
     nmask = MRInMask(mriglm->mask);
     printf("Found %d voxels in mask\n",nmask);
-    if(!DontSave && saveMask){
+    if(!DontSave && maskSave){
       sprintf(tmpstr,"%s/mask.mgh",GLMDir);
+      printf("Saving mask to %s\n",tmpstr);
       MRIwrite(mriglm->mask,tmpstr);
     }
   }
@@ -753,6 +766,20 @@ int main(int argc, char **argv)
   // At this point, y, X, and C have been loaded, now pre-alloc
   GLMallocX(mriglm->glm,mriglm->y->nframes,mriglm->nregtot);
   GLMallocY(mriglm->glm);
+
+  if(DoSim && OneSamplePerm){
+    // replace design matrix with +/-1s 
+    if(mriglm->nregtot > 1){
+      printf("ERROR: you have specified a one-sample permuation test,\n");
+      printf("       but your design matrix has %d columns.\n",mriglm->nregtot);
+      exit(1);
+    }
+    m = 1;
+    for(n=0; n < mriglm->y->nframes; n++){
+      mriglm->Xg->rptr[n][1] = m;
+      m *= -1;
+    }
+  }
 
   // Check DOF
   GLMdof(mriglm->glm);
@@ -923,6 +950,10 @@ int main(int argc, char **argv)
 	//printf("csd %s \n",tmpstr);
 	fflush(stdout);
 	fp = fopen(tmpstr,"w");
+	if(fp == NULL){
+	  printf("ERROR: opening %s\n",tmpstr);
+	  exit(1);
+	}
 	fprintf(fp,"# mri_glmfit simulation sim\n");
 	fprintf(fp,"# hostname %s\n",uts.nodename);
 	fprintf(fp,"# machine  %s\n",uts.machine);
@@ -1071,13 +1102,13 @@ int main(int argc, char **argv)
     mkdir(tmpstr,(mode_t)-1);
     err=MRIpca(mriglm->eres, &Upca, &Spca, &Vpca, mriglm->mask);
     if(err) exit(1);
-    sprintf(tmpstr,"%s/eres-pca/v.mgh",GLMDir);
+    sprintf(tmpstr,"%s/pca-eres/v.mgh",GLMDir);
     MRIwrite(Vpca,tmpstr);
-    sprintf(tmpstr,"%s/eres-pca/u.mat",GLMDir);
+    sprintf(tmpstr,"%s/pca-eres/u.mat",GLMDir);
     MatrixWriteTxt(tmpstr, Upca);
-    sprintf(tmpstr,"%s/eres-pca/sdiag.mat",GLMDir);
+    sprintf(tmpstr,"%s/pca-eres/sdiag.mat",GLMDir);
     MatrixWriteTxt(tmpstr, Spca);
-    sprintf(tmpstr,"%s/eres-pca/stats.dat",GLMDir);
+    sprintf(tmpstr,"%s/pca-eres/stats.dat",GLMDir);
     WritePCAStats(tmpstr,Spca);
   }
 
@@ -1133,6 +1164,7 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--mask-inv"))  maskinv = 1;
     else if (!strcasecmp(option, "--w-inv"))  weightinv = 1;
     else if (!strcasecmp(option, "--w-sqrt")) weightsqrt = 1;
+    else if (!strcasecmp(option, "--perm-1")) OneSamplePerm = 1;
 
     else if (!strcasecmp(option, "--diag")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1336,12 +1368,6 @@ static int parse_commandline(int argc, char **argv)
   }
   return(0);
 }
-/* ------------------------------------------------------ */
-static void usage_exit(void)
-{
-  print_usage() ;
-  exit(1) ;
-}
 /* --------------------------------------------- */
 static void print_usage(void)
 {
@@ -1373,6 +1399,7 @@ printf("\n");
 printf("   --surf subject hemi : needed for some flags (uses white by default)\n");
 printf("\n");
 printf("   --sim nulltype nsim thresh csdbasename : simulation perm, null-full, null-z\n");
+printf("   --perm-1 : do permutation test for one-sample group mean\n");
 printf("\n");
 printf("   --pca : perform pca/svd analysis on residual\n");
 printf("   --save-yhat : flag to save signal estimate\n");
@@ -1392,7 +1419,6 @@ printf("   --help      print out information on how to use this program\n");
 printf("   --version   print out version and exit\n");
 printf("\n");
 printf("\n");
-
 
 }
 /* --------------------------------------------- */
@@ -1663,7 +1689,7 @@ printf("It is not necessary to specify --glmdir (it will be ignored). If \n");
 printf("you are analyzing surface data, then include --surf.\n");
 printf("\n");
 printf("nulltype is the method of generating the null data. Legal values are: \n");
-printf("  (1) perm - perumation (cf FSL randomise)\n");
+printf("  (1) perm - perumation, randomly permute rows of X (cf FSL randomise)\n");
 printf("  (2) null-full - replace input with white gaussian noise\n");
 printf("  (3) null-z - do not actually do analysis, just assume the output \n");
 printf("      is z-distributed (cf ANFI AlphaSim)\n");
@@ -1679,13 +1705,21 @@ printf("and mri_volcluster. The Full CSD file is written on each iteration,\n");
 printf("which means that the CSD file will be valid if the simulation\n");
 printf("is aborted or crashes.\n");
 printf("\n");
+printf("--perm-1\n");
+printf("\n");
+printf("In the cases where the design matrix is a single columns of ones\n");
+printf("(ie, one-sample group mean), it makes no sense to permute the\n");
+printf("rows of the design matrix so this flag tells mri_glmfit to\n");
+printf("rebuild the design matrix with alternating +1 and -1s. Same\n");
+printf("as the -1 option to FSL's randomise.\n");
 printf("\n");
 printf("\n");
-printf("\n");
-printf("\n");
-printf("\n");
-
-
+  exit(1) ;
+}
+/* ------------------------------------------------------ */
+static void usage_exit(void)
+{
+  print_usage() ;
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -1754,7 +1788,7 @@ static void check_options(void)
     exit(1);
   }
 
-  if(saveMask && (maskFile==NULL && labelFile==NULL)){
+  if(maskSave && (maskFile==NULL && labelFile==NULL)){
     printf("ERROR: need mask with --save-mask\n");
     exit(1);
   }
