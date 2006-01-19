@@ -41,3 +41,5 @@ freesurfer/lib/qt/configure
 freesurfer/lib/gsl/include
 freesurfer/lib/gsl/share
 freesurfer/grad_unwarp_tables
+freesurfer/average/HPMarch022005_ras.mgz
+
