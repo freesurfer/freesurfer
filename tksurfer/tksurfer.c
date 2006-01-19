@@ -1916,12 +1916,23 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
   char timecourse_offset_fname[NAME_LENGTH];
   char timecourse_offset_reg[NAME_LENGTH];
 
+  int load_annotation = FALSE;
+  char annotation_fname[NAME_LENGTH] = "";
+
+  int load_colortable = FALSE;
+  char colortable_fname[NAME_LENGTH] = "";
+
   char tcl_cmd[1024];
   /* end rkt */
   
   InitDebugging("tksurfer") ;
   EnableDebuggingOutput ;
   
+  /* This is a pre-pass of our arguments and just looks for -option
+     options and copies their information for later use. It actually
+     memmoves the argv contents so that the old arg parsing code can
+     work as it did historically. In other words, this is a dirty hack
+     that should be rewritten. */
   for (i = 0 ; i < argc ; i++)
     {
       /*      fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);*/
@@ -2070,6 +2081,20 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
           nargs = 1 ;
           timecourse_offset_reg_type = FunD_tRegistration_Identity;
         }
+      else if (!stricmp(argv[i], "-annotation") ||
+	       !stricmp(argv[i], "-annot")) 
+        {
+          nargs = 2 ;
+          strncpy (annotation_fname, argv[i+1], sizeof(annotation_fname));
+	  load_annotation = TRUE;
+        }
+      else if (!stricmp(argv[i], "-colortable") ||
+	       !stricmp(argv[i], "-ctab")) 
+        {
+          nargs = 2 ;
+          strncpy (colortable_fname, argv[i+1], sizeof(colortable_fname));
+	  load_colortable = TRUE;
+        }
       else if (!stricmp(argv[i], "-tcl"))
         {
           nargs = 2;
@@ -2078,7 +2103,7 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
         }
       /* end rkt */
       else
-        nargs = 0 ;
+	  nargs = 0 ;
       if (nargs > 0)
         {
           if (argc-(nargs+i) > 0)
@@ -2335,7 +2360,17 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
       /* turn on the offset options */
       send_tcl_command ("Graph_ShowOffsetOptions 1");
     }
+
+  if (load_colortable) 
+    {
+      labl_load_color_table (colortable_fname);
+    }
   
+  if (load_annotation)
+    {
+      labl_import_annotation (annotation_fname);
+    }
+
   /* end rkt */
   
   if (tclscriptflag)
@@ -18905,7 +18940,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.169 2006/01/13 22:27:26 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.170 2006/01/19 17:48:23 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
