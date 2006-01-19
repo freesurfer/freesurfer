@@ -1,12 +1,12 @@
 #############################################################################
 # Name:    FreeSurferEnv.csh
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
-# Usage:   See help section below  
+# Usage:   See help section below
 #
-# $Id: FreeSurferEnv.csh,v 1.38 2005/09/20 16:51:43 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.39 2006/01/19 17:17:41 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.38 2005/09/20 16:51:43 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.39 2006/01/19 17:17:41 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -122,58 +122,50 @@ if((! $?NO_MINC) && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
     # try to find minc toolkit binaries
     if ( $?MNI_INSTALL_DIR) then
         setenv MINC_BIN_DIR $MNI_INSTALL_DIR/bin
-    else if ( -e $FREESURFER_HOME/lib/mni/bin) then
-        setenv MINC_BIN_DIR $FREESURFER_HOME/lib/mni/bin
+    else if ( -e $FREESURFER_HOME/apps/mni/bin) then
+        setenv MINC_BIN_DIR $FREESURFER_HOME/apps/mni/bin
     else if ( -e /usr/pubsw/packages/mni/current/bin) then
         setenv MINC_BIN_DIR /usr/pubsw/packages/mni/current/bin
     else if ( -e /usr/local/mni/bin) then
         setenv MINC_BIN_DIR /usr/local/mni/bin
-    else if ( -e $FREESURFER_HOME/minc/bin) then
-        setenv MINC_BIN_DIR $FREESURFER_HOME/minc/bin
     endif
 endif
 if((! $?NO_MINC) && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
     # try to find minc toolkit libraries
     if ( $?MNI_INSTALL_DIR) then
         setenv MINC_LIB_DIR $MNI_INSTALL_DIR/lib
-    else if ( -e $FREESURFER_HOME/lib/mni/lib) then
-        setenv MINC_LIB_DIR $FREESURFER_HOME/lib/mni/lib
+    else if ( -e $FREESURFER_HOME/apps/mni/lib) then
+        setenv MINC_LIB_DIR $FREESURFER_HOME/apps/mni/lib
     else if ( -e /usr/pubsw/packages/mni/current/lib) then
         setenv MINC_LIB_DIR /usr/pubsw/packages/mni/current/lib
     else if ( -e /usr/local/mni/lib) then
         setenv MINC_LIB_DIR /usr/local/mni/lib
-    else if ( -e $FREESURFER_HOME/minc/lib) then
-        setenv MINC_LIB_DIR $FREESURFER_HOME/minc/lib
     endif
 endif
 if((! $?NO_MINC) && (! $?MNI_DATAPATH  || $FS_OVERRIDE)) then
     # try to find minc toolkit data (MNI::DataDir)
     if ( $?MNI_INSTALL_DIR) then
         setenv MNI_DATAPATH $MNI_INSTALL_DIR/data
-    else if ( -e $FREESURFER_HOME/lib/mni/data) then
-        setenv MNI_DATAPATH $FREESURFER_HOME/lib/mni/data
+    else if ( -e $FREESURFER_HOME/apps/mni/data) then
+        setenv MNI_DATAPATH $FREESURFER_HOME/apps/mni/data
     else if ( -e /usr/pubsw/packages/mni/current/data) then
         setenv MNI_DATAPATH /usr/pubsw/packages/mni/current/data
     else if ( -e /usr/local/mni/data) then
         setenv MNI_DATAPATH /usr/local/mni/data
-    else if ( -e $FREESURFER_HOME/minc/data) then
-        setenv MNI_DATAPATH $FREESURFER_HOME/minc/data
     endif
 endif
 
 if(! $?FSL_DIR  || $FS_OVERRIDE) then
     # FSLDIR is the FSL declared location, use that.
-    # else try find an installation.
+    # else try to find an installation.
     if ( $?FSLDIR ) then
         setenv FSL_DIR $FSLDIR
+    else if ( -e $FREESURFER_HOME/apps/fsl) then
+        setenv FSL_DIR $FREESURFER_HOME/apps/fsl
     else if ( -e /usr/pubsw/packages/fsl/current) then
         setenv FSL_DIR /usr/pubsw/packages/fsl/current
     else if ( -e /usr/local/fsl) then
         setenv FSL_DIR /usr/local/fsl
-    else if ( -e $FREESURFER_HOME/fsl) then
-        setenv FSL_DIR $FREESURFER_HOME/fsl
-    else if ( -e /Users/Shared/fsl) then
-        setenv FSL_DIR /Users/Shared/fsl
     endif
 endif
 
@@ -210,7 +202,7 @@ if( ! $?NO_FSFAST) then
         echo "INFO: $SUF does not exist ... creating"
         mkdir -p ~/matlab
         touch $SUF
-        
+
         echo "%------------ FreeSurfer FAST ------------------------%" >> $SUF
         echo "fsfasthome = getenv('FSFAST_HOME');"                     >> $SUF
         echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"       >> $SUF
@@ -221,7 +213,7 @@ if( ! $?NO_FSFAST) then
 
     set tmp1 = `grep FSFAST_HOME $SUF       | wc -l`;
     set tmp2 = `grep FMRI_ANALYSIS_DIR $SUF | wc -l`;
-  
+
     if($tmp1 == 0 && $tmp2 == 0) then
             if( $output ) then
             echo ""
@@ -230,9 +222,9 @@ if( ! $?NO_FSFAST) then
             echo "         to run the FS-FAST programs";
             echo "Try adding the following three lines to $SUF"
             echo "----------------cut-----------------------"
-            echo "fsfasthome = getenv('FSFAST_HOME');"         
+            echo "fsfasthome = getenv('FSFAST_HOME');"
             echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"
-            echo "path(path,fsfasttoolbox);"                        
+            echo "path(path,fsfasttoolbox);"
             echo "clear fsfasthome fsfasttoolbox;"
             echo "----------------cut-----------------------"
             echo ""
@@ -282,7 +274,7 @@ if(! $?NO_MINC) then
             setenv LD_LIBRARY_PATH  $MINC_LIB_DIR
         endif
     else
-        if ( $?MINC_LIB_DIR) then        
+        if ( $?MINC_LIB_DIR) then
             setenv LD_LIBRARY_PATH "$MINC_LIB_DIR":"$LD_LIBRARY_PATH"
         endif
     endif
@@ -305,10 +297,10 @@ if(! $?NO_MINC) then
             setenv MNI_PERL5LIB       "$MINC_LIB_DIR/5.6.0"
         else if ( -e $MINC_LIB_DIR/../System/Library/Perl/5.8.6 ) then
             # Max OS X Tiger default:
-            setenv MNI_PERL5LIB       "$MINC_LIB_DIR/../System/Library/Perl/5.8.6"
+            setenv MNI_PERL5LIB "$MINC_LIB_DIR/../System/Library/Perl/5.8.6"
         else if ( -e $MINC_LIB_DIR/../System/Library/Perl/5.8.1 ) then
             # Max OS X Panther default:
-            setenv MNI_PERL5LIB       "$MINC_LIB_DIR/../System/Library/Perl/5.8.1"
+            setenv MNI_PERL5LIB "$MINC_LIB_DIR/../System/Library/Perl/5.8.1"
         else
             setenv MNI_PERL5LIB       ""
         endif
@@ -353,7 +345,7 @@ if( $output && $?GSL_DIR ) then
 endif
 
 
-### ----------- Qt (scuba2 support libraries)  ------------ ####
+### ------- Qt (scuba2 and qdec support libraries) ------- ####
 # look for Qt in common NMR locations, overriding any prior setting
 if ( -e $FREESURFER_HOME/lib/qt) then
     setenv QTDIR    $FREESURFER_HOME/lib/qt

@@ -5,10 +5,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below
 #
-# $Id: FreeSurferEnv.sh,v 1.5 2005/10/20 23:22:30 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.6 2006/01/19 17:17:41 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.5 2005/10/20 23:22:30 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.6 2006/01/19 17:17:41 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -125,14 +125,12 @@ if [[ -z "$NO_MINC" && ( -z "$MINC_BIN_DIR" || $FS_OVERRIDE != 0 ) ]]; then
     # try to find minc toolkit binaries
     if [ -n "$MNI_INSTALL_DIR" ]; then
         export MINC_BIN_DIR=$MNI_INSTALL_DIR/bin
-    elif [ -e $FREESURFER_HOME/lib/mni/bin ]; then
-        export MINC_BIN_DIR=$FREESURFER_HOME/lib/mni/bin
+    elif [ -e $FREESURFER_HOME/apps/mni/bin ]; then
+        export MINC_BIN_DIR=$FREESURFER_HOME/apps/mni/bin
     elif [ -e /usr/pubsw/packages/mni/current/bin ]; then
         export MINC_BIN_DIR=/usr/pubsw/packages/mni/current/bin
     elif [ -e /usr/local/mni/bin ]; then
         export MINC_BIN_DIR=/usr/local/mni/bin
-    elif [ -e $FREESURFER_HOME/minc/bin ]; then
-        export MINC_BIN_DIR=$FREESURFER_HOME/minc/bin
     fi
 fi
 
@@ -140,14 +138,25 @@ if [[ -z "$NO_MINC" && ( -z "$MINC_LIB_DIR" || $FS_OVERRIDE != 0 ) ]]; then
     # try to find minc toolkit libraries
     if [ -n "$MNI_INSTALL_DIR" ]; then
         export MINC_LIB_DIR=$MNI_INSTALL_DIR/lib
-    elif [ -e $FREESURFER_HOME/lib/mni/lib ]; then
-        export MINC_LIB_DIR=$FREESURFER_HOME/lib/mni/lib
+    elif [ -e $FREESURFER_HOME/apps/mni/lib ]; then
+        export MINC_LIB_DIR=$FREESURFER_HOME/apps/mni/lib
     elif [ -e /usr/pubsw/packages/mni/current/lib ]; then
         export MINC_LIB_DIR=/usr/pubsw/packages/mni/current/lib
     elif [ -e /usr/local/mni/lib ]; then
         export MINC_LIB_DIR=/usr/local/mni/lib
-    elif [ -e $FREESURFER_HOME/minc/lib ]; then
-        export MINC_LIB_DIR=$FREESURFER_HOME/minc/lib
+    fi
+fi
+
+if [[ -z "$NO_MINC" && ( -z "$MNI_DATAPATH" || $FS_OVERRIDE != 0 ) ]]; then
+    # try to find minc toolkit data (MNI::DataDir)
+    if [ -n "$MNI_INSTALL_DIR" ]; then
+        export MNI_DATAPATH=$MNI_INSTALL_DIR/data
+    elif [ -e $FREESURFER_HOME/apps/mni/data ]; then
+        export =$FREESURFER_HOME/apps/mni/data
+    elif [ -e /usr/pubsw/packages/mni/current/data ]; then
+        export MNI_DATAPATH=/usr/pubsw/packages/mni/current/data
+    elif [ -e /usr/local/mni/data ]; then
+        export MNI_DATAPATH=/usr/local/mni/data
     fi
 fi
 
@@ -156,14 +165,12 @@ if [[ -z "$FSL_DIR" || $FS_OVERRIDE != 0 ]]; then
     # else try find an installation.
     if [ -n "$FSLDIR" ]; then
         export FSL_DIR=$FSLDIR
+    elif [ -e $FREESURFER_HOME/apps/fsl ]; then
+        export FSL_DIR=$FREESURFER_HOME/apps/fsl
     elif [ -e /usr/pubsw/packages/fsl/current ]; then
         export FSL_DIR=/usr/pubsw/packages/fsl/current
     elif [ -e /usr/local/fsl ]; then
         export FSL_DIR=/usr/local/fsl
-    elif [ -e $FREESURFER_HOME/fsl ]; then
-        export FSL_DIR=$FREESURFER_HOME/fsl
-    elif [ -e /Users/Shared/fsl ]; then
-        export FSL_DIR=/Users/Shared/fsl
     fi
 fi
 
@@ -336,7 +343,7 @@ if [[ $output == 1 && -n "$GSL_DIR" ]]; then
 fi
 
 
-### ----------- Qt (scuba2 support libraries)  ------------ ####
+### ------ Qt (scuba2 and qdec support libraries)  ------- ####
 # look for Qt in common NMR locations, overriding any prior setting
 if [ -d $FREESURFER_HOME/lib/qt ]; then
     export QTDIR=$FREESURFER_HOME/lib/qt
@@ -442,7 +449,6 @@ fi
 
 # cause OS to build new bin path cache:
 #rehash;  # not needed for bash!
-
 
 return 0;
 ####################################################################
