@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/01/17 22:16:34 $
-// Revision       : $Revision: 1.325 $
-char *MRI_C_VERSION = "$Revision: 1.325 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/01/19 14:37:26 $
+// Revision       : $Revision: 1.326 $
+char *MRI_C_VERSION = "$Revision: 1.326 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -13113,5 +13113,21 @@ MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
         }
     }
   return(count) ;
+}
+
+MRI *
+MRImatchMeanIntensity(MRI *mri_source, MRI *mri_target, MRI *mri_source_scaled)
+{
+	float   mean_source, mean_target, scale ;
+
+	mri_source_scaled = MRIcopy(mri_source, mri_source_scaled) ;
+
+	mean_source = MRImeanFrame(mri_source, 0) ;
+	mean_target = MRImeanFrame(mri_target, 0) ;
+	scale = mean_target / mean_source ;
+	printf("source mean = %2.1f, target mean = %2.1f, scaling by %2.3f\n",
+				 mean_source, mean_target, scale) ;
+	MRIscalarMul(mri_source, mri_source_scaled, scale) ;
+	return(mri_source_scaled) ;
 }
 
