@@ -18,7 +18,7 @@
 #include "gca.h"
 
 static char vcid[] = 
-"$Id: mris_sample_parc.c,v 1.19 2005/12/06 00:36:22 nicks Exp $";
+"$Id: mris_sample_parc.c,v 1.20 2006/01/19 14:23:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -70,8 +70,8 @@ main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-"$Id: mris_sample_parc.c,v 1.19 2005/12/06 00:36:22 nicks Exp $", "$Name:  $");  if (nargs && argc - nargs == 1)
-    exit (0);
+																 "$Id: mris_sample_parc.c,v 1.20 2006/01/19 14:23:04 fischl Exp $", "$Name:  $");  if (nargs && argc - nargs == 1)
+																	 exit (0);
   argc -= nargs;
 
   Progname = argv[0] ;
@@ -81,11 +81,11 @@ main(int argc, char *argv[])
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-    {
-      nargs = get_option(argc, argv) ;
-      argc -= nargs ;
-      argv += nargs ;
-    }
+	{
+		nargs = get_option(argc, argv) ;
+		argc -= nargs ;
+		argv += nargs ;
+	}
 
   if (argc < 4)
     usage_exit() ;
@@ -96,13 +96,13 @@ main(int argc, char *argv[])
   annot_name = argv[4] ;
 
   if (strlen(sdir) == 0)  /* if not specified explicitly as option */
-    {
-      cp = getenv("SUBJECTS_DIR") ;
-      if (!cp)
-        ErrorExit(ERROR_BADPARM, 
-                  "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
-      strcpy(sdir, cp) ;
-    }
+	{
+		cp = getenv("SUBJECTS_DIR") ;
+		if (!cp)
+			ErrorExit(ERROR_BADPARM, 
+								"%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+		strcpy(sdir, cp) ;
+	}
 
   sprintf(fname, "%s/%s/mri/%s", sdir, subject_name, parc_name) ;
   printf("reading parcellation volume from %s...\n", fname) ;
@@ -112,9 +112,9 @@ main(int argc, char *argv[])
               Progname, fname) ;
 
   for (i = 0 ; i < ntrans ; i++)
-    {
-      MRIreplaceValues(mri_parc, mri_parc, trans_in[i], trans_out[i]) ;
-    }
+	{
+		MRIreplaceValues(mri_parc, mri_parc, trans_in[i], trans_out[i]) ;
+	}
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, subject_name, hemi, surf_name) ;
   printf("reading input surface %s...\n", fname) ;
   mris = MRISread(fname) ;
@@ -127,114 +127,119 @@ main(int argc, char *argv[])
     MRISaverageVertexPositions(mris, avgs) ;
 
   if (FZERO(proj_mm))
-    {
-      if (MRISreadCurvatureFile(mris, thickness_name) != NO_ERROR)
-        ErrorExit(ERROR_NOFILE, "%s: could not read thickness file %s",
-                  Progname, thickness_name) ;
-    }
+	{
+		if (MRISreadCurvatureFile(mris, thickness_name) != NO_ERROR)
+			ErrorExit(ERROR_NOFILE, "%s: could not read thickness file %s",
+								Progname, thickness_name) ;
+	}
 
   if (color_table_fname)
+	{
     mris->ct = CTABread(color_table_fname) ;
+		if (mris->ct == NULL)
+			ErrorExit(ERROR_NOFILE, "%s: could not read color file %s", 
+								Progname, color_table_fname) ;
+	}
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
 
-      if (!FZERO(proj_mm))
-        d = proj_mm ;
-      else
-        d = v->curv*proj_frac ;  /* halfway out */
-      x = v->x+d*v->nx ; y = v->y+d*v->ny ; z = v->z+d*v->nz ;
-      MRIsurfaceRASToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
-      v->annotation = v->val = 
-        MRIfindNearestNonzero(mri_parc, wsize, xw, yw, zw) ;
-    }
+		if (!FZERO(proj_mm))
+			d = proj_mm ;
+		else
+			d = v->curv*proj_frac ;  /* halfway out */
+		x = v->x+d*v->nx ; y = v->y+d*v->ny ; z = v->z+d*v->nz ;
+		MRIsurfaceRASToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
+		v->annotation = v->val = 
+			MRIfindNearestNonzero(mri_parc, wsize, xw, yw, zw) ;
+	}
   if (replace_label)
     replace_vertices_with_label(mris, mri_parc, replace_label, proj_mm);
   if (unknown_label >= 0)
-    {
-      LABEL **labels, *label ;
-      int   nlabels, i, biggest_label, most_vertices, nzero ;
+	{
+		LABEL **labels, *label ;
+		int   nlabels, i, biggest_label, most_vertices, nzero ;
 
 #define TMP_LABEL 1000
-      for (nzero = vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->annotation == 0)
-            {
-              v->annotation = TMP_LABEL;
-              nzero++ ;
-            }
-        }
-      printf("%d unknown vertices found\n", nzero) ;
-      MRISsegmentAnnotated(mris, &labels, &nlabels, 10) ;
-      most_vertices = 0 ; biggest_label = -1 ;
-      for (i = 0 ; i < nlabels ; i++)
-        {
-          label = labels[i] ;
-          if (mris->vertices[label->lv[0].vno].annotation == TMP_LABEL)
-            {
-              if (label->n_points > most_vertices)
-                {
-                  biggest_label = i ; most_vertices = label->n_points ;
-                }
-            }
-        }
-      if (biggest_label >= 0)
-        {
-          label = labels[biggest_label] ;
-          printf("replacing label # %d with %d vertices "
-                 "(vno=%d) with label %d\n",
-                 biggest_label, 
-                 label->n_points, 
-                 label->lv[0].vno, 
-                 unknown_label) ;
-          for (i = 0 ; i < label->n_points ; i++)
-            {
-              v = &mris->vertices[label->lv[i].vno] ;
-              v->annotation = v->val = unknown_label ;
-            }
-        }
-      for (nzero = vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->annotation == TMP_LABEL)
-            {
-              v->annotation = 0;
-              nzero++ ;
-            }
-        }
-      printf("after replacement, %d unknown vertices found\n", nzero) ;
-      MRISmodeFilterZeroVals(mris) ;  /* get rid of the rest 
-                                         of the unknowns by mode filtering */
-      for (i = 0 ; i < nlabels ; i++)
-        LabelFree(&labels[i]) ;
-      free(labels) ;
-    }
+		for (nzero = vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->annotation == 0)
+			{
+				v->annotation = TMP_LABEL;
+				nzero++ ;
+			}
+		}
+		printf("%d unknown vertices found\n", nzero) ;
+		MRISsegmentAnnotated(mris, &labels, &nlabels, 10) ;
+		most_vertices = 0 ; biggest_label = -1 ;
+		for (i = 0 ; i < nlabels ; i++)
+		{
+			label = labels[i] ;
+			if (mris->vertices[label->lv[0].vno].annotation == TMP_LABEL)
+			{
+				if (label->n_points > most_vertices)
+				{
+					biggest_label = i ; most_vertices = label->n_points ;
+				}
+			}
+		}
+		if (biggest_label >= 0)
+		{
+			label = labels[biggest_label] ;
+			printf("replacing label # %d with %d vertices "
+						 "(vno=%d) with label %d\n",
+						 biggest_label, 
+						 label->n_points, 
+						 label->lv[0].vno, 
+						 unknown_label) ;
+			for (i = 0 ; i < label->n_points ; i++)
+			{
+				v = &mris->vertices[label->lv[i].vno] ;
+				v->annotation = v->val = unknown_label ;
+			}
+		}
+		for (nzero = vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->annotation == TMP_LABEL)
+			{
+				v->annotation = 0;
+				nzero++ ;
+			}
+		}
+		printf("after replacement, %d unknown vertices found\n", nzero) ;
+		MRISmodeFilterZeroVals(mris) ;  /* get rid of the rest 
+																			 of the unknowns by mode filtering */
+		for (i = 0 ; i < nlabels ; i++)
+			LabelFree(&labels[i]) ;
+		free(labels) ;
+	}
 
   if (fix_topology != 0)
     fix_label_topology(mris, fix_topology) ;
 
   if (mode_filter)
-    {
-      printf("mode filtering sample labels...\n") ;
+	{
+		printf("mode filtering sample labels...\n") ;
 #if 0
-      MRISmodeFilterZeroVals(mris) ;
+		MRISmodeFilterZeroVals(mris) ;
 #else
-      MRISmodeFilterVals(mris, mode_filter) ;
+		MRISmodeFilterVals(mris, mode_filter) ;
 #endif
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->ripflag)
-            continue ;
-          v->annotation = v->val ;
-        }
-    }
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag)
+				continue ;
+			v->annotation = v->val ;
+		}
+	}
 
   /* this will fill in the v->annotation field from the v->val ones */
   translate_indices_to_annotations(mris, translation_fname) ;
