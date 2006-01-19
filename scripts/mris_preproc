@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 #
 
-set VERSION = '$Id: mris_preproc,v 1.4 2006/01/02 03:35:27 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.5 2006/01/19 22:55:33 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -13,6 +13,8 @@ set srcfmt  = ();
 set target = average7
 set fwhmsrc  = ();
 set fwhmtarg = ();
+set niterssrc = ();
+set niterstarg = ();
 set projfrac = ();
 set outpath = ();
 set paireddiff = ();
@@ -82,6 +84,10 @@ echo "tmpdir is $tmpdir"| tee -a $LF
 set tvallist = ();
 @ nthsubj = 1;
 foreach subj ($subjlist)
+  echo "\n\n" | tee -a $LF
+  echo "---------------------------------------------------" | tee -a $LF
+  echo "#@# $nthsubj/$#subjlist $subj `date` --------------" | tee -a $LF
+
   set subjpath = $SUBJECTS_DIR/$subj
 
   if($srcvol) then
@@ -112,7 +118,8 @@ foreach subj ($subjlist)
   if($#srcfmt) set cmd = ($cmd --sfmt curv)
   set cmd = ($cmd --trgsubject $target --tval $tval)
   if($synth && ! $srcvol) set cmd = ($cmd --synth) # Synth if desired, vol done above
-  if($#fwhmsrc)  set cmd = ($cmd --fwhm-src $fwhmsrc) # Smth in the targ space below
+  if($#fwhmsrc)   set cmd = ($cmd --fwhm-src $fwhmsrc) # Smth in the targ space below
+  if($#niterssrc) set cmd = ($cmd --nsmooth-in $niterssrc) # Smth in the targ space below
   echo "-----------------------"| tee -a $LF
   echo $cmd | tee -a $LF
   if($RunIt) $cmd |& tee -a $LF
@@ -124,6 +131,8 @@ foreach subj ($subjlist)
   @ nthsubj = $nthsubj + 1;
 end
 
+echo "\n\n" | tee -a $LF
+
 # Now concatenate all the inputs together
 set cmd = (mri_concat $tvallist --o $outpath)
 if($paireddiff) set cmd = ($cmd --paired-diff);
@@ -132,17 +141,20 @@ echo "-----------------------"| tee -a $LF
 echo $cmd | tee -a $LF
 if($RunIt) $cmd |& tee -a $LF
 if($status) exit 1;
+echo "\n\n" | tee -a $LF
 
 # Smooth in the target space
-if($#fwhmtarg) then
+if($#fwhmtarg || $#niterstarg) then
   set cmd = (mri_surf2surf --hemi $hemi --s $target )
   set cmd = ($cmd --sval $outpath)
   set cmd = ($cmd --tval $outpath)
-  set cmd = ($cmd --fwhm-trg $fwhmtarg)
+  if($#fwhmtarg)   set cmd = ($cmd --fwhm-trg $fwhmtarg)
+  if($#niterstarg) set cmd = ($cmd --nsmooth-out $niterstarg)
   echo "-----------------------"| tee -a $LF
   echo $cmd | tee -a $LF
   if($RunIt) $cmd |& tee -a $LF
   if($status) exit 1;
+  echo "\n\n" | tee -a $LF
 endif
 
 if($cleanup) then
@@ -252,10 +264,21 @@ while( $#argv != 0 )
       set fwhmsrc = $argv[1]; shift;
       breaksw
 
+    case "--niters-src":
+      if ( $#argv == 0) goto arg1err;
+      set niterssrc = $argv[1]; shift;
+      breaksw
+
     case "--fwhm-targ":
     case "--fwhm":
       if ( $#argv == 0) goto arg1err;
       set fwhmtarg = $argv[1]; shift;
+      breaksw
+
+    case "--niters-targ":
+    case "--niters":
+      if ( $#argv == 0) goto arg1err;
+      set niterstarg = $argv[1]; shift;
       breaksw
 
     case "--projfrac":
@@ -391,6 +414,15 @@ foreach subj ($subjlist)
   @ nthsubj = $nthsubj + 1;
 end
 
+if($#fwhmsrc && $#niterssrc) then
+  echo "ERROR: cannot specify both --fwhm-src and --niters-src"
+  exit 1;
+endif
+
+if($#fwhmtarg && $#niterstarg) then
+  echo "ERROR: cannot specify both --fwhm-targ and --niters-targ"
+  exit 1;
+endif
 
 goto check_params_return;
 ############--------------##################
@@ -427,8 +459,11 @@ usage_exit:
   echo "  --iv volmeasfile reg <--iv volmeasfile reg>"
   echo "  --projfrac frac : projection fraction for vol2surf"
   echo ""
-  echo "  --fwhm fwhm : smooth to fwhm mm on the target surface"
-  echo "  --fwhm-src fwhmsrc : smooth to fwhm mm on the source surface"
+  echo "  --fwhm fwhm : smooth by fwhm mm on the target surface"
+  echo "  --fwhm-src fwhmsrc : smooth by fwhm mm on the source surface"
+  echo ""
+  echo "  --niters niters : smooth by niters on the target surface"
+  echo "  --niters-src niterssrc : smooth by niters on the source surface"
   echo ""
   echo "  --paired-diff"
   echo "  --mean : compute the mean of all inputs"
@@ -535,6 +570,12 @@ levels you want without having to re-run mris_preproc.
 
 Smooth the data on the source surface by fwhm mm. It is better to do it
 on the target surface.
+
+--niters niters
+--niters-src niterssrc
+
+Smooth target or source by niters or nitersrc nearest neighbor iterations. 
+This is an alternative to specifying the smoothing level with FWHM. 
 
 --paired-diff
 
