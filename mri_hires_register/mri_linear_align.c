@@ -5,9 +5,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2005/11/01 03:25:21 $
-// Revision       : $Revision: 1.2 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/01/19 17:21:42 $
+// Revision       : $Revision: 1.3 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -156,15 +156,17 @@ main(int argc, char *argv[])
   {
 		sprintf(fname, "%s_target", parms.base_name) ;
     MRIwriteImageViews(mri_target, fname, IMAGE_SIZE) ;	
-		MRIwrite(mri_target, "target.mgz") ;
+		sprintf(fname, "%s_target.mgz", parms.base_name) ;
+		MRIwrite(mri_target, fname) ;
 	}
 
+	MRImatchMeanIntensity(mri_source, mri_target, mri_source) ;
 	
 	/* compute optimal linear transform */
 	MRIvalRange(mri_target, &fmin, &fmax) ;
 	vl_target = VLSTcreate(mri_target,1,fmax+1,NULL,skip,0);
 	vl_target->mri2 = mri_target ;
-	for (i = 0 ; i < 3 ; i++)
+	for (i = 0 ; i < 1 ; i++)
 	{
 		printf("------------- outer loop iteration %d ---------------\n",i) ;
 		MRIvalRange(mri_target, &fmin, &fmax) ;
@@ -437,7 +439,7 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
 			good_step = 0 ;
 			printf("reducing scale to %2.4f\n", scale) ;
 			nscales++ ;
-			done = (good_step == 0) ;
+			//			done = (good_step == 0) ;
     }
     else
       good_step = 1 ; /* took at least one good step at this scale */
@@ -824,7 +826,7 @@ static int
 powell_minimize(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
 {
 	float *p, **xi, fret, fstart;
-	int   i, r, c, iter ;
+	int   i, r, c, iter, diag ;
 
 	p = vector(1, NPARMS) ;
 	xi = matrix(1, NPARMS, 1, NPARMS) ;
@@ -845,7 +847,9 @@ powell_minimize(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
 		}
 	}
 
+	diag = Gdiag ; Gdiag |= DIAG_VERBOSE ;
 	powell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
+	Gdiag = diag ;
 	do
 	{
 		for (r = 1 ; r <= NPARMS ; r++)
