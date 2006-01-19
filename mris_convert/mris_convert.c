@@ -18,12 +18,9 @@
 
 int MRISmatrixMultiply(MRIS *mris, MATRIX *M);
 
-
-
 //------------------------------------------------------------------------
-static char vcid[] = 
-"$Id: mris_convert.c,v 1.19 2006/01/09 21:21:24 greve Exp $";
-
+static char vcid[] =
+"$Id: mris_convert.c,v 1.20 2006/01/19 16:33:55 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -68,9 +65,10 @@ main(int argc, char *argv[])
   int          ac, nargs ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_convert.c,v 1.19 2006/01/09 21:21:24 greve Exp $", "$Name:  $");
+  nargs = handle_version_option
+    (argc, argv,
+     "$Id: mris_convert.c,v 1.20 2006/01/19 16:33:55 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -123,7 +121,7 @@ main(int argc, char *argv[])
 
   if(patch_flag){   /* read in orig surface before reading in patch */
     char name[100] ;
-    
+
     FileNamePath(in_fname, path) ;
     FileNameOnly(in_fname, name) ;
     cp = strchr(name, '.') ;
@@ -138,21 +136,21 @@ main(int argc, char *argv[])
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-		Progname, fname) ;
+                Progname, fname) ;
     if (MRISreadPatch(mris, in_fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
-		Progname, in_fname) ;
+                Progname, in_fname) ;
     if(read_orig_positions){
       if (MRISreadVertexPositions(mris, orig_surf_name) != NO_ERROR)
-	ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-		  Progname, orig_surf_name) ;
+        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                  Progname, orig_surf_name) ;
     }
   }
   else {
     mris = MRISread(in_fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-		Progname, in_fname) ;
+                Progname, in_fname) ;
   }
 
   if(talxfmsubject){
@@ -179,7 +177,7 @@ main(int argc, char *argv[])
 
   if(curv_file_flag){
     int type ;
-    
+
     MRISreadCurvatureFile(mris, curv_fname) ;
     type = MRISfileNameType(out_fname) ;
     if (type == MRIS_ASCII_FILE)
@@ -191,7 +189,7 @@ main(int argc, char *argv[])
     MRISwritePatch(mris, out_fname) ;
   else
     MRISwrite(mris, out_fname) ;
-  
+
   MRISfree(&mris) ;
 
   exit(0) ;
@@ -209,7 +207,7 @@ get_option(int argc, char *argv[])
 {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
@@ -268,7 +266,7 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  fprintf(stderr, 
+  fprintf(stderr,
           "usage: %s [options] <input surface file> <output surface file>\n",
           Progname) ;
 }
@@ -277,17 +275,19 @@ static void
 print_help(void)
 {
   print_usage() ;
-  printf( 
-          "\nThis program will convert an MRI surface to ascii, and "
-	  "vice-versa.\n") ;
+  printf(
+         "\nThis program will convert an MRI surface to ascii, and "
+         "vice-versa.\n") ;
   printf( "\nvalid options are:\n") ;
   printf( "  -p                input is a patch, not a full surface\n") ;
-  printf( "  -c <curv file>    input is curvature file (must still "
+  printf( "  -c <curv file>    input is curvature file (must still\n"
           "                    specify surface)\n") ;
   printf( "  -o origname       read orig positions\n") ;
   printf( "  -s scale          scale vertex xyz by scale\n") ;
-  printf( "  -r                rescale vertex xyz so total area is same as group average\n") ;
-  printf( "  -t subject        apply talairach xfm of subject to vertex xyz\n") ;
+  printf( "  -r                rescale vertex xyz so total area is\n"
+          "                    same as group average\n") ;
+  printf( "  -t subject        apply talairach xfm of subject to\n"
+          "                    vertex xyz\n");
   printf( "\n") ;
   printf( "Surface and curvature files can be ascii or binary.\n") ;
   printf( "Ascii file is assumed if filename ends with .asc\n") ;
@@ -313,6 +313,7 @@ print_version(void)
   printf( "%s\n", vcid) ;
   exit(1) ;
 }
+
 static int
 convertToWFile(char *in_fname, char *out_fname)
 {
@@ -323,11 +324,11 @@ convertToWFile(char *in_fname, char *out_fname)
 
   fprintf(stderr, "writing w file %s...\n", out_fname) ;
   outfp = fopen(out_fname,"wb");
-  if (outfp==NULL) 
+  if (outfp==NULL)
     ErrorExit(ERROR_NOFILE, "%s: Can't create file %s\n",Progname,out_fname) ;
 
   infp = fopen(in_fname,"rb");
-  if (infp==NULL) 
+  if (infp==NULL)
     ErrorExit(ERROR_NOFILE, "%s: Can't create file %s\n",Progname,in_fname) ;
 
 
@@ -366,11 +367,11 @@ convertFromWFile(char *in_fname, char *out_fname)
 
   fprintf(stderr, "writing ascii w file %s...\n", out_fname) ;
   outfp = fopen(out_fname,"wb");
-  if (outfp==NULL) 
+  if (outfp==NULL)
     ErrorExit(ERROR_NOFILE, "%s: Can't create file %s\n",Progname,out_fname) ;
 
   infp = fopen(in_fname,"rb");
-  if (infp==NULL) 
+  if (infp==NULL)
     ErrorExit(ERROR_NOFILE, "%s: Can't create file %s\n",Progname,in_fname) ;
 
   fread2(&ilat,infp);
@@ -414,3 +415,4 @@ writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+
