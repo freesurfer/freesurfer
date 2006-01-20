@@ -57,6 +57,13 @@ else
   exit 1
 endif
 
+# for some reason, tar now decides to crash the mac os when tar'ing 
+# from the network, so copy to /tmp
+if ( "$1" == "tiger") then
+    cp -r $SPACE_FREESURFER/$2 /tmp
+    cd /tmp
+endif
+
 if (-e freesurfer) rm freesurfer
 ln -s $2 freesurfer
 
@@ -74,6 +81,7 @@ echo gzipping $TARNAME...
 gzip $TARNAME
 mv $TARNAME.gz ${SPACE_FREESURFER}/build/pub-releases
 chmod g+w ${SPACE_FREESURFER}/build/pub-releases/$TARNAME.gz
+if (-e /tmp/$2) rm -Rf /tmp/$2
 
 # for the Mac, create_dmg creates the .dmg file from the .tar.gz file
 
