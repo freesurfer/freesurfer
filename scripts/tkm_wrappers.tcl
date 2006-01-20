@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.39 2006/01/17 19:27:14 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.40 2006/01/20 20:03:01 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -434,7 +434,6 @@ proc tkm_MakeRadioButtons { isFrame isDirection isTitle iVariable ilRadioButtons
 		switch $isDirection {
 		    h - x { 
 			grid $rbw -column $nRadioButton -row 0
-			grid configure $rbw -padx 5
 		    }
 		    v - y { 
 			grid $rbw -column 0 -row $nRadioButton
