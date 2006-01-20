@@ -3,7 +3,7 @@
 # Passing "-old" as an argument will invoke the old func2sphere-sess (now called
 # func2sphere-sess-vss).
 
-set VERSION = '$Id: func2sph-sess,v 1.4 2005/08/30 17:04:29 greve Exp $';
+set VERSION = '$Id: func2sph-sess,v 1.5 2006/01/20 03:42:17 greve Exp $';
 
 set inputargs = ($argv);
 set analysis    = ();
@@ -14,7 +14,10 @@ set nolog = 0;
 set sphdir = sph
 
 set IcoOrder = 7;
-set ProjFrac = 0;
+set ProjFrac = ();
+set ProjFracMin = ();
+set ProjFracMax = ();
+set ProjFracDelta = ();
 set Surface  = "white";
 set SurfaceReg = "sphere.reg"
 set Float2Int = ();
@@ -204,11 +207,13 @@ foreach sess ($SessList)
       set cmd = ();
       set cmd = ($cmd $v2s --srcvol $funcstem --src_type bfloat --srcreg $srcreg)
       set cmd = ($cmd --trgsubject $TrgSubject $IcoOrderOption)
-      set cmd = ($cmd --projfrac $ProjFrac --mapmethod $MapMethod)
+      set cmd = ($cmd --mapmethod $MapMethod)
       set cmd = ($cmd --hemi $hemi --surf $Surface --surfreg $SurfaceReg)
       set cmd = ($cmd --out $sphstem --out_type bfloat --float2int $Float2Int)
       if($#fwhm != 0) set cmd = ($cmd --fwhm $fwhm)
       if($synth != 0) set cmd = ($cmd --srcsynth -1)
+      if($#ProjFrac) set cmd = ($cmd --projfrac $ProjFrac)
+      if($#ProjFracMin) set cmd = ($cmd --projfrac-int $ProjFracMin $ProjFracMax $ProjFracDelta)
 
       echo "------------------------------------------------" |& tee -a $LF
       pwd |& tee -a $LF
@@ -300,6 +305,16 @@ while( $#argv != 0 )
     case "-projfrac"
       if ( $#argv == 0) goto arg1err;
       set ProjFrac = $argv[1]; shift;
+      breaksw
+
+    case "-projfrac-int"
+      if( $#argv < 3) then
+        echo "ERROR: $flag needs 3 arguments"
+        exit 1;
+      endif
+      set ProjFracMin   = $argv[1]; shift;
+      set ProjFracMax   = $argv[2]; shift;
+      set ProjFracDelta = $argv[3]; shift;
       breaksw
 
     case "-icoorder"
@@ -421,6 +436,10 @@ check_params:
     set IcoOrderOption = ();
   endif
 
+  if($#ProjFrac && $#ProjFracMin) then
+    echo "ERROR: cannot specify --projfrac and --projfrac-int"
+    exit 1;
+  endif
 
 goto check_params_return;
 ############--------------##################
@@ -448,6 +467,7 @@ usage_exit:
   echo "  -mapmethod method: <nnfr> or nnf "
   echo "  -float2int  method: <tkreg>, floor, round"
   echo "  -projfrac   fraction: resample fraction of thickness into gray"
+  echo "  -projfrac-int min max delta: average along normal"
   echo "  -spacedir      : save data to spacedir (sph)"
   echo "  -umask umask   : set unix file permission mask"
   echo "  -version       : print version and exit"
