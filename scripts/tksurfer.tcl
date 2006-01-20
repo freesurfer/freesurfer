@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.104 2006/01/20 21:28:52 kteich Exp $
+# $Id: tksurfer.tcl,v 1.105 2006/01/20 22:50:23 kteich Exp $
 
 package require BLT;
 
@@ -269,13 +269,13 @@ proc UpdateValueLabelName { inValueIndex isName } {
         return
     }
 
-    set label $gaScalarValueID($inValueIndex,label)
+    set nLabel $gaScalarValueID($inValueIndex,label)
 
     # set the label contents name.
-    set gsaLabelContents($label,name) $isName
+    set gsaLabelContents($nLabel,name) $isName
 
     # set the swap field info name.
-    set gaSwapFieldInfo($label,label) $isName
+    set gaSwapFieldInfo($nLabel,label) $isName
 
     # view->information menu
     .w.fwMenuBar.mbwView.mw.cmw2 entryconfigure [expr 12 + $inValueIndex] \
@@ -365,9 +365,9 @@ set glLabel { \
   kLabel_Annotation \
   kLabel_MRIValue \
   kLabel_Parcellation_Name }
-foreach label $glLabel {
-    set gfwaLabel($label,cursor) ""
-    set gfwaLabel($label,mouseover) ""
+foreach nLabel $glLabel {
+    set gfwaLabel($nLabel,cursor) ""
+    set gfwaLabel($nLabel,mouseover) ""
 }
 
 set gsaLabelContents(kLabel_VertexIndex,name)       "Vertex Index"
@@ -398,9 +398,9 @@ set gsaLabelContents(kLabel_Annotation,name)        "Annotation"
 set gsaLabelContents(kLabel_MRIValue,name)          "MRI Value"
 set gsaLabelContents(kLabel_Parcellation_Name,name) "Parcellation: "
 
-foreach label $glLabel {
-    set gsaLabelContents($label,value,cursor)    "none"
-    set gsaLabelContents($label,value,mouseover) "none"
+foreach nLabel $glLabel {
+    set gsaLabelContents($nLabel,value,cursor)    "none"
+    set gsaLabelContents($nLabel,value,mouseover) "none"
 }
 
 set glSwapField { \
@@ -2972,33 +2972,33 @@ proc CreateLabelFrame { ifwTop iSet } {
     frame $ifwTop
 
     # create the frame names
-    foreach label $glLabel {
-	set gfwaLabel($label,$iSet) $ifwTop.fw$label
+    foreach nLabel $glLabel {
+	set gfwaLabel($nLabel,$iSet) $ifwTop.fw$nLabel
     }
     
     # create two active labels in each label frame as well as a button
     # that is used for the overlay labels.
-    foreach label $glLabel {
-	frame $gfwaLabel($label,$iSet)
-	set fwOverlay $gfwaLabel($label,$iSet).fwOverlay
-	set fwLabel $gfwaLabel($label,$iSet).fwLabel
-	set fwValue $gfwaLabel($label,$iSet).fwValue
+    foreach nLabel $glLabel {
+	frame $gfwaLabel($nLabel,$iSet)
+	set fwOverlay $gfwaLabel($nLabel,$iSet).fwOverlay
+	set fwLabel $gfwaLabel($nLabel,$iSet).fwLabel
+	set fwValue $gfwaLabel($nLabel,$iSet).fwValue
 	
 	# if it's a value label, make it a normal entry (editable) and
 	# a real button. else make it an active label (uneditable) and
 	# a fake button.
-	if { $label == "kLabel_Val" ||         \
-		 $label == "kLabel_Val2" ||     \
-		 $label == "kLabel_ValBak" ||   \
-		 $label == "kLabel_Val2Bak" ||  \
-		 $label == "kLabel_ValStat" ||  \
-		 $label == "kLabel_ImagVal" ||  \
-		 $label == "kLabel_Mean" ||  \
-		 $label == "kLabel_MeanImag" ||  \
-		 $label == "kLabel_StdError" } { 
+	if { $nLabel == "kLabel_Val" ||         \
+		 $nLabel == "kLabel_Val2" ||     \
+		 $nLabel == "kLabel_ValBak" ||   \
+		 $nLabel == "kLabel_Val2Bak" ||  \
+		 $nLabel == "kLabel_ValStat" ||  \
+		 $nLabel == "kLabel_ImagVal" ||  \
+		 $nLabel == "kLabel_Mean" ||  \
+		 $nLabel == "kLabel_MeanImag" ||  \
+		 $nLabel == "kLabel_StdError" } { 
 
 	    # Find the relative index of the overlay.
-	    set nOverlay [expr [lsearch $glLabel $label] - \
+	    set nOverlay [expr [lsearch $glLabel $nLabel] - \
 			  [lsearch $glLabel "kLabel_Val"]]
 
 	    # The button command will set the current overlay.
@@ -3009,22 +3009,22 @@ proc CreateLabelFrame { ifwTop iSet } {
 	    bind $fwOverlay <Control-Button> "DoConfigOverlayDisplayDlog"
 
 	    # The entry will set the overlay name.
-	    tkm_MakeEntry $fwLabel "" gsaLabelContents($label,name) 14 "UpdateOverlayDlogInfo; UpdateValueLabelName $gaScalarValueID($label,index) \[set gsaLabelContents($label,name)\]"
+	    tkm_MakeEntry $fwLabel "" gsaLabelContents($nLabel,name) 14 "UpdateOverlayDlogInfo; UpdateValueLabelName $gaScalarValueID($nLabel,index) \[set gsaLabelContents($nLabel,name)\]"
 	} else {
 
 	    # A dummy button.
 	    frame $fwOverlay -width 1
 	    
 	    # Active but uneditable label.
-	    tkm_MakeActiveLabel $fwLabel "" gsaLabelContents($label,name) 14
+	    tkm_MakeActiveLabel $fwLabel "" gsaLabelContents($nLabel,name) 14
 	}
 	
 	# active leabel for the contents (uneditable).
-	if { $label == "kLabel_VertexIndex" && $iSet == "cursor" } {
-	    tkm_MakeEntry $fwValue "" gsaLabelContents($label,value,$iSet) 18 \
-		"select_vertex_by_vno \[set gsaLabelContents($label,value,$iSet)\]; redraw"
+	if { $nLabel == "kLabel_VertexIndex" && $iSet == "cursor" } {
+	    tkm_MakeEntry $fwValue "" gsaLabelContents($nLabel,value,$iSet) 18 \
+		"select_vertex_by_vno \[set gsaLabelContents($nLabel,value,$iSet)\]; redraw"
 	} else {
-	    tkm_MakeActiveLabel $fwValue "" gsaLabelContents($label,value,$iSet) 18
+	    tkm_MakeActiveLabel $fwValue "" gsaLabelContents($nLabel,value,$iSet) 18
 	}
 	
 	# Pack them left to right.
@@ -3074,9 +3074,9 @@ proc PackLabel { isLabel iSet ibShow } {
 	foreach element $lTemp {
 	    set lLabelsBelow [linsert $lLabelsBelow 0 $element]
 	}
-	foreach label $lLabelsBelow {
+	foreach nLabel $lLabelsBelow {
 	    if {[catch { pack $gfwaLabel($isLabel,$iSet) \
-			     -after $gfwaLabel($label,$iSet)    \
+			     -after $gfwaLabel($nLabel,$iSet)    \
 			     -side top                \
 			     -anchor w } sResult] == 0} {
 		return;
@@ -3085,9 +3085,9 @@ proc PackLabel { isLabel iSet ibShow } {
 	
 	# if that fails, go forward and try to pack it before the later labels
 	set lLabelsAbove [lrange $glLabel [expr $nLabel + 1] [llength $glLabel]]
-	foreach label $lLabelsAbove {
+	foreach nLabel $lLabelsAbove {
 	    if {[catch { pack $gfwaLabel($isLabel,$iSet)  \
-			     -before $gfwaLabel($label,$iSet)    \
+			     -before $gfwaLabel($nLabel,$iSet)    \
 			     -side top                  \
 			     -anchor w } sResult] == 0} {
 		return;
@@ -4334,7 +4334,7 @@ proc LblLst_FillListMenu { iowList {ibSelectCurrentLabel 0} } {
 
     # For each value...
     set nValueIndex 0
-    foreach label $glLabelNames {
+    foreach nLabel $glLabelNames {
 
 	# If we have more than 30, calc a submenu and add it to
 	# that. Otherwise just add it to the main menu.
@@ -4344,8 +4344,8 @@ proc LblLst_FillListMenu { iowList {ibSelectCurrentLabel 0} } {
 	}
 
 	$curMenu add command \
-	    -command "set gFillParms(argument) $nValueIndex; $iowList config -text \"$label\"" \
-	    -label $label
+	    -command "set gFillParms(argument) $nValueIndex; $iowList config -text \"$nLabel\"" \
+	    -label $nLabel
 	incr nValueIndex
     }
     
