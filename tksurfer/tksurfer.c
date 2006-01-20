@@ -18982,7 +18982,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.172 2006/01/20 21:28:33 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.173 2006/01/20 22:50:01 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21641,8 +21641,9 @@ vset_set_current_set(int set)
                 (ERROR_BADPARM,
                  "vset_set_current_set: invalid set %d\n",set));
   
-  /* Make sure this set is loaded. */
-  if (NULL == vset_vertex_list[set])
+  /* Make sure this set is loaded unless it's the main set which is
+     always loaded.. */
+  if (NULL == vset_vertex_list[set] && VSET_MAIN != set)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
                  "vset_set_current_set: set %d not loaded\n",set));
