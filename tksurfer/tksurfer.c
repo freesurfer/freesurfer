@@ -8180,6 +8180,7 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   FunD_tErr volume_error;
   mriFunctionalDataRef volume;
   char cmd[STRLEN];
+  char val_name[STRLEN];
 
   /* unload this field if it already exists */
   sclv_unload_field (field);
@@ -8249,7 +8250,8 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   sclv_set_current_field (field);
   
   /* set the field name to the name of the stem loaded */
-  sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, stem);
+  FileNameOnly (fname, val_name);
+  sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, val_name);
   send_tcl_command (cmd);
   sprintf (cmd, "ShowValueLabel %d 1", field);
   send_tcl_command (cmd);
@@ -18940,7 +18942,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.170 2006/01/19 17:48:23 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.171 2006/01/20 19:06:16 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
