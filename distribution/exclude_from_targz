@@ -5,10 +5,13 @@ freesurfer/csurf.log
 freesurfer/error.log
 freesurfer/surfer.log
 freesurfer/arthur_colors
+freesurfer/bin-new
 freesurfer/bin-old
 freesurfer/bin-old-old
 freesurfer/freediffusion
 freesurfer/SetUpFreeDiffusion.csh
+freesurfer/lib/gsl/share
+freesurfer/lib/gsl/include
 freesurfer/lib/tcltktixblt/man
 freesurfer/lib/tcltktixblt/share
 freesurfer/lib/tcltktixblt/include
@@ -38,8 +41,8 @@ freesurfer/lib/qt/README
 freesurfer/lib/qt/config.tests
 freesurfer/lib/qt/MANIFEST
 freesurfer/lib/qt/configure
-freesurfer/lib/gsl/include
-freesurfer/lib/gsl/share
+freesurfer/fsl/patchL-fsl-3.2-redhat9.tar
+freesurfer/fsl/patchL-fsl-3.2-redhat7.tar
+freesurfer/fsl/fsl-3.2-macosx.tar.gz
 freesurfer/grad_unwarp_tables
 freesurfer/average/HPMarch022005_ras.mgz
-
