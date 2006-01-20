@@ -18,7 +18,7 @@
 #include "version.h"
 
 static char vcid[] 
-= "$Id: mris_fix_topology.c,v 1.36 2005/12/13 23:55:01 greve Exp $";
+= "$Id: mris_fix_topology.c,v 1.37 2006/01/20 19:51:57 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -32,6 +32,7 @@ static void print_parameters(void);
 char *Progname ;
 
 static int exit_after_diag = 0 ;
+extern int topology_fixing_exit_after_diag ;
 
 static char *brain_name    = "brain" ;
 static char *wm_name       = "wm" ;
@@ -66,7 +67,7 @@ main(int argc, char *argv[])
   make_cmd_version_string 
     (argc, 
      argv, 
-     "$Id: mris_fix_topology.c,v 1.36 2005/12/13 23:55:01 greve Exp $", "$Name:  $", 
+     "$Id: mris_fix_topology.c,v 1.37 2006/01/20 19:51:57 fischl Exp $", "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
@@ -74,7 +75,7 @@ main(int argc, char *argv[])
     handle_version_option 
     (argc, 
      argv, 
-     "$Id: mris_fix_topology.c,v 1.36 2005/12/13 23:55:01 greve Exp $", 
+     "$Id: mris_fix_topology.c,v 1.37 2006/01/20 19:51:57 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -213,12 +214,12 @@ main(int argc, char *argv[])
   /* at this point : original vertices 
      real solution in original vertices = corrected smoothed orig vertices */
   MRISfree(&mris) ;
+  if (!mris_corrected || exit_after_diag)  /* for now */
+    exit(0) ;
   eno = MRIScomputeEulerNumber(mris_corrected, &nvert, &nfaces, &nedges) ;
   fprintf(stderr, "after topology correction, eno=%d (nv=%d, nf=%d, ne=%d,"
           " g=%d)\n", eno, nvert, nfaces, nedges, (2-eno)/2) ;
 
-  if (!mris_corrected || exit_after_diag)  /* for now */
-    exit(0) ;
 
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
   /* at this point : smoothed corrected orig vertices = solution */
@@ -536,6 +537,7 @@ get_option(int argc, char *argv[])
       printf("saving diagnostic information and exiting....\n") ;
       Gdiag |= DIAG_SAVE_DIAGS ;
       exit_after_diag = 1 ;
+      topology_fixing_exit_after_diag = 1 ;
     }
   else if (!stricmp(option, "sdir"))
     {
