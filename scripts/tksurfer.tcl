@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.103 2006/01/17 19:20:33 kteich Exp $
+# $Id: tksurfer.tcl,v 1.104 2006/01/20 21:28:52 kteich Exp $
 
 package require BLT;
 
@@ -965,10 +965,6 @@ proc DoConfigOverlayDisplayDlog {} {
 	    -text "Inverse" \
 	    -font [tkm_GetNormalFont] \
 	    -command {SendLinkedVarGroup overlay}
-	checkbutton $cbwReverse \
-	    -variable gaLinkedVars(revphaseflag) \
-	    -text "Reverse" \
-	    -font [tkm_GetNormalFont]
 	checkbutton $cbwComplex \
 	    -variable gaLinkedVars(complexvalflag) \
 	    -text "Complex" \
