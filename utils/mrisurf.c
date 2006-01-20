@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/18 02:21:22 $
-// Revision       : $Revision: 1.424 $
+// Revision Date  : $Date: 2006/01/20 19:51:44 $
+// Revision       : $Revision: 1.425 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -534,6 +534,9 @@ v1->cy-v0->cy, v1->cz-v0->cz)
 
 /*--------------------------------------------------------------------*/
 /*------------------------ STATIC DATA -------------------------------*/
+
+int topology_fixing_exit_after_diag = 0 ;
+
 /*-------------------------- FUNCTIONS -------------------------------*/
 double (*gMRISexternalGradient)(MRI_SURFACE *mris,
                                 INTEGRATION_PARMS *parms) = NULL ;
@@ -553,7 +556,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.424 2006/01/18 02:21:22 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.425 2006/01/20 19:51:44 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -26356,56 +26359,59 @@ MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parms)
   MHT    *mht = NULL ;
 
   if (parms == NULL)
-    {
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->ripflag)
-            continue ;
-          v->x += distance*v->nx ;
-          v->y += distance*v->ny ;
-          v->z += distance*v->nz ;
-        }
-    }
+	{
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag)
+				continue ;
+			v->x += distance*v->nx ;
+			v->y += distance*v->ny ;
+			v->z += distance*v->nz ;
+		}
+	}
   else
-    {
+	{
 #define EXPANSION_STEP_SIZE 0.25
-      if ((parms->write_iterations > 0) && (Gdiag&DIAG_WRITE) && !parms->start_t)
-        mrisWriteSnapshot(mris, parms, 0) ;
-      mrisClearMomentum(mris) ;
-      niter = nint(distance / EXPANSION_STEP_SIZE) ;
-      avgs = parms->n_averages ;
-      for (n = parms->start_t ; n < parms->start_t+niter ; n++)
-        {
-          MRIScomputeMetricProperties(mris) ;
-          if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
-            mht = MHTfillTable(mris, mht) ;
-          for (vno = 0 ; vno < mris->nvertices ; vno++)
-            {
-              v = &mris->vertices[vno] ;
-              if (v->ripflag)
-                continue ;
-              v->dx = v->nx*EXPANSION_STEP_SIZE ;
-              v->dy = v->ny*EXPANSION_STEP_SIZE ;
-              v->dz = v->nz*EXPANSION_STEP_SIZE ;
-            }
-          /*      mrisAverageGradients(mris, avgs) ;*/
-          mrisComputeSpringTerm(mris, parms->l_spring) ;
-          mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
-          mrisComputeThicknessSmoothnessTerm(mris, parms->l_tsmooth) ;
-          mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
-          mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
+		if ((parms->write_iterations > 0) && (Gdiag&DIAG_WRITE) && !parms->start_t)
+			mrisWriteSnapshot(mris, parms, 0) ;
+		mrisClearMomentum(mris) ;
+		niter = nint(distance / EXPANSION_STEP_SIZE) ;
+		avgs = parms->n_averages ;
+		for (n = parms->start_t ; n < parms->start_t+niter ; n++)
+		{
+			printf("\rstep %d of %d     ", n+1, parms->start_t+niter) ;
+			fflush(stdout) ;
+			MRIScomputeMetricProperties(mris) ;
+			if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
+				mht = MHTfillTable(mris, mht) ;
+			for (vno = 0 ; vno < mris->nvertices ; vno++)
+			{
+				v = &mris->vertices[vno] ;
+				if (v->ripflag)
+					continue ;
+				v->dx = v->nx*EXPANSION_STEP_SIZE ;
+				v->dy = v->ny*EXPANSION_STEP_SIZE ;
+				v->dz = v->nz*EXPANSION_STEP_SIZE ;
+			}
+			/*      mrisAverageGradients(mris, avgs) ;*/
+			mrisComputeSpringTerm(mris, parms->l_spring) ;
+			mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
+			mrisComputeThicknessSmoothnessTerm(mris, parms->l_tsmooth) ;
+			mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
+			mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
 
-          mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
-          mrisAsynchronousTimeStep(mris, parms->momentum, parms->dt,mht,
-                                   MAX_ASYNCH_MM) ;
+			mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
+			mrisAsynchronousTimeStep(mris, parms->momentum, parms->dt,mht,
+															 MAX_ASYNCH_MM) ;
 
-          if ((parms->write_iterations > 0) &&
-              !((n+1)%parms->write_iterations)&&(Gdiag&DIAG_WRITE))
-            mrisWriteSnapshot(mris, parms, n+1) ;
-        }
-      parms->start_t += n ;
-    }
+			if ((parms->write_iterations > 0) &&
+					!((n+1)%parms->write_iterations)&&(Gdiag&DIAG_WRITE))
+				mrisWriteSnapshot(mris, parms, n+1) ;
+		}
+		parms->start_t += n ;
+		printf("\n") ;
+	}
   if (mht)
     MHTfree(&mht) ;
   return(NO_ERROR) ;
@@ -33983,6 +33989,8 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
     //if (DIAG_VERBOSE_ON || (Gdiag & DIAG_SAVE_DIAGS))
     MRISwriteCurvature(mris, "defect_chull") ;
   }
+	if (topology_fixing_exit_after_diag)
+		return(NULL) ;
 
   /* now start building the target surface */
   MRISclearMarks(mris) ;
