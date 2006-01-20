@@ -3,7 +3,7 @@
 # Passing "-old" as an argument will invoke the old func2sphere-sess (now called
 # func2sphere-sess-vss).
 
-set VERSION = '$Id: func2sph-sess,v 1.5 2006/01/20 03:42:17 greve Exp $';
+set VERSION = '$Id: func2sph-sess,v 1.6 2006/01/20 03:45:41 greve Exp $';
 
 set inputargs = ($argv);
 set analysis    = ();
@@ -313,8 +313,8 @@ while( $#argv != 0 )
         exit 1;
       endif
       set ProjFracMin   = $argv[1]; shift;
-      set ProjFracMax   = $argv[2]; shift;
-      set ProjFracDelta = $argv[3]; shift;
+      set ProjFracMax   = $argv[1]; shift;
+      set ProjFracDelta = $argv[1]; shift;
       breaksw
 
     case "-icoorder"
