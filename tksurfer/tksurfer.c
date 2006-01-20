@@ -1207,7 +1207,7 @@ MATRIX* conv_tmp1_m = NULL;
 MATRIX* conv_tmp2_m = NULL;
 MATRIX* surfaceRAStoRAS = NULL;
 
-MRI* origMRI = NULL;
+MRI* orig_mri_header = NULL;
 
 int conv_initialize ();
 int conv_ras_to_mnital (float rasx, float rasy, float rasz,
@@ -8181,6 +8181,9 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   mriFunctionalDataRef volume;
   char cmd[STRLEN];
   char val_name[STRLEN];
+  Volm_tErr volm_err = Volm_tErr_NoErr;
+  mriVolumeRef volm = NULL;
+  int good = 0;
 
   /* unload this field if it already exists */
   sclv_unload_field (field);
@@ -8193,6 +8196,38 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
       return ERROR_BADPARM;
     }
 
+  /* If they want to use the identity registration method, we need to
+     load up a volume for them to use as the base for the
+     transform. So we use the orig header, which should already have
+     been loaded, to get one. */
+  if (FunD_tRegistration_Identity == reg_type)
+    {
+      good = 0;
+      if (NULL != orig_mri_header)
+	{
+	  volm_err = Volm_New (&volm);
+	  if (Volm_tErr_NoErr == volm_err)
+	    {
+	      volm_err = Volm_ImportData (volm, orig_mri_header->fname);
+	      if (Volm_tErr_NoErr == volm_err)
+		{
+		  good = 1;
+		}
+	    }
+	}
+      
+      if (!good)
+	{
+	  if (NULL != volm)
+	    Volm_Delete (&volm);
+	  printf ("surfer: ERROR: You specified registration type identity, "
+		  "but tksurfer cannot find an anatomical volume with which "
+		  "to calculate the identity transform. Please try another "
+		  "registration method.\n");
+	  return ERROR_BADPARM;
+	}
+    }
+
   /* create volume. */
   volume_error = FunD_New (&volume,
 			   sclv_client_transform,
@@ -8201,9 +8236,11 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
 			   registration, 
 			   mris->nvertices, /* Try to be scalar */
                            sclv_register_transform,
-			   NULL);
+			   volm);
   if (volume_error!=FunD_tErr_NoError)
     {
+      if (NULL != volm)
+	Volm_Delete (&volm);
       printf("surfer: couldn't load %s\n",fname);
       ErrorReturn(func_convert_error(volume_error),
                   (func_convert_error(volume_error),
@@ -8263,6 +8300,9 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   /* enable the menu items */
   enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
   
+  if (NULL != volm)
+    Volm_Delete (&volm);
+
   return (ERROR_NONE);
 }
 
@@ -18942,7 +18982,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.171 2006/01/20 19:06:16 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.172 2006/01/20 21:28:33 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21674,31 +21714,31 @@ int conv_initialize()
   if( NULL != mris ) 
     {
       FileNamePath (mris->fname, surf_path);
-      sprintf (fname, "%s/../mri/orig/COR", surf_path);
+      sprintf (fname, "%s/../mri/orig/COR-.info", surf_path);
       
       info.st_mode = 0;
       rStat = stat (fname, &info);
-      if (S_ISDIR(info.st_mode))
+      if (S_ISREG(info.st_mode))
         {
-          origMRI = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+          orig_mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
         }
-      if( NULL == origMRI ) 
+      if( NULL == orig_mri_header ) 
         {
 	  sprintf (fname, "%s/../mri/orig.mgh", surf_path);
           rStat = stat (fname, &info);
           if (S_ISREG(info.st_mode))
             {
-              origMRI = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+              orig_mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
             }
-          if( NULL == origMRI ) 
+          if( NULL == orig_mri_header ) 
             {
 	      sprintf (fname, "%s/../mri/orig.mgz", surf_path);
 	      rStat = stat (fname, &info);
 	      if (S_ISREG(info.st_mode))
 		{
-		  origMRI = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+		  orig_mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
 		}
-	      if( NULL == origMRI ) 
+	      if( NULL == orig_mri_header ) 
 		{
 		  printf ("WARNING: Could not load orig volume.\n"
 			  "         Talairach coords will be incorrect.\n" );
@@ -21706,9 +21746,9 @@ int conv_initialize()
 	    }
         }
       
-      if (NULL != origMRI)
+      if (NULL != orig_mri_header)
         {
-          surfaceRAStoRAS = surfaceRASFromRAS_( origMRI );
+          surfaceRAStoRAS = surfaceRASFromRAS_( orig_mri_header );
         }
     }
   
@@ -21724,9 +21764,9 @@ int conv_ras_to_mnital(float srasx, float srasy, float srasz,
   /* If we have the original MRI volume and this surface doesn't have
      the useRealRAS flag, use it to go from surface RAS coords to
      normal RAS coords. Otherwise just use the surface RAS coords. */
-  if (NULL != origMRI && !mris->useRealRAS)
+  if (NULL != orig_mri_header && !mris->useRealRAS)
     {
-      MRIsurfaceRASToRAS (origMRI, srasx, srasy, srasz,
+      MRIsurfaceRASToRAS (orig_mri_header, srasx, srasy, srasz,
                           &rasx, &rasy, &rasz);
     }
   else
@@ -21790,9 +21830,9 @@ int conv_mnital_to_ras(float mnix, float mniy, float mniz,
       LTAinverseWorldToWorldEx (lta, mnix, mniy, mniz, &rasx, &rasy, &rasz);
     }
 
-  if (NULL != origMRI && !mris->useRealRAS)
+  if (NULL != orig_mri_header && !mris->useRealRAS)
     {
-      MRIRASToSurfaceRAS (origMRI, rasx, rasy, rasz,
+      MRIRASToSurfaceRAS (orig_mri_header, rasx, rasy, rasz,
                           &srasx, &srasy, &srasz);
     }
   else
@@ -22151,6 +22191,9 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   FunD_tErr volume_error;
   char tcl_cmd[1024];
   float time_resolution;
+  Volm_tErr volm_err = Volm_tErr_NoErr;
+  mriVolumeRef volm = NULL;
+  int good = 0;
 
   if (fname==NULL)
     ErrorReturn(ERROR_BADPARM,
@@ -22174,6 +22217,39 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
       return ERROR_BADPARM;
     }
   
+  /* If they want to use the identity registration method, we need to
+     load up a volume for them to use as the base for the
+     transform. So we use the orig header, which should already have
+     been loaded, to get one. */
+  if (FunD_tRegistration_Identity == reg_type)
+    {
+      good = 0;
+      if (NULL != orig_mri_header)
+	{
+	  volm_err = Volm_New (&volm);
+	  if (Volm_tErr_NoErr == volm_err)
+	    {
+	      volm_err = Volm_ImportData (volm, orig_mri_header->fname);
+	      if (Volm_tErr_NoErr == volm_err)
+		{
+		  good = 1;
+		}
+	    }
+	}
+      
+      if (!good)
+	{
+	  if (NULL != volm)
+	    Volm_Delete (&volm);
+	  printf ("surfer: ERROR: You specified registration type identity, "
+		  "but tksurfer cannot find an anatomical volume with which "
+		  "to calculate the identity transform. Please try another "
+		  "registration method.\n");
+	  return ERROR_BADPARM;
+	}
+    }
+
+ 
   /* create new volume */
   volume_error = FunD_New (&func_timecourse,
 			   sclv_client_transform,
@@ -22182,9 +22258,11 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
 			   registration, 
 			   mris->nvertices,
                            sclv_register_transform,
-			   NULL);
+			   volm);
   if (volume_error!=FunD_tErr_NoError)
     {
+      if (NULL != volm)
+	Volm_Delete (&volm);
       printf("### surfer: couldn't load %s\n",fname);
       ErrorReturn(func_convert_error(volume_error),
                   (func_convert_error(volume_error),
@@ -22224,6 +22302,9 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   /* enable the related menu items */
   enable_menu_set (MENUSET_TIMECOURSE_LOADED, 1);
       
+  if (NULL != volm)
+    Volm_Delete (&volm);
+
   return(ERROR_NONE);
 }
 
@@ -22231,6 +22312,9 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
                                  char* registration)
 {
   FunD_tErr volume_error;
+  Volm_tErr volm_err = Volm_tErr_NoErr;
+  mriVolumeRef volm = NULL;
+  int good = 0;
 
   if (fname==NULL)
     ErrorReturn(ERROR_BADPARM,
@@ -22255,6 +22339,38 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
       return ERROR_BADPARM;
     }
   
+  /* If they want to use the identity registration method, we need to
+     load up a volume for them to use as the base for the
+     transform. So we use the orig header, which should already have
+     been loaded, to get one. */
+  if (FunD_tRegistration_Identity == reg_type)
+    {
+      good = 0;
+      if (NULL != orig_mri_header)
+	{
+	  volm_err = Volm_New (&volm);
+	  if (Volm_tErr_NoErr == volm_err)
+	    {
+	      volm_err = Volm_ImportData (volm, orig_mri_header->fname);
+	      if (Volm_tErr_NoErr == volm_err)
+		{
+		  good = 1;
+		}
+	    }
+	}
+      
+      if (!good)
+	{
+	  if (NULL != volm)
+	    Volm_Delete (&volm);
+	  printf ("surfer: ERROR: You specified registration type identity, "
+		  "but tksurfer cannot find an anatomical volume with which "
+		  "to calculate the identity transform. Please try another "
+		  "registration method.\n");
+	  return ERROR_BADPARM;
+	}
+    }
+
   /* create new volume */
   volume_error = FunD_New (&func_timecourse_offset, 
 			   sclv_client_transform,
@@ -22263,11 +22379,15 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
 			   registration, 
 			   mris->nvertices, /* Try to be scalar */
                            sclv_register_transform,
-			   NULL);
+			   volm);
   if (volume_error!=FunD_tErr_NoError)
-    ErrorReturn(func_convert_error(volume_error),
-                (func_convert_error(volume_error),
-                 "func_load_timecourse_offset: error in FunD_New\n"));
+    { 
+      if (NULL != volm)
+	Volm_Delete (&volm);
+      ErrorReturn(func_convert_error(volume_error),
+		  (func_convert_error(volume_error),
+		   "func_load_timecourse_offset: error in FunD_New\n"));
+    }
   
   /* enable offset display */
   func_use_timecourse_offset = TRUE;
@@ -22276,6 +22396,9 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
   
   /* turn on the offset options */
   send_tcl_command("Graph_ShowOffsetOptions 1");
+
+  if (NULL != volm)
+    Volm_Delete (&volm);
 
   return(ERROR_NONE);
 }
