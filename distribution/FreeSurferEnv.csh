@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below
 #
-# $Id: FreeSurferEnv.csh,v 1.39 2006/01/19 17:17:41 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.40 2006/01/20 17:04:48 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.39 2006/01/19 17:17:41 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.40 2006/01/20 17:04:48 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -122,8 +122,8 @@ if((! $?NO_MINC) && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
     # try to find minc toolkit binaries
     if ( $?MNI_INSTALL_DIR) then
         setenv MINC_BIN_DIR $MNI_INSTALL_DIR/bin
-    else if ( -e $FREESURFER_HOME/apps/mni/bin) then
-        setenv MINC_BIN_DIR $FREESURFER_HOME/apps/mni/bin
+    else if ( -e $FREESURFER_HOME/mni/bin) then
+        setenv MINC_BIN_DIR $FREESURFER_HOME/mni/bin
     else if ( -e /usr/pubsw/packages/mni/current/bin) then
         setenv MINC_BIN_DIR /usr/pubsw/packages/mni/current/bin
     else if ( -e /usr/local/mni/bin) then
@@ -134,8 +134,8 @@ if((! $?NO_MINC) && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
     # try to find minc toolkit libraries
     if ( $?MNI_INSTALL_DIR) then
         setenv MINC_LIB_DIR $MNI_INSTALL_DIR/lib
-    else if ( -e $FREESURFER_HOME/apps/mni/lib) then
-        setenv MINC_LIB_DIR $FREESURFER_HOME/apps/mni/lib
+    else if ( -e $FREESURFER_HOME/mni/lib) then
+        setenv MINC_LIB_DIR $FREESURFER_HOME/mni/lib
     else if ( -e /usr/pubsw/packages/mni/current/lib) then
         setenv MINC_LIB_DIR /usr/pubsw/packages/mni/current/lib
     else if ( -e /usr/local/mni/lib) then
@@ -146,8 +146,8 @@ if((! $?NO_MINC) && (! $?MNI_DATAPATH  || $FS_OVERRIDE)) then
     # try to find minc toolkit data (MNI::DataDir)
     if ( $?MNI_INSTALL_DIR) then
         setenv MNI_DATAPATH $MNI_INSTALL_DIR/data
-    else if ( -e $FREESURFER_HOME/apps/mni/data) then
-        setenv MNI_DATAPATH $FREESURFER_HOME/apps/mni/data
+    else if ( -e $FREESURFER_HOME/mni/data) then
+        setenv MNI_DATAPATH $FREESURFER_HOME/mni/data
     else if ( -e /usr/pubsw/packages/mni/current/data) then
         setenv MNI_DATAPATH /usr/pubsw/packages/mni/current/data
     else if ( -e /usr/local/mni/data) then
@@ -160,8 +160,8 @@ if(! $?FSL_DIR  || $FS_OVERRIDE) then
     # else try to find an installation.
     if ( $?FSLDIR ) then
         setenv FSL_DIR $FSLDIR
-    else if ( -e $FREESURFER_HOME/apps/fsl) then
-        setenv FSL_DIR $FREESURFER_HOME/apps/fsl
+    else if ( -e $FREESURFER_HOME/fsl) then
+        setenv FSL_DIR $FREESURFER_HOME/fsl
     else if ( -e /usr/pubsw/packages/fsl/current) then
         setenv FSL_DIR /usr/pubsw/packages/fsl/current
     else if ( -e /usr/local/fsl) then

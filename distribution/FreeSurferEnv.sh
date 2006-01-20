@@ -5,10 +5,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below
 #
-# $Id: FreeSurferEnv.sh,v 1.6 2006/01/19 17:17:41 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.7 2006/01/20 17:04:48 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.6 2006/01/19 17:17:41 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.7 2006/01/20 17:04:48 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -125,8 +125,8 @@ if [[ -z "$NO_MINC" && ( -z "$MINC_BIN_DIR" || $FS_OVERRIDE != 0 ) ]]; then
     # try to find minc toolkit binaries
     if [ -n "$MNI_INSTALL_DIR" ]; then
         export MINC_BIN_DIR=$MNI_INSTALL_DIR/bin
-    elif [ -e $FREESURFER_HOME/apps/mni/bin ]; then
-        export MINC_BIN_DIR=$FREESURFER_HOME/apps/mni/bin
+    elif [ -e $FREESURFER_HOME/mni/bin ]; then
+        export MINC_BIN_DIR=$FREESURFER_HOME/mni/bin
     elif [ -e /usr/pubsw/packages/mni/current/bin ]; then
         export MINC_BIN_DIR=/usr/pubsw/packages/mni/current/bin
     elif [ -e /usr/local/mni/bin ]; then
@@ -138,8 +138,8 @@ if [[ -z "$NO_MINC" && ( -z "$MINC_LIB_DIR" || $FS_OVERRIDE != 0 ) ]]; then
     # try to find minc toolkit libraries
     if [ -n "$MNI_INSTALL_DIR" ]; then
         export MINC_LIB_DIR=$MNI_INSTALL_DIR/lib
-    elif [ -e $FREESURFER_HOME/apps/mni/lib ]; then
-        export MINC_LIB_DIR=$FREESURFER_HOME/apps/mni/lib
+    elif [ -e $FREESURFER_HOME/mni/lib ]; then
+        export MINC_LIB_DIR=$FREESURFER_HOME/mni/lib
     elif [ -e /usr/pubsw/packages/mni/current/lib ]; then
         export MINC_LIB_DIR=/usr/pubsw/packages/mni/current/lib
     elif [ -e /usr/local/mni/lib ]; then
@@ -151,8 +151,8 @@ if [[ -z "$NO_MINC" && ( -z "$MNI_DATAPATH" || $FS_OVERRIDE != 0 ) ]]; then
     # try to find minc toolkit data (MNI::DataDir)
     if [ -n "$MNI_INSTALL_DIR" ]; then
         export MNI_DATAPATH=$MNI_INSTALL_DIR/data
-    elif [ -e $FREESURFER_HOME/apps/mni/data ]; then
-        export =$FREESURFER_HOME/apps/mni/data
+    elif [ -e $FREESURFER_HOME/mni/data ]; then
+        export =$FREESURFER_HOME/mni/data
     elif [ -e /usr/pubsw/packages/mni/current/data ]; then
         export MNI_DATAPATH=/usr/pubsw/packages/mni/current/data
     elif [ -e /usr/local/mni/data ]; then
@@ -165,8 +165,8 @@ if [[ -z "$FSL_DIR" || $FS_OVERRIDE != 0 ]]; then
     # else try find an installation.
     if [ -n "$FSLDIR" ]; then
         export FSL_DIR=$FSLDIR
-    elif [ -e $FREESURFER_HOME/apps/fsl ]; then
-        export FSL_DIR=$FREESURFER_HOME/apps/fsl
+    elif [ -e $FREESURFER_HOME/fsl ]; then
+        export FSL_DIR=$FREESURFER_HOME/fsl
     elif [ -e /usr/pubsw/packages/fsl/current ]; then
         export FSL_DIR=/usr/pubsw/packages/fsl/current
     elif [ -e /usr/local/fsl ]; then
