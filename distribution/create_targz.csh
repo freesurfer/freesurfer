@@ -60,7 +60,8 @@ endif
 # for some reason, tar now decides to crash the mac os when tar'ing 
 # from the network, so copy to /tmp
 if ( "$1" == "tiger") then
-    cp -r $SPACE_FREESURFER/$2 /tmp
+    echo copying freesurfer to /tmp...
+    cp -r $SPACE_FREESURFER/$1/$2 /tmp
     cd /tmp
 endif
 
