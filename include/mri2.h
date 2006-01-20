@@ -27,5 +27,5 @@ int PrintPCAStats(FILE *fp, MATRIX *Spca);
 MRI *MRIsqrt(MRI *invol, MRI *outvol);
 double MRImaxAbsDiff(MRI *vol1, MRI *vol2, 
 		     int *cmax, int *rmax, int *smax, int *fmax);
-
+MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst);
 #endif

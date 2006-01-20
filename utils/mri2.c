@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.17 2005/09/28 22:11:58 greve Exp $
+  $Id: mri2.c,v 1.18 2006/01/20 03:29:28 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -1117,4 +1117,29 @@ double MRImaxAbsDiff(MRI *vol1, MRI *vol2,
     }
   }
   return(maxdiff);
+}
+/* --------------------------------------------------------------- */
+MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst)
+{
+  int r,c,s,f;
+  double v;
+
+  if(dst==NULL){
+    dst = MRIallocSequence(src->width,src->height,src->depth, 
+			   MRI_FLOAT,src->nframes) ;
+    MRIcopyHeader(src, dst);
+  }
+
+  for(c=0; c < src->width; c++){
+    for(r=0; r < src->height; r++){
+      for(s=0; s < src->depth; s++){
+	for(f=0; f < src->nframes; f++){
+	  v = MRIgetVoxVal(src,c,r,s,f);
+	  MRIsetVoxVal(dst,c,r,s,f,v*vconst);
+	}
+      }
+    }
+  }
+
+  return(dst);
 }
