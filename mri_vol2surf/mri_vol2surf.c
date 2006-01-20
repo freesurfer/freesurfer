@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.22 2005/07/05 18:12:59 greve Exp $
+  $Id: mri_vol2surf.c,v 1.23 2006/01/20 03:36:07 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.22 2005/07/05 18:12:59 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.23 2006/01/20 03:36:07 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -85,6 +85,7 @@ char *surfreg = "sphere.reg";
 char *thicknessname = "thickness";
 float ProjFrac = 0;
 int   ProjDistFlag = 0;
+float ProjFracMin=0.0,ProjFracMax=0.0,ProjFracDelta=0.0;
 
 MRI_SURFACE *Surf    = NULL;
 MRI_SURFACE *SurfOut = NULL;
@@ -112,7 +113,7 @@ MATRIX *Dsrc, *Dsrctmp, *Wsrc, *Fsrc, *Qsrc;
 SXADAT *sxa;
 
 char *SUBJECTS_DIR = NULL;
-MRI *SrcVol, *SurfVals, *SurfVals2;
+MRI *SrcVol, *SurfVals, *SurfVals2, *SurfValsP;
 MRI *SrcHits, *SrcDist, *TrgHits, *TrgDist;
 MRI *mritmp;
 MRI *SrcHitVol;
@@ -142,7 +143,7 @@ char *seedfile = NULL;
 /*------------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int n,err, f, vtx, svtx, tvtx;
+  int n,err, f, vtx, svtx, tvtx, nproj;
   int nrows_src, ncols_src, nslcs_src, nfrms;
   float ipr, bpr, intensity;
   float colres_src=0, rowres_src=0, slcres_src=0;
@@ -155,7 +156,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.22 2005/07/05 18:12:59 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.23 2006/01/20 03:36:07 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -323,14 +324,24 @@ int main(int argc, char **argv)
   /* Map the values from the volume to the surface */
   printf("Mapping Source Volume onto Source Subject Surface\n");
   fflush(stdout);
-  SurfVals = vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc, 
-           Surf, ProjFrac, interpmethod, float2int, SrcHitVol,
-	   ProjDistFlag);
-  fflush(stdout);
-  if(SurfVals == NULL){
-    printf("ERROR: mapping volume to source\n");
-    exit(1);
+  nproj = 0;
+  for(ProjFrac=ProjFracMin; ProjFrac <= ProjFracMax; ProjFrac += ProjFracDelta){
+    printf("%2d %g %g %g\n",nproj+1,ProjFrac,ProjFracMin,ProjFracMax);
+    SurfValsP = vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc, 
+				Surf, ProjFrac, interpmethod, float2int, SrcHitVol,
+				ProjDistFlag);
+    fflush(stdout);
+    if(SurfValsP == NULL){
+      printf("ERROR: mapping volume to source\n");
+      exit(1);
+    }
+    if(nproj == 0) SurfVals = MRIcopy(SurfValsP,NULL);
+    else           MRIadd(SurfVals,SurfValsP,SurfVals);
+    MRIfree(&SurfValsP);
+    nproj ++;
   }
+  MRImultiplyConst(SurfVals, 1.0/nproj, SurfVals);
+
   printf("Done mapping volume to surface\n");
   fflush(stdout);
   MRIfree(&SrcVol);
@@ -644,13 +655,36 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--projfrac")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&ProjFrac);
+      ProjFracMin=ProjFrac;
+      ProjFracMax=ProjFrac;
+      ProjFracDelta=1.0;
       nargsused = 1;
+    }
+    else if (!strcmp(option, "--projfrac-int")){
+      if(nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%f",&ProjFracMin);
+      sscanf(pargv[1],"%f",&ProjFracMax);
+      sscanf(pargv[2],"%f",&ProjFracDelta);
+      ProjFrac = 0.5; // just make it non-zero
+      nargsused = 3;
     }
     else if (!strcmp(option, "--projdist")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&ProjFrac);
+      ProjFracMin=ProjFrac;
+      ProjFracMax=ProjFrac;
+      ProjFracDelta=1.0;
       ProjDistFlag = 1;
       nargsused = 1;
+    }
+    else if (!strcmp(option, "--projdist-int")){
+      if(nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%f",&ProjFracMin);
+      sscanf(pargv[1],"%f",&ProjFracMax);
+      sscanf(pargv[2],"%f",&ProjFracDelta);
+      ProjFrac = 0.5; // just make it non-zero
+      ProjDistFlag = 1;
+      nargsused = 3;
     }
     else if (!strcmp(option, "--thickness")){
       if(nargc < 1) argnerr(option,1);
@@ -773,7 +807,9 @@ static void print_usage(void)
   printf("\n");
   printf(" Options for projecting along the surface normal:\n");
   printf("   --projfrac frac : (0->1)fractional projection along normal \n");  
+  printf("   --projfrac-int min max del : integrate along normal\n");  
   printf("   --projdist mmdist : distance projection along normal \n");  
+  printf("   --projdist-int min max del : integrate along normal\n");  
   //printf("   --thickness thickness file (thickness)\n");
   printf("\n");
   printf(" Options for output\n");
@@ -901,6 +937,12 @@ static void print_help(void)
 "    Same as --projfrac but projects the given distance in mm at all\n"
 "    points of the surface regardless of thickness.\n"
 "\n"
+"  --projfrac-int min max delta\n"
+"  --projdist-int min max delta\n"
+"\n"
+"    Same idea as --projfrac and --projdist, but sample at each of the points\n"
+"    between min and max at a spacing of delta. The samples are then averaged\n"
+"    together. The idea here is to average along the normal.\n"
 "\n"
 "  --out  output path : location to store the data (see below)\n"
 "  --out_type format of output (see below)\n"
