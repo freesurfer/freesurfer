@@ -1264,5 +1264,6 @@ int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new) ;
 int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri) ;
 MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask);
 MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask);
+int MRISremoveIntersections(MRI_SURFACE *mris) ;
 
 #endif

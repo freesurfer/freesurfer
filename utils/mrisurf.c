@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/20 19:51:44 $
-// Revision       : $Revision: 1.425 $
+// Revision Date  : $Date: 2006/01/21 03:24:04 $
+// Revision       : $Revision: 1.426 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -139,6 +139,7 @@ typedef struct
 
 #define WHICH_OUTPUT stderr
 
+int MRISaverageMarkedVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris,
                                         double dt,
                                         int which_gradient);
@@ -190,6 +191,7 @@ static int fix_vertex_area= 0;
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev);
 static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, char *fname) ;
+static int mrisMarkIntersections(MRI_SURFACE *mris) ;
 static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs) ;
 #if 0
 static int mrisAverageWeightedGradients(MRI_SURFACE *mris, int num_avgs) ;
@@ -556,7 +558,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.425 2006/01/20 19:51:44 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.426 2006/01/21 03:24:04 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -3253,7 +3255,7 @@ int
 MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
 {
   int    k,i,vnum,fnum;
-  float  curv, curvmin, curvmax;
+  float  curv = 0, curvmin, curvmax;
   FILE   *fp;
   char   *cp, path[STRLEN], fname[STRLEN], type ;
   int   mritype, frame, nv, c,r,s,vno;
@@ -21265,64 +21267,64 @@ int MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
   int    nmarked ;
 
   for (i = 0 ; i < navgs ; i++)
-    {
-      for (nmarked = vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->ripflag || v->marked == 1)
-            continue ;
-          x = y = z = 0;
-          num = 0;
-          /*      if (v->marked == 2)*/
-          {
-            x = v->x ; y = v->y ; z = v->z ;
-            num++ ;   /* account for central vertex */
-          }
-          pnb = v->v ;
-          vnum = v->vnum ;
-          for (vnb = 0 ; vnb < vnum ; vnb++)
-            {
-              vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+	{
+		for (nmarked = vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag || v->marked == 1)
+				continue ;
+			x = y = z = 0;
+			num = 0;
+			/*      if (v->marked == 2)*/
+			{
+				x = v->x ; y = v->y ; z = v->z ;
+				num++ ;   /* account for central vertex */
+			}
+			pnb = v->v ;
+			vnum = v->vnum ;
+			for (vnb = 0 ; vnb < vnum ; vnb++)
+			{
+				vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
 #if 0
-              if (vn->ripflag ||
-                  !vn->marked ||
-                  vn->marked > 2) /* no valid data */
+				if (vn->ripflag ||
+						!vn->marked ||
+						vn->marked > 2) /* no valid data */
 #else
-                if (vn->ripflag) /* no valid data */
+					if (vn->ripflag) /* no valid data */
 #endif
-                  continue ;
-              num++ ;
-              x += vn->x ; y += vn->y ; z += vn->z ;
-            }
-          if (num>0)
-            {
-              v->tdx = x / num ;
-              v->tdy = y / num ;
-              v->tdz = z / num ;
-              if (!v->marked)
-                nmarked++ ;
-              v->marked = 3 ;  /* need modification */
-            }
-        }
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->ripflag || v->marked == 1)
-            continue ;
-          if (v->marked)
-            {
-              v->x = v->tdx ; v->y = v->tdy ; v->z = v->tdz ;
-            }
-          if (v->marked == 3)  /* needs modification */
-            v->marked = 2 ;    /* modified, but not fixed */
-        }
-      if (nmarked && (Gdiag & DIAG_SHOW))
-        printf("%d: %d vertices marked\n", i,nmarked);
+						continue ;
+				num++ ;
+				x += vn->x ; y += vn->y ; z += vn->z ;
+			}
+			if (num>0)
+			{
+				v->tdx = x / num ;
+				v->tdy = y / num ;
+				v->tdz = z / num ;
+				if (!v->marked)
+					nmarked++ ;
+				v->marked = 3 ;  /* need modification */
+			}
+		}
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag || v->marked == 1)
+				continue ;
+			if (v->marked)
+			{
+				v->x = v->tdx ; v->y = v->tdy ; v->z = v->tdz ;
+			}
+			if (v->marked == 3)  /* needs modification */
+				v->marked = 2 ;    /* modified, but not fixed */
+		}
+		if (nmarked && (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+			printf("%d: %d vertices marked\n", i,nmarked);
 #if 0
-      if (!nmarked)
-        break ;
+		if (!nmarked)
+			break ;
 #endif
-    }
+	}
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -49334,5 +49336,140 @@ int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri)
   return(NO_ERROR) ;
 }
 
+int
+MRISremoveIntersections(MRI_SURFACE *mris)
+{
+	int     n, num, vno, m, writeit=0, old_num ;
+	VERTEX  *v, *vn ;
 
+	n = 0 ;
 
+	printf("removing intersecting faces\n") ;
+	old_num = mris->nvertices ;
+	while ((num = mrisMarkIntersections(mris)) > 0)
+	{
+		if (num >= old_num && old_num >= 0)
+		{
+			// couldn't make any more progress with 1 nbrs, expand
+			MRISsetNeighborhoodSize(mris, 2) ;
+			old_num = -1 ;
+		}
+		if (old_num>=0)  // haven't expanded to 2 nbrs yet
+			old_num = num ;
+		// mark 1st nbrs of intersecting vertices
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->marked == 1)
+			{
+				for (m = 0 ; m < v->vtotal ; m++)
+				{
+					vn = &mris->vertices[v->v[m]] ;
+					if (vn->marked == 0)
+						vn->marked = 2 ;
+				}
+			}
+		}
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->marked == 2)
+				v->marked = 1 ;
+		}
+
+		printf("%03d: %d intersecting\n", n, num) ;
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			v->marked = !v->marked ;  // soap bubble will fix the marked ones
+		}
+		MRISsoapBubbleVertexPositions(mris, 5) ;
+		if (writeit)
+		{
+			char fname[STRLEN] ;
+			sprintf(fname, "%s.avg%03d", 
+							mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+							n) ;
+			MRISwrite(mris, fname) ;
+		}
+		if (n++ > 100)
+			break ;
+	}
+
+	return(NO_ERROR) ;
+}
+
+static int
+mrisMarkIntersections(MRI_SURFACE *mris)
+{
+	MRIS_HASH_TABLE  *mht ;
+	FACE             *f ;
+	int              fno, n, num = 0 ;
+
+	mht = MHTfillTable(mris, NULL) ;
+
+	MRISclearMarks(mris) ;
+	for (num = fno = 0 ; fno < mris->nfaces ; fno++)
+	{
+		if (MHTdoesFaceIntersect(mht, mris, fno))
+		{
+			num++ ;
+			f = &mris->faces[fno] ;
+			for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+				mris->vertices[f->v[n]].marked = 1;
+		}
+	}
+
+	MHTfree(&mht) ;
+	return(num) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
+MRISaverageMarkedVertexPositions(MRI_SURFACE *mris, int navgs)
+{
+  int    i, vno, vnb, *pnb, vnum ;
+  float  x, y, z, num ;
+  VERTEX *v, *vn ;
+  int    nmarked ;
+
+  for (i = 0 ; i < navgs ; i++)
+	{
+		for (nmarked = vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag || v->marked == 0)
+				continue ;
+			x = y = z = 0;
+			num = 0;
+			x = v->x ; y = v->y ; z = v->z ;
+			num++ ;   /* account for central vertex */
+			pnb = v->v ;
+			vnum = v->vnum ;
+			for (vnb = 0 ; vnb < vnum ; vnb++)
+			{
+				vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+					if (vn->ripflag) /* no valid data */
+						continue ;
+				num++ ;
+				x += vn->x ; y += vn->y ; z += vn->z ;
+			}
+			v->tdx = x / num ;
+			v->tdy = y / num ;
+			v->tdz = z / num ;
+		}
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag || v->marked == 0)
+				continue ;
+			v->x = v->tdx ; v->y = v->tdy ; v->z = v->tdz ;
+		}
+	}
+  return(NO_ERROR) ;
+}
