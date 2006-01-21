@@ -29,7 +29,7 @@ typedef struct
   short          nused ;
 } MRIS_HASH_BUCKET, MHBT ;
 
-#define FIELD_OF_VIEW  256
+#define FIELD_OF_VIEW  400
 #define VOXEL_RES      1.0
 #define TABLE_SIZE     ((int)(FIELD_OF_VIEW / VOXEL_RES))
 
@@ -79,6 +79,7 @@ int             *MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht,
 int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, 
          VERTEX *v, float *min_dist);
 VERTEX *MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, float x, float y, float z) ;
+int MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,int fno);
 
 
 #endif

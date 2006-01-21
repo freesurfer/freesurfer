@@ -45,8 +45,10 @@ static int mhtAddFacePosition(MRIS_HASH_TABLE *mht, int xv, int yv,
                               int zv, int fno) ;
 static int mhtRemoveFacePosition(MRIS_HASH_TABLE *mht, int xv, int yv, 
                                  int zv, int fno) ;
+#if 0
 static int mhtDoesFaceIntersect(MRIS_HASH_TABLE *mht,
                                 MRI_SURFACE *mris,int fno);
+#endif
 #if 0
 static int checkAllVertexFaces(MRIS_HASH_TABLE *mht,MRI_SURFACE *mris,int vno);
 #endif
@@ -922,7 +924,7 @@ MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
   v->x += dx ; v->y += dy ; v->z += dz ;
   for (intersect = fno = 0 ; !intersect && fno < v->num ; fno++)
   {
-    intersect = mhtDoesFaceIntersect(mht, mris, v->f[fno]) ;
+    intersect = MHTdoesFaceIntersect(mht, mris, v->f[fno]) ;
   }
   v->x = ox ; v->y = oy ; v->z = oz ;
   return(intersect) ;
@@ -934,8 +936,8 @@ MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
 
         Description
 ------------------------------------------------------*/
-static int
-mhtDoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,int fno)
+int
+MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,int fno)
 {
   Real       x, y, z, xa, ya, za, xc, yc, zc, t0, t1, adx, ady, adz, dx, dy, 
              dz, cdx, cdy, cdz, alen, clen, delta_t0, delta_t1, len ;
@@ -1274,10 +1276,10 @@ checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1)
 			if (Gdiag & DIAG_WRITE)
 				MRISwrite(mris, "bad") ;
       DiagBreak() ;
-      intersect = mhtDoesFaceIntersect(mht, mris, fno1) ;
+      intersect = MHTdoesFaceIntersect(mht, mris, fno1) ;
       if (!intersect)
         mhtHatchFace(mht, mris, fno1, 1) ;
-      intersect = mhtDoesFaceIntersect(mht, mris, fno2) ;
+      intersect = MHTdoesFaceIntersect(mht, mris, fno2) ;
       if (!intersect)
         mhtHatchFace(mht, mris, fno2, 1) ;
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
