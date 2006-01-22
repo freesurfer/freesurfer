@@ -39,10 +39,11 @@ static float intensity_below = 10 ;
 static char *control_point_fname ;
 
 static char *aseg_fname = NULL ;
-//static int aseg_wm_labels[] = { Left_Cerebral_White_Matter, Right_Cerebral_White_Matter, Brain_Stem} ;
-static int aseg_wm_labels[] = { Left_Cerebral_White_Matter, Right_Cerebral_White_Matter} ;
+//static int aseg_wm_labels[] =
+// { Left_Cerebral_White_Matter, Right_Cerebral_White_Matter, Brain_Stem} ;
+static int aseg_wm_labels[] =
+  { Left_Cerebral_White_Matter, Right_Cerebral_White_Matter} ;
 #define NWM_LABELS (sizeof(aseg_wm_labels) / sizeof(aseg_wm_labels[0]))
-
 
 static char *control_volume_fname = NULL ;
 static char *bias_volume_fname = NULL ;
@@ -61,12 +62,19 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds ;
   struct timeb start ;
 
-	char cmdline[CMD_LINE_LEN] ;
-	
-  make_cmd_version_string (argc, argv, "$Id: mri_normalize.c,v 1.42 2006/01/10 17:07:53 greve Exp $", "$Name:  $", cmdline);
+  char cmdline[CMD_LINE_LEN] ;
+
+  make_cmd_version_string
+    (argc, argv,
+     "$Id: mri_normalize.c,v 1.43 2006/01/22 03:40:41 nicks Exp $",
+     "$Name:  $",
+     cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.42 2006/01/10 17:07:53 greve Exp $", "$Name:  $");
+  nargs = handle_version_option
+    (argc, argv,
+     "$Id: mri_normalize.c,v 1.43 2006/01/22 03:40:41 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -79,11 +87,11 @@ main(int argc, char *argv[])
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
-    nargs = get_option(argc, argv) ;
-    argc -= nargs ;
-    argv += nargs ;
-  }
+    {
+      nargs = get_option(argc, argv) ;
+      argc -= nargs ;
+      argv += nargs ;
+    }
 
   if (argc < 3)
     usage_exit(0) ;
@@ -100,46 +108,51 @@ main(int argc, char *argv[])
     fprintf(stderr, "reading from %s...\n", in_fname) ;
   mri_src = MRIread(in_fname) ;
   if (!mri_src)
-    ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
+    ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s",
               Progname, in_fname) ;
-	if (!mriConformed(mri_src))
-	{
-		printf("unconformed source detected - conforming...\n") ;
-		mri_src = MRIconform(mri_src) ;
-	}
+  if (!mriConformed(mri_src))
+    {
+      printf("unconformed source detected - conforming...\n") ;
+      mri_src = MRIconform(mri_src) ;
+    }
 
-	MRIaddCommandLine(mri_src, cmdline) ;
-	if (mask_fname)
-	{
-		MRI *mri_mask ;
-		
-		mri_mask = MRIread(mask_fname) ;
-		if (!mri_mask)
-			ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-								Progname, mask_fname) ;
-		MRImask(mri_src, mri_mask, mri_src, 0, 0) ;
-		MRIfree(&mri_mask) ;
-	}
-	if (read_flag)
-	{
-		MRI *mri_ctrl ;
-		double scale ;
+  MRIaddCommandLine(mri_src, cmdline) ;
+  if (mask_fname)
+    {
+      MRI *mri_mask ;
 
-		mri_bias = MRIread(bias_volume_fname) ;
-		if (!mri_bias)
-      ErrorExit(ERROR_BADPARM, "%s: could not read bias volume %s", Progname, bias_volume_fname) ;
-		mri_ctrl = MRIread(control_volume_fname) ;
-		if (!mri_ctrl)
-      ErrorExit(ERROR_BADPARM, "%s: could not read control volume %s", Progname, control_volume_fname) ;
-		MRIbinarize(mri_ctrl, mri_ctrl, 1, 0, 128) ;
-		mri_dst = MRImultiply(mri_bias, mri_src, NULL) ;
-		scale = MRImeanInLabel(mri_dst, mri_ctrl, 128) ;
-		printf("mean in wm is %2.0f, scaling by %2.2f\n", scale, 110/scale) ;
-		scale = 110/scale ;
-		MRIscalarMul(mri_dst, mri_dst, scale) ;
-		MRIwrite(mri_dst, out_fname) ;
-		exit(0) ;
-	}
+      mri_mask = MRIread(mask_fname) ;
+      if (!mri_mask)
+        ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+                  Progname, mask_fname) ;
+      MRImask(mri_src, mri_mask, mri_src, 0, 0) ;
+      MRIfree(&mri_mask) ;
+    }
+  if (read_flag)
+    {
+      MRI *mri_ctrl ;
+      double scale ;
+
+      mri_bias = MRIread(bias_volume_fname) ;
+      if (!mri_bias)
+        ErrorExit
+          (ERROR_BADPARM,
+           "%s: could not read bias volume %s", Progname, bias_volume_fname) ;
+      mri_ctrl = MRIread(control_volume_fname) ;
+      if (!mri_ctrl)
+        ErrorExit
+          (ERROR_BADPARM,
+           "%s: could not read control volume %s",
+           Progname, control_volume_fname) ;
+      MRIbinarize(mri_ctrl, mri_ctrl, 1, 0, 128) ;
+      mri_dst = MRImultiply(mri_bias, mri_src, NULL) ;
+      scale = MRImeanInLabel(mri_dst, mri_ctrl, 128) ;
+      printf("mean in wm is %2.0f, scaling by %2.2f\n", scale, 110/scale) ;
+      scale = 110/scale ;
+      MRIscalarMul(mri_dst, mri_dst, scale) ;
+      MRIwrite(mri_dst, out_fname) ;
+      exit(0) ;
+    }
 
 #if 0
 #if 0
@@ -148,24 +161,27 @@ main(int argc, char *argv[])
 #else
     if (conform || mri_src->type != MRI_UCHAR)
 #endif
-  {
-    MRI  *mri_tmp ;
+      {
+        MRI  *mri_tmp ;
 
-    fprintf(stderr, 
-            "downsampling to 8 bits and scaling to isotropic voxels...\n") ;
-    mri_tmp = MRIconform(mri_src) ;
-    mri_src = mri_tmp ;
-  }
+        fprintf
+          (stderr,
+           "downsampling to 8 bits and scaling to isotropic voxels...\n") ;
+        mri_tmp = MRIconform(mri_src) ;
+        mri_src = mri_tmp ;
+      }
 #endif
 
-	if (aseg_fname)
-	{
-		mri_aseg = MRIread(aseg_fname) ;
-		if (mri_aseg == NULL)
-			ErrorExit(ERROR_NOFILE, "%s: could not read aseg from file %s", Progname, aseg_fname) ;
-	}
-	else
-		mri_aseg = NULL ;
+  if (aseg_fname)
+    {
+      mri_aseg = MRIread(aseg_fname) ;
+      if (mri_aseg == NULL)
+        ErrorExit
+          (ERROR_NOFILE,
+           "%s: could not read aseg from file %s", Progname, aseg_fname) ;
+    }
+  else
+    mri_aseg = NULL ;
 
   if (verbose)
     fprintf(stderr, "normalizing image...\n") ;
@@ -177,90 +193,98 @@ main(int argc, char *argv[])
     // this just setup writing control-point volume saving
     MRI3dWriteControlPoints(control_volume_fname) ;
 
-	if (mri_aseg)
-	{
-		MRI *mri_ctrl, *mri_bias ;
-		int  i ;
+  if (mri_aseg)
+    {
+      MRI *mri_ctrl, *mri_bias ;
+      int  i ;
 
-		mri_ctrl = MRIclone(mri_aseg, NULL) ;
-		for (i = 0 ; i < NWM_LABELS ; i++)
-			MRIcopyLabel(mri_aseg, mri_ctrl, aseg_wm_labels[i]) ;
-		MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
-		MRIerode(mri_ctrl, mri_ctrl) ;
-		MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
-		MRIwrite(mri_ctrl, "c.mgz") ;
-    mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, bias_sigma) ;
-		MRIfree(&mri_ctrl) ; MRIfree(&mri_aseg) ;
-		mri_dst = MRIapplyBiasCorrectionSameGeometry(mri_src, mri_bias, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
-		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-			MRIwrite(mri_dst, "n1.mgz") ;
-	}
-	else
-	{
-		/* first do a gentle normalization to get things in the right intensity range */
-		if (control_point_fname != NULL)  /* do one pass with only file control points first */
-			mri_dst = 
-				MRI3dGentleNormalize(mri_src, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
-														 NULL,
-														 intensity_above, intensity_below/2,
-														 1, bias_sigma);
-		else
-			mri_dst = MRIcopy(mri_src, NULL) ;
-		
-		if (!no1d)
-		{
-			MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
-			mri_dst = MRInormalize(mri_src, NULL, &mni) ;
-			if (!mri_dst)
-				ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
-		}
-		else
-		{
-			if ((file_only && nosnr) || ((gentle_flag != 0) && (control_point_fname != NULL)))
-			{
-				if (mri_dst == NULL)
-					mri_dst = MRIcopy(mri_src, NULL) ;
-			}
-			else
-			{
-				printf("computing initial normalization using SNR...\n") ;
-				mri_dst = MRInormalizeHighSignalLowStd(mri_src, mri_dst, bias_sigma, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
-			}
-			if (!mri_dst)
-				ErrorExit(ERROR_BADPARM, "%s: could not allocate volume", Progname) ;
-		}
-	}
+      mri_ctrl = MRIclone(mri_aseg, NULL) ;
+      for (i = 0 ; i < NWM_LABELS ; i++)
+        MRIcopyLabel(mri_aseg, mri_ctrl, aseg_wm_labels[i]) ;
+      MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
+      MRIerode(mri_ctrl, mri_ctrl) ;
+      MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+      MRIwrite(mri_ctrl, "c.mgz") ;
+      mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, bias_sigma) ;
+      MRIfree(&mri_ctrl) ; MRIfree(&mri_aseg) ;
+      mri_dst = MRIapplyBiasCorrectionSameGeometry
+        (mri_src, mri_bias, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+        MRIwrite(mri_dst, "n1.mgz") ;
+    }
+  else
+    {
+      /* first do a gentle normalization to get
+         things in the right intensity range */
+      if (control_point_fname != NULL)  /* do one pass with only
+                                           file control points first */
+        mri_dst =
+          MRI3dGentleNormalize
+          (mri_src, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+           NULL,
+           intensity_above, intensity_below/2,
+           1, bias_sigma);
+      else
+        mri_dst = MRIcopy(mri_src, NULL) ;
 
-	if (file_only == 0)
-		MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
-												 mri_dst,
-												 intensity_above, intensity_below/2,
-												 file_only, bias_sigma);
-	mri_orig = MRIcopy(mri_dst, NULL) ;
+      if (!no1d)
+        {
+          MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
+          mri_dst = MRInormalize(mri_src, NULL, &mni) ;
+          if (!mri_dst)
+            ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
+        }
+      else
+        {
+          if ((file_only && nosnr) ||
+              ((gentle_flag != 0) && (control_point_fname != NULL)))
+            {
+              if (mri_dst == NULL)
+                mri_dst = MRIcopy(mri_src, NULL) ;
+            }
+          else
+            {
+              printf("computing initial normalization using SNR...\n") ;
+              mri_dst = MRInormalizeHighSignalLowStd
+                (mri_src, mri_dst, bias_sigma,
+                 DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+            }
+          if (!mri_dst)
+            ErrorExit
+              (ERROR_BADPARM, "%s: could not allocate volume", Progname) ;
+        }
+    }
+
+  if (file_only == 0)
+    MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+                         mri_dst,
+                         intensity_above, intensity_below/2,
+                         file_only, bias_sigma);
+  mri_orig = MRIcopy(mri_dst, NULL) ;
   for (n = 0 ; n < num_3d_iter ; n++)
-  {
-		if (file_only)
-			break ;
-    fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
-    if (gentle_flag)
-      MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
-                           mri_dst,
-                           intensity_above/2, intensity_below/2,
-                           file_only, bias_sigma);
-    else
-			MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
-											 mri_dst,
-											 intensity_above, intensity_below,
-											 file_only, prune, bias_sigma);
-  }
+    {
+      if (file_only)
+        break ;
+      fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
+      if (gentle_flag)
+        MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+                             mri_dst,
+                             intensity_above/2, intensity_below/2,
+                             file_only, bias_sigma);
+      else
+        MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+                       mri_dst,
+                       intensity_above, intensity_below,
+                       file_only, prune, bias_sigma);
+    }
 
   if (bias_volume_fname)
-	{
-		mri_bias = compute_bias(mri_src, mri_dst, NULL) ;
-		printf("writing bias field to %s....\n", bias_volume_fname) ;
-    MRIwrite(mri_bias, bias_volume_fname) ;
-		MRIfree(&mri_bias) ;
-	}
+    {
+      mri_bias = compute_bias(mri_src, mri_dst, NULL) ;
+      printf("writing bias field to %s....\n", bias_volume_fname) ;
+      MRIwrite(mri_bias, bias_volume_fname) ;
+      MRIfree(&mri_bias) ;
+    }
 
   if (verbose)
     fprintf(stderr, "writing output to %s\n", out_fname) ;
@@ -273,83 +297,89 @@ main(int argc, char *argv[])
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  fprintf(stderr, "3D bias adjustment took %d minutes and %d seconds.\n", 
+  fprintf(stderr, "3D bias adjustment took %d minutes and %d seconds.\n",
           minutes, seconds) ;
   exit(0) ;
   return(0) ;
 }
 
 /*----------------------------------------------------------------------
-            Parameters:
+  Parameters:
 
-           Description:
-----------------------------------------------------------------------*/
+  Description:
+  ----------------------------------------------------------------------*/
 static int
 get_option(int argc, char *argv[])
 {
   int  nargs = 0 ;
   char *option ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "no1d"))
-  {
-    no1d = 1 ;
-    fprintf(stderr, "disabling 1d normalization...\n") ;
-  }
+    {
+      no1d = 1 ;
+      fprintf(stderr, "disabling 1d normalization...\n") ;
+    }
   else if (!stricmp(option, "MASK"))
-  {
-    mask_fname = argv[2] ;
-    nargs = 1 ;
-    printf("using MR volume %s to mask input volume...\n", mask_fname) ;
-  }
+    {
+      mask_fname = argv[2] ;
+      nargs = 1 ;
+      printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+    }
   else if (!stricmp(option, "monkey"))
-  {
-    no1d = 1 ;
-    num_3d_iter = 1 ;
-    printf("disabling 1D normalization and setting niter=1, make sure to use -f to specify control points\n") ;
-  }
+    {
+      no1d = 1 ;
+      num_3d_iter = 1 ;
+      printf("disabling 1D normalization and "
+             "setting niter=1, make sure to use "
+             "-f to specify control points\n") ;
+    }
   else if (!stricmp(option, "nosnr"))
-  {
-    nosnr = 1 ;
-    printf("disabling SNR normalization\n") ;
-  }
+    {
+      nosnr = 1 ;
+      printf("disabling SNR normalization\n") ;
+    }
   else if (!stricmp(option, "snr"))
-  {
-		nosnr = 0 ;
-    printf("enabling SNR normalization\n") ;
-  }
+    {
+      nosnr = 0 ;
+      printf("enabling SNR normalization\n") ;
+    }
   else if (!stricmp(option, "sigma"))
-  {
-    bias_sigma = atof(argv[2]) ;
-    nargs = 1 ;
-    printf("using Gaussian smoothing of bias field, sigma=%2.3f\n", bias_sigma) ;
-  }
+    {
+      bias_sigma = atof(argv[2]) ;
+      nargs = 1 ;
+      printf("using Gaussian smoothing of bias field, sigma=%2.3f\n",
+             bias_sigma) ;
+    }
   else if (!stricmp(option, "conform"))
-  {
-    conform = 1 ;
-    fprintf(stderr, "interpolating and embedding volume to be 256^3...\n") ;
-  }
+    {
+      conform = 1 ;
+      fprintf(stderr, "interpolating and embedding volume to be 256^3...\n") ;
+    }
   else if (!stricmp(option, "aseg") || !stricmp(option, "segmentation"))
-  {
-    aseg_fname = argv[2] ;
-    nargs = 1  ;
-    fprintf(stderr, "using segmentation for initial intensity normalization\n") ;
-  }
+    {
+      aseg_fname = argv[2] ;
+      nargs = 1  ;
+      fprintf(stderr,
+              "using segmentation for initial intensity normalization\n") ;
+    }
   else if (!stricmp(option, "gentle"))
-  {
-    gentle_flag = 1 ;
-    fprintf(stderr, "performing kinder gentler normalization...\n") ;
-  }
-  else if (!stricmp(option, "file_only") || !stricmp(option, "fonly") || !stricmp(option, "fileonly"))
-  {
-    file_only = 1 ;
-    control_point_fname = argv[2] ;
-    no1d = 1 ;
-    nargs = 1 ;
-    fprintf(stderr, "using control points from file %s...\n", 
-           control_point_fname) ;
-    fprintf(stderr, "only using file control points...\n") ;
-  }
+    {
+      gentle_flag = 1 ;
+      fprintf(stderr, "performing kinder gentler normalization...\n") ;
+    }
+  else if (!stricmp(option, "file_only") ||
+           !stricmp(option, "fonly") ||
+           !stricmp(option, "fileonly"))
+    {
+      file_only = 1 ;
+      control_point_fname = argv[2] ;
+      no1d = 1 ;
+      nargs = 1 ;
+      fprintf(stderr, "using control points from file %s...\n",
+              control_point_fname) ;
+      fprintf(stderr, "only using file control points...\n") ;
+    }
   else switch (toupper(*option))
     {
     case 'D':
@@ -371,14 +401,15 @@ get_option(int argc, char *argv[])
       nargs = 1 ;
       printf("turning control point pruning %s\n", prune > 0 ? "on" : "off") ;
       if (prune == 0)
-	prune = -1 ;
+        prune = -1 ;
       break ;
     case 'R':
       read_flag = 1 ;
       nargs = 2 ;
       control_volume_fname = argv[2] ;
       bias_volume_fname = argv[3] ;
-      printf("reading bias field from %s and ctrl points from %s\n", bias_volume_fname, control_volume_fname) ;
+      printf("reading bias field from %s and ctrl points from %s\n",
+             bias_volume_fname, control_volume_fname) ;
       break ;
     case 'W':
       control_volume_fname = argv[2] ;
@@ -390,19 +421,21 @@ get_option(int argc, char *argv[])
     case 'F':
       control_point_fname = argv[2] ;
       nargs = 1 ;
-      fprintf(stderr, "using control points from file %s...\n", 
-	      control_point_fname) ;
+      fprintf(stderr, "using control points from file %s...\n",
+              control_point_fname) ;
       break ;
     case 'A':
       intensity_above = atof(argv[2]) ;
-      fprintf(stderr, "using control point with intensity %2.1f above target.\n",
-	      intensity_above) ;
+      fprintf(stderr,
+              "using control point with intensity %2.1f above target.\n",
+              intensity_above) ;
       nargs = 1 ;
       break ;
     case 'B':
       intensity_below = atof(argv[2]) ;
-      fprintf(stderr, "using control point with intensity %2.1f below target.\n",
-	      intensity_below) ;
+      fprintf(stderr,
+              "using control point with intensity %2.1f below target.\n",
+              intensity_below) ;
       nargs = 1 ;
       break ;
     case 'G':
@@ -428,10 +461,11 @@ get_option(int argc, char *argv[])
       fprintf(stderr, "unknown option %s\n", argv[1]) ;
       exit(1) ;
       break ;
-  }
+    }
 
   return(nargs) ;
 }
+
 static void
 usage_exit(int code)
 {
@@ -439,16 +473,23 @@ usage_exit(int code)
   printf("  -no1d              disable 1d normalization\n");
   printf("  -conform           interpolate and embed volume to be 256^3\n");
   printf("  -gentle            perform kinder gentler normalization\n");
-  printf("  -f <path to file>  use control points file (usually control.dat)\n");
-  printf("  -w <mri_vol c> <mri_vol b> write ctrl point(c) and bias field(b) volumes\n");
-  printf("  -a <float a>       use control point with intensity a above target (default=%2.1f)\n", intensity_above);
-  printf("  -b <float b>       use control point with intensity b below target (default=%2.1f)\n", intensity_below);
-  printf("  -g <float g>       use max intensity/mm gradient g (default=%2.3f)\n", mni.max_gradient);
+  printf("  -f <path to file>  use control points "
+         "file (usually control.dat)\n");
+  printf("  -w <mri_vol c> <mri_vol b> write ctrl point(c) "
+         "and bias field(b) volumes\n");
+  printf("  -a <float a>       use control point with "
+         "intensity a above target (default=%2.1f)\n", intensity_above);
+  printf("  -b <float b>       use control point with "
+         "intensity b below target (default=%2.1f)\n", intensity_below);
+  printf("  -g <float g>       use max intensity/mm "
+         "gradient g (default=%2.3f)\n", mni.max_gradient);
   printf("  -v                 verbose\n");
   printf("  -v Gvx Gvy Gvz : for debuggin\n");
-  printf("  -n <int n>         use n 3d normalization iterations (default=%d)\n", num_3d_iter);
+  printf("  -n <int n>         use n 3d normalization "
+         "iterations (default=%d)\n", num_3d_iter);
   printf("  -u                 print usage\n");
-  printf("  -prune <boolean>     turn pruning of control points on/off (default=off). Useful if white is expanding into gm\n") ;
+  printf("  -prune <boolean>     turn pruning of control points "
+         "on/off (default=off). Useful if white is expanding into gm\n") ;
   printf("  -MASK maskfile \n");
   printf("  -monkey : turns of 1d, sets num_3d_iter=1\n");
   printf("  -nosnr : disable snr normalization\n");
@@ -464,30 +505,31 @@ usage_exit(int code)
 static MRI *
 compute_bias(MRI *mri_src, MRI *mri_dst, MRI *mri_bias)
 {
-	int x, y, z ;
-	float bias, src, dst ;
+  int x, y, z ;
+  float bias, src, dst ;
 
-	if (!mri_bias) 
-		mri_bias = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+  if (!mri_bias)
+    mri_bias = MRIalloc
+      (mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
 
-	MRIcopyHeader(mri_src, mri_bias) ;
-	for (x = 0 ; x < mri_src->width ; x++)
-	{
-		for (y = 0; y < mri_src->height ; y++)
-		{
-			for (z = 0 ; z < mri_src->depth ; z++)
-			{
-				src = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-				dst = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
-				if (FZERO(src))
-					bias = 1 ;
-				else
-					bias = dst/src ;
-				MRIsetVoxVal(mri_bias, x, y, z, 0, bias) ;
-			}
-		}
-	}
+  MRIcopyHeader(mri_src, mri_bias) ;
+  for (x = 0 ; x < mri_src->width ; x++)
+    {
+      for (y = 0; y < mri_src->height ; y++)
+        {
+          for (z = 0 ; z < mri_src->depth ; z++)
+            {
+              src = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+              dst = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
+              if (FZERO(src))
+                bias = 1 ;
+              else
+                bias = dst/src ;
+              MRIsetVoxVal(mri_bias, x, y, z, 0, bias) ;
+            }
+        }
+    }
 
-	return(mri_bias) ;
+  return(mri_bias) ;
 }
 
