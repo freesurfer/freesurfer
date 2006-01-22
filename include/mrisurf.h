@@ -151,6 +151,7 @@ typedef struct vertex_type_
 #endif
   float theta, phi ;     /* parameterization */
   short  marked;         /* for a variety of uses */
+	short  marked2 ;
   char   ripflag ;
   char   border;         /* flag */
   float area,origarea ;
@@ -1265,5 +1266,7 @@ int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri) ;
 MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask);
 MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask);
 int MRISremoveIntersections(MRI_SURFACE *mris) ;
+int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) ;
+int MRISexpandMarked(MRI_SURFACE *mris) ;
 
 #endif
