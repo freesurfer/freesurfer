@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/21 03:24:04 $
-// Revision       : $Revision: 1.426 $
+// Revision Date  : $Date: 2006/01/22 14:39:46 $
+// Revision       : $Revision: 1.427 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -139,6 +139,7 @@ typedef struct
 
 #define WHICH_OUTPUT stderr
 
+//static int mrisSoapBubbleIntersectingDefects(MRI_SURFACE *mris);
 int MRISaverageMarkedVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris,
                                         double dt,
@@ -558,7 +559,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.426 2006/01/21 03:24:04 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.427 2006/01/22 14:39:46 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -34530,31 +34531,33 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
     fprintf(WHICH_OUTPUT, "computing tessellation statistics...\n") ;
     MRISprintTessellationStats(mris_corrected, stderr) ;
 
+		// mark everything not in a defect with 1
     MRISsetMarks(mris_corrected, 1) ;
     for (i = 0 ; i < dl->ndefects ; i++)
-      {
-        defect = &dl->defects[i] ;
-        for (n = 0 ; n < defect->nvertices ; n++)
-          {
-            vno = vertex_trans[defect->vertices[n]] ;
-            if (vno < 0 || vno >= mris_corrected->nvertices)
-              continue ;
-            v = &mris_corrected->vertices[vno] ;
-            v->marked = 0 ;
-          }
-        for (n = 0 ; n < defect->nborder ; n++)
-          {
-            vno = vertex_trans[defect->border[n]] ;
-            if (vno < 0 || vno >= mris_corrected->nvertices)
-              continue ;
-            v = &mris_corrected->vertices[vno] ;
-            v->marked = 0 ;
-          }
-      }
+		{
+			defect = &dl->defects[i] ;
+			for (n = 0 ; n < defect->nvertices ; n++)
+			{
+				vno = vertex_trans[defect->vertices[n]] ;
+				if (vno < 0 || vno >= mris_corrected->nvertices)
+					continue ;
+				v = &mris_corrected->vertices[vno] ;
+				v->marked = 0 ;
+			}
+			for (n = 0 ; n < defect->nborder ; n++)
+			{
+				vno = vertex_trans[defect->border[n]] ;
+				if (vno < 0 || vno >= mris_corrected->nvertices)
+					continue ;
+				v = &mris_corrected->vertices[vno] ;
+				v->marked = 0 ;
+			}
+		}
     fprintf(WHICH_OUTPUT,
             "performing soap bubble on retessellated vertices for %d "
             "iterations...\n", nsmooth) ;
     /* at this point : smoothed corrected orig vertices */
+		
     MRISsoapBubbleVertexPositions(mris_corrected, nsmooth) ;
     MRISsaveVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
     MRISclearMarks(mris_corrected) ;
@@ -49339,43 +49342,26 @@ int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri)
 int
 MRISremoveIntersections(MRI_SURFACE *mris)
 {
-	int     n, num, vno, m, writeit=0, old_num ;
-	VERTEX  *v, *vn ;
+	int     n, num, vno, writeit=0, old_num, nbrs, m ;
+	VERTEX  *v ;
 
 	n = 0 ;
 
 	printf("removing intersecting faces\n") ;
 	old_num = mris->nvertices ;
+	nbrs = 1 ;
 	while ((num = mrisMarkIntersections(mris)) > 0)
 	{
-		if (num >= old_num && old_num >= 0)
+		if (num == old_num)  // couldn't remove any
 		{
 			// couldn't make any more progress with 1 nbrs, expand
-			MRISsetNeighborhoodSize(mris, 2) ;
-			old_num = -1 ;
+			nbrs++ ;
+			printf("expanding nbhd size to %d\n", nbrs);
 		}
-		if (old_num>=0)  // haven't expanded to 2 nbrs yet
-			old_num = num ;
-		// mark 1st nbrs of intersecting vertices
-		for (vno = 0 ; vno < mris->nvertices ; vno++)
-		{
-			v = &mris->vertices[vno] ;
-			if (v->marked == 1)
-			{
-				for (m = 0 ; m < v->vtotal ; m++)
-				{
-					vn = &mris->vertices[v->v[m]] ;
-					if (vn->marked == 0)
-						vn->marked = 2 ;
-				}
-			}
-		}
-		for (vno = 0 ; vno < mris->nvertices ; vno++)
-		{
-			v = &mris->vertices[vno] ;
-			if (v->marked == 2)
-				v->marked = 1 ;
-		}
+
+		for (m = 0 ; m <= nbrs ; m++)
+			MRISexpandMarked(mris) ;
+		old_num = num ;
 
 		printf("%03d: %d intersecting\n", n, num) ;
 		for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -49472,4 +49458,90 @@ MRISaverageMarkedVertexPositions(MRI_SURFACE *mris, int navgs)
 		}
 	}
   return(NO_ERROR) ;
+}
+#if 0
+static int
+mrisSoapBubbleIntersectingDefects(MRI_SURFACE *mris)
+{
+	int      vno, num, vno2, n ;
+	VERTEX   *v, *v2 ;
+
+	/* coming in the v->marked field lists the defect #. If not part
+		 of a defect v->marked == -1.
+	*/
+	MRIScopyMarkedToMarked2(mris) ;
+	n = 0 ;
+	while ((num = mrisMarkIntersections(mris)) > 0)
+	{
+		// mark all of each defect that has an intersection
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->marked)   // it is intersecting - mark the whole defect
+			{
+				if (v->marked2 >= 0)  // part of a defect
+				{
+					for (vno2 = 0 ; vno2 < mris->nvertices ; vno2++)
+					{
+						v2 = &mris->vertices[vno2] ;
+						if (v2->marked2 == v->marked2)  // part of same defect
+							v2->marked = 1 ;
+					}
+				}
+			}
+		}
+
+		printf("%03d: %d intersecting\n", n, num) ;
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			v->marked = !v->marked ;  // soap bubble will fix the marked ones
+		}
+		MRISsoapBubbleVertexPositions(mris, 5) ;
+		if (n++ > 100)
+			break ;
+	}
+	return(NO_ERROR) ;
+}
+#endif
+int
+MRIScopyMarkedToMarked2(MRI_SURFACE *mris)
+{
+	int      vno ;
+	VERTEX   *v ;
+
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		v->marked2 = v->marked ;
+	}
+	return(NO_ERROR) ;
+}
+
+int
+MRISexpandMarked(MRI_SURFACE *mris)
+{
+	int      vno, n ;
+	VERTEX   *v, *vn ;
+
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->marked)
+		{
+			for (n = 0 ; n < v->vnum ; n++)
+			{
+				vn = &mris->vertices[v->v[n]] ;
+				if (vn->marked == 0)
+					vn->marked = 2 ;
+			}
+		}
+	}
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->marked == 2)
+			v->marked = 1 ;
+	}
+	return(NO_ERROR) ;
 }
