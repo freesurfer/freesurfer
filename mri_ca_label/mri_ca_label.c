@@ -130,13 +130,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.67 2006/01/22 04:21:19 nicks Exp $",
+     "$Id: mri_ca_label.c,v 1.68 2006/01/22 04:26:26 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_label.c,v 1.67 2006/01/22 04:21:19 nicks Exp $",
+     "$Id: mri_ca_label.c,v 1.68 2006/01/22 04:26:26 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -580,7 +580,7 @@ main(int argc, char *argv[])
             {
               MRI *mri_imp ;
               mri_imp = GCAmarkImpossible(gca, mri_labeled, NULL, transform) ;
-              MRIwrite(mri_imp, "imp.mgz") ;
+              if (Gdiag & DIAG_WRITE) MRIwrite(mri_imp, "gca_imp.mgz") ;
               MRIfree(&mri_imp) ;
             }
           }
