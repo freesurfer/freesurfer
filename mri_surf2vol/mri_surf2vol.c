@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.11 2006/01/22 01:49:23 nicks Exp $
+  $Id: mri_surf2vol.c,v 1.12 2006/01/22 02:08:57 nicks Exp $
 */
 
 #include <stdio.h>
@@ -43,7 +43,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_surf2vol.c,v 1.11 2006/01/22 01:49:23 nicks Exp $";
+"$Id: mri_surf2vol.c,v 1.12 2006/01/22 02:08:57 nicks Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_surf2vol.c,v 1.11 2006/01/22 01:49:23 nicks Exp $",
+     "$Id: mri_surf2vol.c,v 1.12 2006/01/22 02:08:57 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -136,16 +136,21 @@ int main(int argc, char **argv)
   /* Read in the template volume header */
   TempVol = MRIreadHeader(tempvolpath,tempvolfmtid);
   if(TempVol == NULL){
-    printf("ERROR: reading %s header\n",tempvolpath);
+    printf("mri_surf2vol ERROR: reading %s header\n",tempvolpath);
     exit(1);
   }
 
   /* Read in the anatomical reference volume header */
-  sprintf(fname,"%s/%s/mri/orig",subjectsdir,srcsubject);
+  sprintf(fname,"%s/%s/mri/orig.mgz",subjectsdir,srcsubject);
   RefAnat = MRIread(fname);
-  if(TempVol == NULL){
-    printf("ERROR: reading %s header\n",fname);
-    exit(1);
+  if(RefAnat == NULL){
+    printf("Cannot find orig.mgz, trying orig/COR files instead...\n");
+    sprintf(fname,"%s/%s/mri/orig",subjectsdir,srcsubject);
+    RefAnat = MRIread(fname);
+    if(RefAnat == NULL){
+      printf("mri_surf2vol ERROR: reading %s header\n",fname);
+      exit(1);
+    }
   }
 
   /* Construct the matrix to map from Surface XYZ to vol */
