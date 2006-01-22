@@ -66,14 +66,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_normalize.c,v 1.43 2006/01/22 03:40:41 nicks Exp $",
+     "$Id: mri_normalize.c,v 1.44 2006/01/22 03:44:04 nicks Exp $",
      "$Name:  $",
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_normalize.c,v 1.43 2006/01/22 03:40:41 nicks Exp $",
+     "$Id: mri_normalize.c,v 1.44 2006/01/22 03:44:04 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -204,13 +204,14 @@ main(int argc, char *argv[])
       MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
       MRIerode(mri_ctrl, mri_ctrl) ;
       MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
-      MRIwrite(mri_ctrl, "c.mgz") ;
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	MRIwrite(mri_ctrl, "norm_ctrl.mgz") ;
       mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, bias_sigma) ;
       MRIfree(&mri_ctrl) ; MRIfree(&mri_aseg) ;
       mri_dst = MRIapplyBiasCorrectionSameGeometry
         (mri_src, mri_bias, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        MRIwrite(mri_dst, "n1.mgz") ;
+        MRIwrite(mri_dst, "norm_1.mgz") ;
     }
   else
     {
