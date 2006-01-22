@@ -4,8 +4,8 @@
 //
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/01/22 03:18:18 $
-// Revision       : $Revision: 1.87 $
+// Revision Date  : $Date: 2006/01/22 03:28:50 $
+// Revision       : $Revision: 1.88 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -475,7 +475,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
           parms->mri_binary = MRIchangeType(mri_tmp, MRI_FLOAT, 0, 1, 1) ;
           MRIfree(&mri_tmp) ;
           if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-            MRIwrite(parms->mri_binary, "bin.mgz") ;
+            MRIwrite(parms->mri_binary, "gcam_bin.mgz") ;
         }
       else  /* using both binary and intensity images for registration */
 #endif
@@ -593,7 +593,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
                       MRIfree(&mri_kernel) ;
                     }
                   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-                    MRIwrite(mri_smooth, "bin_smooth.mgz") ;
+                    MRIwrite(mri_smooth, "gcam_bin_smooth.mgz") ;
                 }
 
               if (DZERO(start_rms) && parms->regrid)
@@ -3235,7 +3235,7 @@ GCAMmorphToAtlasWithDensityCorrection
     }
   mri_jacobian = gcamCreateJacobianImage(gcam) ;
   if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
-    MRIwrite(mri_jacobian, "jac.mgz") ;
+    MRIwrite(mri_jacobian, "gcam_jacobian.mgz") ;
   for (x = 0 ; x < width ; x++)
     {
       for (y = 0 ; y < height ; y++)
@@ -4152,7 +4152,7 @@ gcamComputeGradient
       gcamWriteMRI(gcam, mri, GCAM_Z_GRAD) ; MRIwrite(mri, fname) ;
       MRIfree(&mri) ;
       if (i == 0)
-        MRIwrite(mri_smooth, "s.mgz") ;
+        MRIwrite(mri_smooth, "gcam_smooth.mgz") ;
     }
   gcamJacobianTerm(gcam, mri, parms->l_jacobian,parms->ratio_thresh)  ;
   gcamLimitGradientMagnitude(gcam, parms, mri) ;
@@ -5093,8 +5093,8 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
 
   if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
     {
-      MRIwrite(gcam->mri_xind, "xi.mgz") ;
-      MRIwrite(mri_counts, "c.mgz") ;
+      MRIwrite(gcam->mri_xind, "gcam_xind.mgz") ;
+      MRIwrite(mri_counts, "gcam_counts.mgz") ;
     }
 
   // xind, yind, zind is of size (width, height, depth)
@@ -5128,10 +5128,10 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
     printf("performing soap bubble of x indices...\n") ;
   MRIbuildVoronoiDiagram(gcam->mri_xind, mri_ctrl, gcam->mri_xind) ;
   if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
-    MRIwrite(gcam->mri_xind, "xi.mgz") ;
+    MRIwrite(gcam->mri_xind, "gcam_xinds.mgz") ;
   MRIsoapBubble(gcam->mri_xind, mri_ctrl, gcam->mri_xind, 5) ;
   if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
-    MRIwrite(gcam->mri_xind, "xis.mgz") ;
+    MRIwrite(gcam->mri_xind, "gcam_xinds.mgz") ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("performing soap bubble of y indices...\n") ;
   MRIbuildVoronoiDiagram(gcam->mri_yind, mri_ctrl, gcam->mri_yind) ;
@@ -5144,9 +5144,9 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      MRIwrite(gcam->mri_xind, "xi.mgz") ;
-      MRIwrite(gcam->mri_yind, "yi.mgz") ;
-      MRIwrite(gcam->mri_zind, "zi.mgz") ;
+      MRIwrite(gcam->mri_xind, "gcam_xi.mgz") ;
+      MRIwrite(gcam->mri_yind, "gcam_yi.mgz") ;
+      MRIwrite(gcam->mri_zind, "gcam_zi.mgz") ;
     }
 #ifndef __OPTIMIZE__
   xv = Ggca_x; yv = Ggca_y; zv = Ggca_z;
@@ -5214,7 +5214,7 @@ gcamReadMRI(GCA_MORPH *gcam, MRI *mri, int which)
   GCA_MORPH_NODE *gcamn ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri, "m.mgz") ;
+    MRIwrite(mri, "gcam_m.mgz") ;
   for (x = 0 ; x < gcam->width ; x++)
     for (y = 0; y < gcam->height ; y++)
       for (z = 0 ; z < gcam->depth ; z++)
@@ -7280,27 +7280,27 @@ gcamAreaIntensityTerm
 #if 0
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      MRIwrite(mri_dx, "dx.mgz") ;
-      MRIwrite(mri_dy, "dy.mgz") ;
-      MRIwrite(mri_dz, "dz.mgz") ;
+      MRIwrite(mri_dx, "gcam_dx.mgz") ;
+      MRIwrite(mri_dy, "gcam_dy.mgz") ;
+      MRIwrite(mri_dz, "gcam_dz.mgz") ;
     }
   MRIbuildVoronoiDiagram(mri_dx, mri_ctrl, mri_dx) ;
   MRIbuildVoronoiDiagram(mri_dy, mri_ctrl, mri_dy) ;
   MRIbuildVoronoiDiagram(mri_dz, mri_ctrl, mri_dz) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      MRIwrite(mri_dx, "dxv.mgz") ;
-      MRIwrite(mri_dy, "dyv.mgz") ;
-      MRIwrite(mri_dz, "dzv.mgz") ;
+      MRIwrite(mri_dx, "gcam_dxv.mgz") ;
+      MRIwrite(mri_dy, "gcam_dyv.mgz") ;
+      MRIwrite(mri_dz, "gcam_dzv.mgz") ;
     }
   MRIsoapBubble(mri_dx, mri_ctrl, mri_dx, 10) ;
   MRIsoapBubble(mri_dy, mri_ctrl, mri_dy, 10) ;
   MRIsoapBubble(mri_dz, mri_ctrl, mri_dz, 10) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      MRIwrite(mri_dx, "dxs.mgz") ;
-      MRIwrite(mri_dy, "dys.mgz") ;
-      MRIwrite(mri_dz, "dzs.mgz") ;
+      MRIwrite(mri_dx, "gcam_dxs.mgz") ;
+      MRIwrite(mri_dy, "gcam_dys.mgz") ;
+      MRIwrite(mri_dz, "gcam_dzs.mgz") ;
     }
   for (x = 0 ; x < gcam->width ; x++)
     for (y = 0 ; y < gcam->height ; y++)
@@ -7818,9 +7818,9 @@ GCAMmorphFieldFromAtlas
 
       if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
         {
-          MRIwrite(mri_xind, "xi.mgz") ;
-          MRIwrite(mri_yind, "yi.mgz") ;
-          MRIwrite(mri_zind, "zi.mgz") ;
+          MRIwrite(mri_xind, "gcam_xi.mgz") ;
+          MRIwrite(mri_yind, "gcam_yi.mgz") ;
+          MRIwrite(mri_zind, "gcam_zi.mgz") ;
         }
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         printf("performing soap bubble of x indices...\n") ;
@@ -7838,9 +7838,9 @@ GCAMmorphFieldFromAtlas
 
       if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
         {
-          MRIwrite(mri_xind, "xis.mgz") ;
-          MRIwrite(mri_yind, "yis.mgz") ;
-          MRIwrite(mri_zind, "zis.mgz") ;
+          MRIwrite(mri_xind, "gcam_xis.mgz") ;
+          MRIwrite(mri_yind, "gcam_yis.mgz") ;
+          MRIwrite(mri_zind, "gcam_zis.mgz") ;
         }
     }
 
@@ -7920,7 +7920,7 @@ GCAMmorphFieldFromAtlas
 
       printf("bounding box = (%d, %d, %d) --> (%d, %d, %d)\n",
              xmin, ymin, zmin, xmax, ymax, zmax) ;
-      MRIwrite(mri_morphed, "m.mgz") ;
+      MRIwrite(mri_morphed, "gcam_m.mgz") ;
     }
   switch (which)
     {
@@ -8343,9 +8343,9 @@ GCAMmorphFieldFromAtlas
 
       if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
         {
-          MRIwrite(mri_xind, "xi.mgz") ;
-          MRIwrite(mri_yind, "yi.mgz") ;
-          MRIwrite(mri_zind, "zi.mgz") ;
+          MRIwrite(mri_xind, "gcam_xi.mgz") ;
+          MRIwrite(mri_yind, "gcam_yi.mgz") ;
+          MRIwrite(mri_zind, "gcam_zi.mgz") ;
         }
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         printf("performing soap bubble of x indices...\n") ;
@@ -8363,9 +8363,9 @@ GCAMmorphFieldFromAtlas
 
       if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
         {
-          MRIwrite(mri_xind, "xis.mgz") ;
-          MRIwrite(mri_yind, "yis.mgz") ;
-          MRIwrite(mri_zind, "zis.mgz") ;
+          MRIwrite(mri_xind, "gcam_xis.mgz") ;
+          MRIwrite(mri_yind, "gcam_yis.mgz") ;
+          MRIwrite(mri_zind, "gcam_zis.mgz") ;
         }
     }
 
@@ -8445,7 +8445,7 @@ GCAMmorphFieldFromAtlas
 
       printf("bounding box = (%d, %d, %d) --> (%d, %d, %d)\n",
              xmin, ymin, zmin, xmax, ymax, zmax) ;
-      MRIwrite(mri_morphed, "m.mgz") ;
+      MRIwrite(mri_morphed, "gcam_m.mgz") ;
     }
   switch (which)
     {
@@ -8625,10 +8625,10 @@ GCAMregrid
       mri_covars =
         GCAMmorphFieldFromAtlas(gcam, parms->mri, GCAM_COVARS,1, 0) ;
       if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
-        MRIwrite(mri_covars, "c.mgz") ;
+        MRIwrite(mri_covars, "gcam_covars.mgz") ;
       mri_means = GCAMmorphFieldFromAtlas(gcam, parms->mri, GCAM_MEANS,1, 0) ;
       if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
-        MRIwrite(mri_means, "m.mgz") ;
+        MRIwrite(mri_means, "gcam_means.mgz") ;
     }
   else
     mri_means = mri_covars = NULL ;
@@ -8637,7 +8637,7 @@ GCAMregrid
   mri_origy = GCAMmorphFieldFromAtlas(gcam, parms->mri, GCAM_ORIGY,1, 0) ;
   mri_origz = GCAMmorphFieldFromAtlas(gcam, parms->mri, GCAM_ORIGZ,1, 0) ;
   if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
-    MRIwrite(mri_origz, "z.mgz") ;
+    MRIwrite(mri_origz, "gcam_origz.mgz") ;
   mri_xn = GCAMmorphFieldFromAtlas(gcam, parms->mri, GCAM_NODEX,1, 0) ;
   mri_yn = GCAMmorphFieldFromAtlas(gcam, parms->mri, GCAM_NODEY,1, 0) ;
   mri_zn = GCAMmorphFieldFromAtlas(gcam, parms->mri, GCAM_NODEZ,0, 0) ;
@@ -8653,11 +8653,11 @@ GCAMregrid
       mri_tmp2 = MRIextractRegion(mri_means, NULL, &box) ;
       MRIfree(&mri_means) ; mri_means = mri_tmp2 ;
       if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
-        MRIwrite(mri_means, "m2.mgz") ;
+        MRIwrite(mri_means, "gcam_means2.mgz") ;
       mri_tmp2 = MRIextractRegion(mri_covars, NULL, &box) ;
       MRIfree(&mri_covars) ; mri_covars = mri_tmp2 ;
       if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
-        MRIwrite(mri_covars, "c2.mgz") ;
+        MRIwrite(mri_covars, "gcam_covars2.mgz") ;
     }
 
   mri_tmp2 = MRIextractRegion(mri_origx, NULL, &box) ;
@@ -9410,10 +9410,10 @@ gcamComputeMostLikelyDirection
     }
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_nbhd, "n.mgz") ;
+    MRIwrite(mri_nbhd, "gcam_n.mgz") ;
   MRIconvolveGaussian(mri_nbhd, mri_nbhd, mri_kernel) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_nbhd, "ns.mgz") ;
+    MRIwrite(mri_nbhd, "gcam_ns.mgz") ;
 
   x0 = x0 - x + whalf ;
   y0 = y0 - y + whalf ;
