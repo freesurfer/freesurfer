@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/01/13 22:27:58 $
-// Revision       : $Revision: 1.269 $
-char *VERSION = "$Revision: 1.269 $";
+// Revision Date  : $Date: 2006/01/23 21:35:24 $
+// Revision       : $Revision: 1.270 $
+char *VERSION = "$Revision: 1.270 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1106,7 +1106,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.269 2006/01/13 22:27:58 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.270 2006/01/23 21:35:24 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1347,6 +1347,29 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  
 	  /* misuse of that option */
 	  tkm_DisplayError( "Parsing -aux-surface option",
+			    "Expected an argument",
+			    "This option needs an argument, the file name "
+			    "of the surface to load." );
+	  nCurrentArg ++;
+	}
+	
+      } else if( MATCH( sArg, "-surface" ) ) {
+
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* copy arg into a destructible string */
+	  DebugNote( ("Parsing -surface name") );
+	  xUtil_strncpy( sSurface, argv[nCurrentArg+1], 
+			 sizeof(sSurface) );
+	  bSurfaceDeclared = TRUE;
+	  nCurrentArg += 2;
+	  
+	} else {
+	  
+	  /* misuse of that option */
+	  tkm_DisplayError( "Parsing -surface option",
 			    "Expected an argument",
 			    "This option needs an argument, the file name "
 			    "of the surface to load." );
@@ -3359,7 +3382,7 @@ tkm_tErr LoadSurfaceVertexSet ( tkm_tSurfaceType iType,
          eResult, tkm_tErr_InvalidParameter );
   DebugAssertThrowX( (NULL != gSurface[iType]),
          eResult, tkm_tErr_SurfaceNotLoaded );
-  
+
   /* load the vertex set and check if it was loaded. */
   DebugNote( ("Loading vertex set") );
   eSurface = Surf_LoadVertexSet( gSurface[iType], isName, iSet );
@@ -5419,7 +5442,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.269 2006/01/13 22:27:58 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.270 2006/01/23 21:35:24 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
