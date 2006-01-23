@@ -71,6 +71,8 @@ double MRIframeMax(MRI *vol, int frame, MRI *mask, int absflag,
 MRI *MRIframeMean(MRI *vol, MRI *volmn);
 MRI *fMRIdetrend(MRI *y, MATRIX *X);
 MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1);
+int fMRIspatialAR1Mean(MRI *src, MRI *mask, double *car1mn, 
+		       double *rar1mn,double *sar1mn);
 
 
 #endif
