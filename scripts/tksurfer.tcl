@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.105 2006/01/20 22:50:23 kteich Exp $
+# $Id: tksurfer.tcl,v 1.106 2006/01/23 17:04:03 kteich Exp $
 
 package require BLT;
 
@@ -948,7 +948,6 @@ proc DoConfigOverlayDisplayDlog {} {
 	set lwOptions        $fwFlags.lwOptions
         set cbwTruncate      $fwFlags.cbwTruncate
         set cbwInverse       $fwFlags.cbwInverse
-        set cbwReverse       $fwFlags.cbwReverse
         set cbwComplex       $fwFlags.cbwComplex
 
         frame $fwFlags -relief ridge -border 2
@@ -970,11 +969,10 @@ proc DoConfigOverlayDisplayDlog {} {
 	    -text "Complex" \
 	    -font [tkm_GetNormalFont]
 
-	grid $lwOptions   -column 0 -row 0 -columnspan 4
+	grid $lwOptions   -column 0 -row 0 -columnspan 3
 	grid $cbwTruncate -column 0 -row 1 -stick w
 	grid $cbwInverse  -column 1 -row 1 -stick w
-	grid $cbwReverse  -column 2 -row 1 -stick w
-	grid $cbwComplex  -column 3 -row 1 -stick w
+	grid $cbwComplex  -column 2 -row 1 -stick w
 
 	# create the histogram frame and subunits
 	frame $fwHisto -relief ridge -border 2
