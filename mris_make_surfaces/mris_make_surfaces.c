@@ -3,6 +3,8 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "macros.h"
 #include "error.h"
@@ -18,7 +20,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.67 2006/01/20 21:45:14 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.68 2006/01/23 18:04:53 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -157,10 +159,10 @@ main(int argc, char *argv[])
 
 	char cmdline[CMD_LINE_LEN] ;
 	
-  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.67 2006/01/20 21:45:14 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_make_surfaces.c,v 1.68 2006/01/23 18:04:53 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.67 2006/01/20 21:45:14 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.68 2006/01/23 18:04:53 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -231,14 +233,14 @@ main(int argc, char *argv[])
   fflush(stdout);
   sprintf(fname, "%s/%s/surf/mris_make_surfaces.%s.mrisurf.c.version", sdir, sname, hemi) ;
   fp = fopen(fname,"w");
-	if (fp == NULL)
-		printf("could not open version file %s\n", fname) ;
-	else
-	{
-		fprintf(fp,"%s\n",vcid);
-		fprintf(fp,"%s\n",MRISurfSrcVersion());
-		fclose(fp);
-	}
+  if (fp == NULL)
+    printf("could not open version file %s\n", fname) ;
+  else{
+    fprintf(fp,"%s\n",vcid);
+    fprintf(fp,"%s\n",MRISurfSrcVersion());
+    fclose(fp);
+    chmod(argv[1],S_IRGRP|S_IWGRP|S_IWUSR|S_IRUSR); // rw by user and group
+  }
   
   sprintf(fname, "%s/%s/mri/filled", sdir, sname) ;
   if(MGZ) sprintf(fname, "%s.mgz",fname);
