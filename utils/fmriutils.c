@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.26 2006/01/22 00:31:18 greve Exp $
+   $Id: fmriutils.c,v 1.27 2006/01/23 17:33:14 greve Exp $
 
 Things to do:
 1. Add flag to turn use of weight on and off
@@ -26,7 +26,7 @@ double round(double x);
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void) { 
-  return("$Id: fmriutils.c,v 1.26 2006/01/22 00:31:18 greve Exp $");
+  return("$Id: fmriutils.c,v 1.27 2006/01/23 17:33:14 greve Exp $");
 }
 /*--------------------------------------------------------*/
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
@@ -1409,4 +1409,48 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
   MRIfree(&srcvar);
   if(freetmp) MRIfree(&srctmp);
   return(ar1);
+}
+/*----------------------------------------------------------
+  fMRIspatialAR1Mean() - computes gobal mean of spatial AR1
+  for col, row, and slice separately.
+  ----------------------------------------------------------*/
+int fMRIspatialAR1Mean(MRI *src, MRI *mask, double *car1mn, 
+		       double *rar1mn,double *sar1mn)
+{
+  int c,r,s;
+  long nhits;
+  double m, car1sum,rar1sum,sar1sum;
+  MRI *ar1;
+
+  ar1 = fMRIspatialAR1(src, mask, NULL);
+  if(ar1 == NULL) return(1);
+
+  car1sum=0.0; rar1sum=0.0; sar1sum=0.0; 
+  nhits = 0;
+  for(c=1; c < src->width-1; c++){
+    for(r=1; r < src->height-1; r++){
+      for(s=1; s < src->depth-1; s++){
+	m = MRIgetVoxVal(mask,c,r,s,0);
+	if(m < 0.5) continue;
+	if(MRIgetVoxVal(ar1,c,r,s,0) == 0) continue;
+
+	car1sum += MRIgetVoxVal(ar1,c,r,s,0);
+	car1sum += MRIgetVoxVal(ar1,c,r,s,1);
+
+	rar1sum += MRIgetVoxVal(ar1,c,r,s,2);
+	rar1sum += MRIgetVoxVal(ar1,c,r,s,3);
+
+	sar1sum += MRIgetVoxVal(ar1,c,r,s,4);
+	sar1sum += MRIgetVoxVal(ar1,c,r,s,5);
+
+	nhits ++;
+      }
+    }
+  }
+
+  *car1mn = (car1sum/(2*nhits));
+  *rar1mn = (rar1sum/(2*nhits));
+  *sar1mn = (sar1sum/(2*nhits));
+
+  return(0);
 }
