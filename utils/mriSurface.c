@@ -242,6 +242,7 @@ Surf_tErr Surf_LoadVertexSet ( mriSurfaceRef   this,
   }
   
   /* conert this set */
+  this->mabVertexSetConverted[iSet] = FALSE; 
   Surf_ConvertSurfaceToClientSpace_( this, iSet );
   
   /* set load status flag */
