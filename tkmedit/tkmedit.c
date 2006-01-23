@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/01/23 21:35:24 $
-// Revision       : $Revision: 1.270 $
-char *VERSION = "$Revision: 1.270 $";
+// Revision Date  : $Date: 2006/01/23 22:44:34 $
+// Revision       : $Revision: 1.271 $
+char *VERSION = "$Revision: 1.271 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1094,6 +1094,10 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   float         fColorMaxAux   = 0;
   tBoolean      bColorAux      = FALSE;
 
+  tBoolean      bLoadingAnnotation = FALSE;
+  char          sAnnotation[tkm_knPathLen] = "";
+  char          sAnnotationColorTable[tkm_knPathLen] = "";
+
   DebugEnterFunction( ("ParseCmdLineArgs( argc=%d, argv=%s )", 
 		       argc, argv[0]) );
   
@@ -1106,7 +1110,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.270 2006/01/23 21:35:24 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.271 2006/01/23 22:44:34 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1132,8 +1136,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-aux <volume>  : load volume as auxilliary anatomical volume. relative to\n");
     printf("               : in $SUBJECTS_DIR/subject/mri or specify absolute path\n");
     printf("\n");
+    printf("-surface <surface>     : load surface as main surface. relative to\n");
+    printf("                       : in $SUBJECTS_DIR/subject/surf or specify absolute path\n");
     printf("-aux-surface <surface> : load surface as auxilliary surface. relative to\n");
     printf("                       : in $SUBJECTS_DIR/subject/surf or specify absolute path\n");
+    printf("-annotation <annotation> <color table> : import a surface annotation and color\n");
+    printf("                                         table to the main surface\n");
     printf("\n");
     printf("-main-transform <transform> : loads a display transform for the main volume\n");
     printf("-aux-transform <transform>  : loads a display transform for the aux volume\n");
@@ -1373,6 +1381,33 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 			    "Expected an argument",
 			    "This option needs an argument, the file name "
 			    "of the surface to load." );
+	  nCurrentArg ++;
+	}
+	
+      } else if( MATCH( sArg, "-annotation" ) ) {
+
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] &&
+	    '-' != argv[nCurrentArg+2][0] ) {
+	  
+	  /* copy args */
+	  DebugNote( ("Parsing -annotation name") );
+	  xUtil_strncpy( sAnnotation, argv[nCurrentArg+1], 
+			 sizeof(sAnnotation) );
+	  xUtil_strncpy( sAnnotationColorTable, argv[nCurrentArg+2], 
+			 sizeof(sAnnotationColorTable) );
+	  bLoadingAnnotation = TRUE;
+	  nCurrentArg += 3;
+	  
+	} else {
+	  
+	  /* misuse of that option */
+	  tkm_DisplayError( "Parsing -annotation option",
+			    "Expected two arguments",
+			    "This option needs two arguments, the file name "
+			    "of the surface to load and the file name "
+			    "of the color table to use." );
 	  nCurrentArg ++;
 	}
 	
@@ -2338,6 +2373,22 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   if ( bAuxSurfaceDeclared ) {
     DebugNote( ("Loading aux surface") );
     eResult = LoadSurface( tkm_tSurfaceType_Aux, sAuxSurface );
+  }
+
+  /* Import an annotation */
+  if( bLoadingAnnotation ) {
+
+    if( bSurfaceDeclared ) {
+      DebugNote( ("Importing annotation") );
+      ImportSurfaceAnnotationToSegmentation( tkm_tSegType_Main,
+					     sAnnotation, 
+					     sAnnotationColorTable );
+    } else {
+      tkm_DisplayError( "Importing Annotation",
+			"Surface not loaded",
+			"In order to import an annotation, you must also "
+			"load a surface." );
+    }
   }
 
   /* load segmentation */
@@ -5442,7 +5493,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.270 2006/01/23 21:35:24 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.271 2006/01/23 22:44:34 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
