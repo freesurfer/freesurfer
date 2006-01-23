@@ -1,4 +1,4 @@
-// $Id: randomfields.h,v 1.1 2005/12/05 05:38:15 greve Exp $
+// $Id: randomfields.h,v 1.2 2006/01/23 17:34:53 greve Exp $
 
 #ifndef RANDOMFIELDS_H
 #define RANDOMFIELDS_H
@@ -51,6 +51,9 @@ int RFexpectedMeanStddevUniform(RFS *rfs);
 int RFexpectedMeanStddevGaussian(RFS *rfs);
 int RFexpectedMeanStddevt(RFS *rfs);
 int RFexpectedMeanStddevF(RFS *rfs);
+
+double RFar1ToGStd(double ar1, double d);
+double RFar1ToFWHM(double ar1, double d);
 
 #endif
 

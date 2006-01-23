@@ -19,7 +19,7 @@
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *RFSrcVersion(void) { 
-  return("$Id: randomfields.c,v 1.1 2005/12/05 05:38:15 greve Exp $"); 
+  return("$Id: randomfields.c,v 1.2 2006/01/23 17:34:52 greve Exp $"); 
 }
 
 /*-------------------------------------------------------------------*/
@@ -415,6 +415,33 @@ int RFexpectedMeanStddevF(RFS *rfs)
   return(0);
 }
 
+/*------------------------------------------------------------------
+  RFar1ToGStd() - converts AR1 value to equivalent Gaussian standard
+  devation.  Ie, if white Gaussian noise where filtered with a
+  gaussian kernel with gstd, it would result in the given AR1.  The
+  AR1 value is measured between two voxels a distance d appart. GStd
+  will have the same units as d.
+  -----------------------------------------------------------------*/
+double RFar1ToGStd(double ar1, double d)
+{
+  double gstd;
+  if(ar1 <= 0.0) return(0.0);
+  gstd = d/sqrt(-4*log(ar1));
+  return(gstd);
+}
+/*---------------------------------------------------------------------
+  RFar1ToFWHM() - converts AR1 value to equivalent FWHM.  Ie, if white
+  Gaussian noise where filtered with a gaussian kernel with FWHM, it
+  would result in the given AR1.  The AR1 value is measured between
+  two voxels a distance d appart. FWHM will have the same units as d.
+  ------------------------------------------------------*/
+double RFar1ToFWHM(double ar1, double d)
+{
+  double gstd, fwhm;
+  gstd = RFar1ToGStd(ar1,d);
+  fwhm = gstd*sqrt(log(256.0));
+  return(fwhm);
+}
 
 
 /*-------------------------------------------------------------------*/
