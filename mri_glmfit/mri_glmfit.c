@@ -31,6 +31,7 @@ USAGE: ./mri_glmfit
    --surf subject hemi : needed for some flags (uses white by default)
 
    --sim nulltype nsim thresh csdbasename : simulation perm, null-full, null-z
+   --sim-sign signstring : abs, pos, or neg. Default is abs.
    --perm-1 : do permutation test for one-sample group mean
 
    --pca : perform pca/svd analysis on residual
@@ -409,7 +410,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.54 2006/01/24 05:21:43 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.55 2006/01/24 23:27:34 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -675,7 +676,11 @@ int main(int argc, char **argv)
     if(surf->group_avg_surface_area > 0)
       searchspace *= (surf->group_avg_surface_area/surf->total_area);
   }
-  else  searchspace = nmask * voxelsize;
+  else  {
+    voxelsize = mriglm->y->xsize * mriglm->y->ysize * mriglm->y->zsize;
+    searchspace = nmask * voxelsize;
+  }
+  printf("search space = %g\n",searchspace);
 
   // Check number of frames ----------------------------------
   if(mriglm->y->nframes != mriglm->Xg->rows){
@@ -865,7 +870,6 @@ int main(int argc, char **argv)
     }
     else {
       strcpy(csd->anattype,"volume");
-      voxelsize = mriglm->y->xsize * mriglm->y->ysize * mriglm->y->zsize;
     }
     csd->searchspace = searchspace;
     csd->nreps = nsim;
@@ -928,8 +932,10 @@ int main(int argc, char **argv)
 	  // null-z: synth z-field, smooth, rescale, compute p, compute sig
 	  // This should do the same thing as AFNI's AlphaSim
 	  RFsynth(z,rfs,mriglm->mask);
-	  if(SmoothLevel > 0) SmoothSurfOrVol(surf, z, SmoothLevel);
-	  RFrescale(z,rfs,mriglm->mask,z);
+	  if(SmoothLevel > 0){
+	    SmoothSurfOrVol(surf, z, SmoothLevel);
+	    RFrescale(z,rfs,mriglm->mask,z);
+	  }
 	  if(csd->threshsign == 0) MRIabs(z,z); // two-tailed
 	  mriglm->p[n] = RFstat2P(z,rfs,mriglm->mask,mriglm->p[n]);
 	  sig = MRIlog10(mriglm->p[n],sig,1);
@@ -956,6 +962,7 @@ int main(int argc, char **argv)
 	printf("%s %d %d   %g  %g  %g\n",mriglm->glm->Cname[n],nthsim,
 	       nClusters,csize,sigmax,Fmax);
 	//MRIwrite(sig,"sig.mgh");
+	//MRIwrite(mriglm->p[0],"p.mgh");
 	//exit(1);
 
 	// Re-write the full CSD file each time. Should not take that
@@ -1208,6 +1215,17 @@ static int parse_commandline(int argc, char **argv)
       DoSim = 1;
       DontSave = 1;
       nargsused = 4;
+    }
+    else if (!strcasecmp(option, "--sim-sign")){
+      if(nargc < 1) CMDargNErr(option,1);
+      if(!strcmp(pargv[0],"abs")) csd->threshsign = 0;
+      else if(!strcmp(pargv[0],"pos")) csd->threshsign = +1;
+      else if(!strcmp(pargv[0],"neg")) csd->threshsign = -1;
+      else{
+	printf("ERROR: --sim-sign argument %s unrecognized\n",pargv[0]);
+	exit(1);
+      }
+      nargsused = 1;
     }
     else if (!strcasecmp(option, "--surf")){
       if(nargc < 2) CMDargNErr(option,1);
