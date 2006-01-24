@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-
 #include <gsl/gsl_randist.h>
+
+#include "diag.h"
 #include "mri.h"
 #include "resample.h"
 #include "transform.h"
@@ -69,6 +70,8 @@ int clustFreeClusterList(VOLCLUSTER ***pppvclist, int nlist)
   int n;
   VOLCLUSTER **vclist;
   vclist = *pppvclist;
+
+  if(nlist == 0) return(0);
   
   for(n=0;n<nlist;n++)
     if(vclist[n] != NULL) clustFreeCluster(&vclist[n]);
@@ -110,7 +113,6 @@ int clustDumpClusterList(FILE *fp, VOLCLUSTER **vclist, int nlist,
 
   return(0);
 }
-
 /*------------------------------------------------------------------------*/
 int clustValueInRange(float val, float thmin, float thmax, int thsign)
 {
@@ -139,27 +141,27 @@ MRI *clustInitHitMap(MRI *vol, int frame,
   int nh, *hrow, *hcol, *hslc;
   int maskval;
 
-  printf("maskframe = %d\n",maskframe);
+  if(Gdiag_no > 0) printf("maskframe = %d\n",maskframe);
 
   /* count the number of hits */
   nh = 0;
   for(col = 0; col < vol->width; col ++){
     for(row = 0; row < vol->height; row ++){
       for(slc = 0; slc < vol->depth; slc ++){
-  if(binmask != NULL){
-    maskval = MRIIseq_vox(binmask,col,row,slc,maskframe);
-    if(maskval == 0) continue;
-  }
-  val = MRIFseq_vox(vol,col,row,slc,frame);
-  if(clustValueInRange(val,thmin,thmax,thsign)) nh++;
+	if(binmask != NULL){
+	  maskval = MRIIseq_vox(binmask,col,row,slc,maskframe);
+	  if(maskval == 0) continue;
+	}
+	val = MRIFseq_vox(vol,col,row,slc,frame);
+	if(clustValueInRange(val,thmin,thmax,thsign)) nh++;
       }
     }
   }
-  printf("INFO: clustInitHitMap: found %d hits\n", nh );
+  //printf("INFO: clustInitHitMap: found %d hits\n", nh );
 
   /* check that there are hits */
-  if( nh == 0 ){
-    fprintf(stderr,"ERROR: clustInitHitMap: no hits found\n");
+  if(nh == 0 ){
+    *nhits = 0;
     return(NULL);
   }
   
@@ -221,7 +223,7 @@ MRI *clustInitHitMap(MRI *vol, int frame,
       }
     }
   }
-  printf("INFO: clustInitHitMap: found %d hits\n", nh );
+  if(Gdiag_no > 1) printf("INFO: clustInitHitMap: found %d hits\n", nh );
 
   *hitcol = hcol;
   *hitrow = hrow;
@@ -340,6 +342,7 @@ VOLCLUSTER *clustGrow(int col0, int row0, int slc0, MRI *HitMap, int AllowDiag)
   /* put the seed point in the cluster */
   clustAddMember(vc,col0,row0,slc0);
   MRIIseq_vox(HitMap,col0,row0,slc0,0) = 1;
+  vc->voxsize = HitMap->xsize * HitMap->ysize * HitMap->zsize;
 
   nthpass = 0;
   nadded = 1;
@@ -503,6 +506,7 @@ VOLCLUSTER *clustCopyCluster(VOLCLUSTER *vc)
 
   vc2->maxmember = vc->maxmember;
   vc2->maxval = vc->maxval;
+  vc2->voxsize = vc->voxsize;
   
   return(vc2);
 }
@@ -592,7 +596,7 @@ int clustComputeTal(VOLCLUSTER *vc, MATRIX *CRS2MNI)
 }
 /*----------------------------------------------------------------*/
 MRI * clustClusterList2Vol(VOLCLUSTER **vclist, int nlist, MRI *tvol,
-         int frame, int ValOption)
+			   int frame, int ValOption)
 {
   MRI *vol;
   int nthvc, n;
@@ -718,15 +722,19 @@ VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
      belonging to a cluster. The initialization is for thresholding */
   HitMap = clustInitHitMap(vol, frame, threshmin, threshmax, threshsign, 
 			   &nhits, &hitcol, &hitrow, &hitslc, binmask,0);
-  if(HitMap == NULL) exit(1);
-  printf("INFO: Found %d voxels in threhold range\n",nhits);
+  if(HitMap == NULL){
+    // Nothing survived the first thresholding
+    *nClusters = 0;
+    return(NULL);
+  }
+  if(Gdiag_no > 0) printf("INFO: Found %d voxels in threhold range\n",nhits);
 
   /* Allocate an array of clusters equal to the number of hits -- this
      is the maximum number of clusters possible */
   ClusterList = clustAllocClusterList(nhits);
   if(ClusterList == NULL){
-    fprintf(stderr,"ERROR: could not alloc %d clusters\n",nhits);
-    exit(1);
+    printf("ERROR: could not alloc %d clusters\n",nhits);
+    return(NULL);
   }
 
   nclusters = 0;
@@ -742,18 +750,22 @@ VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
 
     /* Grow cluster using this hit as a seed */
     ClusterList[nclusters] = clustGrow(col,row,slc,HitMap,allowdiag);
+    ClusterList[nclusters]->voxsize = voxsizemm3;
 
     /* Determine the member with the maximum value */
     clustMaxMember(ClusterList[nclusters], vol, frame, threshsign);
 
-    clustComputeTal(ClusterList[nclusters],XFM);
+    if(XFM) clustComputeTal(ClusterList[nclusters],XFM);
 
     /* increment the number of clusters */
     nclusters ++;
   }
+  free(hitcol);
+  free(hitrow);
+  free(hitslc);
 
-  printf("INFO: Found %d clusters that meet threshold criteria\n",
-	 nclusters);
+  if(Gdiag_no > 0) printf("INFO: Found %d clusters that meet threshold criteria\n",
+			  nclusters);
 
   /* Remove clusters that do not meet the minimum size requirement */
   ClusterList2 = clustPruneBySize(ClusterList,nclusters,
@@ -763,12 +775,12 @@ VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
   nclusters = nprunedclusters;
   ClusterList = ClusterList2;
 
-  printf("INFO: Found %d clusters that meet size criteria\n",
-	 nclusters);
+  if(Gdiag_no > 0) printf("INFO: Found %d clusters that meet size criteria\n",
+			  nclusters);
 
   /* Remove clusters that do not meet the minimum distance requirement */
   if(distthresh > 0.0){
-    printf("INFO: pruning by distance %g\n",distthresh);
+    if(Gdiag_no > 0) printf("INFO: pruning by distance %g\n",distthresh);
     ClusterList2 = clustPruneByDistance(ClusterList,nclusters,
           distthresh, &nprunedclusters);
     clustFreeClusterList(&ClusterList,nclusters);
@@ -783,10 +795,49 @@ VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
 
   MRIfree(&HitMap);
 
-  printf("INFO: Found %d final clusters\n",nclusters);
+  if(Gdiag_no > 0) printf("INFO: Found %d final clusters\n",nclusters);
   *nClusters = nclusters;
   return(ClusterList);
 }
+/*-----------------------------------------------------------------
+  clustMaxClusterCount() - returns the voxel count of the cluster
+  with the largest count. Multiply this by the voxel size 
+  to get the max cluster volume.
+  -------------------------------------------------------------*/
+int clustMaxClusterCount(VOLCLUSTER **VolClustList, int nClusters)
+{
+  int n,MaxCount=0;
+  
+  for(n=0; n<nClusters; n++)
+    if(VolClustList[n]->nmembers > MaxCount)
+      MaxCount = VolClustList[n]->nmembers;
+  return(MaxCount);
+}
+/*------------------------------------------------------------------------*/
+int clustDumpSummary(FILE *fp,VOLCLUSTER **ClusterList, int nClusters)
+{
+  int n,col,row,slc;
+  float x,y,z;
+
+  fprintf(fp,"--------------------------------------------------\n");
+  for(n=0; n<nClusters; n++){
+    col = ClusterList[n]->col[ClusterList[n]->maxmember];
+    row = ClusterList[n]->row[ClusterList[n]->maxmember];
+    slc = ClusterList[n]->slc[ClusterList[n]->maxmember];
+    x = ClusterList[n]->x[ClusterList[n]->maxmember];
+    y = ClusterList[n]->y[ClusterList[n]->maxmember];
+    z = ClusterList[n]->z[ClusterList[n]->maxmember];
+    fprintf(fp,"%3d %4d  %7.1f  %3d %3d %3d  %g  %g %g %g   \n",
+	    n+1,ClusterList[n]->nmembers,
+	    ClusterList[n]->nmembers * ClusterList[n]->voxsize,
+	    col,row,slc,x,y,z, ClusterList[n]->maxval);
+  }
+  fprintf(fp,"--------------------------------------------------\n");
+  return(0);
+}
+
+
+
 /*-------------------------------------------------------------*/
 
 

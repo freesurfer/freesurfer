@@ -15,6 +15,7 @@ typedef struct {
   float *z;
   int maxmember;
   float maxval;
+  float voxsize;
 } VOLCLUSTER;
 
 VOLCLUSTER *clustAllocCluster(int nmembers);
@@ -71,6 +72,8 @@ VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
       int threshsign, float minclustsizemm3, 
       MRI *binmask, int *nClusters,
       MATRIX *XFM);
+int clustMaxClusterCount(VOLCLUSTER **VolClustList, int nClusters);
+int clustDumpSummary(FILE *fp,VOLCLUSTER **VolClustList, int nClusters);
 
 /*----------------------------------------------------------*/
 typedef struct {
