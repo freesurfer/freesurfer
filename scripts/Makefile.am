@@ -36,6 +36,7 @@ inflate_subject_new-lh \
 inflate_subject_new-rh \
 inflate_subject-rh \
 inflate_subject_sc \
+isanalyze \
 label_child \
 label_elderly_subject \
 label_subject \

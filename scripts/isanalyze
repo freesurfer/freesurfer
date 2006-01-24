@@ -1,0 +1,35 @@
+#!/bin/csh -f
+#
+# isanalyze - checks whether the passed file is an analyze file
+#  exit status 0 - not an analyze
+#  exit status 1 - is an analyze
+#  exit status 255 - some error
+
+set VERSION = '$Id: isanalyze,v 1.1 2006/01/24 18:53:18 greve Exp $';
+
+if($#argv != 1) then
+  echo "isanalyze filename"
+  exit 255;
+endif
+
+set fname = $argv[1];
+if(! -e $fname) then
+  echo "ERROR: $fname does not exist"
+  exit 255;
+endif
+
+set tmpfile = /tmp/isanalyze.$$
+rm -f $tmpfile
+
+set cmd = (mri_info --format --o $tmpfile $fname);
+$cmd > /dev/null
+if($status) exit 0
+
+set fmt = `cat $tmpfile`;
+if($fmt == analyze || $fmt == analyze4d || $fmt == analyze3d || $fmt == spm) then
+  exit 1;
+endif
+
+
+exit 0
+
