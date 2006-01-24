@@ -409,7 +409,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.53 2006/01/24 05:14:57 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.54 2006/01/24 05:21:43 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -875,7 +875,8 @@ int main(int argc, char **argv)
       rfs->name = strcpyalloc("gaussian");
       rfs->params[0] = 0;
       rfs->params[1] = 1;
-      z = MRIalloc(mriglm->y->width,mriglm->y->height,mriglm->y->depth,MRI_FLOAT);
+      //z = MRIalloc(mriglm->y->width,mriglm->y->height,mriglm->y->depth,MRI_FLOAT);
+      z = MRIcloneBySpace(mriglm->y,1);
     }
 
     printf("Staring simulation sim over %d trials\n",nsim);
