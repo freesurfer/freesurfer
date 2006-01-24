@@ -710,7 +710,7 @@ VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
       MATRIX *XFM)
 {
   int nthhit,nclusters,nhits, *hitcol, *hitrow, *hitslc;
-  int col,row,slc,allowdiag=0,nprunedclusters;
+  int col,row,slc,allowdiag=1,nprunedclusters;
   MRI *HitMap;
   VOLCLUSTER **ClusterList, **ClusterList2;
   float voxsizemm3, distthresh=0; 
