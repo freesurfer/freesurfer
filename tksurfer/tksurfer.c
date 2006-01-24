@@ -109,6 +109,13 @@ static GCSA *Ggcsa = NULL ;
 #include <string.h>
 #include <unistd.h>
 #include <GL/gl.h>
+/* begin rkt */
+#ifdef HAVE_APPLE_GLUT_FRAMEWORK
+#  include <GLUT/glut.h>
+#else
+#  include <GL/glut.h>
+#endif
+/* end rkt */
 #include "typedefs.h"
 #include "mgh_matrix.h"
 #include "label.h"
@@ -14295,15 +14302,29 @@ draw_colscalebar(void)
   int i;
   float v[3], tmpzf, stat, maxval;
   int NSEGMENTS = 100;
-  
-  maxval = fmid+1.0/fslope;
+  float abs_func_value;
+  float func_per_segment;
+  int neg_fmin_segment, pos_fmin_segment;
+  int num_decimals;
+  char format[256];
+  char label[256];
+  int cur_char;
+
+  maxval = fmid+0.5/fslope;
   pushmatrix();
   tmpzf = zf;  /* push zf */
   restore_zero_position();  /* zf => 1.0 */
   v[0] = v[1] = 0;
   v[2] = 1.0;
   n3f(v);
-  for (i=0;i<NSEGMENTS-1;i++)
+
+  /* begin rkt */
+  func_per_segment = (2.0*maxval) / (float)NSEGMENTS;
+  neg_fmin_segment = (NSEGMENTS/2) - (fthresh / func_per_segment);
+  pos_fmin_segment = (NSEGMENTS/2) + (fthresh / func_per_segment);
+  /* end rkt */
+
+  for (i=0;i<NSEGMENTS;i++)
     {
       /*
         stat = fthresh+i*(maxval-fthresh)/(NSEGMENTS-1.0);
@@ -14333,6 +14354,40 @@ draw_colscalebar(void)
       v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);
       v3f(v);
       endpolygon();
+
+      /* begin rkt */
+      if (0 == i || 
+	  NSEGMENTS-1 == i ||
+	  pos_fmin_segment == i ||
+	  neg_fmin_segment == i)
+	{
+	  glBegin (GL_LINES);
+	  glVertex3f (v[0], v[1], v[2]);
+	  glVertex3f (v[0]-2, v[1], v[2]);
+	  glEnd ();
+	  
+	  abs_func_value = fabs(stat);
+	  if (abs_func_value > 1) num_decimals = 2;
+	  else if (abs_func_value > 0.1) num_decimals = 3;
+	  else if (abs_func_value > 0.01) num_decimals = 4;
+	  else if (abs_func_value > 0.001) num_decimals = 5;
+	  else if (abs_func_value > 0.0001) num_decimals = 6;
+	  else if (abs_func_value > 0.00001) num_decimals = 7;
+	  else if (abs_func_value > 0.000001) num_decimals = 8;
+	  else if (abs_func_value > 0.0000001) num_decimals = 9;
+	  else num_decimals = 10;
+
+	  sprintf (format, "%%2.%df", num_decimals);
+	  sprintf (label, format, stat);
+	  
+	  glColor3f (1.0, 1.0, 1.0);
+	  glRasterPos3i (v[0] - (strlen(label)*4) - 2, v[1], v[2]);
+	  for (cur_char = 0; cur_char < strlen(label); cur_char++)
+	    {
+	      glutBitmapCharacter (GLUT_BITMAP_8_BY_13, label[cur_char]);
+	    }
+	}
+      /* end rkt */
     }
   popmatrix();
   zf = tmpzf;
@@ -14343,7 +14398,9 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset)
 {
   float r,g,b;
   float ftmp,c1,c2;
-  
+  float min, mid, max;
+  float or, ob, og;
+
   r = g = b = 0.0f ;
   if (invphaseflag)
     f = -f;
@@ -14351,7 +14408,14 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset)
     f = 0;
   if (rectphaseflag)
     f = fabs(f);
-  
+
+  /* rkt: same way values are calc'd in tkmedit. The main difference
+     is that max is 0.5/slope + mid instead of 1/slope + mid, to make
+     the linear version work better. */
+  min = (float)(fthresh); 
+  mid = (float)(fmid); 
+  max = (0.5 / (float)fslope) + (float)fmid;
+
   if (fabs(f)>fthresh && fabs(f)<fmid)
     {
       ftmp = fabs(f);
@@ -14369,6 +14433,9 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset)
     {
       if (f>=0)
         {
+	  /* rkt: changed this to make it match up with the tkmedit
+	     method. */
+#if 0
           r = tmpoffset*
             ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
             ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
@@ -14377,18 +14444,46 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset)
             ((f<fmid)?0:(f<fmid+0.5/fslope)?1*(f-fmid)*fslope:1);
           b = tmpoffset*
             ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0);
-        } else
-          {
-            f = -f;
-            b = tmpoffset*
-              ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-              ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
-            g = tmpoffset*
-              ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
+#endif
+	  or = tmpoffset *
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  og = tmpoffset *
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  ob = tmpoffset * 
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  r = or +
+	    ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+	  g = og +
+	    ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+	  b = ob; 
+	  
+        } 
+      else
+	{
+	  f = -f;
+#if 0
+	  b = tmpoffset*
+	    ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
+	    ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
+	  g = tmpoffset*
+	    ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
               ((f<fmid)?0:(f<fmid+0.5/fslope)?1*(f-fmid)*fslope:1);
-            r = tmpoffset*
-              ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0);
-          }
+	  r = tmpoffset*
+	    ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0);
+#endif
+	  or = tmpoffset * 
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  og = tmpoffset * 
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  ob = tmpoffset * 
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  b = ob +
+	    ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+	  g = og +
+	    ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+	  r = or;
+	  
+	}
       r = r*255;
       g = g*255;
       b = b*255;
@@ -18982,7 +19077,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.173 2006/01/20 22:50:01 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.174 2006/01/24 21:02:50 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
