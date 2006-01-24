@@ -63,7 +63,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.9 2003/09/12 20:15:39 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.10 2006/01/24 23:29:24 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.9 2003/09/12 20:15:39 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.10 2006/01/24 23:29:24 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -564,8 +564,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&threshmin);
       if(threshmin < 0.0){
-  fprintf(stderr,"ERROR: negative threshold not allowed (use -sign)\n");
-  exit(1);
+	fprintf(stderr,"ERROR: %g negative threshold not allowed (use -sign)\n",threshmin);
+	exit(1);
       }
       nargsused = 1;
     }
@@ -595,18 +595,18 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--minsize")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&sizethresh);
-      if(sizethresh <= 0){
-  fprintf(stderr,"ERROR: negative cluster size threshold not allowed\n");
-  exit(1);
+      if(sizethresh < 0){
+	printf("ERROR: %g negative cluster size threshold not allowed\n",sizethresh);
+	exit(1);
       }
       nargsused = 1;
     }
     else if (!strcmp(option, "--minsizevox")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&sizethreshvox);
-      if(sizethreshvox <= 0){
-  fprintf(stderr,"ERROR: negative cluster size threshold not allowed\n");
-  exit(1);
+      if(sizethreshvox <  0){
+	printf("ERROR: %d negative cluster size threshold not allowed\n",sizethreshvox);
+	exit(1);
       }
       nargsused = 1;
     }
@@ -921,7 +921,7 @@ static void check_options(void)
     err = 1;
   }
 
-  if(sizethresh <= 0.0 && sizethreshvox <= 0) {
+  if(sizethresh < 0.0 && sizethreshvox < 0) {
     fprintf(stderr,"ERROR: no cluster size threshold supplied\n");
     err = 1;
   }
