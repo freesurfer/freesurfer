@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/01/17 22:45:48 $
-// Revision       : $Revision: 1.128 $
+// Revision Date  : $Date: 2006/01/24 21:21:40 $
+// Revision       : $Revision: 1.129 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -5045,28 +5045,48 @@ DspA_tErr DspA_DrawLines_ ( tkmDisplayAreaRef this ) {
 
 DspA_tErr DspA_DrawFunctionalOverlay_ ( tkmDisplayAreaRef this ) {
   
-  DspA_tErr eResult = DspA_tErr_NoErr;
-  FunV_tErr eFunctional = FunV_tErr_NoError;
-  FunV_tFunctionalValue max         = 0;
-  int nY = 0;
-  FunV_tFunctionalValue funcValue   = 0.0;
-  float absFuncValue   = 0.0;
+  DspA_tErr             eResult      = DspA_tErr_NoErr;
+  FunV_tErr             eFunctional  = FunV_tErr_NoError;
+  FunV_tFunctionalValue min          = 0;
+  FunV_tFunctionalValue mid          = 0;
+  FunV_tFunctionalValue slope        = 0;
+  FunV_tFunctionalValue max          = 0;
+  int                   nY           = 0;
+  FunV_tFunctionalValue funcValue    = 0.0;
+  float                 absFuncValue = 0.0;
   xColor3f              color;
-  xColor3f              newColor    = {0,0,0};
-  int numDecimals = 0;
-  char sValue[1024] = "";
-  char sFormat[1024] = "";
-  int nChar = 0;
+  xColor3f              newColor     = {0,0,0};
+  int                   numDecimals  = 0;
+  char                  sValue[1024] = "";
+  char                  sFormat[1024]= "";
+  int                   nChar        = 0;
+  float                 funcPerLine  = 0;
+  int                   posMinLine   = 0;
+  int                   posMidLine   = 0;
+  int                   negMinLine   = 0;
+  int                   negMidLine   = 0;
 
   DspA_SetUpOpenGLPort_( this );
   
 
-  /* draw the color scale bar. get threshold max. */
+  /* draw the color scale bar. get threshold max and min. */
+  eFunctional = FunV_GetThreshold( this->mpFunctionalVolume,
+				   &min, &mid, &slope );
+  if( FunV_tErr_NoError != eFunctional ) {
+    eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
+    goto error;
+  }
   eFunctional = FunV_GetThresholdMax( this->mpFunctionalVolume, &max );
   if( FunV_tErr_NoError != eFunctional ) {
     eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
     goto error;
   }
+
+  funcPerLine = (float)(max*2.0) / (float)this->mnVolumeSizeY;
+  posMinLine = this->mnVolumeSizeY/2 + (min / funcPerLine);
+  posMidLine = this->mnVolumeSizeY/2 + (mid / funcPerLine);
+  negMinLine = this->mnVolumeSizeY/2 - (min / funcPerLine);
+  negMidLine = this->mnVolumeSizeY/2 - (mid / funcPerLine);
 
   color.mfRed = color.mfGreen = color.mfBlue;
   for( nY = 0; nY < this->mnVolumeSizeY; nY++ ) {
@@ -5094,10 +5114,23 @@ DspA_tErr DspA_DrawFunctionalOverlay_ ( tkmDisplayAreaRef this ) {
     glEnd ();
   
     /* Draw a value marker at the top and every 50 pixels. */
-    if( nY % 50 == 0 ) {
+    if( nY == 0 ||
+	nY == this->mnVolumeSizeY-1 ||
+	nY == posMinLine ||
+	nY == posMidLine ||
+	nY == negMinLine ||
+	nY == negMidLine ) {
     
+      /* Draw an extra little line to our label. */
+      glColor3f( 1.0, 1.0, 1.0 );
+      glBegin (GL_LINES);
+      glVertex2i( this->mnVolumeSizeX - 1, GLDRAW_Y_FLIP(nY) );
+      glVertex2i( this->mnVolumeSizeX - 12, GLDRAW_Y_FLIP(nY) );
+      glEnd ();
+      
+      /* Calc how many decimals our label should have. */
       absFuncValue = fabs( funcValue );
-      if (absFuncValue > 1)     numDecimals = 2 ;
+      if (absFuncValue > 1 || absFuncValue == 0) numDecimals = 2 ;
       else if (absFuncValue > .1) numDecimals = 3 ;
       else if (absFuncValue > .01) numDecimals = 4 ;
       else if (absFuncValue > 0.001) numDecimals = 5 ;
@@ -5107,12 +5140,14 @@ DspA_tErr DspA_DrawFunctionalOverlay_ ( tkmDisplayAreaRef this ) {
       else if (absFuncValue > 0.0000001) numDecimals = 9 ;
       else numDecimals = 10 ;
       
+      /* Create the label string. */
       sprintf( sFormat, "%%2.%df", numDecimals) ;
       sprintf( sValue, sFormat, funcValue );
 
+      /* Draw it. */
       glColor3f( 1.0, 1.0, 1.0 );
-      glRasterPos2i( this->mnVolumeSizeX - 10 -
-		     (strlen(sValue) * 4) , GLDRAW_Y_FLIP(nY + 5) );
+      glRasterPos2i( this->mnVolumeSizeX - 10 - (strlen(sValue) * 4) - 2, 
+		     (nY==0 ? GLDRAW_Y_FLIP(nY+8) : GLDRAW_Y_FLIP(nY)) );
       for( nChar = 0; nChar < strlen(sValue); nChar++ ) {
 	glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sValue[nChar] );
       }
