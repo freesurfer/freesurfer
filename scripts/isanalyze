@@ -9,7 +9,7 @@
 #  Then examines file with mri_info with --format arg
 #
 
-set VERSION = '$Id: isanalyze,v 1.2 2006/01/24 19:01:06 greve Exp $';
+set VERSION = '$Id: isanalyze,v 1.3 2006/01/24 19:16:02 greve Exp $';
 
 if($#argv != 1) then
   echo "isanalyze filename"
@@ -18,9 +18,10 @@ endif
 set fname = $argv[1];
 
 # Determine from extension
+set baseimg = `basename $fname`;
 set base = `basename $fname .img`;
 set newfname = $base.img
-if($fname == $newfname) exit 1;
+if($baseimg == $newfname) exit 1;
 
 # Cannot determine from extension, so examine the file
 if(! -e $fname) then
