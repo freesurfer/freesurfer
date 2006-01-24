@@ -1,8 +1,8 @@
 #!/bin/csh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.12 2006/01/10 21:15:06 fischl Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.12 2006/01/10 21:15:06 fischl Exp $';
+# $Id: fsl_rigid_register,v 1.13 2006/01/24 19:51:34 greve Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.13 2006/01/24 19:51:34 greve Exp $';
 
 setenv FSLOUTPUTTYPE ANALYZE
 
@@ -45,6 +45,7 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+echo "\n\n";
 echo $VERSION
 date
 
@@ -62,24 +63,42 @@ endif
 mkdir -p $tmpdir
 
 # Convert reference to analyze
-set refvolbase = $tmpdir/refvol.fsl_rigid_register
-set refvolimg  = $refvolbase.img
-set cmd = (mri_convert $refvol $refvolimg)
-echo "--------------------------------------"
-pwd
-echo $cmd
-$cmd
-if($status) exit 1;
+isanalyze $refvol # exit status == 1 if analyze
+if($status == 1) then
+  set refvolimg  = $refvol
+  set refvoldir   = `dirname $refvol`;
+  set refvolbase = $refvoldir/`basename $refvol .img`;
+  echo "Reference is analyze, not converting"
+  #echo "refvolimg $refvolimg"
+  #echo "refvolbase $refvolbase"
+else
+  set refvolbase = $tmpdir/refvol.fsl_rigid_register
+  set refvolimg  = $refvolbase.img
+  set cmd = (mri_convert $refvol $refvolimg)
+  echo "--------------------------------------"
+  pwd
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+endif
 
 # Convert input to analyze #
-set involbase = $tmpdir/invol.fsl_rigid_register
-set involimg  = $involbase.img
-set cmd = (mri_convert $invol $involimg)
-echo "--------------------------------------"
-pwd
-echo $cmd
-$cmd
-if($status) exit 1;
+isanalyze $invol # exit status == 1 if analyze
+if($status == 1) then
+  set involimg   = $invol
+  set involdir   = `dirname $invol`;
+  set involbase = $involdir/`basename $invol .img`;
+  echo "Input is analyze, not converting"
+else
+  set involbase = $tmpdir/invol.fsl_rigid_register
+  set involimg  = $involbase.img
+  set cmd = (mri_convert $invol $involimg)
+  echo "--------------------------------------"
+  pwd
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+endif
 
 # Create an init mat based on geometry in the header #
 if($initgeom) then
@@ -99,9 +118,19 @@ if($initgeom) then
   echo "-------------------------------------------------"
 endif
 
-
-set outvolbase = $tmpdir/outvol.fsl_rigid_register
-set outvolimg  = $outvolbase.img
+# Check the output format
+isanalyze $outvol # exit status == 1 if analyze
+if($status == 1) then
+  set outvolimg   = $outvol
+  set outvoldir   = `dirname $outvol`;
+  set outvolbase = $outvoldir/`basename $outvol .img`;
+  set convertout = 0;
+  echo "Output is analyze, not converting"
+else
+  set outvolbase = $tmpdir/outvol.fsl_rigid_register
+  set outvolimg  = $outvolbase.img
+  set convertout = 1;
+endif
 
 # Run flirt
 set cmd = (flirt -in $involbase.hdr)
@@ -132,12 +161,14 @@ endif
 cp $refvolbase.mat $outvolbase.mat
 
 # Convert to the output format
-set cmd = (mri_convert $outvolbase.img $outvol);
-echo "--------------------------------------"
-pwd
-echo $cmd
-$cmd
-if($status) exit 1;
+if($convertout) then
+  set cmd = (mri_convert $outvolbase.img $outvol);
+  echo "--------------------------------------"
+  pwd
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+endif
 
 if($#applyxfm == 0) then
   # Copy registration matrix
@@ -180,7 +211,6 @@ endif
 # Cleanup
 if($cleanup) then
   echo "Cleaning up"
-  rm $involbase.* $outvolbase.* $refvolbase.*
   if($initgeom) rm $initxfm
   rm -rf $tmpdir
 endif
