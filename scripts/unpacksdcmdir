@@ -13,6 +13,7 @@ proc PrintUsage { } {
   puts ""
   puts "  -fsfast  : unpack to fsfast  directory structure"
   puts "  -generic : unpack to generic directory structure"
+  puts "  -infodump : create infodump file (done automatically with -fsfast)"
   puts ""
   puts "  -scanonly file : only scan the directory and put result in file"
   puts "  -nspmzeropad N : set frame number zero padding width for SPM"
@@ -311,6 +312,8 @@ puts "various parameters associated with each file. "
 puts ""
 puts "In each output directory there will be a file called Name-infodump.dat."
 puts "This is a dump of information for one of the files in the series."
+puts "This is automatically created with -fsfast. For -generic, the user must"
+puts "add -infodump to the command-line."
 puts ""
 puts "BUGS"
 puts ""
@@ -346,7 +349,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.11 2005/08/31 04:10:02 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.12 2006/01/24 18:04:33 greve Exp $}
 
 exit 1;
 
@@ -355,7 +358,7 @@ exit 1;
 #------------------------------------------------------------------#
 proc ParseCommandLine { argc argv } {
   global dicomdir targdir sortmethod cfgfile unpackcfg noexec scanonly;
-  global scanfile nspmzeropad seqcfgfile unpackerr;
+  global scanfile nspmzeropad seqcfgfile unpackerr DoInfoDump;
 
   set ntharg 0
   while  { $ntharg < $argc } {
@@ -416,6 +419,7 @@ proc ParseCommandLine { argc argv } {
 
       -fsfast    { set sortmethod fsfast; }
       -generic   { set sortmethod generic; }
+      -infodump  { set DoInfoDump 1; }
       -unpackerr { set unpackerr 1; }
       -noexec    { set noexec 1; }
       -help      { HelpExit;} 
@@ -772,6 +776,7 @@ set noexec 0
 set scanonly 0
 set nspmzeropad 3
 set unpackerr 0
+set DoInfoDump 0
 
 if { $argc == 0 } { PrintUsage; exit 1;}
 
@@ -803,6 +808,9 @@ if { $err } {
   puts "ERROR: could not make $targdir"
   exit 1;
 }
+if { ! [string compare $sortmethod fsfast ] } {
+  set DoInfoDump 1
+}
 
 set StartTime [exec date];
 puts $StartTime;
@@ -815,7 +823,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.11 2005/08/31 04:10:02 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.12 2006/01/24 18:04:33 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -1153,7 +1161,9 @@ foreach runcfg $unpackcfg {
       puts $SeqInfoId "ntrs $NFrames";
       puts $SeqInfoId "TR   $TR";
     }
-    # Also create a dumpfile #
+  }
+  if { $DoInfoDump } {
+    # Create an info dumpfile #
     set DumpFile "$OutDir/$Name-infodump.dat"
     set err [catch {exec -keepnewline mri_probedicom --i $DCMSource >& \
                      $DumpFile} dumplog];
