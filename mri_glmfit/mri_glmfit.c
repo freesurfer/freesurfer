@@ -409,7 +409,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.52 2006/01/19 22:47:12 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.53 2006/01/24 05:14:57 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -482,6 +482,8 @@ char *subject=NULL, *hemi=NULL, *simbase=NULL;
 MRI_SURFACE *surf=NULL;
 int nsim,nthsim;
 double csize;
+
+VOLCLUSTER **VolClustList;
 
 int DiagCluster=0;
 double DiagClusterSize=0;
@@ -880,7 +882,7 @@ int main(int argc, char **argv)
     TimerStart(&mytimer) ;
     for(nthsim=0; nthsim < nsim; nthsim++){
       msecFitTime = TimerStop(&mytimer) ;
-      printf("%4d/%d t=%g ----------------------\n",
+      printf("%d/%d t=%g ----------------------------------------------------\n",
 	     nthsim+1,nsim,msecFitTime/(1000*60.0));
 
       if(!strcmp(csd->simtype,"null-full")){
@@ -935,12 +937,25 @@ int main(int argc, char **argv)
 	  Fmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
 	}
 	if(mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
-	MRIScopyMRI(surf, sig, 0, "val");
-	SurfClustList = sclustMapSurfClusters(surf,csd->thresh,-1,csd->threshsign,
-					      0,&nClusters,NULL);
-	csize = sclustMaxClusterArea(SurfClustList, nClusters);
+
+	if(surf){
+	  MRIScopyMRI(surf, sig, 0, "val");
+	  SurfClustList = sclustMapSurfClusters(surf,csd->thresh,-1,csd->threshsign,
+						0,&nClusters,NULL);
+	  csize = sclustMaxClusterArea(SurfClustList, nClusters);
+	} else {
+	  if(1){
+	  VolClustList = clustGetClusters(sig, 0, csd->thresh,-1,csd->threshsign,0,
+					  mriglm->mask, &nClusters, NULL);
+	  csize = clustMaxClusterCount(VolClustList,nClusters);
+	  if(Gdiag_no > 0) clustDumpSummary(stdout,VolClustList,nClusters);
+	  clustFreeClusterList(&VolClustList,nClusters);
+	  }
+	}
 	printf("%s %d %d   %g  %g  %g\n",mriglm->glm->Cname[n],nthsim,
 	       nClusters,csize,sigmax,Fmax);
+	//MRIwrite(sig,"sig.mgh");
+	//exit(1);
 
 	// Re-write the full CSD file each time. Should not take that
 	// long and assures output can be used immediately regardless
@@ -1842,15 +1857,16 @@ static void dump_options(FILE *fp)
 /*--------------------------------------------------------------------*/
 static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel)
 {
+  extern int DoSim;
   double gstd;
 
   if(surf == NULL){
     gstd = SmthLevel/sqrt(log(256.0));
-    printf("  Volume Smoothing by FWHM=%lf, Gstd=%lf\n",SmthLevel,gstd);
+    if(!DoSim) printf("  Volume Smoothing by FWHM=%lf, Gstd=%lf\n",SmthLevel,gstd);
     MRIgaussianSmooth(mri, gstd, 1, mri); /* 1 = normalize */
   }
   else{
-    printf("  Surface Smoothing by %d iterations\n",(int)SmthLevel);
+    if(!DoSim) printf("  Surface Smoothing by %d iterations\n",(int)SmthLevel);
     MRISsmoothMRI(surf, mri, SmthLevel, mri);
   }
   return(0);
