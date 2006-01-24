@@ -14369,7 +14369,7 @@ draw_colscalebar(void)
 
 	  /* Calc how many decimals our label should have. */
 	  abs_func_value = fabs(stat);
-	  if (abs_func_value > 1) num_decimals = 2;
+	  if (abs_func_value > 1 || abs_func_value == 0) num_decimals = 2;
 	  else if (abs_func_value > 0.1) num_decimals = 3;
 	  else if (abs_func_value > 0.01) num_decimals = 4;
 	  else if (abs_func_value > 0.001) num_decimals = 5;
@@ -19081,7 +19081,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.175 2006/01/24 21:11:09 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.176 2006/01/24 21:18:59 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
