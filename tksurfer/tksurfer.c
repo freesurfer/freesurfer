@@ -14318,7 +14318,7 @@ draw_colscalebar(void)
   v[2] = 1.0;
   n3f(v);
 
-  /* begin rkt */
+  /* begin rkt - find where we shoudld draw our labels. */
   func_per_segment = (2.0*maxval) / (float)NSEGMENTS;
   neg_fmin_segment = (NSEGMENTS/2) - (fthresh / func_per_segment);
   pos_fmin_segment = (NSEGMENTS/2) + (fthresh / func_per_segment);
@@ -14361,11 +14361,13 @@ draw_colscalebar(void)
 	  pos_fmin_segment == i ||
 	  neg_fmin_segment == i)
 	{
+	  /* Draw an extra little line to our label. */
 	  glBegin (GL_LINES);
 	  glVertex3f (v[0], v[1], v[2]);
 	  glVertex3f (v[0]-2, v[1], v[2]);
 	  glEnd ();
-	  
+
+	  /* Calc how many decimals our label should have. */
 	  abs_func_value = fabs(stat);
 	  if (abs_func_value > 1) num_decimals = 2;
 	  else if (abs_func_value > 0.1) num_decimals = 3;
@@ -14377,9 +14379,11 @@ draw_colscalebar(void)
 	  else if (abs_func_value > 0.0000001) num_decimals = 9;
 	  else num_decimals = 10;
 
+	  /* Create the label string. */
 	  sprintf (format, "%%2.%df", num_decimals);
 	  sprintf (label, format, stat);
-	  
+
+	  /* Draw it. */
 	  glColor3f (1.0, 1.0, 1.0);
 	  glRasterPos3i (v[0] - (strlen(label)*4) - 2, v[1], v[2]);
 	  for (cur_char = 0; cur_char < strlen(label); cur_char++)
@@ -19077,7 +19081,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.174 2006/01/24 21:02:50 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.175 2006/01/24 21:11:09 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
