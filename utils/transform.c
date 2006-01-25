@@ -3125,3 +3125,22 @@ TransformCopy(TRANSFORM *tsrc, TRANSFORM *tdst)
 	return(tdst) ;
 }
 
+/*-------------------------------------------------------------
+  LTAtransformTypeName() - just returns the name of the transform type
+  -------------------------------------------------------------*/
+const char *LTAtransformTypeName(LTA *lta)
+{
+  switch(lta->type){
+  case  LINEAR_VOX_TO_VOX:          return("linear_vox_to_vox"); break;
+  case  LINEAR_RAS_TO_RAS:          return("linear_ras_to_ras"); break;
+  case  LINEAR_PHYSVOX_TO_PHYSVOX:  return("linear_physvox_to_physvox"); break;
+  case  TRANSFORM_ARRAY_TYPE    : return("transform_array"); break;
+  case  MORPH_3D_TYPE           : return("morph_3d"); break;
+  case  MNI_TRANSFORM_TYPE      : return("mni_transform"); break;
+  case  MATLAB_ASCII_TYPE       : return("matlab_ascii"); break;
+  case  LINEAR_COR_TO_COR       : return("linear_cor_to_cor"); break;
+  case  REGISTER_DAT            : return("register.dat"); break;
+  case  FSLREG_TYPE             : return("FSL"); break;
+  }
+  return("unknown");
+}

@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following three lines. CVS maintains them. */
-/* Revision Author: $Author: nicks $                                  */
-/* Revision Date  : $Date: 2006/01/17 22:29:19 $                       */
-/* Revision       : $Revision: 1.48 $                                  */
+/* Revision Author: $Author: greve $                                  */
+/* Revision Date  : $Date: 2006/01/25 18:53:19 $                       */
+/* Revision       : $Revision: 1.49 $                                  */
 /*                                                                     */
 /***********************************************************************/
 
@@ -196,4 +196,6 @@ MRI   *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta) ;
 int TransformSampleReal(TRANSFORM *transform,
                         float xv, float yv, float zv,
                         float *px, float *py, float *pz) ;
+
+const char *LTAtransformTypeName(LTA *lta);
 #endif
