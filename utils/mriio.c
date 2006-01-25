@@ -1791,7 +1791,6 @@ static int corWrite(MRI *mri, char *fname)
 
 static MRI *siemensRead(char *fname, int read_volume_flag)
 {
-
   int file_n, n_low, n_high;
   char fname_use[STRLEN];
   MRI *mri;
@@ -1820,7 +1819,6 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   /* ----- stop compiler complaints ----- */
   mri = NULL;
   mosaic_size = 0;
-
 
   ifi = imaLoadFileInfo(fname);
   if(ifi == NULL){
@@ -1991,6 +1989,15 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
       mos_r = rows / base_raw_matrix_size;
       mos_c = cols / base_raw_matrix_size;
       mosaic_size = mos_r * mos_c;
+      if (mosaic_size == 0)
+        {
+          errno = 0;
+          ErrorReturn
+            (NULL,
+             (ERROR_BADPARM,
+              "siemensRead(): mosaic_size==0, "
+              "Try '-it siemens_dicom' flag with mri_convert"));
+        }
 
       n_dangling_images = n_slices % mosaic_size;
       n_full_mosaics = (n_slices - n_dangling_images) / mosaic_size;
