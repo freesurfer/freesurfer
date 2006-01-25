@@ -45,5 +45,11 @@ freesurfer/lib/qt/configure
 freesurfer/fsl/patchL-fsl-3.2-redhat9.tar
 freesurfer/fsl/patchL-fsl-3.2-redhat7.tar
 freesurfer/fsl/fsl-3.2-macosx.tar.gz
+freesurfer/fsl/build
+freesurfer/fsl/build.log
+freesurfer/fsl/src
+freesurfer/fsl/include
+freesurfer/fsl/extras
+freesurfer/fsl/config
 freesurfer/grad_unwarp_tables
 freesurfer/average/HPMarch022005_ras.mgz
