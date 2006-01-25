@@ -2,9 +2,13 @@
 
 #set echo=1
 
-set VERSION = '$Id: build_release_type.csh,v 1.11 2006/01/22 23:50:07 nicks Exp $'
-
+set VERSION='$Id: build_release_type.csh,v 1.12 2006/01/25 20:36:09 nicks Exp $'
 set HOSTNAME=`hostname -s`
+setenv OSTYPE `uname -s`
+if ("$OSTYPE" == "linux") setenv OSTYPE Linux
+if ("$OSTYPE" == "Linux") setenv OSTYPE Linux
+if ("$OSTYPE" == "darwin") setenv OSTYPE Darwin
+if ("$OSTYPE" == "Darwin") setenv OSTYPE Darwin
 
 # Set up directories.
 ######################################################################
@@ -35,7 +39,7 @@ setenv QTDIR /usr/pubsw/packages/qt/current
 setenv GLUT_DYLIB_DIR ""
 # on Mac OS X Tiger, glut is not automatically in lib path.
 # also, need /sw/bin to get latex and dvips
-if ("$HOSTNAME" == "storm") then
+if ("$OSTYPE" == "Darwin") then
   set GLUT_DYLIB_DIR=/usr/pubsw/packages/tiffjpegglut/lib
   setenv PATH "/sw/bin":"$PATH"
   rehash
@@ -121,7 +125,7 @@ echo "##########################################################" >>& $OUTPUTF
 echo "Updating dev" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: cd $DEV_DIR" >>& $OUTPUTF
-cd $DEV_DIR >>& $OUTPUTF
+cd ${DEV_DIR} >>& $OUTPUTF
 echo "CMD: cvs update -d \>\& $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
 cvs update -d >& $LOG_DIR/update-output-$HOSTNAME
 chmod g+w $LOG_DIR/update-output-$HOSTNAME
@@ -229,6 +233,21 @@ if ($status != 0) then
   echo "CMD: chmod -R g+rw ${DEV_DIR}/*.*" >>& $OUTPUTF
   chmod -R g+rw ${DEV_DIR}/*.* >>& $OUTPUTF
   exit 1  
+endif
+
+# On the Mac, the Qt-based packages have special targets for installing
+# files necessary to run as Mac Apps
+if ("$OSTYPE" == "Darwin") then
+  echo "CMD: make scuba_bundle" >>& $OUTPUTF
+  cd scuba
+  make scuba_bundle >>& $OUTPUTF
+  echo "CMD: make qdec_bundle" >>& $OUTPUTF
+  cd ../qdec
+  make qdec_bundle >>& $OUTPUTF
+  echo "CMD: make plotter_bundle" >>& $OUTPUTF
+  cd ../plotter
+  make plotter_bundle >>& $OUTPUTF
+  cd ..
 endif
 
 # Shift bin/ to bin-old/, and bin-old/ to bin-old-old/ to keep around old versions.
