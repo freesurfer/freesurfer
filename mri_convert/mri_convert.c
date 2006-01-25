@@ -4,17 +4,18 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/25 18:37:45 $
-// Revision       : $Revision: 1.117 $
+// Revision Date  : $Date: 2006/01/25 20:56:15 $
+// Revision       : $Revision: 1.118 $
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include "diag.h"
+#include "error.h"
 #include "mri.h"
 #include "fmriutils.h"
-#include "error.h"
 #include "mri_identify.h"
 #include "gcamorph.h"
 #include "DICOMRead.h"
@@ -142,10 +143,13 @@ int main(int argc, char *argv[])
   float scale_factor ;
   int nthframe=-1; 
   char cmdline[STRLEN] ;
+
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
         
   make_cmd_version_string 
     (argc, argv, 
-    "$Id: mri_convert.c,v 1.117 2006/01/25 18:37:45 greve Exp $", "$Name:  $",
+    "$Id: mri_convert.c,v 1.118 2006/01/25 20:56:15 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -243,7 +247,7 @@ int main(int argc, char *argv[])
     handle_version_option 
     (
      argc, argv, 
-     "$Id: mri_convert.c,v 1.117 2006/01/25 18:37:45 greve Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.118 2006/01/25 20:56:15 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1753,7 +1757,8 @@ int main(int argc, char *argv[])
 	 one. NN is good for ROI*/
 	
       printf("---------------------------------\n");
-      printf("INFO: Transform Matrix \n");
+      printf("INFO: Transform Matrix (%s)\n",
+	     LTAtransformTypeName(lta_transform->type));
       MatrixPrint(stdout,lta_transform->xforms[0].m_L);
       printf("---------------------------------\n");
 	
@@ -1772,8 +1777,13 @@ int main(int argc, char *argv[])
 	MRIfree(&tmp); tmp = 0;
 	mri_transformed =  LTAtransform(mri, mri_transformed, lta_transform);
       } else {
-	printf("Applying LTA transform (resample_type %d)\n",
+	printf("Applying LTAtransformInterp (resample_type %d)\n",
 	       resample_type_val);
+	if(Gdiag_no > 0){
+	  printf("Dumping LTA ---------++++++++++++-----------------------\n");
+	  LTAdump(stdout,lta_transform);
+	  printf("========-------------++++++++++++-------------------=====\n");
+	}
 	mri_transformed = LTAtransformInterp(mri, NULL, lta_transform,resample_type_val);
       }
       if(mri_transformed == NULL){
@@ -2416,20 +2426,18 @@ void usage(FILE *stream)
           "\n"
           "  cd subjectid/mri\n"
           "  mkdir talairach\n"
-          "  mri_convert --apply_transform transforms/talariach.xfm \n"
-          "     --devolvexfm subjectid -ic 0 0 0 \n"
-          "     orig talairach\n"
+          "  mri_convert orig.mgz --apply_transform transforms/talariach.xfm \n"
+          "     -oc 0 0 0   orig.talairach.mgz\n"
           "\n"
-          " This properly accounts for the case where the "
-          "input volume does not \n"
+          " This properly accounts for the case where the input volume does not"
           " have it's coordinate center at 0.\n"
           "\n"
           " To evaluate the result, run:\n"
           "\n"
-          "    tkmedit -f $SUBJECTS_DIR/talairach/mri/orig "
-          "-aux talairach\n"
+          "    tkmedit -f $SUBJECTS_DIR/talairach/mri/orig.mgz "
+          "       -aux orig.talairach.mgz\n"
           "\n"
-          " The main and aux volumes should overlap very closely. "
+          "The main and aux volumes should overlap very closely. "
           "If they do not, \n"
           " use tkregister2 to fix it (run tkregister --help for docs).\n"
           "\n");
