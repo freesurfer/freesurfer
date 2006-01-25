@@ -1,8 +1,9 @@
 #!/bin/tcsh -f
 
-#set echo=1
+unsetenv echo
+if ($?SET_ECHO_1) set echo=1
 
-set VERSION='$Id: build_release_type.csh,v 1.12 2006/01/25 20:36:09 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.13 2006/01/25 20:50:55 nicks Exp $'
 set HOSTNAME=`hostname -s`
 setenv OSTYPE `uname -s`
 if ("$OSTYPE" == "linux") setenv OSTYPE Linux
