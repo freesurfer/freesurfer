@@ -63,7 +63,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.10 2006/01/24 23:29:24 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.11 2006/01/25 17:59:36 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.10 2006/01/24 23:29:24 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.11 2006/01/25 17:59:36 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -199,8 +199,18 @@ int main(int argc, char **argv)
   else binmask = NULL;
 
   /* Load the resolution and geometry information from the register.dat */
-  CRS2MNI = LoadMNITransform(regfile, vol->width,vol->height,vol->depth,
-           &CRS2FSA, &FSA2Func, &colres, &rowres, &sliceres);
+  if(regfile != NULL)
+    CRS2MNI = LoadMNITransform(regfile, vol->width,vol->height,vol->depth,
+			       &CRS2FSA, &FSA2Func, &colres, &rowres, &sliceres);
+  else  {
+    CRS2MNI = MatrixIdentity(4,NULL);
+    CRS2FSA = MatrixIdentity(4,NULL);
+    FSA2Func = MatrixIdentity(4,NULL);
+  }
+
+  colres   = vol->xsize;
+  rowres   = vol->ysize;
+  sliceres = vol->zsize;
   voxsize = colres * rowres * sliceres;
   if(debug){
     printf("VolumeRes: %g %g %g (%g)\n",colres,rowres,sliceres,voxsize);
@@ -335,7 +345,8 @@ int main(int argc, char **argv)
   fprintf(fpsum,"Size Threshold:    %g mm^3\n",sizethresh);  
   fprintf(fpsum,"Size Threshold:    %g voxels\n",sizethresh/voxsize);  
   fprintf(fpsum,"Voxel Size:        %g mm^3\n",voxsize);  
-  fprintf(fpsum,"Registration:      %s\n",regfile);  
+  if(regfile) fprintf(fpsum,"Registration:      %s\n",regfile);  
+  else fprintf(fpsum,"Registration:      None : Tal Coords invalid\n");
   if(synthfunction != NULL)
     fprintf(fpsum,"Synthesize:        %s\n",synthfunction);  
   if(maskid != NULL){
@@ -357,9 +368,11 @@ int main(int argc, char **argv)
     col = ClusterList[n]->col[ClusterList[n]->maxmember];
     row = ClusterList[n]->row[ClusterList[n]->maxmember];
     slc = ClusterList[n]->slc[ClusterList[n]->maxmember];
-    x = ClusterList[n]->x[ClusterList[n]->maxmember];
-    y = ClusterList[n]->y[ClusterList[n]->maxmember];
-    z = ClusterList[n]->z[ClusterList[n]->maxmember];
+    if(regfile){
+      x = ClusterList[n]->x[ClusterList[n]->maxmember];
+      y = ClusterList[n]->y[ClusterList[n]->maxmember];
+      z = ClusterList[n]->z[ClusterList[n]->maxmember];
+    } else {x=col;y=row;z=slc;}
     fprintf(fpsum,"%3d        %4d      %7.1f    %7.2f %7.2f %7.2f   %15.5f",
      n+1,ClusterList[n]->nmembers,voxsize*ClusterList[n]->nmembers,
       x,y,z, ClusterList[n]->maxval);
@@ -647,9 +660,9 @@ static void print_usage(void)
   fprintf(stdout, "USAGE: %s \n",Progname) ;
   fprintf(stdout, "\n");
   fprintf(stdout, "   --in      input volid \n");
-  fprintf(stdout, "   --in_type file format \n");
+  fprintf(stdout, "   --in_type file format : only needed with .w files \n");
   fprintf(stdout, "   --frame   frameno <0>\n");
-  fprintf(stdout, "   --reg     register.dat\n");
+  fprintf(stdout, "   --reg     register.dat : for reporting talairach coords\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "   --thmin   minthresh\n");
   fprintf(stdout, "   --thmax   maxthresh (default is infinity)\n");
@@ -670,11 +683,11 @@ static void print_usage(void)
   fprintf(stdout, "\n");
   fprintf(stdout, "   --sum file   : text summary file \n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "   --out      outupt volid \n");
-  fprintf(stdout, "   --out_type file format \n");
-  fprintf(stdout, "\n");
+  fprintf(stdout, "   --out      output volid \n");
   fprintf(stdout, "   --ocn      output cluster number volid \n");
-  fprintf(stdout, "   --ocn_type file format \n");
+  //fprintf(stdout, "   --out_type file format \n");
+  //fprintf(stdout, "   --ocn_type file format \n");
+  //fprintf(stdout, "\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "   --label   label file\n");
   fprintf(stdout, "   --nlabelcluster n : save nth cluster in label\n");
@@ -943,11 +956,6 @@ static void check_options(void)
         synthfunction);
       err = 1;
     }
-  }
-
-  if(regfile == NULL){
-    fprintf(stderr,"ERROR: must specify a registration file\n");
-    err = 1;
   }
 
   if(intype == MRI_VOLUME_TYPE_UNKNOWN) intype = mri_identify(volid);
