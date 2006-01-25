@@ -3128,9 +3128,9 @@ TransformCopy(TRANSFORM *tsrc, TRANSFORM *tdst)
 /*-------------------------------------------------------------
   LTAtransformTypeName() - just returns the name of the transform type
   -------------------------------------------------------------*/
-const char *LTAtransformTypeName(LTA *lta)
+const char *LTAtransformTypeName(int ltatype)
 {
-  switch(lta->type){
+  switch(ltatype){
   case  LINEAR_VOX_TO_VOX:          return("linear_vox_to_vox"); break;
   case  LINEAR_RAS_TO_RAS:          return("linear_ras_to_ras"); break;
   case  LINEAR_PHYSVOX_TO_PHYSVOX:  return("linear_physvox_to_physvox"); break;
@@ -3144,3 +3144,70 @@ const char *LTAtransformTypeName(LTA *lta)
   }
   return("unknown");
 }
+/*-------------------------------------------------------------------
+  LTAdumpVolGeom() - prints volume geometry to a stream
+  -------------------------------------------------------------------*/
+int LTAdumpVolGeom(FILE *fp,VG *vg)
+{
+  fprintf(fp,"valid  %d\n",vg->valid);
+  fprintf(fp,"width  %d\n",vg->width);
+  fprintf(fp,"height %d\n",vg->height);
+  fprintf(fp,"depth  %d\n",vg->depth);
+  fprintf(fp,"xsize  %f\n",vg->xsize);
+  fprintf(fp,"ysize  %f\n",vg->ysize);
+  fprintf(fp,"zsize  %f\n",vg->zsize);
+  fprintf(fp,"xdc    %f %f %f\n",vg->x_r,vg->x_a,vg->x_s);
+  fprintf(fp,"ydc    %f %f %f\n",vg->y_r,vg->y_a,vg->y_s);
+  fprintf(fp,"zdc    %f %f %f\n",vg->z_r,vg->z_a,vg->z_s);
+  fprintf(fp,"fname  %s\n",vg->fname);
+  return(0);
+}
+/*-------------------------------------------------------------------
+  LTAdumpLinearTransform() - prints LT to stream
+  -------------------------------------------------------------------*/
+int LTAdumpLinearTransform(FILE *fp, LT *lt)
+{
+  fprintf(fp,"x0 %f\n",lt->x0);
+  fprintf(fp,"y0 %f\n",lt->y0);
+  fprintf(fp,"z0 %f\n",lt->z0);
+  fprintf(fp,"sigma %f\n",lt->sigma);
+  fprintf(fp,"type %d\n",lt->type);
+  fprintf(fp,"typename %s\n", LTAtransformTypeName(lt->type));
+  fprintf(fp,"label %d\n",lt->label);
+  
+  if(lt->m_L) {
+    fprintf(fp,"m_L Matrix ----------\n");
+    MatrixPrint(fp,lt->m_L);
+    fprintf(fp,"---------------------\n");
+  }
+  fprintf(fp,"Source Geometry ----------\n");
+  LTAdumpVolGeom(fp,&lt->src);
+  fprintf(fp,"Destination Geometry ----------\n");
+  LTAdumpVolGeom(fp,&lt->dst);
+
+  return(0);
+}
+
+/*-------------------------------------------------------------------
+  LTAdump() - prints LTA to stream
+  -------------------------------------------------------------------*/
+int LTAdump(FILE *fp, LTA *lta)
+{
+  int nthxform;
+
+  fprintf(fp,"num_xforms %d\n",lta->num_xforms);
+  fprintf(fp,"type %d\n",lta->type);
+  fprintf(fp,"typename %s\n",LTAtransformTypeName(lta->type));
+
+  for(nthxform = 0; nthxform < lta->num_xforms; nthxform++){
+    fprintf(fp,"nthxform %d =====================================\n",nthxform);
+    LTAdumpLinearTransform(fp,&lta->xforms[nthxform]);
+  }
+  return(0);
+}
+
+
+
+
+
+
