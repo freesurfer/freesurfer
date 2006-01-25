@@ -4,10 +4,72 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/10 21:39:58 $
-// Revision       : $Revision: 1.18 $
+// Revision Date  : $Date: 2006/01/25 23:41:35 $
+// Revision       : $Revision: 1.19 $
 //
 ////////////////////////////////////////////////////////////////////
+/*
+BEGINHELP
+
+  This program will average the orig surfaces from the given subject
+  list into a single surface using Talairach coords and the spherical
+  transform.  The cooridinates of the vertices are the average of the
+  talairach coordinates (as defined by mri/transforms/talairach.xfm)
+  of the vertices from the input subjects.  The results will be saved
+  in a the specified subject's directory.  This default behavior can
+  be changed with option flags.
+
+  The user must supply at least 4 arguments, plus subject list:
+
+  mris_make_average_surface [options] hemi outsurfname cansurfname outsubject 
+    subj1 subj2 subj3 ...
+
+  hemi - hemisphere,  lh or rh
+  outsurfname - output surface name (eg, avg_orig)
+  cansurfname - registration surface (eg, sphere.reg)
+  outsubject  - name of subject to store the results in
+
+  OPTIONS
+
+  -help 
+
+  Print help and exit.
+
+  -version
+
+  Print version and exit
+
+  -sdir sdir
+
+  Use sdir instead of SUBJECTS_DIR
+
+  -sdir-out sdirout
+
+  Save results in sdirout/outsubject instead of SUBJECTS_IDR/outsubject.
+
+  -nonorm
+
+  Do not normalize area
+
+  -i icoorder
+
+  Use given icosahedron order (default is 7)
+
+  -x xfmname
+
+  Use transforms/xfmname instead of talairach.xfm
+
+  -s surfname
+
+  Use surfname instead of orig
+
+  -v diagno
+
+  Set Gdiag_no = diagno
+  
+ENDHELP
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,7 +88,7 @@
 #include "version.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.18 2006/01/10 21:39:58 greve Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.19 2006/01/25 23:41:35 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -44,7 +106,7 @@ static char *xform_name = "talairach.xfm" ;
 static int ico_no = 6 ;
 
 char *Progname ;
-static char sdir[STRLEN];
+static char *sdir = NULL, *sdirout = NULL;
 
 int
 main(int argc, char *argv[])
@@ -58,10 +120,11 @@ main(int argc, char *argv[])
   LTA          *lta ;
   MRI          *mri ;
   VOL_GEOM      vg;
-	float        average_surface_area = 0.0 ;
+  float        average_surface_area = 0.0 ;
+  MATRIX *XFM=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.18 2006/01/10 21:39:58 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.19 2006/01/25 23:41:35 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -73,22 +136,21 @@ main(int argc, char *argv[])
   mdir = getenv("FREESURFER_HOME") ;
   if (!mdir)
     ErrorExit(ERROR_BADPARM, "%s: no FREESURFER_HOME in envoronment.\n",Progname);
+
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++){
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
-  if (!strlen(sdir))
-  {
-    strcpy(sdir, getenv("SUBJECTS_DIR")) ;
+  if(sdir == NULL){
+    sdir =  getenv("SUBJECTS_DIR");
     if (!sdir)
       ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in envoronment.\n",Progname);
   }
-  if (argc < 6)
-    usage_exit() ;
+  if(sdirout == NULL) sdirout = sdir;
+  if(argc < 6) usage_exit() ;
 
   hemi = argv[1] ;
   avg_surf_name = argv[2] ;
@@ -103,9 +165,11 @@ main(int argc, char *argv[])
     sprintf(fname, "%s/%s/surf/%s.%s", sdir, argv[i], hemi, canon_surf_name) ;
     // read sphere.reg
     mris = MRISread(fname) ;
-    if (!mris)
+    if (!mris){
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-								Progname, fname) ;
+		Progname, fname) ;
+      exit(1);
+    }
     // get "pial" surface vertex into ->origx, origy, origz
     if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
       ErrorExit(ERROR_BADFILE,"%s: could not read orig file for %s.\n",
@@ -136,44 +200,11 @@ main(int argc, char *argv[])
     average_surface_area += mris->total_area ;
     
     // this means that we transform "pial" surface
-#if 1
-    //MRIStalairachTransform(mris, mris, lta) ;
-    {/*-----------------------------------------------------------------*/
-      MATRIX *XFM, *sras, *tras;
-      
-      XFM = DevolveXFMWithSubjectsDir(argv[i], NULL, "talairach.xfm", sdir);
-      if(XFM == NULL) exit(1);
-      
-      sras = MatrixAlloc(4,1,MATRIX_REAL);
-      sras->rptr[4][1] = 1;
-      tras = MatrixAlloc(4,1,MATRIX_REAL);
-      tras->rptr[4][1] = 1;
-      
-      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-	printf("Applying transform.\n");  
-      for(vno=0; vno < mris->nvertices; vno++){
-	v = &mris->vertices[vno] ;
-	if (v->ripflag) continue ;
-	sras->rptr[1][1] = mris->vertices[vno].x;
-	sras->rptr[2][1] = mris->vertices[vno].y;
-	sras->rptr[3][1] = mris->vertices[vno].z;
-	tras = MatrixMultiply(XFM,sras,tras);
-	mris->vertices[vno].x = tras->rptr[1][1];
-	mris->vertices[vno].y = tras->rptr[2][1];
-	mris->vertices[vno].z = tras->rptr[3][1];
-	if (Gdiag_no == vno)
-	  printf(" v %d: (%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f)\n",
-		 vno, sras->rptr[1][1], sras->rptr[2][1], sras->rptr[3][1],
-		 tras->rptr[1][1], tras->rptr[2][1], tras->rptr[3][1]) ;
-      }
-      //mrisComputeSurfaceDimensions(mris) ;
-      
-    }/*-----------------------------------------------------------------*/
-#else
-    MRIStransform(mris, mri, lta, 0) ;
-    // copy volume geometry of the transformed volume
-    memcpy((void *) &vg, (void *) &(mris->vg), sizeof(VOL_GEOM)); 
-#endif
+
+    XFM = DevolveXFMWithSubjectsDir(argv[i], NULL, "talairach.xfm", sdir);
+    if(XFM == NULL) exit(1);
+    MRISmatrixMultiply(mris, XFM);
+
     // save transformed position in ->orig (store "pial" vertices position in orig)
     MRIScomputeMetricProperties(mris) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
@@ -222,7 +253,7 @@ main(int argc, char *argv[])
     }
   }
   // write *h.sphere.reg
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, out_sname, hemi, canon_surf_name) ;
+  sprintf(fname, "%s/%s/surf/%s.%s", sdirout, out_sname, hemi, canon_surf_name) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr,"writing average canonical surface to %s\n", fname);
   MRISwrite(mris_ico, fname) ;
@@ -253,7 +284,7 @@ main(int argc, char *argv[])
       MRIScomputeMetricProperties(mris_ico) ;
     }
   
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, out_sname, hemi, avg_surf_name) ;
+  sprintf(fname, "%s/%s/surf/%s.%s", sdirout,out_sname, hemi, avg_surf_name) ;
   printf("writing average %s surface to %s\n", avg_surf_name, fname);
   MRISwrite(mris_ico,  fname) ;
   {
@@ -289,19 +320,24 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "help") || !stricmp(option, "-help"))
     print_help() ;
-  else if (!stricmp(option, "-version"))
+  else if (!stricmp(option, "version") || !stricmp(option, "version"))
     print_version() ;
   else if (!stricmp(option, "sdir"))
   {
-    strcpy(sdir, argv[2]) ;
+    sdir = argv[2];
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "sdir-out"))
+  {
+    sdirout = argv[2];
     nargs = 1 ;
   }
   else if (!stricmp(option, "nonorm"))
   {
-		normalize_area = 0 ;
-		printf("not normalizing surface area\n") ;
+    normalize_area = 0 ;
+    printf("not normalizing surface area\n") ;
   }
   else switch (toupper(*option))
   {
@@ -348,23 +384,73 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  printf(
-         "usage: %s [options] <hemi> <output surf name> <canon surface>\n\t<output subject name> <subject> ... "
-          "\n", Progname) ;
-	printf("this program will generate an average of the orig surfaces of all the subjects\n"
-				 "specified (unless the -s <surface name> flag is used)\n") ;
-	printf("\tthe transform defaults to %s in the subject's mri/transforms directory, but can\n",
-				 xform_name) ;
-	printf("\tbe changed using the -x <xform name> switch\n") ;
+  printf("mris_make_average_surface [options] hemi outsurfname cansurfname outsubject \n");
+  printf("       subj1 subj2 subj3 ...\n");
+  printf("  Run with -help for more info\n");
 }
 
 static void
 print_help(void)
 {
   print_usage() ;
-  fprintf(stderr, 
-       "\nThis program will average a set of surface coordinates and genareate an average\nsurface (using Talairach coords and spherical transform).\n");
-  fprintf(stderr, "\nvalid options are:\n\n") ;
+printf("\n");
+printf("  This program will average the orig surfaces from the given subject\n");
+printf("  list into a single surface using Talairach coords and the spherical\n");
+printf("  transform.  The cooridinates of the vertices are the average of the\n");
+printf("  talairach coordinates (as defined by mri/transforms/talairach.xfm)\n");
+printf("  of the vertices from the input subjects.  The results will be saved\n");
+printf("  in a the specified subject's directory.  This default behavior can\n");
+printf("  be changed with option flags.\n");
+printf("\n");
+printf("  The user must supply at least 4 arguments, plus subject list:\n");
+printf("\n");
+printf("  mris_make_average_surface [options] hemi outsurfname cansurfname outsubject \n");
+printf("    subj1 subj2 subj3 ...\n");
+printf("\n");
+printf("  hemi - hemisphere,  lh or rh\n");
+printf("  outsurfname - output surface name (eg, avg_orig)\n");
+printf("  cansurfname - registration surface (eg, sphere.reg)\n");
+printf("  outsubject  - name of subject to store the results in\n");
+printf("\n");
+printf("  OPTIONS\n");
+printf("\n");
+printf("  -help \n");
+printf("\n");
+printf("  Print help and exit.\n");
+printf("\n");
+printf("  -version\n");
+printf("\n");
+printf("  Print version and exit\n");
+printf("\n");
+printf("  -sdir sdir\n");
+printf("\n");
+printf("  Use sdir instead of SUBJECTS_DIR\n");
+printf("\n");
+printf("  -sdir-out sdirout\n");
+printf("\n");
+printf("  Save results in sdirout/outsubject instead of SUBJECTS_IDR/outsubject.\n");
+printf("\n");
+printf("  -nonorm\n");
+printf("\n");
+printf("  Do not normalize area\n");
+printf("\n");
+printf("  -i icoorder\n");
+printf("\n");
+printf("  Use given icosahedron order (default is 7)\n");
+printf("\n");
+printf("  -x xfmname\n");
+printf("\n");
+printf("  Use transforms/xfmname instead of talairach.xfm\n");
+printf("\n");
+printf("  -s surfname\n");
+printf("\n");
+printf("  Use surfname instead of orig\n");
+printf("\n");
+printf("  -v diagno\n");
+printf("\n");
+printf("  Set Gdiag_no = diagno\n");
+printf("  \n");
+
   exit(1) ;
 }
 
