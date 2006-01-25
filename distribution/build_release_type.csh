@@ -3,7 +3,7 @@
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
-set VERSION='$Id: build_release_type.csh,v 1.13 2006/01/25 20:50:55 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.14 2006/01/25 21:14:05 nicks Exp $'
 set HOSTNAME=`hostname -s`
 setenv OSTYPE `uname -s`
 if ("$OSTYPE" == "linux") setenv OSTYPE Linux
@@ -127,8 +127,8 @@ echo "Updating dev" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: cd $DEV_DIR" >>& $OUTPUTF
 cd ${DEV_DIR} >>& $OUTPUTF
-echo "CMD: cvs update -d \>\& $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
-cvs update -d >& $LOG_DIR/update-output-$HOSTNAME
+echo "CMD: cvs update -P -d \>\& $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
+cvs update -P -d >& $LOG_DIR/update-output-$HOSTNAME
 chmod g+w $LOG_DIR/update-output-$HOSTNAME
 
 echo "CMD: grep -e "Permission denied" $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
