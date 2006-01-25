@@ -7,24 +7,13 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_volume,v 1.7 2006/01/25 19:44:13 greve Exp $';
+set VERSION = '$Id: make_average_volume,v 1.8 2006/01/25 23:53:07 greve Exp $';
 
 set PrintHelp = 0;
-set cleanup = 0;
 set transform_fname = talairach.xfm
-set topdir = ();
-
-if ( $?SUBJECTS) then
-    set SUBJECTS=($SUBJECTS)
-endif
-if ( $?SUBJECTS_DIR) then
-    set SUBJECTS_DIR=($SUBJECTS_DIR)
-endif
-
 set average_subject = average
-# note: SUBJECTS can be set by --subjects
-# SUBJECTS_DIR can be set by --sdir
-# and average_subject can be set by --out
+set sdout = ();
+set cleanup = 0;
 
 set cmdargs = ($argv);
 if($#argv == 0) then
@@ -40,29 +29,8 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-# This will put the data under $topdir and create a link to
-# to SUBJECTS_DIR
-if($#topdir != 0) then
-  set outdir = $topdir/$average_subject
-  mkdir -p $outdir
-  if($status) then
-    echo "ERROR: creating $outdir"
-    exit 1;
-  endif
-  pushd $outdir > /dev/null
-  set outdir = `pwd`;
-  popd > /dev/null
-  pushd $SUBJECTS_DIR > /dev/null
-  set cmd = (ln -s $outdir $average_subject)
-  $cmd
-  if($status) then
-    echo "ERROR: $cmd"
-    exit 1;
-  endif
-  popd > /dev/null
-endif
-
-set outdir = ${SUBJECTS_DIR}/${average_subject}
+# This will put the data under $sdout (SUBJECTS_DIR by default)
+set outdir = $sdout/${average_subject}
 mkdir -p $outdir
 if($status) then
   echo "ERROR: could not make $outdir"
@@ -81,6 +49,7 @@ pwd  | tee -a $LF
 echo $0  | tee -a $LF
 echo $cmdargs  | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"  | tee -a $LF
+echo "sdout $sdout" | tee -a $LF
 echo $SUBJECTS >> $LF
 
 set tmpdir = $outdir/tmp/make_average_vol-tmp
@@ -195,14 +164,14 @@ while( $#argv != 0 )
       set average_subject = $argv[1]; shift;
       breaksw
 
-    case "--topdir":
+    case "--sd-out":
       if ( $getting_subjects ) then
         # got em all, from --subjects variable arg loop
         set getting_subjects = 0;
         shift;
       endif
       if ( $#argv == 0) goto arg1err;
-      set topdir = $argv[1]; shift;
+      set sdout = $argv[1]; shift;
       breaksw
 
     case "--xform":
@@ -229,6 +198,16 @@ while( $#argv != 0 )
 
     case "--nocleanup":
       set cleanup = 0;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
+    # These are flags passed to make_average_subject, but dont apply here
+    case "--no-link":
+    case "--no-surf":
+    case "--no-vol":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop
@@ -291,12 +270,7 @@ check_params:
     echo "ERROR: FREESURFER_HOME $FREESURFER_HOME does not exist."
     exit 1;
   endif
-  set outdir = ${SUBJECTS_DIR}/${average_subject}
-  if(-e $outdir) then
-    echo "ERROR: $outdir already exists, select a new average subject name"
-    echo "       or delete and rerun" 
-    exit 1;
-  endif
+  if($#sdout == 0) set sdout = $SUBJECTS_DIR;
 goto check_params_return;
 ############--------------##################
 
