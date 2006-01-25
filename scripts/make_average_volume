@@ -7,7 +7,7 @@
 # --help option will show usage
 #
 
-set VERSION = '$Id: make_average_volume,v 1.6 2006/01/11 18:04:30 greve Exp $';
+set VERSION = '$Id: make_average_volume,v 1.7 2006/01/25 19:44:13 greve Exp $';
 
 set PrintHelp = 0;
 set cleanup = 0;
@@ -110,7 +110,7 @@ foreach volid (orig T1 brain)
     
     set cmd = (mri_convert $invol $xfmvol  --apply_transform $xfm)
     set cmd = ($cmd -oc 0 0 0 ); # sets output c_ras=0
-    if($transform_fname == talairach.xfm) set cmd = ($cmd --devolvexfm $subject);
+    #if($transform_fname == talairach.xfm) set cmd = ($cmd --devolvexfm $subject);
     echo $cmd | tee -a $LF
     $cmd  | tee -a $LF
     if($status) exit 1;
