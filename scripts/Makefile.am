@@ -5,6 +5,7 @@ dist_bin_SCRIPTS = \
 archive_pull \
 aparc2feat \
 aseg2feat \
+bblabel \
 browse-minc-header.tcl \
 browse-sessions \
 check_subject \
