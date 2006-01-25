@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2006/01/15 05:26:50 $
-// Revision       : $Revision: 1.116 $
+// Revision Date  : $Date: 2006/01/25 18:37:45 $
+// Revision       : $Revision: 1.117 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
         
   make_cmd_version_string 
     (argc, argv, 
-    "$Id: mri_convert.c,v 1.116 2006/01/15 05:26:50 greve Exp $", "$Name:  $",
+    "$Id: mri_convert.c,v 1.117 2006/01/25 18:37:45 greve Exp $", "$Name:  $",
      cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
     handle_version_option 
     (
      argc, argv, 
-     "$Id: mri_convert.c,v 1.116 2006/01/15 05:26:50 greve Exp $", "$Name:  $"
+     "$Id: mri_convert.c,v 1.117 2006/01/25 18:37:45 greve Exp $", "$Name:  $"
      );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -349,6 +349,11 @@ int main(int argc, char *argv[])
       else if(strcmp(argv[i], "-ait") == 0 || 
               strcmp(argv[i], "--apply_inverse_transform") == 0){
         get_string(argc, argv, &i, transform_fname);
+	if(!FileExists(transform_fname)){
+	  fprintf(stderr,"ERROR: cannot find transform file %s\n",
+		  transform_fname);
+	  exit(1);
+	}
         transform_flag = TRUE;
         invert_transform_flag = TRUE;
       }
@@ -1643,322 +1648,273 @@ int main(int argc, char *argv[])
     MRIprintStats(mri, stdout);
 
   /* ----- apply a transformation if requested ----- */
-  if(transform_flag)
-    {
+  if(transform_flag){
+    printf("INFO: Applying transformation from file %s...\n", 
+	   transform_fname);
+    transform_type = TransformFileNameType(transform_fname);
+    if(transform_type == MNI_TRANSFORM_TYPE || 
+       transform_type == TRANSFORM_ARRAY_TYPE ||
+       transform_type == REGISTER_DAT ||
+       transform_type == FSLREG_TYPE){
+      printf("Reading transform with LTAreadEx()\n");
+      // lta_transform = LTAread(transform_fname);
+      lta_transform = LTAreadEx(transform_fname);
+      if(lta_transform  == NULL){
+	fprintf(stderr, "ERROR: Reading transform from file %s\n", 
+		transform_fname);
+	exit(1);
+      }
+      if (transform_type == FSLREG_TYPE){
+	MRI *tmp = 0;
+	if (out_like_flag == 0) {
+	  printf("ERROR: fslmat does not have the information on the dst volume\n");
+	  printf("ERROR: you must give option '--like volume' to specify the"
+		 " dst volume info\n");
+	  MRIfree(&mri);
+	  exit(1);
+	}
+	// now setup dst volume info
+	tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN); 
+	// flsmat does not contain src and dst info
+	LTAmodifySrcDstGeom(lta_transform, mri, tmp); 
+	// add src and dst information
+	LTAchangeType(lta_transform, LINEAR_VOX_TO_VOX);
+	MRIfree(&tmp);
+      }
 
-      printf("INFO: Applying transformation from file %s...\n", 
-             transform_fname);
-
-      if(!FileExists(transform_fname))
-        {
-          fprintf(stderr,"ERROR: cannot find transform file %s\n",
-                  transform_fname);
-          exit(1);
-        }
-
-      transform_type = TransformFileNameType(transform_fname);
-      if(transform_type == MNI_TRANSFORM_TYPE || 
-         transform_type == TRANSFORM_ARRAY_TYPE ||
-         transform_type == REGISTER_DAT ||
-         transform_type == FSLREG_TYPE)
-        {
-          printf("Reading transform\n");
-          // lta_transform = LTAread(transform_fname);
-          lta_transform = LTAreadEx(transform_fname);
-          if(lta_transform  == NULL){
-            fprintf(stderr, "ERROR: Reading transform from file %s\n", 
-                    transform_fname);
-            exit(1);
-          }
-      
-          if (transform_type == FSLREG_TYPE)
-            {
-              MRI *tmp = 0;
-              if (out_like_flag == 0)
-                {
-                  fprintf(stderr, "ERROR: fslmat does not have the "
-                          "information on the dst volume\n");
-                  fprintf(stderr, "ERROR: you must give option "
-                          "'--like volume' to specify the"
-                          " dst volume info\n");
-                  MRIfree(&mri);
-                  exit(1);
-                }
-              // now setup dst volume info
-              tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN); 
-              // flsmat does not contain src and dst info
-              LTAmodifySrcDstGeom(lta_transform, mri, tmp); 
-              // add src and dst information
-              LTAchangeType(lta_transform, LINEAR_VOX_TO_VOX);
-              MRIfree(&tmp);
-            }
-
-          if(DevXFM){
-            printf("INFO: devolving XFM (%s)\n",devxfm_subject);
-            printf("-------- before ---------\n");
-            MatrixPrint(stdout,lta_transform->xforms[0].m_L);
-            T = DevolveXFM(devxfm_subject, 
-                           lta_transform->xforms[0].m_L, NULL);
-            if(T==NULL) exit(1);
-            printf("-------- after ---------\n");
-            MatrixPrint(stdout,lta_transform->xforms[0].m_L);
-            printf("-----------------\n");
-          }
-      
-          if(invert_transform_flag)
-            {
-              inverse_transform_matrix = 
-                MatrixInverse(lta_transform->xforms[0].m_L,NULL);
-              if(inverse_transform_matrix == NULL)
-                {
-                  fprintf(stderr, "ERROR: inverting transform\n");
-                  MatrixPrint(stdout,lta_transform->xforms[0].m_L);
-                  exit(1);
-                }
+      if(DevXFM){
+	printf("INFO: devolving XFM (%s)\n",devxfm_subject);
+	printf("-------- before ---------\n");
+	MatrixPrint(stdout,lta_transform->xforms[0].m_L);
+	T = DevolveXFM(devxfm_subject, 
+		       lta_transform->xforms[0].m_L, NULL);
+	if(T==NULL) exit(1);
+	printf("-------- after ---------\n");
+	MatrixPrint(stdout,lta_transform->xforms[0].m_L);
+	printf("-----------------\n");
+      }
+	
+      if(invert_transform_flag){
+	inverse_transform_matrix = 
+	  MatrixInverse(lta_transform->xforms[0].m_L,NULL);
+	if(inverse_transform_matrix == NULL) {
+	  fprintf(stderr, "ERROR: inverting transform\n");
+	  MatrixPrint(stdout,lta_transform->xforms[0].m_L);
+	  exit(1);
+	}
         
-              MatrixFree(&(lta_transform->xforms[0].m_L));
-              lta_transform->xforms[0].m_L = inverse_transform_matrix;
-              // reverse src and dst target info.
-              // since it affects the c_ras values of the result
-              // in LTAtransform()
-              // question is what to do when transform src info is invalid.
-              lt = &lta_transform->xforms[0];
-              if (lt->src.valid==0)
-                {
-                  char buf[512];
-                  char *p;
-                  MRI *mriOrig;
-
-                  fprintf(stderr, "INFO: Trying to get the source "
-                          "volume information from the transform name\n");
-                  // copy transform filename
-                  strcpy(buf, transform_fname);
-                  // reverse look for the first '/' 
-                  p = strrchr(buf, '/');
-                  if (p != 0)
-                    {
-                      p++;
-                      *p = '\0'; 
-                      // set the terminator. i.e.  
-                      // ".... mri/transforms" from "
-                      //..../mri/transforms/talairach.xfm"
-                    }
-                  else // no / present means only a filename is given
-                    {
-                      strcpy(buf, "./");
-                    }  
-                  strcat(buf, "../orig"); // go to mri/orig from 
-                  // mri/transforms/
-                  // check whether we can read header info or not
-                  mriOrig = MRIreadHeader(buf, MRI_VOLUME_TYPE_UNKNOWN);
-                  if (mriOrig)
-                    {
-                      getVolGeom(mriOrig, &lt->src);
-                      fprintf(stderr, "INFO: Succeeded in retrieving "
-                              "the source volume info.\n");
-                    }
-                  else
-                    fprintf(stderr, "INFO: Failed to find %s as a "
-                            "source volume. The inverse c_(ras) may "
-                            "not be valid.\n",
-                            buf);
-
-                }
-              copyVolGeom(&lt->dst, &vgtmp);
-              copyVolGeom(&lt->src, &lt->dst);
-              copyVolGeom(&vgtmp, &lt->src);
-            }
+	MatrixFree(&(lta_transform->xforms[0].m_L));
+	lta_transform->xforms[0].m_L = inverse_transform_matrix;
+	// reverse src and dst target info.
+	// since it affects the c_ras values of the result
+	// in LTAtransform()
+	// question is what to do when transform src info is invalid.
+	lt = &lta_transform->xforms[0];
+	if (lt->src.valid==0){
+	  char buf[512];
+	  char *p;
+	  MRI *mriOrig;
+	    
+	  fprintf(stderr, "INFO: Trying to get the source "
+		  "volume information from the transform name\n");
+	  // copy transform filename
+	  strcpy(buf, transform_fname);
+	  // reverse look for the first '/' 
+	  p = strrchr(buf, '/');
+	  if (p != 0) {
+	    p++;
+	    *p = '\0'; 
+	    // set the terminator. i.e.  
+	    // ".... mri/transforms" from "
+	    //..../mri/transforms/talairach.xfm"
+	  } else {// no / present means only a filename is given
+	    strcpy(buf, "./");
+	  }  
+	  strcat(buf, "../orig"); // go to mri/orig from 
+	  // mri/transforms/
+	  // check whether we can read header info or not
+	  mriOrig = MRIreadHeader(buf, MRI_VOLUME_TYPE_UNKNOWN);
+	  if (mriOrig) {
+	    getVolGeom(mriOrig, &lt->src);
+	    fprintf(stderr, "INFO: Succeeded in retrieving "
+		    "the source volume info.\n");
+	  } 
+	  else  printf("INFO: Failed to find %s as a source volume.  \n"
+		       "      The inverse c_(ras) may not be valid.\n",buf);
+	}
+	copyVolGeom(&lt->dst, &vgtmp);
+	copyVolGeom(&lt->src, &lt->dst);
+	copyVolGeom(&vgtmp, &lt->src);
+      }
       
-          /* Think about calling MRIlinearTransform() here; need vox2vox
-             transform. Can create NN version. In theory, LTAtransform()
-             can handle multiple transforms, but the inverse assumes only
-             one. NN is good for ROI*/
-      
-          printf("---------------------------------\n");
-          printf("INFO: Transform Matrix \n");
-          MatrixPrint(stdout,lta_transform->xforms[0].m_L);
-          printf("---------------------------------\n");
-                        
-          /* LTAtransform() runs either MRIapplyRASlinearTransform() 
-             for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
-          /* MRIlinearTransform() calls MRIlinearTransformInterp() */
-          if (out_like_flag == 1)
-            {
-              MRI *tmp = 0;
-              printf("INFO: transform dst into the like-volume\n");
-              tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);
-              mri_transformed = 
-                MRIalloc(tmp->width, tmp->height, tmp->depth, mri->type);
-              if (!mri_transformed)
-                {
-                  ErrorExit(ERROR_NOMEMORY, "could not allocate memory");
-                }
-              MRIcopyHeader(tmp, mri_transformed);
-              MRIfree(&tmp); tmp = 0;
-              mri_transformed = 
-                LTAtransform(mri, mri_transformed, lta_transform);
-            }
-          else{
-            printf("Applying LTA transform (resample_type %d)\n",
-                   resample_type_val);
-            mri_transformed = 
-              LTAtransformInterp(mri, NULL, 
-                                 lta_transform,resample_type_val);
-          }
-          if(mri_transformed == NULL){
-            fprintf(stderr, "ERROR: applying transform to volume\n");
-            exit(1);
-          }
-          LTAfree(&lta_transform);
-          MRIfree(&mri);
-          mri = mri_transformed;
-        }
-      else if(transform_type == MORPH_3D_TYPE)
-        // this is a non-linear vox-to-vox transform
-        {
-          //note that in this case trilinear 
-          // interpolation is always used, and -rt
-          // option has no effect! -xh
-          TRANSFORM *tran = TransformRead(transform_fname);
-          if (invert_transform_flag == 0)
-            mri_transformed = 
-              GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0) ;
-          else // invert 
-            {
-              mri_transformed = MRIclone(mri, NULL);
-              mri_transformed = 
-                GCAMmorphFromAtlas(mri, 
-                                   (GCA_MORPH *)tran->xform, 
-                                   mri_transformed);
-            }
-          TransformFree(&tran);
-          MRIfree(&mri);
-          mri = mri_transformed;
-        }
-      else
-        {
-          fprintf(stderr, "unknown transform type in file %s\n", 
-                  transform_fname);
-          exit(1);
-        }
-
-    }
-  else if (out_like_flag) // flag set but no transform
-    {
-      // modify direction cosines to use the 
-      // out-like volume direction cosines
-      //
-      //   src --> RAS
-      //    |       |
-      //    |       |
-      //    V       V
-      //   dst --> RAS   where dst i_to_r is taken from out volume
-      MRI *tmp = 0;
-      MATRIX *src2dst = 0;
-
-      printf("INFO: transform src into the like-volume: %s\n", 
-             out_like_name);
-      tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);
-      mri_transformed = 
-        MRIalloc(tmp->width, tmp->height, tmp->depth, mri->type);
-      if (!mri_transformed)
-        {
-          ErrorExit(ERROR_NOMEMORY, "could not allocate memory");
-        }
-      MRIcopyHeader(tmp, mri_transformed);
-      MRIfree(&tmp); tmp = 0;
-      // just to make sure
-      if (mri->i_to_r__)
-        mri->i_to_r__ = extract_i_to_r(mri);
-      if (mri_transformed->r_to_i__)
-        mri_transformed->r_to_i__ = extract_r_to_i(mri_transformed);
-      // got the transform
-      src2dst = MatrixMultiply(mri_transformed->r_to_i__,
-                               mri->i_to_r__, NULL);
-      // now get the values (tri-linear)
-      MRIlinearTransform(mri, mri_transformed, src2dst);
-      MatrixFree(&src2dst);
+      /* Think about calling MRIlinearTransform() here; need vox2vox
+	 transform. Can create NN version. In theory, LTAtransform()
+	 can handle multiple transforms, but the inverse assumes only
+	 one. NN is good for ROI*/
+	
+      printf("---------------------------------\n");
+      printf("INFO: Transform Matrix \n");
+      MatrixPrint(stdout,lta_transform->xforms[0].m_L);
+      printf("---------------------------------\n");
+	
+      /* LTAtransform() runs either MRIapplyRASlinearTransform() 
+	 for RAS2RAS or MRIlinearTransform() for Vox2Vox. */
+      /* MRIlinearTransform() calls MRIlinearTransformInterp() */
+      if (out_like_flag == 1) {
+	MRI *tmp = 0;
+	printf("INFO: transform dst into the like-volume\n");
+	tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);
+	mri_transformed = 
+	  MRIalloc(tmp->width, tmp->height, tmp->depth, mri->type);
+	if(!mri_transformed)
+	  ErrorExit(ERROR_NOMEMORY, "could not allocate memory");
+	MRIcopyHeader(tmp, mri_transformed);
+	MRIfree(&tmp); tmp = 0;
+	mri_transformed =  LTAtransform(mri, mri_transformed, lta_transform);
+      } else {
+	printf("Applying LTA transform (resample_type %d)\n",
+	       resample_type_val);
+	mri_transformed = LTAtransformInterp(mri, NULL, lta_transform,resample_type_val);
+      }
+      if(mri_transformed == NULL){
+	fprintf(stderr, "ERROR: applying transform to volume\n");
+	exit(1);
+      }
+      LTAfree(&lta_transform);
       MRIfree(&mri);
-      mri=mri_transformed;
-    } 
-
-  if(reslice_like_flag)
-    {
-
-      if(force_template_type_flag)
-        {
-          printf("reading template info from (type %s) volume %s...\n", 
-                 template_type_string, reslice_like_name);
-          template = 
-            MRIreadHeader(reslice_like_name, forced_template_type);
-          if(template == NULL)
-            {
-              fprintf(stderr, "error reading from volume %s\n", 
-                      reslice_like_name);
-              exit(1);
-            }
-        }
-      else
-        {
-          printf("reading template info from volume %s...\n", 
-                 reslice_like_name);
-          template = MRIreadInfo(reslice_like_name);
-          if(template == NULL)
-            {
-              fprintf(stderr, "error reading from volume %s\n", 
-                      reslice_like_name);
-              exit(1);
-            }
-        }
-
+      mri = mri_transformed;
     }
-  else
-    {
+    else if(transform_type == MORPH_3D_TYPE){
+      // this is a non-linear vox-to-vox transform
+      //note that in this case trilinear 
+      // interpolation is always used, and -rt
+      // option has no effect! -xh
+      TRANSFORM *tran = TransformRead(transform_fname);
+      if (invert_transform_flag == 0)
+	mri_transformed = 
+	  GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0) ;
+      else // invert 
+	{
+	  mri_transformed = MRIclone(mri, NULL);
+	  mri_transformed = 
+	    GCAMmorphFromAtlas(mri, 
+			       (GCA_MORPH *)tran->xform, 
+			       mri_transformed);
+	}
+      TransformFree(&tran);
+      MRIfree(&mri);
+      mri = mri_transformed;
+    }
+    else {
+      fprintf(stderr, "unknown transform type in file %s\n", 
+	      transform_fname);
+      exit(1);
+    }
+
+  }
+  else if (out_like_flag){ // flag set but no transform
+    // modify direction cosines to use the 
+    // out-like volume direction cosines
+    //
+    //   src --> RAS
+    //    |       |
+    //    |       |
+    //    V       V
+    //   dst --> RAS   where dst i_to_r is taken from out volume
+    MRI *tmp = 0;
+    MATRIX *src2dst = 0;
+
+    printf("INFO: transform src into the like-volume: %s\n", 
+	   out_like_name);
+    tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);
+    mri_transformed = 
+      MRIalloc(tmp->width, tmp->height, tmp->depth, mri->type);
+    if (!mri_transformed)
+      {
+	ErrorExit(ERROR_NOMEMORY, "could not allocate memory");
+      }
+    MRIcopyHeader(tmp, mri_transformed);
+    MRIfree(&tmp); tmp = 0;
+    // just to make sure
+    if (mri->i_to_r__)
+      mri->i_to_r__ = extract_i_to_r(mri);
+    if (mri_transformed->r_to_i__)
+      mri_transformed->r_to_i__ = extract_r_to_i(mri_transformed);
+    // got the transform
+    src2dst = MatrixMultiply(mri_transformed->r_to_i__,
+			     mri->i_to_r__, NULL);
+    // now get the values (tri-linear)
+    MRIlinearTransform(mri, mri_transformed, src2dst);
+    MatrixFree(&src2dst);
+    MRIfree(&mri);
+    mri=mri_transformed;
+  } 
+
+  if(reslice_like_flag){
+
+    if(force_template_type_flag){
+      printf("reading template info from (type %s) volume %s...\n", 
+	     template_type_string, reslice_like_name);
       template = 
-        MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
-      MRIcopyHeader(mri, template);
-      if(conform_flag)
-        {
-          conform_width = 256;
-          if (conform_min == TRUE)
-            {
-              conform_size = findMinSize(mri, &conform_width);
-            }
-          else
-            {
-              conform_width = findRightSize(mri, conform_size);
-            }
-          template->width = 
-            template->height = template->depth = conform_width;
-          template->imnr0 = 1;
-          template->imnr1 = conform_width;
-          template->type = MRI_UCHAR;
-          template->thick = conform_size;
-          template->ps = conform_size;
-          template->xsize = 
-            template->ysize = template->zsize = conform_size;
-          printf("Original Data has (%g, %g, %g) mm size "
-                 "and (%d, %d, %d) voxels.\n",
-                 mri->xsize, mri->ysize, mri->zsize, 
-                 mri->width, mri->height, mri->depth);
-          printf("Data is conformed to %g mm size and "
-                 "%d voxels for all directions\n", 
-                 conform_size, conform_width); 
-          template->xstart = template->ystart = 
-            template->zstart = - conform_width/2;
-          template->xend = 
-            template->yend = template->zend = conform_width/2;
-          template->x_r = -1.0;  
-          template->x_a =  0.0; 
-          template->x_s =  0.0;
-          template->y_r =  0.0; 
-          template->y_a =  0.0;  
-          template->y_s = -1.0;
-          template->z_r =  0.0; 
-          template->z_a =  1.0; 
-          template->z_s =  0.0;
-        }
+	MRIreadHeader(reslice_like_name, forced_template_type);
+      if(template == NULL)
+	{
+	  fprintf(stderr, "error reading from volume %s\n", 
+		  reslice_like_name);
+	  exit(1);
+	}
+    } else {
+      printf("reading template info from volume %s...\n", 
+	     reslice_like_name);
+      template = MRIreadInfo(reslice_like_name);
+      if(template == NULL)
+	{
+	  fprintf(stderr, "error reading from volume %s\n", 
+		  reslice_like_name);
+	  exit(1);
+	}
     }
+
+  }
+  else {
+    template = 
+      MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
+    MRIcopyHeader(mri, template);
+    if(conform_flag) {
+      conform_width = 256;
+      if(conform_min == TRUE)  conform_size = findMinSize(mri, &conform_width);
+      else                    conform_width = findRightSize(mri, conform_size);
+      template->width = 
+	template->height = template->depth = conform_width;
+      template->imnr0 = 1;
+      template->imnr1 = conform_width;
+      template->type = MRI_UCHAR;
+      template->thick = conform_size;
+      template->ps = conform_size;
+      template->xsize = 
+	template->ysize = template->zsize = conform_size;
+      printf("Original Data has (%g, %g, %g) mm size "
+	     "and (%d, %d, %d) voxels.\n",
+	     mri->xsize, mri->ysize, mri->zsize, 
+	     mri->width, mri->height, mri->depth);
+      printf("Data is conformed to %g mm size and "
+	     "%d voxels for all directions\n", 
+	     conform_size, conform_width); 
+      template->xstart = template->ystart = 
+	template->zstart = - conform_width/2;
+      template->xend = 
+	template->yend = template->zend = conform_width/2;
+      template->x_r = -1.0;  
+      template->x_a =  0.0; 
+      template->x_s =  0.0;
+      template->y_r =  0.0; 
+      template->y_a =  0.0;  
+      template->y_s = -1.0;
+      template->z_r =  0.0; 
+      template->z_a =  1.0; 
+      template->z_s =  0.0;
+    }
+  }
 
   /* ----- apply command-line parameters ----- */
   if(out_i_size_flag)
