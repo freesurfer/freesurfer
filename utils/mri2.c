@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.19 2006/01/26 00:50:05 greve Exp $
+  $Id: mri2.c,v 1.20 2006/01/26 00:50:43 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -608,8 +608,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
 
   // Compute vox2vox matrix based on vox2ras of src and target. 
   // Assumes that src and targ have same RAS space.
-  if(Vt2s 
-== NULL){
+  if(Vt2s == NULL){
     V2Rsrc = MRIxfmCRS2XYZ(src,0);
     invV2Rsrc = MatrixInverse(V2Rsrc,NULL);
     V2Rtarg = MRIxfmCRS2XYZ(targ,0);
