@@ -3,18 +3,24 @@
 #set echo=1
 
 # The MNI tools, when originally compiled and installed, hard-code
-# the perl path into several files.  This is problematic if the 
+# the perl path into several files.  This is problematic if the
 # MNI tools are moved to another system, and the perl path is
 # different.
 
 # If the MNI tools built on one system are moved to another, then
 # this script patches the files with the correct perl path.
 
-setenv MY_PERL `which perl`
-if ($status) then
-    echo "You do not seem to have perl on your system!"
-    echo "The MNI tools require perl."
-    exit 1
+# if MY_PERL is set to a path to perl, it will use that instead of
+# trying to determine the default path.  this is useful when
+# needing to over-ride the default path.
+
+if (! $?MY_PERL) then
+    setenv MY_PERL `which perl`
+    if ($status) then
+        echo "You do not seem to have perl on your system!"
+        echo "The MNI tools require perl."
+        exit 1
+    endif
 endif
 
 # MINC_BIN_DIR is defined by $FREESURFER_HOME/FreeSurferEnv.csh
@@ -67,7 +73,7 @@ foreach file ($MNI_FILES)
     diff $file $file.old
 end
 echo "done."
-echo "Note: not all systems will require a patch," 
+echo "Note: not all systems will require a patch,"
 echo "and may not show any differences."
 
 echo "Now a test of the MNI tool 'nu_correct'..."
