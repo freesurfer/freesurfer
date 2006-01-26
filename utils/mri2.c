@@ -1,13 +1,15 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.18 2006/01/20 03:29:28 greve Exp $
+  $Id: mri2.c,v 1.19 2006/01/26 00:50:05 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "error.h"
+#include "diag.h"
 #include "mri.h"
 #include "fio.h"
 #include "stats.h"
@@ -576,7 +578,9 @@ MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes)
   Use this function instead of vol2vol_linear() in resample.c.
 
   Vt2s is the 4x4 matrix which converts CRS in the target to
-  CRS in the source (ie, it is a vox2vox).
+  CRS in the source (ie, it is a vox2vox). If it is NULL, then
+  the vox2vox is computed from the src and targ vox2ras matrices,
+  assuming the src and targ share the same RAS.
 
   InterpCode is either: SAMPLE_NEAREST, SAMPLE_TRILINEAR, or
   SAMPLE_SINC.
@@ -593,11 +597,28 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
   float *valvect;
   int sinchw;
   Real rval;
+  MATRIX *V2Rsrc=NULL, *invV2Rsrc=NULL, *V2Rtarg=NULL;
+  int FreeMats=0;
 
   if(src->nframes != targ->nframes){
     printf("ERROR: MRIvol2vol: source and target have different number "
 	   "of frames\n");
     return(1);
+  }
+
+  // Compute vox2vox matrix based on vox2ras of src and target. 
+  // Assumes that src and targ have same RAS space.
+  if(Vt2s 
+== NULL){
+    V2Rsrc = MRIxfmCRS2XYZ(src,0);
+    invV2Rsrc = MatrixInverse(V2Rsrc,NULL);
+    V2Rtarg = MRIxfmCRS2XYZ(targ,0);
+    Vt2s = MatrixMultiply(invV2Rsrc,V2Rtarg,NULL);
+    FreeMats = 1;
+  }
+  if(Gdiag_no > 0){
+    printf("MRIvol2Vol: Vt2s Matrix (%d)\n",FreeMats);
+    MatrixPrint(stdout,Vt2s);
   }
 
   sinchw = nint(param);
@@ -651,6 +672,12 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
   } /* target slice */
 
   free(valvect);
+  if(FreeMats){
+    MatrixFree(&V2Rsrc);
+    MatrixFree(&invV2Rsrc);
+    MatrixFree(&V2Rtarg);
+    MatrixFree(&Vt2s);
+  }
 
   return(0);
 }
