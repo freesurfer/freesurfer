@@ -1,6 +1,9 @@
 #!/bin/tcsh -ef
 #set echo=1
 
+# so that the group write bit is set on created files
+umask 002
+
 if ("$1" == "rh7.3") then
     if ("`uname -n`" != "martinos01" ) then
         echo "must run on machine martinos01"

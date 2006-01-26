@@ -1,9 +1,12 @@
 #!/bin/tcsh -f
 
+set VERSION='$Id: build_release_type.csh,v 1.15 2006/01/26 23:43:07 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
-set VERSION='$Id: build_release_type.csh,v 1.14 2006/01/25 21:14:05 nicks Exp $'
+# so that the group write bit is set on created files
+umask 002
+
 set HOSTNAME=`hostname -s`
 setenv OSTYPE `uname -s`
 if ("$OSTYPE" == "linux") setenv OSTYPE Linux
