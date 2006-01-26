@@ -1,6 +1,6 @@
 #! /usr/pubsw/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.106 2006/01/23 17:04:03 kteich Exp $
+# $Id: tksurfer.tcl,v 1.107 2006/01/26 20:14:20 kteich Exp $
 
 package require BLT;
 
@@ -136,6 +136,12 @@ set gaHistogramData(threshMode) linear
 
 # used in overlay config dialog
 set gbOverlayApplyToAll 0
+
+# fill action constants
+set gaFillAction(no_action) 0
+set gaFillAction(new_label) 1
+set gaFillAction(add_to_label) 2
+set gaFillAction(remove_from_label) 3
 
 # ====================================================== LINKED VAR MANAGEMENT
 
@@ -2107,6 +2113,7 @@ proc DoCustomFillDlog {} {
 
     global gDialog
     global gFillParms
+    global gaFillAction
 
     set wwDialog .wwCustomFillDlog
 
@@ -2160,26 +2167,26 @@ proc DoCustomFillDlog {} {
 	set fwAction            [$lfwAction subwidget frame]
 
 	# rbs for flags
-	set gFillParms(action) 0
+	set gFillParms(action) $gaFillAction(new_label)
 	set gFillParms(argument) 0
 	label $fwAction.lwNew \
 	    -font [tkm_GetNormalFont] \
 	    -text "Create new label"
 	radiobutton $fwAction.rbwNew \
 	    -font [tkm_GetNormalFont] -relief flat\
-	    -variable gFillParms(action) -value 0
+	    -variable gFillParms(action) -value $gaFillAction(new_label)
 	label $fwAction.lwAdd \
 	    -font [tkm_GetNormalFont] \
 	    -text "Add to existing label"
 	radiobutton $fwAction.rbwAdd \
 	    -font [tkm_GetNormalFont] -relief flat\
-	    -variable gFillParms(action) -value 1
+	    -variable gFillParms(action) -value $gaFillAction(add_to_label)
 	label $fwAction.lwRemove \
 	    -font [tkm_GetNormalFont] \
 	    -text "Remove from label"
 	radiobutton $fwAction.rbwRemove \
 	    -font [tkm_GetNormalFont] -relief flat\
-	    -variable gFillParms(action) -value 2
+	    -variable gFillParms(action) -value $gaFillAction(remove_from_label)
 	menubutton $fwAction.owTarget \
 	    -menu $fwAction.owTarget.mw \
 	    -indicatoron 1
@@ -2342,15 +2349,15 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ separator }
 	{command "Load Overlay..."
 	    {DoLoadOverlayDlog}}
+	{command
+	    "Load Label Value File..."
+	    {DoLoadLabelValueFileDlog} }
 	{command "Save Overlay As..."
 	    {DoSaveValuesAsDlog}
 	    mg_OverlayLoaded }
 	{command
 	    "Load Time Course..."
 	    {DoLoadTimeCourseDlog} }
-	{command
-	    "Load Label Value File..."
-	    {DoLoadLabelValueFileDlog} }
 	{ separator }
 	{command
 	    "Load Group Descriptor File..."
@@ -2773,7 +2780,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ cascade "Labels" {
 	    { command "New Label from Marked Vertices"
 		{ labl_new_from_marked_vertices; UpdateAndRedraw } }
-	    { command "Mark Seleted Label"
+	    { command "Mark Selected Label"
 		{ labl_mark_vertices $gnSelectedLabel
 		    UpdateAndRedraw }
 		mg_LabelLoaded }
@@ -2804,6 +2811,9 @@ proc CreateMenuBar { ifwMenuBar } {
 		    UpdateAndRedraw } }
 	    { command "Cut Plane"
 		{ cut_plane
+		    UpdateAndRedraw } }
+	    { command "Fill Uncut Area"
+		{ rip_all_vertices_except_contiguous_upripped;
 		    UpdateAndRedraw } }
 	    { command "Clear Cuts"
 		{ restore_ripflags 2
@@ -2843,15 +2853,12 @@ proc CreateMenuBar { ifwMenuBar } {
 		{ path_remove_selected_path } }
 	    { command "Custom Fill..."
 		{ DoCustomFillDlog } }
-	    { command "Fill Uncut Area"
-		{ floodfill_marked_patch 0
-		    UpdateAndRedraw } }
 	    { command "Fill Stats"
-		{ floodfill_marked_patch 1
+		{ mark_contiguous_vertices_over_thresh;
 		    UpdateAndRedraw }
 		mg_OverlayLoaded }
 	    { command "Fill Curvature"
-		{ floodfill_marked_patch 2
+		{ mark_contiguous_vertices_with_similar_curvature;
 		    UpdateAndRedraw }
 		mg_CurvatureLoaded } 
 	}}
@@ -2860,7 +2867,8 @@ proc CreateMenuBar { ifwMenuBar } {
 		{ DoSmoothCurvatureDlog }
 		mg_CurvatureLoaded }
 	    { command "Clear Curvature"
-		{ clear_curvature }
+		{ clear_curvature
+		    UpdateAndRedraw }
 		mg_CurvatureLoaded }
 	    { command "Smooth Overlay..."
 		{ DoSmoothOverlayDlog }
@@ -3237,7 +3245,7 @@ proc CreateToolBar { ifwToolBar } {
 	    "Cut Closed Line" } 
 	{ image icon_cut_plane { cut_plane; UpdateAndRedraw } 
 	    "Cut Plane" } 
-	{ image icon_cut_area { floodfill_marked_patch 0; 
+	{ image icon_cut_area { rip_all_vertices_except_contiguous_upripped; 
 	    UpdateAndRedraw } "Fill Uncut Area" } 
 	{ image icon_cut_clear { restore_ripflags 2; UpdateAndRedraw } 
 	    "Clear Cuts" }

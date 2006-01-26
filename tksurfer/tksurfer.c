@@ -558,8 +558,6 @@ static int mouseover_vno = -1;
 int nmarked = 0;
 int *marked;
 
-LABEL *area = NULL ;
-
 int autoflag = FALSE;
 int autoscaleflag = FALSE;
 int MRIflag = TRUE;
@@ -847,6 +845,12 @@ void set_color_wheel(float a, float a_offset, float a_cycles, int mode,
 void restore_ripflags(int mode) ;
 void dilate_ripped(void) ;
 void floodfill_marked_patch(int filltype) ;
+/* begin rkt */
+/* Replacements for the floodfill_marked_patch stuff. */
+int rip_all_vertices_except_contiguous_upripped ();
+int mark_contiguous_vertices_with_similar_curvature();
+int mark_contiguous_vertices_over_thresh();
+/* end rkt */
 void clear_ripflags(void) ;
 void cut_marked_vertices(int closedcurveflag) ;
 void cut_plane(void) ;
@@ -984,7 +988,6 @@ void write_images(unsigned char ***mat,char *fpref) ;
 int  read_binary_surface(char *fname) ;
 /* begin rkt */
 int vset_read_vertex_set(int set, char* fname ) ;
-int vset_set_current_set(int set) ;
 /* end rkt */
 void read_positions(char *name) ;
 void save_surf(void) ;
@@ -1488,6 +1491,10 @@ int sclv_read_from_dotw_frame (char* fname, int field);
 int sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
                            char* registration, int field);
 
+/* Creates a new overlay and fills it with the stat values from a
+   label. */
+int sclv_new_from_label (int field, int label);
+
 /* writes .w files only */
 int sclv_write_dotw (char* fname, int field);
 
@@ -1805,10 +1812,11 @@ int path_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b );
 
 /* ------------------------------------------------------- floodfill mark */
 
-#define FILL_ACTION_NEW_LABEL    0
-#define FILL_ACTION_ADD_LABEL    1
-#define FILL_ACTION_REMOVE_LABEL 2
-#define NUM_FILL_ACTIONS         3
+#define FILL_NO_ACTION_JUST_MARK 0
+#define FILL_ACTION_NEW_LABEL    1
+#define FILL_ACTION_ADD_LABEL    2
+#define FILL_ACTION_REMOVE_LABEL 3
+#define NUM_FILL_ACTIONS         4
 
 typedef struct {
   
@@ -7782,72 +7790,49 @@ write_labeled_vertices(char *fname)
 {
   int    vno, npoints, n ;
   VERTEX *v ;
+  LABEL* area;
   
-  if (area)
+  fprintf(stderr, "generating label from marked vertices...\n") ;
+  
+  /* count the number of marked vertices. */
+  for (npoints = vno = 0 ; vno < mris->nvertices ; vno++)
+    if (mris->vertices[vno].marked)
+      npoints++ ;
+  
+  /* if we didn't get any, return. */
+  if (!npoints) 
     {
-      if (origsurfloaded == FALSE)
-        {
-          fprintf(stderr, "reading original vertex locations...\n") ;
-          MRISreadOriginalProperties(mris, NULL) ;
-          origsurfloaded = TRUE ;
-        }
-      
-      /* fill in the proper stat field here. */
-      for (n = 0 ; n < area->n_points ; n++) 
-        {
-          sclv_get_value (&(mris->vertices[area->lv[n].vno]),
-                          sclv_current_field, &(area->lv[n].stat) );
-        }
-      
-      fprintf(stderr, "writing %d labeled vertices to %s.\n",
-              area ? area->n_points : -1, fname) ;
-      LabelToOriginal(area, mris) ;
-      LabelWrite(area, fname) ;
+      fprintf(stderr, "no marked vertices...\n") ;
+      return;
     }
-  else
+  
+  /* allocate a label. */
+  area = LabelAlloc(npoints, NULL, NULL) ;
+  
+  /* Copy the subject name. */
+  strncpy( area->subject_name, pname, 100 );
+  
+  /* for every vertex, if it's marked, save its vertex coords,
+     index, and fill the value of the current overlay. */
+  for (n = vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      fprintf(stderr, "generating label from marked vertices...\n") ;
-      
-      /* count the number of marked vertices. */
-      for (npoints = vno = 0 ; vno < mris->nvertices ; vno++)
-        if (mris->vertices[vno].marked)
-          npoints++ ;
-      
-      /* if we didn't get any, return. */
-      if (!npoints) 
-        {
-          fprintf(stderr, "no marked vertices...\n") ;
-          return;
-        }
-      
-      /* allocate a label. */
-      area = LabelAlloc(npoints, NULL, NULL) ;
-      
-      /* Copy the subject name. */
-      strncpy( area->subject_name, pname, 100 );
-
-      /* for every vertex, if it's marked, save its vertex coords,
-         index, and fill the value of the current overlay. */
-      for (n = vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (!v->marked)
-            continue ;
-          area->lv[n].x = v->x ;
-          area->lv[n].y = v->y ;
-          area->lv[n].z = v->z ;
-          area->lv[n].vno = vno ;
-          sclv_get_value (v, sclv_current_field, &(area->lv[n].stat) );
-          n++ ;
-        }
-      area->n_points = npoints ;
-      
-      fprintf(stderr, "writing %d labeled vertices to %s.\n",
-              area ? area->n_points : -1, fname) ;
-      LabelToOriginal(area, mris) ;
-      LabelWrite(area, fname) ;
-      LabelFree(&area) ;
+      v = &mris->vertices[vno] ;
+      if (!v->marked)
+	continue ;
+      area->lv[n].x = v->x ;
+      area->lv[n].y = v->y ;
+      area->lv[n].z = v->z ;
+      area->lv[n].vno = vno ;
+      sclv_get_value (v, sclv_current_field, &(area->lv[n].stat) );
+      n++ ;
     }
+  area->n_points = npoints ;
+  
+  fprintf(stderr, "writing %d labeled vertices to %s.\n",
+	  area ? area->n_points : -1, fname) ;
+  LabelToOriginal(area, mris) ;
+  LabelWrite(area, fname) ;
+  LabelFree(&area) ;
 }
 
 #if 0
@@ -8289,7 +8274,6 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   
   /* turn on the overlay flag and select this value set */
   vertex_array_dirty = 1 ;
-  PR ;
   overlayflag = TRUE;
   sclv_set_current_field (field);
   
@@ -8312,6 +8296,89 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
 
   return (ERROR_NONE);
 }
+
+
+int sclv_new_from_label (int field, int label)
+{
+
+  VERTEX *v;
+  LABEL  *area;
+  int    n;
+  float  min, max, f;
+  char   cmd[STRLEN];
+  
+  if (field < 0 || field > NUM_SCALAR_VALUES)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM,
+                 "sclv_new_from_label: field was out of bounds: %d)",
+                 field));
+
+  if (label < 0 || label > labl_num_labels)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM,
+                 "sclv_new_from_label: label was out of bounds: %d)",
+                 field));
+
+  /* Unload this field if it already exists */
+  sclv_unload_field (field);
+
+  /* Get the label structure and go through the points. For each one,
+     set our overlay value. Also check for min/max values. */
+  area = labl_labels[label].label ;
+  min = max = 0.0 ;
+  for (n = 0  ; n < area->n_points ; n++)
+    {
+      if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices)
+        {
+          v = &mris->vertices[area->lv[n].vno] ;
+          f = area->lv[n].stat ;
+
+	  /* Set the value. */
+          sclv_set_value(v, field, f) ;
+
+	  /* Check for min/max. */
+          if (n == 0)
+            min = max = f ;
+          if (f > max)
+            max = f ;
+          if (f < min)
+            min = f ;
+        }
+    }
+
+  /* Set up some initial stuff here. */
+  sclv_field_info[field].min_value = min;
+  sclv_field_info[field].max_value = max;
+  sclv_field_info[field].cur_timepoint = 0;
+  sclv_field_info[field].cur_condition = 0;
+  sclv_field_info[field].num_timepoints = 1;
+  sclv_field_info[field].num_conditions = 1;
+
+  /* calc the frquencies */
+  sclv_calc_frequencies (field);
+
+  /* request a redraw. turn on the overlay flag and select this value set */
+  vertex_array_dirty = 1 ;
+  overlayflag = TRUE;
+  sclv_set_current_field (field);
+
+  /* set the field name to the name of the file loaded */
+  sprintf (cmd, "UpdateValueLabelName %d \"%s\"", 
+	   field, labl_labels[labl_selected_label].name);
+  send_tcl_command (cmd);
+  sprintf (cmd, "ShowValueLabel %d 1", field);
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup view");
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup overlay");
+  send_tcl_command (cmd);
+
+  /* Enable menu items. */
+  enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
+
+  return (NO_ERROR);
+}
+
 
 void
 read_binary_values_frame(char *fname)
@@ -15267,6 +15334,22 @@ dilate_ripped(void)
 void
 floodfill_marked_patch(int filltype)
 {
+  /* Compatibility function. */
+  switch (filltype)
+    {
+    case RIPFILL:
+      rip_all_vertices_except_contiguous_upripped ();
+      break;
+    case CURVFILL:
+      mark_contiguous_vertices_with_similar_curvature ();
+      break;
+    case STATFILL:
+      mark_contiguous_vertices_over_thresh ();
+      break;
+    }
+
+#if 0
+  FILL_PARAMETERS params;
   VERTEX *v, *vn;
   int i,k,m,filled,totfilled=0,kmin,kmax,kstep;
   /* begin rkt */
@@ -15274,53 +15357,40 @@ floodfill_marked_patch(int filltype)
   /* end rkt */
   
   if (nmarked==0) return;
-  fprintf(stderr, "floodfill_marked_patch(%d)\n", filltype) ;
-  if (area)
-    LabelFree(&area) ;
   
+  params.dont_cross_path = 0;
+  params.dont_cross_label = 0;
+  params.dont_cross_cmid = 0;
+  params.dont_cross_fthresh = 0;
+  params.dont_fill_unlabeled = 0;
+  params.use_multiple_seeds = 0;
+  params.action = FILL_NO_ACTION_JUST_MARK;
+  fill_flood_from_seed (marked[0], &params);
+
   if (filltype == CURVFILL)
     {
       area = LabelAlloc(mris->nvertices, pname, lfname) ;
       strncpy( area->subject_name, pname, 100 );
       fprintf(stderr, "subject_name=%s, lfname=%s\n", pname,lfname) ;
       LabelCurvFill(area, marked, nmarked, mris->nvertices, mris) ;
-#if 0
-      LabelWrite(area, lfname) ;
-      LabelFree(&area) ;
-#endif
       LabelMark(area, mris) ;
       /*    redraw() ;*/
       return ;
     }
   else if (filltype == RIPFILL)
     {
-      area = LabelAlloc(mris->nvertices, pname, lfname) ;
-      strncpy( area->subject_name, pname, 100 );
-      fprintf(stderr, "subject_name=%s, lfname=%s\n", pname,lfname) ;
-      LabelFillAll(area, marked, nmarked, mris->nvertices, mris) ;
-#if 0
-      LabelWrite(area, lfname) ;
-      LabelFree(&area) ;
-#endif
-      LabelMark(area, mris) ;
-      
+
       /* begin rkt */
+
       undo_begin_action (UNDO_CUT);
-      /* end rkt */
       
       for (k=0;k<mris->nvertices;k++)
         {
           v = &mris->vertices[k] ;
           if (!v->marked)
-            /* begin rkt */
-            /*v->ripflag = 1 ;*/
             set_vertex_rip (k, TRUE, TRUE);
-          /* end rkt */
           else
-            /* begin rkt */
-            /*v->marked = 0 ;*/   /* unmark it so curvature will show */
             set_vertex_rip (k, FALSE, TRUE);
-          /* end rkt */
         }
       rip_faces() ;
       
@@ -15390,16 +15460,120 @@ floodfill_marked_patch(int filltype)
     }
   area = LabelFromMarkedSurface(mris) ;
   PR
-    
-#if 0
-#if 1
-    MRISclearMarks(mris) ; nmarked = 0 ;
-#else
-  for (k=0;k<mris->nvertices;k++)
-    mris->vertices[k].marked = FALSE;
-  clear_vertex_marks();
 #endif
-#endif
+}
+
+int
+mark_contiguous_vertices_over_thresh ()
+{
+  FILL_PARAMETERS params;
+  int error;
+
+  if (nmarked==0) 
+    {
+      printf ("surfer: need a seed point, please mark a vertex\n");
+      return (ERROR_BADPARM);
+    }
+
+  params.dont_cross_path     = 0;
+  params.dont_cross_label    = 0;
+  params.dont_cross_cmid     = 0;
+  params.dont_cross_fthresh  = 1;
+  params.dont_fill_unlabeled = 0;
+  params.use_multiple_seeds  = 0;
+  params.action = FILL_NO_ACTION_JUST_MARK;
+
+  error = fill_flood_from_seed (marked[0], &params);
+  if (NO_ERROR != error)
+    printf ("surfer: Error marking.\n");
+
+  surface_compiled = 0 ;
+  vertex_array_dirty = 1;
+
+  return (NO_ERROR);
+}
+
+int
+mark_contiguous_vertices_with_similar_curvature ()
+{
+  FILL_PARAMETERS params;
+  int error;
+
+  if (nmarked==0) 
+    {
+      printf ("surfer: need a seed point, please mark a vertex\n");
+      return (ERROR_BADPARM);
+    }
+
+  params.dont_cross_path     = 0;
+  params.dont_cross_label    = 0;
+  params.dont_cross_cmid     = 1;
+  params.dont_cross_fthresh  = 0;
+  params.dont_fill_unlabeled = 0;
+  params.use_multiple_seeds  = 0;
+  params.action = FILL_NO_ACTION_JUST_MARK;
+
+  error = fill_flood_from_seed (marked[0], &params);
+  if (NO_ERROR != error)
+    printf ("surfer: Error marking.\n");
+
+  surface_compiled = 0 ;
+  vertex_array_dirty = 1;
+
+  return (NO_ERROR);
+}
+
+int
+rip_all_vertices_except_contiguous_upripped ()
+{
+  FILL_PARAMETERS params;
+  int error;
+  int vno;
+  int count;
+
+  if (nmarked==0) 
+    {
+      printf ("surfer: need a seed point, please mark a vertex\n");
+      return (ERROR_BADPARM);
+    }
+
+  params.dont_cross_path     = 0;
+  params.dont_cross_label    = 0;
+  params.dont_cross_cmid     = 0;
+  params.dont_cross_fthresh  = 0;
+  params.dont_fill_unlabeled = 0;
+  params.use_multiple_seeds  = 0;
+  params.action = FILL_NO_ACTION_JUST_MARK;
+
+  error = fill_flood_from_seed (marked[0], &params);
+  if (NO_ERROR != error)
+    printf ("surfer: Error ripping.\n");
+
+  undo_begin_action (UNDO_CUT);
+
+  count = 0;
+  for (vno = 0; vno < mris->nvertices; vno++)
+    {
+      if (!mris->vertices[vno].marked)
+	{
+	  count++;
+	  set_vertex_rip (vno, TRUE, TRUE);
+	}
+    }
+
+  undo_finish_action ();
+ 
+  clear_all_vertex_marks ();
+
+  printf ("surfer: ripped %d vertices\n", count);
+
+  rip_faces();
+  surface_compiled = 0;
+  vertex_array_dirty = 1;
+
+  vset_set_current_set (vset_current_set);
+
+  return (NO_ERROR);
 }
 
 void
@@ -16187,11 +16361,6 @@ clear_vertex_marks(void)
   for (i=0;i<nmarked;i++)
     mris->vertices[marked[i]].marked = FALSE;
   nmarked = 0;
-  if (area)
-    {
-      LabelUnmark(area, mris) ;
-      LabelFree(&area) ;
-    }
 }
 void
 clear_all_vertex_marks(void)
@@ -16201,11 +16370,6 @@ clear_all_vertex_marks(void)
   for (i=0;i<mris->nvertices;i++)
     mris->vertices[i].marked = FALSE;
   nmarked = 0;
-  if (area)
-    {
-      LabelUnmark(area, mris) ;
-      LabelFree(&area) ;
-    }
 }
 
 /* begin rkt */
@@ -17702,6 +17866,10 @@ int W_get_marked_vnos PARM;
 int W_get_selected_path_vnos PARM;
 int W_save_tiff PARM;
 int W_flip_normals PARM;
+int W_mark_contiguous_vertices_over_thresh PARM;
+int W_mark_contiguous_vertices_with_similar_curvature PARM;
+int W_rip_all_vertices_except_contiguous_upripped PARM;
+
 /* end rkt */
 
 #define TkCreateMainWindow Tk_CreateMainWindow
@@ -18985,16 +19153,29 @@ int W_get_selected_path_vnos ( ClientData clientData, Tcl_Interp *interp,
 
 int W_save_tiff WBEGIN
 ERR(2,"Wrong # args: save_tiff filename")
-     save_tiff(argv[1]); WEND
+save_tiff(argv[1]); WEND
+     
+int W_flip_normals WBEGIN
+ERR(2,"Wrong # args: flip_normals axes")
+flip_normals(argv[1]); WEND
 
-     int W_flip_normals WBEGIN
-     ERR(2,"Wrong # args: flip_normals axes")
-     flip_normals(argv[1]); WEND
+int W_mark_contiguous_vertices_over_thresh WBEGIN
+ERR(1,"Wrong # args: mark_contiguous_vertices_over_thresh")
+mark_contiguous_vertices_over_thresh(); WEND
+     
+int W_mark_contiguous_vertices_with_similar_curvature WBEGIN
+ERR(1,"Wrong # args: mark_contiguous_vertices_with_similar_curvature")
+mark_contiguous_vertices_with_similar_curvature(); WEND
+     
+int W_rip_all_vertices_except_contiguous_upripped WBEGIN
+ERR(1,"Wrong # args: rip_all_vertices_except_contiguous_upripped")
+rip_all_vertices_except_contiguous_upripped (); WEND
+     
 
-     /* end rkt */
-     /*===================================================================*/
+/* end rkt */
+/*===================================================================*/
 
-     /* licensing */
+/* licensing */
 
 #ifdef USE_LICENSE
 #ifndef IRIX
@@ -19081,7 +19262,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.176 2006/01/24 21:18:59 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.177 2006/01/26 20:14:04 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19857,6 +20038,15 @@ int main(int argc, char *argv[])   /* new main */
   
   Tcl_CreateCommand(interp, "flip_normals",
                     (Tcl_CmdProc*) W_flip_normals, REND);
+
+  Tcl_CreateCommand(interp, "mark_contiguous_vertices_over_thresh",
+                    (Tcl_CmdProc*) W_mark_contiguous_vertices_over_thresh, REND);
+
+  Tcl_CreateCommand(interp, "mark_contiguous_vertices_with_similar_curvature",
+                    (Tcl_CmdProc*) W_mark_contiguous_vertices_with_similar_curvature, REND);
+
+  Tcl_CreateCommand(interp, "rip_all_vertices_except_contiguous_upripped",
+                    (Tcl_CmdProc*) W_rip_all_vertices_except_contiguous_upripped, REND);
 
   /* end rkt */
   /*=======================================================================*/
@@ -21220,7 +21410,7 @@ update_labels(int label_set, int vno, float dmin)
           sprintf(command, "UpdateLabel %d %d \"%s, %d others\"", 
                   label_set, LABEL_LABEL,
                   labl_labels[label_index_array[0]].name,
-                  num_labels_found);
+                  num_labels_found-1);
         } 
       else
         {
@@ -22505,16 +22695,6 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
 
 int func_select_marked_vertices()
 {
-#if 0
-  int vmarked;
-  VERTEX* v = NULL;
-  
-  for (vmarked = 0 ; vmarked < nmarked ; vmarked++)
-    {
-      v = &(mris->vertices[marked[vmarked]]);
-      func_select_voxel (marked[nmarked], v->origx,v->origy,v->origz);
-    }
-#else 
   int vno, count;
   VERTEX* v = NULL;
   
@@ -22529,31 +22709,30 @@ int func_select_marked_vertices()
         }
     }
   printf("surfer: averaging %d voxels\n",count);
-#endif
   return(ERROR_NONE);
 }
 
 int func_select_label()
 {
-  int lno;
+  int n;
   int count;
-  LV* lv = NULL;
   VERTEX* v = NULL;
-  
-  if (area==NULL)
+  LABEL* area;
+
+  if (LABL_NONE_SELECTED == labl_selected_label)
     {
-      printf ("surfer: label not loaded!\n");
-      return(ERROR_NONE);
+      printf ("surfer: No label selected.\n" );
+      return (ERROR_BADPARM);
     }
-  
+
   count = 0;
-  for (lno = 0 ; lno < area->n_points ; lno++)
+  area = labl_labels[labl_selected_label].label ;
+  for (n = 0  ; n < area->n_points ; n++)
     {
-      lv = &(area->lv[lno]);
-      if (lv->vno >= 0 && lv->vno < mris->nvertices)
+      if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices)
         {
-          v = &(mris->vertices[lv->vno]);
-          func_select_voxel (lv->vno, v->origx, v->origy, v->origz);
+          v = &mris->vertices[area->lv[n].vno] ;
+          func_select_voxel (area->lv[n].vno, v->origx, v->origy, v->origz);
           count++;
         }
     }
@@ -22668,7 +22847,7 @@ int func_graph_timecourse_selection () {
          functional space. */
       func_calc_avg_timecourse_values (cond, &num_good_voxels, 
                                        values, deviations);
-      
+
       /* if we had any good voxels, build a list of values and send to graph */
       if (num_good_voxels>0) 
         {
@@ -22686,8 +22865,8 @@ int func_graph_timecourse_selection () {
               if (func_timecourse)
                 {
                   func_error = 
-                    FunD_ConvertTimePointToSecond 
-                    (func_timecourse, tp, &second);
+                    FunD_ConvertTimePointToSecond
+		    (func_timecourse, tp, &second);
                   if(func_error!=FunD_tErr_NoError)
                     ErrorPrintf(func_convert_error(func_error),
                                 "func_graph_timecourse_selection: "
@@ -22742,6 +22921,15 @@ int func_print_timecourse_selection (char* fname)
                  "func_print_timecourse_selection: No timecourse volume.\n"));
   
   /* allocate storage arrays. */
+  /* allocate storage arrays. */
+  values = calloc (func_num_timepoints,sizeof(float));
+  if (values==NULL)
+    ErrorReturn(ERROR_NOMEMORY,
+                (ERROR_NOMEMORY,
+                 "func_print_timecourse_selection: "
+                 "calloc(%d,float) failed for values\n",
+                 func_num_timepoints));  
+
   deviations = calloc (func_num_timepoints,sizeof(float));
   if (deviations==NULL)
     ErrorReturn(ERROR_NOMEMORY,
@@ -22750,13 +22938,13 @@ int func_print_timecourse_selection (char* fname)
                  "calloc(%d,float) failed for deviations\n",
                  func_num_timepoints));  
   
-    fp = fopen (fname, "w");
+  fp = fopen (fname, "w");
   if (fp==NULL)
     ErrorReturn(ERROR_NOFILE,
                 (ERROR_NOFILE,
                  "func_print_timecourse_selection: "
                  "file %s couldn't be opened\n", fname));
-  
+
   /* get the num of conditions. for each one... */
   FunD_GetNumConditions (func_timecourse,&func_num_conditions);
   for (cond=0;cond<func_num_conditions;cond++) 
@@ -22768,7 +22956,7 @@ int func_print_timecourse_selection (char* fname)
          functional space. */
       func_calc_avg_timecourse_values (cond, &num_good_voxels, 
                                        values, deviations);
-      
+
       fprintf (fp,"%d voxels in range.\n",num_good_voxels);
       
       /* if we had any good voxels, print out a summary */
@@ -22780,6 +22968,11 @@ int func_print_timecourse_selection (char* fname)
     }
   
   fclose (fp);
+
+  if (NULL != values)
+    free (values);
+  if (NULL != deviations)
+    free (deviations);
   
   return(ERROR_NONE);
 }
@@ -22834,9 +23027,10 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
           func_error = FunD_GetDataForAllTimePoints( func_timecourse, &voxel, 
                                                      condition, values );
           /* if it was out of bounds, continue. */
-          if (func_error!=FunD_tErr_NoError) {
-            continue;
-          }
+          if (func_error!=FunD_tErr_NoError)
+	    {
+	      continue;
+	    }
         } 
       
       /* if we are displaying offsets and we have offset data... */
@@ -25818,6 +26012,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
   int label_index_array[LABL_MAX_LABELS];
   int num_labels_found, found_label_index;
   int skip;
+  int count;
 
   if (seed_vno < 0 || seed_vno >= mris->nvertices)
     return (ERROR_BADPARM);
@@ -25878,6 +26073,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
         {
           if (filled[vno])
             {
+
               /* check the neighbors... */
               v = &mris->vertices[vno];
               
@@ -25964,7 +26160,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
                            fabs(fvalue) < fthresh) ||
                           (fthresh == 0 && (fvalue * seed_fvalue < 0)))
                         {
-                          continue;
+			  continue;
                         }
                     }
                   
@@ -25986,9 +26182,13 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
     }
   
   /* mark all filled vertices. */
+  count = 0;
   for (vno = 0; vno < mris->nvertices; vno++ )
     if (filled[vno])
-      mris->vertices[vno].marked = TRUE;
+      {
+	mris->vertices[vno].marked = TRUE;
+	count++;
+      }
   
   switch (params->action) 
     {
@@ -26009,7 +26209,7 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
       break;
     }
 
-  printf (" done\n");
+  printf (" done, %d vertices filled\n", count);
   fflush (stdout);
 
   goto done;
@@ -26606,70 +26806,10 @@ f_to_t(void)
 }
 
 static void
-label_to_stat(int which_overlay)
+label_to_stat(int field)
 {
-  VERTEX *v ;
-  LABEL  *area ;
-  int    n, field = which_overlay ;
-  float  mn, mx, f ;
-  char                  cmd[STRLEN];
-  
-  if (labl_selected_label == LABL_NONE_SELECTED)
-    {
-      fprintf(stderr, "no label currently selected....\n") ;
-      return ;
-    }
-  
-  enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
-  area = labl_labels[labl_selected_label].label ;
-  mn = mx = 0.0 ;
-  for (n = 0  ; n < area->n_points ; n++)
-    {
-      if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices)
-        {
-          v = &mris->vertices[area->lv[n].vno] ;
-          f = area->lv[n].stat ;
-          if (n == 0)
-            mn = mx = f ;
-          sclv_set_value(v, field, f) ;
-          /*    v->stat = f ;*/
-          if (f > mx)
-            mx = f ;
-          if (f < mn)
-            mn = f ;
-        }
-    }
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    printf("min = %f, max = %f\n", mn, mx) ;
-  set_value_label_name(labl_labels[labl_selected_label].name, field) ;
-  sclv_field_info[field].min_value = mn;
-  sclv_field_info[field].max_value = mx;
-  sclv_field_info[field].cur_timepoint = 0;
-  sclv_field_info[field].cur_condition = 0;
-  sclv_field_info[field].num_timepoints = 1;
-  sclv_field_info[field].num_conditions = 1;
-  /* calc the frquencies */
-  sclv_calc_frequencies (field);
-  /* request a redraw. turn on the overlay flag and select this value set */
-  vertex_array_dirty = 1 ;
-  overlayflag = TRUE;
-  sclv_set_current_field (field);
-  
-  /* set the field name to the name of the file loaded */
-  if (NULL != g_interp)
-    {
-      sprintf (cmd, "UpdateValueLabelName %d \"%s\"", 
-               field, labl_labels[labl_selected_label].name);
-      send_tcl_command (cmd);
-      sprintf (cmd, "ShowValueLabel %d 1", field);
-      send_tcl_command (cmd);
-      sprintf (cmd, "UpdateLinkedVarGroup view");
-      send_tcl_command (cmd);
-      sprintf (cmd, "UpdateLinkedVarGroup overlay");
-      send_tcl_command (cmd);
-    }
+  sclv_new_from_label (field, labl_selected_label);
 }
-
 
 #include "stc.h"
 
