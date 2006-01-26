@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/22 14:39:46 $
-// Revision       : $Revision: 1.427 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2006/01/26 21:06:11 $
+// Revision       : $Revision: 1.428 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -559,7 +559,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.427 2006/01/22 14:39:46 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.428 2006/01/26 21:06:11 kteich Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -3286,10 +3286,11 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
     for(s=0; s < TempMRI->depth; s++){
       for(r=0; r < TempMRI->height; r++){
         for(c=0; c < TempMRI->width; c++){
+	  curv = MRIgetVoxVal(TempMRI,c,r,s,frame);
           if (s==0&&r==0&&c==0) curvmin=curvmax=curv;
           if (curv>curvmax) curvmax=curv;
           if (curv<curvmin) curvmin=curv;
-          mris->vertices[vno].curv = MRIgetVoxVal(TempMRI,c,r,s,frame);
+          mris->vertices[vno].curv = curv;
           vno++;
         }
       }
@@ -3352,6 +3353,7 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
     {
       fread2(&i,fp);
       curv = i/100.0;
+      
       if (k==0) curvmin=curvmax=curv;
       if (curv>curvmax) curvmax=curv;
       if (curv<curvmin) curvmin=curv;
