@@ -8838,9 +8838,15 @@ read_binary_curvature(char *fname)
 #if 1
   int    vno, n ;
   VERTEX *v ;
-  
+  int    error;
+
   surface_compiled = 0 ;
-  MRISreadCurvatureFile(mris, fname) ;
+  error = MRISreadCurvatureFile(mris, fname) ;
+  if (NO_ERROR != error)
+    {
+      printf ("surfer: error reading curvature file\n");
+      return;
+    }
   for (dipavg = 0.0, n = vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
@@ -19262,7 +19268,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs = 
     handle_version_option 
     (argc, argv, 
-     "$Id: tksurfer.c,v 1.177 2006/01/26 20:14:04 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.178 2006/01/26 21:06:42 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
