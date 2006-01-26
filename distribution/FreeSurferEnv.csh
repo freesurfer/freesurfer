@@ -3,10 +3,10 @@
 # Purpose: Setup the environment to run FreeSurfer/FS-FAST (and FSL)
 # Usage:   See help section below
 #
-# $Id: FreeSurferEnv.csh,v 1.40 2006/01/20 17:04:48 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.41 2006/01/26 22:25:13 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.40 2006/01/20 17:04:48 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.41 2006/01/26 22:25:13 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -203,6 +203,13 @@ if( ! $?NO_FSFAST) then
         mkdir -p ~/matlab
         touch $SUF
 
+        echo "%------------ FreeSurfer -----------------------------%" >> $SUF
+        echo "fshome = getenv('FREESURFER_HOME');"                     >> $SUF
+        echo "fsmatlab = sprintf('%s/matlab',fsmatlab);"               >> $SUF
+        echo "path(path,fsmatlab);"                                    >> $SUF
+        echo "clear fshome fsmatlab;"                                  >> $SUF
+        echo "%-----------------------------------------------------%" >> $SUF
+        echo "" >> $SUF
         echo "%------------ FreeSurfer FAST ------------------------%" >> $SUF
         echo "fsfasthome = getenv('FSFAST_HOME');"                     >> $SUF
         echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"       >> $SUF
@@ -213,20 +220,25 @@ if( ! $?NO_FSFAST) then
 
     set tmp1 = `grep FSFAST_HOME $SUF       | wc -l`;
     set tmp2 = `grep FMRI_ANALYSIS_DIR $SUF | wc -l`;
+    set tmp3 = `grep FREESURFER_HOME $SUF   | wc -l`;
 
-    if($tmp1 == 0 && $tmp2 == 0) then
+    if($tmp1 == 0 && $tmp2 == 0 && $tmp3 == 0) then
             if( $output ) then
             echo ""
             echo "WARNING: The $SUF file does not appear to be";
             echo "         configured correctly. You may not be able"
             echo "         to run the FS-FAST programs";
-            echo "Try adding the following three lines to $SUF"
-            echo "----------------cut-----------------------"
+            echo "Try adding the following lines to $SUF"
+            echo "-----------------cut---------------------"
+            echo "fshome = getenv('FREESURFER_HOME');"
+            echo "fsmatlab = sprintf('%s/matlab',fsmatlab);"
+            echo "path(path,fsmatlab);"
+            echo "clear fshome fsmatlab;"
             echo "fsfasthome = getenv('FSFAST_HOME');"
             echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"
             echo "path(path,fsfasttoolbox);"
             echo "clear fsfasthome fsfasttoolbox;"
-            echo "----------------cut-----------------------"
+            echo "-----------------cut---------------------"
             echo ""
             endif
     endif
