@@ -22,6 +22,7 @@ if (! $?MY_PERL) then
         exit 1
     endif
 endif
+echo "Using perl '$MY_PERL'"
 
 # MINC_BIN_DIR is defined by $FREESURFER_HOME/FreeSurferEnv.csh
 if (! $?MINC_BIN_DIR) then
