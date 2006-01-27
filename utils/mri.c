@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/19 14:37:26 $
-// Revision       : $Revision: 1.326 $
-char *MRI_C_VERSION = "$Revision: 1.326 $";
+// Revision Date  : $Date: 2006/01/27 20:51:00 $
+// Revision       : $Revision: 1.327 $
+char *MRI_C_VERSION = "$Revision: 1.327 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11176,8 +11176,9 @@ MRIfindNearestNonzero(MRI *mri, int wsize, Real xr, Real yr, Real zr)
   float dist, min_dist, min_val, dx, dy, dz ;
 
   x = mri->xi[nint(xr)] ; y = mri->yi[nint(yr)] ; z = mri->zi[nint(zr)] ;
-  if (MRIvox(mri, x, y, z) > 0)
-    return((float)MRIvox(mri, x, y, z)) ;
+	min_val = MRIgetVoxVal(mri, x, y, z, 0) ;
+  if (min_val > 0)
+    return(min_val) ;
 
   min_dist = 100000 ; min_val = 0 ;
   whalf = (wsize-1)/2 ;
@@ -13046,13 +13047,13 @@ MRIextractRegionAndPad
   MRI_REGION box ;
 
   if (region == NULL)
-    {
-      region = & box ;
-      box.x = box.y = box.z = 0 ;
-      box.dx = mri_src->width ;
-      box.dy = mri_src->height ;
-      box.dz = mri_src->depth ;
-    }
+	{
+		region = & box ;
+		box.x = box.y = box.z = 0 ;
+		box.dx = mri_src->width ;
+		box.dy = mri_src->height ;
+		box.dz = mri_src->depth ;
+	}
   mri_dst =
     MRIalloc
     (region->dx+2*pad, region->dy+2*pad, region->dz+2*pad, mri_src->type) ;
