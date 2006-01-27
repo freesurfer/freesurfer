@@ -1,7 +1,8 @@
 #!/bin/tcsh -ef
-#set echo=1
 
-# so that the group write bit is set on created files
+unsetenv echo
+if ($?SET_ECHO_1) set echo=1
+
 umask 002
 
 if ("$1" == "rh7.3") then
@@ -60,6 +61,12 @@ else
   exit 1
 endif
 
+if ( "$1" == "tiger") then
+  if (-e /Users/Shared/tmp/$2) rm -Rf /Users/Shared/tmp/$2
+  cp -R $2 /Users/Shared/tmp
+  cd /Users/Shared/tmp
+endif
+
 if (-e freesurfer) rm freesurfer
 ln -s $2 freesurfer
 
@@ -77,7 +84,7 @@ echo gzipping $TARNAME...
 gzip $TARNAME
 mv $TARNAME.gz ${SPACE_FREESURFER}/build/pub-releases
 chmod g+w ${SPACE_FREESURFER}/build/pub-releases/$TARNAME.gz
-if (-e /tmp/$2) rm -Rf /tmp/$2
+if (-e /Users/Shared/tmp/$2) rm -Rf /Users/Shared/tmp/$2
 
 # for the Mac, create_dmg creates the .dmg file from the .tar.gz file
 
