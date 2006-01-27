@@ -81,9 +81,9 @@ int string_to_type(char *string)
   if(strcmp(ls, "minc") == 0 || strcmp(ls, "mnc") == 0)
     type = MRI_MINC_FILE;
   if(strcmp(ls, "spm") == 0 || strcmp(ls, "analyze") == 0 ||
-     strcmp(ls, "analyze3d") == 0 || strcmp(ls, "img")== 0)
+     strcmp(ls, "analyze3d") == 0)
     type = MRI_ANALYZE_FILE;
-  if(strcmp(ls, "analyze4d") == 0)
+  if(strcmp(ls, "analyze4d") == 0 || strcmp(ls, "img")==0 ) // img used to be 3d
     type = MRI_ANALYZE4D_FILE;
   if(strcmp(ls, "mgh") == 0 || strcmp(ls,"mgz")==0)
     type = MRI_MGH_FILE;
