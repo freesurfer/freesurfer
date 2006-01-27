@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2006/01/26 21:06:11 $
-// Revision       : $Revision: 1.428 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/01/27 17:35:37 $
+// Revision       : $Revision: 1.429 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -559,7 +559,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.428 2006/01/26 21:06:11 kteich Exp $"); }
+  return("$Id: mrisurf.c,v 1.429 2006/01/27 17:35:37 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -2809,8 +2809,6 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
         xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
         d = xd*xd + yd*yd + zd*zd ;
         v->dist[n] = sqrt(d) ;
-        if (mris->vertices[12].v[0] >= mris->nvertices)
-          DiagBreak() ;
       }
       DiagBreak() ;
       break ;
