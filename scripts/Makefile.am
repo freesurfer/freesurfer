@@ -28,6 +28,7 @@ freesurfer.csh \
 fs_lib_check \
 fsl_rigid_register \
 fslregister \
+getfullpath \
 grad_unwarp \
 inflate_subject \
 inflate_subject3 \
