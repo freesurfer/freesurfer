@@ -92,9 +92,9 @@ printdat \
 progressbar.tcl \
 fsr-checkxopts \
 fsr-getxopts \
-recon-all-dev \
-recon-all-nmr \
 recon-all \
+recon-all-dev \
+recon-all.2005 \
 reg-feat2anat \
 register_child \
 register.csh \
@@ -184,11 +184,11 @@ fsgdfPlot.tcl
 
 EXTRA_DIST = csurf.in $(tcl_SCRIPTS)
 
-recon-all: recon-all-nmr
-#	cat ./recon-all-nmr | grep -v dASEGd > ./recon-all
-	rm -f ./recon-all
-	cp ./recon-all-nmr ./recon-all
-	chmod a+x ./recon-all
+# notes: 
+# recon-all.2005 is the renamed recon-all-nmr, which is no longer used.
+# recon-all is the official recon-all.
+# recon-all-dev is the 'development' version of recon-all, which,
+#               when changes are tested, get merged into recon-all.
 
 # use , as the separator so that the directory path / can be passed
 SEDFLAGS = -e 's,xEXEC_PREFIXx,$(exec_prefix),g' \
@@ -197,26 +197,8 @@ SEDFLAGS = -e 's,xEXEC_PREFIXx,$(exec_prefix),g' \
 
 csurf: csurf.in
 	rm -f $@
-	sed < $< $(SEDFLAGS) > $@ 
+	sed < $< $(SEDFLAGS) > $@
 	chmod +x $@
-
-# work on tixwish files
-# Why was he doing this???
-#fsgdfPlot.tcl : fsgdfPlot.xxx
-#	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
-
-#tkmedit.tcl : tkmedit.xxx
-#	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
-
-#tkm_functional.tcl: tkm_functional.xxx
-#	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
-
-#tkm_wrappers.tcl: tkm_wrappers.xxx
-#	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
-
-#tksurfer.tcl: tksurfer.xxx
-#	sed < $< -e 's,/usr/bin/tixwish,$(TIXWISH),' > $@
-
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
