@@ -5,6 +5,10 @@ freesurfer/csurf.log
 freesurfer/error.log
 freesurfer/surfer.log
 freesurfer/arthur_colors
+freesurfer/README
+freesurfer/COPYING
+freesurfer/INSTALL
+freesurfer/NEWS
 freesurfer/bin-new
 freesurfer/bin-old
 freesurfer/bin-old-old
