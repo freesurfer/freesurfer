@@ -293,10 +293,10 @@ int clustAddMember(VOLCLUSTER *vc, int col, int row, int slc)
 }
 /*------------------------------------------------------------------------*/
 int clustGrowOneVoxel(VOLCLUSTER *vc, int col0, int row0, int slc0, 
-          MRI *HitMap, int AllowDiag)
+		      MRI *HitMap, int AllowDiag)
 {
   int col, row, slc;
-  int dcol, drow, dslc;
+  int dcol, drow, dslc, dsum;
   int nadded;
 
   nadded = 0;
@@ -304,23 +304,26 @@ int clustGrowOneVoxel(VOLCLUSTER *vc, int col0, int row0, int slc0,
     for( drow = -1; drow <= +1; drow++ ){
       for( dslc = -1; dslc <= +1; dslc++ ){
 
-  col = col0 + dcol;
-  if(col < 0 || col >= HitMap->width) continue;
-  
-  row = row0 + drow;
-  if(row < 0 || row >= HitMap->height) continue;
+	// Check for neighbor beyond the edge-of-volume
+	col = col0 + dcol;
+	if(col < 0 || col >= HitMap->width) continue;
+	row = row0 + drow;
+	if(row < 0 || row >= HitMap->height) continue;
+	slc = slc0 + dslc;
+	if(slc < 0 || slc >= HitMap->depth) continue;
 
-  slc = slc0 + dslc;
-  if(slc < 0 || slc >= HitMap->depth) continue;
+	// If not allowing for diagonal connections
+	if(!AllowDiag){
+	  dsum = fabs(dcol) + fabs(drow) + fabs(dslc);
+	  if(dsum != 1) continue;
+	}
 
-  if(!AllowDiag && dcol != 0 && drow != 0 && dslc != 0) continue;
+	if(MRIIseq_vox(HitMap,col,row,slc,0)) continue;
+	//printf("Adding %3d %3d %3d\n",col,row,slc);
 
-  if(MRIIseq_vox(HitMap,col,row,slc,0)) continue;
-  //printf("Adding %3d %3d %3d\n",col,row,slc);
-
-  clustAddMember(vc,col,row,slc);
-  MRIIseq_vox(HitMap,col,row,slc,0) = 1;
-  nadded ++;
+	clustAddMember(vc,col,row,slc);
+	MRIIseq_vox(HitMap,col,row,slc,0) = 1;
+	nadded ++;
 
       }
     }
