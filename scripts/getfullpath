@@ -1,0 +1,24 @@
+#!/bin/csh -f
+# Returns the full path name to the given file 
+
+if($#argv < 1) then
+  echo "getfullpath filename"
+  exit 1;
+endif
+
+set fname = $argv[1];
+
+set dirname = `dirname $fname`;
+if(! -e $dirname) then
+  echo "ERROR: cannot find $dirname"
+  exit 1;
+endif
+
+pushd $dirname > /dev/null
+set dirname = `pwd`;
+
+set base = `basename $fname`;
+
+echo $dirname/$base
+
+exit 0
