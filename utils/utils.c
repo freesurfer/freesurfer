@@ -1,30 +1,30 @@
 /*
-   @(#)utils.c  1.12
-   10/16/95
+  @(#)utils.c  1.12
+  10/16/95
 */
 /*------------------------------------------------------------------------
-      File Name: utils.c
+  File Name: utils.c
 
-         Author: Bruce Fischl
+  Author: Bruce Fischl
 
-        Created: Jan. 1994
+  Created: Jan. 1994
 
-    Description: miscellaneous utility functions
+  Description: miscellaneous utility functions
 
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/11/10 05:21:42 $
-// Revision       : $Revision: 1.49 $
+  // Warning: Do not edit the following three lines.  CVS maintains them.
+  // Revision Author: $Author: nicks $
+  // Revision Date  : $Date: 2006/01/27 23:38:07 $
+  // Revision       : $Revision: 1.50 $
 
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 
 #ifdef _HOME_
 #define FZERO(d)  (fabs(d) < 0.0000001)
 #endif
 
 /*------------------------------------------------------------------------
-                              HEADERS
-------------------------------------------------------------------------*/
+  HEADERS
+  ------------------------------------------------------------------------*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,40 +47,36 @@
 #include "nr_wrapper.h"
 
 /*------------------------------------------------------------------------
-                            CONSTANTS
-------------------------------------------------------------------------*/
-
-
-/*------------------------------------------------------------------------
-                            STRUCTURES
-------------------------------------------------------------------------*/
-
+  CONSTANTS
+  ------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------
-                            GLOBAL DATA
-------------------------------------------------------------------------*/
+  STRUCTURES
+  ------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------
-                            STATIC DATA
-------------------------------------------------------------------------*/
+  GLOBAL DATA
+  ------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------
-                            STATIC PROTOTYPES
-------------------------------------------------------------------------*/
-
-
+  STATIC DATA
+  ------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------
-                              FUNCTIONS
-------------------------------------------------------------------------*/
-/*------------------------------------------------------------------------
-       Parameters:
+  STATIC PROTOTYPES
+  ------------------------------------------------------------------------*/
 
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------
+  FUNCTIONS
+  ------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------
+  Parameters:
+
+  Description:
+
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 static long idum = 0L ;
 int
 setRandomSeed(long seed)
@@ -95,114 +91,118 @@ randomNumber(double low, double hi)
   double val, range ;
 
   if (low > hi)
-  {
-    val = low ;
-    low = hi ;
-    hi = val ;
-  }
+    {
+      val = low ;
+      low = hi ;
+      hi = val ;
+    }
 
   if (idum == 0L)     /* change seed from run to run */
-    idum = -1L * (long)(abs((int)time(NULL))) ; 
+    idum = -1L * (long)(abs((int)time(NULL))) ;
 
   range = hi - low ;
   val = ran1(&idum) * range + low ;
-  
+
   if ((val < low) || (val > hi))
     ErrorPrintf(ERROR_BADPARM, "randomNumber(%2.1f, %2.1f) - %2.1f\n",
-               (float)low, (float)hi, (float)val) ;
+                (float)low, (float)hi, (float)val) ;
 
-   return(val) ;
+  return(val) ;
 }
-/*------------------------------------------------------------------------
-       Parameters:
 
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------
+  Parameters:
+
+  Description:
+
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 double
 normAngle(double angle)
 {
-   while (angle > PI)
-      angle -= 2.0 * PI ;
+  while (angle > PI)
+    angle -= 2.0 * PI ;
 
-   while (angle < -PI)
-      angle += 2.0 * PI ;
+  while (angle < -PI)
+    angle += 2.0 * PI ;
 
-   return(angle) ;
+  return(angle) ;
 }
-/*------------------------------------------------------------------------
-       Parameters:
 
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------
+  Parameters:
+
+  Description:
+
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 double
 calcDeltaPhi(double phi1, double phi2)
 {
-   double delta_phi ;
+  double delta_phi ;
 
-   if (phi1 < 0.0)
-      phi1 += 2.0 * PI ;
-   else if (phi1 > 2.0 * PI)
-      phi1 -= 2.0 * PI ;
-   
-   if (phi2 < 0.0)
-      phi2 += 2.0 * PI ;
-   else if (phi2 > 2.0 * PI)
-      phi2 -= 2.0 * PI ;
-   
-   delta_phi = (phi1 - phi2) ;
+  if (phi1 < 0.0)
+    phi1 += 2.0 * PI ;
+  else if (phi1 > 2.0 * PI)
+    phi1 -= 2.0 * PI ;
 
-   
-   while (delta_phi > PI)
-      delta_phi -= 2.0 * PI ;
+  if (phi2 < 0.0)
+    phi2 += 2.0 * PI ;
+  else if (phi2 > 2.0 * PI)
+    phi2 -= 2.0 * PI ;
 
-   while (delta_phi < -PI)
-      delta_phi += 2.0 * PI ;
+  delta_phi = (phi1 - phi2) ;
 
-   return(delta_phi) ;
+
+  while (delta_phi > PI)
+    delta_phi -= 2.0 * PI ;
+
+  while (delta_phi < -PI)
+    delta_phi += 2.0 * PI ;
+
+  return(delta_phi) ;
 }
-/*------------------------------------------------------------------------
-       Parameters:
 
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------
+  Parameters:
+
+  Description:
+
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 double
 latan2(double y, double x)
 {
-   int oerr ;
-   double val ;
-   
-   oerr = errno ;
-   if (FZERO(x) && FZERO(y))
-      val = 0.0 ;
-   else
-     val = atan2(y, x) ;
-   if (val < -PI)
-      val += 2.0 * PI ;
-   if (val > PI)
-      val -= 2.0 * PI ;
+  int oerr ;
+  double val ;
 
-   if (oerr != errno)
-      ErrorPrintf(ERROR_BADPARM,
-                  "error %d, y %f, x %f\n", errno, (float)y, (float)x) ;
-   return(val) ;
+  oerr = errno ;
+  if (FZERO(x) && FZERO(y))
+    val = 0.0 ;
+  else
+    val = atan2(y, x) ;
+  if (val < -PI)
+    val += 2.0 * PI ;
+  if (val > PI)
+    val -= 2.0 * PI ;
+
+  if (oerr != errno)
+    ErrorPrintf(ERROR_BADPARM,
+                "error %d, y %f, x %f\n", errno, (float)y, (float)x) ;
+  return(val) ;
 }
-/*------------------------------------------------------------------------
-       Parameters:
 
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------
+  Parameters:
+
+  Description:
+
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 int
 QuadEqual(double a1, double a2)
 {
@@ -213,14 +213,15 @@ QuadEqual(double a1, double a2)
   else
     return(0) ;
 }
-/*------------------------------------------------------------------------
-       Parameters:
 
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------
+  Parameters:
+
+  Description:
+
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 void
 fComplementCode(double *pdIn, double *pdOut, int iLen)
 {
@@ -229,11 +230,11 @@ fComplementCode(double *pdIn, double *pdOut, int iLen)
 
   iFullLen = iLen * 2 ;
   for (i = 0 ; i < iLen ; i++, pdOut++)
-  {
-    d = *pdIn++ ;
-/*    *pdOut = d ;*/
-    pdOut[iLen] = 1.0 - d ;
-  }
+    {
+      d = *pdIn++ ;
+      /*    *pdOut = d ;*/
+      pdOut[iLen] = 1.0 - d ;
+    }
 }
 
 #ifdef Darwin
@@ -248,13 +249,13 @@ srand48(long seed)
 #ifdef Darwin_not_used
 double drand48(void) ;
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+  Description:
+
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 double
 drand48(void)
 {
@@ -266,13 +267,13 @@ drand48(void)
 #endif
 #ifndef _HOME_
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+  Description:
+
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 char *
 fgetl(char *s, int n, FILE *fp)
 {
@@ -280,15 +281,15 @@ fgetl(char *s, int n, FILE *fp)
   int  len ;
 
   do
-  {
-    cp = fgets(s, n, fp) ;
-    if (!cp)
-      return(NULL) ;
+    {
+      cp = fgets(s, n, fp) ;
+      if (!cp)
+        return(NULL) ;
 
-    while (isspace((int)*cp))
-      cp++ ;
+      while (isspace((int)*cp))
+        cp++ ;
 
-  } while (((*cp) == '#') || ((*cp) == '\n') || ((*cp) == 0)) ;
+    } while (((*cp) == '#') || ((*cp) == '\n') || ((*cp) == 0)) ;
 
   for (cp2 = cp ; *cp2 ; cp2++)
     if (*cp2 == '#')
@@ -300,12 +301,13 @@ fgetl(char *s, int n, FILE *fp)
   return(cp) ;
 }
 #endif
+
 /*
  * IntSqrt(n) -- integer square root
  *
  * Algorithm due to Isaac Newton, takes log(n)/2 iterations.
  */
-int 
+int
 IntSqrt(int n)
 {
   register int approx, prev;
@@ -318,31 +320,32 @@ IntSqrt(int n)
 
   approx = n/2; /* 1st approx */
 
-  do 
-  {
-    /*
-     * f(x) = x**2 - n
-     *
-     * nextx = x - f(x)/f'(x)
-     *   = x - (x**2-n)/(2*x) x**2 may overflow
-     *   = x - (x - n/x)/2  but this will *not*
-     */
+  do
+    {
+      /*
+       * f(x) = x**2 - n
+       *
+       * nextx = x - f(x)/f'(x)
+       *   = x - (x**2-n)/(2*x) x**2 may overflow
+       *   = x - (x - n/x)/2  but this will *not*
+       */
 
-    prev = approx;
-    approx = prev - (prev - n / prev)/2;
+      prev = approx;
+      approx = prev - (prev - n / prev)/2;
 
-  } while (approx != prev);
+    } while (approx != prev);
 
   return(approx) ;
 }
-/*------------------------------------------------------------------------
-       Parameters:
 
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------
+  Parameters:
+
+  Description:
+
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 char *
 StrUpper(char *str)
 {
@@ -353,14 +356,15 @@ StrUpper(char *str)
 
   return(str) ;
 }
-/*------------------------------------------------------------------------
-       Parameters:
 
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------
+  Parameters:
+
+  Description:
+
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 char *
 StrLower(char *str)
 {
@@ -371,40 +375,42 @@ StrLower(char *str)
 
   return(str) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-         replace all occurences of the character 'csrc' in the string
-         'src' with the character 'cdst' in the string dst.
+  Description:
+  replace all occurences of the character 'csrc' in the string
+  'src' with the character 'cdst' in the string dst.
 
-    Return Values:
- 
-------------------------------------------------------------------------*/
+  Return Values:
+
+  ------------------------------------------------------------------------*/
 char *
 StrReplace(char *src, char *dst, char csrc, int cdst)
 {
   char *cp_src, *cp_dst ;
 
   for (cp_src = src, cp_dst = dst ; *cp_src ; cp_src++, cp_dst++)
-  {
-    if (*cp_src == csrc)
-      *cp_dst = cdst ;
-    else
-      *cp_dst = *cp_src ;
-  }
-    
+    {
+      if (*cp_src == csrc)
+        *cp_dst = cdst ;
+      else
+        *cp_dst = *cp_src ;
+    }
+
   return(dst) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-         extract just the file name (no path) from a string.
+  Description:
+  extract just the file name (no path) from a string.
 
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 char *
 FileNameOnly(char *full_name, char *fname)
 {
@@ -413,17 +419,17 @@ FileNameOnly(char *full_name, char *fname)
   slash = strrchr(full_name, '/') ;
 
   if (fname)
-  {
-    if (!slash)
-      strcpy(fname, full_name) ;
-    else
-      strcpy(fname, slash+1) ;
-  }
+    {
+      if (!slash)
+        strcpy(fname, full_name) ;
+      else
+        strcpy(fname, slash+1) ;
+    }
   else   /* process it in place */
-  {
-    fname = full_name ;
-    *slash = 0 ;
-  }
+    {
+      fname = full_name ;
+      *slash = 0 ;
+    }
 
   number = strrchr(fname, '#') ;
   if (number)
@@ -434,15 +440,16 @@ FileNameOnly(char *full_name, char *fname)
 
   return(fname) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-        determine whether a given file exists or not
+  Description:
+  determine whether a given file exists or not
 
-    Return Values:
-        1 if the file exists, 0 otherwise
-------------------------------------------------------------------------*/
+  Return Values:
+  1 if the file exists, 0 otherwise
+  ------------------------------------------------------------------------*/
 int
 FileExists(char *fname)
 {
@@ -459,15 +466,16 @@ FileExists(char *fname)
 
   return(fp != NULL) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-         extract just the file name (no path) from a string.
+  Description:
+  extract just the file name (no path) from a string.
 
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 char *
 FileName(char *full_name)
 {
@@ -491,15 +499,16 @@ FileName(char *full_name)
 
   return(fname) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-         determine the file type from the name
+  Description:
+  determine the file type from the name
 
-    Return Values:
+  Return Values:
 
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 int
 FileType(char *fname)
 {
@@ -517,27 +526,30 @@ FileType(char *fname)
     dot = strrchr(buf, '.') ;
 
   if (dot)
-  {
-    dot++ ;
-    StrUpper(buf) ;
-    if (!strcmp(dot, "MAT"))
-      return(MATLAB_FILE) ;
-    else if (!strcmp(dot, "HIPL")||!strcmp(dot, "HIPS") || !strcmp(dot,"HIP"))
-      return(HIPS_FILE) ;
-    else if (!strcmp(dot, "LST"))
-      return(LIST_FILE) ;
-  }
+    {
+      dot++ ;
+      StrUpper(buf) ;
+      if (!strcmp(dot, "MAT"))
+        return(MATLAB_FILE) ;
+      else if (!strcmp(dot, "HIPL") ||
+               !strcmp(dot, "HIPS") ||
+               !strcmp(dot,"HIP"))
+        return(HIPS_FILE) ;
+      else if (!strcmp(dot, "LST"))
+        return(LIST_FILE) ;
+    }
   return(UNKNOWN_FILE) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-         if a number is specified return it, otherwise return -1
+  Description:
+  if a number is specified return it, otherwise return -1
 
-    Return Values:
+  Return Values:
 
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 int
 FileNumber(char *fname)
 {
@@ -552,15 +564,16 @@ FileNumber(char *fname)
     num = -1 ;
   return(num) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-          determine the number of separate entries in a file
+  Description:
+  determine the number of separate entries in a file
 
-      Return Values:
+  Return Values:
 
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 int
 FileNumberOfEntries(char *fname)
 {
@@ -570,55 +583,56 @@ FileNumberOfEntries(char *fname)
 
   strcpy(buf, fname) ;   /* we will modify fname, don't ruin callers copy */
   fname = buf ;
-  
+
   num = FileNumber(fname) ;
   if (num == -1)
-  {
-    type = FileType(fname) ;
-    switch (type)
     {
-    case LIST_FILE:
-      fp = fopen(FileName(fname), "rb") ;
-      if (!fp)
-        ErrorReturn(-1, (ERROR_NO_FILE, 
-                         "FileNumberOfEntries: could not open %s",
-                         FileName(fname))) ;
-      cp = fgetl(line, 199, fp) ;
-      nentries = 0 ;
-      while (cp)
-      {
-        sscanf(cp, "%s", buf) ;
-        num = FileNumberOfEntries(buf) ;
-        nentries += num ;
-        cp = fgetl(line, 199, fp) ;
-      }
-      fclose(fp) ;
-      
-      break ;
-    case HIPS_FILE:
-      nentries = ImageNumFrames(fname) ;
-      break ;
-    case MATLAB_FILE:
-    default:
-      nentries = 1 ;
-      break ;
+      type = FileType(fname) ;
+      switch (type)
+        {
+        case LIST_FILE:
+          fp = fopen(FileName(fname), "rb") ;
+          if (!fp)
+            ErrorReturn(-1, (ERROR_NO_FILE,
+                             "FileNumberOfEntries: could not open %s",
+                             FileName(fname))) ;
+          cp = fgetl(line, 199, fp) ;
+          nentries = 0 ;
+          while (cp)
+            {
+              sscanf(cp, "%s", buf) ;
+              num = FileNumberOfEntries(buf) ;
+              nentries += num ;
+              cp = fgetl(line, 199, fp) ;
+            }
+          fclose(fp) ;
+
+          break ;
+        case HIPS_FILE:
+          nentries = ImageNumFrames(fname) ;
+          break ;
+        case MATLAB_FILE:
+        default:
+          nentries = 1 ;
+          break ;
+        }
     }
-  }
   else
     nentries = 1 ;
 
   return(nentries) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-         extract the file name including path, removing additional
-         modifiers such as '@' and '#'
+  Description:
+  extract the file name including path, removing additional
+  modifiers such as '@' and '#'
 
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+  Return Values:
+  nothing.
+  ------------------------------------------------------------------------*/
 char *
 FileFullName(char *full_name)
 {
@@ -637,15 +651,16 @@ FileFullName(char *full_name)
 
   return(fname) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-         create a temporary filename which is not currently in use
+  Description:
+  create a temporary filename which is not currently in use
 
-    Return Values:
-       pointer to the filename
-------------------------------------------------------------------------*/
+  Return Values:
+  pointer to the filename
+  ------------------------------------------------------------------------*/
 char *
 FileTmpName(char *basename)
 {
@@ -658,24 +673,25 @@ FileTmpName(char *basename)
 
   i = 0 ;
   do
-  {
-    sprintf(fname, "%s%d", basename, i++) ;
-    fp = fopen(fname, "r") ;
-    if (fp)
-      fclose(fp) ;
-  } while (fp) ;
+    {
+      sprintf(fname, "%s%d", basename, i++) ;
+      fp = fopen(fname, "r") ;
+      if (fp)
+        fclose(fp) ;
+    } while (fp) ;
 
   return(fname) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-         create a temporary filename which is not currently in use
+  Description:
+  create a temporary filename which is not currently in use
 
-    Return Values:
-       pointer to the filename
-------------------------------------------------------------------------*/
+  Return Values:
+  pointer to the filename
+  ------------------------------------------------------------------------*/
 void
 FileRename(char *inName, char *outName)
 {
@@ -687,15 +703,16 @@ FileRename(char *inName, char *outName)
   rename(inName,outName);
 #endif
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-         calculate the distance between 2 angles.
+  Description:
+  calculate the distance between 2 angles.
 
-    Return Values:
-        the distance.
-------------------------------------------------------------------------*/
+  Return Values:
+  the distance.
+  ------------------------------------------------------------------------*/
 float
 angleDistance(float theta1, float theta2)
 {
@@ -720,15 +737,16 @@ stricmp(char *str1, char *str2)
   return(strcmp(buf1, buf2)) ;
 }
 /*#endif*/
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-         calculate the distance between 2 angles.
+  Description:
+  calculate the distance between 2 angles.
 
-    Return Values:
-       remove leading spaces from a string
-------------------------------------------------------------------------*/
+  Return Values:
+  remove leading spaces from a string
+  ------------------------------------------------------------------------*/
 char *
 StrRemoveSpaces(char *str)
 {
@@ -737,13 +755,14 @@ StrRemoveSpaces(char *str)
 
   return(str) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
+  Description:
 
-    Return Values:
-------------------------------------------------------------------------*/
+  Return Values:
+  ------------------------------------------------------------------------*/
 #ifdef SunOS
 extern char *getwd(char *pathname) ;
 #endif
@@ -755,37 +774,38 @@ FileNameAbsolute(char *fname, char *absFname)
   int  len ;
 
   if (*fname == '/')
-  {
-    if (absFname != fname)
-      strcpy(absFname, fname) ;
-  }
+    {
+      if (absFname != fname)
+        strcpy(absFname, fname) ;
+    }
   else   /* not already absolute */
-  {
-    len = strlen(fname) ;
-    if (fname[len-1] == '/')
-      fname[len-1] = 0 ;
+    {
+      len = strlen(fname) ;
+      if (fname[len-1] == '/')
+        fname[len-1] = 0 ;
 #ifndef Linux
-    getwd(pathname) ;
+      getwd(pathname) ;
 #else
 #if 0
-    getcwd(pathname, MAXPATHLEN-1) ;
+      getcwd(pathname, MAXPATHLEN-1) ;
 #else
-    sprintf(pathname, ".") ;
+      sprintf(pathname, ".") ;
 #endif
 #endif
-    sprintf(absFname, "%s/%s", pathname, fname) ;
-  }
+      sprintf(absFname, "%s/%s", pathname, fname) ;
+    }
   return(absFname) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-        extract the path name from a file name and return a pointer
-        to it.
+  Description:
+  extract the path name from a file name and return a pointer
+  to it.
 
-    Return Values:
-------------------------------------------------------------------------*/
+  Return Values:
+  ------------------------------------------------------------------------*/
 char *
 FileNamePath(char *fname, char *pathName)
 {
@@ -795,38 +815,39 @@ FileNamePath(char *fname, char *pathName)
   slash = strrchr(pathName, '/') ;
   if (slash)
     *slash = 0 ;          /* remove file name */
-  else      
+  else
 #ifndef Linux
     getwd(pathName)  ;    /* no path at all, must be cwd */
 #else
 #if 0
-    getcwd(pathName, MAXPATHLEN-1) ;
+  getcwd(pathName, MAXPATHLEN-1) ;
 #else
-    sprintf(pathName, ".") ;
+  sprintf(pathName, ".") ;
 #endif
 #endif
 
   return(pathName) ;
 }
+
 /*------------------------------------------------------------------------
-       Parameters:
+  Parameters:
 
-      Description:
-        advance a string pointer past a numeric value
+  Description:
+  advance a string pointer past a numeric value
 
-    Return Values:
-------------------------------------------------------------------------*/
+  Return Values:
+  ------------------------------------------------------------------------*/
 char *
 StrSkipNumber(char *str)
 {
   while (*str && isdigit((int)*str))
     str++ ;
   if (*str == '.')  /* check for floating point # */
-  {
-    str++ ;
-    while (*str && isdigit((int)*str))
+    {
       str++ ;
-  }
+      while (*str && isdigit((int)*str))
+        str++ ;
+    }
   while (*str && isspace((int)*str))
     str++ ;
 
@@ -834,12 +855,12 @@ StrSkipNumber(char *str)
 }
 
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 float
 deltaAngle(float angle1, float angle2)
 {
@@ -868,14 +889,14 @@ getwd(char *buf)
    Name: AppendString()
    Author: Douglas Greve, 9/20/99
    Purpose: Appends a string to a given source string,
-     reallocating the source string in the process.
+   reallocating the source string in the process.
    Return:  pointer to the (reallocated) source string.
    Notes:
-     1. src can be null.
-     2. if app is null, then the function just returns src.
-     3. if src cannot be reallocated, then the function
-        forces an exit.
- ---------------------------------------------------------*/
+   1. src can be null.
+   2. if app is null, then the function just returns src.
+   3. if src cannot be reallocated, then the function
+   forces an exit.
+   ---------------------------------------------------------*/
 char *AppendString(char *src, char *app)
 {
   int sz1 = 0, sz2 = 0;
@@ -905,7 +926,7 @@ char *AppendString(char *src, char *app)
 
 /////////////////////////////////////////////////////////
 // IEEE754 defines
-// see 
+// see
 // http://cch.loria.fr/documentation/IEEE754/numerical_comp_guide/index.html
 //
 // +INF   sign 0, exponent 255, fraction 0
@@ -918,30 +939,30 @@ char *AppendString(char *src, char *app)
 //
 #if __BYTE_ORDER == __BIG_ENDIAN
 union ieee754_float
-  {
-    float f;
+{
+  float f;
 
-    /* This is the IEEE 754 single-precision format.  */
-    struct
-      {
-	unsigned int negative:1;
-	unsigned int exponent:8;
-	unsigned int mantissa:23;
-      } ieee;
-  };
+  /* This is the IEEE 754 single-precision format.  */
+  struct
+  {
+    unsigned int negative:1;
+    unsigned int exponent:8;
+    unsigned int mantissa:23;
+  } ieee;
+};
 #else // little endian
 union ieee754_float
-  {
-    float f;
+{
+  float f;
 
-    /* This is the IEEE 754 single-precision format.  */
-    struct
-      {
-	unsigned int mantissa:23;
-	unsigned int exponent:8;
-	unsigned int negative:1;
-      } ieee;
-  };
+  /* This is the IEEE 754 single-precision format.  */
+  struct
+  {
+    unsigned int mantissa:23;
+    unsigned int exponent:8;
+    unsigned int negative:1;
+  } ieee;
+};
 #endif
 
 int devIsinf(float value)
@@ -989,7 +1010,6 @@ int devFinite(float value)
   return(0);
 } /* end devFinite() */
 
-/* eof */
 char *
 FileNameRemoveExtension(char *in_fname, char *out_fname)
 {
@@ -1028,10 +1048,10 @@ FileNameFromWildcard(char *inStr, char *outStr)
     strcpy(outStr, inStr) ;
   cp = strchr(inStr, '*') ;
   if (NULL != cp)
-  {
-    if (glob(inStr, 0, NULL, &gbuf) == 0 && gbuf.gl_pathc > 0)
-      strcpy(outStr, gbuf.gl_pathv[0]) ;
-  }
+    {
+      if (glob(inStr, 0, NULL, &gbuf) == 0 && gbuf.gl_pathc > 0)
+        strcpy(outStr, gbuf.gl_pathv[0]) ;
+    }
 
   return(outStr) ;
 }
@@ -1047,7 +1067,8 @@ int getMemoryUsed()
   /////////////////////////////////////////////////////////////////////////
   // Linux /proc/$pid/status file memory usage information in Kbytes
   // VmSize : virtual memory usage of entire process
-  // VmRSS  : resident set currently in physical memory including code, data, stack
+  // VmRSS  : resident set currently in physical memory including
+  //          code, data, stack
   // VmData : virtual memory usage of heap
   // VmStk  : virtual memory usage of stack
   // VmExe  : virtual memory usage by executable and statically linked libs
@@ -1057,42 +1078,42 @@ int getMemoryUsed()
   errno = 0;
   fp = popen(buf, "r");
   if (fp)
-  {
-    numassigned = fscanf(fp, "%d", &memused);
-    if (numassigned == 1)
     {
-      pclose(fp);
-      return memused;
+      numassigned = fscanf(fp, "%d", &memused);
+      if (numassigned == 1)
+        {
+          pclose(fp);
+          return memused;
+        }
+      else
+        {
+          pclose(fp);
+          errno = 0;
+          fprintf(stderr, "getting memoryused failed");
+          return -1;
+        }
     }
-    else
+  if (errno)
     {
-      pclose(fp);
       errno = 0;
       fprintf(stderr, "getting memoryused failed");
       return -1;
     }
-  }
-  if (errno)
-  {
-    errno = 0;
-    fprintf(stderr, "getting memoryused failed");
-    return -1;
-  }
   return -1;  // this should never happen
 #else
   static int used = 0;
   if (!used)
-  {
-    fprintf(stderr, "getMemoryUsed works only under Linux\n");
-    used = 1;
-  }
+    {
+      fprintf(stderr, "getMemoryUsed works only under Linux\n");
+      used = 1;
+    }
   return -1;
 #endif
 }
 
 void printMemoryUsed()
 {
-  printf("heap used: %d Kbytes.\n", getMemoryUsed()); 
+  printf("heap used: %d Kbytes.\n", getMemoryUsed());
 }
 
 // String copy will allocation.
@@ -1130,7 +1151,7 @@ int ItemsInString(char *str)
     items++;
     while(!isspace(str[nthchar])){
       // scroll thru chars in the item = nonwhitespace
-      nthchar ++; 
+      nthchar ++;
       if(nthchar == len) return(items);
     }
     while(isspace(str[nthchar])){
@@ -1142,6 +1163,3 @@ int ItemsInString(char *str)
 
   return(items); // should never get here
 }
-
-
-
