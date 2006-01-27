@@ -1,10 +1,9 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.15 2006/01/26 23:43:07 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.16 2006/01/27 17:59:57 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
-# so that the group write bit is set on created files
 umask 002
 
 set HOSTNAME=`hostname -s`
@@ -199,8 +198,8 @@ if ($status != 0) then
   touch ${FAILED_FILE}
   chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chmod -R g+rw ${DEV_DIR}/*.*" >>& $OUTPUTF
-  chmod -R g+rw ${DEV_DIR}/*.* >>& $OUTPUTF
+  echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
+  chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
   exit 1
 endif
 
@@ -217,8 +216,8 @@ if ($status != 0) then
   touch ${FAILED_FILE}
   chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chmod -R g+rw ${DEV_DIR}/*.*" >>& $OUTPUTF
-  chmod -R g+rw ${DEV_DIR}/*.* >>& $OUTPUTF
+  echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
+  chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
   exit 1  
 endif
 
@@ -234,8 +233,8 @@ if ($status != 0) then
   touch ${FAILED_FILE}
   chmod g+w ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chmod -R g+rw ${DEV_DIR}/*.*" >>& $OUTPUTF
-  chmod -R g+rw ${DEV_DIR}/*.* >>& $OUTPUTF
+  echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
+  chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
   exit 1  
 endif
 
@@ -272,12 +271,12 @@ mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin >>& $OUTPUTF
 echo "##########################################################" >>& $OUTPUTF
 echo "Setting permissions" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
-echo "CMD: chmod -R g+rw ${DEST_DIR}/*.*" >>& $OUTPUTF
-chmod -R g+rw ${DEST_DIR}/*.* >>& $OUTPUTF
-echo "CMD: chmod -R g+rw ${DEV_DIR}/*.*" >>& $OUTPUTF
-chmod -R g+rw ${DEV_DIR}/*.* >>& $OUTPUTF
-echo "CMD: chmod -R g+rw ${LOG_DIR}/*.*" >>& $OUTPUTF
-chmod -R g+rw ${LOG_DIR}/*.* >>& $OUTPUTF
+echo "CMD: chmod -R g+rw ${DEST_DIR}" >>& $OUTPUTF
+chmod -R g+rw ${DEST_DIR} >>& $OUTPUTF
+echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
+chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
+echo "CMD: chmod -R g+rw ${LOG_DIR}" >>& $OUTPUTF
+chmod -R g+rw ${LOG_DIR} >>& $OUTPUTF
 
 if ($?PUB_DEST_DIR) then
   echo "########################################################" >>& $OUTPUTF
@@ -291,13 +290,13 @@ if ($?PUB_DEST_DIR) then
     touch ${FAILED_FILE}
     chmod g+w ${FAILED_FILE}
     # set group write bit on files changed by make tools:
-    echo "CMD: chmod -R g+rw ${PUB_DEST_DIR}/*.*" >>& $OUTPUTF
-    chmod -R g+rw ${PUB_DEST_DIR}/*.* >>& $OUTPUTF
+    echo "CMD: chmod -R g+rw ${PUB_DEST_DIR}" >>& $OUTPUTF
+    chmod -R g+rw ${PUB_DEST_DIR} >>& $OUTPUTF
     exit 1  
   endif
   # set group write bit on files changed by make tools:
-  echo "CMD: chmod -R g+rw ${PUB_DEST_DIR}/*.*" >>& $OUTPUTF
-  chmod -R g+rw ${PUB_DEST_DIR}/*.* >>& $OUTPUTF
+  echo "CMD: chmod -R g+rw ${PUB_DEST_DIR}" >>& $OUTPUTF
+  chmod -R g+rw ${PUB_DEST_DIR} >>& $OUTPUTF
 endif
 
 # Success, so remove fail indicator:
