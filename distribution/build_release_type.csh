@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.16 2006/01/27 17:59:57 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.17 2006/01/28 00:36:09 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -134,10 +134,18 @@ cvs update -P -d >& $LOG_DIR/update-output-$HOSTNAME
 chmod g+w $LOG_DIR/update-output-$HOSTNAME
 
 echo "CMD: grep -e "Permission denied" $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
-grep -e "Permission denied"  $LOG_DIR/update-output-$HOSTNAME >& /dev/null
+grep -e "Permission denied" $LOG_DIR/update-output-$HOSTNAME >& /dev/null
 if ($status == 0) then
   echo "cvs update: Permission denied" >>& $OUTPUTF
   mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - cvs update permission denied" $FAILURE_MAIL_LIST < $OUTPUTF
+  exit 1  
+endif
+
+echo "CMD: grep -e "cvs update: move away" $LOG_DIR/update-output-$HOSTNAME" >>& $OUTPUTF
+grep -e "cvs update: move away" $LOG_DIR/update-output-$HOSTNAME >& /dev/null
+if ($status == 0) then
+  echo "cvs update: a file is 'in the way' (see $LOG_DIR/update-output-$HOSTNAME)" >>& $OUTPUTF
+  mail -s "$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file in the way" $FAILURE_MAIL_LIST < $OUTPUTF
   exit 1  
 endif
 
