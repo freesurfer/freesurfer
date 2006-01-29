@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION='$Id: build_release_type.csh,v 1.17 2006/01/28 00:36:09 nicks Exp $'
+set VERSION='$Id: build_release_type.csh,v 1.18 2006/01/29 20:26:39 nicks Exp $'
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
 
@@ -208,6 +208,7 @@ if ($status != 0) then
   # set group write bit on files changed by make tools:
   echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
+  chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
   exit 1
 endif
 
@@ -226,6 +227,7 @@ if ($status != 0) then
   # set group write bit on files changed by make tools:
   echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
+  chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
   exit 1  
 endif
 
@@ -243,6 +245,7 @@ if ($status != 0) then
   # set group write bit on files changed by make tools:
   echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
   chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
+  chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
   exit 1  
 endif
 
@@ -283,6 +286,7 @@ echo "CMD: chmod -R g+rw ${DEST_DIR}" >>& $OUTPUTF
 chmod -R g+rw ${DEST_DIR} >>& $OUTPUTF
 echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
 chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
+chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
 echo "CMD: chmod -R g+rw ${LOG_DIR}" >>& $OUTPUTF
 chmod -R g+rw ${LOG_DIR} >>& $OUTPUTF
 
