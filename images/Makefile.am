@@ -68,6 +68,9 @@ icon_navigate.gif \
 icon_orientation_coronal.gif \
 icon_orientation_horizontal.gif \
 icon_orientation_sagittal.gif \
+icon_orientation_x.gif \
+icon_orientation_y.gif \
+icon_orientation_z.gif \
 icon_overlay.gif \
 icon_redraw.gif \
 icon_rotate_plane.gif \
