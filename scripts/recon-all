@@ -3,7 +3,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.1 2006/01/27 17:16:18 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.2 2006/01/30 18:18:47 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -698,6 +698,22 @@ if($DoCALabel) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# SubCort Seg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
+
+  # Check whether there is a difference bet aseg.auto.mgz
+  # and aseg.mgz, which indicates an edit. Must do this
+  # prior to doing labeling.
+  if(-e aseg.mgz) then
+    set cmd = (mri_diff aseg.auto.mgz aseg.mgz);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    set ASegDiff = $status;
+    if($ASegDiff == 1) goto error_exit;
+    # ASegDiff will = 0 if no diff or !0 for diff
+  else
+    set ASegDiff = 0;
+  endif
+  echo $ASegDiff
+
   set xopts = `fsr-getxopts mri_ca_label $XOptsFile`;
   set cmd = (mri_ca_label $UseCAAlign $xopts norm.mgz \
     transforms/talairach.m3z $FREESURFER_HOME/average/$GCA \
@@ -705,7 +721,8 @@ if($DoCALabel) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
-  if($DoCleanASeg || ! -e aseg.mgz) then
+
+  if($DoCleanASeg || ! $ASegDiff) then
     set cmd = (cp aseg.auto.mgz aseg.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) then
@@ -811,7 +828,9 @@ if($DoSegmentation) then
   else
     set WM_vol = wm.seg.mgz
   endif
-  set cmd = (mri_pretess $xopts $WM_vol $wmlabelstring norm.mgz wm.mgz)
+  set cmd = (mri_pretess )
+  if(! $DoCleanWM) set cmd = ($cmd -keep)
+  set cmd = ($cmd $xopts $WM_vol $wmlabelstring norm.mgz wm.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
