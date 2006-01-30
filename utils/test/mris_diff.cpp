@@ -54,7 +54,7 @@ void lubksb(double** a,int n,int* indx,double* b);
 static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
-static char vcid[] = "$Id: mris_diff.cpp,v 1.7 2005/08/31 22:07:21 xhan Exp $";
+static char vcid[] = "$Id: mris_diff.cpp,v 1.8 2006/01/30 21:21:47 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -146,8 +146,10 @@ int main(int argc, char *argv[])
   LTA          *lta = 0;
   int          transform_type;
 
+  label = 0; annotation = 0;
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.7 2005/08/31 22:07:21 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.8 2006/01/30 21:21:47 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -961,10 +963,12 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1, MRI *mri_data1, MRI_SURFACE *Mesh2
   VERTEX *V1, *V2, *V3;
   FACE *face;
   double value, distance, tmps, tmpt;
-  double total_distance, tmp_value, tmp_distance;
+  double total_distance, tmp_distance;
+  double max_distance, std_dist;
 
   ANNpointArray pa = annAllocPts(Mesh2->nvertices, 3);
 
+  max_distance = 0;
   for(index = 0; index < Mesh2->nvertices; index++){
     pa[index][0] = Mesh2->vertices[index].x;
     pa[index][1] = Mesh2->vertices[index].y;
@@ -981,7 +985,7 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1, MRI *mri_data1, MRI_SURFACE *Mesh2
   
   QueryPt = annAllocPts(1,3);
 
-  total_distance = 0.0;
+  total_distance = 0.0; std_dist = 0;
 
   for(index = 0; index < Mesh1->nvertices; index++){
     if(Mesh1->vertices[index].border == 1) continue;
@@ -1000,7 +1004,7 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1, MRI *mri_data1, MRI_SURFACE *Mesh2
     /* annIndex gives the closest vertex on mris_template to the vertex #index of mris */
     
     /* Now need to find the closest face in order to perform linear interpolation */
-    distance = 1e30; 
+    distance = 1e30; closestface = 0;
     for(k=0; k < Mesh2->vertices[annIndex[0]].num; k++){
       
       facenumber =  Mesh2->vertices[annIndex[0]].f[k]; /* index of the k-th face */
@@ -1011,6 +1015,13 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1, MRI *mri_data1, MRI_SURFACE *Mesh2
 	distance = value;
 	closestface = facenumber;
       }
+    }
+
+    if(compute_distance){
+      tmp_distance =  sqrt(distance);
+      if(max_distance < tmp_distance) max_distance = tmp_distance;
+      total_distance += (tmp_distance);
+      std_dist += distance;
     }
 
     face = &Mesh2->faces[closestface];
@@ -1038,24 +1049,27 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1, MRI *mri_data1, MRI_SURFACE *Mesh2
       value /= 0.5*(sumcurv + MRIgetVoxVal(mri_data1,index,0,0,0) + 1e-15);
     }
       
-    if(compute_distance){
-      tmp_value = QueryPt[0][0] - Mesh2->vertices[annIndex[0]].x;
-      tmp_distance = tmp_value*tmp_value;
-      tmp_value = QueryPt[0][1] - Mesh2->vertices[annIndex[0]].y;
-      tmp_distance += tmp_value*tmp_value;
-      tmp_value = QueryPt[0][2] - Mesh2->vertices[annIndex[0]].z;
-      tmp_distance += tmp_value*tmp_value;
-      /* if(index == 69894){
-	 printf("distance = %g\n", sqrt(tmp_distance));
-	 } */
-      total_distance += sqrt(tmp_distance);
-    }
+    /*    if(compute_distance){
+	  tmp_value = QueryPt[0][0] - Mesh2->vertices[annIndex[0]].x;
+	  tmp_distance = tmp_value*tmp_value;
+	  tmp_value = QueryPt[0][1] - Mesh2->vertices[annIndex[0]].y;
+	  tmp_distance += tmp_value*tmp_value;
+	  tmp_value = QueryPt[0][2] - Mesh2->vertices[annIndex[0]].z;
+	  tmp_distance += tmp_value*tmp_value;
+
+	  tmp_distance =  sqrt(tmp_distance);
+	  if(max_distance < tmp_distance) max_distance = tmp_distance;
+	  total_distance += (tmp_distance);
+	  }
+    */
     MRIsetVoxVal(mri_res,index, 0, 0, 0, value);
   }
   
   if(compute_distance){
-    total_distance /= (Mesh1->nvertices + 1e-10);
-    printf("Average vertex-to-vertex distance of the two surfaces are %g\n", total_distance);
+    std_dist /= (Mesh1->nvertices + 1e-30);
+    total_distance /= (Mesh1->nvertices + 1e-30);
+    std_dist = sqrt(std_dist - total_distance* total_distance);
+    printf("Max, average, and std of vertex-to-vertex distances of the two surfaces are %g, %g and %g\n", max_distance, total_distance, std_dist);
   }
 
   if (annkdTree) delete annkdTree;
@@ -1208,7 +1222,7 @@ void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2){
     }
     
     iter ++;
-    if (DEBUG) printf(" iteration %d, error = %15.4f\n", iter, error_new);
+    if(debugflag)    printf(" iteration %d, error = %15.4f\n", iter, error_new);
   }
 
   // free memory
@@ -1468,7 +1482,9 @@ void ludcmp(double** a,int n,int *indx,double* d)
   int i,imax,j,k;
   double big,dum,sum,temp;
   double *vv;
-  
+
+  imax = 0;
+
   //vv=vector(1,n);
   vv = (double*)malloc(2*n*sizeof(double));
   

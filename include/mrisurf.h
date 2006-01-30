@@ -866,6 +866,11 @@ int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain,
                           MRI *mri_smooth, INTEGRATION_PARMS *parms);
 int   MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, 
                            int nvolumes, INTEGRATION_PARMS *parms);
+
+int MRISpositionSurface_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5,
+			    INTEGRATION_PARMS *parms, float weight30, float weight5);
+
+
 int   MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, 
                       MRI *mri_smooth, INTEGRATION_PARMS *parms);
 int   MRISscaleVals(MRI_SURFACE *mris, float scale) ;

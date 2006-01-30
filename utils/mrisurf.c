@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/30 13:26:00 $
-// Revision       : $Revision: 1.430 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2006/01/30 21:21:43 $
+// Revision       : $Revision: 1.431 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -489,6 +489,15 @@ static int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2) ;
 static int mrisStoreVtotalInV3num(MRI_SURFACE *mris) ;
 static int  mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno,
                                         int *flist) ;
+
+//The following two functions added for processing two channel MEF
+static int
+mrisComputeIntensityTerm_mef(MRI_SURFACE *mris, double l_intensity, MRI *mri_30,
+			     MRI *mri_5, double sigma_global, float weight30, float weight5);
+static double
+mrisRmsValError_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, float weight30, float weight5);
+
+
 #if 0
 static int   mrisAddVertices(MRI_SURFACE *mris, double max_len) ;
 #endif
@@ -559,7 +568,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.430 2006/01/30 13:26:00 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.431 2006/01/30 21:21:43 xhan Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -13511,6 +13520,153 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
 
   return(NO_ERROR) ;
 }
+
+
+static int
+mrisComputeIntensityTerm_mef(MRI_SURFACE *mris, double l_intensity, MRI *mri_30,
+                         MRI *mri_5, double sigma_global, float weight30, float weight5)
+{
+  int     vno ;
+  VERTEX  *v ;
+  float   x, y, z, nx, ny, nz, dx, dy, dz ;
+  Real    val0, xw, yw, zw, del, val_outside, val_inside, delI, delV, k,
+    ktotal ;
+  double  sigma ;
+
+  if (FZERO(l_intensity))
+    return(NO_ERROR) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->val < 0)
+	continue ;
+      if (vno == Gdiag_no)
+	DiagBreak() ;
+
+      x = v->x ; y = v->y ; z = v->z ;
+
+      MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw);
+      MRIsampleVolume(mri_30, xw, yw, zw, &val0) ;
+      sigma = v->val2 ;
+      if (FZERO(sigma))
+	sigma = sigma_global ;
+
+      nx = v->nx ; ny = v->ny ; nz = v->nz ;
+
+      /* compute intensity gradient using smoothed volume */
+
+      {
+	Real dist, val, step_size ;
+	int  n ;
+
+	step_size = MIN(sigma/2, MIN(mri_30->xsize, MIN(mri_30->ysize, mri_30->zsize))*0.5) ;
+	ktotal = 0.0 ;
+	for (n = 0, val_outside = val_inside = 0.0, dist = step_size ; 
+	     dist <= 2*sigma; 
+	     dist += step_size, n++)
+	  {
+	    k = exp(-dist*dist/(2*sigma*sigma)) ; ktotal += k ;
+	    xw = x + dist*nx ; yw = y + dist*ny ; zw = z + dist*nz ;
+	    MRIsurfaceRASToVoxel(mri_30, xw, yw, zw, &xw, &yw, &zw);
+	    MRIsampleVolume(mri_30, xw, yw, zw, &val) ;
+	    val_outside += k*val ;
+				
+	    xw = x - dist*nx ; yw = y - dist*ny ; zw = z - dist*nz ;
+	    MRIsurfaceRASToVoxel(mri_30, xw, yw, zw, &xw, &yw, &zw);
+	    MRIsampleVolume(mri_30, xw, yw, zw, &val) ;
+	    val_inside += k*val ;
+	  }
+	val_inside /= (double)ktotal ; val_outside /= (double)ktotal ;
+      }
+
+
+
+      delV = v->val - val0 ;
+      delI = (val_outside - val_inside) / 2.0 ;
+
+
+      if (!FZERO(delI))
+	delI /= fabs(delI) ;
+      else
+	delI = -1; //intensity tends to increase inwards for flash30
+
+
+      if (delV > 5)
+	delV = 5 ;
+      else if (delV < -5)
+	delV = -5 ;
+    
+      del = l_intensity * delV * delI ;
+
+      dx = nx * del*weight30 ; dy = ny * del*weight30 ; dz = nz * del*weight30;
+
+      v->dx += dx ;   
+      v->dy += dy ;
+      v->dz += dz ;
+
+      //now compute flash5
+      /* compute intensity gradient using smoothed volume */
+      MRIsurfaceRASToVoxel(mri_5, x, y, z, &xw, &yw, &zw);
+      MRIsampleVolume(mri_5, xw, yw, zw, &val0) ;
+      {
+	Real dist, val, step_size ;
+	int  n ;
+
+	step_size = MIN(sigma/2, MIN(mri_5->xsize, MIN(mri_5->ysize, mri_5->zsize))*0.5) ;
+	ktotal = 0.0 ;
+	for (n = 0, val_outside = val_inside = 0.0, dist = step_size ; 
+	     dist <= 2*sigma; 
+	     dist += step_size, n++)
+	  {
+	    k = exp(-dist*dist/(2*sigma*sigma)) ; ktotal += k ;
+	    xw = x + dist*nx ; yw = y + dist*ny ; zw = z + dist*nz ;
+	    MRIsurfaceRASToVoxel(mri_5, xw, yw, zw, &xw, &yw, &zw);
+	    MRIsampleVolume(mri_5, xw, yw, zw, &val) ;
+	    val_outside += k*val ;
+				
+	    xw = x - dist*nx ; yw = y - dist*ny ; zw = z - dist*nz ;
+	    MRIsurfaceRASToVoxel(mri_5, xw, yw, zw, &xw, &yw, &zw);
+	    MRIsampleVolume(mri_5, xw, yw, zw, &val) ;
+	    val_inside += k*val ;
+	  }
+	val_inside /= (double)ktotal ; val_outside /= (double)ktotal ;
+      }
+
+
+
+      delV = v->valbak - val0 ;
+      delI = (val_outside - val_inside) / 2.0 ;
+
+
+      if (!FZERO(delI))
+	delI /= fabs(delI) ;
+      else
+	delI = 0 ;  
+
+
+      if (delV > 5)
+	delV = 5 ;
+      else if (delV < -5)
+	delV = -5 ;
+    
+      del = l_intensity * delV * delI ;
+
+      dx = nx * del*weight5 ; dy = ny * del*weight5; dz = nz * del*weight5;
+
+      v->dx += dx ;   
+      v->dy += dy ;
+      v->dz += dz ;
+      
+
+    }
+  
+
+  return(NO_ERROR) ;
+}
+
+
+
 #if 1
 static int
 mrisComputeIntensityGradientTerm(MRI_SURFACE*mris, double l_grad,
@@ -20056,6 +20212,197 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     MHTfree(&mht_v_orig) ;
   return(NO_ERROR) ;
 }
+
+
+int
+MRISpositionSurface_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5,
+			INTEGRATION_PARMS *parms, float weight30, float weight5)
+{
+  /*  char   *cp ;*/
+  int    avgs, niterations, n, write_iterations, nreductions = 0, done ;
+  double delta_t = 0.0, rms, dt, l_intensity, base_dt, last_rms, max_mm;
+  MHT    *mht = NULL, *mht_v_orig = NULL, *mht_v_current = NULL ;
+  struct timeb  then ; int msec ;
+
+  max_mm = MIN(MAX_ASYNCH_MM, MIN(mri_30->xsize, MIN(mri_30->ysize, mri_30->zsize))/2) ;
+
+  //note that the following is for pial surface avoid intersection with white
+  if (!FZERO(parms->l_surf_repulse))
+    mht_v_orig = MHTfillVertexTable(mris, NULL, ORIGINAL_VERTICES) ;
+    
+  base_dt = parms->dt ;
+  if (IS_QUADRANGULAR(mris))
+    MRISremoveTriangleLinks(mris) ;
+  TimerStart(&then) ;
+  //the following are used in mrisComputeIntensityError() and computeSSE()
+  parms->mri_brain = NULL; //mri_30 ;
+  parms->mri_smooth = NULL; //mri_5 ;
+  niterations = parms->niterations ; //should be different for white and pial; yeah 25 for white and 30 for pial
+  write_iterations = parms->write_iterations ;
+  if (Gdiag & DIAG_WRITE)
+    {
+      char fname[STRLEN] ;
+
+      if (!parms->fp)
+	{
+	  sprintf(fname, "%s.%s.out", 
+		  mris->hemisphere==RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
+	  if (!parms->start_t)
+	    parms->fp = fopen(fname, "w") ;
+	  else
+	    parms->fp = fopen(fname, "a") ;
+	  if (!parms->fp)
+	    ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+		      Progname, fname) ;
+	}
+      mrisLogIntegrationParms(parms->fp, mris, parms) ;
+    }
+  if (Gdiag & DIAG_SHOW)
+    mrisLogIntegrationParms(stderr, mris, parms) ;
+
+  mrisClearMomentum(mris) ;
+  MRIScomputeMetricProperties(mris) ;
+  MRISstoreMetricProperties(mris) ;
+
+  MRIScomputeNormals(mris) ;
+  mrisClearDistances(mris) ;
+
+  MRISclearCurvature(mris) ;  /* curvature will be used to calculate sulc */
+
+  /* write out initial surface */
+  if ((parms->write_iterations > 0) && (Gdiag&DIAG_WRITE) && !parms->start_t)
+    mrisWriteSnapshot(mris, parms, 0) ;
+
+  avgs = parms->n_averages ;
+  last_rms = rms = mrisRmsValError_mef(mris, mri_30, mri_5, weight30, weight5) ;
+  // last_sse = sse = MRIScomputeSSE(mris, parms) ; //this computation results were never used
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stdout, "%3.3d: dt: %2.4f, rms=%2.2f\n", 
+            0, 0.0f, (float)rms);
+
+  if (Gdiag & DIAG_WRITE)
+    {
+      fprintf(parms->fp, "%3.3d: dt: %2.4f, rms=%2.2f\n", 
+	      0, 0.0f,  (float)rms);
+      fflush(parms->fp) ;
+    }
+
+  dt = parms->dt ; l_intensity = parms->l_intensity ;
+  for (n = parms->start_t ; n < parms->start_t+niterations ; n++)
+    {
+      if (!FZERO(parms->l_repulse))
+	mht_v_current = MHTfillVertexTable(mris, mht_v_current,CURRENT_VERTICES);
+      if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
+	mht = MHTfillTable(mris, mht) ;
+      MRISclearGradient(mris) ;
+      mrisComputeIntensityTerm_mef(mris, l_intensity, mri_30, mri_5,
+			       parms->sigma, weight30, weight5);
+      //the following term is not used for white, but used for pial!
+      mrisComputeSurfaceRepulsionTerm(mris, parms->l_surf_repulse, mht_v_orig);
+#if 1
+      mrisAverageSignedGradients(mris, avgs) ;
+#else
+      mrisAverageWeightedGradients(mris, avgs) ;
+#endif
+      /*		mrisUpdateSulcalGradients(mris, parms) ;*/
+
+      /* smoothness terms */
+      mrisComputeSpringTerm(mris, parms->l_spring) ;
+      mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
+      mrisComputeRepulsiveTerm(mris, parms->l_repulse, mht_v_current) ;
+      mrisComputeThicknessSmoothnessTerm(mris, parms->l_tsmooth) ;
+      mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
+      mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
+      mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
+    
+
+      do
+	{
+	  MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+	  delta_t = mrisAsynchronousTimeStep(mris, parms->momentum, dt,mht,
+					     max_mm) ;
+	  if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
+	    MHTcheckFaces(mris, mht) ;
+	  MRIScomputeMetricProperties(mris) ; 
+	  rms = mrisRmsValError_mef(mris, mri_30, mri_5, weight30, weight5) ;
+	  //	  sse = MRIScomputeSSE(mris, parms) ;
+	  done = 1 ;
+	  if (rms > last_rms-0.05)  /* error increased - reduce step size */
+	    {
+	      nreductions++ ;
+	      parms->dt *= REDUCTION_PCT ; dt = parms->dt ;
+	      fprintf(stdout, 
+		      "rms = %2.2f, time step reduction %d of %d to %2.3f...\n",
+		      rms, nreductions, MAX_REDUCTIONS+1, dt) ;
+	      mrisClearMomentum(mris) ;
+	      if (rms > last_rms)  /* error increased - reject step */
+		{
+		  MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+		  MRIScomputeMetricProperties(mris) ; 
+
+		  /* if error increased and we've only reduced the time
+		     step a few times, try taking a smaller step (done=0).
+		  */
+		  done = (nreductions > MAX_REDUCTIONS) ;
+		}
+	    }
+	} while (!done) ;
+      //last_sse = sse ; 
+      last_rms = rms ;
+      
+      mrisTrackTotalDistanceNew(mris) ;  /* computes signed  deformation amount */
+      rms = mrisRmsValError_mef(mris, mri_30, mri_5, weight30, weight5) ;
+      //  sse = MRIScomputeSSE(mris, parms) ;
+      if (Gdiag & DIAG_SHOW)
+	fprintf(stdout, "%3.3d: dt: %2.4f, rms=%2.2f\n", 
+		n+1,(float)delta_t,  (float)rms);
+
+      if (Gdiag & DIAG_WRITE)
+	{
+	  fprintf(parms->fp, "%3.3d: dt: %2.4f, rms=%2.2f\n", 
+		  n+1,(float)delta_t, (float)rms);
+	  fflush(parms->fp) ;
+	}
+ 
+      if ((parms->write_iterations > 0) &&
+	  !((n+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
+	mrisWriteSnapshot(mris, parms, n+1) ;
+
+      if ((Gdiag & DIAG_SHOW) && !((n+1)%5))
+	MRISprintTessellationStats(mris, stderr) ;
+      if (nreductions > MAX_REDUCTIONS)
+	{
+	  n++ ;  /* count this step */
+	  break ;
+	}
+    }
+
+  parms->start_t = n ; parms->dt = base_dt ;
+  if (Gdiag & DIAG_SHOW)
+    {
+      msec = TimerStop(&then) ;
+      fprintf(stdout,"positioning took %2.1f minutes\n", 
+	      (float)msec/(60*1000.0f));
+    }
+  if (Gdiag & DIAG_WRITE)
+    {
+      fclose(parms->fp) ;
+      parms->fp = NULL ;
+    }
+
+  /*  MHTcheckSurface(mris, mht) ;*/
+  if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
+    MHTfree(&mht) ;
+  if (mht_v_current)
+    MHTfree(&mht_v_current) ;
+  if (mht_v_orig)
+    MHTfree(&mht_v_orig) ;
+  return(NO_ERROR) ;
+}
+
+
+
 int
 MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI  *mri_smooth,
                 INTEGRATION_PARMS *parms)
@@ -23573,6 +23920,44 @@ mrisRmsValError(MRI_SURFACE *mris, MRI *mri)
     }
   return(sqrt(total / (double)n)) ;
 }
+
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+
+
+static double
+mrisRmsValError_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, float weight30, float weight5)
+{
+  int     vno, n; //, xv, yv, zv ;
+  Real    val30, val5, total, delta, x, y, z ;
+  VERTEX  *v ;
+
+  for (total = 0.0, n = vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->val < 0)
+	continue ;
+      n++ ;
+      MRISvertexToVoxel(mris, v, mri_30, &x, &y, &z) ;
+      //      xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
+      MRIsampleVolume(mri_30, x, y, z, &val30) ;
+      MRIsampleVolume(mri_5, x, y, z, &val5) ;
+      delta = (val30 - v->val) ;
+      total += delta*delta*weight30;
+      delta = (val5 - v->valbak) ;
+      total += delta*delta*weight5;
+    }
+  return(sqrt(total / (double)n)) ;
+}
+
+
+
 /*-----------------------------------------------------
   Parameters:
 
