@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.170 2006/01/03 19:53:48 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.171 2006/01/30 20:33:06 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -429,6 +429,7 @@ proc LoadImages {} {
 	icon_arrow_shrink_x icon_arrow_shrink_y 
 	icon_orientation_coronal icon_orientation_horizontal 
 	icon_orientation_sagittal 
+	icon_orientation_x icon_orientation_y icon_orientation_z
 	icon_zoom_in icon_zoom_out 
 	icon_brush_square icon_brush_circle icon_brush_3d 
 	icon_surface_main icon_surface_original icon_surface_pial 
@@ -641,11 +642,11 @@ proc MakeToolBar { ifwTop } {
 	-variable gaView(current,inPlane) \
 	-command {ToolBarWrapper} \
 	-buttons {
-	    { -type image -name x -image icon_orientation_sagittal 
+	    { -type image -name x -image icon_orientation_x 
 		-balloon "X Plane" }
-	    { -type image -name y -image icon_orientation_coronal 
+	    { -type image -name y -image icon_orientation_y 
 		-balloon "Y Plane" }
-	    { -type image -name z -image icon_orientation_horizontal 
+	    { -type image -name z -image icon_orientation_z 
 		-balloon "Z Plane" }
 	}
 
@@ -5753,7 +5754,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.170 2006/01/03 19:53:48 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.171 2006/01/30 20:33:06 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
