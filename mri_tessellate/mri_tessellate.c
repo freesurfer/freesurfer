@@ -2,9 +2,9 @@
 // mri_tessellate.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2005/12/06 23:08:53 $
-// Revision       : $Revision: 1.26 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2006/01/30 13:27:37 $
+// Revision       : $Revision: 1.27 $
 //
 //
 // How it works.
@@ -39,7 +39,7 @@
 //
 //          MRIvoxelToSurfaceRAS()
 //
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.26 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.27 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +59,7 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.26 $";
 #include "matrix.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mri_tessellate.c,v 1.26 2005/12/06 23:08:53 greve Exp $";
+static char vcid[] = "$Id: mri_tessellate.c,v 1.27 2006/01/30 13:27:37 fischl Exp $";
 
 #define SQR(x) ((x)*(x))
 
@@ -108,7 +108,7 @@ static int facep(MRI *mri, int im0, int i0, int j0, int im1, int i1, int j1) ;
 static void check_face(MRI *mri, int im0, int i0, int j0, int im1, int i1,int j1, 
                        int f, int n, int v_ind, int prev_flag) ;
 static void make_surface(MRI *mri) ;
-static void write_binary_surface(char *fname, MRI *mri) ;
+static void write_binary_surface(char *fname, MRI *mri, char *cmdline) ;
 static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
@@ -116,13 +116,15 @@ char *Progname ;
 int
 main(int argc, char *argv[])
 {
-  char ofpref[STRLEN] /*,*data_dir*/;
+  char cmdline[CMD_LINE_LEN], ofpref[STRLEN] /*,*data_dir*/;
   int  nargs ;
   MRI *mri = 0;
   int xnum, ynum, numimg;
 
+  make_cmd_version_string (argc, argv, "$Id: mri_tessellate.c,v 1.27 2006/01/30 13:27:37 fischl Exp $", "$Name:  $", cmdline);
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.26 2005/12/06 23:08:53 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.27 2006/01/30 13:27:37 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -168,9 +170,9 @@ main(int argc, char *argv[])
   
   make_surface(mri);
 
-  write_binary_surface(ofpref, mri);
+  write_binary_surface(ofpref, mri, cmdline);
 
-  return 0;
+	exit(0) ;
 }
 
 static MRI *read_images(char *fpref)
@@ -375,7 +377,7 @@ static void make_surface(MRI *mri)
 #define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
                                   VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
 
-static void write_binary_surface(char *fname, MRI *mri)
+static void write_binary_surface(char *fname, MRI *mri, char *cmdline)
 {
   int k,n;
   double x,y,z;
@@ -452,6 +454,7 @@ static void write_binary_surface(char *fname, MRI *mri)
   fwriteInt(TAG_OLD_SURF_GEOM, fp);
   getVolGeom(mri, &vg);
   writeVolGeom(fp, &vg);
+	TAGwrite(fp, TAG_CMDLINE, cmdline, strlen(cmdline)+1) ;
 #endif
 
   fclose(fp);
