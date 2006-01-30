@@ -1,6 +1,6 @@
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.171 2006/01/30 20:33:06 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.172 2006/01/30 23:15:00 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5754,24 +5754,37 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.171 2006/01/30 20:33:06 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.172 2006/01/30 23:15:00 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
     foreach colID $gaCollection(idList) {
 	set type [GetCollectionType $colID]
 	set sLabel [GetCollectionLabel $colID]
+	puts $f "\#Collection $colID"
 	switch $type {
 	    Volume {
 		set fnVolume [GetVolumeCollectionFileName $colID]
 		set useTransform [GetUseVolumeDataToIndexTransform  $colID]
 
-		puts $f "\#Collection $colID"
 		puts $f "set colID \[MakeVolumeCollection \"$fnVolume\"\]"
 		puts $f "set layerID \[Make2DMRILayer \"$sLabel\"\]"
 		puts $f "Set2DMRILayerVolumeCollection \$layerID \$colID"
 	       puts $f "SetUseVolumeDataToIndexTransform \$colID $useTransform"
 		puts $f ""
+	    }
+	    Surface {
+		set fnSurface [GetSurfaceCollectionFileName $colID]
+		set useTransform \
+		    [IsSurfaceUsingDataToSurfaceTransformFromVolume $colID]
+		set volID [GetSurfaceDataToSurfaceTransformVolume $colID]
+
+		puts $f "set colID \[MakeSurfaceCollection \"$fnSurface\"\]"
+		puts $f "set layerID \[Make2DMRISLayer \"$sLabel\"\]"
+		puts $f "Set2DMRISLayerSurfaceCollection \$layerID \$colID"
+		if { $useTransform } {
+		    puts $f "SetSurfaceDataToSurfaceTransformFromVolume \$colID $volID"
+		}
 	    }
 	}
     }
@@ -5786,10 +5799,12 @@ proc SaveSceneScript { ifnScene } {
 	set type [GetLayerType $layerID]
 	set sLabel [GetLayerLabel $layerID]
 	set opacity [GetLayerOpacity $layerID]
+	set info [GetLayerReportInfo $layerID]
 
 	puts $f "\# Layer $layerID"
 	puts $f "SetLayerLabel $layerID \"$sLabel\""
 	puts $f "SetLayerOpacity $layerID $opacity"
+	puts $f "SetLayerReportInfo $layerID $info"
 	switch $type {
 	    2DMRI {
 		set colorMapMethod [Get2DMRILayerColorMapMethod $layerID]
@@ -5814,6 +5829,16 @@ proc SaveSceneScript { ifnScene } {
 		puts $f "Set2DMRILayerMaxVisibleValue $layerID $maxVisibleValue"
 		puts $f "Set2DMRILayerEditableROI $layerID $editableROI"
 		puts $f "Set2DMRILayerROIOpacity $layerID $roiOpacity"
+		puts $f ""
+	    }
+	    2DMRIS {
+		set lLineColor [Get2DMRISLayerLineColor $layerID]
+		set lVertexColor [Get2DMRISLayerVertexColor $layerID]
+		set width [Get2DMRISLayerLineWidth $layerID]
+
+		puts $f "Set2DMRISLayerLineColor \$layerID $lLineColor"
+		puts $f "Set2DMRISLayerVertexColor \$layerID $lVertexColor"
+		puts $f "Set2DMRISLayerLineWidth \$layerID $width"
 		puts $f ""
 	    }
 	}
