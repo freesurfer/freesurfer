@@ -4,8 +4,8 @@
 //
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2006/01/22 03:28:50 $
-// Revision       : $Revision: 1.88 $
+// Revision Date  : $Date: 2006/01/30 17:52:06 $
+// Revision       : $Revision: 1.89 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -5521,7 +5521,7 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   gcamClearMomentum(gcam) ;
   Gxs = Gx ; Gys = Gy ; Gzs = Gz ;
   Gx = Gy = Gz = -1 ;
-  diag = Gdiag = 0 ;
+  diag = Gdiag ; Gdiag = 0 ;
 
   min_rms = GCAMcomputeRMS(gcam, mri, parms) ; min_dt = 0 ;
 
