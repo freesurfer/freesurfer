@@ -15,6 +15,7 @@ freesurfer/bin-old-old
 freesurfer/freediffusion
 freesurfer/SetUpFreeDiffusion.csh
 freesurfer/bin/recon-all-nmr
+freesurfer/bin/recon-all-dev
 freesurfer/lib/gsl/share
 freesurfer/lib/gsl/include
 freesurfer/lib/tcltktixblt/man
