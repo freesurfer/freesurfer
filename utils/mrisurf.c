@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following three lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/27 17:35:37 $
-// Revision       : $Revision: 1.429 $
+// Revision Date  : $Date: 2006/01/30 13:26:00 $
+// Revision       : $Revision: 1.430 $
 //////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -559,7 +559,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
  MRISurfSrcVersion() - returns CVS version of this file.
  ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void) {
-  return("$Id: mrisurf.c,v 1.429 2006/01/27 17:35:37 fischl Exp $"); }
+  return("$Id: mrisurf.c,v 1.430 2006/01/30 13:26:00 fischl Exp $"); }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -25123,86 +25123,87 @@ MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname)
 
   Description
   ------------------------------------------------------*/
+#define MAX_HISTO 1000
 int
 MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
 {
-  int    histo[256];
+  int    histo[MAX_HISTO];
   int    i, n, vno, ino, index, max_histo, max_index, nchanged, nzero ;
   VERTEX *v, *vn ;
 
   MRISclearMarks(mris) ;  /* v->marked = 0 means it hasn't converged yet */
   for (ino  = 0 ; ino < niter ; ino++)
-    {
-      nzero = nchanged = 0 ;
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (vno == Gdiag_no)
-            DiagBreak() ;
-          if (v->ripflag || v->marked)
-            continue ;
-          if (vno == Gdiag_no)
-            DiagBreak() ;
+	{
+		nzero = nchanged = 0 ;
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (vno == Gdiag_no)
+				DiagBreak() ;
+			if (v->ripflag || v->marked)
+				continue ;
+			if (vno == Gdiag_no)
+				DiagBreak() ;
 
-          if (nint(v->val) == 0)
-            nzero++ ;
-          // initialize
-          memset(histo, 0, sizeof(histo)) ;
-          // create histogram
-          for (n = 0 ; n < v->vnum ; n++)
-            {
-              vn = &mris->vertices[v->v[n]] ;
-              index = (int)nint(vn->val) ;
-              if (index < 0 || index > 255)
-                continue ;
-              histo[index]++ ;
-            }
-          max_histo = histo[0] ; max_index = 0 ;
-          for (i = 1 ; i < 256 ; i++)
-            {
-              if (histo[i] > max_histo)
-                {
-                  max_histo = histo[i] ;
-                  max_index = i ;
-                }
-            }
-          v->valbak = max_index ;
-        }
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->ripflag)
-            continue ;
-          if (vno == Gdiag_no)
-            DiagBreak() ;
-          if (v->val != v->valbak)
-            {
-              v->marked = 0 ;  /* process it again */
-              nchanged++ ;
-            }
-          else
-            v->marked = 1 ;  /* didn't change */
-          v->val = v->valbak ;
-        }
+			if (nint(v->val) == 0)
+				nzero++ ;
+			// initialize
+			memset(histo, 0, sizeof(histo)) ;
+			// create histogram
+			for (n = 0 ; n < v->vnum ; n++)
+			{
+				vn = &mris->vertices[v->v[n]] ;
+				index = (int)nint(vn->val) ;
+				if (index < 0 || index >= MAX_HISTO)
+					continue ;
+				histo[index]++ ;
+			}
+			max_histo = histo[0] ; max_index = 0 ;
+			for (i = 1 ; i < MAX_HISTO ; i++)
+			{
+				if (histo[i] > max_histo)
+				{
+					max_histo = histo[i] ;
+					max_index = i ;
+				}
+			}
+			v->valbak = max_index ;
+		}
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag)
+				continue ;
+			if (vno == Gdiag_no)
+				DiagBreak() ;
+			if (v->val != v->valbak)
+			{
+				v->marked = 0 ;  /* process it again */
+				nchanged++ ;
+			}
+			else
+				v->marked = 1 ;  /* didn't change */
+			v->val = v->valbak ;
+		}
 
-      /* unmark all nbrs of unmarked vertices */
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->ripflag || v->marked == 1)
-            continue ;
-          if (vno == Gdiag_no)
-            DiagBreak() ;
-          for (n = 0 ; n < v->vnum ; n++)
-            {
-              vn = &mris->vertices[v->v[n]] ;
-              vn->marked = 0 ;   /* process it again */
-            }
-        }
-      printf("iter %d: %d changed, %d zero\n", ino, nchanged, nzero) ;
-      if (!nchanged)
-        break ;
-    }
+		/* unmark all nbrs of unmarked vertices */
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag || v->marked == 1)
+				continue ;
+			if (vno == Gdiag_no)
+				DiagBreak() ;
+			for (n = 0 ; n < v->vnum ; n++)
+			{
+				vn = &mris->vertices[v->v[n]] ;
+				vn->marked = 0 ;   /* process it again */
+			}
+		}
+		printf("iter %d: %d changed, %d zero\n", ino, nchanged, nzero) ;
+		if (!nchanged)
+			break ;
+	}
   MRISclearMarks(mris) ;
   return(NO_ERROR) ;
 }
@@ -25216,7 +25217,7 @@ MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
 int
 MRISmodeFilterZeroVals(MRI_SURFACE *mris)
 {
-  int    histo[256], i, n, vno, ino, index, max_histo, max_index, nchanged, nzero ;
+  int    histo[MAX_HISTO], i, n, vno, ino, index, max_histo, max_index, nchanged, nzero ;
   VERTEX *v, *vn ;
 
   MRISclearMarks(mris) ;  /* v->marked = 0 means it hasn't converged yet */
@@ -25241,12 +25242,12 @@ MRISmodeFilterZeroVals(MRI_SURFACE *mris)
             {
               vn = &mris->vertices[v->v[n]] ;
               index = (int)nint(vn->val) ;
-              if (index < 0 || index > 255)
+              if (index < 0 || index >= MAX_HISTO)
                 continue ;
               histo[index]++ ;
             }
           max_histo = 0 ; max_index = 0 ;
-          for (i = 1 ; i < 256 ; i++)
+          for (i = 1 ; i < MAX_HISTO ; i++)
             {
               if (histo[i] > max_histo)
                 {
@@ -25314,52 +25315,52 @@ MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
     set_atable_from_ctable(mris->ct);
 
   for (ino  = 0 ; ino < niter ; ino++)
-    {
-      for (nchanged = vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->ripflag)
-            continue ;
-          if (vno == Gdiag_no)
-            DiagBreak() ;
+	{
+		for (nchanged = vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag)
+				continue ;
+			if (vno == Gdiag_no)
+				DiagBreak() ;
 
-          memset(histo, 0, sizeof(histo)) ;
-          for (n = 0 ; n < v->vnum ; n++)
-            {
-              vn = &mris->vertices[v->v[n]] ;
-              index = annotation_to_index(vn->annotation) ;
-              if (index < 0 || index >= MAX_ANNOTATION)
-                continue ;
-              histo[index]++ ;
-              annotations[index] = vn->annotation ;
-            }
-          index = annotation_to_index(v->annotation) ;
-          max_histo = histo[index] ; max_annotation = v->annotation ;
-          for (i = 1 ; i < MAX_ANNOTATION ; i++)
-            {
-              if (histo[i] > max_histo)
-                {
-                  max_histo = histo[i] ;
-                  max_annotation = annotations[i] ;
-                }
-            }
-          v->undefval = max_annotation ;
+			memset(histo, 0, sizeof(histo)) ;
+			for (n = 0 ; n < v->vnum ; n++)
+			{
+				vn = &mris->vertices[v->v[n]] ;
+				index = annotation_to_index(vn->annotation) ;
+				if (index < 0 || index >= MAX_ANNOTATION)
+					continue ;
+				histo[index]++ ;
+				annotations[index] = vn->annotation ;
+			}
+			index = annotation_to_index(v->annotation) ;
+			max_histo = histo[index] ; max_annotation = v->annotation ;
+			for (i = 1 ; i < MAX_ANNOTATION ; i++)
+			{
+				if (histo[i] > max_histo)
+				{
+					max_histo = histo[i] ;
+					max_annotation = annotations[i] ;
+				}
+			}
+			v->undefval = max_annotation ;
 
-        }
-      for (vno = 0 ; vno < mris->nvertices ; vno++)
-        {
-          v = &mris->vertices[vno] ;
-          if (v->ripflag)
-            continue ;
-          if (vno == Gdiag_no)
-            DiagBreak() ;
-          if (v->annotation != v->undefval)
-            nchanged++ ;
-          v->annotation = v->undefval ;
-        }
-      if (nchanged == 0)
-        break ;
-    }
+		}
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag)
+				continue ;
+			if (vno == Gdiag_no)
+				DiagBreak() ;
+			if (v->annotation != v->undefval)
+				nchanged++ ;
+			v->annotation = v->undefval ;
+		}
+		if (nchanged == 0)
+			break ;
+	}
   printf("%d filter iterations complete (%d requested, %d changed)\n", ino, niter, nchanged) ;
   return(NO_ERROR) ;
 }
@@ -49197,20 +49198,49 @@ static int mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 int
 MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  int    negative, old_neg ;
+  int    negative, old_neg, same = 0 ;
 
   parms->dt = 1 ;
+	parms->max_nbrs = 0 ;
   negative = MRIScountNegativeTriangles(mris) ;
   while (negative > 0)
-    {
-      old_neg = negative ;
-      printf("%03d: %d negative triangles\n", parms->t++, negative) ;
-      mrisSmoothingTimeStep(mris, parms) ;
-      mrisProjectSurface(mris) ;
-      negative = MRIScountNegativeTriangles(mris) ;
-      if (parms->t > parms->niterations)
-        break ;
-    }
+	{
+		old_neg = negative ;
+		printf("%03d: %d negative triangles\n", parms->t++, negative) ;
+		mrisSmoothingTimeStep(mris, parms) ;
+		mrisProjectSurface(mris) ;
+		negative = MRIScountNegativeTriangles(mris) ;
+		if (old_neg == negative)
+		{
+			if (same++ > 5)
+			{
+				parms->max_nbrs++ ;
+				printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+				same = 0 ;
+			}
+		}
+		else
+			same = 0 ;
+		if (parms->t == parms->niterations/4)
+		{
+			parms->max_nbrs++ ;
+			printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+		}
+		if (parms->t == parms->niterations/2)
+		{
+			parms->max_nbrs++ ;
+			printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+		}
+
+		if (parms->t == 3*parms->niterations/4)
+		{
+			parms->max_nbrs++ ;
+			printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+		}
+			
+		if (parms->t > parms->niterations)
+			break ;
+	}
 
   return(NO_ERROR) ;
 }
@@ -49225,66 +49255,90 @@ mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   MRIScomputeMetricProperties(mris) ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
-    {
-      face = &mris->faces[fno] ;
-      if (face->area < 0)
-        {
-          for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-            {
-              v = &mris->vertices[face->v[n]] ;
-              v->area = -1 ;
-            }
-        }
-    }
+	{
+		face = &mris->faces[fno] ;
+		if (face->area < 0)
+		{
+			for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+			{
+				v = &mris->vertices[face->v[n]] ;
+				v->area = -1 ;
+			}
+		}
+	}
 
+	for (m = 0 ; m < parms->max_nbrs ; m++)
+	{
+		MRISclearMarks(mris) ;
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag || v->area > 0)
+				continue ;
+			for (n = 0 ; n < v->vnum ; n++)
+			{
+				vn = &mris->vertices[v->v[n]] ;
+				if (vn->area < 0)
+					continue ;
+				vn->marked = 1 ;
+			}
+		}
+		for (vno = 0 ; vno < mris->nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->marked)
+				v->area = -1 ;
+		}
+	}
+	
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag || v->area > 0)
-        continue ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      x = v->x ;    y = v->y ;   z = v->z ;
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag || v->area > 0)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		x = v->x ;    y = v->y ;   z = v->z ;
 
-      dx = dy = dz = 0.0 ;
-      n=0;
-      for (m = 0 ; m < v->vnum ; m++)
-        {
-          vn = &mris->vertices[v->v[m]] ;
-          if (!vn->ripflag)
-            {
-              dx += vn->x - x;
-              dy += vn->y - y;
-              dz += vn->z - z;
-              n++;
-            }
-        }
+		dx = dy = dz = 0.0 ;
+		n=0;
+		for (m = 0 ; m < v->vnum ; m++)
+		{
+			vn = &mris->vertices[v->v[m]] ;
+			if (!vn->ripflag)
+			{
+				dx += vn->x - x;
+				dy += vn->y - y;
+				dz += vn->z - z;
+				n++;
+			}
+		}
 #if 0
-      n = 4 ;  /* avg # of nearest neighbors */
+		n = 4 ;  /* avg # of nearest neighbors */
 #endif
-      if (n>0)
-        {
-          dx = dx/n;
-          dy = dy/n;
-          dz = dz/n;
-        }
+		if (n>0)
+		{
+			dx = dx/n;
+			dy = dy/n;
+			dz = dz/n;
+		}
 
-      v->dx = dx ; v->dy = dy ; v->dz = dz ;
-      if (vno == Gdiag_no)
-        fprintf(stdout, "v %d spring term:         (%2.3f, %2.3f, %2.3f)\n",
-                vno, dx, dy, dz) ;
-    }
+		v->dx = dx ; v->dy = dy ; v->dz = dz ;
+		if (vno == Gdiag_no)
+			fprintf(stdout, "v %d spring term:         (%2.3f, %2.3f, %2.3f)\n",
+							vno, dx, dy, dz) ;
+	}
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag || v->area > 0)
-        continue ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      v->x += v->dx * parms->dt ;
-      v->y += v->dy * parms->dt ;
-      v->z += v->dz * parms->dt ;
-    }
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag || v->area > 0)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		v->x += v->dx * parms->dt ;
+		v->y += v->dy * parms->dt ;
+		v->z += v->dz * parms->dt ;
+	}
 
   return(NO_ERROR) ;
 }
