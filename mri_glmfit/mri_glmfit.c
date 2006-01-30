@@ -410,7 +410,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.56 2006/01/30 04:21:24 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.57 2006/01/30 20:19:41 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -502,7 +502,7 @@ int OneSamplePerm=0;
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int nargs,n, m;
+  int nargs,n, m, absflag;
   struct timeb  mytimer;
   int msecFitTime;
   MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Xnorm=NULL;
@@ -882,6 +882,8 @@ int main(int argc, char **argv)
       //z = MRIalloc(mriglm->y->width,mriglm->y->height,mriglm->y->depth,MRI_FLOAT);
       z = MRIcloneBySpace(mriglm->y,1);
     }
+    if(csd->threshsign == 0) absflag = 1;
+    else                     absflag = 0;
 
     printf("Staring simulation sim over %d trials\n",nsim);
     TimerStart(&mytimer) ;
@@ -925,7 +927,7 @@ int main(int argc, char **argv)
 	  sig  = MRIlog10(mriglm->p[n],sig,1);
 	  // If it is t-test (ie, one row) then apply the sign
 	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
-	  sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
+	  sigmax = MRIframeMax(sig,0,mriglm->mask,absflag,&cmax,&rmax,&smax);
 	  Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
 	}
 	else{
@@ -940,7 +942,7 @@ int main(int argc, char **argv)
 	  mriglm->p[n] = RFstat2P(z,rfs,mriglm->mask,mriglm->p[n]);
 	  sig = MRIlog10(mriglm->p[n],sig,1);
 	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,z,0);
-	  sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
+	  sigmax = MRIframeMax(sig,0,mriglm->mask,absflag,&cmax,&rmax,&smax);
 	  Fmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
 	}
 	if(mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
