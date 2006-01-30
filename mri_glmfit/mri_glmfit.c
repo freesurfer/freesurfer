@@ -410,7 +410,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.55 2006/01/24 23:27:34 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.56 2006/01/30 04:21:24 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -783,7 +783,7 @@ int main(int argc, char **argv)
     }
     m = 1;
     for(n=0; n < mriglm->y->nframes; n++){
-      mriglm->Xg->rptr[n][1] = m;
+      mriglm->Xg->rptr[n+1][1] = m;
       m *= -1;
     }
   }
