@@ -105,11 +105,11 @@ main(int argc, char *argv[])
   int    ac, nargs, i, num ;
   MRI    *mri_src, *mri_avg = NULL, *mri_tmp ;
   char   *in_fname, *out_fname ;
-  int          msec, minutes, seconds ;
+  int          msec, minutes, seconds, skipped = 0 ;
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.27 2005/05/19 20:37:24 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.28 2006/01/31 18:45:03 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -249,10 +249,22 @@ main(int argc, char *argv[])
     }
 
 		num++ ;
+		if (mri_avg &&
+				((mri_src->width != mri_avg->width) ||
+				 (mri_src->height != mri_avg->height) ||
+				 (mri_src->depth != mri_avg->depth))
+				)
+		{
+			printf("src image (%d, %d, %d) not compatible with avg image (%d, %d, %d)\n",
+						 mri_src->width, mri_src->height, mri_src->depth,
+						 mri_avg->width, mri_avg->height, mri_avg->depth) ;
+			skipped++ ;
+			continue ;
+		}
 		if (sqr_images)
 			mri_avg = MRIsumSquare(mri_src, mri_avg, mri_avg) ;
 		else
-			mri_avg = MRIaverage(mri_src, i-1, mri_avg) ;
+			mri_avg = MRIaverage(mri_src, (i-1)-skipped, mri_avg) ;
     MRIfree(&mri_src) ;
   }
 	if (sqr_images)
