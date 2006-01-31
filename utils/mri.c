@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2006/01/27 20:51:00 $
-// Revision       : $Revision: 1.327 $
-char *MRI_C_VERSION = "$Revision: 1.327 $";
+// Revision Date  : $Date: 2006/01/31 14:24:59 $
+// Revision       : $Revision: 1.328 $
+char *MRI_C_VERSION = "$Revision: 1.328 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2616,6 +2616,16 @@ MRIextract(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
 MRI *
 MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region)
 {
+  MRI_REGION box ;
+
+  if (region == NULL)
+	{
+		region = & box ;
+		box.x = box.y = box.z = 0 ;
+		box.dx = mri_src->width ;
+		box.dy = mri_src->height ;
+		box.dz = mri_src->depth ;
+	}
   return(MRIextractInto(mri_src, mri_dst, region->x, region->y, region->z,
                         region->dx, region->dy, region->dz, 0, 0, 0)) ;
 }
@@ -11170,7 +11180,7 @@ MRIcopyPulseParameters(MRI *mri_src, MRI *mri_dst)
   return(NO_ERROR) ;
 }
 float
-MRIfindNearestNonzero(MRI *mri, int wsize, Real xr, Real yr, Real zr)
+MRIfindNearestNonzero(MRI *mri, int wsize, Real xr, Real yr, Real zr, float max_dist)
 {
   int   xk, yk, zk, xi, yi, zi, whalf, x, y, z ;
   float dist, min_dist, min_val, dx, dy, dz ;
@@ -11183,29 +11193,31 @@ MRIfindNearestNonzero(MRI *mri, int wsize, Real xr, Real yr, Real zr)
   min_dist = 100000 ; min_val = 0 ;
   whalf = (wsize-1)/2 ;
   for (zk = -whalf ; zk <= whalf ; zk++)
-    {
-      zi = mri->zi[z+zk] ;
-      dz = zi-zr ;
-      for (yk = -whalf ; yk <= whalf ; yk++)
-        {
-          yi = mri->yi[y+yk] ;
-          dy = yi-yr ;
-          for (xk = -whalf ; xk <= whalf ; xk++)
-            {
-              xi = mri->xi[x+xk] ;
-              dx = xi-xr ;
-              if (MRIgetVoxVal(mri, xi, yi, zi,0) > 0)
-                {
-                  dist = sqrt(dx*dx + dy*dy + dz*dz) ;
-                  if (dist < min_dist)
-                    {
-                      min_dist = dist ;
-                      min_val = MRIgetVoxVal(mri, xi, yi, zi,0) ;
-                    }
-                }
-            }
-        }
-    }
+	{
+		zi = mri->zi[z+zk] ;
+		dz = zi-zr ;
+		for (yk = -whalf ; yk <= whalf ; yk++)
+		{
+			yi = mri->yi[y+yk] ;
+			dy = yi-yr ;
+			for (xk = -whalf ; xk <= whalf ; xk++)
+			{
+				xi = mri->xi[x+xk] ;
+				dx = xi-xr ;
+				if (MRIgetVoxVal(mri, xi, yi, zi,0) > 0)
+				{
+					dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+					if (dist < min_dist)
+					{
+						min_dist = dist ;
+						min_val = MRIgetVoxVal(mri, xi, yi, zi,0) ;
+					}
+				}
+			}
+		}
+	}
+	if (max_dist > 0 && dist > max_dist)
+		return(0) ;
   return(min_val) ;
 }
 int
