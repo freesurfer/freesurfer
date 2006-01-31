@@ -780,6 +780,9 @@ MRI *MRIcpolvVote(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int wsize,
 MRI *MRIcpolvThreshold(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
                        int wm_low, int gray_hi,int wsize) ;
 MRI *MRImaskLabels(MRI *mri_src, MRI *mri_mask, MRI *mri_dst) ;
+MRI *MRIsphereMask(int ncols, int nrows, int nslices, int nframes, 
+		   int c0, int r0, int s0, double voxradius, double val, 
+		   MRI *mri);
 
 
 MRI *MRIwmfilterMarked(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int wsize, 

@@ -2386,3 +2386,32 @@ MRIsetLabelValues(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label, float v
 	return(mri_dst) ;
 }
 
+/*---------------------------------------------------------------
+  MRIsphereMask() - creates a binary spherical mask centered at
+  voxel (c0,r0,s0) with radius voxradius (measured in voxels).
+  Voxels in the sphere will have a value of val, those outside
+  will be 0. All frames will have the same mask.
+  ---------------------------------------------------------------*/
+MRI *MRIsphereMask(int ncols, int nrows, int nslices, int nframes, 
+		   int c0, int r0, int s0, double voxradius, double val, 
+		   MRI *mri)
+{
+  int r,c,s,f;
+  double d2, r2, v;
+
+  r2 = voxradius*voxradius;
+
+  if(mri==NULL) mri = MRIallocSequence(ncols,nrows,nslices,MRI_FLOAT,nframes);
+
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	d2 = (c-c0)*(c-c0) + (r-r0)*(r-r0) + (s-s0)*(s-s0);
+	if(d2 > r2) v = 0;
+	else        v = val;
+	for(f=0; f < mri->nframes; f++) MRIsetVoxVal(mri,c,r,s,f,v);
+      }
+    }
+  }
+  return(mri);
+}
