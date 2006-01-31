@@ -411,7 +411,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.59 2006/01/31 20:59:08 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.60 2006/01/31 21:38:43 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -936,7 +936,7 @@ int main(int argc, char **argv)
 	  sig  = MRIlog10(mriglm->p[n],sig,1);
 	  // If it is t-test (ie, one row) then apply the sign
 	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
-	  sigmax = MRIframeMax(sig,0,mriglm->mask,absflag,&cmax,&rmax,&smax);
+	  sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,&cmax,&rmax,&smax);
 	  Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
 	}
 	else{
@@ -951,26 +951,26 @@ int main(int argc, char **argv)
 	  mriglm->p[n] = RFstat2P(z,rfs,mriglm->mask,mriglm->p[n]);
 	  sig = MRIlog10(mriglm->p[n],sig,1);
 	  if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,z,0);
-	  sigmax = MRIframeMax(sig,0,mriglm->mask,absflag,&cmax,&rmax,&smax);
+	  sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,&cmax,&rmax,&smax);
 	  Fmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
 	}
 	if(mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
 
 	if(surf){
+	  // surface clustering -------------
 	  MRIScopyMRI(surf, sig, 0, "val");
 	  SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
 						0,&nClusters,NULL);
 	  csize = sclustMaxClusterArea(SurfClustList, nClusters);
 	} else {
-	  if(1){
+	  // volume clustering -------------
 	  VolClustList = clustGetClusters(sig, 0, threshadj,-1,csd->threshsign,0,
 					  mriglm->mask, &nClusters, NULL);
 	  csize = clustMaxClusterCount(VolClustList,nClusters);
 	  if(Gdiag_no > 0) clustDumpSummary(stdout,VolClustList,nClusters);
 	  clustFreeClusterList(&VolClustList,nClusters);
-	  }
 	}
-	printf("%s %d %d   %g  %g  %g\n",mriglm->glm->Cname[n],nthsim,
+	printf("%s %d nc=%d   csize=%g  sigmax=%g  Fmax=%g\n",mriglm->glm->Cname[n],nthsim,
 	       nClusters,csize,sigmax,Fmax);
 
 	// Re-write the full CSD file each time. Should not take that
@@ -1013,7 +1013,7 @@ int main(int argc, char **argv)
   if(MaxVoxBase != NULL){
     for(n=0; n < mriglm->glm->ncontrasts; n++){
       sig    = MRIlog10(mriglm->p[n],sig,1);
-      sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
+      sigmax = MRIframeMax(sig,0,mriglm->mask,0,&cmax,&rmax,&smax);
       Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
       sprintf(tmpstr,"%s-%s",MaxVoxBase,mriglm->glm->Cname[n]);
       fp = fopen(tmpstr,"a");
@@ -1090,7 +1090,7 @@ int main(int argc, char **argv)
     MRIwrite(sig,tmpstr);
 
     // Find and save the max sig
-    sigmax = MRIframeMax(sig,0,mriglm->mask,1,&cmax,&rmax,&smax);
+    sigmax = MRIframeMax(sig,0,mriglm->mask,0,&cmax,&rmax,&smax);
     Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
     printf("    maxvox sig=%g  F=%g  at  index %d %d %d    seed=%d\n",
 	   sigmax,Fmax,cmax,rmax,smax,SynthSeed);
