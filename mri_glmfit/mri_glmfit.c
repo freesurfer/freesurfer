@@ -410,7 +410,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.57 2006/01/30 20:19:41 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.58 2006/01/31 00:05:39 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -507,6 +507,7 @@ int main(int argc, char **argv)
   int msecFitTime;
   MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Xnorm=NULL;
   FILE *fp;
+  double threshadj;
 
   eresfwhm = -1;
   csd = CSDalloc();
@@ -882,8 +883,16 @@ int main(int argc, char **argv)
       //z = MRIalloc(mriglm->y->width,mriglm->y->height,mriglm->y->depth,MRI_FLOAT);
       z = MRIcloneBySpace(mriglm->y,1);
     }
-    if(csd->threshsign == 0) absflag = 1;
-    else                     absflag = 0;
+    if(csd->threshsign == 0) {
+      absflag = 1;
+      threshadj = csd->thresh;
+    }
+    else {
+      absflag = 0;
+      // adjust threhsold for one-sided test
+      threshadj = csd->thresh - log10(2.0); 
+    }
+    printf("thresh = %g, threshadj = %g \n",csd->thresh,threshadj);
 
     printf("Staring simulation sim over %d trials\n",nsim);
     TimerStart(&mytimer) ;
@@ -949,12 +958,12 @@ int main(int argc, char **argv)
 
 	if(surf){
 	  MRIScopyMRI(surf, sig, 0, "val");
-	  SurfClustList = sclustMapSurfClusters(surf,csd->thresh,-1,csd->threshsign,
+	  SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
 						0,&nClusters,NULL);
 	  csize = sclustMaxClusterArea(SurfClustList, nClusters);
 	} else {
 	  if(1){
-	  VolClustList = clustGetClusters(sig, 0, csd->thresh,-1,csd->threshsign,0,
+	  VolClustList = clustGetClusters(sig, 0, threshadj,-1,csd->threshsign,0,
 					  mriglm->mask, &nClusters, NULL);
 	  csize = clustMaxClusterCount(VolClustList,nClusters);
 	  if(Gdiag_no > 0) clustDumpSummary(stdout,VolClustList,nClusters);
