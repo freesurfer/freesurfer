@@ -118,6 +118,21 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
 			 "Returns the minimum value of the volume." );
   commandMgr.AddCommand( *this, "Get2DMRILayerMaxValue", 1, "layerID",
 			 "Returns the maximum value of the volume." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerHeatScaleMin", 1, "layerID",
+			 "Returns the heat scale min value for the layer." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerHeatScaleMin", 2, 
+			 "layerID value", "Sets the heat scale min value "
+			 "for the layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerHeatScaleMid", 1, "layerID",
+			 "Returns the heat scale mid value for the layer." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerHeatScaleMid", 2, 
+			 "layerID value", "Sets the heat scale mid value "
+			 "for the layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerHeatScaleMax", 1, "layerID",
+			 "Returns the heat scale max value for the layer." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerHeatScaleMax", 2, 
+			 "layerID value", "Sets the heat scale max value "
+			 "for the layer." );
   commandMgr.AddCommand( *this, "Set2DMRILayerROIOpacity", 2,"layerID opacity",
 			 "Sets the opacity of the ROI for a layer." );
   commandMgr.AddCommand( *this, "Get2DMRILayerROIOpacity", 1, "layerID",
@@ -1237,6 +1252,114 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     }
   }
 
+  // Get2DMRILayerHeatScaleMin <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerHeatScaleMin" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      sReturnFormat = "f";
+      stringstream ssReturnValues;
+      ssReturnValues << GetHeatScaleMinThreshold();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // Set2DMRILayerHeatScaleMin <layerID> <value>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerHeatScaleMin" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      float value = (float) strtod( iasArgv[2], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad value";
+	return error;
+      }
+      
+      SetHeatScaleMinThreshold( value );
+    }
+  }
+  
+  // Get2DMRILayerHeatScaleMid <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerHeatScaleMid" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      sReturnFormat = "f";
+      stringstream ssReturnValues;
+      ssReturnValues << GetHeatScaleMidThreshold();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // Set2DMRILayerHeatScaleMid <layerID> <value>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerHeatScaleMid" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      float value = (float) strtod( iasArgv[2], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad value";
+	return error;
+      }
+      
+      SetHeatScaleMidThreshold( value );
+    }
+  }
+  
+  // Get2DMRILayerHeatScaleMax <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerHeatScaleMax" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      sReturnFormat = "f";
+      stringstream ssReturnValues;
+      ssReturnValues << GetHeatScaleMaxThreshold();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // Set2DMRILayerHeatScaleMax <layerID> <value>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerHeatScaleMax" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      float value = (float) strtod( iasArgv[2], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad value";
+	return error;
+      }
+      
+      SetHeatScaleMaxThreshold( value );
+    }
+  }
+  
   // Get2DMRILayerROIOpacity <layerID>
   if( 0 == strcmp( isCommand, "Get2DMRILayerROIOpacity" ) ) {
     int layerID = strtol(iasArgv[1], (char**)NULL, 10);
