@@ -63,7 +63,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.12 2006/01/31 00:09:39 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.13 2006/01/31 00:40:42 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -126,6 +126,10 @@ int fixtkreg = 1;
 double threshminadj, threshmaxadj;
 int AdjustThreshWhenOneTail=1;
 
+CSD *csd=NULL;
+char *csdfile;
+double pvalLow, pvalHi, ciPct=90, pval, ClusterSize;
+
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
 /*--------------------------------------------------------------*/
@@ -138,7 +142,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.12 2006/01/31 00:09:39 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_volcluster.c,v 1.13 2006/01/31 00:40:42 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -243,7 +247,10 @@ int main(int argc, char **argv)
   HitMap = clustInitHitMap(vol, frame, threshminadj, threshmaxadj, threshsign, 
          &nhits, &hitcol, &hitrow, &hitslc, 
          binmask, maskframe);
-  if(HitMap == NULL) exit(1);
+  if(HitMap == NULL) {
+    printf("ERROR: initializing hit map\n");
+    exit(1);
+  }
   //MRIwriteType(HitMap,"hitmap",BSHORT_FILE);
 
   printf("INFO: Found %d voxels in threhold range\n",nhits);
@@ -319,6 +326,16 @@ int main(int argc, char **argv)
   if(debug)
     clustDumpClusterList(stdout,ClusterList, nclusters, vol, frame);
 
+  if(csd != NULL){
+    for(n=0; n < nclusters; n++){
+      ClusterSize = ClusterList[n]->nmembers * voxsize;
+      pval = CSDpvalClustSize(csd, ClusterSize, ciPct, &pvalLow, &pvalHi);
+      ClusterList[n]->pval_clusterwise     = pval;
+      ClusterList[n]->pval_clusterwise_low = pvalLow;
+      ClusterList[n]->pval_clusterwise_hi  = pvalHi;
+    }
+  }
+
   /* Open the Summary File (or set its pointer to stdout) */
   if(sumfile != NULL){
     fpsum = fopen(sumfile,"w");
@@ -360,9 +377,18 @@ int main(int argc, char **argv)
   }
   fprintf(fpsum,"AllowDiag:         %d\n",allowdiag);    
   fprintf(fpsum,"NClusters          %d\n",nclusters);  
+  if(csd != NULL){
+    fprintf(fpsum,"CSD thresh  %lf\n",csd->thresh);      
+    fprintf(fpsum,"CSD nreps    %d\n",csd->nreps);      
+    fprintf(fpsum,"CSD simtype  %s\n",csd->simtype);      
+    fprintf(fpsum,"CSD contrast %s\n",csd->contrast);      
+    fprintf(fpsum,"CSD confint  %lf\n",ciPct);      
+  }
 
   fprintf(fpsum,"\n");  
-  fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)     TalX   TalY    TalZ              Max\n");  
+  fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)     TalX   TalY    TalZ              Max");
+  if(csd != NULL)  fprintf(fpsum,"   CWP    CWPLow    CWPHi\n");
+  else fprintf(fpsum,"\n");
 
   for(n = 0; n < nclusters; n++){
     clustComputeTal(ClusterList[n],CRS2MNI); /* for "true" Tal coords */
@@ -379,10 +405,13 @@ int main(int argc, char **argv)
     fprintf(fpsum,"%3d        %4d      %7.1f    %7.2f %7.2f %7.2f   %15.5f",
      n+1,ClusterList[n]->nmembers,voxsize*ClusterList[n]->nmembers,
       x,y,z, ClusterList[n]->maxval);
-    if(debug)
-      fprintf(fpsum,"  %3d %3d %3d \n",col,row,slc);
-    else
-      fprintf(fpsum,"\n");
+    if(debug) fprintf(fpsum,"  %3d %3d %3d \n",col,row,slc);
+    if(csd != NULL)  
+      fprintf(fpsum,"  %7.5lf  %7.5lf  %7.5lf\n",
+	      ClusterList[n]->pval_clusterwise,
+	      ClusterList[n]->pval_clusterwise_low,
+	      ClusterList[n]->pval_clusterwise_hi);
+    else fprintf(fpsum,"\n");
   }
   if(sumfile != NULL) fclose(fpsum);
 
@@ -598,6 +627,17 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--sign")){
       if(nargc < 1) argnerr(option,1);
       signstring = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--csd")){
+      if(nargc < 1) argnerr(option,1);
+      csdfile = pargv[0]; 
+      csd = CSDreadMerge(csdfile,csd);
+      if(csd == NULL) exit(1);
+      if(strcmp(csd->anattype,"volume")){
+	printf("ERROR: csd must have anattype of volume\n");
+	exit(1);
+      }
       nargsused = 1;
     }
     else if (!strcmp(option, "--frame")){
@@ -934,6 +974,26 @@ static void check_options(void)
     err = 1;
   }
 
+  // Check cluster data file
+  if(csd != NULL){
+    if(threshmin < 0) threshmin = csd->thresh;
+    else{
+      if(threshmin != csd->thresh){
+	printf("ERROR: you have specified thmin=%f on cmdline, but\n",threshmin);
+	printf("CSD file was created with %lf\n",csd->thresh);
+	exit(1);
+      }
+    }
+    if(sizethresh > 0 || sizethreshvox > 0){
+      printf("ERROR: you cannot specify --minsize or --minsizevox with --csd\n");
+      exit(1);
+    }
+    if(threshmax > 0){
+      printf("ERROR: you cannot specify --thmax  with --csd\n");
+      exit(1);
+    }
+  } // end csd != NULL
+
   if(threshmin < 0) {
     fprintf(stderr,"ERROR: no minimum threshold supplied\n");
     err = 1;
@@ -961,7 +1021,6 @@ static void check_options(void)
     threshminadj = threshmin;
     threshmaxadj = threshmax;
   } 
-
 
   if(synthfunction != NULL){
     if(strcmp(synthfunction,"uniform")    && 
@@ -1019,9 +1078,7 @@ static void check_options(void)
     err = 1;
   }
 
-
   if(err) exit(1);
-
   return;
 }
 /* --------------------------------------------- */
